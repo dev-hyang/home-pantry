@@ -1,3 +1,4 @@
+import { checkConfig } from "./core/config-check.js";
 import { alertsOf, enrich, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
@@ -382,11 +383,17 @@ export async function boot() {
   fillUnitList();
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.enriched) refreshSoon(); });
 
-  const cfg = window.APP_CONFIG || {};
-  if (cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY) {
+  const cfg = checkConfig();
+  state.configIssue = cfg.issue || null;
+  if (cfg.mode === "blocked") {
+    setSync("配置有安全问题", true);
+    $("#main").innerHTML = `<div class="panel" role="alert" style="border:2px solid var(--out)"><b>已停止连接云端</b><p>${esc(cfg.issue)}</p></div>`;
+    return;
+  }
+  if (cfg.mode === "cloud") {
     if (!window.supabase) { setSync("云端库加载失败", true); return toast("无法加载 Supabase SDK，请检查网络后刷新"); }
     setStore(CloudStore);
-    CloudStore.sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+    CloudStore.sb = window.supabase.createClient(cfg.url, cfg.key);
     let started = false;
     const start = (session) => {
       if (started || !session) return;

@@ -418,3 +418,6 @@ textarea { resize: vertical; }
 .tpl-row small { display: block; color: var(--muted); font-size: 12px; }
 .tpl-row .note { color: var(--ink); opacity: .8; margin-top: 2px; }
 .tpl-row.is-have { opacity: .6; cursor: default; }
+
+.config-diag { border-left: 6px solid var(--mustard); }
+.config-diag p { margin: 6px 0; }

@@ -22,7 +22,11 @@ export function viewSettings() {
         <button class="btn btn-sm" type="submit">保存称呼</button></form>
       ${state.households.length > 1 ? `<label style="display:grid;gap:4px;margin-top:12px">切换家庭<select id="hhSwitch">${state.households.map((h) => `<option value="${h.id}" ${h.id === state.household.id ? "selected" : ""}>${esc(h.name)}</option>`).join("")}</select></label>` : ""}
     </div>` : `
-    <div class="panel"><b>想和家人共享？</b><p class="muted" style="margin:4px 0 0">按 README 创建免费的 Supabase 项目，把地址和 anon key 填进 config.js，重新部署即可。</p></div>`}
+    <div class="panel config-diag">
+      <b>为什么还是本地演示模式</b>
+      <p>${esc(state.configIssue || "没有检测到 Supabase 配置。")}</p>
+      <p class="muted" style="margin:0">自查：在浏览器打开 <a href="config.js" target="_blank" rel="noopener">本站的 config.js</a>，确认看到的是你填好的地址和 key；改完后等 1–2 分钟，再按 Ctrl+F5（Mac：Cmd+Shift+R）强制刷新。</p>
+    </div>`}
     <div class="panel">
       <label class="field-label" for="regionSel">地区与单位</label>
       <select id="regionSel">
