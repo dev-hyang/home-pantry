@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="家庭库存与采购清单：记录存量、按消耗速度提醒补货，家人共享不重复购买。">
   <title>家庭妈妈小助手</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫙</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40'%3E%3Crect x='4' y='1' width='24' height='7' rx='2' fill='%231e3a32'/%3E%3Crect x='3' y='8' width='26' height='30' rx='6' fill='white' stroke='%231e3a32' stroke-width='3'/%3E%3Crect x='6' y='22' width='20' height='13' rx='3' fill='%23e9b949'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -14,7 +14,11 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true">🫙</span>
+        <svg class="brand-mark" viewBox="0 0 32 40" width="30" height="38" aria-hidden="true">
+          <rect x="4" y="1" width="24" height="7" rx="2" fill="currentColor"/>
+          <rect x="3" y="8" width="26" height="30" rx="6" fill="none" stroke="currentColor" stroke-width="2.5"/>
+          <rect x="6" y="22" width="20" height="13" rx="3" fill="var(--mustard)"/>
+        </svg>
         <div>
           <h1>家庭妈妈小助手</h1>
           <p id="hhName" class="hh-name"></p>
@@ -24,7 +28,7 @@
     </div>
     <nav class="tabs" id="tabs" aria-label="主导航">
       <a href="#/today" data-section="today"><span aria-hidden="true">🗓️</span>今日</a>
-      <a href="#/pantry" data-section="pantry"><span aria-hidden="true">🫙</span>储藏</a>
+      <a href="#/pantry" data-section="pantry"><span aria-hidden="true">🥫</span>储藏</a>
       <a href="#/house" data-section="house"><span aria-hidden="true">🏠</span>房屋</a>
       <a href="#/shopping" data-section="shopping"><span aria-hidden="true">🛒</span>采购<b id="shopCount" class="tab-count" hidden></b></a>
       <a href="#/me" data-section="me"><span aria-hidden="true">👤</span>我的</a>
@@ -44,6 +48,40 @@
   <script src="charts.js"></script>
   <script src="data.js"></script>
   <script src="data/house.js"></script>
-  <script type="module" src="js/main.js"></script>
+
+  <!-- 启动自检：主脚本 6 秒内没有启动，就检查哪些文件缺失并显示在页面上（部署排错用） -->
+  <script>
+    (function () {
+      var FILES = ["styles.css", "config.js", "units.js", "charts.js", "data.js", "data/house.js",
+        "js/main.js", "js/today.js", "js/core/util.js", "js/core/state.js", "js/core/router.js", "js/core/store.js", "js/core/logic.js",
+        "js/pantry/views.js", "js/pantry/item-form.js", "js/house/views.js", "js/stats/views.js", "js/settings/views.js"];
+      var errors = [];
+      window.addEventListener("error", function (e) { if (e.message) errors.push(e.message + (e.filename ? "（" + e.filename.split("/").slice(-2).join("/") + "）" : "")); });
+      window.__hmhModuleFailed = function () { setTimeout(report, 0); };
+      function report() {
+        if (window.__hmhBooted || document.getElementById("bootCheck")) return;
+        var box = document.createElement("div");
+        box.id = "bootCheck"; box.setAttribute("role", "alert");
+        box.style.cssText = "max-width:720px;margin:24px auto;padding:16px 20px;border:2px solid #b42318;border-radius:12px;background:#fff;color:#1e3a32;font:14px/1.6 system-ui,sans-serif";
+        box.innerHTML = "<b>页面脚本没有启动</b><div id='bootCheckBody'>正在检查文件…</div>";
+        (document.getElementById("main") || document.body).appendChild(box);
+        if (location.protocol === "file:") {
+          document.getElementById("bootCheckBody").innerHTML = "当前是直接双击打开（file://）。浏览器不允许这种方式加载模块，请在项目目录运行 <code>python3 -m http.server 8000</code> 后访问 http://localhost:8000/ ，或使用部署后的网址。";
+          return;
+        }
+        Promise.all(FILES.map(function (f) {
+          return fetch(f, { method: "GET", cache: "no-store" }).then(function (r) { return r.ok ? null : f + "（" + r.status + "）"; }, function () { return f + "（无法访问）"; });
+        })).then(function (res) {
+          var missing = res.filter(Boolean), html = "";
+          if (missing.length) html += "<p>以下文件在服务器上找不到，请确认上传时保留了文件夹结构：</p><ul><li>" + missing.join("</li><li>") + "</li></ul>";
+          if (errors.length) html += "<p>脚本报错：</p><ul><li>" + errors.slice(0, 5).join("</li><li>") + "</li></ul>";
+          if (!missing.length && !errors.length) html += "<p>文件都在，但脚本没有启动。请按 Ctrl+F5（Mac：Cmd+Shift+R）强制刷新；GitHub Pages 更新后可能需要等 1–2 分钟。</p>";
+          document.getElementById("bootCheckBody").innerHTML = html;
+        });
+      }
+      setTimeout(report, 6000);
+    })();
+  </script>
+  <script type="module" src="js/main.js" onerror="window.__hmhModuleFailed && window.__hmhModuleFailed()"></script>
 </body>
 </html>
