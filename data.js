@@ -9,10 +9,11 @@ window.CATEGORIES = [
   { id: "daily",  name: "日用品",   icon: "🧻", color: "#7563c0", loc: "储物间", subs: ["纸品", "清洁用品", "洗护用品", "厨房耗材"] },
   { id: "baby",   name: "母婴",     icon: "🍼", color: "#d4694c", loc: "储物间", subs: ["纸尿裤", "奶粉辅食", "湿巾", "哺乳用品"] },
   { id: "health", name: "药品健康", icon: "💊", color: "#24897d", loc: "常温",  subs: ["常备药", "维生素营养", "护理用品"] },
-];
+].map((c) => ({ ...c, space: "pantry" }));   // 房屋耗材分类在 data/house.js 里追加（space = "house"）
 
-window.UNITS = ["个", "盒", "袋", "包", "瓶", "罐", "斤", "kg", "g", "L", "卷", "片", "提", "板", "把"];
-window.LOCATIONS = ["常温", "冷藏", "冷冻", "储物间", "卫生间", "厨房柜"];
+// 单位列表按地区区分，见 units.js（Units.list()）
+window.OTHER_CAT = { id: "other", name: "其他", icon: "🧺", color: "#8a948f" };
+window.LOCATIONS = ["常温", "冷藏", "冷冻", "储物间", "卫生间", "厨房柜", "地下室", "车库", "工具间", "阳台"];
 
 window.DIETS = {
   general: {

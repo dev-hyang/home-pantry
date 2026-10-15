@@ -23,66 +23,16 @@
       <span id="syncBadge" class="sync" role="status"></span>
     </div>
     <nav class="tabs" id="tabs" aria-label="主导航">
-      <button type="button" data-tab="dashboard"><span aria-hidden="true">🏠</span>总览</button>
-      <button type="button" data-tab="inventory"><span aria-hidden="true">🫙</span>库存</button>
-      <button type="button" data-tab="shopping"><span aria-hidden="true">🛒</span>采购<b id="shopCount" class="tab-count" hidden></b></button>
-      <button type="button" data-tab="meals"><span aria-hidden="true">🥣</span>菜单</button>
-      <button type="button" data-tab="settings"><span aria-hidden="true">⚙️</span>设置</button>
+      <a href="#/today" data-section="today"><span aria-hidden="true">🗓️</span>今日</a>
+      <a href="#/pantry" data-section="pantry"><span aria-hidden="true">🫙</span>储藏</a>
+      <a href="#/house" data-section="house"><span aria-hidden="true">🏠</span>房屋</a>
+      <a href="#/shopping" data-section="shopping"><span aria-hidden="true">🛒</span>采购<b id="shopCount" class="tab-count" hidden></b></a>
+      <a href="#/me" data-section="me"><span aria-hidden="true">👤</span>我的</a>
     </nav>
   </header>
 
   <main id="main" tabindex="-1"></main>
 
-  <dialog id="itemDialog" aria-labelledby="itemDialogTitle">
-    <form id="itemForm" novalidate>
-      <h2 id="itemDialogTitle">添加物品</h2>
-      <input type="hidden" name="id">
-      <div class="form-grid">
-        <label class="span-2">名称
-          <input name="name" required maxlength="60" autocomplete="off" placeholder="例如：鸡蛋、抽纸、大米">
-        </label>
-        <label>大类
-          <select name="category" required></select>
-        </label>
-        <label>小类
-          <select name="subcategory"></select>
-        </label>
-        <label>当前数量
-          <input name="quantity" type="number" min="0" step="0.1" inputmode="decimal" required>
-        </label>
-        <label>单位
-          <input name="unit" list="unitList" maxlength="10" required>
-        </label>
-        <label>少货线
-          <input name="min_quantity" type="number" min="0" step="0.1" inputmode="decimal">
-          <small>数量低于等于它就提醒“少货”</small>
-        </label>
-        <label>提前几天提醒
-          <input name="lead_days" type="number" min="0" max="60" step="1" inputmode="numeric">
-          <small>预计剩余天数低于它就提醒“即将告罄”</small>
-        </label>
-        <label>存放位置
-          <select name="location"></select>
-        </label>
-        <label>保质期至
-          <input name="expiry_date" type="date">
-        </label>
-        <label class="span-2">每天大约用多少（可选）
-          <input name="avg_daily_use" type="number" min="0" step="0.01" inputmode="decimal" placeholder="留空则根据家人的使用记录自动估算">
-        </label>
-        <label class="span-2">备注
-          <textarea name="notes" rows="2" maxlength="500" placeholder="品牌、规格、在哪买更便宜…"></textarea>
-        </label>
-      </div>
-      <p id="itemFormError" class="form-error" role="alert"></p>
-      <div class="dialog-actions">
-        <button type="button" class="btn btn-danger-ghost" data-dialog="delete" hidden>删除物品</button>
-        <span class="spacer"></span>
-        <button type="button" class="btn btn-ghost" data-dialog="cancel">取消</button>
-        <button type="submit" class="btn btn-primary">保存</button>
-      </div>
-    </form>
-  </dialog>
   <datalist id="unitList"></datalist>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -90,7 +40,10 @@
   <!-- supabase-js UMD，固定版本；本地演示模式下不加载也能运行 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
+  <script src="units.js"></script>
+  <script src="charts.js"></script>
   <script src="data.js"></script>
-  <script src="app.js"></script>
+  <script src="data/house.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
