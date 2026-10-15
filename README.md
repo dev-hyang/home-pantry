@@ -56,6 +56,7 @@ GitHub Pages 会把每个文件缓存 10 分钟。页面启动时会比较本次
    - **手机号登录（可选）**：Authentication → Providers → Phone 打开，并选择一家短信服务商（Twilio、MessageBird、Vonage、Textlocal，各自按条收费，Supabase 免费层不含短信），填入它们的 API 凭据；然后把 `config.js` 里的 `PHONE_LOGIN` 改成 `true`，登录页就会出现“邮箱 / 手机号”切换。手机号登录走短信验证码，家人用手机号和用邮箱登录是两个不同账号，加入家庭时用同一个邀请码即可。中国大陆号码（+86）用 Twilio 等国际短信到达率不稳定，国内家人建议仍用邮箱登录。
 5. **发布到 GitHub Pages**：推送到仓库 → Settings → Pages → Deploy from branch（main / root）。
 6. 第一位家人登录后“创建家庭”，在设置页复制邀请码发给其他家人，他们登录后“用邀请码加入”。
+7. **邀请码直接进入（推荐给家人）**：Authentication → Sign In / Up → 打开 **Allow anonymous sign-ins**。之后家人在登录页选“邀请码直接进入”，填手机号（只作标识，不发短信）、称呼和邀请码就能进，不用收邮件。原理是匿名账号 + 邀请码加入家庭，RLS 照常生效；邀请码因此成为这个家的钥匙，泄露时创建者在设置页点“重置邀请码”。匿名身份存在该设备浏览器里，换设备需重新用邀请码进入；创建家庭仍需邮箱登录，保证家庭有能找回的主人。不想开放这种方式，把 `config.js` 的 `QUICK_JOIN` 改成 `false`。
 
 本地调试云端版同样用 `python3 -m http.server 8000`，并把 `http://localhost:8000/` 加进 Supabase 的 Redirect URLs。
 

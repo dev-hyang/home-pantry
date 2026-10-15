@@ -7,4 +7,6 @@ window.APP_CONFIG = {
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqcGJuampoZnV5cnhxaWR3Y2JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMDUzNTEsImV4cCI6MjEwNzU4MTM1MX0.Eh7GbBYGlBZCk2NTApHJfUSZ7ovOxIHSUC9SYsgDuAg",  // 例如 "eyJhbGciOi...（anon public）"
   // 手机号短信验证码登录：需要先在 Supabase → Authentication → Providers → Phone 开启并接入短信服务商（见 README），再改为 true
   PHONE_LOGIN: false,
+  // 邀请码直接进入（不发邮件 / 短信，匿名账号 + 邀请码加入家庭）：需要在 Supabase → Authentication → Sign In / Up 打开 Allow anonymous sign-ins
+  QUICK_JOIN: true,
 };

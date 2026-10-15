@@ -239,6 +239,7 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "loginForm") return doLogin(f);
     if (f.id === "phoneForm") return doPhoneLogin(f);
     if (f.id === "otpForm") return doVerifyOtp(f);
+    if (f.id === "quickForm") return doQuickJoin(f);
     if (f.id === "createHhForm") return doCreateHousehold(f);
     if (f.id === "joinHhForm") return doJoinHousehold(f);
   } catch (err) { toast(`操作失败：${err.message}`); }
@@ -303,6 +304,12 @@ main.addEventListener("click", async (e) => {
       case "logout": await CloudStore.sb.auth.signOut(); localStorage.removeItem("hmh-hid"); return location.reload();
       case "login-mode": state.loginMode = el.dataset.mode; state.phonePending = null; return renderLogin();
       case "otp-back": state.phonePending = null; return renderLogin();
+      case "rotate-invite": {
+        if (!armed(el, "再点一次确认重置")) return;
+        const { data, error } = await CloudStore.sb.rpc("rotate_invite_code", { p_household: state.household.id });
+        if (error) throw new Error(error.message);
+        state.household.invite_code = data; toast("邀请码已重置，旧邀请码立即失效"); return render();
+      }
     }
   } catch (err) { toast(`操作失败：${err.message}`); refresh(); }
 });
@@ -379,14 +386,23 @@ export function gate(html) { document.body.classList.add("gate"); $("#hhName").t
 /* 登录：邮箱魔法链接（默认）；手机号短信验证码（config.js 里 PHONE_LOGIN = true 且 Supabase 已接短信服务商时显示） */
 const COUNTRY_CODES = [["+1", "美国 / 加拿大 +1"], ["+86", "中国大陆 +86"], ["+852", "香港 +852"], ["+886", "台湾 +886"], ["+65", "新加坡 +65"], ["+61", "澳大利亚 +61"], ["+44", "英国 +44"], ["+81", "日本 +81"]];
 const phoneLoginOn = () => !!window.APP_CONFIG?.PHONE_LOGIN;
+const quickJoinOn = () => window.APP_CONFIG?.QUICK_JOIN !== false;
 
 export function renderLogin(msg = "") {
-  const mode = phoneLoginOn() ? (state.loginMode || "email") : "email";
-  const tabs = phoneLoginOn() ? `<div class="seg" role="group" aria-label="登录方式">
-      <button type="button" class="chip" data-action="login-mode" data-mode="email" aria-pressed="${mode === "email"}">邮箱</button>
-      <button type="button" class="chip" data-action="login-mode" data-mode="phone" aria-pressed="${mode === "phone"}">手机号</button></div>` : "";
+  const modes = [["email", "邮箱"], phoneLoginOn() && ["phone", "手机号"], quickJoinOn() && ["quick", "邀请码直接进入"]].filter(Boolean);
+  const mode = modes.some(([m]) => m === state.loginMode) ? state.loginMode : "email";
+  const tabs = modes.length > 1 ? `<div class="seg" role="group" aria-label="登录方式">${modes.map(([m, l]) =>
+    `<button type="button" class="chip" data-action="login-mode" data-mode="${m}" aria-pressed="${mode === m}">${l}</button>`).join("")}</div>` : "";
   let body;
-  if (mode === "phone" && state.phonePending) {
+  if (mode === "quick") {
+    body = `<p class="muted">家人已经建好家庭的话，填邀请码直接进入，不用收邮件或短信。手机号只用来标识是谁，不会发送验证码。</p>
+      <form id="quickForm">
+        <input type="tel" name="phone" required inputmode="tel" autocomplete="tel" placeholder="手机号" aria-label="手机号">
+        <input name="display_name" maxlength="20" placeholder="我的称呼（可不填），例如：爸爸" aria-label="我的称呼">
+        <input name="code" required maxlength="12" placeholder="邀请码" autocapitalize="characters" aria-label="邀请码">
+        <button class="btn btn-primary" type="submit">进入家庭</button></form>
+      <p class="muted" style="font-size:12px">这种方式的身份保存在本设备浏览器里，清除浏览器数据或换手机后需要重新用邀请码进入。创建家庭请用邮箱登录。</p>`;
+  } else if (mode === "phone" && state.phonePending) {
     body = `<p class="muted">验证码已发送到 ${esc(state.phonePending)}，请输入短信里的 6 位数字。</p>
       <form id="otpForm"><input name="token" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,8}" maxlength="8" placeholder="验证码" aria-label="验证码">
         <button class="btn btn-primary" type="submit">登录</button>
@@ -432,6 +448,22 @@ export async function doPhoneLogin(f) {
   renderLogin();
 }
 
+/** 邀请码直接进入：匿名登录后用邀请码加入家庭（加入动作在 boot 的 start() 里完成，避免和 SIGNED_IN 事件打架） */
+export async function doQuickJoin(f) {
+  const digits = f.elements.phone.value.replace(/\D/g, "");
+  const code = f.elements.code.value.trim();
+  if (digits.length < 6 || digits.length > 15) return toast("请输入正确的手机号");
+  if (!code) return toast("请输入邀请码");
+  const name = f.elements.display_name.value.trim() || `尾号${digits.slice(-4)}`;
+  f.querySelector("button").disabled = true;
+  state.pendingJoin = { code, name };
+  const { error } = await CloudStore.sb.auth.signInAnonymously({ options: { data: { phone_label: digits, display_name: name } } });
+  if (error) {
+    state.pendingJoin = null; f.querySelector("button").disabled = false;
+    return toast(/anonymous/i.test(error.message) ? "Supabase 还没开启匿名登录（Allow anonymous sign-ins），请先按 README 开启，或改用邮箱登录。" : `进入失败：${error.message}`);
+  }
+}
+
 export async function doVerifyOtp(f) {
   const token = f.elements.token.value.trim();
   if (!token || !state.phonePending) return;
@@ -442,19 +474,22 @@ export async function doVerifyOtp(f) {
 }
 
 export function renderOnboarding() {
+  const anon = !!state.user?.is_anonymous;   // 邀请码直接进入的匿名账号：只能加入，不能创建家庭
   gate(`<div class="panel gate-card"><h2>加入你的家庭</h2>
-    <p class="muted">第一次使用请创建家庭；家人已经创建过的话，用邀请码加入。</p>
+    <p class="muted">${anon ? "用家人给的邀请码加入。" : "第一次使用请创建家庭；家人已经创建过的话，用邀请码加入。"}</p>
     <form id="joinHhForm"><input name="code" required maxlength="12" placeholder="邀请码" autocapitalize="characters" aria-label="邀请码">
-      <input name="display_name" required maxlength="20" placeholder="我的称呼，例如：爸爸" aria-label="我的称呼">
+      <input name="display_name" required maxlength="20" placeholder="我的称呼，例如：爸爸" aria-label="我的称呼" value="${esc(state.user?.user_metadata?.display_name || "")}">
       <button class="btn btn-dark" type="submit">用邀请码加入</button></form>
     <hr>
-    <form id="createHhForm"><input name="name" required maxlength="50" placeholder="家庭名称，例如：小月亮的家" aria-label="家庭名称">
+    ${anon ? `<p class="muted">创建新家庭需要用邮箱登录，这样家庭有一个能找回的主人。<button type="button" class="btn btn-sm btn-ghost" data-action="logout">改用邮箱登录</button></p>`
+      : `<form id="createHhForm"><input name="name" required maxlength="50" placeholder="家庭名称，例如：小月亮的家" aria-label="家庭名称">
       <input name="display_name" required maxlength="20" placeholder="我的称呼，例如：妈妈" aria-label="我的称呼">
-      <button class="btn btn-primary" type="submit">创建家庭</button></form></div>`);
+      <button class="btn btn-primary" type="submit">创建家庭</button></form>`}</div>`);
   setSync("已登录");
 }
 
 export async function doCreateHousehold(f) {
+  if (state.user?.is_anonymous) return toast("创建家庭请先用邮箱登录");
   const { data, error } = await CloudStore.sb.rpc("create_household", { p_name: f.elements.name.value.trim(), p_display_name: f.elements.display_name.value.trim() });
   if (error) return toast(`创建失败：${error.message}`);
   localStorage.setItem("hmh-hid", data); afterLogin();
@@ -504,13 +539,25 @@ export async function boot() {
     setStore(CloudStore);
     CloudStore.sb = window.supabase.createClient(cfg.url, cfg.key);
     let started = false;
-    const start = (session) => {
+    const start = async (session) => {
       if (started || !session) return;
-      started = true; state.user = session.user; afterLogin();
+      started = true; state.user = session.user;
+      // 邀请码直接进入：匿名登录成功后先加入家庭，再走正常流程
+      if (state.pendingJoin) {
+        const { code, name } = state.pendingJoin; state.pendingJoin = null;
+        const { data, error } = await CloudStore.sb.rpc("join_household", { p_code: code, p_display_name: name });
+        if (error) {
+          started = false;
+          await CloudStore.sb.auth.signOut();   // 加入失败就不保留这个匿名身份
+          return renderLogin(error.message.includes("invalid") ? "邀请码不正确，请向家人确认。" : `加入失败：${error.message}`);
+        }
+        localStorage.setItem("hmh-hid", data);
+      }
+      afterLogin();
     };
     CloudStore.sb.auth.onAuthStateChange((evt, session) => {
       if (evt === "SIGNED_IN") start(session);
-      if (evt === "SIGNED_OUT") { started = false; renderLogin(); }
+      if (evt === "SIGNED_OUT") { started = false; if (!state.pendingJoin) renderLogin(); }
     });
     const { data: { session } } = await CloudStore.sb.auth.getSession();
     state.route = parseRoute();

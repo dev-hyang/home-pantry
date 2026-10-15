@@ -14,7 +14,10 @@ export function viewSettings() {
     ${cloud ? `
     <div class="panel">
       <div class="kv"><div><div class="muted">邀请家人：把这个邀请码发给他们</div><div class="code">${esc(state.household.invite_code)}</div></div>
-        <button type="button" class="btn btn-sm" data-action="copy-invite">复制邀请码</button></div>
+        <div class="head-acts"><button type="button" class="btn btn-sm" data-action="copy-invite">复制邀请码</button>
+          ${state.household.created_by === state.user?.id ? `<button type="button" class="btn btn-sm btn-ghost" data-action="rotate-invite">重置邀请码</button>` : ""}</div></div>
+      <p class="muted" style="font-size:12px;margin:8px 0 0">家人可以用邀请码直接进入（不用收邮件）。邀请码就是这个家的钥匙，泄露了请创建者点“重置邀请码”，旧码立即失效，已加入的家人不受影响。</p>
+      ${state.user?.is_anonymous ? `<p class="muted" style="font-size:12px;margin:6px 0 0">你是通过邀请码直接进入的，身份保存在本设备浏览器里；清除浏览器数据或换手机后需要重新用邀请码进入。</p>` : ""}
       <h3 style="font-size:15px;margin:16px 0 6px">家庭成员</h3>
       <ul class="tips">${state.members.map((m) => `<li>${esc(m.display_name)}${m.role === "owner" ? "（创建者）" : ""}${m.user_id === state.user.id ? "（我）" : ""}</li>`).join("")}</ul>
       <form id="nameForm" class="add-row" style="grid-template-columns:1fr auto;margin-top:12px">

@@ -13,7 +13,8 @@ export const state = {
   diet: localStorage.getItem("hmh-diet") || "general",
   mealShift: 0,
   user: null, household: null, households: [], displayName: "我",
-  loginMode: "email", phonePending: null,   // 登录页：邮箱 / 手机号；已发送验证码的手机号
+  loginMode: "email", phonePending: null,   // 登录页：邮箱 / 手机号 / 邀请码；已发送验证码的手机号
+  pendingJoin: null,                        // 邀请码直接进入：匿名登录成功后要加入的 { code, name }
   lastAlertCount: null,
 };
 
