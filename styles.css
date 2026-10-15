@@ -321,12 +321,15 @@ textarea { resize: vertical; }
 .gate-card h2 { font-size: 22px; margin-bottom: 6px; }
 .gate-card form { display: grid; gap: 10px; margin-top: 14px; }
 .gate-card hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
+.gate-card .seg { margin: 10px 0 0; }
+.gate-card .phone-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+.gate-card .phone-form .btn { grid-column: 1 / -1; }
 
 /* ── 物品编辑整页（替代浮动弹窗，不依赖视口高度计算） ── */
 .form-page { max-width: 720px; }
 .form-page fieldset { border: 0; margin: 0 0 18px; padding: 0; min-width: 0; }
 .form-page legend { float: left; width: 100%; font-size: 15px; font-weight: 800; padding: 0; margin-bottom: 10px; }
-.form-page legend + * { clear: both; }
+.form-page legend ~ * { clear: both; }   /* legend 后面可能有隐藏的提示段落，所有后续兄弟都清除浮动 */
 .form-page fieldset + fieldset { border-top: 1px dashed var(--line); padding-top: 16px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-grid label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; align-content: start; }

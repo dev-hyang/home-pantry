@@ -237,6 +237,8 @@ main.addEventListener("submit", async (e) => {
       state.displayName = v; state.members = await CloudStore.listMembers(); toast("称呼已保存"); render();
     }
     if (f.id === "loginForm") return doLogin(f);
+    if (f.id === "phoneForm") return doPhoneLogin(f);
+    if (f.id === "otpForm") return doVerifyOtp(f);
     if (f.id === "createHhForm") return doCreateHousehold(f);
     if (f.id === "joinHhForm") return doJoinHousehold(f);
   } catch (err) { toast(`操作失败：${err.message}`); }
@@ -299,6 +301,8 @@ main.addEventListener("click", async (e) => {
       case "reload": return refresh();
       case "reset-demo": if (armed(el, "再点一次确认恢复")) { DemoStore.reset(); toast("已恢复演示数据"); refresh(); } return;
       case "logout": await CloudStore.sb.auth.signOut(); localStorage.removeItem("hmh-hid"); return location.reload();
+      case "login-mode": state.loginMode = el.dataset.mode; state.phonePending = null; return renderLogin();
+      case "otp-back": state.phonePending = null; return renderLogin();
     }
   } catch (err) { toast(`操作失败：${err.message}`); refresh(); }
 });
@@ -372,12 +376,34 @@ export function notifyIfNeeded() {
 /* ───────────── 云端：登录与家庭 ───────────── */
 export function gate(html) { document.body.classList.add("gate"); $("#hhName").textContent = ""; $("#main").innerHTML = html; }
 
+/* 登录：邮箱魔法链接（默认）；手机号短信验证码（config.js 里 PHONE_LOGIN = true 且 Supabase 已接短信服务商时显示） */
+const COUNTRY_CODES = [["+1", "美国 / 加拿大 +1"], ["+86", "中国大陆 +86"], ["+852", "香港 +852"], ["+886", "台湾 +886"], ["+65", "新加坡 +65"], ["+61", "澳大利亚 +61"], ["+44", "英国 +44"], ["+81", "日本 +81"]];
+const phoneLoginOn = () => !!window.APP_CONFIG?.PHONE_LOGIN;
+
 export function renderLogin(msg = "") {
-  gate(`<div class="panel gate-card"><h2>登录</h2>
-    <p class="muted">输入邮箱，我们会发一封登录链接，点开即可登录，无需密码。</p>
-    <form id="loginForm"><input type="email" name="email" required autocomplete="email" placeholder="you@example.com" aria-label="邮箱">
-      <button class="btn btn-primary" type="submit">发送登录链接</button></form>
-    <p class="muted" role="status">${esc(msg)}</p></div>`);
+  const mode = phoneLoginOn() ? (state.loginMode || "email") : "email";
+  const tabs = phoneLoginOn() ? `<div class="seg" role="group" aria-label="登录方式">
+      <button type="button" class="chip" data-action="login-mode" data-mode="email" aria-pressed="${mode === "email"}">邮箱</button>
+      <button type="button" class="chip" data-action="login-mode" data-mode="phone" aria-pressed="${mode === "phone"}">手机号</button></div>` : "";
+  let body;
+  if (mode === "phone" && state.phonePending) {
+    body = `<p class="muted">验证码已发送到 ${esc(state.phonePending)}，请输入短信里的 6 位数字。</p>
+      <form id="otpForm"><input name="token" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,8}" maxlength="8" placeholder="验证码" aria-label="验证码">
+        <button class="btn btn-primary" type="submit">登录</button>
+        <button class="btn btn-ghost" type="button" data-action="otp-back">换个号码 / 重新发送</button></form>`;
+  } else if (mode === "phone") {
+    const def = Units.region.system === "us" ? "+1" : "+86";
+    body = `<p class="muted">输入手机号，我们会发一条短信验证码，无需密码。</p>
+      <form id="phoneForm" class="phone-form">
+        <select name="cc" aria-label="国家或地区代码">${COUNTRY_CODES.map(([c, l]) => `<option value="${c}" ${c === def ? "selected" : ""}>${l}</option>`).join("")}</select>
+        <input type="tel" name="phone" required inputmode="tel" autocomplete="tel-national" placeholder="手机号" aria-label="手机号">
+        <button class="btn btn-primary" type="submit">发送验证码</button></form>`;
+  } else {
+    body = `<p class="muted">输入邮箱，我们会发一封登录链接，点开即可登录，无需密码。</p>
+      <form id="loginForm"><input type="email" name="email" required autocomplete="email" placeholder="you@example.com" aria-label="邮箱">
+        <button class="btn btn-primary" type="submit">发送登录链接</button></form>`;
+  }
+  gate(`<div class="panel gate-card"><h2>登录</h2>${tabs}${body}<p class="muted" role="status">${esc(msg)}</p></div>`);
   setSync("未登录");
 }
 
@@ -388,6 +414,31 @@ export async function doLogin(f) {
   const { error } = await CloudStore.sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split("#")[0] } });
   if (error) { f.querySelector("button").disabled = false; return toast(`发送失败：${error.message}`); }
   renderLogin(`登录链接已发送到 ${email}，请在本设备打开邮件。`);
+}
+
+/** 手机号：拼成 E.164（+国家码+数字）后发短信验证码 */
+export async function doPhoneLogin(f) {
+  const digits = f.elements.phone.value.replace(/\D/g, "");
+  if (digits.length < 6 || digits.length > 15) return toast("请输入正确的手机号");
+  const phone = `${f.elements.cc.value}${digits}`;
+  f.querySelector("button").disabled = true;
+  const { error } = await CloudStore.sb.auth.signInWithOtp({ phone });
+  if (error) {
+    f.querySelector("button").disabled = false;
+    const m = /provider|not enabled|unsupported/i.test(error.message) ? "Supabase 还没开启手机号登录或没有接入短信服务商，请先按 README 配置，或改用邮箱登录。" : `发送失败：${error.message}`;
+    return toast(m);
+  }
+  state.phonePending = phone;
+  renderLogin();
+}
+
+export async function doVerifyOtp(f) {
+  const token = f.elements.token.value.trim();
+  if (!token || !state.phonePending) return;
+  f.querySelector("button").disabled = true;
+  const { error } = await CloudStore.sb.auth.verifyOtp({ phone: state.phonePending, token, type: "sms" });
+  if (error) { f.querySelector("button").disabled = false; return toast(/expired|invalid/i.test(error.message) ? "验证码不对或已过期，请重新发送" : `登录失败：${error.message}`); }
+  state.phonePending = null;   // 成功后 onAuthStateChange 会收到 SIGNED_IN
 }
 
 export function renderOnboarding() {

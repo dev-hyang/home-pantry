@@ -53,6 +53,7 @@ GitHub Pages 会把每个文件缓存 10 分钟。页面启动时会比较本次
    - Redirect URLs 同样加上这个地址（本地调试可再加 `http://localhost:8000/`）。
    - 默认的邮箱魔法链接即可用；免费层自带邮件发送有频率限制，家庭使用够用，人多时可在 SMTP Settings 接自己的邮箱服务。
 4. **填写 `config.js`**：Project Settings → API，复制 Project URL 和 **anon public** key。
+   - **手机号登录（可选）**：Authentication → Providers → Phone 打开，并选择一家短信服务商（Twilio、MessageBird、Vonage、Textlocal，各自按条收费，Supabase 免费层不含短信），填入它们的 API 凭据；然后把 `config.js` 里的 `PHONE_LOGIN` 改成 `true`，登录页就会出现“邮箱 / 手机号”切换。手机号登录走短信验证码，家人用手机号和用邮箱登录是两个不同账号，加入家庭时用同一个邀请码即可。中国大陆号码（+86）用 Twilio 等国际短信到达率不稳定，国内家人建议仍用邮箱登录。
 5. **发布到 GitHub Pages**：推送到仓库 → Settings → Pages → Deploy from branch（main / root）。
 6. 第一位家人登录后“创建家庭”，在设置页复制邀请码发给其他家人，他们登录后“用邀请码加入”。
 

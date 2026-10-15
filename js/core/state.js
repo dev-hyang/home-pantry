@@ -13,6 +13,7 @@ export const state = {
   diet: localStorage.getItem("hmh-diet") || "general",
   mealShift: 0,
   user: null, household: null, households: [], displayName: "我",
+  loginMode: "email", phonePending: null,   // 登录页：邮箱 / 手机号；已发送验证码的手机号
   lastAlertCount: null,
 };
 

@@ -5,4 +5,6 @@
 window.APP_CONFIG = {
   SUPABASE_URL: "https://pjpbnjjhfuyrxqidwcbn.supabase.co",       // 例如 "https://YOUR-PROJECT-REF.supabase.co"
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqcGJuampoZnV5cnhxaWR3Y2JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMDUzNTEsImV4cCI6MjEwNzU4MTM1MX0.Eh7GbBYGlBZCk2NTApHJfUSZ7ovOxIHSUC9SYsgDuAg",  // 例如 "eyJhbGciOi...（anon public）"
+  // 手机号短信验证码登录：需要先在 Supabase → Authentication → Providers → Phone 开启并接入短信服务商（见 README），再改为 true
+  PHONE_LOGIN: false,
 };
