@@ -3,18 +3,24 @@ import { alertsOf, openShopFor } from "./core/logic.js";
 import { STATUS, state } from "./core/state.js";
 import { href } from "./core/router.js";
 import { esc, fmt, inSpace } from "./core/util.js";
+import { alertText, assetAlerts } from "./house/assets.js";
+import { taskRow, undoneThisMonth } from "./house/tasks.js";
 
 const SPACE_TAG = { pantry: { name: "储藏", icon: "🥫" }, house: { name: "房屋", icon: "🏠" } };
 
 export function viewToday() {
   const houseOn = state.houseEnabled;
+  // 第二期：到期保养 / 保修快到期的设备，本月还没做的季节任务
+  const assets = houseOn ? assetAlerts(state.assetsEnriched) : [];
+  const tasks = houseOn ? undoneThisMonth() : [];
+  const now0 = new Date(), ty = now0.getFullYear(), tm = now0.getMonth() + 1;
   const pantry = alertsOf(state.enriched.filter(inSpace("pantry"))).map((x) => ({ ...x, space: "pantry" }));
   const house = houseOn ? alertsOf(state.enriched.filter(inSpace("house"))).map((x) => ({ ...x, space: "house" })) : [];
   const todo = [...pantry, ...house].sort((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || (a.daysLeft ?? 0) - (b.daysLeft ?? 0));
   const expiring = state.enriched.filter((x) => x.exp && x.qty > 0 && inSpace("pantry")(x)).sort((a, b) => a.expDays - b.expDays);
   const open = state.shopping.filter((s) => s.status === "todo");
   const claimed = state.shopping.filter((s) => s.status === "claimed");
-  const total = todo.length + expiring.length;
+  const total = todo.length + expiring.length + assets.length + tasks.length;
 
   const now = new Date();
   const dateText = now.toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "long" });
@@ -40,6 +46,21 @@ export function viewToday() {
         <button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="all">全部加入采购清单</button></div>
       <div class="panel"><ul class="restock-list">${rows}</ul>
         ${todo.length > 12 ? `<p class="muted" style="margin:8px 0 0">还有 ${todo.length - 12} 项，<a href="${href("pantry", "inventory")}">去库存查看</a></p>` : ""}</div>
+    </section>` : ""}
+
+    ${assets.length ? `<section class="section">
+      <div class="section-head"><h2>设备该保养了</h2><a class="btn btn-sm btn-ghost" href="${href("house", "assets")}">设备档案</a></div>
+      <div class="panel"><ul class="restock-list">${assets.slice(0, 5).map((a) => `<li>
+        <span class="badge ${a.service === "overdue" ? "b-out" : "b-soon"}">${a.service === "overdue" ? "逾期" : a.service === "due" ? "保养" : "保修"}</span>
+        <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${a.t?.icon || "⚙️"} ${esc(a.name)}</a><small>${esc(alertText(a))}</small></div>
+        <a class="btn btn-sm" href="${href("asset", a.id)}?log=1">记保养</a></li>`).join("")}</ul>
+        ${assets.length > 5 ? `<p class="muted" style="margin:8px 0 0">还有 ${assets.length - 5} 台，<a href="${href("house", "assets")}">去设备档案查看</a></p>` : ""}</div>
+    </section>` : ""}
+
+    ${tasks.length ? `<section class="section">
+      <div class="section-head"><h2>本月季节任务</h2><a class="btn btn-sm btn-ghost" href="${href("house", "tasks")}">全部任务</a></div>
+      <div class="panel"><ul class="task-list">${tasks.slice(0, 6).map((x) => taskRow(x, ty, tm)).join("")}</ul>
+        ${tasks.length > 6 ? `<p class="muted" style="margin:8px 0 0">还有 ${tasks.length - 6} 项，<a href="${href("house", "tasks")}">去季节任务查看</a></p>` : ""}</div>
     </section>` : ""}
 
     ${expiring.length ? `<section class="section">

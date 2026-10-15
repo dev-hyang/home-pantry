@@ -4,10 +4,14 @@ import { Store } from "../core/store.js";
 import { $, DAY, catOf, du, esc, fmt, money, num, showQty, toast } from "../core/util.js";
 
 /* ── 统计：花费与消耗趋势 ── */
-export const ALL_CATS = () => [...CATEGORIES, OTHER_CAT];
-// 统计图里：储藏各分类单独显示，房屋耗材合并为“房屋维护”、装备合并为“装备”各一组，避免颜色过多
+export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, OTHER_CAT];
+// 统计图里：储藏各分类单独显示，房屋耗材和设备维修保养合并为“房屋维护”、装备合并为“装备”各一组，避免颜色过多
 export const STAT_CATS = () => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, OTHER_CAT];
-export const statCat = (id) => { const c = CATEGORIES.find((x) => x.id === id); return !c ? "other" : c.space === "pantry" ? c.id : c.space; };
+export const statCat = (id) => {
+  const c = CATEGORIES.find((x) => x.id === id);
+  if (c) return c.space === "pantry" ? c.id : c.space;
+  return id === MAINT_CAT.id ? "house" : "other";
+};
 export const monthKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };
 export const monthLabel = (k) => (k.endsWith("-01") ? `${k.slice(2, 4)}年1月` : `${+k.slice(5)}月`);
 export function lastMonths(n) {

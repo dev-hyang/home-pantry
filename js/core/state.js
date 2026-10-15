@@ -5,6 +5,9 @@ export const state = {
   houseEnabled: (() => { try { return localStorage.getItem("hmh-house-off") !== "1"; } catch { return true; } })(),
   gearEnabled: (() => { try { return localStorage.getItem("hmh-gear-off") !== "1"; } catch { return true; } })(),
   items: [], logs: [], shopping: [], purchases: [], members: [],
+  assets: [], maintLogs: [], seasonalDone: [],  // 第二期：设备档案、保养记录、季节任务完成记录
+  assetsEnriched: [],
+  tasksMonth: null,                    // 季节任务页当前查看的月份（null = 本月）
   stats: { months: 6, month: null, cat: null, itemId: null },
   filter: { space: "pantry", cat: "all", q: "", status: "all" },
   diet: localStorage.getItem("hmh-diet") || "general",

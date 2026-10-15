@@ -8,6 +8,7 @@ export const DemoStore = {
     try { this.db = JSON.parse(localStorage.getItem(this.key)); } catch { this.db = null; }
     if (!this.db || !Array.isArray(this.db.items)) this.db = seedDemo();
     this.db.purchases ||= [];
+    this.db.assets ||= []; this.db.maint_logs ||= []; this.db.seasonal ||= [];
     this.persist();
   },
   persist() { try { localStorage.setItem(this.key, JSON.stringify(this.db)); } catch { /* 隐私模式下可能不可写，忽略 */ } },
@@ -29,8 +30,44 @@ export const DemoStore = {
     return this.db.purchases.filter((p) => p.purchased_at >= from && p.purchased_at < to)
       .sort((a, b) => a.purchased_at.localeCompare(b.purchased_at)).map((x) => ({ ...x }));
   },
-  async addPurchase(p) { this.db.purchases.push({ ...p, id: uid(), created_at: new Date().toISOString() }); this.persist(); },
+  async addPurchase(p) { const id = uid(); this.db.purchases.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
   async deletePurchase(id) { this.db.purchases = this.db.purchases.filter((x) => x.id !== id); this.persist(); },
+
+  /* 第二期：设备档案、保养记录、季节任务 */
+  async listAssets() { return this.db.assets.map((x) => ({ ...x })); },
+  async saveAsset(a) {
+    const now = new Date().toISOString();
+    if (a.id) {
+      const i = this.db.assets.findIndex((x) => x.id === a.id);
+      if (i < 0) throw new Error("设备不存在");
+      this.db.assets[i] = { ...this.db.assets[i], ...a, updated_at: now };
+    } else this.db.assets.push({ ...a, id: uid(), created_at: now, updated_at: now });
+    this.persist();
+  },
+  async addAssets(list) {
+    const now = new Date().toISOString();
+    for (const a of list) this.db.assets.push({ ...a, id: uid(), created_at: now, updated_at: now });
+    this.persist();
+  },
+  async deleteAsset(id) {
+    this.db.assets = this.db.assets.filter((x) => x.id !== id);
+    this.db.maint_logs = this.db.maint_logs.filter((l) => l.asset_id !== id);
+    this.persist();
+  },
+  async listMaintLogs() { return this.db.maint_logs.map((x) => ({ ...x })); },
+  async addMaintLog(l) { const id = uid(); this.db.maint_logs.push({ ...l, id, created_at: new Date().toISOString() }); this.persist(); return id; },
+  async deleteMaintLog(id) {
+    const l = this.db.maint_logs.find((x) => x.id === id);
+    if (l?.purchase_id) this.db.purchases = this.db.purchases.filter((p) => p.id !== l.purchase_id);
+    this.db.maint_logs = this.db.maint_logs.filter((x) => x.id !== id);
+    this.persist();
+  },
+  async listSeasonal(sincePeriod) { return this.db.seasonal.filter((s) => s.period >= sincePeriod).map((x) => ({ ...x })); },
+  async setSeasonal(task_key, period, done, done_by_name) {
+    this.db.seasonal = this.db.seasonal.filter((s) => !(s.task_key === task_key && s.period === period));
+    if (done) this.db.seasonal.push({ id: uid(), task_key, period, done_on: new Date().toISOString().slice(0, 10), done_by_name, created_at: new Date().toISOString() });
+    this.persist();
+  },
   async saveItem(it) {
     const now = new Date().toISOString();
     if (it.id) {
@@ -158,6 +195,8 @@ export function seedDemo() {
 
 /* ───────────── 数据层：Supabase 云端 ───────────── */
 export const ITEM_FIELDS = ["name", "category", "subcategory", "unit", "quantity", "min_quantity", "location", "expiry_date", "lead_days", "avg_daily_use", "notes"];
+export const ASSET_FIELDS = ["kind", "type", "name", "location", "brand", "model", "serial", "installed_on", "manufacture_year", "warranty_until", "labor_warranty_until",
+  "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes"];
 export const CloudStore = {
   mode: "cloud", sb: null, hid: null, channel: null,
   must({ data, error }) { if (error) throw new Error(error.message); return data; },
@@ -172,7 +211,41 @@ export const CloudStore = {
     return this.must(await this.sb.from("purchases").select("*").eq("household_id", this.hid)
       .gte("purchased_at", since).order("purchased_at", { ascending: false }).limit(5000));
   },
-  async addPurchase(p) { this.must(await this.sb.from("purchases").insert({ ...p, household_id: this.hid })); },
+  async addPurchase(p) { return this.must(await this.sb.from("purchases").insert({ ...p, household_id: this.hid }).select("id").single()).id; },
+
+  /* 第二期：设备档案、保养记录、季节任务 */
+  async listAssets() { return this.must(await this.sb.from("assets").select("*").eq("household_id", this.hid).order("name")); },
+  async saveAsset(a) {
+    const row = { household_id: this.hid, updated_by: state.user.id };
+    ASSET_FIELDS.forEach((k) => { row[k] = a[k] ?? null; });
+    if (a.id) this.must(await this.sb.from("assets").update(row).eq("id", a.id));
+    else this.must(await this.sb.from("assets").insert(row));
+  },
+  async addAssets(list) {
+    const rows = list.map((a) => { const r = { household_id: this.hid, updated_by: state.user.id }; ASSET_FIELDS.forEach((k) => { r[k] = a[k] ?? null; }); return r; });
+    this.must(await this.sb.from("assets").insert(rows));
+  },
+  async deleteAsset(id) { this.must(await this.sb.from("assets").delete().eq("id", id)); },   // 保养记录随外键级联删除
+  async listMaintLogs() {
+    return this.must(await this.sb.from("maintenance_logs").select("*").eq("household_id", this.hid).order("done_on", { ascending: false }).limit(5000));
+  },
+  async addMaintLog(l) {
+    return this.must(await this.sb.from("maintenance_logs").insert({ ...l, household_id: this.hid, created_by: state.user.id }).select("id").single()).id;
+  },
+  async deleteMaintLog(id) {
+    const l = state.maintLogs.find((x) => x.id === id);
+    this.must(await this.sb.from("maintenance_logs").delete().eq("id", id));
+    if (l?.purchase_id) this.must(await this.sb.from("purchases").delete().eq("id", l.purchase_id));
+  },
+  async listSeasonal(sincePeriod) {
+    return this.must(await this.sb.from("seasonal_tasks").select("*").eq("household_id", this.hid).gte("period", sincePeriod));
+  },
+  async setSeasonal(task_key, period, done, done_by_name) {
+    if (done) {
+      const { error } = await this.sb.from("seasonal_tasks").insert({ household_id: this.hid, task_key, period, done_by: state.user.id, done_by_name });
+      if (error && error.code !== "23505") throw new Error(error.message);   // 23505 = 家人已经勾过
+    } else this.must(await this.sb.from("seasonal_tasks").delete().eq("household_id", this.hid).eq("task_key", task_key).eq("period", period));
+  },
   async getHouseProfile() {
     return this.must(await this.sb.from("house_profiles").select("*").eq("household_id", this.hid).maybeSingle());
   },
@@ -225,6 +298,9 @@ export const CloudStore = {
       .on("postgres_changes", { event: "*", table: "shopping_list", ...f }, onChange)
       .on("postgres_changes", { event: "*", table: "purchases", ...f }, onChange)
       .on("postgres_changes", { event: "*", table: "house_profiles", ...f }, onChange)
+      .on("postgres_changes", { event: "*", table: "assets", ...f }, onChange)
+      .on("postgres_changes", { event: "*", table: "maintenance_logs", ...f }, onChange)
+      .on("postgres_changes", { event: "*", table: "seasonal_tasks", ...f }, onChange)
       .subscribe();
   },
 };

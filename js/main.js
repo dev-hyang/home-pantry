@@ -3,9 +3,11 @@ import { alertsOf, enrich, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
-import { SECTIONS, go, href, parseRoute, routeKey } from "./core/router.js";
+import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { viewToday } from "./today.js";
 import { applyTypeDefaults, houseDraft, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
+import { assetTemplateItems, enrichAssets, leaveAsset, onAssetFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
+import { seasonalSince, toggleTask, viewTasks } from "./house/tasks.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
@@ -17,10 +19,12 @@ export async function refresh() {
   if (refreshing) return refreshing;
   refreshing = (async () => {
     try {
-      const [items, logs, shopping, purchases, houseProfile] = await Promise.all([
-        Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listPurchases(), Store.getHouseProfile()]);
-      Object.assign(state, { items, logs, shopping, purchases, houseProfile });
+      const [items, logs, shopping, purchases, houseProfile, assets, maintLogs, seasonalDone] = await Promise.all([
+        Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listPurchases(), Store.getHouseProfile(),
+        Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince())]);
+      Object.assign(state, { items, logs, shopping, purchases, houseProfile, assets, maintLogs, seasonalDone });
       state.enriched = enrich(items, logs);
+      state.assetsEnriched = enrichAssets(assets, maintLogs);
       setSync(Store.mode === "demo" ? "本地演示数据" : `已同步 ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`);
       notifyIfNeeded();
       render(false);
@@ -40,19 +44,22 @@ export const refreshSoon = () => { clearTimeout(debounceT); debounceT = setTimeo
 const VIEWS = {
   today:    () => viewToday(),
   pantry:   { overview: viewDashboard, inventory: () => viewInventory("pantry"), meals: viewMeals },
-  house:    { overview: viewHouse, supplies: () => viewInventory("house"), profile: viewHouseProfile, template: viewHouseTemplate },
+  house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, profile: viewHouseProfile,
+              template: viewHouseTemplate, "asset-template": viewAssetTemplate },
   gear:     () => viewInventory("gear"),
   shopping: () => viewShopping(),
   me:       { stats: viewStats, settings: viewSettings },
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
-const FORM_PAGES = (r) => r.section === "item" || (r.section === "house" && r.sub === "profile");
+const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile");
+// 隐藏的二级页在导航里高亮它所属的那一项
+const SUB_PARENT = { template: "supplies", "asset-template": "assets" };
 
 function subnav(r) {
   const subs = SECTIONS[r.section]?.subs;
   if (!subs) return "";
   return `<nav class="subtabs" aria-label="${SECTIONS[r.section].name}">${subs.filter(([, , hidden]) => !hidden).map(([k, label]) =>
-    `<a href="${href(r.section, k)}" ${r.sub === k || (r.sub === "template" && k === "supplies") ? 'aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
+    `<a href="${href(r.section, k)}" ${r.sub === k || SUB_PARENT[r.sub] === k ? 'aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
 }
 
 /** force=true：路由变化，整页重画；false：数据刷新，表单页保持不动 */
@@ -61,7 +68,8 @@ export function render(force = true) {
   document.body.classList.remove("gate");
   $("#hhName").textContent = state.household?.name || "";
   const r = state.route;
-  const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0]) : r.section;
+  const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0])
+    : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section;
   document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
     a.hidden = (a.dataset.section === "house" && !state.houseEnabled) || (a.dataset.section === "gear" && !state.gearEnabled);
     if (a.dataset.section === navSection) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
@@ -75,6 +83,7 @@ export function render(force = true) {
 
   if (!force && FORM_PAGES(r) && $("#main form")) return;
   if (r.section === "item") { $("#main").innerHTML = viewItemForm(); return; }
+  if (r.section === "asset") { $("#main").innerHTML = viewAssetForm(); return; }
   if (r.section === "house" && !state.houseEnabled) {
     $("#main").innerHTML = `<div class="panel empty"><strong>房屋维护模块已关闭</strong>在“我的 → 设置”里可以重新打开。<p><button type="button" class="btn btn-primary" data-action="house-enable">打开房屋维护</button></p></div>`;
     return;
@@ -93,8 +102,8 @@ const scrollMem = {};
 function onRoute() {
   const prev = state.route, next = parseRoute();
   scrollMem[routeKey(prev)] = window.scrollY;
-  const enteringItem = next.section === "item" && prev.section !== "item";
-  const leavingItem = prev.section === "item" && next.section !== "item";
+  const enteringItem = isFormSection(next) && !isFormSection(prev);
+  const leavingItem = isFormSection(prev) && !isFormSection(next);
   if (enteringItem) state.prevRoute = prev;
   if (next.section === "house" && next.sub === "profile" && !(prev.section === "house" && prev.sub === "profile")) state.houseDraft = null;
   state.route = next;
@@ -104,6 +113,11 @@ function onRoute() {
   if (back) requestAnimationFrame(() => window.scrollTo(0, scrollMem[routeKey(next)] || 0));
   else { window.scrollTo(0, 0); if (!enteringItem) $("#main").focus({ preventScroll: true }); }
   if (next.section === "item") $("#itemForm")?.elements.name.focus({ preventScroll: true });
+  if (next.section === "asset") {
+    const mf = $("#maintForm[data-focus]");   // 从“记保养”进来：滚到保养记录表单
+    if (mf) { mf.scrollIntoView({ block: "start" }); mf.elements.kind.focus({ preventScroll: true }); }
+    else if (next.id === "new") $("#assetForm")?.elements.name.focus({ preventScroll: true });
+  }
   if (leavingItem && state.needsRefresh) { state.needsRefresh = false; refresh(); }
 }
 // 滚动位置由我们自己记忆和恢复，关闭浏览器的自动恢复以免互相干扰
@@ -125,6 +139,11 @@ main.addEventListener("change", async (e) => {
     if (!fe.item_id.value) fe.location.value = catOf(e.target.value).loc;
     // 换到装备分类时隐藏补货相关字段（保存时也会清掉它们）
     e.target.form.classList.toggle("is-gear", spaceOf(e.target.value) === "gear");
+  }
+  if (e.target.closest("#assetForm") && (e.target.name === "kind" || e.target.name === "type")) return onAssetFormChange(e);
+  if (e.target.matches("input[data-task]")) {
+    try { await toggleTask(e.target); } catch (err) { toast(`操作失败：${err.message}`); }
+    return refresh();
   }
   if (e.target.id === "regionSel") {
     Units.setRegion(e.target.value || null); fillUnitList();
@@ -156,6 +175,21 @@ main.addEventListener("submit", async (e) => {
   const f = e.target;
   try {
     if (f.id === "itemForm") return saveItemForm(f);
+    if (f.id === "assetForm") return saveAssetForm(f);
+    if (f.id === "maintForm") {
+      const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
+      try { await saveMaintForm(f); } finally { btn.disabled = false; }
+      await refresh(); return render(true);
+    }
+    if (f.id === "assetTemplateForm") {
+      const ids = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
+      if (!ids.length) return toast("还没有勾选设备");
+      const list = assetTemplateItems(ids);
+      await Store.addAssets(list);
+      toast(`已生成 ${list.length} 台设备档案`);
+      go(href("house", "assets"));
+      return refresh();
+    }
     if (f.id === "houseForm") {
       const d = readHouseForm(f), y = d.year_built, thisYear = new Date().getFullYear();
       if (y != null && (y < 1850 || y > thisYear)) { $("#houseFormError").textContent = `建成年份需要在 1850 到 ${thisYear} 之间。`; return; }
@@ -220,6 +254,14 @@ main.addEventListener("click", async (e) => {
       case "item-delete":
         if (!armed(el, "再点一次确认删除")) return;
         await Store.deleteItem(state.route.id); toast("已删除"); return leaveItem(true);
+      case "asset-cancel": return leaveAsset(false);
+      case "asset-delete":
+        if (!armed(el, "再点一次确认删除")) return;
+        await Store.deleteAsset(state.route.id); toast("已删除设备及其保养记录"); return leaveAsset(true);
+      case "maint-del":
+        if (!armed(el, "确认删除")) return;
+        await Store.deleteMaintLog(id); toast("已删除这条记录"); await refresh(); return render(true);
+      case "tasks-month": state.tasksMonth = +el.dataset.month; return render();
       case "house-enable":
         state.houseEnabled = true; try { localStorage.setItem("hmh-house-off", "0"); } catch { /* 忽略 */ }
         return render();
@@ -312,7 +354,8 @@ export async function markBought(id) {
 }
 
 export function exportJson() {
-  const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), household: state.household?.name, items: state.items, shopping: state.shopping, purchases: state.purchases }, null, 2)], { type: "application/json" });
+  const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), household: state.household?.name, items: state.items, shopping: state.shopping, purchases: state.purchases,
+    house_profile: state.houseProfile, assets: state.assets, maintenance_logs: state.maintLogs, seasonal_tasks: state.seasonalDone }, null, 2)], { type: "application/json" });
   const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `pantry-${new Date().toISOString().slice(0, 10)}.json` });
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

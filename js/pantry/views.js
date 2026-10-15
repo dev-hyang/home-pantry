@@ -305,7 +305,7 @@ export function viewMeals() {
 export function categoryOptions(selected, { withOther = true } = {}) {
   const opt = (c) => `<option value="${c.id}" ${c.id === selected ? "selected" : ""}>${c.icon} ${c.name}</option>`;
   return `<optgroup label="厨房储藏">${catsOf("pantry").map(opt).join("")}</optgroup>
-    <optgroup label="房屋耗材">${catsOf("house").map(opt).join("")}</optgroup>
+    <optgroup label="房屋耗材">${catsOf("house").map(opt).join("")}${withOther ? opt(MAINT_CAT) : ""}</optgroup>
     <optgroup label="装备（只记数量和位置）">${catsOf("gear").map(opt).join("")}</optgroup>
     ${withOther ? opt(OTHER_CAT) : ""}`;
 }

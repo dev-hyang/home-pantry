@@ -396,6 +396,32 @@ textarea { resize: vertical; }
 .care summary { cursor: pointer; font-weight: 700; }
 .care ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; }
 .care li { margin-bottom: 4px; }
+/* ── 第二期：设备档案、保养记录、季节任务 ── */
+.asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+.asset-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px; display: grid; gap: 10px; }
+.asset-head { display: flex; gap: 10px; align-items: flex-start; }
+.asset-ico { font-size: 26px; line-height: 1; }
+.asset-name { font-weight: 800; font-size: 15px; color: inherit; text-decoration: none; }
+.asset-name:hover { text-decoration: underline; }
+.asset-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.life { display: grid; gap: 4px; }
+.life small { color: var(--muted); font-size: 12px; }
+.life-bar { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.life-bar i { display: block; height: 100%; background: var(--pine); }
+.life-bar.late i { background: var(--mustard); }
+.life-bar.over i { background: var(--out); }
+.asset-card .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.maint-grid .check-inline { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.maint-grid .check-inline input { width: 18px; height: 18px; min-height: 0; accent-color: var(--pine); }
+.task-list { list-style: none; margin: 0; padding: 0; }
+.task-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.task-row:last-child { border-bottom: 0; }
+.task-row input { width: 20px; height: 20px; min-height: 0; margin-top: 2px; accent-color: var(--pine); flex: 0 0 auto; }
+.task-row label { cursor: pointer; display: grid; gap: 2px; }
+.task-row small { color: var(--muted); font-size: 12px; }
+.task-row.done label b { text-decoration: line-through; color: var(--muted); }
+#assetForm.is-tool .eq-only { display: none; }
+
 .next-phase { background: transparent; border-style: dashed; }
 .next-phase h3 { font-size: 15px; margin-bottom: 4px; }
 .next-phase p { margin: 0; }

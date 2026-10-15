@@ -3,12 +3,16 @@
 export const SECTIONS = {
   today:    { name: "今日",   subs: null },
   pantry:   { name: "储藏",   subs: [["overview", "概览"], ["inventory", "库存"], ["meals", "菜单"]] },
-  house:    { name: "房屋",   subs: [["overview", "概览"], ["supplies", "房屋耗材"], ["profile", "房屋资料"], ["template", "推荐耗材", true]] },  // 第三项 true = 不在二级导航显示
+  house:    { name: "房屋",   subs: [["overview", "概览"], ["supplies", "房屋耗材"], ["assets", "设备"], ["tasks", "季节任务"], ["profile", "房屋资料"],
+                                     ["template", "推荐耗材", true], ["asset-template", "生成设备", true]] },  // 第三项 true = 不在二级导航显示
   gear:     { name: "装备",   subs: null },   // 耐用品和工具：只记数量和位置
   shopping: { name: "采购",   subs: null },
   me:       { name: "我的",   subs: [["stats", "统计"], ["settings", "设置"]] },
   item:     { name: "物品",   subs: null },   // #/item/new?cat=xx 或 #/item/<id>
+  asset:    { name: "设备",   subs: null },   // #/asset/new?type=xx 或 #/asset/<id>（含保养记录）
 };
+// 独立整页表单（物品、设备）：进入时记住来源页，离开时恢复滚动位置
+export const isFormSection = (r) => r?.section === "item" || r?.section === "asset";
 
 export function parseRoute(hash = location.hash) {
   const raw = hash.replace(/^#\/?/, "");
@@ -17,7 +21,7 @@ export function parseRoute(hash = location.hash) {
   let section = SECTIONS[parts[0]] ? parts[0] : "today";
   const def = SECTIONS[section].subs;
   let sub = parts[1] || null, id = null;
-  if (section === "item") { id = parts[1] || "new"; sub = null; }
+  if (section === "item" || section === "asset") { id = parts[1] || "new"; sub = null; }
   else if (def) { if (!def.some(([k]) => k === sub)) sub = def[0][0]; id = parts[2] || null; }
   else sub = null;
   return { section, sub, id, q: new URLSearchParams(qs || "") };

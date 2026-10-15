@@ -261,6 +261,99 @@
     ],
   };
 
+  // ── 设备档案模板（第二期）──
+  // life：常见寿命（年）作为默认值；interval：建议保养间隔（月）；system：对应责任归属表的部位，默认负责方从房型取
+  // when 写法同耗材模板；optional = true 的项在生成页默认不勾选；lifeByRoof 按屋面材料覆盖寿命
+  const ASSET_TYPES = [
+    { id: "furnace",        name: "暖风炉",           en: "Furnace",            icon: "🔥", kind: "equipment", life: 18, interval: 12, system: "hvac",         region: "na",   when: ["f:forced_air"],   tip: "每年采暖季前检修一次；滤网 1–3 个月换。" },
+    { id: "boiler",         name: "锅炉",             en: "Boiler",             icon: "♨️", kind: "equipment", life: 20, interval: 12, system: "hvac",         region: "na",   when: ["f:boiler"],       tip: "每年采暖季前检修、给暖气片放气。" },
+    { id: "heat_pump",      name: "热泵",             en: "Heat pump",          icon: "🌡️", kind: "equipment", life: 15, interval: 12, system: "hvac",         region: "na",   when: ["f:heat_pump"],    tip: "每年检修一次，室外机保持通风。" },
+    { id: "ac",             name: "中央空调",         en: "Central AC",         icon: "❄️", kind: "equipment", life: 15, interval: 12, system: "hvac",         region: "both", when: ["f:central_ac"],   tip: "每年入夏前检修，清洗室外机翅片。" },
+    { id: "wall_boiler",    name: "壁挂炉",           en: "Wall-hung boiler",   icon: "♨️", kind: "equipment", life: 12, interval: 12, system: "hvac",         region: "cn",   when: ["f:wall_boiler"],  tip: "每年供暖前年检、补水、清洗换热器。" },
+    { id: "floor_heating",  name: "地暖",             en: "Floor heating",      icon: "🔥", kind: "equipment", life: 30, interval: 24, system: "hvac",         region: "cn",   when: ["f:floor_heating"], tip: "每 2–3 年清洗一次管路。" },
+    { id: "fresh_air",      name: "新风系统",         en: "Fresh air system",   icon: "🌬️", kind: "equipment", life: 12, interval: 4,  system: "hvac",         region: "cn",   when: ["f:fresh_air"],    tip: "3–6 个月换滤网，雾霾季更勤。" },
+    { id: "humidifier",     name: "全屋加湿器",       en: "Whole-house humidifier", icon: "💧", kind: "equipment", life: 12, interval: 12, system: "hvac",   region: "na",   when: ["f:humidifier"],   tip: "采暖季前换滤芯、清理水垢。" },
+    { id: "water_heater",   name: "热水器",           en: "Water heater",       icon: "🚿", kind: "equipment", life: 10, interval: 12, system: "water_heater", region: "both", when: ["*"],              tip: "储水式每年排污一次；镁棒 3–5 年检查。" },
+    { id: "sump_pump",      name: "排水泵",           en: "Sump pump",          icon: "⛽", kind: "equipment", life: 8,  interval: 6,  system: "sump",         region: "na",   when: ["f:sump_pump"],    tip: "每半年倒水测试；建议配备用电池。" },
+    { id: "water_softener", name: "软水机",           en: "Water softener",     icon: "🧂", kind: "equipment", life: 12, interval: 12, system: "plumbing",     region: "both", when: ["f:water_softener"], tip: "每年清洗盐箱，检查再生周期。" },
+    { id: "water_purifier", name: "净水器",           en: "Water purifier",     icon: "🚰", kind: "equipment", life: 8,  interval: 6,  system: "plumbing",     region: "both", when: ["f:water_purifier"], tip: "按滤芯寿命更换。" },
+    { id: "roof",           name: "屋顶",             en: "Roof",               icon: "🏠", kind: "equipment", life: 22, interval: 12, system: "roof",         region: "both", when: ["type:sfh", "type:townhome", "type:cn_villa", "type:cn_townhouse"], lifeByRoof: { asphalt: 22, metal: 50, tile: 50, flat: 18 }, tip: "每年春秋目视检查，大风冰雹后补查。" },
+    { id: "garage_door",    name: "车库门开门器",     en: "Garage door opener", icon: "🚪", kind: "equipment", life: 12, interval: 12, system: null,           region: "both", when: ["f:garage"],       tip: "每年润滑导轨、测试自动回弹。" },
+    { id: "hot_tub",        name: "热水浴缸",         en: "Hot tub",            icon: "🛁", kind: "equipment", life: 12, interval: 3,  system: "plumbing",     region: "both", when: ["f:hot_tub"],      tip: "每 3–4 个月换水、清洗滤芯。" },
+    { id: "fireplace",      name: "壁炉 / 烟囱",      en: "Fireplace",          icon: "🧱", kind: "equipment", life: null, interval: 12, system: "hvac",       region: "na",   when: ["f:fireplace"],    tip: "每年烧季前清扫烟囱。" },
+    { id: "smoke_alarm",    name: "烟雾 / CO 报警器", en: "Smoke & CO alarm",   icon: "🚨", kind: "equipment", life: 10, interval: 12, system: null,           region: "both", when: ["*"],              tip: "每月按测试键；整机约 10 年更换。" },
+    { id: "range_hood",     name: "抽油烟机",         en: "Range hood",         icon: "🍳", kind: "equipment", life: 10, interval: 6,  system: null,           region: "cn",   when: ["*"],              tip: "每半年深度清洗。" },
+    { id: "lawn_mower",     name: "割草机",           en: "Lawn mower",         icon: "🌿", kind: "tool",      life: 10, interval: 12, system: "yard",         region: "both", when: ["f:lawn"],         tip: "每季换机油、磨刀片；入冬放空汽油。" },
+    { id: "snow_blower",    name: "除雪机",           en: "Snow blower",        icon: "🌨️", kind: "tool",      life: 10, interval: 12, system: "yard",         region: "na",   when: ["f:snow"], optional: true },
+    { id: "pressure_washer", name: "高压清洗机",      en: "Pressure washer",    icon: "💦", kind: "tool",      life: 8,  interval: null, system: null,         region: "na",   when: ["type:sfh", "type:townhome"], optional: true },
+    { id: "ladder",         name: "梯子",             en: "Ladder",             icon: "🪜", kind: "tool",      life: null, interval: null, system: null,       region: "both", when: ["*"], optional: true },
+    { id: "drill",          name: "电钻",             en: "Drill",              icon: "🔩", kind: "tool",      life: null, interval: null, system: null,       region: "both", when: ["*"], optional: true },
+    { id: "other_equipment", name: "其他设备",        en: "Other",              icon: "⚙️", kind: "equipment", life: null, interval: null, system: null,      region: "both", when: [] },
+    { id: "other_tool",     name: "其他工具",         en: "Other tool",         icon: "🧰", kind: "tool",      life: null, interval: null, system: null,       region: "both", when: [] },
+  ];
+  const ASSET_KINDS = { equipment: { name: "设备", icon: "⚙️" }, tool: { name: "工具", icon: "🧰" } };
+  const MAINT_KINDS = { inspect: "检查", service: "保养", repair: "维修", replace: "更换" };
+  // 设备维修保养的花费记到 purchases 时用的分类（不在物品分类里，统计并入“房屋维护”）
+  window.MAINT_CAT = { id: "house_maint", name: "设备维修保养", icon: "🔧", color: "#5c6b63" };
+
+  // ── 季节任务模板（第二期）──
+  // months：出现的月份；连续的月份算同一个窗口，窗口内勾一次即可；12 个月都有的算每月任务
+  const SEASONAL_TASKS = {
+    na: [
+      { key: "na_fall_furnace",  months: [9, 10],   name: "炉子 / 锅炉采暖季前检修",         when: ["f:forced_air", "f:boiler", "f:heat_pump"], note: "顺手换滤网；有壁炉一起约烟囱清扫。" },
+      { key: "na_fall_chimney",  months: [9, 10],   name: "壁炉烟囱清扫检查",               when: ["f:fireplace"] },
+      { key: "na_fall_hose",     months: [10],      name: "关闭室外水龙头、排空软管",       when: ["type:sfh", "type:townhome"], note: "芝加哥一般 10 月底前完成，防止冻裂。" },
+      { key: "na_fall_gutter",   months: [10, 11],  name: "清理排水槽和落水管",             when: ["type:sfh", "type:townhome"], note: "落叶落完后再清一次。" },
+      { key: "na_fall_sump",     months: [10],      name: "测试排水泵和备用电池",           when: ["f:sump_pump"] },
+      { key: "na_fall_salt",     months: [11],      name: "备好融雪盐和铲雪工具",           when: ["f:snow"] },
+      { key: "na_fall_mice",     months: [9, 10],   name: "封堵外墙缝隙、布置捕鼠器",       when: ["type:sfh", "type:townhome", "f:garage"] },
+      { key: "na_fall_lawn",     months: [10, 11],  name: "草坪最后一次修剪和秋季施肥",     when: ["f:lawn"] },
+      { key: "na_fall_ac",       months: [10],      name: "室外空调机清理、盖罩",           when: ["f:central_ac"] },
+      { key: "na_fall_humid",    months: [10],      name: "加湿器换滤芯、打开水阀",         when: ["f:humidifier"] },
+      { key: "na_win_vent",      months: [12, 1, 2], name: "大雪后清理高效炉进排气口",      when: ["f:forced_air"], note: "被雪堵住会停炉甚至一氧化碳倒灌。" },
+      { key: "na_win_icedam",    months: [12, 1, 2], name: "留意屋檐冰坝和屋顶积雪",        when: ["type:sfh", "type:townhome"] },
+      { key: "na_win_pipes",     months: [1, 2],    name: "极寒天防冻管：水龙头滴水、打开水槽柜门", when: ["f:snow"] },
+      { key: "na_win_radon",     months: [1],       name: "做一次氡气检测",                 when: ["type:sfh", "type:townhome", "f:basement"], note: "伊利诺伊州氡气偏高，冬季门窗紧闭时测最准。" },
+      { key: "na_spr_sump",      months: [3, 4],    name: "雨季前测试排水泵和备用电池",     when: ["f:sump_pump"] },
+      { key: "na_spr_ac",        months: [4, 5],    name: "空调 / 热泵入夏前检修、换滤网",   when: ["f:central_ac", "f:heat_pump"] },
+      { key: "na_spr_roof",      months: [4],       name: "冬后检查屋顶、排水槽和外墙",     when: ["type:sfh", "type:townhome"] },
+      { key: "na_spr_grade",     months: [4, 5],    name: "检查地基周边排水坡度和落水管出口", when: ["type:sfh", "type:townhome", "f:basement"], note: "水要引离地基至少 1.5 米。" },
+      { key: "na_spr_hose",      months: [4],       name: "打开室外水龙头，检查漏水",       when: ["type:sfh", "type:townhome"] },
+      { key: "na_spr_deck",      months: [5],       name: "检查木平台，需要时重新上油",     when: ["f:deck"] },
+      { key: "na_sum_filter",    months: [6, 7, 8], name: "换空调 / 炉子滤网",             when: ["f:central_ac", "f:forced_air", "f:heat_pump"] },
+      { key: "na_sum_dehum",     months: [6, 7, 8], name: "地下室除湿、检查墙角渗水",       when: ["f:basement"] },
+      { key: "na_sum_water",     months: [6, 7, 8], name: "清除院子积水防蚊",               when: ["f:lawn", "f:deck"] },
+      { key: "na_all_alarm",     months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], name: "测试烟雾和一氧化碳报警器", when: ["*"] },
+      { key: "na_all_heater",    months: [5],       name: "热水器排污（放水除沉淀）",       when: ["*"] },
+      { key: "na_all_dryer",     months: [3, 9],    name: "清理烘干机排气管",               when: ["type:sfh", "type:townhome", "type:condo"] },
+      { key: "na_all_extinguisher", months: [1],    name: "检查灭火器压力表",               when: ["*"] },
+      { key: "na_all_hottub",    months: [1, 4, 7, 10], name: "热水浴缸换水、清洗滤芯",     when: ["f:hot_tub"] },
+      { key: "na_all_softener",  months: [6],       name: "软水机清洗盐箱",                 when: ["f:water_softener"] },
+    ],
+    cn: [
+      { key: "cn_spr_ac",        months: [4, 5],    name: "空调清洗滤网和室内机、试运行",   when: ["*"] },
+      { key: "cn_spr_humid",     months: [3, 4, 5, 6], name: "回南天 / 梅雨：除湿、衣柜防霉、检查墙面渗水", when: ["f:humid_season"] },
+      { key: "cn_spr_lawn",      months: [3, 4],    name: "草坪花园春季施肥、修剪",         when: ["f:lawn"] },
+      { key: "cn_spr_deck",      months: [5],       name: "露台木作检查、上油",             when: ["f:deck"] },
+      { key: "cn_sum_fresh",     months: [6, 7, 8], name: "新风滤网更换",                   when: ["f:fresh_air"] },
+      { key: "cn_sum_mosquito",  months: [5, 6, 7, 8, 9], name: "清理阳台积水、检查纱窗",   when: ["*"] },
+      { key: "cn_sum_drain",     months: [6],       name: "地漏、下水道疏通除臭",           when: ["*"] },
+      { key: "cn_fall_heating",  months: [10, 11],  name: "供暖前：暖气片排气、地暖试水",   when: ["f:central_heat", "f:floor_heating"] },
+      { key: "cn_fall_boiler",   months: [10],      name: "壁挂炉年检、补水",               when: ["f:wall_boiler"] },
+      { key: "cn_fall_floor",    months: [10],      name: "地暖管路清洗（每 2–3 年）",      when: ["f:floor_heating"] },
+      { key: "cn_fall_lawn",     months: [10],      name: "草坪花园秋季施肥、过冬准备",     when: ["f:lawn"] },
+      { key: "cn_win_pipes",     months: [12, 1],   name: "寒潮：阳台水管保温，长期外出排空", when: ["f:snow"] },
+      { key: "cn_win_gas",       months: [11, 12, 1, 2], name: "燃气软管、接口检查，使用时开窗", when: ["f:gas"] },
+      { key: "cn_win_drain",     months: [12],      name: "年末地漏、下水道清理",           when: ["*"] },
+      { key: "cn_all_purifier",  months: [1, 7],    name: "净水器换滤芯",                   when: ["f:water_purifier"] },
+      { key: "cn_all_hood",      months: [3, 9],    name: "抽油烟机深度清洗",               when: ["*"] },
+      { key: "cn_all_heater",    months: [5],       name: "热水器清洗除垢",                 when: ["*"] },
+      { key: "cn_all_alarm",     months: [1, 4, 7, 10], name: "测试烟感和燃气报警器",       when: ["f:gas"] },
+      { key: "cn_all_hottub",    months: [1, 4, 7, 10], name: "热水浴缸换水、清洗滤芯",     when: ["f:hot_tub"] },
+      { key: "cn_all_softener",  months: [6],       name: "软水机清洗盐箱",                 when: ["f:water_softener"] },
+    ],
+  };
+
   function matches(cond, p) {
     if (cond === "*") return true;
     const [k, v] = cond.split(":");
@@ -284,6 +377,26 @@
 
   const forRegion = (list, region) => list.filter((x) => x.region === "both" || x.region === region);
   const typeOf = (region, id) => (HOUSE_TYPES[region] || []).find((t) => t.id === id);
+  const assetType = (id) => ASSET_TYPES.find((t) => t.id === id) || null;
 
-  window.HOUSE = { REGIONS, FEATURES, MATERIALS, OWNERS, SYSTEMS, HOUSE_TYPES, SUPPLIES, HOUSE_CATEGORIES, recommendSupplies, forRegion, typeOf };
+  /** 根据房屋资料推荐设备档案：寿命按屋面材料覆盖，默认负责方取自房型的责任归属表 */
+  function recommendAssets(profile) {
+    const ht = typeOf(profile.region, profile.house_type);
+    return forRegion(ASSET_TYPES, profile.region)
+      .filter((t) => t.when.some((c) => matches(c, profile)))
+      .map((t) => ({
+        ...t,
+        life: t.lifeByRoof && profile.roof && t.lifeByRoof[profile.roof] != null ? t.lifeByRoof[profile.roof] : t.life,
+        owner: t.system && ht?.owners?.[t.system] ? ht.owners[t.system] : "self",
+      }));
+  }
+
+  /** 该家庭适用的季节任务（按地区和设施过滤） */
+  function seasonalTasksFor(profile) {
+    if (!profile) return [];
+    return (SEASONAL_TASKS[profile.region] || []).filter((t) => t.when.some((c) => matches(c, profile)));
+  }
+
+  window.HOUSE = { REGIONS, FEATURES, MATERIALS, OWNERS, SYSTEMS, HOUSE_TYPES, SUPPLIES, HOUSE_CATEGORIES, recommendSupplies, forRegion, typeOf,
+    ASSET_TYPES, ASSET_KINDS, MAINT_KINDS, SEASONAL_TASKS, assetType, recommendAssets, seasonalTasksFor };
 })();

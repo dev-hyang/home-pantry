@@ -25,6 +25,19 @@ export const isGear = (it) => spaceOf(it.category) === "gear";
 // 空间 → 对应列表页的路由 [section, sub]
 export const listRoute = (space) => (space === "house" ? ["house", "supplies"] : space === "gear" ? ["gear", null] : ["pantry", "inventory"]);
 
+// 日期（只到天，按本地时间）
+export const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+export const daysUntil = (iso) => (iso ? Math.round((new Date(`${iso}T12:00:00`) - new Date(`${todayISO()}T12:00:00`)) / DAY) : null);
+export function addMonths(iso, n) {
+  const d = new Date(`${iso}T12:00:00`);
+  const day = d.getDate();
+  d.setDate(1); d.setMonth(d.getMonth() + n);
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, last));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+export const fmtDate = (iso) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("zh-CN", { year: "numeric", month: "numeric", day: "numeric" }) : "");
+
 export function setSync(text, err = false) {
   const b = $("#syncBadge"); b.textContent = text; b.classList.toggle("err", err);
 }

@@ -4,6 +4,8 @@ import { state } from "../core/state.js";
 import { href } from "../core/router.js";
 import { esc, inSpace } from "../core/util.js";
 import { restockPanel, shelfGrid } from "../pantry/views.js";
+import { alertText, assetAlerts } from "./assets.js";
+import { MONTHS, monthTasks, taskRow } from "./tasks.js";
 
 const H = () => window.HOUSE;
 
@@ -111,10 +113,44 @@ export function viewHouse() {
       <p class="disclaimer">周期与寿命为常见经验值，实际以产品说明书和专业人士检查为准。</p>
     </section>` : `<section class="section"><div class="panel empty"><strong>还没填材料</strong>补充外墙、屋面和地面材料后，这里会给出对应的保养建议。<p><a class="btn btn-ghost" href="${href("house", "profile")}">补充材料</a></p></div></section>`}
 
+    ${assetsPanel()}
+    ${tasksPanel()}
+
     <section class="section"><div class="panel next-phase">
-      <h3>即将推出</h3>
-      <p class="muted">设备档案（炉子、热水器、排水泵、屋顶等）、保养记录、按季节的检修任务和保修到期提醒。</p>
+      <h3>第三期</h3>
+      <p class="muted">修还是换的建议、照片与收据、维修费用报表。</p>
     </div></section>`;
+}
+
+/* ── 概览里的设备与季节任务摘要（第二期） ── */
+function assetsPanel() {
+  const list = state.assetsEnriched, alerts = assetAlerts(list);
+  const body = !list.length
+    ? `<div class="empty"><strong>还没有设备档案</strong>按房屋资料一次生成炉子、热水器、排水泵等设备，记录保修和保养周期。<p><a class="btn btn-primary" href="${href("house", "asset-template")}">生成设备清单</a></p></div>`
+    : alerts.length
+      ? `<ul class="restock-list">${alerts.slice(0, 4).map((a) => `<li>
+          <span class="badge ${a.service === "overdue" ? "b-out" : "b-soon"}">${a.service === "overdue" ? "逾期" : a.service === "due" ? "保养" : "保修"}</span>
+          <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${a.t?.icon || "⚙️"} ${esc(a.name)}</a><small>${esc(alertText(a))}</small></div>
+          <a class="btn btn-sm" href="${href("asset", a.id)}?log=1">记保养</a></li>`).join("")}</ul>`
+      : `<div class="empty"><strong>${list.length} 台设备，保养都在周期内</strong></div>`;
+  return `<section class="section">
+    <div class="section-head"><h2>设备档案</h2><div class="head-acts">
+      ${list.length ? `<a class="btn btn-sm btn-ghost" href="${href("house", "asset-template")}">生成更多</a>` : ""}
+      <a class="btn btn-sm btn-ghost" href="${href("house", "assets")}">全部设备${list.length ? `（${list.length}）` : ""}</a></div></div>
+    <div class="panel">${body}</div>
+  </section>`;
+}
+
+function tasksPanel() {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth() + 1;
+  const list = monthTasks(y, m);
+  if (!list.length) return "";
+  const undone = list.filter((x) => !x.done);
+  return `<section class="section">
+    <div class="section-head"><h2>${MONTHS[m - 1]}季节任务</h2><div class="head-acts"><p>${undone.length ? `还有 ${undone.length} 项没做` : "本月都做完了"}</p>
+      <a class="btn btn-sm btn-ghost" href="${href("house", "tasks")}">全年任务</a></div></div>
+    <div class="panel"><ul class="task-list">${(undone.length ? undone : list).slice(0, 6).map((x) => taskRow(x, y, m)).join("")}</ul></div>
+  </section>`;
 }
 
 /* ── 房屋资料表单（整页） ── */
