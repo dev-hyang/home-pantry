@@ -37,6 +37,10 @@ export function addMonths(iso, n) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 export const fmtDate = (iso) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("zh-CN", { year: "numeric", month: "numeric", day: "numeric" }) : "");
+// 记录的创建 / 更新时间（timestamptz）：卡片上显示“月/日”，悬停或编辑页显示完整时间
+export const fmtShort = (iso) => (iso ? new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" }) : "");
+export const fmtDateTime = (iso) => (iso ? new Date(iso).toLocaleString("zh-CN", { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "");
+export const stampText = (r) => [r?.created_at && `添加于 ${fmtDateTime(r.created_at)}`, r?.updated_at && r.updated_at !== r.created_at && `更新于 ${fmtDateTime(r.updated_at)}`].filter(Boolean).join("，");
 
 export function setSync(text, err = false) {
   const b = $("#syncBadge"); b.textContent = text; b.classList.toggle("err", err);

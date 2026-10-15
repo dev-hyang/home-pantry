@@ -4,7 +4,7 @@
  * - 页面：#/house/assets 列表、#/house/asset-template 生成、#/asset/new 与 #/asset/<id> 整页表单（编辑页下方带保养记录） */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, DAY, addMonths, daysUntil, esc, fmt, fmtDate, money, num, todayISO, toast } from "../core/util.js";
+import { $, DAY, addMonths, daysUntil, esc, fmt, fmtDate, fmtShort, money, num, stampText, todayISO, toast } from "../core/util.js";
 import { go, href } from "../core/router.js";
 
 const H = () => window.HOUSE;
@@ -102,7 +102,8 @@ export function assetCard(a) {
     [a.brand, a.model].filter(Boolean).join(" "),
     a.location && `📍${a.location}`,
     o && `负责：${o.name}`,
-  ].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("");
+  ].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")
+    + ((a.updated_at || a.created_at) ? `<span title="${esc(stampText(a))}">${fmtShort(a.updated_at || a.created_at)} 更新</span>` : "");
   return `<article class="asset-card">
     <div class="asset-head"><span class="asset-ico" aria-hidden="true">${a.t?.icon || "⚙️"}</span>
       <div class="grow"><a class="asset-name" href="${href("asset", a.id)}">${esc(a.name)}</a>
@@ -302,7 +303,7 @@ function assetSummary(a) {
     a.ageYears != null && `<span class="badge" style="background:var(--surface-2)">已用 ${a.ageYears < 1 ? "不到 1 年" : `${Math.floor(a.ageYears)} 年`}${num(a.expected_life_years) ? ` / 约 ${fmt(a.expected_life_years)} 年` : ""}</span>`,
     a.logs.length && `<span class="badge" style="background:var(--surface-2)">${a.logs.length} 条记录${a.totalCost ? `，共花 ${money(a.totalCost)}` : ""}</span>`,
   ].filter(Boolean).join("");
-  return `<div class="asset-badges" style="margin-bottom:12px">${bits}</div>`;
+  return `<div class="asset-badges" style="margin-bottom:12px">${bits}</div>${stampText(a) ? `<p class="record-meta" style="margin:-6px 0 12px">${esc(stampText(a))}</p>` : ""}`;
 }
 
 function maintSection(a, focusLog) {
@@ -310,7 +311,8 @@ function maintSection(a, focusLog) {
   const rows = a.logs.map((l) => `<li>
       <span class="badge ${l.kind === "repair" ? "b-low" : l.kind === "replace" ? "b-exp" : "b-ok"}">${K[l.kind] || l.kind}</span>
       <div class="grow"><span class="name">${esc(fmtDate(l.done_on))}</span>
-        <small>${[l.diy ? "自己做的" : l.vendor ? `由 ${l.vendor}` : null, l.cost != null ? `花费 ${Units.money(num(l.cost), l.currency || Units.region.currency)}` : null, l.notes].filter(Boolean).map(esc).join("，")}</small></div>
+        <small>${[l.diy ? "自己做的" : l.vendor ? `由 ${l.vendor}` : null, l.cost != null ? `花费 ${Units.money(num(l.cost), l.currency || Units.region.currency)}` : null, l.notes,
+          l.created_at && `${fmtShort(l.created_at)} 记录`].filter(Boolean).map(esc).join("，")}</small></div>
       <button type="button" class="btn btn-sm btn-ghost" data-action="maint-del" data-id="${l.id}" aria-label="删除这条记录">删除</button>
     </li>`).join("");
   return `

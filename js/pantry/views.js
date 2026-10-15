@@ -1,7 +1,7 @@
 import { alertsOf, hasStock, memberName, openShopFor } from "../core/logic.js";
 import { STATUS, state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, catOf, catsOf, esc, fmt, inSpace, isGear, money, num, showQty } from "../core/util.js";
+import { $, catOf, catsOf, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText } from "../core/util.js";
 import { href } from "../core/router.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
 
@@ -155,7 +155,7 @@ export function itemCard(it) {
       it.subcategory && `<span>${esc(it.subcategory)}</span>`,
       it.location && `<span>📍${esc(it.location)}</span>`,
       it.notes && `<span class="note" title="${esc(it.notes)}">${esc(it.notes.length > 40 ? `${it.notes.slice(0, 40)}…` : it.notes)}</span>`,
-      by && `<span>${esc(by)} 更新</span>`,
+      (it.updated_at || it.created_at) && `<span title="${esc(stampText(it))}">${by ? `${esc(by)} ` : ""}${fmtShort(it.updated_at || it.created_at)} 更新</span>`,
     ].filter(Boolean).join("");
     return `<article class="item is-gear" aria-label="${esc(`${it.name}，${fmt(it.dqty)} ${it.du}${it.location ? `，在${it.location}` : ""}`)}">
       <span class="gear-ico" aria-hidden="true">${catOf(it.category).icon}</span>
@@ -171,7 +171,7 @@ export function itemCard(it) {
     it.location && `<span>📍${esc(it.location)}</span>`,
     it.daysLeft != null && `<span>约够 ${Math.max(0, Math.floor(it.daysLeft))} 天</span>`,
     it.rate && `<span title="${it.rateSrc === "manual" ? "手动设置" : "根据最近使用记录估算"}">日均 ${fmt(it.drate)} ${esc(it.du)}</span>`,
-    by && `<span>${esc(by)} 更新</span>`,
+    (it.updated_at || it.created_at) && `<span title="${esc(stampText(it))}">${by ? `${esc(by)} ` : ""}${fmtShort(it.updated_at || it.created_at)} 更新</span>`,
   ].filter(Boolean).join("");
   const expBadge = it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? "已过期" : `${it.expDays} 天内到期`}</span>` : "";
   const label = `${it.name}，剩余 ${fmt(it.dqty)} ${it.du}，${st.label}`;
@@ -209,7 +209,7 @@ export function viewShopping() {
           <input type="text" maxlength="40" list="storeList" data-store-for="${s.id}" value="${esc(lastStore())}" placeholder="在哪买（可不填）" aria-label="${esc(s.name)} 购买商店">
         </div>`;
     return `<li class="shop-item ${s.status === "bought" ? "done" : ""}">
-      <div class="row"><span class="nm"><b>${esc(s.name)}</b> ${showQty(num(s.quantity, 1), s.unit || "")}</span>
+      <div class="row"><span class="nm"><b>${esc(s.name)}</b> ${showQty(num(s.quantity, 1), s.unit || "")}${s.created_at ? ` <small class="muted" title="${esc(stampText(s))}">${fmtShort(s.created_at)} 加入</small>` : ""}</span>
         <button type="button" class="btn btn-sm btn-ghost" data-action="shop-del" data-id="${s.id}" aria-label="删除 ${esc(s.name)}">删除</button></div>
       ${s.status === "claimed" ? `<div class="who">🛍 ${esc(s.claimed_by_name || "家人")} 正在买</div>` : ""}
       ${s.item_id ? "" : `<div class="muted" style="font-size:12px">未关联库存，买到后需手动入库</div>`}

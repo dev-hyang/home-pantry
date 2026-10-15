@@ -1,7 +1,8 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, catOf, catsOf, du, esc, fmt, listRoute, num, spaceOf, toast } from "../core/util.js";
+import { $, catOf, catsOf, du, esc, fmt, listRoute, num, spaceOf, stampText, toast } from "../core/util.js";
 import { go, href } from "../core/router.js";
+import { memberName } from "../core/logic.js";
 import { categoryOptions } from "./views.js";
 
 /* ───────────── 物品编辑：独立整页（路由 #/item/<id> 或 #/item/new） ─────────────
@@ -109,6 +110,7 @@ export function viewItemForm() {
           ${it ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="item-delete">删除物品</button>` : ""}
         </div>
       </form>
+      ${it && stampText(it) ? `<p class="record-meta">${esc(stampText(it))}${Store.mode === "cloud" && memberName(it.updated_by) ? `（${esc(memberName(it.updated_by))}）` : ""}</p>` : ""}
     </section>`;
 }
 

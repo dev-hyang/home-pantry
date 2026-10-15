@@ -421,6 +421,7 @@ textarea { resize: vertical; }
 .task-row small { color: var(--muted); font-size: 12px; }
 .task-row.done label b { text-decoration: line-through; color: var(--muted); }
 #assetForm.is-tool .eq-only { display: none; }
+.record-meta { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
 
 .next-phase { background: transparent; border-style: dashed; }
 .next-phase h3 { font-size: 15px; margin-bottom: 4px; }
