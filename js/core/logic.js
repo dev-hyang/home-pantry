@@ -1,5 +1,5 @@
 import { STATUS, state } from "./state.js";
-import { DAY, MIN_RATE_SPAN_DAYS, RATE_WINDOW_DAYS, STOCK_TARGET_DAYS, du, num, spaceOf } from "./util.js";
+import { DAY, MIN_RATE_SPAN_DAYS, RATE_WINDOW_DAYS, STOCK_TARGET_DAYS, du, isGear, num, spaceOf } from "./util.js";
 
 /* ───────────── 提醒与消耗速度计算 ───────────── */
 export function enrich(items, logs) {
@@ -15,7 +15,14 @@ export function enrich(items, logs) {
     u.first = Math.min(u.first, t);
   }
   return items.map((it) => {
-    const qty = num(it.quantity), min = num(it.min_quantity), lead = it.lead_days == null ? 3 : num(it.lead_days, 3);
+    const qty = num(it.quantity);
+    // 装备：没有消耗速度、少货线和保质期，永远不进提醒
+    if (isGear(it)) {
+      const f = Units.factor(it.unit);
+      return { ...it, qty, min: 0, rate: null, rateSrc: null, daysLeft: null, status: "ok", exp: null, expDays: null,
+        suggest: 1, level: qty > 0 ? 1 : 0, minMark: null, du: du(it.unit), dqty: qty * f, drate: null, dsuggest: f };
+    }
+    const min = num(it.min_quantity), lead = it.lead_days == null ? 3 : num(it.lead_days, 3);
     let rate = null, rateSrc = null;
     if (num(it.avg_daily_use) > 0) { rate = num(it.avg_daily_use); rateSrc = "manual"; }
     else if (usage[it.id]) {

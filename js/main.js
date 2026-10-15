@@ -2,7 +2,7 @@ import { checkConfig } from "./core/config-check.js";
 import { alertsOf, enrich, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
-import { $, armed, catOf, du, esc, fillUnitList, inSpace, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
+import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { SECTIONS, go, href, parseRoute, routeKey } from "./core/router.js";
 import { viewToday } from "./today.js";
 import { applyTypeDefaults, houseDraft, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
@@ -41,6 +41,7 @@ const VIEWS = {
   today:    () => viewToday(),
   pantry:   { overview: viewDashboard, inventory: () => viewInventory("pantry"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), profile: viewHouseProfile, template: viewHouseTemplate },
+  gear:     () => viewInventory("gear"),
   shopping: () => viewShopping(),
   me:       { stats: viewStats, settings: viewSettings },
 };
@@ -60,9 +61,9 @@ export function render(force = true) {
   document.body.classList.remove("gate");
   $("#hhName").textContent = state.household?.name || "";
   const r = state.route;
-  const navSection = r.section === "item" ? (state.prevRoute?.section || (spaceOf(state.editingCat) === "house" ? "house" : "pantry")) : r.section;
+  const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0]) : r.section;
   document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
-    a.hidden = a.dataset.section === "house" && !state.houseEnabled;
+    a.hidden = (a.dataset.section === "house" && !state.houseEnabled) || (a.dataset.section === "gear" && !state.gearEnabled);
     if (a.dataset.section === navSection) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   });
   const openShop = state.shopping.filter((s) => s.status !== "bought").length;
@@ -78,10 +79,14 @@ export function render(force = true) {
     $("#main").innerHTML = `<div class="panel empty"><strong>房屋维护模块已关闭</strong>在“我的 → 设置”里可以重新打开。<p><button type="button" class="btn btn-primary" data-action="house-enable">打开房屋维护</button></p></div>`;
     return;
   }
+  if (r.section === "gear" && !state.gearEnabled) {
+    $("#main").innerHTML = `<div class="panel empty"><strong>装备模块已关闭</strong>在“我的 → 设置”里可以重新打开。<p><button type="button" class="btn btn-primary" data-action="gear-enable">打开装备</button></p></div>`;
+    return;
+  }
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
   $("#main").innerHTML = subnav(r) + view();
-  if ((r.section === "pantry" && r.sub === "inventory") || (r.section === "house" && r.sub === "supplies")) renderInvList();
+  if ((r.section === "pantry" && r.sub === "inventory") || (r.section === "house" && r.sub === "supplies") || r.section === "gear") renderInvList();
 }
 
 const scrollMem = {};
@@ -105,7 +110,7 @@ function onRoute() {
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 window.addEventListener("hashchange", onRoute);
 
-const toList = (space) => (space === "house" ? href("house", "supplies") : href("pantry", "inventory"));
+const toList = (space) => href(...listRoute(space));
 
 /* ───────────── 交互（事件委托） ───────────── */
 export const main = $("#main");
@@ -118,6 +123,8 @@ main.addEventListener("change", async (e) => {
     const fe = e.target.form.elements;
     fe.subcategory.innerHTML = subOptions(e.target.value);
     if (!fe.item_id.value) fe.location.value = catOf(e.target.value).loc;
+    // 换到装备分类时隐藏补货相关字段（保存时也会清掉它们）
+    e.target.form.classList.toggle("is-gear", spaceOf(e.target.value) === "gear");
   }
   if (e.target.id === "regionSel") {
     Units.setRegion(e.target.value || null); fillUnitList();
@@ -133,6 +140,11 @@ main.addEventListener("change", async (e) => {
     state.houseEnabled = e.target.checked;
     try { localStorage.setItem("hmh-house-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? "已打开房屋维护" : "已关闭房屋维护，导航里不再显示"); render();
+  }
+  if (e.target.id === "gearToggle") {
+    state.gearEnabled = e.target.checked;
+    try { localStorage.setItem("hmh-gear-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
+    toast(e.target.checked ? "已打开装备" : "已关闭装备，导航里不再显示"); render();
   }
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
@@ -210,6 +222,9 @@ main.addEventListener("click", async (e) => {
         await Store.deleteItem(state.route.id); toast("已删除"); return leaveItem(true);
       case "house-enable":
         state.houseEnabled = true; try { localStorage.setItem("hmh-house-off", "0"); } catch { /* 忽略 */ }
+        return render();
+      case "gear-enable":
+        state.gearEnabled = true; try { localStorage.setItem("hmh-gear-off", "0"); } catch { /* 忽略 */ }
         return render();
       case "tpl-all": e.preventDefault(); el.form.querySelectorAll('input[name="tpl"]:not(:disabled)').forEach((x) => { x.checked = el.dataset.on === "1"; }); return;
       case "consume": el.disabled = true; await Store.adjust(id, -storedStep(state.items.find((x) => x.id === id)?.unit), "consume"); return refresh();

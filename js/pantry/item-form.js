@@ -1,6 +1,6 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, catOf, catsOf, du, esc, fmt, num, spaceOf, toast } from "../core/util.js";
+import { $, catOf, catsOf, du, esc, fmt, listRoute, num, spaceOf, toast } from "../core/util.js";
 import { go, href } from "../core/router.js";
 import { categoryOptions } from "./views.js";
 
@@ -21,10 +21,11 @@ export function openItem(id, { space, cat } = {}) {
 export function leaveItem(changed) {
   if (changed) state.needsRefresh = true;
   if (state.prevRoute) history.back();
-  else go(href(spaceOf(state.editingCat || "fresh") === "house" ? "house" : "pantry", spaceOf(state.editingCat || "fresh") === "house" ? "supplies" : "inventory"), { replace: true });
+  else go(href(...listRoute(spaceOf(state.editingCat || "fresh"))), { replace: true });
 }
 
-const SECTION_LABEL = { today: "今日", pantry: "储藏", house: "房屋", shopping: "采购清单", me: "我的" };
+const SECTION_LABEL = { today: "今日", pantry: "储藏", house: "房屋", gear: "装备", shopping: "采购清单", me: "我的" };
+const NAME_HINT = { pantry: "例如：鸡蛋、抽纸、大米", house: "例如：炉子滤网、电池、融雪盐", gear: "例如：被罩、千斤顶、儿童自行车" };
 
 export function viewItemForm() {
   const r = state.route;
@@ -36,8 +37,9 @@ export function viewItemForm() {
   const qCat = r.q.get("cat");
   const defCat = qCat && CATEGORIES.some((c) => c.id === qCat) ? qCat
     : state.filter.space === space && state.filter.cat !== "all" ? state.filter.cat : catsOf(space)[0].id;
-  const v = it || { category: defCat, unit: "个", quantity: 1, min_quantity: 1, lead_days: space === "house" ? 14 : 3, location: catOf(defCat).loc };
+  const v = it || { category: defCat, unit: "个", quantity: 1, min_quantity: space === "gear" ? 0 : 1, lead_days: space === "house" ? 14 : space === "gear" ? 0 : 3, location: catOf(defCat).loc };
   state.editingCat = v.category;
+  const gear = spaceOf(v.category) === "gear";
   const backLabel = state.prevRoute ? SECTION_LABEL[state.prevRoute.section] || "上一页" : "列表";
   const f = Units.factor(v.unit), dUnit = du(v.unit);
   const dv = (x) => (x == null || x === "" ? "" : fmt(num(x) * f));
@@ -47,7 +49,7 @@ export function viewItemForm() {
         <h2>${it ? `编辑：${esc(it.name)}` : "添加物品"}</h2>
         <button type="button" class="btn btn-sm btn-ghost" data-action="item-cancel">返回${backLabel}</button>
       </div>
-      <form id="itemForm" class="panel" novalidate>
+      <form id="itemForm" class="panel ${gear ? "is-gear" : ""}" novalidate>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">
         <input type="hidden" name="orig_unit" value="${esc(v.unit)}">
         <input type="hidden" name="disp_unit" value="${esc(dUnit)}">
@@ -55,7 +57,7 @@ export function viewItemForm() {
           <legend>基本信息</legend>
           <div class="form-grid">
             <label class="span-2">名称
-              <input name="name" required maxlength="60" autocomplete="off" placeholder="例如：鸡蛋、抽纸、大米" value="${esc(v.name || "")}">
+              <input name="name" required maxlength="60" autocomplete="off" placeholder="${NAME_HINT[spaceOf(v.category)] || NAME_HINT.pantry}" value="${esc(v.name || "")}">
             </label>
             <label>大类
               <select name="category" required>${categoryOptions(v.category, { withOther: false })}</select>
@@ -66,13 +68,14 @@ export function viewItemForm() {
             <label>存放位置
               <select name="location"><option value="">未指定</option>${LOCATIONS.map((l) => `<option ${l === v.location ? "selected" : ""}>${l}</option>`).join("")}</select>
             </label>
-            <label>保质期至
+            <label class="not-gear">保质期至
               <input name="expiry_date" type="date" value="${esc(v.expiry_date || "")}">
             </label>
           </div>
         </fieldset>
         <fieldset>
-          <legend>数量与提醒</legend>
+          <legend><span class="not-gear">数量与提醒</span><span class="only-gear">数量</span></legend>
+          <p class="muted only-gear" style="margin:0 0 10px;font-size:13px">装备只记数量和位置，不算消耗，也不会提醒补货。</p>
           <div class="form-grid">
             <label>当前数量
               <input name="quantity" type="number" min="0" step="any" inputmode="decimal" required value="${dv(v.quantity ?? 0)}" data-orig="${dv(v.quantity ?? 0)}">
@@ -81,15 +84,15 @@ export function viewItemForm() {
               <input name="unit" list="unitList" maxlength="10" required value="${esc(dUnit || "个")}">
               ${dUnit !== v.unit ? `<small>原单位 ${esc(v.unit)}，已按当前地区换算显示</small>` : ""}
             </label>
-            <label>少货线
+            <label class="not-gear">少货线
               <input name="min_quantity" type="number" min="0" step="any" inputmode="decimal" value="${dv(v.min_quantity ?? 0)}" data-orig="${dv(v.min_quantity ?? 0)}">
               <small>数量低于或等于它时提醒“少货”</small>
             </label>
-            <label>提前几天提醒
+            <label class="not-gear">提前几天提醒
               <input name="lead_days" type="number" min="0" max="60" step="1" inputmode="numeric" value="${esc(v.lead_days ?? 3)}">
               <small>预计剩余天数低于它时提醒“即将告罄”</small>
             </label>
-            <label class="span-2">每天大约用多少（可选）
+            <label class="span-2 not-gear">每天大约用多少（可选）
               <input name="avg_daily_use" type="number" min="0" step="any" inputmode="decimal" placeholder="留空则根据家人的使用记录自动估算" value="${dv(v.avg_daily_use)}" data-orig="${dv(v.avg_daily_use)}">
             </label>
           </div>
@@ -97,7 +100,7 @@ export function viewItemForm() {
         <fieldset>
           <legend>备注</legend>
           <label class="sr-only" for="itemNotes">备注</label>
-          <textarea id="itemNotes" name="notes" rows="3" maxlength="500" placeholder="品牌、规格、在哪买更便宜…">${esc(v.notes || "")}</textarea>
+          <textarea id="itemNotes" name="notes" rows="3" maxlength="500" placeholder="${gear ? "品牌、型号、尺寸、购买时间、借给了谁…" : "品牌、规格、在哪买更便宜…"}">${esc(v.notes || "")}</textarea>
         </fieldset>
         <p id="itemFormError" class="form-error" role="alert"></p>
         <div class="form-actions">
@@ -126,14 +129,16 @@ export async function saveItemForm(f) {
     if (el.value === el.dataset.orig && raw[name] != null) return num(raw[name]);
     return Math.round((Math.max(0, num(el.value)) / Units.factor(origUnit)) * 1000) / 1000;
   };
+  // 装备没有补货概念：清掉少货线、提醒天数、用量和保质期，保证它永远不进提醒
+  const gear = spaceOf(fe.category.value) === "gear";
   const it = {
     id: fe.item_id.value || undefined, name,
     category: fe.category.value, subcategory: fe.subcategory.value || null,
     unit: back ? origUnit : typedUnit, quantity: Math.round(val("quantity") * 100) / 100,
-    min_quantity: Math.round((val("min_quantity") || 0) * 100) / 100,
-    lead_days: Math.min(60, Math.max(0, Math.round(num(fe.lead_days.value, 3)))),
-    location: fe.location.value || null, expiry_date: fe.expiry_date.value || null,
-    avg_daily_use: val("avg_daily_use"),
+    min_quantity: gear ? 0 : Math.round((val("min_quantity") || 0) * 100) / 100,
+    lead_days: gear ? 0 : Math.min(60, Math.max(0, Math.round(num(fe.lead_days.value, 3)))),
+    location: fe.location.value || null, expiry_date: gear ? null : fe.expiry_date.value || null,
+    avg_daily_use: gear ? null : val("avg_daily_use"),
     notes: fe.notes.value.trim() || null,
   };
   const btn = f.querySelector('button[type="submit"]');

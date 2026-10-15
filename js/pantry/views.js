@@ -1,7 +1,7 @@
 import { alertsOf, hasStock, memberName, openShopFor } from "../core/logic.js";
 import { STATUS, state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, catsOf, esc, fmt, inSpace, money, num, showQty } from "../core/util.js";
+import { $, catOf, catsOf, esc, fmt, inSpace, isGear, money, num, showQty } from "../core/util.js";
 import { href } from "../core/router.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
 
@@ -24,6 +24,14 @@ export function shelfGrid(space) {
   return catsOf(space).map((c) => {
     const inCat = list.filter((x) => x.category === c.id);
     if (!inCat.length) return "";
+    // 装备没有库存状态：只显示件数和位置
+    if (space === "gear") {
+      const locs = [...new Set(inCat.map((x) => x.location).filter(Boolean))];
+      return `<button type="button" class="shelf-cell" style="--cat:${c.color}" data-action="goto-cat" data-space="${space}" data-cat="${c.id}">
+        <span class="ico" aria-hidden="true">${c.icon}</span><h3>${c.name}</h3>
+        <p>${inCat.length} 种${locs.length ? `，在${esc(locs.slice(0, 2).join("、"))}${locs.length > 2 ? "等" : ""}` : ""}</p>
+      </button>`;
+    }
     const cnt = (s) => inCat.filter((x) => x.status === s).length;
     const seg = (s, color) => cnt(s) ? `<i style="width:${(cnt(s) / inCat.length) * 100}%;background:${color}"></i>` : "";
     const bad = inCat.length - cnt("ok");
@@ -81,19 +89,23 @@ export function viewDashboard() {
 export function viewInventory(space = "pantry") {
   if (state.filter.space !== space) Object.assign(state.filter, { space, cat: "all", q: "", status: state.filter.status });
   const f = state.filter;
-  const house = space === "house";
+  const house = space === "house", gear = space === "gear";
+  if (gear) f.status = "all";   // 装备没有库存状态
   const chip = (id, label) => `<button type="button" class="chip" data-action="cat" data-cat="${id}" aria-pressed="${f.cat === id}">${label}</button>`;
+  const shelf = gear ? shelfGrid("gear") : "";
   return `
     <section class="section">
-      <div class="section-head"><h2>${house ? "房屋耗材" : "库存清单"}</h2>
+      <div class="section-head"><h2>${gear ? "装备" : house ? "房屋耗材" : "库存清单"}</h2>
         <div class="head-acts">${house ? `<a class="btn btn-sm btn-ghost" href="${href("house", "template")}">按房屋资料推荐</a>` : ""}
-        <a class="btn btn-primary" href="${href("item", "new")}?space=${space}">添加物品</a></div></div>
+        <a class="btn btn-primary" href="${href("item", "new")}?space=${space}">${gear ? "添加装备" : "添加物品"}</a></div></div>
+      ${gear ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">床品、电器、自行车、千斤顶、工具这类耐用品：只记有几件、放在哪，不算消耗、不提醒补货。</p>` : ""}
+      ${shelf ? `<div class="shelf" style="margin-bottom:14px">${shelf}</div>` : ""}
       <div class="toolbar">
-        <input type="search" id="invSearch" placeholder="${house ? "搜索，例如：滤网、电池" : "搜索物品，例如：纸、蛋"}" value="${esc(f.q)}" aria-label="搜索物品">
-        <select id="invStatus" aria-label="按提醒筛选">
+        <input type="search" id="invSearch" placeholder="${gear ? "搜索，例如：被罩、千斤顶、自行车" : house ? "搜索，例如：滤网、电池" : "搜索物品，例如：纸、蛋"}" value="${esc(f.q)}" aria-label="搜索物品">
+        ${gear ? "" : `<select id="invStatus" aria-label="按提醒筛选">
           ${[["all", "全部状态"], ["alert", "需要补货"], ["out", "缺货"], ["low", "少货"], ["soon", "即将告罄"], ["exp", "临期或过期"], ["ok", "充足"]]
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${l}</option>`).join("")}
-        </select>
+        </select>`}
       </div>
       <div class="chips" role="group" aria-label="按分类筛选">
         ${chip("all", "全部")}${catsOf(space).map((c) => chip(c.id, `${c.icon} ${c.name}`)).join("")}
@@ -120,7 +132,9 @@ export function renderInvList() {
       ? `<div class="panel empty"><strong>没有符合条件的物品</strong>换个关键词或分类试试。</div>`
       : f.space === "house"
         ? `<div class="panel empty"><strong>还没有房屋耗材</strong>按你家的房型和设施，一次加好常用的滤网、电池、融雪盐等。<p><a class="btn btn-primary" href="${href("house", "template")}">按房屋资料推荐</a></p></div>`
-        : `<div class="panel empty"><strong>库存还是空的</strong>从最常用的几样开始，例如鸡蛋、大米、抽纸。</div>`;
+        : f.space === "gear"
+          ? `<div class="panel empty"><strong>还没有装备</strong>床单被罩、电热毯、旅行床、自行车、千斤顶、园艺工具……这些只需要记数量和位置的东西都放这里。<p><a class="btn btn-primary" href="${href("item", "new")}?space=gear">添加第一件装备</a></p></div>`
+          : `<div class="panel empty"><strong>库存还是空的</strong>从最常用的几样开始，例如鸡蛋、大米、抽纸。</div>`;
     return;
   }
   host.innerHTML = catsOf(f.space).map((c) => {
@@ -135,6 +149,23 @@ export function renderInvList() {
 export function itemCard(it) {
   const st = STATUS[it.status];
   const by = Store.mode === "cloud" ? memberName(it.updated_by) : null;
+  // 装备卡片：没有存量罐和 −/+（数量在编辑页改），显示件数、位置和备注
+  if (isGear(it)) {
+    const meta = [
+      it.subcategory && `<span>${esc(it.subcategory)}</span>`,
+      it.location && `<span>📍${esc(it.location)}</span>`,
+      it.notes && `<span class="note" title="${esc(it.notes)}">${esc(it.notes.length > 40 ? `${it.notes.slice(0, 40)}…` : it.notes)}</span>`,
+      by && `<span>${esc(by)} 更新</span>`,
+    ].filter(Boolean).join("");
+    return `<article class="item is-gear" aria-label="${esc(`${it.name}，${fmt(it.dqty)} ${it.du}${it.location ? `，在${it.location}` : ""}`)}">
+      <span class="gear-ico" aria-hidden="true">${catOf(it.category).icon}</span>
+      <div class="item-main">
+        <div class="item-title"><button type="button" data-action="edit" data-id="${it.id}">${esc(it.name)}</button></div>
+        <div class="item-meta">${meta}</div>
+      </div>
+      <div class="qty"><output>${fmt(it.dqty)}<small>${esc(it.du)}</small></output></div>
+    </article>`;
+  }
   const meta = [
     it.subcategory && `<span>${esc(it.subcategory)}</span>`,
     it.location && `<span>📍${esc(it.location)}</span>`,
@@ -270,10 +301,11 @@ export function viewMeals() {
     <section class="section"><div class="section-head"><h2>可选菜谱</h2><p>绿色是家里有的</p></div><div class="recipes">${cards}</div></section>`;
 }
 
-/** 分类下拉选项：储藏、房屋分组显示 */
+/** 分类下拉选项：储藏、房屋、装备分组显示 */
 export function categoryOptions(selected, { withOther = true } = {}) {
   const opt = (c) => `<option value="${c.id}" ${c.id === selected ? "selected" : ""}>${c.icon} ${c.name}</option>`;
   return `<optgroup label="厨房储藏">${catsOf("pantry").map(opt).join("")}</optgroup>
     <optgroup label="房屋耗材">${catsOf("house").map(opt).join("")}</optgroup>
+    <optgroup label="装备（只记数量和位置）">${catsOf("gear").map(opt).join("")}</optgroup>
     ${withOther ? opt(OTHER_CAT) : ""}`;
 }

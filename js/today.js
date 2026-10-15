@@ -63,6 +63,7 @@ export function viewToday() {
     <section class="section quick">
       <a class="quick-link" href="${href("item", "new")}?space=pantry"><span aria-hidden="true">🥫</span>添加储藏物品</a>
       ${houseOn ? `<a class="quick-link" href="${href("item", "new")}?space=house"><span aria-hidden="true">🧰</span>添加房屋耗材</a>` : ""}
+      ${state.gearEnabled ? `<a class="quick-link" href="${href("item", "new")}?space=gear"><span aria-hidden="true">🧳</span>添加装备</a>` : ""}
       <a class="quick-link" href="${href("me", "stats")}"><span aria-hidden="true">📊</span>看花费统计</a>
     </section>`;
 }

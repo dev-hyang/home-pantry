@@ -215,6 +215,16 @@ textarea { resize: vertical; }
 .jar.st-ok i { background: var(--pine); }
 .jar .tick { position: absolute; left: 0; width: 8px; height: 0; border-top: 2px dashed var(--ink); opacity: .7; }
 
+/* 装备卡片：用分类图标代替存量罐，没有 −/+ */
+.item.is-gear .gear-ico { font-size: 24px; text-align: center; line-height: 1; }
+.item.is-gear .item-meta .note { color: var(--ink); opacity: .75; }
+
+/* 物品编辑页：选到装备分类时隐藏补货相关字段 */
+#itemForm .only-gear { display: none; }
+#itemForm.is-gear .not-gear { display: none; }
+#itemForm.is-gear .only-gear { display: block; }
+#itemForm.is-gear legend .only-gear { display: inline; }
+
 /* ── 采购清单 ── */
 .add-row { display: grid; grid-template-columns: minmax(0, 1fr) 80px 90px 130px auto; gap: 8px; }
 .add-row.purchase-row { grid-template-columns: minmax(0, 1fr) 130px 120px 130px 140px auto; }

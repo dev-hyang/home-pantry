@@ -17,10 +17,13 @@ export const showQty = (q, unit) => `${fmt(toDisp(q, unit))} ${esc(du(unit) || "
 export const storedStep = (unit) => Units.step(du(unit)) / Units.factor(unit);
 export const money = (v, short) => Units.money(v, undefined, !!short);
 export const catOf = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[0];
-// 分类分两个空间：pantry 厨房储藏 / house 房屋耗材
+// 分类分三个空间：pantry 厨房储藏 / house 房屋耗材 / gear 装备（耐用品，只记数量和位置）
 export const catsOf = (space) => CATEGORIES.filter((c) => c.space === space);
 export const spaceOf = (catId) => CATEGORIES.find((c) => c.id === catId)?.space || "pantry";
 export const inSpace = (space) => (it) => spaceOf(it.category) === space;
+export const isGear = (it) => spaceOf(it.category) === "gear";
+// 空间 → 对应列表页的路由 [section, sub]
+export const listRoute = (space) => (space === "house" ? ["house", "supplies"] : space === "gear" ? ["gear", null] : ["pantry", "inventory"]);
 
 export function setSync(text, err = false) {
   const b = $("#syncBadge"); b.textContent = text; b.classList.toggle("err", err);

@@ -38,6 +38,8 @@ export function viewSettings() {
     </div>
     <div class="panel"><div class="kv"><div><b>房屋维护模块</b><div class="muted">关闭后导航和首页只显示厨房储藏，适合租房或不需要的家庭；数据不会删除</div></div>
       <label class="switch"><input type="checkbox" id="houseToggle" ${state.houseEnabled ? "checked" : ""}><span>${state.houseEnabled ? "已打开" : "已关闭"}</span></label></div></div>
+    <div class="panel"><div class="kv"><div><b>装备模块</b><div class="muted">床品、电器、自行车、工具等耐用品，只记数量和位置；关闭后导航里不再显示，数据不会删除</div></div>
+      <label class="switch"><input type="checkbox" id="gearToggle" ${state.gearEnabled ? "checked" : ""}><span>${state.gearEnabled ? "已打开" : "已关闭"}</span></label></div></div>
     <div class="panel"><div class="kv"><div><b>浏览器通知</b><div class="muted">打开网页时，若有新的缺货或少货会弹出提醒</div></div>
       ${notif === "granted" ? `<span class="badge b-ok">已开启</span>` : notif === "unsupported" ? `<span class="muted">此浏览器不支持</span>` : `<button type="button" class="btn btn-sm" data-action="notif">开启通知</button>`}</div></div>
     <div class="panel"><div class="kv"><div><b>导出数据</b><div class="muted">下载库存和采购清单的 JSON 备份</div></div>

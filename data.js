@@ -11,9 +11,21 @@ window.CATEGORIES = [
   { id: "health", name: "药品健康", icon: "💊", color: "#24897d", loc: "常温",  subs: ["常备药", "维生素营养", "护理用品"] },
 ].map((c) => ({ ...c, space: "pantry" }));   // 房屋耗材分类在 data/house.js 里追加（space = "house"）
 
+// 装备：耐用品和工具（床品、电器、自行车、千斤顶、园艺工具…），只记数量和位置，
+// 不算消耗、不提醒补货、不进采购提醒（space = "gear"）。需要保养周期的设备将来进第二期的设备档案。
+window.GEAR_CATEGORIES = [
+  { id: "gear_home",   name: "家居用品", icon: "🛏️", color: "#6b8e7a", loc: "储物间", subs: ["床上用品", "毛巾浴巾", "季节电器", "收纳杂物"] },
+  { id: "gear_travel", name: "出行户外", icon: "🚲", color: "#4f7f9f", loc: "车库",   subs: ["旅行婴儿用品", "推车拖车", "自行车", "露营野餐", "行李箱包"] },
+  { id: "gear_car",    name: "汽车装备", icon: "🚗", color: "#7a5c8e", loc: "车内",   subs: ["应急工具", "备胎", "车载电器", "车内收纳"] },
+  { id: "gear_tools",  name: "工具",     icon: "🔧", color: "#8a6d3b", loc: "工具间", subs: ["手动工具", "电动工具", "五金配件", "梯子登高"] },
+  { id: "gear_garden", name: "园艺工具", icon: "🌱", color: "#5a8f3f", loc: "车库",   subs: ["割草修剪", "浇水用品", "花盆土壤", "园艺手工具"] },
+].map((c) => ({ ...c, space: "gear" }));
+window.CATEGORIES.push(...window.GEAR_CATEGORIES);
+window.GEAR_GROUP = { id: "gear", name: "装备", icon: "🧳", color: "#a0522d" };   // 统计图里合并显示
+
 // 单位列表按地区区分，见 units.js（Units.list()）
 window.OTHER_CAT = { id: "other", name: "其他", icon: "🧺", color: "#8a948f" };
-window.LOCATIONS = ["常温", "冷藏", "冷冻", "储物间", "卫生间", "厨房柜", "地下室", "车库", "工具间", "阳台"];
+window.LOCATIONS = ["常温", "冷藏", "冷冻", "储物间", "卫生间", "厨房柜", "卧室", "衣柜", "地下室", "车库", "车内", "工具间", "阳台"];
 
 window.DIETS = {
   general: {

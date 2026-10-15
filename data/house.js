@@ -17,6 +17,7 @@
     { id: "house_safety", name: "安全与电力", icon: "🔋", color: "#c75a85", loc: "储物间", subs: ["电池", "灯泡灯管", "保险丝"] },
     { id: "house_repair", name: "维修耗材",   icon: "🧰", color: "#7563c0", loc: "工具间", subs: ["密封胶", "修补材料", "润滑防锈", "胶带五金"] },
     { id: "house_care",   name: "外墙地面养护", icon: "🧽", color: "#8a6d3b", loc: "储物间", subs: ["地板护理", "外墙清洁", "木作防护", "瓷砖石材"] },
+    { id: "house_car",    name: "汽车养护",   icon: "🛢️", color: "#7a5c8e", loc: "车库",   subs: ["油液", "雨刮与灯泡", "清洁美容", "应急耗材"] },
   ].map((c) => ({ ...c, space: "house" }));
   window.CATEGORIES.push(...HOUSE_CATEGORIES);
   window.HOUSE_GROUP = { id: "house", name: "房屋维护", icon: "🏠", color: "#5c6b63" };  // 统计图里合并显示
@@ -46,6 +47,7 @@
     { id: "humid_season",   name: "梅雨 / 回南天",       region: "cn" },
     { id: "gas",            name: "天然气 / 燃气",       region: "both" },
     { id: "garage",         name: "车库",                region: "both" },
+    { id: "car",            name: "有汽车",              region: "both" },
     { id: "lawn",           name: "草坪 / 花园",         region: "both" },
     { id: "deck",           name: "木平台 / 露台",       region: "both" },
     { id: "fireplace",      name: "壁炉",                region: "na" },
@@ -222,6 +224,12 @@
         note: "木平台通常 2–3 年重新涂一次，视日晒和产品。" },
       { name: "填缝封护剂", category: "house_care", sub: "瓷砖石材", unit: "瓶", qty: 1, min: 0, loc: "储物间", when: ["floor:tile"] },
       { name: "石材中性清洁剂", category: "house_care", sub: "瓷砖石材", unit: "瓶", qty: 1, min: 1, every: 180, loc: "储物间", when: ["floor:stone"] },
+      { name: "玻璃水", category: "house_car", sub: "油液", unit: "瓶", qty: 1, min: 1, every: 60, loc: "车库", when: ["f:car"],
+        note: "冬季选防冻型（-20℃ 以下）。" },
+      { name: "机油", category: "house_car", sub: "油液", unit: "瓶", qty: 1, min: 0, every: 180, loc: "车库", when: ["f:car"],
+        note: "粘度按保养手册选；多数车约 5000–7500 英里或半年换一次。自己不换油的话可以删掉这项。" },
+      { name: "雨刮片", category: "house_car", sub: "雨刮与灯泡", unit: "副", qty: 1, min: 0, every: 365, loc: "车库", when: ["f:car"],
+        note: "刮不干净或有跳动时更换，尺寸见车主手册。" },
     ],
     cn: [
       { name: "净水器滤芯", category: "house_water", sub: "净水滤芯", unit: "支", qty: 1, min: 0, every: 180, loc: "厨房柜", when: ["f:water_purifier"],
@@ -247,6 +255,9 @@
       { name: "填缝封护剂", category: "house_care", sub: "瓷砖石材", unit: "瓶", qty: 1, min: 0, loc: "储物间", when: ["floor:tile"] },
       { name: "石材中性清洁剂", category: "house_care", sub: "瓷砖石材", unit: "瓶", qty: 1, min: 1, every: 180, loc: "储物间", when: ["floor:stone"] },
       { name: "木平台防护油", category: "house_care", sub: "木作防护", unit: "罐", qty: 1, min: 0, loc: "阳台", when: ["f:deck"] },
+      { name: "玻璃水", category: "house_car", sub: "油液", unit: "瓶", qty: 1, min: 1, every: 60, loc: "车库", when: ["f:car"],
+        note: "北方冬季选防冻型。" },
+      { name: "雨刮片", category: "house_car", sub: "雨刮与灯泡", unit: "副", qty: 1, min: 0, every: 365, loc: "车库", when: ["f:car"] },
     ],
   };
 

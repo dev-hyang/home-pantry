@@ -145,6 +145,14 @@ export function seedDemo() {
   add("婴儿湿巾", "baby", "湿巾", "包", 3, 2, "储物间", 0.3, null, 12);
   add("防溢乳垫", "baby", "哺乳用品", "片", 40, 20, "储物间", 6, null, 0.8);
   add("复合维生素", "health", "维生素营养", "片", 3, 0, "常温", 1, 200, 1.5);
+  // 装备（耐用品）：只有数量和位置，没有消耗记录
+  add("床单被罩四件套", "gear_home", "床上用品", "套", 3, 0, "衣柜", 0, null, 0);
+  add("电热毯", "gear_home", "季节电器", "条", 1, 0, "衣柜", 0, null, 0);
+  add("旅行婴儿床（Pack and Play）", "gear_travel", "旅行婴儿用品", "个", 1, 0, "地下室", 0, null, 0);
+  add("儿童自行车", "gear_travel", "自行车", "辆", 1, 0, "车库", 0, null, 0);
+  add("千斤顶", "gear_car", "应急工具", "个", 1, 0, "车内", 0, null, 0);
+  add("搭电线（Jumper）", "gear_car", "应急工具", "套", 1, 0, "车内", 0, null, 0);
+  add("修枝剪", "gear_garden", "园艺手工具", "把", 1, 0, "车库", 0, null, 0);
   return { items, logs, shopping: [], purchases };
 }
 

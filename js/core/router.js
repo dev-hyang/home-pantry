@@ -4,6 +4,7 @@ export const SECTIONS = {
   today:    { name: "今日",   subs: null },
   pantry:   { name: "储藏",   subs: [["overview", "概览"], ["inventory", "库存"], ["meals", "菜单"]] },
   house:    { name: "房屋",   subs: [["overview", "概览"], ["supplies", "房屋耗材"], ["profile", "房屋资料"], ["template", "推荐耗材", true]] },  // 第三项 true = 不在二级导航显示
+  gear:     { name: "装备",   subs: null },   // 耐用品和工具：只记数量和位置
   shopping: { name: "采购",   subs: null },
   me:       { name: "我的",   subs: [["stats", "统计"], ["settings", "设置"]] },
   item:     { name: "物品",   subs: null },   // #/item/new?cat=xx 或 #/item/<id>
