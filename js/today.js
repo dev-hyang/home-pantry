@@ -7,6 +7,7 @@ import { joinList, locale, t } from "./core/i18n.js";
 import { alertText, assetAlerts } from "./house/assets.js";
 import { taskRow, undoneThisMonth } from "./house/tasks.js";
 import { alertText as billText, billAlerts, billCat } from "./bills/logic.js";
+import { dealAlerts, taskRow as dealTaskRow } from "./house/deals.js";
 
 const SPACE_TAG = { pantry: { name: "储藏", icon: "🥫" }, house: { name: "房屋", icon: "🏠" } };
 
@@ -23,7 +24,8 @@ export function viewToday() {
   const open = state.shopping.filter((s) => s.status === "todo");
   const claimed = state.shopping.filter((s) => s.status === "claimed");
   const bills = state.billsEnabled ? billAlerts(state.billsEnriched.filter((b) => b.active)) : [];
-  const total = todo.length + expiring.length + assets.length + tasks.length + bills.length;
+  const deals = houseOn ? dealAlerts() : [];
+  const total = todo.length + expiring.length + assets.length + tasks.length + bills.length + deals.length;
 
   const now = new Date();
   const dateText = now.toLocaleDateString(locale(), { month: "long", day: "numeric", weekday: "long" });
@@ -45,6 +47,12 @@ export function viewToday() {
       <p class="muted">${esc(dateText)}</p>
       <h2>${total ? t("今天有 {n} 件事要留意", { n: total }) : t("今天没有需要处理的事")}</h2>
     </section>
+
+    ${deals.length ? `<section class="section">
+      <div class="section-head"><h2>${t("房产交易")}</h2><a class="btn btn-sm btn-ghost" href="${href("house", "deal")}">${t("交易清单")}</a></div>
+      <div class="panel"><ul class="task-list">${deals.slice(0, 8).map((x) => dealTaskRow(x, { showProp: state.properties.length > 1 })).join("")}</ul>
+        ${deals.length > 8 ? more(deals.length - 8, "house", "deal", t("去交易清单查看")) : ""}</div>
+    </section>` : ""}
 
     ${bills.length ? `<section class="section">
       <div class="section-head"><h2>${t("账单")}</h2><a class="btn btn-sm btn-ghost" href="${href("bills", "overview")}">${t("全部账单")}</a></div>

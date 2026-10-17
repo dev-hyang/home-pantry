@@ -39,18 +39,26 @@ function propertiesPanel() {
         <label>${t("名称")}<input name="name" required maxlength="40" placeholder="${t("例如：芝加哥的家 / 出租房 1")}" value="${esc(p?.name || "")}"></label>
         <label>${t("类型")}<select name="kind">${Object.entries(B.PROPERTY_KINDS).map(([k, n]) => `<option value="${k}" ${k === (p?.kind || "other") ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
         <label>${t("用途")}<select name="role">${Object.entries(B.PROPERTY_ROLES).map(([k, n]) => `<option value="${k}" ${k === (p?.role || "owner_occupied") ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
+        <label>${t("状态")}<select name="status">${Object.entries(window.DEALS.PROPERTY_STATUS).map(([k, n]) => `<option value="${k}" ${k === (p?.status || "owned") ? "selected" : ""}>${t(n)}</option>`).join("")}</select><small>${t("看房或签约阶段可先建房产；买卖和退租在“房屋 → 交易”里走流程")}</small></label>
         <label>${t("地址（可选）")}<input name="address" maxlength="120" value="${esc(p?.address || "")}"></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(p?.notes || "")}"></label>
       </div>
       <div class="form-actions" style="margin-top:8px"><button class="btn btn-sm btn-primary" type="submit">${t("保存")}</button>
         <button class="btn btn-sm btn-ghost" type="button" data-action="property-cancel">${t("取消")}</button></div></form>`;
-  const rows = state.properties.map((p) => state.editProperty === p.id ? `<li>${form(p)}</li>` : `<li class="${p.archived ? "inactive" : ""}">
-      <div class="grow"><b>${esc(p.name)}</b>${p.is_default ? ` <span class="badge b-ok">${t("默认")}</span>` : ""}${p.archived ? ` <span class="badge" style="background:var(--surface-2)">${t("已归档")}</span>` : ""}
+  const del = (p) => `<form id="propertyDeleteForm" class="prop-form" style="width:100%">
+      <input type="hidden" name="property_id" value="${esc(p.id)}">
+      <p class="muted" style="font-size:13px;margin:0 0 6px">${t("彻底删除“{name}”会连同它的账单与缴费记录、设备与保养记录、季节任务、房屋资料、交易一起删除，不能恢复。花费统计里的记录会保留。输入房产名确认：", { name: esc(p.name) })}</p>
+      <div class="member-rename"><input name="confirm_name" required maxlength="40" placeholder="${esc(p.name)}" aria-label="${t("输入房产名确认")}">
+        <button class="btn btn-sm btn-danger-ghost" type="submit">${t("确认彻底删除")}</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-action="property-delete-cancel">${t("取消")}</button></div></form>`;
+  const rows = state.properties.map((p) => state.editProperty === p.id ? `<li>${form(p)}</li>` : state.deleteProperty === p.id ? `<li>${del(p)}</li>` : `<li class="${p.archived ? "inactive" : ""}">
+      <div class="grow"><b>${esc(p.name)}</b>${p.is_default ? ` <span class="badge b-ok">${t("默认")}</span>` : ""} <span class="badge" style="background:var(--surface-2)">${t(window.DEALS.PROPERTY_STATUS[p.status] || "持有")}</span>${p.archived ? ` <span class="badge" style="background:var(--surface-2)">${t("已归档")}</span>` : ""}
         <small>${[t(B.PROPERTY_KINDS[p.kind] || ""), t(B.PROPERTY_ROLES[p.role] || ""), p.address].filter(Boolean).map(esc).join(" · ")}</small></div>
       <span class="head-acts">
         <button type="button" class="btn btn-sm btn-ghost" data-action="property-edit" data-id="${p.id}">${t("编辑")}</button>
         ${!p.is_default && !p.archived ? `<button type="button" class="btn btn-sm btn-ghost" data-action="property-default" data-id="${p.id}">${t("设为默认")}</button>` : ""}
         ${!p.is_default ? `<button type="button" class="btn btn-sm ${p.archived ? "" : "btn-danger-ghost"}" data-action="property-archive" data-id="${p.id}">${p.archived ? t("恢复") : t("归档")}</button>` : ""}
+        ${p.archived ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="property-delete" data-id="${p.id}">${t("彻底删除")}</button>` : ""}
       </span></li>`).join("");
   return `<div class="panel">
     <div class="kv"><div><b>${t("房产")}</b><div class="muted">${t("房屋资料、设备、季节任务和账单都按房产区分；房东可以加出租房")}</div></div>

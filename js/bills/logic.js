@@ -63,7 +63,7 @@ export function monthlyEquivalent(bill, amount) {
   }
 }
 
-export const STATUS_RANK = { overdue: 0, due: 1, verify: 2, soon: 3, ok: 4, none: 5, inactive: 6 };
+export const STATUS_RANK = { overdue: 0, due: 1, verify: 2, soon: 3, ok: 4, none: 5, ended: 6, inactive: 7 };
 
 /** 丰富账单：最近缴费、平均金额、状态、距到期天数、涨价、扣款卡到期 */
 export function enrichBills(bills, payments) {
@@ -78,8 +78,12 @@ export function enrichBills(bills, payments) {
     const priceUp = last && last.amount != null && prevAvg ? num(last.amount) > prevAvg * 1.15 : false;
     const daysLeft = b.next_due_on ? daysUntil(b.next_due_on) : null;
     const maxRem = Math.max(0, ...(b.reminder_days || [7, 1]));
+    // 已结束：填了结束日期就看日期（卖房后水电气还有最后一期要提醒）；没填的看房产是否已卖出 / 退租 / 归档
+    const prop = b.property_id ? state.properties.find((p) => p.id === b.property_id) : null;
+    const ended = b.ends_on ? !!(b.next_due_on && b.next_due_on > b.ends_on) : !!(prop && (prop.archived || ["sold", "moved_out"].includes(prop.status)));
     let status;
     if (!b.active) status = "inactive";
+    else if (ended) status = "ended";
     else if (daysLeft == null) status = "none";
     else if (b.autopay) status = daysLeft <= 3 ? "verify" : "ok";
     else if (daysLeft < 0) status = "overdue";
@@ -92,7 +96,7 @@ export function enrichBills(bills, payments) {
       cardDays = daysUntil(ymd(new Date(y, m, 0)));
     }
     const cardExpiring = cardDays != null && cardDays <= 45;
-    return { ...b, pays, last, avg, est, priceUp, daysLeft, status, cardDays, cardExpiring, monthly: monthlyEquivalent(b, est) };
+    return { ...b, pays, last, avg, est, priceUp, daysLeft, status, cardDays, cardExpiring: cardExpiring && !ended, ended: !!ended, monthly: ended ? 0 : monthlyEquivalent(b, est) };
   });
 }
 
@@ -119,9 +123,9 @@ export const freqText = (b) => (b.frequency === "custom" ? t("每 {n} 个月", {
 export function upcoming(list, days = 30) {
   const today = todayISO(), end = addDays(today, days), out = [];
   for (const b of list) {
-    if (!b.active || !b.next_due_on) continue;
+    if (!b.active || b.ended || !b.next_due_on) continue;
     let d = b.next_due_on, guard = 0;
-    while (d && d <= end && guard++ < 12) { if (d >= today) out.push({ bill: b, due: d }); d = advanceDue(b, d); }
+    while (d && d <= end && guard++ < 12) { if (d >= today && (!b.ends_on || d <= b.ends_on)) out.push({ bill: b, due: d }); d = advanceDue(b, d); }
   }
   return out.sort((x, y) => x.due.localeCompare(y.due));
 }
@@ -133,9 +137,9 @@ export function icsFor(list) {
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//home-pantry//bills//EN", "CALSCALE:GREGORIAN", `X-WR-CALNAME:${esc(t("家庭账单"))}`];
   const today = todayISO(), end = addDays(today, 365);
   for (const b of list) {
-    if (!b.active || !b.next_due_on) continue;
+    if (!b.active || b.ended || !b.next_due_on) continue;
     let d = b.next_due_on, n = 0;
-    while (d && d <= end && n < 60) {
+    while (d && d <= end && n < 60 && (!b.ends_on || d <= b.ends_on)) {
       const title = `${b.autopay ? t("核对扣款：") : t("缴费：")}${b.name}`;
       const desc = [b.payee, b.est != null ? Units.money(b.est, b.currency || Units.region.currency) : null, b.pay_url, b.notes].filter(Boolean).join("\\n");
       lines.push("BEGIN:VEVENT", `UID:${b.id}-${d}@home-pantry`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${d.replace(/-/g, "")}`, `SUMMARY:${esc(title)}`, `DESCRIPTION:${esc(desc)}`);

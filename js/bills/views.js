@@ -9,13 +9,13 @@ import { download } from "../stats/views.js";
 import { STATUS_RANK, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, upcoming } from "./logic.js";
 
 const B = () => window.BILLS;
-const BADGE = { overdue: "b-out", due: "b-low", verify: "b-soon", soon: "b-soon", ok: "b-ok", none: "", inactive: "" };
-const STATUS_LABEL = { overdue: "逾期", due: "今天到期", verify: "待核对", soon: "即将到期", ok: "正常", none: "未填到期日", inactive: "已停用" };
+const BADGE = { overdue: "b-out", due: "b-low", verify: "b-soon", soon: "b-soon", ok: "b-ok", none: "", ended: "", inactive: "" };
+const STATUS_LABEL = { overdue: "逾期", due: "今天到期", verify: "待核对", soon: "即将到期", ok: "正常", none: "未填到期日", ended: "已结束", inactive: "已停用" };
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
 
 /** 房产切换条（房屋、账单页共用）；只有一套房产时不显示 */
 export function propertyBar({ all = false } = {}) {
-  const list = state.properties.filter((p) => !p.archived);
+  const list = state.properties.filter((p) => !p.archived || p.id === state.propertyId);
   if (list.length < 2) return "";
   const cur = all ? state.billsFilter.property : state.propertyId;
   const chip = (id, label) => `<button type="button" class="chip" data-action="${all ? "bills-prop" : "property"}" data-id="${id}" aria-pressed="${cur === id}">${label}</button>`;
@@ -88,9 +88,9 @@ export function viewBillsList() {
   if (f.autopay === "off") list = list.filter((b) => !b.autopay);
   const chip = (k, v, label) => `<button type="button" class="chip" data-action="bills-filter" data-key="${k}" data-val="${v}" aria-pressed="${f[k] === v}">${label}</button>`;
   const groups = B().CATEGORIES.map((c) => ({ c, rows: list.filter((b) => b.category === c.id).sort((x, y) => STATUS_RANK[x.status] - STATUS_RANK[y.status] || compare(x.name, y.name)) })).filter((g) => g.rows.length);
-  const row = (b) => `<li class="bill-row ${b.active ? "" : "inactive"}">
-      <div class="grow"><a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}
-        <small>${[b.payee, freqText(b), b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.property_id && state.properties.length > 1 ? propertyName(b.property_id) : null, b.assigned_to ? memberName(b.assigned_to) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
+  const row = (b) => `<li class="bill-row ${b.active && !b.ended ? "" : "inactive"}">
+      <div class="grow"><a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}
+        <small>${[b.payee, freqText(b), b.ended && b.ends_on ? t("结束于 {d}", { d: fmtDate(b.ends_on) }) : b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.property_id && state.properties.length > 1 ? propertyName(b.property_id) : null, b.assigned_to ? memberName(b.assigned_to) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b class="bill-amt">${mny(b.est, b.currency)}</b>
       <label class="switch" title="${t("自动扣款")}"><input type="checkbox" data-bill-autopay="${b.id}" ${b.autopay ? "checked" : ""}><span>${t("自动")}</span></label>
     </li>`;
@@ -276,6 +276,7 @@ export function viewBillForm() {
             <label>${t("固定日期（半年 / 年付）")}<input name="due_dates" placeholder="${t("例如 03-01, 08-01")}" value="${d((v.due_dates || []).join(", "))}"><small>${t("填了固定日期就按它循环，忽略“每月几号”")}</small></label>
             <label>${t("下次到期日")}<input name="next_due_on" type="date" value="${d(v.next_due_on)}"><small>${t("留空会按规则自动算；每周 / 年付没填日期的请手动填")}</small></label>
             <label>${t("宽限天数")}<input name="grace_days" type="number" inputmode="numeric" min="0" max="60" value="${d(v.grace_days ?? 0)}"></label>
+            <label>${t("结束日期（可选）")}<input name="ends_on" type="date" value="${d(v.ends_on)}"><small>${t("晚于它的到期不再提醒，例如卖房后的最后一期")}</small></label>
             <label>${t("提前提醒（天，逗号分隔）")}<input name="reminder_days" placeholder="7, 1" value="${d((v.reminder_days || [7, 1]).join(", "))}"></label>
             <label class="span-2">${t("滞纳金说明")}<input name="late_fee_note" maxlength="120" placeholder="${t("例如：逾期 1.5% 或 $25")}" value="${d(v.late_fee_note)}"></label>
           </div>
@@ -364,7 +365,7 @@ export async function saveBillForm(f) {
     payee: fe.payee.value.trim() || null, account_last4: fe.account_last4.value.trim() || null, login_hint: fe.login_hint.value.trim() || null, pay_url: payUrl || null,
     pay_channel: fe.pay_channel.value, statement_channel: fe.statement_channel.value, amount_type: fe.amount_type.value, typical_amount: numOrNull(fe.typical_amount),
     currency: (fe.currency.value.trim().toUpperCase() || Units.region.currency).slice(0, 3), frequency: fe.frequency.value, interval_months: numOrNull(fe.interval_months, true),
-    due_day: numOrNull(fe.due_day, true), due_dates: dueDates, next_due_on: fe.next_due_on.value || null, grace_days: numOrNull(fe.grace_days, true) || 0,
+    due_day: numOrNull(fe.due_day, true), due_dates: dueDates, next_due_on: fe.next_due_on.value || null, grace_days: numOrNull(fe.grace_days, true) || 0, ends_on: fe.ends_on.value || null,
     reminder_days: reminders.length ? reminders : [7, 1], late_fee_note: fe.late_fee_note.value.trim() || null,
     autopay: fe.autopay.checked, autopay_method: fe.autopay_method.value.trim() || null, autopay_card_expires: fe.autopay_card_expires.value || null,
     assigned_to: fe.assigned_to.value || null, essential: fe.essential.checked, active: fe.active.checked, notes: fe.notes.value.trim() || null,
@@ -397,7 +398,7 @@ export async function recordPayment(bill, { paid_on, due_on, amount, status, met
   const next = advanceDue(bill, base);
   const patch = { ...bill, next_due_on: next };
   if (!next && bill.frequency === "one_time") patch.active = false;
-  delete patch.pays; delete patch.last; delete patch.avg; delete patch.est; delete patch.priceUp; delete patch.daysLeft; delete patch.status; delete patch.cardDays; delete patch.cardExpiring; delete patch.monthly;
+  for (const k of ["pays", "last", "avg", "est", "priceUp", "daysLeft", "status", "cardDays", "cardExpiring", "monthly", "ended"]) delete patch[k];
   await Store.saveBill(patch);
 }
 

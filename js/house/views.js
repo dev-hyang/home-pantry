@@ -8,8 +8,16 @@ import { restockPanel, shelfGrid } from "../pantry/views.js";
 import { alertText, assetAlerts } from "./assets.js";
 import { monthName, monthTasks, taskRow } from "./tasks.js";
 import { propertyBar } from "../bills/views.js";
+import { currentProp, openDeal, statusText } from "./deals.js";
 
 const H = () => window.HOUSE;
+
+/** 房屋概览顶部：房产状态与进行中的交易 */
+function statusLine() {
+  const p = currentProp(); if (!p) return "";
+  const d = openDeal(p.id);
+  return `<p class="muted" style="margin:-6px 0 14px">${esc(p.name)} · ${statusText(p)}${d ? ` · <a href="${href("house", "deal")}">${t("交易进行中，查看清单")}</a>` : ""}</p>`;
+}
 
 /** 默认地区：设备时区在北美 → 北美模板，否则中国模板 */
 export const defaultRegion = () => (Units.region.system === "us" ? "na" : "cn");
@@ -55,7 +63,7 @@ export function viewHouse() {
   const alerts = alertsOf(state.enriched.filter(inSpace("house")));
   const shelf = shelfGrid("house");
   if (!p) {
-    return `${propertyBar()}<section class="section house-intro">
+    return `${propertyBar()}${statusLine()}<section class="section house-intro">
       <h2>${t("先说说你家的房子")}</h2>
       <p class="muted">${t("选一下房型、外墙和地面材料、家里有哪些设施，大约 1 分钟。之后会告诉你哪些部位归自己维护、各种材料怎么保养，并一次加好常用的房屋耗材。")}</p>
       <p><a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a>
@@ -81,7 +89,7 @@ export function viewHouse() {
     </div>` : "";
 
   return `
-    ${propertyBar()}
+    ${propertyBar()}${statusLine()}
     <section class="section">
       <div class="house-card">
         <span class="house-ico" aria-hidden="true">${ht?.icon || "🏠"}</span>

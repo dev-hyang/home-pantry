@@ -10,6 +10,7 @@ import { applyTypeDefaults, houseDraft, readHouseForm, templateItems, viewHouse,
 import { assetTemplateItems, enrichAssets, leaveAsset, onAssetFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
 import { seasonalSince, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
+import { applyCloseout, cancelDeal, completeBuy, openDeal, saveDealForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
 import { billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsOverview } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
@@ -31,10 +32,11 @@ export async function refresh() {
       let saved = null; try { saved = localStorage.getItem("hmh-property"); } catch { /* 忽略 */ }
       if (!live.some((p) => p.id === state.propertyId)) state.propertyId = (live.find((p) => p.id === saved) || live.find((p) => p.is_default) || live[0] || properties[0])?.id || null;
       const pid = state.propertyId;
-      const [items, logs, shopping, purchases, houseProfile, assets, maintLogs, seasonalDone, bills, billPayments] = await Promise.all([
+      const [items, logs, shopping, purchases, houseProfile, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone] = await Promise.all([
         Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listPurchases(), pid ? Store.getHouseProfile(pid) : null,
-        pid ? Store.listAssets(pid) : [], Store.listMaintLogs(), pid ? Store.listSeasonal(seasonalSince(), pid) : [], Store.listBills(), Store.listBillPayments()]);
-      Object.assign(state, { items, logs, shopping, purchases, houseProfile, assets, maintLogs, seasonalDone, bills, billPayments });
+        pid ? Store.listAssets(pid) : [], Store.listMaintLogs(), pid ? Store.listSeasonal(seasonalSince(), pid) : [], Store.listBills(), Store.listBillPayments(),
+        Store.listDeals(), Store.listDealDone()]);
+      Object.assign(state, { items, logs, shopping, purchases, houseProfile, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone });
       state.enriched = enrich(items, logs);
       state.assetsEnriched = enrichAssets(assets, maintLogs);
       state.billsEnriched = enrichBills(bills, billPayments);
@@ -57,7 +59,7 @@ export const refreshSoon = () => { clearTimeout(debounceT); debounceT = setTimeo
 const VIEWS = {
   today:    () => viewToday(),
   pantry:   { overview: viewDashboard, inventory: () => viewInventory("pantry"), gear: () => viewInventory("gear"), meals: viewMeals },
-  house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, profile: viewHouseProfile,
+  house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, deal: viewDeal, profile: viewHouseProfile,
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
   bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, template: viewBillTemplate },
   shopping: () => viewShopping(),
@@ -181,6 +183,10 @@ main.addEventListener("change", async (e) => {
     try { await toggleTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); }
     return refresh();
   }
+  if (e.target.matches("input[data-deal-task]")) {
+    try { await toggleDealTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); }
+    return refresh();
+  }
   if (e.target.id === "langSel") return changeLang(e.target.value || null);
   if (e.target.matches("input[data-bill-autopay]")) {   // 清单里的自动扣款开关
     const b = state.bills.find((x) => x.id === e.target.dataset.billAutopay);
@@ -250,9 +256,20 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "propertyForm") {
       const fe = f.elements, name = fe.name.value.trim();
       if (!name) return toast(t("请填写房产名称"));
-      await Store.saveProperty({ id: fe.property_id.value || undefined, name, kind: fe.kind.value, role: fe.role.value, address: fe.address.value.trim() || null, notes: fe.notes.value.trim() || null });
+      const old = state.properties.find((p) => p.id === fe.property_id.value) || {};
+      await Store.saveProperty({ ...old, id: fe.property_id.value || undefined, name, kind: fe.kind.value, role: fe.role.value, status: fe.status.value || old.status || "owned",
+        address: fe.address.value.trim() || null, notes: fe.notes.value.trim() || null });
       state.editProperty = null; toast(t("房产已保存")); return refresh();
     }
+    if (f.id === "propertyDeleteForm") {   // 彻底删除已归档房产：输入房产名确认
+      const p = state.properties.find((x) => x.id === f.elements.property_id.value);
+      if (!p) return;
+      if (f.elements.confirm_name.value.trim() !== p.name) return toast(t("输入的名称和房产名不一致"));
+      await Store.deleteProperty(p.id);
+      state.deleteProperty = null; toast(t("已彻底删除“{name}”及其账单、设备和资料；花费记录保留", { name: p.name })); return refresh();
+    }
+    if (f.id === "dealForm") { await saveDealForm(f); return refresh(); }
+    if (f.id === "closeoutForm") { await applyCloseout(f); go(href("house", "overview")); return refresh(); }
     if (f.id === "assetTemplateForm") {
       const ids = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
       if (!ids.length) return toast(t("还没有勾选设备"));
@@ -362,6 +379,17 @@ main.addEventListener("click", async (e) => {
       }
       case "property-edit": state.editProperty = id || "new"; return render();
       case "property-cancel": state.editProperty = null; return render();
+      case "property-delete": state.deleteProperty = id; render(); $("#propertyDeleteForm input[name=confirm_name]")?.focus(); return;
+      case "property-delete-cancel": state.deleteProperty = null; return render();
+      case "deal-start": await startDeal(el.dataset.kind); return refresh();
+      case "deal-cancel": if (!armed(el, t("再点一次确认取消"))) return; await cancelDeal(); return refresh();
+      case "deal-closeout": {
+        const d = openDeal();
+        if (!d) return;
+        if (d.kind === "buy") { if (!armed(el, t("再点一次确认已交割"))) return; await completeBuy(); return refresh(); }
+        state.closeout = true; return render();
+      }
+      case "deal-closeout-cancel": state.closeout = null; return render();
       case "property-default": await Store.setDefaultProperty(id); toast(t("已设为默认房产")); return refresh();
       case "property-archive": {
         const p = state.properties.find((x) => x.id === id);
@@ -492,7 +520,7 @@ export async function markBought(id) {
 export function exportJson() {
   const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), household: state.household?.name, items: state.items, shopping: state.shopping, purchases: state.purchases,
     properties: state.properties, house_profile: state.houseProfile, assets: state.assets, maintenance_logs: state.maintLogs, seasonal_tasks: state.seasonalDone,
-    bills: state.bills, bill_payments: state.billPayments }, null, 2)], { type: "application/json" });
+    bills: state.bills, bill_payments: state.billPayments, property_deals: state.deals, deal_task_done: state.dealDone }, null, 2)], { type: "application/json" });
   const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `pantry-${new Date().toISOString().slice(0, 10)}.json` });
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

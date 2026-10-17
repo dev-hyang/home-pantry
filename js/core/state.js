@@ -12,6 +12,9 @@ export const state = {
   bills: [], billPayments: [], billsEnriched: [],   // 账单 B1
   billsFilter: { property: "all", cat: "all", autopay: "all" },
   editProperty: null,                          // 设置页：正在编辑的房产 id（"new" = 新建）
+  deleteProperty: null,                        // 设置页：正在确认彻底删除的已归档房产 id
+  deals: [], dealDone: [],                     // 房产交易（买入 / 卖出 / 退租）与清单完成记录
+  closeout: null,                              // 交易页：退出向导是否展开
   tasksMonth: null,                    // 季节任务页当前查看的月份（null = 本月）
   stats: { months: 6, month: null, cat: null, itemId: null },
   filter: { space: "pantry", cat: "all", q: "", status: "all" },
