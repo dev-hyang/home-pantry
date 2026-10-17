@@ -2,7 +2,7 @@
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
   // ── 通用 / 导航 ──
-  "家庭妈妈小助手": "Home Helper",
+  "爱家小助手": "Loving Home Helper",
   "主导航": "Main navigation",
   "今日": "Today", "储藏": "Pantry", "房屋": "Home", "装备": "Gear", "采购": "Shopping", "我的": "Me", "物品": "Item", "设备": "Equipment",
   "概览": "Overview", "库存": "Inventory", "菜单": "Meals", "房屋耗材": "Home supplies", "季节任务": "Seasonal tasks", "房屋资料": "Home profile",

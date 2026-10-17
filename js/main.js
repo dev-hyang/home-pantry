@@ -25,7 +25,7 @@ import { renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, v
 import { viewSettings } from "./settings/views.js";
 import { cleanStore, download, exportAnnual, rememberStore, viewStats } from "./stats/views.js";
 
-const APP_NAME = "家庭妈妈小助手";
+const APP_NAME = "爱家小助手";
 
 /* ───────────── 刷新与渲染 ───────────── */
 export let refreshing = null;
