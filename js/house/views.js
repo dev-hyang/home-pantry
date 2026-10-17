@@ -56,7 +56,9 @@ export function readHouseForm(form) {
   d.insurance_to = fe.insurance_to.value || null;
   d.insurance_coverage = fe.insurance_coverage.value.trim() || null;
   d.insurance_premium = fe.insurance_premium.value === "" ? null : Math.round(Math.max(0, Number(fe.insurance_premium.value) || 0) * 100) / 100;
+  d.insurance_agent = fe.insurance_agent.value.trim() || null;
   d.insurance_phone = fe.insurance_phone.value.trim() || null;
+  d.insurance_email = fe.insurance_email.value.trim() || null;
   return d;
 }
 
@@ -73,9 +75,18 @@ const INS_BADGE = { active: ["b-ok", "有效"], expiring: ["b-soon", "快到期"
 export function insuranceLine(p) {
   const s = insuranceStatus(p), [cls, label] = INS_BADGE[s.kind];
   if (s.kind === "none") return `<p class="muted ins-line">🛡️ ${t("房屋保险")}：${t("未填")} <a href="${href("house", "profile")}">${t("补充")}</a></p>`;
-  const [lp, rp] = lang() === "en" ? [" (", ")"] : ["（", "）"];
+  const [lp, rp] = lang === "en" ? [" (", ")"] : ["（", "）"];   // lang 是 i18n 模块的实时绑定变量，不是函数
   const period = p.insurance_from || p.insurance_to ? `${lp}${p.insurance_from ? fmtDate(p.insurance_from) : "…"} – ${p.insurance_to ? fmtDate(p.insurance_to) : "…"}${rp}` : "";
-  return `<p class="muted ins-line">🛡️ ${t("房屋保险")}${p.insurance_provider ? ` <b>${esc(p.insurance_provider)}</b>` : ""} <span class="badge ${cls}">${t(label)}${s.kind === "expiring" ? ` · ${t("{d} 天", { d: s.days })}` : ""}</span>${esc(period)}${p.insurance_policy ? ` ${t("保单号")} ${esc(p.insurance_policy)}` : ""}${p.insurance_coverage ? ` · ${esc(p.insurance_coverage)}` : ""}</p>`;
+  return `<p class="muted ins-line">🛡️ ${t("房屋保险")}${p.insurance_provider ? ` <b>${esc(p.insurance_provider)}</b>` : ""} <span class="badge ${cls}">${t(label)}${s.kind === "expiring" ? ` · ${t("{d} 天", { d: s.days })}` : ""}</span>${esc(period)}${p.insurance_policy ? ` ${t("保单号")} ${esc(p.insurance_policy)}` : ""}${p.insurance_coverage ? ` · ${esc(p.insurance_coverage)}` : ""}</p>${agentLine(p)}`;
+}
+
+/** 理赔代理一行：姓名 · 电话（可拨）· 邮箱（可发），都没填就不显示 */
+function agentLine(p) {
+  const parts = [];
+  if (p.insurance_agent) parts.push(`<b>${esc(p.insurance_agent)}</b>`);
+  if (p.insurance_phone) parts.push(`<a href="tel:${esc(p.insurance_phone.replace(/[^\d+]/g, ""))}">📞 ${esc(p.insurance_phone)}</a>`);
+  if (p.insurance_email) parts.push(`<a href="mailto:${esc(p.insurance_email)}">✉️ ${esc(p.insurance_email)}</a>`);
+  return parts.length ? `<p class="muted ins-line ins-agent">${t("理赔代理")}${lang === "en" ? ": " : "："}${parts.join(" · ")}</p>` : "";
 }
 
 /** 提醒总线：各活跃房产的房屋保险 30 天内到期（尽快）或已过期（今天级） */
@@ -263,7 +274,12 @@ export function viewHouseProfile() {
             <label>${t("到期日")}<input name="insurance_to" type="date" value="${esc(d.insurance_to || "")}"><small>${t("到期前 30 天提醒续保")}</small></label>
             <label class="span-2">${t("保障范围")}<input name="insurance_coverage" maxlength="200" placeholder="${t("例如：房屋 $400k、责任 $300k、自付额 $1,000")}" value="${esc(d.insurance_coverage || "")}"></label>
             <label>${t("年保费")}<input name="insurance_premium" type="number" inputmode="decimal" min="0" step="0.01" value="${d.insurance_premium ?? ""}"></label>
-            <label>${t("理赔电话")}<input name="insurance_phone" maxlength="40" value="${esc(d.insurance_phone || "")}"></label>
+          </div>
+          <h4 class="sub-legend">${t("理赔代理")}<small>${t("出险时直接联系的人，概览里可一键拨打 / 发邮件")}</small></h4>
+          <div class="form-grid">
+            <label>${t("代理 / 经纪人")}<input name="insurance_agent" maxlength="60" placeholder="${t("姓名或办公室")}" value="${esc(d.insurance_agent || "")}"></label>
+            <label>${t("理赔电话")}<input name="insurance_phone" type="tel" maxlength="40" value="${esc(d.insurance_phone || "")}"></label>
+            <label class="span-2">${t("理赔邮箱")}<input name="insurance_email" type="email" maxlength="120" value="${esc(d.insurance_email || "")}"></label>
           </div>
           <p class="hint">${t("只记摘要，不存保单文件；账单里的“房屋保险”负责缴费提醒，这里负责到期续保提醒。")}</p>
         </fieldset>

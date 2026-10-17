@@ -384,6 +384,10 @@ textarea { resize: vertical; }
 .house-card p { margin: 2px 0 8px; }
 .house-card .ins-line { margin: 8px 0 0; font-size: 13px; }
 .house-card .ins-line .badge { margin: 0 4px; vertical-align: 1px; }
+.house-card .ins-agent { margin-top: 2px; }
+.house-card .ins-agent a { color: var(--pine); text-decoration: none; }
+.form-page .sub-legend { margin: 14px 0 6px; font-size: 14px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.form-page .sub-legend small { color: var(--muted); font-weight: 400; }
 .tagline { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { font-size: 12px; padding: 2px 9px; border-radius: 99px; background: var(--ink); color: var(--bg); }
 .tag-soft { background: var(--surface-2); color: var(--ink); }
