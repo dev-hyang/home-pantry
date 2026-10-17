@@ -2,6 +2,7 @@ import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, esc, fmtShort } from "../core/util.js";
 import { LANGS, detectLang, langOverride, t } from "../core/i18n.js";
+import { propertyForm } from "../house/property-form.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
 export const isOwner = () => state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
@@ -30,21 +31,10 @@ function membersList() {
   }).join("")}</ul>`;
 }
 
-/** 房产列表：改名、设默认、归档；编辑中的那行换成内联表单 */
+/** 房产列表：改名、设默认、归档；编辑中的那行换成内联表单（表单与房屋页共用 property-form.js） */
 function propertiesPanel() {
   const B = window.BILLS;
-  const form = (p) => `<form id="propertyForm" class="prop-form">
-      <input type="hidden" name="property_id" value="${esc(p?.id || "")}">
-      <div class="form-grid">
-        <label>${t("名称")}<input name="name" required maxlength="40" placeholder="${t("例如：芝加哥的家 / 出租房 1")}" value="${esc(p?.name || "")}"></label>
-        <label>${t("类型")}<select name="kind">${Object.entries(B.PROPERTY_KINDS).map(([k, n]) => `<option value="${k}" ${k === (p?.kind || "other") ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
-        <label>${t("用途")}<select name="role">${Object.entries(B.PROPERTY_ROLES).map(([k, n]) => `<option value="${k}" ${k === (p?.role || "owner_occupied") ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
-        <label>${t("状态")}<select name="status">${Object.entries(window.DEALS.PROPERTY_STATUS).map(([k, n]) => `<option value="${k}" ${k === (p?.status || "owned") ? "selected" : ""}>${t(n)}</option>`).join("")}</select><small>${t("看房或签约阶段可先建房产；买卖和退租在“房屋 → 交易”里走流程")}</small></label>
-        <label>${t("地址（可选）")}<input name="address" maxlength="120" value="${esc(p?.address || "")}"></label>
-        <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(p?.notes || "")}"></label>
-      </div>
-      <div class="form-actions" style="margin-top:8px"><button class="btn btn-sm btn-primary" type="submit">${t("保存")}</button>
-        <button class="btn btn-sm btn-ghost" type="button" data-action="property-cancel">${t("取消")}</button></div></form>`;
+  const form = propertyForm;
   const del = (p) => `<form id="propertyDeleteForm" class="prop-form" style="width:100%">
       <input type="hidden" name="property_id" value="${esc(p.id)}">
       <p class="muted" style="font-size:13px;margin:0 0 6px">${t("彻底删除“{name}”会连同它的账单与缴费记录、设备与保养记录、季节任务、房屋资料、交易一起删除，不能恢复。花费统计里的记录会保留。输入房产名确认：", { name: esc(p.name) })}</p>

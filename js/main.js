@@ -13,8 +13,8 @@ import { seasonAlertItems } from "./house/tasks.js";
 import { dealAlertItems } from "./house/deals.js";
 import { billAlertItems } from "./bills/logic.js";
 // 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
-[pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, seasonAlertItems].forEach(registerAlerts);
-import { applyTypeDefaults, houseDraft, insuranceAlertItems, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
+[pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
+import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { assetTemplateItems, enrichAssets, leaveAsset, onAssetFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
 import { seasonalSince, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
@@ -266,9 +266,14 @@ main.addEventListener("submit", async (e) => {
       const fe = f.elements, name = fe.name.value.trim();
       if (!name) return toast(t("请填写房产名称"));
       const old = state.properties.find((p) => p.id === fe.property_id.value) || {};
-      await Store.saveProperty({ ...old, id: fe.property_id.value || undefined, name, kind: fe.kind.value, role: fe.role.value, status: fe.status.value || old.status || "owned",
+      const saved = await Store.saveProperty({ ...old, id: fe.property_id.value || undefined, name, kind: fe.kind.value, role: fe.role.value, status: fe.status.value || old.status || "owned",
         address: fe.address.value.trim() || null, notes: fe.notes.value.trim() || null });
-      state.editProperty = null; toast(t("房产已保存")); return refresh();
+      state.editProperty = null; toast(t("房产已保存"));
+      if (!old.id && saved?.id && state.route?.section === "house") {   // 房屋页新建的：直接切到新房产，接着填资料
+        state.propertyId = saved.id; try { localStorage.setItem("hmh-property", saved.id); } catch { /* 忽略 */ }
+        state.houseDraft = null;
+      }
+      return refresh();
     }
     if (f.id === "propertyDeleteForm") {   // 彻底删除已归档房产：输入房产名确认
       const p = state.properties.find((x) => x.id === f.elements.property_id.value);

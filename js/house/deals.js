@@ -5,7 +5,7 @@ import { $, daysUntil, esc, fmtDate, money, num, todayISO, toast } from "../core
 import { href } from "../core/router.js";
 import { joinList, t } from "../core/i18n.js";
 import { addDays } from "../bills/logic.js";
-import { propertyBar } from "../bills/views.js";
+import { houseBar } from "./property-form.js";
 
 const D = () => window.DEALS;
 const B = () => window.BILLS;
@@ -95,7 +95,7 @@ export function viewDeal() {
       p.role === "tenant" && p.status === "renting" ? ["move_out", t("开始退租流程")] : null,
       p.status === "owned" && p.role !== "tenant" ? ["buy", t("记录买入流程（刚签约）")] : null,
     ].filter(Boolean);
-    return `${propertyBar()}${statusCard}
+    return `${houseBar()}${statusCard}
       <section class="section"><div class="panel empty"><strong>${t("这套房产没有进行中的交易")}</strong>
         ${t("买入或卖出时，按伊利诺伊州流程生成带截止日期的清单：律师审查、验房、贷款承诺、停服务通知、交割后事项，逐项提醒。")}
         <p>${starts.map(([k, l]) => `<button type="button" class="btn btn-primary" data-action="deal-start" data-kind="${k}">${l}</button>`).join(" ")}
@@ -106,7 +106,7 @@ export function viewDeal() {
   const groups = Object.entries(D().STAGES).map(([k, n]) => ({ k, n, rows: tasks.filter((x) => x.stage === k) })).filter((g) => g.rows.length);
   const undone = tasks.filter((x) => !x.done), mustLeft = undone.filter((x) => x.priority === "must").length;
   const K = D().KINDS;
-  return `${propertyBar()}${statusCard}
+  return `${houseBar()}${statusCard}
     <section class="section">
       <div class="section-head"><h2>${t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${t("还有 {n} 项未完成，其中 {m} 项必须", { n: undone.length, m: mustLeft })}</p></div>
       ${dealForm(deal)}

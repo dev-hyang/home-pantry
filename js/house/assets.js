@@ -7,7 +7,7 @@ import { Store } from "../core/store.js";
 import { $, DAY, addMonths, daysUntil, esc, fmt, fmtDate, fmtShort, money, num, stampText, todayISO, toast } from "../core/util.js";
 import { go, href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
-import { propertyBar } from "../bills/views.js";
+import { houseBar } from "./property-form.js";
 
 const H = () => window.HOUSE;
 const OWNER_OPTS = ["self", "hoa", "landlord", "property", "varies"];
@@ -93,7 +93,7 @@ export function viewAssets() {
       <div class="asset-grid">${rows.map(assetCard).join("")}</div></section>`;
   };
   return `
-    ${propertyBar()}
+    ${houseBar()}
     <section class="section">
       <div class="section-head"><h2>${t("设备档案")}</h2>
         <div class="head-acts">${p ? `<a class="btn btn-sm btn-ghost" href="${href("house", "asset-template")}">${t("按房屋资料生成")}</a>` : ""}

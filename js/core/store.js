@@ -54,6 +54,7 @@ export const DemoStore = {
       this.db.properties[i] = { ...this.db.properties[i], ...p, updated_at: now };
     } else this.db.properties.push({ status: "owned", ...p, id: uid(), is_default: false, archived: false, created_at: now, updated_at: now });
     this.persist();
+    return this.db.properties[p.id ? this.db.properties.findIndex((x) => x.id === p.id) : this.db.properties.length - 1];
   },
   async setDefaultProperty(id) { this.db.properties.forEach((p) => { p.is_default = p.id === id; }); this.persist(); },
   async deleteProperty(id) {
@@ -293,7 +294,7 @@ export const ITEM_FIELDS = ["name", "category", "subcategory", "unit", "quantity
 export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", "brand", "model", "serial", "installed_on", "manufacture_year", "warranty_until", "labor_warranty_until",
   "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes"];
 export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "acquired_on", "purchase_price", "sold_on", "sale_price", "archived", "notes"];
-export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email"];
+export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email", "hoa"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
   "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "statement_channel",
   "reminder_days", "ends_on", "assigned_to", "essential", "active", "notes"];
@@ -322,8 +323,8 @@ export const CloudStore = {
     const row = pick(p, PROPERTY_FIELDS, { household_id: this.hid, updated_by: state.user.id });
     if (row.archived == null) row.archived = false;
     if (!row.status) row.status = "owned";
-    if (p.id) this.must(await this.sb.from("properties").update(row).eq("id", p.id));
-    else this.must(await this.sb.from("properties").insert(row));
+    if (p.id) { this.must(await this.sb.from("properties").update(row).eq("id", p.id)); return { ...p, ...row }; }
+    return this.must(await this.sb.from("properties").insert(row).select().single());   // 返回新行，房屋页新建后直接切过去
   },
   async setDefaultProperty(id) {
     this.must(await this.sb.from("properties").update({ is_default: false }).eq("household_id", this.hid).eq("is_default", true));

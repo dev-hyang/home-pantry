@@ -2,21 +2,102 @@
 import { alertsOf } from "../core/logic.js";
 import { state } from "../core/state.js";
 import { href } from "../core/router.js";
-import { daysUntil, esc, fmtDate, inSpace } from "../core/util.js";
+import { daysUntil, esc, fmtDate, inSpace, money } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { restockPanel, shelfGrid } from "../pantry/views.js";
 import { alertText, assetAlerts, myAssets } from "./assets.js";
 import { monthName, monthTasks, taskRow } from "./tasks.js";
-import { propertyBar } from "../bills/views.js";
-import { currentProp, dealTasks, openDeal, statusText, taskRow as dealTaskRow } from "./deals.js";
+import { houseBar } from "./property-form.js";
+import { currentProp, dealTasks, openDeal, propertyLive, statusText, taskRow as dealTaskRow } from "./deals.js";
 
 const H = () => window.HOUSE;
 
-/** 房屋概览顶部：房产状态与进行中的交易 */
+/** 房屋概览顶部：房产状态、进行中的交易、编辑房产（同设置页的表单） */
 function statusLine() {
   const p = currentProp(); if (!p) return "";
   const d = openDeal(p.id);
-  return `<p class="muted" style="margin:-6px 0 14px">${esc(p.name)} · ${statusText(p)}${d ? ` · <a href="${href("house", "deal")}">${t("交易进行中，查看清单")}</a>` : ""}</p>`;
+  const B = window.BILLS;
+  const meta = [t(B.PROPERTY_KINDS[p.kind] || ""), t(B.PROPERTY_ROLES[p.role] || "")].filter(Boolean).join(" · ");
+  return `<p class="muted status-line" style="margin:-6px 0 14px">${esc(p.name)} · ${statusText(p)}${meta ? ` · ${esc(meta)}` : ""}${d ? ` · <a href="${href("house", "deal")}">${t("交易进行中，查看清单")}</a>` : ""}
+    ${state.editProperty === p.id ? "" : ` · <button type="button" class="link-name" data-action="property-edit" data-id="${p.id}">${t("编辑房产")}</button>`}</p>`;
+}
+
+/* ── HOA / 物业 ── */
+/** 当前资料的 HOA 对象（没填过按房型默认） */
+export function hoaOf(p) {
+  if (!p) return null;
+  const a = H().assocOf(p.house_type);
+  return { enabled: a.on, dues_period: "monthly", ...(p.hoa || {}) };
+}
+
+/** 特殊评估 / 大额摊派的状态：none / due（days）/ paid */
+export function assessmentStatus(hoa) {
+  if (!hoa?.enabled || !(hoa.sa_amount > 0)) return { kind: "none" };
+  if (hoa.sa_paid) return { kind: "paid" };
+  return { kind: "due", days: hoa.sa_due ? daysUntil(hoa.sa_due) : null };
+}
+
+/** 房屋卡片里的一行：🏘️ HOA <名称> · 管理公司 · 每月 $350 · 特殊评估 $2,000 待缴 */
+function hoaLine(p) {
+  const hoa = hoaOf(p), a = H().assocOf(p.house_type);
+  if (!hoa.enabled) return "";
+  const bits = [];
+  if (hoa.mgmt) bits.push(esc(hoa.mgmt));
+  if (hoa.dues > 0) bits.push(`${t(H().DUES_PERIODS[hoa.dues_period] || "每月")} ${money(hoa.dues)}`);
+  const sa = assessmentStatus(hoa);
+  if (sa.kind === "due") bits.push(`<span class="badge ${sa.days != null && sa.days <= 14 ? "b-out" : "b-soon"}">${t("特殊评估")} ${money(hoa.sa_amount)} ${t("待缴")}</span>`);
+  return `<p class="muted ins-line">🏘️ ${esc(t(a.label))}${hoa.name ? ` <b>${esc(hoa.name)}</b>` : ""}${bits.length ? ` · ${bits.join(" · ")}` : ""}</p>`;
+}
+
+/** 概览里的“HOA / 物业”面板：联系方式、费用、特殊评估、规则、该房型须知 */
+function hoaPanel(p) {
+  const hoa = hoaOf(p), a = H().assocOf(p.house_type);
+  const tips = a.tips.length ? `<details class="hoa-tips" ${hoa.enabled && (hoa.name || hoa.rules) ? "" : "open"}><summary>${t("{label}须知（{type}）", { label: t(a.label), type: t(H().typeOf(p.region, p.house_type)?.name || "") })}</summary><ul class="tips">${a.tips.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></details>` : "";
+  if (!hoa.enabled) {
+    if (!a.on && !a.tips.length) return "";
+    return `<section class="section" id="house-hoa"><div class="section-head"><h2>${esc(t(a.label))}</h2><p>${t("没填 {label}，有的话去资料里补充", { label: t(a.label) })}</p></div>
+      <div class="panel">${tips || `<div class="empty">${t("这种房型一般没有 {label}", { label: t(a.label) })}</div>`}</div></section>`;
+  }
+  const contact = [
+    hoa.phone ? `<a href="tel:${esc(hoa.phone.replace(/[^\d+]/g, ""))}">📞 ${esc(hoa.phone)}</a>` : "",
+    hoa.email ? `<a href="mailto:${esc(hoa.email)}">✉️ ${esc(hoa.email)}</a>` : "",
+    hoa.url ? `<a href="${esc(hoa.url)}" target="_blank" rel="noopener noreferrer">🔗 ${t("业主门户")}</a>` : "",
+  ].filter(Boolean).join(" · ");
+  const sa = assessmentStatus(hoa);
+  const saText = sa.kind === "none" ? t("没有进行中的特殊评估")
+    : sa.kind === "paid" ? `${money(hoa.sa_amount)}${hoa.sa_purpose ? ` · ${esc(hoa.sa_purpose)}` : ""} <span class="badge b-ok">${t("已缴")}</span>`
+    : `<b>${money(hoa.sa_amount)}</b>${hoa.sa_purpose ? ` · ${esc(hoa.sa_purpose)}` : ""}${hoa.sa_due ? ` · ${t("截止 {d}", { d: fmtDate(hoa.sa_due) })}` : ""} <span class="badge ${sa.days != null && sa.days < 0 ? "b-out" : "b-soon"}">${sa.days == null ? t("待缴") : sa.days < 0 ? t("已逾期 {d} 天", { d: -sa.days }) : t("{d} 天后到期", { d: sa.days })}</span>`;
+  const hoaBill = state.bills.find((b) => b.category === "hoa" && (!b.property_id || b.property_id === state.propertyId) && !b.archived);
+  const row = (k, v) => (v ? `<tr><th scope="row">${k}</th><td>${v}</td></tr>` : "");
+  return `<section class="section" id="house-hoa">
+    <div class="section-head"><h2>${esc(t(a.label))}${hoa.name ? ` · ${esc(hoa.name)}` : ""}</h2><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改")}</a></div>
+    <div class="panel">
+      <div class="ch-scroll"><table class="owner-table kv-table"><tbody>
+        ${row(t("管理公司 / 联系人"), hoa.mgmt ? esc(hoa.mgmt) : "")}
+        ${row(t("联系方式"), contact)}
+        ${row(t("费用"), hoa.dues > 0 ? `${t(H().DUES_PERIODS[hoa.dues_period] || "每月")} ${money(hoa.dues)}${hoaBill ? ` · <a href="${href("bill", hoaBill.id)}">${t("账单：{name}", { name: esc(hoaBill.name) })}</a>` : state.billsEnabled ? ` · <a href="${href("bills", "template")}">${t("建一条账单提醒缴费")}</a>` : ""}` : "")}
+        ${row(t("特殊评估 / 摊派"), saText)}
+        ${row(t("规则与限制"), hoa.rules ? `<span class="pre">${esc(hoa.rules)}</span>` : "")}
+        ${row(t("备注"), hoa.notes ? `<span class="pre">${esc(hoa.notes)}</span>` : "")}
+      </tbody></table></div>
+      ${tips}
+    </div>
+  </section>`;
+}
+
+/** 提醒总线：特殊评估未缴且 45 天内到期或已逾期（必须） */
+export function hoaAlertItems() {
+  if (!state.houseEnabled) return [];
+  return state.properties.filter(propertyLive).flatMap((prop) => {
+    const p = state.houseProfiles[prop.id]; const hoa = hoaOf(p); const sa = assessmentStatus(hoa);
+    if (sa.kind !== "due" || sa.days == null || sa.days > 45) return [];
+    const severity = sa.days < 0 ? 0 : sa.days <= 3 ? 1 : sa.days <= 14 ? 2 : 3;
+    const a = H().assocOf(p.house_type);
+    return [{ source: "house", severity, must: true, due: hoa.sa_due, daysLeft: sa.days, property_id: prop.id,
+      title: `🏘️ ${t(a.label)} ${t("特殊评估")} ${money(hoa.sa_amount)}${hoa.sa_purpose ? ` · ${hoa.sa_purpose}` : ""}`,
+      detail: sa.days < 0 ? t("已逾期 {d} 天，逾期有滞纳金并可能留置", { d: -sa.days }) : t("{d} 天后截止（{date}）", { d: sa.days, date: fmtDate(hoa.sa_due) }),
+      href: `${href("house", "overview")}`, actions: [{ type: "link", href: `${href("house", "profile")}`, label: t("标为已缴") }] }];
+  });
 }
 
 /** 默认地区：设备时区在北美 → 北美模板，否则中国模板 */
@@ -59,6 +140,12 @@ export function readHouseForm(form) {
   d.insurance_agent = fe.insurance_agent.value.trim() || null;
   d.insurance_phone = fe.insurance_phone.value.trim() || null;
   d.insurance_email = fe.insurance_email.value.trim() || null;
+  const num = (v) => (v === "" ? null : Math.round(Math.max(0, Number(v) || 0) * 100) / 100);
+  d.hoa = { enabled: fe.hoa_enabled.checked, name: fe.hoa_name.value.trim() || null, mgmt: fe.hoa_mgmt.value.trim() || null,
+    phone: fe.hoa_phone.value.trim() || null, email: fe.hoa_email.value.trim() || null, url: fe.hoa_url.value.trim() || null,
+    dues: num(fe.hoa_dues.value), dues_period: fe.hoa_dues_period.value || "monthly",
+    sa_amount: num(fe.hoa_sa_amount.value), sa_purpose: fe.hoa_sa_purpose.value.trim() || null, sa_due: fe.hoa_sa_due.value || null, sa_paid: fe.hoa_sa_paid.checked,
+    rules: fe.hoa_rules.value.trim() || null, notes: fe.hoa_notes.value.trim() || null };
   return d;
 }
 
@@ -108,6 +195,7 @@ export function applyTypeDefaults(d) {
   const ht = H().typeOf(d.region, d.house_type) || H().HOUSE_TYPES[d.region][0];
   d.house_type = ht.id;
   d.features = [...ht.features];
+  d.hoa = { ...(d.hoa || {}), enabled: H().assocOf(ht.id).on };   // 有没有 HOA / 物业也按房型重设默认
 }
 
 /* ── 房屋概览 ── */
@@ -116,7 +204,7 @@ export function viewHouse() {
   const alerts = alertsOf(state.enriched.filter(inSpace("house")));
   const shelf = shelfGrid("house");
   if (!p) {
-    return `${propertyBar()}${statusLine()}<section class="section house-intro">
+    return `${houseBar()}${statusLine()}<section class="section house-intro">
       <h2>${t("先说说你家的房子")}</h2>
       <p class="muted">${t("选一下房型、外墙和地面材料、家里有哪些设施，大约 1 分钟。之后会告诉你哪些部位归自己维护、各种材料怎么保养，并一次加好常用的房屋耗材。")}</p>
       <p><a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a>
@@ -142,7 +230,7 @@ export function viewHouse() {
     </div>` : "";
 
   return `
-    ${propertyBar()}${statusLine()}
+    ${houseBar()}${statusLine()}
     <section class="section">
       <div class="house-card">
         <span class="house-ico" aria-hidden="true">${ht?.icon || "🏠"}</span>
@@ -152,6 +240,7 @@ export function viewHouse() {
           <div class="tagline">${[...ext, ...roof, ...floors].map((m) => `<span class="tag">${esc(t(m.name))}</span>`).join("")}
             ${featNames.map((n) => `<span class="tag tag-soft">${esc(n)}</span>`).join("")}</div>
           ${insuranceLine(p)}
+          ${hoaLine(p)}
         </div>
         <a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改资料")}</a>
       </div>
@@ -171,6 +260,8 @@ export function viewHouse() {
       <div class="panel"><div class="ch-scroll"><table class="owner-table"><tbody>${ownerRows}</tbody></table></div>
         <p class="disclaimer">${t("这是该房型的常见情况，具体以 HOA 章程、物业服务合同或租约为准。")}</p></div>
     </section>
+
+    ${hoaPanel(p)}
 
     ${ext.length || roof.length || floors.length ? `<section class="section">
       <div class="section-head"><h2>${t("材料保养建议")}</h2><p>${t("根据你填写的外墙、屋面和地面材料")}</p></div>
@@ -234,6 +325,36 @@ function dealPanel() {
   </section>`;
 }
 
+/** 资料表单里的 HOA / 物业区块：叫法和默认值按当前房型 */
+function hoaFieldset(d) {
+  const a = H().assocOf(d.house_type), hoa = hoaOf(d), label = t(a.label);
+  const P = H().DUES_PERIODS;
+  return `<fieldset id="hoa">
+    <legend>${esc(label)}</legend>
+    <label class="check-inline" style="margin-bottom:8px"><input type="checkbox" name="hoa_enabled" ${hoa.enabled ? "checked" : ""}><span>${t("有 {label}（按房型默认，可改）", { label })}</span></label>
+    <div class="form-grid">
+      <label>${t("名称")}<input name="hoa_name" maxlength="80" placeholder="${t("例如：Lakeview Condominium Association")}" value="${esc(hoa.name || "")}"></label>
+      <label>${t("管理公司 / 联系人")}<input name="hoa_mgmt" maxlength="80" value="${esc(hoa.mgmt || "")}"></label>
+      <label>${t("电话")}<input name="hoa_phone" type="tel" maxlength="40" value="${esc(hoa.phone || "")}"></label>
+      <label>${t("邮箱")}<input name="hoa_email" type="email" maxlength="120" value="${esc(hoa.email || "")}"></label>
+      <label class="span-2">${t("业主门户 / 缴费网址")}<input name="hoa_url" type="url" maxlength="200" placeholder="https://" value="${esc(hoa.url || "")}"></label>
+      <label>${t("费用")}<input name="hoa_dues" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.dues ?? ""}"></label>
+      <label>${t("频率")}<select name="hoa_dues_period">${Object.entries(P).map(([k, n]) => `<option value="${k}" ${hoa.dues_period === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select><small>${t("按期缴费提醒请在账单里建“HOA / 物业费”")}</small></label>
+    </div>
+    <h4 class="sub-legend">${t("特殊评估 / 大额摊派")}<small>${t("储备金不够大修时按份额摊的款项；截止前 45 天开始提醒，逾期置顶")}</small></h4>
+    <div class="form-grid">
+      <label>${t("金额")}<input name="hoa_sa_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.sa_amount ?? ""}"></label>
+      <label>${t("截止日")}<input name="hoa_sa_due" type="date" value="${esc(hoa.sa_due || "")}"></label>
+      <label class="span-2">${t("用途")}<input name="hoa_sa_purpose" maxlength="120" placeholder="${t("例如：屋顶更换、电梯大修、外墙维修")}" value="${esc(hoa.sa_purpose || "")}"></label>
+      <label class="check-inline span-2"><input type="checkbox" name="hoa_sa_paid" ${hoa.sa_paid ? "checked" : ""}><span>${t("已缴清")}</span></label>
+    </div>
+    <h4 class="sub-legend">${t("规则与限制")}<small>${t("宠物、出租限制、装修审批、停车、安静时段、搬家预约等")}</small></h4>
+    <textarea name="hoa_rules" rows="3" maxlength="1000" placeholder="${t("例如：最多 2 只宠物、出租需满 1 年自住、装修 9–17 点、访客停车 48 小时")}">${esc(hoa.rules || "")}</textarea>
+    <label style="display:block;margin-top:8px">${t("备注")}<input name="hoa_notes" maxlength="500" placeholder="${t("例如：年会 3 月、储备金研究 2025、门禁码在钥匙盒")}" value="${esc(hoa.notes || "")}"></label>
+    ${a.tips.length ? `<details class="hoa-tips" style="margin-top:10px"><summary>${t("{label}须知（{type}）", { label, type: t(H().typeOf(d.region, d.house_type)?.name || "") })}</summary><ul class="tips">${a.tips.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></details>` : ""}
+  </fieldset>`;
+}
+
 /* ── 房屋资料表单（整页） ── */
 export function viewHouseProfile() {
   const d = houseDraft(), Hh = H();
@@ -241,7 +362,7 @@ export function viewHouseProfile() {
   const check = (name, list, sel) => list.map((x) => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${sel.includes(x.id) ? "checked" : ""}><span>${esc(t(x.name))}</span></label>`).join("");
   const thisYear = new Date().getFullYear();
   return `
-    ${propertyBar()}
+    ${houseBar()}
     <section class="section form-page house-form">
       <div class="section-head"><h2>${t("房屋资料")}</h2>
         ${state.houseProfile ? `<a class="btn btn-sm btn-ghost" href="${href("house", "overview")}">${t("返回房屋")}</a>` : ""}</div>
@@ -283,6 +404,7 @@ export function viewHouseProfile() {
           </div>
           <p class="hint">${t("只记摘要，不存保单文件；账单里的“房屋保险”负责缴费提醒，这里负责到期续保提醒。")}</p>
         </fieldset>
+        ${hoaFieldset(d)}
         <fieldset>
           <legend>${t("家里有这些设施")}</legend>
           <div class="check-grid">${check("features", Hh.forRegion(Hh.FEATURES, d.region), d.features || [])}</div>

@@ -388,6 +388,20 @@ textarea { resize: vertical; }
 .house-card .ins-agent a { color: var(--pine); text-decoration: none; }
 .form-page .sub-legend { margin: 14px 0 6px; font-size: 14px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .form-page .sub-legend small { color: var(--muted); font-weight: 400; }
+.form-page .check-inline { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.form-page .check-inline input { width: 18px; height: 18px; min-height: 0; accent-color: var(--pine); }
+.form-page textarea { width: 100%; }
+/* 房屋页顶部：添加房产芯片 + 内联房产表单（与设置页同一表单） */
+.chip-add { border-style: dashed; }
+.prop-inline .section-head p { margin: 0; }
+.status-line .link-name { background: none; border: 0; padding: 0; font: inherit; color: var(--pine); cursor: pointer; text-decoration: underline; }
+/* HOA / 物业面板 */
+.kv-table th { width: 32%; white-space: nowrap; }
+.kv-table td a { color: var(--pine); text-decoration: none; }
+.kv-table .pre { white-space: pre-wrap; }
+.hoa-tips { margin-top: 10px; }
+.hoa-tips summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.hoa-tips ul { margin: 6px 0 0; }
 .tagline { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { font-size: 12px; padding: 2px 9px; border-radius: 99px; background: var(--ink); color: var(--bg); }
 .tag-soft { background: var(--surface-2); color: var(--ink); }

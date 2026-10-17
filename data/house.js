@@ -375,8 +375,48 @@
       .sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category));
   }
 
+  // ── 业主协会 / 物业：按房型给默认值和须知（Condo、联排与独栋的差别主要在这里）──
+  // on：该房型默认有 HOA / 物业；label：叫法；tips：概览“HOA / 物业”面板里的须知
+  const ASSOC = {
+    sfh: { label: "HOA", on: false, tips: [
+      "不少郊区小区也有 HOA：管外观、围栏、房屋颜色、垃圾桶摆放；买房时核对 covenants（契约限制）。",
+    ] },
+    townhome: { label: "HOA", on: true, tips: [
+      "先看章程（Declaration / Bylaws）：外墙、屋顶、车道、围栏谁修；月费包含什么（水、垃圾、除雪、草坪）。",
+      "储备金（reserve）不够时会摊特殊评估（special assessment）；伊州买卖前要索取 22.1 披露和付清证明。",
+      "外观改动（门窗颜色、露台、卫星天线）通常要先提交审批。",
+    ] },
+    condo: { label: "HOA", on: true, tips: [
+      "月费通常含水、垃圾、公共区域保险（master policy）；户内和个人财产要自己买 HO-6 保险。",
+      "特殊评估（special assessment）：储备金不够大修（屋顶、电梯、外墙、停车场）时按份额摊，可分期；伊州买卖要 22.1 披露。",
+      "常见规则：宠物（数量、体重）、出租限制（rental cap、最短租期）、装修审批与施工时段、停车位、安静时段、搬家预约与押金。",
+      "每年看一次：预算、储备金研究（reserve study）、董事会会议记录、诉讼和保险续保情况。",
+      "墙内管线、窗户、阳台的责任划分各楼不同，以章程为准。",
+    ] },
+    rental: { label: "物业 / 房东", on: false, tips: [
+      "大楼规则（宠物、安静时段、搬家预约、包裹）和房东、物业的联系方式记在这里。",
+    ] },
+    cn_highrise: { label: "物业", on: true, tips: [
+      "物业费按建筑面积、按季或按年预收；公共维修基金（大修基金）动用要业主表决。",
+      "业委会 / 业主大会负责物业选聘、公共收益（广告、停车位）和维修基金使用。",
+      "常见规则：装修押金与施工时段、垃圾分类、电动车充电、停车位管理、高空抛物。",
+    ] },
+    cn_walkup: { label: "物业 / 社区", on: false, tips: [
+      "老小区可能没有专业物业；屋面漏水、管道老化常需和邻居、社区、街道协调，旧改政策留意。",
+    ] },
+    cn_townhouse: { label: "物业", on: true, tips: [
+      "外立面、小区道路、绿化归物业；露台、花园、围栏改动通常要报备。",
+      "物业费按面积；别墅区物业费标准和服务内容在物业服务合同里。",
+    ] },
+    cn_villa: { label: "物业", on: true, tips: [
+      "小区道路、公共绿化、安保归物业；自家院内自己负责。",
+    ] },
+  };
+  const DUES_PERIODS = { monthly: "每月", quarterly: "每季", yearly: "每年" };
+
   const forRegion = (list, region) => list.filter((x) => x.region === "both" || x.region === region);
   const typeOf = (region, id) => (HOUSE_TYPES[region] || []).find((t) => t.id === id);
+  const assocOf = (houseType) => ASSOC[houseType] || { label: "HOA / 物业", on: false, tips: [] };
   const assetType = (id) => ASSET_TYPES.find((t) => t.id === id) || null;
 
   /** 根据房屋资料推荐设备档案：寿命按屋面材料覆盖，默认负责方取自房型的责任归属表 */
@@ -398,5 +438,5 @@
   }
 
   window.HOUSE = { REGIONS, FEATURES, MATERIALS, OWNERS, SYSTEMS, HOUSE_TYPES, SUPPLIES, HOUSE_CATEGORIES, recommendSupplies, forRegion, typeOf,
-    ASSET_TYPES, ASSET_KINDS, MAINT_KINDS, SEASONAL_TASKS, assetType, recommendAssets, seasonalTasksFor };
+    ASSET_TYPES, ASSET_KINDS, MAINT_KINDS, SEASONAL_TASKS, assetType, recommendAssets, seasonalTasksFor, ASSOC, DUES_PERIODS, assocOf };
 })();
