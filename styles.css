@@ -382,6 +382,8 @@ textarea { resize: vertical; }
 .house-card h2 { font-size: 20px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .house-card h2 .muted { font-size: 13px; font-weight: 500; }
 .house-card p { margin: 2px 0 8px; }
+.house-card .ins-line { margin: 8px 0 0; font-size: 13px; }
+.house-card .ins-line .badge { margin: 0 4px; vertical-align: 1px; }
 .tagline { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { font-size: 12px; padding: 2px 9px; border-radius: 99px; background: var(--ink); color: var(--bg); }
 .tag-soft { background: var(--surface-2); color: var(--ink); }
@@ -421,10 +423,16 @@ textarea { resize: vertical; }
 .task-list { list-style: none; margin: 0; padding: 0; }
 .task-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px dashed var(--line); }
 .task-row:last-child { border-bottom: 0; }
-.task-row input { width: 20px; height: 20px; min-height: 0; margin-top: 2px; accent-color: var(--pine); flex: 0 0 auto; }
+/* 任务勾选框：圆圈，勾完变成实心绿圈 + ✔，做完的保留在列表里不隐藏 */
+.task-row input { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; min-height: 0; margin-top: 1px; flex: 0 0 auto; border: 2px solid var(--pine); border-radius: 50%; background: #fff; cursor: pointer; position: relative; padding: 0; }
+.task-row input:checked { background: var(--pine); }
+.task-row input:checked::after { content: "✔"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 13px; line-height: 1; }
+.task-row input:focus-visible { outline: 2px solid var(--pine); outline-offset: 2px; }
+.task-row input:disabled { opacity: .5; cursor: wait; }
 .task-row label { cursor: pointer; display: grid; gap: 2px; }
 .task-row small { color: var(--muted); font-size: 12px; }
-.task-row.done label b { text-decoration: line-through; color: var(--muted); }
+.task-row.done label b { color: var(--muted); font-weight: 500; }
+.task-row.done label small { color: var(--pine); }
 .task-row.overdue label b { color: var(--out); }
 .task-row label .badge { margin-left: 4px; vertical-align: 1px; }
 #assetForm.is-tool .eq-only { display: none; }

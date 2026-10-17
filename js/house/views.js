@@ -2,13 +2,13 @@
 import { alertsOf } from "../core/logic.js";
 import { state } from "../core/state.js";
 import { href } from "../core/router.js";
-import { esc, inSpace } from "../core/util.js";
+import { daysUntil, esc, fmtDate, inSpace } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { restockPanel, shelfGrid } from "../pantry/views.js";
 import { alertText, assetAlerts, myAssets } from "./assets.js";
 import { monthName, monthTasks, taskRow } from "./tasks.js";
 import { propertyBar } from "../bills/views.js";
-import { currentProp, openDeal, statusText } from "./deals.js";
+import { currentProp, dealTasks, openDeal, statusText, taskRow as dealTaskRow } from "./deals.js";
 
 const H = () => window.HOUSE;
 
@@ -22,15 +22,16 @@ function statusLine() {
 /** 默认地区：设备时区在北美 → 北美模板，否则中国模板 */
 export const defaultRegion = () => (Units.region.system === "us" ? "na" : "cn");
 
-/** 编辑中的房屋资料草稿（切换地区、房型时重新渲染表单，草稿保证已填内容不丢） */
+/** 编辑中的房屋资料草稿（切换地区、房型时重新渲染表单，草稿保证已填内容不丢）；地址来自房产，保险字段来自资料 */
 export function houseDraft() {
   if (!state.houseDraft) {
-    const p = state.houseProfile;
+    const p = state.houseProfile, prop = currentProp();
     if (p) state.houseDraft = { ...p, features: [...(p.features || [])], exterior: [...(p.exterior || [])], flooring: [...(p.flooring || [])] };
     else {
       const region = defaultRegion(), ht = H().HOUSE_TYPES[region][0];
-      state.houseDraft = { region, house_type: ht.id, year_built: null, features: [...ht.features], exterior: [], roof: null, flooring: [] };
+      state.houseDraft = { region, house_type: ht.id, year_built: null, features: [...ht.features], exterior: [], roof: null, flooring: [], insured: false };
     }
+    state.houseDraft.address = prop?.address || "";
   }
   return state.houseDraft;
 }
@@ -47,7 +48,48 @@ export function readHouseForm(form) {
   d.exterior = checked("exterior");
   d.flooring = checked("flooring");
   d.roof = fe.roof.value || null;
+  d.address = fe.address.value.trim();
+  d.insured = fe.insured.checked;
+  d.insurance_provider = fe.insurance_provider.value.trim() || null;
+  d.insurance_policy = fe.insurance_policy.value.trim() || null;
+  d.insurance_from = fe.insurance_from.value || null;
+  d.insurance_to = fe.insurance_to.value || null;
+  d.insurance_coverage = fe.insurance_coverage.value.trim() || null;
+  d.insurance_premium = fe.insurance_premium.value === "" ? null : Math.round(Math.max(0, Number(fe.insurance_premium.value) || 0) * 100) / 100;
+  d.insurance_phone = fe.insurance_phone.value.trim() || null;
   return d;
+}
+
+/** 保险状态：none / active / expiring（30 天内）/ expired / unknown（有保险但没填到期日） */
+export function insuranceStatus(p) {
+  if (!p || !p.insured) return { kind: "none", days: null };
+  if (!p.insurance_to) return { kind: "unknown", days: null };
+  const days = daysUntil(p.insurance_to);
+  return { kind: days < 0 ? "expired" : days <= 30 ? "expiring" : "active", days };
+}
+const INS_BADGE = { active: ["b-ok", "有效"], expiring: ["b-soon", "快到期"], expired: ["b-out", "已过期"], unknown: ["", "未填到期日"], none: ["", "未填保险"] };
+
+/** 概览状态栏里的保险摘要：🛡️ 房屋保险 <StateFarm> 有效（2026/1/1 – 2026/12/31）保单号 … */
+export function insuranceLine(p) {
+  const s = insuranceStatus(p), [cls, label] = INS_BADGE[s.kind];
+  if (s.kind === "none") return `<p class="muted ins-line">🛡️ ${t("房屋保险")}：${t("未填")} <a href="${href("house", "profile")}">${t("补充")}</a></p>`;
+  const [lp, rp] = lang() === "en" ? [" (", ")"] : ["（", "）"];
+  const period = p.insurance_from || p.insurance_to ? `${lp}${p.insurance_from ? fmtDate(p.insurance_from) : "…"} – ${p.insurance_to ? fmtDate(p.insurance_to) : "…"}${rp}` : "";
+  return `<p class="muted ins-line">🛡️ ${t("房屋保险")}${p.insurance_provider ? ` <b>${esc(p.insurance_provider)}</b>` : ""} <span class="badge ${cls}">${t(label)}${s.kind === "expiring" ? ` · ${t("{d} 天", { d: s.days })}` : ""}</span>${esc(period)}${p.insurance_policy ? ` ${t("保单号")} ${esc(p.insurance_policy)}` : ""}${p.insurance_coverage ? ` · ${esc(p.insurance_coverage)}` : ""}</p>`;
+}
+
+/** 提醒总线：各活跃房产的房屋保险 30 天内到期（尽快）或已过期（今天级） */
+export function insuranceAlertItems() {
+  if (!state.houseEnabled) return [];
+  return state.properties.filter((p) => !p.archived && !["sold", "moved_out"].includes(p.status)).flatMap((prop) => {
+    const p = state.houseProfiles[prop.id]; const s = insuranceStatus(p);
+    if (s.kind !== "expiring" && s.kind !== "expired") return [];
+    return [{ source: "house", severity: s.kind === "expired" ? 1 : 2, must: true, due: p.insurance_to, daysLeft: s.days, property_id: prop.id,
+      title: `🛡️ ${t("房屋保险")}${p.insurance_provider ? ` · ${p.insurance_provider}` : ""}`,
+      detail: s.kind === "expired" ? t("已过期 {d} 天，尽快续保", { d: -s.days }) : t("{d} 天后到期，续保前比价", { d: s.days }),
+      href: href("house", "profile"), badge: { label: s.kind === "expired" ? t("已过期") : t("快到期"), cls: s.kind === "expired" ? "b-out" : "b-soon" },
+      actions: [{ type: "link", href: href("house", "profile"), label: t("更新保单") }] }];
+  });
 }
 
 /** 切换房型：按新房型预选设施（之前的勾选会被替换） */
@@ -95,9 +137,10 @@ export function viewHouse() {
         <span class="house-ico" aria-hidden="true">${ht?.icon || "🏠"}</span>
         <div class="grow">
           <h2>${esc(ht ? t(ht.name) : t("我的房子"))}${lang === "en" ? "" : `<span class="muted">${esc(ht?.en || "")}</span>`}</h2>
-          <p class="muted">${esc(t(H().REGIONS[p.region]?.name || ""))}${p.year_built ? t("，{y} 年建成（约 {age} 年房龄）", { y: p.year_built, age }) : ""}</p>
+          <p class="muted">${esc(t(H().REGIONS[p.region]?.name || ""))}${p.year_built ? t("，{y} 年建成（约 {age} 年房龄）", { y: p.year_built, age }) : ""}${currentProp()?.address ? ` · 📍${esc(currentProp().address)}` : ""}</p>
           <div class="tagline">${[...ext, ...roof, ...floors].map((m) => `<span class="tag">${esc(t(m.name))}</span>`).join("")}
             ${featNames.map((n) => `<span class="tag tag-soft">${esc(n)}</span>`).join("")}</div>
+          ${insuranceLine(p)}
         </div>
         <a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改资料")}</a>
       </div>
@@ -124,8 +167,9 @@ export function viewHouse() {
       <p class="disclaimer">${t("周期与寿命为常见经验值，实际以产品说明书和专业人士检查为准。")}</p>
     </section>` : `<section class="section"><div class="panel empty"><strong>${t("还没填材料")}</strong>${t("补充外墙、屋面和地面材料后，这里会给出对应的保养建议。")}<p><a class="btn btn-ghost" href="${href("house", "profile")}">${t("补充材料")}</a></p></div></section>`}
 
-    ${assetsPanel()}
+    ${dealPanel()}
     ${tasksPanel()}
+    ${assetsPanel()}
 
     <section class="section"><div class="panel next-phase">
       <h3>${t("第三期")}</h3>
@@ -152,15 +196,30 @@ function assetsPanel() {
   </section>`;
 }
 
+/** 本月季节任务：全部列出，做完的保留并打勾（不隐藏），未做的在前 */
 function tasksPanel() {
   const now = new Date(), y = now.getFullYear(), m = now.getMonth() + 1;
   const list = monthTasks(y, m);
   if (!list.length) return "";
-  const undone = list.filter((x) => !x.done);
+  const undone = list.filter((x) => !x.done), done = list.filter((x) => x.done);
   return `<section class="section">
-    <div class="section-head"><h2>${t("{month}季节任务", { month: monthName(m) })}</h2><div class="head-acts"><p>${undone.length ? t("还有 {n} 项没做", { n: undone.length }) : t("本月都做完了")}</p>
+    <div class="section-head"><h2>${t("{month}季节任务", { month: monthName(m) })}</h2><div class="head-acts"><p>${t("已完成 {a} / {b}", { a: done.length, b: list.length })}${undone.length ? "" : ` · ${t("本月都做完了")}`}</p>
       <a class="btn btn-sm btn-ghost" href="${href("house", "tasks")}">${t("全年任务")}</a></div></div>
-    <div class="panel"><ul class="task-list">${(undone.length ? undone : list).slice(0, 6).map((x) => taskRow(x, y, m)).join("")}</ul></div>
+    <div class="panel"><ul class="task-list">${[...undone, ...done].map((x) => taskRow(x, y, m)).join("")}</ul></div>
+  </section>`;
+}
+
+/** 进行中交易的清单：未做的按到期排在前，做完的保留在后打勾 */
+function dealPanel() {
+  const d = openDeal(currentProp()?.id); if (!d) return "";
+  const tasks = dealTasks(d);
+  if (!tasks.length) return "";
+  const undone = tasks.filter((x) => !x.done).sort((a, b) => (a.due || "9").localeCompare(b.due || "9")), done = tasks.filter((x) => x.done);
+  return `<section class="section">
+    <div class="section-head"><h2>${t("{kind}清单", { kind: t(window.DEALS.KINDS[d.kind]) })}</h2><div class="head-acts"><p>${t("已完成 {a} / {b}", { a: done.length, b: tasks.length })}</p>
+      <a class="btn btn-sm btn-ghost" href="${href("house", "deal")}">${t("交易页")}</a></div></div>
+    <div class="panel"><ul class="task-list">${[...undone.slice(0, 8), ...done.slice(-4)].map((x) => dealTaskRow(x)).join("")}</ul>
+      ${undone.length > 8 ? `<p class="muted" style="margin:8px 0 0">${t("还有 {n} 项，", { n: undone.length - 8 })}<a href="${href("house", "deal")}">${t("去交易页查看")}</a></p>` : ""}</div>
   </section>`;
 }
 
@@ -188,8 +247,25 @@ export function viewHouseProfile() {
           <p class="hint">${t("切换房型会按该房型重新预选下面的设施，可以再调整。")}</p>
         </fieldset>
         <fieldset>
-          <legend>${t("建成年份（可选）")}</legend>
-          <input name="year_built" type="number" inputmode="numeric" min="1850" max="${thisYear}" placeholder="${t("例如 1998")}" value="${d.year_built ?? ""}" style="max-width:200px" aria-label="${t("建成年份")}">
+          <legend>${t("地址与建成年份")}</legend>
+          <div class="form-grid">
+            <label class="span-2">${t("地址")}<input name="address" maxlength="120" placeholder="${t("街道、城市、州 / 省")}" value="${esc(d.address || "")}"></label>
+            <label>${t("建成年份（可选）")}<input name="year_built" type="number" inputmode="numeric" min="1850" max="${thisYear}" placeholder="${t("例如 1998")}" value="${d.year_built ?? ""}"></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>${t("房屋保险")}</legend>
+          <label class="check-inline" style="margin-bottom:8px"><input type="checkbox" name="insured" ${d.insured ? "checked" : ""}><span>${t("有房屋保险（租住填租客保险）")}</span></label>
+          <div class="form-grid">
+            <label>${t("保险公司")}<input name="insurance_provider" maxlength="60" placeholder="${t("例如：State Farm")}" value="${esc(d.insurance_provider || "")}"></label>
+            <label>${t("保单号")}<input name="insurance_policy" maxlength="60" value="${esc(d.insurance_policy || "")}"></label>
+            <label>${t("生效日")}<input name="insurance_from" type="date" value="${esc(d.insurance_from || "")}"></label>
+            <label>${t("到期日")}<input name="insurance_to" type="date" value="${esc(d.insurance_to || "")}"><small>${t("到期前 30 天提醒续保")}</small></label>
+            <label class="span-2">${t("保障范围")}<input name="insurance_coverage" maxlength="200" placeholder="${t("例如：房屋 $400k、责任 $300k、自付额 $1,000")}" value="${esc(d.insurance_coverage || "")}"></label>
+            <label>${t("年保费")}<input name="insurance_premium" type="number" inputmode="decimal" min="0" step="0.01" value="${d.insurance_premium ?? ""}"></label>
+            <label>${t("理赔电话")}<input name="insurance_phone" maxlength="40" value="${esc(d.insurance_phone || "")}"></label>
+          </div>
+          <p class="hint">${t("只记摘要，不存保单文件；账单里的“房屋保险”负责缴费提醒，这里负责到期续保提醒。")}</p>
         </fieldset>
         <fieldset>
           <legend>${t("家里有这些设施")}</legend>

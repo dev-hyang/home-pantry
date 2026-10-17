@@ -13,8 +13,8 @@ import { seasonAlertItems } from "./house/tasks.js";
 import { dealAlertItems } from "./house/deals.js";
 import { billAlertItems } from "./bills/logic.js";
 // 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
-[pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, seasonAlertItems].forEach(registerAlerts);
-import { applyTypeDefaults, houseDraft, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
+[pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, seasonAlertItems].forEach(registerAlerts);
+import { applyTypeDefaults, houseDraft, insuranceAlertItems, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { assetTemplateItems, enrichAssets, leaveAsset, onAssetFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
 import { seasonalSince, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
@@ -293,6 +293,8 @@ main.addEventListener("submit", async (e) => {
       if (y != null && (y < 1850 || y > thisYear)) { $("#houseFormError").textContent = t("建成年份需要在 1850 到 {y} 之间。", { y: thisYear }); return; }
       const first = !state.houseProfile;
       await Store.saveHouseProfile(d, state.propertyId);
+      const prop = state.properties.find((p) => p.id === state.propertyId);   // 地址存在房产上
+      if (prop && (prop.address || "") !== (d.address || "")) await Store.saveProperty({ ...prop, address: d.address || null });
       state.houseProfile = { ...d }; state.houseDraft = null;
       toast(t("房屋资料已保存"));
       const hasHouseItems = state.items.some(inSpace("house"));

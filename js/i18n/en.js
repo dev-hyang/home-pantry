@@ -511,6 +511,15 @@ export const EN = {
   "与房产无关": "Not tied to a property", "手机、车险、订阅等": "mobile, auto insurance, subscriptions…", "家里的储藏": "Household pantry", "补货与临期": "restocking and expiring",
   "{n} 件事要马上处理：{list}": "{n} things need attention now: {list}",
 
+  // ── 房屋资料：地址与保险；概览清单 ──
+  "地址与建成年份": "Address and year built", "地址": "Address", "街道、城市、州 / 省": "Street, city, state / province", "房屋保险": "Home insurance",
+  "有房屋保险（租住填租客保险）": "Insured (renters: renter's insurance)", "保险公司": "Insurer", "例如：State Farm": "e.g. State Farm", "保单号": "Policy #", "生效日": "Effective", "到期日": "Expires",
+  "到期前 30 天提醒续保": "Renewal reminder 30 days before expiry", "保障范围": "Coverage", "例如：房屋 $400k、责任 $300k、自付额 $1,000": "e.g. dwelling $400k, liability $300k, $1,000 deductible",
+  "年保费": "Annual premium", "理赔电话": "Claims phone", "只记摘要，不存保单文件；账单里的“房屋保险”负责缴费提醒，这里负责到期续保提醒。": "Summary only, no policy documents. The Home insurance bill handles payment reminders; this handles renewal reminders.",
+  "有效": "Active", "快到期": "Expiring", "未填到期日": "No expiry date", "未填保险": "Not recorded", "未填": "not recorded", "补充": "Add", "{d} 天": "{d} days", "更新保单": "Update policy",
+  "已过期 {d} 天，尽快续保": "Expired {d} days ago; renew soon", "{d} 天后到期，续保前比价": "Expires in {d} days; compare quotes before renewing",
+  "已完成 {a} / {b}": "Done {a} / {b}", "{kind}清单": "{kind} checklist", "交易页": "Transaction", "还有 {n} 项，": "{n} more, ", "去交易页查看": "see them on the transaction page",
+
   // ── 演示数据物品名 ──
   "纯牛奶": "Whole milk", "北豆腐": "Firm tofu", "无糖酸奶": "Plain yogurt", "冷冻虾仁": "Frozen shrimp", "速冻水饺": "Frozen dumplings", "杂粮（糙米）": "Brown rice", "燕麦片": "Rolled oats", "生抽": "Soy sauce", "原味坚果": "Plain nuts",
   "抽纸": "Facial tissues", "卷纸": "Toilet paper", "洗洁精": "Dish soap", "垃圾袋": "Trash bags", "纸尿裤 NB码": "Diapers size NB", "婴儿湿巾": "Baby wipes", "防溢乳垫": "Nursing pads", "复合维生素": "Multivitamins",

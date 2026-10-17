@@ -113,7 +113,7 @@ export function viewDeal() {
     </section>
     <section class="section">
       <div class="section-head"><h2>${t("清单")}</h2><p>${t("截止日按合同日和交割日推算；必须项逾期会在首页置顶")}</p></div>
-      ${groups.map((g) => `<div class="cat-group" style="--cat:var(--pine)"><h3>${t(g.n)}<span class="muted">（${g.rows.filter((x) => !x.done).length}/${g.rows.length}）</span></h3>
+      ${groups.map((g) => `<div class="cat-group" style="--cat:var(--pine)"><h3>${t(g.n)}<span class="muted">（${t("已完成 {a} / {b}", { a: g.rows.filter((x) => x.done).length, b: g.rows.length })}）</span></h3>
         <div class="panel"><ul class="task-list">${g.rows.sort((a, b) => (a.due || "9").localeCompare(b.due || "9")).map((x) => taskRow(x)).join("")}</ul></div></div>`).join("")}
       <p class="disclaimer">${t("清单按伊利诺伊州（芝加哥）常见流程整理，日期和税费以合同、律师和产权公司为准；其他州请按本地流程增删。")}</p>
     </section>

@@ -78,7 +78,7 @@ function bySeverity(list) {
 function byProperty(list) {
   const groups = liveProperties().map((p) => ({ title: `🏠 ${esc(p.name)}`, sub: t(window.DEALS.PROPERTY_STATUS[p.status] || "持有"), items: list.filter((x) => x.property_id === p.id) }));
   groups.push({ title: t("与房产无关"), sub: t("手机、车险、订阅等"), items: list.filter((x) => !x.property_id && x.source !== "pantry" && x.source !== "house") });
-  groups.push({ title: t("家里的储藏"), sub: t("补货与临期"), items: list.filter((x) => x.source === "pantry" || x.source === "house") });
+  groups.push({ title: t("家里的储藏"), sub: t("补货与临期"), items: list.filter((x) => !x.property_id && (x.source === "pantry" || x.source === "house")) });
   return groups.map((g) => section(g.title, g.sub, g.items)).join("") || `<section class="section"><div class="panel empty"><strong>${t("今天没有需要处理的事")}</strong></div></section>`;
 }
 

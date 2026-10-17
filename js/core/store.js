@@ -293,6 +293,7 @@ export const ITEM_FIELDS = ["name", "category", "subcategory", "unit", "quantity
 export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", "brand", "model", "serial", "installed_on", "manufacture_year", "warranty_until", "labor_warranty_until",
   "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes"];
 export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "acquired_on", "purchase_price", "sold_on", "sale_price", "archived", "notes"];
+export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_phone"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
   "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "statement_channel",
   "reminder_days", "ends_on", "assigned_to", "essential", "active", "notes"];
@@ -362,6 +363,7 @@ export const CloudStore = {
   async saveHouseProfile(p, pid) {
     const row = { property_id: pid, household_id: this.hid, region: p.region, house_type: p.house_type, year_built: p.year_built ?? null,
       features: p.features || [], exterior: p.exterior || [], roof: p.roof || null, flooring: p.flooring || [], updated_by: state.user.id };
+    for (const k of INSURANCE_FIELDS) row[k] = p[k] ?? (k === "insured" ? false : null);
     this.must(await this.sb.from("house_profiles").upsert(row, { onConflict: "property_id" }));
   },
   async listAssets() { return this.must(await this.sb.from("assets").select("*").eq("household_id", this.hid).order("name")); },
