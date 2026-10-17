@@ -101,37 +101,32 @@ function applyChrome() {
   renderAppSwitch();
 }
 
-/* ───────────── 姐妹站点切换（顶栏标题旁） ───────────── */
+/* ───────────── 姐妹站点切换（顶栏标题旁，与姐妹站点同款：⇅ 圆钮 + 下拉列表） ───────────── */
 const APP_ID = "home-pantry";
 export const sisterApps = () => window.SISTER_APPS || [];
-/** 相邻站点：◀ 上一个、▶ 下一个，循环 */
-function neighborApps() {
-  const list = sisterApps(), i = Math.max(0, list.findIndex((a) => a.id === APP_ID));
-  if (list.length < 2) return null;
-  return { prev: list[(i - 1 + list.length) % list.length], next: list[(i + 1) % list.length] };
-}
 function renderAppSwitch() {
-  const box = $("#appSwitch"); if (!box) return;
-  const nb = neighborApps(); if (!nb) return;
-  box.hidden = false;
-  const prev = $("#appPrev"), next = $("#appNext");
-  const colon = lang === "en" ? ": " : "：";
-  prev.href = nb.prev.url; prev.title = `${t("上一个站点")}${colon}${t(nb.prev.name)}`; prev.setAttribute("aria-label", prev.title);
-  next.href = nb.next.url; next.title = `${t("下一个站点")}${colon}${t(nb.next.name)}`; next.setAttribute("aria-label", next.title);
-  $("#appMenu summary").setAttribute("aria-label", t("切换站点")); $("#appMenu summary").title = t("切换站点");
-  $("#appList").innerHTML = sisterApps().map((a) => a.id === APP_ID
-    ? `<li class="current" aria-current="page"><span>${a.icon} <b>${esc(t(a.name))}</b><small>${esc(t(a.sub))} · ${t("当前")}</small></span></li>`
-    : `<li><a href="${esc(a.url)}">${a.icon} <b>${esc(t(a.name))}</b><small>${esc(t(a.sub))}</small></a></li>`).join("");
+  const btn = $("#appSwitch"), menu = $("#appMenu"); if (!btn || !menu) return;
+  const list = sisterApps(); if (list.length < 2) return;
+  btn.hidden = false;
+  btn.title = t("切换站点"); btn.setAttribute("aria-label", t("切换站点")); menu.setAttribute("aria-label", t("切换站点"));
+  // 每行：名称 + 副标题，当前站点打 ✓ 且不可点；其余是链接，同一标签页里切过去
+  menu.innerHTML = list.map((a) => a.id === APP_ID
+    ? `<a role="menuitem" aria-current="page" tabindex="0"><b>${a.icon} ${esc(t(a.name))}</b><small>${esc(t(a.sub))}</small></a>`
+    : `<a role="menuitem" href="${esc(a.url)}"><b>${a.icon} ${esc(t(a.name))}</b><small>${esc(t(a.sub))}</small></a>`).join("");
 }
-/** 键盘：焦点在切换器上时，← ↑ 上一个，→ ↓ 下一个；点外面关闭菜单 */
+/** 点 ⇅ 开关菜单；Esc 或点外面关闭；↑ ↓ 在站点间移动焦点 */
 function initAppSwitch() {
-  const box = $("#appSwitch"); if (!box) return;
-  box.addEventListener("keydown", (e) => {
-    const nb = neighborApps(); if (!nb) return;
-    if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); location.href = nb.prev.url; }
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); location.href = nb.next.url; }
+  const btn = $("#appSwitch"), menu = $("#appMenu"); if (!btn || !menu) return;
+  const setOpen = (open) => { menu.hidden = !open; btn.setAttribute("aria-expanded", String(open)); if (open) menu.querySelector("[aria-current]")?.focus(); };
+  btn.addEventListener("click", () => setOpen(menu.hidden));
+  document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)) setOpen(false); });
+  document.addEventListener("keydown", (e) => {
+    if (menu.hidden) return;
+    const items = [...menu.querySelectorAll("a")], i = items.indexOf(document.activeElement);
+    if (e.key === "Escape") { setOpen(false); btn.focus(); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); items[(i + 1) % items.length]?.focus(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); items[(i - 1 + items.length) % items.length]?.focus(); }
   });
-  document.addEventListener("click", (e) => { const m = $("#appMenu"); if (m?.open && !m.contains(e.target)) m.open = false; });
 }
 
 /** force=true：路由变化，整页重画；false：数据刷新，表单页保持不动 */
