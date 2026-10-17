@@ -25,6 +25,7 @@ home-pantry/
 │   └── settings/              设置
 ├── docs/design-house.md       房屋维护模块三期设计
 ├── docs/design-bills.md       账单与缴费模块设计（B1 已实现）
+├── docs/design-property.md    房产生命周期设计：买入 / 卖出流程、状态与退出（待实现）
 └── supabase/                  建表脚本，不随仓库发布（另行提供）
     ├── schema.sql             完整重建（会清空数据）
     └── migrations/            增量升级（保留数据）
