@@ -1,5 +1,6 @@
 import { state } from "./state.js";
 import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
+import { t } from "./i18n.js";
 
 /* ───────────── 数据层：本地演示 ───────────── */
 export const DemoStore = {
@@ -122,8 +123,9 @@ export function seedDemo() {
     ? { fresh: ["H Mart", "Trader Joe's", "Costco"], frozen: ["Costco", "H Mart"], dry: ["Costco", "H Mart", "Amazon"], drink: ["Costco"], daily: ["Target", "Costco", "Amazon"], baby: ["Amazon", "Target"], health: ["Costco", "Amazon"] }
     : { fresh: ["盒马", "美团买菜", "楼下菜市场"], frozen: ["山姆", "盒马"], dry: ["山姆", "京东"], drink: ["山姆", "京东"], daily: ["京东", "山姆"], baby: ["京东", "天猫"], health: ["京东"] };
   // price：每单位价格（人民币，演示数据）
-  const add = (name, category, subcategory, unit, quantity, min_quantity, location, daily, expiryInDays, price) => {
-    const id = uid();
+  // 演示物品名按当前语言写入（名称是用户数据，之后不再翻译）
+  const add = (zhName, category, subcategory, unit, quantity, min_quantity, location, daily, expiryInDays, price) => {
+    const id = uid(), name = t(zhName);
     items.push({
       id, name, category, subcategory, unit, quantity, min_quantity, location, lead_days: 3,
       expiry_date: expiryInDays == null ? null : new Date(now + expiryInDays * DAY).toISOString().slice(0, 10),

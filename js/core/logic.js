@@ -54,5 +54,6 @@ export function enrich(items, logs) {
 export const alertsOf = (list) => list.filter((x) => x.status !== "ok").sort((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || (a.daysLeft ?? 0) - (b.daysLeft ?? 0));
 export const memberName = (userId) => state.members.find((m) => m.user_id === userId)?.display_name;
 export const openShopFor = (itemId) => state.shopping.find((s) => s.item_id === itemId && s.status !== "bought");
-// 菜单推荐只看厨房储藏里的东西
-export const hasStock = (kw) => state.enriched.find((it) => it.qty > 0 && spaceOf(it.category) === "pantry" && kw.some((k) => it.name.includes(k)));
+// 菜单推荐只看厨房储藏里的东西；关键词中英文都有，英文不区分大小写
+export const nameHas = (name, kw) => { const n = String(name).toLowerCase(); return kw.some((k) => n.includes(k.toLowerCase())); };
+export const hasStock = (kw) => state.enriched.find((it) => it.qty > 0 && spaceOf(it.category) === "pantry" && nameHas(it.name, kw));

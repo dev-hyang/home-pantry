@@ -5,6 +5,7 @@
 (() => {
   "use strict";
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const t = (s) => (window.__t ? window.__t(s) : s);   // 多语言（js/core/i18n.js 挂到 window）
   // 两套画布：宽屏 640×260；手机 360×250（字号在手机上不会被缩得太小）
   const SIZES = [
     { cls: "ch-wide",   W: 640, H: 260, maxLabels: 8, PAD: { l: 56, r: 12, t: 22, b: 34 } },
@@ -39,7 +40,7 @@
   }
 
   function table(labels, series, fmt) {
-    return `<details class="ch-table"><summary>查看数据表</summary><div class="ch-scroll"><table>
+    return `<details class="ch-table"><summary>${t("查看数据表")}</summary><div class="ch-scroll"><table>
       <thead><tr><th scope="col"></th>${series.map((s) => `<th scope="col">${esc(s.name)}</th>`).join("")}</tr></thead>
       <tbody>${labels.map((l, i) => `<tr><th scope="row">${esc(l)}</th>${series.map((s) => `<td>${esc(fmt(s.values[i] || 0))}</td>`).join("")}</tr>`).join("")}</tbody>
     </table></div></details>`;
@@ -79,7 +80,7 @@
       return axes(z, max, labels, fmt, xAt) + marks;
     };
     return `<figure class="chart">${both(title, draw)}
-      ${legend(series)}${table(labels, stacked && series.length > 1 ? [...series, { name: "合计", values: totals }] : series, fmt)}</figure>`;
+      ${legend(series)}${table(labels, stacked && series.length > 1 ? [...series, { name: t("合计"), values: totals }] : series, fmt)}</figure>`;
   }
 
   /** 折线图；可叠一组柱子（bars）作为第二种度量（共用同一纵轴单位时使用） */
@@ -137,8 +138,8 @@
     return `<figure class="chart donut-wrap">
       <svg viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(title)}">${arcs}
         <text x="${cx}" y="${cy - 4}" text-anchor="middle" class="ch-center">${esc(center)}</text>
-        <text x="${cx}" y="${cy + 16}" text-anchor="middle" class="ch-tick">合计</text></svg>
-      <ul class="donut-list">${rows || `<li class="muted">这个月还没有花费记录</li>`}</ul></figure>`;
+        <text x="${cx}" y="${cy + 16}" text-anchor="middle" class="ch-tick">${t("合计")}</text></svg>
+      <ul class="donut-list">${rows || `<li class="muted">${t("这个月还没有花费记录")}</li>`}</ul></figure>`;
   }
 
   window.Charts = { bars, line, donut };

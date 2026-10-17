@@ -1,3 +1,5 @@
+import { locale, t } from "./i18n.js";
+
 export const DAY = 86400000;
 export const RATE_WINDOW_DAYS = 60;   // 用最近 60 天的消耗记录估算日均用量
 export const MIN_RATE_SPAN_DAYS = 7;  // 记录太少时至少按 7 天平摊，避免高估
@@ -13,7 +15,7 @@ export const STATS_LOG_DAYS = 90;     // 消耗趋势图读取最近 90 天的�
 // 单位显示：数据按存储单位保存，界面按当前地区单位显示（见 units.js）
 export const du = (unit) => Units.displayUnit(unit);
 export const toDisp = (q, unit) => num(q) * Units.factor(unit);
-export const showQty = (q, unit) => `${fmt(toDisp(q, unit))} ${esc(du(unit) || "")}`.trim();
+export const showQty = (q, unit) => `${fmt(toDisp(q, unit))} ${esc(t(du(unit) || ""))}`.trim();
 export const storedStep = (unit) => Units.step(du(unit)) / Units.factor(unit);
 export const money = (v, short) => Units.money(v, undefined, !!short);
 export const catOf = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[0];
@@ -36,11 +38,11 @@ export function addMonths(iso, n) {
   d.setDate(Math.min(day, last));
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-export const fmtDate = (iso) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("zh-CN", { year: "numeric", month: "numeric", day: "numeric" }) : "");
+export const fmtDate = (iso) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString(locale(), { year: "numeric", month: "numeric", day: "numeric" }) : "");
 // 记录的创建 / 更新时间（timestamptz）：卡片上显示“月/日”，悬停或编辑页显示完整时间
-export const fmtShort = (iso) => (iso ? new Date(iso).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" }) : "");
-export const fmtDateTime = (iso) => (iso ? new Date(iso).toLocaleString("zh-CN", { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "");
-export const stampText = (r) => [r?.created_at && `添加于 ${fmtDateTime(r.created_at)}`, r?.updated_at && r.updated_at !== r.created_at && `更新于 ${fmtDateTime(r.updated_at)}`].filter(Boolean).join("，");
+export const fmtShort = (iso) => (iso ? new Date(iso).toLocaleDateString(locale(), { month: "numeric", day: "numeric" }) : "");
+export const fmtDateTime = (iso) => (iso ? new Date(iso).toLocaleString(locale(), { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "");
+export const stampText = (r) => [r?.created_at && t("添加于 {d}", { d: fmtDateTime(r.created_at) }), r?.updated_at && r.updated_at !== r.created_at && t("更新于 {d}", { d: fmtDateTime(r.updated_at) })].filter(Boolean).join(t("，"));
 
 export function setSync(text, err = false) {
   const b = $("#syncBadge"); b.textContent = text; b.classList.toggle("err", err);
@@ -61,4 +63,4 @@ export function armed(el, text) {
   return false;
 }
 
-export function fillUnitList() { $("#unitList").innerHTML = Units.list().map((u) => `<option value="${esc(u)}">`).join(""); }
+export function fillUnitList() { $("#unitList").innerHTML = Units.list().map((u) => `<option value="${esc(t(u))}">`).join(""); }

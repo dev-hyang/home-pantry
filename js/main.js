@@ -1,9 +1,10 @@
 import { checkConfig } from "./core/config-check.js";
-import { alertsOf, enrich, openShopFor } from "./core/logic.js";
+import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
+import { joinList, lang, loadOpenCC, locale, setLang, t } from "./core/i18n.js";
 import { viewToday } from "./today.js";
 import { applyTypeDefaults, houseDraft, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { assetTemplateItems, enrichAssets, leaveAsset, onAssetFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
@@ -12,6 +13,8 @@ import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./p
 import { renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { cleanStore, download, exportAnnual, rememberStore, viewStats } from "./stats/views.js";
+
+const APP_NAME = "家庭妈妈小助手";
 
 /* ───────────── 刷新与渲染 ───────────── */
 export let refreshing = null;
@@ -25,12 +28,12 @@ export async function refresh() {
       Object.assign(state, { items, logs, shopping, purchases, houseProfile, assets, maintLogs, seasonalDone });
       state.enriched = enrich(items, logs);
       state.assetsEnriched = enrichAssets(assets, maintLogs);
-      setSync(Store.mode === "demo" ? "本地演示数据" : `已同步 ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`);
+      setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }));
       notifyIfNeeded();
       render(false);
     } catch (e) {
-      setSync("同步失败，点设置页重试", true);
-      toast(`读取数据失败：${e.message}`);
+      setSync(t("同步失败，点设置页重试"), true);
+      toast(t("读取数据失败：{msg}", { msg: e.message }));
     } finally { refreshing = null; }
   })();
   return refreshing;
@@ -58,14 +61,25 @@ const SUB_PARENT = { template: "supplies", "asset-template": "assets" };
 function subnav(r) {
   const subs = SECTIONS[r.section]?.subs;
   if (!subs) return "";
-  return `<nav class="subtabs" aria-label="${SECTIONS[r.section].name}">${subs.filter(([, , hidden]) => !hidden).map(([k, label]) =>
-    `<a href="${href(r.section, k)}" ${r.sub === k || SUB_PARENT[r.sub] === k ? 'aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
+  return `<nav class="subtabs" aria-label="${t(SECTIONS[r.section].name)}">${subs.filter(([, , hidden]) => !hidden).map(([k, label]) =>
+    `<a href="${href(r.section, k)}" ${r.sub === k || SUB_PARENT[r.sub] === k ? 'aria-current="page"' : ""}>${t(label)}</a>`).join("")}</nav>`;
+}
+
+/** 顶部导航、站名按当前语言写入（index.html 里是简体默认值） */
+function applyChrome() {
+  document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
+    const textNode = [...a.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
+    if (textNode) textNode.textContent = t(SECTIONS[a.dataset.section]?.name || textNode.textContent.trim());
+  });
+  const h1 = $(".brand h1"); if (h1) h1.textContent = t(APP_NAME);
+  $("#tabs").setAttribute("aria-label", t("主导航"));
 }
 
 /** force=true：路由变化，整页重画；false：数据刷新，表单页保持不动 */
 export function render(force = true) {
   if (!state.enriched) return;
   document.body.classList.remove("gate");
+  applyChrome();
   $("#hhName").textContent = state.household?.name || "";
   const r = state.route;
   const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0])
@@ -78,18 +92,18 @@ export function render(force = true) {
   const sc = $("#shopCount"); sc.hidden = !openShop; sc.textContent = openShop;
   const relevant = state.enriched.filter((x) => state.houseEnabled || inSpace("pantry")(x));
   const alertN = alertsOf(relevant).length;
-  document.title = alertN ? `(${alertN}) 家庭妈妈小助手` : "家庭妈妈小助手";
+  document.title = alertN ? `(${alertN}) ${t(APP_NAME)}` : t(APP_NAME);
   document.body.classList.toggle("editing", FORM_PAGES(r));
 
   if (!force && FORM_PAGES(r) && $("#main form")) return;
   if (r.section === "item") { $("#main").innerHTML = viewItemForm(); return; }
   if (r.section === "asset") { $("#main").innerHTML = viewAssetForm(); return; }
   if (r.section === "house" && !state.houseEnabled) {
-    $("#main").innerHTML = `<div class="panel empty"><strong>房屋维护模块已关闭</strong>在“我的 → 设置”里可以重新打开。<p><button type="button" class="btn btn-primary" data-action="house-enable">打开房屋维护</button></p></div>`;
+    $("#main").innerHTML = `<div class="panel empty"><strong>${t("房屋维护模块已关闭")}</strong>${t("在“我的 → 设置”里可以重新打开。")}<p><button type="button" class="btn btn-primary" data-action="house-enable">${t("打开房屋维护")}</button></p></div>`;
     return;
   }
   if (r.section === "gear" && !state.gearEnabled) {
-    $("#main").innerHTML = `<div class="panel empty"><strong>装备模块已关闭</strong>在“我的 → 设置”里可以重新打开。<p><button type="button" class="btn btn-primary" data-action="gear-enable">打开装备</button></p></div>`;
+    $("#main").innerHTML = `<div class="panel empty"><strong>${t("装备模块已关闭")}</strong>${t("在“我的 → 设置”里可以重新打开。")}<p><button type="button" class="btn btn-primary" data-action="gear-enable">${t("打开装备")}</button></p></div>`;
     return;
   }
   const v = VIEWS[r.section];
@@ -126,6 +140,14 @@ window.addEventListener("hashchange", onRoute);
 
 const toList = (space) => href(...listRoute(space));
 
+/** 切换语言后整页重画（登录页也要） */
+async function changeLang(code) {
+  await setLang(code);
+  fillUnitList();
+  if (state.enriched) render(true);
+  else if (document.body.classList.contains("gate")) renderLogin();
+}
+
 /* ───────────── 交互（事件委托） ───────────── */
 export const main = $("#main");
 main.addEventListener("input", (e) => {
@@ -142,28 +164,29 @@ main.addEventListener("change", async (e) => {
   }
   if (e.target.closest("#assetForm") && (e.target.name === "kind" || e.target.name === "type")) return onAssetFormChange(e);
   if (e.target.matches("input[data-task]")) {
-    try { await toggleTask(e.target); } catch (err) { toast(`操作失败：${err.message}`); }
+    try { await toggleTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); }
     return refresh();
   }
+  if (e.target.id === "langSel") return changeLang(e.target.value || null);
   if (e.target.id === "regionSel") {
     Units.setRegion(e.target.value || null); fillUnitList();
-    state.enriched = enrich(state.items, state.logs); toast(`已切换为${Units.region.name}单位`); render();
+    state.enriched = enrich(state.items, state.logs); toast(t("已切换为{region}单位", { region: t(Units.region.name) })); render();
   }
   if (e.target.closest("#houseForm")) {
     const d = readHouseForm(e.target.form);
     if (e.target.name === "region") { d.house_type = HOUSE.HOUSE_TYPES[d.region][0].id; applyTypeDefaults(d); d.exterior = []; d.flooring = []; d.roof = null; render(); }
-    else if (e.target.name === "house_type") { applyTypeDefaults(d); toast("已按房型预选设施，可以再调整"); render(); }
+    else if (e.target.name === "house_type") { applyTypeDefaults(d); toast(t("已按房型预选设施，可以再调整")); render(); }
     return;
   }
   if (e.target.id === "houseToggle") {
     state.houseEnabled = e.target.checked;
     try { localStorage.setItem("hmh-house-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
-    toast(e.target.checked ? "已打开房屋维护" : "已关闭房屋维护，导航里不再显示"); render();
+    toast(e.target.checked ? t("已打开房屋维护") : t("已关闭房屋维护，导航里不再显示")); render();
   }
   if (e.target.id === "gearToggle") {
     state.gearEnabled = e.target.checked;
     try { localStorage.setItem("hmh-gear-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
-    toast(e.target.checked ? "已打开装备" : "已关闭装备，导航里不再显示"); render();
+    toast(e.target.checked ? t("已打开装备") : t("已关闭装备，导航里不再显示")); render();
   }
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
@@ -183,58 +206,58 @@ main.addEventListener("submit", async (e) => {
     }
     if (f.id === "assetTemplateForm") {
       const ids = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
-      if (!ids.length) return toast("还没有勾选设备");
+      if (!ids.length) return toast(t("还没有勾选设备"));
       const list = assetTemplateItems(ids);
       await Store.addAssets(list);
-      toast(`已生成 ${list.length} 台设备档案`);
+      toast(t("已生成 {n} 台设备档案", { n: list.length }));
       go(href("house", "assets"));
       return refresh();
     }
     if (f.id === "houseForm") {
       const d = readHouseForm(f), y = d.year_built, thisYear = new Date().getFullYear();
-      if (y != null && (y < 1850 || y > thisYear)) { $("#houseFormError").textContent = `建成年份需要在 1850 到 ${thisYear} 之间。`; return; }
+      if (y != null && (y < 1850 || y > thisYear)) { $("#houseFormError").textContent = t("建成年份需要在 1850 到 {y} 之间。", { y: thisYear }); return; }
       const first = !state.houseProfile;
       await Store.saveHouseProfile(d);
       state.houseProfile = { ...d }; state.houseDraft = null;
-      toast("房屋资料已保存");
+      toast(t("房屋资料已保存"));
       const hasHouseItems = state.items.some(inSpace("house"));
       go(first && !hasHouseItems ? href("house", "template") : href("house", "overview"));
       return refresh();
     }
     if (f.id === "templateForm") {
       const keys = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
-      if (!keys.length) return toast("还没有勾选耗材");
+      if (!keys.length) return toast(t("还没有勾选耗材"));
       const list = templateItems(keys);
       await Store.addItems(list);
-      toast(`已添加 ${list.length} 项房屋耗材`);
+      toast(t("已添加 {n} 项房屋耗材", { n: list.length }));
       Object.assign(state.filter, { space: "house", cat: "all", q: "", status: "all" });
       go(href("house", "supplies"));
       return refresh();
     }
     if (f.getAttribute("id") === "purchaseForm") {
       const e2 = f.elements, name = e2.name.value.trim(), amount = num(e2.amount.value, NaN);
-      if (!name || !Number.isFinite(amount) || amount < 0) return toast("请填写名称和金额");
+      if (!name || !Number.isFinite(amount) || amount < 0) return toast(t("请填写名称和金额"));
       const day = e2.date.value || new Date().toISOString().slice(0, 10);
       const store = cleanStore(e2.store.value);
       if (store) rememberStore(store);
       await Store.addPurchase({ item_id: null, name, category: e2.category.value, quantity: null, unit: null, store,
         amount: Math.round(amount * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString() });
-      toast(`已记录 ${name} ${money(amount)}`); return refresh();
+      toast(t("已记录 {name} {m}", { name, m: money(amount) })); return refresh();
     }
     if (f.id === "shopForm") {
       const name = f.elements.name.value.trim();
       if (!name) return;
       const linked = state.items.find((i) => i.name === name);
-      if (linked && openShopFor(linked.id)) return toast(`${name} 已经在清单里了`);
+      if (linked && openShopFor(linked.id)) return toast(t("{name} 已经在清单里了", { name }));
       await Store.saveShopping({ name, quantity: Math.max(0.1, num(f.elements.quantity.value, 1)), unit: f.elements.unit.value.trim() || (linked ? du(linked.unit) : ""), item_id: linked?.id || null, category: f.elements.category.value || linked?.category || "other" });
-      toast(`已加入：${name}`); refresh();
+      toast(t("已加入：{name}", { name })); refresh();
     }
     if (f.id === "nameForm") {
       const v = f.elements.display_name.value.trim();
       if (!v) return;
       const { error } = await CloudStore.sb.from("household_members").update({ display_name: v }).eq("household_id", CloudStore.hid).eq("user_id", state.user.id);
       if (error) throw new Error(error.message);
-      state.displayName = v; state.members = await CloudStore.listMembers(); toast("称呼已保存"); render();
+      state.displayName = v; state.members = await CloudStore.listMembers(); toast(t("称呼已保存")); render();
     }
     if (f.id === "loginForm") return doLogin(f);
     if (f.id === "phoneForm") return doPhoneLogin(f);
@@ -242,7 +265,7 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "quickForm") return doQuickJoin(f);
     if (f.id === "createHhForm") return doCreateHousehold(f);
     if (f.id === "joinHhForm") return doJoinHousehold(f);
-  } catch (err) { toast(`操作失败：${err.message}`); }
+  } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); }
 });
 
 main.addEventListener("click", async (e) => {
@@ -255,15 +278,15 @@ main.addEventListener("click", async (e) => {
       case "edit": return openItem(id);
       case "item-cancel": return leaveItem(false);
       case "item-delete":
-        if (!armed(el, "再点一次确认删除")) return;
-        await Store.deleteItem(state.route.id); toast("已删除"); return leaveItem(true);
+        if (!armed(el, t("再点一次确认删除"))) return;
+        await Store.deleteItem(state.route.id); toast(t("已删除")); return leaveItem(true);
       case "asset-cancel": return leaveAsset(false);
       case "asset-delete":
-        if (!armed(el, "再点一次确认删除")) return;
-        await Store.deleteAsset(state.route.id); toast("已删除设备及其保养记录"); return leaveAsset(true);
+        if (!armed(el, t("再点一次确认删除"))) return;
+        await Store.deleteAsset(state.route.id); toast(t("已删除设备及其保养记录")); return leaveAsset(true);
       case "maint-del":
-        if (!armed(el, "确认删除")) return;
-        await Store.deleteMaintLog(id); toast("已删除这条记录"); await refresh(); return render(true);
+        if (!armed(el, t("确认删除"))) return;
+        await Store.deleteMaintLog(id); toast(t("已删除这条记录")); await refresh(); return render(true);
       case "tasks-month": state.tasksMonth = +el.dataset.month; return render();
       case "house-enable":
         state.houseEnabled = true; try { localStorage.setItem("hmh-house-off", "0"); } catch { /* 忽略 */ }
@@ -283,7 +306,7 @@ main.addEventListener("click", async (e) => {
         const pool = sp === "all" ? state.enriched.filter((x) => state.houseEnabled || inSpace("pantry")(x)) : state.enriched.filter(inSpace(sp));
         return addAlertsToShopping(alertsOf(pool));
       }
-      case "shop-claim": await Store.saveShopping({ id, status: "claimed", claimed_by: state.user?.id || null, claimed_by_name: state.displayName }); toast("已认领，家人会看到你在买"); return refresh();
+      case "shop-claim": await Store.saveShopping({ id, status: "claimed", claimed_by: state.user?.id || null, claimed_by_name: state.displayName }); toast(t("已认领，家人会看到你在买")); return refresh();
       case "shop-unclaim": await Store.saveShopping({ id, status: "todo", claimed_by: null, claimed_by_name: null }); return refresh();
       case "shop-bought": return markBought(id);
       case "shop-del": await Store.deleteShopping(id); return refresh();
@@ -292,26 +315,27 @@ main.addEventListener("click", async (e) => {
       case "shuffle": state.mealShift++; return render();
       case "stats-months": state.stats.months = +el.dataset.months; return render();
       case "stats-cat": state.stats.cat = el.dataset.cat; return render();
-      case "purchase-del": if (!armed(el, "确认删除")) return; await Store.deletePurchase(id); toast("已删除这笔记录"); return refresh();
+      case "purchase-del": if (!armed(el, t("确认删除"))) return; await Store.deletePurchase(id); toast(t("已删除这笔记录")); return refresh();
       case "recipe-missing": return addRecipeMissing(el.dataset.name);
-      case "copy-invite": await navigator.clipboard.writeText(state.household.invite_code); return toast("邀请码已复制");
+      case "copy-invite": await navigator.clipboard.writeText(state.household.invite_code); return toast(t("邀请码已复制"));
       case "notif": await Notification.requestPermission(); return render();
       case "export": return exportJson();
       case "csv-summary": return exportAnnual("summary");
       case "csv-detail": return exportAnnual("detail");
       case "reload": return refresh();
-      case "reset-demo": if (armed(el, "再点一次确认恢复")) { DemoStore.reset(); toast("已恢复演示数据"); refresh(); } return;
+      case "reset-demo": if (armed(el, t("再点一次确认恢复"))) { DemoStore.reset(); toast(t("已恢复演示数据")); refresh(); } return;
       case "logout": await CloudStore.sb.auth.signOut(); localStorage.removeItem("hmh-hid"); return location.reload();
       case "login-mode": state.loginMode = el.dataset.mode; state.phonePending = null; return renderLogin();
       case "otp-back": state.phonePending = null; return renderLogin();
+      case "lang": return changeLang(el.dataset.lang || null);
       case "rotate-invite": {
-        if (!armed(el, "再点一次确认重置")) return;
+        if (!armed(el, t("再点一次确认重置"))) return;
         const { data, error } = await CloudStore.sb.rpc("rotate_invite_code", { p_household: state.household.id });
         if (error) throw new Error(error.message);
-        state.household.invite_code = data; toast("邀请码已重置，旧邀请码立即失效"); return render();
+        state.household.invite_code = data; toast(t("邀请码已重置，旧邀请码立即失效")); return render();
       }
     }
-  } catch (err) { toast(`操作失败：${err.message}`); refresh(); }
+  } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); refresh(); }
 });
 
 export async function addAlertsToShopping(list) {
@@ -321,7 +345,7 @@ export async function addAlertsToShopping(list) {
     await Store.saveShopping({ item_id: it.id, name: it.name, quantity: it.suggest, unit: it.unit, category: it.category });
     added++;
   }
-  toast(added ? `已加入采购清单 ${added} 项` : "这些都已经在清单里了");
+  toast(added ? t("已加入采购清单 {n} 项", { n: added }) : t("这些都已经在清单里了"));
   refresh();
 }
 
@@ -331,13 +355,13 @@ export async function addRecipeMissing(recipeName) {
   const openNames = new Set(state.shopping.filter((s) => s.status !== "bought").map((s) => s.name));
   let added = 0;
   for (const p of r.parts.filter((x) => !x.item)) {
-    const existing = state.items.find((i) => p.kw.some((k) => i.name.includes(k)));
-    const name = existing?.name || p.kw[0];
+    const existing = state.items.find((i) => nameHas(i.name, p.kw));
+    const name = existing?.name || t(p.kw[0]);
     if (openNames.has(name) || (existing && openShopFor(existing.id))) continue;
     await Store.saveShopping({ name, quantity: 1, unit: existing?.unit || "", item_id: existing?.id || null, category: existing?.category || "fresh" });
     added++;
   }
-  toast(added ? `“${recipeName}”缺的 ${added} 样已加入清单` : "缺的食材已经在清单里了");
+  toast(added ? t("“{recipe}”缺的 {n} 样已加入清单", { recipe: t(recipeName), n: added }) : t("缺的食材已经在清单里了"));
   refresh();
 }
 
@@ -358,9 +382,9 @@ export async function markBought(id) {
   if (item) {
     // 采购单位与库存单位不同（例如库存按 kg，买的时候填 lb）时自动换算
     const add = !s.unit || s.unit === item.unit ? qty : Units.convert(qty, s.unit, item.unit);
-    if (add == null) toast(`${s.name} 已买到；单位 ${s.unit} 与库存单位 ${item.unit} 无法换算，请手动更新库存`);
-    else { await Store.adjust(item.id, Math.round(add * 100) / 100, "restock"); toast(`${s.name} 已入库 +${showQty(add, item.unit)}，记得更新保质期`); }
-  } else toast(`${s.name} 已买到${amount != null ? `，花费 ${money(amount)}` : ""}`);
+    if (add == null) toast(t("{name} 已买到；单位 {u1} 与库存单位 {u2} 无法换算，请手动更新库存", { name: s.name, u1: t(s.unit), u2: t(item.unit) }));
+    else { await Store.adjust(item.id, Math.round(add * 100) / 100, "restock"); toast(t("{name} 已入库 +{q}，记得更新保质期", { name: s.name, q: showQty(add, item.unit) })); }
+  } else toast(t("{name} 已买到", { name: s.name }) + (amount != null ? t("，花费 {m}", { m: money(amount) }) : ""));
   refresh();
 }
 
@@ -377,50 +401,52 @@ export function notifyIfNeeded() {
   state.lastAlertCount = urgent.length;
   if (prev === null ? urgent.length === 0 : urgent.length <= prev) return;
   if (!("Notification" in window) || Notification.permission !== "granted") return;
-  try { new Notification("家庭妈妈小助手", { body: `${urgent.length} 样东西缺货或少货：${urgent.slice(0, 4).map((x) => x.name).join("、")}` }); } catch { /* 部分移动浏览器只允许 Service Worker 通知 */ }
+  try { new Notification(t(APP_NAME), { body: t("{n} 样东西缺货或少货：{list}", { n: urgent.length, list: joinList(urgent.slice(0, 4).map((x) => x.name)) }) }); } catch { /* 部分移动浏览器只允许 Service Worker 通知 */ }
 }
 
 /* ───────────── 云端：登录与家庭 ───────────── */
-export function gate(html) { document.body.classList.add("gate"); $("#hhName").textContent = ""; $("#main").innerHTML = html; }
+export function gate(html) { document.body.classList.add("gate"); applyChrome(); $("#hhName").textContent = ""; $("#main").innerHTML = html; }
 
 /* 登录：邮箱魔法链接（默认）；手机号短信验证码（config.js 里 PHONE_LOGIN = true 且 Supabase 已接短信服务商时显示） */
 const COUNTRY_CODES = [["+1", "美国 / 加拿大 +1"], ["+86", "中国大陆 +86"], ["+852", "香港 +852"], ["+886", "台湾 +886"], ["+65", "新加坡 +65"], ["+61", "澳大利亚 +61"], ["+44", "英国 +44"], ["+81", "日本 +81"]];
 const phoneLoginOn = () => !!window.APP_CONFIG?.PHONE_LOGIN;
 const quickJoinOn = () => window.APP_CONFIG?.QUICK_JOIN !== false;
+// 登录页右上角的语言切换
+const langBar = () => `<div class="lang-bar">${[["zh", "简体"], ["zh-Hant", "繁體"], ["en", "EN"]].map(([k, l]) => `<button type="button" class="chip" data-action="lang" data-lang="${k}" aria-pressed="${lang === k}">${l}</button>`).join("")}</div>`;
 
 export function renderLogin(msg = "") {
   const modes = [["email", "邮箱"], phoneLoginOn() && ["phone", "手机号"], quickJoinOn() && ["quick", "邀请码直接进入"]].filter(Boolean);
   const mode = modes.some(([m]) => m === state.loginMode) ? state.loginMode : "email";
-  const tabs = modes.length > 1 ? `<div class="seg" role="group" aria-label="登录方式">${modes.map(([m, l]) =>
-    `<button type="button" class="chip" data-action="login-mode" data-mode="${m}" aria-pressed="${mode === m}">${l}</button>`).join("")}</div>` : "";
+  const tabs = modes.length > 1 ? `<div class="seg" role="group" aria-label="${t("登录方式")}">${modes.map(([m, l]) =>
+    `<button type="button" class="chip" data-action="login-mode" data-mode="${m}" aria-pressed="${mode === m}">${t(l)}</button>`).join("")}</div>` : "";
   let body;
   if (mode === "quick") {
-    body = `<p class="muted">家人已经建好家庭的话，填邀请码直接进入，不用收邮件或短信。手机号只用来标识是谁，不会发送验证码。</p>
+    body = `<p class="muted">${t("家人已经建好家庭的话，填邀请码直接进入，不用收邮件或短信。手机号只用来标识是谁，不会发送验证码。")}</p>
       <form id="quickForm">
-        <input type="tel" name="phone" required inputmode="tel" autocomplete="tel" placeholder="手机号" aria-label="手机号">
-        <input name="display_name" maxlength="20" placeholder="我的称呼（可不填），例如：爸爸" aria-label="我的称呼">
-        <input name="code" required maxlength="12" placeholder="邀请码" autocapitalize="characters" aria-label="邀请码">
-        <button class="btn btn-primary" type="submit">进入家庭</button></form>
-      <p class="muted" style="font-size:12px">这种方式的身份保存在本设备浏览器里，清除浏览器数据或换手机后需要重新用邀请码进入。创建家庭请用邮箱登录。</p>`;
+        <input type="tel" name="phone" required inputmode="tel" autocomplete="tel" placeholder="${t("手机号")}" aria-label="${t("手机号")}">
+        <input name="display_name" maxlength="20" placeholder="${t("我的称呼（可不填），例如：爸爸")}" aria-label="${t("我的称呼")}">
+        <input name="code" required maxlength="12" placeholder="${t("邀请码")}" autocapitalize="characters" aria-label="${t("邀请码")}">
+        <button class="btn btn-primary" type="submit">${t("进入家庭")}</button></form>
+      <p class="muted" style="font-size:12px">${t("这种方式的身份保存在本设备浏览器里，清除浏览器数据或换手机后需要重新用邀请码进入。创建家庭请用邮箱登录。")}</p>`;
   } else if (mode === "phone" && state.phonePending) {
-    body = `<p class="muted">验证码已发送到 ${esc(state.phonePending)}，请输入短信里的 6 位数字。</p>
-      <form id="otpForm"><input name="token" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,8}" maxlength="8" placeholder="验证码" aria-label="验证码">
-        <button class="btn btn-primary" type="submit">登录</button>
-        <button class="btn btn-ghost" type="button" data-action="otp-back">换个号码 / 重新发送</button></form>`;
+    body = `<p class="muted">${t("验证码已发送到 {phone}，请输入短信里的 6 位数字。", { phone: esc(state.phonePending) })}</p>
+      <form id="otpForm"><input name="token" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,8}" maxlength="8" placeholder="${t("验证码")}" aria-label="${t("验证码")}">
+        <button class="btn btn-primary" type="submit">${t("登录")}</button>
+        <button class="btn btn-ghost" type="button" data-action="otp-back">${t("换个号码 / 重新发送")}</button></form>`;
   } else if (mode === "phone") {
     const def = Units.region.system === "us" ? "+1" : "+86";
-    body = `<p class="muted">输入手机号，我们会发一条短信验证码，无需密码。</p>
+    body = `<p class="muted">${t("输入手机号，我们会发一条短信验证码，无需密码。")}</p>
       <form id="phoneForm" class="phone-form">
-        <select name="cc" aria-label="国家或地区代码">${COUNTRY_CODES.map(([c, l]) => `<option value="${c}" ${c === def ? "selected" : ""}>${l}</option>`).join("")}</select>
-        <input type="tel" name="phone" required inputmode="tel" autocomplete="tel-national" placeholder="手机号" aria-label="手机号">
-        <button class="btn btn-primary" type="submit">发送验证码</button></form>`;
+        <select name="cc" aria-label="${t("国家或地区代码")}">${COUNTRY_CODES.map(([c, l]) => `<option value="${c}" ${c === def ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
+        <input type="tel" name="phone" required inputmode="tel" autocomplete="tel-national" placeholder="${t("手机号")}" aria-label="${t("手机号")}">
+        <button class="btn btn-primary" type="submit">${t("发送验证码")}</button></form>`;
   } else {
-    body = `<p class="muted">输入邮箱，我们会发一封登录链接，点开即可登录，无需密码。</p>
-      <form id="loginForm"><input type="email" name="email" required autocomplete="email" placeholder="you@example.com" aria-label="邮箱">
-        <button class="btn btn-primary" type="submit">发送登录链接</button></form>`;
+    body = `<p class="muted">${t("输入邮箱，我们会发一封登录链接，点开即可登录，无需密码。")}</p>
+      <form id="loginForm"><input type="email" name="email" required autocomplete="email" placeholder="you@example.com" aria-label="${t("邮箱")}">
+        <button class="btn btn-primary" type="submit">${t("发送登录链接")}</button></form>`;
   }
-  gate(`<div class="panel gate-card"><h2>登录</h2>${tabs}${body}<p class="muted" role="status">${esc(msg)}</p></div>`);
-  setSync("未登录");
+  gate(`<div class="panel gate-card">${langBar()}<h2>${t("登录")}</h2>${tabs}${body}<p class="muted" role="status">${esc(msg)}</p></div>`);
+  setSync(t("未登录"));
 }
 
 export async function doLogin(f) {
@@ -428,20 +454,20 @@ export async function doLogin(f) {
   if (!email) return;
   f.querySelector("button").disabled = true;
   const { error } = await CloudStore.sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split("#")[0] } });
-  if (error) { f.querySelector("button").disabled = false; return toast(`发送失败：${error.message}`); }
-  renderLogin(`登录链接已发送到 ${email}，请在本设备打开邮件。`);
+  if (error) { f.querySelector("button").disabled = false; return toast(t("发送失败：{msg}", { msg: error.message })); }
+  renderLogin(t("登录链接已发送到 {email}，请在本设备打开邮件。", { email }));
 }
 
 /** 手机号：拼成 E.164（+国家码+数字）后发短信验证码 */
 export async function doPhoneLogin(f) {
   const digits = f.elements.phone.value.replace(/\D/g, "");
-  if (digits.length < 6 || digits.length > 15) return toast("请输入正确的手机号");
+  if (digits.length < 6 || digits.length > 15) return toast(t("请输入正确的手机号"));
   const phone = `${f.elements.cc.value}${digits}`;
   f.querySelector("button").disabled = true;
   const { error } = await CloudStore.sb.auth.signInWithOtp({ phone });
   if (error) {
     f.querySelector("button").disabled = false;
-    const m = /provider|not enabled|unsupported/i.test(error.message) ? "Supabase 还没开启手机号登录或没有接入短信服务商，请先按 README 配置，或改用邮箱登录。" : `发送失败：${error.message}`;
+    const m = /provider|not enabled|unsupported/i.test(error.message) ? t("Supabase 还没开启手机号登录或没有接入短信服务商，请先按 README 配置，或改用邮箱登录。") : t("发送失败：{msg}", { msg: error.message });
     return toast(m);
   }
   state.phonePending = phone;
@@ -452,15 +478,15 @@ export async function doPhoneLogin(f) {
 export async function doQuickJoin(f) {
   const digits = f.elements.phone.value.replace(/\D/g, "");
   const code = f.elements.code.value.trim();
-  if (digits.length < 6 || digits.length > 15) return toast("请输入正确的手机号");
-  if (!code) return toast("请输入邀请码");
-  const name = f.elements.display_name.value.trim() || `尾号${digits.slice(-4)}`;
+  if (digits.length < 6 || digits.length > 15) return toast(t("请输入正确的手机号"));
+  if (!code) return toast(t("请输入邀请码"));
+  const name = f.elements.display_name.value.trim() || t("尾号{d}", { d: digits.slice(-4) });
   f.querySelector("button").disabled = true;
   state.pendingJoin = { code, name };
   const { error } = await CloudStore.sb.auth.signInAnonymously({ options: { data: { phone_label: digits, display_name: name } } });
   if (error) {
     state.pendingJoin = null; f.querySelector("button").disabled = false;
-    return toast(/anonymous/i.test(error.message) ? "Supabase 还没开启匿名登录（Allow anonymous sign-ins），请先按 README 开启，或改用邮箱登录。" : `进入失败：${error.message}`);
+    return toast(/anonymous/i.test(error.message) ? t("Supabase 还没开启匿名登录（Allow anonymous sign-ins），请先按 README 开启，或改用邮箱登录。") : t("进入失败：{msg}", { msg: error.message }));
   }
 }
 
@@ -469,35 +495,35 @@ export async function doVerifyOtp(f) {
   if (!token || !state.phonePending) return;
   f.querySelector("button").disabled = true;
   const { error } = await CloudStore.sb.auth.verifyOtp({ phone: state.phonePending, token, type: "sms" });
-  if (error) { f.querySelector("button").disabled = false; return toast(/expired|invalid/i.test(error.message) ? "验证码不对或已过期，请重新发送" : `登录失败：${error.message}`); }
+  if (error) { f.querySelector("button").disabled = false; return toast(/expired|invalid/i.test(error.message) ? t("验证码不对或已过期，请重新发送") : t("登录失败：{msg}", { msg: error.message })); }
   state.phonePending = null;   // 成功后 onAuthStateChange 会收到 SIGNED_IN
 }
 
 export function renderOnboarding() {
   const anon = !!state.user?.is_anonymous;   // 邀请码直接进入的匿名账号：只能加入，不能创建家庭
-  gate(`<div class="panel gate-card"><h2>加入你的家庭</h2>
-    <p class="muted">${anon ? "用家人给的邀请码加入。" : "第一次使用请创建家庭；家人已经创建过的话，用邀请码加入。"}</p>
-    <form id="joinHhForm"><input name="code" required maxlength="12" placeholder="邀请码" autocapitalize="characters" aria-label="邀请码">
-      <input name="display_name" required maxlength="20" placeholder="我的称呼，例如：爸爸" aria-label="我的称呼" value="${esc(state.user?.user_metadata?.display_name || "")}">
-      <button class="btn btn-dark" type="submit">用邀请码加入</button></form>
+  gate(`<div class="panel gate-card">${langBar()}<h2>${t("加入你的家庭")}</h2>
+    <p class="muted">${anon ? t("用家人给的邀请码加入。") : t("第一次使用请创建家庭；家人已经创建过的话，用邀请码加入。")}</p>
+    <form id="joinHhForm"><input name="code" required maxlength="12" placeholder="${t("邀请码")}" autocapitalize="characters" aria-label="${t("邀请码")}">
+      <input name="display_name" required maxlength="20" placeholder="${t("我的称呼，例如：爸爸")}" aria-label="${t("我的称呼")}" value="${esc(state.user?.user_metadata?.display_name || "")}">
+      <button class="btn btn-dark" type="submit">${t("用邀请码加入")}</button></form>
     <hr>
-    ${anon ? `<p class="muted">创建新家庭需要用邮箱登录，这样家庭有一个能找回的主人。<button type="button" class="btn btn-sm btn-ghost" data-action="logout">改用邮箱登录</button></p>`
-      : `<form id="createHhForm"><input name="name" required maxlength="50" placeholder="家庭名称，例如：小月亮的家" aria-label="家庭名称">
-      <input name="display_name" required maxlength="20" placeholder="我的称呼，例如：妈妈" aria-label="我的称呼">
-      <button class="btn btn-primary" type="submit">创建家庭</button></form>`}</div>`);
-  setSync("已登录");
+    ${anon ? `<p class="muted">${t("创建新家庭需要用邮箱登录，这样家庭有一个能找回的主人。")}<button type="button" class="btn btn-sm btn-ghost" data-action="logout">${t("改用邮箱登录")}</button></p>`
+      : `<form id="createHhForm"><input name="name" required maxlength="50" placeholder="${t("家庭名称，例如：小月亮的家")}" aria-label="${t("家庭名称")}">
+      <input name="display_name" required maxlength="20" placeholder="${t("我的称呼，例如：妈妈")}" aria-label="${t("我的称呼")}">
+      <button class="btn btn-primary" type="submit">${t("创建家庭")}</button></form>`}</div>`);
+  setSync(t("已登录"));
 }
 
 export async function doCreateHousehold(f) {
-  if (state.user?.is_anonymous) return toast("创建家庭请先用邮箱登录");
+  if (state.user?.is_anonymous) return toast(t("创建家庭请先用邮箱登录"));
   const { data, error } = await CloudStore.sb.rpc("create_household", { p_name: f.elements.name.value.trim(), p_display_name: f.elements.display_name.value.trim() });
-  if (error) return toast(`创建失败：${error.message}`);
+  if (error) return toast(t("创建失败：{msg}", { msg: error.message }));
   localStorage.setItem("hmh-hid", data); afterLogin();
 }
 
 export async function doJoinHousehold(f) {
   const { data, error } = await CloudStore.sb.rpc("join_household", { p_code: f.elements.code.value.trim(), p_display_name: f.elements.display_name.value.trim() });
-  if (error) return toast(error.message.includes("invalid") ? "邀请码不正确，请向家人确认" : `加入失败：${error.message}`);
+  if (error) return toast(error.message.includes("invalid") ? t("邀请码不正确，请向家人确认") : t("加入失败：{msg}", { msg: error.message }));
   localStorage.setItem("hmh-hid", data); afterLogin();
 }
 
@@ -505,7 +531,7 @@ export async function afterLogin() {
   const sb = CloudStore.sb;
   const { data, error } = await sb.from("household_members")
     .select("household_id, display_name, households(id, name, invite_code, created_by)").eq("user_id", state.user.id);
-  if (error) return toast(`读取家庭失败：${error.message}`);
+  if (error) return toast(t("读取家庭失败：{msg}", { msg: error.message }));
   if (!data.length) return renderOnboarding();
   state.households = data.map((d) => d.households).filter(Boolean);
   const saved = localStorage.getItem("hmh-hid");
@@ -524,18 +550,20 @@ export async function afterLogin() {
 /* ───────────── 启动 ───────────── */
 export async function boot() {
   window.__hmhBooted = true;   // 告诉 index.html 的启动自检：主脚本已经运行
+  if (lang === "zh-Hant") await loadOpenCC();   // 繁體：先把转换库拉下来再渲染，避免先简后繁闪一下
+  applyChrome();
   fillUnitList();
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.enriched) refreshSoon(); });
 
   const cfg = checkConfig();
   state.configIssue = cfg.issue || null;
   if (cfg.mode === "blocked") {
-    setSync("配置有安全问题", true);
-    $("#main").innerHTML = `<div class="panel" role="alert" style="border:2px solid var(--out)"><b>已停止连接云端</b><p>${esc(cfg.issue)}</p></div>`;
+    setSync(t("配置有安全问题"), true);
+    $("#main").innerHTML = `<div class="panel" role="alert" style="border:2px solid var(--out)"><b>${t("已停止连接云端")}</b><p>${esc(t(cfg.issue))}</p></div>`;
     return;
   }
   if (cfg.mode === "cloud") {
-    if (!window.supabase) { setSync("云端库加载失败", true); return toast("无法加载 Supabase SDK，请检查网络后刷新"); }
+    if (!window.supabase) { setSync(t("云端库加载失败"), true); return toast(t("无法加载 Supabase SDK，请检查网络后刷新")); }
     setStore(CloudStore);
     CloudStore.sb = window.supabase.createClient(cfg.url, cfg.key);
     let started = false;
@@ -549,7 +577,7 @@ export async function boot() {
         if (error) {
           started = false;
           await CloudStore.sb.auth.signOut();   // 加入失败就不保留这个匿名身份
-          return renderLogin(error.message.includes("invalid") ? "邀请码不正确，请向家人确认。" : `加入失败：${error.message}`);
+          return renderLogin(error.message.includes("invalid") ? t("邀请码不正确，请向家人确认。") : t("加入失败：{msg}", { msg: error.message }));
         }
         localStorage.setItem("hmh-hid", data);
       }
@@ -565,7 +593,7 @@ export async function boot() {
   } else {
     setStore(DemoStore);
     DemoStore.load();
-    state.household = { name: "演示家庭（数据仅存于本浏览器）" };
+    state.household = { name: t("演示家庭（数据仅存于本浏览器）") };
     state.route = parseRoute();
     await refresh();
   }

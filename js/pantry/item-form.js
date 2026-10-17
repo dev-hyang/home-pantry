@@ -3,12 +3,13 @@ import { Store } from "../core/store.js";
 import { $, catOf, catsOf, du, esc, fmt, listRoute, num, spaceOf, stampText, toast } from "../core/util.js";
 import { go, href } from "../core/router.js";
 import { memberName } from "../core/logic.js";
+import { t } from "../core/i18n.js";
 import { categoryOptions } from "./views.js";
 
 /* ───────────── 物品编辑：独立整页（路由 #/item/<id> 或 #/item/new） ─────────────
  * 用网址表示编辑页：手机返回手势、浏览器后退都能退出；返回时由 main.js 恢复来源页的滚动位置。 */
 export function subOptions(catId, selected) {
-  return catOf(catId).subs.map((s) => `<option ${s === selected ? "selected" : ""}>${esc(s)}</option>`).join("");
+  return catOf(catId).subs.map((s) => `<option value="${esc(s)}" ${s === selected ? "selected" : ""}>${esc(t(s))}</option>`).join("");
 }
 
 export function openItem(id, { space, cat } = {}) {
@@ -32,7 +33,7 @@ export function viewItemForm() {
   const r = state.route;
   const it = r.id && r.id !== "new" ? state.items.find((x) => x.id === r.id) : null;
   if (r.id !== "new" && !it) {
-    return `<div class="panel empty"><strong>找不到这件物品</strong>可能已被家人删除。<p><a class="btn btn-primary" href="${href("pantry", "inventory")}">回到库存</a></p></div>`;
+    return `<div class="panel empty"><strong>${t("找不到这件物品")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("pantry", "inventory")}">${t("回到库存")}</a></p></div>`;
   }
   const space = r.q.get("space") || (state.filter.space || "pantry");
   const qCat = r.q.get("cat");
@@ -41,73 +42,73 @@ export function viewItemForm() {
   const v = it || { category: defCat, unit: "个", quantity: 1, min_quantity: space === "gear" ? 0 : 1, lead_days: space === "house" ? 14 : space === "gear" ? 0 : 3, location: catOf(defCat).loc };
   state.editingCat = v.category;
   const gear = spaceOf(v.category) === "gear";
-  const backLabel = state.prevRoute ? SECTION_LABEL[state.prevRoute.section] || "上一页" : "列表";
+  const backLabel = state.prevRoute ? t(SECTION_LABEL[state.prevRoute.section] || "上一页") : t("列表");
   const f = Units.factor(v.unit), dUnit = du(v.unit);
   const dv = (x) => (x == null || x === "" ? "" : fmt(num(x) * f));
   return `
     <section class="section form-page">
       <div class="section-head">
-        <h2>${it ? `编辑：${esc(it.name)}` : "添加物品"}</h2>
-        <button type="button" class="btn btn-sm btn-ghost" data-action="item-cancel">返回${backLabel}</button>
+        <h2>${it ? t("编辑：{name}", { name: esc(it.name) }) : t("添加物品")}</h2>
+        <button type="button" class="btn btn-sm btn-ghost" data-action="item-cancel">${t("返回{page}", { page: backLabel })}</button>
       </div>
       <form id="itemForm" class="panel ${gear ? "is-gear" : ""}" novalidate>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">
         <input type="hidden" name="orig_unit" value="${esc(v.unit)}">
         <input type="hidden" name="disp_unit" value="${esc(dUnit)}">
         <fieldset>
-          <legend>基本信息</legend>
+          <legend>${t("基本信息")}</legend>
           <div class="form-grid">
-            <label class="span-2">名称
-              <input name="name" required maxlength="60" autocomplete="off" placeholder="${NAME_HINT[spaceOf(v.category)] || NAME_HINT.pantry}" value="${esc(v.name || "")}">
+            <label class="span-2">${t("名称")}
+              <input name="name" required maxlength="60" autocomplete="off" placeholder="${t(NAME_HINT[spaceOf(v.category)] || NAME_HINT.pantry)}" value="${esc(v.name || "")}">
             </label>
-            <label>大类
+            <label>${t("大类")}
               <select name="category" required>${categoryOptions(v.category, { withOther: false })}</select>
             </label>
-            <label>小类
+            <label>${t("小类")}
               <select name="subcategory">${subOptions(v.category, v.subcategory)}</select>
             </label>
-            <label>存放位置
-              <select name="location"><option value="">未指定</option>${LOCATIONS.map((l) => `<option ${l === v.location ? "selected" : ""}>${l}</option>`).join("")}</select>
+            <label>${t("存放位置")}
+              <select name="location"><option value="">${t("未指定")}</option>${LOCATIONS.map((l) => `<option value="${esc(l)}" ${l === v.location ? "selected" : ""}>${esc(t(l))}</option>`).join("")}</select>
             </label>
-            <label class="not-gear">保质期至
+            <label class="not-gear">${t("保质期至")}
               <input name="expiry_date" type="date" value="${esc(v.expiry_date || "")}">
             </label>
           </div>
         </fieldset>
         <fieldset>
-          <legend><span class="not-gear">数量与提醒</span><span class="only-gear">数量</span></legend>
-          <p class="muted only-gear" style="margin:0 0 10px;font-size:13px">装备只记数量和位置，不算消耗，也不会提醒补货。</p>
+          <legend><span class="not-gear">${t("数量与提醒")}</span><span class="only-gear">${t("数量")}</span></legend>
+          <p class="muted only-gear" style="margin:0 0 10px;font-size:13px">${t("装备只记数量和位置，不算消耗，也不会提醒补货。")}</p>
           <div class="form-grid">
-            <label>当前数量
+            <label>${t("当前数量")}
               <input name="quantity" type="number" min="0" step="any" inputmode="decimal" required value="${dv(v.quantity ?? 0)}" data-orig="${dv(v.quantity ?? 0)}">
             </label>
-            <label>单位
+            <label>${t("单位")}
               <input name="unit" list="unitList" maxlength="10" required value="${esc(dUnit || "个")}">
-              ${dUnit !== v.unit ? `<small>原单位 ${esc(v.unit)}，已按当前地区换算显示</small>` : ""}
+              ${dUnit !== v.unit ? `<small>${t("原单位 {u}，已按当前地区换算显示", { u: esc(v.unit) })}</small>` : ""}
             </label>
-            <label class="not-gear">少货线
+            <label class="not-gear">${t("少货线")}
               <input name="min_quantity" type="number" min="0" step="any" inputmode="decimal" value="${dv(v.min_quantity ?? 0)}" data-orig="${dv(v.min_quantity ?? 0)}">
-              <small>数量低于或等于它时提醒“少货”</small>
+              <small>${t("数量低于或等于它时提醒“少货”")}</small>
             </label>
-            <label class="not-gear">提前几天提醒
+            <label class="not-gear">${t("提前几天提醒")}
               <input name="lead_days" type="number" min="0" max="60" step="1" inputmode="numeric" value="${esc(v.lead_days ?? 3)}">
-              <small>预计剩余天数低于它时提醒“即将告罄”</small>
+              <small>${t("预计剩余天数低于它时提醒“即将告罄”")}</small>
             </label>
-            <label class="span-2 not-gear">每天大约用多少（可选）
-              <input name="avg_daily_use" type="number" min="0" step="any" inputmode="decimal" placeholder="留空则根据家人的使用记录自动估算" value="${dv(v.avg_daily_use)}" data-orig="${dv(v.avg_daily_use)}">
+            <label class="span-2 not-gear">${t("每天大约用多少（可选）")}
+              <input name="avg_daily_use" type="number" min="0" step="any" inputmode="decimal" placeholder="${t("留空则根据家人的使用记录自动估算")}" value="${dv(v.avg_daily_use)}" data-orig="${dv(v.avg_daily_use)}">
             </label>
           </div>
         </fieldset>
         <fieldset>
-          <legend>备注</legend>
-          <label class="sr-only" for="itemNotes">备注</label>
-          <textarea id="itemNotes" name="notes" rows="3" maxlength="500" placeholder="${gear ? "品牌、型号、尺寸、购买时间、借给了谁…" : "品牌、规格、在哪买更便宜…"}">${esc(v.notes || "")}</textarea>
+          <legend>${t("备注")}</legend>
+          <label class="sr-only" for="itemNotes">${t("备注")}</label>
+          <textarea id="itemNotes" name="notes" rows="3" maxlength="500" placeholder="${gear ? t("品牌、型号、尺寸、购买时间、借给了谁…") : t("品牌、规格、在哪买更便宜…")}">${esc(v.notes || "")}</textarea>
         </fieldset>
         <p id="itemFormError" class="form-error" role="alert"></p>
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary">${it ? "保存修改" : "添加物品"}</button>
-          <button type="button" class="btn btn-ghost" data-action="item-cancel">取消</button>
-          ${it ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="item-delete">删除物品</button>` : ""}
+          <button type="submit" class="btn btn-primary">${it ? t("保存修改") : t("添加物品")}</button>
+          <button type="button" class="btn btn-ghost" data-action="item-cancel">${t("取消")}</button>
+          ${it ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="item-delete">${t("删除物品")}</button>` : ""}
         </div>
       </form>
       ${it && stampText(it) ? `<p class="record-meta">${esc(stampText(it))}${Store.mode === "cloud" && memberName(it.updated_by) ? `（${esc(memberName(it.updated_by))}）` : ""}</p>` : ""}
@@ -118,8 +119,8 @@ export async function saveItemForm(f) {
   const fe = f.elements, err = $("#itemFormError");
   const name = fe.name.value.trim();
   const quantity = num(fe.quantity.value, NaN);
-  if (!name) { err.textContent = "请填写物品名称。"; return fe.name.focus(); }
-  if (!Number.isFinite(quantity) || quantity < 0) { err.textContent = "数量需要是 0 或正数。"; return fe.quantity.focus(); }
+  if (!name) { err.textContent = t("请填写物品名称。"); return fe.name.focus(); }
+  if (!Number.isFinite(quantity) || quantity < 0) { err.textContent = t("数量需要是 0 或正数。"); return fe.quantity.focus(); }
   // 单位没改且属于换算显示：换算回存储单位；数值没动过则保留原始值，避免来回换算产生误差
   const typedUnit = fe.unit.value.trim() || "个";
   const origUnit = fe.orig_unit.value, back = typedUnit === fe.disp_unit.value && typedUnit !== origUnit;
@@ -147,7 +148,7 @@ export async function saveItemForm(f) {
   btn.disabled = true;
   try {
     await Store.saveItem(it);
-    toast(it.id ? "已保存修改" : `已添加 ${name}`);
+    toast(it.id ? t("已保存修改") : t("已添加 {name}", { name }));
     leaveItem(true);
-  } catch (e) { err.textContent = `保存失败：${e.message}`; btn.disabled = false; }
+  } catch (e) { err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; }
 }
