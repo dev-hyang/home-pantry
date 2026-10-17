@@ -22,6 +22,7 @@ home-pantry/
 │   ├── stats/                 花费、商店、消耗趋势、年度报表
 │   └── settings/              设置
 ├── docs/design-house.md       房屋维护模块三期设计
+├── docs/design-bills.md       账单与缴费模块设计（待实现）
 └── supabase/                  建表脚本，不随仓库发布（另行提供）
     ├── schema.sql             完整重建（会清空数据）
     └── migrations/            增量升级（保留数据）
