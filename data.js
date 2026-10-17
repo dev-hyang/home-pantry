@@ -134,9 +134,9 @@ window.MEAL_SLOTS = [
   { id: "dinner",    name: "晚餐", meal: "main",      count: 2 },
 ];
 
-// ── 姐妹站点：顶栏标题旁的切换器和设置页“姐妹站点”都从这里读；id 要和 GitHub Pages 的路径一致 ──
+// ── 姐妹站点：顶栏站名旁的「‹ 上一个」「下一个 ›」胶囊和设置页列表都从这里读；顺序是三站共用的循环顺序，id 与 GitHub Pages 路径一致 ──
 window.SISTER_APPS = [
-  { id: "home-pantry", name: "家庭妈妈小助手", sub: "储藏 · 房屋 · 账单", icon: "🥫", url: "https://dev-hyang.github.io/home-pantry/" },
-  { id: "homeschool",  name: "家庭学堂",       sub: "在家教育",            icon: "📚", url: "https://dev-hyang.github.io/homeschool/" },
-  { id: "baby-log",    name: "小月亮",         sub: "母婴记录",            icon: "🌙", url: "https://dev-hyang.github.io/baby-log/" },
+  { id: "baby-log",    name: "小月亮",         short: "小月亮", sub: "母婴记录",            icon: "🌙", url: "https://dev-hyang.github.io/baby-log/" },
+  { id: "homeschool",  name: "家庭学堂",       short: "学堂",   sub: "在家教育",            icon: "📚", url: "https://dev-hyang.github.io/homeschool/" },
+  { id: "home-pantry", name: "家庭妈妈小助手", short: "小助手", sub: "储藏 · 房屋 · 账单", icon: "🥫", url: "https://dev-hyang.github.io/home-pantry/" },
 ];

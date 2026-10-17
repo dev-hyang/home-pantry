@@ -130,34 +130,28 @@ function applyChrome() {
   renderAppSwitch();
 }
 
-/* ───────────── 姐妹站点切换（顶栏标题旁，与姐妹站点同款：⇅ 圆钮 + 下拉列表） ───────────── */
+/* ───────────── 姐妹站点切换（与家庭学堂顶栏一致：站名旁「‹ 上一个」「下一个 ›」两枚小胶囊） ───────────── */
 const APP_ID = "home-pantry";
 export const sisterApps = () => window.SISTER_APPS || [];
 function renderAppSwitch() {
-  const btn = $("#appSwitch"), menu = $("#appMenu"); if (!btn || !menu) return;
-  const list = sisterApps();
-  btn.classList.toggle("no-menu", list.length < 2);   // 只有一个站点时，站名不带箭头、不可点
-  if (list.length < 2) return;
-  btn.title = t("切换站点"); menu.setAttribute("aria-label", t("切换站点"));
-  // 每行：名称 + 副标题，当前站点打 ✓ 且不可点；其余是链接，同一标签页里切过去
-  menu.innerHTML = list.map((a) => a.id === APP_ID
-    ? `<a role="menuitem" aria-current="page" tabindex="0"><b>${a.icon} ${esc(t(a.name))}</b><small>${esc(t(a.sub))}</small></a>`
-    : `<a role="menuitem" href="${esc(a.url)}"><b>${a.icon} ${esc(t(a.name))}</b><small>${esc(t(a.sub))}</small></a>`).join("");
+  const box = $("#apps"); if (!box) return;
+  const list = sisterApps(), i = list.findIndex((a) => a.id === APP_ID);
+  if (list.length < 2 || i < 0) { box.innerHTML = ""; return; }
+  const prev = list[(i - 1 + list.length) % list.length], next = list[(i + 1) % list.length];   // 三站循环，和另外两站的顺序一致
+  const pill = (a, label) => `<a class="badge app" href="${esc(a.url)}" title="${esc(t("切到{name}", { name: t(a.name) }))}" aria-label="${esc(t("切到{name}", { name: t(a.name) }))}">${label}</a>`;
+  box.setAttribute("aria-label", t("切换姐妹站点"));
+  box.innerHTML = pill(prev, `‹ ${esc(t(prev.short))}`) + pill(next, `${esc(t(next.short))} ›`);
 }
-/** 点 ⇅ 开关菜单；Esc 或点外面关闭；↑ ↓ 在站点间移动焦点 */
-function initAppSwitch() {
-  const btn = $("#appSwitch"), menu = $("#appMenu"); if (!btn || !menu) return;
-  const setOpen = (open) => { menu.hidden = !open; btn.setAttribute("aria-expanded", String(open)); if (open) menu.querySelector("[aria-current]")?.focus(); };
-  btn.addEventListener("click", () => setOpen(menu.hidden));
+/** 二级菜单“…”列表：点外面或 Esc 关闭，↑ ↓ 移动焦点 */
+function initMenus() {
   document.addEventListener("click", (e) => {
-    if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)) setOpen(false);
-    const sm = $("#subnavMenu");   // 二级菜单的“…”列表：点外面关闭
+    const sm = $("#subnavMenu");
     if (sm && !sm.hidden && !sm.contains(e.target) && !e.target.closest(".subnav-more")) toggleSubnavMenu(false);
   });
   document.addEventListener("keydown", (e) => {
-    const open = [menu, $("#subnavMenu")].find((m) => m && !m.hidden); if (!open) return;
+    const open = $("#subnavMenu"); if (!open || open.hidden) return;
     const items = [...open.querySelectorAll("a")], i = items.indexOf(document.activeElement);
-    if (e.key === "Escape") { if (open === menu) { setOpen(false); btn.focus(); } else { toggleSubnavMenu(false); $("#subnav .subnav-more")?.focus(); } }
+    if (e.key === "Escape") { toggleSubnavMenu(false); $("#subnav .subnav-more")?.focus(); }
     else if (e.key === "ArrowDown") { e.preventDefault(); items[(i + 1) % items.length]?.focus(); }
     else if (e.key === "ArrowUp") { e.preventDefault(); items[(i - 1 + items.length) % items.length]?.focus(); }
   });
@@ -771,7 +765,7 @@ export async function boot() {
   window.__hmhBooted = true;   // 告诉 index.html 的启动自检：主脚本已经运行
   if (lang === "zh-Hant") await loadOpenCC();   // 繁體：先把转换库拉下来再渲染，避免先简后繁闪一下
   applyChrome();
-  initAppSwitch();
+  initMenus();
   fillUnitList();
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.enriched) refreshSoon(); });
 
