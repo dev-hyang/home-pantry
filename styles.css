@@ -394,7 +394,14 @@ textarea { resize: vertical; }
 /* 房屋页顶部：添加房产芯片 + 内联房产表单（与设置页同一表单） */
 .chip-add { border-style: dashed; }
 .prop-inline .section-head p { margin: 0; }
-.status-line .link-name { background: none; border: 0; padding: 0; font: inherit; color: var(--pine); cursor: pointer; text-decoration: underline; }
+.status-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: -6px 0 14px; font-size: 13px; }
+.status-line .prop-name { font-size: 15px; margin-right: 2px; }
+.status-line .link-name { background: none; border: 0; padding: 0; font: inherit; color: var(--pine); cursor: pointer; text-decoration: underline; margin-left: auto; }
+/* 带标签名的芯片：标签小字 + 值 */
+.meta-tag { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 6px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); text-decoration: none; line-height: 1.5; }
+.meta-tag small { font-size: 11px; color: var(--muted); padding-right: 5px; border-right: 1px solid var(--line); }
+.meta-tag.b-ok { border-color: var(--pine); }
+.meta-tag.b-soon { border-color: var(--mustard); }
 /* HOA / 物业面板 */
 .kv-table th { width: 32%; white-space: nowrap; }
 .kv-table td a { color: var(--pine); text-decoration: none; }

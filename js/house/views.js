@@ -17,9 +17,17 @@ function statusLine() {
   const p = currentProp(); if (!p) return "";
   const d = openDeal(p.id);
   const B = window.BILLS;
-  const meta = [t(B.PROPERTY_KINDS[p.kind] || ""), t(B.PROPERTY_ROLES[p.role] || "")].filter(Boolean).join(" · ");
-  return `<p class="muted status-line" style="margin:-6px 0 14px">${esc(p.name)} · ${statusText(p)}${meta ? ` · ${esc(meta)}` : ""}${d ? ` · <a href="${href("house", "deal")}">${t("交易进行中，查看清单")}</a>` : ""}
-    ${state.editProperty === p.id ? "" : ` · <button type="button" class="link-name" data-action="property-edit" data-id="${p.id}">${t("编辑房产")}</button>`}</p>`;
+  // 名称 + 一组带标签名的芯片（状态 / 类型 / 用途），避免“值 · 值 · 值”分不清哪个是哪个
+  const STATUS_CLS = { looking: "", buying: "b-soon", owned: "b-ok", renting: "b-ok", selling: "b-soon", sold: "", moved_out: "" };
+  const tag = (label, value, cls = "") => (value ? `<span class="meta-tag ${cls}"><small>${label}</small>${esc(value)}</span>` : "");
+  return `<div class="status-line">
+    <b class="prop-name">${esc(p.name)}</b>
+    ${tag(t("状态"), statusText(p), STATUS_CLS[p.status] || "")}
+    ${tag(t("类型"), t(B.PROPERTY_KINDS[p.kind] || ""))}
+    ${tag(t("用途"), t(B.PROPERTY_ROLES[p.role] || ""))}
+    ${d ? `<a class="meta-tag b-soon" href="${href("house", "deal")}"><small>${t("交易")}</small>${t("进行中，查看清单")}</a>` : ""}
+    ${state.editProperty === p.id ? "" : `<button type="button" class="link-name" data-action="property-edit" data-id="${p.id}">${t("编辑房产")}</button>`}
+  </div>`;
 }
 
 /* ── HOA / 物业 ── */
