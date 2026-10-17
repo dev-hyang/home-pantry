@@ -61,7 +61,7 @@ function propertiesPanel() {
 function sisterAppsPanel() {
   const list = window.SISTER_APPS || []; if (list.length < 2) return "";
   return `<div class="panel">
-    <div class="kv"><div><b>${t("姐妹站点")}</b><div class="muted">${t("同一作者的其他小工具；也可以点顶栏标题旁的 ⇅ 切换")}</div></div></div>
+    <div class="kv"><div><b>${t("姐妹站点")}</b><div class="muted">${t("同一作者的其他小工具；也可以点顶栏的站名切换")}</div></div></div>
     <ul class="app-list">${list.map((a) => `<li class="${a.id === "home-pantry" ? "current" : ""}">
       <span class="app-ico" aria-hidden="true">${a.icon}</span>
       <div class="grow"><b>${esc(t(a.name))}</b><small>${esc(t(a.sub))}</small></div>

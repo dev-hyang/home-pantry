@@ -81,12 +81,41 @@ const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub ==
 const SUB_PARENT = { template: "supplies", "asset-template": "assets" };
 const SUB_HIDDEN = (section, k) => section === "pantry" && k === "gear" && !state.gearEnabled;
 
+/**
+ * 二级菜单：一个带边框的胶囊框包住可横向滑动的标签；放不下时右侧渐隐并出现“…”按钮，点开列出全部页面。
+ * 渲染后由 initSubnav() 量宽度、把当前项滚进视野。
+ */
 function subnav(r) {
   const subs = SECTIONS[r.section]?.subs;
   if (!subs) return "";
   const parent = r.section === "bills" ? { template: "list" } : SUB_PARENT;
-  return `<nav class="subtabs" aria-label="${t(SECTIONS[r.section].name)}">${subs.filter(([k, , hidden]) => !hidden && !SUB_HIDDEN(r.section, k)).map(([k, label]) =>
-    `<a href="${href(r.section, k)}" ${r.sub === k || parent[r.sub] === k ? 'aria-current="page"' : ""}>${t(label)}</a>`).join("")}</nav>`;
+  const items = subs.filter(([k, , hidden]) => !hidden && !SUB_HIDDEN(r.section, k)).map(([k, label]) => ({ k, label: t(label), cur: r.sub === k || parent[r.sub] === k }));
+  return `<div class="subnav" id="subnav">
+    <nav class="subtabs" id="subtabs" aria-label="${t(SECTIONS[r.section].name)}">${items.map((x) => `<a href="${href(r.section, x.k)}" ${x.cur ? 'aria-current="page"' : ""}>${x.label}</a>`).join("")}</nav>
+    <button type="button" class="subnav-more" data-action="subnav-more" aria-haspopup="menu" aria-expanded="false" aria-controls="subnavMenu" aria-label="${t("更多页面")}" title="${t("更多页面")}" hidden>…</button>
+    <div class="subnav-menu" id="subnavMenu" role="menu" aria-label="${t("更多页面")}" hidden>${items.map((x) => `<a role="menuitem" href="${href(r.section, x.k)}" ${x.cur ? 'aria-current="page"' : ""}>${x.label}</a>`).join("")}</div>
+  </div>`;
+}
+/** 二级菜单渲染后：当前项滚进视野；量一下放不放得下，决定“…”按钮和两侧渐隐 */
+function initSubnav() {
+  const box = $("#subnav"), track = $("#subtabs"); if (!box || !track) return;
+  track.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "center" });
+  const update = () => {
+    const over = track.scrollWidth > track.clientWidth + 2;
+    $("#subnav .subnav-more").hidden = !over;
+    box.classList.toggle("has-more", over);
+    box.classList.toggle("fade-l", over && track.scrollLeft > 4);
+    box.classList.toggle("fade-r", over && track.scrollLeft + track.clientWidth < track.scrollWidth - 4);
+  };
+  update();
+  track.addEventListener("scroll", update, { passive: true });
+  if (!window.__subnavResize) { window.__subnavResize = true; window.addEventListener("resize", () => { const t2 = $("#subtabs"); if (t2) t2.dispatchEvent(new Event("scroll")); }); }
+}
+function toggleSubnavMenu(open) {
+  const btn = $("#subnav .subnav-more"), menu = $("#subnavMenu"); if (!btn || !menu) return;
+  const want = open ?? menu.hidden;
+  menu.hidden = !want; btn.setAttribute("aria-expanded", String(want));
+  if (want) menu.querySelector('[aria-current="page"]')?.focus();
 }
 const offPanel = (title, action, btn) => `<div class="panel empty"><strong>${title}</strong>${t("在“我的 → 设置”里可以重新打开。")}<p><button type="button" class="btn btn-primary" data-action="${action}">${btn}</button></p></div>`;
 
@@ -96,7 +125,7 @@ function applyChrome() {
     const textNode = [...a.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
     if (textNode) textNode.textContent = t(SECTIONS[a.dataset.section]?.name || textNode.textContent.trim());
   });
-  const h1 = $(".brand h1"); if (h1) h1.textContent = t(APP_NAME);
+  const title = $("#appTitle"); if (title) title.textContent = t(APP_NAME);
   $("#tabs").setAttribute("aria-label", t("主导航"));
   renderAppSwitch();
 }
@@ -106,9 +135,10 @@ const APP_ID = "home-pantry";
 export const sisterApps = () => window.SISTER_APPS || [];
 function renderAppSwitch() {
   const btn = $("#appSwitch"), menu = $("#appMenu"); if (!btn || !menu) return;
-  const list = sisterApps(); if (list.length < 2) return;
-  btn.hidden = false;
-  btn.title = t("切换站点"); btn.setAttribute("aria-label", t("切换站点")); menu.setAttribute("aria-label", t("切换站点"));
+  const list = sisterApps();
+  btn.classList.toggle("no-menu", list.length < 2);   // 只有一个站点时，站名不带箭头、不可点
+  if (list.length < 2) return;
+  btn.title = t("切换站点"); menu.setAttribute("aria-label", t("切换站点"));
   // 每行：名称 + 副标题，当前站点打 ✓ 且不可点；其余是链接，同一标签页里切过去
   menu.innerHTML = list.map((a) => a.id === APP_ID
     ? `<a role="menuitem" aria-current="page" tabindex="0"><b>${a.icon} ${esc(t(a.name))}</b><small>${esc(t(a.sub))}</small></a>`
@@ -119,11 +149,15 @@ function initAppSwitch() {
   const btn = $("#appSwitch"), menu = $("#appMenu"); if (!btn || !menu) return;
   const setOpen = (open) => { menu.hidden = !open; btn.setAttribute("aria-expanded", String(open)); if (open) menu.querySelector("[aria-current]")?.focus(); };
   btn.addEventListener("click", () => setOpen(menu.hidden));
-  document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)) setOpen(false); });
+  document.addEventListener("click", (e) => {
+    if (!menu.hidden && !menu.contains(e.target) && !btn.contains(e.target)) setOpen(false);
+    const sm = $("#subnavMenu");   // 二级菜单的“…”列表：点外面关闭
+    if (sm && !sm.hidden && !sm.contains(e.target) && !e.target.closest(".subnav-more")) toggleSubnavMenu(false);
+  });
   document.addEventListener("keydown", (e) => {
-    if (menu.hidden) return;
-    const items = [...menu.querySelectorAll("a")], i = items.indexOf(document.activeElement);
-    if (e.key === "Escape") { setOpen(false); btn.focus(); }
+    const open = [menu, $("#subnavMenu")].find((m) => m && !m.hidden); if (!open) return;
+    const items = [...open.querySelectorAll("a")], i = items.indexOf(document.activeElement);
+    if (e.key === "Escape") { if (open === menu) { setOpen(false); btn.focus(); } else { toggleSubnavMenu(false); $("#subnav .subnav-more")?.focus(); } }
     else if (e.key === "ArrowDown") { e.preventDefault(); items[(i + 1) % items.length]?.focus(); }
     else if (e.key === "ArrowUp") { e.preventDefault(); items[(i - 1 + items.length) % items.length]?.focus(); }
   });
@@ -154,10 +188,11 @@ export function render(force = true) {
   if (r.section === "bill") { $("#main").innerHTML = viewBillForm(); return; }
   if (r.section === "house" && !state.houseEnabled) { $("#main").innerHTML = offPanel(t("房屋维护模块已关闭"), "house-enable", t("打开房屋维护")); return; }
   if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("账单模块已关闭"), "bills-enable", t("打开账单")); return; }
-  if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = subnav(r) + offPanel(t("装备模块已关闭"), "gear-enable", t("打开装备")); return; }
+  if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = subnav(r) + offPanel(t("装备模块已关闭"), "gear-enable", t("打开装备")); initSubnav(); return; }
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
   $("#main").innerHTML = subnav(r) + view();
+  initSubnav();
   if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies")) renderInvList();
 }
 
@@ -454,6 +489,7 @@ main.addEventListener("click", async (e) => {
       case "house-enable":
         state.houseEnabled = true; try { localStorage.setItem("hmh-house-off", "0"); } catch { /* 忽略 */ }
         return render();
+      case "subnav-more": return toggleSubnavMenu();
       case "gear-enable":
         state.gearEnabled = true; try { localStorage.setItem("hmh-gear-off", "0"); } catch { /* 忽略 */ }
         return render();

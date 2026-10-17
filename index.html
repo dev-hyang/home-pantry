@@ -21,9 +21,8 @@
         </svg>
         <div>
           <div class="brand-row">
-            <h1>家庭妈妈小助手</h1>
-            <!-- 姐妹站点切换（与姐妹站点同款）：标题旁一个 ⇅ 圆钮，点开列出所有站点，当前项打 ✓ -->
-            <button type="button" class="appsw" id="appSwitch" aria-haspopup="menu" aria-expanded="false" aria-controls="appMenu" aria-label="切换站点" title="切换站点" hidden><span aria-hidden="true">⇅</span></button>
+            <!-- 站名本身就是切换按钮（与家庭学堂顶栏一致）：带小箭头，点开列出姐妹站点，当前项打 ✓ -->
+            <h1><button type="button" class="bname" id="appSwitch" aria-haspopup="menu" aria-expanded="false" aria-controls="appMenu" title="切换站点"><span id="appTitle">家庭妈妈小助手</span><span class="chev" aria-hidden="true"></span></button></h1>
             <div class="app-menu" id="appMenu" role="menu" aria-label="切换站点" hidden></div>
           </div>
           <p id="hhName" class="hh-name"></p>

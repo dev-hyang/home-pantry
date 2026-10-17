@@ -526,8 +526,8 @@ export const EN = {
 
   // ── 姐妹站点 ──
   "家庭学堂": "Homeschool", "小月亮": "Little Moon", "储藏 · 房屋 · 账单": "Pantry · Home · Bills", "在家教育": "Homeschooling", "母婴记录": "Mom and baby log",
-  "姐妹站点": "Sister sites", "同一作者的其他小工具；也可以点顶栏标题旁的 ⇅ 切换": "Other tools by the same author; the ⇅ button next to the title switches between them too",
-  "切换站点": "Switch site", "当前": "current", "打开": "Open", "编辑房产：{name}": "Edit property: {name}", "和设置页里的房产是同一份；归档、设默认、彻底删除在设置页": "Same list as Settings; archive, set default and permanent delete live there",
+  "姐妹站点": "Sister sites", "同一作者的其他小工具；也可以点顶栏的站名切换": "Other tools by the same author; tap the site name in the top bar to switch too",
+  "切换站点": "Switch site", "当前": "current", "打开": "Open", "更多页面": "More pages", "编辑房产：{name}": "Edit property: {name}", "和设置页里的房产是同一份；归档、设默认、彻底删除在设置页": "Same list as Settings; archive, set default and permanent delete live there",
   "物业": "Management", "物业 / 房东": "Management / landlord", "物业 / 社区": "Management / community", "HOA / 物业": "HOA / management", "每月": "Monthly", "每季": "Quarterly", "每年": "Yearly",
   "有 {label}（按房型默认，可改）": "Has {label} (default by home type; change if needed)", "例如：Lakeview Condominium Association": "e.g. Lakeview Condominium Association", "管理公司 / 联系人": "Management company / contact",
   "电话": "Phone", "邮箱": "Email", "业主门户 / 缴费网址": "Owner portal / payment URL", "业主门户": "Owner portal", "费用": "Dues", "频率": "Frequency", "按期缴费提醒请在账单里建“HOA / 物业费”": "For payment reminders add an “HOA / management fee” bill",
