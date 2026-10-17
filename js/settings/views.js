@@ -1,7 +1,26 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, esc } from "../core/util.js";
+import { $, esc, fmtShort } from "../core/util.js";
 import { LANGS, detectLang, langOverride, t } from "../core/i18n.js";
+
+/** 当前用户是否家主（household_members.role = owner） */
+export const isOwner = () => state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
+
+/** 家庭成员列表：家主能设 / 取消家主、移出成员；不能对自己操作（退出走“退出登录”），最后一位家主不能被取消或移出（数据库同样校验） */
+function membersList() {
+  const me = state.user?.id, owner = isOwner();
+  const owners = state.members.filter((m) => m.role === "owner").length;
+  return `<ul class="member-list">${state.members.map((m) => {
+    const self = m.user_id === me, isO = m.role === "owner";
+    const acts = owner && !self ? `<span class="head-acts">
+        ${isO ? (owners > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="member-role" data-id="${m.user_id}" data-role="member">${t("取消家主")}</button>` : "")
+              : `<button type="button" class="btn btn-sm btn-ghost" data-action="member-role" data-id="${m.user_id}" data-role="owner">${t("设为家主")}</button>`}
+        ${!isO || owners > 1 ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-remove" data-id="${m.user_id}">${t("移出家庭")}</button>` : ""}
+      </span>` : "";
+    return `<li><div class="grow"><b>${esc(m.display_name)}</b>${isO ? ` <span class="badge b-ok">${t("家主")}</span>` : ""}${self ? ` <span class="muted">${t("（我）")}</span>` : ""}
+      ${m.joined_at ? `<small class="muted">${t("{d} 加入", { d: fmtShort(m.joined_at) })}</small>` : ""}</div>${acts}</li>`;
+  }).join("")}</ul>`;
+}
 
 /* ── 设置 ── */
 export function viewSettings() {
@@ -18,11 +37,12 @@ export function viewSettings() {
     <div class="panel">
       <div class="kv"><div><div class="muted">${t("邀请家人：把这个邀请码发给他们")}</div><div class="code">${esc(state.household.invite_code)}</div></div>
         <div class="head-acts"><button type="button" class="btn btn-sm" data-action="copy-invite">${t("复制邀请码")}</button>
-          ${state.household.created_by === state.user?.id ? `<button type="button" class="btn btn-sm btn-ghost" data-action="rotate-invite">${t("重置邀请码")}</button>` : ""}</div></div>
-      <p class="muted" style="font-size:12px;margin:8px 0 0">${t("家人可以用邀请码直接进入（不用收邮件）。邀请码就是这个家的钥匙，泄露了请创建者点“重置邀请码”，旧码立即失效，已加入的家人不受影响。")}</p>
+          ${isOwner() ? `<button type="button" class="btn btn-sm btn-ghost" data-action="rotate-invite">${t("重置邀请码")}</button>` : ""}</div></div>
+      <p class="muted" style="font-size:12px;margin:8px 0 0">${t("家人可以用邀请码直接进入（不用收邮件）。邀请码就是这个家的钥匙，泄露了请家主点“重置邀请码”，旧码立即失效，已加入的家人不受影响。")}</p>
       ${state.user?.is_anonymous ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("你是通过邀请码直接进入的，身份保存在本设备浏览器里；清除浏览器数据或换手机后需要重新用邀请码进入。")}</p>` : ""}
       <h3 style="font-size:15px;margin:16px 0 6px">${t("家庭成员")}</h3>
-      <ul class="tips">${state.members.map((m) => `<li>${esc(m.display_name)}${m.role === "owner" ? t("（创建者）") : ""}${m.user_id === state.user.id ? t("（我）") : ""}</li>`).join("")}</ul>
+      ${membersList()}
+      ${isOwner() ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("家主可以把家人设为家主（可以有多位）、取消家主，或把误加入的人移出家庭。最后一位家主不能被取消或移出。")}</p>` : ""}
       <form id="nameForm" class="add-row" style="grid-template-columns:1fr auto;margin-top:12px">
         <input name="display_name" maxlength="20" value="${esc(state.displayName)}" aria-label="${t("我在家里的称呼")}">
         <button class="btn btn-sm" type="submit">${t("保存称呼")}</button></form>

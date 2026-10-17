@@ -328,6 +328,22 @@ main.addEventListener("click", async (e) => {
       case "login-mode": state.loginMode = el.dataset.mode; state.phonePending = null; return renderLogin();
       case "otp-back": state.phonePending = null; return renderLogin();
       case "lang": return changeLang(el.dataset.lang || null);
+      case "member-role": {
+        const m = state.members.find((x) => x.user_id === id), role = el.dataset.role;
+        if (!m) return;
+        if (!armed(el, role === "owner" ? t("再点一次设为家主") : t("再点一次取消家主"))) return;
+        await CloudStore.setMemberRole(id, role);
+        state.members = await CloudStore.listMembers();
+        toast(role === "owner" ? t("{name} 已设为家主", { name: m.display_name }) : t("{name} 已取消家主", { name: m.display_name })); return render();
+      }
+      case "member-remove": {
+        const m = state.members.find((x) => x.user_id === id);
+        if (!m) return;
+        if (!armed(el, t("再点一次确认移出"))) return;
+        await CloudStore.removeMember(id);
+        state.members = await CloudStore.listMembers();
+        toast(t("{name} 已移出家庭", { name: m.display_name })); return render();
+      }
       case "rotate-invite": {
         if (!armed(el, t("再点一次确认重置"))) return;
         const { data, error } = await CloudStore.sb.rpc("rotate_invite_code", { p_household: state.household.id });

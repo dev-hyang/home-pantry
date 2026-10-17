@@ -290,8 +290,11 @@ export const CloudStore = {
   async deleteShopping(id) { this.must(await this.sb.from("shopping_list").delete().eq("id", id)); },
   async clearBought() { this.must(await this.sb.from("shopping_list").delete().eq("household_id", this.hid).eq("status", "bought")); },
   async listMembers() {
-    return this.must(await this.sb.from("household_members").select("user_id,display_name,role").eq("household_id", this.hid));
+    return this.must(await this.sb.from("household_members").select("user_id,display_name,role,joined_at").eq("household_id", this.hid).order("joined_at"));
   },
+  /* 家主管理（security definer RPC，见 migrations/004） */
+  async setMemberRole(userId, role) { this.must(await this.sb.rpc("set_member_role", { p_household: this.hid, p_user: userId, p_role: role })); },
+  async removeMember(userId) { this.must(await this.sb.rpc("remove_member", { p_household: this.hid, p_user: userId })); },
   subscribe(onChange) {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
