@@ -522,7 +522,7 @@ export const EN = {
   "已完成 {a} / {b}": "Done {a} / {b}", "{kind}清单": "{kind} checklist", "交易页": "Transaction", "还有 {n} 项，": "{n} more, ", "去交易页查看": "see them on the transaction page",
 
   // ── 房屋页添加 / 编辑房产；HOA / 物业 ──
-  "编辑房产": "Edit property", "进行中，查看清单": "in progress, open checklist", "编辑房产：{name}": "Edit property: {name}", "和设置页里的房产是同一份；归档、设默认、彻底删除在设置页": "Same list as Settings; archive, set default and permanent delete live there",
+  "编辑房产": "Edit property", "进行中，查看清单": "in progress, open checklist", "材料": "Materials", "设施": "Systems", "编辑房产：{name}": "Edit property: {name}", "和设置页里的房产是同一份；归档、设默认、彻底删除在设置页": "Same list as Settings; archive, set default and permanent delete live there",
   "物业": "Management", "物业 / 房东": "Management / landlord", "物业 / 社区": "Management / community", "HOA / 物业": "HOA / management", "每月": "Monthly", "每季": "Quarterly", "每年": "Yearly",
   "有 {label}（按房型默认，可改）": "Has {label} (default by home type; change if needed)", "例如：Lakeview Condominium Association": "e.g. Lakeview Condominium Association", "管理公司 / 联系人": "Management company / contact",
   "电话": "Phone", "邮箱": "Email", "业主门户 / 缴费网址": "Owner portal / payment URL", "业主门户": "Owner portal", "费用": "Dues", "频率": "Frequency", "按期缴费提醒请在账单里建“HOA / 物业费”": "For payment reminders add an “HOA / management fee” bill",

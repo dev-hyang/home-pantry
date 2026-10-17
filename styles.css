@@ -377,15 +377,25 @@ textarea { resize: vertical; }
 .house-intro { max-width: 640px; }
 .house-intro h2 { font-size: 24px; margin-bottom: 8px; }
 .house-intro .btn { margin: 4px 8px 4px 0; }
-.house-card { display: flex; gap: 16px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 18px; flex-wrap: wrap; }
-.house-ico { font-size: 44px; line-height: 1; }
-.house-card h2 { font-size: 20px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+/* 房屋卡片：头部（图标 + 房型 + 修改）+ 事实表格（标签 / 值），保险、HOA 各占整行 */
+.house-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 18px; }
+.house-head { display: flex; gap: 12px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.house-head .grow { flex: 1 1 auto; min-width: 0; }
+.house-ico { font-size: 32px; line-height: 1; width: 44px; height: 44px; display: grid; place-items: center; background: var(--surface-2); border-radius: 12px; flex: 0 0 auto; }
+.house-card h2 { font-size: 18px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin: 0; }
 .house-card h2 .muted { font-size: 13px; font-weight: 500; }
-.house-card p { margin: 2px 0 8px; }
-.house-card .ins-line { margin: 8px 0 0; font-size: 13px; }
-.house-card .ins-line .badge { margin: 0 4px; vertical-align: 1px; }
-.house-card .ins-agent { margin-top: 2px; }
-.house-card .ins-agent a { color: var(--pine); text-decoration: none; }
+.house-head p { margin: 2px 0 0; font-size: 13px; }
+.fact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; margin: 0; }
+.fact { display: grid; grid-template-columns: 7.6em 1fr; gap: 10px; align-items: start; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+.fact.wide { grid-column: 1 / -1; }
+.fact-grid .fact:nth-last-child(1) { border-bottom: 0; }
+.fact dt { color: var(--muted); font-weight: 600; padding-top: 1px; line-height: 1.5; }
+.fact dd { margin: 0; line-height: 1.6; }
+.fact dd small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.fact dd a { color: var(--pine); }
+.fact dd .badge { vertical-align: 1px; }
+.fact .tagline { display: inline-flex; }
+@media (max-width: 640px) { .fact-grid { grid-template-columns: 1fr; gap: 0; } .fact { grid-template-columns: 6.6em 1fr; } }
 .form-page .sub-legend { margin: 14px 0 6px; font-size: 14px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .form-page .sub-legend small { color: var(--muted); font-weight: 400; }
 .form-page .check-inline { display: flex; align-items: center; gap: 8px; font-weight: 500; }

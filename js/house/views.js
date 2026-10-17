@@ -45,16 +45,17 @@ export function assessmentStatus(hoa) {
   return { kind: "due", days: hoa.sa_due ? daysUntil(hoa.sa_due) : null };
 }
 
-/** 房屋卡片里的一行：🏘️ HOA <名称> · 管理公司 · 每月 $350 · 特殊评估 $2,000 待缴 */
-function hoaLine(p) {
+/** 房屋卡片里的 HOA 事实行：{ k: 标签, v: 值 }；没有 HOA 返回 null */
+function hoaFact(p) {
   const hoa = hoaOf(p), a = H().assocOf(p.house_type);
-  if (!hoa.enabled) return "";
+  if (!hoa.enabled) return null;
   const bits = [];
+  if (hoa.name) bits.push(`<b>${esc(hoa.name)}</b>`);
   if (hoa.mgmt) bits.push(esc(hoa.mgmt));
   if (hoa.dues > 0) bits.push(`${t(H().DUES_PERIODS[hoa.dues_period] || "每月")} ${money(hoa.dues)}`);
   const sa = assessmentStatus(hoa);
   if (sa.kind === "due") bits.push(`<span class="badge ${sa.days != null && sa.days <= 14 ? "b-out" : "b-soon"}">${t("特殊评估")} ${money(hoa.sa_amount)} ${t("待缴")}</span>`);
-  return `<p class="muted ins-line">🏘️ ${esc(t(a.label))}${hoa.name ? ` <b>${esc(hoa.name)}</b>` : ""}${bits.length ? ` · ${bits.join(" · ")}` : ""}</p>`;
+  return { k: `🏘️ ${esc(t(a.label))}`, v: bits.length ? bits.join(" · ") : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充")}</a>` };
 }
 
 /** 概览里的“HOA / 物业”面板：联系方式、费用、特殊评估、规则、该房型须知 */
@@ -167,21 +168,28 @@ export function insuranceStatus(p) {
 const INS_BADGE = { active: ["b-ok", "有效"], expiring: ["b-soon", "快到期"], expired: ["b-out", "已过期"], unknown: ["", "未填到期日"], none: ["", "未填保险"] };
 
 /** 概览状态栏里的保险摘要：🛡️ 房屋保险 <StateFarm> 有效（2026/1/1 – 2026/12/31）保单号 … */
-export function insuranceLine(p) {
+/** 房屋卡片里的保险事实行：{ k, v, sub }；sub 为理赔代理（可拨打 / 发邮件） */
+export function insuranceFact(p) {
   const s = insuranceStatus(p), [cls, label] = INS_BADGE[s.kind];
-  if (s.kind === "none") return `<p class="muted ins-line">🛡️ ${t("房屋保险")}：${t("未填")} <a href="${href("house", "profile")}">${t("补充")}</a></p>`;
-  const [lp, rp] = lang === "en" ? [" (", ")"] : ["（", "）"];   // lang 是 i18n 模块的实时绑定变量，不是函数
-  const period = p.insurance_from || p.insurance_to ? `${lp}${p.insurance_from ? fmtDate(p.insurance_from) : "…"} – ${p.insurance_to ? fmtDate(p.insurance_to) : "…"}${rp}` : "";
-  return `<p class="muted ins-line">🛡️ ${t("房屋保险")}${p.insurance_provider ? ` <b>${esc(p.insurance_provider)}</b>` : ""} <span class="badge ${cls}">${t(label)}${s.kind === "expiring" ? ` · ${t("{d} 天", { d: s.days })}` : ""}</span>${esc(period)}${p.insurance_policy ? ` ${t("保单号")} ${esc(p.insurance_policy)}` : ""}${p.insurance_coverage ? ` · ${esc(p.insurance_coverage)}` : ""}</p>${agentLine(p)}`;
+  const k = `🛡️ ${t("房屋保险")}`;
+  if (s.kind === "none") return { k, v: `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充")}</a>` };
+  const period = p.insurance_from || p.insurance_to ? `${p.insurance_from ? fmtDate(p.insurance_from) : "…"} – ${p.insurance_to ? fmtDate(p.insurance_to) : "…"}` : "";
+  const bits = [];
+  if (p.insurance_provider) bits.push(`<b>${esc(p.insurance_provider)}</b>`);
+  bits.push(`<span class="badge ${cls}">${t(label)}${s.kind === "expiring" ? ` · ${t("{d} 天", { d: s.days })}` : ""}</span>`);
+  if (period) bits.push(esc(period));
+  if (p.insurance_policy) bits.push(`${t("保单号")} ${esc(p.insurance_policy)}`);
+  if (p.insurance_coverage) bits.push(esc(p.insurance_coverage));
+  return { k, v: bits.join(" · "), sub: agentValue(p) };
 }
 
-/** 理赔代理一行：姓名 · 电话（可拨）· 邮箱（可发），都没填就不显示 */
-function agentLine(p) {
+/** 理赔代理：姓名 · 电话（可拨）· 邮箱（可发），都没填返回空串 */
+function agentValue(p) {
   const parts = [];
   if (p.insurance_agent) parts.push(`<b>${esc(p.insurance_agent)}</b>`);
   if (p.insurance_phone) parts.push(`<a href="tel:${esc(p.insurance_phone.replace(/[^\d+]/g, ""))}">📞 ${esc(p.insurance_phone)}</a>`);
   if (p.insurance_email) parts.push(`<a href="mailto:${esc(p.insurance_email)}">✉️ ${esc(p.insurance_email)}</a>`);
-  return parts.length ? `<p class="muted ins-line ins-agent">${t("理赔代理")}${lang === "en" ? ": " : "："}${parts.join(" · ")}</p>` : "";
+  return parts.length ? `${t("理赔代理")}${lang === "en" ? ": " : "："}${parts.join(" · ")}` : "";
 }
 
 /** 提醒总线：各活跃房产的房屋保险 30 天内到期（尽快）或已过期（今天级） */
@@ -204,6 +212,19 @@ export function applyTypeDefaults(d) {
   d.house_type = ht.id;
   d.features = [...ht.features];
   d.hoa = { ...(d.hoa || {}), enabled: H().assocOf(ht.id).on };   // 有没有 HOA / 物业也按房型重设默认
+}
+
+/** 房屋卡片的事实列表：地址、材料、设施各占半行，保险和 HOA 各占整行 */
+function houseFacts(p, { ext, roof, floors, featNames }) {
+  const facts = [];
+  const addr = currentProp()?.address;
+  facts.push({ k: `📍 ${t("地址")}`, v: addr ? esc(addr) : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充")}</a>` });
+  const mats = [...ext, ...roof, ...floors];
+  facts.push({ k: `🧱 ${t("材料")}`, v: mats.length ? `<span class="tagline">${mats.map((m) => `<span class="tag">${esc(t(m.name))}</span>`).join("")}</span>` : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充材料")}</a>` });
+  if (featNames.length) facts.push({ k: `🔧 ${t("设施")}`, v: `<span class="tagline">${featNames.map((n) => `<span class="tag tag-soft">${esc(n)}</span>`).join("")}</span>`, wide: true });
+  facts.push({ ...insuranceFact(p), wide: true });
+  const hoa = hoaFact(p); if (hoa) facts.push({ ...hoa, wide: true });
+  return facts;
 }
 
 /* ── 房屋概览 ── */
@@ -241,16 +262,15 @@ export function viewHouse() {
     ${houseBar()}${statusLine()}
     <section class="section">
       <div class="house-card">
-        <span class="house-ico" aria-hidden="true">${ht?.icon || "🏠"}</span>
-        <div class="grow">
-          <h2>${esc(ht ? t(ht.name) : t("我的房子"))}${lang === "en" ? "" : `<span class="muted">${esc(ht?.en || "")}</span>`}</h2>
-          <p class="muted">${esc(t(H().REGIONS[p.region]?.name || ""))}${p.year_built ? t("，{y} 年建成（约 {age} 年房龄）", { y: p.year_built, age }) : ""}${currentProp()?.address ? ` · 📍${esc(currentProp().address)}` : ""}</p>
-          <div class="tagline">${[...ext, ...roof, ...floors].map((m) => `<span class="tag">${esc(t(m.name))}</span>`).join("")}
-            ${featNames.map((n) => `<span class="tag tag-soft">${esc(n)}</span>`).join("")}</div>
-          ${insuranceLine(p)}
-          ${hoaLine(p)}
+        <div class="house-head">
+          <span class="house-ico" aria-hidden="true">${ht?.icon || "🏠"}</span>
+          <div class="grow">
+            <h2>${esc(ht ? t(ht.name) : t("我的房子"))}${lang === "en" ? "" : `<span class="muted">${esc(ht?.en || "")}</span>`}</h2>
+            <p class="muted">${esc(t(H().REGIONS[p.region]?.name || ""))}${p.year_built ? t("，{y} 年建成（约 {age} 年房龄）", { y: p.year_built, age }) : ""}</p>
+          </div>
+          <a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改资料")}</a>
         </div>
-        <a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改资料")}</a>
+        <dl class="fact-grid">${houseFacts(p, { ext, roof, floors, featNames }).map((f) => `<div class="fact ${f.wide ? "wide" : ""}"><dt>${f.k}</dt><dd>${f.v}${f.sub ? `<small>${f.sub}</small>` : ""}</dd></div>`).join("")}</dl>
       </div>
     </section>
 
