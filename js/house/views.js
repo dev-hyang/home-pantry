@@ -5,7 +5,7 @@ import { href } from "../core/router.js";
 import { esc, inSpace } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { restockPanel, shelfGrid } from "../pantry/views.js";
-import { alertText, assetAlerts } from "./assets.js";
+import { alertText, assetAlerts, myAssets } from "./assets.js";
 import { monthName, monthTasks, taskRow } from "./tasks.js";
 import { propertyBar } from "../bills/views.js";
 import { currentProp, openDeal, statusText } from "./deals.js";
@@ -135,7 +135,7 @@ export function viewHouse() {
 
 /* ── 概览里的设备与季节任务摘要（第二期） ── */
 function assetsPanel() {
-  const list = state.assetsEnriched, alerts = assetAlerts(list);
+  const list = myAssets(), alerts = assetAlerts(list);
   const body = !list.length
     ? `<div class="empty"><strong>${t("还没有设备档案")}</strong>${t("按房屋资料一次生成炉子、热水器、排水泵等设备，记录保修和保养周期。")}<p><a class="btn btn-primary" href="${href("house", "asset-template")}">${t("生成设备清单")}</a></p></div>`
     : alerts.length

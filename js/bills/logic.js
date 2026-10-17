@@ -2,6 +2,7 @@
 import { state } from "../core/state.js";
 import { DAY, daysUntil, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
+import { href } from "../core/router.js";
 
 const B = () => window.BILLS;
 const pad = (n) => String(n).padStart(2, "0");
@@ -113,6 +114,23 @@ export function alertText(b) {
   if (b.status === "soon") return t("{d} 天后到期", { d });
   if (b.cardExpiring) return b.cardDays < 0 ? t("扣款卡已过期") : t("扣款卡 {d} 天后过期", { d: b.cardDays });
   return "";
+}
+
+/** 提醒总线：逾期 = 紧急，今天到期 = 今天，待核对 / 即将 / 换卡 = 尽快 */
+export function billAlertItems() {
+  if (!state.billsEnabled) return [];
+  const B = window.BILLS;
+  return billAlerts(state.billsEnriched.filter((b) => b.active)).map((b) => {
+    const sev = b.status === "overdue" ? 0 : b.status === "due" ? 1 : 2;
+    const label = b.status === "overdue" ? t("逾期") : b.status === "verify" ? t("核对") : b.cardExpiring && b.status === "ok" ? t("换卡") : t("缴费");
+    const amount = b.est != null ? Units.money(b.est, b.currency || Units.region.currency) : null;
+    const actions = [];
+    if (b.pay_url && !b.autopay) actions.push({ type: "link", href: b.pay_url, label: t("去缴费"), cls: "btn-ghost", external: true });
+    actions.push(b.autopay ? { type: "button", action: "bill-verify", id: b.id, label: t("已核对") } : { type: "link", href: `${href("bill", b.id)}?pay=1`, label: t("记缴费") });
+    return { source: "bill", severity: sev, must: b.status === "overdue", due: b.next_due_on, daysLeft: b.daysLeft, property_id: b.property_id, assigned_to: b.assigned_to,
+      title: `${B.catOf(b.category).icon} ${b.name}`, detail: [alertText(b), amount].filter(Boolean).join(" · "), href: href("bill", b.id),
+      badge: { label, cls: sev === 0 ? "b-out" : sev === 1 ? "b-low" : "b-soon" }, actions };
+  });
 }
 
 /** 该账单的分类文案 */

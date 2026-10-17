@@ -95,8 +95,9 @@ export const DemoStore = {
 
   /* 房屋资料 / 设备 / 季节任务（按房产） */
   async getHouseProfile(pid) { const p = this.db.house_profiles[pid]; return p ? { ...p } : null; },
+  async listHouseProfiles() { return Object.entries(this.db.house_profiles).map(([pid, p]) => ({ ...p, property_id: pid })); },
   async saveHouseProfile(p, pid) { this.db.house_profiles[pid] = { ...p, property_id: pid, updated_at: new Date().toISOString() }; this.persist(); },
-  async listAssets(pid) { return this.db.assets.filter((a) => a.property_id === pid).map((x) => ({ ...x })); },
+  async listAssets() { return this.db.assets.map((x) => ({ ...x })); },
   async saveAsset(a) {
     const now = new Date().toISOString();
     if (a.id) {
@@ -124,7 +125,7 @@ export const DemoStore = {
     this.db.maint_logs = this.db.maint_logs.filter((x) => x.id !== id);
     this.persist();
   },
-  async listSeasonal(sincePeriod, pid) { return this.db.seasonal.filter((s) => s.period >= sincePeriod && s.property_id === pid).map((x) => ({ ...x })); },
+  async listSeasonal(sincePeriod) { return this.db.seasonal.filter((s) => s.period >= sincePeriod).map((x) => ({ ...x })); },
   async setSeasonal(task_key, period, done, done_by_name, pid) {
     this.db.seasonal = this.db.seasonal.filter((s) => !(s.task_key === task_key && s.period === period && s.property_id === pid));
     if (done) this.db.seasonal.push({ id: uid(), property_id: pid, task_key, period, done_on: new Date().toISOString().slice(0, 10), done_by_name, created_at: new Date().toISOString() });
@@ -357,12 +358,13 @@ export const CloudStore = {
   async getHouseProfile(pid) {
     return this.must(await this.sb.from("house_profiles").select("*").eq("property_id", pid).maybeSingle());
   },
+  async listHouseProfiles() { return this.must(await this.sb.from("house_profiles").select("*").eq("household_id", this.hid)); },
   async saveHouseProfile(p, pid) {
     const row = { property_id: pid, household_id: this.hid, region: p.region, house_type: p.house_type, year_built: p.year_built ?? null,
       features: p.features || [], exterior: p.exterior || [], roof: p.roof || null, flooring: p.flooring || [], updated_by: state.user.id };
     this.must(await this.sb.from("house_profiles").upsert(row, { onConflict: "property_id" }));
   },
-  async listAssets(pid) { return this.must(await this.sb.from("assets").select("*").eq("property_id", pid).order("name")); },
+  async listAssets() { return this.must(await this.sb.from("assets").select("*").eq("household_id", this.hid).order("name")); },
   async saveAsset(a) {
     const row = pick(a, ASSET_FIELDS, { household_id: this.hid, updated_by: state.user.id });
     if (!row.property_id) row.property_id = state.propertyId;
@@ -385,8 +387,8 @@ export const CloudStore = {
     this.must(await this.sb.from("maintenance_logs").delete().eq("id", id));
     if (l?.purchase_id) this.must(await this.sb.from("purchases").delete().eq("id", l.purchase_id));
   },
-  async listSeasonal(sincePeriod, pid) {
-    return this.must(await this.sb.from("seasonal_tasks").select("*").eq("property_id", pid).gte("period", sincePeriod));
+  async listSeasonal(sincePeriod) {
+    return this.must(await this.sb.from("seasonal_tasks").select("*").eq("household_id", this.hid).gte("period", sincePeriod));
   },
   async setSeasonal(task_key, period, done, done_by_name, pid) {
     if (done) {

@@ -1,97 +1,49 @@
-/* 首页 · 今日：把储藏和房屋两边需要处理的事放在一张清单里，家人每天只看这一页 */
-import { alertsOf, openShopFor } from "./core/logic.js";
-import { STATUS, state } from "./core/state.js";
+/* 首页 · 今日：从提醒总线取全部提醒，按严重度（或按房产）通用渲染。各模块只负责把自己的提醒注册进总线，首页不认识任何模块。 */
+import { state } from "./core/state.js";
+import { Store } from "./core/store.js";
 import { href } from "./core/router.js";
-import { esc, fmt, inSpace } from "./core/util.js";
+import { esc } from "./core/util.js";
 import { joinList, locale, t } from "./core/i18n.js";
-import { alertText, assetAlerts } from "./house/assets.js";
-import { taskRow, undoneThisMonth } from "./house/tasks.js";
-import { alertText as billText, billAlerts, billCat } from "./bills/logic.js";
-import { dealAlerts, taskRow as dealTaskRow } from "./house/deals.js";
+import { SEVERITY_LABEL, SOURCE_ICON, SOURCE_LABEL, alertCounts, alertRow, collectAlerts, liveProperties, multiProperty, propertyName } from "./core/alerts.js";
 
-const SPACE_TAG = { pantry: { name: "储藏", icon: "🥫" }, house: { name: "房屋", icon: "🏠" } };
+const PREF_KEY = "hmh-today";
+export function setTodayPref(patch) {
+  Object.assign(state.today, patch);
+  try { localStorage.setItem(PREF_KEY, JSON.stringify(state.today)); } catch { /* 忽略 */ }
+}
 
 export function viewToday() {
-  const houseOn = state.houseEnabled;
-  // 第二期：到期保养 / 保修快到期的设备，本月还没做的季节任务
-  const assets = houseOn ? assetAlerts(state.assetsEnriched) : [];
-  const tasks = houseOn ? undoneThisMonth() : [];
-  const now0 = new Date(), ty = now0.getFullYear(), tm = now0.getMonth() + 1;
-  const pantry = alertsOf(state.enriched.filter(inSpace("pantry"))).map((x) => ({ ...x, space: "pantry" }));
-  const house = houseOn ? alertsOf(state.enriched.filter(inSpace("house"))).map((x) => ({ ...x, space: "house" })) : [];
-  const todo = [...pantry, ...house].sort((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || (a.daysLeft ?? 0) - (b.daysLeft ?? 0));
-  const expiring = state.enriched.filter((x) => x.exp && x.qty > 0 && inSpace("pantry")(x)).sort((a, b) => a.expDays - b.expDays);
+  const pref = state.today;
+  let all = collectAlerts();
+  const counts = alertCounts(all);
+  const me = state.user?.id;
+  const canMine = Store.mode === "cloud" && all.some((x) => x.assigned_to);
+  if (pref.mine && me) all = all.filter((x) => !x.assigned_to || x.assigned_to === me);
+  const shown = pref.focus ? all.filter((x) => x.severity < 3) : all;
+  const hidden = all.length - shown.length;
   const open = state.shopping.filter((s) => s.status === "todo");
   const claimed = state.shopping.filter((s) => s.status === "claimed");
-  const bills = state.billsEnabled ? billAlerts(state.billsEnriched.filter((b) => b.active)) : [];
-  const deals = houseOn ? dealAlerts() : [];
-  const total = todo.length + expiring.length + assets.length + tasks.length + bills.length + deals.length;
+  const dateText = new Date().toLocaleDateString(locale(), { month: "long", day: "numeric", weekday: "long" });
+  const restockable = all.some((x) => (x.source === "pantry" || x.source === "house") && x.actions?.some((a) => a.action === "shop-add-item"));
+  const noProfile = state.houseEnabled && state.propertyId && !state.houseProfiles[state.propertyId];
 
-  const now = new Date();
-  const dateText = now.toLocaleDateString(locale(), { month: "long", day: "numeric", weekday: "long" });
-
-  const rows = todo.slice(0, 12).map((it) => {
-    const inList = openShopFor(it.id), tag = SPACE_TAG[it.space];
-    return `<li>
-      <span class="badge ${STATUS[it.status].cls}">${t(STATUS[it.status].label)}</span>
-      <div class="grow"><button type="button" class="link-name" data-action="edit" data-id="${it.id}">${esc(it.name)}</button>
-        <small><span class="space-tag">${tag.icon} ${t(tag.name)}</span>${t("剩 {q} {u}", { q: fmt(it.dqty), u: esc(t(it.du)) })}${it.daysLeft != null && it.qty > 0 ? t("，约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) }) : ""}</small></div>
-      ${inList ? `<span class="badge b-ok">${t("已在清单")}</span>` : `<button type="button" class="btn btn-sm" data-action="shop-add-item" data-id="${it.id}">${t("加入采购")}</button>`}
-    </li>`;
-  }).join("");
-
-  const more = (n, section, sub, label) => `<p class="muted" style="margin:8px 0 0">${t("还有 {n} 项，", { n })}<a href="${href(section, sub)}">${label}</a></p>`;
+  const chips = Object.entries(counts.bySource).map(([s, n]) => `<span class="chip" aria-pressed="false" style="cursor:default">${SOURCE_ICON[s] || ""} ${t(SOURCE_LABEL[s] || s)} ${n}</span>`).join("");
+  const toggle = (key, label, on) => `<button type="button" class="chip" data-action="today-pref" data-key="${key}" aria-pressed="${on ? "true" : "false"}">${label}</button>`;
 
   return `
     <section class="section today-head">
       <p class="muted">${esc(dateText)}</p>
-      <h2>${total ? t("今天有 {n} 件事要留意", { n: total }) : t("今天没有需要处理的事")}</h2>
+      <h2>${counts.important ? t("今天有 {n} 件事要留意", { n: counts.important }) : all.length ? t("没有急事，有 {n} 件可以留意", { n: all.length }) : t("今天没有需要处理的事")}</h2>
+      ${all.length ? `<div class="chips today-chips">${chips}</div>` : ""}
+      <div class="chips today-chips">
+        ${toggle("mode", t("按轻重排"), pref.mode !== "property")}${multiProperty() ? toggle("mode-property", t("按房产分"), pref.mode === "property") : ""}
+        ${toggle("focus", t("只看要紧的"), !!pref.focus)}${canMine ? toggle("mine", t("只看我负责的"), !!pref.mine) : ""}
+        ${restockable ? `<button type="button" class="chip" data-action="shop-add-alerts" data-space="all">${t("补货全部加入采购清单")}</button>` : ""}
+      </div>
     </section>
 
-    ${deals.length ? `<section class="section">
-      <div class="section-head"><h2>${t("房产交易")}</h2><a class="btn btn-sm btn-ghost" href="${href("house", "deal")}">${t("交易清单")}</a></div>
-      <div class="panel"><ul class="task-list">${deals.slice(0, 8).map((x) => dealTaskRow(x, { showProp: state.properties.length > 1 })).join("")}</ul>
-        ${deals.length > 8 ? more(deals.length - 8, "house", "deal", t("去交易清单查看")) : ""}</div>
-    </section>` : ""}
-
-    ${bills.length ? `<section class="section">
-      <div class="section-head"><h2>${t("账单")}</h2><a class="btn btn-sm btn-ghost" href="${href("bills", "overview")}">${t("全部账单")}</a></div>
-      <div class="panel"><ul class="restock-list">${bills.slice(0, 6).map((b) => `<li>
-        <span class="badge ${b.status === "overdue" ? "b-out" : b.status === "due" ? "b-low" : "b-soon"}">${b.status === "overdue" ? t("逾期") : b.status === "verify" ? t("核对") : b.cardExpiring && b.status === "ok" ? t("换卡") : t("缴费")}</span>
-        <div class="grow"><a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a><small>${esc(billText(b))}${b.est != null ? ` · ${Units.money(b.est, b.currency || Units.region.currency)}` : ""}</small></div>
-        ${b.pay_url && !b.autopay ? `<a class="btn btn-sm btn-ghost" href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${t("去缴费")}</a>` : ""}
-        ${b.autopay ? `<button type="button" class="btn btn-sm" data-action="bill-verify" data-id="${b.id}">${t("已核对")}</button>` : `<a class="btn btn-sm" href="${href("bill", b.id)}?pay=1">${t("记缴费")}</a>`}</li>`).join("")}</ul>
-        ${bills.length > 6 ? more(bills.length - 6, "bills", "overview", t("去账单查看")) : ""}</div>
-    </section>` : ""}
-
-    ${todo.length ? `<section class="section">
-      <div class="section-head"><h2>${t("该补货了")}</h2>
-        <button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="all">${t("全部加入采购清单")}</button></div>
-      <div class="panel"><ul class="restock-list">${rows}</ul>
-        ${todo.length > 12 ? more(todo.length - 12, "pantry", "inventory", t("去库存查看")) : ""}</div>
-    </section>` : ""}
-
-    ${assets.length ? `<section class="section">
-      <div class="section-head"><h2>${t("设备该保养了")}</h2><a class="btn btn-sm btn-ghost" href="${href("house", "assets")}">${t("设备档案")}</a></div>
-      <div class="panel"><ul class="restock-list">${assets.slice(0, 5).map((a) => `<li>
-        <span class="badge ${a.service === "overdue" ? "b-out" : "b-soon"}">${a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修")}</span>
-        <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${a.t?.icon || "⚙️"} ${esc(a.name)}</a><small>${esc(alertText(a))}</small></div>
-        <a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a></li>`).join("")}</ul>
-        ${assets.length > 5 ? more(assets.length - 5, "house", "assets", t("去设备档案查看")) : ""}</div>
-    </section>` : ""}
-
-    ${tasks.length ? `<section class="section">
-      <div class="section-head"><h2>${t("本月季节任务")}</h2><a class="btn btn-sm btn-ghost" href="${href("house", "tasks")}">${t("全部任务")}</a></div>
-      <div class="panel"><ul class="task-list">${tasks.slice(0, 6).map((x) => taskRow(x, ty, tm)).join("")}</ul>
-        ${tasks.length > 6 ? more(tasks.length - 6, "house", "tasks", t("去季节任务查看")) : ""}</div>
-    </section>` : ""}
-
-    ${expiring.length ? `<section class="section">
-      <div class="section-head"><h2>${t("先吃这些")}</h2><a class="btn btn-sm btn-ghost" href="${href("pantry", "meals")}">${t("看看能做什么菜")}</a></div>
-      <div class="panel"><ul class="restock-list">${expiring.slice(0, 5).map((it) => `<li>
-        <span class="badge b-exp">${it.exp === "expired" ? t("已过期") : it.expDays === 0 ? t("今天到期") : t("{d} 天后到期", { d: it.expDays })}</span>
-        <div class="grow"><span class="name">${esc(it.name)}</span><small>${esc(t(it.location || ""))} ${t("剩 {q} {u}", { q: fmt(it.dqty), u: esc(t(it.du)) })}</small></div></li>`).join("")}</ul></div>
-    </section>` : ""}
+    ${pref.mode === "property" && multiProperty() ? byProperty(shown) : bySeverity(shown)}
+    ${hidden ? `<p class="muted" style="margin:-12px 0 24px;font-size:13px">${t("还有 {n} 件留意级的事已折叠，", { n: hidden })}<button type="button" class="link-name" data-action="today-pref" data-key="focus">${t("展开")}</button></p>` : ""}
 
     <section class="section">
       <div class="section-head"><h2>${t("采购清单")}</h2><a class="btn btn-sm btn-ghost" href="${href("shopping")}">${t("打开清单")}</a></div>
@@ -100,15 +52,34 @@ export function viewToday() {
       </div>
     </section>
 
-    ${houseOn && !state.houseProfile ? `<section class="section"><div class="panel cta-panel">
+    ${noProfile ? `<section class="section"><div class="panel cta-panel">
       <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的房屋耗材。")}</p></div>
       <a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></div></section>` : ""}
 
     <section class="section quick">
       <a class="quick-link" href="${href("item", "new")}?space=pantry"><span aria-hidden="true">🥫</span>${t("添加储藏物品")}</a>
-      ${houseOn ? `<a class="quick-link" href="${href("item", "new")}?space=house"><span aria-hidden="true">🧰</span>${t("添加房屋耗材")}</a>` : ""}
+      ${state.houseEnabled ? `<a class="quick-link" href="${href("item", "new")}?space=house"><span aria-hidden="true">🧰</span>${t("添加房屋耗材")}</a>` : ""}
       ${state.gearEnabled ? `<a class="quick-link" href="${href("item", "new")}?space=gear"><span aria-hidden="true">🧳</span>${t("添加装备")}</a>` : ""}
       ${state.billsEnabled ? `<a class="quick-link" href="${href("bill", "new")}"><span aria-hidden="true">🧾</span>${t("添加账单")}</a>` : ""}
       <a class="quick-link" href="${href("me", "stats")}"><span aria-hidden="true">📊</span>${t("看花费统计")}</a>
     </section>`;
 }
+
+const section = (title, sub, items) => (items.length ? `<section class="section">
+    <div class="section-head"><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ""}</div>
+    <div class="panel"><ul class="restock-list alert-list">${items.map(alertRow).join("")}</ul></div>
+  </section>` : "");
+
+function bySeverity(list) {
+  const SUB = [t("已经过期，先处理"), t("今天到期或今天要做"), t("一周内到期、待核对的自动扣款、缺货"), t("少货、临期、本月季节任务")];
+  return [0, 1, 2, 3].map((s) => section(t(SEVERITY_LABEL[s]), SUB[s], list.filter((x) => x.severity === s))).join("");
+}
+
+function byProperty(list) {
+  const groups = liveProperties().map((p) => ({ title: `🏠 ${esc(p.name)}`, sub: t(window.DEALS.PROPERTY_STATUS[p.status] || "持有"), items: list.filter((x) => x.property_id === p.id) }));
+  groups.push({ title: t("与房产无关"), sub: t("手机、车险、订阅等"), items: list.filter((x) => !x.property_id && x.source !== "pantry" && x.source !== "house") });
+  groups.push({ title: t("家里的储藏"), sub: t("补货与临期"), items: list.filter((x) => x.source === "pantry" || x.source === "house") });
+  return groups.map((g) => section(g.title, g.sub, g.items)).join("") || `<section class="section"><div class="panel empty"><strong>${t("今天没有需要处理的事")}</strong></div></section>`;
+}
+
+export { propertyName };

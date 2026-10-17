@@ -7,6 +7,7 @@ import { compare, joinList, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { download } from "../stats/views.js";
 import { STATUS_RANK, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, upcoming } from "./logic.js";
+import { propertyTag, withProperty } from "../core/alerts.js";
 
 const B = () => window.BILLS;
 const BADGE = { overdue: "b-out", due: "b-low", verify: "b-soon", soon: "b-soon", ok: "b-ok", none: "", ended: "", inactive: "" };
@@ -22,10 +23,10 @@ export function propertyBar({ all = false } = {}) {
   return `<div class="chips prop-bar" role="group" aria-label="${t("选择房产")}">${all ? chip("all", t("全部房产")) : ""}${list.map((p) => chip(p.id, `🏠 ${esc(p.name)}`)).join("")}</div>`;
 }
 
-const billRow = (b, { showProp = true } = {}) => `<li>
+const billRow = (b) => `<li>
     <span class="badge ${BADGE[b.status]}">${t(STATUS_LABEL[b.status])}</span>
-    <div class="grow"><a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a>
-      <small>${esc(alertText(b))}${b.est != null ? ` · ${mny(b.est, b.currency)}` : ""}${showProp && b.property_id && state.properties.length > 1 ? ` · ${esc(propertyName(b.property_id))}` : ""}</small></div>
+    <div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a>
+      <small>${esc(alertText(b))}${b.est != null ? ` · ${mny(b.est, b.currency)}` : ""}</small></div>
     ${b.pay_url && !b.autopay ? `<a class="btn btn-sm btn-ghost" href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${t("去缴费")}</a>` : ""}
     ${b.autopay ? `<button type="button" class="btn btn-sm" data-action="bill-verify" data-id="${b.id}">${t("已核对")}</button>`
       : `<a class="btn btn-sm" href="${href("bill", b.id)}?pay=1">${t("记缴费")}</a>`}
@@ -69,7 +70,7 @@ export function viewBillsOverview() {
       <div class="section-head"><h2>${t("未来 30 天")}</h2><p>${t("按到期日排列")}</p></div>
       <div class="panel">${next30.length ? `<ul class="restock-list">${next30.map(({ bill: b, due }) => `<li>
         <span class="badge" style="background:var(--surface-2)">${esc(fmtShort(`${due}T12:00:00`))}</span>
-        <div class="grow"><a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a><small>${b.autopay ? t("自动扣款") : t(B().CHANNELS[b.pay_channel] || "")}${b.assigned_to ? ` · ${esc(memberName(b.assigned_to) || "")}` : ""}</small></div>
+        <div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a><small>${b.autopay ? t("自动扣款") : t(B().CHANNELS[b.pay_channel] || "")}${b.assigned_to ? ` · ${esc(memberName(b.assigned_to) || "")}` : ""}</small></div>
         <b>${mny(b.est, b.currency)}</b></li>`).join("")}</ul>` : `<div class="empty"><strong>${t("30 天内没有到期的账单")}</strong></div>`}</div>
     </section>`;
 }
@@ -89,8 +90,8 @@ export function viewBillsList() {
   const chip = (k, v, label) => `<button type="button" class="chip" data-action="bills-filter" data-key="${k}" data-val="${v}" aria-pressed="${f[k] === v}">${label}</button>`;
   const groups = B().CATEGORIES.map((c) => ({ c, rows: list.filter((b) => b.category === c.id).sort((x, y) => STATUS_RANK[x.status] - STATUS_RANK[y.status] || compare(x.name, y.name)) })).filter((g) => g.rows.length);
   const row = (b) => `<li class="bill-row ${b.active && !b.ended ? "" : "inactive"}">
-      <div class="grow"><a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}
-        <small>${[b.payee, freqText(b), b.ended && b.ends_on ? t("结束于 {d}", { d: fmtDate(b.ends_on) }) : b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.property_id && state.properties.length > 1 ? propertyName(b.property_id) : null, b.assigned_to ? memberName(b.assigned_to) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
+      <div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}
+        <small>${[b.payee, freqText(b), b.ended && b.ends_on ? t("结束于 {d}", { d: fmtDate(b.ends_on) }) : b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.assigned_to ? memberName(b.assigned_to) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b class="bill-amt">${mny(b.est, b.currency)}</b>
       <label class="switch" title="${t("自动扣款")}"><input type="checkbox" data-bill-autopay="${b.id}" ${b.autopay ? "checked" : ""}><span>${t("自动")}</span></label>
     </li>`;
@@ -243,7 +244,7 @@ export function viewBillForm() {
   return `
     <section class="section form-page">
       <div class="section-head">
-        <h2>${b ? `${billCat(b.category).icon} ${esc(b.name)}` : t("添加账单")}</h2>
+        <h2>${b ? `${propertyTag(b.property_id)}${billCat(b.category).icon} ${esc(b.name)}` : t("添加账单")}</h2>
         <button type="button" class="btn btn-sm btn-ghost" data-action="bill-cancel">${t("返回{page}", { page: backLabel })}</button>
       </div>
       ${b ? billSummary(b) : ""}
@@ -416,5 +417,5 @@ export async function quickVerify(id) {
   const bill = state.billsEnriched.find((x) => x.id === id);
   if (!bill) return;
   await recordPayment(bill, { paid_on: todayISO(), due_on: bill.next_due_on, amount: bill.est, status: "verified", method: bill.autopay_method || t("自动扣款"), late_fee: 0 });
-  toast(t("已核对 {name}，下次 {d}", { name: bill.name, d: fmtDate(advanceDue(bill, bill.next_due_on || todayISO()) || "") || t("无") }));
+  toast(t("已核对 {name}，下次 {d}", { name: withProperty(bill.property_id, bill.name), d: fmtDate(advanceDue(bill, bill.next_due_on || todayISO()) || "") || t("无") }));
 }

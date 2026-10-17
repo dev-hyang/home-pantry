@@ -503,6 +503,14 @@ export const EN = {
   "租客保险：改地址或取消": "Renter's insurance: update the address or cancel", "清洁、修补、拍照录像留证": "Clean, patch, and document with photos and video", "交钥匙、抄表读数、签退租确认": "Return keys, record meter readings, sign the move-out confirmation",
   "取消房租和剩余自动扣款": "Cancel rent and remaining autopays", "押金退还（伊州 30–45 天内），未退或扣款不合理可追讨": "Security deposit return (Illinois: within 30–45 days); dispute unreasonable deductions",
 
+  // ── 首页提醒总线 ──
+  "紧急": "Urgent", "尽快": "Soon", "留意": "Notice", "已经过期，先处理": "Past due, handle first", "今天到期或今天要做": "Due or to do today",
+  "一周内到期、待核对的自动扣款、缺货": "Due within a week, autopay to verify, out of stock", "少货、临期、本月季节任务": "Running low, expiring, this month's seasonal tasks",
+  "没有急事，有 {n} 件可以留意": "Nothing urgent; {n} things worth a look", "按轻重排": "By urgency", "按房产分": "By property", "只看要紧的": "Important only", "只看我负责的": "Mine only",
+  "补货全部加入采购清单": "Add all restocks to shopping list", "还有 {n} 件留意级的事已折叠，": "{n} notice-level items are collapsed, ", "展开": "show",
+  "与房产无关": "Not tied to a property", "手机、车险、订阅等": "mobile, auto insurance, subscriptions…", "家里的储藏": "Household pantry", "补货与临期": "restocking and expiring",
+  "{n} 件事要马上处理：{list}": "{n} things need attention now: {list}",
+
   // ── 演示数据物品名 ──
   "纯牛奶": "Whole milk", "北豆腐": "Firm tofu", "无糖酸奶": "Plain yogurt", "冷冻虾仁": "Frozen shrimp", "速冻水饺": "Frozen dumplings", "杂粮（糙米）": "Brown rice", "燕麦片": "Rolled oats", "生抽": "Soy sauce", "原味坚果": "Plain nuts",
   "抽纸": "Facial tissues", "卷纸": "Toilet paper", "洗洁精": "Dish soap", "垃圾袋": "Trash bags", "纸尿裤 NB码": "Diapers size NB", "婴儿湿巾": "Baby wipes", "防溢乳垫": "Nursing pads", "复合维生素": "Multivitamins",

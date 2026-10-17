@@ -54,6 +54,16 @@ export function dealAlerts() {
 
 export const dueText = (x) => (x.due == null ? t("填日期后计算") : x.daysLeft < 0 ? t("逾期 {d} 天", { d: -x.daysLeft }) : x.daysLeft === 0 ? t("今天") : t("{d} 天后", { d: x.daysLeft }));
 
+/** 提醒总线：必须项逾期 = 紧急，其余逾期或今天 = 今天级，7 天内 = 尽快 */
+export function dealAlertItems() {
+  if (!state.houseEnabled) return [];
+  return dealAlerts().map((x) => ({
+    source: "deal", severity: x.daysLeft < 0 ? (x.priority === "must" ? 0 : 1) : x.daysLeft === 0 ? 1 : 2, must: x.priority === "must",
+    due: x.due, daysLeft: x.daysLeft, property_id: x.deal.property_id, title: t(x.name), detail: `${x.due ? `${fmtDate(x.due)} · ` : ""}${dueText(x)}${x.note ? ` · ${t(x.note)}` : ""}`,
+    href: href("house", "deal"), actions: [{ type: "check", attrs: { "data-deal-task": x.key, "data-deal": x.deal.id } }],
+  }));
+}
+
 export function taskRow(x, { showProp = false } = {}) {
   const id = `deal-${x.deal.id}-${x.key}`;
   const prop = showProp ? state.properties.find((p) => p.id === x.deal.property_id) : null;

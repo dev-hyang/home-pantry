@@ -1,5 +1,6 @@
 import { STATUS, state } from "./state.js";
 import { DAY, MIN_RATE_SPAN_DAYS, RATE_WINDOW_DAYS, STOCK_TARGET_DAYS, du, isGear, num, spaceOf } from "./util.js";
+import { t } from "./i18n.js";
 
 /* ───────────── 提醒与消耗速度计算 ───────────── */
 export function enrich(items, logs) {
@@ -52,6 +53,27 @@ export function enrich(items, logs) {
 }
 
 export const alertsOf = (list) => list.filter((x) => x.status !== "ok").sort((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || (a.daysLeft ?? 0) - (b.daysLeft ?? 0));
+
+/** 提醒总线：储藏与房屋耗材的补货（缺货 = 尽快，少货 / 即将告罄 = 留意）和临期食材（留意） */
+export function pantryAlertItems() {
+  const items = [];
+  const spaces = state.houseEnabled ? ["pantry", "house"] : ["pantry"];
+  for (const sp of spaces) {
+    for (const it of alertsOf(state.enriched.filter((x) => spaceOf(x.category) === sp))) {
+      items.push({ source: sp, severity: it.status === "out" ? 2 : 3, must: false, due: null, daysLeft: it.daysLeft == null ? null : Math.floor(it.daysLeft),
+        title: it.name, detail: `${t("剩 {q} {u}", { q: Math.round(it.dqty * 100) / 100, u: t(it.du) })}${it.daysLeft != null && it.qty > 0 ? t("，约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) }) : ""}`,
+        href: null, badge: { label: t(STATUS[it.status].label), cls: STATUS[it.status].cls },
+        actions: [{ type: "button", action: "edit", id: it.id, label: t("编辑"), cls: "btn-ghost" }, { type: "button", action: "shop-add-item", id: it.id, label: t("加入采购") }] });
+    }
+  }
+  for (const it of state.enriched.filter((x) => x.exp && x.qty > 0 && spaceOf(x.category) === "pantry").sort((a, b) => a.expDays - b.expDays)) {
+    items.push({ source: "pantry", severity: it.exp === "expired" ? 2 : 3, must: false, due: it.expiry_date, daysLeft: it.expDays, title: it.name,
+      detail: `${it.location ? `${t(it.location)} ` : ""}${t("剩 {q} {u}", { q: Math.round(it.dqty * 100) / 100, u: t(it.du) })}`, href: null,
+      badge: { label: it.exp === "expired" ? t("已过期") : it.expDays === 0 ? t("今天到期") : t("{d} 天后到期", { d: it.expDays }), cls: "b-exp" },
+      actions: [{ type: "link", href: "#/pantry/meals", label: t("看看能做什么菜"), cls: "btn-ghost" }] });
+  }
+  return items;
+}
 export const memberName = (userId) => state.members.find((m) => m.user_id === userId)?.display_name;
 export const openShopFor = (itemId) => state.shopping.find((s) => s.item_id === itemId && s.status !== "bought");
 // 菜单推荐只看厨房储藏里的东西；关键词中英文都有，英文不区分大小写

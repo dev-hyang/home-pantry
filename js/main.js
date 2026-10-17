@@ -5,7 +5,15 @@ import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { joinList, lang, loadOpenCC, locale, setLang, t } from "./core/i18n.js";
-import { viewToday } from "./today.js";
+import { setTodayPref, viewToday } from "./today.js";
+import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
+import { pantryAlertItems } from "./core/logic.js";
+import { assetAlertItems } from "./house/assets.js";
+import { seasonAlertItems } from "./house/tasks.js";
+import { dealAlertItems } from "./house/deals.js";
+import { billAlertItems } from "./bills/logic.js";
+// 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
+[pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, seasonAlertItems].forEach(registerAlerts);
 import { applyTypeDefaults, houseDraft, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { assetTemplateItems, enrichAssets, leaveAsset, onAssetFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
 import { seasonalSince, toggleTask, viewTasks } from "./house/tasks.js";
@@ -32,11 +40,13 @@ export async function refresh() {
       let saved = null; try { saved = localStorage.getItem("hmh-property"); } catch { /* 忽略 */ }
       if (!live.some((p) => p.id === state.propertyId)) state.propertyId = (live.find((p) => p.id === saved) || live.find((p) => p.is_default) || live[0] || properties[0])?.id || null;
       const pid = state.propertyId;
-      const [items, logs, shopping, purchases, houseProfile, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone] = await Promise.all([
-        Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listPurchases(), pid ? Store.getHouseProfile(pid) : null,
-        pid ? Store.listAssets(pid) : [], Store.listMaintLogs(), pid ? Store.listSeasonal(seasonalSince(), pid) : [], Store.listBills(), Store.listBillPayments(),
+      // 设备、季节任务、房屋资料按家庭全量读取（提醒总线要看所有房产），页面再按当前房产过滤
+      const [items, logs, shopping, purchases, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone] = await Promise.all([
+        Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listPurchases(), Store.listHouseProfiles(),
+        Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince()), Store.listBills(), Store.listBillPayments(),
         Store.listDeals(), Store.listDealDone()]);
-      Object.assign(state, { items, logs, shopping, purchases, houseProfile, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone });
+      const houseProfiles = Object.fromEntries(profiles.map((p) => [p.property_id, p]));
+      Object.assign(state, { items, logs, shopping, purchases, houseProfiles, houseProfile: pid ? houseProfiles[pid] || null : null, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone });
       state.enriched = enrich(items, logs);
       state.assetsEnriched = enrichAssets(assets, maintLogs);
       state.billsEnriched = enrichBills(bills, billPayments);
@@ -105,8 +115,7 @@ export function render(force = true) {
   });
   const openShop = state.shopping.filter((s) => s.status !== "bought").length;
   const sc = $("#shopCount"); sc.hidden = !openShop; sc.textContent = openShop;
-  const relevant = state.enriched.filter((x) => state.houseEnabled || inSpace("pantry")(x));
-  const alertN = alertsOf(relevant).length;
+  const alertN = alertCounts(collectAlerts()).important;   // 紧急 / 今天 / 尽快三档计入标题
   document.title = alertN ? `(${alertN}) ${t(APP_NAME)}` : t(APP_NAME);
   document.body.classList.toggle("editing", FORM_PAGES(r));
 
@@ -360,6 +369,12 @@ main.addEventListener("click", async (e) => {
         if (!armed(el, t("确认删除"))) return;
         await Store.deleteMaintLog(id); toast(t("已删除这条记录")); await refresh(); return render(true);
       case "tasks-month": state.tasksMonth = +el.dataset.month; return render();
+      case "today-pref": {
+        const k = el.dataset.key;
+        if (k === "mode") setTodayPref({ mode: "severity" }); else if (k === "mode-property") setTodayPref({ mode: "property" });
+        else setTodayPref({ [k]: !state.today[k] });
+        return render();
+      }
       case "bill-cancel": return leaveBill(false);
       case "bill-delete":
         if (!armed(el, t("再点一次确认删除"))) return;
@@ -418,6 +433,7 @@ main.addEventListener("click", async (e) => {
         const pool = sp === "all" ? state.enriched.filter((x) => state.houseEnabled || inSpace("pantry")(x)) : state.enriched.filter(inSpace(sp));
         return addAlertsToShopping(alertsOf(pool));
       }
+      case "property-of-bill": return;
       case "shop-claim": await Store.saveShopping({ id, status: "claimed", claimed_by: state.user?.id || null, claimed_by_name: state.displayName }); toast(t("已认领，家人会看到你在买")); return refresh();
       case "shop-unclaim": await Store.saveShopping({ id, status: "todo", claimed_by: null, claimed_by_name: null }); return refresh();
       case "shop-bought": return markBought(id);
@@ -526,12 +542,13 @@ export function exportJson() {
 }
 
 export function notifyIfNeeded() {
-  const urgent = state.enriched.filter((x) => x.status === "out" || x.status === "low");
+  // 浏览器通知：紧急和今天两档有新增时弹一次，内容带房产名
+  const urgent = collectAlerts().filter((x) => x.severity <= 1);
   const prev = state.lastAlertCount;
   state.lastAlertCount = urgent.length;
   if (prev === null ? urgent.length === 0 : urgent.length <= prev) return;
   if (!("Notification" in window) || Notification.permission !== "granted") return;
-  try { new Notification(t(APP_NAME), { body: t("{n} 样东西缺货或少货：{list}", { n: urgent.length, list: joinList(urgent.slice(0, 4).map((x) => x.name)) }) }); } catch { /* 部分移动浏览器只允许 Service Worker 通知 */ }
+  try { new Notification(t(APP_NAME), { body: t("{n} 件事要马上处理：{list}", { n: urgent.length, list: joinList(urgent.slice(0, 4).map((x) => withProperty(x.property_id, x.title))) }) }); } catch { /* 部分移动浏览器只允许 Service Worker 通知 */ }
 }
 
 /* ───────────── 云端：登录与家庭 ───────────── */

@@ -435,6 +435,13 @@ textarea { resize: vertical; }
 .member-list small { display: block; font-size: 12px; }
 .member-rename { display: flex; gap: 6px; align-items: center; width: 100%; }
 
+/* ── 首页提醒总线 ── */
+.today-chips { margin: 10px 0 0; padding-bottom: 0; }
+.today-chips .chip[aria-pressed="false"][style] { color: var(--muted); }
+.alert-list .alert-row input[type="checkbox"] { width: 20px; height: 20px; min-height: 0; accent-color: var(--pine); flex: 0 0 auto; }
+.alert-row.sev-0 .link-name { color: var(--out); }
+.alert-row .space-tag { margin-right: 6px; }
+
 /* ── 账单 / 多房产 ── */
 .prop-bar { margin-bottom: 10px; }
 .bill-list { list-style: none; margin: 0; padding: 0; }

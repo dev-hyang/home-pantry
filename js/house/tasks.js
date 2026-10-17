@@ -29,28 +29,46 @@ export function windowPeriods(task, year, month) {
   return out.map(([yy, mm]) => periodOf(yy, mm));
 }
 
-/** 某个月适用的任务及完成状态 */
-export function monthTasks(year, month) {
-  return H().seasonalTasksFor(state.houseProfile)
+/** 某个月适用的任务及完成状态（默认当前房产；提醒总线会逐套房产调用） */
+export function monthTasks(year, month, profile = state.houseProfile, pid = state.propertyId) {
+  return H().seasonalTasksFor(profile)
     .filter((x) => x.months.includes(month))
     .map((task) => {
       const periods = windowPeriods(task, year, month);
-      const done = state.seasonalDone.find((d) => d.task_key === task.key && periods.includes(d.period)) || null;
-      return { task, periods, done };
+      const done = state.seasonalDone.find((d) => d.task_key === task.key && d.property_id === pid && periods.includes(d.period)) || null;
+      return { task, periods, done, pid };
     })
     .sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || compare(t(a.task.name), t(b.task.name)));
 }
 
 export const undoneThisMonth = () => { const d = new Date(); return monthTasks(d.getFullYear(), d.getMonth() + 1).filter((x) => !x.done); };
 
-export function taskRow({ task, done }, year, month) {
+export const taskAttrs = ({ task, done, pid }, year, month) => ({ "data-task": task.key, "data-period": periodOf(year, month), "data-undo": done?.period || "", "data-prop": pid || state.propertyId || "" });
+
+export function taskRow(x, year, month) {
+  const { task, done } = x;
   const id = `task-${task.key}-${year}-${month}`;
   const when = done ? t("{date} {who}已完成", { date: fmtDate(done.done_on), who: done.done_by_name ? `${esc(done.done_by_name)} ` : "" })
     : task.note ? esc(t(task.note)) : task.months.length >= 12 ? t("每月一次") : joinList(task.months.map(monthName));
+  const attrs = Object.entries(taskAttrs(x, year, month)).map(([k, v]) => `${k}="${esc(v)}"`).join(" ");
   return `<li class="task-row ${done ? "done" : ""}">
-    <input type="checkbox" id="${id}" data-task="${esc(task.key)}" data-period="${periodOf(year, month)}" data-undo="${esc(done?.period || "")}" ${done ? "checked" : ""}>
+    <input type="checkbox" id="${id}" ${attrs} ${done ? "checked" : ""}>
     <label for="${id}"><b>${esc(t(task.name))}</b><small>${when}</small></label>
   </li>`;
+}
+
+/** 提醒总线：所有活跃房产本月没做的季节任务（留意级） */
+export function seasonAlertItems() {
+  if (!state.houseEnabled) return [];
+  const d = new Date(), y = d.getFullYear(), m = d.getMonth() + 1;
+  return state.properties.filter((p) => !p.archived && !["sold", "moved_out"].includes(p.status)).flatMap((p) => {
+    const profile = state.houseProfiles[p.id]; if (!profile) return [];
+    return monthTasks(y, m, profile, p.id).filter((x) => !x.done).map((x) => ({
+      source: "season", severity: 3, must: false, due: null, daysLeft: null, property_id: p.id,
+      title: t(x.task.name), detail: x.task.note ? t(x.task.note) : t("{month}季节任务", { month: monthName(m) }), href: href("house", "tasks"),
+      actions: [{ type: "check", attrs: taskAttrs(x, y, m) }],
+    }));
+  });
 }
 
 export function viewTasks() {
@@ -80,8 +98,8 @@ export function viewTasks() {
 
 /** 勾选 / 取消勾选：取消时删掉实际记录所在的 period（可能是窗口里的另一个月） */
 export async function toggleTask(input) {
-  const key = input.dataset.task, period = input.dataset.period, undo = input.dataset.undo;
+  const key = input.dataset.task, period = input.dataset.period, undo = input.dataset.undo, pid = input.dataset.prop || state.propertyId;
   input.disabled = true;
-  if (input.checked) await Store.setSeasonal(key, period, true, state.displayName, state.propertyId);
-  else await Store.setSeasonal(key, undo || period, false, null, state.propertyId);
+  if (input.checked) await Store.setSeasonal(key, period, true, state.displayName, pid);
+  else await Store.setSeasonal(key, undo || period, false, null, pid);
 }

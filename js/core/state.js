@@ -9,6 +9,8 @@ export const state = {
   assets: [], maintLogs: [], seasonalDone: [],  // 第二期：设备档案、保养记录、季节任务完成记录
   assetsEnriched: [],
   properties: [], propertyId: null,            // 多房产：当前查看的房产（房屋资料、设备、季节任务按它过滤）
+  houseProfiles: {},                           // 全部房产的房屋资料 { property_id: profile }（提醒总线要看所有房产）
+  today: (() => { try { return JSON.parse(localStorage.getItem("hmh-today") || "{}"); } catch { return {}; } })(),   // 首页偏好：{ mode: severity|property, mine, focus }
   bills: [], billPayments: [], billsEnriched: [],   // 账单 B1
   billsFilter: { property: "all", cat: "all", autopay: "all" },
   editProperty: null,                          // 设置页：正在编辑的房产 id（"new" = 新建）

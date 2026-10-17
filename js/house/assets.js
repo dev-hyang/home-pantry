@@ -50,11 +50,25 @@ export function enrichAssets(assets, logs) {
   });
 }
 
-/** 首页和概览用：逾期 > 该保养 > 保修快到期 */
+/** 当前房产的设备 */
+export const myAssets = () => state.assetsEnriched.filter((a) => a.property_id === state.propertyId);
+/** 概览用：逾期 > 该保养 > 保修快到期 */
 export const assetAlerts = (list) => list
   .filter((a) => a.service === "overdue" || a.service === "due" || a.warranty === "expiring")
   .sort((x, y) => rank(x) - rank(y) || (x.dueDays ?? 999) - (y.dueDays ?? 999));
 const rank = (a) => (a.service === "overdue" ? 0 : a.service === "due" ? 1 : 2);
+
+/** 提醒总线：所有活跃房产的设备（保养逾期 = 今天级，到期 / 保修 = 尽快级） */
+export function assetAlertItems() {
+  if (!state.houseEnabled) return [];
+  const live = new Set(state.properties.filter((p) => !p.archived && !["sold", "moved_out"].includes(p.status)).map((p) => p.id));
+  return assetAlerts(state.assetsEnriched.filter((a) => live.has(a.property_id))).map((a) => ({
+    source: "asset", severity: a.service === "overdue" ? 1 : 2, must: false, due: a.next, daysLeft: a.service === "overdue" || a.service === "due" ? a.dueDays : a.wDays,
+    property_id: a.property_id, title: `${a.t?.icon || "⚙️"} ${a.name}`, detail: alertText(a), href: href("asset", a.id),
+    badge: { label: a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修"), cls: a.service === "overdue" ? "b-out" : "b-soon" },
+    actions: [{ type: "link", href: `${href("asset", a.id)}?log=1`, label: t("记保养") }],
+  }));
+}
 
 export function alertText(a) {
   if (a.service === "overdue") return t("保养逾期 {d} 天（上次 {last}）", { d: -a.dueDays, last: a.lastService ? fmtDate(a.lastService) : t("按安装日期算") });
@@ -67,7 +81,7 @@ const ageText = (a) => (a.ageYears < 1 ? t("不到 1 年") : t("{n} 年", { n: M
 
 /* ── 设备列表 ── */
 export function viewAssets() {
-  const list = state.assetsEnriched;
+  const list = myAssets();
   const p = state.houseProfile;
   const alerts = assetAlerts(list);
   const group = (kind) => list.filter((a) => a.kind === kind).sort((x, y) => rank(x) - rank(y) || compare(x.name, y.name));
@@ -127,7 +141,7 @@ export function viewAssetTemplate() {
   const p = state.houseProfile;
   if (!p) return `<div class="panel empty"><strong>${t("先填写房屋资料")}</strong>${t("设备清单会根据房型和设施生成。")}<p><a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></p></div>`;
   const recs = H().recommendAssets(p);
-  const haveTypes = new Set(state.assets.map((a) => a.type));
+  const haveTypes = new Set(state.assets.filter((a) => a.property_id === state.propertyId).map((a) => a.type));
   const groups = Object.entries(H().ASSET_KINDS).map(([kind, k]) => ({ kind, k, rows: recs.filter((r) => r.kind === kind) })).filter((g) => g.rows.length);
   const fresh = recs.filter((r) => !haveTypes.has(r.id)).length;
   return `
