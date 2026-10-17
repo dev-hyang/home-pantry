@@ -47,6 +47,7 @@
     { id: "humid_season",   name: "梅雨 / 回南天",       region: "cn" },
     { id: "gas",            name: "天然气 / 燃气",       region: "both" },
     { id: "garage",         name: "车库",                region: "both" },
+    { id: "driveway",       name: "自家车道",            region: "na" },
     { id: "car",            name: "有汽车",              region: "both" },
     { id: "lawn",           name: "草坪 / 花园",         region: "both" },
     { id: "deck",           name: "木平台 / 露台",       region: "both" },
@@ -149,7 +150,7 @@
     na: [
       { id: "sfh", name: "独栋别墅", en: "Single-family home", icon: "🏡",
         desc: "里里外外都由自己负责，维护项目最多。",
-        features: ["forced_air", "central_ac", "humidifier", "gas", "basement", "sump_pump", "garage", "lawn", "snow"],
+        features: ["forced_air", "central_ac", "humidifier", "gas", "basement", "sump_pump", "garage", "driveway", "lawn", "snow"],
         owners: { roof: "self", exterior: "self", gutters: "self", windows: "self", yard: "self", hvac: "self", water_heater: "self", plumbing: "self", common: "na", sump: "self" } },
       { id: "townhome", name: "联排别墅", en: "Townhome", icon: "🏘️",
         desc: "外墙、屋顶常由 HOA 统一负责，户内自己负责；各小区章程差别较大。",
@@ -279,6 +280,13 @@
     { id: "water_purifier", name: "净水器",           en: "Water purifier",     icon: "🚰", kind: "equipment", life: 8,  interval: 6,  system: "plumbing",     region: "both", when: ["f:water_purifier"], tip: "按滤芯寿命更换。" },
     { id: "roof",           name: "屋顶",             en: "Roof",               icon: "🏠", kind: "equipment", life: 22, interval: 12, system: "roof",         region: "both", when: ["type:sfh", "type:townhome", "type:cn_villa", "type:cn_townhouse"], lifeByRoof: { asphalt: 22, metal: 50, tile: 50, flat: 18 }, tip: "每年春秋目视检查，大风冰雹后补查。" },
     { id: "garage_door",    name: "车库门开门器",     en: "Garage door opener", icon: "🚪", kind: "equipment", life: 12, interval: 12, system: null,           region: "both", when: ["f:garage"],       tip: "每年润滑导轨、测试自动回弹。" },
+    { id: "driveway_asphalt",  name: "沥青车道",      en: "Asphalt driveway",   icon: "🛣️", kind: "equipment", life: 20, interval: 12, system: "exterior",     region: "na",   when: ["f:driveway"],     tip: "每年春秋查裂缝并填缝；每 2–3 年封层；12–15 年重铺面层；20–25 年整体更换。" },
+    { id: "driveway_concrete", name: "混凝土车道",    en: "Concrete driveway",  icon: "🛣️", kind: "equipment", life: 30, interval: 12, system: "exterior",     region: "na",   when: ["f:driveway"], optional: true, tip: "每年查裂缝和错台；3–5 年刷渗透型防护剂；第一年冬天不撒盐。" },
+    // 车辆：挂在家庭上（不按房产），不自动推荐；类型 = 动力类型，决定保养模板（data/vehicles.js）
+    { id: "vehicle_gas",    name: "油车",             en: "Gas car",            icon: "🚗", kind: "vehicle",   life: 15, interval: 6,  system: null,           region: "both", when: [] },
+    { id: "vehicle_hybrid", name: "混动",             en: "Hybrid",             icon: "🚙", kind: "vehicle",   life: 15, interval: 6,  system: null,           region: "both", when: [] },
+    { id: "vehicle_phev",   name: "插混",             en: "Plug-in hybrid",     icon: "🔌", kind: "vehicle",   life: 15, interval: 6,  system: null,           region: "both", when: [] },
+    { id: "vehicle_ev",     name: "纯电",             en: "EV",                 icon: "⚡", kind: "vehicle",   life: 15, interval: 6,  system: null,           region: "both", when: [] },
     { id: "hot_tub",        name: "热水浴缸",         en: "Hot tub",            icon: "🛁", kind: "equipment", life: 12, interval: 3,  system: "plumbing",     region: "both", when: ["f:hot_tub"],      tip: "每 3–4 个月换水、清洗滤芯。" },
     { id: "fireplace",      name: "壁炉 / 烟囱",      en: "Fireplace",          icon: "🧱", kind: "equipment", life: null, interval: 12, system: "hvac",       region: "na",   when: ["f:fireplace"],    tip: "每年烧季前清扫烟囱。" },
     { id: "smoke_alarm",    name: "烟雾 / CO 报警器", en: "Smoke & CO alarm",   icon: "🚨", kind: "equipment", life: 10, interval: 12, system: null,           region: "both", when: ["*"],              tip: "每月按测试键；整机约 10 年更换。" },
@@ -291,9 +299,9 @@
     { id: "other_equipment", name: "其他设备",        en: "Other",              icon: "⚙️", kind: "equipment", life: null, interval: null, system: null,      region: "both", when: [] },
     { id: "other_tool",     name: "其他工具",         en: "Other tool",         icon: "🧰", kind: "tool",      life: null, interval: null, system: null,       region: "both", when: [] },
   ];
-  const ASSET_KINDS = { equipment: { name: "设备", icon: "⚙️" }, tool: { name: "工具", icon: "🧰" } };
+  const ASSET_KINDS = { equipment: { name: "设备", icon: "⚙️" }, tool: { name: "工具", icon: "🧰" }, vehicle: { name: "车辆", icon: "🚗" } };
   const MAINT_KINDS = { inspect: "检查", service: "保养", repair: "维修", replace: "更换" };
-  // 设备维修保养的花费记到 purchases 时用的分类（不在物品分类里，统计并入“房屋维护”）
+  // 设备维修保养的花费记到 purchases 时用的分类（不在物品分类里，统计并入“房屋维护”；车辆另有 VEHICLE_CAT）
   window.MAINT_CAT = { id: "house_maint", name: "设备维修保养", icon: "🔧", color: "#5c6b63" };
 
   // ── 季节任务模板（第二期）──
@@ -304,6 +312,8 @@
       { key: "na_fall_chimney",  months: [9, 10],   name: "壁炉烟囱清扫检查",               when: ["f:fireplace"] },
       { key: "na_fall_hose",     months: [10],      name: "关闭室外水龙头、排空软管",       when: ["type:sfh", "type:townhome"], note: "芝加哥一般 10 月底前完成，防止冻裂。" },
       { key: "na_fall_gutter",   months: [10, 11],  name: "清理排水槽和落水管",             when: ["type:sfh", "type:townhome"], note: "落叶落完后再清一次。" },
+      { key: "na_fall_driveway", months: [9, 10],   name: "车道上冻前填缝、看要不要封层",   when: ["f:driveway"], note: "裂缝宽过 1/8 英寸就填；表面发灰、不成水珠就该封层（2–3 年一次）。", card: "driveway_asphalt" },
+      { key: "na_spring_driveway", months: [4, 5],  name: "车道解冻后查裂缝、积水、错台",   when: ["f:driveway"], note: "冬天冻融后最容易出新裂缝；雨后 2 小时还积水说明基层下沉。", card: "driveway_asphalt" },
       { key: "na_fall_sump",     months: [10],      name: "测试排水泵和备用电池",           when: ["f:sump_pump"] },
       { key: "na_fall_salt",     months: [11],      name: "备好融雪盐和铲雪工具",           when: ["f:snow"] },
       { key: "na_fall_mice",     months: [9, 10],   name: "封堵外墙缝隙、布置捕鼠器",       when: ["type:sfh", "type:townhome", "f:garage"] },

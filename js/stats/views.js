@@ -7,13 +7,14 @@ import { compare, lang, locale, t } from "../core/i18n.js";
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
 const BILL_CATS = () => window.BILLS.CATEGORIES.map((c) => ({ id: `bill_${c.id}`, name: c.name, icon: c.icon, color: BILLS_GROUP.color }));
-export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, ...BILL_CATS(), OTHER_CAT];
-// 统计图里：储藏各分类单独显示，房屋耗材和设备维修保养合并为“房屋维护”、装备合并为“装备”、账单合并为“账单”各一组，避免颜色过多
-export const STAT_CATS = () => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, BILLS_GROUP, OTHER_CAT];
+export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), OTHER_CAT];
+// 统计图里：储藏各分类单独显示，房屋耗材和设备维修保养合并为“房屋维护”、装备合并为“装备”、车辆维修保养为“车辆”、账单合并为“账单”各一组，避免颜色过多
+export const STAT_CATS = () => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, BILLS_GROUP, OTHER_CAT];
 export const statCat = (id) => {
   const c = CATEGORIES.find((x) => x.id === id);
   if (c) return c.space === "pantry" ? c.id : c.space;
   if (id === MAINT_CAT.id) return "house";
+  if (id === VEHICLE_CAT.id) return "vehicle";
   return String(id || "").startsWith("bill_") ? "bills" : "other";
 };
 export const monthKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };

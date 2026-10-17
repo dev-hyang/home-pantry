@@ -105,7 +105,7 @@ export const DemoStore = {
       const i = this.db.assets.findIndex((x) => x.id === a.id);
       if (i < 0) throw new Error("设备不存在");
       this.db.assets[i] = { ...this.db.assets[i], ...a, updated_at: now };
-    } else this.db.assets.push({ ...a, id: uid(), property_id: a.property_id || state.propertyId, created_at: now, updated_at: now });
+    } else this.db.assets.push({ ...a, id: uid(), property_id: a.kind === "vehicle" ? null : a.property_id || state.propertyId, created_at: now, updated_at: now });
     this.persist();
   },
   async addAssets(list, pid) {
@@ -292,7 +292,7 @@ export function seedDemo() {
 /* ───────────── 数据层：Supabase 云端 ───────────── */
 export const ITEM_FIELDS = ["name", "category", "subcategory", "unit", "quantity", "min_quantity", "location", "expiry_date", "lead_days", "avg_daily_use", "notes"];
 export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", "brand", "model", "serial", "installed_on", "manufacture_year", "warranty_until", "labor_warranty_until",
-  "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes"];
+  "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes", "vehicle"];
 export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "acquired_on", "purchase_price", "sold_on", "sale_price", "archived", "notes"];
 export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email", "hoa"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
@@ -370,7 +370,8 @@ export const CloudStore = {
   async listAssets() { return this.must(await this.sb.from("assets").select("*").eq("household_id", this.hid).order("name")); },
   async saveAsset(a) {
     const row = pick(a, ASSET_FIELDS, { household_id: this.hid, updated_by: state.user.id });
-    if (!row.property_id) row.property_id = state.propertyId;
+    if (row.kind === "vehicle") row.property_id = null;   // 车辆挂在家庭上
+    else if (!row.property_id) row.property_id = state.propertyId;
     if (a.id) this.must(await this.sb.from("assets").update(row).eq("id", a.id));
     else this.must(await this.sb.from("assets").insert(row));
   },

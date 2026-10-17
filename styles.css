@@ -512,6 +512,40 @@ textarea { resize: vertical; }
 .task-row.overdue label b { color: var(--out); }
 .task-row label .badge { margin-left: 4px; vertical-align: 1px; }
 #assetForm.is-tool .eq-only { display: none; }
+/* 车辆表单：车辆专有区块只在车辆时显示；部分标签换成车辆叫法 */
+#assetForm .veh-show, #assetForm .veh-only { display: none; }
+#assetForm.is-vehicle .veh-show { display: inline; }
+#assetForm.is-vehicle .veh-only { display: block; }
+#assetForm.is-vehicle .veh-hide { display: none; }
+#assetForm.is-vehicle small.veh-show { display: block; }
+/* 保养记录：检查结论只在“检查”类型时显示 */
+#maintForm .inspect-only { display: none; }
+#maintForm.is-inspect .inspect-only { display: grid; }
+/* 车辆卡片：接下来的保养 */
+.veh-due { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.veh-due li { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 4px 8px; border-radius: 8px; background: var(--surface-2); }
+.veh-due li small { color: var(--muted); white-space: nowrap; }
+.veh-due li.soon { background: var(--soon-bg); }
+.veh-due li.late { background: var(--out-bg); }
+.veh-table th small, .veh-table td small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+.veh-table tr.soon td b { color: var(--low); }
+.veh-table tr.late td b { color: var(--out); }
+/* 检查卡：看什么、正常是什么样、自己能做、约师傅、红线 */
+.care-card { margin: 8px 0 0; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); font-size: 13px; }
+.care-card summary { cursor: pointer; padding: 8px 12px; font-weight: 700; color: var(--pine); list-style: none; }
+.care-card summary::-webkit-details-marker { display: none; }
+.care-card[open] summary { border-bottom: 1px dashed var(--line); }
+.care-card .care-sec, .care-card p { padding: 6px 12px; margin: 0; }
+.care-card h4 { margin: 4px 0 4px; font-size: 13px; }
+.care-card .care-diy h4 { color: var(--pine); }
+.care-card .care-pro h4 { color: #b8860b; }
+.care-card .care-urgent h4 { color: var(--out); }
+.care-card .care-urgent { background: var(--out-bg); border-radius: 0 0 var(--r-md) var(--r-md); }
+.care-card .care-ok b, .care-card .care-meta b { display: inline-block; margin-right: 6px; color: var(--muted); font-weight: 600; }
+.care-card .tips { margin: 0; }
+.task-row .grow { min-width: 0; }
+.task-row .care-card { margin-top: 6px; }
+.form-page .care-card { margin: 0 0 12px; }
 .record-meta { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
 .member-list { list-style: none; margin: 0; padding: 0; }
 .member-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); flex-wrap: wrap; }

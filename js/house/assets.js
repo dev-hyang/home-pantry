@@ -10,7 +10,13 @@ import { compare, joinList, t } from "../core/i18n.js";
 import { houseBar } from "./property-form.js";
 
 const H = () => window.HOUSE;
+const V = () => window.VEHICLES;
+const C = () => window.CARE;
 const OWNER_OPTS = ["self", "hoa", "landlord", "property", "varies"];
+export const isVehicle = (a) => a?.kind === "vehicle";
+/** 里程单位：美制英里，其余公里（模板里的数字按用户单位理解） */
+export const distUnit = () => (Units.region.system === "us" ? t("英里") : t("公里"));
+const plusDays = (iso, n) => { const d = new Date(`${iso}T12:00:00`); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
 export const SERVICE_BADGE = {
   overdue: { cls: "b-out",  label: "保养逾期" },
   due:     { cls: "b-soon", label: "该保养了" },
@@ -46,35 +52,103 @@ export function enrichAssets(assets, logs) {
     const wDays = wList.length ? Math.max(...wList) : null;   // 任一保修仍有效就算保修中
     const warranty = wDays == null ? "none" : wDays < 0 ? "expired" : wDays <= 30 ? "expiring" : "active";
     const totalCost = mine.reduce((s, l) => s + (l.currency && l.currency !== Units.region.currency ? 0 : num(l.cost)), 0);
-    return { ...a, t: at, logs: mine, lastService, next, dueDays, service, ageYears, lifePct, wDays, warranty, totalCost };
+    // 检查结论为“需保养 / 维修 / 更换”，且之后没有对应记录 → 待处理（首页提醒，直到记一条保养 / 维修 / 更换）
+    const lastInspect = mine.find((l) => l.kind === "inspect" && l.result && l.result !== "ok");
+    const fixedAfter = lastInspect && mine.some((l) => l.kind !== "inspect" && (l.done_on || "") >= (lastInspect.done_on || "") && l.id !== lastInspect.id);
+    const followUp = lastInspect && !fixedAfter ? lastInspect : null;
+    const out = { ...a, t: at, logs: mine, lastService, next, dueDays, service, ageYears, lifePct, wDays, warranty, totalCost, followUp };
+    if (a.kind === "vehicle") Object.assign(out, vehicleStatus(out, mine));
+    return out;
   });
 }
 
-/** 当前房产的设备 */
-export const myAssets = () => state.assetsEnriched.filter((a) => a.property_id === state.propertyId);
-/** 概览用：逾期 > 该保养 > 保修快到期 */
-export const assetAlerts = (list) => list
-  .filter((a) => a.service === "overdue" || a.service === "due" || a.warranty === "expiring")
-  .sort((x, y) => rank(x) - rank(y) || (x.dueDays ?? 999) - (y.dueDays ?? 999));
-const rank = (a) => (a.service === "overdue" ? 0 : a.service === "due" ? 1 : 2);
+/** 车辆：按保养项算下次到期（按月 / 按里程取先到的），再汇总成 service 状态；牌照、排放、保险、租赁到期 */
+function vehicleStatus(a, logs) {
+  const v = a.vehicle || {};
+  const today = todayISO();
+  const annual = num(v.annual_miles) || 12000, perDay = annual / 365;
+  const odo = num(v.odometer) || null;
+  const nowMiles = odo != null ? Math.round(odo + (v.odometer_on ? Math.max(0, -daysUntil(v.odometer_on)) * perDay : 0)) : null;   // 按年均里程推到今天
+  const items = V().itemsFor(a.type).filter((s) => s.key !== "other").map((s) => {
+    const last = logs.find((l) => l.service_item === s.key && l.kind !== "repair") || null;
+    const baseDate = last?.done_on || a.installed_on || null;
+    const byDate = s.months && baseDate ? addMonths(baseDate, s.months) : null;
+    const nextMiles = s.miles && last?.odometer != null ? last.odometer + s.miles : null;   // 没记过里程就只按日期
+    const byMiles = nextMiles != null && nowMiles != null ? plusDays(today, Math.round((nextMiles - nowMiles) / perDay)) : null;
+    const next = [byDate, byMiles].filter(Boolean).sort()[0] || null;
+    return { ...s, last, next, nextMiles, days: next ? daysUntil(next) : null };
+  }).sort((x, y) => (x.days ?? 9999) - (y.days ?? 9999));
+  const soonest = items.find((s) => s.days != null) || null;
+  const service = !soonest ? "unknown" : soonest.days < 0 ? "overdue" : soonest.days <= 30 ? "due" : "ok";
+  const doc = (iso) => (iso ? { date: iso, days: daysUntil(iso) } : null);
+  const docs = { registration: doc(v.registration_due), emissions: doc(v.emissions_due), insurance: doc(v.insurance?.to), lease: doc(v.lease_end) };
+  return { vItems: items, vSoonest: soonest, service, next: soonest?.next || null, dueDays: soonest?.days ?? null, nowMiles, vDocs: docs };
+}
 
-/** 提醒总线：所有活跃房产的设备（保养逾期 = 今天级，到期 / 保修 = 尽快级） */
+/** 车辆列表（不分房产） */
+export const myVehicles = () => state.assetsEnriched.filter(isVehicle).sort((x, y) => rank(x) - rank(y) || compare(x.name, y.name));
+
+/** 当前房产的设备（不含车辆，车辆挂在家庭上） */
+export const myAssets = () => state.assetsEnriched.filter((a) => a.property_id === state.propertyId && !isVehicle(a));
+/** 概览用：检查发现问题 > 逾期 > 该保养 > 保修快到期 */
+export const assetAlerts = (list) => list
+  .filter((a) => a.followUp || a.service === "overdue" || a.service === "due" || a.warranty === "expiring")
+  .sort((x, y) => rank(x) - rank(y) || (x.dueDays ?? 999) - (y.dueDays ?? 999));
+const rank = (a) => (a.followUp ? 0 : a.service === "overdue" ? 1 : a.service === "due" ? 2 : 3);
+
+/** 提醒总线：所有活跃房产的设备 + 家庭的车辆（检查发现问题 = 尽快·必须；保养逾期 = 今天级；到期 / 保修 = 尽快级） */
 export function assetAlertItems() {
   if (!state.houseEnabled) return [];
   const live = new Set(state.properties.filter((p) => !p.archived && !["sold", "moved_out"].includes(p.status)).map((p) => p.id));
-  return assetAlerts(state.assetsEnriched.filter((a) => live.has(a.property_id))).map((a) => ({
-    source: "asset", severity: a.service === "overdue" ? 1 : 2, must: false, due: a.next, daysLeft: a.service === "overdue" || a.service === "due" ? a.dueDays : a.wDays,
+  const out = assetAlerts(state.assetsEnriched.filter((a) => isVehicle(a) || live.has(a.property_id))).map((a) => ({
+    source: "asset", severity: a.followUp ? 2 : a.service === "overdue" ? 1 : 2, must: !!a.followUp, due: a.next,
+    daysLeft: a.followUp ? -(-daysUntil(a.followUp.done_on)) : a.service === "overdue" || a.service === "due" ? a.dueDays : a.wDays,
     property_id: a.property_id, title: `${a.t?.icon || "⚙️"} ${a.name}`, detail: alertText(a), href: href("asset", a.id),
-    badge: { label: a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修"), cls: a.service === "overdue" ? "b-out" : "b-soon" },
-    actions: [{ type: "link", href: `${href("asset", a.id)}?log=1`, label: t("记保养") }],
+    badge: { label: a.followUp ? t(C().RESULTS[a.followUp.result]) : a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修"), cls: a.followUp || a.service === "overdue" ? "b-out" : "b-soon" },
+    actions: [{ type: "link", href: `${href("asset", a.id)}?log=1`, label: a.followUp ? t("记处理结果") : t("记保养") }],
   }));
+  // 车辆证照与保险：牌照 / 排放 / 保险 30 天内到期（尽快·必须，过期 → 今天）；租赁 90 天内（留意）
+  for (const a of state.assetsEnriched.filter(isVehicle)) {
+    const D = a.vDocs || {};
+    const push = (key, label, d, within, sevLate, mustFlag) => {
+      if (!d || d.days > within) return;
+      out.push({ source: "asset", severity: d.days < 0 ? sevLate : within <= 30 ? 2 : 3, must: mustFlag, due: d.date, daysLeft: d.days, property_id: null,
+        title: `${a.t?.icon || "🚗"} ${a.name} · ${label}`, detail: d.days < 0 ? t("已过期 {d} 天", { d: -d.days }) : d.days === 0 ? t("今天到期") : t("{d} 天后到期（{date}）", { d: d.days, date: fmtDate(d.date) }),
+        href: href("asset", a.id), badge: { label: d.days < 0 ? t("已过期") : t("快到期"), cls: d.days < 0 ? "b-out" : "b-soon" }, actions: [{ type: "link", href: href("asset", a.id), label: t("更新") }] });
+    };
+    push("registration", t("牌照年贴"), D.registration, 30, 1, true);
+    push("emissions", t("排放检测"), D.emissions, 30, 1, true);
+    push("insurance", t("车险续保"), D.insurance, 30, 1, true);
+    push("lease", t("租赁到期"), D.lease, 90, 2, false);
+  }
+  return out;
 }
 
 export function alertText(a) {
+  if (a.followUp) return t("{date} 检查结论：{r}，还没记处理", { date: fmtDate(a.followUp.done_on), r: t(C().RESULTS[a.followUp.result]) });
+  if (isVehicle(a) && a.vSoonest && (a.service === "overdue" || a.service === "due")) {
+    const s = a.vSoonest, item = t(s.name);
+    return a.dueDays < 0 ? t("{item}逾期 {d} 天", { item, d: -a.dueDays }) : a.dueDays === 0 ? t("{item}今天到期", { item }) : t("{item}{d} 天后到期", { item, d: a.dueDays });
+  }
   if (a.service === "overdue") return t("保养逾期 {d} 天（上次 {last}）", { d: -a.dueDays, last: a.lastService ? fmtDate(a.lastService) : t("按安装日期算") });
   if (a.service === "due") return a.dueDays === 0 ? t("今天该保养了") : t("{d} 天后该保养", { d: a.dueDays });
   if (a.warranty === "expiring") return a.wDays === 0 ? t("保修今天到期") : t("保修 {d} 天后到期", { d: a.wDays });
   return "";
+}
+
+/* ── 检查卡：看什么、正常是什么样、自己做什么、什么时候叫人、红线、费用、时段 ── */
+export function careCard(key, { open = false } = {}) {
+  const c = C().cardOf(key); if (!c) return "";
+  const list = (title, arr, cls = "") => (arr?.length ? `<div class="care-sec ${cls}"><h4>${title}</h4><ul class="tips">${arr.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></div>` : "");
+  return `<details class="care-card" ${open ? "open" : ""}><summary>🔍 ${t("怎么查、什么时候叫人")}</summary>
+    ${list(t("看什么"), c.check)}
+    ${c.ok ? `<p class="care-ok"><b>${t("正常是什么样")}</b>${esc(t(c.ok))}</p>` : ""}
+    ${list(t("自己能做"), c.diy, "care-diy")}
+    ${list(t("这些情况约师傅"), c.pro, "care-pro")}
+    ${list(t("马上处理"), c.urgent, "care-urgent")}
+    ${c.cost ? `<p class="care-meta"><b>${t("费用")}</b>${esc(t(c.cost))}</p>` : ""}
+    ${c.when ? `<p class="care-meta"><b>${t("什么时候")}</b>${esc(t(c.when))}</p>` : ""}
+  </details>`;
 }
 
 const ageText = (a) => (a.ageYears < 1 ? t("不到 1 年") : t("{n} 年", { n: Math.floor(a.ageYears) }));
@@ -110,6 +184,52 @@ export function viewAssets() {
          <a class="btn btn-ghost" href="${href("asset", "new")}">${t("手动添加一台")}</a></p></div></section>`}`;
 }
 
+/* ── 车辆页：家庭的所有车（不分房产），每辆的保养到期、证照与保险 ── */
+export function viewVehicles() {
+  const list = myVehicles();
+  const alerts = assetAlerts(list);
+  const region = state.houseProfile?.region || (Units.region.system === "us" ? "na" : "cn");
+  const notes = V().REGION_NOTES[region] || [];
+  return `
+    <section class="section">
+      <div class="section-head"><h2>🚗 ${t("车辆")}<span class="muted">${list.length ? `（${list.length}）` : ""}</span></h2>
+        <div class="head-acts"><a class="btn btn-primary" href="${href("asset", "new")}?type=vehicle_gas">${t("添加车辆")}</a></div></div>
+      ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.map((a) => `<li>
+          <span class="badge ${a.followUp || a.service === "overdue" ? "b-out" : "b-soon"}">${a.followUp ? t(C().RESULTS[a.followUp.result]) : a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修")}</span>
+          <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(a.name)}</a><small>${esc(alertText(a))}</small></div>
+          <a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a></li>`).join("")}</ul></div>` : ""}
+    </section>
+    ${list.length ? `<section class="section"><div class="asset-grid">${list.map(vehicleCard).join("")}</div></section>`
+      : `<section class="section"><div class="panel empty"><strong>${t("还没有车辆档案")}</strong>${t("记下年款、车牌、里程和动力类型，按月或按里程提醒机油、轮胎、刹车油、12V 电瓶等；牌照、排放、保险到期也会提醒。油车和电车用不同的保养模板。")}
+        <p><a class="btn btn-primary" href="${href("asset", "new")}?type=vehicle_gas">${t("添加油车 / 混动")}</a> <a class="btn btn-ghost" href="${href("asset", "new")}?type=vehicle_ev">${t("添加纯电 / 插混")}</a></p></div></section>`}
+    ${notes.length ? `<section class="section"><div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("本地须知")}</h3><ul class="tips">${notes.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></div></section>` : ""}`;
+}
+
+function vehicleCard(a) {
+  const v = a.vehicle || {}, pt = V().POWERTRAINS[a.type];
+  const sb = SERVICE_BADGE[a.service];
+  const D = a.vDocs || {};
+  const docBadge = (label, d) => (!d ? "" : `<span class="badge ${d.days < 0 ? "b-out" : d.days <= 30 ? "b-soon" : "b-ok"}">${label} ${d.days < 0 ? t("已过期") : fmtDate(d.date)}</span>`);
+  const upcoming = (a.vItems || []).filter((s) => s.days != null).slice(0, 3);
+  const meta = [
+    [a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "),
+    v.plate && `🪪 ${v.plate}${v.plate_state ? ` (${v.plate_state})` : ""}`,
+    a.nowMiles != null && t("约 {n} {u}", { n: fmt(a.nowMiles), u: distUnit() }),
+  ].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("");
+  return `<article class="asset-card">
+    <div class="asset-head"><span class="asset-ico" aria-hidden="true">${pt?.icon || "🚗"}</span>
+      <div class="grow"><a class="asset-name" href="${href("asset", a.id)}">${esc(a.name)}</a><div class="item-meta">${meta}<span class="badge" style="background:var(--surface-2)">${t(pt?.name || "")}</span></div></div></div>
+    <div class="asset-badges">
+      ${a.followUp ? `<span class="badge b-out">${t(C().RESULTS[a.followUp.result])}</span>` : ""}
+      ${sb.label ? `<span class="badge ${sb.cls}">${t(sb.label)}</span>` : ""}
+      ${docBadge(t("牌照"), D.registration)}${docBadge(t("排放"), D.emissions)}${docBadge(t("保险"), D.insurance)}${docBadge(t("租赁"), D.lease)}
+    </div>
+    ${upcoming.length ? `<ul class="veh-due">${upcoming.map((s) => `<li class="${s.days < 0 ? "late" : s.days <= 30 ? "soon" : ""}"><span>${esc(t(s.name))}</span><small>${fmtDate(s.next)}${s.nextMiles != null ? ` · ${fmt(s.nextMiles)} ${distUnit()}` : ""}</small></li>`).join("")}</ul>`
+      : `<small class="muted">${t("填购车日期或记第一次保养后，这里会列出下一步该做的保养。")}</small>`}
+    <div class="acts"><a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></div>
+  </article>`;
+}
+
 export function assetCard(a) {
   const sb = SERVICE_BADGE[a.service], wb = WARRANTY_BADGE[a.warranty];
   const o = a.owner ? H().OWNERS[a.owner] : null;
@@ -127,6 +247,7 @@ export function assetCard(a) {
       <div class="grow"><a class="asset-name" href="${href("asset", a.id)}">${esc(a.name)}</a>
         <div class="item-meta">${meta || `<span>${esc(a.t ? t(a.t.name) : "")}</span>`}</div></div></div>
     <div class="asset-badges">
+      ${a.followUp ? `<span class="badge b-out">${t("检查：{r}", { r: t(C().RESULTS[a.followUp.result]) })}</span>` : ""}
       ${sb.label ? `<span class="badge ${sb.cls}">${t(sb.label)}${a.next && a.service !== "unknown" ? ` · ${fmtDate(a.next)}` : ""}</span>` : ""}
       ${wb.label ? `<span class="badge ${wb.cls}">${t(wb.label)}</span>` : ""}
     </div>
@@ -192,15 +313,68 @@ export function openAsset(id, { type } = {}) {
 export function leaveAsset(changed) {
   if (changed) state.needsRefresh = true;
   if (state.prevRoute) history.back();
-  else go(href("house", "assets"), { replace: true });
+  else go(href("house", state.route?.id && isVehicle(state.assets.find((x) => x.id === state.route.id)) ? "vehicles" : "assets"), { replace: true });
 }
 
 function typeOptions(selected, kind) {
   const p = state.houseProfile;
   const list = p ? H().forRegion(H().ASSET_TYPES, p.region) : H().ASSET_TYPES;
   const opt = (x) => `<option value="${x.id}" ${x.id === selected ? "selected" : ""}>${x.icon} ${esc(t(x.name))}</option>`;
-  const mine = list.filter((x) => x.kind === kind), others = list.filter((x) => x.kind !== kind);
+  if (kind === "vehicle") return list.filter((x) => x.kind === "vehicle").map(opt).join("");   // 车辆只在动力类型里选
+  const mine = list.filter((x) => x.kind === kind), others = list.filter((x) => x.kind !== kind && x.kind !== "vehicle");
   return `${mine.map(opt).join("")}<optgroup label="${kind === "tool" ? t("设备") : t("工具")}">${others.map(opt).join("")}</optgroup>`;
+}
+
+/** 车辆专有区块：车牌、里程、证照到期、保险（与房屋保险同构） */
+function vehicleFieldset(a) {
+  const v = a?.vehicle || {}, ins = v.insurance || {};
+  const d = (x) => esc(x ?? "");
+  return `<fieldset class="veh-only">
+      <legend>${t("车牌与里程")}</legend>
+      <div class="form-grid">
+        <label>${t("车牌")}<input name="veh_plate" maxlength="12" value="${d(v.plate)}"></label>
+        <label>${t("上牌州 / 省")}<input name="veh_plate_state" maxlength="12" placeholder="IL" value="${d(v.plate_state)}"></label>
+        <label>${t("当前里程（{u}）", { u: distUnit() })}<input name="veh_odometer" type="number" inputmode="numeric" min="0" step="1" value="${d(v.odometer)}"></label>
+        <label>${t("里程记录日期")}<input name="veh_odometer_on" type="date" value="${d(v.odometer_on || todayISO())}"></label>
+        <label>${t("年均里程（{u}）", { u: distUnit() })}<input name="veh_annual_miles" type="number" inputmode="numeric" min="0" step="100" placeholder="12000" value="${d(v.annual_miles)}"><small>${t("用来把“按里程”的保养换算成日期")}</small></label>
+      </div>
+    </fieldset>
+    <fieldset class="veh-only">
+      <legend>${t("证照与租赁")}</legend>
+      <div class="form-grid">
+        <label>${t("牌照年贴到期")}<input name="veh_registration_due" type="date" value="${d(v.registration_due)}"><small>${t("到期前 30 天提醒")}</small></label>
+        <label>${t("排放检测到期")}<input name="veh_emissions_due" type="date" value="${d(v.emissions_due)}"><small>${t("纯电免检可留空")}</small></label>
+        <label>${t("租赁到期（租车才填）")}<input name="veh_lease_end" type="date" value="${d(v.lease_end)}"></label>
+      </div>
+    </fieldset>
+    <fieldset class="veh-only">
+      <legend>${t("车险")}</legend>
+      <div class="form-grid">
+        <label>${t("保险公司")}<input name="veh_ins_provider" maxlength="60" value="${d(ins.provider)}"></label>
+        <label>${t("保单号")}<input name="veh_ins_policy" maxlength="60" value="${d(ins.policy)}"><small>${t("几辆车同一张保单就填同一个号，提醒会合并")}</small></label>
+        <label>${t("生效日")}<input name="veh_ins_from" type="date" value="${d(ins.from)}"></label>
+        <label>${t("到期日")}<input name="veh_ins_to" type="date" value="${d(ins.to)}"><small>${t("到期前 30 天提醒续保")}</small></label>
+        <label class="span-2">${t("保障范围")}<input name="veh_ins_coverage" maxlength="200" placeholder="${t("例如：责任 100/300/50、碰撞自付 $500、综合自付 $250")}" value="${d(ins.coverage)}"></label>
+        <label>${t("代理 / 经纪人")}<input name="veh_ins_agent" maxlength="60" value="${d(ins.agent)}"></label>
+        <label>${t("理赔电话")}<input name="veh_ins_phone" type="tel" maxlength="40" value="${d(ins.phone)}"></label>
+        <label class="span-2">${t("理赔邮箱")}<input name="veh_ins_email" type="email" maxlength="120" value="${d(ins.email)}"></label>
+      </div>
+      <p class="hint">${t("账单里的“车险”负责缴费提醒，这里负责续保和保障范围。")}</p>
+    </fieldset>`;
+}
+
+/** 车辆详情页顶部：保养项时间表 */
+function vehicleSchedule(a) {
+  const items = a.vItems || [];
+  if (!items.length) return "";
+  const row = (s) => `<tr class="${s.days == null ? "" : s.days < 0 ? "late" : s.days <= 30 ? "soon" : ""}">
+      <th scope="row">${esc(t(s.name))}${s.note ? `<small>${esc(t(s.note))}</small>` : ""}</th>
+      <td>${[s.months ? t("{n} 个月", { n: s.months }) : "", s.miles ? `${fmt(s.miles)} ${distUnit()}` : ""].filter(Boolean).join(" / ") || "—"}</td>
+      <td>${s.last ? `${fmtDate(s.last.done_on)}${s.last.odometer != null ? `<small>${fmt(s.last.odometer)} ${distUnit()}</small>` : ""}` : `<span class="muted">—</span>`}</td>
+      <td>${s.next ? `<b>${fmtDate(s.next)}</b>${s.nextMiles != null ? `<small>${fmt(s.nextMiles)} ${distUnit()}</small>` : ""}${s.days != null ? `<small>${s.days < 0 ? t("逾期 {d} 天", { d: -s.days }) : t("{d} 天后", { d: s.days })}</small>` : ""}` : `<span class="muted">${t("记一次后开始算")}</span>`}</td>
+    </tr>`;
+  return `<div class="section-head" style="margin-top:20px"><h2>${t("保养时间表")}</h2><p>${t("按月和按里程取先到的；里程按年均里程推算")}</p></div>
+    <div class="panel"><div class="ch-scroll"><table class="owner-table veh-table"><thead><tr><th>${t("项目")}</th><th>${t("周期")}</th><th>${t("上次")}</th><th>${t("下次")}</th></tr></thead><tbody>${items.map(row).join("")}</tbody></table></div></div>`;
 }
 
 export function viewAssetForm() {
@@ -214,8 +388,8 @@ export function viewAssetForm() {
     kind: tplType?.kind || "equipment", type: tplType?.id || "water_heater", name: tplType ? t(tplType.name) : "", location: "",
     expected_life_years: tplType?.life ?? "", service_interval_months: tplType?.interval ?? "", owner: "self",
   };
-  const tool = v.kind === "tool";
-  const backLabel = state.prevRoute ? t({ today: "今日", house: "房屋", me: "我的" }[state.prevRoute.section] || "上一页") : t("设备档案");
+  const tool = v.kind === "tool", veh = v.kind === "vehicle";
+  const backLabel = state.prevRoute ? t({ today: "今日", house: "房屋", me: "我的" }[state.prevRoute.section] || "上一页") : veh ? t("车辆") : t("设备档案");
   const d = (x) => esc(x ?? "");
   const thisYear = new Date().getFullYear();
   const cur = Units.region.currency;
@@ -223,21 +397,22 @@ export function viewAssetForm() {
   return `
     <section class="section form-page">
       <div class="section-head">
-        <h2>${a ? `${a.t?.icon || "⚙️"} ${esc(a.name)}` : t("添加设备")}</h2>
+        <h2>${a ? `${a.t?.icon || "⚙️"} ${esc(a.name)}` : veh ? t("添加车辆") : t("添加设备")}</h2>
         <button type="button" class="btn btn-sm btn-ghost" data-action="asset-cancel">${t("返回{page}", { page: backLabel })}</button>
       </div>
       ${a ? assetSummary(a) : ""}
-      <form id="assetForm" class="panel ${tool ? "is-tool" : ""}" novalidate>
+      ${a && !veh ? careCard(a.type) : ""}
+      <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""}" novalidate>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
         <fieldset>
           <legend>${t("基本信息")}</legend>
-          <div class="seg-radio" style="margin-bottom:10px">${kindPill("equipment")}${kindPill("tool")}</div>
+          <div class="seg-radio" style="margin-bottom:10px">${kindPill("equipment")}${kindPill("tool")}${kindPill("vehicle")}</div>
           <div class="form-grid">
-            <label>${t("类型")}
+            <label><span class="veh-hide">${t("类型")}</span><span class="veh-show">${t("动力类型")}</span>
               <select name="type" required>${typeOptions(v.type, v.kind)}</select>
             </label>
             <label>${t("名称")}
-              <input name="name" required maxlength="60" autocomplete="off" placeholder="${t("例如：Carrier 暖风炉")}" value="${d(v.name)}">
+              <input name="name" required maxlength="60" autocomplete="off" placeholder="${veh ? t("例如：白色 RAV4") : t("例如：Carrier 暖风炉")}" value="${d(v.name)}">
             </label>
             <label>${t("位置")}
               <select name="location"><option value="">${t("未指定")}</option>${LOCATIONS.map((l) => `<option value="${esc(l)}" ${l === v.location ? "selected" : ""}>${esc(t(l))}</option>`).join("")}</select>
@@ -248,31 +423,32 @@ export function viewAssetForm() {
             <label>${t("型号")}
               <input name="model" maxlength="60" value="${d(v.model)}">
             </label>
-            <label>${t("序列号")}
+            <label><span class="veh-hide">${t("序列号")}</span><span class="veh-show">VIN</span>
               <input name="serial" maxlength="60" value="${d(v.serial)}">
             </label>
           </div>
         </fieldset>
+        ${veh ? vehicleFieldset(a) : ""}
         <fieldset>
-          <legend>${t("年份与保修")}</legend>
+          <legend><span class="veh-hide">${t("年份与保修")}</span><span class="veh-show">${t("年款与保修")}</span></legend>
           <div class="form-grid">
-            <label>${t("安装 / 购买日期")}
+            <label><span class="veh-hide">${t("安装 / 购买日期")}</span><span class="veh-show">${t("购车日期")}</span>
               <input name="installed_on" type="date" value="${d(v.installed_on)}">
-              <small>${t("用来算房龄和首次保养日期")}</small>
+              <small class="veh-hide">${t("用来算房龄和首次保养日期")}</small><small class="veh-show">${t("没有保养记录时，按它算第一次保养")}</small>
             </label>
-            <label>${t("出厂年份（可选）")}
-              <input name="manufacture_year" type="number" inputmode="numeric" min="1950" max="${thisYear}" placeholder="${t("铭牌上通常有")}" value="${d(v.manufacture_year)}">
+            <label><span class="veh-hide">${t("出厂年份（可选）")}</span><span class="veh-show">${t("年款")}</span>
+              <input name="manufacture_year" type="number" inputmode="numeric" min="1950" max="${thisYear + 1}" placeholder="${veh ? "2022" : t("铭牌上通常有")}" value="${d(v.manufacture_year)}">
             </label>
-            <label>${t("整机保修到")}
+            <label><span class="veh-hide">${t("整机保修到")}</span><span class="veh-show">${t("整车保修到")}</span>
               <input name="warranty_until" type="date" value="${d(v.warranty_until)}">
             </label>
-            <label class="eq-only">${t("人工保修到（可选）")}
+            <label class="eq-only"><span class="veh-hide">${t("人工保修到（可选）")}</span><span class="veh-show">${t("动力总成 / 高压电池保修到")}</span>
               <input name="labor_warranty_until" type="date" value="${d(v.labor_warranty_until)}">
-              <small>${t("安装商的人工保修通常比厂家短")}</small>
+              <small class="veh-hide">${t("安装商的人工保修通常比厂家短")}</small><small class="veh-show">${t("电车高压电池通常 8 年 / 10 万英里")}</small>
             </label>
           </div>
         </fieldset>
-        <fieldset>
+        <fieldset class="veh-hide">
           <legend>${t("寿命与保养周期")}</legend>
           <div class="form-grid">
             <label>${t("预期寿命（年）")}
@@ -285,7 +461,7 @@ export function viewAssetForm() {
           </div>
         </fieldset>
         <fieldset>
-          <legend>${t("费用与负责方")}</legend>
+          <legend><span class="veh-hide">${t("费用与负责方")}</span><span class="veh-show">${t("购车价格")}</span></legend>
           <div class="form-grid">
             <label>${t("购买价格（{cur}）", { cur })}
               <input name="purchase_price" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.purchase_price)}">
@@ -305,18 +481,20 @@ export function viewAssetForm() {
         </fieldset>
         <p id="assetFormError" class="form-error" role="alert"></p>
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary">${a ? t("保存修改") : t("添加设备")}</button>
+          <button type="submit" class="btn btn-primary">${a ? t("保存修改") : veh ? t("添加车辆") : t("添加设备")}</button>
           <button type="button" class="btn btn-ghost" data-action="asset-cancel">${t("取消")}</button>
-          ${a ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="asset-delete">${t("删除设备")}</button>` : ""}
+          ${a ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="asset-delete">${veh ? t("删除车辆") : t("删除设备")}</button>` : ""}
         </div>
       </form>
-      ${a ? maintSection(a, r.q.get("log") === "1") : `<p class="muted" style="margin-top:12px;font-size:13px">${t("保存后可以在这台设备下记录每次检查、保养和维修。")}</p>`}
+      ${a && veh ? vehicleSchedule(a) : ""}
+      ${a ? maintSection(a, r.q.get("log") === "1") : `<p class="muted" style="margin-top:12px;font-size:13px">${veh ? t("保存后可以在这辆车下记录每次保养、维修，按项目算下次到期。") : t("保存后可以在这台设备下记录每次检查、保养和维修。")}</p>`}
     </section>`;
 }
 
 function assetSummary(a) {
   const sb = SERVICE_BADGE[a.service], wb = WARRANTY_BADGE[a.warranty];
   const bits = [
+    a.followUp && `<span class="badge b-out">${t("检查：{r}", { r: t(C().RESULTS[a.followUp.result]) })}</span>`,
     sb.label && `<span class="badge ${sb.cls}">${t(sb.label)}${a.next && a.service !== "unknown" ? t(" · 下次 {d}", { d: fmtDate(a.next) }) : ""}</span>`,
     wb.label && `<span class="badge ${wb.cls}">${t(wb.label)}${a.warranty_until ? ` · ${fmtDate(a.warranty_until)}` : ""}</span>`,
     a.ageYears != null && `<span class="badge" style="background:var(--surface-2)">${t("已用 {age}", { age: ageText(a) })}${num(a.expected_life_years) ? t(" / 约 {n} 年", { n: fmt(a.expected_life_years) }) : ""}</span>`,
@@ -326,28 +504,34 @@ function assetSummary(a) {
 }
 
 function maintSection(a, focusLog) {
-  const K = H().MAINT_KINDS;
+  const K = H().MAINT_KINDS, R = C().RESULTS, veh = isVehicle(a);
   const rows = a.logs.map((l) => `<li>
-      <span class="badge ${l.kind === "repair" ? "b-low" : l.kind === "replace" ? "b-exp" : "b-ok"}">${t(K[l.kind] || l.kind)}</span>
-      <div class="grow"><span class="name">${esc(fmtDate(l.done_on))}</span>
-        <small>${joinList([l.diy ? t("自己做的") : l.vendor ? t("由 {who}", { who: l.vendor }) : null, l.cost != null ? t("花费 {m}", { m: Units.money(num(l.cost), l.currency || Units.region.currency) }) : null, l.notes,
+      <span class="badge ${l.kind === "repair" ? "b-low" : l.kind === "replace" ? "b-exp" : l.result && l.result !== "ok" ? "b-out" : "b-ok"}">${t(K[l.kind] || l.kind)}${l.result ? ` · ${t(R[l.result] || l.result)}` : ""}</span>
+      <div class="grow"><span class="name">${esc(fmtDate(l.done_on))}${l.service_item ? ` · ${esc(t(V().serviceItem(l.service_item)?.name || l.service_item))}` : ""}</span>
+        <small>${joinList([l.odometer != null ? `${fmt(l.odometer)} ${distUnit()}` : null, l.diy ? t("自己做的") : l.vendor ? t("由 {who}", { who: l.vendor }) : null, l.cost != null ? t("花费 {m}", { m: Units.money(num(l.cost), l.currency || Units.region.currency) }) : null, l.notes,
           l.created_at && t("{d} 记录", { d: fmtShort(l.created_at) })].filter(Boolean).map(esc))}</small></div>
       <button type="button" class="btn btn-sm btn-ghost" data-action="maint-del" data-id="${l.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>
     </li>`).join("");
+  const followUp = a.followUp ? `<div class="panel cta-panel" style="margin-bottom:10px"><div><b>${t("{date} 检查结论：{r}", { date: fmtDate(a.followUp.done_on), r: t(R[a.followUp.result]) })}</b>
+      <p class="muted">${t("记一条保养、维修或更换后，这条提醒会消失。")}</p></div></div>` : "";
   return `
-    <div class="section-head" style="margin-top:28px"><h2>${t("保养记录")}</h2><p>${t("检查、保养、更换会重算下次保养日期；维修不会")}</p></div>
+    <div class="section-head" style="margin-top:28px"><h2>${t("保养记录")}</h2><p>${veh ? t("按保养项目算下次到期；维修不重置") : t("检查、保养、更换会重算下次保养日期；维修不会")}</p></div>
+    ${followUp}
     <form id="maintForm" class="panel" ${focusLog ? 'data-focus="1"' : ""}>
       <input type="hidden" name="asset_id" value="${esc(a.id)}">
       <div class="form-grid maint-grid">
         <label>${t("日期")}<input name="done_on" type="date" required value="${todayISO()}" max="${todayISO()}"></label>
         <label>${t("类型")}<select name="kind">${Object.entries(K).map(([k, n]) => `<option value="${k}" ${k === "service" ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
+        ${veh ? `<label>${t("保养项目")}<select name="service_item"><option value="">${t("未指定")}</option>${V().itemsFor(a.type).map((s) => `<option value="${s.key}">${esc(t(s.name))}</option>`).join("")}</select></label>
+                <label>${t("里程（{u}）", { u: distUnit() })}<input name="odometer" type="number" inputmode="numeric" min="0" step="1" placeholder="${a.nowMiles != null ? fmt(a.nowMiles) : ""}"><small>${t("填了会同时更新车辆当前里程")}</small></label>`
+              : `<label class="inspect-only">${t("检查结论")}<select name="result">${Object.entries(R).map(([k, n]) => `<option value="${k}">${t(n)}</option>`).join("")}</select><small>${t("“需保养 / 维修 / 更换”会提醒到记下一条为止")}</small></label>`}
         <label>${t("花费（{cur}，可不填）", { cur: Units.region.currency })}<input name="cost" type="number" inputmode="decimal" min="0" step="0.01"></label>
         <label>${t("谁做的")}<input name="vendor" maxlength="40" placeholder="${t("维修商 / 师傅，自己做留空")}"></label>
         <label class="span-2 check-inline"><input type="checkbox" name="diy"><span>${t("自己动手")}</span></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" placeholder="${t("换了什么、师傅怎么说…")}"></label>
       </div>
       <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${t("记一笔")}</button>
-        <small class="muted">${t("填了花费会同时记入“房屋维护”花费统计。")}</small></div>
+        <small class="muted">${veh ? t("填了花费会同时记入“车辆”花费统计。") : t("填了花费会同时记入“房屋维护”花费统计。")}</small></div>
     </form>
     <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有记录")}</strong>${t("上面记第一次检查或保养，之后会按周期提醒。")}</div>`}</div>`;
 }
@@ -356,6 +540,11 @@ function maintSection(a, focusLog) {
 export function onAssetFormChange(e) {
   const f = e.target.form, fe = f.elements, isNew = !fe.asset_id.value;
   if (e.target.name === "kind") {
+    const toVeh = e.target.value === "vehicle", wasVeh = f.classList.contains("is-vehicle");
+    if (isNew && toVeh !== wasVeh) {   // 车辆有自己的区块，整页按新种类重画
+      const first = H().ASSET_TYPES.find((x) => x.kind === e.target.value);
+      go(`${href("asset", "new")}?type=${first.id}`, { replace: true }); return;
+    }
     f.classList.toggle("is-tool", e.target.value === "tool");
     const cur = fe.type.value;
     fe.type.innerHTML = typeOptions(cur, e.target.value);
@@ -368,6 +557,11 @@ export function onAssetFormChange(e) {
     if (at.kind !== fe.kind.value) { f.querySelector(`input[name="kind"][value="${at.kind}"]`).checked = true; f.classList.toggle("is-tool", at.kind === "tool"); }
     applyType(fe, at, isNew);
   }
+}
+/** 保养记录表单：检查类型才显示“检查结论” */
+export function onMaintFormChange(e) {
+  const f = e.target.form; if (!f || e.target.name !== "kind") return;
+  f.classList.toggle("is-inspect", e.target.value === "inspect");
 }
 function applyType(fe, at, isNew) {
   if (!isNew) return;
@@ -387,17 +581,27 @@ export async function saveAssetForm(f) {
   const thisYear = new Date().getFullYear();
   const year = numOrNull(fe.manufacture_year, { int: true });
   if (year != null && (year < 1950 || year > thisYear)) { err.textContent = t("出厂年份需要在 1950 到 {y} 之间。", { y: thisYear }); return fe.manufacture_year.focus(); }
-  const tool = fe.kind.value === "tool";
+  const tool = fe.kind.value === "tool", veh = fe.kind.value === "vehicle";
   const a = {
     id: fe.asset_id.value || undefined,
     kind: fe.kind.value, type: fe.type.value, name,
     location: fe.location.value || null, brand: fe.brand.value.trim() || null, model: fe.model.value.trim() || null, serial: fe.serial.value.trim() || null,
     installed_on: fe.installed_on.value || null, manufacture_year: year,
     warranty_until: fe.warranty_until.value || null, labor_warranty_until: tool ? null : fe.labor_warranty_until.value || null,
-    expected_life_years: numOrNull(fe.expected_life_years), service_interval_months: numOrNull(fe.service_interval_months, { int: true }),
-    purchase_price: numOrNull(fe.purchase_price), replacement_cost_estimate: tool ? null : numOrNull(fe.replacement_cost_estimate),
-    owner: tool ? null : fe.owner.value || null, notes: fe.notes.value.trim() || null,
+    expected_life_years: veh ? 15 : numOrNull(fe.expected_life_years), service_interval_months: veh ? null : numOrNull(fe.service_interval_months, { int: true }),
+    purchase_price: numOrNull(fe.purchase_price), replacement_cost_estimate: tool || veh ? null : numOrNull(fe.replacement_cost_estimate),
+    owner: tool || veh ? null : fe.owner.value || null, notes: fe.notes.value.trim() || null,
+    property_id: veh ? null : (state.assets.find((x) => x.id === fe.asset_id.value)?.property_id || state.propertyId),
+    vehicle: null,
   };
+  if (veh) {
+    const s = (el) => (el.value || "").trim() || null;
+    a.vehicle = {
+      plate: s(fe.veh_plate), plate_state: s(fe.veh_plate_state), odometer: numOrNull(fe.veh_odometer, { int: true }), odometer_on: fe.veh_odometer_on.value || null,
+      annual_miles: numOrNull(fe.veh_annual_miles, { int: true }), registration_due: fe.veh_registration_due.value || null, emissions_due: fe.veh_emissions_due.value || null, lease_end: fe.veh_lease_end.value || null,
+      insurance: { provider: s(fe.veh_ins_provider), policy: s(fe.veh_ins_policy), from: fe.veh_ins_from.value || null, to: fe.veh_ins_to.value || null, coverage: s(fe.veh_ins_coverage), agent: s(fe.veh_ins_agent), phone: s(fe.veh_ins_phone), email: s(fe.veh_ins_email) },
+    };
+  }
   const btn = f.querySelector('button[type="submit"]');
   btn.disabled = true;
   try {
@@ -413,14 +617,23 @@ export async function saveMaintForm(f) {
   const asset = state.assets.find((x) => x.id === fe.asset_id.value);
   if (!asset) return toast(t("设备不存在"));
   const done_on = fe.done_on.value || todayISO();
-  const kind = fe.kind.value, vendor = fe.vendor.value.trim() || null, diy = fe.diy.checked;
+  const kind = fe.kind.value, vendor = fe.vendor.value.trim() || null, diy = fe.diy.checked, veh = isVehicle(asset);
   const cost = fe.cost.value === "" ? null : Math.round(Math.max(0, num(fe.cost.value)) * 100) / 100;
   const currency = Units.region.currency;
+  const result = !veh && kind === "inspect" && fe.result ? fe.result.value || null : null;
+  const service_item = veh && fe.service_item ? fe.service_item.value || null : null;
+  const odometer = veh && fe.odometer && fe.odometer.value !== "" ? Math.max(0, Math.round(num(fe.odometer.value))) : null;
+  const itemName = service_item ? t(V().serviceItem(service_item)?.name || service_item) : t(H().MAINT_KINDS[kind]);
   let purchase_id = null;
   if (cost != null && cost > 0) {
-    purchase_id = await Store.addPurchase({ item_id: null, name: `${asset.name} · ${t(H().MAINT_KINDS[kind])}`, category: MAINT_CAT.id, quantity: null, unit: null,
+    purchase_id = await Store.addPurchase({ item_id: null, name: `${asset.name} · ${itemName}`, category: veh ? VEHICLE_CAT.id : MAINT_CAT.id, quantity: null, unit: null,
       store: vendor, amount: cost, currency, purchased_at: new Date(`${done_on}T12:00:00`).toISOString() });
   }
-  await Store.addMaintLog({ asset_id: asset.id, done_on, kind, cost, currency: cost != null ? currency : null, diy, vendor, notes: fe.notes.value.trim() || null, purchase_id });
-  toast(kind === "replace" ? t("已记录更换，记得把安装日期改成新设备的日期") : t("已记录{kind}", { kind: t(H().MAINT_KINDS[kind]) }));
+  await Store.addMaintLog({ asset_id: asset.id, done_on, kind, cost, currency: cost != null ? currency : null, diy, vendor, notes: fe.notes.value.trim() || null, purchase_id, result, service_item, odometer });
+  // 车辆：记录里的里程比档案新就更新档案里程
+  if (veh && odometer != null && (num(asset.vehicle?.odometer) || 0) <= odometer) {
+    await Store.saveAsset({ ...asset, vehicle: { ...(asset.vehicle || {}), odometer, odometer_on: done_on } });
+  }
+  if (result && result !== "ok") toast(t("已记录检查，结论“{r}”，会提醒到记下一条处理为止", { r: t(C().RESULTS[result]) }));
+  else toast(kind === "replace" ? t("已记录更换，记得把安装日期改成新设备的日期") : t("已记录{kind}", { kind: itemName }));
 }

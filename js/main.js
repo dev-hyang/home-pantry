@@ -15,7 +15,7 @@ import { billAlertItems } from "./bills/logic.js";
 // 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
 [pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
 import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
-import { assetTemplateItems, enrichAssets, leaveAsset, onAssetFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
+import { assetTemplateItems, enrichAssets, leaveAsset, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { seasonalSince, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, openDeal, saveDealForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
@@ -69,7 +69,7 @@ export const refreshSoon = () => { clearTimeout(debounceT); debounceT = setTimeo
 const VIEWS = {
   today:    () => viewToday(),
   pantry:   { overview: viewDashboard, inventory: () => viewInventory("pantry"), gear: () => viewInventory("gear"), meals: viewMeals },
-  house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, deal: viewDeal, profile: viewHouseProfile,
+  house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile,
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
   bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, template: viewBillTemplate },
   shopping: () => viewShopping(),
@@ -246,6 +246,7 @@ main.addEventListener("change", async (e) => {
     e.target.form.classList.toggle("is-gear", spaceOf(e.target.value) === "gear");
   }
   if (e.target.closest("#assetForm") && (e.target.name === "kind" || e.target.name === "type")) return onAssetFormChange(e);
+  if (e.target.closest("#maintForm") && e.target.name === "kind") return onMaintFormChange(e);
   if (e.target.matches("input[data-task]")) {
     try { await toggleTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); }
     return refresh();

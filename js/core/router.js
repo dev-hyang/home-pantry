@@ -3,7 +3,7 @@
 export const SECTIONS = {
   today:    { name: "今日",   subs: null },
   pantry:   { name: "储藏",   subs: [["overview", "概览"], ["inventory", "库存"], ["gear", "装备"], ["meals", "菜单"]] },   // 装备：耐用品和工具，只记数量和位置
-  house:    { name: "房屋",   subs: [["overview", "概览"], ["supplies", "房屋耗材"], ["assets", "设备"], ["tasks", "季节任务"], ["deal", "交易"], ["profile", "房屋资料"],
+  house:    { name: "房屋",   subs: [["overview", "概览"], ["supplies", "房屋耗材"], ["assets", "设备"], ["tasks", "季节任务"], ["vehicles", "车辆"], ["deal", "交易"], ["profile", "房屋资料"],
                                      ["template", "推荐耗材", true], ["asset-template", "生成设备", true]] },  // 第三项 true = 不在二级导航显示
   bills:    { name: "账单",   subs: [["overview", "概览"], ["list", "清单"], ["history", "记录"], ["template", "常用账单", true]] },
   shopping: { name: "采购",   subs: null },

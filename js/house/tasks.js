@@ -7,6 +7,7 @@ import { esc, fmtDate } from "../core/util.js";
 import { href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { houseBar } from "./property-form.js";
+import { careCard } from "./assets.js";
 
 const H = () => window.HOUSE;
 export const MONTHS = ["1 月", "2 月", "3 月", "4 月", "5 月", "6 月", "7 月", "8 月", "9 月", "10 月", "11 月", "12 月"];
@@ -51,9 +52,10 @@ export function taskRow(x, year, month) {
   const when = done ? t("{date} {who}已完成", { date: fmtDate(done.done_on), who: done.done_by_name ? `${esc(done.done_by_name)} ` : "" })
     : task.note ? esc(t(task.note)) : task.months.length >= 12 ? t("每月一次") : joinList(task.months.map(monthName));
   const attrs = Object.entries(taskAttrs(x, year, month)).map(([k, v]) => `${k}="${esc(v)}"`).join(" ");
+  const card = careCard(task.card || task.key);   // 有检查卡的任务，行下带“怎么查、什么时候叫人”
   return `<li class="task-row ${done ? "done" : ""}">
     <input type="checkbox" id="${id}" ${attrs} ${done ? "checked" : ""}>
-    <label for="${id}"><b>${esc(t(task.name))}</b><small>${when}</small></label>
+    <div class="grow"><label for="${id}"><b>${esc(t(task.name))}</b><small>${when}</small></label>${card}</div>
   </li>`;
 }
 
