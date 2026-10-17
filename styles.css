@@ -41,7 +41,7 @@
 }
 
 *, *::before, *::after { box-sizing: inherit; }
-html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 120px); }
+html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 80px); }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
   font: 15px/1.6 var(--font); -webkit-font-smoothing: antialiased;
@@ -93,35 +93,34 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .sync { font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
 .sync.err { color: var(--out); border-color: var(--out); }
 
-.tabs { display: flex; gap: 4px; padding-bottom: 8px; overflow-x: auto; }
-.tabs a {
-  display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; text-decoration: none;
-  padding: 8px 14px; border-radius: 99px; color: var(--muted); font-weight: 600; cursor: pointer; white-space: nowrap;
+/* 主导航：所有屏幕都固定在底部（参考姐妹站点），图标在上文字在下、当前项黄色小横条；桌面居中限宽，手机等分列 */
+.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; max-width: none; margin: 0; padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 120px); justify-content: center; gap: 0;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); border-top: 1px solid var(--line); z-index: 30;
 }
+.tabs::before { content: ""; position: absolute; inset: 0; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: -1; pointer-events: none; }
+.tabs a {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; position: relative;
+  border: 0; background: transparent; text-decoration: none; min-height: 52px; padding: 4px 2px; border-radius: 12px;
+  color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.tabs a span { font-size: 21px; line-height: 1.1; }
 .tabs a:hover { background: var(--surface-2); color: var(--ink); }
-.tabs a[aria-current="page"] { background: var(--ink); color: var(--bg); }
+.tabs a[aria-current="page"] { color: var(--ink); font-weight: 800; }
+.tabs a[aria-current="page"] span { transform: translateY(-1px); }
+.tabs a[aria-current="page"]::after { content: ""; position: absolute; left: 50%; bottom: 2px; width: 18px; height: 3px; border-radius: 3px; background: var(--mustard); transform: translateX(-50%); }
 .tabs a[hidden] { display: none; }
-.tab-count { background: var(--mustard); color: var(--mustard-ink); font-size: 11px; min-width: 18px; padding: 0 5px; border-radius: 99px; text-align: center; }
+.tab-count { position: absolute; top: 2px; right: calc(50% - 22px); background: var(--mustard); color: var(--mustard-ink); font-size: 11px; min-width: 18px; padding: 0 5px; border-radius: 99px; text-align: center; }
 
 body.gate .tabs { display: none; }
 
-main { padding-top: 22px; padding-bottom: 96px; outline: none; }
+main { padding-top: 22px; padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); outline: none; }
+.topbar-inner { padding-bottom: 12px; }
 
 @media (max-width: 640px) {
   .topbar-inner, main { padding-left: 14px; padding-right: 14px; }
-  /* 手机：底部固定导航（参考姐妹站点），等分列、图标在上文字在下 */
-  .tabs {
-    position: fixed; left: 0; right: 0; bottom: 0; max-width: none; margin: 0;
-    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; overflow: visible;
-    background: var(--surface); border-top: 1px solid var(--line);
-    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px)); z-index: 30;
-  }
-  .tabs a { flex-direction: column; justify-content: center; gap: 1px; font-size: 11px; min-height: 52px; padding: 4px 2px; border-radius: 12px; position: relative; }
-  .tabs a span { font-size: 21px; line-height: 1.1; }
-  .tabs a[aria-current="page"] { background: transparent; color: var(--ink); font-weight: 800; }
-  .tabs a[aria-current="page"] span { transform: translateY(-1px); }
-  .tabs a[aria-current="page"]::after { content: ""; position: absolute; left: 50%; bottom: 2px; width: 18px; height: 3px; border-radius: 3px; background: var(--mustard); transform: translateX(-50%); }
-  .tab-count { position: absolute; top: 2px; right: calc(50% - 22px); }
+  .tabs { grid-auto-columns: 1fr; }
   .topbar-inner { padding-top: 10px; padding-bottom: 8px; }
   .brand { gap: 10px; min-width: 0; }
   .brand-mark { width: 26px; height: 32px; }
