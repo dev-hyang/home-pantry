@@ -259,6 +259,12 @@ main.addEventListener("submit", async (e) => {
       if (error) throw new Error(error.message);
       state.displayName = v; state.members = await CloudStore.listMembers(); toast(t("称呼已保存")); render();
     }
+    if (f.classList.contains("member-rename")) {   // 家主改家人的称呼
+      const v = f.elements.display_name.value.trim();
+      if (!v) return;
+      await CloudStore.setMemberName(f.dataset.id, v);
+      state.editMember = null; state.members = await CloudStore.listMembers(); toast(t("称呼已保存")); return render();
+    }
     if (f.id === "loginForm") return doLogin(f);
     if (f.id === "phoneForm") return doPhoneLogin(f);
     if (f.id === "otpForm") return doVerifyOtp(f);
@@ -328,6 +334,7 @@ main.addEventListener("click", async (e) => {
       case "login-mode": state.loginMode = el.dataset.mode; state.phonePending = null; return renderLogin();
       case "otp-back": state.phonePending = null; return renderLogin();
       case "lang": return changeLang(el.dataset.lang || null);
+      case "member-rename": state.editMember = id || null; render(); if (id) $(`.member-rename input`)?.focus(); return;
       case "member-role": {
         const m = state.members.find((x) => x.user_id === id), role = el.dataset.role;
         if (!m) return;

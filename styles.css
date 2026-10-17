@@ -431,6 +431,8 @@ textarea { resize: vertical; }
 .member-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); flex-wrap: wrap; }
 .member-list li:last-child { border-bottom: 0; }
 .member-list small { display: block; font-size: 12px; }
+.member-rename { display: flex; gap: 6px; align-items: center; width: 100%; }
+.member-rename input { flex: 1 1 140px; min-width: 0; }
 
 .next-phase { background: transparent; border-style: dashed; }
 .next-phase h3 { font-size: 15px; margin-bottom: 4px; }

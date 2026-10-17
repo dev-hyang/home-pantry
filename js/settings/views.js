@@ -12,7 +12,15 @@ function membersList() {
   const owners = state.members.filter((m) => m.role === "owner").length;
   return `<ul class="member-list">${state.members.map((m) => {
     const self = m.user_id === me, isO = m.role === "owner";
+    // 家主正在改某位家人的称呼：这一行换成内联表单
+    if (owner && !self && state.editMember === m.user_id) {
+      return `<li><form class="member-rename" data-id="${m.user_id}">
+        <input name="display_name" required maxlength="20" value="${esc(m.display_name)}" aria-label="${t("家人的称呼")}">
+        <button class="btn btn-sm btn-primary" type="submit">${t("保存")}</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-action="member-rename" data-id="">${t("取消")}</button></form></li>`;
+    }
     const acts = owner && !self ? `<span class="head-acts">
+        <button type="button" class="btn btn-sm btn-ghost" data-action="member-rename" data-id="${m.user_id}">${t("改称呼")}</button>
         ${isO ? (owners > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="member-role" data-id="${m.user_id}" data-role="member">${t("取消家主")}</button>` : "")
               : `<button type="button" class="btn btn-sm btn-ghost" data-action="member-role" data-id="${m.user_id}" data-role="owner">${t("设为家主")}</button>`}
         ${!isO || owners > 1 ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-remove" data-id="${m.user_id}">${t("移出家庭")}</button>` : ""}
@@ -42,7 +50,7 @@ export function viewSettings() {
       ${state.user?.is_anonymous ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("你是通过邀请码直接进入的，身份保存在本设备浏览器里；清除浏览器数据或换手机后需要重新用邀请码进入。")}</p>` : ""}
       <h3 style="font-size:15px;margin:16px 0 6px">${t("家庭成员")}</h3>
       ${membersList()}
-      ${isOwner() ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("家主可以把家人设为家主（可以有多位）、取消家主，或把误加入的人移出家庭。最后一位家主不能被取消或移出。")}</p>` : ""}
+      ${isOwner() ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("家主可以改家人的称呼、把家人设为家主（可以有多位）、取消家主，或把误加入的人移出家庭。最后一位家主不能被取消或移出。")}</p>` : ""}
       <form id="nameForm" class="add-row" style="grid-template-columns:1fr auto;margin-top:12px">
         <input name="display_name" maxlength="20" value="${esc(state.displayName)}" aria-label="${t("我在家里的称呼")}">
         <button class="btn btn-sm" type="submit">${t("保存称呼")}</button></form>
