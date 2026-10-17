@@ -64,6 +64,28 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-mark { color: var(--ink); flex: 0 0 auto; }
 .brand h1 { font-size: 19px; font-weight: 800; letter-spacing: .02em; }
+.brand-row { display: flex; align-items: center; gap: 8px; }
+/* 姐妹站点切换器：◀ ▾ ▶ */
+.app-switch { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); position: relative; }
+.app-switch .app-arrow, .app-switch summary { display: grid; place-items: center; width: 26px; height: 24px; font-size: 11px; color: var(--muted); text-decoration: none; cursor: pointer; list-style: none; user-select: none; }
+.app-switch summary::-webkit-details-marker { display: none; }
+.app-switch summary { border-left: 1px solid var(--line); border-right: 1px solid var(--line); font-size: 15px; line-height: 1; padding-bottom: 3px; }
+.app-switch .app-arrow:hover, .app-switch summary:hover { color: var(--ink); background: var(--surface-2); }
+.app-switch .app-arrow:first-child { border-radius: 99px 0 0 99px; }
+.app-switch .app-arrow:last-child { border-radius: 0 99px 99px 0; }
+.app-switch :focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.app-menu { position: static; }
+.app-menu ul { position: absolute; top: calc(100% + 6px); left: 0; min-width: 220px; margin: 0; padding: 6px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.12); z-index: 30; }
+.app-menu li a, .app-menu li > span { display: block; padding: 8px 10px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14px; line-height: 1.4; }
+.app-menu li a:hover { background: var(--surface-2); }
+.app-menu li small { display: block; color: var(--muted); font-size: 12px; font-weight: 400; }
+.app-menu li.current > span { background: var(--surface-2); }
+/* 设置页姐妹站点列表 */
+.app-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.app-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.app-list li:last-child { border-bottom: 0; }
+.app-list .app-ico { font-size: 20px; width: 32px; text-align: center; }
+.app-list small { display: block; color: var(--muted); font-size: 12px; }
 .hh-name { margin: 0; color: var(--muted); font-size: 13px; }
 .sync { font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
 .sync.err { color: var(--out); border-color: var(--out); }

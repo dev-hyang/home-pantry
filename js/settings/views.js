@@ -57,6 +57,18 @@ function propertiesPanel() {
   </div>`;
 }
 
+/** 姐妹站点：和顶栏切换器同一份数据（data.js 的 SISTER_APPS） */
+function sisterAppsPanel() {
+  const list = window.SISTER_APPS || []; if (list.length < 2) return "";
+  return `<div class="panel">
+    <div class="kv"><div><b>${t("姐妹站点")}</b><div class="muted">${t("同一作者的其他小工具；也可以用顶栏标题旁的 ◀ ▶ 切换")}</div></div></div>
+    <ul class="app-list">${list.map((a) => `<li class="${a.id === "home-pantry" ? "current" : ""}">
+      <span class="app-ico" aria-hidden="true">${a.icon}</span>
+      <div class="grow"><b>${esc(t(a.name))}</b><small>${esc(t(a.sub))}</small></div>
+      ${a.id === "home-pantry" ? `<span class="badge b-ok">${t("当前")}</span>` : `<a class="btn btn-sm" href="${esc(a.url)}">${t("打开")}</a>`}</li>`).join("")}</ul>
+  </div>`;
+}
+
 /* ── 设置 ── */
 export function viewSettings() {
   const cloud = Store.mode === "cloud";
@@ -113,6 +125,7 @@ export function viewSettings() {
       ${notif === "granted" ? `<span class="badge b-ok">${t("已开启")}</span>` : notif === "unsupported" ? `<span class="muted">${t("此浏览器不支持")}</span>` : `<button type="button" class="btn btn-sm" data-action="notif">${t("开启通知")}</button>`}</div></div>
     <div class="panel"><div class="kv"><div><b>${t("导出数据")}</b><div class="muted">${t("下载库存和采购清单的 JSON 备份")}</div></div>
       <button type="button" class="btn btn-sm" data-action="export">${t("导出 JSON")}</button></div></div>
+    ${sisterAppsPanel()}
     ${cloud ? `<button type="button" class="btn btn-danger-ghost" data-action="logout">${t("退出登录")}</button>`
             : `<button type="button" class="btn btn-danger-ghost" data-action="reset-demo">${t("恢复演示数据")}</button>`}
   </div></section>`;

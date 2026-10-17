@@ -20,7 +20,18 @@
           <rect x="6" y="22" width="20" height="13" rx="3" fill="var(--mustard)"/>
         </svg>
         <div>
-          <h1>家庭妈妈小助手</h1>
+          <div class="brand-row">
+            <h1>家庭妈妈小助手</h1>
+            <!-- 姐妹站点切换：◀ ▶ 循环切换，▾ 展开列表；键盘上下左右也能切 -->
+            <div class="app-switch" id="appSwitch" hidden>
+              <a class="app-arrow" id="appPrev" href="#" aria-label="上一个站点">◀</a>
+              <details class="app-menu" id="appMenu">
+                <summary aria-label="切换站点" title="切换站点">▾</summary>
+                <ul id="appList"></ul>
+              </details>
+              <a class="app-arrow" id="appNext" href="#" aria-label="下一个站点">▶</a>
+            </div>
+          </div>
           <p id="hhName" class="hh-name"></p>
         </div>
       </div>

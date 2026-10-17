@@ -133,3 +133,10 @@ window.MEAL_SLOTS = [
   { id: "snack",     name: "加餐", meal: "snack",     count: 1 },
   { id: "dinner",    name: "晚餐", meal: "main",      count: 2 },
 ];
+
+// ── 姐妹站点：顶栏标题旁的切换器和设置页“姐妹站点”都从这里读；id 要和 GitHub Pages 的路径一致 ──
+window.SISTER_APPS = [
+  { id: "home-pantry", name: "家庭妈妈小助手", sub: "储藏 · 房屋 · 账单", icon: "🥫", url: "https://dev-hyang.github.io/home-pantry/" },
+  { id: "homeschool",  name: "家庭学堂",       sub: "在家教育",            icon: "📚", url: "https://dev-hyang.github.io/homeschool/" },
+  { id: "baby-log",    name: "小月亮",         sub: "母婴记录",            icon: "🌙", url: "https://dev-hyang.github.io/baby-log/" },
+];
