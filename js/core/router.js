@@ -2,26 +2,29 @@
  * 好处：手机返回手势、浏览器后退天然可用；页面可以直接分享给家人。 */
 export const SECTIONS = {
   today:    { name: "今日",   subs: null },
-  pantry:   { name: "储藏",   subs: [["overview", "概览"], ["inventory", "库存"], ["meals", "菜单"]] },
+  pantry:   { name: "储藏",   subs: [["overview", "概览"], ["inventory", "库存"], ["gear", "装备"], ["meals", "菜单"]] },   // 装备：耐用品和工具，只记数量和位置
   house:    { name: "房屋",   subs: [["overview", "概览"], ["supplies", "房屋耗材"], ["assets", "设备"], ["tasks", "季节任务"], ["profile", "房屋资料"],
                                      ["template", "推荐耗材", true], ["asset-template", "生成设备", true]] },  // 第三项 true = 不在二级导航显示
-  gear:     { name: "装备",   subs: null },   // 耐用品和工具：只记数量和位置
+  bills:    { name: "账单",   subs: [["overview", "概览"], ["list", "清单"], ["history", "记录"], ["template", "常用账单", true]] },
   shopping: { name: "采购",   subs: null },
   me:       { name: "我的",   subs: [["stats", "统计"], ["settings", "设置"]] },
   item:     { name: "物品",   subs: null },   // #/item/new?cat=xx 或 #/item/<id>
   asset:    { name: "设备",   subs: null },   // #/asset/new?type=xx 或 #/asset/<id>（含保养记录）
+  bill:     { name: "账单",   subs: null },   // #/bill/new?category=xx 或 #/bill/<id>（含缴费记录）
 };
-// 独立整页表单（物品、设备）：进入时记住来源页，离开时恢复滚动位置
-export const isFormSection = (r) => r?.section === "item" || r?.section === "asset";
+// 独立整页表单（物品、设备、账单）：进入时记住来源页，离开时恢复滚动位置
+const FORM_SECTIONS = new Set(["item", "asset", "bill"]);
+export const isFormSection = (r) => FORM_SECTIONS.has(r?.section);
 
 export function parseRoute(hash = location.hash) {
   const raw = hash.replace(/^#\/?/, "");
   const [path, qs] = raw.split("?");
   const parts = path.split("/").filter(Boolean).map(decodeURIComponent);
+  if (parts[0] === "gear") parts.splice(0, 1, "pantry", "gear");   // 旧链接 #/gear → 储藏 / 装备
   let section = SECTIONS[parts[0]] ? parts[0] : "today";
   const def = SECTIONS[section].subs;
   let sub = parts[1] || null, id = null;
-  if (section === "item" || section === "asset") { id = parts[1] || "new"; sub = null; }
+  if (FORM_SECTIONS.has(section)) { id = parts[1] || "new"; sub = null; }
   else if (def) { if (!def.some(([k]) => k === sub)) sub = def[0][0]; id = parts[2] || null; }
   else sub = null;
   return { section, sub, id, q: new URLSearchParams(qs || "") };

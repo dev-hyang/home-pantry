@@ -30,6 +30,35 @@ function membersList() {
   }).join("")}</ul>`;
 }
 
+/** 房产列表：改名、设默认、归档；编辑中的那行换成内联表单 */
+function propertiesPanel() {
+  const B = window.BILLS;
+  const form = (p) => `<form id="propertyForm" class="prop-form">
+      <input type="hidden" name="property_id" value="${esc(p?.id || "")}">
+      <div class="form-grid">
+        <label>${t("名称")}<input name="name" required maxlength="40" placeholder="${t("例如：芝加哥的家 / 出租房 1")}" value="${esc(p?.name || "")}"></label>
+        <label>${t("类型")}<select name="kind">${Object.entries(B.PROPERTY_KINDS).map(([k, n]) => `<option value="${k}" ${k === (p?.kind || "other") ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
+        <label>${t("用途")}<select name="role">${Object.entries(B.PROPERTY_ROLES).map(([k, n]) => `<option value="${k}" ${k === (p?.role || "owner_occupied") ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
+        <label>${t("地址（可选）")}<input name="address" maxlength="120" value="${esc(p?.address || "")}"></label>
+        <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(p?.notes || "")}"></label>
+      </div>
+      <div class="form-actions" style="margin-top:8px"><button class="btn btn-sm btn-primary" type="submit">${t("保存")}</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-action="property-cancel">${t("取消")}</button></div></form>`;
+  const rows = state.properties.map((p) => state.editProperty === p.id ? `<li>${form(p)}</li>` : `<li class="${p.archived ? "inactive" : ""}">
+      <div class="grow"><b>${esc(p.name)}</b>${p.is_default ? ` <span class="badge b-ok">${t("默认")}</span>` : ""}${p.archived ? ` <span class="badge" style="background:var(--surface-2)">${t("已归档")}</span>` : ""}
+        <small>${[t(B.PROPERTY_KINDS[p.kind] || ""), t(B.PROPERTY_ROLES[p.role] || ""), p.address].filter(Boolean).map(esc).join(" · ")}</small></div>
+      <span class="head-acts">
+        <button type="button" class="btn btn-sm btn-ghost" data-action="property-edit" data-id="${p.id}">${t("编辑")}</button>
+        ${!p.is_default && !p.archived ? `<button type="button" class="btn btn-sm btn-ghost" data-action="property-default" data-id="${p.id}">${t("设为默认")}</button>` : ""}
+        ${!p.is_default ? `<button type="button" class="btn btn-sm ${p.archived ? "" : "btn-danger-ghost"}" data-action="property-archive" data-id="${p.id}">${p.archived ? t("恢复") : t("归档")}</button>` : ""}
+      </span></li>`).join("");
+  return `<div class="panel">
+    <div class="kv"><div><b>${t("房产")}</b><div class="muted">${t("房屋资料、设备、季节任务和账单都按房产区分；房东可以加出租房")}</div></div>
+      ${state.editProperty === "new" ? "" : `<button type="button" class="btn btn-sm" data-action="property-edit" data-id="">${t("添加房产")}</button>`}</div>
+    <ul class="property-list" style="margin-top:10px">${rows}${state.editProperty === "new" ? `<li>${form(null)}</li>` : ""}</ul>
+  </div>`;
+}
+
 /* ── 设置 ── */
 export function viewSettings() {
   const cloud = Store.mode === "cloud";
@@ -78,8 +107,10 @@ export function viewSettings() {
       <p class="muted" style="margin:8px 0 0;font-size:13px">${t("当前：{units}，货币 {cur}。", { units: Units.region.system === "us" ? t("美制单位 lb、oz、fl oz、qt、gal") : t("公制单位 kg、g、斤、L、mL"), cur: Units.region.currency })}
         ${t("已有物品按原单位保存，显示时自动换算；按“个、盒、袋”计数的物品不换算。")}</p>
     </div>
+    ${propertiesPanel()}
     ${sw("houseToggle", state.houseEnabled, t("房屋维护模块"), t("关闭后导航和首页只显示厨房储藏，适合租房或不需要的家庭；数据不会删除"))}
-    ${sw("gearToggle", state.gearEnabled, t("装备模块"), t("床品、电器、自行车、工具等耐用品，只记数量和位置；关闭后导航里不再显示，数据不会删除"))}
+    ${sw("billsToggle", state.billsEnabled, t("账单模块"), t("水电气、网络、HOA、房产税、房贷、保险等周期账单的提醒与记录；关闭后导航里不再显示，数据不会删除"))}
+    ${sw("gearToggle", state.gearEnabled, t("装备模块"), t("床品、电器、自行车、工具等耐用品，只记数量和位置；关闭后储藏里不再显示“装备”，数据不会删除"))}
     <div class="panel"><div class="kv"><div><b>${t("浏览器通知")}</b><div class="muted">${t("打开网页时，若有新的缺货或少货会弹出提醒")}</div></div>
       ${notif === "granted" ? `<span class="badge b-ok">${t("已开启")}</span>` : notif === "unsupported" ? `<span class="muted">${t("此浏览器不支持")}</span>` : `<button type="button" class="btn btn-sm" data-action="notif">${t("开启通知")}</button>`}</div></div>
     <div class="panel"><div class="kv"><div><b>${t("导出数据")}</b><div class="muted">${t("下载库存和采购清单的 JSON 备份")}</div></div>

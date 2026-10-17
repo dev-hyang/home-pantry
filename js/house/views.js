@@ -7,6 +7,7 @@ import { lang, t } from "../core/i18n.js";
 import { restockPanel, shelfGrid } from "../pantry/views.js";
 import { alertText, assetAlerts } from "./assets.js";
 import { monthName, monthTasks, taskRow } from "./tasks.js";
+import { propertyBar } from "../bills/views.js";
 
 const H = () => window.HOUSE;
 
@@ -54,7 +55,7 @@ export function viewHouse() {
   const alerts = alertsOf(state.enriched.filter(inSpace("house")));
   const shelf = shelfGrid("house");
   if (!p) {
-    return `<section class="section house-intro">
+    return `${propertyBar()}<section class="section house-intro">
       <h2>${t("先说说你家的房子")}</h2>
       <p class="muted">${t("选一下房型、外墙和地面材料、家里有哪些设施，大约 1 分钟。之后会告诉你哪些部位归自己维护、各种材料怎么保养，并一次加好常用的房屋耗材。")}</p>
       <p><a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a>
@@ -80,6 +81,7 @@ export function viewHouse() {
     </div>` : "";
 
   return `
+    ${propertyBar()}
     <section class="section">
       <div class="house-card">
         <span class="house-ico" aria-hidden="true">${ht?.icon || "🏠"}</span>
@@ -161,6 +163,7 @@ export function viewHouseProfile() {
   const check = (name, list, sel) => list.map((x) => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${sel.includes(x.id) ? "checked" : ""}><span>${esc(t(x.name))}</span></label>`).join("");
   const thisYear = new Date().getFullYear();
   return `
+    ${propertyBar()}
     <section class="section form-page house-form">
       <div class="section-head"><h2>${t("房屋资料")}</h2>
         ${state.houseProfile ? `<a class="btn btn-sm btn-ghost" href="${href("house", "overview")}">${t("返回房屋")}</a>` : ""}</div>

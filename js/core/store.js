@@ -8,20 +8,28 @@ export const DemoStore = {
   load() {
     try { this.db = JSON.parse(localStorage.getItem(this.key)); } catch { this.db = null; }
     if (!this.db || !Array.isArray(this.db.items)) this.db = seedDemo();
-    this.db.purchases ||= [];
-    this.db.assets ||= []; this.db.maint_logs ||= []; this.db.seasonal ||= [];
+    const db = this.db;
+    db.purchases ||= []; db.assets ||= []; db.maint_logs ||= []; db.seasonal ||= [];
+    db.bills ||= []; db.bill_payments ||= [];
+    // 多房产：没有房产的旧演示库补一条默认房产，并把房屋资料 / 设备 / 季节任务挂上去
+    if (!Array.isArray(db.properties) || !db.properties.length) {
+      db.properties = [{ id: uid(), name: t("我的家"), kind: "other", role: "owner_occupied", address: null, is_default: true, archived: false, notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
+    }
+    const def = db.properties.find((p) => p.is_default) || db.properties[0];
+    db.house_profiles ||= {};
+    if (db.house_profile) { db.house_profiles[def.id] ||= db.house_profile; delete db.house_profile; }
+    for (const a of db.assets) a.property_id ||= def.id;
+    for (const s of db.seasonal) s.property_id ||= def.id;
     this.persist();
   },
   persist() { try { localStorage.setItem(this.key, JSON.stringify(this.db)); } catch { /* 隐私模式下可能不可写，忽略 */ } },
-  reset() { this.db = seedDemo(); this.persist(); },
+  reset() { this.db = seedDemo(); this.load(); },
   async listItems() { return this.db.items.map((x) => ({ ...x })); },
   async listLogs() {
     const since = Date.now() - STATS_LOG_DAYS * DAY;
     return this.db.logs.filter((l) => new Date(l.created_at).getTime() >= since);
   },
   async listPurchases() { return this.db.purchases.map((x) => ({ ...x })); },
-  async getHouseProfile() { return this.db.house_profile ? { ...this.db.house_profile } : null; },
-  async saveHouseProfile(p) { this.db.house_profile = { ...p, updated_at: new Date().toISOString() }; this.persist(); },
   async addItems(list) {
     const now = new Date().toISOString();
     for (const it of list) this.db.items.push({ ...it, id: uid(), created_at: now, updated_at: now });
@@ -34,20 +42,35 @@ export const DemoStore = {
   async addPurchase(p) { const id = uid(); this.db.purchases.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
   async deletePurchase(id) { this.db.purchases = this.db.purchases.filter((x) => x.id !== id); this.persist(); },
 
-  /* 第二期：设备档案、保养记录、季节任务 */
-  async listAssets() { return this.db.assets.map((x) => ({ ...x })); },
+  /* 房产 */
+  async listProperties() { return this.db.properties.map((x) => ({ ...x })); },
+  async saveProperty(p) {
+    const now = new Date().toISOString();
+    if (p.id) {
+      const i = this.db.properties.findIndex((x) => x.id === p.id);
+      if (i < 0) throw new Error("房产不存在");
+      this.db.properties[i] = { ...this.db.properties[i], ...p, updated_at: now };
+    } else this.db.properties.push({ ...p, id: uid(), is_default: false, archived: false, created_at: now, updated_at: now });
+    this.persist();
+  },
+  async setDefaultProperty(id) { this.db.properties.forEach((p) => { p.is_default = p.id === id; }); this.persist(); },
+
+  /* 房屋资料 / 设备 / 季节任务（按房产） */
+  async getHouseProfile(pid) { const p = this.db.house_profiles[pid]; return p ? { ...p } : null; },
+  async saveHouseProfile(p, pid) { this.db.house_profiles[pid] = { ...p, property_id: pid, updated_at: new Date().toISOString() }; this.persist(); },
+  async listAssets(pid) { return this.db.assets.filter((a) => a.property_id === pid).map((x) => ({ ...x })); },
   async saveAsset(a) {
     const now = new Date().toISOString();
     if (a.id) {
       const i = this.db.assets.findIndex((x) => x.id === a.id);
       if (i < 0) throw new Error("设备不存在");
       this.db.assets[i] = { ...this.db.assets[i], ...a, updated_at: now };
-    } else this.db.assets.push({ ...a, id: uid(), created_at: now, updated_at: now });
+    } else this.db.assets.push({ ...a, id: uid(), property_id: a.property_id || state.propertyId, created_at: now, updated_at: now });
     this.persist();
   },
-  async addAssets(list) {
+  async addAssets(list, pid) {
     const now = new Date().toISOString();
-    for (const a of list) this.db.assets.push({ ...a, id: uid(), created_at: now, updated_at: now });
+    for (const a of list) this.db.assets.push({ ...a, id: uid(), property_id: pid, created_at: now, updated_at: now });
     this.persist();
   },
   async deleteAsset(id) {
@@ -63,12 +86,43 @@ export const DemoStore = {
     this.db.maint_logs = this.db.maint_logs.filter((x) => x.id !== id);
     this.persist();
   },
-  async listSeasonal(sincePeriod) { return this.db.seasonal.filter((s) => s.period >= sincePeriod).map((x) => ({ ...x })); },
-  async setSeasonal(task_key, period, done, done_by_name) {
-    this.db.seasonal = this.db.seasonal.filter((s) => !(s.task_key === task_key && s.period === period));
-    if (done) this.db.seasonal.push({ id: uid(), task_key, period, done_on: new Date().toISOString().slice(0, 10), done_by_name, created_at: new Date().toISOString() });
+  async listSeasonal(sincePeriod, pid) { return this.db.seasonal.filter((s) => s.period >= sincePeriod && s.property_id === pid).map((x) => ({ ...x })); },
+  async setSeasonal(task_key, period, done, done_by_name, pid) {
+    this.db.seasonal = this.db.seasonal.filter((s) => !(s.task_key === task_key && s.period === period && s.property_id === pid));
+    if (done) this.db.seasonal.push({ id: uid(), property_id: pid, task_key, period, done_on: new Date().toISOString().slice(0, 10), done_by_name, created_at: new Date().toISOString() });
     this.persist();
   },
+
+  /* 账单 */
+  async listBills() { return this.db.bills.map((x) => ({ ...x })); },
+  async saveBill(b) {
+    const now = new Date().toISOString();
+    if (b.id) {
+      const i = this.db.bills.findIndex((x) => x.id === b.id);
+      if (i < 0) throw new Error("账单不存在");
+      this.db.bills[i] = { ...this.db.bills[i], ...b, updated_at: now };
+    } else this.db.bills.push({ ...b, id: uid(), created_at: now, updated_at: now });
+    this.persist();
+  },
+  async addBills(list) {
+    const now = new Date().toISOString();
+    for (const b of list) this.db.bills.push({ ...b, id: uid(), created_at: now, updated_at: now });
+    this.persist();
+  },
+  async deleteBill(id) {
+    this.db.bills = this.db.bills.filter((x) => x.id !== id);
+    this.db.bill_payments = this.db.bill_payments.filter((p) => p.bill_id !== id);
+    this.persist();
+  },
+  async listBillPayments() { return this.db.bill_payments.map((x) => ({ ...x })); },
+  async addBillPayment(p) { const id = uid(); this.db.bill_payments.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
+  async deleteBillPayment(id) {
+    const p = this.db.bill_payments.find((x) => x.id === id);
+    if (p?.purchase_id) this.db.purchases = this.db.purchases.filter((x) => x.id !== p.purchase_id);
+    this.db.bill_payments = this.db.bill_payments.filter((x) => x.id !== id);
+    this.persist();
+  },
+
   async saveItem(it) {
     const now = new Date().toISOString();
     if (it.id) {
@@ -137,12 +191,12 @@ export function seedDemo() {
     const buy = Math.max(1, Math.ceil(cap));
     let level = quantity;
     for (let d = 3; d <= 180; d += 3) {
-      const t = now - d * DAY + ((d * 7919) % 36000) * 1000;   // 时间稍微错开
+      const tm = now - d * DAY + ((d * 7919) % 36000) * 1000;   // 时间稍微错开
       const use = r2(daily * 3);
-      logs.push({ id: uid(), item_id: id, delta: -use, reason: "consume", created_at: new Date(t).toISOString() });
+      logs.push({ id: uid(), item_id: id, delta: -use, reason: "consume", created_at: new Date(tm).toISOString() });
       level += use;
       while (level > cap) {
-        const bt = t - 3 * 3600 * 1000;
+        const bt = tm - 3 * 3600 * 1000;
         logs.push({ id: uid(), item_id: id, delta: buy, reason: "restock", created_at: new Date(bt).toISOString() });
         purchases.push({ id: uid(), item_id: id, name, category, quantity: buy, unit, amount: r2(buy * price * priceFactor * (0.9 + ((d * 31) % 20) / 100)), currency: cur, purchased_at: new Date(bt).toISOString(),
           store: STORES[category][((d / 3) | 0) % STORES[category].length] });
@@ -197,8 +251,14 @@ export function seedDemo() {
 
 /* ───────────── 数据层：Supabase 云端 ───────────── */
 export const ITEM_FIELDS = ["name", "category", "subcategory", "unit", "quantity", "min_quantity", "location", "expiry_date", "lead_days", "avg_daily_use", "notes"];
-export const ASSET_FIELDS = ["kind", "type", "name", "location", "brand", "model", "serial", "installed_on", "manufacture_year", "warranty_until", "labor_warranty_until",
+export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", "brand", "model", "serial", "installed_on", "manufacture_year", "warranty_until", "labor_warranty_until",
   "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes"];
+export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "archived", "notes"];
+export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
+  "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "statement_channel",
+  "reminder_days", "assigned_to", "essential", "active", "notes"];
+const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
+
 export const CloudStore = {
   mode: "cloud", sb: null, hid: null, channel: null,
   must({ data, error }) { if (error) throw new Error(error.message); return data; },
@@ -215,16 +275,37 @@ export const CloudStore = {
   },
   async addPurchase(p) { return this.must(await this.sb.from("purchases").insert({ ...p, household_id: this.hid }).select("id").single()).id; },
 
-  /* 第二期：设备档案、保养记录、季节任务 */
-  async listAssets() { return this.must(await this.sb.from("assets").select("*").eq("household_id", this.hid).order("name")); },
+  /* 房产 */
+  async listProperties() { return this.must(await this.sb.from("properties").select("*").eq("household_id", this.hid).order("created_at")); },
+  async saveProperty(p) {
+    const row = pick(p, PROPERTY_FIELDS, { household_id: this.hid, updated_by: state.user.id });
+    if (row.archived == null) row.archived = false;
+    if (p.id) this.must(await this.sb.from("properties").update(row).eq("id", p.id));
+    else this.must(await this.sb.from("properties").insert(row));
+  },
+  async setDefaultProperty(id) {
+    this.must(await this.sb.from("properties").update({ is_default: false }).eq("household_id", this.hid).eq("is_default", true));
+    this.must(await this.sb.from("properties").update({ is_default: true }).eq("id", id));
+  },
+
+  /* 房屋资料 / 设备 / 季节任务（按房产） */
+  async getHouseProfile(pid) {
+    return this.must(await this.sb.from("house_profiles").select("*").eq("property_id", pid).maybeSingle());
+  },
+  async saveHouseProfile(p, pid) {
+    const row = { property_id: pid, household_id: this.hid, region: p.region, house_type: p.house_type, year_built: p.year_built ?? null,
+      features: p.features || [], exterior: p.exterior || [], roof: p.roof || null, flooring: p.flooring || [], updated_by: state.user.id };
+    this.must(await this.sb.from("house_profiles").upsert(row, { onConflict: "property_id" }));
+  },
+  async listAssets(pid) { return this.must(await this.sb.from("assets").select("*").eq("property_id", pid).order("name")); },
   async saveAsset(a) {
-    const row = { household_id: this.hid, updated_by: state.user.id };
-    ASSET_FIELDS.forEach((k) => { row[k] = a[k] ?? null; });
+    const row = pick(a, ASSET_FIELDS, { household_id: this.hid, updated_by: state.user.id });
+    if (!row.property_id) row.property_id = state.propertyId;
     if (a.id) this.must(await this.sb.from("assets").update(row).eq("id", a.id));
     else this.must(await this.sb.from("assets").insert(row));
   },
-  async addAssets(list) {
-    const rows = list.map((a) => { const r = { household_id: this.hid, updated_by: state.user.id }; ASSET_FIELDS.forEach((k) => { r[k] = a[k] ?? null; }); return r; });
+  async addAssets(list, pid) {
+    const rows = list.map((a) => pick({ ...a, property_id: pid }, ASSET_FIELDS, { household_id: this.hid, updated_by: state.user.id }));
     this.must(await this.sb.from("assets").insert(rows));
   },
   async deleteAsset(id) { this.must(await this.sb.from("assets").delete().eq("id", id)); },   // 保养记录随外键级联删除
@@ -239,25 +320,44 @@ export const CloudStore = {
     this.must(await this.sb.from("maintenance_logs").delete().eq("id", id));
     if (l?.purchase_id) this.must(await this.sb.from("purchases").delete().eq("id", l.purchase_id));
   },
-  async listSeasonal(sincePeriod) {
-    return this.must(await this.sb.from("seasonal_tasks").select("*").eq("household_id", this.hid).gte("period", sincePeriod));
+  async listSeasonal(sincePeriod, pid) {
+    return this.must(await this.sb.from("seasonal_tasks").select("*").eq("property_id", pid).gte("period", sincePeriod));
   },
-  async setSeasonal(task_key, period, done, done_by_name) {
+  async setSeasonal(task_key, period, done, done_by_name, pid) {
     if (done) {
-      const { error } = await this.sb.from("seasonal_tasks").insert({ household_id: this.hid, task_key, period, done_by: state.user.id, done_by_name });
+      const { error } = await this.sb.from("seasonal_tasks").insert({ household_id: this.hid, property_id: pid, task_key, period, done_by: state.user.id, done_by_name });
       if (error && error.code !== "23505") throw new Error(error.message);   // 23505 = 家人已经勾过
-    } else this.must(await this.sb.from("seasonal_tasks").delete().eq("household_id", this.hid).eq("task_key", task_key).eq("period", period));
+    } else this.must(await this.sb.from("seasonal_tasks").delete().eq("property_id", pid).eq("task_key", task_key).eq("period", period));
   },
-  async getHouseProfile() {
-    return this.must(await this.sb.from("house_profiles").select("*").eq("household_id", this.hid).maybeSingle());
+
+  /* 账单 */
+  async listBills() { return this.must(await this.sb.from("bills").select("*").eq("household_id", this.hid).order("next_due_on")); },
+  async saveBill(b) {
+    const row = pick(b, BILL_FIELDS, { household_id: this.hid, updated_by: state.user.id });
+    row.due_dates ||= []; row.reminder_days ||= [7, 1];
+    if (b.id) this.must(await this.sb.from("bills").update(row).eq("id", b.id));
+    else this.must(await this.sb.from("bills").insert(row));
   },
-  async saveHouseProfile(p) {
-    const row = { household_id: this.hid, region: p.region, house_type: p.house_type, year_built: p.year_built ?? null,
-      features: p.features || [], exterior: p.exterior || [], roof: p.roof || null, flooring: p.flooring || [], updated_by: state.user.id };
-    this.must(await this.sb.from("house_profiles").upsert(row, { onConflict: "household_id" }));
+  async addBills(list) {
+    const rows = list.map((b) => { const r = pick(b, BILL_FIELDS, { household_id: this.hid, updated_by: state.user.id }); r.due_dates ||= []; r.reminder_days ||= [7, 1]; return r; });
+    this.must(await this.sb.from("bills").insert(rows));
   },
+  async deleteBill(id) { this.must(await this.sb.from("bills").delete().eq("id", id)); },   // 缴费记录级联删除；关联的 purchases 保留
+  async listBillPayments() {
+    const since = new Date(Date.now() - 400 * DAY).toISOString().slice(0, 10);
+    return this.must(await this.sb.from("bill_payments").select("*").eq("household_id", this.hid).gte("paid_on", since).order("paid_on", { ascending: false }).limit(5000));
+  },
+  async addBillPayment(p) {
+    return this.must(await this.sb.from("bill_payments").insert({ ...p, household_id: this.hid, paid_by: state.user.id }).select("id").single()).id;
+  },
+  async deleteBillPayment(id) {
+    const p = state.billPayments.find((x) => x.id === id);
+    this.must(await this.sb.from("bill_payments").delete().eq("id", id));
+    if (p?.purchase_id) this.must(await this.sb.from("purchases").delete().eq("id", p.purchase_id));
+  },
+
   async addItems(list) {
-    const rows = list.map((it) => { const r = { household_id: this.hid, updated_by: state.user.id }; ITEM_FIELDS.forEach((k) => { r[k] = it[k] ?? null; }); return r; });
+    const rows = list.map((it) => pick(it, ITEM_FIELDS, { household_id: this.hid, updated_by: state.user.id }));
     this.must(await this.sb.from("items").insert(rows));
   },
   async listPurchasesRange(from, to) {
@@ -292,22 +392,18 @@ export const CloudStore = {
   async listMembers() {
     return this.must(await this.sb.from("household_members").select("user_id,display_name,role,joined_at").eq("household_id", this.hid).order("joined_at"));
   },
-  /* 家主管理（security definer RPC，见 migrations/004） */
+  /* 家主管理（security definer RPC，见 migrations/004、005） */
   async setMemberRole(userId, role) { this.must(await this.sb.rpc("set_member_role", { p_household: this.hid, p_user: userId, p_role: role })); },
   async removeMember(userId) { this.must(await this.sb.rpc("remove_member", { p_household: this.hid, p_user: userId })); },
   async setMemberName(userId, name) { this.must(await this.sb.rpc("set_member_name", { p_household: this.hid, p_user: userId, p_name: name })); },
   subscribe(onChange) {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
-    this.channel = this.sb.channel(`hh-${this.hid}`)
-      .on("postgres_changes", { event: "*", table: "items", ...f }, onChange)
-      .on("postgres_changes", { event: "*", table: "shopping_list", ...f }, onChange)
-      .on("postgres_changes", { event: "*", table: "purchases", ...f }, onChange)
-      .on("postgres_changes", { event: "*", table: "house_profiles", ...f }, onChange)
-      .on("postgres_changes", { event: "*", table: "assets", ...f }, onChange)
-      .on("postgres_changes", { event: "*", table: "maintenance_logs", ...f }, onChange)
-      .on("postgres_changes", { event: "*", table: "seasonal_tasks", ...f }, onChange)
-      .subscribe();
+    let ch = this.sb.channel(`hh-${this.hid}`);
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments"]) {
+      ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
+    }
+    this.channel = ch.subscribe();
   },
 };
 

@@ -6,6 +6,7 @@ import { Store } from "../core/store.js";
 import { esc, fmtDate } from "../core/util.js";
 import { href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
+import { propertyBar } from "../bills/views.js";
 
 const H = () => window.HOUSE;
 export const MONTHS = ["1 月", "2 月", "3 月", "4 月", "5 月", "6 月", "7 月", "8 月", "9 月", "10 月", "11 月", "12 月"];
@@ -64,6 +65,7 @@ export function viewTasks() {
   const chips = MONTHS.map((n, i) => `<button type="button" class="chip" data-action="tasks-month" data-month="${i + 1}" aria-pressed="${month === i + 1}">${t(n)}${i + 1 === curM ? t("·今") : ""}</button>`).join("");
   const undone = list.filter((x) => !x.done).length;
   return `
+    ${propertyBar()}
     <section class="section">
       <div class="section-head"><h2>${t("季节任务")}</h2><p>${t("{region}模板，按你家的设施筛选", { region: esc(t(H().REGIONS[p.region]?.name || "")) })}</p></div>
       <div class="chips" role="group" aria-label="${t("选择月份")}">${chips}</div>
@@ -80,6 +82,6 @@ export function viewTasks() {
 export async function toggleTask(input) {
   const key = input.dataset.task, period = input.dataset.period, undo = input.dataset.undo;
   input.disabled = true;
-  if (input.checked) await Store.setSeasonal(key, period, true, state.displayName);
-  else await Store.setSeasonal(key, undo || period, false);
+  if (input.checked) await Store.setSeasonal(key, period, true, state.displayName, state.propertyId);
+  else await Store.setSeasonal(key, undo || period, false, null, state.propertyId);
 }

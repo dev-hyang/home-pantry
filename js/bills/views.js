@@ -1,0 +1,419 @@
+/* 账单 B1 · 页面：概览、清单、记录、常用账单模板、账单整页表单（含缴费记录） */
+import { state } from "../core/state.js";
+import { Store } from "../core/store.js";
+import { $, esc, fmtDate, fmtShort, money, num, stampText, todayISO, toast } from "../core/util.js";
+import { go, href } from "../core/router.js";
+import { compare, joinList, t } from "../core/i18n.js";
+import { memberName } from "../core/logic.js";
+import { download } from "../stats/views.js";
+import { STATUS_RANK, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, upcoming } from "./logic.js";
+
+const B = () => window.BILLS;
+const BADGE = { overdue: "b-out", due: "b-low", verify: "b-soon", soon: "b-soon", ok: "b-ok", none: "", inactive: "" };
+const STATUS_LABEL = { overdue: "逾期", due: "今天到期", verify: "待核对", soon: "即将到期", ok: "正常", none: "未填到期日", inactive: "已停用" };
+const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
+
+/** 房产切换条（房屋、账单页共用）；只有一套房产时不显示 */
+export function propertyBar({ all = false } = {}) {
+  const list = state.properties.filter((p) => !p.archived);
+  if (list.length < 2) return "";
+  const cur = all ? state.billsFilter.property : state.propertyId;
+  const chip = (id, label) => `<button type="button" class="chip" data-action="${all ? "bills-prop" : "property"}" data-id="${id}" aria-pressed="${cur === id}">${label}</button>`;
+  return `<div class="chips prop-bar" role="group" aria-label="${t("选择房产")}">${all ? chip("all", t("全部房产")) : ""}${list.map((p) => chip(p.id, `🏠 ${esc(p.name)}`)).join("")}</div>`;
+}
+
+const billRow = (b, { showProp = true } = {}) => `<li>
+    <span class="badge ${BADGE[b.status]}">${t(STATUS_LABEL[b.status])}</span>
+    <div class="grow"><a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a>
+      <small>${esc(alertText(b))}${b.est != null ? ` · ${mny(b.est, b.currency)}` : ""}${showProp && b.property_id && state.properties.length > 1 ? ` · ${esc(propertyName(b.property_id))}` : ""}</small></div>
+    ${b.pay_url && !b.autopay ? `<a class="btn btn-sm btn-ghost" href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${t("去缴费")}</a>` : ""}
+    ${b.autopay ? `<button type="button" class="btn btn-sm" data-action="bill-verify" data-id="${b.id}">${t("已核对")}</button>`
+      : `<a class="btn btn-sm" href="${href("bill", b.id)}?pay=1">${t("记缴费")}</a>`}
+  </li>`;
+
+/* ── 概览 ── */
+export function viewBillsOverview() {
+  const all = state.billsEnriched.filter((b) => b.active);
+  const list = filterByProperty(all);
+  const alerts = billAlerts(list);
+  const cur = Units.region.currency;
+  const inCur = list.filter((b) => (b.currency || cur) === cur);
+  const monthlyTotal = inCur.reduce((s, b) => s + b.monthly, 0);
+  const essential = inCur.filter((b) => b.essential).reduce((s, b) => s + b.monthly, 0);
+  const next30 = upcoming(list, 30);
+  const due30 = next30.filter((x) => (x.bill.currency || cur) === cur).reduce((s, x) => s + num(x.bill.est), 0);
+  const autopayN = list.filter((b) => b.autopay).length;
+  const cards = list.filter((b) => b.active && b.cardExpiring);
+  if (!state.bills.length) {
+    return `${propertyBar({ all: true })}<section class="section"><div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}
+      <p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${href("bill", "new")}">${t("手动添加一条")}</a></p></div></section>`;
+  }
+  return `
+    ${propertyBar({ all: true })}
+    <section class="section">
+      <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">
+        <button type="button" class="btn btn-sm btn-ghost" data-action="bills-ics">${t("导出到日历")}</button>
+        <a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a>
+        <a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
+      <div class="kpis">
+        <div class="kpi"><span>${t("未来 30 天要交")}</span><b>${money(due30)}</b><small>${t("{n} 笔", { n: next30.length })}</small></div>
+        <div class="kpi"><span>${t("每月固定支出")}</span><b>${money(monthlyTotal)}</b><small>${t("必要 {m}", { m: money(essential) })}</small></div>
+        <div class="kpi"><span>${t("自动扣款")}</span><b>${autopayN} / ${list.length}</b><small>${t("{n} 条需手动缴", { n: list.length - autopayN })}</small></div>
+      </div>
+    </section>
+    ${alerts.length ? `<section class="section"><div class="section-head"><h2>${t("要处理的账单")}</h2><p>${t("逾期、到期、即将到期和待核对的自动扣款")}</p></div>
+      <div class="panel"><ul class="restock-list">${alerts.map((b) => billRow(b)).join("")}</ul></div></section>`
+      : `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单")}</strong></div></section>`}
+    ${cards.length ? `<section class="section"><div class="panel cta-panel"><div><b>${t("自动扣款的卡快过期了")}</b><p class="muted">${joinList(cards.map((b) => `${esc(b.name)}（${esc(b.autopay_method || "")} ${esc(b.autopay_card_expires)}）`))}</p></div></div></section>` : ""}
+    <section class="section">
+      <div class="section-head"><h2>${t("未来 30 天")}</h2><p>${t("按到期日排列")}</p></div>
+      <div class="panel">${next30.length ? `<ul class="restock-list">${next30.map(({ bill: b, due }) => `<li>
+        <span class="badge" style="background:var(--surface-2)">${esc(fmtShort(`${due}T12:00:00`))}</span>
+        <div class="grow"><a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a><small>${b.autopay ? t("自动扣款") : t(B().CHANNELS[b.pay_channel] || "")}${b.assigned_to ? ` · ${esc(memberName(b.assigned_to) || "")}` : ""}</small></div>
+        <b>${mny(b.est, b.currency)}</b></li>`).join("")}</ul>` : `<div class="empty"><strong>${t("30 天内没有到期的账单")}</strong></div>`}</div>
+    </section>`;
+}
+
+function filterByProperty(list) {
+  const f = state.billsFilter.property;
+  if (f === "all" || state.properties.length < 2) return list;
+  return list.filter((b) => b.property_id === f);
+}
+
+/* ── 清单 ── */
+export function viewBillsList() {
+  const f = state.billsFilter;
+  let list = filterByProperty(state.billsEnriched);
+  if (f.autopay === "on") list = list.filter((b) => b.autopay);
+  if (f.autopay === "off") list = list.filter((b) => !b.autopay);
+  const chip = (k, v, label) => `<button type="button" class="chip" data-action="bills-filter" data-key="${k}" data-val="${v}" aria-pressed="${f[k] === v}">${label}</button>`;
+  const groups = B().CATEGORIES.map((c) => ({ c, rows: list.filter((b) => b.category === c.id).sort((x, y) => STATUS_RANK[x.status] - STATUS_RANK[y.status] || compare(x.name, y.name)) })).filter((g) => g.rows.length);
+  const row = (b) => `<li class="bill-row ${b.active ? "" : "inactive"}">
+      <div class="grow"><a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}
+        <small>${[b.payee, freqText(b), b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.property_id && state.properties.length > 1 ? propertyName(b.property_id) : null, b.assigned_to ? memberName(b.assigned_to) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
+      <b class="bill-amt">${mny(b.est, b.currency)}</b>
+      <label class="switch" title="${t("自动扣款")}"><input type="checkbox" data-bill-autopay="${b.id}" ${b.autopay ? "checked" : ""}><span>${t("自动")}</span></label>
+    </li>`;
+  return `
+    ${propertyBar({ all: true })}
+    <section class="section">
+      <div class="section-head"><h2>${t("账单清单")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
+      <div class="chips" role="group" aria-label="${t("按缴费方式筛选")}">${chip("autopay", "all", t("全部"))}${chip("autopay", "on", t("自动扣款"))}${chip("autopay", "off", t("手动缴费"))}</div>
+      ${groups.length ? groups.map(({ c, rows }) => `<div class="cat-group" style="--cat:var(--pine)"><h3>${c.icon} ${t(c.name)}<span class="muted">（${rows.length}）</span></h3>
+        <div class="panel"><ul class="bill-list">${rows.map(row).join("")}</ul></div></div>`).join("")
+        : `<div class="panel empty"><strong>${t("没有符合条件的账单")}</strong></div>`}
+    </section>`;
+}
+
+/* ── 记录 ── */
+export function viewBillsHistory() {
+  const byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b]));
+  const pays = [...state.billPayments].sort((x, y) => (y.paid_on || "").localeCompare(x.paid_on || ""));
+  const cur = Units.region.currency;
+  const year = new Date().getFullYear();
+  const thisYear = pays.filter((p) => (p.paid_on || "").startsWith(String(year)) && p.status !== "skipped" && (p.currency || cur) === cur);
+  const total = thisYear.reduce((s, p) => s + num(p.amount), 0), late = thisYear.reduce((s, p) => s + num(p.late_fee), 0);
+  // 单账单趋势：选一条有 ≥ 2 笔记录的账单
+  const candidates = state.billsEnriched.filter((b) => b.pays.filter((p) => p.amount != null).length >= 2);
+  const sel = candidates.find((b) => b.id === state.billsFilter.trend) || candidates[0];
+  let chart = "";
+  if (sel) {
+    const series = [...sel.pays].filter((p) => p.amount != null).reverse().slice(-12);
+    chart = Charts.line({ title: t("{name}缴费金额", { name: sel.name }), labels: series.map((p) => fmtShort(`${p.paid_on}T12:00:00`)), fmt: (v) => money(v),
+      series: [{ name: sel.name, color: "var(--pine)", values: series.map((p) => num(p.amount)) }] });
+  }
+  return `
+    <section class="section">
+      <div class="section-head"><h2>${t("缴费记录")}</h2><div class="head-acts"><button type="button" class="btn btn-sm" data-action="bills-csv">${t("导出今年 CSV")}</button></div></div>
+      <div class="kpis">
+        <div class="kpi"><span>${t("{y} 年已缴", { y: year })}</span><b>${money(total)}</b><small>${t("{n} 笔", { n: thisYear.length })}</small></div>
+        <div class="kpi"><span>${t("滞纳金")}</span><b>${money(late)}</b><small>${late ? t("按时缴费就能省下") : t("没有滞纳金")}</small></div>
+      </div>
+      ${sel ? `<div class="panel chart-panel"><div class="chart-head"><h3>${t("单账单金额趋势")}</h3>
+        <select id="billTrend" aria-label="${t("选择账单")}">${candidates.map((b) => `<option value="${b.id}" ${b.id === sel.id ? "selected" : ""}>${esc(b.name)}</option>`).join("")}</select></div>${chart}</div>` : ""}
+      <div class="panel" style="margin-top:10px">${pays.length ? `<ul class="restock-list">${pays.slice(0, 100).map((p) => {
+        const b = byBill[p.bill_id];
+        return `<li><span class="badge" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</span>
+          <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>` : t("（已删除的账单）")}</span>
+            <small>${[t(B().PAYMENT_STATUS[p.status] || p.status), p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+          <b>${p.amount != null ? mny(p.amount, p.currency) : `<span class="muted">${t("未填金额")}</span>`}</b>
+          <button type="button" class="btn btn-sm btn-ghost" data-action="billpay-del" data-id="${p.id}">${t("删除")}</button></li>`;
+      }).join("")}</ul>` : `<div class="empty"><strong>${t("还没有缴费记录")}</strong>${t("在账单页记一笔，或在概览里点“已核对”。")}</div>`}</div>
+    </section>`;
+}
+
+export function exportBillsCsv() {
+  const year = new Date().getFullYear();
+  const byBill = Object.fromEntries(state.bills.map((b) => [b.id, b]));
+  const rows = [[t("日期"), t("账单"), t("分类"), t("房产"), t("金额"), t("货币"), t("状态"), t("方式"), t("确认号"), t("滞纳金"), t("备注")]];
+  for (const p of [...state.billPayments].sort((x, y) => (x.paid_on || "").localeCompare(y.paid_on || ""))) {
+    if (!(p.paid_on || "").startsWith(String(year))) continue;
+    const b = byBill[p.bill_id];
+    rows.push([p.paid_on, b?.name || "", b ? t(billCat(b.category).name) : "", b?.property_id ? propertyName(b.property_id) : "", p.amount ?? "", p.currency || "", t(B().PAYMENT_STATUS[p.status] || p.status), p.method || "", p.confirmation_ref || "", num(p.late_fee) || "", p.notes || ""]);
+  }
+  const csv = "﻿" + rows.map((r) => r.map((v) => { const s = String(v ?? ""); const x = /^[=+\-@]/.test(s) ? `'${s}` : s; return /[",\r\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; }).join(",")).join("\r\n");
+  download(`${t("账单")}-${year}.csv`, csv);
+  toast(t("已导出 {n} 笔缴费记录", { n: rows.length - 1 }));
+}
+
+export function exportIcs() {
+  const list = filterByProperty(state.billsEnriched.filter((b) => b.active));
+  if (!list.length) return toast(t("没有可导出的账单"));
+  download(`${t("家庭账单")}.ics`, icsFor(list), "text/calendar;charset=utf-8");
+  toast(t("已导出日历文件，在手机上打开即可加入日历"));
+}
+
+/* ── 常用账单模板 ── */
+function templateRegion() {
+  return state.houseProfile?.region || (Units.region.system === "us" ? "na" : "cn");
+}
+export function viewBillTemplate() {
+  const region = templateRegion();
+  const tpl = B().TEMPLATES[region] || [];
+  const have = new Set(state.bills.map((b) => `${b.category}|${b.name}`));
+  const prop = currentProperty();
+  return `
+    <section class="section">
+      <div class="section-head"><h2>${t("常用账单")}</h2><p>${t("{region}模板，共 {n} 条；金额和到期日建好后再补", { region: t(region === "na" ? "北美" : "中国"), n: tpl.length })}</p></div>
+      ${propertyBar()}
+      <form id="billTemplateForm" class="panel">
+        <div class="tpl-bar">
+          <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="1">${t("全选")}</button>
+          <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="0">${t("全不选")}</button>
+          <span class="muted">${prop ? t("与房产相关的账单会挂在“{p}”下", { p: esc(prop.name) }) : ""}</span>
+        </div>
+        ${tpl.map((r, i) => {
+          const key = `${r.category}|${r.name}`, exists = have.has(key) || have.has(`${r.category}|${t(r.name)}`), c = billCat(r.category);
+          const when = r.due_dates ? joinList(r.due_dates.map((d) => d.replace("-", "/"))) : r.due_day ? t("每月 {d} 号", { d: r.due_day }) : t("到期日建后补填");
+          return `<label class="tpl-row ${exists ? "is-have" : ""}" style="--cat:var(--pine)">
+            <input type="checkbox" name="tpl" value="${i}" ${exists ? "disabled" : r.optional ? "" : "checked"}>
+            <span class="grow"><b>${c.icon} ${esc(t(r.name))}</b><small>${[t(B().FREQUENCIES[r.frequency]) + (r.frequency === "custom" ? ` (${r.interval_months})` : ""), when, r.autopay ? t("通常自动扣款") : t("手动缴费"), r.property === false ? t("与房产无关") : null].filter(Boolean).join(" · ")}</small>
+              ${r.note ? `<small class="note">${esc(t(r.note))}</small>` : ""}</span>
+            ${exists ? `<span class="badge b-ok">${t("已有")}</span>` : ""}
+          </label>`;
+        }).join("")}
+        <div class="form-actions" style="margin-top:12px">
+          <button type="submit" class="btn btn-primary">${t("建立选中的账单")}</button>
+          <a class="btn btn-ghost" href="${href("bills", "list")}">${t("稍后再说")}</a>
+        </div>
+      </form>
+    </section>`;
+}
+
+/** 勾选的模板 → 账单行（名称、备注按当前语言写入） */
+export function billTemplateItems(indexes) {
+  const region = templateRegion(), tpl = B().TEMPLATES[region] || [];
+  const cur = Units.region.currency, pid = state.propertyId;
+  return indexes.map((i) => tpl[i]).filter(Boolean).map((r) => {
+    const b = {
+      property_id: r.property === false ? null : pid, name: t(r.name), category: r.category, direction: "payable",
+      payee: r.payee || null, account_last4: null, login_hint: null, pay_url: null,
+      pay_channel: r.autopay ? "autopay" : (r.channel || "online"), amount_type: r.amount_type || "variable", typical_amount: null, currency: cur,
+      frequency: r.frequency, interval_months: r.interval_months || null, due_day: r.due_day || null, due_dates: r.due_dates || [],
+      next_due_on: null, grace_days: r.grace_days || 0, late_fee_note: null,
+      autopay: !!r.autopay, autopay_method: null, autopay_card_expires: null, statement_channel: r.statement || "email",
+      reminder_days: r.reminder_days || [7, 1], assigned_to: null, essential: r.essential !== false && billCat(r.category).essential, active: true,
+      notes: r.note ? t(r.note) : null,
+    };
+    b.next_due_on = initialDue(b);
+    return b;
+  });
+}
+
+/* ── 账单表单（整页；编辑时下方带缴费记录） ── */
+export function leaveBill(changed) {
+  if (changed) state.needsRefresh = true;
+  if (state.prevRoute) history.back();
+  else go(href("bills", "list"), { replace: true });
+}
+
+export function viewBillForm() {
+  const r = state.route;
+  const b = r.id && r.id !== "new" ? state.billsEnriched.find((x) => x.id === r.id) : null;
+  if (r.id !== "new" && !b) return `<div class="panel empty"><strong>${t("找不到这条账单")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("bills", "list")}">${t("回到账单")}</a></p></div>`;
+  const qCat = r.q.get("category");
+  const v = b || { category: qCat && B().CATEGORIES.some((c) => c.id === qCat) ? qCat : "electric", direction: "payable", pay_channel: "online", amount_type: "variable",
+    currency: Units.region.currency, frequency: "monthly", due_day: null, due_dates: [], grace_days: 0, autopay: false, statement_channel: "email", reminder_days: [7, 1],
+    essential: true, active: true, property_id: state.propertyId };
+  const d = (x) => esc(x ?? "");
+  const cloud = Store.mode === "cloud";
+  const opts = (map, sel) => Object.entries(map).map(([k, n]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${t(n)}</option>`).join("");
+  const backLabel = state.prevRoute ? t({ today: "今日", bills: "账单", me: "我的" }[state.prevRoute.section] || "上一页") : t("账单");
+  const landlord = state.properties.some((p) => p.role === "landlord");
+  return `
+    <section class="section form-page">
+      <div class="section-head">
+        <h2>${b ? `${billCat(b.category).icon} ${esc(b.name)}` : t("添加账单")}</h2>
+        <button type="button" class="btn btn-sm btn-ghost" data-action="bill-cancel">${t("返回{page}", { page: backLabel })}</button>
+      </div>
+      ${b ? billSummary(b) : ""}
+      <form id="billForm" class="panel" novalidate>
+        <input type="hidden" name="bill_id" value="${d(b?.id)}">
+        <fieldset>
+          <legend>${t("基本信息")}</legend>
+          <div class="form-grid">
+            <label>${t("名称")}<input name="name" required maxlength="60" placeholder="${t("例如：ComEd 电费")}" value="${d(v.name)}"></label>
+            <label>${t("分类")}<select name="category">${B().CATEGORIES.map((c) => `<option value="${c.id}" ${c.id === v.category ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`).join("")}</select></label>
+            <label>${t("房产")}<select name="property_id"><option value="">${t("与房产无关")}</option>${state.properties.filter((p) => !p.archived || p.id === v.property_id).map((p) => `<option value="${p.id}" ${p.id === v.property_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
+            ${landlord || v.direction === "receivable" ? `<label>${t("方向")}<select name="direction"><option value="payable" ${v.direction !== "receivable" ? "selected" : ""}>${t("我付出去（应付）")}</option><option value="receivable" ${v.direction === "receivable" ? "selected" : ""}>${t("别人付给我（应收，如租金）")}</option></select></label>` : `<input type="hidden" name="direction" value="payable">`}
+            <label>${t("付款方 / 收款方")}<input name="payee" maxlength="60" placeholder="${t("例如：ComEd")}" value="${d(v.payee)}"></label>
+            <label>${t("账号尾号")}<input name="account_last4" maxlength="8" placeholder="${t("只记后 4 位")}" value="${d(v.account_last4)}"></label>
+            <label>${t("登录提示")}<input name="login_hint" maxlength="80" placeholder="${t("例如：用 Gmail 登录，密码在密码管理器")}" value="${d(v.login_hint)}"></label>
+            <label>${t("缴费链接")}<input name="pay_url" type="url" maxlength="300" placeholder="https://" value="${d(v.pay_url)}"></label>
+            <label>${t("缴费方式")}<select name="pay_channel">${opts(B().CHANNELS, v.pay_channel)}</select></label>
+            <label>${t("账单怎么来")}<select name="statement_channel">${opts(B().STATEMENTS, v.statement_channel)}</select></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>${t("金额与周期")}</legend>
+          <div class="form-grid">
+            <label>${t("金额类型")}<select name="amount_type"><option value="fixed" ${v.amount_type === "fixed" ? "selected" : ""}>${t("固定")}</option><option value="variable" ${v.amount_type !== "fixed" ? "selected" : ""}>${t("每次不同")}</option></select></label>
+            <label>${t("通常金额")}<input name="typical_amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="${t("每次不同的可留空，按记录平均")}" value="${d(v.typical_amount)}"></label>
+            <label>${t("货币")}<input name="currency" maxlength="3" pattern="[A-Z]{3}" value="${d(v.currency || Units.region.currency)}"></label>
+            <label>${t("频率")}<select name="frequency">${opts(B().FREQUENCIES, v.frequency)}</select></label>
+            <label>${t("每 N 个月（自定义时）")}<input name="interval_months" type="number" inputmode="numeric" min="1" max="60" value="${d(v.interval_months)}"></label>
+            <label>${t("每月几号到期")}<input name="due_day" type="number" inputmode="numeric" min="1" max="31" placeholder="${t("月付类填")}" value="${d(v.due_day)}"></label>
+            <label>${t("固定日期（半年 / 年付）")}<input name="due_dates" placeholder="${t("例如 03-01, 08-01")}" value="${d((v.due_dates || []).join(", "))}"><small>${t("填了固定日期就按它循环，忽略“每月几号”")}</small></label>
+            <label>${t("下次到期日")}<input name="next_due_on" type="date" value="${d(v.next_due_on)}"><small>${t("留空会按规则自动算；每周 / 年付没填日期的请手动填")}</small></label>
+            <label>${t("宽限天数")}<input name="grace_days" type="number" inputmode="numeric" min="0" max="60" value="${d(v.grace_days ?? 0)}"></label>
+            <label>${t("提前提醒（天，逗号分隔）")}<input name="reminder_days" placeholder="7, 1" value="${d((v.reminder_days || [7, 1]).join(", "))}"></label>
+            <label class="span-2">${t("滞纳金说明")}<input name="late_fee_note" maxlength="120" placeholder="${t("例如：逾期 1.5% 或 $25")}" value="${d(v.late_fee_note)}"></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>${t("自动扣款")}</legend>
+          <div class="form-grid">
+            <label class="check-inline"><input type="checkbox" name="autopay" ${v.autopay ? "checked" : ""}><span>${t("已设置自动扣款（到期前后提醒核对，而不是提醒缴费）")}</span></label>
+            <label>${t("扣款账户 / 卡")}<input name="autopay_method" maxlength="40" placeholder="${t("例如：Chase 1234")}" value="${d(v.autopay_method)}"></label>
+            <label>${t("扣款卡有效期")}<input name="autopay_card_expires" type="month" value="${d(v.autopay_card_expires)}"><small>${t("到期前 45 天提醒换卡")}</small></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>${t("其他")}</legend>
+          <div class="form-grid">
+            ${cloud ? `<label>${t("谁负责")}<select name="assigned_to"><option value="">${t("不指定")}</option>${state.members.map((m) => `<option value="${m.user_id}" ${m.user_id === v.assigned_to ? "selected" : ""}>${esc(m.display_name)}</option>`).join("")}</select></label>` : `<input type="hidden" name="assigned_to" value="">`}
+            <label class="check-inline"><input type="checkbox" name="essential" ${v.essential !== false ? "checked" : ""}><span>${t("必要支出（预算里单独统计）")}</span></label>
+            <label class="check-inline"><input type="checkbox" name="active" ${v.active !== false ? "checked" : ""}><span>${t("启用（停用后不再提醒，记录保留）")}</span></label>
+            <label class="span-2">${t("备注")}<textarea name="notes" rows="2" maxlength="500" placeholder="${t("合同到期、促销价截止、客服电话…")}">${d(v.notes)}</textarea></label>
+          </div>
+        </fieldset>
+        <p id="billFormError" class="form-error" role="alert"></p>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">${b ? t("保存修改") : t("添加账单")}</button>
+          <button type="button" class="btn btn-ghost" data-action="bill-cancel">${t("取消")}</button>
+          ${b ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="bill-delete">${t("删除账单")}</button>` : ""}
+        </div>
+      </form>
+      ${b ? paySection(b, r.q.get("pay") === "1") : `<p class="muted" style="margin-top:12px;font-size:13px">${t("保存后可以在这条账单下记每次缴费或核对。")}</p>`}
+    </section>`;
+}
+
+function billSummary(b) {
+  const bits = [
+    b.status !== "ok" && b.status !== "none" ? `<span class="badge ${BADGE[b.status]}">${t(STATUS_LABEL[b.status])}${b.next_due_on ? ` · ${fmtDate(b.next_due_on)}` : ""}</span>` : b.next_due_on ? `<span class="badge b-ok">${t("下次 {d}", { d: fmtDate(b.next_due_on) })}</span>` : "",
+    b.autopay ? `<span class="badge" style="background:var(--surface-2)">${t("自动扣款")}${b.autopay_method ? ` · ${esc(b.autopay_method)}` : ""}</span>` : "",
+    b.est != null ? `<span class="badge" style="background:var(--surface-2)">${t("约 {m} / 次", { m: mny(b.est, b.currency) })}</span>` : "",
+    b.monthly ? `<span class="badge" style="background:var(--surface-2)">${t("折合每月 {m}", { m: money(b.monthly) })}</span>` : "",
+    b.priceUp ? `<span class="badge b-low">${t("涨价了")}</span>` : "",
+  ].filter(Boolean).join("");
+  return `<div class="asset-badges" style="margin-bottom:12px">${bits}</div>${stampText(b) ? `<p class="record-meta" style="margin:-6px 0 12px">${esc(stampText(b))}</p>` : ""}`;
+}
+
+function paySection(b, focus) {
+  const rows = b.pays.map((p) => `<li>
+      <span class="badge ${p.status === "skipped" ? "" : "b-ok"}" style="${p.status === "skipped" ? "background:var(--surface-2)" : ""}">${t(B().PAYMENT_STATUS[p.status] || p.status)}</span>
+      <div class="grow"><span class="name">${esc(fmtDate(p.paid_on))}</span>
+        <small>${[p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.paid_by && Store.mode === "cloud" ? memberName(p.paid_by) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+      <b>${p.amount != null ? mny(p.amount, p.currency) : ""}</b>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="billpay-del" data-id="${p.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>
+    </li>`).join("");
+  return `
+    <div class="section-head" style="margin-top:28px"><h2>${t("缴费记录")}</h2><p>${t("记一笔后下次到期日自动推到下一期")}</p></div>
+    <form id="billPayForm" class="panel" ${focus ? 'data-focus="1"' : ""}>
+      <input type="hidden" name="bill_id" value="${esc(b.id)}">
+      <div class="form-grid maint-grid">
+        <label>${t("缴费日期")}<input name="paid_on" type="date" required value="${todayISO()}" max="${todayISO()}"></label>
+        <label>${t("对应到期日")}<input name="due_on" type="date" value="${esc(b.next_due_on || "")}"></label>
+        <label>${t("金额（{cur}）", { cur: b.currency || Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${b.est != null ? num(b.est).toFixed(2) : ""}"></label>
+        <label>${t("状态")}<select name="status"><option value="paid">${t("已缴费")}</option><option value="verified" ${b.autopay ? "selected" : ""}>${t("已核对（自动扣款）")}</option><option value="skipped">${t("跳过这期")}</option></select></label>
+        <label>${t("方式")}<input name="method" maxlength="40" placeholder="${t("例如：网银 / 支票 #1023 / 自动扣款")}" value="${b.autopay ? esc(b.autopay_method || t("自动扣款")) : ""}"></label>
+        <label>${t("确认号")}<input name="confirmation_ref" maxlength="60"></label>
+        <label>${t("滞纳金")}<input name="late_fee" type="number" inputmode="decimal" min="0" step="0.01" value="0"></label>
+        <label class="span-2">${t("备注")}<input name="notes" maxlength="500"></label>
+      </div>
+      <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${t("记一笔")}</button>
+        <small class="muted">${t("有金额的记录会同时记入花费统计的“账单”组。")}</small></div>
+    </form>
+    <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有记录")}</strong></div>`}</div>`;
+}
+
+/* ── 保存 ── */
+const parseList = (s, { int = true } = {}) => String(s || "").split(/[,，\s]+/).map((x) => x.trim()).filter(Boolean).map((x) => (int ? parseInt(x, 10) : x)).filter((x) => (int ? Number.isFinite(x) : true));
+
+export async function saveBillForm(f) {
+  const fe = f.elements, err = $("#billFormError");
+  const name = fe.name.value.trim();
+  if (!name) { err.textContent = t("请填写账单名称。"); return fe.name.focus(); }
+  const numOrNull = (el, int) => { if (el.value === "") return null; const n = num(el.value, NaN); return Number.isFinite(n) ? (int ? Math.round(n) : Math.round(n * 100) / 100) : null; };
+  const dueDates = parseList(fe.due_dates.value, { int: false }).map((x) => x.replace("/", "-")).filter((x) => /^\d{2}-\d{2}$/.test(x));
+  const reminders = [...new Set(parseList(fe.reminder_days.value).filter((n) => n >= 0 && n <= 90))].sort((a, b) => b - a).slice(0, 5);
+  const payUrl = fe.pay_url.value.trim();
+  if (payUrl && !/^https?:\/\//i.test(payUrl)) { err.textContent = t("缴费链接需要以 http:// 或 https:// 开头。"); return fe.pay_url.focus(); }
+  const b = {
+    id: fe.bill_id.value || undefined, name, category: fe.category.value, property_id: fe.property_id.value || null, direction: fe.direction.value || "payable",
+    payee: fe.payee.value.trim() || null, account_last4: fe.account_last4.value.trim() || null, login_hint: fe.login_hint.value.trim() || null, pay_url: payUrl || null,
+    pay_channel: fe.pay_channel.value, statement_channel: fe.statement_channel.value, amount_type: fe.amount_type.value, typical_amount: numOrNull(fe.typical_amount),
+    currency: (fe.currency.value.trim().toUpperCase() || Units.region.currency).slice(0, 3), frequency: fe.frequency.value, interval_months: numOrNull(fe.interval_months, true),
+    due_day: numOrNull(fe.due_day, true), due_dates: dueDates, next_due_on: fe.next_due_on.value || null, grace_days: numOrNull(fe.grace_days, true) || 0,
+    reminder_days: reminders.length ? reminders : [7, 1], late_fee_note: fe.late_fee_note.value.trim() || null,
+    autopay: fe.autopay.checked, autopay_method: fe.autopay_method.value.trim() || null, autopay_card_expires: fe.autopay_card_expires.value || null,
+    assigned_to: fe.assigned_to.value || null, essential: fe.essential.checked, active: fe.active.checked, notes: fe.notes.value.trim() || null,
+  };
+  if (b.autopay && b.pay_channel !== "autopay") b.pay_channel = "autopay";
+  if (!b.autopay && b.pay_channel === "autopay") b.pay_channel = "online";
+  if (!b.next_due_on) b.next_due_on = initialDue(b);
+  if (!b.next_due_on && b.frequency !== "one_time") { err.textContent = t("这种频率算不出到期日，请填“下次到期日”。"); return fe.next_due_on.focus(); }
+  const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
+  try {
+    await Store.saveBill(b);
+    toast(b.id ? t("已保存修改") : t("已添加 {name}", { name }));
+    leaveBill(true);
+  } catch (e) { err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; }
+}
+
+/** 记一笔缴费 / 核对 / 跳过：写 purchases（有金额且为应付）、写记录、把账单推到下一期 */
+export async function recordPayment(bill, { paid_on, due_on, amount, status, method, confirmation_ref, late_fee, notes }) {
+  const currency = bill.currency || Units.region.currency;
+  let purchase_id = null;
+  const total = status === "skipped" ? 0 : num(amount) + num(late_fee);
+  if (total > 0 && bill.direction !== "receivable") {
+    purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: bill.payee || null,
+      amount: Math.round(total * 100) / 100, currency, purchased_at: new Date(`${paid_on}T12:00:00`).toISOString() });
+  }
+  await Store.addBillPayment({ bill_id: bill.id, due_on: due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),
+    currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, status, notes: notes || null, purchase_id });
+  // 推到下一期：以这次对应的到期日为基准，保证不会漏期
+  const base = due_on || bill.next_due_on || paid_on;
+  const next = advanceDue(bill, base);
+  const patch = { ...bill, next_due_on: next };
+  if (!next && bill.frequency === "one_time") patch.active = false;
+  delete patch.pays; delete patch.last; delete patch.avg; delete patch.est; delete patch.priceUp; delete patch.daysLeft; delete patch.status; delete patch.cardDays; delete patch.cardExpiring; delete patch.monthly;
+  await Store.saveBill(patch);
+}
+
+export async function saveBillPayForm(f) {
+  const fe = f.elements;
+  const bill = state.billsEnriched.find((x) => x.id === fe.bill_id.value);
+  if (!bill) return toast(t("账单不存在"));
+  await recordPayment(bill, { paid_on: fe.paid_on.value || todayISO(), due_on: fe.due_on.value || null, amount: fe.amount.value === "" ? null : fe.amount.value, status: fe.status.value,
+    method: fe.method.value.trim(), confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, notes: fe.notes.value.trim() });
+  toast(fe.status.value === "skipped" ? t("已跳过这期") : t("已记录，下次到期 {d}", { d: fmtDate(advanceDue(bill, fe.due_on.value || bill.next_due_on || fe.paid_on.value) || "") || t("无") }));
+}
+
+/** 概览里的“已核对”：自动扣款账单一键记录（金额取通常金额或平均） */
+export async function quickVerify(id) {
+  const bill = state.billsEnriched.find((x) => x.id === id);
+  if (!bill) return;
+  await recordPayment(bill, { paid_on: todayISO(), due_on: bill.next_due_on, amount: bill.est, status: "verified", method: bill.autopay_method || t("自动扣款"), late_fee: 0 });
+  toast(t("已核对 {name}，下次 {d}", { name: bill.name, d: fmtDate(advanceDue(bill, bill.next_due_on || todayISO()) || "") || t("无") }));
+}

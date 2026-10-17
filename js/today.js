@@ -6,6 +6,7 @@ import { esc, fmt, inSpace } from "./core/util.js";
 import { joinList, locale, t } from "./core/i18n.js";
 import { alertText, assetAlerts } from "./house/assets.js";
 import { taskRow, undoneThisMonth } from "./house/tasks.js";
+import { alertText as billText, billAlerts, billCat } from "./bills/logic.js";
 
 const SPACE_TAG = { pantry: { name: "储藏", icon: "🥫" }, house: { name: "房屋", icon: "🏠" } };
 
@@ -21,7 +22,8 @@ export function viewToday() {
   const expiring = state.enriched.filter((x) => x.exp && x.qty > 0 && inSpace("pantry")(x)).sort((a, b) => a.expDays - b.expDays);
   const open = state.shopping.filter((s) => s.status === "todo");
   const claimed = state.shopping.filter((s) => s.status === "claimed");
-  const total = todo.length + expiring.length + assets.length + tasks.length;
+  const bills = state.billsEnabled ? billAlerts(state.billsEnriched.filter((b) => b.active)) : [];
+  const total = todo.length + expiring.length + assets.length + tasks.length + bills.length;
 
   const now = new Date();
   const dateText = now.toLocaleDateString(locale(), { month: "long", day: "numeric", weekday: "long" });
@@ -43,6 +45,16 @@ export function viewToday() {
       <p class="muted">${esc(dateText)}</p>
       <h2>${total ? t("今天有 {n} 件事要留意", { n: total }) : t("今天没有需要处理的事")}</h2>
     </section>
+
+    ${bills.length ? `<section class="section">
+      <div class="section-head"><h2>${t("账单")}</h2><a class="btn btn-sm btn-ghost" href="${href("bills", "overview")}">${t("全部账单")}</a></div>
+      <div class="panel"><ul class="restock-list">${bills.slice(0, 6).map((b) => `<li>
+        <span class="badge ${b.status === "overdue" ? "b-out" : b.status === "due" ? "b-low" : "b-soon"}">${b.status === "overdue" ? t("逾期") : b.status === "verify" ? t("核对") : b.cardExpiring && b.status === "ok" ? t("换卡") : t("缴费")}</span>
+        <div class="grow"><a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a><small>${esc(billText(b))}${b.est != null ? ` · ${Units.money(b.est, b.currency || Units.region.currency)}` : ""}</small></div>
+        ${b.pay_url && !b.autopay ? `<a class="btn btn-sm btn-ghost" href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${t("去缴费")}</a>` : ""}
+        ${b.autopay ? `<button type="button" class="btn btn-sm" data-action="bill-verify" data-id="${b.id}">${t("已核对")}</button>` : `<a class="btn btn-sm" href="${href("bill", b.id)}?pay=1">${t("记缴费")}</a>`}</li>`).join("")}</ul>
+        ${bills.length > 6 ? more(bills.length - 6, "bills", "overview", t("去账单查看")) : ""}</div>
+    </section>` : ""}
 
     ${todo.length ? `<section class="section">
       <div class="section-head"><h2>${t("该补货了")}</h2>
@@ -88,6 +100,7 @@ export function viewToday() {
       <a class="quick-link" href="${href("item", "new")}?space=pantry"><span aria-hidden="true">🥫</span>${t("添加储藏物品")}</a>
       ${houseOn ? `<a class="quick-link" href="${href("item", "new")}?space=house"><span aria-hidden="true">🧰</span>${t("添加房屋耗材")}</a>` : ""}
       ${state.gearEnabled ? `<a class="quick-link" href="${href("item", "new")}?space=gear"><span aria-hidden="true">🧳</span>${t("添加装备")}</a>` : ""}
+      ${state.billsEnabled ? `<a class="quick-link" href="${href("bill", "new")}"><span aria-hidden="true">🧾</span>${t("添加账单")}</a>` : ""}
       <a class="quick-link" href="${href("me", "stats")}"><span aria-hidden="true">📊</span>${t("看花费统计")}</a>
     </section>`;
 }

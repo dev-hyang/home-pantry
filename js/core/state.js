@@ -4,9 +4,14 @@ export const state = {
   houseProfile: null,                  // 房屋资料（第一期：房型、材料、设施）
   houseEnabled: (() => { try { return localStorage.getItem("hmh-house-off") !== "1"; } catch { return true; } })(),
   gearEnabled: (() => { try { return localStorage.getItem("hmh-gear-off") !== "1"; } catch { return true; } })(),
+  billsEnabled: (() => { try { return localStorage.getItem("hmh-bills-off") !== "1"; } catch { return true; } })(),
   items: [], logs: [], shopping: [], purchases: [], members: [],
   assets: [], maintLogs: [], seasonalDone: [],  // 第二期：设备档案、保养记录、季节任务完成记录
   assetsEnriched: [],
+  properties: [], propertyId: null,            // 多房产：当前查看的房产（房屋资料、设备、季节任务按它过滤）
+  bills: [], billPayments: [], billsEnriched: [],   // 账单 B1
+  billsFilter: { property: "all", cat: "all", autopay: "all" },
+  editProperty: null,                          // 设置页：正在编辑的房产 id（"new" = 新建）
   tasksMonth: null,                    // 季节任务页当前查看的月份（null = 本月）
   stats: { months: 6, month: null, cat: null, itemId: null },
   filter: { space: "pantry", cat: "all", q: "", status: "all" },

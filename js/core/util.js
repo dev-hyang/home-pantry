@@ -25,7 +25,7 @@ export const spaceOf = (catId) => CATEGORIES.find((c) => c.id === catId)?.space 
 export const inSpace = (space) => (it) => spaceOf(it.category) === space;
 export const isGear = (it) => spaceOf(it.category) === "gear";
 // 空间 → 对应列表页的路由 [section, sub]
-export const listRoute = (space) => (space === "house" ? ["house", "supplies"] : space === "gear" ? ["gear", null] : ["pantry", "inventory"]);
+export const listRoute = (space) => (space === "house" ? ["house", "supplies"] : space === "gear" ? ["pantry", "gear"] : ["pantry", "inventory"]);
 
 // 日期（只到天，按本地时间）
 export const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
