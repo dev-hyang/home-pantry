@@ -297,7 +297,7 @@ export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "ac
 export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email", "hoa"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
   "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "statement_channel",
-  "reminder_days", "ends_on", "assigned_to", "essential", "active", "notes"];
+  "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes"];
 export const DEAL_FIELDS = ["property_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at"];
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 

@@ -97,17 +97,30 @@ export function enrichBills(bills, payments) {
       cardDays = daysUntil(ymd(new Date(y, m, 0)));
     }
     const cardExpiring = cardDays != null && cardDays <= 45;
-    return { ...b, pays, last, avg, est, priceUp, daysLeft, status, cardDays, cardExpiring: cardExpiring && !ended, ended: !!ended, monthly: ended ? 0 : monthlyEquivalent(b, est) };
+    // 免费试用：到期前 3 天到到期后 1 天提醒“不续就取消”
+    const trialDays = b.trial_ends_on ? daysUntil(b.trial_ends_on) : null;
+    const trialSoon = b.active && !ended && trialDays != null && trialDays <= 3 && trialDays >= -1;
+    return { ...b, pays, last, avg, est, priceUp, daysLeft, status, cardDays, cardExpiring: cardExpiring && !ended, ended: !!ended, monthly: ended ? 0 : monthlyEquivalent(b, est), trialDays, trialSoon };
   });
 }
 
-/** 首页 / 概览要处理的：逾期 > 今天 > 待核对 > 即将；扣款卡快过期单独算 */
+/** 首页 / 概览要处理的：逾期 > 今天 > 待核对 > 即将；扣款卡快过期、试用快到期单独算 */
 export const billAlerts = (list) => list
-  .filter((b) => ["overdue", "due", "verify", "soon"].includes(b.status) || (b.active && b.cardExpiring))
-  .sort((x, y) => STATUS_RANK[x.status] - STATUS_RANK[y.status] || (x.daysLeft ?? 999) - (y.daysLeft ?? 999));
+  .filter((b) => ["overdue", "due", "verify", "soon"].includes(b.status) || (b.active && b.cardExpiring) || b.trialSoon)
+  .sort((x, y) => (x.trialSoon ? -1 : 0) - (y.trialSoon ? -1 : 0) || STATUS_RANK[x.status] - STATUS_RANK[y.status] || (x.daysLeft ?? 999) - (y.daysLeft ?? 999));
+
+/** 订阅 / 会员的每月折算合计与条数（概览汇总用） */
+export function subscriptionSummary(list) {
+  const subs = list.filter((b) => B().isSubCat(b.category) && !b.ended);
+  const cur = Units.region.currency;
+  const monthly = subs.filter((b) => (b.currency || cur) === cur).reduce((s, b) => s + b.monthly, 0);
+  const annualPaid = subs.filter((b) => b.frequency === "annual").length;
+  return { count: subs.length, monthly, annualPaid };
+}
 
 export function alertText(b) {
   const d = b.daysLeft;
+  if (b.trialSoon) return b.trialDays < 0 ? t("试用昨天到期，已转付费了吗") : b.trialDays === 0 ? t("试用今天到期，不续就取消") : t("试用 {d} 天后到期，不续就取消", { d: b.trialDays });
   if (b.status === "overdue") return t("逾期 {d} 天", { d: -d }) + (b.grace_days && -d <= b.grace_days ? t("（宽限 {g} 天内）", { g: b.grace_days }) : "");
   if (b.status === "due") return b.autopay ? t("今天扣款") : t("今天到期");
   if (b.status === "verify") return d < 0 ? t("{d} 天前已扣款，核对一下", { d: -d }) : d === 0 ? t("今天扣款，核对一下") : t("{d} 天后扣款", { d });
@@ -121,13 +134,13 @@ export function billAlertItems() {
   if (!state.billsEnabled) return [];
   const B = window.BILLS;
   return billAlerts(state.billsEnriched.filter((b) => b.active)).map((b) => {
-    const sev = b.status === "overdue" ? 0 : b.status === "due" ? 1 : 2;
-    const label = b.status === "overdue" ? t("逾期") : b.status === "verify" ? t("核对") : b.cardExpiring && b.status === "ok" ? t("换卡") : t("缴费");
+    const sev = b.trialSoon ? (b.trialDays <= 0 ? 1 : 2) : b.status === "overdue" ? 0 : b.status === "due" ? 1 : 2;
+    const label = b.trialSoon ? t("试用") : b.status === "overdue" ? t("逾期") : b.status === "verify" ? t("核对") : b.cardExpiring && b.status === "ok" ? t("换卡") : t("缴费");
     const amount = b.est != null ? Units.money(b.est, b.currency || Units.region.currency) : null;
     const actions = [];
     if (b.pay_url && !b.autopay) actions.push({ type: "link", href: b.pay_url, label: t("去缴费"), cls: "btn-ghost", external: true });
     actions.push(b.autopay ? { type: "button", action: "bill-verify", id: b.id, label: t("已核对") } : { type: "link", href: `${href("bill", b.id)}?pay=1`, label: t("记缴费") });
-    return { source: "bill", severity: sev, must: b.status === "overdue", due: b.next_due_on, daysLeft: b.daysLeft, property_id: b.property_id, assigned_to: b.assigned_to,
+    return { source: "bill", severity: sev, must: b.status === "overdue" || !!b.trialSoon, due: b.trialSoon ? b.trial_ends_on : b.next_due_on, daysLeft: b.trialSoon ? b.trialDays : b.daysLeft, property_id: b.property_id, assigned_to: b.assigned_to,
       title: `${B.catOf(b.category).icon} ${b.name}`, detail: [alertText(b), amount].filter(Boolean).join(" · "), href: href("bill", b.id),
       badge: { label, cls: sev === 0 ? "b-out" : sev === 1 ? "b-low" : "b-soon" }, actions };
   });

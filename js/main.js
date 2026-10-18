@@ -196,6 +196,7 @@ main.addEventListener("change", async (e) => {
   }
   if (e.target.closest("#assetForm") && (e.target.name === "kind" || e.target.name === "type")) return onAssetFormChange(e);
   if (e.target.closest("#maintForm") && e.target.name === "kind") return onMaintFormChange(e);
+  if (e.target.closest("#billForm") && e.target.name === "category") { e.target.form.classList.toggle("is-sub", window.BILLS.isSubCat(e.target.value)); return; }   // 订阅 / 会员才显示种类与试用到期
   if (e.target.matches("input[data-task]")) {
     try { await toggleTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); }
     return refresh();

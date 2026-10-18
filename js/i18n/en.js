@@ -529,6 +529,17 @@ export const EN = {
   "姐妹站点": "Sister sites", "同一作者的其他小工具；顶栏站名旁的「‹」「›」小胶囊也能切换": "Other tools by the same author; the ‹ › pills next to the site name switch too",
   "切换姐妹站点": "Switch sister site", "切到{name}": "Go to {name}", "小助手": "Helper", "学堂": "School", "当前": "current", "打开": "Open", "更多页面": "More pages",
 
+  // ── 订阅与会员 ──
+  "订阅与会员": "Subscriptions and memberships", "订阅种类": "Subscription type", "只用于分组和汇总；流媒体、云存储、AI 工具、软件等": "Only for grouping and totals: streaming, cloud storage, AI tools, software…", "免费试用到期日": "Free trial ends", "到期前 3 天提醒“不续就取消”": "Reminds you 3 days before: cancel if you won't keep it",
+  "流媒体": "Streaming", "云存储": "Cloud storage", "AI 工具": "AI tools", "软件 / App": "Software / apps", "游戏": "Games", "新闻 / 阅读": "News / reading", "健身": "Fitness", "月": "mo", "{n} 项，{a} 项年付": "{n} items, {a} paid yearly",
+  "试用": "Trial", "试用快到期": "Trial ending", "试用 {d} 天后到期，不续就取消": "Trial ends in {d} days; cancel if you won't keep it", "试用今天到期，不续就取消": "Trial ends today; cancel if you won't keep it", "试用昨天到期，已转付费了吗": "Trial ended yesterday; did it convert to paid?",
+  "默认不勾，勾了再补金额和到期日；年付到期前 30 天提醒": "Unchecked by default; add amounts and dates after creating; yearly plans remind 30 days before renewal",
+  "视频流媒体": "Video streaming", "年付常便宜 15–20%，但记得年付到期前决定续不续。": "Yearly plans are often 15–20% cheaper; decide before the renewal date whether to keep it.", "音乐": "Music", "相册、Drive、Gmail 共用空间；满了先清理再升级。": "Photos, Drive and Gmail share the space; clean up before upgrading.",
+  "家庭共享一份 200GB / 2TB 比各买各的省。": "One shared 200GB / 2TB family plan beats separate plans.", "按月付，不用的月份可以停。": "Monthly; pause in months you don't use it.", "家庭版可 6 人共享。": "The family plan covers 6 people.",
+  "年约按月付的中途取消有违约金，到期前一个月决定。": "Annual plans paid monthly charge a fee to cancel early; decide a month before renewal.", "密码管理器": "Password manager", "杀毒 / VPN": "Antivirus / VPN", "首年优惠价，第二年自动按原价续，最常被忽略的一项。": "First-year promo price, then auto-renews at full price; the one most often forgotten.",
+  "App 年费": "App yearly fees", "手机“订阅”页里把不用的取消。": "Cancel unused ones in your phone's Subscriptions page.", "游戏会员": "Game pass", "健身房 / 健身 App": "Gym / fitness app", "健身房年约注意取消条款。": "Check the gym's cancellation terms.", "Costco / Sam's 会员": "Costco / Sam's membership",
+  "视频会员": "Video membership", "音乐会员": "Music membership", "网盘": "Cloud drive", "AI 助手": "AI assistant", "软件 / App 年费": "Software / app yearly fees", "手机“自动续费”页里把不用的关掉。": "Turn off unused ones in your phone's auto-renew page.", "年卡注意退卡条款。": "Check the annual pass refund terms.", "电商会员": "Shopping membership",
+
   // ── 页签目录页 ──
   "位置": "You are here", "进行中": "in progress", "同一作者的其他小工具，顶栏站名旁的小胶囊也能切换。": "Other tools by the same author; the pills next to the site name switch too.",
   "补货与临期一览、各分类库存": "Restock and expiry at a glance, stock by category", "全部物品，点 −/+ 记消耗": "All items; tap −/+ to log use", "床品、电器、自行车、工具：只记数量和位置": "Bedding, appliances, bikes, tools: quantity and location only", "按现有食材推荐三餐": "Meals from what you have",

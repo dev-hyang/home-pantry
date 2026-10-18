@@ -6,7 +6,7 @@ import { go, href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { download } from "../stats/views.js";
-import { STATUS_RANK, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, upcoming } from "./logic.js";
+import { STATUS_RANK, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
 import { propertyTag, withProperty } from "../core/alerts.js";
 
 const B = () => window.BILLS;
@@ -24,7 +24,7 @@ export function propertyBar({ all = false } = {}) {
 }
 
 const billRow = (b) => `<li>
-    <span class="badge ${BADGE[b.status]}">${t(STATUS_LABEL[b.status])}</span>
+    <span class="badge ${b.trialSoon ? "b-out" : BADGE[b.status]}">${b.trialSoon ? t("试用") : t(STATUS_LABEL[b.status])}</span>
     <div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a>
       <small>${esc(alertText(b))}${b.est != null ? ` · ${mny(b.est, b.currency)}` : ""}</small></div>
     ${b.pay_url && !b.autopay ? `<a class="btn btn-sm btn-ghost" href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${t("去缴费")}</a>` : ""}
@@ -45,6 +45,7 @@ export function viewBillsOverview() {
   const due30 = next30.filter((x) => (x.bill.currency || cur) === cur).reduce((s, x) => s + num(x.bill.est), 0);
   const autopayN = list.filter((b) => b.autopay).length;
   const cards = list.filter((b) => b.active && b.cardExpiring);
+  const subs = subscriptionSummary(list);
   if (!state.bills.length) {
     return `${propertyBar({ all: true })}<section class="section"><div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}
       <p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${href("bill", "new")}">${t("手动添加一条")}</a></p></div></section>`;
@@ -60,6 +61,7 @@ export function viewBillsOverview() {
         <div class="kpi"><span>${t("未来 30 天要交")}</span><b>${money(due30)}</b><small>${t("{n} 笔", { n: next30.length })}</small></div>
         <div class="kpi"><span>${t("每月固定支出")}</span><b>${money(monthlyTotal)}</b><small>${t("必要 {m}", { m: money(essential) })}</small></div>
         <div class="kpi"><span>${t("自动扣款")}</span><b>${autopayN} / ${list.length}</b><small>${t("{n} 条需手动缴", { n: list.length - autopayN })}</small></div>
+        ${subs.count ? `<div class="kpi"><span>${t("订阅与会员")}</span><b>${money(subs.monthly)}<small>/${t("月")}</small></b><small>${t("{n} 项，{a} 项年付", { n: subs.count, a: subs.annualPaid })}</small></div>` : ""}
       </div>
     </section>
     ${alerts.length ? `<section class="section"><div class="section-head"><h2>${t("要处理的账单")}</h2><p>${t("逾期、到期、即将到期和待核对的自动扣款")}</p></div>
@@ -88,9 +90,12 @@ export function viewBillsList() {
   if (f.autopay === "on") list = list.filter((b) => b.autopay);
   if (f.autopay === "off") list = list.filter((b) => !b.autopay);
   const chip = (k, v, label) => `<button type="button" class="chip" data-action="bills-filter" data-key="${k}" data-val="${v}" aria-pressed="${f[k] === v}">${label}</button>`;
-  const groups = B().CATEGORIES.map((c) => ({ c, rows: list.filter((b) => b.category === c.id).sort((x, y) => STATUS_RANK[x.status] - STATUS_RANK[y.status] || compare(x.name, y.name)) })).filter((g) => g.rows.length);
+  // 订阅 / 会员按种类排在一起，其余按状态
+  const kindOrder = Object.keys(B().SUB_KINDS);
+  const groups = B().CATEGORIES.map((c) => ({ c, rows: list.filter((b) => b.category === c.id).sort((x, y) => (B().isSubCat(c.id) ? kindOrder.indexOf(x.sub_kind || "other") - kindOrder.indexOf(y.sub_kind || "other") : 0) || STATUS_RANK[x.status] - STATUS_RANK[y.status] || compare(x.name, y.name)) })).filter((g) => g.rows.length);
+  const kindTag = (b) => (B().isSubCat(b.category) && b.sub_kind ? `<span class="badge sub-kind">${t(B().SUB_KINDS[b.sub_kind] || b.sub_kind)}</span>` : "");
   const row = (b) => `<li class="bill-row ${b.active && !b.ended ? "" : "inactive"}">
-      <div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}
+      <div class="grow">${propertyTag(b.property_id)}${kindTag(b)}<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}${b.trialSoon ? ` <span class="badge b-out">${t("试用快到期")}</span>` : ""}
         <small>${[b.payee, freqText(b), b.ended && b.ends_on ? t("结束于 {d}", { d: fmtDate(b.ends_on) }) : b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.assigned_to ? memberName(b.assigned_to) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b class="bill-amt">${mny(b.est, b.currency)}</b>
       <label class="switch" title="${t("自动扣款")}"><input type="checkbox" data-bill-autopay="${b.id}" ${b.autopay ? "checked" : ""}><span>${t("自动")}</span></label>
@@ -186,16 +191,22 @@ export function viewBillTemplate() {
           <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="0">${t("全不选")}</button>
           <span class="muted">${prop ? t("与房产相关的账单会挂在“{p}”下；每套房产可以各建一条（到期日可能不同），切换上面的房产再建", { p: esc(prop.name) }) : ""}</span>
         </div>
-        ${tpl.map((r, i) => {
-          const exists = hasBill(r), c = billCat(r.category);
-          const when = r.due_dates ? joinList(r.due_dates.map((d) => d.replace("-", "/"))) : r.due_day ? t("每月 {d} 号", { d: r.due_day }) : t("到期日建后补填");
-          return `<label class="tpl-row ${exists ? "is-have" : ""}" style="--cat:var(--pine)">
+        ${(() => {
+          // 按 group 分组显示（默认“常用账单”）；订阅与会员一组，带种类小标签
+          const groupNames = [...new Set(tpl.map((r) => r.group || "常用账单"))];
+          const rowHtml = (r, i) => {
+            const exists = hasBill(r), c = billCat(r.category);
+            const when = r.due_dates ? joinList(r.due_dates.map((d) => d.replace("-", "/"))) : r.due_day ? t("每月 {d} 号", { d: r.due_day }) : t("到期日建后补填");
+            return `<label class="tpl-row ${exists ? "is-have" : ""}" style="--cat:var(--pine)">
             <input type="checkbox" name="tpl" value="${i}" ${exists ? "disabled" : r.optional ? "" : "checked"}>
-            <span class="grow"><b>${c.icon} ${esc(t(r.name))}</b><small>${[t(B().FREQUENCIES[r.frequency]) + (r.frequency === "custom" ? ` (${r.interval_months})` : ""), when, r.autopay ? t("通常自动扣款") : t("手动缴费"), r.property === false ? t("与房产无关") : null].filter(Boolean).join(" · ")}</small>
+            <span class="grow"><b>${c.icon} ${esc(t(r.name))}</b>${r.sub_kind ? ` <span class="badge sub-kind">${t(B().SUB_KINDS[r.sub_kind] || r.sub_kind)}</span>` : ""}<small>${[r.payee ? esc(r.payee) : null, t(B().FREQUENCIES[r.frequency]) + (r.frequency === "custom" ? ` (${r.interval_months})` : ""), when, r.autopay ? t("通常自动扣款") : t("手动缴费"), r.property === false ? t("与房产无关") : null].filter(Boolean).join(" · ")}</small>
               ${r.note ? `<small class="note">${esc(t(r.note))}</small>` : ""}</span>
             ${exists ? `<span class="badge b-ok">${r.property === false ? t("已有") : t("此房产已有")}</span>` : ""}
           </label>`;
-        }).join("")}
+          };
+          return groupNames.map((g) => `<fieldset class="tpl-group"><legend>${t(g)}${g === "订阅与会员" ? `<span class="muted" style="font-weight:400;font-size:13px"> · ${t("默认不勾，勾了再补金额和到期日；年付到期前 30 天提醒")}</span>` : ""}</legend>
+            ${tpl.map((r, i) => ((r.group || "常用账单") === g ? rowHtml(r, i) : "")).join("")}</fieldset>`).join("");
+        })()}
         <div class="form-actions" style="margin-top:12px">
           <button type="submit" class="btn btn-primary">${t("建立选中的账单")}</button>
           <a class="btn btn-ghost" href="${href("bills", "list")}">${t("稍后再说")}</a>
@@ -210,7 +221,7 @@ export function billTemplateItems(indexes) {
   const cur = Units.region.currency, pid = state.propertyId;
   return indexes.map((i) => tpl[i]).filter(Boolean).map((r) => {
     const b = {
-      property_id: r.property === false ? null : pid, name: t(r.name), category: r.category, direction: "payable",
+      property_id: r.property === false ? null : pid, name: t(r.name), category: r.category, direction: "payable", sub_kind: r.sub_kind || null, trial_ends_on: null,
       payee: r.payee || null, account_last4: null, login_hint: null, pay_url: null,
       pay_channel: r.autopay ? "autopay" : (r.channel || "online"), amount_type: r.amount_type || "variable", typical_amount: null, currency: cur,
       frequency: r.frequency, interval_months: r.interval_months || null, due_day: r.due_day || null, due_dates: r.due_dates || [],
@@ -251,13 +262,15 @@ export function viewBillForm() {
         <button type="button" class="btn btn-sm btn-ghost" data-action="bill-cancel">${t("返回{page}", { page: backLabel })}</button>
       </div>
       ${b ? billSummary(b) : ""}
-      <form id="billForm" class="panel" novalidate>
+      <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""}" novalidate>
         <input type="hidden" name="bill_id" value="${d(b?.id)}">
         <fieldset>
           <legend>${t("基本信息")}</legend>
           <div class="form-grid">
             <label>${t("名称")}<input name="name" required maxlength="60" placeholder="${t("例如：ComEd 电费")}" value="${d(v.name)}"></label>
             <label>${t("分类")}<select name="category">${B().CATEGORIES.map((c) => `<option value="${c.id}" ${c.id === v.category ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`).join("")}</select></label>
+            <label class="sub-only">${t("订阅种类")}<select name="sub_kind"><option value="">${t("未指定")}</option>${opts(B().SUB_KINDS, v.sub_kind)}</select><small>${t("只用于分组和汇总；流媒体、云存储、AI 工具、软件等")}</small></label>
+            <label class="sub-only">${t("免费试用到期日")}<input name="trial_ends_on" type="date" value="${d(v.trial_ends_on)}"><small>${t("到期前 3 天提醒“不续就取消”")}</small></label>
             <label>${t("房产")}<select name="property_id"><option value="">${t("与房产无关")}</option>${state.properties.filter((p) => !p.archived || p.id === v.property_id).map((p) => `<option value="${p.id}" ${p.id === v.property_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
             ${landlord || v.direction === "receivable" ? `<label>${t("方向")}<select name="direction"><option value="payable" ${v.direction !== "receivable" ? "selected" : ""}>${t("我付出去（应付）")}</option><option value="receivable" ${v.direction === "receivable" ? "selected" : ""}>${t("别人付给我（应收，如租金）")}</option></select></label>` : `<input type="hidden" name="direction" value="payable">`}
             <label>${t("付款方 / 收款方")}<input name="payee" maxlength="60" placeholder="${t("例如：ComEd")}" value="${d(v.payee)}"></label>
@@ -370,6 +383,7 @@ export async function saveBillForm(f) {
     pay_channel: fe.pay_channel.value, statement_channel: fe.statement_channel.value, amount_type: fe.amount_type.value, typical_amount: numOrNull(fe.typical_amount),
     currency: (fe.currency.value.trim().toUpperCase() || Units.region.currency).slice(0, 3), frequency: fe.frequency.value, interval_months: numOrNull(fe.interval_months, true),
     due_day: numOrNull(fe.due_day, true), due_dates: dueDates, next_due_on: fe.next_due_on.value || null, grace_days: numOrNull(fe.grace_days, true) || 0, ends_on: fe.ends_on.value || null,
+    sub_kind: B().isSubCat(fe.category.value) ? fe.sub_kind.value || null : null, trial_ends_on: B().isSubCat(fe.category.value) ? fe.trial_ends_on.value || null : null,
     reminder_days: reminders.length ? reminders : [7, 1], late_fee_note: fe.late_fee_note.value.trim() || null,
     autopay: fe.autopay.checked, autopay_method: fe.autopay_method.value.trim() || null, autopay_card_expires: fe.autopay_card_expires.value || null,
     assigned_to: fe.assigned_to.value || null, essential: fe.essential.checked, active: fe.active.checked, notes: fe.notes.value.trim() || null,

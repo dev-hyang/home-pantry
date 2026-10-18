@@ -35,7 +35,13 @@
   const PROPERTY_KINDS = { sfh: "独栋", townhome: "联排", condo: "公寓", apartment: "租住公寓", other: "其他" };
   const PROPERTY_ROLES = { owner_occupied: "自住", landlord: "出租", tenant: "租住" };
 
-  // 模板：property = false 表示与房产无关（手机、车险等）；optional = true 默认不勾选；
+  // 订阅 / 会员的种类标签：只用于清单分组和概览汇总，统计里仍合并为“订阅”一组
+  const SUB_KINDS = { streaming: "流媒体", cloud: "云存储", ai: "AI 工具", software: "软件 / App", games: "游戏", news: "新闻 / 阅读", fitness: "健身", membership: "会员", other: "其他" };
+  // 订阅模板的简写：与房产无关、非必要、默认不勾、自动续费
+  const SUB = (kind, name, payee, frequency, note) => [{ category: "subscription", sub_kind: kind, group: "订阅与会员", name, payee, frequency, due_day: frequency === "monthly" ? 1 : null,
+    amount_type: "fixed", autopay: true, property: false, essential: false, optional: true, reminder_days: frequency === "annual" ? [30, 7] : [7, 1], ...(note ? { note } : {}) }];
+
+  // 模板：property = false 表示与房产无关（手机、车险等）；optional = true 默认不勾选；group 把模板分组显示（默认“常用账单”）
   // due_day 月度到期日；due_dates 固定日期（半年 / 年度）；没有的由用户建后填下次到期日
   const TEMPLATES = {
     na: [
@@ -63,9 +69,26 @@
       { category: "car_loan", name: "车贷", payee: "", frequency: "monthly", due_day: 15, amount_type: "fixed", autopay: true, property: false, optional: true },
       { category: "credit_card", name: "信用卡", payee: "", frequency: "monthly", due_day: 25, amount_type: "variable", autopay: true, property: false,
         note: "设了全额自动还款也要核对账单有没有陌生消费；到期日 = 账单日 + 21–25 天。" },
-      { category: "subscription", name: "流媒体订阅", payee: "Netflix / Spotify", frequency: "monthly", due_day: 1, amount_type: "fixed", autopay: true, property: false, essential: false, optional: true },
-      { category: "membership", name: "Costco 会员", payee: "Costco", frequency: "annual", amount_type: "fixed", property: false, essential: false, optional: true },
       { category: "tuition", name: "托儿 / 学费", payee: "", frequency: "monthly", due_day: 1, amount_type: "fixed", property: false, optional: true },
+      // ── 订阅与会员：一个分类 + 种类标签；默认都不勾，勾了再补金额和到期日 ──
+      ...SUB("streaming", "视频流媒体", "Netflix / Disney+ / YouTube Premium", "monthly", "年付常便宜 15–20%，但记得年付到期前决定续不续。"),
+      ...SUB("streaming", "音乐", "Spotify / Apple Music", "monthly"),
+      ...SUB("cloud", "Google One", "Google", "annual", "相册、Drive、Gmail 共用空间；满了先清理再升级。"),
+      ...SUB("cloud", "iCloud+", "Apple", "monthly", "家庭共享一份 200GB / 2TB 比各买各的省。"),
+      ...SUB("cloud", "Dropbox / OneDrive", "", "annual"),
+      ...SUB("ai", "ChatGPT Plus", "OpenAI", "monthly", "按月付，不用的月份可以停。"),
+      ...SUB("ai", "Claude Pro", "Anthropic", "monthly"),
+      ...SUB("ai", "Copilot / Gemini", "", "monthly"),
+      ...SUB("software", "Microsoft 365", "Microsoft", "annual", "家庭版可 6 人共享。"),
+      ...SUB("software", "Adobe", "Adobe", "annual", "年约按月付的中途取消有违约金，到期前一个月决定。"),
+      ...SUB("software", "密码管理器", "1Password / Bitwarden", "annual"),
+      ...SUB("software", "杀毒 / VPN", "", "annual", "首年优惠价，第二年自动按原价续，最常被忽略的一项。"),
+      ...SUB("software", "App 年费", "App Store / Google Play", "annual", "手机“订阅”页里把不用的取消。"),
+      ...SUB("games", "游戏会员", "Xbox / PlayStation / Nintendo", "annual"),
+      ...SUB("news", "新闻 / 阅读", "NYT / Kindle Unlimited", "monthly"),
+      ...SUB("fitness", "健身房 / 健身 App", "", "monthly", "健身房年约注意取消条款。"),
+      { category: "membership", sub_kind: "membership", group: "订阅与会员", name: "Costco / Sam's 会员", payee: "Costco", frequency: "annual", amount_type: "fixed", property: false, essential: false, optional: true },
+      { category: "membership", sub_kind: "membership", group: "订阅与会员", name: "Amazon Prime", payee: "Amazon", frequency: "annual", amount_type: "fixed", autopay: true, property: false, essential: false, optional: true },
     ],
     cn: [
       { category: "electric", name: "电费", payee: "国家电网", frequency: "monthly", due_day: 25, amount_type: "variable", statement: "app", note: "预付费电表的记成“充值”，按余额提醒。" },
@@ -79,12 +102,19 @@
       { category: "insurance_auto", name: "车险", payee: "", frequency: "annual", amount_type: "fixed", property: false, reminder_days: [30, 7], note: "交强险 + 商业险一年一续。到期日建后补填。" },
       { category: "credit_card", name: "信用卡", payee: "", frequency: "monthly", due_day: 10, amount_type: "variable", autopay: true, property: false, note: "设了自动还款也核对账单。" },
       { category: "parking", name: "停车费", payee: "物业", frequency: "monthly", due_day: 1, amount_type: "fixed", optional: true },
-      { category: "subscription", name: "视频会员", payee: "", frequency: "annual", amount_type: "fixed", autopay: true, property: false, essential: false, optional: true, note: "自动续费常比首年贵，到期前决定要不要续。" },
       { category: "tuition", name: "托育 / 学费", payee: "", frequency: "monthly", due_day: 1, amount_type: "fixed", property: false, optional: true },
+      ...SUB("streaming", "视频会员", "爱奇艺 / 腾讯视频 / B 站", "annual", "自动续费常比首年贵，到期前决定要不要续。"),
+      ...SUB("streaming", "音乐会员", "网易云 / QQ 音乐", "annual"),
+      ...SUB("cloud", "网盘", "百度网盘 / iCloud", "annual"),
+      ...SUB("ai", "AI 助手", "豆包 / Kimi / ChatGPT", "monthly"),
+      ...SUB("software", "软件 / App 年费", "", "annual", "手机“自动续费”页里把不用的关掉。"),
+      ...SUB("fitness", "健身房 / 健身 App", "", "annual", "年卡注意退卡条款。"),
+      { category: "membership", sub_kind: "membership", group: "订阅与会员", name: "电商会员", payee: "京东 PLUS / 88VIP", frequency: "annual", amount_type: "fixed", autopay: true, property: false, essential: false, optional: true },
     ],
   };
 
-  window.BILLS = { CATEGORIES, catOf, FREQUENCIES, CHANNELS, STATEMENTS, PAYMENT_STATUS, PROPERTY_KINDS, PROPERTY_ROLES, TEMPLATES };
+  const isSubCat = (id) => id === "subscription" || id === "membership";
+  window.BILLS = { CATEGORIES, catOf, FREQUENCIES, CHANNELS, STATEMENTS, PAYMENT_STATUS, PROPERTY_KINDS, PROPERTY_ROLES, TEMPLATES, SUB_KINDS, isSubCat };
   // 统计图里账单合并为一组
   window.BILLS_GROUP = { id: "bills", name: "账单", icon: "🧾", color: "#2f5d8a" };
 })();
