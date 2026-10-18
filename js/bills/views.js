@@ -171,8 +171,11 @@ function templateRegion() {
 export function viewBillTemplate() {
   const region = templateRegion();
   const tpl = B().TEMPLATES[region] || [];
-  const have = new Set(state.bills.map((b) => `${b.category}|${b.name}`));
   const prop = currentProperty();
+  // “已有”按房产判断：挂房产的模板只看当前房产下有没有同类同名账单（各房产的电费到期日可能不同，要能各建一条）；
+  // 与房产无关的模板（手机、车险等）才看整个家庭
+  const have = new Set(state.bills.filter((b) => !b.ended).map((b) => `${b.property_id || ""}|${b.category}|${b.name}`));
+  const hasBill = (r) => { const pid = r.property === false ? "" : (prop?.id || ""); return have.has(`${pid}|${r.category}|${r.name}`) || have.has(`${pid}|${r.category}|${t(r.name)}`); };
   return `
     <section class="section">
       <div class="section-head"><h2>${t("常用账单")}</h2><p>${t("{region}模板，共 {n} 条；金额和到期日建好后再补", { region: t(region === "na" ? "北美" : "中国"), n: tpl.length })}</p></div>
@@ -181,16 +184,16 @@ export function viewBillTemplate() {
         <div class="tpl-bar">
           <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="1">${t("全选")}</button>
           <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="0">${t("全不选")}</button>
-          <span class="muted">${prop ? t("与房产相关的账单会挂在“{p}”下", { p: esc(prop.name) }) : ""}</span>
+          <span class="muted">${prop ? t("与房产相关的账单会挂在“{p}”下；每套房产可以各建一条（到期日可能不同），切换上面的房产再建", { p: esc(prop.name) }) : ""}</span>
         </div>
         ${tpl.map((r, i) => {
-          const key = `${r.category}|${r.name}`, exists = have.has(key) || have.has(`${r.category}|${t(r.name)}`), c = billCat(r.category);
+          const exists = hasBill(r), c = billCat(r.category);
           const when = r.due_dates ? joinList(r.due_dates.map((d) => d.replace("-", "/"))) : r.due_day ? t("每月 {d} 号", { d: r.due_day }) : t("到期日建后补填");
           return `<label class="tpl-row ${exists ? "is-have" : ""}" style="--cat:var(--pine)">
             <input type="checkbox" name="tpl" value="${i}" ${exists ? "disabled" : r.optional ? "" : "checked"}>
             <span class="grow"><b>${c.icon} ${esc(t(r.name))}</b><small>${[t(B().FREQUENCIES[r.frequency]) + (r.frequency === "custom" ? ` (${r.interval_months})` : ""), when, r.autopay ? t("通常自动扣款") : t("手动缴费"), r.property === false ? t("与房产无关") : null].filter(Boolean).join(" · ")}</small>
               ${r.note ? `<small class="note">${esc(t(r.note))}</small>` : ""}</span>
-            ${exists ? `<span class="badge b-ok">${t("已有")}</span>` : ""}
+            ${exists ? `<span class="badge b-ok">${r.property === false ? t("已有") : t("此房产已有")}</span>` : ""}
           </label>`;
         }).join("")}
         <div class="form-actions" style="margin-top:12px">

@@ -400,7 +400,7 @@ export const EN = {
   "（已删除的账单）": "(deleted bill)", "确认号 {ref}": "ref {ref}", "滞纳金 {m}": "late fee {m}", "还没有缴费记录": "No payments recorded yet", "在账单页记一笔，或在概览里点“已核对”。": "Log one on a bill's page, or tap Verified in the overview.",
   "状态": "Status", "方式": "Method", "确认号": "Confirmation #", "房产": "Property", "已导出 {n} 笔缴费记录": "Exported {n} payments", "没有可导出的账单": "No bills to export", "家庭账单": "Household bills",
   "已导出日历文件，在手机上打开即可加入日历": "Calendar file exported; open it on your phone to add the reminders", "核对扣款：": "Verify autopay: ", "缴费：": "Pay: ",
-  "{region}模板，共 {n} 条；金额和到期日建好后再补": "{region} template, {n} bills; add amounts and due dates afterwards", "与房产相关的账单会挂在“{p}”下": "Property-related bills will be attached to “{p}”",
+  "{region}模板，共 {n} 条；金额和到期日建好后再补": "{region} template, {n} bills; add amounts and due dates afterwards", "与房产相关的账单会挂在“{p}”下": "Property-related bills will be attached to “{p}”", "与房产相关的账单会挂在“{p}”下；每套房产可以各建一条（到期日可能不同），切换上面的房产再建": "Property-related bills attach to “{p}”; each property can have its own (due dates may differ): switch property above and create again", "此房产已有": "This property has it",
   "每月 {d} 号": "on the {d}th each month", "到期日建后补填": "set the due date after creating", "通常自动扣款": "usually autopay", "与房产无关": "not tied to a property", "建立选中的账单": "Create selected bills",
   "还没有勾选账单": "No bills selected", "已建立 {n} 条账单，记得补金额和到期日": "Created {n} bills; remember to add amounts and due dates",
   "例如：ComEd 电费": "e.g. ComEd electric", "付款方 / 收款方": "Payee / payer", "例如：ComEd": "e.g. ComEd", "账号尾号": "Account last digits", "只记后 4 位": "last 4 only", "登录提示": "Login hint",
