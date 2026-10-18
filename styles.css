@@ -425,6 +425,10 @@ textarea { resize: vertical; }
 .fact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; margin: 0; }
 .fact { display: grid; grid-template-columns: 7.6em 1fr; gap: 10px; align-items: start; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
 .fact.wide { grid-column: 1 / -1; }
+.fact-grid.one { grid-template-columns: 1fr; }
+.fact dd { min-width: 0; overflow-wrap: anywhere; }
+.fact dd .pre { white-space: pre-wrap; }
+.fact dd a { color: var(--pine); }
 .fact-grid .fact:nth-last-child(1) { border-bottom: 0; }
 .fact dt { color: var(--muted); font-weight: 600; padding-top: 1px; line-height: 1.5; }
 .fact dd { margin: 0; line-height: 1.6; }
@@ -450,9 +454,6 @@ textarea { resize: vertical; }
 .meta-tag.b-ok { border-color: var(--pine); }
 .meta-tag.b-soon { border-color: var(--mustard); }
 /* HOA / 物业面板 */
-.kv-table th { width: 32%; white-space: nowrap; }
-.kv-table td a { color: var(--pine); text-decoration: none; }
-.kv-table .pre { white-space: pre-wrap; }
 .hoa-tips { margin-top: 10px; }
 .hoa-tips summary { cursor: pointer; font-weight: 600; font-size: 14px; }
 .hoa-tips ul { margin: 6px 0 0; }

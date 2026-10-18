@@ -67,9 +67,11 @@ function hoaPanel(p) {
     return `<section class="section" id="house-hoa"><div class="section-head"><h2>${esc(t(a.label))}</h2><p>${t("没填 {label}，有的话去资料里补充", { label: t(a.label) })}</p></div>
       <div class="panel">${tips || `<div class="empty">${t("这种房型一般没有 {label}", { label: t(a.label) })}</div>`}</div></section>`;
   }
+  // 多个邮箱用 ; 或 , 隔开，各自成一个链接；手机上允许在任意处换行，不再撑宽
+  const emails = (hoa.email || "").split(/[;,，；]/).map((x) => x.trim()).filter(Boolean);
   const contact = [
     hoa.phone ? `<a href="tel:${esc(hoa.phone.replace(/[^\d+]/g, ""))}">📞 ${esc(hoa.phone)}</a>` : "",
-    hoa.email ? `<a href="mailto:${esc(hoa.email)}">✉️ ${esc(hoa.email)}</a>` : "",
+    ...emails.map((e) => `<a href="mailto:${esc(e)}">✉️ ${esc(e)}</a>`),
     hoa.url ? `<a href="${esc(hoa.url)}" target="_blank" rel="noopener noreferrer">🔗 ${t("业主门户")}</a>` : "",
   ].filter(Boolean).join(" · ");
   const sa = assessmentStatus(hoa);
@@ -77,18 +79,19 @@ function hoaPanel(p) {
     : sa.kind === "paid" ? `${money(hoa.sa_amount)}${hoa.sa_purpose ? ` · ${esc(hoa.sa_purpose)}` : ""} <span class="badge b-ok">${t("已缴")}</span>`
     : `<b>${money(hoa.sa_amount)}</b>${hoa.sa_purpose ? ` · ${esc(hoa.sa_purpose)}` : ""}${hoa.sa_due ? ` · ${t("截止 {d}", { d: fmtDate(hoa.sa_due) })}` : ""} <span class="badge ${sa.days != null && sa.days < 0 ? "b-out" : "b-soon"}">${sa.days == null ? t("待缴") : sa.days < 0 ? t("已逾期 {d} 天", { d: -sa.days }) : t("{d} 天后到期", { d: sa.days })}</span>`;
   const hoaBill = state.bills.find((b) => b.category === "hoa" && (!b.property_id || b.property_id === state.propertyId) && !b.archived);
-  const row = (k, v) => (v ? `<tr><th scope="row">${k}</th><td>${v}</td></tr>` : "");
+  // 标签 / 值的事实行（与房屋卡片同款）：值可换行，手机上不会把内容挤到屏幕外；表格 + 横向滚动会让长邮箱、备注把值列推出视野
+  const row = (k, v) => (v ? `<div class="fact wide"><dt>${k}</dt><dd>${v}</dd></div>` : "");
   return `<section class="section" id="house-hoa">
     <div class="section-head"><h2>${esc(t(a.label))}${hoa.name ? ` · ${esc(hoa.name)}` : ""}</h2><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改")}</a></div>
     <div class="panel">
-      <div class="ch-scroll"><table class="owner-table kv-table"><tbody>
+      <dl class="fact-grid one">
         ${row(t("管理公司 / 联系人"), hoa.mgmt ? esc(hoa.mgmt) : "")}
         ${row(t("联系方式"), contact)}
         ${row(t("费用"), hoa.dues > 0 ? `${t(H().DUES_PERIODS[hoa.dues_period] || "每月")} ${money(hoa.dues)}${hoaBill ? ` · <a href="${href("bill", hoaBill.id)}">${t("账单：{name}", { name: esc(hoaBill.name) })}</a>` : state.billsEnabled ? ` · <a href="${href("bills", "template")}">${t("建一条账单提醒缴费")}</a>` : ""}` : "")}
         ${row(t("特殊评估 / 摊派"), saText)}
         ${row(t("规则与限制"), hoa.rules ? `<span class="pre">${esc(hoa.rules)}</span>` : "")}
         ${row(t("备注"), hoa.notes ? `<span class="pre">${esc(hoa.notes)}</span>` : "")}
-      </tbody></table></div>
+      </dl>
       ${tips}
     </div>
   </section>`;
