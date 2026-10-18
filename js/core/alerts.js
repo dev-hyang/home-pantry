@@ -1,7 +1,7 @@
 /* 提醒总线：各模块把自己的提醒翻译成统一形状并注册，首页、网页标题、浏览器通知（以后还有邮件摘要）都从这里取同一份数据。
  * 提醒项：{ source, severity, must, due, daysLeft, title, detail, property_id, assigned_to, href, badge?, actions }
  *   severity：0 紧急（逾期）/ 1 今天 / 2 尽快（一周内、待核对、缺货）/ 3 留意（少货、临期、季节任务）
- *   actions：{ type: "link", href, label, cls?, external? } | { type: "button", action, id, label, cls? } | { type: "check", attrs }
+ *   actions：{ type: "link", href, label, cls?, external? } | { type: "button", action, id, label, cls? } | { type: "check", attrs } | { type: "tag", label, cls?, href? }（状态标签，如“已加入采购”）
  * 房产归属：多于一套活跃房产时统一加房产芯片（propertyTag），单套不显示。 */
 import { state } from "./state.js";
 import { esc } from "./util.js";
@@ -55,6 +55,7 @@ export function alertRow(it) {
   const title = it.href ? `<a class="link-name" href="${esc(it.href)}">${esc(it.title)}</a>` : `<span class="name">${esc(it.title)}</span>`;
   const acts = (it.actions || []).filter((a) => a.type !== "check").map((a) => a.type === "link"
     ? `<a class="btn btn-sm ${a.cls || ""}" href="${esc(a.href)}" ${a.external ? 'target="_blank" rel="noopener noreferrer"' : ""}>${esc(a.label)}</a>`
+    : a.type === "tag" ? (a.href ? `<a class="badge ${a.cls || "b-ok"} act-tag" href="${esc(a.href)}">✓ ${esc(a.label)}</a>` : `<span class="badge ${a.cls || "b-ok"} act-tag">✓ ${esc(a.label)}</span>`)
     : `<button type="button" class="btn btn-sm ${a.cls || ""}" data-action="${esc(a.action)}" data-id="${esc(a.id || "")}">${esc(a.label)}</button>`).join("");
   return `<li class="alert-row sev-${it.severity}">${lead}<div class="grow">${propertyTag(it.property_id)}${it.must ? `<span class="badge b-out" style="margin-right:4px">${t("必须")}</span>` : ""}${title}<small>${esc(it.detail || "")}</small></div>${acts}</li>`;
 }

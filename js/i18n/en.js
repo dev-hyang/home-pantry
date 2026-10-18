@@ -749,6 +749,6 @@ export const EN = {
   "给我一份一周家务清洁计划，按天分配，适合有小孩的家庭。": "Give me a weekly cleaning plan by day, for a family with small kids.",
   "有孩子的家庭怎么安排一周的采购和备餐最省时间？": "How can a family with kids plan a week of shopping and meal prep to save time?",
   "设备待处理": "Equipment needing attention", "检查发现需处理": "inspection found an issue", "近期账单": "Upcoming bills", "{n} 种食材": "{n} ingredients", "{y} 年建": "built {y}", "有 HOA / 物业": "has HOA", "所在地区": "Region", "家庭成员 {n} 人": "{n} family members", "美国": "United States",
-  "家里的情况：": "About this household:", "问题：": "Question:",
+  "家里的情况：": "About this household:", "问题：": "Question:", "已加入采购": "On shopping list", "显示全部": "Show all",
   "你是一个家庭生活助手，帮一家人处理房屋保养、账单与省钱、买房卖房流程、清洁收纳、饮食与育儿家务等问题。回答要实用、简洁，必要时分步骤；涉及燃气、电、结构、法律、医疗时提醒找专业人士。": "You are a friendly household assistant for a family: home maintenance, bills and saving money, buying or selling a home, cleaning and organizing, meal planning, childcare logistics. Answer practically and concisely, in steps where useful; say when a professional is needed.",
 };

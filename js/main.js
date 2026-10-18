@@ -461,6 +461,7 @@ main.addEventListener("click", async (e) => {
         else setTodayPref({ [k]: !state.today[k] });
         return render();
       }
+      case "today-source": setTodayPref({ source: state.today.source === el.dataset.source ? null : el.dataset.source }); return render();
       case "bill-cancel": return leaveBill(false);
       case "bill-delete":
         if (!armed(el, t("再点一次确认删除"))) return;

@@ -622,6 +622,7 @@ button.mrow:last-child { border-bottom: 0; }
 .alert-list .alert-row input[type="checkbox"] { width: 20px; height: 20px; min-height: 0; accent-color: var(--pine); flex: 0 0 auto; }
 .alert-row.sev-0 .link-name { color: var(--out); }
 .alert-row .space-tag { margin-right: 6px; }
+.alert-row .act-tag { text-decoration: none; white-space: nowrap; }
 /* 首页格子块：注意事项 / 小Y问 / 采购清单 / 今天吃什么 四大块 + 快捷操作小块 */
 .today-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 @media (min-width: 900px) { .today-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

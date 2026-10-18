@@ -76,12 +76,15 @@ export function viewAlerts() {
   const pref = state.today;
   const all = myAlerts(), counts = alertCounts(all);
   const canMine = Store.mode === "cloud" && collectAlerts().some((x) => x.assigned_to);
-  const shown = pref.focus ? all.filter((x) => x.severity < 3) : all;
-  const hidden = all.length - shown.length;
+  // 来源芯片可点：只看某一来源（再点一次取消）
+  const src = pref.source && counts.bySource[pref.source] ? pref.source : null;
+  const picked = src ? all.filter((x) => x.source === src) : all;
+  const shown = pref.focus ? picked.filter((x) => x.severity < 3) : picked;
+  const hidden = picked.length - shown.length;
   const restockable = all.some((x) => (x.source === "pantry" || x.source === "house") && x.actions?.some((a) => a.action === "shop-add-item"));
   const mode = SORTS.some(([k]) => k === pref.mode) ? pref.mode : "severity";
   const sorts = SORTS.filter(([k]) => k !== "property" || multiProperty()).map(([k, n]) => `<option value="${k}" ${k === mode ? "selected" : ""}>${t(n)}</option>`).join("");
-  const chips = Object.entries(counts.bySource).map(([s, n]) => `<span class="chip" aria-pressed="false" style="cursor:default">${SOURCE_ICON[s] || ""} ${t(SOURCE_LABEL[s] || s)} ${n}</span>`).join("");
+  const chips = Object.entries(counts.bySource).map(([s, n]) => `<button type="button" class="chip" data-action="today-source" data-source="${s}" aria-pressed="${s === src ? "true" : "false"}">${SOURCE_ICON[s] || ""} ${t(SOURCE_LABEL[s] || s)} ${n}</button>`).join("");
   const toggle = (key, label, on) => `<button type="button" class="chip" data-action="today-pref" data-key="${key}" aria-pressed="${on ? "true" : "false"}">${label}</button>`;
   const body = mode === "property" && multiProperty() ? byProperty(shown) : mode === "source" ? bySource(shown) : mode === "due" ? byDue(shown) : bySeverity(shown);
 
@@ -90,7 +93,7 @@ export function viewAlerts() {
       <label class="sort-dd"><span class="sr-only">${t("排序")}</span><select id="alertSort" aria-label="${t("排序")}">${sorts}</select></label></nav>
     <section class="section today-head">
       <h2>${counts.important ? t("今天有 {n} 件事要留意", { n: counts.important }) : all.length ? t("没有急事，有 {n} 件可以留意", { n: all.length }) : t("今天没有需要处理的事")}</h2>
-      ${all.length ? `<div class="chips today-chips">${chips}</div>` : ""}
+      ${all.length ? `<div class="chips today-chips">${chips}${src ? `<button type="button" class="chip" data-action="today-source" data-source="${src}">${t("显示全部")}</button>` : ""}</div>` : ""}
       <div class="chips today-chips">
         ${toggle("focus", t("只看要紧的"), !!pref.focus)}${canMine ? toggle("mine", t("只看我负责的"), !!pref.mine) : ""}
         ${restockable ? `<button type="button" class="chip" data-action="shop-add-alerts" data-space="all">${t("补货全部加入采购清单")}</button>` : ""}
