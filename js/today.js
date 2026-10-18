@@ -1,5 +1,6 @@
 /* 首页 · 今日：从提醒总线取全部提醒，按严重度（或按房产）通用渲染。各模块只负责把自己的提醒注册进总线，首页不认识任何模块。 */
 import { state } from "./core/state.js";
+import { aiIcon } from "./core/ai.js";
 import { Store } from "./core/store.js";
 import { href } from "./core/router.js";
 import { esc } from "./core/util.js";
@@ -57,7 +58,7 @@ export function viewToday() {
       <a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></div></section>` : ""}
 
     <section class="section"><div class="panel ai-cta">
-      <div><b>🤖 ${t("今天吃什么？问 AI")}</b><p class="muted">${t("按家里现有食材和临期情况生成今日菜单，缺的直接进采购清单。")}</p>
+      <div><b class="ai-title">${aiIcon(24)} ${t("今天吃什么？问 AI")}</b><p class="muted">${t("按家里现有食材和临期情况生成今日菜单，缺的直接进采购清单。")}</p>
         <div class="chips" style="margin:8px 0 0">${["低糖高蛋白，六人份", "用掉快过期的食材", "孩子爱吃、少油少盐"].map((q) => `<a class="chip" href="${href("pantry", "meals")}?ai=${encodeURIComponent(t(q))}">${esc(t(q))}</a>`).join("")}</div></div>
       <a class="btn btn-primary" href="${href("pantry", "meals")}?ai=">${t("打开菜单助手")}</a></div></section>
 

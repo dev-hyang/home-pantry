@@ -7,6 +7,17 @@ import { inSpace, num } from "./util.js";
 import { lang, t } from "./i18n.js";
 
 const KEY = "hmh-ai";
+
+/** AI 助手图标：圆角渐变底 + 白色 Y 字（两臂微弯）+ 右上角一颗芥末黄小星，内联 SVG，随文字大小缩放 */
+export function aiIcon(size = 22, cls = "") {
+  return `<svg class="ai-ico ${cls}" width="${size}" height="${size}" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <defs><linearGradient id="aiG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6d5a"/><stop offset="1" stop-color="#7cc4a8"/></linearGradient></defs>
+    <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#aiG)"/>
+    <path d="M9.5 9.5 C11.5 13 13.5 15 16 17.5 C18.5 15 20.5 13 22.5 9.5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M16 17.5 V24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M24.5 4.5 L25.6 7.4 L28.5 8.5 L25.6 9.6 L24.5 12.5 L23.4 9.6 L20.5 8.5 L23.4 7.4 Z" fill="#e9b949"/>
+  </svg>`;
+}
 // 按性价比排序：前三个一次菜单约几分钱或免费
 export const PROVIDERS = [
   { id: "deepseek", name: "DeepSeek", kind: "openai", base: "https://api.deepseek.com", model: "deepseek-chat", cost: "cheapest", signup: "https://platform.deepseek.com/", hint: "注册送额度；之后每次菜单约几分钱" },

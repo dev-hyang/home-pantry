@@ -4,7 +4,7 @@ import { $, esc, fmtShort, syncState } from "../core/util.js";
 import { LANGS, detectLang, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
-import { PROVIDERS, aiReady, aiSettings, providerOf, saveAiSettings } from "../core/ai.js";
+import { PROVIDERS, aiIcon, aiReady, aiSettings, providerOf, saveAiSettings } from "../core/ai.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
 export const isOwner = () => state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
@@ -78,7 +78,7 @@ const SETTING_SECTIONS = [
   { id: "prefs", icon: "🌐", name: "语言、地区与单位" },
   { id: "modules", icon: "🧩", name: "模块开关" },
   { id: "data", icon: "💾", name: "通知与备份" },
-  { id: "ai", icon: "🤖", name: "AI 助手" },
+  { id: "ai", icon: "__AI__", name: "AI 助手" },
   { id: "apps", icon: "🔗", name: "姐妹站点与介绍" },
 ];
 /** AI 设置：模型、key（只存本机）、人数；提交与“测试连接”共用 */
@@ -122,7 +122,7 @@ export function viewSettings() {
     };
     return `<section class="section menu-page"><div class="section-head"><h2>${t("设置")}</h2>
         <div class="head-acts"><span id="syncBadge" class="sync ${syncState.err ? "err" : ""}" role="status">${esc(syncState.text)}</span>${cloud ? `<button type="button" class="btn btn-sm" data-action="reload">${t("立即同步")}</button>` : ""}</div></div>
-      <div class="panel mlist">${SETTING_SECTIONS.map((s) => `<a class="mrow" href="${href("me", "settings")}?sec=${s.id}"><span class="mi" aria-hidden="true">${s.icon}</span><span class="mt"><b>${t(s.name)}</b><small>${esc(status[s.id])}</small></span><span class="mch" aria-hidden="true">›</span></a>`).join("")}</div>
+      <div class="panel mlist">${SETTING_SECTIONS.map((s) => `<a class="mrow" href="${href("me", "settings")}?sec=${s.id}"><span class="mi" aria-hidden="true">${s.icon === "__AI__" ? aiIcon(24) : s.icon}</span><span class="mt"><b>${t(s.name)}</b><small>${esc(status[s.id])}</small></span><span class="mch" aria-hidden="true">›</span></a>`).join("")}</div>
       <div class="form-actions" style="margin-top:14px">${cloud ? `<button type="button" class="btn btn-danger-ghost" data-action="logout">${t("退出登录")}</button>` : `<button type="button" class="btn btn-danger-ghost" data-action="reset-demo">${t("恢复演示数据")}</button>`}</div>
     </section>`;
   }
@@ -191,7 +191,7 @@ export function viewSettings() {
   };
   return `<section class="section">
     <nav class="crumb" aria-label="${t("位置")}"><a href="${href("me", "settings")}">‹ ${t("设置")}</a><span class="sep">/</span><b>${t(meta.name)}</b></nav>
-    <div class="section-head"><h2>${meta.icon} ${t(meta.name)}</h2></div>
+    <div class="section-head"><h2>${meta.icon === "__AI__" ? aiIcon(26) : meta.icon} ${t(meta.name)}</h2></div>
     <div class="settings">${blocks[meta.id]()}</div>
   </section>`;
 }

@@ -683,6 +683,9 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .tpl-row.is-have { opacity: .6; cursor: default; }
 
 /* AI 菜单助手 */
+.ai-ico { vertical-align: -5px; margin-right: 2px; flex: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,.12)); }
+.ai-title { display: inline-flex; align-items: center; gap: 6px; }
+.mrow .mi .ai-ico { vertical-align: 0; margin: 0; }
 .ai-panel .section-head p { max-width: 520px; }
 .ai-row { display: flex; gap: 8px; align-items: stretch; }
 .ai-row input[name="ask"] { flex: 1 1 auto; min-width: 0; }

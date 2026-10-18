@@ -4,7 +4,7 @@ import { Store } from "../core/store.js";
 import { esc, toast } from "../core/util.js";
 import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
-import { aiReady, aiSettings, askModel, promptText, providerOf } from "../core/ai.js";
+import { aiIcon, aiReady, aiSettings, askModel, promptText, providerOf } from "../core/ai.js";
 
 export const QUICK_ASKS = ["低糖高蛋白，六人份", "用掉快过期的食材", "孩子爱吃、少油少盐", "30 分钟能做完的晚餐", "一周三餐的采购清单"];
 // 无 key 模式可直接打开的网页（粘贴提示词）
@@ -15,7 +15,7 @@ export function aiPanel() {
   const ready = aiReady(), s = aiSettings(), p = providerOf(s.provider);
   const chips = QUICK_ASKS.map((q) => `<button type="button" class="chip" data-action="ai-ask" data-ask="${esc(t(q))}">${esc(t(q))}</button>`).join("");
   return `<section class="section ai-panel">
-    <div class="section-head"><h2>🤖 ${t("AI 菜单助手")}</h2><p>${ready ? t("{p} · 会把库存食材、临期和饮食模式一起发给模型", { p: t(p.name) }) : t("没填 key 也能用：生成提示词，复制到豆包 / 千问 / ChatGPT")}</p></div>
+    <div class="section-head"><h2>${aiIcon(26)} ${t("AI 菜单助手")}</h2><p>${ready ? t("{p} · 会把库存食材、临期和饮食模式一起发给模型", { p: t(p.name) }) : t("没填 key 也能用：生成提示词，复制到豆包 / 千问 / ChatGPT")}</p></div>
     <form id="aiForm" class="panel">
       <div class="chips" style="margin-bottom:8px">${chips}</div>
       <div class="ai-row">
