@@ -7,7 +7,7 @@ export const SECTIONS = {
                                      ["template", "推荐耗材", true], ["asset-template", "生成设备", true]] },  // 第三项 true = 不在二级导航显示
   bills:    { name: "账单",   subs: [["overview", "概览"], ["list", "清单"], ["history", "记录"], ["template", "常用账单", true]] },
   shopping: { name: "采购",   subs: null },
-  me:       { name: "我的",   subs: [["stats", "统计"], ["settings", "设置"]] },
+  me:       { name: "我的",   subs: [["stats", "统计"], ["settings", "设置"], ["about", "介绍"]] },
   item:     { name: "物品",   subs: null },   // #/item/new?cat=xx 或 #/item/<id>
   asset:    { name: "设备",   subs: null },   // #/asset/new?type=xx 或 #/asset/<id>（含保养记录）
   bill:     { name: "账单",   subs: null },   // #/bill/new?category=xx 或 #/bill/<id>（含缴费记录）

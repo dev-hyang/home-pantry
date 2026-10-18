@@ -44,8 +44,11 @@ export const fmtShort = (iso) => (iso ? new Date(iso).toLocaleDateString(locale(
 export const fmtDateTime = (iso) => (iso ? new Date(iso).toLocaleString(locale(), { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "");
 export const stampText = (r) => [r?.created_at && t("添加于 {d}", { d: fmtDateTime(r.created_at) }), r?.updated_at && r.updated_at !== r.created_at && t("更新于 {d}", { d: fmtDateTime(r.updated_at) })].filter(Boolean).join(t("，"));
 
+/** 同步状态只显示在设置页（顶栏小屏幕放不下）；设置页没打开时先记着，渲染时再读 */
+export const syncState = { text: "", err: false };
 export function setSync(text, err = false) {
-  const b = $("#syncBadge"); b.textContent = text; b.classList.toggle("err", err);
+  syncState.text = text; syncState.err = err;
+  const b = $("#syncBadge"); if (b) { b.textContent = text; b.classList.toggle("err", err); }
 }
 
 export function toast(msg) {

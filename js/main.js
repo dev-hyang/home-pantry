@@ -23,6 +23,7 @@ import { billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, s
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
+import { viewAbout } from "./settings/about.js";
 import { cleanStore, download, exportAnnual, rememberStore, viewStats } from "./stats/views.js";
 
 const APP_NAME = "爱家小助手";
@@ -73,7 +74,7 @@ const VIEWS = {
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
   bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, template: viewBillTemplate },
   shopping: () => viewShopping(),
-  me:       { stats: viewStats, settings: viewSettings },
+  me:       { stats: viewStats, settings: viewSettings, about: viewAbout },
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
 const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile");

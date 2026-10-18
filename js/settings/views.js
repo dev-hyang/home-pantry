@@ -1,8 +1,9 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, esc, fmtShort } from "../core/util.js";
+import { $, esc, fmtShort, syncState } from "../core/util.js";
 import { LANGS, detectLang, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
+import { href } from "../core/router.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
 export const isOwner = () => state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
@@ -78,7 +79,8 @@ export function viewSettings() {
   return `<section class="section"><div class="section-head"><h2>${t("设置")}</h2></div><div class="settings">
     <div class="panel">
       <div class="kv"><div><b>${esc(state.household?.name || "")}</b><div class="muted">${cloud ? t("云端协同：家人修改会实时同步") : t("本地演示：数据只保存在这个浏览器里")}</div></div>
-        ${cloud ? `<button type="button" class="btn btn-sm" data-action="reload">${t("立即同步")}</button>` : ""}</div>
+        <div class="head-acts"><span id="syncBadge" class="sync ${syncState.err ? "err" : ""}" role="status">${esc(syncState.text)}</span>
+          ${cloud ? `<button type="button" class="btn btn-sm" data-action="reload">${t("立即同步")}</button>` : ""}</div></div>
     </div>
     ${cloud ? `
     <div class="panel">
@@ -126,6 +128,8 @@ export function viewSettings() {
     <div class="panel"><div class="kv"><div><b>${t("导出数据")}</b><div class="muted">${t("下载库存和采购清单的 JSON 备份")}</div></div>
       <button type="button" class="btn btn-sm" data-action="export">${t("导出 JSON")}</button></div></div>
     ${sisterAppsPanel()}
+    <div class="panel"><div class="kv"><div><b>${t("介绍与注意事项")}</b><div class="muted">${t("这个网站是什么、第一次怎么用、提醒怎么分级、哪些事要注意")}</div></div>
+      <a class="btn btn-sm" href="${href("me", "about")}">${t("查看介绍")}</a></div></div>
     ${cloud ? `<button type="button" class="btn btn-danger-ghost" data-action="logout">${t("退出登录")}</button>`
             : `<button type="button" class="btn btn-danger-ghost" data-action="reset-demo">${t("恢复演示数据")}</button>`}
   </div></section>`;
