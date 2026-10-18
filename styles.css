@@ -111,6 +111,8 @@ main { padding-top: 22px; padding-bottom: calc(96px + env(safe-area-inset-bottom
 @media (max-width: 640px) {
   .topbar-inner, main { padding-left: 14px; padding-right: 14px; }
   .tabs { grid-auto-columns: 1fr; }
+  /* iOS：输入框字号小于 16px 时聚焦会把页面放大，统一用 16px */
+  input, select, textarea { font-size: 16px; }
   .topbar-inner { padding-top: 10px; padding-bottom: 8px; }
   .brand { gap: 10px; min-width: 0; }
   .brand-mark { width: 26px; height: 32px; }
@@ -395,6 +397,12 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 .mrow .mt b { font-size: 16px; font-weight: 600; }
 .mrow .mt small { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
 .mrow .mcount { flex: none; }
+button.mrow { background: none; border: 0; border-bottom: 1px solid var(--line); font: inherit; text-align: left; cursor: pointer; }
+button.mrow:last-child { border-bottom: 0; }
+.mrow[aria-current="true"] .mt b { color: var(--pine); }
+/* 分区完成度小进度条 */
+.mprog { display: block; height: 4px; border-radius: 99px; background: var(--surface-2); margin-top: 5px; max-width: 220px; overflow: hidden; }
+.mprog i { display: block; height: 100%; background: var(--pine); }
 .mrow .mch { color: var(--muted); font-size: 20px; line-height: 1; }
 .crumb { display: flex; align-items: center; gap: 8px; margin: -6px 0 14px; font-size: 14px; }
 .crumb a { color: var(--pine); text-decoration: none; font-weight: 700; padding: 6px 10px 6px 6px; margin-left: -6px; border-radius: 999px; }

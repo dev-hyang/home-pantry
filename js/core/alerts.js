@@ -21,6 +21,9 @@ export function collectAlerts() {
   for (const p of providers) {
     try { out.push(...(p() || [])); } catch (e) { console.error("[alerts]", e); }
   }
+  // 带房产的房屋类提醒：链接加上 ?prop=，点进去先切到那套房产
+  const withProp = (h, pid) => (h && pid && h.startsWith("#/house") && !h.includes("?") ? `${h}?prop=${pid}` : h);
+  for (const it of out) if (it.property_id) { it.href = withProp(it.href, it.property_id); for (const a of it.actions || []) if (a.type === "link") a.href = withProp(a.href, it.property_id); }
   return out.sort((a, b) => a.severity - b.severity || (b.must ? 1 : 0) - (a.must ? 1 : 0) || (a.daysLeft ?? 999) - (b.daysLeft ?? 999));
 }
 

@@ -24,7 +24,7 @@ import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./p
 import { renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { viewAbout } from "./settings/about.js";
-import { crumb, viewMenu } from "./menu.js";
+import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { cleanStore, download, exportAnnual, rememberStore, viewStats } from "./stats/views.js";
 
 const APP_NAME = "爱家小助手";
@@ -71,7 +71,7 @@ export const refreshSoon = () => { clearTimeout(debounceT); debounceT = setTimeo
 const VIEWS = {
   today:    () => viewToday(),
   pantry:   { overview: viewDashboard, inventory: () => viewInventory("pantry"), gear: () => viewInventory("gear"), meals: viewMeals },
-  house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile,
+  house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
   bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, template: viewBillTemplate },
   shopping: () => viewShopping(),
@@ -163,7 +163,7 @@ function renderBody(r) {
   if (r.section === "house" && !state.houseEnabled) { $("#main").innerHTML = offPanel(t("房屋维护模块已关闭"), "house-enable", t("打开房屋维护")); return; }
   if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("账单模块已关闭"), "bills-enable", t("打开账单")); return; }
   if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = crumb(r) + offPanel(t("装备模块已关闭"), "gear-enable", t("打开装备")); return; }
-  if (r.sub === "menu") { $("#main").innerHTML = viewMenu(r.section); return; }   // 页签目录页
+  if (r.sub === "menu") { $("#main").innerHTML = r.section === "house" ? viewPropertyList() : viewMenu(r.section); return; }   // 页签目录页；房屋先列房产
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
   $("#main").innerHTML = crumb(r) + view();
@@ -178,6 +178,12 @@ function onRoute() {
   const leavingItem = isFormSection(prev) && !isFormSection(next);
   if (enteringItem) state.prevRoute = prev;
   if (next.section === "house" && next.sub === "profile" && !(prev.section === "house" && prev.sub === "profile")) state.houseDraft = null;
+  // 首页提醒带 ?prop=：切到那套房产再进页面
+  const wantProp = next.section === "house" ? next.q.get("prop") : null;
+  if (wantProp && wantProp !== state.propertyId && state.properties.some((p) => p.id === wantProp)) {
+    state.propertyId = wantProp; try { localStorage.setItem("hmh-property", wantProp); } catch { /* 忽略 */ }
+    state.houseDraft = null; state.route = next; refresh(); return;
+  }
   state.route = next;
   render(true);
   const back = leavingItem && state.prevRoute && routeKey(state.prevRoute) === routeKey(next);
@@ -344,7 +350,8 @@ main.addEventListener("submit", async (e) => {
       state.houseProfile = { ...d }; state.houseDraft = null;
       toast(t("房屋资料已保存"));
       const hasHouseItems = state.items.some(inSpace("house"));
-      go(first && !hasHouseItems ? href("house", "template") : href("house", "overview"));
+      // 分区保存：第一次保存房型后去推荐耗材，其余回到分区列表
+      go(first && f.dataset.sec === "type" && !hasHouseItems ? href("house", "template") : href("house", "profile"));
       return refresh();
     }
     if (f.id === "templateForm") {
@@ -439,6 +446,10 @@ main.addEventListener("click", async (e) => {
         if (id === state.propertyId) return;
         state.propertyId = id; try { localStorage.setItem("hmh-property", id); } catch { /* 忽略 */ }
         state.houseDraft = null; return refresh();
+      }
+      case "house-open": {   // 房产列表 → 这套房产的页面目录
+        if (id !== state.propertyId) { state.propertyId = id; try { localStorage.setItem("hmh-property", id); } catch { /* 忽略 */ } state.houseDraft = null; }
+        go(href("house", "pages")); return refresh();
       }
       case "property-edit": state.editProperty = id || "new"; return render();
       case "property-cancel": state.editProperty = null; return render();

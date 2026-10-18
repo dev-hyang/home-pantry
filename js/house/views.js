@@ -130,35 +130,71 @@ export function houseDraft() {
 }
 
 /** 把表单当前值读回草稿 */
+/** 把表单当前值读回草稿；资料表单按分区分页，只读页面上存在的字段，其余保留草稿里的值 */
 export function readHouseForm(form) {
   const d = houseDraft(), fe = form.elements;
+  const has = (n) => !!fe[n];
+  const str = (n) => (fe[n].value || "").trim() || null;
   const checked = (name) => [...form.querySelectorAll(`input[name="${name}"]:checked`)].map((x) => x.value);
-  d.region = fe.region.value;
-  d.house_type = fe.house_type.value;
-  const y = parseInt(fe.year_built.value, 10);
-  d.year_built = Number.isFinite(y) ? y : null;
-  d.features = checked("features");
-  d.exterior = checked("exterior");
-  d.flooring = checked("flooring");
-  d.roof = fe.roof.value || null;
-  d.address = fe.address.value.trim();
-  d.insured = fe.insured.checked;
-  d.insurance_provider = fe.insurance_provider.value.trim() || null;
-  d.insurance_policy = fe.insurance_policy.value.trim() || null;
-  d.insurance_from = fe.insurance_from.value || null;
-  d.insurance_to = fe.insurance_to.value || null;
-  d.insurance_coverage = fe.insurance_coverage.value.trim() || null;
-  d.insurance_premium = fe.insurance_premium.value === "" ? null : Math.round(Math.max(0, Number(fe.insurance_premium.value) || 0) * 100) / 100;
-  d.insurance_agent = fe.insurance_agent.value.trim() || null;
-  d.insurance_phone = fe.insurance_phone.value.trim() || null;
-  d.insurance_email = fe.insurance_email.value.trim() || null;
   const num = (v) => (v === "" ? null : Math.round(Math.max(0, Number(v) || 0) * 100) / 100);
-  d.hoa = { enabled: fe.hoa_enabled.checked, name: fe.hoa_name.value.trim() || null, mgmt: fe.hoa_mgmt.value.trim() || null,
-    phone: fe.hoa_phone.value.trim() || null, email: fe.hoa_email.value.trim() || null, url: fe.hoa_url.value.trim() || null,
-    dues: num(fe.hoa_dues.value), dues_period: fe.hoa_dues_period.value || "monthly",
-    sa_amount: num(fe.hoa_sa_amount.value), sa_purpose: fe.hoa_sa_purpose.value.trim() || null, sa_due: fe.hoa_sa_due.value || null, sa_paid: fe.hoa_sa_paid.checked,
-    rules: fe.hoa_rules.value.trim() || null, notes: fe.hoa_notes.value.trim() || null };
+  if (has("region")) d.region = fe.region.value;
+  if (has("house_type")) d.house_type = fe.house_type.value;
+  if (has("year_built")) { const y = parseInt(fe.year_built.value, 10); d.year_built = Number.isFinite(y) ? y : null; }
+  if (form.querySelector('input[name="features"]')) d.features = checked("features");
+  if (form.querySelector('input[name="exterior"]')) d.exterior = checked("exterior");
+  if (form.querySelector('input[name="flooring"]')) d.flooring = checked("flooring");
+  if (has("roof")) d.roof = fe.roof.value || null;
+  if (has("address")) d.address = (fe.address.value || "").trim();
+  if (has("insured")) {
+    d.insured = fe.insured.checked;
+    d.insurance_provider = str("insurance_provider"); d.insurance_policy = str("insurance_policy");
+    d.insurance_from = fe.insurance_from.value || null; d.insurance_to = fe.insurance_to.value || null;
+    d.insurance_coverage = str("insurance_coverage"); d.insurance_premium = num(fe.insurance_premium.value);
+    d.insurance_agent = str("insurance_agent"); d.insurance_phone = str("insurance_phone"); d.insurance_email = str("insurance_email");
+  }
+  if (has("hoa_enabled")) {
+    d.hoa = { enabled: fe.hoa_enabled.checked, name: str("hoa_name"), mgmt: str("hoa_mgmt"), phone: str("hoa_phone"), email: str("hoa_email"), url: str("hoa_url"),
+      dues: num(fe.hoa_dues.value), dues_period: fe.hoa_dues_period.value || "monthly",
+      sa_amount: num(fe.hoa_sa_amount.value), sa_purpose: str("hoa_sa_purpose"), sa_due: fe.hoa_sa_due.value || null, sa_paid: fe.hoa_sa_paid.checked,
+      rules: str("hoa_rules"), notes: str("hoa_notes") };
+  }
   return d;
+}
+
+/* ── 资料分区：列表页显示完成度，点进去只改一块 ── */
+export const PROFILE_SECTIONS = [
+  { id: "type", icon: "🏡", name: "地区与房型" },
+  { id: "address", icon: "📍", name: "地址与建成年份" },
+  { id: "insurance", icon: "🛡️", name: "房屋保险" },
+  { id: "hoa", icon: "🏘️", name: "HOA / 物业" },
+  { id: "features", icon: "🔧", name: "家里有这些设施" },
+  { id: "materials", icon: "🧱", name: "外墙、屋面与地面材料" },
+];
+const filled = (vals) => vals.filter((v) => v != null && v !== "" && v !== false).length;
+/** 每个分区的完成度：{ text, pct }（pct 为空表示不按比例显示） */
+export function sectionStatus(d, id) {
+  const Hh = H();
+  switch (id) {
+    case "type": { const ht = Hh.typeOf(d.region, d.house_type); return { text: `${t(Hh.REGIONS[d.region]?.name || "")} · ${ht ? t(ht.name) : ""}`, pct: state.houseProfile ? 100 : 0 }; }
+    case "address": { const n = filled([d.address, d.year_built]); return { text: `${n} / 2`, pct: n * 50 }; }
+    case "insurance": {
+      if (!d.insured) return { text: t("未投保"), pct: null };
+      const n = filled([d.insurance_provider, d.insurance_policy, d.insurance_from, d.insurance_to, d.insurance_coverage, d.insurance_premium, d.insurance_agent, d.insurance_phone, d.insurance_email]);
+      return { text: `${n} / 9`, pct: Math.round((n / 9) * 100) };
+    }
+    case "hoa": {
+      const h = hoaOf(d); if (!h.enabled) return { text: t("无 {label}", { label: t(Hh.assocOf(d.house_type).label) }), pct: null };
+      const n = filled([h.name, h.mgmt, h.phone || h.email || h.url, h.dues, h.rules]);
+      return { text: `${n} / 5${h.sa_amount > 0 && !h.sa_paid ? ` · ${t("特殊评估待缴")}` : ""}`, pct: n * 20 };
+    }
+    case "features": return { text: t("{n} 项", { n: (d.features || []).length }), pct: null };
+    case "materials": {
+      const e = (d.exterior || []).length, f = (d.flooring || []).length, r = d.roof ? 1 : 0;
+      if (!e && !f && !r) return { text: t("未填"), pct: 0 };
+      return { text: [e ? t("外墙 {n}", { n: e }) : null, r ? t("屋面 ✓") : null, f ? t("地面 {n}", { n: f }) : null].filter(Boolean).join(" · "), pct: Math.round(((e ? 1 : 0) + r + (f ? 1 : 0)) / 3 * 100) };
+    }
+    default: return { text: "", pct: null };
+  }
 }
 
 /** 保险状态：none / active / expiring（30 天内）/ expired / unknown（有保险但没填到期日） */
@@ -386,18 +422,35 @@ function hoaFieldset(d) {
   </fieldset>`;
 }
 
-/* ── 房屋资料表单（整页） ── */
+/* ── 房屋资料：分区列表（带完成度）→ 点进去只改一块 ── */
 export function viewHouseProfile() {
+  const sec = state.route?.q?.get("sec");
+  if (sec && PROFILE_SECTIONS.some((s) => s.id === sec)) return viewProfileSection(sec);
+  const d = houseDraft(), first = !state.houseProfile;
+  const rows = PROFILE_SECTIONS.map((s) => {
+    const st = sectionStatus(d, s.id);
+    return `<a class="mrow" href="${href("house", "profile")}?sec=${s.id}">
+      <span class="mi" aria-hidden="true">${s.icon}</span>
+      <span class="mt"><b>${t(s.name)}</b><small>${esc(st.text)}</small>${st.pct != null ? `<span class="mprog"><i style="width:${st.pct}%"></i></span>` : ""}</span>
+      <span class="mch" aria-hidden="true">›</span></a>`;
+  }).join("");
+  return `<section class="section menu-page">
+    <div class="section-head"><h2>${t("房屋资料")}</h2><p>${first ? t("先选地区和房型，保存后其余分区随时补") : t("点一项进去改，各自保存")}</p></div>
+    <div class="panel mlist">${rows}</div>
+    ${first ? `<p class="hint">${t("房型决定推荐什么耗材、生成哪些设备、每月有什么季节任务；其余分区（地址、保险、HOA、材料）可以之后再补。")}</p>` : ""}
+    <div class="form-actions" style="margin-top:14px">${state.houseProfile ? `<a class="btn btn-ghost" href="${href("house", "overview")}">${t("返回房屋概览")}</a>` : `<a class="btn btn-primary" href="${href("house", "profile")}?sec=type">${t("开始：选地区和房型")}</a>`}</div>
+  </section>`;
+}
+
+/** 单个分区的表单页：只渲染这一块的字段，保存后回到分区列表 */
+function viewProfileSection(sec) {
   const d = houseDraft(), Hh = H();
   const types = Hh.HOUSE_TYPES[d.region] || [];
   const check = (name, list, sel) => list.map((x) => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${sel.includes(x.id) ? "checked" : ""}><span>${esc(t(x.name))}</span></label>`).join("");
   const thisYear = new Date().getFullYear();
-  return `
-    ${houseBar()}
-    <section class="section form-page house-form">
-      <div class="section-head"><h2>${t("房屋资料")}</h2>
-        ${state.houseProfile ? `<a class="btn btn-sm btn-ghost" href="${href("house", "overview")}">${t("返回房屋")}</a>` : ""}</div>
-      <form id="houseForm" class="panel" novalidate>
+  const meta = PROFILE_SECTIONS.find((s) => s.id === sec);
+  const body = {
+    type: () => `
         <fieldset>
           <legend>${t("地区")}</legend>
           <div class="seg-radio">${Object.values(Hh.REGIONS).map((r) => `<label class="radio-pill"><input type="radio" name="region" value="${r.id}" ${d.region === r.id ? "checked" : ""}><span>${t(r.name)}<small>${t(r.hint)}</small></span></label>`).join("")}</div>
@@ -407,15 +460,55 @@ export function viewHouseProfile() {
           <legend>${t("房型")}</legend>
           <div class="type-grid">${types.map((x) => `<label class="type-card"><input type="radio" name="house_type" value="${x.id}" ${d.house_type === x.id ? "checked" : ""}>
             <span class="type-body"><span class="type-ico" aria-hidden="true">${x.icon}</span><b>${esc(t(x.name))}</b>${lang === "en" ? "" : `<small>${esc(x.en)}</small>`}<em>${esc(t(x.desc))}</em></span></label>`).join("")}</div>
-          <p class="hint">${t("切换房型会按该房型重新预选下面的设施，可以再调整。")}</p>
-        </fieldset>
+          <p class="hint">${t("切换房型会按该房型重新预选设施，可以再调整。")}</p>
+        </fieldset>`,
+    address: () => `
         <fieldset>
           <legend>${t("地址与建成年份")}</legend>
           <div class="form-grid">
             <label class="span-2">${t("地址")}<input name="address" maxlength="120" placeholder="${t("街道、城市、州 / 省")}" value="${esc(d.address || "")}"></label>
             <label>${t("建成年份（可选）")}<input name="year_built" type="number" inputmode="numeric" min="1850" max="${thisYear}" placeholder="${t("例如 1998")}" value="${d.year_built ?? ""}"></label>
           </div>
+        </fieldset>`,
+    insurance: () => insuranceFieldset(d),
+    hoa: () => hoaFieldset(d),
+    features: () => `
+        <fieldset>
+          <legend>${t("家里有这些设施")}</legend>
+          <div class="check-grid">${check("features", Hh.forRegion(Hh.FEATURES, d.region), d.features || [])}</div>
+        </fieldset>`,
+    materials: () => `
+        <fieldset>
+          <legend>${t("外墙材料（可多选）")}</legend>
+          <div class="check-grid">${check("exterior", Hh.forRegion(Hh.MATERIALS.exterior, d.region), d.exterior || [])}</div>
         </fieldset>
+        <fieldset>
+          <legend>${t("屋面")}</legend>
+          <div class="check-grid">
+            <label class="check"><input type="radio" name="roof" value="" ${!d.roof ? "checked" : ""}><span>${t("不清楚 / 不用管")}</span></label>
+            ${Hh.forRegion(Hh.MATERIALS.roof, d.region).map((m) => `<label class="check"><input type="radio" name="roof" value="${m.id}" ${d.roof === m.id ? "checked" : ""}><span>${esc(t(m.name))}</span></label>`).join("")}
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>${t("地面材料（可多选）")}</legend>
+          <div class="check-grid">${check("flooring", Hh.forRegion(Hh.MATERIALS.flooring, d.region), d.flooring || [])}</div>
+        </fieldset>`,
+  }[sec]();
+  return `
+    <section class="section form-page house-form">
+      <form id="houseForm" class="panel" data-sec="${sec}" novalidate>
+        ${body}
+        <p id="houseFormError" class="form-error" role="alert"></p>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">${t("保存")}</button>
+          <a class="btn btn-ghost" href="${href("house", "profile")}" data-action="house-cancel">${t("取消")}</a>
+        </div>
+      </form>
+    </section>`;
+}
+
+function insuranceFieldset(d) {
+  return `
         <fieldset>
           <legend>${t("房屋保险")}</legend>
           <label class="check-inline" style="margin-bottom:8px"><input type="checkbox" name="insured" ${d.insured ? "checked" : ""}><span>${t("有房屋保险（租住填租客保险）")}</span></label>
@@ -434,34 +527,7 @@ export function viewHouseProfile() {
             <label class="span-2">${t("理赔邮箱")}<input name="insurance_email" type="email" maxlength="120" value="${esc(d.insurance_email || "")}"></label>
           </div>
           <p class="hint">${t("只记摘要，不存保单文件；账单里的“房屋保险”负责缴费提醒，这里负责到期续保提醒。")}</p>
-        </fieldset>
-        ${hoaFieldset(d)}
-        <fieldset>
-          <legend>${t("家里有这些设施")}</legend>
-          <div class="check-grid">${check("features", Hh.forRegion(Hh.FEATURES, d.region), d.features || [])}</div>
-        </fieldset>
-        <fieldset>
-          <legend>${t("外墙材料（可多选）")}</legend>
-          <div class="check-grid">${check("exterior", Hh.forRegion(Hh.MATERIALS.exterior, d.region), d.exterior || [])}</div>
-        </fieldset>
-        <fieldset>
-          <legend>${t("屋面")}</legend>
-          <div class="check-grid">
-            <label class="check"><input type="radio" name="roof" value="" ${!d.roof ? "checked" : ""}><span>${t("不清楚 / 不用管")}</span></label>
-            ${Hh.forRegion(Hh.MATERIALS.roof, d.region).map((m) => `<label class="check"><input type="radio" name="roof" value="${m.id}" ${d.roof === m.id ? "checked" : ""}><span>${esc(t(m.name))}</span></label>`).join("")}
-          </div>
-        </fieldset>
-        <fieldset>
-          <legend>${t("地面材料（可多选）")}</legend>
-          <div class="check-grid">${check("flooring", Hh.forRegion(Hh.MATERIALS.flooring, d.region), d.flooring || [])}</div>
-        </fieldset>
-        <p id="houseFormError" class="form-error" role="alert"></p>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">${t("保存房屋资料")}</button>
-          ${state.houseProfile ? `<a class="btn btn-ghost" href="${href("house", "overview")}" data-action="house-cancel">${t("取消")}</a>` : ""}
-        </div>
-      </form>
-    </section>`;
+        </fieldset>`;
 }
 
 /* ── 推荐耗材（按模板批量添加） ── */

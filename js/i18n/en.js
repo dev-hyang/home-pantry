@@ -543,6 +543,14 @@ export const EN = {
   "App 年费": "App yearly fees", "手机“订阅”页里把不用的取消。": "Cancel unused ones in your phone's Subscriptions page.", "游戏会员": "Game pass", "健身房 / 健身 App": "Gym / fitness app", "健身房年约注意取消条款。": "Check the gym's cancellation terms.", "Costco / Sam's 会员": "Costco / Sam's membership",
   "视频会员": "Video membership", "音乐会员": "Music membership", "网盘": "Cloud drive", "AI 助手": "AI assistant", "软件 / App 年费": "Software / app yearly fees", "手机“自动续费”页里把不用的关掉。": "Turn off unused ones in your phone's auto-renew page.", "年卡注意退卡条款。": "Check the annual pass refund terms.", "电商会员": "Shopping membership",
 
+  // ── 房产列表、资料分区 ──
+  "点一套房产进入它的概览、耗材、设备、季节任务、交易和资料": "Tap a property for its overview, supplies, equipment, seasonal tasks, transaction and profile", "还没有房产": "No properties yet", "自住、出租或租住的房子都可以": "Owner-occupied, rental or rented homes",
+  "全家": "Household", "{n} 辆，保养时间表、牌照与保险": "{n} vehicles: service schedule, registration and insurance", "这套房产的水电气网、HOA、房产税、房贷、保险": "This property's utilities, internet, HOA, property tax, mortgage, insurance",
+  "地区与房型": "Region and home type", "外墙、屋面与地面材料": "Exterior, roof and floor materials", "未投保": "Not insured", "无 {label}": "No {label}", "特殊评估待缴": "special assessment unpaid", "外墙 {n}": "exterior {n}", "屋面 ✓": "roof ✓", "地面 {n}": "floor {n}",
+  "先选地区和房型，保存后其余分区随时补": "Pick region and home type first; fill the other sections any time", "点一项进去改，各自保存": "Tap a section to edit; each saves on its own",
+  "房型决定推荐什么耗材、生成哪些设备、每月有什么季节任务；其余分区（地址、保险、HOA、材料）可以之后再补。": "Home type drives suggested supplies, generated equipment and monthly tasks; the other sections (address, insurance, HOA, materials) can wait.",
+  "返回房屋概览": "Back to overview", "{n} 项": "{n} items", "页面": "Pages", "开始：选地区和房型": "Start: region and home type", "切换房型会按该房型重新预选设施，可以再调整。": "Changing the home type re-selects typical systems; adjust afterwards.",
+
   // ── 页签目录页 ──
   "位置": "You are here", "进行中": "in progress", "同一作者的其他小工具，顶栏站名旁的小胶囊也能切换。": "Other tools by the same author; the pills next to the site name switch too.",
   "补货与临期一览、各分类库存": "Restock and expiry at a glance, stock by category", "全部物品，点 −/+ 记消耗": "All items; tap −/+ to log use", "床品、电器、自行车、工具：只记数量和位置": "Bedding, appliances, bikes, tools: quantity and location only", "按现有食材推荐三餐": "Meals from what you have",

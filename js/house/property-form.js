@@ -25,15 +25,11 @@ export function propertyForm(p) {
  * 设置页的房产列表用的是同一个 state.editProperty，两边打开的是同一个表单。
  */
 export function houseBar() {
-  const list = state.properties.filter((p) => !p.archived || p.id === state.propertyId);
-  const chip = (p) => `<button type="button" class="chip" data-action="property" data-id="${p.id}" aria-pressed="${state.propertyId === p.id}">🏠 ${esc(p.name)}</button>`;
+  // 房产切换已经移到“房屋”页签的房产列表；这里只在新建 / 编辑房产时内联表单
   const adding = state.editProperty === "new";
   const editing = state.editProperty && state.editProperty !== "new" ? state.properties.find((p) => p.id === state.editProperty) : null;
-  const bar = `<div class="chips prop-bar" role="group" aria-label="${t("选择房产")}">${list.map(chip).join("")}
-    ${adding ? "" : `<button type="button" class="chip chip-add" data-action="property-edit" data-id="">＋ ${t("添加房产")}</button>`}</div>`;
-  const form = adding || editing ? `<section class="section"><div class="panel prop-inline">
+  return adding || editing ? `<section class="section"><div class="panel prop-inline">
       <div class="section-head" style="margin-bottom:8px"><h3 style="font-size:16px">${adding ? t("添加房产") : t("编辑房产：{name}", { name: esc(editing.name) })}</h3>
         <p>${t("和设置页里的房产是同一份；归档、设默认、彻底删除在设置页")}</p></div>
       ${propertyForm(editing)}</div></section>` : "";
-  return bar + form;
 }
