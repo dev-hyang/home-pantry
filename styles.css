@@ -364,6 +364,10 @@ textarea { resize: vertical; }
 @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
 .form-error { color: var(--out); min-height: 1.2em; margin: 0 0 8px; font-size: 13px; }
 .form-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+/* 内嵌表单的“未保存”提示；交易表单的保存按钮吸底，长表单在手机上也看得见 */
+.dirty-note { color: var(--out); font-weight: 700; font-size: 13px; }
+form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--mustard) 45%, transparent); }
+#dealForm .sticky-actions { position: sticky; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); background: var(--surface); padding: 10px 0 4px; border-top: 1px dashed var(--line); z-index: 2; }
 @media (max-width: 480px) { .form-actions .btn-primary { flex: 1 1 100%; } }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* 手机上编辑时隐藏底部导航，页面专注于表单；用“返回”或系统返回手势离开 */

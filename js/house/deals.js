@@ -144,7 +144,9 @@ function dealForm(d) {
       <label>${t("验房师")}<input name="inspector" maxlength="120" value="${v("inspector")}"></label>
       <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" value="${v("notes")}"></label>
     </div>
-    <div class="form-actions" style="margin-top:8px"><button class="btn btn-sm btn-primary" type="submit">${t("保存")}</button></div>
+    <div class="form-actions sticky-actions" style="margin-top:10px"><button class="btn btn-primary" type="submit">${t("保存交易信息")}</button>
+      <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span>
+      <small class="muted">${t("切换标签页或家人改动时不会丢，但要点保存才写入")}</small></div>
   </form>`;
 }
 

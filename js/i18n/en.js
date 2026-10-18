@@ -529,6 +529,9 @@ export const EN = {
   "姐妹站点": "Sister sites", "同一作者的其他小工具；顶栏站名旁的「‹」「›」小胶囊也能切换": "Other tools by the same author; the ‹ › pills next to the site name switch too",
   "切换姐妹站点": "Switch sister site", "切到{name}": "Go to {name}", "小助手": "Helper", "学堂": "School", "当前": "current", "打开": "Open", "更多页面": "More pages",
 
+  // ── 内嵌表单未保存提示 ──
+  "保存交易信息": "Save transaction details", "有未保存的修改": "Unsaved changes", "切换标签页或家人改动时不会丢，但要点保存才写入": "Kept when you switch tabs or family edits arrive, but only written when you tap Save",
+
   // ── 订阅与会员 ──
   "订阅与会员": "Subscriptions and memberships", "订阅种类": "Subscription type", "只用于分组和汇总；流媒体、云存储、AI 工具、软件等": "Only for grouping and totals: streaming, cloud storage, AI tools, software…", "免费试用到期日": "Free trial ends", "到期前 3 天提醒“不续就取消”": "Reminds you 3 days before: cancel if you won't keep it",
   "流媒体": "Streaming", "云存储": "Cloud storage", "AI 工具": "AI tools", "软件 / App": "Software / apps", "游戏": "Games", "新闻 / 阅读": "News / reading", "健身": "Fitness", "月": "mo", "{n} 项，{a} 项年付": "{n} items, {a} paid yearly",

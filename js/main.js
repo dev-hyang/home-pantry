@@ -126,6 +126,37 @@ export function render(force = true) {
   document.body.classList.toggle("editing", FORM_PAGES(r));
 
   if (!force && FORM_PAGES(r) && $("#main form")) return;
+  // 数据刷新（切回标签页、家人改动）会重画整页：先把内嵌表单里还没保存的改动记下来，画完再填回去，不让用户白填
+  const kept = force ? [] : keepUnsaved(["#dealForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm"]);
+  try { renderBody(r); } finally { restoreUnsaved(kept); }
+}
+/** 记下表单里与渲染默认值不同的字段（用户正在填的） */
+function keepUnsaved(selectors) {
+  return selectors.map((sel) => {
+    const f = $(sel); if (!f || f.dataset.saved) return null;
+    const vals = {};
+    for (const el of f.elements) {
+      if (!el.name) continue;
+      if (el.type === "checkbox" || el.type === "radio") { if (el.checked !== el.defaultChecked) vals[el.name] = { checked: el.checked }; }
+      else if (el.tagName === "SELECT") { const def = [...el.options].find((o) => o.defaultSelected)?.value ?? el.options[0]?.value; if (el.value !== def) vals[el.name] = { value: el.value }; }
+      else if (el.value !== el.defaultValue) vals[el.name] = { value: el.value };
+    }
+    return Object.keys(vals).length ? { sel, vals } : null;
+  }).filter(Boolean);
+}
+function restoreUnsaved(kept) {
+  for (const k of kept) {
+    const f = $(k.sel); if (!f) continue;
+    for (const [n, v] of Object.entries(k.vals)) { const el = f.elements[n]; if (!el) continue; if ("checked" in v) el.checked = v.checked; else el.value = v.value; }
+    markDirty(f, true);
+  }
+}
+/** 表单有未保存改动：显示“有未保存的修改”，保存按钮加粗提示 */
+function markDirty(f, on) {
+  f.classList.toggle("is-dirty", on);
+  const note = f.querySelector(".dirty-note"); if (note) note.hidden = !on;
+}
+function renderBody(r) {
   if (r.section === "item") { $("#main").innerHTML = viewItemForm(); return; }
   if (r.section === "asset") { $("#main").innerHTML = viewAssetForm(); return; }
   if (r.section === "bill") { $("#main").innerHTML = viewBillForm(); return; }
@@ -184,6 +215,7 @@ async function changeLang(code) {
 export const main = $("#main");
 main.addEventListener("input", (e) => {
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; renderInvList(); }
+  const df = e.target.closest("#dealForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
 });
 main.addEventListener("change", async (e) => {
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
@@ -291,7 +323,7 @@ main.addEventListener("submit", async (e) => {
       await Store.deleteProperty(p.id);
       state.deleteProperty = null; toast(t("已彻底删除“{name}”及其账单、设备和资料；花费记录保留", { name: p.name })); return refresh();
     }
-    if (f.id === "dealForm") { await saveDealForm(f); return refresh(); }
+    if (f.id === "dealForm") { await saveDealForm(f); f.dataset.saved = "1"; return refresh(); }   // 已保存：刷新时不再当作未保存改动
     if (f.id === "closeoutForm") { await applyCloseout(f); go(href("house", "overview")); return refresh(); }
     if (f.id === "assetTemplateForm") {
       const ids = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
