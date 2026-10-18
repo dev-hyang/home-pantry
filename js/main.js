@@ -24,6 +24,7 @@ import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./p
 import { renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { viewAbout } from "./settings/about.js";
+import { crumb, viewMenu } from "./menu.js";
 import { cleanStore, download, exportAnnual, rememberStore, viewStats } from "./stats/views.js";
 
 const APP_NAME = "爱家小助手";
@@ -78,46 +79,7 @@ const VIEWS = {
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
 const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile");
-// 隐藏的二级页在导航里高亮它所属的那一项
-const SUB_PARENT = { template: "supplies", "asset-template": "assets" };
-const SUB_HIDDEN = (section, k) => section === "pantry" && k === "gear" && !state.gearEnabled;
-
-/**
- * 二级菜单：一个带边框的胶囊框包住可横向滑动的标签；放不下时右侧渐隐并出现“…”按钮，点开列出全部页面。
- * 渲染后由 initSubnav() 量宽度、把当前项滚进视野。
- */
-function subnav(r) {
-  const subs = SECTIONS[r.section]?.subs;
-  if (!subs) return "";
-  const parent = r.section === "bills" ? { template: "list" } : SUB_PARENT;
-  const items = subs.filter(([k, , hidden]) => !hidden && !SUB_HIDDEN(r.section, k)).map(([k, label]) => ({ k, label: t(label), cur: r.sub === k || parent[r.sub] === k }));
-  return `<div class="subnav" id="subnav">
-    <nav class="subtabs" id="subtabs" aria-label="${t(SECTIONS[r.section].name)}">${items.map((x) => `<a href="${href(r.section, x.k)}" ${x.cur ? 'aria-current="page"' : ""}>${x.label}</a>`).join("")}</nav>
-    <button type="button" class="subnav-more" data-action="subnav-more" aria-haspopup="menu" aria-expanded="false" aria-controls="subnavMenu" aria-label="${t("更多页面")}" title="${t("更多页面")}" hidden>…</button>
-    <div class="subnav-menu" id="subnavMenu" role="menu" aria-label="${t("更多页面")}" hidden>${items.map((x) => `<a role="menuitem" href="${href(r.section, x.k)}" ${x.cur ? 'aria-current="page"' : ""}>${x.label}</a>`).join("")}</div>
-  </div>`;
-}
-/** 二级菜单渲染后：当前项滚进视野；量一下放不放得下，决定“…”按钮和两侧渐隐 */
-function initSubnav() {
-  const box = $("#subnav"), track = $("#subtabs"); if (!box || !track) return;
-  track.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest", inline: "center" });
-  const update = () => {
-    const over = track.scrollWidth > track.clientWidth + 2;
-    $("#subnav .subnav-more").hidden = !over;
-    box.classList.toggle("has-more", over);
-    box.classList.toggle("fade-l", over && track.scrollLeft > 4);
-    box.classList.toggle("fade-r", over && track.scrollLeft + track.clientWidth < track.scrollWidth - 4);
-  };
-  update();
-  track.addEventListener("scroll", update, { passive: true });
-  if (!window.__subnavResize) { window.__subnavResize = true; window.addEventListener("resize", () => { const t2 = $("#subtabs"); if (t2) t2.dispatchEvent(new Event("scroll")); }); }
-}
-function toggleSubnavMenu(open) {
-  const btn = $("#subnav .subnav-more"), menu = $("#subnavMenu"); if (!btn || !menu) return;
-  const want = open ?? menu.hidden;
-  menu.hidden = !want; btn.setAttribute("aria-expanded", String(want));
-  if (want) menu.querySelector('[aria-current="page"]')?.focus();
-}
+// 二级页顶部的面包屑和每个页签的目录页在 js/menu.js（参考家庭学堂“我的”页：一栏一行，点进去）
 const offPanel = (title, action, btn) => `<div class="panel empty"><strong>${title}</strong>${t("在“我的 → 设置”里可以重新打开。")}<p><button type="button" class="btn btn-primary" data-action="${action}">${btn}</button></p></div>`;
 
 /** 顶部导航、站名按当前语言写入（index.html 里是简体默认值） */
@@ -142,20 +104,6 @@ function renderAppSwitch() {
   const pill = (a, label) => `<a class="badge app" href="${esc(a.url)}" title="${esc(t("切到{name}", { name: t(a.name) }))}" aria-label="${esc(t("切到{name}", { name: t(a.name) }))}">${label}</a>`;
   box.setAttribute("aria-label", t("切换姐妹站点"));
   box.innerHTML = pill(prev, `‹ ${esc(t(prev.short))}`) + pill(next, `${esc(t(next.short))} ›`);
-}
-/** 二级菜单“…”列表：点外面或 Esc 关闭，↑ ↓ 移动焦点 */
-function initMenus() {
-  document.addEventListener("click", (e) => {
-    const sm = $("#subnavMenu");
-    if (sm && !sm.hidden && !sm.contains(e.target) && !e.target.closest(".subnav-more")) toggleSubnavMenu(false);
-  });
-  document.addEventListener("keydown", (e) => {
-    const open = $("#subnavMenu"); if (!open || open.hidden) return;
-    const items = [...open.querySelectorAll("a")], i = items.indexOf(document.activeElement);
-    if (e.key === "Escape") { toggleSubnavMenu(false); $("#subnav .subnav-more")?.focus(); }
-    else if (e.key === "ArrowDown") { e.preventDefault(); items[(i + 1) % items.length]?.focus(); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); items[(i - 1 + items.length) % items.length]?.focus(); }
-  });
 }
 
 /** force=true：路由变化，整页重画；false：数据刷新，表单页保持不动 */
@@ -183,11 +131,11 @@ export function render(force = true) {
   if (r.section === "bill") { $("#main").innerHTML = viewBillForm(); return; }
   if (r.section === "house" && !state.houseEnabled) { $("#main").innerHTML = offPanel(t("房屋维护模块已关闭"), "house-enable", t("打开房屋维护")); return; }
   if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("账单模块已关闭"), "bills-enable", t("打开账单")); return; }
-  if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = subnav(r) + offPanel(t("装备模块已关闭"), "gear-enable", t("打开装备")); initSubnav(); return; }
+  if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = crumb(r) + offPanel(t("装备模块已关闭"), "gear-enable", t("打开装备")); return; }
+  if (r.sub === "menu") { $("#main").innerHTML = viewMenu(r.section); return; }   // 页签目录页
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
-  $("#main").innerHTML = subnav(r) + view();
-  initSubnav();
+  $("#main").innerHTML = crumb(r) + view();
   if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies")) renderInvList();
 }
 
@@ -485,7 +433,6 @@ main.addEventListener("click", async (e) => {
       case "house-enable":
         state.houseEnabled = true; try { localStorage.setItem("hmh-house-off", "0"); } catch { /* 忽略 */ }
         return render();
-      case "subnav-more": return toggleSubnavMenu();
       case "gear-enable":
         state.gearEnabled = true; try { localStorage.setItem("hmh-gear-off", "0"); } catch { /* 忽略 */ }
         return render();
@@ -767,7 +714,6 @@ export async function boot() {
   window.__hmhBooted = true;   // 告诉 index.html 的启动自检：主脚本已经运行
   if (lang === "zh-Hant") await loadOpenCC();   // 繁體：先把转换库拉下来再渲染，避免先简后繁闪一下
   applyChrome();
-  initMenus();
   fillUnitList();
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.enriched) refreshSoon(); });
 

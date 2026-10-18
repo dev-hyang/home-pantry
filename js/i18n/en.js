@@ -529,6 +529,14 @@ export const EN = {
   "姐妹站点": "Sister sites", "同一作者的其他小工具；顶栏站名旁的「‹」「›」小胶囊也能切换": "Other tools by the same author; the ‹ › pills next to the site name switch too",
   "切换姐妹站点": "Switch sister site", "切到{name}": "Go to {name}", "小助手": "Helper", "学堂": "School", "当前": "current", "打开": "Open", "更多页面": "More pages",
 
+  // ── 页签目录页 ──
+  "位置": "You are here", "进行中": "in progress", "同一作者的其他小工具，顶栏站名旁的小胶囊也能切换。": "Other tools by the same author; the pills next to the site name switch too.",
+  "补货与临期一览、各分类库存": "Restock and expiry at a glance, stock by category", "全部物品，点 −/+ 记消耗": "All items; tap −/+ to log use", "床品、电器、自行车、工具：只记数量和位置": "Bedding, appliances, bikes, tools: quantity and location only", "按现有食材推荐三餐": "Meals from what you have",
+  "房屋卡片、耗材提醒、谁负责维护、本月任务": "Home card, supply alerts, who maintains what, this month's tasks", "滤网、电池、融雪盐等房屋耗材": "Filters, batteries, ice melt and other home supplies", "设备档案、保养记录与检查卡": "Equipment records, service logs and inspection cards", "按月的检修清单，勾了家人都看到": "Monthly checklists; ticks are visible to the family",
+  "车辆档案、保养时间表、牌照与保险": "Vehicle records, service schedule, registration and insurance", "买入 / 卖出 / 退租流程清单": "Buy / sell / move-out checklists", "房型、设施、材料、地址、保险、HOA": "Home type, systems, materials, address, insurance, HOA",
+  "未来 30 天要交多少、要处理的账单": "What's due in 30 days and bills to handle", "全部账单、自动扣款开关、按房产筛选": "All bills, autopay switches, filter by property", "缴费记录、金额趋势、CSV 导出": "Payment history, amount trends, CSV export",
+  "花费与消耗统计、年度 CSV": "Spending and usage stats, yearly CSV", "家庭成员、邀请码、房产、语言、模块、备份": "Family, invite code, properties, language, modules, backup", "这个网站是什么、怎么用、注意事项": "What this site is, how to use it, things to know",
+
   // ── 介绍页 ──
   "介绍": "About", "介绍与注意事项": "About and notes", "这个网站是什么、第一次怎么用、提醒怎么分级、哪些事要注意": "What this site is, how to start, how reminders are ranked, what to watch out for", "查看介绍": "Read", "一个家，一份清单，家人共同维护": "One home, one list, kept together by the family",
   "「爱家小助手」帮一家人把过日子要记的事放在一处：厨房和日用品还有多少、房子哪些部位该检修、设备保养到期没、账单什么时候交、车该做什么保养、买房卖房要走哪些步骤。所有数据挂在同一个“家庭”下，家人用邀请码加入后看到的是同一份，谁改了什么都能看到。": "Loving Home Helper keeps a family's running-the-house notes in one place: how much food and supplies are left, which parts of the house need a check, when equipment is due for service, when bills are due, what the car needs, and the steps for buying or selling a home. Everything lives under one “household”; family members join with an invite code, see the same data, and can tell who changed what.",

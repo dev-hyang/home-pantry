@@ -25,7 +25,7 @@ export function parseRoute(hash = location.hash) {
   const def = SECTIONS[section].subs;
   let sub = parts[1] || null, id = null;
   if (FORM_SECTIONS.has(section)) { id = parts[1] || "new"; sub = null; }
-  else if (def) { if (!def.some(([k]) => k === sub)) sub = def[0][0]; id = parts[2] || null; }
+  else if (def) { if (!sub) sub = "menu"; else if (!def.some(([k]) => k === sub)) sub = def[0][0]; id = parts[2] || null; }   // #/house 不带二级 → 目录页
   else sub = null;
   return { section, sub, id, q: new URLSearchParams(qs || "") };
 }

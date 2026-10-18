@@ -379,28 +379,24 @@ textarea { resize: vertical; }
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ── 二级菜单：胶囊框 + 可横向滑动的标签；放不下时两侧渐隐、右侧“…”列出全部 ── */
-.subnav { position: relative; display: flex; align-items: center; gap: 4px; margin: -6px 0 18px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; }
-.subtabs { display: flex; gap: 2px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
-.subtabs::-webkit-scrollbar { display: none; }
-.subtabs a { flex: 0 0 auto; padding: 7px 14px; border-radius: 999px; color: var(--muted); text-decoration: none; font-weight: 700; font-size: 14px; white-space: nowrap; scroll-snap-align: start; }
-.subtabs a:hover { color: var(--ink); background: var(--surface-2); }
-.subtabs a[aria-current="page"] { color: var(--bg); background: var(--ink); }
-/* 两侧渐隐：提示还有标签在框外 */
-.subnav::before, .subnav::after { content: ""; position: absolute; top: 4px; bottom: 4px; width: 34px; pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 1; }
-.subnav::before { left: 4px; border-radius: 999px 0 0 999px; background: linear-gradient(to right, var(--surface), transparent); }
-.subnav::after { right: 4px; border-radius: 0 999px 999px 0; background: linear-gradient(to left, var(--surface), transparent); }
-.subnav.has-more::after { right: 38px; border-radius: 0; }
-.subnav.fade-l::before, .subnav.fade-r::after { opacity: 1; }
-.subnav-more { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font-weight: 800; font-size: 16px; line-height: 1; padding: 0 0 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; z-index: 2; }
-.subnav-more:hover, .subnav-more[aria-expanded="true"] { border-color: var(--pine); color: var(--pine); }
-.subnav-more[hidden] { display: none; }
-.subnav-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 200px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: 0 10px 28px rgba(0,0,0,.14); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
-.subnav-menu[hidden] { display: none; }
-.subnav-menu a { display: flex; align-items: center; justify-content: space-between; min-height: 42px; padding: 8px 12px; border-radius: var(--r-sm); font-size: 15px; font-weight: 600; color: var(--ink); text-decoration: none; }
-.subnav-menu a:hover { background: var(--bg); }
-.subnav-menu a[aria-current="page"] { background: var(--surface-2); }
-.subnav-menu a[aria-current="page"]::after { content: "✓"; color: var(--pine); font-weight: 700; }
+/* ── 页签目录页（参考家庭学堂“我的”页）：一栏一行，点进去；子页顶部一条面包屑回目录 ── */
+.menu-page { max-width: 720px; }
+.mlist { padding: 4px 6px; }
+.mrow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 10px 10px; border-radius: var(--r-sm); color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); box-sizing: border-box; }
+.mrow:last-child { border-bottom: 0; }
+.mrow:hover { background: var(--bg); }
+.mrow:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+.mrow .mi { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; font-size: 19px; }
+.mrow .mt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mrow .mt b { font-size: 16px; font-weight: 600; }
+.mrow .mt small { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.mrow .mcount { flex: none; }
+.mrow .mch { color: var(--muted); font-size: 20px; line-height: 1; }
+.crumb { display: flex; align-items: center; gap: 8px; margin: -6px 0 14px; font-size: 14px; }
+.crumb a { color: var(--pine); text-decoration: none; font-weight: 700; padding: 6px 10px 6px 6px; margin-left: -6px; border-radius: 999px; }
+.crumb a:hover { background: var(--surface-2); }
+.crumb .sep { color: var(--line); }
+.crumb b { font-weight: 800; }
 .head-acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .link-name { border: 0; background: none; padding: 0; font-weight: 700; cursor: pointer; text-align: left; color: inherit; }
 .link-name:hover { text-decoration: underline; }
