@@ -239,10 +239,13 @@ export function billTemplateItems(indexes) {
 }
 
 /* ── 账单表单（整页；编辑时下方带缴费记录） ── */
+/** 分区页（?sec= / ?pay=1）：后退一步回枢纽；枢纽页：直接跳回进来之前的页面（不能 history.back，会掉回刚看过的分区） */
 export function leaveBill(changed) {
   if (changed) state.needsRefresh = true;
   state.skipAutosave = true;
-  if (state.prevRoute) history.back();
+  const q = state.route?.q, inSection = !!(q && (q.get("sec") || q.get("pay") === "1"));
+  if (inSection && state.prevRoute) history.back();
+  else if (state.prevHash && state.prevRoute) go(state.prevHash);
   else go(href("bills", "list"), { replace: true });
 }
 

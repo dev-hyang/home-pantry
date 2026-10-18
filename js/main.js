@@ -203,12 +203,13 @@ async function autoSave(f) {
 }
 function onRoute() {
   const prev = state.route, next = parseRoute();
+  const fromHash = lastHash;   // 进表单页之前的网址：枢纽页“返回账单 / 返回设备”直接跳回去（history.back 会掉进刚看过的分区页）
   const pend = pendingAutosave();
   if (pend) autoSave(pend);   // 后台保存；表单元素脱离页面后仍能读值
   scrollMem[routeKey(prev)] = window.scrollY;
   const enteringItem = isFormSection(next) && !isFormSection(prev);
   const leavingItem = isFormSection(prev) && !isFormSection(next);
-  if (enteringItem) state.prevRoute = prev;
+  if (enteringItem) { state.prevRoute = prev; state.prevHash = fromHash; }
   if (next.section === "house" && next.sub === "profile" && !(prev.section === "house" && prev.sub === "profile")) state.houseDraft = null;
   // 首页提醒带 ?prop=：切到那套房产再进页面
   const wantProp = next.section === "house" ? next.q.get("prop") : null;

@@ -1,6 +1,7 @@
 export const state = {
   route: { section: "today", sub: null, id: null, q: new URLSearchParams() },
   prevRoute: null,                     // 进入物品编辑页之前所在的页面，用于“返回”
+  prevHash: null,                      // 进入表单页之前的网址：枢纽页“返回”直接跳回去
   houseProfile: null,                  // 房屋资料（第一期：房型、材料、设施）
   houseEnabled: (() => { try { return localStorage.getItem("hmh-house-off") !== "1"; } catch { return true; } })(),
   gearEnabled: (() => { try { return localStorage.getItem("hmh-gear-off") !== "1"; } catch { return true; } })(),

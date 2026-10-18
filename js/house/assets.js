@@ -312,10 +312,13 @@ export function openAsset(id, { type } = {}) {
   go(`${href("asset", id || "new")}${type ? `?type=${encodeURIComponent(type)}` : ""}`);
 }
 
+/** 分区页（?sec= / ?log=1）：后退一步回枢纽；枢纽页：直接跳回进来之前的页面（不能 history.back，会掉回刚看过的分区） */
 export function leaveAsset(changed) {
   if (changed) state.needsRefresh = true;
   state.skipAutosave = true;
-  if (state.prevRoute) history.back();
+  const q = state.route?.q, inSection = !!(q && (q.get("sec") || q.get("log") === "1"));
+  if (inSection && state.prevRoute) history.back();
+  else if (state.prevHash && state.prevRoute) go(state.prevHash);
   else go(href("house", state.route?.id && isVehicle(state.assets.find((x) => x.id === state.route.id)) ? "vehicles" : "assets"), { replace: true });
 }
 
