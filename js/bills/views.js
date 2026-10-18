@@ -86,9 +86,7 @@ function filterByProperty(list) {
 
 /* ── 清单 ── */
 export function viewBillsList() {
-  const f = state.billsFilter;
-  const qp = state.route?.q?.get("prop");   // 从某套房产的页面目录进来：按它筛选
-  if (qp && state.properties.some((p) => p.id === qp)) f.property = qp;
+  const f = state.billsFilter;   // ?prop= 只在进入页面时套用一次（main.js onRoute），之后点房产芯片可以随意切换
   let list = filterByProperty(state.billsEnriched);
   if (f.autopay === "on") list = list.filter((b) => b.autopay);
   if (f.autopay === "off") list = list.filter((b) => !b.autopay);

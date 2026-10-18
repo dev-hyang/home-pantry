@@ -211,6 +211,8 @@ function onRoute() {
   const leavingItem = isFormSection(prev) && !isFormSection(next);
   if (enteringItem) { state.prevRoute = prev; state.prevHash = fromHash; }
   if (next.section === "house" && next.sub === "profile" && !(prev.section === "house" && prev.sub === "profile")) state.houseDraft = null;
+  // 房产页面目录 → 账单清单带 ?prop=：进入时按那套房产筛选一次（只在这里套用，之后芯片可以切换）
+  if (next.section === "bills" && next.q.get("prop") && state.properties.some((p) => p.id === next.q.get("prop"))) state.billsFilter.property = next.q.get("prop");
   // 首页提醒带 ?prop=：切到那套房产再进页面
   const wantProp = next.section === "house" ? next.q.get("prop") : null;
   if (wantProp && wantProp !== state.propertyId && state.properties.some((p) => p.id === wantProp)) {
