@@ -72,37 +72,74 @@ export function menuPrompt(ask, { people } = {}) {
 export const promptText = (ask, opts) => { const p = menuPrompt(ask, opts); return `${p.system}\n\n${p.user}`; };
 
 /* ── 调用 ── */
-export async function askModel(ask, opts = {}) {
+/** 通用一问一答：system + user → 文本；json=true 时要求模型只回 JSON（Gemini 用 responseMimeType） */
+export async function askText(system, user, { json = false, maxTokens = 1500 } = {}) {
   const s = aiSettings(), p = providerOf(s.provider);
   const base = (s.base || p.base).replace(/\/+$/, ""), model = s.model || p.model, key = s.key.trim();
   if (!key) throw new Error(t("还没填 API key，去设置 → AI 助手"));
-  const { system, user } = menuPrompt(ask, opts);
   const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 60000);
   try {
-    let text;
     if (p.kind === "gemini") {
       const r = await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: { temperature: 0.7, responseMimeType: "application/json" } }) });
+        body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: { temperature: 0.7, ...(json ? { responseMimeType: "application/json" } : {}) } }) });
       const j = await readJson(r);
-      text = j.candidates?.[0]?.content?.parts?.map((x) => x.text).join("") || "";
-    } else if (p.kind === "anthropic") {
-      const r = await fetch(`${base}/messages`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model, max_tokens: 1500, system, messages: [{ role: "user", content: user }] }) });
-      const j = await readJson(r);
-      text = (j.content || []).map((x) => x.text || "").join("");
-    } else {
-      const r = await fetch(`${base}/chat/completions`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ model, temperature: 0.7, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) });
-      const j = await readJson(r);
-      text = j.choices?.[0]?.message?.content || "";
+      return j.candidates?.[0]?.content?.parts?.map((x) => x.text).join("") || "";
     }
-    return { text, menu: parseMenu(text) };
+    if (p.kind === "anthropic") {
+      const r = await fetch(`${base}/messages`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }) });
+      const j = await readJson(r);
+      return (j.content || []).map((x) => x.text || "").join("");
+    }
+    const r = await fetch(`${base}/chat/completions`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model, temperature: 0.7, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) });
+    const j = await readJson(r);
+    return j.choices?.[0]?.message?.content || "";
   } catch (e) {
     if (e.name === "AbortError") throw new Error(t("模型超时，稍后再试"));
     if (e instanceof TypeError) throw new Error(t("浏览器无法直连这个接口（跨域或网络被拒）。可以换 DeepSeek / Gemini，或用“复制提示词”。"));
     throw e;
   } finally { clearTimeout(timer); }
 }
+export async function askModel(ask, opts = {}) {
+  const { system, user } = menuPrompt(ask, opts);
+  const text = await askText(system, user, { json: true });
+  return { text, menu: parseMenu(text) };
+}
+
+/* ── 小Y问：家里任何事（房屋保养、账单、买卖房、清洁收纳…）的上下文 ── */
+export function homeContext() {
+  const L = [], en = lang === "en";
+  const push = (label, body) => L.push(`${label}${en ? ": " : "："}${body}`);
+  const sep = en ? ", " : "，", list = en ? ", " : "、";
+  const props = state.properties.filter((p) => !p.archived);
+  const K = window.BILLS?.PROPERTY_KINDS || {}, ST = window.DEALS?.PROPERTY_STATUS || {};
+  for (const p of props) {
+    const prof = state.houseProfiles?.[p.id], H = window.HOUSE;
+    const ht = prof && H ? H.typeOf(prof.region, prof.house_type) : null;
+    const feats = prof && H ? H.FEATURES.filter((f) => (prof.features || []).includes(f.id)).map((f) => t(f.name)) : [];
+    const paren = (s) => (en ? ` (${s})` : `（${s}）`);
+    push(t("房产"), `${p.name}${paren([t(ST[p.status] || "持有"), t(K[p.kind] || ""), ht ? t(ht.name) : null, prof?.year_built ? t("{y} 年建", { y: prof.year_built }) : null].filter(Boolean).join(sep))}${feats.length ? `${sep}${t("设施")}${en ? ": " : "："}${feats.join(list)}` : ""}${prof?.hoa?.enabled ? `${sep}${t("有 HOA / 物业")}` : ""}`);
+  }
+  const paren = (s) => (en ? ` (${s})` : `（${s}）`);
+  const assets = (state.assetsEnriched || []).filter((a) => a.service === "overdue" || a.service === "due" || a.followUp);
+  if (assets.length) push(t("设备待处理"), assets.slice(0, 8).map((a) => `${a.name}${paren(a.followUp ? t("检查发现需处理") : a.service === "overdue" ? t("保养逾期") : t("该保养了"))}`).join(list));
+  const bills = (state.billsEnriched || []).filter((b) => ["overdue", "due", "soon", "verify"].includes(b.status));
+  if (bills.length) push(t("近期账单"), bills.slice(0, 8).map((b) => `${b.name}${b.est != null ? ` ${Units.money(b.est, b.currency || Units.region.currency)}` : ""}${b.next_due_on ? paren(b.next_due_on) : ""}`).join(list));
+  const pc = pantryContext();
+  if (pc.count) push(t("储藏"), `${t("{n} 种食材", { n: pc.count })}${pc.expiring.length ? `${sep}${t("临期")}${en ? ": " : "："}${pc.expiring.slice(0, 8).join(list)}` : ""}`);
+  const region = state.houseProfile?.region === "cn" ? t("中国") : t("美国");
+  push(t("所在地区"), `${region}${state.members?.length ? `${en ? "; " : "；"}${t("家庭成员 {n} 人", { n: state.members.length })}` : ""}`);
+  return L.join("\n");
+}
+export function generalPrompt(q, { withContext = true } = {}) {
+  const sys = lang === "en"
+    ? "You are a friendly household assistant for a family: home maintenance, bills and saving money, buying or selling a home, cleaning and organizing, meal planning, childcare logistics. Answer practically and concisely, in steps where useful; say when a professional (electrician, plumber, attorney, doctor) is needed."
+    : "你是一个家庭生活助手，帮一家人处理房屋保养、账单与省钱、买房卖房流程、清洁收纳、饮食与育儿家务等问题。回答要实用、简洁，必要时分步骤；涉及燃气、电、结构、法律、医疗时提醒找专业人士。";
+  const user = `${withContext ? `${lang === "en" ? "About this household:" : "家里的情况："}\n${homeContext()}\n\n` : ""}${lang === "en" ? "Question:" : "问题："}${q}`;
+  return { system: sys, user };
+}
+export const generalPromptText = (q, opts) => { const p = generalPrompt(q, opts); return `${p.system}\n\n${p.user}`; };
 async function readJson(r) {
   const txt = await r.text();
   let j = null; try { j = JSON.parse(txt); } catch { /* 下面报错 */ }

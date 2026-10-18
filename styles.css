@@ -622,6 +622,55 @@ button.mrow:last-child { border-bottom: 0; }
 .alert-list .alert-row input[type="checkbox"] { width: 20px; height: 20px; min-height: 0; accent-color: var(--pine); flex: 0 0 auto; }
 .alert-row.sev-0 .link-name { color: var(--out); }
 .alert-row .space-tag { margin-right: 6px; }
+/* 首页格子块：注意事项 / 小Y问 / 采购清单 / 今天吃什么 四大块 + 快捷操作小块 */
+.today-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 900px) { .today-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.ttile { display: grid; gap: 10px; align-content: start; padding: 14px; border-radius: 18px; background: var(--surface); color: var(--ink); text-decoration: none; min-height: 140px; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 0 0 1px color-mix(in srgb, var(--line) 60%, transparent); }
+.ttile:active { transform: scale(.98); }
+.ttile:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08), 0 0 0 1px var(--pine); }
+.ttile-ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; background: var(--surface-2); }
+.ttile .ai-ico { margin: 0; vertical-align: 0; filter: none; }
+.t-ai .ttile-ico { background: transparent; }
+.t-alerts .ttile-ico { background: var(--ok-bg); }
+.t-alerts.is-hot .ttile-ico { background: var(--out-bg); }
+.t-alerts.is-hot .tile-count { color: var(--out); }
+.t-shop .ttile-ico { background: var(--low-bg); }
+.t-meals .ttile-ico { background: color-mix(in srgb, var(--mustard) 28%, var(--surface)); }
+.ttile .tile-count { color: var(--ink); }
+.ttile-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+.ttile .pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.ttile .pill i { width: auto; min-width: 14px; padding: 0 4px; }
+.ttile .pill .ai-ico { vertical-align: -3px; }
+.pill.sev-0 { background: var(--out-bg); color: var(--out); } .pill.sev-0 i { background: var(--out); }
+.pill.sev-1 { background: var(--low-bg); color: var(--low); } .pill.sev-1 i { background: var(--low); }
+.pill.sev-2 { background: var(--exp-bg); color: var(--exp); } .pill.sev-2 i { background: var(--exp); }
+.pill.sev-3 { background: var(--surface-2); color: var(--muted); } .pill.sev-3 i { background: var(--muted); }
+.today-sub { font-size: 14px; font-weight: 800; margin: 0 0 8px; color: var(--muted); }
+.quick-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 900px) { .quick-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+html.force-phone .today-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }   /* 桌面预览手机布局 */
+html.force-phone .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.qtile { display: grid; justify-items: center; gap: 6px; padding: 12px 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 12.5px; font-weight: 700; text-align: center; }
+.qtile:hover { border-color: var(--pine); }
+.qtile-ico { font-size: 24px; }
+/* 注意事项页：面包屑尾部的排序下拉 */
+.crumb-tools { flex-wrap: wrap; }
+.sort-dd { margin-left: auto; }
+.sort-dd select { width: auto; min-height: 0; padding: 5px 28px 5px 12px; font-size: 13px; font-weight: 700; border-radius: 999px; }
+/* 小Y问整页 */
+.ai-hero { display: flex; gap: 14px; align-items: center; margin-bottom: 4px; }
+.ai-hero-ico .ai-ico { margin: 0; vertical-align: 0; }
+.ai-hero h2 { font-size: 22px; font-weight: 800; margin: 0; }
+.ai-hero p { margin: 4px 0 0; font-size: 13px; }
+.ai-page textarea { width: 100%; resize: vertical; }
+.ai-page .chips .chip { text-decoration: none; color: var(--ink); }
+.ai-sites { margin-top: 12px; }
+.ai-answer { margin-top: 12px; }
+.ai-answer-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.ai-answer-head .btn { margin-left: auto; }
+.ai-text { line-height: 1.65; font-size: 14.5px; }
+.ai-text p { margin: 0 0 8px; } .ai-text ul, .ai-text ol { margin: 0 0 8px; padding-left: 22px; } .ai-text h4 { margin: 10px 0 4px; font-size: 14.5px; }
+.disclaimer { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
 
 /* ── 账单 / 多房产 ── */
 .prop-bar { margin-bottom: 10px; }

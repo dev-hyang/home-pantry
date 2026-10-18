@@ -5,7 +5,8 @@ import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { joinList, lang, loadOpenCC, locale, setLang, t } from "./core/i18n.js";
-import { setTodayPref, viewToday } from "./today.js";
+import { setTodayPref, viewAlerts, viewToday } from "./today.js";
+import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
 import { assetAlertItems } from "./house/assets.js";
@@ -75,6 +76,8 @@ export const refreshSoon = () => { clearTimeout(debounceT); debounceT = setTimeo
 /* ───────────── 页面与路由 ───────────── */
 const VIEWS = {
   today:    () => viewToday(),
+  alerts:   () => viewAlerts(),
+  ai:       () => viewAi(),
   pantry:   { overview: viewDashboard, inventory: () => viewInventory("pantry"), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
@@ -119,7 +122,8 @@ export function render(force = true) {
   $("#hhName").textContent = state.household?.name || "";
   const r = state.route;
   const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0])
-    : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section === "bill" ? (state.prevRoute?.section || "bills") : r.section;
+    : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section === "bill" ? (state.prevRoute?.section || "bills")
+    : r.section === "alerts" || r.section === "ai" ? "today" : r.section;   // 注意事项、小Y问都是首页的子页，底栏高亮「今日」
   document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
     a.hidden = (a.dataset.section === "house" && !state.houseEnabled) || (a.dataset.section === "bills" && !state.billsEnabled);
     if (a.dataset.section === navSection) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
@@ -176,6 +180,7 @@ function renderBody(r) {
 }
 
 const scrollMem = {};
+const isListRoute = (r) => (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies");
 function onRoute() {
   const prev = state.route, next = parseRoute();
   scrollMem[routeKey(prev)] = window.scrollY;
@@ -188,6 +193,11 @@ function onRoute() {
   if (wantProp && wantProp !== state.propertyId && state.properties.some((p) => p.id === wantProp)) {
     state.propertyId = wantProp; try { localStorage.setItem("hmh-property", wantProp); } catch { /* 忽略 */ }
     state.houseDraft = null; state.route = next; refresh(); return;
+  }
+  // 从目录或别的页进库存类清单：默认回到全部分类（从物品编辑页返回、或概览方块指定了分类时保留）
+  if (isListRoute(next) && routeKey(prev) !== routeKey(next) && !isFormSection(prev)) {
+    if (state.keepFilter) state.keepFilter = false;
+    else Object.assign(state.filter, { cat: "all", status: "all", q: "" });
   }
   state.route = next;
   render(true);
@@ -231,6 +241,7 @@ main.addEventListener("input", (e) => {
 });
 main.addEventListener("change", async (e) => {
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
+  if (e.target.id === "alertSort") { setTodayPref({ mode: e.target.value }); return render(); }
   if (e.target.closest("#itemForm") && e.target.name === "category") {
     const fe = e.target.form.elements;
     fe.subcategory.innerHTML = subOptions(e.target.value);
@@ -295,6 +306,7 @@ main.addEventListener("submit", async (e) => {
   try {
     if (f.id === "itemForm") return saveItemForm(f);
     if (f.id === "aiForm") { render(); await runAi(f); return render(); }   // 先画“生成中”，再画结果
+    if (f.id === "aiPageForm") { const p = runAiPage(f); render(); await p; return render(); }
     if (f.id === "catForm") {   // 自定义分类：新建或改名 / 换图标颜色
       const fe = f.elements, name = fe.name.value.trim();
       if (!name) return toast(t("请填分类名"));
@@ -514,8 +526,8 @@ main.addEventListener("click", async (e) => {
       }
       case "cat-sort": state.catSort = !state.catSort; return render();   // 手机仪表盘：调整方块顺序
       case "cat-move": moveCat(state.filter.space, el.dataset.cat, +el.dataset.dir); return render();
-      case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "" }); return go(toList(el.dataset.space));
-      case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); return go(toList(el.dataset.space));
+      case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
+      case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "shop-add-item": return addAlertsToShopping([state.enriched.find((x) => x.id === id)]);
       case "shop-add-alerts": {
         const sp = el.dataset.space || "pantry";
@@ -535,6 +547,10 @@ main.addEventListener("click", async (e) => {
       case "ai-copy": return copyPrompt($("#aiForm"));
       case "ai-again": { const fm = $("#aiForm"); return fm ? fm.requestSubmit() : null; }
       case "ai-add-missing": await addAiMissing(); return refresh();
+      // 小Y问整页
+      case "ai-topic": { pickTopic(el.dataset.topic); render(); const fm = $("#aiPageForm"); if (fm) { if (aiReady()) fm.requestSubmit(); else fm.elements.q.focus(); } return; }
+      case "ai-copy-general": return copyGeneralPrompt($("#aiPageForm"));
+      case "ai-copy-answer": return copyAnswer();
       case "ai-test": {
         el.disabled = true; const out = $("#aiTestOut");
         try { await saveAiForm($("#aiSettingsForm")); await testModel(); out.textContent = t("连接成功 ✓"); out.className = "muted ok-text"; }
