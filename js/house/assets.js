@@ -78,7 +78,9 @@ function vehicleStatus(a, logs) {
     const nextMiles = s.miles && last?.odometer != null ? last.odometer + s.miles : null;   // 没记过里程就只按日期
     const byMiles = nextMiles != null && nowMiles != null ? plusDays(today, Math.round((nextMiles - nowMiles) / perDay)) : null;
     const next = [byDate, byMiles].filter(Boolean).sort()[0] || null;
-    return { ...s, last, next, nextMiles, days: next ? daysUntil(next) : null };
+    // basis：下次日期是按里程推算还是按月份；fromPurchase：还没记过这项，按购车 / 安装日期起算
+    const basis = !next ? null : byMiles && next === byMiles && byMiles !== byDate ? "miles" : "date";
+    return { ...s, last, next, nextMiles, days: next ? daysUntil(next) : null, basis, fromPurchase: !last && !!a.installed_on };
   }).sort((x, y) => (x.days ?? 9999) - (y.days ?? 9999));
   const soonest = items.find((s) => s.days != null) || null;
   const service = !soonest ? "unknown" : soonest.days < 0 ? "overdue" : soonest.days <= 30 ? "due" : "ok";
@@ -373,14 +375,18 @@ function vehicleFieldset(a, hide = () => "") {
 function vehicleSchedule(a) {
   const items = a.vItems || [];
   if (!items.length) return "";
+  const base = href("asset", a.id);
+  // “下次”的依据写清楚：没记过的按购车日期起算；按里程推算的注明现在约多少里程，免得误以为没更新
+  const why = (s) => (s.fromPurchase ? t("还没记过这项，按购车 / 安装日期起算") : s.basis === "miles" ? t("按里程推算，现在约 {n} {u}", { n: fmt(a.nowMiles), u: distUnit() }) : "");
   const row = (s) => `<tr class="${s.days == null ? "" : s.days < 0 ? "late" : s.days <= 30 ? "soon" : ""}">
       <th scope="row">${esc(t(s.name))}${s.note ? `<small>${esc(t(s.note))}</small>` : ""}</th>
       <td>${[s.months ? t("{n} 个月", { n: s.months }) : "", s.miles ? `${fmt(s.miles)} ${distUnit()}` : ""].filter(Boolean).join(" / ") || "—"}</td>
       <td>${s.last ? `${fmtDate(s.last.done_on)}${s.last.odometer != null ? `<small>${fmt(s.last.odometer)} ${distUnit()}</small>` : ""}` : `<span class="muted">—</span>`}</td>
-      <td>${s.next ? `<b>${fmtDate(s.next)}</b>${s.nextMiles != null ? `<small>${fmt(s.nextMiles)} ${distUnit()}</small>` : ""}${s.days != null ? `<small>${s.days < 0 ? t("逾期 {d} 天", { d: -s.days }) : t("{d} 天后", { d: s.days })}</small>` : ""}` : `<span class="muted">${t("记一次后开始算")}</span>`}</td>
+      <td>${s.next ? `<b>${fmtDate(s.next)}</b>${s.nextMiles != null ? `<small>${fmt(s.nextMiles)} ${distUnit()}</small>` : ""}${s.days != null ? `<small>${s.days < 0 ? t("逾期 {d} 天", { d: -s.days }) : t("{d} 天后", { d: s.days })}</small>` : ""}${why(s) ? `<small class="muted">${why(s)}</small>` : ""}` : `<span class="muted">${t("记一次后开始算")}</span>`}</td>
+      <td><a class="btn btn-sm btn-ghost" href="${base}?log=1&item=${s.key}">${t("记一次")}</a></td>
     </tr>`;
-  return `<div class="section-head" style="margin-top:20px"><h2>${t("保养时间表")}</h2><p>${t("按月和按里程取先到的；里程按年均里程推算")}</p></div>
-    <div class="panel"><div class="ch-scroll"><table class="owner-table veh-table"><thead><tr><th>${t("项目")}</th><th>${t("周期")}</th><th>${t("上次")}</th><th>${t("下次")}</th></tr></thead><tbody>${items.map(row).join("")}</tbody></table></div></div>`;
+  return `<div class="section-head" style="margin-top:20px"><h2>${t("保养时间表")}</h2><p>${t("按月和按里程取先到的；里程按年均里程推算。记保养时要选对“保养项目”，那一项的下次日期才会更新")}</p></div>
+    <div class="panel"><div class="ch-scroll"><table class="owner-table veh-table"><thead><tr><th>${t("项目")}</th><th>${t("周期")}</th><th>${t("上次")}</th><th>${t("下次")}</th><th></th></tr></thead><tbody>${items.map(row).join("")}</tbody></table></div></div>`;
 }
 
 export function viewAssetForm() {
@@ -558,6 +564,7 @@ function assetSummary(a) {
 
 function maintSection(a, focusLog) {
   const K = H().MAINT_KINDS, R = C().RESULTS, veh = isVehicle(a);
+  const preItem = state.route?.q?.get("item") || "";   // 时间表里“记一次”带过来的保养项目
   const rows = a.logs.map((l) => `<li>
       <span class="badge ${l.kind === "repair" ? "b-low" : l.kind === "replace" ? "b-exp" : l.result && l.result !== "ok" ? "b-out" : "b-ok"}">${t(K[l.kind] || l.kind)}${l.result ? ` · ${t(R[l.result] || l.result)}` : ""}</span>
       <div class="grow"><span class="name">${esc(fmtDate(l.done_on))}${l.service_item ? ` · ${esc(t(V().serviceItem(l.service_item)?.name || l.service_item))}` : ""}</span>
@@ -575,7 +582,7 @@ function maintSection(a, focusLog) {
       <div class="form-grid maint-grid">
         <label>${t("日期")}<input name="done_on" type="date" required value="${todayISO()}" max="${todayISO()}"></label>
         <label>${t("类型")}<select name="kind">${Object.entries(K).map(([k, n]) => `<option value="${k}" ${k === "service" ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
-        ${veh ? `<label>${t("保养项目")}<select name="service_item"><option value="">${t("未指定")}</option>${V().itemsFor(a.type).map((s) => `<option value="${s.key}">${esc(t(s.name))}</option>`).join("")}</select></label>
+        ${veh ? `<label>${t("保养项目")}<select name="service_item"><option value="">${t("请选择")}</option>${V().itemsFor(a.type).map((s) => `<option value="${s.key}" ${s.key === preItem ? "selected" : ""}>${esc(t(s.name))}</option>`).join("")}</select><small>${t("保养 / 检查 / 更换必选，这一项的下次日期才会更新；维修可不选")}</small></label>
                 <label>${t("里程（{u}）", { u: distUnit() })}<input name="odometer" type="number" inputmode="numeric" min="0" step="1" placeholder="${a.nowMiles != null ? fmt(a.nowMiles) : ""}"><small>${t("填了会同时更新车辆当前里程")}</small></label>`
               : `<label class="inspect-only">${t("检查结论")}<select name="result">${Object.entries(R).map(([k, n]) => `<option value="${k}">${t(n)}</option>`).join("")}</select><small>${t("“需保养 / 维修 / 更换”会提醒到记下一条为止")}</small></label>`}
         <label>${t("花费（{cur}，可不填）", { cur: Units.region.currency })}<input name="cost" type="number" inputmode="decimal" min="0" step="0.01"></label>
@@ -680,6 +687,8 @@ export async function saveMaintForm(f) {
   const currency = Units.region.currency;
   const result = !veh && kind === "inspect" && fe.result ? fe.result.value || null : null;
   const service_item = veh && fe.service_item ? fe.service_item.value || null : null;
+  // 车辆的保养 / 检查 / 更换必须选项目，否则时间表里那一项永远不会更新（之前的坑：下次日期一直停在购车日期 + 周期）
+  if (veh && kind !== "repair" && !service_item) { toast(t("请选保养项目（维修可不选）")); fe.service_item.focus(); return false; }
   const odometer = veh && fe.odometer && fe.odometer.value !== "" ? Math.max(0, Math.round(num(fe.odometer.value))) : null;
   const itemName = service_item ? t(V().serviceItem(service_item)?.name || service_item) : t(H().MAINT_KINDS[kind]);
   let purchase_id = null;
@@ -694,4 +703,5 @@ export async function saveMaintForm(f) {
   }
   if (result && result !== "ok") toast(t("已记录检查，结论“{r}”，会提醒到记下一条处理为止", { r: t(C().RESULTS[result]) }));
   else toast(kind === "replace" ? t("已记录更换，记得把安装日期改成新设备的日期") : t("已记录{kind}", { kind: itemName }));
+  return true;
 }

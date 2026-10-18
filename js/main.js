@@ -357,7 +357,9 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "assetForm") return saveAssetForm(f);
     if (f.id === "maintForm") {
       const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
-      try { await saveMaintForm(f); } finally { btn.disabled = false; }
+      let ok = false;
+      try { ok = await saveMaintForm(f); } finally { btn.disabled = false; }
+      if (!ok) return;   // 校验没过（如车辆没选保养项目）：保留已填内容
       await refresh(); return render(true);
     }
     if (f.id === "billForm") return saveBillForm(f);
