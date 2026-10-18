@@ -560,11 +560,16 @@ textarea { resize: vertical; }
 /* ── 账单 / 多房产 ── */
 .prop-bar { margin-bottom: 10px; }
 .bill-list { list-style: none; margin: 0; padding: 0; }
-.bill-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); flex-wrap: wrap; }
+/* 账单清单行：三列网格（名称与说明 / 金额 / 自动开关），名称再长也在第一列里换行，金额和开关固定在右边不掉行 */
+.bill-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
 .bill-row:last-child { border-bottom: 0; }
 .bill-row.inactive { opacity: .55; }
-.bill-row small { display: block; color: var(--muted); font-size: 12px; }
-.bill-amt { min-width: 80px; text-align: right; }
+.bill-row .grow { min-width: 0; }
+.bill-row .link-name { overflow-wrap: anywhere; }
+.bill-row small { display: block; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.bill-amt { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bill-row .switch { white-space: nowrap; }
+.bill-row .switch span { font-size: 12px; }
 .property-list { list-style: none; margin: 0; padding: 0; }
 .property-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); flex-wrap: wrap; }
 .property-list li:last-child { border-bottom: 0; }
