@@ -51,7 +51,7 @@ GitHub Pages 会把每个文件缓存 10 分钟。页面启动时会比较本次
 1. **创建 Supabase 项目**（免费层即可）。
 2. **建表**：Dashboard → SQL Editor。建表脚本（`supabase/` 目录）不随仓库发布，另行提供。
    - **全新部署**：粘贴 `supabase/schema.sql` 全部内容执行。
-   - **已有数据、只想升级**：按顺序执行 `supabase/migrations/` 里尚未执行过的文件（第一期 `002_phase1_house.sql`，第二期 `003_phase2_assets.sql`），不会删除数据。
+   - **已有数据、只想升级**：按顺序执行 `supabase/migrations/` 里尚未执行过的文件（目前到 `014_custom_locations.sql`），不会删除数据。`schema.sql` 当前为 v1.15，已包含全部迁移的结果。
    - 关于 `schema.sql`：脚本会**先删除本应用的旧表和函数（含全部数据），再完整重建**，整个过程在一个事务里，出错会整体回滚。已有数据请先在「设置 → 导出 JSON」备份；登录账号不受影响，但家人需要重新创建 / 加入家庭。
 3. **配置登录**：Authentication → URL Configuration
    - Site URL 填 `https://<你的用户名>.github.io/<仓库名>/`
