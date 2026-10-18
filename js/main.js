@@ -26,6 +26,7 @@ import { viewSettings } from "./settings/views.js";
 import { viewAbout } from "./settings/about.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
+import { applyCustomCategories, isCustomCat, newCatKey } from "./core/categories.js";
 import { aiReady, testModel } from "./core/ai.js";
 import { saveAiForm } from "./settings/views.js";
 import { cleanStore, download, exportAnnual, rememberStore, viewStats } from "./stats/views.js";
@@ -46,10 +47,11 @@ export async function refresh() {
       if (!live.some((p) => p.id === state.propertyId)) state.propertyId = (live.find((p) => p.id === saved) || live.find((p) => p.is_default) || live[0] || properties[0])?.id || null;
       const pid = state.propertyId;
       // 设备、季节任务、房屋资料按家庭全量读取（提醒总线要看所有房产），页面再按当前房产过滤
-      const [items, logs, shopping, purchases, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone] = await Promise.all([
+      const [items, logs, shopping, purchases, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats] = await Promise.all([
         Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listPurchases(), Store.listHouseProfiles(),
         Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince()), Store.listBills(), Store.listBillPayments(),
-        Store.listDeals(), Store.listDealDone()]);
+        Store.listDeals(), Store.listDealDone(), Store.listCategories()]);
+      applyCustomCategories(customCats);   // 自定义分类并入全局分类表，后面的 enrich / 视图都能用
       const houseProfiles = Object.fromEntries(profiles.map((p) => [p.property_id, p]));
       Object.assign(state, { items, logs, shopping, purchases, houseProfiles, houseProfile: pid ? houseProfiles[pid] || null : null, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone });
       state.enriched = enrich(items, logs);
@@ -293,6 +295,17 @@ main.addEventListener("submit", async (e) => {
   try {
     if (f.id === "itemForm") return saveItemForm(f);
     if (f.id === "aiForm") { render(); await runAi(f); return render(); }   // 先画“生成中”，再画结果
+    if (f.id === "catForm") {   // 自定义分类：新建或改名 / 换图标颜色
+      const fe = f.elements, name = fe.name.value.trim();
+      if (!name) return toast(t("请填分类名"));
+      if (CATEGORIES.some((c) => c.space === fe.space.value && t(c.name) === name && c.id !== state.catForm?.key)) return toast(t("已有同名分类"));
+      const subs = fe.subs.value.split(/[,，、\n]/).map((x) => x.trim()).filter(Boolean).slice(0, 12);
+      const editing = !!state.catForm?.id;
+      const row = { id: state.catForm?.id, key: state.catForm?.key || newCatKey(), space: fe.space.value, name, icon: fe.icon.value || "📦", color: fe.color.value || "#8a948f", loc: null, subs, sort: CATEGORIES.filter((c) => c.custom).length };
+      await Store.saveCategory(row);
+      state.catForm = null; state.filter.cat = row.key; toast(editing ? t("分类已保存") : t("已添加分类 {name}", { name }));
+      return refresh();
+    }
     if (f.id === "aiSettingsForm") { await saveAiForm(f); toast(t("AI 设置已保存（只存在本机）")); return render(); }
     if (f.id === "assetForm") return saveAssetForm(f);
     if (f.id === "maintForm") {
@@ -489,7 +502,16 @@ main.addEventListener("click", async (e) => {
       case "tpl-all": e.preventDefault(); el.form.querySelectorAll('input[name="tpl"]:not(:disabled)').forEach((x) => { x.checked = el.dataset.on === "1"; }); return;
       case "consume": el.disabled = true; await Store.adjust(id, -storedStep(state.items.find((x) => x.id === id)?.unit), "consume"); return refresh();
       case "restock": el.disabled = true; await Store.adjust(id, storedStep(state.items.find((x) => x.id === id)?.unit), "restock"); return refresh();
-      case "cat": state.filter.cat = el.dataset.cat; state.catSort = false; return render();
+      case "cat": state.filter.cat = el.dataset.cat; state.catSort = false; state.catForm = null; return render();
+      case "cat-new": state.catForm = { space: el.dataset.space || state.filter.space }; render(); $("#catForm input[name=name]")?.focus(); return;
+      case "cat-edit": { const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (c?.custom) state.catForm = { id: c.dbId, key: c.id, space: c.space, name: c.name, icon: c.icon, color: c.color, subs: c.subs }; render(); return; }
+      case "cat-cancel": state.catForm = null; return render();
+      case "cat-delete": {
+        const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (!c?.custom) return;
+        if (state.items.some((i) => i.category === c.id)) return toast(t("这个分类下还有物品，先把它们改到别的分类"));
+        if (!armed(el, t("再点一次确认删除"))) return;
+        await Store.deleteCategory(c.dbId); state.catForm = null; if (state.filter.cat === c.id) state.filter.cat = "all"; toast(t("已删除分类")); return refresh();
+      }
       case "cat-sort": state.catSort = !state.catSort; return render();   // 手机仪表盘：调整方块顺序
       case "cat-move": moveCat(state.filter.space, el.dataset.cat, +el.dataset.dir); return render();
       case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "" }); return go(toList(el.dataset.space));

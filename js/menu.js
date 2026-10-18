@@ -110,5 +110,10 @@ export function crumb(r) {
   // 房屋资料的某个分区：回到分区列表
   const psec = r.section === "house" && r.sub === "profile" ? PROFILE_SECTIONS.find((s) => s.id === r.q.get("sec")) : null;
   if (psec) { back = { href: href("house", "profile"), label: t("房屋资料") }; curLabel = t(psec.name); }
-  return `<nav class="crumb" aria-label="${t("位置")}"><a href="${back.href}">‹ ${esc(back.label)}</a><span class="sep">/</span><b>${curLabel}</b></nav>`;
+  // 库存类页面选了某个分类：‹ 储藏 / 库存 / 生鲜（“库存”可点回全部分类）
+  const invPage = (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies");
+  const cat = invPage && state.filter.cat !== "all" ? window.CATEGORIES.find((c) => c.id === state.filter.cat) : null;
+  const tail = cat ? `<span class="sep">/</span><b>${cat.icon} ${esc(t(cat.name))}</b>` : "";
+  const mid = cat ? `<button type="button" class="link-name crumb-mid" data-action="cat" data-cat="all">${curLabel}</button>` : `<b>${curLabel}</b>`;
+  return `<nav class="crumb" aria-label="${t("位置")}"><a href="${back.href}">‹ ${esc(back.label)}</a><span class="sep">/</span>${mid}${tail}</nav>`;
 }

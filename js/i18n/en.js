@@ -122,6 +122,13 @@ export const EN = {
 
   // ── 分类 / 位置 / 单位 ──
   "生鲜": "Fresh", "冷冻": "Frozen", "干货粮油": "Dry goods", "饮品": "Drinks", "日用品": "Household", "母婴": "Baby", "药品健康": "Health", "其他": "Other",
+  "学习文具": "School & stationery", "文具": "Stationery", "练习本": "Notebooks", "打印纸墨": "Paper & ink", "美术用品": "Art supplies", "学生用品": "School supplies",
+  "宠物": "Pets", "主粮": "Food", "零食": "Treats", "猫砂尿垫": "Litter & pads", "洗护": "Grooming", "玩具用品": "Toys & supplies",
+  "图书与学习": "Books & learning", "图书绘本": "Books", "教材教辅": "Textbooks", "乐器": "Instruments", "学习机电子": "Learning devices", "运动器材": "Sports gear",
+  "新分类": "New category", "自定义": "custom", "编辑分类": "Edit category", "会出现在方块、筛选芯片、物品分类下拉和统计里，全家共用": "Appears in tiles, filter chips, the item category list and stats; shared by the household",
+  "分类名": "Name", "例如：露营食品、手工材料": "e.g. camping food, craft supplies", "常用子分类（逗号分隔，可选）": "Common sub-categories (comma separated, optional)", "例如：帐篷食品, 速食, 饮用水": "e.g. trail food, instant meals, water",
+  "图标": "Icon", "颜色": "Color", "添加分类": "Add category", "删除分类": "Delete category", "请填分类名": "Enter a name", "已有同名分类": "A category with that name exists", "分类已保存": "Category saved", "已添加分类 {name}": "Added category {name}",
+  "这个分类下还有物品，先把它们改到别的分类": "This category still has items; move them first", "已删除分类": "Category deleted",
   "蔬菜": "Vegetables", "水果": "Fruit", "肉禽": "Meat & poultry", "水产": "Seafood", "蛋奶": "Eggs & dairy", "豆制品": "Soy products",
   "速冻面点": "Frozen dumplings & buns", "冷冻肉禽": "Frozen meat", "冷冻水产": "Frozen seafood", "冰品甜点": "Ice cream & desserts",
   "米面杂粮": "Rice, flour & grains", "干货菌菇": "Dried goods & mushrooms", "食用油": "Cooking oil", "调味品": "Seasonings", "零食坚果": "Snacks & nuts", "冲饮": "Instant drinks",

@@ -16,7 +16,7 @@ export const DemoStore = {
       db.properties = [{ id: uid(), name: t("我的家"), kind: "other", role: "owner_occupied", status: "owned", address: null, is_default: true, archived: false, notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
     }
     for (const p of db.properties) p.status ||= (p.role === "tenant" ? "renting" : "owned");
-    db.deals ||= []; db.deal_done ||= [];
+    db.deals ||= []; db.deal_done ||= []; db.categories ||= [];
     const def = db.properties.find((p) => p.is_default) || db.properties[0];
     db.house_profiles ||= {};
     if (db.house_profile) { db.house_profiles[def.id] ||= db.house_profile; delete db.house_profile; }
@@ -27,6 +27,15 @@ export const DemoStore = {
   persist() { try { localStorage.setItem(this.key, JSON.stringify(this.db)); } catch { /* 隐私模式下可能不可写，忽略 */ } },
   reset() { this.db = seedDemo(); this.load(); },
   async listItems() { return this.db.items.map((x) => ({ ...x })); },
+  // 自定义分类
+  async listCategories() { return (this.db.categories || []).map((x) => ({ ...x })); },
+  async saveCategory(c) {
+    const now = new Date().toISOString(); this.db.categories ||= [];
+    if (c.id) { const i = this.db.categories.findIndex((x) => x.id === c.id); if (i >= 0) this.db.categories[i] = { ...this.db.categories[i], ...c, updated_at: now }; }
+    else this.db.categories.push({ ...c, id: uid(), created_at: now, updated_at: now });
+    this.persist();
+  },
+  async deleteCategory(id) { this.db.categories = (this.db.categories || []).filter((x) => x.id !== id); this.persist(); },
   async listLogs() {
     const since = Date.now() - STATS_LOG_DAYS * DAY;
     return this.db.logs.filter((l) => new Date(l.created_at).getTime() >= since);
@@ -298,6 +307,7 @@ export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_pol
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
   "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "statement_channel",
   "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes"];
+export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", "subs", "sort"];
 export const DEAL_FIELDS = ["property_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at"];
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
@@ -305,6 +315,13 @@ export const CloudStore = {
   mode: "cloud", sb: null, hid: null, channel: null,
   must({ data, error }) { if (error) throw new Error(error.message); return data; },
   async listItems() { return this.must(await this.sb.from("items").select("*").eq("household_id", this.hid).order("name")); },
+  async listCategories() { return this.must(await this.sb.from("custom_categories").select("*").eq("household_id", this.hid).order("sort").order("created_at")); },
+  async saveCategory(c) {
+    const row = pick(c, CATEGORY_FIELDS, { household_id: this.hid, updated_by: state.user.id });
+    if (c.id) this.must(await this.sb.from("custom_categories").update(row).eq("id", c.id));
+    else this.must(await this.sb.from("custom_categories").insert(row));
+  },
+  async deleteCategory(id) { this.must(await this.sb.from("custom_categories").delete().eq("id", id)); },
   async listLogs() {
     const since = new Date(Date.now() - STATS_LOG_DAYS * DAY).toISOString();
     return this.must(await this.sb.from("stock_logs").select("item_id,delta,reason,created_at")
@@ -471,7 +488,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "property_deals", "deal_task_done"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "property_deals", "deal_task_done", "custom_categories"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();

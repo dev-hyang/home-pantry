@@ -1,6 +1,7 @@
 import { alertsOf, hasStock, memberName, openShopFor } from "../core/logic.js";
 import { STATUS, state } from "../core/state.js";
 import { aiPanel } from "./ai.js";
+import { COLORS, ICONS } from "../core/categories.js";
 import { Store } from "../core/store.js";
 import { $, catOf, catsOf, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText } from "../core/util.js";
 import { href } from "../core/router.js";
@@ -141,8 +142,29 @@ function catDashboard(space, mine) {
     const cls = `tile st-${s.kind} ${items.length ? "" : "is-empty"}`;
     return sorting ? `<div class="${cls} is-sorting">${body}</div>` : `<button type="button" class="${cls}" data-action="cat" data-cat="${c.id}">${body}</button>`;
   }).join("");
-  return `${summary}<div class="cat-dash" id="catDash">${tiles}</div>
+  const addTile = sorting ? "" : `<button type="button" class="tile tile-add" data-action="cat-new" data-space="${space}"><span class="tile-top"><span class="tile-ico" style="--cat:#8a948f" aria-hidden="true">＋</span></span><span class="tile-name">${t("新分类")}</span><span class="pill pill-none">${t("自定义")}</span></button>`;
+  return `${summary}<div class="cat-dash" id="catDash">${tiles}${addTile}</div>
     <p class="muted dash-foot"><button type="button" class="link-name" data-action="cat-sort">${sorting ? t("完成排序") : t("调整顺序")}</button></p>`;
+}
+
+/** 自定义分类表单（新建 / 编辑）：名称、图标、颜色、常用子分类 */
+function catFormHtml(cf) {
+  const editing = !!cf.id;
+  const icons = ICONS.map((i) => `<label class="ico-pick"><input type="radio" name="icon" value="${i}" ${(cf.icon || ICONS[0]) === i ? "checked" : ""}><span>${i}</span></label>`).join("");
+  const colors = COLORS.map((c) => `<label class="color-pick"><input type="radio" name="color" value="${c}" ${(cf.color || COLORS[0]) === c ? "checked" : ""}><span style="--c:${c}"></span></label>`).join("");
+  return `<form id="catForm" class="panel cat-form">
+    <input type="hidden" name="space" value="${esc(cf.space)}">
+    <div class="section-head" style="margin-bottom:8px"><h3 style="font-size:16px">${editing ? t("编辑分类") : t("新分类")}</h3><p>${t("会出现在方块、筛选芯片、物品分类下拉和统计里，全家共用")}</p></div>
+    <div class="form-grid">
+      <label>${t("分类名")}<input name="name" required maxlength="20" placeholder="${t("例如：露营食品、手工材料")}" value="${esc(cf.name || "")}"></label>
+      <label>${t("常用子分类（逗号分隔，可选）")}<input name="subs" maxlength="200" placeholder="${t("例如：帐篷食品, 速食, 饮用水")}" value="${esc((cf.subs || []).join(", "))}"></label>
+    </div>
+    <div class="pick-row" role="group" aria-label="${t("图标")}">${icons}</div>
+    <div class="pick-row" role="group" aria-label="${t("颜色")}">${colors}</div>
+    <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${editing ? t("保存") : t("添加分类")}</button>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="cat-cancel">${t("取消")}</button>
+      ${editing ? `<span class="spacer"></span><button type="button" class="btn btn-sm btn-danger-ghost" data-action="cat-delete" data-cat="${esc(cf.key)}">${t("删除分类")}</button>` : ""}</div>
+  </form>`;
 }
 
 export function viewInventory(space = "pantry") {
@@ -155,11 +177,12 @@ export function viewInventory(space = "pantry") {
   const shelf = gear && !phone ? shelfGrid("gear") : "";
   const mine = state.enriched.filter(inSpace(space));
   const cur = f.cat !== "all" ? catOf(f.cat) : null;
+  const cf = state.catForm && state.catForm.space === space ? state.catForm : null;
   return `
     <section class="section">
-      ${phone && cur ? `<nav class="crumb" aria-label="${t("位置")}"><button type="button" class="link-name" data-action="cat" data-cat="all">‹ ${t("全部分类")}</button><span class="sep">/</span><b>${cur.icon} ${esc(t(cur.name))}</b></nav>` : ""}
       <div class="section-head"><h2>${phone && cur ? `${esc(t(cur.name))}<span class="muted">（${mine.filter((x) => x.category === cur.id).length}）</span>` : gear ? t("装备") : house ? t("房屋耗材") : t("库存清单")}</h2>
         <div class="head-acts">${house && !phone ? `<a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>` : ""}
+        ${cur?.custom && !cf ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-edit" data-cat="${cur.id}">${t("编辑分类")}</button>` : ""}
         <a class="btn btn-primary ${phone ? "btn-sm" : ""}" href="${href("item", "new")}?space=${space}${cur ? `&cat=${cur.id}` : ""}">${gear ? t("添加装备") : t("添加物品")}</a></div></div>
       ${gear && !phone ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">${t("床品、电器、自行车、千斤顶、工具这类耐用品：只记有几件、放在哪，不算消耗、不提醒补货。")}</p>` : ""}
       ${shelf ? `<div class="shelf" style="margin-bottom:14px">${shelf}</div>` : ""}
@@ -172,8 +195,10 @@ export function viewInventory(space = "pantry") {
       </div>
       ${phone ? "" : `<div class="chips" role="group" aria-label="${t("按分类筛选")}">
         ${chip("all", t("全部"))}${orderedCats(space).map((c) => chip(c.id, `${c.icon} ${t(c.name)}`)).join("")}
+        <button type="button" class="chip chip-add" data-action="cat-new" data-space="${space}">＋ ${t("新分类")}</button>
       </div>`}
-      ${dash ? catDashboard(space, mine) : ""}
+      ${cf ? catFormHtml(cf) : ""}
+      ${dash && !cf ? catDashboard(space, mine) : ""}
       <div id="invList" ${dash && !f.q.trim() ? "hidden" : ""}></div>
     </section>`;
 }

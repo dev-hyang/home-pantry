@@ -9,7 +9,9 @@ window.CATEGORIES = [
   { id: "daily",  name: "日用品",   icon: "🧻", color: "#7563c0", loc: "储物间", subs: ["纸品", "清洁用品", "洗护用品", "厨房耗材"] },
   { id: "baby",   name: "母婴",     icon: "🍼", color: "#d4694c", loc: "储物间", subs: ["纸尿裤", "奶粉辅食", "湿巾", "哺乳用品"] },
   { id: "health", name: "药品健康", icon: "💊", color: "#24897d", loc: "常温",  subs: ["常备药", "维生素营养", "护理用品"] },
-].map((c) => ({ ...c, space: "pantry" }));   // 房屋耗材分类在 data/house.js 里追加（space = "house"）
+  { id: "study",  name: "学习文具", icon: "✏️", color: "#2f6fb0", loc: "储物间", subs: ["文具", "练习本", "打印纸墨", "美术用品", "学生用品"] },
+  { id: "pet",    name: "宠物",     icon: "🐾", color: "#9a6b3c", loc: "储物间", subs: ["主粮", "零食", "猫砂尿垫", "洗护", "玩具用品"] },
+].map((c) => ({ ...c, space: "pantry" }));   // 房屋耗材分类在 data/house.js 里追加（space = "house"）；自定义分类由 js/core/categories.js 在加载数据后合并进来
 
 // 装备：耐用品和工具（床品、电器、自行车、千斤顶、园艺工具…），只记数量和位置，
 // 不算消耗、不提醒补货、不进采购提醒（space = "gear"）。需要保养周期的设备将来进第二期的设备档案。
@@ -19,6 +21,7 @@ window.GEAR_CATEGORIES = [
   { id: "gear_car",    name: "汽车装备", icon: "🚗", color: "#7a5c8e", loc: "车内",   subs: ["应急工具", "备胎", "车载电器", "车内收纳"] },
   { id: "gear_tools",  name: "工具",     icon: "🔧", color: "#8a6d3b", loc: "工具间", subs: ["手动工具", "电动工具", "五金配件", "梯子登高"] },
   { id: "gear_garden", name: "园艺工具", icon: "🌱", color: "#5a8f3f", loc: "车库",   subs: ["割草修剪", "浇水用品", "花盆土壤", "园艺手工具"] },
+  { id: "gear_study",  name: "图书与学习", icon: "📚", color: "#4a5fb0", loc: "卧室",   subs: ["图书绘本", "教材教辅", "乐器", "学习机电子", "运动器材"] },
 ].map((c) => ({ ...c, space: "gear" }));
 window.CATEGORIES.push(...window.GEAR_CATEGORIES);
 window.GEAR_GROUP = { id: "gear", name: "装备", icon: "🧳", color: "#a0522d" };   // 统计图里合并显示
