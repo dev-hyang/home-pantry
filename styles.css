@@ -591,6 +591,9 @@ button.mrow:last-child { border-bottom: 0; }
 .bill-row .switch span { font-size: 12px; }
 /* 订阅种类小标签；账单表单里只有订阅 / 会员分类才显示种类与试用到期 */
 .badge.sub-kind { background: var(--surface-2); color: var(--pine); font-weight: 600; margin-right: 6px; vertical-align: 1px; }
+/* 分区子页：只显示当前块，其余 fieldset 隐藏但仍在表单里一起保存 */
+form fieldset[hidden] { display: none !important; }
+form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 #billForm .sub-only { display: none; }
 #billForm.is-sub .sub-only { display: grid; }
 .property-list { list-style: none; margin: 0; padding: 0; }

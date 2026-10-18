@@ -8,6 +8,7 @@ import { memberName } from "../core/logic.js";
 import { download } from "../stats/views.js";
 import { STATUS_RANK, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
 import { propertyTag, withProperty } from "../core/alerts.js";
+import { countBadge, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 
 const B = () => window.BILLS;
 const BADGE = { overdue: "b-out", due: "b-low", verify: "b-soon", soon: "b-soon", ok: "b-ok", none: "", ended: "", inactive: "" };
@@ -257,16 +258,21 @@ export function viewBillForm() {
   const opts = (map, sel) => Object.entries(map).map(([k, n]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${t(n)}</option>`).join("");
   const backLabel = state.prevRoute ? t({ today: "今日", bills: "账单", me: "我的" }[state.prevRoute.section] || "上一页") : t("账单");
   const landlord = state.properties.some((p) => p.role === "landlord");
+  // 已有账单：先看枢纽（各块完成度），点进去只改一块；新建仍是整页
+  const sec = r.q.get("pay") === "1" ? "pay" : r.q.get("sec") || "";
+  const hubHref = href("bill", b?.id || "new");
+  if (b && !sec) return billHub(b, backLabel);
+  if (b && sec === "pay") return `<section class="section form-page">${sectionCrumb(hubHref, b.name, t("缴费记录"))}${paySection(b, r.q.get("pay") === "1")}</section>`;
+  const hide = (k) => (b && sec && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">
-      <div class="section-head">
-        <h2>${b ? `${propertyTag(b.property_id)}${billCat(b.category).icon} ${esc(b.name)}` : t("添加账单")}</h2>
+      ${b ? sectionCrumb(hubHref, b.name, t(BILL_SECTIONS.find((s) => s.id === sec)?.name || "")) : `<div class="section-head">
+        <h2>${t("添加账单")}</h2>
         <button type="button" class="btn btn-sm btn-ghost" data-action="bill-cancel">${t("返回{page}", { page: backLabel })}</button>
-      </div>
-      ${b ? billSummary(b) : ""}
-      <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""}" novalidate>
+      </div>`}
+      <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""} ${b && sec ? "one-sec" : ""}" novalidate>
         <input type="hidden" name="bill_id" value="${d(b?.id)}">
-        <fieldset>
+        <fieldset data-sec="basic" ${hide("basic")}>
           <legend>${t("基本信息")}</legend>
           <div class="form-grid">
             <label>${t("名称")}<input name="name" required maxlength="60" placeholder="${t("例如：ComEd 电费")}" value="${d(v.name)}"></label>
@@ -283,7 +289,7 @@ export function viewBillForm() {
             <label>${t("账单怎么来")}<select name="statement_channel">${opts(B().STATEMENTS, v.statement_channel)}</select></label>
           </div>
         </fieldset>
-        <fieldset>
+        <fieldset data-sec="amount" ${hide("amount")}>
           <legend>${t("金额与周期")}</legend>
           <div class="form-grid">
             <label>${t("金额类型")}<select name="amount_type"><option value="fixed" ${v.amount_type === "fixed" ? "selected" : ""}>${t("固定")}</option><option value="variable" ${v.amount_type !== "fixed" ? "selected" : ""}>${t("每次不同")}</option></select></label>
@@ -300,7 +306,7 @@ export function viewBillForm() {
             <label class="span-2">${t("滞纳金说明")}<input name="late_fee_note" maxlength="120" placeholder="${t("例如：逾期 1.5% 或 $25")}" value="${d(v.late_fee_note)}"></label>
           </div>
         </fieldset>
-        <fieldset>
+        <fieldset data-sec="autopay" ${hide("autopay")}>
           <legend>${t("自动扣款")}</legend>
           <div class="form-grid">
             <label class="check-inline"><input type="checkbox" name="autopay" ${v.autopay ? "checked" : ""}><span>${t("已设置自动扣款（到期前后提醒核对，而不是提醒缴费）")}</span></label>
@@ -308,7 +314,7 @@ export function viewBillForm() {
             <label>${t("扣款卡有效期")}<input name="autopay_card_expires" type="month" value="${d(v.autopay_card_expires)}"><small>${t("到期前 45 天提醒换卡")}</small></label>
           </div>
         </fieldset>
-        <fieldset>
+        <fieldset data-sec="other" ${hide("other")}>
           <legend>${t("其他")}</legend>
           <div class="form-grid">
             ${cloud ? `<label>${t("谁负责")}<select name="assigned_to"><option value="">${t("不指定")}</option>${state.members.map((m) => `<option value="${m.user_id}" ${m.user_id === v.assigned_to ? "selected" : ""}>${esc(m.display_name)}</option>`).join("")}</select></label>` : `<input type="hidden" name="assigned_to" value="">`}
@@ -321,11 +327,43 @@ export function viewBillForm() {
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">${b ? t("保存修改") : t("添加账单")}</button>
           <button type="button" class="btn btn-ghost" data-action="bill-cancel">${t("取消")}</button>
-          ${b ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="bill-delete">${t("删除账单")}</button>` : ""}
         </div>
       </form>
-      ${b ? paySection(b, r.q.get("pay") === "1") : `<p class="muted" style="margin-top:12px;font-size:13px">${t("保存后可以在这条账单下记每次缴费或核对。")}</p>`}
+      ${b ? "" : `<p class="muted" style="margin-top:12px;font-size:13px">${t("保存后可以在这条账单下记每次缴费或核对。")}</p>`}
     </section>`;
+}
+
+const BILL_SECTIONS = [
+  { id: "basic", icon: "🧾", name: "基本信息" },
+  { id: "amount", icon: "📅", name: "金额与周期" },
+  { id: "autopay", icon: "🔁", name: "自动扣款" },
+  { id: "other", icon: "⋯", name: "其他" },
+  { id: "pay", icon: "✅", name: "缴费记录" },
+];
+/** 账单枢纽页：摘要 + 各块完成度 + 缴费记录入口 + 删除 */
+function billHub(b, backLabel) {
+  const base = href("bill", b.id);
+  const st = {
+    basic: () => { const n = 2 + filledCount([b.payee, b.account_last4, b.login_hint, b.pay_url]); return { text: [t(billCat(b.category).name), b.payee].filter(Boolean).join(" · "), pct: Math.round((n / 6) * 100), badge: countBadge(n, 6) }; },
+    amount: () => { const n = filledCount([b.est, b.next_due_on, b.due_day || b.due_dates?.length]); return { text: [freqText(b), b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.est != null ? mny(b.est, b.currency) : null].filter(Boolean).join(" · "), pct: Math.round((n / 3) * 100), badge: countBadge(n, 3) }; },
+    autopay: () => ({ text: b.autopay ? [t("已设置"), b.autopay_method, b.autopay_card_expires ? t("卡有效期 {d}", { d: b.autopay_card_expires }) : null].filter(Boolean).join(" · ") : t("未设置（手动缴费）"), pct: null, badge: b.autopay ? `<span class="badge b-ok mcount">✓</span>` : "" }),
+    other: () => ({ text: [b.assigned_to ? memberName(b.assigned_to) : null, b.essential ? t("必要支出") : t("非必要"), b.active ? null : t("已停用"), b.notes ? t("有备注") : null].filter(Boolean).join(" · "), pct: null, badge: "" }),
+    pay: () => ({ text: b.pays.length ? t("{n} 条，最近 {d}", { n: b.pays.length, d: fmtDate(b.pays[0].paid_on) }) : t("还没有记录"), pct: null, badge: b.pays.length ? countBadge(b.pays.length, "", "") .replace("/", "") : "" }),
+  };
+  const rows = BILL_SECTIONS.map((s) => { const x = st[s.id](); return hubRow({ href: `${base}?sec=${s.id}`, icon: s.icon, title: t(s.name), desc: esc(x.text), pct: x.pct, badge: x.badge }); });
+  return `<section class="section">
+    <div class="section-head">
+      <h2>${propertyTag(b.property_id)}${billCat(b.category).icon} ${esc(b.name)}</h2>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="bill-cancel">${t("返回{page}", { page: backLabel })}</button>
+    </div>
+    ${billSummary(b)}
+    ${hubList(rows)}
+    <div class="form-actions" style="margin-top:14px">
+      ${b.pay_url && !b.autopay ? `<a class="btn btn-ghost" href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${t("去缴费")}</a>` : ""}
+      <a class="btn btn-primary" href="${base}?pay=1">${b.autopay ? t("记核对") : t("记缴费")}</a>
+      <span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="bill-delete">${t("删除账单")}</button>
+    </div>
+  </section>`;
 }
 
 function billSummary(b) {

@@ -8,6 +8,7 @@ import { $, DAY, addMonths, daysUntil, esc, fmt, fmtDate, fmtShort, money, num, 
 import { go, href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { houseBar } from "./property-form.js";
+import { countBadge, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 
 const H = () => window.HOUSE;
 const V = () => window.VEHICLES;
@@ -326,10 +327,10 @@ function typeOptions(selected, kind) {
 }
 
 /** 车辆专有区块：车牌、里程、证照到期、保险（与房屋保险同构） */
-function vehicleFieldset(a) {
+function vehicleFieldset(a, hide = () => "") {
   const v = a?.vehicle || {}, ins = v.insurance || {};
   const d = (x) => esc(x ?? "");
-  return `<fieldset class="veh-only">
+  return `<fieldset class="veh-only" data-sec="plate" ${hide("plate")}>
       <legend>${t("车牌与里程")}</legend>
       <div class="form-grid">
         <label>${t("车牌")}<input name="veh_plate" maxlength="12" value="${d(v.plate)}"></label>
@@ -339,7 +340,7 @@ function vehicleFieldset(a) {
         <label>${t("年均里程（{u}）", { u: distUnit() })}<input name="veh_annual_miles" type="number" inputmode="numeric" min="0" step="100" placeholder="12000" value="${d(v.annual_miles)}"><small>${t("用来把“按里程”的保养换算成日期")}</small></label>
       </div>
     </fieldset>
-    <fieldset class="veh-only">
+    <fieldset class="veh-only" data-sec="docs" ${hide("docs")}>
       <legend>${t("证照与租赁")}</legend>
       <div class="form-grid">
         <label>${t("牌照年贴到期")}<input name="veh_registration_due" type="date" value="${d(v.registration_due)}"><small>${t("到期前 30 天提醒")}</small></label>
@@ -347,7 +348,7 @@ function vehicleFieldset(a) {
         <label>${t("租赁到期（租车才填）")}<input name="veh_lease_end" type="date" value="${d(v.lease_end)}"></label>
       </div>
     </fieldset>
-    <fieldset class="veh-only">
+    <fieldset class="veh-only" data-sec="insurance" ${hide("insurance")}>
       <legend>${t("车险")}</legend>
       <div class="form-grid">
         <label>${t("保险公司")}<input name="veh_ins_provider" maxlength="60" value="${d(ins.provider)}"></label>
@@ -394,17 +395,23 @@ export function viewAssetForm() {
   const thisYear = new Date().getFullYear();
   const cur = Units.region.currency;
   const kindPill = (k) => `<label class="radio-pill"><input type="radio" name="kind" value="${k}" ${v.kind === k ? "checked" : ""}><span>${H().ASSET_KINDS[k].icon} ${t(H().ASSET_KINDS[k].name)}</span></label>`;
+  // 已有记录：先看枢纽（各块完成度、保养记录、时间表、检查卡），点进去只改一块；新建仍是整页
+  const sec = r.q.get("log") === "1" ? "log" : r.q.get("sec") || "";
+  const hubHref = href("asset", a?.id || "new");
+  if (a && !sec) return assetHub(a, backLabel);
+  if (a && sec === "log") return `<section class="section form-page">${sectionCrumb(hubHref, a.name, t("保养记录"))}${maintSection(a, r.q.get("log") === "1")}</section>`;
+  if (a && sec === "schedule") return `<section class="section">${sectionCrumb(hubHref, a.name, t("保养时间表"))}${vehicleSchedule(a)}</section>`;
+  if (a && sec === "care") return `<section class="section">${sectionCrumb(hubHref, a.name, t("检查卡"))}${careCard(a.type, { open: true })}</section>`;
+  const hide = (k) => (a && sec && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">
-      <div class="section-head">
-        <h2>${a ? `${a.t?.icon || "⚙️"} ${esc(a.name)}` : veh ? t("添加车辆") : t("添加设备")}</h2>
+      ${a ? sectionCrumb(hubHref, a.name, t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || "")) : `<div class="section-head">
+        <h2>${veh ? t("添加车辆") : t("添加设备")}</h2>
         <button type="button" class="btn btn-sm btn-ghost" data-action="asset-cancel">${t("返回{page}", { page: backLabel })}</button>
-      </div>
-      ${a ? assetSummary(a) : ""}
-      ${a && !veh ? careCard(a.type) : ""}
-      <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""}" novalidate>
+      </div>`}
+      <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${a && sec ? "one-sec" : ""}" novalidate>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
-        <fieldset>
+        <fieldset data-sec="basic" ${hide("basic")}>
           <legend>${t("基本信息")}</legend>
           <div class="seg-radio" style="margin-bottom:10px">${kindPill("equipment")}${kindPill("tool")}${kindPill("vehicle")}</div>
           <div class="form-grid">
@@ -428,8 +435,8 @@ export function viewAssetForm() {
             </label>
           </div>
         </fieldset>
-        ${veh ? vehicleFieldset(a) : ""}
-        <fieldset>
+        ${veh ? vehicleFieldset(a, hide) : ""}
+        <fieldset data-sec="years" ${hide("years")}>
           <legend><span class="veh-hide">${t("年份与保修")}</span><span class="veh-show">${t("年款与保修")}</span></legend>
           <div class="form-grid">
             <label><span class="veh-hide">${t("安装 / 购买日期")}</span><span class="veh-show">${t("购车日期")}</span>
@@ -448,7 +455,7 @@ export function viewAssetForm() {
             </label>
           </div>
         </fieldset>
-        <fieldset class="veh-hide">
+        <fieldset class="veh-hide" data-sec="life" ${hide("life")}>
           <legend>${t("寿命与保养周期")}</legend>
           <div class="form-grid">
             <label>${t("预期寿命（年）")}
@@ -460,7 +467,7 @@ export function viewAssetForm() {
             </label>
           </div>
         </fieldset>
-        <fieldset>
+        <fieldset data-sec="cost" ${hide("cost")}>
           <legend><span class="veh-hide">${t("费用与负责方")}</span><span class="veh-show">${t("购车价格")}</span></legend>
           <div class="form-grid">
             <label>${t("购买价格（{cur}）", { cur })}
@@ -474,7 +481,7 @@ export function viewAssetForm() {
             </label>
           </div>
         </fieldset>
-        <fieldset>
+        <fieldset data-sec="notes" ${hide("notes")}>
           <legend>${t("备注")}</legend>
           <label class="sr-only" for="assetNotes">${t("备注")}</label>
           <textarea id="assetNotes" name="notes" rows="3" maxlength="500" placeholder="${t("滤网尺寸、维修商电话、借给了谁…")}">${d(v.notes)}</textarea>
@@ -483,12 +490,55 @@ export function viewAssetForm() {
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">${a ? t("保存修改") : veh ? t("添加车辆") : t("添加设备")}</button>
           <button type="button" class="btn btn-ghost" data-action="asset-cancel">${t("取消")}</button>
-          ${a ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="asset-delete">${veh ? t("删除车辆") : t("删除设备")}</button>` : ""}
         </div>
       </form>
-      ${a && veh ? vehicleSchedule(a) : ""}
-      ${a ? maintSection(a, r.q.get("log") === "1") : `<p class="muted" style="margin-top:12px;font-size:13px">${veh ? t("保存后可以在这辆车下记录每次保养、维修，按项目算下次到期。") : t("保存后可以在这台设备下记录每次检查、保养和维修。")}</p>`}
+      ${a ? "" : `<p class="muted" style="margin-top:12px;font-size:13px">${veh ? t("保存后可以在这辆车下记录每次保养、维修，按项目算下次到期。") : t("保存后可以在这台设备下记录每次检查、保养和维修。")}</p>`}
     </section>`;
+}
+
+const ASSET_SECTIONS = [
+  { id: "basic", icon: "🏷️", name: "基本信息" },
+  { id: "plate", icon: "🪪", name: "车牌与里程", veh: true },
+  { id: "docs", icon: "📄", name: "证照与租赁", veh: true },
+  { id: "insurance", icon: "🛡️", name: "车险", veh: true },
+  { id: "years", icon: "📆", name: "年份与保修" },
+  { id: "life", icon: "⏳", name: "寿命与保养周期", eq: true },
+  { id: "cost", icon: "💵", name: "费用与负责方" },
+  { id: "notes", icon: "📝", name: "备注" },
+];
+/** 设备 / 车辆枢纽页：摘要 + 各块完成度 + 保养记录 / 时间表 / 检查卡入口 + 删除 */
+function assetHub(a, backLabel) {
+  const veh = isVehicle(a), v = a.vehicle || {}, ins = v.insurance || {};
+  const base = href("asset", a.id);
+  const pct = (n, m) => ({ pct: Math.round((n / m) * 100), badge: countBadge(n, m) });
+  const st = {
+    basic: () => { const n = 1 + filledCount([a.location, a.brand, a.model, a.serial]); return { text: [a.t ? t(a.t.name) : null, a.brand, a.model].filter(Boolean).join(" · "), ...pct(n, 5) }; },
+    plate: () => { const n = filledCount([v.plate, v.odometer, v.annual_miles]); return { text: [v.plate, a.nowMiles != null ? t("约 {n} {u}", { n: fmt(a.nowMiles), u: distUnit() }) : null].filter(Boolean).join(" · ") || t("未填"), ...pct(n, 3) }; },
+    docs: () => { const n = filledCount([v.registration_due, v.emissions_due]); return { text: [v.registration_due ? t("牌照 {d}", { d: fmtDate(v.registration_due) }) : null, v.emissions_due ? t("排放 {d}", { d: fmtDate(v.emissions_due) }) : null, v.lease_end ? t("租赁 {d}", { d: fmtDate(v.lease_end) }) : null].filter(Boolean).join(" · ") || t("未填"), ...pct(n, 2) }; },
+    insurance: () => { const n = filledCount([ins.provider, ins.policy, ins.to, ins.coverage, ins.agent, ins.phone]); return { text: ins.provider ? [ins.provider, ins.to ? t("到期 {d}", { d: fmtDate(ins.to) }) : null].filter(Boolean).join(" · ") : t("未填"), ...pct(n, 6) }; },
+    years: () => { const n = filledCount([a.installed_on, a.manufacture_year, a.warranty_until]); return { text: [a.installed_on ? fmtDate(a.installed_on) : null, a.warranty_until ? t("保修到 {d}", { d: fmtDate(a.warranty_until) }) : null].filter(Boolean).join(" · ") || t("未填"), ...pct(n, 3) }; },
+    life: () => { const n = filledCount([a.expected_life_years, a.service_interval_months]); return { text: [a.expected_life_years ? t("约 {n} 年", { n: fmt(a.expected_life_years) }) : null, a.service_interval_months ? t("每 {n} 个月保养", { n: a.service_interval_months }) : null].filter(Boolean).join(" · ") || t("未填"), ...pct(n, 2) }; },
+    cost: () => { const n = filledCount([a.purchase_price, veh ? null : a.owner]); return { text: [a.purchase_price != null ? money(num(a.purchase_price)) : null, !veh && a.owner ? t("负责：{who}", { who: t(H().OWNERS[a.owner]?.name || "") }) : null].filter(Boolean).join(" · ") || t("未填"), ...pct(n, veh ? 1 : 2) }; },
+    notes: () => ({ text: a.notes ? a.notes.slice(0, 60) : t("无"), pct: null, badge: "" }),
+  };
+  const rows = ASSET_SECTIONS.filter((s) => (veh ? !s.eq : !s.veh)).map((s) => { const x = st[s.id](); return hubRow({ href: `${base}?sec=${s.id}`, icon: s.icon, title: t(s.name), desc: esc(x.text), pct: x.pct, badge: x.badge }); });
+  const more = [
+    hubRow({ href: `${base}?log=1`, icon: "🛠️", title: t("保养记录"), desc: a.logs.length ? t("{n} 条，最近 {d}", { n: a.logs.length, d: fmtDate(a.logs[0].done_on) }) : t("还没有记录"), badge: a.followUp ? `<span class="badge b-out mcount">${t(C().RESULTS[a.followUp.result])}</span>` : a.service === "overdue" || a.service === "due" ? `<span class="badge b-soon mcount">${t(SERVICE_BADGE[a.service].label)}</span>` : "" }),
+    veh ? hubRow({ href: `${base}?sec=schedule`, icon: "📋", title: t("保养时间表"), desc: a.vSoonest ? t("下一项：{name} {d}", { name: t(a.vSoonest.name), d: fmtDate(a.vSoonest.next) }) : t("记一次保养后开始算") }) : "",
+    !veh && C().cardOf(a.type) ? hubRow({ href: `${base}?sec=care`, icon: "🔍", title: t("检查卡"), desc: t("怎么查、什么时候叫人") }) : "",
+  ].filter(Boolean);
+  return `<section class="section">
+    <div class="section-head">
+      <h2>${a.t?.icon || "⚙️"} ${esc(a.name)}</h2>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="asset-cancel">${t("返回{page}", { page: backLabel })}</button>
+    </div>
+    ${assetSummary(a)}
+    ${hubList(more)}
+    <div class="section-head" style="margin-top:18px"><h3 style="font-size:15px">${t("档案")}</h3></div>
+    ${hubList(rows)}
+    <div class="form-actions" style="margin-top:14px"><a class="btn btn-primary" href="${base}?log=1">${t("记保养")}</a>
+      <span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="asset-delete">${veh ? t("删除车辆") : t("删除设备")}</button></div>
+  </section>`;
 }
 
 function assetSummary(a) {

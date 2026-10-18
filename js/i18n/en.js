@@ -536,6 +536,10 @@ export const EN = {
   "家庭与成员": "Household and members", "语言、地区与单位": "Language, region and units", "模块开关": "Modules", "通知与备份": "Notifications and backup", "姐妹站点与介绍": "Sister sites and about",
   "{name} · {n} 位成员": "{name} · {n} members", "{n} 套": "{n} properties", "房屋 ✓": "Home ✓", "房屋 ✗": "Home ✗", "账单 ✓": "Bills ✓", "账单 ✗": "Bills ✗", "装备 ✓": "Gear ✓", "装备 ✗": "Gear ✗", "通知已开启": "Notifications on", "通知未开启": "Notifications off", "小月亮、家庭学堂；介绍与注意事项": "Little Moon, Homeschool; about and notes",
 
+  // ── 账单 / 设备枢纽页 ──
+  "{n} 条，最近 {d}": "{n} entries, last {d}", "下一项：{name} {d}": "Next: {name} {d}", "保修到 {d}": "warranty until {d}", "卡有效期 {d}": "card expires {d}", "已设置": "Set up", "必要支出": "essential", "非必要": "non-essential", "有备注": "has notes",
+  "未设置（手动缴费）": "Not set (manual payment)", "档案": "Record", "检查卡": "Inspection card", "每 {n} 个月保养": "service every {n} months", "约 {n} 年": "about {n} years", "牌照 {d}": "registration {d}", "排放 {d}": "emissions {d}", "租赁 {d}": "lease {d}", "记一次保养后开始算": "starts after the first service log", "记核对": "Log verification",
+
   // ── 内嵌表单未保存提示 ──
   "保存交易信息": "Save transaction details", "有未保存的修改": "Unsaved changes", "切换标签页或家人改动时不会丢，但要点保存才写入": "Kept when you switch tabs or family edits arrive, but only written when you tap Save",
 

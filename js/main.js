@@ -201,7 +201,8 @@ function onRoute() {
     if (pf) { pf.scrollIntoView({ block: "start" }); pf.elements.amount.focus({ preventScroll: true }); }
     else if (next.id === "new") $("#billForm")?.elements.name.focus({ preventScroll: true });
   }
-  if (leavingItem && state.needsRefresh) { state.needsRefresh = false; refresh(); }
+  // 表单页保存后回到枢纽（仍在同一 section）也要刷新，枢纽上的完成度才是新的
+  if (state.needsRefresh) { state.needsRefresh = false; refresh(); }
 }
 // 滚动位置由我们自己记忆和恢复，关闭浏览器的自动恢复以免互相干扰
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
