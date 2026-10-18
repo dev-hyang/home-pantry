@@ -360,7 +360,12 @@ textarea { resize: vertical; }
 .form-page legend ~ * { clear: both; }   /* legend 后面可能有隐藏的提示段落，所有后续兄弟都清除浮动 */
 .form-page fieldset + fieldset { border-top: 1px dashed var(--line); padding-top: 16px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.form-grid label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; align-content: start; }
+.form-grid label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; align-content: start; min-width: 0; }
+/* 日期 / 月份输入框在 iOS 上有固有最小宽度，会撑出边框：强制占满所在格、允许收缩 */
+input[type="date"], input[type="month"], input[type="datetime-local"], input[type="time"] { min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+.form-grid > label > input, .form-grid > label > select, .form-grid > label > textarea { min-width: 0; }
+.bill-row label input[type="date"] { width: auto; max-width: 160px; }
 .form-grid small { font-weight: 400; color: var(--muted); }
 .span-2 { grid-column: 1 / -1; }
 @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
@@ -499,6 +504,8 @@ button.mrow:last-child { border-bottom: 0; }
 .life { display: grid; gap: 4px; }
 .life small { color: var(--muted); font-size: 12px; }
 .life-bar { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.life-bar.big { height: 10px; margin-top: 10px; }
+.deal-progress .kv { margin-bottom: 0; }
 .life-bar i { display: block; height: 100%; background: var(--pine); }
 .life-bar.late i { background: var(--mustard); }
 .life-bar.over i { background: var(--out); }

@@ -529,6 +529,13 @@ export const EN = {
   "姐妹站点": "Sister sites", "同一作者的其他小工具；顶栏站名旁的「‹」「›」小胶囊也能切换": "Other tools by the same author; the ‹ › pills next to the site name switch too",
   "切换姐妹站点": "Switch sister site", "切到{name}": "Go to {name}", "小助手": "Helper", "学堂": "School", "当前": "current", "打开": "Open", "更多页面": "More pages",
 
+  // ── 交易枢纽页、设置目录 ──
+  "{kind}流程": "{kind} process", "交易信息": "Transaction details", "合同日、交割日、价格、律师、贷款行、经纪人等": "Contract date, closing date, price, attorney, lender, agent…", "先填合同日和交割日，清单截止日按它们推算": "Fill the contract and closing dates first; checklist deadlines follow them",
+  "全部完成": "All done", "下一项 {date}：{name}": "Next {date}: {name}", "{n} 项必须": "{n} must-do", "还有 {n} 项": "{n} left", "逾期 {n}": "{n} overdue", "交割 {d}": "Closing {d}", "还没填交割日": "No closing date yet",
+  "总进度 {p}%": "Overall {p}%", "必须项还剩 {n}": "{n} must-do left", "最近截止 {date}": "next deadline {date}", "交割后标为持有，记买入日期和价格": "After closing, mark as owned and record the date and price", "账单结束日期、取消自动扣款、归档房产": "End dates for bills, cancel autopay, archive the property",
+  "家庭与成员": "Household and members", "语言、地区与单位": "Language, region and units", "模块开关": "Modules", "通知与备份": "Notifications and backup", "姐妹站点与介绍": "Sister sites and about",
+  "{name} · {n} 位成员": "{name} · {n} members", "{n} 套": "{n} properties", "房屋 ✓": "Home ✓", "房屋 ✗": "Home ✗", "账单 ✓": "Bills ✓", "账单 ✗": "Bills ✗", "装备 ✓": "Gear ✓", "装备 ✗": "Gear ✗", "通知已开启": "Notifications on", "通知未开启": "Notifications off", "小月亮、家庭学堂；介绍与注意事项": "Little Moon, Homeschool; about and notes",
+
   // ── 内嵌表单未保存提示 ──
   "保存交易信息": "Save transaction details", "有未保存的修改": "Unsaved changes", "切换标签页或家人改动时不会丢，但要点保存才写入": "Kept when you switch tabs or family edits arrive, but only written when you tap Save",
 

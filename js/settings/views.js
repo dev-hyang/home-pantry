@@ -70,13 +70,39 @@ function sisterAppsPanel() {
   </div>`;
 }
 
-/* ── 设置 ── */
+/* ── 设置：目录页（每块一行，带当前状态）→ 点进去只看那一块 ── */
+const SETTING_SECTIONS = [
+  { id: "family", icon: "👨‍👩‍👧", name: "家庭与成员" },
+  { id: "properties", icon: "🏠", name: "房产" },
+  { id: "prefs", icon: "🌐", name: "语言、地区与单位" },
+  { id: "modules", icon: "🧩", name: "模块开关" },
+  { id: "data", icon: "💾", name: "通知与备份" },
+  { id: "apps", icon: "🔗", name: "姐妹站点与介绍" },
+];
 export function viewSettings() {
   const cloud = Store.mode === "cloud";
   const notif = "Notification" in window ? Notification.permission : "unsupported";
+  const sec = state.route?.q?.get("sec");
+  const meta = SETTING_SECTIONS.find((s) => s.id === sec);
+  if (!meta) {
+    const status = {
+      family: cloud ? t("{name} · {n} 位成员", { name: state.household?.name || "", n: state.members.length }) : t("本地演示：数据只保存在这个浏览器里"),
+      properties: t("{n} 套", { n: state.properties.filter((p) => !p.archived).length }),
+      prefs: `${LANGS[langOverride() || detectLang()]} · ${t(Units.region.name)} · ${Units.region.currency}`,
+      modules: [state.houseEnabled ? t("房屋 ✓") : t("房屋 ✗"), state.billsEnabled ? t("账单 ✓") : t("账单 ✗"), state.gearEnabled ? t("装备 ✓") : t("装备 ✗")].join(" · "),
+      data: `${notif === "granted" ? t("通知已开启") : t("通知未开启")} · ${t("导出 JSON")}`,
+      apps: t("小月亮、家庭学堂；介绍与注意事项"),
+    };
+    return `<section class="section menu-page"><div class="section-head"><h2>${t("设置")}</h2>
+        <div class="head-acts"><span id="syncBadge" class="sync ${syncState.err ? "err" : ""}" role="status">${esc(syncState.text)}</span>${cloud ? `<button type="button" class="btn btn-sm" data-action="reload">${t("立即同步")}</button>` : ""}</div></div>
+      <div class="panel mlist">${SETTING_SECTIONS.map((s) => `<a class="mrow" href="${href("me", "settings")}?sec=${s.id}"><span class="mi" aria-hidden="true">${s.icon}</span><span class="mt"><b>${t(s.name)}</b><small>${esc(status[s.id])}</small></span><span class="mch" aria-hidden="true">›</span></a>`).join("")}</div>
+      <div class="form-actions" style="margin-top:14px">${cloud ? `<button type="button" class="btn btn-danger-ghost" data-action="logout">${t("退出登录")}</button>` : `<button type="button" class="btn btn-danger-ghost" data-action="reset-demo">${t("恢复演示数据")}</button>`}</div>
+    </section>`;
+  }
   const sw = (id, on, title, desc) => `<div class="panel"><div class="kv"><div><b>${title}</b><div class="muted">${desc}</div></div>
       <label class="switch"><input type="checkbox" id="${id}" ${on ? "checked" : ""}><span>${on ? t("已打开") : t("已关闭")}</span></label></div></div>`;
-  return `<section class="section"><div class="section-head"><h2>${t("设置")}</h2></div><div class="settings">
+  const blocks = {
+    family: () => `
     <div class="panel">
       <div class="kv"><div><b>${esc(state.household?.name || "")}</b><div class="muted">${cloud ? t("云端协同：家人修改会实时同步") : t("本地演示：数据只保存在这个浏览器里")}</div></div>
         <div class="head-acts"><span id="syncBadge" class="sync ${syncState.err ? "err" : ""}" role="status">${esc(syncState.text)}</span>
@@ -101,7 +127,8 @@ export function viewSettings() {
       <b>${t("为什么还是本地演示模式")}</b>
       <p>${esc(t(state.configIssue || "没有检测到 Supabase 配置。"))}</p>
       <p class="muted" style="margin:0">${t("自查：在浏览器打开 {link}，确认看到的是你填好的地址和 key；改完后等 1–2 分钟，再按 Ctrl+F5（Mac：Cmd+Shift+R）强制刷新。", { link: `<a href="config.js" target="_blank" rel="noopener">${t("本站的 config.js")}</a>` })}</p>
-    </div>`}
+    </div>`}`,
+    prefs: () => `
     <div class="panel">
       <label class="field-label" for="langSel">${t("语言")}</label>
       <select id="langSel">
@@ -118,19 +145,25 @@ export function viewSettings() {
       </select>
       <p class="muted" style="margin:8px 0 0;font-size:13px">${t("当前：{units}，货币 {cur}。", { units: Units.region.system === "us" ? t("美制单位 lb、oz、fl oz、qt、gal") : t("公制单位 kg、g、斤、L、mL"), cur: Units.region.currency })}
         ${t("已有物品按原单位保存，显示时自动换算；按“个、盒、袋”计数的物品不换算。")}</p>
-    </div>
-    ${propertiesPanel()}
+    </div>`,
+    properties: () => propertiesPanel(),
+    modules: () => `
     ${sw("houseToggle", state.houseEnabled, t("房屋维护模块"), t("关闭后导航和首页只显示厨房储藏，适合租房或不需要的家庭；数据不会删除"))}
     ${sw("billsToggle", state.billsEnabled, t("账单模块"), t("水电气、网络、HOA、房产税、房贷、保险等周期账单的提醒与记录；关闭后导航里不再显示，数据不会删除"))}
-    ${sw("gearToggle", state.gearEnabled, t("装备模块"), t("床品、电器、自行车、工具等耐用品，只记数量和位置；关闭后储藏里不再显示“装备”，数据不会删除"))}
+    ${sw("gearToggle", state.gearEnabled, t("装备模块"), t("床品、电器、自行车、工具等耐用品，只记数量和位置；关闭后储藏里不再显示“装备”，数据不会删除"))}`,
+    data: () => `
     <div class="panel"><div class="kv"><div><b>${t("浏览器通知")}</b><div class="muted">${t("打开网页时，若有新的缺货或少货会弹出提醒")}</div></div>
       ${notif === "granted" ? `<span class="badge b-ok">${t("已开启")}</span>` : notif === "unsupported" ? `<span class="muted">${t("此浏览器不支持")}</span>` : `<button type="button" class="btn btn-sm" data-action="notif">${t("开启通知")}</button>`}</div></div>
     <div class="panel"><div class="kv"><div><b>${t("导出数据")}</b><div class="muted">${t("下载库存和采购清单的 JSON 备份")}</div></div>
-      <button type="button" class="btn btn-sm" data-action="export">${t("导出 JSON")}</button></div></div>
+      <button type="button" class="btn btn-sm" data-action="export">${t("导出 JSON")}</button></div></div>`,
+    apps: () => `
     ${sisterAppsPanel()}
     <div class="panel"><div class="kv"><div><b>${t("介绍与注意事项")}</b><div class="muted">${t("这个网站是什么、第一次怎么用、提醒怎么分级、哪些事要注意")}</div></div>
-      <a class="btn btn-sm" href="${href("me", "about")}">${t("查看介绍")}</a></div></div>
-    ${cloud ? `<button type="button" class="btn btn-danger-ghost" data-action="logout">${t("退出登录")}</button>`
-            : `<button type="button" class="btn btn-danger-ghost" data-action="reset-demo">${t("恢复演示数据")}</button>`}
-  </div></section>`;
+      <a class="btn btn-sm" href="${href("me", "about")}">${t("查看介绍")}</a></div></div>`,
+  };
+  return `<section class="section">
+    <nav class="crumb" aria-label="${t("位置")}"><a href="${href("me", "settings")}">‹ ${t("设置")}</a><span class="sep">/</span><b>${t(meta.name)}</b></nav>
+    <div class="section-head"><h2>${meta.icon} ${t(meta.name)}</h2></div>
+    <div class="settings">${blocks[meta.id]()}</div>
+  </section>`;
 }

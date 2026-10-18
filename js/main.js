@@ -461,9 +461,9 @@ main.addEventListener("click", async (e) => {
         const d = openDeal();
         if (!d) return;
         if (d.kind === "buy") { if (!armed(el, t("再点一次确认已交割"))) return; await completeBuy(); return refresh(); }
-        state.closeout = true; return render();
+        state.closeout = true; return go(`${href("house", "deal")}?sec=closeout`);
       }
-      case "deal-closeout-cancel": state.closeout = null; return render();
+      case "deal-closeout-cancel": state.closeout = null; return go(href("house", "deal"));
       case "property-default": await Store.setDefaultProperty(id); toast(t("已设为默认房产")); return refresh();
       case "property-archive": {
         const p = state.properties.find((x) => x.id === id);
