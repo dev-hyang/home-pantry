@@ -196,6 +196,26 @@ textarea { resize: vertical; }
 .toolbar input[type="search"] { flex: 1 1 220px; }
 .toolbar select { flex: 0 0 auto; width: auto; }
 .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 14px; }
+/* 手机库存仪表盘：一分类一方块；状态标：红圈 ! 缺货、黄三角 ! 少货 / 临期、绿圈 ✓ 充足 */
+.cat-dash { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tile { position: relative; display: grid; gap: 4px; text-align: left; padding: 12px 12px 10px; border-radius: var(--r-md); border: 1px solid var(--line); border-left: 5px solid var(--cat); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; min-height: 96px; }
+.tile:disabled { cursor: default; opacity: 1; }
+.tile.is-empty { opacity: .6; }
+.tile-head { display: flex; justify-content: space-between; align-items: center; }
+.tile-ico { font-size: 26px; line-height: 1; }
+.tile-name { font-size: 15px; font-weight: 800; line-height: 1.3; }
+.tile-n { font-weight: 600; color: var(--muted); font-size: 13px; }
+.tile-sub { color: var(--muted); font-size: 12px; }
+.tile.st-out .tile-sub { color: var(--out); font-weight: 600; }
+.tile.st-warn .tile-sub { color: var(--low); font-weight: 600; }
+.tile-sort { display: flex; gap: 4px; justify-content: flex-end; margin-top: 2px; }
+.tile-sort .btn { min-height: 28px; padding: 0 10px; }
+.dash-foot { font-size: 13px; margin: 10px 0 0; }
+.st { display: inline-grid; place-items: center; width: 22px; height: 22px; font-size: 13px; font-weight: 900; line-height: 1; color: #fff; }
+.st-out { border-radius: 50%; background: var(--out); }
+.st-warn { background: #e0a100; clip-path: polygon(50% 0, 100% 100%, 0 100%); width: 24px; height: 22px; padding-top: 6px; color: #231a00; }
+.st-ok { border-radius: 50%; background: #2e9e5b; }
+.st-none { border-radius: 50%; background: var(--surface-2); color: var(--muted); }
 .chip {
   border: 1px solid var(--line); background: var(--surface); padding: 5px 12px; border-radius: 99px;
   cursor: pointer; white-space: nowrap; font-size: 14px;

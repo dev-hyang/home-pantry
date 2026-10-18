@@ -21,7 +21,7 @@ import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, openDeal, saveDealForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
 import { billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsOverview } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
-import { renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
+import { moveCat, renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { viewAbout } from "./settings/about.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
@@ -484,7 +484,9 @@ main.addEventListener("click", async (e) => {
       case "tpl-all": e.preventDefault(); el.form.querySelectorAll('input[name="tpl"]:not(:disabled)').forEach((x) => { x.checked = el.dataset.on === "1"; }); return;
       case "consume": el.disabled = true; await Store.adjust(id, -storedStep(state.items.find((x) => x.id === id)?.unit), "consume"); return refresh();
       case "restock": el.disabled = true; await Store.adjust(id, storedStep(state.items.find((x) => x.id === id)?.unit), "restock"); return refresh();
-      case "cat": state.filter.cat = el.dataset.cat; return render();
+      case "cat": state.filter.cat = el.dataset.cat; state.catSort = false; return render();
+      case "cat-sort": state.catSort = !state.catSort; return render();   // 手机仪表盘：调整方块顺序
+      case "cat-move": moveCat(state.filter.space, el.dataset.cat, +el.dataset.dir); return render();
       case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "" }); return go(toList(el.dataset.space));
       case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); return go(toList(el.dataset.space));
       case "shop-add-item": return addAlertsToShopping([state.enriched.find((x) => x.id === id)]);
@@ -761,6 +763,8 @@ export async function boot() {
   applyChrome();
   fillUnitList();
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.enriched) refreshSoon(); });
+  // 跨过手机 / 宽屏分界（旋转 iPad、拖窗口）：库存页在方块仪表盘和分类导航之间切换
+  window.matchMedia("(max-width: 640px)").addEventListener("change", () => { const r = state.route; if (state.enriched && ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies"))) render(true); });
 
   const cfg = checkConfig();
   state.configIssue = cfg.issue || null;

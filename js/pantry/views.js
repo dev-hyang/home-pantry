@@ -86,20 +86,70 @@ export function viewDashboard() {
     </section>`;
 }
 
-/* ── 库存 ── */
+/* ── 库存 ──
+ * 宽屏（电脑 / iPad）：分类芯片导航 + 全部分组列表。
+ * 手机：先看分类方块仪表盘（图标、件数、状态标：红圈 ! 缺货、黄三角 ! 少货或临期、绿圈 ✓ 充足），点一块进该分类；方块顺序可自己调，保存在本机。 */
+export const isPhone = () => window.matchMedia("(max-width: 640px)").matches;
+const ORDER_KEY = (space) => `hmh-cat-order:${space}`;
+function loadOrder(space) { try { return JSON.parse(localStorage.getItem(ORDER_KEY(space)) || "[]"); } catch { return []; } }
+/** 该空间的分类，按用户自定义顺序（没调过的按默认顺序排在后面） */
+export function orderedCats(space) {
+  const order = loadOrder(space), cats = catsOf(space);
+  const idx = (c) => { const i = order.indexOf(c.id); return i < 0 ? 1000 + cats.indexOf(c) : i; };
+  return [...cats].sort((a, b) => idx(a) - idx(b));
+}
+/** 把某个分类往前 / 往后挪一位 */
+export function moveCat(space, id, dir) {
+  const ids = orderedCats(space).map((c) => c.id), i = ids.indexOf(id), j = i + dir;
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  try { localStorage.setItem(ORDER_KEY(space), JSON.stringify(ids)); } catch { /* 忽略 */ }
+}
+/** 分类状态：out 有缺货 > warn 有少货 / 即将告罄 / 临期 > ok 都充足 > none 没东西 */
+export function catStatus(items) {
+  const out = items.filter((x) => x.status === "out").length;
+  const warn = items.filter((x) => x.status === "low" || x.status === "soon" || x.exp).length;
+  return { out, warn, kind: !items.length ? "none" : out ? "out" : warn ? "warn" : "ok" };
+}
+const stIcon = (kind) => ({ out: `<span class="st st-out" title="${t("有缺货")}" aria-label="${t("有缺货")}">!</span>`, warn: `<span class="st st-warn" title="${t("有少货或临期")}" aria-label="${t("有少货或临期")}">!</span>`, ok: `<span class="st st-ok" title="${t("都充足")}" aria-label="${t("都充足")}">✓</span>`, none: `<span class="st st-none" aria-hidden="true">–</span>` }[kind]);
+
+/** 手机上的分类方块仪表盘 */
+function catDashboard(space, mine) {
+  const sorting = !!state.catSort, cats = orderedCats(space), gear = space === "gear";
+  const tiles = cats.map((c, i) => {
+    const items = mine.filter((x) => x.category === c.id), s = gear ? { kind: items.length ? "ok" : "none", out: 0, warn: 0 } : catStatus(items);
+    const sub = gear ? (items.length ? t("{n} 件", { n: items.reduce((a, x) => a + num(x.qty), 0) }) : t("还没有"))
+      : !items.length ? t("还没有") : s.kind === "ok" ? t("都充足") : [s.out ? t("{n} 缺货", { n: s.out }) : null, s.warn ? t("{n} 少货 / 临期", { n: s.warn }) : null].filter(Boolean).join(" · ");
+    const arrows = sorting ? `<span class="tile-sort"><button type="button" class="btn btn-sm btn-ghost" data-action="cat-move" data-cat="${c.id}" data-dir="-1" ${i === 0 ? "disabled" : ""} aria-label="${t("往前")}">◀</button><button type="button" class="btn btn-sm btn-ghost" data-action="cat-move" data-cat="${c.id}" data-dir="1" ${i === cats.length - 1 ? "disabled" : ""} aria-label="${t("往后")}">▶</button></span>` : "";
+    // 排序模式下方块里有 ◀ ▶ 按钮，按钮不能嵌套按钮，所以这时方块用 div
+    const body = `<span class="tile-head"><span class="tile-ico" aria-hidden="true">${c.icon}</span>${gear ? "" : stIcon(s.kind)}</span>
+      <b class="tile-name">${esc(t(c.name))}<span class="tile-n">（${items.length}）</span></b>
+      <small class="tile-sub">${sub}</small>${arrows}`;
+    const cls = `tile st-${s.kind} ${items.length ? "" : "is-empty"}`;
+    return sorting ? `<div class="${cls} is-sorting" style="--cat:${c.color}">${body}</div>`
+      : `<button type="button" class="${cls}" data-action="cat" data-cat="${c.id}" style="--cat:${c.color}">${body}</button>`;
+  }).join("");
+  return `<div class="cat-dash" id="catDash">${tiles}</div>
+    <p class="muted dash-foot"><button type="button" class="link-name" data-action="cat-sort">${sorting ? t("完成排序") : t("调整方块顺序")}</button> · ${t("点方块进入分类，搜索框可直接找物品")}</p>`;
+}
+
 export function viewInventory(space = "pantry") {
   if (state.filter.space !== space) Object.assign(state.filter, { space, cat: "all", q: "", status: state.filter.status });
   const f = state.filter;
   const house = space === "house", gear = space === "gear";
   if (gear) f.status = "all";   // 装备没有库存状态
+  const phone = isPhone(), dash = phone && f.cat === "all";
   const chip = (id, label) => `<button type="button" class="chip" data-action="cat" data-cat="${id}" aria-pressed="${f.cat === id}">${label}</button>`;
-  const shelf = gear ? shelfGrid("gear") : "";
+  const shelf = gear && !phone ? shelfGrid("gear") : "";
+  const mine = state.enriched.filter(inSpace(space));
+  const cur = f.cat !== "all" ? catOf(f.cat) : null;
   return `
     <section class="section">
-      <div class="section-head"><h2>${gear ? t("装备") : house ? t("房屋耗材") : t("库存清单")}</h2>
-        <div class="head-acts">${house ? `<a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>` : ""}
-        <a class="btn btn-primary" href="${href("item", "new")}?space=${space}">${gear ? t("添加装备") : t("添加物品")}</a></div></div>
-      ${gear ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">${t("床品、电器、自行车、千斤顶、工具这类耐用品：只记有几件、放在哪，不算消耗、不提醒补货。")}</p>` : ""}
+      ${phone && cur ? `<nav class="crumb" aria-label="${t("位置")}"><button type="button" class="link-name" data-action="cat" data-cat="all">‹ ${t("全部分类")}</button><span class="sep">/</span><b>${cur.icon} ${esc(t(cur.name))}</b></nav>` : ""}
+      <div class="section-head"><h2>${phone && cur ? `${esc(t(cur.name))}<span class="muted">（${mine.filter((x) => x.category === cur.id).length}）</span>` : gear ? t("装备") : house ? t("房屋耗材") : t("库存清单")}</h2>
+        <div class="head-acts">${house && !phone ? `<a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>` : ""}
+        <a class="btn btn-primary ${phone ? "btn-sm" : ""}" href="${href("item", "new")}?space=${space}${cur ? `&cat=${cur.id}` : ""}">${gear ? t("添加装备") : t("添加物品")}</a></div></div>
+      ${gear && !phone ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">${t("床品、电器、自行车、千斤顶、工具这类耐用品：只记有几件、放在哪，不算消耗、不提醒补货。")}</p>` : ""}
       ${shelf ? `<div class="shelf" style="margin-bottom:14px">${shelf}</div>` : ""}
       <div class="toolbar">
         <input type="search" id="invSearch" placeholder="${gear ? t("搜索，例如：被罩、千斤顶、自行车") : house ? t("搜索，例如：滤网、电池") : t("搜索物品，例如：纸、蛋")}" value="${esc(f.q)}" aria-label="${t("搜索物品")}">
@@ -108,10 +158,11 @@ export function viewInventory(space = "pantry") {
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
         </select>`}
       </div>
-      <div class="chips" role="group" aria-label="${t("按分类筛选")}">
-        ${chip("all", t("全部"))}${catsOf(space).map((c) => chip(c.id, `${c.icon} ${t(c.name)}`)).join("")}
-      </div>
-      <div id="invList"></div>
+      ${phone ? "" : `<div class="chips" role="group" aria-label="${t("按分类筛选")}">
+        ${chip("all", t("全部"))}${orderedCats(space).map((c) => chip(c.id, `${c.icon} ${t(c.name)}`)).join("")}
+      </div>`}
+      ${dash ? catDashboard(space, mine) : ""}
+      <div id="invList" ${dash && !f.q.trim() ? "hidden" : ""}></div>
     </section>`;
 }
 
@@ -128,6 +179,9 @@ export function renderInvList() {
   });
   const host = $("#invList");
   if (!host) return;
+  // 手机仪表盘：没搜索时只显示方块；一输入关键词就切成列表
+  const dash = $("#catDash"), foot = $(".dash-foot");
+  if (dash) { const show = !!q; dash.hidden = show; if (foot) foot.hidden = show; host.hidden = !show; if (!show) return; }
   if (!list.length) {
     host.innerHTML = mine.length
       ? `<div class="panel empty"><strong>${t("没有符合条件的物品")}</strong>${t("换个关键词或分类试试。")}</div>`
@@ -138,7 +192,7 @@ export function renderInvList() {
           : `<div class="panel empty"><strong>${t("库存还是空的")}</strong>${t("从最常用的几样开始，例如鸡蛋、大米、抽纸。")}</div>`;
     return;
   }
-  host.innerHTML = catsOf(f.space).map((c) => {
+  host.innerHTML = orderedCats(f.space).map((c) => {
     const inCat = list.filter((x) => x.category === c.id)
       .sort((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || compare(a.name, b.name));
     if (!inCat.length) return "";

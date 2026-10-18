@@ -536,6 +536,10 @@ export const EN = {
   "家庭与成员": "Household and members", "语言、地区与单位": "Language, region and units", "模块开关": "Modules", "通知与备份": "Notifications and backup", "姐妹站点与介绍": "Sister sites and about",
   "{name} · {n} 位成员": "{name} · {n} members", "{n} 套": "{n} properties", "房屋 ✓": "Home ✓", "房屋 ✗": "Home ✗", "账单 ✓": "Bills ✓", "账单 ✗": "Bills ✗", "装备 ✓": "Gear ✓", "装备 ✗": "Gear ✗", "通知已开启": "Notifications on", "通知未开启": "Notifications off", "小月亮、家庭学堂；介绍与注意事项": "Little Moon, Homeschool; about and notes",
 
+  // ── 手机库存仪表盘 ──
+  "{n} 件": "{n} pcs", "{n} 缺货": "{n} out", "{n} 少货 / 临期": "{n} low / expiring", "全部分类": "All categories", "完成排序": "Done sorting", "调整方块顺序": "Rearrange tiles", "点方块进入分类，搜索框可直接找物品": "Tap a tile to open the category; the search box finds items directly",
+  "还没有": "Nothing yet", "都充足": "All stocked", "有缺货": "Out of stock", "有少货或临期": "Low or expiring", "往前": "Move earlier", "往后": "Move later",
+
   // ── 账单 / 设备枢纽页 ──
   "{n} 条，最近 {d}": "{n} entries, last {d}", "下一项：{name} {d}": "Next: {name} {d}", "保修到 {d}": "warranty until {d}", "卡有效期 {d}": "card expires {d}", "已设置": "Set up", "必要支出": "essential", "非必要": "non-essential", "有备注": "has notes",
   "未设置（手动缴费）": "Not set (manual payment)", "档案": "Record", "检查卡": "Inspection card", "每 {n} 个月保养": "service every {n} months", "约 {n} 年": "about {n} years", "牌照 {d}": "registration {d}", "排放 {d}": "emissions {d}", "租赁 {d}": "lease {d}", "记一次保养后开始算": "starts after the first service log", "记核对": "Log verification",
