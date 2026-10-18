@@ -106,6 +106,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 body.gate .tabs { display: none; }
 
 main { padding-top: 22px; padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); outline: none; }
+/* 切换页面时脚本会把焦点放到 main（给读屏用）；:focus-visible 的全局蓝框优先级高于上面的 outline:none，必须单独关掉，否则整页套一圈蓝框 */
+main:focus, main:focus-visible, #main:focus-visible { outline: none !important; }
 .topbar-inner { padding-bottom: 12px; }
 
 @media (max-width: 640px) {
