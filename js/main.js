@@ -25,6 +25,9 @@ import { moveCat, renderInvList, scoreRecipes, viewDashboard, viewInventory, vie
 import { viewSettings } from "./settings/views.js";
 import { viewAbout } from "./settings/about.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
+import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
+import { aiReady, testModel } from "./core/ai.js";
+import { saveAiForm } from "./settings/views.js";
 import { cleanStore, download, exportAnnual, rememberStore, viewStats } from "./stats/views.js";
 
 const APP_NAME = "爱家小助手";
@@ -289,6 +292,8 @@ main.addEventListener("submit", async (e) => {
   const f = e.target;
   try {
     if (f.id === "itemForm") return saveItemForm(f);
+    if (f.id === "aiForm") { render(); await runAi(f); return render(); }   // 先画“生成中”，再画结果
+    if (f.id === "aiSettingsForm") { await saveAiForm(f); toast(t("AI 设置已保存（只存在本机）")); return render(); }
     if (f.id === "assetForm") return saveAssetForm(f);
     if (f.id === "maintForm") {
       const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
@@ -502,7 +507,19 @@ main.addEventListener("click", async (e) => {
       case "shop-del": await Store.deleteShopping(id); return refresh();
       case "shop-clear": await Store.clearBought(); return refresh();
       case "diet": state.diet = el.dataset.diet; state.mealShift = 0; localStorage.setItem("hmh-diet", state.diet); return render();
-      case "shuffle": state.mealShift++; return render();
+      case "shuffle": state.mealShift++; state.slotShift = {}; return render();
+      case "slot-swap": { const sl = state.slotShift || (state.slotShift = {}); sl[el.dataset.slot] = (sl[el.dataset.slot] || 0) + 1; return render(); }
+      case "ai-ask": { state.ai = state.ai || { ask: "", busy: false, result: null, error: null, raw: null }; state.ai.ask = el.dataset.ask; render(); const fm = $("#aiForm"); if (fm) { if (aiReady()) fm.requestSubmit(); else fm.elements.ask.focus(); } return; }
+      case "ai-copy": return copyPrompt($("#aiForm"));
+      case "ai-again": { const fm = $("#aiForm"); return fm ? fm.requestSubmit() : null; }
+      case "ai-add-missing": await addAiMissing(); return refresh();
+      case "ai-test": {
+        el.disabled = true; const out = $("#aiTestOut");
+        try { await saveAiForm($("#aiSettingsForm")); await testModel(); out.textContent = t("连接成功 ✓"); out.className = "muted ok-text"; }
+        catch (err) { out.textContent = t("失败：{msg}", { msg: err.message }); out.className = "form-error"; }
+        finally { el.disabled = false; }
+        return;
+      }
       case "stats-months": state.stats.months = +el.dataset.months; return render();
       case "stats-cat": state.stats.cat = el.dataset.cat; return render();
       case "purchase-del": if (!armed(el, t("确认删除"))) return; await Store.deletePurchase(id); toast(t("已删除这笔记录")); return refresh();

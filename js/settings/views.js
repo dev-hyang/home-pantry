@@ -4,6 +4,7 @@ import { $, esc, fmtShort, syncState } from "../core/util.js";
 import { LANGS, detectLang, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
+import { PROVIDERS, aiReady, aiSettings, providerOf, saveAiSettings } from "../core/ai.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
 export const isOwner = () => state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
@@ -77,8 +78,33 @@ const SETTING_SECTIONS = [
   { id: "prefs", icon: "🌐", name: "语言、地区与单位" },
   { id: "modules", icon: "🧩", name: "模块开关" },
   { id: "data", icon: "💾", name: "通知与备份" },
+  { id: "ai", icon: "🤖", name: "AI 助手" },
   { id: "apps", icon: "🔗", name: "姐妹站点与介绍" },
 ];
+/** AI 设置：模型、key（只存本机）、人数；提交与“测试连接”共用 */
+export async function saveAiForm(f) {
+  const fe = f.elements, s = aiSettings();
+  Object.assign(s, { provider: fe.provider.value, key: fe.key.value.trim(), model: fe.model.value.trim(), base: fe.base.value.trim(), people: +fe.people.value || 4 });
+  saveAiSettings(s);
+}
+function aiBlock() {
+  const s = aiSettings(), p = providerOf(s.provider);
+  const COST = { free: t("免费额度"), cheapest: t("最便宜"), cheap: t("便宜"), mid: t("中等") };
+  return `<form id="aiSettingsForm" class="panel">
+    <p class="muted" style="margin:0 0 10px;font-size:13px">${t("key 只保存在这台设备的浏览器里，不进仓库也不进数据库；浏览器直连模型，家人各自填自己的。没填 key 时菜单助手会改成“复制提示词”模式，照样能用。")}</p>
+    <div class="form-grid">
+      <label>${t("模型服务")}<select name="provider">${PROVIDERS.map((x) => `<option value="${x.id}" ${x.id === s.provider ? "selected" : ""}>${esc(t(x.name))}${COST[x.cost] ? ` · ${COST[x.cost]}` : ""}</option>`).join("")}</select>
+        <small>${esc(t(p.hint || ""))}${p.signup ? ` <a href="${p.signup}" target="_blank" rel="noopener noreferrer">${t("去申请 key")}</a>` : ""}</small></label>
+      <label>${t("API key")}<input name="key" type="password" autocomplete="off" maxlength="300" value="${esc(s.key)}" placeholder="sk-…"></label>
+      <label>${t("模型名（留空用默认）")}<input name="model" maxlength="80" placeholder="${esc(p.model)}" value="${esc(s.model)}"></label>
+      <label>${t("接口地址（自定义时填）")}<input name="base" maxlength="200" placeholder="${esc(p.base || "https://…/v1")}" value="${esc(s.base)}"></label>
+      <label>${t("家庭人数（菜单份量）")}<input name="people" type="number" inputmode="numeric" min="1" max="20" value="${s.people || 4}"></label>
+    </div>
+    <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${t("保存")}</button>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="ai-test">${t("测试连接")}</button><span id="aiTestOut" class="muted"></span></div>
+    <p class="hint">${t("性价比：DeepSeek、通义千问 qwen-turbo、豆包 lite 一次菜单约几分钱；Gemini Flash 有免费额度。只用于生成菜单，不会上传备注等个人信息。")}</p>
+  </form>`;
+}
 export function viewSettings() {
   const cloud = Store.mode === "cloud";
   const notif = "Notification" in window ? Notification.permission : "unsupported";
@@ -91,6 +117,7 @@ export function viewSettings() {
       prefs: `${LANGS[langOverride() || detectLang()]} · ${t(Units.region.name)} · ${Units.region.currency}`,
       modules: [state.houseEnabled ? t("房屋 ✓") : t("房屋 ✗"), state.billsEnabled ? t("账单 ✓") : t("账单 ✗"), state.gearEnabled ? t("装备 ✓") : t("装备 ✗")].join(" · "),
       data: `${notif === "granted" ? t("通知已开启") : t("通知未开启")} · ${t("导出 JSON")}`,
+      ai: aiReady() ? t("{p} · 已填 key", { p: t(providerOf(aiSettings().provider).name) }) : t("未填 key，用“复制提示词”模式"),
       apps: t("小月亮、家庭学堂；介绍与注意事项"),
     };
     return `<section class="section menu-page"><div class="section-head"><h2>${t("设置")}</h2>
@@ -156,6 +183,7 @@ export function viewSettings() {
       ${notif === "granted" ? `<span class="badge b-ok">${t("已开启")}</span>` : notif === "unsupported" ? `<span class="muted">${t("此浏览器不支持")}</span>` : `<button type="button" class="btn btn-sm" data-action="notif">${t("开启通知")}</button>`}</div></div>
     <div class="panel"><div class="kv"><div><b>${t("导出数据")}</b><div class="muted">${t("下载库存和采购清单的 JSON 备份")}</div></div>
       <button type="button" class="btn btn-sm" data-action="export">${t("导出 JSON")}</button></div></div>`,
+    ai: () => aiBlock(),
     apps: () => `
     ${sisterAppsPanel()}
     <div class="panel"><div class="kv"><div><b>${t("介绍与注意事项")}</b><div class="muted">${t("这个网站是什么、第一次怎么用、提醒怎么分级、哪些事要注意")}</div></div>

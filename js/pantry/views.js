@@ -1,5 +1,6 @@
 import { alertsOf, hasStock, memberName, openShopFor } from "../core/logic.js";
 import { STATUS, state } from "../core/state.js";
+import { aiPanel } from "./ai.js";
 import { Store } from "../core/store.js";
 import { $, catOf, catsOf, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText } from "../core/util.js";
 import { href } from "../core/router.js";
@@ -340,9 +341,13 @@ export function viewMeals() {
     }
     return out;
   };
+  // 每餐可以单独“换一道”：state.slotShift[meal] 让那一餐从菜谱池里往后取
+  const shifts = state.slotShift || (state.slotShift = {});
   const plan = MEAL_SLOTS.map((s) => {
-    const dishes = pick(s.meal, s.count);
-    return `<div class="slot"><h3>${t(s.name)}</h3>${dishes.length ? dishes.map((r) => `<div class="dish">${esc(t(r.name))}${r.usesExpiring ? ` <span class="badge b-exp">${t("用临期")}</span>` : ""}
+    const base = state.mealShift + (shifts[s.id] || 0);
+    const pool = scored.filter((r) => r.meal === s.meal && r.have > 0 && !used.has(r.name));
+    const dishes = []; for (let i = 0; i < Math.min(s.count, pool.length); i++) { const r = pool[(base + i) % pool.length]; if (!dishes.includes(r)) { dishes.push(r); used.add(r.name); } }
+    return `<div class="slot"><h3>${t(s.name)}${dishes.length ? `<button type="button" class="link-name slot-swap" data-action="slot-swap" data-slot="${s.id}">${t("换一道")}</button>` : ""}</h3>${dishes.length ? dishes.map((r) => `<div class="dish">${esc(t(r.name))}${r.usesExpiring ? ` <span class="badge b-exp">${t("用临期")}</span>` : ""}
       <small>${r.full ? t("食材齐全") : t("还缺：{list}", { list: joinList(r.parts.filter((p) => !p.item).map((p) => esc(t(p.kw[0])))) })}</small></div>`).join("")
       : `<p class="muted">${t("库存里暂时凑不出，看看下面的菜谱缺什么。")}</p>`}</div>`;
   }).join("");
@@ -360,7 +365,10 @@ export function viewMeals() {
     </article>`;
   }).join("");
 
+  // 顶部 AI 对话框；从首页带 ?ai=需求 进来时预填
+  const qAsk = state.route?.q?.get("ai"); if (qAsk != null) { state.ai = state.ai || { ask: "", busy: false, result: null, error: null, raw: null }; if (qAsk) state.ai.ask = qAsk; }
   return `
+    ${aiPanel()}
     <section class="section">
       <div class="section-head"><h2>${t("按库存推荐菜单")}</h2>
         <button type="button" class="btn btn-sm" data-action="shuffle">${t("换一组")}</button></div>

@@ -670,6 +670,22 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .tpl-row .note { color: var(--ink); opacity: .8; margin-top: 2px; }
 .tpl-row.is-have { opacity: .6; cursor: default; }
 
+/* AI 菜单助手 */
+.ai-panel .section-head p { max-width: 520px; }
+.ai-row { display: flex; gap: 8px; align-items: stretch; }
+.ai-row input[name="ask"] { flex: 1 1 auto; min-width: 0; }
+.ai-people { display: flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+.ai-people input { width: 64px; }
+.ai-raw { white-space: pre-wrap; font-size: 12px; max-height: 300px; overflow: auto; margin: 0; }
+.ai-result h3 { font-size: 16px; margin-bottom: 8px; }
+.ai-result .dish small .have { color: var(--ok); }
+.ai-result .dish small .miss { color: var(--out); }
+.ai-cta { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-left: 6px solid var(--pine); background: linear-gradient(135deg, color-mix(in srgb, var(--pine) 10%, var(--surface)), var(--surface)); }
+.ai-cta p { margin: 4px 0 0; font-size: 13px; }
+.ai-cta .chips { margin-bottom: 0; }
+.ai-cta a.chip { text-decoration: none; }
+.slot-swap { float: right; font-size: 12px; font-weight: 600; color: var(--pine); }
+.ok-text { color: var(--ok); }
 /* 介绍页 */
 .about { max-width: 760px; }
 .about-intro p { margin: 0 0 8px; line-height: 1.7; }

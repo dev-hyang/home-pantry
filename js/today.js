@@ -56,6 +56,11 @@ export function viewToday() {
       <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的房屋耗材。")}</p></div>
       <a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></div></section>` : ""}
 
+    <section class="section"><div class="panel ai-cta">
+      <div><b>🤖 ${t("今天吃什么？问 AI")}</b><p class="muted">${t("按家里现有食材和临期情况生成今日菜单，缺的直接进采购清单。")}</p>
+        <div class="chips" style="margin:8px 0 0">${["低糖高蛋白，六人份", "用掉快过期的食材", "孩子爱吃、少油少盐"].map((q) => `<a class="chip" href="${href("pantry", "meals")}?ai=${encodeURIComponent(t(q))}">${esc(t(q))}</a>`).join("")}</div></div>
+      <a class="btn btn-primary" href="${href("pantry", "meals")}?ai=">${t("打开菜单助手")}</a></div></section>
+
     <section class="section quick">
       <a class="quick-link" href="${href("item", "new")}?space=pantry"><span aria-hidden="true">🥫</span>${t("添加储藏物品")}</a>
       ${state.houseEnabled ? `<a class="quick-link" href="${href("item", "new")}?space=house"><span aria-hidden="true">🧰</span>${t("添加房屋耗材")}</a>` : ""}
