@@ -539,6 +539,7 @@ export const EN = {
   // ── 手机库存仪表盘 ──
   "{n} 件": "{n} pcs", "{n} 缺货": "{n} out", "{n} 少货 / 临期": "{n} low / expiring", "全部分类": "All categories", "完成排序": "Done sorting", "调整方块顺序": "Rearrange tiles", "点方块进入分类，搜索框可直接找物品": "Tap a tile to open the category; the search box finds items directly",
   "还没有": "Nothing yet", "都充足": "All stocked", "有缺货": "Out of stock", "有少货或临期": "Low or expiring", "往前": "Move earlier", "往后": "Move later",
+  "空": "Empty", "充足": "Stocked", "临期": "Expiring", "{n} 少货": "{n} low", "件物品": "items", "件装备": "pieces of gear", "库存都充足": "Everything is stocked", "{n} 件要补货": "{n} to restock", "{n} 种": "{n} kinds", "调整顺序": "Rearrange",
 
   // ── 账单 / 设备枢纽页 ──
   "{n} 条，最近 {d}": "{n} entries, last {d}", "下一项：{name} {d}": "Next: {name} {d}", "保修到 {d}": "warranty until {d}", "卡有效期 {d}": "card expires {d}", "已设置": "Set up", "必要支出": "essential", "非必要": "non-essential", "有备注": "has notes",

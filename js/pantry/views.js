@@ -89,7 +89,7 @@ export function viewDashboard() {
 /* ── 库存 ──
  * 宽屏（电脑 / iPad）：分类芯片导航 + 全部分组列表。
  * 手机：先看分类方块仪表盘（图标、件数、状态标：红圈 ! 缺货、黄三角 ! 少货或临期、绿圈 ✓ 充足），点一块进该分类；方块顺序可自己调，保存在本机。 */
-export const isPhone = () => window.matchMedia("(max-width: 640px)").matches;
+export const isPhone = () => window.matchMedia("(max-width: 640px)").matches || document.documentElement.classList.contains("force-phone");   // force-phone：桌面上预览手机布局
 const ORDER_KEY = (space) => `hmh-cat-order:${space}`;
 function loadOrder(space) { try { return JSON.parse(localStorage.getItem(ORDER_KEY(space)) || "[]"); } catch { return []; } }
 /** 该空间的分类，按用户自定义顺序（没调过的按默认顺序排在后面） */
@@ -111,26 +111,37 @@ export function catStatus(items) {
   const warn = items.filter((x) => x.status === "low" || x.status === "soon" || x.exp).length;
   return { out, warn, kind: !items.length ? "none" : out ? "out" : warn ? "warn" : "ok" };
 }
-const stIcon = (kind) => ({ out: `<span class="st st-out" title="${t("有缺货")}" aria-label="${t("有缺货")}">!</span>`, warn: `<span class="st st-warn" title="${t("有少货或临期")}" aria-label="${t("有少货或临期")}">!</span>`, ok: `<span class="st st-ok" title="${t("都充足")}" aria-label="${t("都充足")}">✓</span>`, none: `<span class="st st-none" aria-hidden="true">–</span>` }[kind]);
+/** 状态小药丸：红「! 1 缺货」、琥珀「! 3 少货」、绿「✓ 充足」、灰「空」 */
+const stPill = (s, items) => {
+  if (!items.length) return `<span class="pill pill-none">${t("空")}</span>`;
+  if (s.kind === "out") return `<span class="pill pill-out"><i>!</i>${t("{n} 缺货", { n: s.out })}${s.warn ? ` · ${t("{n} 少货", { n: s.warn })}` : ""}</span>`;
+  if (s.kind === "warn") return `<span class="pill pill-warn"><i>!</i>${t("{n} 少货 / 临期", { n: s.warn })}</span>`;
+  return `<span class="pill pill-ok"><i>✓</i>${t("充足")}</span>`;
+};
 
-/** 手机上的分类方块仪表盘 */
+/** 手机上的分类仪表盘（参考 iOS 提醒事项 / 常见记账 App 的卡片）：顶部一条汇总，下面每个分类一张卡 */
 function catDashboard(space, mine) {
   const sorting = !!state.catSort, cats = orderedCats(space), gear = space === "gear";
+  const all = gear ? null : catStatus(mine), expN = gear ? 0 : mine.filter((x) => x.exp).length, lowN = gear ? 0 : mine.filter((x) => x.status === "low" || x.status === "soon").length;
+  const stat = (n, label, status, cls) => `<button type="button" class="stat ${cls}" data-action="goto-status" data-space="${space}" data-status="${status}" ${n ? "" : "disabled"}><b>${n}</b><span>${label}</span></button>`;
+  const summary = gear ? `<div class="dash-sum"><div class="sum-main"><b>${mine.length}</b><span>${t("件装备")}</span></div></div>`
+    : `<div class="dash-sum">
+        <div class="sum-main"><b>${mine.length}</b><span>${t("件物品")}</span><small>${all.kind === "ok" ? t("库存都充足") : t("{n} 件要补货", { n: all.out + lowN })}</small></div>
+        <div class="sum-stats">${stat(all.out, t("缺货"), "out", "s-out")}${stat(lowN, t("少货"), "low", "s-warn")}${stat(expN, t("临期"), "exp", "s-exp")}</div>
+      </div>`;
   const tiles = cats.map((c, i) => {
     const items = mine.filter((x) => x.category === c.id), s = gear ? { kind: items.length ? "ok" : "none", out: 0, warn: 0 } : catStatus(items);
-    const sub = gear ? (items.length ? t("{n} 件", { n: items.reduce((a, x) => a + num(x.qty), 0) }) : t("还没有"))
-      : !items.length ? t("还没有") : s.kind === "ok" ? t("都充足") : [s.out ? t("{n} 缺货", { n: s.out }) : null, s.warn ? t("{n} 少货 / 临期", { n: s.warn }) : null].filter(Boolean).join(" · ");
-    const arrows = sorting ? `<span class="tile-sort"><button type="button" class="btn btn-sm btn-ghost" data-action="cat-move" data-cat="${c.id}" data-dir="-1" ${i === 0 ? "disabled" : ""} aria-label="${t("往前")}">◀</button><button type="button" class="btn btn-sm btn-ghost" data-action="cat-move" data-cat="${c.id}" data-dir="1" ${i === cats.length - 1 ? "disabled" : ""} aria-label="${t("往后")}">▶</button></span>` : "";
-    // 排序模式下方块里有 ◀ ▶ 按钮，按钮不能嵌套按钮，所以这时方块用 div
-    const body = `<span class="tile-head"><span class="tile-ico" aria-hidden="true">${c.icon}</span>${gear ? "" : stIcon(s.kind)}</span>
-      <b class="tile-name">${esc(t(c.name))}<span class="tile-n">（${items.length}）</span></b>
-      <small class="tile-sub">${sub}</small>${arrows}`;
+    const count = gear ? items.reduce((a, x) => a + num(x.qty), 0) : items.length;
+    const arrows = sorting ? `<span class="tile-sort"><button type="button" data-action="cat-move" data-cat="${c.id}" data-dir="-1" ${i === 0 ? "disabled" : ""} aria-label="${t("往前")}">‹</button><button type="button" data-action="cat-move" data-cat="${c.id}" data-dir="1" ${i === cats.length - 1 ? "disabled" : ""} aria-label="${t("往后")}">›</button></span>` : "";
+    // 排序模式下卡片里有 ‹ › 按钮，按钮不能嵌套按钮，所以这时卡片用 div
+    const body = `<span class="tile-top"><span class="tile-ico" style="--cat:${c.color}" aria-hidden="true">${c.icon}</span><b class="tile-count">${count}</b></span>
+      <span class="tile-name">${esc(t(c.name))}</span>
+      ${gear ? (items.length ? `<span class="pill pill-none">${t("{n} 种", { n: items.length })}</span>` : `<span class="pill pill-none">${t("空")}</span>`) : stPill(s, items)}${arrows}`;
     const cls = `tile st-${s.kind} ${items.length ? "" : "is-empty"}`;
-    return sorting ? `<div class="${cls} is-sorting" style="--cat:${c.color}">${body}</div>`
-      : `<button type="button" class="${cls}" data-action="cat" data-cat="${c.id}" style="--cat:${c.color}">${body}</button>`;
+    return sorting ? `<div class="${cls} is-sorting">${body}</div>` : `<button type="button" class="${cls}" data-action="cat" data-cat="${c.id}">${body}</button>`;
   }).join("");
-  return `<div class="cat-dash" id="catDash">${tiles}</div>
-    <p class="muted dash-foot"><button type="button" class="link-name" data-action="cat-sort">${sorting ? t("完成排序") : t("调整方块顺序")}</button> · ${t("点方块进入分类，搜索框可直接找物品")}</p>`;
+  return `${summary}<div class="cat-dash" id="catDash">${tiles}</div>
+    <p class="muted dash-foot"><button type="button" class="link-name" data-action="cat-sort">${sorting ? t("完成排序") : t("调整顺序")}</button></p>`;
 }
 
 export function viewInventory(space = "pantry") {
