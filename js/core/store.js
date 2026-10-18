@@ -36,6 +36,19 @@ export const DemoStore = {
     this.persist();
   },
   async deleteCategory(id) { this.db.categories = (this.db.categories || []).filter((x) => x.id !== id); this.persist(); },
+  // 自定义存放位置（重命名时把用到旧名字的物品、设备一起改）
+  async listLocations() { return (this.db.locations || []).map((x) => ({ ...x })); },
+  async saveLocation(c) {
+    const now = new Date().toISOString(); this.db.locations ||= [];
+    if (c.id) { const i = this.db.locations.findIndex((x) => x.id === c.id); if (i >= 0) this.db.locations[i] = { ...this.db.locations[i], ...c, updated_at: now }; }
+    else this.db.locations.push({ ...c, id: uid(), created_at: now, updated_at: now });
+    this.persist();
+  },
+  async deleteLocation(id) { this.db.locations = (this.db.locations || []).filter((x) => x.id !== id); this.persist(); },
+  async renameLocation(oldName, newName) {
+    for (const x of [...this.db.items, ...this.db.assets]) if (x.location === oldName) x.location = newName;
+    this.persist();
+  },
   async listLogs() {
     const since = Date.now() - STATS_LOG_DAYS * DAY;
     return this.db.logs.filter((l) => new Date(l.created_at).getTime() >= since);
@@ -308,6 +321,7 @@ export const BILL_FIELDS = ["property_id", "name", "category", "direction", "pay
   "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "statement_channel",
   "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes"];
 export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", "subs", "sort"];
+export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
 export const DEAL_FIELDS = ["property_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at"];
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
@@ -322,6 +336,17 @@ export const CloudStore = {
     else this.must(await this.sb.from("custom_categories").insert(row));
   },
   async deleteCategory(id) { this.must(await this.sb.from("custom_categories").delete().eq("id", id)); },
+  async listLocations() { return this.must(await this.sb.from("custom_locations").select("*").eq("household_id", this.hid).order("sort").order("created_at")); },
+  async saveLocation(c) {
+    const row = pick(c, LOCATION_FIELDS, { household_id: this.hid, updated_by: state.user.id });
+    if (c.id) this.must(await this.sb.from("custom_locations").update(row).eq("id", c.id));
+    else this.must(await this.sb.from("custom_locations").insert(row));
+  },
+  async deleteLocation(id) { this.must(await this.sb.from("custom_locations").delete().eq("id", id)); },
+  async renameLocation(oldName, newName) {
+    this.must(await this.sb.from("items").update({ location: newName }).eq("household_id", this.hid).eq("location", oldName));
+    this.must(await this.sb.from("assets").update({ location: newName }).eq("household_id", this.hid).eq("location", oldName));
+  },
   async listLogs() {
     const since = new Date(Date.now() - STATS_LOG_DAYS * DAY).toISOString();
     return this.must(await this.sb.from("stock_logs").select("item_id,delta,reason,created_at")
@@ -488,7 +513,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "property_deals", "deal_task_done", "custom_categories"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "property_deals", "deal_task_done", "custom_categories", "custom_locations"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();

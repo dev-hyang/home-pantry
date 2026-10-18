@@ -5,6 +5,7 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, DAY, addMonths, daysUntil, esc, fmt, fmtDate, fmtShort, money, num, stampText, todayISO, toast } from "../core/util.js";
+import { locationField, resolveLocation } from "../core/locations.js";
 import { go, href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { houseBar } from "./property-form.js";
@@ -313,6 +314,7 @@ export function openAsset(id, { type } = {}) {
 
 export function leaveAsset(changed) {
   if (changed) state.needsRefresh = true;
+  state.skipAutosave = true;
   if (state.prevRoute) history.back();
   else go(href("house", state.route?.id && isVehicle(state.assets.find((x) => x.id === state.route.id)) ? "vehicles" : "assets"), { replace: true });
 }
@@ -409,7 +411,7 @@ export function viewAssetForm() {
         <h2>${veh ? t("添加车辆") : t("添加设备")}</h2>
         <button type="button" class="btn btn-sm btn-ghost" data-action="asset-cancel">${t("返回{page}", { page: backLabel })}</button>
       </div>`}
-      <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${a && sec ? "one-sec" : ""}" novalidate>
+      <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${a && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
         <fieldset data-sec="basic" ${hide("basic")}>
           <legend>${t("基本信息")}</legend>
@@ -421,9 +423,7 @@ export function viewAssetForm() {
             <label>${t("名称")}
               <input name="name" required maxlength="60" autocomplete="off" placeholder="${veh ? t("例如：白色 RAV4") : t("例如：Carrier 暖风炉")}" value="${d(v.name)}">
             </label>
-            <label>${t("位置")}
-              <select name="location"><option value="">${t("未指定")}</option>${LOCATIONS.map((l) => `<option value="${esc(l)}" ${l === v.location ? "selected" : ""}>${esc(t(l))}</option>`).join("")}</select>
-            </label>
+            ${locationField(v.location, t("位置"))}
             <label>${t("品牌")}
               <input name="brand" maxlength="40" value="${d(v.brand)}">
             </label>
@@ -487,7 +487,7 @@ export function viewAssetForm() {
           <textarea id="assetNotes" name="notes" rows="3" maxlength="500" placeholder="${t("滤网尺寸、维修商电话、借给了谁…")}">${d(v.notes)}</textarea>
         </fieldset>
         <p id="assetFormError" class="form-error" role="alert"></p>
-        <div class="form-actions">
+        <div class="form-actions sticky-actions">
           <button type="submit" class="btn btn-primary">${a ? t("保存修改") : veh ? t("添加车辆") : t("添加设备")}</button>
           <button type="button" class="btn btn-ghost" data-action="asset-cancel">${t("取消")}</button>
         </div>
@@ -623,19 +623,21 @@ function applyType(fe, at, isNew) {
   fe.owner.value = (at.system && ht?.owners?.[at.system] && OWNER_OPTS.includes(ht.owners[at.system])) ? ht.owners[at.system] : "self";
 }
 
-export async function saveAssetForm(f) {
-  const fe = f.elements, err = $("#assetFormError");
+/** silent=true：离开页面时自动保存（不跳转；校验不过就提示“没有自动保存”）。返回是否保存成功 */
+export async function saveAssetForm(f, { silent = false } = {}) {
+  const fe = f.elements, err = f.querySelector("#assetFormError");
+  const fail = (msg, el) => { if (silent) toast(t("没有自动保存：{msg}", { msg })); else { err.textContent = msg; el.focus(); } return false; };
   const name = fe.name.value.trim();
-  if (!name) { err.textContent = t("请填写设备名称。"); return fe.name.focus(); }
+  if (!name) return fail(t("请填写设备名称。"), fe.name);
   const numOrNull = (el, { int = false } = {}) => { if (el.value === "") return null; const n = num(el.value, NaN); return Number.isFinite(n) ? (int ? Math.round(n) : Math.round(n * 100) / 100) : null; };
   const thisYear = new Date().getFullYear();
   const year = numOrNull(fe.manufacture_year, { int: true });
-  if (year != null && (year < 1950 || year > thisYear)) { err.textContent = t("出厂年份需要在 1950 到 {y} 之间。", { y: thisYear }); return fe.manufacture_year.focus(); }
+  if (year != null && (year < 1950 || year > thisYear)) return fail(t("出厂年份需要在 1950 到 {y} 之间。", { y: thisYear }), fe.manufacture_year);
   const tool = fe.kind.value === "tool", veh = fe.kind.value === "vehicle";
   const a = {
     id: fe.asset_id.value || undefined,
     kind: fe.kind.value, type: fe.type.value, name,
-    location: fe.location.value || null, brand: fe.brand.value.trim() || null, model: fe.model.value.trim() || null, serial: fe.serial.value.trim() || null,
+    location: null, brand: fe.brand.value.trim() || null, model: fe.model.value.trim() || null, serial: fe.serial.value.trim() || null,
     installed_on: fe.installed_on.value || null, manufacture_year: year,
     warranty_until: fe.warranty_until.value || null, labor_warranty_until: tool ? null : fe.labor_warranty_until.value || null,
     expected_life_years: veh ? 15 : numOrNull(fe.expected_life_years), service_interval_months: veh ? null : numOrNull(fe.service_interval_months, { int: true }),
@@ -655,10 +657,13 @@ export async function saveAssetForm(f) {
   const btn = f.querySelector('button[type="submit"]');
   btn.disabled = true;
   try {
+    a.location = await resolveLocation(fe);
     await Store.saveAsset(a);
+    if (silent) return true;
     toast(a.id ? t("已保存修改") : t("已添加 {name}", { name }));
     leaveAsset(true);
-  } catch (e) { err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; }
+    return true;
+  } catch (e) { if (silent) throw e; err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; return false; }
 }
 
 /** 记一次保养：有费用先写 purchases（house_maint），再写记录并关联，删除记录时一起删 */

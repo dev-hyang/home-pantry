@@ -5,6 +5,7 @@ import { go, href } from "../core/router.js";
 import { memberName } from "../core/logic.js";
 import { t } from "../core/i18n.js";
 import { categoryOptions } from "./views.js";
+import { locationField, resolveLocation } from "../core/locations.js";
 
 /* ───────────── 物品编辑：独立整页（路由 #/item/<id> 或 #/item/new） ─────────────
  * 用网址表示编辑页：手机返回手势、浏览器后退都能退出；返回时由 main.js 恢复来源页的滚动位置。 */
@@ -22,6 +23,7 @@ export function openItem(id, { space, cat } = {}) {
 // 保存、取消、删除后：从应用内进入的就后退一步（恢复来源页），否则回到对应空间的列表
 export function leaveItem(changed) {
   if (changed) state.needsRefresh = true;
+  state.skipAutosave = true;   // 已保存 / 取消 / 删除：离开时不再自动保存
   if (state.prevRoute) history.back();
   else go(href(...listRoute(spaceOf(state.editingCat || "fresh"))), { replace: true });
 }
@@ -51,7 +53,7 @@ export function viewItemForm() {
         <h2>${it ? t("编辑：{name}", { name: esc(it.name) }) : t("添加物品")}</h2>
         <button type="button" class="btn btn-sm btn-ghost" data-action="item-cancel">${t("返回{page}", { page: backLabel })}</button>
       </div>
-      <form id="itemForm" class="panel ${gear ? "is-gear" : ""}" novalidate>
+      <form id="itemForm" class="panel ${gear ? "is-gear" : ""}" novalidate data-autosave>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">
         <input type="hidden" name="orig_unit" value="${esc(v.unit)}">
         <input type="hidden" name="disp_unit" value="${esc(dUnit)}">
@@ -67,9 +69,7 @@ export function viewItemForm() {
             <label>${t("小类")}
               <select name="subcategory">${subOptions(v.category, v.subcategory)}</select>
             </label>
-            <label>${t("存放位置")}
-              <select name="location"><option value="">${t("未指定")}</option>${LOCATIONS.map((l) => `<option value="${esc(l)}" ${l === v.location ? "selected" : ""}>${esc(t(l))}</option>`).join("")}</select>
-            </label>
+            ${locationField(v.location)}
             <label class="not-gear">${t("保质期至")}
               <input name="expiry_date" type="date" value="${esc(v.expiry_date || "")}">
             </label>
@@ -105,7 +105,7 @@ export function viewItemForm() {
           <textarea id="itemNotes" name="notes" rows="3" maxlength="500" placeholder="${gear ? t("品牌、型号、尺寸、购买时间、借给了谁…") : t("品牌、规格、在哪买更便宜…")}">${esc(v.notes || "")}</textarea>
         </fieldset>
         <p id="itemFormError" class="form-error" role="alert"></p>
-        <div class="form-actions">
+        <div class="form-actions sticky-actions">
           <button type="submit" class="btn btn-primary">${it ? t("保存修改") : t("添加物品")}</button>
           <button type="button" class="btn btn-ghost" data-action="item-cancel">${t("取消")}</button>
           ${it ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="item-delete">${t("删除物品")}</button>` : ""}
@@ -115,12 +115,14 @@ export function viewItemForm() {
     </section>`;
 }
 
-export async function saveItemForm(f) {
-  const fe = f.elements, err = $("#itemFormError");
+/** silent=true：离开页面时自动保存（不跳转、不聚焦；校验不过就提示“没有自动保存”）。返回是否保存成功 */
+export async function saveItemForm(f, { silent = false } = {}) {
+  const fe = f.elements, err = f.querySelector("#itemFormError");
+  const fail = (msg, el) => { if (silent) toast(t("没有自动保存：{msg}", { msg })); else { err.textContent = msg; el.focus(); } return false; };
   const name = fe.name.value.trim();
   const quantity = num(fe.quantity.value, NaN);
-  if (!name) { err.textContent = t("请填写物品名称。"); return fe.name.focus(); }
-  if (!Number.isFinite(quantity) || quantity < 0) { err.textContent = t("数量需要是 0 或正数。"); return fe.quantity.focus(); }
+  if (!name) return fail(t("请填写物品名称。"), fe.name);
+  if (!Number.isFinite(quantity) || quantity < 0) return fail(t("数量需要是 0 或正数。"), fe.quantity);
   // 单位没改且属于换算显示：换算回存储单位；数值没动过则保留原始值，避免来回换算产生误差
   const typedUnit = fe.unit.value.trim() || "个";
   const origUnit = fe.orig_unit.value, back = typedUnit === fe.disp_unit.value && typedUnit !== origUnit;
@@ -140,15 +142,18 @@ export async function saveItemForm(f) {
     unit: back ? origUnit : typedUnit, quantity: Math.round(val("quantity") * 100) / 100,
     min_quantity: gear ? 0 : Math.round((val("min_quantity") || 0) * 100) / 100,
     lead_days: gear ? 0 : Math.min(60, Math.max(0, Math.round(num(fe.lead_days.value, 3)))),
-    location: fe.location.value || null, expiry_date: gear ? null : fe.expiry_date.value || null,
+    location: null, expiry_date: gear ? null : fe.expiry_date.value || null,
     avg_daily_use: gear ? null : val("avg_daily_use"),
     notes: fe.notes.value.trim() || null,
   };
   const btn = f.querySelector('button[type="submit"]');
   btn.disabled = true;
   try {
+    it.location = await resolveLocation(fe);   // 选了“＋ 新位置…”会先建位置
     await Store.saveItem(it);
+    if (silent) return true;
     toast(it.id ? t("已保存修改") : t("已添加 {name}", { name }));
     leaveItem(true);
-  } catch (e) { err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; }
+    return true;
+  } catch (e) { if (silent) throw e; err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; return false; }
 }

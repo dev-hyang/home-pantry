@@ -750,5 +750,17 @@ export const EN = {
   "有孩子的家庭怎么安排一周的采购和备餐最省时间？": "How can a family with kids plan a week of shopping and meal prep to save time?",
   "设备待处理": "Equipment needing attention", "检查发现需处理": "inspection found an issue", "近期账单": "Upcoming bills", "{n} 种食材": "{n} ingredients", "{y} 年建": "built {y}", "有 HOA / 物业": "has HOA", "所在地区": "Region", "家庭成员 {n} 人": "{n} family members", "美国": "United States",
   "家里的情况：": "About this household:", "问题：": "Question:", "已加入采购": "On shopping list", "显示全部": "Show all",
+  // ── 存放位置分组 / 自定义位置 / 自动保存 / 库存筛选 ──
+  "厨房与餐厅": "Kitchen & dining", "起居": "Living areas", "卫浴与洗衣": "Bath & laundry", "储物": "Storage", "室外与车": "Outdoors & car",
+  "食品储藏间": "Food pantry", "餐厅柜": "Dining cabinet", "客厅电视柜": "Living room TV stand", "玄关柜": "Entryway cabinet", "过道柜": "Hallway cabinet", "书房": "Study", "游戏室": "Playroom",
+  "主卧衣柜": "Primary bedroom closet", "客卧 1 衣柜": "Guest room 1 closet", "客卧 2 衣柜": "Guest room 2 closet", "儿童房": "Kids' room", "主卫": "Primary bath", "客卫": "Guest bath", "洗衣房柜": "Laundry room cabinet",
+  "壁橱": "Closet (hall)", "楼梯下": "Under the stairs", "阁楼": "Attic", "院子 / 棚屋": "Yard / shed",
+  "＋ 新位置…": "+ New location…", "新位置名，例如：Emma 的房间": "New location name, e.g. Emma's room", "新位置": "New location", "位置名": "Location name", "所在分组": "Group", "例如：Emma 的房间、车库架子": "e.g. Emma's room, garage shelf",
+  "重命名": "Rename", "重命名：{name}": "Rename: {name}", "用到这个位置的物品和设备会一起改名": "Items and equipment in this location are renamed too", "会出现在物品 / 设备的位置下拉里，全家共用": "Appears in the location dropdown for items and equipment, shared by the family",
+  "{n} 个位置 · 自定义 {m}": "{n} locations · {m} custom", "{n} 件物品 / 设备": "{n} items / equipment", "还没放东西": "Nothing here yet", "原为“{name}”": "was “{name}”", "已改名": "renamed",
+  "按房间分组，物品 / 设备的位置下拉也按这个分组显示；下拉末尾的“＋ 新位置…”可以边填边加。": "Grouped by room; the location dropdown for items and equipment uses the same groups. “+ New location…” at the end of the dropdown adds one on the spot.",
+  "请填位置名": "Enter a location name", "已有同名位置": "A location with this name exists", "已改名：{a} → {b}": "Renamed: {a} → {b}", "已添加位置 {name}": "Added location {name}", "还有物品或设备放在这里，先把它们挪走": "Items or equipment are still here; move them first", "已删除位置": "Location deleted", "已删除，恢复为“{name}”": "Deleted; “{name}” is back",
+  "已自动保存": "Auto-saved", "没有自动保存：{msg}": "Not auto-saved: {msg}", "自动保存失败：{msg}": "Auto-save failed: {msg}",
+  "按位置筛选": "Filter by location", "全部位置": "All locations", "件符合": "matches", "点格子进入分类，筛选条件会保留": "Tap a tile to open that category; filters stay on", "换个关键词或筛选试试": "Try another keyword or filter", "清除": "Clear",
   "你是一个家庭生活助手，帮一家人处理房屋保养、账单与省钱、买房卖房流程、清洁收纳、饮食与育儿家务等问题。回答要实用、简洁，必要时分步骤；涉及燃气、电、结构、法律、医疗时提醒找专业人士。": "You are a friendly household assistant for a family: home maintenance, bills and saving money, buying or selling a home, cleaning and organizing, meal planning, childcare logistics. Answer practically and concisely, in steps where useful; say when a professional is needed.",
 };

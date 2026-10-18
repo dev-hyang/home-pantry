@@ -5,6 +5,7 @@ import { LANGS, detectLang, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
 import { PROVIDERS, aiIcon, aiReady, aiSettings, providerOf, saveAiSettings } from "../core/ai.js";
+import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
 export const isOwner = () => state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
@@ -71,11 +72,38 @@ function sisterAppsPanel() {
   </div>`;
 }
 
+/* ── 存放位置：按房间分组列出内置 + 自定义；可新增、重命名（内置也能改名，如“客卧 1 衣柜”→“Emma 的房间”）、删除自定义 ── */
+function locationsPanel() {
+  const lf = state.locForm;
+  const groups = locationGroups();
+  const grpOpts = [...window.LOCATION_GROUPS, CUSTOM_GROUP].map((g) => `<option value="${g.id}" ${(lf?.grp || "custom") === g.id ? "selected" : ""}>${esc(t(g.name))}</option>`).join("");
+  const form = lf ? `<form id="locForm" class="panel">
+      <div class="section-head" style="margin-bottom:8px"><h3 style="font-size:16px">${lf.oldName ? t("重命名：{name}", { name: t(lf.oldName) }) : t("新位置")}</h3>
+        <p>${lf.oldName ? t("用到这个位置的物品和设备会一起改名") : t("会出现在物品 / 设备的位置下拉里，全家共用")}</p></div>
+      <div class="form-grid">
+        <label>${t("位置名")}<input name="name" required maxlength="20" placeholder="${t("例如：Emma 的房间、车库架子")}" value="${esc(lf.name || "")}"></label>
+        <label>${t("所在分组")}<select name="grp">${grpOpts}</select></label>
+      </div>
+      <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${t("保存")}</button>
+        <button type="button" class="btn btn-sm btn-ghost" data-action="loc-cancel">${t("取消")}</button>
+        ${lf.id ? `<span class="spacer"></span><button type="button" class="btn btn-sm btn-danger-ghost" data-action="loc-del" data-id="${lf.id}">${t("删除")}</button>` : ""}</div>
+    </form>` : "";
+  const row = (l) => { const n = locationUsage(state, l.name); return `<li><span class="grow"><b>${esc(t(l.name))}</b>${l.custom ? ` <span class="badge b-ok">${l.replaces ? t("已改名") : t("自定义")}</span>` : ""}<small>${n ? t("{n} 件物品 / 设备", { n }) : t("还没放东西")}${l.replaces ? ` · ${t("原为“{name}”", { name: t(l.replaces) })}` : ""}</small></span>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="loc-edit" data-name="${esc(l.name)}">${t("重命名")}</button></li>`; };
+  return `${form}
+    <p class="muted" style="margin:0 0 10px;font-size:13px">${t("按房间分组，物品 / 设备的位置下拉也按这个分组显示；下拉末尾的“＋ 新位置…”可以边填边加。")}</p>
+    ${groups.map((g) => `<div class="panel loc-group"><div class="section-head" style="margin-bottom:4px"><h3 style="font-size:15px">${esc(t(g.name))}</h3>
+        <button type="button" class="btn btn-sm btn-ghost" data-action="loc-new" data-grp="${g.id}">＋ ${t("新位置")}</button></div>
+      <ul class="member-list loc-list">${g.locs.map(row).join("")}</ul></div>`).join("")}
+    ${groups.some((g) => g.id === "custom") ? "" : `<div class="form-actions"><button type="button" class="btn btn-sm" data-action="loc-new" data-grp="custom">＋ ${t("新位置")}</button></div>`}`;
+}
+
 /* ── 设置：目录页（每块一行，带当前状态）→ 点进去只看那一块 ── */
 const SETTING_SECTIONS = [
   { id: "family", icon: "👨‍👩‍👧", name: "家庭与成员" },
   { id: "properties", icon: "🏠", name: "房产" },
   { id: "prefs", icon: "🌐", name: "语言、地区与单位" },
+  { id: "locations", icon: "📍", name: "存放位置" },
   { id: "modules", icon: "🧩", name: "模块开关" },
   { id: "data", icon: "💾", name: "通知与备份" },
   { id: "ai", icon: "__AI__", name: "AI 助手" },
@@ -115,6 +143,7 @@ export function viewSettings() {
       family: cloud ? t("{name} · {n} 位成员", { name: state.household?.name || "", n: state.members.length }) : t("本地演示：数据只保存在这个浏览器里"),
       properties: t("{n} 套", { n: state.properties.filter((p) => !p.archived).length }),
       prefs: `${LANGS[langOverride() || detectLang()]} · ${t(Units.region.name)} · ${Units.region.currency}`,
+      locations: t("{n} 个位置 · 自定义 {m}", { n: window.LOCATIONS.length, m: customLocations().length }),
       modules: [state.houseEnabled ? t("房屋 ✓") : t("房屋 ✗"), state.billsEnabled ? t("账单 ✓") : t("账单 ✗"), state.gearEnabled ? t("装备 ✓") : t("装备 ✗")].join(" · "),
       data: `${notif === "granted" ? t("通知已开启") : t("通知未开启")} · ${t("导出 JSON")}`,
       ai: aiReady() ? t("{p} · 已填 key", { p: t(providerOf(aiSettings().provider).name) }) : t("未填 key，用“复制提示词”模式"),
@@ -184,6 +213,7 @@ export function viewSettings() {
     <div class="panel"><div class="kv"><div><b>${t("导出数据")}</b><div class="muted">${t("下载库存和采购清单的 JSON 备份")}</div></div>
       <button type="button" class="btn btn-sm" data-action="export">${t("导出 JSON")}</button></div></div>`,
     ai: () => aiBlock(),
+    locations: () => locationsPanel(),
     apps: () => `
     ${sisterAppsPanel()}
     <div class="panel"><div class="kv"><div><b>${t("介绍与注意事项")}</b><div class="muted">${t("这个网站是什么、第一次怎么用、提醒怎么分级、哪些事要注意")}</div></div>

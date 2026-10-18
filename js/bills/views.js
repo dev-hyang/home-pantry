@@ -241,6 +241,7 @@ export function billTemplateItems(indexes) {
 /* ── 账单表单（整页；编辑时下方带缴费记录） ── */
 export function leaveBill(changed) {
   if (changed) state.needsRefresh = true;
+  state.skipAutosave = true;
   if (state.prevRoute) history.back();
   else go(href("bills", "list"), { replace: true });
 }
@@ -270,7 +271,7 @@ export function viewBillForm() {
         <h2>${t("添加账单")}</h2>
         <button type="button" class="btn btn-sm btn-ghost" data-action="bill-cancel">${t("返回{page}", { page: backLabel })}</button>
       </div>`}
-      <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""} ${b && sec ? "one-sec" : ""}" novalidate>
+      <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""} ${b && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="bill_id" value="${d(b?.id)}">
         <fieldset data-sec="basic" ${hide("basic")}>
           <legend>${t("基本信息")}</legend>
@@ -324,7 +325,7 @@ export function viewBillForm() {
           </div>
         </fieldset>
         <p id="billFormError" class="form-error" role="alert"></p>
-        <div class="form-actions">
+        <div class="form-actions sticky-actions">
           <button type="submit" class="btn btn-primary">${b ? t("保存修改") : t("添加账单")}</button>
           <button type="button" class="btn btn-ghost" data-action="bill-cancel">${t("取消")}</button>
         </div>
@@ -408,15 +409,17 @@ function paySection(b, focus) {
 /* ── 保存 ── */
 const parseList = (s, { int = true } = {}) => String(s || "").split(/[,，\s]+/).map((x) => x.trim()).filter(Boolean).map((x) => (int ? parseInt(x, 10) : x)).filter((x) => (int ? Number.isFinite(x) : true));
 
-export async function saveBillForm(f) {
-  const fe = f.elements, err = $("#billFormError");
+/** silent=true：离开页面时自动保存（不跳转；校验不过就提示“没有自动保存”）。返回是否保存成功 */
+export async function saveBillForm(f, { silent = false } = {}) {
+  const fe = f.elements, err = f.querySelector("#billFormError");
+  const fail = (msg, el) => { if (silent) toast(t("没有自动保存：{msg}", { msg })); else { err.textContent = msg; el.focus(); } return false; };
   const name = fe.name.value.trim();
-  if (!name) { err.textContent = t("请填写账单名称。"); return fe.name.focus(); }
+  if (!name) return fail(t("请填写账单名称。"), fe.name);
   const numOrNull = (el, int) => { if (el.value === "") return null; const n = num(el.value, NaN); return Number.isFinite(n) ? (int ? Math.round(n) : Math.round(n * 100) / 100) : null; };
   const dueDates = parseList(fe.due_dates.value, { int: false }).map((x) => x.replace("/", "-")).filter((x) => /^\d{2}-\d{2}$/.test(x));
   const reminders = [...new Set(parseList(fe.reminder_days.value).filter((n) => n >= 0 && n <= 90))].sort((a, b) => b - a).slice(0, 5);
   const payUrl = fe.pay_url.value.trim();
-  if (payUrl && !/^https?:\/\//i.test(payUrl)) { err.textContent = t("缴费链接需要以 http:// 或 https:// 开头。"); return fe.pay_url.focus(); }
+  if (payUrl && !/^https?:\/\//i.test(payUrl)) return fail(t("缴费链接需要以 http:// 或 https:// 开头。"), fe.pay_url);
   const b = {
     id: fe.bill_id.value || undefined, name, category: fe.category.value, property_id: fe.property_id.value || null, direction: fe.direction.value || "payable",
     payee: fe.payee.value.trim() || null, account_last4: fe.account_last4.value.trim() || null, login_hint: fe.login_hint.value.trim() || null, pay_url: payUrl || null,
@@ -431,13 +434,15 @@ export async function saveBillForm(f) {
   if (b.autopay && b.pay_channel !== "autopay") b.pay_channel = "autopay";
   if (!b.autopay && b.pay_channel === "autopay") b.pay_channel = "online";
   if (!b.next_due_on) b.next_due_on = initialDue(b);
-  if (!b.next_due_on && b.frequency !== "one_time") { err.textContent = t("这种频率算不出到期日，请填“下次到期日”。"); return fe.next_due_on.focus(); }
+  if (!b.next_due_on && b.frequency !== "one_time") return fail(t("这种频率算不出到期日，请填“下次到期日”。"), fe.next_due_on);
   const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
   try {
     await Store.saveBill(b);
+    if (silent) return true;
     toast(b.id ? t("已保存修改") : t("已添加 {name}", { name }));
     leaveBill(true);
-  } catch (e) { err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; }
+    return true;
+  } catch (e) { if (silent) throw e; err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; return false; }
 }
 
 /** 记一笔缴费 / 核对 / 跳过：写 purchases（有金额且为应付）、写记录、把账单推到下一期 */

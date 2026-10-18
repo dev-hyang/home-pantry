@@ -28,6 +28,7 @@ import { viewAbout } from "./settings/about.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
 import { applyCustomCategories, isCustomCat, newCatKey } from "./core/categories.js";
+import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, testModel } from "./core/ai.js";
 import { saveAiForm } from "./settings/views.js";
 import { cleanStore, download, exportAnnual, rememberStore, viewStats } from "./stats/views.js";
@@ -48,11 +49,12 @@ export async function refresh() {
       if (!live.some((p) => p.id === state.propertyId)) state.propertyId = (live.find((p) => p.id === saved) || live.find((p) => p.is_default) || live[0] || properties[0])?.id || null;
       const pid = state.propertyId;
       // 设备、季节任务、房屋资料按家庭全量读取（提醒总线要看所有房产），页面再按当前房产过滤
-      const [items, logs, shopping, purchases, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats] = await Promise.all([
+      const [items, logs, shopping, purchases, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs] = await Promise.all([
         Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listPurchases(), Store.listHouseProfiles(),
         Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince()), Store.listBills(), Store.listBillPayments(),
-        Store.listDeals(), Store.listDealDone(), Store.listCategories()]);
+        Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations()]);
       applyCustomCategories(customCats);   // 自定义分类并入全局分类表，后面的 enrich / 视图都能用
+      applyCustomLocations(customLocs);    // 自定义 / 重命名的存放位置并入分组列表
       const houseProfiles = Object.fromEntries(profiles.map((p) => [p.property_id, p]));
       Object.assign(state, { items, logs, shopping, purchases, houseProfiles, houseProfile: pid ? houseProfiles[pid] || null : null, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone });
       state.enriched = enrich(items, logs);
@@ -139,18 +141,22 @@ export function render(force = true) {
   const kept = force ? [] : keepUnsaved(["#dealForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm"]);
   try { renderBody(r); } finally { restoreUnsaved(kept); }
 }
-/** 记下表单里与渲染默认值不同的字段（用户正在填的） */
+/** 表单里与渲染默认值不同的字段（用户正在填的）；没有改动返回 null */
+function dirtyFields(f) {
+  const vals = {};
+  for (const el of f.elements) {
+    if (!el.name) continue;
+    if (el.type === "checkbox" || el.type === "radio") { if (el.checked !== el.defaultChecked) vals[el.name] = { checked: el.checked }; }
+    else if (el.tagName === "SELECT") { const def = [...el.options].find((o) => o.defaultSelected)?.value ?? el.options[0]?.value; if (el.value !== def) vals[el.name] = { value: el.value }; }
+    else if (el.value !== el.defaultValue) vals[el.name] = { value: el.value };
+  }
+  return Object.keys(vals).length ? vals : null;
+}
 function keepUnsaved(selectors) {
   return selectors.map((sel) => {
     const f = $(sel); if (!f || f.dataset.saved) return null;
-    const vals = {};
-    for (const el of f.elements) {
-      if (!el.name) continue;
-      if (el.type === "checkbox" || el.type === "radio") { if (el.checked !== el.defaultChecked) vals[el.name] = { checked: el.checked }; }
-      else if (el.tagName === "SELECT") { const def = [...el.options].find((o) => o.defaultSelected)?.value ?? el.options[0]?.value; if (el.value !== def) vals[el.name] = { value: el.value }; }
-      else if (el.value !== el.defaultValue) vals[el.name] = { value: el.value };
-    }
-    return Object.keys(vals).length ? { sel, vals } : null;
+    const vals = dirtyFields(f);
+    return vals ? { sel, vals } : null;
   }).filter(Boolean);
 }
 function restoreUnsaved(kept) {
@@ -181,8 +187,24 @@ function renderBody(r) {
 
 const scrollMem = {};
 const isListRoute = (r) => (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies");
+/* 离开表单页自动保存：物品 / 设备 / 账单 / 房屋资料表单（data-autosave）有没保存的改动，且不是点“取消 / 保存 / 删除”离开的，
+ * 就在后台按原来的校验保存一遍（名称没填等校验不过会提示“没有自动保存”）。保存按钮仍然保留，且在底部常驻。 */
+const AUTOSAVE = { itemForm: saveItemForm, assetForm: saveAssetForm, billForm: saveBillForm, houseForm: saveHouseForm };
+let lastHash = location.hash;
+function pendingAutosave() {
+  const f = $("#main form[data-autosave]");
+  const want = f && AUTOSAVE[f.id] && !state.skipAutosave && lastHash !== location.hash && dirtyFields(f);
+  state.skipAutosave = false; lastHash = location.hash;
+  return want ? f : null;
+}
+async function autoSave(f) {
+  try { if (await AUTOSAVE[f.id](f, { silent: true })) { toast(t("已自动保存")); refresh(); } }
+  catch (e) { toast(t("自动保存失败：{msg}", { msg: e.message })); }
+}
 function onRoute() {
   const prev = state.route, next = parseRoute();
+  const pend = pendingAutosave();
+  if (pend) autoSave(pend);   // 后台保存；表单元素脱离页面后仍能读值
   scrollMem[routeKey(prev)] = window.scrollY;
   const enteringItem = isFormSection(next) && !isFormSection(prev);
   const leavingItem = isFormSection(prev) && !isFormSection(next);
@@ -197,7 +219,7 @@ function onRoute() {
   // 从目录或别的页进库存类清单：默认回到全部分类（从物品编辑页返回、或概览方块指定了分类时保留）
   if (isListRoute(next) && routeKey(prev) !== routeKey(next) && !isFormSection(prev)) {
     if (state.keepFilter) state.keepFilter = false;
-    else Object.assign(state.filter, { cat: "all", status: "all", q: "" });
+    else Object.assign(state.filter, { cat: "all", status: "all", q: "", loc: "all" });
   }
   state.route = next;
   render(true);
@@ -241,6 +263,11 @@ main.addEventListener("input", (e) => {
 });
 main.addEventListener("change", async (e) => {
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
+  if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
+  if (e.target.name === "location" && e.target.form?.elements.new_location) {   // 选“＋ 新位置…”：旁边出现输入框
+    const inp = e.target.form.elements.new_location, on = e.target.value === "__new__";
+    inp.hidden = !on; if (on) inp.focus();
+  }
   if (e.target.id === "alertSort") { setTodayPref({ mode: e.target.value }); return render(); }
   if (e.target.closest("#itemForm") && e.target.name === "category") {
     const fe = e.target.form.elements;
@@ -319,6 +346,11 @@ main.addEventListener("submit", async (e) => {
       return refresh();
     }
     if (f.id === "aiSettingsForm") { await saveAiForm(f); toast(t("AI 设置已保存（只存在本机）")); return render(); }
+    if (f.id === "locForm") {   // 存放位置：新建或重命名（重命名会把用到旧名字的物品、设备一起改）
+      const fe = f.elements;
+      await saveLocationForm(state, state.locForm || {}, fe.name.value.trim(), fe.grp.value);
+      state.locForm = null; return refresh();
+    }
     if (f.id === "assetForm") return saveAssetForm(f);
     if (f.id === "maintForm") {
       const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
@@ -371,20 +403,7 @@ main.addEventListener("submit", async (e) => {
       go(href("house", "assets"));
       return refresh();
     }
-    if (f.id === "houseForm") {
-      const d = readHouseForm(f), y = d.year_built, thisYear = new Date().getFullYear();
-      if (y != null && (y < 1850 || y > thisYear)) { $("#houseFormError").textContent = t("建成年份需要在 1850 到 {y} 之间。", { y: thisYear }); return; }
-      const first = !state.houseProfile;
-      await Store.saveHouseProfile(d, state.propertyId);
-      const prop = state.properties.find((p) => p.id === state.propertyId);   // 地址存在房产上
-      if (prop && (prop.address || "") !== (d.address || "")) await Store.saveProperty({ ...prop, address: d.address || null });
-      state.houseProfile = { ...d }; state.houseDraft = null;
-      toast(t("房屋资料已保存"));
-      const hasHouseItems = state.items.some(inSpace("house"));
-      // 分区保存：第一次保存房型后去推荐耗材，其余回到分区列表
-      go(first && f.dataset.sec === "type" && !hasHouseItems ? href("house", "template") : href("house", "profile"));
-      return refresh();
-    }
+    if (f.id === "houseForm") return saveHouseForm(f);
     if (f.id === "templateForm") {
       const keys = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
       if (!keys.length) return toast(t("还没有勾选耗材"));
@@ -519,6 +538,17 @@ main.addEventListener("click", async (e) => {
       case "cat-new": state.catForm = { space: el.dataset.space || state.filter.space }; render(); $("#catForm input[name=name]")?.focus(); return;
       case "cat-edit": { const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (c?.custom) state.catForm = { id: c.dbId, key: c.id, space: c.space, name: c.name, icon: c.icon, color: c.color, subs: c.subs }; render(); return; }
       case "cat-cancel": state.catForm = null; return render();
+      case "inv-clear": Object.assign(state.filter, { q: "", status: "all", loc: "all" }); return render();
+      // 设置 → 存放位置：新建 / 重命名 / 删除
+      case "loc-new": state.locForm = { name: "", grp: el.dataset.grp || "custom" }; render(); $("#locForm input[name=name]")?.focus(); return;
+      case "loc-edit": {
+        const name = el.dataset.name, c = customLocations().find((x) => x.name === name);
+        state.locForm = c ? { id: c.id, name: c.name, grp: c.grp, replaces: c.replaces, sort: c.sort, oldName: c.name } : { name, grp: groupOf(name)?.id || "custom", replaces: name, oldName: name };
+        render(); $("#locForm input[name=name]")?.focus(); return;
+      }
+      case "loc-cancel": state.locForm = null; return render();
+      case "loc-del": { const c = customLocations().find((x) => x.id === id); if (!c || !armed(el, t("再点一次确认删除"))) return; await deleteLocation(state, c); state.locForm = null; return refresh(); }
+      case "house-cancel": state.skipAutosave = true; return;   // 链接本身会跳回分区列表；明确取消就不自动保存
       case "cat-delete": {
         const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (!c?.custom) return;
         if (state.items.some((i) => i.category === c.id)) return toast(t("这个分类下还有物品，先把它们改到别的分类"));
@@ -600,6 +630,28 @@ main.addEventListener("click", async (e) => {
     }
   } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); refresh(); }
 });
+
+/** 房屋资料分区表单：保存后第一次填房型去推荐耗材，其余回分区列表；silent=true 为离开页面时自动保存（不跳转） */
+async function saveHouseForm(f, { silent = false } = {}) {
+  const d = readHouseForm(f), y = d.year_built, thisYear = new Date().getFullYear();
+  if (y != null && (y < 1850 || y > thisYear)) {
+    const msg = t("建成年份需要在 1850 到 {y} 之间。", { y: thisYear });
+    if (silent) toast(t("没有自动保存：{msg}", { msg })); else f.querySelector("#houseFormError").textContent = msg;
+    return false;
+  }
+  const first = !state.houseProfile;
+  await Store.saveHouseProfile(d, state.propertyId);
+  const prop = state.properties.find((p) => p.id === state.propertyId);   // 地址存在房产上
+  if (prop && (prop.address || "") !== (d.address || "")) await Store.saveProperty({ ...prop, address: d.address || null });
+  state.houseProfile = { ...d }; state.houseDraft = null;
+  if (silent) return true;
+  state.skipAutosave = true;
+  toast(t("房屋资料已保存"));
+  const hasHouseItems = state.items.some(inSpace("house"));
+  go(first && f.dataset.sec === "type" && !hasHouseItems ? href("house", "template") : href("house", "profile"));
+  refresh();
+  return true;
+}
 
 export async function addAlertsToShopping(list) {
   let added = 0;

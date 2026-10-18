@@ -28,7 +28,16 @@ window.GEAR_GROUP = { id: "gear", name: "装备", icon: "🧳", color: "#a0522d"
 
 // 单位列表按地区区分，见 units.js（Units.list()）
 window.OTHER_CAT = { id: "other", name: "其他", icon: "🧺", color: "#8a948f" };
-window.LOCATIONS = ["常温", "冷藏", "冷冻", "储物间", "卫生间", "厨房柜", "卧室", "衣柜", "地下室", "车库", "车内", "工具间", "阳台"];
+// 存放位置：按房间分组（下拉里用 optgroup，不会一长串）；家庭可在 设置 → 存放位置 里新增、重命名（如“客卧 1 衣柜”改成“Emma 的房间”）
+window.LOCATION_GROUPS = [
+  { id: "kitchen", name: "厨房与餐厅", locs: ["常温", "冷藏", "冷冻", "厨房柜", "食品储藏间", "餐厅柜"] },
+  { id: "living", name: "起居", locs: ["客厅电视柜", "玄关柜", "过道柜", "书房", "游戏室"] },
+  { id: "bedroom", name: "卧室", locs: ["卧室", "衣柜", "主卧衣柜", "客卧 1 衣柜", "客卧 2 衣柜", "儿童房"] },
+  { id: "bath", name: "卫浴与洗衣", locs: ["卫生间", "主卫", "客卫", "洗衣房柜"] },
+  { id: "storage", name: "储物", locs: ["储物间", "壁橱", "楼梯下", "阁楼", "地下室"] },
+  { id: "outdoor", name: "室外与车", locs: ["车库", "工具间", "车内", "阳台", "院子 / 棚屋"] },
+];
+window.LOCATIONS = window.LOCATION_GROUPS.flatMap((g) => g.locs);   // 平铺列表（旧代码兼容；加载自定义后由 locations.js 重算）
 
 window.DIETS = {
   general: {

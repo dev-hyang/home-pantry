@@ -496,10 +496,10 @@ function viewProfileSection(sec) {
   }[sec]();
   return `
     <section class="section form-page house-form">
-      <form id="houseForm" class="panel" data-sec="${sec}" novalidate>
+      <form id="houseForm" class="panel" data-sec="${sec}" novalidate data-autosave>
         ${body}
         <p id="houseFormError" class="form-error" role="alert"></p>
-        <div class="form-actions">
+        <div class="form-actions sticky-actions">
           <button type="submit" class="btn btn-primary">${t("保存")}</button>
           <a class="btn btn-ghost" href="${href("house", "profile")}" data-action="house-cancel">${t("取消")}</a>
         </div>

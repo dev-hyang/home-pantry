@@ -2,6 +2,7 @@ import { alertsOf, hasStock, memberName, openShopFor } from "../core/logic.js";
 import { STATUS, state } from "../core/state.js";
 import { aiPanel } from "./ai.js";
 import { COLORS, ICONS } from "../core/categories.js";
+import { locationGroups } from "../core/locations.js";
 import { Store } from "../core/store.js";
 import { $, catOf, catsOf, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText } from "../core/util.js";
 import { href } from "../core/router.js";
@@ -121,9 +122,49 @@ const stPill = (s, items) => {
   return `<span class="pill pill-ok"><i>✓</i>${t("充足")}</span>`;
 };
 
-/** 手机上的分类仪表盘（参考 iOS 提醒事项 / 常见记账 App 的卡片）：顶部一条汇总，下面每个分类一张卡 */
-function catDashboard(space, mine) {
-  const sorting = !!state.catSort, cats = orderedCats(space), gear = space === "gear";
+/** 搜索 / 状态 / 位置筛选是否生效（分类另算） */
+const filterActive = (f) => !!f.q.trim() || f.status !== "all" || (f.loc || "all") !== "all";
+/** 一件物品是否符合当前筛选（关键词、状态、位置；withCat=true 时也看分类） */
+export function matchItem(it, f, { withCat = true } = {}) {
+  const q = f.q.trim().toLowerCase();
+  if (withCat && f.cat !== "all" && it.category !== f.cat) return false;
+  if (q && !(`${it.name}${it.subcategory || ""}${t(it.subcategory || "")}${it.notes || ""}${it.location || ""}${t(it.location || "")}`).toLowerCase().includes(q)) return false;
+  if ((f.loc || "all") !== "all" && it.location !== f.loc) return false;
+  if (f.status === "alert") return it.status !== "ok";
+  if (f.status === "exp") return !!it.exp;
+  if (f.status !== "all") return it.status === f.status;
+  return true;
+}
+/** 位置筛选下拉：只列这个空间里实际用到的位置，按房间分组 */
+function locationFilter(mine, f) {
+  const used = new Set(mine.map((x) => x.location).filter(Boolean));
+  if (!used.size) return "";
+  const groups = locationGroups().map((g) => ({ ...g, locs: g.locs.filter((l) => used.has(l.name)) })).filter((g) => g.locs.length);
+  const known = new Set(groups.flatMap((g) => g.locs.map((l) => l.name)));
+  const other = [...used].filter((n) => !known.has(n));
+  const opt = (n) => `<option value="${esc(n)}" ${f.loc === n ? "selected" : ""}>${esc(t(n))}</option>`;
+  return `<select id="invLoc" aria-label="${t("按位置筛选")}"><option value="all">${t("全部位置")}</option>
+    ${groups.map((g) => `<optgroup label="${esc(t(g.name))}">${g.locs.map((l) => opt(l.name)).join("")}</optgroup>`).join("")}
+    ${other.length ? `<optgroup label="${t("其他")}">${other.map(opt).join("")}</optgroup>` : ""}</select>`;
+}
+
+/** 手机上的分类仪表盘（参考 iOS 提醒事项 / 常见记账 App 的卡片）：顶部一条汇总，下面每个分类一张卡。
+ * 有搜索 / 状态 / 位置筛选时：每张卡只数符合的物品，没有符合的卡变淡；点卡进入该分类，筛选条件保留。 */
+function catDashboard(space, all0) {
+  const f = state.filter, filtering = filterActive(f);
+  const mine = filtering ? all0.filter((x) => matchItem(x, f, { withCat: false })) : all0;
+  const sorting = !filtering && !!state.catSort, cats = orderedCats(space), gear = space === "gear";
+  if (filtering) {
+    const tiles = cats.map((c) => {
+      const items = mine.filter((x) => x.category === c.id), s = gear ? { kind: items.length ? "ok" : "none", out: 0, warn: 0 } : catStatus(items);
+      const body = `<span class="tile-top"><span class="tile-ico" style="--cat:${c.color}" aria-hidden="true">${c.icon}</span><b class="tile-count">${items.length}</b></span>
+        <span class="tile-name">${esc(t(c.name))}</span>${items.length ? `<span class="pill pill-none">${esc(items.slice(0, 3).map((x) => x.name).join(" · "))}${items.length > 3 ? " …" : ""}</span>` : `<span class="pill pill-none">${t("无")}</span>`}`;
+      return `<button type="button" class="tile st-${s.kind} ${items.length ? "is-hit" : "is-dim"}" data-action="cat" data-cat="${c.id}" ${items.length ? "" : "disabled"}>${body}</button>`;
+    }).join("");
+    return `<div class="dash-sum"><div class="sum-main"><b>${mine.length}</b><span>${t("件符合")}</span><small>${mine.length ? t("点格子进入分类，筛选条件会保留") : t("换个关键词或筛选试试")}</small></div>
+        <button type="button" class="stat" data-action="inv-clear"><b>✕</b><span>${t("清除")}</span></button></div>
+      <div class="cat-dash" id="catDash">${tiles}</div>`;
+  }
   const all = gear ? null : catStatus(mine), expN = gear ? 0 : mine.filter((x) => x.exp).length, lowN = gear ? 0 : mine.filter((x) => x.status === "low" || x.status === "soon").length;
   const stat = (n, label, status, cls) => `<button type="button" class="stat ${cls}" data-action="goto-status" data-space="${space}" data-status="${status}" ${n ? "" : "disabled"}><b>${n}</b><span>${label}</span></button>`;
   const summary = gear ? `<div class="dash-sum"><div class="sum-main"><b>${mine.length}</b><span>${t("件装备")}</span></div></div>`
@@ -168,7 +209,7 @@ function catFormHtml(cf) {
 }
 
 export function viewInventory(space = "pantry") {
-  if (state.filter.space !== space) Object.assign(state.filter, { space, cat: "all", q: "", status: state.filter.status });
+  if (state.filter.space !== space) Object.assign(state.filter, { space, cat: "all", q: "", status: state.filter.status, loc: "all" });
   const f = state.filter;
   const house = space === "house", gear = space === "gear";
   if (gear) f.status = "all";   // 装备没有库存状态
@@ -192,33 +233,27 @@ export function viewInventory(space = "pantry") {
           ${[["all", "全部状态"], ["alert", "需要补货"], ["out", "缺货"], ["low", "少货"], ["soon", "即将告罄"], ["exp", "临期或过期"], ["ok", "充足"]]
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
         </select>`}
+        ${locationFilter(mine, f)}
       </div>
       ${phone ? "" : `<div class="chips" role="group" aria-label="${t("按分类筛选")}">
         ${chip("all", t("全部"))}${orderedCats(space).map((c) => chip(c.id, `${c.icon} ${t(c.name)}`)).join("")}
         <button type="button" class="chip chip-add" data-action="cat-new" data-space="${space}">＋ ${t("新分类")}</button>
       </div>`}
       ${cf ? catFormHtml(cf) : ""}
-      ${dash && !cf ? catDashboard(space, mine) : ""}
-      <div id="invList" ${dash && !f.q.trim() ? "hidden" : ""}></div>
+      ${dash && !cf ? `<div id="dashWrap" data-space="${space}">${catDashboard(space, mine)}</div>` : ""}
+      <div id="invList" ${dash ? "hidden" : ""}></div>
     </section>`;
 }
 
 export function renderInvList() {
-  const f = state.filter, q = f.q.trim().toLowerCase();
+  const f = state.filter;
   const mine = state.enriched.filter(inSpace(f.space));
-  const list = mine.filter((it) => {
-    if (f.cat !== "all" && it.category !== f.cat) return false;
-    if (q && !(`${it.name}${it.subcategory || ""}${t(it.subcategory || "")}${it.notes || ""}`).toLowerCase().includes(q)) return false;
-    if (f.status === "alert") return it.status !== "ok";
-    if (f.status === "exp") return !!it.exp;
-    if (f.status !== "all") return it.status === f.status;
-    return true;
-  });
+  const list = mine.filter((it) => matchItem(it, f));
   const host = $("#invList");
   if (!host) return;
-  // 手机仪表盘：没搜索时只显示方块；一输入关键词就切成列表
-  const dash = $("#catDash"), foot = $(".dash-foot");
-  if (dash) { const show = !!q; dash.hidden = show; if (foot) foot.hidden = show; host.hidden = !show; if (!show) return; }
+  // 手机仪表盘（全部分类）：搜索 / 筛选只作用在方块上（符合的数量、没符合的变淡），列表不显示；点方块进分类后才列出
+  const wrap = $("#dashWrap");
+  if (wrap) { wrap.innerHTML = catDashboard(wrap.dataset.space, mine); host.hidden = true; return; }
   if (!list.length) {
     host.innerHTML = mine.length
       ? `<div class="panel empty"><strong>${t("没有符合条件的物品")}</strong>${t("换个关键词或分类试试。")}</div>`
