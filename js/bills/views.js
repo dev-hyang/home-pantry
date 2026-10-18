@@ -435,7 +435,9 @@ export async function saveBillForm(f, { silent = false } = {}) {
   if (b.autopay && b.pay_channel !== "autopay") b.pay_channel = "autopay";
   if (!b.autopay && b.pay_channel === "autopay") b.pay_channel = "online";
   if (!b.next_due_on) b.next_due_on = initialDue(b);
-  if (!b.next_due_on && b.frequency !== "one_time") return fail(t("这种频率算不出到期日，请填“下次到期日”。"), fe.next_due_on);
+  // 只改别的分区（如基本信息）时，到期日那块是隐藏的：不拦，照常保存，到期日留到“金额与周期”再补
+  const amountVisible = !fe.next_due_on.closest("fieldset")?.hidden;
+  if (!b.next_due_on && b.frequency !== "one_time" && amountVisible) return fail(t("这种频率算不出到期日，请填“下次到期日”。"), fe.next_due_on);
   const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
   try {
     await Store.saveBill(b);
