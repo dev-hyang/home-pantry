@@ -41,7 +41,7 @@
 }
 
 *, *::before, *::after { box-sizing: inherit; }
-html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 80px); }
+html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 80px); scrollbar-gutter: stable; }   /* 桌面：长短页面都留出滚动条位置，内容列不会左右跳 8px */
 body {
   margin: 0; background: var(--bg); color: var(--ink);
   font: 15px/1.6 var(--font); -webkit-font-smoothing: antialiased;
@@ -445,7 +445,7 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ── 页签目录页（参考家庭学堂“我的”页）：一栏一行，点进去；子页顶部一条面包屑回目录 ── */
-.menu-page { max-width: 720px; }
+.menu-page { max-width: none; }   /* 目录页也占满居中列，和底部页签对齐 */
 .mlist { padding: 4px 6px; }
 .mrow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 10px 10px; border-radius: var(--r-sm); color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); box-sizing: border-box; }
 .mrow:last-child { border-bottom: 0; }
@@ -485,7 +485,7 @@ button.mrow:last-child { border-bottom: 0; }
 .quick-link { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-weight: 700; }
 .quick-link:hover { border-color: var(--pine); }
 
-.house-intro { max-width: 640px; }
+.house-intro { max-width: none; }
 .house-intro h2 { font-size: 24px; margin-bottom: 8px; }
 .house-intro .btn { margin: 4px 8px 4px 0; }
 /* 房屋卡片：头部（图标 + 房型 + 修改）+ 事实表格（标签 / 值），保险、HOA 各占整行 */
