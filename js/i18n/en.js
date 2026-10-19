@@ -767,6 +767,8 @@ export const EN = {
   "请选择": "Choose…", "记一次": "Log one", "请选保养项目（维修可不选）": "Pick a service item (not needed for repairs)", "保养 / 检查 / 更换必选，这一项的下次日期才会更新；维修可不选": "Required for service / inspection / replacement so that item's next date updates; optional for repairs",
   "还没记过这项，按购车 / 安装日期起算": "Not logged yet; counted from the purchase / install date", "按里程推算，现在约 {n} {u}": "Estimated by mileage; now about {n} {u}",
   "按月和按里程取先到的；里程按年均里程推算。记保养时要选对“保养项目”，那一项的下次日期才会更新": "Whichever comes first by months or mileage; mileage is projected from annual miles. Pick the right service item when logging, or that item's next date won't move",
+  "家庭、房产、语言、存放位置、模块、备份、AI、姐妹站点": "Family, properties, language, locations, modules, backup, AI, sister sites",
+  "{n} 辆": "{n} vehicles", "{n} 台": "{n} units",
   "已自动保存": "Auto-saved", "没有自动保存：{msg}": "Not auto-saved: {msg}", "自动保存失败：{msg}": "Auto-save failed: {msg}",
   "按位置筛选": "Filter by location", "全部位置": "All locations", "件符合": "matches", "点格子进入分类，筛选条件会保留": "Tap a tile to open that category; filters stay on", "换个关键词或筛选试试": "Try another keyword or filter", "清除": "Clear",
   "你是一个家庭生活助手，帮一家人处理房屋保养、账单与省钱、买房卖房流程、清洁收纳、饮食与育儿家务等问题。回答要实用、简洁，必要时分步骤；涉及燃气、电、结构、法律、医疗时提醒找专业人士。": "You are a friendly household assistant for a family: home maintenance, bills and saving money, buying or selling a home, cleaning and organizing, meal planning, childcare logistics. Answer practically and concisely, in steps where useful; say when a professional is needed.",

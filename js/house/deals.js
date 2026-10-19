@@ -15,6 +15,14 @@ const END_LAG = { electric: 30, gas: 30, water: 45, internet: 14, mobile: 0, hoa
 
 export const currentProp = () => state.properties.find((p) => p.id === state.propertyId) || null;
 export const openDeal = (pid = state.propertyId) => state.deals.find((d) => d.property_id === pid && !d.outcome) || null;
+/** 交易子页在面包屑里的名字（?sec=info / stage:xxx / closeout） */
+export function dealSubLabel(sec) {
+  if (!sec) return null;
+  if (sec === "info") return t("交易信息");
+  if (sec.startsWith("stage:")) return t(D().STAGES[sec.slice(6)] || "");
+  if (sec === "closeout") return openDeal()?.kind === "buy" ? t("完成交割") : t("交割与退出");
+  return null;
+}
 export const statusText = (p) => t(D().PROPERTY_STATUS[p?.status] || "持有");
 /** 房产是否还在“使用中”（提醒只对这些房产生效） */
 export const propertyLive = (p) => !!p && !p.archived && !["sold", "moved_out"].includes(p.status);
@@ -107,19 +115,18 @@ export function viewDeal() {
   const undone = tasks.filter((x) => !x.done), mustLeft = undone.filter((x) => x.priority === "must").length;
   const K = D().KINDS;
   const sec = state.route?.q?.get("sec") || "";
-  // ── 子页：交易信息 / 某个阶段的清单 / 交割 ──
-  const back = `<nav class="crumb" aria-label="${t("位置")}"><a href="${href("house", "deal")}">‹ ${t("{kind}流程", { kind: t(K[deal.kind]) })}</a><span class="sep">/</span><b>%s</b></nav>`;
-  if (sec === "info") return `${back.replace("%s", t("交易信息"))}<section class="section">${dealForm(deal)}</section>`;
+  // ── 子页：交易信息 / 某个阶段的清单 / 交割（面包屑由 menu.js 统一画：‹ 房产 / 交易 / 子页名）──
+  if (sec === "info") return `<section class="section">${dealForm(deal)}</section>`;
   if (sec.startsWith("stage:")) {
     const g = groups.find((x) => x.k === sec.slice(6)); if (!g) return viewDeal();
     const done = g.rows.filter((x) => x.done).length;
-    return `${back.replace("%s", t(g.n))}<section class="section">
-      <div class="section-head"><h2>${t(g.n)}</h2><p>${t("已完成 {a} / {b}", { a: done, b: g.rows.length })}</p></div>
+    return `<section class="section">
+      <p class="muted" style="margin:-6px 0 12px;font-size:13px">${t("{kind}流程", { kind: t(K[deal.kind]) })} · ${t("已完成 {a} / {b}", { a: done, b: g.rows.length })}</p>
       <div class="panel"><ul class="task-list">${g.rows.sort((a, b) => (a.due || "9").localeCompare(b.due || "9")).map((x) => taskRow(x)).join("")}</ul></div>
       <p class="disclaimer">${t("清单按伊利诺伊州（芝加哥）常见流程整理，日期和税费以合同、律师和产权公司为准；其他州请按本地流程增删。")}</p>
     </section>`;
   }
-  if (sec === "closeout") return `${back.replace("%s", deal.kind === "buy" ? t("完成交割") : t("交割与退出"))}<section class="section">
+  if (sec === "closeout") return `<section class="section">
       ${state.closeout ? closeoutPanel(p, deal) : `<div class="panel"><div class="kv"><div class="muted">${deal.kind === "buy" ? t("交割完成后，把房产状态改为“持有”，记下买入日期和价格。") : t("交割完成后：账单设结束日期、生成取消自动扣款清单、房产归档保留历史。")}</div>
         <div class="head-acts"><button type="button" class="btn btn-primary btn-sm" data-action="deal-closeout">${deal.kind === "buy" ? t("已交割，标为持有") : t("开始退出向导")}</button>
           <button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel">${t("取消这笔交易")}</button></div></div></div>`}

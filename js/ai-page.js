@@ -30,7 +30,7 @@ export function viewAi() {
   const sites = AI_SITES.map(([n, u]) => `<a class="btn btn-sm btn-ghost" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("");
   return `<section class="section ai-page">
     <nav class="crumb" aria-label="${t("位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("小Y问")}</b></nav>
-    <div class="ai-hero"><div class="ai-hero-ico">${aiIcon(44)}</div><div><h2>${t("小Y问")}</h2><p class="muted">${ready ? t("用 {p} 直接回答；也可以复制提示词去别的 AI 问", { p: t(p.name) }) : t("家里的事都可以问：保养、账单、买卖房、收纳、带娃。没填 key 时会把问题连同家里的情况拼成提示词，复制到任一 AI 即可。")}</p></div></div>
+    <div class="ai-hero"><div class="ai-hero-ico">${aiIcon(44)}</div><div><p class="muted">${ready ? t("用 {p} 直接回答；也可以复制提示词去别的 AI 问", { p: t(p.name) }) : t("家里的事都可以问：保养、账单、买卖房、收纳、带娃。没填 key 时会把问题连同家里的情况拼成提示词，复制到任一 AI 即可。")}</p></div></div>
     <div class="chips" style="margin:12px 0 8px">${topics}</div>
     <form id="aiPageForm" class="panel">
       <textarea name="q" rows="3" maxlength="1000" placeholder="${t("例如：热水器 12 年了要不要换？卖房前哪些账单要提前通知停？")}">${esc(a.q)}</textarea>

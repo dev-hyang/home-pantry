@@ -1,6 +1,7 @@
 /* 枢纽页小部件：一行一个入口（图标、标题、状态文字、完成度条、徽章），和子页顶部的面包屑。
  * 长表单（账单、设备 / 车辆、房屋资料）都用它：先看目录和完成度，点进去只改一块。 */
 import { esc } from "./util.js";
+import { t } from "./i18n.js";
 
 /** 一行入口；pct 为空不画进度条 */
 export const hubRow = ({ href, icon, title, desc = "", pct = null, badge = "" }) => `<a class="mrow" href="${esc(href)}">
@@ -10,8 +11,19 @@ export const hubRow = ({ href, icon, title, desc = "", pct = null, badge = "" })
 
 export const hubList = (rows) => `<div class="panel mlist">${rows.join("")}</div>`;
 
-/** 子页面包屑：‹ 回枢纽 / 当前块 */
-export const sectionCrumb = (backHref, backLabel, cur) => `<nav class="crumb" aria-label="位置"><a href="${esc(backHref)}">‹ ${esc(backLabel)}</a><span class="sep">/</span><b>${esc(cur)}</b></nav>`;
+/** 面包屑：一行连续的层级，最后一项加粗当标题，中间项可点（href 链接或 action 按钮）。
+ * parts: [{ href?, action?, attrs?, label, icon? }, …]；全站所有子页都用它，页面不再另起一行标题。 */
+export function crumbNav(parts, cls = "") {
+  const node = (p, i, last) => {
+    const label = `${p.icon ? `${p.icon} ` : ""}${esc(p.label)}`;
+    if (last) return `<b>${label}</b>`;
+    if (p.action) return `<button type="button" class="link-name crumb-mid" data-action="${esc(p.action)}" ${p.attrs || ""}>${label}</button>`;
+    return `<a href="${esc(p.href || "#/")}">${i === 0 ? "‹ " : ""}${label}</a>`;
+  };
+  return `<nav class="crumb ${cls}" aria-label="${t("位置")}">${parts.map((p, i) => `${i ? `<span class="sep">/</span>` : ""}${node(p, i, i === parts.length - 1)}`).join("")}</nav>`;
+}
+/** 枢纽子页面包屑：‹ 来源页 / 枢纽（如“电费”） / 当前块；root 省略时两级 */
+export const sectionCrumb = (backHref, backLabel, cur, root = null) => crumbNav([...(root ? [root] : []), { href: backHref, label: backLabel }, { label: cur }]);
 
 /** 计数徽章 n/m */
 export const countBadge = (n, m, cls = "") => `<span class="badge mcount ${cls}" style="${cls ? "" : "background:var(--surface-2)"}">${n}/${m}</span>`;

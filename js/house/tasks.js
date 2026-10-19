@@ -87,7 +87,7 @@ export function viewTasks() {
   return `
     ${houseBar()}
     <section class="section">
-      <div class="section-head"><h2>${t("季节任务")}</h2><p>${t("{region}模板，按你家的设施筛选", { region: esc(t(H().REGIONS[p.region]?.name || "")) })}</p></div>
+      <p class="muted" style="margin:-6px 0 12px;font-size:13px">${t("{region}模板，按你家的设施筛选", { region: esc(t(H().REGIONS[p.region]?.name || "")) })}</p>
       <div class="chips" role="group" aria-label="${t("选择月份")}">${chips}</div>
       <div class="section-head"><h3 style="font-size:17px">${monthName(month)}${month === curM ? t("（本月）") : ""} · ${t("{season}季", { season: t(seasonOf(month)) })}</h3>
         <p>${list.length ? `${undone ? t("还有 {n} 项没做", { n: undone }) : t("都做完了")}${t("，共 {n} 项", { n: list.length })}` : t("这个月没有任务")}</p></div>

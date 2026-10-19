@@ -1,7 +1,8 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, catOf, catsOf, du, esc, fmt, listRoute, num, spaceOf, stampText, toast } from "../core/util.js";
-import { go, href } from "../core/router.js";
+import { SECTIONS, go, href } from "../core/router.js";
+import { crumbNav } from "../core/hub.js";
 import { memberName } from "../core/logic.js";
 import { t } from "../core/i18n.js";
 import { categoryOptions } from "./views.js";
@@ -44,15 +45,13 @@ export function viewItemForm() {
   const v = it || { category: defCat, unit: "个", quantity: 1, min_quantity: space === "gear" ? 0 : 1, lead_days: space === "house" ? 14 : space === "gear" ? 0 : 3, location: catOf(defCat).loc };
   state.editingCat = v.category;
   const gear = spaceOf(v.category) === "gear";
-  const backLabel = state.prevRoute ? t(SECTION_LABEL[state.prevRoute.section] || "上一页") : t("列表");
+  // 面包屑根：进来之前的页面；没有就回对应空间的清单
+  const root = { href: state.prevRoute && state.prevHash ? state.prevHash : href(...listRoute(space)), label: state.prevRoute ? t(SECTIONS[state.prevRoute.section]?.name || "上一页") : t(SECTION_LABEL[space] || "列表") };
   const f = Units.factor(v.unit), dUnit = du(v.unit);
   const dv = (x) => (x == null || x === "" ? "" : fmt(num(x) * f));
   return `
     <section class="section form-page">
-      <div class="section-head">
-        <h2>${it ? t("编辑：{name}", { name: esc(it.name) }) : t("添加物品")}</h2>
-        <button type="button" class="btn btn-sm btn-ghost" data-action="item-cancel">${t("返回{page}", { page: backLabel })}</button>
-      </div>
+      ${crumbNav([root, { label: it ? t("编辑：{name}", { name: it.name }) : t("添加物品"), icon: catOf(v.category).icon }])}
       <form id="itemForm" class="panel ${gear ? "is-gear" : ""}" novalidate data-autosave>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">
         <input type="hidden" name="orig_unit" value="${esc(v.unit)}">

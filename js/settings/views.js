@@ -99,7 +99,7 @@ function locationsPanel() {
 }
 
 /* ── 设置：目录页（每块一行，带当前状态）→ 点进去只看那一块 ── */
-const SETTING_SECTIONS = [
+export const SETTING_SECTIONS = [
   { id: "family", icon: "👨‍👩‍👧", name: "家庭与成员" },
   { id: "properties", icon: "🏠", name: "房产" },
   { id: "prefs", icon: "🌐", name: "语言、地区与单位" },
@@ -149,7 +149,7 @@ export function viewSettings() {
       ai: aiReady() ? t("{p} · 已填 key", { p: t(providerOf(aiSettings().provider).name) }) : t("未填 key，用“复制提示词”模式"),
       apps: t("小月亮、家庭学堂；介绍与注意事项"),
     };
-    return `<section class="section menu-page"><div class="section-head"><h2>${t("设置")}</h2>
+    return `<section class="section menu-page"><div class="section-head"><p>${t("家庭、房产、语言、存放位置、模块、备份、AI、姐妹站点")}</p>
         <div class="head-acts"><span id="syncBadge" class="sync ${syncState.err ? "err" : ""}" role="status">${esc(syncState.text)}</span>${cloud ? `<button type="button" class="btn btn-sm" data-action="reload">${t("立即同步")}</button>` : ""}</div></div>
       <div class="panel mlist">${SETTING_SECTIONS.map((s) => `<a class="mrow" href="${href("me", "settings")}?sec=${s.id}"><span class="mi" aria-hidden="true">${s.icon === "__AI__" ? aiIcon(24) : s.icon}</span><span class="mt"><b>${t(s.name)}</b><small>${esc(status[s.id])}</small></span><span class="mch" aria-hidden="true">›</span></a>`).join("")}</div>
       <div class="form-actions" style="margin-top:14px">${cloud ? `<button type="button" class="btn btn-danger-ghost" data-action="logout">${t("退出登录")}</button>` : `<button type="button" class="btn btn-danger-ghost" data-action="reset-demo">${t("恢复演示数据")}</button>`}</div>
@@ -219,9 +219,6 @@ export function viewSettings() {
     <div class="panel"><div class="kv"><div><b>${t("介绍与注意事项")}</b><div class="muted">${t("这个网站是什么、第一次怎么用、提醒怎么分级、哪些事要注意")}</div></div>
       <a class="btn btn-sm" href="${href("me", "about")}">${t("查看介绍")}</a></div></div>`,
   };
-  return `<section class="section">
-    <nav class="crumb" aria-label="${t("位置")}"><a href="${href("me", "settings")}">‹ ${t("设置")}</a><span class="sep">/</span><b>${t(meta.name)}</b></nav>
-    <div class="section-head"><h2>${meta.icon === "__AI__" ? aiIcon(26) : meta.icon} ${t(meta.name)}</h2></div>
-    <div class="settings">${blocks[meta.id]()}</div>
-  </section>`;
+  // 面包屑“‹ 我的 / 设置 / 家庭与成员”由 menu.js 统一画，这里不再另起标题行
+  return `<section class="section"><div class="settings">${blocks[meta.id]()}</div></section>`;
 }

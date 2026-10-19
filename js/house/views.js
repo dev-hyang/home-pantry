@@ -435,7 +435,7 @@ export function viewHouseProfile() {
       <span class="mch" aria-hidden="true">›</span></a>`;
   }).join("");
   return `<section class="section menu-page">
-    <div class="section-head"><h2>${t("房屋资料")}</h2><p>${first ? t("先选地区和房型，保存后其余分区随时补") : t("点一项进去改，各自保存")}</p></div>
+    <p class="muted" style="margin:-6px 0 12px;font-size:13px">${first ? t("先选地区和房型，保存后其余分区随时补") : t("点一项进去改，各自保存")}</p>
     <div class="panel mlist">${rows}</div>
     ${first ? `<p class="hint">${t("房型决定推荐什么耗材、生成哪些设备、每月有什么季节任务；其余分区（地址、保险、HOA、材料）可以之后再补。")}</p>` : ""}
     <div class="form-actions" style="margin-top:14px">${state.houseProfile ? `<a class="btn btn-ghost" href="${href("house", "overview")}">${t("返回房屋概览")}</a>` : `<a class="btn btn-primary" href="${href("house", "profile")}?sec=type">${t("开始：选地区和房型")}</a>`}</div>

@@ -6,10 +6,10 @@ import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, DAY, addMonths, daysUntil, esc, fmt, fmtDate, fmtShort, money, num, stampText, todayISO, toast } from "../core/util.js";
 import { locationField, resolveLocation } from "../core/locations.js";
-import { go, href } from "../core/router.js";
+import { SECTIONS, go, href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { houseBar } from "./property-form.js";
-import { countBadge, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
+import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 
 const H = () => window.HOUSE;
 const V = () => window.VEHICLES;
@@ -173,7 +173,7 @@ export function viewAssets() {
   return `
     ${houseBar()}
     <section class="section">
-      <div class="section-head"><h2>${t("设备档案")}</h2>
+      <div class="section-head"><p>${list.length ? t("{n} 台", { n: list.length }) : ""}</p>
         <div class="head-acts">${p ? `<a class="btn btn-sm btn-ghost" href="${href("house", "asset-template")}">${t("按房屋资料生成")}</a>` : ""}
           <a class="btn btn-primary" href="${href("asset", "new")}">${t("添加设备")}</a></div></div>
       ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.slice(0, 6).map((a) => `<li>
@@ -196,7 +196,7 @@ export function viewVehicles() {
   const notes = V().REGION_NOTES[region] || [];
   return `
     <section class="section">
-      <div class="section-head"><h2>🚗 ${t("车辆")}<span class="muted">${list.length ? `（${list.length}）` : ""}</span></h2>
+      <div class="section-head"><p>${list.length ? t("{n} 辆", { n: list.length }) : ""}</p>
         <div class="head-acts"><a class="btn btn-primary" href="${href("asset", "new")}?type=vehicle_gas">${t("添加车辆")}</a></div></div>
       ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.map((a) => `<li>
           <span class="badge ${a.followUp || a.service === "overdue" ? "b-out" : "b-soon"}">${a.followUp ? t(C().RESULTS[a.followUp.result]) : a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修")}</span>
@@ -385,7 +385,7 @@ function vehicleSchedule(a) {
       <td>${s.next ? `<b>${fmtDate(s.next)}</b>${s.nextMiles != null ? `<small>${fmt(s.nextMiles)} ${distUnit()}</small>` : ""}${s.days != null ? `<small>${s.days < 0 ? t("逾期 {d} 天", { d: -s.days }) : t("{d} 天后", { d: s.days })}</small>` : ""}${why(s) ? `<small class="muted">${why(s)}</small>` : ""}` : `<span class="muted">${t("记一次后开始算")}</span>`}</td>
       <td><a class="btn btn-sm btn-ghost" href="${base}?log=1&item=${s.key}">${t("记一次")}</a></td>
     </tr>`;
-  return `<div class="section-head" style="margin-top:20px"><h2>${t("保养时间表")}</h2><p>${t("按月和按里程取先到的；里程按年均里程推算。记保养时要选对“保养项目”，那一项的下次日期才会更新")}</p></div>
+  return `<div class="section-head"><p>${t("按月和按里程取先到的；里程按年均里程推算。记保养时要选对“保养项目”，那一项的下次日期才会更新")}</p></div>
     <div class="panel"><div class="ch-scroll"><table class="owner-table veh-table"><thead><tr><th>${t("项目")}</th><th>${t("周期")}</th><th>${t("上次")}</th><th>${t("下次")}</th><th></th></tr></thead><tbody>${items.map(row).join("")}</tbody></table></div></div>`;
 }
 
@@ -401,7 +401,8 @@ export function viewAssetForm() {
     expected_life_years: tplType?.life ?? "", service_interval_months: tplType?.interval ?? "", owner: "self",
   };
   const tool = v.kind === "tool", veh = v.kind === "vehicle";
-  const backLabel = state.prevRoute ? t({ today: "今日", house: "房屋", me: "我的" }[state.prevRoute.section] || "上一页") : veh ? t("车辆") : t("设备档案");
+  // 面包屑根：进来之前的页面（注意事项 / 房屋…），没有就回设备档案或车辆列表
+  const root = { href: state.prevRoute && state.prevHash ? state.prevHash : href("house", veh ? "vehicles" : "assets"), label: state.prevRoute ? t(SECTIONS[state.prevRoute.section]?.name || "上一页") : veh ? t("车辆") : t("设备档案") };
   const d = (x) => esc(x ?? "");
   const thisYear = new Date().getFullYear();
   const cur = Units.region.currency;
@@ -409,17 +410,14 @@ export function viewAssetForm() {
   // 已有记录：先看枢纽（各块完成度、保养记录、时间表、检查卡），点进去只改一块；新建仍是整页
   const sec = r.q.get("log") === "1" ? "log" : r.q.get("sec") || "";
   const hubHref = href("asset", a?.id || "new");
-  if (a && !sec) return assetHub(a, backLabel);
-  if (a && sec === "log") return `<section class="section form-page">${sectionCrumb(hubHref, a.name, t("保养记录"))}${maintSection(a, r.q.get("log") === "1")}</section>`;
-  if (a && sec === "schedule") return `<section class="section">${sectionCrumb(hubHref, a.name, t("保养时间表"))}${vehicleSchedule(a)}</section>`;
-  if (a && sec === "care") return `<section class="section">${sectionCrumb(hubHref, a.name, t("检查卡"))}${careCard(a.type, { open: true })}</section>`;
+  if (a && !sec) return assetHub(a, root);
+  if (a && sec === "log") return `<section class="section form-page">${sectionCrumb(hubHref, a.name, t("保养记录"), root)}${maintSection(a, r.q.get("log") === "1")}</section>`;
+  if (a && sec === "schedule") return `<section class="section">${sectionCrumb(hubHref, a.name, t("保养时间表"), root)}${vehicleSchedule(a)}</section>`;
+  if (a && sec === "care") return `<section class="section">${sectionCrumb(hubHref, a.name, t("检查卡"), root)}${careCard(a.type, { open: true })}</section>`;
   const hide = (k) => (a && sec && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">
-      ${a ? sectionCrumb(hubHref, a.name, t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || "")) : `<div class="section-head">
-        <h2>${veh ? t("添加车辆") : t("添加设备")}</h2>
-        <button type="button" class="btn btn-sm btn-ghost" data-action="asset-cancel">${t("返回{page}", { page: backLabel })}</button>
-      </div>`}
+      ${a ? sectionCrumb(hubHref, a.name, t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || ""), root) : crumbNav([root, { label: veh ? t("添加车辆") : t("添加设备") }])}
       <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${a && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
         <fieldset data-sec="basic" ${hide("basic")}>
@@ -516,7 +514,7 @@ const ASSET_SECTIONS = [
   { id: "notes", icon: "📝", name: "备注" },
 ];
 /** 设备 / 车辆枢纽页：摘要 + 各块完成度 + 保养记录 / 时间表 / 检查卡入口 + 删除 */
-function assetHub(a, backLabel) {
+function assetHub(a, root) {
   const veh = isVehicle(a), v = a.vehicle || {}, ins = v.insurance || {};
   const base = href("asset", a.id);
   const pct = (n, m) => ({ pct: Math.round((n / m) * 100), badge: countBadge(n, m) });
@@ -537,10 +535,7 @@ function assetHub(a, backLabel) {
     !veh && C().cardOf(a.type) ? hubRow({ href: `${base}?sec=care`, icon: "🔍", title: t("检查卡"), desc: t("怎么查、什么时候叫人") }) : "",
   ].filter(Boolean);
   return `<section class="section">
-    <div class="section-head">
-      <h2>${a.t?.icon || "⚙️"} ${esc(a.name)}</h2>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="asset-cancel">${t("返回{page}", { page: backLabel })}</button>
-    </div>
+    ${crumbNav([root, { label: a.name, icon: a.t?.icon || "⚙️" }])}
     ${assetSummary(a)}
     ${hubList(more)}
     <div class="section-head" style="margin-top:18px"><h3 style="font-size:15px">${t("档案")}</h3></div>
@@ -575,7 +570,7 @@ function maintSection(a, focusLog) {
   const followUp = a.followUp ? `<div class="panel cta-panel" style="margin-bottom:10px"><div><b>${t("{date} 检查结论：{r}", { date: fmtDate(a.followUp.done_on), r: t(R[a.followUp.result]) })}</b>
       <p class="muted">${t("记一条保养、维修或更换后，这条提醒会消失。")}</p></div></div>` : "";
   return `
-    <div class="section-head" style="margin-top:28px"><h2>${t("保养记录")}</h2><p>${veh ? t("按保养项目算下次到期；维修不重置") : t("检查、保养、更换会重算下次保养日期；维修不会")}</p></div>
+    <div class="section-head"><p>${veh ? t("按保养项目算下次到期；维修不重置") : t("检查、保养、更换会重算下次保养日期；维修不会")}</p></div>
     ${followUp}
     <form id="maintForm" class="panel" ${focusLog ? 'data-focus="1"' : ""}>
       <input type="hidden" name="asset_id" value="${esc(a.id)}">

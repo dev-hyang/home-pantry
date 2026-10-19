@@ -7,7 +7,10 @@ import { t } from "./core/i18n.js";
 import { alertsOf } from "./core/logic.js";
 import { assetAlerts, myAssets, myVehicles } from "./house/assets.js";
 import { undoneThisMonth } from "./house/tasks.js";
-import { openDeal } from "./house/deals.js";
+import { dealSubLabel, openDeal } from "./house/deals.js";
+import { SETTING_SECTIONS } from "./settings/views.js";
+import { aiIcon } from "./core/ai.js";
+import { crumbNav } from "./core/hub.js";
 import { billAlerts } from "./bills/logic.js";
 import { collectAlerts } from "./core/alerts.js";
 import { houseBar } from "./house/property-form.js";
@@ -52,9 +55,9 @@ export const menuRow = ({ href: url, icon, title, desc, count, countLabel, exter
     <span class="mch" aria-hidden="true">›</span></a>`;
 
 /** 房屋页签的第一层：房产列表（每套一行，带状态和待处理数），下面是家庭级的车辆和添加房产 */
+const KIND_ICON = { sfh: "🏡", townhome: "🏘️", condo: "🏢", apartment: "🔑", other: "🏠" };   // 房产类型图标：列表行和面包屑共用
 export function viewPropertyList() {
   const K = window.BILLS.PROPERTY_KINDS, ST = window.DEALS.PROPERTY_STATUS;
-  const KIND_ICON = { sfh: "🏡", townhome: "🏘️", condo: "🏢", apartment: "🔑", other: "🏠" };
   const alerts = collectAlerts();
   const live = state.properties.filter((p) => !p.archived);
   const rows = live.map((p) => {
@@ -89,8 +92,8 @@ export function viewMenu(section) {
   const apps = section === "me" ? (window.SISTER_APPS || []).filter((a) => a.id !== "home-pantry") : [];
   const prop = section === "house" ? state.properties.find((p) => p.id === state.propertyId) : null;
   return `<section class="section menu-page">
-    ${prop ? `<nav class="crumb" aria-label="${t("位置")}"><a href="${href("house")}">‹ ${t("房屋")}</a><span class="sep">/</span><b>${esc(prop.name)}</b></nav>` : ""}
-    <div class="section-head"><h2>${prop ? `🏠 ${esc(prop.name)}` : `${SECTION_ICON[section] || ""} ${t(sec.name)}`}</h2>${prop ? `<p>${esc([t(window.DEALS.PROPERTY_STATUS[prop.status] || "持有"), prop.address].filter(Boolean).join(" · "))}</p>` : ""}</div>
+    ${prop ? `${crumbNav([{ href: href("house"), label: t("房屋") }, { label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }])}<p class="muted" style="margin:-6px 0 12px;font-size:13px">${esc([t(window.DEALS.PROPERTY_STATUS[prop.status] || "持有"), prop.address].filter(Boolean).join(" · "))}</p>`
+      : `<div class="section-head"><h2>${SECTION_ICON[section] || ""} ${t(sec.name)}</h2></div>`}
     ${section === "house" ? houseBar() : ""}
     <div class="panel mlist">${rows}</div>
     ${apps.length ? `<div class="section-head" style="margin-top:22px"><h2>${t("姐妹站点")}</h2></div>
@@ -105,15 +108,19 @@ export function crumb(r) {
   const parent = r.section === "bills" ? { template: "list" } : { template: "supplies", "asset-template": "assets" };
   const cur = sec.subs.find(([k]) => k === r.sub) || sec.subs.find(([k]) => k === parent[r.sub]);
   const prop = r.section === "house" && r.sub !== "vehicles" ? state.properties.find((p) => p.id === state.propertyId) : null;
-  let back = prop ? { href: href("house", "pages"), label: prop.name } : { href: href(r.section), label: t(sec.name) };
-  let curLabel = cur ? t(cur[1]) : "";
-  // 房屋资料的某个分区：回到分区列表
-  const psec = r.section === "house" && r.sub === "profile" ? PROFILE_SECTIONS.find((s) => s.id === r.q.get("sec")) : null;
-  if (psec) { back = { href: href("house", "profile"), label: t("房屋资料") }; curLabel = t(psec.name); }
-  // 库存类页面选了某个分类：‹ 储藏 / 库存 / 生鲜（“库存”可点回全部分类）
+  const parts = [prop ? { href: href("house", "pages"), label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" } : { href: href(r.section), label: t(sec.name) }];
+  const curLabel = cur ? t(cur[1]) : "", subHref = href(r.section, cur?.[0] || r.sub);
+  // 三级：房屋资料分区 / 交易子页 / 设置分区 / 库存分类 —— 中间项可点回上一级，页面不再另起标题行
+  const q = r.q;
+  const psec = r.section === "house" && r.sub === "profile" ? PROFILE_SECTIONS.find((s) => s.id === q.get("sec")) : null;
+  const dsec = r.section === "house" && r.sub === "deal" ? dealSubLabel(q.get("sec")) : null;
+  const ssec = r.section === "me" && r.sub === "settings" ? SETTING_SECTIONS.find((s) => s.id === q.get("sec")) : null;
   const invPage = (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies");
   const cat = invPage && state.filter.cat !== "all" ? window.CATEGORIES.find((c) => c.id === state.filter.cat) : null;
-  const tail = cat ? `<span class="sep">/</span><b>${cat.icon} ${esc(t(cat.name))}</b>` : "";
-  const mid = cat ? `<button type="button" class="link-name crumb-mid" data-action="cat" data-cat="all">${curLabel}</button>` : `<b>${curLabel}</b>`;
-  return `<nav class="crumb" aria-label="${t("位置")}"><a href="${back.href}">‹ ${esc(back.label)}</a><span class="sep">/</span>${mid}${tail}</nav>`;
+  if (psec) parts.push({ href: subHref, label: curLabel }, { label: t(psec.name), icon: psec.icon });
+  else if (dsec) parts.push({ href: subHref, label: curLabel }, { label: dsec });
+  else if (ssec) parts.push({ href: subHref, label: curLabel }, { label: t(ssec.name), icon: ssec.icon === "__AI__" ? aiIcon(18) : ssec.icon });
+  else if (cat) parts.push({ action: "cat", attrs: 'data-cat="all"', label: curLabel }, { label: t(cat.name), icon: cat.icon });   // “库存”可点回全部分类
+  else parts.push({ label: curLabel });
+  return crumbNav(parts);
 }

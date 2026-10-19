@@ -221,7 +221,7 @@ export function viewInventory(space = "pantry") {
   const cf = state.catForm && state.catForm.space === space ? state.catForm : null;
   return `
     <section class="section">
-      <div class="section-head"><h2>${phone && cur ? `${esc(t(cur.name))}<span class="muted">（${mine.filter((x) => x.category === cur.id).length}）</span>` : gear ? t("装备") : house ? t("房屋耗材") : t("库存清单")}</h2>
+      <div class="section-head"><p>${cur ? t("{n} 件", { n: mine.filter((x) => x.category === cur.id).length }) : t("{n} 件", { n: mine.length })}</p>
         <div class="head-acts">${house && !phone ? `<a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>` : ""}
         ${cur?.custom && !cf ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-edit" data-cat="${cur.id}">${t("编辑分类")}</button>` : ""}
         <a class="btn btn-primary ${phone ? "btn-sm" : ""}" href="${href("item", "new")}?space=${space}${cur ? `&cat=${cur.id}` : ""}">${gear ? t("添加装备") : t("添加物品")}</a></div></div>

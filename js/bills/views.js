@@ -2,13 +2,13 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, esc, fmtDate, fmtShort, money, num, stampText, todayISO, toast } from "../core/util.js";
-import { go, href } from "../core/router.js";
+import { SECTIONS, go, href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { download } from "../stats/views.js";
 import { STATUS_RANK, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
 import { propertyTag, withProperty } from "../core/alerts.js";
-import { countBadge, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
+import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 
 const B = () => window.BILLS;
 const BADGE = { overdue: "b-out", due: "b-low", verify: "b-soon", soon: "b-soon", ok: "b-ok", none: "", ended: "", inactive: "" };
@@ -184,7 +184,7 @@ export function viewBillTemplate() {
   const hasBill = (r) => { const pid = r.property === false ? "" : (prop?.id || ""); return have.has(`${pid}|${r.category}|${r.name}`) || have.has(`${pid}|${r.category}|${t(r.name)}`); };
   return `
     <section class="section">
-      <div class="section-head"><h2>${t("常用账单")}</h2><p>${t("{region}模板，共 {n} 条；金额和到期日建好后再补", { region: t(region === "na" ? "北美" : "中国"), n: tpl.length })}</p></div>
+      <div class="section-head"><p>${t("{region}模板，共 {n} 条；金额和到期日建好后再补", { region: t(region === "na" ? "北美" : "中国"), n: tpl.length })}</p></div>
       ${propertyBar()}
       <form id="billTemplateForm" class="panel">
         <div class="tpl-bar">
@@ -258,20 +258,18 @@ export function viewBillForm() {
   const d = (x) => esc(x ?? "");
   const cloud = Store.mode === "cloud";
   const opts = (map, sel) => Object.entries(map).map(([k, n]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${t(n)}</option>`).join("");
-  const backLabel = state.prevRoute ? t({ today: "今日", bills: "账单", me: "我的" }[state.prevRoute.section] || "上一页") : t("账单");
+  // 面包屑根：进来之前的页面（注意事项 / 账单 / 房屋…），没有就回账单清单
+  const root = { href: state.prevRoute && state.prevHash ? state.prevHash : href("bills", "list"), label: state.prevRoute ? t(SECTIONS[state.prevRoute.section]?.name || "上一页") : t("账单") };
   const landlord = state.properties.some((p) => p.role === "landlord");
   // 已有账单：先看枢纽（各块完成度），点进去只改一块；新建仍是整页
   const sec = r.q.get("pay") === "1" ? "pay" : r.q.get("sec") || "";
   const hubHref = href("bill", b?.id || "new");
-  if (b && !sec) return billHub(b, backLabel);
-  if (b && sec === "pay") return `<section class="section form-page">${sectionCrumb(hubHref, b.name, t("缴费记录"))}${paySection(b, r.q.get("pay") === "1")}</section>`;
+  if (b && !sec) return billHub(b, root);
+  if (b && sec === "pay") return `<section class="section form-page">${sectionCrumb(hubHref, b.name, t("缴费记录"), root)}${paySection(b, r.q.get("pay") === "1")}</section>`;
   const hide = (k) => (b && sec && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">
-      ${b ? sectionCrumb(hubHref, b.name, t(BILL_SECTIONS.find((s) => s.id === sec)?.name || "")) : `<div class="section-head">
-        <h2>${t("添加账单")}</h2>
-        <button type="button" class="btn btn-sm btn-ghost" data-action="bill-cancel">${t("返回{page}", { page: backLabel })}</button>
-      </div>`}
+      ${b ? sectionCrumb(hubHref, b.name, t(BILL_SECTIONS.find((s) => s.id === sec)?.name || ""), root) : crumbNav([root, { label: t("添加账单") }])}
       <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""} ${b && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="bill_id" value="${d(b?.id)}">
         <fieldset data-sec="basic" ${hide("basic")}>
@@ -343,7 +341,7 @@ const BILL_SECTIONS = [
   { id: "pay", icon: "✅", name: "缴费记录" },
 ];
 /** 账单枢纽页：摘要 + 各块完成度 + 缴费记录入口 + 删除 */
-function billHub(b, backLabel) {
+function billHub(b, root) {
   const base = href("bill", b.id);
   const st = {
     basic: () => { const n = 2 + filledCount([b.payee, b.account_last4, b.login_hint, b.pay_url]); return { text: [t(billCat(b.category).name), b.payee].filter(Boolean).join(" · "), pct: Math.round((n / 6) * 100), badge: countBadge(n, 6) }; },
@@ -354,10 +352,7 @@ function billHub(b, backLabel) {
   };
   const rows = BILL_SECTIONS.map((s) => { const x = st[s.id](); return hubRow({ href: `${base}?sec=${s.id}`, icon: s.icon, title: t(s.name), desc: esc(x.text), pct: x.pct, badge: x.badge }); });
   return `<section class="section">
-    <div class="section-head">
-      <h2>${propertyTag(b.property_id)}${billCat(b.category).icon} ${esc(b.name)}</h2>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="bill-cancel">${t("返回{page}", { page: backLabel })}</button>
-    </div>
+    ${crumbNav([root, { label: b.name, icon: `${propertyTag(b.property_id)}${billCat(b.category).icon}` }])}
     ${billSummary(b)}
     ${hubList(rows)}
     <div class="form-actions" style="margin-top:14px">

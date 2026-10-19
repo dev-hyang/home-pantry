@@ -462,11 +462,14 @@ button.mrow:last-child { border-bottom: 0; }
 .mprog { display: block; height: 4px; border-radius: 99px; background: var(--surface-2); margin-top: 5px; max-width: 220px; overflow: hidden; }
 .mprog i { display: block; height: 100%; background: var(--pine); }
 .mrow .mch { color: var(--muted); font-size: 20px; line-height: 1; }
-.crumb { display: flex; align-items: center; gap: 8px; margin: -6px 0 14px; font-size: 14px; }
-.crumb a { color: var(--pine); text-decoration: none; font-weight: 700; padding: 6px 10px 6px 6px; margin-left: -6px; border-radius: 999px; }
+/* 面包屑：全站子页只有这一行层级，最后一项加粗放大当标题（‹ 我的 / 设置 / 家庭与成员） */
+.crumb { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin: -6px 0 14px; font-size: 14px; }
+.crumb a { color: var(--pine); text-decoration: none; font-weight: 700; padding: 6px 10px 6px 6px; margin-left: -6px; border-radius: 999px; white-space: nowrap; }
 .crumb a:hover { background: var(--surface-2); }
 .crumb .sep { color: var(--line); }
-.crumb b { font-weight: 800; }
+.crumb b { font-weight: 800; font-size: 18px; min-width: 0; overflow-wrap: anywhere; }
+.crumb b .ai-ico { vertical-align: -3px; }
+.crumb b .space-tag { font-size: 12px; vertical-align: 3px; margin-right: 4px; }
 .head-acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .link-name { border: 0; background: none; padding: 0; font-weight: 700; cursor: pointer; text-align: left; color: inherit; }
 .link-name:hover { text-decoration: underline; }
