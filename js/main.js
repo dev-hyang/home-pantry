@@ -219,6 +219,8 @@ function onRoute() {
     state.propertyId = wantProp; try { localStorage.setItem("hmh-property", wantProp); } catch { /* 忽略 */ }
     state.houseDraft = null; state.route = next; refresh(); return;
   }
+  // 手动点了底部页签：恢复该页签的默认筛选（浏览器后退不会设这个标记，筛选照旧）
+  if (state.tabReset) { if (next.section === state.tabReset) resetSectionFilters(next.section); state.tabReset = null; }
   // 从目录或别的页进库存类清单：默认回到全部分类（从物品编辑页返回、或概览方块指定了分类时保留）
   if (isListRoute(next) && routeKey(prev) !== routeKey(next) && !isFormSection(prev)) {
     if (state.keepFilter) state.keepFilter = false;
@@ -247,6 +249,25 @@ function onRoute() {
 // 滚动位置由我们自己记忆和恢复，关闭浏览器的自动恢复以免互相干扰
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 window.addEventListener("hashchange", onRoute);
+
+/* ── 底部页签：手动点页签 = 回到该页签首页并恢复默认筛选（多套房产时账单回“全部房产”）；浏览器后退不走这里，筛选照旧。
+ * 已经在该页签首页再点一次（或双击）：也恢复默认筛选并回到顶部。 */
+function resetSectionFilters(section) {
+  switch (section) {
+    case "today": setTodayPref({ source: null }); break;
+    case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
+    case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.tasksMonth = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
+    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all" }); break;
+    case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
+    default: break;
+  }
+}
+$("#tabs").addEventListener("click", (e) => {
+  const a = e.target.closest("a[data-section]"); if (!a) return;
+  const sec = a.dataset.section, root = a.getAttribute("href");
+  if (location.hash === root) { e.preventDefault(); resetSectionFilters(sec); render(true); window.scrollTo(0, 0); return; }
+  state.tabReset = sec;   // 进入后在 onRoute 里恢复默认筛选
+});
 
 const toList = (space) => href(...listRoute(space));
 

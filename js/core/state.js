@@ -23,6 +23,7 @@ export const state = {
   filter: { space: "pantry", cat: "all", q: "", status: "all", loc: "all" },   // 库存清单：空间、分类、关键词、状态、存放位置
   locForm: null,                               // 设置 → 存放位置：正在新建 / 重命名的位置 { id?, name, grp, replaces?, oldName? }
   skipAutosave: false,                         // 点了取消 / 保存 / 删除后离开表单页：不自动保存
+  tabReset: null,                              // 刚手动点了哪个底部页签：进入后恢复该页签的默认筛选
   diet: localStorage.getItem("hmh-diet") || "general",
   mealShift: 0,
   user: null, household: null, households: [], displayName: "我",
