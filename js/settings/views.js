@@ -160,7 +160,7 @@ function aiBlock() {
     <div class="form-grid">
       <label>${t("模型服务")}<select name="provider">${PROVIDERS.map((x) => `<option value="${x.id}" ${x.id === s.provider ? "selected" : ""}>${esc(t(x.name))}${COST[x.cost] ? ` · ${COST[x.cost]}` : ""}</option>`).join("")}</select>
         <small>${esc(t(p.hint || ""))}${p.signup ? ` <a href="${p.signup}" target="_blank" rel="noopener noreferrer">${t("去申请 key")}</a>` : ""}</small></label>
-      <label>${t("API key")}<input name="key" type="password" autocomplete="off" maxlength="300" value="${esc(s.key)}" placeholder="${esc(p.keyPrefix ? `${p.keyPrefix}…` : "sk-…")}">
+      <label>${t("API key")}<input name="key" type="password" autocomplete="off" maxlength="300" value="${esc(s.key)}" placeholder="${esc(p.keyPrefix ? `${[].concat(p.keyPrefix)[0]}…` : "sk-…")}">
         <small>${esc(t(p.keyHint || "在服务商控制台创建 API key，整段粘贴到这里"))}</small></label>
       <label>${t("家庭人数（菜单份量）")}<input name="people" type="number" inputmode="numeric" min="1" max="20" value="${s.people || 4}"></label>
     </div>

@@ -23,7 +23,7 @@ export function aiIcon(size = 22, cls = "") {
 export const PROVIDERS = [
   // keyHint：怎么拿 key、长什么样；keyPrefix：key 开头（测试连接时先核对，贴错服务的 key 会直接提示）。模型名和地址都有默认值，只有“自定义”需要填
   { id: "gemini", name: "Google Gemini", kind: "gemini", base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-flash", cost: "free", signup: "https://aistudio.google.com/apikey", hint: "AI Studio 免费额度（每天有次数上限，太平洋时间 0 点重置）；国内需能访问 Google",
-    keyHint: "打开 Google AI Studio → Get API key → Create API key，复制以 AIza 开头的一整串贴到这里。模型和地址不用填，会自动选可用的 Gemini Flash 模型。", keyPrefix: "AIza" },
+    keyHint: "打开 Google AI Studio → Get API key → Create API key，复制整串贴到这里（旧 key 以 AIza 开头，新 key 以 AQ. 开头，都行）。模型和地址不用填，会自动选可用的 Gemini Flash 模型。", keyPrefix: ["AIza", "AQ."] },
   { id: "groq", name: "Groq（Llama，免费档）", kind: "openai", base: "https://api.groq.com/openai/v1", model: "llama-3.1-8b-instant", cost: "free", signup: "https://console.groq.com/keys", hint: "免费档每天有次数上限，速度快；上限以控制台 Limits 页为准", keyHint: "console.groq.com → API Keys → Create API Key，key 以 gsk_ 开头。", keyPrefix: "gsk_" },
   { id: "openrouter", name: "OpenRouter（免费模型）", kind: "openai", base: "https://openrouter.ai/api/v1", model: "meta-llama/llama-3.3-70b-instruct:free", cost: "free", signup: "https://openrouter.ai/keys", hint: "带 :free 的模型不收费，但每天次数很少；模型名以网站列表为准", keyHint: "openrouter.ai → Keys → Create key，key 以 sk-or- 开头。", keyPrefix: "sk-or-" },
   { id: "deepseek", name: "DeepSeek", kind: "openai", base: "https://api.deepseek.com", model: "deepseek-chat", cost: "cheapest", signup: "https://platform.deepseek.com/", hint: "注册送额度；之后每次菜单约几分钱", keyHint: "platform.deepseek.com → API keys → 创建，key 以 sk- 开头。", keyPrefix: "sk-" },
@@ -292,7 +292,11 @@ export async function testModel() {
   const base = (s.base || p.base).replace(/\/+$/, ""), model = s.model || p.model;
   if (!key) throw new Error(t("先填 API key"));
   if (p.id === "custom" && !/^https:\/\//i.test(base)) throw new Error(t("接口地址要以 https:// 开头，填到 /v1 为止"));
-  if (p.keyPrefix && !key.startsWith(p.keyPrefix)) throw new Error(t("{p} 的 key 应该以 {prefix} 开头，这个看起来不是它发的 key；{hint}", { p: t(p.name), prefix: p.keyPrefix, hint: t(p.keyHint || "") }));
+  // key 开头核对只拦“明显贴错家”的情况（如给 Gemini 贴了 sk- 开头的 key）；各家格式会变，不认识的开头照样放行，让接口自己判断
+  const prefixes = (q) => (Array.isArray(q.keyPrefix) ? q.keyPrefix : q.keyPrefix ? [q.keyPrefix] : []);
+  const mine = prefixes(p).some((x) => key.startsWith(x));
+  const other = !mine && PROVIDERS.find((q) => q.id !== p.id && prefixes(q).some((x) => key.startsWith(x) && !prefixes(p).some((y) => y.startsWith(x))));
+  if (other) throw new Error(t("这个 key 的开头像是 {other} 的，不是 {p} 的；{hint}", { other: t(other.name), p: t(p.name), hint: t(p.keyHint || "") }));
   gate(s, p);
   try {
     if (p.kind === "gemini") await geminiCall(s, base, key, { contents: [{ role: "user", parts: [{ text: "hi" }] }] });

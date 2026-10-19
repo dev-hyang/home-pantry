@@ -777,7 +777,8 @@ export const EN = {
   "自建": "custom", "改过": "modified", "已隐藏": "hidden", "没有小类": "no subcategories", "恢复默认": "Restore default", "隐藏分类": "Hide category", "重新显示": "Show again",
   "已恢复默认": "Restored to default", "已隐藏分类": "Category hidden", "已重新显示": "Category shown again",
   // ── AI key 说明 / 自动选模型 ──
-  "打开 Google AI Studio → Get API key → Create API key，复制以 AIza 开头的一整串贴到这里。模型和地址不用填，会自动选可用的 Gemini Flash 模型。": "Open Google AI Studio → Get API key → Create API key, and paste the whole string starting with AIza here. No model or URL needed; an available Gemini Flash model is picked automatically.",
+  "打开 Google AI Studio → Get API key → Create API key，复制整串贴到这里（旧 key 以 AIza 开头，新 key 以 AQ. 开头，都行）。模型和地址不用填，会自动选可用的 Gemini Flash 模型。": "Open Google AI Studio → Get API key → Create API key, and paste the whole string here (older keys start with AIza, newer ones with AQ.; both work). No model or URL needed; an available Gemini Flash model is picked automatically.",
+  "这个 key 的开头像是 {other} 的，不是 {p} 的；{hint}": "This key looks like a {other} key, not {p}. {hint}",
   "console.groq.com → API Keys → Create API Key，key 以 gsk_ 开头。": "console.groq.com → API Keys → Create API Key; the key starts with gsk_.",
   "openrouter.ai → Keys → Create key，key 以 sk-or- 开头。": "openrouter.ai → Keys → Create key; the key starts with sk-or-.",
   "platform.deepseek.com → API keys → 创建，key 以 sk- 开头。": "platform.deepseek.com → API keys → Create; the key starts with sk-.",
