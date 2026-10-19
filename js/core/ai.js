@@ -4,9 +4,10 @@
  * 所有 OpenAI 兼容接口共用一套代码；Gemini、Claude 各自一套。发送给模型的只有食材名、数量、单位、临期天数，不传备注。 */
 import { state } from "./state.js";
 import { inSpace, num } from "./util.js";
-import { lang, t } from "./i18n.js";
+import { lang, locale, t } from "./i18n.js";
 
 const KEY = "hmh-ai";
+const USAGE_KEY = "hmh-ai-usage";   // 本机调用计数：{ provider: { day, count, minute, mcount, blockedUntil } }
 
 /** AI 助手图标：圆角渐变底 + 白色 Y 字（两臂微弯）+ 右上角一颗芥末黄小星，内联 SVG，随文字大小缩放 */
 export function aiIcon(size = 22, cls = "") {
@@ -18,11 +19,13 @@ export function aiIcon(size = 22, cls = "") {
     <path d="M24.5 4.5 L25.6 7.4 L28.5 8.5 L25.6 9.6 L24.5 12.5 L23.4 9.6 L20.5 8.5 L23.4 7.4 Z" fill="#e9b949"/>
   </svg>`;
 }
-// 按性价比排序：前三个一次菜单约几分钱或免费
+// 默认 Gemini：美国可用的免费额度；其余按性价比排序。免费档的次数上限见 FREE_TIER，到上限就停
 export const PROVIDERS = [
+  { id: "gemini", name: "Google Gemini", kind: "gemini", base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-flash", cost: "free", signup: "https://aistudio.google.com/apikey", hint: "AI Studio 免费额度（每天有次数上限，太平洋时间 0 点重置）；国内需能访问 Google" },
+  { id: "groq", name: "Groq（Llama，免费档）", kind: "openai", base: "https://api.groq.com/openai/v1", model: "llama-3.1-8b-instant", cost: "free", signup: "https://console.groq.com/keys", hint: "免费档每天有次数上限，速度快；上限以控制台 Limits 页为准" },
+  { id: "openrouter", name: "OpenRouter（免费模型）", kind: "openai", base: "https://openrouter.ai/api/v1", model: "meta-llama/llama-3.3-70b-instruct:free", cost: "free", signup: "https://openrouter.ai/keys", hint: "带 :free 的模型不收费，但每天次数很少；模型名以网站列表为准" },
   { id: "deepseek", name: "DeepSeek", kind: "openai", base: "https://api.deepseek.com", model: "deepseek-chat", cost: "cheapest", signup: "https://platform.deepseek.com/", hint: "注册送额度；之后每次菜单约几分钱" },
   { id: "qwen", name: "通义千问（阿里百炼）", kind: "openai", base: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-turbo", cost: "cheapest", signup: "https://bailian.console.aliyun.com/", hint: "新用户有免费额度；qwen-turbo 最便宜" },
-  { id: "gemini", name: "Google Gemini", kind: "gemini", base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.0-flash", cost: "free", signup: "https://aistudio.google.com/apikey", hint: "AI Studio 免费额度，国内需能访问 Google" },
   { id: "doubao", name: "豆包（火山方舟）", kind: "openai", base: "https://ark.cn-beijing.volces.com/api/v3", model: "doubao-lite-32k", cost: "cheapest", signup: "https://console.volcengine.com/ark", hint: "模型名填你在方舟开通的接入点或模型 ID；浏览器直连若被拒，用“复制提示词”" },
   { id: "kimi", name: "Kimi（月之暗面）", kind: "openai", base: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k", cost: "cheap", signup: "https://platform.moonshot.cn/", hint: "" },
   { id: "openai", name: "OpenAI", kind: "openai", base: "https://api.openai.com/v1", model: "gpt-4o-mini", cost: "cheap", signup: "https://platform.openai.com/api-keys", hint: "gpt-4o-mini 够用" },
@@ -34,8 +37,86 @@ export const providerOf = (id) => PROVIDERS.find((p) => p.id === id) || PROVIDER
 // auth：自定义接口的鉴权头——bearer（Authorization: Bearer，OpenAI 兼容接口默认）/ x-api-key / api-key（Azure 风格）
 export const AUTH_STYLES = { bearer: "Authorization: Bearer（默认）", "x-api-key": "x-api-key 头", "api-key": "api-key 头（Azure 风格）" };
 export function aiSettings() {
-  const def = { provider: "deepseek", key: "", model: "", base: "", people: 4, auth: "bearer" };
+  // freeOnly：只用免费额度，到上限就停；rpm / rpd：每分钟 / 每天上限，留空用 FREE_TIER 默认
+  const def = { provider: "gemini", key: "", model: "", base: "", people: 4, auth: "bearer", freeOnly: true, rpm: "", rpd: "" };
   try { return { ...def, ...(JSON.parse(localStorage.getItem(KEY) || "{}")) }; } catch { return def; }
+}
+
+/* ── 免费额度：按服务商的免费档计数，到上限就不发请求，并算出下次可用时间；429 也记下恢复时间 ──
+ * 数字是各家公布的免费档常见值，会变，设置里可以改；日配额重置时区：Gemini 太平洋时间 0 点，其余按 UTC 估 */
+export const FREE_TIER = {
+  gemini:     { rpm: 10, rpd: 250, reset: "pt", resetText: "太平洋时间 0 点重置" },
+  groq:       { rpm: 30, rpd: 1000, reset: "utc", resetText: "按 UTC 0 点估算重置" },
+  openrouter: { rpm: 20, rpd: 50, reset: "utc", resetText: "按 UTC 0 点估算重置" },
+};
+export class QuotaError extends Error { constructor(msg, q) { super(msg); this.name = "QuotaError"; this.quota = q; } }
+function usage() { try { return JSON.parse(localStorage.getItem(USAGE_KEY) || "{}"); } catch { return {}; } }
+function saveUsage(u) { try { localStorage.setItem(USAGE_KEY, JSON.stringify(u)); } catch { /* 忽略 */ } }
+const TZ = { pt: "America/Los_Angeles", utc: "UTC" };
+/** 配额日的日期键（按重置时区） */
+function dayKey(reset) {
+  const d = new Date();
+  if (TZ[reset]) return new Intl.DateTimeFormat("en-CA", { timeZone: TZ[reset], year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+/** 下次重置的时间戳：该时区的下一个 0 点 */
+export function nextReset(reset) {
+  const now = new Date();
+  if (!TZ[reset]) { const d = new Date(now); d.setHours(24, 0, 0, 0); return d.getTime(); }
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: TZ[reset], hour12: false, hour: "numeric", minute: "numeric", second: "numeric" }).formatToParts(now).map((x) => [x.type, +x.value]));
+  const secs = ((parts.hour || 0) % 24) * 3600 + (parts.minute || 0) * 60 + (parts.second || 0);
+  return now.getTime() + (86400 - secs) * 1000;
+}
+/** 当前能不能免费调用：{ ok, reason: daily|minute|blocked, resumeAt, used, cap, remaining } */
+export function aiQuota(s = aiSettings()) {
+  const p = providerOf(s.provider), tier = FREE_TIER[p.id] || null;
+  const cap = { rpm: num(s.rpm) || tier?.rpm || 0, rpd: num(s.rpd) || tier?.rpd || 0 };
+  const u = usage()[p.id] || {}, now = Date.now();
+  const used = u.day === dayKey(tier?.reset) ? u.count || 0 : 0;
+  const base = { used, cap: cap.rpd, tier, remaining: cap.rpd ? Math.max(0, cap.rpd - used) : null };
+  if (u.blockedUntil && u.blockedUntil > now) return { ...base, ok: false, reason: u.blockedDaily ? "daily" : "blocked", resumeAt: u.blockedUntil };
+  if (s.freeOnly === false) return { ...base, ok: true };
+  if (cap.rpd && used >= cap.rpd) return { ...base, ok: false, reason: "daily", resumeAt: nextReset(tier?.reset) };
+  const minute = Math.floor(now / 60000), mUsed = u.minute === minute ? u.mcount || 0 : 0;
+  if (cap.rpm && mUsed >= cap.rpm) return { ...base, ok: false, reason: "minute", resumeAt: (minute + 1) * 60000 };
+  return { ...base, ok: true };
+}
+export function quotaMessage(q) {
+  const when = new Date(q.resumeAt), sameDay = when.toDateString() === new Date().toDateString();
+  const time = when.toLocaleString(locale(), sameDay ? { hour: "2-digit", minute: "2-digit" } : { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  if (q.reason === "minute") return t("这一分钟的免费次数用完了，{s} 秒后再试", { s: Math.max(1, Math.ceil((q.resumeAt - Date.now()) / 1000)) });
+  if (q.reason === "daily") return t("今天的免费额度用完了（已用 {n} 次），预计 {time} 恢复；现在可以用“复制提示词”", { n: q.used, time });
+  return t("服务商限流了，{time} 后再试；现在可以用“复制提示词”", { time });
+}
+/** 设置页状态行 */
+export function quotaStatus(q) {
+  if (!q.ok) return quotaMessage(q);
+  if (q.cap) return t("今天已用 {n} / {cap} 次免费额度，还剩 {left} 次", { n: q.used, cap: q.cap, left: q.remaining });
+  return q.used ? t("今天已调用 {n} 次（没设上限）", { n: q.used }) : t("今天还没调用过");
+}
+function countUse(p) {
+  const tier = FREE_TIER[p.id], u = usage(), x = u[p.id] || {}, dk = dayKey(tier?.reset), minute = Math.floor(Date.now() / 60000);
+  if (x.day === dk) x.count = (x.count || 0) + 1; else { x.day = dk; x.count = 1; }
+  if (x.minute === minute) x.mcount = (x.mcount || 0) + 1; else { x.minute = minute; x.mcount = 1; }
+  delete x.blockedUntil; delete x.blockedDaily;
+  u[p.id] = x; saveUsage(u);
+}
+export function resetUsage(providerId) { const u = usage(); delete u[providerId]; saveUsage(u); }
+/** 429：按 Retry-After / Gemini 的 retryDelay 记下恢复时间；提到日配额的，直接等到下次重置 */
+function rateLimited(e, p) {
+  const tier = FREE_TIER[p.id], body = e.body || "";
+  const m = /retryDelay"?\s*:\s*"?(\d+)/i.exec(body);
+  const secs = e.retryAfter ? parseInt(e.retryAfter, 10) || 0 : m ? +m[1] : 0;
+  const daily = /per day|perday|per_day|daily|requests_per_day|RPD|quota exceeded for.*day/i.test(body);
+  const until = daily && tier ? nextReset(tier.reset) : Date.now() + Math.max(secs || 60, 15) * 1000;
+  const u = usage(); u[p.id] = { ...(u[p.id] || {}), blockedUntil: until, blockedDaily: !!daily }; saveUsage(u);
+  const q = { reason: daily ? "daily" : "blocked", resumeAt: until, used: u[p.id].count || 0 };
+  return new QuotaError(quotaMessage(q), q);
+}
+/** 发请求前的闸门：超了免费额度就不发，直接告诉用户什么时候能用 */
+function gate(s, p) {
+  const q = aiQuota(s);
+  if (!q.ok) throw new QuotaError(quotaMessage(q), q);
 }
 /** OpenAI 兼容接口的请求头：按设置选鉴权方式（只对“自定义”生效，其余服务固定 Bearer） */
 function openaiHeaders(s, p, key) {
@@ -97,27 +178,32 @@ export async function askText(system, user, { json = false, maxTokens = 1500 } =
   const s = aiSettings(), p = providerOf(s.provider);
   const base = (s.base || p.base).replace(/\/+$/, ""), model = s.model || p.model, key = s.key.trim().replace(/^Bearer\s+/i, "");   // 有人把 “Bearer xxx” 整段贴进来
   if (!key) throw new Error(t("还没填 API key，去设置 → AI 助手"));
+  gate(s, p);   // 免费额度用完 / 被限流：不发请求，直接提示下次可用时间
   const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 60000);
   try {
+    let text;
     if (p.kind === "gemini") {
       const r = await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: { temperature: 0.7, ...(json ? { responseMimeType: "application/json" } : {}) } }) });
       const j = await readJson(r);
-      return j.candidates?.[0]?.content?.parts?.map((x) => x.text).join("") || "";
-    }
-    if (p.kind === "anthropic") {
+      text = j.candidates?.[0]?.content?.parts?.map((x) => x.text).join("") || "";
+    } else if (p.kind === "anthropic") {
       const r = await fetch(`${base}/messages`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }) });
       const j = await readJson(r);
-      return (j.content || []).map((x) => x.text || "").join("");
+      text = (j.content || []).map((x) => x.text || "").join("");
+    } else {
+      const r = await fetch(`${base}/chat/completions`, { method: "POST", signal: ctl.signal, headers: openaiHeaders(s, p, key),
+        body: JSON.stringify({ model, temperature: 0.7, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) });
+      const j = await readJson(r);
+      text = j.choices?.[0]?.message?.content || "";
     }
-    const r = await fetch(`${base}/chat/completions`, { method: "POST", signal: ctl.signal, headers: openaiHeaders(s, p, key),
-      body: JSON.stringify({ model, temperature: 0.7, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) });
-    const j = await readJson(r);
-    return j.choices?.[0]?.message?.content || "";
+    countUse(p);
+    return text;
   } catch (e) {
     if (e.name === "AbortError") throw new Error(t("模型超时，稍后再试"));
     if (e instanceof TypeError) throw new Error(t("浏览器无法直连这个接口（跨域或网络被拒）。可以换 DeepSeek / Gemini，或用“复制提示词”。"));
+    if (e.status === 429) throw rateLimited(e, p);
     throw explainHttp(e, base);
   } finally { clearTimeout(timer); }
 }
@@ -163,7 +249,7 @@ export const generalPromptText = (q, opts) => { const p = generalPrompt(q, opts)
 async function readJson(r) {
   const txt = await r.text();
   let j = null; try { j = JSON.parse(txt); } catch { /* 下面报错 */ }
-  if (!r.ok) throw new Error(`${r.status} ${j?.error?.message || j?.message || txt.slice(0, 200)}`);
+  if (!r.ok) { const e = new Error(`${r.status} ${j?.error?.message || j?.message || txt.slice(0, 200)}`); e.status = r.status; e.retryAfter = r.headers.get("retry-after"); e.body = txt.slice(0, 3000); throw e; }
   if (!j) throw new Error(t("模型返回的不是 JSON"));
   return j;
 }
@@ -186,12 +272,15 @@ export async function testModel() {
   const base = (s.base || p.base).replace(/\/+$/, ""), model = s.model || p.model;
   if (!key) throw new Error(t("先填 API key"));
   if (p.id === "custom" && !/^https:\/\//i.test(base)) throw new Error(t("接口地址要以 https:// 开头，填到 /v1 为止"));
+  gate(s, p);
   try {
-    if (p.kind === "gemini") { await readJson(await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] }) })); return; }
-    if (p.kind === "anthropic") { await readJson(await fetch(`${base}/messages`, { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "hi" }] }) })); return; }
-    await readJson(await fetch(`${base}/chat/completions`, { method: "POST", headers: openaiHeaders(s, p, key), body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "hi" }] }) }));
+    if (p.kind === "gemini") await readJson(await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] }) }));
+    else if (p.kind === "anthropic") await readJson(await fetch(`${base}/messages`, { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "hi" }] }) }));
+    else await readJson(await fetch(`${base}/chat/completions`, { method: "POST", headers: openaiHeaders(s, p, key), body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "hi" }] }) }));
+    countUse(p);   // 测试也算一次
   } catch (e) {
     if (e instanceof TypeError) throw new Error(t("浏览器无法直连这个接口（跨域或网络被拒）。可以换 DeepSeek / Gemini，或用“复制提示词”。"));
+    if (e.status === 429) throw rateLimited(e, p);
     throw explainHttp(e, base);
   }
 }

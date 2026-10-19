@@ -29,7 +29,7 @@ import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
 import { applyCustomCategories, isCustomCat, newCatKey } from "./core/categories.js";
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
-import { aiReady, testModel } from "./core/ai.js";
+import { aiReady, resetUsage, testModel } from "./core/ai.js";
 import { saveAiForm } from "./settings/views.js";
 import { cleanStore, download, exportAnnual, rememberStore, viewStats } from "./stats/views.js";
 
@@ -587,6 +587,7 @@ main.addEventListener("click", async (e) => {
       case "ai-topic": { pickTopic(el.dataset.topic); render(); const fm = $("#aiPageForm"); if (fm) { if (aiReady()) fm.requestSubmit(); else fm.elements.q.focus(); } return; }
       case "ai-copy-general": return copyGeneralPrompt($("#aiPageForm"));
       case "ai-copy-answer": return copyAnswer();
+      case "ai-usage-reset": resetUsage(el.dataset.provider); toast(t("已重置本机的调用计数")); return render();
       case "ai-test": {
         el.disabled = true; const out = $("#aiTestOut");
         try { await saveAiForm($("#aiSettingsForm")); await testModel(); out.textContent = t("连接成功 ✓"); out.className = "muted ok-text"; }

@@ -513,8 +513,8 @@ button.mrow:last-child { border-bottom: 0; }
 @media (max-width: 640px) { .fact-grid { grid-template-columns: 1fr; gap: 0; } .fact { grid-template-columns: 6.6em 1fr; } }
 .form-page .sub-legend { margin: 14px 0 6px; font-size: 14px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .form-page .sub-legend small { color: var(--muted); font-weight: 400; }
-.form-page .check-inline { display: flex; align-items: center; gap: 8px; font-weight: 500; }
-.form-page .check-inline input { width: 18px; height: 18px; min-height: 0; accent-color: var(--pine); }
+.check-inline { display: flex; align-items: center; gap: 8px; font-weight: 500; }   /* 全站通用的“勾选 + 说明”一行（表单页、设置页、保养表单） */
+.check-inline input { width: 18px; height: 18px; min-height: 0; flex: 0 0 auto; accent-color: var(--pine); }
 .form-page textarea { width: 100%; }
 /* 房屋页顶部：添加房产芯片 + 内联房产表单（与设置页同一表单） */
 .chip-add { border-style: dashed; }
@@ -676,6 +676,8 @@ html.force-phone .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr));
 .ai-page textarea { width: 100%; resize: vertical; }
 .ai-page .chips .chip { text-decoration: none; color: var(--ink); }
 .ai-sites { margin-top: 12px; }
+.quota-box { margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: var(--r-md); }
+.quota-box legend { font-weight: 800; font-size: 14px; padding: 0 4px; }
 .ai-answer { margin-top: 12px; }
 .ai-answer-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
 .ai-answer-head .btn { margin-left: auto; }

@@ -4,7 +4,7 @@ import { Store } from "../core/store.js";
 import { esc, toast } from "../core/util.js";
 import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
-import { aiIcon, aiReady, aiSettings, askModel, promptText, providerOf } from "../core/ai.js";
+import { aiIcon, aiQuota, aiReady, aiSettings, askModel, promptText, providerOf, quotaMessage } from "../core/ai.js";
 
 export const QUICK_ASKS = ["低糖高蛋白，六人份", "用掉快过期的食材", "孩子爱吃、少油少盐", "30 分钟能做完的晚餐", "一周三餐的采购清单"];
 // 无 key 模式可直接打开的网页（粘贴提示词）
@@ -13,9 +13,11 @@ const WEB_LLMS = [["豆包", "https://www.doubao.com/"], ["通义千问", "https
 export function aiPanel() {
   const a = state.ai || (state.ai = { ask: "", busy: false, result: null, error: null, raw: null });
   const ready = aiReady(), s = aiSettings(), p = providerOf(s.provider);
-  const chips = QUICK_ASKS.map((q) => `<button type="button" class="chip" data-action="ai-ask" data-ask="${esc(t(q))}">${esc(t(q))}</button>`).join("");
+  const q = ready ? aiQuota(s) : null, blocked = !!q && !q.ok;   // 免费额度用完：不发请求，改用复制提示词
+  const chips = QUICK_ASKS.map((x) => `<button type="button" class="chip" data-action="ai-ask" data-ask="${esc(t(x))}">${esc(t(x))}</button>`).join("");
+  const sub = !ready ? t("没填 key 也能用：生成提示词，复制到豆包 / 千问 / ChatGPT") : blocked ? quotaMessage(q) : `${t("{p} · 会把库存食材、临期和饮食模式一起发给模型", { p: t(p.name) })}${q.cap ? ` · ${t("今天还剩 {n} 次免费", { n: q.remaining })}` : ""}`;
   return `<section class="section ai-panel">
-    <div class="section-head"><h2>${aiIcon(26)} ${t("AI 菜单助手")}</h2><p>${ready ? t("{p} · 会把库存食材、临期和饮食模式一起发给模型", { p: t(p.name) }) : t("没填 key 也能用：生成提示词，复制到豆包 / 千问 / ChatGPT")}</p></div>
+    <div class="section-head"><h2>${aiIcon(26)} ${t("AI 菜单助手")}</h2><p class="${blocked ? "form-error" : ""}">${esc(sub)}</p></div>
     <form id="aiForm" class="panel">
       <div class="chips" style="margin-bottom:8px">${chips}</div>
       <div class="ai-row">
@@ -23,8 +25,8 @@ export function aiPanel() {
         <label class="ai-people">${t("人数")}<input name="people" type="number" inputmode="numeric" min="1" max="20" value="${s.people || 4}"></label>
       </div>
       <div class="form-actions" style="margin-top:8px">
-        ${ready ? `<button type="submit" class="btn btn-primary" ${a.busy ? "disabled" : ""}>${a.busy ? t("生成中…") : t("生成今日菜单")}</button>` : ""}
-        <button type="button" class="btn ${ready ? "btn-ghost" : "btn-primary"}" data-action="ai-copy">${t("复制提示词")}</button>
+        ${ready && !blocked ? `<button type="submit" class="btn btn-primary" ${a.busy ? "disabled" : ""}>${a.busy ? t("生成中…") : t("生成今日菜单")}</button>` : ""}
+        <button type="button" class="btn ${ready && !blocked ? "btn-ghost" : "btn-primary"}" data-action="ai-copy">${t("复制提示词")}</button>
         ${WEB_LLMS.slice(0, lang === "en" ? 5 : 3).map(([n, u]) => `<a class="btn btn-sm btn-ghost" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("")}
         <a class="btn btn-sm btn-ghost" href="${href("me", "settings")}?sec=ai">${ready ? t("换模型") : t("填 API key 直接出结果")}</a>
       </div>

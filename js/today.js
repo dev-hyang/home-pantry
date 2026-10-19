@@ -1,7 +1,7 @@
 /* 首页 · 今日：格子块（注意事项 / 小Y问 / 采购清单 / 今天吃什么 / 快捷操作）。
  * 「注意事项」点开是 #/alerts：从提醒总线取全部提醒，排序下拉（按轻重 / 按房产 / 按来源 / 按到期）。各模块只把自己的提醒注册进总线，首页不认识任何模块。 */
 import { state } from "./core/state.js";
-import { aiIcon, aiReady } from "./core/ai.js";
+import { aiIcon, aiQuota, aiReady } from "./core/ai.js";
 import { Store } from "./core/store.js";
 import { href } from "./core/router.js";
 import { esc } from "./core/util.js";
@@ -35,7 +35,7 @@ export function viewToday() {
   const big = [
     tile({ href: href("alerts"), cls: `t-alerts ${counts.important ? "is-hot" : ""}`, icon: counts.important ? "🔔" : "✅", count: counts.important || all.length,
       name: t("注意事项"), sub: counts.important ? t("{n} 件要紧，共 {m} 件", { n: counts.important, m: all.length }) : all.length ? t("没有急事，{n} 件可以留意", { n: all.length }) : t("今天没有需要处理的事"), foot: sevPills ? `<div class="pills">${sevPills}</div>` : "" }),
-    tile({ href: href("ai"), cls: "t-ai", icon: aiIcon(40), name: t("小Y问"), sub: aiReady() ? t("直接问：保养、账单、买卖房、收纳、带娃") : t("问家里任何事，复制提示词到任一 AI"), foot: `<span class="pill pill-none">${t("AI 助手")}</span>` }),
+    tile({ href: href("ai"), cls: "t-ai", icon: aiIcon(40), name: t("小Y问"), sub: aiReady() ? (aiQuota().ok ? t("直接问：保养、账单、买卖房、收纳、带娃") : t("免费额度用完了，先用复制提示词")) : t("问家里任何事，复制提示词到任一 AI"), foot: `<span class="pill pill-none">${t("AI 助手")}</span>` }),
     tile({ href: href("shopping"), cls: "t-shop", icon: "🛒", count: open.length, name: t("采购清单"),
       sub: open.length ? (claimed.length ? t("{n} 项待买，{m} 项家人正在买", { n: open.length, m: claimed.length }) : t("{n} 项待买", { n: open.length })) : t("清单是空的"),
       foot: claimed.length ? `<span class="pill pill-ok"><i>✓</i>${esc(joinList([...new Set(claimed.map((c) => c.claimed_by_name || t("家人")))]))}</span>` : "" }),
