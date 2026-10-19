@@ -52,12 +52,20 @@ function toHant(s) {
   return v;
 }
 
+/* ── 家庭自己起的名字（自定义位置、分类、小类）在其他语言下怎么叫：custom_terms 表，加载数据后 setGlossary 装进来 ──
+ * 行：{ term, zh, en, hant }，term 是存在数据里的原字符串（可能是中文也可能是英文），t() 先查这里再查内置字典 */
+let glossary = new Map();
+export function setGlossary(rows) { glossary = new Map((rows || []).map((r) => [r.term, r])); }
+export const glossaryOf = (term) => glossary.get(term) || null;
+
 /** 翻译一条文案；params 替换 {name} 占位符 */
 export function t(zh, params) {
   if (zh == null || zh === "") return "";
   let s = String(zh);
-  if (lang === "en") { const e = EN[s]; if (e != null) s = e; }
-  else if (lang === "zh-Hant") s = toHant(s);
+  const g = glossary.size ? glossary.get(s) : null;
+  if (lang === "en") { if (g?.en) s = g.en; else { const e = EN[s]; if (e != null) s = e; } }
+  else if (lang === "zh-Hant") s = g?.hant || toHant(g?.zh || s);
+  else if (g?.zh) s = g.zh;
   if (params) for (const [k, v] of Object.entries(params)) s = s.split(`{${k}}`).join(String(v));
   return s;
 }

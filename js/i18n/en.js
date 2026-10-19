@@ -769,6 +769,10 @@ export const EN = {
   "按月和按里程取先到的；里程按年均里程推算。记保养时要选对“保养项目”，那一项的下次日期才会更新": "Whichever comes first by months or mileage; mileage is projected from annual miles. Pick the right service item when logging, or that item's next date won't move",
   "家庭、房产、语言、存放位置、模块、备份、AI、姐妹站点": "Family, properties, language, locations, modules, backup, AI, sister sites",
   "{n} 辆": "{n} vehicles", "{n} 台": "{n} units",
+  // ── 自定义名称的翻译 ──
+  "自定义名称的翻译": "Translations of your own names", "自己起的位置、分类、小类在其他语言下怎么叫；留空就按原文显示（繁體由简体自动转换）": "What your own locations, categories and subcategories are called in other languages; blank shows the original (Traditional is converted from Simplified automatically)",
+  "原名": "Original", "保存翻译": "Save translations", "已保存 {n} 条翻译": "Saved {n} translations", "没有改动": "No changes", "还没有自己起的名字。新建位置或分类后会出现在这里。": "No custom names yet. They appear here once you add a location or category.",
+  "繁體中文由简体自动转换；English 没有翻译到的文案会显示中文。自己起的位置 / 分类 / 小类名字可以在下面填各语言叫法；物品名称不翻译。": "Traditional Chinese is converted from Simplified automatically; English falls back to Chinese where no translation exists. Names you create for locations / categories / subcategories can be translated below; item names are not translated.",
   // ── 分类与小类（内置可改、可隐藏） ──
   "分类与小类": "Categories & subcategories", "{n} 个分类 · 自建 {m} · 改过 {k}": "{n} categories · {m} custom · {k} modified",
   "大类决定方块、筛选和统计；小类是物品表单里的下拉。内置分类也能改名、增删小类或隐藏，自建的可删除，全家共用。": "Categories drive tiles, filters and stats; subcategories are the dropdown in the item form. Built-in categories can be renamed, given subcategories or hidden; custom ones can be deleted. Shared by the family.",

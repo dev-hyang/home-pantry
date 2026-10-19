@@ -4,7 +4,7 @@ import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
-import { joinList, lang, loadOpenCC, locale, setLang, t } from "./core/i18n.js";
+import { glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { setTodayPref, viewAlerts, viewToday } from "./today.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
@@ -53,6 +53,7 @@ export async function refresh() {
         Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listPurchases(), Store.listHouseProfiles(),
         Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince()), Store.listBills(), Store.listBillPayments(),
         Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations()]);
+      try { setGlossary(await Store.listTerms()); } catch (e) { console.warn("[terms]", e.message); }   // 自定义名称的翻译（表还没建时不影响其他功能）
       applyCustomCategories(customCats);   // 自定义分类并入全局分类表，后面的 enrich / 视图都能用
       applyCustomLocations(customLocs);    // 自定义 / 重命名的存放位置并入分组列表
       const houseProfiles = Object.fromEntries(profiles.map((p) => [p.property_id, p]));
@@ -391,6 +392,18 @@ main.addEventListener("submit", async (e) => {
       return refresh();
     }
     if (f.id === "aiSettingsForm") { await saveAiForm(f); toast(t("AI 设置已保存（只存在本机）")); return render(); }
+    if (f.id === "termsForm") {   // 自定义名称的翻译：每行 term + 简体 / English / 繁體；全空的行删掉
+      let n = 0;
+      for (const tr of f.querySelectorAll("tr[data-term]")) {
+        const term = tr.dataset.term, v = (k) => tr.querySelector(`input[name="${k}"]`).value.trim() || null;
+        const row = { term, zh: v("zh"), en: v("en"), hant: v("hant") };
+        const was = glossaryOf(term) || {};
+        if (row.zh === (was.zh || null) && row.en === (was.en || null) && row.hant === (was.hant || null)) continue;
+        if (!row.zh && !row.en && !row.hant) { if (was.id) await Store.deleteTerm(term); } else await Store.saveTerm(row);
+        n++;
+      }
+      toast(n ? t("已保存 {n} 条翻译", { n }) : t("没有改动")); return refresh();
+    }
     if (f.id === "locForm") {   // 存放位置：新建或重命名（重命名会把用到旧名字的物品、设备一起改）
       const fe = f.elements;
       await saveLocationForm(state, state.locForm || {}, fe.name.value.trim(), fe.grp.value);

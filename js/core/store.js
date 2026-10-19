@@ -49,6 +49,15 @@ export const DemoStore = {
     for (const x of [...this.db.items, ...this.db.assets]) if (x.location === oldName) x.location = newName;
     this.persist();
   },
+  // 自定义名称的翻译（位置 / 分类 / 小类在其他语言下怎么叫）
+  async listTerms() { return (this.db.terms || []).map((x) => ({ ...x })); },
+  async saveTerm(r) {
+    const now = new Date().toISOString(); this.db.terms ||= [];
+    const i = this.db.terms.findIndex((x) => x.term === r.term);
+    if (i >= 0) this.db.terms[i] = { ...this.db.terms[i], ...r, updated_at: now }; else this.db.terms.push({ ...r, id: uid(), created_at: now, updated_at: now });
+    this.persist();
+  },
+  async deleteTerm(term) { this.db.terms = (this.db.terms || []).filter((x) => x.term !== term); this.persist(); },
   async listLogs() {
     const since = Date.now() - STATS_LOG_DAYS * DAY;
     return this.db.logs.filter((l) => new Date(l.created_at).getTime() >= since);
@@ -322,6 +331,7 @@ export const BILL_FIELDS = ["property_id", "name", "category", "direction", "pay
   "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes"];
 export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", "subs", "hidden", "sort"];
 export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
+export const TERM_FIELDS = ["term", "zh", "en", "hant"];
 export const DEAL_FIELDS = ["property_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at"];
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
@@ -347,6 +357,9 @@ export const CloudStore = {
     this.must(await this.sb.from("items").update({ location: newName }).eq("household_id", this.hid).eq("location", oldName));
     this.must(await this.sb.from("assets").update({ location: newName }).eq("household_id", this.hid).eq("location", oldName));
   },
+  async listTerms() { return this.must(await this.sb.from("custom_terms").select("*").eq("household_id", this.hid)); },
+  async saveTerm(r) { this.must(await this.sb.from("custom_terms").upsert(pick(r, TERM_FIELDS, { household_id: this.hid, updated_by: state.user.id }), { onConflict: "household_id,term" })); },
+  async deleteTerm(term) { this.must(await this.sb.from("custom_terms").delete().eq("household_id", this.hid).eq("term", term)); },
   async listLogs() {
     const since = new Date(Date.now() - STATS_LOG_DAYS * DAY).toISOString();
     return this.must(await this.sb.from("stock_logs").select("item_id,delta,reason,created_at")
@@ -513,7 +526,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "property_deals", "deal_task_done", "custom_categories", "custom_locations"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "property_deals", "deal_task_done", "custom_categories", "custom_locations", "custom_terms"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();

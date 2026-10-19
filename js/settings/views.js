@@ -2,7 +2,7 @@ import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, catsOf, esc, fmtShort, syncState } from "../core/util.js";
 import { catFormHtml } from "../pantry/views.js";
-import { LANGS, detectLang, langOverride, t } from "../core/i18n.js";
+import { LANGS, detectLang, glossaryOf, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
 import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, effective, providerOf, quotaStatus, saveAiSettings } from "../core/ai.js";
@@ -71,6 +71,30 @@ function sisterAppsPanel() {
       <div class="grow"><b>${esc(t(a.name))}</b><small>${esc(t(a.sub))}</small></div>
       ${a.id === "home-pantry" ? `<span class="badge b-ok">${t("当前")}</span>` : `<a class="btn btn-sm" href="${esc(a.url)}">${t("打开")}</a>`}</li>`).join("")}</ul>
   </div>`;
+}
+
+/* ── 自定义名称的翻译：收集家庭自己起的名字（自定义位置、自建 / 改过的分类名、自加的小类），每条填简体 / English / 繁體 ── */
+export function customTerms() {
+  const out = new Map();   // term → 来源说明
+  const add = (term, src) => { if (term && !out.has(term)) out.set(term, src); };
+  for (const l of customLocations()) add(l.name, t("存放位置"));
+  for (const c of CATEGORIES) {
+    if (c.custom) { add(c.name, t("分类")); for (const s of c.subs || []) add(s, t("小类")); }
+    else if (c.overridden) { if (c.name !== c.base.name) add(c.name, t("分类")); for (const s of c.subs || []) if (!(c.base.subs || []).includes(s)) add(s, t("小类")); }
+  }
+  return [...out.entries()];
+}
+function termsPanel() {
+  const terms = customTerms();
+  const cell = (term, k, ph) => { const g = glossaryOf(term) || {}; return `<td><input name="${k}" maxlength="60" value="${esc(g[k] || "")}" placeholder="${esc(ph)}"></td>`; };
+  return `<form id="termsForm" class="panel">
+    <div class="section-head" style="margin-bottom:6px"><h3 style="font-size:15px">${t("自定义名称的翻译")}</h3><p>${t("自己起的位置、分类、小类在其他语言下怎么叫；留空就按原文显示（繁體由简体自动转换）")}</p></div>
+    ${terms.length ? `<div class="ch-scroll"><table class="owner-table terms-table"><thead><tr><th>${t("原名")}</th><th>简体</th><th>English</th><th>繁體</th></tr></thead><tbody>
+      ${terms.map(([term, src]) => `<tr data-term="${esc(term)}"><th scope="row">${esc(term)}<small>${esc(src)}</small></th>${cell(term, "zh", term)}${cell(term, "en", "")}${cell(term, "hant", t("自动"))}</tr>`).join("")}
+    </tbody></table></div>
+    <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${t("保存翻译")}</button></div>`
+    : `<p class="muted" style="margin:0;font-size:13px">${t("还没有自己起的名字。新建位置或分类后会出现在这里。")}</p>`}
+  </form>`;
 }
 
 /* ── 分类与小类：按空间列出全部分类（含隐藏的）；点“编辑”用和库存页同一个表单改名、换图标颜色、增删小类；内置分类可恢复默认或隐藏 ── */
@@ -237,8 +261,9 @@ export function viewSettings() {
         <option value="" ${!langOverride() ? "selected" : ""}>${t("自动（检测为{lang}）", { lang: LANGS[detectLang()] })}</option>
         ${Object.entries(LANGS).map(([k, v]) => `<option value="${k}" ${langOverride() === k ? "selected" : ""}>${v}</option>`).join("")}
       </select>
-      <p class="muted" style="margin:8px 0 0;font-size:13px">${t("繁體中文由简体自动转换；English 没有翻译到的文案会显示中文。物品名称等自己填写的内容不会翻译。")}</p>
+      <p class="muted" style="margin:8px 0 0;font-size:13px">${t("繁體中文由简体自动转换；English 没有翻译到的文案会显示中文。自己起的位置 / 分类 / 小类名字可以在下面填各语言叫法；物品名称不翻译。")}</p>
     </div>
+    ${termsPanel()}
     <div class="panel">
       <label class="field-label" for="regionSel">${t("地区与单位")}</label>
       <select id="regionSel">
