@@ -5,7 +5,7 @@ import { catFormHtml } from "../pantry/views.js";
 import { LANGS, detectLang, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
-import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, providerOf, quotaStatus, saveAiSettings } from "../core/ai.js";
+import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, effective, providerOf, quotaStatus, saveAiSettings } from "../core/ai.js";
 import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
@@ -164,7 +164,7 @@ function aiBlock() {
         <small>${esc(t(p.keyHint || "在服务商控制台创建 API key，整段粘贴到这里"))}</small></label>
       <label>${t("家庭人数（菜单份量）")}<input name="people" type="number" inputmode="numeric" min="1" max="20" value="${s.people || 4}"></label>
     </div>
-    ${custom ? "" : `<p class="hint">${t("模型名和接口地址已内置（{model}），一般不用改；要换模型再展开下面的“高级”。", { model: s.model || autoModel(p.id) || p.model })}</p>`}
+    ${custom ? "" : `<p class="hint">${t("模型名和接口地址已内置（{model}），一般不用改；要换模型再展开下面的“高级”。", { model: effective(s, p).model })}${s.model || s.base ? ` <button type="button" class="btn btn-sm btn-ghost" data-action="ai-clear-adv">${t("清掉手填的模型名 / 地址")}</button>` : ""}</p>`}
     <details class="adv" ${custom ? "open" : ""}><summary>${custom ? t("接口地址、模型与鉴权（自定义必填）") : t("高级：换模型 / 自定义接口地址")}</summary>
       <div class="form-grid" style="margin-top:8px">
         <label>${t("模型名（留空用默认）")}<input name="model" maxlength="80" placeholder="${esc(autoModel(p.id) || p.model)}" value="${esc(s.model)}"></label>

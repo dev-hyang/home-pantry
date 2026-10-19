@@ -131,9 +131,18 @@ async function resolveGeminiModel(base, key) {
 /** Gemini 一次调用；模型名 404 且用户没手填时，查一次列表换成可用的再试 */
 async function geminiCall(s, base, key, body, signal) {
   const call = (model) => fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(readJson);
-  const model = s.model || autoModel("gemini") || providerOf("gemini").model;
+  // 用户手填的模型名只在像 Gemini 的名字时才用（换服务商时残留的别家模型名直接忽略）；404 一律查列表换成可用的
+  const typed = /^gemini/i.test(s.model || "") ? s.model : "";
+  const model = typed || autoModel("gemini") || providerOf("gemini").model;
   try { return await call(model); }
-  catch (e) { if (e.status !== 404 || s.model) throw e; return call(await resolveGeminiModel(base, key)); }
+  catch (e) { if (e.status !== 404) throw e; return call(await resolveGeminiModel(base, key)); }
+}
+/** 实际用的接口地址和模型：地址只有“自定义”才用手填的（换服务商后残留的地址会把 Gemini 发到别家 → 404）；模型名留空用默认 */
+export function effective(s, p) {
+  const base = (p.id === "custom" ? s.base : p.base).replace(/\/+$/, "");
+  const typed = p.kind === "gemini" && !/^gemini/i.test(s.model || "") ? "" : s.model;   // Gemini 只认 gemini-… 的模型名，别家残留的忽略
+  const model = typed || (p.kind === "gemini" ? autoModel("gemini") : "") || p.model;
+  return { base, model };
 }
 /** 发请求前的闸门：超了免费额度就不发，直接告诉用户什么时候能用 */
 function gate(s, p) {
@@ -198,7 +207,7 @@ export const promptText = (ask, opts) => { const p = menuPrompt(ask, opts); retu
 /** 通用一问一答：system + user → 文本；json=true 时要求模型只回 JSON（Gemini 用 responseMimeType） */
 export async function askText(system, user, { json = false, maxTokens = 1500 } = {}) {
   const s = aiSettings(), p = providerOf(s.provider);
-  const base = (s.base || p.base).replace(/\/+$/, ""), model = s.model || p.model, key = s.key.trim().replace(/^Bearer\s+/i, "");   // 有人把 “Bearer xxx” 整段贴进来
+  const { base, model } = effective(s, p), key = s.key.trim().replace(/^Bearer\s+/i, "");   // 有人把 “Bearer xxx” 整段贴进来
   if (!key) throw new Error(t("还没填 API key，去设置 → AI 助手"));
   gate(s, p);   // 免费额度用完 / 被限流：不发请求，直接提示下次可用时间
   const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 60000);
@@ -289,7 +298,7 @@ export function parseMenu(text) {
 /** 测试连接：问一句最短的 */
 export async function testModel() {
   const s = aiSettings(), p = providerOf(s.provider), key = s.key.trim();
-  const base = (s.base || p.base).replace(/\/+$/, ""), model = s.model || p.model;
+  const { base, model } = effective(s, p);
   if (!key) throw new Error(t("先填 API key"));
   if (p.id === "custom" && !/^https:\/\//i.test(base)) throw new Error(t("接口地址要以 https:// 开头，填到 /v1 为止"));
   // key 开头核对只拦“明显贴错家”的情况（如给 Gemini 贴了 sk- 开头的 key）；各家格式会变，不认识的开头照样放行，让接口自己判断

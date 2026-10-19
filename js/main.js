@@ -302,7 +302,10 @@ main.addEventListener("change", async (e) => {
     inp.hidden = !on; if (on) inp.focus();
   }
   if (e.target.id === "alertSort") { setTodayPref({ mode: e.target.value }); return render(); }
-  if (e.target.closest("#aiSettingsForm") && e.target.name === "provider") { await saveAiForm(e.target.form); return render(); }   // 换服务商：重画 key 说明、默认模型、免费额度
+  if (e.target.closest("#aiSettingsForm") && e.target.name === "provider") {   // 换服务商：清掉上一家残留的模型名 / 地址（否则会把请求发到别家 → 404），重画 key 说明、默认模型、免费额度
+    const f = e.target.form; f.elements.model.value = ""; f.elements.base.value = "";
+    await saveAiForm(f); return render();
+  }
   if (e.target.closest("#itemForm") && e.target.name === "category") {
     const fe = e.target.form.elements;
     fe.subcategory.innerHTML = subOptions(e.target.value);
@@ -634,6 +637,7 @@ main.addEventListener("click", async (e) => {
       case "ai-copy-general": return copyGeneralPrompt($("#aiPageForm"));
       case "ai-copy-answer": return copyAnswer();
       case "ai-usage-reset": resetUsage(el.dataset.provider); toast(t("已重置本机的调用计数")); return render();
+      case "ai-clear-adv": { const f = $("#aiSettingsForm"); if (f) { f.elements.model.value = ""; f.elements.base.value = ""; await saveAiForm(f); } toast(t("已清掉，改用内置默认")); return render(); }
       case "ai-test": {
         el.disabled = true; const out = $("#aiTestOut");
         try { await saveAiForm($("#aiSettingsForm")); await testModel(); out.textContent = t("连接成功 ✓"); out.className = "muted ok-text"; }
