@@ -120,22 +120,29 @@ const AUTO_MODEL_KEY = "hmh-ai-auto-model";
 const GEMINI_PREF = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-flash-latest"];
 export function autoModel(providerId) { try { return JSON.parse(localStorage.getItem(AUTO_MODEL_KEY) || "{}")[providerId] || ""; } catch { return ""; } }
 function saveAutoModel(providerId, model) { try { const m = JSON.parse(localStorage.getItem(AUTO_MODEL_KEY) || "{}"); m[providerId] = model; localStorage.setItem(AUTO_MODEL_KEY, JSON.stringify(m)); } catch { /* 忽略 */ } }
-async function resolveGeminiModel(base, key) {
+/** 这个 key 能用的 Gemini 模型：先按偏好表排，再排其余 Flash 系 */
+async function geminiCandidates(base, key) {
   const j = await readJson(await fetch(`${base}/models?key=${encodeURIComponent(key)}&pageSize=200`));
-  const names = (j.models || []).filter((m) => (m.supportedGenerationMethods || []).includes("generateContent")).map((m) => String(m.name || "").replace(/^models\//, ""));
-  const pick = GEMINI_PREF.find((n) => names.includes(n)) || names.find((n) => /flash/i.test(n) && !/image|tts|audio|live|embedding/i.test(n)) || names[0];
-  if (!pick) throw new Error(t("这个 key 下没有可用的 Gemini 模型，去 AI Studio 确认 key 是否启用了 Generative Language API"));
-  saveAutoModel("gemini", pick);
-  return pick;
+  const all = (j.models || []).map((m) => ({ name: String(m.name || "").replace(/^models\//, ""), methods: m.supportedGenerationMethods || m.supportedActions || [] }));
+  const gen = all.filter((m) => !m.methods.length || m.methods.includes("generateContent")).map((m) => m.name);
+  const pref = GEMINI_PREF.filter((n) => gen.includes(n));
+  const rest = gen.filter((n) => !pref.includes(n) && /flash/i.test(n) && !/image|tts|audio|live|embedding|exp|preview-0/i.test(n));
+  return { candidates: [...pref, ...rest], all: gen };
 }
-/** Gemini 一次调用；模型名 404 且用户没手填时，查一次列表换成可用的再试 */
+/** Gemini 一次调用；模型名 404 就查列表，按顺序换几个可用的再试，成功的记住；都不行时把试过的和可用的都写进错误里 */
 async function geminiCall(s, base, key, body, signal) {
   const call = (model) => fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(readJson);
-  // 用户手填的模型名只在像 Gemini 的名字时才用（换服务商时残留的别家模型名直接忽略）；404 一律查列表换成可用的
-  const typed = /^gemini/i.test(s.model || "") ? s.model : "";
-  const model = typed || autoModel("gemini") || providerOf("gemini").model;
-  try { return await call(model); }
-  catch (e) { if (e.status !== 404) throw e; return call(await resolveGeminiModel(base, key)); }
+  const typed = /^gemini/i.test(s.model || "") ? s.model : "";   // 别家残留的模型名忽略
+  const first = typed || autoModel("gemini") || providerOf("gemini").model;
+  const tried = []; let last = null;
+  try { return await call(first); } catch (e) { if (e.status !== 404) throw e; tried.push(first); last = e; }
+  const { candidates, all } = await geminiCandidates(base, key);
+  for (const m of candidates.filter((x) => !tried.includes(x)).slice(0, 4)) {
+    try { const r = await call(m); saveAutoModel("gemini", m); return r; }
+    catch (e) { if (e.status !== 404) throw e; tried.push(m); last = e; }
+  }
+  const err = new Error(t("试了 {tried}，Google 都返回 404（{msg}）。这个 key 能用的模型：{all}。可在“高级”里手填其中一个。", { tried: tried.join(", "), msg: String(last?.message || "").replace(/^404\s*/, "").slice(0, 200), all: all.slice(0, 15).join(", ") || t("无") }));
+  err.status = 404; err.explained = true; throw err;
 }
 /** 实际用的接口地址和模型：地址只有“自定义”才用手填的（换服务商后残留的地址会把 Gemini 发到别家 → 404）；模型名留空用默认 */
 export function effective(s, p) {
@@ -158,11 +165,12 @@ function openaiHeaders(s, p, key) {
 }
 /** 把 HTTP 错误翻译成能动手排查的提示 */
 function explainHttp(e, base) {
+  if (e.explained) return e;   // 已经写清楚原因的（如 Gemini 换了几个模型都 404）
   const m = /^(\d{3}) /.exec(e.message || ""); if (!m) return e;
   const code = +m[1];
   const html = /<!doctype|<html/i.test(e.message);
   if (code === 401 || code === 403) return new Error(t("{code}：这个地址不接受这个 key。检查：key 是否就是这个服务发的、有没有过期或多了空格；地址是不是真正的 API 域名（有些服务的 API 在另一个域名，不是官网）；“自定义”里可换鉴权头试试（x-api-key / api-key）。", { code }));
-  if (code === 404) return new Error(t("404：地址或模型名不对。接口地址填到 /v1 为止，模型名按服务商控制台里的写。"));
+  if (code === 404) return new Error(`${t("404：地址或模型名不对。接口地址填到 /v1 为止，模型名按服务商控制台里的写。")} ${String(e.message).replace(/^404\s*/, "").slice(0, 200)}`);
   if (html) return new Error(t("{code}：返回的是网页不是接口，说明这个地址不是 API 地址。", { code }));
   return e;
 }

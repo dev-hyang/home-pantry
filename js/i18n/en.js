@@ -788,7 +788,7 @@ export const EN = {
   "{p} 的 key 应该以 {prefix} 开头，这个看起来不是它发的 key；{hint}": "A {p} key should start with {prefix}; this doesn't look like one. {hint}",
   "模型名和接口地址已内置（{model}），一般不用改；要换模型再展开下面的“高级”。": "Model and endpoint are built in ({model}); you normally don't change them. Expand “Advanced” below to switch models.",
   "高级：换模型 / 自定义接口地址": "Advanced: change model / custom endpoint", "接口地址、模型与鉴权（自定义必填）": "Endpoint, model and auth (required for Custom)",
-  "这个 key 下没有可用的 Gemini 模型，去 AI Studio 确认 key 是否启用了 Generative Language API": "No usable Gemini model under this key; check in AI Studio that the key has the Generative Language API enabled",
+  "试了 {tried}，Google 都返回 404（{msg}）。这个 key 能用的模型：{all}。可在“高级”里手填其中一个。": "Tried {tried}; Google returned 404 for all of them ({msg}). Models available to this key: {all}. You can type one of them under Advanced.",
   // ── AI 免费额度 ──
   "AI Studio 免费额度（每天有次数上限，太平洋时间 0 点重置）；国内需能访问 Google": "AI Studio free tier (daily request cap, resets at midnight Pacific); needs access to Google",
   "Groq（Llama，免费档）": "Groq (Llama, free tier)", "OpenRouter（免费模型）": "OpenRouter (free models)",
