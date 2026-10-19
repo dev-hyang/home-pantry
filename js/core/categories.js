@@ -32,7 +32,14 @@ export function applyCustomCategories(rows) {
   }
 }
 export const isCustomCat = (id) => !!window.CATEGORIES.find((c) => c.id === id && c.custom);
-/** 可编辑的分类表单初值：内置分类取当前显示名（可能是翻译后的） */
+/** 可编辑的分类表单初值：内置分类的名称和小类按当前语言显示（保存时 canonSubs 会把没改的还原成内置键，翻译照常） */
 export function catFormOf(c, t) {
-  return { id: c.dbId, key: c.id, space: c.space, name: c.custom || c.overridden ? c.name : t(c.name), icon: c.icon, color: c.color, subs: c.subs || [], builtin: !c.custom, hidden: !!c.hidden };
+  const builtin = !c.custom;
+  return { id: c.dbId, key: c.id, space: c.space, name: builtin ? t(c.name) : c.name, icon: c.icon, color: c.color, subs: (c.subs || []).map((s) => (builtin ? t(s) : s)), builtin, hidden: !!c.hidden };
+}
+/** 保存内置分类时：用户没改的名称 / 小类（和当前语言的翻译一致）还原成内置键，这样切换语言仍会翻译；改过的按原样存 */
+export function canonName(c, name, t) { const b = c?.base; if (!b) return name; return name === t(b.name) || name === b.name ? b.name : name; }
+export function canonSubs(c, subs, t) {
+  const all = [...new Set([...(c?.base?.subs || []), ...(c?.subs || [])])];
+  return subs.map((s) => all.find((k) => k === s || t(k) === s) || s);
 }

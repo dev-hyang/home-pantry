@@ -27,7 +27,7 @@ import { viewSettings } from "./settings/views.js";
 import { viewAbout } from "./settings/about.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
-import { applyCustomCategories, catFormOf, isCustomCat, newCatKey } from "./core/categories.js";
+import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, newCatKey } from "./core/categories.js";
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, resetUsage, testModel } from "./core/ai.js";
 import { saveAiForm } from "./settings/views.js";
@@ -375,10 +375,16 @@ main.addEventListener("submit", async (e) => {
       const fe = f.elements, name = fe.name.value.trim();
       if (!name) return toast(t("请填分类名"));
       if (CATEGORIES.some((c) => c.space === fe.space.value && t(c.name) === name && c.id !== state.catForm?.key)) return toast(t("已有同名分类"));
-      const subs = fe.subs.value.split(/[,，、\n]/).map((x) => x.trim()).filter(Boolean).slice(0, 12);
-      const cf = state.catForm || {}, editing = !!cf.key;
+      const cf = state.catForm || {}, editing = !!cf.key, cur = cf.key ? CATEGORIES.find((c) => c.id === cf.key) : null;
+      // 内置分类：没改的名称 / 小类还原成内置键（切换语言仍会翻译），改过的按原样存
+      const subs = canonSubs(cur, fe.subs.value.split(/[,，、\n]/).map((x) => x.trim()).filter(Boolean).slice(0, 12), t);
+      const canon = cur && !cur.custom ? canonName(cur, name, t) : name;
       // 内置分类：key 用内置 id，这一行就是“覆盖”；自建分类：新 key
-      const row = { id: cf.id, key: cf.key || newCatKey(), space: fe.space.value, name, icon: fe.icon.value || "📦", color: fe.color.value || "#8a948f", loc: null, subs, hidden: !!cf.hidden, sort: cf.sort ?? CATEGORIES.filter((c) => c.custom).length };
+      const row = { id: cf.id, key: cf.key || newCatKey(), space: fe.space.value, name: canon, icon: fe.icon.value || "📦", color: fe.color.value || "#8a948f", loc: null, subs, hidden: !!cf.hidden, sort: cf.sort ?? CATEGORIES.filter((c) => c.custom).length };
+      if (cur && !cur.custom && !cf.hidden) {   // 内置分类保存时和默认完全一样：不留覆盖行（有就删掉），免得标“改过”
+        const b = cur.base, same = canon === b.name && row.icon === b.icon && row.color === b.color && JSON.stringify(subs) === JSON.stringify(b.subs);
+        if (same) { if (cf.id) await Store.deleteCategory(cf.id); state.catForm = null; toast(t("和默认一样，没有改动")); return refresh(); }
+      }
       await Store.saveCategory(row);
       state.catForm = null; if (state.route.section !== "me") state.filter.cat = row.key;
       toast(editing ? t("分类已保存") : t("已添加分类 {name}", { name }));

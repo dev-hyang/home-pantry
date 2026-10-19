@@ -775,7 +775,7 @@ export const EN = {
   "内置分类：改名、换图标颜色、增删小类都可以，全家共用；“恢复默认”退回内置设置": "Built-in category: rename, change icon/color, add or remove subcategories, shared by the family; “Restore default” reverts to the built-in settings",
   "小类（逗号分隔，可选）": "Subcategories (comma-separated, optional)", "物品表单的“小类”下拉就按这里的顺序；改名不会改已有物品上的小类文字": "The item form's subcategory dropdown follows this order; renaming doesn't change the text already saved on items",
   "自建": "custom", "改过": "modified", "已隐藏": "hidden", "没有小类": "no subcategories", "恢复默认": "Restore default", "隐藏分类": "Hide category", "重新显示": "Show again",
-  "已恢复默认": "Restored to default", "已隐藏分类": "Category hidden", "已重新显示": "Category shown again",
+  "已恢复默认": "Restored to default", "和默认一样，没有改动": "Same as the default; nothing changed", "已隐藏分类": "Category hidden", "已重新显示": "Category shown again",
   // ── AI key 说明 / 自动选模型 ──
   "打开 Google AI Studio → Get API key → Create API key，复制整串贴到这里（旧 key 以 AIza 开头，新 key 以 AQ. 开头，都行）。模型和地址不用填，会自动选可用的 Gemini Flash 模型。": "Open Google AI Studio → Get API key → Create API key, and paste the whole string here (older keys start with AIza, newer ones with AQ.; both work). No model or URL needed; an available Gemini Flash model is picked automatically.",
   "这个 key 的开头像是 {other} 的，不是 {p} 的；{hint}": "This key looks like a {other} key, not {p}. {hint}",
