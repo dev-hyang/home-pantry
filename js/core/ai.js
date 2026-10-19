@@ -21,11 +21,13 @@ export function aiIcon(size = 22, cls = "") {
 }
 // 默认 Gemini：美国可用的免费额度；其余按性价比排序。免费档的次数上限见 FREE_TIER，到上限就停
 export const PROVIDERS = [
-  { id: "gemini", name: "Google Gemini", kind: "gemini", base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-flash", cost: "free", signup: "https://aistudio.google.com/apikey", hint: "AI Studio 免费额度（每天有次数上限，太平洋时间 0 点重置）；国内需能访问 Google" },
-  { id: "groq", name: "Groq（Llama，免费档）", kind: "openai", base: "https://api.groq.com/openai/v1", model: "llama-3.1-8b-instant", cost: "free", signup: "https://console.groq.com/keys", hint: "免费档每天有次数上限，速度快；上限以控制台 Limits 页为准" },
-  { id: "openrouter", name: "OpenRouter（免费模型）", kind: "openai", base: "https://openrouter.ai/api/v1", model: "meta-llama/llama-3.3-70b-instruct:free", cost: "free", signup: "https://openrouter.ai/keys", hint: "带 :free 的模型不收费，但每天次数很少；模型名以网站列表为准" },
-  { id: "deepseek", name: "DeepSeek", kind: "openai", base: "https://api.deepseek.com", model: "deepseek-chat", cost: "cheapest", signup: "https://platform.deepseek.com/", hint: "注册送额度；之后每次菜单约几分钱" },
-  { id: "qwen", name: "通义千问（阿里百炼）", kind: "openai", base: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-turbo", cost: "cheapest", signup: "https://bailian.console.aliyun.com/", hint: "新用户有免费额度；qwen-turbo 最便宜" },
+  // keyHint：怎么拿 key、长什么样；keyPrefix：key 开头（测试连接时先核对，贴错服务的 key 会直接提示）。模型名和地址都有默认值，只有“自定义”需要填
+  { id: "gemini", name: "Google Gemini", kind: "gemini", base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-flash", cost: "free", signup: "https://aistudio.google.com/apikey", hint: "AI Studio 免费额度（每天有次数上限，太平洋时间 0 点重置）；国内需能访问 Google",
+    keyHint: "打开 Google AI Studio → Get API key → Create API key，复制以 AIza 开头的一整串贴到这里。模型和地址不用填，会自动选可用的 Gemini Flash 模型。", keyPrefix: "AIza" },
+  { id: "groq", name: "Groq（Llama，免费档）", kind: "openai", base: "https://api.groq.com/openai/v1", model: "llama-3.1-8b-instant", cost: "free", signup: "https://console.groq.com/keys", hint: "免费档每天有次数上限，速度快；上限以控制台 Limits 页为准", keyHint: "console.groq.com → API Keys → Create API Key，key 以 gsk_ 开头。", keyPrefix: "gsk_" },
+  { id: "openrouter", name: "OpenRouter（免费模型）", kind: "openai", base: "https://openrouter.ai/api/v1", model: "meta-llama/llama-3.3-70b-instruct:free", cost: "free", signup: "https://openrouter.ai/keys", hint: "带 :free 的模型不收费，但每天次数很少；模型名以网站列表为准", keyHint: "openrouter.ai → Keys → Create key，key 以 sk-or- 开头。", keyPrefix: "sk-or-" },
+  { id: "deepseek", name: "DeepSeek", kind: "openai", base: "https://api.deepseek.com", model: "deepseek-chat", cost: "cheapest", signup: "https://platform.deepseek.com/", hint: "注册送额度；之后每次菜单约几分钱", keyHint: "platform.deepseek.com → API keys → 创建，key 以 sk- 开头。", keyPrefix: "sk-" },
+  { id: "qwen", name: "通义千问（阿里百炼）", kind: "openai", base: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-turbo", cost: "cheapest", signup: "https://bailian.console.aliyun.com/", hint: "新用户有免费额度；qwen-turbo 最便宜", keyHint: "阿里云百炼控制台 → API-KEY 管理 → 创建，key 以 sk- 开头。", keyPrefix: "sk-" },
   { id: "doubao", name: "豆包（火山方舟）", kind: "openai", base: "https://ark.cn-beijing.volces.com/api/v3", model: "doubao-lite-32k", cost: "cheapest", signup: "https://console.volcengine.com/ark", hint: "模型名填你在方舟开通的接入点或模型 ID；浏览器直连若被拒，用“复制提示词”" },
   { id: "kimi", name: "Kimi（月之暗面）", kind: "openai", base: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k", cost: "cheap", signup: "https://platform.moonshot.cn/", hint: "" },
   { id: "openai", name: "OpenAI", kind: "openai", base: "https://api.openai.com/v1", model: "gpt-4o-mini", cost: "cheap", signup: "https://platform.openai.com/api-keys", hint: "gpt-4o-mini 够用" },
@@ -113,6 +115,26 @@ function rateLimited(e, p) {
   const q = { reason: daily ? "daily" : "blocked", resumeAt: until, used: u[p.id].count || 0 };
   return new QuotaError(quotaMessage(q), q);
 }
+/* ── Gemini 模型名自动选择：模型名经常换代（2.0 → 2.5 …），用户没填就从 /models 列表里挑一个可用的 Flash，记在本机 ── */
+const AUTO_MODEL_KEY = "hmh-ai-auto-model";
+const GEMINI_PREF = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-flash-latest"];
+export function autoModel(providerId) { try { return JSON.parse(localStorage.getItem(AUTO_MODEL_KEY) || "{}")[providerId] || ""; } catch { return ""; } }
+function saveAutoModel(providerId, model) { try { const m = JSON.parse(localStorage.getItem(AUTO_MODEL_KEY) || "{}"); m[providerId] = model; localStorage.setItem(AUTO_MODEL_KEY, JSON.stringify(m)); } catch { /* 忽略 */ } }
+async function resolveGeminiModel(base, key) {
+  const j = await readJson(await fetch(`${base}/models?key=${encodeURIComponent(key)}&pageSize=200`));
+  const names = (j.models || []).filter((m) => (m.supportedGenerationMethods || []).includes("generateContent")).map((m) => String(m.name || "").replace(/^models\//, ""));
+  const pick = GEMINI_PREF.find((n) => names.includes(n)) || names.find((n) => /flash/i.test(n) && !/image|tts|audio|live|embedding/i.test(n)) || names[0];
+  if (!pick) throw new Error(t("这个 key 下没有可用的 Gemini 模型，去 AI Studio 确认 key 是否启用了 Generative Language API"));
+  saveAutoModel("gemini", pick);
+  return pick;
+}
+/** Gemini 一次调用；模型名 404 且用户没手填时，查一次列表换成可用的再试 */
+async function geminiCall(s, base, key, body, signal) {
+  const call = (model) => fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(readJson);
+  const model = s.model || autoModel("gemini") || providerOf("gemini").model;
+  try { return await call(model); }
+  catch (e) { if (e.status !== 404 || s.model) throw e; return call(await resolveGeminiModel(base, key)); }
+}
 /** 发请求前的闸门：超了免费额度就不发，直接告诉用户什么时候能用 */
 function gate(s, p) {
   const q = aiQuota(s);
@@ -183,9 +205,7 @@ export async function askText(system, user, { json = false, maxTokens = 1500 } =
   try {
     let text;
     if (p.kind === "gemini") {
-      const r = await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: { temperature: 0.7, ...(json ? { responseMimeType: "application/json" } : {}) } }) });
-      const j = await readJson(r);
+      const j = await geminiCall(s, base, key, { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: { temperature: 0.7, ...(json ? { responseMimeType: "application/json" } : {}) } }, ctl.signal);
       text = j.candidates?.[0]?.content?.parts?.map((x) => x.text).join("") || "";
     } else if (p.kind === "anthropic") {
       const r = await fetch(`${base}/messages`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
@@ -272,9 +292,10 @@ export async function testModel() {
   const base = (s.base || p.base).replace(/\/+$/, ""), model = s.model || p.model;
   if (!key) throw new Error(t("先填 API key"));
   if (p.id === "custom" && !/^https:\/\//i.test(base)) throw new Error(t("接口地址要以 https:// 开头，填到 /v1 为止"));
+  if (p.keyPrefix && !key.startsWith(p.keyPrefix)) throw new Error(t("{p} 的 key 应该以 {prefix} 开头，这个看起来不是它发的 key；{hint}", { p: t(p.name), prefix: p.keyPrefix, hint: t(p.keyHint || "") }));
   gate(s, p);
   try {
-    if (p.kind === "gemini") await readJson(await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] }) }));
+    if (p.kind === "gemini") await geminiCall(s, base, key, { contents: [{ role: "user", parts: [{ text: "hi" }] }] });
     else if (p.kind === "anthropic") await readJson(await fetch(`${base}/messages`, { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "hi" }] }) }));
     else await readJson(await fetch(`${base}/chat/completions`, { method: "POST", headers: openaiHeaders(s, p, key), body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "hi" }] }) }));
     countUse(p);   // 测试也算一次

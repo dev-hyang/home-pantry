@@ -250,8 +250,8 @@ function onRoute() {
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 window.addEventListener("hashchange", onRoute);
 
-/* ── 底部页签：手动点页签 = 回到该页签首页并恢复默认筛选（多套房产时账单回“全部房产”）；浏览器后退不走这里，筛选照旧。
- * 已经在该页签首页再点一次（或双击）：也恢复默认筛选并回到顶部。 */
+/* ── 底部页签：点别的页签 = 进入该页签首页并恢复默认筛选（多套房产时账单回“全部房产”）；浏览器后退不走这里，筛选照旧。
+ * 当前页签：单击不动（免得误触退回首页），双击才回该页签首页并恢复默认筛选、回到顶部。 */
 function resetSectionFilters(section) {
   switch (section) {
     case "today": setTodayPref({ source: null }); break;
@@ -262,10 +262,19 @@ function resetSectionFilters(section) {
     default: break;
   }
 }
+let lastTabTap = { sec: null, at: 0 };
 $("#tabs").addEventListener("click", (e) => {
   const a = e.target.closest("a[data-section]"); if (!a) return;
   const sec = a.dataset.section, root = a.getAttribute("href");
-  if (location.hash === root) { e.preventDefault(); resetSectionFilters(sec); render(true); window.scrollTo(0, 0); return; }
+  if (a.getAttribute("aria-current") === "page") {   // 当前页签：单击不动，双击（400ms 内两下）才回首页
+    e.preventDefault();
+    const now = Date.now(), dbl = lastTabTap.sec === sec && now - lastTabTap.at < 400;
+    lastTabTap = { sec, at: dbl ? 0 : now };
+    if (!dbl) return;
+    resetSectionFilters(sec);
+    if (location.hash === root) { render(true); window.scrollTo(0, 0); } else go(root);
+    return;
+  }
   state.tabReset = sec;   // 进入后在 onRoute 里恢复默认筛选
 });
 
@@ -293,6 +302,7 @@ main.addEventListener("change", async (e) => {
     inp.hidden = !on; if (on) inp.focus();
   }
   if (e.target.id === "alertSort") { setTodayPref({ mode: e.target.value }); return render(); }
+  if (e.target.closest("#aiSettingsForm") && e.target.name === "provider") { await saveAiForm(e.target.form); return render(); }   // 换服务商：重画 key 说明、默认模型、免费额度
   if (e.target.closest("#itemForm") && e.target.name === "category") {
     const fe = e.target.form.elements;
     fe.subcategory.innerHTML = subOptions(e.target.value);

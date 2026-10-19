@@ -769,6 +769,17 @@ export const EN = {
   "按月和按里程取先到的；里程按年均里程推算。记保养时要选对“保养项目”，那一项的下次日期才会更新": "Whichever comes first by months or mileage; mileage is projected from annual miles. Pick the right service item when logging, or that item's next date won't move",
   "家庭、房产、语言、存放位置、模块、备份、AI、姐妹站点": "Family, properties, language, locations, modules, backup, AI, sister sites",
   "{n} 辆": "{n} vehicles", "{n} 台": "{n} units",
+  // ── AI key 说明 / 自动选模型 ──
+  "打开 Google AI Studio → Get API key → Create API key，复制以 AIza 开头的一整串贴到这里。模型和地址不用填，会自动选可用的 Gemini Flash 模型。": "Open Google AI Studio → Get API key → Create API key, and paste the whole string starting with AIza here. No model or URL needed; an available Gemini Flash model is picked automatically.",
+  "console.groq.com → API Keys → Create API Key，key 以 gsk_ 开头。": "console.groq.com → API Keys → Create API Key; the key starts with gsk_.",
+  "openrouter.ai → Keys → Create key，key 以 sk-or- 开头。": "openrouter.ai → Keys → Create key; the key starts with sk-or-.",
+  "platform.deepseek.com → API keys → 创建，key 以 sk- 开头。": "platform.deepseek.com → API keys → Create; the key starts with sk-.",
+  "阿里云百炼控制台 → API-KEY 管理 → 创建，key 以 sk- 开头。": "Alibaba Cloud Bailian console → API-KEY → Create; the key starts with sk-.",
+  "在服务商控制台创建 API key，整段粘贴到这里": "Create an API key in the provider's console and paste the whole string here",
+  "{p} 的 key 应该以 {prefix} 开头，这个看起来不是它发的 key；{hint}": "A {p} key should start with {prefix}; this doesn't look like one. {hint}",
+  "模型名和接口地址已内置（{model}），一般不用改；要换模型再展开下面的“高级”。": "Model and endpoint are built in ({model}); you normally don't change them. Expand “Advanced” below to switch models.",
+  "高级：换模型 / 自定义接口地址": "Advanced: change model / custom endpoint", "接口地址、模型与鉴权（自定义必填）": "Endpoint, model and auth (required for Custom)",
+  "这个 key 下没有可用的 Gemini 模型，去 AI Studio 确认 key 是否启用了 Generative Language API": "No usable Gemini model under this key; check in AI Studio that the key has the Generative Language API enabled",
   // ── AI 免费额度 ──
   "AI Studio 免费额度（每天有次数上限，太平洋时间 0 点重置）；国内需能访问 Google": "AI Studio free tier (daily request cap, resets at midnight Pacific); needs access to Google",
   "Groq（Llama，免费档）": "Groq (Llama, free tier)", "OpenRouter（免费模型）": "OpenRouter (free models)",

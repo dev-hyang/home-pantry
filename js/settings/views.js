@@ -4,7 +4,7 @@ import { $, esc, fmtShort, syncState } from "../core/util.js";
 import { LANGS, detectLang, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
-import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, providerOf, quotaStatus, saveAiSettings } from "../core/ai.js";
+import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, providerOf, quotaStatus, saveAiSettings } from "../core/ai.js";
 import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
@@ -132,19 +132,25 @@ function quotaBlock(s, p) {
   </fieldset>`;
 }
 function aiBlock() {
-  const s = aiSettings(), p = providerOf(s.provider);
+  const s = aiSettings(), p = providerOf(s.provider), custom = p.id === "custom";
   const COST = { free: t("免费额度"), cheapest: t("最便宜"), cheap: t("便宜"), mid: t("中等") };
   return `<form id="aiSettingsForm" class="panel">
     <p class="muted" style="margin:0 0 10px;font-size:13px">${t("key 只保存在这台设备的浏览器里，不进仓库也不进数据库；浏览器直连模型，家人各自填自己的。没填 key 时菜单助手会改成“复制提示词”模式，照样能用。")}</p>
     <div class="form-grid">
       <label>${t("模型服务")}<select name="provider">${PROVIDERS.map((x) => `<option value="${x.id}" ${x.id === s.provider ? "selected" : ""}>${esc(t(x.name))}${COST[x.cost] ? ` · ${COST[x.cost]}` : ""}</option>`).join("")}</select>
         <small>${esc(t(p.hint || ""))}${p.signup ? ` <a href="${p.signup}" target="_blank" rel="noopener noreferrer">${t("去申请 key")}</a>` : ""}</small></label>
-      <label>${t("API key")}<input name="key" type="password" autocomplete="off" maxlength="300" value="${esc(s.key)}" placeholder="sk-…"></label>
-      <label>${t("模型名（留空用默认）")}<input name="model" maxlength="80" placeholder="${esc(p.model)}" value="${esc(s.model)}"></label>
-      <label>${t("接口地址（自定义时填）")}<input name="base" maxlength="200" placeholder="${esc(p.base || "https://…/v1")}" value="${esc(s.base)}"><small>${t("要填真正的 API 域名（到 /v1 为止），不是官网；401 多半是 key 和地址不配")}</small></label>
-      <label>${t("鉴权头（自定义时）")}<select name="auth">${Object.entries(AUTH_STYLES).map(([k, n]) => `<option value="${k}" ${(s.auth || "bearer") === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
+      <label>${t("API key")}<input name="key" type="password" autocomplete="off" maxlength="300" value="${esc(s.key)}" placeholder="${esc(p.keyPrefix ? `${p.keyPrefix}…` : "sk-…")}">
+        <small>${esc(t(p.keyHint || "在服务商控制台创建 API key，整段粘贴到这里"))}</small></label>
       <label>${t("家庭人数（菜单份量）")}<input name="people" type="number" inputmode="numeric" min="1" max="20" value="${s.people || 4}"></label>
     </div>
+    ${custom ? "" : `<p class="hint">${t("模型名和接口地址已内置（{model}），一般不用改；要换模型再展开下面的“高级”。", { model: s.model || autoModel(p.id) || p.model })}</p>`}
+    <details class="adv" ${custom ? "open" : ""}><summary>${custom ? t("接口地址、模型与鉴权（自定义必填）") : t("高级：换模型 / 自定义接口地址")}</summary>
+      <div class="form-grid" style="margin-top:8px">
+        <label>${t("模型名（留空用默认）")}<input name="model" maxlength="80" placeholder="${esc(autoModel(p.id) || p.model)}" value="${esc(s.model)}"></label>
+        <label>${t("接口地址（自定义时填）")}<input name="base" maxlength="200" placeholder="${esc(p.base || "https://…/v1")}" value="${esc(s.base)}"><small>${t("要填真正的 API 域名（到 /v1 为止），不是官网；401 多半是 key 和地址不配")}</small></label>
+        <label>${t("鉴权头（自定义时）")}<select name="auth">${Object.entries(AUTH_STYLES).map(([k, n]) => `<option value="${k}" ${(s.auth || "bearer") === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
+      </div>
+    </details>
     ${quotaBlock(s, p)}
     <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${t("保存")}</button>
       <button type="button" class="btn btn-sm btn-ghost" data-action="ai-test">${t("测试连接")}</button><span id="aiTestOut" class="muted"></span></div>
