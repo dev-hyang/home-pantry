@@ -47,7 +47,7 @@ export function aiSettings() {
 /* ── 免费额度：按服务商的免费档计数，到上限就不发请求，并算出下次可用时间；429 也记下恢复时间 ──
  * 数字是各家公布的免费档常见值，会变，设置里可以改；日配额重置时区：Gemini 太平洋时间 0 点，其余按 UTC 估 */
 export const FREE_TIER = {
-  gemini:     { rpm: 10, rpd: 250, reset: "pt", resetText: "太平洋时间 0 点重置" },
+  gemini:     { rpm: 10, rpd: 100, reset: "pt", resetText: "太平洋时间 0 点重置" },   // 按 AI Studio “Rate limits” 页里你这个模型的 RPD 填；RPM 留低一点就行，TPM 对我们这种一次一两千 token 的用法不会先到
   groq:       { rpm: 30, rpd: 1000, reset: "utc", resetText: "按 UTC 0 点估算重置" },
   openrouter: { rpm: 20, rpd: 50, reset: "utc", resetText: "按 UTC 0 点估算重置" },
 };
