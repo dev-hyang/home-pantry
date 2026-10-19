@@ -1,6 +1,7 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, esc, fmtShort, syncState } from "../core/util.js";
+import { $, catsOf, esc, fmtShort, syncState } from "../core/util.js";
+import { catFormHtml } from "../pantry/views.js";
 import { LANGS, detectLang, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
@@ -72,6 +73,25 @@ function sisterAppsPanel() {
   </div>`;
 }
 
+/* ── 分类与小类：按空间列出全部分类（含隐藏的）；点“编辑”用和库存页同一个表单改名、换图标颜色、增删小类；内置分类可恢复默认或隐藏 ── */
+function categoriesPanel() {
+  const cf = state.catForm;
+  const spaces = [["pantry", "厨房储藏"], ["house", "房屋耗材"], ["gear", "装备"]].filter(([s]) => s !== "gear" || state.gearEnabled);
+  const row = (c) => {
+    const n = state.items.filter((i) => i.category === c.id).length;
+    const tag = c.custom ? `<span class="badge b-ok">${t("自建")}</span>` : c.overridden ? `<span class="badge b-soon">${t("改过")}</span>` : "";
+    return `<li class="${c.hidden ? "inactive" : ""}"><span class="mi" style="--cat:${c.color}" aria-hidden="true">${c.icon}</span>
+      <span class="grow"><b>${esc(t(c.name))}</b> ${tag}${c.hidden ? ` <span class="badge" style="background:var(--surface-2)">${t("已隐藏")}</span>` : ""}
+        <small>${(c.subs || []).length ? esc((c.subs || []).map((s) => t(s)).join(" · ")) : t("没有小类")}${n ? ` · ${t("{n} 件", { n })}` : ""}</small></span>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="cat-edit" data-cat="${c.id}">${t("编辑")}</button></li>`;
+  };
+  return `${cf ? catFormHtml(cf) : ""}
+    <p class="muted" style="margin:0 0 10px;font-size:13px">${t("大类决定方块、筛选和统计；小类是物品表单里的下拉。内置分类也能改名、增删小类或隐藏，自建的可删除，全家共用。")}</p>
+    ${spaces.map(([s, name]) => `<div class="panel loc-group"><div class="section-head" style="margin-bottom:4px"><h3 style="font-size:15px">${t(name)}</h3>
+        <button type="button" class="btn btn-sm btn-ghost" data-action="cat-new" data-space="${s}">＋ ${t("新分类")}</button></div>
+      <ul class="member-list loc-list cat-list">${catsOf(s, { withHidden: true }).map(row).join("")}</ul></div>`).join("")}`;
+}
+
 /* ── 存放位置：按房间分组列出内置 + 自定义；可新增、重命名（内置也能改名，如“客卧 1 衣柜”→“Emma 的房间”）、删除自定义 ── */
 function locationsPanel() {
   const lf = state.locForm;
@@ -103,6 +123,7 @@ export const SETTING_SECTIONS = [
   { id: "family", icon: "👨‍👩‍👧", name: "家庭与成员" },
   { id: "properties", icon: "🏠", name: "房产" },
   { id: "prefs", icon: "🌐", name: "语言、地区与单位" },
+  { id: "categories", icon: "🗂️", name: "分类与小类" },
   { id: "locations", icon: "📍", name: "存放位置" },
   { id: "modules", icon: "🧩", name: "模块开关" },
   { id: "data", icon: "💾", name: "通知与备份" },
@@ -167,6 +188,7 @@ export function viewSettings() {
       family: cloud ? t("{name} · {n} 位成员", { name: state.household?.name || "", n: state.members.length }) : t("本地演示：数据只保存在这个浏览器里"),
       properties: t("{n} 套", { n: state.properties.filter((p) => !p.archived).length }),
       prefs: `${LANGS[langOverride() || detectLang()]} · ${t(Units.region.name)} · ${Units.region.currency}`,
+      categories: t("{n} 个分类 · 自建 {m} · 改过 {k}", { n: CATEGORIES.filter((c) => !c.hidden).length, m: CATEGORIES.filter((c) => c.custom).length, k: CATEGORIES.filter((c) => c.overridden).length }),
       locations: t("{n} 个位置 · 自定义 {m}", { n: window.LOCATIONS.length, m: customLocations().length }),
       modules: [state.houseEnabled ? t("房屋 ✓") : t("房屋 ✗"), state.billsEnabled ? t("账单 ✓") : t("账单 ✗"), state.gearEnabled ? t("装备 ✓") : t("装备 ✗")].join(" · "),
       data: `${notif === "granted" ? t("通知已开启") : t("通知未开启")} · ${t("导出 JSON")}`,
@@ -238,6 +260,7 @@ export function viewSettings() {
       <button type="button" class="btn btn-sm" data-action="export">${t("导出 JSON")}</button></div></div>`,
     ai: () => aiBlock(),
     locations: () => locationsPanel(),
+    categories: () => categoriesPanel(),
     apps: () => `
     ${sisterAppsPanel()}
     <div class="panel"><div class="kv"><div><b>${t("介绍与注意事项")}</b><div class="muted">${t("这个网站是什么、第一次怎么用、提醒怎么分级、哪些事要注意")}</div></div>

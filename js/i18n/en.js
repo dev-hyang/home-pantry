@@ -769,6 +769,13 @@ export const EN = {
   "按月和按里程取先到的；里程按年均里程推算。记保养时要选对“保养项目”，那一项的下次日期才会更新": "Whichever comes first by months or mileage; mileage is projected from annual miles. Pick the right service item when logging, or that item's next date won't move",
   "家庭、房产、语言、存放位置、模块、备份、AI、姐妹站点": "Family, properties, language, locations, modules, backup, AI, sister sites",
   "{n} 辆": "{n} vehicles", "{n} 台": "{n} units",
+  // ── 分类与小类（内置可改、可隐藏） ──
+  "分类与小类": "Categories & subcategories", "{n} 个分类 · 自建 {m} · 改过 {k}": "{n} categories · {m} custom · {k} modified",
+  "大类决定方块、筛选和统计；小类是物品表单里的下拉。内置分类也能改名、增删小类或隐藏，自建的可删除，全家共用。": "Categories drive tiles, filters and stats; subcategories are the dropdown in the item form. Built-in categories can be renamed, given subcategories or hidden; custom ones can be deleted. Shared by the family.",
+  "内置分类：改名、换图标颜色、增删小类都可以，全家共用；“恢复默认”退回内置设置": "Built-in category: rename, change icon/color, add or remove subcategories, shared by the family; “Restore default” reverts to the built-in settings",
+  "小类（逗号分隔，可选）": "Subcategories (comma-separated, optional)", "物品表单的“小类”下拉就按这里的顺序；改名不会改已有物品上的小类文字": "The item form's subcategory dropdown follows this order; renaming doesn't change the text already saved on items",
+  "自建": "custom", "改过": "modified", "已隐藏": "hidden", "没有小类": "no subcategories", "恢复默认": "Restore default", "隐藏分类": "Hide category", "重新显示": "Show again",
+  "已恢复默认": "Restored to default", "已隐藏分类": "Category hidden", "已重新显示": "Category shown again",
   // ── AI key 说明 / 自动选模型 ──
   "打开 Google AI Studio → Get API key → Create API key，复制以 AIza 开头的一整串贴到这里。模型和地址不用填，会自动选可用的 Gemini Flash 模型。": "Open Google AI Studio → Get API key → Create API key, and paste the whole string starting with AIza here. No model or URL needed; an available Gemini Flash model is picked automatically.",
   "console.groq.com → API Keys → Create API Key，key 以 gsk_ 开头。": "console.groq.com → API Keys → Create API Key; the key starts with gsk_.",

@@ -20,7 +20,7 @@ export const storedStep = (unit) => Units.step(du(unit)) / Units.factor(unit);
 export const money = (v, short) => Units.money(v, undefined, !!short);
 export const catOf = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[0];
 // 分类分三个空间：pantry 厨房储藏 / house 房屋耗材 / gear 装备（耐用品，只记数量和位置）
-export const catsOf = (space) => CATEGORIES.filter((c) => c.space === space);
+export const catsOf = (space, { withHidden = false } = {}) => CATEGORIES.filter((c) => c.space === space && (withHidden || !c.hidden));   // 隐藏的内置分类不出现在方块、芯片、下拉里
 export const spaceOf = (catId) => CATEGORIES.find((c) => c.id === catId)?.space || "pantry";
 export const inSpace = (space) => (it) => spaceOf(it.category) === space;
 export const isGear = (it) => spaceOf(it.category) === "gear";

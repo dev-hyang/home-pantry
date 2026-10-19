@@ -27,7 +27,7 @@ import { viewSettings } from "./settings/views.js";
 import { viewAbout } from "./settings/about.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
-import { applyCustomCategories, isCustomCat, newCatKey } from "./core/categories.js";
+import { applyCustomCategories, catFormOf, isCustomCat, newCatKey } from "./core/categories.js";
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, resetUsage, testModel } from "./core/ai.js";
 import { saveAiForm } from "./settings/views.js";
@@ -373,10 +373,12 @@ main.addEventListener("submit", async (e) => {
       if (!name) return toast(t("请填分类名"));
       if (CATEGORIES.some((c) => c.space === fe.space.value && t(c.name) === name && c.id !== state.catForm?.key)) return toast(t("已有同名分类"));
       const subs = fe.subs.value.split(/[,，、\n]/).map((x) => x.trim()).filter(Boolean).slice(0, 12);
-      const editing = !!state.catForm?.id;
-      const row = { id: state.catForm?.id, key: state.catForm?.key || newCatKey(), space: fe.space.value, name, icon: fe.icon.value || "📦", color: fe.color.value || "#8a948f", loc: null, subs, sort: CATEGORIES.filter((c) => c.custom).length };
+      const cf = state.catForm || {}, editing = !!cf.key;
+      // 内置分类：key 用内置 id，这一行就是“覆盖”；自建分类：新 key
+      const row = { id: cf.id, key: cf.key || newCatKey(), space: fe.space.value, name, icon: fe.icon.value || "📦", color: fe.color.value || "#8a948f", loc: null, subs, hidden: !!cf.hidden, sort: cf.sort ?? CATEGORIES.filter((c) => c.custom).length };
       await Store.saveCategory(row);
-      state.catForm = null; state.filter.cat = row.key; toast(editing ? t("分类已保存") : t("已添加分类 {name}", { name }));
+      state.catForm = null; if (state.route.section !== "me") state.filter.cat = row.key;
+      toast(editing ? t("分类已保存") : t("已添加分类 {name}", { name }));
       return refresh();
     }
     if (f.id === "aiSettingsForm") { await saveAiForm(f); toast(t("AI 设置已保存（只存在本机）")); return render(); }
@@ -572,8 +574,21 @@ main.addEventListener("click", async (e) => {
       case "restock": el.disabled = true; await Store.adjust(id, storedStep(state.items.find((x) => x.id === id)?.unit), "restock"); return refresh();
       case "cat": state.filter.cat = el.dataset.cat; state.catSort = false; state.catForm = null; return render();
       case "cat-new": state.catForm = { space: el.dataset.space || state.filter.space }; render(); $("#catForm input[name=name]")?.focus(); return;
-      case "cat-edit": { const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (c?.custom) state.catForm = { id: c.dbId, key: c.id, space: c.space, name: c.name, icon: c.icon, color: c.color, subs: c.subs }; render(); return; }
+      case "cat-edit": { const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (c) state.catForm = catFormOf(c, t); render(); $("#catForm")?.scrollIntoView({ block: "start" }); return; }
       case "cat-cancel": state.catForm = null; return render();
+      case "cat-restore": {   // 内置分类：删掉覆盖行，恢复默认名称 / 图标 / 小类
+        const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (!c?.overridden) return;
+        await Store.deleteCategory(c.dbId); state.catForm = null; toast(t("已恢复默认")); return refresh();
+      }
+      case "cat-hide": {   // 内置分类：隐藏（下面没有物品才行）/ 重新显示
+        const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (!c || c.custom) return;
+        const on = el.dataset.on === "1";
+        if (on && state.items.some((i) => i.category === c.id)) return toast(t("这个分类下还有物品，先把它们改到别的分类"));
+        const b = c.base || {}, changed = c.overridden && (c.name !== b.name || c.icon !== b.icon || c.color !== b.color || JSON.stringify(c.subs) !== JSON.stringify(b.subs));
+        if (!on && c.dbId && !changed) await Store.deleteCategory(c.dbId);   // 只是隐藏过、没改别的：重新显示就把覆盖行删掉，不留“改过”标记
+        else await Store.saveCategory({ id: c.dbId, key: c.id, space: c.space, name: changed ? c.name : null, icon: changed ? c.icon : null, color: changed ? c.color : null, loc: null, subs: changed ? c.subs : [], hidden: on, sort: 0 });
+        state.catForm = null; if (on && state.filter.cat === c.id) state.filter.cat = "all"; toast(on ? t("已隐藏分类") : t("已重新显示")); return refresh();
+      }
       case "inv-clear": Object.assign(state.filter, { q: "", status: "all", loc: "all" }); return render();
       // 设置 → 存放位置：新建 / 重命名 / 删除
       case "loc-new": state.locForm = { name: "", grp: el.dataset.grp || "custom" }; render(); $("#locForm input[name=name]")?.focus(); return;

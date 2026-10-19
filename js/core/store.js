@@ -320,7 +320,7 @@ export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_pol
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
   "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "statement_channel",
   "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes"];
-export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", "subs", "sort"];
+export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", "subs", "hidden", "sort"];
 export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
 export const DEAL_FIELDS = ["property_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at"];
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };

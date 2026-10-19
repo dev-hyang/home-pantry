@@ -428,6 +428,8 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 .tile.is-hit { box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 0 0 2px var(--pine); }
 .tile.is-hit .tile-count { color: var(--pine); }
 .loc-list li .grow { min-width: 0; }
+.cat-list .mi { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; background: color-mix(in srgb, var(--cat) 22%, var(--surface)); flex: 0 0 auto; }
+.cat-list li.inactive { opacity: .55; }
 .loc-list b { font-weight: 700; }
 @media (max-width: 480px) { .form-actions .btn-primary { flex: 1 1 100%; } }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
