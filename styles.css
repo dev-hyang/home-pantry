@@ -62,7 +62,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* 毛玻璃放在伪元素上：backdrop-filter 若直接写在 header 上，会让里面 position: fixed 的底部导航相对 header 定位，
    手机上导航就贴在 header 底部、盖住标题 */
 .topbar::before { content: ""; position: absolute; inset: 0; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: -1; pointer-events: none; }
-.topbar-inner, .tabs, main { max-width: 1080px; margin: 0 auto; padding-left: 20px; padding-right: 20px; }
+/* 桌面：顶栏、内容同一条居中的窄列（920px），底部导航也居中；表单、设置等不再各自限宽靠左，免得和底部页签错位 */
+.topbar-inner, .tabs, main { max-width: 920px; margin: 0 auto; padding-left: 20px; padding-right: 20px; }
 .topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; padding-bottom: 6px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-mark { color: var(--ink); flex: 0 0 auto; }
@@ -387,7 +388,7 @@ textarea { resize: vertical; }
 .recipe .acts { display: flex; gap: 6px; margin-top: auto; flex-wrap: wrap; }
 
 /* ── 设置 / 登录 ── */
-.settings { display: grid; gap: 14px; max-width: 640px; }
+.settings { display: grid; gap: 14px; }
 .kv { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
 .code { font-size: 22px; font-weight: 800; letter-spacing: .15em; }
 .gate-card { max-width: 420px; margin: 40px auto; }
@@ -401,7 +402,7 @@ textarea { resize: vertical; }
 .gate-card .phone-form .btn { grid-column: 1 / -1; }
 
 /* ── 物品编辑整页（替代浮动弹窗，不依赖视口高度计算） ── */
-.form-page { max-width: 720px; }
+.form-page { max-width: none; }
 .form-page fieldset { border: 0; margin: 0 0 18px; padding: 0; min-width: 0; }
 .form-page legend { float: left; width: 100%; font-size: 15px; font-weight: 800; padding: 0; margin-bottom: 10px; }
 .form-page legend ~ * { clear: both; }   /* legend 后面可能有隐藏的提示段落，所有后续兄弟都清除浮动 */
@@ -761,7 +762,7 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .slot-swap { float: right; font-size: 12px; font-weight: 600; color: var(--pine); }
 .ok-text { color: var(--ok); }
 /* 介绍页 */
-.about { max-width: 760px; }
+.about { max-width: none; }
 .about-intro p { margin: 0 0 8px; line-height: 1.7; }
 .about-intro p:last-child { margin-bottom: 0; }
 .about-sec { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); margin-top: 12px; }

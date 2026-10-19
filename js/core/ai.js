@@ -31,8 +31,28 @@ export const PROVIDERS = [
 ];
 export const providerOf = (id) => PROVIDERS.find((p) => p.id === id) || PROVIDERS[0];
 
+// auth：自定义接口的鉴权头——bearer（Authorization: Bearer，OpenAI 兼容接口默认）/ x-api-key / api-key（Azure 风格）
+export const AUTH_STYLES = { bearer: "Authorization: Bearer（默认）", "x-api-key": "x-api-key 头", "api-key": "api-key 头（Azure 风格）" };
 export function aiSettings() {
-  try { return { provider: "deepseek", key: "", model: "", base: "", people: 4, ...(JSON.parse(localStorage.getItem(KEY) || "{}")) }; } catch { return { provider: "deepseek", key: "", model: "", base: "", people: 4 }; }
+  const def = { provider: "deepseek", key: "", model: "", base: "", people: 4, auth: "bearer" };
+  try { return { ...def, ...(JSON.parse(localStorage.getItem(KEY) || "{}")) }; } catch { return def; }
+}
+/** OpenAI 兼容接口的请求头：按设置选鉴权方式（只对“自定义”生效，其余服务固定 Bearer） */
+function openaiHeaders(s, p, key) {
+  const h = { "Content-Type": "application/json" };
+  const style = p.id === "custom" ? s.auth || "bearer" : "bearer";
+  if (style === "x-api-key") h["x-api-key"] = key; else if (style === "api-key") h["api-key"] = key; else h.Authorization = `Bearer ${key}`;
+  return h;
+}
+/** 把 HTTP 错误翻译成能动手排查的提示 */
+function explainHttp(e, base) {
+  const m = /^(\d{3}) /.exec(e.message || ""); if (!m) return e;
+  const code = +m[1];
+  const html = /<!doctype|<html/i.test(e.message);
+  if (code === 401 || code === 403) return new Error(t("{code}：这个地址不接受这个 key。检查：key 是否就是这个服务发的、有没有过期或多了空格；地址是不是真正的 API 域名（有些服务的 API 在另一个域名，不是官网）；“自定义”里可换鉴权头试试（x-api-key / api-key）。", { code }));
+  if (code === 404) return new Error(t("404：地址或模型名不对。接口地址填到 /v1 为止，模型名按服务商控制台里的写。"));
+  if (html) return new Error(t("{code}：返回的是网页不是接口，说明这个地址不是 API 地址。", { code }));
+  return e;
 }
 export function saveAiSettings(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* 忽略 */ } }
 export const aiReady = () => !!aiSettings().key.trim();
@@ -75,7 +95,7 @@ export const promptText = (ask, opts) => { const p = menuPrompt(ask, opts); retu
 /** 通用一问一答：system + user → 文本；json=true 时要求模型只回 JSON（Gemini 用 responseMimeType） */
 export async function askText(system, user, { json = false, maxTokens = 1500 } = {}) {
   const s = aiSettings(), p = providerOf(s.provider);
-  const base = (s.base || p.base).replace(/\/+$/, ""), model = s.model || p.model, key = s.key.trim();
+  const base = (s.base || p.base).replace(/\/+$/, ""), model = s.model || p.model, key = s.key.trim().replace(/^Bearer\s+/i, "");   // 有人把 “Bearer xxx” 整段贴进来
   if (!key) throw new Error(t("还没填 API key，去设置 → AI 助手"));
   const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 60000);
   try {
@@ -91,14 +111,14 @@ export async function askText(system, user, { json = false, maxTokens = 1500 } =
       const j = await readJson(r);
       return (j.content || []).map((x) => x.text || "").join("");
     }
-    const r = await fetch(`${base}/chat/completions`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    const r = await fetch(`${base}/chat/completions`, { method: "POST", signal: ctl.signal, headers: openaiHeaders(s, p, key),
       body: JSON.stringify({ model, temperature: 0.7, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) });
     const j = await readJson(r);
     return j.choices?.[0]?.message?.content || "";
   } catch (e) {
     if (e.name === "AbortError") throw new Error(t("模型超时，稍后再试"));
     if (e instanceof TypeError) throw new Error(t("浏览器无法直连这个接口（跨域或网络被拒）。可以换 DeepSeek / Gemini，或用“复制提示词”。"));
-    throw e;
+    throw explainHttp(e, base);
   } finally { clearTimeout(timer); }
 }
 export async function askModel(ask, opts = {}) {
@@ -165,7 +185,13 @@ export async function testModel() {
   const s = aiSettings(), p = providerOf(s.provider), key = s.key.trim();
   const base = (s.base || p.base).replace(/\/+$/, ""), model = s.model || p.model;
   if (!key) throw new Error(t("先填 API key"));
-  if (p.kind === "gemini") { await readJson(await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] }) })); return; }
-  if (p.kind === "anthropic") { await readJson(await fetch(`${base}/messages`, { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "hi" }] }) })); return; }
-  await readJson(await fetch(`${base}/chat/completions`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` }, body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "hi" }] }) }));
+  if (p.id === "custom" && !/^https:\/\//i.test(base)) throw new Error(t("接口地址要以 https:// 开头，填到 /v1 为止"));
+  try {
+    if (p.kind === "gemini") { await readJson(await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] }) })); return; }
+    if (p.kind === "anthropic") { await readJson(await fetch(`${base}/messages`, { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }, body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "hi" }] }) })); return; }
+    await readJson(await fetch(`${base}/chat/completions`, { method: "POST", headers: openaiHeaders(s, p, key), body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "hi" }] }) }));
+  } catch (e) {
+    if (e instanceof TypeError) throw new Error(t("浏览器无法直连这个接口（跨域或网络被拒）。可以换 DeepSeek / Gemini，或用“复制提示词”。"));
+    throw explainHttp(e, base);
+  }
 }

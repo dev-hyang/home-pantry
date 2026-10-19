@@ -769,6 +769,13 @@ export const EN = {
   "按月和按里程取先到的；里程按年均里程推算。记保养时要选对“保养项目”，那一项的下次日期才会更新": "Whichever comes first by months or mileage; mileage is projected from annual miles. Pick the right service item when logging, or that item's next date won't move",
   "家庭、房产、语言、存放位置、模块、备份、AI、姐妹站点": "Family, properties, language, locations, modules, backup, AI, sister sites",
   "{n} 辆": "{n} vehicles", "{n} 台": "{n} units",
+  // ── AI 自定义接口：鉴权头与错误提示 ──
+  "鉴权头（自定义时）": "Auth header (custom only)", "Authorization: Bearer（默认）": "Authorization: Bearer (default)", "x-api-key 头": "x-api-key header", "api-key 头（Azure 风格）": "api-key header (Azure style)",
+  "要填真正的 API 域名（到 /v1 为止），不是官网；401 多半是 key 和地址不配": "Use the real API host (up to /v1), not the website; a 401 usually means the key doesn't belong to this address",
+  "接口地址要以 https:// 开头，填到 /v1 为止": "The endpoint must start with https:// and end at /v1",
+  "{code}：这个地址不接受这个 key。检查：key 是否就是这个服务发的、有没有过期或多了空格；地址是不是真正的 API 域名（有些服务的 API 在另一个域名，不是官网）；“自定义”里可换鉴权头试试（x-api-key / api-key）。": "{code}: this address rejected the key. Check that the key was issued by this service, hasn't expired and has no stray spaces; that the address is the real API host (some services use a different domain from their website); under Custom you can also try another auth header (x-api-key / api-key).",
+  "404：地址或模型名不对。接口地址填到 /v1 为止，模型名按服务商控制台里的写。": "404: wrong address or model name. The endpoint ends at /v1; use the model name exactly as shown in the provider's console.",
+  "{code}：返回的是网页不是接口，说明这个地址不是 API 地址。": "{code}: the response is a web page, not an API, so this is not the API address.",
   "已自动保存": "Auto-saved", "没有自动保存：{msg}": "Not auto-saved: {msg}", "自动保存失败：{msg}": "Auto-save failed: {msg}",
   "按位置筛选": "Filter by location", "全部位置": "All locations", "件符合": "matches", "点格子进入分类，筛选条件会保留": "Tap a tile to open that category; filters stay on", "换个关键词或筛选试试": "Try another keyword or filter", "清除": "Clear",
   "你是一个家庭生活助手，帮一家人处理房屋保养、账单与省钱、买房卖房流程、清洁收纳、饮食与育儿家务等问题。回答要实用、简洁，必要时分步骤；涉及燃气、电、结构、法律、医疗时提醒找专业人士。": "You are a friendly household assistant for a family: home maintenance, bills and saving money, buying or selling a home, cleaning and organizing, meal planning, childcare logistics. Answer practically and concisely, in steps where useful; say when a professional is needed.",
