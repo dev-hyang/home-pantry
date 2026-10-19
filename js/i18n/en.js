@@ -788,6 +788,8 @@ export const EN = {
   "{p} 的 key 应该以 {prefix} 开头，这个看起来不是它发的 key；{hint}": "A {p} key should start with {prefix}; this doesn't look like one. {hint}",
   "模型名和接口地址已内置（{model}），一般不用改；要换模型再展开下面的“高级”。": "Model and endpoint are built in ({model}); you normally don't change them. Expand “Advanced” below to switch models.",
   "高级：换模型 / 自定义接口地址": "Advanced: change model / custom endpoint", "接口地址、模型与鉴权（自定义必填）": "Endpoint, model and auth (required for Custom)",
+  "Google 那边现在很忙（{code}），已自动重试并换了 {tried} 都不行。等一两分钟再试；或在“高级”里手填一个 flash-lite 模型。": "Google is overloaded right now ({code}); automatic retries and switching among {tried} didn't help. Wait a minute or two, or type a flash-lite model under Advanced.",
+  "服务商那边现在很忙或出错（{code}），已自动重试过。等一两分钟再试，或换个模型。": "The provider is overloaded or failing ({code}); retries were made automatically. Wait a minute or two, or switch models.",
   "试了 {tried}，Google 都返回 404（{msg}）。这个 key 能用的模型：{all}。可在“高级”里手填其中一个。": "Tried {tried}; Google returned 404 for all of them ({msg}). Models available to this key: {all}. You can type one of them under Advanced.",
   // ── AI 免费额度 ──
   "AI Studio 免费额度（每天有次数上限，太平洋时间 0 点重置）；国内需能访问 Google": "AI Studio free tier (daily request cap, resets at midnight Pacific); needs access to Google",

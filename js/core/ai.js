@@ -129,20 +129,33 @@ async function geminiCandidates(base, key) {
   const rest = gen.filter((n) => !pref.includes(n) && /flash/i.test(n) && !/image|tts|audio|live|embedding|exp|preview-0/i.test(n));
   return { candidates: [...pref, ...rest], all: gen };
 }
-/** Gemini 一次调用；模型名 404 就查列表，按顺序换几个可用的再试，成功的记住；都不行时把试过的和可用的都写进错误里 */
+/* ── 临时错误自动重试：503 / 502 / 500（“模型现在很忙”）等 1.5s、4s 再试两次；429 不在这里重试（按 Retry-After 记恢复时间） ── */
+const sleep = (ms, signal) => new Promise((res, rej) => { const id = setTimeout(res, ms); signal?.addEventListener("abort", () => { clearTimeout(id); rej(Object.assign(new Error("aborted"), { name: "AbortError" })); }, { once: true }); });
+const transient = (e) => e.status === 503 || e.status === 502 || e.status === 500 || e.status === 504;
+async function withRetry(fn, signal, delays = [1500, 4000]) {
+  for (let i = 0; ; i++) {
+    try { return await fn(); }
+    catch (e) { if (!transient(e) || i >= delays.length) throw e; await sleep(delays[i], signal); }
+  }
+}
+/** Gemini 一次调用；模型名 404（或重试后仍 503）就查列表，按顺序换几个可用的再试，成功的记住；都不行时把试过的和可用的都写进错误里 */
 async function geminiCall(s, base, key, body, signal) {
-  const call = (model) => fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(readJson);
+  const call = (model) => withRetry(() => fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(readJson), signal);
   const typed = /^gemini/i.test(s.model || "") ? s.model : "";   // 别家残留的模型名忽略
   const first = typed || autoModel("gemini") || providerOf("gemini").model;
+  const swap = (e) => e.status === 404 || transient(e);   // 这两种情况值得换个模型再试
   const tried = []; let last = null;
-  try { return await call(first); } catch (e) { if (e.status !== 404) throw e; tried.push(first); last = e; }
+  try { return await call(first); } catch (e) { if (!swap(e)) throw e; tried.push(first); last = e; }
   const { candidates, all } = await geminiCandidates(base, key);
-  for (const m of candidates.filter((x) => !tried.includes(x)).slice(0, 4)) {
-    try { const r = await call(m); saveAutoModel("gemini", m); return r; }
-    catch (e) { if (e.status !== 404) throw e; tried.push(m); last = e; }
+  for (const m of candidates.filter((x) => !tried.includes(x)).slice(0, last.status === 404 ? 4 : 2)) {
+    try { const r = await call(m); if (last.status === 404) saveAutoModel("gemini", m); return r; }   // 404 换成功的才记住；503 换的只是临时顶一下
+    catch (e) { if (!swap(e)) throw e; tried.push(m); last = e; }
   }
-  const err = new Error(t("试了 {tried}，Google 都返回 404（{msg}）。这个 key 能用的模型：{all}。可在“高级”里手填其中一个。", { tried: tried.join(", "), msg: String(last?.message || "").replace(/^404\s*/, "").slice(0, 200), all: all.slice(0, 15).join(", ") || t("无") }));
-  err.status = 404; err.explained = true; throw err;
+  const busy = transient(last);
+  const err = new Error(busy
+    ? t("Google 那边现在很忙（{code}），已自动重试并换了 {tried} 都不行。等一两分钟再试；或在“高级”里手填一个 flash-lite 模型。", { code: last.status, tried: tried.join(", ") })
+    : t("试了 {tried}，Google 都返回 404（{msg}）。这个 key 能用的模型：{all}。可在“高级”里手填其中一个。", { tried: tried.join(", "), msg: String(last?.message || "").replace(/^404\s*/, "").slice(0, 200), all: all.slice(0, 15).join(", ") || t("无") }));
+  err.status = last.status; err.explained = true; throw err;
 }
 /** 实际用的接口地址和模型：地址只有“自定义”才用手填的（换服务商后残留的地址会把 Gemini 发到别家 → 404）；模型名留空用默认 */
 export function effective(s, p) {
@@ -171,6 +184,7 @@ function explainHttp(e, base) {
   const html = /<!doctype|<html/i.test(e.message);
   if (code === 401 || code === 403) return new Error(t("{code}：这个地址不接受这个 key。检查：key 是否就是这个服务发的、有没有过期或多了空格；地址是不是真正的 API 域名（有些服务的 API 在另一个域名，不是官网）；“自定义”里可换鉴权头试试（x-api-key / api-key）。", { code }));
   if (code === 404) return new Error(`${t("404：地址或模型名不对。接口地址填到 /v1 为止，模型名按服务商控制台里的写。")} ${String(e.message).replace(/^404\s*/, "").slice(0, 200)}`);
+  if (code >= 500) return new Error(t("服务商那边现在很忙或出错（{code}），已自动重试过。等一两分钟再试，或换个模型。", { code }));
   if (html) return new Error(t("{code}：返回的是网页不是接口，说明这个地址不是 API 地址。", { code }));
   return e;
 }
@@ -225,14 +239,12 @@ export async function askText(system, user, { json = false, maxTokens = 1500 } =
       const j = await geminiCall(s, base, key, { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: { temperature: 0.7, ...(json ? { responseMimeType: "application/json" } : {}) } }, ctl.signal);
       text = j.candidates?.[0]?.content?.parts?.map((x) => x.text).join("") || "";
     } else if (p.kind === "anthropic") {
-      const r = await fetch(`${base}/messages`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }) });
-      const j = await readJson(r);
+      const j = await withRetry(() => fetch(`${base}/messages`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }) }).then(readJson), ctl.signal);
       text = (j.content || []).map((x) => x.text || "").join("");
     } else {
-      const r = await fetch(`${base}/chat/completions`, { method: "POST", signal: ctl.signal, headers: openaiHeaders(s, p, key),
-        body: JSON.stringify({ model, temperature: 0.7, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) });
-      const j = await readJson(r);
+      const j = await withRetry(() => fetch(`${base}/chat/completions`, { method: "POST", signal: ctl.signal, headers: openaiHeaders(s, p, key),
+        body: JSON.stringify({ model, temperature: 0.7, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) }).then(readJson), ctl.signal);
       text = j.choices?.[0]?.message?.content || "";
     }
     countUse(p);
