@@ -190,6 +190,14 @@ async function confirm(ctx) {
   sc.busy = true; sc.error = ""; repaint2();
   let stocked = 0, spendOnly = 0, created = 0; const warns = [], newItems = new Map(), doneShop = new Set();
   try {
+    // 先建新物品（同名同分类合并成一条）：这一步失败时还没写任何花费和库存，可以直接重试
+    for (const x of rows.filter((r) => r.target === "__new")) {
+      const key = `${x.cat}|${x.name.toLowerCase()}`, ex = newItems.get(key);
+      if (ex) ex.quantity = Math.round((ex.quantity + x.qty) * 100) / 100;
+      else newItems.set(key, { name: x.name.slice(0, 60), category: x.cat, subcategory: null, unit: x.unit, quantity: Math.round(x.qty * 100) / 100, min_quantity: 0,
+        location: catOf(x.cat).loc || null, expiry_date: null, lead_days: spaceOf(x.cat) === "house" ? 14 : spaceOf(x.cat) === "gear" ? 0 : 3, avg_daily_use: null, notes: null });
+    }
+    if (newItems.size) { await Store.addItems([...newItems.values()]); created = newItems.size; }
     for (const x of rows) {
       const item = x.target.startsWith("__") ? null : state.items.find((i) => i.id === x.target);
       await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: now, store });
@@ -200,18 +208,12 @@ async function confirm(ctx) {
         const s = state.shopping.find((q) => q.item_id === item.id && q.status !== "bought");
         if (s && !doneShop.has(s.id)) { doneShop.add(s.id); await Store.saveShopping({ id: s.id, status: "bought", bought_at: now, amount: x.amount, claimed_by_name: s.claimed_by_name || state.displayName }); }
         stocked++;
-      } else {   // 新物品：同名同分类合并成一条
-        const key = `${x.cat}|${x.name.toLowerCase()}`, ex = newItems.get(key);
-        if (ex) ex.quantity = Math.round((ex.quantity + x.qty) * 100) / 100;
-        else newItems.set(key, { name: x.name.slice(0, 60), category: x.cat, subcategory: null, unit: x.unit, quantity: Math.round(x.qty * 100) / 100, min_quantity: 0,
-          location: catOf(x.cat).loc || null, expiry_date: null, lead_days: spaceOf(x.cat) === "house" ? 14 : spaceOf(x.cat) === "gear" ? 0 : 3, avg_daily_use: null, notes: null });
       }
     }
-    if (newItems.size) { await Store.addItems([...newItems.values()]); created = newItems.size; }
     if (store) rememberStore(store);
     toast(t("已录入：入库 {a} 项，新建 {b} 项，只记花费 {c} 项", { a: stocked, b: created, c: spendOnly }) + (warns.length ? t("；{names} 的单位无法换算，请核对库存", { names: warns.join("、") }) : ""));
     resetScan(); ctx.go(href("shopping")); ctx.refresh();
-  } catch (e) { sc.busy = false; sc.error = t("入库中途失败：{msg}。已写入的部分不会重复，请回到库存核对后再试。", { msg: e.message }); repaint2(); }
+  } catch (e) { sc.busy = false; sc.error = t("入库中途失败：{msg}。已写入的部分请回到库存和统计核对，不要直接重复提交。", { msg: e.message }); repaint2(); }
 }
 /** 确认页重画：先把用户改过的行存回 sc.result，避免出错提示一出现就丢掉改动 */
 function repaint2() {

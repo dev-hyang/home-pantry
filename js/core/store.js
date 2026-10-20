@@ -564,7 +564,11 @@ export const CloudStore = {
   },
 
   async addItems(list) {
-    const rows = list.map((it) => pick(it, ITEM_FIELDS, { household_id: this.hid, updated_by: state.user.id }));
+    const rows = list.map((it) => {
+      const r = pick(it, ITEM_FIELDS, { household_id: this.hid, updated_by: state.user.id });
+      if (r.asset_ids == null) delete r.asset_ids;   // 这一列非空、有默认值：没有关联设备时不传，让数据库填 []（传 null 会违反约束）
+      return r;
+    });
     this.must(await this.sb.from("items").insert(rows));
   },
   async listPurchasesRange(from, to) {
