@@ -310,6 +310,7 @@ main.addEventListener("input", (e) => {
   const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
 });
 main.addEventListener("change", async (e) => {
+  if (e.target.matches("input[data-qty-for]")) return setShopQty(e.target.dataset.qtyFor, e.target.value);   // 采购清单：直接输入数量
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
   if (e.target.name === "location" && e.target.form?.elements.new_location) {   // 选“＋ 新位置…”：旁边出现输入框
@@ -668,6 +669,7 @@ main.addEventListener("click", async (e) => {
       case "shop-claim": await Store.saveShopping({ id, status: "claimed", claimed_by: state.user?.id || null, claimed_by_name: state.displayName }); toast(t("已认领，家人会看到你在买")); return refresh();
       case "shop-unclaim": await Store.saveShopping({ id, status: "todo", claimed_by: null, claimed_by_name: null }); return refresh();
       case "shop-bought": return markBought(id);
+      case "shop-qty": return stepShopQty(id, +el.dataset.dir);
       case "shop-del": await Store.deleteShopping(id); return refresh();
       case "shop-clear": await Store.clearBought(); return refresh();
       case "diet": state.diet = el.dataset.diet; state.mealShift = 0; localStorage.setItem("hmh-diet", state.diet); return render();
@@ -752,6 +754,23 @@ async function saveHouseForm(f, { silent = false } = {}) {
   go(first && f.dataset.sec === "type" && !hasHouseItems ? href("house", "template") : href("house", "profile"));
   refresh();
   return true;
+}
+
+/** 采购清单改数量：按显示单位 ±一步（kg 0.5、lb 1、个 1…），最少一步；存回时换回原单位 */
+export async function stepShopQty(id, dir) {
+  const s = state.shopping.find((x) => x.id === id); if (!s) return;
+  const unit = s.unit || "", step = Units.step(du(unit)), f = Units.factor(unit);
+  const disp = Math.max(step, Math.round((num(s.quantity, 1) * f + dir * step) * 100) / 100);
+  await Store.saveShopping({ id, quantity: Math.round((disp / f) * 10000) / 10000 });
+  refresh();
+}
+/** 采购清单直接输入数量（显示单位）；空或 ≤ 0 就回到原值 */
+export async function setShopQty(id, value) {
+  const s = state.shopping.find((x) => x.id === id); if (!s) return;
+  const disp = num(value), f = Units.factor(s.unit || "");
+  if (!(disp > 0)) return render();
+  await Store.saveShopping({ id, quantity: Math.round((disp / f) * 10000) / 10000 });
+  refresh();
 }
 
 export async function addAlertsToShopping(list) {

@@ -4,7 +4,7 @@ import { aiPanel } from "./ai.js";
 import { COLORS, ICONS } from "../core/categories.js";
 import { locationGroups } from "../core/locations.js";
 import { Store } from "../core/store.js";
-import { $, catOf, catsOf, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText } from "../core/util.js";
+import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText, toDisp } from "../core/util.js";
 import { href } from "../core/router.js";
 import { compare, joinList, lang, t } from "../core/i18n.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
@@ -328,6 +328,17 @@ export function itemCard(it) {
 }
 
 /* ── 采购清单 ── */
+/** 待买 / 认领中的数量可改：−/+ 按单位步进（kg 0.5、lb 1、个 1…），也能直接在框里输数；按显示单位算，存回时换回原单位 */
+function shopQty(s) {
+  const unit = s.unit || "", d = du(unit), step = Units.step(d);
+  const disp = fmt(toDisp(num(s.quantity, 1), unit));
+  return `<span class="shop-qty" role="group" aria-label="${esc(t("{name} 数量", { name: s.name }))}">
+    <button type="button" data-action="shop-qty" data-id="${s.id}" data-dir="-1" aria-label="${esc(t("{name} 减少 {q} {u}", { name: s.name, q: step, u: t(d) }))}">−</button>
+    <input type="number" inputmode="decimal" min="${step}" step="${step}" value="${disp}" data-qty-for="${s.id}" aria-label="${esc(t("{name} 数量", { name: s.name }))}">
+    ${d ? `<small>${esc(t(d))}</small>` : ""}
+    <button type="button" data-action="shop-qty" data-id="${s.id}" data-dir="1" aria-label="${esc(t("{name} 增加 {q} {u}", { name: s.name, q: step, u: t(d) }))}">+</button>
+  </span>`;
+}
 export function viewShopping() {
   const by = (s) => state.shopping.filter((x) => x.status === s);
   const row = (s) => {
@@ -343,7 +354,7 @@ export function viewShopping() {
           <input type="text" maxlength="40" list="storeList" data-store-for="${s.id}" value="${esc(lastStore())}" placeholder="${t("在哪买（可不填）")}" aria-label="${esc(t("{name} 购买商店", { name: s.name }))}">
         </div>`;
     return `<li class="shop-item ${s.status === "bought" ? "done" : ""}">
-      <div class="row"><span class="nm"><b>${esc(s.name)}</b> ${showQty(num(s.quantity, 1), s.unit || "")}${s.created_at ? ` <small class="muted" title="${esc(stampText(s))}">${t("{d} 加入", { d: fmtShort(s.created_at) })}</small>` : ""}</span>
+      <div class="row"><span class="nm"><b>${esc(s.name)}</b> ${s.status === "bought" ? showQty(num(s.quantity, 1), s.unit || "") : shopQty(s)}${s.created_at ? ` <small class="muted" title="${esc(stampText(s))}">${t("{d} 加入", { d: fmtShort(s.created_at) })}</small>` : ""}</span>
         <button type="button" class="btn btn-sm btn-ghost" data-action="shop-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button></div>
       ${s.status === "claimed" ? `<div class="who">🛍 ${t("{who} 正在买", { who: esc(s.claimed_by_name || t("家人")) })}</div>` : ""}
       ${s.item_id ? "" : `<div class="muted" style="font-size:12px">${t("未关联库存，买到后需手动入库")}</div>`}

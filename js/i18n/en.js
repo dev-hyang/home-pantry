@@ -463,6 +463,7 @@ export const EN = {
   "还没有房产": "No property yet", "这套房产没有进行中的交易": "No transaction in progress for this property",
   "买入或卖出时，按伊利诺伊州流程生成带截止日期的清单：律师审查、验房、贷款承诺、停服务通知、交割后事项，逐项提醒。": "When buying or selling, generate an Illinois-style checklist with deadlines: attorney review, inspection, loan commitment, service shut-off notices and post-closing items, each with a reminder.",
   "开始买入流程": "Start purchase", "开始卖出流程": "Start sale", "开始退租流程": "Start move-out", "记录买入流程（刚签约）": "Record a purchase (just signed)", "已卖出或退租的房产只保留历史。": "Sold or vacated properties keep history only.",
+  "{name} 数量": "{name} quantity", "{name} 减少 {q} {u}": "{name}: {q} {u} less", "{name} 增加 {q} {u}": "{name}: {q} {u} more",
   "{kind}进行中": "{kind} in progress", "{kind}已交割": "{kind} closed", "{kind}已取消": "{kind} cancelled",
   "这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。": "This is a past transaction. Its checklist, timeline and details can still be viewed and edited for reference.",
   "回到进行中的交易": "Back to the active transaction", "正在查看": "Viewing", "查看清单": "View checklist", "切换语言": "Switch language", "还有 {n} 项未完成，其中 {m} 项必须": "{n} items left, {m} of them must-do", "清单": "Checklist", "截止日按合同日和交割日推算；必须项逾期会在首页置顶": "Deadlines are computed from the contract and closing dates; overdue must-do items are pinned on Today",
