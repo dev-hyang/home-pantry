@@ -577,17 +577,17 @@ button.mrow:last-child { border-bottom: 0; }
 .task-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px dashed var(--line); }
 .task-row:last-child { border-bottom: 0; }
 /* 任务勾选框：圆圈，勾完变成实心绿圈 + ✔，做完的保留在列表里不隐藏 */
-.task-row input { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; min-height: 0; margin-top: 1px; flex: 0 0 auto; border: 2px solid var(--pine); border-radius: 50%; background: #fff; cursor: pointer; position: relative; padding: 0; }
-.task-row input:checked { background: var(--pine); }
-.task-row input:checked::after { content: "✔"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 13px; line-height: 1; }
-.task-row input:focus-visible { outline: 2px solid var(--pine); outline-offset: 2px; }
-.task-row input:disabled { opacity: .5; cursor: wait; }
-.task-row label { cursor: pointer; display: grid; gap: 2px; }
-.task-row small { color: var(--muted); font-size: 12px; }
-.task-row.done label b { color: var(--muted); font-weight: 500; }
-.task-row.done label small { color: var(--pine); }
-.task-row.overdue label b { color: var(--out); }
-.task-row label .badge { margin-left: 4px; vertical-align: 1px; }
+.task-row > input { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; min-height: 0; margin-top: 1px; flex: 0 0 auto; border: 2px solid var(--pine); border-radius: 50%; background: #fff; cursor: pointer; position: relative; padding: 0; }
+.task-row > input:checked { background: var(--pine); }
+.task-row > input:checked::after { content: "✔"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 13px; line-height: 1; }
+.task-row > input:focus-visible { outline: 2px solid var(--pine); outline-offset: 2px; }
+.task-row > input:disabled { opacity: .5; cursor: wait; }
+.task-row > label { cursor: pointer; display: grid; gap: 2px; }
+.task-row > label small { color: var(--muted); font-size: 12px; }
+.task-row.done > label b { color: var(--muted); font-weight: 500; }
+.task-row.done > label small { color: var(--pine); }
+.task-row.overdue > label b { color: var(--out); }
+.task-row > label .badge { margin-left: 4px; vertical-align: 1px; }
 #assetForm.is-tool .eq-only { display: none; }
 /* 车辆表单：车辆专有区块只在车辆时显示；部分标签换成车辆叫法 */
 #assetForm .veh-show, #assetForm .veh-only { display: none; }
@@ -793,8 +793,8 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 
 /* 交易清单：调整日期 / 备注、日期对比、时间线视图 */
 .task-row { flex-wrap: wrap; }
-.task-row label { flex: 1; min-width: 0; }
-.task-row label .tt .badge { margin-left: 4px; }
+.task-row > label { flex: 1; min-width: 0; }
+.task-row > label .tt .badge { margin-left: 4px; }
 .task-edit { flex: none; min-width: 36px; min-height: 36px; border: 0; border-radius: 8px; background: none; color: var(--muted); font-size: 16px; cursor: pointer; }
 .task-edit:hover { background: var(--surface-2); color: var(--ink); }
 .task-edit:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
@@ -812,12 +812,12 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .tl-item > input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .tl-item > input:disabled { opacity: .5; cursor: wait; }
 .tl-item.overdue > input { border-color: var(--out); }
-.tl-item label { display: block; cursor: pointer; }
-.tl-item label time { display: block; font-size: 12.5px; font-weight: 700; color: var(--muted); }
-.tl-item label small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
-.tl-item.done label b { color: var(--muted); font-weight: 500; }
-.tl-item.done label small { color: var(--pine); }
-.tl-item.overdue label b, .tl-item.overdue label time { color: var(--out); }
+.tl-item > label { display: block; cursor: pointer; }
+.tl-item > label time { display: block; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.tl-item > label small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.tl-item.done > label b { color: var(--muted); font-weight: 500; }
+.tl-item.done > label small { color: var(--pine); }
+.tl-item.overdue > label b, .tl-item.overdue > label time { color: var(--out); }
 .tl-item .task-edit { position: absolute; right: 0; top: 2px; }
 .tl-item .task-edit-form { margin-top: 8px; }
 .tl-mark .tl-dot { position: absolute; left: 4px; top: 11px; width: 12px; height: 12px; background: var(--ink); transform: rotate(45deg); border-radius: 2px; }
