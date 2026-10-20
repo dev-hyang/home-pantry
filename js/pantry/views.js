@@ -48,20 +48,25 @@ export function shelfGrid(space) {
 }
 
 export function viewDashboard() {
-  const list = state.enriched.filter(inSpace("pantry"));
+  const withHouse = state.houseEnabled;   // 房屋耗材也算储藏：缺货、少货、补货提醒一起看
+  const pantry = state.enriched.filter(inSpace("pantry")), house = withHouse ? state.enriched.filter(inSpace("house")) : [];
+  const list = [...pantry, ...house];
   const n = (s) => list.filter((x) => x.status === s).length;
-  const expN = list.filter((x) => x.exp).length;
+  const expN = pantry.filter((x) => x.exp).length;
   const alerts = alertsOf(list);
-  const expiring = list.filter((x) => x.exp).sort((a, b) => a.expDays - b.expDays);
+  const expiring = pantry.filter((x) => x.exp).sort((a, b) => a.expDays - b.expDays);
 
-  const tile = (cls, count, label, status) =>
-    `<button type="button" class="alert-tile ${cls}" data-action="goto-status" data-space="pantry" data-status="${status}"><b>${count}</b><span>${label}</span></button>`;
+  // 点方块进库存：该状态下厨房储藏有就去厨房储藏，否则去房屋耗材
+  const tile = (cls, count, label, status) => {
+    const space = status === "exp" || pantry.some((x) => (status === "exp" ? x.exp : x.status === status)) || !house.length ? "pantry" : "house";
+    return `<button type="button" class="alert-tile ${cls}" data-action="goto-status" data-space="${space}" data-status="${status}"><b>${count}</b><span>${label}</span></button>`;
+  };
 
-  const shelf = shelfGrid("pantry");
+  const shelf = shelfGrid("pantry"), houseShelf = withHouse ? shelfGrid("house") : "";
 
   return `
     <section class="section" aria-labelledby="h-alert">
-      <div class="section-head"><h2 id="h-alert">${t("储藏概况")}</h2><p>${t("按家人的使用记录估算")}</p></div>
+      <div class="section-head"><h2 id="h-alert">${t("储藏概况")}</h2><p>${withHouse ? t("含房屋耗材，按家人的使用记录估算") : t("按家人的使用记录估算")}</p></div>
       <div class="alert-strip">
         ${tile("t-out", n("out"), t("缺货"), "out")}
         ${tile("t-low", n("low"), t("少货"), "low")}
@@ -72,7 +77,7 @@ export function viewDashboard() {
 
     <section class="section" aria-labelledby="h-restock">
       <div class="section-head"><h2 id="h-restock">${t("该补货了")}</h2>
-        ${alerts.length ? `<button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts">${t("全部加入采购清单")}</button>` : ""}</div>
+        ${alerts.length ? `<button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">${t("全部加入采购清单")}</button>` : ""}</div>
       <div class="panel">${alerts.length ? restockPanel(alerts) : `<div class="empty"><strong>${t("库存都很充足")}</strong>${t("用掉东西时在“库存”里点一下 −，提醒会更准。")}</div>`}</div>
     </section>
 
@@ -86,7 +91,12 @@ export function viewDashboard() {
     <section class="section" aria-labelledby="h-shelf">
       <div class="section-head"><h2 id="h-shelf">${t("家里的货架")}</h2><p>${t("点分类查看明细")}</p></div>
       ${shelf ? `<div class="shelf">${shelf}</div>` : `<div class="panel empty"><strong>${t("还没有物品")}</strong><a class="btn btn-primary" href="${href("item", "new")}?space=pantry">${t("添加第一件物品")}</a></div>`}
-    </section>`;
+    </section>
+
+    ${withHouse ? `<section class="section" aria-labelledby="h-house">
+      <div class="section-head"><h2 id="h-house">${t("房屋耗材")}</h2><p>${t("滤网、电池、融雪盐等，可关联到设备")}</p></div>
+      ${houseShelf ? `<div class="shelf">${houseShelf}</div>` : `<div class="panel empty"><strong>${t("还没有房屋耗材")}</strong><a class="btn btn-primary" href="${href("house", "template")}">${t("按房屋资料推荐")}</a></div>`}
+    </section>` : ""}`;
 }
 
 /* ── 库存 ──

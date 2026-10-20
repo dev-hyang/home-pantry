@@ -303,6 +303,16 @@ textarea { resize: vertical; }
 .item.is-gear .item-meta .note { color: var(--ink); opacity: .75; }
 
 /* 物品编辑页：选到装备分类时隐藏补货相关字段 */
+#itemForm .only-house { display: none; }
+#itemForm.is-house .only-house { display: block; }
+.field-label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+.multi-dd { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.multi-dd > summary { cursor: pointer; padding: 10px 12px; min-height: 44px; display: flex; align-items: center; list-style: none; }
+.multi-dd > summary::-webkit-details-marker { display: none; }
+.multi-dd > summary::after { content: "▾"; margin-left: auto; padding-left: 8px; color: var(--muted, inherit); }
+.multi-dd[open] > summary { border-bottom: 1px solid var(--line); }
+.multi-list { display: grid; gap: 2px; padding: 6px 10px; max-height: 240px; overflow: auto; }
+.multi-list .check-inline { min-height: 40px; }
 #itemForm .only-gear { display: none; }
 #itemForm.is-gear .not-gear { display: none; }
 #itemForm.is-gear .only-gear { display: block; }

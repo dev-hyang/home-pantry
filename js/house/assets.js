@@ -564,9 +564,12 @@ export function supplyItem(name) {
 }
 function supplyRows(a) {
   const region = state.houseProfile?.region, mine = state.enriched.filter(inSpace("house"));
-  return [...new Set(H().ASSET_SUPPLIES[a.type] || [])].map((name) => ({ name, item: mine.find((i) => [name, t(name)].includes(i.name.trim())) || null }))
+  // 物品表单里“关联设备”勾了这台设备的耗材，排在最前
+  const linked = mine.filter((i) => Array.isArray(i.asset_ids) && i.asset_ids.includes(a.id)).map((item) => ({ name: item.name, item }));
+  const rest = [...new Set(H().ASSET_SUPPLIES[a.type] || [])].map((name) => ({ name, item: mine.find((i) => [name, t(name)].includes(i.name.trim())) || null }))
     // 没备的只列当前地区模板里有的（例如北美列 AA 电池，国内列 5 号电池）
-    .filter((r) => r.item || (H().SUPPLIES[region || "na"] || []).some((s) => s.name === r.name) || (!region && supplyTpl(r.name)));
+    .filter((r) => (r.item ? !linked.some((l) => l.item.id === r.item.id) : (H().SUPPLIES[region || "na"] || []).some((s) => s.name === r.name) || (!region && supplyTpl(r.name))));
+  return [...linked, ...rest];
 }
 function suppliesSection(a) {
   const rows = supplyRows(a);

@@ -7,6 +7,8 @@ import { memberName } from "../core/logic.js";
 import { t } from "../core/i18n.js";
 import { categoryOptions } from "./views.js";
 import { locationField, resolveLocation } from "../core/locations.js";
+import { assetName } from "../house/assets.js";
+import { propertyName } from "../bills/logic.js";
 
 /* ───────────── 物品编辑：独立整页（路由 #/item/<id> 或 #/item/new） ─────────────
  * 用网址表示编辑页：手机返回手势、浏览器后退都能退出；返回时由 main.js 恢复来源页的滚动位置。 */
@@ -32,6 +34,16 @@ export function leaveItem(changed) {
 const SECTION_LABEL = { today: "今日", pantry: "储藏", house: "房屋", gear: "装备", shopping: "采购清单", me: "我的" };
 const NAME_HINT = { pantry: "例如：鸡蛋、抽纸、大米", house: "例如：炉子滤网、电池、融雪盐", gear: "例如：被罩、千斤顶、儿童自行车" };
 
+/** 房屋耗材可关联的设备：房屋 → 设备保养里的设备（不含车辆）；多套房产时名字后带房产名 */
+const linkableAssets = () => state.assetsEnriched.filter((a) => a.kind !== "vehicle");
+const assetLabel = (a) => `${assetName(a)}${state.properties.length > 1 && a.property_id ? ` · ${propertyName(a.property_id)}` : ""}`;
+const assetPickText = (labels) => (labels.length ? labels.join("、") : t("不关联设备"));
+/** 勾选变化后更新下拉标题（main.js 的 change 监听调用） */
+export function onItemAssetsChange(e) {
+  const dd = e.target.closest(".multi-dd"); if (!dd) return;
+  dd.querySelector("summary span").textContent = assetPickText([...dd.querySelectorAll("input:checked")].map((x) => x.dataset.label));
+}
+
 export function viewItemForm() {
   const r = state.route;
   const it = r.id && r.id !== "new" ? state.items.find((x) => x.id === r.id) : null;
@@ -52,7 +64,7 @@ export function viewItemForm() {
   return `
     <section class="section form-page">
       ${crumbNav([root, { label: it ? t("编辑：{name}", { name: it.name }) : t("添加物品"), icon: catOf(v.category).icon }])}
-      <form id="itemForm" class="panel ${gear ? "is-gear" : ""}" novalidate data-autosave>
+      <form id="itemForm" class="panel ${gear ? "is-gear" : ""} ${spaceOf(v.category) === "house" ? "is-house" : ""}" novalidate data-autosave>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">
         <input type="hidden" name="orig_unit" value="${esc(v.unit)}">
         <input type="hidden" name="disp_unit" value="${esc(dUnit)}">
@@ -72,6 +84,7 @@ export function viewItemForm() {
             <label class="not-gear">${t("保质期至")}
               <input name="expiry_date" type="date" value="${esc(v.expiry_date || "")}">
             </label>
+            ${assetField(v)}
           </div>
         </fieldset>
         <fieldset>
@@ -115,6 +128,17 @@ export function viewItemForm() {
     </section>`;
 }
 
+/** 关联设备：多选下拉，只有房屋耗材显示；选项就是 房屋 → 设备保养 里的设备 */
+function assetField(v) {
+  const all = linkableAssets(), picked = new Set(Array.isArray(v.asset_ids) ? v.asset_ids : []);
+  const labels = all.filter((a) => picked.has(a.id)).map(assetLabel);
+  return `<div class="span-2 only-house"><span class="field-label">${t("关联设备")}</span>
+    ${all.length ? `<details class="multi-dd"><summary><span>${esc(assetPickText(labels))}</span></summary>
+      <div class="multi-list" role="group" aria-label="${t("关联设备")}">${all.map((a) => `<label class="check-inline"><input type="checkbox" name="asset_ids" value="${esc(a.id)}" data-label="${esc(assetLabel(a))}" ${picked.has(a.id) ? "checked" : ""}><span>${a.t?.icon || "⚙️"} ${esc(assetLabel(a))}</span></label>`).join("")}</div></details>
+      <small class="muted">${t("可多选；设备页的“相关耗材”会列出它，少货时一眼看到该补什么。")}</small>`
+      : `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("还没有设备。先在 房屋 → 设备保养 里添加，就能在这里关联。")}</p>`}</div>`;
+}
+
 /** silent=true：离开页面时自动保存（不跳转、不聚焦；校验不过就提示“没有自动保存”）。返回是否保存成功 */
 export async function saveItemForm(f, { silent = false } = {}) {
   const fe = f.elements, err = f.querySelector("#itemFormError");
@@ -146,6 +170,11 @@ export async function saveItemForm(f, { silent = false } = {}) {
     avg_daily_use: gear ? null : val("avg_daily_use"),
     notes: fe.notes.value.trim() || null,
   };
+  // 关联设备：只有房屋耗材存；没选过也没存过就不写这一列（还没执行迁移 021 的库也能照常保存）
+  if (spaceOf(it.category) === "house") {
+    const ids = [...f.querySelectorAll('input[name="asset_ids"]:checked')].map((x) => x.value);
+    if (ids.length || raw.asset_ids?.length) it.asset_ids = ids;
+  } else if (raw.asset_ids?.length) it.asset_ids = [];
   const btn = f.querySelector('button[type="submit"]');
   btn.disabled = true;
   try {

@@ -621,6 +621,10 @@ export const EN = {
   "待购买和家人认领中的项目，带勾选框，逛店时可以直接划": "Items to buy and being bought by family, with checkboxes to tick off in store",
   "未来 30 天要交的账单、要处理的账单和每月固定支出": "Bills due in the next 30 days, bills needing attention and monthly fixed spending",
   "采购清单、账单概览": "Shopping list, Bills overview", "打印于 {d}": "Printed {d}", "{n} 项待买": "{n} to buy", "到期日": "Due date", "缴费方式": "Pay by", "状态": "Status", "金额": "Amount",
+  // ── 储藏概览含房屋耗材、耗材关联设备 ──
+  "含房屋耗材，按家人的使用记录估算": "Includes home supplies; estimated from family usage", "滤网、电池、融雪盐等，可关联到设备": "Filters, batteries, ice melt and more; can be linked to equipment",
+  "关联设备": "Linked equipment", "不关联设备": "No linked equipment", "可多选；设备页的“相关耗材”会列出它，少货时一眼看到该补什么。": "Pick several if needed; the equipment page's “Related supplies” lists it, so you see what to restock at a glance.",
+  "还没有设备。先在 房屋 → 设备保养 里添加，就能在这里关联。": "No equipment yet. Add some under Home → Equipment care, then link them here.",
   // ── 首页快捷操作 ──
   "添加": "Add", "储藏概览": "Pantry overview", "账单概览": "Bills overview", "移除快捷操作：{name}": "Remove shortcut: {name}", "添加到快捷操作": "Add to shortcuts", "自定义": "Custom",
   "库存": "Inventory", "今天吃什么": "What's for dinner", "装备": "Gear", "采购清单": "Shopping list", "注意事项": "Alerts", "小Y问": "Ask Y", "房屋耗材": "Home supplies",
