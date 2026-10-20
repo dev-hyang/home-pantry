@@ -766,6 +766,23 @@ html.force-phone .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr));
   main { padding: 0; max-width: none; }
   .panel, .shop-item { box-shadow: none; break-inside: avoid; }
 }
+/* 设置 → 打印：内容生成在 #printSheet，只在打印时显示，其余页面全部隐藏 */
+#printSheet { display: none; }
+@media print {
+  body.print-sheet > *:not(#printSheet) { display: none !important; }
+  body.print-sheet #printSheet { display: block; color: #000; font-size: 13px; line-height: 1.5; }
+  #printSheet h1 { font-size: 22px; margin: 0 0 4px; }
+  #printSheet h2 { font-size: 16px; margin: 18px 0 6px; }
+  #printSheet .ps-meta { margin: 0 0 14px; color: #555; }
+  #printSheet .ps-kpis { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-bottom: 4px; }
+  #printSheet .ps-kpis span { display: block; color: #555; font-size: 12px; }
+  #printSheet .ps-kpis b { font-size: 16px; }
+  #printSheet table { width: 100%; border-collapse: collapse; }
+  #printSheet th, #printSheet td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #ccc; vertical-align: top; }
+  #printSheet th { font-size: 12px; color: #555; border-bottom-color: #000; }
+  #printSheet tr { break-inside: avoid; }
+  #printSheet td.box { width: 24px; font-size: 16px; }
+}
 .quick-add label { display: grid; gap: 4px; font-weight: 600; font-size: 13px; }
 /* 注意事项页：面包屑尾部的排序下拉 */
 .crumb-tools { flex-wrap: wrap; }

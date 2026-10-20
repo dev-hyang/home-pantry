@@ -230,6 +230,10 @@ export function viewInventory(space = "pantry") {
         <div class="head-acts">${house && !phone ? `<a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>` : ""}
         ${cur && !cf ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-edit" data-cat="${cur.id}">${t("编辑分类")}</button>` : ""}
         <a class="btn btn-primary ${phone ? "btn-sm" : ""}" href="${href("item", "new")}?space=${space}${cur ? `&cat=${cur.id}` : ""}">${gear ? t("添加装备") : t("添加物品")}</a></div></div>
+      ${gear || !state.houseEnabled ? "" : `<div class="chips" role="group" aria-label="${t("库存范围")}">
+        <button type="button" class="chip" data-action="inv-space" data-space="pantry" aria-pressed="${!house}">🥫 ${t("厨房储藏")}</button>
+        <button type="button" class="chip" data-action="inv-space" data-space="house" aria-pressed="${house}">🧰 ${t("房屋耗材")}</button></div>`}
+      ${house && !phone ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">${t("滤网、电池、融雪盐这类要消耗、要补货的房屋用品；设备页的“相关耗材”会指到这里。")}</p>` : ""}
       ${gear && !phone ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">${t("床品、电器、自行车、千斤顶、工具这类耐用品：只记有几件、放在哪，不算消耗、不提醒补货。")}</p>` : ""}
       ${shelf ? `<div class="shelf" style="margin-bottom:14px">${shelf}</div>` : ""}
       <div class="toolbar">

@@ -610,6 +610,17 @@ export const EN = {
   // ── 首页快捷操作（每位用户自己的）──
   "完成": "Done", "还没有快捷操作，点“编辑”添加。": "No shortcuts yet; tap Edit to add some.", "{name} 往前移": "Move {name} earlier", "{name} 往后移": "Move {name} later",
   "已恢复默认快捷操作": "Shortcuts reset to default", "打印": "Print",
+  // ── 设备保养改名、房屋耗材并入库存、设置 → 打印 ──
+  "设备保养": "Equipment care", "库存范围": "Inventory scope", "厨房储藏": "Kitchen pantry",
+  "滤网、电池、融雪盐这类要消耗、要补货的房屋用品；设备页的“相关耗材”会指到这里。": "Filters, batteries, ice melt and other home supplies that get used up and restocked; the “Related supplies” on an equipment page point here.",
+  "相关耗材": "Related supplies", "{n} / {m} 项已在库存": "{n} / {m} in stock list", "{n} 项要补": "{n} to restock", "还没备": "Not stocked", "库存里还没有这项": "Not in your inventory yet", "加入库存": "Add to inventory",
+  "这类设备用到的耗材。库存统一在 储藏 → 库存 → 房屋耗材 里管理，少货会进采购提醒。": "Supplies this kind of equipment uses. Stock is managed under Pantry → Inventory → Home supplies, and low stock shows up in shopping alerts.",
+  "看全部房屋耗材": "See all home supplies", "已添加到库存：{name}": "Added to inventory: {name}", "设备档案、保养记录、检查卡与相关耗材": "Equipment records, service logs, inspection cards and related supplies",
+  "厨房储藏与房屋耗材，点 −/+ 记消耗": "Kitchen pantry and home supplies; tap −/+ to log use", "点一套房产进入它的概览、设备保养、季节任务、交易和资料": "Tap a property for its overview, equipment care, seasonal tasks, transaction and profile",
+  "选一项打印；浏览器的打印窗口里也可以另存为 PDF。": "Pick something to print; the browser print dialog can also save as PDF.",
+  "待购买和家人认领中的项目，带勾选框，逛店时可以直接划": "Items to buy and being bought by family, with checkboxes to tick off in store",
+  "未来 30 天要交的账单、要处理的账单和每月固定支出": "Bills due in the next 30 days, bills needing attention and monthly fixed spending",
+  "采购清单、账单概览": "Shopping list, Bills overview", "打印于 {d}": "Printed {d}", "{n} 项待买": "{n} to buy", "到期日": "Due date", "缴费方式": "Pay by", "状态": "Status", "金额": "Amount",
   // ── 首页快捷操作 ──
   "添加": "Add", "储藏概览": "Pantry overview", "账单概览": "Bills overview", "移除快捷操作：{name}": "Remove shortcut: {name}", "添加到快捷操作": "Add to shortcuts", "自定义": "Custom",
   "库存": "Inventory", "今天吃什么": "What's for dinner", "装备": "Gear", "采购清单": "Shopping list", "注意事项": "Alerts", "小Y问": "Ask Y", "房屋耗材": "Home supplies",

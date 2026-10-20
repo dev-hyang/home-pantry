@@ -21,14 +21,14 @@ const SECTION_ICON = { pantry: "🥫", house: "🏠", bills: "🧾", me: "👤" 
 const META = {
   pantry: {
     overview:  { icon: "📊", desc: "补货与临期一览、各分类库存", count: () => alertsOf(state.enriched.filter(inSpace("pantry"))).length },
-    inventory: { icon: "🥫", desc: "全部物品，点 −/+ 记消耗" },
+    inventory: { icon: "🥫", desc: "厨房储藏与房屋耗材，点 −/+ 记消耗" },
     gear:      { icon: "🧳", desc: "床品、电器、自行车、工具：只记数量和位置" },
     meals:     { icon: "🍳", desc: "按现有食材推荐三餐" },
   },
   house: {
     overview:  { icon: "🏠", desc: "房屋卡片、耗材提醒、谁负责维护、本月任务" },
     supplies:  { icon: "🧰", desc: "滤网、电池、融雪盐等房屋耗材", count: () => alertsOf(state.enriched.filter(inSpace("house"))).length },
-    assets:    { icon: "⚙️", desc: "设备档案、保养记录与检查卡", count: () => assetAlerts(myAssets()).length },
+    assets:    { icon: "⚙️", desc: "设备档案、保养记录、检查卡与相关耗材", count: () => assetAlerts(myAssets()).length },
     tasks:     { icon: "📅", desc: "按月的检修清单，勾了家人都看到", count: () => (state.houseProfile ? undoneThisMonth().length : 0) },
     deal:      { icon: "📝", desc: "买入 / 卖出 / 退租流程清单", count: () => (openDeal() ? 1 : 0), countLabel: "进行中" },
     profile:   { icon: "🏡", desc: "房型、设施、材料、地址、保险、HOA" },
@@ -71,7 +71,7 @@ export function viewPropertyList() {
   }).join("");
   const vehicles = activeVehicles(), vAlerts = assetAlerts(vehicles.filter((a) => window.VEHICLES.inService(a))).length;
   return `<section class="section menu-page">
-    <div class="section-head"><h2>🏠 ${t("房屋")}</h2><p>${t("点一套房产进入它的概览、耗材、设备、季节任务、交易和资料")}</p></div>
+    <div class="section-head"><h2>🏠 ${t("房屋")}</h2><p>${t("点一套房产进入它的概览、设备保养、季节任务、交易和资料")}</p></div>
     ${houseBar()}
     <div class="panel mlist">${rows || `<div class="empty"><strong>${t("还没有房产")}</strong></div>`}
       ${state.editProperty === "new" ? "" : `<button type="button" class="mrow" data-action="property-edit" data-id=""><span class="mi" aria-hidden="true">＋</span><span class="mt"><b>${t("添加房产")}</b><small>${t("自住、出租或租住的房子都可以")}</small></span></button>`}</div>

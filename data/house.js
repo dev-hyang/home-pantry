@@ -265,6 +265,18 @@
     ],
   };
 
+  // ── 设备 ↔ 耗材：设备类型 id → 它用到的耗材（名称与上面 SUPPLIES 模板一致，设备页“相关耗材”按名称对应库存里的房屋耗材）──
+  const ASSET_SUPPLIES = {
+    furnace: ["炉子滤网"], ac: ["炉子滤网"], heat_pump: ["炉子滤网"],
+    humidifier: ["加湿器滤芯"], fresh_air: ["新风滤网"],
+    water_softener: ["软水盐"], water_purifier: ["净水器滤芯"], refrigerator: ["冰箱滤芯"],
+    hot_tub: ["热水浴缸水质试纸", "热水浴缸消毒剂"],
+    smoke_alarm: ["9V 电池（烟雾报警器）", "5 号电池"], thermostat: ["AA 电池", "5 号电池"],
+    leak_sensor: ["AA 电池", "5 号电池"], security_system: ["AA 电池", "5 号电池"],
+    deck: ["木平台防护油 / 染色剂", "木平台防护油"], garage_door: ["WD-40 润滑防锈剂"],
+    generator: ["机油"],
+  };
+
   // ── 设备档案模板（第二期）──
   // life：常见寿命（年）作为默认值；interval：建议保养间隔（月）；system：对应责任归属表的部位，默认负责方从房型取
   // when 写法同耗材模板；optional = true 的项在生成页默认不勾选；lifeByRoof 按屋面材料覆盖寿命
@@ -496,6 +508,6 @@
     return (SEASONAL_TASKS[profile.region] || []).filter((t) => t.when.some((c) => matches(c, profile)));
   }
 
-  window.HOUSE = { REGIONS, FEATURES, MATERIALS, OWNERS, SYSTEMS, HOUSE_TYPES, SUPPLIES, HOUSE_CATEGORIES, recommendSupplies, forRegion, typeOf,
+  window.HOUSE = { REGIONS, FEATURES, MATERIALS, OWNERS, SYSTEMS, HOUSE_TYPES, SUPPLIES, ASSET_SUPPLIES, HOUSE_CATEGORIES, recommendSupplies, forRegion, typeOf,
     ASSET_TYPES, ASSET_KINDS, MAINT_KINDS, SEASONAL_TASKS, assetType, recommendAssets, seasonalTasksFor, ASSOC, DUES_PERIODS, assocOf };
 })();

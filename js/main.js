@@ -16,7 +16,8 @@ import { billAlertItems } from "./bills/logic.js";
 // 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
 [pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
 import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
-import { assetTemplateItems, enrichAssets, leaveAsset, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
+import { printSheet } from "./settings/print.js";
+import { assetTemplateItems, enrichAssets, leaveAsset, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
@@ -79,11 +80,13 @@ export const refreshSoon = () => { clearTimeout(debounceT); debounceT = setTimeo
 
 
 /* ───────────── 页面与路由 ───────────── */
+/** 库存页当前范围：?space=house 看房屋耗材（房屋模块关闭时只有厨房储藏） */
+const invSpace = () => (state.houseEnabled && state.route.q.get("space") === "house" ? "house" : "pantry");
 const VIEWS = {
   today:    () => viewToday(),
   alerts:   () => viewAlerts(),
   ai:       () => viewAi(),
-  pantry:   { overview: viewDashboard, inventory: () => viewInventory("pantry"), gear: () => viewInventory("gear"), meals: viewMeals },
+  pantry:   { overview: viewDashboard, inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
   bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, template: viewBillTemplate },
@@ -228,7 +231,8 @@ function onRoute() {
   if (enteringItem) { state.prevRoute = prev; state.prevHash = fromHash; }
   if (next.section === "house" && next.sub === "profile" && !(prev.section === "house" && prev.sub === "profile")) state.houseDraft = null;
   // 房产页面目录 → 账单清单带 ?prop=：进入时按那套房产筛选一次（只在这里套用，之后芯片可以切换）
-  if (next.section === "bills" && next.q.get("prop") && state.properties.some((p) => p.id === next.q.get("prop"))) state.billsFilter.property = next.q.get("prop");
+  // ?prop=all：首页快捷操作进来，每次都回到“全部房产”
+  if (next.section === "bills" && next.q.get("prop") && (next.q.get("prop") === "all" || state.properties.some((p) => p.id === next.q.get("prop")))) state.billsFilter.property = next.q.get("prop");
   // 首页提醒带 ?prop=：切到那套房产再进页面
   const wantProp = next.section === "house" ? next.q.get("prop") : null;
   if (wantProp && wantProp !== state.propertyId && state.properties.some((p) => p.id === wantProp)) {
@@ -593,7 +597,13 @@ main.addEventListener("click", async (e) => {
         [list[i], list[j]] = [list[j], list[i]]; await saveQuick(list); return render();
       }
       case "quick-reset": await saveQuick(DEFAULT_QUICK()); toast(t("已恢复默认快捷操作")); return render();
-      case "quick-run": if (el.dataset.id === "action:print") { go(href("shopping")); setTimeout(() => window.print(), 500); } return;   // 打印：打开采购清单并调出打印
+      case "quick-run": if (el.dataset.id === "action:print") go(`${href("me", "settings")}?sec=print`); return;   // 打印：进入 设置 → 打印
+      case "print-run": return printSheet(el.dataset.kind, $("#printProp")?.value || "all");
+      case "inv-space": return go(el.dataset.space === "house" ? `${href("pantry", "inventory")}?space=house` : href("pantry", "inventory"));
+      case "supply-add": {   // 设备页“相关耗材”：一键把推荐耗材加进库存
+        const it = supplyItem(el.dataset.name); if (!it) return;
+        await Store.addItems([it]); toast(t("已添加到库存：{name}", { name: it.name })); return refresh();
+      }
       case "alerts-prev": shiftAlertSource(-1); return render();
       case "alerts-next": shiftAlertSource(1); return render();
       case "bill-cancel": return leaveBill(false);

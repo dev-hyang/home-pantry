@@ -7,6 +7,7 @@ import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
 import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, effective, providerOf, quotaStatus, saveAiSettings } from "../core/ai.js";
 import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
+import { viewPrintSettings } from "./print.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
 export const isOwner = () => state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
@@ -150,6 +151,7 @@ export const SETTING_SECTIONS = [
   { id: "categories", icon: "🗂️", name: "分类与小类" },
   { id: "locations", icon: "📍", name: "存放位置" },
   { id: "modules", icon: "🧩", name: "模块开关" },
+  { id: "print", icon: "🖨️", name: "打印" },
   { id: "data", icon: "💾", name: "通知与备份" },
   { id: "ai", icon: "__AI__", name: "AI 助手" },
   { id: "apps", icon: "🔗", name: "姐妹站点与介绍" },
@@ -215,6 +217,7 @@ export function viewSettings() {
       categories: t("{n} 个分类 · 自建 {m} · 改过 {k}", { n: CATEGORIES.filter((c) => !c.hidden).length, m: CATEGORIES.filter((c) => c.custom).length, k: CATEGORIES.filter((c) => c.overridden).length }),
       locations: t("{n} 个位置 · 自定义 {m}", { n: window.LOCATIONS.length, m: customLocations().length }),
       modules: [state.houseEnabled ? t("房屋 ✓") : t("房屋 ✗"), state.billsEnabled ? t("账单 ✓") : t("账单 ✗"), state.gearEnabled ? t("装备 ✓") : t("装备 ✗")].join(" · "),
+      print: state.billsEnabled ? t("采购清单、账单概览") : t("采购清单"),
       data: `${notif === "granted" ? t("通知已开启") : t("通知未开启")} · ${t("导出 JSON")}`,
       ai: aiReady() ? `${t("{p} · 已填 key", { p: t(providerOf(aiSettings().provider).name) })}${(() => { const q = aiQuota(); return q.cap ? ` · ${t("今天 {n}/{cap}", { n: q.used, cap: q.cap })}` : ""; })()}` : t("未填 key，用“复制提示词”模式"),
       apps: t("小月亮、家庭学堂；介绍与注意事项"),
@@ -284,6 +287,7 @@ export function viewSettings() {
     <div class="panel"><div class="kv"><div><b>${t("导出数据")}</b><div class="muted">${t("下载库存和采购清单的 JSON 备份")}</div></div>
       <button type="button" class="btn btn-sm" data-action="export">${t("导出 JSON")}</button></div></div>`,
     ai: () => aiBlock(),
+    print: () => viewPrintSettings(),
     locations: () => locationsPanel(),
     categories: () => categoriesPanel(),
     apps: () => `

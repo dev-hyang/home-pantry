@@ -49,7 +49,7 @@ export function viewToday() {
   const tileBody = ([, ic, nm]) => `<span class="qtile-ico" aria-hidden="true">${ic}</span><span>${nm}</span>`;
   const tileHtml = ([id, ic, nm], i) => `<div class="qwrap">${id.startsWith("action:")
       ? `<button type="button" class="qtile" data-action="quick-run" data-id="${esc(id)}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</button>`
-      : `<a class="qtile" href="${esc(id)}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</a>`}
+      : `<a class="qtile" href="${esc(id.startsWith("#/bills") ? `${id}?prop=all` : id)}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</a>`}
     ${editing ? `<button type="button" class="qdel" data-action="quick-del" data-id="${esc(id)}" aria-label="${esc(t("移除快捷操作：{name}", { name: nm }))}">×</button>
       <span class="qmove">${i > 0 ? `<button type="button" data-action="quick-move" data-id="${esc(id)}" data-dir="-1" aria-label="${esc(t("{name} 往前移", { name: nm }))}">‹</button>` : ""}${i < last ? `<button type="button" data-action="quick-move" data-id="${esc(id)}" data-dir="1" aria-label="${esc(t("{name} 往后移", { name: nm }))}">›</button>` : ""}</span>` : ""}</div>`;
   const taken = new Set(mine.map((x) => x[0]));
@@ -93,7 +93,7 @@ const PRESETS = () => [
   [href("pantry", "overview"), "🥫", t("储藏概览")], [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "➕", t("添加储藏物品")],
   state.gearEnabled ? [href("pantry", "gear"), "🧳", t("装备")] : null, state.gearEnabled ? [`${href("item", "new")}?space=gear`, "🧳", t("添加装备")] : null,
   state.billsEnabled ? [href("bills", "overview"), "🧾", t("账单概览")] : null, state.billsEnabled ? [href("bills", "list"), "📋", t("账单清单")] : null, state.billsEnabled ? [href("bills", "history"), "🕘", t("缴费记录")] : null, state.billsEnabled ? [href("bill", "new"), "➕", t("添加账单")] : null,
-  state.houseEnabled ? [href("house"), "🏠", t("房屋")] : null, state.houseEnabled ? [`${href("item", "new")}?space=house`, "🧰", t("添加房屋耗材")] : null, state.houseEnabled ? [href("house", "assets"), "⚙️", t("设备")] : null,
+  state.houseEnabled ? [href("house"), "🏠", t("房屋")] : null, state.houseEnabled ? [`${href("pantry", "inventory")}?space=house`, "🧰", t("房屋耗材")] : null, state.houseEnabled ? [`${href("item", "new")}?space=house`, "➕", t("添加房屋耗材")] : null, state.houseEnabled ? [href("house", "assets"), "⚙️", t("设备保养")] : null,
   state.houseEnabled ? [href("house", "tasks"), "📅", t("季节任务")] : null, state.houseEnabled ? [href("house", "deal"), "📝", t("交易")] : null, state.houseEnabled ? [href("house", "vehicles"), "🚗", t("车辆")] : null, state.houseEnabled ? [href("asset", "new"), "🛠️", t("添加设备")] : null,
   [href("shopping"), "🛒", t("采购清单")], [href("alerts"), "🔔", t("注意事项")], [href("ai"), "🤖", t("小Y问")], [href("me", "stats"), "📊", t("看花费统计")], [href("me", "settings"), "⚙️", t("设置")],
   ["action:print", "🖨️", t("打印")],
