@@ -142,7 +142,7 @@ export function viewBillsHistory() {
         const b = byBill[p.bill_id];
         return `<li><span class="badge" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</span>
           <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>` : t("（已删除的账单）")}</span>
-            <small>${[t(B().PAYMENT_STATUS[p.status] || p.status), p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+            <small>${[b ? acctText(b) : null, t(B().PAYMENT_STATUS[p.status] || p.status), p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
           <b>${p.amount != null ? mny(p.amount, p.currency) : `<span class="muted">${t("未填金额")}</span>`}</b>
           <button type="button" class="btn btn-sm btn-ghost" data-action="billpay-del" data-id="${p.id}">${t("删除")}</button></li>`;
       }).join("")}</ul>` : `<div class="empty"><strong>${t("还没有缴费记录")}</strong>${t("在账单页记一笔，或在概览里点“已核对”。")}</div>`}</div>
@@ -365,6 +365,7 @@ function billHub(b, root) {
 
 function billSummary(b) {
   const bits = [
+    acctText(b) ? `<span class="badge" style="background:var(--surface-2)">${esc(acctText(b))}</span>` : "",
     b.status !== "ok" && b.status !== "none" ? `<span class="badge ${BADGE[b.status]}">${t(STATUS_LABEL[b.status])}${b.next_due_on ? ` · ${fmtDate(b.next_due_on)}` : ""}</span>` : b.next_due_on ? `<span class="badge b-ok">${t("下次 {d}", { d: fmtDate(b.next_due_on) })}</span>` : "",
     b.autopay ? `<span class="badge" style="background:var(--surface-2)">${t("自动扣款")}${b.autopay_method ? ` · ${esc(b.autopay_method)}` : ""}</span>` : "",
     b.est != null ? `<span class="badge" style="background:var(--surface-2)">${t("约 {m} / 次", { m: mny(b.est, b.currency) })}</span>` : "",
@@ -383,7 +384,7 @@ function paySection(b, focus) {
       <button type="button" class="btn btn-sm btn-ghost" data-action="billpay-del" data-id="${p.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>
     </li>`).join("");
   return `
-    <div class="section-head" style="margin-top:28px"><h2>${t("缴费记录")}</h2><p>${t("记一笔后下次到期日自动推到下一期")}</p></div>
+    <div class="section-head" style="margin-top:28px"><h2>${t("缴费记录")}</h2><p>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${t("记一笔后下次到期日自动推到下一期")}</p></div>
     <form id="billPayForm" class="panel" ${focus ? 'data-focus="1"' : ""}>
       <input type="hidden" name="bill_id" value="${esc(b.id)}">
       <div class="form-grid maint-grid">
