@@ -8,6 +8,7 @@ import { memberName } from "../core/logic.js";
 import { download } from "../stats/views.js";
 import { STATUS_RANK, acctText, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
 import { propertyTag, withProperty } from "../core/alerts.js";
+import { autofillBar } from "../core/autofill.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 
 const B = () => window.BILLS;
@@ -270,6 +271,7 @@ export function viewBillForm() {
   return `
     <section class="section form-page">
       ${b ? sectionCrumb(hubHref, b.name, t(BILL_SECTIONS.find((s) => s.id === sec)?.name || ""), root) : crumbNav([root, { label: t("添加账单") }])}
+      ${autofillBar("bill", "#billForm")}
       <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""} ${b && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="bill_id" value="${d(b?.id)}">
         <fieldset data-sec="basic" ${hide("basic")}>

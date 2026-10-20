@@ -985,3 +985,18 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .scan-row.is-new .scan-cat { display: grid; }
 .scan-row:has(input[name="inc"]:not(:checked)) .form-grid { opacity: .45; }
 @media (min-width: 720px) { .scan-row .form-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .scan-row .scan-cat { grid-column: span 2; } }
+
+/* 拍照填表 */
+.af-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: var(--r-sm); background: var(--surface); }
+.af-btn { position: relative; cursor: pointer; }
+.af-btn input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.af-btn:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.af-btn.is-off { opacity: .5; cursor: not-allowed; }
+.af-hint { font-size: 12.5px; flex: 1 1 220px; min-width: 0; }
+.af-status { flex-basis: 100%; font-size: 13px; }
+.af-status:empty, .af-thumbs:empty { display: none; }
+.af-thumbs { flex-basis: 100%; display: flex; gap: 6px; flex-wrap: wrap; }
+.af-thumbs img { height: 56px; width: auto; border-radius: 6px; border: 1px solid var(--line); }
+.af-bar.is-busy .af-btn { opacity: .5; pointer-events: none; }
+input.af-filled, select.af-filled, textarea.af-filled { background: var(--ok-bg); border-color: var(--ok); }
+input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); border-color: var(--low); }

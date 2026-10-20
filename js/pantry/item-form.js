@@ -8,6 +8,7 @@ import { t } from "../core/i18n.js";
 import { categoryOptions } from "./views.js";
 import { locationField, resolveLocation } from "../core/locations.js";
 import { assetName } from "../house/assets.js";
+import { autofillBar } from "../core/autofill.js";
 import { propertyName } from "../bills/logic.js";
 
 /* ───────────── 物品编辑：独立整页（路由 #/item/<id> 或 #/item/new） ─────────────
@@ -58,6 +59,7 @@ export function viewItemForm() {
   return `
     <section class="section form-page">
       ${crumbNav([root, { label: it ? t("编辑：{name}", { name: it.name }) : t("添加物品"), icon: catOf(v.category).icon }])}
+      ${autofillBar("item", "#itemForm")}
       <form id="itemForm" class="panel ${gear ? "is-gear" : ""} ${spaceOf(v.category) === "house" ? "is-house" : ""}" novalidate data-autosave>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">
         <input type="hidden" name="orig_unit" value="${esc(v.unit)}">

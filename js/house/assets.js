@@ -12,6 +12,7 @@ import { compare, joinList, sameTerm, t } from "../core/i18n.js";
 import { houseBar } from "./property-form.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 import { dealHref, dealTasks, openVehicleDeal } from "./deals.js";
+import { autofillBar } from "../core/autofill.js";
 
 const H = () => window.HOUSE;
 const V = () => window.VEHICLES;
@@ -511,6 +512,7 @@ export function viewAssetForm() {
   return `
     <section class="section form-page">
       ${a ? sectionCrumb(hubHref, assetName(a), t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || ""), root) : crumbNav([root, { label: veh ? t("添加车辆") : t("添加设备") }])}
+      ${a && sec === "notes" ? "" : autofillBar(veh ? "vehicle" : "asset", "#assetForm")}
       <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${a && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
         ${fromItem ? `<input type="hidden" name="from_item" value="${esc(fromItem.id)}"><p class="hint" style="margin-top:0">${t("由装备“{name}”升级：补上品牌、安装日期、保修和保养周期后保存。", { name: esc(fromItem.name) })}</p>
@@ -715,6 +717,7 @@ function maintSection(a, focusLog) {
   return `
     <div class="section-head"><p>${veh ? t("按保养项目算下次到期；维修不重置") : t("检查、保养、更换会重算下次保养日期；维修不会")}</p></div>
     ${followUp}
+    ${autofillBar("maint", "#maintForm")}
     <form id="maintForm" class="panel" ${focusLog ? 'data-focus="1"' : ""}>
       <input type="hidden" name="asset_id" value="${esc(a.id)}">
       <div class="form-grid maint-grid">

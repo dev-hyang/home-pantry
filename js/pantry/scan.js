@@ -9,22 +9,12 @@ import { crumbNav } from "../core/hub.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
 import { cleanStore, rememberStore, storeDatalist } from "../stats/views.js";
 import { categoryOptions } from "./views.js";
+import { compressImage as compress } from "../core/autofill.js";
 
 const MAX_IMAGES = 4;
 const sc = { kind: "receipt", step: "input", images: [], text: "", busy: false, error: "", result: null, pool: [] };
 export function resetScan() { Object.assign(sc, { kind: "receipt", step: "input", images: [], text: "", busy: false, error: "", result: null, pool: [] }); }
 const repaint = () => { const m = $("#main"); if (m && state.route.section === "scan") m.innerHTML = viewScan(); };
-
-/* ───────────── 图片：手机上先压缩（长边 1600px、JPEG），小票几百 KB 就够认 ───────────── */
-async function compress(file, max = 1600) {
-  const bmp = await createImageBitmap(file);
-  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
-  const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
-  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
-  bmp.close?.();
-  const url = c.toDataURL("image/jpeg", 0.82);
-  return { mime: "image/jpeg", b64: url.split(",")[1], url };
-}
 
 /* ───────────── 提示词与结果整理 ───────────── */
 function buildPool() {

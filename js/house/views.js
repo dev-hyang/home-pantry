@@ -1,3 +1,4 @@
+import { autofillBar } from "../core/autofill.js";
 /* 房屋维护 · 第一期：房屋资料（房型、材料、设施）、责任归属、材料保养建议、按模板批量加入房屋耗材 */
 import { alertsOf } from "../core/logic.js";
 import { state } from "../core/state.js";
@@ -531,6 +532,7 @@ function viewProfileSection(sec) {
   }[sec]();
   return `
     <section class="section form-page house-form">
+      ${sec === "insurance" ? autofillBar("insurance", "#houseForm") : ""}
       <form id="houseForm" class="panel" data-sec="${sec}" novalidate data-autosave>
         ${body}
         <p id="houseFormError" class="form-error" role="alert"></p>

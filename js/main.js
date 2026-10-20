@@ -231,7 +231,7 @@ const AUTOSAVE = { itemForm: saveItemForm, assetForm: saveAssetForm, billForm: s
 let lastHash = location.hash;
 function pendingAutosave() {
   const f = $("#main form[data-autosave]");
-  const want = f && AUTOSAVE[f.id] && !state.skipAutosave && lastHash !== location.hash && dirtyFields(f);
+  const want = f && AUTOSAVE[f.id] && !f.dataset.afPending && !state.skipAutosave && lastHash !== location.hash && dirtyFields(f);
   state.skipAutosave = false; lastHash = location.hash;
   return want ? f : null;
 }
