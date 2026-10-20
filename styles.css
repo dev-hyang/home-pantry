@@ -496,6 +496,18 @@ button.mrow:last-child { border-bottom: 0; }
 .space-tag { display: inline-block; font-size: 11px; color: var(--pine); background: var(--surface-2); border-radius: 99px; padding: 0 7px; margin-right: 6px; }
 
 .today-head { margin-bottom: 16px; }
+.today-date { margin: 0; font-size: 15px; font-weight: 700; color: var(--muted); }
+/* 注意事项：当前来源页 ‹ 名称 › + 小圆点 */
+.page-nav { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 6px 8px; margin-bottom: 4px; }
+.page-nav .month-cur b { font-size: 17px; }
+.page-nav .month-btn:disabled { opacity: .35; cursor: default; }
+.page-nav .dots { display: inline-flex; gap: 5px; margin-top: 4px; }
+.page-nav .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+.page-nav .dots i.on { background: var(--pine); }
+/* 历史交易 / 历史车辆：按钮固定右上角，摘要换行也不会和按钮叠在一起 */
+.hist-list li { position: relative; align-items: flex-start; padding-right: 96px; }
+.hist-list .hist-act { position: absolute; right: 0; top: 10px; }
+.hist-list .badge { margin-top: 2px; }
 .today-head p { margin: 0 0 2px; }
 .today-head h2 { font-size: 26px; font-weight: 800; letter-spacing: .01em; }
 .cta-panel { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-left: 6px solid var(--mustard); }

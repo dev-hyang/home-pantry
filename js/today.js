@@ -53,10 +53,7 @@ export function viewToday() {
   ].filter(Boolean).map(([h, ic, nm]) => `<a class="qtile" href="${h}"><span class="qtile-ico" aria-hidden="true">${ic}</span><span>${nm}</span></a>`).join("");
 
   return `
-    <section class="section today-head">
-      <p class="muted">${esc(dateText)}</p>
-      <h2>${counts.important ? t("今天有 {n} 件事要留意", { n: counts.important }) : all.length ? t("没有急事，有 {n} 件可以留意", { n: all.length }) : t("今天没有需要处理的事")}</h2>
-    </section>
+    <section class="section today-head"><p class="today-date">${esc(dateText)}</p></section>
     <section class="section"><div class="today-grid">${big}</div></section>
     ${noProfile ? `<section class="section"><div class="panel cta-panel">
       <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的房屋耗材。")}</p></div>
@@ -70,37 +67,50 @@ function tile({ href: h, cls = "", icon, count, name, sub, foot = "" }) {
     <div><div class="tile-name">${name}</div><div class="ttile-sub">${sub}</div></div>${foot}</a>`;
 }
 
-/* ───────────── 今日 / 注意事项：清单 + 排序下拉 ───────────── */
+/* ───────────── 注意事项：清单 + 排序下拉；“全部 / 某来源”一页一页左右滑（桌面点 ‹ ›），每次进来都回到“全部” ───────────── */
 const SORTS = [["severity", "按轻重"], ["due", "按到期"], ["source", "按来源"], ["property", "按房产"]];
+/** 来源页的顺序：全部，然后按提醒总线的来源顺序只列有提醒的 */
+export function alertSourceTabs(counts = alertCounts(myAlerts())) {
+  return ["all", ...Object.keys(SOURCE_LABEL).filter((k) => counts.bySource[k])];
+}
+/** 左右滑动 / ‹ ›：换到上一个或下一个来源页（到头不循环） */
+export function shiftAlertSource(delta) {
+  const tabs = alertSourceTabs();
+  const cur = state.today.source && tabs.includes(state.today.source) ? state.today.source : "all";
+  const i = Math.min(tabs.length - 1, Math.max(0, tabs.indexOf(cur) + delta));
+  setTodayPref({ source: tabs[i] === "all" ? null : tabs[i] });
+}
 export function viewAlerts() {
   const pref = state.today;
   const all = myAlerts(), counts = alertCounts(all);
   const canMine = Store.mode === "cloud" && collectAlerts().some((x) => x.assigned_to);
-  // 来源芯片可点：只看某一来源（再点一次取消）
+  const tabs = alertSourceTabs(counts);
   const src = pref.source && counts.bySource[pref.source] ? pref.source : null;
-  const picked = src ? all.filter((x) => x.source === src) : all;
-  const shown = pref.focus ? picked.filter((x) => x.severity < 3) : picked;
-  const hidden = picked.length - shown.length;
+  const idx = tabs.indexOf(src || "all");
+  const shown = src ? all.filter((x) => x.source === src) : all;
   const restockable = all.some((x) => (x.source === "pantry" || x.source === "house") && x.actions?.some((a) => a.action === "shop-add-item"));
   const mode = SORTS.some(([k]) => k === pref.mode) ? pref.mode : "severity";
   const sorts = SORTS.filter(([k]) => k !== "property" || multiProperty()).map(([k, n]) => `<option value="${k}" ${k === mode ? "selected" : ""}>${t(n)}</option>`).join("");
-  const chips = Object.entries(counts.bySource).map(([s, n]) => `<button type="button" class="chip" data-action="today-source" data-source="${s}" aria-pressed="${s === src ? "true" : "false"}">${SOURCE_ICON[s] || ""} ${t(SOURCE_LABEL[s] || s)} ${n}</button>`).join("");
   const toggle = (key, label, on) => `<button type="button" class="chip" data-action="today-pref" data-key="${key}" aria-pressed="${on ? "true" : "false"}">${label}</button>`;
-  const body = mode === "property" && multiProperty() ? byProperty(shown) : mode === "source" ? bySource(shown) : mode === "due" ? byDue(shown) : bySeverity(shown);
+  const body = mode === "property" && multiProperty() ? byProperty(shown) : mode === "source" && !src ? bySource(shown) : mode === "due" ? byDue(shown) : bySeverity(shown);
+  const tabName = (k) => (k === "all" ? t("全部") : `${SOURCE_ICON[k] || ""} ${t(SOURCE_LABEL[k] || k)}`);
+  const tabCount = (k) => (k === "all" ? all.length : counts.bySource[k] || 0);
+  // 当前来源页：‹ 名称（数量）›，下面一行小圆点表示还有几页；整页列表区域可左右滑
+  const pager = tabs.length > 1 ? `<div class="page-nav swipe-zone" data-swipe="alerts" role="group" aria-label="${t("提醒来源")}">
+      <button type="button" class="month-btn" data-action="alerts-prev" ${idx <= 0 ? "disabled" : ""} aria-label="${t("上一个来源")}">‹</button>
+      <div class="month-cur"><b>${tabName(tabs[idx])}<span class="muted"> ${tabCount(tabs[idx])}</span></b><small class="dots" aria-hidden="true">${tabs.map((_, i) => `<i class="${i === idx ? "on" : ""}"></i>`).join("")}</small></div>
+      <button type="button" class="month-btn" data-action="alerts-next" ${idx >= tabs.length - 1 ? "disabled" : ""} aria-label="${t("下一个来源")}">›</button>
+    </div>` : "";
+  const tools = canMine || restockable ? `<div class="chips today-chips">
+        ${canMine ? toggle("mine", t("只看我负责的"), !!pref.mine) : ""}
+        ${restockable ? `<button type="button" class="chip" data-action="shop-add-alerts" data-space="all">${t("补货全部加入采购清单")}</button>` : ""}
+      </div>` : "";
 
   return `
     <nav class="crumb crumb-tools" aria-label="${t("位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("注意事项")}</b>
       <label class="sort-dd"><span class="sr-only">${t("排序")}</span><select id="alertSort" aria-label="${t("排序")}">${sorts}</select></label></nav>
-    <section class="section today-head">
-      <h2>${counts.important ? t("今天有 {n} 件事要留意", { n: counts.important }) : all.length ? t("没有急事，有 {n} 件可以留意", { n: all.length }) : t("今天没有需要处理的事")}</h2>
-      ${all.length ? `<div class="chips today-chips">${chips}${src ? `<button type="button" class="chip" data-action="today-source" data-source="${src}">${t("显示全部")}</button>` : ""}</div>` : ""}
-      <div class="chips today-chips">
-        ${toggle("focus", t("只看要紧的"), !!pref.focus)}${canMine ? toggle("mine", t("只看我负责的"), !!pref.mine) : ""}
-        ${restockable ? `<button type="button" class="chip" data-action="shop-add-alerts" data-space="all">${t("补货全部加入采购清单")}</button>` : ""}
-      </div>
-    </section>
-    ${body}
-    ${hidden ? `<p class="muted" style="margin:-12px 0 24px;font-size:13px">${t("还有 {n} 件留意级的事已折叠，", { n: hidden })}<button type="button" class="link-name" data-action="today-pref" data-key="focus">${t("展开")}</button></p>` : ""}`;
+    <section class="section today-head">${pager}${tools}</section>
+    <div class="swipe-zone" data-swipe="alerts">${body}</div>`;
 }
 
 const section = (title, sub, items) => (items.length ? `<section class="section">

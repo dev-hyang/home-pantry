@@ -35,6 +35,8 @@ export function dealSubLabel(sec, deal = routeDeal()) {
   if (sec === "closeout") return deal?.kind === "buy" ? t("完成交割") : t("交割与退出");
   return null;
 }
+/** 面包屑：看历史交易时中间多一级“历史 / 买入” */
+export const historyLabel = (deal) => (deal?.outcome ? `${t("历史")} / ${t(D().KINDS[deal.kind] || "")}` : null);
 /** 两个基准日期在这笔交易里的叫法：[合同 / 签约日, 交割 / 提车 / 归还日] */
 export const dateLabels = (deal) => D().DATE_LABELS[deal?.kind] || D().DATE_LABELS.buy;
 export const statusText = (p) => t(D().PROPERTY_STATUS[p?.status] || "持有");
@@ -421,11 +423,12 @@ function dealForm(d) {
 function dealHistory(list, current, linkOf) {
   if (!list.length) return "";
   const K = D().KINDS;
-  return `<section class="section"><div class="section-head"><h2>${t("历史交易")}</h2></div><div class="panel"><ul class="restock-list">${list.map((d) => `<li ${d.id === current ? 'aria-current="true"' : ""}>
+  // 一行：种类徽章 + 日期 / 摘要；“查看清单”固定在右上角（手机上摘要换行也不会和按钮叠在一起）
+  return `<section class="section"><div class="section-head"><h2>${t("历史交易")}</h2></div><div class="panel"><ul class="restock-list hist-list">${list.map((d) => `<li ${d.id === current ? 'aria-current="true"' : ""}>
     <span class="badge" style="background:var(--surface-2)">${t(K[d.kind])}</span>
     <div class="grow"><a class="link-name" href="${linkOf(d)}">${d.closing_on ? fmtDate(d.closing_on) : fmtDate((d.closed_at || d.updated_at || "").slice(0, 10))}</a>
       <small>${[d.outcome === "cancelled" ? t("已取消") : isVehDeal(d) ? t("已完成") : t("已交割"), d.price ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>
-    ${d.id === current ? `<span class="badge b-ok">${t("正在查看")}</span>` : `<a class="btn btn-sm btn-ghost" href="${linkOf(d)}">${t("查看清单")}</a>`}</li>`).join("")}</ul></div></section>`;
+    <span class="hist-act">${d.id === current ? `<span class="badge b-ok">${t("正在查看")}</span>` : `<a class="btn btn-sm btn-ghost" href="${linkOf(d)}">${t("查看清单")}</a>`}</span></li>`).join("")}</ul></div></section>`;
 }
 
 /** 退出向导（卖出 / 退租）：交割日、成交价、每条账单的结束日期 */

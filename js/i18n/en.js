@@ -601,6 +601,8 @@ export const EN = {
   "出现在那个月的任务里；逾期会在首页提醒": "Shows up in that month; overdue items are flagged on Today", "怎么做、找谁、注意什么…": "How, who to call, what to watch for…",
   "删除这条任务": "Delete this task", "请填任务名称": "Enter a task name", "至少选一个月份": "Pick at least one month", "请选日期": "Pick a date", "已添加任务": "Task added", "已删除这条任务": "Task deleted",
   "编辑：{name}": "Edit: {name}",
+  // ── 注意事项换来源 / 历史交易面包屑 ──
+  "提醒来源": "Alert source", "上一个来源": "Previous source", "下一个来源": "Next source", "历史": "Past",
   // ── 房屋概览重排 ──
   "材料与设施": "Materials & systems", "参考": "Reference", "按房型和材料整理，不常变；点开查看": "By home type and materials; rarely changes. Tap to open", "已完成 {n} 项": "{n} done",
   "这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。": "This is a past transaction. Its checklist, timeline and details can still be viewed and edited for reference.",

@@ -5,7 +5,7 @@ import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
-import { setTodayPref, viewAlerts, viewToday } from "./today.js";
+import { setTodayPref, shiftAlertSource, viewAlerts, viewToday } from "./today.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
@@ -237,6 +237,8 @@ function onRoute() {
   }
   // 手动点了底部页签：恢复该页签的默认筛选（浏览器后退不会设这个标记，筛选照旧）
   if (state.tabReset) { if (next.section === state.tabReset) resetSectionFilters(next.section); state.tabReset = null; }
+  // 注意事项：每次进来都回到“全部”来源和默认排序（从首页格子、链接或后退进来都一样）
+  if (next.section === "alerts" && prev.section !== "alerts") resetSectionFilters("alerts");
   // 从目录或别的页进库存类清单：默认回到全部分类（从物品编辑页返回、或概览方块指定了分类时保留）
   if (isListRoute(next) && routeKey(prev) !== routeKey(next) && !isFormSection(prev)) {
     if (state.keepFilter) state.keepFilter = false;
@@ -271,6 +273,7 @@ window.addEventListener("hashchange", onRoute);
 function resetSectionFilters(section) {
   switch (section) {
     case "today": setTodayPref({ source: null }); break;
+    case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
     case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all" }); break;
@@ -306,12 +309,16 @@ async function changeLang(code) {
 
 /* ───────────── 交互（事件委托） ───────────── */
 export const main = $("#main");
+/* 左右滑动换页：季节任务换月（.tasks-swipe）、注意事项换来源（.swipe-zone[data-swipe=alerts]）；横向够远、纵向很小才算 */
 let swipe = null;
-main.addEventListener("touchstart", (e) => { const z = e.target.closest(".tasks-swipe"); swipe = z && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
+main.addEventListener("touchstart", (e) => { const z = e.target.closest(".tasks-swipe, .swipe-zone"); swipe = z && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, kind: z.dataset.swipe || "tasks" } : null; }, { passive: true });
 main.addEventListener("touchend", (e) => {
   if (!swipe) return;
-  const dx = e.changedTouches[0].clientX - swipe.x, dy = e.changedTouches[0].clientY - swipe.y; swipe = null;
-  if (Math.abs(dx) < 60 || Math.abs(dy) > 50 || !document.querySelector(".month-nav")) return;
+  const { x, y, kind } = swipe; swipe = null;
+  const dx = e.changedTouches[0].clientX - x, dy = e.changedTouches[0].clientY - y;
+  if (Math.abs(dx) < 60 || Math.abs(dy) > 50) return;
+  if (kind === "alerts") { shiftAlertSource(dx < 0 ? 1 : -1); return render(); }
+  if (!document.querySelector(".month-nav")) return;
   shiftTasksMonth(dx < 0 ? 1 : -1); render();
 }, { passive: true });
 main.addEventListener("input", (e) => {
@@ -576,6 +583,8 @@ main.addEventListener("click", async (e) => {
         return render();
       }
       case "today-source": setTodayPref({ source: state.today.source === el.dataset.source ? null : el.dataset.source }); return render();
+      case "alerts-prev": shiftAlertSource(-1); return render();
+      case "alerts-next": shiftAlertSource(1); return render();
       case "bill-cancel": return leaveBill(false);
       case "bill-delete":
         if (!armed(el, t("再点一次确认删除"))) return;

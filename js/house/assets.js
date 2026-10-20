@@ -223,12 +223,12 @@ export function viewVehicles() {
 function pastVehiclesSection(past) {
   if (!past.length) return "";
   return `<section class="section"><details class="panel ref-panel"><summary><b>${t("历史车辆")}</b><small>${t("{n} 辆，已卖出或已归还；档案和保养记录保留", { n: past.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
-    <ul class="restock-list ref-body">${past.map((a) => { const v = a.vehicle || {}; return `<li>
+    <ul class="restock-list hist-list ref-body">${past.map((a) => { const v = a.vehicle || {}; return `<li>
       <span class="asset-ico" aria-hidden="true">${V().POWERTRAINS[a.type]?.icon || "🚗"}</span>
       <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>
         <small>${[t(V().STATUS[vehStatus(a)].name), v.disposed_on ? fmtDate(v.disposed_on) : null, v.sale_price != null ? money(num(v.sale_price)) : null,
           a.installed_on ? t("{d} 购入", { d: fmtDate(a.installed_on) }) : null, a.logs.length ? t("{n} 条保养记录", { n: a.logs.length }) : null, a.totalCost ? t("共花 {m}", { m: money(a.totalCost) }) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
-      <a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></li>`; }).join("")}</ul></details></section>`;
+      <span class="hist-act"><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></span></li>`; }).join("")}</ul></details></section>`;
 }
 
 /** “开始买车流程”：先建一辆“选购中”的占位车，再在它名下开交易；提车后改名、补车牌 */
