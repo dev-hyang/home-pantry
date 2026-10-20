@@ -53,6 +53,9 @@
     { id: "deck",           name: "木平台 / 露台",       region: "both" },
     { id: "fireplace",      name: "壁炉",                region: "na" },
     { id: "hot_tub",        name: "热水浴缸",            region: "both" },
+    { id: "septic",         name: "化粪池（不接市政下水）", region: "na" },
+    { id: "well",           name: "自家水井",            region: "na" },
+    { id: "security",       name: "安防 / 门铃摄像头",   region: "both" },
   ];
 
   // ── 材料 ──
@@ -307,6 +310,26 @@
     { id: "radon_fan",      name: "氡气排放系统",     en: "Radon mitigation",   icon: "🌬️", kind: "equipment", life: 10, interval: 12, system: null,           region: "na",   when: ["f:basement"], optional: true, tip: "看 U 形压力计两边液面是否不齐（齐了 = 风扇停了）；风扇 5–10 年换；每 2 年复测一次氡。" },
     { id: "ev_charger",     name: "家用充电桩",       en: "EV charger",         icon: "🔌", kind: "equipment", life: 10, interval: 12, system: null,           region: "both", when: ["f:car"], optional: true, tip: "查线缆、插头有没有发热变色或松动；留意厂商固件更新。" },
     { id: "generator",      name: "备用发电机",       en: "Standby generator",  icon: "🔋", kind: "equipment", life: 20, interval: 12, system: null,           region: "na",   when: ["*"], optional: true, tip: "每年换机油、火花塞、空滤；每月自检要能听到它跑；久不用的油要加稳定剂。" },
+    // ── 电力与网络 ──
+    { id: "electrical_panel", name: "配电箱",         en: "Electrical panel",   icon: "⚡", kind: "equipment", life: 35, interval: 12, system: null,           region: "both", when: ["*"],              tip: "每年开盖看有没有烧痕、发热、嗡嗡声，回路标签写全；Federal Pacific、Zinsco 这类老牌子建议直接换。" },
+    { id: "surge_protector", name: "全屋浪涌保护器",  en: "Whole-house surge protector", icon: "🛡️", kind: "equipment", life: 8, interval: 12, system: null,  region: "na",   when: ["*"], optional: true, tip: "装在配电箱旁；指示灯灭了说明已经挡过大浪涌、要换。" },
+    { id: "thermostat",     name: "温控器",           en: "Thermostat",         icon: "🎛️", kind: "equipment", life: 10, interval: null, system: "hvac",       region: "both", when: ["f:forced_air", "f:heat_pump", "f:central_ac", "f:boiler"], optional: true, tip: "电池款每年换电池；智能款记下账号和 Wi‑Fi 重连方法。" },
+    { id: "router",         name: "路由器 / Mesh",    en: "Router / mesh Wi‑Fi", icon: "📶", kind: "equipment", life: 6,  interval: 12, system: null,           region: "both", when: ["*"],              tip: "备注里记各节点位置、管理地址和后台密码存放处；每年查一次固件更新，5–7 年换代。" },
+    { id: "modem",          name: "光猫 / Modem",     en: "Modem / ONT",        icon: "📡", kind: "equipment", life: 6,  interval: null, system: null,         region: "both", when: ["*"], optional: true, tip: "运营商的设备要记归属，退网、搬家要归还；自购的记型号方便换运营商。" },
+    { id: "security_system", name: "安防 / 门铃摄像头", en: "Security & doorbell cameras", icon: "📷", kind: "equipment", life: 7, interval: 12, system: null, region: "both", when: ["f:security"],     tip: "每年换传感器电池、擦镜头、查订阅到期；面板主密码存放处写进应急信息。" },
+    { id: "leak_sensor",    name: "漏水传感器",       en: "Water leak sensors", icon: "💧", kind: "equipment", life: 5,  interval: 12, system: null,           region: "both", when: ["*"], optional: true, tip: "放热水器、洗衣机、水槽下、排水泵旁；每年换电池、按测试键。" },
+    // ── 水路 ──
+    { id: "prv",            name: "减压阀与膨胀罐",   en: "PRV & expansion tank", icon: "🔩", kind: "equipment", life: 10, interval: 12, system: "plumbing",   region: "na",   when: ["*"],              tip: "水压忽高忽低、热水器安全阀滴水多半是它俩；每年测一次水压（40–60 psi），膨胀罐敲上半截应是空响。" },
+    { id: "backflow",       name: "灌溉回流防止器",   en: "Backflow preventer", icon: "🚰", kind: "equipment", life: 15, interval: 12, system: "yard",         region: "na",   when: ["f:lawn"], optional: true, tip: "很多镇要求每年由持证人员检测并备案；上冻前随灌溉一起排空。" },
+    { id: "sewer_line",     name: "下水主管",         en: "Sewer line",         icon: "🕳️", kind: "equipment", life: 50, interval: 36, system: "plumbing",     region: "na",   when: ["type:sfh", "type:townhome"], optional: true, tip: "老房子多是粘土管，树根易侵入：每 3–5 年摄像检查一次；地下室地漏返水是第一信号。" },
+    { id: "septic",         name: "化粪池系统",       en: "Septic system",      icon: "🛢️", kind: "equipment", life: 30, interval: 36, system: "plumbing",     region: "na",   when: ["f:septic"],       tip: "每 3–5 年抽一次；排水场上别停车、别种树；少用垃圾处理器。" },
+    { id: "well_pump",      name: "井泵与压力罐",     en: "Well pump & pressure tank", icon: "⛲", kind: "equipment", life: 12, interval: 12, system: "plumbing", region: "na", when: ["f:well"],       tip: "每年验水质（细菌、硝酸盐）；压力罐气压比启动压力低 2 psi；泵频繁启停多半是压力罐坏了。" },
+    // ── 建筑 ──
+    { id: "windows",        name: "门窗",             en: "Windows & doors",    icon: "🪟", kind: "equipment", life: 25, interval: 12, system: "windows",      region: "both", when: ["*"],              tip: "每年查密封条、排水孔；双层玻璃中间起雾 = 密封失效。" },
+    { id: "bath_fan",       name: "浴室排风扇",       en: "Bathroom exhaust fans", icon: "🌀", kind: "equipment", life: 10, interval: 12, system: null,        region: "both", when: ["*"],              tip: "每年拆格栅清灰；一张纸贴不住格栅就是风量不够了。" },
+    { id: "attic",          name: "阁楼通风与保温",   en: "Attic ventilation & insulation", icon: "🏚️", kind: "equipment", life: 25, interval: 12, system: "roof", region: "na", when: ["type:sfh", "type:townhome"], optional: true, tip: "每年看一次：有没有漏水痕迹、保温层塌陷、通风口被堵；冬天屋檐结冰坝多半是阁楼太热。" },
+    { id: "fence",          name: "栅栏 / 挡土墙",    en: "Fence / retaining wall", icon: "🪵", kind: "equipment", life: 20, interval: 12, system: "exterior",   region: "na",   when: ["type:sfh"], optional: true, tip: "每年查立柱松动、底部腐烂；挡土墙鼓出、排水孔堵塞要尽早处理。" },
+    { id: "exterior_paint", name: "外墙漆 / 木饰面",  en: "Exterior paint / trim", icon: "🎨", kind: "equipment", life: 8, interval: 12, system: "exterior",    region: "na",   when: ["ext:wood"],       tip: "每年查起皮、开裂、窗框密封胶；7–10 年整体重刷。" },
     { id: "lawn_mower",     name: "割草机",           en: "Lawn mower",         icon: "🌿", kind: "tool",      life: 10, interval: 12, system: "yard",         region: "both", when: ["f:lawn"],         tip: "每季换机油、磨刀片；入冬放空汽油。" },
     { id: "snow_blower",    name: "除雪机",           en: "Snow blower",        icon: "🌨️", kind: "tool",      life: 10, interval: 12, system: "yard",         region: "na",   when: ["f:snow"], optional: true },
     { id: "pressure_washer", name: "高压清洗机",      en: "Pressure washer",    icon: "💦", kind: "tool",      life: 8,  interval: null, system: null,         region: "na",   when: ["type:sfh", "type:townhome"], optional: true },
@@ -344,6 +367,13 @@
       { key: "na_spr_ac",        months: [4, 5],    name: "空调 / 热泵入夏前检修、换滤网",   when: ["f:central_ac", "f:heat_pump"] },
       { key: "na_spr_roof",      months: [4],       name: "冬后检查屋顶、排水槽和外墙",     when: ["type:sfh", "type:townhome"] },
       { key: "na_spr_grade",     months: [4, 5],    name: "检查地基周边排水坡度和落水管出口", when: ["type:sfh", "type:townhome", "f:basement"], note: "水要引离地基至少 1.5 米。" },
+      // ── 电力 / 水路例行检查 ──
+      { key: "na_gfci",        months: [1, 4, 7, 10], name: "按一遍 GFCI / AFCI 插座和断路器的测试键", when: ["*"], note: "按 TEST 应跳、按 RESET 应复位；不跳的换掉。" },
+      { key: "na_main_valve",  months: [4],       name: "转一转总水阀和各处角阀，防锁死",           when: ["*"], note: "关到底再开到底；锈死的阀门漏水时就关不上了。" },
+      { key: "na_breakers",    months: [10],      name: "断路器全部拨一遍，补齐回路标签",           when: ["*"], note: "拨之前关掉电脑等设备；顺手把标签写进应急信息。" },
+      { key: "na_water_pressure", months: [4],    name: "测一次水压（40–60 psi）",                 when: ["type:sfh", "type:townhome"], note: "外水龙头拧上压力表就行；高了伤水管和电器，是减压阀的事。" },
+      { key: "na_batteries",   months: [11],      name: "换烟雾 / CO 报警器和漏水传感器的电池",     when: ["*"], note: "时钟回拨那周一起换，顺手按测试键。" },
+      { key: "na_bath_fan",    months: [3],       name: "清洗浴室排风扇格栅和叶片",                 when: ["*"] },
       { key: "na_spr_hose",      months: [4],       name: "打开室外水龙头，检查漏水",       when: ["type:sfh", "type:townhome"] },
       { key: "na_spr_deck",      months: [5],       name: "检查木平台，需要时重新上油",     when: ["f:deck"] },
       { key: "na_sum_filter",    months: [6, 7, 8], name: "换空调 / 炉子滤网",             when: ["f:central_ac", "f:forced_air", "f:heat_pump"] },
@@ -357,6 +387,9 @@
       { key: "na_all_softener",  months: [6],       name: "软水机清洗盐箱",                 when: ["f:water_softener"] },
     ],
     cn: [
+      { key: "cn_rcd",         months: [1, 4, 7, 10], name: "按一遍漏电保护器的试验按钮",            when: ["*"], note: "按下应立刻跳闸，不跳要换。" },
+      { key: "cn_main_valve",  months: [4],       name: "转一转进户总阀和各处角阀，防锁死",         when: ["*"] },
+      { key: "cn_batteries",   months: [11],      name: "换烟雾报警器、漏水传感器电池",             when: ["*"] },
       { key: "cn_spr_ac",        months: [4, 5],    name: "空调清洗滤网和室内机、试运行",   when: ["*"] },
       { key: "cn_spr_humid",     months: [3, 4, 5, 6], name: "回南天 / 梅雨：除湿、衣柜防霉、检查墙面渗水", when: ["f:humid_season"] },
       { key: "cn_spr_lawn",      months: [3, 4],    name: "草坪花园春季施肥、修剪",         when: ["f:lawn"] },
