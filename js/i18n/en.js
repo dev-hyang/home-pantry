@@ -252,6 +252,20 @@ export const EN = {
   "墙面修补膏": "Wall patch", "木地板精油": "Hardwood floor oil", "木平台防护油": "Deck oil", "北方冬季选防冻型。": "Use a winter formula in the north.",
 
   // 设备类型
+  // ── 家电与其他常见设备 ──
+  "灶具 / 烤箱": "Range / oven", "燃气灶每年看火焰是否为蓝色、查软管接头；电灶查加热盘和线路。烤箱自清洁功能别频繁用，高温伤电路板。": "Gas range: check yearly that flames are blue and inspect the hose fittings; electric: check elements and wiring. Use the oven's self-clean sparingly, the heat is hard on the control board.",
+  "冰箱": "Refrigerator", "每半年吸一次冷凝器线圈、查门封条；有制冰 / 饮水的 6 个月换滤芯。": "Vacuum the condenser coils and check the door gaskets twice a year; replace the water filter every 6 months if it has ice / water.",
+  "洗碗机": "Dishwasher", "每月清底部滤网；每半年查进水软管、门封，空机跑一次清洁程序。": "Clean the bottom filter monthly; twice a year check the inlet hose and door seal and run an empty cleaning cycle.",
+  "垃圾处理器": "Garbage disposal", "别倒油脂、骨头、咖啡渣；冰块加柠檬皮清洁；卡住先断电，用底部六角扳手转动。": "No grease, bones or coffee grounds; clean with ice and lemon peel; if jammed, cut power and turn it with the hex key underneath.",
+  "微波炉": "Microwave", "洗衣机": "Washer", "进水软管每 5 年换（建议不锈钢编织管）；每月擦门胶圈、跑一次清洁程序；长时间不用关水阀。": "Replace the inlet hoses every 5 years (braided stainless recommended); wipe the door gasket and run a cleaning cycle monthly; shut the valves when away for long.",
+  "烘干机": "Dryer", "每次用完清绒毛滤网；每年清一次排气管道（烘干机火灾的主因），查外墙排气口挡板能否开合。": "Clean the lint screen after every load; clean the exhaust duct yearly (the main cause of dryer fires) and check that the outside vent flap opens and closes.",
+  "排水槽 / 落水管": "Gutters & downspouts", "春秋各清一次；查接缝漏水、挂钩松动，落水管出口离地基至少 1.5 米。": "Clean each spring and fall; check for leaking seams and loose hangers; downspouts should discharge at least 5 ft from the foundation.",
+  "木平台 / 露台": "Deck", "每年查松动板、翘起的钉子和连接房屋的 ledger board；2–3 年刷一次防护油。": "Check yearly for loose boards, popped nails and the ledger board at the house; re-seal every 2–3 years.",
+  "草坪灌溉系统": "Sprinkler system", "春天开启时逐区查喷头、调方向；上冻前吹空管路（winterize），否则会冻裂。": "At spring start-up check each zone's heads and aim; blow out the lines before freezing (winterize) or they crack.",
+  "污水提升泵": "Ejector pump", "地下室卫生间 / 洗衣房用；每年听运行声音、查密封盖和通气管，有异味多是密封坏了。": "Serves a basement bathroom / laundry; yearly listen to it run and check the lid seal and vent pipe; odors usually mean a failed seal.",
+  "氡气排放系统": "Radon mitigation", "看 U 形压力计两边液面是否不齐（齐了 = 风扇停了）；风扇 5–10 年换；每 2 年复测一次氡。": "Check that the U-tube manometer levels are uneven (level means the fan stopped); fans last 5–10 years; retest radon every 2 years.",
+  "家用充电桩": "EV charger", "查线缆、插头有没有发热变色或松动；留意厂商固件更新。": "Check the cable and plug for heat discoloration or looseness; watch for firmware updates.",
+  "备用发电机": "Standby generator", "每年换机油、火花塞、空滤；每月自检要能听到它跑；久不用的油要加稳定剂。": "Change oil, spark plug and air filter yearly; you should hear the monthly self-test run; add stabilizer to fuel that sits.",
   "暖风炉": "Furnace", "每年采暖季前检修一次；滤网 1–3 个月换。": "Service before each heating season; filters every 1–3 months.",
   "锅炉": "Boiler", "每年采暖季前检修、给暖气片放气。": "Service before each heating season; bleed the radiators.",
   "每年检修一次，室外机保持通风。": "Service yearly; keep the outdoor unit clear.", "每年入夏前检修，清洗室外机翅片。": "Service before summer; clean the outdoor coil.",
