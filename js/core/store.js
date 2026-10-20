@@ -16,7 +16,7 @@ export const DemoStore = {
       db.properties = [{ id: uid(), name: t("我的家"), kind: "other", role: "owner_occupied", status: "owned", address: null, is_default: true, archived: false, notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
     }
     for (const p of db.properties) p.status ||= (p.role === "tenant" ? "renting" : "owned");
-    db.deals ||= []; db.deal_done ||= []; db.deal_overrides ||= []; db.deal_custom ||= []; db.categories ||= [];
+    db.deals ||= []; db.deal_done ||= []; db.deal_overrides ||= []; db.deal_custom ||= []; db.categories ||= []; db.custom_seasonal ||= [];
     const def = db.properties.find((p) => p.is_default) || db.properties[0];
     db.house_profiles ||= {};
     if (db.house_profile) { db.house_profiles[def.id] ||= db.house_profile; delete db.house_profile; }
@@ -97,6 +97,7 @@ export const DemoStore = {
     db.assets = db.assets.filter((a) => !assetIds.has(a.id));
     db.maint_logs = db.maint_logs.filter((l) => !assetIds.has(l.asset_id));
     db.seasonal = db.seasonal.filter((s) => s.property_id !== id);
+    db.custom_seasonal = (db.custom_seasonal || []).filter((s) => s.property_id !== id);
     delete db.house_profiles[id];
     const dealIds = new Set((db.deals || []).filter((d) => d.property_id === id).map((d) => d.id));
     db.deals = (db.deals || []).filter((d) => !dealIds.has(d.id));
@@ -189,6 +190,19 @@ export const DemoStore = {
   async setSeasonal(task_key, period, done, done_by_name, pid) {
     this.db.seasonal = this.db.seasonal.filter((s) => !(s.task_key === task_key && s.period === period && s.property_id === pid));
     if (done) this.db.seasonal.push({ id: uid(), property_id: pid, task_key, period, done_on: new Date().toISOString().slice(0, 10), done_by_name, created_at: new Date().toISOString() });
+    this.persist();
+  },
+  // 自定义季节任务（每年重复 / 一次性）
+  async listCustomSeasonal() { return (this.db.custom_seasonal || []).map((x) => ({ ...x })); },
+  async saveCustomSeasonal(c) {
+    const now = new Date().toISOString(); this.db.custom_seasonal ||= [];
+    if (c.id) { const i = this.db.custom_seasonal.findIndex((x) => x.id === c.id); if (i >= 0) this.db.custom_seasonal[i] = { ...this.db.custom_seasonal[i], ...c, updated_at: now }; }
+    else this.db.custom_seasonal.push({ ...c, id: uid(), created_at: now, updated_at: now });
+    this.persist();
+  },
+  async deleteCustomSeasonal(id) {
+    this.db.custom_seasonal = (this.db.custom_seasonal || []).filter((x) => x.id !== id);
+    this.db.seasonal = this.db.seasonal.filter((s) => s.task_key !== `c_${String(id).replace(/-/g, "")}`);
     this.persist();
   },
 
@@ -362,6 +376,7 @@ export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
 export const TERM_FIELDS = ["term", "zh", "en", "hant"];
 export const DEAL_FIELDS = ["property_id", "asset_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at"];
 export const DEAL_CUSTOM_FIELDS = ["deal_id", "name", "stage", "priority", "due_on", "note", "done_on", "done_by_name"];
+export const CUSTOM_SEASONAL_FIELDS = ["property_id", "name", "note", "months", "due_on", "done_on", "done_by_name"];
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
 export const CloudStore = {
@@ -504,6 +519,22 @@ export const CloudStore = {
       if (error && error.code !== "23505") throw new Error(error.message);   // 23505 = 家人已经勾过
     } else this.must(await this.sb.from("seasonal_tasks").delete().eq("property_id", pid).eq("task_key", task_key).eq("period", period));
   },
+  /** 自定义季节任务；迁移 019 还没执行时读不到表，不影响模板任务 */
+  async listCustomSeasonal() {
+    const r = await this.sb.from("custom_seasonal_tasks").select("*").eq("household_id", this.hid).order("created_at");
+    if (r.error) { console.warn("[custom seasonal]", r.error.message); return []; }
+    return r.data;
+  },
+  async saveCustomSeasonal(c) {
+    const row = pick(c, CUSTOM_SEASONAL_FIELDS, { household_id: this.hid, updated_by: state.user.id });
+    row.done_by = c.done_on ? state.user.id : null;
+    if (c.id) this.must(await this.sb.from("custom_seasonal_tasks").update(row).eq("id", c.id));
+    else this.must(await this.sb.from("custom_seasonal_tasks").insert(row));
+  },
+  async deleteCustomSeasonal(id) {
+    this.must(await this.sb.from("custom_seasonal_tasks").delete().eq("id", id));
+    this.must(await this.sb.from("seasonal_tasks").delete().eq("household_id", this.hid).eq("task_key", `c_${String(id).replace(/-/g, "")}`));
+  },
 
   /* 账单 */
   async listBills() { return this.must(await this.sb.from("bills").select("*").eq("household_id", this.hid).order("next_due_on")); },
@@ -575,7 +606,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();

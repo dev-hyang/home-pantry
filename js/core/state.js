@@ -21,7 +21,9 @@ export const state = {
   dealTaskEdit: null,                          // 交易清单：正在编辑的事项 { deal, key } 或新建 { deal, key: "", stage }
   dealView: (() => { try { return localStorage.getItem("hmh-deal-view") === "timeline" ? "timeline" : "list"; } catch { return "list"; } })(),   // 交易页视图：list 清单 / timeline 时间线
   closeout: null,                           // 交易页：退出向导是否展开
-  tasksMonth: null,                    // 季节任务页当前查看的月份（null = 本月）
+  tasksYM: null,                       // 季节任务页当前查看的年月 "YYYY-MM"（null = 本月）
+  customSeasonal: [],                  // 自定义季节任务（每年重复 / 一次性，按房产）
+  seasonForm: null,                    // 正在编辑的自定义任务 { id } 或新建 { id: null }
   stats: { months: 6, month: null, cat: null, itemId: null },
   filter: { space: "pantry", cat: "all", q: "", status: "all", loc: "all" },   // 库存清单：空间、分类、关键词、状态、存放位置
   locForm: null,                               // 设置 → 存放位置：正在新建 / 重命名的位置 { id?, name, grp, replaces?, oldName? }

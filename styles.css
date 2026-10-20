@@ -641,6 +641,25 @@ button.mrow:last-child { border-bottom: 0; }
 .task-row.done .grow > label b { color: var(--muted); font-weight: 500; }
 .task-row.done .grow > label small { color: var(--pine); }
 .task-row .care-card { margin-top: 6px; }
+/* 季节任务页：一次只看一个月，‹ › 换月（手机上也可左右滑动） */
+.month-nav { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 6px 8px; }
+.month-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2); font-size: 22px; line-height: 1; cursor: pointer; flex: none; }
+.month-btn:hover { background: var(--mustard); color: var(--mustard-ink); border-color: var(--mustard); }
+.month-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.month-cur { flex: 1; text-align: center; min-width: 0; }
+.month-cur b { display: block; font-size: 20px; line-height: 1.2; }
+.month-cur small { color: var(--muted); font-size: 12.5px; }
+/* 自定义任务表单：月份多选成小胶囊；重复 / 一次性只显示对应的字段 */
+.months-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.months-pick .span-all { flex: 1 0 100%; font-size: 12px; }
+.chip-check { position: relative; }
+.chip-check input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chip-check span { display: inline-block; border: 1px solid var(--line); background: var(--surface); padding: 4px 10px; border-radius: 99px; font-size: 13px; cursor: pointer; }
+.chip-check input:checked + span { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip-check input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 1px; }
+#seasonForm .only-once { display: none; }
+#seasonForm.is-once .only-once { display: grid; }
+#seasonForm.is-once .only-recurring { display: none; }
 /* 概览：做完的季节任务折叠；房屋卡片里材料与设施折叠 */
 .done-fold > summary { cursor: pointer; list-style: none; color: var(--muted); font-size: 13px; font-weight: 600; padding: 10px 0 2px; }
 .done-fold > summary::-webkit-details-marker { display: none; }

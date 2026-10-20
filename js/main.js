@@ -17,7 +17,7 @@ import { billAlertItems } from "./bills/logic.js";
 [pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
 import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { assetTemplateItems, enrichAssets, leaveAsset, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
-import { seasonalSince, toggleTask, viewTasks } from "./house/tasks.js";
+import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
 import { billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsOverview } from "./bills/views.js";
@@ -54,6 +54,7 @@ export async function refresh() {
         Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince()), Store.listBills(), Store.listBillPayments(),
         Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations()]);
       const dealExtras = await Store.listDealExtras();
+      try { state.customSeasonal = await Store.listCustomSeasonal(); } catch (e) { console.warn("[custom seasonal]", e.message); state.customSeasonal = []; }
       try { setGlossary(await Store.listTerms()); } catch (e) { console.warn("[terms]", e.message); }   // 自定义名称的翻译（表还没建时不影响其他功能）
       applyCustomCategories(customCats);   // 自定义分类并入全局分类表，后面的 enrich / 视图都能用
       applyCustomLocations(customLocs);    // 自定义 / 重命名的存放位置并入分组列表
@@ -153,7 +154,7 @@ export function render(force = true) {
 
   if (!force && FORM_PAGES(r) && $("#main form")) return;
   // 数据刷新（切回标签页、家人改动）会重画整页：先把内嵌表单里还没保存的改动记下来，画完再填回去，不让用户白填
-  const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm"]);
+  const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#seasonForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm"]);
   try { renderBody(r); } finally { restoreUnsaved(kept); }
 }
 /** 表单里与渲染默认值不同的字段（用户正在填的）；没有改动返回 null */
@@ -271,7 +272,7 @@ function resetSectionFilters(section) {
   switch (section) {
     case "today": setTodayPref({ source: null }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
-    case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.tasksMonth = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
+    case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
     case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all" }); break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
     default: break;
@@ -305,6 +306,14 @@ async function changeLang(code) {
 
 /* ───────────── 交互（事件委托） ───────────── */
 export const main = $("#main");
+let swipe = null;
+main.addEventListener("touchstart", (e) => { const z = e.target.closest(".tasks-swipe"); swipe = z && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
+main.addEventListener("touchend", (e) => {
+  if (!swipe) return;
+  const dx = e.changedTouches[0].clientX - swipe.x, dy = e.changedTouches[0].clientY - swipe.y; swipe = null;
+  if (Math.abs(dx) < 60 || Math.abs(dy) > 50 || !document.querySelector(".month-nav")) return;
+  shiftTasksMonth(dx < 0 ? 1 : -1); render();
+}, { passive: true });
 main.addEventListener("input", (e) => {
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; renderInvList(); }
   const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
@@ -331,6 +340,7 @@ main.addEventListener("change", async (e) => {
   }
   if (e.target.closest("#assetForm") && (e.target.name === "kind" || e.target.name === "type")) return onAssetFormChange(e);
   if (e.target.closest("#maintForm") && e.target.name === "kind") return onMaintFormChange(e);
+  if (e.target.closest("#seasonForm") && e.target.name === "mode") { e.target.form.classList.toggle("is-once", e.target.value === "once"); return; }
   if (e.target.closest("#billForm") && e.target.name === "category") { e.target.form.classList.toggle("is-sub", window.BILLS.isSubCat(e.target.value)); return; }   // 订阅 / 会员才显示种类与试用到期
   if (e.target.matches("input[data-task]")) {
     try { await toggleTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); }
@@ -469,6 +479,7 @@ main.addEventListener("submit", async (e) => {
     }
     if (f.id === "dealForm") { await saveDealForm(f); f.dataset.saved = "1"; return refresh(); }   // 已保存：刷新时不再当作未保存改动
     if (f.id === "dealTaskForm") { await saveDealTaskForm(f); state.dealTaskEdit = null; return refresh(); }
+    if (f.id === "seasonForm") { if (await saveSeasonForm(f)) { state.seasonForm = null; return refresh(); } return; }
     if (f.id === "closeoutForm") { await applyCloseout(f); go(href("house", "overview")); return refresh(); }
     if (f.id === "assetTemplateForm") {
       const ids = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
@@ -549,7 +560,15 @@ main.addEventListener("click", async (e) => {
       case "maint-del":
         if (!armed(el, t("确认删除"))) return;
         await Store.deleteMaintLog(id); toast(t("已删除这条记录")); await refresh(); return render(true);
-      case "tasks-month": state.tasksMonth = +el.dataset.month; return render();
+      case "tasks-prev": shiftTasksMonth(-1); return render();
+      case "tasks-next": shiftTasksMonth(1); return render();
+      case "tasks-today": state.tasksYM = null; state.seasonForm = null; return render();
+      case "season-new": state.seasonForm = { id: null }; render(); $("#seasonForm input[name=name]")?.focus(); return;
+      case "season-edit": state.seasonForm = { id: el.dataset.id }; render(); $("#seasonForm input[name=name]")?.focus(); return;
+      case "season-cancel": state.seasonForm = null; return render();
+      case "season-delete":
+        if (!armed(el, t("再点一次确认删除"))) return;
+        await deleteSeasonTask(el.dataset.id); state.seasonForm = null; toast(t("已删除这条任务")); return refresh();
       case "today-pref": {
         const k = el.dataset.key;
         if (k === "mode") setTodayPref({ mode: "severity" }); else if (k === "mode-property") setTodayPref({ mode: "property" });

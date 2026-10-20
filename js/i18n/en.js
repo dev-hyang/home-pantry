@@ -552,6 +552,16 @@ export const EN = {
   "{kind}进行中 · 已完成 {a} / {b}": "{kind} in progress · {a} / {b} done", "选购中：开始买车流程，按步骤办产权、上牌、保险": "Shopping: start the buying flow for title, registration and insurance steps",
   "租赁{d}：到期前走归还流程": "Leased{d}: start the return flow before the end", "到期": "ends", "{n} 笔历史交易": "{n} past transactions", "要卖车时从这里开始：估价、收款、拆车牌、已售通知": "Start here when selling: valuation, payment, plates, report of sale", "买卖 / 归还": "Buy / sell / return",
   "再点一次确认完成": "Click again to confirm completion",
+  // ── 季节任务：换月与自定义任务 ──
+  "{region}模板，按你家的设施筛选；也可以添加自己的任务": "{region} template, filtered by your home's systems; you can add your own tasks too",
+  "还没填房屋资料，只显示自己添加的任务。": "No home profile yet, so only your own tasks are shown.", "后会按地区和设施生成模板任务。": "to get template tasks for your region and systems.",
+  "上个月": "Previous month", "本月": "this month", "下个月": "Next month", "回到本月": "Back to this month", "添加任务": "Add task",
+  "左右滑动或点 ‹ › 看前后月份；也可以添加自己的任务。": "Swipe or use ‹ › to see other months; you can also add your own tasks.", "手机上左右滑动可切换月份。": "On a phone, swipe left or right to change month.",
+  "任务名称": "Task name", "如：清洗露台家具、换净水器滤芯、修栅栏": "e.g. clean patio furniture, change the water filter, fix the fence",
+  "每年重复": "Every year", "一次性": "One-time", "哪些月份": "Which months", "连续的月份算一个窗口，窗口内勾一次就算完成；12 个月都选 = 每月任务": "Consecutive months form one window; checking once in the window counts. All 12 = monthly",
+  "出现在那个月的任务里；逾期会在首页提醒": "Shows up in that month; overdue items are flagged on Today", "怎么做、找谁、注意什么…": "How, who to call, what to watch for…",
+  "删除这条任务": "Delete this task", "请填任务名称": "Enter a task name", "至少选一个月份": "Pick at least one month", "请选日期": "Pick a date", "已添加任务": "Task added", "已删除这条任务": "Task deleted",
+  "编辑：{name}": "Edit: {name}",
   // ── 房屋概览重排 ──
   "材料与设施": "Materials & systems", "参考": "Reference", "按房型和材料整理，不常变；点开查看": "By home type and materials; rarely changes. Tap to open", "已完成 {n} 项": "{n} done",
   "这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。": "This is a past transaction. Its checklist, timeline and details can still be viewed and edited for reference.",
