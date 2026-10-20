@@ -123,13 +123,35 @@ export function viewItemForm() {
 }
 
 /** 关联设备：多选下拉，只有房屋耗材显示；选项就是 房屋 → 设备保养 里的设备 */
+const pickText = (labels) => labels.join("、");
 function assetField(v) {
   const all = linkableAssets(), picked = new Set(Array.isArray(v.asset_ids) ? v.asset_ids : []);
-  return `<div class="span-2 only-house" role="group" aria-labelledby="assetLinkLbl"><span class="field-label" id="assetLinkLbl">${t("关联设备")}<small>${t("可多选")}</small></span>
-    ${all.length ? `<div class="chip-group">${all.map((a) => `<label class="chip-check"><input type="checkbox" name="asset_ids" value="${esc(a.id)}" ${picked.has(a.id) ? "checked" : ""}><span>${a.t?.icon || "⚙️"} ${esc(assetLabel(a))}</span></label>`).join("")}</div>
-      <small class="muted">${t("设备页的“相关耗材”会列出它，少货时一眼看到该补什么。")}</small>`
+  const labels = all.filter((a) => picked.has(a.id)).map(assetLabel);
+  return `<div class="span-2 only-house pick-field"><span class="pick-lbl" id="assetLinkLbl">${t("关联设备")}</span>
+    ${all.length ? `<details class="pick">
+      <summary aria-labelledby="assetLinkLbl"><span class="pick-val ${labels.length ? "" : "is-empty"}">${esc(labels.length ? pickText(labels) : t("不关联设备"))}</span><b class="pick-n" ${labels.length ? "" : "hidden"}>${labels.length}</b></summary>
+      <div class="pick-panel" role="group" aria-labelledby="assetLinkLbl">
+        ${all.length > 8 ? `<input type="search" class="pick-q" placeholder="${t("搜索设备")}" aria-label="${t("搜索设备")}">` : ""}
+        ${all.map((a) => `<label class="pick-row check-inline"><input type="checkbox" name="asset_ids" value="${esc(a.id)}" data-label="${esc(assetLabel(a))}" ${picked.has(a.id) ? "checked" : ""}><span>${a.t?.icon || "⚙️"} ${esc(assetLabel(a))}</span></label>`).join("")}
+      </div></details>
+      <small class="muted">${t("可多选；设备页的“相关耗材”会列出它。")}</small>`
       : `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("还没有设备。先在 房屋 → 设备保养 里添加，就能在这里关联。")}</p>`}</div>`;
 }
+// 关联设备下拉：勾选后更新标题；点外面或按 Esc 收起；设备多时可搜索
+document.addEventListener("change", (e) => {
+  const dd = e.target.closest?.("details.pick"); if (!dd) return;
+  const labels = [...dd.querySelectorAll("input[name=asset_ids]:checked")].map((x) => x.dataset.label);
+  const val = dd.querySelector(".pick-val"), n = dd.querySelector(".pick-n");
+  val.textContent = labels.length ? pickText(labels) : t("不关联设备"); val.classList.toggle("is-empty", !labels.length);
+  n.textContent = labels.length; n.hidden = !labels.length;
+});
+document.addEventListener("input", (e) => {
+  if (!e.target.classList?.contains("pick-q")) return;
+  const q = e.target.value.trim().toLowerCase();
+  e.target.closest(".pick-panel").querySelectorAll(".pick-row").forEach((r) => { r.hidden = !!q && !r.textContent.toLowerCase().includes(q); });
+});
+document.addEventListener("click", (e) => document.querySelectorAll("details.pick[open]").forEach((d) => { if (!d.contains(e.target)) d.open = false; }));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll("details.pick[open]").forEach((d) => { d.open = false; d.querySelector("summary")?.focus(); }); });
 
 /** silent=true：离开页面时自动保存（不跳转、不聚焦；校验不过就提示“没有自动保存”）。返回是否保存成功 */
 export async function saveItemForm(f, { silent = false } = {}) {

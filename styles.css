@@ -309,9 +309,23 @@ textarea { resize: vertical; }
 #itemForm .only-house { display: none; }
 #itemForm.is-house .only-house { display: block; }
 .field-label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; }
-.field-label small { margin-left: 6px; font-weight: 400; color: var(--muted); }
-.chip-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
-.chip-group .chip-check span { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 6px 14px; font-size: 14px; }
+/* 关联设备下拉：外观和表单里的 select 一致，面板里一行一台设备 */
+.pick-field { min-width: 0; }
+.pick-lbl { display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.pick { position: relative; margin-bottom: 4px; }
+.pick > summary { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); cursor: pointer; list-style: none; }
+.pick > summary::-webkit-details-marker { display: none; }
+.pick > summary::after { content: ""; flex: 0 0 auto; width: 7px; height: 7px; margin: 0 2px 3px 4px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); }
+.pick[open] > summary { border-color: var(--pine); }
+.pick[open] > summary::after { transform: rotate(-135deg); margin-bottom: -3px; }
+.pick-val { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; }
+.pick-val.is-empty { color: var(--muted); }
+.pick-n { flex: 0 0 auto; min-width: 22px; padding: 0 7px; border-radius: 99px; background: var(--surface-2); font-size: 12px; font-weight: 700; text-align: center; line-height: 22px; }
+.pick-panel { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 6; max-height: min(264px, 48vh); overflow-y: auto; overflow-x: hidden; padding: 4px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); box-shadow: 0 8px 24px rgba(0, 0, 0, .14); }
+.pick-q { margin-bottom: 4px; min-height: 36px; padding: 6px 10px; font-size: 14px; box-sizing: border-box; }
+.pick-panel .pick-row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: 8px; font-size: 14px; font-weight: 400; cursor: pointer; }
+.pick-panel .pick-row:hover { background: var(--surface-2); }
+.pick-panel .pick-row[hidden] { display: none; }
 #itemForm .only-gear { display: none; }
 #itemForm.is-gear .not-gear { display: none; }
 #itemForm.is-gear .only-gear { display: block; }

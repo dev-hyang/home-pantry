@@ -611,7 +611,7 @@ export const EN = {
   "完成": "Done", "还没有快捷操作，点“编辑”添加。": "No shortcuts yet; tap Edit to add some.", "{name} 往前移": "Move {name} earlier", "{name} 往后移": "Move {name} later",
   "已恢复默认快捷操作": "Shortcuts reset to default", "打印": "Print",
   // ── 设备保养改名、房屋耗材并入库存、设置 → 打印 ──
-  "设备保养": "Equipment care", "库存范围": "Inventory scope", "日常储备": "Everyday stock", "厨房储藏": "Kitchen pantry", "可多选": "Pick several", "设备页的“相关耗材”会列出它，少货时一眼看到该补什么。": "The equipment page's “Related supplies” lists it, so you see what to restock at a glance.",
+  "设备保养": "Equipment care", "库存范围": "Inventory scope", "日常储备": "Everyday stock", "厨房储藏": "Kitchen pantry", "可多选": "Pick several", "搜索设备": "Search equipment", "可多选；设备页的“相关耗材”会列出它。": "Pick several; the equipment page's “Related supplies” lists it.", "设备页的“相关耗材”会列出它，少货时一眼看到该补什么。": "The equipment page's “Related supplies” lists it, so you see what to restock at a glance.",
   "滤网、电池、融雪盐这类要消耗、要补货的房屋用品；设备页的“相关耗材”会指到这里。": "Filters, batteries, ice melt and other home supplies that get used up and restocked; the “Related supplies” on an equipment page point here.",
   "相关耗材": "Related supplies", "{n} / {m} 项已在库存": "{n} / {m} in stock list", "{n} 项要补": "{n} to restock", "还没备": "Not stocked", "库存里还没有这项": "Not in your inventory yet", "加入库存": "Add to inventory",
   "这类设备用到的耗材。库存统一在 储藏 → 库存 → 房屋耗材 里管理，少货会进采购提醒。": "Supplies this kind of equipment uses. Stock is managed under Pantry → Inventory → Home supplies, and low stock shows up in shopping alerts.",
