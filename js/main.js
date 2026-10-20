@@ -17,6 +17,7 @@ import { billAlertItems } from "./bills/logic.js";
 [pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
 import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { printSheet } from "./settings/print.js";
+import { resetScan, scanAction, viewScan } from "./pantry/scan.js";
 import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
@@ -107,6 +108,7 @@ const VIEWS = {
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
   bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, template: viewBillTemplate },
   shopping: () => viewShopping(),
+  scan:     () => viewScan(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout },
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
@@ -160,7 +162,7 @@ export function render(force = true) {
   const r = state.route;
   const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0])
     : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section === "bill" ? (state.prevRoute?.section || "bills")
-    : r.section === "alerts" || r.section === "ai" ? "today" : r.section;   // 注意事项、小Y问都是首页的子页，底栏高亮「今日」
+    : r.section === "scan" ? "shopping" : r.section === "alerts" || r.section === "ai" ? "today" : r.section;   // 注意事项、小Y问都是首页的子页，底栏高亮「今日」
   document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
     a.hidden = (a.dataset.section === "house" && !state.houseEnabled) || (a.dataset.section === "bills" && !state.billsEnabled);
     if (a.dataset.section === navSection) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
@@ -172,6 +174,7 @@ export function render(force = true) {
   document.body.classList.toggle("editing", FORM_PAGES(r));
 
   if (!force && FORM_PAGES(r) && $("#main form")) return;
+  if (!force && r.section === "scan") return;   // 录入购物：识别中 / 确认页的改动不被后台同步冲掉
   // 数据刷新（切回标签页、家人改动）会重画整页：先把内嵌表单里还没保存的改动记下来，画完再填回去，不让用户白填
   const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#seasonForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm"]);
   try { renderBody(r); } finally { restoreUnsaved(kept); }
@@ -264,6 +267,7 @@ function onRoute() {
     if (state.keepFilter) state.keepFilter = false;
     else Object.assign(state.filter, { cat: "all", status: "all", q: "", loc: "all" });
   }
+  if (next.section === "scan" && prev.section !== "scan") resetScan();
   state.route = next;
   render(true);
   const back = leavingItem && state.prevRoute && routeKey(state.prevRoute) === routeKey(next);
@@ -572,6 +576,7 @@ main.addEventListener("click", async (e) => {
   if (!el) return;
   const { action, id } = el.dataset;
   try {
+    if (action?.startsWith("scan-")) return scanAction(action, el, { go, refresh });
     switch (action) {
       case "add-item": return openItem(null, { space: el.dataset.space });
       case "edit": return openItem(id);

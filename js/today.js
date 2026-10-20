@@ -95,7 +95,7 @@ const PRESETS = () => [
   state.billsEnabled ? [href("bills", "overview"), "🧾", t("账单概览")] : null, state.billsEnabled ? [href("bills", "list"), "📋", t("账单清单")] : null, state.billsEnabled ? [href("bills", "history"), "🕘", t("缴费记录")] : null, state.billsEnabled ? [href("bill", "new"), "➕", t("添加账单")] : null,
   state.houseEnabled ? [href("house"), "🏠", t("房屋")] : null, state.houseEnabled ? [`${href("pantry", "inventory")}?space=house`, "🧰", t("房屋耗材")] : null, state.houseEnabled ? [`${href("item", "new")}?space=house`, "➕", t("添加房屋耗材")] : null, state.houseEnabled ? [href("house", "assets"), "⚙️", t("设备保养")] : null,
   state.houseEnabled ? [href("house", "tasks"), "📅", t("季节任务")] : null, state.houseEnabled ? [href("house", "deal"), "📝", t("交易")] : null, state.houseEnabled ? [href("house", "vehicles"), "🚗", t("车辆")] : null, state.houseEnabled ? [href("asset", "new"), "🛠️", t("添加设备")] : null,
-  [href("shopping"), "🛒", t("采购清单")], [href("alerts"), "🔔", t("注意事项")], [href("ai"), "🤖", t("小Y问")], [href("me", "stats"), "📊", t("看花费统计")], [href("me", "settings"), "⚙️", t("设置")],
+  [href("shopping"), "🛒", t("采购清单")], [href("scan"), "🧾", t("录入购物")], [href("alerts"), "🔔", t("注意事项")], [href("ai"), "🤖", t("小Y问")], [href("me", "stats"), "📊", t("看花费统计")], [href("me", "settings"), "⚙️", t("设置")],
   ["action:print", "🖨️", t("打印")],
 ].filter(Boolean);
 

@@ -395,7 +395,8 @@ export function viewShopping() {
   return `
     <section class="section">
       <div class="section-head"><h2>${t("采购清单")}</h2>
-        <button type="button" class="btn btn-sm" data-action="shop-add-alerts">${t("把补货提醒加进来")}</button></div>
+        <div class="head-acts"><a class="btn btn-sm btn-primary" href="${href("scan")}">🧾 ${t("录入购物")}</a>
+          <button type="button" class="btn btn-sm" data-action="shop-add-alerts">${t("把补货提醒加进来")}</button></div></div>
       <form class="panel add-row" id="shopForm" aria-label="${t("手动添加采购项")}">
         <input name="name" required maxlength="60" placeholder="${t("要买什么")}" list="itemNames" aria-label="${t("名称")}">
         <input name="quantity" type="number" min="0.1" step="0.1" value="1" aria-label="${t("数量")}">

@@ -227,24 +227,28 @@ export const promptText = (ask, opts) => { const p = menuPrompt(ask, opts); retu
 
 /* ── 调用 ── */
 /** 通用一问一答：system + user → 文本；json=true 时要求模型只回 JSON（Gemini 用 responseMimeType） */
-export async function askText(system, user, { json = false, maxTokens = 1500 } = {}) {
+/** 能读图片的服务商：Gemini（有免费档）、OpenAI、Claude；“自定义”不确定，放行让接口自己报错 */
+export const visionCapable = (p = providerOf(aiSettings().provider)) => ["gemini", "openai", "anthropic", "custom"].includes(p.id);
+export async function askText(system, user, { json = false, maxTokens = 1500, images = [], temperature = 0.7 } = {}) {
   const s = aiSettings(), p = providerOf(s.provider);
   const { base, model } = effective(s, p), key = s.key.trim().replace(/^Bearer\s+/i, "");   // 有人把 “Bearer xxx” 整段贴进来
   if (!key) throw new Error(t("还没填 API key，去设置 → AI 助手"));
   gate(s, p);   // 免费额度用完 / 被限流：不发请求，直接提示下次可用时间
-  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 60000);
+  if (images.length && !visionCapable(p)) throw new Error(t("{p} 不能读图片。请在 设置 → AI 助手 里换成 Gemini（有免费额度），或者只粘贴文字。", { p: t(p.name) }));
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), images.length ? 120000 : 60000);
   try {
     let text;
     if (p.kind === "gemini") {
-      const j = await geminiCall(s, base, key, { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts: [{ text: user }] }], generationConfig: { temperature: 0.7, ...(json ? { responseMimeType: "application/json" } : {}) } }, ctl.signal);
+      const parts = [{ text: user }, ...images.map((i) => ({ inlineData: { mimeType: i.mime, data: i.b64 } }))];
+      const j = await geminiCall(s, base, key, { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts }], generationConfig: { temperature, ...(json ? { responseMimeType: "application/json" } : {}) } }, ctl.signal);
       text = j.candidates?.[0]?.content?.parts?.map((x) => x.text).join("") || "";
     } else if (p.kind === "anthropic") {
       const j = await withRetry(() => fetch(`${base}/messages`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }) }).then(readJson), ctl.signal);
+        body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: images.length ? [...images.map((i) => ({ type: "image", source: { type: "base64", media_type: i.mime, data: i.b64 } })), { type: "text", text: user }] : user }] }) }).then(readJson), ctl.signal);
       text = (j.content || []).map((x) => x.text || "").join("");
     } else {
       const j = await withRetry(() => fetch(`${base}/chat/completions`, { method: "POST", signal: ctl.signal, headers: openaiHeaders(s, p, key),
-        body: JSON.stringify({ model, temperature: 0.7, messages: [{ role: "system", content: system }, { role: "user", content: user }] }) }).then(readJson), ctl.signal);
+        body: JSON.stringify({ model, temperature, messages: [{ role: "system", content: system }, { role: "user", content: images.length ? [{ type: "text", text: user }, ...images.map((i) => ({ type: "image_url", image_url: { url: `data:${i.mime};base64,${i.b64}` } }))] : user }] }) }).then(readJson), ctl.signal);
       text = j.choices?.[0]?.message?.content || "";
     }
     countUse(p);
