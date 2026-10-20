@@ -118,6 +118,9 @@ export function subscriptionSummary(list) {
   return { count: subs.length, monthly, annualPaid };
 }
 
+/** 子标题里的账号：填了账号尾号才有，放在最前面 */
+export const acctText = (b) => (b.account_last4 ? t("账号 {n}", { n: b.account_last4 }) : null);
+
 export function alertText(b) {
   const d = b.daysLeft;
   if (b.trialSoon) return b.trialDays < 0 ? t("试用昨天到期，已转付费了吗") : b.trialDays === 0 ? t("试用今天到期，不续就取消") : t("试用 {d} 天后到期，不续就取消", { d: b.trialDays });
@@ -141,7 +144,7 @@ export function billAlertItems() {
     if (b.pay_url && !b.autopay) actions.push({ type: "link", href: b.pay_url, label: t("去缴费"), cls: "btn-ghost", external: true });
     actions.push(b.autopay ? { type: "button", action: "bill-verify", id: b.id, label: t("已核对") } : { type: "link", href: `${href("bill", b.id)}?pay=1`, label: t("记缴费") });
     return { source: "bill", severity: sev, must: b.status === "overdue" || !!b.trialSoon, due: b.trialSoon ? b.trial_ends_on : b.next_due_on, daysLeft: b.trialSoon ? b.trialDays : b.daysLeft, property_id: b.property_id, assigned_to: b.assigned_to,
-      title: `${B.catOf(b.category).icon} ${b.name}`, detail: [alertText(b), amount].filter(Boolean).join(" · "), href: href("bill", b.id),
+      title: `${B.catOf(b.category).icon} ${b.name}`, detail: [acctText(b), alertText(b), amount].filter(Boolean).join(" · "), href: href("bill", b.id),
       badge: { label, cls: sev === 0 ? "b-out" : sev === 1 ? "b-low" : "b-soon" }, actions };
   });
 }
