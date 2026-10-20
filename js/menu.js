@@ -21,7 +21,7 @@ const SECTION_ICON = { pantry: "🥫", house: "🏠", bills: "🧾", me: "👤" 
 const META = {
   pantry: {
     overview:  { icon: "📊", desc: "补货与临期一览、各分类库存", count: () => alertsOf(state.enriched.filter(inSpace("pantry"))).length },
-    inventory: { icon: "🥫", desc: "厨房储藏与房屋耗材，点 −/+ 记消耗" },
+    inventory: { icon: "🥫", desc: "日常储备与房屋耗材，点 −/+ 记消耗" },
     gear:      { icon: "🧳", desc: "床品、电器、自行车、工具：只记数量和位置" },
     meals:     { icon: "🍳", desc: "按现有食材推荐三餐" },
   },

@@ -101,7 +101,7 @@ function termsPanel() {
 /* ── 分类与小类：按空间列出全部分类（含隐藏的）；点“编辑”用和库存页同一个表单改名、换图标颜色、增删小类；内置分类可恢复默认或隐藏 ── */
 function categoriesPanel() {
   const cf = state.catForm;
-  const spaces = [["pantry", "厨房储藏"], ["house", "房屋耗材"], ["gear", "装备"]].filter(([s]) => s !== "gear" || state.gearEnabled);
+  const spaces = [["pantry", "日常储备"], ["house", "房屋耗材"], ["gear", "装备"]].filter(([s]) => s !== "gear" || state.gearEnabled);
   const row = (c) => {
     const n = state.items.filter((i) => i.category === c.id).length;
     const tag = c.custom ? `<span class="badge b-ok">${t("自建")}</span>` : c.overridden ? `<span class="badge b-soon">${t("改过")}</span>` : "";
@@ -278,7 +278,7 @@ export function viewSettings() {
     </div>`,
     properties: () => propertiesPanel(),
     modules: () => `
-    ${sw("houseToggle", state.houseEnabled, t("房屋维护模块"), t("关闭后导航和首页只显示厨房储藏，适合租房或不需要的家庭；数据不会删除"))}
+    ${sw("houseToggle", state.houseEnabled, t("房屋维护模块"), t("关闭后导航和首页只显示日常储备，适合租房或不需要的家庭；数据不会删除"))}
     ${sw("billsToggle", state.billsEnabled, t("账单模块"), t("水电气、网络、HOA、房产税、房贷、保险等周期账单的提醒与记录；关闭后导航里不再显示，数据不会删除"))}
     ${sw("gearToggle", state.gearEnabled, t("装备模块"), t("床品、电器、自行车、工具等耐用品，只记数量和位置；关闭后储藏里不再显示“装备”，数据不会删除"))}`,
     data: () => `

@@ -22,7 +22,7 @@ import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggl
 import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
 import { billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsOverview } from "./bills/views.js";
-import { leaveItem, onItemAssetsChange, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
+import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { moveCat, renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { viewAbout } from "./settings/about.js";
@@ -350,7 +350,6 @@ main.addEventListener("change", async (e) => {
     e.target.form.classList.toggle("is-gear", spaceOf(e.target.value) === "gear");
     e.target.form.classList.toggle("is-house", spaceOf(e.target.value) === "house");
   }
-  if (e.target.closest("#itemForm") && e.target.name === "asset_ids") return onItemAssetsChange(e);
   if (e.target.closest("#assetForm") && (e.target.name === "kind" || e.target.name === "type")) return onAssetFormChange(e);
   if (e.target.closest("#maintForm") && e.target.name === "kind") return onMaintFormChange(e);
   if (e.target.closest("#seasonForm") && e.target.name === "mode") { e.target.form.classList.toggle("is-once", e.target.value === "once"); return; }

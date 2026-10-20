@@ -51,28 +51,33 @@ export function viewDashboard() {
   const withHouse = state.houseEnabled;   // 房屋耗材也算储藏：缺货、少货、补货提醒一起看
   const pantry = state.enriched.filter(inSpace("pantry")), house = withHouse ? state.enriched.filter(inSpace("house")) : [];
   const list = [...pantry, ...house];
-  const n = (s) => list.filter((x) => x.status === s).length;
+  const n = (arr, s) => arr.filter((x) => x.status === s).length;
   const expN = pantry.filter((x) => x.exp).length;
   const alerts = alertsOf(list);
   const expiring = pantry.filter((x) => x.exp).sort((a, b) => a.expDays - b.expDays);
 
-  // 点方块进库存：该状态下厨房储藏有就去厨房储藏，否则去房屋耗材
-  const tile = (cls, count, label, status) => {
-    const space = status === "exp" || pantry.some((x) => (status === "exp" ? x.exp : x.status === status)) || !house.length ? "pantry" : "house";
-    return `<button type="button" class="alert-tile ${cls}" data-action="goto-status" data-space="${space}" data-status="${status}"><b>${count}</b><span>${label}</span></button>`;
-  };
+  // 方块数字和点开后的库存列表同一范围：日常储备的方块进日常储备，房屋耗材的方块进房屋耗材
+  const tile = (space, cls, count, label, status) =>
+    `<button type="button" class="alert-tile ${cls}" data-action="goto-status" data-space="${space}" data-status="${status}"><b>${count}</b><span>${label}</span></button>`;
 
   const shelf = shelfGrid("pantry"), houseShelf = withHouse ? shelfGrid("house") : "";
 
   return `
     <section class="section" aria-labelledby="h-alert">
-      <div class="section-head"><h2 id="h-alert">${t("储藏概况")}</h2><p>${withHouse ? t("含房屋耗材，按家人的使用记录估算") : t("按家人的使用记录估算")}</p></div>
+      <div class="section-head"><h2 id="h-alert">${t("储藏概况")}</h2><p>${t("按家人的使用记录估算")}</p></div>
+      ${withHouse ? `<h3 class="strip-label">🥫 ${t("日常储备")}</h3>` : ""}
       <div class="alert-strip">
-        ${tile("t-out", n("out"), t("缺货"), "out")}
-        ${tile("t-low", n("low"), t("少货"), "low")}
-        ${tile("t-soon", n("soon"), t("即将告罄"), "soon")}
-        ${tile("t-exp", expN, t("临期或过期"), "exp")}
+        ${tile("pantry", "t-out", n(pantry, "out"), t("缺货"), "out")}
+        ${tile("pantry", "t-low", n(pantry, "low"), t("少货"), "low")}
+        ${tile("pantry", "t-soon", n(pantry, "soon"), t("即将告罄"), "soon")}
+        ${tile("pantry", "t-exp", expN, t("临期或过期"), "exp")}
       </div>
+      ${withHouse ? `<h3 class="strip-label">🧰 ${t("房屋耗材")}</h3>
+      <div class="alert-strip s3">
+        ${tile("house", "t-out", n(house, "out"), t("缺货"), "out")}
+        ${tile("house", "t-low", n(house, "low"), t("少货"), "low")}
+        ${tile("house", "t-soon", n(house, "soon"), t("即将告罄"), "soon")}
+      </div>` : ""}
     </section>
 
     <section class="section" aria-labelledby="h-restock">
@@ -241,7 +246,7 @@ export function viewInventory(space = "pantry") {
         ${cur && !cf ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-edit" data-cat="${cur.id}">${t("编辑分类")}</button>` : ""}
         <a class="btn btn-primary ${phone ? "btn-sm" : ""}" href="${href("item", "new")}?space=${space}${cur ? `&cat=${cur.id}` : ""}">${gear ? t("添加装备") : t("添加物品")}</a></div></div>
       ${gear || !state.houseEnabled ? "" : `<div class="chips" role="group" aria-label="${t("库存范围")}">
-        <button type="button" class="chip" data-action="inv-space" data-space="pantry" aria-pressed="${!house}">🥫 ${t("厨房储藏")}</button>
+        <button type="button" class="chip" data-action="inv-space" data-space="pantry" aria-pressed="${!house}">🥫 ${t("日常储备")}</button>
         <button type="button" class="chip" data-action="inv-space" data-space="house" aria-pressed="${house}">🧰 ${t("房屋耗材")}</button></div>`}
       ${house && !phone ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">${t("滤网、电池、融雪盐这类要消耗、要补货的房屋用品；设备页的“相关耗材”会指到这里。")}</p>` : ""}
       ${gear && !phone ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">${t("床品、电器、自行车、千斤顶、工具这类耐用品：只记有几件、放在哪，不算消耗、不提醒补货。")}</p>` : ""}
@@ -475,7 +480,7 @@ export function viewMeals() {
 /** 分类下拉选项：储藏、房屋、装备分组显示 */
 export function categoryOptions(selected, { withOther = true } = {}) {
   const opt = (c) => `<option value="${c.id}" ${c.id === selected ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`;
-  return `<optgroup label="${t("厨房储藏")}">${catsOf("pantry").map(opt).join("")}</optgroup>
+  return `<optgroup label="${t("日常储备")}">${catsOf("pantry").map(opt).join("")}</optgroup>
     <optgroup label="${t("房屋耗材")}">${catsOf("house").map(opt).join("")}${withOther ? opt(MAINT_CAT) : ""}</optgroup>
     <optgroup label="${t("装备（只记数量和位置）")}">${catsOf("gear").map(opt).join("")}</optgroup>
     ${withOther ? opt(OTHER_CAT) : ""}`;

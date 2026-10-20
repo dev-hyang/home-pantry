@@ -37,12 +37,6 @@ const NAME_HINT = { pantry: "例如：鸡蛋、抽纸、大米", house: "例如�
 /** 房屋耗材可关联的设备：房屋 → 设备保养里的设备（不含车辆）；多套房产时名字后带房产名 */
 const linkableAssets = () => state.assetsEnriched.filter((a) => a.kind !== "vehicle");
 const assetLabel = (a) => `${assetName(a)}${state.properties.length > 1 && a.property_id ? ` · ${propertyName(a.property_id)}` : ""}`;
-const assetPickText = (labels) => (labels.length ? labels.join("、") : t("不关联设备"));
-/** 勾选变化后更新下拉标题（main.js 的 change 监听调用） */
-export function onItemAssetsChange(e) {
-  const dd = e.target.closest(".multi-dd"); if (!dd) return;
-  dd.querySelector("summary span").textContent = assetPickText([...dd.querySelectorAll("input:checked")].map((x) => x.dataset.label));
-}
 
 export function viewItemForm() {
   const r = state.route;
@@ -131,11 +125,9 @@ export function viewItemForm() {
 /** 关联设备：多选下拉，只有房屋耗材显示；选项就是 房屋 → 设备保养 里的设备 */
 function assetField(v) {
   const all = linkableAssets(), picked = new Set(Array.isArray(v.asset_ids) ? v.asset_ids : []);
-  const labels = all.filter((a) => picked.has(a.id)).map(assetLabel);
-  return `<div class="span-2 only-house"><span class="field-label">${t("关联设备")}</span>
-    ${all.length ? `<details class="multi-dd"><summary><span>${esc(assetPickText(labels))}</span></summary>
-      <div class="multi-list" role="group" aria-label="${t("关联设备")}">${all.map((a) => `<label class="check-inline"><input type="checkbox" name="asset_ids" value="${esc(a.id)}" data-label="${esc(assetLabel(a))}" ${picked.has(a.id) ? "checked" : ""}><span>${a.t?.icon || "⚙️"} ${esc(assetLabel(a))}</span></label>`).join("")}</div></details>
-      <small class="muted">${t("可多选；设备页的“相关耗材”会列出它，少货时一眼看到该补什么。")}</small>`
+  return `<div class="span-2 only-house" role="group" aria-labelledby="assetLinkLbl"><span class="field-label" id="assetLinkLbl">${t("关联设备")}<small>${t("可多选")}</small></span>
+    ${all.length ? `<div class="chip-group">${all.map((a) => `<label class="chip-check"><input type="checkbox" name="asset_ids" value="${esc(a.id)}" ${picked.has(a.id) ? "checked" : ""}><span>${a.t?.icon || "⚙️"} ${esc(assetLabel(a))}</span></label>`).join("")}</div>
+      <small class="muted">${t("设备页的“相关耗材”会列出它，少货时一眼看到该补什么。")}</small>`
       : `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("还没有设备。先在 房屋 → 设备保养 里添加，就能在这里关联。")}</p>`}</div>`;
 }
 
