@@ -5,7 +5,7 @@ import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
-import { setTodayPref, shiftAlertSource, viewAlerts, viewToday } from "./today.js";
+import { DEFAULT_QUICK, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewToday } from "./today.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
@@ -583,9 +583,17 @@ main.addEventListener("click", async (e) => {
         return render();
       }
       case "today-source": setTodayPref({ source: state.today.source === el.dataset.source ? null : el.dataset.source }); return render();
+      case "quick-edit": state.quickEdit = !state.quickEdit; state.quickAdd = false; return render();
       case "quick-open": state.quickAdd = !state.quickAdd; return render();
-      case "quick-add": { const h = $("#quickSel")?.value; if (h) setTodayPref({ quick: [...new Set([...(state.today.quick || []), h])] }); state.quickAdd = false; return render(); }
-      case "quick-del": setTodayPref({ quick: (state.today.quick || []).filter((x) => x !== el.dataset.href) }); return render();
+      case "quick-add": { const h = $("#quickSel")?.value; if (h) await saveQuick([...new Set([...quickList(), h])]); state.quickAdd = false; return render(); }
+      case "quick-del": await saveQuick(quickList().filter((x) => x !== el.dataset.id)); return render();
+      case "quick-move": {
+        const list = quickList(), i = list.indexOf(el.dataset.id), j = i + +el.dataset.dir;
+        if (i < 0 || j < 0 || j >= list.length) return;
+        [list[i], list[j]] = [list[j], list[i]]; await saveQuick(list); return render();
+      }
+      case "quick-reset": await saveQuick(DEFAULT_QUICK()); toast(t("已恢复默认快捷操作")); return render();
+      case "quick-run": if (el.dataset.id === "action:print") { go(href("shopping")); setTimeout(() => window.print(), 500); } return;   // 打印：打开采购清单并调出打印
       case "alerts-prev": shiftAlertSource(-1); return render();
       case "alerts-next": shiftAlertSource(1); return render();
       case "bill-cancel": return leaveBill(false);

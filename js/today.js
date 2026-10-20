@@ -42,16 +42,25 @@ export function viewToday() {
     tile({ href: `${href("pantry", "meals")}?ai=`, cls: "t-meals", icon: "🍳", name: t("今天吃什么"), sub: t("按库存和临期食材生成早午晚菜单"), foot: `<span class="pill pill-none">${aiIcon(14)} ${t("AI 菜单助手")}</span>` }),
   ].join("");
 
-  // 快捷操作：默认几块 + 自定义的（存本机偏好）+ 末尾一块“＋”
-  const builtin = defaultQuick();
-  const custom = (state.today.quick || []).filter((q) => PRESETS().some((p) => p[0] === q));
-  const tileHtml = ([h, ic, nm], removable) => `<div class="qwrap"><a class="qtile" href="${h}"><span class="qtile-ico" aria-hidden="true">${ic}</span><span>${nm}</span></a>${removable ? `<button type="button" class="qdel" data-action="quick-del" data-href="${esc(h)}" aria-label="${esc(t("移除快捷操作：{name}", { name: nm }))}">×</button>` : ""}</div>`;
-  const taken = new Set([...builtin.map((x) => x[0]), ...custom]);
-  const choices = PRESETS().filter(([h]) => !taken.has(h));
-  const addPanel = state.quickAdd ? `<div class="panel quick-add"><label>${t("添加到快捷操作")}<select id="quickSel">${choices.map(([h, ic, nm]) => `<option value="${esc(h)}">${ic} ${esc(nm)}</option>`).join("")}</select></label>
+  // 快捷操作：每位用户自己的一份（云端存在账号上，换设备也在；演示模式存本机），默认 储藏概览 / 账单概览 / 看花费统计 / 打印
+  const mine = quickList().map((id) => PRESETS().find((p) => p[0] === id)).filter(Boolean);
+  const editing = !!state.quickEdit;
+  const last = mine.length - 1;
+  const tileBody = ([, ic, nm]) => `<span class="qtile-ico" aria-hidden="true">${ic}</span><span>${nm}</span>`;
+  const tileHtml = ([id, ic, nm], i) => `<div class="qwrap">${id.startsWith("action:")
+      ? `<button type="button" class="qtile" data-action="quick-run" data-id="${esc(id)}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</button>`
+      : `<a class="qtile" href="${esc(id)}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</a>`}
+    ${editing ? `<button type="button" class="qdel" data-action="quick-del" data-id="${esc(id)}" aria-label="${esc(t("移除快捷操作：{name}", { name: nm }))}">×</button>
+      <span class="qmove">${i > 0 ? `<button type="button" data-action="quick-move" data-id="${esc(id)}" data-dir="-1" aria-label="${esc(t("{name} 往前移", { name: nm }))}">‹</button>` : ""}${i < last ? `<button type="button" data-action="quick-move" data-id="${esc(id)}" data-dir="1" aria-label="${esc(t("{name} 往后移", { name: nm }))}">›</button>` : ""}</span>` : ""}</div>`;
+  const taken = new Set(mine.map((x) => x[0]));
+  const choices = PRESETS().filter(([id]) => !taken.has(id));
+  const addPanel = editing && state.quickAdd ? `<div class="panel quick-add"><label>${t("添加到快捷操作")}<select id="quickSel">${choices.map(([id, ic, nm]) => `<option value="${esc(id)}">${ic} ${esc(nm)}</option>`).join("")}</select></label>
       <div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="quick-add" ${choices.length ? "" : "disabled"}>${t("添加")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="quick-open">${t("取消")}</button></div></div>` : "";
-  const quick = builtin.map((x) => tileHtml(x, false)).join("") + custom.map((h) => tileHtml(PRESETS().find((p) => p[0] === h), true)).join("")
-    + (choices.length ? `<div class="qwrap"><button type="button" class="qtile qtile-add" data-action="quick-open" aria-expanded="${state.quickAdd ? "true" : "false"}"><span class="qtile-ico" aria-hidden="true">＋</span><span>${t("自定义")}</span></button></div>` : "");
+  const quick = mine.map(tileHtml).join("")
+    + (editing && choices.length ? `<div class="qwrap"><button type="button" class="qtile qtile-add" data-action="quick-open" aria-expanded="${state.quickAdd ? "true" : "false"}"><span class="qtile-ico" aria-hidden="true">＋</span><span>${t("添加")}</span></button></div>` : "");
+  const quickHead = `<div class="section-head"><h3 class="today-sub" style="margin:0">${t("快捷操作")}</h3><div class="head-acts">
+      ${editing ? `<button type="button" class="btn btn-sm btn-ghost" data-action="quick-reset">${t("恢复默认")}</button>` : ""}
+      <button type="button" class="btn btn-sm ${editing ? "btn-primary" : "btn-ghost"}" data-action="quick-edit" aria-pressed="${editing ? "true" : "false"}">${editing ? t("完成") : t("编辑")}</button></div></div>`;
 
   return `
     <section class="section today-head"><p class="today-date">${esc(dateText)}</p></section>
@@ -59,31 +68,35 @@ export function viewToday() {
     ${noProfile ? `<section class="section"><div class="panel cta-panel">
       <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的房屋耗材。")}</p></div>
       <a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></div></section>` : ""}
-    <section class="section"><h3 class="today-sub">${t("快捷操作")}</h3><div class="quick-grid">${quick}</div>${addPanel}</section>`;
+    <section class="section">${quickHead}<div class="quick-grid ${editing ? "is-editing" : ""}">${quick || `<p class="muted">${t("还没有快捷操作，点“编辑”添加。")}</p>`}</div>${addPanel}</section>`;
 }
 
-/** 默认快捷操作：储藏概览、账单概览、添加房屋耗材、房屋、添加装备、看花费统计 */
-function defaultQuick() {
-  return [
-    [href("pantry", "overview"), "🥫", t("储藏概览")],
-    state.billsEnabled ? [href("bills", "overview"), "🧾", t("账单概览")] : null,
-    state.houseEnabled ? [`${href("item", "new")}?space=house`, "🧰", t("添加房屋耗材")] : null,
-    state.houseEnabled ? [href("house"), "🏠", t("房屋")] : null,
-    state.gearEnabled ? [`${href("item", "new")}?space=gear`, "🧳", t("添加装备")] : null,
-    [href("me", "stats"), "📊", t("看花费统计")],
-  ].filter(Boolean);
+/* ── 每位用户自己的快捷操作：地址（或 action:xxx）的有序列表 ──
+ * 云端存在登录账号的 user_metadata.quick，换设备也在，家人之间互不影响；演示模式存本机 */
+const QUICK_KEY = "hmh-quick";
+export const DEFAULT_QUICK = () => [href("pantry", "overview"), href("bills", "overview"), href("me", "stats"), "action:print"];
+export function quickList() {
+  let list = null;
+  if (Store.mode === "cloud") list = state.user?.user_metadata?.quick;
+  else { try { list = JSON.parse(localStorage.getItem(QUICK_KEY) || "null"); } catch { list = null; } }
+  return Array.isArray(list) ? list : DEFAULT_QUICK();
 }
-/** 可添加成自定义快捷操作的页面：[地址, 图标, 名称] */
+export async function saveQuick(list) {
+  if (Store.mode === "cloud") {
+    const { data, error } = await Store.sb.auth.updateUser({ data: { quick: list } });
+    if (error) throw new Error(error.message);
+    state.user = data.user;
+  } else { try { localStorage.setItem(QUICK_KEY, JSON.stringify(list)); } catch { /* 忽略 */ } }
+}
+/** 可放进快捷操作的页面与动作：[标识, 图标, 名称] */
 const PRESETS = () => [
-  [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "🥫", t("添加储藏物品")],
-  state.gearEnabled ? [href("pantry", "gear"), "🧳", t("装备")] : null,
-  [href("shopping"), "🛒", t("采购清单")], [href("alerts"), "🔔", t("注意事项")], [href("ai"), "🤖", t("小Y问")],
-  state.houseEnabled ? [href("house", "supplies"), "🧰", t("房屋耗材")] : null, state.houseEnabled ? [href("house", "assets"), "⚙️", t("设备")] : null,
-  state.houseEnabled ? [href("house", "tasks"), "📅", t("季节任务")] : null, state.houseEnabled ? [href("house", "deal"), "📝", t("交易")] : null,
-  state.houseEnabled ? [href("house", "vehicles"), "🚗", t("车辆")] : null, state.houseEnabled ? [`${href("asset", "new")}`, "🛠️", t("添加设备")] : null,
-  state.billsEnabled ? [href("bills", "list"), "📋", t("账单清单")] : null, state.billsEnabled ? [href("bills", "history"), "🕘", t("缴费记录")] : null,
-  state.billsEnabled ? [href("bill", "new"), "➕", t("添加账单")] : null,
-  [href("me", "settings"), "⚙️", t("设置")],
+  [href("pantry", "overview"), "🥫", t("储藏概览")], [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "➕", t("添加储藏物品")],
+  state.gearEnabled ? [href("pantry", "gear"), "🧳", t("装备")] : null, state.gearEnabled ? [`${href("item", "new")}?space=gear`, "🧳", t("添加装备")] : null,
+  state.billsEnabled ? [href("bills", "overview"), "🧾", t("账单概览")] : null, state.billsEnabled ? [href("bills", "list"), "📋", t("账单清单")] : null, state.billsEnabled ? [href("bills", "history"), "🕘", t("缴费记录")] : null, state.billsEnabled ? [href("bill", "new"), "➕", t("添加账单")] : null,
+  state.houseEnabled ? [href("house"), "🏠", t("房屋")] : null, state.houseEnabled ? [`${href("item", "new")}?space=house`, "🧰", t("添加房屋耗材")] : null, state.houseEnabled ? [href("house", "assets"), "⚙️", t("设备")] : null,
+  state.houseEnabled ? [href("house", "tasks"), "📅", t("季节任务")] : null, state.houseEnabled ? [href("house", "deal"), "📝", t("交易")] : null, state.houseEnabled ? [href("house", "vehicles"), "🚗", t("车辆")] : null, state.houseEnabled ? [href("asset", "new"), "🛠️", t("添加设备")] : null,
+  [href("shopping"), "🛒", t("采购清单")], [href("alerts"), "🔔", t("注意事项")], [href("ai"), "🤖", t("小Y问")], [href("me", "stats"), "📊", t("看花费统计")], [href("me", "settings"), "⚙️", t("设置")],
+  ["action:print", "🖨️", t("打印")],
 ].filter(Boolean);
 
 function tile({ href: h, cls = "", icon, count, name, sub, foot = "" }) {

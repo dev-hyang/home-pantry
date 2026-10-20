@@ -607,6 +607,9 @@ export const EN = {
   "由装备“{name}”升级：补上品牌、安装日期、保修和保养周期后保存。": "Upgraded from gear “{name}”: add brand, install date, warranty and service interval, then save.", "建好后从装备里移除这件物品": "Remove this item from gear once created",
   "设备 = 有保养周期或保修的（热水器、割草机）；只要记数量和位置的（梯子、电钻、床品）放在 储藏 → 装备。": "Equipment = things with a service interval or warranty (water heater, lawn mower); things you only count and locate (ladder, drill, bedding) go under Pantry → Gear.",
   "装备只记数量和位置，不算消耗，也不会提醒补货。需要保养周期或保修的，用下方“升级为设备档案”。": "Gear only tracks quantity and location, isn't consumed and never triggers restock alerts. If it needs a service interval or warranty, use “Upgrade to equipment record” below.", "升级为设备档案": "Upgrade to equipment record",
+  // ── 首页快捷操作（每位用户自己的）──
+  "完成": "Done", "还没有快捷操作，点“编辑”添加。": "No shortcuts yet; tap Edit to add some.", "{name} 往前移": "Move {name} earlier", "{name} 往后移": "Move {name} later",
+  "已恢复默认快捷操作": "Shortcuts reset to default", "打印": "Print",
   // ── 首页快捷操作 ──
   "添加": "Add", "储藏概览": "Pantry overview", "账单概览": "Bills overview", "移除快捷操作：{name}": "Remove shortcut: {name}", "添加到快捷操作": "Add to shortcuts", "自定义": "Custom",
   "库存": "Inventory", "今天吃什么": "What's for dinner", "装备": "Gear", "采购清单": "Shopping list", "注意事项": "Alerts", "小Y问": "Ask Y", "房屋耗材": "Home supplies",
