@@ -333,8 +333,8 @@
     { id: "lawn_mower",     name: "割草机",           en: "Lawn mower",         icon: "🌿", kind: "tool",      life: 10, interval: 12, system: "yard",         region: "both", when: ["f:lawn"],         tip: "每季换机油、磨刀片；入冬放空汽油。" },
     { id: "snow_blower",    name: "除雪机",           en: "Snow blower",        icon: "🌨️", kind: "tool",      life: 10, interval: 12, system: "yard",         region: "na",   when: ["f:snow"], optional: true },
     { id: "pressure_washer", name: "高压清洗机",      en: "Pressure washer",    icon: "💦", kind: "tool",      life: 8,  interval: null, system: null,         region: "na",   when: ["type:sfh", "type:townhome"], optional: true },
-    { id: "ladder",         name: "梯子",             en: "Ladder",             icon: "🪜", kind: "tool",      life: null, interval: null, system: null,       region: "both", when: ["*"], optional: true },
-    { id: "drill",          name: "电钻",             en: "Drill",              icon: "🔩", kind: "tool",      life: null, interval: null, system: null,       region: "both", when: ["*"], optional: true },
+    { id: "ladder",         name: "梯子",             en: "Ladder",             icon: "🪜", kind: "tool",      life: null, interval: null, system: null,       region: "both", when: [], legacy: true },
+    { id: "drill",          name: "电钻",             en: "Drill",              icon: "🔩", kind: "tool",      life: null, interval: null, system: null,       region: "both", when: [], legacy: true },
     { id: "other_equipment", name: "其他设备",        en: "Other",              icon: "⚙️", kind: "equipment", life: null, interval: null, system: null,      region: "both", when: [] },
     { id: "other_tool",     name: "其他工具",         en: "Other tool",         icon: "🧰", kind: "tool",      life: null, interval: null, system: null,       region: "both", when: [] },
   ];

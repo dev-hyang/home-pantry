@@ -76,7 +76,7 @@ export function viewItemForm() {
         </fieldset>
         <fieldset>
           <legend><span class="not-gear">${t("数量与提醒")}</span><span class="only-gear">${t("数量")}</span></legend>
-          <p class="muted only-gear" style="margin:0 0 10px;font-size:13px">${t("装备只记数量和位置，不算消耗，也不会提醒补货。")}</p>
+          <p class="muted only-gear" style="margin:0 0 10px;font-size:13px">${t("装备只记数量和位置，不算消耗，也不会提醒补货。需要保养周期或保修的，用下方“升级为设备档案”。")}</p>
           <div class="form-grid">
             <label>${t("当前数量")}
               <input name="quantity" type="number" min="0" step="any" inputmode="decimal" required value="${dv(v.quantity ?? 0)}" data-orig="${dv(v.quantity ?? 0)}">
@@ -107,6 +107,7 @@ export function viewItemForm() {
         <div class="form-actions sticky-actions">
           <button type="submit" class="btn btn-primary">${it ? t("保存修改") : t("添加物品")}</button>
           <button type="button" class="btn btn-ghost" data-action="item-cancel">${t("取消")}</button>
+          ${it && gear ? `<a class="btn btn-ghost" href="#/asset/new?from_item=${esc(it.id)}">${t("升级为设备档案")}</a>` : ""}
           ${it ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="item-delete">${t("删除物品")}</button>` : ""}
         </div>
       </form>

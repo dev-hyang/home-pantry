@@ -184,6 +184,7 @@ export function viewAssets() {
       <div class="section-head"><p>${list.length ? t("{n} 台", { n: list.length }) : ""}</p>
         <div class="head-acts">${p ? `<a class="btn btn-sm btn-ghost" href="${href("house", "asset-template")}">${t("按房屋资料生成")}</a>` : ""}
           <a class="btn btn-primary" href="${href("asset", "new")}">${t("添加设备")}</a></div></div>
+      <p class="muted" style="margin:0 0 10px;font-size:12.5px">${t("设备 = 有保养周期或保修的（热水器、割草机）；只要记数量和位置的（梯子、电钻、床品）放在 储藏 → 装备。")}</p>
       ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.slice(0, 6).map((a) => `<li>
           <span class="badge ${a.service === "overdue" ? "b-out" : "b-soon"}">${a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修")}</span>
           <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a><small>${esc(alertText(a))}</small></div>
@@ -365,7 +366,7 @@ export function leaveAsset(changed) {
 
 function typeOptions(selected, kind) {
   const p = state.houseProfile;
-  const list = p ? H().forRegion(H().ASSET_TYPES, p.region) : H().ASSET_TYPES;
+  const list = (p ? H().forRegion(H().ASSET_TYPES, p.region) : H().ASSET_TYPES).filter((x) => !x.legacy || x.id === selected);   // 梯子、电钻等无保养的工具归“装备”，旧记录仍能显示
   const opt = (x) => `<option value="${x.id}" ${x.id === selected ? "selected" : ""}>${x.icon} ${esc(t(x.name))}</option>`;
   if (kind === "vehicle") return list.filter((x) => x.kind === "vehicle").map(opt).join("");   // 车辆只在动力类型里选
   const mine = list.filter((x) => x.kind === kind), others = list.filter((x) => x.kind !== kind && x.kind !== "vehicle");
@@ -440,9 +441,11 @@ export function viewAssetForm() {
     return `<div class="panel empty"><strong>${t("找不到这台设备")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("house", "assets")}">${t("回到设备档案")}</a></p></div>`;
   }
   const qType = r.q.get("type"), tplType = qType ? H().assetType(qType) : null;
+  // 从装备物品升级：?from_item=<id> 带入名称、位置、备注
+  const fromItem = !a && r.q.get("from_item") ? state.items.find((i) => i.id === r.q.get("from_item")) : null;
   const v = a || {
-    kind: tplType?.kind || "equipment", type: tplType?.id || "water_heater", name: tplType ? t(tplType.name) : "", location: "",
-    expected_life_years: tplType?.life ?? "", service_interval_months: tplType?.interval ?? "", owner: "self",
+    kind: tplType?.kind || "equipment", type: tplType?.id || (fromItem ? "other_equipment" : "water_heater"), name: fromItem ? fromItem.name : tplType ? t(tplType.name) : "", location: fromItem?.location || "",
+    expected_life_years: tplType?.life ?? "", service_interval_months: tplType?.interval ?? "", owner: "self", notes: fromItem?.notes || "",
   };
   const tool = v.kind === "tool", veh = v.kind === "vehicle";
   // 面包屑根：进来之前的页面（注意事项 / 房屋…），没有就回设备档案或车辆列表
@@ -464,6 +467,8 @@ export function viewAssetForm() {
       ${a ? sectionCrumb(hubHref, assetName(a), t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || ""), root) : crumbNav([root, { label: veh ? t("添加车辆") : t("添加设备") }])}
       <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${a && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
+        ${fromItem ? `<input type="hidden" name="from_item" value="${esc(fromItem.id)}"><p class="hint" style="margin-top:0">${t("由装备“{name}”升级：补上品牌、安装日期、保修和保养周期后保存。", { name: esc(fromItem.name) })}</p>
+          <label class="check-inline" style="margin-bottom:10px"><input type="checkbox" name="drop_item"><span>${t("建好后从装备里移除这件物品")}</span></label>` : ""}
         <fieldset data-sec="basic" ${hide("basic")}>
           <legend>${t("基本信息")}</legend>
           <div class="seg-radio" style="margin-bottom:10px">${kindPill("equipment")}${kindPill("tool")}${kindPill("vehicle")}</div>
@@ -726,6 +731,7 @@ export async function saveAssetForm(f, { silent = false } = {}) {
     await Store.saveAsset(a);
     if (silent) return true;
     toast(a.id ? t("已保存修改") : t("已添加 {name}", { name }));
+    if (fe.from_item?.value && fe.drop_item?.checked) { await Store.deleteItem(fe.from_item.value); state.prevRoute = null; }   // 升级后移除原装备：别再退回那条已删除的物品页
     leaveAsset(true);
     return true;
   } catch (e) { if (silent) throw e; err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; return false; }
