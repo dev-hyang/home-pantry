@@ -790,3 +790,39 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .about-foot { margin: 16px 0 0; font-size: 13px; }
 .config-diag { border-left: 6px solid var(--mustard); }
 .config-diag p { margin: 6px 0; }
+
+/* 交易清单：调整日期 / 备注、日期对比、时间线视图 */
+.task-row { flex-wrap: wrap; }
+.task-row label { flex: 1; min-width: 0; }
+.task-row label .tt .badge { margin-left: 4px; }
+.task-edit { flex: none; min-width: 36px; min-height: 36px; border: 0; border-radius: 8px; background: none; color: var(--muted); font-size: 16px; cursor: pointer; }
+.task-edit:hover { background: var(--surface-2); color: var(--ink); }
+.task-edit:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.task-edit-form { flex: 1 0 100%; margin-top: 8px; padding: 12px; border-radius: var(--r-sm); background: var(--bg); border: 1px solid var(--line); }
+.link-btn { border: 0; background: none; padding: 0; font: inherit; color: var(--pine); text-decoration: underline; cursor: pointer; }
+.lag-late { color: var(--out); font-weight: 700; }
+.lag-ok { color: var(--pine); font-weight: 700; }
+.deal-view { margin: 0 0 12px; }
+.tl { list-style: none; margin: 0; padding: 0; position: relative; }
+.tl::before { content: ""; position: absolute; left: 10px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+.tl > li { position: relative; padding: 6px 40px 12px 36px; }
+.tl-item > input { appearance: none; -webkit-appearance: none; position: absolute; left: 0; top: 7px; width: 22px; height: 22px; min-height: 0; margin: 0; padding: 0; border: 2px solid var(--pine); border-radius: 50%; background: var(--surface); cursor: pointer; }
+.tl-item > input:checked { background: var(--pine); }
+.tl-item > input:checked::after { content: "✔"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 13px; line-height: 1; }
+.tl-item > input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.tl-item > input:disabled { opacity: .5; cursor: wait; }
+.tl-item.overdue > input { border-color: var(--out); }
+.tl-item label { display: block; cursor: pointer; }
+.tl-item label time { display: block; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.tl-item label small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.tl-item.done label b { color: var(--muted); font-weight: 500; }
+.tl-item.done label small { color: var(--pine); }
+.tl-item.overdue label b, .tl-item.overdue label time { color: var(--out); }
+.tl-item .task-edit { position: absolute; right: 0; top: 2px; }
+.tl-item .task-edit-form { margin-top: 8px; }
+.tl-mark .tl-dot { position: absolute; left: 4px; top: 11px; width: 12px; height: 12px; background: var(--ink); transform: rotate(45deg); border-radius: 2px; }
+.tl-mark time { font-size: 12.5px; font-weight: 700; color: var(--muted); margin-right: 8px; }
+.tl-today { padding: 2px 0 8px 0 !important; }
+.tl-today span { display: inline-block; padding: 1px 10px; border-radius: 99px; background: var(--pine); color: var(--surface); font-size: 12px; font-weight: 700; }
+.tl-sub { font-size: 14px; margin: 14px 0 4px; }
+.tl-undated::before { background: repeating-linear-gradient(var(--line) 0 4px, transparent 4px 8px); }

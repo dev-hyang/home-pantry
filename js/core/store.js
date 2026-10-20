@@ -16,7 +16,7 @@ export const DemoStore = {
       db.properties = [{ id: uid(), name: t("我的家"), kind: "other", role: "owner_occupied", status: "owned", address: null, is_default: true, archived: false, notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
     }
     for (const p of db.properties) p.status ||= (p.role === "tenant" ? "renting" : "owned");
-    db.deals ||= []; db.deal_done ||= []; db.categories ||= [];
+    db.deals ||= []; db.deal_done ||= []; db.deal_overrides ||= []; db.deal_custom ||= []; db.categories ||= [];
     const def = db.properties.find((p) => p.is_default) || db.properties[0];
     db.house_profiles ||= {};
     if (db.house_profile) { db.house_profiles[def.id] ||= db.house_profile; delete db.house_profile; }
@@ -101,6 +101,8 @@ export const DemoStore = {
     const dealIds = new Set((db.deals || []).filter((d) => d.property_id === id).map((d) => d.id));
     db.deals = (db.deals || []).filter((d) => !dealIds.has(d.id));
     db.deal_done = (db.deal_done || []).filter((x) => !dealIds.has(x.deal_id));
+    db.deal_overrides = (db.deal_overrides || []).filter((x) => !dealIds.has(x.deal_id));
+    db.deal_custom = (db.deal_custom || []).filter((x) => !dealIds.has(x.deal_id));
     db.properties = db.properties.filter((p) => p.id !== id);
     this.persist();
   },
@@ -119,11 +121,34 @@ export const DemoStore = {
     const id = uid(); this.db.deals.push({ ...d, id, created_at: now, updated_at: now }); this.persist(); return id;
   },
   async listDealDone() { return (this.db.deal_done || []).map((x) => ({ ...x })); },
-  async setDealDone(deal_id, task_key, done, done_by_name) {
-    this.db.deal_done = (this.db.deal_done || []).filter((x) => !(x.deal_id === deal_id && x.task_key === task_key));
-    if (done) this.db.deal_done.push({ id: uid(), deal_id, task_key, done_on: new Date().toISOString().slice(0, 10), done_by_name, created_at: new Date().toISOString() });
+  /** done_on：实际完成日期（不传 = 今天；已完成的再传 = 只改日期） */
+  async setDealDone(deal_id, task_key, done, done_by_name, done_on) {
+    const list = this.db.deal_done ||= [], cur = list.find((x) => x.deal_id === deal_id && x.task_key === task_key);
+    if (done && cur) { if (done_on) cur.done_on = done_on; }
+    else {
+      this.db.deal_done = list.filter((x) => x !== cur);
+      if (done) this.db.deal_done.push({ id: uid(), deal_id, task_key, done_on: done_on || new Date().toISOString().slice(0, 10), done_by_name, created_at: new Date().toISOString() });
+    }
     this.persist();
   },
+  /** 模板任务的应完成日期调整与备注；日期和备注都空 = 删掉调整（回到推荐日期） */
+  async listDealExtras() { return { overrides: (this.db.deal_overrides || []).map((x) => ({ ...x })), custom: (this.db.deal_custom || []).map((x) => ({ ...x })) }; },
+  async saveDealOverride(deal_id, task_key, due_on, note) {
+    const now = new Date().toISOString();
+    this.db.deal_overrides = (this.db.deal_overrides || []).filter((x) => !(x.deal_id === deal_id && x.task_key === task_key));
+    if (due_on || note) this.db.deal_overrides.push({ id: uid(), deal_id, task_key, due_on: due_on || null, note: note || null, created_at: now, updated_at: now });
+    this.persist();
+  },
+  async saveDealCustom(c) {
+    const now = new Date().toISOString(); this.db.deal_custom ||= [];
+    if (c.id) {
+      const i = this.db.deal_custom.findIndex((x) => x.id === c.id);
+      if (i < 0) throw new Error("自定义事项不存在");
+      this.db.deal_custom[i] = { ...this.db.deal_custom[i], ...c, updated_at: now };
+    } else this.db.deal_custom.push({ ...c, id: uid(), created_at: now, updated_at: now });
+    this.persist();
+  },
+  async deleteDealCustom(id) { this.db.deal_custom = (this.db.deal_custom || []).filter((x) => x.id !== id); this.persist(); },
 
   /* 房屋资料 / 设备 / 季节任务（按房产） */
   async getHouseProfile(pid) { const p = this.db.house_profiles[pid]; return p ? { ...p } : null; },
@@ -333,6 +358,7 @@ export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", 
 export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
 export const TERM_FIELDS = ["term", "zh", "en", "hant"];
 export const DEAL_FIELDS = ["property_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at"];
+export const DEAL_CUSTOM_FIELDS = ["deal_id", "name", "stage", "priority", "due_on", "note", "done_on", "done_by_name"];
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
 export const CloudStore = {
@@ -404,12 +430,32 @@ export const CloudStore = {
     return d.id;
   },
   async listDealDone() { return this.must(await this.sb.from("deal_task_done").select("*").eq("household_id", this.hid)); },
-  async setDealDone(deal_id, task_key, done, done_by_name) {
+  async setDealDone(deal_id, task_key, done, done_by_name, done_on) {
     if (done) {
-      const { error } = await this.sb.from("deal_task_done").insert({ household_id: this.hid, deal_id, task_key, done_by: state.user.id, done_by_name });
+      const { error } = await this.sb.from("deal_task_done").insert({ household_id: this.hid, deal_id, task_key, done_by: state.user.id, done_by_name, ...(done_on ? { done_on } : {}) });
       if (error && error.code !== "23505") throw new Error(error.message);
+      if (error && done_on) this.must(await this.sb.from("deal_task_done").update({ done_on }).eq("deal_id", deal_id).eq("task_key", task_key));   // 已经勾过：只改实际完成日期
     } else this.must(await this.sb.from("deal_task_done").delete().eq("deal_id", deal_id).eq("task_key", task_key));
   },
+  /** 迁移 017 还没执行时读不到这两张表：不影响交易页其余功能 */
+  async listDealExtras() {
+    const [o, c] = await Promise.all([
+      this.sb.from("deal_task_overrides").select("*").eq("household_id", this.hid),
+      this.sb.from("deal_custom_tasks").select("*").eq("household_id", this.hid).order("created_at")]);
+    if (o.error || c.error) { console.warn("[deal extras]", (o.error || c.error).message); return { overrides: [], custom: [] }; }
+    return { overrides: o.data, custom: c.data };
+  },
+  async saveDealOverride(deal_id, task_key, due_on, note) {
+    if (!due_on && !note) return this.must(await this.sb.from("deal_task_overrides").delete().eq("deal_id", deal_id).eq("task_key", task_key));
+    this.must(await this.sb.from("deal_task_overrides").upsert({ household_id: this.hid, deal_id, task_key, due_on: due_on || null, note: note || null, updated_by: state.user.id }, { onConflict: "deal_id,task_key" }));
+  },
+  async saveDealCustom(c) {
+    const row = pick(c, DEAL_CUSTOM_FIELDS, { household_id: this.hid, updated_by: state.user.id });
+    row.done_by = c.done_on ? state.user.id : null;
+    if (c.id) this.must(await this.sb.from("deal_custom_tasks").update(row).eq("id", c.id));
+    else this.must(await this.sb.from("deal_custom_tasks").insert(row));
+  },
+  async deleteDealCustom(id) { this.must(await this.sb.from("deal_custom_tasks").delete().eq("id", id)); },
 
   /* 房屋资料 / 设备 / 季节任务（按房产） */
   async getHouseProfile(pid) {
@@ -526,7 +572,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "property_deals", "deal_task_done", "custom_categories", "custom_locations", "custom_terms"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();

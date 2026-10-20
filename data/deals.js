@@ -7,7 +7,7 @@
 
   const KINDS = { buy: "买入", sell: "卖出", move_out: "退租" };
   const PRIORITY = { must: "必须", should: "建议", optional: "可选" };
-  const STAGES = { prep: "准备", contract: "签约与审查", financing: "贷款与评估", pre_closing: "交割前", closing: "交割", post_closing: "交割后" };
+  const STAGES = { prep: "准备", contract: "签约与审查", financing: "贷款与评估", pre_closing: "交割前", closing: "交割", post_closing: "交割后", special: "补充事项" };
   const PROPERTY_STATUS = { looking: "看房", buying: "交易中 · 买入", owned: "持有", renting: "租住", selling: "交易中 · 卖出", sold: "已卖出", moved_out: "已退租" };
 
   const TASKS = {

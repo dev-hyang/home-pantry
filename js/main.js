@@ -19,7 +19,7 @@ import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, read
 import { assetTemplateItems, enrichAssets, leaveAsset, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { seasonalSince, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
-import { applyCloseout, cancelDeal, completeBuy, openDeal, saveDealForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
+import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
 import { billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsOverview } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { moveCat, renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
@@ -53,11 +53,12 @@ export async function refresh() {
         Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listPurchases(), Store.listHouseProfiles(),
         Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince()), Store.listBills(), Store.listBillPayments(),
         Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations()]);
+      const dealExtras = await Store.listDealExtras();
       try { setGlossary(await Store.listTerms()); } catch (e) { console.warn("[terms]", e.message); }   // 自定义名称的翻译（表还没建时不影响其他功能）
       applyCustomCategories(customCats);   // 自定义分类并入全局分类表，后面的 enrich / 视图都能用
       applyCustomLocations(customLocs);    // 自定义 / 重命名的存放位置并入分组列表
       const houseProfiles = Object.fromEntries(profiles.map((p) => [p.property_id, p]));
-      Object.assign(state, { items, logs, shopping, purchases, houseProfiles, houseProfile: pid ? houseProfiles[pid] || null : null, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone });
+      Object.assign(state, { items, logs, shopping, purchases, houseProfiles, houseProfile: pid ? houseProfiles[pid] || null : null, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, dealOverrides: dealExtras.overrides, dealCustom: dealExtras.custom });
       state.enriched = enrich(items, logs);
       state.assetsEnriched = enrichAssets(assets, maintLogs);
       state.billsEnriched = enrichBills(bills, billPayments);
@@ -139,7 +140,7 @@ export function render(force = true) {
 
   if (!force && FORM_PAGES(r) && $("#main form")) return;
   // 数据刷新（切回标签页、家人改动）会重画整页：先把内嵌表单里还没保存的改动记下来，画完再填回去，不让用户白填
-  const kept = force ? [] : keepUnsaved(["#dealForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm"]);
+  const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm"]);
   try { renderBody(r); } finally { restoreUnsaved(kept); }
 }
 /** 表单里与渲染默认值不同的字段（用户正在填的）；没有改动返回 null */
@@ -293,7 +294,7 @@ async function changeLang(code) {
 export const main = $("#main");
 main.addEventListener("input", (e) => {
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; renderInvList(); }
-  const df = e.target.closest("#dealForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
+  const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
 });
 main.addEventListener("change", async (e) => {
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
@@ -453,6 +454,7 @@ main.addEventListener("submit", async (e) => {
       state.deleteProperty = null; toast(t("已彻底删除“{name}”及其账单、设备和资料；花费记录保留", { name: p.name })); return refresh();
     }
     if (f.id === "dealForm") { await saveDealForm(f); f.dataset.saved = "1"; return refresh(); }   // 已保存：刷新时不再当作未保存改动
+    if (f.id === "dealTaskForm") { await saveDealTaskForm(f); state.dealTaskEdit = null; return refresh(); }
     if (f.id === "closeoutForm") { await applyCloseout(f); go(href("house", "overview")); return refresh(); }
     if (f.id === "assetTemplateForm") {
       const ids = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
@@ -574,6 +576,17 @@ main.addEventListener("click", async (e) => {
         if (d.kind === "buy") { if (!armed(el, t("再点一次确认已交割"))) return; await completeBuy(); return refresh(); }
         state.closeout = true; return go(`${href("house", "deal")}?sec=closeout`);
       }
+      case "deal-task-edit": state.dealTaskEdit = { deal: el.dataset.deal, key: el.dataset.key }; render(); $("#dealTaskForm input[name=due_on]")?.focus(); return;
+      case "deal-task-new": state.dealTaskEdit = { deal: el.dataset.deal, key: "", stage: el.dataset.stage || "special" }; render(); $("#dealTaskForm input[name=name]")?.focus(); return;
+      case "deal-task-cancel": state.dealTaskEdit = null; return render();
+      case "deal-due-reset": el.form.elements.due_on.value = el.dataset.plan || ""; return markDirty(el.form, true);   // 只回填输入框，点保存才生效
+      case "deal-task-delete":
+        if (!armed(el, t("再点一次确认删除"))) return;
+        await deleteCustomTask(el.dataset.id); state.dealTaskEdit = null; toast(t("已删除这条事项")); return refresh();
+      case "deal-view":
+        state.dealView = el.dataset.view === "timeline" ? "timeline" : "list";
+        try { localStorage.setItem("hmh-deal-view", state.dealView); } catch { /* 忽略 */ }
+        return render();
       case "deal-closeout-cancel": state.closeout = null; return go(href("house", "deal"));
       case "property-default": await Store.setDefaultProperty(id); toast(t("已设为默认房产")); return refresh();
       case "property-archive": {
@@ -781,7 +794,7 @@ export async function markBought(id) {
 export function exportJson() {
   const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), household: state.household?.name, items: state.items, shopping: state.shopping, purchases: state.purchases,
     properties: state.properties, house_profile: state.houseProfile, assets: state.assets, maintenance_logs: state.maintLogs, seasonal_tasks: state.seasonalDone,
-    bills: state.bills, bill_payments: state.billPayments, property_deals: state.deals, deal_task_done: state.dealDone }, null, 2)], { type: "application/json" });
+    bills: state.bills, bill_payments: state.billPayments, property_deals: state.deals, deal_task_done: state.dealDone, deal_task_overrides: state.dealOverrides, deal_custom_tasks: state.dealCustom }, null, 2)], { type: "application/json" });
   const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `pantry-${new Date().toISOString().slice(0, 10)}.json` });
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

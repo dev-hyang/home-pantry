@@ -821,4 +821,16 @@ export const EN = {
   "已自动保存": "Auto-saved", "没有自动保存：{msg}": "Not auto-saved: {msg}", "自动保存失败：{msg}": "Auto-save failed: {msg}",
   "按位置筛选": "Filter by location", "全部位置": "All locations", "件符合": "matches", "点格子进入分类，筛选条件会保留": "Tap a tile to open that category; filters stay on", "换个关键词或筛选试试": "Try another keyword or filter", "清除": "Clear",
   "你是一个家庭生活助手，帮一家人处理房屋保养、账单与省钱、买房卖房流程、清洁收纳、饮食与育儿家务等问题。回答要实用、简洁，必要时分步骤；涉及燃气、电、结构、法律、医疗时提醒找专业人士。": "You are a friendly household assistant for a family: home maintenance, bills and saving money, buying or selling a home, cleaning and organizing, meal planning, childcare logistics. Answer practically and concisely, in steps where useful; say when a professional is needed.",
+  // ── 交易清单：调整日期 / 自定义事项 / 时间线 ──
+  "滞后 {n} 天": "{n} day(s) late", "提前 {n} 天": "{n} day(s) early", "按时完成": "On time", "应完成 {d}": "Due {d}", "实际 {d}": "Done {d}", "没设日期": "No date set",
+  "已调整，推荐 {d}": "adjusted, suggested {d}", "手动设置的日期": "date set manually", "调整日期 / 备注：{name}": "Adjust dates / notes: {name}", "调整日期 / 备注": "Adjust dates / notes",
+  "事项名称": "Task name", "所属阶段": "Stage", "重要程度": "Priority", "应完成日期": "Should-do / due date", "推荐日期 {d}": "Suggested {d}", "恢复推荐": "Use suggested",
+  "填了合同日 / 交割日才有推荐日期": "Set the contract / closing date to get a suggested date", "实际完成日期": "Actual completion date", "填了就算已完成，清空 = 未完成": "Filling this marks it done; clearing it marks it not done",
+  "如：向 HOA 提交 intent to sell 通知": "e.g. File the intent-to-sell notice with the HOA", "延迟原因、对方要求、联系人…": "Reason for delay, their requirement, contact…",
+  "删除这条事项": "Delete this task", "添加自定义事项": "Add a custom task", "某个 condo / village / HOA 的特别要求，如必须申报 intent to sell；也留作记录": "Extra requirements from a condo / village / HOA, e.g. a required intent-to-sell filing; also kept as a record",
+  "签约（合同日）": "Contract signed", "还没排期": "Not scheduled yet", "填了合同日 / 交割日，或点 ✎ 手动设日期，就会排进上面的时间线": "Set the contract / closing date, or tap ✎ to pick a date, and they will appear on the timeline above",
+  "视图": "View", "清单": "List", "时间线": "Timeline", "补充事项": "Extra tasks", "没有这个阶段": "No such stage", "请填事项名称": "Please enter a task name",
+  "已保存": "Saved", "已添加自定义事项": "Custom task added", "已删除这条事项": "Task deleted",
+  "清单按伊利诺伊州（芝加哥）常见流程整理，日期和税费以合同、律师和产权公司为准；其他州请按本地流程增删。点事项右侧的 ✎ 可以调整应完成日期、记录实际完成日期。": "The checklist follows the usual Illinois (Chicago) process; dates and fees are governed by your contract, attorney and title company; for other states add or remove tasks to match local practice. Tap ✎ on a task to adjust its due date and record the actual completion date.",
+  "截止日按合同日和交割日推算，可点 ✎ 调整；必须项逾期会在首页置顶": "Due dates are calculated from the contract and closing dates and can be adjusted with ✎; overdue must-do items are pinned on the Today page",
 };

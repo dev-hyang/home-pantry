@@ -17,7 +17,10 @@ export const state = {
   editProperty: null,                          // 设置页：正在编辑的房产 id（"new" = 新建）
   deleteProperty: null,                        // 设置页：正在确认彻底删除的已归档房产 id
   deals: [], dealDone: [],                     // 房产交易（买入 / 卖出 / 退租）与清单完成记录
-  closeout: null,                              // 交易页：退出向导是否展开
+  dealOverrides: [], dealCustom: [],           // 交易清单：模板任务的应完成日期调整、自定义事项
+  dealTaskEdit: null,                          // 交易清单：正在编辑的事项 { deal, key } 或新建 { deal, key: "", stage }
+  dealView: (() => { try { return localStorage.getItem("hmh-deal-view") === "timeline" ? "timeline" : "list"; } catch { return "list"; } })(),   // 交易页视图：list 清单 / timeline 时间线
+  closeout: null,                           // 交易页：退出向导是否展开
   tasksMonth: null,                    // 季节任务页当前查看的月份（null = 本月）
   stats: { months: 6, month: null, cat: null, itemId: null },
   filter: { space: "pantry", cat: "all", q: "", status: "all", loc: "all" },   // 库存清单：空间、分类、关键词、状态、存放位置
