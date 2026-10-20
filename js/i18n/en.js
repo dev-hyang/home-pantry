@@ -603,6 +603,10 @@ export const EN = {
   "编辑：{name}": "Edit: {name}",
   // ── 注意事项换来源 / 历史交易面包屑 ──
   "提醒来源": "Alert source", "上一个来源": "Previous source", "下一个来源": "Next source", "历史": "Past",
+  // ── 首页快捷操作 ──
+  "添加": "Add", "储藏概览": "Pantry overview", "账单概览": "Bills overview", "移除快捷操作：{name}": "Remove shortcut: {name}", "添加到快捷操作": "Add to shortcuts", "自定义": "Custom",
+  "库存": "Inventory", "今天吃什么": "What's for dinner", "装备": "Gear", "采购清单": "Shopping list", "注意事项": "Alerts", "小Y问": "Ask Y", "房屋耗材": "Home supplies",
+  "设备": "Equipment", "季节任务": "Seasonal tasks", "交易": "Transaction", "车辆": "Vehicles", "添加设备": "Add equipment", "账单清单": "Bill list", "缴费记录": "Payment history", "设置": "Settings",
   // ── 房屋概览重排 ──
   "材料与设施": "Materials & systems", "参考": "Reference", "按房型和材料整理，不常变；点开查看": "By home type and materials; rarely changes. Tap to open", "已完成 {n} 项": "{n} done",
   "这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。": "This is a past transaction. Its checklist, timeline and details can still be viewed and edited for reference.",

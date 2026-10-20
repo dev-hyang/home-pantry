@@ -583,6 +583,9 @@ main.addEventListener("click", async (e) => {
         return render();
       }
       case "today-source": setTodayPref({ source: state.today.source === el.dataset.source ? null : el.dataset.source }); return render();
+      case "quick-open": state.quickAdd = !state.quickAdd; return render();
+      case "quick-add": { const h = $("#quickSel")?.value; if (h) setTodayPref({ quick: [...new Set([...(state.today.quick || []), h])] }); state.quickAdd = false; return render(); }
+      case "quick-del": setTodayPref({ quick: (state.today.quick || []).filter((x) => x !== el.dataset.href) }); return render();
       case "alerts-prev": shiftAlertSource(-1); return render();
       case "alerts-next": shiftAlertSource(1); return render();
       case "bill-cancel": return leaveBill(false);

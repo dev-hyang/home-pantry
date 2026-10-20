@@ -745,6 +745,15 @@ html.force-phone .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr));
 .qtile { display: grid; justify-items: center; gap: 6px; padding: 12px 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 12.5px; font-weight: 700; text-align: center; }
 .qtile:hover { border-color: var(--pine); }
 .qtile-ico { font-size: 24px; }
+.qwrap { position: relative; display: grid; }
+.qwrap .qtile { width: 100%; box-sizing: border-box; }
+.qtile-add { border-style: dashed; background: transparent; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.qtile-add:hover { color: var(--pine); }
+.qdel { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--muted); font-size: 14px; line-height: 1; cursor: pointer; padding: 0; }
+.qdel:hover { background: var(--out-bg); color: var(--out); }
+.qdel:focus-visible, .qtile-add:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.quick-add { margin-top: 10px; }
+.quick-add label { display: grid; gap: 4px; font-weight: 600; font-size: 13px; }
 /* 注意事项页：面包屑尾部的排序下拉 */
 .crumb-tools { flex-wrap: wrap; }
 .sort-dd { margin-left: auto; }

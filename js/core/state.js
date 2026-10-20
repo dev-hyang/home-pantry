@@ -21,6 +21,7 @@ export const state = {
   dealTaskEdit: null,                          // 交易清单：正在编辑的事项 { deal, key } 或新建 { deal, key: "", stage }
   dealView: (() => { try { return localStorage.getItem("hmh-deal-view") === "timeline" ? "timeline" : "list"; } catch { return "list"; } })(),   // 交易页视图：list 清单 / timeline 时间线
   closeout: null,                           // 交易页：退出向导是否展开
+  quickAdd: false,                     // 首页：正在添加自定义快捷操作
   tasksYM: null,                       // 季节任务页当前查看的年月 "YYYY-MM"（null = 本月）
   customSeasonal: [],                  // 自定义季节任务（每年重复 / 一次性，按房产）
   seasonForm: null,                    // 正在编辑的自定义任务 { id } 或新建 { id: null }
