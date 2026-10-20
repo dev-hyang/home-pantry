@@ -40,7 +40,21 @@
     cn: ["年检：6 年内免检（每两年网上申领标志），6–10 年每两年上线检测，10 年以上每年。", "交强险 + 商业险一年一续；车船税随交强险缴。"],
   };
 
-  window.VEHICLES = { POWERTRAINS, SERVICE_ITEMS, itemsFor, serviceItem, REGION_NOTES };
+  // 拥有状态（存 assets.vehicle.status，默认 owned）：looking 选购中（买车流程里的占位车）、owned 持有、financed 贷款中、leased 租赁、
+  // sold 已卖出、returned 已归还（租赁到期）。sold / returned 的车从列表和提醒里退出，档案、保养记录、花费保留
+  const STATUS = {
+    looking:  { name: "选购中", cls: "b-soon" },
+    owned:    { name: "持有",   cls: "b-ok" },
+    financed: { name: "贷款中", cls: "b-ok" },
+    leased:   { name: "租赁",   cls: "b-ok" },
+    sold:     { name: "已卖出", cls: "" },
+    returned: { name: "已归还", cls: "" },
+  };
+  const statusOf = (a) => (a?.vehicle?.status && STATUS[a.vehicle.status] ? a.vehicle.status : "owned");
+  const isActive = (a) => !["sold", "returned"].includes(statusOf(a));   // 还在用（含选购中）
+  const inService = (a) => isActive(a) && statusOf(a) !== "looking";      // 真在开：才有保养 / 牌照 / 保险提醒
+
+  window.VEHICLES = { POWERTRAINS, SERVICE_ITEMS, itemsFor, serviceItem, REGION_NOTES, STATUS, statusOf, isActive, inService };
   // 车辆维修保养的花费记到 purchases 时用的分类；统计里单独一组
   window.VEHICLE_CAT = { id: "vehicle_maint", name: "车辆维修保养", icon: "🚗", color: "#4a6fa5" };
   window.VEHICLE_GROUP = { id: "vehicle", name: "车辆", icon: "🚗", color: "#4a6fa5" };

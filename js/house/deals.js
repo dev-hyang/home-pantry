@@ -1,4 +1,5 @@
-/* 房产生命周期：状态、买入 / 卖出 / 退租交易、清单任务（模板在 data/deals.js）、退出向导、首页提醒 */
+/* 房产 / 车辆生命周期：状态、买入 / 卖出 / 退租（房产）与买车 / 卖车 / 租赁归还（车辆）交易、清单任务（模板在 data/deals.js）、退出向导、首页提醒
+ * 一笔交易挂在房产（property_id）或车辆（asset_id）上；页面 #/house/deal，车辆交易带 ?asset=<id>，看历史交易带 ?deal=<id> */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, DAY, daysUntil, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
@@ -6,8 +7,10 @@ import { href } from "../core/router.js";
 import { joinList, t } from "../core/i18n.js";
 import { addDays } from "../bills/logic.js";
 import { houseBar } from "./property-form.js";
+import { assetName, isVehicle } from "./assets.js";
 
 const D = () => window.DEALS;
+const V = () => window.VEHICLES;
 const B = () => window.BILLS;
 const PRIO_CLS = { must: "b-out", should: "b-soon", optional: "" };
 // 退出向导里各类账单默认延后多少天结束（水电气网会有最后一期账单）
@@ -15,14 +18,25 @@ const END_LAG = { electric: 30, gas: 30, water: 45, internet: 14, mobile: 0, hoa
 
 export const currentProp = () => state.properties.find((p) => p.id === state.propertyId) || null;
 export const openDeal = (pid = state.propertyId) => state.deals.find((d) => d.property_id === pid && !d.outcome) || null;
+export const openVehicleDeal = (aid) => state.deals.find((d) => d.asset_id === aid && !d.outcome) || null;
+export const isVehDeal = (d) => !!d?.asset_id;
+/** 当前路由对应的交易（?deal= 指定的历史交易 / ?asset= 车辆的进行中交易 / 当前房产的进行中交易），面包屑和子页标题用 */
+export function routeDeal() {
+  const q = state.route?.q;
+  const byId = q?.get("deal") ? state.deals.find((d) => d.id === q.get("deal")) : null;
+  if (byId) return byId;
+  return q?.get("asset") ? openVehicleDeal(q.get("asset")) : openDeal();
+}
 /** 交易子页在面包屑里的名字（?sec=info / stage:xxx / closeout） */
-export function dealSubLabel(sec) {
+export function dealSubLabel(sec, deal = routeDeal()) {
   if (!sec) return null;
   if (sec === "info") return t("交易信息");
-  if (sec.startsWith("stage:")) return t(D().STAGES[sec.slice(6)] || "");
-  if (sec === "closeout") return openDeal()?.kind === "buy" ? t("完成交割") : t("交割与退出");
+  if (sec.startsWith("stage:")) return t(D().stagesOf(deal?.kind)[sec.slice(6)] || "");
+  if (sec === "closeout") return deal?.kind === "buy" ? t("完成交割") : t("交割与退出");
   return null;
 }
+/** 两个基准日期在这笔交易里的叫法：[合同 / 签约日, 交割 / 提车 / 归还日] */
+export const dateLabels = (deal) => D().DATE_LABELS[deal?.kind] || D().DATE_LABELS.buy;
 export const statusText = (p) => t(D().PROPERTY_STATUS[p?.status] || "持有");
 /** 房产是否还在“使用中”（提醒只对这些房产生效） */
 export const propertyLive = (p) => !!p && !p.archived && !["sold", "moved_out"].includes(p.status);
@@ -34,6 +48,17 @@ function matches(cond, prop, bills) {
   if (k === "bill") return bills.some((b) => b.category === v);
   if (k === "kind") return v === "condo" ? ["condo", "townhome"].includes(prop.kind) : prop.kind === v;
   if (k === "role") return prop.role === v;
+  return false;
+}
+
+/** 车辆交易的条件：region:na / cn、pt:ev / pt:ice（动力类型）、status:financed 等（拥有状态）、bill:<分类>、autopay（全家账单） */
+function vehMatches(cond, asset, bills) {
+  if (cond === "autopay") return bills.some((b) => b.autopay);
+  const [k, v] = cond.split(":");
+  if (k === "bill") return bills.some((b) => b.category === v);
+  if (k === "region") return (state.houseProfile?.region || (Units.region.system === "us" ? "na" : "cn")) === v;
+  if (k === "pt") { const pt = V().POWERTRAINS[asset.type]; return !!pt && (v === "ev" ? pt.ev : v === "ice" ? pt.ice : false); }
+  if (k === "status") return V().statusOf(asset) === v;
   return false;
 }
 
@@ -49,12 +74,21 @@ function finishTask(x, dn) {
  *  模板任务的推荐日期（plan）按合同日 / 交割日 + 偏移，可被手动调整（due = 调整后的应完成日期，moved = 是否调过）；没填基准日期时 plan 为 null。
  *  自定义事项（key = "c:<id>"，custom = true）自带应完成 / 实际完成日期。 */
 export function dealTasks(deal) {
-  const prop = state.properties.find((p) => p.id === deal.property_id);
-  if (!prop) return [];
-  const bills = state.bills.filter((b) => b.property_id === deal.property_id && b.active);
+  let ok;
+  if (deal.asset_id) {   // 车辆交易：条件看这辆车的动力类型、拥有状态和全家的账单
+    const asset = state.assets.find((a) => a.id === deal.asset_id);
+    if (!asset) return [];
+    const bills = state.bills.filter((b) => b.active);
+    ok = (c) => vehMatches(c, asset, bills);
+  } else {
+    const prop = state.properties.find((p) => p.id === deal.property_id);
+    if (!prop) return [];
+    const bills = state.bills.filter((b) => b.property_id === deal.property_id && b.active);
+    ok = (c) => matches(c, prop, bills);
+  }
   const done = state.dealDone.filter((x) => x.deal_id === deal.id);
   const over = state.dealOverrides.filter((o) => o.deal_id === deal.id);
-  const tpl = (D().TASKS[deal.kind] || []).filter((x) => (x.when || []).every((c) => matches(c, prop, bills))).map((x) => {
+  const tpl = (D().TASKS[deal.kind] || []).filter((x) => (x.when || []).every(ok)).map((x) => {
     const base = x.base === "contract" ? deal.contract_on : deal.closing_on;
     const plan = base ? addDays(base, x.offset) : null;
     const ov = over.find((o) => o.task_key === x.key) || null;
@@ -82,10 +116,22 @@ export function dealAlertItems() {
   if (!state.houseEnabled) return [];
   return dealAlerts().map((x) => ({
     source: "deal", severity: x.daysLeft < 0 ? (x.priority === "must" ? 0 : 1) : x.daysLeft === 0 ? 1 : 2, must: x.priority === "must",
-    due: x.due, daysLeft: x.daysLeft, property_id: x.deal.property_id, title: t(x.name), detail: `${x.due ? `${fmtDate(x.due)} · ` : ""}${dueText(x)}${x.note ? ` · ${t(x.note)}` : ""}`,
-    href: href("house", "deal"), actions: [{ type: "check", attrs: { "data-deal-task": x.key, "data-deal": x.deal.id } }],
+    due: x.due, daysLeft: x.daysLeft, property_id: x.deal.property_id, title: `${vehPrefix(x.deal)}${t(x.name)}`, detail: `${x.due ? `${fmtDate(x.due)} · ` : ""}${dueText(x)}${x.note ? ` · ${t(x.note)}` : ""}`,
+    href: dealHref(x.deal), actions: [{ type: "check", attrs: { "data-deal-task": x.key, "data-deal": x.deal.id } }],
   }));
 }
+
+/** 这笔交易的页面地址（车辆交易带 ?asset=；历史交易再带 deal=） */
+export function dealHref(deal, sec = null) {
+  const ps = new URLSearchParams();
+  if (sec) ps.set("sec", sec);
+  if (deal?.asset_id) ps.set("asset", deal.asset_id);
+  if (deal?.outcome) ps.set("deal", deal.id);
+  const qs = ps.toString();
+  return `${href("house", "deal")}${qs ? `?${qs}` : ""}`;
+}
+/** 首页提醒里车辆交易的事项前面带车名 */
+const vehPrefix = (deal) => { if (!deal.asset_id) return ""; const a = state.assetsEnriched.find((x) => x.id === deal.asset_id); return a ? `🚗 ${assetName(a)} · ` : ""; };
 
 /** 已完成事项相对应完成日期：滞后 / 提前 / 按时（没有应完成日期时为空） */
 export function lagText(x) {
@@ -131,7 +177,7 @@ function taskEditForm(deal, x, stage = "special") {
     <input type="hidden" name="deal_id" value="${esc(deal.id)}"><input type="hidden" name="key" value="${esc(x?.key || "")}">
     <div class="form-grid">
       ${custom ? `<label class="span-2">${t("事项名称")}<input name="name" required maxlength="120" value="${esc(rec?.name || "")}" placeholder="${esc(t("如：向 HOA 提交 intent to sell 通知"))}"></label>
-        <label>${t("所属阶段")}<select name="stage">${opts(D().STAGES, rec?.stage || stage)}</select></label>
+        <label>${t("所属阶段")}<select name="stage">${opts(D().stagesOf(deal.kind), rec?.stage || stage)}</select></label>
         <label>${t("重要程度")}<select name="priority">${opts(D().PRIORITY, rec?.priority || "should")}</select></label>` : ""}
       <label>${t("应完成日期")}<input name="due_on" type="date" value="${esc(x?.due || "")}">
         ${x && !x.custom ? `<small>${x.plan ? `${t("推荐日期 {d}", { d: fmtDate(x.plan) })} <button type="button" class="link-btn" data-action="deal-due-reset" data-plan="${esc(x.plan)}">${t("恢复推荐")}</button>` : t("填了合同日 / 交割日才有推荐日期")}</small>` : ""}</label>
@@ -150,14 +196,14 @@ function newTaskPanel(deal) {
   const e = state.dealTaskEdit;
   return e && e.deal === deal.id && e.key === "" ? `<section class="section"><div class="panel">${taskEditForm(deal, null, e.stage)}</div></section>` : "";
 }
-const addTaskRow = (deal, stage, row) => row(null, "➕", t("添加自定义事项"), t("某个 condo / village / HOA 的特别要求，如必须申报 intent to sell；也留作记录"), null, "", `data-action="deal-task-new" data-deal="${deal.id}" data-stage="${stage}"`);
+const addTaskRow = (deal, stage, row) => row(null, "➕", t("添加自定义事项"), isVehDeal(deal) ? t("车行 / 租赁公司的特别要求，或自己想记的事；也留作记录") : t("某个 condo / village / HOA 的特别要求，如必须申报 intent to sell；也留作记录"), null, "", `data-action="deal-task-new" data-deal="${deal.id}" data-stage="${stage}"`);
 
 /** 时间线视图：竖线 + 每条事项一个圆点（就是勾选框），按应完成日期排；签约 / 交割日和“今天”做标记，没日期的排在最后 */
 function timeline(deal, tasks) {
   const rank = { must: 0, should: 1, optional: 2 }, today = todayISO();
   const dated = tasks.filter((x) => x.due).sort((a, b) => a.due.localeCompare(b.due) || rank[a.priority] - rank[b.priority]);
   const nodes = [
-    ...[[deal.contract_on, "签约（合同日）"], [deal.closing_on, deal.kind === "move_out" ? "退租日" : "交割日"]].filter(([d]) => d).map(([date, mark]) => ({ date, mark, order: 0 })),
+    ...[[deal.contract_on, dateLabels(deal)[0]], [deal.closing_on, dateLabels(deal)[1]]].filter(([d]) => d).map(([date, mark]) => ({ date, mark, order: 0 })),
     ...dated.map((task) => ({ date: task.due, task, order: 1 })),
   ].sort((a, b) => a.date.localeCompare(b.date) || a.order - b.order);
   if (nodes.length) {
@@ -178,62 +224,60 @@ function tlItem(x, withDate) {
   return `<li class="tl-item ${x.done ? "done" : ""} ${x.overdue ? "overdue" : ""} ${x.priority === "must" ? "must" : ""}">
     <input type="checkbox" id="${id}" data-deal-task="${esc(x.key)}" data-deal="${x.deal.id}" ${x.done ? "checked" : ""}>
     <label for="${id}">${withDate ? `<time datetime="${x.due}">${fmtDate(x.due)}</time>` : ""}
-      <span class="tt"><b>${esc(t(x.name))}</b> <span class="badge ${PRIO_CLS[x.priority]}">${t(D().PRIORITY[x.priority])}</span> <span class="badge" style="background:var(--surface-2)">${esc(t(D().STAGES[x.stage] || ""))}</span>${customBadge(x)}</span>
+      <span class="tt"><b>${esc(t(x.name))}</b> <span class="badge ${PRIO_CLS[x.priority]}">${t(D().PRIORITY[x.priority])}</span> <span class="badge" style="background:var(--surface-2)">${esc(t(D().stagesOf(x.deal.kind)[x.stage] || ""))}</span>${customBadge(x)}</span>
       <small>${dateLine(x, { showDue: !withDate })}${taskNotes(x)}</small></label>
     ${editBtn(x)}
     ${editing ? taskEditForm(x.deal, x) : ""}
   </li>`;
 }
 
-/* ── 交易页 ── */
+/* ── 交易页：主体是当前房产，或 ?asset=<id> 指定的车辆 ── */
 export function viewDeal() {
-  const p = currentProp();
-  if (!p) return `<section class="section"><div class="panel empty"><strong>${t("还没有房产")}</strong></div></section>`;
-  // ?deal=<id>：查看历史交易（已交割 / 已取消）—— 清单、时间线、交易信息都还能看、能改，只是没有“完成交割”入口
   const q = state.route?.q;
-  const viewed = q?.get("deal") ? state.deals.find((d) => d.id === q.get("deal") && d.property_id === p.id) || null : null;
-  const deal = viewed || openDeal(p.id);
+  const assetId = q?.get("asset") || null;
+  const veh = assetId ? state.assetsEnriched.find((a) => a.id === assetId && isVehicle(a)) || null : null;
+  if (assetId && !veh) return `<section class="section"><div class="panel empty"><strong>${t("找不到这辆车")}</strong><p><a class="btn btn-primary" href="${href("house", "vehicles")}">${t("回到车辆")}</a></p></div></section>`;
+  const p = veh ? null : currentProp();
+  if (!veh && !p) return `<section class="section"><div class="panel empty"><strong>${t("还没有房产")}</strong></div></section>`;
+  const mine = (d) => (veh ? d.asset_id === veh.id : d.property_id === p.id);
+  // ?deal=<id>：查看历史交易（已交割 / 已取消）—— 清单、时间线、交易信息都还能看、能改，只是没有“完成交割”入口
+  const viewed = q?.get("deal") ? state.deals.find((d) => d.id === q.get("deal") && mine(d)) || null : null;
+  const deal = viewed || (veh ? openVehicleDeal(veh.id) : openDeal(p.id));
   const closed = !!deal?.outcome;
-  const history = state.deals.filter((d) => d.property_id === p.id && d.outcome);
-  const live = propertyLive(p);
-  // 子页链接：查看历史交易时把 deal= 一路带着，否则回到进行中的交易
-  const link = (sec) => { const ps = new URLSearchParams(); if (sec) ps.set("sec", sec); if (viewed) ps.set("deal", deal.id); const qs = ps.toString(); return `${href("house", "deal")}${qs ? `?${qs}` : ""}`; };
-  const statusCard = `<section class="section"><div class="house-card">
-      <span class="house-ico" aria-hidden="true">🏠</span>
-      <div class="grow"><h2>${esc(p.name)}<span class="badge ${live ? "b-ok" : ""}" style="${live ? "" : "background:var(--surface-2)"}">${statusText(p)}</span></h2>
-        <p class="muted">${[t(B().PROPERTY_KINDS[p.kind] || ""), t(B().PROPERTY_ROLES[p.role] || ""), p.acquired_on ? t("{d} 买入", { d: fmtDate(p.acquired_on) }) : null, p.purchase_price ? money(num(p.purchase_price)) : null,
-          p.sold_on ? t("{d} 卖出", { d: fmtDate(p.sold_on) }) : null, p.sale_price ? money(num(p.sale_price)) : null].filter(Boolean).map(esc).join(" · ")}</p></div>
-    </div></section>`;
+  const history = state.deals.filter((d) => mine(d) && d.outcome);
+  // 子页链接：车辆交易带 asset=；查看历史交易时把 deal= 一路带着，否则回到进行中的交易
+  const link = (sec) => { const ps = new URLSearchParams(); if (sec) ps.set("sec", sec); if (veh) ps.set("asset", veh.id); if (viewed) ps.set("deal", deal.id); const qs = ps.toString(); return `${href("house", "deal")}${qs ? `?${qs}` : ""}`; };
+  const histLink = (d) => dealHref({ ...d, outcome: d.outcome || "closed" });
+  const bar = veh ? "" : houseBar();
+  const headCard = veh ? vehicleCard(veh) : propertyCard(p);
   if (!deal) {
-    const starts = [
-      !["sold", "moved_out", "selling"].includes(p.status) && p.role !== "tenant" && ["looking", "buying"].includes(p.status) ? ["buy", t("开始买入流程")] : null,
-      ["owned", "selling"].includes(p.status) && p.role !== "tenant" ? ["sell", t("开始卖出流程")] : null,
-      p.role === "tenant" && p.status === "renting" ? ["move_out", t("开始退租流程")] : null,
-      p.status === "owned" && p.role !== "tenant" ? ["buy", t("记录买入流程（刚签约）")] : null,
-    ].filter(Boolean);
-    return `${houseBar()}${statusCard}
-      <section class="section"><div class="panel empty"><strong>${t("这套房产没有进行中的交易")}</strong>
-        ${t("买入或卖出时，按伊利诺伊州流程生成带截止日期的清单：律师审查、验房、贷款承诺、停服务通知、交割后事项，逐项提醒。")}
-        <p>${starts.map(([k, l]) => `<button type="button" class="btn btn-primary" data-action="deal-start" data-kind="${k}">${l}</button>`).join(" ")}
-           ${!live ? `<span class="muted">${t("已卖出或退租的房产只保留历史。")}</span>` : ""}</p></div></section>
-      ${dealHistory(history, null)}`;
+    const starts = veh ? vehicleStarts(veh) : propertyStarts(p);
+    const live = veh ? V().isActive(veh) : propertyLive(p);
+    const intro = veh ? t("买车、卖车或租赁到期归还时，按常见流程生成带日期的清单：产权与上牌、保险、拆车牌、已售通知、删除个人数据，逐项提醒。")
+      : t("买入或卖出时，按伊利诺伊州流程生成带截止日期的清单：律师审查、验房、贷款承诺、停服务通知、交割后事项，逐项提醒。");
+    return `${bar}${headCard}
+      <section class="section"><div class="panel empty"><strong>${veh ? t("这辆车没有进行中的交易") : t("这套房产没有进行中的交易")}</strong>
+        ${intro}
+        <p>${starts.map(([k, l]) => `<button type="button" class="btn btn-primary" data-action="deal-start" data-kind="${k}" ${veh ? `data-asset="${veh.id}"` : ""}>${l}</button>`).join(" ")}
+           ${!live ? `<span class="muted">${veh ? t("已卖出或已归还的车只保留历史。") : t("已卖出或退租的房产只保留历史。")}</span>` : ""}</p></div></section>
+      ${dealHistory(history, null, histLink)}`;
   }
   const tasks = dealTasks(deal);
-  const groups = Object.entries(D().STAGES).map(([k, n]) => ({ k, n, rows: tasks.filter((x) => x.stage === k) })).filter((g) => g.rows.length);
+  const groups = Object.entries(D().stagesOf(deal.kind)).map(([k, n]) => ({ k, n, rows: tasks.filter((x) => x.stage === k) })).filter((g) => g.rows.length);
   const undone = tasks.filter((x) => !x.done), mustLeft = undone.filter((x) => x.priority === "must").length;
   const K = D().KINDS;
-  const sec = (closed && q?.get("sec") === "closeout" ? "" : q?.get("sec")) || "";   // 历史交易没有交割页
+  const sec = ((closed || veh) && q?.get("sec") === "closeout" ? "" : q?.get("sec")) || "";   // 历史交易、车辆交易没有交割页（车辆直接一键完成）
   // ── 子页：交易信息 / 某个阶段的清单 / 交割（面包屑由 menu.js 统一画：‹ 房产 / 交易 / 子页名）──
   if (sec === "info") return `<section class="section">${dealForm(deal)}</section>`;
   if (sec.startsWith("stage:")) {
-    const sk = sec.slice(6), g = groups.find((x) => x.k === sk) || (D().STAGES[sk] ? { k: sk, n: D().STAGES[sk], rows: [] } : null);   // 空阶段（如删光自定义事项后）也画出来，方便再添加
+    const sk = sec.slice(6), ST = D().stagesOf(deal.kind), g = groups.find((x) => x.k === sk) || (ST[sk] ? { k: sk, n: ST[sk], rows: [] } : null);   // 空阶段（如删光自定义事项后）也画出来，方便再添加
     if (!g) return `<section class="section"><div class="panel empty"><strong>${t("没有这个阶段")}</strong></div></section>`;
     const done = g.rows.filter((x) => x.done).length;
     return `${newTaskPanel(deal)}<section class="section">
       <p class="muted" style="margin:-6px 0 12px;font-size:13px">${t("{kind}流程", { kind: t(K[deal.kind]) })} · ${t("已完成 {a} / {b}", { a: done, b: g.rows.length })}</p>
       <div class="panel"><ul class="task-list">${g.rows.sort((a, b) => (a.due || "9").localeCompare(b.due || "9")).map((x) => taskRow(x)).join("")}</ul></div>
       <p><button type="button" class="btn btn-sm btn-ghost" data-action="deal-task-new" data-deal="${deal.id}" data-stage="${g.k}">＋ ${t("添加自定义事项")}</button></p>
-      <p class="disclaimer">${t("清单按伊利诺伊州（芝加哥）常见流程整理，日期和税费以合同、律师和产权公司为准；其他州请按本地流程增删。点事项右侧的 ✎ 可以调整应完成日期、记录实际完成日期。")}</p>
+      <p class="disclaimer">${veh ? t("清单按伊利诺伊州常见流程整理，产权、税费和期限以车管所（SOS）和车行 / 租赁公司为准；其他州请按本地流程增删。点事项右侧的 ✎ 可以调整应完成日期、记录实际完成日期。") : t("清单按伊利诺伊州（芝加哥）常见流程整理，日期和税费以合同、律师和产权公司为准；其他州请按本地流程增删。点事项右侧的 ✎ 可以调整应完成日期、记录实际完成日期。")}</p>
     </section>`;
   }
   if (sec === "closeout") return `<section class="section">
@@ -243,7 +287,7 @@ export function viewDeal() {
     </section>`;
   // ── 枢纽页：总进度 + 一行一个入口，各带完成度 ──
   const total = tasks.length, doneN = total - undone.length, pct = total ? Math.round((doneN / total) * 100) : 0;
-  const INFO_FIELDS = ["contract_on", "closing_on", "review_deadline", "financing_deadline", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector"];
+  const INFO_FIELDS = veh ? ["contract_on", "closing_on", "price", "earnest_money", "lender", "agent"] : ["contract_on", "closing_on", "review_deadline", "financing_deadline", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector"];
   const infoN = INFO_FIELDS.filter((k) => deal[k] != null && deal[k] !== "").length;
   const nextDue = undone.filter((x) => x.due).sort((a, b) => a.due.localeCompare(b.due))[0];
   // url 为 null 时画成按钮（attrs 里带 data-action）
@@ -258,13 +302,19 @@ export function viewDeal() {
     const badge = late ? `<span class="badge b-out mcount">${t("逾期 {n}", { n: late })}</span>` : d === g.rows.length ? `<span class="badge b-ok mcount">✓</span>` : `<span class="badge mcount" style="background:var(--surface-2)">${d}/${g.rows.length}</span>`;
     return row(link(`stage:${g.k}`), d === g.rows.length ? "✅" : "☐", t(g.n), esc(desc), Math.round((d / g.rows.length) * 100), badge);
   }).join("");
-  const infoRow = row(link("info"), "📝", t("交易信息"), infoN ? t("合同日、交割日、价格、律师、贷款行、经纪人等") : t("先填合同日和交割日，清单截止日按它们推算"), Math.round((infoN / INFO_FIELDS.length) * 100), `<span class="badge mcount" style="background:var(--surface-2)">${infoN}/${INFO_FIELDS.length}</span>`);
+  const infoRow = row(link("info"), "📝", t("交易信息"), veh ? (infoN ? t("日期、价格、贷款行 / 租赁公司、对方联系方式") : t("先填{a}和{b}，清单日期按它们推算", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })) : infoN ? t("合同日、交割日、价格、律师、贷款行、经纪人等") : t("先填合同日和交割日，清单截止日按它们推算"), Math.round((infoN / INFO_FIELDS.length) * 100), `<span class="badge mcount" style="background:var(--surface-2)">${infoN}/${INFO_FIELDS.length}</span>`);
   const addRow = addTaskRow(deal, "special", row);
-  const closeRow = closed ? "" : row(link("closeout"), deal.kind === "buy" ? "🔑" : "📦", deal.kind === "buy" ? t("完成交割") : t("交割与退出"), deal.kind === "buy" ? t("交割后标为持有，记买入日期和价格") : t("账单结束日期、取消自动扣款、归档房产"), null);
-  return `${houseBar()}${statusCard}
+  // 完成：房产买入 / 车辆都是一键确认（按钮，点两次），卖房 / 退租走向导页
+  const closeRow = closed ? "" : veh
+    ? row(null, deal.kind === "veh_buy" ? "🔑" : "📦", deal.kind === "veh_buy" ? t("已提车，标为持有") : deal.kind === "veh_sell" ? t("已交车，标为已卖出") : t("已归还，标为已归还"),
+        deal.kind === "veh_buy" ? t("把购车日期、价格写进车辆档案；填了贷款行就标为贷款中") : t("记下日期和成交价，车从列表和提醒里退出，档案与保养记录保留"), null, "", `data-action="deal-closeout" data-deal="${deal.id}"`)
+    : row(link("closeout"), deal.kind === "buy" ? "🔑" : "📦", deal.kind === "buy" ? t("完成交割") : t("交割与退出"), deal.kind === "buy" ? t("交割后标为持有，记买入日期和价格") : t("账单结束日期、取消自动扣款、归档房产"), null);
+  const cancelRow = closed ? "" : `<p style="margin:8px 0 0;text-align:right"><button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel" data-deal="${deal.id}">${t("取消这笔交易")}</button></p>`;
+  const openNow = veh ? openVehicleDeal(veh.id) : openDeal(p.id);
+  return `${bar}${headCard}
     <section class="section">
-      <div class="section-head"><h2>${closed ? (deal.outcome === "cancelled" ? t("{kind}已取消", { kind: t(K[deal.kind]) }) : t("{kind}已交割", { kind: t(K[deal.kind]) })) : t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${deal.closing_on ? t("交割 {d}", { d: fmtDate(deal.closing_on) }) : t("还没填交割日")}</p></div>
-      ${closed ? `<p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。")}${openDeal(p.id) ? ` <a href="${href("house", "deal")}">${t("回到进行中的交易")}</a>` : ""}</p>` : ""}
+      <div class="section-head"><h2>${closed ? (deal.outcome === "cancelled" ? t("{kind}已取消", { kind: t(K[deal.kind]) }) : t("{kind}已完成", { kind: t(K[deal.kind]) })) : t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${deal.closing_on ? `${t(dateLabels(deal)[1])} ${fmtDate(deal.closing_on)}` : t("还没填{d}", { d: t(dateLabels(deal)[1]) })}</p></div>
+      ${closed ? `<p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。")}${openNow ? ` <a href="${dealHref(openNow)}">${t("回到进行中的交易")}</a>` : ""}</p>` : ""}
       <div class="panel deal-progress">
         <div class="kv"><div><b>${t("总进度 {p}%", { p: pct })}</b><div class="muted">${t("已完成 {a} / {b}", { a: doneN, b: total })}${mustLeft ? ` · ${t("必须项还剩 {n}", { n: mustLeft })}` : ""}${nextDue ? ` · ${t("最近截止 {date}", { date: fmtDate(nextDue.due) })}` : ""}</div></div></div>
         <div class="life-bar big"><i style="width:${pct}%"></i></div>
@@ -277,14 +327,74 @@ export function viewDeal() {
         <button type="button" class="chip" data-action="deal-view" data-view="timeline" aria-pressed="${state.dealView === "timeline"}">⏐ ${t("时间线")}</button>
       </div>
       ${state.dealView === "timeline" ? `<div class="panel mlist">${infoRow}</div>${timeline(deal, tasks)}<div class="panel mlist" style="margin-top:12px">${addRow}${closeRow}</div>`
-        : `<div class="panel mlist">${infoRow}${stageRows}${addRow}${closeRow}</div>`}
-      <p class="disclaimer">${t("截止日按合同日和交割日推算，可点 ✎ 调整；必须项逾期会在首页置顶")}</p>
+        : `<div class="panel mlist">${infoRow}${stageRows}${addRow}${closeRow}</div>`}${cancelRow}
+      <p class="disclaimer">${t("截止日按{a}和{b}推算，可点 ✎ 调整；必须项逾期会在首页置顶", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })}</p>
     </section>
-    ${dealHistory(history, viewed?.id || null)}`;
+    ${dealHistory(history, viewed?.id || null, histLink)}`;
+}
+
+/** 交易页顶部：房产状态卡 */
+function propertyCard(p) {
+  const B = window.BILLS;
+  const live = propertyLive(p);
+  return `<section class="section"><div class="house-card">
+      <span class="house-ico" aria-hidden="true">🏠</span>
+      <div class="grow"><h2>${esc(p.name)}<span class="badge ${live ? "b-ok" : ""}" style="${live ? "" : "background:var(--surface-2)"}">${statusText(p)}</span></h2>
+        <p class="muted">${[t(B.PROPERTY_KINDS[p.kind] || ""), t(B.PROPERTY_ROLES[p.role] || ""), p.acquired_on ? t("{d} 买入", { d: fmtDate(p.acquired_on) }) : null, p.purchase_price ? money(num(p.purchase_price)) : null,
+          p.sold_on ? t("{d} 卖出", { d: fmtDate(p.sold_on) }) : null, p.sale_price ? money(num(p.sale_price)) : null].filter(Boolean).map(esc).join(" · ")}</p></div>
+    </div></section>`;
+}
+/** 交易页顶部：车辆状态卡（面包屑由 menu.js 画：车辆 / 车名 / 交易） */
+function vehicleCard(a) {
+  const v = a.vehicle || {}, st = V().STATUS[V().statusOf(a)], pt = V().POWERTRAINS[a.type];
+  const meta = [[a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "), t(pt?.name || ""), v.plate ? `🪪 ${v.plate}` : null,
+    a.installed_on ? t("{d} 购入", { d: fmtDate(a.installed_on) }) : null, a.purchase_price ? money(num(a.purchase_price)) : null,
+    v.disposed_on ? `${V().statusOf(a) === "returned" ? t("{d} 归还", { d: fmtDate(v.disposed_on) }) : t("{d} 卖出", { d: fmtDate(v.disposed_on) })}` : null, v.sale_price ? money(num(v.sale_price)) : null].filter(Boolean);
+  return `<section class="section"><div class="house-card">
+      <span class="house-ico" aria-hidden="true">${pt?.icon || "🚗"}</span>
+      <div class="grow"><h2><a class="asset-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a><span class="badge ${st.cls}" style="${st.cls ? "" : "background:var(--surface-2)"}">${t(st.name)}</span></h2>
+        <p class="muted">${meta.map(esc).join(" · ")}</p></div>
+    </div></section>`;
+}
+/** 没有进行中交易时可以开始哪些流程 */
+function propertyStarts(p) {
+  return [
+    !["sold", "moved_out", "selling"].includes(p.status) && p.role !== "tenant" && ["looking", "buying"].includes(p.status) ? ["buy", t("开始买入流程")] : null,
+    ["owned", "selling"].includes(p.status) && p.role !== "tenant" ? ["sell", t("开始卖出流程")] : null,
+    p.role === "tenant" && p.status === "renting" ? ["move_out", t("开始退租流程")] : null,
+    p.status === "owned" && p.role !== "tenant" ? ["buy", t("记录买入流程（刚签约）")] : null,
+  ].filter(Boolean);
+}
+function vehicleStarts(a) {
+  const st = V().statusOf(a);
+  return [
+    st === "looking" ? ["veh_buy", t("开始买车流程")] : null,
+    ["owned", "financed"].includes(st) ? ["veh_sell", t("开始卖车流程")] : null,
+    ["owned", "financed"].includes(st) ? ["veh_buy", t("记录买车流程（刚下订）")] : null,
+    st === "leased" ? ["veh_return", t("开始租赁归还流程")] : null,
+    st === "leased" ? ["veh_sell", t("买断后卖车")] : null,
+  ].filter(Boolean);
 }
 
 function dealForm(d) {
   const v = (k) => esc(d[k] ?? "");
+  if (isVehDeal(d)) {   // 车辆：日期两个、价格、定金、贷款行 / 租赁公司、对方联系方式、备注
+    const [c, z] = dateLabels(d);
+    return `<form id="dealForm" class="panel" novalidate>
+    <input type="hidden" name="deal_id" value="${esc(d.id)}">
+    <div class="form-grid">
+      ${d.kind === "veh_return" ? "" : `<label>${t(c)}<input name="contract_on" type="date" value="${v("contract_on")}"><small>${t("准备阶段的事项按它推算")}</small></label>`}
+      <label>${t(z)}<input name="closing_on" type="date" value="${v("closing_on")}"><small>${d.kind === "veh_return" ? t("预检、归还、最终账单都按它推算") : t("保险、上牌、拆车牌、已售通知按它推算")}</small></label>
+      <label>${d.kind === "veh_return" ? t("买断价（可选）") : t("成交价")}<input name="price" type="number" inputmode="decimal" min="0" step="0.01" value="${v("price")}"></label>
+      <label>${d.kind === "veh_return" ? t("处置费 / 预估超里程费") : t("定金")}<input name="earnest_money" type="number" inputmode="decimal" min="0" step="0.01" value="${v("earnest_money")}"></label>
+      <label>${d.kind === "veh_return" ? t("租赁公司") : t("贷款行 / 租赁公司")}<input name="lender" maxlength="120" value="${v("lender")}"><small>${d.kind === "veh_buy" ? t("填了，完成时车会标为“贷款中”") : ""}</small></label>
+      <label>${d.kind === "veh_buy" ? t("车行 / 卖家") : d.kind === "veh_sell" ? t("买家 / 车行") : t("经销商 / 归还地点")}<input name="agent" maxlength="120" placeholder="${t("姓名 · 电话 / 邮箱")}" value="${v("agent")}"></label>
+      <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" value="${v("notes")}"></label>
+    </div>
+    <div class="form-actions sticky-actions" style="margin-top:10px"><button class="btn btn-primary" type="submit">${t("保存交易信息")}</button>
+      <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>
+  </form>`;
+  }
   return `<form id="dealForm" class="panel" novalidate>
     <input type="hidden" name="deal_id" value="${esc(d.id)}">
     <div class="form-grid">
@@ -308,14 +418,14 @@ function dealForm(d) {
 }
 
 /** 历史交易：每条可点开（?deal=<id>）查看、修改当时的清单、时间线和交易信息；current = 正在看的那条 */
-function dealHistory(list, current) {
+function dealHistory(list, current, linkOf) {
   if (!list.length) return "";
   const K = D().KINDS;
   return `<section class="section"><div class="section-head"><h2>${t("历史交易")}</h2></div><div class="panel"><ul class="restock-list">${list.map((d) => `<li ${d.id === current ? 'aria-current="true"' : ""}>
     <span class="badge" style="background:var(--surface-2)">${t(K[d.kind])}</span>
-    <div class="grow"><a class="link-name" href="${href("house", "deal")}?deal=${esc(d.id)}">${d.closing_on ? fmtDate(d.closing_on) : fmtDate((d.closed_at || d.updated_at || "").slice(0, 10))}</a>
-      <small>${[d.outcome === "cancelled" ? t("已取消") : t("已交割"), d.price ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>
-    ${d.id === current ? `<span class="badge b-ok">${t("正在查看")}</span>` : `<a class="btn btn-sm btn-ghost" href="${href("house", "deal")}?deal=${esc(d.id)}">${t("查看清单")}</a>`}</li>`).join("")}</ul></div></section>`;
+    <div class="grow"><a class="link-name" href="${linkOf(d)}">${d.closing_on ? fmtDate(d.closing_on) : fmtDate((d.closed_at || d.updated_at || "").slice(0, 10))}</a>
+      <small>${[d.outcome === "cancelled" ? t("已取消") : isVehDeal(d) ? t("已完成") : t("已交割"), d.price ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>
+    ${d.id === current ? `<span class="badge b-ok">${t("正在查看")}</span>` : `<a class="btn btn-sm btn-ghost" href="${linkOf(d)}">${t("查看清单")}</a>`}</li>`).join("")}</ul></div></section>`;
 }
 
 /** 退出向导（卖出 / 退租）：交割日、成交价、每条账单的结束日期 */
@@ -340,25 +450,58 @@ function closeoutPanel(p, deal) {
 }
 
 /* ── 动作 ── */
-export async function startDeal(kind) {
+const EMPTY_DEAL = { contract_on: null, review_deadline: null, financing_deadline: null, closing_on: null, price: null, earnest_money: null,
+  attorney: null, lender: null, agent: null, title_company: null, inspector: null, notes: null, outcome: null, closed_at: null };
+/** 开始一笔交易：房产（当前房产）或车辆（assetId） */
+export async function startDeal(kind, assetId = null) {
+  if (D().isVehicleKind(kind) && !assetId) return;   // 车辆流程必须挂在一辆车上
+  if (assetId) {   // 刚建的占位车可能还没进 state，只看有没有进行中的交易
+    if (openVehicleDeal(assetId)) return;
+    await Store.saveDeal({ ...EMPTY_DEAL, property_id: null, asset_id: assetId, kind });
+    const [c, z] = D().DATE_LABELS[kind];
+    toast(t("已开始{kind}流程，先填{a}和{b}", { kind: t(D().KINDS[kind]), a: t(c), b: t(z) }));
+    return;
+  }
   const p = currentProp();
   if (!p || openDeal(p.id)) return;
-  await Store.saveDeal({ property_id: p.id, kind, contract_on: null, review_deadline: null, financing_deadline: null, closing_on: null, price: null, earnest_money: null,
-    attorney: null, lender: null, agent: null, title_company: null, inspector: null, notes: null, outcome: null, closed_at: null });
+  await Store.saveDeal({ ...EMPTY_DEAL, property_id: p.id, asset_id: null, kind });
   const status = kind === "buy" ? "buying" : kind === "sell" ? "selling" : p.status;
   if (status !== p.status) await Store.saveProperty({ ...p, status });
   toast(t("已开始{kind}流程，先填合同日和交割日", { kind: t(D().KINDS[kind]) }));
 }
 
+/** 车辆交易一键完成：买车 → 持有 / 贷款中并写入购车日期、价格；卖车 → 已卖出；归还 → 已归还（车从列表和提醒退出，档案保留） */
+export async function completeVehicleDeal(deal) {
+  const a = state.assets.find((x) => x.id === deal.asset_id);
+  if (!a || deal.outcome) return;
+  const day = deal.closing_on || todayISO();
+  const v = { ...(a.vehicle || {}) };
+  const patch = { ...a };
+  if (deal.kind === "veh_buy") {
+    v.status = deal.lender ? "financed" : "owned";
+    patch.installed_on = a.installed_on || day;
+    if (deal.price != null && a.purchase_price == null) patch.purchase_price = deal.price;
+  } else {
+    v.status = deal.kind === "veh_sell" ? "sold" : "returned";
+    v.disposed_on = day;
+    if (deal.price != null) v.sale_price = deal.price;
+  }
+  await Store.saveDeal({ ...deal, closing_on: day, outcome: "closed", closed_at: new Date().toISOString() });
+  await Store.saveAsset({ ...patch, vehicle: v });
+  toast(deal.kind === "veh_buy" ? t("已标为{st}，去车辆档案补车牌、里程和保险", { st: t(V().STATUS[v.status].name) }) : t("已标为{st}，档案和保养记录保留在“历史车辆”里", { st: t(V().STATUS[v.status].name) }));
+}
+
 export async function saveDealForm(f) {
   const fe = f.elements, d = state.deals.find((x) => x.id === fe.deal_id.value);
   if (!d) return;
-  const v = (k) => fe[k].value || null, n = (k) => (fe[k].value === "" ? null : Math.round(num(fe[k].value) * 100) / 100);
+  // 车辆表单只有一部分字段：没出现的保持原值
+  const v = (k) => (fe[k] ? fe[k].value || null : d[k] ?? null), n = (k) => (!fe[k] ? d[k] ?? null : fe[k].value === "" ? null : Math.round(num(fe[k].value) * 100) / 100);
+  const s_ = (k) => (fe[k] ? fe[k].value.trim() || null : d[k] ?? null);
   const patch = { ...d, contract_on: v("contract_on"), closing_on: v("closing_on"), review_deadline: v("review_deadline"), financing_deadline: v("financing_deadline"),
-    price: n("price"), earnest_money: n("earnest_money"), attorney: fe.attorney.value.trim() || null, lender: fe.lender.value.trim() || null, agent: fe.agent.value.trim() || null,
-    title_company: fe.title_company.value.trim() || null, inspector: fe.inspector.value.trim() || null, notes: fe.notes.value.trim() || null };
-  // 合同日填了、审查截止没填：按 5 个工作日估一个
-  if (patch.contract_on && !patch.review_deadline) patch.review_deadline = addBusinessDays(patch.contract_on, 5);
+    price: n("price"), earnest_money: n("earnest_money"), attorney: s_("attorney"), lender: s_("lender"), agent: s_("agent"),
+    title_company: s_("title_company"), inspector: s_("inspector"), notes: s_("notes") };
+  // 房产：合同日填了、审查截止没填，按 5 个工作日估一个
+  if (!isVehDeal(d) && patch.contract_on && !patch.review_deadline) patch.review_deadline = addBusinessDays(patch.contract_on, 5);
   await Store.saveDeal(patch);
   toast(t("交易信息已保存"));
 }
@@ -402,12 +545,14 @@ export async function saveDealTaskForm(f) {
 }
 export const deleteCustomTask = (id) => Store.deleteDealCustom(id);
 
-export async function cancelDeal() {
-  const p = currentProp(), d = openDeal(p?.id);
-  if (!d) return;
+export async function cancelDeal(dealId) {
+  const d = dealId ? state.deals.find((x) => x.id === dealId) : openDeal(currentProp()?.id);
+  if (!d || d.outcome) return;
   await Store.saveDeal({ ...d, outcome: "cancelled", closed_at: new Date().toISOString() });
-  const back = d.kind === "buy" ? (p.acquired_on ? "owned" : "looking") : d.kind === "sell" ? "owned" : "renting";
-  await Store.saveProperty({ ...p, status: back });
+  if (!d.asset_id) {
+    const p = state.properties.find((x) => x.id === d.property_id);
+    if (p) { const back = d.kind === "buy" ? (p.acquired_on ? "owned" : "looking") : d.kind === "sell" ? "owned" : "renting"; await Store.saveProperty({ ...p, status: back }); }
+  }
   toast(t("交易已取消"));
 }
 

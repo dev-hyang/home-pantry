@@ -59,13 +59,14 @@ function hoaFact(p) {
 }
 
 /** 概览里的“HOA / 物业”面板：联系方式、费用、特殊评估、规则、该房型须知 */
-function hoaPanel(p) {
+/** HOA / 物业参考块：{ title, hint, body }；没填且房型一般没有的返回 null */
+function hoaBlock(p) {
   const hoa = hoaOf(p), a = H().assocOf(p.house_type);
   const tips = a.tips.length ? `<details class="hoa-tips" ${hoa.enabled && (hoa.name || hoa.rules) ? "" : "open"}><summary>${t("{label}须知（{type}）", { label: t(a.label), type: t(H().typeOf(p.region, p.house_type)?.name || "") })}</summary><ul class="tips">${a.tips.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></details>` : "";
   if (!hoa.enabled) {
-    if (!a.on && !a.tips.length) return "";
-    return `<section class="section" id="house-hoa"><div class="section-head"><h2>${esc(t(a.label))}</h2><p>${t("没填 {label}，有的话去资料里补充", { label: t(a.label) })}</p></div>
-      <div class="panel">${tips || `<div class="empty">${t("这种房型一般没有 {label}", { label: t(a.label) })}</div>`}</div></section>`;
+    if (!a.on && !a.tips.length) return null;
+    return { title: esc(t(a.label)), hint: t("没填 {label}，有的话去资料里补充", { label: t(a.label) }),
+      body: `${tips || `<div class="empty">${t("这种房型一般没有 {label}", { label: t(a.label) })}</div>`}<p style="margin:10px 0 0"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改")}</a></p>` };
   }
   // 多个邮箱用 ; 或 , 隔开，各自成一个链接；手机上允许在任意处换行，不再撑宽
   const emails = (hoa.email || "").split(/[;,，；]/).map((x) => x.trim()).filter(Boolean);
@@ -81,9 +82,9 @@ function hoaPanel(p) {
   const hoaBill = state.bills.find((b) => b.category === "hoa" && (!b.property_id || b.property_id === state.propertyId) && !b.archived);
   // 标签 / 值的事实行（与房屋卡片同款）：值可换行，手机上不会把内容挤到屏幕外；表格 + 横向滚动会让长邮箱、备注把值列推出视野
   const row = (k, v) => (v ? `<div class="fact wide"><dt>${k}</dt><dd>${v}</dd></div>` : "");
-  return `<section class="section" id="house-hoa">
-    <div class="section-head"><h2>${esc(t(a.label))}${hoa.name ? ` · ${esc(hoa.name)}` : ""}</h2><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改")}</a></div>
-    <div class="panel">
+  const hint = [hoa.dues > 0 ? `${t(H().DUES_PERIODS[hoa.dues_period] || "每月")} ${money(hoa.dues)}` : null, sa.kind !== "none" && sa.kind !== "paid" ? t("特殊评估待缴") : null, hoa.mgmt].filter(Boolean).join(" · ");
+  return { title: `${esc(t(a.label))}${hoa.name ? ` · ${esc(hoa.name)}` : ""}`, hint, open: sa.kind !== "none" && sa.kind !== "paid",
+    body: `<p style="margin:0 0 6px;text-align:right"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改")}</a></p>
       <dl class="fact-grid one">
         ${row(t("管理公司 / 联系人"), hoa.mgmt ? esc(hoa.mgmt) : "")}
         ${row(t("联系方式"), contact)}
@@ -92,9 +93,14 @@ function hoaPanel(p) {
         ${row(t("规则与限制"), hoa.rules ? `<span class="pre">${esc(hoa.rules)}</span>` : "")}
         ${row(t("备注"), hoa.notes ? `<span class="pre">${esc(hoa.notes)}</span>` : "")}
       </dl>
-      ${tips}
-    </div>
-  </section>`;
+      ${tips}` };
+}
+
+/** 概览里的参考块：标题 + 一句摘要，默认折叠；手机上一屏就能看完“要做的事”，参考资料点开再看 */
+function refSection(id, { title, hint, body, open = false }) {
+  return `<section class="section ref" ${id ? `id="${id}"` : ""}><details class="panel ref-panel" ${open ? "open" : ""}>
+    <summary><b>${title}</b>${hint ? `<small>${hint}</small>` : ""}<span class="mch" aria-hidden="true">›</span></summary>
+    <div class="ref-body">${body}</div></details></section>`;
 }
 
 /** 提醒总线：特殊评估未缴且 45 天内到期或已逾期（必须） */
@@ -254,16 +260,17 @@ export function applyTypeDefaults(d) {
 }
 
 /** 房屋卡片的事实列表：地址、材料、设施各占半行，保险和 HOA 各占整行 */
+/** 房屋卡片的事实行：main = 地址 / 保险 / HOA（常要查的），more = 材料 / 设施（填过就不常看，折叠） */
 function houseFacts(p, { ext, roof, floors, featNames }) {
-  const facts = [];
+  const main = [], more = [];
   const addr = currentProp()?.address;
-  facts.push({ k: `📍 ${t("地址")}`, v: addr ? esc(addr) : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充")}</a>` });
+  main.push({ k: `📍 ${t("地址")}`, v: addr ? esc(addr) : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充")}</a>`, wide: true });
+  main.push({ ...insuranceFact(p), wide: true });
+  const hoa = hoaFact(p); if (hoa) main.push({ ...hoa, wide: true });
   const mats = [...ext, ...roof, ...floors];
-  facts.push({ k: `🧱 ${t("材料")}`, v: mats.length ? `<span class="tagline">${mats.map((m) => `<span class="tag">${esc(t(m.name))}</span>`).join("")}</span>` : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充材料")}</a>` });
-  if (featNames.length) facts.push({ k: `🔧 ${t("设施")}`, v: `<span class="tagline">${featNames.map((n) => `<span class="tag tag-soft">${esc(n)}</span>`).join("")}</span>`, wide: true });
-  facts.push({ ...insuranceFact(p), wide: true });
-  const hoa = hoaFact(p); if (hoa) facts.push({ ...hoa, wide: true });
-  return facts;
+  more.push({ k: `🧱 ${t("材料")}`, v: mats.length ? `<span class="tagline">${mats.map((m) => `<span class="tag">${esc(t(m.name))}</span>`).join("")}</span>` : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充材料")}</a>`, wide: true });
+  if (featNames.length) more.push({ k: `🔧 ${t("设施")}`, v: `<span class="tagline">${featNames.map((n) => `<span class="tag tag-soft">${esc(n)}</span>`).join("")}</span>`, wide: true });
+  return { main, more, count: mats.length + featNames.length };
 }
 
 /* ── 房屋概览 ── */
@@ -297,6 +304,11 @@ export function viewHouse() {
       ${mats.map((m) => `<details ${mats.length === 1 ? "open" : ""}><summary>${esc(t(m.name))}</summary><ul>${m.tips.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></details>`).join("")}
     </div>` : "";
 
+  const facts = houseFacts(p, { ext, roof, floors, featNames });
+  const factRows = (list) => list.map((f) => `<div class="fact ${f.wide ? "wide" : ""}"><dt>${f.k}</dt><dd>${f.v}${f.sub ? `<small>${f.sub}</small>` : ""}</dd></div>`).join("");
+  const hoa = hoaBlock(p);
+  // 布局：先是这套房的身份卡（地址、保险、HOA 一眼可查），然后是“要做的事”（交易清单 → 本月季节任务 → 设备提醒 → 耗材提醒），
+  // 最后是不常变的参考资料（归谁维护 / HOA 详情 / 材料保养），默认折叠
   return `
     ${houseBar()}${statusLine()}
     <section class="section">
@@ -309,9 +321,14 @@ export function viewHouse() {
           </div>
           <a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改资料")}</a>
         </div>
-        <dl class="fact-grid">${houseFacts(p, { ext, roof, floors, featNames }).map((f) => `<div class="fact ${f.wide ? "wide" : ""}"><dt>${f.k}</dt><dd>${f.v}${f.sub ? `<small>${f.sub}</small>` : ""}</dd></div>`).join("")}</dl>
+        <dl class="fact-grid one">${factRows(facts.main)}</dl>
+        <details class="facts-more"><summary>${t("材料与设施")}<small>${facts.count ? t("{n} 项", { n: facts.count }) : t("未填")}</small></summary><dl class="fact-grid one">${factRows(facts.more)}</dl></details>
       </div>
     </section>
+
+    ${dealPanel()}
+    ${tasksPanel()}
+    ${assetsPanel()}
 
     <section class="section">
       <div class="section-head"><h2>${t("房屋耗材提醒")}</h2>
@@ -322,28 +339,13 @@ export function viewHouse() {
       ${shelf ? `<div class="shelf" style="margin-top:10px">${shelf}</div>` : ""}
     </section>
 
-    <section class="section">
-      <div class="section-head"><h2>${t("哪些部位归谁维护")}</h2><p>${esc(t(ht?.desc || ""))}</p></div>
-      <div class="panel"><div class="ch-scroll"><table class="owner-table"><tbody>${ownerRows}</tbody></table></div>
-        <p class="disclaimer">${t("这是该房型的常见情况，具体以 HOA 章程、物业服务合同或租约为准。")}</p></div>
-    </section>
-
-    ${hoaPanel(p)}
-
-    ${ext.length || roof.length || floors.length ? `<section class="section">
-      <div class="section-head"><h2>${t("材料保养建议")}</h2><p>${t("根据你填写的外墙、屋面和地面材料")}</p></div>
-      <div class="panel care-grid">${careBlock(t("外墙"), ext)}${careBlock(t("屋面"), roof)}${careBlock(t("地面"), floors)}</div>
-      <p class="disclaimer">${t("周期与寿命为常见经验值，实际以产品说明书和专业人士检查为准。")}</p>
-    </section>` : `<section class="section"><div class="panel empty"><strong>${t("还没填材料")}</strong>${t("补充外墙、屋面和地面材料后，这里会给出对应的保养建议。")}<p><a class="btn btn-ghost" href="${href("house", "profile")}">${t("补充材料")}</a></p></div></section>`}
-
-    ${dealPanel()}
-    ${tasksPanel()}
-    ${assetsPanel()}
-
-    <section class="section"><div class="panel next-phase">
-      <h3>${t("第三期")}</h3>
-      <p class="muted">${t("修还是换的建议、照片与收据、维修费用报表。")}</p>
-    </div></section>`;
+    <div class="section-head ref-head"><h2>${t("参考")}</h2><p>${t("按房型和材料整理，不常变；点开查看")}</p></div>
+    ${refSection("house-owners", { title: t("哪些部位归谁维护"), hint: esc(t(ht?.desc || "")),
+      body: `<div class="ch-scroll"><table class="owner-table"><tbody>${ownerRows}</tbody></table></div><p class="disclaimer">${t("这是该房型的常见情况，具体以 HOA 章程、物业服务合同或租约为准。")}</p>` })}
+    ${hoa ? refSection("house-hoa", hoa) : ""}
+    ${ext.length || roof.length || floors.length ? refSection("house-care", { title: t("材料保养建议"), hint: [...ext, ...roof, ...floors].map((m) => t(m.name)).join("、"),
+      body: `<div class="care-grid">${careBlock(t("外墙"), ext)}${careBlock(t("屋面"), roof)}${careBlock(t("地面"), floors)}</div><p class="disclaimer">${t("周期与寿命为常见经验值，实际以产品说明书和专业人士检查为准。")}</p>` })
+      : refSection("house-care", { title: t("材料保养建议"), hint: t("还没填材料"), body: `${t("补充外墙、屋面和地面材料后，这里会给出对应的保养建议。")}<p><a class="btn btn-ghost btn-sm" href="${href("house", "profile")}">${t("补充材料")}</a></p>` })}`;
 }
 
 /* ── 概览里的设备与季节任务摘要（第二期） ── */
@@ -372,9 +374,12 @@ function tasksPanel() {
   if (!list.length) return "";
   const undone = list.filter((x) => !x.done), done = list.filter((x) => x.done);
   return `<section class="section">
-    <div class="section-head"><h2>${t("{month}季节任务", { month: monthName(m) })}</h2><div class="head-acts"><p>${t("已完成 {a} / {b}", { a: done.length, b: list.length })}${undone.length ? "" : ` · ${t("本月都做完了")}`}</p>
+    <div class="section-head"><h2>${t("{month}季节任务", { month: monthName(m) })}</h2><div class="head-acts"><p>${undone.length ? t("还有 {n} 项没做", { n: undone.length }) : t("本月都做完了")}</p>
       <a class="btn btn-sm btn-ghost" href="${href("house", "tasks")}">${t("全年任务")}</a></div></div>
-    <div class="panel"><ul class="task-list">${[...undone, ...done].map((x) => taskRow(x, y, m)).join("")}</ul></div>
+    <div class="panel">
+      ${undone.length ? `<ul class="task-list">${undone.map((x) => taskRow(x, y, m)).join("")}</ul>` : `<div class="empty"><strong>${t("本月都做完了")}</strong></div>`}
+      ${done.length ? `<details class="done-fold"><summary>${t("已完成 {n} 项", { n: done.length })}</summary><ul class="task-list">${done.map((x) => taskRow(x, y, m)).join("")}</ul></details>` : ""}
+    </div>
   </section>`;
 }
 

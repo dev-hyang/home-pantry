@@ -5,9 +5,9 @@ import { SECTIONS, href } from "./core/router.js";
 import { esc, inSpace } from "./core/util.js";
 import { t } from "./core/i18n.js";
 import { alertsOf } from "./core/logic.js";
-import { assetAlerts, myAssets, myVehicles } from "./house/assets.js";
+import { activeVehicles, assetAlerts, assetName, myAssets, myVehicles } from "./house/assets.js";
 import { undoneThisMonth } from "./house/tasks.js";
-import { dealSubLabel, openDeal } from "./house/deals.js";
+import { dealSubLabel, openDeal, routeDeal } from "./house/deals.js";
 import { SETTING_SECTIONS } from "./settings/views.js";
 import { aiIcon } from "./core/ai.js";
 import { crumbNav } from "./core/hub.js";
@@ -69,7 +69,7 @@ export function viewPropertyList() {
       ${n ? `<span class="badge b-soon mcount">${n}</span>` : ""}
       <span class="mch" aria-hidden="true">›</span></button>`;
   }).join("");
-  const vehicles = myVehicles(), vAlerts = assetAlerts(vehicles).length;
+  const vehicles = activeVehicles(), vAlerts = assetAlerts(vehicles.filter((a) => window.VEHICLES.inService(a))).length;
   return `<section class="section menu-page">
     <div class="section-head"><h2>🏠 ${t("房屋")}</h2><p>${t("点一套房产进入它的概览、耗材、设备、季节任务、交易和资料")}</p></div>
     ${houseBar()}
@@ -113,7 +113,15 @@ export function crumb(r) {
   // 三级：房屋资料分区 / 交易子页 / 设置分区 / 库存分类 —— 中间项可点回上一级，页面不再另起标题行
   const q = r.q;
   const psec = r.section === "house" && r.sub === "profile" ? PROFILE_SECTIONS.find((s) => s.id === q.get("sec")) : null;
-  const dsec = r.section === "house" && r.sub === "deal" ? dealSubLabel(q.get("sec")) : null;
+  const dsec = r.section === "house" && r.sub === "deal" ? dealSubLabel(q.get("sec"), routeDeal()) : null;
+  // 车辆交易页：‹ 车辆 / 车名 / 交易 / 子页
+  const vehDeal = r.section === "house" && r.sub === "deal" && q.get("asset") ? state.assetsEnriched.find((a) => a.id === q.get("asset")) : null;
+  if (vehDeal) {
+    const dealHref_ = `${subHref}?asset=${encodeURIComponent(vehDeal.id)}${q.get("deal") ? `&deal=${encodeURIComponent(q.get("deal"))}` : ""}`;
+    const vparts = [{ href: href("house", "vehicles"), label: t("车辆"), icon: "🚗" }, { href: href("asset", vehDeal.id), label: assetName(vehDeal) }];
+    if (dsec) vparts.push({ href: dealHref_, label: curLabel }, { label: dsec }); else vparts.push({ label: curLabel });
+    return crumbNav(vparts);
+  }
   const ssec = r.section === "me" && r.sub === "settings" ? SETTING_SECTIONS.find((s) => s.id === q.get("sec")) : null;
   const invPage = (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies");
   const cat = invPage && state.filter.cat !== "all" ? window.CATEGORIES.find((c) => c.id === state.filter.cat) : null;

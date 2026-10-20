@@ -161,8 +161,11 @@ export const DemoStore = {
       const i = this.db.assets.findIndex((x) => x.id === a.id);
       if (i < 0) throw new Error("设备不存在");
       this.db.assets[i] = { ...this.db.assets[i], ...a, updated_at: now };
-    } else this.db.assets.push({ ...a, id: uid(), property_id: a.kind === "vehicle" ? null : a.property_id || state.propertyId, created_at: now, updated_at: now });
-    this.persist();
+      this.persist(); return a.id;
+    }
+    const id = uid();
+    this.db.assets.push({ ...a, id, property_id: a.kind === "vehicle" ? null : a.property_id || state.propertyId, created_at: now, updated_at: now });
+    this.persist(); return id;
   },
   async addAssets(list, pid) {
     const now = new Date().toISOString();
@@ -357,7 +360,7 @@ export const BILL_FIELDS = ["property_id", "name", "category", "direction", "pay
 export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", "subs", "hidden", "sort"];
 export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
 export const TERM_FIELDS = ["term", "zh", "en", "hant"];
-export const DEAL_FIELDS = ["property_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at"];
+export const DEAL_FIELDS = ["property_id", "asset_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at"];
 export const DEAL_CUSTOM_FIELDS = ["deal_id", "name", "stage", "priority", "due_on", "note", "done_on", "done_by_name"];
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
@@ -421,7 +424,7 @@ export const CloudStore = {
     for (const { id, ends_on } of entries) this.must(await this.sb.from("bills").update({ ends_on, updated_by: state.user.id }).eq("id", id));
   },
 
-  /* 房产交易 */
+  /* 房产 / 车辆交易（同一张 property_deals 表：property_id 或 asset_id 二选一） */
   async listDeals() { return this.must(await this.sb.from("property_deals").select("*").eq("household_id", this.hid).order("created_at", { ascending: false })); },
   async saveDeal(d) {
     const row = pick(d, DEAL_FIELDS, { household_id: this.hid, updated_by: state.user.id });
@@ -473,8 +476,8 @@ export const CloudStore = {
     const row = pick(a, ASSET_FIELDS, { household_id: this.hid, updated_by: state.user.id });
     if (row.kind === "vehicle") row.property_id = null;   // 车辆挂在家庭上
     else if (!row.property_id) row.property_id = state.propertyId;
-    if (a.id) this.must(await this.sb.from("assets").update(row).eq("id", a.id));
-    else this.must(await this.sb.from("assets").insert(row));
+    if (a.id) { this.must(await this.sb.from("assets").update(row).eq("id", a.id)); return a.id; }
+    return this.must(await this.sb.from("assets").insert(row).select("id").single()).id;
   },
   async addAssets(list, pid) {
     const rows = list.map((a) => pick({ ...a, property_id: pid }, ASSET_FIELDS, { household_id: this.hid, updated_by: state.user.id }));

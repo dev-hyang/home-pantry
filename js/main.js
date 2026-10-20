@@ -9,9 +9,9 @@ import { setTodayPref, viewAlerts, viewToday } from "./today.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
-import { assetAlertItems } from "./house/assets.js";
+import { assetAlertItems, startVehiclePurchase } from "./house/assets.js";
 import { seasonAlertItems } from "./house/tasks.js";
-import { dealAlertItems } from "./house/deals.js";
+import { completeVehicleDeal, dealAlertItems } from "./house/deals.js";
 import { billAlertItems } from "./bills/logic.js";
 // 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
 [pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
@@ -582,13 +582,21 @@ main.addEventListener("click", async (e) => {
       case "property-cancel": state.editProperty = null; return render();
       case "property-delete": state.deleteProperty = id; render(); $("#propertyDeleteForm input[name=confirm_name]")?.focus(); return;
       case "property-delete-cancel": state.deleteProperty = null; return render();
-      case "deal-start": await startDeal(el.dataset.kind); return refresh();
-      case "deal-cancel": if (!armed(el, t("再点一次确认取消"))) return; await cancelDeal(); return refresh();
+      case "deal-start": await startDeal(el.dataset.kind, el.dataset.asset || null); return refresh();
+      case "deal-cancel": if (!armed(el, t("再点一次确认取消"))) return; await cancelDeal(el.dataset.deal || null); return refresh();
       case "deal-closeout": {
-        const d = openDeal();
+        const d = el.dataset.deal ? state.deals.find((x) => x.id === el.dataset.deal) : openDeal();
         if (!d) return;
+        if (d.asset_id) { if (!armed(el, t("再点一次确认完成"))) return; await completeVehicleDeal(d); return refresh(); }
         if (d.kind === "buy") { if (!armed(el, t("再点一次确认已交割"))) return; await completeBuy(); return refresh(); }
         state.closeout = true; return go(`${href("house", "deal")}?sec=closeout`);
+      }
+      case "veh-buy-start": {   // 先建一辆“选购中”的车，再进它的交易页开始买车流程
+        el.disabled = true;
+        const aid = await startVehiclePurchase();
+        await startDeal("veh_buy", aid);
+        await refresh();
+        return go(`${href("house", "deal")}?asset=${aid}`);
       }
       case "deal-task-edit": state.dealTaskEdit = { deal: el.dataset.deal, key: el.dataset.key }; render(); $("#dealTaskForm input[name=due_on]")?.focus(); return;
       case "deal-task-new": state.dealTaskEdit = { deal: el.dataset.deal, key: "", stage: el.dataset.stage || "special" }; render(); $("#dealTaskForm input[name=name]")?.focus(); return;

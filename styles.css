@@ -635,8 +635,36 @@ button.mrow:last-child { border-bottom: 0; }
 .care-card .care-urgent { background: var(--out-bg); border-radius: 0 0 var(--r-md) var(--r-md); }
 .care-card .care-ok b, .care-card .care-meta b { display: inline-block; margin-right: 6px; color: var(--muted); font-weight: 600; }
 .care-card .tips { margin: 0; }
-.task-row .grow { min-width: 0; }
+.task-row .grow { flex: 1 1 0; min-width: 0; }
+.task-row .grow > label { display: grid; gap: 2px; cursor: pointer; }
+.task-row .grow > label small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.task-row.done .grow > label b { color: var(--muted); font-weight: 500; }
+.task-row.done .grow > label small { color: var(--pine); }
 .task-row .care-card { margin-top: 6px; }
+/* 概览：做完的季节任务折叠；房屋卡片里材料与设施折叠 */
+.done-fold > summary { cursor: pointer; list-style: none; color: var(--muted); font-size: 13px; font-weight: 600; padding: 10px 0 2px; }
+.done-fold > summary::-webkit-details-marker { display: none; }
+.done-fold > summary::before { content: "▸ "; }
+.done-fold[open] > summary::before { content: "▾ "; }
+.facts-more > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; padding: 10px 0 2px; font-size: 13px; font-weight: 700; color: var(--pine); }
+.facts-more > summary::-webkit-details-marker { display: none; }
+.facts-more > summary small { color: var(--muted); font-weight: 500; }
+.facts-more > summary::after { content: "›"; margin-left: auto; color: var(--muted); font-size: 18px; line-height: 1; transition: transform .15s; }
+.facts-more[open] > summary::after { transform: rotate(90deg); }
+/* 概览的参考块：一行标题 + 摘要，点开才展开；历史车辆同款 */
+.ref-head { margin-top: 6px; margin-bottom: 8px; }
+.section.ref { margin-bottom: 10px; }
+.ref-panel { padding: 0; }
+.ref-panel > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 14px; min-height: 52px; }
+.ref-panel > summary::-webkit-details-marker { display: none; }
+.ref-panel > summary b { font-size: 15px; white-space: nowrap; }
+.ref-panel > summary small { flex: 1; min-width: 0; color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ref-panel > summary .mch { color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
+.ref-panel[open] > summary { border-bottom: 1px solid var(--line); }
+.ref-panel[open] > summary .mch { transform: rotate(90deg); }
+.ref-body { padding: 12px 14px 14px; }
+.ref-body .disclaimer { margin-top: 8px; }
+.ref-panel .restock-list.ref-body { padding-top: 4px; padding-bottom: 6px; }
 .form-page .care-card { margin: 0 0 12px; }
 .record-meta { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
 .member-list { list-style: none; margin: 0; padding: 0; }
