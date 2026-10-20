@@ -682,6 +682,9 @@ button.mrow:last-child { border-bottom: 0; }
 .ref-panel[open] > summary { border-bottom: 1px solid var(--line); }
 .ref-panel[open] > summary .mch { transform: rotate(90deg); }
 .ref-body { padding: 12px 14px 14px; }
+#house-emergency .ref-panel { border-left: 4px solid var(--out); }
+#house-emergency .fact dd .pre { white-space: pre-wrap; }
+.house-form textarea { width: 100%; min-height: 72px; resize: vertical; font: inherit; }
 .ref-body .disclaimer { margin-top: 8px; }
 .ref-panel .restock-list.ref-body { padding-top: 4px; padding-bottom: 6px; }
 .form-page .care-card { margin: 0 0 12px; }

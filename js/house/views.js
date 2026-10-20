@@ -158,6 +158,10 @@ export function readHouseForm(form) {
     d.insurance_coverage = str("insurance_coverage"); d.insurance_premium = num(fe.insurance_premium.value);
     d.insurance_agent = str("insurance_agent"); d.insurance_phone = str("insurance_phone"); d.insurance_email = str("insurance_email");
   }
+  if (has("em_water_main")) {
+    d.emergency = Object.fromEntries(EMERGENCY_FIELDS.map((f) => [f.id, str(`em_${f.id}`)]));
+    if (!Object.values(d.emergency).some(Boolean)) d.emergency = null;
+  }
   if (has("hoa_enabled")) {
     d.hoa = { enabled: fe.hoa_enabled.checked, name: str("hoa_name"), mgmt: str("hoa_mgmt"), phone: str("hoa_phone"), email: str("hoa_email"), url: str("hoa_url"),
       dues: num(fe.hoa_dues.value), dues_period: fe.hoa_dues_period.value || "monthly",
@@ -167,12 +171,28 @@ export function readHouseForm(form) {
   return d;
 }
 
+/** 应急信息字段：标签、占位例子、是否多行 */
+export const EMERGENCY_FIELDS = [
+  { id: "water_main", icon: "🚰", name: "总水阀位置", ph: "如：地下室前墙，水表旁的红色球阀；顺时针关", wide: true },
+  { id: "gas_main",   icon: "🔥", name: "燃气总阀位置与工具", ph: "如：房子东侧气表上，需用活动扳手转 90°；闻到气味先开窗再出门打电话", wide: true },
+  { id: "panel",      icon: "⚡", name: "配电箱位置", ph: "如：车库内墙 / 地下室楼梯下；总闸在最上面", wide: true },
+  { id: "breakers",   icon: "🔢", name: "回路标签", ph: "一行一个：1 厨房插座、3 洗衣机、5 烘干机……", multi: true },
+  { id: "meters",     icon: "📟", name: "水表 / 电表 / 气表位置与账户", ph: "位置、表号、账户号；账单页里有缴费入口", multi: true },
+  { id: "sump",       icon: "⛽", name: "排水泵 / 污水泵位置", ph: "如：地下室西北角坑里，备用电池在旁边" },
+  { id: "network",    icon: "📶", name: "路由器 / Mesh 节点位置与管理地址", ph: "如：书房主路由 192.168.1.1，二楼走廊、地下室各一个节点；后台密码在密码管理器", multi: true },
+  { id: "security",   icon: "📷", name: "安防面板 / 密码存放处", ph: "如：面板在前门旁，主码在密码管理器“家”条目" },
+  { id: "notes",      icon: "📝", name: "其他", ph: "如：外墙水龙头的防冻阀在哪、阁楼入口、备用钥匙", multi: true },
+];
+const emergencyOf = (d) => d?.emergency || {};
+const emergencyFilled = (d) => EMERGENCY_FIELDS.filter((f) => emergencyOf(d)[f.id]).length;
+
 /* ── 资料分区：列表页显示完成度，点进去只改一块 ── */
 export const PROFILE_SECTIONS = [
   { id: "type", icon: "🏡", name: "地区与房型" },
   { id: "address", icon: "📍", name: "地址与建成年份" },
   { id: "insurance", icon: "🛡️", name: "房屋保险" },
   { id: "hoa", icon: "🏘️", name: "HOA / 物业" },
+  { id: "emergency", icon: "🚨", name: "应急信息与关键位置" },
   { id: "features", icon: "🔧", name: "家里有这些设施" },
   { id: "materials", icon: "🧱", name: "外墙、屋面与地面材料" },
 ];
@@ -193,6 +213,7 @@ export function sectionStatus(d, id) {
       const n = filled([h.name, h.mgmt, h.phone || h.email || h.url, h.dues, h.rules]);
       return { text: `${n} / 5${h.sa_amount > 0 && !h.sa_paid ? ` · ${t("特殊评估待缴")}` : ""}`, pct: n * 20 };
     }
+    case "emergency": { const n = emergencyFilled(d); return { text: n ? t("{n} / {m}", { n, m: EMERGENCY_FIELDS.length }) : t("未填"), pct: Math.round((n / EMERGENCY_FIELDS.length) * 100) }; }
     case "features": return { text: t("{n} 项", { n: (d.features || []).length }), pct: null };
     case "materials": {
       const e = (d.exterior || []).length, f = (d.flooring || []).length, r = d.roof ? 1 : 0;
@@ -307,6 +328,13 @@ export function viewHouse() {
   const facts = houseFacts(p, { ext, roof, floors, featNames });
   const factRows = (list) => list.map((f) => `<div class="fact ${f.wide ? "wide" : ""}"><dt>${f.k}</dt><dd>${f.v}${f.sub ? `<small>${f.sub}</small>` : ""}</dd></div>`).join("");
   const hoa = hoaBlock(p);
+  const emN = emergencyFilled(p), em = emergencyOf(p);
+  const emBlock = refSection("house-emergency", {
+    title: `🚨 ${t("应急信息与关键位置")}`,
+    hint: emN ? EMERGENCY_FIELDS.filter((f) => em[f.id]).slice(0, 4).map((f) => t(f.name)).join(" · ") : t("还没填：总水阀、燃气阀、配电箱在哪、怎么关"),
+    body: emN ? `<dl class="fact-grid one">${EMERGENCY_FIELDS.filter((f) => em[f.id]).map((f) => `<div class="fact wide"><dt>${f.icon} ${t(f.name)}</dt><dd><span class="pre">${esc(em[f.id])}</span></dd></div>`).join("")}</dl>
+        <p style="margin:10px 0 0"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}?sec=emergency">${t("修改")}</a></p>`
+      : `${t("爆水管、跳闸、闻到燃气味时，家人打开手机就能看到总阀、配电箱、各表在哪、怎么关。")}<p style="margin:10px 0 0"><a class="btn btn-primary btn-sm" href="${href("house", "profile")}?sec=emergency">${t("现在填")}</a></p>` });
   // 布局：先是这套房的身份卡（地址、保险、HOA 一眼可查），然后是“要做的事”（交易清单 → 本月季节任务 → 设备提醒 → 耗材提醒），
   // 最后是不常变的参考资料（归谁维护 / HOA 详情 / 材料保养），默认折叠
   return `
@@ -325,6 +353,7 @@ export function viewHouse() {
         <details class="facts-more"><summary>${t("材料与设施")}<small>${facts.count ? t("{n} 项", { n: facts.count }) : t("未填")}</small></summary><dl class="fact-grid one">${factRows(facts.more)}</dl></details>
       </div>
     </section>
+    ${emBlock}
 
     ${dealPanel()}
     ${tasksPanel()}
@@ -477,6 +506,7 @@ function viewProfileSection(sec) {
         </fieldset>`,
     insurance: () => insuranceFieldset(d),
     hoa: () => hoaFieldset(d),
+    emergency: () => emergencyFieldset(d),
     features: () => `
         <fieldset>
           <legend>${t("家里有这些设施")}</legend>
@@ -510,6 +540,20 @@ function viewProfileSection(sec) {
         </div>
       </form>
     </section>`;
+}
+
+/** 应急信息与关键位置：全是文本，爆水管 / 跳闸时家人打开手机就能看 */
+function emergencyFieldset(d) {
+  const em = emergencyOf(d);
+  const field = (f) => f.multi
+    ? `<label class="span-2">${f.icon} ${t(f.name)}<textarea name="em_${f.id}" rows="3" maxlength="1000" placeholder="${esc(t(f.ph))}">${esc(em[f.id] || "")}</textarea></label>`
+    : `<label class="${f.wide ? "span-2" : ""}">${f.icon} ${t(f.name)}<input name="em_${f.id}" maxlength="300" placeholder="${esc(t(f.ph))}" value="${esc(em[f.id] || "")}"></label>`;
+  return `
+        <fieldset>
+          <legend>${t("应急信息与关键位置")}</legend>
+          <p class="hint" style="margin-top:0">${t("爆水管、跳闸、闻到燃气味时要立刻找到的东西。写清“在哪、怎么关”，家人都能看到；密码只写存放处，别写密码本身。")}</p>
+          <div class="form-grid">${EMERGENCY_FIELDS.map(field).join("")}</div>
+        </fieldset>`;
 }
 
 function insuranceFieldset(d) {

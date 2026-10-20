@@ -252,6 +252,19 @@ export const EN = {
   "墙面修补膏": "Wall patch", "木地板精油": "Hardwood floor oil", "木平台防护油": "Deck oil", "北方冬季选防冻型。": "Use a winter formula in the north.",
 
   // 设备类型
+  // ── 应急信息与关键位置 ──
+  "应急信息与关键位置": "Emergency info & key locations", "还没填：总水阀、燃气阀、配电箱在哪、怎么关": "Not filled in: where the water main, gas valve and panel are and how to shut them",
+  "爆水管、跳闸、闻到燃气味时，家人打开手机就能看到总阀、配电箱、各表在哪、怎么关。": "When a pipe bursts, a breaker trips or you smell gas, anyone in the family can see where the shutoffs, panel and meters are and how to shut them.",
+  "现在填": "Fill in now", "爆水管、跳闸、闻到燃气味时要立刻找到的东西。写清“在哪、怎么关”，家人都能看到；密码只写存放处，别写密码本身。": "Things you must find immediately when a pipe bursts, a breaker trips or you smell gas. Write where it is and how to shut it; everyone in the household can see this, so note where passwords are kept, not the passwords.",
+  "总水阀位置": "Water main shutoff", "如：地下室前墙，水表旁的红色球阀；顺时针关": "e.g. basement front wall, red ball valve by the meter; clockwise to close",
+  "燃气总阀位置与工具": "Gas main shutoff & tool", "如：房子东侧气表上，需用活动扳手转 90°；闻到气味先开窗再出门打电话": "e.g. on the meter on the east side; quarter turn with an adjustable wrench. If you smell gas, open windows, leave, then call",
+  "配电箱位置": "Electrical panel", "如：车库内墙 / 地下室楼梯下；总闸在最上面": "e.g. garage wall / under the basement stairs; main breaker at the top",
+  "回路标签": "Breaker labels", "一行一个：1 厨房插座、3 洗衣机、5 烘干机……": "One per line: 1 kitchen outlets, 3 washer, 5 dryer…",
+  "水表 / 电表 / 气表位置与账户": "Water / electric / gas meters & accounts", "位置、表号、账户号；账单页里有缴费入口": "Location, meter number, account number; payment links live on the Bills page",
+  "排水泵 / 污水泵位置": "Sump / ejector pump", "如：地下室西北角坑里，备用电池在旁边": "e.g. pit in the basement's northwest corner, backup battery beside it",
+  "路由器 / Mesh 节点位置与管理地址": "Router / mesh nodes & admin address", "如：书房主路由 192.168.1.1，二楼走廊、地下室各一个节点；后台密码在密码管理器": "e.g. main router in the study at 192.168.1.1, nodes in the upstairs hall and basement; admin password in the password manager",
+  "安防面板 / 密码存放处": "Security panel / where codes are kept", "如：面板在前门旁，主码在密码管理器“家”条目": "e.g. panel by the front door; master code in the password manager under Home",
+  "如：外墙水龙头的防冻阀在哪、阁楼入口、备用钥匙": "e.g. where the outdoor spigot shutoffs are, attic access, spare key", "{n} / {m}": "{n} / {m}",
   // ── 电力 / 网络 / 水路 / 建筑 ──
   "化粪池（不接市政下水）": "Septic system (no city sewer)", "自家水井": "Private well", "安防 / 门铃摄像头": "Security / doorbell cameras",
   "配电箱": "Electrical panel", "每年开盖看有没有烧痕、发热、嗡嗡声，回路标签写全；Federal Pacific、Zinsco 这类老牌子建议直接换。": "Yearly: open the cover and look for scorch marks, heat or buzzing; label every breaker. Federal Pacific and Zinsco panels should simply be replaced.",

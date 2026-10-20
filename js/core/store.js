@@ -484,6 +484,7 @@ export const CloudStore = {
     const row = { property_id: pid, household_id: this.hid, region: p.region, house_type: p.house_type, year_built: p.year_built ?? null,
       features: p.features || [], exterior: p.exterior || [], roof: p.roof || null, flooring: p.flooring || [], updated_by: state.user.id };
     for (const k of INSURANCE_FIELDS) row[k] = p[k] ?? (k === "insured" ? false : null);
+    row.emergency = p.emergency ?? null;
     this.must(await this.sb.from("house_profiles").upsert(row, { onConflict: "property_id" }));
   },
   async listAssets() { return this.must(await this.sb.from("assets").select("*").eq("household_id", this.hid).order("name")); },
