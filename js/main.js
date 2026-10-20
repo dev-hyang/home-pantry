@@ -17,7 +17,7 @@ import { billAlertItems } from "./bills/logic.js";
 [pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
 import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { printSheet } from "./settings/print.js";
-import { assetTemplateItems, enrichAssets, leaveAsset, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
+import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
@@ -32,7 +32,7 @@ import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, ne
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, resetUsage, testModel } from "./core/ai.js";
 import { saveAiForm } from "./settings/views.js";
-import { cleanStore, download, exportAnnual, rememberStore, viewStats } from "./stats/views.js";
+import { cleanStore, download, exportAnnual, rememberStore, storeDatalist, viewStats } from "./stats/views.js";
 
 const APP_NAME = "爱家小助手";
 
@@ -42,37 +42,53 @@ export async function refresh() {
   if (refreshing) return refreshing;
   refreshing = (async () => {
     try {
-      // 先定当前房产（房屋资料、设备、季节任务按它过滤），再并行读其余数据
-      const properties = await Store.listProperties();
+      // 所有表一次并行读完（云端一轮往返），再在内存里定当前房产；采购花费只有统计和导出用，不挡首屏，渲染后后台再读
+      const members = state.membersReady; state.membersReady = null;   // 登录后与这一轮并行去读家庭成员
+      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms] = await Promise.all([
+        Store.listProperties(), Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listHouseProfiles(),
+        Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince()), Store.listBills(), Store.listBillPayments(),
+        Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations(), Store.listDealExtras(),
+        Store.listCustomSeasonal().catch((e) => { console.warn("[custom seasonal]", e.message); return []; }),   // 迁移还没执行时读不到：不影响其他功能
+        Store.listTerms().catch((e) => { console.warn("[terms]", e.message); return null; }),
+        members]);
+      state.customSeasonal = customSeasonal;
+      if (terms) setGlossary(terms);   // 自定义名称的翻译
       state.properties = properties;
       const live = properties.filter((p) => !p.archived);
       let saved = null; try { saved = localStorage.getItem("hmh-property"); } catch { /* 忽略 */ }
       if (!live.some((p) => p.id === state.propertyId)) state.propertyId = (live.find((p) => p.id === saved) || live.find((p) => p.is_default) || live[0] || properties[0])?.id || null;
       const pid = state.propertyId;
-      // 设备、季节任务、房屋资料按家庭全量读取（提醒总线要看所有房产），页面再按当前房产过滤
-      const [items, logs, shopping, purchases, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs] = await Promise.all([
-        Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listPurchases(), Store.listHouseProfiles(),
-        Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince()), Store.listBills(), Store.listBillPayments(),
-        Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations()]);
-      const dealExtras = await Store.listDealExtras();
-      try { state.customSeasonal = await Store.listCustomSeasonal(); } catch (e) { console.warn("[custom seasonal]", e.message); state.customSeasonal = []; }
-      try { setGlossary(await Store.listTerms()); } catch (e) { console.warn("[terms]", e.message); }   // 自定义名称的翻译（表还没建时不影响其他功能）
       applyCustomCategories(customCats);   // 自定义分类并入全局分类表，后面的 enrich / 视图都能用
       applyCustomLocations(customLocs);    // 自定义 / 重命名的存放位置并入分组列表
       const houseProfiles = Object.fromEntries(profiles.map((p) => [p.property_id, p]));
-      Object.assign(state, { items, logs, shopping, purchases, houseProfiles, houseProfile: pid ? houseProfiles[pid] || null : null, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, dealOverrides: dealExtras.overrides, dealCustom: dealExtras.custom });
+      Object.assign(state, { items, logs, shopping, houseProfiles, houseProfile: pid ? houseProfiles[pid] || null : null, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, dealOverrides: dealExtras.overrides, dealCustom: dealExtras.custom });
       state.enriched = enrich(items, logs);
       state.assetsEnriched = enrichAssets(assets, maintLogs);
       state.billsEnriched = enrichBills(bills, billPayments);
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }));
       notifyIfNeeded();
       render(false);
+      loadPurchasesSoon();
     } catch (e) {
       setSync(t("同步失败，点设置页重试"), true);
       toast(t("读取数据失败：{msg}", { msg: e.message }));
     } finally { refreshing = null; }
   })();
   return refreshing;
+}
+
+/** 采购花费（近 400 天，可能几千行）只有统计页和导出用：后台读，读完如果正停在统计页就重画 */
+let purchasesLoading = false, purchasesAgain = false;
+function loadPurchasesSoon() {
+  if (purchasesLoading) { purchasesAgain = true; return; }
+  purchasesLoading = true;
+  Store.listPurchases().then((p) => {
+    state.purchases = p;
+    const r = state.route;
+    if (r.section === "me" && r.sub === "stats") render(false);
+    else { const dl = $("#storeList"); if (dl) dl.outerHTML = storeDatalist(); }   // 采购 / 统计页的商店联想
+  }).catch((e) => console.warn("[purchases]", e.message))
+    .finally(() => { purchasesLoading = false; if (purchasesAgain) { purchasesAgain = false; loadPurchasesSoon(); } });
 }
 
 export let debounceT;
@@ -279,7 +295,7 @@ function resetSectionFilters(section) {
     case "today": setTodayPref({ source: null }); break;
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
-    case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
+    case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
     case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all" }); break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
     default: break;
@@ -323,12 +339,14 @@ main.addEventListener("touchend", (e) => {
 }, { passive: true });
 main.addEventListener("input", (e) => {
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; renderInvList(); }
+  if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; renderAssetList(); }
   const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
 });
 main.addEventListener("change", async (e) => {
   if (e.target.matches("input[data-qty-for]")) return setShopQty(e.target.dataset.qtyFor, e.target.value);   // 采购清单：直接输入数量
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
+  { const k = { assetType: "type", assetService: "service", assetWarranty: "warranty", assetLoc: "loc" }[e.target.id]; if (k) { state.assetFilter[k] = e.target.value; renderAssetList(); } }
   if (e.target.name === "location" && e.target.form?.elements.new_location) {   // 选“＋ 新位置…”：旁边出现输入框
     const inp = e.target.form.elements.new_location, on = e.target.value === "__new__";
     inp.hidden = !on; if (on) inp.focus();
@@ -675,7 +693,8 @@ main.addEventListener("click", async (e) => {
       case "tpl-all": e.preventDefault(); el.form.querySelectorAll('input[name="tpl"]:not(:disabled)').forEach((x) => { x.checked = el.dataset.on === "1"; }); return;
       case "consume": el.disabled = true; await Store.adjust(id, -storedStep(state.items.find((x) => x.id === id)?.unit), "consume"); return refresh();
       case "restock": el.disabled = true; await Store.adjust(id, storedStep(state.items.find((x) => x.id === id)?.unit), "restock"); return refresh();
-      case "cat": state.filter.cat = el.dataset.cat; state.catSort = false; state.catForm = null; return render();
+      case "inv-sub": state.filter.sub = el.dataset.sub; return render();
+      case "cat": state.filter.cat = el.dataset.cat; state.filter.sub = "all"; state.catSort = false; state.catForm = null; return render();
       case "cat-new": state.catForm = { space: el.dataset.space || state.filter.space }; render(); $("#catForm input[name=name]")?.focus(); return;
       case "cat-edit": { const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (c) state.catForm = catFormOf(c, t); render(); $("#catForm")?.scrollIntoView({ block: "start" }); return; }
       case "cat-cancel": state.catForm = null; return render();
@@ -877,7 +896,8 @@ export async function markBought(id) {
   refresh();
 }
 
-export function exportJson() {
+export async function exportJson() {
+  try { state.purchases = await Store.listPurchases(); } catch { /* 用已有的 */ }   // 采购花费是后台读的，导出前确保是最新的完整数据
   const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), household: state.household?.name, items: state.items, shopping: state.shopping, purchases: state.purchases,
     properties: state.properties, house_profile: state.houseProfile, assets: state.assets, maintenance_logs: state.maintLogs, seasonal_tasks: state.seasonalDone,
     bills: state.bills, bill_payments: state.billPayments, property_deals: state.deals, deal_task_done: state.dealDone, deal_task_overrides: state.dealOverrides, deal_custom_tasks: state.dealCustom }, null, 2)], { type: "application/json" });
@@ -1029,7 +1049,7 @@ export async function afterLogin() {
   state.displayName = mine.display_name;
   CloudStore.hid = mine.household_id;
   localStorage.setItem("hmh-hid", CloudStore.hid);
-  state.members = await CloudStore.listMembers();
+  state.membersReady = CloudStore.listMembers().then((m) => { state.members = m; return m; });   // 和 refresh 的数据读取并行
   CloudStore.subscribe(refreshSoon);
   await refresh();
 }

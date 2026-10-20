@@ -143,6 +143,7 @@ const filterActive = (f) => !!f.q.trim() || f.status !== "all" || (f.loc || "all
 export function matchItem(it, f, { withCat = true } = {}) {
   const q = f.q.trim().toLowerCase();
   if (withCat && f.cat !== "all" && it.category !== f.cat) return false;
+  if (withCat && f.cat !== "all" && f.sub && f.sub !== "all" && it.subcategory !== f.sub) return false;   // 打开某个分类后再按小类缩小（生鲜 → 水果）
   if (q && !(`${it.name}${it.subcategory || ""}${t(it.subcategory || "")}${it.notes || ""}${it.location || ""}${t(it.location || "")}`).toLowerCase().includes(q)) return false;
   if ((f.loc || "all") !== "all" && it.location !== f.loc) return false;
   if (f.status === "alert") return it.status !== "ok";
@@ -239,6 +240,12 @@ export function viewInventory(space = "pantry") {
   const mine = state.enriched.filter(inSpace(space));
   const cur = f.cat !== "all" ? catOf(f.cat) : null;
   const cf = state.catForm && state.catForm.space === space ? state.catForm : null;
+  // 小类筛选：打开某个分类后，列出里面实际有物品的小类；换了分类（小类不属于它）就回到“全部”
+  if (!cur || !(cur.subs || []).includes(f.sub)) f.sub = "all";
+  const subCounts = cur ? (cur.subs || []).map((s) => [s, mine.filter((x) => x.category === cur.id && x.subcategory === s).length]).filter(([, n]) => n > 0) : [];
+  const subBar = subCounts.length > 1 ? `<div class="chips" role="group" aria-label="${t("按小类筛选")}">
+        <button type="button" class="chip" data-action="inv-sub" data-sub="all" aria-pressed="${f.sub === "all"}">${t("全部小类")}</button>
+        ${subCounts.map(([s, n]) => `<button type="button" class="chip" data-action="inv-sub" data-sub="${esc(s)}" aria-pressed="${f.sub === s}">${esc(t(s))} <span class="muted">${n}</span></button>`).join("")}</div>` : "";
   return `
     <section class="section">
       <div class="section-head"><p>${cur ? t("{n} 件", { n: mine.filter((x) => x.category === cur.id).length }) : t("{n} 件", { n: mine.length })}</p>
@@ -264,6 +271,7 @@ export function viewInventory(space = "pantry") {
         <button type="button" class="chip chip-add" data-action="cat-new" data-space="${space}">＋ ${t("新分类")}</button>
       </div>`}
       ${cf ? catFormHtml(cf) : ""}
+      ${subBar}
       ${dash && !cf ? `<div id="dashWrap" data-space="${space}">${catDashboard(space, mine)}</div>` : ""}
       <div id="invList" ${dash ? "hidden" : ""}></div>
     </section>`;

@@ -6,7 +6,40 @@
   <meta name="description" content="家庭库存与采购清单：记录存量、按消耗速度提醒补货，家人共享不重复购买。">
   <title>爱家小助手</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40'%3E%3Crect x='4' y='1' width='24' height='7' rx='2' fill='%231e3a32'/%3E%3Crect x='3' y='8' width='26' height='30' rx='6' fill='white' stroke='%231e3a32' stroke-width='3'/%3E%3Crect x='6' y='22' width='20' height='13' rx='3' fill='%23e9b949'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="styles.css">
+  <!-- 模块依赖是一层套一层的，浏览器逐层发现会串行等待；这里一次性预取，首屏少好几轮往返 -->
+  <link rel="modulepreload" href="js/ai-page.js">
+  <link rel="modulepreload" href="js/bills/logic.js">
+  <link rel="modulepreload" href="js/bills/views.js">
+  <link rel="modulepreload" href="js/core/ai.js">
+  <link rel="modulepreload" href="js/core/alerts.js">
+  <link rel="modulepreload" href="js/core/categories.js">
+  <link rel="modulepreload" href="js/core/config-check.js">
+  <link rel="modulepreload" href="js/core/hub.js">
+  <link rel="modulepreload" href="js/core/i18n.js">
+  <link rel="modulepreload" href="js/core/locations.js">
+  <link rel="modulepreload" href="js/core/logic.js">
+  <link rel="modulepreload" href="js/core/router.js">
+  <link rel="modulepreload" href="js/core/state.js">
+  <link rel="modulepreload" href="js/core/store.js">
+  <link rel="modulepreload" href="js/core/util.js">
+  <link rel="modulepreload" href="js/house/assets.js">
+  <link rel="modulepreload" href="js/house/deals.js">
+  <link rel="modulepreload" href="js/house/property-form.js">
+  <link rel="modulepreload" href="js/house/tasks.js">
+  <link rel="modulepreload" href="js/house/views.js">
+  <link rel="modulepreload" href="js/i18n/en.js">
+  <link rel="modulepreload" href="js/main.js">
+  <link rel="modulepreload" href="js/menu.js">
+  <link rel="modulepreload" href="js/pantry/ai.js">
+  <link rel="modulepreload" href="js/pantry/item-form.js">
+  <link rel="modulepreload" href="js/pantry/views.js">
+  <link rel="modulepreload" href="js/settings/about.js">
+  <link rel="modulepreload" href="js/settings/print.js">
+  <link rel="modulepreload" href="js/settings/views.js">
+  <link rel="modulepreload" href="js/stats/views.js">
+  <link rel="modulepreload" href="js/today.js">
 </head>
 <body>
   <a class="skip" href="#main">跳到主要内容</a>
@@ -48,23 +81,23 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <!-- supabase-js UMD，固定版本；本地演示模式下不加载也能运行 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-  <script src="config.js"></script>
-  <script src="units.js"></script>
-  <script src="charts.js"></script>
-  <script src="data.js"></script>
-  <script src="data/house.js"></script>
-  <script src="data/bills.js"></script>
-  <script src="data/deals.js"></script>
-  <script src="data/care.js"></script>
-  <script src="data/vehicles.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script defer src="config.js"></script>
+  <script defer src="units.js"></script>
+  <script defer src="charts.js"></script>
+  <script defer src="data.js"></script>
+  <script defer src="data/house.js"></script>
+  <script defer src="data/bills.js"></script>
+  <script defer src="data/deals.js"></script>
+  <script defer src="data/care.js"></script>
+  <script defer src="data/vehicles.js"></script>
 
   <!-- 启动自检：主脚本 6 秒内没有启动，就检查哪些文件缺失并显示在页面上（部署排错用） -->
   <script>
     (function () {
       var FILES = ["styles.css", "config.js", "units.js", "charts.js", "data.js", "data/house.js", "data/bills.js", "data/deals.js", "data/care.js", "data/vehicles.js",
         "js/main.js", "js/today.js", "js/ai-page.js", "js/menu.js", "js/core/util.js", "js/core/state.js", "js/core/router.js", "js/core/store.js", "js/core/logic.js", "js/core/config-check.js", "js/core/i18n.js", "js/i18n/en.js",
-        "js/pantry/views.js", "js/pantry/item-form.js", "js/house/views.js", "js/house/assets.js", "js/house/tasks.js", "js/house/deals.js", "js/house/property-form.js", "js/bills/logic.js", "js/bills/views.js", "js/stats/views.js", "js/settings/views.js", "js/settings/about.js", "js/core/ai.js", "js/pantry/ai.js", "js/core/categories.js", "js/core/locations.js"];
+        "js/core/alerts.js", "js/core/hub.js", "js/settings/print.js", "js/pantry/views.js", "js/pantry/item-form.js", "js/house/views.js", "js/house/assets.js", "js/house/tasks.js", "js/house/deals.js", "js/house/property-form.js", "js/bills/logic.js", "js/bills/views.js", "js/stats/views.js", "js/settings/views.js", "js/settings/about.js", "js/core/ai.js", "js/pantry/ai.js", "js/core/categories.js", "js/core/locations.js"];
       // 部署更新检测：GitHub Pages 把每个文件缓存 10 分钟，刷新时浏览器会拿到新 index.html 却继续用缓存里的旧模块
       // （例如新导航指向的路由在旧 router.js 里不存在，就会跳回首页）。同一次部署的所有文件 Last-Modified 相同，
       // 所以用 document.lastModified 当作部署版本：和上次记录的不同，就绕过缓存重新拉取全部脚本，再刷新一次。

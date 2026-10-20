@@ -17,6 +17,7 @@ window.CATEGORIES = [
 // 不算消耗、不提醒补货、不进采购提醒（space = "gear"）。需要保养周期的设备将来进第二期的设备档案。
 window.GEAR_CATEGORIES = [
   { id: "gear_home",   name: "家居用品", icon: "🛏️", color: "#6b8e7a", loc: "储物间", subs: ["床上用品", "毛巾浴巾", "季节电器", "收纳杂物"] },
+  { id: "gear_clothes", name: "衣物",     icon: "🧥", color: "#b8576f", loc: "衣柜",   subs: ["冬衣", "秋衣", "春衣", "夏衣", "内衣袜子", "鞋靴", "帽围巾手套", "换季收纳"] },
   { id: "gear_travel", name: "出行户外", icon: "🚲", color: "#4f7f9f", loc: "车库",   subs: ["旅行婴儿用品", "推车拖车", "自行车", "露营野餐", "行李箱包"] },
   { id: "gear_car",    name: "汽车装备", icon: "🚗", color: "#7a5c8e", loc: "车内",   subs: ["应急工具", "备胎", "车载电器", "车内收纳"] },
   { id: "gear_tools",  name: "工具",     icon: "🔧", color: "#8a6d3b", loc: "工具间", subs: ["手动工具", "电动工具", "五金配件", "梯子登高"] },

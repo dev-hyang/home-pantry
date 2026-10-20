@@ -166,23 +166,67 @@ export function careCard(key, { open = false } = {}) {
 
 const ageText = (a) => (a.ageYears < 1 ? t("不到 1 年") : t("{n} 年", { n: Math.floor(a.ageYears) }));
 
-/* ── 设备列表 ── */
+/* ── 设备列表：搜索 + 类型 / 保养 / 保修 / 位置 筛选（只作用在下面的分组列表，上面的“要处理”提醒不受影响） ── */
+const SERVICE_FILTERS = [["all", "全部保养状态"], ["attention", "需要处理"], ["overdue", "保养逾期"], ["due", "该保养了"], ["ok", "保养正常"], ["unknown", "未记录保养"], ["none", "没设保养周期"]];
+const WARRANTY_FILTERS = [["all", "全部保修状态"], ["active", "保修中"], ["expiring", "保修快到期"], ["expired", "已过保"], ["none", "没填保修"]];
+const assetTypeLabel = (a) => (a.t ? t(a.t.name) : t(a.type || "其他"));
+const matchAsset = (a, f) => {
+  if (f.type !== "all" && a.type !== f.type) return false;
+  if (f.loc !== "all" && a.location !== f.loc) return false;
+  if (f.warranty !== "all" && a.warranty !== f.warranty) return false;
+  if (f.service === "attention" ? !(a.followUp || a.service === "overdue" || a.service === "due") : f.service !== "all" && a.service !== f.service) return false;
+  const q = f.q.trim().toLowerCase();
+  return !q || [assetName(a), a.brand, a.model, a.location, assetTypeLabel(a)].filter(Boolean).some((x) => String(x).toLowerCase().includes(q));
+};
+/** 当前房产的筛选条件；选项里已经没有的值（换了房产、删了设备）按“全部”处理 */
+function assetFilterNow(list) {
+  const f = { ...state.assetFilter };
+  if (!list.some((a) => a.type === f.type)) f.type = "all";
+  if (!list.some((a) => a.location === f.loc)) f.loc = "all";
+  return f;
+}
+function assetGroups(list) {
+  const f = assetFilterNow(list), rows = list.filter((a) => matchAsset(a, f));
+  const group = (kind) => rows.filter((a) => a.kind === kind).sort((x, y) => rank(x) - rank(y) || compare(x.name, y.name));
+  const section = (kind) => {
+    const g = group(kind);
+    if (!g.length) return "";
+    const k = H().ASSET_KINDS[kind];
+    return `<section class="section"><div class="section-head"><h2>${k.icon} ${t(k.name)}<span class="muted">（${g.length}）</span></h2></div>
+      <div class="asset-grid">${g.map(assetCard).join("")}</div></section>`;
+  };
+  return { rows, html: rows.length ? section("equipment") + section("tool") : `<div class="panel empty"><strong>${t("没有符合条件的设备")}</strong>${t("换个关键词或筛选试试。")}</div>` };
+}
+const assetCountText = (rows, list) => (rows.length === list.length ? t("{n} 台", { n: list.length }) : t("{m} / {n} 台", { m: rows.length, n: list.length }));
+/** 搜索 / 筛选变化：只重画列表和数量，输入框不丢焦点 */
+export function renderAssetList() {
+  const host = $("#assetList"); if (!host) return;
+  const list = myAssets(), { rows, html } = assetGroups(list);
+  host.innerHTML = html;
+  const n = $("#assetCount"); if (n) n.textContent = assetCountText(rows, list);
+}
+function assetToolbar(list) {
+  const f = assetFilterNow(list);
+  const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;
+  const types = [...new Map(list.map((a) => [a.type, assetTypeLabel(a)])).entries()].sort((x, y) => compare(x[1], y[1]));
+  const locs = [...new Set(list.map((a) => a.location).filter(Boolean))].sort(compare);
+  return `<div class="toolbar">
+    <input type="search" id="assetSearch" placeholder="${t("搜索设备，例如：炉子、Carrier")}" value="${esc(f.q)}" aria-label="${t("搜索设备")}">
+    ${types.length > 1 ? `<select id="assetType" aria-label="${t("按类型筛选")}">${opt("all", t("全部类型"), f.type)}${types.map(([v, l]) => opt(v, l, f.type)).join("")}</select>` : ""}
+    <select id="assetService" aria-label="${t("按保养状态筛选")}">${SERVICE_FILTERS.map(([v, l]) => opt(v, t(l), f.service)).join("")}</select>
+    <select id="assetWarranty" aria-label="${t("按保修状态筛选")}">${WARRANTY_FILTERS.map(([v, l]) => opt(v, t(l), f.warranty)).join("")}</select>
+    ${locs.length > 1 ? `<select id="assetLoc" aria-label="${t("按位置筛选")}">${opt("all", t("全部位置"), f.loc)}${locs.map((l) => opt(l, t(l), f.loc)).join("")}</select>` : ""}</div>`;
+}
+
 export function viewAssets() {
   const list = myAssets();
   const p = state.houseProfile;
   const alerts = assetAlerts(list);
-  const group = (kind) => list.filter((a) => a.kind === kind).sort((x, y) => rank(x) - rank(y) || compare(x.name, y.name));
-  const section = (kind) => {
-    const rows = group(kind);
-    if (!rows.length) return "";
-    const k = H().ASSET_KINDS[kind];
-    return `<section class="section"><div class="section-head"><h2>${k.icon} ${t(k.name)}<span class="muted">（${rows.length}）</span></h2></div>
-      <div class="asset-grid">${rows.map(assetCard).join("")}</div></section>`;
-  };
+  const { rows, html } = assetGroups(list);
   return `
     ${houseBar()}
     <section class="section">
-      <div class="section-head"><p>${list.length ? t("{n} 台", { n: list.length }) : ""}</p>
+      <div class="section-head"><p id="assetCount">${list.length ? assetCountText(rows, list) : ""}</p>
         <div class="head-acts">${p ? `<a class="btn btn-sm btn-ghost" href="${href("house", "asset-template")}">${t("按房屋资料生成")}</a>` : ""}
           <a class="btn btn-primary" href="${href("asset", "new")}">${t("添加设备")}</a></div></div>
       <p class="muted" style="margin:0 0 10px;font-size:12.5px">${t("设备 = 有保养周期或保修的（热水器、割草机）；只要记数量和位置的（梯子、电钻、床品）放在 储藏 → 装备。")}</p>
@@ -192,7 +236,7 @@ export function viewAssets() {
           <a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a></li>`).join("")}</ul></div>`
         : list.length ? `<p class="muted" style="margin:0;font-size:13px">${t("保养都在周期内，保修也没有快到期的。")}</p>` : ""}
     </section>
-    ${list.length ? section("equipment") + section("tool") : `<section class="section"><div class="panel empty"><strong>${t("还没有设备档案")}</strong>
+    ${list.length ? `<section class="section">${assetToolbar(list)}<div id="assetList">${html}</div></section>` : `<section class="section"><div class="panel empty"><strong>${t("还没有设备档案")}</strong>
       ${p ? t("按房屋资料一次生成炉子、热水器、排水泵、屋顶等设备，再补充品牌、型号和安装年份。") : t("先填写房屋资料，就能按设施一键生成设备清单。")}
       <p>${p ? `<a class="btn btn-primary" href="${href("house", "asset-template")}">${t("生成设备清单")}</a>` : `<a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a>`}
          <a class="btn btn-ghost" href="${href("asset", "new")}">${t("手动添加一台")}</a></p></div></section>`}`;
