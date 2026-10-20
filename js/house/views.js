@@ -5,7 +5,7 @@ import { href } from "../core/router.js";
 import { daysUntil, esc, fmtDate, inSpace, money } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { restockPanel, shelfGrid } from "../pantry/views.js";
-import { alertText, assetAlerts, myAssets } from "./assets.js";
+import { alertText, assetAlerts, assetName, myAssets } from "./assets.js";
 import { monthName, monthTasks, taskRow } from "./tasks.js";
 import { houseBar } from "./property-form.js";
 import { currentProp, dealTasks, openDeal, propertyLive, statusText, taskRow as dealTaskRow } from "./deals.js";
@@ -354,7 +354,7 @@ function assetsPanel() {
     : alerts.length
       ? `<ul class="restock-list">${alerts.slice(0, 4).map((a) => `<li>
           <span class="badge ${a.service === "overdue" ? "b-out" : "b-soon"}">${a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修")}</span>
-          <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${a.t?.icon || "⚙️"} ${esc(a.name)}</a><small>${esc(alertText(a))}</small></div>
+          <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${a.t?.icon || "⚙️"} ${esc(assetName(a))}</a><small>${esc(alertText(a))}</small></div>
           <a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a></li>`).join("")}</ul>`
       : `<div class="empty"><strong>${t("{n} 台设备，保养都在周期内", { n: list.length })}</strong></div>`;
   return `<section class="section">

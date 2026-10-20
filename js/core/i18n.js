@@ -70,6 +70,16 @@ export function t(zh, params) {
   return s;
 }
 
+/** 存进数据里的名字是不是某个内置键在任一语言下的叫法（简体 / 繁體 / 字典英文 / 额外别名）
+ * 生成设备、耗材时名字按当时语言写入，切语言后显示要能认出它还是内置项，再按当前语言翻译 */
+export function sameTerm(stored, zh, ...aliases) {
+  if (!stored || !zh) return false;
+  const s = String(stored).trim();
+  if (s === zh || s === EN[zh]) return true;
+  if (aliases.some((a) => a && s === a)) return true;
+  return !!convert && s === toHant(zh);
+}
+
 /** 中文里的顿号列表在英文里用逗号 */
 export const joinList = (arr) => arr.join(lang === "en" ? ", " : "、");
 /** 本地化排序 */

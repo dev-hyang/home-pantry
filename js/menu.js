@@ -118,7 +118,7 @@ export function crumb(r) {
   const invPage = (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies");
   const cat = invPage && state.filter.cat !== "all" ? window.CATEGORIES.find((c) => c.id === state.filter.cat) : null;
   if (psec) parts.push({ href: subHref, label: curLabel }, { label: t(psec.name), icon: psec.icon });
-  else if (dsec) parts.push({ href: subHref, label: curLabel }, { label: dsec });
+  else if (dsec) parts.push({ href: q.get("deal") ? `${subHref}?deal=${encodeURIComponent(q.get("deal"))}` : subHref, label: curLabel }, { label: dsec });   // 看历史交易时中间项带着 deal=，别跳回进行中的
   else if (ssec) parts.push({ href: subHref, label: curLabel }, { label: t(ssec.name), icon: ssec.icon === "__AI__" ? aiIcon(18) : ssec.icon });
   else if (cat) parts.push({ action: "cat", attrs: 'data-cat="all"', label: curLabel }, { label: t(cat.name), icon: cat.icon });   // “库存”可点回全部分类
   else parts.push({ label: curLabel });

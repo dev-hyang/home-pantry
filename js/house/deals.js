@@ -189,9 +189,15 @@ function tlItem(x, withDate) {
 export function viewDeal() {
   const p = currentProp();
   if (!p) return `<section class="section"><div class="panel empty"><strong>${t("还没有房产")}</strong></div></section>`;
-  const deal = openDeal(p.id);
+  // ?deal=<id>：查看历史交易（已交割 / 已取消）—— 清单、时间线、交易信息都还能看、能改，只是没有“完成交割”入口
+  const q = state.route?.q;
+  const viewed = q?.get("deal") ? state.deals.find((d) => d.id === q.get("deal") && d.property_id === p.id) || null : null;
+  const deal = viewed || openDeal(p.id);
+  const closed = !!deal?.outcome;
   const history = state.deals.filter((d) => d.property_id === p.id && d.outcome);
   const live = propertyLive(p);
+  // 子页链接：查看历史交易时把 deal= 一路带着，否则回到进行中的交易
+  const link = (sec) => { const ps = new URLSearchParams(); if (sec) ps.set("sec", sec); if (viewed) ps.set("deal", deal.id); const qs = ps.toString(); return `${href("house", "deal")}${qs ? `?${qs}` : ""}`; };
   const statusCard = `<section class="section"><div class="house-card">
       <span class="house-ico" aria-hidden="true">🏠</span>
       <div class="grow"><h2>${esc(p.name)}<span class="badge ${live ? "b-ok" : ""}" style="${live ? "" : "background:var(--surface-2)"}">${statusText(p)}</span></h2>
@@ -210,13 +216,13 @@ export function viewDeal() {
         ${t("买入或卖出时，按伊利诺伊州流程生成带截止日期的清单：律师审查、验房、贷款承诺、停服务通知、交割后事项，逐项提醒。")}
         <p>${starts.map(([k, l]) => `<button type="button" class="btn btn-primary" data-action="deal-start" data-kind="${k}">${l}</button>`).join(" ")}
            ${!live ? `<span class="muted">${t("已卖出或退租的房产只保留历史。")}</span>` : ""}</p></div></section>
-      ${dealHistory(history)}`;
+      ${dealHistory(history, null)}`;
   }
   const tasks = dealTasks(deal);
   const groups = Object.entries(D().STAGES).map(([k, n]) => ({ k, n, rows: tasks.filter((x) => x.stage === k) })).filter((g) => g.rows.length);
   const undone = tasks.filter((x) => !x.done), mustLeft = undone.filter((x) => x.priority === "must").length;
   const K = D().KINDS;
-  const sec = state.route?.q?.get("sec") || "";
+  const sec = (closed && q?.get("sec") === "closeout" ? "" : q?.get("sec")) || "";   // 历史交易没有交割页
   // ── 子页：交易信息 / 某个阶段的清单 / 交割（面包屑由 menu.js 统一画：‹ 房产 / 交易 / 子页名）──
   if (sec === "info") return `<section class="section">${dealForm(deal)}</section>`;
   if (sec.startsWith("stage:")) {
@@ -250,14 +256,15 @@ export function viewDeal() {
     const next = g.rows.filter((x) => !x.done && x.due).sort((a, b) => a.due.localeCompare(b.due))[0];
     const desc = d === g.rows.length ? t("全部完成") : [next ? t("下一项 {date}：{name}", { date: fmtDate(next.due), name: t(next.name) }) : null, must ? t("{n} 项必须", { n: must }) : null].filter(Boolean).join(" · ") || t("还有 {n} 项", { n: g.rows.length - d });
     const badge = late ? `<span class="badge b-out mcount">${t("逾期 {n}", { n: late })}</span>` : d === g.rows.length ? `<span class="badge b-ok mcount">✓</span>` : `<span class="badge mcount" style="background:var(--surface-2)">${d}/${g.rows.length}</span>`;
-    return row(`${href("house", "deal")}?sec=stage:${g.k}`, d === g.rows.length ? "✅" : "☐", t(g.n), esc(desc), Math.round((d / g.rows.length) * 100), badge);
+    return row(link(`stage:${g.k}`), d === g.rows.length ? "✅" : "☐", t(g.n), esc(desc), Math.round((d / g.rows.length) * 100), badge);
   }).join("");
-  const infoRow = row(`${href("house", "deal")}?sec=info`, "📝", t("交易信息"), infoN ? t("合同日、交割日、价格、律师、贷款行、经纪人等") : t("先填合同日和交割日，清单截止日按它们推算"), Math.round((infoN / INFO_FIELDS.length) * 100), `<span class="badge mcount" style="background:var(--surface-2)">${infoN}/${INFO_FIELDS.length}</span>`);
+  const infoRow = row(link("info"), "📝", t("交易信息"), infoN ? t("合同日、交割日、价格、律师、贷款行、经纪人等") : t("先填合同日和交割日，清单截止日按它们推算"), Math.round((infoN / INFO_FIELDS.length) * 100), `<span class="badge mcount" style="background:var(--surface-2)">${infoN}/${INFO_FIELDS.length}</span>`);
   const addRow = addTaskRow(deal, "special", row);
-  const closeRow = row(`${href("house", "deal")}?sec=closeout`, deal.kind === "buy" ? "🔑" : "📦", deal.kind === "buy" ? t("完成交割") : t("交割与退出"), deal.kind === "buy" ? t("交割后标为持有，记买入日期和价格") : t("账单结束日期、取消自动扣款、归档房产"), null);
+  const closeRow = closed ? "" : row(link("closeout"), deal.kind === "buy" ? "🔑" : "📦", deal.kind === "buy" ? t("完成交割") : t("交割与退出"), deal.kind === "buy" ? t("交割后标为持有，记买入日期和价格") : t("账单结束日期、取消自动扣款、归档房产"), null);
   return `${houseBar()}${statusCard}
     <section class="section">
-      <div class="section-head"><h2>${t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${deal.closing_on ? t("交割 {d}", { d: fmtDate(deal.closing_on) }) : t("还没填交割日")}</p></div>
+      <div class="section-head"><h2>${closed ? (deal.outcome === "cancelled" ? t("{kind}已取消", { kind: t(K[deal.kind]) }) : t("{kind}已交割", { kind: t(K[deal.kind]) })) : t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${deal.closing_on ? t("交割 {d}", { d: fmtDate(deal.closing_on) }) : t("还没填交割日")}</p></div>
+      ${closed ? `<p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。")}${openDeal(p.id) ? ` <a href="${href("house", "deal")}">${t("回到进行中的交易")}</a>` : ""}</p>` : ""}
       <div class="panel deal-progress">
         <div class="kv"><div><b>${t("总进度 {p}%", { p: pct })}</b><div class="muted">${t("已完成 {a} / {b}", { a: doneN, b: total })}${mustLeft ? ` · ${t("必须项还剩 {n}", { n: mustLeft })}` : ""}${nextDue ? ` · ${t("最近截止 {date}", { date: fmtDate(nextDue.due) })}` : ""}</div></div></div>
         <div class="life-bar big"><i style="width:${pct}%"></i></div>
@@ -273,7 +280,7 @@ export function viewDeal() {
         : `<div class="panel mlist">${infoRow}${stageRows}${addRow}${closeRow}</div>`}
       <p class="disclaimer">${t("截止日按合同日和交割日推算，可点 ✎ 调整；必须项逾期会在首页置顶")}</p>
     </section>
-    ${dealHistory(history)}`;
+    ${dealHistory(history, viewed?.id || null)}`;
 }
 
 function dealForm(d) {
@@ -300,13 +307,15 @@ function dealForm(d) {
   </form>`;
 }
 
-function dealHistory(list) {
+/** 历史交易：每条可点开（?deal=<id>）查看、修改当时的清单、时间线和交易信息；current = 正在看的那条 */
+function dealHistory(list, current) {
   if (!list.length) return "";
   const K = D().KINDS;
-  return `<section class="section"><div class="section-head"><h2>${t("历史交易")}</h2></div><div class="panel"><ul class="restock-list">${list.map((d) => `<li>
+  return `<section class="section"><div class="section-head"><h2>${t("历史交易")}</h2></div><div class="panel"><ul class="restock-list">${list.map((d) => `<li ${d.id === current ? 'aria-current="true"' : ""}>
     <span class="badge" style="background:var(--surface-2)">${t(K[d.kind])}</span>
-    <div class="grow"><span class="name">${d.closing_on ? fmtDate(d.closing_on) : fmtDate((d.closed_at || d.updated_at || "").slice(0, 10))}</span>
-      <small>${[d.outcome === "cancelled" ? t("已取消") : t("已交割"), d.price ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div></li>`).join("")}</ul></div></section>`;
+    <div class="grow"><a class="link-name" href="${href("house", "deal")}?deal=${esc(d.id)}">${d.closing_on ? fmtDate(d.closing_on) : fmtDate((d.closed_at || d.updated_at || "").slice(0, 10))}</a>
+      <small>${[d.outcome === "cancelled" ? t("已取消") : t("已交割"), d.price ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>
+    ${d.id === current ? `<span class="badge b-ok">${t("正在查看")}</span>` : `<a class="btn btn-sm btn-ghost" href="${href("house", "deal")}?deal=${esc(d.id)}">${t("查看清单")}</a>`}</li>`).join("")}</ul></div></section>`;
 }
 
 /** 退出向导（卖出 / 退租）：交割日、成交价、每条账单的结束日期 */

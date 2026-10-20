@@ -4,7 +4,7 @@ import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
-import { glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
+import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { setTodayPref, viewAlerts, viewToday } from "./today.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
@@ -103,7 +103,20 @@ function applyChrome() {
   const title = $("#appTitle"); if (title) title.textContent = t(APP_NAME);
   $("#tabs").setAttribute("aria-label", t("主导航"));
   renderAppSwitch();
+  renderLangSwitch();
 }
+
+/* 顶栏右上角的语言快捷切换（登录页也显示）；和 设置 → 语言 存同一个值 */
+const LANG_SHORT = [["zh", "简体"], ["zh-Hant", "繁體"], ["en", "EN"]];
+function renderLangSwitch() {
+  const box = $("#langSwitch"); if (!box) return;
+  box.setAttribute("aria-label", t("切换语言"));
+  box.innerHTML = LANG_SHORT.map(([k, l]) => `<button type="button" data-lang="${k}" aria-pressed="${lang === k}" title="${LANGS[k]}" aria-label="${LANGS[k]}">${l}</button>`).join("");
+}
+$("#langSwitch")?.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-lang]"); if (!b || b.getAttribute("aria-pressed") === "true") return;
+  changeLang(b.dataset.lang);
+});
 
 /* ───────────── 姐妹站点切换（与家庭学堂顶栏一致：站名旁「‹ 上一个」「下一个 ›」两枚小胶囊） ───────────── */
 const APP_ID = "home-pantry";
@@ -816,8 +829,6 @@ export function gate(html) { document.body.classList.add("gate"); applyChrome();
 const COUNTRY_CODES = [["+1", "美国 / 加拿大 +1"], ["+86", "中国大陆 +86"], ["+852", "香港 +852"], ["+886", "台湾 +886"], ["+65", "新加坡 +65"], ["+61", "澳大利亚 +61"], ["+44", "英国 +44"], ["+81", "日本 +81"]];
 const phoneLoginOn = () => !!window.APP_CONFIG?.PHONE_LOGIN;
 const quickJoinOn = () => window.APP_CONFIG?.QUICK_JOIN !== false;
-// 登录页右上角的语言切换
-const langBar = () => `<div class="lang-bar">${[["zh", "简体"], ["zh-Hant", "繁體"], ["en", "EN"]].map(([k, l]) => `<button type="button" class="chip" data-action="lang" data-lang="${k}" aria-pressed="${lang === k}">${l}</button>`).join("")}</div>`;
 
 export function renderLogin(msg = "") {
   const modes = [["email", "邮箱"], phoneLoginOn() && ["phone", "手机号"], quickJoinOn() && ["quick", "邀请码直接进入"]].filter(Boolean);
@@ -850,7 +861,7 @@ export function renderLogin(msg = "") {
       <form id="loginForm"><input type="email" name="email" required autocomplete="email" placeholder="you@example.com" aria-label="${t("邮箱")}">
         <button class="btn btn-primary" type="submit">${t("发送登录链接")}</button></form>`;
   }
-  gate(`<div class="panel gate-card">${langBar()}<h2>${t("登录")}</h2>${tabs}${body}<p class="muted" role="status">${esc(msg)}</p></div>`);
+  gate(`<div class="panel gate-card"><h2>${t("登录")}</h2>${tabs}${body}<p class="muted" role="status">${esc(msg)}</p></div>`);
   setSync(t("未登录"));
 }
 
@@ -906,7 +917,7 @@ export async function doVerifyOtp(f) {
 
 export function renderOnboarding() {
   const anon = !!state.user?.is_anonymous;   // 邀请码直接进入的匿名账号：只能加入，不能创建家庭
-  gate(`<div class="panel gate-card">${langBar()}<h2>${t("加入你的家庭")}</h2>
+  gate(`<div class="panel gate-card"><h2>${t("加入你的家庭")}</h2>
     <p class="muted">${anon ? t("用家人给的邀请码加入。") : t("第一次使用请创建家庭；家人已经创建过的话，用邀请码加入。")}</p>
     <form id="joinHhForm"><input name="code" required maxlength="12" placeholder="${t("邀请码")}" autocapitalize="characters" aria-label="${t("邀请码")}">
       <input name="display_name" required maxlength="20" placeholder="${t("我的称呼，例如：爸爸")}" aria-label="${t("我的称呼")}" value="${esc(state.user?.user_metadata?.display_name || "")}">

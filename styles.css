@@ -81,6 +81,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .app-list .app-ico { font-size: 20px; width: 32px; text-align: center; }
 .app-list small { display: block; color: var(--muted); font-size: 12px; }
 .hh-name { margin: 0; color: var(--muted); font-size: 13px; }
+/* 右上角语言快捷切换：一枚分段胶囊，当前语言反白 */
+.lang-switch { display: inline-flex; flex: 0 0 auto; align-self: flex-start; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 2px; }
+.lang-switch button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; line-height: 18px; padding: 2px 9px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.lang-switch button:hover { color: var(--ink); background: var(--surface-2); }
+.lang-switch button[aria-pressed="true"] { background: var(--ink); color: var(--bg); cursor: default; }
+.lang-switch button:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.lang-switch:empty { display: none; }
 .sync { font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
 .sync.err { color: var(--out); border-color: var(--out); }
 
@@ -120,6 +127,8 @@ main:focus, main:focus-visible, #main:focus-visible { outline: none !important; 
   .brand { gap: 10px; min-width: 0; }
   .brand-mark { width: 26px; height: 32px; }
   .brand h1 { white-space: nowrap; }
+  .brand-row { flex-wrap: wrap; row-gap: 2px; }   /* 站名 + 姐妹站点胶囊 + 右侧语言切换挤不下时，胶囊换行，不把页面撑宽 */
+  .lang-switch button { font-size: 11px; padding: 2px 7px; }
   .hh-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   main { padding-top: 16px; padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
 }
@@ -396,8 +405,6 @@ textarea { resize: vertical; }
 .gate-card form { display: grid; gap: 10px; margin-top: 14px; }
 .gate-card hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 .gate-card .seg { margin: 10px 0 0; }
-.gate-card .lang-bar { display: flex; gap: 4px; justify-content: flex-end; margin: -4px 0 6px; }
-.gate-card .lang-bar .chip { font-size: 12px; padding: 2px 9px; }
 .gate-card .phone-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
 .gate-card .phone-form .btn { grid-column: 1 / -1; }
 
