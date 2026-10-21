@@ -110,7 +110,8 @@ export function crumb(r) {
   const parent = r.section === "bills" ? { template: "list" } : { template: "supplies", "asset-template": "assets" };
   const cur = sec.subs.find(([k]) => k === r.sub) || sec.subs.find(([k]) => k === parent[r.sub]);
   const prop = r.section === "house" && r.sub !== "vehicles" ? state.properties.find((p) => p.id === state.propertyId) : null;
-  const parts = [prop ? { href: href("house", "pages"), label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" } : { href: href(r.section), label: t(sec.name) }];
+  // 房屋下的子页：房屋 / 房产 / 页面（之前只剩房产名，“房屋”这一级消失了）
+  const parts = prop ? [{ href: href("house"), label: t(sec.name) }, { href: href("house", "pages"), label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }] : [{ href: href(r.section), label: t(sec.name) }];
   const curLabel = cur ? t(cur[1]) : "", subHref = href(r.section, cur?.[0] || r.sub);
   // 三级：房屋资料分区 / 交易子页 / 设置分区 / 库存分类 —— 中间项可点回上一级，页面不再另起标题行
   const q = r.q;
@@ -122,7 +123,7 @@ export function crumb(r) {
   const vehDeal = r.section === "house" && r.sub === "deal" && q.get("asset") ? state.assetsEnriched.find((a) => a.id === q.get("asset")) : null;
   if (vehDeal) {
     const dealHref_ = `${subHref}?asset=${encodeURIComponent(vehDeal.id)}${q.get("deal") ? `&deal=${encodeURIComponent(q.get("deal"))}` : ""}`;
-    const vparts = [{ href: href("house", "vehicles"), label: t("车辆"), icon: "🚗" }, { href: href("asset", vehDeal.id), label: assetName(vehDeal) }];
+    const vparts = [{ href: href("house"), label: t(sec.name) }, { href: href("house", "vehicles"), label: t("车辆"), icon: "🚗" }, { href: href("asset", vehDeal.id), label: assetName(vehDeal) }];
     const dealRoot = `${subHref}?asset=${encodeURIComponent(vehDeal.id)}`;
     if (hist) { vparts.push({ href: dealRoot, label: curLabel }); if (dsec) vparts.push({ href: dealHref_, label: hist }, { label: dsec }); else vparts.push({ label: hist }); }
     else if (dsec) vparts.push({ href: dealHref_, label: curLabel }, { label: dsec }); else vparts.push({ label: curLabel });
