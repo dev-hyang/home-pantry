@@ -6,7 +6,7 @@ import { compare, lang, locale, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { withProperty } from "../core/alerts.js";
-import { tabBar } from "../core/hub.js";
+import { tabBar, tabHub } from "../core/hub.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
 
 /* ── 统计：花费与消耗趋势 ── */
@@ -115,13 +115,15 @@ export function spendGlance() {
 
 /* 花费页分为 5 个标签（概览 / 分类 / 商店 / 明细 / 导出打印），一次只画一块，页面不再一屏接一屏地长；
  * 统计页（账单模块关闭时）仍用 "all"：全部连在一起 */
-function spendOverviewTab(sd) {
+const spendHref = (id) => `${href("bills", "spend")}${id === "overview" ? "" : `?tab=${id}`}`;
+function spendOverviewTab(sd, withHub = false) {
   const { months, byMC, cats, totals } = sd;
   const spendBars = Charts.bars({
     title: t("月度采购花费（按分类堆叠）"), labels: months.map(monthLabel), fmt: money,
     series: cats.map((c) => ({ name: t(c.name), color: c.color, values: months.map((m) => byMC[m][c.id] || 0) })),
   });
   return `${spendKpis(sd)}
+    ${withHub ? tabHub(SPEND_TABS, spendHref, t("更多")) : ""}
     ${sd.otherCurrency ? `<p class="muted" style="font-size:13px">${t("另有 {n} 笔非 {cur} 记录未计入。", { n: sd.otherCurrency, cur: Units.region.currency })}</p>` : ""}
     ${totals.some((v) => v > 0) ? `<div class="panel chart-panel"><h3>${t("每月花了多少")}</h3>${spendBars}</div>` : noSpend()}`;
 }
@@ -181,14 +183,14 @@ export function viewSpend() {
   const sd = spendData();
   const ranged = tab === "overview" || tab === "category" || tab === "stores" || tab === "all";
   const body = {
-    overview: () => spendOverviewTab(sd), category: () => spendCategoryTab(sd), stores: () => viewStoreStats(sd.months) || noSpend(),
+    overview: () => spendOverviewTab(sd, onSpendPage), category: () => spendCategoryTab(sd), stores: () => viewStoreStats(sd.months) || noSpend(),
     records: spendRecordsTab, export: spendExportTab,
     all: () => `${spendOverviewTab(sd)}${spendCategoryTab(sd)}${viewStoreStats(sd.months)}${viewAnnualExport()}${spendRecordsTab()}`,
   }[tab]();
   return `
     <section class="section">
       <div class="section-head"><h2>${t("采购花费")}</h2></div>
-      ${onSpendPage ? tabBar(SPEND_TABS, tab, (id) => `${href("bills", "spend")}${id === "overview" ? "" : `?tab=${id}`}`, t("花费内容")) : ""}
+      ${onSpendPage ? tabBar(SPEND_TABS, tab, spendHref, t("花费内容")) : ""}
       ${ranged ? `<div class="range-row">${rangeChipsHtml()}</div>` : ""}
       ${body}
     </section>`;

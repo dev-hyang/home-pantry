@@ -34,3 +34,6 @@ export const filledCount = (vals) => vals.filter((v) => v != null && v !== "" &&
 /** 页内标签条（三级导航）：链接形式，地址带 ?tab=，后退键、分享、刷新都保持在同一标签；手机上可横向滑动 */
 export const tabBar = (tabs, active, hrefOf, label) => `<nav class="subtabs" aria-label="${esc(label)}">${tabs.map(([id, name, icon]) =>
   `<a href="${esc(hrefOf(id))}" class="subtab" ${id === active ? 'aria-current="page"' : ""}><span aria-hidden="true">${icon}</span> ${esc(t(name))}</a>`).join("")}</nav>`;
+
+/** 窄屏的“入口行”：第一个标签下面列出其余标签，每行带图标和一句说明；宽屏隐藏（那里用标签条）。hrefOf 与 tabBar 共用 */
+export const tabHub = (tabs, hrefOf, title) => `<section class="section tabhub"><div class="section-head"><h2>${esc(title)}</h2></div>${hubList(tabs.filter((x) => x[3]).map(([id, name, icon, desc]) => hubRow({ href: hrefOf(id), icon, title: t(name), desc: esc(t(desc)) })))}</section>`;

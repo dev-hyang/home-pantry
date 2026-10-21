@@ -7,7 +7,7 @@ import { lang, t } from "../core/i18n.js";
 import { alertsOf } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { lastMonths, monthKey, monthLabel, rangeChipsHtml, statCat } from "../stats/views.js";
-import { tabBar } from "../core/hub.js";
+import { tabBar, tabHub } from "../core/hub.js";
 import { BUDGET_TABS, activeTab } from "../core/tabs.js";
 
 /* ───────────── 预算分组 ───────────── */
@@ -287,6 +287,7 @@ const bar = (spent, budget, pace) => {
 const row = (g, spent, budget, pace, extra = "") => `<div class="bud-row"><div class="bud-head"><b>${g.icon} ${esc(t(g.name))}</b><span>${money(spent)} / ${money(budget)} · ${pct(spent, budget)}%</span></div>${bar(spent, budget, pace)}
   <small class="${spent > budget ? "down" : "muted"}">${spent > budget ? t("超出 {a}", { a: money(spent - budget) }) : t("还剩 {a}", { a: money(budget - spent) })}${extra}</small></div>`;
 
+const budgetHref = (id) => `${href("bills", "budget")}${id === "month" ? "" : `?tab=${id}`}`;
 export function viewBudget() {
   const plan = budgetPlan(), b = state.budget || {};
   const owner = isHouseholdOwner(), mine = state.incomes.find((i) => i.user_id === myId()), settingsHref = `${href("me", "settings")}?sec=income`;
@@ -333,6 +334,7 @@ export function viewBudget() {
       </div>
       ${plan.income != null && plan.pool <= 0 ? `<p class="form-error">${t("固定账单和储蓄已经用完了收入，没有可支配额：先看看账单能不能压缩，或降低储蓄比例。")}</p>` : ""}
     </section>
+    ${tabHub(BUDGET_TABS, budgetHref, t("更多"))}
     <section class="section">
       <div class="section-head"><h2>${t("本月预算")}</h2><p>${t("竖线是本月已过去的进度；条越过竖线说明花得比时间快")}</p></div>
       <div class="panel">
@@ -394,7 +396,7 @@ export function viewBudget() {
   return `
     <section class="section">
       <div class="section-head"><h2>${t("预算")}</h2><div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="budget">${t("打印")}</button></div></div>
-      ${tabBar(BUDGET_TABS, tab, (id) => `${href("bills", "budget")}${id === "month" ? "" : `?tab=${id}`}`, t("预算内容"))}
+      ${tabBar(BUDGET_TABS, tab, budgetHref, t("预算内容"))}
     </section>
     ${tabs[tab]()}`;
 }

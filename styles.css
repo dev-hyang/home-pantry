@@ -1089,3 +1089,10 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .range-row .seg { margin: 0; }
 @media print { .subtabs { display: none !important; } }
 .head-acts .seg { margin: 0; }
+
+/* 窄屏（≤ 440px，iPhone Pro Max 宽度）：不用横向标签条，改成第一个标签下面的入口行；子页靠面包屑返回。宽屏相反 */
+.tabhub { display: none; }
+@media (max-width: 440px) {
+  .subtabs { display: none; }
+  .tabhub { display: block; }
+}
