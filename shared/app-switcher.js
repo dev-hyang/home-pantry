@@ -27,7 +27,7 @@ const TEXT = {
 const CSS = `
 .eco-sw { position: relative; display: inline-flex; }
 .eco-sw-btn { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; color: var(--ink, #1e3a32); }
-.eco-sw-btn:hover, .eco-sw-btn[aria-expanded="true"] { background: var(--surface-2, #e3ebe4); }
+.eco-sw-btn:hover, .eco-sw-btn[aria-expanded="true"] { background: var(--surface-2, var(--bg, #e3ebe4)); }
 .eco-sw-btn:focus-visible, .eco-sw-row:focus-visible, .eco-sw-close:focus-visible { outline: 3px solid var(--focus, #1f6feb); outline-offset: 2px; }
 .eco-sw-grid { display: grid; grid-template-columns: repeat(3, 5px); gap: 3px; }
 .eco-sw-grid i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
@@ -38,12 +38,12 @@ const CSS = `
 .eco-sw-close { all: unset; box-sizing: border-box; cursor: pointer; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 20px; }
 .eco-sw-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .eco-sw-row { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 10px; border-radius: 12px; }
-.eco-sw-row:hover, .eco-sw-row[aria-current="true"] { background: var(--surface-2, #e3ebe4); }
+.eco-sw-row:hover, .eco-sw-row[aria-current="true"] { background: var(--surface-2, var(--bg, #e3ebe4)); }
 .eco-sw-ico { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: var(--bg, #eef3ee); font-size: 22px; }
 .eco-sw-txt { flex: 1 1 auto; min-width: 0; display: grid; }
 .eco-sw-txt b { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .eco-sw-txt small { font-size: 13px; color: var(--muted, #55695f); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.eco-sw-now { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--pine, #2c6a57); }
+.eco-sw-now { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--pine, var(--slate, #2c6a57)); }
 .eco-sw-scrim { position: fixed; inset: 0; z-index: 999; background: rgba(0, 0, 0, .4); }
 @media (max-width: 440px) {
   .eco-sw { position: static; }
@@ -76,10 +76,13 @@ let cssDone = false, openCleanup = null;
 export function mountAppSwitcher({ host, current, lang = "zh", apps = null, onApps = null }) {
   if (!host) return;
   if (!cssDone) { const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st); cssDone = true; }
-  openCleanup?.(); openCleanup = null;
   const k = kindOf(lang), tx = TEXT[k];
   const list = (apps || readCache() || FALLBACK).filter(validApp);
   if (list.length < 2) { host.innerHTML = ""; return; }
+  const key = `${current}|${k}|${JSON.stringify(list)}`;
+  if (host.dataset.ecoKey === key && host.firstChild) return;   // 内容没变就不重画：各站每次刷新页面都会调用，别把打开着的面板关掉
+  host.dataset.ecoKey = key;
+  openCleanup?.(); openCleanup = null;
   const row = (a) => {
     const here = a.id === current, label = `${pick(a.name, k)}${here ? `（${tx.current}）` : ""}，${pick(a.sub, k)}`;
     return `<li><a class="eco-sw-row" href="${esc(a.url)}" ${here ? 'aria-current="true"' : ""} aria-label="${esc(label)}">
