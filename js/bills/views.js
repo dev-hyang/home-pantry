@@ -11,6 +11,10 @@ import { propertyTag, withProperty } from "../core/alerts.js";
 import { autofillBar } from "../core/autofill.js";
 import { escrowPanelHtml } from "./escrow.js";
 import { billInUse, endedSuffix, propertyActive, propertyById, propertyOptionsHtml } from "../core/lifecycle.js";
+import { kindsNote, ONETIME, RECURRING } from "./kinds.js";
+import { medRow } from "./medical-views.js";
+import { RECURRING_TABS, activeTab } from "../core/tabs.js";
+import { tabBar, tabHub } from "../core/hub.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 
 const B = () => window.BILLS;
@@ -66,6 +70,46 @@ function monthBillsHtml(list) {
   };
   return `<section class="section"><div class="section-head"><h2>${t("本月账单")}</h2><p>${t("已缴 {a} / {b} 笔", { a: done, b: rows.length })}${left > 0 ? ` · ${t("还要交 {m}", { m: money(left) })}` : ""}</p></div>
     <div class="panel"><ul class="restock-list">${rows.map(li).join("")}</ul></div></section>`;
+}
+
+/* ── 账单总览：周期性 + 一次性 ── */
+export function viewBillsHome() {
+  const all = state.billsEnriched.filter((b) => b.active), list = filterByProperty(all), alerts = billAlerts(list), cur = Units.region.currency;
+  const inCur = list.filter((b) => (b.currency || cur) === cur), monthlyTotal = inCur.reduce((s, b) => s + b.monthly, 0);
+  const next30 = upcoming(list, 30), due30 = next30.filter((x) => (x.bill.currency || cur) === cur).reduce((s, x) => s + num(x.bill.est), 0);
+  const open = state.medEnriched.filter((b) => b.open), owe = open.reduce((s, b) => s + (b.balance || 0), 0);
+  const card = (href_, icon, title, desc, stat, add) => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small></span><span class="kind-stat">${stat}</span><span class="mch" aria-hidden="true">›</span></a>${add}</div>`;
+  return `
+    <section class="section">
+      <div class="section-head"><h2>${t("账单")}</h2><div class="head-acts">${propertyFilter()}</div></div>
+      <div class="kpis">
+        <div class="kpi"><span>${t("未来 30 天要交")}</span><b>${money(due30)}</b><small>${t("周期性账单 · {n} 笔", { n: next30.length })}</small></div>
+        <div class="kpi"><span>${t("每月固定支出")}</span><b>${money(monthlyTotal)}</b><small>${t("周期性账单")}</small></div>
+        <div class="kpi"><span>${t("一次性账单未结")}</span><b>${money(owe)}</b><small>${t("{n} 张待处理", { n: open.length })}</small></div>
+      </div>
+      <div class="panel kind-cards">
+        ${card(RECURRING(), "🔁", t("周期性账单"), t("水电气网、房贷房租、保险、订阅、信用卡：按周期反复出现，算下次到期并提醒"), alerts.length ? t("{n} 条要处理", { n: alerts.length }) : t("{n} 条", { n: list.length }),
+          `<a class="btn btn-sm btn-ghost" href="${href("bill", "new")}">${t("添加周期性账单")}</a>`)}
+        ${card(ONETIME(), "🏥", t("一次性账单"), t("一次事件产生的账单：医疗、宠物、法律税务、装修工程；有总额、可分次付、有余额"), open.length ? t("{n} 张未结", { n: open.length }) : t("{n} 张", { n: state.medEnriched.length }),
+          `<a class="btn btn-sm btn-ghost" href="${ONETIME()}?bill=new">${t("记一张一次性账单")}</a>`)}
+      </div>
+      <p class="muted kinds-note">${t("区别：周期性账单每隔一段时间自己再来一张，系统帮你算下次到期；一次性账单是一次事件产生的，付清就结束，可以分几次付。")}</p>
+    </section>
+    ${monthBillsHtml(list)}
+    ${alerts.length ? `<section class="section"><div class="section-head"><h2>${t("要处理的周期性账单")}</h2><p>${t("逾期、到期、即将到期和待核对的自动扣款")}</p></div>
+      <div class="panel"><ul class="restock-list">${alerts.slice(0, 6).map((b) => billRow(b)).join("")}</ul>${alerts.length > 6 ? `<div class="form-actions" style="justify-content:center"><a class="btn btn-sm btn-ghost" href="${RECURRING()}">${t("看全部 {n} 条", { n: alerts.length })}</a></div>` : ""}</div></section>` : ""}
+    ${open.length ? `<section class="section"><div class="section-head"><h2>${t("未结的一次性账单")}</h2><p>${t("按到期日排序")}</p></div>
+      <div class="panel"><ul class="restock-list">${[...open].sort((a, b) => (a.due_on || "9999").localeCompare(b.due_on || "9999")).slice(0, 6).map(medRow).join("")}</ul></div></section>` : ""}
+    ${!alerts.length && !open.length ? `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单")}</strong></div></section>` : ""}
+    ${spendGlance()}`;
+}
+
+/* ── 周期性账单：概览 / 清单 / 记录三个标签（窄屏概览下面是入口行） ── */
+export function viewRecurring() {
+  const tab = activeTab(state.route) || "overview", body = { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory }[tab];
+  const hrefOf = (id) => `${RECURRING()}${id === "overview" ? "" : `?tab=${id}`}`;
+  return `<section class="section"><div class="section-head"><h2>🔁 ${t("周期性账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
+    ${kindsNote("recurring")}${tabBar(RECURRING_TABS, tab, hrefOf, t("周期性账单内容"))}${tab === "overview" ? tabHub(RECURRING_TABS, hrefOf, t("更多")) : ""}</section>${body()}`;
 }
 
 /* ── 概览 ── */

@@ -33,7 +33,7 @@ import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyIt
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
-import { renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsOverview } from "./bills/views.js";
+import { renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { moveCat, renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
@@ -144,7 +144,7 @@ const VIEWS = {
   pantry:   { overview: viewDashboard, inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
-  bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, spend: viewSpend, medical: viewMedical, budget: viewBudget, template: viewBillTemplate },
+  bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, budget: viewBudget, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout },
@@ -301,6 +301,10 @@ function onRoute() {
   if (next.section === "bills" && next.sub === "spend" && next.q.get("tab") === "records" && applySpendDrill(next.q)) history.replaceState(null, "", `${href("bills", "spend")}?tab=records`);
   state.route = next;
   render(true);
+  if (next.section === "bills" && next.sub === "spend" && next.q.get("add")) {   // 花费页右上角“记一笔花费”：滚到补记表单并聚焦名称，再把参数去掉
+    requestAnimationFrame(() => { const pf = $("#purchaseForm"); if (pf) { pf.scrollIntoView({ block: "center" }); pf.elements.name.focus({ preventScroll: true }); } });   // 等页面把焦点放好之后再聚焦
+    history.replaceState(null, "", `${href("bills", "spend")}?tab=records`);
+  }
   const back = leavingItem && state.prevRoute && routeKey(state.prevRoute) === routeKey(next);
   if (leavingItem) state.prevRoute = null;
   if (back) requestAnimationFrame(() => window.scrollTo(0, scrollMem[routeKey(next)] || 0));

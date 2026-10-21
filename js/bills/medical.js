@@ -23,7 +23,7 @@ export const subName = (b) => (kindOf(b).subs.find(([k]) => k === b?.subkind) ||
 export const subIcon = (b) => (kindOf(b).subs.find(([k]) => k === b?.subkind) || [])[2] || kindOf(b).icon;
 export const STATUS = { awaiting_insurance: "等保险理赔", open: "待付", disputed: "争议中", collections: "催收中", written_off: "已冲销", partial: "部分已付", paid: "已结清" };
 export const STATUS_CLS = { awaiting_insurance: "b-soon", open: "b-low", disputed: "b-out", collections: "b-out", written_off: "", partial: "b-soon", paid: "b-ok" };
-export const detailHref = (id) => `${href("bills", "medical")}?bill=${id || "new"}`;
+export const detailHref = (id) => `${href("bills", "onetime")}?bill=${id || "new"}`;
 
 const r2 = (v) => Math.round(v * 100) / 100;
 /** 应付（自付金额）：填了就用；没填 = 总额 − 保险已付 − 冲减；两个都没有 = 还不知道（null） */

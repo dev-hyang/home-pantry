@@ -8,7 +8,7 @@ export const SECTIONS = {
   // 房屋：#/house 是房产列表；#/house/pages 是某套房产的页面目录；车辆挂家庭，从房产列表进
   house:    { name: "房屋",   subs: [["overview", "概览"], ["assets", "设备保养"], ["tasks", "季节任务"], ["deal", "交易"], ["profile", "房屋资料"],
                                      ["supplies", "房屋耗材", true], ["vehicles", "车辆", true], ["pages", "页面", true], ["template", "推荐耗材", true], ["asset-template", "生成设备", true]] },  // 第三项 true = 不在目录显示
-  bills:    { name: "账单",   subs: [["overview", "概览"], ["list", "清单"], ["history", "记录"], ["spend", "花费"], ["medical", "医疗与事件"], ["budget", "预算"], ["template", "常用账单", true]] },
+  bills:    { name: "账单",   subs: [["overview", "概览"], ["recurring", "周期性账单"], ["onetime", "一次性账单"], ["spend", "花费"], ["budget", "预算"], ["template", "常用账单", true]] },
   shopping: { name: "采购",   subs: null },
   scan:     { name: "录入购物", subs: null },   // #/scan：拍小票 / 贴线上订单，AI 读成清单后入库（底栏高亮“采购”）
   me:       { name: "我的",   subs: [["stats", "统计"], ["settings", "设置"], ["about", "介绍"]] },
@@ -26,6 +26,11 @@ export function parseRoute(hash = location.hash) {
   const parts = path.split("/").filter(Boolean).map(decodeURIComponent);
   if (parts[0] === "gear") parts.splice(0, 1, "pantry", "gear");   // 旧链接 #/gear → 储藏 / 装备
   const query = new URLSearchParams(qs || "");
+  // 账单页重新分层（周期性 / 一次性）：旧链接和已保存的快捷操作仍然有效——清单、记录进周期性账单的标签，医疗与事件改名一次性账单
+  if (parts[0] === "bills") {
+    const alias = { list: ["recurring", "list"], history: ["recurring", "history"], medical: ["onetime", null] }[parts[1]];
+    if (alias) { parts[1] = alias[0]; if (alias[1] && !query.has("tab")) query.set("tab", alias[1]); }
+  }
   if (parts[0] === "house" && parts[1] === "supplies") { parts.splice(0, 2, "pantry", "inventory"); query.set("space", "house"); }   // 房屋耗材已并入 储藏 / 库存
   let section = SECTIONS[parts[0]] ? parts[0] : "today";
   const def = SECTIONS[section].subs;

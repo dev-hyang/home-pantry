@@ -36,15 +36,14 @@ const META = {
     deal:      { icon: "📝", desc: "买入 / 卖出 / 退租流程清单", count: () => (openDeal() ? 1 : 0), countLabel: "进行中" },
     profile:   { icon: "🏡", desc: "房型、设施、材料、地址、保险、HOA" },
     // 这套房产的账单：跳到账单清单并按房产筛选（账单页签保留全家视图、日历导出和与房产无关的账单）
-    bills:     { icon: "🧾", desc: "这套房产的水电气网、HOA、房产税、房贷、保险", href: () => `${href("bills", "list")}?prop=${state.propertyId}`, count: () => billAlerts(state.billsEnriched.filter((b) => b.property_id === state.propertyId)).length, when: () => state.billsEnabled },
+    bills:     { icon: "🧾", desc: "这套房产的水电气网、HOA、房产税、房贷、保险", href: () => `${href("bills", "recurring")}?tab=list&prop=${state.propertyId}`, count: () => billAlerts(state.billsEnriched.filter((b) => b.property_id === state.propertyId)).length, when: () => state.billsEnabled },
   },
   bills: {
-    overview:  { icon: "🧾", desc: "未来 30 天要交多少、要处理的账单", count: () => billAlerts(state.billsEnriched).length },
-    list:      { icon: "📋", desc: "全部账单、自动扣款开关、按房产筛选" },
-    history:   { icon: "📈", desc: "每条账单的缴费记录、金额趋势、CSV 导出" },
+    overview:  { icon: "🧾", desc: "周期性 + 一次性账单一览：要处理的、未来 30 天要交、未结余额" },
+    recurring: { icon: "🔁", desc: "水电气网、房贷房租、保险、订阅、信用卡：按周期反复出现，算下次到期并提醒；含清单、缴费记录", count: () => billAlerts(state.billsEnriched).length },
+    onetime:   { icon: "🏥", desc: "一次事件产生的账单：医疗、宠物、法律税务、装修工程；有总额、可分次付、有余额", count: () => state.medEnriched.filter((b) => b.open).length },
     budget:    { icon: "💰", desc: "收入、固定账单、储蓄 → 月度 / 年度预算，对比实际花费，超预算提醒，大额购物规划" },
     spend:     { icon: "📊", desc: "所有花费：每月花了多少、分类占比、商店、年度报表，可搜索筛选排序" },
-    medical:   { icon: "🏥", desc: "医疗、宠物、法律税务、装修项目的账单：总额、保险已付、自付、分次付款；医疗默认只有自己和家主看得到" },
   },
   me: {
     stats:     { icon: "📊", desc: "库存使用趋势（花费统计在 账单 → 花费）" },
@@ -116,7 +115,7 @@ export function viewMenu(section) {
 const SPLIT_FIRST = (r) => firstTab(r);   // 第一个标签就是页面本身，面包屑不再多一层
 export function crumb(r) {
   const sec = SECTIONS[r.section]; if (!sec?.subs || r.sub === "menu" || r.sub === "pages") return "";
-  const parent = r.section === "bills" ? { template: "list" } : { template: "supplies", "asset-template": "assets" };
+  const parent = r.section === "bills" ? { template: "recurring" } : { template: "supplies", "asset-template": "assets" };
   const cur = sec.subs.find(([k]) => k === r.sub) || sec.subs.find(([k]) => k === parent[r.sub]);
   const prop = r.section === "house" && r.sub !== "vehicles" ? state.properties.find((p) => p.id === state.propertyId) : null;
   // 房屋下的子页：房屋 / 房产 / 页面（之前只剩房产名，“房屋”这一级消失了）
@@ -149,7 +148,7 @@ export function crumb(r) {
   else if (ssec) parts.push({ href: subHref, label: curLabel }, { label: t(ssec.name), icon: ssec.icon === "__AI__" ? aiIcon(18) : ssec.icon });
   else if (cat) parts.push({ action: "cat", attrs: 'data-cat="all"', label: curLabel }, { label: t(cat.name), icon: cat.icon });   // “库存”可点回全部分类
   else if (r.section === "house" && r.sub === "template") return crumbNav([{ href: href("pantry"), label: t("储藏") }, { href: `${href("pantry", "inventory")}?space=house`, label: `${t("库存")} · ${t("房屋耗材")}` }, { label: curLabel }]);   // 推荐耗材是从 库存 · 房屋耗材 进来的
-  else if (r.section === "bills" && r.sub === "medical" && q.get("bill")) parts.push({ href: subHref, label: curLabel }, { label: medBillLabel(q.get("bill")) });   // 账单 / 医疗 / 医院 · 患者
+  else if (r.section === "bills" && r.sub === "onetime" && q.get("bill")) parts.push({ href: subHref, label: curLabel }, { label: medBillLabel(q.get("bill")) });   // 账单 / 医疗 / 医院 · 患者
   else if (r.section === "bills" && activeTab(r) && activeTab(r) !== SPLIT_FIRST(r)) parts.push({ href: subHref, label: curLabel }, { label: t(tabLabel(r)) });   // 花费 / 预算的页内标签：账单 / 花费 / 明细
   else if (par) parts.push({ href: href(r.section, par[0]), label: t(par[1]) }, { label: curLabel });   // 常用账单 → 账单 / 清单 / 常用账单；生成设备 → 房屋 / 房产 / 设备保养 / 生成设备
   else parts.push({ label: curLabel });

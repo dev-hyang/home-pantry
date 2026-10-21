@@ -9,11 +9,12 @@ import { tabBar, tabHub } from "../core/hub.js";
 import { MEDICAL_TABS, activeTab } from "../core/tabs.js";
 import { dq, download, lastMonths, monthLabel, toCsv } from "../stats/views.js";
 import { autofillBar } from "../core/autofill.js";
+import { kindsNote } from "./kinds.js";
 import { KINDS, STATUS, STATUS_CLS, detailHref, enrichMedical, kindOf, mergeMedical, subIcon, subName } from "./medical.js";
 
 const cur = () => Units.region.currency;
 const mny = (v, c) => (v == null ? "—" : Units.money(num(v), c || cur()));
-const medHref = (id) => `${href("bills", "medical")}${id === "overview" ? "" : `?tab=${id}`}`;
+const medHref = (id) => `${href("bills", "onetime")}${id === "overview" ? "" : `?tab=${id}`}`;
 const lock = (b) => (b.visibility === "private" ? `<span title="${esc(t("仅自己和家主可见"))}" aria-label="${esc(t("仅自己和家主可见"))}">🔒</span> ` : "");
 
 /** 重读医疗账单和付款（保存 / 删除后用，不用整个 refresh）；表还没建（没执行迁移 027）时当作空 */
@@ -30,7 +31,7 @@ export function applyMedical(bills, pays) {
 }
 
 /* ───────────── 行 / 筛选 ───────────── */
-function medRow(b) {
+export function medRow(b) {
   const who = [b.kind !== "medical" ? t(kindOf(b).name) : null, b.patient, b.service_date ? fmtDate(b.service_date) : null, b.bill_ref ? `#${b.bill_ref}` : null].filter(Boolean).map(esc).join(" · ");
   const amt = b.status === "paid" ? mny(b.paid, b.currency) : b.balance != null ? mny(b.balance, b.currency) : mny(b.billed_amount, b.currency);
   const due = b.open && b.due_on ? ` · ${b.overdue ? `<b class="down">${t("逾期")}</b> ` : ""}${t("到期 {d}", { d: fmtDate(b.due_on) })}` : "";
@@ -118,8 +119,9 @@ export function viewMedical() {
   const tab = activeTab(r) || "overview";
   const body = { overview: overviewTab, list: listTab, report: reportTab }[tab]();
   return `<section class="section">
-    <div class="section-head"><h2>🏥 ${t("医疗与事件账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${detailHref("new")}">${t("记一张账单")}</a></div></div>
-    <p class="muted" style="margin:-6px 0 10px;font-size:13px">${Object.values(KINDS).map((K) => `${K.icon} ${t(K.name)}`).join(" · ")}</p>
+    <div class="section-head"><h2>🧾 ${t("一次性账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${detailHref("new")}">${t("记一张账单")}</a></div></div>
+    ${kindsNote("onetime")}
+    <p class="muted" style="margin:0 0 10px;font-size:13px">${Object.values(KINDS).map((K) => `${K.icon} ${t(K.name)}`).join(" · ")}</p>
     ${tabBar(MEDICAL_TABS, tab, medHref, t("医疗内容"))}
     ${body}</section>`;
 }
