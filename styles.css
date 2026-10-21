@@ -1177,7 +1177,7 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
   .med-li > b { order: 2; margin-left: auto; }
   .med-li > .grow, .med-pay > .grow { order: 3; flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; }
   .med-pay > .btn { order: 2; }
-  .med-pay > .badge + .grow + .btn { margin-left: auto; }
+  .med-pay > .btn { margin-left: auto; }
   .med-tbl, .med-tbl tbody, .med-tbl tr, .med-tbl th, .med-tbl td { display: block; }
   .med-tbl thead { display: none; }
   .med-tbl { min-width: 0 !important; width: 100%; }
@@ -1189,3 +1189,5 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
   .med-tbl td::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
   body.editing .sticky-actions { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }   /* 编辑页没有底部页签，保存栏贴底 */
 }
+.med-pay.is-editing { background: var(--surface-2); border-radius: var(--r-sm); }   /* 正在编辑的那一笔付款 */
+.med-pay a.badge { text-decoration: none; color: inherit; }

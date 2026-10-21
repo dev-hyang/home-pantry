@@ -178,9 +178,8 @@ function viewDetail(id, payId) {
 const METHODS = ["信用卡", "借记卡", "HSA 卡", "FSA 卡", "支票", "银行转账（ACH）", "网上支付", "电话支付", "现金", "其他"];
 const methodOptions = (cur) => `<option value="">${t("（未选）")}</option>${METHODS.map((m) => `<option value="${esc(m)}" ${m === cur ? "selected" : ""}>${esc(t(m))}</option>`).join("")}${cur && !METHODS.includes(cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}`;
 function paymentsHtml(b, edit, owed) {
-  const rows = b.pays.map((p) => `<li class="med-pay"><span class="badge" style="background:var(--surface-2)">${esc(fmtDate(p.paid_on))}</span>
-      <div class="grow"><span class="name">${mny(p.amount, p.currency || b.currency)}</span><small>${[p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
-      <a class="btn btn-sm btn-ghost" href="${detailHref(b.id)}&pay=${p.id}">${t("编辑")}</a>
+  const rows = b.pays.map((p) => `<li class="med-pay${edit?.id === p.id ? " is-editing" : ""}"><a class="badge pay-date" style="background:var(--surface-2)" href="${detailHref(b.id)}&pay=${p.id}" title="${esc(t("点一下编辑"))}">${esc(fmtDate(p.paid_on))}</a>
+      <div class="grow"><a class="link-name name" href="${detailHref(b.id)}&pay=${p.id}" title="${esc(t("点一下编辑"))}">${mny(p.amount, p.currency || b.currency)}</a><small>${[p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <button type="button" class="btn btn-sm btn-ghost" data-action="med-pay-del" data-id="${p.id}">${t("删除")}</button></li>`).join("");
   const sumLine = owed == null ? t("还没填自付金额或总额，余额未知") : t("自付 {o} · 已付 {p} · 余额 {b}", { o: mny(owed, b.currency), p: mny(b.paid, b.currency), b: mny(b.balance, b.currency) });
   return `<div class="section-head"><h2>${t("付款记录")}</h2><p>${esc(sumLine)}</p></div>
