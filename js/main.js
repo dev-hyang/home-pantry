@@ -19,6 +19,7 @@ import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, read
 import { printSheet } from "./settings/print.js";
 import { resetScan, scanAction, viewScan } from "./pantry/scan.js";
 import { budgetAction, budgetAlertItems, groupForCategory, viewBudget } from "./bills/budget.js";
+import "./bills/finance.js";
 import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
@@ -558,7 +559,7 @@ main.addEventListener("submit", async (e) => {
       const linked = state.items.find((i) => i.name === name);
       if (linked && openShopFor(linked.id)) return toast(t("{name} 已经在清单里了", { name }));
       await Store.saveShopping({ name, quantity: Math.max(0.1, num(f.elements.quantity.value, 1)), unit: f.elements.unit.value.trim() || (linked ? du(linked.unit) : ""), item_id: linked?.id || null, category: f.elements.category.value || linked?.category || "other" });
-      { const est = num(f.elements.estimate?.value, NaN); state.shopAdvice = Number.isFinite(est) && est > 0 ? { name, estimate: est, group: groupForCategory(linked?.category || f.elements.category.value) } : null; }
+      { const est = num(f.elements.estimate?.value, NaN); state.shopAdvice = Number.isFinite(est) && est > 0 ? { name, estimate: est, group: groupForCategory(linked?.category || f.elements.category.value, est) } : null; }
       toast(t("已加入：{name}", { name })); refresh();
     }
     if (f.id === "nameForm") {
@@ -589,7 +590,7 @@ main.addEventListener("click", async (e) => {
   const { action, id } = el.dataset;
   try {
     if (action?.startsWith("scan-")) return scanAction(action, el, { go, refresh });
-    if (action === "budget-reset" || action === "shop-advice-close") return budgetAction(action, { refresh, render });
+    if (action?.startsWith("budget-") || action === "shop-advice-close") return budgetAction(action, { refresh, render }, el);
     switch (action) {
       case "add-item": return openItem(null, { space: el.dataset.space });
       case "edit": return openItem(id);

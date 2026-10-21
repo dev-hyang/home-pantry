@@ -1025,3 +1025,11 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .bud-sites { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .bud-sites li { display: grid; gap: 1px; }
 .down { color: var(--out); }
+
+.bud-jump { margin-bottom: 8px; }
+.bud-inline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+.bud-inline input { width: 140px; }
+.bud-move { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.bud-move input, .bud-move select { width: auto; max-width: 160px; }
+.bud-rank { margin-top: 8px; }
+.bud-line { margin: 0 0 10px; font-size: 13px; }

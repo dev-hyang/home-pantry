@@ -3,6 +3,7 @@ import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, DAY, catOf, du, esc, fmt, money, num, showQty, toast } from "../core/util.js";
 import { compare, lang, locale, t } from "../core/i18n.js";
+import { memberName } from "../core/logic.js";
 
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
@@ -220,7 +221,7 @@ function spendRow(p) {
   const cat = ALL_CATS().find((c) => c.id === p.category) || OTHER_CAT;
   return `<li>
     <span class="badge" style="background:var(--surface-2)">${esc(d.toLocaleDateString(locale(), sameYear ? { month: "numeric", day: "numeric" } : { year: "2-digit", month: "numeric", day: "numeric" }))}</span>
-    <div class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${cat.icon || ""} ${t(cat.name)}`.trim())}${p.store ? `，${esc(p.store)}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}</small></div>
+    <div class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${cat.icon || ""} ${t(cat.name)}`.trim())}${p.store ? `，${esc(p.store)}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
     <b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>
     <button type="button" class="btn btn-sm btn-ghost" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button></li>`;
 }
