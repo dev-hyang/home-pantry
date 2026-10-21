@@ -266,6 +266,7 @@ export function viewInventory(space = "pantry") {
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
         </select>`}
         ${locationFilter(mine, f)}
+        <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.filter(([v]) => !(gear && v === "exp")).map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
       </div>
       ${phone ? "" : `<div class="chips" role="group" aria-label="${t("按分类筛选")}">
         ${chip("all", t("全部"))}${orderedCats(space).map((c) => chip(c.id, `${c.icon} ${t(c.name)}`)).join("")}
@@ -278,6 +279,14 @@ export function viewInventory(space = "pantry") {
     </section>`;
 }
 
+const INV_SORTS = [["default", "按状态（缺货优先）"], ["name", "名称 A → Z"], ["qty", "数量：少 → 多"], ["exp", "保质期：近 → 远"], ["updated", "最近更新"]];
+/** 同一分类内的排序：默认缺货 / 少货在前；其余按名称、数量、保质期、更新时间 */
+const invSorter = (mode) => ({
+  name: (a, b) => compare(a.name, b.name),
+  qty: (a, b) => num(a.qty) - num(b.qty) || compare(a.name, b.name),
+  exp: (a, b) => (a.expiry_date || "9999").localeCompare(b.expiry_date || "9999") || compare(a.name, b.name),
+  updated: (a, b) => String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || "")),
+}[mode] || ((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || compare(a.name, b.name)));
 export function renderInvList() {
   const f = state.filter;
   const mine = state.enriched.filter(inSpace(f.space));
@@ -299,7 +308,7 @@ export function renderInvList() {
   }
   host.innerHTML = orderedCats(f.space).map((c) => {
     const inCat = list.filter((x) => x.category === c.id)
-      .sort((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || compare(a.name, b.name));
+      .sort(invSorter(f.sort));
     if (!inCat.length) return "";
     return `<div class="cat-group" style="--cat:${c.color}"><h3><span class="dot" aria-hidden="true"></span>${c.icon} ${t(c.name)}<span class="muted">（${inCat.length}）</span></h3>
       <div class="items">${inCat.map(itemCard).join("")}</div></div>`;
@@ -367,8 +376,29 @@ function shopQty(s) {
     <button type="button" data-action="shop-qty" data-id="${s.id}" data-dir="1" aria-label="${esc(t("{name} 增加 {q} {u}", { name: s.name, q: step, u: t(d) }))}">+</button>
   </span>`;
 }
+const SHOP_SORTS = [["new", "加入时间：新 → 旧"], ["old", "加入时间：旧 → 新"], ["name", "名称 A → Z"], ["cat", "按分类"]];
+const shopCat = (s) => state.items.find((i) => i.id === s.item_id)?.category || s.category || "other";
+/** 采购清单的筛选和排序（分类、谁认领的） */
+function shopRows(status) {
+  const f = state.shopFilter, me = state.user?.id;
+  const mineOf = (s) => Store.mode === "demo" || s.claimed_by === me;
+  const rows = state.shopping.filter((s) => s.status === status && (f.cat === "all" || shopCat(s) === f.cat)
+    && (f.who === "all" || (f.who === "mine" ? s.status === "claimed" && mineOf(s) : f.who === "others" ? s.status === "claimed" && !mineOf(s) : s.status === "todo")));
+  const date = (s) => String(s.created_at || "");
+  const sorter = { new: (a, b) => date(b).localeCompare(date(a)), old: (a, b) => date(a).localeCompare(date(b)), name: (a, b) => compare(a.name, b.name), cat: (a, b) => shopCat(a).localeCompare(shopCat(b)) || compare(a.name, b.name) }[f.sort] || (() => 0);
+  return rows.sort(sorter);
+}
+function shopToolbar() {
+  const f = state.shopFilter, opt = (v, l, c) => `<option value="${esc(v)}" ${c === v ? "selected" : ""}>${esc(l)}</option>`;
+  const cats = [...new Set(state.shopping.map(shopCat))];
+  if (state.shopping.length < 3) return "";
+  return `<div class="toolbar" style="margin-top:12px">
+    <select id="shopCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c, `${(window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).icon || ""} ${t((window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).name)}`.trim(), f.cat)).join("")}</select>
+    <select id="shopWho" aria-label="${t("按认领筛选")}">${opt("all", t("全部"), f.who)}${opt("todo", t("没人认领的"), f.who)}${opt("mine", t("我认领的"), f.who)}${opt("others", t("家人认领的"), f.who)}</select>
+    <select id="shopSort" aria-label="${t("排序")}">${SHOP_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select></div>`;
+}
 export function viewShopping() {
-  const by = (s) => state.shopping.filter((x) => x.status === s);
+  const by = (s) => shopRows(s);
   const row = (s) => {
     const mine = Store.mode === "demo" || s.claimed_by === state.user?.id;
     let acts = "";
@@ -409,6 +439,7 @@ export function viewShopping() {
       </form>
       ${storeDatalist()}
       <datalist id="itemNames">${state.items.map((i) => `<option value="${esc(i.name)}">`).join("")}</datalist>
+      ${shopToolbar()}
       <div class="shop-cols">
         ${col(t("待购买"), by("todo"), t("没有待买的东西。"))}
         ${col(t("家人认领中"), by("claimed"), t("点“我来买”认领，家人就不会重复买。"))}

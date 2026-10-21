@@ -170,6 +170,7 @@ const ageText = (a) => (a.ageYears < 1 ? t("不到 1 年") : t("{n} 年", { n: M
 /* ── 设备列表：搜索 + 类型 / 保养 / 保修 / 位置 筛选（只作用在下面的分组列表，上面的“要处理”提醒不受影响） ── */
 const SERVICE_FILTERS = [["all", "全部保养状态"], ["attention", "需要处理"], ["overdue", "保养逾期"], ["due", "该保养了"], ["ok", "保养正常"], ["unknown", "未记录保养"], ["none", "没设保养周期"]];
 const WARRANTY_FILTERS = [["all", "全部保修状态"], ["active", "保修中"], ["expiring", "保修快到期"], ["expired", "已过保"], ["none", "没填保修"]];
+const ASSET_SORTS = [["alert", "提醒优先"], ["due", "下次保养：近 → 远"], ["name", "名称 A → Z"], ["age", "设备年龄：老 → 新"], ["life", "已用寿命：多 → 少"]];
 const assetTypeLabel = (a) => (a.t ? t(a.t.name) : t(a.type || "其他"));
 const matchAsset = (a, f) => {
   if (f.type !== "all" && a.type !== f.type) return false;
@@ -188,7 +189,9 @@ function assetFilterNow(list) {
 }
 function assetGroups(list) {
   const f = assetFilterNow(list), rows = list.filter((a) => matchAsset(a, f));
-  const group = (kind) => rows.filter((a) => a.kind === kind).sort((x, y) => rank(x) - rank(y) || compare(x.name, y.name));
+  const sorter = { alert: (x, y) => rank(x) - rank(y) || compare(x.name, y.name), due: (x, y) => (x.next || "9999").localeCompare(y.next || "9999") || compare(x.name, y.name), name: (x, y) => compare(assetName(x), assetName(y)),
+    age: (x, y) => (y.ageYears ?? -1) - (x.ageYears ?? -1) || compare(x.name, y.name), life: (x, y) => (y.lifePct ?? -1) - (x.lifePct ?? -1) || compare(x.name, y.name) }[f.sort] || ((x, y) => rank(x) - rank(y));
+  const group = (kind) => rows.filter((a) => a.kind === kind).sort(sorter);
   const section = (kind) => {
     const g = group(kind);
     if (!g.length) return "";
@@ -216,6 +219,7 @@ function assetToolbar(list) {
     ${types.length > 1 ? `<select id="assetType" aria-label="${t("按类型筛选")}">${opt("all", t("全部类型"), f.type)}${types.map(([v, l]) => opt(v, l, f.type)).join("")}</select>` : ""}
     <select id="assetService" aria-label="${t("按保养状态筛选")}">${SERVICE_FILTERS.map(([v, l]) => opt(v, t(l), f.service)).join("")}</select>
     <select id="assetWarranty" aria-label="${t("按保修状态筛选")}">${WARRANTY_FILTERS.map(([v, l]) => opt(v, t(l), f.warranty)).join("")}</select>
+    <select id="assetSort" aria-label="${t("排序")}">${ASSET_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
     ${locs.length > 1 ? `<select id="assetLoc" aria-label="${t("按位置筛选")}">${opt("all", t("全部位置"), f.loc)}${locs.map((l) => opt(l, t(l), f.loc)).join("")}</select>` : ""}</div>`;
 }
 

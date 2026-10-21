@@ -13,8 +13,12 @@ export const state = {
   houseProfiles: {},                           // 全部房产的房屋资料 { property_id: profile }（提醒总线要看所有房产）
   today: (() => { try { return JSON.parse(localStorage.getItem("hmh-today") || "{}"); } catch { return {}; } })(),   // 首页偏好：{ mode: severity|property, mine, focus }
   bills: [], billPayments: [], billsEnriched: [],   // 账单 B1
-  assetFilter: { q: "", type: "all", service: "all", warranty: "all", loc: "all" },   // 设备保养页的搜索与筛选
-  billsFilter: { property: "all", cat: "all", autopay: "all" },
+  assetFilter: { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" },   // 设备保养页的搜索与筛选
+  billsFilter: { property: "all", cat: "all", autopay: "all", q: "", sort: "category" },
+  payFilter: { bill: "all", year: "all", status: "all", sort: "new", limit: 50 },   // 缴费记录的筛选与排序
+  shopFilter: { cat: "all", who: "all", sort: "new" },                             // 采购清单的筛选与排序
+  dealFilter: "all",                                                               // 交易清单：全部 / 未完成 / 逾期 / 必须
+  tasksOnlyUndone: false,                                                          // 季节任务：只看未完成
   editProperty: null,                          // 设置页：正在编辑的房产 id（"new" = 新建）
   deleteProperty: null,                        // 设置页：正在确认彻底删除的已归档房产 id
   deals: [], dealDone: [],                     // 房产交易（买入 / 卖出 / 退租）与清单完成记录
@@ -31,7 +35,7 @@ export const state = {
   shopAdvice: null,                            // 采购清单：刚加入的带预估金额的项目的预算提示
   spendFilter: { q: "", cat: "all", store: "all", month: "all", sort: "new", limit: 20 },   // 花费记录的搜索、筛选、排序
   stats: { months: 6, month: null, cat: null, itemId: null },
-  filter: { space: "pantry", cat: "all", sub: "all", q: "", status: "all", loc: "all" },   // 库存清单：空间、分类、关键词、状态、存放位置
+  filter: { space: "pantry", cat: "all", sub: "all", q: "", status: "all", loc: "all", sort: "default" },   // 库存清单：空间、分类、关键词、状态、存放位置
   locForm: null,                               // 设置 → 存放位置：正在新建 / 重命名的位置 { id?, name, grp, replaces?, oldName? }
   skipAutosave: false,                         // 点了取消 / 保存 / 删除后离开表单页：不自动保存
   tabReset: null,                              // 刚手动点了哪个底部页签：进入后恢复该页签的默认筛选

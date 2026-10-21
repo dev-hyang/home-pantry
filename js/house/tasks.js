@@ -129,6 +129,7 @@ export function viewTasks() {
   const nextM = month === 12 ? 1 : month + 1, nextY = month === 12 ? year + 1 : year;
   const next = monthTasks(nextY, nextM).filter((x) => !x.done);
   const undone = list.filter((x) => !x.done).length;
+  const shown = state.tasksOnlyUndone ? list.filter((x) => !x.done) : list;
   const newForm = state.seasonForm && !state.seasonForm.id ? `<div class="panel" style="margin-bottom:12px">${seasonForm(null, year, month)}</div>` : "";
   return `
     ${houseBar()}
@@ -141,10 +142,10 @@ export function viewTasks() {
         <button type="button" class="month-btn" data-action="tasks-next" aria-label="${t("下个月")}">›</button>
       </div>
       <div class="section-head" style="margin-top:10px"><p>${list.length ? `${undone ? t("还有 {n} 项没做", { n: undone }) : t("都做完了")}${t("，共 {n} 项", { n: list.length })}` : t("这个月没有任务")}</p>
-        <div class="head-acts">${isCur ? "" : `<button type="button" class="btn btn-sm btn-ghost" data-action="tasks-today">${t("回到本月")}</button>`}
+        <div class="head-acts"><button type="button" class="chip" data-action="tasks-undone" aria-pressed="${!!state.tasksOnlyUndone}">${t("只看未完成")}</button>${isCur ? "" : `<button type="button" class="btn btn-sm btn-ghost" data-action="tasks-today">${t("回到本月")}</button>`}
           <button type="button" class="btn btn-sm btn-primary" data-action="season-new">＋ ${t("添加任务")}</button></div></div>
       ${newForm}
-      <div class="panel tasks-swipe">${list.length ? `<ul class="task-list">${list.map((x) => taskRow(x, year, month)).join("")}</ul>` : `<div class="empty"><strong>${t("这个月没有季节任务")}</strong>${t("左右滑动或点 ‹ › 看前后月份；也可以添加自己的任务。")}</div>`}</div>
+      <div class="panel tasks-swipe">${list.length ? `<ul class="task-list">${shown.map((x) => taskRow(x, year, month)).join("") || `<li class="muted" style="padding:10px 0">${t("这个月的任务都做完了")}</li>`}</ul>` : `<div class="empty"><strong>${t("这个月没有季节任务")}</strong>${t("左右滑动或点 ‹ › 看前后月份；也可以添加自己的任务。")}</div>`}</div>
       <p class="disclaimer">${t("任务清单为常见做法，频次以设备说明书和当地气候为准；涉及燃气、电、屋顶作业请找专业人员。")} ${t("手机上左右滑动可切换月份。")}</p>
     </section>
     ${next.length ? `<section class="section"><div class="section-head"><h2>${t("{month}预告", { month: monthName(nextM) })}</h2><p>${t("提前安排师傅或采购")}</p></div>

@@ -23,7 +23,7 @@ import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyIt
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
-import { billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsOverview } from "./bills/views.js";
+import { renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsOverview } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { moveCat, renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
@@ -301,9 +301,9 @@ function resetSectionFilters(section) {
   switch (section) {
     case "today": setTodayPref({ source: null }); break;
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
-    case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
-    case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", month: "all", sort: "new", limit: 20 }); break;
+    case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
+    case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
+    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", q: "", sort: "category" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", month: "all", sort: "new", limit: 20 }); break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
     default: break;
   }
@@ -347,6 +347,7 @@ main.addEventListener("touchend", (e) => {
 main.addEventListener("input", (e) => {
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; renderInvList(); }
   if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; state.spendFilter.limit = 20; renderSpendList(); }
+  if (e.target.id === "billSearch") { state.billsFilter.q = e.target.value; renderBillList(); }
   if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; renderAssetList(); }
   const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
 });
@@ -354,7 +355,12 @@ main.addEventListener("change", async (e) => {
   if (e.target.matches("input[data-qty-for]")) return setShopQty(e.target.dataset.qtyFor, e.target.value);   // 采购清单：直接输入数量
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
-  { const k = { assetType: "type", assetService: "service", assetWarranty: "warranty", assetLoc: "loc" }[e.target.id]; if (k) { state.assetFilter[k] = e.target.value; renderAssetList(); } }
+  if (e.target.id === "invSort") { state.filter.sort = e.target.value; renderInvList(); }
+  if (e.target.id === "billCat") { state.billsFilter.cat = e.target.value; renderBillList(); }
+  if (e.target.id === "billSort") { state.billsFilter.sort = e.target.value; renderBillList(); }
+  { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; state.payFilter.limit = 50; renderPayList(); } }
+  { const k = { shopCat: "cat", shopWho: "who", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
+  { const k = { assetType: "type", assetService: "service", assetWarranty: "warranty", assetLoc: "loc", assetSort: "sort" }[e.target.id]; if (k) { state.assetFilter[k] = e.target.value; renderAssetList(); } }
   if (e.target.name === "location" && e.target.form?.elements.new_location) {   // 选“＋ 新位置…”：旁边出现输入框
     const inp = e.target.form.elements.new_location, on = e.target.value === "__new__";
     inp.hidden = !on; if (on) inp.focus();
@@ -777,6 +783,9 @@ main.addEventListener("click", async (e) => {
         finally { el.disabled = false; }
         return;
       }
+      case "pay-more": state.payFilter.limit += 50; return renderPayList();
+      case "deal-filter": state.dealFilter = el.dataset.val; return render();
+      case "tasks-undone": state.tasksOnlyUndone = !state.tasksOnlyUndone; return render();
       case "spend-more": state.spendFilter.limit += 20; return renderSpendList();
       case "stats-months": state.stats.months = +el.dataset.months; return render();
       case "stats-cat": state.stats.cat = el.dataset.cat; return render();

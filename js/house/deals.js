@@ -234,6 +234,9 @@ function tlItem(x, withDate) {
 }
 
 /* ── 交易页：主体是当前房产，或 ?asset=<id> 指定的车辆 ── */
+const DEAL_FILTERS = [["all", "全部"], ["undone", "未完成"], ["overdue", "逾期"], ["must", "必须项"]];
+const filterDealRows = (rows) => rows.filter((x) => ({ all: true, undone: !x.done, overdue: !x.done && x.overdue, must: !x.done && x.priority === "must" }[state.dealFilter] ?? true));
+const dealFilterBar = () => `<div class="chips" role="group" aria-label="${t("按完成情况筛选")}">${DEAL_FILTERS.map(([v, l]) => `<button type="button" class="chip" data-action="deal-filter" data-val="${v}" aria-pressed="${(state.dealFilter || "all") === v}">${t(l)}</button>`).join("")}</div>`;
 export function viewDeal() {
   const q = state.route?.q;
   const assetId = q?.get("asset") || null;
@@ -277,7 +280,8 @@ export function viewDeal() {
     const done = g.rows.filter((x) => x.done).length;
     return `${newTaskPanel(deal)}<section class="section">
       <p class="muted" style="margin:-6px 0 12px;font-size:13px">${t("{kind}流程", { kind: t(K[deal.kind]) })} · ${t("已完成 {a} / {b}", { a: done, b: g.rows.length })}</p>
-      <div class="panel"><ul class="task-list">${g.rows.sort((a, b) => (a.due || "9").localeCompare(b.due || "9")).map((x) => taskRow(x)).join("")}</ul></div>
+      ${g.rows.length ? dealFilterBar() : ""}
+      <div class="panel">${filterDealRows(g.rows).length ? `<ul class="task-list">${filterDealRows(g.rows).sort((a, b) => (a.due || "9").localeCompare(b.due || "9")).map((x) => taskRow(x)).join("")}</ul>` : `<div class="empty"><strong>${t("没有符合条件的事项")}</strong></div>`}</div>
       <p><button type="button" class="btn btn-sm btn-ghost" data-action="deal-task-new" data-deal="${deal.id}" data-stage="${g.k}">＋ ${t("添加自定义事项")}</button></p>
       <p class="disclaimer">${veh ? t("清单按伊利诺伊州常见流程整理，产权、税费和期限以车管所（SOS）和车行 / 租赁公司为准；其他州请按本地流程增删。点事项右侧的 ✎ 可以调整应完成日期、记录实际完成日期。") : t("清单按伊利诺伊州（芝加哥）常见流程整理，日期和税费以合同、律师和产权公司为准；其他州请按本地流程增删。点事项右侧的 ✎ 可以调整应完成日期、记录实际完成日期。")}</p>
     </section>`;
@@ -328,7 +332,7 @@ export function viewDeal() {
         <button type="button" class="chip" data-action="deal-view" data-view="list" aria-pressed="${state.dealView !== "timeline"}">☰ ${t("清单")}</button>
         <button type="button" class="chip" data-action="deal-view" data-view="timeline" aria-pressed="${state.dealView === "timeline"}">⏐ ${t("时间线")}</button>
       </div>
-      ${state.dealView === "timeline" ? `<div class="panel mlist">${infoRow}</div>${timeline(deal, tasks)}<div class="panel mlist" style="margin-top:12px">${addRow}${closeRow}</div>`
+      ${state.dealView === "timeline" ? `<div class="panel mlist">${infoRow}</div>${dealFilterBar()}${timeline(deal, filterDealRows(tasks))}<div class="panel mlist" style="margin-top:12px">${addRow}${closeRow}</div>`
         : `<div class="panel mlist">${infoRow}${stageRows}${addRow}${closeRow}</div>`}${cancelRow}
       <p class="disclaimer">${t("截止日按{a}和{b}推算，可点 ✎ 调整；必须项逾期会在首页置顶", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })}</p>
     </section>

@@ -87,31 +87,87 @@ function filterByProperty(list) {
 }
 
 /* ── 清单 ── */
+const BILL_SORTS = [["category", "按分类分组"], ["due", "到期日：近 → 远"], ["amount", "金额：高 → 低"], ["name", "名称 A → Z"], ["updated", "最近更新"]];
+let billInner = null;   // 当前清单页的“列表本体”渲染函数：搜索 / 筛选只重画它
+export function renderBillList() { const h = $("#billList"); if (h && billInner) h.innerHTML = billInner(); }
 export function viewBillsList() {
   const f = state.billsFilter;   // ?prop= 只在进入页面时套用一次（main.js onRoute），之后点房产芯片可以随意切换
-  let list = filterByProperty(state.billsEnriched);
-  if (f.autopay === "on") list = list.filter((b) => b.autopay);
-  if (f.autopay === "off") list = list.filter((b) => !b.autopay);
   const chip = (k, v, label) => `<button type="button" class="chip" data-action="bills-filter" data-key="${k}" data-val="${v}" aria-pressed="${f[k] === v}">${label}</button>`;
   // 订阅 / 会员按种类排在一起，其余按状态
   const kindOrder = Object.keys(B().SUB_KINDS);
-  const groups = B().CATEGORIES.map((c) => ({ c, rows: list.filter((b) => b.category === c.id).sort((x, y) => (B().isSubCat(c.id) ? kindOrder.indexOf(x.sub_kind || "other") - kindOrder.indexOf(y.sub_kind || "other") : 0) || STATUS_RANK[x.status] - STATUS_RANK[y.status] || compare(x.name, y.name)) })).filter((g) => g.rows.length);
   const kindTag = (b) => (B().isSubCat(b.category) && b.sub_kind ? `<span class="badge sub-kind">${t(B().SUB_KINDS[b.sub_kind] || b.sub_kind)}</span>` : "");
-  const row = (b) => `<li class="bill-row ${b.active && !b.ended ? "" : "inactive"}">
-      <div class="grow">${propertyTag(b.property_id)}${kindTag(b)}<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}${b.trialSoon ? ` <span class="badge b-out">${t("试用快到期")}</span>` : ""}
+  const row = (b, flat = false) => `<li class="bill-row ${b.active && !b.ended ? "" : "inactive"}">
+      <div class="grow">${propertyTag(b.property_id)}${kindTag(b)}${flat ? `<span class="badge" style="background:var(--surface-2)">${billCat(b.category).icon}</span> ` : ""}<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}${b.trialSoon ? ` <span class="badge b-out">${t("试用快到期")}</span>` : ""}
         <small>${[acctText(b), b.payee, freqText(b), b.ended && b.ends_on ? t("结束于 {d}", { d: fmtDate(b.ends_on) }) : b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.assigned_to ? memberName(b.assigned_to) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b class="bill-amt">${mny(b.est, b.currency)}</b>
       <label class="switch" title="${t("自动扣款")}"><input type="checkbox" data-bill-autopay="${b.id}" ${b.autopay ? "checked" : ""}><span>${t("自动")}</span></label>
     </li>`;
+  billInner = () => {
+    let list = filterByProperty(state.billsEnriched);
+    if (f.autopay === "on") list = list.filter((b) => b.autopay);
+    if (f.autopay === "off") list = list.filter((b) => !b.autopay);
+    if (f.cat && f.cat !== "all") list = list.filter((b) => b.category === f.cat);
+    const q = (f.q || "").trim().toLowerCase();
+    if (q) list = list.filter((b) => `${b.name}${b.payee || ""}${b.account_last4 || ""}`.toLowerCase().includes(q));
+    const mode = f.sort || "category";
+    if (mode !== "category") {   // 换了排序就不分组，跨分类按一条线排
+      const sorter = { due: (x, y) => (x.next_due_on || "9999").localeCompare(y.next_due_on || "9999") || compare(x.name, y.name), amount: (x, y) => num(y.est) - num(x.est), name: (x, y) => compare(x.name, y.name),
+        updated: (x, y) => String(y.updated_at || "").localeCompare(String(x.updated_at || "")) }[mode];
+      return list.length ? `<div class="panel"><ul class="bill-list">${[...list].sort(sorter).map((b) => row(b, true)).join("")}</ul></div>` : `<div class="panel empty"><strong>${t("没有符合条件的账单")}</strong></div>`;
+    }
+    const groups = B().CATEGORIES.map((c) => ({ c, rows: list.filter((b) => b.category === c.id).sort((x, y) => (B().isSubCat(c.id) ? kindOrder.indexOf(x.sub_kind || "other") - kindOrder.indexOf(y.sub_kind || "other") : 0) || STATUS_RANK[x.status] - STATUS_RANK[y.status] || compare(x.name, y.name)) })).filter((g) => g.rows.length);
+    return groups.length ? groups.map(({ c, rows }) => `<div class="cat-group" style="--cat:var(--pine)"><h3>${c.icon} ${t(c.name)}<span class="muted">（${rows.length}）</span></h3>
+        <div class="panel"><ul class="bill-list">${rows.map((b) => row(b)).join("")}</ul></div></div>`).join("")
+      : `<div class="panel empty"><strong>${t("没有符合条件的账单")}</strong></div>`;
+  };
+  const used = new Set(state.billsEnriched.map((b) => b.category));
   return `
     ${propertyBar({ all: true })}
     <section class="section">
       <div class="section-head"><h2>${t("账单清单")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
+      <div class="toolbar">
+        <input type="search" id="billSearch" placeholder="${t("搜索名称、收款方、账号")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">
+        <select id="billCat" aria-label="${t("按分类筛选")}"><option value="all">${t("全部分类")}</option>${B().CATEGORIES.filter((c) => used.has(c.id)).map((c) => `<option value="${c.id}" ${f.cat === c.id ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`).join("")}</select>
+        <select id="billSort" aria-label="${t("排序")}">${BILL_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "category") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
+      </div>
       <div class="chips" role="group" aria-label="${t("按缴费方式筛选")}">${chip("autopay", "all", t("全部"))}${chip("autopay", "on", t("自动扣款"))}${chip("autopay", "off", t("手动缴费"))}</div>
-      ${groups.length ? groups.map(({ c, rows }) => `<div class="cat-group" style="--cat:var(--pine)"><h3>${c.icon} ${t(c.name)}<span class="muted">（${rows.length}）</span></h3>
-        <div class="panel"><ul class="bill-list">${rows.map(row).join("")}</ul></div></div>`).join("")
-        : `<div class="panel empty"><strong>${t("没有符合条件的账单")}</strong></div>`}
+      <div id="billList">${billInner()}</div>
     </section>`;
+}
+
+/* ── 记录：筛选（账单 / 年份 / 状态）+ 排序，分批显示 ── */
+const PAY_SORTS = [["new", "日期：新 → 旧"], ["old", "日期：旧 → 新"], ["high", "金额：高 → 低"], ["low", "金额：低 → 高"], ["bill", "账单名 A → Z"]];
+function filteredPays() {
+  const f = state.payFilter, byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b]));
+  const list = state.billPayments.filter((p) => (f.bill === "all" || p.bill_id === f.bill) && (f.year === "all" || (p.paid_on || "").startsWith(f.year)) && (f.status === "all" || p.status === f.status));
+  const sorter = { new: (x, y) => (y.paid_on || "").localeCompare(x.paid_on || ""), old: (x, y) => (x.paid_on || "").localeCompare(y.paid_on || ""), high: (x, y) => num(y.amount) - num(x.amount), low: (x, y) => num(x.amount) - num(y.amount),
+    bill: (x, y) => compare(byBill[x.bill_id]?.name || "", byBill[y.bill_id]?.name || "") || (y.paid_on || "").localeCompare(x.paid_on || "") }[f.sort] || (() => 0);
+  return list.sort(sorter);
+}
+function payListInner() {
+  const f = state.payFilter, byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b])), all = filteredPays(), shown = all.slice(0, f.limit);
+  if (!state.billPayments.length) return `<div class="empty"><strong>${t("还没有缴费记录")}</strong>${t("在账单页记一笔，或在概览里点“已核对”。")}</div>`;
+  if (!all.length) return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个筛选试试。")}</div>`;
+  const cur = Units.region.currency, sum = all.filter((p) => p.status !== "skipped" && (p.currency || cur) === cur).reduce((s, p) => s + num(p.amount), 0);
+  return `<p class="muted" style="margin:0 0 6px;font-size:13px">${t("{n} 笔", { n: all.length })} · ${money(sum)}</p><ul class="restock-list">${shown.map((p) => {
+    const b = byBill[p.bill_id];
+    return `<li><span class="badge" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</span>
+      <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>` : t("（已删除的账单）")}</span>
+        <small>${[b ? acctText(b) : null, t(B().PAYMENT_STATUS[p.status] || p.status), p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+      <b>${p.amount != null ? mny(p.amount, p.currency) : `<span class="muted">${t("未填金额")}</span>`}</b>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="billpay-del" data-id="${p.id}">${t("删除")}</button></li>`;
+  }).join("")}</ul>${all.length > shown.length ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-ghost" data-action="pay-more">${t("再显示 {n} 笔（还有 {m} 笔）", { n: Math.min(50, all.length - shown.length), m: all.length - shown.length })}</button></div>` : ""}`;
+}
+export function renderPayList() { const h = $("#payList"); if (h) h.innerHTML = payListInner(); }
+function payToolbar(byBill) {
+  const f = state.payFilter, opt = (v, l, c) => `<option value="${esc(v)}" ${c === v ? "selected" : ""}>${esc(l)}</option>`;
+  const ids = [...new Set(state.billPayments.map((p) => p.bill_id))], years = [...new Set(state.billPayments.map((p) => (p.paid_on || "").slice(0, 4)).filter(Boolean))].sort().reverse();
+  if (!state.billPayments.length) return "";
+  return `<div class="toolbar" style="margin-top:10px">
+    <select id="payBill" aria-label="${t("按账单筛选")}">${opt("all", t("全部账单"), f.bill)}${ids.map((id) => opt(id, byBill[id]?.name || t("（已删除的账单）"), f.bill)).sort().join("")}</select>
+    <select id="payYear" aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
+    <select id="payStatus" aria-label="${t("按状态筛选")}">${opt("all", t("全部状态"), f.status)}${Object.entries(B().PAYMENT_STATUS).map(([k, n]) => opt(k, t(n), f.status)).join("")}</select>
+    <select id="paySort" aria-label="${t("排序")}">${PAY_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select></div>`;
 }
 
 /* ── 记录 ── */
@@ -140,14 +196,8 @@ export function viewBillsHistory() {
       </div>
       ${sel ? `<div class="panel chart-panel"><div class="chart-head"><h3>${t("单账单金额趋势")}</h3>
         <select id="billTrend" aria-label="${t("选择账单")}">${candidates.map((b) => `<option value="${b.id}" ${b.id === sel.id ? "selected" : ""}>${esc(b.name)}</option>`).join("")}</select></div>${chart}</div>` : ""}
-      <div class="panel" style="margin-top:10px">${pays.length ? `<ul class="restock-list">${pays.slice(0, 100).map((p) => {
-        const b = byBill[p.bill_id];
-        return `<li><span class="badge" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</span>
-          <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>` : t("（已删除的账单）")}</span>
-            <small>${[b ? acctText(b) : null, t(B().PAYMENT_STATUS[p.status] || p.status), p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
-          <b>${p.amount != null ? mny(p.amount, p.currency) : `<span class="muted">${t("未填金额")}</span>`}</b>
-          <button type="button" class="btn btn-sm btn-ghost" data-action="billpay-del" data-id="${p.id}">${t("删除")}</button></li>`;
-      }).join("")}</ul>` : `<div class="empty"><strong>${t("还没有缴费记录")}</strong>${t("在账单页记一笔，或在概览里点“已核对”。")}</div>`}</div>
+      ${payToolbar(byBill)}
+      <div class="panel" id="payList" style="margin-top:10px">${payListInner()}</div>
     </section>`;
 }
 
