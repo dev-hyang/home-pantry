@@ -1,5 +1,6 @@
 /* 房产 / 车辆生命周期：状态、买入 / 卖出 / 退租（房产）与买车 / 卖车 / 租赁归还（车辆）交易、清单任务（模板在 data/deals.js）、退出向导、首页提醒
  * 一笔交易挂在房产（property_id）或车辆（asset_id）上；页面 #/house/deal，车辆交易带 ?asset=<id>，看历史交易带 ?deal=<id> */
+import { propertyActive } from "../core/lifecycle.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, DAY, daysUntil, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
@@ -41,7 +42,7 @@ export const historyLabel = (deal) => (deal?.outcome ? `${t("历史")} / ${t(D()
 export const dateLabels = (deal) => D().DATE_LABELS[deal?.kind] || D().DATE_LABELS.buy;
 export const statusText = (p) => t(D().PROPERTY_STATUS[p?.status] || "持有");
 /** 房产是否还在“使用中”（提醒只对这些房产生效） */
-export const propertyLive = (p) => !!p && !p.archived && !["sold", "moved_out"].includes(p.status);
+export const propertyLive = propertyActive;
 
 /** 条件：bill:<分类>（该房产有这类账单）、kind:condo（condo / townhome）、role:landlord、autopay（有自动扣款账单） */
 function matches(cond, prop, bills) {

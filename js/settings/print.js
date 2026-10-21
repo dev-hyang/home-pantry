@@ -6,6 +6,7 @@ import { memberName } from "../core/logic.js";
 import { budgetPlan, monthProgress } from "../bills/budget.js";
 import { ALL_CATS, STAT_CATS, filteredSpend, monthKey, monthLabel, spendData, storeOf } from "../stats/views.js";
 import { Store } from "../core/store.js";
+import { billInUse, propertyOptionsHtml } from "../core/lifecycle.js";
 import { alertText, billAlerts, billCat, propertyName, subscriptionSummary, upcoming } from "../bills/logic.js";
 
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
@@ -15,7 +16,7 @@ const stamp = () => t("打印于 {d}", { d: fmtDate(todayISO()) });
 export function viewPrintSettings() {
   const props = state.properties.filter((p) => !p.archived);
   const propPick = props.length > 1
-    ? `<select id="printProp" aria-label="${t("选择房产")}"><option value="all">${t("全部房产")}</option>${props.map((p) => `<option value="${esc(p.id)}">🏠 ${esc(p.name)}</option>`).join("")}</select>` : "";
+    ? `<select id="printProp" aria-label="${t("选择房产")}"><option value="all">${t("全部房产")}</option>${propertyOptionsHtml("", { esc })}</select>` : "";
   const row = (kind, title, desc, extra = "") => `<div class="panel"><div class="kv"><div><b>${title}</b><div class="muted">${desc}</div></div>
       <div class="head-acts">${extra}<button type="button" class="btn btn-sm btn-primary" data-action="print-run" data-kind="${kind}">${t("打印")}</button></div></div></div>`;
   return `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("选一项打印；浏览器的打印窗口里也可以另存为 PDF。")}</p>
@@ -35,7 +36,7 @@ function shoppingSheet() {
 
 function billsSheet(prop) {
   const scoped = prop !== "all" && state.properties.some((p) => p.id === prop);
-  const list = state.billsEnriched.filter((b) => b.active && (!scoped || b.property_id === prop));
+  const list = state.billsEnriched.filter((b) => b.active && (scoped ? b.property_id === prop : billInUse(b)));
   const cur = Units.region.currency;
   const inCur = list.filter((b) => (b.currency || cur) === cur);
   const monthly = inCur.reduce((s, b) => s + b.monthly, 0);

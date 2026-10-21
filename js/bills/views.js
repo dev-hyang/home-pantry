@@ -5,11 +5,12 @@ import { $, esc, fmtDate, fmtShort, money, num, stampText, todayISO, toast } fro
 import { SECTIONS, go, href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
-import { download, monthKey } from "../stats/views.js";
+import { download, monthKey, spendGlance } from "../stats/views.js";
 import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
 import { propertyTag, withProperty } from "../core/alerts.js";
 import { autofillBar } from "../core/autofill.js";
 import { escrowPanelHtml } from "./escrow.js";
+import { billInUse, endedSuffix, propertyActive, propertyById, propertyOptionsHtml } from "../core/lifecycle.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 
 const B = () => window.BILLS;
@@ -19,7 +20,7 @@ const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.re
 
 /** 房产切换条（房屋、账单页共用）；只有一套房产时不显示 */
 export function propertyBar({ all = false } = {}) {
-  const list = state.properties.filter((p) => !p.archived || p.id === state.propertyId);
+  const list = state.properties.filter((p) => propertyActive(p) || p.id === state.propertyId);   // 在用的 + 当前正看的（已卖出的从这里退出，要看历史去房屋列表）
   if (list.length < 2) return "";
   const cur = all ? state.billsFilter.property : state.propertyId;
   const chip = (id, label) => `<button type="button" class="chip" data-action="${all ? "bills-prop" : "property"}" data-id="${id}" aria-pressed="${cur === id}">${label}</button>`;
@@ -28,10 +29,10 @@ export function propertyBar({ all = false } = {}) {
 
 /** 房产筛选：账单概览 / 清单里的一个下拉（默认“全部房产”），代替原来占一行的芯片导航；只有一套房产时不显示 */
 export function propertyFilter() {
-  const list = state.properties.filter((p) => !p.archived || p.id === state.billsFilter.property);
-  if (list.length < 2) return "";
+  if (state.properties.filter((p) => !p.archived).length < 2) return "";
   const cur = state.billsFilter.property;
-  return `<select id="billProp" class="prop-filter" aria-label="${t("选择房产")}"><option value="all">${t("全部房产")}</option>${list.map((p) => `<option value="${esc(p.id)}" ${cur === p.id ? "selected" : ""}>🏠 ${esc(p.name)}</option>`).join("")}</select>`;
+  // “全部房产”只含在用的房产和与房产无关的账单；已卖出 / 已退租的放在下拉最后一组，选它才看得到它的账单
+  return `<select id="billProp" class="prop-filter" aria-label="${t("选择房产")}"><option value="all">${t("全部房产")}</option>${propertyOptionsHtml(cur, { esc })}</select>`;
 }
 
 const billRow = (b) => `<li>
@@ -92,6 +93,7 @@ export function viewBillsOverview() {
         <a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}">${t("看花费")}</a>
         <a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a>
         <a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
+      ${hiddenEndedHint(all)}
       <div class="kpis">
         <div class="kpi"><span>${t("未来 30 天要交")}</span><b>${money(due30)}</b><small>${t("{n} 笔", { n: next30.length })}</small></div>
         <div class="kpi"><span>${t("每月固定支出")}</span><b>${money(monthlyTotal)}</b><small>${t("必要 {m}", { m: money(essential) })}</small></div>
@@ -100,6 +102,7 @@ export function viewBillsOverview() {
       </div>
     </section>
     ${monthBillsHtml(list)}
+    ${spendGlance()}
     ${escrowPanelHtml()}
     ${alerts.length ? `<section class="section"><div class="section-head"><h2>${t("要处理的账单")}</h2><p>${t("逾期、到期、即将到期和待核对的自动扣款")}</p></div>
       <div class="panel"><ul class="restock-list">${alerts.map((b) => billRow(b)).join("")}</ul></div></section>`
@@ -116,9 +119,14 @@ export function viewBillsOverview() {
 
 function filterByProperty(list) {
   const f = state.billsFilter.property;
-  if (f === "all" || state.properties.length < 2) return list;
+  if (f === "all") return list.filter(billInUse);
   return list.filter((b) => b.property_id === f);
 }
+/** “全部房产”下被收起的账单数：提示在哪里能找到 */
+const hiddenEndedHint = (all) => {
+  const n = state.billsFilter.property === "all" ? all.filter((b) => !billInUse(b)).length : 0;
+  return n ? `<p class="muted" style="font-size:13px;margin:8px 0 0">${t("另有 {n} 条账单属于已卖出 / 已退租的房产，在上方房产筛选的“已结束”里查看。", { n })}</p>` : "";
+};
 
 /** 账单页面包屑：账单 / 房产 / 账单名 / 当前块 —— 有房产的账单带上房产（点它回到这套房产的账单清单），免得多套房产时分不清是哪套的 */
 const billRoot = () => ({ href: href("bills", "list"), label: t("账单") });   // 固定的第一级（之前随“从哪个页面进来”变，会变成 今日 / xx房 / 电费）
@@ -170,6 +178,7 @@ export function viewBillsList() {
         <select id="billChannel" aria-label="${t("按缴费方式筛选")}"><option value="all">${t("全部缴费方式")}</option>${Object.entries(B().CHANNELS).map(([k, n]) => `<option value="${k}" ${f.channel === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select>
         <select id="billSort" aria-label="${t("排序")}">${BILL_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "category") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
       </div>
+      ${hiddenEndedHint(state.billsEnriched)}
       <div id="billList">${billInner()}</div>
     </section>`;
 }
@@ -185,6 +194,9 @@ function filteredPays() {
 }
 /** 多套房产时账单名带房产前缀（“房 1 · 电费”），单套房产不变 */
 const billLabel = (b) => (b ? withProperty(b.property_id, b.name) : "");
+/** 下拉里用：已卖出 / 已退租房产的账单带上状态，在用的排前面 */
+const billOption = (b) => `${billLabel(b)}${endedSuffix(propertyById(b.property_id))}`;
+const byInUse = (x, y) => (billInUse(y) ? 1 : 0) - (billInUse(x) ? 1 : 0);
 /** 这笔缴费的收款方：缴费当时记在花费上的，没有就用账单的收款方 */
 const payeeOf = (p, b) => (p.purchase_id ? state.purchases.find((x) => x.id === p.purchase_id)?.store : "") || b?.payee || "";
 function payListInner() {
@@ -207,7 +219,7 @@ function payToolbar(byBill) {
   const ids = [...new Set(state.billPayments.map((p) => p.bill_id))], years = [...new Set(state.billPayments.map((p) => (p.paid_on || "").slice(0, 4)).filter(Boolean))].sort().reverse();
   if (!state.billPayments.length) return "";
   return `<div class="toolbar" style="margin-top:10px">
-    <select id="payBill" aria-label="${t("按账单筛选")}">${opt("all", t("全部账单"), f.bill)}${ids.map((id) => opt(id, billLabel(byBill[id]) || t("（已删除的账单）"), f.bill)).sort().join("")}</select>
+    <select id="payBill" aria-label="${t("按账单筛选")}">${opt("all", t("全部账单"), f.bill)}${ids.map((id) => opt(id, billOption(byBill[id]) || t("（已删除的账单）"), f.bill)).sort().join("")}</select>
     <select id="payYear" aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
     <select id="payStatus" aria-label="${t("按状态筛选")}">${opt("all", t("全部状态"), f.status)}${Object.entries(B().PAYMENT_STATUS).map(([k, n]) => opt(k, t(n), f.status)).join("")}</select>
     <select id="paySort" aria-label="${t("排序")}">${PAY_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select></div>`;
@@ -222,7 +234,7 @@ export function viewBillsHistory() {
   const thisYear = pays.filter((p) => (p.paid_on || "").startsWith(String(year)) && p.status !== "skipped" && (p.currency || cur) === cur);
   const total = thisYear.reduce((s, p) => s + num(p.amount), 0), late = thisYear.reduce((s, p) => s + num(p.late_fee), 0);
   // 单账单趋势：选一条有 ≥ 2 笔记录的账单
-  const candidates = state.billsEnriched.filter((b) => b.pays.filter((p) => p.amount != null).length >= 2);
+  const candidates = state.billsEnriched.filter((b) => b.pays.filter((p) => p.amount != null).length >= 2).sort(byInUse);   // 在用的排前面，已卖出房产的账单在后面但仍能选
   const sel = candidates.find((b) => b.id === state.billsFilter.trend) || candidates[0];
   let chart = "";
   if (sel) {
@@ -238,7 +250,7 @@ export function viewBillsHistory() {
         <div class="kpi"><span>${t("滞纳金")}</span><b>${money(late)}</b><small>${late ? t("按时缴费就能省下") : t("没有滞纳金")}</small></div>
       </div>
       ${sel ? `<div class="panel chart-panel"><div class="chart-head"><h3>${t("单账单金额趋势")}</h3>
-        <select id="billTrend" aria-label="${t("选择账单")}">${candidates.map((b) => `<option value="${b.id}" ${b.id === sel.id ? "selected" : ""}>${esc(billLabel(b))}</option>`).join("")}</select></div>${chart}</div>` : ""}
+        <select id="billTrend" aria-label="${t("选择账单")}">${candidates.map((b) => `<option value="${b.id}" ${b.id === sel.id ? "selected" : ""}>${esc(billOption(b))}</option>`).join("")}</select></div>${chart}</div>` : ""}
       ${payToolbar(byBill)}
       <div class="panel" id="payList" style="margin-top:10px">${payListInner()}</div>
     </section>`;
@@ -375,7 +387,7 @@ export function viewBillForm() {
             <label>${t("分类")}<select name="category">${B().CATEGORIES.map((c) => `<option value="${c.id}" ${c.id === v.category ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`).join("")}</select></label>
             <label class="sub-only">${t("订阅种类")}<select name="sub_kind"><option value="">${t("未指定")}</option>${opts(B().SUB_KINDS, v.sub_kind)}</select><small>${t("只用于分组和汇总；流媒体、云存储、AI 工具、软件等")}</small></label>
             <label class="sub-only">${t("免费试用到期日")}<input name="trial_ends_on" type="date" value="${d(v.trial_ends_on)}"><small>${t("到期前 3 天提醒“不续就取消”")}</small></label>
-            <label>${t("房产")}<select name="property_id"><option value="">${t("与房产无关")}</option>${state.properties.filter((p) => !p.archived || p.id === v.property_id).map((p) => `<option value="${p.id}" ${p.id === v.property_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
+            <label>${t("房产")}<select name="property_id"><option value="">${t("与房产无关")}</option>${state.properties.filter((p) => propertyActive(p) || p.id === v.property_id).map((p) => `<option value="${p.id}" ${p.id === v.property_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
             ${landlord || v.direction === "receivable" ? `<label>${t("方向")}<select name="direction"><option value="payable" ${v.direction !== "receivable" ? "selected" : ""}>${t("我付出去（应付）")}</option><option value="receivable" ${v.direction === "receivable" ? "selected" : ""}>${t("别人付给我（应收，如租金）")}</option></select></label>` : `<input type="hidden" name="direction" value="payable">`}
             <label>${t("付款方 / 收款方")}<input name="payee" maxlength="60" placeholder="${t("例如：ComEd")}" value="${d(v.payee)}"></label>
             <label>${t("账号尾号")}<input name="account_last4" maxlength="8" placeholder="${t("只记后 4 位")}" value="${d(v.account_last4)}"></label>

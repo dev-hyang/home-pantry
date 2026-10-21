@@ -3,6 +3,7 @@
  * 连续的月份算同一个窗口（例如 9–10 月的炉子检修），窗口内任何一个月勾了就算完成；12 个月都有的是每月任务。
  * 自定义任务（custom_seasonal_tasks，按房产）：每年重复的（months）完成记录同样走 seasonal_tasks，key = c_<id>；
  * 一次性的（due_on）出现在到期那个月，完成日期记在它自己那一行。 */
+import { activeProperties } from "../core/lifecycle.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, fmtDate, todayISO, toast } from "../core/util.js";
@@ -93,7 +94,7 @@ export function taskRow(x, year, month) {
 export function seasonAlertItems() {
   if (!state.houseEnabled) return [];
   const d = new Date(), y = d.getFullYear(), m = d.getMonth() + 1, today = todayISO();
-  return state.properties.filter((p) => !p.archived && !["sold", "moved_out"].includes(p.status)).flatMap((p) => {
+  return activeProperties().flatMap((p) => {
     const profile = state.houseProfiles[p.id] || null;
     return monthTasks(y, m, profile, p.id).filter((x) => !x.done).map((x) => {
       const late = x.task.once && x.task.rec.due_on < today;

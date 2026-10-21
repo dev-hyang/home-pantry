@@ -3,6 +3,7 @@ import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
+import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { DEFAULT_QUICK, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewToday } from "./today.js";
@@ -62,9 +63,10 @@ export async function refresh() {
       state.customSeasonal = customSeasonal;
       if (terms) setGlossary(terms);   // 自定义名称的翻译
       state.properties = properties;
-      const live = properties.filter((p) => !p.archived);
+      const live = properties.filter((p) => !p.archived), inUse = properties.filter(propertyActive);
       let saved = null; try { saved = localStorage.getItem("hmh-property"); } catch { /* 忽略 */ }
-      if (!live.some((p) => p.id === state.propertyId)) state.propertyId = (live.find((p) => p.id === saved) || live.find((p) => p.is_default) || live[0] || properties[0])?.id || null;
+      // 正在看的房产（含已卖出的历史房产）保留；否则优先选在用的：上次选的 → 默认 → 第一套
+      if (!live.some((p) => p.id === state.propertyId)) state.propertyId = (inUse.find((p) => p.id === saved) || inUse.find((p) => p.is_default) || inUse[0] || live.find((p) => p.id === saved) || live[0] || properties[0])?.id || null;
       const pid = state.propertyId;
       applyCustomCategories(customCats);   // 自定义分类并入全局分类表，后面的 enrich / 视图都能用
       applyCustomLocations(customLocs);    // 自定义 / 重命名的存放位置并入分组列表
@@ -94,7 +96,7 @@ function loadPurchasesSoon() {
   Store.listPurchases().then((p) => {
     state.purchases = p;
     const r = state.route;
-    if ((r.section === "me" && r.sub === "stats") || (r.section === "bills" && r.sub === "spend")) render(false);
+    if ((r.section === "me" && r.sub === "stats") || (r.section === "bills" && (r.sub === "spend" || r.sub === "overview"))) render(false);
     else { const dl = $("#storeList"); if (dl) dl.outerHTML = storeDatalist(); }   // 采购 / 统计页的商店联想
   }).catch((e) => console.warn("[purchases]", e.message))
     .finally(() => { purchasesLoading = false; if (purchasesAgain) { purchasesAgain = false; loadPurchasesSoon(); } });

@@ -6,6 +6,7 @@ import { Store } from "./core/store.js";
 import { href } from "./core/router.js";
 import { esc } from "./core/util.js";
 import { joinList, locale, t } from "./core/i18n.js";
+import { propertyActive } from "./core/lifecycle.js";
 import { SEVERITY_LABEL, SOURCE_ICON, SOURCE_LABEL, alertCounts, alertRow, collectAlerts, liveProperties, multiProperty, propertyName } from "./core/alerts.js";
 
 const PREF_KEY = "hmh-today";
@@ -167,7 +168,7 @@ function bySeverity(list) {
 }
 
 function byProperty(list) {
-  const groups = liveProperties().map((p) => ({ title: `🏠 ${esc(p.name)}`, sub: t(window.DEALS.PROPERTY_STATUS[p.status] || "持有"), items: list.filter((x) => x.property_id === p.id) }));
+  const groups = liveProperties().filter((p) => propertyActive(p) || list.some((x) => x.property_id === p.id)).map((p) => ({ title: `🏠 ${esc(p.name)}`, sub: t(window.DEALS.PROPERTY_STATUS[p.status] || "持有"), items: list.filter((x) => x.property_id === p.id) }));
   groups.push({ title: t("与房产无关"), sub: t("手机、车险、订阅等"), items: list.filter((x) => !x.property_id && x.source !== "pantry" && x.source !== "house") });
   groups.push({ title: t("家里的储藏"), sub: t("补货与临期"), items: list.filter((x) => !x.property_id && (x.source === "pantry" || x.source === "house")) });
   return groups.map((g) => section(g.title, g.sub, g.items)).join("") || EMPTY();

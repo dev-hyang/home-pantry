@@ -1076,3 +1076,16 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .spend-edit .form-actions { margin-top: 4px; }
 
 .restock-list li.is-paid { opacity: .78; }
+
+/* 页内标签条（账单 → 花费 / 预算）：下划线式，和面包屑、药丸筛选区分开；手机上整条可横向滑动，触控目标 ≥ 44px */
+.subtabs { display: flex; gap: 2px; overflow-x: auto; margin: 0 0 14px; border-bottom: 1px solid var(--line); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.subtabs::-webkit-scrollbar { display: none; }
+.subtab { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0 14px; color: var(--muted); font-size: 15px; font-weight: 600; text-decoration: none; white-space: nowrap; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.subtab:hover { color: var(--ink); background: var(--surface-2); }
+.subtab:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+.subtab[aria-current="page"] { color: var(--ink); font-weight: 800; border-bottom-color: var(--mustard); }
+@media (max-width: 640px) { .subtab { padding: 0 12px; } }
+.range-row { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; margin: 0 0 12px; }
+.range-row .seg { margin: 0; }
+@media print { .subtabs { display: none !important; } }
+.head-acts .seg { margin: 0; }

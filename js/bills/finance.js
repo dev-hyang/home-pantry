@@ -18,16 +18,8 @@ const sec = (id, title, sub, body) => `<section class="section" id="${id}"><div 
 const fmtD = (d) => new Date(d).toLocaleDateString(undefined, { month: "numeric", day: "numeric" });
 const barHtml = (v, total, cls = "") => `<div class="bud-bar ${cls}"><i style="width:${Math.min(100, pct(v, total))}%"></i></div>`;
 
-/* ───────────── 顶部：页内跳转 ───────────── */
-registerSection("top", 0, () => {
-  const splitOn = meta("_split_on", false) === true;   // 家庭分摊默认不显示，在 我的 → 设置 → 收入与预算 里打开
-  const jump = [["budReview", "月度复盘"], ["budFixed", "固定账单"], ["budRestock", "补货预估"], ["budFund", "大件基金"], ["budCash", "现金流"], ["budGoals", "储蓄目标"], ["budSubs", "年成本"], ...(splitOn ? [["budSplit", "家庭分摊"]] : [])];
-  return `<div class="chips bud-jump" role="group" aria-label="${t("页内跳转")}">${jump.map(([id, l]) => `<button type="button" class="chip" data-action="budget-jump" data-to="${id}">${t(l)}</button>`).join("")}</div>`;
-});
-registerAction("budget-jump", (el) => document.getElementById(el.dataset.to)?.scrollIntoView({ behavior: "smooth", block: "start" }));
-
 /* ───────────── 月度复盘（上个月） ───────────── */
-registerSection("top", 10, ({ plan }) => {
+registerSection("month", 0, ({ plan }) => {
   const [prev, last] = lastMonths(3).slice(0, 2), abm = actualByMonth(), a = abm[last] || {}, b = abm[prev] || {};
   const spent = (m) => GROUPS.reduce((s, g) => s + (m[g.id] || 0), 0);
   if (!Object.keys(a).length) return "";
@@ -50,7 +42,7 @@ registerSection("top", 10, ({ plan }) => {
 });
 
 /* ───────────── 固定账单：本月已缴 / 还要交 / 涨价 ───────────── */
-registerSection("month", 0, ({ plan }) => {
+registerSection("bills", 0, ({ plan }) => {
   const bm = billsThisMonth(), up = state.billsEnriched.filter((b) => b.active && !b.ended && b.priceUp && b.direction !== "receivable");
   const topFixed = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable" && (b.currency || cur()) === cur()).filter((b) => b.monthly > 0).sort((x, y) => y.monthly - x.monthly).slice(0, 5);
   const escrow = state.billsEnriched.reduce((s, b) => s + (b.escrowMonthly || 0), 0);
@@ -64,7 +56,7 @@ registerSection("month", 0, ({ plan }) => {
 });
 
 /* ───────────── 补货预估：联动库存和采购清单 ───────────── */
-registerSection("month", 10, ({ plan, mp }) => {
+registerSection("plan", 0, ({ plan, mp }) => {
   const fc = restockForecast();
   const gRemain = (id) => { const r = mp.rows.find((x) => x.id === id); return r ? r.budget - r.spent : 0; };
   const rows = fc.rows.slice(0, 8);
@@ -77,7 +69,7 @@ registerSection("month", 10, ({ plan, mp }) => {
 });
 
 /* ───────────── 大件家电基金：按设备寿命每月预存 ───────────── */
-registerSection("month", 20, ({ plan }) => {
+registerSection("plan", 10, ({ plan }) => {
   const f = applianceFund(), big = plan.groups.find((g) => g.id === "big");
   const body = f.rows.length ? `<div class="panel"><p style="margin:0">${t("按设备寿命和更换估价，每月预存约 {a}；“大件家电”预算现在是 {b}。", { a: money(f.monthly), b: money(big?.budget || 0) })}</p>
       <ul class="restock-list" style="margin-top:8px">${f.rows.slice(0, 8).map((r) => `<li><span class="badge ${r.yearsLeft != null && r.yearsLeft <= 2 ? "b-low" : ""}" style="${r.yearsLeft != null && r.yearsLeft <= 2 ? "" : "background:var(--surface-2)"}">${r.yearsLeft != null ? (r.yearsLeft <= 0 ? t("已到寿命") : t("剩 {n} 年", { n: Math.max(0.1, Math.round(r.yearsLeft * 10) / 10) })) : t("寿命未知")}</span>
@@ -88,7 +80,7 @@ registerSection("month", 20, ({ plan }) => {
 });
 
 /* ───────────── 现金流预测：未来 90 天账单 vs 收入 ───────────── */
-registerSection("annual", 0, ({ plan }) => {
+registerSection("bills", 20, ({ plan }) => {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const list = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable");
   const ev = upcoming(list, 90).filter((x) => (x.bill.currency || cur()) === cur()).map((x) => ({ date: new Date(`${x.due}T12:00:00`), amt: -num(x.bill.est), name: withProperty(x.bill.property_id, x.bill.name) }));
@@ -111,7 +103,7 @@ registerSection("annual", 0, ({ plan }) => {
 });
 
 /* ───────────── 储蓄目标 ───────────── */
-registerSection("annual", 10, ({ plan }) => {
+registerSection("goals", 0, ({ plan }) => {
   const goals = meta("_goals", []), today = new Date();
   const monthsLeft = (d) => Math.max(1, Math.ceil((new Date(`${d}T12:00:00`) - today) / (30 * 864e5)));
   const rows = goals.map((g) => { const left = Math.max(0, num(g.target) - num(g.saved)), m = monthsLeft(g.date), need = Math.ceil(left / m); return { g, left, m, need, done: left <= 0 }; });
@@ -130,7 +122,7 @@ registerSection("annual", 10, ({ plan }) => {
 });
 
 /* ───────────── 订阅与固定账单年成本 ───────────── */
-registerSection("annual", 20, ({ plan }) => {
+registerSection("bills", 10, ({ plan }) => {
   const list = state.billsEnriched.filter((b) => b.active && !b.ended && !b.escrow && b.direction !== "receivable" && (b.currency || cur()) === cur()), flag = new Set(meta("_cancel", []));
   const subs = list.filter((b) => B().isSubCat(b.category)).map((b) => ({ b, annual: b.monthly * 12 })).sort((x, y) => y.annual - x.annual);
   const other = list.filter((b) => !B().isSubCat(b.category)).map((b) => ({ b, annual: b.monthly * 12 })).sort((x, y) => y.annual - x.annual).slice(0, 5);
@@ -143,7 +135,7 @@ registerSection("annual", 20, ({ plan }) => {
 });
 
 /* ───────────── 家庭分摊（按“谁记的账”算付款人，默认平分） ───────────── */
-registerSection("plan", 0, () => {
+registerSection("goals", 10, () => {
   if (meta("_split_on", false) !== true) return "";
   const members = state.members, which = state.budgetSplitMonth || "this", months = lastMonths(2), m = which === "last" ? months[0] : months[1];
   const chips = [["this", t("本月")], ["last", t("上月")]].map(([k, l]) => `<button type="button" class="chip" data-action="budget-split-month" data-m="${k}" aria-pressed="${which === k}">${l}</button>`).join("");

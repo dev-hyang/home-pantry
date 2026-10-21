@@ -12,6 +12,8 @@ import { SETTING_SECTIONS } from "./settings/views.js";
 import { aiIcon } from "./core/ai.js";
 import { crumbNav } from "./core/hub.js";
 import { billAlerts } from "./bills/logic.js";
+import { activeProperties, endedProperties } from "./core/lifecycle.js";
+import { activeTab, tabLabel } from "./core/tabs.js";
 import { collectAlerts } from "./core/alerts.js";
 import { houseBar } from "./house/property-form.js";
 import { PROFILE_SECTIONS } from "./house/views.js";
@@ -61,8 +63,7 @@ const KIND_ICON = { sfh: "🏡", townhome: "🏘️", condo: "🏢", apartment: 
 export function viewPropertyList() {
   const K = window.BILLS.PROPERTY_KINDS, ST = window.DEALS.PROPERTY_STATUS;
   const alerts = collectAlerts();
-  const live = state.properties.filter((p) => !p.archived);
-  const rows = live.map((p) => {
+  const rowOf = (p) => {
     const n = alerts.filter((a) => a.property_id === p.id && a.severity <= 2).length;
     const desc = [t(ST[p.status] || "持有"), t(K[p.kind] || ""), p.address].filter(Boolean).join(" · ");
     return `<button type="button" class="mrow" data-action="house-open" data-id="${p.id}" ${p.id === state.propertyId ? 'aria-current="true"' : ""}>
@@ -70,13 +71,18 @@ export function viewPropertyList() {
       <span class="mt"><b>${esc(p.name)}</b><small>${esc(desc)}</small></span>
       ${n ? `<span class="badge b-soon mcount">${n}</span>` : ""}
       <span class="mch" aria-hidden="true">›</span></button>`;
-  }).join("");
+  };
+  const rows = activeProperties().map(rowOf).join("");
+  const ended = endedProperties();   // 已卖出 / 已退租：收进折叠区，档案、账单、设备、记录都还在
+  const endedHtml = ended.length ? `<details class="panel ref-panel" style="margin-top:12px"><summary><b>${t("已结束的房产")}</b><small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
+      <div class="mlist">${ended.map(rowOf).join("")}</div></details>` : "";
   const vehicles = activeVehicles(), vAlerts = assetAlerts(vehicles.filter((a) => window.VEHICLES.inService(a))).length;
   return `<section class="section menu-page">
     <div class="section-head"><h2>🏠 ${t("房屋")}</h2><p>${t("点一套房产进入它的概览、设备保养、季节任务、交易和资料")}</p></div>
     ${houseBar()}
     <div class="panel mlist">${rows || `<div class="empty"><strong>${t("还没有房产")}</strong></div>`}
       ${state.editProperty === "new" ? "" : `<button type="button" class="mrow" data-action="property-edit" data-id=""><span class="mi" aria-hidden="true">＋</span><span class="mt"><b>${t("添加房产")}</b><small>${t("自住、出租或租住的房子都可以")}</small></span></button>`}</div>
+    ${endedHtml}
     <div class="section-head" style="margin-top:22px"><h2>${t("全家")}</h2></div>
     <div class="panel mlist">${menuRow({ href: href("house", "vehicles"), icon: "🚗", title: t("车辆"), desc: vehicles.length ? t("{n} 辆，保养时间表、牌照与保险", { n: vehicles.length }) : t("车辆档案、保养时间表、牌照与保险"), count: vAlerts })}</div>
   </section>`;
@@ -105,6 +111,7 @@ export function viewMenu(section) {
 }
 
 /** 子页顶部的面包屑：‹ 回目录 · 当前页名（房屋子页回到该房产的目录，车辆回到房产列表） */
+const SPLIT_FIRST = (r) => (r.sub === "spend" ? "overview" : "month");   // 第一个标签就是页面本身，面包屑不再多一层
 export function crumb(r) {
   const sec = SECTIONS[r.section]; if (!sec?.subs || r.sub === "menu" || r.sub === "pages") return "";
   const parent = r.section === "bills" ? { template: "list" } : { template: "supplies", "asset-template": "assets" };
@@ -140,6 +147,7 @@ export function crumb(r) {
   else if (ssec) parts.push({ href: subHref, label: curLabel }, { label: t(ssec.name), icon: ssec.icon === "__AI__" ? aiIcon(18) : ssec.icon });
   else if (cat) parts.push({ action: "cat", attrs: 'data-cat="all"', label: curLabel }, { label: t(cat.name), icon: cat.icon });   // “库存”可点回全部分类
   else if (r.section === "house" && r.sub === "template") return crumbNav([{ href: href("pantry"), label: t("储藏") }, { href: `${href("pantry", "inventory")}?space=house`, label: `${t("库存")} · ${t("房屋耗材")}` }, { label: curLabel }]);   // 推荐耗材是从 库存 · 房屋耗材 进来的
+  else if (r.section === "bills" && activeTab(r) && activeTab(r) !== SPLIT_FIRST(r)) parts.push({ href: subHref, label: curLabel }, { label: t(tabLabel(r)) });   // 花费 / 预算的页内标签：账单 / 花费 / 明细
   else if (par) parts.push({ href: href(r.section, par[0]), label: t(par[1]) }, { label: curLabel });   // 常用账单 → 账单 / 清单 / 常用账单；生成设备 → 房屋 / 房产 / 设备保养 / 生成设备
   else parts.push({ label: curLabel });
   return crumbNav(parts);

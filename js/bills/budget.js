@@ -6,7 +6,9 @@ import { $, esc, money, num, spaceOf, toast } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { alertsOf } from "../core/logic.js";
 import { href } from "../core/router.js";
-import { lastMonths, monthKey, monthLabel, statCat } from "../stats/views.js";
+import { lastMonths, monthKey, monthLabel, rangeChipsHtml, statCat } from "../stats/views.js";
+import { tabBar } from "../core/hub.js";
+import { BUDGET_TABS, activeTab } from "../core/tabs.js";
 
 /* ───────────── 预算分组 ───────────── */
 // 固定账单单独算（从账单项目的每月折算得来）；其余花费分成这几组，按过去 6 个月的比例分配“可支配额”
@@ -287,7 +289,6 @@ const row = (g, spent, budget, pace, extra = "") => `<div class="bud-row"><div c
 
 export function viewBudget() {
   const plan = budgetPlan(), b = state.budget || {};
-  const rangeChips = [6, 12].map((n) => `<button type="button" class="chip" data-action="stats-months" data-months="${n}" aria-pressed="${state.stats.months === n}">${t("近 {n} 个月", { n })}</button>`).join("");
   const owner = isHouseholdOwner(), mine = state.incomes.find((i) => i.user_id === myId()), settingsHref = `${href("me", "settings")}?sec=income`;
   if (!plan) {
     const body = owner
@@ -318,9 +319,11 @@ export function viewBudget() {
   const events = saleEvents(new Date(), 6), ctx = { plan, mp };
   const efLow = Math.round(plan.essentialM * 3), efHigh = Math.round(plan.essentialM * 6);
 
-  return `
-    <section class="section">
-      <div class="section-head"><h2>${t("预算")}</h2><div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="budget">${t("打印")}</button></div></div>
+  const tab = activeTab(state.route) || "month";
+  const empty = (msg) => `<div class="panel empty"><strong>${msg}</strong></div>`;
+  const tabs = {
+    // 本月：收入与预算概况、本月进度、上个月复盘
+    month: () => `<section class="section">
       ${incomeBanner()}
       <div class="kpis">
         ${plan.income != null ? `<div class="kpi"><span>${t("月收入（全家）")}</span><b>${money(plan.income)}</b><small>${t("年收入 {a}", { a: money(plan.income * 12) })}</small></div>` : ""}
@@ -330,8 +333,6 @@ export function viewBudget() {
       </div>
       ${plan.income != null && plan.pool <= 0 ? `<p class="form-error">${t("固定账单和储蓄已经用完了收入，没有可支配额：先看看账单能不能压缩，或降低储蓄比例。")}</p>` : ""}
     </section>
-
-    ${extras("top", ctx)}
     <section class="section">
       <div class="section-head"><h2>${t("本月预算")}</h2><p>${t("竖线是本月已过去的进度；条越过竖线说明花得比时间快")}</p></div>
       <div class="panel">
@@ -340,8 +341,11 @@ export function viewBudget() {
         <div class="bud-total">${row({ icon: "💰", name: "可支配花费合计" }, mp.spent, mp.variable, mp.pace)}</div>
       </div>
     </section>
-
-    ${extras("month", ctx)}
+    ${extras("month", ctx)}`,
+    // 账单：固定账单排行、订阅年成本、现金流
+    bills: () => extras("bills", ctx) || empty(t("还没有固定账单")),
+    // 规划：各类月预算、补货预估、大件基金、大额购物规划、应急金
+    plan: () => `
     <section class="section">
       <div class="section-head"><h2>${t("各类月预算")}</h2><p>${t("可以改，留空 = 用建议值")}</p></div>
       <form id="budgetCatsForm" class="panel">
@@ -350,23 +354,7 @@ export function viewBudget() {
         <p class="${plan.left != null && plan.left < -1 ? "form-error" : "muted"}" style="margin:8px 0 0;font-size:13px">${!plan.owner ? t("只有家主能调整预算比例和各类金额。") : plan.left < -1 ? t("各类预算加起来超出可支配额 {a}，实际会吃掉储蓄。", { a: money(-plan.left) }) : t("账单、各类预算和储蓄加起来还剩 {a} 没分配。", { a: money(Math.max(0, plan.left)) })}</p>
         ${plan.owner ? `<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">${t("保存预算")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="budget-reset">${t("恢复建议值")}</button><a class="btn btn-sm btn-ghost" href="${settingsHref}">${t("调整收入和比例")}</a></div>` : ""}</form>
     </section>
-
-    <section class="section">
-      <div class="section-head"><h2>${t("预算 vs 实际")}</h2><div class="seg" role="group" aria-label="${t("时间范围")}" style="margin:0">${rangeChips}</div></div>
-      <div class="panel chart-panel"><h3>${t("账单和实际花费的关系")}</h3><p class="muted" style="margin:0 0 6px;font-size:13px">${t("按缴费日记账；年付账单缴费的那个月会特别高，看年度更准。")}</p>${stacked}</div>
-      <div class="panel chart-panel"><h3>${t("每月：实际 vs 预算 vs 收入")}</h3>${vs}</div>
-    </section>
-
-    <section class="section">
-      <div class="section-head"><h2>${t("{y} 年度预算", { y: yr })}</h2><p>${t("预算 = 月预算 × 12；预计全年按今年已花的速度推算")}</p></div>
-      <div class="panel">
-        ${yrRows.map((r) => row(r.g, r.spent, r.budget, elapsed / 12, r.proj != null ? ` · ${t("预计全年 {a}", { a: money(r.proj) })}` : "")).join("")}
-        <div class="bud-total">${row({ icon: "📅", name: "年度合计" }, yrSpent, yrBudget, elapsed / 12, yrProj != null ? ` · ${t("预计全年 {a}", { a: money(yrProj) })}` : "")}</div>
-        ${plan.income != null ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("年收入 {i}，计划储蓄 {s}；预计全年花费 {p} 时，结余约 {r}。", { i: money(plan.income * 12), s: money(plan.savings * 12), p: yrProj != null ? money(yrProj) : "—", r: yrProj != null ? money(plan.income * 12 - yrProj) : "—" })}</p>` : ""}
-      </div>
-    </section>
-
-    ${extras("annual", ctx)}
+    ${extras("plan", ctx)}
     <section class="section">
       <div class="section-head"><h2>${t("大额购物规划")}</h2><p>${t("想买一件贵的东西：看预算够不够，要不要分期，或者每月预存等促销日")}</p></div>
       <form id="planForm" class="panel">
@@ -380,13 +368,35 @@ export function viewBudget() {
         <div id="planOut" aria-live="polite"></div></form>
       <div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("省钱渠道")}</h3>${sitesHtml()}</div>
     </section>
-
-    ${extras("plan", ctx)}
     <section class="section">
       <div class="section-head"><h2>${t("应急金")}</h2></div>
       <div class="panel"><p style="margin:0">${plan.essentialM > 0 ? t("按必要账单每月 {m} 算，建议备 3–6 个月的应急金：{a} – {b}。", { m: money(plan.essentialM), a: money(efLow), b: money(efHigh) }) : t("在账单里把必要的项目标成“必要支出”，这里就能算建议的应急金（3–6 个月）。")}</p>
         <p class="muted" style="margin:6px 0 0;font-size:13px">${t("应急金不放在可支配额里，也不要拿去买大件。")}</p></div>
-    </section>`;
+    </section>`,
+    // 趋势：预算 vs 实际、年度预算
+    trend: () => `
+    <section class="section">
+      <div class="section-head"><h2>${t("预算 vs 实际")}</h2><div class="head-acts">${rangeChipsHtml()}</div></div>
+      <div class="panel chart-panel"><h3>${t("账单和实际花费的关系")}</h3><p class="muted" style="margin:0 0 6px;font-size:13px">${t("按缴费日记账；年付账单缴费的那个月会特别高，看年度更准。")}</p>${stacked}</div>
+      <div class="panel chart-panel"><h3>${t("每月：实际 vs 预算 vs 收入")}</h3>${vs}</div>
+    </section>
+    <section class="section">
+      <div class="section-head"><h2>${t("{y} 年度预算", { y: yr })}</h2><p>${t("预算 = 月预算 × 12；预计全年按今年已花的速度推算")}</p></div>
+      <div class="panel">
+        ${yrRows.map((r) => row(r.g, r.spent, r.budget, elapsed / 12, r.proj != null ? ` · ${t("预计全年 {a}", { a: money(r.proj) })}` : "")).join("")}
+        <div class="bud-total">${row({ icon: "📅", name: "年度合计" }, yrSpent, yrBudget, elapsed / 12, yrProj != null ? ` · ${t("预计全年 {a}", { a: money(yrProj) })}` : "")}</div>
+        ${plan.income != null ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("年收入 {i}，计划储蓄 {s}；预计全年花费 {p} 时，结余约 {r}。", { i: money(plan.income * 12), s: money(plan.savings * 12), p: yrProj != null ? money(yrProj) : "—", r: yrProj != null ? money(plan.income * 12 - yrProj) : "—" })}</p>` : ""}
+      </div>
+    </section>`,
+    // 目标：储蓄目标、家庭分摊（在 设置 → 收入与预算 里启用）
+    goals: () => extras("goals", ctx) || empty(t("还没有内容")),
+  };
+  return `
+    <section class="section">
+      <div class="section-head"><h2>${t("预算")}</h2><div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="budget">${t("打印")}</button></div></div>
+      ${tabBar(BUDGET_TABS, tab, (id) => `${href("bills", "budget")}${id === "month" ? "" : `?tab=${id}`}`, t("预算内容"))}
+    </section>
+    ${tabs[tab]()}`;
 }
 
 /* ───────────── 交互 ───────────── */

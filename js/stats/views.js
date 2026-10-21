@@ -6,6 +6,8 @@ import { compare, lang, locale, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { withProperty } from "../core/alerts.js";
+import { tabBar } from "../core/hub.js";
+import { SPEND_TABS, activeTab } from "../core/tabs.js";
 
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
@@ -87,23 +89,47 @@ export function itemSeries(item, starts) {
   return { used: used.map((v) => v * f), level: level.map((v) => v * f), unit: t(du(item.unit)) };
 }
 
-export function viewSpend() {
-  const st = state.stats;
-  const sd = spendData();
-  const { months, byMC, totals, cats } = sd;
-  const thisTotal = totals.at(-1) || 0, prevTotal = totals.at(-2) || 0;
-  const avg = totals.reduce((a, b) => a + b, 0) / (totals.length || 1);
+/** 时间范围：3 / 6 / 9 / 12 个月；花费各标签和预算趋势共用（state.stats.months） */
+export const RANGES = [3, 6, 9, 12];
+export const rangeChipsHtml = () => `<div class="seg" role="group" aria-label="${t("时间范围")}">${RANGES.map((n) => `<button type="button" class="chip" data-action="stats-months" data-months="${n}" aria-pressed="${state.stats.months === n}">${t("近 {n} 个月", { n })}</button>`).join("")}</div>`;
+const monthOpt = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
+const noSpend = () => `<div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("在采购清单点“已买到”时填上实际花费，或在“明细”里补记一笔。")}</div>`;
+
+/** 本月 / 上月 / 近 n 月月均：花费概览和账单概览的速览共用 */
+export function spendKpis(sd) {
+  const { months, totals } = sd;
+  const thisTotal = totals.at(-1) || 0, prevTotal = totals.at(-2) || 0, avg = totals.reduce((a, b) => a + b, 0) / (totals.length || 1);
   const change = prevTotal > 0 ? Math.round(((thisTotal - prevTotal) / prevTotal) * 100) : null;
-  const selMonth = st.month && byMC[st.month] ? st.month : months.at(-1);
-  const selCat = st.cat && cats.some((c) => c.id === st.cat) ? st.cat : cats[0]?.id;
-  const hasSpend = totals.some((v) => v > 0);
+  return `<div class="kpis">
+    <div class="kpi"><span>${t("本月花费")}</span><b>${money(thisTotal)}</b><small>${t("{n} 笔", { n: sd.counts[months.at(-1)] })}</small></div>
+    <div class="kpi"><span>${t("上月花费")}</span><b>${money(prevTotal)}</b>
+      <small class="${change > 0 ? "up" : "down"}">${change == null ? t("上月无记录") : change > 0 ? t("多了 {p}%", { p: Math.abs(change) }) : t("少了 {p}%", { p: Math.abs(change) })}</small></div>
+    <div class="kpi"><span>${t("近 {n} 个月月均", { n: months.length })}</span><b>${money(avg)}</b><small>${t("本月进度供参考")}</small></div>
+  </div>`;
+}
+/** 账单概览里的花费速览：只放三个数字，详细的在 账单 → 花费 */
+export function spendGlance() {
+  if (!state.purchases.length) return "";
+  return `<section class="section"><div class="section-head"><h2>${t("花费速览")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}">${t("看花费")}</a></div></div>${spendKpis(spendData(6))}</section>`;
+}
 
-  const rangeChips = [6, 12].map((n) => `<button type="button" class="chip" data-action="stats-months" data-months="${n}" aria-pressed="${st.months === n}">${t("近 {n} 个月", { n })}</button>`).join("");
-
+/* 花费页分为 5 个标签（概览 / 分类 / 商店 / 明细 / 导出打印），一次只画一块，页面不再一屏接一屏地长；
+ * 统计页（账单模块关闭时）仍用 "all"：全部连在一起 */
+function spendOverviewTab(sd) {
+  const { months, byMC, cats, totals } = sd;
   const spendBars = Charts.bars({
     title: t("月度采购花费（按分类堆叠）"), labels: months.map(monthLabel), fmt: money,
     series: cats.map((c) => ({ name: t(c.name), color: c.color, values: months.map((m) => byMC[m][c.id] || 0) })),
   });
+  return `${spendKpis(sd)}
+    ${sd.otherCurrency ? `<p class="muted" style="font-size:13px">${t("另有 {n} 笔非 {cur} 记录未计入。", { n: sd.otherCurrency, cur: Units.region.currency })}</p>` : ""}
+    ${totals.some((v) => v > 0) ? `<div class="panel chart-panel"><h3>${t("每月花了多少")}</h3>${spendBars}</div>` : noSpend()}`;
+}
+function spendCategoryTab(sd) {
+  const st = state.stats, { months, byMC, cats, totals } = sd;
+  if (!totals.some((v) => v > 0)) return noSpend();
+  const selMonth = st.month && byMC[st.month] ? st.month : months.at(-1);
+  const selCat = st.cat && cats.some((c) => c.id === st.cat) ? st.cat : cats[0]?.id;
   const donut = Charts.donut({
     title: t("{month}分类占比", { month: monthLabel(selMonth) }), fmt: money,
     center: money(Object.values(byMC[selMonth]).reduce((a, b) => a + b, 0), true),
@@ -114,35 +140,15 @@ export function viewSpend() {
     title: t("{cat}月度花费趋势", { cat: t(catObj.name) }), labels: months.map(monthLabel), fmt: money,
     series: [{ name: t(catObj.name), color: catObj.color, values: months.map((m) => byMC[m][selCat] || 0) }],
   }) : "";
-
+  return `<div class="panel chart-panel"><div class="chart-head"><h3>${t("分类占比")}</h3>
+      <select id="statsMonth" aria-label="${t("选择月份")}">${[...months].reverse().map((m) => `<option value="${m}" ${m === selMonth ? "selected" : ""}>${monthOpt(m)}</option>`).join("")}</select></div>${donut}</div>
+    <div class="panel chart-panel"><h3>${t("单个分类的月度趋势")}</h3>
+      <div class="chips" role="group" aria-label="${t("选择分类")}">${cats.map((c) => `<button type="button" class="chip" data-action="stats-cat" data-cat="${c.id}" aria-pressed="${c.id === selCat}">${c.icon} ${t(c.name)}</button>`).join("")}</div>
+      ${catTrend}</div>`;
+}
+function spendRecordsTab() {
   const today = new Date().toISOString().slice(0, 10);
-  const monthOpt = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
-
-  return `
-    <section class="section">
-      <div class="section-head"><h2>${t("采购花费")}</h2><div class="seg" role="group" aria-label="${t("时间范围")}" style="margin:0">${rangeChips}</div></div>
-      <div class="kpis">
-        <div class="kpi"><span>${t("本月花费")}</span><b>${money(thisTotal)}</b><small>${t("{n} 笔", { n: sd.counts[months.at(-1)] })}</small></div>
-        <div class="kpi"><span>${t("上月花费")}</span><b>${money(prevTotal)}</b>
-          <small class="${change > 0 ? "up" : "down"}">${change == null ? t("上月无记录") : change > 0 ? t("多了 {p}%", { p: Math.abs(change) }) : t("少了 {p}%", { p: Math.abs(change) })}</small></div>
-        <div class="kpi"><span>${t("近 {n} 个月月均", { n: st.months })}</span><b>${money(avg)}</b><small>${t("本月进度供参考")}</small></div>
-      </div>
-      ${sd.otherCurrency ? `<p class="muted" style="font-size:13px">${t("另有 {n} 笔非 {cur} 记录未计入。", { n: sd.otherCurrency, cur: Units.region.currency })}</p>` : ""}
-      ${hasSpend ? `
-      <div class="panel chart-panel"><h3>${t("每月花了多少")}</h3>${spendBars}</div>
-      <div>
-        <div class="panel chart-panel"><div class="chart-head"><h3>${t("分类占比")}</h3>
-          <select id="statsMonth" aria-label="${t("选择月份")}">${[...months].reverse().map((m) => `<option value="${m}" ${m === selMonth ? "selected" : ""}>${monthOpt(m)}</option>`).join("")}</select></div>${donut}</div>
-        <div class="panel chart-panel"><h3>${t("单个分类的月度趋势")}</h3>
-          <div class="chips" role="group" aria-label="${t("选择分类")}">${cats.map((c) => `<button type="button" class="chip" data-action="stats-cat" data-cat="${c.id}" aria-pressed="${c.id === selCat}">${c.icon} ${t(c.name)}</button>`).join("")}</div>
-          ${catTrend}</div>
-      </div>` : `<div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("在采购清单点“已买到”时填上实际花费，或在下方补记一笔。")}</div>`}
-    </section>
-
-    ${viewStoreStats(months)}
-    ${viewAnnualExport()}
-
-    <section class="section">
+  return `<section class="section">
       <div class="section-head"><h2>${t("补记一笔花费")}</h2><p>${t("没走采购清单的，也可以记在这里")}</p></div>
       ${storeDatalist()}
       <form id="purchaseForm" class="panel add-row purchase-row">
@@ -154,9 +160,37 @@ export function viewSpend() {
         <button class="btn btn-primary" type="submit">${t("记一笔")}</button>
       </form>
     </section>
+    <section class="section" id="spendRecords">${spendRecordsHtml()}</section>`;
+}
+function spendExportTab() {
+  return `${viewAnnualExport()}
+    <section class="section">
+      <div class="section-head"><h2>${t("打印")}</h2><p>${t("浏览器的打印窗口里也可以另存为 PDF")}</p></div>
+      <div class="panel export-row">
+        <label class="field-label" for="printRange" style="margin:0">${t("时间范围")}</label>
+        <select id="printRange">${[3, 6, 12].map((n) => `<option value="${n}" ${n === state.stats.months ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}</select>
+        <button type="button" class="btn btn-primary btn-sm" data-action="print-run" data-kind="spend">${t("打印花费统计")}</button>
+      </div>
+      <p class="muted" style="margin:6px 0 0;font-size:13px">${t("要打印筛选后的明细，到“明细”标签里点“打印”。")}</p>
+    </section>`;
+}
 
-    <section class="section" id="spendRecords">
-      ${spendRecordsHtml()}
+export function viewSpend() {
+  const r = state.route, onSpendPage = r?.section === "bills" && r?.sub === "spend";
+  const tab = onSpendPage ? activeTab(r) : "all";
+  const sd = spendData();
+  const ranged = tab === "overview" || tab === "category" || tab === "stores" || tab === "all";
+  const body = {
+    overview: () => spendOverviewTab(sd), category: () => spendCategoryTab(sd), stores: () => viewStoreStats(sd.months) || noSpend(),
+    records: spendRecordsTab, export: spendExportTab,
+    all: () => `${spendOverviewTab(sd)}${spendCategoryTab(sd)}${viewStoreStats(sd.months)}${viewAnnualExport()}${spendRecordsTab()}`,
+  }[tab]();
+  return `
+    <section class="section">
+      <div class="section-head"><h2>${t("采购花费")}</h2></div>
+      ${onSpendPage ? tabBar(SPEND_TABS, tab, (id) => `${href("bills", "spend")}${id === "overview" ? "" : `?tab=${id}`}`, t("花费内容")) : ""}
+      ${ranged ? `<div class="range-row">${rangeChipsHtml()}</div>` : ""}
+      ${body}
     </section>`;
 }
 

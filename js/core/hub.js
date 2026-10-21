@@ -30,3 +30,7 @@ export const countBadge = (n, m, cls = "") => `<span class="badge mcount ${cls}"
 
 /** 非空字段数 */
 export const filledCount = (vals) => vals.filter((v) => v != null && v !== "" && v !== false && !(Array.isArray(v) && !v.length)).length;
+
+/** 页内标签条（三级导航）：链接形式，地址带 ?tab=，后退键、分享、刷新都保持在同一标签；手机上可横向滑动 */
+export const tabBar = (tabs, active, hrefOf, label) => `<nav class="subtabs" aria-label="${esc(label)}">${tabs.map(([id, name, icon]) =>
+  `<a href="${esc(hrefOf(id))}" class="subtab" ${id === active ? 'aria-current="page"' : ""}><span aria-hidden="true">${icon}</span> ${esc(t(name))}</a>`).join("")}</nav>`;

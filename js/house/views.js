@@ -1,3 +1,4 @@
+import { activeProperties } from "../core/lifecycle.js";
 import { autofillBar } from "../core/autofill.js";
 /* 房屋维护 · 第一期：房屋资料（房型、材料、设施）、责任归属、材料保养建议、按模板批量加入房屋耗材 */
 import { alertsOf } from "../core/logic.js";
@@ -262,7 +263,7 @@ function agentValue(p) {
 /** 提醒总线：各活跃房产的房屋保险 30 天内到期（尽快）或已过期（今天级） */
 export function insuranceAlertItems() {
   if (!state.houseEnabled) return [];
-  return state.properties.filter((p) => !p.archived && !["sold", "moved_out"].includes(p.status)).flatMap((prop) => {
+  return activeProperties().flatMap((prop) => {
     const p = state.houseProfiles[prop.id]; const s = insuranceStatus(p);
     if (s.kind !== "expiring" && s.kind !== "expired") return [];
     return [{ source: "house", severity: s.kind === "expired" ? 1 : 2, must: true, due: p.insurance_to, daysLeft: s.days, property_id: prop.id,

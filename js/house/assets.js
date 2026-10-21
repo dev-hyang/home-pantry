@@ -15,6 +15,7 @@ import { dealHref, dealTasks, openVehicleDeal } from "./deals.js";
 import { autofillBar } from "../core/autofill.js";
 import { storeDatalist } from "../stats/views.js";
 import { propertyName } from "../core/alerts.js";
+import { activeProperties } from "../core/lifecycle.js";
 
 const H = () => window.HOUSE;
 const V = () => window.VEHICLES;
@@ -115,7 +116,7 @@ const rank = (a) => (a.followUp ? 0 : a.service === "overdue" ? 1 : a.service ==
 /** 提醒总线：所有活跃房产的设备 + 家庭的车辆（检查发现问题 = 尽快·必须；保养逾期 = 今天级；到期 / 保修 = 尽快级） */
 export function assetAlertItems() {
   if (!state.houseEnabled) return [];
-  const live = new Set(state.properties.filter((p) => !p.archived && !["sold", "moved_out"].includes(p.status)).map((p) => p.id));
+  const live = new Set(activeProperties().map((p) => p.id));
   const out = assetAlerts(state.assetsEnriched.filter((a) => (isVehicle(a) ? V().inService(a) : live.has(a.property_id)))).map((a) => ({
     source: "asset", severity: a.followUp ? 2 : a.service === "overdue" ? 1 : 2, must: !!a.followUp, due: a.next,
     daysLeft: a.followUp ? -(-daysUntil(a.followUp.done_on)) : a.service === "overdue" || a.service === "due" ? a.dueDays : a.wDays,

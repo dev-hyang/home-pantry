@@ -27,6 +27,7 @@ export function collectAlerts() {
   return out.sort((a, b) => a.severity - b.severity || (b.must ? 1 : 0) - (a.must ? 1 : 0) || (a.daysLeft ?? 999) - (b.daysLeft ?? 999));
 }
 
+/** 没归档的房产（含已卖出 / 退租）：给名称前缀、历史页面消除歧义用；“在用”的判断见 lifecycle.js */
 export const liveProperties = () => state.properties.filter((p) => !p.archived);
 export const multiProperty = () => liveProperties().length > 1;
 export const propertyName = (id) => state.properties.find((p) => p.id === id)?.name || "";
