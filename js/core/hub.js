@@ -16,7 +16,7 @@ export const hubList = (rows) => `<div class="panel mlist">${rows.join("")}</div
 export function crumbNav(parts, cls = "") {
   const node = (p, i, last) => {
     const label = `${p.icon ? `${p.icon} ` : ""}${esc(p.label)}`;
-    if (last) return `<b>${label}</b>`;
+    if (last) return `<b aria-current="page">${label}</b>`;
     if (p.action) return `<button type="button" class="link-name crumb-mid" data-action="${esc(p.action)}" ${p.attrs || ""}>${label}</button>`;
     return `<a href="${esc(p.href || "#/")}">${i === 0 ? "‹ " : ""}${label}</a>`;
   };
