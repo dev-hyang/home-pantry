@@ -95,16 +95,34 @@ export const rangeChipsHtml = () => `<div class="seg" role="group" aria-label="$
 const monthOpt = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
 const noSpend = () => `<div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("在采购清单点“已买到”时填上实际花费，或在“明细”里补记一笔。")}</div>`;
 
-/** 本月 / 上月 / 近 n 月月均：花费概览和账单概览的速览共用 */
+/* ── 钻取：图表色块、图例、名称、数字卡片都带 data-drill（查询串），点一下跳到 明细 并套上对应筛选（分类 / 商店 / 月份 / 近 N 个月）；
+ * 全局点击处理在 main.js，筛选在 applySpendDrill，明细页顶部用筛选条显示并可逐项去掉。 */
+const dq = (o) => new URLSearchParams(Object.entries(o).filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, String(v)])).toString();
+const encKeys = (keys) => keys.map(encodeURIComponent).join(",");
+const hitAttrs = (q, label) => (q ? ` data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(label)}"` : "");
+const DRILL_HINT = () => `<p class="muted drill-hint">${t("点图里的色块、图例或名称，可以查看对应的花费明细。")}</p>`;
+export function applySpendDrill(q) {
+  if (!["cat", "store", "stores", "month", "range"].some((k) => q.has(k))) return false;
+  const f = state.spendFilter;
+  Object.assign(f, { q: "", cat: "all", store: "all", stores: null, month: "all", months: null, sort: "new", limit: 20 });
+  if (q.get("cat")) f.cat = q.get("cat");
+  if (q.get("store")) f.store = q.get("store");
+  if (q.get("stores")) f.stores = q.get("stores").split(",").map(decodeURIComponent);
+  if (q.get("month")) f.month = q.get("month");
+  else if (q.get("range")) f.months = lastMonths(Math.max(1, Math.min(24, +q.get("range") || 6)));
+  return true;
+}
+
+/** 本月 / 上月 / 近 n 月月均：花费概览和账单概览的速览共用；数字卡片点一下看对应月份的明细 */
 export function spendKpis(sd) {
   const { months, totals } = sd;
   const thisTotal = totals.at(-1) || 0, prevTotal = totals.at(-2) || 0, avg = totals.reduce((a, b) => a + b, 0) / (totals.length || 1);
   const change = prevTotal > 0 ? Math.round(((thisTotal - prevTotal) / prevTotal) * 100) : null;
   return `<div class="kpis">
-    <div class="kpi"><span>${t("本月花费")}</span><b>${money(thisTotal)}</b><small>${t("{n} 笔", { n: sd.counts[months.at(-1)] })}</small></div>
-    <div class="kpi"><span>${t("上月花费")}</span><b>${money(prevTotal)}</b>
+    <div class="kpi ch-hit-row"${hitAttrs(dq({ month: months.at(-1) }), t("本月花费"))}><span>${t("本月花费")}</span><b>${money(thisTotal)}</b><small>${t("{n} 笔", { n: sd.counts[months.at(-1)] })} ›</small></div>
+    <div class="kpi ch-hit-row"${hitAttrs(dq({ month: months.at(-2) }), t("上月花费"))}><span>${t("上月花费")}</span><b>${money(prevTotal)}</b>
       <small class="${change > 0 ? "up" : "down"}">${change == null ? t("上月无记录") : change > 0 ? t("多了 {p}%", { p: Math.abs(change) }) : t("少了 {p}%", { p: Math.abs(change) })}</small></div>
-    <div class="kpi"><span>${t("近 {n} 个月月均", { n: months.length })}</span><b>${money(avg)}</b><small>${t("本月进度供参考")}</small></div>
+    <div class="kpi ch-hit-row"${hitAttrs(dq({ range: months.length }), t("近 {n} 个月月均", { n: months.length }))}><span>${t("近 {n} 个月月均", { n: months.length })}</span><b>${money(avg)}</b><small>${t("本月进度供参考")} ›</small></div>
   </div>`;
 }
 /** 账单概览里的花费速览：只放三个数字，详细的在 账单 → 花费 */
@@ -121,11 +139,12 @@ function spendOverviewTab(sd, withHub = false) {
   const spendBars = Charts.bars({
     title: t("月度采购花费（按分类堆叠）"), labels: months.map(monthLabel), fmt: money,
     series: cats.map((c) => ({ name: t(c.name), color: c.color, values: months.map((m) => byMC[m][c.id] || 0) })),
+    drill: (k, i) => dq({ cat: cats[k].id, month: months[i] }), legendDrill: (k) => dq({ cat: cats[k].id, range: months.length }),
   });
   return `${spendKpis(sd)}
     ${withHub ? tabHub(SPEND_TABS, spendHref, t("更多")) : ""}
     ${sd.otherCurrency ? `<p class="muted" style="font-size:13px">${t("另有 {n} 笔非 {cur} 记录未计入。", { n: sd.otherCurrency, cur: Units.region.currency })}</p>` : ""}
-    ${totals.some((v) => v > 0) ? `<div class="panel chart-panel"><h3>${t("每月花了多少")}</h3>${spendBars}</div>` : noSpend()}`;
+    ${totals.some((v) => v > 0) ? `<div class="panel chart-panel"><h3>${t("每月花了多少")}</h3>${spendBars}${DRILL_HINT()}</div>` : noSpend()}`;
 }
 function spendCategoryTab(sd) {
   const st = state.stats, { months, byMC, cats, totals } = sd;
@@ -135,18 +154,20 @@ function spendCategoryTab(sd) {
   const donut = Charts.donut({
     title: t("{month}分类占比", { month: monthLabel(selMonth) }), fmt: money,
     center: money(Object.values(byMC[selMonth]).reduce((a, b) => a + b, 0), true),
-    items: STAT_CATS().map((c) => ({ name: `${c.icon} ${t(c.name)}`, color: c.color, value: byMC[selMonth][c.id] || 0 })),
+    items: STAT_CATS().map((c) => ({ name: `${c.icon} ${t(c.name)}`, color: c.color, value: byMC[selMonth][c.id] || 0, drill: dq({ cat: c.id, month: selMonth }) })),
   });
   const catObj = STAT_CATS().find((c) => c.id === selCat);
   const catTrend = catObj ? Charts.line({
     title: t("{cat}月度花费趋势", { cat: t(catObj.name) }), labels: months.map(monthLabel), fmt: money,
     series: [{ name: t(catObj.name), color: catObj.color, values: months.map((m) => byMC[m][selCat] || 0) }],
+    drill: (_, i) => dq({ cat: selCat, month: months[i] }),
   }) : "";
   return `<div class="panel chart-panel"><div class="chart-head"><h3>${t("分类占比")}</h3>
-      <select id="statsMonth" aria-label="${t("选择月份")}">${[...months].reverse().map((m) => `<option value="${m}" ${m === selMonth ? "selected" : ""}>${monthOpt(m)}</option>`).join("")}</select></div>${donut}</div>
+      <select id="statsMonth" aria-label="${t("选择月份")}">${[...months].reverse().map((m) => `<option value="${m}" ${m === selMonth ? "selected" : ""}>${monthOpt(m)}</option>`).join("")}</select></div>${donut}${DRILL_HINT()}</div>
     <div class="panel chart-panel"><h3>${t("单个分类的月度趋势")}</h3>
       <div class="chips" role="group" aria-label="${t("选择分类")}">${cats.map((c) => `<button type="button" class="chip" data-action="stats-cat" data-cat="${c.id}" aria-pressed="${c.id === selCat}">${c.icon} ${t(c.name)}</button>`).join("")}</div>
-      ${catTrend}</div>`;
+      ${catTrend}
+      ${catObj ? `<div class="form-actions"><button type="button" class="btn btn-sm" data-drill="${esc(dq({ cat: selCat, range: months.length }))}">${t("查看「{cat}」近 {n} 个月的明细", { cat: t(catObj.name), n: months.length })} ›</button></div>` : ""}${DRILL_HINT()}</div>`;
 }
 function spendRecordsTab() {
   const today = new Date().toISOString().slice(0, 10);
@@ -246,6 +267,8 @@ export function filteredSpend() {
   let list = state.purchases.filter((p) => {
     if (f.cat !== "all" && statCat(p.category) !== f.cat) return false;
     if (f.month !== "all" && monthKey(p.purchased_at) !== f.month) return false;
+    if (f.months?.length && !f.months.includes(monthKey(p.purchased_at))) return false;   // 从图表钻取来的“近 N 个月”
+    if (f.stores?.length && !f.stores.includes(storeKey(storeOf(p)) || "__none__")) return false;   // “其他商店”：一组商店
     if (f.store !== "all" && (f.store === "__none__" ? !!storeOf(p) : storeKey(storeOf(p)) !== f.store)) return false;
     return !q || `${p.name}${storeOf(p)}`.toLowerCase().includes(q);
   });
@@ -280,6 +303,32 @@ function spendEditRow(p) {
     <label>${t("日期")}<input name="date" type="date" max="${new Date().toISOString().slice(0, 10)}" value="${esc(day)}"></label>
     <div class="form-actions span-2"><button type="submit" class="btn btn-primary btn-sm">${t("保存修改")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-edit-cancel">${t("取消")}</button></div></form></li>`;
 }
+/** 明细页顶部的筛选条：当前生效的筛选一项一个标签，点标签去掉那一项，“清除全部”一键回到全部。从图表 / 名称钻取进来时靠它看清“现在看的是什么” */
+function activeFilterChips() {
+  const f = state.spendFilter, out = [];
+  const monthName = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
+  const storeName = (k) => (k === "__none__" ? t(STORE_NONE.name) : knownStores().find((x) => storeKey(x) === k) || k);
+  if (f.cat !== "all") { const c = STAT_CATS().find((x) => x.id === f.cat); out.push(["cat", c ? `${c.icon} ${t(c.name)}` : f.cat]); }
+  if (f.store !== "all") out.push(["store", storeName(f.store)]);
+  if (f.stores?.length) { const n = f.stores.map(storeName); out.push(["stores", n.length <= 3 ? n.join("、") : t("{a} 等 {n} 家", { a: n.slice(0, 2).join("、"), n: n.length })]); }
+  if (f.month !== "all") out.push(["month", monthName(f.month)]);
+  if (f.months?.length) out.push(["months", t("近 {n} 个月", { n: f.months.length })]);
+  if (f.q.trim()) out.push(["q", `“${f.q.trim()}”`]);
+  return out;
+}
+function spendChipsHtml() {
+  const chips = activeFilterChips(); if (!chips.length) return "";
+  return `<div class="filter-chips" role="group" aria-label="${t("当前筛选")}"><span class="muted">${t("当前筛选")}</span>${chips.map(([k, label]) => `<button type="button" class="chip fchip" data-action="spend-chip-clear" data-k="${k}" aria-label="${esc(t("去掉筛选：{x}", { x: label }))}">${esc(label)} <span aria-hidden="true">✕</span></button>`).join("")}${chips.length > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="spend-chip-clear" data-k="all">${t("清除全部")}</button>` : ""}</div>`;
+}
+export function clearSpendFilter(k) {
+  const f = state.spendFilter, d = { cat: ["cat", "all"], store: ["store", "all"], month: ["month", "all"], q: ["q", ""] };
+  if (k === "all") Object.assign(f, { q: "", cat: "all", store: "all", stores: null, month: "all", months: null });
+  else if (k === "stores") f.stores = null; else if (k === "months") f.months = null; else if (d[k]) f[d[k][0]] = d[k][1];
+  f.limit = 20;
+}
+/** 筛选条、各个下拉和搜索框都按当前筛选重画（点掉标签后下拉也跟着回到“全部”） */
+export function renderSpendRecords() { const h = $("#spendRecords"); if (h) h.innerHTML = spendRecordsHtml(); }
+
 /** 列表本体 + 合计；搜索 / 筛选变化只重画这一块（输入框不丢焦点） */
 function spendListHtml() {
   const f = state.spendFilter, all = filteredSpend(), shown = all.slice(0, f.limit);
@@ -307,6 +356,7 @@ export function renderSpendList() {
   const host = $("#spendList"); if (!host) return;
   host.innerHTML = spendListHtml();
   const sum = $("#spendSum"); if (sum) sum.textContent = spendSummary();
+  const chips = $("#spendChips"); if (chips) chips.innerHTML = spendChipsHtml();
 }
 function spendRecordsHtml() {
   const f = state.spendFilter, ps = state.purchases;
@@ -318,6 +368,7 @@ function spendRecordsHtml() {
   const mo = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
   return `<div class="section-head"><h2>${t("花费记录")}</h2><div class="head-acts"><span id="spendSum" class="muted">${esc(spendSummary())}</span><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="spend" data-filtered="1">${t("打印")}</button></div></div>
     <div class="panel">
+      <div id="spendChips">${spendChipsHtml()}</div>
       <div class="toolbar">
         <input type="search" id="spendSearch" placeholder="${t("搜索名称或商店")}" value="${esc(f.q)}" aria-label="${t("搜索花费记录")}">
         <select id="spendCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c.id, `${c.icon} ${t(c.name)}`, f.cat)).join("")}</select>
@@ -366,32 +417,41 @@ export function viewStoreStats(months) {
   }
   if (!agg.size) return "";
   const named = [...agg.entries()].filter(([k]) => k !== "__none__").map(([, v]) => v).sort((a, b) => b.total - a.total);
-  const groups = named.slice(0, STORE_COLORS.length).map((v, i) => ({ ...v, color: STORE_COLORS[i] }));
+  const keyOf = new Map([...agg.entries()].map(([k, v]) => [v, k]));
+  const groups = named.slice(0, STORE_COLORS.length).map((v, i) => ({ ...v, color: STORE_COLORS[i], keys: [keyOf.get(v)] }));
   const rest = named.slice(STORE_COLORS.length);
   if (rest.length) groups.push(rest.reduce((g, v) => {
-    g.total += v.total; g.count += v.count;
+    g.total += v.total; g.count += v.count; g.keys.push(keyOf.get(v));
     for (const [m, x] of Object.entries(v.byMonth)) g.byMonth[m] = (g.byMonth[m] || 0) + x;
     return g;
-  }, { ...STORE_REST, name: t(STORE_REST.name), total: 0, count: 0, byMonth: {} }));
-  if (agg.has("__none__")) groups.push({ ...agg.get("__none__"), color: STORE_NONE.color });
+  }, { ...STORE_REST, name: t(STORE_REST.name), total: 0, count: 0, byMonth: {}, keys: [], members: rest, isRest: true }));
+  if (agg.has("__none__")) groups.push({ ...agg.get("__none__"), color: STORE_NONE.color, keys: ["__none__"] });
   const total = groups.reduce((a, g) => a + g.total, 0);
+  // 点一个商店 / “其他商店”：跳到明细，套上这家（或这一组）商店；month 为空 = 整个时间范围
+  const gDrill = (g, month) => dq({ ...(g.keys.length === 1 ? { store: g.keys[0] } : { stores: encKeys(g.keys) }), ...(month ? { month } : { range: months.length }) });
 
   const donut = Charts.donut({
     title: t("近 {n} 个月各商店花费占比", { n: months.length }), fmt: money, center: money(total, true),
-    items: groups.map((g) => ({ name: g.name, color: g.color, value: g.total })),
+    items: groups.map((g) => ({ name: g.name, color: g.color, value: g.total, drill: gDrill(g) })),
   });
   const bars = Charts.bars({
     title: t("各商店月度花费"), labels: months.map(monthLabel), fmt: money,
     series: groups.map((g) => ({ name: g.name, color: g.color, values: months.map((m) => g.byMonth[m] || 0) })),
+    drill: (k, i) => gDrill(groups[k], months[i]), legendDrill: (k) => gDrill(groups[k]),
   });
-  const rows = groups.map((g) => `<tr><th scope="row"><i class="sw" style="background:${g.color}"></i>${esc(g.name)}</th>
+  const rows = groups.map((g) => `<tr><th scope="row"><i class="sw" style="background:${g.color}"></i><button type="button" class="link-name linkbtn" data-drill="${esc(gDrill(g))}" title="${esc(t("查看明细"))}">${esc(g.name)}</button>${g.isRest ? ` <small class="muted">${t("{n} 家", { n: g.members.length })}</small>` : ""}
     <td>${g.count}</td><td>${esc(money(g.total))}</td><td>${esc(money(g.total / g.count))}</td><td>${Math.round((g.total / total) * 100)}%</td></tr>`).join("");
+  // “其他商店”里到底有哪些：展开列出每一家，每家也能点进明细
+  const rg = groups.find((g) => g.isRest);
+  const restDetail = rg ? `<details class="rest-detail" open><summary><b>${t("“其他商店”包含 {n} 家", { n: rg.members.length })}</b><small>${t("花费较少的商店合并显示在一起，展开看每一家")}</small></summary>
+    <ul class="rest-list">${[...rg.members].sort((a, b) => b.total - a.total).map((v) => `<li class="ch-hit-row"${hitAttrs(dq({ store: keyOf.get(v), range: months.length }), v.name)}><span class="grow">${esc(v.name)}</span><small class="muted">${t("{n} 笔", { n: v.count })}</small><b>${esc(money(v.total))}</b><u aria-hidden="true">›</u></li>`).join("")}</ul></details>` : "";
   return `<section class="section">
     <div class="section-head"><h2>${t("按商店 / 收款方统计")}</h2><p>${t("近 {n} 个月；账单、订阅、保险按收款方；名称不区分大小写", { n: months.length })}</p></div>
     <div class="panel chart-panel"><h3>${t("在哪里花得最多")}</h3>${donut}
       <div class="ch-scroll"><table class="store-table"><thead><tr><th scope="col">${t("商店 / 收款方")}</th><th scope="col">${t("次数")}</th><th scope="col">${t("合计")}</th><th scope="col">${t("平均每次")}</th><th scope="col">${t("占比")}</th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${restDetail}${DRILL_HINT()}
     </div>
-    <div class="panel chart-panel"><h3>${t("每月在各商店的花费")}</h3>${bars}</div>
+    <div class="panel chart-panel"><h3>${t("每月在各商店的花费")}</h3>${bars}${DRILL_HINT()}</div>
   </section>`;
 }
 

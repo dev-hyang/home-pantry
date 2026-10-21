@@ -11,6 +11,9 @@
     { cls: "ch-wide",   W: 640, H: 260, maxLabels: 8, PAD: { l: 56, r: 12, t: 22, b: 34 } },
     { cls: "ch-narrow", W: 360, H: 250, maxLabels: 5, PAD: { l: 54, r: 8,  t: 22, b: 30 } },
   ];
+  // 可点击：带 data-drill（查询串，由页面的全局点击处理跳到明细）；键盘 Enter / 空格同样可用
+  const hit = (q, label) => (q ? ` class="ch-hit" data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(label)}"` : "");
+  const tip = (q) => (q ? `（${t("点击查看明细")}）` : "");
   const both = (title, draw) => SIZES.map((z) =>
     `<svg class="${z.cls}" viewBox="0 0 ${z.W} ${z.H}" role="img" aria-label="${esc(title)}">${draw(z)}</svg>`).join("");
 
@@ -46,13 +49,14 @@
     </table></div></details>`;
   }
 
-  function legend(series) {
+  function legend(series, legendDrill = null) {
     if (series.length < 2) return "";
-    return `<ul class="ch-legend">${series.map((s) => `<li><i style="background:${s.color}"></i>${esc(s.name)}</li>`).join("")}</ul>`;
+    return `<ul class="ch-legend">${series.map((s, k) => { const q = legendDrill?.(k);
+      return q ? `<li class="ch-hit-row" data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(s.name)}，${esc(t("查看明细"))}"><i style="background:${s.color}"></i>${esc(s.name)}</li>` : `<li><i style="background:${s.color}"></i>${esc(s.name)}</li>`; }).join("")}</ul>`;
   }
 
   /** 柱状图；stacked=true 时各系列叠加并在顶部标总量 */
-  function bars({ labels, series, fmt = String, title, stacked = true, showTotals = true }) {
+  function bars({ labels, series, fmt = String, title, stacked = true, showTotals = true, drill = null, legendDrill = null }) {
     const n = labels.length || 1;
     const totals = labels.map((_, i) => series.reduce((a, s) => a + (s.values[i] || 0), 0));
     const max = niceMax(stacked ? Math.max(0, ...totals) : Math.max(0, ...series.flatMap((s) => s.values)));
@@ -69,7 +73,8 @@
           const h = (v / max) * ih;
           const x = stacked ? xAt(i) - bw / 2 : xAt(i) - (bw * series.length) / 2 + k * bw;
           const y = PAD.t + ih - (stacked ? base + h : h);
-          marks += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" style="fill:${s.color}" rx="2"><title>${esc(lab)} ${esc(s.name)}：${esc(fmt(v))}</title></rect>`;
+          const q = drill?.(k, i);
+          marks += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" style="fill:${s.color}" rx="2"${hit(q, `${lab} ${s.name}：${fmt(v)}，${t("查看明细")}`)}><title>${esc(lab)} ${esc(s.name)}：${esc(fmt(v))}${tip(q)}</title></rect>`;
           if (stacked) base += h;
         });
         // 手机画布上柱子较窄，总额标签只在宽屏显示
@@ -80,11 +85,11 @@
       return axes(z, max, labels, fmt, xAt) + marks;
     };
     return `<figure class="chart">${both(title, draw)}
-      ${legend(series)}${table(labels, stacked && series.length > 1 ? [...series, { name: t("合计"), values: totals }] : series, fmt)}</figure>`;
+      ${legend(series, legendDrill)}${table(labels, stacked && series.length > 1 ? [...series, { name: t("合计"), values: totals }] : series, fmt)}</figure>`;
   }
 
   /** 折线图；可叠一组柱子（bars）作为第二种度量（共用同一纵轴单位时使用） */
-  function line({ labels, series, fmt = String, title, barSeries = null }) {
+  function line({ labels, series, fmt = String, title, barSeries = null, drill = null }) {
     const n = labels.length;
     const all = [...series, ...(barSeries ? [barSeries] : [])].flatMap((s) => s.values);
     const max = niceMax(Math.max(0, ...all));
@@ -102,7 +107,11 @@
       series.forEach((s) => {
         const pts = s.values.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v || 0).toFixed(1)}`).join(" ");
         marks += `<polyline points="${pts}" style="fill:none;stroke:${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-        s.values.forEach((v, i) => { marks += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(v || 0).toFixed(1)}" r="3.5" style="fill:${s.color}"><title>${esc(labels[i])} ${esc(s.name)}：${esc(fmt(v || 0))}</title></circle>`; });
+        s.values.forEach((v, i) => {
+          const q = drill?.(0, i);
+          if (q) marks += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(v || 0).toFixed(1)}" r="14" style="fill:transparent"${hit(q, `${labels[i]} ${s.name}：${fmt(v || 0)}，${t("查看明细")}`)}><title>${esc(labels[i])} ${esc(s.name)}：${esc(fmt(v || 0))}${tip(q)}</title></circle>`;   // 手机上点的是这个大一点的透明圈
+          marks += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(v || 0).toFixed(1)}" r="3.5" style="fill:${s.color};pointer-events:none"><title>${esc(labels[i])} ${esc(s.name)}：${esc(fmt(v || 0))}</title></circle>`;
+        });
       });
       return axes(z, max, labels, fmt, xAt) + marks;
     };
@@ -122,19 +131,19 @@
         if (it.value <= 0) return;
         const frac = it.value / total;
         if (frac >= 0.9999) {
-          arcs += `<circle cx="${cx}" cy="${cy}" r="${(R + r) / 2}" style="fill:none;stroke:${it.color}" stroke-width="${R - r}"><title>${esc(it.name)}：${esc(fmt(it.value))}</title></circle>`;
+          arcs += `<circle cx="${cx}" cy="${cy}" r="${(R + r) / 2}" style="fill:none;stroke:${it.color}" stroke-width="${R - r}"${hit(it.drill, `${it.name}：${fmt(it.value)}，${t("查看明细")}`)}><title>${esc(it.name)}：${esc(fmt(it.value))}${tip(it.drill)}</title></circle>`;
           return;
         }
         const a1 = a0 + frac * Math.PI * 2, large = frac > 0.5 ? 1 : 0;
         const p = (rad, ang) => `${(cx + rad * Math.cos(ang)).toFixed(2)} ${(cy + rad * Math.sin(ang)).toFixed(2)}`;
-        arcs += `<path d="M ${p(R, a0)} A ${R} ${R} 0 ${large} 1 ${p(R, a1)} L ${p(r, a1)} A ${r} ${r} 0 ${large} 0 ${p(r, a0)} Z" style="fill:${it.color}"><title>${esc(it.name)}：${esc(fmt(it.value))}（${Math.round(frac * 100)}%）</title></path>`;
+        arcs += `<path d="M ${p(R, a0)} A ${R} ${R} 0 ${large} 1 ${p(R, a1)} L ${p(r, a1)} A ${r} ${r} 0 ${large} 0 ${p(r, a0)} Z" style="fill:${it.color}"${hit(it.drill, `${it.name}：${fmt(it.value)}（${Math.round(frac * 100)}%），${t("查看明细")}`)}><title>${esc(it.name)}：${esc(fmt(it.value))}（${Math.round(frac * 100)}%）${tip(it.drill)}</title></path>`;
         a0 = a1;
       });
     } else {
       arcs = `<circle cx="${cx}" cy="${cy}" r="${(R + r) / 2}" fill="none" class="ch-empty" stroke-width="${R - r}"/>`;
     }
     const rows = items.filter((x) => x.value > 0).sort((a, b) => b.value - a.value)
-      .map((x) => `<li><i style="background:${x.color}"></i><span>${esc(x.name)}</span><b>${esc(fmt(x.value))}</b><em>${Math.round((x.value / total) * 100)}%</em></li>`).join("");
+      .map((x) => `<li${x.drill ? ` class="ch-hit-row" data-drill="${esc(x.drill)}" role="link" tabindex="0" aria-label="${esc(x.name)}：${esc(fmt(x.value))}，${esc(t("查看明细"))}"` : ""}><i style="background:${x.color}"></i><span>${esc(x.name)}</span><b>${esc(fmt(x.value))}</b><em>${Math.round((x.value / total) * 100)}%</em>${x.drill ? '<u aria-hidden="true">›</u>' : ""}</li>`).join("");
     return `<figure class="chart donut-wrap">
       <svg viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(title)}">${arcs}
         <text x="${cx}" y="${cy - 4}" text-anchor="middle" class="ch-center">${esc(center)}</text>

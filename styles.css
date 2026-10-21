@@ -1095,3 +1095,27 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
   .subtabs { display: none; }
   .tabhub { display: block; }
 }
+
+/* 图表钻取：色块、图例、占比行、名称、数字卡片都能点（也能用键盘 Enter / 空格），点了跳到“明细”并套上对应筛选。手机上色块小，图例和占比行是 ≥ 44px 的主要点击区 */
+.ch-hit { cursor: pointer; }
+.ch-hit:hover { opacity: .85; stroke: var(--ink); stroke-width: 1.5; }
+.ch-hit:focus-visible { outline: none; stroke: var(--focus); stroke-width: 3; }
+.ch-hit-row { cursor: pointer; border-radius: 8px; }
+.ch-hit-row:hover { background: var(--surface-2); }
+.ch-hit-row:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.ch-legend .ch-hit-row { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; }
+.donut-list li.ch-hit-row { grid-template-columns: auto minmax(0, 1fr) auto 3em 1em; min-height: 44px; padding: 4px 6px; }
+.donut-list u, .rest-list u { text-decoration: none; color: var(--muted); }
+.kpi.ch-hit-row { border-radius: var(--r-md); }
+.kpi.ch-hit-row:hover { background: var(--surface-2); }
+.drill-hint { margin: 8px 0 0; font-size: 12.5px; }
+.filter-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 10px; font-size: 13px; }
+.fchip { min-height: 36px; padding: 4px 12px; font-size: 14px; }
+.fchip span { color: var(--muted); margin-left: 2px; }
+.rest-detail { margin-top: 12px; padding-top: 6px; border-top: 1px solid var(--line); }
+.rest-detail > summary { display: grid; gap: 2px; cursor: pointer; min-height: 44px; align-content: center; }
+.rest-detail > summary small { color: var(--muted); font-weight: 400; }
+.rest-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.rest-list li { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 8px; }
+.rest-list li .grow { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media print { .drill-hint, .filter-chips { display: none !important; } }
