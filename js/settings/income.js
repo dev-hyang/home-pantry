@@ -10,7 +10,7 @@ import { budgetPlan, generatePlan, incomeBanner, isHouseholdOwner, monthlyOf, my
 const nameOf = (uid) => (uid === myId() && !state.members.length ? t("我") : state.members.find((m) => m.user_id === uid)?.display_name || t("家人"));
 const periodSel = (v) => `<select name="income_period" aria-label="${t("按")}"><option value="month" ${v !== "year" ? "selected" : ""}>${t("每月")}</option><option value="year" ${v === "year" ? "selected" : ""}>${t("每年")}</option></select>`;
 const incomeForm = (id, uid, inc, label) => `<form id="${id}" class="bud-income" data-uid="${esc(uid)}">
-    <label>${label}<span class="bud-income-row"><input name="income_amount" type="number" min="0" step="1" inputmode="decimal" required value="${esc(inc?.income_amount ?? "")}" placeholder="${t("例如：8000")}" aria-label="${t("收入（税后，{cur}）", { cur: Units.region.currency })}">${periodSel(inc?.income_period)}
+    <label>${label}<span class="bud-income-row"><input name="income_amount" type="number" min="0" step="0.01" inputmode="decimal" required value="${esc(inc?.income_amount ?? "")}" placeholder="${t("例如：8000")}" aria-label="${t("收入（税后，{cur}）", { cur: Units.region.currency })}">${periodSel(inc?.income_period)}
       <button type="submit" class="btn btn-primary btn-sm">${t("保存")}</button>${inc ? `<button type="button" class="btn btn-sm btn-ghost" data-action="income-clear" data-uid="${esc(uid)}">${t("清除")}</button>` : ""}</span></label></form>`;
 
 export function incomePanel() {
@@ -18,7 +18,7 @@ export function incomePanel() {
   const cur = Units.region.currency;
   const own = `<div class="panel"><div class="kv"><div><b>${t("我的收入")}</b><div class="muted">${t("税后，{cur}。只有你自己{o}能看到这里的数字。", { cur, o: owner ? "" : t("和家主") })}</div></div></div>
     ${incomeForm("incomeForm", me, mine, t("金额"))}
-    <p class="muted" style="margin:8px 0 0;font-size:13px">${t("固定工资按月或按年填；兼职 / 副业填一个大概的月均就行。偶尔的一次性收入（例如卖二手）不用填，预算不把它算进去。")}</p></div>`;
+    <p class="muted" style="margin:8px 0 0;font-size:13px"><b>${t("填到手工资，不含已被扣掉的税和保险。")}</b> ${t("固定工资按月或按年填；兼职 / 副业填一个大概的月均就行。偶尔的一次性收入（例如卖二手）不用填，预算不把它算进去。")}</p></div>`;
   if (!owner) return `${own}<div class="panel"><p class="muted" style="margin:0">${t("预算由家主按全家收入生成，你在 账单 → 预算 里能看到各类预算和进度，但看不到别人的收入。")}</p>
     <div class="form-actions"><a class="btn btn-sm btn-ghost" href="${href("bills", "budget")}">${t("去看预算")}</a></div></div>`;
   const rows = state.members.length ? state.members : [{ user_id: me, display_name: t("我") }];
