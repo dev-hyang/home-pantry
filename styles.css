@@ -1139,3 +1139,7 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 }
 /* 手机：顶栏（站名和两个切换按钮）随页面滑走，固定的只留路径和筛选条，常驻的部分不占掉大半屏；翻回顶部随时能用 */
 @media (max-width: 440px) { .topbar { position: static; } }
+/* 录入购物：几张小票各一块；几张照片的关系选择 */
+.scan-mode { display: grid; gap: 6px; margin-top: 4px; }
+.scan-rcpt { border: 1px solid var(--line); }
+.scan-rcpt > legend { padding: 0 6px; font-size: 14px; }

@@ -4,10 +4,12 @@
 import { $, esc, num, todayISO } from "./util.js";
 import { t, lang } from "./i18n.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "./ai.js";
+import { KINDS as medKinds } from "../bills/medical.js";
 
 const MAX_IMAGES = 3;
 const H = () => window.HOUSE;
 const B = () => window.BILLS;
+const MED = () => medKinds;
 
 /** 手机上先压缩（长边 1600px、JPEG），铭牌和小票几百 KB 就够认 */
 export async function compressImage(file, max = 1600) {
@@ -109,6 +111,39 @@ const KINDS = {
       if (d.autopay === true) fill("autopay", true, t("自动扣款"));
       if (/^https?:\/\//i.test(clean(d.pay_url))) fill("pay_url", clean(d.pay_url), t("缴费链接"));
       if (/^[A-Za-z]{3}$/.test(clean(d.currency))) fill("currency", clean(d.currency).toUpperCase(), t("币种"));
+      fill("notes", clean(d.notes).slice(0, 500), t("备注"));
+    },
+  },
+
+  // 医疗 / 宠物 / 法律 / 装修账单：拍账单、保险说明（EOB）、发票；识别商家、日期、金额、保险已付、自付金额。不读诊断和治疗代码
+  medbill: {
+    label: "拍账单 / 保险说明（EOB）", hint: "医院、化验所、兽医、律所、承包商的账单或保险说明（EOB）：识别商家、患者、账单号、理赔号、日期、总额、保险已付、自付金额",
+    prompt(form) {
+      const kind = form.elements.kind?.value || "medical", K = MED()[kind] || MED().medical;
+      const subs = K.subs.map(([id, name]) => ({ id, name }));
+      return { system: SYSTEM, user: [
+        `Photos / screenshots of a ${kind === "medical" ? "MEDICAL" : kind === "pet" ? "VET / PET-CARE" : kind === "legal" ? "LEGAL / TAX-PREPARATION" : "CONTRACTOR / PROJECT"} bill, statement or invoice${K.insurance ? ", or an insurance Explanation of Benefits (EOB)" : ""}.`,
+        "provider = the business that billed (hospital, clinic, lab, vet, law firm, contractor). " + (K.insurance ? "patient = the person (or pet) the service was for. guarantor = the responsible party if shown. " : "patient = the client or project name if shown. "),
+        `subkind = best id from: ${idList(subs)}; null if unsure.`,
+        "bill_ref = statement / invoice / account number (copy exactly as printed, it is a reference not a secret). claim_ref = insurance claim number if shown.",
+        "service_date = date of service. bill_date = statement / invoice date. due_on = payment due date.",
+        "billed_amount = total charges before insurance. insurance_paid = amount the insurer paid. adjustment = contractual adjustment / discount / write-off total. patient_amount = what the patient (customer) owes now: 'patient responsibility', 'amount due' or 'balance due'.",
+        "NEVER extract diagnoses, procedure / ICD codes, medications or any clinical details. notes should stay null unless there is a payment-plan or due-date remark worth keeping (one short line).",
+        "Return exactly: " + JSON.stringify({ provider: null, patient: null, guarantor: null, subkind: null, bill_ref: null, claim_ref: null, insurer: null, service_date: null, bill_date: null, due_on: null,
+          billed_amount: null, insurance_paid: null, adjustment: null, patient_amount: null, notes: null }) ].join("\n") };
+    },
+    apply({ form, d, fill }) {
+      const kind = form.elements.kind?.value || "medical", K = MED()[kind] || MED().medical;
+      fill("provider", clean(d.provider).slice(0, 60), t(K.provider)); fill("patient", clean(d.patient).slice(0, 40), t(K.who));
+      if (K.guarantor) fill("guarantor", clean(d.guarantor).slice(0, 40), t("担保人"));
+      if (d.subkind && K.subs.some(([id]) => id === d.subkind)) fill("subkind", d.subkind, t("小类"));
+      fill("bill_ref", clean(d.bill_ref).slice(0, 60), t("账单号"));
+      if (K.insurance) { fill("claim_ref", clean(d.claim_ref).slice(0, 60), t("理赔号")); fill("insurer", clean(d.insurer).slice(0, 60), t("保险公司")); }
+      for (const [k, name, label] of [["service_date", "service_date", "就诊日期"], ["bill_date", "bill_date", "账单日期"], ["due_on", "due_on", "付款截止日"]]) if (isDate(d[k])) fill(name, d[k], t(label));
+      for (const [k, name, label] of [["billed_amount", "billed_amount", K.billed], ["insurance_paid", "insurance_paid", "保险已付"], ["adjustment", "adjustment", "折扣 / 冲减"], ["patient_amount", "patient_amount", K.owed]]) {
+        if (!K.insurance && k === "insurance_paid") continue;
+        const n = numOr(d[k]); if (n != null && n >= 0) fill(name, Math.round(n * 100) / 100, t(label), { force: num(form.elements[name]?.value) === 0 });   // 表单默认是 0 的（保险已付、折扣）也要能填
+      }
       fill("notes", clean(d.notes).slice(0, 500), t("备注"));
     },
   },

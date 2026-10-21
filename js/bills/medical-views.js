@@ -8,6 +8,7 @@ import { go, href } from "../core/router.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { MEDICAL_TABS, activeTab } from "../core/tabs.js";
 import { dq, download, lastMonths, monthLabel, toCsv } from "../stats/views.js";
+import { autofillBar } from "../core/autofill.js";
 import { KINDS, STATUS, STATUS_CLS, detailHref, enrichMedical, kindOf, mergeMedical, subIcon, subName } from "./medical.js";
 
 const cur = () => Units.region.currency;
@@ -136,6 +137,7 @@ function viewDetail(id, payId) {
   const pay = payId && b ? b.pays.find((p) => p.id === payId) : null;
   const owedNow = b ? b.owed : null;
   return `<section class="section form-page">
+    ${autofillBar("medbill", "#medBillForm")}
     <form id="medBillForm" class="panel" novalidate data-id="${d(b?.id)}">
       <input type="hidden" name="kind" value="${d(v.kind)}">
       ${isNew ? `<div class="seg-radio" role="radiogroup" aria-label="${t("账单种类")}" style="margin-bottom:10px">${Object.entries(KINDS).map(([k, X]) => `<label class="radio-pill"><input type="radio" name="kindPick" value="${k}" ${v.kind === k ? "checked" : ""}><span>${X.icon} ${t(X.name)}</span></label>`).join("")}</div>` : `<p class="muted" style="margin:0 0 8px">${K.icon} ${t(K.name)}</p>`}

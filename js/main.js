@@ -203,7 +203,7 @@ export function render(force = true) {
   document.body.classList.toggle("editing", FORM_PAGES(r));
 
   if (!force && FORM_PAGES(r) && $("#main form")) return;
-  if (!force && r.section === "scan") return;   // 录入购物：识别中 / 确认页的改动不被后台同步冲掉
+  if (!force && r.section === "scan" && $("#main .scan-page")) return;   // 录入购物：识别中 / 确认页的改动不被后台同步冲掉（页面还没画出来时，比如直接刷新在这一页，要先画）
   // 数据刷新（切回标签页、家人改动）会重画整页：先把内嵌表单里还没保存的改动记下来，画完再填回去，不让用户白填
   const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#seasonForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm"]);
   try { renderBody(r); } finally { restoreUnsaved(kept); }
