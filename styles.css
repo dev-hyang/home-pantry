@@ -1069,3 +1069,8 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .prop-filter { width: auto; max-width: 100%; min-width: 0; }
 .head-acts .prop-filter { max-width: 200px; min-height: 34px; padding: 4px 28px 4px 12px; font-size: 13px; font-weight: 700; border-radius: 999px; }
 .toolbar .prop-filter { flex: 0 1 auto; max-width: 220px; }
+
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; text-align: left; }
+.linkbtn:hover, .linkbtn:focus-visible { text-decoration: underline; text-underline-offset: 3px; color: var(--pine); }
+.spend-edit { display: block; padding: 10px 0; }
+.spend-edit .form-actions { margin-top: 4px; }

@@ -308,7 +308,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", month: "all", sort: "new", limit: 20 }); break;
+    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", month: "all", sort: "new", limit: 20 }); state.spendEdit = null; break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
     default: break;
   }
@@ -489,6 +489,16 @@ main.addEventListener("submit", async (e) => {
       try { ok = await saveMaintForm(f); } finally { btn.disabled = false; }
       if (!ok) return;   // 校验没过（如车辆没选保养项目）：保留已填内容
       await refresh(); return render(true);
+    }
+    if (f.id === "spendEditForm") {   // 花费记录就地编辑
+      const e2 = f.elements, name = e2.name.value.trim(), amount = e2.amount.value === "" ? null : Math.round(Math.max(0, num(e2.amount.value)) * 100) / 100;
+      if (!name) return toast(t("请填写名称"));
+      const store = cleanStore(e2.store.value), day = e2.date.value, patch = { name, category: e2.category.value, amount, store };
+      if (day) patch.purchased_at = new Date(`${day}T12:00:00`).toISOString();
+      await Store.updatePurchase(f.dataset.id, patch);
+      if (store) rememberStore(store);
+      state.purchases = state.purchases.map((x) => (x.id === f.dataset.id ? { ...x, ...patch } : x));   // 先改内存里的，页面立刻是新的
+      state.spendEdit = null; toast(t("已保存修改")); render(); return refresh();
     }
     if (f.id === "billForm") return saveBillForm(f);
     if (f.id === "billPayForm") {
@@ -793,6 +803,8 @@ main.addEventListener("click", async (e) => {
         finally { el.disabled = false; }
         return;
       }
+      case "spend-edit": state.spendEdit = id; return renderSpendList();
+      case "spend-edit-cancel": state.spendEdit = null; return renderSpendList();
       case "pay-more": state.payFilter.limit += 50; return renderPayList();
       case "deal-filter": state.dealFilter = el.dataset.val; return render();
       case "tasks-undone": state.tasksOnlyUndone = !state.tasksOnlyUndone; return render();

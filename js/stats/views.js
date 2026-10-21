@@ -4,6 +4,7 @@ import { Store } from "../core/store.js";
 import { $, DAY, catOf, du, esc, fmt, money, num, showQty, toast } from "../core/util.js";
 import { compare, lang, locale, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
+import { href } from "../core/router.js";
 
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
@@ -219,11 +220,28 @@ export function filteredSpend() {
 function spendRow(p) {
   const d = new Date(p.purchased_at), sameYear = d.getFullYear() === new Date().getFullYear();
   const cat = ALL_CATS().find((c) => c.id === p.category) || OTHER_CAT;
+  if (state.spendEdit === p.id) return spendEditRow(p);
+  // 账单缴费记的花费：名称链接到那条缴费记录的编辑页（改那里，花费会同步）；其余的在这一行里就地编辑
+  const pay = state.billPayments.find((x) => x.purchase_id === p.id), bill = pay && state.bills.find((x) => x.id === pay.bill_id);
+  const title = bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${pay.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</a>`
+    : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>`;
   return `<li>
     <span class="badge" style="background:var(--surface-2)">${esc(d.toLocaleDateString(locale(), sameYear ? { month: "numeric", day: "numeric" } : { year: "2-digit", month: "numeric", day: "numeric" }))}</span>
-    <div class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${cat.icon || ""} ${t(cat.name)}`.trim())}${storeOf(p) ? `，${esc(storeOf(p))}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
+    <div class="grow"><span class="name">${title}</span><small>${esc(`${cat.icon || ""} ${t(cat.name)}`.trim())}${storeOf(p) ? `，${esc(storeOf(p))}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
     <b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>
     <button type="button" class="btn btn-sm btn-ghost" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button></li>`;
+}
+/** 就地编辑：名称、分类、金额、商店、日期（数量和单位不动） */
+function spendEditRow(p) {
+  const day = String(p.purchased_at).slice(0, 10), opts = categoryOptions(p.category, { withOther: true });   // 当前分类已在选项里时会自动选中
+  const hasCat = opts.includes(`value="${p.category}"`);
+  return `<li class="spend-edit"><form id="spendEditForm" data-id="${p.id}" class="form-grid" novalidate>
+    <label class="span-2">${t("名称")}<input name="name" required maxlength="60" value="${esc(p.name)}"></label>
+    <label>${t("分类")}<select name="category">${hasCat ? "" : `<option value="${esc(p.category)}" selected>${esc(t((ALL_CATS().find((c) => c.id === p.category) || OTHER_CAT).name))}</option>`}${opts}</select></label>
+    <label>${t("金额（{cur}）", { cur: p.currency || Units.region.currency })}<input name="amount" type="number" min="0" step="0.01" inputmode="decimal" value="${p.amount != null ? num(p.amount).toFixed(2) : ""}"></label>
+    <label>${t("商店 / 收款方")}<input name="store" maxlength="40" list="storeList" value="${esc(p.store || "")}"></label>
+    <label>${t("日期")}<input name="date" type="date" max="${new Date().toISOString().slice(0, 10)}" value="${esc(day)}"></label>
+    <div class="form-actions span-2"><button type="submit" class="btn btn-primary btn-sm">${t("保存修改")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-edit-cancel">${t("取消")}</button></div></form></li>`;
 }
 /** 列表本体 + 合计；搜索 / 筛选变化只重画这一块（输入框不丢焦点） */
 function spendListHtml() {
@@ -283,24 +301,12 @@ export const lastStore = () => { try { return localStorage.getItem("hmh-last-sto
 export const rememberStore = (v) => { try { localStorage.setItem("hmh-last-store", v); } catch { /* 忽略 */ } };
 // 商店名大小写、空格不同视为同一家（Costco 与 costco）
 export const storeKey = (v) => (v || "").trim().toLowerCase();
-/* 账单缴费记的花费，商店 / 收款方按这条账单“现在”的收款方算（缴费时的收款方只是当时的快照，改了收款方后旧记录会跟着变，同一类缴费不会分到不同商店） */
-let billMap = { bp: null, b: null, byPurchase: new Map(), byName: new Map() };
-function billLookup() {
-  if (billMap.bp !== state.billPayments || billMap.b !== state.bills) {
-    const byId = new Map(state.bills.map((b) => [b.id, b]));
-    billMap = { bp: state.billPayments, b: state.bills, byName: new Map(state.bills.map((b) => [b.name, b])),
-      byPurchase: new Map(state.billPayments.filter((p) => p.purchase_id && byId.has(p.bill_id)).map((p) => [p.purchase_id, byId.get(p.bill_id)])) };
-  }
-  return billMap;
-}
-/** 商店名；账单 / 订阅 / 保险这类没有商店的，用账单现在的收款方（没填就用账单名），统计里就不会都归到“未填写商店” */
+/** 商店名：按记下来的（账单缴费时就是当时的收款方，中途换了收款方，历史不改写）；没记的账单 / 订阅 / 保险用账单的收款方（没填就用账单名），统计里就不会都归到“未填写商店” */
 export function storeOf(p) {
-  if (String(p.category || "").startsWith("bill_")) {
-    const m = billLookup(), b = m.byPurchase.get(p.id) || m.byName.get(p.name);   // 先按缴费记录关联的账单找，找不到再按名称
-    if (b) return (b.payee || "").trim() || String(b.name || "").trim();
-  }
   const s = (p.store || "").trim(); if (s) return s;
-  return String(p.category || "").startsWith("bill_") ? String(p.name || "").trim() : "";
+  if (!String(p.category || "").startsWith("bill_")) return "";
+  const b = state.bills.find((x) => x.name === p.name);
+  return (b?.payee || "").trim() || String(p.name || "").trim();
 }
 export function knownStores() {
   const m = new Map();
