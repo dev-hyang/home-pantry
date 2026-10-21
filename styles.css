@@ -1056,3 +1056,6 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .inc-member h4 { margin: 0 0 8px; font-size: 14px; }
 .inc-total { margin: 12px 0 0; padding-top: 10px; border-top: 2px solid var(--line); }
 @media (max-width: 640px) { .inc-label { flex-basis: 100%; } .inc-del { margin-left: 0; } }
+
+.esc-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.esc-row + .esc-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
