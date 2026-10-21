@@ -444,6 +444,7 @@ function billSummary(b) {
 
 function paySection(b, focus, edit = null) {
   const v = edit || {};   // 编辑某条记录时表单带入它的值
+  const linked = edit?.purchase_id ? state.purchases.find((x) => x.id === edit.purchase_id) : null;   // 这条缴费记的花费：收款方存在它上面
   const rows = b.pays.map((p) => `<li class="pay-row ${edit?.id === p.id ? "is-editing" : ""}">
       <span class="badge ${p.status === "skipped" ? "" : "b-ok"}" style="${p.status === "skipped" ? "background:var(--surface-2)" : ""}">${t(B().PAYMENT_STATUS[p.status] || p.status)}</span>
       <div class="grow"><a class="link-name" href="${href("bill", b.id)}?sec=pay&edit=${p.id}" title="${t("点一下编辑")}">${esc(fmtDate(p.paid_on))}</a>
@@ -461,6 +462,7 @@ function paySection(b, focus, edit = null) {
         <label>${t("金额（{cur}）", { cur: b.currency || Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? (edit.amount != null ? num(edit.amount).toFixed(2) : "") : b.est != null ? num(b.est).toFixed(2) : ""}"></label>
         <label>${t("状态")}<select name="status"><option value="paid" ${edit?.status === "paid" ? "selected" : ""}>${t("已缴费")}</option><option value="verified" ${edit ? (edit.status === "verified" ? "selected" : "") : b.autopay ? "selected" : ""}>${t("已核对（自动扣款）")}</option><option value="skipped" ${edit?.status === "skipped" ? "selected" : ""}>${t("跳过这期")}</option></select></label>
         <label>${t("方式")}<input name="method" maxlength="40" placeholder="${t("例如：网银 / 支票 #1023 / 自动扣款")}" value="${edit ? esc(edit.method || "") : b.autopay ? esc(b.autopay_method || t("自动扣款")) : ""}"></label>
+        <label>${t("收款方")}<input name="store" maxlength="40" value="${esc(edit ? (linked?.store || b.payee || "") : b.payee || "")}" placeholder="${esc(b.payee || b.name)}"><small>${edit ? t("只改这一条；中途换了收款方，旧记录保留当时的名字。") : t("没填就用账单的收款方。")}</small></label>
         <label>${t("确认号")}<input name="confirmation_ref" maxlength="60" value="${esc(edit?.confirmation_ref || "")}"></label>
         <label>${t("滞纳金")}<input name="late_fee" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? num(edit.late_fee).toFixed(2) : "0"}"></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(edit?.notes || "")}"></label>
@@ -514,12 +516,12 @@ export async function saveBillForm(f, { silent = false } = {}) {
 }
 
 /** 记一笔缴费 / 核对 / 跳过：写 purchases（有金额且为应付）、写记录、把账单推到下一期 */
-export async function recordPayment(bill, { paid_on, due_on, amount, status, method, confirmation_ref, late_fee, notes }) {
+export async function recordPayment(bill, { paid_on, due_on, amount, status, method, confirmation_ref, late_fee, notes, store }) {
   const currency = bill.currency || Units.region.currency;
   let purchase_id = null;
   const total = status === "skipped" ? 0 : num(amount) + num(late_fee);
   if (total > 0 && bill.direction !== "receivable") {
-    purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: bill.payee || bill.name || null,
+    purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: (store || "").trim().slice(0, 40) || bill.payee || bill.name || null,
       amount: Math.round(total * 100) / 100, currency, purchased_at: new Date(`${paid_on}T12:00:00`).toISOString() });
   }
   await Store.addBillPayment({ bill_id: bill.id, due_on: due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),
@@ -540,10 +542,11 @@ async function updatePayment(bill, fe) {
   const r2 = (v) => Math.round(num(v) * 100) / 100, status = fe.status.value, paid_on = fe.paid_on.value || old.paid_on || todayISO();
   const amount = status === "skipped" || fe.amount.value === "" ? null : r2(fe.amount.value), late = r2(fe.late_fee.value), total = status === "skipped" ? 0 : r2((amount || 0) + late);
   const currency = old.currency || bill.currency || Units.region.currency, at = new Date(`${paid_on}T12:00:00`).toISOString();
+  const payee = (fe.store?.value || "").trim().slice(0, 40) || bill.payee || bill.name || null;
   let purchase_id = old.purchase_id || null;
-  if (purchase_id && total > 0) await Store.updatePurchase(purchase_id, { amount: total, purchased_at: at });
+  if (purchase_id && total > 0) await Store.updatePurchase(purchase_id, { amount: total, purchased_at: at, store: payee });
   else if (purchase_id) { await Store.deletePurchase(purchase_id); purchase_id = null; }
-  else if (total > 0 && bill.direction !== "receivable") purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: bill.payee || bill.name || null, amount: total, currency, purchased_at: at });
+  else if (total > 0 && bill.direction !== "receivable") purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: payee, amount: total, currency, purchased_at: at });
   await Store.updateBillPayment(old.id, { paid_on, due_on: fe.due_on.value || null, amount, currency, method: fe.method.value.trim() || null, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, status, notes: fe.notes.value.trim() || null, purchase_id });
   toast(t("已保存修改"));
 }
@@ -553,7 +556,7 @@ export async function saveBillPayForm(f) {
   if (!bill) return toast(t("账单不存在"));
   if (fe.pay_id?.value) return updatePayment(bill, fe);
   await recordPayment(bill, { paid_on: fe.paid_on.value || todayISO(), due_on: fe.due_on.value || null, amount: fe.amount.value === "" ? null : fe.amount.value, status: fe.status.value,
-    method: fe.method.value.trim(), confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, notes: fe.notes.value.trim() });
+    method: fe.method.value.trim(), confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, notes: fe.notes.value.trim(), store: fe.store?.value });
   toast(fe.status.value === "skipped" ? t("已跳过这期") : t("已记录，下次到期 {d}", { d: fmtDate(advanceDue(bill, fe.due_on.value || bill.next_due_on || fe.paid_on.value) || "") || t("无") }));
 }
 

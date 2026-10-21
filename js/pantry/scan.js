@@ -59,11 +59,13 @@ function normalize(j) {
     const valid = window.CATEGORIES.some((c) => c.id === l.category && c.space !== "gear");
     const amount = l.amount == null || l.amount === "" ? null : num(l.amount, NaN);
     return { include: true, raw: String(l.raw || ""), name: String(l.name).trim().slice(0, 60), qty: num(l.qty, 1) > 0 ? num(l.qty, 1) : 1, unit: String(l.unit || m?.unit || t("个")).trim().slice(0, 10),
-      amount: Number.isFinite(amount) ? Math.round(amount * 100) / 100 : null, match: m?.id || "", category: valid ? l.category : m?.category || "other" };
+      amount: Number.isFinite(amount) ? Math.round(amount * 100) / 100 : null, def: m?.id || "", match: m?.id || "", category: valid ? l.category : m?.category || "other" };
   });
+  const past = (d) => d < todayISO();
   if (!rows.length) throw new Error(t("没有读到商品。小票拍清楚些（整张、不反光），或把订单文字粘贴进来。"));
   const found = /^\d{4}-\d{2}-\d{2}$/.test(j.date || "") && j.date <= todayISO();
   const date = sc.date || (found ? j.date : todayISO()), dateSrc = sc.date ? "user" : found ? "receipt" : "today";   // 你填的 > 小票 / 文字里读到的 > 今天
+  if (past(date)) for (const r of rows) r.match = "skip";   // 补记以前的购物：东西多半已经用掉，默认只记花费、不加库存（要入库的行再改）
   const total = j.total == null ? null : num(j.total, NaN);
   return { store: String(j.store || "").trim().slice(0, 40), date, dateSrc, total: Number.isFinite(total) ? total : null, rows };
 }
@@ -118,6 +120,7 @@ function reviewHtml() {
         <label>${t("购买日期")}<input name="date" type="date" max="${todayISO()}" value="${esc(r.date)}"><small class="${r.dateSrc === "today" ? "form-error" : "muted"}">${r.dateSrc === "user" ? t("你填的日期") : r.dateSrc === "receipt" ? t("取自小票 / 文字，不对可以改") : t("没有读到日期，先用今天；补记的话请改成实际购买日")}</small></label>
       </div>
       ${storeDatalist()}
+      <p class="muted" id="scanPastNote" ${r.date < todayISO() ? "" : "hidden"} style="margin:8px 0 0;font-size:13px">📌 ${t("补记以前的购物：默认只记花费，不入库（东西多半已经用掉）。要加库存的行，把“放进库存”改成对应物品。")}</p>
       <ul class="scan-rows">${r.rows.map((x, i) => `<li class="scan-row ${x.match ? "" : "is-new"}" data-i="${i}">
         <label class="check-inline scan-inc"><input type="checkbox" name="inc" ${x.include ? "checked" : ""}><span>${x.raw ? `<small class="muted">${esc(x.raw)}</small>` : t("包含这一行")}</span></label>
         <div class="form-grid">
@@ -125,7 +128,7 @@ function reviewHtml() {
           <label>${t("数量")}<input name="qty" type="number" min="0" step="any" inputmode="decimal" value="${esc(fmt(x.qty))}"></label>
           <label>${t("单位")}<input name="unit" list="unitList" maxlength="10" value="${esc(x.unit)}"></label>
           <label>${t("金额")}（${esc(cur)}）<input name="amount" type="number" min="0" step="0.01" inputmode="decimal" value="${x.amount ?? ""}"></label>
-          <label class="span-2">${t("放进库存")}<select name="target">${targetOptions(x)}</select></label>
+          <label class="span-2">${t("放进库存")}<select name="target" data-def="${esc(x.def || "")}">${targetOptions(x)}</select></label>
           <label class="span-2 scan-cat">${t("新物品的分类")}<select name="cat">${categoryOptions(x.category)}</select></label>
         </div></li>`).join("")}</ul>
       <p class="muted" id="scanSum" style="margin:8px 0 0;font-size:13px"></p>
@@ -153,7 +156,15 @@ document.addEventListener("change", async (e) => {
     repaint(); return;
   }
   const row = e.target.closest?.(".scan-row");
-  if (row && e.target.name === "target") row.classList.toggle("is-new", e.target.value === "__new");
+  if (row && e.target.name === "target") { row.classList.toggle("is-new", e.target.value === "__new"); if (e.isTrusted) e.target.dataset.touched = "1"; }
+  if (e.target.name === "date" && e.target.closest?.("#scanForm")) {   // 改了购买日期：没手动选过的行，过去的日期 → 只记花费，今天 → 回到原来的默认
+    const past = !!e.target.value && e.target.value < todayISO();
+    document.querySelectorAll("#scanForm .scan-row").forEach((r) => {
+      const sel = r.querySelector('[name="target"]'); if (sel.dataset.touched === "1") return;
+      sel.value = past ? "__skip" : (sel.dataset.def || "__new"); r.classList.toggle("is-new", sel.value === "__new");
+    });
+    const note = document.getElementById("scanPastNote"); if (note) note.hidden = !past;
+  }
   if (e.target.closest?.("#scanForm")) updateSum();
 });
 document.addEventListener("input", (e) => {
