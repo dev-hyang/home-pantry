@@ -283,12 +283,24 @@ export const lastStore = () => { try { return localStorage.getItem("hmh-last-sto
 export const rememberStore = (v) => { try { localStorage.setItem("hmh-last-store", v); } catch { /* 忽略 */ } };
 // 商店名大小写、空格不同视为同一家（Costco 与 costco）
 export const storeKey = (v) => (v || "").trim().toLowerCase();
-/** 商店名；账单 / 订阅 / 保险这类没有商店的，用收款方（账单里的收款方，没填就用账单名），统计里就不会都归到“未填写商店” */
+/* 账单缴费记的花费，商店 / 收款方按这条账单“现在”的收款方算（缴费时的收款方只是当时的快照，改了收款方后旧记录会跟着变，同一类缴费不会分到不同商店） */
+let billMap = { bp: null, b: null, byPurchase: new Map(), byName: new Map() };
+function billLookup() {
+  if (billMap.bp !== state.billPayments || billMap.b !== state.bills) {
+    const byId = new Map(state.bills.map((b) => [b.id, b]));
+    billMap = { bp: state.billPayments, b: state.bills, byName: new Map(state.bills.map((b) => [b.name, b])),
+      byPurchase: new Map(state.billPayments.filter((p) => p.purchase_id && byId.has(p.bill_id)).map((p) => [p.purchase_id, byId.get(p.bill_id)])) };
+  }
+  return billMap;
+}
+/** 商店名；账单 / 订阅 / 保险这类没有商店的，用账单现在的收款方（没填就用账单名），统计里就不会都归到“未填写商店” */
 export function storeOf(p) {
+  if (String(p.category || "").startsWith("bill_")) {
+    const m = billLookup(), b = m.byPurchase.get(p.id) || m.byName.get(p.name);   // 先按缴费记录关联的账单找，找不到再按名称
+    if (b) return (b.payee || "").trim() || String(b.name || "").trim();
+  }
   const s = (p.store || "").trim(); if (s) return s;
-  if (!String(p.category || "").startsWith("bill_")) return "";
-  const b = state.bills.find((x) => x.name === p.name);
-  return (b?.payee || "").trim() || String(p.name || "").trim();
+  return String(p.category || "").startsWith("bill_") ? String(p.name || "").trim() : "";
 }
 export function knownStores() {
   const m = new Map();
