@@ -4,7 +4,7 @@ import { $, esc, fmtDate, fmtShort, money, num, todayISO } from "../core/util.js
 import { t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { budgetPlan, monthProgress } from "../bills/budget.js";
-import { ALL_CATS, STAT_CATS, filteredSpend, monthKey, monthLabel, spendData } from "../stats/views.js";
+import { ALL_CATS, STAT_CATS, filteredSpend, monthKey, monthLabel, spendData, storeOf } from "../stats/views.js";
 import { Store } from "../core/store.js";
 import { alertText, billAlerts, billCat, propertyName, subscriptionSummary, upcoming } from "../bills/logic.js";
 
@@ -66,7 +66,7 @@ function spendSheet({ months: n = 6, useFilter = false } = {}) {
     <h2>${t("按月")}</h2><table><thead><tr><th>${t("月份")}</th><th>${t("笔数")}</th><th>${t("合计")}</th></tr></thead><tbody>${sd.months.map((m, i) => `<tr><td>${esc(monthLabel(m))}</td><td>${sd.counts[m]}</td><td>${money(sd.totals[i])}</td></tr>`).join("")}</tbody></table>
     <h2>${t("按分类")}</h2><table><thead><tr><th>${t("分类")}</th><th>${t("占比")}</th><th>${t("合计")}</th></tr></thead><tbody>${byCat.map((x) => `<tr><td>${x.c.icon} ${esc(t(x.c.name))}</td><td>${total ? Math.round((x.v / total) * 100) : 0}%</td><td>${money(x.v)}</td></tr>`).join("")}</tbody></table>
     <h2>${t("花费明细")}（${recs.length}${all.length > recs.length && !useFilter ? ` / ${all.length}` : ""}）</h2>
-    <table><thead><tr><th>${t("日期")}</th><th>${t("名称")}</th><th>${t("分类")}</th><th>${t("商店")}</th><th>${t("金额")}</th></tr></thead><tbody>${recs.map((p) => `<tr><td>${esc(fmtDate(String(p.purchased_at).slice(0, 10)))}</td><td>${esc(p.name)}</td><td>${esc(t((ALL_CATS().find((c) => c.id === p.category) || { name: "其他" }).name))}</td><td>${esc(p.store || "")}</td><td>${p.amount != null ? mny(p.amount, p.currency) : ""}</td></tr>`).join("")}</tbody></table>`;
+    <table><thead><tr><th>${t("日期")}</th><th>${t("名称")}</th><th>${t("分类")}</th><th>${t("商店 / 收款方")}</th><th>${t("金额")}</th></tr></thead><tbody>${recs.map((p) => `<tr><td>${esc(fmtDate(String(p.purchased_at).slice(0, 10)))}</td><td>${esc(p.name)}</td><td>${esc(t((ALL_CATS().find((c) => c.id === p.category) || { name: "其他" }).name))}</td><td>${esc(storeOf(p))}</td><td>${p.amount != null ? mny(p.amount, p.currency) : ""}</td></tr>`).join("")}</tbody></table>`;
 }
 
 function budgetSheet() {

@@ -506,7 +506,7 @@ export async function recordPayment(bill, { paid_on, due_on, amount, status, met
   let purchase_id = null;
   const total = status === "skipped" ? 0 : num(amount) + num(late_fee);
   if (total > 0 && bill.direction !== "receivable") {
-    purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: bill.payee || null,
+    purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: bill.payee || bill.name || null,
       amount: Math.round(total * 100) / 100, currency, purchased_at: new Date(`${paid_on}T12:00:00`).toISOString() });
   }
   await Store.addBillPayment({ bill_id: bill.id, due_on: due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),

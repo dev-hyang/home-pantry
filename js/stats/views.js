@@ -208,8 +208,8 @@ export function filteredSpend() {
   let list = state.purchases.filter((p) => {
     if (f.cat !== "all" && statCat(p.category) !== f.cat) return false;
     if (f.month !== "all" && monthKey(p.purchased_at) !== f.month) return false;
-    if (f.store !== "all" && (f.store === "__none__" ? !!storeKey(p.store) : storeKey(p.store) !== f.store)) return false;
-    return !q || `${p.name}${p.store || ""}`.toLowerCase().includes(q);
+    if (f.store !== "all" && (f.store === "__none__" ? !!storeOf(p) : storeKey(storeOf(p)) !== f.store)) return false;
+    return !q || `${p.name}${storeOf(p)}`.toLowerCase().includes(q);
   });
   const date = (p) => new Date(p.purchased_at).getTime();
   const sorts = { new: (a, b) => date(b) - date(a), old: (a, b) => date(a) - date(b), high: (a, b) => amountOf(b) - amountOf(a) || date(b) - date(a), low: (a, b) => amountOf(a) - amountOf(b) || date(b) - date(a), name: (a, b) => compare(a.name, b.name) || date(b) - date(a) };
@@ -221,7 +221,7 @@ function spendRow(p) {
   const cat = ALL_CATS().find((c) => c.id === p.category) || OTHER_CAT;
   return `<li>
     <span class="badge" style="background:var(--surface-2)">${esc(d.toLocaleDateString(locale(), sameYear ? { month: "numeric", day: "numeric" } : { year: "2-digit", month: "numeric", day: "numeric" }))}</span>
-    <div class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${cat.icon || ""} ${t(cat.name)}`.trim())}${p.store ? `，${esc(p.store)}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
+    <div class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${cat.icon || ""} ${t(cat.name)}`.trim())}${storeOf(p) ? `，${esc(storeOf(p))}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
     <b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>
     <button type="button" class="btn btn-sm btn-ghost" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button></li>`;
 }
@@ -257,7 +257,7 @@ function spendRecordsHtml() {
   const f = state.spendFilter, ps = state.purchases;
   if (!ps.length) return `<div class="section-head"><h2>${t("花费记录")}</h2></div><div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("采购清单点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;
   const months = [...new Set(ps.map((p) => monthKey(p.purchased_at)))].sort().reverse();
-  const stores = knownStores(), hasNone = ps.some((p) => !storeKey(p.store));
+  const stores = knownStores(), hasNone = ps.some((p) => !storeOf(p));
   const cats = STAT_CATS().filter((c) => ps.some((p) => statCat(p.category) === c.id));
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;
   const mo = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
@@ -266,7 +266,7 @@ function spendRecordsHtml() {
       <div class="toolbar">
         <input type="search" id="spendSearch" placeholder="${t("搜索名称或商店")}" value="${esc(f.q)}" aria-label="${t("搜索花费记录")}">
         <select id="spendCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c.id, `${c.icon} ${t(c.name)}`, f.cat)).join("")}</select>
-        <select id="spendStore" aria-label="${t("按商店筛选")}">${opt("all", t("全部商店"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${hasNone ? opt("__none__", t("未填写商店"), f.store) : ""}</select>
+        <select id="spendStore" aria-label="${t("按商店筛选")}">${opt("all", t("全部商店 / 收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${hasNone ? opt("__none__", t("未填写商店"), f.store) : ""}</select>
         <select id="spendMonth" aria-label="${t("按月份筛选")}">${opt("all", t("全部月份"), f.month)}${months.map((m) => opt(m, mo(m), f.month)).join("")}</select>
         <select id="spendSort" aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
       </div>
@@ -283,9 +283,16 @@ export const lastStore = () => { try { return localStorage.getItem("hmh-last-sto
 export const rememberStore = (v) => { try { localStorage.setItem("hmh-last-store", v); } catch { /* 忽略 */ } };
 // 商店名大小写、空格不同视为同一家（Costco 与 costco）
 export const storeKey = (v) => (v || "").trim().toLowerCase();
+/** 商店名；账单 / 订阅 / 保险这类没有商店的，用收款方（账单里的收款方，没填就用账单名），统计里就不会都归到“未填写商店” */
+export function storeOf(p) {
+  const s = (p.store || "").trim(); if (s) return s;
+  if (!String(p.category || "").startsWith("bill_")) return "";
+  const b = state.bills.find((x) => x.name === p.name);
+  return (b?.payee || "").trim() || String(p.name || "").trim();
+}
 export function knownStores() {
   const m = new Map();
-  for (const p of state.purchases) if (p.store && !m.has(storeKey(p.store))) m.set(storeKey(p.store), p.store.trim());
+  for (const p of state.purchases) { const n = storeOf(p); if (n && !m.has(storeKey(n))) m.set(storeKey(n), n); }
   return [...m.values()].sort(compare);
 }
 export const storeDatalist = () => `<datalist id="storeList">${knownStores().map((x) => `<option value="${esc(x)}">`).join("")}</datalist>`;
@@ -297,8 +304,8 @@ export function viewStoreStats(months) {
     if (p.amount == null || (p.currency && p.currency !== cur)) continue;
     const m = monthKey(p.purchased_at);
     if (!inRange.has(m)) continue;
-    const k = storeKey(p.store) || "__none__";
-    const a = agg.get(k) || { name: p.store ? p.store.trim() : t(STORE_NONE.name), total: 0, count: 0, byMonth: {} };
+    const k = storeKey(storeOf(p)) || "__none__";
+    const a = agg.get(k) || { name: storeOf(p) || t(STORE_NONE.name), total: 0, count: 0, byMonth: {} };
     a.total += num(p.amount); a.count++; a.byMonth[m] = (a.byMonth[m] || 0) + num(p.amount);
     agg.set(k, a);
   }
@@ -325,9 +332,9 @@ export function viewStoreStats(months) {
   const rows = groups.map((g) => `<tr><th scope="row"><i class="sw" style="background:${g.color}"></i>${esc(g.name)}</th>
     <td>${g.count}</td><td>${esc(money(g.total))}</td><td>${esc(money(g.total / g.count))}</td><td>${Math.round((g.total / total) * 100)}%</td></tr>`).join("");
   return `<section class="section">
-    <div class="section-head"><h2>${t("按商店统计")}</h2><p>${t("近 {n} 个月；商店名不区分大小写", { n: months.length })}</p></div>
+    <div class="section-head"><h2>${t("按商店 / 收款方统计")}</h2><p>${t("近 {n} 个月；账单、订阅、保险按收款方；名称不区分大小写", { n: months.length })}</p></div>
     <div class="panel chart-panel"><h3>${t("在哪里花得最多")}</h3>${donut}
-      <div class="ch-scroll"><table class="store-table"><thead><tr><th scope="col">${t("商店")}</th><th scope="col">${t("次数")}</th><th scope="col">${t("合计")}</th><th scope="col">${t("平均每次")}</th><th scope="col">${t("占比")}</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="ch-scroll"><table class="store-table"><thead><tr><th scope="col">${t("商店 / 收款方")}</th><th scope="col">${t("次数")}</th><th scope="col">${t("合计")}</th><th scope="col">${t("平均每次")}</th><th scope="col">${t("占比")}</th></tr></thead><tbody>${rows}</tbody></table></div>
     </div>
     <div class="panel chart-panel"><h3>${t("每月在各商店的花费")}</h3>${bars}</div>
   </section>`;
@@ -377,9 +384,9 @@ export async function exportAnnual(kind) {
   const fileBase = `${hh.replace(/[\\/:*?"<>|（）()\s]/g, "")}-${year}`;
 
   if (kind === "detail") {
-    const rows = [[t("日期"), t("物品"), t("分类"), t("商店"), t("数量"), t("单位"), t("金额"), t("货币"), t("关联库存")]];
+    const rows = [[t("日期"), t("物品"), t("分类"), t("商店 / 收款方"), t("数量"), t("单位"), t("金额"), t("货币"), t("关联库存")]];
     for (const p of list) {
-      rows.push([ymd(p.purchased_at), p.name, catName(p.category), p.store || "", p.quantity == null ? "" : num(p.quantity), p.unit ? t(p.unit) : "",
+      rows.push([ymd(p.purchased_at), p.name, catName(p.category), storeOf(p), p.quantity == null ? "" : num(p.quantity), p.unit ? t(p.unit) : "",
         p.amount == null ? "" : num(p.amount), p.currency || "", p.item_id ? t("是") : t("否")]);
     }
     download(`${fileBase}-${t("采购明细")}.csv`, toCsv(rows));
@@ -398,8 +405,8 @@ export async function exportAnnual(kind) {
     const m = new Date(p.purchased_at).getMonth();
     const c = statCat(p.category);
     grid[m][c] += num(p.amount);
-    const k = storeKey(p.store) || "__none__";
-    const st = stores.get(k) || { name: p.store ? p.store.trim() : t(STORE_NONE.name), count: 0, total: 0 };
+    const k = storeKey(storeOf(p)) || "__none__";
+    const st = stores.get(k) || { name: storeOf(p) || t(STORE_NONE.name), count: 0, total: 0 };
     st.count++; st.total += num(p.amount); stores.set(k, st);
   }
   const used = cats.filter((c) => grid.some((g) => g[c.id] > 0));
