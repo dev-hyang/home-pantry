@@ -6,7 +6,9 @@
  * 窄屏（≤ 440px，iPhone Pro Max 宽度）：不画标签条；第一个标签的内容下面放“入口行”，点进去是子页，靠面包屑 / 返回手势回上一层。 */
 export const SPEND_TABS = [["overview", "概览", "📊"], ["category", "分类", "🧩", "分类占比和单个分类的月度趋势"], ["stores", "商店", "🏪", "各商店、收款方花了多少"], ["records", "明细", "🧾", "查看、搜索、补记花费"], ["export", "导出打印", "🖨️", "年度 CSV 和打印"]];
 export const BUDGET_TABS = [["month", "本月", "📆"], ["bills", "账单", "🧾", "固定账单、订阅年成本、现金流"], ["plan", "规划", "🧮", "各类月预算、补货、大件基金、大额购物、应急金"], ["trend", "趋势", "📈", "预算对比实际、年度预算"], ["goals", "目标", "🎯", "储蓄目标和家庭分摊"]];
-const DEFS = { spend: SPEND_TABS, budget: BUDGET_TABS };
+export const MEDICAL_TABS = [["overview", "概览", "🏥"], ["list", "账单", "🧾", "全部医疗账单：按患者、医院、状态筛选"], ["report", "年度报表", "📊", "按患者和医院汇总，HSA / 报税导出"]];
+const DEFS = { spend: SPEND_TABS, budget: BUDGET_TABS, medical: MEDICAL_TABS };
+export const firstTab = (r) => (DEFS[r?.sub] || [])[0]?.[0] || null;
 
 /** 当前路由的页内标签 id（不认识的回到第一个）；不是花费 / 预算页返回 null */
 export function activeTab(r) {

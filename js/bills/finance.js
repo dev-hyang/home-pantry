@@ -21,7 +21,7 @@ const barHtml = (v, total, cls = "") => `<div class="bud-bar ${cls}"><i style="w
 /* ───────────── 月度复盘（上个月） ───────────── */
 registerSection("month", 0, ({ plan }) => {
   const [prev, last] = lastMonths(3).slice(0, 2), abm = actualByMonth(), a = abm[last] || {}, b = abm[prev] || {};
-  const spent = (m) => GROUPS.reduce((s, g) => s + (m[g.id] || 0), 0);
+  const spent = (m) => plan.groups.reduce((s, g) => s + (m[g.id] || 0), 0);
   if (!Object.keys(a).length) return "";
   const varSpent = spent(a), prevVar = spent(b), bills = a.bills || 0, leftover = plan.income != null ? plan.income - Math.max(bills, plan.billsM) - varSpent : null;   // 账单还没缴的也先扣掉，免得结余看着偏大
   const over = plan.groups.filter((g) => g.budget > 0 && (a[g.id] || 0) > g.budget).sort((x, y) => (a[y.id] - y.budget) - (a[x.id] - x.budget)).slice(0, 3);

@@ -7,16 +7,18 @@ import { memberName } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { withProperty } from "../core/alerts.js";
 import { tabBar, tabHub } from "../core/hub.js";
+import { medicalVirtuals } from "../bills/medical.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
 
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
 const BILL_CATS = () => window.BILLS.CATEGORIES.map((c) => ({ id: `bill_${c.id}`, name: c.name, icon: c.icon, color: BILLS_GROUP.color }));
-export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), OTHER_CAT];
+export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), MEDICAL_GROUP, OTHER_CAT];
 // 统计图里：储藏各分类单独显示，房屋耗材和设备维修保养合并为“房屋维护”、装备合并为“装备”、车辆维修保养为“车辆”、账单合并为“账单”各一组，避免颜色过多
-export const STAT_CATS = () => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, BILLS_GROUP, OTHER_CAT];
+export const STAT_CATS = () => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, BILLS_GROUP, MEDICAL_GROUP, OTHER_CAT];
 export const statCat = (id) => {
+  if (id === "medical") return "medical";   // 医疗账单的付款（虚拟花费，见 bills/medical.js）
   const c = CATEGORIES.find((x) => x.id === id);
   if (c) return c.space === "pantry" ? c.id : c.space;
   if (id === MAINT_CAT.id) return "house";
@@ -288,13 +290,14 @@ function spendRow(p) {
   if (state.spendEdit === p.id) return spendEditRow(p);
   // 账单缴费记的花费：名称链接到那条缴费记录的编辑页（改那里，花费会同步）；其余的在这一行里就地编辑
   const pay = state.billPayments.find((x) => x.purchase_id === p.id), bill = pay && state.bills.find((x) => x.id === pay.bill_id);
-  const title = bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${pay.id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
+  const title = p.virtual === "medical" ? `<a class="link-name" href="${href("bills", "medical")}?bill=${p.bill_id}" title="${esc(t("到医疗账单里看 / 改"))}">${esc(p.name)}</a>`
+    : bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${pay.id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
     : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>`;
   return `<li>
     <span class="badge" style="background:var(--surface-2)">${esc(d.toLocaleDateString(locale(), sameYear ? { month: "numeric", day: "numeric" } : { year: "2-digit", month: "numeric", day: "numeric" }))}</span>
     <div class="grow"><span class="name">${title}</span><small>${esc(`${cat.icon || ""} ${t(cat.name)}`.trim())}${storeOf(p) ? `，${esc(storeOf(p))}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
     <b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>
-    <button type="button" class="btn btn-sm btn-ghost" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button></li>`;
+    ${p.virtual ? "" : `<button type="button" class="btn btn-sm btn-ghost" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button>`}</li>`;
 }
 /** 就地编辑：名称、分类、金额、商店、日期（数量和单位不动） */
 function spendEditRow(p) {
@@ -497,7 +500,7 @@ export async function exportAnnual(kind) {
   const year = +($("#csvYear")?.value || new Date().getFullYear());
   // 按本地时间：当年 1 月 1 日 0 点到次年 1 月 1 日 0 点
   const from = new Date(year, 0, 1).toISOString(), to = new Date(year + 1, 0, 1).toISOString();
-  const list = await Store.listPurchasesRange(from, to);
+  const list = [...(await Store.listPurchasesRange(from, to)), ...medicalVirtuals().filter((p) => p.purchased_at >= from && p.purchased_at < to)];   // 医疗付款也在年度报表里
   if (!list.length) return toast(t("{y} 年没有采购记录", { y: year }));
   const catName = (id) => t((ALL_CATS().find((c) => c.id === id) || OTHER_CAT).name);
   const r2 = (v) => Math.round(v * 100) / 100;

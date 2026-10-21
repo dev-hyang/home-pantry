@@ -22,14 +22,19 @@ export const GROUPS = [
   { id: "other", name: "其他", icon: "🧺", color: "#8a948f", w: 0.05 },
 ];
 const BILLS_GROUP = { id: "bills", name: "账单", icon: "🧾", color: "#2f5d8a" };
+/* 医疗：默认不计入每月“可支配”预算（大额、不可预测，和日常花费分开看）；在 设置 → 收入与预算 里可以改成计入，那时它和其他分类一样有月预算 */
+const MEDICAL_BUDGET_GROUP = { id: "medical", name: "医疗", icon: "🏥", color: "#c2475f", w: 0.08 };
+export const medInPool = () => meta("_med_in_pool", false) === true;
+export const groupsNow = () => (medInPool() ? [...GROUPS, MEDICAL_BUDGET_GROUP] : GROUPS);
 const DRILL_HINT = () => `<p class="muted drill-hint">${t("点预算行或图里的柱子，可以查看对应的花费明细。")}</p>`;
 export const groupOf = (category, amount = 0) => {
   const s = statCat(category);
   if (s === "bills") return "bills";
+  if (s === "medical") return "medical";
   if (s !== "vehicle" && category !== "house_maint" && amount >= bigThreshold()) return "big";   // 大件：单笔大额，但账单、车辆、维修保养不算
   return ["house", "vehicle", "gear", "other"].includes(s) ? s : "groceries";
 };
-budgetBridge.groupOf = groupOf; budgetBridge.groups = [BILLS_GROUP, ...GROUPS];   // 明细页按预算分组筛选时用
+budgetBridge.groupOf = groupOf; budgetBridge.groups = [BILLS_GROUP, ...GROUPS, MEDICAL_BUDGET_GROUP];   // 明细页按预算分组筛选时用
 const cur = () => Units.region.currency;
 const amountOf = (p) => (p.amount != null && (!p.currency || p.currency === cur()) ? num(p.amount) : 0);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -114,13 +119,14 @@ function computeGroups(totalM, savingsPct) {
   const billsM = bills.reduce((s, x) => s + x.monthly, 0);
   const pool = Math.max(0, totalM - billsM - totalM * savingsPct / 100);
   const abm = actualByMonth(), past = lastMonths(7).slice(0, 6);   // 过去 6 个月（不含本月）
-  const hist = Object.fromEntries(GROUPS.map((g) => [g.id, past.reduce((s, m) => s + (abm[m]?.[g.id] || 0), 0) / 6]));
+  const GS = groupsNow();
+  const hist = Object.fromEntries(GS.map((g) => [g.id, past.reduce((s, m) => s + (abm[m]?.[g.id] || 0), 0) / 6]));
   const histTotal = Object.values(hist).reduce((a, c) => a + c, 0);
   const fund = applianceFund(), useFund = fund.monthly > 0;
   const bigSug = useFund ? Math.min(Math.round(fund.monthly), Math.round(pool * 0.35)) : 0, poolRest = pool - bigSug;
-  const gs = GROUPS.filter((g) => !(useFund && g.id === "big")), hist2 = gs.reduce((s, g) => s + hist[g.id], 0);
+  const gs = GS.filter((g) => !(useFund && g.id === "big")), hist2 = gs.reduce((s, g) => s + hist[g.id], 0);
   const raw = Object.fromEntries(gs.map((g) => [g.id, hist2 > 0 ? Math.max(0.03, hist[g.id] / hist2) : g.w])), rawSum = Object.values(raw).reduce((x, y) => x + y, 0) || 1;
-  const groups = Object.fromEntries(GROUPS.map((g) => [g.id, useFund && g.id === "big" ? bigSug : Math.round((poolRest * raw[g.id]) / rawSum)]));
+  const groups = Object.fromEntries(GS.map((g) => [g.id, useFund && g.id === "big" ? bigSug : Math.round((poolRest * raw[g.id]) / rawSum)]));
   return { groups, fromFund: useFund, hasHistory: histTotal > 0 };
 }
 export async function saveBudgetBase(patch) {
@@ -167,9 +173,10 @@ export function budgetPlan() {
   const savingsPct = clamp(num(snap.savings_pct ?? b.savings_pct, 20), 0, 90), savings = income != null ? (income * savingsPct) / 100 : null;
   const over = b.cat_budgets || {};
   const abm = actualByMonth(), past = lastMonths(7).slice(0, 6);
-  const groups = GROUPS.map((g) => {
-    const suggested = num(snap.groups[g.id]), custom = over[g.id] != null && over[g.id] !== "";
-    return { ...g, hist: past.reduce((s, m) => s + (abm[m]?.[g.id] || 0), 0) / 6, suggested, custom, budget: custom ? num(over[g.id]) : suggested, fromFund: !!snap.fromFund && g.id === "big" };
+  const groups = groupsNow().map((g) => {
+    const hist = past.reduce((s, m) => s + (abm[m]?.[g.id] || 0), 0) / 6;
+    const suggested = snap.groups[g.id] != null ? num(snap.groups[g.id]) : Math.round(hist), custom = over[g.id] != null && over[g.id] !== "";
+    return { ...g, hist, suggested, custom, budget: custom ? num(over[g.id]) : suggested, fromFund: !!snap.fromFund && g.id === "big" };
   });
   const variable = groups.reduce((s, g) => s + g.budget, 0);
   return { income, owner, billsM, essentialM, savingsPct, savings, pool: variable, groups, variable, totalBudget: billsM + variable, left: income != null ? income - billsM - savings - variable : null, hasHistory: !!snap.hasHistory, generatedAt: snap.generated_at };
@@ -182,7 +189,7 @@ export function monthProgress(plan = budgetPlan()) {
   const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(), pace = now.getDate() / days;
   const rows = plan.groups.map((g) => ({ ...g, spent: a[g.id] || 0 }));
   const spent = rows.reduce((s, r) => s + r.spent, 0);
-  return { month: m, pace, rows, spent, variable: plan.variable, bills: a.bills || 0 };
+  return { month: m, pace, rows, spent, variable: plan.variable, bills: a.bills || 0, medical: a.medical || 0 };
 }
 
 /* ───────────── 提醒（接入首页“注意事项”） ───────────── */
@@ -307,7 +314,7 @@ export function viewBudget() {
 
   const mp = monthProgress(plan), cm = mp.month;
   const months = lastMonths(state.stats.months), abm = actualByMonth();
-  const ser = [BILLS_GROUP, ...GROUPS];
+  const ser = [BILLS_GROUP, ...GROUPS, MEDICAL_BUDGET_GROUP];   // 实际花费：医疗不管计不计入预算都算在里面
   const totals = months.map((m) => ser.reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0));
   const stacked = Charts.bars({ title: t("每月花费构成（账单 vs 其他）"), labels: months.map(monthLabel), fmt: money,
     series: [{ name: t("账单"), color: BILLS_GROUP.color, values: months.map((m) => abm[m]?.bills || 0) },
@@ -347,6 +354,7 @@ export function viewBudget() {
         ${row(BILLS_GROUP, mp.bills, plan.billsM, mp.pace, "", dq({ grp: "bills", month: cm }))}
         ${mp.rows.map((r) => row(r, r.spent, r.budget, mp.pace, "", dq({ grp: r.id, month: cm }))).join("")}
         <div class="bud-total">${row({ icon: "💰", name: "可支配花费合计" }, mp.spent, mp.variable, mp.pace, "", dq({ grp: "!bills", month: cm }))}</div>
+        ${!medInPool() && mp.medical > 0 ? `<div class="bud-row ch-hit-row"${hitAttrs(dq({ grp: "medical", month: cm }), t("医疗"))}><div class="bud-head"><b>🏥 ${t("医疗")}</b><span>${t("已付 {a}", { a: money(mp.medical) })}</span></div><small class="muted">${t("不计入可支配预算；在 设置 → 收入与预算 里可以改成计入")}</small></div>` : ""}
         ${DRILL_HINT()}
       </div>
     </section>
@@ -416,7 +424,7 @@ document.addEventListener("submit", async (e) => {
   } else if (f.id === "budgetCatsForm") {
     e.preventDefault();
     try {
-      const cb = underscoreKeys(state.budget?.cat_budgets); for (const g of GROUPS) { const v = f.elements[`cat_${g.id}`].value; if (v !== "") cb[g.id] = Math.max(0, Math.round(num(v))); }
+      const cb = underscoreKeys(state.budget?.cat_budgets); for (const g of groupsNow()) { const v = f.elements[`cat_${g.id}`]?.value ?? "";  if (v !== "") cb[g.id] = Math.max(0, Math.round(num(v))); }
       const th = f.elements.big_threshold?.value; if (th !== "" && num(th, 0) > 0) cb._big_threshold = Math.round(num(th)); else delete cb._big_threshold;
       state.budget = await Store.saveBudget({ ...state.budget, cat_budgets: cb });
       toast(t("预算已保存")); document.dispatchEvent(new CustomEvent("budget-saved"));

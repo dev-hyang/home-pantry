@@ -6,6 +6,8 @@ import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num,
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { resilientFetch } from "./core/net.js";
+import { applyMedical, deleteMedBill, deleteMedPay, exportMedicalCsv, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
+import { mergeMedical } from "./bills/medical.js";
 import { mountAppSwitcher } from "../shared/app-switcher.js";
 import { mountLangSwitcher } from "../shared/lang-switcher.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
@@ -67,7 +69,7 @@ export async function refresh() {
     try {
       // 所有表一次并行读完（云端一轮往返），再在内存里定当前房产；采购花费只有统计和导出用，不挡首屏，渲染后后台再读
       const members = state.membersReady; state.membersReady = null;   // 登录后与这一轮并行去读家庭成员
-      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes] = await Promise.all([
+      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes, medBills, medPays] = await Promise.all([
         Store.listProperties(), Store.listItems(),
         soft("logs", Store.listLogs(), state.logs || [], (r) => { state.logs = r; state.enriched = enrich(state.items, r); }),
         Store.listShopping(), Store.listHouseProfiles(),
@@ -81,6 +83,8 @@ export async function refresh() {
         Store.listTerms().catch((e) => { console.warn("[terms]", e.message); return null; }),
         Store.getBudget().catch(() => null),
         Store.listIncomes().catch((e) => { console.warn("[incomes]", e.message); return []; }),
+        Store.listMedicalBills().catch((e) => { console.warn("[medical]", e.message); return []; }),   // 还没执行迁移 027 时读不到：不影响其他功能
+        Store.listMedicalPayments().catch(() => []),
         members]);
       state.budget = budget; state.incomes = incomes;
       state.customSeasonal = customSeasonal;
@@ -98,6 +102,7 @@ export async function refresh() {
       state.enriched = enrich(items, logs);
       state.assetsEnriched = enrichAssets(assets, maintLogs);
       state.billsEnriched = enrichBills(bills, billPayments);
+      applyMedical(medBills, medPays);
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }));
       if (!pendingAny()) notifyIfNeeded();
       render(false);
@@ -117,7 +122,7 @@ function loadPurchasesSoon() {
   if (purchasesLoading) { purchasesAgain = true; return; }
   purchasesLoading = true;
   Store.listPurchases().then((p) => {
-    state.purchases = p;
+    state.purchases = p; mergeMedical();   // 医疗付款作为虚拟花费并进统计
     const r = state.route;
     if ((r.section === "me" && r.sub === "stats") || (r.section === "bills" && (r.sub === "spend" || r.sub === "overview"))) render(false);
     else { const dl = $("#storeList"); if (dl) dl.outerHTML = storeDatalist(); }   // 采购 / 统计页的商店联想
@@ -139,7 +144,7 @@ const VIEWS = {
   pantry:   { overview: viewDashboard, inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
-  bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, spend: viewSpend, budget: viewBudget, template: viewBillTemplate },
+  bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, spend: viewSpend, medical: viewMedical, budget: viewBudget, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout },
@@ -326,7 +331,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, sort: "new", limit: 20 }); state.spendEdit = null; break;
+    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, sort: "new", limit: 20 }); state.spendEdit = null; break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
     default: break;
   }
@@ -372,6 +377,7 @@ main.addEventListener("touchend", (e) => {
 }, { passive: true });
 main.addEventListener("input", (e) => {
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; renderInvList(); }
+  if (e.target.id === "medSearch") { state.medFilter.q = e.target.value; renderMedList(); }
   if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; state.spendFilter.limit = 20; renderSpendList(); }
   if (e.target.id === "billSearch") { state.billsFilter.q = e.target.value; renderBillList(); }
   if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; renderAssetList(); }
@@ -386,6 +392,8 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "billCat") { state.billsFilter.cat = e.target.value; renderBillList(); }
   if (e.target.id === "billChannel") { state.billsFilter.channel = e.target.value; renderBillList(); }
   if (e.target.id === "billSort") { state.billsFilter.sort = e.target.value; renderBillList(); }
+  { const k = { medPatient: "patient", medProvider: "provider", medStatus: "status", medYear: "year" }[e.target.id]; if (k) { state.medFilter[k] = e.target.value; renderMedList(); } }
+  if (e.target.id === "medReportYear") { state.medYear = e.target.value; render(); }
   { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; state.payFilter.limit = 50; renderPayList(); } }
   { const k = { shopCat: "cat", shopWho: "who", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
   { const k = { assetType: "type", assetService: "service", assetWarranty: "warranty", assetLoc: "loc", assetSort: "sort" }[e.target.id]; if (k) { state.assetFilter[k] = e.target.value; renderAssetList(); } }
@@ -523,6 +531,8 @@ main.addEventListener("submit", async (e) => {
       state.spendEdit = null; toast(t("已保存修改")); render(); return refresh();
     }
     if (f.id === "billForm") return saveBillForm(f);
+    if (f.id === "medBillForm") return saveMedBillForm(f);
+    if (f.id === "medPayForm") return saveMedPayForm(f);
     if (f.id === "billPayForm") {
       const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
       const editing = f.elements.pay_id?.value, billId = f.elements.bill_id.value;
@@ -838,6 +848,9 @@ main.addEventListener("click", async (e) => {
       case "deal-filter": state.dealFilter = el.dataset.val; return render();
       case "tasks-undone": state.tasksOnlyUndone = !state.tasksOnlyUndone; return render();
       case "spend-chip-clear": clearSpendFilter(el.dataset.k); return renderSpendRecords();
+      case "med-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteMedBill(el.dataset.id);
+      case "med-pay-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteMedPay(el.dataset.id);
+      case "med-csv": return exportMedicalCsv();
       case "spend-more": state.spendFilter.limit += 20; return renderSpendList();
       case "stats-months": state.stats.months = +el.dataset.months; return render();
       case "stats-cat": state.stats.cat = el.dataset.cat; return render();
@@ -971,8 +984,8 @@ export async function markBought(id) {
 }
 
 export async function exportJson() {
-  try { state.purchases = await Store.listPurchases(); } catch { /* 用已有的 */ }   // 采购花费是后台读的，导出前确保是最新的完整数据
-  const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), household: state.household?.name, items: state.items, shopping: state.shopping, purchases: state.purchases,
+  try { state.purchases = await Store.listPurchases(); mergeMedical(); } catch { /* 用已有的 */ }   // 采购花费是后台读的，导出前确保是最新的完整数据
+  const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), household: state.household?.name, items: state.items, shopping: state.shopping, purchases: state.purchases.filter((x) => !x.virtual), medical_bills: state.medBills, medical_payments: state.medPayments,
     properties: state.properties, house_profile: state.houseProfile, assets: state.assets, maintenance_logs: state.maintLogs, seasonal_tasks: state.seasonalDone,
     bills: state.bills, bill_payments: state.billPayments, property_deals: state.deals, deal_task_done: state.dealDone, deal_task_overrides: state.dealOverrides, deal_custom_tasks: state.dealCustom }, null, 2)], { type: "application/json" });
   const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `pantry-${new Date().toISOString().slice(0, 10)}.json` });

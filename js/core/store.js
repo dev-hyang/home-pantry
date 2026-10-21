@@ -10,7 +10,7 @@ export const DemoStore = {
     if (!this.db || !Array.isArray(this.db.items)) this.db = seedDemo();
     const db = this.db;
     db.purchases ||= []; db.assets ||= []; db.maint_logs ||= []; db.seasonal ||= [];
-    db.bills ||= []; db.bill_payments ||= [];
+    db.bills ||= []; db.bill_payments ||= []; db.medical_bills ||= []; db.medical_payments ||= [];
     // 多房产：没有房产的旧演示库补一条默认房产，并把房屋资料 / 设备 / 季节任务挂上去
     if (!Array.isArray(db.properties) || !db.properties.length) {
       db.properties = [{ id: uid(), name: t("我的家"), kind: "other", role: "owner_occupied", status: "owned", address: null, is_default: true, archived: false, notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
@@ -217,6 +217,25 @@ export const DemoStore = {
     this.persist();
   },
 
+  /* 医疗账单（事件型账单）：账单 + 付款；演示模式没有“私密”之分，全是自己的 */
+  async listMedicalBills() { return this.db.medical_bills.map((x) => ({ ...x })); },
+  async saveMedicalBill(b) {
+    const now = new Date().toISOString();
+    if (b.id) {
+      const i = this.db.medical_bills.findIndex((x) => x.id === b.id); if (i < 0) throw new Error("账单不存在");
+      this.db.medical_bills[i] = { ...this.db.medical_bills[i], ...b, updated_at: now }; this.persist(); return b.id;
+    }
+    const id = uid(); this.db.medical_bills.push({ ...b, id, created_at: now, updated_at: now }); this.persist(); return id;
+  },
+  async deleteMedicalBill(id) {
+    this.db.medical_bills = this.db.medical_bills.filter((x) => x.id !== id);
+    this.db.medical_payments = this.db.medical_payments.filter((p) => p.bill_id !== id); this.persist();
+  },
+  async listMedicalPayments() { return this.db.medical_payments.map((x) => ({ ...x })); },
+  async addMedicalPayment(p) { const id = uid(); this.db.medical_payments.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
+  async updateMedicalPayment(id, patch) { const i = this.db.medical_payments.findIndex((x) => x.id === id); if (i >= 0) { this.db.medical_payments[i] = { ...this.db.medical_payments[i], ...patch }; this.persist(); } },
+  async deleteMedicalPayment(id) { this.db.medical_payments = this.db.medical_payments.filter((x) => x.id !== id); this.persist(); },
+
   /* 账单 */
   async listBills() { return this.db.bills.map((x) => ({ ...x })); },
   async saveBill(b) {
@@ -381,6 +400,7 @@ export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", 
   "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes", "vehicle"];
 export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "acquired_on", "purchase_price", "sold_on", "sale_price", "archived", "notes"];
 export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email", "hoa"];
+export const MED_FIELDS = ["kind", "subkind", "provider", "patient", "guarantor", "bill_ref", "claim_ref", "insurer", "service_date", "bill_date", "due_on", "billed_amount", "insurance_paid", "adjustment", "patient_amount", "currency", "status", "hsa_eligible", "visibility", "notes"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
   "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "statement_channel",
   "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes"];
@@ -570,6 +590,19 @@ export const CloudStore = {
     this.must(await this.sb.from("seasonal_tasks").delete().eq("household_id", this.hid).eq("task_key", `c_${String(id).replace(/-/g, "")}`));
   },
 
+  /* 医疗账单：RLS 按 visibility 过滤（私密的只有创建人和家主读得到）；还没执行迁移 027 时表不存在，由调用方当作空 */
+  async listMedicalBills() { return this.must(await this.sb.from("medical_bills").select("*").eq("household_id", this.hid).order("service_date", { ascending: false, nullsFirst: false }).limit(2000)); },
+  async saveMedicalBill(b) {
+    const row = pick(b, MED_FIELDS, { household_id: this.hid });
+    if (b.id) { this.must(await this.sb.from("medical_bills").update(row).eq("id", b.id)); return b.id; }
+    return this.must(await this.sb.from("medical_bills").insert(row).select("id").single()).id;
+  },
+  async deleteMedicalBill(id) { this.must(await this.sb.from("medical_bills").delete().eq("id", id)); },   // 付款级联删除
+  async listMedicalPayments() { return this.must(await this.sb.from("medical_payments").select("*").eq("household_id", this.hid).order("paid_on", { ascending: false }).limit(5000)); },
+  async addMedicalPayment(p) { return this.must(await this.sb.from("medical_payments").insert({ ...p, household_id: this.hid, paid_by: state.user.id }).select("id").single()).id; },
+  async updateMedicalPayment(id, patch) { this.must(await this.sb.from("medical_payments").update(patch).eq("id", id)); },
+  async deleteMedicalPayment(id) { this.must(await this.sb.from("medical_payments").delete().eq("id", id)); },
+
   /* 账单 */
   async listBills() { return this.must(await this.sb.from("bills").select("*").eq("household_id", this.hid).order("next_due_on")); },
   async saveBill(b) {
@@ -646,7 +679,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();

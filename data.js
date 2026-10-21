@@ -26,6 +26,7 @@ window.GEAR_CATEGORIES = [
 ].map((c) => ({ ...c, space: "gear" }));
 window.CATEGORIES.push(...window.GEAR_CATEGORIES);
 window.GEAR_GROUP = { id: "gear", name: "装备", icon: "🧳", color: "#a0522d" };   // 统计图里合并显示
+window.MEDICAL_GROUP = { id: "medical", name: "医疗", icon: "🏥", color: "#c2475f" };   // 医疗账单的付款（js/bills/medical.js 变成虚拟花费并进统计）
 
 // 单位列表按地区区分，见 units.js（Units.list()）
 window.OTHER_CAT = { id: "other", name: "其他", icon: "🧺", color: "#8a948f" };
