@@ -6,7 +6,7 @@ import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num,
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { resilientFetch } from "./core/net.js";
-import { applyMedical, deleteMedBill, deleteMedPay, exportMedicalCsv, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
+import { applyMedical, deleteMedBill, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
 import { mergeMedical } from "./bills/medical.js";
 import { mountAppSwitcher } from "../shared/app-switcher.js";
 import { mountLangSwitcher } from "../shared/lang-switcher.js";
@@ -331,7 +331,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, sort: "new", limit: 20 }); state.spendEdit = null; break;
+    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, sort: "new", limit: 20 }); state.spendEdit = null; break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
     default: break;
   }
@@ -392,7 +392,8 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "billCat") { state.billsFilter.cat = e.target.value; renderBillList(); }
   if (e.target.id === "billChannel") { state.billsFilter.channel = e.target.value; renderBillList(); }
   if (e.target.id === "billSort") { state.billsFilter.sort = e.target.value; renderBillList(); }
-  { const k = { medPatient: "patient", medProvider: "provider", medStatus: "status", medYear: "year" }[e.target.id]; if (k) { state.medFilter[k] = e.target.value; renderMedList(); } }
+  { const k = { medKind: "kind", medPatient: "patient", medProvider: "provider", medStatus: "status", medYear: "year" }[e.target.id]; if (k) { state.medFilter[k] = e.target.value; renderMedList(); } }
+  if (e.target.name === "kindPick") return onKindPick(e);
   if (e.target.id === "medReportYear") { state.medYear = e.target.value; render(); }
   { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; state.payFilter.limit = 50; renderPayList(); } }
   { const k = { shopCat: "cat", shopWho: "who", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
@@ -597,12 +598,13 @@ main.addEventListener("submit", async (e) => {
     if (f.getAttribute("id") === "purchaseForm") {
       const e2 = f.elements, name = e2.name.value.trim(), amount = num(e2.amount.value, NaN);
       if (!name || !Number.isFinite(amount) || amount < 0) return toast(t("请填写名称和金额"));
+      const signed = e2.refund?.checked ? -amount : amount;   // “退款 / 报销”：记成负数，统计里按净额算
       const day = e2.date.value || new Date().toISOString().slice(0, 10);
       const store = cleanStore(e2.store.value);
       if (store) rememberStore(store);
       await Store.addPurchase({ item_id: null, name, category: e2.category.value, quantity: null, unit: null, store,
-        amount: Math.round(amount * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString() });
-      toast(t("已记录 {name} {m}", { name, m: money(amount) })); return refresh();
+        amount: Math.round(signed * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString() });
+      toast(t("已记录 {name} {m}", { name, m: money(signed) })); return refresh();
     }
     if (f.id === "shopForm") {
       const name = f.elements.name.value.trim();

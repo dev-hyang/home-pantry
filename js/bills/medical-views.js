@@ -30,7 +30,7 @@ export function applyMedical(bills, pays) {
 
 /* ───────────── 行 / 筛选 ───────────── */
 function medRow(b) {
-  const who = [b.patient, b.service_date ? fmtDate(b.service_date) : null, b.bill_ref ? `#${b.bill_ref}` : null].filter(Boolean).map(esc).join(" · ");
+  const who = [b.kind !== "medical" ? t(kindOf(b).name) : null, b.patient, b.service_date ? fmtDate(b.service_date) : null, b.bill_ref ? `#${b.bill_ref}` : null].filter(Boolean).map(esc).join(" · ");
   const amt = b.status === "paid" ? mny(b.paid, b.currency) : b.balance != null ? mny(b.balance, b.currency) : mny(b.billed_amount, b.currency);
   const due = b.open && b.due_on ? ` · ${b.overdue ? `<b class="down">${t("逾期")}</b> ` : ""}${t("到期 {d}", { d: fmtDate(b.due_on) })}` : "";
   return `<li><span class="badge ${STATUS_CLS[b.status] || ""}">${t(STATUS[b.status] || b.status)}</span>
@@ -39,7 +39,7 @@ function medRow(b) {
 }
 function filtered() {
   const f = state.medFilter, q = f.q.trim().toLowerCase();
-  return state.medEnriched.filter((b) => (f.patient === "all" || (b.patient || "") === f.patient) && (f.provider === "all" || b.provider === f.provider)
+  return state.medEnriched.filter((b) => (f.kind === "all" || b.kind === f.kind) && (f.patient === "all" || (b.patient || "") === f.patient) && (f.provider === "all" || b.provider === f.provider)
     && (f.status === "all" || (f.status === "open" ? b.open : b.status === f.status)) && (f.year === "all" || String(b.service_date || b.bill_date || b.created_at || "").startsWith(f.year))
     && (!q || `${b.provider}${b.patient || ""}${b.bill_ref || ""}${b.claim_ref || ""}${b.insurer || ""}`.toLowerCase().includes(q)))
     .sort((x, y) => String(y.service_date || y.bill_date || y.created_at).localeCompare(String(x.service_date || x.bill_date || x.created_at)));
@@ -82,9 +82,10 @@ function listTab() {
   if (!state.medEnriched.length) return `<div class="panel">${emptyHtml()}</div>`;
   return `<div class="panel">
     <div class="toolbar">
-      <input type="search" id="medSearch" placeholder="${t("搜索医院、患者、账单号")}" value="${esc(f.q)}" aria-label="${t("搜索医疗账单")}">
-      <select id="medPatient" aria-label="${t("按患者筛选")}">${opt("all", t("全部患者"), f.patient)}${uniq("patient").map((x) => opt(x, x, f.patient)).join("")}</select>
-      <select id="medProvider" aria-label="${t("按医院筛选")}">${opt("all", t("全部医院"), f.provider)}${uniq("provider").map((x) => opt(x, x, f.provider)).join("")}</select>
+      <input type="search" id="medSearch" placeholder="${t("搜索商家、患者、账单号")}" value="${esc(f.q)}" aria-label="${t("搜索账单")}">
+      <select id="medKind" aria-label="${t("按种类筛选")}">${opt("all", t("全部种类"), f.kind)}${Object.entries(KINDS).map(([k, K]) => opt(k, `${K.icon} ${t(K.name)}`, f.kind)).join("")}</select>
+      <select id="medPatient" aria-label="${t("按患者筛选")}">${opt("all", t("全部患者 / 对象"), f.patient)}${uniq("patient").map((x) => opt(x, x, f.patient)).join("")}</select>
+      <select id="medProvider" aria-label="${t("按商家筛选")}">${opt("all", t("全部医院 / 商家"), f.provider)}${uniq("provider").map((x) => opt(x, x, f.provider)).join("")}</select>
       <select id="medStatus" aria-label="${t("按状态筛选")}">${opt("all", t("全部状态"), f.status)}${opt("open", t("待处理（未结清）"), f.status)}${Object.entries(STATUS).map(([k, n]) => opt(k, t(n), f.status)).join("")}</select>
       <select id="medYear" aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
     </div>
@@ -106,7 +107,7 @@ function reportTab() {
     <div class="kpis"><div class="kpi"><span>${t("账单总额")}</span><b>${mny(sum(inYear, (b) => num(b.billed_amount)))}</b><small>${t("{n} 张", { n: inYear.length })}</small></div>
       <div class="kpi"><span>${t("自付已付")}</span><b>${mny(sum(payYear, (p) => num(p.amount)))}</b><small>${t("{n} 笔付款", { n: payYear.length })}</small></div>
       <div class="kpi"><span>${t("HSA / FSA 可报")}</span><b>${mny(hsa)}</b><small>${t("已付，标了“可用 HSA / FSA”的账单")}</small></div></div>
-    ${inYear.length ? table(t("按患者"), group("patient")) + table(t("按医院 / 化验所"), group("provider")) : `<div class="panel empty"><strong>${t("这一年没有医疗账单")}</strong></div>`}
+    ${inYear.length ? (new Set(inYear.map((b) => b.kind)).size > 1 ? table(t("按种类"), group("kind").map((g) => ({ ...g, name: t(KINDS[g.name]?.name || g.name) }))) : "") + table(t("按患者 / 对象"), group("patient")) + table(t("按医院 / 商家"), group("provider")) : `<div class="panel empty"><strong>${t("这一年没有医疗账单")}</strong></div>`}
     <p class="muted" style="font-size:12.5px">${t("报税抵扣、HSA / FSA 报销以保险公司和税务机构的规定为准，这里只帮你把金额理清楚；导出的是已付的每一笔。")}</p>`;
 }
 
@@ -116,7 +117,8 @@ export function viewMedical() {
   const tab = activeTab(r) || "overview";
   const body = { overview: overviewTab, list: listTab, report: reportTab }[tab]();
   return `<section class="section">
-    <div class="section-head"><h2>${KINDS.medical.icon} ${t("医疗账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${detailHref("new")}">${t("记一张账单")}</a></div></div>
+    <div class="section-head"><h2>🏥 ${t("医疗与事件账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${detailHref("new")}">${t("记一张账单")}</a></div></div>
+    <p class="muted" style="margin:-6px 0 10px;font-size:13px">${Object.values(KINDS).map((K) => `${K.icon} ${t(K.name)}`).join(" · ")}</p>
     ${tabBar(MEDICAL_TABS, tab, medHref, t("医疗内容"))}
     ${body}</section>`;
 }
@@ -127,7 +129,8 @@ const people = () => [...new Set([...state.members.map((m) => m.display_name), .
 function viewDetail(id, payId) {
   const isNew = id === "new", b = isNew ? null : state.medEnriched.find((x) => x.id === id);
   if (!isNew && !b) return `<section class="section"><div class="panel empty"><strong>${t("找不到这张账单")}</strong>${t("可能已被删除，或它是别人的私密账单。")}<p><a class="btn" href="${medHref("list")}">${t("回账单列表")}</a></p></div></section>`;
-  const v = b || { kind: "medical", status: "open", visibility: "private", currency: cur(), insurance_paid: 0, adjustment: 0, service_date: "", hsa_eligible: false }, K = kindOf(v);
+  const newKind = KINDS[state.route.q.get("kind")] ? state.route.q.get("kind") : "medical";
+  const v = b || { kind: newKind, status: "open", visibility: KINDS[newKind].visibility, currency: cur(), insurance_paid: 0, adjustment: 0, service_date: "", hsa_eligible: false }, K = kindOf(v);
   const subs = K.subs.map(([k, n, ic]) => `<option value="${k}" ${v.subkind === k ? "selected" : ""}>${ic} ${t(n)}</option>`).join("");
   const num0 = (x) => (x == null || x === "" ? "" : num(x).toFixed(2));
   const pay = payId && b ? b.pays.find((p) => p.id === payId) : null;
@@ -135,25 +138,26 @@ function viewDetail(id, payId) {
   return `<section class="section form-page">
     <form id="medBillForm" class="panel" novalidate data-id="${d(b?.id)}">
       <input type="hidden" name="kind" value="${d(v.kind)}">
+      ${isNew ? `<div class="seg-radio" role="radiogroup" aria-label="${t("账单种类")}" style="margin-bottom:10px">${Object.entries(KINDS).map(([k, X]) => `<label class="radio-pill"><input type="radio" name="kindPick" value="${k}" ${v.kind === k ? "checked" : ""}><span>${X.icon} ${t(X.name)}</span></label>`).join("")}</div>` : `<p class="muted" style="margin:0 0 8px">${K.icon} ${t(K.name)}</p>`}
       <div class="form-grid">
-        <label class="span-2">${t(K.provider)}<input name="provider" required maxlength="60" list="medProviders" value="${d(v.provider)}" placeholder="${t("例如：Northwestern Medicine")}"></label>
+        <label class="span-2">${t(K.provider)}<input name="provider" required maxlength="60" list="medProviders" value="${d(v.provider)}"></label>
         <label>${t("小类")}<select name="subkind"><option value="">${t("未指定")}</option>${subs}</select></label>
-        <label>${t("患者 Patient")}<input name="patient" maxlength="40" list="medPeople" value="${d(v.patient)}"></label>
-        <label>${t("担保人 Guarantor")}<input name="guarantor" maxlength="40" list="medPeople" value="${d(v.guarantor)}"><small>${t("负责付款的人，例如孩子的家长")}</small></label>
+        <label>${t(K.who)}<input name="patient" maxlength="40" list="medPeople" value="${d(v.patient)}"></label>
+        ${K.guarantor ? `<label>${t("担保人 Guarantor")}<input name="guarantor" maxlength="40" list="medPeople" value="${d(v.guarantor)}"><small>${t("负责付款的人，例如孩子的家长")}</small></label>` : ""}
         <label>${t("账单号 Bill #")}<input name="bill_ref" maxlength="60" value="${d(v.bill_ref)}"></label>
-        <label>${t("保险公司")}<input name="insurer" maxlength="60" value="${d(v.insurer)}"></label>
-        <label>${t("理赔号 Claim #")}<input name="claim_ref" maxlength="60" value="${d(v.claim_ref)}"></label>
-        <label>${t("就诊日期")}<input name="service_date" type="date" value="${d(v.service_date)}"></label>
+        ${K.insurance ? `<label>${t("保险公司")}<input name="insurer" maxlength="60" value="${d(v.insurer)}"></label>
+        <label>${t("理赔号 Claim #")}<input name="claim_ref" maxlength="60" value="${d(v.claim_ref)}"></label>` : ""}
+        <label>${t(v.kind === "medical" || v.kind === "pet" ? "就诊日期" : "服务日期")}<input name="service_date" type="date" value="${d(v.service_date)}"></label>
         <label>${t("账单日期 Bill date")}<input name="bill_date" type="date" value="${d(v.bill_date)}"></label>
         <label>${t("到期日")}<input name="due_on" type="date" value="${d(v.due_on)}"></label>
-        <label>${t("账单总额（{cur}）", { cur: v.currency })}<input name="billed_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.billed_amount)}"></label>
-        <label>${t("保险已付")}<input name="insurance_paid" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.insurance_paid)}"></label>
+        <label>${t(K.billed)}（${esc(v.currency)}）<input name="billed_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.billed_amount)}"></label>
+        ${K.insurance ? `<label>${t("保险已付")}<input name="insurance_paid" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.insurance_paid)}"></label>` : ""}
         <label>${t("折扣 / 冲减")}<input name="adjustment" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.adjustment)}"></label>
-        <label>${t("自付金额 Patient responsibility")}<input name="patient_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.patient_amount)}"><small>${t("留空 = 总额 − 保险已付 − 折扣；以保险说明（EOB）上的为准")}</small></label>
+        <label>${t(K.owed)}<input name="patient_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.patient_amount)}"><small>${t(K.insurance ? "留空 = 总额 − 保险已付 − 折扣；以保险说明（EOB）上的为准" : "留空 = 总额 − 折扣")}</small></label>
         <label>${t("状态")}<select name="status">${["awaiting_insurance", "open", "disputed", "collections", "written_off"].map((k) => `<option value="${k}" ${v.status === k ? "selected" : ""}>${t(STATUS[k])}</option>`).join("")}</select><small>${t("已结清 / 部分已付由付款记录自动算")}</small></label>
         <label>${t("谁能看到")}<select name="visibility"><option value="private" ${v.visibility === "private" ? "selected" : ""}>🔒 ${t("仅自己和家主可见")}</option><option value="family" ${v.visibility === "family" ? "selected" : ""}>${t("全家可见")}</option></select></label>
-        <label class="span-2 check-inline"><input type="checkbox" name="hsa_eligible" ${v.hsa_eligible ? "checked" : ""}><span>${t("可用 HSA / FSA 报销")}</span></label>
-        <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(v.notes)}" placeholder="${t("不要记诊断、保单号全文或身份证号")}"></label>
+        ${v.kind === "medical" ? `<label class="span-2 check-inline"><input type="checkbox" name="hsa_eligible" ${v.hsa_eligible ? "checked" : ""}><span>${t("可用 HSA / FSA 报销")}</span></label>` : ""}
+        <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(v.notes)}" placeholder="${t(v.kind === "medical" ? "不要记诊断、保单号全文或身份证号" : "合同要点、联系人…")}"></label>
       </div>
       <datalist id="medPeople">${people().map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
       <datalist id="medProviders">${[...new Set(state.medBills.map((x) => x.provider))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
@@ -174,7 +178,8 @@ function paymentsHtml(b, edit, owed) {
     <form id="medPayForm" class="panel" novalidate data-bill="${b.id}" data-id="${d(edit?.id)}">
       <div class="form-grid">
         <label>${t("付款日期 Payment date")}<input name="paid_on" type="date" required value="${d(edit?.paid_on || todayISO())}" max="${todayISO()}"></label>
-        <label>${t("金额（{cur}）", { cur: b.currency })}<input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required value="${edit ? num(edit.amount).toFixed(2) : b.balance ? b.balance.toFixed(2) : ""}"></label>
+        <label>${t("金额（{cur}）", { cur: b.currency })}<input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required value="${edit ? Math.abs(num(edit.amount)).toFixed(2) : b.balance ? b.balance.toFixed(2) : ""}"></label>
+        <label class="check-inline" style="align-self:end"><input type="checkbox" name="refund" ${edit && num(edit.amount) < 0 ? "checked" : ""}><span>${t("这是退款 / 保险事后理赔")}</span></label>
         <label>${t("付款方式")}<input name="method" maxlength="40" value="${d(edit?.method)}" placeholder="${t("信用卡 / HSA 卡 / 支票…")}"></label>
         <label>${t("确认号 Confirmation #")}<input name="confirmation_ref" maxlength="60" value="${d(edit?.confirmation_ref)}"></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(edit?.notes)}"></label>
@@ -191,10 +196,10 @@ const val = (el) => (el?.value || "").trim() || null;
 const amt = (el) => (el && el.value !== "" ? Math.round(Math.max(0, num(el.value)) * 100) / 100 : null);
 export async function saveMedBillForm(f) {
   const fe = f.elements, err = $("#medBillError"), provider = val(fe.provider);
-  if (!provider) { err.textContent = t("请填写医院 / 化验所。"); fe.provider.focus(); return false; }
+  if (!provider) { err.textContent = t("请填写商家 / 机构名称。"); fe.provider.focus(); return false; }
   const row = { kind: fe.kind.value || "medical", subkind: fe.subkind.value || null, provider, patient: val(fe.patient), guarantor: val(fe.guarantor), bill_ref: val(fe.bill_ref), claim_ref: val(fe.claim_ref), insurer: val(fe.insurer),
     service_date: fe.service_date.value || null, bill_date: fe.bill_date.value || null, due_on: fe.due_on.value || null, billed_amount: amt(fe.billed_amount), insurance_paid: amt(fe.insurance_paid) ?? 0,
-    adjustment: amt(fe.adjustment) ?? 0, patient_amount: amt(fe.patient_amount), currency: cur(), status: fe.status.value, hsa_eligible: fe.hsa_eligible.checked, visibility: fe.visibility.value, notes: val(fe.notes) };
+    adjustment: amt(fe.adjustment) ?? 0, patient_amount: amt(fe.patient_amount), currency: cur(), status: fe.status.value, hsa_eligible: !!fe.hsa_eligible?.checked, visibility: fe.visibility.value, notes: val(fe.notes) };
   if (f.dataset.id) { const old = state.medBills.find((x) => x.id === f.dataset.id); if (old?.currency) row.currency = old.currency; }
   try {
     const id = await Store.saveMedicalBill(f.dataset.id ? { ...row, id: f.dataset.id } : row);
@@ -206,7 +211,7 @@ export async function saveMedPayForm(f) {
   const fe = f.elements, err = $("#medPayError"), amount = amt(fe.amount);
   if (!amount || amount <= 0) { err.textContent = t("请填写大于 0 的金额。"); fe.amount.focus(); return false; }
   const b = state.medEnriched.find((x) => x.id === f.dataset.bill); if (!b) return false;
-  const row = { paid_on: fe.paid_on.value || todayISO(), amount, currency: b.currency, method: val(fe.method), confirmation_ref: val(fe.confirmation_ref), notes: val(fe.notes) };
+  const row = { paid_on: fe.paid_on.value || todayISO(), amount: fe.refund?.checked ? -amount : amount, currency: b.currency, method: val(fe.method), confirmation_ref: val(fe.confirmation_ref), notes: val(fe.notes) };
   try {
     if (f.dataset.id) await Store.updateMedicalPayment(f.dataset.id, row); else await Store.addMedicalPayment({ ...row, bill_id: b.id });
     await reloadMedical(); toast(f.dataset.id ? t("已保存修改") : t("已记一笔付款"));
@@ -217,12 +222,17 @@ export async function deleteMedBill(id) { await Store.deleteMedicalBill(id); awa
 export async function deleteMedPay(id) { await Store.deleteMedicalPayment(id); await reloadMedical(); toast(t("已删除这笔付款")); }
 export function exportMedicalCsv() {
   const y = state.medYear || String(new Date().getFullYear());
-  const rows = [[t("付款日期"), t("患者"), t("担保人"), t("医院 / 化验所"), t("小类"), t("账单号"), t("理赔号"), t("确认号"), t("付款方式"), t("金额"), t("货币"), t("可用 HSA/FSA"), t("就诊日期"), t("账单日期")]];
+  const rows = [[t("付款日期"), t("种类"), t("患者"), t("担保人"), t("医院 / 化验所"), t("小类"), t("账单号"), t("理赔号"), t("确认号"), t("付款方式"), t("金额"), t("货币"), t("可用 HSA/FSA"), t("就诊日期"), t("账单日期")]];
   for (const p of [...state.medPayments].sort((a, b) => String(a.paid_on).localeCompare(String(b.paid_on)))) {
     const b = state.medEnriched.find((x) => x.id === p.bill_id); if (!b || !String(p.paid_on).startsWith(y)) continue;
-    rows.push([p.paid_on, b.patient || "", b.guarantor || "", b.provider, subName(b) ? t(subName(b)) : "", b.bill_ref || "", b.claim_ref || "", p.confirmation_ref || "", p.method || "", num(p.amount), p.currency || b.currency, b.hsa_eligible ? t("是") : t("否"), b.service_date || "", b.bill_date || ""]);
+    rows.push([p.paid_on, t(kindOf(b).name), b.patient || "", b.guarantor || "", b.provider, subName(b) ? t(subName(b)) : "", b.bill_ref || "", b.claim_ref || "", p.confirmation_ref || "", p.method || "", num(p.amount), p.currency || b.currency, b.hsa_eligible ? t("是") : t("否"), b.service_date || "", b.bill_date || ""]);
   }
   if (rows.length < 2) return toast(t("{y} 年没有医疗付款", { y }));
   download(`${t("医疗付款")}-${y}.csv`, toCsv(rows)); toast(t("已导出 {n} 笔付款", { n: rows.length - 1 }));
+}
+/** 新建账单时换种类：整页按新种类重画（标签、小类、保险项不同） */
+export function onKindPick(e) {
+  if (e.target.name !== "kindPick") return;
+  go(`${detailHref("new")}&kind=${e.target.value}`, { replace: true });
 }
 export const medBillLabel = (id) => { const b = state.medEnriched.find((x) => x.id === id); return b ? `${b.provider}${b.patient ? ` · ${b.patient}` : ""}` : t("新账单"); };

@@ -31,6 +31,7 @@ export const groupOf = (category, amount = 0) => {
   const s = statCat(category);
   if (s === "bills") return "bills";
   if (s === "medical") return "medical";
+  if (category === "pet_care") return "other";   // 宠物账单（兽医、寄养）算“其他”；宠物粮食仍在日常储备
   if (s !== "vehicle" && category !== "house_maint" && amount >= bigThreshold()) return "big";   // 大件：单笔大额，但账单、车辆、维修保养不算
   return ["house", "vehicle", "gear", "other"].includes(s) ? s : "groceries";
 };

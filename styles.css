@@ -331,7 +331,7 @@ textarea { resize: vertical; }
 
 /* ── 采购清单 ── */
 .add-row { display: grid; grid-template-columns: minmax(0, 1fr) 80px 90px 130px auto; gap: 8px; }
-.add-row.purchase-row { grid-template-columns: minmax(0, 1fr) 130px 120px 130px 140px auto; }
+.add-row.purchase-row { grid-template-columns: minmax(0, 1fr) 130px 120px 130px 140px auto auto; align-items: center; }
 .add-row.shop-row { grid-template-columns: minmax(0, 1fr) 80px 90px 130px 110px auto; }
 .export-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .export-row select { width: auto; }
