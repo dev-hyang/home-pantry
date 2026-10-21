@@ -42,7 +42,7 @@ export function viewToday() {
     tile({ href: `${href("pantry", "meals")}?ai=`, cls: "t-meals", icon: "🍳", name: t("今天吃什么"), sub: t("按库存和临期食材生成早午晚菜单"), foot: `<span class="pill pill-none">${aiIcon(14)} ${t("AI 菜单助手")}</span>` }),
   ].join("");
 
-  // 快捷操作：每位用户自己的一份（云端存在账号上，换设备也在；演示模式存本机），默认 储藏概览 / 账单概览 / 看花费统计 / 打印
+  // 快捷操作：每位用户自己的一份（云端存在账号上，换设备也在；演示模式存本机），默认 录入购物 / 储藏概览 / 账单概览 / 花费 / 预算 / 打印
   const mine = quickList().map((id) => PRESETS().find((p) => p[0] === id)).filter(Boolean);
   const editing = !!state.quickEdit;
   const last = mine.length - 1;
@@ -74,12 +74,14 @@ export function viewToday() {
 /* ── 每位用户自己的快捷操作：地址（或 action:xxx）的有序列表 ──
  * 云端存在登录账号的 user_metadata.quick，换设备也在，家人之间互不影响；演示模式存本机 */
 const QUICK_KEY = "hmh-quick";
-export const DEFAULT_QUICK = () => [href("pantry", "overview"), href("bills", "overview"), href("me", "stats"), "action:print"];
+export const DEFAULT_QUICK = () => [href("scan"), href("pantry", "overview"), href("bills", "overview"), href("bills", "spend"), href("bills", "budget"), "action:print"];
 export function quickList() {
   let list = null;
   if (Store.mode === "cloud") list = state.user?.user_metadata?.quick;
   else { try { list = JSON.parse(localStorage.getItem(QUICK_KEY) || "null"); } catch { list = null; } }
-  return Array.isArray(list) ? list : DEFAULT_QUICK();
+  if (!Array.isArray(list)) return DEFAULT_QUICK();
+  // 旧的“看花费统计”（我的 → 统计）在账单模块开着时改指向 账单 → 花费，并去掉重复
+  return state.billsEnabled ? [...new Set(list.map((id) => (id === href("me", "stats") ? href("bills", "spend") : id)))] : list;
 }
 export async function saveQuick(list) {
   if (Store.mode === "cloud") {
@@ -94,10 +96,10 @@ const quickHref = (id) => (id === href("me", "stats") && state.billsEnabled ? hr
 const PRESETS = () => [
   [href("pantry", "overview"), "🥫", t("储藏概览")], [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "➕", t("添加储藏物品")],
   state.gearEnabled ? [href("pantry", "gear"), "🧳", t("装备")] : null, state.gearEnabled ? [`${href("item", "new")}?space=gear`, "🧳", t("添加装备")] : null,
-  state.billsEnabled ? [href("bills", "overview"), "🧾", t("账单概览")] : null, state.billsEnabled ? [href("bills", "list"), "📋", t("账单清单")] : null, state.billsEnabled ? [href("bills", "history"), "🕘", t("缴费记录")] : null, state.billsEnabled ? [href("bills", "budget"), "💰", t("预算")] : null, state.billsEnabled ? [href("bill", "new"), "➕", t("添加账单")] : null,
+  state.billsEnabled ? [href("bills", "overview"), "🧾", t("账单概览")] : null, state.billsEnabled ? [href("bills", "list"), "📋", t("账单清单")] : null, state.billsEnabled ? [href("bills", "history"), "🕘", t("缴费记录")] : null, state.billsEnabled ? [href("bills", "spend"), "📊", t("花费")] : null, state.billsEnabled ? [href("bills", "budget"), "💰", t("预算")] : null, state.billsEnabled ? [href("bill", "new"), "➕", t("添加账单")] : null,
   state.houseEnabled ? [href("house"), "🏠", t("房屋")] : null, state.houseEnabled ? [`${href("pantry", "inventory")}?space=house`, "🧰", t("房屋耗材")] : null, state.houseEnabled ? [`${href("item", "new")}?space=house`, "➕", t("添加房屋耗材")] : null, state.houseEnabled ? [href("house", "assets"), "⚙️", t("设备保养")] : null,
   state.houseEnabled ? [href("house", "tasks"), "📅", t("季节任务")] : null, state.houseEnabled ? [href("house", "deal"), "📝", t("交易")] : null, state.houseEnabled ? [href("house", "vehicles"), "🚗", t("车辆")] : null, state.houseEnabled ? [href("asset", "new"), "🛠️", t("添加设备")] : null,
-  [href("shopping"), "🛒", t("采购清单")], [href("scan"), "🧾", t("录入购物")], [href("alerts"), "🔔", t("注意事项")], [href("ai"), "🤖", t("小Y问")], [href("me", "stats"), "📊", t("看花费统计")], [href("me", "settings"), "⚙️", t("设置")],
+  [href("shopping"), "🛒", t("采购清单")], [href("scan"), "🧾", t("录入购物")], [href("alerts"), "🔔", t("注意事项")], [href("ai"), "🤖", t("小Y问")], !state.billsEnabled ? [href("me", "stats"), "📊", t("花费统计")] : null, [href("me", "settings"), "⚙️", t("设置")],
   ["action:print", "🖨️", t("打印")],
 ].filter(Boolean);
 
