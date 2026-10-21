@@ -50,6 +50,8 @@ export const DemoStore = {
     this.persist();
   },
   // 自定义名称的翻译（位置 / 分类 / 小类在其他语言下怎么叫）
+  async getBudget() { return this.db.budget ? { ...this.db.budget } : null; },
+  async saveBudget(b) { this.db.budget = { ...b, updated_at: new Date().toISOString() }; this.persist(); return { ...this.db.budget }; },
   async listTerms() { return (this.db.terms || []).map((x) => ({ ...x })); },
   async saveTerm(r) {
     const now = new Date().toISOString(); this.db.terms ||= [];
@@ -400,6 +402,16 @@ export const CloudStore = {
   async renameLocation(oldName, newName) {
     this.must(await this.sb.from("items").update({ location: newName }).eq("household_id", this.hid).eq("location", oldName));
     this.must(await this.sb.from("assets").update({ location: newName }).eq("household_id", this.hid).eq("location", oldName));
+  },
+  /** 预算（收入、储蓄比例、各类预算）：每个家庭一行；迁移 022 还没执行时读不到，当作还没设置 */
+  async getBudget() {
+    const r = await this.sb.from("household_budgets").select("*").eq("household_id", this.hid).maybeSingle();
+    if (r.error) { console.warn("[budget]", r.error.message); return null; }
+    return r.data;
+  },
+  async saveBudget(b) {
+    const row = { household_id: this.hid, income_amount: b.income_amount, income_period: b.income_period, savings_pct: b.savings_pct, cat_budgets: b.cat_budgets || {}, updated_by: state.user.id };
+    return this.must(await this.sb.from("household_budgets").upsert(row, { onConflict: "household_id" }).select().single());
   },
   async listTerms() { return this.must(await this.sb.from("custom_terms").select("*").eq("household_id", this.hid)); },
   async saveTerm(r) { this.must(await this.sb.from("custom_terms").upsert(pick(r, TERM_FIELDS, { household_id: this.hid, updated_by: state.user.id }), { onConflict: "household_id,term" })); },

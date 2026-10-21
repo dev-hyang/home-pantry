@@ -334,6 +334,7 @@ textarea { resize: vertical; }
 /* ── 采购清单 ── */
 .add-row { display: grid; grid-template-columns: minmax(0, 1fr) 80px 90px 130px auto; gap: 8px; }
 .add-row.purchase-row { grid-template-columns: minmax(0, 1fr) 130px 120px 130px 140px auto; }
+.add-row.shop-row { grid-template-columns: minmax(0, 1fr) 80px 90px 130px 110px auto; }
 .export-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .export-row select { width: auto; }
 .store-table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 13px; white-space: nowrap; }
@@ -341,7 +342,7 @@ textarea { resize: vertical; }
 .store-table th:first-child { text-align: left; }
 .store-table .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 @media (max-width: 720px) {
-  .add-row, .add-row.purchase-row { grid-template-columns: 1fr 1fr; }
+  .add-row, .add-row.purchase-row, .add-row.shop-row { grid-template-columns: 1fr 1fr; }
   .add-row > :first-child, .add-row .btn { grid-column: 1 / -1; }
 }
 .price-in { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 6px; margin-top: 8px; }
@@ -1005,3 +1006,22 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .rec-list .rec-month { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 6px; padding: 8px 0 4px; border-bottom: 1px solid var(--line); font-size: 13px; }
 .rec-list .rec-month:first-child { margin-top: 0; }
 .rec-list .rec-month b { font-size: 14px; }
+
+/* 预算 */
+.bud-row { display: grid; gap: 4px; padding: 8px 0; }
+.bud-row + .bud-row { border-top: 1px solid var(--line); }
+.bud-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.bud-head span { color: var(--muted); font-size: 13px; }
+.bud-bar { position: relative; height: 10px; border-radius: 99px; background: var(--surface-2); overflow: visible; }
+.bud-bar i { display: block; height: 100%; border-radius: 99px; background: var(--pine); }
+.bud-bar.warn i { background: var(--low); }
+.bud-bar.over i { background: var(--out); }
+.bud-bar u { position: absolute; top: -3px; width: 2px; height: 16px; background: var(--ink); opacity: .55; text-decoration: none; }
+.bud-total { margin-top: 6px; padding-top: 6px; border-top: 2px solid var(--line); }
+.bud-total .bud-row { border-top: 0; }
+.bud-tip { padding: 10px 12px; border: 1px solid var(--line); border-left: 4px solid var(--mustard, #b07a1a); border-radius: var(--r-sm); background: var(--surface); margin-bottom: 12px; }
+.panel.bud-tip { margin-bottom: 12px; }
+.bud-advice { margin: 6px 0 8px; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+.bud-sites { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.bud-sites li { display: grid; gap: 1px; }
+.down { color: var(--out); }

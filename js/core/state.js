@@ -27,6 +27,8 @@ export const state = {
   tasksYM: null,                       // 季节任务页当前查看的年月 "YYYY-MM"（null = 本月）
   customSeasonal: [],                  // 自定义季节任务（每年重复 / 一次性，按房产）
   seasonForm: null,                    // 正在编辑的自定义任务 { id } 或新建 { id: null }
+  budget: null,                                // 预算设置：{ income_amount, income_period, savings_pct, cat_budgets }
+  shopAdvice: null,                            // 采购清单：刚加入的带预估金额的项目的预算提示
   spendFilter: { q: "", cat: "all", store: "all", month: "all", sort: "new", limit: 20 },   // 花费记录的搜索、筛选、排序
   stats: { months: 6, month: null, cat: null, itemId: null },
   filter: { space: "pantry", cat: "all", sub: "all", q: "", status: "all", loc: "all" },   // 库存清单：空间、分类、关键词、状态、存放位置

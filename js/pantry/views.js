@@ -8,6 +8,7 @@ import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, 
 import { href } from "../core/router.js";
 import { compare, joinList, lang, t } from "../core/i18n.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
+import { shopAdviceHtml } from "../bills/budget.js";
 
 /* ── 概览（储藏 / 房屋耗材共用）── */
 export function restockPanel(alerts, limit = 8) {
@@ -397,11 +398,13 @@ export function viewShopping() {
       <div class="section-head"><h2>${t("采购清单")}</h2>
         <div class="head-acts"><a class="btn btn-sm btn-primary" href="${href("scan")}">🧾 ${t("录入购物")}</a>
           <button type="button" class="btn btn-sm" data-action="shop-add-alerts">${t("把补货提醒加进来")}</button></div></div>
-      <form class="panel add-row" id="shopForm" aria-label="${t("手动添加采购项")}">
+      ${shopAdviceHtml()}
+      <form class="panel add-row shop-row" id="shopForm" aria-label="${t("手动添加采购项")}">
         <input name="name" required maxlength="60" placeholder="${t("要买什么")}" list="itemNames" aria-label="${t("名称")}">
         <input name="quantity" type="number" min="0.1" step="0.1" value="1" aria-label="${t("数量")}">
         <input name="unit" list="unitList" placeholder="${t("单位")}" maxlength="10" aria-label="${t("单位")}">
         <select name="category" aria-label="${t("分类")}"><option value="">${t("自动分类")}</option>${categoryOptions()}</select>
+        <input name="estimate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="${t("预估金额")}" aria-label="${t("预估金额（可不填，用来做预算提示）")}">
         <button class="btn btn-primary" type="submit">${t("加入清单")}</button>
       </form>
       ${storeDatalist()}

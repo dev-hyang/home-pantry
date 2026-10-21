@@ -14,10 +14,11 @@ import { seasonAlertItems } from "./house/tasks.js";
 import { completeVehicleDeal, dealAlertItems } from "./house/deals.js";
 import { billAlertItems } from "./bills/logic.js";
 // 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
-[pantryAlertItems, billAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
+[pantryAlertItems, billAlertItems, budgetAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
 import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { printSheet } from "./settings/print.js";
 import { resetScan, scanAction, viewScan } from "./pantry/scan.js";
+import { budgetAction, budgetAlertItems, groupForCategory, viewBudget } from "./bills/budget.js";
 import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
@@ -45,13 +46,15 @@ export async function refresh() {
     try {
       // 所有表一次并行读完（云端一轮往返），再在内存里定当前房产；采购花费只有统计和导出用，不挡首屏，渲染后后台再读
       const members = state.membersReady; state.membersReady = null;   // 登录后与这一轮并行去读家庭成员
-      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms] = await Promise.all([
+      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget] = await Promise.all([
         Store.listProperties(), Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listHouseProfiles(),
         Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince()), Store.listBills(), Store.listBillPayments(),
         Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations(), Store.listDealExtras(),
         Store.listCustomSeasonal().catch((e) => { console.warn("[custom seasonal]", e.message); return []; }),   // 迁移还没执行时读不到：不影响其他功能
         Store.listTerms().catch((e) => { console.warn("[terms]", e.message); return null; }),
+        Store.getBudget().catch(() => null),
         members]);
+      state.budget = budget;
       state.customSeasonal = customSeasonal;
       if (terms) setGlossary(terms);   // 自定义名称的翻译
       state.properties = properties;
@@ -106,7 +109,7 @@ const VIEWS = {
   pantry:   { overview: viewDashboard, inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
-  bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, spend: viewSpend, template: viewBillTemplate },
+  bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, spend: viewSpend, budget: viewBudget, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout },
@@ -549,6 +552,7 @@ main.addEventListener("submit", async (e) => {
       const linked = state.items.find((i) => i.name === name);
       if (linked && openShopFor(linked.id)) return toast(t("{name} 已经在清单里了", { name }));
       await Store.saveShopping({ name, quantity: Math.max(0.1, num(f.elements.quantity.value, 1)), unit: f.elements.unit.value.trim() || (linked ? du(linked.unit) : ""), item_id: linked?.id || null, category: f.elements.category.value || linked?.category || "other" });
+      { const est = num(f.elements.estimate?.value, NaN); state.shopAdvice = Number.isFinite(est) && est > 0 ? { name, estimate: est, group: groupForCategory(linked?.category || f.elements.category.value) } : null; }
       toast(t("已加入：{name}", { name })); refresh();
     }
     if (f.id === "nameForm") {
@@ -579,6 +583,7 @@ main.addEventListener("click", async (e) => {
   const { action, id } = el.dataset;
   try {
     if (action?.startsWith("scan-")) return scanAction(action, el, { go, refresh });
+    if (action === "budget-reset" || action === "shop-advice-close") return budgetAction(action, { refresh, render });
     switch (action) {
       case "add-item": return openItem(null, { space: el.dataset.space });
       case "edit": return openItem(id);
@@ -620,7 +625,7 @@ main.addEventListener("click", async (e) => {
       }
       case "quick-reset": await saveQuick(DEFAULT_QUICK()); toast(t("已恢复默认快捷操作")); return render();
       case "quick-run": if (el.dataset.id === "action:print") go(`${href("me", "settings")}?sec=print`); return;   // 打印：进入 设置 → 打印
-      case "print-run": return printSheet(el.dataset.kind, $("#printProp")?.value || "all");
+      case "print-run": return printSheet(el.dataset.kind, el.dataset.kind === "spend" ? { months: +($("#printRange")?.value || state.stats.months), useFilter: !!el.dataset.filtered } : $("#printProp")?.value || "all");
       case "inv-space": return go(el.dataset.space === "house" ? `${href("pantry", "inventory")}?space=house` : href("pantry", "inventory"));
       case "supply-add": {   // 设备页“相关耗材”：一键把推荐耗材加进库存
         const it = supplyItem(el.dataset.name); if (!it) return;
@@ -1070,6 +1075,7 @@ export async function boot() {
   if (lang === "zh-Hant") await loadOpenCC();   // 繁體：先把转换库拉下来再渲染，避免先简后繁闪一下
   applyChrome();
   fillUnitList();
+  document.addEventListener("budget-saved", () => render());
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.enriched) refreshSoon(); });
   // 跨过手机 / 宽屏分界（旋转 iPad、拖窗口）：库存页在方块仪表盘和分类导航之间切换
   window.matchMedia("(max-width: 640px)").addEventListener("change", () => { const r = state.route; if (state.enriched && ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies"))) render(true); });

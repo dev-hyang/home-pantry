@@ -28,9 +28,9 @@ export function lastMonths(n) {
   return out;
 }
 
-export function spendData() {
+export function spendData(n = state.stats.months) {
   const cur = Units.region.currency;
-  const months = lastMonths(state.stats.months);
+  const months = lastMonths(n);
   const byMC = Object.fromEntries(months.map((m) => [m, {}]));
   const counts = Object.fromEntries(months.map((m) => [m, 0]));
   let otherCurrency = 0;
@@ -202,7 +202,7 @@ export function viewStats() {
 export const SPEND_SORTS = [["new", "时间：新 → 旧"], ["old", "时间：旧 → 新"], ["high", "金额：高 → 低"], ["low", "金额：低 → 高"], ["name", "名称 A → Z"]];
 const PAGE = 20;
 const amountOf = (p) => (p.amount != null && (!p.currency || p.currency === Units.region.currency) ? num(p.amount) : 0);
-function filteredSpend() {
+export function filteredSpend() {
   const f = state.spendFilter, q = f.q.trim().toLowerCase();
   let list = state.purchases.filter((p) => {
     if (f.cat !== "all" && statCat(p.category) !== f.cat) return false;
@@ -260,7 +260,7 @@ function spendRecordsHtml() {
   const cats = STAT_CATS().filter((c) => ps.some((p) => statCat(p.category) === c.id));
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;
   const mo = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
-  return `<div class="section-head"><h2>${t("花费记录")}</h2><p id="spendSum">${esc(spendSummary())}</p></div>
+  return `<div class="section-head"><h2>${t("花费记录")}</h2><div class="head-acts"><span id="spendSum" class="muted">${esc(spendSummary())}</span><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="spend" data-filtered="1">${t("打印")}</button></div></div>
     <div class="panel">
       <div class="toolbar">
         <input type="search" id="spendSearch" placeholder="${t("搜索名称或商店")}" value="${esc(f.q)}" aria-label="${t("搜索花费记录")}">
