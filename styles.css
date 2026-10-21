@@ -1169,3 +1169,23 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .person-merge { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface-2); }
 .person-merge select { flex: 1 1 160px; min-width: 0; max-width: 260px; }
 .person-merge small { flex: 1 1 100%; }
+
+/* 手机上的一次性账单：列表行先放“状态 + 金额”，名字和细节另起一行占满；付款行日期 + 按钮一行，说明另起一行；年度报表的表格改成一条一卡；编辑页保存栏常驻底部 */
+@media (max-width: 440px) {
+  .med-li, .med-pay { flex-wrap: wrap; gap: 4px 8px; }
+  .med-li > .badge, .med-pay > .badge { order: 1; }
+  .med-li > b { order: 2; margin-left: auto; }
+  .med-li > .grow, .med-pay > .grow { order: 3; flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; }
+  .med-pay > .btn { order: 2; }
+  .med-pay > .badge + .grow + .btn { margin-left: auto; }
+  .med-tbl, .med-tbl tbody, .med-tbl tr, .med-tbl th, .med-tbl td { display: block; }
+  .med-tbl thead { display: none; }
+  .med-tbl { min-width: 0 !important; width: 100%; }
+  .med-tbl tr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .med-tbl tr:last-child { border-bottom: 0; }
+  .med-tbl th, .med-tbl td { white-space: normal !important; }
+  .med-tbl th[scope="row"] { grid-column: 1 / -1; padding: 0 0 2px; font-size: 15px; text-align: left; overflow-wrap: anywhere; }
+  .med-tbl td { padding: 0; text-align: left; font-weight: 700; }
+  .med-tbl td::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+  body.editing .sticky-actions { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }   /* 编辑页没有底部页签，保存栏贴底 */
+}

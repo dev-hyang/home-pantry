@@ -35,7 +35,7 @@ export function medRow(b) {
   const who = [b.kind !== "medical" ? t(kindOf(b).name) : null, b.patient, b.service_date ? fmtDate(b.service_date) : null, b.bill_ref ? `#${b.bill_ref}` : null].filter(Boolean).map(esc).join(" · ");
   const amt = b.status === "paid" ? mny(b.paid, b.currency) : b.balance != null ? mny(b.balance, b.currency) : mny(b.billed_amount, b.currency);
   const due = b.open && b.due_on ? ` · ${b.overdue ? `<b class="down">${t("逾期")}</b> ` : ""}${t("到期 {d}", { d: fmtDate(b.due_on) })}` : "";
-  return `<li><span class="badge ${STATUS_CLS[b.status] || ""}">${t(STATUS[b.status] || b.status)}</span>
+  return `<li class="med-li"><span class="badge ${STATUS_CLS[b.status] || ""}">${t(STATUS[b.status] || b.status)}</span>
     <div class="grow">${lock(b)}<a class="link-name" href="${detailHref(b.id)}">${subIcon(b)} ${esc(b.provider)}</a><small>${who}${due}</small></div>
     <b title="${esc(b.status === "paid" ? t("已付") : t("余额"))}">${amt}</b></li>`;
 }
@@ -99,8 +99,8 @@ function reportTab() {
   const payYear = state.medPayments.filter((p) => String(p.paid_on).startsWith(y) && state.medBills.some((b) => b.id === p.bill_id));
   const sum = (arr, f) => arr.reduce((s, x) => s + f(x), 0);
   const group = (key) => { const m = new Map(); for (const b of inYear) { const k = b[key] || t("（未填）"); const g = m.get(k) || { name: k, n: 0, billed: 0, ins: 0, adj: 0, owed: 0, paid: 0 }; g.n++; g.billed += num(b.billed_amount); g.ins += num(b.insurance_paid); g.adj += num(b.adjustment); g.owed += b.owed || 0; g.paid += b.paid; m.set(k, g); } return [...m.values()].sort((a, b) => b.owed - a.owed); };
-  const table = (title, rows) => `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${title}</h3><div class="ch-scroll"><table class="store-table"><thead><tr><th scope="col">${t("名称")}</th><th scope="col">${t("张数")}</th><th scope="col">${t("账单总额")}</th><th scope="col">${t("保险已付")}</th><th scope="col">${t("自付金额")}</th><th scope="col">${t("已付")}</th></tr></thead>
-    <tbody>${rows.map((g) => `<tr><th scope="row">${esc(g.name)}</th><td>${g.n}</td><td>${esc(mny(g.billed))}</td><td>${esc(mny(g.ins))}</td><td>${esc(mny(g.owed))}</td><td>${esc(mny(g.paid))}</td></tr>`).join("")}</tbody></table></div></div>`;
+  const table = (title, rows) => `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${title}</h3><div class="ch-scroll"><table class="store-table med-tbl"><thead><tr><th scope="col">${t("名称")}</th><th scope="col">${t("张数")}</th><th scope="col">${t("账单总额")}</th><th scope="col">${t("保险已付")}</th><th scope="col">${t("自付金额")}</th><th scope="col">${t("已付")}</th></tr></thead>
+    <tbody>${rows.map((g) => `<tr><th scope="row">${esc(g.name)}</th><td data-label="${esc(t("张数"))}">${g.n}</td><td data-label="${esc(t("账单总额"))}">${esc(mny(g.billed))}</td><td data-label="${esc(t("保险已付"))}">${esc(mny(g.ins))}</td><td data-label="${esc(t("自付金额"))}">${esc(mny(g.owed))}</td><td data-label="${esc(t("已付"))}">${esc(mny(g.paid))}</td></tr>`).join("")}</tbody></table></div></div>`;
   const hsa = sum(payYear.filter((p) => state.medBills.find((b) => b.id === p.bill_id)?.hsa_eligible), (p) => num(p.amount));
   return `<div class="range-row"><label class="field-label" for="medReportYear" style="margin:0">${t("年份")}</label>
       <select id="medReportYear">${years.map((v) => `<option value="${v}" ${v === y ? "selected" : ""}>${t("{y} 年", { y: v })}</option>`).join("")}</select>
@@ -168,7 +168,7 @@ function viewDetail(id, payId) {
       ${peopleFor(v.kind) ? personAddPanel(v.kind) : ""}
       <datalist id="medProviders">${[...new Set(state.medBills.map((x) => x.provider))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
       <p id="medBillError" class="form-error" role="alert"></p>
-      <div class="form-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>
+      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>
         ${b ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="med-del" data-id="${b.id}">${t("删除这张账单")}</button>` : ""}</div>
     </form>
     ${b ? paymentsHtml(b, pay, owedNow) : `<p class="muted">${t("先保存账单，再记付款。")}</p>`}
@@ -178,7 +178,7 @@ function viewDetail(id, payId) {
 const METHODS = ["信用卡", "借记卡", "HSA 卡", "FSA 卡", "支票", "银行转账（ACH）", "网上支付", "电话支付", "现金", "其他"];
 const methodOptions = (cur) => `<option value="">${t("（未选）")}</option>${METHODS.map((m) => `<option value="${esc(m)}" ${m === cur ? "selected" : ""}>${esc(t(m))}</option>`).join("")}${cur && !METHODS.includes(cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}`;
 function paymentsHtml(b, edit, owed) {
-  const rows = b.pays.map((p) => `<li><span class="badge" style="background:var(--surface-2)">${esc(fmtDate(p.paid_on))}</span>
+  const rows = b.pays.map((p) => `<li class="med-pay"><span class="badge" style="background:var(--surface-2)">${esc(fmtDate(p.paid_on))}</span>
       <div class="grow"><span class="name">${mny(p.amount, p.currency || b.currency)}</span><small>${[p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <a class="btn btn-sm btn-ghost" href="${detailHref(b.id)}&pay=${p.id}">${t("编辑")}</a>
       <button type="button" class="btn btn-sm btn-ghost" data-action="med-pay-del" data-id="${p.id}">${t("删除")}</button></li>`).join("");
