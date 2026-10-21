@@ -12,8 +12,8 @@ import { categoryOptions } from "./views.js";
 import { compressImage as compress } from "../core/autofill.js";
 
 const MAX_IMAGES = 4;
-const sc = { kind: "receipt", step: "input", images: [], text: "", busy: false, error: "", result: null, pool: [] };
-export function resetScan() { Object.assign(sc, { kind: "receipt", step: "input", images: [], text: "", busy: false, error: "", result: null, pool: [] }); }
+const sc = { kind: "receipt", step: "input", images: [], text: "", date: "", busy: false, error: "", result: null, pool: [] };
+export function resetScan() { Object.assign(sc, { kind: "receipt", step: "input", images: [], text: "", date: "", busy: false, error: "", result: null, pool: [] }); }
 const repaint = () => { const m = $("#main"); if (m && state.route.section === "scan") m.innerHTML = viewScan(); };
 
 /* ───────────── 提示词与结果整理 ───────────── */
@@ -31,11 +31,14 @@ function scanPrompt() {
     "amount = the final price paid for that line (apply line discounts). Skip tax, tip, bag fees, delivery/service fees, subtotal and payment lines (set skip=true or omit them).",
     "match = the index of the best matching existing inventory item from the list I give you, or null if none is a clear match.",
     `category = one of: ${cats}; use "other" if unsure.`,
-    "date = purchase/order date as YYYY-MM-DD if visible, else null. total = grand total as a number if visible, else null.",
+    `Today is ${todayISO()}.`,
+    "date = the purchase / order date as YYYY-MM-DD. Look for it on the receipt (usually near the top or bottom, next to the time) or in the order details; for pasted text, also understand phrases like \"last Saturday\" or \"10/18\" relative to today (US order: month/day unless the year comes first). If the year is missing, use the most recent past date. Never a future date. null only if there is truly no date.",
+    "total = grand total as a number if visible, else null.",
   ].join("\n");
   const user = [
     sc.kind === "order" ? "Source: an ONLINE ORDER (confirmation email, order page or app screenshot)." : "Source: an IN-STORE RECEIPT photo.",
     "Existing inventory (index|name|unit):", buildPool() || "(empty)",
+    sc.date ? `The user says the purchase date is ${sc.date}; use it as date.` : "",
     sc.text.trim() ? `Pasted text:\n${sc.text.trim().slice(0, 12000)}` : "",
     sc.images.length ? `${sc.images.length} image(s) attached.` : "",
     'Return exactly: {"store":"","date":null,"currency":"","total":null,"lines":[{"raw":"original line","name":"","qty":1,"unit":"","amount":null,"match":null,"category":"other","skip":false}]}',
@@ -59,9 +62,10 @@ function normalize(j) {
       amount: Number.isFinite(amount) ? Math.round(amount * 100) / 100 : null, match: m?.id || "", category: valid ? l.category : m?.category || "other" };
   });
   if (!rows.length) throw new Error(t("没有读到商品。小票拍清楚些（整张、不反光），或把订单文字粘贴进来。"));
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(j.date || "") && j.date <= todayISO() ? j.date : todayISO();
+  const found = /^\d{4}-\d{2}-\d{2}$/.test(j.date || "") && j.date <= todayISO();
+  const date = sc.date || (found ? j.date : todayISO()), dateSrc = sc.date ? "user" : found ? "receipt" : "today";   // 你填的 > 小票 / 文字里读到的 > 今天
   const total = j.total == null ? null : num(j.total, NaN);
-  return { store: String(j.store || "").trim().slice(0, 40), date, total: Number.isFinite(total) ? total : null, rows };
+  return { store: String(j.store || "").trim().slice(0, 40), date, dateSrc, total: Number.isFinite(total) ? total : null, rows };
 }
 
 /* ───────────── 页面 ───────────── */
@@ -90,6 +94,8 @@ function inputHtml() {
       <label class="scan-text">${order ? t("订单文字（订单确认邮件、网页或 App 订单详情，整段粘贴）") : t("补充文字（可选，例如小票上识别不出的商品）")}
         <textarea id="scanText" rows="${order ? 8 : 3}" maxlength="12000" placeholder="${order ? t("例如：Instacart / Amazon / 京东 / 盒马 的订单确认内容") : ""}">${esc(sc.text)}</textarea></label>
       <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("图片和文字会发给你在设置里选的 {p}，不会保存原图。小票上的卡号、姓名建议裁掉或遮住再拍。Gemini 免费档的内容可能被用于改进产品，介意的话用付费 key。", { p: t(p.name) })}</p>
+      <label class="inc-field scan-date">${t("购买日期（选填）")}<input type="date" id="scanDate" max="${todayISO()}" value="${esc(sc.date)}"></label>
+      <p class="muted" style="margin:0;font-size:12.5px">${t("默认按小票上的日期记：拍照时把日期也拍进去，或在上面的文字里写上日期（例如 2026-10-18、上周六）。都没有就用今天。补记以前的购物，在这里选那天就行。")}</p>
       ${sc.error ? `<p class="form-error" role="alert">${esc(sc.error)}</p>` : ""}
       <div class="form-actions"><button type="button" class="btn btn-primary" data-action="scan-run" ${!ready || sc.busy || (!sc.images.length && !sc.text.trim()) ? "disabled" : ""}>${sc.busy ? t("正在识别…（几十秒）") : t("识别")}</button></div>
     </div>`;
@@ -109,7 +115,7 @@ function reviewHtml() {
     <form id="scanForm" class="panel" novalidate>
       <div class="form-grid">
         <label>${t("商店")}<input name="store" maxlength="40" list="storeList" value="${esc(r.store)}"></label>
-        <label>${t("购买日期")}<input name="date" type="date" value="${esc(r.date)}"></label>
+        <label>${t("购买日期")}<input name="date" type="date" max="${todayISO()}" value="${esc(r.date)}"><small class="${r.dateSrc === "today" ? "form-error" : "muted"}">${r.dateSrc === "user" ? t("你填的日期") : r.dateSrc === "receipt" ? t("取自小票 / 文字，不对可以改") : t("没有读到日期，先用今天；补记的话请改成实际购买日")}</small></label>
       </div>
       ${storeDatalist()}
       <ul class="scan-rows">${r.rows.map((x, i) => `<li class="scan-row ${x.match ? "" : "is-new"}" data-i="${i}">
@@ -151,6 +157,7 @@ document.addEventListener("change", async (e) => {
   if (e.target.closest?.("#scanForm")) updateSum();
 });
 document.addEventListener("input", (e) => {
+  if (e.target.id === "scanDate") { sc.date = e.target.value; return; }
   if (e.target.id === "scanText") { sc.text = e.target.value; const b = document.querySelector('[data-action="scan-run"]'); if (b) b.disabled = !aiReady() || sc.busy || (!sc.images.length && !sc.text.trim()); }
   else if (e.target.closest?.("#scanForm")) updateSum();
 });
