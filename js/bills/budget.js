@@ -97,7 +97,9 @@ export function actualByMonth() {
 export const myId = () => state.user?.id || "me";
 /** 演示模式只有一个人，当家主；云端按 household_members.role */
 export const isHouseholdOwner = () => Store.mode !== "cloud" || state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
-export const monthlyOf = (inc) => (inc.income_period === "year" ? num(inc.income_amount) / 12 : num(inc.income_amount));
+/** 一个人的收入明细：多份收入（主业、兼职…）；旧数据只有一个金额时当作一份 */
+export const linesOf = (row) => (row?.lines?.length ? row.lines : row && num(row.income_amount) > 0 ? [{ id: "legacy", label: "", amount: num(row.income_amount), period: row.income_period || "month" }] : []);
+export const monthlyOf = (row) => linesOf(row).reduce((s, l) => s + (l.period === "year" ? num(l.amount) / 12 : num(l.amount)), 0);
 /** 全家每月收入合计（家主读得到全部；其他成员只会有自己那一行，所以不要拿它当全家数字用） */
 export const totalIncomeMonthly = () => state.incomes.reduce((s, i) => s + monthlyOf(i), 0);
 

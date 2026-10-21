@@ -53,7 +53,7 @@ export const DemoStore = {
   /* 每位成员自己的收入（演示模式只有“我”） */
   async listIncomes() { return (this.db.incomes || []).map((x) => ({ ...x })); },
   async saveIncome(r) {
-    this.db.incomes ||= []; const row = { ...r, updated_at: new Date().toISOString() }, i = this.db.incomes.findIndex((x) => x.user_id === r.user_id);
+    this.db.incomes ||= []; const row = { user_id: r.user_id, lines: r.lines, income_amount: incomeTotal(r.lines), income_period: "month", updated_at: new Date().toISOString() }, i = this.db.incomes.findIndex((x) => x.user_id === r.user_id);
     if (i >= 0) this.db.incomes[i] = row; else this.db.incomes.push(row);
     this.persist(); return { ...row };
   },
@@ -387,6 +387,8 @@ export const TERM_FIELDS = ["term", "zh", "en", "hant"];
 export const DEAL_FIELDS = ["property_id", "asset_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at"];
 export const DEAL_CUSTOM_FIELDS = ["deal_id", "name", "stage", "priority", "due_on", "note", "done_on", "done_by_name"];
 export const CUSTOM_SEASONAL_FIELDS = ["property_id", "name", "note", "months", "due_on", "done_on", "done_by_name"];
+/** 一个人所有收入折合每月的合计（存在旧的 income_amount 列里，兼容旧版） */
+const incomeTotal = (lines) => Math.round((lines || []).reduce((s, l) => s + (l.period === "year" ? num(l.amount) / 12 : num(l.amount)), 0) * 100) / 100;
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
 export const CloudStore = {
@@ -415,7 +417,7 @@ export const CloudStore = {
   /** 收入：行级安全保证本人只能读到自己的，家主能读到全家的（迁移 023） */
   async listIncomes() { return this.must(await this.sb.from("member_incomes").select("*").eq("household_id", this.hid)); },
   async saveIncome(r) {
-    const row = { household_id: this.hid, user_id: r.user_id, income_amount: r.income_amount, income_period: r.income_period, updated_at: new Date().toISOString() };
+    const row = { household_id: this.hid, user_id: r.user_id, lines: r.lines, income_amount: incomeTotal(r.lines), income_period: "month", updated_at: new Date().toISOString() };
     return this.must(await this.sb.from("member_incomes").upsert(row, { onConflict: "household_id,user_id" }).select().single());
   },
   async deleteIncome(uid) { this.must(await this.sb.from("member_incomes").delete().eq("household_id", this.hid).eq("user_id", uid)); },
