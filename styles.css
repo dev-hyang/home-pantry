@@ -1191,3 +1191,12 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 }
 .med-pay.is-editing { background: var(--surface-2); border-radius: var(--r-sm); }   /* 正在编辑的那一笔付款 */
 .med-pay a.badge { text-decoration: none; color: inherit; }
+
+/* 家庭成员页（手机）：操作按钮和合并面板的按钮放大到好点的高度；说明折叠起来，少占首屏 */
+.people-help { margin: 0 0 12px; font-size: 13px; }
+.people-help > summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; color: var(--pine); font-weight: 600; }
+@media (max-width: 440px) {
+  .person-actions .btn, .person-merge .btn { min-height: 40px; padding-left: 14px; padding-right: 14px; }
+  .person-actions { gap: 6px; }
+  .person-row > .badge { align-self: flex-start; margin-top: 2px; }
+}

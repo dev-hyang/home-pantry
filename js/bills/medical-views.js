@@ -313,7 +313,8 @@ export function viewPeople() {
         <small class="muted">${t("它的账单会全部归到所选的人名下，然后这一条被删除。")}</small></div>` : ""}</li>`;
   return `<section class="section">
     <div class="section-head"><h2>👪 ${t("家庭成员 / 孩子 / 宠物")}</h2></div>
-    <p class="muted kinds-note">${t("一次性账单里的患者、担保人从这里选。同一个人只建一次：家人各自录入“Alice Y”和“Alice”不会变成两个人（名字忽略大小写和空格，近似的会先问你）。改名后所有账单跟着变；建重了可以“合并”。")}</p>
+    <p class="muted kinds-note" style="margin-bottom:6px">${t("一次性账单里的患者、担保人从这里选；同一个人只建一次。")}</p>
+    <details class="people-help"><summary>${t("怎么避免重复？")}</summary><p class="muted" style="margin:6px 0 0;font-size:13px">${t("家人各自录入“Alice Y”和“Alice”不会变成两个人：名字忽略大小写和空格，近似的新增时会先问你是不是同一个人。改名后所有账单跟着变；建重了可以“合并”。")}</p></details>
     <div class="panel">${state.people.length ? `<ul class="restock-list">${state.people.map(row).join("")}</ul>` : `<div class="empty"><strong>${t("名册还是空的")}</strong>${t("大人会自动加入；孩子和宠物在下面添加。")}</div>`}</div>
     <div class="panel" style="margin-top:10px"><h3 style="font-size:15px;margin:0 0 6px">${t("批量添加")}</h3>
       <p class="muted" style="margin:0 0 6px;font-size:13px">${t("每行一个名字。小月亮的孩子在另一个账号体系里，这里读不到，把名字抄过来一次就行。")}</p>
