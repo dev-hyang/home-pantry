@@ -61,14 +61,16 @@
         <div>
           <div class="brand-row">
             <h1 id="appTitle">爱家小助手</h1>
-            <!-- 姐妹站点切换（与家庭学堂顶栏一致）：站名旁两枚小胶囊「‹ 上一个」「下一个 ›」 -->
-            <span class="apps" id="apps" aria-label="切换姐妹站点"></span>
           </div>
           <p id="hhName" class="hh-name"></p>
         </div>
       </div>
-      <!-- 右上角快捷切换语言：简体 / 繁體 / EN，与 设置 → 语言 同一份设置 -->
-      <div class="lang-switch" id="langSwitch" role="group" aria-label="切换语言"></div>
+      <div class="top-right">
+        <!-- 应用切换（四个姊妹站点共用的九宫格入口，见 shared/app-switcher.js）；站名留给各站自己的用途，不在这里占位 -->
+        <span class="apps" id="apps"></span>
+        <!-- 右上角快捷切换语言：简体 / 繁體 / EN，与 设置 → 语言 同一份设置 -->
+        <div class="lang-switch" id="langSwitch" role="group" aria-label="切换语言"></div>
+      </div>
     </div>
     <nav class="tabs" id="tabs" aria-label="主导航">
       <a href="#/today" data-section="today"><span aria-hidden="true">🗓️</span>今日</a>

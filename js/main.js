@@ -5,6 +5,7 @@ import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
+import { mountAppSwitcher } from "../shared/app-switcher.js";
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { DEFAULT_QUICK, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewToday } from "./today.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
@@ -150,18 +151,15 @@ $("#langSwitch")?.addEventListener("click", (e) => {
   changeLang(b.dataset.lang);
 });
 
-/* ───────────── 姐妹站点切换（与家庭学堂顶栏一致：站名旁「‹ 上一个」「下一个 ›」两枚小胶囊） ───────────── */
+/* ───────────── 应用切换：顶栏右侧九宫格按钮，宽屏浮层 / 窄屏底部抽屉；名单在 shared/apps.json（四个站点共用） ───────────── */
 const APP_ID = "home-pantry";
 export const sisterApps = () => window.SISTER_APPS || [];
 function renderAppSwitch() {
   const box = $("#apps"); if (!box) return;
-  const list = sisterApps(), i = list.findIndex((a) => a.id === APP_ID);
-  if (list.length < 2 || i < 0) { box.innerHTML = ""; return; }
-  const prev = list[(i - 1 + list.length) % list.length], next = list[(i + 1) % list.length];   // 三站循环，和另外两站的顺序一致
-  const pill = (a, label) => `<a class="badge app" href="${esc(a.url)}" title="${esc(t("切到{name}", { name: t(a.name) }))}" aria-label="${esc(t("切到{name}", { name: t(a.name) }))}">${label}</a>`;
-  box.setAttribute("aria-label", t("切换姐妹站点"));
-  box.innerHTML = pill(prev, `‹ ${esc(t(prev.short))}`) + pill(next, `${esc(t(next.short))} ›`);
+  mountAppSwitcher({ host: box, current: APP_ID, lang, onApps: (fresh) => { window.SISTER_APPS = fresh.map(toSister); } });
 }
+// 共享名单的格式 → 设置页、介绍页、“我的”目录用的旧格式（name / short / sub 按当前语言取）
+const toSister = (a) => ({ id: a.id, icon: a.icon, url: a.url, name: a.name?.zh || a.name, short: a.short?.zh || a.name?.zh || a.name, sub: a.sub?.zh || a.sub || "" });
 
 /** force=true：路由变化，整页重画；false：数据刷新，表单页保持不动 */
 export function render(force = true) {

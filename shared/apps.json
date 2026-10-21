@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "apps": [
+    { "id": "baby-log",    "icon": "🌙", "url": "https://dev-hyang.github.io/baby-log/",
+      "name":  { "zh": "小月亮",     "tw": "小月亮",     "en": "Little Moon" },
+      "sub":   { "zh": "母婴记录",   "tw": "母嬰記錄",   "en": "Baby log" } },
+    { "id": "homeschool",  "icon": "📚", "url": "https://dev-hyang.github.io/homeschool/",
+      "name":  { "zh": "家庭学堂",   "tw": "家庭學堂",   "en": "Family Homeschool" },
+      "sub":   { "zh": "在家教育",   "tw": "在家教育",   "en": "Homeschooling" } },
+    { "id": "home-pantry", "icon": "🥫", "url": "https://dev-hyang.github.io/home-pantry/",
+      "name":  { "zh": "爱家小助手", "tw": "愛家小助手", "en": "Loving Home Helper" },
+      "sub":   { "zh": "储藏 · 房屋 · 账单", "tw": "儲藏 · 房屋 · 帳單", "en": "Pantry · home · bills" } },
+    { "id": "shepherd",    "icon": "🐑", "url": "https://dev-hyang.github.io/shepherd/",
+      "name":  { "zh": "牧羊人",     "tw": "牧羊人",     "en": "Shepherd" },
+      "sub":   { "zh": "身心灵记录", "tw": "身心靈記錄", "en": "Body, mind & spirit" } }
+  ]
+}
