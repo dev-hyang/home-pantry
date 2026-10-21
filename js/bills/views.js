@@ -5,7 +5,7 @@ import { $, esc, fmtDate, fmtShort, money, num, stampText, todayISO, toast } fro
 import { SECTIONS, go, href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
-import { download } from "../stats/views.js";
+import { download, monthKey } from "../stats/views.js";
 import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
 import { propertyTag, withProperty } from "../core/alerts.js";
 import { autofillBar } from "../core/autofill.js";
@@ -43,6 +43,30 @@ const billRow = (b) => `<li>
       : `<a class="btn btn-sm" href="${href("bill", b.id)}?pay=1">${t("记缴费")}</a>`}
   </li>`;
 
+/** 本月账单：本月到期或已缴过的账单，已缴的显示“已缴”（缴费日和金额），没缴的显示待缴 / 今天到期 / 逾期——缴完状态马上变 */
+function monthBillsHtml(list) {
+  const now = new Date(), m = monthKey(now), today = now.toISOString().slice(0, 10), cur = Units.region.currency;
+  const rows = [];
+  for (const b of list) {
+    if (!b.active || b.ended || b.escrow || b.direction === "receivable") continue;
+    const paid = b.pays.find((p) => p.status !== "skipped" && ((p.paid_on || "").startsWith(m) || (p.due_on || "").startsWith(m)));
+    const dueNow = b.next_due_on && (b.next_due_on.startsWith(m) || b.next_due_on < today);
+    if (!paid && !dueNow) continue;
+    rows.push({ b, paid, due: b.next_due_on });
+  }
+  if (!rows.length) return "";
+  rows.sort((x, y) => (x.paid ? 1 : 0) - (y.paid ? 1 : 0) || (x.paid ? (y.paid.paid_on || "").localeCompare(x.paid.paid_on || "") : (x.due || "").localeCompare(y.due || "")));
+  const done = rows.filter((r) => r.paid).length, left = rows.filter((r) => !r.paid && (r.b.currency || cur) === cur).reduce((s, r) => s + num(r.b.est), 0);
+  const li = ({ b, paid }) => {
+    const late = !paid && b.next_due_on < today, dueToday = !paid && b.next_due_on === today;
+    const badge = paid ? `<span class="badge b-ok">✓ ${t("已缴")}</span>` : late ? `<span class="badge b-out">${t("逾期")}</span>` : dueToday ? `<span class="badge b-low">${t("今天到期")}</span>` : `<span class="badge b-soon">${t("待缴")}</span>`;
+    const meta = paid ? t("{d} 缴费", { d: fmtDate(paid.paid_on) }) + (paid.status === "verified" ? ` · ${t("已核对")}` : "") : t("到期 {d}", { d: fmtDate(b.next_due_on) });
+    return `<li class="${paid ? "is-paid" : ""}">${badge}<div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a><small>${esc(meta)}</small></div><b>${paid && paid.amount != null ? mny(paid.amount, paid.currency) : mny(b.est, b.currency)}</b></li>`;
+  };
+  return `<section class="section"><div class="section-head"><h2>${t("本月账单")}</h2><p>${t("已缴 {a} / {b} 笔", { a: done, b: rows.length })}${left > 0 ? ` · ${t("还要交 {m}", { m: money(left) })}` : ""}</p></div>
+    <div class="panel"><ul class="restock-list">${rows.map(li).join("")}</ul></div></section>`;
+}
+
 /* ── 概览 ── */
 export function viewBillsOverview() {
   const all = state.billsEnriched.filter((b) => b.active);
@@ -75,6 +99,7 @@ export function viewBillsOverview() {
         ${subs.count ? `<div class="kpi"><span>${t("订阅与会员")}</span><b>${money(subs.monthly)}<small>/${t("月")}</small></b><small>${t("{n} 项，{a} 项年付", { n: subs.count, a: subs.annualPaid })}</small></div>` : ""}
       </div>
     </section>
+    ${monthBillsHtml(list)}
     ${escrowPanelHtml()}
     ${alerts.length ? `<section class="section"><div class="section-head"><h2>${t("要处理的账单")}</h2><p>${t("逾期、到期、即将到期和待核对的自动扣款")}</p></div>
       <div class="panel"><ul class="restock-list">${alerts.map((b) => billRow(b)).join("")}</ul></div></section>`
@@ -462,7 +487,7 @@ function paySection(b, focus, edit = null) {
         <label>${t("金额（{cur}）", { cur: b.currency || Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? (edit.amount != null ? num(edit.amount).toFixed(2) : "") : b.est != null ? num(b.est).toFixed(2) : ""}"></label>
         <label>${t("状态")}<select name="status"><option value="paid" ${edit?.status === "paid" ? "selected" : ""}>${t("已缴费")}</option><option value="verified" ${edit ? (edit.status === "verified" ? "selected" : "") : b.autopay ? "selected" : ""}>${t("已核对（自动扣款）")}</option><option value="skipped" ${edit?.status === "skipped" ? "selected" : ""}>${t("跳过这期")}</option></select></label>
         <label>${t("方式")}<input name="method" maxlength="40" placeholder="${t("例如：网银 / 支票 #1023 / 自动扣款")}" value="${edit ? esc(edit.method || "") : b.autopay ? esc(b.autopay_method || t("自动扣款")) : ""}"></label>
-        <label>${t("收款方")}<input name="store" maxlength="40" value="${esc(edit ? (linked?.store || b.payee || "") : b.payee || "")}" placeholder="${esc(b.payee || b.name)}"><small>${edit ? t("只改这一条；中途换了收款方，旧记录保留当时的名字。") : t("没填就用账单的收款方。")}</small></label>
+        <label>${t("收款方")}<input name="store" maxlength="40" value="${esc(edit ? (linked?.store || b.payee || b.name || "") : b.payee || b.name || "")}" placeholder="${esc(b.payee || b.name)}"><small>${edit ? t("只改这一条；中途换了收款方，旧记录保留当时的名字。") : t("没填就用账单的收款方。")}</small></label>
         <label>${t("确认号")}<input name="confirmation_ref" maxlength="60" value="${esc(edit?.confirmation_ref || "")}"></label>
         <label>${t("滞纳金")}<input name="late_fee" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? num(edit.late_fee).toFixed(2) : "0"}"></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(edit?.notes || "")}"></label>

@@ -1074,3 +1074,5 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .linkbtn:hover, .linkbtn:focus-visible { text-decoration: underline; text-underline-offset: 3px; color: var(--pine); }
 .spend-edit { display: block; padding: 10px 0; }
 .spend-edit .form-actions { margin-top: 4px; }
+
+.restock-list li.is-paid { opacity: .78; }
