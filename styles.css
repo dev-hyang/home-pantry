@@ -1033,3 +1033,8 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .bud-move input, .bud-move select { width: auto; max-width: 160px; }
 .bud-rank { margin-top: 8px; }
 .bud-line { margin: 0 0 10px; font-size: 13px; }
+
+.bud-income-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.bud-income-row input { width: 160px; }
+.bud-income-row select { width: auto; }
+.bud-banner { margin-bottom: 12px; border-left: 4px solid var(--mustard, #b07a1a); }

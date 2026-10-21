@@ -31,6 +31,8 @@ export const state = {
   tasksYM: null,                       // 季节任务页当前查看的年月 "YYYY-MM"（null = 本月）
   customSeasonal: [],                  // 自定义季节任务（每年重复 / 一次性，按房产）
   seasonForm: null,                    // 正在编辑的自定义任务 { id } 或新建 { id: null }
+  incomes: [],                                 // 成员收入：家主是全家，其他人只有自己的一行
+  incomePrompt: false,                         // 刚改了收入：问家主要不要重新生成预算
   budget: null,                                // 预算设置：{ income_amount, income_period, savings_pct, cat_budgets }
   shopAdvice: null,                            // 采购清单：刚加入的带预估金额的项目的预算提示
   spendFilter: { q: "", cat: "all", store: "all", month: "all", sort: "new", limit: 20 },   // 花费记录的搜索、筛选、排序

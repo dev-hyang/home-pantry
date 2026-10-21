@@ -18,7 +18,8 @@ import { billAlertItems } from "./bills/logic.js";
 import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { printSheet } from "./settings/print.js";
 import { resetScan, scanAction, viewScan } from "./pantry/scan.js";
-import { budgetAction, budgetAlertItems, groupForCategory, viewBudget } from "./bills/budget.js";
+import { budgetAction, budgetAlertItems, groupForCategory, maybeAutoGenerate, viewBudget } from "./bills/budget.js";
+import "./settings/income.js";
 import "./bills/finance.js";
 import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
@@ -47,15 +48,16 @@ export async function refresh() {
     try {
       // 所有表一次并行读完（云端一轮往返），再在内存里定当前房产；采购花费只有统计和导出用，不挡首屏，渲染后后台再读
       const members = state.membersReady; state.membersReady = null;   // 登录后与这一轮并行去读家庭成员
-      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget] = await Promise.all([
+      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes] = await Promise.all([
         Store.listProperties(), Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listHouseProfiles(),
         Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince()), Store.listBills(), Store.listBillPayments(),
         Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations(), Store.listDealExtras(),
         Store.listCustomSeasonal().catch((e) => { console.warn("[custom seasonal]", e.message); return []; }),   // 迁移还没执行时读不到：不影响其他功能
         Store.listTerms().catch((e) => { console.warn("[terms]", e.message); return null; }),
         Store.getBudget().catch(() => null),
+        Store.listIncomes().catch((e) => { console.warn("[incomes]", e.message); return []; }),
         members]);
-      state.budget = budget;
+      state.budget = budget; state.incomes = incomes;
       state.customSeasonal = customSeasonal;
       if (terms) setGlossary(terms);   // 自定义名称的翻译
       state.properties = properties;
@@ -74,6 +76,7 @@ export async function refresh() {
       notifyIfNeeded();
       render(false);
       loadPurchasesSoon();
+      maybeAutoGenerate();   // 家主有收入但还没预算：自动生成第一版
     } catch (e) {
       setSync(t("同步失败，点设置页重试"), true);
       toast(t("读取数据失败：{msg}", { msg: e.message }));

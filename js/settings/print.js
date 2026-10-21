@@ -75,9 +75,9 @@ function budgetSheet() {
   const rows = [{ icon: "🧾", name: "账单", spent: mp.bills, budget: plan.billsM }, ...mp.rows.map((r) => ({ icon: r.icon, name: r.name, spent: r.spent, budget: r.budget }))];
   const kpi = (label, val) => `<div><span>${label}</span><b>${val}</b></div>`;
   return `<h1>${t("预算")} · ${esc(monthLabel(mp.month))}</h1><p class="ps-meta">${esc(stamp())}</p>
-    <div class="ps-kpis">${kpi(t("月收入"), money(plan.income))}${kpi(t("固定账单"), money(plan.billsM))}${kpi(t("计划储蓄"), money(plan.savings))}${kpi(t("每月可支配"), money(plan.pool))}</div>
+    <div class="ps-kpis">${plan.income != null ? kpi(t("月收入"), money(plan.income)) : ""}${kpi(t("固定账单"), money(plan.billsM))}${plan.savings != null ? kpi(t("计划储蓄"), money(plan.savings)) : ""}${kpi(t("每月可支配"), money(plan.pool))}</div>
     <h2>${t("本月预算 vs 实际")}</h2><table><thead><tr><th>${t("分类")}</th><th>${t("预算")}</th><th>${t("实际")}</th><th>${t("占比")}</th><th>${t("剩余")}</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${r.icon} ${esc(t(r.name))}</td><td>${money(r.budget)}</td><td>${money(r.spent)}</td><td>${r.budget > 0 ? Math.round((r.spent / r.budget) * 100) : 0}%</td><td>${money(r.budget - r.spent)}</td></tr>`).join("")}</tbody></table>
-    <h2>${t("年度预算")}</h2><p>${t("月预算合计 {m} × 12 = {y}；年收入 {i}，计划储蓄 {s}。", { m: money(plan.totalBudget), y: money(plan.totalBudget * 12), i: money(plan.income * 12), s: money(plan.savings * 12) })}</p>`;
+    <h2>${t("年度预算")}</h2><p>${plan.income != null ? t("月预算合计 {m} × 12 = {y}；年收入 {i}，计划储蓄 {s}。", { m: money(plan.totalBudget), y: money(plan.totalBudget * 12), i: money(plan.income * 12), s: money(plan.savings * 12) }) : t("月预算合计 {m} × 12 = {y}。", { m: money(plan.totalBudget), y: money(plan.totalBudget * 12) })}</p>`;
 }
 
 /** 生成打印内容并调出浏览器打印；打印结束后清掉 */

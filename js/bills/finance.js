@@ -29,7 +29,7 @@ registerSection("top", 10, ({ plan }) => {
   const [prev, last] = lastMonths(3).slice(0, 2), abm = actualByMonth(), a = abm[last] || {}, b = abm[prev] || {};
   const spent = (m) => GROUPS.reduce((s, g) => s + (m[g.id] || 0), 0);
   if (!Object.keys(a).length) return "";
-  const varSpent = spent(a), prevVar = spent(b), bills = a.bills || 0, leftover = plan.income - Math.max(bills, plan.billsM) - varSpent;   // 账单还没缴的也先扣掉，免得结余看着偏大
+  const varSpent = spent(a), prevVar = spent(b), bills = a.bills || 0, leftover = plan.income != null ? plan.income - Math.max(bills, plan.billsM) - varSpent : null;   // 账单还没缴的也先扣掉，免得结余看着偏大
   const over = plan.groups.filter((g) => g.budget > 0 && (a[g.id] || 0) > g.budget).sort((x, y) => (a[y.id] - y.budget) - (a[x.id] - x.budget)).slice(0, 3);
   const under = plan.groups.filter((g) => g.budget > 0 && (a[g.id] || 0) <= g.budget * 0.7).slice(0, 2);
   const big = state.purchases.filter((p) => monthKey(p.purchased_at) === last && p.amount != null && (!p.currency || p.currency === cur())).sort((x, y) => num(y.amount) - num(x.amount)).slice(0, 3);
@@ -39,9 +39,9 @@ registerSection("top", 10, ({ plan }) => {
     over.length ? `⚠️ ${t("超预算：{l}", { l: over.map((g) => `${g.icon}${t(g.name)} +${money((a[g.id] || 0) - g.budget)}`).join("、") })}` : `✅ ${t("各类都没有超预算")}`,
     under.length ? `👍 ${t("明显有结余：{l}", { l: under.map((g) => `${g.icon}${t(g.name)} ${t("剩 {a}", { a: money(g.budget - (a[g.id] || 0)) })}`).join("、") })}` : "",
     big.length ? `🧾 ${t("最大的几笔：{l}", { l: big.map((p) => `${esc(p.name)} ${money(num(p.amount))}`).join("、") })}` : "",
-    `💰 ${t("实际结余 {a}（计划储蓄 {b}）", { a: money(leftover), b: money(plan.savings) })}`,
+    leftover != null ? `💰 ${t("实际结余 {a}（计划储蓄 {b}）", { a: money(leftover), b: money(plan.savings) })}` : "",
   ].filter(Boolean);
-  const move = leftover > 1 && goals.length ? `<form id="reviewMoveForm" class="bud-move"><label class="muted" style="font-size:13px">${t("把结余存进目标")}</label>
+  const move = leftover != null && leftover > 1 && goals.length ? `<form id="reviewMoveForm" class="bud-move"><label class="muted" style="font-size:13px">${t("把结余存进目标")}</label>
     <select name="goal">${goals.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`).join("")}</select>
     <input name="amount" type="number" min="1" step="1" value="${Math.floor(leftover)}" aria-label="${t("金额")}"><button class="btn btn-sm" type="submit">${t("存入")}</button></form>` : "";
   return sec("budReview", t("{m} 复盘", { m: monthLabel(last) }), t("上个月花得怎么样"), `<div class="panel"><ul class="tips bud-advice">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>${move}</div>`);
@@ -89,7 +89,7 @@ registerSection("annual", 0, ({ plan }) => {
   const list = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable");
   const ev = upcoming(list, 90).filter((x) => (x.bill.currency || cur()) === cur()).map((x) => ({ date: new Date(`${x.due}T12:00:00`), amt: -num(x.bill.est), name: x.bill.name }));
   const day = meta("_income_day", null);
-  if (day) for (let i = 0; i < 4; i++) { const d = new Date(today.getFullYear(), today.getMonth() + i, Math.min(day, new Date(today.getFullYear(), today.getMonth() + i + 1, 0).getDate()), 12); if (d >= today && d <= new Date(today.getTime() + 90 * 864e5)) ev.push({ date: d, amt: plan.income, name: t("收入") }); }
+  if (day && plan.income != null) for (let i = 0; i < 4; i++) { const d = new Date(today.getFullYear(), today.getMonth() + i, Math.min(day, new Date(today.getFullYear(), today.getMonth() + i + 1, 0).getDate()), 12); if (d >= today && d <= new Date(today.getTime() + 90 * 864e5)) ev.push({ date: d, amt: plan.income, name: t("收入") }); }
   ev.sort((a, b) => a.date - b.date);
   const weeks = Array.from({ length: 13 }, () => 0);
   for (const e of ev.filter((x) => x.amt < 0)) { const w = Math.min(12, Math.floor((e.date - today) / (7 * 864e5))); if (w >= 0) weeks[w] += -e.amt; }
@@ -98,8 +98,8 @@ registerSection("annual", 0, ({ plan }) => {
   const chart = out > 0 ? Charts.bars({ title: t("未来 13 周每周要交的账单"), labels: weeks.map((_, i) => fmtD(new Date(today.getTime() + i * 7 * 864e5))), fmt: money, showTotals: false, series: [{ name: t("账单"), color: "#2f5d8a", values: weeks }] }) : "";
   const biggest = ev.filter((x) => x.amt < 0).sort((a, b) => a.amt - b.amt).slice(0, 5);
   return sec("budCash", t("现金流预测"), t("未来 90 天要交的账单"), `<div class="panel chart-panel">
-    <p style="margin:0">${t("未来 90 天要交 {a}（{n} 笔）。", { a: money(out), n: ev.filter((x) => x.amt < 0).length })}${day ? ` ${t("同期收入 {a}，结余 {b}。", { a: money(inc), b: money(inc - out) })}` : ` ${t("同期按月收入估算 {a}。", { a: money(plan.income * 3) })}`}</p>
-    ${day && low.d ? `<p class="${low.v < 0 ? "form-error" : "muted"}" style="margin:6px 0">${low.v < 0 ? t("⚠️ 最紧的是 {d}：到那天累计缺 {a}，账单会比收入先到。", { d: fmtD(low.d), a: money(-low.v) }) : t("按发薪日算，没有出现入不敷出的时点。")}</p>` : ""}
+    <p style="margin:0">${t("未来 90 天要交 {a}（{n} 笔）。", { a: money(out), n: ev.filter((x) => x.amt < 0).length })}${plan.income == null ? "" : day ? ` ${t("同期收入 {a}，结余 {b}。", { a: money(inc), b: money(inc - out) })}` : ` ${t("同期按月收入估算 {a}。", { a: money(plan.income * 3) })}`}</p>
+    ${plan.income != null && day && low.d ? `<p class="${low.v < 0 ? "form-error" : "muted"}" style="margin:6px 0">${low.v < 0 ? t("⚠️ 最紧的是 {d}：到那天累计缺 {a}，账单会比收入先到。", { d: fmtD(low.d), a: money(-low.v) }) : t("按发薪日算，没有出现入不敷出的时点。")}</p>` : ""}
     ${chart}
     ${biggest.length ? `<ul class="restock-list">${biggest.map((e) => `<li><span class="badge" style="background:var(--surface-2)">${fmtD(e.date)}</span><div class="grow"><span class="name">${esc(e.name)}</span></div><b>${money(-e.amt)}</b></li>`).join("")}</ul>` : ""}
     <form id="incomeDayForm" class="bud-inline"><label class="muted" style="font-size:13px">${t("每月发薪日（选填，用来算先后）")}</label>
@@ -118,7 +118,7 @@ registerSection("annual", 10, ({ plan }) => {
       <div class="bud-inline"><input type="number" min="1" step="1" inputmode="decimal" data-goal-amt="${g.id}" placeholder="${t("存入金额")}" aria-label="${t("存入金额")}"><button type="button" class="btn btn-sm" data-action="budget-goal-save" data-id="${g.id}">${t("存入")}</button>
         <button type="button" class="btn btn-sm btn-danger-ghost" data-action="budget-goal-del" data-id="${g.id}">${t("删除")}</button></div></div>`).join("")
       : `<p class="muted" style="margin:0">${t("还没有目标，例如：旅行、洗碗机、应急金。")}</p>`}
-    ${rows.length ? `<p class="${needTotal > plan.savings ? "form-error" : "muted"}" style="margin:8px 0 0;font-size:13px">${t("所有目标每月共需 {a}，计划储蓄 {b}（占 {p}%）。", { a: money(needTotal), b: money(plan.savings), p: pct(needTotal, plan.savings) })}${needTotal > plan.savings ? ` ${t("超出了，可以拉长期限或提高储蓄比例。")}` : ""}</p>` : ""}
+    ${rows.length ? `<p class="${plan.savings != null && needTotal > plan.savings ? "form-error" : "muted"}" style="margin:8px 0 0;font-size:13px">${plan.savings != null ? t("所有目标每月共需 {a}，计划储蓄 {b}（占 {p}%）。", { a: money(needTotal), b: money(plan.savings), p: pct(needTotal, plan.savings) }) : t("所有目标每月共需 {a}。", { a: money(needTotal) })}${plan.savings != null && needTotal > plan.savings ? ` ${t("超出了，可以拉长期限或提高储蓄比例。")}` : ""}</p>` : ""}
     <form id="goalForm" class="form-grid" style="margin-top:10px"><label>${t("目标名称")}<input name="name" required maxlength="40" placeholder="${t("例如：旅行")}"></label>
       <label>${t("目标金额（{cur}）", { cur: cur() })}<input name="target" type="number" min="1" step="1" inputmode="decimal" required></label>
       <label>${t("完成日期")}<input name="date" type="date" required></label>
@@ -134,7 +134,7 @@ registerSection("annual", 20, ({ plan }) => {
   const li = ({ b, annual }, canFlag) => `<li><div class="grow"><a class="link-name" href="${href("bill", b.id)}">${B().catOf(b.category).icon} ${esc(b.name)}</a><small>${esc(freqText(b))}</small></div><b>${money(annual)} / ${t("年")}</b>
     ${canFlag ? `<button type="button" class="btn btn-sm ${flag.has(b.id) ? "btn-primary" : "btn-ghost"}" data-action="budget-flag-cancel" data-id="${b.id}" aria-pressed="${flag.has(b.id)}">${flag.has(b.id) ? t("考虑取消 ✓") : t("考虑取消")}</button>` : ""}</li>`;
   return sec("budSubs", t("年成本：订阅与固定账单"), t("月付看着小，按年算一下"), `<div class="panel">
-    ${subs.length ? `<p style="margin:0">${t("订阅与会员每年 {a}，占年收入 {p}%。", { a: money(subTotal), p: pct(subTotal, plan.income * 12) })}${flagged ? ` <b>${t("标记“考虑取消”的共 {a}/年。", { a: money(flagged) })}</b>` : ""}</p><ul class="restock-list" style="margin-top:8px">${subs.map((x) => li(x, true)).join("")}</ul>` : `<p class="muted" style="margin:0">${t("还没有订阅 / 会员类账单。")}</p>`}
+    ${subs.length ? `<p style="margin:0">${plan.income != null ? t("订阅与会员每年 {a}，占年收入 {p}%。", { a: money(subTotal), p: pct(subTotal, plan.income * 12) }) : t("订阅与会员每年 {a}。", { a: money(subTotal) })}${flagged ? ` <b>${t("标记“考虑取消”的共 {a}/年。", { a: money(flagged) })}</b>` : ""}</p><ul class="restock-list" style="margin-top:8px">${subs.map((x) => li(x, true)).join("")}</ul>` : `<p class="muted" style="margin:0">${t("还没有订阅 / 会员类账单。")}</p>`}
     ${other.length ? `<h3 style="font-size:14px;margin:12px 0 4px">${t("其他固定账单 年成本前 5")}</h3><ul class="restock-list">${other.map((x) => li(x, false)).join("")}</ul>` : ""}</div>`);
 });
 

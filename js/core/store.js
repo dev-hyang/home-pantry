@@ -50,6 +50,14 @@ export const DemoStore = {
     this.persist();
   },
   // 自定义名称的翻译（位置 / 分类 / 小类在其他语言下怎么叫）
+  /* 每位成员自己的收入（演示模式只有“我”） */
+  async listIncomes() { return (this.db.incomes || []).map((x) => ({ ...x })); },
+  async saveIncome(r) {
+    this.db.incomes ||= []; const row = { ...r, updated_at: new Date().toISOString() }, i = this.db.incomes.findIndex((x) => x.user_id === r.user_id);
+    if (i >= 0) this.db.incomes[i] = row; else this.db.incomes.push(row);
+    this.persist(); return { ...row };
+  },
+  async deleteIncome(uid) { this.db.incomes = (this.db.incomes || []).filter((x) => x.user_id !== uid); this.persist(); },
   async getBudget() { return this.db.budget ? { ...this.db.budget } : null; },
   async saveBudget(b) { this.db.budget = { ...b, updated_at: new Date().toISOString() }; this.persist(); return { ...this.db.budget }; },
   async listTerms() { return (this.db.terms || []).map((x) => ({ ...x })); },
@@ -404,13 +412,20 @@ export const CloudStore = {
     this.must(await this.sb.from("assets").update({ location: newName }).eq("household_id", this.hid).eq("location", oldName));
   },
   /** 预算（收入、储蓄比例、各类预算）：每个家庭一行；迁移 022 还没执行时读不到，当作还没设置 */
+  /** 收入：行级安全保证本人只能读到自己的，家主能读到全家的（迁移 023） */
+  async listIncomes() { return this.must(await this.sb.from("member_incomes").select("*").eq("household_id", this.hid)); },
+  async saveIncome(r) {
+    const row = { household_id: this.hid, user_id: r.user_id, income_amount: r.income_amount, income_period: r.income_period, updated_at: new Date().toISOString() };
+    return this.must(await this.sb.from("member_incomes").upsert(row, { onConflict: "household_id,user_id" }).select().single());
+  },
+  async deleteIncome(uid) { this.must(await this.sb.from("member_incomes").delete().eq("household_id", this.hid).eq("user_id", uid)); },
   async getBudget() {
     const r = await this.sb.from("household_budgets").select("*").eq("household_id", this.hid).maybeSingle();
     if (r.error) { console.warn("[budget]", r.error.message); return null; }
     return r.data;
   },
   async saveBudget(b) {
-    const row = { household_id: this.hid, income_amount: b.income_amount, income_period: b.income_period, savings_pct: b.savings_pct, cat_budgets: b.cat_budgets || {}, updated_by: state.user.id };
+    const row = { household_id: this.hid, income_amount: b.income_amount ?? 0, income_period: b.income_period || "month", savings_pct: b.savings_pct ?? 20, cat_budgets: b.cat_budgets || {}, updated_by: state.user.id };   // 收入已挪到 member_incomes，这两列只为兼容旧表保留
     return this.must(await this.sb.from("household_budgets").upsert(row, { onConflict: "household_id" }).select().single());
   },
   async listTerms() { return this.must(await this.sb.from("custom_terms").select("*").eq("household_id", this.hid)); },

@@ -33,8 +33,8 @@ const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : a > 0 ? 999 : 0);
 /* ───────────── 预算设置里的杂项（存在 cat_budgets 里以下划线开头的键：大件门槛、发薪日、储蓄目标、订阅标记、分摊占比） ───────────── */
 export const meta = (key, def = null) => { const v = state.budget?.cat_budgets?.[key]; return v == null ? def : v; };
 export async function saveMeta(patch) {
-  if (!state.budget) throw new Error(t("先填收入"));
-  state.budget = await Store.saveBudget({ ...state.budget, cat_budgets: { ...(state.budget.cat_budgets || {}), ...patch } });
+  const base = state.budget || { income_amount: 0, income_period: "month", savings_pct: 20, cat_budgets: {} };
+  state.budget = await Store.saveBudget({ ...base, cat_budgets: { ...(base.cat_budgets || {}), ...patch } });
   document.dispatchEvent(new CustomEvent("budget-saved"));
 }
 const underscoreKeys = (o) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => k.startsWith("_")));
@@ -93,31 +93,79 @@ export function actualByMonth() {
   return out;
 }
 
-/** 预算方案：收入 − 固定账单 − 储蓄 = 可支配额，按历史比例分给各组；用户改过的组按用户的数 */
-export function budgetPlan() {
-  const b = state.budget;
-  if (!b || !(num(b.income_amount) > 0)) return null;
-  const income = b.income_period === "year" ? num(b.income_amount) / 12 : num(b.income_amount);
+/* ───────────── 收入与预算生成（收入按人私有；预算方案由家主生成并存成快照，全家共用） ───────────── */
+export const myId = () => state.user?.id || "me";
+/** 演示模式只有一个人，当家主；云端按 household_members.role */
+export const isHouseholdOwner = () => Store.mode !== "cloud" || state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
+export const monthlyOf = (inc) => (inc.income_period === "year" ? num(inc.income_amount) / 12 : num(inc.income_amount));
+/** 全家每月收入合计（家主读得到全部；其他成员只会有自己那一行，所以不要拿它当全家数字用） */
+export const totalIncomeMonthly = () => state.incomes.reduce((s, i) => s + monthlyOf(i), 0);
+
+/** 按全家月收入和储蓄比例算各类预算建议：收入 − 固定账单 − 储蓄 = 可支配额，大件按设备寿命预存，其余按过去 6 个月的花费比例分 */
+function computeGroups(totalM, savingsPct) {
   const bills = state.billsEnriched.filter((x) => x.active && !x.ended && x.direction !== "receivable" && (x.currency || cur()) === cur());
-  const billsM = bills.reduce((s, x) => s + x.monthly, 0), essentialM = bills.filter((x) => x.essential).reduce((s, x) => s + x.monthly, 0);
-  const savingsPct = clamp(num(b.savings_pct, 20), 0, 90);
-  const savings = income * savingsPct / 100;
-  const pool = Math.max(0, income - billsM - savings);
+  const billsM = bills.reduce((s, x) => s + x.monthly, 0);
+  const pool = Math.max(0, totalM - billsM - totalM * savingsPct / 100);
   const abm = actualByMonth(), past = lastMonths(7).slice(0, 6);   // 过去 6 个月（不含本月）
   const hist = Object.fromEntries(GROUPS.map((g) => [g.id, past.reduce((s, m) => s + (abm[m]?.[g.id] || 0), 0) / 6]));
   const histTotal = Object.values(hist).reduce((a, c) => a + c, 0);
-  const over = b.cat_budgets || {};
-  // 大件家电：有设备更换估价就按设备寿命预存（最多占可支配额的 35%）；其余几组按过去花费比例分，没有历史就用常见比例
   const fund = applianceFund(), useFund = fund.monthly > 0;
   const bigSug = useFund ? Math.min(Math.round(fund.monthly), Math.round(pool * 0.35)) : 0, poolRest = pool - bigSug;
   const gs = GROUPS.filter((g) => !(useFund && g.id === "big")), hist2 = gs.reduce((s, g) => s + hist[g.id], 0);
   const raw = Object.fromEntries(gs.map((g) => [g.id, hist2 > 0 ? Math.max(0.03, hist[g.id] / hist2) : g.w])), rawSum = Object.values(raw).reduce((x, y) => x + y, 0) || 1;
+  const groups = Object.fromEntries(GROUPS.map((g) => [g.id, useFund && g.id === "big" ? bigSug : Math.round((poolRest * raw[g.id]) / rawSum)]));
+  return { groups, fromFund: useFund, hasHistory: histTotal > 0 };
+}
+export async function saveBudgetBase(patch) {
+  const base = state.budget || { income_amount: 0, income_period: "month", savings_pct: 20, cat_budgets: {} };
+  state.budget = await Store.saveBudget({ ...base, ...patch });
+  document.dispatchEvent(new CustomEvent("budget-saved"));
+}
+/** 家主：按当前全家收入生成（或重新生成）预算；改过的各类金额保留 */
+export async function generatePlan() {
+  if (!isHouseholdOwner()) throw new Error(t("只有家主能生成预算"));
+  const total = totalIncomeMonthly(); if (!(total > 0)) throw new Error(t("先在 设置 → 收入与预算 里填收入"));
+  const base = state.budget || { savings_pct: 20, cat_budgets: {} }, pctv = clamp(num(base.savings_pct, 20), 0, 90), c = computeGroups(total, pctv);
+  state.incomePrompt = false;
+  await saveBudgetBase({ savings_pct: pctv, cat_budgets: { ...(base.cat_budgets || {}), _plan: { groups: c.groups, fromFund: c.fromFund, hasHistory: c.hasHistory, savings_pct: pctv, generated_at: new Date().toISOString() } } });
+}
+let autoTried = false;
+/** 家主打开应用时：有收入、还没有预算就自动生成第一版（只试一次） */
+export function maybeAutoGenerate() {
+  if (autoTried || !isHouseholdOwner() || state.budget?.cat_budgets?._plan || !(totalIncomeMonthly() > 0)) return;
+  autoTried = true; generatePlan().catch((e) => console.warn("[budget auto]", e.message));
+}
+/** 家主：有成员在上次生成预算之后更新了收入，且还没点“保持现有预算” */
+export function staleIncomes() {
+  const snap = state.budget?.cat_budgets?._plan; if (!snap || !isHouseholdOwner()) return 0;
+  const after = String(snap.dismissed_at || snap.generated_at || "");
+  return state.incomes.filter((i) => String(i.updated_at || "") > after).length;
+}
+/** “要不要重新生成预算”的提示条（家主刚改了收入，或有人更新了收入） */
+export function incomeBanner() {
+  if (!isHouseholdOwner() || !state.budget?.cat_budgets?._plan) return "";
+  const n = staleIncomes(); if (!state.incomePrompt && !n) return "";
+  return `<div class="panel cta-panel bud-banner"><div><b>${state.incomePrompt && !n ? t("收入或预算比例改了，要按新的重新生成预算吗？") : t("有 {n} 位成员更新了收入，要重新生成预算吗？", { n })}</b>
+    <p class="muted">${t("你改过的各类金额会保留。")}</p></div>
+    <div class="head-acts"><button type="button" class="btn btn-primary btn-sm" data-action="budget-generate">${t("重新生成")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="budget-keep">${t("保持现有预算")}</button></div></div>`;
+}
+
+/** 预算方案：读家主生成的快照（各类建议金额）+ 用户改过的金额；收入和储蓄只有家主算得出来 */
+export function budgetPlan() {
+  const b = state.budget, snap = b?.cat_budgets?._plan;
+  if (!snap?.groups) return null;
+  const owner = isHouseholdOwner(), income = owner && totalIncomeMonthly() > 0 ? totalIncomeMonthly() : null;
+  const bills = state.billsEnriched.filter((x) => x.active && !x.ended && x.direction !== "receivable" && (x.currency || cur()) === cur());
+  const billsM = bills.reduce((s, x) => s + x.monthly, 0), essentialM = bills.filter((x) => x.essential).reduce((s, x) => s + x.monthly, 0);
+  const savingsPct = clamp(num(snap.savings_pct ?? b.savings_pct, 20), 0, 90), savings = income != null ? (income * savingsPct) / 100 : null;
+  const over = b.cat_budgets || {};
+  const abm = actualByMonth(), past = lastMonths(7).slice(0, 6);
   const groups = GROUPS.map((g) => {
-    const suggested = useFund && g.id === "big" ? bigSug : Math.round((poolRest * raw[g.id]) / rawSum), custom = over[g.id] != null && over[g.id] !== "";
-    return { ...g, hist: hist[g.id], suggested, custom, budget: custom ? num(over[g.id]) : suggested, fromFund: useFund && g.id === "big" };
+    const suggested = num(snap.groups[g.id]), custom = over[g.id] != null && over[g.id] !== "";
+    return { ...g, hist: past.reduce((s, m) => s + (abm[m]?.[g.id] || 0), 0) / 6, suggested, custom, budget: custom ? num(over[g.id]) : suggested, fromFund: !!snap.fromFund && g.id === "big" };
   });
   const variable = groups.reduce((s, g) => s + g.budget, 0);
-  return { income, billsM, essentialM, savingsPct, savings, pool, groups, variable, totalBudget: billsM + variable, left: income - billsM - savings - variable, hasHistory: histTotal > 0 };
+  return { income, owner, billsM, essentialM, savingsPct, savings, pool: variable, groups, variable, totalBudget: billsM + variable, left: income != null ? income - billsM - savings - variable : null, hasHistory: !!snap.hasHistory, generatedAt: snap.generated_at };
 }
 
 /** 本月进度：每组已花、预算、占比；pace = 本月已过去的比例 */
@@ -238,16 +286,16 @@ const row = (g, spent, budget, pace, extra = "") => `<div class="bud-row"><div c
 export function viewBudget() {
   const plan = budgetPlan(), b = state.budget || {};
   const rangeChips = [6, 12].map((n) => `<button type="button" class="chip" data-action="stats-months" data-months="${n}" aria-pressed="${state.stats.months === n}">${t("近 {n} 个月", { n })}</button>`).join("");
-  const setup = `<form id="budgetForm" class="panel bud-setup">
-    <div class="section-head" style="margin-bottom:8px"><h3 style="font-size:16px">${plan ? t("收入与储蓄目标") : t("先填收入，生成预算")}</h3><p>${t("只用来算预算，不会分享给家人以外的人")}</p></div>
-    <div class="form-grid">
-      <label>${t("收入（税后，{cur}）", { cur: cur() })}<input name="income_amount" type="number" min="0" step="1" inputmode="decimal" required value="${esc(b.income_amount ?? "")}" placeholder="${t("例如：8000")}"></label>
-      <label>${t("按")}<select name="income_period"><option value="month" ${b.income_period !== "year" ? "selected" : ""}>${t("每月")}</option><option value="year" ${b.income_period === "year" ? "selected" : ""}>${t("每年")}</option></select></label>
-      <label>${t("计划储蓄占收入")}（%）<input name="savings_pct" type="number" min="0" max="90" step="1" inputmode="numeric" value="${esc(b.savings_pct ?? 20)}"><small>${t("常见做法是 10–20%；先存后花")}</small></label>
-    </div>
-    <div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">${t("保存")}</button></div></form>`;
-  if (!plan) return `<section class="section"><div class="section-head"><h2>${t("预算")}</h2></div>${setup}
-    <p class="muted">${t("预算 = 收入 − 固定账单 − 储蓄，剩下的“可支配额”按你过去的花费比例分给各类；超了会在首页提醒。")}</p></section>`;
+  const owner = isHouseholdOwner(), mine = state.incomes.find((i) => i.user_id === myId()), settingsHref = `${href("me", "settings")}?sec=income`;
+  if (!plan) {
+    const body = owner
+      ? (totalIncomeMonthly() > 0
+        ? `<div class="panel cta-panel"><div><b>${t("收入已经设置了，还没有预算")}</b><p class="muted">${t("按全家收入、固定账单和储蓄比例生成第一版。")}</p></div><button type="button" class="btn btn-primary" data-action="budget-generate">${t("生成预算")}</button></div>`
+        : `<div class="panel cta-panel"><div><b>${t("还没有预算：先设置收入")}</b><p class="muted">${t("在 设置 → 收入与预算 填你的收入（每个人只能看到自己的），预算会自动生成。")}</p></div><a class="btn btn-primary" href="${settingsHref}">${t("去设置收入")}</a></div>`)
+      : `<div class="panel cta-panel"><div><b>${mine ? t("家主还没有生成预算") : t("还没有预算")}</b><p class="muted">${mine ? t("你的收入已经填好了，等家主生成预算就能在这里看到。") : t("先在 设置 → 收入与预算 填你自己的收入；预算由家主按全家收入生成。")}</p></div>${mine ? "" : `<a class="btn btn-primary" href="${settingsHref}">${t("去设置收入")}</a>`}</div>`;
+    return `<section class="section"><div class="section-head"><h2>${t("预算")}</h2></div>${body}
+      <p class="muted">${t("预算 = 全家收入 − 固定账单 − 储蓄，剩下的“可支配额”按过去的花费比例分给各类；超了会在首页提醒。")}</p></section>`;
+  }
 
   const mp = monthProgress(plan), cm = mp.month;
   const months = lastMonths(state.stats.months), abm = actualByMonth();
@@ -258,7 +306,7 @@ export function viewBudget() {
       { name: t("其他花费"), color: "#d4694c", values: months.map((m) => ser.slice(1).reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0)) }] });
   const vs = Charts.line({ title: t("实际花费 vs 预算 vs 收入"), labels: months.map(monthLabel), fmt: money,
     barSeries: { name: t("实际花费"), color: "#d4694c", values: totals },
-    series: [{ name: t("预算合计"), color: "var(--pine)", values: months.map(() => plan.totalBudget) }, { name: t("月收入"), color: "var(--ink)", values: months.map(() => plan.income) }] });
+    series: [{ name: t("预算合计"), color: "var(--pine)", values: months.map(() => plan.totalBudget) }, ...(plan.income != null ? [{ name: t("月收入"), color: "var(--ink)", values: months.map(() => plan.income) }] : [])] });
 
   // 年度：今年已过的月份 × 月预算
   const now = new Date(), yr = now.getFullYear(), elapsed = now.getMonth() + (now.getDate() / new Date(yr, now.getMonth() + 1, 0).getDate());
@@ -271,13 +319,14 @@ export function viewBudget() {
   return `
     <section class="section">
       <div class="section-head"><h2>${t("预算")}</h2><div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="budget">${t("打印")}</button></div></div>
+      ${incomeBanner()}
       <div class="kpis">
-        <div class="kpi"><span>${t("月收入")}</span><b>${money(plan.income)}</b><small>${t("年收入 {a}", { a: money(plan.income * 12) })}</small></div>
-        <div class="kpi"><span>${t("固定账单")}</span><b>${money(plan.billsM)}</b><small>${t("占收入 {p}%", { p: pct(plan.billsM, plan.income) })} · ${t("必要 {a}", { a: money(plan.essentialM) })}</small></div>
-        <div class="kpi"><span>${t("计划储蓄")}</span><b>${money(plan.savings)}</b><small>${plan.savingsPct}%</small></div>
+        ${plan.income != null ? `<div class="kpi"><span>${t("月收入（全家）")}</span><b>${money(plan.income)}</b><small>${t("年收入 {a}", { a: money(plan.income * 12) })}</small></div>` : ""}
+        <div class="kpi"><span>${t("固定账单")}</span><b>${money(plan.billsM)}</b><small>${plan.income != null ? `${t("占收入 {p}%", { p: pct(plan.billsM, plan.income) })} · ` : ""}${t("必要 {a}", { a: money(plan.essentialM) })}</small></div>
+        ${plan.savings != null ? `<div class="kpi"><span>${t("计划储蓄")}</span><b>${money(plan.savings)}</b><small>${plan.savingsPct}%</small></div>` : ""}
         <div class="kpi"><span>${t("每月可支配")}</span><b>${money(plan.pool)}</b><small>${plan.hasHistory ? t("按过去 6 个月花费比例分配") : t("还没有历史花费，先按常见比例分配")}</small></div>
       </div>
-      ${plan.pool <= 0 ? `<p class="form-error">${t("固定账单和储蓄已经用完了收入，没有可支配额：先看看账单能不能压缩，或降低储蓄比例。")}</p>` : ""}
+      ${plan.income != null && plan.pool <= 0 ? `<p class="form-error">${t("固定账单和储蓄已经用完了收入，没有可支配额：先看看账单能不能压缩，或降低储蓄比例。")}</p>` : ""}
     </section>
 
     ${extras("top", ctx)}
@@ -294,10 +343,10 @@ export function viewBudget() {
     <section class="section">
       <div class="section-head"><h2>${t("各类月预算")}</h2><p>${t("可以改，留空 = 用建议值")}</p></div>
       <form id="budgetCatsForm" class="panel">
-        <div class="form-grid">${plan.groups.map((g) => `<label>${g.icon} ${esc(t(g.name))}（${t("建议 {a}", { a: money(g.suggested) })}${g.fromFund ? t("，按设备寿命") : ""}）<input name="cat_${g.id}" type="number" min="0" step="1" inputmode="decimal" value="${g.custom ? esc(g.budget) : ""}" placeholder="${g.suggested}"></label>`).join("")}</div>
-        <label style="display:block;margin-top:10px;font-size:13px;font-weight:700">${t("“大件”门槛（{cur}，单笔达到它就记为大件家电）", { cur: cur() })}<input name="big_threshold" type="number" min="1" step="1" inputmode="numeric" value="${meta("_big_threshold", "") || ""}" placeholder="${bigThreshold()}" style="max-width:160px;display:block;margin-top:4px"></label>
-        <p class="${plan.left < -1 ? "form-error" : "muted"}" style="margin:8px 0 0;font-size:13px">${plan.left < -1 ? t("各类预算加起来超出可支配额 {a}，实际会吃掉储蓄。", { a: money(-plan.left) }) : t("账单、各类预算和储蓄加起来还剩 {a} 没分配。", { a: money(Math.max(0, plan.left)) })}</p>
-        <div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">${t("保存预算")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="budget-reset">${t("恢复建议值")}</button></div></form>
+        <div class="form-grid">${plan.groups.map((g) => `<label>${g.icon} ${esc(t(g.name))}（${t("建议 {a}", { a: money(g.suggested) })}${g.fromFund ? t("，按设备寿命") : ""}）<input name="cat_${g.id}" type="number" min="0" step="1" inputmode="decimal" value="${g.custom ? esc(g.budget) : ""}" placeholder="${g.suggested}" ${plan.owner ? "" : "disabled"}></label>`).join("")}</div>
+        <label style="display:block;margin-top:10px;font-size:13px;font-weight:700">${t("“大件”门槛（{cur}，单笔达到它就记为大件家电）", { cur: cur() })}<input name="big_threshold" type="number" min="1" step="1" inputmode="numeric" value="${meta("_big_threshold", "") || ""}" placeholder="${bigThreshold()}" style="max-width:160px;display:block;margin-top:4px" ${plan.owner ? "" : "disabled"}></label>
+        <p class="${plan.left != null && plan.left < -1 ? "form-error" : "muted"}" style="margin:8px 0 0;font-size:13px">${!plan.owner ? t("只有家主能调整预算比例和各类金额。") : plan.left < -1 ? t("各类预算加起来超出可支配额 {a}，实际会吃掉储蓄。", { a: money(-plan.left) }) : t("账单、各类预算和储蓄加起来还剩 {a} 没分配。", { a: money(Math.max(0, plan.left)) })}</p>
+        ${plan.owner ? `<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">${t("保存预算")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="budget-reset">${t("恢复建议值")}</button><a class="btn btn-sm btn-ghost" href="${settingsHref}">${t("调整收入和比例")}</a></div>` : ""}</form>
     </section>
 
     <section class="section">
@@ -311,7 +360,7 @@ export function viewBudget() {
       <div class="panel">
         ${yrRows.map((r) => row(r.g, r.spent, r.budget, elapsed / 12, r.proj != null ? ` · ${t("预计全年 {a}", { a: money(r.proj) })}` : "")).join("")}
         <div class="bud-total">${row({ icon: "📅", name: "年度合计" }, yrSpent, yrBudget, elapsed / 12, yrProj != null ? ` · ${t("预计全年 {a}", { a: money(yrProj) })}` : "")}</div>
-        <p class="muted" style="margin:8px 0 0;font-size:13px">${t("年收入 {i}，计划储蓄 {s}；预计全年花费 {p} 时，结余约 {r}。", { i: money(plan.income * 12), s: money(plan.savings * 12), p: yrProj != null ? money(yrProj) : "—", r: yrProj != null ? money(plan.income * 12 - yrProj) : "—" })}</p>
+        ${plan.income != null ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("年收入 {i}，计划储蓄 {s}；预计全年花费 {p} 时，结余约 {r}。", { i: money(plan.income * 12), s: money(plan.savings * 12), p: yrProj != null ? money(yrProj) : "—", r: yrProj != null ? money(plan.income * 12 - yrProj) : "—" })}</p>` : ""}
       </div>
     </section>
 
@@ -341,14 +390,8 @@ export function viewBudget() {
 /* ───────────── 交互 ───────────── */
 document.addEventListener("submit", async (e) => {
   const f = e.target;
-  if (f.id === "budgetForm") {
-    e.preventDefault();
-    try {
-      const income = num(f.elements.income_amount.value, NaN);
-      if (!Number.isFinite(income) || income <= 0) return toast(t("请填写大于 0 的收入"));
-      state.budget = await Store.saveBudget({ ...(state.budget || {}), income_amount: income, income_period: f.elements.income_period.value, savings_pct: clamp(num(f.elements.savings_pct.value, 20), 0, 90), cat_budgets: state.budget?.cat_budgets || {} });
-      toast(t("已保存")); document.dispatchEvent(new CustomEvent("budget-saved"));
-    } catch (err) { toast(budgetError(err)); }
+  if (f.id === "budgetCatsForm" && !isHouseholdOwner()) { e.preventDefault(); return; }
+  if (false) {
   } else if (f.id === "budgetCatsForm") {
     e.preventDefault();
     try {
@@ -370,5 +413,7 @@ const budgetError = (err) => (/household_budgets|relation .* does not exist|sche
 export async function budgetAction(action, ctx, el) {
   if (actions[action]) { try { return await actions[action](el, ctx); } catch (e) { toast(budgetError(e)); return; } }
   if (action === "budget-reset") { try { state.budget = await Store.saveBudget({ ...state.budget, cat_budgets: underscoreKeys(state.budget?.cat_budgets) }); toast(t("已恢复建议值")); ctx.render(); } catch (e) { toast(budgetError(e)); } }
+  if (action === "budget-generate") { try { await generatePlan(); toast(t("预算已生成")); } catch (e) { toast(budgetError(e)); } return; }
+  if (action === "budget-keep") { state.incomePrompt = false; try { const snap = state.budget?.cat_budgets?._plan; if (snap) await saveMeta({ _plan: { ...snap, dismissed_at: new Date().toISOString() } }); else ctx.render(); } catch (e) { toast(budgetError(e)); } return; }
   if (action === "shop-advice-close") { state.shopAdvice = null; ctx.render(); }
 }
