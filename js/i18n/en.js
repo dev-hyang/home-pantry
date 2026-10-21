@@ -1021,4 +1021,6 @@ export const EN = {
   "已保存": "Saved", "已添加自定义事项": "Custom task added", "已删除这条事项": "Task deleted",
   "清单按伊利诺伊州（芝加哥）常见流程整理，日期和税费以合同、律师和产权公司为准；其他州请按本地流程增删。点事项右侧的 ✎ 可以调整应完成日期、记录实际完成日期。": "The checklist follows the usual Illinois (Chicago) process; dates and fees are governed by your contract, attorney and title company; for other states add or remove tasks to match local practice. Tap ✎ on a task to adjust its due date and record the actual completion date.",
   "截止日按合同日和交割日推算，可点 ✎ 调整；必须项逾期会在首页置顶": "Due dates are calculated from the contract and closing dates and can be adjusted with ✎; overdue must-do items are pinned on the Today page",
+  "收款方：{who}": "Payee: {who}", "编辑这条记录": "Edit this record", "正在编辑 {d} 的这条记录": "Editing the record from {d}", "维修商 / 师傅 / 商店，自己做可不填": "Repair shop / technician / store; optional if you did it yourself",
+  "启用家庭分摊": "Enable family cost split", "打开后，账单 → 预算 里会出现“家庭分摊”：按谁记的账算付款人，算谁多付了、谁该补多少。默认关闭。": "When on, Bills → Budget shows “Family split”: whoever logged an expense counts as the payer, and it works out who overpaid and who owes. Off by default.", "已启用家庭分摊": "Family split enabled", "已关闭家庭分摊": "Family split turned off",
 };

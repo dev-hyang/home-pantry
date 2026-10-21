@@ -5,6 +5,7 @@ import { $, DAY, catOf, du, esc, fmt, money, num, showQty, toast } from "../core
 import { compare, lang, locale, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { href } from "../core/router.js";
+import { withProperty } from "../core/alerts.js";
 
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
@@ -223,7 +224,7 @@ function spendRow(p) {
   if (state.spendEdit === p.id) return spendEditRow(p);
   // 账单缴费记的花费：名称链接到那条缴费记录的编辑页（改那里，花费会同步）；其余的在这一行里就地编辑
   const pay = state.billPayments.find((x) => x.purchase_id === p.id), bill = pay && state.bills.find((x) => x.id === pay.bill_id);
-  const title = bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${pay.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</a>`
+  const title = bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${pay.id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
     : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>`;
   return `<li>
     <span class="badge" style="background:var(--surface-2)">${esc(d.toLocaleDateString(locale(), sameYear ? { month: "numeric", day: "numeric" } : { year: "2-digit", month: "numeric", day: "numeric" }))}</span>

@@ -3,6 +3,7 @@ import { state } from "../core/state.js";
 import { DAY, daysUntil, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
+import { withProperty } from "../core/alerts.js";
 
 const B = () => window.BILLS;
 const pad = (n) => String(n).padStart(2, "0");
@@ -180,7 +181,7 @@ export function icsFor(list) {
     if (!b.active || b.ended || !b.next_due_on) continue;
     let d = b.next_due_on, n = 0;
     while (d && d <= end && n < 60 && (!b.ends_on || d <= b.ends_on)) {
-      const title = `${b.autopay ? t("核对扣款：") : t("缴费：")}${b.name}`;
+      const title = `${b.autopay ? t("核对扣款：") : t("缴费：")}${withProperty(b.property_id, b.name)}`;
       const desc = [b.payee, b.est != null ? Units.money(b.est, b.currency || Units.region.currency) : null, b.pay_url, b.notes].filter(Boolean).join("\\n");
       lines.push("BEGIN:VEVENT", `UID:${b.id}-${d}@home-pantry`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${d.replace(/-/g, "")}`, `SUMMARY:${esc(title)}`, `DESCRIPTION:${esc(desc)}`);
       if (b.pay_url) lines.push(`URL:${b.pay_url}`);

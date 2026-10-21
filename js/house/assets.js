@@ -13,6 +13,7 @@ import { houseBar } from "./property-form.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 import { dealHref, dealTasks, openVehicleDeal } from "./deals.js";
 import { autofillBar } from "../core/autofill.js";
+import { storeDatalist } from "../stats/views.js";
 import { propertyName } from "../core/alerts.js";
 
 const H = () => window.HOUSE;
@@ -718,12 +719,15 @@ function assetSummary(a) {
 
 function maintSection(a, focusLog) {
   const K = H().MAINT_KINDS, R = C().RESULTS, veh = isVehicle(a);
-  const preItem = state.route?.q?.get("item") || "";   // 时间表里“记一次”带过来的保养项目
+  const editLog = a.logs.find((l) => l.id === state.route?.q?.get("edit")) || null;   // 编辑某条记录：表单带入原值
+  const e = editLog || {}, isInspect = !veh && e.kind === "inspect";
+  const preItem = editLog ? e.service_item || "" : state.route?.q?.get("item") || "";   // 时间表里“记一次”带过来的保养项目
   const rows = a.logs.map((l) => `<li>
       <span class="badge ${l.kind === "repair" ? "b-low" : l.kind === "replace" ? "b-exp" : l.result && l.result !== "ok" ? "b-out" : "b-ok"}">${t(K[l.kind] || l.kind)}${l.result ? ` · ${t(R[l.result] || l.result)}` : ""}</span>
       <div class="grow"><span class="name">${esc(fmtDate(l.done_on))}${l.service_item ? ` · ${esc(t(V().serviceItem(l.service_item)?.name || l.service_item))}` : ""}</span>
-        <small>${joinList([l.odometer != null ? `${fmt(l.odometer)} ${distUnit()}` : null, l.diy ? t("自己做的") : l.vendor ? t("由 {who}", { who: l.vendor }) : null, l.cost != null ? t("花费 {m}", { m: Units.money(num(l.cost), l.currency || Units.region.currency) }) : null, l.notes,
+        <small>${joinList([l.odometer != null ? `${fmt(l.odometer)} ${distUnit()}` : null, l.vendor ? t("收款方：{who}", { who: l.vendor }) : null, l.diy ? t("自己做的") : null, l.cost != null ? t("花费 {m}", { m: Units.money(num(l.cost), l.currency || Units.region.currency) }) : null, l.notes,
           l.created_at && t("{d} 记录", { d: fmtShort(l.created_at) })].filter(Boolean).map(esc))}</small></div>
+      <a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?log=1&edit=${l.id}" aria-label="${t("编辑这条记录")}">${t("编辑")}</a>
       <button type="button" class="btn btn-sm btn-ghost" data-action="maint-del" data-id="${l.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>
     </li>`).join("");
   const followUp = a.followUp ? `<div class="panel cta-panel" style="margin-bottom:10px"><div><b>${t("{date} 检查结论：{r}", { date: fmtDate(a.followUp.done_on), r: t(R[a.followUp.result]) })}</b>
@@ -732,20 +736,22 @@ function maintSection(a, focusLog) {
     <div class="section-head"><p>${veh ? t("按保养项目算下次到期；维修不重置") : t("检查、保养、更换会重算下次保养日期；维修不会")}</p></div>
     ${followUp}
     ${autofillBar("maint", "#maintForm")}
-    <form id="maintForm" class="panel" ${focusLog ? 'data-focus="1"' : ""}>
-      <input type="hidden" name="asset_id" value="${esc(a.id)}">
+    <form id="maintForm" class="panel ${isInspect ? "is-inspect" : ""}" ${focusLog ? 'data-focus="1"' : ""}>
+      ${storeDatalist()}
+      <input type="hidden" name="asset_id" value="${esc(a.id)}"><input type="hidden" name="log_id" value="${esc(e.id || "")}">
+      ${editLog ? `<p class="hint" style="margin-top:0">${t("正在编辑 {d} 的这条记录", { d: fmtDate(e.done_on) })}</p>` : ""}
       <div class="form-grid maint-grid">
-        <label>${t("日期")}<input name="done_on" type="date" required value="${todayISO()}" max="${todayISO()}"></label>
-        <label>${t("类型")}<select name="kind">${Object.entries(K).map(([k, n]) => `<option value="${k}" ${k === "service" ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
+        <label>${t("日期")}<input name="done_on" type="date" required value="${esc(e.done_on || todayISO())}" max="${todayISO()}"></label>
+        <label>${t("类型")}<select name="kind">${Object.entries(K).map(([k, n]) => `<option value="${k}" ${k === (e.kind || "service") ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
         ${veh ? `<label>${t("保养项目")}<select name="service_item"><option value="">${t("请选择")}</option>${V().itemsFor(a.type).map((s) => `<option value="${s.key}" ${s.key === preItem ? "selected" : ""}>${esc(t(s.name))}</option>`).join("")}</select><small>${t("保养 / 检查 / 更换必选，这一项的下次日期才会更新；维修可不选")}</small></label>
-                <label>${t("里程（{u}）", { u: distUnit() })}<input name="odometer" type="number" inputmode="numeric" min="0" step="1" placeholder="${a.nowMiles != null ? fmt(a.nowMiles) : ""}"><small>${t("填了会同时更新车辆当前里程")}</small></label>`
-              : `<label class="inspect-only">${t("检查结论")}<select name="result">${Object.entries(R).map(([k, n]) => `<option value="${k}">${t(n)}</option>`).join("")}</select><small>${t("“需保养 / 维修 / 更换”会提醒到记下一条为止")}</small></label>`}
-        <label>${t("花费（{cur}，可不填）", { cur: Units.region.currency })}<input name="cost" type="number" inputmode="decimal" min="0" step="0.01"></label>
-        <label>${t("谁做的")}<input name="vendor" maxlength="40" placeholder="${t("维修商 / 师傅，自己做留空")}"></label>
-        <label class="span-2 check-inline"><input type="checkbox" name="diy"><span>${t("自己动手")}</span></label>
-        <label class="span-2">${t("备注")}<input name="notes" maxlength="500" placeholder="${t("换了什么、师傅怎么说…")}"></label>
+                <label>${t("里程（{u}）", { u: distUnit() })}<input name="odometer" type="number" inputmode="numeric" min="0" step="1" value="${e.odometer ?? ""}" placeholder="${a.nowMiles != null ? fmt(a.nowMiles) : ""}"><small>${t("填了会同时更新车辆当前里程")}</small></label>`
+              : `<label class="inspect-only">${t("检查结论")}<select name="result">${Object.entries(R).map(([k, n]) => `<option value="${k}" ${k === e.result ? "selected" : ""}>${t(n)}</option>`).join("")}</select><small>${t("“需保养 / 维修 / 更换”会提醒到记下一条为止")}</small></label>`}
+        <label>${t("花费（{cur}，可不填）", { cur: Units.region.currency })}<input name="cost" type="number" inputmode="decimal" min="0" step="0.01" value="${e.cost ?? ""}"></label>
+        <label>${t("收款方")}<input name="vendor" maxlength="40" list="storeList" value="${esc(e.vendor || "")}" placeholder="${t("维修商 / 师傅 / 商店，自己做可不填")}"></label>
+        <label class="span-2 check-inline"><input type="checkbox" name="diy" ${e.diy ? "checked" : ""}><span>${t("自己动手")}</span></label>
+        <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(e.notes || "")}" placeholder="${t("换了什么、师傅怎么说…")}"></label>
       </div>
-      <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${t("记一笔")}</button>
+      <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${editLog ? t("保存修改") : t("记一笔")}</button>${editLog ? `<a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?log=1">${t("取消")}</a>` : ""}
         <small class="muted">${veh ? t("填了花费会同时记入“车辆”花费统计。") : t("填了花费会同时记入“房屋维护”花费统计。")}</small></div>
     </form>
     <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有记录")}</strong>${t("上面记第一次检查或保养，之后会按周期提醒。")}</div>`}</div>`;
@@ -848,17 +854,22 @@ export async function saveMaintForm(f) {
   if (veh && kind !== "repair" && !service_item) { toast(t("请选保养项目（维修可不选）")); fe.service_item.focus(); return false; }
   const odometer = veh && fe.odometer && fe.odometer.value !== "" ? Math.max(0, Math.round(num(fe.odometer.value))) : null;
   const itemName = service_item ? t(V().serviceItem(service_item)?.name || service_item) : t(H().MAINT_KINDS[kind]);
-  let purchase_id = null;
+  const editing = fe.log_id.value ? state.maintLogs.find((x) => x.id === fe.log_id.value) : null;
+  let purchase_id = editing?.purchase_id || null;
+  const spend = { name: `${asset.name} · ${itemName}`, amount: cost, store: vendor, purchased_at: new Date(`${done_on}T12:00:00`).toISOString() };
   if (cost != null && cost > 0) {
-    purchase_id = await Store.addPurchase({ item_id: null, name: `${asset.name} · ${itemName}`, category: veh ? VEHICLE_CAT.id : MAINT_CAT.id, quantity: null, unit: null,
-      store: vendor, amount: cost, currency, purchased_at: new Date(`${done_on}T12:00:00`).toISOString() });
-  }
-  await Store.addMaintLog({ asset_id: asset.id, done_on, kind, cost, currency: cost != null ? currency : null, diy, vendor, notes: fe.notes.value.trim() || null, purchase_id, result, service_item, odometer });
+    if (purchase_id && state.purchases.some((x) => x.id === purchase_id)) await Store.updatePurchase(purchase_id, spend);   // 编辑：同步改关联的花费
+    else purchase_id = await Store.addPurchase({ item_id: null, category: veh ? VEHICLE_CAT.id : MAINT_CAT.id, quantity: null, unit: null, currency, ...spend });
+  } else if (purchase_id) { await Store.deletePurchase(purchase_id); purchase_id = null; }   // 编辑时把花费清空：关联的花费一起删
+  const fields = { done_on, kind, cost, currency: cost != null ? currency : null, diy, vendor, notes: fe.notes.value.trim() || null, purchase_id, result, service_item, odometer };
+  if (editing) await Store.updateMaintLog(editing.id, fields);
+  else await Store.addMaintLog({ asset_id: asset.id, ...fields });
   // 车辆：记录里的里程比档案新就更新档案里程
   if (veh && odometer != null && (num(asset.vehicle?.odometer) || 0) <= odometer) {
     await Store.saveAsset({ ...asset, vehicle: { ...(asset.vehicle || {}), odometer, odometer_on: done_on } });
   }
-  if (result && result !== "ok") toast(t("已记录检查，结论“{r}”，会提醒到记下一条处理为止", { r: t(C().RESULTS[result]) }));
+  if (editing) toast(t("已保存修改"));
+  else if (result && result !== "ok") toast(t("已记录检查，结论“{r}”，会提醒到记下一条处理为止", { r: t(C().RESULTS[result]) }));
   else toast(kind === "replace" ? t("已记录更换，记得把安装日期改成新设备的日期") : t("已记录{kind}", { kind: itemName }));
   return true;
 }

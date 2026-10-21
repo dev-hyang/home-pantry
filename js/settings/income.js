@@ -6,7 +6,7 @@ import { Store } from "../core/store.js";
 import { esc, money, num, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
-import { budgetPlan, generatePlan, incomeBanner, isHouseholdOwner, linesOf, monthlyOf, myId, saveBudgetBase, totalIncomeMonthly } from "../bills/budget.js";
+import { budgetPlan, generatePlan, incomeBanner, isHouseholdOwner, linesOf, meta, monthlyOf, myId, saveBudgetBase, saveMeta, totalIncomeMonthly } from "../bills/budget.js";
 
 const cur = () => Units.region.currency;
 const sym = () => Units.money(0).replace(/[\d.,\s]/g, "") || cur();
@@ -46,7 +46,9 @@ export function incomePanel() {
         <button type="submit" class="btn btn-sm">${t("保存比例")}</button></form>
       <div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="budget-generate" ${total > 0 ? "" : "disabled"}>${plan ? t("重新生成预算") : t("生成预算")}</button>
         <a class="btn btn-sm btn-ghost" href="${href("bills", "budget")}">${t("去看预算")}</a></div>
-      ${plan ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("你在预算页改过的各类金额会保留；想全部按建议值，在预算页点“恢复建议值”。")}</p>` : `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("填好收入后会自动生成第一版预算。")}</p>`}</div>`;
+      ${plan ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("你在预算页改过的各类金额会保留；想全部按建议值，在预算页点“恢复建议值”。")}</p>` : `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("填好收入后会自动生成第一版预算。")}</p>`}</div>
+    <div class="panel"><label class="check-inline"><input type="checkbox" id="splitToggle" ${meta("_split_on", false) === true ? "checked" : ""}><span><b>${t("启用家庭分摊")}</b></span></label>
+      <p class="muted" style="margin:6px 0 0;font-size:13px">${t("打开后，账单 → 预算 里会出现“家庭分摊”：按谁记的账算付款人，算谁多付了、谁该补多少。默认关闭。")}</p></div>`;
 }
 
 /** 读一个人的卡片：金额为空的行忽略；金额填错给出提示 */
@@ -86,6 +88,10 @@ document.addEventListener("submit", async (e) => {
       if (budgetPlan()) { state.incomePrompt = true; document.dispatchEvent(new CustomEvent("budget-saved")); }
     }
   } catch (err) { fail(err); }
+});
+document.addEventListener("change", async (e) => {
+  if (e.target.id !== "splitToggle" || !isHouseholdOwner()) return;
+  try { await saveMeta({ _split_on: e.target.checked }); toast(e.target.checked ? t("已启用家庭分摊") : t("已关闭家庭分摊")); } catch (err) { e.target.checked = !e.target.checked; fail(err); }
 });
 document.addEventListener("click", async (e) => {
   const add = e.target.closest?.('[data-action="income-add-row"]');

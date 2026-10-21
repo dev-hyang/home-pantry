@@ -183,6 +183,10 @@ function filteredPays() {
     bill: (x, y) => compare(byBill[x.bill_id]?.name || "", byBill[y.bill_id]?.name || "") || (y.paid_on || "").localeCompare(x.paid_on || "") }[f.sort] || (() => 0);
   return list.sort(sorter);
 }
+/** 多套房产时账单名带房产前缀（“房 1 · 电费”），单套房产不变 */
+const billLabel = (b) => (b ? withProperty(b.property_id, b.name) : "");
+/** 这笔缴费的收款方：缴费当时记在花费上的，没有就用账单的收款方 */
+const payeeOf = (p, b) => (p.purchase_id ? state.purchases.find((x) => x.id === p.purchase_id)?.store : "") || b?.payee || "";
 function payListInner() {
   const f = state.payFilter, byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b])), all = filteredPays(), shown = all.slice(0, f.limit);
   if (!state.billPayments.length) return `<div class="empty"><strong>${t("还没有缴费记录")}</strong>${t("在账单页记一笔，或在概览里点“已核对”。")}</div>`;
@@ -191,8 +195,8 @@ function payListInner() {
   return `<p class="muted" style="margin:0 0 6px;font-size:13px">${t("{n} 笔", { n: all.length })} · ${money(sum)}</p><ul class="restock-list">${shown.map((p) => {
     const b = byBill[p.bill_id];
     return `<li><${b ? `a href="${href("bill", b.id)}?sec=pay&edit=${p.id}" title="${t("点一下编辑")}"` : "span"} class="badge pay-date" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</${b ? "a" : "span"}>
-      <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>` : t("（已删除的账单）")}</span>
-        <small>${[b ? acctText(b) : null, t(B().PAYMENT_STATUS[p.status] || p.status), p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+      <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(billLabel(b))}</a>` : t("（已删除的账单）")}</span>
+        <small>${[b ? acctText(b) : null, payeeOf(p, b) ? t("收款方：{who}", { who: payeeOf(p, b) }) : null, t(B().PAYMENT_STATUS[p.status] || p.status), p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b>${p.amount != null ? mny(p.amount, p.currency) : `<span class="muted">${t("未填金额")}</span>`}</b>
       <button type="button" class="btn btn-sm btn-ghost" data-action="billpay-del" data-id="${p.id}">${t("删除")}</button></li>`;
   }).join("")}</ul>${all.length > shown.length ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-ghost" data-action="pay-more">${t("再显示 {n} 笔（还有 {m} 笔）", { n: Math.min(50, all.length - shown.length), m: all.length - shown.length })}</button></div>` : ""}`;
@@ -203,7 +207,7 @@ function payToolbar(byBill) {
   const ids = [...new Set(state.billPayments.map((p) => p.bill_id))], years = [...new Set(state.billPayments.map((p) => (p.paid_on || "").slice(0, 4)).filter(Boolean))].sort().reverse();
   if (!state.billPayments.length) return "";
   return `<div class="toolbar" style="margin-top:10px">
-    <select id="payBill" aria-label="${t("按账单筛选")}">${opt("all", t("全部账单"), f.bill)}${ids.map((id) => opt(id, byBill[id]?.name || t("（已删除的账单）"), f.bill)).sort().join("")}</select>
+    <select id="payBill" aria-label="${t("按账单筛选")}">${opt("all", t("全部账单"), f.bill)}${ids.map((id) => opt(id, billLabel(byBill[id]) || t("（已删除的账单）"), f.bill)).sort().join("")}</select>
     <select id="payYear" aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
     <select id="payStatus" aria-label="${t("按状态筛选")}">${opt("all", t("全部状态"), f.status)}${Object.entries(B().PAYMENT_STATUS).map(([k, n]) => opt(k, t(n), f.status)).join("")}</select>
     <select id="paySort" aria-label="${t("排序")}">${PAY_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select></div>`;
@@ -223,8 +227,8 @@ export function viewBillsHistory() {
   let chart = "";
   if (sel) {
     const series = [...sel.pays].filter((p) => p.amount != null).reverse().slice(-12);
-    chart = Charts.line({ title: t("{name}缴费金额", { name: sel.name }), labels: series.map((p) => fmtShort(`${p.paid_on}T12:00:00`)), fmt: (v) => money(v),
-      series: [{ name: sel.name, color: "var(--pine)", values: series.map((p) => num(p.amount)) }] });
+    chart = Charts.line({ title: t("{name}缴费金额", { name: billLabel(sel) }), labels: series.map((p) => fmtShort(`${p.paid_on}T12:00:00`)), fmt: (v) => money(v),
+      series: [{ name: billLabel(sel), color: "var(--pine)", values: series.map((p) => num(p.amount)) }] });
   }
   return `
     <section class="section">
@@ -234,7 +238,7 @@ export function viewBillsHistory() {
         <div class="kpi"><span>${t("滞纳金")}</span><b>${money(late)}</b><small>${late ? t("按时缴费就能省下") : t("没有滞纳金")}</small></div>
       </div>
       ${sel ? `<div class="panel chart-panel"><div class="chart-head"><h3>${t("单账单金额趋势")}</h3>
-        <select id="billTrend" aria-label="${t("选择账单")}">${candidates.map((b) => `<option value="${b.id}" ${b.id === sel.id ? "selected" : ""}>${esc(b.name)}</option>`).join("")}</select></div>${chart}</div>` : ""}
+        <select id="billTrend" aria-label="${t("选择账单")}">${candidates.map((b) => `<option value="${b.id}" ${b.id === sel.id ? "selected" : ""}>${esc(billLabel(b))}</option>`).join("")}</select></div>${chart}</div>` : ""}
       ${payToolbar(byBill)}
       <div class="panel" id="payList" style="margin-top:10px">${payListInner()}</div>
     </section>`;

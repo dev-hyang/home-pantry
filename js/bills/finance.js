@@ -6,6 +6,7 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}${Mat
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { memberName } from "../core/logic.js";
+import { withProperty } from "../core/alerts.js";
 import { GROUPS, actualByMonth, billsThisMonth, applianceFund, bigThreshold, meta, registerAction, registerSection, restockForecast, saveMeta, groupOf } from "./budget.js";
 import { escrowMonthlyFor, freqText, upcoming } from "./logic.js";
 import { lastMonths, monthKey, monthLabel } from "../stats/views.js";
@@ -19,7 +20,8 @@ const barHtml = (v, total, cls = "") => `<div class="bud-bar ${cls}"><i style="w
 
 /* ───────────── 顶部：页内跳转 ───────────── */
 registerSection("top", 0, () => {
-  const jump = [["budReview", "月度复盘"], ["budFixed", "固定账单"], ["budRestock", "补货预估"], ["budFund", "大件基金"], ["budCash", "现金流"], ["budGoals", "储蓄目标"], ["budSubs", "年成本"], ["budSplit", "家庭分摊"]];
+  const splitOn = meta("_split_on", false) === true;   // 家庭分摊默认不显示，在 我的 → 设置 → 收入与预算 里打开
+  const jump = [["budReview", "月度复盘"], ["budFixed", "固定账单"], ["budRestock", "补货预估"], ["budFund", "大件基金"], ["budCash", "现金流"], ["budGoals", "储蓄目标"], ["budSubs", "年成本"], ...(splitOn ? [["budSplit", "家庭分摊"]] : [])];
   return `<div class="chips bud-jump" role="group" aria-label="${t("页内跳转")}">${jump.map(([id, l]) => `<button type="button" class="chip" data-action="budget-jump" data-to="${id}">${t(l)}</button>`).join("")}</div>`;
 });
 registerAction("budget-jump", (el) => document.getElementById(el.dataset.to)?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -56,8 +58,8 @@ registerSection("month", 0, ({ plan }) => {
     <p style="margin:0">${t("本月已缴 {a}，还要交 {b}（{n} 笔），账单预算 {c}。", { a: money(bm.paid), b: money(bm.due), n: bm.dueN, c: money(plan.billsM) })}</p>
     ${bm.overdueN ? `<p class="form-error" style="margin:6px 0 0">${t("其中 {n} 笔已逾期，先处理。", { n: bm.overdueN })}</p>` : ""}
     ${escrow > 0 ? `<p class="muted" style="margin:6px 0 0;font-size:13px">🏦 ${t("含在房贷月供里的房产税、保险约 {a}/月，已包含在房贷里，不重复计入。", { a: money(escrow) })}</p>` : ""}
-    ${up.length ? `<p class="down" style="margin:6px 0 0">📈 ${t("涨价了：{l}", { l: up.map((b) => esc(b.name)).join("、") })}</p>` : ""}
-    <div class="bud-rank">${topFixed.map((b) => `<div class="bud-row"><div class="bud-head"><a class="link-name" href="${href("bill", b.id)}">${B().catOf(b.category).icon} ${esc(b.name)}</a><span>${money(b.monthly)} / ${t("月")}</span></div>${barHtml(b.monthly, plan.billsM)}</div>`).join("")}</div>
+    ${up.length ? `<p class="down" style="margin:6px 0 0">📈 ${t("涨价了：{l}", { l: up.map((b) => esc(withProperty(b.property_id, b.name))).join("、") })}</p>` : ""}
+    <div class="bud-rank">${topFixed.map((b) => `<div class="bud-row"><div class="bud-head"><a class="link-name" href="${href("bill", b.id)}">${B().catOf(b.category).icon} ${esc(withProperty(b.property_id, b.name))}</a><span>${money(b.monthly)} / ${t("月")}</span></div>${barHtml(b.monthly, plan.billsM)}</div>`).join("")}</div>
     <div class="form-actions"><a class="btn btn-sm btn-ghost" href="${href("bills", "list")}">${t("看全部账单")}</a></div></div>`);
 });
 
@@ -89,7 +91,7 @@ registerSection("month", 20, ({ plan }) => {
 registerSection("annual", 0, ({ plan }) => {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const list = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable");
-  const ev = upcoming(list, 90).filter((x) => (x.bill.currency || cur()) === cur()).map((x) => ({ date: new Date(`${x.due}T12:00:00`), amt: -num(x.bill.est), name: x.bill.name }));
+  const ev = upcoming(list, 90).filter((x) => (x.bill.currency || cur()) === cur()).map((x) => ({ date: new Date(`${x.due}T12:00:00`), amt: -num(x.bill.est), name: withProperty(x.bill.property_id, x.bill.name) }));
   const day = meta("_income_day", null);
   if (day && plan.income != null) for (let i = 0; i < 4; i++) { const d = new Date(today.getFullYear(), today.getMonth() + i, Math.min(day, new Date(today.getFullYear(), today.getMonth() + i + 1, 0).getDate()), 12); if (d >= today && d <= new Date(today.getTime() + 90 * 864e5)) ev.push({ date: d, amt: plan.income, name: t("收入") }); }
   ev.sort((a, b) => a.date - b.date);
@@ -133,7 +135,7 @@ registerSection("annual", 20, ({ plan }) => {
   const subs = list.filter((b) => B().isSubCat(b.category)).map((b) => ({ b, annual: b.monthly * 12 })).sort((x, y) => y.annual - x.annual);
   const other = list.filter((b) => !B().isSubCat(b.category)).map((b) => ({ b, annual: b.monthly * 12 })).sort((x, y) => y.annual - x.annual).slice(0, 5);
   const subTotal = subs.reduce((s, x) => s + x.annual, 0), flagged = subs.filter((x) => flag.has(x.b.id)).reduce((s, x) => s + x.annual, 0);
-  const li = ({ b, annual }, canFlag) => `<li><div class="grow"><a class="link-name" href="${href("bill", b.id)}">${B().catOf(b.category).icon} ${esc(b.name)}</a><small>${esc(freqText(b))}</small></div><b>${money(annual)} / ${t("年")}</b>
+  const li = ({ b, annual }, canFlag) => `<li><div class="grow"><a class="link-name" href="${href("bill", b.id)}">${B().catOf(b.category).icon} ${esc(withProperty(b.property_id, b.name))}</a><small>${esc(freqText(b))}</small></div><b>${money(annual)} / ${t("年")}</b>
     ${canFlag ? `<button type="button" class="btn btn-sm ${flag.has(b.id) ? "btn-primary" : "btn-ghost"}" data-action="budget-flag-cancel" data-id="${b.id}" aria-pressed="${flag.has(b.id)}">${flag.has(b.id) ? t("考虑取消 ✓") : t("考虑取消")}</button>` : ""}</li>`;
   return sec("budSubs", t("年成本：订阅与固定账单"), t("月付看着小，按年算一下"), `<div class="panel">
     ${subs.length ? `<p style="margin:0">${plan.income != null ? t("订阅与会员每年 {a}，占年收入 {p}%。", { a: money(subTotal), p: pct(subTotal, plan.income * 12) }) : t("订阅与会员每年 {a}。", { a: money(subTotal) })}${flagged ? ` <b>${t("标记“考虑取消”的共 {a}/年。", { a: money(flagged) })}</b>` : ""}</p><ul class="restock-list" style="margin-top:8px">${subs.map((x) => li(x, true)).join("")}</ul>` : `<p class="muted" style="margin:0">${t("还没有订阅 / 会员类账单。")}</p>`}
@@ -142,6 +144,7 @@ registerSection("annual", 20, ({ plan }) => {
 
 /* ───────────── 家庭分摊（按“谁记的账”算付款人，默认平分） ───────────── */
 registerSection("plan", 0, () => {
+  if (meta("_split_on", false) !== true) return "";
   const members = state.members, which = state.budgetSplitMonth || "this", months = lastMonths(2), m = which === "last" ? months[0] : months[1];
   const chips = [["this", t("本月")], ["last", t("上月")]].map(([k, l]) => `<button type="button" class="chip" data-action="budget-split-month" data-m="${k}" aria-pressed="${which === k}">${l}</button>`).join("");
   if (members.length < 2) return sec("budSplit", t("家庭分摊"), "", `<div class="panel empty"><strong>${t("家里有两位以上成员时，这里会算谁多付了、谁该补多少")}</strong>${t("按“谁记的账”当作付款人；邀请家人加入后就能用（设置 → 家庭与成员）。")}</div>`);

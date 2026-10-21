@@ -96,7 +96,7 @@ function inputHtml() {
       <label class="scan-text">${order ? t("订单文字（订单确认邮件、网页或 App 订单详情，整段粘贴）") : t("补充文字（可选，例如小票上识别不出的商品）")}
         <textarea id="scanText" rows="${order ? 8 : 3}" maxlength="12000" placeholder="${order ? t("例如：Instacart / Amazon / 京东 / 盒马 的订单确认内容") : ""}">${esc(sc.text)}</textarea></label>
       <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("图片和文字会发给你在设置里选的 {p}，不会保存原图。小票上的卡号、姓名建议裁掉或遮住再拍。Gemini 免费档的内容可能被用于改进产品，介意的话用付费 key。", { p: t(p.name) })}</p>
-      <label class="inc-field scan-date">${t("购买日期（选填）")}<input type="date" id="scanDate" max="${todayISO()}" value="${esc(sc.date)}"></label>
+      <label class="scan-text">${t("购买日期（选填）")}<input type="date" id="scanDate" max="${todayISO()}" value="${esc(sc.date)}"></label>
       <p class="muted" style="margin:0;font-size:12.5px">${t("默认按小票上的日期记：拍照时把日期也拍进去，或在上面的文字里写上日期（例如 2026-10-18、上周六）。都没有就用今天。补记以前的购物，在这里选那天就行。")}</p>
       ${sc.error ? `<p class="form-error" role="alert">${esc(sc.error)}</p>` : ""}
       <div class="form-actions"><button type="button" class="btn btn-primary" data-action="scan-run" ${!ready || sc.busy || (!sc.images.length && !sc.text.trim()) ? "disabled" : ""}>${sc.busy ? t("正在识别…（几十秒）") : t("识别")}</button></div>

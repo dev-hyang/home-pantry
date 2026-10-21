@@ -488,6 +488,7 @@ main.addEventListener("submit", async (e) => {
       let ok = false;
       try { ok = await saveMaintForm(f); } finally { btn.disabled = false; }
       if (!ok) return;   // 校验没过（如车辆没选保养项目）：保留已填内容
+      if (f.elements.log_id.value) { await refresh(); return go(`${href("asset", f.elements.asset_id.value)}?log=1`, { replace: true }); }   // 编辑完回到记录列表
       await refresh(); return render(true);
     }
     if (f.id === "spendEditForm") {   // 花费记录就地编辑

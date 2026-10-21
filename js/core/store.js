@@ -190,6 +190,7 @@ export const DemoStore = {
   },
   async listMaintLogs() { return this.db.maint_logs.map((x) => ({ ...x })); },
   async addMaintLog(l) { const id = uid(); this.db.maint_logs.push({ ...l, id, created_at: new Date().toISOString() }); this.persist(); return id; },
+  async updateMaintLog(id, patch) { const i = this.db.maint_logs.findIndex((x) => x.id === id); if (i >= 0) { this.db.maint_logs[i] = { ...this.db.maint_logs[i], ...patch }; this.persist(); } },
   async deleteMaintLog(id) {
     const l = this.db.maint_logs.find((x) => x.id === id);
     if (l?.purchase_id) this.db.purchases = this.db.purchases.filter((p) => p.id !== l.purchase_id);
@@ -537,6 +538,7 @@ export const CloudStore = {
   async addMaintLog(l) {
     return this.must(await this.sb.from("maintenance_logs").insert({ ...l, household_id: this.hid, created_by: state.user.id }).select("id").single()).id;
   },
+  async updateMaintLog(id, patch) { this.must(await this.sb.from("maintenance_logs").update(patch).eq("id", id)); },
   async deleteMaintLog(id) {
     const l = state.maintLogs.find((x) => x.id === id);
     this.must(await this.sb.from("maintenance_logs").delete().eq("id", id));
