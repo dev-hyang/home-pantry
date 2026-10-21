@@ -7,7 +7,7 @@ import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { memberName } from "../core/logic.js";
 import { GROUPS, actualByMonth, billsThisMonth, applianceFund, bigThreshold, meta, registerAction, registerSection, restockForecast, saveMeta, groupOf } from "./budget.js";
-import { freqText, upcoming } from "./logic.js";
+import { escrowMonthlyFor, freqText, upcoming } from "./logic.js";
 import { lastMonths, monthKey, monthLabel } from "../stats/views.js";
 
 const B = () => window.BILLS;
@@ -50,10 +50,12 @@ registerSection("top", 10, ({ plan }) => {
 /* ───────────── 固定账单：本月已缴 / 还要交 / 涨价 ───────────── */
 registerSection("month", 0, ({ plan }) => {
   const bm = billsThisMonth(), up = state.billsEnriched.filter((b) => b.active && !b.ended && b.priceUp && b.direction !== "receivable");
-  const topFixed = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable" && (b.currency || cur()) === cur()).sort((x, y) => y.monthly - x.monthly).slice(0, 5);
+  const topFixed = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable" && (b.currency || cur()) === cur()).filter((b) => b.monthly > 0).sort((x, y) => y.monthly - x.monthly).slice(0, 5);
+  const escrow = state.billsEnriched.reduce((s, b) => s + (b.escrowMonthly || 0), 0);
   return sec("budFixed", t("固定账单"), t("预算里的“账单”来自这里，每月折算"), `<div class="panel">
     <p style="margin:0">${t("本月已缴 {a}，还要交 {b}（{n} 笔），账单预算 {c}。", { a: money(bm.paid), b: money(bm.due), n: bm.dueN, c: money(plan.billsM) })}</p>
     ${bm.overdueN ? `<p class="form-error" style="margin:6px 0 0">${t("其中 {n} 笔已逾期，先处理。", { n: bm.overdueN })}</p>` : ""}
+    ${escrow > 0 ? `<p class="muted" style="margin:6px 0 0;font-size:13px">🏦 ${t("含在房贷月供里的房产税、保险约 {a}/月，已包含在房贷里，不重复计入。", { a: money(escrow) })}</p>` : ""}
     ${up.length ? `<p class="down" style="margin:6px 0 0">📈 ${t("涨价了：{l}", { l: up.map((b) => esc(b.name)).join("、") })}</p>` : ""}
     <div class="bud-rank">${topFixed.map((b) => `<div class="bud-row"><div class="bud-head"><a class="link-name" href="${href("bill", b.id)}">${B().catOf(b.category).icon} ${esc(b.name)}</a><span>${money(b.monthly)} / ${t("月")}</span></div>${barHtml(b.monthly, plan.billsM)}</div>`).join("")}</div>
     <div class="form-actions"><a class="btn btn-sm btn-ghost" href="${href("bills", "list")}">${t("看全部账单")}</a></div></div>`);
@@ -127,7 +129,7 @@ registerSection("annual", 10, ({ plan }) => {
 
 /* ───────────── 订阅与固定账单年成本 ───────────── */
 registerSection("annual", 20, ({ plan }) => {
-  const list = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable" && (b.currency || cur()) === cur()), flag = new Set(meta("_cancel", []));
+  const list = state.billsEnriched.filter((b) => b.active && !b.ended && !b.escrow && b.direction !== "receivable" && (b.currency || cur()) === cur()), flag = new Set(meta("_cancel", []));
   const subs = list.filter((b) => B().isSubCat(b.category)).map((b) => ({ b, annual: b.monthly * 12 })).sort((x, y) => y.annual - x.annual);
   const other = list.filter((b) => !B().isSubCat(b.category)).map((b) => ({ b, annual: b.monthly * 12 })).sort((x, y) => y.annual - x.annual).slice(0, 5);
   const subTotal = subs.reduce((s, x) => s + x.annual, 0), flagged = subs.filter((x) => flag.has(x.b.id)).reduce((s, x) => s + x.annual, 0);

@@ -78,7 +78,7 @@ export function restockForecast() {
 /** 本月账单：已缴、还要交（含已逾期的）、逾期笔数 */
 export function billsThisMonth() {
   const now = new Date(), m = monthKey(now), today = now.toISOString().slice(0, 10);
-  const open = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable" && b.next_due_on && (b.currency || cur()) === cur() && (b.next_due_on.startsWith(m) || b.next_due_on < today));
+  const open = state.billsEnriched.filter((b) => b.active && !b.ended && !b.escrow && b.direction !== "receivable" && b.next_due_on && (b.currency || cur()) === cur() && (b.next_due_on.startsWith(m) || b.next_due_on < today));
   return { paid: actualByMonth()[m]?.bills || 0, due: open.reduce((s, b) => s + num(b.est), 0), dueN: open.length, overdueN: open.filter((b) => b.next_due_on < today).length };
 }
 

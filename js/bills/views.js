@@ -6,14 +6,14 @@ import { SECTIONS, go, href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { download } from "../stats/views.js";
-import { STATUS_RANK, acctText, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
+import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
 import { propertyTag, withProperty } from "../core/alerts.js";
 import { autofillBar } from "../core/autofill.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 
 const B = () => window.BILLS;
-const BADGE = { overdue: "b-out", due: "b-low", verify: "b-soon", soon: "b-soon", ok: "b-ok", none: "", ended: "", inactive: "" };
-const STATUS_LABEL = { overdue: "逾期", due: "今天到期", verify: "待核对", soon: "即将到期", ok: "正常", none: "未填到期日", ended: "已结束", inactive: "已停用" };
+const BADGE = { overdue: "b-out", due: "b-low", verify: "b-soon", soon: "b-soon", ok: "b-ok", escrow: "b-ok", none: "", ended: "", inactive: "" };
+const STATUS_LABEL = { overdue: "逾期", due: "今天到期", verify: "待核对", soon: "即将到期", ok: "正常", escrow: "Escrow 代缴", none: "未填到期日", ended: "已结束", inactive: "已停用" };
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
 
 /** 房产切换条（房屋、账单页共用）；只有一套房产时不显示 */
@@ -98,7 +98,7 @@ export function viewBillsList() {
   const kindTag = (b) => (B().isSubCat(b.category) && b.sub_kind ? `<span class="badge sub-kind">${t(B().SUB_KINDS[b.sub_kind] || b.sub_kind)}</span>` : "");
   const row = (b, flat = false) => `<li class="bill-row ${b.active && !b.ended ? "" : "inactive"}">
       <div class="grow">${propertyTag(b.property_id)}${kindTag(b)}${flat ? `<span class="badge" style="background:var(--surface-2)">${billCat(b.category).icon}</span> ` : ""}<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}${b.trialSoon ? ` <span class="badge b-out">${t("试用快到期")}</span>` : ""}
-        <small>${[acctText(b), b.payee, freqText(b), b.ended && b.ends_on ? t("结束于 {d}", { d: fmtDate(b.ends_on) }) : b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.assigned_to ? memberName(b.assigned_to) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
+        <small>${[acctText(b), b.escrow ? t("Escrow 代缴，含在房贷月供里") : null, b.category === "mortgage" && escrowMonthlyFor(b.property_id) > 0 ? t("含 Escrow 约 {a}/月", { a: mny(escrowMonthlyFor(b.property_id)) }) : null, b.payee, freqText(b), b.ended && b.ends_on ? t("结束于 {d}", { d: fmtDate(b.ends_on) }) : b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.assigned_to ? memberName(b.assigned_to) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b class="bill-amt">${mny(b.est, b.currency)}</b>
       <label class="switch" title="${t("自动扣款")}"><input type="checkbox" data-bill-autopay="${b.id}" ${b.autopay ? "checked" : ""}><span>${t("自动")}</span></label>
     </li>`;
@@ -338,7 +338,7 @@ export function viewBillForm() {
             <label>${t("账号尾号")}<input name="account_last4" maxlength="8" placeholder="${t("只记后 4 位")}" value="${d(v.account_last4)}"></label>
             <label>${t("登录提示")}<input name="login_hint" maxlength="80" placeholder="${t("例如：用 Gmail 登录，密码在密码管理器")}" value="${d(v.login_hint)}"></label>
             <label>${t("缴费链接")}<input name="pay_url" type="url" maxlength="300" placeholder="https://" value="${d(v.pay_url)}"></label>
-            <label>${t("缴费方式")}<select name="pay_channel">${opts(B().CHANNELS, v.pay_channel)}</select></label>
+            <label>${t("缴费方式")}<select name="pay_channel">${opts(B().CHANNELS, v.pay_channel)}</select><small>${t("房产税 / 保险由贷款方从月供里代缴时选“Escrow 代缴”：不提醒到期、不重复算进每月预算；金额填税单或保单上的年额，房贷填含 Escrow 的总月供。")}</small></label>
             <label>${t("账单怎么来")}<select name="statement_channel">${opts(B().STATEMENTS, v.statement_channel)}</select></label>
           </div>
         </fieldset>
@@ -481,6 +481,7 @@ export async function saveBillForm(f, { silent = false } = {}) {
     autopay: fe.autopay.checked, autopay_method: fe.autopay_method.value.trim() || null, autopay_card_expires: fe.autopay_card_expires.value || null,
     assigned_to: fe.assigned_to.value || null, essential: fe.essential.checked, active: fe.active.checked, notes: fe.notes.value.trim() || null,
   };
+  if (b.pay_channel === "escrow") b.autopay = false;   // 代缴就不是自动扣款
   if (b.autopay && b.pay_channel !== "autopay") b.pay_channel = "autopay";
   if (!b.autopay && b.pay_channel === "autopay") b.pay_channel = "online";
   if (!b.next_due_on) b.next_due_on = initialDue(b);

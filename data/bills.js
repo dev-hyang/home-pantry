@@ -30,7 +30,7 @@
   const catOf = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
 
   const FREQUENCIES = { weekly: "每周", biweekly: "每两周", monthly: "每月", quarterly: "每季度", semiannual: "每半年", annual: "每年", custom: "每 N 个月", one_time: "一次性" };
-  const CHANNELS = { online: "网上缴费", autopay: "自动扣款", mail: "邮寄支票", phone: "电话缴费", in_person: "现场缴费" };
+  const CHANNELS = { online: "网上缴费", autopay: "自动扣款", mail: "邮寄支票", phone: "电话缴费", in_person: "现场缴费", escrow: "Escrow 代缴（含在房贷月供里）" };
   const STATEMENTS = { email: "电子账单", mail: "纸质账单", app: "App 账单", none: "没有账单" };
   const PAYMENT_STATUS = { paid: "已缴费", verified: "已核对", skipped: "跳过" };
   const PROPERTY_KINDS = { sfh: "独栋", townhome: "联排", condo: "公寓", apartment: "租住公寓", other: "其他" };

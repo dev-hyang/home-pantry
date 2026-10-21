@@ -64,7 +64,7 @@ export function monthlyEquivalent(bill, amount) {
   }
 }
 
-export const STATUS_RANK = { overdue: 0, due: 1, verify: 2, soon: 3, ok: 4, none: 5, ended: 6, inactive: 7 };
+export const STATUS_RANK = { overdue: 0, due: 1, verify: 2, soon: 3, ok: 4, escrow: 4, none: 5, ended: 6, inactive: 7 };
 
 /** 丰富账单：最近缴费、平均金额、状态、距到期天数、涨价、扣款卡到期 */
 export function enrichBills(bills, payments) {
@@ -85,6 +85,7 @@ export function enrichBills(bills, payments) {
     let status;
     if (!b.active) status = "inactive";
     else if (ended) status = "ended";
+    else if (b.pay_channel === "escrow") status = "escrow";   // 贷款方从房贷月供里代缴：不提醒到期
     else if (daysLeft == null) status = "none";
     else if (b.autopay) status = daysLeft <= 3 ? "verify" : "ok";
     else if (daysLeft < 0) status = "overdue";
@@ -100,7 +101,9 @@ export function enrichBills(bills, payments) {
     // 免费试用：到期前 3 天到到期后 1 天提醒“不续就取消”
     const trialDays = b.trial_ends_on ? daysUntil(b.trial_ends_on) : null;
     const trialSoon = b.active && !ended && trialDays != null && trialDays <= 3 && trialDays >= -1;
-    return { ...b, pays, last, avg, est, priceUp, daysLeft, status, cardDays, cardExpiring: cardExpiring && !ended, ended: !!ended, monthly: ended ? 0 : monthlyEquivalent(b, est), trialDays, trialSoon };
+    return { ...b, pays, last, avg, est, priceUp, daysLeft, status, cardDays, cardExpiring: cardExpiring && !ended, ended: !!ended, escrow: b.pay_channel === "escrow", escrowMonthly: b.pay_channel === "escrow" && b.active && !ended ? monthlyEquivalent(b, est) : 0,
+      monthly: ended || b.pay_channel === "escrow" ? 0 : monthlyEquivalent(b, est),   // Escrow 代缴的已经含在房贷月供里，不重复计入每月预算
+      trialDays, trialSoon };
   });
 }
 
@@ -117,6 +120,9 @@ export function subscriptionSummary(list) {
   const annualPaid = subs.filter((b) => b.frequency === "annual").length;
   return { count: subs.length, monthly, annualPaid };
 }
+
+/** 这套房产的房产税、保险等由 Escrow 代缴的部分，折合每月多少（已含在房贷月供里） */
+export const escrowMonthlyFor = (propertyId) => state.billsEnriched.filter((b) => b.escrowMonthly > 0 && (b.property_id || null) === (propertyId || null)).reduce((s, b) => s + b.escrowMonthly, 0);
 
 /** 子标题里的账号：填了账号尾号才有，放在最前面 */
 export const acctText = (b) => (b.account_last4 ? t("账号 {n}", { n: b.account_last4 }) : null);
@@ -157,7 +163,7 @@ export const freqText = (b) => (b.frequency === "custom" ? t("每 {n} 个月", {
 export function upcoming(list, days = 30) {
   const today = todayISO(), end = addDays(today, days), out = [];
   for (const b of list) {
-    if (!b.active || b.ended || !b.next_due_on) continue;
+    if (!b.active || b.ended || !b.next_due_on || b.pay_channel === "escrow") continue;   // Escrow 代缴的不会有要交的日子
     let d = b.next_due_on, guard = 0;
     while (d && d <= end && guard++ < 12) { if (d >= today && (!b.ends_on || d <= b.ends_on)) out.push({ bill: b, due: d }); d = advanceDue(b, d); }
   }
