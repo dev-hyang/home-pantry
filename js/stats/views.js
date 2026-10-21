@@ -7,6 +7,7 @@ import { memberName } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { withProperty } from "../core/alerts.js";
 import { tabBar, tabHub } from "../core/hub.js";
+import { budgetBridge } from "../core/budget-bridge.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
 
 /* ── 统计：花费与消耗趋势 ── */
@@ -97,19 +98,22 @@ const noSpend = () => `<div class="panel empty"><strong>${t("还没有花费记�
 
 /* ── 钻取：图表色块、图例、名称、数字卡片都带 data-drill（查询串），点一下跳到 明细 并套上对应筛选（分类 / 商店 / 月份 / 近 N 个月）；
  * 全局点击处理在 main.js，筛选在 applySpendDrill，明细页顶部用筛选条显示并可逐项去掉。 */
-const dq = (o) => new URLSearchParams(Object.entries(o).filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, String(v)])).toString();
+/** 预算页的“预算分组”（日常储备 / 房屋维护 / 大件家电…）和分类不是一回事（大件按单笔金额分），分组的判断函数由 budget.js 登记在这里，明细按它筛选 */
+export const dq = (o) => new URLSearchParams(Object.entries(o).filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, String(v)])).toString();
 const encKeys = (keys) => keys.map(encodeURIComponent).join(",");
-const hitAttrs = (q, label) => (q ? ` data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(label)}"` : "");
+export const hitAttrs = (q, label) => (q ? ` data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(label)}"` : "");
 const DRILL_HINT = () => `<p class="muted drill-hint">${t("点图里的色块、图例或名称，可以查看对应的花费明细。")}</p>`;
 export function applySpendDrill(q) {
-  if (!["cat", "store", "stores", "month", "range"].some((k) => q.has(k))) return false;
+  if (!["cat", "grp", "store", "stores", "month", "range", "year"].some((k) => q.has(k))) return false;
   const f = state.spendFilter;
-  Object.assign(f, { q: "", cat: "all", store: "all", stores: null, month: "all", months: null, sort: "new", limit: 20 });
+  Object.assign(f, { q: "", cat: "all", grp: null, store: "all", stores: null, month: "all", months: null, sort: "new", limit: 20 });
+  if (q.get("grp")) f.grp = q.get("grp");
   if (q.get("cat")) f.cat = q.get("cat");
   if (q.get("store")) f.store = q.get("store");
   if (q.get("stores")) f.stores = q.get("stores").split(",").map(decodeURIComponent);
   if (q.get("month")) f.month = q.get("month");
   else if (q.get("range")) f.months = lastMonths(Math.max(1, Math.min(24, +q.get("range") || 6)));
+  else if (q.get("year")) { const y = +q.get("year"), now = new Date(), last = y === now.getFullYear() ? now.getMonth() + 1 : 12; f.months = Array.from({ length: last }, (_, i) => `${y}-${String(i + 1).padStart(2, "0")}`); }   // 年度预算：今年到本月为止
   return true;
 }
 
@@ -267,7 +271,8 @@ export function filteredSpend() {
   let list = state.purchases.filter((p) => {
     if (f.cat !== "all" && statCat(p.category) !== f.cat) return false;
     if (f.month !== "all" && monthKey(p.purchased_at) !== f.month) return false;
-    if (f.months?.length && !f.months.includes(monthKey(p.purchased_at))) return false;   // 从图表钻取来的“近 N 个月”
+    if (f.months?.length && !f.months.includes(monthKey(p.purchased_at))) return false;
+    if (f.grp && budgetBridge.groupOf) { const g = budgetBridge.groupOf(p.category, amountOf(p)); if (f.grp === "!bills" ? g === "bills" : g !== f.grp) return false; }   // 预算分组（“!bills” = 除账单以外）   // 从图表钻取来的“近 N 个月”
     if (f.stores?.length && !f.stores.includes(storeKey(storeOf(p)) || "__none__")) return false;   // “其他商店”：一组商店
     if (f.store !== "all" && (f.store === "__none__" ? !!storeOf(p) : storeKey(storeOf(p)) !== f.store)) return false;
     return !q || `${p.name}${storeOf(p)}`.toLowerCase().includes(q);
@@ -309,10 +314,11 @@ function activeFilterChips() {
   const monthName = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
   const storeName = (k) => (k === "__none__" ? t(STORE_NONE.name) : knownStores().find((x) => storeKey(x) === k) || k);
   if (f.cat !== "all") { const c = STAT_CATS().find((x) => x.id === f.cat); out.push(["cat", c ? `${c.icon} ${t(c.name)}` : f.cat]); }
+  if (f.grp) { const g = budgetBridge.groups.find((x) => x.id === f.grp); out.push(["grp", f.grp === "!bills" ? t("不含账单的花费") : g ? `${g.icon} ${t(g.name)}` : f.grp]); }
   if (f.store !== "all") out.push(["store", storeName(f.store)]);
   if (f.stores?.length) { const n = f.stores.map(storeName); out.push(["stores", n.length <= 3 ? n.join("、") : t("{a} 等 {n} 家", { a: n.slice(0, 2).join("、"), n: n.length })]); }
   if (f.month !== "all") out.push(["month", monthName(f.month)]);
-  if (f.months?.length) out.push(["months", t("近 {n} 个月", { n: f.months.length })]);
+  if (f.months?.length) { const m0 = f.months[0], whole = m0.endsWith("-01") && f.months.every((m) => m.startsWith(m0.slice(0, 4))); out.push(["months", whole ? t("{y} 年", { y: m0.slice(0, 4) }) : t("近 {n} 个月", { n: f.months.length })]); }
   if (f.q.trim()) out.push(["q", `“${f.q.trim()}”`]);
   return out;
 }
@@ -322,8 +328,8 @@ function spendChipsHtml() {
 }
 export function clearSpendFilter(k) {
   const f = state.spendFilter, d = { cat: ["cat", "all"], store: ["store", "all"], month: ["month", "all"], q: ["q", ""] };
-  if (k === "all") Object.assign(f, { q: "", cat: "all", store: "all", stores: null, month: "all", months: null });
-  else if (k === "stores") f.stores = null; else if (k === "months") f.months = null; else if (d[k]) f[d[k][0]] = d[k][1];
+  if (k === "all") Object.assign(f, { q: "", cat: "all", grp: null, store: "all", stores: null, month: "all", months: null });
+  else if (k === "grp") f.grp = null; else if (k === "stores") f.stores = null; else if (k === "months") f.months = null; else if (d[k]) f[d[k][0]] = d[k][1];
   f.limit = 20;
 }
 /** 筛选条、各个下拉和搜索框都按当前筛选重画（点掉标签后下拉也跟着回到“全部”） */

@@ -6,7 +6,8 @@ import { $, esc, money, num, spaceOf, toast } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { alertsOf } from "../core/logic.js";
 import { href } from "../core/router.js";
-import { lastMonths, monthKey, monthLabel, rangeChipsHtml, statCat } from "../stats/views.js";
+import { budgetBridge } from "../core/budget-bridge.js";
+import { dq, hitAttrs, lastMonths, monthKey, monthLabel, rangeChipsHtml, statCat } from "../stats/views.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { BUDGET_TABS, activeTab } from "../core/tabs.js";
 
@@ -21,12 +22,14 @@ export const GROUPS = [
   { id: "other", name: "其他", icon: "🧺", color: "#8a948f", w: 0.05 },
 ];
 const BILLS_GROUP = { id: "bills", name: "账单", icon: "🧾", color: "#2f5d8a" };
+const DRILL_HINT = () => `<p class="muted drill-hint">${t("点预算行或图里的柱子，可以查看对应的花费明细。")}</p>`;
 export const groupOf = (category, amount = 0) => {
   const s = statCat(category);
   if (s === "bills") return "bills";
   if (s !== "vehicle" && category !== "house_maint" && amount >= bigThreshold()) return "big";   // 大件：单笔大额，但账单、车辆、维修保养不算
   return ["house", "vehicle", "gear", "other"].includes(s) ? s : "groceries";
 };
+budgetBridge.groupOf = groupOf; budgetBridge.groups = [BILLS_GROUP, ...GROUPS];   // 明细页按预算分组筛选时用
 const cur = () => Units.region.currency;
 const amountOf = (p) => (p.amount != null && (!p.currency || p.currency === cur()) ? num(p.amount) : 0);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -284,7 +287,8 @@ const bar = (spent, budget, pace) => {
   const p = pct(spent, budget), cls = p >= 100 ? "over" : p >= 85 ? "warn" : "";
   return `<div class="bud-bar ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, p)}"><i style="width:${Math.min(100, p)}%"></i>${pace != null ? `<u style="left:${Math.round(pace * 100)}%" title="${t("本月已过去的比例")}"></u>` : ""}</div>`;
 };
-const row = (g, spent, budget, pace, extra = "") => `<div class="bud-row"><div class="bud-head"><b>${g.icon} ${esc(t(g.name))}</b><span>${money(spent)} / ${money(budget)} · ${pct(spent, budget)}%</span></div>${bar(spent, budget, pace)}
+// 每一行预算都能点：看这一类这个月 / 今年的花费明细（drill 是查询串，由页面的全局点击处理跳转）
+const row = (g, spent, budget, pace, extra = "", drill = "") => `<div class="bud-row${drill ? " ch-hit-row" : ""}"${hitAttrs(drill, `${t(g.name)}：${money(spent)}，${t("查看明细")}`)}><div class="bud-head"><b>${g.icon} ${esc(t(g.name))}</b><span>${money(spent)} / ${money(budget)} · ${pct(spent, budget)}%</span></div>${bar(spent, budget, pace)}
   <small class="${spent > budget ? "down" : "muted"}">${spent > budget ? t("超出 {a}", { a: money(spent - budget) }) : t("还剩 {a}", { a: money(budget - spent) })}${extra}</small></div>`;
 
 const budgetHref = (id) => `${href("bills", "budget")}${id === "month" ? "" : `?tab=${id}`}`;
@@ -307,8 +311,10 @@ export function viewBudget() {
   const totals = months.map((m) => ser.reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0));
   const stacked = Charts.bars({ title: t("每月花费构成（账单 vs 其他）"), labels: months.map(monthLabel), fmt: money,
     series: [{ name: t("账单"), color: BILLS_GROUP.color, values: months.map((m) => abm[m]?.bills || 0) },
-      { name: t("其他花费"), color: "#d4694c", values: months.map((m) => ser.slice(1).reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0)) }] });
+      { name: t("其他花费"), color: "#d4694c", values: months.map((m) => ser.slice(1).reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0)) }],
+    drill: (k, i) => dq({ grp: k === 0 ? "bills" : "!bills", month: months[i] }), legendDrill: (k) => dq({ grp: k === 0 ? "bills" : "!bills", range: months.length }) });
   const vs = Charts.line({ title: t("实际花费 vs 预算 vs 收入"), labels: months.map(monthLabel), fmt: money,
+    barDrill: (i) => dq({ month: months[i] }),
     barSeries: { name: t("实际花费"), color: "#d4694c", values: totals },
     series: [{ name: t("预算合计"), color: "var(--pine)", values: months.map(() => plan.totalBudget) }, ...(plan.income != null ? [{ name: t("月收入"), color: "var(--ink)", values: months.map(() => plan.income) }] : [])] });
 
@@ -338,9 +344,10 @@ export function viewBudget() {
     <section class="section">
       <div class="section-head"><h2>${t("本月预算")}</h2><p>${t("竖线是本月已过去的进度；条越过竖线说明花得比时间快")}</p></div>
       <div class="panel">
-        ${row(BILLS_GROUP, mp.bills, plan.billsM, mp.pace, "")}
-        ${mp.rows.map((r) => row(r, r.spent, r.budget, mp.pace)).join("")}
-        <div class="bud-total">${row({ icon: "💰", name: "可支配花费合计" }, mp.spent, mp.variable, mp.pace)}</div>
+        ${row(BILLS_GROUP, mp.bills, plan.billsM, mp.pace, "", dq({ grp: "bills", month: cm }))}
+        ${mp.rows.map((r) => row(r, r.spent, r.budget, mp.pace, "", dq({ grp: r.id, month: cm }))).join("")}
+        <div class="bud-total">${row({ icon: "💰", name: "可支配花费合计" }, mp.spent, mp.variable, mp.pace, "", dq({ grp: "!bills", month: cm }))}</div>
+        ${DRILL_HINT()}
       </div>
     </section>
     ${extras("month", ctx)}`,
@@ -385,8 +392,8 @@ export function viewBudget() {
     <section class="section">
       <div class="section-head"><h2>${t("{y} 年度预算", { y: yr })}</h2><p>${t("预算 = 月预算 × 12；预计全年按今年已花的速度推算")}</p></div>
       <div class="panel">
-        ${yrRows.map((r) => row(r.g, r.spent, r.budget, elapsed / 12, r.proj != null ? ` · ${t("预计全年 {a}", { a: money(r.proj) })}` : "")).join("")}
-        <div class="bud-total">${row({ icon: "📅", name: "年度合计" }, yrSpent, yrBudget, elapsed / 12, yrProj != null ? ` · ${t("预计全年 {a}", { a: money(yrProj) })}` : "")}</div>
+        ${yrRows.map((r) => row(r.g, r.spent, r.budget, elapsed / 12, r.proj != null ? ` · ${t("预计全年 {a}", { a: money(r.proj) })}` : "", dq({ grp: r.g.id, year: yr }))).join("")}
+        <div class="bud-total">${row({ icon: "📅", name: "年度合计" }, yrSpent, yrBudget, elapsed / 12, yrProj != null ? ` · ${t("预计全年 {a}", { a: money(yrProj) })}` : "", dq({ year: yr }))}</div>
         ${plan.income != null ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("年收入 {i}，计划储蓄 {s}；预计全年花费 {p} 时，结余约 {r}。", { i: money(plan.income * 12), s: money(plan.savings * 12), p: yrProj != null ? money(yrProj) : "—", r: yrProj != null ? money(plan.income * 12 - yrProj) : "—" })}</p>` : ""}
       </div>
     </section>`,

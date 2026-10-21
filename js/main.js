@@ -310,7 +310,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, month: "all", months: null, sort: "new", limit: 20 }); state.spendEdit = null; break;
+    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, sort: "new", limit: 20 }); state.spendEdit = null; break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
     default: break;
   }
@@ -434,7 +434,7 @@ main.addEventListener("change", async (e) => {
     try { localStorage.setItem("hmh-gear-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? t("已打开装备") : t("已关闭装备，导航里不再显示")); render();
   }
-  { const k = { spendCat: "cat", spendStore: "store", spendMonth: "month", spendSort: "sort" }[e.target.id]; if (k) { state.spendFilter[k] = e.target.value; if (k === "store") state.spendFilter.stores = null; if (k === "month") state.spendFilter.months = null; state.spendFilter.limit = 20; renderSpendList(); } }   // 手动选了单个商店 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”
+  { const k = { spendCat: "cat", spendStore: "store", spendMonth: "month", spendSort: "sort" }[e.target.id]; if (k) { state.spendFilter[k] = e.target.value; if (k === "store") state.spendFilter.stores = null; if (k === "cat") state.spendFilter.grp = null; if (k === "month") state.spendFilter.months = null; state.spendFilter.limit = 20; renderSpendList(); } }   // 手动选了单个商店 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
   if (e.target.id === "hhSwitch") { localStorage.setItem("hmh-hid", e.target.value); location.reload(); }

@@ -89,7 +89,7 @@
   }
 
   /** 折线图；可叠一组柱子（bars）作为第二种度量（共用同一纵轴单位时使用） */
-  function line({ labels, series, fmt = String, title, barSeries = null, drill = null }) {
+  function line({ labels, series, fmt = String, title, barSeries = null, drill = null, barDrill = null }) {
     const n = labels.length;
     const all = [...series, ...(barSeries ? [barSeries] : [])].flatMap((s) => s.values);
     const max = niceMax(Math.max(0, ...all));
@@ -101,7 +101,7 @@
       if (barSeries) {
         const bw = Math.min(30, (iw / n) * 0.5);
         barSeries.values.forEach((v, i) => {
-          if (v > 0) marks += `<rect x="${(xAt(i) - bw / 2).toFixed(1)}" y="${yAt(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${((v / max) * ih).toFixed(1)}" style="fill:${barSeries.color}" opacity=".55" rx="2"><title>${esc(labels[i])} ${esc(barSeries.name)}：${esc(fmt(v))}</title></rect>`;
+          if (v > 0) { const q = barDrill?.(i); marks += `<rect x="${(xAt(i) - bw / 2).toFixed(1)}" y="${yAt(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${((v / max) * ih).toFixed(1)}" style="fill:${barSeries.color}" opacity=".55" rx="2"${hit(q, `${labels[i]} ${barSeries.name}：${fmt(v)}，${t("查看明细")}`)}><title>${esc(labels[i])} ${esc(barSeries.name)}：${esc(fmt(v))}${tip(q)}</title></rect>`; }
         });
       }
       series.forEach((s) => {
