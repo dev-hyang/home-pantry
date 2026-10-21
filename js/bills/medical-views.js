@@ -188,9 +188,9 @@ function paymentsHtml(b, edit, owed) {
       <div class="form-grid">
         <label>${t("付款日期 Payment date")}<input name="paid_on" type="date" required value="${d(edit?.paid_on || todayISO())}" max="${todayISO()}"></label>
         <label>${t("金额（{cur}）", { cur: b.currency })}<input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required value="${edit ? Math.abs(num(edit.amount)).toFixed(2) : b.balance ? b.balance.toFixed(2) : ""}"></label>
-        <label class="check-inline" style="align-self:end"><input type="checkbox" name="refund" ${edit && num(edit.amount) < 0 ? "checked" : ""}><span>${t("这是退款 / 保险事后理赔")}</span></label>
         <label>${t("付款方式")}<select name="method">${methodOptions(edit?.method)}</select></label>
         <label>${t("确认号 Confirmation #")}<input name="confirmation_ref" maxlength="60" value="${d(edit?.confirmation_ref)}"></label>
+        <label class="check-inline span-2"><input type="checkbox" name="refund" ${edit && num(edit.amount) < 0 ? "checked" : ""}><span>${t("这是退款 / 保险事后理赔")}</span></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(edit?.notes)}" placeholder="${t("例如：网上缴费，Chase 信用卡尾号 1234 / 支票 #1022 / HSA（Fidelity）。卡只写后四位")}"></label>
       </div>
       <p id="medPayError" class="form-error" role="alert"></p>
@@ -300,13 +300,18 @@ export async function personAddDo() {
 export function viewPeople() {
   const used = (id) => state.medBills.filter((b) => b.patient_id === id || b.guarantor_id === id).length;
   const edit = state.personEdit;
+  const merging = state.personMerge;
   const row = (p) => `<li class="person-row">
       <span class="badge" style="background:var(--surface-2)">${KIND_ICON[p.kind] || ""} ${t(PEOPLE_KINDS[p.kind] || p.kind)}</span>
-      <div class="grow">${edit === p.id ? `<input id="personEditName" maxlength="40" value="${esc(p.name)}" aria-label="${t("姓名")}">` : `<span class="name">${esc(p.name)}</span>${p.member_user_id ? ` <small class="muted">${t("家庭成员")}</small>` : ""}<small>${used(p.id) ? t("{n} 张账单用了", { n: used(p.id) }) : t("还没有账单")}</small>`}</div>
-      ${edit === p.id ? `<button type="button" class="btn btn-sm btn-primary" data-action="person-edit-save" data-id="${p.id}">${t("保存")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-edit-cancel">${t("取消")}</button>`
+      <div class="person-main">${edit === p.id ? `<input id="personEditName" maxlength="40" value="${esc(p.name)}" aria-label="${t("姓名")}">` : `<span class="name">${esc(p.name)}</span><small>${[p.member_user_id ? t("家庭成员") : null, used(p.id) ? t("{n} 张账单用了", { n: used(p.id) }) : t("还没有账单")].filter(Boolean).join(" · ")}</small>`}</div>
+      <div class="person-actions">${edit === p.id ? `<button type="button" class="btn btn-sm btn-primary" data-action="person-edit-save" data-id="${p.id}">${t("保存")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-edit-cancel">${t("取消")}</button>`
         : `<button type="button" class="btn btn-sm btn-ghost" data-action="person-edit" data-id="${p.id}">${t("改名")}</button>
-           ${state.people.length > 1 ? `<select data-merge-for="${p.id}" aria-label="${t("合并到")}"><option value="">${t("合并到…")}</option>${state.people.filter((x) => x.id !== p.id).map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select><button type="button" class="btn btn-sm btn-ghost" data-action="person-merge" data-id="${p.id}">${t("合并")}</button>` : ""}
-           <button type="button" class="btn btn-sm btn-danger-ghost" data-action="person-del" data-id="${p.id}">${t("删除")}</button>`}</li>`;
+           ${state.people.length > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="person-merge-open" data-id="${p.id}" aria-expanded="${merging === p.id}">${t("合并")}</button>` : ""}
+           <button type="button" class="btn btn-sm btn-danger-ghost" data-action="person-del" data-id="${p.id}">${t("删除")}</button>`}</div>
+      ${merging === p.id && edit !== p.id ? `<div class="person-merge"><span class="muted">${t("把“{n}”合并到：", { n: esc(p.name) })}</span>
+        <select data-merge-for="${p.id}" aria-label="${t("合并到")}"><option value="">${t("选一个人…")}</option>${state.people.filter((x) => x.id !== p.id).map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select>
+        <button type="button" class="btn btn-sm btn-primary" data-action="person-merge" data-id="${p.id}">${t("确认合并")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-merge-cancel">${t("取消")}</button>
+        <small class="muted">${t("它的账单会全部归到所选的人名下，然后这一条被删除。")}</small></div>` : ""}</li>`;
   return `<section class="section">
     <div class="section-head"><h2>👪 ${t("家庭成员 / 孩子 / 宠物")}</h2></div>
     <p class="muted kinds-note">${t("一次性账单里的患者、担保人从这里选。同一个人只建一次：家人各自录入“Alice Y”和“Alice”不会变成两个人（名字忽略大小写和空格，近似的会先问你）。改名后所有账单跟着变；建重了可以“合并”。")}</p>
@@ -318,7 +323,9 @@ export function viewPeople() {
       <div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="people-bulk">${t("添加")}</button><a class="btn btn-sm btn-ghost" href="${href("bills", "onetime")}">${t("回一次性账单")}</a></div></div>
   </section>`;
 }
-export function personEditStart(id) { state.personEdit = id; rerender(); }
+export function personEditStart(id) { state.personEdit = id; state.personMerge = null; rerender(); }
+export function personMergeOpen(id) { state.personMerge = state.personMerge === id ? null : id; state.personEdit = null; rerender(); }
+export function personMergeCancel() { state.personMerge = null; rerender(); }
 export function personEditCancel() { state.personEdit = null; rerender(); }
 export async function personEditSave(id) {
   const name = $("#personEditName")?.value.trim(); if (!name) return toast(t("请填写姓名。"));
@@ -329,7 +336,7 @@ export async function personEditSave(id) {
 export async function personMerge(id) {
   const to = document.querySelector(`[data-merge-for="${id}"]`)?.value; if (!to) return toast(t("先选要合并到谁"));
   const from = state.people.find((x) => x.id === id), dest = state.people.find((x) => x.id === to);
-  try { await Store.mergePeople(id, to); await reloadMedical(); state.people = await Store.listPeople(); applyMedical(state.medBills, state.medPayments); toast(t("已把“{a}”合并到“{b}”", { a: from.name, b: dest.name })); rerender(); } catch (e) { toast(e.message); }
+  try { await Store.mergePeople(id, to); await reloadMedical(); state.people = await Store.listPeople(); applyMedical(state.medBills, state.medPayments); state.personMerge = null; toast(t("已把“{a}”合并到“{b}”", { a: from.name, b: dest.name })); rerender(); } catch (e) { toast(e.message); }
 }
 export async function personDelete(id) {
   try { await Store.deletePerson(id); state.people = await Store.listPeople(); applyMedical(state.medBills, state.medPayments); toast(t("已删除")); rerender(); } catch (e) { toast(e.message); }

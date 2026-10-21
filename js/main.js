@@ -6,7 +6,7 @@ import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num,
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { resilientFetch } from "./core/net.js";
-import { applyMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
+import { applyMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
 import { ensureAdults, mergeMedical } from "./bills/medical.js";
 import { mountAppSwitcher } from "../shared/app-switcher.js";
 import { mountLangSwitcher } from "../shared/lang-switcher.js";
@@ -867,6 +867,8 @@ main.addEventListener("click", async (e) => {
       case "person-edit": return personEditStart(el.dataset.id);
       case "person-edit-save": return personEditSave(el.dataset.id);
       case "person-edit-cancel": return personEditCancel();
+      case "person-merge-open": return personMergeOpen(el.dataset.id);
+      case "person-merge-cancel": return personMergeCancel();
       case "person-merge": return personMerge(el.dataset.id);
       case "person-del": if (!armed(el, t("再点一次确认删除"))) return; return personDelete(el.dataset.id);
       case "people-bulk": return peopleBulk();

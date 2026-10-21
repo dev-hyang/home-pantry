@@ -1160,3 +1160,12 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .kind-stat { font-weight: 800; font-size: 14px; white-space: nowrap; }
 .kind-card > .btn { justify-self: start; margin-left: 8px; }
 @media (min-width: 700px) { .kind-cards { grid-template-columns: 1fr 1fr; } }
+
+/* 家庭成员页：一行 = 类别标签 + 名字 + 一组操作按钮；合并才展开选择框，不再把一个长下拉常驻在每一行 */
+.person-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.person-main { flex: 1 1 140px; min-width: 0; display: grid; gap: 2px; }
+.person-main input { width: 100%; min-width: 0; }
+.person-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+.person-merge { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface-2); }
+.person-merge select { flex: 1 1 160px; min-width: 0; max-width: 260px; }
+.person-merge small { flex: 1 1 100%; }
