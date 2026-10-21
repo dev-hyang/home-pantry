@@ -26,6 +26,14 @@ export function propertyBar({ all = false } = {}) {
   return `<div class="chips prop-bar" role="group" aria-label="${t("选择房产")}">${all ? chip("all", t("全部房产")) : ""}${list.map((p) => chip(p.id, `🏠 ${esc(p.name)}`)).join("")}</div>`;
 }
 
+/** 房产筛选：账单概览 / 清单里的一个下拉（默认“全部房产”），代替原来占一行的芯片导航；只有一套房产时不显示 */
+export function propertyFilter() {
+  const list = state.properties.filter((p) => !p.archived || p.id === state.billsFilter.property);
+  if (list.length < 2) return "";
+  const cur = state.billsFilter.property;
+  return `<select id="billProp" class="prop-filter" aria-label="${t("选择房产")}"><option value="all">${t("全部房产")}</option>${list.map((p) => `<option value="${esc(p.id)}" ${cur === p.id ? "selected" : ""}>🏠 ${esc(p.name)}</option>`).join("")}</select>`;
+}
+
 const billRow = (b) => `<li>
     <span class="badge ${b.trialSoon ? "b-out" : BADGE[b.status]}">${b.trialSoon ? t("试用") : t(STATUS_LABEL[b.status])}</span>
     <div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a>
@@ -50,13 +58,12 @@ export function viewBillsOverview() {
   const cards = list.filter((b) => b.active && b.cardExpiring);
   const subs = subscriptionSummary(list);
   if (!state.bills.length) {
-    return `${propertyBar({ all: true })}<section class="section"><div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}
+    return `<section class="section"><div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}
       <p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${href("bill", "new")}">${t("手动添加一条")}</a></p></div></section>`;
   }
   return `
-    ${propertyBar({ all: true })}
     <section class="section">
-      <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">
+      <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">${propertyFilter()}
         <button type="button" class="btn btn-sm btn-ghost" data-action="bills-ics">${t("导出到日历")}</button>
         <a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}">${t("看花费")}</a>
         <a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a>
@@ -129,11 +136,11 @@ export function viewBillsList() {
   };
   const used = new Set(state.billsEnriched.map((b) => b.category));
   return `
-    ${propertyBar({ all: true })}
     <section class="section">
       <div class="section-head"><h2>${t("账单清单")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
       <div class="toolbar">
         <input type="search" id="billSearch" placeholder="${t("搜索名称、收款方、账号")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">
+        ${propertyFilter()}
         <select id="billCat" aria-label="${t("按分类筛选")}"><option value="all">${t("全部分类")}</option>${B().CATEGORIES.filter((c) => used.has(c.id)).map((c) => `<option value="${c.id}" ${f.cat === c.id ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`).join("")}</select>
         <select id="billSort" aria-label="${t("排序")}">${BILL_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "category") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
       </div>

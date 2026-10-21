@@ -361,6 +361,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
   if (e.target.id === "invSort") { state.filter.sort = e.target.value; renderInvList(); }
+  if (e.target.id === "billProp") { state.billsFilter.property = e.target.value; render(); }
   if (e.target.id === "billCat") { state.billsFilter.cat = e.target.value; renderBillList(); }
   if (e.target.id === "billSort") { state.billsFilter.sort = e.target.value; renderBillList(); }
   { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; state.payFilter.limit = 50; renderPayList(); } }
