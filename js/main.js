@@ -791,7 +791,6 @@ main.addEventListener("click", async (e) => {
         finally { el.disabled = false; }
         return;
       }
-      case "pay-edit": return go(`${href("bill", el.dataset.bill)}?sec=pay&edit=${encodeURIComponent(id)}`);
       case "pay-more": state.payFilter.limit += 50; return renderPayList();
       case "deal-filter": state.dealFilter = el.dataset.val; return render();
       case "tasks-undone": state.tasksOnlyUndone = !state.tasksOnlyUndone; return render();

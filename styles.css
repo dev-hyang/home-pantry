@@ -1063,6 +1063,6 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .esc-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .esc-row + .esc-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 
-.pay-row { cursor: pointer; border-radius: 8px; }
-.pay-row:hover { background: var(--surface-2); }
+.pay-date { color: var(--pine); text-decoration: underline; text-underline-offset: 2px; }
+.pay-row { border-radius: 8px; }
 .pay-row.is-editing { background: var(--surface-2); outline: 2px solid var(--pine); }
