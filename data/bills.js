@@ -25,6 +25,22 @@
     { id: "membership",     name: "会员",            icon: "🎫", essential: false },
     { id: "tuition",        name: "学费 / 托儿",     icon: "🎒", essential: true },
     { id: "parking",        name: "停车费",          icon: "🅿️", essential: true },
+    // 以下是后加的：保险与贷款、家庭服务、孩子活动、出行、奉献、税、宠物（模板默认都不勾，按需添加）
+    { id: "insurance_health", name: "健康险保费",     icon: "🩺", essential: true },
+    { id: "insurance_life",   name: "人寿 / 重疾 / 伤残险", icon: "🛟", essential: true },
+    { id: "insurance_other",  name: "伞险 / 租户险 / 其他保险", icon: "☂️", essential: true },
+    { id: "student_loan",   name: "学生贷款",        icon: "🎓", essential: true },
+    { id: "personal_loan",  name: "个人贷款 / 分期", icon: "🏧", essential: true },
+    { id: "cable_tv",       name: "有线 / 卫星电视",  icon: "📡", essential: false },
+    { id: "lawn",           name: "草坪 / 除雪 / 园艺", icon: "🌿", essential: false },
+    { id: "cleaning",       name: "保洁 / 家政",     icon: "🧹", essential: false },
+    { id: "pest",           name: "除虫 / 灭鼠",     icon: "🐜", essential: false },
+    { id: "security",       name: "安防 / 监控",     icon: "🚨", essential: false },
+    { id: "activities",     name: "课外班 / 夏令营 / 兴趣班", icon: "🎨", essential: false },
+    { id: "toll",           name: "通行费（E-ZPass）", icon: "🛣️", essential: false },
+    { id: "donation",       name: "奉献 / 捐款",     icon: "🙏", essential: false },
+    { id: "income_tax",     name: "所得税 / 预缴税",  icon: "🧮", essential: true },
+    { id: "pet",            name: "宠物（保险 / 寄养 / 美容）", icon: "🐾", essential: false },
     { id: "other",          name: "其他账单",        icon: "🧾", essential: false },
   ];
   const catOf = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
@@ -42,6 +58,8 @@
   const SUB = (kind, name, payee, frequency, note) => [{ category: "subscription", sub_kind: kind, group: "订阅与会员", name, payee, frequency, due_day: frequency === "monthly" ? 1 : null,
     amount_type: "fixed", autopay: true, property: false, essential: false, optional: true, reminder_days: frequency === "annual" ? [30, 7] : [7, 1], ...(note ? { note } : {}) }];
 
+  // 模板的简写：默认不勾（optional），按分组显示；property = false 表示与房产无关
+  const OPT = (group, category, name, payee, frequency, extra = {}) => [{ category, group, name, payee, frequency, due_day: frequency === "monthly" ? 1 : null, amount_type: "fixed", optional: true, property: false, ...extra }];
   // 模板：property = false 表示与房产无关（手机、车险等）；optional = true 默认不勾选；group 把模板分组显示（默认“常用账单”）
   // due_day 月度到期日；due_dates 固定日期（半年 / 年度）；没有的由用户建后填下次到期日
   const TEMPLATES = {
@@ -98,6 +116,25 @@
       ...SUB("fitness", "健身房 / 健身 App", "", "monthly", "健身房年约注意取消条款。"),
       { category: "membership", sub_kind: "membership", group: "订阅与会员", name: "Costco / Sam's 会员", payee: "Costco", frequency: "annual", amount_type: "fixed", property: false, essential: false, optional: true },
       { category: "membership", sub_kind: "membership", group: "订阅与会员", name: "Amazon Prime", payee: "Amazon", frequency: "annual", amount_type: "fixed", autopay: true, property: false, essential: false, optional: true },
+      // ── 后加的分类：默认都不勾，勾了再补金额和到期日 ──
+      ...OPT("保险与贷款", "insurance_health", "健康险保费", "", "monthly", { note: "雇主扣的不用建；自己交的（市场险、COBRA、家人加保）每月一条。" }),
+      ...OPT("保险与贷款", "insurance_life", "人寿 / 重疾 / 伤残险", "", "annual", { reminder_days: [30, 7] }),
+      ...OPT("保险与贷款", "insurance_other", "伞险（Umbrella）", "", "annual", { reminder_days: [30, 7], note: "房险、车险的责任险不够时的补充，通常一年一续。" }),
+      ...OPT("保险与贷款", "insurance_other", "租户险（Renters）", "", "annual", { reminder_days: [30, 7], note: "租房住才需要；自有住房用上面的“房屋保险”。", property: true }),
+      ...OPT("保险与贷款", "student_loan", "学生贷款", "", "monthly", { autopay: true, note: "联邦贷款还款计划每年要重新认证收入，记得在备注里写认证月份。" }),
+      ...OPT("保险与贷款", "personal_loan", "个人贷款 / 分期", "", "monthly", { autopay: true }),
+      ...OPT("家庭服务", "cable_tv", "有线 / 卫星电视", "", "monthly", { property: true }),
+      ...OPT("家庭服务", "lawn", "草坪 / 园艺", "", "monthly", { property: true, note: "季节性服务按实际月份调整，不做的月份可以停用。" }),
+      ...OPT("家庭服务", "lawn", "除雪", "", "annual", { property: true, note: "按季合同或按次付费都可以；按次的记成每次一笔缴费。" }),
+      ...OPT("家庭服务", "cleaning", "保洁 / 家政", "", "monthly", { property: true }),
+      ...OPT("家庭服务", "pest", "除虫 / 灭鼠", "", "quarterly", { property: true }),
+      ...OPT("家庭服务", "security", "安防 / 监控", "", "monthly", { property: true, autopay: true }),
+      ...OPT("孩子与活动", "activities", "课外班 / 兴趣班", "", "monthly", { note: "按学期收费的改成“每 N 个月”。" }),
+      ...OPT("孩子与活动", "activities", "夏令营", "", "annual", { reminder_days: [30, 7], note: "热门营报名早、定金不退，到期日填报名截止日。" }),
+      ...OPT("出行与其他", "toll", "通行费（E-ZPass）", "Illinois Tollway", "monthly", { autopay: true, amount_type: "variable", note: "自动充值的卡过期会停用，设了“扣款卡过期”提醒。" }),
+      ...OPT("出行与其他", "donation", "奉献 / 捐款", "", "monthly", { autopay: true, note: "固定的月捐、什一奉献；年终报税需要的收据在备注里记一下。" }),
+      ...OPT("出行与其他", "income_tax", "预缴税（Estimated tax）", "IRS / State", "quarterly", { amount_type: "variable", reminder_days: [30, 7], note: "自雇或有额外收入才需要；联邦通常 4/15、6/15、9/15、1/15，到期日建后补填。" }),
+      ...OPT("出行与其他", "pet", "宠物保险", "", "monthly", { autopay: true }),
     ],
     cn: [
       { category: "electric", name: "电费", payee: "国家电网", frequency: "monthly", due_day: 25, amount_type: "variable", statement: "app", note: "预付费电表的记成“充值”，按余额提醒。" },
@@ -120,6 +157,14 @@
       ...SUB("software", "软件 / App 年费", "", "annual", "手机“自动续费”页里把不用的关掉。"),
       ...SUB("fitness", "健身房 / 健身 App", "", "annual", "年卡注意退卡条款。"),
       { category: "membership", sub_kind: "membership", group: "订阅与会员", name: "电商会员", payee: "京东 PLUS / 88VIP", frequency: "annual", amount_type: "fixed", autopay: true, property: false, essential: false, optional: true },
+      // ── 后加的分类：默认都不勾 ──
+      ...OPT("保险与贷款", "insurance_health", "医疗险 / 重疾险", "", "annual", { reminder_days: [30, 7] }),
+      ...OPT("保险与贷款", "insurance_life", "寿险 / 意外险", "", "annual", { reminder_days: [30, 7] }),
+      ...OPT("保险与贷款", "personal_loan", "消费贷 / 分期", "", "monthly", { autopay: true }),
+      ...OPT("家庭服务", "cleaning", "保洁 / 家政", "", "monthly", { property: true }),
+      ...OPT("孩子与活动", "activities", "兴趣班 / 补习班", "", "monthly", { note: "按学期或按期收费的改成“每 N 个月”。" }),
+      ...OPT("出行与其他", "donation", "奉献 / 捐款", "", "monthly", { autopay: true }),
+      ...OPT("出行与其他", "pet", "宠物医疗 / 寄养", "", "annual"),
     ],
   };
 
