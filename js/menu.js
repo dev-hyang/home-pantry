@@ -38,10 +38,11 @@ const META = {
   bills: {
     overview:  { icon: "🧾", desc: "未来 30 天要交多少、要处理的账单", count: () => billAlerts(state.billsEnriched).length },
     list:      { icon: "📋", desc: "全部账单、自动扣款开关、按房产筛选" },
-    history:   { icon: "📈", desc: "缴费记录、金额趋势、CSV 导出" },
+    history:   { icon: "📈", desc: "每条账单的缴费记录、金额趋势、CSV 导出" },
+    spend:     { icon: "📊", desc: "所有花费：每月花了多少、分类占比、商店、年度报表，可搜索筛选排序" },
   },
   me: {
-    stats:     { icon: "📊", desc: "花费与消耗统计、年度 CSV" },
+    stats:     { icon: "📊", desc: "库存使用趋势（花费统计在 账单 → 花费）" },
     settings:  { icon: "⚙️", desc: "家庭成员、邀请码、房产、语言、模块、备份" },
     about:     { icon: "✎", desc: "这个网站是什么、怎么用、注意事项" },
   },

@@ -33,7 +33,7 @@ import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, ne
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, resetUsage, testModel } from "./core/ai.js";
 import { saveAiForm } from "./settings/views.js";
-import { cleanStore, download, exportAnnual, rememberStore, storeDatalist, viewStats } from "./stats/views.js";
+import { cleanStore, download, exportAnnual, rememberStore, renderSpendList, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
 
 const APP_NAME = "爱家小助手";
 
@@ -86,7 +86,7 @@ function loadPurchasesSoon() {
   Store.listPurchases().then((p) => {
     state.purchases = p;
     const r = state.route;
-    if (r.section === "me" && r.sub === "stats") render(false);
+    if ((r.section === "me" && r.sub === "stats") || (r.section === "bills" && r.sub === "spend")) render(false);
     else { const dl = $("#storeList"); if (dl) dl.outerHTML = storeDatalist(); }   // 采购 / 统计页的商店联想
   }).catch((e) => console.warn("[purchases]", e.message))
     .finally(() => { purchasesLoading = false; if (purchasesAgain) { purchasesAgain = false; loadPurchasesSoon(); } });
@@ -106,7 +106,7 @@ const VIEWS = {
   pantry:   { overview: viewDashboard, inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
-  bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, template: viewBillTemplate },
+  bills:    { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory, spend: viewSpend, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout },
@@ -300,7 +300,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all" }); state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all" }); break;
+    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", month: "all", sort: "new", limit: 20 }); break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
     default: break;
   }
@@ -343,6 +343,7 @@ main.addEventListener("touchend", (e) => {
 }, { passive: true });
 main.addEventListener("input", (e) => {
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; renderInvList(); }
+  if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; state.spendFilter.limit = 20; renderSpendList(); }
   if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; renderAssetList(); }
   const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
 });
@@ -415,6 +416,7 @@ main.addEventListener("change", async (e) => {
     try { localStorage.setItem("hmh-gear-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? t("已打开装备") : t("已关闭装备，导航里不再显示")); render();
   }
+  { const k = { spendCat: "cat", spendStore: "store", spendMonth: "month", spendSort: "sort" }[e.target.id]; if (k) { state.spendFilter[k] = e.target.value; state.spendFilter.limit = 20; renderSpendList(); } }
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
   if (e.target.id === "hhSwitch") { localStorage.setItem("hmh-hid", e.target.value); location.reload(); }
@@ -770,6 +772,7 @@ main.addEventListener("click", async (e) => {
         finally { el.disabled = false; }
         return;
       }
+      case "spend-more": state.spendFilter.limit += 20; return renderSpendList();
       case "stats-months": state.stats.months = +el.dataset.months; return render();
       case "stats-cat": state.stats.cat = el.dataset.cat; return render();
       case "purchase-del": if (!armed(el, t("确认删除"))) return; await Store.deletePurchase(id); toast(t("已删除这笔记录")); return refresh();

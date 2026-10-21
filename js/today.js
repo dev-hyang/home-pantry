@@ -49,7 +49,7 @@ export function viewToday() {
   const tileBody = ([, ic, nm]) => `<span class="qtile-ico" aria-hidden="true">${ic}</span><span>${nm}</span>`;
   const tileHtml = ([id, ic, nm], i) => `<div class="qwrap">${id.startsWith("action:")
       ? `<button type="button" class="qtile" data-action="quick-run" data-id="${esc(id)}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</button>`
-      : `<a class="qtile" href="${esc(id.startsWith("#/bills") ? `${id}?prop=all` : id)}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</a>`}
+      : `<a class="qtile" href="${esc(quickHref(id))}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</a>`}
     ${editing ? `<button type="button" class="qdel" data-action="quick-del" data-id="${esc(id)}" aria-label="${esc(t("移除快捷操作：{name}", { name: nm }))}">×</button>
       <span class="qmove">${i > 0 ? `<button type="button" data-action="quick-move" data-id="${esc(id)}" data-dir="-1" aria-label="${esc(t("{name} 往前移", { name: nm }))}">‹</button>` : ""}${i < last ? `<button type="button" data-action="quick-move" data-id="${esc(id)}" data-dir="1" aria-label="${esc(t("{name} 往后移", { name: nm }))}">›</button>` : ""}</span>` : ""}</div>`;
   const taken = new Set(mine.map((x) => x[0]));
@@ -88,6 +88,8 @@ export async function saveQuick(list) {
     state.user = data.user;
   } else { try { localStorage.setItem(QUICK_KEY, JSON.stringify(list)); } catch { /* 忽略 */ } }
 }
+/** 快捷操作的实际地址：账单带 ?prop=all（每次回到全部房产）；“看花费统计”在账单模块开着时指向 账单 → 花费 */
+const quickHref = (id) => (id === href("me", "stats") && state.billsEnabled ? href("bills", "spend") : id.startsWith("#/bills") ? `${id}?prop=all` : id);
 /** 可放进快捷操作的页面与动作：[标识, 图标, 名称] */
 const PRESETS = () => [
   [href("pantry", "overview"), "🥫", t("储藏概览")], [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "➕", t("添加储藏物品")],

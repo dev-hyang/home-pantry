@@ -1000,3 +1000,8 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .af-bar.is-busy .af-btn { opacity: .5; pointer-events: none; }
 input.af-filled, select.af-filled, textarea.af-filled { background: var(--ok-bg); border-color: var(--ok); }
 input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); border-color: var(--low); }
+
+/* 花费记录：按月分组的小标题 */
+.rec-list .rec-month { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 6px; padding: 8px 0 4px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.rec-list .rec-month:first-child { margin-top: 0; }
+.rec-list .rec-month b { font-size: 14px; }

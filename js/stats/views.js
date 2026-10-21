@@ -84,7 +84,7 @@ export function itemSeries(item, starts) {
   return { used: used.map((v) => v * f), level: level.map((v) => v * f), unit: t(du(item.unit)) };
 }
 
-export function viewStats() {
+export function viewSpend() {
   const st = state.stats;
   const sd = spendData();
   const { months, byMC, totals, cats } = sd;
@@ -112,27 +112,6 @@ export function viewStats() {
     series: [{ name: t(catObj.name), color: catObj.color, values: months.map((m) => byMC[m][selCat] || 0) }],
   }) : "";
 
-  // 消耗趋势
-  const cd = consumptionData();
-  const freqCats = CATEGORIES.filter((c) => cd.freq[c.id]);
-  const freqChart = freqCats.length ? Charts.bars({
-    title: t("每周使用记录次数（按分类）"), labels: cd.labels, fmt: (v) => t("{n} 次", { n: Math.round(v) }), showTotals: false,
-    series: freqCats.map((c) => ({ name: t(c.name), color: c.color, values: cd.freq[c.id] })),
-  }) : "";
-  const ranked = state.items.filter((i) => cd.perItem[i.id]).sort((a, b) => cd.perItem[b.id] - cd.perItem[a.id]);
-  const selItem = state.items.find((i) => i.id === st.itemId && cd.perItem[i.id]) || ranked[0];
-  let itemChart = "";
-  if (selItem) {
-    const ser = itemSeries(selItem, cd.starts);
-    const c = catOf(selItem.category);
-    itemChart = Charts.line({
-      title: t("{name}每周用量与库存", { name: selItem.name }), labels: cd.labels, fmt: (v) => `${fmt(v)} ${ser.unit}`,
-      barSeries: { name: t("每周用量（{u}）", { u: ser.unit }), color: c.color, values: ser.used },
-      series: [{ name: t("周末库存（{u}）", { u: ser.unit }), color: "var(--ink)", values: ser.level }],
-    });
-  }
-
-  const recent = [...state.purchases].sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at)).slice(0, 8);
   const today = new Date().toISOString().slice(0, 10);
   const monthOpt = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
 
@@ -161,16 +140,6 @@ export function viewStats() {
     ${viewAnnualExport()}
 
     <section class="section">
-      <div class="section-head"><h2>${t("消耗趋势")}</h2><p>${t("最近 12 周，来自家人点“−”的记录")}</p></div>
-      ${selItem ? `
-      <div class="panel chart-panel"><div class="chart-head"><h3>${t("单品用量与库存")}</h3>
-        <select id="statsItem" aria-label="${t("选择物品")}">${ranked.map((i) => `<option value="${i.id}" ${i.id === selItem.id ? "selected" : ""}>${esc(i.name)}（${t("{n} 次", { n: cd.perItem[i.id] })}）</option>`).join("")}</select></div>
-        ${itemChart}</div>
-      <div class="panel chart-panel"><h3>${t("各分类使用频率")}</h3><p class="muted" style="margin:0 0 6px;font-size:13px">${t("按记录次数统计，不同物品单位不同，不能直接相加数量。")}</p>${freqChart}</div>`
-      : `<div class="panel empty"><strong>${t("还没有使用记录")}</strong>${t("在库存页用掉东西时点一下 −，这里就会出现趋势。")}</div>`}
-    </section>
-
-    <section class="section">
       <div class="section-head"><h2>${t("补记一笔花费")}</h2><p>${t("没走采购清单的，也可以记在这里")}</p></div>
       ${storeDatalist()}
       <form id="purchaseForm" class="panel add-row purchase-row">
@@ -181,12 +150,128 @@ export function viewStats() {
         <input name="date" type="date" value="${today}" max="${today}" aria-label="${t("日期")}">
         <button class="btn btn-primary" type="submit">${t("记一笔")}</button>
       </form>
-      ${recent.length ? `<div class="panel" style="margin-top:10px"><h3 style="font-size:15px;margin-bottom:6px">${t("最近的记录")}</h3><ul class="restock-list">${recent.map((p) => `<li>
-        <span class="badge" style="background:var(--surface-2)">${esc(new Date(p.purchased_at).toLocaleDateString(locale(), { month: "numeric", day: "numeric" }))}</span>
-        <div class="grow"><span class="name">${esc(p.name)}</span><small>${esc(t((ALL_CATS().find((c) => c.id === p.category) || OTHER_CAT).name))}${p.store ? `，${esc(p.store)}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}</small></div>
-        <b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>
-        <button type="button" class="btn btn-sm btn-ghost" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button></li>`).join("")}</ul></div>` : ""}
+    </section>
+
+    <section class="section" id="spendRecords">
+      ${spendRecordsHtml()}
     </section>`;
+}
+
+export function viewUsage() {
+  const st = state.stats;
+  // 消耗趋势
+  const cd = consumptionData();
+  const freqCats = CATEGORIES.filter((c) => cd.freq[c.id]);
+  const freqChart = freqCats.length ? Charts.bars({
+    title: t("每周使用记录次数（按分类）"), labels: cd.labels, fmt: (v) => t("{n} 次", { n: Math.round(v) }), showTotals: false,
+    series: freqCats.map((c) => ({ name: t(c.name), color: c.color, values: cd.freq[c.id] })),
+  }) : "";
+  const ranked = state.items.filter((i) => cd.perItem[i.id]).sort((a, b) => cd.perItem[b.id] - cd.perItem[a.id]);
+  const selItem = state.items.find((i) => i.id === st.itemId && cd.perItem[i.id]) || ranked[0];
+  let itemChart = "";
+  if (selItem) {
+    const ser = itemSeries(selItem, cd.starts);
+    const c = catOf(selItem.category);
+    itemChart = Charts.line({
+      title: t("{name}每周用量与库存", { name: selItem.name }), labels: cd.labels, fmt: (v) => `${fmt(v)} ${ser.unit}`,
+      barSeries: { name: t("每周用量（{u}）", { u: ser.unit }), color: c.color, values: ser.used },
+      series: [{ name: t("周末库存（{u}）", { u: ser.unit }), color: "var(--ink)", values: ser.level }],
+    });
+  }
+  return `
+    ${state.billsEnabled ? `<div class="panel cta-panel"><div><b>${t("花费统计搬到了 账单 → 花费")}</b><p class="muted">${t("每月花了多少、分类占比、商店、年度报表、补记和花费记录都在那里；这里只看库存的使用趋势。")}</p></div>
+      <a class="btn btn-primary" href="#/bills/spend">${t("去看花费")}</a></div>` : ""}
+    <section class="section">
+      <div class="section-head"><h2>${t("消耗趋势")}</h2><p>${t("最近 12 周，来自家人点“−”的记录")}</p></div>
+      ${selItem ? `
+      <div class="panel chart-panel"><div class="chart-head"><h3>${t("单品用量与库存")}</h3>
+        <select id="statsItem" aria-label="${t("选择物品")}">${ranked.map((i) => `<option value="${i.id}" ${i.id === selItem.id ? "selected" : ""}>${esc(i.name)}（${t("{n} 次", { n: cd.perItem[i.id] })}）</option>`).join("")}</select></div>
+        ${itemChart}</div>
+      <div class="panel chart-panel"><h3>${t("各分类使用频率")}</h3><p class="muted" style="margin:0 0 6px;font-size:13px">${t("按记录次数统计，不同物品单位不同，不能直接相加数量。")}</p>${freqChart}</div>`
+      : `<div class="panel empty"><strong>${t("还没有使用记录")}</strong>${t("在库存页用掉东西时点一下 −，这里就会出现趋势。")}</div>`}
+    </section>
+    `;
+}
+
+/** 我的 → 统计：账单模块开着时只看用量趋势（花费在 账单 → 花费）；关掉账单时花费和用量都在这里 */
+export function viewStats() {
+  return state.billsEnabled ? viewUsage() : viewSpend() + viewUsage();
+}
+
+/* ── 花费记录：搜索 + 分类 / 商店 / 月份筛选 + 排序，按月分组带小计，分批显示 ── */
+export const SPEND_SORTS = [["new", "时间：新 → 旧"], ["old", "时间：旧 → 新"], ["high", "金额：高 → 低"], ["low", "金额：低 → 高"], ["name", "名称 A → Z"]];
+const PAGE = 20;
+const amountOf = (p) => (p.amount != null && (!p.currency || p.currency === Units.region.currency) ? num(p.amount) : 0);
+function filteredSpend() {
+  const f = state.spendFilter, q = f.q.trim().toLowerCase();
+  let list = state.purchases.filter((p) => {
+    if (f.cat !== "all" && statCat(p.category) !== f.cat) return false;
+    if (f.month !== "all" && monthKey(p.purchased_at) !== f.month) return false;
+    if (f.store !== "all" && (f.store === "__none__" ? !!storeKey(p.store) : storeKey(p.store) !== f.store)) return false;
+    return !q || `${p.name}${p.store || ""}`.toLowerCase().includes(q);
+  });
+  const date = (p) => new Date(p.purchased_at).getTime();
+  const sorts = { new: (a, b) => date(b) - date(a), old: (a, b) => date(a) - date(b), high: (a, b) => amountOf(b) - amountOf(a) || date(b) - date(a), low: (a, b) => amountOf(a) - amountOf(b) || date(b) - date(a), name: (a, b) => compare(a.name, b.name) || date(b) - date(a) };
+  list = list.sort(sorts[f.sort] || sorts.new);
+  return list;
+}
+function spendRow(p) {
+  const d = new Date(p.purchased_at), sameYear = d.getFullYear() === new Date().getFullYear();
+  const cat = ALL_CATS().find((c) => c.id === p.category) || OTHER_CAT;
+  return `<li>
+    <span class="badge" style="background:var(--surface-2)">${esc(d.toLocaleDateString(locale(), sameYear ? { month: "numeric", day: "numeric" } : { year: "2-digit", month: "numeric", day: "numeric" }))}</span>
+    <div class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${cat.icon || ""} ${t(cat.name)}`.trim())}${p.store ? `，${esc(p.store)}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}</small></div>
+    <b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>
+    <button type="button" class="btn btn-sm btn-ghost" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button></li>`;
+}
+/** 列表本体 + 合计；搜索 / 筛选变化只重画这一块（输入框不丢焦点） */
+function spendListHtml() {
+  const f = state.spendFilter, all = filteredSpend(), shown = all.slice(0, f.limit);
+  if (!all.length) return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个关键词或筛选试试。")}</div>`;
+  const byDate = f.sort === "new" || f.sort === "old";
+  let out = "", cur = null;
+  for (const p of shown) {
+    if (byDate) {
+      const m = monthKey(p.purchased_at);
+      if (m !== cur) {
+        cur = m; const inM = all.filter((x) => monthKey(x.purchased_at) === m);
+        out += `<li class="rec-month"><b>${esc(lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }))}</b><span class="muted">${esc(t("{n} 笔", { n: inM.length }))} · ${esc(money(inM.reduce((a, x) => a + amountOf(x), 0)))}</span></li>`;
+      }
+    }
+    out += spendRow(p);
+  }
+  return `<ul class="restock-list rec-list">${out}</ul>
+    ${all.length > shown.length ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-ghost" data-action="spend-more">${t("再显示 {n} 笔（还有 {m} 笔）", { n: Math.min(PAGE, all.length - shown.length), m: all.length - shown.length })}</button></div>` : ""}`;
+}
+function spendSummary() {
+  const all = filteredSpend();
+  return `${t("{n} 笔", { n: all.length })} · ${money(all.reduce((a, p) => a + amountOf(p), 0))}`;
+}
+export function renderSpendList() {
+  const host = $("#spendList"); if (!host) return;
+  host.innerHTML = spendListHtml();
+  const sum = $("#spendSum"); if (sum) sum.textContent = spendSummary();
+}
+function spendRecordsHtml() {
+  const f = state.spendFilter, ps = state.purchases;
+  if (!ps.length) return `<div class="section-head"><h2>${t("花费记录")}</h2></div><div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("采购清单点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;
+  const months = [...new Set(ps.map((p) => monthKey(p.purchased_at)))].sort().reverse();
+  const stores = knownStores(), hasNone = ps.some((p) => !storeKey(p.store));
+  const cats = STAT_CATS().filter((c) => ps.some((p) => statCat(p.category) === c.id));
+  const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;
+  const mo = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
+  return `<div class="section-head"><h2>${t("花费记录")}</h2><p id="spendSum">${esc(spendSummary())}</p></div>
+    <div class="panel">
+      <div class="toolbar">
+        <input type="search" id="spendSearch" placeholder="${t("搜索名称或商店")}" value="${esc(f.q)}" aria-label="${t("搜索花费记录")}">
+        <select id="spendCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c.id, `${c.icon} ${t(c.name)}`, f.cat)).join("")}</select>
+        <select id="spendStore" aria-label="${t("按商店筛选")}">${opt("all", t("全部商店"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${hasNone ? opt("__none__", t("未填写商店"), f.store) : ""}</select>
+        <select id="spendMonth" aria-label="${t("按月份筛选")}">${opt("all", t("全部月份"), f.month)}${months.map((m) => opt(m, mo(m), f.month)).join("")}</select>
+        <select id="spendSort" aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
+      </div>
+      <div id="spendList">${spendListHtml()}</div>
+      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("这里是近 400 天的记录。")}</p>
+    </div>`;
 }
 
 /* ── 商店统计与年度报表 ── */

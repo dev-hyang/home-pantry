@@ -57,6 +57,7 @@ export function viewBillsOverview() {
     <section class="section">
       <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">
         <button type="button" class="btn btn-sm btn-ghost" data-action="bills-ics">${t("导出到日历")}</button>
+        <a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}">${t("看花费")}</a>
         <a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a>
         <a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
       <div class="kpis">
