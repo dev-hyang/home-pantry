@@ -152,4 +152,5 @@ window.SISTER_APPS = [
   { id: "baby-log",    name: "小月亮",         short: "小月亮", sub: "母婴记录",            icon: "🌙", url: "https://dev-hyang.github.io/baby-log/" },
   { id: "homeschool",  name: "家庭学堂",       short: "学堂",   sub: "在家教育",            icon: "📚", url: "https://dev-hyang.github.io/homeschool/" },
   { id: "home-pantry", name: "爱家小助手", short: "小助手", sub: "储藏 · 房屋 · 账单", icon: "🥫", url: "https://dev-hyang.github.io/home-pantry/" },
+  { id: "shepherd",    name: "牧羊人",         short: "牧羊人", sub: "身心灵记录",          icon: "🐑", url: "https://dev-hyang.github.io/shepherd/" },
 ];
