@@ -71,8 +71,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .brand-row { display: flex; align-items: center; gap: 8px; position: relative; }
 /* 姐妹站点切换（与家庭学堂顶栏一致）：站名旁两枚小胶囊「‹ 小月亮」「学堂 ›」 */
 .apps { display: inline-flex; }
-.top-right { display: flex; align-items: flex-start; gap: 4px; flex: 0 0 auto; }
-.top-right .apps { margin-top: -8px; }   /* 44px 触控区和右边语言胶囊的顶部对齐 */
+.top-right { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; margin: -6px -4px 0 0; }   /* 语言、应用两个 44px 触控按钮并排 */
 /* 设置页姐妹站点列表 */
 .app-list { list-style: none; margin: 10px 0 0; padding: 0; }
 .app-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
@@ -1119,3 +1118,24 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .rest-list li { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 8px; }
 .rest-list li .grow { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media print { .drill-hint, .filter-chips { display: none !important; } }
+
+/* 路径（面包屑）固定：子页往下滑时，“‹ 账单 / 花费 / 明细”一直在顶栏下面，随时能回上一层；--eco-h 是顶栏高度（shared/compact-filters.js 的 watchStick 量出来） */
+.crumb { position: sticky; top: calc(var(--eco-h, 0px) + env(safe-area-inset-top, 0px)); z-index: 16; margin: -6px -20px 12px; padding: 6px 20px; background: color-mix(in srgb, var(--bg) 94%, transparent); border-bottom: 1px solid var(--line); }
+.crumb > :first-child { margin-left: -5px; }
+@media (max-width: 640px) { .crumb { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; } }
+@media print { .crumb { position: static; } }
+/* 明细页：筛选条（当前筛选标签 + 搜索 / 筛选按钮）一起固定在路径条下面 */
+.filter-bar { position: sticky; top: calc(var(--eco-stick, 0px) + env(safe-area-inset-top, 0px)); z-index: 14; background: var(--surface); padding-top: 2px; }
+.filter-bar .toolbar.tb-on { position: static; }
+.filter-bar .filter-chips { margin-bottom: 4px; }
+/* 手机：固定在顶部的三层（顶栏、路径、筛选条）加起来要尽量矮，别占掉大半屏 */
+@media (max-width: 440px) {
+  .crumb { padding-top: 2px; padding-bottom: 2px; margin-bottom: 8px; }
+  .filter-bar .filter-chips { flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin: 0; padding: 4px 0; scrollbar-width: none; }
+  .filter-bar .filter-chips::-webkit-scrollbar { display: none; }
+  .filter-bar .filter-chips > * { flex: 0 0 auto; }
+  .filter-bar .fchip { min-height: 32px; padding: 2px 10px; font-size: 13px; }
+  .filter-bar .toolbar.tb-on { padding: 4px 0 6px; margin-bottom: 0; }
+}
+/* 手机：顶栏（站名和两个切换按钮）随页面滑走，固定的只留路径和筛选条，常驻的部分不占掉大半屏；翻回顶部随时能用 */
+@media (max-width: 440px) { .topbar { position: static; } }

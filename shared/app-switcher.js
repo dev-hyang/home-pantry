@@ -50,6 +50,12 @@ const CSS = `
   .eco-sw-panel { position: fixed; top: auto; left: 0; right: 0; bottom: 0; width: auto; border-radius: 20px 20px 0 0; border-width: 1px 0 0; padding: 8px 12px calc(12px + env(safe-area-inset-bottom)); animation: eco-sw-up .2s ease-out; }
   .eco-sw-head { display: flex; }
 }
+.eco-lg-btn { width: auto; min-width: 44px; padding: 0 10px; gap: 4px; border-radius: 22px; font: inherit; font-size: 13px; font-weight: 700; }
+.eco-lg-btn svg { flex: 0 0 auto; }
+.eco-lg-search { box-sizing: border-box; width: 100%; min-height: 44px; margin: 0 0 6px; padding: 0 12px; border: 1px solid var(--line, #cfdcd2); border-radius: 12px; background: var(--surface, #fff); color: inherit; font: inherit; font-size: 16px; }
+.eco-lg-list { max-height: min(60vh, 420px); overflow-y: auto; }
+.eco-lg-row[aria-checked="true"] { background: var(--surface-2, var(--bg, #e3ebe4)); }
+.eco-lg-row .eco-sw-txt small { font-size: 12px; }
 @keyframes eco-sw-up { from { transform: translateY(100%); } to { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .eco-sw-panel { animation: none; } }
 `;
@@ -73,9 +79,14 @@ export async function loadApps() {
 }
 
 let cssDone = false, openCleanup = null;
+/** 样式只注入一次；语言切换器、紧凑筛选条共用这份（同一套面板外观） */
+export function ensureStyles() {
+  if (cssDone) return; cssDone = true;
+  const st = document.createElement("style"); st.id = "eco-ui-css"; st.textContent = CSS; document.head.appendChild(st);
+}
 export function mountAppSwitcher({ host, current, lang = "zh", apps = null, onApps = null }) {
   if (!host) return;
-  if (!cssDone) { const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st); cssDone = true; }
+  ensureStyles();
   const k = kindOf(lang), tx = TEXT[k];
   const list = (apps || readCache() || FALLBACK).filter(validApp);
   if (list.length < 2) { host.innerHTML = ""; return; }

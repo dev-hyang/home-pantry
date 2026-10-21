@@ -6,6 +6,8 @@ import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num,
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { mountAppSwitcher } from "../shared/app-switcher.js";
+import { mountLangSwitcher } from "../shared/lang-switcher.js";
+import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { DEFAULT_QUICK, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewToday } from "./today.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
@@ -139,17 +141,11 @@ function applyChrome() {
   renderLangSwitch();
 }
 
-/* 顶栏右上角的语言快捷切换（登录页也显示）；和 设置 → 语言 存同一个值 */
-const LANG_SHORT = [["zh", "简体"], ["zh-Hant", "繁體"], ["en", "EN"]];
+/* 顶栏右上角的语言切换（登录页也显示）：一个按钮，点开是列表（宽屏浮层 / 手机底部抽屉），以后加语言只要在 LANGS 里加一项；和 设置 → 语言 存同一个值 */
+const uiKind = () => (lang === "en" ? "en" : lang === "zh-Hant" ? "tw" : "zh");
 function renderLangSwitch() {
-  const box = $("#langSwitch"); if (!box) return;
-  box.setAttribute("aria-label", t("切换语言"));
-  box.innerHTML = LANG_SHORT.map(([k, l]) => `<button type="button" data-lang="${k}" aria-pressed="${lang === k}" title="${LANGS[k]}" aria-label="${LANGS[k]}">${l}</button>`).join("");
+  mountLangSwitcher({ host: $("#langSwitch"), languages: Object.entries(LANGS).map(([code, name]) => ({ code, name })), current: lang, ui: uiKind(), onSelect: (code) => changeLang(code) });
 }
-$("#langSwitch")?.addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-lang]"); if (!b || b.getAttribute("aria-pressed") === "true") return;
-  changeLang(b.dataset.lang);
-});
 
 /* ───────────── 应用切换：顶栏右侧九宫格按钮，宽屏浮层 / 窄屏底部抽屉；名单在 shared/apps.json（四个站点共用） ───────────── */
 const APP_ID = "home-pantry";
@@ -339,6 +335,9 @@ async function changeLang(code) {
 
 /* ───────────── 交互（事件委托） ───────────── */
 export const main = $("#main");
+// 手机：列表页的“搜索 + 一排下拉框”收成一行（搜索框 + 筛选按钮），滑动时固定在顶栏 / 路径下面；路径条（面包屑）也固定
+initCompactFilters({ root: main, ui: uiKind });
+watchStick({ header: ".topbar", path: ".crumb" });
 /* 左右滑动换页：季节任务换月（.tasks-swipe）、注意事项换来源（.swipe-zone[data-swipe=alerts]）；横向够远、纵向很小才算 */
 let swipe = null;
 main.addEventListener("touchstart", (e) => { const z = e.target.closest(".tasks-swipe, .swipe-zone"); swipe = z && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, kind: z.dataset.swipe || "tasks" } : null; }, { passive: true });
