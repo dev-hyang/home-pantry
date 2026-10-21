@@ -92,12 +92,14 @@ export async function saveQuick(list) {
   } else { try { localStorage.setItem(QUICK_KEY, JSON.stringify(list)); } catch { /* 忽略 */ } }
 }
 /** 快捷操作的实际地址：账单带 ?prop=all（每次回到全部房产）；“看花费统计”在账单模块开着时指向 账单 → 花费 */
-const quickHref = (id) => (id === href("me", "stats") && state.billsEnabled ? href("bills", "spend") : id.startsWith("#/bills") ? `${id}?prop=all` : id);
+const quickHref = (id) => (id === href("me", "stats") && state.billsEnabled ? href("bills", "spend") : id.startsWith("#/bills") ? `${id}${id.includes("?") ? "&" : "?"}prop=all` : id);   // 已经带参数的（如 ?tab=records）用 & 接
 /** 可放进快捷操作的页面与动作：[标识, 图标, 名称] */
 const PRESETS = () => [
   [href("pantry", "overview"), "🥫", t("储藏概览")], [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "➕", t("添加储藏物品")],
   state.gearEnabled ? [href("pantry", "gear"), "🧳", t("装备")] : null, state.gearEnabled ? [`${href("item", "new")}?space=gear`, "🧳", t("添加装备")] : null,
   state.billsEnabled ? [href("bills", "overview"), "🧾", t("账单概览")] : null, state.billsEnabled ? [href("bills", "list"), "📋", t("账单清单")] : null, state.billsEnabled ? [href("bills", "history"), "🕘", t("缴费记录")] : null, state.billsEnabled ? [href("bills", "spend"), "📊", t("花费")] : null, state.billsEnabled ? [href("bills", "budget"), "💰", t("预算")] : null, state.billsEnabled ? [href("bill", "new"), "➕", t("添加账单")] : null,
+  state.billsEnabled ? [`${href("bills", "spend")}?tab=records`, "✍️", t("补记一笔花费")] : null, state.billsEnabled ? [`${href("bills", "medical")}?bill=new`, "🏥", t("记医疗账单")] : null,
+  state.billsEnabled ? [href("bills", "medical"), "🩺", t("医疗与事件账单")] : null, state.billsEnabled ? [href("bills", "template"), "🧾", t("按模板建账单")] : null,
   state.houseEnabled ? [href("house"), "🏠", t("房屋")] : null, state.houseEnabled ? [`${href("pantry", "inventory")}?space=house`, "🧰", t("房屋耗材")] : null, state.houseEnabled ? [`${href("item", "new")}?space=house`, "➕", t("添加房屋耗材")] : null, state.houseEnabled ? [href("house", "assets"), "⚙️", t("设备保养")] : null,
   state.houseEnabled ? [href("house", "tasks"), "📅", t("季节任务")] : null, state.houseEnabled ? [href("house", "deal"), "📝", t("交易")] : null, state.houseEnabled ? [href("house", "vehicles"), "🚗", t("车辆")] : null, state.houseEnabled ? [href("asset", "new"), "🛠️", t("添加设备")] : null,
   [href("shopping"), "🛒", t("采购清单")], [href("scan"), "🧾", t("录入购物")], [href("alerts"), "🔔", t("注意事项")], [href("ai"), "🤖", t("小Y问")], !state.billsEnabled ? [href("me", "stats"), "📊", t("花费统计")] : null, [href("me", "settings"), "⚙️", t("设置")],

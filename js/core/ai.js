@@ -120,14 +120,21 @@ const AUTO_MODEL_KEY = "hmh-ai-auto-model";
 const GEMINI_PREF = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-flash-latest"];
 export function autoModel(providerId) { try { return JSON.parse(localStorage.getItem(AUTO_MODEL_KEY) || "{}")[providerId] || ""; } catch { return ""; } }
 function saveAutoModel(providerId, model) { try { const m = JSON.parse(localStorage.getItem(AUTO_MODEL_KEY) || "{}"); m[providerId] = model; localStorage.setItem(AUTO_MODEL_KEY, JSON.stringify(m)); } catch { /* 忽略 */ } }
-/** 这个 key 能用的 Gemini 模型：先按偏好表排，再排其余 Flash 系 */
+/** Google 的 404 里常写着“请改用 models/xxx”：把它点名的模型取出来，第一个试（旧模型对新 key 下线时就是这样） */
+export const suggestedModel = (msg) => { const m = /(?:use|try|switch to)[^.]*?models\/([\w.\-]+)/i.exec(String(msg || "")) || /models\/(gemini[\w.\-]*)/i.exec(String(msg || "")); return m ? m[1].replace(/[.,;:)]+$/, "") : ""; };
+/** 这个 key 能用的 Gemini 模型：只要 Flash 系、能 generateContent、不是图像 / 语音 / 实时等专用模型；版本号从新到旧（旧模型会陆续对新 key 下线，
+ * 它们常常还在列表里却调用 404，所以不能再按固定的旧名单排），同一版本里稳定版在前、flash 在 flash-lite 前 */
+export function rankGemini(gen) {
+  const ver = (n) => { const m = /^gemini-(\d+(?:\.\d+)?)/.exec(n); return m ? parseFloat(m[1]) : 0; };
+  const lite = (n) => (/flash-lite/i.test(n) ? 1 : 0), pre = (n) => (/preview|exp|beta/i.test(n) ? 1 : 0);
+  return gen.filter((n) => /^gemini/i.test(n) && /flash/i.test(n) && !/image|tts|audio|live|embedding|robotics|computer-use|thinking|learnlm/i.test(n))
+    .sort((a, b) => pre(a) - pre(b) || ver(b) - ver(a) || lite(a) - lite(b) || a.localeCompare(b));
+}
 async function geminiCandidates(base, key) {
   const j = await readJson(await fetch(`${base}/models?key=${encodeURIComponent(key)}&pageSize=200`));
   const all = (j.models || []).map((m) => ({ name: String(m.name || "").replace(/^models\//, ""), methods: m.supportedGenerationMethods || m.supportedActions || [] }));
   const gen = all.filter((m) => !m.methods.length || m.methods.includes("generateContent")).map((m) => m.name);
-  const pref = GEMINI_PREF.filter((n) => gen.includes(n));
-  const rest = gen.filter((n) => !pref.includes(n) && /flash/i.test(n) && !/image|tts|audio|live|embedding|exp|preview-0/i.test(n));
-  return { candidates: [...pref, ...rest], all: gen };
+  return { candidates: rankGemini(gen), all: gen };
 }
 /* ── 临时错误自动重试：503 / 502 / 500（“模型现在很忙”）等 1.5s、4s 再试两次；429 不在这里重试（按 Retry-After 记恢复时间） ── */
 const sleep = (ms, signal) => new Promise((res, rej) => { const id = setTimeout(res, ms); signal?.addEventListener("abort", () => { clearTimeout(id); rej(Object.assign(new Error("aborted"), { name: "AbortError" })); }, { once: true }); });
@@ -138,6 +145,17 @@ async function withRetry(fn, signal, delays = [1500, 4000]) {
     catch (e) { if (!transient(e) || i >= delays.length) throw e; await sleep(delays[i], signal); }
   }
 }
+/** Gemini 返回 200 但没有可用内容 / 被截断时，把真实原因说出来（之前只会显示“没能读出内容”，看不出是被安全策略拦了、回答被截断还是别的） */
+function geminiCheck(j, text, json) {
+  const block = j.promptFeedback?.blockReason, cand = j.candidates?.[0], fin = cand?.finishReason;
+  const why = block ? `blockReason=${block}` : fin && fin !== "STOP" ? `finishReason=${fin}` : "";
+  if (block || (!text && !cand?.content?.parts?.length)) {
+    const hint = /SAFETY|PROHIBITED|BLOCK|IMAGE_SAFETY/i.test(`${block} ${fin}`) ? t("Google 的安全策略拦下了这次请求（图片或文字里可能有敏感内容）。换一张图、裁掉敏感部分，或改用别的服务商。")
+      : fin === "MAX_TOKENS" ? t("回答太长被截断了：少放几张图，或选“每张是一张独立小票”分开识别。") : t("Google 没有返回内容，稍后再试，或换个模型。");
+    const e = new Error(`${hint}${why ? `（${why}）` : ""}`); e.explained = true; throw e;
+  }
+  if (json && fin === "MAX_TOKENS") { const e = new Error(`${t("回答太长被截断了：少放几张图，或选“每张是一张独立小票”分开识别。")}（finishReason=MAX_TOKENS）`); e.explained = true; throw e; }
+}
 /** Gemini 一次调用；模型名 404（或重试后仍 503）就查列表，按顺序换几个可用的再试，成功的记住；都不行时把试过的和可用的都写进错误里 */
 async function geminiCall(s, base, key, body, signal) {
   const call = (model) => withRetry(() => fetch(`${base}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, { method: "POST", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(readJson), signal);
@@ -147,7 +165,9 @@ async function geminiCall(s, base, key, body, signal) {
   const tried = []; let last = null;
   try { return await call(first); } catch (e) { if (!swap(e)) throw e; tried.push(first); last = e; }
   const { candidates, all } = await geminiCandidates(base, key);
-  for (const m of candidates.filter((x) => !tried.includes(x)).slice(0, last.status === 404 ? 4 : 2)) {
+  const hinted = last.status === 404 ? suggestedModel(last.message) : "";   // Google 在 404 里点名的新模型，第一个试
+  const order = [...(hinted && all.includes(hinted) ? [hinted] : hinted ? [hinted] : []), ...candidates].filter((x, i, a) => a.indexOf(x) === i);
+  for (const m of order.filter((x) => !tried.includes(x)).slice(0, last.status === 404 ? 8 : 2)) {
     try { const r = await call(m); if (last.status === 404) saveAutoModel("gemini", m); return r; }   // 404 换成功的才记住；503 换的只是临时顶一下
     catch (e) { if (!swap(e)) throw e; tried.push(m); last = e; }
   }
@@ -242,6 +262,7 @@ export async function askText(system, user, { json = false, maxTokens = 1500, im
       const parts = [{ text: user }, ...images.map((i) => ({ inlineData: { mimeType: i.mime, data: i.b64 } }))];
       const j = await geminiCall(s, base, key, { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: "user", parts }], generationConfig: { temperature, ...(json ? { responseMimeType: "application/json" } : {}) } }, ctl.signal);
       text = j.candidates?.[0]?.content?.parts?.map((x) => x.text).join("") || "";
+      geminiCheck(j, text, json);
     } else if (p.kind === "anthropic") {
       const j = await withRetry(() => fetch(`${base}/messages`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: images.length ? [...images.map((i) => ({ type: "image", source: { type: "base64", media_type: i.mime, data: i.b64 } })), { type: "text", text: user }] : user }] }) }).then(readJson), ctl.signal);
