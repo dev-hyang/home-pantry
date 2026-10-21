@@ -8,6 +8,7 @@ import { daysUntil, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { registerAlerts } from "../core/alerts.js";
+import { Store } from "../core/store.js";
 
 /* 事件型账单的种类：同一套数据（账单 + 分次付款 + 余额），换标签和小类。
  * insurance = 有没有“保险已付 / 保险公司 / 理赔号”这几项；visibility = 新建时默认谁能看（医疗、法律默认私密）；
@@ -26,6 +27,32 @@ export const STATUS_CLS = { awaiting_insurance: "b-soon", open: "b-low", dispute
 export const detailHref = (id) => `${href("bills", "onetime")}?bill=${id || "new"}`;
 
 const r2 = (v) => Math.round(v * 100) / 100;
+
+/* ── 名册：患者、担保人存 patient_id / guarantor_id，显示名取名册里的（改名后所有账单跟着变）；没有 id 的旧账单仍显示当时填的文字 ── */
+export const personName = (id, fallback) => (id ? state.people.find((p) => p.id === id)?.name : null) || fallback || "";
+export const PEOPLE_KINDS = { adult: "大人", child: "孩子", pet: "宠物" };
+/** 这种账单的“患者”从名册里选哪几类人：医疗 = 大人 + 孩子，宠物 = 宠物；法律 / 项目是事项名称，仍然手填 */
+export const peopleFor = (kind) => (kind === "medical" ? ["adult", "child"] : kind === "pet" ? ["pet"] : null);
+const nkey = (n) => String(n || "").trim().replace(/\s+/g, " ").toLowerCase();
+/** 新增前查重：完全一样（忽略大小写 / 空格）= exact；一个是另一个的开头（Alice / Alice Y）= similar，让用户确认是不是同一个人 */
+export function findPerson(name) {
+  const k = nkey(name); if (!k) return { exact: null, similar: [] };
+  const exact = state.people.find((p) => nkey(p.name) === k) || null;
+  const similar = exact ? [] : state.people.filter((p) => { const o = nkey(p.name); return o !== k && (o.startsWith(`${k} `) || k.startsWith(`${o} `) || (k.length >= 2 && o.startsWith(k)) || (o.length >= 2 && k.startsWith(o))); });
+  return { exact, similar };
+}
+let rosterTried = false;
+/** 家庭里的大人（household_members）自动进名册，只做一次；别人同时做了导致重名 / 重复时忽略 */
+export async function ensureAdults() {
+  if (rosterTried || !state.members?.length) return false; rosterTried = true;
+  let added = false;
+  for (const m of state.members) {
+    if (state.people.some((p) => p.member_user_id === m.user_id)) continue;
+    try { await Store.savePerson({ name: m.display_name || "家人", kind: "adult", member_user_id: m.user_id }); added = true; } catch { /* 名字已在名册里（别人先建了）：忽略 */ }
+  }
+  if (added) state.people = await Store.listPeople();
+  return added;
+}
 /** 应付（自付金额）：填了就用；没填 = 总额 − 保险已付 − 冲减；两个都没有 = 还不知道（null） */
 export function owedOf(b) {
   if (b.patient_amount != null && b.patient_amount !== "") return num(b.patient_amount);
@@ -49,7 +76,7 @@ export function enrichMedical(bills, payments) {
     const daysLeft = b.due_on && open ? daysUntil(b.due_on) : null;
     const refDate = b.bill_date || b.service_date;
     const waitDays = b.status === "awaiting_insurance" && refDate ? -daysUntil(refDate) : null;
-    return { ...b, pays, paid, owed, balance, status, open, daysLeft, waitDays, overdue: daysLeft != null && daysLeft < 0 && today > b.due_on };
+    return { ...b, patient_text: b.patient, patient: personName(b.patient_id, b.patient), guarantor: personName(b.guarantor_id, b.guarantor), pays, paid, owed, balance, status, open, daysLeft, waitDays, overdue: daysLeft != null && daysLeft < 0 && today > b.due_on };
   });
 }
 

@@ -10,7 +10,7 @@ export const DemoStore = {
     if (!this.db || !Array.isArray(this.db.items)) this.db = seedDemo();
     const db = this.db;
     db.purchases ||= []; db.assets ||= []; db.maint_logs ||= []; db.seasonal ||= [];
-    db.bills ||= []; db.bill_payments ||= []; db.medical_bills ||= []; db.medical_payments ||= [];
+    db.bills ||= []; db.bill_payments ||= []; db.medical_bills ||= []; db.medical_payments ||= []; db.people ||= [];
     // 多房产：没有房产的旧演示库补一条默认房产，并把房屋资料 / 设备 / 季节任务挂上去
     if (!Array.isArray(db.properties) || !db.properties.length) {
       db.properties = [{ id: uid(), name: t("我的家"), kind: "other", role: "owner_occupied", status: "owned", address: null, is_default: true, archived: false, notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
@@ -217,6 +217,20 @@ export const DemoStore = {
     this.persist();
   },
 
+  /* 家庭成员 / 孩子 / 宠物名册 */
+  async listPeople() { return this.db.people.map((x) => ({ ...x })); },
+  async savePerson(p) {
+    const key = personKey(p.name);
+    if (this.db.people.some((x) => x.id !== p.id && personKey(x.name) === key)) throw new Error(t("名册里已经有“{n}”了", { n: p.name }));
+    if (p.id) { const i = this.db.people.findIndex((x) => x.id === p.id); if (i >= 0) this.db.people[i] = { ...this.db.people[i], ...p }; this.persist(); return p.id; }
+    const id = uid(); this.db.people.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id;
+  },
+  async deletePerson(id) { this.db.people = this.db.people.filter((x) => x.id !== id); for (const b of this.db.medical_bills) { if (b.patient_id === id) b.patient_id = null; if (b.guarantor_id === id) b.guarantor_id = null; } this.persist(); },
+  async mergePeople(fromId, toId) {
+    for (const b of this.db.medical_bills) { if (b.patient_id === fromId) b.patient_id = toId; if (b.guarantor_id === fromId) b.guarantor_id = toId; }
+    this.db.people = this.db.people.filter((x) => x.id !== fromId); this.persist();
+  },
+
   /* 医疗账单（事件型账单）：账单 + 付款；演示模式没有“私密”之分，全是自己的 */
   async listMedicalBills() { return this.db.medical_bills.map((x) => ({ ...x })); },
   async saveMedicalBill(b) {
@@ -400,7 +414,7 @@ export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", 
   "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes", "vehicle"];
 export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "acquired_on", "purchase_price", "sold_on", "sale_price", "archived", "notes"];
 export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email", "hoa"];
-export const MED_FIELDS = ["kind", "subkind", "provider", "patient", "guarantor", "bill_ref", "claim_ref", "insurer", "service_date", "bill_date", "due_on", "billed_amount", "insurance_paid", "adjustment", "patient_amount", "currency", "status", "hsa_eligible", "visibility", "notes"];
+export const MED_FIELDS = ["kind", "subkind", "provider", "patient", "patient_id", "guarantor", "guarantor_id", "bill_ref", "claim_ref", "insurer", "service_date", "bill_date", "due_on", "billed_amount", "insurance_paid", "adjustment", "patient_amount", "currency", "status", "hsa_eligible", "visibility", "notes"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
   "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "statement_channel",
   "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes"];
@@ -412,6 +426,9 @@ export const DEAL_CUSTOM_FIELDS = ["deal_id", "name", "stage", "priority", "due_
 export const CUSTOM_SEASONAL_FIELDS = ["property_id", "name", "note", "months", "due_on", "done_on", "done_by_name"];
 /** 一个人所有收入折合每月的合计（存在旧的 income_amount 列里，兼容旧版） */
 const incomeTotal = (lines) => Math.round((lines || []).reduce((s, l) => s + (l.period === "year" ? num(l.amount) / 12 : num(l.amount)), 0) * 100) / 100;
+/** 名字比较用的键：忽略大小写和多余空格（数据库的唯一索引同一个规则） */
+export const personKey = (n) => String(n || "").trim().replace(/\s+/g, " ").toLowerCase();
+const personError = (e) => (/household_people_name_idx|duplicate key/i.test(e.message || "") ? t("名册里已经有这个名字了（忽略大小写和空格）") : /household_people|does not exist|schema cache/i.test(e.message || "") ? t("还没执行数据库迁移 029（家庭成员名册），先在 Supabase 里执行 supabase/migrations/029_people.sql") : e.message);
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
 export const CloudStore = {
@@ -588,6 +605,20 @@ export const CloudStore = {
   async deleteCustomSeasonal(id) {
     this.must(await this.sb.from("custom_seasonal_tasks").delete().eq("id", id));
     this.must(await this.sb.from("seasonal_tasks").delete().eq("household_id", this.hid).eq("task_key", `c_${String(id).replace(/-/g, "")}`));
+  },
+
+  /* 家庭成员 / 孩子 / 宠物名册（迁移 029）：同一个家庭里“看起来一样”的名字由数据库唯一索引拦住 */
+  async listPeople() { return this.must(await this.sb.from("household_people").select("*").eq("household_id", this.hid).order("created_at")); },
+  async savePerson(p) {
+    const row = { name: String(p.name).trim().slice(0, 40), kind: p.kind || "adult", birth: p.birth || null, member_user_id: p.member_user_id || null, household_id: this.hid };
+    if (p.id) { const { error } = await this.sb.from("household_people").update(row).eq("id", p.id); if (error) throw new Error(personError(error)); return p.id; }
+    const { data, error } = await this.sb.from("household_people").insert(row).select("id").single(); if (error) throw new Error(personError(error)); return data.id;
+  },
+  async deletePerson(id) { this.must(await this.sb.from("household_people").delete().eq("id", id)); },   // 账单里的 patient_id 自动置空，名字文字仍保留
+  async mergePeople(fromId, toId) {
+    this.must(await this.sb.from("medical_bills").update({ patient_id: toId }).eq("patient_id", fromId));
+    this.must(await this.sb.from("medical_bills").update({ guarantor_id: toId }).eq("guarantor_id", fromId));
+    this.must(await this.sb.from("household_people").delete().eq("id", fromId));
   },
 
   /* 医疗账单：RLS 按 visibility 过滤（私密的只有创建人和家主读得到）；还没执行迁移 027 时表不存在，由调用方当作空 */

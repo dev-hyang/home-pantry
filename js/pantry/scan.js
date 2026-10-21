@@ -18,7 +18,7 @@ const repaint = () => { const m = $("#main"); if (m && state.route.section === "
 
 /* ───────────── 提示词与结果整理 ───────────── */
 function buildPool() {
-  sc.pool = state.items.filter((i) => spaceOf(i.category) !== "gear").slice(0, 400);   // 只传名称和单位，用来让模型把商品对应到已有库存
+  sc.pool = state.items.filter((i) => spaceOf(i.category) !== "gear").slice(0, 200);   // 只传名称和单位，用来让模型把商品对应到已有库存
   return sc.pool.map((i, n) => `${n}|${i.name}|${i.unit || ""}`).join("\n");
 }
 function scanPrompt(multi = "auto") {

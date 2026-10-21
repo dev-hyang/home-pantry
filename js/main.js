@@ -6,8 +6,8 @@ import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num,
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { resilientFetch } from "./core/net.js";
-import { applyMedical, deleteMedBill, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
-import { mergeMedical } from "./bills/medical.js";
+import { applyMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
+import { ensureAdults, mergeMedical } from "./bills/medical.js";
 import { mountAppSwitcher } from "../shared/app-switcher.js";
 import { mountLangSwitcher } from "../shared/lang-switcher.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
@@ -42,7 +42,7 @@ import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
 import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, newCatKey } from "./core/categories.js";
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
-import { aiReady, resetUsage, testModel } from "./core/ai.js";
+import { aiReady, clearModelMarks, resetUsage, testModel } from "./core/ai.js";
 import { saveAiForm } from "./settings/views.js";
 import { applySpendDrill, cleanStore, clearSpendFilter, download, exportAnnual, rememberStore, renderSpendList, renderSpendRecords, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
 
@@ -69,7 +69,7 @@ export async function refresh() {
     try {
       // 所有表一次并行读完（云端一轮往返），再在内存里定当前房产；采购花费只有统计和导出用，不挡首屏，渲染后后台再读
       const members = state.membersReady; state.membersReady = null;   // 登录后与这一轮并行去读家庭成员
-      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes, medBills, medPays] = await Promise.all([
+      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes, people, medBills, medPays] = await Promise.all([
         Store.listProperties(), Store.listItems(),
         soft("logs", Store.listLogs(), state.logs || [], (r) => { state.logs = r; state.enriched = enrich(state.items, r); }),
         Store.listShopping(), Store.listHouseProfiles(),
@@ -83,6 +83,7 @@ export async function refresh() {
         Store.listTerms().catch((e) => { console.warn("[terms]", e.message); return null; }),
         Store.getBudget().catch(() => null),
         Store.listIncomes().catch((e) => { console.warn("[incomes]", e.message); return []; }),
+        Store.listPeople().catch(() => []),   // 家庭成员名册（迁移 029）；没建表时是空的
         Store.listMedicalBills().catch((e) => { console.warn("[medical]", e.message); return []; }),   // 还没执行迁移 027 时读不到：不影响其他功能
         Store.listMedicalPayments().catch(() => []),
         members]);
@@ -102,7 +103,8 @@ export async function refresh() {
       state.enriched = enrich(items, logs);
       state.assetsEnriched = enrichAssets(assets, maintLogs);
       state.billsEnriched = enrichBills(bills, billPayments);
-      applyMedical(medBills, medPays);
+      state.people = people; applyMedical(medBills, medPays);
+      ensureAdults().then((added) => { if (added) { applyMedical(state.medBills, state.medPayments); render(false); } }).catch(() => {});
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }));
       if (!pendingAny()) notifyIfNeeded();
       render(false);
@@ -398,6 +400,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "billSort") { state.billsFilter.sort = e.target.value; renderBillList(); }
   { const k = { medKind: "kind", medPatient: "patient", medProvider: "provider", medStatus: "status", medYear: "year" }[e.target.id]; if (k) { state.medFilter[k] = e.target.value; renderMedList(); } }
   if (e.target.name === "kindPick") return onKindPick(e);
+  if (e.target.matches?.("#medBillForm select[name=patient_id], #medBillForm select[name=guarantor_id]")) return onPersonPick(e);
   if (e.target.id === "medReportYear") { state.medYear = e.target.value; render(); }
   { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; state.payFilter.limit = 50; renderPayList(); } }
   { const k = { shopCat: "cat", shopWho: "who", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
@@ -839,6 +842,7 @@ main.addEventListener("click", async (e) => {
       case "ai-topic": { pickTopic(el.dataset.topic); render(); const fm = $("#aiPageForm"); if (fm) { if (aiReady()) fm.requestSubmit(); else fm.elements.q.focus(); } return; }
       case "ai-copy-general": return copyGeneralPrompt($("#aiPageForm"));
       case "ai-copy-answer": return copyAnswer();
+      case "ai-marks-clear": clearModelMarks(); toast(t("已清除，下次会重新试这些模型")); return render();
       case "ai-usage-reset": resetUsage(el.dataset.provider); toast(t("已重置本机的调用计数")); return render();
       case "ai-clear-adv": { const f = $("#aiSettingsForm"); if (f) { f.elements.model.value = ""; f.elements.base.value = ""; await saveAiForm(f); } toast(t("已清掉，改用内置默认")); return render(); }
       case "ai-test": {
@@ -857,6 +861,15 @@ main.addEventListener("click", async (e) => {
       case "med-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteMedBill(el.dataset.id);
       case "med-pay-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteMedPay(el.dataset.id);
       case "med-csv": return exportMedicalCsv();
+      case "person-add-do": return personAddDo();
+      case "person-add-cancel": return personAddCancel();
+      case "person-use": return personUse(el.dataset.id);
+      case "person-edit": return personEditStart(el.dataset.id);
+      case "person-edit-save": return personEditSave(el.dataset.id);
+      case "person-edit-cancel": return personEditCancel();
+      case "person-merge": return personMerge(el.dataset.id);
+      case "person-del": if (!armed(el, t("再点一次确认删除"))) return; return personDelete(el.dataset.id);
+      case "people-bulk": return peopleBulk();
       case "spend-more": state.spendFilter.limit += 20; return renderSpendList();
       case "stats-months": state.stats.months = +el.dataset.months; return render();
       case "stats-cat": state.stats.cat = el.dataset.cat; return render();

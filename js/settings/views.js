@@ -5,7 +5,7 @@ import { catFormHtml } from "../pantry/views.js";
 import { LANGS, detectLang, glossaryOf, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
-import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, effective, providerOf, quotaStatus, saveAiSettings } from "../core/ai.js";
+import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, effective, providerOf, quotaStatus, saveAiSettings, deadModels, blockedModels } from "../core/ai.js";
 import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
 import { viewPrintSettings } from "./print.js";
 import { incomePanel } from "./income.js";
@@ -77,6 +77,14 @@ function sisterAppsPanel() {
 }
 
 /* ── 自定义名称的翻译：收集家庭自己起的名字（自定义位置、自建 / 改过的分类名、自加的小类），每条填简体 / English / 繁體 ── */
+/** 被跳过的模型（对这个 key 已下线 / 这个模型的额度用完了）：列出来，免得以为是本地计数的问题；可一键清除重新试 */
+function modelMarks() {
+  const dead = Object.keys(deadModels()), blk = Object.entries(blockedModels());
+  if (!dead.length && !blk.length) return "";
+  const clock = (ms) => new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return `<p class="muted" style="margin:0 0 8px;font-size:13px">${t("已自动跳过的模型：")}${[...dead.map((m) => `${esc(m)}（${t("已下线，24 小时内不再试")}）`), ...blk.map(([m, u]) => `${esc(m)}（${t("额度用完，{time} 恢复", { time: clock(u) })}）`)].join("；")}
+    <button type="button" class="btn btn-sm btn-ghost" data-action="ai-marks-clear">${t("清除，重新试")}</button></p>`;
+}
 export function customTerms() {
   const out = new Map();   // term → 来源说明
   const add = (term, src) => { if (term && !out.has(term)) out.set(term, src); };
@@ -172,6 +180,7 @@ function quotaBlock(s, p) {
   return `<fieldset class="quota-box">
     <legend>${t("免费额度")}</legend>
     <p class="${q.ok ? "muted" : "form-error"}" style="margin:0 0 8px;font-size:13px">${esc(quotaStatus(q))}${tier ? ` · ${t(tier.resetText)}` : ""}</p>
+    ${modelMarks()}
     <label class="check-inline" style="margin-bottom:8px"><input type="checkbox" name="freeOnly" ${s.freeOnly !== false ? "checked" : ""}><span>${t("只用免费额度：到上限就不再发请求，并提示下次可用时间")}</span></label>
     <div class="form-grid">
       <label>${t("每分钟上限（次）")}<input name="rpm" type="number" inputmode="numeric" min="0" max="1000" placeholder="${tier?.rpm ?? t("不限")}" value="${esc(s.rpm ?? "")}"></label>

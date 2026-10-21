@@ -10,7 +10,7 @@ import { MEDICAL_TABS, activeTab } from "../core/tabs.js";
 import { dq, download, lastMonths, monthLabel, toCsv } from "../stats/views.js";
 import { autofillBar } from "../core/autofill.js";
 import { kindsNote } from "./kinds.js";
-import { KINDS, STATUS, STATUS_CLS, detailHref, enrichMedical, kindOf, mergeMedical, subIcon, subName } from "./medical.js";
+import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, enrichMedical, findPerson, kindOf, mergeMedical, peopleFor, subIcon, subName } from "./medical.js";
 
 const cur = () => Units.region.currency;
 const mny = (v, c) => (v == null ? "—" : Units.money(num(v), c || cur()));
@@ -115,11 +115,12 @@ function reportTab() {
 
 export function viewMedical() {
   const r = state.route, billId = r.q.get("bill");
+  if (r.q.get("people")) return viewPeople();
   if (billId) return viewDetail(billId, r.q.get("pay"));
   const tab = activeTab(r) || "overview";
   const body = { overview: overviewTab, list: listTab, report: reportTab }[tab]();
   return `<section class="section">
-    <div class="section-head"><h2>🧾 ${t("一次性账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${detailHref("new")}">${t("记一张账单")}</a></div></div>
+    <div class="section-head"><h2>🧾 ${t("一次性账单")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("bills", "onetime")}?people=1">${t("家庭成员")}</a><a class="btn btn-primary btn-sm" href="${detailHref("new")}">${t("记一张账单")}</a></div></div>
     ${kindsNote("onetime")}
     <p class="muted" style="margin:0 0 10px;font-size:13px">${Object.values(KINDS).map((K) => `${K.icon} ${t(K.name)}`).join(" · ")}</p>
     ${tabBar(MEDICAL_TABS, tab, medHref, t("医疗内容"))}
@@ -146,8 +147,9 @@ function viewDetail(id, payId) {
       <div class="form-grid">
         <label class="span-2">${t(K.provider)}<input name="provider" required maxlength="60" list="medProviders" value="${d(v.provider)}"></label>
         <label>${t("小类")}<select name="subkind"><option value="">${t("未指定")}</option>${subs}</select></label>
-        <label>${t(K.who)}<input name="patient" maxlength="40" list="medPeople" value="${d(v.patient)}"></label>
-        ${K.guarantor ? `<label>${t("担保人 Guarantor")}<input name="guarantor" maxlength="40" list="medPeople" value="${d(v.guarantor)}"><small>${t("负责付款的人，例如孩子的家长")}</small></label>` : ""}
+        ${peopleFor(v.kind) ? `<label>${t(K.who)}<select name="patient_id" data-last="${d(v.patient_id || (v.patient_text ? "__text" : ""))}">${peopleOptions(peopleFor(v.kind), v.patient_id, v.patient_text)}</select><small>${t("从家庭成员里选，同一个人只建一次，家人各自录入也不会变成两个人。")} <a href="${href("bills", "onetime")}?people=1">${t("管理家庭成员")}</a></small></label>`
+          : `<label>${t(K.who)}<input name="patient" maxlength="40" value="${d(v.patient)}"></label>`}
+        ${K.guarantor ? `<label>${t("担保人 Guarantor")}<select name="guarantor_id" data-last="${d(v.guarantor_id || (v.guarantor_text ?? v.guarantor ? "__text" : ""))}">${peopleOptions(["adult"], v.guarantor_id, v.guarantor_id ? "" : v.guarantor)}</select><small>${t("负责付款的人，例如孩子的家长")}</small></label>` : ""}
         <label>${t("账单号 Bill #")}<input name="bill_ref" maxlength="60" value="${d(v.bill_ref)}"></label>
         ${K.insurance ? `<label>${t("保险公司")}<input name="insurer" maxlength="60" value="${d(v.insurer)}"></label>
         <label>${t("理赔号 Claim #")}<input name="claim_ref" maxlength="60" value="${d(v.claim_ref)}"></label>` : ""}
@@ -163,7 +165,7 @@ function viewDetail(id, payId) {
         ${v.kind === "medical" ? `<label class="span-2 check-inline"><input type="checkbox" name="hsa_eligible" ${v.hsa_eligible ? "checked" : ""}><span>${t("可用 HSA / FSA 报销")}</span></label>` : ""}
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(v.notes)}" placeholder="${t(v.kind === "medical" ? "不要记诊断、保单号全文或身份证号" : "合同要点、联系人…")}"></label>
       </div>
-      <datalist id="medPeople">${people().map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
+      ${peopleFor(v.kind) ? personAddPanel(v.kind) : ""}
       <datalist id="medProviders">${[...new Set(state.medBills.map((x) => x.provider))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
       <p id="medBillError" class="form-error" role="alert"></p>
       <div class="form-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>
@@ -201,7 +203,10 @@ const amt = (el) => (el && el.value !== "" ? Math.round(Math.max(0, num(el.value
 export async function saveMedBillForm(f) {
   const fe = f.elements, err = $("#medBillError"), provider = val(fe.provider);
   if (!provider) { err.textContent = t("请填写商家 / 机构名称。"); fe.provider.focus(); return false; }
-  const row = { kind: fe.kind.value || "medical", subkind: fe.subkind.value || null, provider, patient: val(fe.patient), guarantor: val(fe.guarantor), bill_ref: val(fe.bill_ref), claim_ref: val(fe.claim_ref), insurer: val(fe.insurer),
+  const pid = fe.patient_id ? (fe.patient_id.value && fe.patient_id.value !== "__text" ? fe.patient_id.value : null) : null, gid = fe.guarantor_id ? (fe.guarantor_id.value && fe.guarantor_id.value !== "__text" ? fe.guarantor_id.value : null) : null;
+  const optText = (sel) => (sel && sel.value === "__text" ? sel.selectedOptions[0].textContent.replace(/（[^）]*）\s*$/, "").trim() : null);   // 旧记录里手填的名字，未关联名册
+  const row = { kind: fe.kind.value || "medical", subkind: fe.subkind.value || null, provider, patient: fe.patient_id ? (pid ? state.people.find((x) => x.id === pid)?.name || null : optText(fe.patient_id)) : val(fe.patient), patient_id: pid,
+    guarantor: fe.guarantor_id ? (gid ? state.people.find((x) => x.id === gid)?.name || null : optText(fe.guarantor_id)) : val(fe.guarantor), guarantor_id: gid, bill_ref: val(fe.bill_ref), claim_ref: val(fe.claim_ref), insurer: val(fe.insurer),
     service_date: fe.service_date.value || null, bill_date: fe.bill_date.value || null, due_on: fe.due_on.value || null, billed_amount: amt(fe.billed_amount), insurance_paid: amt(fe.insurance_paid) ?? 0,
     adjustment: amt(fe.adjustment) ?? 0, patient_amount: amt(fe.patient_amount), currency: cur(), status: fe.status.value, hsa_eligible: !!fe.hsa_eligible?.checked, visibility: fe.visibility.value, notes: val(fe.notes) };
   if (f.dataset.id) { const old = state.medBills.find((x) => x.id === f.dataset.id); if (old?.currency) row.currency = old.currency; }
@@ -240,3 +245,101 @@ export function onKindPick(e) {
   go(`${detailHref("new")}&kind=${e.target.value}`, { replace: true });
 }
 export const medBillLabel = (id) => { const b = state.medEnriched.find((x) => x.id === id); return b ? `${b.provider}${b.patient ? ` · ${b.patient}` : ""}` : t("新账单"); };
+
+/* ───────────── 家庭成员 / 孩子 / 宠物名册：选人、新增（查重）、管理 ───────────── */
+const rerender = () => window.dispatchEvent(new HashChangeEvent("hashchange"));
+const KIND_ICON = { adult: "🧑", child: "👶", pet: "🐾" };
+const peopleOptions = (kinds, selected, legacyText) => `<option value="">${t("（未选）")}</option>${state.people.filter((p) => kinds.includes(p.kind)).map((p) => `<option value="${esc(p.id)}" ${p.id === selected ? "selected" : ""}>${KIND_ICON[p.kind] || ""} ${esc(p.name)}</option>`).join("")}${legacyText && !selected ? `<option value="__text" selected>${esc(legacyText)}（${t("旧记录，未关联")}）</option>` : ""}<option value="__new">＋ ${t("新增…")}</option>`;
+const personAddPanel = (kind) => `<div id="personAdd" class="panel" hidden style="margin:10px 0;background:var(--surface-2)">
+    <div class="form-grid"><label>${t("姓名")}<input id="personAddName" maxlength="40"></label>
+      <label>${t("类别")}<select id="personAddKind">${(peopleFor(kind) || ["adult"]).map((k) => `<option value="${k}">${t(PEOPLE_KINDS[k])}</option>`).join("")}${kind === "medical" ? "" : ""}</select></label></div>
+    <p id="personAddMsg" class="muted" role="status" style="margin:6px 0 0;font-size:13px"></p>
+    <div class="form-actions"><button type="button" class="btn btn-sm btn-primary" data-action="person-add-do">${t("添加")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-add-cancel">${t("取消")}</button></div></div>`;
+const personSelects = () => [...document.querySelectorAll("#medBillForm select[name=patient_id], #medBillForm select[name=guarantor_id]")];
+
+/** 下拉里选了“＋ 新增…”：不真的选它，展开新增面板（记下是给哪个下拉加的） */
+export function onPersonPick(e) {
+  const sel = e.target;
+  if (sel.value !== "__new") { sel.dataset.last = sel.value; return; }
+  sel.value = sel.dataset.last || ""; const box = $("#personAdd"); if (!box) return;
+  box.hidden = false; box.dataset.target = sel.name; box.dataset.confirm = ""; $("#personAddMsg").textContent = "";
+  const k = $("#personAddKind"); if (k) k.value = sel.name === "guarantor_id" ? "adult" : (k.options[0]?.value || "adult");
+  $("#personAddName").value = ""; $("#personAddName").focus();
+}
+export function personAddCancel() { const box = $("#personAdd"); if (box) { box.hidden = true; box.dataset.confirm = ""; } }
+function selectPerson(id) {
+  const box = $("#personAdd"), sel = box?.dataset.target && $(`#medBillForm select[name=${box.dataset.target}]`);
+  for (const s of personSelects()) {   // 新人加进所有适用的下拉（患者只列大人 / 孩子或宠物，担保人只列大人）
+    const p = state.people.find((x) => x.id === id), ok = s.name === "guarantor_id" ? p.kind === "adult" : (peopleFor($("#medBillForm").elements.kind.value) || []).includes(p.kind);
+    if (ok && !s.querySelector(`option[value="${id}"]`)) s.insertBefore(new Option(`${KIND_ICON[p.kind] || ""} ${p.name}`, id), s.querySelector('option[value="__new"]'));
+  }
+  if (sel && sel.querySelector(`option[value="${id}"]`)) { sel.value = id; sel.dataset.last = id; }
+  personAddCancel();
+}
+export function personUse(id) { selectPerson(id); }
+export async function personAddDo() {
+  const box = $("#personAdd"), name = $("#personAddName").value.trim(), kind = $("#personAddKind").value, msg = $("#personAddMsg");
+  if (!name) { msg.textContent = t("请填写姓名。"); return; }
+  const { exact, similar } = findPerson(name);
+  if (exact) { selectPerson(exact.id); toast(t("名册里已经有“{n}”，已选中它", { n: exact.name })); return; }
+  if (similar.length && box.dataset.confirm !== name) {   // 近似（Alice / Alice Y）：先问是不是同一个人，再点一次“添加”才新建
+    box.dataset.confirm = name;
+    msg.innerHTML = `${t("名册里有相近的名字，是不是同一个人？")} ${similar.map((p) => `<button type="button" class="chip" data-action="person-use" data-id="${esc(p.id)}">${esc(p.name)} · ${t("是同一个人")}</button>`).join(" ")} ${t("不是的话，再点一次“添加”。")}`;
+    return;
+  }
+  try {
+    const id = await Store.savePerson({ name, kind }); state.people = await Store.listPeople();
+    applyMedical(state.medBills, state.medPayments); selectPerson(id); toast(t("已加入家庭成员：{n}", { n: name }));
+  } catch (e) { msg.textContent = e.message; }
+}
+
+/* ── 管理页：#/bills/onetime?people=1 ── */
+export function viewPeople() {
+  const used = (id) => state.medBills.filter((b) => b.patient_id === id || b.guarantor_id === id).length;
+  const edit = state.personEdit;
+  const row = (p) => `<li class="person-row">
+      <span class="badge" style="background:var(--surface-2)">${KIND_ICON[p.kind] || ""} ${t(PEOPLE_KINDS[p.kind] || p.kind)}</span>
+      <div class="grow">${edit === p.id ? `<input id="personEditName" maxlength="40" value="${esc(p.name)}" aria-label="${t("姓名")}">` : `<span class="name">${esc(p.name)}</span>${p.member_user_id ? ` <small class="muted">${t("家庭成员")}</small>` : ""}<small>${used(p.id) ? t("{n} 张账单用了", { n: used(p.id) }) : t("还没有账单")}</small>`}</div>
+      ${edit === p.id ? `<button type="button" class="btn btn-sm btn-primary" data-action="person-edit-save" data-id="${p.id}">${t("保存")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-edit-cancel">${t("取消")}</button>`
+        : `<button type="button" class="btn btn-sm btn-ghost" data-action="person-edit" data-id="${p.id}">${t("改名")}</button>
+           ${state.people.length > 1 ? `<select data-merge-for="${p.id}" aria-label="${t("合并到")}"><option value="">${t("合并到…")}</option>${state.people.filter((x) => x.id !== p.id).map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select><button type="button" class="btn btn-sm btn-ghost" data-action="person-merge" data-id="${p.id}">${t("合并")}</button>` : ""}
+           <button type="button" class="btn btn-sm btn-danger-ghost" data-action="person-del" data-id="${p.id}">${t("删除")}</button>`}</li>`;
+  return `<section class="section">
+    <div class="section-head"><h2>👪 ${t("家庭成员 / 孩子 / 宠物")}</h2></div>
+    <p class="muted kinds-note">${t("一次性账单里的患者、担保人从这里选。同一个人只建一次：家人各自录入“Alice Y”和“Alice”不会变成两个人（名字忽略大小写和空格，近似的会先问你）。改名后所有账单跟着变；建重了可以“合并”。")}</p>
+    <div class="panel">${state.people.length ? `<ul class="restock-list">${state.people.map(row).join("")}</ul>` : `<div class="empty"><strong>${t("名册还是空的")}</strong>${t("大人会自动加入；孩子和宠物在下面添加。")}</div>`}</div>
+    <div class="panel" style="margin-top:10px"><h3 style="font-size:15px;margin:0 0 6px">${t("批量添加")}</h3>
+      <p class="muted" style="margin:0 0 6px;font-size:13px">${t("每行一个名字。小月亮的孩子在另一个账号体系里，这里读不到，把名字抄过来一次就行。")}</p>
+      <div class="form-grid"><label class="span-2">${t("名字（每行一个）")}<textarea id="peopleBulkNames" rows="3" maxlength="600"></textarea></label>
+        <label>${t("类别")}<select id="peopleBulkKind">${Object.entries(PEOPLE_KINDS).map(([k, n]) => `<option value="${k}" ${k === "child" ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label></div>
+      <div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="people-bulk">${t("添加")}</button><a class="btn btn-sm btn-ghost" href="${href("bills", "onetime")}">${t("回一次性账单")}</a></div></div>
+  </section>`;
+}
+export function personEditStart(id) { state.personEdit = id; rerender(); }
+export function personEditCancel() { state.personEdit = null; rerender(); }
+export async function personEditSave(id) {
+  const name = $("#personEditName")?.value.trim(); if (!name) return toast(t("请填写姓名。"));
+  const p = state.people.find((x) => x.id === id), dup = findPerson(name).exact;
+  if (dup && dup.id !== id) return toast(t("名册里已经有“{n}”了，建重了的话用“合并”", { n: dup.name }));
+  try { await Store.savePerson({ ...p, name }); state.people = await Store.listPeople(); applyMedical(state.medBills, state.medPayments); state.personEdit = null; toast(t("已保存修改")); rerender(); } catch (e) { toast(e.message); }
+}
+export async function personMerge(id) {
+  const to = document.querySelector(`[data-merge-for="${id}"]`)?.value; if (!to) return toast(t("先选要合并到谁"));
+  const from = state.people.find((x) => x.id === id), dest = state.people.find((x) => x.id === to);
+  try { await Store.mergePeople(id, to); await reloadMedical(); state.people = await Store.listPeople(); applyMedical(state.medBills, state.medPayments); toast(t("已把“{a}”合并到“{b}”", { a: from.name, b: dest.name })); rerender(); } catch (e) { toast(e.message); }
+}
+export async function personDelete(id) {
+  try { await Store.deletePerson(id); state.people = await Store.listPeople(); applyMedical(state.medBills, state.medPayments); toast(t("已删除")); rerender(); } catch (e) { toast(e.message); }
+}
+export async function peopleBulk() {
+  const names = ($("#peopleBulkNames")?.value || "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean), kind = $("#peopleBulkKind").value;
+  if (!names.length) return toast(t("请填写名字。"));
+  let added = 0; const skipped = [], similar = [];
+  for (const n of names) {
+    const { exact, similar: sim } = findPerson(n); if (exact) { skipped.push(n); continue; }
+    try { await Store.savePerson({ name: n, kind }); state.people = await Store.listPeople(); added++; if (sim.length) similar.push(`${n}≈${sim[0].name}`); } catch (e) { skipped.push(n); }
+  }
+  applyMedical(state.medBills, state.medPayments);
+  toast(t("已添加 {n} 个", { n: added }) + (skipped.length ? t("；已有 / 失败：{l}", { l: skipped.join("、") }) : "") + (similar.length ? t("；注意名字相近，是否重复：{l}", { l: similar.join("、") }) : ""));
+  rerender();
+}
