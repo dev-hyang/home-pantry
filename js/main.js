@@ -5,6 +5,7 @@ import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
+import { resilientFetch } from "./core/net.js";
 import { mountAppSwitcher } from "../shared/app-switcher.js";
 import { mountLangSwitcher } from "../shared/lang-switcher.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
@@ -46,6 +47,19 @@ import { applySpendDrill, cleanStore, clearSpendFilter, download, exportAnnual, 
 const APP_NAME = "爱家小助手";
 
 /* ───────────── 刷新与渲染 ───────────── */
+/** 次要的表（保养记录、季节任务、缴费记录、库存流水）读得慢时，不让整个页面一起空白：超过 SOFT_MS 就先用旧数据 / 空数据画出来，
+ * 读完后在后台补上并重画。这期间由它们推出来的提醒（设备保养、季节任务）先不显示，免得“记录还没到”被当成“从没保养过”而误报。 */
+const SOFT_MS = 3000, SOFT = Symbol("soft");
+const pendingAny = () => Object.values(state.pending).some(Boolean);
+function soft(key, p, fallback, apply) {
+  return Promise.race([p, new Promise((r) => setTimeout(() => r(SOFT), SOFT_MS))]).then((v) => {
+    if (v !== SOFT) return v;
+    state.pending[key] = true; setSync(t("部分数据还在加载…"), false);
+    p.then((r) => { apply(r); state.pending[key] = false; if (!pendingAny()) { setSync(t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) })); notifyIfNeeded(); } render(false); })
+      .catch((e) => { state.pending[key] = false; console.warn("[late]", key, e.message); });
+    return fallback;
+  });
+}
 export let refreshing = null;
 export async function refresh() {
   if (refreshing) return refreshing;
@@ -54,8 +68,14 @@ export async function refresh() {
       // 所有表一次并行读完（云端一轮往返），再在内存里定当前房产；采购花费只有统计和导出用，不挡首屏，渲染后后台再读
       const members = state.membersReady; state.membersReady = null;   // 登录后与这一轮并行去读家庭成员
       const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes] = await Promise.all([
-        Store.listProperties(), Store.listItems(), Store.listLogs(), Store.listShopping(), Store.listHouseProfiles(),
-        Store.listAssets(), Store.listMaintLogs(), Store.listSeasonal(seasonalSince()), Store.listBills(), Store.listBillPayments(),
+        Store.listProperties(), Store.listItems(),
+        soft("logs", Store.listLogs(), state.logs || [], (r) => { state.logs = r; state.enriched = enrich(state.items, r); }),
+        Store.listShopping(), Store.listHouseProfiles(),
+        Store.listAssets(),
+        soft("maint", Store.listMaintLogs(), state.maintLogs || [], (r) => { state.maintLogs = r; state.assetsEnriched = enrichAssets(state.assets, r); }),
+        soft("seasonal", Store.listSeasonal(seasonalSince()), state.seasonalDone || [], (r) => { state.seasonalDone = r; }),
+        Store.listBills(),
+        soft("payments", Store.listBillPayments(), state.billPayments || [], (r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); }),
         Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations(), Store.listDealExtras(),
         Store.listCustomSeasonal().catch((e) => { console.warn("[custom seasonal]", e.message); return []; }),   // 迁移还没执行时读不到：不影响其他功能
         Store.listTerms().catch((e) => { console.warn("[terms]", e.message); return null; }),
@@ -79,7 +99,7 @@ export async function refresh() {
       state.assetsEnriched = enrichAssets(assets, maintLogs);
       state.billsEnriched = enrichBills(bills, billPayments);
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }));
-      notifyIfNeeded();
+      if (!pendingAny()) notifyIfNeeded();
       render(false);
       loadPurchasesSoon();
       maybeAutoGenerate();   // 家主有收入但还没预算：自动生成第一版
@@ -1131,7 +1151,7 @@ export async function boot() {
   if (cfg.mode === "cloud") {
     if (!window.supabase) { setSync(t("云端库加载失败"), true); return toast(t("无法加载 Supabase SDK，请检查网络后刷新")); }
     setStore(CloudStore);
-    CloudStore.sb = window.supabase.createClient(cfg.url, cfg.key);
+    CloudStore.sb = window.supabase.createClient(cfg.url, cfg.key, { global: { fetch: resilientFetch } });   // 读取 15 秒不回应就重发，不再无限转圈
     let started = false;
     const start = async (session) => {
       if (started || !session) return;

@@ -92,7 +92,7 @@ export function taskRow(x, year, month) {
 
 /** 提醒总线：所有活跃房产本月没做的季节任务（留意级；一次性任务逾期升为“今天”级） */
 export function seasonAlertItems() {
-  if (!state.houseEnabled) return [];
+  if (!state.houseEnabled || state.pending?.seasonal) return [];   // 完成记录还在加载：不然本月任务都会被当成没做
   const d = new Date(), y = d.getFullYear(), m = d.getMonth() + 1, today = todayISO();
   return activeProperties().flatMap((p) => {
     const profile = state.houseProfiles[p.id] || null;

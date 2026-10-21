@@ -115,7 +115,7 @@ const rank = (a) => (a.followUp ? 0 : a.service === "overdue" ? 1 : a.service ==
 
 /** 提醒总线：所有活跃房产的设备 + 家庭的车辆（检查发现问题 = 尽快·必须；保养逾期 = 今天级；到期 / 保修 = 尽快级） */
 export function assetAlertItems() {
-  if (!state.houseEnabled) return [];
+  if (!state.houseEnabled || state.pending?.maint) return [];   // 保养记录还在加载：没有记录会被误判成“从没保养过”
   const live = new Set(activeProperties().map((p) => p.id));
   const out = assetAlerts(state.assetsEnriched.filter((a) => (isVehicle(a) ? V().inService(a) : live.has(a.property_id)))).map((a) => ({
     source: "asset", severity: a.followUp ? 2 : a.service === "overdue" ? 1 : 2, must: !!a.followUp, due: a.next,

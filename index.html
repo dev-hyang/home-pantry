@@ -66,10 +66,10 @@
         </div>
       </div>
       <div class="top-right">
+        <!-- 顺序：语言在前，应用切换在后（四个站一致）。语言切换：地球图标 + 当前语言简称，点开是列表，语言再多也放得下；见 shared/lang-switcher.js，与 设置 → 语言 同一份设置 -->
+        <span id="langSwitch"></span>
         <!-- 应用切换（四个姊妹站点共用的九宫格入口，见 shared/app-switcher.js）；站名留给各站自己的用途，不在这里占位 -->
         <span class="apps" id="apps"></span>
-        <!-- 语言切换（地球图标 + 当前语言简称，点开是列表，语言再多也放得下；见 shared/lang-switcher.js），与 设置 → 语言 同一份设置 -->
-        <span id="langSwitch"></span>
       </div>
     </div>
     <nav class="tabs" id="tabs" aria-label="主导航">

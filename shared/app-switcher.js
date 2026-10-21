@@ -29,8 +29,8 @@ const CSS = `
 .eco-sw-btn { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; color: var(--ink, #1e3a32); }
 .eco-sw-btn:hover, .eco-sw-btn[aria-expanded="true"] { background: var(--surface-2, var(--bg, #e3ebe4)); }
 .eco-sw-btn:focus-visible, .eco-sw-row:focus-visible, .eco-sw-close:focus-visible { outline: 3px solid var(--focus, #1f6feb); outline-offset: 2px; }
-.eco-sw-grid { display: grid; grid-template-columns: repeat(3, 5px); gap: 3px; }
-.eco-sw-grid i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.eco-sw-grid { display: grid; grid-template-columns: repeat(3, 6px); gap: 2px; }   /* 22px，和语言按钮的地球图标一样大 */
+.eco-sw-grid i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .eco-sw-panel { position: absolute; top: calc(100% + 6px); right: 0; z-index: 1000; width: min(320px, 92vw); padding: 8px; background: var(--surface, #fff); color: var(--ink, #1e3a32); border: 1px solid var(--line, #cfdcd2); border-radius: 16px; box-shadow: 0 12px 32px rgba(0, 0, 0, .18); }
 .eco-sw-panel[hidden], .eco-sw-scrim[hidden] { display: none; }
 .eco-sw-head { display: none; align-items: center; justify-content: space-between; padding: 4px 8px 8px; }
