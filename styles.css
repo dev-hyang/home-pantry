@@ -507,11 +507,10 @@ button.mrow:last-child { border-bottom: 0; }
 .mprog i { display: block; height: 100%; background: var(--pine); }
 .mrow .mch { color: var(--muted); font-size: 20px; line-height: 1; }
 /* 面包屑：全站子页只有这一行层级，最后一项加粗放大当标题（‹ 我的 / 设置 / 家庭与成员） */
-/* 面包屑：上级是带下划线的链接，当前页是同样大小的加粗文字（不带下划线）；分隔符小而淡，间距收紧 */
+/* 面包屑：上级是主色链接（悬停 / 点击时才出现下划线），当前页是同样大小的加粗深色文字；分隔符小而淡，间距收紧 */
 .crumb { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 0; margin: -6px 0 14px; font-size: 14px; line-height: 1.5; }
-.crumb a, .crumb .crumb-mid { color: var(--pine); font-weight: 600; font-size: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
-  text-decoration-color: color-mix(in srgb, var(--pine) 45%, transparent); padding: 4px 5px; border-radius: 6px; white-space: nowrap; }
-.crumb a:hover, .crumb .crumb-mid:hover { background: var(--surface-2); text-decoration-color: currentColor; }
+.crumb a, .crumb .crumb-mid { color: var(--pine); font-weight: 600; font-size: inherit; text-decoration: none; text-underline-offset: 3px; text-decoration-thickness: 1px; padding: 4px 5px; border-radius: 6px; white-space: nowrap; }
+.crumb a:hover, .crumb .crumb-mid:hover, .crumb a:active, .crumb .crumb-mid:active, .crumb a:focus-visible, .crumb .crumb-mid:focus-visible { background: var(--surface-2); text-decoration: underline; }
 .crumb > :first-child { margin-left: -5px; }
 .crumb .sep { color: var(--muted); opacity: .7; font-size: 12px; padding: 0 1px; }
 .crumb b { font-weight: 700; font-size: inherit; color: var(--ink); padding: 4px 5px; min-width: 0; overflow-wrap: anywhere; }

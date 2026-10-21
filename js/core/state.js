@@ -14,7 +14,7 @@ export const state = {
   today: (() => { try { return JSON.parse(localStorage.getItem("hmh-today") || "{}"); } catch { return {}; } })(),   // 首页偏好：{ mode: severity|property, mine, focus }
   bills: [], billPayments: [], billsEnriched: [],   // 账单 B1
   assetFilter: { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" },   // 设备保养页的搜索与筛选
-  billsFilter: { property: "all", cat: "all", autopay: "all", q: "", sort: "category" },
+  billsFilter: { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" },
   payFilter: { bill: "all", year: "all", status: "all", sort: "new", limit: 50 },   // 缴费记录的筛选与排序
   shopFilter: { cat: "all", who: "all", sort: "new" },                             // 采购清单的筛选与排序
   dealFilter: "all",                                                               // 交易清单：全部 / 未完成 / 逾期 / 必须

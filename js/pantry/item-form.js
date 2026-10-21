@@ -32,6 +32,9 @@ export function leaveItem(changed) {
   else go(href(...listRoute(spaceOf(state.editingCat || "fresh"))), { replace: true });
 }
 
+/** 物品页面包屑：储藏 / 库存（房屋耗材）或 储藏 / 装备 */
+const itemBase = (space) => [{ href: href("pantry"), label: t("储藏") },
+  space === "gear" ? { href: href("pantry", "gear"), label: t("装备") } : { href: space === "house" ? `${href("pantry", "inventory")}?space=house` : href("pantry", "inventory"), label: space === "house" ? `${t("库存")} · ${t("房屋耗材")}` : t("库存") }];
 const SECTION_LABEL = { today: "今日", pantry: "储藏", house: "房屋", gear: "装备", shopping: "采购清单", me: "我的" };
 const NAME_HINT = { pantry: "例如：鸡蛋、抽纸、大米", house: "例如：炉子滤网、电池、融雪盐", gear: "例如：被罩、千斤顶、儿童自行车" };
 
@@ -58,7 +61,7 @@ export function viewItemForm() {
   const dv = (x) => (x == null || x === "" ? "" : fmt(num(x) * f));
   return `
     <section class="section form-page">
-      ${crumbNav([root, { label: it ? t("编辑：{name}", { name: it.name }) : t("添加物品"), icon: catOf(v.category).icon }])}
+      ${crumbNav([...itemBase(space), { label: it ? t("编辑：{name}", { name: it.name }) : t("添加物品"), icon: catOf(v.category).icon }])}
       ${autofillBar("item", "#itemForm")}
       <form id="itemForm" class="panel ${gear ? "is-gear" : ""} ${spaceOf(v.category) === "house" ? "is-house" : ""}" novalidate data-autosave>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">

@@ -113,6 +113,8 @@ export function crumb(r) {
   // 房屋下的子页：房屋 / 房产 / 页面（之前只剩房产名，“房屋”这一级消失了）
   const parts = prop ? [{ href: href("house"), label: t(sec.name) }, { href: href("house", "pages"), label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }] : [{ href: href(r.section), label: t(sec.name) }];
   const curLabel = cur ? t(cur[1]) : "", subHref = href(r.section, cur?.[0] || r.sub);
+  // 二级页（常用账单 / 推荐耗材 / 生成设备）：要显示 上级 / 当前页 两层，之前只显示当前页，看起来像少了一层
+  const par = parent[r.sub] ? sec.subs.find(([k]) => k === parent[r.sub]) : null;
   // 三级：房屋资料分区 / 交易子页 / 设置分区 / 库存分类 —— 中间项可点回上一级，页面不再另起标题行
   const q = r.q;
   const psec = r.section === "house" && r.sub === "profile" ? PROFILE_SECTIONS.find((s) => s.id === q.get("sec")) : null;
@@ -137,6 +139,8 @@ export function crumb(r) {
   else if (dsec) parts.push({ href: subHref, label: curLabel }, { label: dsec });
   else if (ssec) parts.push({ href: subHref, label: curLabel }, { label: t(ssec.name), icon: ssec.icon === "__AI__" ? aiIcon(18) : ssec.icon });
   else if (cat) parts.push({ action: "cat", attrs: 'data-cat="all"', label: curLabel }, { label: t(cat.name), icon: cat.icon });   // “库存”可点回全部分类
+  else if (r.section === "house" && r.sub === "template") return crumbNav([{ href: href("pantry"), label: t("储藏") }, { href: `${href("pantry", "inventory")}?space=house`, label: `${t("库存")} · ${t("房屋耗材")}` }, { label: curLabel }]);   // 推荐耗材是从 库存 · 房屋耗材 进来的
+  else if (par) parts.push({ href: href(r.section, par[0]), label: t(par[1]) }, { label: curLabel });   // 常用账单 → 账单 / 清单 / 常用账单；生成设备 → 房屋 / 房产 / 设备保养 / 生成设备
   else parts.push({ label: curLabel });
   return crumbNav(parts);
 }

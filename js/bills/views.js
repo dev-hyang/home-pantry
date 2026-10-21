@@ -96,7 +96,8 @@ function filterByProperty(list) {
 }
 
 /** 账单页面包屑：账单 / 房产 / 账单名 / 当前块 —— 有房产的账单带上房产（点它回到这套房产的账单清单），免得多套房产时分不清是哪套的 */
-const billTrail = (b, root, hubHref) => [root, ...(b.property_id && propertyName(b.property_id) ? [{ href: `${href("bills", "list")}?prop=${b.property_id}`, label: propertyName(b.property_id), icon: "🏠" }] : []),
+const billRoot = () => ({ href: href("bills", "list"), label: t("账单") });   // 固定的第一级（之前随“从哪个页面进来”变，会变成 今日 / xx房 / 电费）
+const billTrail = (b, _root, hubHref) => [billRoot(), ...(b.property_id && propertyName(b.property_id) ? [{ href: `${href("bills", "list")}?prop=${b.property_id}`, label: propertyName(b.property_id), icon: "🏠" }] : []),
   { href: hubHref, label: b.name, icon: billCat(b.category).icon }];
 const billCrumb = (b, root, hubHref, cur) => crumbNav([...billTrail(b, root, hubHref), { label: cur }]);
 
@@ -118,8 +119,7 @@ export function viewBillsList() {
     </li>`;
   billInner = () => {
     let list = filterByProperty(state.billsEnriched);
-    if (f.autopay === "on") list = list.filter((b) => b.autopay);
-    if (f.autopay === "off") list = list.filter((b) => !b.autopay);
+    if (f.channel && f.channel !== "all") list = list.filter((b) => b.pay_channel === f.channel);
     if (f.cat && f.cat !== "all") list = list.filter((b) => b.category === f.cat);
     const q = (f.q || "").trim().toLowerCase();
     if (q) list = list.filter((b) => `${b.name}${b.payee || ""}${b.account_last4 || ""}`.toLowerCase().includes(q));
@@ -142,9 +142,9 @@ export function viewBillsList() {
         <input type="search" id="billSearch" placeholder="${t("搜索名称、收款方、账号")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">
         ${propertyFilter()}
         <select id="billCat" aria-label="${t("按分类筛选")}"><option value="all">${t("全部分类")}</option>${B().CATEGORIES.filter((c) => used.has(c.id)).map((c) => `<option value="${c.id}" ${f.cat === c.id ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`).join("")}</select>
+        <select id="billChannel" aria-label="${t("按缴费方式筛选")}"><option value="all">${t("全部缴费方式")}</option>${Object.entries(B().CHANNELS).map(([k, n]) => `<option value="${k}" ${f.channel === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select>
         <select id="billSort" aria-label="${t("排序")}">${BILL_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "category") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
       </div>
-      <div class="chips" role="group" aria-label="${t("按缴费方式筛选")}">${chip("autopay", "all", t("全部"))}${chip("autopay", "on", t("自动扣款"))}${chip("autopay", "off", t("手动缴费"))}</div>
       <div id="billList">${billInner()}</div>
     </section>`;
 }
@@ -335,7 +335,7 @@ export function viewBillForm() {
   const hide = (k) => (b && sec && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">
-      ${b ? billCrumb(b, root, hubHref, t(BILL_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([root, { label: t("添加账单") }])}
+      ${b ? billCrumb(b, root, hubHref, t(BILL_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([billRoot(), { label: t("添加账单") }])}
       ${autofillBar("bill", "#billForm")}
       <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""} ${b && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="bill_id" value="${d(b?.id)}">

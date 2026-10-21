@@ -167,8 +167,13 @@ export function careCard(key, { open = false } = {}) {
 }
 
 /** 设备页面包屑：来源 / 房产 / 设备名 / 当前块 —— 设备属于某套房产时带上房产（点它回到这套房产的设备保养）；车辆是全家的，没有房产这一段 */
-const assetTrail = (a, root, hubHref) => [root, ...(!isVehicle(a) && a.property_id && propertyName(a.property_id) ? [{ href: `${href("house", "assets")}?prop=${a.property_id}`, label: propertyName(a.property_id), icon: "🏠" }] : []),
-  { href: hubHref, label: assetName(a), icon: a.t?.icon || "⚙️" }];
+/** 设备：房屋 / 房产 / 设备保养 / 设备名；车辆：房屋 / 车辆 / 车名（固定层级，不随“从哪个页面进来”变） */
+const assetBase = (a, veh) => {
+  const pid = a?.property_id || state.propertyId, pn = pid ? propertyName(pid) : "";
+  return veh ? [{ href: href("house"), label: t("房屋") }, { href: href("house", "vehicles"), label: t("车辆"), icon: "🚗" }]
+    : [{ href: href("house"), label: t("房屋") }, ...(pn ? [{ href: `${href("house", "pages")}?prop=${pid}`, label: pn, icon: "🏠" }] : []), { href: `${href("house", "assets")}${pid ? `?prop=${pid}` : ""}`, label: t("设备保养") }];
+};
+const assetTrail = (a, _root, hubHref) => [...assetBase(a, isVehicle(a)), { href: hubHref, label: assetName(a), icon: a.t?.icon || "⚙️" }];
 const assetCrumb = (a, root, hubHref, cur) => crumbNav([...assetTrail(a, root, hubHref), { label: cur }]);
 const ageText = (a) => (a.ageYears < 1 ? t("不到 1 年") : t("{n} 年", { n: Math.floor(a.ageYears) }));
 
@@ -520,7 +525,7 @@ export function viewAssetForm() {
   const hide = (k) => (a && sec && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">
-      ${a ? assetCrumb(a, root, hubHref, t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([root, { label: veh ? t("添加车辆") : t("添加设备") }])}
+      ${a ? assetCrumb(a, root, hubHref, t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([...assetBase(null, veh), { label: veh ? t("添加车辆") : t("添加设备") }])}
       ${a && sec === "notes" ? "" : autofillBar(veh ? "vehicle" : "asset", "#assetForm")}
       <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${a && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">

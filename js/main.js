@@ -308,7 +308,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", q: "", sort: "category" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", month: "all", sort: "new", limit: 20 }); break;
+    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", month: "all", sort: "new", limit: 20 }); break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
     default: break;
   }
@@ -363,6 +363,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "invSort") { state.filter.sort = e.target.value; renderInvList(); }
   if (e.target.id === "billProp") { state.billsFilter.property = e.target.value; render(); }
   if (e.target.id === "billCat") { state.billsFilter.cat = e.target.value; renderBillList(); }
+  if (e.target.id === "billChannel") { state.billsFilter.channel = e.target.value; renderBillList(); }
   if (e.target.id === "billSort") { state.billsFilter.sort = e.target.value; renderBillList(); }
   { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; state.payFilter.limit = 50; renderPayList(); } }
   { const k = { shopCat: "cat", shopWho: "who", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
