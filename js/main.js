@@ -152,7 +152,7 @@ const VIEWS = {
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout },
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
-const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile");
+const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "onetime" && !!r.q.get("bill"));   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
 // 二级页顶部的面包屑和每个页签的目录页在 js/menu.js（参考家庭学堂“我的”页：一栏一行，点进去）
 const offPanel = (title, action, btn) => `<div class="panel empty"><strong>${title}</strong>${t("在“我的 → 设置”里可以重新打开。")}<p><button type="button" class="btn btn-primary" data-action="${action}">${btn}</button></p></div>`;
 
@@ -207,7 +207,7 @@ export function render(force = true) {
   if (!force && FORM_PAGES(r) && $("#main form")) return;
   if (!force && r.section === "scan" && $("#main .scan-page")) return;   // 录入购物：识别中 / 确认页的改动不被后台同步冲掉（页面还没画出来时，比如直接刷新在这一页，要先画）
   // 数据刷新（切回标签页、家人改动）会重画整页：先把内嵌表单里还没保存的改动记下来，画完再填回去，不让用户白填
-  const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#seasonForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm"]);
+  const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#seasonForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm", "#medBillForm", "#medPayForm"]);
   try { renderBody(r); } finally { restoreUnsaved(kept); }
 }
 /** 表单里与渲染默认值不同的字段（用户正在填的）；没有改动返回 null */

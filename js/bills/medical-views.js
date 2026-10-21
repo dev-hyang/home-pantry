@@ -174,6 +174,9 @@ function viewDetail(id, payId) {
     ${b ? paymentsHtml(b, pay, owedNow) : `<p class="muted">${t("先保存账单，再记付款。")}</p>`}
   </section>`;
 }
+/** 常用的付款方式（存中文标准词，显示时翻译；具体是哪张卡、哪个账户写在备注里）；旧记录里手填的方式保留成一个选项 */
+const METHODS = ["信用卡", "借记卡", "HSA 卡", "FSA 卡", "支票", "银行转账（ACH）", "网上支付", "电话支付", "现金", "其他"];
+const methodOptions = (cur) => `<option value="">${t("（未选）")}</option>${METHODS.map((m) => `<option value="${esc(m)}" ${m === cur ? "selected" : ""}>${esc(t(m))}</option>`).join("")}${cur && !METHODS.includes(cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}`;
 function paymentsHtml(b, edit, owed) {
   const rows = b.pays.map((p) => `<li><span class="badge" style="background:var(--surface-2)">${esc(fmtDate(p.paid_on))}</span>
       <div class="grow"><span class="name">${mny(p.amount, p.currency || b.currency)}</span><small>${[p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
@@ -186,9 +189,9 @@ function paymentsHtml(b, edit, owed) {
         <label>${t("付款日期 Payment date")}<input name="paid_on" type="date" required value="${d(edit?.paid_on || todayISO())}" max="${todayISO()}"></label>
         <label>${t("金额（{cur}）", { cur: b.currency })}<input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required value="${edit ? Math.abs(num(edit.amount)).toFixed(2) : b.balance ? b.balance.toFixed(2) : ""}"></label>
         <label class="check-inline" style="align-self:end"><input type="checkbox" name="refund" ${edit && num(edit.amount) < 0 ? "checked" : ""}><span>${t("这是退款 / 保险事后理赔")}</span></label>
-        <label>${t("付款方式")}<input name="method" maxlength="40" value="${d(edit?.method)}" placeholder="${t("信用卡 / HSA 卡 / 支票…")}"></label>
+        <label>${t("付款方式")}<select name="method">${methodOptions(edit?.method)}</select></label>
         <label>${t("确认号 Confirmation #")}<input name="confirmation_ref" maxlength="60" value="${d(edit?.confirmation_ref)}"></label>
-        <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(edit?.notes)}"></label>
+        <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(edit?.notes)}" placeholder="${t("例如：网上缴费，Chase 信用卡尾号 1234 / 支票 #1022 / HSA（Fidelity）。卡只写后四位")}"></label>
       </div>
       <p id="medPayError" class="form-error" role="alert"></p>
       <div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">${edit ? t("保存修改") : t("记一笔付款")}</button>${edit ? `<a class="btn btn-sm btn-ghost" href="${detailHref(b.id)}">${t("取消")}</a>` : ""}

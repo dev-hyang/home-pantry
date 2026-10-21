@@ -622,6 +622,8 @@ button.mrow:last-child { border-bottom: 0; }
 .life-bar.late i { background: var(--mustard); }
 .life-bar.over i { background: var(--out); }
 .asset-card .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.form-grid label.check-inline { display: flex; align-items: center; gap: 8px; font-weight: 500; }   /* .form-grid label 是上下排，勾选框和说明要同一行 */
+.form-grid label.check-inline input { width: 18px; height: 18px; min-height: 0; flex: 0 0 auto; accent-color: var(--pine); }
 .maint-grid .check-inline { display: flex; align-items: center; gap: 8px; font-weight: 500; }
 .maint-grid .check-inline input { width: 18px; height: 18px; min-height: 0; accent-color: var(--pine); }
 .task-list { list-style: none; margin: 0; padding: 0; }
