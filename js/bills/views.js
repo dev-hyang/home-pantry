@@ -88,6 +88,11 @@ function filterByProperty(list) {
   return list.filter((b) => b.property_id === f);
 }
 
+/** 账单页面包屑：账单 / 房产 / 账单名 / 当前块 —— 有房产的账单带上房产（点它回到这套房产的账单清单），免得多套房产时分不清是哪套的 */
+const billTrail = (b, root, hubHref) => [root, ...(b.property_id && propertyName(b.property_id) ? [{ href: `${href("bills", "list")}?prop=${b.property_id}`, label: propertyName(b.property_id), icon: "🏠" }] : []),
+  { href: hubHref, label: b.name, icon: billCat(b.category).icon }];
+const billCrumb = (b, root, hubHref, cur) => crumbNav([...billTrail(b, root, hubHref), { label: cur }]);
+
 /* ── 清单 ── */
 const BILL_SORTS = [["category", "按分类分组"], ["due", "到期日：近 → 远"], ["amount", "金额：高 → 低"], ["name", "名称 A → Z"], ["updated", "最近更新"]];
 let billInner = null;   // 当前清单页的“列表本体”渲染函数：搜索 / 筛选只重画它
@@ -153,10 +158,11 @@ function payListInner() {
   const cur = Units.region.currency, sum = all.filter((p) => p.status !== "skipped" && (p.currency || cur) === cur).reduce((s, p) => s + num(p.amount), 0);
   return `<p class="muted" style="margin:0 0 6px;font-size:13px">${t("{n} 笔", { n: all.length })} · ${money(sum)}</p><ul class="restock-list">${shown.map((p) => {
     const b = byBill[p.bill_id];
-    return `<li><span class="badge" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</span>
+    return `<li class="${b ? "pay-row" : ""}" ${b ? `data-action="pay-edit" data-id="${p.id}" data-bill="${b.id}" title="${t("点一下编辑")}"` : ""}><span class="badge" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</span>
       <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>` : t("（已删除的账单）")}</span>
         <small>${[b ? acctText(b) : null, t(B().PAYMENT_STATUS[p.status] || p.status), p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b>${p.amount != null ? mny(p.amount, p.currency) : `<span class="muted">${t("未填金额")}</span>`}</b>
+      ${b ? `<button type="button" class="btn btn-sm btn-ghost" data-action="pay-edit" data-id="${p.id}" data-bill="${b.id}">${t("编辑")}</button>` : ""}
       <button type="button" class="btn btn-sm btn-ghost" data-action="billpay-del" data-id="${p.id}">${t("删除")}</button></li>`;
   }).join("")}</ul>${all.length > shown.length ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-ghost" data-action="pay-more">${t("再显示 {n} 笔（还有 {m} 笔）", { n: Math.min(50, all.length - shown.length), m: all.length - shown.length })}</button></div>` : ""}`;
 }
@@ -319,11 +325,11 @@ export function viewBillForm() {
   const sec = r.q.get("pay") === "1" ? "pay" : r.q.get("sec") || "";
   const hubHref = href("bill", b?.id || "new");
   if (b && !sec) return billHub(b, root);
-  if (b && sec === "pay") return `<section class="section form-page">${sectionCrumb(hubHref, b.name, t("缴费记录"), root)}${paySection(b, r.q.get("pay") === "1")}</section>`;
+  if (b && sec === "pay") return `<section class="section form-page">${billCrumb(b, root, hubHref, t("缴费记录"))}${paySection(b, r.q.get("pay") === "1", b.pays.find((x) => x.id === r.q.get("edit")) || null)}</section>`;
   const hide = (k) => (b && sec && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">
-      ${b ? sectionCrumb(hubHref, b.name, t(BILL_SECTIONS.find((s) => s.id === sec)?.name || ""), root) : crumbNav([root, { label: t("添加账单") }])}
+      ${b ? billCrumb(b, root, hubHref, t(BILL_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([root, { label: t("添加账单") }])}
       ${autofillBar("bill", "#billForm")}
       <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""} ${b && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="bill_id" value="${d(b?.id)}">
@@ -407,7 +413,7 @@ function billHub(b, root) {
   };
   const rows = BILL_SECTIONS.map((s) => { const x = st[s.id](); return hubRow({ href: `${base}?sec=${s.id}`, icon: s.icon, title: t(s.name), desc: esc(x.text), pct: x.pct, badge: x.badge }); });
   return `<section class="section">
-    ${crumbNav([root, { label: b.name, icon: `${propertyTag(b.property_id)}${billCat(b.category).icon}` }])}
+    ${crumbNav([...billTrail(b, root, href("bill", b.id)).slice(0, -1), { label: b.name, icon: billCat(b.category).icon }])}
     ${billSummary(b)}
     ${hubList(rows)}
     <div class="form-actions" style="margin-top:14px">
@@ -430,30 +436,32 @@ function billSummary(b) {
   return `<div class="asset-badges" style="margin-bottom:12px">${bits}</div>${stampText(b) ? `<p class="record-meta" style="margin:-6px 0 12px">${esc(stampText(b))}</p>` : ""}`;
 }
 
-function paySection(b, focus) {
-  const rows = b.pays.map((p) => `<li>
+function paySection(b, focus, edit = null) {
+  const v = edit || {};   // 编辑某条记录时表单带入它的值
+  const rows = b.pays.map((p) => `<li class="pay-row ${edit?.id === p.id ? "is-editing" : ""}" data-action="pay-edit" data-id="${p.id}" data-bill="${b.id}" title="${t("点一下编辑")}">
       <span class="badge ${p.status === "skipped" ? "" : "b-ok"}" style="${p.status === "skipped" ? "background:var(--surface-2)" : ""}">${t(B().PAYMENT_STATUS[p.status] || p.status)}</span>
       <div class="grow"><span class="name">${esc(fmtDate(p.paid_on))}</span>
         <small>${[p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.paid_by && Store.mode === "cloud" ? memberName(p.paid_by) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b>${p.amount != null ? mny(p.amount, p.currency) : ""}</b>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="pay-edit" data-id="${p.id}" data-bill="${b.id}">${t("编辑")}</button>
       <button type="button" class="btn btn-sm btn-ghost" data-action="billpay-del" data-id="${p.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>
     </li>`).join("");
   return `
-    <div class="section-head" style="margin-top:28px"><h2>${t("缴费记录")}</h2><p>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${t("记一笔后下次到期日自动推到下一期")}</p></div>
+    <div class="section-head" style="margin-top:28px"><h2>${edit ? t("编辑缴费记录") : t("缴费记录")}</h2><p>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${edit ? t("改这条记录；不会动下次到期日") : t("记一笔后下次到期日自动推到下一期")}</p></div>
     <form id="billPayForm" class="panel" ${focus ? 'data-focus="1"' : ""}>
-      <input type="hidden" name="bill_id" value="${esc(b.id)}">
+      <input type="hidden" name="bill_id" value="${esc(b.id)}"><input type="hidden" name="pay_id" value="${esc(edit?.id || "")}">
       <div class="form-grid maint-grid">
-        <label>${t("缴费日期")}<input name="paid_on" type="date" required value="${todayISO()}" max="${todayISO()}"></label>
-        <label>${t("对应到期日")}<input name="due_on" type="date" value="${esc(b.next_due_on || "")}"></label>
-        <label>${t("金额（{cur}）", { cur: b.currency || Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${b.est != null ? num(b.est).toFixed(2) : ""}"></label>
-        <label>${t("状态")}<select name="status"><option value="paid">${t("已缴费")}</option><option value="verified" ${b.autopay ? "selected" : ""}>${t("已核对（自动扣款）")}</option><option value="skipped">${t("跳过这期")}</option></select></label>
-        <label>${t("方式")}<input name="method" maxlength="40" placeholder="${t("例如：网银 / 支票 #1023 / 自动扣款")}" value="${b.autopay ? esc(b.autopay_method || t("自动扣款")) : ""}"></label>
-        <label>${t("确认号")}<input name="confirmation_ref" maxlength="60"></label>
-        <label>${t("滞纳金")}<input name="late_fee" type="number" inputmode="decimal" min="0" step="0.01" value="0"></label>
-        <label class="span-2">${t("备注")}<input name="notes" maxlength="500"></label>
+        <label>${t("缴费日期")}<input name="paid_on" type="date" required value="${esc(edit ? edit.paid_on || "" : todayISO())}" max="${todayISO()}"></label>
+        <label>${t("对应到期日")}<input name="due_on" type="date" value="${esc(edit ? edit.due_on || "" : b.next_due_on || "")}"></label>
+        <label>${t("金额（{cur}）", { cur: b.currency || Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? (edit.amount != null ? num(edit.amount).toFixed(2) : "") : b.est != null ? num(b.est).toFixed(2) : ""}"></label>
+        <label>${t("状态")}<select name="status"><option value="paid" ${edit?.status === "paid" ? "selected" : ""}>${t("已缴费")}</option><option value="verified" ${edit ? (edit.status === "verified" ? "selected" : "") : b.autopay ? "selected" : ""}>${t("已核对（自动扣款）")}</option><option value="skipped" ${edit?.status === "skipped" ? "selected" : ""}>${t("跳过这期")}</option></select></label>
+        <label>${t("方式")}<input name="method" maxlength="40" placeholder="${t("例如：网银 / 支票 #1023 / 自动扣款")}" value="${edit ? esc(edit.method || "") : b.autopay ? esc(b.autopay_method || t("自动扣款")) : ""}"></label>
+        <label>${t("确认号")}<input name="confirmation_ref" maxlength="60" value="${esc(edit?.confirmation_ref || "")}"></label>
+        <label>${t("滞纳金")}<input name="late_fee" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? num(edit.late_fee).toFixed(2) : "0"}"></label>
+        <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(edit?.notes || "")}"></label>
       </div>
-      <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${t("记一笔")}</button>
-        <small class="muted">${t("有金额的记录会同时记入花费统计的“账单”组。")}</small></div>
+      <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${edit ? t("保存修改") : t("记一笔")}</button>${edit ? `<a class="btn btn-sm btn-ghost" href="${href("bill", b.id)}?sec=pay">${t("取消")}</a>` : ""}
+        <small class="muted">${edit ? t("金额改了，花费统计里对应的那笔也会跟着改。") : t("有金额的记录会同时记入花费统计的“账单”组。")}</small></div>
     </form>
     <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有记录")}</strong></div>`}</div>`;
 }
@@ -520,10 +528,25 @@ export async function recordPayment(bill, { paid_on, due_on, amount, status, met
   await Store.saveBill(patch);
 }
 
+/** 改一条已有的缴费记录：不动账单的下次到期日；记过花费的，花费也跟着改（金额变 0 / 跳过就删掉那笔花费，之前没记的有金额就补一笔） */
+async function updatePayment(bill, fe) {
+  const old = state.billPayments.find((x) => x.id === fe.pay_id.value);
+  if (!old) return toast(t("找不到这条记录"));
+  const r2 = (v) => Math.round(num(v) * 100) / 100, status = fe.status.value, paid_on = fe.paid_on.value || old.paid_on || todayISO();
+  const amount = status === "skipped" || fe.amount.value === "" ? null : r2(fe.amount.value), late = r2(fe.late_fee.value), total = status === "skipped" ? 0 : r2((amount || 0) + late);
+  const currency = old.currency || bill.currency || Units.region.currency, at = new Date(`${paid_on}T12:00:00`).toISOString();
+  let purchase_id = old.purchase_id || null;
+  if (purchase_id && total > 0) await Store.updatePurchase(purchase_id, { amount: total, purchased_at: at });
+  else if (purchase_id) { await Store.deletePurchase(purchase_id); purchase_id = null; }
+  else if (total > 0 && bill.direction !== "receivable") purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: bill.payee || bill.name || null, amount: total, currency, purchased_at: at });
+  await Store.updateBillPayment(old.id, { paid_on, due_on: fe.due_on.value || null, amount, currency, method: fe.method.value.trim() || null, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, status, notes: fe.notes.value.trim() || null, purchase_id });
+  toast(t("已保存修改"));
+}
 export async function saveBillPayForm(f) {
   const fe = f.elements;
   const bill = state.billsEnriched.find((x) => x.id === fe.bill_id.value);
   if (!bill) return toast(t("账单不存在"));
+  if (fe.pay_id?.value) return updatePayment(bill, fe);
   await recordPayment(bill, { paid_on: fe.paid_on.value || todayISO(), due_on: fe.due_on.value || null, amount: fe.amount.value === "" ? null : fe.amount.value, status: fe.status.value,
     method: fe.method.value.trim(), confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, notes: fe.notes.value.trim() });
   toast(fe.status.value === "skipped" ? t("已跳过这期") : t("已记录，下次到期 {d}", { d: fmtDate(advanceDue(bill, fe.due_on.value || bill.next_due_on || fe.paid_on.value) || "") || t("无") }));

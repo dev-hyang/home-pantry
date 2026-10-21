@@ -13,6 +13,7 @@ import { houseBar } from "./property-form.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 import { dealHref, dealTasks, openVehicleDeal } from "./deals.js";
 import { autofillBar } from "../core/autofill.js";
+import { propertyName } from "../core/alerts.js";
 
 const H = () => window.HOUSE;
 const V = () => window.VEHICLES;
@@ -165,6 +166,10 @@ export function careCard(key, { open = false } = {}) {
   </details>`;
 }
 
+/** 设备页面包屑：来源 / 房产 / 设备名 / 当前块 —— 设备属于某套房产时带上房产（点它回到这套房产的设备保养）；车辆是全家的，没有房产这一段 */
+const assetTrail = (a, root, hubHref) => [root, ...(!isVehicle(a) && a.property_id && propertyName(a.property_id) ? [{ href: `${href("house", "assets")}?prop=${a.property_id}`, label: propertyName(a.property_id), icon: "🏠" }] : []),
+  { href: hubHref, label: assetName(a), icon: a.t?.icon || "⚙️" }];
+const assetCrumb = (a, root, hubHref, cur) => crumbNav([...assetTrail(a, root, hubHref), { label: cur }]);
 const ageText = (a) => (a.ageYears < 1 ? t("不到 1 年") : t("{n} 年", { n: Math.floor(a.ageYears) }));
 
 /* ── 设备列表：搜索 + 类型 / 保养 / 保修 / 位置 筛选（只作用在下面的分组列表，上面的“要处理”提醒不受影响） ── */
@@ -508,14 +513,14 @@ export function viewAssetForm() {
   const sec = r.q.get("log") === "1" ? "log" : r.q.get("sec") || "";
   const hubHref = href("asset", a?.id || "new");
   if (a && !sec) return assetHub(a, root);
-  if (a && sec === "log") return `<section class="section form-page">${sectionCrumb(hubHref, assetName(a), t("保养记录"), root)}${maintSection(a, r.q.get("log") === "1")}</section>`;
-  if (a && sec === "schedule") return `<section class="section">${sectionCrumb(hubHref, assetName(a), t("保养时间表"), root)}${vehicleSchedule(a)}</section>`;
-  if (a && sec === "supplies") return `<section class="section">${sectionCrumb(hubHref, assetName(a), t("相关耗材"), root)}${suppliesSection(a)}</section>`;
-  if (a && sec === "care") return `<section class="section">${sectionCrumb(hubHref, assetName(a), t("检查卡"), root)}${careCard(a.type, { open: true })}</section>`;
+  if (a && sec === "log") return `<section class="section form-page">${assetCrumb(a, root, hubHref, t("保养记录"))}${maintSection(a, r.q.get("log") === "1")}</section>`;
+  if (a && sec === "schedule") return `<section class="section">${assetCrumb(a, root, hubHref, t("保养时间表"))}${vehicleSchedule(a)}</section>`;
+  if (a && sec === "supplies") return `<section class="section">${assetCrumb(a, root, hubHref, t("相关耗材"))}${suppliesSection(a)}</section>`;
+  if (a && sec === "care") return `<section class="section">${assetCrumb(a, root, hubHref, t("检查卡"))}${careCard(a.type, { open: true })}</section>`;
   const hide = (k) => (a && sec && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">
-      ${a ? sectionCrumb(hubHref, assetName(a), t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || ""), root) : crumbNav([root, { label: veh ? t("添加车辆") : t("添加设备") }])}
+      ${a ? assetCrumb(a, root, hubHref, t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([root, { label: veh ? t("添加车辆") : t("添加设备") }])}
       ${a && sec === "notes" ? "" : autofillBar(veh ? "vehicle" : "asset", "#assetForm")}
       <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${a && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
@@ -670,7 +675,7 @@ function assetHub(a, root) {
     !veh && C().cardOf(a.type) ? hubRow({ href: `${base}?sec=care`, icon: "🔍", title: t("检查卡"), desc: t("怎么查、什么时候叫人") }) : "",
   ].filter(Boolean);
   return `<section class="section">
-    ${crumbNav([root, { label: assetName(a), icon: a.t?.icon || "⚙️" }])}
+    ${crumbNav([...assetTrail(a, root, href("asset", a.id)).slice(0, -1), { label: assetName(a), icon: a.t?.icon || "⚙️" }])}
     ${assetSummary(a)}
     ${hubList(more)}
     <div class="section-head" style="margin-top:18px"><h3 style="font-size:15px">${t("档案")}</h3></div>

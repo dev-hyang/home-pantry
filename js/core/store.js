@@ -239,6 +239,8 @@ export const DemoStore = {
   },
   async listBillPayments() { return this.db.bill_payments.map((x) => ({ ...x })); },
   async addBillPayment(p) { const id = uid(); this.db.bill_payments.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
+  async updateBillPayment(id, patch) { const i = this.db.bill_payments.findIndex((x) => x.id === id); if (i >= 0) { this.db.bill_payments[i] = { ...this.db.bill_payments[i], ...patch }; this.persist(); } },
+  async updatePurchase(id, patch) { const i = this.db.purchases.findIndex((x) => x.id === id); if (i >= 0) { this.db.purchases[i] = { ...this.db.purchases[i], ...patch }; this.persist(); } },
   async deleteBillPayment(id) {
     const p = this.db.bill_payments.find((x) => x.id === id);
     if (p?.purchase_id) this.db.purchases = this.db.purchases.filter((x) => x.id !== p.purchase_id);
@@ -586,6 +588,8 @@ export const CloudStore = {
   async addBillPayment(p) {
     return this.must(await this.sb.from("bill_payments").insert({ ...p, household_id: this.hid, paid_by: state.user.id }).select("id").single()).id;
   },
+  async updateBillPayment(id, patch) { this.must(await this.sb.from("bill_payments").update(patch).eq("id", id)); },
+  async updatePurchase(id, patch) { this.must(await this.sb.from("purchases").update(patch).eq("id", id)); },
   async deleteBillPayment(id) {
     const p = state.billPayments.find((x) => x.id === id);
     this.must(await this.sb.from("bill_payments").delete().eq("id", id));
