@@ -6,7 +6,7 @@ import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
 import { aiIcon, aiQuota, aiReady, aiSettings, askModel, promptText, providerOf, quotaMessage } from "../core/ai.js";
 
-export const QUICK_ASKS = ["低糖高蛋白，六人份", "用掉快过期的食材", "孩子爱吃、少油少盐", "30 分钟能做完的晚餐", "一周三餐的采购清单"];
+export const QUICK_ASKS = ["低糖高蛋白，六人份", "用掉快过期的食材", "先做掉放得最久的食材", "哺乳期追奶：多汤水、高蛋白", "产后恢复：温补、补铁、易消化", "孩子爱吃、少油少盐", "30 分钟能做完的晚餐", "一周三餐的采购清单"];
 // 无 key 模式可直接打开的网页（粘贴提示词）
 const WEB_LLMS = [["豆包", "https://www.doubao.com/"], ["通义千问", "https://www.tongyi.com/"], ["Kimi", "https://www.kimi.com/"], ["ChatGPT", "https://chatgpt.com/"], ["Gemini", "https://gemini.google.com/"]];
 

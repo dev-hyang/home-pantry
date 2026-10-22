@@ -733,7 +733,7 @@ export const EN = {
 
   // ── AI 菜单助手 ──
   "AI 菜单助手": "AI meal assistant", "AI 助手": "AI assistant", "今天吃什么？问 AI": "What to cook today? Ask AI", "按家里现有食材和临期情况生成今日菜单，缺的直接进采购清单。": "Builds today's menu from what's in the pantry and what's expiring; missing items go straight to the shopping list.",
-  "打开菜单助手": "Open the assistant", "低糖高蛋白，六人份": "Low sugar, high protein, for six", "用掉快过期的食材": "Use up what's expiring", "孩子爱吃、少油少盐": "Kid-friendly, light on oil and salt", "30 分钟能做完的晚餐": "Dinner in 30 minutes", "一周三餐的采购清单": "A week of meals plus a shopping list",
+  "打开菜单助手": "Open the assistant", "低糖高蛋白，六人份": "Low sugar, high protein, for six", "用掉快过期的食材": "Use up what's expiring", "先做掉放得最久的食材": "Cook the oldest stock first", "哺乳期追奶：多汤水、高蛋白": "Breastfeeding, boost milk supply: soups, high protein", "产后恢复：温补、补铁、易消化": "Postpartum recovery: warming, iron-rich, easy to digest", "孩子爱吃、少油少盐": "Kid-friendly, light on oil and salt", "30 分钟能做完的晚餐": "Dinner in 30 minutes", "一周三餐的采购清单": "A week of meals plus a shopping list",
   "{p} · 会把库存食材、临期和饮食模式一起发给模型": "{p} · sends your pantry items, expiry and diet mode along with the request", "没填 key 也能用：生成提示词，复制到豆包 / 千问 / ChatGPT": "Works without a key: builds a prompt you paste into Doubao / Qwen / ChatGPT",
   "想吃什么、几个人、有什么要求…": "What you feel like, how many people, any requirements…", "人数": "People", "生成中…": "Generating…", "生成今日菜单": "Generate today's menu", "复制提示词": "Copy prompt", "打开{n}": "Open {n}", "换模型": "Change model", "填 API key 直接出结果": "Add an API key to get results here",
   "模型没有按格式返回，原文如下：": "The model didn't follow the format; raw reply:", "用库存：{list}": "from stock: {list}", "缺：{list}": "missing: {list}", "缺的 {n} 样加入采购清单": "Add the {n} missing to the shopping list", "换一版": "Another version", "换一道": "Swap",
@@ -746,7 +746,7 @@ export const EN = {
   "性价比：DeepSeek、通义千问 qwen-turbo、豆包 lite 一次菜单约几分钱；Gemini Flash 有免费额度。只用于生成菜单，不会上传备注等个人信息。": "Value: DeepSeek, Qwen turbo and Doubao lite cost about a cent per menu; Gemini Flash has a free tier. Used only for menus; notes and personal info are never sent.",
   "AI 设置已保存（只存在本机）": "AI settings saved (this device only)", "{p} · 已填 key": "{p} · key set", "未填 key，用“复制提示词”模式": "No key; Copy-prompt mode", "还没填 API key，去设置 → AI 助手": "No API key yet; see Settings → AI assistant", "先填 API key": "Enter an API key first",
   "模型超时，稍后再试": "The model timed out; try again later", "浏览器无法直连这个接口（跨域或网络被拒）。可以换 DeepSeek / Gemini，或用“复制提示词”。": "The browser can't reach this API directly (CORS or network). Try DeepSeek / Gemini, or Copy prompt.", "模型返回的不是 JSON": "The model didn't return JSON",
-  "你是家庭菜单助手。优先使用下面的库存食材（尤其是快到期的），菜要家常、步骤简单，只用 JSON 回答，不要别的文字。": "You are a family meal planner.", "现有库存：": "Pantry stock:", "一天三餐（早、午、晚）的菜单": "a one-day menu", "（空）": "(empty)", "{d} 天内到期": "expires in {d} days",
+  "你是家庭菜单助手。优先使用下面的库存食材（尤其是快到期的），菜要家常、步骤简单，只用 JSON 回答，不要别的文字。": "You are a family meal planner.", "现有库存：": "Pantry stock:", "一天三餐（早、午、晚）的菜单": "a one-day menu", "（空）": "(empty)", "{d} 天内到期": "expires in {d} days", "今天入库": "stocked today", "入库 {d} 天": "in stock {d} days",
 
   // ── 手机库存仪表盘 ──
   "{n} 件": "{n} pcs", "{n} 缺货": "{n} out", "{n} 少货 / 临期": "{n} low / expiring", "全部分类": "All categories", "完成排序": "Done sorting", "调整方块顺序": "Rearrange tiles", "点方块进入分类，搜索框可直接找物品": "Tap a tile to open the category; the search box finds items directly",
