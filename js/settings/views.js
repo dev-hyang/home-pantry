@@ -5,7 +5,7 @@ import { catFormHtml } from "../pantry/views.js";
 import { LANGS, detectLang, glossaryOf, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
-import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, effective, providerOf, quotaStatus, saveAiSettings, deadModels, blockedModels, FREE_MODELS, listModels, modelInfo } from "../core/ai.js";
+import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, effective, providerOf, quotaStatus, saveAiSettings, deadModels, blockedModels, FREE_MODELS, FREE_MODELS_AS_OF, aiChanges, catalogAgeDays, listModels, modelInfo } from "../core/ai.js";
 import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
 import { viewPrintSettings } from "./print.js";
 import { incomePanel } from "./income.js";
@@ -207,16 +207,31 @@ function modelField(s, p) {
   const cur = s.model || "", list = FREE_MODELS[p.id].filter((m) => m.free !== false).map((m) => ({ ...m, live: false })), custom = !!cur && !list.some((m) => m.id === cur) && !(autoModel(p.id) === cur);
   return `<label class="span-2">${t("模型")}<select name="modelSel" data-provider="${p.id}">${modelOptionsHtml(p.id, list, cur, custom)}</select>
       <small id="modelLimitHint">${limitHint(p.id, custom ? "" : cur)}</small><small id="modelListNote" class="muted">${t("正在查这个 key 实际能用的模型…")}</small></label>
+    <div class="span-2" id="modelNotices">${modelNotices(p.id, cur, null)}</div>
     <label class="span-2" id="modelCustomWrap" ${custom ? "" : "hidden"}>${t("模型名（照服务商控制台里的写）")}<input name="model" maxlength="80" placeholder="${esc(p.model)}" value="${esc(cur)}"></label>`;
 }
+/** 目录 / 模型列表 / 额度和现实对不上时的提醒；live = 刚查到的实际列表（没查到是 null） */
+export function modelNotices(pid, cur, live) {
+  const age = catalogAgeDays(), rows = [];
+  const fld = { rpd: t("每天"), rpm: t("每分钟") };
+  for (const c of aiChanges(pid)) {
+    if (c.type === "limit") rows.push(`⚠️ ${t("Google 返回的 {m} {f}上限是 {n} 次，目录里是 {w}，已按实际的更新。", { m: esc(c.model), f: fld[c.field], n: c.now, w: c.was ?? t("没有") })}`);
+    else rows.push(`🔔 ${t("这个 key 的模型列表有变化：")}${c.added?.length ? ` ${t("新增")} ${c.added.map(esc).join("、")}` : ""}${c.removed?.length ? ` ${t("下线")} ${c.removed.map(esc).join("、")}` : ""}`);
+  }
+  if (cur && live && !live.some((m) => m.id === cur && m.live)) rows.push(`⚠️ ${t("你选的 {m} 已不在这个 key 的可用列表里，会自动换别的模型；建议改选“自动”或另一个。", { m: esc(cur) })}`);
+  const ageTxt = FREE_MODELS[pid] ? t("免费上限目录更新于 {d}（{n} 天前）", { d: FREE_MODELS_AS_OF, n: age }) + (age > 45 ? `，${t("可能已过期，上限以控制台为准")}` : "") : "";
+  return `${rows.length ? `<div class="notice-box" role="status">${rows.map((r) => `<p>${r}</p>`).join("")}<button type="button" class="btn btn-sm btn-ghost" data-action="ai-notice-dismiss" data-provider="${pid}">${t("知道了")}</button></div>` : ""}
+    ${ageTxt ? `<p class="muted" style="margin:6px 0 0;font-size:12.5px">${ageTxt} · <button type="button" class="linkbtn" data-action="ai-models-refresh">${t("现在刷新模型列表")}</button></p>` : ""}`;
+}
 /** 画出设置页后：后台查实际可用的模型，把下拉换成真实列表（选中项不变） */
-export async function hydrateModelSelect() {
+export async function hydrateModelSelect({ refresh = false } = {}) {
   const sel = document.querySelector("#aiSettingsForm [name=modelSel]"); if (!sel) return;
-  const pid = sel.dataset.provider, list = await listModels(pid);
+  const pid = sel.dataset.provider, list = await listModels(pid, { refresh });
   const sel2 = document.querySelector("#aiSettingsForm [name=modelSel]"); if (!sel2 || sel2.dataset.provider !== pid) return;
   const shown = list.filter((m) => m.free !== false);   // 免费档额度为 0 的不列（Pro、2 Flash 等）
   const custom = sel2.value === "__custom", cur = sel2.form.elements.model.value.trim();
   sel2.innerHTML = modelOptionsHtml(pid, shown, cur, custom);
+  const nb = document.getElementById("modelNotices"); if (nb) nb.innerHTML = modelNotices(pid, cur, list);   // 刚查到的列表可能带来新的“下线 / 新增”提醒
   const note = document.getElementById("modelListNote");
   if (note) note.textContent = list.some((m) => m.live) ? t("列表是这个 key 实际能用的模型（每天查一次）；灰色的是已对这个 key 下线的。") : t("还没查到实际列表（填好 key 并保存后会查），先列常用的。");
 }

@@ -1200,3 +1200,9 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
   .person-actions { gap: 6px; }
   .person-row > .badge { align-self: flex-start; margin-top: 2px; }
 }
+
+/* 表单里的下拉 / 输入框不超出所在的格子：下拉的宽度原来按最长的选项算（模型名 + 上限很长），把格子撑出去；选项太长就省略 */
+.form-grid select, .form-grid input:not([type="checkbox"]):not([type="radio"]), .form-grid textarea { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+.form-grid select { text-overflow: ellipsis; }
+.notice-box { margin-top: 8px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--soon-bg); color: var(--soon); border: 1px solid color-mix(in srgb, var(--soon) 30%, transparent); font-size: 13px; }
+.notice-box p { margin: 0 0 6px; overflow-wrap: anywhere; }

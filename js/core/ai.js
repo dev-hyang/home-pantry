@@ -180,7 +180,16 @@ export function parse429(e) {
   const projectWide = /PerProject(?!PerModel)/i.test(body) && !/PerModel|"model"\s*:/i.test(body);
   const perModel = !projectWide;
   const msg = (() => { try { return JSON.parse(body)?.error?.message || ""; } catch { return ""; } })() || body.slice(0, 200);
-  return { daily, perModel, until: daily ? nextReset("pt") : Date.now() + Math.max(secs || 60, 15) * 1000, msg: String(msg).replace(/\s+/g, " ").slice(0, 220) };
+  // 真实上限：violations[].quotaId 里 PerDay / PerMinute（只认“请求数”，token 额度不算），quotaValue 就是次数
+  let limit = null;
+  try {
+    for (const d of JSON.parse(body)?.error?.details || []) for (const v of d.violations || []) {
+      const id = String(v.quotaId || ""), val = parseInt(v.quotaValue, 10);
+      if (!Number.isFinite(val) || /Token/i.test(id)) continue;
+      if (/PerDay/i.test(id)) limit = { field: "rpd", value: val }; else if (/PerMinute/i.test(id) && !limit) limit = { field: "rpm", value: val };
+    }
+  } catch { /* 不是 JSON */ }
+  return { limit, daily, perModel, until: daily ? nextReset("pt") : Date.now() + Math.max(secs || 60, 15) * 1000, msg: String(msg).replace(/\s+/g, " ").slice(0, 220) };
 }
 const clock = (ms) => { const w = new Date(ms), same = w.toDateString() === new Date().toDateString(); return w.toLocaleString(locale(), same ? { hour: "2-digit", minute: "2-digit" } : { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
 
@@ -225,6 +234,7 @@ async function geminiCall(s, base, key, body, signal) {
         else if (e.status === 503 || e.status === 502 || e.status === 500 || e.status === 504) fails.push({ model, status: e.status });
         else if (e.status === 429) {
           const q = parse429(e);
+          if (q.limit) learnLimit("gemini", model, q.limit.field, q.limit.value);   // Google 报文里的真实上限：和目录不同就以它为准并提醒
           if (!q.perModel) {   // 整个项目的额度：换模型没用，直接停
             const u = usage(); u.gemini = { ...(u.gemini || {}), blockedUntil: q.until, blockedDaily: q.daily, blockedScope: "project" }; saveUsage(u);
             throw Object.assign(new QuotaError(t("Google 返回 429（整个项目的额度）：{msg}。预计 {time} 恢复。", { msg: q.msg, time: clock(q.until) }), { reason: q.daily ? "daily" : "blocked", resumeAt: q.until, used: u.gemini.count || 0 }), { explained: true });
@@ -360,7 +370,36 @@ export const FREE_MODELS = {
     { id: "mistralai/mistral-small-3.2-24b-instruct:free", name: "Mistral Small 3.2（能读图）", rpm: 20, rpd: 50, vision: true },
   ],
 };
-export const modelInfo = (pid, id) => (FREE_MODELS[pid] || []).find((m) => m.id === id) || null;
+/* ── 目录和现实对不上时的提醒（静态站没有服务器能盯着各家的公告，所以用三种“现场信号”）：
+ *  1) 模型列表：每天用你的 key 查一次实际可用的模型，和上次比，新增 / 下线的记下来（listModels）
+ *  2) 额度：Google 的 429 报文里写着真实上限（quotaValue），和目录不同就以报文为准，并记一条变化
+ *  3) 目录自己的“更新日期”：太久没更新就提示，上限只能当参考
+ * 变化记在本机，设置 → AI 助手里显示，点“知道了”才清掉 */
+export const FREE_MODELS_AS_OF = "2026-10-21";   // 目录按这一天 AI Studio 的 Rate limits 页填的
+export const catalogAgeDays = () => Math.max(0, Math.floor((Date.now() - Date.parse(FREE_MODELS_AS_OF)) / 864e5));
+const LEARNED_KEY = "hmh-ai-learned", CHANGES_KEY = "hmh-ai-changes";
+const readJ = (k) => { try { return JSON.parse(localStorage.getItem(k) || "{}"); } catch { return {}; } };
+const writeJ = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* 忽略 */ } };
+export const aiChanges = (pid) => readJ(CHANGES_KEY)[pid] || [];
+export function dismissAiChanges(pid) { const c = readJ(CHANGES_KEY); delete c[pid]; writeJ(CHANGES_KEY, c); }
+function noteChange(pid, entry) {
+  const c = readJ(CHANGES_KEY), list = (c[pid] || []).filter((x) => !(x.type === entry.type && x.model === entry.model && x.field === entry.field));
+  c[pid] = [...list, { ...entry, ts: Date.now() }].slice(-12); writeJ(CHANGES_KEY, c);
+}
+/** 目录里的条目 + Google 报文里学到的真实上限（学到的优先） */
+export function modelInfo(pid, id) {
+  const base = (FREE_MODELS[pid] || []).find((m) => m.id === id) || null, l = readJ(LEARNED_KEY)[`${pid}/${id}`];
+  if (!l) return base;
+  return { ...(base || { id, name: id }), ...(l.rpm != null ? { rpm: l.rpm } : {}), ...(l.rpd != null ? { rpd: l.rpd } : {}), learned: true, free: l.rpd === 0 ? false : l.rpd > 0 ? true : base?.free };
+}
+/** 429 里读到的真实上限（field = rpm | rpd，value = 次数）：和目录 / 上次不同就记下并提醒 */
+export function learnLimit(pid, id, field, value) {
+  if (!id || !Number.isFinite(value) || value < 0) return;
+  const all = readJ(LEARNED_KEY), key = `${pid}/${id}`, was = modelInfo(pid, id)?.[field];
+  if (was === value) return;
+  all[key] = { ...(all[key] || {}), [field]: value, ts: Date.now() }; writeJ(LEARNED_KEY, all);
+  noteChange(pid, { type: "limit", model: id, field, was: was ?? null, now: value });
+}
 const MODELS_CACHE = "hmh-ai-models";   // { provider: { ts, ids } }：这个 key 实际能用的模型，缓存一天
 /** 下拉框用的模型列表：有实际列表就以它为准（目录里有的带上限、没有的上限留空、已对这个 key 下线的标出来），查不到就只给目录 */
 export async function listModels(pid, { refresh = false } = {}) {
@@ -373,12 +412,20 @@ export async function listModels(pid, { refresh = false } = {}) {
       if (pid === "gemini") { const all = (await geminiCandidates(base, key)).all; ids = [...rankGemini(all), ...all.filter((n) => /^gemma-/i.test(n) && !/image|tts|audio|embedding/i.test(n)).sort()]; }   // 下拉里 Gemma 也列出来（每天次数多，但自动模式不用它：能不能读图没确认）
       else if (pid === "groq") { const j = await readJson(await fetch(`${base}/models`, { headers: { Authorization: `Bearer ${key}` } })); ids = (j.data || []).map((m) => m.id).filter((id) => !/whisper|tts|guard|embed|safeguard/i.test(id)); }
       else if (pid === "openrouter") { const j = await readJson(await fetch(`${base}/models`)); ids = (j.data || []).map((m) => m.id).filter((id) => /:free$/.test(id)); }
-      if (ids) { cache[pid] = { ts: Date.now(), ids }; try { localStorage.setItem(MODELS_CACHE, JSON.stringify(cache)); } catch { /* 忽略 */ } }
+      if (ids) {
+        const prev = cache[pid]?.ids;
+        if (prev) {   // 和上次比：下线 / 新增的记下来（只记文字模型相关的，避免 TTS、图像模型刷屏）
+          const relevant = (id) => pid !== "gemini" || /^(gemini|gemma)-[\d.]+-?[a-z-]*$/i.test(id) && !/tts|image|audio|live|embedding|transcribe|omni|robotics/i.test(id);
+          const removed = prev.filter((x) => !ids.includes(x) && relevant(x)), added = ids.filter((x) => !prev.includes(x) && relevant(x));
+          if (removed.length || added.length) noteChange(pid, { type: "models", removed: removed.slice(0, 8), added: added.slice(0, 8) });
+        }
+        cache[pid] = { ts: Date.now(), ids }; try { localStorage.setItem(MODELS_CACHE, JSON.stringify(cache)); } catch { /* 忽略 */ }
+      }
     } catch (e) { console.warn("[ai models]", e.message); }
   }
   const dead = deadModels();
   if (!ids) return cat.map((m) => ({ ...m, live: false, dead: !!dead[m.id] }));
-  const known = (id) => cat.find((m) => m.id === id);
+  const known = (id) => modelInfo(pid, id);
   // Gemini 按实际列表的顺序（新到旧）；其他家目录里的在前、其余按字母
   const order = pid === "gemini" ? ids : [...cat.map((m) => m.id).filter((id) => ids.includes(id)), ...ids.filter((id) => !known(id)).sort()];
   return order.map((id) => ({ ...(known(id) || { id, name: id, rpm: null, rpd: null }), live: true, dead: !!dead[id] }));
