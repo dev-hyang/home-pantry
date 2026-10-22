@@ -28,6 +28,10 @@ export const isGear = (it) => spaceOf(it.category) === "gear";
 export const listRoute = (space) => (space === "house" ? ["house", "supplies"] : space === "gear" ? ["pantry", "gear"] : ["pantry", "inventory"]);
 
 // 日期（只到天，按本地时间）
+/** 物品“不再提醒”的截止日；这个值 = 一直不提醒（直到下次补货入库或手动恢复） */
+export const MUTE_FOREVER = "9999-12-31";
+/** 今天起 n 天后的日期（本地日期，YYYY-MM-DD） */
+export const daysFromTodayISO = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 export const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 export const daysUntil = (iso) => (iso ? Math.round((new Date(`${iso}T12:00:00`) - new Date(`${todayISO()}T12:00:00`)) / DAY) : null);
 export function addMonths(iso, n) {

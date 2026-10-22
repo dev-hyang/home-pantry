@@ -2,7 +2,7 @@ import { checkConfig } from "./core/config-check.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
-import { $, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
+import { $, MUTE_FOREVER, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { resilientFetch } from "./core/net.js";
@@ -823,6 +823,12 @@ main.addEventListener("click", async (e) => {
       case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "shop-add-item": return addAlertsToShopping([state.enriched.find((x) => x.id === id)]);
+      case "mute-item": {   // 注意事项里的“不再提醒”：一直不提醒，直到下次补货入库或在编辑页恢复
+        const it = state.items.find((x) => x.id === id); if (!it) return;
+        el.disabled = true;
+        try { await Store.setItemMute(id, MUTE_FOREVER); toast(t("{name} 不再提醒了；下次补货入库，或在编辑页里可以恢复", { name: it.name })); } catch (e) { el.disabled = false; return toast(e.message); }
+        return refresh();
+      }
       case "shop-add-alerts": {
         const sp = el.dataset.space || "pantry";
         const pool = sp === "all" ? state.enriched.filter((x) => state.houseEnabled || inSpace("pantry")(x)) : state.enriched.filter(inSpace(sp));

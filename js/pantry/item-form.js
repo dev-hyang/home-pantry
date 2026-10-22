@@ -1,6 +1,6 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, catOf, catsOf, du, esc, fmt, listRoute, num, spaceOf, stampText, toast } from "../core/util.js";
+import { $, MUTE_FOREVER, catOf, catsOf, daysFromTodayISO, du, esc, fmt, listRoute, num, spaceOf, stampText, todayISO, toast } from "../core/util.js";
 import { SECTIONS, go, href } from "../core/router.js";
 import { crumbNav } from "../core/hub.js";
 import { memberName } from "../core/logic.js";
@@ -108,6 +108,7 @@ export function viewItemForm() {
             <label class="span-2 not-gear">${t("每天大约用多少（可选）")}
               <input name="avg_daily_use" type="number" min="0" step="any" inputmode="decimal" placeholder="${t("留空则根据家人的使用记录自动估算")}" value="${dv(v.avg_daily_use)}" data-orig="${dv(v.avg_daily_use)}">
             </label>
+            ${it ? muteField(v) : ""}
           </div>
         </fieldset>
         <fieldset>
@@ -199,9 +200,34 @@ export async function saveItemForm(f, { silent = false } = {}) {
   try {
     it.location = await resolveLocation(fe);   // 选了“＋ 新位置…”会先建位置
     await Store.saveItem(it);
+    if (it.id && fe.alert_mute) {   // 不再提醒 / 暂停提醒：单独存（不放进通用字段，没执行迁移 030 的库其余保存照常）
+      const until = muteChoice(fe.alert_mute.value, raw.alert_mute_until);
+      if ((until || null) !== (raw.alert_mute_until || null)) { await Store.setItemMute(it.id, until); raw.alert_mute_until = until; }
+    }
     if (silent) return true;
     toast(it.id ? t("已保存修改") : t("已添加 {name}", { name }));
     leaveItem(true);
     return true;
   } catch (e) { if (silent) throw e; err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; return false; }
+}
+
+/* ── 不再提醒 / 暂停提醒 ── 试过不好吃、暂时用完不想补：标记后不进注意事项和提醒数；下次补货入库自动恢复 */
+const muteActive = (v) => !!v.alert_mute_until && String(v.alert_mute_until) > todayISO();
+function muteField(v) {
+  const cur = muteActive(v) ? (v.alert_mute_until === MUTE_FOREVER ? "forever" : "keep") : "";
+  const opt = (val, label) => `<option value="${val}" ${cur === val ? "selected" : ""}>${label}</option>`;
+  return `<label class="span-2 not-gear">${t("补货提醒")}
+    <select name="alert_mute">
+      ${opt("", t("正常提醒"))}
+      ${cur === "keep" ? opt("keep", t("暂停提醒，到 {d}", { d: esc(v.alert_mute_until) })) : ""}
+      ${opt("30", t("暂停 30 天"))}${opt("90", t("暂停 90 天"))}${opt("forever", t("不再提醒（下次补货入库后自动恢复）"))}
+    </select>
+    <small>${t("试过不好吃、或暂时用完不想补：选一个，它就不会再出现在注意事项里。临期提醒不受影响。")}</small>
+  </label>`;
+}
+function muteChoice(val, cur) {
+  if (val === "forever") return MUTE_FOREVER;
+  if (val === "30" || val === "90") return daysFromTodayISO(+val);
+  if (val === "keep") return cur || null;
+  return null;
 }

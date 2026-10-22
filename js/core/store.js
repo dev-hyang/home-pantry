@@ -306,9 +306,12 @@ export const DemoStore = {
     if (!it) throw new Error("物品不存在");
     const oldq = num(it.quantity), newq = Math.max(0, Math.round((oldq + delta) * 100) / 100);
     it.quantity = newq; it.updated_at = new Date().toISOString();
+    if (reason === "restock" && it.alert_mute_until) it.alert_mute_until = null;   // 又买了：说明想要，恢复提醒
     if (newq !== oldq) this.db.logs.push({ id: uid(), item_id: id, delta: newq - oldq, reason, created_at: it.updated_at });
     this.persist();
   },
+  /** 不再提醒 / 暂停提醒：until = 'YYYY-MM-DD'（到这天之前不提醒），'9999-12-31' = 一直不提醒，null = 恢复 */
+  async setItemMute(id, until) { const it = this.db.items.find((x) => x.id === id); if (!it) throw new Error("物品不存在"); it.alert_mute_until = until || null; this.persist(); },
   async listShopping() { return this.db.shopping.map((x) => ({ ...x })); },
   async saveShopping(row) {
     if (row.id) {
@@ -686,7 +689,16 @@ export const CloudStore = {
     } else this.must(await this.sb.from("items").insert(row));
   },
   async deleteItem(id) { this.must(await this.sb.from("items").delete().eq("id", id)); },
-  async adjust(id, delta, reason) { this.must(await this.sb.rpc("adjust_stock", { p_item_id: id, p_delta: delta, p_reason: reason })); },
+  async adjust(id, delta, reason) {
+    this.must(await this.sb.rpc("adjust_stock", { p_item_id: id, p_delta: delta, p_reason: reason }));
+    if (reason === "restock" && state.items.find((x) => x.id === id)?.alert_mute_until) await this.sb.from("items").update({ alert_mute_until: null }).eq("id", id);   // 又买了：恢复提醒（还没执行迁移 030 时这行不会有值，也不会走到这里）
+  },
+  /** 不再提醒 / 暂停提醒（见本机版说明）；没执行迁移 030 时会提示先执行 */
+  async setItemMute(id, until) {
+    const r = await this.sb.from("items").update({ alert_mute_until: until || null }).eq("id", id);
+    if (r.error && /alert_mute_until/.test(r.error.message || "")) throw new Error("数据库还没升级：请先执行 migrations/030_item_alert_mute.sql");
+    this.must(r);
+  },
   async listShopping() { return this.must(await this.sb.from("shopping_list").select("*").eq("household_id", this.hid).order("created_at")); },
   async saveShopping(row) {
     if (row.id) {

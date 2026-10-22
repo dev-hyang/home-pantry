@@ -1,10 +1,10 @@
 import { STATUS, state } from "./state.js";
-import { DAY, MIN_RATE_SPAN_DAYS, RATE_WINDOW_DAYS, STOCK_TARGET_DAYS, du, isGear, num, spaceOf } from "./util.js";
+import { DAY, MIN_RATE_SPAN_DAYS, RATE_WINDOW_DAYS, STOCK_TARGET_DAYS, du, isGear, num, spaceOf, todayISO } from "./util.js";
 import { t } from "./i18n.js";
 
 /* ───────────── 提醒与消耗速度计算 ───────────── */
 export function enrich(items, logs) {
-  const now = Date.now();
+  const now = Date.now(), today = todayISO();
   const usage = {};
   const rateSince = now - RATE_WINDOW_DAYS * DAY;
   for (const l of logs) {
@@ -35,6 +35,9 @@ export function enrich(items, logs) {
     if (qty <= 0) status = "out";
     else if (min > 0 && qty <= min) status = "low";
     else if (daysLeft != null && daysLeft <= lead) status = "soon";
+    // 标了“不再提醒 / 暂停提醒”的物品：补货状态按正常算（不进注意事项、不计入提醒数、不被“一键加入采购”带上）；临期照常提醒
+    const muted = status !== "ok" && !!it.alert_mute_until && String(it.alert_mute_until) > today, rawStatus = status;
+    if (muted) status = "ok";
 
     let exp = null, expDays = null;
     if (it.expiry_date) {
@@ -47,7 +50,7 @@ export function enrich(items, logs) {
     const level = Math.min(1, qty / cap);
     const minMark = min > 0 ? Math.min(1, min / cap) : null;
     const f = Units.factor(it.unit);
-    return { ...it, qty, min, rate, rateSrc, daysLeft, status, exp, expDays, suggest, level, minMark,
+    return { ...it, qty, min, rate, rateSrc, daysLeft, status, rawStatus, muted, exp, expDays, suggest, level, minMark,
       du: du(it.unit), dqty: qty * f, drate: rate ? rate * f : null, dsuggest: suggest * f };
   });
 }
@@ -65,6 +68,7 @@ export function pantryAlertItems() {
         href: null, badge: { label: t(STATUS[it.status].label), cls: STATUS[it.status].cls },
         // 已在采购清单里：按钮换成「已加入采购」标签（点开清单）；从清单删掉后自动变回「加入采购」
         actions: [{ type: "button", action: "edit", id: it.id, label: t("编辑"), cls: "btn-ghost" },
+          { type: "button", action: "mute-item", id: it.id, label: t("不再提醒"), cls: "btn-ghost" },
           openShopFor(it.id) ? { type: "tag", href: "#/shopping", label: t("已加入采购"), cls: "b-ok" } : { type: "button", action: "shop-add-item", id: it.id, label: t("加入采购") }] });
     }
   }

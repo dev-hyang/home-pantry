@@ -353,7 +353,7 @@ export function itemCard(it) {
     </div>
     <div class="item-main">
       <div class="item-title"><button type="button" data-action="edit" data-id="${it.id}">${esc(it.name)}</button>
-        ${it.status !== "ok" ? `<span class="badge ${st.cls}">${t(st.label)}</span>` : ""}${expBadge}</div>
+        ${it.status !== "ok" ? `<span class="badge ${st.cls}">${t(st.label)}</span>` : ""}${it.muted ? `<span class="badge b-muted" title="${t("已设为不提醒；编辑页里可以恢复")}">🔕 ${t("不提醒")}</span>` : ""}${expBadge}</div>
       <div class="item-meta">${meta}</div>
     </div>
     <div class="qty">

@@ -167,6 +167,7 @@ textarea { resize: vertical; }
 .b-soon { color: var(--soon); background: var(--soon-bg); }
 .b-ok { color: var(--ok); background: var(--ok-bg); }
 .b-exp { color: var(--exp); background: var(--exp-bg); }
+.b-muted { color: var(--muted, #6b7280); background: transparent; border: 1px dashed currentColor; }
 
 /* ── 总览：提醒刻度条 ── */
 .alert-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
