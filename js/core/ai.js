@@ -76,7 +76,10 @@ export function aiQuota(s = aiSettings()) {
   const u = usage()[p.id] || {}, now = Date.now();
   const used = u.day === dayKey(tier?.reset) ? u.count || 0 : 0;
   const base = { used, cap: cap.rpd, tier, remaining: cap.rpd ? Math.max(0, cap.rpd - used) : null };
-  if (u.blockedUntil && u.blockedUntil > now) return { ...base, ok: false, reason: u.blockedDaily ? "daily" : "blocked", resumeAt: u.blockedUntil };
+  // 只认“整个项目”级别的封锁（blockedScope = project）。以前的版本把“某个模型的额度用完”也记成整个服务商用完，那种旧标记没有 scope：忽略并清掉，
+  // 否则一个模型超限就把 key 锁到第二天，其他还有额度的模型也用不了
+  if (u.blockedUntil && u.blockedUntil > now && u.blockedScope === "project") return { ...base, ok: false, reason: u.blockedDaily ? "daily" : "blocked", resumeAt: u.blockedUntil, fromGoogle: true };
+  if (u.blockedUntil && u.blockedScope !== "project") { const all = usage(); delete all[p.id]?.blockedUntil; delete all[p.id]?.blockedDaily; saveUsage(all); }
   if (s.freeOnly === false) return { ...base, ok: true };
   if (cap.rpd && used >= cap.rpd) return { ...base, ok: false, reason: "daily", resumeAt: nextReset(tier?.reset) };
   const minute = Math.floor(now / 60000), mUsed = u.minute === minute ? u.mcount || 0 : 0;
@@ -86,9 +89,11 @@ export function aiQuota(s = aiSettings()) {
 export function quotaMessage(q) {
   const when = new Date(q.resumeAt), sameDay = when.toDateString() === new Date().toDateString();
   const time = when.toLocaleString(locale(), sameDay ? { hour: "2-digit", minute: "2-digit" } : { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const retry = t("如果确定没超限，到 设置 → AI 助手 点“重置计数”可以立刻再试。");
   if (q.reason === "minute") return t("这一分钟的免费次数用完了，{s} 秒后再试", { s: Math.max(1, Math.ceil((q.resumeAt - Date.now()) / 1000)) });
-  if (q.reason === "daily") return t("今天的免费额度用完了（已用 {n} 次），预计 {time} 恢复；现在可以用“复制提示词”", { n: q.used, time });
-  return t("服务商限流了，{time} 后再试；现在可以用“复制提示词”", { time });
+  if (q.reason === "daily") return q.fromGoogle ? `${t("Google 说这个 key 整个项目今天的额度用完了，预计 {time} 恢复；现在可以用“复制提示词”。", { time })} ${retry}`
+    : `${t("本机计数已到今天的上限（已用 {n} 次），预计 {time} 恢复；现在可以用“复制提示词”。", { n: q.used, time })} ${retry}`;
+  return `${t("服务商限流了，{time} 后再试；现在可以用“复制提示词”。", { time })} ${retry}`;
 }
 /** 设置页状态行 */
 export function quotaStatus(q) {
@@ -111,8 +116,8 @@ function rateLimited(e, p) {
   const secs = e.retryAfter ? parseInt(e.retryAfter, 10) || 0 : m ? +m[1] : 0;
   const daily = /per day|perday|per_day|daily|requests_per_day|RPD|quota exceeded for.*day/i.test(body);
   const until = daily && tier ? nextReset(tier.reset) : Date.now() + Math.max(secs || 60, 15) * 1000;
-  const u = usage(); u[p.id] = { ...(u[p.id] || {}), blockedUntil: until, blockedDaily: !!daily }; saveUsage(u);
-  const q = { reason: daily ? "daily" : "blocked", resumeAt: until, used: u[p.id].count || 0 };
+  const u = usage(); u[p.id] = { ...(u[p.id] || {}), blockedUntil: until, blockedDaily: !!daily, blockedScope: "project" }; saveUsage(u);
+  const q = { reason: daily ? "daily" : "blocked", resumeAt: until, used: u[p.id].count || 0, fromGoogle: true };
   return new QuotaError(quotaMessage(q), q);
 }
 /* ── Gemini 模型名自动选择：模型名经常换代（2.0 → 2.5 …），用户没填就从 /models 列表里挑一个可用的 Flash，记在本机 ── */
@@ -168,7 +173,11 @@ export function clearModelMarks() { try { localStorage.removeItem(DEAD_KEY); loc
 export function parse429(e) {
   const body = String(e.body || e.message || ""), m = /retryDelay"?\s*:\s*"?(\d+)/i.exec(body);
   const secs = e.retryAfter ? parseInt(e.retryAfter, 10) || 0 : m ? +m[1] : 0;
-  const daily = /PerDay|per day|requests_per_day/i.test(body), perModel = /PerModel|"model"\s*:/i.test(body);
+  const daily = /PerDay|per day|requests_per_day/i.test(body);
+  // Gemini 免费档的额度几乎都是按模型算的（quotaId 带 PerModel，或 quotaDimensions 里有 model）；只有明确写着 PerProject 而没有 model 维度的才当成整个项目用完。
+  // 看不出来的（没有 details 的裸 429）也按“按模型”处理：换一个模型试，最多多花几次请求，总好过把 key 锁到第二天
+  const projectWide = /PerProject(?!PerModel)/i.test(body) && !/PerModel|"model"\s*:/i.test(body);
+  const perModel = !projectWide;
   const msg = (() => { try { return JSON.parse(body)?.error?.message || ""; } catch { return ""; } })() || body.slice(0, 200);
   return { daily, perModel, until: daily ? nextReset("pt") : Date.now() + Math.max(secs || 60, 15) * 1000, msg: String(msg).replace(/\s+/g, " ").slice(0, 220) };
 }
@@ -216,7 +225,7 @@ async function geminiCall(s, base, key, body, signal) {
         else if (e.status === 429) {
           const q = parse429(e);
           if (!q.perModel) {   // 整个项目的额度：换模型没用，直接停
-            const u = usage(); u.gemini = { ...(u.gemini || {}), blockedUntil: q.until, blockedDaily: q.daily }; saveUsage(u);
+            const u = usage(); u.gemini = { ...(u.gemini || {}), blockedUntil: q.until, blockedDaily: q.daily, blockedScope: "project" }; saveUsage(u);
             throw Object.assign(new QuotaError(t("Google 返回 429（整个项目的额度）：{msg}。预计 {time} 恢复。", { msg: q.msg, time: clock(q.until) }), { reason: q.daily ? "daily" : "blocked", resumeAt: q.until, used: u.gemini.count || 0 }), { explained: true });
           }
           markModel(BLOCK_KEY, model, q.until); fails.push({ model, status: 429, q });
