@@ -43,7 +43,7 @@ import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
 import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, newCatKey } from "./core/categories.js";
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, clearModelMarks, resetUsage, testModel } from "./core/ai.js";
-import { saveAiForm } from "./settings/views.js";
+import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
 import { applySpendDrill, cleanStore, clearSpendFilter, download, exportAnnual, rememberStore, renderSpendList, renderSpendRecords, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
 
 const APP_NAME = "爱家小助手";
@@ -303,6 +303,7 @@ function onRoute() {
   if (next.section === "bills" && next.sub === "spend" && next.q.get("tab") === "records" && applySpendDrill(next.q)) history.replaceState(null, "", `${href("bills", "spend")}?tab=records`);
   state.route = next;
   render(true);
+  if (next.section === "me" && next.sub === "settings" && next.q.get("sec") === "ai") hydrateModelSelect();   // AI 设置：后台查这个 key 实际能用的模型，填进下拉
   if (next.section === "bills" && next.sub === "spend" && next.q.get("add")) {   // 花费页右上角“记一笔花费”：滚到补记表单并聚焦名称，再把参数去掉
     requestAnimationFrame(() => { const pf = $("#purchaseForm"); if (pf) { pf.scrollIntoView({ block: "center" }); pf.elements.name.focus({ preventScroll: true }); } });   // 等页面把焦点放好之后再聚焦
     history.replaceState(null, "", `${href("bills", "spend")}?tab=records`);
@@ -411,8 +412,11 @@ main.addEventListener("change", async (e) => {
   }
   if (e.target.id === "alertSort") { setTodayPref({ mode: e.target.value }); return render(); }
   if (e.target.closest("#aiSettingsForm") && e.target.name === "provider") {   // 换服务商：清掉上一家残留的模型名 / 地址（否则会把请求发到别家 → 404），重画 key 说明、默认模型、免费额度
-    const f = e.target.form; f.elements.model.value = ""; f.elements.base.value = "";
-    await saveAiForm(f); return render();
+    const f = e.target.form; f.elements.model.value = ""; f.elements.base.value = ""; if (f.elements.rpm) { f.elements.rpm.value = ""; f.elements.rpd.value = ""; }   // 上限是按服务商 / 模型的，一起清
+    await saveAiForm(f); render(); return hydrateModelSelect();
+  }
+  if (e.target.closest("#aiSettingsForm") && e.target.name === "modelSel") {   // 选了模型：带入上限、自动保存
+    return onModelPick(e.target);
   }
   if (e.target.closest("#itemForm") && e.target.name === "category") {
     const fe = e.target.form.elements;
@@ -501,7 +505,7 @@ main.addEventListener("submit", async (e) => {
       toast(editing ? t("分类已保存") : t("已添加分类 {name}", { name }));
       return refresh();
     }
-    if (f.id === "aiSettingsForm") { await saveAiForm(f); toast(t("AI 设置已保存（只存在本机）")); return render(); }
+    if (f.id === "aiSettingsForm") { await saveAiForm(f); toast(t("AI 设置已保存（只存在本机）")); render(); return hydrateModelSelect(); }
     if (f.id === "termsForm") {   // 自定义名称的翻译：每行 term + 简体 / English / 繁體；全空的行删掉
       let n = 0;
       for (const tr of f.querySelectorAll("tr[data-term]")) {
@@ -844,7 +848,7 @@ main.addEventListener("click", async (e) => {
       case "ai-copy-answer": return copyAnswer();
       case "ai-marks-clear": clearModelMarks(); toast(t("已清除，下次会重新试这些模型")); return render();
       case "ai-usage-reset": resetUsage(el.dataset.provider); toast(t("已重置本机的调用计数")); return render();
-      case "ai-clear-adv": { const f = $("#aiSettingsForm"); if (f) { f.elements.model.value = ""; f.elements.base.value = ""; await saveAiForm(f); } toast(t("已清掉，改用内置默认")); return render(); }
+      case "ai-clear-adv": { const f = $("#aiSettingsForm"); if (f) { f.elements.model.value = ""; f.elements.base.value = ""; if (f.elements.rpm) { f.elements.rpm.value = ""; f.elements.rpd.value = ""; } await saveAiForm(f); } toast(t("已清掉，改用内置默认")); return render(); }
       case "ai-test": {
         el.disabled = true; const out = $("#aiTestOut");
         try { await saveAiForm($("#aiSettingsForm")); await testModel(); out.textContent = t("连接成功 ✓"); out.className = "muted ok-text"; }

@@ -322,7 +322,56 @@ export const promptText = (ask, opts) => { const p = menuPrompt(ask, opts); retu
 /* ── 调用 ── */
 /** 通用一问一答：system + user → 文本；json=true 时要求模型只回 JSON（Gemini 用 responseMimeType） */
 /** 能读图片的服务商：Gemini（有免费档）、OpenAI、Claude；“自定义”不确定，放行让接口自己报错 */
-export const visionCapable = (p = providerOf(aiSettings().provider)) => ["gemini", "openai", "anthropic", "custom"].includes(p.id);
+/* ── 免费档常用模型目录：设置里下拉选，选中就带入每分钟 / 每天上限（各家公布的免费档值，会变，以控制台为准）。
+ * Gemini / Groq 还会用你的 key 去查实际能用的模型（缓存一天）；OpenRouter 的免费模型列表是公开的。目录里没有的模型上限留空，用服务商默认 */
+export const FREE_MODELS = {
+  gemini: [
+    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", rpm: 10, rpd: 250, vision: true },
+    { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash-Lite", rpm: 15, rpd: 1000, vision: true },
+    { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", rpm: 15, rpd: 200, vision: true },
+    { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash-Lite", rpm: 30, rpd: 200, vision: true },
+  ],
+  groq: [
+    { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B（最快）", rpm: 30, rpd: 14400 },
+    { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B", rpm: 30, rpd: 1000 },
+    { id: "meta-llama/llama-4-scout-17b-16e-instruct", name: "Llama 4 Scout（能读图）", rpm: 30, rpd: 1000, vision: true },
+    { id: "openai/gpt-oss-20b", name: "GPT-OSS 20B", rpm: 30, rpd: 1000 },
+    { id: "openai/gpt-oss-120b", name: "GPT-OSS 120B", rpm: 30, rpd: 1000 },
+    { id: "qwen/qwen3-32b", name: "Qwen3 32B", rpm: 60, rpd: 1000 },
+  ],
+  openrouter: [   // 免费模型统一每分钟 20 次、每天 50 次（充过 $10 的账号每天 1000 次）
+    { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B", rpm: 20, rpd: 50 },
+    { id: "google/gemma-3-27b-it:free", name: "Gemma 3 27B（能读图）", rpm: 20, rpd: 50, vision: true },
+    { id: "deepseek/deepseek-chat-v3-0324:free", name: "DeepSeek V3", rpm: 20, rpd: 50 },
+    { id: "qwen/qwen3-235b-a22b:free", name: "Qwen3 235B", rpm: 20, rpd: 50 },
+    { id: "mistralai/mistral-small-3.2-24b-instruct:free", name: "Mistral Small 3.2（能读图）", rpm: 20, rpd: 50, vision: true },
+  ],
+};
+export const modelInfo = (pid, id) => (FREE_MODELS[pid] || []).find((m) => m.id === id) || null;
+const MODELS_CACHE = "hmh-ai-models";   // { provider: { ts, ids } }：这个 key 实际能用的模型，缓存一天
+/** 下拉框用的模型列表：有实际列表就以它为准（目录里有的带上限、没有的上限留空、已对这个 key 下线的标出来），查不到就只给目录 */
+export async function listModels(pid, { refresh = false } = {}) {
+  const cat = FREE_MODELS[pid] || [], s = aiSettings(), p = providerOf(pid), key = s.key.trim().replace(/^Bearer\s+/i, "");
+  let cache = {}; try { cache = JSON.parse(localStorage.getItem(MODELS_CACHE) || "{}"); } catch { /* 忽略 */ }
+  let ids = cache[pid]?.ids; const fresh = cache[pid] && Date.now() - cache[pid].ts < 24 * 3600e3;
+  if ((!fresh || refresh) && (key || pid === "openrouter")) {
+    try {
+      const base = effective(s, p).base;
+      if (pid === "gemini") ids = rankGemini((await geminiCandidates(base, key)).all);
+      else if (pid === "groq") { const j = await readJson(await fetch(`${base}/models`, { headers: { Authorization: `Bearer ${key}` } })); ids = (j.data || []).map((m) => m.id).filter((id) => !/whisper|tts|guard|embed|safeguard/i.test(id)); }
+      else if (pid === "openrouter") { const j = await readJson(await fetch(`${base}/models`)); ids = (j.data || []).map((m) => m.id).filter((id) => /:free$/.test(id)); }
+      if (ids) { cache[pid] = { ts: Date.now(), ids }; try { localStorage.setItem(MODELS_CACHE, JSON.stringify(cache)); } catch { /* 忽略 */ } }
+    } catch (e) { console.warn("[ai models]", e.message); }
+  }
+  const dead = deadModels();
+  if (!ids) return cat.map((m) => ({ ...m, live: false, dead: !!dead[m.id] }));
+  const known = (id) => cat.find((m) => m.id === id);
+  // Gemini 按实际列表的顺序（新到旧）；其他家目录里的在前、其余按字母
+  const order = pid === "gemini" ? ids : [...cat.map((m) => m.id).filter((id) => ids.includes(id)), ...ids.filter((id) => !known(id)).sort()];
+  return order.map((id) => ({ ...(known(id) || { id, name: id, rpm: null, rpd: null }), live: true, dead: !!dead[id] }));
+}
+/** 能不能读图：按服务商，或目录里标了能读图的模型（Groq 的 Llama 4、OpenRouter 的 Gemma 3 等） */
+export const visionCapable = (p = providerOf(aiSettings().provider), model = effective(aiSettings(), p).model) => ["gemini", "openai", "anthropic", "custom"].includes(p.id) || !!modelInfo(p.id, model)?.vision;
 export async function askText(system, user, { json = false, maxTokens = 1500, images = [], temperature = 0.7 } = {}) {
   const s = aiSettings(), p = providerOf(s.provider);
   const { base, model } = effective(s, p), key = s.key.trim().replace(/^Bearer\s+/i, "");   // 有人把 “Bearer xxx” 整段贴进来

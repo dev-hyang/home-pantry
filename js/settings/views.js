@@ -1,11 +1,11 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, catsOf, esc, fmtShort, syncState } from "../core/util.js";
+import { $, catsOf, esc, fmtShort, syncState, toast } from "../core/util.js";
 import { catFormHtml } from "../pantry/views.js";
 import { LANGS, detectLang, glossaryOf, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
-import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, effective, providerOf, quotaStatus, saveAiSettings, deadModels, blockedModels } from "../core/ai.js";
+import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, effective, providerOf, quotaStatus, saveAiSettings, deadModels, blockedModels, FREE_MODELS, listModels, modelInfo } from "../core/ai.js";
 import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
 import { viewPrintSettings } from "./print.js";
 import { incomePanel } from "./income.js";
@@ -190,6 +190,46 @@ function quotaBlock(s, p) {
       <small class="muted">${t("计数只在本机浏览器里，换设备或家人各自计")}</small></div>
   </fieldset>`;
 }
+/* ── 模型下拉：常用免费模型目录（带上限）+ 这个 key 实际能用的列表（画出来后后台查，缓存一天）；没有目录的服务商仍是手填 ── */
+const modelOption = (pid, m, cur) => {
+  const lim = m.rpm ? ` · ${t("{a}/分 · {b}/天", { a: m.rpm, b: m.rpd })}` : m.live ? ` · ${t("上限以控制台为准")}` : "";
+  return `<option value="${esc(m.id)}" ${m.id === cur ? "selected" : ""} ${m.dead ? "disabled" : ""}>${esc(m.name)}${m.name !== m.id ? ` (${esc(m.id)})` : ""}${lim}${m.dead ? `（${t("这个 key 已不可用")}）` : ""}</option>`;
+};
+export const modelOptionsHtml = (pid, list, cur, custom) => `<option value="">${t("自动：按这个 key 能用的模型自动选（推荐）")}</option>${list.map((m) => modelOption(pid, m, custom ? "" : cur)).join("")}${cur && !custom && !list.some((m) => m.id === cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}<option value="__custom" ${custom ? "selected" : ""}>${t("其他（手填模型名）…")}</option>`;
+export function limitHint(pid, id) {
+  if (!id) return t("自动：按可用列表从新到旧试，某个模型超限或下线会自动换下一个。上限用下面的默认值。");
+  const m = modelInfo(pid, id);
+  if (m?.rpm) return t("免费档公布值：每分钟 {a} 次、每天 {b} 次，已带入下面的上限（会变，以控制台为准）。它超限或下线时仍会自动换别的模型。", { a: m.rpm, b: m.rpd });
+  return t("这个模型的免费上限目录里没有：下面的上限留空用默认值，或按控制台 Rate limits 页手填。");
+}
+function modelField(s, p) {
+  if (!FREE_MODELS[p.id]) return `<label>${t("模型名（留空用默认）")}<input name="model" maxlength="80" placeholder="${esc(autoModel(p.id) || p.model)}" value="${esc(s.model)}"></label>`;
+  const cur = s.model || "", list = FREE_MODELS[p.id].map((m) => ({ ...m, live: false })), custom = !!cur && !list.some((m) => m.id === cur) && !(autoModel(p.id) === cur);
+  return `<label class="span-2">${t("模型")}<select name="modelSel" data-provider="${p.id}">${modelOptionsHtml(p.id, list, cur, custom)}</select>
+      <small id="modelLimitHint">${limitHint(p.id, custom ? "" : cur)}</small><small id="modelListNote" class="muted">${t("正在查这个 key 实际能用的模型…")}</small></label>
+    <label class="span-2" id="modelCustomWrap" ${custom ? "" : "hidden"}>${t("模型名（照服务商控制台里的写）")}<input name="model" maxlength="80" placeholder="${esc(p.model)}" value="${esc(cur)}"></label>`;
+}
+/** 画出设置页后：后台查实际可用的模型，把下拉换成真实列表（选中项不变） */
+export async function hydrateModelSelect() {
+  const sel = document.querySelector("#aiSettingsForm [name=modelSel]"); if (!sel) return;
+  const pid = sel.dataset.provider, list = await listModels(pid);
+  const sel2 = document.querySelector("#aiSettingsForm [name=modelSel]"); if (!sel2 || sel2.dataset.provider !== pid) return;
+  const custom = sel2.value === "__custom", cur = sel2.form.elements.model.value.trim();
+  sel2.innerHTML = modelOptionsHtml(pid, list, cur, custom);
+  const note = document.getElementById("modelListNote");
+  if (note) note.textContent = list.some((m) => m.live) ? t("列表是这个 key 实际能用的模型（每天查一次）；灰色的是已对这个 key 下线的。") : t("还没查到实际列表（填好 key 并保存后会查），先列常用的。");
+}
+/** 下拉选了模型：同步到隐藏的模型名输入框，带入上限，自动保存 */
+export async function onModelPick(sel) {
+  const f = sel.form, wrap = document.getElementById("modelCustomWrap"), custom = sel.value === "__custom", pid = sel.dataset.provider;
+  wrap.hidden = !custom;
+  if (custom) { f.elements.model.value = ""; f.elements.model.focus(); return; }
+  f.elements.model.value = sel.value;
+  const m = modelInfo(pid, sel.value);
+  f.elements.rpm.value = m?.rpm ? m.rpm : ""; f.elements.rpd.value = m?.rpd ? m.rpd : "";
+  const h = document.getElementById("modelLimitHint"); if (h) h.textContent = limitHint(pid, sel.value);
+  await saveAiForm(f); toast(sel.value ? t("已选 {m}，上限已带入并保存", { m: sel.value }) : t("已改回自动选模型"));
+}
 function aiBlock() {
   const s = aiSettings(), p = providerOf(s.provider), custom = p.id === "custom";
   const COST = { free: t("免费额度"), cheapest: t("最便宜"), cheap: t("便宜"), mid: t("中等") };
@@ -205,7 +245,7 @@ function aiBlock() {
     ${custom ? "" : `<p class="hint">${t("模型名和接口地址已内置（{model}），一般不用改；要换模型再展开下面的“高级”。", { model: effective(s, p).model })}${s.model || s.base ? ` <button type="button" class="btn btn-sm btn-ghost" data-action="ai-clear-adv">${t("清掉手填的模型名 / 地址")}</button>` : ""}</p>`}
     <details class="adv" ${custom ? "open" : ""}><summary>${custom ? t("接口地址、模型与鉴权（自定义必填）") : t("高级：换模型 / 自定义接口地址")}</summary>
       <div class="form-grid" style="margin-top:8px">
-        <label>${t("模型名（留空用默认）")}<input name="model" maxlength="80" placeholder="${esc(autoModel(p.id) || p.model)}" value="${esc(s.model)}"></label>
+        ${modelField(s, p)}
         <label>${t("接口地址（自定义时填）")}<input name="base" maxlength="200" placeholder="${esc(p.base || "https://…/v1")}" value="${esc(s.base)}"><small>${t("要填真正的 API 域名（到 /v1 为止），不是官网；401 多半是 key 和地址不配")}</small></label>
         <label>${t("鉴权头（自定义时）")}<select name="auth">${Object.entries(AUTH_STYLES).map(([k, n]) => `<option value="${k}" ${(s.auth || "bearer") === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
       </div>
