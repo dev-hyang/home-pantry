@@ -204,7 +204,7 @@ export function limitHint(pid, id) {
 }
 function modelField(s, p) {
   if (!FREE_MODELS[p.id]) return `<label>${t("模型名（留空用默认）")}<input name="model" maxlength="80" placeholder="${esc(autoModel(p.id) || p.model)}" value="${esc(s.model)}"></label>`;
-  const cur = s.model || "", list = FREE_MODELS[p.id].map((m) => ({ ...m, live: false })), custom = !!cur && !list.some((m) => m.id === cur) && !(autoModel(p.id) === cur);
+  const cur = s.model || "", list = FREE_MODELS[p.id].filter((m) => m.free !== false).map((m) => ({ ...m, live: false })), custom = !!cur && !list.some((m) => m.id === cur) && !(autoModel(p.id) === cur);
   return `<label class="span-2">${t("模型")}<select name="modelSel" data-provider="${p.id}">${modelOptionsHtml(p.id, list, cur, custom)}</select>
       <small id="modelLimitHint">${limitHint(p.id, custom ? "" : cur)}</small><small id="modelListNote" class="muted">${t("正在查这个 key 实际能用的模型…")}</small></label>
     <label class="span-2" id="modelCustomWrap" ${custom ? "" : "hidden"}>${t("模型名（照服务商控制台里的写）")}<input name="model" maxlength="80" placeholder="${esc(p.model)}" value="${esc(cur)}"></label>`;
@@ -214,8 +214,9 @@ export async function hydrateModelSelect() {
   const sel = document.querySelector("#aiSettingsForm [name=modelSel]"); if (!sel) return;
   const pid = sel.dataset.provider, list = await listModels(pid);
   const sel2 = document.querySelector("#aiSettingsForm [name=modelSel]"); if (!sel2 || sel2.dataset.provider !== pid) return;
+  const shown = list.filter((m) => m.free !== false);   // 免费档额度为 0 的不列（Pro、2 Flash 等）
   const custom = sel2.value === "__custom", cur = sel2.form.elements.model.value.trim();
-  sel2.innerHTML = modelOptionsHtml(pid, list, cur, custom);
+  sel2.innerHTML = modelOptionsHtml(pid, shown, cur, custom);
   const note = document.getElementById("modelListNote");
   if (note) note.textContent = list.some((m) => m.live) ? t("列表是这个 key 实际能用的模型（每天查一次）；灰色的是已对这个 key 下线的。") : t("还没查到实际列表（填好 key 并保存后会查），先列常用的。");
 }

@@ -22,7 +22,7 @@ export function aiIcon(size = 22, cls = "") {
 // 默认 Gemini：美国可用的免费额度；其余按性价比排序。免费档的次数上限见 FREE_TIER，到上限就停
 export const PROVIDERS = [
   // keyHint：怎么拿 key、长什么样；keyPrefix：key 开头（测试连接时先核对，贴错服务的 key 会直接提示）。模型名和地址都有默认值，只有“自定义”需要填
-  { id: "gemini", name: "Google Gemini", kind: "gemini", base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-flash", cost: "free", signup: "https://aistudio.google.com/apikey", hint: "AI Studio 免费额度（每天有次数上限，太平洋时间 0 点重置）；国内需能访问 Google",
+  { id: "gemini", name: "Google Gemini", kind: "gemini", base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-3.5-flash-lite", cost: "free", signup: "https://aistudio.google.com/apikey", hint: "AI Studio 免费额度（每天有次数上限，太平洋时间 0 点重置）；国内需能访问 Google",
     keyHint: "打开 Google AI Studio → Get API key → Create API key，复制整串贴到这里（旧 key 以 AIza 开头，新 key 以 AQ. 开头，都行）。模型和地址不用填，会自动选可用的 Gemini Flash 模型。", keyPrefix: ["AIza", "AQ."] },
   { id: "groq", name: "Groq（Llama，免费档）", kind: "openai", base: "https://api.groq.com/openai/v1", model: "llama-3.1-8b-instant", cost: "free", signup: "https://console.groq.com/keys", hint: "免费档每天有次数上限，速度快；上限以控制台 Limits 页为准", keyHint: "console.groq.com → API Keys → Create API Key，key 以 gsk_ 开头。", keyPrefix: "gsk_" },
   { id: "openrouter", name: "OpenRouter（免费模型）", kind: "openai", base: "https://openrouter.ai/api/v1", model: "meta-llama/llama-3.3-70b-instruct:free", cost: "free", signup: "https://openrouter.ai/keys", hint: "带 :free 的模型不收费，但每天次数很少；模型名以网站列表为准", keyHint: "openrouter.ai → Keys → Create key，key 以 sk-or- 开头。", keyPrefix: "sk-or-" },
@@ -47,7 +47,7 @@ export function aiSettings() {
 /* ── 免费额度：按服务商的免费档计数，到上限就不发请求，并算出下次可用时间；429 也记下恢复时间 ──
  * 数字是各家公布的免费档常见值，会变，设置里可以改；日配额重置时区：Gemini 太平洋时间 0 点，其余按 UTC 估 */
 export const FREE_TIER = {
-  gemini:     { rpm: 10, rpd: 100, reset: "pt", resetText: "太平洋时间 0 点重置" },   // 按 AI Studio “Rate limits” 页里你这个模型的 RPD 填；RPM 留低一点就行，TPM 对我们这种一次一两千 token 的用法不会先到
+  gemini:     { rpm: 10, rpd: 500, reset: "pt", resetText: "太平洋时间 0 点重置" },   // 自动换模型时按最高的那档（Flash Lite 500 / 天）算；选了具体模型会按目录带入它自己的上限   // 按 AI Studio “Rate limits” 页里你这个模型的 RPD 填；RPM 留低一点就行，TPM 对我们这种一次一两千 token 的用法不会先到
   groq:       { rpm: 30, rpd: 1000, reset: "utc", resetText: "按 UTC 0 点估算重置" },
   openrouter: { rpm: 20, rpd: 50, reset: "utc", resetText: "按 UTC 0 点估算重置" },
 };
@@ -122,7 +122,6 @@ function rateLimited(e, p) {
 }
 /* ── Gemini 模型名自动选择：模型名经常换代（2.0 → 2.5 …），用户没填就从 /models 列表里挑一个可用的 Flash，记在本机 ── */
 const AUTO_MODEL_KEY = "hmh-ai-auto-model";
-const GEMINI_PREF = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-flash-latest"];
 export function autoModel(providerId) { try { return JSON.parse(localStorage.getItem(AUTO_MODEL_KEY) || "{}")[providerId] || ""; } catch { return ""; } }
 function saveAutoModel(providerId, model) { try { const m = JSON.parse(localStorage.getItem(AUTO_MODEL_KEY) || "{}"); m[providerId] = model; localStorage.setItem(AUTO_MODEL_KEY, JSON.stringify(m)); } catch { /* 忽略 */ } }
 /** Google 的 404 里常写着“请改用 models/xxx”：把它点名的模型取出来，第一个试（旧模型对新 key 下线时就是这样） */
@@ -131,9 +130,11 @@ export const suggestedModel = (msg) => { const m = /(?:use|try|switch to)[^.]*?m
  * 它们常常还在列表里却调用 404，所以不能再按固定的旧名单排），同一版本里稳定版在前、flash 在 flash-lite 前 */
 export function rankGemini(gen) {
   const ver = (n) => { const m = /^gemini-(\d+(?:\.\d+)?)/.exec(n); return m ? parseFloat(m[1]) : 0; };
-  const lite = (n) => (/flash-lite/i.test(n) ? 1 : 0), pre = (n) => (/preview|exp|beta/i.test(n) ? 1 : 0);
-  return gen.filter((n) => /^gemini/i.test(n) && /flash/i.test(n) && !/image|tts|audio|live|embedding|robotics|computer-use|thinking|learnlm/i.test(n))
-    .sort((a, b) => pre(a) - pre(b) || ver(b) - ver(a) || lite(a) - lite(b) || a.localeCompare(b));
+  const info = (n) => (FREE_MODELS.gemini || []).find((m) => m.id === n);
+  // 排序：免费档每天次数多的在前（目录里有的按目录；目录里没有的新模型按 100 估，排在 Lite 之后、20 次档之前），同档再按版本新到旧
+  const rpd = (n) => (info(n) ? info(n).rpd : 100), pre = (n) => (/preview|exp|beta/i.test(n) ? 1 : 0);
+  return gen.filter((n) => /^gemini/i.test(n) && /flash/i.test(n) && !/image|tts|audio|live|embedding|robotics|computer-use|thinking|learnlm|transcribe|omni/i.test(n) && info(n)?.free !== false)
+    .sort((a, b) => rpd(b) - rpd(a) || pre(a) - pre(b) || ver(b) - ver(a) || a.localeCompare(b));
 }
 async function geminiCandidates(base, key) {
   const j = await readJson(await fetch(`${base}/models?key=${encodeURIComponent(key)}&pageSize=200`));
@@ -325,11 +326,23 @@ export const promptText = (ask, opts) => { const p = menuPrompt(ask, opts); retu
 /* ── 免费档常用模型目录：设置里下拉选，选中就带入每分钟 / 每天上限（各家公布的免费档值，会变，以控制台为准）。
  * Gemini / Groq 还会用你的 key 去查实际能用的模型（缓存一天）；OpenRouter 的免费模型列表是公开的。目录里没有的模型上限留空，用服务商默认 */
 export const FREE_MODELS = {
+  // Gemini：AI Studio “Rate limits” 页 2026-10 的免费档值。Flash Lite 每天 500 次，其余 Flash 每天只有 20 次，所以“自动”优先用 Lite；
+  // free: false = 免费档额度为 0（2.x Pro / 3.1 Pro / 4 Argon 这类），自动选和下拉里都不碰。模型 ID 按 Google 命名规律写，实际以 /models 列表为准（对不上的会按列表显示）
   gemini: [
-    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", rpm: 10, rpd: 250, vision: true },
-    { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash-Lite", rpm: 15, rpd: 1000, vision: true },
-    { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", rpm: 15, rpd: 200, vision: true },
-    { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash-Lite", rpm: 30, rpd: 200, vision: true },
+    { id: "gemini-3.5-flash-lite", name: "Gemini 3.5 Flash Lite", rpm: 15, rpd: 500, vision: true },
+    { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash Lite", rpm: 15, rpd: 500, vision: true },
+    { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash", rpm: 5, rpd: 20, vision: true },
+    { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash", rpm: 5, rpd: 20, vision: true },
+    { id: "gemini-3-flash", name: "Gemini 3 Flash", rpm: 5, rpd: 20, vision: true },
+    { id: "gemini-3-flash-preview", name: "Gemini 3 Flash (preview)", rpm: 5, rpd: 20, vision: true },
+    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", rpm: 5, rpd: 20, vision: true },
+    { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", rpm: 10, rpd: 20, vision: true },
+    { id: "gemma-4-26b-it", name: "Gemma 4 26B（每天 14400 次，是否能读图未确认）", rpm: 30, rpd: 14400 },
+    { id: "gemma-4-31b-it", name: "Gemma 4 31B（每天 14400 次，是否能读图未确认）", rpm: 30, rpd: 14400 },
+    { id: "gemini-2.0-flash", name: "Gemini 2 Flash", rpm: 0, rpd: 0, free: false },
+    { id: "gemini-2.0-flash-lite", name: "Gemini 2 Flash Lite", rpm: 0, rpd: 0, free: false },
+    { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", rpm: 0, rpd: 0, free: false },
+    { id: "gemini-3.1-pro", name: "Gemini 3.1 Pro", rpm: 0, rpd: 0, free: false },
   ],
   groq: [
     { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B（最快）", rpm: 30, rpd: 14400 },
@@ -357,7 +370,7 @@ export async function listModels(pid, { refresh = false } = {}) {
   if ((!fresh || refresh) && (key || pid === "openrouter")) {
     try {
       const base = effective(s, p).base;
-      if (pid === "gemini") ids = rankGemini((await geminiCandidates(base, key)).all);
+      if (pid === "gemini") { const all = (await geminiCandidates(base, key)).all; ids = [...rankGemini(all), ...all.filter((n) => /^gemma-/i.test(n) && !/image|tts|audio|embedding/i.test(n)).sort()]; }   // 下拉里 Gemma 也列出来（每天次数多，但自动模式不用它：能不能读图没确认）
       else if (pid === "groq") { const j = await readJson(await fetch(`${base}/models`, { headers: { Authorization: `Bearer ${key}` } })); ids = (j.data || []).map((m) => m.id).filter((id) => !/whisper|tts|guard|embed|safeguard/i.test(id)); }
       else if (pid === "openrouter") { const j = await readJson(await fetch(`${base}/models`)); ids = (j.data || []).map((m) => m.id).filter((id) => /:free$/.test(id)); }
       if (ids) { cache[pid] = { ts: Date.now(), ids }; try { localStorage.setItem(MODELS_CACHE, JSON.stringify(cache)); } catch { /* 忽略 */ } }
