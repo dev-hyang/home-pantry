@@ -8,6 +8,7 @@ import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/
 import { resilientFetch } from "./core/net.js";
 import { applyMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
 import { ensureAdults, mergeMedical } from "./bills/medical.js";
+import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-check.js";
 import { mountAppSwitcher } from "../shared/app-switcher.js";
 import { mountLangSwitcher } from "../shared/lang-switcher.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
@@ -629,13 +630,13 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "nameForm") {
       const v = f.elements.display_name.value.trim();
       if (!v) return;
-      const { error } = await CloudStore.sb.from("household_members").update({ display_name: v }).eq("household_id", CloudStore.hid).eq("user_id", state.user.id);
-      if (error) throw new Error(error.message);
-      state.displayName = v; state.members = await CloudStore.listMembers(); toast(t("称呼已保存")); render();
+      dupNameCheck(v, state.user.id);
+      await saveMyName(v); toast(t("称呼已保存")); render();
     }
     if (f.classList.contains("member-rename")) {   // 家主改家人的称呼
       const v = f.elements.display_name.value.trim();
       if (!v) return;
+      dupNameCheck(v, f.dataset.id);
       await CloudStore.setMemberName(f.dataset.id, v);
       state.editMember = null; state.members = await CloudStore.listMembers(); toast(t("称呼已保存")); return render();
     }
@@ -1172,6 +1173,20 @@ export async function afterLogin() {
   state.membersReady = CloudStore.listMembers().then((m) => { state.members = m; return m; });   // 和 refresh 的数据读取并行
   CloudStore.subscribe(refreshSoon);
   await refresh();
+  // 同一个人开了多个浏览器 / 设备会变成多位“爸爸”：发现和别人同名，推荐加序列号或日期
+  state.membersReady.then(() => promptDuplicateName({ save: saveMyName })).then((v) => { if (v) render(false); }).catch(() => {});
+}
+
+/** 保存我自己的称呼（家庭成员表），并刷新成员列表 */
+async function saveMyName(v) {
+  const { error } = await CloudStore.sb.from("household_members").update({ display_name: v }).eq("household_id", CloudStore.hid).eq("user_id", state.user.id);
+  if (error) throw new Error(error.message);
+  state.displayName = v; state.members = await CloudStore.listMembers();
+}
+/** 改称呼前检查：和别的成员同名就拦住，并给出推荐（exceptId = 正在被改名的那位） */
+function dupNameCheck(v, exceptId) {
+  if (!sameNameMember(v, state.members, exceptId)) return;
+  throw new Error(t("已有成员叫“{n}”，建议改成：{s}", { n: v, s: suggestNames(v, state.members, exceptId).join(" / ") }));
 }
 
 

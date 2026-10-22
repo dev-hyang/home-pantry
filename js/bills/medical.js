@@ -46,9 +46,31 @@ let rosterTried = false;
 export async function ensureAdults() {
   if (rosterTried || !state.members?.length) return false; rosterTried = true;
   let added = false;
+  const taken = new Map(state.people.map((p) => [nkey(p.name), p]));   // 名册里已有的名字（含这一轮刚处理的）：同名会撞唯一索引，先在本地判断，不再发注定 409 的请求
   for (const m of state.members) {
     if (state.people.some((p) => p.member_user_id === m.user_id)) continue;
-    try { await Store.savePerson({ name: m.display_name || "家人", kind: "adult", member_user_id: m.user_id }); added = true; } catch { /* 名字已在名册里（别人先建了）：忽略 */ }
+    const name = m.display_name || "家人", key = nkey(name), same = taken.get(key);
+    try {
+      if (same) {
+        // 同名且还没绑定成员：认领它（把这位成员关联上去）；已被别人占用（两位成员同名等）：跳过，名册里已经有这个名字
+        if (!same.member_user_id && same.id) { await Store.savePerson({ ...same, member_user_id: m.user_id }); same.member_user_id = m.user_id; added = true; }
+        continue;
+      }
+      await Store.savePerson({ name, kind: "adult", member_user_id: m.user_id }); taken.set(key, { name, member_user_id: m.user_id }); added = true;
+    } catch (e) {
+      if (!/duplicate key|household_people_name_idx|23505/i.test(e?.message || e?.code || "")) continue;
+      // 本地名册不全（读取失败退回空列表，或别的设备刚建了同名的人）：重读一次，认领同名但未绑定的，其余成员不再发请求
+      try {
+        const fresh = await Store.listPeople(); state.people = fresh;
+        const t2 = new Map(fresh.map((p) => [nkey(p.name), p]));
+        for (const m2 of state.members) {
+          const q = t2.get(nkey(m2.display_name || "家人"));
+          if (q && !q.member_user_id && !fresh.some((p) => p.member_user_id === m2.user_id)) { try { await Store.savePerson({ ...q, member_user_id: m2.user_id }); q.member_user_id = m2.user_id; } catch { /* 忽略 */ } }
+        }
+        state.people = await Store.listPeople();
+      } catch { /* 忽略 */ }
+      return true;
+    }
   }
   if (added) state.people = await Store.listPeople();
   return added;

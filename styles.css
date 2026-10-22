@@ -914,7 +914,7 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .ok-text { color: var(--ok); }
 /* 介绍页 */
 .about { max-width: none; }
-.about-intro p { margin: 0 0 8px; line-height: 1.7; }
+.about-intro p { margin: 0 0 8px; line-height: 1.7; overflow-wrap: anywhere; }
 .about-intro p:last-child { margin-bottom: 0; }
 .about-sec { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); margin-top: 12px; }
 .about-sec summary { cursor: pointer; padding: 14px 18px; font-weight: 800; font-size: 16px; list-style: none; display: flex; align-items: center; justify-content: space-between; }
@@ -922,14 +922,18 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .about-sec summary::after { content: "+"; color: var(--muted); font-weight: 400; font-size: 20px; }
 .about-sec[open] summary::after { content: "−"; }
 .about-sec[open] summary { border-bottom: 1px dashed var(--line); }
-.about-body { padding: 12px 18px 16px; font-size: 14px; line-height: 1.65; }
+.about-body { padding: 12px 18px 16px; font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
 .about-modules { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .about-modules li { display: flex; gap: 12px; align-items: flex-start; }
+.about-modules li > div { min-width: 0; }
 .about-modules li p { margin: 2px 0 0; color: var(--muted); }
 .about-ico { font-size: 22px; width: 32px; text-align: center; flex: 0 0 auto; }
 .about-steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
 .about-notes { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
-.about-table th { width: 20%; white-space: nowrap; }
+.about-levels { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 8px; }
+.about-levels li { display: flex; gap: 10px; align-items: flex-start; }
+.about-levels .badge { flex: 0 0 auto; min-width: 48px; justify-content: center; text-align: center; margin-top: 1px; }
+.about-levels li > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .about-foot { margin: 16px 0 0; font-size: 13px; }
 .config-diag { border-left: 6px solid var(--mustard); }
 .config-diag p { margin: 6px 0; }
@@ -1207,3 +1211,11 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .form-grid select { text-overflow: ellipsis; }
 .notice-box { margin-top: 8px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--soon-bg); color: var(--soon); border: 1px solid color-mix(in srgb, var(--soon) 30%, transparent); font-size: 13px; }
 .notice-box p { margin: 0 0 6px; overflow-wrap: anywhere; }
+
+@media (max-width: 640px) { .about-sec summary { padding: 13px 14px; font-size: 15px; } .about-body { padding: 12px 14px 14px; } .about-steps { padding-left: 20px; } .about-notes { padding-left: 18px; } }
+
+.name-dup-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.name-dup { width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; margin: 0; }
+.name-dup h3 { margin: 0 0 6px; overflow-wrap: anywhere; }
+.name-dup .chips { margin: 10px 0; flex-wrap: wrap; overflow: visible; }
+.name-dup input { width: 100%; }
