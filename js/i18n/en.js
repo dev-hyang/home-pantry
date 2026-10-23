@@ -140,6 +140,7 @@ export const EN = {
   "厨房用品": "Kitchenware", "餐具碗盘": "Dishes & bowls", "锅具炊具": "Pots & cookware", "烘焙工具": "Baking tools", "烤盘托盘": "Baking sheets & trays", "刀具砧板": "Knives & boards", "厨房小工具": "Kitchen gadgets", "小家电": "Small appliances", "保鲜收纳": "Food storage",
   "{n} 项": "{n} items", "清空已买到": "Clear bought",
   "回到顶部": "Back to top",
+  "松手删除": "Release to delete",
   "损坏了，换新": "Broken — replace", "“{name}”坏了一件？数量会减 1，并加入采购清单换新（买到后自动加回库存）。": "One “{name}” broke? The count goes down by 1 and a replacement is added to the shopping list (it is added back to stock when bought).", "{name} 少了一件，已加入采购清单换新": "{name}: one fewer, replacement added to the shopping list",
   "家居用品": "Home goods", "出行户外": "Travel & outdoors", "汽车装备": "Car gear", "工具": "Tools", "园艺工具": "Garden tools",
   "床上用品": "Bedding", "毛巾浴巾": "Towels", "季节电器": "Seasonal appliances", "收纳杂物": "Storage & misc",

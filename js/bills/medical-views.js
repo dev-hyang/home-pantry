@@ -178,9 +178,9 @@ function viewDetail(id, payId) {
 const METHODS = ["信用卡", "借记卡", "HSA 卡", "FSA 卡", "支票", "银行转账（ACH）", "网上支付", "电话支付", "现金", "其他"];
 const methodOptions = (cur) => `<option value="">${t("（未选）")}</option>${METHODS.map((m) => `<option value="${esc(m)}" ${m === cur ? "selected" : ""}>${esc(t(m))}</option>`).join("")}${cur && !METHODS.includes(cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}`;
 function paymentsHtml(b, edit, owed) {
-  const rows = b.pays.map((p) => `<li class="med-pay${edit?.id === p.id ? " is-editing" : ""}"><a class="badge pay-date" style="background:var(--surface-2)" href="${detailHref(b.id)}&pay=${p.id}" title="${esc(t("点一下编辑"))}">${esc(fmtDate(p.paid_on))}</a>
+  const rows = b.pays.map((p) => `<li class="med-pay${edit?.id === p.id ? " is-editing" : ""}" data-swipe><a class="badge pay-date" style="background:var(--surface-2)" href="${detailHref(b.id)}&pay=${p.id}" title="${esc(t("点一下编辑"))}">${esc(fmtDate(p.paid_on))}</a>
       <div class="grow"><a class="link-name name" href="${detailHref(b.id)}&pay=${p.id}" title="${esc(t("点一下编辑"))}">${mny(p.amount, p.currency || b.currency)}</a><small>${[p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="med-pay-del" data-id="${p.id}">${t("删除")}</button></li>`).join("");
+      <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="med-pay-del" data-id="${p.id}">${t("删除")}</button></li>`).join("");
   const sumLine = owed == null ? t("还没填自付金额或总额，余额未知") : t("自付 {o} · 已付 {p} · 余额 {b}", { o: mny(owed, b.currency), p: mny(b.paid, b.currency), b: mny(b.balance, b.currency) });
   return `<div class="section-head"><h2>${t("付款记录")}</h2><p>${esc(sumLine)}</p></div>
     <form id="medPayForm" class="panel" novalidate data-bill="${b.id}" data-id="${d(edit?.id)}">
@@ -300,13 +300,13 @@ export function viewPeople() {
   const used = (id) => state.medBills.filter((b) => b.patient_id === id || b.guarantor_id === id).length;
   const edit = state.personEdit;
   const merging = state.personMerge;
-  const row = (p) => `<li class="person-row">
+  const row = (p) => `<li class="person-row" data-swipe>
       <span class="badge" style="background:var(--surface-2)">${KIND_ICON[p.kind] || ""} ${t(PEOPLE_KINDS[p.kind] || p.kind)}</span>
       <div class="person-main">${edit === p.id ? `<input id="personEditName" maxlength="40" value="${esc(p.name)}" aria-label="${t("姓名")}">` : `<span class="name">${esc(p.name)}</span><small>${[p.member_user_id ? t("家庭成员") : null, used(p.id) ? t("{n} 张账单用了", { n: used(p.id) }) : t("还没有账单")].filter(Boolean).join(" · ")}</small>`}</div>
       <div class="person-actions">${edit === p.id ? `<button type="button" class="btn btn-sm btn-primary" data-action="person-edit-save" data-id="${p.id}">${t("保存")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-edit-cancel">${t("取消")}</button>`
         : `<button type="button" class="btn btn-sm btn-ghost" data-action="person-edit" data-id="${p.id}">${t("改名")}</button>
            ${state.people.length > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="person-merge-open" data-id="${p.id}" aria-expanded="${merging === p.id}">${t("合并")}</button>` : ""}
-           <button type="button" class="btn btn-sm btn-danger-ghost" data-action="person-del" data-id="${p.id}">${t("删除")}</button>`}</div>
+           <button type="button" class="btn btn-sm btn-danger-ghost swipe-src" data-action="person-del" data-id="${p.id}">${t("删除")}</button>`}</div>
       ${merging === p.id && edit !== p.id ? `<div class="person-merge"><span class="muted">${t("把“{n}”合并到：", { n: esc(p.name) })}</span>
         <select data-merge-for="${p.id}" aria-label="${t("合并到")}"><option value="">${t("选一个人…")}</option>${state.people.filter((x) => x.id !== p.id).map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select>
         <button type="button" class="btn btn-sm btn-primary" data-action="person-merge" data-id="${p.id}">${t("确认合并")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-merge-cancel">${t("取消")}</button>

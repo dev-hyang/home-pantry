@@ -1260,3 +1260,20 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 @media (prefers-reduced-motion: reduce) { .minibar, .minibar.show { transition: none; } }
 @media print { .minibar { display: none !important; } }
 body.editing .minibar { display: none; }
+/* 行记录左滑删除（js/swipe-rows.js）：向左滑露出红色「删除」，点它删除；滑过大半松手直接删除；向右滑没有动作 */
+.swipe-row { position: relative; overflow: hidden; --swipe-fg: var(--surface); }
+.swipe-row > .swipe-fg { position: relative; z-index: 1; background-color: var(--swipe-fg); transition: transform .18s ease; touch-action: pan-y; }
+.swipe-row.swiping > .swipe-fg { transition: none; }
+.swipe-row.swiping { user-select: none; -webkit-user-select: none; }
+.swipe-bg { position: absolute; inset: 0; display: flex; justify-content: flex-end; align-items: stretch; background: #b3261e; color: #fff; }
+.swipe-del { all: unset; box-sizing: border-box; min-width: 88px; display: flex; align-items: center; justify-content: center; padding: 0 14px; font-weight: 700; font-size: 14px; cursor: pointer; }
+.swipe-del:focus-visible { outline: 3px solid #fff; outline-offset: -4px; }
+.swipe-del .s-go { display: none; }
+.swipe-row.ready .swipe-bg { background: #8e1a14; }
+.swipe-row.ready .s-del { display: none; }
+.swipe-row.ready .s-go { display: inline; }
+/* 原来的删除按钮留着（给键盘和读屏用），平时视觉隐藏，Tab 到它时显示 */
+.swipe-src { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.swipe-src:focus, .swipe-src:focus-visible { position: static !important; width: auto; height: auto; margin: 0; padding: revert; border: revert; overflow: visible; clip: auto; }
+@media (prefers-reduced-motion: reduce) { .swipe-row > .swipe-fg { transition: none; } }
+@media print { .swipe-bg { display: none; } }
