@@ -45,7 +45,7 @@ import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, ne
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
-import { applySpendDrill, cleanStore, clearSpendFilter, download, exportAnnual, rememberStore, renderSpendList, renderSpendRecords, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
+import { applySpendDrill, cleanStore, clearSpendFilter, download, exportAnnual, rememberStore, renderSpendList, renderSpendRecords, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
 
 const APP_NAME = "爱家小助手";
 
@@ -475,6 +475,7 @@ main.addEventListener("change", async (e) => {
     toast(e.target.checked ? t("已打开装备") : t("已关闭装备，导航里不再显示")); render();
   }
   { const k = { spendCat: "cat", spendStore: "store", spendMonth: "month", spendSort: "sort" }[e.target.id]; if (k) { state.spendFilter[k] = e.target.value; if (k === "store") state.spendFilter.stores = null; if (k === "cat") state.spendFilter.grp = null; if (k === "month") state.spendFilter.months = null; state.spendFilter.limit = 20; renderSpendList(); } }   // 手动选了单个商店 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”
+  if (e.target.dataset?.action === "stats-bill-merge") { setBillMerge(e.target.checked); render(); }
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
   if (e.target.id === "hhSwitch") { localStorage.setItem("hmh-hid", e.target.value); location.reload(); }

@@ -17,9 +17,15 @@ const BILL_CATS = () => BILLS_GROUP.cats();
 export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" }, { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" }, { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" }, OTHER_CAT];
 // 统计图里：储藏各分类单独显示，房屋耗材和设备维修保养合并为“房屋维护”、装备合并为“装备”、车辆维修保养为“车辆”各一组；
 // 账单按具体种类各一项（电费、燃气费、房贷…，只有有花费的才会出现在图里），同类账单同色相
-export const STAT_CATS = () => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, ...BILL_CATS(), MEDICAL_GROUP, OTHER_CAT];
+// 花费页有个“同一大类合并显示”开关（水电气网、住房、车…各合成一项，颜色少一些），选择记在本机；
+// merge 参数默认跟开关走，明细页的分类下拉传 false，始终列具体种类
+const MERGE_KEY = "hmh-bill-merge";
+try { state.stats.billMerge = localStorage.getItem(MERGE_KEY) === "1"; } catch { state.stats.billMerge = false; }
+export const setBillMerge = (on) => { state.stats.billMerge = !!on; try { localStorage.setItem(MERGE_KEY, on ? "1" : "0"); } catch { /* 隐私模式下忽略 */ } };
+const billStatCats = (merge) => (merge ? [...BILLS_GROUP.families(), ...BILL_CATS().filter((c) => !BILLS_GROUP.familyOf(c.id))] : BILL_CATS());
+export const STAT_CATS = (merge = state.stats.billMerge) => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, ...billStatCats(merge), MEDICAL_GROUP, OTHER_CAT];
 const isBill = (id) => String(id || "").startsWith("bill_");
-export const statCat = (id) => {
+export const statCat = (id, merge = state.stats.billMerge) => {
   if (id === "medical") return id;   // 事件型账单的付款（虚拟花费，见 bills/medical.js）
   if (id === "pet_care") return "pet";   // 宠物账单（兽医、美容、寄养）并进“宠物”这一组
   if (id === "legal") return "other"; if (id === "project") return "house";   // 法律 / 税务并入“其他”，装修 / 项目并入“房屋维护”
@@ -27,10 +33,16 @@ export const statCat = (id) => {
   if (c) return c.space === "pantry" ? c.id : c.space;
   if (id === MAINT_CAT.id) return "house";
   if (id === VEHICLE_CAT.id) return "vehicle";
-  return isBill(id) && BILL_CATS().some((c) => c.id === id) ? id : "other";   // 账单保持具体种类（bill_electric…）；不认识的 bill_ 种类归“其他”，免得合计对不上
+  if (!isBill(id) || !BILL_CATS().some((c) => c.id === id)) return "other";   // 不认识的 bill_ 种类归“其他”，免得合计对不上
+  return (merge && BILLS_GROUP.familyOf(id)) || id;   // 账单保持具体种类（bill_electric…）；合并开关打开时归到所属大类（billfam_utilities…）
 };
-/** 明细 / 钻取的分类筛选：除了统计分类，还支持 "bills" = 全部账单 */
-const catMatches = (sel, category) => (sel === "bills" ? isBill(category) : statCat(category) === sel);
+/** 明细 / 钻取的分类筛选：除了统计分类，还支持 "bills" = 全部账单、"billfam_*" = 一个大类、"bill_*" = 一种账单（不受合并开关影响，书签 / 旧钻取链接都有效） */
+const catMatches = (sel, category) => {
+  if (sel === "bills") return isBill(category);
+  if (sel.startsWith("billfam_")) return isBill(category) && BILLS_GROUP.familyOf(category) === sel;
+  if (isBill(sel)) return category === sel;
+  return statCat(category) === sel;
+};
 export const monthKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };
 const MONTH_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 export const monthLabel = (k) => (lang === "en"
@@ -211,6 +223,14 @@ function spendExportTab() {
     </section>`;
 }
 
+/** “同一大类合并显示”开关：只在这段时间里有 2 种以上账单花费时才出现（否则没东西可合并） */
+function billMergeHtml(sd) {
+  const inRange = new Set(sd.months);
+  const used = new Set(state.purchases.filter((p) => p.amount != null && inRange.has(monthKey(p.purchased_at))).map((p) => statCat(p.category, false)).filter(isBill));
+  if (used.size < 2) return "";
+  return `<label class="check-inline" title="${esc(t("把电费、燃气费、水费、网络…合成“水电气网通讯”，房贷、房租、HOA…合成“住房”等，图里颜色更少"))}"><input type="checkbox" data-action="stats-bill-merge" ${state.stats.billMerge ? "checked" : ""}><span>${t("同一大类账单合并显示")}</span></label>`;
+}
+
 export function viewSpend() {
   const r = state.route, onSpendPage = r?.section === "bills" && r?.sub === "spend";
   const tab = onSpendPage ? activeTab(r) : "all";
@@ -225,7 +245,7 @@ export function viewSpend() {
     <section class="section">
       <div class="section-head"><h2>${t("采购花费")}</h2>${onSpendPage ? `<div class="head-acts"><a class="btn btn-primary btn-sm" href="${href("bills", "spend")}?tab=records&add=1">${t("记一笔花费")}</a></div>` : ""}</div>
       ${onSpendPage ? tabBar(SPEND_TABS, tab, spendHref, t("花费内容")) : ""}
-      ${ranged ? `<div class="range-row">${rangeChipsHtml()}</div>` : ""}
+      ${ranged ? `<div class="range-row">${rangeChipsHtml()}${billMergeHtml(sd)}</div>` : ""}
       ${body}
     </section>`;
 }
@@ -323,7 +343,7 @@ function activeFilterChips() {
   const f = state.spendFilter, out = [];
   const monthName = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
   const storeName = (k) => (k === "__none__" ? t(STORE_NONE.name) : knownStores().find((x) => storeKey(x) === k) || k);
-  if (f.cat !== "all") { const c = f.cat === "bills" ? BILLS_GROUP : STAT_CATS().find((x) => x.id === f.cat); out.push(["cat", c ? `${c.icon} ${t(c.name)}` : f.cat]); }
+  if (f.cat !== "all") { const c = f.cat === "bills" ? BILLS_GROUP : [...STAT_CATS(false), ...BILLS_GROUP.families()].find((x) => x.id === f.cat); out.push(["cat", c ? `${c.icon} ${t(c.name)}` : f.cat]); }
   if (f.grp) { const g = budgetBridge.groups.find((x) => x.id === f.grp); out.push(["grp", f.grp === "!bills" ? t("不含账单的花费") : g ? `${g.icon} ${t(g.name)}` : f.grp]); }
   if (f.store !== "all") out.push(["store", storeName(f.store)]);
   if (f.stores?.length) { const n = f.stores.map(storeName); out.push(["stores", n.length <= 3 ? n.join("、") : t("{a} 等 {n} 家", { a: n.slice(0, 2).join("、"), n: n.length })]); }
@@ -379,7 +399,7 @@ function spendRecordsHtml() {
   if (!ps.length) return `<div class="section-head"><h2>${t("花费记录")}</h2></div><div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("采购清单点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;
   const months = [...new Set(ps.map((p) => monthKey(p.purchased_at)))].sort().reverse();
   const stores = knownStores(), hasNone = ps.some((p) => !storeOf(p));
-  const cats = STAT_CATS().filter((c) => ps.some((p) => statCat(p.category) === c.id));
+  const cats = STAT_CATS(false).filter((c) => ps.some((p) => statCat(p.category, false) === c.id));   // 下拉始终列具体种类，不受“合并显示”开关影响
   const firstBill = cats.findIndex((c) => isBill(c.id));
   if (cats.filter((c) => isBill(c.id)).length > 1) cats.splice(firstBill, 0, BILLS_GROUP);   // 多种账单时多一个“全部账单”总筛选，排在各具体种类前
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;
@@ -389,7 +409,7 @@ function spendRecordsHtml() {
       <div class="filter-bar"><div id="spendChips">${spendChipsHtml()}</div>
       <div class="toolbar">
         <input type="search" id="spendSearch" placeholder="${t("搜索名称或商店")}" value="${esc(f.q)}" aria-label="${t("搜索花费记录")}">
-        <select id="spendCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c.id, `${c.icon} ${t(c.name)}`, f.cat)).join("")}</select>
+        <select id="spendCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${(f.cat.startsWith("billfam_") ? BILLS_GROUP.families().filter((c) => c.id === f.cat) : []).map((c) => opt(c.id, `${c.icon} ${t(c.name)}`, f.cat)).join("")}${cats.map((c) => opt(c.id, `${c.icon} ${t(c.name)}`, f.cat)).join("")}</select>
         <select id="spendStore" aria-label="${t("按商店筛选")}">${opt("all", t("全部商店 / 收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${hasNone ? opt("__none__", t("未填写商店"), f.store) : ""}</select>
         <select id="spendMonth" aria-label="${t("按月份筛选")}">${opt("all", t("全部月份"), f.month)}${months.map((m) => opt(m, mo(m), f.month)).join("")}</select>
         <select id="spendSort" aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>

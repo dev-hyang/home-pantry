@@ -174,20 +174,25 @@
   // 同一类的账单用同一色相、明暗不同，图里一眼分得出大类又分得清具体种类
   window.BILLS_GROUP = { id: "bills", name: "账单", icon: "🧾", color: "#2f5d8a" };
   const FAMILIES = [   // 顺序即堆叠和下拉里的顺序
-    { hue: 205, ids: ["electric", "gas", "water", "internet", "mobile", "cable_tv"] },                                  // 水电气网通讯
-    { hue: 250, ids: ["mortgage", "rent", "hoa", "property_tax", "insurance_home"] },                                   // 住房
-    { hue: 18,  ids: ["car_loan", "insurance_auto", "vehicle_reg", "parking", "toll"] },                                // 车
-    { hue: 295, ids: ["insurance_health", "insurance_life", "insurance_other", "student_loan", "personal_loan", "credit_card", "income_tax"] },   // 保险 / 贷款 / 税
-    { hue: 160, ids: ["tuition", "activities", "pet", "donation"] },                                                    // 孩子 / 宠物 / 奉献
-    { hue: 40,  ids: ["lawn", "cleaning", "pest", "security", "subscription", "membership"] },                          // 家庭服务 / 订阅
+    { id: "utilities", name: "水电气网通讯", icon: "💡", hue: 205, ids: ["electric", "gas", "water", "internet", "mobile", "cable_tv"] },
+    { id: "housing",   name: "住房",         icon: "🏠", hue: 250, ids: ["mortgage", "rent", "hoa", "property_tax", "insurance_home"] },
+    { id: "vehicle",   name: "车",           icon: "🚗", hue: 18,  ids: ["car_loan", "insurance_auto", "vehicle_reg", "parking", "toll"] },
+    { id: "finance",   name: "保险 / 贷款 / 税", icon: "🛡️", hue: 295, ids: ["insurance_health", "insurance_life", "insurance_other", "student_loan", "personal_loan", "credit_card", "income_tax"] },
+    { id: "family",    name: "孩子 / 宠物 / 奉献", icon: "🎒", hue: 160, ids: ["tuition", "activities", "pet", "donation"] },
+    { id: "services",  name: "家庭服务 / 订阅", icon: "🧹", hue: 40,  ids: ["lawn", "cleaning", "pest", "security", "subscription", "membership"] },
   ];
+  const famOf = (id) => FAMILIES.find((x) => x.ids.includes(id));
   const statColor = (id) => {
-    const f = FAMILIES.find((x) => x.ids.includes(id));
+    const f = famOf(id);
     if (!f) return "#8a948f";
     const i = f.ids.indexOf(id);
     return `hsl(${f.hue} 52% ${28 + i * 7}%)`;
   };
   const ordered = [...FAMILIES.flatMap((f) => f.ids), ...CATEGORIES.map((c) => c.id).filter((id) => !FAMILIES.some((f) => f.ids.includes(id)))];
   /** 统计用的账单分类（id 为 purchases.category，即 bill_<分类>），按大类排序 */
+  /** “同一大类合并显示”打开时统计图用的大类（id 为 billfam_<大类>）；没有大类的账单（如“其他账单”）保持单独一项 */
+  window.BILLS_GROUP.families = () => FAMILIES.map((f) => ({ id: `billfam_${f.id}`, name: f.name, icon: f.icon, color: `hsl(${f.hue} 52% 40%)` }));
+  /** 某个 purchases 分类（bill_<分类>）所属大类的统计 id；不属于任何大类返回 null */
+  window.BILLS_GROUP.familyOf = (purchaseCat) => { const f = famOf(String(purchaseCat).replace(/^bill_/, "")); return f ? `billfam_${f.id}` : null; };
   window.BILLS_GROUP.cats = () => ordered.map((id) => catOf(id)).map((c) => ({ id: `bill_${c.id}`, name: c.name, icon: c.icon, color: statColor(c.id) }));
 })();
