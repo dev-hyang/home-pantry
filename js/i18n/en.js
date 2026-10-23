@@ -721,6 +721,7 @@ export const EN = {
 
   // ── 姐妹站点 ──
   "家庭学堂": "Homeschool", "小月亮": "Little Moon", "储藏 · 房屋 · 账单": "Pantry · Home · Bills", "在家教育": "Homeschooling", "母婴记录": "Mom and baby log",
+  "版本 {v}": "Version {v}",
   "姐妹站点": "Sister sites", "同一作者的其他小工具；顶栏站名旁的「‹」「›」小胶囊也能切换": "Other tools by the same author; the ‹ › pills next to the site name switch too",
   "切换姐妹站点": "Switch sister site", "切到{name}": "Go to {name}", "小助手": "Helper", "学堂": "School", "当前": "current", "打开": "Open", "更多页面": "More pages",
 

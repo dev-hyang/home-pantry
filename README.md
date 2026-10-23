@@ -9,6 +9,7 @@ home-pantry/
 ├── index.html                 页面骨架、底部导航
 ├── styles.css                 样式（亮/暗色、移动端底部导航）
 ├── config.js                  Supabase 地址与 anon key（留空 = 本地演示模式）
+├── js/core/version.js         应用版本号（日期.当天第几次），“我的”页底部显示；每次推送前改一次，刷新页面对一下就知道新版本是否生效
 ├── units.js                   地区检测、单位换算、货币格式
 ├── charts.js                  轻量 SVG 图表
 ├── data.js                    储藏分类、装备分类、饮食模式、菜谱

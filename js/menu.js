@@ -10,6 +10,7 @@ import { undoneThisMonth } from "./house/tasks.js";
 import { dealSubLabel, historyLabel, openDeal, routeDeal } from "./house/deals.js";
 import { SETTING_SECTIONS } from "./settings/views.js";
 import { aiIcon } from "./core/ai.js";
+import { APP_VERSION } from "./core/version.js";
 import { crumbNav } from "./core/hub.js";
 import { billAlerts } from "./bills/logic.js";
 import { activeProperties, endedProperties } from "./core/lifecycle.js";
@@ -108,6 +109,7 @@ export function viewMenu(section) {
     ${apps.length ? `<div class="section-head" style="margin-top:22px"><h2>${t("姐妹站点")}</h2></div>
       <div class="panel mlist">${apps.map((a) => menuRow({ href: a.url, icon: a.icon, title: t(a.name), desc: t(a.sub) })).join("")}</div>
       <p class="muted" style="font-size:13px;margin:8px 0 0">${t("同一作者的其他小工具，顶栏站名旁的小胶囊也能切换。")}</p>` : ""}
+    ${section === "me" ? `<p class="muted" style="margin-top:24px;font-size:13px">${t("爱家小助手")} · ${t("版本 {v}", { v: APP_VERSION })}</p>` : ""}
   </section>`;
 }
 
