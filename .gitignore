@@ -1,5 +1,8 @@
 # Supabase 建表与迁移脚本：本地保留，不上传
-supabase/
+supabase/**/*.sql
 
 # AI 集成说明（含各家接口细节与排错记录）：本地保留，不上传
 docs/ai-integration.md
+
+# Local cross-repo context for Claude Code: not committed
+.code-context
