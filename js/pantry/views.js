@@ -333,6 +333,7 @@ export function itemCard(it) {
       <div class="item-main">
         <div class="item-title"><button type="button" data-action="edit" data-id="${it.id}">${esc(it.name)}</button></div>
         <div class="item-meta">${meta}</div>
+        ${it.qty > 0 ? `<div class="item-acts"><button type="button" class="link-name" data-action="gear-broke" data-id="${it.id}" aria-label="${esc(it.name)} — ${esc(t("损坏了，换新"))}">🔨 ${t("损坏了，换新")}</button></div>` : ""}
       </div>
       <div class="qty"><output>${fmt(it.dqty)}<small>${esc(du)}</small></output></div>
     </article>`;

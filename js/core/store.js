@@ -408,6 +408,9 @@ export function seedDemo() {
   add("千斤顶", "gear_car", "应急工具", "个", 1, 0, "车内", 0, null, 0);
   add("搭电线（Jumper）", "gear_car", "应急工具", "套", 1, 0, "车内", 0, null, 0);
   add("修枝剪", "gear_garden", "园艺手工具", "把", 1, 0, "车库", 0, null, 0);
+  add("餐盘", "gear_kitchen", "餐具碗盘", "个", 8, 0, "厨房柜", 0, null, 0);
+  add("烤盘", "gear_kitchen", "烤盘托盘", "个", 2, 0, "厨房柜", 0, null, 0);
+  add("烘焙模具", "gear_kitchen", "烘焙工具", "套", 1, 0, "厨房柜", 0, null, 0);
   return { items, logs, shopping: [], purchases };
 }
 

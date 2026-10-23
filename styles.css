@@ -1232,3 +1232,7 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 /* 手机窄屏：版本号在同步状态下面；宽屏放得下，同一行 */
 .hdr-line { flex-direction: column; align-items: flex-end; gap: 0; }
 @media (min-width: 600px) { .hdr-line { flex-direction: row; align-items: center; gap: 0 8px; } }
+/* 装备卡片：坏了一件时的“损坏了，换新”小按钮 */
+.item.is-gear .item-acts { margin-top: 4px; font-size: 12px; }
+.item.is-gear .item-acts .link-name { color: var(--muted); }
+.item.is-gear .item-acts .link-name:hover { color: var(--out); }

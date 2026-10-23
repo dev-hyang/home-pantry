@@ -2,7 +2,7 @@ import { checkConfig } from "./core/config-check.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
-import { $, MUTE_FOREVER, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast } from "./core/util.js";
+import { $, MUTE_FOREVER, armed, catOf, du, esc, fillUnitList, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { resilientFetch } from "./core/net.js";
@@ -785,6 +785,16 @@ main.addEventListener("click", async (e) => {
         state.gearEnabled = true; try { localStorage.setItem("hmh-gear-off", "0"); } catch { /* 忽略 */ }
         return render();
       case "tpl-all": e.preventDefault(); el.form.querySelectorAll('input[name="tpl"]:not(:disabled)').forEach((x) => { x.checked = el.dataset.on === "1"; }); return;
+      // 耐用品（装备，如厨房用品）坏了一件：数量减 1，并把换新的一件加进采购清单（买到后自动加回库存）
+      case "gear-broke": {
+        const it = state.enriched.find((x) => x.id === id); if (!it || !isGear(it) || it.qty <= 0) return;
+        if (!confirm(t("“{name}”坏了一件？数量会减 1，并加入采购清单换新（买到后自动加回库存）。", { name: it.name }))) return;
+        el.disabled = true;
+        await Store.adjust(id, -1, "adjust");
+        if (!openShopFor(id)) await Store.saveShopping({ item_id: id, name: it.name, quantity: 1, unit: it.unit, category: it.category });
+        toast(t("{name} 少了一件，已加入采购清单换新", { name: it.name }));
+        return refresh();
+      }
       case "consume": el.disabled = true; await Store.adjust(id, -storedStep(state.items.find((x) => x.id === id)?.unit), "consume"); return refresh();
       case "restock": el.disabled = true; await Store.adjust(id, storedStep(state.items.find((x) => x.id === id)?.unit), "restock"); return refresh();
       case "inv-sub": state.filter.sub = el.dataset.sub; return render();

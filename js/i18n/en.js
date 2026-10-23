@@ -137,6 +137,8 @@ export const EN = {
   "纸尿裤": "Diapers", "奶粉辅食": "Formula & baby food", "湿巾": "Wipes", "哺乳用品": "Nursing supplies",
   "常备药": "Medicine cabinet", "维生素营养": "Vitamins & supplements", "护理用品": "First aid & care",
   "厨房储藏": "Pantry", "装备（只记数量和位置）": "Gear (count and location only)",
+  "厨房用品": "Kitchenware", "餐具碗盘": "Dishes & bowls", "锅具炊具": "Pots & cookware", "烘焙工具": "Baking tools", "烤盘托盘": "Baking sheets & trays", "刀具砧板": "Knives & boards", "厨房小工具": "Kitchen gadgets", "小家电": "Small appliances", "保鲜收纳": "Food storage",
+  "损坏了，换新": "Broken — replace", "“{name}”坏了一件？数量会减 1，并加入采购清单换新（买到后自动加回库存）。": "One “{name}” broke? The count goes down by 1 and a replacement is added to the shopping list (it is added back to stock when bought).", "{name} 少了一件，已加入采购清单换新": "{name}: one fewer, replacement added to the shopping list",
   "家居用品": "Home goods", "出行户外": "Travel & outdoors", "汽车装备": "Car gear", "工具": "Tools", "园艺工具": "Garden tools",
   "床上用品": "Bedding", "毛巾浴巾": "Towels", "季节电器": "Seasonal appliances", "收纳杂物": "Storage & misc",
   "旅行婴儿用品": "Travel baby gear", "推车拖车": "Strollers & wagons", "自行车": "Bikes", "露营野餐": "Camping & picnic", "行李箱包": "Luggage & bags",
