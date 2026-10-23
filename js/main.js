@@ -2,7 +2,7 @@ import { checkConfig } from "./core/config-check.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
-import { $, MUTE_FOREVER, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, showQty, spaceOf, storedStep, toast } from "./core/util.js";
+import { $, MUTE_FOREVER, armed, catOf, du, esc, fillUnitList, inSpace, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { resilientFetch } from "./core/net.js";
@@ -59,7 +59,7 @@ function soft(key, p, fallback, apply) {
   return Promise.race([p, new Promise((r) => setTimeout(() => r(SOFT), SOFT_MS))]).then((v) => {
     if (v !== SOFT) return v;
     state.pending[key] = true; setSync(t("部分数据还在加载…"), false);
-    p.then((r) => { apply(r); state.pending[key] = false; if (!pendingAny()) { setSync(t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) })); notifyIfNeeded(); } render(false); })
+    p.then((r) => { apply(r); state.pending[key] = false; if (!pendingAny()) { setSync(t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, true); notifyIfNeeded(); } render(false); })
       .catch((e) => { state.pending[key] = false; console.warn("[late]", key, e.message); });
     return fallback;
   });
@@ -107,7 +107,7 @@ export async function refresh() {
       state.billsEnriched = enrichBills(bills, billPayments);
       state.people = people; applyMedical(medBills, medPays);
       ensureAdults().then((added) => { if (added) { applyMedical(state.medBills, state.medPayments); render(false); } }).catch(() => {});
-      setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }));
+      setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
       if (!pendingAny()) notifyIfNeeded();
       render(false);
       loadPurchasesSoon();
@@ -1040,6 +1040,17 @@ export function notifyIfNeeded() {
 }
 
 /* ───────────── 云端：登录与家庭 ───────────── */
+
+/* 顶栏同步状态（和小月亮 / 家庭学堂 / 牧羊人一致）：同步好了显示“家庭同步 · N 人”，其余显示当时的状态文字；
+   鼠标放上去是完整的状态（含同步时间）。成员数是登录后并行读的，读到了再刷新一次。 */
+function paintHeaderSync() {
+  const h = $("#hdrSync"); if (!h) return;
+  const s = syncState, ready = s.ok && !s.err && Store.mode !== "demo", n = state.members?.length || 0;
+  const label = ready && n ? t("家庭同步 · {n} 人", { n }) : s.text;
+  h.innerHTML = `<span class="dot${ready ? " ok" : ""}"></span>${esc(label)}`;
+  h.title = s.text; h.classList.toggle("err", !!s.err);
+}
+syncState.onChange = paintHeaderSync;
 export function gate(html) { document.body.classList.add("gate"); applyChrome(); $("#hhName").textContent = ""; $("#main").innerHTML = html; }
 
 /* 登录：邮箱魔法链接（默认）；手机号短信验证码（config.js 里 PHONE_LOGIN = true 且 Supabase 已接短信服务商时显示） */
@@ -1173,7 +1184,7 @@ export async function afterLogin() {
   state.displayName = mine.display_name;
   CloudStore.hid = mine.household_id;
   localStorage.setItem("hmh-hid", CloudStore.hid);
-  state.membersReady = CloudStore.listMembers().then((m) => { state.members = m; return m; });   // 和 refresh 的数据读取并行
+  state.membersReady = CloudStore.listMembers().then((m) => { state.members = m; paintHeaderSync(); return m; });   // 和 refresh 的数据读取并行
   CloudStore.subscribe(refreshSoon);
   await refresh();
   // 同一个人开了多个浏览器 / 设备会变成多位“爸爸”：发现和别人同名，推荐加序列号或日期
