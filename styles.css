@@ -1260,13 +1260,15 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 @media (prefers-reduced-motion: reduce) { .minibar, .minibar.show { transition: none; } }
 @media print { .minibar { display: none !important; } }
 body.editing .minibar { display: none; }
-/* 行记录左滑删除（js/swipe-rows.js）：向左滑露出红色「删除」，点它删除；滑过大半松手直接删除；向右滑没有动作 */
-.swipe-row { position: relative; overflow: hidden; --swipe-fg: var(--surface); }
-.swipe-row > .swipe-fg { position: relative; z-index: 1; background-color: var(--swipe-fg); transition: transform .18s ease; touch-action: pan-y; }
-.swipe-row.swiping > .swipe-fg { transition: none; }
+/* 行记录左滑删除（js/swipe-rows.js）：行里的内容整体向左滑，右边露出一条红色的「删除」（宽度跟着滑动的距离走）。
+   行本身不换标签、不加层，原来的 li / 行样式（flex、分隔线、:last-child…）全部照旧。 */
+.swipe-row { position: relative; overflow: hidden; touch-action: pan-y; }
+.swipe-row.shift > :not(.swipe-bg) { transform: translateX(var(--sx, 0px)); }
+.swipe-row > :not(.swipe-bg) { transition: transform .18s ease; }
+.swipe-row.swiping > :not(.swipe-bg), .swipe-row.swiping > .swipe-bg { transition: none; }
 .swipe-row.swiping { user-select: none; -webkit-user-select: none; }
-.swipe-bg { position: absolute; inset: 0; display: flex; justify-content: flex-end; align-items: stretch; background: #b3261e; color: #fff; }
-.swipe-del { all: unset; box-sizing: border-box; min-width: 88px; display: flex; align-items: center; justify-content: center; padding: 0 14px; font-weight: 700; font-size: 14px; cursor: pointer; }
+.swipe-bg { position: absolute; top: 0; right: 0; bottom: 0; width: var(--sw, 0px); z-index: 3; display: flex; background: #b3261e; color: #fff; overflow: hidden; transition: width .18s ease; }
+.swipe-del { all: unset; box-sizing: border-box; flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 0 8px; font-weight: 700; font-size: 14px; white-space: nowrap; cursor: pointer; }
 .swipe-del:focus-visible { outline: 3px solid #fff; outline-offset: -4px; }
 .swipe-del .s-go { display: none; }
 .swipe-row.ready .swipe-bg { background: #8e1a14; }
@@ -1275,5 +1277,5 @@ body.editing .minibar { display: none; }
 /* 原来的删除按钮留着（给键盘和读屏用），平时视觉隐藏，Tab 到它时显示 */
 .swipe-src { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .swipe-src:focus, .swipe-src:focus-visible { position: static !important; width: auto; height: auto; margin: 0; padding: revert; border: revert; overflow: visible; clip: auto; }
-@media (prefers-reduced-motion: reduce) { .swipe-row > .swipe-fg { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .swipe-row > :not(.swipe-bg), .swipe-bg { transition: none; } }
 @media print { .swipe-bg { display: none; } }

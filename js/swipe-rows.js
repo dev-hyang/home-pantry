@@ -1,55 +1,55 @@
 /* ============ 行记录左滑删除 ============
    给一行加 data-swipe 就行（行里原来的「删除」按钮加 class="swipe-src"，滑动时代它点击，原来的确认框、删除流程都照旧）：
-     · 向左滑：行跟着手指走，后面露出红色「删除」；停在一半，点红色按钮就删除；
+     · 向左滑：行里的内容跟着手指向左走，右边露出红色「删除」；停在一半，点红色按钮就删除；
      · 一直滑过大半（≥ 55%）松手：直接删除；
      · 向右滑：暂时没有动作，不会动；
      · 点别处、往上下滚：已经滑开的行自动合上。
    键盘 / 读屏：原来的删除按钮还在（平时视觉隐藏，Tab 到它时显示），所以不用手势也能删。
    行里的输入框、下拉框不响应滑动（免得打字时误触）。
-   四个姐妹应用各放一份同样的文件。用法：initSwipeRows({ del: "删除", release: "松手删除", onDelete: el => … })，onDelete 可选：
-   没有 .swipe-src 的行（例如小月亮的记录行）用它来做删除；返回 false 表示用户取消了（行弹回去）。 */
+
+   行的标签、类名、里面的结构都不动（所以原来给 li、行写的 flex、分隔线、:last-child 等样式全部照旧）：
+   只是给这一行加 class="swipe-row"、在末尾放一个绝对定位的红色条，滑动时把行的子元素整体平移。
+   唯一的例外是 <button> / <a> 这类不能装按钮的行：外面套一层 div 再做同样的事。
+   四个姐妹应用各放一份同样的文件。用法：initSwipeRows({ del, release, onDelete })，del / release 是文字或返回文字的函数；
+   onDelete(行元素) 可选：没有 .swipe-src 的行（例如小月亮的记录行）用它来做删除，返回 false 表示用户取消了（行弹回去）。 */
 const REVEAL = 88;      // 停住时露出的红色按钮宽度（px）
 const GO = 0.55;        // 滑过行宽的这一比例松手，直接删除
 const START = 8;        // 位移超过多少像素才判断方向
 let cfg = { del: "删除", release: "松手删除", onDelete: null }, drag = null, justSwiped = false, opened = null;
 
-const bgOf = (el) => { for (let n = el; n; n = n.parentElement) { const c = getComputedStyle(n).backgroundColor; if (c && c !== "transparent" && !/rgba\(.*,\s*0\)$/.test(c)) return c; } return "#fff"; };
+const lab = (v) => (typeof v === "function" ? v() : v);
+const rowOf = (n) => n && n.closest && n.closest(".swipe-row");
+const origOf = (row) => (row.matches("[data-swipe]") ? row : row.querySelector(":scope > [data-swipe]"));   // 原来那一行（button 行时在套层里面）
 
 function enhance(el) {
   if (el.dataset.swipeReady) return;
   el.dataset.swipeReady = "1";
-  const tag = el.tagName;
-  let row, fg;
-  if (tag === "LI") {   // li 保持是列表项：外层换成新的 li，原来的 li 变成里面的 div（属性、内容原样带过去）
-    row = document.createElement("li"); fg = document.createElement("div");
-    for (const a of el.attributes) fg.setAttribute(a.name, a.value);
-    while (el.firstChild) fg.appendChild(el.firstChild);
-    el.replaceWith(row); row.appendChild(fg);
-  } else {
-    row = document.createElement("div"); fg = el;
+  let row = el;
+  if (el.tagName === "BUTTON" || el.tagName === "A") {   // 按钮里不能再放按钮：外面套一层 div，红色条放在套层里
+    row = document.createElement("div");
+    row.style.borderRadius = getComputedStyle(el).borderRadius;
     el.replaceWith(row); row.appendChild(el);
   }
-  row.classList.add("swipe-row"); fg.classList.add("swipe-fg");
-  row.style.setProperty("--swipe-fg", bgOf(row));
-  row.style.borderRadius = getComputedStyle(fg).borderRadius;
+  row.classList.add("swipe-row");
   const bg = document.createElement("div");
   bg.className = "swipe-bg";
   bg.innerHTML = `<button type="button" class="swipe-del" tabindex="-1" aria-hidden="true"><span class="s-del">${lab(cfg.del)}</span><b class="s-go">${lab(cfg.release)}</b></button>`;
-  row.insertBefore(bg, fg);
+  row.appendChild(bg);
 }
-const lab = (v) => (typeof v === "function" ? v() : v);
-const rowOf = (n) => n && n.closest && n.closest(".swipe-row");
 
 function setX(row, x, animate) {
-  const fg = row.querySelector(":scope > .swipe-fg");
-  fg.style.transition = animate ? "" : "none";
-  fg.style.transform = x ? `translateX(${x}px)` : "";
+  if (x) row.classList.add("shift");   // 只有真的在滑的时候才给子元素加 transform（平时不要平白多出层叠上下文）
+  if (!animate) row.classList.add("swiping");
+  row.style.setProperty("--sx", x ? `${x}px` : "0px");
+  row.style.setProperty("--sw", x ? `${-x}px` : "0px");
+  if (animate) row.classList.remove("swiping");
 }
 function close(row, animate = true) {
   if (!row) return;
   row.classList.remove("open", "ready");
   setX(row, 0, animate);
   if (opened === row) opened = null;
+  setTimeout(() => { if (row.style.getPropertyValue("--sx") === "0px") row.classList.remove("shift"); }, 260);   // 弹回动画放完再去掉
 }
 function openRow(row) {
   if (opened && opened !== row) close(opened);
@@ -58,14 +58,14 @@ function openRow(row) {
 
 // 触发删除：有 .swipe-src 就替它点一下（原来的 confirm 和删除流程照旧）；否则交给 onDelete
 async function remove(row) {
-  const fg = row.querySelector(":scope > .swipe-fg"), w = row.offsetWidth;
+  const w = row.offsetWidth;
   row.classList.remove("ready"); row.classList.add("leaving"); setX(row, -w, true);
   let declined = false;
-  const src = fg.querySelector(".swipe-src"), orig = window.confirm;
+  const src = row.querySelector(".swipe-src"), orig = window.confirm;
   window.confirm = (m) => { const r = orig.call(window, m); if (!r) declined = true; return r; };   // 用户在确认框里点了取消：行弹回来
   try {
     if (src) { const keep = justSwiped; justSwiped = false; src.click(); justSwiped = keep; }   // 放手时 justSwiped 还是 true，别让这次替点的 click 被当成手势的尾巴吞掉
-    else if (cfg.onDelete) { const r = await cfg.onDelete(fg); if (r === false) declined = true; }
+    else if (cfg.onDelete) { const r = await cfg.onDelete(origOf(row)); if (r === false) declined = true; }
     else declined = true;
   } finally { window.confirm = orig; }
   if (declined) { row.classList.remove("leaving"); close(row); return; }
@@ -89,7 +89,7 @@ function onMove(e) {
     if (Math.max(Math.abs(dx), Math.abs(dy)) < START) return;
     // 竖着动：是在滚页面，放手；向右滑：暂时没有动作；向左滑：开始
     if (Math.abs(dy) > Math.abs(dx) || (dx > 0 && drag.base === 0)) { drag = null; return; }
-    drag.mode = "swipe"; drag.row.classList.add("swiping");
+    drag.mode = "swipe";
     try { drag.row.setPointerCapture(drag.id); } catch (_) { /* 没有也行 */ }
   }
   drag.x = Math.max(-drag.w, Math.min(0, drag.base + dx));
