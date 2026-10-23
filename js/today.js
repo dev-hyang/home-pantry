@@ -75,7 +75,7 @@ export function viewToday() {
 /* ── 每位用户自己的快捷操作：地址（或 action:xxx）的有序列表 ──
  * 云端存在登录账号的 user_metadata.quick，换设备也在，家人之间互不影响；演示模式存本机 */
 const QUICK_KEY = "hmh-quick";
-export const DEFAULT_QUICK = () => [href("scan"), href("pantry", "overview"), href("bills", "recurring"), href("bills", "onetime"), href("bills", "spend"), "action:print"];   // 录入购物、储藏概览、周期性账单、一次性账单、花费、打印
+export const DEFAULT_QUICK = () => [href("scan"), href("pantry", "overview"), href("bills", "overview"), href("bills", "budget"), href("bills", "spend"), "action:print"];   // 录入购物、储藏概览、账单概览、预算、花费、打印
 export function quickList() {
   let list = null;
   if (Store.mode === "cloud") list = state.user?.user_metadata?.quick;
