@@ -12,6 +12,7 @@ import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-c
 import { mountAppSwitcher } from "../shared/app-switcher.js";
 import { mountLangSwitcher } from "../shared/lang-switcher.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
+import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
 import { DEFAULT_QUICK, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewToday } from "./today.js";
@@ -165,6 +166,7 @@ function applyChrome() {
     if (textNode) textNode.textContent = t(SECTIONS[a.dataset.section]?.name || textNode.textContent.trim());
   });
   const title = $("#appTitle"); if (title) title.textContent = t(APP_NAME);
+  if (title) updateMiniBar(title.textContent, t("回到顶部"));
   $("#tabs").setAttribute("aria-label", t("主导航"));
   renderAppSwitch();
   renderLangSwitch();
@@ -372,7 +374,8 @@ async function changeLang(code) {
 export const main = $("#main");
 // 手机：列表页的“搜索 + 一排下拉框”收成一行（搜索框 + 筛选按钮），滑动时固定在顶栏 / 路径下面；路径条（面包屑）也固定
 initCompactFilters({ root: main, ui: uiKind });
-watchStick({ header: ".topbar", path: ".crumb" });
+miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
+watchStick({ header: () => document.querySelector(window.matchMedia("(max-width: 440px)").matches ? "#minibar" : ".topbar"), path: ".crumb" });
 /* 左右滑动换页：季节任务换月（.tasks-swipe）、注意事项换来源（.swipe-zone[data-swipe=alerts]）；横向够远、纵向很小才算 */
 let swipe = null;
 main.addEventListener("touchstart", (e) => { const z = e.target.closest(".tasks-swipe, .swipe-zone"); swipe = z && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, kind: z.dataset.swipe || "tasks" } : null; }, { passive: true });

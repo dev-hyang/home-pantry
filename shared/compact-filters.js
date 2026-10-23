@@ -71,7 +71,8 @@ export function initCompactFilters({ root = document.body, ui = () => "zh", sele
 /** 把“顶栏高度 / 路径条高度”写成 CSS 变量：--eco-h（顶栏）、--eco-p（路径条）、--eco-stick（两者之和），固定定位的元素用它们叠在一起不重叠 */
 export function watchStick({ header, path } = {}) {
   const root = document.documentElement;
-  const h = () => (header ? document.querySelector(header) : null), p = () => (path ? document.querySelector(path) : null);
+  // header 可以是选择器，也可以是返回元素的函数（手机上固定的是窄条，宽屏上是顶栏）
+  const h = () => (typeof header === "function" ? header() : header ? document.querySelector(header) : null), p = () => (path ? document.querySelector(path) : null);
   const set = () => {
     const he = h(), pe = p();
     const hh = he && getComputedStyle(he).position !== "static" ? Math.round(he.getBoundingClientRect().height) : 0;

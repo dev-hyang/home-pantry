@@ -1250,3 +1250,13 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .shop-col .sec-tools { display: flex; justify-content: flex-end; margin-bottom: 8px; }
 .shop-col ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 8px; align-items: start; }
 @media (prefers-reduced-motion: reduce) { .shop-col .sec-chev { transition: none; } }
+/* 手机上滚动后固定在顶部的站名窄条（js/minibar.js）；宽屏顶栏本来就固定，不需要 */
+.minibar { position: fixed; top: 0; left: 0; right: 0; z-index: 22; background: var(--bg); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); transform: translateY(-100%); visibility: hidden; transition: transform .18s ease, visibility 0s linear .18s; }
+.minibar.show { transform: none; visibility: visible; transition: transform .18s ease; }
+.minibar .in { margin: 0 auto; padding: 0 14px; min-height: 40px; display: flex; align-items: center; }
+.mb-title { all: unset; box-sizing: border-box; flex: 1; min-width: 0; min-height: 40px; display: flex; align-items: center; cursor: pointer; font-weight: 700; font-size: 15px; color: var(--pine); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mb-title:focus-visible { outline: 3px solid var(--pine); outline-offset: -3px; border-radius: 6px; }
+@media (min-width: 441px) { .minibar { display: none; } }
+@media (prefers-reduced-motion: reduce) { .minibar, .minibar.show { transition: none; } }
+@media print { .minibar { display: none !important; } }
+body.editing .minibar { display: none; }
