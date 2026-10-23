@@ -348,7 +348,10 @@ textarea { resize: vertical; }
   .add-row > :first-child, .add-row .btn { grid-column: 1 / -1; }
 }
 .price-in { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 6px; margin-top: 8px; }
-.price-in input { min-height: 34px; padding: 4px 10px; font-size: 13px; }
+.price-in input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 34px; padding: 4px 10px; font-size: 13px; }
+.shop-item { min-width: 0; overflow-wrap: anywhere; }
+.shop-item .row .nm { min-width: 0; }
+@media (max-width: 380px) { .price-in { grid-template-columns: minmax(0, 1fr); } }
 .field-label { display: block; font-weight: 700; margin-bottom: 6px; }
 .shop-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; }
 .shop-item .row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
