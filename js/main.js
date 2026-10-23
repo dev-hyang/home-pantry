@@ -13,6 +13,7 @@ import { mountAppSwitcher } from "../shared/app-switcher.js";
 import { mountLangSwitcher } from "../shared/lang-switcher.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
+import { APP_VERSION } from "./core/version.js";
 import { DEFAULT_QUICK, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewToday } from "./today.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
@@ -172,6 +173,7 @@ function applyChrome() {
 /* 顶栏右上角的语言切换（登录页也显示）：一个按钮，点开是列表（宽屏浮层 / 手机底部抽屉），以后加语言只要在 LANGS 里加一项；和 设置 → 语言 存同一个值 */
 const uiKind = () => (lang === "en" ? "en" : lang === "zh-Hant" ? "tw" : "zh");
 function renderLangSwitch() {
+  const ver = $("#appVer"); if (ver) ver.textContent = "v" + APP_VERSION; // 版本号放在顶栏，不用翻到“我的”页底部
   mountLangSwitcher({ host: $("#langSwitch"), languages: Object.entries(LANGS).map(([code, name]) => ({ code, name })), current: lang, ui: uiKind(), onSelect: (code) => changeLang(code) });
 }
 

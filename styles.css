@@ -71,7 +71,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .brand-row { display: flex; align-items: center; gap: 8px; position: relative; }
 /* 姐妹站点切换（与家庭学堂顶栏一致）：站名旁两枚小胶囊「‹ 小月亮」「学堂 ›」 */
 .apps { display: inline-flex; }
-.top-right { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; margin: -6px -4px 0 0; }   /* 语言、应用两个 44px 触控按钮并排 */
+.top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0; flex: 0 0 auto; margin: -6px -4px 0 0; }
+.top-tools { display: inline-flex; align-items: center; gap: 2px; }
+/* 版本号：和另外三个站一样放在右上角切换按钮下面，对照更新不用翻到最后一页 */
+.appver { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; margin-right: 4px; margin-top: 1px; }   /* 语言、应用两个 44px 触控按钮并排 */
 /* 设置页姐妹站点列表 */
 .app-list { list-style: none; margin: 10px 0 0; padding: 0; }
 .app-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
