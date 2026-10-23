@@ -1229,3 +1229,6 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .hdr-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
 .hdr-status .dot.ok { background: var(--pine); }
 .hdr-status.err { color: var(--out); }
+/* 手机窄屏：版本号在同步状态下面；宽屏放得下，同一行 */
+.hdr-line { flex-direction: column; align-items: flex-end; gap: 0; }
+@media (min-width: 600px) { .hdr-line { flex-direction: row; align-items: center; gap: 0 8px; } }
