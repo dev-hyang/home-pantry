@@ -29,7 +29,7 @@ export const groupsNow = () => (medInPool() ? [...GROUPS, MEDICAL_BUDGET_GROUP] 
 const DRILL_HINT = () => `<p class="muted drill-hint">${t("点预算行或图里的柱子，可以查看对应的花费明细。")}</p>`;
 export const groupOf = (category, amount = 0) => {
   const s = statCat(category);
-  if (s === "bills") return "bills";
+  if (String(category || "").startsWith("bill_")) return "bills";   // 统计里账单已按具体种类分项，预算仍把全部账单算一组（固定支出）
   if (s === "medical") return "medical";
   if (category === "pet_care") return "other";   // 宠物账单（兽医、寄养）算“其他”；宠物粮食仍在日常储备
   if (s !== "vehicle" && category !== "house_maint" && amount >= bigThreshold()) return "big";   // 大件：单笔大额，但账单、车辆、维修保养不算

@@ -65,7 +65,7 @@ bill_payments
 **与现有表的关系**
 
 - `house_profiles`、`assets`、`maintenance_logs`、`seasonal_tasks` 第三期加 `property_id`（可空，迁移时全部指向默认房产）。
-- 缴费记录同时写一条 `purchases`（分类 `bill_<category>`），统计页合并为“账单”一组；年度明细 CSV 自然包含。删除缴费记录时一起删，和保养记录的做法一致。
+- 缴费记录同时写一条 `purchases`（分类 `bill_<category>`），统计页按具体种类分项（电费、燃气费、房贷…，同类同色相；明细筛选另有“账单”= 全部账单，预算仍把全部账单算一组）；无需数据库迁移；年度明细 CSV 自然包含。删除缴费记录时一起删，和保养记录的做法一致。
 
 **分类与模板**（按地区）
 

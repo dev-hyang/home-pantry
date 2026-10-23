@@ -170,6 +170,24 @@
 
   const isSubCat = (id) => id === "subscription" || id === "membership";
   window.BILLS = { CATEGORIES, catOf, FREQUENCIES, CHANNELS, STATEMENTS, PAYMENT_STATUS, PROPERTY_KINDS, PROPERTY_ROLES, TEMPLATES, SUB_KINDS, isSubCat };
-  // 统计图里账单合并为一组
+  // “账单”只作为总筛选（明细里“全部账单”、预算分组）；统计图里每种账单各自一项（电费、燃气费、房贷…），
+  // 同一类的账单用同一色相、明暗不同，图里一眼分得出大类又分得清具体种类
   window.BILLS_GROUP = { id: "bills", name: "账单", icon: "🧾", color: "#2f5d8a" };
+  const FAMILIES = [   // 顺序即堆叠和下拉里的顺序
+    { hue: 205, ids: ["electric", "gas", "water", "internet", "mobile", "cable_tv"] },                                  // 水电气网通讯
+    { hue: 250, ids: ["mortgage", "rent", "hoa", "property_tax", "insurance_home"] },                                   // 住房
+    { hue: 18,  ids: ["car_loan", "insurance_auto", "vehicle_reg", "parking", "toll"] },                                // 车
+    { hue: 295, ids: ["insurance_health", "insurance_life", "insurance_other", "student_loan", "personal_loan", "credit_card", "income_tax"] },   // 保险 / 贷款 / 税
+    { hue: 160, ids: ["tuition", "activities", "pet", "donation"] },                                                    // 孩子 / 宠物 / 奉献
+    { hue: 40,  ids: ["lawn", "cleaning", "pest", "security", "subscription", "membership"] },                          // 家庭服务 / 订阅
+  ];
+  const statColor = (id) => {
+    const f = FAMILIES.find((x) => x.ids.includes(id));
+    if (!f) return "#8a948f";
+    const i = f.ids.indexOf(id);
+    return `hsl(${f.hue} 52% ${28 + i * 7}%)`;
+  };
+  const ordered = [...FAMILIES.flatMap((f) => f.ids), ...CATEGORIES.map((c) => c.id).filter((id) => !FAMILIES.some((f) => f.ids.includes(id)))];
+  /** 统计用的账单分类（id 为 purchases.category，即 bill_<分类>），按大类排序 */
+  window.BILLS_GROUP.cats = () => ordered.map((id) => catOf(id)).map((c) => ({ id: `bill_${c.id}`, name: c.name, icon: c.icon, color: statColor(c.id) }));
 })();

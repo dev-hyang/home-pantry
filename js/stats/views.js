@@ -13,10 +13,12 @@ import { SPEND_TABS, activeTab } from "../core/tabs.js";
 
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
-const BILL_CATS = () => window.BILLS.CATEGORIES.map((c) => ({ id: `bill_${c.id}`, name: c.name, icon: c.icon, color: BILLS_GROUP.color }));
+const BILL_CATS = () => BILLS_GROUP.cats();
 export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" }, { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" }, { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" }, OTHER_CAT];
-// 统计图里：储藏各分类单独显示，房屋耗材和设备维修保养合并为“房屋维护”、装备合并为“装备”、车辆维修保养为“车辆”、账单合并为“账单”各一组，避免颜色过多
-export const STAT_CATS = () => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, BILLS_GROUP, MEDICAL_GROUP, OTHER_CAT];
+// 统计图里：储藏各分类单独显示，房屋耗材和设备维修保养合并为“房屋维护”、装备合并为“装备”、车辆维修保养为“车辆”各一组；
+// 账单按具体种类各一项（电费、燃气费、房贷…，只有有花费的才会出现在图里），同类账单同色相
+export const STAT_CATS = () => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, ...BILL_CATS(), MEDICAL_GROUP, OTHER_CAT];
+const isBill = (id) => String(id || "").startsWith("bill_");
 export const statCat = (id) => {
   if (id === "medical") return id;   // 事件型账单的付款（虚拟花费，见 bills/medical.js）
   if (id === "pet_care") return "pet";   // 宠物账单（兽医、美容、寄养）并进“宠物”这一组
@@ -25,8 +27,10 @@ export const statCat = (id) => {
   if (c) return c.space === "pantry" ? c.id : c.space;
   if (id === MAINT_CAT.id) return "house";
   if (id === VEHICLE_CAT.id) return "vehicle";
-  return String(id || "").startsWith("bill_") ? "bills" : "other";
+  return isBill(id) && BILL_CATS().some((c) => c.id === id) ? id : "other";   // 账单保持具体种类（bill_electric…）；不认识的 bill_ 种类归“其他”，免得合计对不上
 };
+/** 明细 / 钻取的分类筛选：除了统计分类，还支持 "bills" = 全部账单 */
+const catMatches = (sel, category) => (sel === "bills" ? isBill(category) : statCat(category) === sel);
 export const monthKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };
 const MONTH_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 export const monthLabel = (k) => (lang === "en"
@@ -274,7 +278,7 @@ const amountOf = (p) => (p.amount != null && (!p.currency || p.currency === Unit
 export function filteredSpend() {
   const f = state.spendFilter, q = f.q.trim().toLowerCase();
   let list = state.purchases.filter((p) => {
-    if (f.cat !== "all" && statCat(p.category) !== f.cat) return false;
+    if (f.cat !== "all" && !catMatches(f.cat, p.category)) return false;
     if (f.month !== "all" && monthKey(p.purchased_at) !== f.month) return false;
     if (f.months?.length && !f.months.includes(monthKey(p.purchased_at))) return false;
     if (f.grp && budgetBridge.groupOf) { const g = budgetBridge.groupOf(p.category, amountOf(p)); if (f.grp === "!bills" ? g === "bills" : g !== f.grp) return false; }   // 预算分组（“!bills” = 除账单以外）   // 从图表钻取来的“近 N 个月”
@@ -319,7 +323,7 @@ function activeFilterChips() {
   const f = state.spendFilter, out = [];
   const monthName = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
   const storeName = (k) => (k === "__none__" ? t(STORE_NONE.name) : knownStores().find((x) => storeKey(x) === k) || k);
-  if (f.cat !== "all") { const c = STAT_CATS().find((x) => x.id === f.cat); out.push(["cat", c ? `${c.icon} ${t(c.name)}` : f.cat]); }
+  if (f.cat !== "all") { const c = f.cat === "bills" ? BILLS_GROUP : STAT_CATS().find((x) => x.id === f.cat); out.push(["cat", c ? `${c.icon} ${t(c.name)}` : f.cat]); }
   if (f.grp) { const g = budgetBridge.groups.find((x) => x.id === f.grp); out.push(["grp", f.grp === "!bills" ? t("不含账单的花费") : g ? `${g.icon} ${t(g.name)}` : f.grp]); }
   if (f.store !== "all") out.push(["store", storeName(f.store)]);
   if (f.stores?.length) { const n = f.stores.map(storeName); out.push(["stores", n.length <= 3 ? n.join("、") : t("{a} 等 {n} 家", { a: n.slice(0, 2).join("、"), n: n.length })]); }
@@ -376,6 +380,8 @@ function spendRecordsHtml() {
   const months = [...new Set(ps.map((p) => monthKey(p.purchased_at)))].sort().reverse();
   const stores = knownStores(), hasNone = ps.some((p) => !storeOf(p));
   const cats = STAT_CATS().filter((c) => ps.some((p) => statCat(p.category) === c.id));
+  const firstBill = cats.findIndex((c) => isBill(c.id));
+  if (cats.filter((c) => isBill(c.id)).length > 1) cats.splice(firstBill, 0, BILLS_GROUP);   // 多种账单时多一个“全部账单”总筛选，排在各具体种类前
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;
   const mo = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
   return `<div class="section-head"><h2>${t("花费记录")}</h2><div class="head-acts"><span id="spendSum" class="muted">${esc(spendSummary())}</span><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="spend" data-filtered="1">${t("打印")}</button></div></div>
