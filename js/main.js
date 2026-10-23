@@ -37,7 +37,7 @@ import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
 import { renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
-import { moveCat, renderInvList, scoreRecipes, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
+import { moveCat, renderInvList, scoreRecipes, setShopOpen, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { viewAbout } from "./settings/about.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
@@ -1061,6 +1061,9 @@ function paintHeaderSync() {
   h.title = s.text; h.classList.toggle("err", !!s.err);
 }
 syncState.onChange = paintHeaderSync;
+
+// 采购清单区块折叠 / 展开：记住这次的选择（toggle 事件不冒泡，所以用捕获）
+document.addEventListener("toggle", (e) => { const d = e.target; if (d && d.dataset && d.dataset.shopsec) setShopOpen(d.dataset.shopsec, d.open); }, true);
 export function gate(html) { document.body.classList.add("gate"); applyChrome(); $("#hhName").textContent = ""; $("#main").innerHTML = html; }
 
 /* 登录：邮箱魔法链接（默认）；手机号短信验证码（config.js 里 PHONE_LOGIN = true 且 Supabase 已接短信服务商时显示） */

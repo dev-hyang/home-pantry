@@ -398,6 +398,11 @@ function shopToolbar() {
     <select id="shopWho" aria-label="${t("按认领筛选")}">${opt("all", t("全部"), f.who)}${opt("todo", t("没人认领的"), f.who)}${opt("mine", t("我认领的"), f.who)}${opt("others", t("家人认领的"), f.who)}</select>
     <select id="shopSort" aria-label="${t("排序")}">${SHOP_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select></div>`;
 }
+/* 采购清单各区块的展开状态：手动开合过的记在本机，没动过的用默认（待购买展开、认领中有内容才展开、已买到收起） */
+const SHOP_OPEN_KEY = "hmh-shop-open";
+const shopOpenPref = () => { try { return JSON.parse(localStorage.getItem(SHOP_OPEN_KEY) || "{}") || {}; } catch { return {}; } };
+export function setShopOpen(key, open) { try { localStorage.setItem(SHOP_OPEN_KEY, JSON.stringify({ ...shopOpenPref(), [key]: !!open })); } catch { /* 记不住就算了 */ } }
+const shopSecOpen = (key, n) => { const p = shopOpenPref()[key]; return p === undefined ? (key === "todo" || (key === "claimed" && n > 0)) : !!p; };
 export function viewShopping() {
   const by = (s) => shopRows(s);
   const row = (s) => {
@@ -421,8 +426,11 @@ export function viewShopping() {
       ${acts ? `<div class="acts">${acts}</div>` : ""}
     </li>`;
   };
-  const col = (title, rows, empty, extra = "") => `<div class="shop-col"><h3>${title}<span class="muted">（${rows.length}）</span>${extra}</h3>
-    ${rows.length ? `<ul>${rows.map(row).join("")}</ul>` : `<p class="muted">${empty}</p>`}</div>`;
+  // 三个区块上下叠放、可折叠：待购买很长时折起来，别的区块不用滚很远；展开时条目按宽度排成多列。
+  // 默认：待购买展开、认领中有内容才展开、已买到收起（它只是记录）；手动开合会记住（localStorage）。
+  const col = (key, title, rows, empty, extra = "") => `<details class="shop-col shop-${key}" data-shopsec="${key}" ${shopSecOpen(key, rows.length) ? "open" : ""}>
+    <summary><span class="sec-title">${title}</span><span class="sec-count" aria-label="${t("{n} 项", { n: rows.length })}">${rows.length}</span><span class="sec-chev" aria-hidden="true"></span></summary>
+    <div class="sec-body">${extra}${rows.length ? `<ul>${rows.map(row).join("")}</ul>` : `<p class="muted">${empty}</p>`}</div></details>`;
   const bought = by("bought");
   return `
     <section class="section">
@@ -441,10 +449,10 @@ export function viewShopping() {
       ${storeDatalist()}
       <datalist id="itemNames">${state.items.map((i) => `<option value="${esc(i.name)}">`).join("")}</datalist>
       ${shopToolbar()}
-      <div class="shop-cols">
-        ${col(t("待购买"), by("todo"), t("没有待买的东西。"))}
-        ${col(t("家人认领中"), by("claimed"), t("点“我来买”认领，家人就不会重复买。"))}
-        ${col(t("已买到"), bought, t("买到后自动加回库存。"), bought.length ? ` <button type="button" class="btn btn-sm btn-ghost" style="margin-left:auto" data-action="shop-clear">${t("清空")}</button>` : "")}
+      <div class="shop-secs">
+        ${col("todo", t("待购买"), by("todo"), t("没有待买的东西。"))}
+        ${col("claimed", t("家人认领中"), by("claimed"), t("点“我来买”认领，家人就不会重复买。"))}
+        ${col("bought", t("已买到"), bought, t("买到后自动加回库存。"), bought.length ? `<div class="sec-tools"><button type="button" class="btn btn-sm btn-ghost" data-action="shop-clear">${t("清空已买到")}</button></div>` : "")}
       </div>
     </section>`;
 }
