@@ -117,7 +117,7 @@ const RULES = [
   ["vehicle_maint", /jiffy lube|valvoline|firestone|pep boys|autozone|o'?reilly|napa auto|midas|discount tire|auto repair|汽车维修|保养/i],
   ["house_maint", /home depot|lowe'?s|menards|ace hardware|家得宝/i],
   ["medical", /hospital|clinic|medical|dental|dentist|quest diag|labcorp|urgent care|physician|optom|医院|诊所|牙科|体检/i], ["health", /\bcvs\b|walgreens|rite aid|pharmacy|药房|药店/i],
-  ["grocery_misc", /costco|trader joe|whole foods|kroger|safeway|aldi|publix|wegmans|h ?mart|99 ranch|mitsuwa|jewel-?osco|mariano|meijer|food lion|giant|stop & shop|sprouts|\bheb\b|harris teeter|sam'?s club|instacart|超市|大华|永辉|盒马/i],
+  ["grocery_misc", /weee|sayweee|hmart|h-mart|yamibuy|亚米|costco|trader joe|whole foods|kroger|safeway|aldi|publix|wegmans|h ?mart|99 ranch|mitsuwa|jewel-?osco|mariano|meijer|food lion|giant|stop & shop|sprouts|\bheb\b|harris teeter|sam'?s club|instacart|超市|大华|永辉|盒马/i],
   ["life_dining", /restaurant|cafe|coffee|starbucks|dunkin|mcdonald|chipotle|chick-?fil|panda express|subway|domino|pizza|taco|burger|bbq|grill|sushi|ramen|doordash|uber ?eats|grubhub|bakery|boba|tea\b|餐厅|饭店|外卖|美团|饿了么|咖啡|奶茶|麦当劳|肯德基/i],
   ["gear_clothes", /nordstrom|macy|old navy|\bgap\b|h&m|zara|uniqlo|nike|adidas|lululemon|tj ?maxx|marshalls|\bross\b|kohl|carter'?s|children'?s place|服装|优衣库/i],
   ["life_care", /salon|barber|haircut|\bspa\b|nail|massage|sephora|ulta|beauty|waxing|理发|美容|美甲|按摩/i], ["life_fitness", /\bgym\b|fitness|peloton|yoga|crossfit|orangetheory|健身|瑜伽|游泳/i],
@@ -132,13 +132,21 @@ const BANK_CAT = [[/grocer/i, "grocery_misc"], [/food|dining|restaurant/i, "life
   [/education|book/i, "life_edu"], [/fee|interest/i, "life_fees"], [/gift|donation|charit/i, "life_gifts"]];
 
 const userRules = () => meta("_bank_rules", {}) || {};
-/** 归类：你教过的 > 已有账单的收款方 > 内置关键词（含旅行关键词）> 银行自带分类；都不认识返回 "" */
+/** 归类：你教过的 > 已有账单的收款方（金额也得像那条账单）> AI 给的 > 内置关键词（含旅行关键词）> 银行自带分类；都不认识返回 ""
+ *  账单收款方那条原来太宽：Amazon Prime / Costco 会员建了账单后，所有 Amazon / Costco 的购物都被归成「会员」。
+ *  现在要么金额和账单的通常金额对得上（±15%），要么这家商家内置关键词也认不出，才按账单归类 */
 export function classify(row) {
   const key = keyOf(row.desc), d = row.desc.toLowerCase();
   const ur = userRules()[key]; if (ur) return ur;
-  for (const b of state.bills || []) { const p = String(b.payee || b.name || "").toLowerCase(); if (p.length >= 4 && d.includes(p)) return `bill_${b.category}`; }
+  const rule = (RULES.find(([, re]) => re.test(row.desc)) || [])[0] || "";
+  for (const b of (state.billsEnriched?.length ? state.billsEnriched : state.bills) || []) {
+    const p = String(b.payee || b.name || "").toLowerCase(); if (p.length < 4 || !d.includes(p)) continue;
+    const est = num(b.est ?? b.typical_amount, 0), amt = Math.abs(num(row.out, 0));
+    const amtOk = est > 0 && Math.abs(amt - est) <= Math.max(2, est * 0.15);
+    if (amtOk || !rule) return `bill_${b.category}`;
+  }
   if (row.aiCat) return row.aiCat;   // AI 读对账单时给的分类（它看得到整份对账单的上下文）
-  for (const [id, re] of RULES) if (re.test(row.desc)) return id;
+  if (rule) return rule;
   const g = TRIP.guess(row.desc, "");   // 机票、酒店、门票、租车…
   if (g && g !== "travel_dining" && g !== "travel_fuel") return g;
   if (g === "travel_dining") return "life_dining";
@@ -366,7 +374,7 @@ function panelHtml() {
   let mapping = "";
   if (tp) {
     const opt = (i, cur2, none) => `<option value="${i}" ${cur2 === i ? "selected" : ""}>${i < 0 ? esc(none || t("（无）")) : esc(tp.headers[i] || `#${i + 1}`)}</option>`;
-    const cols = (key, label, none) => `<label>${label}<select data-bank-col="${key}">${[-1, ...tp.headers.map((_, i) => i)].map((i) => opt(i, tp.map[key], none)).join("")}</select></label>`;
+    const cols = (key, label, none) => `<label>${label}<select data-bank-col="${key}" data-nosearch>${[-1, ...tp.headers.map((_, i) => i)].map((i) => opt(i, tp.map[key], none)).join("")}</select></label>`;
     mapping = `<details class="panel bank-map"${S.parts[0].error ? " open" : ""}><summary>${t("认出的列对不对？{n} 行，{range}", { n: S.rows.length, range: rangeOf(S.rows) })}</summary>
     <div class="form-grid" style="margin-top:8px">${cols("date", t("日期"))}${cols("desc", t("商家 / 说明"))}${cols("amount", t("金额（一列）"))}${cols("debit", t("支出（借方）"))}${cols("credit", t("收入（贷方）"))}
       <label>${t("支出的正负")}<select data-bank-sign><option value="auto" ${S.spendSign === "auto" ? "selected" : ""}>${t("自动判断")}（${S.autoSign === "neg" ? t("支出是负数") : t("支出是正数")}）</option><option value="neg" ${S.spendSign === "neg" ? "selected" : ""}>${t("支出是负数")}</option><option value="pos" ${S.spendSign === "pos" ? "selected" : ""}>${t("支出是正数")}</option></select></label>

@@ -786,6 +786,29 @@ button.mrow:last-child { border-bottom: 0; }
 .cover-table th[scope="row"] { text-align: left; font-weight: 600; }
 .cover-table td { color: var(--muted); } .cover-table td.on { color: var(--ok); font-weight: 700; }
 @media (min-width: 640px) { .bank-list li { grid-template-columns: auto minmax(0, 1fr) minmax(200px, 260px); } .bank-list li select { grid-column: auto; } }
+/* 可搜索的下拉（js/select-search.js）：原 select 藏起来，按钮长得和 select 一样，面板里搜索框 + 选项列表 */
+.ssel-native { position: absolute !important; opacity: 0; width: 1px; height: 1px; min-height: 0; padding: 0; margin: 0; border: 0; pointer-events: none; }
+.ssel { position: relative; min-width: 0; }
+.ssel-btn { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 9px 36px 9px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font: inherit; font-weight: 500; text-align: left; cursor: pointer; box-sizing: border-box; position: relative; }
+.ssel-btn::after { content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px; margin-top: -5px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); }
+.ssel-btn:disabled { opacity: .5; cursor: default; }
+.ssel.is-open .ssel-btn { border-color: var(--pine); }
+.ssel-val { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ssel-panel { position: absolute; left: 0; min-width: min(300px, calc(100vw - 28px)); width: 100%; top: calc(100% + 4px); z-index: 30; display: grid; grid-template-rows: auto minmax(0, 1fr); max-height: min(320px, 55vh); padding: 6px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); box-shadow: 0 10px 28px rgba(0, 0, 0, .18); }
+.ssel.is-up .ssel-panel { top: auto; bottom: calc(100% + 4px); }
+.ssel.is-right .ssel-panel { left: auto; right: 0; }
+.ssel-opt[hidden], .ssel-grp[hidden] { display: none; }
+.ssel-q { min-height: 38px; margin-bottom: 4px; }
+.ssel-list { overflow-y: auto; overscroll-behavior: contain; }
+.ssel-grp { padding: 8px 10px 2px; font-size: 11.5px; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+.ssel-opt { padding: 9px 10px; min-height: 40px; display: flex; align-items: center; border-radius: 8px; font-size: 14px; cursor: pointer; }
+.ssel-opt:hover, .ssel-opt.is-hl { background: var(--surface-2); }
+.ssel-opt.is-cur { background: var(--ok-bg); font-weight: 700; }
+.ssel-opt.is-off { opacity: .45; pointer-events: none; }
+.ssel-empty { padding: 12px 10px; font-size: 13px; }
+.shop-qty .ssel, .price-in .ssel { font-size: 13px; } .price-in .ssel-btn { min-height: 34px; padding-top: 4px; padding-bottom: 4px; }
+.purchase-row .ssel { grid-column: span 4; } .purchase-row select.ssel-native.pr-cat { grid-column: auto; }
+@media (max-width: 720px) { .purchase-row .ssel { grid-column: auto; } }
 /* 用卡：进度条、复盘 */
 .card-bars { display: grid; gap: 4px; margin-top: 6px; }
 .prog { display: grid; grid-template-columns: minmax(70px, 28%) minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 12px; }
