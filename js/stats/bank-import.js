@@ -9,6 +9,7 @@ import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, money, num, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
+import { href } from "../core/router.js";
 import { categoryOptions } from "../pantry/views.js";
 import { meta, saveMeta } from "../bills/budget.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
@@ -391,7 +392,7 @@ const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 
     <li>${t("退款（卡上入账的退货）会记成负数花费，统计按净额算。")}</li>
     <li>${t("以前已经手动记过的花费（日期差 3 天内、金额一样）自动跳过，所以同一个文件导两次也不会重复。")}</li>
     <li>${t("导入错了可以整批撤销。银行的 CSV 格式很多，列认错了可以手动选；国内银行的 GBK 编码也认得。")}</li></ul></div>`;
-const batchesHtml = (batches) => (batches.length ? `<section class="section"><div class="section-head"><h2>${t("最近导入")}</h2></div>${coverageHtml(batches)}<div class="panel" style="margin-top:10px"><ul class="restock-list">${batches.slice().reverse().slice(0, 12).map((b) => `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${b.from ? `${esc(b.from)} → ${esc(b.to)} · ` : ""}${t("{n} 笔", { n: b.n ?? b.ids?.length ?? 0 })} · ${money(b.sum || 0)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}</small></div>${b.ids?.length ? `<button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}</li>`).join("")}</ul></div></section>` : "");
+const batchesHtml = (batches) => (batches.length ? `<section class="section"><div class="section-head"><h2>${t("最近导入")}</h2><p>${t("「查看 / 修改」打开这一批的明细，每一笔都能改分类、金额、商店或删掉；「撤销」整批删除。")}</p></div>${coverageHtml(batches)}<div class="panel" style="margin-top:10px"><ul class="restock-list bank-batches">${batches.slice().reverse().slice(0, 24).map((b) => { const can = b.tagged || b.ids?.length; return `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${b.from ? `${esc(b.from)} → ${esc(b.to)} · ` : ""}${t("{n} 笔", { n: b.n ?? b.ids?.length ?? 0 })} · ${money(b.sum || 0)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}${can ? "" : ` · ${t("（早期批次，只留了汇总）")}`}</small></div>${can ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}?tab=records&batch=${esc(b.id)}">${t("查看 / 修改")}</a><button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}</li>`; }).join("")}</ul></div></section>` : "");
 
 export function bankImportTab() { return `<section class="section" id="bankImport">${panelHtml()}</section>`; }
 const redraw = () => { const el = document.getElementById("bankImport"); if (el) el.innerHTML = panelHtml(); };
@@ -406,9 +407,14 @@ async function doImport() {
     if (S.remember && !g.skip && cat && g.id.indexOf("__") !== 0) learned[g.id] = cat;
   }
   const ids = [], rowsDone = []; let sum = 0, failed = 0;
+  const batchId = `b${Date.now().toString(36)}`;   // 每笔花费记上批次 id（迁移 034）；没执行迁移时退回只记 id 列表
+  let tagged = !S.noBatchCol;
   const one = async ({ r, cat }) => {
+    const row = { item_id: null, name: merchantName(r.desc), category: cat, quantity: null, unit: null, store: merchantName(r.desc), amount: r.out, currency: cur(), purchased_at: new Date(`${r.date}T12:00:00`).toISOString(), ...(S.account.mode === "id" && String(S.account.id).startsWith("card:") ? { card_id: String(S.account.id).slice(5) } : {}) };
     try {
-      const id = await Store.addPurchase({ item_id: null, name: merchantName(r.desc), category: cat, quantity: null, unit: null, store: merchantName(r.desc), amount: r.out, currency: cur(), purchased_at: new Date(`${r.date}T12:00:00`).toISOString(), ...(S.account.mode === "id" && String(S.account.id).startsWith("card:") ? { card_id: String(S.account.id).slice(5) } : {}) });
+      let id;
+      try { id = await Store.addPurchase(tagged ? { ...row, import_batch: batchId } : row); }
+      catch (e) { if (tagged && /import_batch/i.test(e.message)) { tagged = false; S.noBatchCol = true; id = await Store.addPurchase(row); } else throw e; }   // 还没执行迁移 034：不记批次，照旧导入
       ids.push(id); sum += r.out; rowsDone.push({ id, name: merchantName(r.desc), category: cat, amount: r.out, date: r.date });
     } catch (e) { failed++; }
   };
@@ -419,12 +425,12 @@ async function doImport() {
   else if (S.account.mode === "id") acct = accounts().find((x) => x.id === S.account.id) || null;
   const cardId = acct && String(acct.id).startsWith("card:") ? String(acct.id).slice(5) : "";   // 选的是用卡模块里的卡：花费记到这张卡上（复盘 / 封顶进度用）
   const dates = S.rows.map((r) => r.date).sort();
-  const batch = { id: `b${Date.now().toString(36)}`, at: new Date().toISOString(), file: S.parts.map((x) => x.name).join(", ").slice(0, 60), ids, sum: Math.round(sum * 100) / 100, n: ids.length,
+  const batch = { id: batchId, at: new Date().toISOString(), file: S.parts.map((x) => x.name).join(", ").slice(0, 60), ids: tagged ? [] : ids, tagged, sum: Math.round(sum * 100) / 100, n: ids.length,
     account: acct ? acct.name : "", last4: acct ? acct.last4 : "", from: dates[0] || "", to: dates.at(-1) || "" };
   try {
     const rules = { ...userRules(), ...learned }, keys = Object.keys(rules); if (keys.length > 400) keys.slice(0, keys.length - 400).forEach((k) => delete rules[k]);
-    // 最近 36 批留着看覆盖情况；只有最近 6 批保留花费 id（能撤销），再早的只留汇总
-    const all = [...(meta("_bank_batches", []) || []), ...(ids.length ? [batch] : [])].slice(-36).map((b, i, arr) => (i < arr.length - 6 ? { ...b, ids: [], n: b.n ?? b.ids?.length ?? 0 } : b));
+    // 最近 60 批留着（查看 / 修改 / 撤销靠花费上的批次 id）；没执行迁移 034 的旧批次靠 id 列表，只有最近 6 批保留（免得预算设置里存太多）
+    const all = [...(meta("_bank_batches", []) || []), ...(ids.length ? [batch] : [])].slice(-60).map((b, i, arr) => (!b.tagged && i < arr.length - 6 ? { ...b, ids: [], n: b.n ?? b.ids?.length ?? 0 } : b));
     await saveMeta({ _bank_rules: rules, _bank_batches: all, _bank_accounts: acctList.slice(-30) });
   } catch (e) { /* 记不住规则 / 撤销记录不影响已导入的花费 */ }
   S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = ""; S.acctTouched = false; S.account = acct ? { mode: "id", id: acct.id, name: acct.name, last4: acct.last4 } : { mode: "none", id: "", name: "", last4: "" };
@@ -434,8 +440,9 @@ async function doImport() {
 }
 async function undo(batchId) {
   const all = meta("_bank_batches", []) || [], b = all.find((x) => x.id === batchId); if (!b) return;
-  if (!confirm(t("撤销这批导入？这 {n} 笔花费会被删除。", { n: b.ids.length }))) return;
-  for (let i = 0; i < b.ids.length; i += 6) await Promise.all(b.ids.slice(i, i + 6).map((id) => Store.deletePurchase(id).catch(() => {})));
+  if (!confirm(t("撤销这批导入？这 {n} 笔花费会被删除。", { n: b.n ?? b.ids?.length ?? 0 }))) return;
+  for (let i = 0; i < (b.ids || []).length; i += 6) await Promise.all(b.ids.slice(i, i + 6).map((id) => Store.deletePurchase(id).catch(() => {})));
+  if (b.tagged) { try { await Store.deletePurchasesByBatch(b.id); } catch (e) { toast(t("撤销失败：{msg}", { msg: e.message })); return; } }
   try { await saveMeta({ _bank_batches: all.filter((x) => x.id !== batchId) }); } catch (e) { /* 忽略 */ }
   if (S.last?.id === batchId) S.last = null;
   toast(t("已撤销")); if (refreshFn) await refreshFn(); redraw();

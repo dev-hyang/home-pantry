@@ -130,9 +130,10 @@ const encKeys = (keys) => keys.map(encodeURIComponent).join(",");
 export const hitAttrs = (q, label) => (q ? ` data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(label)}"` : "");
 const DRILL_HINT = () => `<p class="muted drill-hint">${t("点图里的色块、图例或名称，可以查看对应的花费明细。")}</p>`;
 export function applySpendDrill(q) {
-  if (!["cat", "grp", "store", "stores", "month", "range", "year", "q"].some((k) => q.has(k))) return false;
+  if (!["cat", "grp", "store", "stores", "month", "range", "year", "q", "batch"].some((k) => q.has(k))) return false;
   const f = state.spendFilter;
-  Object.assign(f, { q: "", cat: "all", grp: null, store: "all", stores: null, month: "all", months: null, sort: "new", limit: 20 });
+  Object.assign(f, { q: "", cat: "all", grp: null, store: "all", stores: null, month: "all", months: null, batch: null, sort: "new", limit: 20 });
+  if (q.get("batch")) f.batch = q.get("batch");   // 银行导入「查看 / 修改」：只看这一批
   if (q.get("q")) f.q = q.get("q");   // 旅行页「查看明细」：按「【行程名】」搜名称
   if (q.get("grp")) f.grp = q.get("grp");
   if (q.get("cat")) f.cat = q.get("cat");
@@ -341,9 +342,12 @@ export function viewStats() {
 export const SPEND_SORTS = [["new", "时间：新 → 旧"], ["old", "时间：旧 → 新"], ["high", "金额：高 → 低"], ["low", "金额：低 → 高"], ["name", "名称 A → Z"]];
 const PAGE = 20;
 const amountOf = (p) => (p.amount != null && (!p.currency || p.currency === Units.region.currency) ? num(p.amount) : 0);
+/** 银行导入的一批：{ 批次记录, 旧批次的花费 id 集合 }（记录在预算设置里） */
+const batchOf = (id) => { const b = (state.budget?.cat_budgets?._bank_batches || []).find((x) => x.id === id); return b ? { b, ids: new Set(b.ids || []) } : null; };
 export function filteredSpend() {
-  const f = state.spendFilter, q = f.q.trim().toLowerCase();
+  const f = state.spendFilter, q = f.q.trim().toLowerCase(), bt = f.batch ? batchOf(f.batch) : null;
   let list = state.purchases.filter((p) => {
+    if (f.batch && !(p.import_batch === f.batch || (bt && bt.ids.has(p.id)))) return false;
     if (f.cat !== "all" && !catMatches(f.cat, p.category)) return false;
     if (f.month !== "all" && monthKey(p.purchased_at) !== f.month) return false;
     if (f.months?.length && !f.months.includes(monthKey(p.purchased_at))) return false;
@@ -397,6 +401,7 @@ function activeFilterChips() {
   if (f.month !== "all") out.push(["month", monthName(f.month)]);
   if (f.months?.length) { const m0 = f.months[0], whole = m0.endsWith("-01") && f.months.every((m) => m.startsWith(m0.slice(0, 4))); out.push(["months", whole ? t("{y} 年", { y: m0.slice(0, 4) }) : t("近 {n} 个月", { n: f.months.length })]); }
   if (f.q.trim()) out.push(["q", `“${f.q.trim()}”`]);
+  if (f.batch) { const bt = batchOf(f.batch); out.push(["batch", t("导入批次：{name}", { name: bt ? (bt.b.account || bt.b.file || f.batch) + (bt.b.at ? ` · ${String(bt.b.at).slice(0, 10)}` : "") : f.batch })]); }
   return out;
 }
 function spendChipsHtml() {
@@ -405,8 +410,8 @@ function spendChipsHtml() {
 }
 export function clearSpendFilter(k) {
   const f = state.spendFilter, d = { cat: ["cat", "all"], store: ["store", "all"], month: ["month", "all"], q: ["q", ""] };
-  if (k === "all") Object.assign(f, { q: "", cat: "all", grp: null, store: "all", stores: null, month: "all", months: null });
-  else if (k === "grp") f.grp = null; else if (k === "stores") f.stores = null; else if (k === "months") f.months = null; else if (d[k]) f[d[k][0]] = d[k][1];
+  if (k === "all") Object.assign(f, { q: "", cat: "all", grp: null, store: "all", stores: null, month: "all", months: null, batch: null });
+  else if (k === "grp") f.grp = null; else if (k === "batch") f.batch = null; else if (k === "stores") f.stores = null; else if (k === "months") f.months = null; else if (d[k]) f[d[k][0]] = d[k][1];
   f.limit = 20;
 }
 /** 筛选条、各个下拉和搜索框都按当前筛选重画（点掉标签后下拉也跟着回到“全部”） */

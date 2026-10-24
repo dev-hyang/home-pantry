@@ -84,6 +84,7 @@ export const DemoStore = {
   },
   async addPurchase(p) { const id = uid(); this.db.purchases.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
   async deletePurchase(id) { this.db.purchases = this.db.purchases.filter((x) => x.id !== id); this.persist(); },
+  async deletePurchasesByBatch(batch) { const n = this.db.purchases.filter((x) => x.import_batch === batch).length; this.db.purchases = this.db.purchases.filter((x) => x.import_batch !== batch); this.persist(); return n; },
 
   /* 房产 */
   async listProperties() { return this.db.properties.map((x) => ({ ...x })); },
@@ -699,6 +700,8 @@ export const CloudStore = {
       .gte("purchased_at", from).lt("purchased_at", to).order("purchased_at").limit(10000));
   },
   async deletePurchase(id) { this.must(await this.sb.from("purchases").delete().eq("id", id)); },
+  /** 撤销一批银行导入（迁移 034 的 import_batch 列）；返回删掉几笔 */
+  async deletePurchasesByBatch(batch) { const r = this.must(await this.sb.from("purchases").delete().eq("household_id", this.hid).eq("import_batch", batch).select("id")); return (r || []).length; },
   async saveItem(it) {
     const row = { household_id: this.hid, updated_by: state.user.id };
     ITEM_FIELDS.forEach((k) => { row[k] = it[k]; });

@@ -777,6 +777,7 @@ button.mrow:last-child { border-bottom: 0; }
 .bank-chk input { width: 20px; height: 20px; min-height: 0; accent-color: var(--pine); }
 .bank-row.is-skip { opacity: .8; }
 .bank-dup { color: var(--soon); font-weight: 600; }
+.bank-batches li { flex-wrap: wrap; } .bank-batches li .grow { flex-basis: 160px; }
 .bank-acct { display: grid; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
 .bank-acct label { display: grid; gap: 3px; font-size: 13px; font-weight: 700; }
 @media (min-width: 640px) { .bank-acct { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .bank-acct small { grid-column: 1 / -1; } }
