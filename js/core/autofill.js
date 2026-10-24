@@ -5,6 +5,7 @@ import { $, esc, num, todayISO } from "./util.js";
 import { t, lang } from "./i18n.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "./ai.js";
 import { KINDS as medKinds } from "../bills/medical.js";
+import { go, href } from "./router.js";
 
 const MAX_IMAGES = 3;
 const H = () => window.HOUSE;
@@ -242,6 +243,17 @@ async function run(input) {
   const kind = input.dataset.autofill, def = KINDS[kind], form = $(input.dataset.form), bar = input.closest(".af-bar");
   const files = [...input.files].slice(0, MAX_IMAGES); input.value = "";
   if (!def || !form || !bar || !files.length) return;
+  // 一次性账单：已经保存过的这张账单页上再拍 = 要录下一张新账单，别把识别结果填进这张已存的（会改掉它）。
+  // 先去一张空白的同类新账单表单，再把照片交给那里的识别
+  if (kind === "medbill" && form.dataset.id) {
+    go(`${href("bills", "onetime")}?bill=new&kind=${encodeURIComponent(form.elements.kind?.value || "medical")}`);
+    for (let i = 0; i < 40; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      const nf = $(input.dataset.form), ni = nf && !nf.dataset.id ? nf.closest("section")?.querySelector("input[data-autofill]") : null;
+      if (ni) { const dt = new DataTransfer(); files.forEach((f) => dt.items.add(f)); ni.files = dt.files; ni.dispatchEvent(new Event("change", { bubbles: true })); return; }
+    }
+    return;
+  }
   const status = bar.querySelector(".af-status"), thumbs = bar.querySelector(".af-thumbs");
   const say = (msg, err = false) => { status.textContent = msg; status.className = `af-status ${err ? "form-error" : ""}`; };
   say(t("正在识别…（几十秒）")); bar.classList.add("is-busy");

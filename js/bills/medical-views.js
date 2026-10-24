@@ -140,7 +140,7 @@ function viewDetail(id, payId) {
   const pay = payId && b ? b.pays.find((p) => p.id === payId) : null;
   const owedNow = b ? b.owed : null;
   return `<section class="section form-page">
-    ${autofillBar("medbill", "#medBillForm")}
+    ${autofillBar("medbill", "#medBillForm")}${b ? `<p class="muted" style="margin:-4px 0 8px;font-size:12.5px">${t("这张账单已保存。再拍一张会新建一张账单，不会改动这张。")}</p>` : ""}
     <form id="medBillForm" class="panel" novalidate data-id="${d(b?.id)}">
       <input type="hidden" name="kind" value="${d(v.kind)}">
       ${isNew ? `<div class="seg-radio" role="radiogroup" aria-label="${t("账单种类")}" style="margin-bottom:10px">${Object.entries(KINDS).map(([k, X]) => `<label class="radio-pill"><input type="radio" name="kindPick" value="${k}" ${v.kind === k ? "checked" : ""}><span>${X.icon} ${t(X.name)}</span></label>`).join("")}</div>` : `<p class="muted" style="margin:0 0 8px">${K.icon} ${t(K.name)}</p>`}
