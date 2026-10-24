@@ -90,8 +90,9 @@ function headerIndex(rows) {
 const NOISE = /\b(pos|debit card|purchase|authorized on|checkcard|recurring|payment to|sq \*|tst\*|sp \*|pp\*|paypal \*|ach|web id|ref|card ending|visa|mastercard|dda)\b/gi;
 /** 说明 → 商家显示名（去掉卡号 / 流水号 / 日期等噪音，最多 3 个词） */
 export function merchantName(desc) {
-  let s = String(desc || "").replace(/\d{2}\/\d{2}(\/\d{2,4})?/g, " ").replace(/\b\d{5,}\b/g, " ").replace(/[xX*#]{2,}\s*\d+/g, " ").replace(NOISE, " ").replace(/[#*]+/g, " ").replace(/\s+/g, " ").trim();
-  s = s.split(" ").filter((w) => !/^\d+$/.test(w) && !/^[A-Z]{2}$/.test(w)).slice(0, 3).join(" ");   // 末尾的州名缩写（IL、CA）、纯数字不要
+  let s = String(desc || "").replace(/^\s*(sq|tst|sp|pp|py|dd|ub|pos|dbt)\s*\*\s*/i, " ").replace(/amzn\.com\/bill|amzn\.com/gi, " ").replace(/\d{2}\/\d{2}(\/\d{2,4})?/g, " ").replace(/\b\d{5,}\b/g, " ").replace(/[xX*#]{2,}\s*\d+/g, " ").replace(NOISE, " ").replace(/[#*]+/g, " ").replace(/\s+/g, " ").trim();
+  // 纯数字、字母数字混杂的流水码（AB12、2X4R5、XY99）、州名缩写（IL、CA）不要——否则 AMAZON MKTPL*AB12 和 AMAZON MKTPL*2X4R5 会被当成两家，记住的归类也对不上
+  s = s.split(" ").filter((w) => !/^\d+$/.test(w) && !(/\d/.test(w) && /[a-z]/i.test(w) && !/^\d+-[a-z]+$/i.test(w)) && !/^[A-Z]{2}$/.test(w)).slice(0, 3).join(" ");
   return (s || String(desc || "").trim()).slice(0, 40);
 }
 const keyOf = (desc) => merchantName(desc).toLowerCase();
@@ -135,27 +136,29 @@ const userRules = () => meta("_bank_rules", {}) || {};
 /** 归类：你教过的 > 已有账单的收款方（金额也得像那条账单）> AI 给的 > 内置关键词（含旅行关键词）> 银行自带分类；都不认识返回 ""
  *  账单收款方那条原来太宽：Amazon Prime / Costco 会员建了账单后，所有 Amazon / Costco 的购物都被归成「会员」。
  *  现在要么金额和账单的通常金额对得上（±15%），要么这家商家内置关键词也认不出，才按账单归类 */
-export function classify(row) {
+export function classify(row) { return classifyWhy(row).cat; }
+/** 同上，但带来源：learned（你教过的）/ bill / rule / ai / bank / ""。内置关键词认得的商家（Amazon、Costco、Shell…）优先于 AI 的猜测——AI 常把 Amazon 购物猜成会员 */
+export function classifyWhy(row) {
   const key = keyOf(row.desc), d = row.desc.toLowerCase();
-  const ur = userRules()[key]; if (ur) return ur;
+  const ur = userRules()[key]; if (ur) return { cat: ur, src: "learned" };
   const rule = (RULES.find(([, re]) => re.test(row.desc)) || [])[0] || "";
   for (const b of (state.billsEnriched?.length ? state.billsEnriched : state.bills) || []) {
     const p = String(b.payee || b.name || "").toLowerCase(); if (p.length < 4 || !d.includes(p)) continue;
     const est = num(b.est ?? b.typical_amount, 0), amt = Math.abs(num(row.out, 0));
     const amtOk = est > 0 && Math.abs(amt - est) <= Math.max(2, est * 0.15);
-    if (amtOk || !rule) return `bill_${b.category}`;
+    if (amtOk || !rule) return { cat: `bill_${b.category}`, src: "bill" };
   }
-  if (row.aiCat) return row.aiCat;   // AI 读对账单时给的分类（它看得到整份对账单的上下文）
-  if (rule) return rule;
+  if (rule) return { cat: rule, src: "rule" };
+  if (row.aiCat) return { cat: row.aiCat, src: "ai" };   // AI 读对账单时给的分类（内置关键词认不出的商家才用它）
   const g = TRIP.guess(row.desc, "");   // 机票、酒店、门票、租车…
-  if (g && g !== "travel_dining" && g !== "travel_fuel") return g;
-  if (g === "travel_dining") return "life_dining";
-  if (row.bankCat) for (const [re, id] of BANK_CAT) if (re.test(row.bankCat)) return id;
-  return "";
+  if (g && g !== "travel_dining" && g !== "travel_fuel") return { cat: g, src: "rule" };
+  if (g === "travel_dining") return { cat: "life_dining", src: "rule" };
+  if (row.bankCat) for (const [re, id] of BANK_CAT) if (re.test(row.bankCat)) return { cat: id, src: "bank" };
+  return { cat: "", src: "" };
 }
 
 /* ───────────── 把表格变成交易行 ───────────── */
-const S = { parts: [], account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "" };
+const S = { parts: [], auto: {}, account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "" };
 const cur = () => S.currency || Units.region.currency;
 let askFn = askText;   // 测试时可替换
 export const _setAsk = (fn) => { askFn = fn || askText; };
@@ -225,7 +228,7 @@ function rebuild() {
     else if (row.kind === "income") row.skip = "income";
     else if (row.out < 0) row.skip = row.kind === "refund" || REFUND.test(typeTxt) ? "" : "income";   // 入账：退款算（负花费），其余是收入
     row.refund = row.out < 0 && !row.skip;
-    row.key = keyOf(row.desc); row.cat = row.skip ? "" : classify(row);
+    row.key = keyOf(row.desc); const cw = row.skip ? { cat: "", src: "" } : classifyWhy(row); row.cat = cw.cat; row.src = cw.src;
     rows.push(row);
   }
   // 和已有花费对得上的（金额一样、日期差 ≤ 3 天，每条已有花费只配一次）：疑似已记录，默认跳过；重复导入同一个文件也靠它防重
@@ -244,9 +247,9 @@ function rebuild() {
     x.rows.push(r); x.total += r.out; g.set(id, x);
   }
   S.groups = [...g.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
-  for (const x of S.groups) { if (!(x.id in S.pick)) S.pick[x.id] = x.skip ? "" : x.rows[0].cat; if (!(x.id in S.include)) S.include[x.id] = !x.skip; }
+  for (const x of S.groups) { x.src = x.rows[0].src || ""; if (!(x.id in S.auto)) S.auto[x.id] = x.skip ? "" : x.rows[0].cat; if (!(x.id in S.pick)) S.pick[x.id] = x.skip ? "" : x.rows[0].cat; if (!(x.id in S.include)) S.include[x.id] = !x.skip; }
 }
-const resetPicks = () => { S.pick = {}; S.include = {}; };
+const resetPicks = () => { S.pick = {}; S.include = {}; S.auto = {}; };
 
 /* ───────────── 账户（哪张卡 / 哪个账户）：每批导入记一个标签，用来看“哪个账户哪几个月已经补过” ─────────────
  * 账户列表 = 以前导入时建的（预算设置 _bank_accounts）+ 账单里有账号尾号 / 信用卡类的账单。不改数据库、不记到每一笔上。 */
@@ -342,7 +345,7 @@ function groupRow(g) {
   const inc = !!S.include[g.id], dups = g.rows.filter((r) => r.dup).length, n = g.rows.length;
   const sel = `<select data-bank-cat="${esc(g.id)}" aria-label="${esc(t("分类"))}">${catOpts(S.pick[g.id])}</select>`;   // 默认跳过的也能勾上、选个分类导入
   return `<li class="bank-row${g.skip ? " is-skip" : ""}"><label class="bank-chk"><input type="checkbox" data-bank-inc="${esc(g.id)}" ${inc ? "checked" : ""} aria-label="${esc(t("导入"))}"></label>
-    <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n })} · ${money(g.total)} · ${esc(rangeOf(g.rows))}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b>` : ""}</small></div>${sel}</li>`;
+    <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n })} · ${money(g.total)} · ${esc(rangeOf(g.rows))}${g.src === "learned" ? ` · <span class="bank-src" title="${esc(t("上次你给这家选的分类；改了会记住新的"))}">${t("上次你选的")}</span>` : g.src === "ai" ? ` · <span class="bank-src">${t("AI 猜的")}</span>` : g.src === "bill" ? ` · <span class="bank-src">${t("按账单收款方")}</span>` : ""}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b>` : ""}</small></div>${sel}</li>`;
 }
 const chosen = () => {
   let n = 0, sum = 0;
@@ -369,7 +372,7 @@ function panelHtml() {
     <details class="bank-paste" style="margin-top:8px"><summary>${t("或者直接粘贴文字")}</summary><textarea id="bankPaste" rows="5" placeholder="${esc(t("把网银页面或 PDF 里的交易几行直接复制粘贴到这里"))}" style="margin-top:6px"></textarea>
       <div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-bank-act="paste">${t("读取这段文字")}</button></div></details>
     ${partsHtml()}${S.parts.length ? accountHtml() : ""}${S.error ? `<p class="form-error" role="alert">${esc(S.error)}</p>` : ""}</div>`;
-  if (!S.parts.length) return head + tipsHtml() + batchesHtml(batches);
+  if (!S.parts.length) return head + tipsHtml() + rulesHtml() + batchesHtml(batches);
   const tp = S.parts.length === 1 && S.parts[0].table ? S.parts[0].table : null;
   let mapping = "";
   if (tp) {
@@ -393,6 +396,15 @@ function panelHtml() {
     ${S.last ? `<div class="panel" role="status"><b>${t("已导入 {n} 笔，合计 {m}", { n: S.last.n, m: money(S.last.sum) })}</b> <button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo-last">${t("撤销这批")}</button></div>` : ""}
     ${batchesHtml(batches)}`;
 }
+/** 记住的归类规则：列出来、可逐条删或全部清除（归错了一次又勾了「记住」，不清掉会一直错） */
+function rulesHtml() {
+  const rules = userRules(), keys = Object.keys(rules); if (!keys.length) return "";
+  const nameOf = (id) => { const c = [...window.CATEGORIES, ...window.BILLS_GROUP.cats(), ...window.LIFE_CATS, ...window.TRAVEL_CATS, window.GROCERY_MISC, window.VEHICLE_FUEL, window.MAINT_CAT, window.VEHICLE_CAT, window.MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾" }, window.OTHER_CAT].find((x) => x && x.id === id); return c ? `${c.icon} ${t(c.name)}` : id; };
+  return `<details class="ref-panel panel" style="margin-top:10px"><summary><b>${t("记住的归类")}</b><small>${t("{n} 家商家", { n: keys.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
+    <div class="ref-body"><p class="muted" style="margin:0 0 6px;font-size:12.5px">${t("导入时勾了「记住我选的归类」后，这些商家下次自动按这里归。归错了就删掉这一条（或在导入清单里改选，会记住新的）。")}</p>
+    <ul class="restock-list">${keys.sort().map((k) => `<li><div class="grow"><span class="name">${esc(k)}</span><small>${esc(nameOf(rules[k]))}</small></div><button type="button" class="btn btn-sm btn-ghost" data-bank-act="rule-del" data-key="${esc(k)}" aria-label="${esc(t("删除这条"))}">✕</button></li>`).join("")}</ul>
+    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm btn-ghost" data-bank-act="rules-clear">${t("全部清除")}</button></div></div></details>`;
+}
 const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("怎么归类？")}</h3><ul class="plain small" style="margin:0">
     <li>${t("只有一笔刷卡 / 扣款、没有小票也没关系：按商家名自动归类（超市、餐饮、加油、水电网、订阅、机票酒店…），认不出的你选一次，之后记住。")}</li>
     <li>${t("信用卡还款、账户之间转账、工资入账不是花费，默认跳过——否则会重复算一遍。")}</li>
@@ -412,7 +424,8 @@ async function doImport() {
   for (const g of S.groups) {
     if (!S.include[g.id]) continue; const cat = S.pick[g.id]; if (!cat) continue;
     for (const r of g.rows) { if (r.dup) continue; picks.push({ r, cat }); }
-    if (S.remember && !g.skip && cat && g.id.indexOf("__") !== 0) learned[g.id] = cat;
+    // 只记你改过的（或原来认不出、你选了的）；自动归出来的不记，免得把归错的也「学」进去，以后一直错
+    if (S.remember && !g.skip && cat && g.id.indexOf("__") !== 0 && cat !== S.auto[g.id]) learned[g.id] = cat;
   }
   const ids = [], rowsDone = []; let sum = 0, failed = 0;
   const batchId = `b${Date.now().toString(36)}`;   // 每笔花费记上批次 id（迁移 034）；没执行迁移时退回只记 id 列表
@@ -474,6 +487,8 @@ document.addEventListener("change", async (e) => {
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("#bankImport [data-bank-act]"); if (!b) return;
   if (b.dataset.bankAct === "import") doImport();
+  else if (b.dataset.bankAct === "rule-del") { const rules = { ...userRules() }; delete rules[b.dataset.key]; saveMeta({ _bank_rules: rules }).then(() => { toast(t("已删除")); if (S.parts.length) { resetPicks(); rebuild(); } redraw(); }); }
+  else if (b.dataset.bankAct === "rules-clear") { if (confirm(t("清除全部记住的归类？下次导入这些商家会重新按关键词归类。"))) saveMeta({ _bank_rules: {} }).then(() => { toast(t("已清除")); if (S.parts.length) { resetPicks(); rebuild(); } redraw(); }); }
   else if (b.dataset.bankAct === "undo") undo(b.dataset.batch);
   else if (b.dataset.bankAct === "undo-last" && S.last) undo(S.last.id);
   else if (b.dataset.bankAct === "ai") aiParse(+b.dataset.i);
