@@ -532,10 +532,11 @@ export function viewMeals() {
 }
 
 /** 分类下拉选项：储藏、房屋、装备分组显示 */
-export function categoryOptions(selected, { withOther = true } = {}) {
+export function categoryOptions(selected, { withOther = true, travel = false } = {}) {
   const opt = (c) => `<option value="${c.id}" ${c.id === selected ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`;
   return `<optgroup label="${t("日常储备")}">${catsOf("pantry").map(opt).join("")}</optgroup>
     <optgroup label="${t("房屋耗材")}">${catsOf("house").map(opt).join("")}${withOther ? opt(MAINT_CAT) : ""}</optgroup>
     <optgroup label="${t("装备（只记数量和位置）")}">${catsOf("gear").map(opt).join("")}</optgroup>
+    ${travel ? `<optgroup label="${t("旅行出行")}">${window.TRAVEL_CATS.map(opt).join("")}</optgroup>` : ""}
     ${withOther ? opt(OTHER_CAT) : ""}`;
 }

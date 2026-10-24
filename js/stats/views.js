@@ -14,7 +14,7 @@ import { SPEND_TABS, activeTab } from "../core/tabs.js";
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
 const BILL_CATS = () => BILLS_GROUP.cats();
-export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" }, { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" }, { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" }, OTHER_CAT];
+export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), ...TRAVEL_CATS, TRAVEL_GROUP, MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" }, { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" }, { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" }, OTHER_CAT];
 // 统计图里：储藏各分类单独显示，房屋耗材和设备维修保养合并为“房屋维护”、装备合并为“装备”、车辆维修保养为“车辆”各一组；
 // 账单按具体种类各一项（电费、燃气费、房贷…，只有有花费的才会出现在图里），同类账单同色相
 // 花费页有个“同一大类合并显示”开关（水电气网、住房、车…各合成一项，颜色少一些），选择记在本机；
@@ -23,9 +23,10 @@ const MERGE_KEY = "hmh-bill-merge";
 try { state.stats.billMerge = localStorage.getItem(MERGE_KEY) === "1"; } catch { state.stats.billMerge = false; }
 export const setBillMerge = (on) => { state.stats.billMerge = !!on; try { localStorage.setItem(MERGE_KEY, on ? "1" : "0"); } catch { /* 隐私模式下忽略 */ } };
 const billStatCats = (merge) => (merge ? [...BILLS_GROUP.families(), ...BILL_CATS().filter((c) => !BILLS_GROUP.familyOf(c.id))] : BILL_CATS());
-export const STAT_CATS = (merge = state.stats.billMerge) => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, ...billStatCats(merge), MEDICAL_GROUP, OTHER_CAT];
+export const STAT_CATS = (merge = state.stats.billMerge) => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, ...billStatCats(merge), TRAVEL_GROUP, MEDICAL_GROUP, OTHER_CAT];
 const isBill = (id) => String(id || "").startsWith("bill_");
 export const statCat = (id, merge = state.stats.billMerge) => {
+  if (TRIP.isTravel(id)) return "travel";   // 机票、住宿、门票、燃油…统计里合并成“旅行出行”一组
   if (id === "medical") return id;   // 事件型账单的付款（虚拟花费，见 bills/medical.js）
   if (id === "pet_care") return "pet";   // 宠物账单（兽医、美容、寄养）并进“宠物”这一组
   if (id === "legal") return "other"; if (id === "project") return "house";   // 法律 / 税务并入“其他”，装修 / 项目并入“房屋维护”
@@ -40,7 +41,7 @@ export const statCat = (id, merge = state.stats.billMerge) => {
 const catMatches = (sel, category) => {
   if (sel === "bills") return isBill(category);
   if (sel.startsWith("billfam_")) return isBill(category) && BILLS_GROUP.familyOf(category) === sel;
-  if (isBill(sel)) return category === sel;
+  if (isBill(sel) || TRIP.isTravel(sel)) return category === sel;   // 具体的账单种类 / 旅行类型
   return statCat(category) === sel;
 };
 export const monthKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };
@@ -124,9 +125,10 @@ const encKeys = (keys) => keys.map(encodeURIComponent).join(",");
 export const hitAttrs = (q, label) => (q ? ` data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(label)}"` : "");
 const DRILL_HINT = () => `<p class="muted drill-hint">${t("点图里的色块、图例或名称，可以查看对应的花费明细。")}</p>`;
 export function applySpendDrill(q) {
-  if (!["cat", "grp", "store", "stores", "month", "range", "year"].some((k) => q.has(k))) return false;
+  if (!["cat", "grp", "store", "stores", "month", "range", "year", "q"].some((k) => q.has(k))) return false;
   const f = state.spendFilter;
   Object.assign(f, { q: "", cat: "all", grp: null, store: "all", stores: null, month: "all", months: null, sort: "new", limit: 20 });
+  if (q.get("q")) f.q = q.get("q");   // 旅行页「查看明细」：按「【行程名】」搜名称
   if (q.get("grp")) f.grp = q.get("grp");
   if (q.get("cat")) f.cat = q.get("cat");
   if (q.get("store")) f.store = q.get("store");
@@ -193,6 +195,41 @@ function spendCategoryTab(sd) {
       ${catTrend}
       ${catObj ? `<div class="form-actions"><button type="button" class="btn btn-sm" data-drill="${esc(dq({ cat: selCat, range: months.length }))}">${t("查看「{cat}」近 {n} 个月的明细", { cat: t(catObj.name), n: months.length })} ›</button></div>` : ""}${DRILL_HINT()}</div>`;
 }
+/* ── 旅行：花费名称「【行程】项目」按行程汇总；只有 travel_* 类型的花费才算（餐饮等日常花费不带行程前缀就不进来） ── */
+const tripsOf = () => {
+  const map = new Map();
+  for (const p of state.purchases) {
+    if (p.amount == null || p.virtual) continue;
+    const { trip } = TRIP.parse(p.name);
+    if (!trip) continue;
+    const g = map.get(trip) || { trip, total: 0, n: 0, first: p.purchased_at, last: p.purchased_at, byCat: {}, cur: p.currency };
+    g.total += num(p.amount); g.n++; g.byCat[p.category] = (g.byCat[p.category] || 0) + num(p.amount);
+    if (p.purchased_at < g.first) g.first = p.purchased_at; if (p.purchased_at > g.last) g.last = p.purchased_at;
+    map.set(trip, g);
+  }
+  return [...map.values()].sort((a, b) => String(b.last).localeCompare(String(a.last)));
+};
+const tripDatalist = () => `<datalist id="tripList">${tripsOf().map((g) => `<option value="${esc(g.trip)}">`).join("")}</datalist>`;
+function spendTripsTab() {
+  const trips = tripsOf(), cur = Units.region.currency;
+  const loose = state.purchases.filter((p) => p.amount != null && TRIP.isTravel(p.category) && !TRIP.parse(p.name).trip);
+  const looseTotal = loose.reduce((s, p) => s + num(p.amount), 0);
+  // 补入以前的：以前记成“其他”、名称或商店里带机票 / 酒店 / 门票 / 加油…关键词的，给出归类建议，点一下归到对应旅行类型（不会自动改）
+  const sugg = state.purchases.filter((p) => !p.virtual && p.amount != null && p.category === "other" && TRIP.guess(p.name, p.store)).slice(0, 12);
+  const suggHtml = sugg.length ? `<div class="panel"><h3 style="font-size:15px;margin:0 0 4px">${t("以前的花费里，可能是旅行")}</h3><p class="muted" style="margin:0 0 6px;font-size:13px">${t("名称或商店里带机票、酒店、门票、加油…的“其他”花费；点一下归到对应类型（可在明细里再改，也可以给名称加上「【行程名】」）。")}</p>
+    <ul class="restock-list">${sugg.map((p) => { const id = TRIP.guess(p.name, p.store), c = TRAVEL_CATS.find((x) => x.id === id);
+      return `<li><div class="grow"><span class="name">${esc(p.name)}</span><small>${esc(String(p.purchased_at).slice(0, 10))}${p.store ? ` · ${esc(p.store)}` : ""} · ${money(num(p.amount))}</small></div><button type="button" class="btn btn-sm" data-action="trip-reclass" data-id="${esc(p.id)}" data-cat="${id}">${t("归为")} ${c.icon} ${esc(t(c.name.split("（")[0]))}</button></li>`; }).join("")}</ul></div>` : "";
+  const card = (g) => `<div class="panel trip-card"><div class="row"><div class="v"><b>🧳 ${esc(g.trip)}</b>
+      <div class="muted" style="font-size:12.5px">${esc(String(g.first).slice(0, 10))}${String(g.first).slice(0, 10) !== String(g.last).slice(0, 10) ? ` → ${esc(String(g.last).slice(0, 10))}` : ""} · ${t("{n} 笔", { n: g.n })}</div></div>
+      <b class="num">${money(g.total)}</b></div>
+    <ul class="trip-cats">${Object.entries(g.byCat).sort((a, b) => b[1] - a[1]).map(([id, v]) => { const c = TRAVEL_CATS.find((x) => x.id === id) || ALL_CATS().find((x) => x.id === id) || OTHER_CAT; return `<li><span>${c.icon} ${esc(t(c.name))}</span><b class="num">${money(v)}</b></li>`; }).join("")}</ul>
+    <div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm btn-ghost" data-drill="${esc(dq({ q: `【${g.trip}】` }))}">${t("查看明细")} ›</button></div></div>`;
+  return `<section class="section"><div class="section-head"><h2>${t("旅行")}</h2><p>${t("机票、住宿、门票、燃油…按行程汇总；记花费时填“所属行程”，补记以前的旅行也一样（日期选当时的）。")}</p></div>
+    ${trips.length ? trips.map(card).join("") : `<div class="panel empty"><strong>${t("还没有行程")}</strong>${t("记一笔花费时，分类选“旅行出行”里的机票 / 住宿 / 门票…，并在“所属行程”里写个名字（例如 东京 2026）。以前的旅行也可以补记，日期选当时的。")}</div>`}
+    ${suggHtml}
+    ${loose.length ? `<div class="panel"><div class="row"><div class="v"><b>${t("没归入行程的旅行花费")}</b><div class="muted" style="font-size:12.5px">${t("{n} 笔 · 在明细里把名称改成「【行程名】项目」就归进去", { n: loose.length })}</div></div><b class="num">${money(looseTotal)}</b></div></div>` : ""}
+  </section>`;
+}
 function spendRecordsTab() {
   const today = new Date().toISOString().slice(0, 10);
   return `<section class="section">
@@ -200,7 +237,8 @@ function spendRecordsTab() {
       ${storeDatalist()}
       <form id="purchaseForm" class="panel add-row purchase-row">
         <input name="name" required maxlength="60" placeholder="${t("买了什么，例如：超市采购")}" aria-label="${t("名称")}">
-        <select name="category" aria-label="${t("分类")}">${categoryOptions()}</select>
+        <select name="category" aria-label="${t("分类")}">${categoryOptions(undefined, { travel: true })}</select>
+        <input name="trip" maxlength="30" list="tripList" placeholder="${t("所属行程（旅行才填）")}" aria-label="${t("所属行程")}">${tripDatalist()}
         <input name="amount" type="number" min="0" step="0.01" inputmode="decimal" required placeholder="${t("金额（{cur}）", { cur: Units.region.currency })}" aria-label="${t("金额")}">
         <input name="store" maxlength="40" list="storeList" value="${esc(lastStore())}" placeholder="${t("商店（可不填）")}" aria-label="${t("商店")}">
         <input name="date" type="date" value="${today}" max="${today}" aria-label="${t("日期")}">
@@ -238,7 +276,7 @@ export function viewSpend() {
   const ranged = tab === "overview" || tab === "category" || tab === "stores" || tab === "all";
   const body = {
     overview: () => spendOverviewTab(sd, onSpendPage), category: () => spendCategoryTab(sd), stores: () => viewStoreStats(sd.months) || noSpend(),
-    records: spendRecordsTab, export: spendExportTab,
+    records: spendRecordsTab, trips: spendTripsTab, export: spendExportTab,
     all: () => `${spendOverviewTab(sd)}${spendCategoryTab(sd)}${viewStoreStats(sd.months)}${viewAnnualExport()}${spendRecordsTab()}`,
   }[tab]();
   return `
@@ -328,7 +366,7 @@ function spendRow(p) {
 }
 /** 就地编辑：名称、分类、金额、商店、日期（数量和单位不动） */
 function spendEditRow(p) {
-  const day = String(p.purchased_at).slice(0, 10), opts = categoryOptions(p.category, { withOther: true });   // 当前分类已在选项里时会自动选中
+  const day = String(p.purchased_at).slice(0, 10), opts = categoryOptions(p.category, { withOther: true, travel: true });   // 当前分类已在选项里时会自动选中
   const hasCat = opts.includes(`value="${p.category}"`);
   return `<li class="spend-edit"><form id="spendEditForm" data-id="${p.id}" class="form-grid" novalidate>
     <label class="span-2">${t("名称")}<input name="name" required maxlength="60" value="${esc(p.name)}"></label>
@@ -400,6 +438,8 @@ function spendRecordsHtml() {
   const months = [...new Set(ps.map((p) => monthKey(p.purchased_at)))].sort().reverse();
   const stores = knownStores(), hasNone = ps.some((p) => !storeOf(p));
   const cats = STAT_CATS(false).filter((c) => ps.some((p) => statCat(p.category, false) === c.id));   // 下拉始终列具体种类，不受“合并显示”开关影响
+  const ti = cats.findIndex((c) => c.id === "travel");
+  if (ti >= 0) cats.splice(ti + 1, 0, ...TRAVEL_CATS.filter((c) => ps.some((p) => p.category === c.id)));   // “旅行出行”后面列有花费的具体类型（机票、住宿…），可以只看某一类
   const firstBill = cats.findIndex((c) => isBill(c.id));
   if (cats.filter((c) => isBill(c.id)).length > 1) cats.splice(firstBill, 0, BILLS_GROUP);   // 多种账单时多一个“全部账单”总筛选，排在各具体种类前
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;

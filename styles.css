@@ -751,6 +751,11 @@ button.mrow:last-child { border-bottom: 0; }
 .alert-list .alert-row input[type="checkbox"] { width: 20px; height: 20px; min-height: 0; accent-color: var(--pine); flex: 0 0 auto; }
 .alert-row.sev-0 .link-name { color: var(--out); }
 .alert-row .space-tag { margin-right: 6px; }
+/* 旅行：每个行程一张卡，下面按类型列金额 */
+.trip-card .row { align-items: flex-start; }
+.trip-cats { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.trip-cats li { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 4px 0; border-bottom: 1px dashed var(--line); }
+.trip-cats li:last-child { border-bottom: 0; }
 .alert-row .act-tag { text-decoration: none; white-space: nowrap; }
 /* 注意事项一行的操作：一个主按钮 + 「⋯」菜单（其余操作）；手机上放不下时整组换到下一行靠右 */
 .alert-row { flex-wrap: wrap; gap: 8px 10px; }

@@ -29,6 +29,41 @@ window.CATEGORIES.push(...window.GEAR_CATEGORIES);
 window.GEAR_GROUP = { id: "gear", name: "装备", icon: "🧳", color: "#a0522d" };   // 统计图里合并显示
 window.MEDICAL_GROUP = { id: "medical", name: "医疗", icon: "🏥", color: "#c2475f" };   // 医疗账单的付款（js/bills/medical.js 变成虚拟花费并进统计）
 
+/* 旅行出行：机票、船票、车票、燃油、租车、住宿、饭店、门票、旅行团……
+ * 花费分类 id 是 travel_*（purchases.category 允许），统计里合并成“旅行出行”一组（点进去看明细时可以按具体类型筛）；
+ * 预算里是单独一组“旅行出行”（不算“大件”，机票再贵也不会被当成家电）。
+ * 行程：不加新表——花费名称写成「【行程名】项目」（例如「【东京 2026】机票」），按行程名汇总（统计 → 旅行标签）。 */
+window.TRAVEL_GROUP = { id: "travel", name: "旅行出行", icon: "🧳", color: "#0f8b8d" };
+window.TRAVEL_CATS = [
+  { id: "travel_flight",  name: "机票",                 icon: "✈️", color: "#0f6f8b" },
+  { id: "travel_ship",    name: "船票 / 邮轮",          icon: "🚢", color: "#2a7fb5" },
+  { id: "travel_ground",  name: "车票（火车 / 大巴 / 地铁）", icon: "🚆", color: "#4c8f6b" },
+  { id: "travel_fuel",    name: "燃油 / 充电",          icon: "⛽", color: "#b0741a" },
+  { id: "travel_rental",  name: "租车 / 打车",          icon: "🚕", color: "#7f6bc4" },
+  { id: "travel_lodging", name: "住宿（酒店 / 民宿 / 营地）", icon: "🏨", color: "#b4506a" },
+  { id: "travel_dining",  name: "餐饮（饭店 / 外出就餐）", icon: "🍽️", color: "#c0603a" },
+  { id: "travel_tickets", name: "门票 / 景点 / 活动",   icon: "🎟️", color: "#3f9ba3" },
+  { id: "travel_tour",    name: "旅行团 / 套餐",        icon: "🗺️", color: "#5b7fa6" },
+  { id: "travel_other",   name: "其他旅行花费",         icon: "🧭", color: "#8a948f" },
+];
+window.TRIP = {
+  isTravel: (id) => String(id || "").startsWith("travel_"),
+  /** 「【行程】项目」→ { trip, item }；没有行程前缀的 trip 为空 */
+  parse: (name) => { const m = String(name || "").match(/^【([^】]{1,30})】\s*(.*)$/); return m ? { trip: m[1].trim(), item: m[2].trim() } : { trip: "", item: String(name || "") }; },
+  /** 以前记成“其他”的花费，按名称 / 商店里的关键词猜是哪种旅行花费（猜不到返回 null，只用来给出“归类建议”，不会自动改） */
+  guess: (name, store) => {
+    const s = `${name || ""} ${store || ""}`.toLowerCase();
+    const R = [["travel_flight", /机票|航空|航班|飞机|airline|flight|delta|united|american air|southwest|jetblue|alaska air/], ["travel_ship", /船票|邮轮|渡轮|轮渡|cruise|ferry/],
+      ["travel_ground", /火车|高铁|动车|车票|大巴|巴士|地铁|amtrak|greyhound|train|\bbus\b/], ["travel_fuel", /加油|油费|燃油|充电|汽油|gas station|shell|chevron|exxon|\bbp\b|fuel|supercharg/],
+      ["travel_rental", /租车|打车|滴滴|uber|lyft|hertz|avis|enterprise|rental car|taxi/], ["travel_lodging", /酒店|旅馆|旅店|民宿|客栈|住宿|hotel|motel|airbnb|marriott|hilton|hyatt|booking\.com|\binn\b|resort|campground|营地/],
+      ["travel_tickets", /门票|景点|游乐|乐园|票务|ticket|museum|disney|universal|park pass|admission|\btour\b/], ["travel_tour", /旅行团|跟团|旅游|旅行|vacation|trip|package/],
+      ["travel_dining", /饭店|餐厅|餐馆|酒楼|restaurant|diner|dining|bistro/]];
+    return (R.find(([, re]) => re.test(s)) || [])[0] || null;
+  },
+  /** 行程 + 项目 → 花费名称（最长 60 字） */
+  tag: (trip, item) => (trip ? `【${String(trip).trim().slice(0, 30)}】${String(item || "").trim()}`.slice(0, 60) : String(item || "")),
+};
+
 // 单位列表按地区区分，见 units.js（Units.list()）
 window.OTHER_CAT = { id: "other", name: "其他", icon: "🧺", color: "#8a948f" };
 // 存放位置：按房间分组（下拉里用 optgroup，不会一长串）；家庭可在 设置 → 存放位置 里新增、重命名（如“客卧 1 衣柜”改成“Emma 的房间”）

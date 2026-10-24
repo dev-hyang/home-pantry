@@ -620,8 +620,9 @@ main.addEventListener("submit", async (e) => {
       return refresh();
     }
     if (f.getAttribute("id") === "purchaseForm") {
-      const e2 = f.elements, name = e2.name.value.trim(), amount = num(e2.amount.value, NaN);
-      if (!name || !Number.isFinite(amount) || amount < 0) return toast(t("请填写名称和金额"));
+      const e2 = f.elements, item = e2.name.value.trim(), amount = num(e2.amount.value, NaN);
+      if (!item || !Number.isFinite(amount) || amount < 0) return toast(t("请填写名称和金额"));
+      const name = TRIP.tag(e2.trip?.value.trim(), item);   // 旅行：名称写成「【行程】项目」，按行程汇总用
       const signed = e2.refund?.checked ? -amount : amount;   // “退款 / 报销”：记成负数，统计里按净额算
       const day = e2.date.value || new Date().toISOString().slice(0, 10);
       const store = cleanStore(e2.store.value);
@@ -893,6 +894,11 @@ main.addEventListener("click", async (e) => {
         return;
       }
       case "spend-edit": state.spendEdit = id; return renderSpendList();
+      case "trip-reclass": {   // 旅行页的归类建议：把以前记成“其他”的花费归到某个旅行类型
+        await Store.updatePurchase(id, { category: el.dataset.cat });
+        state.purchases = state.purchases.map((x) => (x.id === id ? { ...x, category: el.dataset.cat } : x));
+        toast(t("已归类")); render(); return refresh();
+      }
       case "spend-edit-cancel": state.spendEdit = null; return renderSpendList();
       case "pay-more": state.payFilter.limit += 50; return renderPayList();
       case "deal-filter": state.dealFilter = el.dataset.val; return render();

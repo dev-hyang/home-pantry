@@ -14,11 +14,12 @@ import { BUDGET_TABS, activeTab } from "../core/tabs.js";
 /* ───────────── 预算分组 ───────────── */
 // 固定账单单独算（从账单项目的每月折算得来）；其余花费分成这几组，按过去 6 个月的比例分配“可支配额”
 export const GROUPS = [
-  { id: "groceries", name: "日常储备", icon: "🥫", color: "#3f8f5a", w: 0.55 },
+  { id: "groceries", name: "日常储备", icon: "🥫", color: "#3f8f5a", w: 0.5 },
   { id: "house", name: "房屋维护", icon: "🏠", color: "#b07a1a", w: 0.15 },
   { id: "big", name: "大件家电", icon: "🧊", color: "#a0522d", w: 0.1 },   // 单笔 ≥ 门槛的购买（不含账单、维修保养）；有设备更换估价时按设备寿命预存
   { id: "vehicle", name: "车辆", icon: "🚗", color: "#3b7fc4", w: 0.1 },
   { id: "gear", name: "装备", icon: "🧳", color: "#7563c0", w: 0.05 },
+  { id: "travel", name: "旅行出行", icon: "🧳", color: "#0f8b8d", w: 0.05 },   // 机票、住宿、门票、燃油、饭店…（不算“大件”）；没有旅行花费的家庭这一组显示为 0
   { id: "other", name: "其他", icon: "🧺", color: "#8a948f", w: 0.05 },
 ];
 const BILLS_GROUP = { id: "bills", name: "账单", icon: "🧾", color: "#2f5d8a" };
@@ -31,6 +32,7 @@ export const groupOf = (category, amount = 0) => {
   const s = statCat(category);
   if (String(category || "").startsWith("bill_")) return "bills";   // 统计里账单已按具体种类分项，预算仍把全部账单算一组（固定支出）
   if (s === "medical") return "medical";
+  if (s === "travel") return "travel";   // 旅行出行：机票再贵也不当“大件”
   if (category === "pet_care") return "other";   // 宠物账单（兽医、寄养）算“其他”；宠物粮食仍在日常储备
   if (s !== "vehicle" && category !== "house_maint" && amount >= bigThreshold()) return "big";   // 大件：单笔大额，但账单、车辆、维修保养不算
   return ["house", "vehicle", "gear", "other"].includes(s) ? s : "groceries";
