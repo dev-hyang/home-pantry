@@ -37,7 +37,7 @@ export const state = {
   shopAdvice: null,                            // 采购清单：刚加入的带预估金额的项目的预算提示
   spendEdit: null,                             // 花费记录：正在就地编辑的那一笔 id
   spendFilter: { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: 20 },   // 花费记录的搜索、筛选、排序
-  stats: { months: 6, month: null, cat: null, itemId: null },
+  stats: { months: 6, month: null, cat: null, itemId: null, includeCapital: false },
   filter: { space: "pantry", cat: "all", sub: "all", q: "", status: "all", loc: "all", sort: "default" },   // 库存清单：空间、分类、关键词、状态、存放位置
   locForm: null,                               // 设置 → 存放位置：正在新建 / 重命名的位置 { id?, name, grp, replaces?, oldName? }
   skipAutosave: false,                         // 点了取消 / 保存 / 删除后离开表单页：不自动保存

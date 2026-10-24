@@ -10,7 +10,7 @@ window.CATEGORIES = [
   { id: "baby",   name: "母婴",     icon: "🍼", color: "#d4694c", loc: "储物间", subs: ["纸尿裤", "奶粉辅食", "湿巾", "哺乳用品"] },
   { id: "health", name: "药品健康", icon: "💊", color: "#24897d", loc: "常温",  subs: ["常备药", "维生素营养", "护理用品"] },
   { id: "study",  name: "学习文具", icon: "✏️", color: "#2f6fb0", loc: "储物间", subs: ["文具", "练习本", "打印纸墨", "美术用品", "学生用品"] },
-  { id: "pet",    name: "宠物",     icon: "🐾", color: "#9a6b3c", loc: "储物间", subs: ["主粮", "零食", "猫砂尿垫", "洗护", "玩具用品"] },
+  { id: "pet",    name: "宠物用品", icon: "🐾", color: "#9a6b3c", loc: "储物间", subs: ["主粮", "零食", "猫砂尿垫", "洗护", "玩具用品"] },
 ].map((c) => ({ ...c, space: "pantry" }));   // 房屋耗材分类在 data/house.js 里追加（space = "house"）；自定义分类由 js/core/categories.js 在加载数据后合并进来
 
 // 装备：耐用品和工具（床品、电器、自行车、千斤顶、园艺工具…），只记数量和位置，
@@ -19,7 +19,7 @@ window.GEAR_CATEGORIES = [
   { id: "gear_home",   name: "家居用品", icon: "🛏️", color: "#6b8e7a", loc: "储物间", subs: ["床上用品", "毛巾浴巾", "季节电器", "收纳杂物"] },
   { id: "gear_kitchen", name: "厨房用品", icon: "🍽️", color: "#c0773a", loc: "厨房柜", subs: ["餐具碗盘", "锅具炊具", "烘焙工具", "烤盘托盘", "刀具砧板", "厨房小工具", "小家电", "保鲜收纳"] },   // 反复使用的厨具餐具：不算消耗，坏了才换新（卡片上有“损坏了，换新”）
   { id: "gear_clothes", name: "衣物",     icon: "🧥", color: "#b8576f", loc: "衣柜",   subs: ["冬衣", "秋衣", "春衣", "夏衣", "内衣袜子", "鞋靴", "帽围巾手套", "换季收纳"] },
-  { id: "gear_travel", name: "出行户外", icon: "🚲", color: "#4f7f9f", loc: "车库",   subs: ["旅行婴儿用品", "推车拖车", "自行车", "露营野餐", "行李箱包"] },
+  { id: "gear_travel", name: "户外与行李", icon: "🚲", color: "#4f7f9f", loc: "车库",   subs: ["旅行婴儿用品", "推车拖车", "自行车", "露营野餐", "行李箱包"] },
   { id: "gear_car",    name: "汽车装备", icon: "🚗", color: "#7a5c8e", loc: "车内",   subs: ["应急工具", "备胎", "车载电器", "车内收纳"] },
   { id: "gear_tools",  name: "工具",     icon: "🔧", color: "#8a6d3b", loc: "工具间", subs: ["手动工具", "电动工具", "五金配件", "梯子登高"] },
   { id: "gear_garden", name: "园艺工具", icon: "🌱", color: "#5a8f3f", loc: "车库",   subs: ["割草修剪", "浇水用品", "花盆土壤", "园艺手工具"] },
@@ -34,40 +34,70 @@ window.MEDICAL_GROUP = { id: "medical", name: "医疗", icon: "🏥", color: "#c
  * 花费分类 id 是 travel_*（purchases.category 允许），统计里合并成“旅行出行”一组（点进去看明细时可以按具体类型筛）；
  * 预算里是单独一组“旅行出行”（不算“大件”，机票再贵也不会被当成家电）。
  * 行程：不加新表——花费名称写成「【行程名】项目」（例如「【东京 2026】机票」），按行程名汇总（统计 → 旅行标签）。 */
-window.TRAVEL_GROUP = { id: "travel", name: "旅行出行", icon: "🧳", color: "#0f8b8d" };
-window.TRAVEL_CATS = [
+window.TRAVEL_GROUP = { id: "travel", name: "旅行专属", icon: "🧳", color: "#0f8b8d" };
+window.TRAVEL_CATS = [   // 只放「不出门旅行就不会有」的花费；旅途中的吃饭、加油、门票记普通分类 + 「【行程】」标签，旅行页照样按行程汇总
   { id: "travel_flight",  name: "机票",                 icon: "✈️", color: "#0f6f8b" },
   { id: "travel_ship",    name: "船票 / 邮轮",          icon: "🚢", color: "#2a7fb5" },
-  { id: "travel_ground",  name: "车票（火车 / 大巴 / 地铁）", icon: "🚆", color: "#4c8f6b" },
-  { id: "travel_fuel",    name: "燃油 / 充电",          icon: "⛽", color: "#b0741a" },
-  { id: "travel_rental",  name: "租车 / 打车",          icon: "🚕", color: "#7f6bc4" },
+  { id: "travel_ground",  name: "长途车票（火车 / 大巴）", icon: "🚆", color: "#4c8f6b" },
   { id: "travel_lodging", name: "住宿（酒店 / 民宿 / 营地）", icon: "🏨", color: "#b4506a" },
-  { id: "travel_dining",  name: "餐饮（饭店 / 外出就餐）", icon: "🍽️", color: "#c0603a" },
-  { id: "travel_tickets", name: "门票 / 景点 / 活动",   icon: "🎟️", color: "#3f9ba3" },
+  { id: "travel_rental",  name: "租车",                 icon: "🚗", color: "#7f6bc4" },
   { id: "travel_tour",    name: "旅行团 / 套餐",        icon: "🗺️", color: "#5b7fa6" },
   { id: "travel_other",   name: "其他旅行花费",         icon: "🧭", color: "#8a948f" },
 ];
-/* 花钱分三种，别混：
- *   日常储备 = 买回家吃的、用的、会用完的（食品、日用、药品、母婴、文具、宠物粮），进库存，少了提醒补货；
- *   装备     = 买回家长期用的（家居、厨具、衣物、数码电子、工具、户外、图书），只记数量和位置，不提醒补货；
- *   外出与服务 = 花钱买的是体验或服务、没有东西留在家里（外出就餐、娱乐、美容理发、健身、礼物、手续费、邮寄…）。
- * 银行 / 信用卡导入里看不出买了什么的，超市杂货（grocery_misc）算日常储备，网购 / 综合购物（life_shopping）算外出与服务里的“未细分”。
- * 花费分类 life_*，统计里合并成“外出与服务”一组，预算里也是单独一组。车辆燃油 / 充电 / 洗车 = vehicle_fuel，归“车辆”。 */
-window.LIFE_GROUP = { id: "life", name: "外出与服务", icon: "🛎️", color: "#8a5fb0" };
+/* 旧分类 → 新分类（2026-10-24 重整）：旅行·餐饮 / 燃油 / 门票并入普通分类。读花费时自动按这张表换，所以没跑迁移 035 也不会乱 */
+window.CAT_ALIAS = { travel_dining: "life_dining", travel_fuel: "vehicle_fuel", travel_tickets: "life_fun" };
+window.canonCat = (id) => window.CAT_ALIAS[id] || id;
+/* 花钱分几种，每个分类只属于一处（2026-10-24 重整，见 docs/design-categories.md）：
+ *   日常储备 = 买回家吃的、用的、会用完的（食品、日用、药品、母婴、文具、宠物用品），进库存，少了提醒补货；
+ *   装备     = 买回家长期用的（家居、厨具、衣物、数码、工具、户外行李、图书），只记数量和位置，不提醒补货；
+ *   餐饮外食 = 在外吃喝（餐厅、外卖、咖啡）；休闲与个人 = 娱乐门票、美容理发、健身、礼物、课程；
+ *   车与交通 = 车辆保养、燃油充电、打车公交停车过路费；政务与手续 = 证件罚单报税、银行手续费利息、法律税务、邮寄；
+ *   旅行专属 = 机票、船票、长途车票、住宿、租车、旅行团（旅途中的吃饭加油门票记普通分类 + 行程标签）；
+ *   待细分   = 综合购物（Amazon 这类看不出买了什么的），统计里归「其他」，有空再细分。
+ * 银行 / 信用卡导入里看不出买了什么的超市单子 = 超市杂货（grocery_misc），归日常储备。 */
+window.LIFE_GROUP = { id: "life", name: "休闲与个人", icon: "🎭", color: "#8a5fb0" };
+window.DINING_GROUP = { id: "dining", name: "餐饮外食", icon: "🍔", color: "#c0603a" };
+window.ADMIN_GROUP = { id: "admin", name: "政务与手续", icon: "🏛️", color: "#6b7280" };
 window.GROCERY_MISC = { id: "grocery_misc", name: "超市杂货（未细分）", icon: "🛒", color: "#3f8f5a" };
-window.LIFE_CATS = [
+window.LIFE_CATS = [   // id 前缀都是 life_，归哪一组看 stats/views.js 的 statCat
   { id: "life_dining",   name: "外出就餐 / 外卖 / 咖啡", icon: "🍔", color: "#c0603a" },
-  { id: "life_shopping", name: "网购 / 综合购物（未细分）", icon: "📦", color: "#7a5c8e" },
+  { id: "life_transit",  name: "交通出行（打车 / 公交地铁 / 停车 / 过路费）", icon: "🚕", color: "#4c8f6b" },
+  { id: "life_fun",      name: "娱乐 / 门票 / 活动（电影 / 游戏 / 演出 / 景点）", icon: "🎬", color: "#5b7fa6" },
   { id: "life_care",     name: "个人护理 / 美容 / 理发", icon: "💇", color: "#d4694c" },
   { id: "life_fitness",  name: "运动健身",               icon: "🏋️", color: "#24897d" },
-  { id: "life_fun",      name: "娱乐休闲（电影 / 游戏 / 演出）", icon: "🎬", color: "#5b7fa6" },
   { id: "life_gifts",    name: "礼物 / 节日 / 红包",     icon: "🎁", color: "#c75a85" },
-  { id: "life_edu",      name: "课程 / 学习服务",        icon: "📖", color: "#2f6fb0" },
-  { id: "life_fees",     name: "银行 / 手续费 / 利息",   icon: "🏦", color: "#8a948f" },
+  { id: "life_edu",      name: "课程 / 培训 / 学习服务（一次性的；周期性的课外班在账单里）", icon: "📖", color: "#2f6fb0" },
+  { id: "life_gov",      name: "证件 / 罚单 / 政府收费 / 报税软件", icon: "🏛️", color: "#6b7280" },
+  { id: "life_fees",     name: "银行手续费 / 利息 / 年费", icon: "🏦", color: "#8a948f" },
   { id: "life_mail",     name: "邮寄 / 快递",            icon: "📮", color: "#b07a1a" },
+  { id: "life_shopping", name: "综合购物（待细分：Amazon / Target 这类看不出买了什么）", icon: "📦", color: "#7a5c8e" },
   { id: "life_other",    name: "其他生活开销",           icon: "🧺", color: "#8a948f" },
 ];
 window.VEHICLE_FUEL = { id: "vehicle_fuel", name: "车辆燃油 / 充电 / 洗车", icon: "⛽", color: "#b0741a" };
+/* 资本性支出：买房卖房的房款 / 首付 / 律师 / 中介 / Title / 过户税、买车整付、大额投资转入——金额巨大、几年一次，
+ * 混进日常花费会把每月占比、预算、趋势全部拉歪。所以单独一组：记录保留（明细里能看、能按行程式的「【交易】」标签汇总），
+ * 但默认不进花费统计的图和预算；花费页有「含资本性支出」开关可以看合计。卖房 / 卖车的收入不在这里记（这里只记支出）。 */
+window.CAPITAL_GROUP = { id: "capital", name: "资本性支出（房产交易 / 买车整付，不计入日常）", icon: "🏦", color: "#4b5563" };
+window.CAPITAL_CATS = [
+  { id: "capital_home",    name: "房产交易（房款 / 首付 / 律师 / 中介 / Title / 过户税 / 检查）", icon: "🏠", color: "#4b5563" },
+  { id: "capital_vehicle", name: "买车整付 / 大额车款",      icon: "🚘", color: "#6b7280" },
+  { id: "capital_invest",  name: "投资 / 存款转入 / 大额一次性", icon: "📈", color: "#374151" },
+  { id: "capital_other",   name: "其他资本性支出",            icon: "🧱", color: "#9ca3af" },
+];
+window.isCapital = (id) => String(id || "").startsWith("capital_");
+/* 记花费的分类下拉怎么分组（日常储备 / 房屋耗材 / 装备三组由 categoryOptions 按空间生成，这里是后面的几组） */
+window.SPEND_GROUPS = () => {
+  const L = (id) => window.LIFE_CATS.find((c) => c.id === id);
+  return [
+    ["餐饮外食", [L("life_dining")]],
+    ["车与交通", [window.VEHICLE_FUEL, L("life_transit"), window.VEHICLE_CAT]],
+    ["休闲与个人", ["life_fun", "life_care", "life_fitness", "life_gifts", "life_edu"].map(L)],
+    ["政务与手续（证件罚单报税 · 手续费 · 邮寄）", ["life_gov", "life_fees", "life_mail"].map(L)],
+    ["旅行专属（旅途中的吃饭 / 加油 / 门票记上面的普通分类，再填行程）", window.TRAVEL_CATS],
+    ["待细分 / 其他", [L("life_shopping"), L("life_other")]],
+    ["资本性支出（房产交易、买车整付——不进日常统计和预算）", window.CAPITAL_CATS],
+  ];
+};
 
 window.TRIP = {
   isTravel: (id) => String(id || "").startsWith("travel_"),
@@ -77,10 +107,11 @@ window.TRIP = {
   guess: (name, store) => {
     const s = `${name || ""} ${store || ""}`.toLowerCase();
     const R = [["travel_flight", /机票|航空|航班|飞机|airline|flight|delta|united|american air|southwest|jetblue|alaska air/], ["travel_ship", /船票|邮轮|渡轮|轮渡|cruise|ferry/],
-      ["travel_ground", /火车|高铁|动车|车票|大巴|巴士|地铁|amtrak|greyhound|train|\bbus\b/], ["travel_fuel", /加油|油费|燃油|充电|汽油|gas station|shell|chevron|exxon|\bbp\b|fuel|supercharg/],
-      ["travel_rental", /租车|打车|滴滴|uber|lyft|hertz|avis|enterprise|rental car|taxi/], ["travel_lodging", /酒店|旅馆|旅店|民宿|客栈|住宿|hotel|motel|airbnb|marriott|hilton|hyatt|booking\.com|\binn\b|resort|campground|营地/],
-      ["travel_tickets", /门票|景点|游乐|乐园|票务|ticket|museum|disney|universal|park pass|admission|\btour\b/], ["travel_tour", /旅行团|跟团|旅游|旅行|vacation|trip|package/],
-      ["travel_dining", /饭店|餐厅|餐馆|酒楼|restaurant|diner|dining|bistro/]];
+      ["travel_ground", /火车|高铁|动车|长途|大巴|amtrak|greyhound|\btrain\b/], ["vehicle_fuel", /加油|油费|燃油|充电|汽油|gas station|shell|chevron|exxon|\bbp\b|fuel|supercharg/],
+      ["life_transit", /地铁|公交|打车|滴滴|停车|uber|lyft|taxi|parking|parkmobile|spothero|metra|\bcta\b|\bmta\b|transit|bus pass|\bbus\b/], ["travel_rental", /租车|hertz|avis|enterprise rent|rental car|turo/],
+      ["travel_lodging", /酒店|旅馆|旅店|民宿|客栈|住宿|hotel|motel|airbnb|marriott|hilton|hyatt|booking\.com|\binn\b|resort|campground|营地/],
+      ["life_fun", /门票|景点|游乐|乐园|票务|ticket|museum|disney|universal|park pass|admission|\btour\b/], ["travel_tour", /旅行团|跟团|旅游|旅行|vacation|trip|package/],
+      ["life_dining", /饭店|餐厅|餐馆|酒楼|restaurant|diner|dining|bistro/]];
     return (R.find(([, re]) => re.test(s)) || [])[0] || null;
   },
   /** 行程 + 项目 → 花费名称（最长 60 字） */

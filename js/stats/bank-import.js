@@ -112,7 +112,7 @@ const RULES = [
   ["bill_insurance_auto", /geico|progressive|state farm|allstate|liberty mutual|farmers ins|usaa|nationwide|车险/i],
   ["bill_subscription", /netflix|spotify|hulu|disney ?\+|disney plus|hbo|apple\.com\/bill|itunes|icloud|google (one|storage|youtube)|youtube ?(premium|tv)|openai|chatgpt|anthropic|claude\.ai|adobe|microsoft 365|dropbox|amazon prime|audible|paramount|peacock|会员|订阅/i],
   ["bill_donation", /donation|church|tithe|gofundme|red cross|unicef|捐款|教会|奉献/i], ["bill_tuition", /tuition|daycare|preschool|学费|托儿/i],
-  ["bill_activities", /\bcamp\b|dance|piano|swim|gymnastics|karate|ymca|kumon|夏令营|兴趣班/i], ["bill_toll", /e-?zpass|ipass|sunpass|\btoll\b|过路费/i], ["bill_parking", /parking|parkmobile|spothero|停车/i],
+  ["bill_activities", /\bcamp\b|dance|piano|swim|gymnastics|karate|ymca|kumon|夏令营|兴趣班/i], ["bill_toll", /e-?zpass|ipass|sunpass|\btoll\b|过路费/i], ["life_transit", /parking|parkmobile|spothero|停车|uber|lyft|taxi|滴滴|打车|metra|\bcta\b|\bmta\b|bus pass|公交|地铁/i],
   ["pet_care", /\bvet\b|veterinar|animal hospital|兽医/i], ["pet", /petco|petsmart|chewy|宠物/i],
   ["vehicle_fuel", /shell|chevron|exxon|mobil\b|\bbp\b|speedway|sunoco|marathon|kwik trip|wawa|citgo|casey'?s|gas station|\bfuel\b|supercharg|electrify america|chargepoint|加油|充电|洗车|car wash/i],
   ["vehicle_maint", /jiffy lube|valvoline|firestone|pep boys|autozone|o'?reilly|napa auto|midas|discount tire|auto repair|汽车维修|保养/i],
@@ -125,6 +125,8 @@ const RULES = [
   ["life_fun", /cinema|\bamc\b|regal|movie|theater|theatre|steam|playstation|xbox|nintendo|ticketmaster|stubhub|bowling|arcade|museum|\bzoo\b|aquarium|电影|游戏|演出/i],
   ["life_gifts", /\bgift|florist|1-800-flowers|hallmark|party city|红包|礼物|礼金/i],
   ["gear_digital", /apple store|apple\.com|micro center|newegg|b&h|\bdell\b|lenovo|samsung|google store|数码|苹果/i], ["life_edu", /udemy|coursera|duolingo|khan|college board|课程/i], ["gear_study", /scholastic|barnes|bookstore|textbook|图书|书店/i],
+  ["capital_home", /title (company|co\b|insurance)|first american|fidelity national title|chicago title|stewart title|closing (cost|fee)|settlement (statement|fee)|real estate attorney|realtor commission|earnest money|过户|契税|首付|房款|中介费|律师费.*(房|购)/i],
+  ["life_gov", /\bdmv\b|secretary of state|\bsos\b|passport|vital records|county clerk|city clerk|citation|violation|court|turbotax|h&r block|freetaxusa|taxact|罚单|交警|车管所|护照|签证|出生证|公证|社保局|税务局/i],
   ["life_fees", /\bfee\b|interest charge|finance charge|annual membership|late fee|overdraft|foreign transaction|service charge|手续费|利息|年费|滞纳/i], ["life_mail", /usps|ups store|fedex|\bups\b|\bdhl\b|postage|快递|邮费|顺丰/i],
   ["life_shopping", /amazon|amzn|target|walmart|best ?buy|ikea|etsy|ebay|temu|shein|wayfair|淘宝|京东|拼多多|天猫/i],
 ];
@@ -140,7 +142,7 @@ export function classify(row) { return classifyWhy(row).cat; }
 /** 同上，但带来源：learned（你教过的）/ bill / rule / ai / bank / ""。内置关键词认得的商家（Amazon、Costco、Shell…）优先于 AI 的猜测——AI 常把 Amazon 购物猜成会员 */
 export function classifyWhy(row) {
   const key = keyOf(row.desc), d = row.desc.toLowerCase();
-  const ur = userRules()[key]; if (ur) return { cat: ur, src: "learned" };
+  const ur = userRules()[key]; if (ur) return { cat: canonCat(ur), src: "learned" };
   const rule = (RULES.find(([, re]) => re.test(row.desc)) || [])[0] || "";
   for (const b of (state.billsEnriched?.length ? state.billsEnriched : state.bills) || []) {
     const p = String(b.payee || b.name || "").toLowerCase(); if (p.length < 4 || !d.includes(p)) continue;
@@ -150,9 +152,8 @@ export function classifyWhy(row) {
   }
   if (rule) return { cat: rule, src: "rule" };
   if (row.aiCat) return { cat: row.aiCat, src: "ai" };   // AI 读对账单时给的分类（内置关键词认不出的商家才用它）
-  const g = TRIP.guess(row.desc, "");   // 机票、酒店、门票、租车…
-  if (g && g !== "travel_dining" && g !== "travel_fuel") return { cat: g, src: "rule" };
-  if (g === "travel_dining") return { cat: "life_dining", src: "rule" };
+  const g = TRIP.guess(row.desc, "");   // 机票、酒店、长途车票、住宿、租车…（以及它顺带认得的加油、餐厅、门票、打车停车）
+  if (g) return { cat: g, src: "rule" };
   if (row.bankCat) for (const [re, id] of BANK_CAT) if (re.test(row.bankCat)) return { cat: id, src: "bank" };
   return { cat: "", src: "" };
 }

@@ -16,7 +16,7 @@ import { cardHintHtml, cardOptions, cardSelectHtml } from "../bills/cards-views.
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
 const BILL_CATS = () => BILLS_GROUP.cats();
-export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), ...TRAVEL_CATS, TRAVEL_GROUP, ...LIFE_CATS, LIFE_GROUP, GROCERY_MISC, VEHICLE_FUEL, MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" }, { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" }, { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" }, OTHER_CAT];
+export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), ...TRAVEL_CATS, TRAVEL_GROUP, ...LIFE_CATS, LIFE_GROUP, DINING_GROUP, ADMIN_GROUP, ...CAPITAL_CATS, CAPITAL_GROUP, GROCERY_MISC, VEHICLE_FUEL, MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" }, { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" }, { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" }, OTHER_CAT];
 // 统计图里：储藏各分类单独显示，房屋耗材和设备维修保养合并为“房屋维护”、装备合并为“装备”、车辆维修保养为“车辆”各一组；
 // 账单按具体种类各一项（电费、燃气费、房贷…，只有有花费的才会出现在图里），同类账单同色相
 // 花费页有个“同一大类合并显示”开关（水电气网、住房、车…各合成一项，颜色少一些），选择记在本机；
@@ -25,16 +25,21 @@ const MERGE_KEY = "hmh-bill-merge";
 try { state.stats.billMerge = localStorage.getItem(MERGE_KEY) === "1"; } catch { state.stats.billMerge = false; }
 export const setBillMerge = (on) => { state.stats.billMerge = !!on; try { localStorage.setItem(MERGE_KEY, on ? "1" : "0"); } catch { /* 隐私模式下忽略 */ } };
 const billStatCats = (merge) => (merge ? [...BILLS_GROUP.families(), ...BILL_CATS().filter((c) => !BILLS_GROUP.familyOf(c.id))] : BILL_CATS());
-export const STAT_CATS = (merge = state.stats.billMerge) => [...CATEGORIES.filter((c) => c.space === "pantry"), GROCERY_MISC, HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, ...billStatCats(merge), TRAVEL_GROUP, LIFE_GROUP, MEDICAL_GROUP, OTHER_CAT];
+export const STAT_CATS = (merge = state.stats.billMerge) => [...CATEGORIES.filter((c) => c.space === "pantry"), GROCERY_MISC, HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, ...billStatCats(merge), DINING_GROUP, LIFE_GROUP, ADMIN_GROUP, TRAVEL_GROUP, MEDICAL_GROUP, OTHER_CAT, CAPITAL_GROUP];
 const isBill = (id) => String(id || "").startsWith("bill_");
 export const statCat = (id, merge = state.stats.billMerge) => {
+  id = canonCat(id);   // 旧分类（旅行·餐饮 / 燃油 / 门票）按别名表换成新的
+  if (isCapital(id)) return "capital";   // 资本性支出：默认不进统计图和预算
   if (TRIP.isTravel(id)) return "travel";
-  if (String(id).startsWith("life_")) return "life";   // 外出就餐、网购、服装、娱乐…统计里合并成“日常生活”一组
-  if (id === "vehicle_fuel") return "vehicle";
+  if (id === "life_dining") return "dining";   // 餐饮外食单独一组（通常是第二大可变开支，单独做预算）
+  if (id === "life_transit" || id === "vehicle_fuel") return "vehicle";
+  if (id === "life_gov" || id === "life_fees" || id === "life_mail" || id === "legal") return "admin";   // 政务与手续：证件罚单报税、手续费、邮寄、法律税务
+  if (id === "life_shopping") return "other";   // 综合购物（待细分）：统计里归其他
+  if (String(id).startsWith("life_")) return "life";   // 娱乐、美容、健身、礼物、课程…统计里合并成「休闲与个人」
   if (id === "grocery_misc") return id;   // 超市杂货（银行导入里没细分的）：统计里和日常储备各分类并排   // 机票、住宿、门票、燃油…统计里合并成“旅行出行”一组
   if (id === "medical") return id;   // 事件型账单的付款（虚拟花费，见 bills/medical.js）
   if (id === "pet_care") return "pet";   // 宠物账单（兽医、美容、寄养）并进“宠物”这一组
-  if (id === "legal") return "other"; if (id === "project") return "house";   // 法律 / 税务并入“其他”，装修 / 项目并入“房屋维护”
+  if (id === "project") return "house";   // 法律 / 税务并入“其他”，装修 / 项目并入“房屋维护”
   const c = CATEGORIES.find((x) => x.id === id);
   if (c) return c.space === "pantry" ? c.id : c.space;
   if (id === MAINT_CAT.id) return "house";
@@ -46,7 +51,7 @@ export const statCat = (id, merge = state.stats.billMerge) => {
 const catMatches = (sel, category) => {
   if (sel === "bills") return isBill(category);
   if (sel.startsWith("billfam_")) return isBill(category) && BILLS_GROUP.familyOf(category) === sel;
-  if (isBill(sel) || TRIP.isTravel(sel) || String(sel).startsWith("life_") || sel === "vehicle_fuel" || sel === "grocery_misc") return category === sel;   // 具体的账单种类 / 旅行类型
+  if (isBill(sel) || TRIP.isTravel(sel) || String(sel).startsWith("life_") || sel === "vehicle_fuel" || sel === "grocery_misc") return canonCat(category) === sel;   // 具体的账单种类 / 旅行类型
   return statCat(category) === sel;
 };
 export const monthKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };
@@ -65,19 +70,20 @@ export function spendData(n = state.stats.months) {
   const months = lastMonths(n);
   const byMC = Object.fromEntries(months.map((m) => [m, {}]));
   const counts = Object.fromEntries(months.map((m) => [m, 0]));
-  let otherCurrency = 0;
+  let otherCurrency = 0, capital = 0, capitalN = 0;
   for (const p of state.purchases) {
     if (p.amount == null) continue;
     if (p.currency && p.currency !== cur) { otherCurrency++; continue; }
     const m = monthKey(p.purchased_at);
     if (!byMC[m]) continue;
     const c = statCat(p.category);
+    if (c === "capital") { capital += num(p.amount); capitalN++; if (!state.stats.includeCapital) continue; }   // 资本性支出：默认不进图，只在开关旁显示合计
     byMC[m][c] = (byMC[m][c] || 0) + num(p.amount);
     counts[m]++;
   }
   const totals = months.map((m) => Object.values(byMC[m]).reduce((a, b) => a + b, 0));
   const cats = STAT_CATS().filter((c) => months.some((m) => byMC[m][c.id]));
-  return { months, byMC, totals, cats, counts, otherCurrency };
+  return { capital: Math.round(capital * 100) / 100, capitalN, months, byMC, totals, cats, counts, otherCurrency };
 }
 
 export function consumptionData() {
@@ -270,6 +276,11 @@ function spendExportTab() {
     </section>`;
 }
 
+/** 资本性支出（房产交易、买车整付）：这段时间里有的话显示合计和「含」开关；默认不进图和预算，免得把日常占比拉歪 */
+function capitalHtml(sd) {
+  if (!sd.capitalN) return "";
+  return `<label class="check-inline" title="${esc(t("买房卖房的房款、律师、中介、Title、过户税，买车整付：几年一次、金额巨大，默认不进日常统计和预算；勾上可以一起看"))}"><input type="checkbox" data-action="stats-capital" ${state.stats.includeCapital ? "checked" : ""}><span>${t("含资本性支出 {a}（{n} 笔）", { a: money(sd.capital), n: sd.capitalN })}</span></label>`;
+}
 /** “同一大类合并显示”开关：只在这段时间里有 2 种以上账单花费时才出现（否则没东西可合并） */
 function billMergeHtml(sd) {
   const inRange = new Set(sd.months);
@@ -292,7 +303,7 @@ export function viewSpend() {
     <section class="section">
       <div class="section-head"><h2>${t("采购花费")}</h2>${onSpendPage ? `<div class="head-acts"><a class="btn btn-primary btn-sm" href="${href("bills", "spend")}?tab=records&add=1">${t("记一笔花费")}</a></div>` : ""}</div>
       ${onSpendPage ? tabBar(SPEND_TABS, tab, spendHref, t("花费内容")) : ""}
-      ${ranged ? `<div class="range-row">${rangeChipsHtml()}${billMergeHtml(sd)}</div>` : ""}
+      ${ranged ? `<div class="range-row">${rangeChipsHtml()}${billMergeHtml(sd)}${capitalHtml(sd)}</div>` : ""}
       ${body}
     </section>`;
 }
@@ -454,8 +465,10 @@ function spendRecordsHtml() {
   const cats = STAT_CATS(false).filter((c) => ps.some((p) => statCat(p.category, false) === c.id));   // 下拉始终列具体种类，不受“合并显示”开关影响
   const ti = cats.findIndex((c) => c.id === "travel");
   if (ti >= 0) cats.splice(ti + 1, 0, ...TRAVEL_CATS.filter((c) => ps.some((p) => p.category === c.id)));   // “旅行出行”后面列有花费的具体类型（机票、住宿…），可以只看某一类
-  const li = cats.findIndex((c) => c.id === "life");
-  if (li >= 0) cats.splice(li + 1, 0, ...LIFE_CATS.filter((c) => ps.some((p) => p.category === c.id)));   // “日常生活”后面列有花费的具体类型
+  for (const gid of ["dining", "vehicle", "life", "admin"]) {   // 这几组后面列有花费的具体类型（交通、燃油、娱乐…），可以只看某一类
+    const gi = cats.findIndex((c) => c.id === gid); if (gi < 0) continue;
+    cats.splice(gi + 1, 0, ...[...LIFE_CATS, VEHICLE_FUEL].filter((c) => statCat(c.id, false) === gid && ps.some((p) => p.category === c.id)));
+  }
   const firstBill = cats.findIndex((c) => isBill(c.id));
   if (cats.filter((c) => isBill(c.id)).length > 1) cats.splice(firstBill, 0, BILLS_GROUP);   // 多种账单时多一个“全部账单”总筛选，排在各具体种类前
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;

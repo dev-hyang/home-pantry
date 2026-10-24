@@ -72,7 +72,7 @@ export const DemoStore = {
     const since = Date.now() - STATS_LOG_DAYS * DAY;
     return this.db.logs.filter((l) => new Date(l.created_at).getTime() >= since);
   },
-  async listPurchases() { return this.db.purchases.map((x) => ({ ...x })); },
+  async listPurchases() { return this.db.purchases.map((x) => ({ ...x, category: canonCat(x.category) })); },
   async addItems(list) {
     const now = new Date().toISOString();
     for (const it of list) this.db.items.push({ ...it, id: uid(), created_at: now, updated_at: now });
@@ -80,7 +80,7 @@ export const DemoStore = {
   },
   async listPurchasesRange(from, to) {
     return this.db.purchases.filter((p) => p.purchased_at >= from && p.purchased_at < to)
-      .sort((a, b) => a.purchased_at.localeCompare(b.purchased_at)).map((x) => ({ ...x }));
+      .sort((a, b) => a.purchased_at.localeCompare(b.purchased_at)).map((x) => ({ ...x, category: canonCat(x.category) }));
   },
   async addPurchase(p) { const id = uid(); this.db.purchases.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
   async deletePurchase(id) { this.db.purchases = this.db.purchases.filter((x) => x.id !== id); this.persist(); },
@@ -498,7 +498,7 @@ export const CloudStore = {
   async listPurchases() {
     const since = new Date(Date.now() - 400 * DAY).toISOString();
     return this.must(await this.sb.from("purchases").select("*").eq("household_id", this.hid)
-      .gte("purchased_at", since).order("purchased_at", { ascending: false }).limit(5000));
+      .gte("purchased_at", since).order("purchased_at", { ascending: false }).limit(5000)).map((x) => ({ ...x, category: canonCat(x.category) }));   // 旧分类按别名表换成新的（迁移 035 跑过就没差别）
   },
   async addPurchase(p) { return this.must(await this.sb.from("purchases").insert({ ...p, household_id: this.hid }).select("id").single()).id; },
 
@@ -697,7 +697,7 @@ export const CloudStore = {
   },
   async listPurchasesRange(from, to) {
     return this.must(await this.sb.from("purchases").select("*").eq("household_id", this.hid)
-      .gte("purchased_at", from).lt("purchased_at", to).order("purchased_at").limit(10000));
+      .gte("purchased_at", from).lt("purchased_at", to).order("purchased_at").limit(10000)).map((x) => ({ ...x, category: canonCat(x.category) }));
   },
   async deletePurchase(id) { this.must(await this.sb.from("purchases").delete().eq("id", id)); },
   /** 撤销一批银行导入（迁移 034 的 import_batch 列）；返回删掉几笔 */

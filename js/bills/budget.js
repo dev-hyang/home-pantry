@@ -14,12 +14,14 @@ import { BUDGET_TABS, activeTab } from "../core/tabs.js";
 /* ───────────── 预算分组 ───────────── */
 // 固定账单单独算（从账单项目的每月折算得来）；其余花费分成这几组，按过去 6 个月的比例分配“可支配额”
 export const GROUPS = [
-  { id: "groceries", name: "日常储备", icon: "🥫", color: "#3f8f5a", w: 0.45 },
+  { id: "groceries", name: "日常储备", icon: "🥫", color: "#3f8f5a", w: 0.4 },
   { id: "house", name: "房屋维护", icon: "🏠", color: "#b07a1a", w: 0.15 },
   { id: "big", name: "大件家电", icon: "🧊", color: "#a0522d", w: 0.1 },   // 单笔 ≥ 门槛的购买（不含账单、维修保养）；有设备更换估价时按设备寿命预存
   { id: "vehicle", name: "车辆", icon: "🚗", color: "#3b7fc4", w: 0.1 },
   { id: "gear", name: "装备", icon: "🧳", color: "#7563c0", w: 0.05 },
-  { id: "life", name: "外出与服务", icon: "🛎️", color: "#8a5fb0", w: 0.05 },   // 外出就餐、网购、娱乐、美容、健身、礼物、手续费…（超市杂货算“日常储备”）
+  { id: "dining", name: "餐饮外食", icon: "🍔", color: "#c0603a", w: 0.08 },   // 餐厅、外卖、咖啡：单独一组
+  { id: "life", name: "休闲与个人", icon: "🎭", color: "#8a5fb0", w: 0.05 },   // 娱乐门票、美容、健身、礼物、课程（综合购物待细分算“其他”，超市杂货算“日常储备”）
+  { id: "admin", name: "政务与手续", icon: "🏛️", color: "#6b7280", w: 0.02 },   // 证件罚单报税、银行手续费、法律税务、邮寄
   { id: "travel", name: "旅行出行", icon: "🧳", color: "#0f8b8d", w: 0.05 },   // 机票、住宿、门票、燃油、饭店…（不算“大件”）；没有旅行花费的家庭这一组显示为 0
   { id: "other", name: "其他", icon: "🧺", color: "#8a948f", w: 0.05 },
 ];
@@ -33,14 +35,15 @@ export const groupOf = (category, amount = 0) => {
   const s = statCat(category);
   if (String(category || "").startsWith("bill_")) return "bills";   // 统计里账单已按具体种类分项，预算仍把全部账单算一组（固定支出）
   if (s === "medical") return "medical";
+  if (s === "capital") return "capital";   // 资本性支出（房产交易、买车整付）：不进预算
   if (s === "travel") return "travel";
   if (category === "grocery_misc") return "groceries";   // 超市杂货（银行导入里没细分的）算“日常储备”
-  if (s === "life") return "life";   // 旅行出行：机票再贵也不当“大件”
+  if (s === "life" || s === "dining" || s === "admin") return s;   // 旅行出行：机票再贵也不当“大件”
   if (category === "pet_care") return "other";   // 宠物账单（兽医、寄养）算“其他”；宠物粮食仍在日常储备
   if (s !== "vehicle" && category !== "house_maint" && amount >= bigThreshold()) return "big";   // 大件：单笔大额，但账单、车辆、维修保养不算
   return ["house", "vehicle", "gear", "other"].includes(s) ? s : "groceries";
 };
-budgetBridge.groupOf = groupOf; budgetBridge.groups = [BILLS_GROUP, ...GROUPS, MEDICAL_BUDGET_GROUP];   // 明细页按预算分组筛选时用
+budgetBridge.groupOf = groupOf; budgetBridge.groups = [BILLS_GROUP, ...GROUPS, MEDICAL_BUDGET_GROUP, { id: "capital", name: "资本性支出", icon: "🏦", color: "#4b5563" }];   // 明细页按预算分组筛选时用
 const cur = () => Units.region.currency;
 const amountOf = (p) => (p.amount != null && (!p.currency || p.currency === cur()) ? num(p.amount) : 0);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -104,6 +107,7 @@ export function actualByMonth() {
   for (const p of state.purchases) {
     const a = amountOf(p); if (!a) continue;
     const m = monthKey(p.purchased_at), g = groupOf(p.category, a);
+    if (g === "capital") continue;   // 资本性支出不算进当月实际花费
     ((out[m] ||= {})[g] = (out[m][g] || 0) + a);
   }
   return out;

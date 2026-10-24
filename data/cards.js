@@ -28,13 +28,14 @@
   ];
   /** 小助手花费分类（+ 商家名）→ 奖励类别 */
   function rewardCatOf(category, store) {
-    const c = String(category || ""), s = String(store || "");
+    const c = window.canonCat ? window.canonCat(String(category || "")) : String(category || ""), s = String(store || "");
     for (const [re, cat] of MERCHANT_CATS) if (re.test(s)) return cat;
     const pantry = (window.CATEGORIES || []).find((x) => x.id === c && x.space === "pantry");
     if (pantry || c === "grocery_misc") return "grocery";
-    if (c === "life_dining" || c === "travel_dining") return "dining";
-    if (c === "vehicle_fuel" || c === "travel_fuel") return "gas";
-    if (/^travel_(flight|ship|ground|rental|lodging|tour|tickets|other)$/.test(c)) return c === "travel_ground" ? "transit" : "travel";
+    if (c === "life_dining") return "dining";
+    if (c === "vehicle_fuel") return "gas";
+    if (c === "life_transit") return "transit";
+    if (/^travel_(flight|ship|ground|rental|lodging|tour|other)$/.test(c)) return "travel";
     if (c === "life_shopping" || c === "gear_digital" || c === "gear_clothes") return "online";
     if (c === "health" || c === "medical") return "drugstore";
     if (c === "bill_subscription" || c === "bill_cable_tv") return "streaming";
