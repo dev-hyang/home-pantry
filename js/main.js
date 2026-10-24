@@ -383,6 +383,13 @@ export const main = $("#main");
 initCompactFilters({ root: main, ui: uiKind });
 miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
 initSwipeRows({ kinds: ["budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase"], del: () => t("删除"), release: () => t("松手删除") });   // 行记录左滑删除（js/swipe-rows.js）
+/* 云端报错翻译：数据库还没升级到某个迁移时，PostgREST 只会说「找不到某列 / 某表」，这里换成告诉你该执行哪个迁移文件 */
+const MIGRATION_HINTS = [[/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/relation .*cards|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
+function friendlyErr(msg) {
+  const m = String(msg || "");
+  for (const [re, file, what] of MIGRATION_HINTS) if (re.test(m)) return t("还没执行数据库迁移 {file}（{what}）：先在 Supabase → SQL Editor 里执行 supabase/migrations/{file}，再试一次。", { file, what });
+  return m;
+}
 initBankImport({ refresh });
 initQuickDrag({ isEditing: () => !!state.quickEdit, enter: () => { state.quickEdit = true; state.quickAdd = false; render(); }, save: async (ids) => { try { await saveQuick(ids); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } render(); } });   // 今日页快捷操作：长按进入编辑并拖动排序   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
 // 「⋯」更多操作菜单：点别处或点菜单里的某项就收起（原生 details 不会自己收）
@@ -456,11 +463,11 @@ main.addEventListener("change", async (e) => {
   if (e.target.closest("#seasonForm") && e.target.name === "mode") { e.target.form.classList.toggle("is-once", e.target.value === "once"); return; }
   if (e.target.closest("#billForm") && e.target.name === "category") { e.target.form.classList.toggle("is-sub", window.BILLS.isSubCat(e.target.value)); return; }   // 订阅 / 会员才显示种类与试用到期
   if (e.target.matches("input[data-task]")) {
-    try { await toggleTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); }
+    try { await toggleTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
     return refresh();
   }
   if (e.target.matches("input[data-deal-task]")) {
-    try { await toggleDealTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); }
+    try { await toggleDealTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
     return refresh();
   }
   if (e.target.id === "langSel") return changeLang(e.target.value || null);
@@ -469,7 +476,7 @@ main.addEventListener("change", async (e) => {
     if (!b) return;
     e.target.disabled = true;
     try { await Store.saveBill({ ...b, autopay: e.target.checked, pay_channel: e.target.checked ? "autopay" : (b.pay_channel === "autopay" ? "online" : b.pay_channel) }); toast(e.target.checked ? t("已标为自动扣款，到期前会提醒核对") : t("已改为手动缴费，到期前会提醒缴费")); }
-    catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); }
+    catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
     return refresh();
   }
   if (e.target.id === "billTrend") { state.billsFilter.trend = e.target.value; render(); }
@@ -675,7 +682,7 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "quickForm") return doQuickJoin(f);
     if (f.id === "createHhForm") return doCreateHousehold(f);
     if (f.id === "joinHhForm") return doJoinHousehold(f);
-  } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); }
+  } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
 });
 
 /* 图表色块、图例、名称、数字卡片：点一下（或 Enter / 空格）看对应的花费明细 */
@@ -973,7 +980,7 @@ main.addEventListener("click", async (e) => {
         state.household.invite_code = data; toast(t("邀请码已重置，旧邀请码立即失效")); return render();
       }
     }
-  } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); refresh(); }
+  } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); refresh(); }
 });
 
 /** 房屋资料分区表单：保存后第一次填房型去推荐耗材，其余回分区列表；silent=true 为离开页面时自动保存（不跳转） */
