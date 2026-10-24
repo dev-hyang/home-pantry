@@ -15,6 +15,7 @@ import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initBankImport } from "./stats/bank-import.js";
+import { initQuickDrag } from "./quick-drag.js";
 import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml, rememberCard, saveCardForm, viewCards } from "./bills/cards-views.js";
 import "./bills/cards.js";   // 注册信用卡提醒
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
@@ -382,7 +383,8 @@ export const main = $("#main");
 initCompactFilters({ root: main, ui: uiKind });
 miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
 initSwipeRows({ kinds: ["budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase"], del: () => t("删除"), release: () => t("松手删除") });   // 行记录左滑删除（js/swipe-rows.js）
-initBankImport({ refresh });   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
+initBankImport({ refresh });
+initQuickDrag({ isEditing: () => !!state.quickEdit, enter: () => { state.quickEdit = true; state.quickAdd = false; render(); }, save: async (ids) => { try { await saveQuick(ids); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } render(); } });   // 今日页快捷操作：长按进入编辑并拖动排序   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
 // 「⋯」更多操作菜单：点别处或点菜单里的某项就收起（原生 details 不会自己收）
 document.addEventListener("click", (e) => { document.querySelectorAll("details.act-more[open]").forEach((d) => { if (!d.contains(e.target) || e.target.closest(".act-item")) d.open = false; }); }, true);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll("details.act-more[open]").forEach((d) => { d.open = false; d.querySelector("summary")?.focus(); }); });

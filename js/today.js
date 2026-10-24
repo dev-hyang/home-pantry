@@ -48,7 +48,7 @@ export function viewToday() {
   const editing = !!state.quickEdit;
   const last = mine.length - 1;
   const tileBody = ([, ic, nm]) => `<span class="qtile-ico" aria-hidden="true">${ic}</span><span>${nm}</span>`;
-  const tileHtml = ([id, ic, nm], i) => `<div class="qwrap">${id.startsWith("action:")
+  const tileHtml = ([id, ic, nm], i) => `<div class="qwrap" data-qid="${esc(id)}">${id.startsWith("action:")
       ? `<button type="button" class="qtile" data-action="quick-run" data-id="${esc(id)}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</button>`
       : `<a class="qtile" href="${esc(quickHref(id))}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</a>`}
     ${editing ? `<button type="button" class="qdel" data-action="quick-del" data-id="${esc(id)}" aria-label="${esc(t("移除快捷操作：{name}", { name: nm }))}">×</button>
