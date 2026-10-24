@@ -8,7 +8,7 @@ export const SECTIONS = {
   // 房屋：#/house 是房产列表；#/house/pages 是某套房产的页面目录；车辆挂家庭，从房产列表进
   house:    { name: "房屋",   subs: [["overview", "概览"], ["assets", "设备保养"], ["tasks", "季节任务"], ["deal", "交易"], ["profile", "房屋资料"],
                                      ["supplies", "房屋耗材", true], ["vehicles", "车辆", true], ["pages", "页面", true], ["template", "推荐耗材", true], ["asset-template", "生成设备", true]] },  // 第三项 true = 不在目录显示
-  bills:    { name: "账单",   subs: [["overview", "概览"], ["recurring", "周期性账单"], ["onetime", "一次性账单"], ["spend", "花费"], ["budget", "预算"], ["template", "常用账单", true]] },
+  bills:    { name: "账单",   subs: [["overview", "概览"], ["recurring", "周期性账单"], ["onetime", "一次性账单"], ["spend", "花费"], ["budget", "预算"], ["cards", "用卡"], ["template", "常用账单", true]] },
   shopping: { name: "采购",   subs: null },
   scan:     { name: "录入购物", subs: null },   // #/scan：拍小票 / 贴线上订单，AI 读成清单后入库（底栏高亮“采购”）
   me:       { name: "我的",   subs: [["stats", "统计"], ["settings", "设置"], ["about", "介绍"]] },

@@ -8,6 +8,7 @@ import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, 
 import { href } from "../core/router.js";
 import { compare, joinList, lang, t } from "../core/i18n.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
+import { cardHintHtml } from "../bills/cards-views.js";
 import { shopAdviceHtml, shopForecastHtml } from "../bills/budget.js";
 
 /* ── 概览（储藏 / 房屋耗材共用）── */
@@ -425,6 +426,7 @@ export function viewShopping() {
       ${s.status === "claimed" ? `<div class="who">🛍 ${t("{who} 正在买", { who: esc(s.claimed_by_name || t("家人")) })}</div>` : ""}
       ${s.item_id ? "" : `<div class="muted" style="font-size:12px">${t("未关联库存，买到后需手动入库")}</div>`}
       ${priceBox}
+      ${s.status === "bought" ? "" : `<div class="card-hint-slot">${cardHintHtml(s.category || state.items.find((i) => i.id === s.item_id)?.category, "")}</div>`}
       ${acts ? `<div class="acts">${acts}</div>` : ""}
     </li>`;
   };

@@ -46,6 +46,7 @@ export const state = {
   mealShift: 0,
   user: null, household: null, households: [], displayName: "我",
   loginMode: "email", phonePending: null,   // 登录页：邮箱 / 手机号 / 邀请码；已发送验证码的手机号
+  cards: [], cardPick: { cat: "grocery", amount: "", abroad: false, merchant: "" },
   people: [], personEdit: null, personMerge: null, medBills: [], medPayments: [], medEnriched: [], medFilter: { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }, medYear: null,   // 医疗账单（事件型账单）
   pending: {},                              // 读得慢、先放过去的表（maint / seasonal / payments / logs）：true = 还在后台读
   pendingJoin: null,                        // 邀请码直接进入：匿名登录成功后要加入的 { code, name }

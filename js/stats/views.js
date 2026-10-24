@@ -11,6 +11,7 @@ import { medicalVirtuals } from "../bills/medical.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
 import { bankImportTab } from "./bank-import.js";
+import { cardHintHtml } from "../bills/cards-views.js";
 
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
@@ -249,6 +250,7 @@ function spendRecordsTab() {
         <label class="check-inline pr-refund" title="${esc(t("退货退款、报销收回：记成负数，统计里按净额算"))}"><input type="checkbox" name="refund"><span>${t("退款 / 报销")}</span></label>
         <button class="btn btn-primary pr-go" type="submit">${t("记一笔")}</button>
       </form>
+      <p id="purchaseCardHint" class="card-hint-line">${cardHintHtml("fresh", lastStore(), null)}</p>
       <p class="muted cat-hint">${t("分类怎么选：买回家吃的、用的（会用完）→ 日常储备；买回家长期用的 → 装备；花钱买体验或服务、没有东西留在家里 → 外出与服务。")}</p>
     </section>
     <section class="section" id="spendRecords">${spendRecordsHtml()}</section>`;

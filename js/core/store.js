@@ -250,6 +250,15 @@ export const DemoStore = {
   async updateMedicalPayment(id, patch) { const i = this.db.medical_payments.findIndex((x) => x.id === id); if (i >= 0) { this.db.medical_payments[i] = { ...this.db.medical_payments[i], ...patch }; this.persist(); } },
   async deleteMedicalPayment(id) { this.db.medical_payments = this.db.medical_payments.filter((x) => x.id !== id); this.persist(); },
 
+  /* 信用卡（用卡）：卡档案 + 返现画像 */
+  async listCards() { return (this.db.cards || []).map((x) => ({ ...x })); },
+  async saveCard(c) {
+    const now = new Date().toISOString(); this.db.cards ||= [];
+    if (c.id) { const i = this.db.cards.findIndex((x) => x.id === c.id); if (i < 0) throw new Error("卡不存在"); this.db.cards[i] = { ...this.db.cards[i], ...c, updated_at: now }; this.persist(); return c.id; }
+    const id = uid(); this.db.cards.push({ ...c, id, created_at: now, updated_at: now }); this.persist(); return id;
+  },
+  async deleteCard(id) { this.db.cards = (this.db.cards || []).filter((x) => x.id !== id); this.persist(); },
+
   /* 账单 */
   async listBills() { return this.db.bills.map((x) => ({ ...x })); },
   async saveBill(b) {
@@ -421,6 +430,7 @@ export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", 
 export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "acquired_on", "purchase_price", "sold_on", "sale_price", "archived", "notes"];
 export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email", "hoa"];
 export const MED_FIELDS = ["kind", "subkind", "provider", "patient", "patient_id", "guarantor", "guarantor_id", "bill_ref", "claim_ref", "insurer", "service_date", "bill_date", "due_on", "billed_amount", "insurance_paid", "adjustment", "patient_amount", "currency", "status", "hsa_eligible", "visibility", "notes"];
+export const CARD_FIELDS = ["name", "issuer", "network", "last4", "holder_user_id", "kind", "expires_on", "opened_on", "annual_fee", "fee_month", "credit_limit", "statement_day", "due_day", "autopay", "bill_id", "catalog_id", "rewards", "bonus", "credits", "rules_as_of", "active", "notes"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
   "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "statement_channel",
   "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes"];
@@ -639,6 +649,14 @@ export const CloudStore = {
   async addMedicalPayment(p) { return this.must(await this.sb.from("medical_payments").insert({ ...p, household_id: this.hid, paid_by: state.user.id }).select("id").single()).id; },
   async updateMedicalPayment(id, patch) { this.must(await this.sb.from("medical_payments").update(patch).eq("id", id)); },
   async deleteMedicalPayment(id) { this.must(await this.sb.from("medical_payments").delete().eq("id", id)); },
+  /* 信用卡（迁移 032） */
+  async listCards() { return this.must(await this.sb.from("cards").select("*").eq("household_id", this.hid).order("created_at")); },
+  async saveCard(c) {
+    const row = pick(c, CARD_FIELDS, { household_id: this.hid }); row.rewards ||= {}; row.credits ||= []; row.annual_fee ??= 0; row.network ||= "other"; row.kind ||= "credit"; row.active ??= true; row.autopay ??= false;
+    if (c.id) { this.must(await this.sb.from("cards").update(row).eq("id", c.id)); return c.id; }
+    return this.must(await this.sb.from("cards").insert(row).select("id").single()).id;
+  },
+  async deleteCard(id) { this.must(await this.sb.from("cards").delete().eq("id", id)); },
 
   /* 账单 */
   async listBills() { return this.must(await this.sb.from("bills").select("*").eq("household_id", this.hid).order("next_due_on")); },

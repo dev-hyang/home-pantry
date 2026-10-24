@@ -15,6 +15,8 @@ import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initBankImport } from "./stats/bank-import.js";
+import { applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml, saveCardForm, viewCards } from "./bills/cards-views.js";
+import "./bills/cards.js";   // 注册信用卡提醒
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
 import { DEFAULT_QUICK, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewToday } from "./today.js";
@@ -74,7 +76,7 @@ export async function refresh() {
     try {
       // 所有表一次并行读完（云端一轮往返），再在内存里定当前房产；采购花费只有统计和导出用，不挡首屏，渲染后后台再读
       const members = state.membersReady; state.membersReady = null;   // 登录后与这一轮并行去读家庭成员
-      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes, people, medBills, medPays] = await Promise.all([
+      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes, people, medBills, medPays, , cards] = await Promise.all([
         Store.listProperties(), Store.listItems(),
         soft("logs", Store.listLogs(), state.logs || [], (r) => { state.logs = r; state.enriched = enrich(state.items, r); }),
         Store.listShopping(), Store.listHouseProfiles(),
@@ -91,7 +93,8 @@ export async function refresh() {
         Store.listPeople().catch(() => []),   // 家庭成员名册（迁移 029）；没建表时是空的
         Store.listMedicalBills().catch((e) => { console.warn("[medical]", e.message); return []; }),   // 还没执行迁移 027 时读不到：不影响其他功能
         Store.listMedicalPayments().catch(() => []),
-        members]);
+        members,
+        Store.listCards().catch((e) => { console.warn("[cards]", e.message); return []; })]);   // 迁移 032 没执行时读不到：不影响其他功能
       state.budget = budget; state.incomes = incomes;
       state.customSeasonal = customSeasonal;
       if (terms) setGlossary(terms);   // 自定义名称的翻译
@@ -109,6 +112,7 @@ export async function refresh() {
       state.assetsEnriched = enrichAssets(assets, maintLogs);
       state.billsEnriched = enrichBills(bills, billPayments);
       state.people = people; applyMedical(medBills, medPays);
+      state.cards = cards || [];
       ensureAdults().then((added) => { if (added) { applyMedical(state.medBills, state.medPayments); render(false); } }).catch(() => {});
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
       if (!pendingAny()) notifyIfNeeded();
@@ -151,7 +155,7 @@ const VIEWS = {
   pantry:   { overview: viewDashboard, inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate },
-  bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, budget: viewBudget, template: viewBillTemplate },
+  bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, budget: viewBudget, cards: viewCards, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout },
@@ -404,6 +408,10 @@ main.addEventListener("input", (e) => {
   const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
 });
 main.addEventListener("change", async (e) => {
+  if (e.target.matches('#cardForm select[name="catalog"]')) return applyCatalogPick(e.target.value);   // 用卡：选了目录，按目录重画表单
+  if (e.target.closest("#cardPickForm")) { const fe = e.target.form.elements; Object.assign(state.cardPick, { cat: fe.cat.value, merchant: fe.merchant.value.trim(), amount: fe.amount.value, abroad: fe.abroad.checked }); const o = $("#cardPickOut"); if (o) o.innerHTML = pickResultHtml(); return; }
+  if (e.target.matches("input[data-store-for]")) { const li = e.target.closest(".shop-item"), s = state.shopping.find((x) => x.id === e.target.dataset.storeFor), h = li?.querySelector(".card-hint-slot"); if (h && s) h.innerHTML = cardHintHtml(s.category || state.items.find((i) => i.id === s.item_id)?.category, e.target.value); }   // 填了在哪买：刷新用卡建议
+  if (e.target.closest("#purchaseForm") && (e.target.name === "category" || e.target.name === "store" || e.target.name === "amount")) { const fe = e.target.form.elements, h = $("#purchaseCardHint"); if (h) h.innerHTML = cardHintHtml(fe.category.value, fe.store.value, fe.amount.value === "" ? null : num(fe.amount.value)); }
   if (e.target.matches("input[data-qty-for]")) return setShopQty(e.target.dataset.qtyFor, e.target.value);
   if (e.target.matches("input[data-unit-for]")) return setShopUnit(e.target.dataset.unitFor, e.target.value);   // 采购清单：改单位   // 采购清单：直接输入数量
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
@@ -559,6 +567,7 @@ main.addEventListener("submit", async (e) => {
     }
     if (f.id === "billForm") return saveBillForm(f);
     if (f.id === "medBillForm") return saveMedBillForm(f);
+    if (f.id === "cardForm") return saveCardForm(f);
     if (f.id === "medPayForm") return saveMedPayForm(f);
     if (f.id === "billPayForm") {
       const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
@@ -907,6 +916,7 @@ main.addEventListener("click", async (e) => {
       case "tasks-undone": state.tasksOnlyUndone = !state.tasksOnlyUndone; return render();
       case "spend-chip-clear": clearSpendFilter(el.dataset.k); return renderSpendRecords();
       case "med-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteMedBill(el.dataset.id);
+      case "card-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteCard(el.dataset.id);
       case "med-pay-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteMedPay(el.dataset.id);
       case "med-csv": return exportMedicalCsv();
       case "person-add-do": return personAddDo();

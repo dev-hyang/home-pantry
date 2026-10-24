@@ -101,11 +101,12 @@
   <script defer src="data/deals.js"></script>
   <script defer src="data/care.js"></script>
   <script defer src="data/vehicles.js"></script>
+  <script defer src="data/cards.js"></script>
 
   <!-- 启动自检：主脚本 6 秒内没有启动，就检查哪些文件缺失并显示在页面上（部署排错用） -->
   <script>
     (function () {
-      var FILES = ["styles.css", "config.js", "units.js", "charts.js", "data.js", "data/house.js", "data/bills.js", "data/deals.js", "data/care.js", "data/vehicles.js",
+      var FILES = ["styles.css", "config.js", "units.js", "charts.js", "data.js", "data/house.js", "data/bills.js", "data/deals.js", "data/care.js", "data/vehicles.js", "data/cards.js",
         "js/main.js", "js/today.js", "js/ai-page.js", "js/menu.js", "js/core/util.js", "js/core/state.js", "js/core/version.js", "js/core/router.js", "js/core/store.js", "js/core/logic.js", "js/core/config-check.js", "js/core/i18n.js", "js/i18n/en.js",
         "js/core/alerts.js", "js/core/hub.js", "js/settings/print.js", "js/settings/income.js", "js/pantry/scan.js", "js/stats/bank-import.js", "js/stats/statement-readers.js", "js/bills/budget.js", "js/bills/finance.js", "js/bills/escrow.js", "js/core/autofill.js", "js/pantry/views.js", "js/pantry/item-form.js", "js/house/views.js", "js/house/assets.js", "js/house/tasks.js", "js/house/deals.js", "js/house/property-form.js", "js/bills/logic.js", "js/bills/views.js", "js/stats/views.js", "js/settings/views.js", "js/settings/about.js", "js/core/ai.js", "js/pantry/ai.js", "js/core/categories.js", "js/core/locations.js"];
       // 部署更新检测：GitHub Pages 把每个文件缓存 10 分钟，刷新时浏览器会拿到新 index.html 却继续用缓存里的旧模块

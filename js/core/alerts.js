@@ -9,8 +9,8 @@ import { t } from "./i18n.js";
 
 export const SEVERITY_LABEL = ["紧急", "今天", "尽快", "留意"];
 export const SEVERITY_CLS = ["b-out", "b-low", "b-soon", "b-ok"];
-export const SOURCE_LABEL = { bill: "账单", deal: "交易", asset: "设备", season: "季节任务", pantry: "储藏", house: "房屋耗材", budget: "预算", medical: "医疗账单" };
-export const SOURCE_ICON = { bill: "🧾", deal: "📝", asset: "⚙️", season: "📅", pantry: "🥫", house: "🧰", budget: "💰", medical: "🏥" };
+export const SOURCE_LABEL = { bill: "账单", deal: "交易", asset: "设备", season: "季节任务", pantry: "储藏", house: "房屋耗材", budget: "预算", medical: "医疗账单", card: "信用卡" };
+export const SOURCE_ICON = { bill: "🧾", deal: "📝", asset: "⚙️", season: "📅", pantry: "🥫", house: "🧰", budget: "💰", medical: "🏥", card: "💳" };
 
 const providers = [];
 export const registerAlerts = (fn) => { providers.push(fn); };

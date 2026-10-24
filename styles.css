@@ -773,6 +773,27 @@ button.mrow:last-child { border-bottom: 0; }
 .cover-table th[scope="row"] { text-align: left; font-weight: 600; }
 .cover-table td { color: var(--muted); } .cover-table td.on { color: var(--ok); font-weight: 700; }
 @media (min-width: 640px) { .bank-list li { grid-template-columns: auto minmax(0, 1fr) minmax(200px, 260px); } .bank-list li select { grid-column: auto; } }
+/* 用卡：该刷哪张 */
+.card-pick .pick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; }
+@media (max-width: 720px) { .card-pick .pick-grid { grid-template-columns: 1fr 1fr; } }
+.pick-cards { display: grid; gap: 8px; margin-top: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.pick-card { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); min-width: 0; overflow-wrap: anywhere; }
+.pick-card.best { border-color: var(--pine); background: var(--ok-bg); }
+.pick-card .pick-rate { font-size: 22px; font-weight: 800; line-height: 1.1; display: flex; align-items: baseline; gap: 8px; }
+.pick-card .pick-rate small { font-size: 13px; font-weight: 600; color: var(--muted); }
+.pick-card small { color: var(--muted); font-size: 12.5px; }
+.pick-warn { font-size: 12.5px; color: var(--soon); font-weight: 600; margin-top: 2px; }
+.card-list .card-row { align-items: flex-start; }
+.card-net { flex: 0 0 auto; min-width: 44px; padding: 3px 6px; border-radius: 6px; font-size: 11px; font-weight: 800; text-align: center; letter-spacing: .02em; background: var(--surface-2); color: var(--muted); margin-top: 3px; }
+.card-net.net-visa { background: #1a1f71; color: #fff; } .card-net.net-mastercard { background: #eb001b; color: #fff; } .card-net.net-amex { background: #2e77bc; color: #fff; } .card-net.net-discover { background: #ff6000; color: #fff; } .card-net.net-unionpay { background: #d7272e; color: #fff; }
+.card-row.inactive { opacity: .6; }
+.card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.cat-rates { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 10px; margin-top: 8px; }
+.cat-rate { display: grid; grid-template-columns: minmax(0, 1fr) 70px; align-items: center; gap: 6px; font-size: 13px; }
+.cat-rate input { min-height: 34px; padding: 4px 8px; text-align: right; }
+.card-hint { display: inline-block; font-size: 12.5px; color: var(--pine); font-weight: 600; margin-top: 4px; }
+.card-hint-slot:empty, .card-hint-line:empty { display: none; }
+.card-hint-line { margin: 6px 2px 0; }
 /* 旅行：每个行程一张卡，下面按类型列金额 */
 .trip-card .row { align-items: flex-start; }
 .trip-cats { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
