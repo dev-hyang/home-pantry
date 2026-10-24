@@ -1042,10 +1042,17 @@ export async function markBought(id) {
     quantity: qty, unit: s.unit || item?.unit || null, amount, currency: Units.region.currency, purchased_at: now, store,
   });
   if (item) {
-    // 采购单位与库存单位不同（例如库存按 kg，买的时候填 lb）时自动换算
-    const add = !s.unit || s.unit === item.unit ? qty : Units.convert(qty, s.unit, item.unit);
-    if (add == null) toast(t("{name} 已买到；单位 {u1} 与库存单位 {u2} 无法换算，请手动更新库存", { name: s.name, u1: t(s.unit), u2: t(item.unit) }));
-    else { await Store.adjust(item.id, Math.round(add * 100) / 100, "restock"); toast(t("{name} 已入库 +{q}，记得更新保质期", { name: s.name, q: showQty(add, item.unit) })); }
+    if (!s.unit || s.unit === item.unit) {
+      await Store.adjust(item.id, Math.round(qty * 100) / 100, "restock");
+      toast(t("{name} 已入库 +{q}，记得更新保质期", { name: s.name, q: showQty(qty, item.unit) }));
+    } else {
+      // 采购时改了单位：库存的单位跟着改成新单位。能换算的（kg ↔ lb 等）把原有库存、最低库存、日均用量一起换成新单位；换算不了的（个 → 包）数字照旧，只换单位
+      const r = Units.convert(1, item.unit, s.unit), k = r == null ? 1 : r, r2 = (v) => Math.round(v * 100) / 100;
+      const scale = (v) => (v == null || v === "" ? v : r2(num(v) * k));
+      await Store.saveItem({ ...item, unit: s.unit, quantity: scale(item.quantity), min_quantity: scale(item.min_quantity), avg_daily_use: scale(item.avg_daily_use) });
+      await Store.adjust(item.id, r2(qty), "restock");
+      toast(t("{name} 已入库 +{q}，库存单位由 {u1} 改为 {u2}{note}，记得更新保质期", { name: s.name, q: showQty(qty, s.unit), u1: t(item.unit), u2: t(s.unit), note: r == null ? t("（单位无法换算，原库存数字没变）") : "" }));
+    }
   } else toast(t("{name} 已买到", { name: s.name }) + (amount != null ? t("，花费 {m}", { m: money(amount) }) : ""));
   refresh();
 }
