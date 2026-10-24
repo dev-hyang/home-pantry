@@ -11,5 +11,5 @@ export const ONETIME = () => href("bills", "onetime");
 export function kindsNote(kind) {
   return kind === "recurring"
     ? `<p class="muted kinds-note">${t("周期性账单：按周期反复出现，系统算下次到期并提前提醒——水电气网、房贷房租、保险、订阅、信用卡。")} ${t("就诊、装修、工程这类一次性的账单，请到")} <a href="${ONETIME()}">${t("一次性账单")} ›</a></p>`
-    : `<p class="muted kinds-note">${t("一次性账单：一次事件产生，有总额、可以分次付、有余额，付清就结束——医疗、宠物、法律税务、装修工程。")} ${t("水电气网这类按周期重复的账单，请到")} <a href="${RECURRING()}">${t("周期性账单")} ›</a></p>`;
+    : `<p class="muted kinds-note">${t("一次性账单：一次事件产生，有总额、可以分次付、有余额，付清就结束——医疗、宠物、法律税务、装修工程、旅行（机票、邮轮、酒店、旅行团：定金 + 尾款）。")} ${t("水电气网这类按周期重复的账单，请到")} <a href="${RECURRING()}">${t("周期性账单")} ›</a></p>`;
 }

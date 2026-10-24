@@ -153,7 +153,7 @@ function viewDetail(id, payId) {
         <label>${t("账单号 Bill #")}<input name="bill_ref" maxlength="60" value="${d(v.bill_ref)}"></label>
         ${K.insurance ? `<label>${t("保险公司")}<input name="insurer" maxlength="60" value="${d(v.insurer)}"></label>
         <label>${t("理赔号 Claim #")}<input name="claim_ref" maxlength="60" value="${d(v.claim_ref)}"></label>` : ""}
-        <label>${t(v.kind === "medical" || v.kind === "pet" ? "就诊日期" : "服务日期")}<input name="service_date" type="date" value="${d(v.service_date)}"></label>
+        <label>${t(v.kind === "medical" || v.kind === "pet" ? "就诊日期" : v.kind === "travel" ? "出发日期" : "服务日期")}<input name="service_date" type="date" value="${d(v.service_date)}"></label>
         <label>${t("账单日期 Bill date")}<input name="bill_date" type="date" value="${d(v.bill_date)}"></label>
         <label>${t("到期日")}<input name="due_on" type="date" value="${d(v.due_on)}"></label>
         <label>${t(K.billed)}（${esc(v.currency)}）<input name="billed_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.billed_amount)}"></label>
@@ -194,7 +194,7 @@ function paymentsHtml(b, edit, owed) {
       </div>
       <p id="medPayError" class="form-error" role="alert"></p>
       <div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">${edit ? t("保存修改") : t("记一笔付款")}</button>${edit ? `<a class="btn btn-sm btn-ghost" href="${detailHref(b.id)}">${t("取消")}</a>` : ""}
-        <small class="muted">${t("付款会自动并入 花费 的“医疗”分类。")}</small></div>
+        <small class="muted">${t(b.kind === "travel" ? "付款会自动并入 花费 的“旅行出行”分类（按小类拆：机票、住宿…）。" : "付款会自动并入 花费 的“医疗”分类。")}</small></div>
     </form>
     <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有付款")}</strong></div>`}</div>`;
 }
@@ -216,7 +216,7 @@ export async function saveMedBillForm(f) {
     const id = await Store.saveMedicalBill(f.dataset.id ? { ...row, id: f.dataset.id } : row);
     await reloadMedical(); toast(f.dataset.id ? t("已保存修改") : t("已记下这张账单，接着可以记付款"));
     go(detailHref(id), { replace: true }); return true;
-  } catch (e) { err.textContent = /medical_bills|does not exist|schema cache/i.test(e.message) ? t("还没执行数据库迁移 027（医疗账单表），先在 Supabase 里执行 supabase/migrations/027_medical_bills.sql") : t("保存失败：{msg}", { msg: e.message }); return false; }
+  } catch (e) { err.textContent = /medical_bills_kind_check/i.test(e.message) ? t("还没执行数据库迁移 031（一次性账单加“旅行”种类），先在 Supabase 里执行 supabase/migrations/031_travel_bills.sql") : /medical_bills|does not exist|schema cache/i.test(e.message) ? t("还没执行数据库迁移 027（医疗账单表），先在 Supabase 里执行 supabase/migrations/027_medical_bills.sql") : t("保存失败：{msg}", { msg: e.message }); return false; }
 }
 export async function saveMedPayForm(f) {
   const fe = f.elements, err = $("#medPayError"), amount = amt(fe.amount);

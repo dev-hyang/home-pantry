@@ -122,7 +122,7 @@ const KINDS = {
       const kind = form.elements.kind?.value || "medical", K = MED()[kind] || MED().medical;
       const subs = K.subs.map(([id, name]) => ({ id, name }));
       return { system: SYSTEM, user: [
-        `Photos / screenshots of a ${kind === "medical" ? "MEDICAL" : kind === "pet" ? "VET / PET-CARE" : kind === "legal" ? "LEGAL / TAX-PREPARATION" : "CONTRACTOR / PROJECT"} bill, statement or invoice${K.insurance ? ", or an insurance Explanation of Benefits (EOB)" : ""}.`,
+        `Photos / screenshots of a ${kind === "medical" ? "MEDICAL" : kind === "pet" ? "VET / PET-CARE" : kind === "legal" ? "LEGAL / TAX-PREPARATION" : kind === "travel" ? "TRAVEL BOOKING (airline, hotel, cruise, tour operator, rental car)" : "CONTRACTOR / PROJECT"} bill, statement or invoice${K.insurance ? ", or an insurance Explanation of Benefits (EOB)" : ""}.`,
         "provider = the business that billed (hospital, clinic, lab, vet, law firm, contractor). " + (K.insurance ? "patient = the person (or pet) the service was for. guarantor = the responsible party if shown. " : "patient = the client or project name if shown. "),
         `subkind = best id from: ${idList(subs)}; null if unsure.`,
         "bill_ref = statement / invoice / account number (copy exactly as printed, it is a reference not a secret). claim_ref = insurance claim number if shown.",

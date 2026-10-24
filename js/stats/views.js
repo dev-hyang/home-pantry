@@ -199,7 +199,7 @@ function spendCategoryTab(sd) {
 const tripsOf = () => {
   const map = new Map();
   for (const p of state.purchases) {
-    if (p.amount == null || p.virtual) continue;
+    if (p.amount == null || (p.virtual && !TRIP.isTravel(p.category))) continue;   // 一次性账单里的旅行付款（虚拟花费）也算
     const { trip } = TRIP.parse(p.name);
     if (!trip) continue;
     const g = map.get(trip) || { trip, total: 0, n: 0, first: p.purchased_at, last: p.purchased_at, byCat: {}, cur: p.currency };
