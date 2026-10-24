@@ -765,6 +765,13 @@ button.mrow:last-child { border-bottom: 0; }
 .bank-chk input { width: 20px; height: 20px; min-height: 0; accent-color: var(--pine); }
 .bank-row.is-skip { opacity: .8; }
 .bank-dup { color: var(--soon); font-weight: 600; }
+.bank-acct { display: grid; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.bank-acct label { display: grid; gap: 3px; font-size: 13px; font-weight: 700; }
+@media (min-width: 640px) { .bank-acct { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .bank-acct small { grid-column: 1 / -1; } }
+.cover-table { border-collapse: collapse; font-size: 12.5px; white-space: nowrap; }
+.cover-table th, .cover-table td { padding: 4px 5px; text-align: center; border-bottom: 1px dashed var(--line); }
+.cover-table th[scope="row"] { text-align: left; font-weight: 600; }
+.cover-table td { color: var(--muted); } .cover-table td.on { color: var(--ok); font-weight: 700; }
 @media (min-width: 640px) { .bank-list li { grid-template-columns: auto minmax(0, 1fr) minmax(200px, 260px); } .bank-list li select { grid-column: auto; } }
 /* 旅行：每个行程一张卡，下面按类型列金额 */
 .trip-card .row { align-items: flex-start; }

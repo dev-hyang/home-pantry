@@ -13,7 +13,7 @@ import { categoryOptions } from "../pantry/views.js";
 import { meta, saveMeta } from "../bills/budget.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
 import { compressImage } from "../core/autofill.js";
-import { aiExtract, chunkLines, looksOFX, looksQIF, parseStatementLines, pdfImages, pdfLines, readOFX, readQIF, readXLSX, redactLines } from "./statement-readers.js";
+import { aiExtract, chunkLines, detectAccount, looksOFX, looksQIF, parseStatementLines, pdfImages, pdfLines, readOFX, readQIF, readXLSX, redactLines, statementTotals } from "./statement-readers.js";
 
 let refreshFn = null;
 export const initBankImport = ({ refresh }) => { refreshFn = refresh; };
@@ -146,7 +146,7 @@ export function classify(row) {
 }
 
 /* ───────────── 把表格变成交易行 ───────────── */
-const S = { parts: [], spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "" };
+const S = { parts: [], account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "" };
 const cur = () => S.currency || Units.region.currency;
 let askFn = askText;   // 测试时可替换
 export const _setAsk = (fn) => { askFn = fn || askText; };
@@ -185,14 +185,14 @@ async function readPart(file) {
   const name = file.name, ext = (name.split(".").pop() || "").toLowerCase();
   if (ext === "pdf" || file.type === "application/pdf") {
     const buf = await file.arrayBuffer(), { lines, pages } = await pdfLines(buf), hasText = lines.some((l) => l.trim().length > 3);
-    return { name, kind: "pdf", lines, pages, buf, scan: !hasText, rows: hasText ? parseStatementLines(lines) : [], local: hasText };
+    return { name, kind: "pdf", lines, pages, buf, scan: !hasText, rows: hasText ? parseStatementLines(lines) : [], local: hasText, totals: hasText ? statementTotals(lines) : null, acct: detectAccount(name, lines) };
   }
-  if (IMG_EXT.test(name) || file.type.startsWith("image/")) return { name, kind: "image", file, rows: [], scan: true };
-  if (ext === "xlsx" || ext === "xls") return tablePart(name, "xlsx", await readXLSX(await file.arrayBuffer()));
+  if (IMG_EXT.test(name) || file.type.startsWith("image/")) return { name, kind: "image", file, rows: [], scan: true, acct: detectAccount(name) };
+  if (ext === "xlsx" || ext === "xls") return { ...tablePart(name, "xlsx", await readXLSX(await file.arrayBuffer())), acct: detectAccount(name) };
   const text = decode(await file.arrayBuffer());
-  if (looksOFX(text)) return { name, kind: "ofx", rows: readOFX(text) };
-  if (looksQIF(text)) return { name, kind: "qif", rows: readQIF(text) };
-  return tablePart(name, "csv", parseCSV(text));
+  if (looksOFX(text)) { const rows = readOFX(text); return { name, kind: "ofx", rows, acct: { ...detectAccount(name), last4: readOFX.lastAcct || detectAccount(name).last4 } }; }
+  if (looksQIF(text)) return { name, kind: "qif", rows: readQIF(text), acct: detectAccount(name) };
+  return { ...tablePart(name, "csv", parseCSV(text)), acct: detectAccount(name) };
 }
 /** 粘贴的文字：像表格（有表头）就当表格，否则当对账单文字行 */
 function pastePart(text) {
@@ -200,7 +200,7 @@ function pastePart(text) {
   if (headerIndex(rows) >= 0) return tablePart(t("粘贴的文字"), "paste", rows);
   const lines = text.split(/\r?\n/).map((l) => l.trim());
   if (looksOFX(text)) return { name: t("粘贴的文字"), kind: "ofx", rows: readOFX(text) };
-  return { name: t("粘贴的文字"), kind: "paste", lines, rows: parseStatementLines(lines), local: true };
+  return { name: t("粘贴的文字"), kind: "paste", lines, rows: parseStatementLines(lines), local: true, totals: statementTotals(lines), acct: detectAccount("", lines) };
 }
 
 /** 所有 part 的行合并 → 判跳过 / 归类 / 查重 / 按商家合并 */
@@ -239,13 +239,57 @@ function rebuild() {
 }
 const resetPicks = () => { S.pick = {}; S.include = {}; };
 
+/* ───────────── 账户（哪张卡 / 哪个账户）：每批导入记一个标签，用来看“哪个账户哪几个月已经补过” ─────────────
+ * 账户列表 = 以前导入时建的（预算设置 _bank_accounts）+ 账单里有账号尾号 / 信用卡类的账单。不改数据库、不记到每一笔上。 */
+export function accounts() {
+  const own = (meta("_bank_accounts", []) || []).map((a) => ({ ...a, src: "own" }));
+  const bills = (state.bills || []).filter((b) => b.category === "credit_card" || b.account_last4).map((b) => ({ id: `bill:${b.id}`, name: b.name, last4: String(b.account_last4 || "").slice(-4), src: "bill" }));
+  const seen = new Set(own.map((a) => a.last4).filter(Boolean));
+  return [...own, ...bills.filter((b) => !(b.last4 && seen.has(b.last4)))];
+}
+/** 文件里认出的发卡行 / 末四位 → 对上已有账户就选它，否则预填一个新账户名；用户动过选择就不再改 */
+function suggestAccount() {
+  if (S.acctTouched) return;
+  const hints = S.parts.map((x) => x.acct).filter(Boolean), last4 = hints.map((h) => h.last4).find(Boolean) || "", issuer = hints.map((h) => h.issuer).find(Boolean) || "";
+  const list = accounts(), hit = last4 ? list.find((a) => a.last4 === last4) : null;
+  if (hit) S.account = { mode: "id", id: hit.id, name: hit.name, last4: hit.last4 };
+  else if (last4 || issuer) S.account = { mode: "new", id: "", name: `${issuer || t("银行卡")}${last4 ? ` ••${last4}` : ""}`, last4 };
+  else if (S.account.mode === "new") S.account = { mode: "none", id: "", name: "", last4: "" };
+}
+function accountHtml() {
+  const list = accounts(), a = S.account;
+  const opt = (v, label, on) => `<option value="${esc(v)}" ${on ? "selected" : ""}>${esc(label)}</option>`;
+  return `<div class="bank-acct"><label>${t("这批是哪个账户的")}<select data-bank-acct>${opt("none", t("（不记账户）"), a.mode === "none")}${list.map((x) => opt(x.id, `${x.name}${x.last4 && !x.name.includes(x.last4) ? ` ••${x.last4}` : ""}`, a.mode === "id" && a.id === x.id)).join("")}${opt("new", t("新账户…"), a.mode === "new")}</select></label>
+    ${a.mode === "new" ? `<label>${t("账户名")}<input data-bank-acct-name maxlength="40" value="${esc(a.name)}" placeholder="${esc(t("例如 Chase Freedom ••1234"))}"></label>` : ""}
+    <small class="muted">${t("记在这批导入上（不记到每一笔花费上），用来看哪个账户哪几个月已经补过。")}</small></div>`;
+}
+/** 对账单合计 vs 读出来的：差太多就提示可能漏读 */
+function reconcileHtml(p) {
+  const tt = p.totals; if (!tt || tt.purchases == null || !p.rows.length) return "";
+  const stated = Math.round((tt.purchases + (tt.fees || 0) + (tt.interest || 0)) * 100) / 100;
+  const read = Math.round(p.rows.filter((r) => r.out > 0).reduce((s, r) => s + r.out, 0) * 100) / 100, diff = Math.round((stated - read) * 100) / 100;
+  return Math.abs(diff) < 0.015 ? ` · <span style="color:var(--ok)">✓ ${t("和对账单合计对上")}</span>` : ` · <b class="bank-dup">${t("对账单写的消费 {a}（含手续费 / 利息），读出 {b}，差 {d}——可能漏读或多读了几行，核对一下或用 AI 解析", { a: money(stated), b: money(read), d: money(diff) })}</b>`;
+}
+const monthsBetween = (a, b) => { const out = []; let [y, m] = String(a).slice(0, 7).split("-").map(Number); const end = String(b).slice(0, 7); for (let i = 0; i < 60; i++) { const k = `${y}-${String(m).padStart(2, "0")}`; out.push(k); if (k >= end) break; if (++m > 12) { m = 1; y++; } } return out; };
+/** 覆盖表：每个账户最近 12 个月哪些已经导过（按每批的日期范围算） */
+function coverageHtml(batches) {
+  const withAcct = batches.filter((b) => b.account && b.from && b.to); if (!withAcct.length) return "";
+  const now = new Date(), months = []; for (let i = 11; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`); }
+  const by = new Map();
+  for (const b of withAcct) { const set = by.get(b.account) || new Set(); monthsBetween(b.from, b.to).forEach((k) => set.add(k)); by.set(b.account, set); }
+  const rows = [...by.entries()].map(([name, set]) => { const first = months.findIndex((k) => set.has(k)); const gaps = months.filter((k, i) => first >= 0 && i > first && i < months.length - 1 && !set.has(k)).length;
+    return `<tr><th scope="row">${esc(name)}${gaps ? ` <small class="bank-dup">${t("缺 {n} 个月", { n: gaps })}</small>` : ""}</th>${months.map((k) => `<td class="${set.has(k) ? "on" : ""}" title="${k}">${set.has(k) ? "✓" : "·"}</td>`).join("")}</tr>`; });
+  return `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("各账户已补到哪个月")}</h3><div class="ch-scroll"><table class="cover-table"><thead><tr><th></th>${months.map((k) => `<th>${k.slice(5)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>
+    <p class="muted" style="margin:6px 0 0;font-size:12.5px">${t("按每批导入的交易日期范围算；中间空着的月份就是还没补的。只看最近 12 个月。")}</p></div>`;
+}
+
 async function ingest(files) {
   S.error = ""; S.last = null;
   for (const f of files) {
     try { S.parts.push(await readPart(f)); }
     catch (err) { S.error = t("读不了 {name}：{msg}", { name: f.name, msg: err.message }); }
   }
-  resetPicks(); rebuild();
+  suggestAccount(); resetPicks(); rebuild();
 }
 
 /* ───────────── AI 解析（PDF 对账单 / 截图 / 扫描件 / 粘贴的文字） ───────────── */
@@ -302,7 +346,7 @@ function partsHtml() {
   return `<ul class="restock-list bank-parts">${S.parts.map((p, i) => {
     const how = p.ai ? t("AI 解析") : p.local ? t("本地规则") : p.table ? t("表格") : ["ofx", "qif"].includes(p.kind) ? p.kind.toUpperCase() : "";
     const canAi = ["pdf", "image", "paste"].includes(p.kind);
-    return `<li><div class="grow"><span class="name">${KIND_ICON[p.kind] || "📄"} ${esc(p.name)}</span><small>${p.scan ? t("没有文字层的扫描件 / 图片，需要 AI 才能读") : t("读出 {n} 笔", { n: p.rows.length })}${how ? ` · ${how}` : ""}${p.pages ? ` · ${t("{n} 页", { n: p.pages })}` : ""}${p.error ? ` · <b class="bank-dup">${esc(p.error)}</b>` : ""}</small></div>
+    return `<li><div class="grow"><span class="name">${KIND_ICON[p.kind] || "📄"} ${esc(p.name)}</span><small>${p.scan ? t("没有文字层的扫描件 / 图片，需要 AI 才能读") : t("读出 {n} 笔", { n: p.rows.length })}${how ? ` · ${how}` : ""}${p.pages ? ` · ${t("{n} 页", { n: p.pages })}` : ""}${reconcileHtml(p)}${p.error ? ` · <b class="bank-dup">${esc(p.error)}</b>` : ""}</small></div>
       ${canAi ? `<button type="button" class="btn btn-sm ${p.scan ? "" : "btn-ghost"}" data-bank-act="ai" data-i="${i}" ${S.busy ? "disabled" : ""}>${p.ai ? t("用 AI 重新解析") : t("用 AI 解析")}</button>` : ""}
       <button type="button" class="btn btn-sm btn-ghost" data-bank-act="rm" data-i="${i}" aria-label="${esc(t("移除"))}">✕</button></li>`;
   }).join("")}</ul>${needsAiHint && !ai ? `<p class="muted" style="font-size:13px;margin:6px 0 0">${t("PDF / 截图本地规则读不准或读不了时，可以用 AI 解析：到 设置 → AI 助手 填 key（Gemini 有免费额度）。")}</p>` : ""}
@@ -314,7 +358,7 @@ function panelHtml() {
     <label class="btn btn-primary btn-sm" style="cursor:pointer">${t("选择文件（可多选）")}<input type="file" id="bankFile" multiple accept=".csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx,.qif,.pdf,image/*,text/csv,text/plain,application/pdf" hidden></label>
     <details class="bank-paste" style="margin-top:8px"><summary>${t("或者直接粘贴文字")}</summary><textarea id="bankPaste" rows="5" placeholder="${esc(t("把网银页面或 PDF 里的交易几行直接复制粘贴到这里"))}" style="margin-top:6px"></textarea>
       <div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-bank-act="paste">${t("读取这段文字")}</button></div></details>
-    ${partsHtml()}${S.error ? `<p class="form-error" role="alert">${esc(S.error)}</p>` : ""}</div>`;
+    ${partsHtml()}${S.parts.length ? accountHtml() : ""}${S.error ? `<p class="form-error" role="alert">${esc(S.error)}</p>` : ""}</div>`;
   if (!S.parts.length) return head + tipsHtml() + batchesHtml(batches);
   const tp = S.parts.length === 1 && S.parts[0].table ? S.parts[0].table : null;
   let mapping = "";
@@ -346,7 +390,7 @@ const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 
     <li>${t("退款（卡上入账的退货）会记成负数花费，统计按净额算。")}</li>
     <li>${t("以前已经手动记过的花费（日期差 3 天内、金额一样）自动跳过，所以同一个文件导两次也不会重复。")}</li>
     <li>${t("导入错了可以整批撤销。银行的 CSV 格式很多，列认错了可以手动选；国内银行的 GBK 编码也认得。")}</li></ul></div>`;
-const batchesHtml = (batches) => (batches.length ? `<section class="section"><div class="section-head"><h2>${t("最近导入")}</h2></div><div class="panel"><ul class="restock-list">${batches.slice().reverse().map((b) => `<li><div class="grow"><span class="name">${esc(b.file || t("银行导入"))}</span><small>${esc(String(b.at).slice(0, 10))} · ${t("{n} 笔", { n: b.ids.length })} · ${money(b.sum || 0)}</small></div><button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button></li>`).join("")}</ul></div></section>` : "");
+const batchesHtml = (batches) => (batches.length ? `<section class="section"><div class="section-head"><h2>${t("最近导入")}</h2></div>${coverageHtml(batches)}<div class="panel" style="margin-top:10px"><ul class="restock-list">${batches.slice().reverse().slice(0, 12).map((b) => `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${b.from ? `${esc(b.from)} → ${esc(b.to)} · ` : ""}${t("{n} 笔", { n: b.n ?? b.ids?.length ?? 0 })} · ${money(b.sum || 0)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}</small></div>${b.ids?.length ? `<button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}</li>`).join("")}</ul></div></section>` : "");
 
 export function bankImportTab() { return `<section class="section" id="bankImport">${panelHtml()}</section>`; }
 const redraw = () => { const el = document.getElementById("bankImport"); if (el) el.innerHTML = panelHtml(); };
@@ -368,12 +412,20 @@ async function doImport() {
     } catch (e) { failed++; }
   };
   for (let i = 0; i < picks.length; i += 6) await Promise.all(picks.slice(i, i + 6).map(one));   // 6 个一组并发，云端模式几百笔也不会太慢
-  const batch = { id: `b${Date.now().toString(36)}`, at: new Date().toISOString(), file: S.parts.map((x) => x.name).join(", ").slice(0, 60), ids, sum: Math.round(sum * 100) / 100 };
+  // 账户标签：新账户记进列表；这批的日期范围按文件里全部交易算（跳过的还款 / 转账也在范围里，免得月份缺口误报）
+  let acctList = meta("_bank_accounts", []) || [], acct = null;
+  if (S.account.mode === "new" && S.account.name.trim()) { acct = { id: `a${Date.now().toString(36)}`, name: S.account.name.trim().slice(0, 40), last4: S.account.last4 || "" }; acctList = [...acctList, acct]; }
+  else if (S.account.mode === "id") acct = accounts().find((x) => x.id === S.account.id) || null;
+  const dates = S.rows.map((r) => r.date).sort();
+  const batch = { id: `b${Date.now().toString(36)}`, at: new Date().toISOString(), file: S.parts.map((x) => x.name).join(", ").slice(0, 60), ids, sum: Math.round(sum * 100) / 100, n: ids.length,
+    account: acct ? acct.name : "", last4: acct ? acct.last4 : "", from: dates[0] || "", to: dates.at(-1) || "" };
   try {
     const rules = { ...userRules(), ...learned }, keys = Object.keys(rules); if (keys.length > 400) keys.slice(0, keys.length - 400).forEach((k) => delete rules[k]);
-    await saveMeta({ _bank_rules: rules, _bank_batches: [...(meta("_bank_batches", []) || []), ...(ids.length ? [batch] : [])].slice(-8) });
+    // 最近 36 批留着看覆盖情况；只有最近 6 批保留花费 id（能撤销），再早的只留汇总
+    const all = [...(meta("_bank_batches", []) || []), ...(ids.length ? [batch] : [])].slice(-36).map((b, i, arr) => (i < arr.length - 6 ? { ...b, ids: [], n: b.n ?? b.ids?.length ?? 0 } : b));
+    await saveMeta({ _bank_rules: rules, _bank_batches: all, _bank_accounts: acctList.slice(-30) });
   } catch (e) { /* 记不住规则 / 撤销记录不影响已导入的花费 */ }
-  S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = "";
+  S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = ""; S.acctTouched = false; S.account = acct ? { mode: "id", id: acct.id, name: acct.name, last4: acct.last4 } : { mode: "none", id: "", name: "", last4: "" };
   toast(failed ? t("导入了 {n} 笔，{k} 笔失败", { n: ids.length, k: failed }) : t("已导入 {n} 笔", { n: ids.length }));
   if (refreshFn) await refreshFn(); else redraw();
   redraw();
@@ -398,6 +450,9 @@ document.addEventListener("change", async (e) => {
   if (el.dataset.bankSign !== undefined) { S.spendSign = el.value; resetPicks(); rebuild(); return redraw(); }
   if (el.dataset.bankDmy !== undefined) { S.dmy = el.value === "dmy"; resetPicks(); rebuild(); return redraw(); }
   if (el.dataset.bankRemember !== undefined) { S.remember = el.checked; }
+  if (el.dataset.bankAcct !== undefined) { S.acctTouched = true; const v = el.value; const hit = accounts().find((x) => x.id === v);
+    S.account = v === "none" ? { mode: "none", id: "", name: "", last4: "" } : hit ? { mode: "id", id: hit.id, name: hit.name, last4: hit.last4 } : { mode: "new", id: "", name: S.account.mode === "new" ? S.account.name : "", last4: S.parts.map((x) => x.acct?.last4).find(Boolean) || "" }; return redraw(); }
+  if (el.dataset.bankAcctName !== undefined) { S.acctTouched = true; S.account.name = el.value; }
 });
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("#bankImport [data-bank-act]"); if (!b) return;
@@ -406,5 +461,5 @@ document.addEventListener("click", (e) => {
   else if (b.dataset.bankAct === "undo-last" && S.last) undo(S.last.id);
   else if (b.dataset.bankAct === "ai") aiParse(+b.dataset.i);
   else if (b.dataset.bankAct === "rm") { S.parts.splice(+b.dataset.i, 1); resetPicks(); rebuild(); redraw(); }
-  else if (b.dataset.bankAct === "paste") { const v = document.getElementById("bankPaste")?.value.trim(); if (v) { S.parts.push(pastePart(v)); resetPicks(); rebuild(); redraw(); } }
+  else if (b.dataset.bankAct === "paste") { const v = document.getElementById("bankPaste")?.value.trim(); if (v) { S.parts.push(pastePart(v)); suggestAccount(); resetPicks(); rebuild(); redraw(); } }
 });

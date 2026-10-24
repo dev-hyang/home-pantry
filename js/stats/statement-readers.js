@@ -24,6 +24,7 @@ export const looksOFX = (text) => /<OFX>|OFXHEADER/i.test(text.slice(0, 2000)) |
 export function readOFX(text) {
   const rows = [], blocks = text.split(/<STMTTRN>/i).slice(1);
   const tag = (b, k) => { const m = b.match(new RegExp(`<${k}>([^<\\r\\n]*)`, "i")); return m ? m[1].trim() : ""; };
+  readOFX.lastAcct = (text.match(/<ACCTID>([^<\r\n]*)/i) || [])[1]?.trim().slice(-4) || "";
   for (const b of blocks) {
     const dt = tag(b, "DTPOSTED").match(/^(\d{4})(\d{2})(\d{2})/), amt = parseFloat(tag(b, "TRNAMT"));
     if (!dt || !Number.isFinite(amt) || !amt) continue;
@@ -154,6 +155,35 @@ export function parseStatementLines(lines) {
     rows.push({ date, desc, out, bankCat: "", type: "" });
   }
   return rows;
+}
+
+/* ───────────── 对账单上的合计（用来核对读出来的交易有没有漏） ───────────── */
+const notTx = (l) => !new RegExp(`^${DATE_RE}`, "i").test(l.trim());   // 合计行不以日期开头
+const grab = (lines, re) => { for (const l of lines) { if (!notTx(l)) continue; const m = l.match(re); if (m) { const v = moneyVal(m[m.length - 1]); if (v != null) return Math.abs(v); } } return null; };
+/** { purchases, fees, interest, payments }：对账单摘要里印的本期消费 / 手续费 / 利息 / 还款合计；没找到的为 null */
+export function statementTotals(lines) {
+  const M = `(${MONEY})`;
+  return {
+    purchases: grab(lines, new RegExp(`\\b(?:purchases?|new charges?|total (?:new )?charges|charges and adjustments|本期消费|消费合计|本期支出|本期交易)\\b[^0-9$(-]{0,30}${M}`, "i")),
+    fees: grab(lines, new RegExp(`\\b(?:fees? charged|total fees|手续费合计)\\b[^0-9$(-]{0,30}${M}`, "i")),
+    interest: grab(lines, new RegExp(`\\b(?:interest charged|total interest|利息合计)\\b[^0-9$(-]{0,30}${M}`, "i")),
+    payments: grab(lines, new RegExp(`\\b(?:payments?(?: and (?:other )?credits)?|total payments|本期还款)\\b[^0-9$(-]{0,30}${M}`, "i")),
+  };
+}
+
+/* ───────────── 认账户：文件名 / 对账单抬头里的发卡行和卡号末四位 ───────────── */
+const ISSUERS = [["Chase", /chase/i], ["Amex", /american express|amex/i], ["Citi", /\bciti/i], ["Discover", /discover/i], ["Capital One", /capital ?one/i], ["Bank of America", /bank of america|bofa/i], ["Wells Fargo", /wells ?fargo/i], ["US Bank", /u\.?s\.? ?bank/i], ["Barclays", /barclays/i], ["Apple Card", /apple card/i], ["Synchrony", /synchrony/i],
+  ["招商", /招商|\bcmb\b/i], ["工商", /工商|icbc/i], ["建设", /建设|\bccb\b/i], ["中国银行", /中国银行|\bboc\b/i], ["农业", /农业银行|\babc\b/i], ["交通", /交通银行|bocom/i], ["浦发", /浦发|spdb/i], ["民生", /民生/], ["兴业", /兴业/], ["平安", /平安/], ["中信", /中信/], ["光大", /光大/], ["广发", /广发/], ["支付宝", /支付宝|alipay/i], ["微信", /微信|wechat/i]];
+/** { issuer, last4 }：认不出的为空 */
+export function detectAccount(name, lines = []) {
+  const head = (lines || []).slice(0, 60).join("\n");
+  const issuer = (ISSUERS.find(([, re]) => re.test(name)) || ISSUERS.find(([, re]) => re.test(head)) || [])[0] || "";
+  // 「Account Number: 4111 1111 1111 1234」「Card ending in 1234」「卡号 ****1234」：取整串号码的最后 4 位
+  const m = head.match(/(?:account|acct|card|ending|卡号|账号|尾号)[^0-9\n]{0,30}((?:[0-9x*•#][\s-]?){3,24}[0-9])\b/i);
+  let last4 = m ? m[1].replace(/[^0-9]/g, "").slice(-4) : "";
+  if (last4.length < 4) last4 = "";
+  if (!last4) last4 = (String(name).match(/\d{4}/g) || []).filter((x) => !/^(19|20)\d\d$/.test(x))[0] || "";   // 文件名里的 4 位数（年份不算）
+  return { issuer, last4 };
 }
 
 /* ───────────── 隐私：发给 AI 之前 ───────────── */
