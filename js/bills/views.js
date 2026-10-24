@@ -620,6 +620,22 @@ export async function recordPayment(bill, { paid_on, due_on, amount, status, met
   await Store.saveBill(patch);
 }
 
+/** 删一条缴费记录：同时退回它推进过的到期日（只在它正是把账单推到当前这一期的那条时才退；之后又记了别的期，或同一期还有别的记录，就不动）。返回退回后的到期日，没退回返回 null */
+export async function deleteBillPay(id) {
+  const p = state.billPayments.find((x) => x.id === id);
+  const bill = p && state.billsEnriched.find((b) => b.id === p.bill_id);
+  await Store.deleteBillPayment(id);
+  if (!bill || !p.due_on) return null;
+  const sameDue = state.billPayments.some((x) => x.id !== id && x.bill_id === bill.id && x.due_on === p.due_on);
+  const pushedIt = bill.next_due_on === advanceDue(bill, p.due_on) || (bill.frequency === "one_time" && !bill.next_due_on);
+  if (sameDue || !pushedIt || bill.next_due_on === p.due_on) return null;
+  const patch = { ...bill, next_due_on: p.due_on };
+  if (bill.frequency === "one_time") patch.active = true;   // 一次性账单记过缴费会被停用，删了记录要恢复
+  for (const k of ["pays", "last", "avg", "est", "priceUp", "daysLeft", "status", "cardDays", "cardExpiring", "monthly", "ended"]) delete patch[k];
+  await Store.saveBill(patch);
+  return p.due_on;
+}
+
 /** 改一条已有的缴费记录：不动账单的下次到期日；记过花费的，花费也跟着改（金额变 0 / 跳过就删掉那笔花费，之前没记的有金额就补一笔） */
 async function updatePayment(bill, fe) {
   const old = state.billPayments.find((x) => x.id === fe.pay_id.value);

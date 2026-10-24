@@ -2,7 +2,7 @@ import { checkConfig } from "./core/config-check.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
-import { $, MUTE_FOREVER, armed, catOf, du, esc, fillUnitList, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast } from "./core/util.js";
+import { $, MUTE_FOREVER, armed, catOf, du, esc, fillUnitList, fmtDate, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { resilientFetch } from "./core/net.js";
@@ -37,7 +37,7 @@ import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyIt
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
-import { renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
+import { deleteBillPay, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { moveCat, renderInvList, scoreRecipes, setShopOpen, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
@@ -727,7 +727,8 @@ main.addEventListener("click", async (e) => {
         await Store.deleteBill(state.route.id); toast(t("已删除账单及其缴费记录")); return leaveBill(true);
       case "billpay-del":
         if (!armed(el, t("确认删除"))) return;
-        await Store.deleteBillPayment(id); toast(t("已删除这条记录")); await refresh(); return render(true);
+        { const back = await deleteBillPay(id); toast(back ? t("已删除这条记录，到期日回到 {d}", { d: fmtDate(back) }) : t("已删除这条记录")); }
+        await refresh(); return render(true);
       case "bill-verify": el.disabled = true; await quickVerify(id); return refresh();
       case "bills-ics": return exportIcs();
       case "bills-csv": return exportBillsCsv();
