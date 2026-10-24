@@ -22,7 +22,7 @@
   ];
   // 商家名关键词 → 奖励类别（比花费分类更准）
   const MERCHANT_CATS = [
-    [/costco|sam'?s club|bj'?s wholesale/i, "wholesale"], [/amazon|amzn|whole foods/i, "amazon"], [/target|walmart|ikea|etsy|ebay|temu|shein|wayfair|淘宝|京东|拼多多|天猫/i, "online"],
+    [/costco|sam'?s club|bj'?s wholesale/i, "wholesale"], [/amazon|amzn/i, "amazon"], [/target|walmart|ikea|etsy|ebay|temu|shein|wayfair|淘宝|京东|拼多多|天猫/i, "online"],
     [/cvs|walgreens|rite aid|pharmacy|药房|药店/i, "drugstore"], [/netflix|spotify|hulu|disney|hbo|max\b|youtube|apple\.com\/bill|paramount|peacock/i, "streaming"],
     [/home depot|lowe'?s|menards|ace hardware/i, "home"], [/cinema|amc|regal|ticketmaster|stubhub|museum|zoo|theater|theatre/i, "entertainment"],
   ];

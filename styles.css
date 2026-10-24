@@ -339,7 +339,7 @@ textarea { resize: vertical; }
 .add-row.purchase-row { grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: center; }
 .purchase-row .pr-name { grid-column: span 5; } .purchase-row .pr-cat { grid-column: span 4; } .purchase-row .pr-trip { grid-column: span 3; }
 .purchase-row .pr-amt { grid-column: span 4; } .purchase-row .pr-store { grid-column: span 4; } .purchase-row .pr-date { grid-column: span 4; }
-.purchase-row .pr-refund { grid-column: span 7; } .purchase-row .pr-go { grid-column: span 5; justify-self: end; min-width: 140px; }
+.purchase-row .pr-card { grid-column: span 5; } .purchase-row .pr-refund { grid-column: span 3; } .purchase-row .pr-go { grid-column: span 4; justify-self: end; min-width: 140px; }
 .add-row.shop-row { grid-template-columns: minmax(0, 1fr) 80px 90px 150px 110px auto; }
 .export-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .export-row select { width: auto; }
@@ -353,6 +353,7 @@ textarea { resize: vertical; }
   .add-row.purchase-row > :not(.pr-name):not(.pr-go) { grid-column: auto; }
 }
 .price-in { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 6px; margin-top: 8px; }
+.price-in select { grid-column: 1 / -1; min-width: 0; max-width: 100%; box-sizing: border-box; min-height: 34px; padding: 4px 10px; font-size: 13px; }
 .price-in input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 34px; padding: 4px 10px; font-size: 13px; }
 .shop-item { min-width: 0; overflow-wrap: anywhere; }
 .shop-item .row .nm { min-width: 0; }
@@ -773,6 +774,13 @@ button.mrow:last-child { border-bottom: 0; }
 .cover-table th[scope="row"] { text-align: left; font-weight: 600; }
 .cover-table td { color: var(--muted); } .cover-table td.on { color: var(--ok); font-weight: 700; }
 @media (min-width: 640px) { .bank-list li { grid-template-columns: auto minmax(0, 1fr) minmax(200px, 260px); } .bank-list li select { grid-column: auto; } }
+/* 用卡：进度条、复盘 */
+.card-bars { display: grid; gap: 4px; margin-top: 6px; }
+.prog { display: grid; grid-template-columns: minmax(70px, 28%) minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 12px; }
+.prog span { color: var(--muted); } .prog small { color: var(--muted); white-space: nowrap; }
+.prog-bar { display: block; height: 7px; border-radius: 99px; background: var(--surface-2); overflow: hidden; } .prog-bar b { display: block; height: 100%; background: var(--pine); border-radius: 99px; }
+@media (max-width: 480px) { .prog { grid-template-columns: 1fr auto; } .prog-bar { grid-column: 1 / -1; order: 3; } }
+.card-review { margin-top: 10px; }
 /* 用卡：该刷哪张 */
 .card-pick .pick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; }
 @media (max-width: 720px) { .card-pick .pick-grid { grid-template-columns: 1fr 1fr; } }

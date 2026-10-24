@@ -5,12 +5,25 @@ import { $, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href, go } from "../core/router.js";
 import { enrichBills, initialDue } from "./logic.js";
-import { CARDS_HREF, bonusLeft, cardById, cardHref, expDays, feeDays, fromCatalog, holderName, networkName, pickCards, pickFor, quarterOf, reloadCards, rewardCatIcon, rewardCatName, rotatingNow } from "./cards.js";
+import { CARDS_HREF, bonusLeft, cardById, cardHref, expDays, feeDays, fromCatalog, holderName, networkName, pickCards, pickFor, quarterOf, reloadCards, reviewMonth, rewardCatIcon, rewardCatName, rotatingNow, usage } from "./cards.js";
+import { aiReady, aiSettings, askText, providerOf } from "../core/ai.js";
 
 const D = () => window.CARDS;
 const d = (v) => esc(v ?? "");
 const cur = () => Units.region.currency;
 const catalogAge = () => Math.round((Date.now() - new Date(`${D().AS_OF}T12:00:00`)) / 864e5);
+
+/* ───────────── 记花费时选哪张卡（补记 / 编辑 / 采购已买到 / 银行导入共用） ───────────── */
+const LAST_CARD = "hmh-last-card";
+export const lastCard = () => { try { return localStorage.getItem(LAST_CARD) || ""; } catch { return ""; } };
+export const rememberCard = (id) => { try { localStorage.setItem(LAST_CARD, id || ""); } catch { /* 忽略 */ } };
+/** <select> 的选项：在用的卡（前面标持卡人）；selected 为空时默认选上次用的 */
+export function cardOptions(selected, { withNone = true } = {}) {
+  const sel = selected === undefined ? lastCard() : selected || "";
+  const cards = state.cards.filter((c) => c.active !== false || c.id === sel);
+  return `${withNone ? `<option value="">${esc(t("（没记哪张卡）"))}</option>` : ""}${cards.map((c) => `<option value="${esc(c.id)}" ${c.id === sel ? "selected" : ""}>${esc(c.name)}${c.last4 ? ` ••${esc(c.last4)}` : ""}</option>`).join("")}`;
+}
+export const cardSelectHtml = (name, selected, attrs = "") => (state.billsEnabled && state.cards.some((c) => c.active !== false) ? `<select name="${name}" aria-label="${esc(t("用的哪张卡"))}" ${attrs}>${cardOptions(selected)}</select>` : "");
 
 /* ───────────── 页面 ───────────── */
 export function viewCards() {
@@ -21,6 +34,7 @@ export function viewCards() {
     <div class="section-head"><h2>${t("用卡")}</h2><p>${t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。")}</p>
       <div class="head-acts"><a class="btn btn-primary btn-sm" href="${cardHref("new")}">${t("添加卡")}</a></div></div>
     ${cards.length ? pickPanel() : ""}
+    ${cards.length ? reviewHtml() : ""}
     ${cards.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("我的卡")}</h2><p>${t("{n} 张在用", { n: cards.length })}${catalogAge() > 90 ? ` · <span class="bank-dup">${t("目录更新于 {d}，可能过期，返现规则以发卡行为准", { d: D().AS_OF })}</span>` : ""}</p></div>
       <div class="panel"><ul class="restock-list card-list">${cards.map(cardRow).join("")}</ul></div>` : emptyHtml()}
     ${off.length ? `<details class="ref-panel panel" style="margin-top:10px"><summary><b>${t("停用的卡")}</b><small>${t("{n} 张", { n: off.length })}</small><span class="mch" aria-hidden="true">›</span></summary><ul class="restock-list card-list ref-body">${off.map(cardRow).join("")}</ul></details>` : ""}
@@ -38,12 +52,34 @@ function cardRow(c) {
   if (rot?.empty) tags.push(`<span class="badge b-soon">${t("本季类别未填")}</span>`); else if (rot && !rot.activated) tags.push(`<span class="badge b-soon">${t("本季未激活")}</span>`); else if (rot) tags.push(`<span class="badge b-ok">${t("本季 5%：{c}", { c: (rot.cats || []).map(rewardCatName).join(" / ") })}</span>`);
   if (bl) tags.push(`<span class="badge b-low">${t("开卡奖励还差 {a}", { a: money(bl.left) })}</span>`);
   const bill = c.bill_id && state.billsEnriched.find((b) => b.id === c.bill_id);
+  const bars = [];
+  if (c.bonus?.spend && !c.bonus.done) { const spent = num(c.bonus.spent_manual ?? usage(c).bonusSpent, 0), pct = Math.min(100, Math.round(spent / c.bonus.spend * 100)); bars.push(progressHtml(t("开卡奖励"), pct, `${money(spent)} / ${money(c.bonus.spend)}${c.bonus.by ? ` · ${t("{d} 天", { d: Math.max(0, bonusLeft(c)?.days ?? 0) })}` : ""}`)); }
+  for (const [cat, cap] of Object.entries(c.rewards?.caps || {})) { const used = usage(c).cap(cat); if (cap?.limit && used > 0) bars.push(progressHtml(`${cat === "*" ? t("奖励类别合计") : rewardCatName(cat)} ${t("封顶")}`, Math.min(100, Math.round(used / cap.limit * 100)), `${money(used)} / ${money(cap.limit)}`)); }
+  const rot0 = rotatingNow(c), rotLim = num(rot0?.cap ?? c.rewards?.rotating_cap, 0);
+  if (rot0 && !rot0.empty && rotLim) { const used = usage(c).rotUsed(); bars.push(progressHtml(t("本季轮换封顶"), Math.min(100, Math.round(used / rotLim * 100)), `${money(used)} / ${money(rotLim)}`)); }
   const NET_SHORT = { visa: "VISA", mastercard: "MC", amex: "AMEX", discover: "DISC", unionpay: "银联", other: "卡" };
   return `<li class="card-row ${c.active === false ? "inactive" : ""}"><span class="card-net net-${esc(c.network || "other")}" aria-hidden="true" title="${esc(networkName(c.network))}">${esc(NET_SHORT[c.network] || NET_SHORT.other)}</span>
     <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">••${d(c.last4)}</span>` : ""}
       <small>${[holderName(c), c.expires_on ? t("到期 {d}", { d: c.expires_on.slice(0, 7) }) : null, num(c.annual_fee) ? t("年费 {a}", { a: money(num(c.annual_fee)) }) : t("无年费"), bill ? t("还款 {d}", { d: fmtDate(bill.next_due_on) }) : c.due_day ? t("每月 {d} 号还款", { d: c.due_day }) : null, best ? `${t("其他 {b}%", { b: num(rw.base, 0) })} · ${best}` : t("所有消费 {b}%", { b: num(rw.base, 0) })].filter(Boolean).map(esc).join(" · ")}</small>
-      ${tags.length ? `<div class="card-tags">${tags.join(" ")}</div>` : ""}</div>
+      ${tags.length ? `<div class="card-tags">${tags.join(" ")}</div>` : ""}${bars.length ? `<div class="card-bars">${bars.join("")}</div>` : ""}</div>
     <a class="btn btn-sm btn-ghost" href="${cardHref(c.id)}">${t("编辑")}</a></li>`;
+}
+
+const progressHtml = (label, pct, text) => `<div class="prog"><span>${esc(label)}</span><i class="prog-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><b style="width:${pct}%"></b></i><small>${esc(text)}</small></div>`;
+
+/* ───────────── 复盘：各卡花了多少、返现估算、用最优卡能多赚多少 ───────────── */
+export function reviewHtml() {
+  const months = [...new Set(state.purchases.filter((p) => p.card_id).map((p) => String(p.purchased_at).slice(0, 7)))].sort().reverse();
+  if (!months.length) return `<div class="panel"><h3 style="font-size:15px;margin:0 0 4px">${t("返现复盘")}</h3><p class="muted" style="margin:0;font-size:13px">${t("记花费、采购「已买到」、银行导入时选一下用的哪张卡，这里就会算出每张卡花了多少、估算返现，以及用对卡本来能多赚多少。")}</p></div>`;
+  const cur0 = state.cardReviewMonth && months.includes(state.cardReviewMonth) ? state.cardReviewMonth : months[0], r = reviewMonth(cur0);
+  return `<div class="panel card-review"><div class="row" style="align-items:center;margin-bottom:6px"><h3 style="font-size:15px;margin:0;flex:1">${t("返现复盘")}</h3>
+      <select id="cardReviewMonth" aria-label="${esc(t("选择月份"))}" style="width:auto">${months.map((m) => `<option value="${m}" ${m === cur0 ? "selected" : ""}>${m}</option>`).join("")}</select></div>
+    <div class="kpis"><div class="kpi"><span>${t("记到卡上的花费")}</span><b>${money(r.tagged)}</b></div><div class="kpi"><span>${t("估算返现")}</span><b>${money(r.earned)}</b></div>
+      <div class="kpi"><span>${t("用最优卡能返")}</span><b>${money(r.optimal)}</b><small>${r.gap >= 0.5 ? t("多赚 {a}", { a: money(r.gap) }) : t("基本用对了 👍")}</small></div></div>
+    <ul class="restock-list">${r.rows.map((x) => `<li><div class="grow"><span class="name">${d(x.card.name)}</span><small>${t("{n} 笔", { n: x.n })} · ${money(x.spend)}</small></div><b class="num">${money(x.cash)}</b></li>`).join("")}</ul>
+    ${r.misses.length ? `<h4 style="margin:10px 0 4px;font-size:13.5px">${t("本可以多赚的几笔")}</h4><ul class="restock-list">${r.misses.map((m) => `<li><div class="grow"><span class="name">${d(m.p.name)}</span><small>${esc(String(m.p.purchased_at).slice(0, 10))} · ${money(num(m.p.amount))} · ${t("用了 {a}（{ra}%），{b} 是 {rb}%", { a: m.used.name, ra: m.rate, b: m.best.name, rb: m.bestRate })}</small></div><b class="num" style="color:var(--pine)">+${money(m.gain)}</b></li>`).join("")}</ul>` : ""}
+    ${r.untaggedN ? `<p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("这个月还有 {n} 笔（{a}）没记哪张卡，没算进去。", { n: r.untaggedN, a: money(r.untagged) })}</p>` : ""}
+    <p class="muted" style="margin:6px 0 0;font-size:12px">${t("按各卡当前的返现规则估算（不含封顶、开卡奖励、积分兑换差异），仅供参考；实际以发卡行为准。")}</p></div>`;
 }
 
 /* ───────────── 现在该刷哪张 ───────────── */
@@ -83,12 +119,17 @@ export function cardHintHtml(category, store, amount) {
 const NUMF = (v) => (v == null || v === "" ? "" : num(v));
 function cardForm(id) {
   const isNew = id === "new", c = isNew ? null : cardById(id);
+  const preset = state.route.q.get("preset");
+  if (isNew && preset && !state.cardDraft) {   // 链接预填：#/bills/cards?card=new&preset=<目录 id>&last4=1234&due=24
+    const dft = fromCatalog(preset); if (dft) { const l4 = state.route.q.get("last4"), due = +state.route.q.get("due"); state.cardDraft = { ...dft, last4: /^\d{4}$/.test(l4 || "") ? l4 : null, due_day: due >= 1 && due <= 31 ? due : null }; }
+  }
   if (!isNew && !c) return `<section class="section"><div class="panel empty"><strong>${t("找不到这张卡")}</strong><p><a class="btn" href="${CARDS_HREF()}">${t("回用卡")}</a></p></div></section>`;
   const v = c || state.cardDraft || { name: "", issuer: "", network: "visa", kind: "credit", annual_fee: 0, active: true, rewards: { base: 1, cats: {}, caps: {}, merchants: {}, point_value: 1, foreign_fee: 0, has_rotating: false, rotating: [] }, credits: [] };
   const rw = v.rewards || {}, q = quarterOf(), rot = (rw.rotating || []).find((x) => x.from === q.from) || { from: q.from, to: q.to, cats: [], rate: 5, activated: false };
   const bills = state.billsEnriched.filter((b) => b.category === "credit_card");
   const members = state.members || [];
   const opt = (val, label, on) => `<option value="${esc(val)}" ${on ? "selected" : ""}>${esc(label)}</option>`;
+  const aiBtn = `<div class="span-2"><button type="button" class="btn btn-sm btn-ghost" data-action="card-ai">✨ ${t("用 AI 按卡名起草返现规则")}</button> <small class="muted">${t("只把卡的名字发给你设置的模型；按模型记忆起草，可能过时，逐项核对后再保存。")}</small></div>`;
   const catalogSel = isNew ? `<label class="span-2">${t("从内置目录选（可选）")}<select name="catalog"><option value="">${t("— 不用目录，手填 —")}</option>${D().CATALOG.map((k) => opt(k.id, `${k.name}${k.issuer ? ` · ${k.issuer}` : ""}`, v.catalog_id === k.id)).join("")}</select><small>${t("选了会把返现规则、年费、网络填好；末四位、到期、持卡人还要你填。目录更新于 {d}。", { d: D().AS_OF })}</small></label>` : "";
   const catsGrid = D().REWARD_CATS.filter(([k]) => k !== "other").map(([k, name, icon]) => `<label class="cat-rate"><span>${icon} ${esc(t(name))}</span><input name="cat_${k}" type="number" min="0" step="0.25" inputmode="decimal" value="${NUMF(rw.cats?.[k])}" placeholder="${NUMF(rw.base) || 1}"></label>`).join("");
   const rotCats = D().REWARD_CATS.filter(([k]) => k !== "other").map(([k, name, icon]) => `<label class="radio-pill"><input type="checkbox" name="rot_cat" value="${k}" ${(rot.cats || []).includes(k) ? "checked" : ""}><span>${icon} ${esc(t(name))}</span></label>`).join("");
@@ -100,6 +141,7 @@ function cardForm(id) {
     <form id="cardForm" class="panel" novalidate data-id="${d(c?.id)}">
       <fieldset><legend>${t("这张卡")}</legend><div class="form-grid">
         ${catalogSel}
+        ${aiBtn}
         <input type="hidden" name="catalog_id" value="${d(v.catalog_id)}"><input type="hidden" name="rules_as_of" value="${d(v.rules_as_of)}">
         <label>${t("名称")}<input name="name" required maxlength="60" value="${d(v.name)}" placeholder="${esc(t("例如 Chase Freedom Unlimited"))}"></label>
         <label>${t("发卡行")}<input name="issuer" maxlength="40" value="${d(v.issuer)}"></label>
@@ -137,6 +179,7 @@ function cardForm(id) {
             <div class="span-2"><div class="lab" style="font-size:13px;font-weight:700;margin-bottom:4px">${t("本季（{q}）的类别", { q: q.label })}</div><div class="seg-radio">${rotCats}</div></div>
             <label>${t("本季 %")}<input name="rot_rate" type="number" min="0" step="0.5" inputmode="decimal" value="${NUMF(rot.rate) || 5}"></label>
             <label>${t("本季封顶（{cur}）", { cur: cur() })}<input name="rot_cap" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(rot.cap ?? rw.rotating_cap)}"></label>
+            <p class="muted span-2" style="margin:0;font-size:12.5px">${t("每季类别以发卡行为准（链接可能变）：")} <a href="https://www.discover.com/credit-cards/cash-back/cashback-calendar.html" target="_blank" rel="noopener noreferrer">Discover it</a> · <a href="https://www.chase.com/personal/credit-cards/freedom/5percent" target="_blank" rel="noopener noreferrer">Chase Freedom</a></p>
             <label class="check-inline span-2"><input type="checkbox" name="rot_activated" ${rot.activated ? "checked" : ""}><span>${t("本季已激活")}</span></label>
           </div></details>
       </fieldset>
@@ -145,7 +188,7 @@ function cardForm(id) {
         <label>${t("截止日期")}<input name="bonus_by" type="date" value="${d(b.by)}"></label>
         <label>${t("奖励值多少（{cur}）", { cur: cur() })}<input name="bonus_value" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(b.reward_value)}"></label>
         <label>${t("奖励说明")}<input name="bonus_label" maxlength="60" value="${d(b.label)}" placeholder="${esc(t("例如 60,000 点 ≈ $750"))}"></label>
-        <label>${t("已刷了多少（手填）")}<input name="bonus_spent" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(b.spent_manual)}"></label>
+        <label>${t("已刷了多少（不填 = 按记到这张卡的花费自动累计）")}<input name="bonus_spent" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(b.spent_manual)}"></label>
         <label class="check-inline"><input type="checkbox" name="bonus_done" ${b.done ? "checked" : ""}><span>${t("已拿到奖励")}</span></label>
       </div></fieldset>
       <fieldset><legend>${t("报销额度（可选）")}</legend>
@@ -174,7 +217,7 @@ export async function saveCardForm(f) {
   const rotating = (rw0.rotating || []).filter((x) => x.from !== q.from);
   if (fe.has_rotating.checked && rotCats.length) rotating.push({ from: q.from, to: q.to, cats: rotCats, rate: n("rot_rate") ?? 5, cap: n("rot_cap"), activated: fe.rot_activated.checked });
   const rewards = { ...rw0, base: n("base") ?? 0, point_value: n("point_value") ?? 1, foreign_fee: n("foreign_fee") ?? 0, cats, merchants, has_rotating: fe.has_rotating.checked, rotating, caps: rw0.caps || {} };
-  const bonus = n("bonus_spend") ? { spend: n("bonus_spend"), by: fe.bonus_by.value || null, reward_value: n("bonus_value") ?? 0, label: fe.bonus_label.value.trim(), spent: old?.bonus?.spent ?? 0, spent_manual: n("bonus_spent"), done: fe.bonus_done.checked } : null;
+  const bonus = n("bonus_spend") ? { spend: n("bonus_spend"), by: fe.bonus_by.value || null, reward_value: n("bonus_value") ?? 0, label: fe.bonus_label.value.trim(), spent: 0, start: old?.bonus?.start || fe.opened_on.value || null, spent_manual: n("bonus_spent"), done: fe.bonus_done.checked } : null;
   const credits = fe.credits.value.split(/\r?\n/).map((l) => l.split("|").map((x) => x.trim())).filter((p) => p[0] && p[1]).map((p) => ({ name: p[0].slice(0, 40), amount: num(p[1]), period: ["year", "quarter", "month"].includes(p[2]) ? p[2] : "year", resets_on: /^\d{4}-\d{2}-\d{2}$/.test(p[3] || "") ? p[3] : null, used: num(p[4], 0) }));
   let bill_id = fe.bill_id.value || null;
   const card = { id: old?.id, name, issuer: fe.issuer.value.trim() || null, network: fe.network.value, kind: fe.kind.value, last4: /^\d{4}$/.test(fe.last4.value.trim()) ? fe.last4.value.trim() : null, holder_user_id: fe.holder_user_id.value || null,
@@ -201,3 +244,32 @@ export async function saveCardForm(f) {
   }
 }
 export async function deleteCard(id) { await Store.deleteCard(id); await reloadCards(); toast(t("已删除")); go(CARDS_HREF()); }
+
+/* ───────────── AI 起草返现规则（只发卡名；起草结果填进表单，由你核对后保存） ───────────── */
+const AI_SYSTEM = [
+  "You describe credit card reward structures from memory and return ONLY JSON. Be conservative: if unsure about a number, use null. Never invent bonus categories.",
+  'Return {"issuer": string|null, "network": "visa|mastercard|amex|discover|unionpay|other", "annual_fee": number|null, "foreign_fee_pct": number|null, "point_value_cents": number, "base_pct": number, "category_pct": {"grocery":n,"wholesale":n,"dining":n,"gas":n,"travel":n,"online":n,"amazon":n,"drugstore":n,"streaming":n,"utilities":n,"transit":n,"entertainment":n,"home":n}, "merchant_pct": {"merchant keyword lowercase": n}, "rotating": boolean, "notes": string}.',
+  "All *_pct values are the cash-back-equivalent percentage AFTER converting points with point_value_cents (e.g. 3 points per $1 at 1.25 cents = 3.75). Include only categories the card actually boosts; omit the rest. rotating = true only for cards with quarterly rotating 5% categories (do not list the current quarter's categories).",
+  "notes: one short sentence about important conditions (caps, membership required, activation).",
+].join("\n");
+export async function aiDraftCard(f) {
+  const name = f.elements.name.value.trim(), issuer = f.elements.issuer.value.trim();
+  if (!name) return toast(t("先在名称里填卡的名字，例如 Chase Sapphire Preferred"));
+  if (!aiReady()) return toast(t("还没填 API key，去 设置 → AI 助手 填一个（Gemini 有免费额度）"));
+  if (!confirm(t("将把卡名「{n}」发给 {p} 来起草返现规则（不含任何个人信息）。继续？", { n: `${issuer} ${name}`.trim(), p: t(providerOf(aiSettings().provider).name) }))) return;
+  const btn = f.querySelector('[data-action="card-ai"]'); btn.disabled = true; const old = btn.textContent; btn.textContent = t("AI 起草中…");
+  try {
+    const text = await askText(AI_SYSTEM, `Credit card: ${issuer} ${name}`.trim(), { json: true, temperature: 0.1, maxTokens: 1500 });
+    const j = JSON.parse(String(text).trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim().replace(/^[^{]*/, "").replace(/[^}]*$/, ""));
+    const set = (k, val) => { if (f.elements[k] && val != null && val !== "") f.elements[k].value = val; };
+    set("issuer", f.elements.issuer.value || j.issuer); if (j.network && f.elements.network.querySelector(`option[value="${j.network}"]`)) f.elements.network.value = j.network;
+    set("annual_fee", j.annual_fee); set("foreign_fee", j.foreign_fee_pct); set("point_value", j.point_value_cents); set("base", j.base_pct);
+    for (const [k] of D().REWARD_CATS) if (f.elements[`cat_${k}`]) f.elements[`cat_${k}`].value = j.category_pct?.[k] ?? "";
+    f.elements.merchants.value = Object.entries(j.merchant_pct || {}).map(([k, val]) => `${String(k).toLowerCase()}=${val}`).join(", ");
+    f.elements.has_rotating.checked = !!j.rotating;
+    if (j.notes) f.elements.notes.value = `${t("AI 起草，可能过时")}：${j.notes}`.slice(0, 500);
+    f.elements.rules_as_of.value = todayISO();
+    toast(t("AI 起草好了：请逐项核对（尤其是返现率和封顶），确认后保存"));
+  } catch (e) { toast(t("AI 起草失败：{msg}", { msg: e.message })); }
+  btn.disabled = false; btn.textContent = old;
+}

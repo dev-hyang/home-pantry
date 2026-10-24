@@ -242,10 +242,11 @@ const resetPicks = () => { S.pick = {}; S.include = {}; };
 /* ───────────── 账户（哪张卡 / 哪个账户）：每批导入记一个标签，用来看“哪个账户哪几个月已经补过” ─────────────
  * 账户列表 = 以前导入时建的（预算设置 _bank_accounts）+ 账单里有账号尾号 / 信用卡类的账单。不改数据库、不记到每一笔上。 */
 export function accounts() {
-  const own = (meta("_bank_accounts", []) || []).map((a) => ({ ...a, src: "own" }));
+  const cards = (state.cards || []).filter((c) => c.active !== false).map((c) => ({ id: `card:${c.id}`, name: c.name, last4: c.last4 || "", src: "card" }));   // 用卡模块里的卡：选它，这批花费就记到这张卡上
+  const own = (meta("_bank_accounts", []) || []).filter((a) => !(a.last4 && cards.some((c) => c.last4 === a.last4))).map((a) => ({ ...a, src: "own" }));
   const bills = (state.bills || []).filter((b) => b.category === "credit_card" || b.account_last4).map((b) => ({ id: `bill:${b.id}`, name: b.name, last4: String(b.account_last4 || "").slice(-4), src: "bill" }));
-  const seen = new Set(own.map((a) => a.last4).filter(Boolean));
-  return [...own, ...bills.filter((b) => !(b.last4 && seen.has(b.last4)))];
+  const seen = new Set([...cards, ...own].map((a) => a.last4).filter(Boolean));
+  return [...cards, ...own, ...bills.filter((b) => !(b.last4 && seen.has(b.last4)))];
 }
 /** 文件里认出的发卡行 / 末四位 → 对上已有账户就选它，否则预填一个新账户名；用户动过选择就不再改 */
 function suggestAccount() {
@@ -407,7 +408,7 @@ async function doImport() {
   const ids = [], rowsDone = []; let sum = 0, failed = 0;
   const one = async ({ r, cat }) => {
     try {
-      const id = await Store.addPurchase({ item_id: null, name: merchantName(r.desc), category: cat, quantity: null, unit: null, store: merchantName(r.desc), amount: r.out, currency: cur(), purchased_at: new Date(`${r.date}T12:00:00`).toISOString() });
+      const id = await Store.addPurchase({ item_id: null, name: merchantName(r.desc), category: cat, quantity: null, unit: null, store: merchantName(r.desc), amount: r.out, currency: cur(), purchased_at: new Date(`${r.date}T12:00:00`).toISOString(), ...(S.account.mode === "id" && String(S.account.id).startsWith("card:") ? { card_id: String(S.account.id).slice(5) } : {}) });
       ids.push(id); sum += r.out; rowsDone.push({ id, name: merchantName(r.desc), category: cat, amount: r.out, date: r.date });
     } catch (e) { failed++; }
   };
@@ -416,6 +417,7 @@ async function doImport() {
   let acctList = meta("_bank_accounts", []) || [], acct = null;
   if (S.account.mode === "new" && S.account.name.trim()) { acct = { id: `a${Date.now().toString(36)}`, name: S.account.name.trim().slice(0, 40), last4: S.account.last4 || "" }; acctList = [...acctList, acct]; }
   else if (S.account.mode === "id") acct = accounts().find((x) => x.id === S.account.id) || null;
+  const cardId = acct && String(acct.id).startsWith("card:") ? String(acct.id).slice(5) : "";   // 选的是用卡模块里的卡：花费记到这张卡上（复盘 / 封顶进度用）
   const dates = S.rows.map((r) => r.date).sort();
   const batch = { id: `b${Date.now().toString(36)}`, at: new Date().toISOString(), file: S.parts.map((x) => x.name).join(", ").slice(0, 60), ids, sum: Math.round(sum * 100) / 100, n: ids.length,
     account: acct ? acct.name : "", last4: acct ? acct.last4 : "", from: dates[0] || "", to: dates.at(-1) || "" };

@@ -11,7 +11,7 @@ import { medicalVirtuals } from "../bills/medical.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
 import { bankImportTab } from "./bank-import.js";
-import { cardHintHtml } from "../bills/cards-views.js";
+import { cardHintHtml, cardOptions, cardSelectHtml } from "../bills/cards-views.js";
 
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
@@ -247,6 +247,7 @@ function spendRecordsTab() {
         <input class="pr-amt" name="amount" type="number" min="0" step="0.01" inputmode="decimal" required placeholder="${t("金额（{cur}）", { cur: Units.region.currency })}" aria-label="${t("金额")}">
         <input class="pr-store" name="store" maxlength="40" list="storeList" value="${esc(lastStore())}" placeholder="${t("商店（可不填）")}" aria-label="${t("商店")}">
         <input class="pr-date" name="date" type="date" value="${today}" max="${today}" aria-label="${t("日期")}">
+        ${cardSelectHtml("card_id", undefined, 'class="pr-card"')}
         <label class="check-inline pr-refund" title="${esc(t("退货退款、报销收回：记成负数，统计里按净额算"))}"><input type="checkbox" name="refund"><span>${t("退款 / 报销")}</span></label>
         <button class="btn btn-primary pr-go" type="submit">${t("记一笔")}</button>
       </form>
@@ -381,6 +382,7 @@ function spendEditRow(p) {
     <label>${t("金额（{cur}）", { cur: p.currency || Units.region.currency })}<input name="amount" type="number" min="0" step="0.01" inputmode="decimal" value="${p.amount != null ? num(p.amount).toFixed(2) : ""}"></label>
     <label>${t("商店 / 收款方")}<input name="store" maxlength="40" list="storeList" value="${esc(p.store || "")}"></label>
     <label>${t("日期")}<input name="date" type="date" max="${new Date().toISOString().slice(0, 10)}" value="${esc(day)}"></label>
+    ${state.cards.length ? `<label>${t("用的哪张卡")}<select name="card_id">${cardOptions(p.card_id || "")}</select></label>` : ""}
     <div class="form-actions span-2"><button type="submit" class="btn btn-primary btn-sm">${t("保存修改")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-edit-cancel">${t("取消")}</button></div></form></li>`;
 }
 /** 明细页顶部的筛选条：当前生效的筛选一项一个标签，点标签去掉那一项，“清除全部”一键回到全部。从图表 / 名称钻取进来时靠它看清“现在看的是什么” */

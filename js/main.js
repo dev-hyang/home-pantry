@@ -15,7 +15,7 @@ import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initBankImport } from "./stats/bank-import.js";
-import { applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml, saveCardForm, viewCards } from "./bills/cards-views.js";
+import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml, rememberCard, saveCardForm, viewCards } from "./bills/cards-views.js";
 import "./bills/cards.js";   // 注册信用卡提醒
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
@@ -408,6 +408,7 @@ main.addEventListener("input", (e) => {
   const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
 });
 main.addEventListener("change", async (e) => {
+  if (e.target.id === "cardReviewMonth") { state.cardReviewMonth = e.target.value; return render(); }
   if (e.target.matches('#cardForm select[name="catalog"]')) return applyCatalogPick(e.target.value);   // 用卡：选了目录，按目录重画表单
   if (e.target.closest("#cardPickForm")) { const fe = e.target.form.elements; Object.assign(state.cardPick, { cat: fe.cat.value, merchant: fe.merchant.value.trim(), amount: fe.amount.value, abroad: fe.abroad.checked }); const o = $("#cardPickOut"); if (o) o.innerHTML = pickResultHtml(); return; }
   if (e.target.matches("input[data-store-for]")) { const li = e.target.closest(".shop-item"), s = state.shopping.find((x) => x.id === e.target.dataset.storeFor), h = li?.querySelector(".card-hint-slot"); if (h && s) h.innerHTML = cardHintHtml(s.category || state.items.find((i) => i.id === s.item_id)?.category, e.target.value); }   // 填了在哪买：刷新用卡建议
@@ -559,6 +560,7 @@ main.addEventListener("submit", async (e) => {
       const e2 = f.elements, name = e2.name.value.trim(), amount = e2.amount.value === "" ? null : Math.round(Math.max(0, num(e2.amount.value)) * 100) / 100;
       if (!name) return toast(t("请填写名称"));
       const store = cleanStore(e2.store.value), day = e2.date.value, patch = { name, category: e2.category.value, amount, store };
+      if (e2.card_id) patch.card_id = e2.card_id.value || null;
       if (day) patch.purchased_at = new Date(`${day}T12:00:00`).toISOString();
       await Store.updatePurchase(f.dataset.id, patch);
       if (store) rememberStore(store);
@@ -638,8 +640,9 @@ main.addEventListener("submit", async (e) => {
       const day = e2.date.value || new Date().toISOString().slice(0, 10);
       const store = cleanStore(e2.store.value);
       if (store) rememberStore(store);
+      const cardId = e2.card_id?.value || ""; rememberCard(cardId);
       await Store.addPurchase({ item_id: null, name, category: e2.category.value, quantity: null, unit: null, store,
-        amount: Math.round(signed * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString() });
+        amount: Math.round(signed * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString(), ...(cardId ? { card_id: cardId } : {}) });
       toast(t("已记录 {name} {m}", { name, m: money(signed) })); return refresh();
     }
     if (f.id === "shopForm") {
@@ -916,6 +919,7 @@ main.addEventListener("click", async (e) => {
       case "tasks-undone": state.tasksOnlyUndone = !state.tasksOnlyUndone; return render();
       case "spend-chip-clear": clearSpendFilter(el.dataset.k); return renderSpendRecords();
       case "med-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteMedBill(el.dataset.id);
+      case "card-ai": return aiDraftCard(el.closest("form"));
       case "card-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteCard(el.dataset.id);
       case "med-pay-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteMedPay(el.dataset.id);
       case "med-csv": return exportMedicalCsv();
@@ -1058,9 +1062,10 @@ export async function markBought(id) {
   const item = state.items.find((i) => i.id === s.item_id);
   const qty = num(s.quantity, 1), now = new Date().toISOString();
   await Store.saveShopping({ id, status: "bought", bought_at: now, amount, claimed_by_name: s.claimed_by_name || state.displayName });
+  const cardId = document.querySelector(`[data-card-for="${CSS.escape(id)}"]`)?.value || ""; if (document.querySelector(`[data-card-for="${CSS.escape(id)}"]`)) rememberCard(cardId);
   await Store.addPurchase({
     item_id: item?.id || null, name: s.name, category: item?.category || s.category || "other",
-    quantity: qty, unit: s.unit || item?.unit || null, amount, currency: Units.region.currency, purchased_at: now, store,
+    quantity: qty, unit: s.unit || item?.unit || null, amount, currency: Units.region.currency, purchased_at: now, store, ...(cardId ? { card_id: cardId } : {}),
   });
   if (item) {
     if (!s.unit || s.unit === item.unit) {

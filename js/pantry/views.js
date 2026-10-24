@@ -8,7 +8,7 @@ import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, 
 import { href } from "../core/router.js";
 import { compare, joinList, lang, t } from "../core/i18n.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
-import { cardHintHtml } from "../bills/cards-views.js";
+import { cardHintHtml, cardSelectHtml } from "../bills/cards-views.js";
 import { shopAdviceHtml, shopForecastHtml } from "../bills/budget.js";
 
 /* ── 概览（储藏 / 房屋耗材共用）── */
@@ -419,6 +419,7 @@ export function viewShopping() {
       : `<div class="price-in">
           <input type="number" min="0" step="0.01" inputmode="decimal" data-price-for="${s.id}" placeholder="${esc(t("花费 {sym}（可不填）", { sym: Units.money(0).replace(/[\d.,\s]/g, "") }))}" aria-label="${esc(t("{name} 实际花费", { name: s.name }))}">
           <input type="text" maxlength="40" list="storeList" data-store-for="${s.id}" placeholder="${t("在哪买（可不填）")}" aria-label="${esc(t("{name} 购买商店", { name: s.name }))}">
+          ${cardSelectHtml("card_id", undefined, `data-card-for="${s.id}"`)}
         </div>`;
     return `<li class="shop-item ${s.status === "bought" ? "done" : ""}" data-swipe-del="shop">
       <div class="row"><span class="nm"><b>${esc(s.name)}</b> ${s.status === "bought" ? showQty(num(s.quantity, 1), shopUnit(s)) : shopQty(s)}${s.created_at ? ` <small class="muted" title="${esc(stampText(s))}">${t("{d} 加入", { d: fmtShort(s.created_at) })}</small>` : ""}</span>
