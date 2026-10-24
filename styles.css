@@ -1287,6 +1287,21 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
   .med-tbl td::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
   body.editing .sticky-actions { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }   /* 编辑页没有底部页签，保存栏贴底 */
 }
+/* 一次性账单详情：「记一笔付款」是一个按钮，点开才展开表单；删除放页面最底下，不和保存挤在一起 */
+.pay-fold { margin: 0 0 10px; }
+.pay-fold > summary { list-style: none; cursor: pointer; display: flex; width: 100%; box-sizing: border-box; justify-content: center; align-items: center; min-height: 46px; }
+.pay-fold > summary::-webkit-details-marker { display: none; }
+.pay-fold .when-open { display: none; } .pay-fold[open] .when-closed { display: none; } .pay-fold[open] .when-open { display: inline; }
+.pay-fold[open] > summary { background: var(--surface-2); color: var(--ink); border-color: var(--line); margin-bottom: 10px; }
+.pay-actions { display: grid; grid-template-columns: 1fr; gap: 8px; align-items: stretch; }
+.pay-actions:has(> a.btn) { grid-template-columns: 2fr 1fr; }   /* 编辑已有付款时多一个「取消」：2 : 1 并排 */
+.pay-actions .btn { width: 100%; box-sizing: border-box; min-height: 46px; }
+.pay-actions small { grid-column: 1 / -1; }
+.pay-actions .btn-primary { flex: none; }
+.danger-zone { display: grid; gap: 6px; margin: 20px 0 8px; padding-top: 14px; border-top: 1px dashed var(--line); justify-items: stretch; }
+.danger-zone .btn { width: 100%; min-height: 46px; }
+.danger-zone small { text-align: center; }
+@media (min-width: 640px) { .pay-fold > summary { width: auto; min-width: 220px; display: inline-flex; } .pay-fold[open] > summary { display: flex; width: 100%; } .danger-zone { justify-items: start; } .danger-zone .btn { width: auto; } .danger-zone small { text-align: left; } .pay-actions { grid-template-columns: auto auto 1fr; } .pay-actions .btn { width: auto; min-width: 140px; } .pay-actions small { grid-column: auto; } }
 .med-pay.is-editing { background: var(--surface-2); border-radius: var(--r-sm); }   /* 正在编辑的那一笔付款 */
 .med-pay a.badge { text-decoration: none; color: inherit; }
 

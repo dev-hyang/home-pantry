@@ -168,10 +168,10 @@ function viewDetail(id, payId) {
       ${peopleFor(v.kind) ? personAddPanel(v.kind) : ""}
       <datalist id="medProviders">${[...new Set(state.medBills.map((x) => x.provider))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
       <p id="medBillError" class="form-error" role="alert"></p>
-      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>
-        ${b ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="med-del" data-id="${b.id}">${t("删除这张账单")}</button>` : ""}</div>
+      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button></div>
     </form>
     ${b ? paymentsHtml(b, pay, owedNow) : `<p class="muted">${t("先保存账单，再记付款。")}</p>`}
+    ${b ? `<div class="danger-zone"><button type="button" class="btn btn-danger-ghost" data-action="med-del" data-id="${b.id}">${t("删除这张账单")}</button><small class="muted">${t("连同这张账单的付款记录一起删除，点两次确认。")}</small></div>` : ""}
   </section>`;
 }
 /** 常用的付款方式（存中文标准词，显示时翻译；具体是哪张卡、哪个账户写在备注里）；旧记录里手填的方式保留成一个选项 */
@@ -183,6 +183,7 @@ function paymentsHtml(b, edit, owed) {
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="med-pay-del" data-id="${p.id}">${t("删除")}</button></li>`).join("");
   const sumLine = owed == null ? t("还没填自付金额或总额，余额未知") : t("自付 {o} · 已付 {p} · 余额 {b}", { o: mny(owed, b.currency), p: mny(b.paid, b.currency), b: mny(b.balance, b.currency) });
   return `<div class="section-head"><h2>${t("付款记录")}</h2><p>${esc(sumLine)}</p></div>
+    <details class="pay-fold" ${edit ? "open" : ""}><summary class="btn btn-primary pay-add"><span class="when-closed">${edit ? `✎ ${t("编辑这笔付款")}` : `＋ ${t("记一笔付款")}`}</span><span class="when-open">${edit ? t("编辑这笔付款") : t("收起")}</span></summary>
     <form id="medPayForm" class="panel" novalidate data-bill="${b.id}" data-id="${d(edit?.id)}">
       <div class="form-grid">
         <label>${t("付款日期 Payment date")}<input name="paid_on" type="date" required value="${d(edit?.paid_on || todayISO())}" max="${todayISO()}"></label>
@@ -193,9 +194,9 @@ function paymentsHtml(b, edit, owed) {
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(edit?.notes)}" placeholder="${t("例如：网上缴费，Chase 信用卡尾号 1234 / 支票 #1022 / HSA（Fidelity）。卡只写后四位")}"></label>
       </div>
       <p id="medPayError" class="form-error" role="alert"></p>
-      <div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">${edit ? t("保存修改") : t("记一笔付款")}</button>${edit ? `<a class="btn btn-sm btn-ghost" href="${detailHref(b.id)}">${t("取消")}</a>` : ""}
+      <div class="form-actions pay-actions"><button type="submit" class="btn btn-primary">${edit ? t("保存修改") : t("保存这笔付款")}</button>${edit ? `<a class="btn btn-ghost" href="${detailHref(b.id)}">${t("取消")}</a>` : ""}
         <small class="muted">${t(b.kind === "travel" ? "付款会自动并入 花费 的“旅行出行”分类（按小类拆：机票、住宿…）。" : "付款会自动并入 花费 的“医疗”分类。")}</small></div>
-    </form>
+    </form></details>
     <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有付款")}</strong></div>`}</div>`;
 }
 
