@@ -518,7 +518,7 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "aiSettingsForm") { await saveAiForm(f); toast(t("AI 设置已保存（只存在本机）")); render(); return hydrateModelSelect(); }
     if (f.id === "termsForm") {   // 自定义名称的翻译：每行 term + 简体 / English / 繁體；全空的行删掉
       let n = 0;
-      for (const tr of f.querySelectorAll("tr[data-term]")) {
+      for (const tr of f.querySelectorAll("[data-term]")) {
         const term = tr.dataset.term, v = (k) => tr.querySelector(`input[name="${k}"]`).value.trim() || null;
         const row = { term, zh: v("zh"), en: v("en"), hant: v("hant") };
         const was = glossaryOf(term) || {};

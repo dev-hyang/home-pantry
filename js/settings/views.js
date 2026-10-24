@@ -98,12 +98,13 @@ export function customTerms() {
 }
 function termsPanel() {
   const terms = customTerms();
-  const cell = (term, k, ph) => { const g = glossaryOf(term) || {}; return `<td><input name="${k}" maxlength="60" value="${esc(g[k] || "")}" placeholder="${esc(ph)}"></td>`; };
+  const cell = (term, k, label, ph) => { const g = glossaryOf(term) || {}; return `<label>${label}<input name="${k}" maxlength="60" value="${esc(g[k] || "")}" placeholder="${esc(ph)}"></label>`; };
   return `<form id="termsForm" class="panel">
     <div class="section-head" style="margin-bottom:6px"><h3 style="font-size:15px">${t("自定义名称的翻译")}</h3><p>${t("自己起的位置、分类、小类在其他语言下怎么叫；留空就按原文显示（繁體由简体自动转换）")}</p></div>
-    ${terms.length ? `<div class="ch-scroll"><table class="owner-table terms-table"><thead><tr><th>${t("原名")}</th><th>简体</th><th>English</th><th>繁體</th></tr></thead><tbody>
-      ${terms.map(([term, src]) => `<tr data-term="${esc(term)}"><th scope="row">${esc(term)}<small>${esc(src)}</small></th>${cell(term, "zh", term)}${cell(term, "en", "")}${cell(term, "hant", t("自动"))}</tr>`).join("")}
-    </tbody></table></div>
+    ${terms.length ? `<div class="terms-list">
+      ${terms.map(([term, src]) => `<div class="term-card" data-term="${esc(term)}"><div class="term-name"><b>${esc(term)}</b><small>${esc(src)}</small></div>
+        <div class="term-fields">${cell(term, "zh", "简体", term)}${cell(term, "en", "English", "")}${cell(term, "hant", "繁體", t("自动"))}</div></div>`).join("")}
+    </div>
     <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${t("保存翻译")}</button></div>`
     : `<p class="muted" style="margin:0;font-size:13px">${t("还没有自己起的名字。新建位置或分类后会出现在这里。")}</p>`}
   </form>`;
@@ -155,17 +156,18 @@ function locationsPanel() {
 }
 
 /* ── 设置：目录页（每块一行，带当前状态）→ 点进去只看那一块 ── */
+/* 顺序：常用的在前（固定前三：AI 助手、家庭与成员、语言地区与单位），设一次基本不再变的往后放 */
 export const SETTING_SECTIONS = [
+  { id: "ai", icon: "__AI__", name: "AI 助手" },
   { id: "family", icon: "👨‍👩‍👧", name: "家庭与成员" },
+  { id: "prefs", icon: "🌐", name: "语言、地区与单位" },
   { id: "properties", icon: "🏠", name: "房产" },
   { id: "income", icon: "💰", name: "收入与预算" },
-  { id: "prefs", icon: "🌐", name: "语言、地区与单位" },
   { id: "categories", icon: "🗂️", name: "分类与小类" },
   { id: "locations", icon: "📍", name: "存放位置" },
   { id: "modules", icon: "🧩", name: "模块开关" },
   { id: "print", icon: "🖨️", name: "打印" },
   { id: "data", icon: "💾", name: "通知与备份" },
-  { id: "ai", icon: "__AI__", name: "AI 助手" },
   { id: "apps", icon: "🔗", name: "姐妹站点与介绍" },
 ];
 /** AI 设置：模型、key（只存本机）、人数；提交与“测试连接”共用 */

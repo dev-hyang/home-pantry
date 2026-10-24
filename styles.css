@@ -471,8 +471,15 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 .loc-list li .grow { min-width: 0; }
 .cat-list .mi { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; background: color-mix(in srgb, var(--cat) 22%, var(--surface)); flex: 0 0 auto; }
 .cat-list li.inactive { opacity: .55; }
-.terms-table th[scope="row"] small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
-.terms-table td input { min-width: 120px; }
+/* 自定义名称的翻译：每个名字一张小卡，简体 / English / 繁體 三个输入框（手机上上下排，宽屏并排） */
+.term-card { padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.term-card:last-child { border-bottom: 0; }
+.term-name { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; overflow-wrap: anywhere; }
+.term-name small { color: var(--muted); font-size: 12px; }
+.term-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.term-fields label { display: grid; gap: 3px; font-size: 12px; font-weight: 700; color: var(--muted); min-width: 0; }
+.term-fields input { min-width: 0; }
+@media (min-width: 560px) { .term-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .loc-list b { font-weight: 700; }
 @media (max-width: 480px) { .form-actions .btn-primary { flex: 1 1 100%; } }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -597,6 +604,7 @@ button.mrow:last-child { border-bottom: 0; }
 .owner-table { border-collapse: collapse; width: 100%; font-size: 14px; }
 .owner-table th, .owner-table td { padding: 8px 6px; border-bottom: 1px dashed var(--line); text-align: left; font-weight: 500; }
 .owner-table td { text-align: right; white-space: nowrap; }
+.owner-table tbody th { min-width: 5em; }   /* 行标题列别被右边不换行的数字列挤成一字一行 */
 .owner { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; }
 .o-self { background: var(--mustard); color: var(--mustard-ink); }
 .o-hoa { background: var(--surface-2); color: var(--pine); }
@@ -1264,21 +1272,17 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 @media print { .minibar { display: none !important; } }
 body.editing .minibar { display: none; }
 /* 行记录左滑删除（js/swipe-rows.js）：行里的内容整体向左滑，右边露出一条红色的「删除」（宽度跟着滑动的距离走）。
-   行本身不换标签、不加层，原来的 li / 行样式（flex、分隔线、:last-child…）全部照旧。 */
-.swipe-row { position: relative; overflow: hidden; touch-action: pan-y; }
-.swipe-row.shift > :not(.swipe-bg) { transform: translateX(var(--sx, 0px)); }
-.swipe-row > :not(.swipe-bg) { transition: transform .18s ease; }
-.swipe-row.swiping > :not(.swipe-bg), .swipe-row.swiping > .swipe-bg { transition: none; }
+   对行零改动：不换标签、不套层、不加子元素，红色区域是 ::after 伪元素；原来的 li / 按钮 / 行样式（flex、grid、分隔线、:last-child…）全部照旧。
+   只横向裁切（overflow-x: clip，不形成滚动容器、不裁竖向）；不认 clip 的旧浏览器退回 overflow: hidden。 */
+.swipe-row { position: relative; overflow: hidden; overflow-x: clip; overflow-y: visible; touch-action: pan-y; }
+.swipe-row.shift > * { transform: translateX(var(--sx, 0px)); }
+.swipe-row > * { transition: transform .18s ease; }
+.swipe-row.swiping > *, .swipe-row.swiping::after { transition: none; }
 .swipe-row.swiping { user-select: none; -webkit-user-select: none; }
-.swipe-bg { position: absolute; top: 0; right: 0; bottom: 0; width: var(--sw, 0px); z-index: 3; display: flex; background: #b3261e; color: #fff; overflow: hidden; transition: width .18s ease; }
-.swipe-del { all: unset; box-sizing: border-box; flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 0 8px; font-weight: 700; font-size: 14px; white-space: nowrap; cursor: pointer; }
-.swipe-del:focus-visible { outline: 3px solid #fff; outline-offset: -4px; }
-.swipe-del .s-go { display: none; }
-.swipe-row.ready .swipe-bg { background: #8e1a14; }
-.swipe-row.ready .s-del { display: none; }
-.swipe-row.ready .s-go { display: inline; }
+.swipe-row::after { content: var(--swipe-del); position: absolute; top: 0; right: 0; bottom: 0; width: var(--sw, 0px); z-index: 3; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #b3261e; color: #fff; font-weight: 700; font-size: 14px; line-height: 1; white-space: nowrap; cursor: pointer; transition: width .18s ease; }
+.swipe-row.ready::after { content: var(--swipe-go); background: #8e1a14; }
 /* 原来的删除按钮留着（给键盘和读屏用），平时视觉隐藏，Tab 到它时显示 */
 .swipe-src { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .swipe-src:focus, .swipe-src:focus-visible { position: static !important; width: auto; height: auto; margin: 0; padding: revert; border: revert; overflow: visible; clip: auto; }
-@media (prefers-reduced-motion: reduce) { .swipe-row > :not(.swipe-bg), .swipe-bg { transition: none; } }
-@media print { .swipe-bg { display: none; } }
+@media (prefers-reduced-motion: reduce) { .swipe-row > *, .swipe-row::after { transition: none; } }
+@media print { .swipe-row::after { display: none; } }
