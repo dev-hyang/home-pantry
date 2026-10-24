@@ -109,7 +109,7 @@ registerSection("goals", 0, ({ plan }) => {
   const rows = goals.map((g) => { const left = Math.max(0, num(g.target) - num(g.saved)), m = monthsLeft(g.date), need = Math.ceil(left / m); return { g, left, m, need, done: left <= 0 }; });
   const needTotal = rows.filter((r) => !r.done).reduce((s, r) => s + r.need, 0);
   return sec("budGoals", t("储蓄目标"), t("给大件或旅行设个目标，每月该存多少算给你"), `<div class="panel">
-    ${rows.length ? rows.map(({ g, left, m, need, done }) => `<div class="bud-row" data-swipe><div class="bud-head"><b>🎯 ${esc(g.name)}</b><span>${money(g.saved || 0)} / ${money(g.target)} · ${pct(g.saved || 0, g.target)}%</span></div>${barHtml(g.saved || 0, g.target)}
+    ${rows.length ? rows.map(({ g, left, m, need, done }) => `<div class="bud-row" data-swipe-del="budget-goal"><div class="bud-head"><b>🎯 ${esc(g.name)}</b><span>${money(g.saved || 0)} / ${money(g.target)} · ${pct(g.saved || 0, g.target)}%</span></div>${barHtml(g.saved || 0, g.target)}
       <small class="muted">${done ? `✅ ${t("已攒够")}` : t("{d} 前还差 {a}，每月存 {b}（约 {m} 个月）", { d: esc(g.date), a: money(left), b: money(need), m })}</small>
       <div class="bud-inline"><input type="number" min="1" step="1" inputmode="decimal" data-goal-amt="${g.id}" placeholder="${t("存入金额")}" aria-label="${t("存入金额")}"><button type="button" class="btn btn-sm" data-action="budget-goal-save" data-id="${g.id}">${t("存入")}</button>
         <button type="button" class="btn btn-sm btn-danger-ghost swipe-src" data-action="budget-goal-del" data-id="${g.id}">${t("删除")}</button></div></div>`).join("")

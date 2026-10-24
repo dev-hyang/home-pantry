@@ -1,5 +1,5 @@
 /* ============ 行记录左滑删除 ============
-   给一行加 data-swipe 就行（行里原来的「删除」按钮加 class="swipe-src"，滑动时代它点击，原来的确认框、删除流程都照旧）：
+   给一行加 data-swipe-del="种类" 就行，并且这个种类要列在 initSwipeRows({ kinds: […] }) 里（没列的种类、没加属性的行一律不会滑动）（行里原来的「删除」按钮加 class="swipe-src"，滑动时代它点击，原来的确认框、删除流程都照旧）：
      · 向左滑：行里的内容跟着手指向左走，右边露出红色「删除」；停在一半，点红色按钮就删除；
      · 一直滑过大半（≥ 55%）松手：直接删除；
      · 向右滑：暂时没有动作，不会动；
@@ -10,16 +10,17 @@
    行的标签、类名、里面的结构都不动（所以原来给 li、行写的 flex、分隔线、:last-child 等样式全部照旧）：
    只是给这一行加 class="swipe-row"、在末尾放一个绝对定位的红色条，滑动时把行的子元素整体平移。
    唯一的例外是 <button> / <a> 这类不能装按钮的行：外面套一层 div 再做同样的事。
-   四个姐妹应用各放一份同样的文件。用法：initSwipeRows({ del, release, onDelete })，del / release 是文字或返回文字的函数；
+   四个姐妹应用各放一份同样的文件。用法：initSwipeRows({ kinds, del, release, onDelete })，del / release 是文字或返回文字的函数；
    onDelete(行元素) 可选：没有 .swipe-src 的行（例如小月亮的记录行）用它来做删除，返回 false 表示用户取消了（行弹回去）。 */
 const REVEAL = 88;      // 停住时露出的红色按钮宽度（px）
 const GO = 0.55;        // 滑过行宽的这一比例松手，直接删除
 const START = 8;        // 位移超过多少像素才判断方向
-let cfg = { del: "删除", release: "松手删除", onDelete: null }, drag = null, justSwiped = false, opened = null;
+let cfg = { del: "删除", release: "松手删除", onDelete: null, kinds: [] }, drag = null, justSwiped = false, opened = null;
 
 const lab = (v) => (typeof v === "function" ? v() : v);
 const rowOf = (n) => n && n.closest && n.closest(".swipe-row");
-const origOf = (row) => (row.matches("[data-swipe]") ? row : row.querySelector(":scope > [data-swipe]"));   // 原来那一行（button 行时在套层里面）
+const allowed = (el) => (cfg.kinds || []).includes(el.dataset.swipeDel);   // 只有登记过的记录种类才能左滑
+const origOf = (row) => (row.matches("[data-swipe-del]") ? row : row.querySelector(":scope > [data-swipe-del]"));   // 原来那一行（button 行时在套层里面）
 
 function enhance(el) {
   if (el.dataset.swipeReady) return;
@@ -111,7 +112,7 @@ function onUp(e, cancel) {
 
 export function initSwipeRows(options = {}) {
   cfg = { ...cfg, ...options };
-  const scan = (root) => root.querySelectorAll && root.querySelectorAll("[data-swipe]:not([data-swipe-ready])").forEach(enhance);
+  const scan = (root) => root.querySelectorAll && root.querySelectorAll("[data-swipe-del]:not([data-swipe-ready])").forEach((el) => { if (allowed(el)) enhance(el); });
   scan(document);
   let queued = false;
   new MutationObserver(() => { if (queued) return; queued = true; setTimeout(() => { queued = false; scan(document); }, 0); }).observe(document.body, { childList: true, subtree: true });
