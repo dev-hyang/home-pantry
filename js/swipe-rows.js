@@ -59,6 +59,7 @@ function openRow(row) {
 // 触发删除：有 .swipe-src 就替它点一下（原来的 confirm 和删除流程照旧）；否则交给 onDelete
 async function remove(row) {
   const w = row.offsetWidth;
+  if (opened === row) opened = null;   // 否则替点的 click 会被「点击合上已滑开的行」那段拦下来，行就弹回去了
   row.classList.remove("ready"); row.classList.add("leaving"); setX(row, -w, true);
   let declined = false;
   const src = row.querySelector(".swipe-src"), orig = window.confirm;

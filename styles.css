@@ -363,7 +363,8 @@ textarea { resize: vertical; }
 .shop-qty input { width: 58px; min-height: 26px; padding: 2px 4px; font-size: 13px; font-weight: 700; text-align: center; border-radius: 8px; -moz-appearance: textfield; }
 .shop-qty input::-webkit-outer-spin-button, .shop-qty input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .shop-qty small { color: var(--muted); font-size: 12px; }
-@media (max-width: 640px) { .shop-qty input { font-size: 16px; width: 64px; } }
+.shop-qty input.unit-in { width: 46px; min-height: 26px; padding: 2px 4px; font-size: 12px; text-align: center; color: var(--muted); border-radius: 8px; }
+@media (max-width: 640px) { .shop-qty input { font-size: 16px; width: 64px; } .shop-qty input.unit-in { width: 56px; } }
 .shop-item .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .shop-item.done .nm { text-decoration: line-through; color: var(--muted); }
 
