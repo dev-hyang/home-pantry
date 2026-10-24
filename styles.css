@@ -752,6 +752,20 @@ button.mrow:last-child { border-bottom: 0; }
 .alert-row.sev-0 .link-name { color: var(--out); }
 .alert-row .space-tag { margin-right: 6px; }
 .alert-row .act-tag { text-decoration: none; white-space: nowrap; }
+/* 注意事项一行的操作：一个主按钮 + 「⋯」菜单（其余操作）；手机上放不下时整组换到下一行靠右 */
+.alert-row { flex-wrap: wrap; gap: 8px 10px; }
+.alert-row .grow { flex: 1 1 0; min-width: 5em; overflow-wrap: anywhere; }
+.alert-acts { display: flex; align-items: center; gap: 6px; flex: none; margin-left: auto; }
+.act-more { position: relative; }
+.act-more > summary { box-sizing: border-box; list-style: none; cursor: pointer; min-width: 36px; min-height: 32px; padding: 4px 8px; }
+.dots3 { display: block; width: 4px; height: 4px; border-radius: 50%; background: currentColor; box-shadow: -7px 0 currentColor, 7px 0 currentColor; }
+.act-more > summary::-webkit-details-marker { display: none; }
+.act-more[open] > summary { background: var(--surface-2); }
+.act-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 150px; display: grid; gap: 2px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: 0 8px 24px rgba(0, 0, 0, .16); }
+.act-item { all: unset; box-sizing: border-box; display: block; min-height: 40px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; white-space: nowrap; line-height: 20px; }
+.act-item:hover, .act-item:focus-visible { background: var(--surface-2); }
+.act-item:focus-visible { outline: 2px solid var(--pine); outline-offset: -2px; }
+@media print { .alert-acts { display: none; } }
 /* 首页格子块：注意事项 / 小Y问 / 采购清单 / 今天吃什么 四大块 + 快捷操作小块 */
 .today-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 @media (min-width: 900px) { .today-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

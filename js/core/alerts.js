@@ -54,9 +54,14 @@ export function alertRow(it) {
     ? `<input type="checkbox" ${Object.entries(check.attrs || {}).map(([k, v]) => `${k}="${esc(v)}"`).join(" ")}>`
     : `<span class="badge ${it.badge?.cls || SEVERITY_CLS[it.severity]}">${esc(it.badge?.label || t(SEVERITY_LABEL[it.severity]))}</span>`;
   const title = it.href ? `<a class="link-name" href="${esc(it.href)}">${esc(it.title)}</a>` : `<span class="name">${esc(it.title)}</span>`;
-  const acts = (it.actions || []).filter((a) => a.type !== "check").map((a) => a.type === "link"
-    ? `<a class="btn btn-sm ${a.cls || ""}" href="${esc(a.href)}" ${a.external ? 'target="_blank" rel="noopener noreferrer"' : ""}>${esc(a.label)}</a>`
-    : a.type === "tag" ? (a.href ? `<a class="badge ${a.cls || "b-ok"} act-tag" href="${esc(a.href)}">✓ ${esc(a.label)}</a>` : `<span class="badge ${a.cls || "b-ok"} act-tag">✓ ${esc(a.label)}</span>`)
-    : `<button type="button" class="btn btn-sm ${a.cls || ""}" data-action="${esc(a.action)}" data-id="${esc(a.id || "")}">${esc(a.label)}</button>`).join("");
+  // 操作按钮：一行只露一个主操作（标了 primary 的，否则第一个实心按钮，再否则第一个），其余收进「⋯」菜单，手机上不再挤成一排
+  const list = (it.actions || []).filter((a) => a.type !== "check");
+  const pi = Math.max(0, list.findIndex((a) => a.primary) >= 0 ? list.findIndex((a) => a.primary) : list.findIndex((a) => a.type === "tag" || !(a.cls || "").includes("btn-ghost")));
+  const one = (a, menu) => a.type === "link"
+    ? `<a class="${menu ? "act-item" : `btn btn-sm ${a.cls || ""}`}" href="${esc(a.href)}" ${a.external ? 'target="_blank" rel="noopener noreferrer"' : ""}>${esc(a.label)}</a>`
+    : a.type === "tag" ? (a.href ? `<a class="${menu ? "act-item" : `badge ${a.cls || "b-ok"} act-tag`}" href="${esc(a.href)}">✓ ${esc(a.label)}</a>` : `<span class="${menu ? "act-item" : `badge ${a.cls || "b-ok"} act-tag`}">✓ ${esc(a.label)}</span>`)
+    : `<button type="button" class="${menu ? "act-item" : `btn btn-sm ${a.cls || ""}`}" data-action="${esc(a.action)}" data-id="${esc(a.id || "")}">${esc(a.label)}</button>`;
+  const rest = list.filter((_, k) => k !== pi);
+  const acts = list.length ? `<div class="alert-acts">${one(list[pi], false)}${rest.length ? `<details class="act-more"><summary class="btn btn-sm btn-ghost" aria-label="${esc(t("更多操作"))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">${rest.map((a) => one(a, true)).join("")}</div></details>` : ""}</div>` : "";
   return `<li class="alert-row sev-${it.severity}">${lead}<div class="grow">${propertyTag(it.property_id)}${it.must ? `<span class="badge b-out" style="margin-right:4px">${t("必须")}</span>` : ""}${title}<small>${esc(it.detail || "")}</small></div>${acts}</li>`;
 }
