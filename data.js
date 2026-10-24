@@ -46,6 +46,27 @@ window.TRAVEL_CATS = [
   { id: "travel_tour",    name: "旅行团 / 套餐",        icon: "🗺️", color: "#5b7fa6" },
   { id: "travel_other",   name: "其他旅行花费",         icon: "🧭", color: "#8a948f" },
 ];
+/* 日常生活消费：外出就餐、网购、服装、个人护理、健身、娱乐、礼物、数码、书本课程、银行手续费、邮寄……
+ * 原来没有地方放的家庭开销（银行 / 信用卡导入里最常见）。花费分类 life_*，统计里合并成“日常生活”一组，
+ * 预算里是单独一组“日常生活”（life_grocery 超市杂货算进“日常储备”）。车辆燃油 / 充电 / 洗车 = vehicle_fuel，归“车辆”。 */
+window.LIFE_GROUP = { id: "life", name: "日常生活", icon: "🛍️", color: "#8a5fb0" };
+window.LIFE_CATS = [
+  { id: "life_grocery",  name: "超市 / 杂货（未细分）",   icon: "🛒", color: "#3f8f5a" },
+  { id: "life_dining",   name: "外出就餐 / 外卖 / 咖啡", icon: "🍔", color: "#c0603a" },
+  { id: "life_shopping", name: "网购 / 综合购物",        icon: "📦", color: "#7a5c8e" },
+  { id: "life_clothes",  name: "服装鞋帽",               icon: "👕", color: "#b8576f" },
+  { id: "life_care",     name: "个人护理 / 美容 / 理发", icon: "💇", color: "#d4694c" },
+  { id: "life_fitness",  name: "运动健身",               icon: "🏋️", color: "#24897d" },
+  { id: "life_fun",      name: "娱乐休闲（电影 / 游戏 / 演出）", icon: "🎬", color: "#5b7fa6" },
+  { id: "life_gifts",    name: "礼物 / 节日 / 红包",     icon: "🎁", color: "#c75a85" },
+  { id: "life_digital",  name: "数码 / 电子产品",        icon: "💻", color: "#4f7f9f" },
+  { id: "life_edu",      name: "书本 / 课程 / 学习",     icon: "📖", color: "#2f6fb0" },
+  { id: "life_fees",     name: "银行 / 手续费 / 利息",   icon: "🏦", color: "#8a948f" },
+  { id: "life_mail",     name: "邮寄 / 快递",            icon: "📮", color: "#b07a1a" },
+  { id: "life_other",    name: "其他生活开销",           icon: "🧺", color: "#8a948f" },
+];
+window.VEHICLE_FUEL = { id: "vehicle_fuel", name: "车辆燃油 / 充电 / 洗车", icon: "⛽", color: "#b0741a" };
+
 window.TRIP = {
   isTravel: (id) => String(id || "").startsWith("travel_"),
   /** 「【行程】项目」→ { trip, item }；没有行程前缀的 trip 为空 */

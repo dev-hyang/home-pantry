@@ -751,6 +751,15 @@ button.mrow:last-child { border-bottom: 0; }
 .alert-list .alert-row input[type="checkbox"] { width: 20px; height: 20px; min-height: 0; accent-color: var(--pine); flex: 0 0 auto; }
 .alert-row.sev-0 .link-name { color: var(--out); }
 .alert-row .space-tag { margin-right: 6px; }
+/* 银行 / 信用卡导入：按商家合并的清单，每行 勾选 + 商家 + 分类下拉 */
+.bank-pick, .bank-sum, .bank-go, .bank-map { margin-top: 10px; }
+.bank-list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: center; }
+.bank-list li select { grid-column: 1 / -1; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; min-height: 38px; font-size: 14px; }
+.bank-list .grow { min-width: 0; overflow-wrap: anywhere; }
+.bank-chk input { width: 20px; height: 20px; min-height: 0; accent-color: var(--pine); }
+.bank-row.is-skip { opacity: .8; }
+.bank-dup { color: var(--soon); font-weight: 600; }
+@media (min-width: 640px) { .bank-list li { grid-template-columns: auto minmax(0, 1fr) minmax(200px, 260px); } .bank-list li select { grid-column: auto; } }
 /* 旅行：每个行程一张卡，下面按类型列金额 */
 .trip-card .row { align-items: flex-start; }
 .trip-cats { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }

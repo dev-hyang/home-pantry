@@ -14,6 +14,7 @@ import { mountLangSwitcher } from "../shared/lang-switcher.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
+import { initBankImport } from "./stats/bank-import.js";
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
 import { DEFAULT_QUICK, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewToday } from "./today.js";
@@ -377,6 +378,7 @@ export const main = $("#main");
 initCompactFilters({ root: main, ui: uiKind });
 miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
 initSwipeRows({ kinds: ["budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase"], del: () => t("删除"), release: () => t("松手删除") });   // 行记录左滑删除（js/swipe-rows.js）
+initBankImport({ refresh });   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
 // 「⋯」更多操作菜单：点别处或点菜单里的某项就收起（原生 details 不会自己收）
 document.addEventListener("click", (e) => { document.querySelectorAll("details.act-more[open]").forEach((d) => { if (!d.contains(e.target) || e.target.closest(".act-item")) d.open = false; }); }, true);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll("details.act-more[open]").forEach((d) => { d.open = false; d.querySelector("summary")?.focus(); }); });

@@ -41,6 +41,11 @@
     { id: "donation",       name: "奉献 / 捐款",     icon: "🙏", essential: false },
     { id: "income_tax",     name: "所得税 / 预缴税",  icon: "🧮", essential: true },
     { id: "pet",            name: "宠物（保险 / 寄养 / 美容）", icon: "🐾", essential: false },
+    { id: "heating_oil",    name: "取暖油 / 丙烷 / 柴火", icon: "🛢️", essential: true },
+    { id: "solar",          name: "太阳能租赁 / 月付", icon: "☀️", essential: true },
+    { id: "storage",        name: "自助储物 / 仓储租金", icon: "🗄️", essential: false },
+    { id: "pool",           name: "泳池 / 水疗维护",  icon: "🏊", essential: false },
+    { id: "family_support", name: "赡养 / 家人资助 / 汇款", icon: "🤝", essential: false },
     { id: "other",          name: "其他账单",        icon: "🧾", essential: false },
   ];
   const catOf = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
@@ -174,12 +179,12 @@
   // 同一类的账单用同一色相、明暗不同，图里一眼分得出大类又分得清具体种类
   window.BILLS_GROUP = { id: "bills", name: "账单", icon: "🧾", color: "#2f5d8a" };
   const FAMILIES = [   // 顺序即堆叠和下拉里的顺序
-    { id: "utilities", name: "水电气网通讯", icon: "💡", hue: 205, ids: ["electric", "gas", "water", "internet", "mobile", "cable_tv"] },
+    { id: "utilities", name: "水电气网通讯", icon: "💡", hue: 205, ids: ["electric", "gas", "water", "internet", "mobile", "cable_tv", "heating_oil", "solar"] },
     { id: "housing",   name: "住房",         icon: "🏠", hue: 250, ids: ["mortgage", "rent", "hoa", "property_tax", "insurance_home"] },
     { id: "vehicle",   name: "车",           icon: "🚗", hue: 18,  ids: ["car_loan", "insurance_auto", "vehicle_reg", "parking", "toll"] },
     { id: "finance",   name: "保险 / 贷款 / 税", icon: "🛡️", hue: 295, ids: ["insurance_health", "insurance_life", "insurance_other", "student_loan", "personal_loan", "credit_card", "income_tax"] },
-    { id: "family",    name: "孩子 / 宠物 / 奉献", icon: "🎒", hue: 160, ids: ["tuition", "activities", "pet", "donation"] },
-    { id: "services",  name: "家庭服务 / 订阅", icon: "🧹", hue: 40,  ids: ["lawn", "cleaning", "pest", "security", "subscription", "membership"] },
+    { id: "family",    name: "孩子 / 宠物 / 奉献", icon: "🎒", hue: 160, ids: ["tuition", "activities", "pet", "donation", "family_support"] },
+    { id: "services",  name: "家庭服务 / 订阅", icon: "🧹", hue: 40,  ids: ["lawn", "cleaning", "pest", "security", "subscription", "membership", "pool", "storage"] },
   ];
   const famOf = (id) => FAMILIES.find((x) => x.ids.includes(id));
   const statColor = (id) => {
