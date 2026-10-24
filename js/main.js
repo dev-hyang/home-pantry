@@ -1250,11 +1250,12 @@ export async function afterLogin() {
   state.displayName = mine.display_name;
   CloudStore.hid = mine.household_id;
   localStorage.setItem("hmh-hid", CloudStore.hid);
-  state.membersReady = CloudStore.listMembers().then((m) => { state.members = m; paintHeaderSync(); return m; });   // 和 refresh 的数据读取并行
+  const membersP = CloudStore.listMembers().then((m) => { state.members = m; paintHeaderSync(); return m; });   // 和 refresh 的数据读取并行
+  state.membersReady = membersP;
   CloudStore.subscribe(refreshSoon);
   await refresh();
   // 同一个人开了多个浏览器 / 设备会变成多位“爸爸”：发现和别人同名，推荐加序列号或日期
-  state.membersReady.then(() => promptDuplicateName({ save: saveMyName })).then((v) => { if (v) render(false); }).catch(() => {});
+  membersP.then(() => promptDuplicateName({ save: saveMyName }))   // refresh 读完会把 state.membersReady 清空，所以用局部变量.then((v) => { if (v) render(false); }).catch(() => {});
 }
 
 /** 保存我自己的称呼（家庭成员表），并刷新成员列表 */
