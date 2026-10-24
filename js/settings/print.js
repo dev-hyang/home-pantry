@@ -22,7 +22,7 @@ export function viewPrintSettings() {
       <div class="head-acts">${extra}<button type="button" class="btn btn-sm btn-primary" data-action="print-run" data-kind="${kind}">${t("打印")}</button></div></div></div>`;
   return `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("选一项打印；浏览器的打印窗口里也可以另存为 PDF。")}</p>
     ${row("shopping", t("采购清单"), t("待购买和家人认领中的项目，带勾选框，逛店时可以直接划"))}
-    ${row("spend", t("花费统计"), t("按月合计、按分类占比和花费明细；可选近几个月"), `<select id="printRange" aria-label="${t("时间范围")}">${[3, 6, 12].map((n) => `<option value="${n}" ${n === state.stats.months ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}<option value="${new Date().getMonth() + 1}">${t("今年以来")}</option></select>`)}
+    ${row("spend", t("花费统计"), t("按月合计、按分类占比和花费明细；可选近几个月"), `<select id="printRange" aria-label="${t("时间范围")}">${[3, 6, 12].map((n) => `<option value="${n}" ${n === +state.stats.months ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}<option value="${new Date().getMonth() + 1}">${t("今年以来")}</option></select>`)}
     ${state.billsEnabled && budgetPlan() ? row("budget", t("预算"), t("本月各类预算和实际，以及年度进度")) : ""}
     ${state.billsEnabled ? row("bills", t("账单概览"), t("未来 30 天要交的账单、要处理的账单和每月固定支出"), propPick) : ""}`;
 }

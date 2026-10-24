@@ -53,7 +53,7 @@ import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, ne
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
-import { applySpendDrill, cleanStore, clearSpendFilter, download, exportAnnual, rememberStore, renderSpendList, renderSpendRecords, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
+import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureFirstYear, ensureYearLoaded, exportAnnual, rememberStore, renderSpendList, renderSpendRecords, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
 
 const APP_NAME = "爱家小助手";
 
@@ -317,7 +317,9 @@ function onRoute() {
   state.route = next;
   render(true);
   if (next.section === "me" && next.sub === "settings" && next.q.get("sec") === "ai") hydrateModelSelect();   // AI 设置：后台查这个 key 实际能用的模型，填进下拉
-  if (next.section === "bills" && next.sub === "spend" && next.q.get("add")) {   // 花费页右上角“记一笔花费”：滚到补记表单并聚焦名称，再把参数去掉
+  if (next.section === "bills" && (next.sub === "spend" || next.sub === "budget")) ensureFirstYear().then((fresh) => { if (fresh) render(false); });   // 时间范围下拉的往年选项：查一次最早年份
+  if (next.section === "bills" && next.sub === "spend" && next.q.get("add")) {   // 花费页右上角“记一笔花费”：展开补记表单、滚过去并聚焦名称，再把参数去掉
+    state.spendAddOpen = true;
     requestAnimationFrame(() => { const pf = $("#purchaseForm"); if (pf) { pf.scrollIntoView({ block: "center" }); pf.elements.name.focus({ preventScroll: true }); } });   // 等页面把焦点放好之后再聚焦
     history.replaceState(null, "", `${href("bills", "spend")}?tab=records`);
   }
@@ -351,7 +353,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: 20 }); state.spendEdit = null; break;
+    case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: 20 }); state.spendEdit = null; break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
     default: break;
   }
@@ -510,7 +512,7 @@ main.addEventListener("change", async (e) => {
   { const k = { spendCat: "cat", spendStore: "store", spendMonth: "month", spendSort: "sort" }[e.target.id]; if (k) { state.spendFilter[k] = e.target.value; if (k === "store") state.spendFilter.stores = null; if (k === "cat") state.spendFilter.grp = null; if (k === "month") state.spendFilter.months = null; state.spendFilter.limit = 20; renderSpendList(); } }   // 手动选了单个商店 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”
   if (e.target.dataset?.action === "stats-bill-merge") { setBillMerge(e.target.checked); render(); }
   if (e.target.dataset?.action === "stats-capital") { state.stats.includeCapital = e.target.checked; render(); }
-  if (e.target.id === "statsRange") { state.stats.months = +e.target.value; render(); }   // 花费 / 预算趋势的时间范围：全部 / 近 N 个月
+  if (e.target.id === "statsRange") { const v = e.target.value; state.stats.months = v.startsWith("y:") ? v : +v; render(); ensureYearLoaded(v).then((fresh) => { if (fresh) render(false); }); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（往年按需读回来）
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
   if (e.target.id === "hhSwitch") { localStorage.setItem("hmh-hid", e.target.value); location.reload(); }
@@ -741,7 +743,7 @@ main.addEventListener("click", async (e) => {
       case "quick-del": await saveQuick(quickList().filter((x) => x !== el.dataset.id)); return render();
       case "quick-reset": await saveQuick(DEFAULT_QUICK()); toast(t("已恢复默认快捷操作")); return render();
       case "quick-run": if (el.dataset.id === "action:print") go(`${href("me", "settings")}?sec=print`); return;   // 打印：进入 设置 → 打印
-      case "print-run": return printSheet(el.dataset.kind, el.dataset.kind === "spend" ? { months: +($("#printRange")?.value || state.stats.months), useFilter: !!el.dataset.filtered } : $("#printProp")?.value || "all");
+      case "print-run": return printSheet(el.dataset.kind, el.dataset.kind === "spend" ? { months: +($("#printRange")?.value || +state.stats.months || 6), useFilter: !!el.dataset.filtered } : $("#printProp")?.value || "all");
       case "inv-space": return go(el.dataset.space === "house" ? `${href("pantry", "inventory")}?space=house` : href("pantry", "inventory"));
       case "supply-add": {   // 设备页“相关耗材”：一键把推荐耗材加进库存
         const it = supplyItem(el.dataset.name); if (!it) return;
@@ -946,6 +948,7 @@ main.addEventListener("click", async (e) => {
       case "people-bulk": return peopleBulk();
       case "spend-more": state.spendFilter.limit += 20; return renderSpendList();
       case "stats-months": state.stats.months = +el.dataset.months; return render();
+      case "spend-add-toggle": { state.spendAddOpen = !state.spendAddOpen; render(); if (state.spendAddOpen) requestAnimationFrame(() => $("#purchaseForm")?.elements.name.focus({ preventScroll: true })); return; }
       case "stats-cat": state.stats.cat = el.dataset.cat; return render();
       case "purchase-del": if (!armed(el, t("确认删除"))) return; await Store.deletePurchase(id); toast(t("已删除这笔记录")); return refresh();
       case "recipe-missing": return addRecipeMissing(el.dataset.name);

@@ -122,16 +122,35 @@ export function itemSeries(item, starts) {
   return { used: used.map((v) => v * f), level: level.map((v) => v * f), unit: t(du(item.unit)) };
 }
 
-/** 时间范围：全部 / 近 3 / 6 / 9 / 12 个月（0 = 全部，即有记录的最早那个月到现在，最多 36 个月）；花费各标签和预算趋势共用（state.stats.months） */
+/** 时间范围：近 3 / 6 / 9 / 12 个月，或某一年（"y:2025"，从今年到最早有记录的那年）；花费各标签和预算趋势共用（state.stats.months）。
+ *  云端平时只读近 400 天的花费，选往年时按需把那一年读回来并进 state.purchases（见 ensureYearLoaded） */
 export const RANGES = [3, 6, 9, 12];
+const thisYear = () => new Date().getFullYear();
 export function rangeMonths(n = state.stats.months) {
-  if (n > 0) return lastMonths(n);
-  const first = state.purchases.reduce((m, p) => (p.amount != null && (!m || monthKey(p.purchased_at) < m) ? monthKey(p.purchased_at) : m), "");
-  if (!first) return lastMonths(6);
-  const now = new Date(), span = (now.getFullYear() - +first.slice(0, 4)) * 12 + (now.getMonth() + 1 - +first.slice(5)) + 1;
-  return lastMonths(Math.max(1, Math.min(36, span)));
+  if (typeof n === "string" && n.startsWith("y:")) { const y = +n.slice(2), last = y === thisYear() ? new Date().getMonth() + 1 : 12; return Array.from({ length: last }, (_, i) => `${y}-${String(i + 1).padStart(2, "0")}`); }
+  return lastMonths(+n || 6);
 }
-export const rangeChipsHtml = () => `<label class="range-sel"><span class="sr-only">${t("时间范围")}</span><select id="statsRange" aria-label="${t("时间范围")}" data-nosearch>${[0, ...RANGES].map((n) => `<option value="${n}" ${state.stats.months === n ? "selected" : ""}>${n ? t("近 {n} 个月", { n }) : t("全部")}</option>`).join("")}</select></label>`;
+export const rangeChipsHtml = () => {
+  const y0 = thisYear(), first = state.stats.firstYear || y0, years = Array.from({ length: Math.max(0, Math.min(12, y0 - first + 1)) }, (_, i) => y0 - i);
+  const cur = String(state.stats.months);
+  return `<label class="range-sel"><span class="sr-only">${t("时间范围")}</span><select id="statsRange" aria-label="${t("时间范围")}" data-nosearch>${RANGES.map((n) => `<option value="${n}" ${cur === String(n) ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}${years.map((y) => `<option value="y:${y}" ${cur === `y:${y}` ? "selected" : ""}>${y === y0 ? t("今年") : t("{y} 年", { y })}</option>`).join("")}</select></label>`;
+};
+/** 选了往年：那一年的花费不在平时读的近 400 天里，按需读回来并进 state.purchases（去重）；返回 true 表示读到了新的 */
+export async function ensureYearLoaded(n) {
+  if (typeof n !== "string" || !n.startsWith("y:")) return false;
+  const y = +n.slice(2); state.yearLoaded ||= {}; if (state.yearLoaded[y]) return false;
+  state.yearLoaded[y] = true;
+  const rows = await Store.listPurchasesRange(`${y}-01-01T00:00:00.000Z`, `${y + 1}-01-01T00:00:00.000Z`).catch(() => []);
+  const have = new Set(state.purchases.map((p) => p.id)), fresh = rows.filter((p) => !have.has(p.id));
+  if (fresh.length) state.purchases = [...state.purchases, ...fresh];
+  return fresh.length > 0;
+}
+/** 最早有记录的年份（只查一次），下拉里的往年选项到这一年为止 */
+export async function ensureFirstYear() {
+  if (state.stats.firstYear) return false;
+  const y = await Store.firstPurchaseYear().catch(() => null);
+  state.stats.firstYear = y || thisYear(); return true;
+}
 const monthOpt = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
 const noSpend = () => `<div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("在采购清单点“已买到”时填上实际花费，或在“明细”里补记一笔。")}</div>`;
 
@@ -252,11 +271,16 @@ function spendTripsTab() {
 function spendRecordsTab() {
   const today = new Date().toISOString().slice(0, 10), q = state.route?.q;
   const preCat = q?.get("cat") || "", preTrip = q?.get("trip") || "";   // 从旅行页进来：分类预选旅行、行程预填
+  const open = !!state.spendAddOpen || !!q?.get("add");   // 表单默认收着，点「手动记一笔」或从「记一笔花费」按钮进来才展开
   return `<section class="section">
       <div class="section-head"><h2>${t("记一笔花费")}</h2><p>${t("没走采购清单的，在这里记")}</p></div>
-      <div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}"><span class="way is-cur">✍️ ${t("手动记一笔")}</span><a class="way" href="${href("scan")}">📷 ${t("拍小票 / 截图，AI 识别")}</a><a class="way" href="${href("bills", "spend")}?tab=import">🏦 ${t("导入银行对账单")}</a></div>
+      <div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}">
+        <button type="button" class="way ${open ? "is-cur" : ""}" data-action="spend-add-toggle" aria-expanded="${open ? "true" : "false"}"><span class="way-ico" aria-hidden="true">✍️</span><span>${t("手动记一笔")}</span></button>
+        <a class="way" href="${href("scan")}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍小票识别")}</span></a>
+        <a class="way" href="${href("bills", "spend")}?tab=import"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a></div>
       ${storeDatalist()}
-      <form id="purchaseForm" class="panel add-row purchase-row">
+      ${open ? "" : "<!-- 表单收着 -->"}
+      <form id="purchaseForm" class="panel add-row purchase-row" ${open ? "" : "hidden"}>
         <input class="pr-name" name="name" required maxlength="60" placeholder="${t("买了什么，例如：超市采购")}" aria-label="${t("名称")}">
         <select class="pr-cat" name="category" aria-label="${t("分类")}">${categoryOptions(preCat || undefined, { spend: true })}</select>
         <input class="pr-trip" name="trip" maxlength="30" list="tripList" value="${esc(preTrip)}" placeholder="${t("行程（旅行）")}" aria-label="${t("所属行程")}">${tripDatalist()}
@@ -277,7 +301,7 @@ function spendExportTab() {
     <section class="section">
       <div class="section-head"><h2>${t("打印")}</h2><p>${t("浏览器的打印窗口里也可以另存为 PDF")}</p></div>
       <div class="panel export-grid">
-        <label class="export-pick"><span>${t("时间范围")}</span><select id="printRange" data-nosearch>${[3, 6, 12].map((n) => `<option value="${n}" ${n === state.stats.months ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}</select></label>
+        <label class="export-pick"><span>${t("时间范围")}</span><select id="printRange" data-nosearch>${[3, 6, 12].map((n) => `<option value="${n}" ${n === +state.stats.months ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}</select></label>
         <div class="export-btns"><button type="button" class="btn btn-primary btn-sm" data-action="print-run" data-kind="spend">${t("打印花费统计")}</button></div>
       </div>
       <p class="muted" style="margin:6px 0 0;font-size:13px">${t("要打印筛选后的明细，到“明细”标签里点“打印”。")}</p>

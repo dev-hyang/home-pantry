@@ -84,6 +84,7 @@ export const DemoStore = {
   },
   async addPurchase(p) { const id = uid(); this.db.purchases.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
   async deletePurchase(id) { this.db.purchases = this.db.purchases.filter((x) => x.id !== id); this.persist(); },
+  async firstPurchaseYear() { const d = this.db.purchases.map((x) => x.purchased_at).sort()[0]; return d ? +String(d).slice(0, 4) : null; },
   async deletePurchasesByBatch(batch) { const n = this.db.purchases.filter((x) => x.import_batch === batch).length; this.db.purchases = this.db.purchases.filter((x) => x.import_batch !== batch); this.persist(); return n; },
 
   /* 房产 */
@@ -700,6 +701,8 @@ export const CloudStore = {
       .gte("purchased_at", from).lt("purchased_at", to).order("purchased_at").limit(10000)).map((x) => ({ ...x, category: canonCat(x.category) }));
   },
   async deletePurchase(id) { this.must(await this.sb.from("purchases").delete().eq("id", id)); },
+  /** 最早一笔花费的年份（花费页时间范围下拉的往年选项到这一年为止） */
+  async firstPurchaseYear() { const r = this.must(await this.sb.from("purchases").select("purchased_at").eq("household_id", this.hid).order("purchased_at").limit(1)); return r?.[0] ? +String(r[0].purchased_at).slice(0, 4) : null; },
   /** 撤销一批银行导入（迁移 034 的 import_batch 列）；返回删掉几笔 */
   async deletePurchasesByBatch(batch) { const r = this.must(await this.sb.from("purchases").delete().eq("household_id", this.hid).eq("import_batch", batch).select("id")); return (r || []).length; },
   async saveItem(it) {
