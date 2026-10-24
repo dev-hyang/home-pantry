@@ -161,8 +161,19 @@ main:focus, main:focus-visible, #main:focus-visible { outline: none !important; 
 input, select, textarea {
   width: 100%; padding: 9px 12px; border-radius: var(--r-sm); border: 1px solid var(--line);
   background: var(--surface); min-height: 40px;
+  font-weight: 500;   /* 表单标题是粗体，输入框里的字不跟着粗（手机上 16px 粗体的占位文字会显得很重） */
 }
 textarea { resize: vertical; }
+::placeholder { color: var(--muted); font-weight: 400; opacity: 1; }
+/* 勾选框 / 单选框：自己画，三个平台一个样。上面给所有输入框加的内边距、边框、背景在 iOS Safari 上会把原生勾选框撑成一个大方块，
+   所以这里去掉原生外观，用 18px 的小方块 + 对勾（radio 是圆点）；页面里另外自定义的（任务行的圆圈、分段按钮里隐藏的）会在后面覆盖这里 */
+input[type="checkbox"], input[type="radio"] { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; min-height: 0; padding: 0; margin: 0; box-sizing: border-box; flex: 0 0 auto; border: 1.5px solid var(--muted); border-radius: 5px; background: var(--surface); display: inline-grid; place-content: center; vertical-align: middle; cursor: pointer; color: var(--pine); }
+input[type="radio"] { border-radius: 50%; }
+input[type="checkbox"]:not(:where(.task-row > input, .tl-item > input))::before { content: ""; width: 10px; height: 10px; background: currentColor; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); transform: scale(0); }
+input[type="radio"]::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; transform: scale(0); }
+input[type="checkbox"]:checked, input[type="radio"]:checked { border-color: var(--pine); background: var(--ok-bg); }
+input[type="checkbox"]:checked::before, input[type="radio"]:checked::before { transform: scale(1); }
+input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cursor: default; }
 
 .badge { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 99px; white-space: nowrap; }
 .b-out { color: var(--out); background: var(--out-bg); }
