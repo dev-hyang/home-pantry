@@ -418,6 +418,8 @@ export function learnLimit(pid, id, field, value) {
 }
 const MODELS_CACHE = "hmh-ai-models";   // { provider: { ts, ids } }：这个 key 实际能用的模型，缓存一天
 /** 下拉框用的模型列表：有实际列表就以它为准（目录里有的带上限、没有的上限留空、已对这个 key 下线的标出来），查不到就只给目录 */
+/** 这个服务商的模型列表上次成功查到的时间（毫秒），没查过是 0 */
+export function modelsCachedAt(pid) { try { return JSON.parse(localStorage.getItem(MODELS_CACHE) || "{}")[pid]?.ts || 0; } catch { return 0; } }
 export async function listModels(pid, { refresh = false } = {}) {
   const cat = FREE_MODELS[pid] || [], s = aiSettings(), p = providerOf(pid), key = s.key.trim().replace(/^Bearer\s+/i, "");
   let cache = {}; try { cache = JSON.parse(localStorage.getItem(MODELS_CACHE) || "{}"); } catch { /* 忽略 */ }

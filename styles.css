@@ -826,6 +826,8 @@ html.force-phone .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr));
 .ai-page .chips .chip { text-decoration: none; color: var(--ink); }
 .ai-sites { margin-top: 12px; }
 .adv { margin-top: 10px; }
+.model-refresh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.model-refresh small { flex: 1; min-width: 12em; color: var(--muted); }
 .adv summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--pine); }
 .quota-box { margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: var(--r-md); }
 .quota-box legend { font-weight: 800; font-size: 14px; padding: 0 4px; }

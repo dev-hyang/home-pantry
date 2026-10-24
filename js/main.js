@@ -46,7 +46,7 @@ import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
 import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, newCatKey } from "./core/categories.js";
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
-import { aiReady, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
+import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
 import { applySpendDrill, cleanStore, clearSpendFilter, download, exportAnnual, rememberStore, renderSpendList, renderSpendRecords, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
 
@@ -872,7 +872,11 @@ main.addEventListener("click", async (e) => {
       case "ai-copy-general": return copyGeneralPrompt($("#aiPageForm"));
       case "ai-copy-answer": return copyAnswer();
       case "ai-notice-dismiss": dismissAiChanges(el.dataset.provider); document.getElementById("modelNotices")?.querySelector(".notice-box")?.remove(); return;
-      case "ai-models-refresh": toast(t("正在查…")); await hydrateModelSelect({ refresh: true }); return toast(t("已刷新"));
+      case "ai-models-refresh": {
+        if (!aiSettings().key.trim() && aiSettings().provider !== "openrouter") return toast(t("先填好并保存 API key，才能查这个 key 能用的模型"));
+        toast(t("正在查…")); const ok = await hydrateModelSelect({ refresh: true });
+        return toast(ok ? t("已刷新") : t("没查到新列表（网络或 key 有问题），先用上次的"));
+      }
       case "ai-marks-clear": clearModelMarks(); toast(t("已清除，下次会重新试这些模型")); return render();
       case "ai-usage-reset": resetUsage(el.dataset.provider); toast(t("已重置本机的调用计数")); return render();
       case "ai-clear-adv": { const f = $("#aiSettingsForm"); if (f) { f.elements.model.value = ""; f.elements.base.value = ""; if (f.elements.rpm) { f.elements.rpm.value = ""; f.elements.rpd.value = ""; } await saveAiForm(f); } toast(t("已清掉，改用内置默认")); return render(); }

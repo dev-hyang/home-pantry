@@ -6,6 +6,7 @@ import { LANGS, detectLang, glossaryOf, langOverride, t } from "../core/i18n.js"
 import { propertyForm } from "../house/property-form.js";
 import { href } from "../core/router.js";
 import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings, autoModel, effective, providerOf, quotaStatus, saveAiSettings, deadModels, blockedModels, FREE_MODELS, FREE_MODELS_AS_OF, aiChanges, catalogAgeDays, listModels, modelInfo } from "../core/ai.js";
+import { modelsCachedAt } from "../core/ai.js";
 import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
 import { viewPrintSettings } from "./print.js";
 import { incomePanel } from "./income.js";
@@ -206,7 +207,8 @@ function modelField(s, p) {
   if (!FREE_MODELS[p.id]) return `<label>${t("模型名（留空用默认）")}<input name="model" maxlength="80" placeholder="${esc(autoModel(p.id) || p.model)}" value="${esc(s.model)}"></label>`;
   const cur = s.model || "", list = FREE_MODELS[p.id].filter((m) => m.free !== false).map((m) => ({ ...m, live: false })), custom = !!cur && !list.some((m) => m.id === cur) && !(autoModel(p.id) === cur);
   return `<label class="span-2">${t("模型")}<select name="modelSel" data-provider="${p.id}">${modelOptionsHtml(p.id, list, cur, custom)}</select>
-      <small id="modelLimitHint">${limitHint(p.id, custom ? "" : cur)}</small><small id="modelListNote" class="muted">${t("正在查这个 key 实际能用的模型…")}</small></label>
+      <small id="modelLimitHint">${limitHint(p.id, custom ? "" : cur)}</small></label>
+    <div class="span-2 model-refresh"><button type="button" class="btn btn-sm btn-ghost" id="modelRefreshBtn" data-action="ai-models-refresh">↻ ${t("刷新模型列表")}</button><small id="modelListNote" class="muted">${t("正在查这个 key 实际能用的模型…")}</small></div>
     <div class="span-2" id="modelNotices">${modelNotices(p.id, cur, null)}</div>
     <label class="span-2" id="modelCustomWrap" ${custom ? "" : "hidden"}>${t("模型名（照服务商控制台里的写）")}<input name="model" maxlength="80" placeholder="${esc(p.model)}" value="${esc(cur)}"></label>`;
 }
@@ -221,19 +223,23 @@ export function modelNotices(pid, cur, live) {
   if (cur && live && !live.some((m) => m.id === cur && m.live)) rows.push(`⚠️ ${t("你选的 {m} 已不在这个 key 的可用列表里，会自动换别的模型；建议改选“自动”或另一个。", { m: esc(cur) })}`);
   const ageTxt = FREE_MODELS[pid] ? t("免费上限目录更新于 {d}（{n} 天前）", { d: FREE_MODELS_AS_OF, n: age }) + (age > 45 ? `，${t("可能已过期，上限以控制台为准")}` : "") : "";
   return `${rows.length ? `<div class="notice-box" role="status">${rows.map((r) => `<p>${r}</p>`).join("")}<button type="button" class="btn btn-sm btn-ghost" data-action="ai-notice-dismiss" data-provider="${pid}">${t("知道了")}</button></div>` : ""}
-    ${ageTxt ? `<p class="muted" style="margin:6px 0 0;font-size:12.5px">${ageTxt} · <button type="button" class="linkbtn" data-action="ai-models-refresh">${t("现在刷新模型列表")}</button></p>` : ""}`;
+    ${ageTxt ? `<p class="muted" style="margin:6px 0 0;font-size:12.5px">${ageTxt}</p>` : ""}`;
 }
 /** 画出设置页后：后台查实际可用的模型，把下拉换成真实列表（选中项不变） */
 export async function hydrateModelSelect({ refresh = false } = {}) {
-  const sel = document.querySelector("#aiSettingsForm [name=modelSel]"); if (!sel) return;
-  const pid = sel.dataset.provider, list = await listModels(pid, { refresh });
-  const sel2 = document.querySelector("#aiSettingsForm [name=modelSel]"); if (!sel2 || sel2.dataset.provider !== pid) return;
+  const sel = document.querySelector("#aiSettingsForm [name=modelSel]"); if (!sel) return false;
+  const pid = sel.dataset.provider, btn = document.getElementById("modelRefreshBtn"), before = modelsCachedAt(pid);
+  if (btn) btn.disabled = true;
+  let list; try { list = await listModels(pid, { refresh }); } finally { if (btn) btn.disabled = false; }
+  const sel2 = document.querySelector("#aiSettingsForm [name=modelSel]"); if (!sel2 || sel2.dataset.provider !== pid) return false;
   const shown = list.filter((m) => m.free !== false);   // 免费档额度为 0 的不列（Pro、2 Flash 等）
   const custom = sel2.value === "__custom", cur = sel2.form.elements.model.value.trim();
   sel2.innerHTML = modelOptionsHtml(pid, shown, cur, custom);
   const nb = document.getElementById("modelNotices"); if (nb) nb.innerHTML = modelNotices(pid, cur, list);   // 刚查到的列表可能带来新的“下线 / 新增”提醒
   const note = document.getElementById("modelListNote");
-  if (note) note.textContent = list.some((m) => m.live) ? t("列表是这个 key 实际能用的模型（每天查一次）；灰色的是已对这个 key 下线的。") : t("还没查到实际列表（填好 key 并保存后会查），先列常用的。");
+  const at = modelsCachedAt(pid), when = at ? new Date(at).toLocaleString(undefined, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+  if (note) note.textContent = list.some((m) => m.live) ? t("列表是这个 key 实际能用的模型（每天自动查一次，也可手动刷新；上次 {when}）；灰色的是已对这个 key 下线的。", { when }) : t("还没查到实际列表（填好 key 并保存后会查），先列常用的。");
+  return at > before;   // 这次真的查到了新列表
 }
 /** 下拉选了模型：同步到隐藏的模型名输入框，带入上限，自动保存 */
 export async function onModelPick(sel) {
