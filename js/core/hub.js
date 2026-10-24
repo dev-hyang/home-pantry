@@ -32,8 +32,16 @@ export const countBadge = (n, m, cls = "") => `<span class="badge mcount ${cls}"
 export const filledCount = (vals) => vals.filter((v) => v != null && v !== "" && v !== false && !(Array.isArray(v) && !v.length)).length;
 
 /** 页内标签条（三级导航）：链接形式，地址带 ?tab=，后退键、分享、刷新都保持在同一标签；手机上可横向滑动 */
-export const tabBar = (tabs, active, hrefOf, label) => `<nav class="subtabs" aria-label="${esc(label)}">${tabs.map(([id, name, icon]) =>
-  `<a href="${esc(hrefOf(id))}" class="subtab" ${id === active ? 'aria-current="page"' : ""}><span aria-hidden="true">${icon}</span> ${esc(t(name))}</a>`).join("")}</nav>`;
+export const tabBar = (tabs, active, hrefOf, label) => {
+  const link = ([id, name, icon], cls = "") => `<a href="${esc(hrefOf(id))}" class="subtab ${cls}" ${id === active ? 'aria-current="page"' : ""}><span aria-hidden="true">${icon}</span> ${esc(t(name))}</a>`;
+  const main = tabs.filter((x) => !x[4]), more = tabs.filter((x) => x[4]);
+  if (!more.length) return `<nav class="subtabs" aria-label="${esc(label)}">${tabs.map((x) => link(x)).join("")}</nav>`;
+  // 次要标签：宽屏收进「更多」菜单（当前页是次要标签时，按钮上显示它的名字并高亮）；窄屏横滑条里照常列出
+  const cur = more.find((x) => x[0] === active);
+  return `<nav class="subtabs has-more" aria-label="${esc(label)}">${main.map((x) => link(x)).join("")}${more.map((x) => link(x, "sec-inline")).join("")}
+    <details class="act-more subtab-more"><summary class="subtab" ${cur ? 'aria-current="page"' : ""}>${cur ? `<span aria-hidden="true">${cur[2]}</span> ${esc(t(cur[1]))}` : esc(t("更多"))} <span aria-hidden="true">▾</span></summary>
+      <div class="act-menu">${more.map(([id, name, icon]) => `<a class="act-item" href="${esc(hrefOf(id))}" ${id === active ? 'aria-current="page"' : ""}><span aria-hidden="true">${icon}</span> ${esc(t(name))}</a>`).join("")}</div></details></nav>`;
+};
 
 /** 窄屏的“入口行”：第一个标签下面列出其余标签，每行带图标和一句说明；宽屏隐藏（那里用标签条）。hrefOf 与 tabBar 共用 */
 export const tabHub = (tabs, hrefOf, title) => `<section class="section tabhub"><div class="section-head"><h2>${esc(title)}</h2></div>${hubList(tabs.filter((x) => x[3]).map(([id, name, icon, desc]) => hubRow({ href: hrefOf(id), icon, title: t(name), desc: esc(t(desc)) })))}</section>`;

@@ -335,8 +335,12 @@ textarea { resize: vertical; }
 
 /* ── 采购清单 ── */
 .add-row { display: grid; grid-template-columns: minmax(0, 1fr) 80px 90px 130px auto; gap: 8px; }
-.add-row.purchase-row { grid-template-columns: minmax(0, 1fr) 130px 120px 130px 140px auto auto; align-items: center; }
-.add-row.shop-row { grid-template-columns: minmax(0, 1fr) 80px 90px 130px 110px auto; }
+/* 补记花费：两行——第一行 名称 / 分类 / 所属行程，第二行 金额 / 商店 / 日期 / 退款 / 按钮（12 列栅格，电脑、iPad 都不会挤变形） */
+.add-row.purchase-row { grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: center; }
+.purchase-row .pr-name { grid-column: span 5; } .purchase-row .pr-cat { grid-column: span 4; } .purchase-row .pr-trip { grid-column: span 3; }
+.purchase-row .pr-amt { grid-column: span 4; } .purchase-row .pr-store { grid-column: span 4; } .purchase-row .pr-date { grid-column: span 4; }
+.purchase-row .pr-refund { grid-column: span 7; } .purchase-row .pr-go { grid-column: span 5; justify-self: end; min-width: 140px; }
+.add-row.shop-row { grid-template-columns: minmax(0, 1fr) 80px 90px 150px 110px auto; }
 .export-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .export-row select { width: auto; }
 .store-table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 13px; white-space: nowrap; }
@@ -345,7 +349,8 @@ textarea { resize: vertical; }
 .store-table .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 @media (max-width: 720px) {
   .add-row, .add-row.purchase-row, .add-row.shop-row { grid-template-columns: 1fr 1fr; }
-  .add-row > :first-child, .add-row .btn { grid-column: 1 / -1; }
+  .add-row > :first-child, .add-row .btn, .add-row.purchase-row .pr-name, .add-row.purchase-row .pr-go { grid-column: 1 / -1; justify-self: stretch; }
+  .add-row.purchase-row > :not(.pr-name):not(.pr-go) { grid-column: auto; }
 }
 .price-in { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 6px; margin-top: 8px; }
 .price-in input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 34px; padding: 4px 10px; font-size: 13px; }
@@ -1130,6 +1135,13 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .subtab:hover { color: var(--ink); background: var(--surface-2); }
 .subtab:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
 .subtab[aria-current="page"] { color: var(--ink); font-weight: 800; border-bottom-color: var(--mustard); }
+/* 「更多」：宽屏时次要标签收进菜单（菜单要伸出标签条，所以这里不横向滚动）；窄屏仍是横滑条，次要标签直接列在里面 */
+.subtab-more > summary { list-style: none; cursor: pointer; padding: 0 14px; min-height: 44px; display: inline-flex; align-items: center; gap: 5px; box-sizing: border-box; }
+.subtab-more > summary::-webkit-details-marker { display: none; }
+.subtab-more .act-menu { right: 0; left: auto; top: 100%; }
+.subtab-more .act-item[aria-current="page"] { font-weight: 800; background: var(--surface-2); }
+.subtabs.has-more .subtab-more { display: none; }
+@media (min-width: 641px) { .subtabs.has-more { overflow: visible; } .subtabs.has-more .sec-inline { display: none; } .subtabs.has-more .subtab-more { display: block; margin-left: auto; } }
 @media (max-width: 640px) { .subtab { padding: 0 12px; } }
 .range-row { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; margin: 0 0 12px; }
 .range-row .seg { margin: 0; }

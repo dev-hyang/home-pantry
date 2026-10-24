@@ -239,14 +239,14 @@ function spendRecordsTab() {
       <div class="section-head"><h2>${t("补记一笔花费")}</h2><p>${t("没走采购清单的，也可以记在这里")}</p></div>
       ${storeDatalist()}
       <form id="purchaseForm" class="panel add-row purchase-row">
-        <input name="name" required maxlength="60" placeholder="${t("买了什么，例如：超市采购")}" aria-label="${t("名称")}">
-        <select name="category" aria-label="${t("分类")}">${categoryOptions(undefined, { travel: true })}</select>
-        <input name="trip" maxlength="30" list="tripList" placeholder="${t("所属行程（旅行才填）")}" aria-label="${t("所属行程")}">${tripDatalist()}
-        <input name="amount" type="number" min="0" step="0.01" inputmode="decimal" required placeholder="${t("金额（{cur}）", { cur: Units.region.currency })}" aria-label="${t("金额")}">
-        <input name="store" maxlength="40" list="storeList" value="${esc(lastStore())}" placeholder="${t("商店（可不填）")}" aria-label="${t("商店")}">
-        <input name="date" type="date" value="${today}" max="${today}" aria-label="${t("日期")}">
-        <label class="check-inline" title="${esc(t("退货退款、报销收回：记成负数，统计里按净额算"))}"><input type="checkbox" name="refund"><span>${t("退款 / 报销")}</span></label>
-        <button class="btn btn-primary" type="submit">${t("记一笔")}</button>
+        <input class="pr-name" name="name" required maxlength="60" placeholder="${t("买了什么，例如：超市采购")}" aria-label="${t("名称")}">
+        <select class="pr-cat" name="category" aria-label="${t("分类")}">${categoryOptions(undefined, { travel: true })}</select>
+        <input class="pr-trip" name="trip" maxlength="30" list="tripList" placeholder="${t("行程（旅行）")}" aria-label="${t("所属行程")}">${tripDatalist()}
+        <input class="pr-amt" name="amount" type="number" min="0" step="0.01" inputmode="decimal" required placeholder="${t("金额（{cur}）", { cur: Units.region.currency })}" aria-label="${t("金额")}">
+        <input class="pr-store" name="store" maxlength="40" list="storeList" value="${esc(lastStore())}" placeholder="${t("商店（可不填）")}" aria-label="${t("商店")}">
+        <input class="pr-date" name="date" type="date" value="${today}" max="${today}" aria-label="${t("日期")}">
+        <label class="check-inline pr-refund" title="${esc(t("退货退款、报销收回：记成负数，统计里按净额算"))}"><input type="checkbox" name="refund"><span>${t("退款 / 报销")}</span></label>
+        <button class="btn btn-primary pr-go" type="submit">${t("记一笔")}</button>
       </form>
     </section>
     <section class="section" id="spendRecords">${spendRecordsHtml()}</section>`;

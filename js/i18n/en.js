@@ -1067,7 +1067,7 @@ export const EN = {
   "门票 / 景点 / 活动": "Tickets / attractions / activities",
   "旅行团 / 套餐": "Tours / packages",
   "其他旅行花费": "Other travel",
-  "所属行程（旅行才填）": "Trip (for travel only)",
+  "所属行程（旅行才填）": "Trip (for travel only)", "行程（旅行）": "Trip (travel)",
   "所属行程": "Trip",
   "旅行": "Travel",
   "查看明细": "View records",
