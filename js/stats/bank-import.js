@@ -90,7 +90,7 @@ function headerIndex(rows) {
 const NOISE = /\b(pos|debit card|purchase|authorized on|checkcard|recurring|payment to|sq \*|tst\*|sp \*|pp\*|paypal \*|ach|web id|ref|card ending|visa|mastercard|dda)\b/gi;
 /** 说明 → 商家显示名（去掉卡号 / 流水号 / 日期等噪音，最多 3 个词） */
 export function merchantName(desc) {
-  let s = String(desc || "").replace(/^\s*(sq|tst|sp|pp|py|dd|ub|pos|dbt)\s*\*\s*/i, " ").replace(/amzn\.com\/bill|amzn\.com/gi, " ").replace(/\d{2}\/\d{2}(\/\d{2,4})?/g, " ").replace(/\b\d{5,}\b/g, " ").replace(/[xX*#]{2,}\s*\d+/g, " ").replace(NOISE, " ").replace(/[#*]+/g, " ").replace(/\s+/g, " ").trim();
+  let s = String(desc || "").replace(/^\s*(sq|tst|sp|pp|py|dd|ub|pos|dbt)\s*\*\s*/i, " ").replace(/amzn\.com\/bill|amzn\.com/gi, " ").replace(/\d{2}\/\d{2}(\/\d{2,4})?/g, " ").replace(/\b\d{5,}\b/g, " ").replace(/[xX*#]{2,}\s*\d+/g, " ").replace(NOISE, " ").replace(/[#*]+/g, " ").replace(/\s+/g, " ").trim();
   // 纯数字、字母数字混杂的流水码（AB12、2X4R5、XY99）、州名缩写（IL、CA）不要——否则 AMAZON MKTPL*AB12 和 AMAZON MKTPL*2X4R5 会被当成两家，记住的归类也对不上
   s = s.split(" ").filter((w) => !/^\d+$/.test(w) && !(/\d/.test(w) && /[a-z]/i.test(w) && !/^\d+-[a-z]+$/i.test(w)) && !/^[A-Z]{2}$/.test(w)).slice(0, 3).join(" ");
   return (s || String(desc || "").trim()).slice(0, 40);
