@@ -48,15 +48,18 @@ export function viewToday() {
   const editing = !!state.quickEdit;
   const last = mine.length - 1;
   const tileBody = ([, ic, nm]) => `<span class="qtile-ico" aria-hidden="true">${ic}</span><span>${nm}</span>`;
-  const tileHtml = ([id, ic, nm], i) => `<div class="qwrap" data-qid="${esc(id)}">${id.startsWith("action:")
-      ? `<button type="button" class="qtile" data-action="quick-run" data-id="${esc(id)}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</button>`
-      : `<a class="qtile" href="${esc(quickHref(id))}" ${editing ? 'tabindex="-1"' : ""}>${tileBody([id, ic, nm])}</a>`}
-    ${editing ? `<button type="button" class="qdel" data-action="quick-del" data-id="${esc(id)}" aria-label="${esc(t("移除快捷操作：{name}", { name: nm }))}">×</button>
-      <span class="qmove">${i > 0 ? `<button type="button" data-action="quick-move" data-id="${esc(id)}" data-dir="-1" aria-label="${esc(t("{name} 往前移", { name: nm }))}">‹</button>` : ""}${i < last ? `<button type="button" data-action="quick-move" data-id="${esc(id)}" data-dir="1" aria-label="${esc(t("{name} 往后移", { name: nm }))}">›</button>` : ""}</span>` : ""}</div>`;
+  const tileHtml = ([id, ic, nm]) => `<div class="qwrap" data-qid="${esc(id)}">${editing
+      ? `<button type="button" class="qtile" data-action="quick-swap" data-id="${esc(id)}" aria-label="${esc(t("把「{name}」改成别的快捷操作", { name: nm }))}">${tileBody([id, ic, nm])}</button>`   // 编辑模式：点格子 = 改成别的；长按拖动排序
+      : id.startsWith("action:")
+        ? `<button type="button" class="qtile" data-action="quick-run" data-id="${esc(id)}">${tileBody([id, ic, nm])}</button>`
+        : `<a class="qtile" href="${esc(quickHref(id))}">${tileBody([id, ic, nm])}</a>`}
+    ${editing ? `<button type="button" class="qdel" data-action="quick-del" data-id="${esc(id)}" aria-label="${esc(t("移除快捷操作：{name}", { name: nm }))}">×</button>` : ""}</div>`;
   const taken = new Set(mine.map((x) => x[0]));
   const choices = PRESETS().filter(([id]) => !taken.has(id));
-  const addPanel = editing && state.quickAdd ? `<div class="panel quick-add"><label>${t("添加到快捷操作")}<select id="quickSel">${choices.map(([id, ic, nm]) => `<option value="${esc(id)}">${ic} ${esc(nm)}</option>`).join("")}</select></label>
-      <div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="quick-add" ${choices.length ? "" : "disabled"}>${t("添加")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="quick-open">${t("取消")}</button></div></div>` : "";
+  const swapId = editing ? state.quickSwap : null, swapping = swapId && mine.find((x) => x[0] === swapId);
+  const pickChoices = swapping ? [swapping, ...choices] : choices;   // 改成别的：当前这个也在选项里（选回它 = 不变）
+  const addPanel = editing && (state.quickAdd || swapping) ? `<div class="panel quick-add"><label>${swapping ? t("把「{name}」改成", { name: swapping[2] }) : t("添加到快捷操作")}<select id="quickSel">${pickChoices.map(([id, ic, nm]) => `<option value="${esc(id)}" ${swapping && id === swapId ? "selected" : ""}>${ic} ${esc(nm)}</option>`).join("")}</select></label>
+      <div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="${swapping ? "quick-swap-do" : "quick-add"}" ${pickChoices.length ? "" : "disabled"} ${swapping ? `data-id="${esc(swapId)}"` : ""}>${swapping ? t("改成这个") : t("添加")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="quick-open">${t("取消")}</button></div></div>` : "";
   const quick = mine.map(tileHtml).join("")
     + (editing && choices.length ? `<div class="qwrap"><button type="button" class="qtile qtile-add" data-action="quick-open" aria-expanded="${state.quickAdd ? "true" : "false"}"><span class="qtile-ico" aria-hidden="true">＋</span><span>${t("添加")}</span></button></div>` : "");
   const quickHead = `<div class="section-head"><h3 class="today-sub" style="margin:0">${t("快捷操作")}</h3><div class="head-acts">

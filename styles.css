@@ -870,10 +870,6 @@ html.force-phone .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr));
 .qwrap.is-dragging .qtile { border-style: solid; border-color: var(--pine); background: var(--surface); }
 body.quick-dragging { overflow-anchor: none; user-select: none; -webkit-user-select: none; }
 .quick-grid.is-editing .qwrap[data-qid] { cursor: grab; }
-.qmove { position: absolute; left: 4px; bottom: 4px; display: flex; gap: 2px; }
-.qmove button { width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--ink); font-size: 14px; line-height: 1; cursor: pointer; padding: 0; }
-.qmove button:hover { background: var(--mustard); color: var(--mustard-ink); }
-.qmove button:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
 /* 打印：只留内容，去掉顶栏、底部导航和各种按钮 */
 @media print {
   .topbar, .tabs, .toast, .skip, .head-acts, .form-actions, .btn, .crumb, .shop-qty button, .price-in, .acts, [data-action="shop-del"] { display: none !important; }

@@ -722,15 +722,12 @@ main.addEventListener("click", async (e) => {
         return render();
       }
       case "today-source": setTodayPref({ source: state.today.source === el.dataset.source ? null : el.dataset.source }); return render();
-      case "quick-edit": state.quickEdit = !state.quickEdit; state.quickAdd = false; return render();
-      case "quick-open": state.quickAdd = !state.quickAdd; return render();
+      case "quick-edit": state.quickEdit = !state.quickEdit; state.quickAdd = false; state.quickSwap = null; return render();
+      case "quick-open": if (state.quickSwap) state.quickSwap = null; else state.quickAdd = !state.quickAdd; return render();   // 「取消」：关掉改成 / 添加面板
+      case "quick-swap": state.quickSwap = state.quickSwap === el.dataset.id ? null : el.dataset.id; state.quickAdd = false; return render();   // 编辑模式点格子：改成别的快捷操作
+      case "quick-swap-do": { const h = $("#quickSel")?.value, list = quickList(), i = list.indexOf(el.dataset.id); if (h && i >= 0) { list[i] = h; await saveQuick([...new Set(list)]); } state.quickSwap = null; return render(); }
       case "quick-add": { const h = $("#quickSel")?.value; if (h) await saveQuick([...new Set([...quickList(), h])]); state.quickAdd = false; return render(); }
       case "quick-del": await saveQuick(quickList().filter((x) => x !== el.dataset.id)); return render();
-      case "quick-move": {
-        const list = quickList(), i = list.indexOf(el.dataset.id), j = i + +el.dataset.dir;
-        if (i < 0 || j < 0 || j >= list.length) return;
-        [list[i], list[j]] = [list[j], list[i]]; await saveQuick(list); return render();
-      }
       case "quick-reset": await saveQuick(DEFAULT_QUICK()); toast(t("已恢复默认快捷操作")); return render();
       case "quick-run": if (el.dataset.id === "action:print") go(`${href("me", "settings")}?sec=print`); return;   // 打印：进入 设置 → 打印
       case "print-run": return printSheet(el.dataset.kind, el.dataset.kind === "spend" ? { months: +($("#printRange")?.value || state.stats.months), useFilter: !!el.dataset.filtered } : $("#printProp")?.value || "all");
