@@ -15,7 +15,7 @@ import { bankImportTab } from "./bank-import.js";
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
 const BILL_CATS = () => BILLS_GROUP.cats();
-export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), ...TRAVEL_CATS, TRAVEL_GROUP, ...LIFE_CATS, LIFE_GROUP, VEHICLE_FUEL, MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" }, { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" }, { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" }, OTHER_CAT];
+export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), ...TRAVEL_CATS, TRAVEL_GROUP, ...LIFE_CATS, LIFE_GROUP, GROCERY_MISC, VEHICLE_FUEL, MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" }, { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" }, { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" }, OTHER_CAT];
 // 统计图里：储藏各分类单独显示，房屋耗材和设备维修保养合并为“房屋维护”、装备合并为“装备”、车辆维修保养为“车辆”各一组；
 // 账单按具体种类各一项（电费、燃气费、房贷…，只有有花费的才会出现在图里），同类账单同色相
 // 花费页有个“同一大类合并显示”开关（水电气网、住房、车…各合成一项，颜色少一些），选择记在本机；
@@ -24,12 +24,13 @@ const MERGE_KEY = "hmh-bill-merge";
 try { state.stats.billMerge = localStorage.getItem(MERGE_KEY) === "1"; } catch { state.stats.billMerge = false; }
 export const setBillMerge = (on) => { state.stats.billMerge = !!on; try { localStorage.setItem(MERGE_KEY, on ? "1" : "0"); } catch { /* 隐私模式下忽略 */ } };
 const billStatCats = (merge) => (merge ? [...BILLS_GROUP.families(), ...BILL_CATS().filter((c) => !BILLS_GROUP.familyOf(c.id))] : BILL_CATS());
-export const STAT_CATS = (merge = state.stats.billMerge) => [...CATEGORIES.filter((c) => c.space === "pantry"), HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, ...billStatCats(merge), TRAVEL_GROUP, LIFE_GROUP, MEDICAL_GROUP, OTHER_CAT];
+export const STAT_CATS = (merge = state.stats.billMerge) => [...CATEGORIES.filter((c) => c.space === "pantry"), GROCERY_MISC, HOUSE_GROUP, GEAR_GROUP, VEHICLE_GROUP, ...billStatCats(merge), TRAVEL_GROUP, LIFE_GROUP, MEDICAL_GROUP, OTHER_CAT];
 const isBill = (id) => String(id || "").startsWith("bill_");
 export const statCat = (id, merge = state.stats.billMerge) => {
   if (TRIP.isTravel(id)) return "travel";
   if (String(id).startsWith("life_")) return "life";   // 外出就餐、网购、服装、娱乐…统计里合并成“日常生活”一组
-  if (id === "vehicle_fuel") return "vehicle";   // 机票、住宿、门票、燃油…统计里合并成“旅行出行”一组
+  if (id === "vehicle_fuel") return "vehicle";
+  if (id === "grocery_misc") return id;   // 超市杂货（银行导入里没细分的）：统计里和日常储备各分类并排   // 机票、住宿、门票、燃油…统计里合并成“旅行出行”一组
   if (id === "medical") return id;   // 事件型账单的付款（虚拟花费，见 bills/medical.js）
   if (id === "pet_care") return "pet";   // 宠物账单（兽医、美容、寄养）并进“宠物”这一组
   if (id === "legal") return "other"; if (id === "project") return "house";   // 法律 / 税务并入“其他”，装修 / 项目并入“房屋维护”
@@ -44,7 +45,7 @@ export const statCat = (id, merge = state.stats.billMerge) => {
 const catMatches = (sel, category) => {
   if (sel === "bills") return isBill(category);
   if (sel.startsWith("billfam_")) return isBill(category) && BILLS_GROUP.familyOf(category) === sel;
-  if (isBill(sel) || TRIP.isTravel(sel) || String(sel).startsWith("life_") || sel === "vehicle_fuel") return category === sel;   // 具体的账单种类 / 旅行类型
+  if (isBill(sel) || TRIP.isTravel(sel) || String(sel).startsWith("life_") || sel === "vehicle_fuel" || sel === "grocery_misc") return category === sel;   // 具体的账单种类 / 旅行类型
   return statCat(category) === sel;
 };
 export const monthKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };
@@ -240,7 +241,7 @@ function spendRecordsTab() {
       ${storeDatalist()}
       <form id="purchaseForm" class="panel add-row purchase-row">
         <input class="pr-name" name="name" required maxlength="60" placeholder="${t("买了什么，例如：超市采购")}" aria-label="${t("名称")}">
-        <select class="pr-cat" name="category" aria-label="${t("分类")}">${categoryOptions(undefined, { travel: true })}</select>
+        <select class="pr-cat" name="category" aria-label="${t("分类")}">${categoryOptions(undefined, { spend: true })}</select>
         <input class="pr-trip" name="trip" maxlength="30" list="tripList" placeholder="${t("行程（旅行）")}" aria-label="${t("所属行程")}">${tripDatalist()}
         <input class="pr-amt" name="amount" type="number" min="0" step="0.01" inputmode="decimal" required placeholder="${t("金额（{cur}）", { cur: Units.region.currency })}" aria-label="${t("金额")}">
         <input class="pr-store" name="store" maxlength="40" list="storeList" value="${esc(lastStore())}" placeholder="${t("商店（可不填）")}" aria-label="${t("商店")}">
@@ -248,6 +249,7 @@ function spendRecordsTab() {
         <label class="check-inline pr-refund" title="${esc(t("退货退款、报销收回：记成负数，统计里按净额算"))}"><input type="checkbox" name="refund"><span>${t("退款 / 报销")}</span></label>
         <button class="btn btn-primary pr-go" type="submit">${t("记一笔")}</button>
       </form>
+      <p class="muted cat-hint">${t("分类怎么选：买回家吃的、用的（会用完）→ 日常储备；买回家长期用的 → 装备；花钱买体验或服务、没有东西留在家里 → 外出与服务。")}</p>
     </section>
     <section class="section" id="spendRecords">${spendRecordsHtml()}</section>`;
 }
@@ -369,7 +371,7 @@ function spendRow(p) {
 }
 /** 就地编辑：名称、分类、金额、商店、日期（数量和单位不动） */
 function spendEditRow(p) {
-  const day = String(p.purchased_at).slice(0, 10), opts = categoryOptions(p.category, { withOther: true, travel: true });   // 当前分类已在选项里时会自动选中
+  const day = String(p.purchased_at).slice(0, 10), opts = categoryOptions(p.category, { withOther: true, spend: true });   // 当前分类已在选项里时会自动选中
   const hasCat = opts.includes(`value="${p.category}"`);
   return `<li class="spend-edit"><form id="spendEditForm" data-id="${p.id}" class="form-grid" novalidate>
     <label class="span-2">${t("名称")}<input name="name" required maxlength="60" value="${esc(p.name)}"></label>

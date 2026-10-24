@@ -532,12 +532,13 @@ export function viewMeals() {
 }
 
 /** 分类下拉选项：储藏、房屋、装备分组显示 */
-export function categoryOptions(selected, { withOther = true, travel = false } = {}) {
+export function categoryOptions(selected, { withOther = true, spend = false } = {}) {
   const opt = (c) => `<option value="${c.id}" ${c.id === selected ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`;
-  return `<optgroup label="${t("日常储备")}">${catsOf("pantry").map(opt).join("")}</optgroup>
+  // 花钱分三种（别混）：日常储备 = 吃的用的会用完；装备 = 长期用的；外出与服务 = 买体验 / 服务。记花费的下拉（spend）才多出后两组和旅行
+  return `<optgroup label="${t(spend ? "日常储备（吃的用的，会用完，进库存）" : "日常储备")}">${catsOf("pantry").map(opt).join("")}${spend ? opt(window.GROCERY_MISC) : ""}</optgroup>
     <optgroup label="${t("房屋耗材")}">${catsOf("house").map(opt).join("")}${withOther ? opt(MAINT_CAT) : ""}</optgroup>
-    <optgroup label="${t("装备（只记数量和位置）")}">${catsOf("gear").map(opt).join("")}</optgroup>
-    ${travel ? `<optgroup label="${t("日常生活")}">${[...window.LIFE_CATS, window.VEHICLE_FUEL].map(opt).join("")}</optgroup>
+    <optgroup label="${t(spend ? "装备（长期用的耐用品：衣物、数码、家居…）" : "装备（只记数量和位置）")}">${catsOf("gear").map(opt).join("")}</optgroup>
+    ${spend ? `<optgroup label="${t("外出与服务（餐饮 · 娱乐 · 美容 · 健身 · 手续费，没有东西留在家里）")}">${[...window.LIFE_CATS, window.VEHICLE_FUEL].map(opt).join("")}</optgroup>
     <optgroup label="${t("旅行出行")}">${window.TRAVEL_CATS.map(opt).join("")}</optgroup>` : ""}
     ${withOther ? opt(OTHER_CAT) : ""}`;
 }

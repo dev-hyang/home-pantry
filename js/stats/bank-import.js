@@ -11,6 +11,9 @@ import { esc, money, num, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { categoryOptions } from "../pantry/views.js";
 import { meta, saveMeta } from "../bills/budget.js";
+import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
+import { compressImage } from "../core/autofill.js";
+import { aiExtract, chunkLines, looksOFX, looksQIF, parseStatementLines, pdfImages, pdfLines, readOFX, readQIF, readXLSX, redactLines } from "./statement-readers.js";
 
 let refreshFn = null;
 export const initBankImport = ({ refresh }) => { refreshFn = refresh; };
@@ -113,17 +116,17 @@ const RULES = [
   ["vehicle_maint", /jiffy lube|valvoline|firestone|pep boys|autozone|o'?reilly|napa auto|midas|discount tire|auto repair|汽车维修|保养/i],
   ["house_maint", /home depot|lowe'?s|menards|ace hardware|家得宝/i],
   ["medical", /hospital|clinic|medical|dental|dentist|quest diag|labcorp|urgent care|physician|optom|医院|诊所|牙科|体检/i], ["health", /\bcvs\b|walgreens|rite aid|pharmacy|药房|药店/i],
-  ["life_grocery", /costco|trader joe|whole foods|kroger|safeway|aldi|publix|wegmans|h ?mart|99 ranch|mitsuwa|jewel-?osco|mariano|meijer|food lion|giant|stop & shop|sprouts|\bheb\b|harris teeter|sam'?s club|instacart|超市|大华|永辉|盒马/i],
+  ["grocery_misc", /costco|trader joe|whole foods|kroger|safeway|aldi|publix|wegmans|h ?mart|99 ranch|mitsuwa|jewel-?osco|mariano|meijer|food lion|giant|stop & shop|sprouts|\bheb\b|harris teeter|sam'?s club|instacart|超市|大华|永辉|盒马/i],
   ["life_dining", /restaurant|cafe|coffee|starbucks|dunkin|mcdonald|chipotle|chick-?fil|panda express|subway|domino|pizza|taco|burger|bbq|grill|sushi|ramen|doordash|uber ?eats|grubhub|bakery|boba|tea\b|餐厅|饭店|外卖|美团|饿了么|咖啡|奶茶|麦当劳|肯德基/i],
-  ["life_clothes", /nordstrom|macy|old navy|\bgap\b|h&m|zara|uniqlo|nike|adidas|lululemon|tj ?maxx|marshalls|\bross\b|kohl|carter'?s|children'?s place|服装|优衣库/i],
+  ["gear_clothes", /nordstrom|macy|old navy|\bgap\b|h&m|zara|uniqlo|nike|adidas|lululemon|tj ?maxx|marshalls|\bross\b|kohl|carter'?s|children'?s place|服装|优衣库/i],
   ["life_care", /salon|barber|haircut|\bspa\b|nail|massage|sephora|ulta|beauty|waxing|理发|美容|美甲|按摩/i], ["life_fitness", /\bgym\b|fitness|peloton|yoga|crossfit|orangetheory|健身|瑜伽|游泳/i],
   ["life_fun", /cinema|\bamc\b|regal|movie|theater|theatre|steam|playstation|xbox|nintendo|ticketmaster|stubhub|bowling|arcade|museum|\bzoo\b|aquarium|电影|游戏|演出/i],
   ["life_gifts", /\bgift|florist|1-800-flowers|hallmark|party city|红包|礼物|礼金/i],
-  ["life_digital", /apple store|apple\.com|micro center|newegg|b&h|\bdell\b|lenovo|samsung|google store|数码|苹果/i], ["life_edu", /udemy|coursera|duolingo|khan|scholastic|barnes|bookstore|textbook|college board|课程|图书|书店/i],
+  ["gear_digital", /apple store|apple\.com|micro center|newegg|b&h|\bdell\b|lenovo|samsung|google store|数码|苹果/i], ["life_edu", /udemy|coursera|duolingo|khan|college board|课程/i], ["gear_study", /scholastic|barnes|bookstore|textbook|图书|书店/i],
   ["life_fees", /\bfee\b|interest charge|finance charge|annual membership|late fee|overdraft|foreign transaction|service charge|手续费|利息|年费|滞纳/i], ["life_mail", /usps|ups store|fedex|\bups\b|\bdhl\b|postage|快递|邮费|顺丰/i],
   ["life_shopping", /amazon|amzn|target|walmart|best ?buy|ikea|etsy|ebay|temu|shein|wayfair|淘宝|京东|拼多多|天猫/i],
 ];
-const BANK_CAT = [[/grocer/i, "life_grocery"], [/food|dining|restaurant/i, "life_dining"], [/gas|fuel/i, "vehicle_fuel"], [/automotive/i, "vehicle_maint"], [/travel|airline|hotel/i, "travel_other"],
+const BANK_CAT = [[/grocer/i, "grocery_misc"], [/food|dining|restaurant/i, "life_dining"], [/gas|fuel/i, "vehicle_fuel"], [/automotive/i, "vehicle_maint"], [/travel|airline|hotel/i, "travel_other"],
   [/shopping|merchandise/i, "life_shopping"], [/health|medical|pharmacy/i, "health"], [/entertainment/i, "life_fun"], [/home|improvement/i, "house_maint"], [/personal|beauty/i, "life_care"],
   [/education|book/i, "life_edu"], [/fee|interest/i, "life_fees"], [/gift|donation|charit/i, "life_gifts"]];
 
@@ -133,6 +136,7 @@ export function classify(row) {
   const key = keyOf(row.desc), d = row.desc.toLowerCase();
   const ur = userRules()[key]; if (ur) return ur;
   for (const b of state.bills || []) { const p = String(b.payee || b.name || "").toLowerCase(); if (p.length >= 4 && d.includes(p)) return `bill_${b.category}`; }
+  if (row.aiCat) return row.aiCat;   // AI 读对账单时给的分类（它看得到整份对账单的上下文）
   for (const [id, re] of RULES) if (re.test(row.desc)) return id;
   const g = TRIP.guess(row.desc, "");   // 机票、酒店、门票、租车…
   if (g && g !== "travel_dining" && g !== "travel_fuel") return g;
@@ -142,16 +146,28 @@ export function classify(row) {
 }
 
 /* ───────────── 把表格变成交易行 ───────────── */
-const S = { file: "", raw: null, headers: [], body: [], map: null, spendSign: "auto", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false };
+const S = { parts: [], spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "" };
 const cur = () => S.currency || Units.region.currency;
+let askFn = askText;   // 测试时可替换
+export const _setAsk = (fn) => { askFn = fn || askText; };
 
-function build() {
-  const { map, body } = S, rows = [];
-  const cell = (r, i) => (i >= 0 ? r[i] : "");
+/* 一个文件 = 一个 part：表格类（CSV / Excel）带列对应，其余直接是交易行 */
+function tablePart(name, kind, rows) {
+  const hi = headerIndex(rows);
+  if (hi < 0) return { name, kind, table: { headers: rows[0] || [], body: rows.slice(1), map: { date: -1, desc: -1, amount: -1, debit: -1, credit: -1, category: -1, type: -1 } }, rows: [], error: t("没认出日期和金额这两列，请在下面手动选一下对应的列。") };
+  const headers = rows[hi], body = rows.slice(hi + 1), map = detect(headers);
+  // 斜杠日期里有大于 12 的第一段 → 日 / 月 / 年
+  const firsts = body.slice(0, 200).map((r) => (r[map.date] || "").match(/^(\d{1,2})[/.-](\d{1,2})[/.-]\d{2,4}/)).filter(Boolean).map((m) => [+m[1], +m[2]]);
+  if (firsts.some(([a]) => a > 12) && !firsts.some(([, b]) => b > 12)) S.dmy = true;
+  return { name, kind, table: { headers, body, map }, rows: [] };
+}
+function tableRows(part) {
+  const { map, body } = part.table, rows = [], cell = (r, i) => (i >= 0 ? r[i] : "");
+  if (map.date < 0 || (map.amount < 0 && map.debit < 0 && map.credit < 0)) return rows;
   // 金额正负：一列金额时看哪一边占多数（支出多于入账）；借 / 贷两列时借方 = 支出
   let sign = S.spendSign;
   if (sign === "auto" && map.amount >= 0) { const v = body.map((r) => parseAmount(cell(r, map.amount))).filter((x) => x != null && x !== 0); sign = v.filter((x) => x < 0).length >= v.length / 2 ? "neg" : "pos"; }
-  S.autoSign = sign;
+  part.autoSign = sign;
   for (const r of body) {
     const date = parseDate(cell(r, map.date), S.dmy ? "dmy" : "mdy"), desc = cell(r, map.desc);
     if (!date) continue;
@@ -159,11 +175,46 @@ function build() {
     if (map.amount >= 0) { const a = parseAmount(cell(r, map.amount)); if (a == null) continue; out = sign === "neg" ? -a : a; }
     else { const dr = parseAmount(cell(r, map.debit)), cr = parseAmount(cell(r, map.credit)); if (dr == null && cr == null) continue; out = Math.abs(dr || 0) - Math.abs(cr || 0); }
     if (!out) continue;
-    const row = { date, desc: desc || "(无说明)", out: Math.round(out * 100) / 100, bankCat: cell(r, map.category), type: cell(r, map.type), skip: "" };
-    const typeTxt = `${row.type} ${row.desc}`;
-    if (SKIP.card_payment[0].test(typeTxt) || /^payment$/i.test(row.type)) row.skip = "card_payment";
-    else if (SKIP.transfer[0].test(typeTxt)) row.skip = "transfer";
-    else if (row.out < 0) row.skip = REFUND.test(typeTxt) ? "" : "income";   // 入账：退款算（负花费），其余是收入
+    rows.push({ date, desc: desc || "(无说明)", out: Math.round(out * 100) / 100, bankCat: cell(r, map.category), type: cell(r, map.type) });
+  }
+  return rows;
+}
+
+const IMG_EXT = /\.(png|jpe?g|webp|heic|heif|gif|bmp)$/i;
+async function readPart(file) {
+  const name = file.name, ext = (name.split(".").pop() || "").toLowerCase();
+  if (ext === "pdf" || file.type === "application/pdf") {
+    const buf = await file.arrayBuffer(), { lines, pages } = await pdfLines(buf), hasText = lines.some((l) => l.trim().length > 3);
+    return { name, kind: "pdf", lines, pages, buf, scan: !hasText, rows: hasText ? parseStatementLines(lines) : [], local: hasText };
+  }
+  if (IMG_EXT.test(name) || file.type.startsWith("image/")) return { name, kind: "image", file, rows: [], scan: true };
+  if (ext === "xlsx" || ext === "xls") return tablePart(name, "xlsx", await readXLSX(await file.arrayBuffer()));
+  const text = decode(await file.arrayBuffer());
+  if (looksOFX(text)) return { name, kind: "ofx", rows: readOFX(text) };
+  if (looksQIF(text)) return { name, kind: "qif", rows: readQIF(text) };
+  return tablePart(name, "csv", parseCSV(text));
+}
+/** 粘贴的文字：像表格（有表头）就当表格，否则当对账单文字行 */
+function pastePart(text) {
+  const rows = parseCSV(text);
+  if (headerIndex(rows) >= 0) return tablePart(t("粘贴的文字"), "paste", rows);
+  const lines = text.split(/\r?\n/).map((l) => l.trim());
+  if (looksOFX(text)) return { name: t("粘贴的文字"), kind: "ofx", rows: readOFX(text) };
+  return { name: t("粘贴的文字"), kind: "paste", lines, rows: parseStatementLines(lines), local: true };
+}
+
+/** 所有 part 的行合并 → 判跳过 / 归类 / 查重 / 按商家合并 */
+function rebuild() {
+  const all = [];
+  for (const p of S.parts) { if (p.table) p.rows = tableRows(p); all.push(...p.rows); }
+  const single = S.parts.length === 1 && S.parts[0].table ? S.parts[0] : null; S.autoSign = single?.autoSign || S.autoSign;
+  const rows = [];
+  for (const r0 of all) {
+    const row = { ...r0, skip: "" }, typeTxt = `${row.type} ${row.desc}`;
+    if (row.kind === "card_payment" || SKIP.card_payment[0].test(typeTxt) || /^payment$/i.test(row.type)) row.skip = "card_payment";
+    else if (row.kind === "transfer" || SKIP.transfer[0].test(typeTxt)) row.skip = "transfer";
+    else if (row.kind === "income") row.skip = "income";
+    else if (row.out < 0) row.skip = row.kind === "refund" || REFUND.test(typeTxt) ? "" : "income";   // 入账：退款算（负花费），其余是收入
     row.refund = row.out < 0 && !row.skip;
     row.key = keyOf(row.desc); row.cat = row.skip ? "" : classify(row);
     rows.push(row);
@@ -177,7 +228,6 @@ function build() {
     if (hit) { hit.used = true; r.dup = true; }
   }
   S.rows = rows;
-  // 按商家合并
   const g = new Map();
   for (const r of rows) {
     const id = r.skip ? `__${r.skip}` : r.key;
@@ -187,16 +237,43 @@ function build() {
   S.groups = [...g.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
   for (const x of S.groups) { if (!(x.id in S.pick)) S.pick[x.id] = x.skip ? "" : x.rows[0].cat; if (!(x.id in S.include)) S.include[x.id] = !x.skip; }
 }
+const resetPicks = () => { S.pick = {}; S.include = {}; };
 
-async function load(file) {
-  const rows = parseCSV(decode(await file.arrayBuffer()));
-  const hi = headerIndex(rows);
-  if (hi < 0) { S.raw = rows; S.headers = rows[0] || []; S.body = rows.slice(1); S.map = { date: -1, desc: -1, amount: -1, debit: -1, credit: -1, category: -1, type: -1 }; S.rows = []; S.groups = []; S.file = file.name; S.error = t("没认出日期和金额这两列，请在下面手动选一下对应的列。"); return; }
-  S.error = ""; S.raw = rows; S.headers = rows[hi]; S.body = rows.slice(hi + 1); S.map = detect(S.headers); S.file = file.name; S.pick = {}; S.include = {}; S.last = null; S.spendSign = "auto";
-  // 斜杠日期里有大于 12 的第一段 → 日 / 月 / 年
-  const firsts = S.body.slice(0, 200).map((r) => (r[S.map.date] || "").match(/^(\d{1,2})[/.-](\d{1,2})[/.-]\d{2,4}/)).filter(Boolean).map((m) => [+m[1], +m[2]]);
-  S.dmy = firsts.some(([a]) => a > 12) && !firsts.some(([, b]) => b > 12);
-  build();
+async function ingest(files) {
+  S.error = ""; S.last = null;
+  for (const f of files) {
+    try { S.parts.push(await readPart(f)); }
+    catch (err) { S.error = t("读不了 {name}：{msg}", { name: f.name, msg: err.message }); }
+  }
+  resetPicks(); rebuild();
+}
+
+/* ───────────── AI 解析（PDF 对账单 / 截图 / 扫描件 / 粘贴的文字） ───────────── */
+const catalog = () => {
+  const cats = [...window.CATEGORIES.filter((c) => c.space === "pantry" || c.space === "gear"), window.GROCERY_MISC, ...window.LIFE_CATS, window.VEHICLE_FUEL, { id: "vehicle_maint", name: "车辆维修保养" }, window.MAINT_CAT, ...window.TRAVEL_CATS, ...window.BILLS_GROUP.cats(), { id: "medical", name: "医疗" }, { id: "pet_care", name: "宠物医疗 / 服务" }];
+  return { text: cats.map((c) => `${c.id}=${t(c.name)}`).join("; "), ids: new Set(cats.map((c) => c.id)) };
+};
+async function aiParse(i) {
+  const p = S.parts[i]; if (!p || S.busy) return;
+  if (!aiReady()) return toast(t("还没填 API key，去 设置 → AI 助手 填一个（Gemini 有免费额度）"));
+  const s = aiSettings(), prov = t(providerOf(s.provider).name), imagesMode = p.scan || p.kind === "image";
+  if (imagesMode && !visionCapable(providerOf(s.provider))) return toast(t("{p} 不能读图片，这份文件需要能读图的模型（Gemini 可以）", { p: prov }));
+  const warn = imagesMode ? t("这份文件是图片 / 扫描件，会把页面图片原样发给 {p}（可能含姓名、账号等）。继续？", { p: prov })
+    : t("将把这份对账单里带日期或金额的行（已抹掉账号、卡号、邮箱、电话，没有姓名和地址）发给 {p} 来识别交易。继续？", { p: prov });
+  if (!confirm(warn)) return;
+  S.busy = true; S.error = ""; const { text, ids } = catalog(); let rows = [];
+  try {
+    if (imagesMode) {
+      const imgs = p.kind === "image" ? [await compressImage(p.file, 1800)] : await pdfImages(p.buf, 8);
+      for (let k = 0; k < imgs.length; k++) { S.status = t("AI 正在读第 {i} / {n} 页…", { i: k + 1, n: imgs.length }); redraw(); rows.push(...await aiExtract({ images: [imgs[k]], categories: text, ask: askFn, validIds: ids, hint: p.name })); }
+    } else {
+      const chunks = chunkLines(redactLines(p.lines || []));
+      for (let k = 0; k < chunks.length; k++) { S.status = t("AI 正在读第 {i} / {n} 段…", { i: k + 1, n: chunks.length }); redraw(); rows.push(...await aiExtract({ lines: chunks[k], categories: text, ask: askFn, validIds: ids, hint: p.name })); }
+    }
+    p.rows = rows; p.ai = true; p.scan = false; resetPicks(); rebuild();
+    S.status = ""; toast(rows.length ? t("AI 读出 {n} 笔交易，请核对", { n: rows.length }) : t("AI 没读出交易，换个文件或手动用 CSV 导入"));
+  } catch (err) { S.error = t("AI 解析失败：{msg}", { msg: err.message }); S.status = ""; }
+  S.busy = false; redraw();
 }
 
 /* ───────────── 界面 ───────────── */
@@ -204,7 +281,7 @@ const rangeOf = (rows) => { const d = rows.map((r) => r.date).sort(); return d.l
 const catOpts = (sel) => {
   const own = (cats) => cats.map((c) => `<option value="${c.id}" ${c.id === sel ? "selected" : ""}>${c.icon} ${esc(t(c.name))}</option>`).join("");
   const bills = window.BILLS_GROUP.cats().map((c) => ({ ...c, name: c.name }));
-  return `<option value="" ${!sel ? "selected" : ""}>${esc(t("— 请选择 —"))}</option>${categoryOptions(sel, { withOther: true, travel: true })}
+  return `<option value="" ${!sel ? "selected" : ""}>${esc(t("— 请选择 —"))}</option>${categoryOptions(sel, { withOther: true, spend: true })}
     <optgroup label="${esc(t("账单"))}">${own(bills)}</optgroup><optgroup label="${esc(t("其他"))}">${own([window.MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾" }])}</optgroup>`;
 };
 function groupRow(g) {
@@ -218,18 +295,37 @@ const chosen = () => {
   for (const g of S.groups) { if (!S.include[g.id] || !S.pick[g.id]) continue; for (const r of g.rows) { if (r.dup) continue; n++; sum += r.out; } }
   return { n, sum };
 };
+const KIND_ICON = { csv: "📄", xlsx: "📊", ofx: "🏦", qif: "🏦", pdf: "📕", image: "🖼️", paste: "📋" };
+function partsHtml() {
+  if (!S.parts.length) return "";
+  const ai = aiReady(), needsAiHint = S.parts.some((p) => ["pdf", "image", "paste"].includes(p.kind));
+  return `<ul class="restock-list bank-parts">${S.parts.map((p, i) => {
+    const how = p.ai ? t("AI 解析") : p.local ? t("本地规则") : p.table ? t("表格") : ["ofx", "qif"].includes(p.kind) ? p.kind.toUpperCase() : "";
+    const canAi = ["pdf", "image", "paste"].includes(p.kind);
+    return `<li><div class="grow"><span class="name">${KIND_ICON[p.kind] || "📄"} ${esc(p.name)}</span><small>${p.scan ? t("没有文字层的扫描件 / 图片，需要 AI 才能读") : t("读出 {n} 笔", { n: p.rows.length })}${how ? ` · ${how}` : ""}${p.pages ? ` · ${t("{n} 页", { n: p.pages })}` : ""}${p.error ? ` · <b class="bank-dup">${esc(p.error)}</b>` : ""}</small></div>
+      ${canAi ? `<button type="button" class="btn btn-sm ${p.scan ? "" : "btn-ghost"}" data-bank-act="ai" data-i="${i}" ${S.busy ? "disabled" : ""}>${p.ai ? t("用 AI 重新解析") : t("用 AI 解析")}</button>` : ""}
+      <button type="button" class="btn btn-sm btn-ghost" data-bank-act="rm" data-i="${i}" aria-label="${esc(t("移除"))}">✕</button></li>`;
+  }).join("")}</ul>${needsAiHint && !ai ? `<p class="muted" style="font-size:13px;margin:6px 0 0">${t("PDF / 截图本地规则读不准或读不了时，可以用 AI 解析：到 设置 → AI 助手 填 key（Gemini 有免费额度）。")}</p>` : ""}
+    ${S.status ? `<p role="status" class="muted" style="margin:6px 0 0">${esc(S.status)}</p>` : ""}`;
+}
 function panelHtml() {
   const hasRows = S.groups.length > 0, batches = meta("_bank_batches", []) || [];
-  const head = `<div class="panel bank-pick"><p style="margin:0 0 8px">${t("从银行或信用卡网站下载交易记录（CSV 格式），选中文件。文件只在你的浏览器里处理，不会上传；只有你确认的那几笔会存成花费。")}</p>
-    <label class="btn btn-primary btn-sm" style="cursor:pointer">${t("选择 CSV 文件")}<input type="file" id="bankFile" accept=".csv,text/csv,text/plain" hidden></label>
-    ${S.file ? `<span class="muted" style="margin-left:8px">${esc(S.file)}</span>` : ""}${S.error ? `<p class="form-error" role="alert">${esc(S.error)}</p>` : ""}</div>`;
-  if (!S.raw) return head + tipsHtml() + batchesHtml(batches);
-  const opt = (i, cur2, none) => `<option value="${i}" ${cur2 === i ? "selected" : ""}>${i < 0 ? esc(none || t("（无）")) : esc(S.headers[i] || `#${i + 1}`)}</option>`;
-  const cols = (key, label, none) => `<label>${label}<select data-bank-col="${key}">${[-1, ...S.headers.map((_, i) => i)].map((i) => opt(i, S.map[key], none)).join("")}</select></label>`;
-  const mapping = `<details class="panel bank-map"${S.error ? " open" : ""}><summary>${t("认出的列对不对？{n} 行，{range}", { n: S.rows.length, range: rangeOf(S.rows) })}</summary>
+  const head = `<div class="panel bank-pick"><p style="margin:0 0 8px">${t("从银行或信用卡网站下载对账单，选中文件：支持 CSV、Excel、OFX / QFX、QIF，以及 PDF 月结单、截图（PDF 先用本地规则读，读不准再用 AI）。可以一次选多个月。文件只在你的浏览器里处理；只有你点“用 AI 解析”才会把内容发给你设置的模型。")}</p>
+    <label class="btn btn-primary btn-sm" style="cursor:pointer">${t("选择文件（可多选）")}<input type="file" id="bankFile" multiple accept=".csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx,.qif,.pdf,image/*,text/csv,text/plain,application/pdf" hidden></label>
+    <details class="bank-paste" style="margin-top:8px"><summary>${t("或者直接粘贴文字")}</summary><textarea id="bankPaste" rows="5" placeholder="${esc(t("把网银页面或 PDF 里的交易几行直接复制粘贴到这里"))}" style="margin-top:6px"></textarea>
+      <div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-bank-act="paste">${t("读取这段文字")}</button></div></details>
+    ${partsHtml()}${S.error ? `<p class="form-error" role="alert">${esc(S.error)}</p>` : ""}</div>`;
+  if (!S.parts.length) return head + tipsHtml() + batchesHtml(batches);
+  const tp = S.parts.length === 1 && S.parts[0].table ? S.parts[0].table : null;
+  let mapping = "";
+  if (tp) {
+    const opt = (i, cur2, none) => `<option value="${i}" ${cur2 === i ? "selected" : ""}>${i < 0 ? esc(none || t("（无）")) : esc(tp.headers[i] || `#${i + 1}`)}</option>`;
+    const cols = (key, label, none) => `<label>${label}<select data-bank-col="${key}">${[-1, ...tp.headers.map((_, i) => i)].map((i) => opt(i, tp.map[key], none)).join("")}</select></label>`;
+    mapping = `<details class="panel bank-map"${S.parts[0].error ? " open" : ""}><summary>${t("认出的列对不对？{n} 行，{range}", { n: S.rows.length, range: rangeOf(S.rows) })}</summary>
     <div class="form-grid" style="margin-top:8px">${cols("date", t("日期"))}${cols("desc", t("商家 / 说明"))}${cols("amount", t("金额（一列）"))}${cols("debit", t("支出（借方）"))}${cols("credit", t("收入（贷方）"))}
       <label>${t("支出的正负")}<select data-bank-sign><option value="auto" ${S.spendSign === "auto" ? "selected" : ""}>${t("自动判断")}（${S.autoSign === "neg" ? t("支出是负数") : t("支出是正数")}）</option><option value="neg" ${S.spendSign === "neg" ? "selected" : ""}>${t("支出是负数")}</option><option value="pos" ${S.spendSign === "pos" ? "selected" : ""}>${t("支出是正数")}</option></select></label>
       <label>${t("日期顺序")}<select data-bank-dmy><option value="mdy" ${!S.dmy ? "selected" : ""}>${t("月/日/年")}</option><option value="dmy" ${S.dmy ? "selected" : ""}>${t("日/月/年")}</option></select></label></div></details>`;
+  }
   if (!hasRows) return head + mapping;
   const todo = S.groups.filter((g) => !g.skip && !S.pick[g.id]), auto = S.groups.filter((g) => !g.skip && S.pick[g.id]), skipped = S.groups.filter((g) => g.skip);
   const c = chosen();
@@ -246,6 +342,7 @@ function panelHtml() {
 const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("怎么归类？")}</h3><ul class="plain small" style="margin:0">
     <li>${t("只有一笔刷卡 / 扣款、没有小票也没关系：按商家名自动归类（超市、餐饮、加油、水电网、订阅、机票酒店…），认不出的你选一次，之后记住。")}</li>
     <li>${t("信用卡还款、账户之间转账、工资入账不是花费，默认跳过——否则会重复算一遍。")}</li>
+    <li>${t("分类怎么选：买回家吃的、用的（会用完）→ 日常储备；买回家长期用的 → 装备；花钱买体验或服务、没有东西留在家里 → 外出与服务。银行流水里看不出买了什么的，超市算“超市杂货”（归日常储备），网购算“网购 / 综合购物（未细分）”。")}</li>
     <li>${t("退款（卡上入账的退货）会记成负数花费，统计按净额算。")}</li>
     <li>${t("以前已经手动记过的花费（日期差 3 天内、金额一样）自动跳过，所以同一个文件导两次也不会重复。")}</li>
     <li>${t("导入错了可以整批撤销。银行的 CSV 格式很多，列认错了可以手动选；国内银行的 GBK 编码也认得。")}</li></ul></div>`;
@@ -271,12 +368,12 @@ async function doImport() {
     } catch (e) { failed++; }
   };
   for (let i = 0; i < picks.length; i += 6) await Promise.all(picks.slice(i, i + 6).map(one));   // 6 个一组并发，云端模式几百笔也不会太慢
-  const batch = { id: `b${Date.now().toString(36)}`, at: new Date().toISOString(), file: S.file, ids, sum: Math.round(sum * 100) / 100 };
+  const batch = { id: `b${Date.now().toString(36)}`, at: new Date().toISOString(), file: S.parts.map((x) => x.name).join(", ").slice(0, 60), ids, sum: Math.round(sum * 100) / 100 };
   try {
     const rules = { ...userRules(), ...learned }, keys = Object.keys(rules); if (keys.length > 400) keys.slice(0, keys.length - 400).forEach((k) => delete rules[k]);
     await saveMeta({ _bank_rules: rules, _bank_batches: [...(meta("_bank_batches", []) || []), ...(ids.length ? [batch] : [])].slice(-8) });
   } catch (e) { /* 记不住规则 / 撤销记录不影响已导入的花费 */ }
-  S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.raw = null; S.groups = []; S.rows = []; S.file = ""; S.pick = {}; S.include = {};
+  S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = "";
   toast(failed ? t("导入了 {n} 笔，{k} 笔失败", { n: ids.length, k: failed }) : t("已导入 {n} 笔", { n: ids.length }));
   if (refreshFn) await refreshFn(); else redraw();
   redraw();
@@ -293,13 +390,13 @@ async function undo(batchId) {
 /* ───────────── 事件（只处理 #bankImport 里面的） ───────────── */
 document.addEventListener("change", async (e) => {
   const root = e.target.closest && e.target.closest("#bankImport"); if (!root) return;
-  const el = e.target;
-  if (el.id === "bankFile") { const f = el.files?.[0]; if (!f) return; try { await load(f); } catch (err) { S.error = t("读不了这个文件：{msg}", { msg: err.message }); } return redraw(); }
+  const el = e.target, tp = S.parts.length === 1 && S.parts[0].table ? S.parts[0].table : null;
+  if (el.id === "bankFile") { const fs = [...(el.files || [])]; if (!fs.length) return; S.status = t("正在读取…"); redraw(); await ingest(fs); S.status = ""; return redraw(); }
   if (el.dataset.bankCat !== undefined) { S.pick[el.dataset.bankCat] = el.value; if (el.value) S.include[el.dataset.bankCat] = true; return redraw(); }
   if (el.dataset.bankInc !== undefined) { S.include[el.dataset.bankInc] = el.checked; return redraw(); }
-  if (el.dataset.bankCol !== undefined) { S.map[el.dataset.bankCol] = +el.value; S.pick = {}; S.include = {}; build(); return redraw(); }
-  if (el.dataset.bankSign !== undefined) { S.spendSign = el.value; S.pick = {}; S.include = {}; build(); return redraw(); }
-  if (el.dataset.bankDmy !== undefined) { S.dmy = el.value === "dmy"; S.pick = {}; S.include = {}; build(); return redraw(); }
+  if (el.dataset.bankCol !== undefined && tp) { tp.map[el.dataset.bankCol] = +el.value; S.parts[0].error = ""; resetPicks(); rebuild(); return redraw(); }
+  if (el.dataset.bankSign !== undefined) { S.spendSign = el.value; resetPicks(); rebuild(); return redraw(); }
+  if (el.dataset.bankDmy !== undefined) { S.dmy = el.value === "dmy"; resetPicks(); rebuild(); return redraw(); }
   if (el.dataset.bankRemember !== undefined) { S.remember = el.checked; }
 });
 document.addEventListener("click", (e) => {
@@ -307,4 +404,7 @@ document.addEventListener("click", (e) => {
   if (b.dataset.bankAct === "import") doImport();
   else if (b.dataset.bankAct === "undo") undo(b.dataset.batch);
   else if (b.dataset.bankAct === "undo-last" && S.last) undo(S.last.id);
+  else if (b.dataset.bankAct === "ai") aiParse(+b.dataset.i);
+  else if (b.dataset.bankAct === "rm") { S.parts.splice(+b.dataset.i, 1); resetPicks(); rebuild(); redraw(); }
+  else if (b.dataset.bankAct === "paste") { const v = document.getElementById("bankPaste")?.value.trim(); if (v) { S.parts.push(pastePart(v)); resetPicks(); rebuild(); redraw(); } }
 });

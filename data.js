@@ -23,6 +23,7 @@ window.GEAR_CATEGORIES = [
   { id: "gear_car",    name: "汽车装备", icon: "🚗", color: "#7a5c8e", loc: "车内",   subs: ["应急工具", "备胎", "车载电器", "车内收纳"] },
   { id: "gear_tools",  name: "工具",     icon: "🔧", color: "#8a6d3b", loc: "工具间", subs: ["手动工具", "电动工具", "五金配件", "梯子登高"] },
   { id: "gear_garden", name: "园艺工具", icon: "🌱", color: "#5a8f3f", loc: "车库",   subs: ["割草修剪", "浇水用品", "花盆土壤", "园艺手工具"] },
+  { id: "gear_digital", name: "数码电子", icon: "💻", color: "#4f7f9f", loc: "书房",   subs: ["电脑平板", "手机配件", "相机", "耳机音响", "游戏机", "智能家居", "充电线材"] },   // 买一次用很久的电子产品（银行流水里的 Apple / Best Buy 归这里）
   { id: "gear_study",  name: "图书与学习", icon: "📚", color: "#4a5fb0", loc: "卧室",   subs: ["图书绘本", "教材教辅", "乐器", "学习机电子", "运动器材"] },
 ].map((c) => ({ ...c, space: "gear" }));
 window.CATEGORIES.push(...window.GEAR_CATEGORIES);
@@ -46,21 +47,22 @@ window.TRAVEL_CATS = [
   { id: "travel_tour",    name: "旅行团 / 套餐",        icon: "🗺️", color: "#5b7fa6" },
   { id: "travel_other",   name: "其他旅行花费",         icon: "🧭", color: "#8a948f" },
 ];
-/* 日常生活消费：外出就餐、网购、服装、个人护理、健身、娱乐、礼物、数码、书本课程、银行手续费、邮寄……
- * 原来没有地方放的家庭开销（银行 / 信用卡导入里最常见）。花费分类 life_*，统计里合并成“日常生活”一组，
- * 预算里是单独一组“日常生活”（life_grocery 超市杂货算进“日常储备”）。车辆燃油 / 充电 / 洗车 = vehicle_fuel，归“车辆”。 */
-window.LIFE_GROUP = { id: "life", name: "日常生活", icon: "🛍️", color: "#8a5fb0" };
+/* 花钱分三种，别混：
+ *   日常储备 = 买回家吃的、用的、会用完的（食品、日用、药品、母婴、文具、宠物粮），进库存，少了提醒补货；
+ *   装备     = 买回家长期用的（家居、厨具、衣物、数码电子、工具、户外、图书），只记数量和位置，不提醒补货；
+ *   外出与服务 = 花钱买的是体验或服务、没有东西留在家里（外出就餐、娱乐、美容理发、健身、礼物、手续费、邮寄…）。
+ * 银行 / 信用卡导入里看不出买了什么的，超市杂货（grocery_misc）算日常储备，网购 / 综合购物（life_shopping）算外出与服务里的“未细分”。
+ * 花费分类 life_*，统计里合并成“外出与服务”一组，预算里也是单独一组。车辆燃油 / 充电 / 洗车 = vehicle_fuel，归“车辆”。 */
+window.LIFE_GROUP = { id: "life", name: "外出与服务", icon: "🛎️", color: "#8a5fb0" };
+window.GROCERY_MISC = { id: "grocery_misc", name: "超市杂货（未细分）", icon: "🛒", color: "#3f8f5a" };
 window.LIFE_CATS = [
-  { id: "life_grocery",  name: "超市 / 杂货（未细分）",   icon: "🛒", color: "#3f8f5a" },
   { id: "life_dining",   name: "外出就餐 / 外卖 / 咖啡", icon: "🍔", color: "#c0603a" },
-  { id: "life_shopping", name: "网购 / 综合购物",        icon: "📦", color: "#7a5c8e" },
-  { id: "life_clothes",  name: "服装鞋帽",               icon: "👕", color: "#b8576f" },
+  { id: "life_shopping", name: "网购 / 综合购物（未细分）", icon: "📦", color: "#7a5c8e" },
   { id: "life_care",     name: "个人护理 / 美容 / 理发", icon: "💇", color: "#d4694c" },
   { id: "life_fitness",  name: "运动健身",               icon: "🏋️", color: "#24897d" },
   { id: "life_fun",      name: "娱乐休闲（电影 / 游戏 / 演出）", icon: "🎬", color: "#5b7fa6" },
   { id: "life_gifts",    name: "礼物 / 节日 / 红包",     icon: "🎁", color: "#c75a85" },
-  { id: "life_digital",  name: "数码 / 电子产品",        icon: "💻", color: "#4f7f9f" },
-  { id: "life_edu",      name: "书本 / 课程 / 学习",     icon: "📖", color: "#2f6fb0" },
+  { id: "life_edu",      name: "课程 / 学习服务",        icon: "📖", color: "#2f6fb0" },
   { id: "life_fees",     name: "银行 / 手续费 / 利息",   icon: "🏦", color: "#8a948f" },
   { id: "life_mail",     name: "邮寄 / 快递",            icon: "📮", color: "#b07a1a" },
   { id: "life_other",    name: "其他生活开销",           icon: "🧺", color: "#8a948f" },
