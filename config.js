@@ -8,6 +8,7 @@ window.APP_CONFIG = {
   // 手机号短信验证码登录：需要先在 Supabase → Authentication → Providers → Phone 开启并接入短信服务商（见 README），再改为 true
   // 云盘备份（设置 → 备份与恢复）：填两个公开的客户端标识（不是密钥，和 anon key 一样可以放在网页里），留空时卡片提示「需要先填好」。申请步骤见 README「云盘备份」
   GOOGLE_CLIENT_ID: "84515417841-qgscfp9qnr11os6avv5cjqs9pjtgu3o3.apps.googleusercontent.com",   // Google Cloud Console → OAuth 2.0 客户端（Web 应用）；「已获授权的 JavaScript 来源」填站点地址
+  GOOGLE_API_KEY: "",     // Google Cloud Console → 凭据 → API 密钥（限制为 Google Picker API）；用于「在 Drive 里选文件夹」，留空就只能填路径
   DROPBOX_APP_KEY: "",    // Dropbox App Console → App key；Access type 选 App folder；Redirect URI 填站点地址（带结尾的 /）
   PHONE_LOGIN: false,
   // 邀请码直接进入（不发邮件 / 短信，匿名账号 + 邀请码加入家庭）：需要在 Supabase → Authentication → Sign In / Up 打开 Allow anonymous sign-ins

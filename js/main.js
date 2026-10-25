@@ -441,7 +441,7 @@ async function doBackup(targets, el) {
 }
 async function doRestore(el) {
   const pv = state.backupPreview; if (!pv?.ok || !pv.data) return;
-  if (!confirm(t("把备份（{d}，{n} 行）导回当前家庭「{h}」？同 id 的行会被文件里的覆盖。", { d: String(pv.exported_at).slice(0, 16).replace("T", " "), n: pv.rows, h: state.household?.name || t("演示家庭") }))) return;
+  if (!confirm(t("把备份（{d}，{n} 行）导回当前家庭「{h}」？只补缺的，已有的不动、不删。", { d: String(pv.exported_at).slice(0, 16).replace("T", " "), n: pv.rows, h: state.household?.name || t("演示家庭") }))) return;
   el.disabled = true; el.textContent = t("恢复中…");
   try {
     const r = await Backup.restore(pv.data, (tb) => { el.textContent = t("恢复中… {t}", { t: tb }); });
@@ -1030,6 +1030,8 @@ main.addEventListener("click", async (e) => {
       case "backup-use": try { const d = await Backup.SOURCES[el.dataset.src].read(el.dataset.id); state.backupPreview = { ...Backup.inspect(d), data: d, from: el.dataset.name }; } catch (err) { toast(t("读取失败：{msg}", { msg: err.message })); } return render(false);
       case "backup-rm": if (!confirm(t("删除备份 {n}？", { n: el.dataset.name }))) return; try { await Backup.SOURCES[el.dataset.src].del(el.dataset.id); } catch (err) { toast(t("删除失败：{msg}", { msg: err.message })); } refreshBackupUi(); return render(false);
       case "backup-gd-on": el.disabled = true; try { await Backup.DR.gdConnect(); Backup.saveSettings({ targets: [...new Set([...Backup.settings().targets, "gdrive"])] }); toast(t("已连接 Google Drive")); } catch (err) { toast(t("连接 Google Drive 失败：{msg}", { msg: err.message })); } refreshBackupUi(); return render(false);
+      case "backup-gd-pick": try { const fo = await Backup.DR.gdPickFolder(); if (fo) { Backup.saveSettings({ gdId: fo.id, gdName: fo.name }); toast(t("以后备份放到「{n}」", { n: fo.name })); } } catch (err) { toast(t("选文件夹失败：{msg}", { msg: err.message })); } refreshBackupUi(); return render(false);
+      case "backup-gd-clear": Backup.saveSettings({ gdId: "", gdName: "" }); refreshBackupUi(); return render(false);
       case "backup-gd-off": Backup.DR.gdDisconnect(); Backup.saveSettings({ targets: Backup.settings().targets.filter((x) => x !== "gdrive") }); refreshBackupUi(); return render(false);
       case "backup-dbx-on": try { await Backup.DR.dbxConnect(); } catch (err) { toast(t("连接 Dropbox 失败：{msg}", { msg: err.message })); } return;
       case "backup-dbx-off": await Backup.DR.dbxDisconnect(); Backup.saveSettings({ targets: Backup.settings().targets.filter((x) => x !== "dropbox") }); refreshBackupUi(); return render(false);

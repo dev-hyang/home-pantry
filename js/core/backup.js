@@ -25,9 +25,19 @@ export const TABLES = ["properties", "house_profiles", "custom_categories", "cus
 const PAGE = 1000;   // PostgREST 单次最多 1000 行，大表分页读
 
 /* ───────────── 设置（存本机：文件夹本来就是这台电脑的） ───────────── */
-const DEFAULTS = { every: "off", days: 14, targets: ["download"], provider: "any", gdPath: "", dbxPath: "", last: null, lastInfo: "" };
-export function settings() { try { return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(KEY) || "null") || {}) }; } catch { return { ...DEFAULTS }; } }
-export function saveSettings(patch) { const s = { ...settings(), ...patch }; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* 隐私模式 */ } return s; }
+const DEFAULTS = { every: "off", days: 14, targets: ["download"], provider: "any", gdPath: "", gdId: "", gdName: "", dbxPath: "", last: null, lastInfo: "" };
+/* 四个应用共用的部分（都在 dev-hyang.github.io 下，localStorage 互通）：多久备份、备份到哪、云盘、云盘令牌；各应用自己的：路径、上次备份时间 */
+const SHARED_KEY = "homeworks.backup.shared", SHARED = ["every", "days", "targets", "provider"];
+const lsLoad = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || "null") ?? d; } catch { return d; } };
+const lsSave = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* 隐私模式 */ } };
+const localPart = () => { const o = lsLoad(KEY, {}); SHARED.forEach((k) => delete o[k]); return o; };
+export function settings() { return { ...DEFAULTS, ...lsLoad(SHARED_KEY, {}), ...localPart() }; }
+export function saveSettings(patch) {
+  const sh = {}, loc = {}; for (const [k, v] of Object.entries(patch)) (SHARED.includes(k) ? sh : loc)[k] = v;
+  if (Object.keys(sh).length) lsSave(SHARED_KEY, { ...lsLoad(SHARED_KEY, {}), ...sh });
+  if (Object.keys(loc).length) lsSave(KEY, { ...localPart(), ...loc });
+  return settings();
+}
 export const intervalDays = (s = settings()) => (s.every === "week" ? 7 : s.every === "month" ? 30 : s.every === "custom" ? Math.max(1, +s.days || 14) : 0);
 /** 下次该备份的时间（关了返回 null） */
 export function nextDue(s = settings()) { const d = intervalDays(s); if (!d) return null; return s.last ? new Date(new Date(s.last).getTime() + d * 864e5) : new Date(); }
@@ -65,7 +75,7 @@ export function download(blob, name) {
 
 /* ───────────── 目标 2：这台电脑的文件夹（File System Access API：桌面 Chrome / Edge；手机和 Safari 没有） ───────────── */
 export const folderSupported = () => typeof window.showDirectoryPicker === "function";
-const IDB = "hmh-fs", IDB_STORE = "handles";
+const IDB = "homeworks-fs", IDB_STORE = "h";   // 四个应用共用一个文件夹（同一域名）
 function idb() { return new Promise((res, rej) => { const r = indexedDB.open(IDB, 1); r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
 async function idbGet(k) { try { const db = await idb(); return await new Promise((res, rej) => { const q = db.transaction(IDB_STORE).objectStore(IDB_STORE).get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); } catch { return null; } }
 async function idbSet(k, v) { try { const db = await idb(); await new Promise((res, rej) => { const tx = db.transaction(IDB_STORE, "readwrite"); if (v == null) tx.objectStore(IDB_STORE).delete(k); else tx.objectStore(IDB_STORE).put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch { /* 忽略 */ } }
@@ -138,9 +148,7 @@ export async function deleteCloud(name) { await bucket().remove([`${CloudStore.h
 
 /* ───────────── 云盘直连：Google Drive、Dropbox（代码在 cloud-drives.js，四个应用共用；在 config.js 填应用 key，见 README「云盘备份」）
    备份放在你在卡片里填的文件夹路径下（Drive 默认「爱家小助手备份」；Dropbox 相对应用文件夹），不往根目录随便放 ───────────── */
-const lsLoad = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || "null") ?? d; } catch { return d; } };
-const lsSave = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* 隐私模式 */ } };
-export const DR = createDrives({ googleClientId: window.APP_CONFIG?.GOOGLE_CLIENT_ID || "", dropboxAppKey: window.APP_CONFIG?.DROPBOX_APP_KEY || "", tokPrefix: KEY, defaultFolder: "爱家小助手备份", fileRe: FILE_RE, keepDays: KEEP_DAYS, t, load: lsLoad, save: lsSave, getPaths: () => ({ gd: settings().gdPath, dbx: settings().dbxPath }) });
+export const DR = createDrives({ googleClientId: window.APP_CONFIG?.GOOGLE_CLIENT_ID || "", googleApiKey: window.APP_CONFIG?.GOOGLE_API_KEY || "", dropboxAppKey: window.APP_CONFIG?.DROPBOX_APP_KEY || "", tokPrefix: "homeworks.backup", defaultFolder: "爱家小助手备份", fileRe: FILE_RE, keepDays: KEEP_DAYS, t, load: lsLoad, save: lsSave, getPaths: () => { const s = settings(); return { gd: s.gdPath, gdId: s.gdId, gdName: s.gdName, dbx: s.dbxPath }; } });   // 令牌前缀四个应用相同：连一次全连上
 /** 能列出 / 恢复的来源（文件夹和下载的备份通过「选备份文件」读回来） */
 export const SOURCES = {
   cloud: { icon: "🗄️", label: "应用云端", ready: () => Store.mode === "cloud" && !!CloudStore.hid, list: listCloud, read: readCloud, del: deleteCloud },
@@ -194,7 +202,7 @@ export function inspect(data) {
   return { ok: true, app: data.app, exported_at: data.exported_at, household: data.household?.name || "", mode: data.mode || "cloud", counts, rows: rowCount(data), sameHousehold: !data.household?.id || data.household.id === CloudStore.hid };
 }
 const chunks = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
-/** 导回当前家庭：同 id 的行覆盖，其余新增；household_id 一律换成当前家庭；导出者的 user id 换成现在登录的人。
+/** 导回当前家庭：只补缺的（已有同 id 的行不动，不覆盖不删除）；household_id 一律换成当前家庭；导出者的 user id 换成现在登录的人。
  *  返回 { done: {表: 行数}, skipped: {表: 行数}, errors: [[表, 原因]] } */
 export async function restore(data, onProgress = () => {}) {
   if (Store.mode === "demo") { DemoStore.db = data.db; DemoStore.persist(); DemoStore.load(); return { done: { demo: rowCount(data) }, skipped: {}, errors: [] }; }
@@ -215,7 +223,7 @@ export async function restore(data, onProgress = () => {}) {
     for (const k of ["created_by", "updated_by", "paid_by", "done_by", "claimed_by", "assigned_to", "holder_user_id", "owner"]) rows = rows.map((r) => (k in r ? { ...r, [k]: uid(r[k]) } : r));
     let n = 0;
     for (const part of chunks(rows, 200)) {
-      const q = tb === "stock_logs" ? sb.from(tb).insert(part) : sb.from(tb).upsert(part, { defaultToNull: false });
+      const q = tb === "stock_logs" ? sb.from(tb).insert(part) : sb.from(tb).upsert(part, { ignoreDuplicates: true });   // 只补缺的：已有同 id 的行不动
       const { error } = await q;
       if (error) { errors.push([tb, error.message]); break; }
       n += part.length;

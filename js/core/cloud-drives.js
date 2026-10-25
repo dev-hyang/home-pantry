@@ -1,27 +1,32 @@
 /* ============ 云盘直连：Google Drive、Dropbox ============
    四个应用共用同一份代码（各仓库各放一份拷贝），由各自的 backup.js 用 createDrives(cfg) 实例化。
+   - 令牌按 cfg.tokPrefix 存 localStorage：四个站点在同一个域名下，前缀相同就共用——在任一应用连接一次，其余都连上了。
    - Google：Identity Services 令牌流程（弹窗；令牌一小时，续期也要用户点一下，所以定时备份到期时会出现「继续备份」），
-     权限只有 drive.file（只看得到这个应用自己建的文件 / 文件夹）。备份放在你指定的文件夹路径里（如「备份/小月亮」，不存在就逐级建），
-     不再往 Drive 根目录随便放；路径改了就换到新文件夹。
-   - Dropbox：OAuth 2 PKCE，拿到 refresh token，定时备份可以静默续期。Access type 选 App folder 时根就是 Apps/<应用名>/，
-     路径相对它（可留空）。
-   - 都只在 js/config.js 填了公开的客户端标识后才可用；令牌存本机 localStorage，「断开」会吊销并清掉。
-   cfg = { googleClientId, dropboxAppKey, tokPrefix, defaultFolder, fileRe, keepDays, t, load, save, getPaths: () => ({ gd, dbx }) } */
+     权限只有 drive.file（只看得到这个应用自己建的、或用户在选择器里选给它的文件 / 文件夹）。
+     备份放哪：① 在 Drive 里「选文件夹」（Google Picker，需要 cfg.googleApiKey）——选用户自己建好的任意目录，如 备份/家庭/2026；
+              ② 或填一个路径（如「备份/小月亮」），不存在就逐级建。不再往 Drive 根目录随便放。
+   - Dropbox：OAuth 2 PKCE，拿到 refresh token，定时备份可以静默续期。Access type 选 App folder 时根就是 Apps/<应用名>/，路径相对它（可留空）。
+   - 都只在 config 里填了公开的客户端标识后才可用；「断开」会吊销并清掉令牌。
+   cfg = { googleClientId, googleApiKey, dropboxAppKey, tokPrefix, defaultFolder, fileRe, keepDays, t, load, save,
+           getPaths: () => ({ gd, gdId, gdName, dbx }) }   // gdId / gdName = 选择器选中的文件夹；有 gdId 就用它，否则按 gd 路径 */
 export function createDrives(cfg) {
   const { t } = cfg;
   const TOK = { gd: `${cfg.tokPrefix}.gdrive`, dbx: `${cfg.tokPrefix}.dropbox` };
   const tok = (k) => cfg.load(TOK[k], null), setTok = (k, v) => cfg.save(TOK[k], v);
   const gdConfigured = () => /\.apps\.googleusercontent\.com$/.test(cfg.googleClientId || "");
+  const gdPickerAvailable = () => gdConfigured() && !!cfg.googleApiKey && !/YOUR/.test(cfg.googleApiKey);
   const dbxConfigured = () => !!cfg.dropboxAppKey && !/YOUR/.test(cfg.dropboxAppKey);
   const gdOn = () => gdConfigured() && !!tok("gd"), dbxOn = () => dbxConfigured() && !!tok("dbx");
   const cutoff = () => new Date(Date.now() - cfg.keepDays * 864e5).toISOString().slice(0, 10);   // 文件名里的日期早于这天的清掉
   const clean = (p) => String(p || "").split("/").map((x) => x.trim()).filter(Boolean);
-  const gdSegs = () => { const s = clean(cfg.getPaths().gd); return s.length ? s : clean(cfg.defaultFolder); };
-  const dbxDir = () => { const s = clean(cfg.getPaths().dbx); return s.length ? `/${s.join("/")}` : ""; };
+  const paths = () => cfg.getPaths() || {};
+  const gdSegs = () => { const s = clean(paths().gd); return s.length ? s : clean(cfg.defaultFolder); };
+  const dbxDir = () => { const s = clean(paths().dbx); return s.length ? `/${s.join("/")}` : ""; };
 
   /* ---- Google Drive ---- */
+  const loadScript = (src) => new Promise((res, rej) => { if ([...document.scripts].some((x) => x.src === src)) return res(); const el = document.createElement("script"); el.src = src; el.onload = () => res(); el.onerror = () => rej(new Error(t("Google 组件加载失败"))); document.head.appendChild(el); });
   let gis = null;
-  function loadGis() { if (gis) return gis; gis = new Promise((res, rej) => { if (window.google?.accounts?.oauth2) return res(); const el = document.createElement("script"); el.src = "https://accounts.google.com/gsi/client"; el.onload = () => res(); el.onerror = () => rej(new Error(t("Google 组件加载失败"))); document.head.appendChild(el); }); return gis; }
+  function loadGis() { if (gis) return gis; gis = window.google?.accounts?.oauth2 ? Promise.resolve() : loadScript("https://accounts.google.com/gsi/client"); return gis; }
   async function gdToken(gesture) {
     const cur = tok("gd");
     if (cur && cur.exp > Date.now() + 60e3) return cur.access_token;
@@ -37,13 +42,15 @@ export function createDrives(cfg) {
     const at = await gdToken(gesture);
     const r = await fetch(url, { ...init, headers: { ...(init.headers || {}), Authorization: `Bearer ${at}` } });
     if (r.status === 401) { setTok("gd", { ...(tok("gd") || {}), exp: 0 }); throw new Error(gesture ? t("Google 登录已过期，请重新连接") : "NEED_GESTURE"); }
+    if (r.status === 404) throw new Error(t("Drive 里选的文件夹找不到了（被删或改了名）：重新选一个"));
     if (!r.ok) throw new Error(`Google Drive ${r.status}`);
     return r;
   }
   const GD_API = "https://www.googleapis.com/drive/v3/files", FOLDER = "application/vnd.google-apps.folder";
   const esc1 = (s) => s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-  /** 路径对应的文件夹 id：按段逐级找 / 建（只认这个应用自己建的，drive.file 权限看不到别的）；路径没变就用缓存 */
+  /** 备份放进哪个文件夹：选择器选过的直接用它的 id；否则按路径逐级找 / 建（只认这个应用自己建的）；路径没变就用缓存 */
   async function gdFolder(gesture) {
+    const p = paths(); if (p.gdId) return p.gdId;
     const segs = gdSegs(), key = segs.join("/"), cur = tok("gd");
     if (cur?.folder && cur.folderPath === key) return cur.folder;
     let parent = "root";
@@ -55,6 +62,18 @@ export function createDrives(cfg) {
       parent = id;
     }
     setTok("gd", { ...tok("gd"), folder: parent, folderPath: key }); return parent;
+  }
+  /** Google Picker：让用户在自己的 Drive 里选一个文件夹（选了就授权给这个应用）。必须在点击里调用；返回 { id, name } 或 null（取消） */
+  async function gdPickFolder() {
+    if (!gdPickerAvailable()) throw new Error(t("还没在 config 里填 GOOGLE_API_KEY（Picker 要用）"));
+    const token = await gdToken(true);
+    await loadScript("https://apis.google.com/js/api.js");
+    await new Promise((res, rej) => window.gapi.load("picker", { callback: res, onerror: () => rej(new Error(t("Google 组件加载失败"))) }));
+    return new Promise((res) => {
+      const view = new window.google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setIncludeFolders(true).setSelectFolderEnabled(true).setMimeTypes(FOLDER);
+      new window.google.picker.PickerBuilder().addView(view).setOAuthToken(token).setDeveloperKey(cfg.googleApiKey).setTitle(t("选一个放备份的文件夹"))
+        .setCallback((d) => { if (d.action === "picked" && d.docs?.[0]) res({ id: d.docs[0].id, name: d.docs[0].name }); else if (d.action === "cancel") res(null); }).build().setVisible(true);
+    });
   }
   async function gdList(gesture = false) {
     if (!gdOn()) return [];
@@ -132,7 +151,8 @@ export function createDrives(cfg) {
     try { const me = await (await dbxFetch("https://api.dropboxapi.com/2/users/get_current_account", dbxJSON(null))).json(); setTok("dbx", { ...tok("dbx"), email: me.email || "" }); } catch (e) { /* 邮箱只是显示用 */ }
     return true;
   }
-  /** 卡片上显示的路径文字 */
-  const gdPathText = () => gdSegs().join("/"), dbxPathText = () => `Apps/<app>${dbxDir()}`;
-  return { tok, gdConfigured, dbxConfigured, gdOn, dbxOn, gdConnect, gdDisconnect, gdList, gdWrite, gdRead, gdDelete, dbxConnect, dbxDisconnect, dbxList, dbxWrite, dbxRead, dbxDelete, initProviders, gdPathText, dbxPathText };
+  /** 卡片上显示的位置 */
+  const gdPathText = () => { const p = paths(); return p.gdId ? `📁 ${p.gdName || t("已选的文件夹")}` : gdSegs().join("/"); };
+  const dbxPathText = () => `Apps/<app>${dbxDir()}`;
+  return { tok, gdConfigured, gdPickerAvailable, dbxConfigured, gdOn, dbxOn, gdConnect, gdDisconnect, gdPickFolder, gdList, gdWrite, gdRead, gdDelete, dbxConnect, dbxDisconnect, dbxList, dbxWrite, dbxRead, dbxDelete, initProviders, gdPathText, dbxPathText };
 }
