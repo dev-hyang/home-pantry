@@ -136,12 +136,23 @@ const BANK_CAT = [[/grocer/i, "grocery_misc"], [/food|dining|restaurant/i, "life
   [/education|book/i, "life_edu"], [/fee|interest/i, "life_fees"], [/gift|donation|charit/i, "life_gifts"]];
 
 const userRules = () => meta("_bank_rules", {}) || {};
+/* 记住的规则：旧格式是 "商家": "分类"，新格式 "商家": { c: 分类, n: 用过几次, t: 最近用到的日期 }；两种都认。满 400 条时淘汰最久没用到的 */
+const ruleCat = (v) => (typeof v === "string" ? v : v?.c || "");
+const ruleUse = (v) => (typeof v === "string" ? { n: 0, t: "" } : { n: v?.n || 0, t: v?.t || "" });
+const todayStr = () => new Date().toISOString().slice(0, 10);
 /** 归类：你教过的 > 已有账单的收款方（金额也得像那条账单）> AI 给的 > 内置关键词（含旅行关键词）> 银行自带分类；都不认识返回 ""
  *  账单收款方那条原来太宽：Amazon Prime / Costco 会员建了账单后，所有 Amazon / Costco 的购物都被归成「会员」。
  *  现在要么金额和账单的通常金额对得上（±15%），要么这家商家内置关键词也认不出，才按账单归类 */
 // 以前记住的规则是按老的商家名存的（带流水码，如「costco gas 0123」）；商家名清理规则改过之后对不上了——把老键按同样的清理再比一次
 const normKey = (k) => String(k).split(" ").filter((w) => !/^\d+$/.test(w) && !(/\d/.test(w) && /[a-z]/i.test(w) && !/^\d+-[a-z]+$/i.test(w))).join(" ");
-const learnedFor = (key) => { const rules = userRules(); if (rules[key]) return rules[key]; const k = Object.keys(rules).find((x) => normKey(x) === key); return k ? rules[k] : ""; };
+const learnedKey = (key) => { const rules = userRules(); return rules[key] ? key : Object.keys(rules).find((x) => normKey(x) === key) || ""; };
+const learnedFor = (key) => { const k = learnedKey(key); return k ? ruleCat(userRules()[k]) : ""; };
+/** 内置关键词（含旅行关键词）现在会给这家商家什么分类；认不出返回 "" */
+const builtinCat = (key) => (RULES.find(([, re]) => re.test(key)) || [])[0] || TRIP.guess(key, "") || "";
+/** 多余的规则：你记的分类和内置关键词现在给的一样（删了结果不变，还省名额） */
+const redundantRules = () => Object.entries(userRules()).filter(([k, v]) => { const b = builtinCat(k); return b && canonCat(b) === canonCat(ruleCat(v)); }).map(([k]) => k);
+/** 90 天没用到的规则（旧格式没有日期，没法判断，不算） */
+const staleRules = () => { const cut = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10); return Object.entries(userRules()).filter(([, v]) => { const u = ruleUse(v); return u.t && u.t < cut; }).map(([k]) => k); };
 export function classify(row) { return classifyWhy(row).cat; }
 /** 同上，但带来源：learned（你教过的）/ bill / rule / ai / bank / ""。内置关键词认得的商家（Amazon、Costco、Shell…）优先于 AI 的猜测——AI 常把 Amazon 购物猜成会员 */
 export function classifyWhy(row) {
@@ -408,8 +419,9 @@ function rulesHtml() {
   const nameOf = (id) => { const c = [...window.CATEGORIES, ...window.BILLS_GROUP.cats(), ...window.LIFE_CATS, ...window.WORK_CATS, ...window.TRAVEL_CATS, window.GROCERY_MISC, window.VEHICLE_FUEL, window.MAINT_CAT, window.VEHICLE_CAT, window.MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾" }, window.OTHER_CAT].find((x) => x && x.id === id); return c ? `${c.icon} ${t(c.name)}` : id; };
   return `<details class="ref-panel panel" style="margin-top:10px"><summary><b>${t("记住的归类")}</b><small>${t("{n} 家商家", { n: keys.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
     <div class="ref-body"><p class="muted" style="margin:0 0 6px;font-size:12.5px">${t("导入时勾了「记住我选的归类」后，这些商家下次自动按这里归。归错了就删掉这一条（或在导入清单里改选，会记住新的）。")}</p>
-    <ul class="restock-list">${keys.sort().map((k) => `<li><div class="grow"><span class="name">${esc(k)}</span><small>${esc(nameOf(rules[k]))}</small></div><button type="button" class="btn btn-sm btn-ghost" data-bank-act="rule-del" data-key="${esc(k)}" aria-label="${esc(t("删除这条"))}">✕</button></li>`).join("")}</ul>
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm btn-ghost" data-bank-act="rules-clear">${t("全部清除")}</button></div></div></details>`;
+    <ul class="restock-list">${keys.sort((a, b) => ruleUse(rules[b]).t.localeCompare(ruleUse(rules[a]).t) || a.localeCompare(b)).map((k) => { const u = ruleUse(rules[k]); return `<li><div class="grow"><span class="name">${esc(k)}</span><small>${esc(nameOf(ruleCat(rules[k])))}${u.t ? ` · ${t("用过 {n} 次 · 最近 {d}", { n: u.n, d: u.t })}` : ""}</small></div><button type="button" class="btn btn-sm btn-ghost" data-bank-act="rule-del" data-key="${esc(k)}" aria-label="${esc(t("删除这条"))}">✕</button></li>`; }).join("")}</ul>
+    <div class="form-actions" style="margin-top:8px">${redundantRules().length ? `<button type="button" class="btn btn-sm" data-bank-act="rules-tidy" title="${esc(t("你记的分类和内置关键词现在给的一样，删了结果不变"))}">${t("清理多余规则（{n}）", { n: redundantRules().length })}</button>` : ""}${staleRules().length ? `<button type="button" class="btn btn-sm btn-ghost" data-bank-act="rules-stale">${t("清理 90 天没用到的（{n}）", { n: staleRules().length })}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="rules-clear">${t("全部清除")}</button></div>
+    <p class="muted" style="margin:6px 0 0;font-size:12px">${t("最多记 400 条，满了先淘汰最久没用到的。")}</p></div></details>`;
 }
 const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("怎么归类？")}</h3><ul class="plain small" style="margin:0">
     <li>${t("只有一笔刷卡 / 扣款、没有小票也没关系：按商家名自动归类（超市、餐饮、加油、水电网、订阅、机票酒店…），认不出的你选一次，之后记住。")}</li>
@@ -432,12 +444,13 @@ const redraw = () => { const el = document.getElementById("bankImport"); if (el)
 /* ───────────── 导入 / 撤销 ───────────── */
 async function doImport() {
   if (S.busy) return; S.busy = true; redraw();
-  const picks = [], learned = {};
+  const picks = [], learned = {}, hits = {};
   for (const g of S.groups) {
     if (!S.include[g.id]) continue; const cat = S.pick[g.id]; if (!cat) continue;
     for (const r of g.rows) { if (r.dup) continue; picks.push({ r, cat }); }
     // 只记你改过的（或原来认不出、你选了的）；自动归出来的不记，免得把归错的也「学」进去，以后一直错
     if (S.remember && !g.skip && cat && g.id.indexOf("__") !== 0 && cat !== S.auto[g.id]) learned[g.id] = cat;
+    else if (g.src === "learned" && cat === S.auto[g.id] && !g.skip) hits[g.id] = (hits[g.id] || 0) + g.rows.filter((r) => !r.dup).length;   // 靠记住的规则归对了
   }
   const ids = [], rowsDone = []; let sum = 0, failed = 0;
   const batchId = `b${Date.now().toString(36)}`;   // 每笔花费记上批次 id（迁移 034）；没执行迁移时退回只记 id 列表
@@ -461,7 +474,11 @@ async function doImport() {
   const batch = { id: batchId, at: new Date().toISOString(), file: S.parts.map((x) => x.name).join(", ").slice(0, 60), ids: tagged ? [] : ids, tagged, sum: Math.round(sum * 100) / 100, n: ids.length,
     account: acct ? acct.name : "", last4: acct ? acct.last4 : "", from: dates[0] || "", to: dates.at(-1) || "" };
   try {
-    const rules = { ...userRules(), ...learned }, keys = Object.keys(rules); if (keys.length > 400) keys.slice(0, keys.length - 400).forEach((k) => delete rules[k]);
+    const rules = { ...userRules() }, today = todayStr();
+    for (const [k, c] of Object.entries(learned)) { const old = rules[learnedKey(k)] || rules[k]; rules[k] = { c, n: ruleUse(old).n, t: today }; }   // 你这次改的：记下来（沿用以前的次数）
+    for (const [k, n] of Object.entries(hits)) { const lk = learnedKey(k); if (lk && !learned[lk] && !learned[k]) rules[lk] = { c: ruleCat(rules[lk]), n: ruleUse(rules[lk]).n + n, t: today }; }   // 这次靠规则归对的：用过 +1、更新最近日期
+    const keys = Object.keys(rules);
+    if (keys.length > 400) keys.map((k, i) => [k, ruleUse(rules[k]), i]).sort((a, b) => a[1].t.localeCompare(b[1].t) || a[1].n - b[1].n || a[2] - b[2]).slice(0, keys.length - 400).forEach(([k]) => delete rules[k]);   // 满了：先淘汰最久没用到的（旧格式没日期的最先）
     // 最近 60 批留着（查看 / 修改 / 撤销靠花费上的批次 id）；没执行迁移 034 的旧批次靠 id 列表，只有最近 6 批保留（免得预算设置里存太多）
     const all = [...(meta("_bank_batches", []) || []), ...(ids.length ? [batch] : [])].slice(-60).map((b, i, arr) => (!b.tagged && i < arr.length - 6 ? { ...b, ids: [], n: b.n ?? b.ids?.length ?? 0 } : b));
     await saveMeta({ _bank_rules: rules, _bank_batches: all, _bank_accounts: acctList.slice(-30) });
@@ -526,6 +543,10 @@ document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("#bankImport [data-bank-act]"); if (!b) return;
   if (b.dataset.bankAct === "import") doImport();
   else if (b.dataset.bankAct === "rule-del") { const rules = { ...userRules() }; delete rules[b.dataset.key]; saveMeta({ _bank_rules: rules }).then(() => { toast(t("已删除")); if (S.parts.length) { resetPicks(); rebuild(); } redraw(); }); }
+  else if (b.dataset.bankAct === "rules-tidy" || b.dataset.bankAct === "rules-stale") {
+    const list = b.dataset.bankAct === "rules-tidy" ? redundantRules() : staleRules();
+    if (list.length && confirm(t("删除这 {n} 条规则？{names}", { n: list.length, names: `\n${list.slice(0, 8).join("、")}${list.length > 8 ? "…" : ""}` }))) { const rules = { ...userRules() }; list.forEach((k) => delete rules[k]); saveMeta({ _bank_rules: rules }).then(() => { toast(t("已清理 {n} 条", { n: list.length })); if (S.parts.length) { resetPicks(); rebuild(); } redraw(); }); }
+  }
   else if (b.dataset.bankAct === "rules-clear") { if (confirm(t("清除全部记住的归类？下次导入这些商家会重新按关键词归类。"))) saveMeta({ _bank_rules: {} }).then(() => { toast(t("已清除")); if (S.parts.length) { resetPicks(); rebuild(); } redraw(); }); }
   else if (b.dataset.bankAct === "undo") undo(b.dataset.batch);
   else if (b.dataset.bankAct === "recover") recoverBatches();
