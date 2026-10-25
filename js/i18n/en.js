@@ -1457,5 +1457,11 @@ export const EN = {
   "今年": "This year",
   "拍小票识别": "Scan a receipt",
   "导入对账单": "Import statement",
+  "月份": "Month",
+  "整段（{r}）": "Whole period ({r})",
+  "{r}分类占比": "{r}: share by category",
+  "{month}各商店花费占比": "{month}: share by store",
+  "{r}各商店花费占比": "{r}: share by store",
+  "；账单、订阅、保险按收款方；名称不区分大小写": "; bills, subscriptions and insurance by payee; names are case-insensitive",
   "每天": "daily", "每分钟": "per-minute", "Google 返回的 {m} {f}上限是 {n} 次，目录里是 {w}，已按实际的更新。": "Google reports {m}'s {f} limit as {n}; the catalog said {w}. Updated to the real value.", "这个 key 的模型列表有变化：": "This key's model list changed:", "新增": "added", "下线": "retired", "你选的 {m} 已不在这个 key 的可用列表里，会自动换别的模型；建议改选“自动”或另一个。": "Your selected {m} is no longer on this key's available list; another model will be used automatically. Consider choosing Auto or another model.", "免费上限目录更新于 {d}（{n} 天前）": "Free-tier limits catalog last updated {d} ({n} days ago)", "可能已过期，上限以控制台为准": "may be out of date; the console is authoritative", "现在刷新模型列表": "Refresh model list now", "正在查…": "Checking…", "已刷新": "Refreshed",
 };
