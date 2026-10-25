@@ -271,7 +271,8 @@ const resetPicks = () => { S.pick = {}; S.include = {}; S.auto = {}; };
 /* ───────────── 账户（哪张卡 / 哪个账户）：每批导入记一个标签，用来看“哪个账户哪几个月已经补过” ─────────────
  * 账户列表 = 以前导入时建的（预算设置 _bank_accounts）+ 账单里有账号尾号 / 信用卡类的账单。不改数据库、不记到每一笔上。 */
 export function accounts() {
-  const cards = (state.cards || []).filter((c) => c.active !== false).map((c) => ({ id: `card:${c.id}`, name: c.name, last4: c.last4 || "", src: "card" }));   // 用卡模块里的卡：选它，这批花费就记到这张卡上
+  const icon = { checking: "🏦 ", savings: "🏦 ", wallet: "📱 " };
+  const cards = (state.cards || []).filter((c) => c.active !== false).map((c) => ({ id: `card:${c.id}`, name: `${icon[c.kind] || ""}${c.name}`, last4: c.last4 || "", src: "card" }));   // 用卡模块里的卡：选它，这批花费就记到这张卡上
   const own = (meta("_bank_accounts", []) || []).filter((a) => !(a.last4 && cards.some((c) => c.last4 === a.last4))).map((a) => ({ ...a, src: "own" }));
   const bills = (state.bills || []).filter((b) => b.category === "credit_card" || b.account_last4).map((b) => ({ id: `bill:${b.id}`, name: b.name, last4: String(b.account_last4 || "").slice(-4), src: "bill" }));
   const seen = new Set([...cards, ...own].map((a) => a.last4).filter(Boolean));

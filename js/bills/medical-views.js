@@ -10,6 +10,7 @@ import { MEDICAL_TABS, activeTab } from "../core/tabs.js";
 import { dq, download, lastMonths, monthLabel, toCsv } from "../stats/views.js";
 import { autofillBar } from "../core/autofill.js";
 import { kindsNote } from "./kinds.js";
+import { accountOptions, acctById, paymentPayLabel } from "./cards-views.js";
 import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, enrichMedical, findPerson, kindOf, mergeMedical, peopleFor, subIcon, subName } from "./medical.js";
 
 const cur = () => Units.region.currency;
@@ -176,10 +177,11 @@ function viewDetail(id, payId) {
 }
 /** 常用的付款方式（存中文标准词，显示时翻译；具体是哪张卡、哪个账户写在备注里）；旧记录里手填的方式保留成一个选项 */
 const METHODS = ["信用卡", "借记卡", "HSA 卡", "FSA 卡", "支票", "银行转账（ACH）", "网上支付", "电话支付", "现金", "其他"];
-const methodOptions = (cur) => `<option value="">${t("（未选）")}</option>${METHODS.map((m) => `<option value="${esc(m)}" ${m === cur ? "selected" : ""}>${esc(t(m))}</option>`).join("")}${cur && !METHODS.includes(cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}`;
+/** 付款方式下拉：先列我的卡 / 账户（选了就记到那张卡上，和花费记录一样），再列通用方式 */
+const methodOptions = (edit) => { const cur = edit?.card_id && acctById(edit.card_id) ? edit.card_id : edit?.method || ""; return `${accountOptions(cur, { none: "（未选）", extra: METHODS.map((m) => [m, m]) })}${cur && !METHODS.includes(cur) && !acctById(cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}`; };
 function paymentsHtml(b, edit, owed) {
   const rows = b.pays.map((p) => `<li class="med-pay${edit?.id === p.id ? " is-editing" : ""}" data-swipe-del="med-pay"><a class="badge pay-date" style="background:var(--surface-2)" href="${detailHref(b.id)}&pay=${p.id}" title="${esc(t("点一下编辑"))}">${esc(fmtDate(p.paid_on))}</a>
-      <div class="grow"><a class="link-name name" href="${detailHref(b.id)}&pay=${p.id}" title="${esc(t("点一下编辑"))}">${mny(p.amount, p.currency || b.currency)}</a><small>${[p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+      <div class="grow"><a class="link-name name" href="${detailHref(b.id)}&pay=${p.id}" title="${esc(t("点一下编辑"))}">${mny(p.amount, p.currency || b.currency)}</a><small>${[paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="med-pay-del" data-id="${p.id}">${t("删除")}</button></li>`).join("");
   const sumLine = owed == null ? t("还没填自付金额或总额，余额未知") : t("自付 {o} · 已付 {p} · 余额 {b}", { o: mny(owed, b.currency), p: mny(b.paid, b.currency), b: mny(b.balance, b.currency) });
   return `<div class="section-head"><h2>${t("付款记录")}</h2><p>${esc(sumLine)}</p></div>
@@ -188,7 +190,7 @@ function paymentsHtml(b, edit, owed) {
       <div class="form-grid">
         <label>${t("付款日期 Payment date")}<input name="paid_on" type="date" required value="${d(edit?.paid_on || todayISO())}" max="${todayISO()}"></label>
         <label>${t("金额（{cur}）", { cur: b.currency })}<input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required value="${edit ? Math.abs(num(edit.amount)).toFixed(2) : b.balance ? b.balance.toFixed(2) : ""}"></label>
-        <label>${t("付款方式")}<select name="method">${methodOptions(edit?.method)}</select></label>
+        <label>${t("付款方式 / 账户")}<select name="method">${methodOptions(edit)}</select></label>
         <label>${t("确认号 Confirmation #")}<input name="confirmation_ref" maxlength="60" value="${d(edit?.confirmation_ref)}"></label>
         <label class="check-inline span-2"><input type="checkbox" name="refund" ${edit && num(edit.amount) < 0 ? "checked" : ""}><span>${t("这是退款 / 保险事后理赔")}</span></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(edit?.notes)}" placeholder="${t("例如：网上缴费，Chase 信用卡尾号 1234 / 支票 #1022 / HSA（Fidelity）。卡只写后四位")}"></label>
@@ -223,7 +225,9 @@ export async function saveMedPayForm(f) {
   const fe = f.elements, err = $("#medPayError"), amount = amt(fe.amount);
   if (!amount || amount <= 0) { err.textContent = t("请填写大于 0 的金额。"); fe.amount.focus(); return false; }
   const b = state.medEnriched.find((x) => x.id === f.dataset.bill); if (!b) return false;
-  const row = { paid_on: fe.paid_on.value || todayISO(), amount: fe.refund?.checked ? -amount : amount, currency: b.currency, method: val(fe.method), confirmation_ref: val(fe.confirmation_ref), notes: val(fe.notes) };
+  const acct = acctById(fe.method.value), old = f.dataset.id ? state.medPayments.find((x) => x.id === f.dataset.id) : null;   // 选了卡 / 账户：card_id 记卡，method 记种类文字（导出 / 旧版本显示用）
+  const row = { paid_on: fe.paid_on.value || todayISO(), amount: fe.refund?.checked ? -amount : amount, currency: b.currency, method: acct ? ({ credit: "信用卡", debit: "借记卡", wallet: "网上支付" }[acct.kind] || "银行转账（ACH）") : val(fe.method), confirmation_ref: val(fe.confirmation_ref), notes: val(fe.notes),
+    ...(acct || old?.card_id ? { card_id: acct ? acct.id : null } : {}) };
   try {
     if (f.dataset.id) await Store.updateMedicalPayment(f.dataset.id, row); else await Store.addMedicalPayment({ ...row, bill_id: b.id });
     await reloadMedical(); toast(f.dataset.id ? t("已保存修改") : t("已记一笔付款"));

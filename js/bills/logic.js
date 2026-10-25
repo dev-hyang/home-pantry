@@ -94,8 +94,10 @@ export function enrichBills(bills, payments) {
     else if (daysLeft <= maxRem) status = "soon";
     else status = "ok";
     let cardDays = null;
-    if (b.autopay && b.autopay_card_expires) {
-      const [y, m] = b.autopay_card_expires.split("-").map(Number);
+    const payAcct = b.pay_card_id ? (state.cards || []).find((c) => c.id === b.pay_card_id) : null;   // 选了卡就按卡的到期年月（迁移 036）
+    const cardExp = payAcct ? (payAcct.expires_on || "").slice(0, 7) : b.autopay_card_expires;
+    if (b.autopay && cardExp) {
+      const [y, m] = cardExp.split("-").map(Number);
       cardDays = daysUntil(ymd(new Date(y, m, 0)));
     }
     const cardExpiring = cardDays != null && cardDays <= 45;

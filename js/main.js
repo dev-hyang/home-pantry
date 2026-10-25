@@ -42,7 +42,7 @@ import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyIt
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
-import { deleteBillPay, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
+import { deleteBillPay, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { moveCat, renderInvList, scoreRecipes, setShopOpen, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
@@ -388,7 +388,7 @@ initCompactFilters({ root: main, ui: uiKind });
 miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
 initSwipeRows({ kinds: ["budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase"], del: () => t("删除"), release: () => t("松手删除") });   // 行记录左滑删除（js/swipe-rows.js）
 /* 云端报错翻译：数据库还没升级到某个迁移时，PostgREST 只会说「找不到某列 / 某表」，这里换成告诉你该执行哪个迁移文件 */
-const MIGRATION_HINTS = [[/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/relation .*cards|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
+const MIGRATION_HINTS = [[/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/pay_card_id|bill_payments.*card_id|medical_payments.*card_id|cards_kind_check/i, "036_pay_accounts.sql", "付款账户（银行账户、账单扣款 / 缴费用的卡）"], [/relation .*\bcards\b|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
 function friendlyErr(msg) {
   const m = String(msg || "");
   for (const [re, file, what] of MIGRATION_HINTS) if (re.test(m)) return t("还没执行数据库迁移 {file}（{what}）：先在 Supabase → SQL Editor 里执行 supabase/migrations/{file}，再试一次。", { file, what });
@@ -476,13 +476,25 @@ main.addEventListener("change", async (e) => {
     return refresh();
   }
   if (e.target.id === "langSel") return changeLang(e.target.value || null);
-  if (e.target.matches("input[data-bill-autopay]")) {   // 清单里的自动扣款开关
-    const b = state.bills.find((x) => x.id === e.target.dataset.billAutopay);
+  if (e.target.matches("select[data-bill-pay]")) {   // 清单里的「怎么付」：自动扣款 · 某张卡 / 账户，或手动（可选默认账户 / 现金）
+    const b = state.bills.find((x) => x.id === e.target.dataset.billPay);
     if (!b) return;
+    const [mode, acct] = e.target.value.split(":"), autopay = mode === "auto";
+    const patch = { ...b, autopay, pay_channel: autopay ? "autopay" : (b.pay_channel === "autopay" ? "online" : b.pay_channel),
+      pay_card_id: acct && acct !== "cash" && acct !== "other" ? acct : null, autopay_method: acct === "cash" ? "现金" : acct === "other" ? b.autopay_method : null };
     e.target.disabled = true;
-    try { await Store.saveBill({ ...b, autopay: e.target.checked, pay_channel: e.target.checked ? "autopay" : (b.pay_channel === "autopay" ? "online" : b.pay_channel) }); toast(e.target.checked ? t("已标为自动扣款，到期前会提醒核对") : t("已改为手动缴费，到期前会提醒缴费")); }
+    try { await Store.saveBill(patch); toast(autopay ? t("已标为自动扣款，到期前会提醒核对") : t("已改为手动缴费，到期前会提醒缴费")); }
     catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
     return refresh();
+  }
+  if (e.target.matches('#cardForm select[name="kind"]')) {   // 用卡表单：换种类，只显示这种类有的字段
+    const k = e.target.value;
+    for (const el of e.target.form.querySelectorAll("[data-kind]")) el.hidden = !el.dataset.kind.split(" ").includes(k);
+    return;
+  }
+  if (e.target.matches("select[data-pay-acct]")) {   // 付款账户下拉：选了「其他」才显示说明框
+    const box = e.target.closest("form")?.querySelector("[data-pay-other]"); if (box) box.hidden = e.target.value !== "other";
+    return;
   }
   if (e.target.id === "billTrend") { state.billsFilter.trend = e.target.value; render(); }
   if (e.target.id === "billsToggle") {
@@ -579,6 +591,8 @@ main.addEventListener("submit", async (e) => {
       if (e2.card_id) patch.card_id = e2.card_id.value || null;
       if (day) patch.purchased_at = new Date(`${day}T12:00:00`).toISOString();
       await Store.updatePurchase(f.dataset.id, patch);
+      const bp = e2.card_id && state.billPayments.find((x) => x.purchase_id === f.dataset.id);   // 这笔是账单缴费记的花费：改了卡，缴费记录同步
+      if (bp && (bp.card_id || null) !== (patch.card_id || null)) await Store.updateBillPayment(bp.id, { card_id: patch.card_id || null }).catch(() => {});
       if (store) rememberStore(store);
       state.purchases = state.purchases.map((x) => (x.id === f.dataset.id ? { ...x, ...patch } : x));   // 先改内存里的，页面立刻是新的
       state.spendEdit = null; toast(t("已保存修改")); render(); return refresh();
@@ -761,6 +775,7 @@ main.addEventListener("click", async (e) => {
         { const back = await deleteBillPay(id); toast(back ? t("已删除这条记录，到期日回到 {d}", { d: fmtDate(back) }) : t("已删除这条记录")); }
         await refresh(); return render(true);
       case "bill-verify": el.disabled = true; await quickVerify(id); return refresh();
+      case "billpay-backfill": el.disabled = true; try { await backfillPayments(el.dataset.id); } catch (err) { toast(t("补标失败：{msg}", { msg: friendlyErr(err.message) })); } return refresh();
       case "bills-ics": return exportIcs();
       case "bills-csv": return exportBillsCsv();
       case "bills-filter": state.billsFilter[el.dataset.key] = el.dataset.val; return render();

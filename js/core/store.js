@@ -434,7 +434,7 @@ export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_pol
 export const MED_FIELDS = ["kind", "subkind", "provider", "patient", "patient_id", "guarantor", "guarantor_id", "bill_ref", "claim_ref", "insurer", "service_date", "bill_date", "due_on", "billed_amount", "insurance_paid", "adjustment", "patient_amount", "currency", "status", "hsa_eligible", "visibility", "notes"];
 export const CARD_FIELDS = ["name", "issuer", "network", "last4", "holder_user_id", "kind", "expires_on", "opened_on", "annual_fee", "fee_month", "credit_limit", "statement_day", "due_day", "autopay", "bill_id", "catalog_id", "rewards", "bonus", "credits", "rules_as_of", "active", "notes"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
-  "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "statement_channel",
+  "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "pay_card_id", "statement_channel",
   "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes"];
 export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", "subs", "hidden", "sort"];
 export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
@@ -665,8 +665,10 @@ export const CloudStore = {
   async saveBill(b) {
     const row = pick(b, BILL_FIELDS, { household_id: this.hid, updated_by: state.user.id });
     row.due_dates ||= []; row.reminder_days ||= [7, 1];
-    if (b.id) this.must(await this.sb.from("bills").update(row).eq("id", b.id));
-    else this.must(await this.sb.from("bills").insert(row));
+    const run = async () => (b.id ? this.sb.from("bills").update(row).eq("id", b.id) : this.sb.from("bills").insert(row));
+    let r = await run();
+    if (r.error && /pay_card_id/i.test(r.error.message) && !row.pay_card_id) { delete row.pay_card_id; r = await run(); }   // 还没执行迁移 036 且没选付款账户：照旧保存
+    this.must(r);
   },
   async addBills(list) {
     const rows = list.map((b) => { const r = pick(b, BILL_FIELDS, { household_id: this.hid, updated_by: state.user.id }); r.due_dates ||= []; r.reminder_days ||= [7, 1]; return r; });

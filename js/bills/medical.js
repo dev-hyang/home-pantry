@@ -112,7 +112,7 @@ export function medicalVirtuals() {
     const b = bills.get(p.bill_id);
     return { id: `med:${p.id}`, virtual: "medical", bill_id: b.id, name: b.kind === "travel" ? TRIP.tag(b.patient, b.provider) : `${t(kindOf(b).name)} · ${b.provider}`,
       category: b.kind === "pet" ? "pet_care" : b.kind === "travel" ? canonCat(`travel_${b.subkind || "other"}`) : b.kind || "medical", quantity: null, unit: null,
-      store: b.provider, amount: num(p.amount), currency: p.currency || b.currency, purchased_at: new Date(`${p.paid_on}T12:00:00`).toISOString(), created_by: p.paid_by };
+      store: b.provider, amount: num(p.amount), currency: p.currency || b.currency, purchased_at: new Date(`${p.paid_on}T12:00:00`).toISOString(), created_by: p.paid_by, card_id: p.card_id || null };
   });
 }
 /** 真实花费 + 虚拟的医疗付款：每次花费或医疗数据更新后调用 */

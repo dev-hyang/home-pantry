@@ -991,6 +991,12 @@ body.quick-dragging { overflow-anchor: none; user-select: none; -webkit-user-sel
 .badge.sub-kind { background: var(--surface-2); color: var(--pine); font-weight: 600; margin-right: 6px; vertical-align: 1px; }
 /* 分区子页：只显示当前块，其余 fieldset 隐藏但仍在表单里一起保存 */
 form fieldset[hidden] { display: none !important; }
+.form-grid label[hidden], .form-grid > div[hidden] { display: none !important; }   /* 用卡表单按种类隐藏的字段、付款账户的「其他」说明框 */
+.bill-pay-sel { width: auto; max-width: 260px; font-size: 12.5px; padding: 5px 24px 5px 8px; min-height: 0; }
+@media (max-width: 520px) { .bill-row { grid-template-columns: minmax(0, 1fr) auto; } .bill-row .bill-pay-sel { grid-column: 1 / -1; width: 100%; max-width: none; } }   /* 手机：怎么付的下拉独占一行，名字不被挤 */
+.card-net.net-bank { background: var(--pine); color: #fff; }
+.acct-add { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.acct-add .chip { text-decoration: none; }
 form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 #billForm .sub-only { display: none; }
 #billForm.is-sub .sub-only { display: grid; }

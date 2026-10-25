@@ -16,6 +16,7 @@ import { medRow } from "./medical-views.js";
 import { RECURRING_TABS, activeTab } from "../core/tabs.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
+import { acctById, acctLabel, accountOptions, billPayLabel, payAcctValue, paymentPayLabel, resolvePayAccount } from "./cards-views.js";
 
 const B = () => window.BILLS;
 const BADGE = { overdue: "b-out", due: "b-low", verify: "b-soon", soon: "b-soon", ok: "b-ok", escrow: "b-ok", none: "", ended: "", inactive: "" };
@@ -156,7 +157,7 @@ export function viewBillsOverview() {
       <div class="section-head"><h2>${t("未来 30 天")}</h2><p>${t("按到期日排列")}</p></div>
       <div class="panel">${next30.length ? `<ul class="restock-list">${next30.map(({ bill: b, due }) => `<li>
         <span class="badge" style="background:var(--surface-2)">${esc(fmtShort(`${due}T12:00:00`))}</span>
-        <div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a><small>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${b.autopay ? t("自动扣款") : t(B().CHANNELS[b.pay_channel] || "")}${b.assigned_to ? ` · ${esc(memberName(b.assigned_to) || "")}` : ""}</small></div>
+        <div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a><small>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${b.autopay ? t("自动扣款") : t(B().CHANNELS[b.pay_channel] || "")}${billPayLabel(b) ? ` · ${esc(billPayLabel(b))}` : ""}${b.assigned_to ? ` · ${esc(memberName(b.assigned_to) || "")}` : ""}</small></div>
         <b>${mny(b.est, b.currency)}</b></li>`).join("")}</ul>` : `<div class="empty"><strong>${t("30 天内没有到期的账单")}</strong></div>`}</div>
     </section>`;
 }
@@ -182,6 +183,16 @@ const billCrumb = (b, root, hubHref, cur) => crumbNav([...billTrail(b, root, hub
 const BILL_SORTS = [["category", "按分类分组"], ["due", "到期日：近 → 远"], ["amount", "金额：高 → 低"], ["name", "名称 A → Z"], ["updated", "最近更新"]];
 let billInner = null;   // 当前清单页的“列表本体”渲染函数：搜索 / 筛选只重画它
 export function renderBillList() { const h = $("#billList"); if (h && billInner) h.innerHTML = billInner(); }
+/** 清单里每条账单的「怎么付」：自动扣款 · 某张卡 / 账户，或手动缴费（可选默认用哪张卡、现金）。值 = auto|manual:卡id|cash|other|空 */
+function payModeSelect(b) {
+  const cur = `${b.autopay ? "auto" : "manual"}:${payAcctValue(b.pay_card_id, b.autopay_method)}`;
+  const accts = state.cards.filter((c) => c.active !== false || c.id === b.pay_card_id);
+  const o = (v, l) => `<option value="${v}" ${v === cur ? "selected" : ""}>${esc(l)}</option>`;
+  const legacy = b.autopay_method && !b.pay_card_id && payAcctValue(null, b.autopay_method) === "other" ? o(`${b.autopay ? "auto" : "manual"}:other`, `${b.autopay ? t("自动扣款") : t("手动")} · ${b.autopay_method}`) : "";
+  return `<select class="bill-pay-sel" data-bill-pay="${b.id}" aria-label="${esc(t("怎么付"))}" title="${esc(t("自动扣款从哪张卡 / 账户扣；手动缴费时记缴费默认用它"))}">
+    <optgroup label="${esc(t("手动缴费"))}">${o("manual:", t("手动 · 未指定账户"))}${o("manual:cash", t("手动 · 现金"))}${accts.map((c) => o(`manual:${c.id}`, `${t("手动")} · ${acctLabel(c)}`)).join("")}</optgroup>
+    ${accts.length ? `<optgroup label="${esc(t("自动扣款"))}">${accts.map((c) => o(`auto:${c.id}`, `${t("自动")} · ${acctLabel(c)}`)).join("")}</optgroup>` : `<optgroup label="${esc(t("自动扣款"))}">${o("auto:", t("自动 · 未指定账户"))}</optgroup>`}${legacy}${b.autopay && !b.pay_card_id && !legacy && !b.autopay_method ? o("auto:", t("自动 · 未指定账户")) : ""}</select>`;
+}
 export function viewBillsList() {
   const f = state.billsFilter;   // ?prop= 只在进入页面时套用一次（main.js onRoute），之后点房产芯片可以随意切换
   const chip = (k, v, label) => `<button type="button" class="chip" data-action="bills-filter" data-key="${k}" data-val="${v}" aria-pressed="${f[k] === v}">${label}</button>`;
@@ -192,7 +203,7 @@ export function viewBillsList() {
       <div class="grow">${propertyTag(b.property_id)}${kindTag(b)}${flat ? `<span class="badge" style="background:var(--surface-2)">${billCat(b.category).icon}</span> ` : ""}<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}${b.trialSoon ? ` <span class="badge b-out">${t("试用快到期")}</span>` : ""}
         <small>${[acctText(b), b.escrow ? t("Escrow 代缴，含在房贷月供里") : null, b.category === "mortgage" && escrowMonthlyFor(b.property_id) > 0 ? t("含 Escrow 约 {a}/月", { a: mny(escrowMonthlyFor(b.property_id)) }) : null, b.payee, freqText(b), b.ended && b.ends_on ? t("结束于 {d}", { d: fmtDate(b.ends_on) }) : b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.assigned_to ? memberName(b.assigned_to) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b class="bill-amt">${mny(b.est, b.currency)}</b>
-      <label class="switch" title="${t("自动扣款")}"><input type="checkbox" data-bill-autopay="${b.id}" ${b.autopay ? "checked" : ""}><span>${t("自动")}</span></label>
+      ${payModeSelect(b)}
     </li>`;
   billInner = () => {
     let list = filterByProperty(state.billsEnriched);
@@ -252,7 +263,7 @@ function payListInner() {
     const b = byBill[p.bill_id];
     return `<li data-swipe-del="bill-pay"><${b ? `a href="${href("bill", b.id)}?sec=pay&edit=${p.id}" title="${t("点一下编辑")}"` : "span"} class="badge pay-date" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</${b ? "a" : "span"}>
       <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(billLabel(b))}</a>` : t("（已删除的账单）")}</span>
-        <small>${[b ? acctText(b) : null, payeeOf(p, b) ? t("收款方：{who}", { who: payeeOf(p, b) }) : null, t(B().PAYMENT_STATUS[p.status] || p.status), p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+        <small>${[b ? acctText(b) : null, payeeOf(p, b) ? t("收款方：{who}", { who: payeeOf(p, b) }) : null, t(B().PAYMENT_STATUS[p.status] || p.status), paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b>${p.amount != null ? mny(p.amount, p.currency) : `<span class="muted">${t("未填金额")}</span>`}</b>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="billpay-del" data-id="${p.id}">${t("删除")}</button></li>`;
   }).join("")}</ul>${all.length > shown.length ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-ghost" data-action="pay-more">${t("再显示 {n} 笔（还有 {m} 笔）", { n: Math.min(50, all.length - shown.length), m: all.length - shown.length })}</button></div>` : ""}`;
@@ -307,7 +318,7 @@ export function exportBillsCsv() {
   for (const p of [...state.billPayments].sort((x, y) => (x.paid_on || "").localeCompare(y.paid_on || ""))) {
     if (!(p.paid_on || "").startsWith(String(year))) continue;
     const b = byBill[p.bill_id];
-    rows.push([p.paid_on, b?.name || "", b ? t(billCat(b.category).name) : "", b?.property_id ? propertyName(b.property_id) : "", p.amount ?? "", p.currency || "", t(B().PAYMENT_STATUS[p.status] || p.status), p.method || "", p.confirmation_ref || "", num(p.late_fee) || "", p.notes || ""]);
+    rows.push([p.paid_on, b?.name || "", b ? t(billCat(b.category).name) : "", b?.property_id ? propertyName(b.property_id) : "", p.amount ?? "", p.currency || "", t(B().PAYMENT_STATUS[p.status] || p.status), paymentPayLabel(p) || "", p.confirmation_ref || "", num(p.late_fee) || "", p.notes || ""]);
   }
   const csv = "﻿" + rows.map((r) => r.map((v) => { const s = String(v ?? ""); const x = /^[=+\-@]/.test(s) ? `'${s}` : s; return /[",\r\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; }).join(",")).join("\r\n");
   download(`${t("账单")}-${year}.csv`, csv);
@@ -459,11 +470,12 @@ export function viewBillForm() {
           </div>
         </fieldset>
         <fieldset data-sec="autopay" ${hide("autopay")}>
-          <legend>${t("自动扣款")}</legend>
+          <legend>${t("付款账户与自动扣款")}</legend>
           <div class="form-grid">
-            <label class="check-inline"><input type="checkbox" name="autopay" ${v.autopay ? "checked" : ""}><span>${t("已设置自动扣款（到期前后提醒核对，而不是提醒缴费）")}</span></label>
-            <label>${t("扣款账户 / 卡")}<input name="autopay_method" maxlength="40" placeholder="${t("例如：Chase 1234")}" value="${d(v.autopay_method)}"></label>
-            <label>${t("扣款卡有效期")}<input name="autopay_card_expires" type="month" value="${d(v.autopay_card_expires)}"><small>${t("到期前 45 天提醒换卡")}</small></label>
+            <label>${t("付款账户 / 卡")}<select name="pay_account" data-pay-acct>${accountOptions(payAcctValue(v.pay_card_id, v.autopay_method), { none: "（未指定）", extra: [["cash", "现金"], ["other", "其他（手填）"]] })}</select><small>${t("自动扣款从它扣；手动缴费时记缴费也默认用它。卡和银行账户在 账单 → 用卡 里添加。")}</small></label>
+            <label data-pay-other ${payAcctValue(v.pay_card_id, v.autopay_method) === "other" ? "" : "hidden"}>${t("账户说明")}<input name="autopay_method" maxlength="40" placeholder="${t("例如：公司代扣 / 支票")}" value="${d(v.autopay_method)}"></label>
+            <label class="check-inline span-2"><input type="checkbox" name="autopay" ${v.autopay ? "checked" : ""}><span>${t("已设置自动扣款（到期前后提醒核对，而不是提醒缴费）")}</span></label>
+            <label>${t("扣款卡有效期")}<input name="autopay_card_expires" type="month" value="${d(v.autopay_card_expires)}"><small>${t("选了卡就按卡的到期年月提醒换卡，这里可留空；到期前 45 天提醒")}</small></label>
           </div>
         </fieldset>
         <fieldset data-sec="other" ${hide("other")}>
@@ -488,7 +500,7 @@ export function viewBillForm() {
 const BILL_SECTIONS = [
   { id: "basic", icon: "🧾", name: "基本信息" },
   { id: "amount", icon: "📅", name: "金额与周期" },
-  { id: "autopay", icon: "🔁", name: "自动扣款" },
+  { id: "autopay", icon: "🔁", name: "付款账户与自动扣款" },
   { id: "other", icon: "⋯", name: "其他" },
   { id: "pay", icon: "✅", name: "缴费记录" },
 ];
@@ -498,7 +510,7 @@ function billHub(b, root) {
   const st = {
     basic: () => { const n = 2 + filledCount([b.payee, b.account_last4, b.login_hint, b.pay_url]); return { text: [t(billCat(b.category).name), b.payee].filter(Boolean).join(" · "), pct: Math.round((n / 6) * 100), badge: countBadge(n, 6) }; },
     amount: () => { const n = filledCount([b.est, b.next_due_on, b.due_day || b.due_dates?.length]); return { text: [freqText(b), b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.est != null ? mny(b.est, b.currency) : null].filter(Boolean).join(" · "), pct: Math.round((n / 3) * 100), badge: countBadge(n, 3) }; },
-    autopay: () => ({ text: b.autopay ? [t("已设置"), b.autopay_method, b.autopay_card_expires ? t("卡有效期 {d}", { d: b.autopay_card_expires }) : null].filter(Boolean).join(" · ") : t("未设置（手动缴费）"), pct: null, badge: b.autopay ? `<span class="badge b-ok mcount">✓</span>` : "" }),
+    autopay: () => ({ text: b.autopay ? [t("自动扣款"), billPayLabel(b) || t("未指定账户"), b.cardDays != null ? t("卡 {d} 天后到期", { d: b.cardDays }) : null].filter(Boolean).join(" · ") : [t("手动缴费"), billPayLabel(b) ? t("默认用 {a}", { a: billPayLabel(b) }) : t("未指定账户")].join(" · "), pct: null, badge: b.autopay ? `<span class="badge b-ok mcount">✓</span>` : "" }),
     other: () => ({ text: [b.assigned_to ? memberName(b.assigned_to) : null, b.essential ? t("必要支出") : t("非必要"), b.active ? null : t("已停用"), b.notes ? t("有备注") : null].filter(Boolean).join(" · "), pct: null, badge: "" }),
     pay: () => ({ text: b.pays.length ? t("{n} 条，最近 {d}", { n: b.pays.length, d: fmtDate(b.pays[0].paid_on) }) : t("还没有记录"), pct: null, badge: b.pays.length ? countBadge(b.pays.length, "", "") .replace("/", "") : "" }),
   };
@@ -519,7 +531,7 @@ function billSummary(b) {
   const bits = [
     acctText(b) ? `<span class="badge" style="background:var(--surface-2)">${esc(acctText(b))}</span>` : "",
     b.status !== "ok" && b.status !== "none" ? `<span class="badge ${BADGE[b.status]}">${t(STATUS_LABEL[b.status])}${b.next_due_on ? ` · ${fmtDate(b.next_due_on)}` : ""}</span>` : b.next_due_on ? `<span class="badge b-ok">${t("下次 {d}", { d: fmtDate(b.next_due_on) })}</span>` : "",
-    b.autopay ? `<span class="badge" style="background:var(--surface-2)">${t("自动扣款")}${b.autopay_method ? ` · ${esc(b.autopay_method)}` : ""}</span>` : "",
+    b.autopay ? `<span class="badge" style="background:var(--surface-2)">${t("自动扣款")}${billPayLabel(b) ? ` · ${esc(billPayLabel(b))}` : ""}</span>` : billPayLabel(b) ? `<span class="badge" style="background:var(--surface-2)">${esc(billPayLabel(b))}</span>` : "",
     b.est != null ? `<span class="badge" style="background:var(--surface-2)">${t("约 {m} / 次", { m: mny(b.est, b.currency) })}</span>` : "",
     b.monthly ? `<span class="badge" style="background:var(--surface-2)">${t("折合每月 {m}", { m: money(b.monthly) })}</span>` : "",
     b.priceUp ? `<span class="badge b-low">${t("涨价了")}</span>` : "",
@@ -529,11 +541,14 @@ function billSummary(b) {
 
 function paySection(b, focus, edit = null) {
   const v = edit || {};   // 编辑某条记录时表单带入它的值
+  // 账户下拉的当前值：编辑时按这条记录（卡 / 现金 / 支票 / 手填）；新记一笔按账单的付款账户
+  const payVal = edit ? (edit.card_id ? edit.card_id : edit.method === "支票" ? "check" : payAcctValue(null, edit.method)) : (b.pay_card_id ? b.pay_card_id : payAcctValue(null, b.autopay_method));
+  const stale = backfillable(b);
   const linked = edit?.purchase_id ? state.purchases.find((x) => x.id === edit.purchase_id) : null;   // 这条缴费记的花费：收款方存在它上面
   const rows = b.pays.map((p) => `<li class="pay-row ${edit?.id === p.id ? "is-editing" : ""}" data-swipe-del="bill-pay">
       <span class="badge ${p.status === "skipped" ? "" : "b-ok"}" style="${p.status === "skipped" ? "background:var(--surface-2)" : ""}">${t(B().PAYMENT_STATUS[p.status] || p.status)}</span>
       <div class="grow"><a class="link-name" href="${href("bill", b.id)}?sec=pay&edit=${p.id}" title="${t("点一下编辑")}">${esc(fmtDate(p.paid_on))}</a>
-        <small>${[p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, p.method, p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.paid_by && Store.mode === "cloud" ? memberName(p.paid_by) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+        <small>${[p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.paid_by && Store.mode === "cloud" ? memberName(p.paid_by) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b>${p.amount != null ? mny(p.amount, p.currency) : ""}</b>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="billpay-del" data-id="${p.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>
     </li>`).join("");
@@ -546,7 +561,8 @@ function paySection(b, focus, edit = null) {
         <label>${t("对应到期日")}<input name="due_on" type="date" value="${esc(edit ? edit.due_on || "" : b.next_due_on || "")}"></label>
         <label>${t("金额（{cur}）", { cur: b.currency || Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? (edit.amount != null ? num(edit.amount).toFixed(2) : "") : b.est != null ? num(b.est).toFixed(2) : ""}"></label>
         <label>${t("状态")}<select name="status"><option value="paid" ${edit?.status === "paid" ? "selected" : ""}>${t("已缴费")}</option><option value="verified" ${edit ? (edit.status === "verified" ? "selected" : "") : b.autopay ? "selected" : ""}>${t("已核对（自动扣款）")}</option><option value="skipped" ${edit?.status === "skipped" ? "selected" : ""}>${t("跳过这期")}</option></select></label>
-        <label>${t("方式")}<input name="method" maxlength="40" placeholder="${t("例如：网银 / 支票 #1023 / 自动扣款")}" value="${edit ? esc(edit.method || "") : b.autopay ? esc(b.autopay_method || t("自动扣款")) : ""}"></label>
+        <label>${t("用哪张卡 / 账户")}<select name="pay_account" data-pay-acct>${accountOptions(payVal, { none: "（未指定）", extra: [["cash", "现金"], ["check", "支票"], ["other", "其他（手填）"]] })}</select></label>
+        <label data-pay-other ${payVal === "other" ? "" : "hidden"}>${t("方式说明")}<input name="method" maxlength="40" placeholder="${t("例如：网银 / 支票 #1023 / 自动扣款")}" value="${esc(edit ? edit.method || "" : b.autopay_method || "")}"></label>
         <label>${t("收款方")}<input name="store" maxlength="40" value="${esc(edit ? (linked?.store || b.payee || b.name || "") : b.payee || b.name || "")}" placeholder="${esc(b.payee || b.name)}"><small>${edit ? t("只改这一条；中途换了收款方，旧记录保留当时的名字。") : t("没填就用账单的收款方。")}</small></label>
         <label>${t("确认号")}<input name="confirmation_ref" maxlength="60" value="${esc(edit?.confirmation_ref || "")}"></label>
         <label>${t("滞纳金")}<input name="late_fee" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? num(edit.late_fee).toFixed(2) : "0"}"></label>
@@ -555,7 +571,22 @@ function paySection(b, focus, edit = null) {
       <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${edit ? t("保存修改") : t("记一笔")}</button>${edit ? `<a class="btn btn-sm btn-ghost" href="${href("bill", b.id)}?sec=pay">${t("取消")}</a>` : ""}
         <small class="muted">${edit ? t("金额改了，花费统计里对应的那笔也会跟着改。") : t("有金额的记录会同时记入花费统计的“账单”组。")}</small></div>
     </form>
+    ${stale.length ? `<div class="notice" role="status" style="margin-top:10px"><b>${t("有 {n} 条旧缴费记录没记账户。", { n: stale.length })}</b> ${t("按现在的付款账户 {a} 一次性补上？花费统计里对应的那几笔也会记到这张卡。现金 / 支票的不动。", { a: billPayLabel(b) })} <button type="button" class="btn btn-sm" data-action="billpay-backfill" data-id="${b.id}">${t("补上")}</button></div>` : ""}
     <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有记录")}</strong></div>`}</div>`;
+}
+/** 没记账户、也不是现金 / 支票的旧缴费记录（账单选了付款账户后可以一次性补上） */
+const backfillable = (b) => (b.pay_card_id && acctById(b.pay_card_id) ? b.pays.filter((p) => !p.card_id && p.status !== "skipped" && !/^(现金|支票|cash|check)/i.test(p.method || "")) : []);
+export async function backfillPayments(id) {
+  const b = state.billsEnriched.find((x) => x.id === id); if (!b) return;
+  const list = backfillable(b); if (!list.length) return toast(t("没有要补的记录"));
+  if (!confirm(t("把这 {n} 条缴费记录都记成 {a}？", { n: list.length, a: billPayLabel(b) }))) return;
+  let n = 0;
+  for (const p of list) {
+    await Store.updateBillPayment(p.id, { card_id: b.pay_card_id, method: resolvePayAccount(b.pay_card_id).method });
+    if (p.purchase_id) await Store.updatePurchase(p.purchase_id, { card_id: b.pay_card_id }).catch(() => {});
+    n++;
+  }
+  toast(t("已补上 {n} 条", { n }));
 }
 
 /* ── 保存 ── */
@@ -580,7 +611,7 @@ export async function saveBillForm(f, { silent = false } = {}) {
     due_day: numOrNull(fe.due_day, true), due_dates: dueDates, next_due_on: fe.next_due_on.value || null, grace_days: numOrNull(fe.grace_days, true) || 0, ends_on: fe.ends_on.value || null,
     sub_kind: B().isSubCat(fe.category.value) ? fe.sub_kind.value || null : null, trial_ends_on: B().isSubCat(fe.category.value) ? fe.trial_ends_on.value || null : null,
     reminder_days: reminders.length ? reminders : [7, 1], late_fee_note: fe.late_fee_note.value.trim() || null,
-    autopay: fe.autopay.checked, autopay_method: fe.autopay_method.value.trim() || null, autopay_card_expires: fe.autopay_card_expires.value || null,
+    autopay: fe.autopay.checked, ...payFields(fe.pay_account?.value, fe.autopay_method.value), autopay_card_expires: fe.autopay_card_expires.value || null,
     assigned_to: fe.assigned_to.value || null, essential: fe.essential.checked, active: fe.active.checked, notes: fe.notes.value.trim() || null,
   };
   if (b.pay_channel === "escrow") b.autopay = false;   // 代缴就不是自动扣款
@@ -600,17 +631,19 @@ export async function saveBillForm(f, { silent = false } = {}) {
   } catch (e) { if (silent) throw e; err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; return false; }
 }
 
-/** 记一笔缴费 / 核对 / 跳过：写 purchases（有金额且为应付）、写记录、把账单推到下一期 */
-export async function recordPayment(bill, { paid_on, due_on, amount, status, method, confirmation_ref, late_fee, notes, store }) {
+/** 账单的付款账户字段：下拉选卡 → pay_card_id；现金 / 其他 → autopay_method 文字 */
+const payFields = (value, text) => { const r = resolvePayAccount(value, text); return { pay_card_id: r.card_id, autopay_method: r.method }; };
+/** 记一笔缴费 / 核对 / 跳过：写 purchases（有金额且为应付，带上用的卡）、写记录、把账单推到下一期 */
+export async function recordPayment(bill, { paid_on, due_on, amount, status, method, card_id, confirmation_ref, late_fee, notes, store }) {
   const currency = bill.currency || Units.region.currency;
   let purchase_id = null;
   const total = status === "skipped" ? 0 : num(amount) + num(late_fee);
   if (total > 0 && bill.direction !== "receivable") {
     purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: (store || "").trim().slice(0, 40) || bill.payee || bill.name || null,
-      amount: Math.round(total * 100) / 100, currency, purchased_at: new Date(`${paid_on}T12:00:00`).toISOString() });
+      amount: Math.round(total * 100) / 100, currency, purchased_at: new Date(`${paid_on}T12:00:00`).toISOString(), ...(card_id ? { card_id } : {}) });
   }
   await Store.addBillPayment({ bill_id: bill.id, due_on: due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),
-    currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, status, notes: notes || null, purchase_id });
+    currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, status, notes: notes || null, purchase_id, ...(card_id ? { card_id } : {}) });
   // 推到下一期：以这次对应的到期日为基准，保证不会漏期
   const base = due_on || bill.next_due_on || paid_on;
   const next = advanceDue(bill, base);
@@ -644,11 +677,12 @@ async function updatePayment(bill, fe) {
   const amount = status === "skipped" || fe.amount.value === "" ? null : r2(fe.amount.value), late = r2(fe.late_fee.value), total = status === "skipped" ? 0 : r2((amount || 0) + late);
   const currency = old.currency || bill.currency || Units.region.currency, at = new Date(`${paid_on}T12:00:00`).toISOString();
   const payee = (fe.store?.value || "").trim().slice(0, 40) || bill.payee || bill.name || null;
+  const pay = resolvePayAccount(fe.pay_account?.value, fe.method.value), cardPatch = pay.card_id || old.card_id ? { card_id: pay.card_id } : {};   // 没选过卡就不带这个字段（没执行迁移 036 也能存）
   let purchase_id = old.purchase_id || null;
-  if (purchase_id && total > 0) await Store.updatePurchase(purchase_id, { amount: total, purchased_at: at, store: payee });
+  if (purchase_id && total > 0) await Store.updatePurchase(purchase_id, { amount: total, purchased_at: at, store: payee, ...cardPatch });
   else if (purchase_id) { await Store.deletePurchase(purchase_id); purchase_id = null; }
-  else if (total > 0 && bill.direction !== "receivable") purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: payee, amount: total, currency, purchased_at: at });
-  await Store.updateBillPayment(old.id, { paid_on, due_on: fe.due_on.value || null, amount, currency, method: fe.method.value.trim() || null, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, status, notes: fe.notes.value.trim() || null, purchase_id });
+  else if (total > 0 && bill.direction !== "receivable") purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: payee, amount: total, currency, purchased_at: at, ...cardPatch });
+  await Store.updateBillPayment(old.id, { paid_on, due_on: fe.due_on.value || null, amount, currency, method: pay.method, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, status, notes: fe.notes.value.trim() || null, purchase_id, ...cardPatch });
   toast(t("已保存修改"));
 }
 export async function saveBillPayForm(f) {
@@ -656,8 +690,9 @@ export async function saveBillPayForm(f) {
   const bill = state.billsEnriched.find((x) => x.id === fe.bill_id.value);
   if (!bill) return toast(t("账单不存在"));
   if (fe.pay_id?.value) return updatePayment(bill, fe);
+  const pay = resolvePayAccount(fe.pay_account?.value, fe.method.value);
   await recordPayment(bill, { paid_on: fe.paid_on.value || todayISO(), due_on: fe.due_on.value || null, amount: fe.amount.value === "" ? null : fe.amount.value, status: fe.status.value,
-    method: fe.method.value.trim(), confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, notes: fe.notes.value.trim(), store: fe.store?.value });
+    method: pay.method, card_id: pay.card_id, confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, notes: fe.notes.value.trim(), store: fe.store?.value });
   toast(fe.status.value === "skipped" ? t("已跳过这期") : t("已记录，下次到期 {d}", { d: fmtDate(advanceDue(bill, fe.due_on.value || bill.next_due_on || fe.paid_on.value) || "") || t("无") }));
 }
 
@@ -665,6 +700,7 @@ export async function saveBillPayForm(f) {
 export async function quickVerify(id) {
   const bill = state.billsEnriched.find((x) => x.id === id);
   if (!bill) return;
-  await recordPayment(bill, { paid_on: todayISO(), due_on: bill.next_due_on, amount: bill.est, status: "verified", method: bill.autopay_method || t("自动扣款"), late_fee: 0 });
+  const pay = bill.pay_card_id ? resolvePayAccount(bill.pay_card_id) : { card_id: null, method: bill.autopay_method || t("自动扣款") };
+  await recordPayment(bill, { paid_on: todayISO(), due_on: bill.next_due_on, amount: bill.est, status: "verified", method: pay.method, card_id: pay.card_id, late_fee: 0 });
   toast(t("已核对 {name}，下次 {d}", { name: withProperty(bill.property_id, bill.name), d: fmtDate(advanceDue(bill, bill.next_due_on || todayISO()) || "") || t("无") }));
 }
