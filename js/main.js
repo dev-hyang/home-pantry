@@ -455,9 +455,10 @@ async function doRestore(el) {
 main.addEventListener("change", async (e) => {
   if (e.target.closest("#backupForm")) {   // 备份设置：改了就存（存本机）
     const f = e.target.closest("#backupForm"), targets = [...f.querySelectorAll('input[name="target"]:checked')].map((x) => x.value);
-    Backup.saveSettings({ every: f.elements.every.value, days: Math.max(1, +f.elements.days.value || 14), targets, provider: f.elements.provider?.value || "any" });
+    Backup.saveSettings({ every: f.elements.every.value, days: Math.max(1, +f.elements.days.value || 14), targets, provider: f.elements.provider?.value || "any", gdPath: (f.elements.gdPath?.value || "").trim(), dbxPath: (f.elements.dbxPath?.value || "").trim() });
     const box = f.querySelector("[data-backup-days]"); if (box) box.hidden = f.elements.every.value !== "custom";
-    if (e.target.name === "every" || e.target.name === "provider" || e.target.name === "target") return render(false);
+    if (e.target.name === "gdPath" || e.target.name === "dbxPath") refreshBackupUi();   // 路径改了：列表换到新文件夹
+    if (["every", "provider", "target", "gdPath", "dbxPath"].includes(e.target.name)) return render(false);
     return;
   }
   if (e.target.id === "backupFile") {   // 选了备份文件：先看一眼，确认后才恢复
@@ -1024,9 +1025,14 @@ main.addEventListener("click", async (e) => {
       case "backup-pick-sql": try { await Backup.pickSqlFolder(); toast(t("以后每次写云盘文件夹时会把 .sql 一起拷进 sql/ 子目录")); } catch (err) { if (err.name !== "AbortError") toast(t("选文件夹失败：{msg}", { msg: err.message })); } refreshBackupUi(); return render(false);
       case "backup-forget-sql": await Backup.forgetSqlFolder(); refreshBackupUi(); return render(false);
       case "backup-grant": { const st = await Backup.folderStatus(); if (st.handle) { try { await st.handle.requestPermission({ mode: "readwrite" }); } catch { /* 用户取消 */ } } refreshBackupUi(); return render(false); }
-      case "backup-cloud-dl": try { const d = await Backup.readCloud(el.dataset.name); Backup.download(Backup.toBlob(d), el.dataset.name); } catch (err) { toast(t("下载失败：{msg}", { msg: err.message })); } return;
-      case "backup-cloud-restore": try { const d = await Backup.readCloud(el.dataset.name); state.backupPreview = { ...Backup.inspect(d), data: d, from: el.dataset.name }; } catch (err) { toast(t("读取失败：{msg}", { msg: err.message })); } return render(false);
-      case "backup-cloud-del": if (!confirm(t("删除云端备份 {n}？", { n: el.dataset.name }))) return; try { await Backup.deleteCloud(el.dataset.name); } catch (err) { toast(t("删除失败：{msg}", { msg: err.message })); } refreshBackupUi(); return render(false);
+      case "backup-src": state.backupSrc = el.dataset.src; return render(false);
+      case "backup-dl": try { const d = await Backup.SOURCES[el.dataset.src].read(el.dataset.id); Backup.download(Backup.toBlob(d), el.dataset.name); } catch (err) { toast(t("下载失败：{msg}", { msg: err.message })); } return;
+      case "backup-use": try { const d = await Backup.SOURCES[el.dataset.src].read(el.dataset.id); state.backupPreview = { ...Backup.inspect(d), data: d, from: el.dataset.name }; } catch (err) { toast(t("读取失败：{msg}", { msg: err.message })); } return render(false);
+      case "backup-rm": if (!confirm(t("删除备份 {n}？", { n: el.dataset.name }))) return; try { await Backup.SOURCES[el.dataset.src].del(el.dataset.id); } catch (err) { toast(t("删除失败：{msg}", { msg: err.message })); } refreshBackupUi(); return render(false);
+      case "backup-gd-on": el.disabled = true; try { await Backup.DR.gdConnect(); Backup.saveSettings({ targets: [...new Set([...Backup.settings().targets, "gdrive"])] }); toast(t("已连接 Google Drive")); } catch (err) { toast(t("连接 Google Drive 失败：{msg}", { msg: err.message })); } refreshBackupUi(); return render(false);
+      case "backup-gd-off": Backup.DR.gdDisconnect(); Backup.saveSettings({ targets: Backup.settings().targets.filter((x) => x !== "gdrive") }); refreshBackupUi(); return render(false);
+      case "backup-dbx-on": try { await Backup.DR.dbxConnect(); } catch (err) { toast(t("连接 Dropbox 失败：{msg}", { msg: err.message })); } return;
+      case "backup-dbx-off": await Backup.DR.dbxDisconnect(); Backup.saveSettings({ targets: Backup.settings().targets.filter((x) => x !== "dropbox") }); refreshBackupUi(); return render(false);
       case "backup-restore-cancel": state.backupPreview = null; return render(false);
       case "backup-restore-confirm": return doRestore(el);
       case "csv-summary": return exportAnnual("summary");
@@ -1361,6 +1367,7 @@ function dupNameCheck(v, exceptId) {
 
 /* ───────────── 启动 ───────────── */
 export async function boot() {
+  Backup.initProviders(toast);   // 从 Dropbox 授权页跳回来时把 ?code= 换成令牌，再跳到备份页
   window.__hmhBooted = true;   // 告诉 index.html 的启动自检：主脚本已经运行
   if (lang === "zh-Hant") await loadOpenCC();   // 繁體：先把转换库拉下来再渲染，避免先简后繁闪一下
   applyChrome();

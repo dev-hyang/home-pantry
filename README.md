@@ -444,3 +444,11 @@ GitHub Pages 会把每个文件缓存 10 分钟。页面启动时会比较本次
 - **物品可以“不再提醒”**：试过不好吃、或暂时用完不想补货的物品，在注意事项里点“不再提醒”（或在物品编辑页的“补货提醒”里选暂停 30 / 90 天、一直不提醒），它就不再出现在注意事项、提醒数和“一键加入采购”里；物品列表里留一个“🔕 不提醒”标记。下次给它补货入库会自动恢复提醒，也可以随时在编辑页改回“正常提醒”。只影响缺货 / 少货 / 即将告罄，临期提醒照常。存 `items.alert_mute_until`（迁移 030，schema v1.31；没执行迁移时点“不再提醒”会提示先执行，其余功能照常）。
 - **同名称呼检查**：同一个人用多个浏览器 / 设备（邀请码直接进入）会算多位家人。加入后发现和已有成员同名，弹窗推荐“爸爸#2”“爸爸 10/22”（序号取第一个没人用的），可一键采用、手改，或保持不变（记住选择，不再提示）；设置里改自己或家人的称呼时撞名会被拦住并给出推荐。家人名册自动同步也不再对同名发会失败的请求（同名未绑定的会被认领），首页不再出现 409 报错。
 - **介绍页**：按最新功能更新（小Y问与 AI 菜单助手、录入购物、一次性账单与预算、家人名册、不再提醒、四档提醒的准确规则）；“提醒是怎么分级的”从表格改成可换行的列表，手机上不再超出屏幕。
+
+## 云盘备份
+
+「我的 → 设置 → 备份与恢复」可以把整个家庭的数据定时备份到 Google Drive / Dropbox（手机电脑都能用）、电脑上的云盘同步文件夹、家庭自己的 Supabase 存储（迁移 037）或直接下载。Google Drive / Dropbox 要在 `config.js` 填两个公开的客户端标识（不是密钥）：
+
+- Google Drive：Google Cloud Console → APIs & Services → 启用 Google Drive API → OAuth 2.0 客户端（类型 Web 应用），「已获授权的 JavaScript 来源」填站点地址，Client ID 填到 `GOOGLE_CLIENT_ID`。权限只有 drive.file（只看得到这个应用自己建的文件）。
+- Dropbox：Dropbox App Console → Create app → Scoped access，Access type 选 **App folder**，Permissions 勾 `files.content.write` / `files.content.read` / `account_info.read`，Redirect URIs 填站点地址（带结尾的 /），App key 填到 `DROPBOX_APP_KEY`。
+- 备份放在卡片里填的路径下：Drive 默认「爱家小助手备份」（可多级，不存在就逐级建）；Dropbox 是应用文件夹里的子路径。令牌存本机 localStorage，「断开」会吊销并清掉。代码在 `js/core/cloud-drives.js`，四个应用共用同一份。

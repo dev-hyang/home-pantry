@@ -6,6 +6,7 @@
 import { state } from "./state.js";
 import { Store, CloudStore, DemoStore } from "./store.js";
 import { t } from "./i18n.js";
+import { createDrives } from "./cloud-drives.js";
 
 export const APP = "home-pantry", FORMAT = 2, KEEP_DAYS = 60, KEY = "hmh-backup";
 /** 云盘：Google Drive / Dropbox / OneDrive / iCloud Drive 的电脑客户端都会在本机放一个同步文件夹，把备份写进去就等于上了那家云盘（网页没法直接调它们的 API：要各家注册 OAuth 应用，这里不做） */
@@ -24,7 +25,7 @@ export const TABLES = ["properties", "house_profiles", "custom_categories", "cus
 const PAGE = 1000;   // PostgREST 单次最多 1000 行，大表分页读
 
 /* ───────────── 设置（存本机：文件夹本来就是这台电脑的） ───────────── */
-const DEFAULTS = { every: "off", days: 14, targets: ["download"], provider: "any", last: null, lastInfo: "" };
+const DEFAULTS = { every: "off", days: 14, targets: ["download"], provider: "any", gdPath: "", dbxPath: "", last: null, lastInfo: "" };
 export function settings() { try { return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(KEY) || "null") || {}) }; } catch { return { ...DEFAULTS }; } }
 export function saveSettings(patch) { const s = { ...settings(), ...patch }; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* 隐私模式 */ } return s; }
 export const intervalDays = (s = settings()) => (s.every === "week" ? 7 : s.every === "month" ? 30 : s.every === "custom" ? Math.max(1, +s.days || 14) : 0);
@@ -135,6 +136,26 @@ export async function readCloud(name) {
 }
 export async function deleteCloud(name) { await bucket().remove([`${CloudStore.hid}/${name}`]); }
 
+/* ───────────── 云盘直连：Google Drive、Dropbox（代码在 cloud-drives.js，四个应用共用；在 config.js 填应用 key，见 README「云盘备份」）
+   备份放在你在卡片里填的文件夹路径下（Drive 默认「爱家小助手备份」；Dropbox 相对应用文件夹），不往根目录随便放 ───────────── */
+const lsLoad = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || "null") ?? d; } catch { return d; } };
+const lsSave = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* 隐私模式 */ } };
+export const DR = createDrives({ googleClientId: window.APP_CONFIG?.GOOGLE_CLIENT_ID || "", dropboxAppKey: window.APP_CONFIG?.DROPBOX_APP_KEY || "", tokPrefix: KEY, defaultFolder: "爱家小助手备份", fileRe: FILE_RE, keepDays: KEEP_DAYS, t, load: lsLoad, save: lsSave, getPaths: () => ({ gd: settings().gdPath, dbx: settings().dbxPath }) });
+/** 能列出 / 恢复的来源（文件夹和下载的备份通过「选备份文件」读回来） */
+export const SOURCES = {
+  cloud: { icon: "🗄️", label: "应用云端", ready: () => Store.mode === "cloud" && !!CloudStore.hid, list: listCloud, read: readCloud, del: deleteCloud },
+  gdrive: { icon: "▲", label: "Google Drive", ready: () => DR.gdOn(), list: () => DR.gdList(false), read: DR.gdRead, del: DR.gdDelete },
+  dropbox: { icon: "◆", label: "Dropbox", ready: () => DR.dbxOn(), list: DR.dbxList, read: DR.dbxRead, del: DR.dbxDelete },
+};
+export const available = () => Object.keys(SOURCES).filter((k) => SOURCES[k].ready());
+/** 打开应用时调一次：从 Dropbox 授权页跳回来（?code=…&state=dbx）就换成令牌，勾上 Dropbox，并跳到备份页 */
+export async function initProviders(toast) {
+  if (!new URL(location.href).searchParams.get("code")) return;
+  try { if (await DR.initProviders()) { saveSettings({ targets: [...new Set([...settings().targets, "dropbox"])] }); toast(t("已连接 Dropbox")); } }
+  catch (e) { toast(t("连接 Dropbox 失败：{msg}", { msg: e.message })); }
+  location.hash = "#/me/settings?sec=backup";
+}
+
 /* ───────────── 跑一次备份（手动或定时） ───────────── */
 /** targets：download / folder / cloud。返回 { ok: [...], failed: [[目标, 原因]], needGesture } */
 export async function runBackup(targets, { gesture = false } = {}) {
@@ -144,9 +165,10 @@ export async function runBackup(targets, { gesture = false } = {}) {
       if (tg === "download") download(blob, name);
       else if (tg === "folder") await writeFolder(blob, name, { gesture });
       else if (tg === "cloud") await writeCloud(blob, name);
+      else if (tg === "gdrive") await DR.gdWrite(blob, name, gesture); else if (tg === "dropbox") await DR.dbxWrite(blob, name);
       else continue;
       ok.push(tg);
-    } catch (e) { if (e.message === "NEED_GESTURE") needGesture = true; failed.push([tg, e.message === "NO_FOLDER" ? t("还没选文件夹") : e.message === "NEED_GESTURE" ? t("需要你点一下授权") : e.message]); }
+    } catch (e) { if (e.message === "NEED_GESTURE") needGesture = true; failed.push([tg, e.message === "NO_FOLDER" ? t("还没选文件夹") : e.message === "NEED_GESTURE" ? (tg === "gdrive" ? t("需要重新登录 Google") : t("需要你点一下授权")) : e.message]); }
   }
   const sqlN = lastSqlCopied; lastSqlCopied = 0;
   if (ok.length) saveSettings({ last: new Date().toISOString(), lastInfo: `${name} · ${ok.join("+")} · ${rowCount(data)} ${t("行")}${sqlN ? ` · ${t("SQL {n} 个", { n: sqlN })}` : ""}` });

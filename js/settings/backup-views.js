@@ -3,14 +3,15 @@ import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, fmtDate, syncState } from "../core/util.js";
 import { t } from "../core/i18n.js";
-import { KEEP_DAYS, PROVIDERS, folderStatus, folderSupported, inspect, intervalDays, listCloud, nextDue, settings, sqlStatus } from "../core/backup.js";
+import { DR, KEEP_DAYS, PROVIDERS, SOURCES, available, folderStatus, folderSupported, inspect, intervalDays, nextDue, settings, sqlStatus } from "../core/backup.js";
 
 const rerender = () => window.dispatchEvent(new Event("hmh-rerender"));
 /** 文件夹状态和云端列表是异步的：第一次画先用空的，读完再重画一次 */
 export function ensureBackupUi() {
   const u = state.backupUi; if (u && !u.stale) return u;
   state.backupUi = { ...(u || {}), stale: false, loading: true };
-  Promise.all([folderStatus().catch(() => ({ supported: false, perm: "none", name: "" })), listCloud().catch(() => []), sqlStatus().catch(() => ({ name: "" }))]).then(([folder, cloud, sql]) => { state.backupUi = { folder, cloud, sql, loading: false, stale: false }; rerender(); });
+  const srcs = available();
+  Promise.all([folderStatus().catch(() => ({ supported: false, perm: "none", name: "" })), sqlStatus().catch(() => ({ name: "" })), ...srcs.map((k) => SOURCES[k].list().catch(() => []))]).then(([folder, sql, ...ls]) => { const lists = {}; srcs.forEach((k, i) => { lists[k] = ls[i]; }); state.backupUi = { ...state.backupUi, folder, sql, lists, loading: false, stale: false }; rerender(); });
   return state.backupUi;
 }
 export const refreshBackupUi = () => { if (state.backupUi) state.backupUi.stale = true; };
@@ -18,7 +19,7 @@ const when = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle
 const kb = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 
 /** 一张可勾选的「目标卡」：整张卡都能点，勾选框在左，右边标题 + 说明 + 这张卡自己的设置 */
-const card = (k, on, icon, title, desc, body = "") => `<label class="bk-card ${on ? "on" : ""}"><input type="checkbox" name="target" value="${k}" ${on ? "checked" : ""}><span class="bk-ic" aria-hidden="true">${icon}</span><span class="bk-body"><b>${title}</b><small>${desc}</small>${body ? `<span class="bk-sub">${body}</span>` : ""}</span></label>`;
+const card = (k, on, icon, title, desc, body = "", off = false) => `<label class="bk-card ${on && !off ? "on" : ""} ${off ? "off" : ""}"><input type="checkbox" name="target" value="${k}" ${on ? "checked" : ""} ${off ? "disabled" : ""}><span class="bk-ic" aria-hidden="true">${icon}</span><span class="bk-body"><b>${title}</b><small>${desc}</small>${body ? `<span class="bk-sub">${body}</span>` : ""}</span></label>`;
 
 export function backupPanel() {
   const s = settings(), ui = ensureBackupUi(), cloud = Store.mode === "cloud";
@@ -34,9 +35,18 @@ export function backupPanel() {
   const sqlBody = `<span class="bk-row">${sql.name ? `<span class="bk-pill ok">📁 ${esc(sql.name)}</span><button type="button" class="btn btn-sm btn-ghost" data-action="backup-forget-sql">${t("不再用")}</button>` : folder.supported ? `<button type="button" class="btn btn-sm" data-action="backup-pick-sql">${t("选 supabase 文件夹")}</button>` : ""}</span>`;
   const status = s.last ? t("上次备份 {d}", { d: when(s.last) }) : t("还没备份过");
   const nextTxt = !intervalDays(s) ? t("没开定时") : due && due.getTime() <= Date.now() ? t("已到期，下次打开应用时自动备份") : t("下次 {d}", { d: when(due?.toISOString()) });
-  const cloudList = cloud && has("cloud") ? `<div class="panel bk-panel"><h3>${t("应用云端里的备份")}</h3><p class="muted">${t("存在这个家庭自己的 Supabase 存储里，只留 {n} 天", { n: KEEP_DAYS })}</p>
-      ${ui.loading ? `<p class="muted">${t("读取中…")}</p>` : (ui.cloud || []).length ? `<ul class="restock-list">${ui.cloud.slice(0, 12).map((f) => `<li><div class="grow"><span class="name">${esc(f.name)}</span><small>${esc(when(f.at))} · ${kb(f.size)}</small></div>
-        <button type="button" class="btn btn-sm btn-ghost" data-action="backup-cloud-dl" data-name="${esc(f.name)}">${t("下载")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="backup-cloud-restore" data-name="${esc(f.name)}">${t("恢复")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="backup-cloud-del" data-name="${esc(f.name)}" aria-label="${esc(t("删除"))}">✕</button></li>`).join("")}</ul>` : `<p class="muted" style="margin:0">${t("还没有。点上面的「现在备份」。")}</p>`}</div>` : "";
+  // 已有的备份：按来源切换（应用云端 / Google Drive / Dropbox）；文件夹和下载的备份通过「选备份文件」读回来
+  const srcs = available(); let cloudList = "";
+  if (srcs.length) {
+    state.backupSrc = srcs.includes(state.backupSrc) ? state.backupSrc : srcs[0]; const src = state.backupSrc, list = (ui.lists || {})[src] || [], S0 = SOURCES[src];
+    const row = (f) => `<li><div class="grow"><span class="name">${esc(f.name)}</span><small>${esc(when(f.at))} · ${kb(f.size)}</small></div>
+        <button type="button" class="btn btn-sm btn-ghost" data-action="backup-dl" data-src="${src}" data-id="${esc(f.id || f.name)}" data-name="${esc(f.name)}">${t("下载")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="backup-use" data-src="${src}" data-id="${esc(f.id || f.name)}">${t("恢复")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="backup-rm" data-src="${src}" data-id="${esc(f.id || f.name)}" data-name="${esc(f.name)}" aria-label="${esc(t("删除"))}">✕</button></li>`;
+    cloudList = `<div class="panel bk-panel"><h3>${t("已有的备份")}</h3>${srcs.length > 1 ? `<div class="chips bk-srcs">${srcs.map((k) => `<button type="button" class="chip" data-action="backup-src" data-src="${k}" aria-pressed="${k === src}">${SOURCES[k].icon} ${t(SOURCES[k].label)}</button>`).join("")}</div>` : `<p class="muted">${S0.icon} ${t(S0.label)}</p>`}
+      ${ui.loading ? `<p class="muted">${t("读取中…")}</p>` : list.length ? `<ul class="restock-list">${list.slice(0, 12).map(row).join("")}</ul>` : `<p class="muted" style="margin:0">${t("这里还没有备份。上面勾上它，再点「现在备份」。")}</p>`}</div>`;
+  }
+  const notCfg = t("需要先在 config.js 里填好（见 README「云盘备份」）");
+  const driveCard = (k, icon, label, cfgd, tk, pathName, pathLabel, pathVal, ph, pathText) => card(k, has(k), icon, label, cfgd ? t("放在你 {d} 里指定的文件夹，手机电脑都能用；只留 {n} 天", { d: label, n: KEEP_DAYS }) : notCfg,
+    !cfgd ? "" : `<span class="bk-row bk-path"><label class="muted">${pathLabel}</label><input name="${pathName}" value="${esc(pathVal || "")}" placeholder="${esc(ph)}" maxlength="120" autocomplete="off"></span><span class="bk-row">${tk ? `<span class="bk-pill ok">${t("已连接")}${tk.email ? ` ${esc(tk.email)}` : ""}${pathText ? ` · ${esc(pathText)}` : ""}</span><button type="button" class="btn btn-sm btn-ghost" data-action="backup-${k === "gdrive" ? "gd" : "dbx"}-off">${t("断开")}</button>` : `<button type="button" class="btn btn-sm" data-action="backup-${k === "gdrive" ? "gd" : "dbx"}-on">${t("连接 {d}", { d: label })}</button>`}</span>`, !cfgd || !tk);
   const pv = state.backupPreview;
   const preview = pv ? (pv.ok ? `<div class="notice" role="status"><b>${t("备份来自 {h}，{d}，共 {n} 行", { h: esc(pv.household || t("未知家庭")), d: when(pv.exported_at), n: pv.rows })}</b>
       <div class="muted" style="font-size:12.5px;margin:4px 0">${Object.entries(pv.counts).map(([k, v]) => `${esc(k)} ${v}`).join(" · ")}</div>
@@ -60,6 +70,8 @@ export function backupPanel() {
       <div class="bk-cards">
         ${card("folder", has("folder"), "☁️", t("云盘同步文件夹"), t("Google Drive / Dropbox / OneDrive / iCloud Drive 的电脑客户端都有一个同步文件夹，选它就等于备份上了那家云盘；也可以选电脑上任何位置。只留 {n} 天。", { n: KEEP_DAYS }), folderBody)}
         ${cloud ? card("cloud", has("cloud"), "🗄️", t("应用自己的云端"), t("这个家庭在 Supabase 里的存储，全家任何设备都能恢复；只留 {n} 天；需要先执行迁移 037。", { n: KEEP_DAYS })) : ""}
+        ${driveCard("gdrive", "▲", "Google Drive", DR.gdConfigured(), DR.tok("gd"), "gdPath", t("Drive 里的文件夹路径"), s.gdPath, "爱家小助手备份", DR.gdOn() ? DR.gdPathText() : "")}
+        ${driveCard("dropbox", "◆", "Dropbox", DR.dbxConfigured(), DR.tok("dbx"), "dbxPath", t("应用文件夹里的子路径"), s.dbxPath, t("留空 = 直接放应用文件夹"), "")}
         ${card("download", has("download"), "⬇️", t("下载到设备"), t("每次弹出下载。手机上下载后可以「存储到文件」放进 iCloud Drive / Google Drive；浏览器下载的旧文件不会自动清理。"))}
       </div>
       <div class="bk-sql"><b>⚠️ ${t("数据库脚本不在备份里")}</b><small>${t("supabase/schema.sql 和 migrations 只在你的电脑上（不进 git）。电脑没了，备份文件就导不回去。请把这个文件夹手动拷到云盘或别的位置；选了云盘同步文件夹的话，可以让每次备份顺带把 .sql 一起拷进去：")}</small>${sqlBody}</div>

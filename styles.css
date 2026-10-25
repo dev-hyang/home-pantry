@@ -1405,6 +1405,8 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .bk-sql { margin-top: 12px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--soon-bg); font-size: 13px; } .bk-sql b { display: block; } .bk-sql small { display: block; color: var(--muted); font-size: 12.5px; margin: 2px 0 8px; line-height: 1.4; }
 @media (max-width: 520px) { .bk-status { flex-direction: column; align-items: stretch; } .bk-status .bk-row .btn { flex: 1 1 0; } .bk-sync { flex-direction: column; align-items: flex-start; } }
 @media (min-width: 760px) { .bk-cards { grid-template-columns: 1fr 1fr; } .bk-cards .bk-card:first-child { grid-column: 1 / -1; } }
+.bk-path { width: 100%; } .bk-path label { flex: none; font-size: 12.5px; } .bk-path input { flex: 1 1 160px; min-width: 0; min-height: 34px; }
+.bk-card.off { opacity: .6; } .bk-srcs { margin-bottom: 8px; }
 .btns-col { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
 .notice-box { margin-top: 8px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--soon-bg); color: var(--soon); border: 1px solid color-mix(in srgb, var(--soon) 30%, transparent); font-size: 13px; }
 .notice-box p { margin: 0 0 6px; overflow-wrap: anywhere; }
