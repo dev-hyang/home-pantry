@@ -7,11 +7,12 @@ import { DR, KEEP_DAYS, PROVIDERS, SOURCES, available, folderStatus, folderSuppo
 
 const rerender = () => window.dispatchEvent(new Event("hmh-rerender"));
 /** 文件夹状态和云端列表是异步的：第一次画先用空的，读完再重画一次 */
+const bkErr = (e) => (e && e.message === "NEED_GESTURE" ? t("Google 登录过期了（授权只管一小时）") : (e && e.message) || t("读取失败"));
 export function ensureBackupUi() {
   const u = state.backupUi; if (u && !u.stale) return u;
   state.backupUi = { ...(u || {}), stale: false, loading: true };
   const srcs = available();
-  Promise.all([folderStatus().catch(() => ({ supported: false, perm: "none", name: "" })), sqlStatus().catch(() => ({ name: "" })), ...srcs.map((k) => SOURCES[k].list().catch(() => []))]).then(([folder, sql, ...ls]) => { const lists = {}; srcs.forEach((k, i) => { lists[k] = ls[i]; }); state.backupUi = { ...state.backupUi, folder, sql, lists, loading: false, stale: false }; rerender(); });
+  Promise.all([folderStatus().catch(() => ({ supported: false, perm: "none", name: "" })), sqlStatus().catch(() => ({ name: "" })), ...srcs.map((k) => SOURCES[k].list().then((r) => ({ r }), (e) => ({ e })))]).then(([folder, sql, ...ls]) => { const lists = { ...(state.backupUi.lists || {}) }, errs = {}; srcs.forEach((k, i) => { if (ls[i].e) errs[k] = bkErr(ls[i].e); else lists[k] = ls[i].r; }); /* 读失败（多半是 Google 令牌过期）：保留上次的列表，不要清空 */ state.backupUi = { ...state.backupUi, folder, sql, lists, errs, loading: false, stale: false }; rerender(); });
   return state.backupUi;
 }
 export const refreshBackupUi = () => { if (state.backupUi) state.backupUi.stale = true; };
@@ -43,7 +44,7 @@ export function backupPanel() {
         <button type="button" class="btn btn-sm btn-ghost" data-action="backup-dl" data-src="${src}" data-id="${esc(f.id || f.name)}" data-name="${esc(f.name)}">${t("下载")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="backup-use" data-src="${src}" data-id="${esc(f.id || f.name)}">${t("恢复")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="backup-rm" data-src="${src}" data-id="${esc(f.id || f.name)}" data-name="${esc(f.name)}" aria-label="${esc(t("删除"))}">✕</button></li>`;
     const shown = list.slice(0, 3), rest = list.slice(3, 30);
     cloudList = `<div class="panel bk-panel"><h3>${t("备份记录")}</h3>${srcs.length > 1 ? `<div class="chips bk-srcs">${srcs.map((k) => `<button type="button" class="chip" data-action="backup-src" data-src="${k}" aria-pressed="${k === src}">${SOURCES[k].icon} ${t(SOURCES[k].label)}</button>`).join("")}</div>` : `<p class="muted">${S0.icon} ${t(S0.label)}</p>`}
-      ${ui.loading ? `<p class="muted">${t("读取中…")}</p>` : list.length ? `<ul class="restock-list">${shown.map(row).join("")}</ul>${rest.length ? `<details class="bk-more"><summary>${t("更早的 {n} 条", { n: rest.length })}</summary><ul class="restock-list">${rest.map(row).join("")}</ul></details>` : ""}` : `<p class="muted" style="margin:0">${t("这里还没有备份。上面勾上它，再点「现在备份」。")}</p>`}</div>`;
+      ${ui.errs?.[src] ? `<p class="bk-err">⚠️ ${esc(ui.errs[src])} <button type="button" class="btn btn-sm" data-action="backup-relist" data-src="${src}">${t("重新授权并刷新")}</button></p>` : ""}${ui.loading && !list.length ? `<p class="muted">${t("读取中…")}</p>` : list.length ? `<ul class="restock-list">${shown.map(row).join("")}</ul>${rest.length ? `<details class="bk-more"><summary>${t("更早的 {n} 条", { n: rest.length })}</summary><ul class="restock-list">${rest.map(row).join("")}</ul></details>` : ""}` : `<p class="muted" style="margin:0">${t("这里还没有备份。上面勾上它，再点「现在备份」。")}</p>`}</div>`;
   }
   const notCfg = t("需要先在 config.js 里填好（见 README「云盘备份」）");
   const driveCard = (k, icon, label, cfgd, tk, pathName, pathLabel, pathVal, ph, pathText) => card(k, has(k), icon, label, cfgd ? t("放在你 {d} 里指定的文件夹，手机电脑都能用；只留 {n} 天", { d: label, n: KEEP_DAYS }) : notCfg,

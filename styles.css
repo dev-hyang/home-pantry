@@ -1490,3 +1490,4 @@ body.editing .minibar { display: none; }
 .synccard .btn { flex: none; white-space: nowrap; }
 @media (max-width: 420px) { .synccard { flex-wrap: wrap; } .synccard .btn { flex: 0 0 auto; width: calc(100% - 24px); margin-left: 24px; } }
 .bk-statushead { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed var(--line); }
+.bk-err{margin:6px 0;color:#b4506a;font-size:13px}.bk-err .btn,.bk-err .chip{margin-left:6px}
