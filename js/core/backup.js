@@ -150,10 +150,10 @@ export async function deleteCloud(name) { await bucket().remove([`${CloudStore.h
    备份放在你在卡片里填的文件夹路径下（Drive 默认「爱家小助手备份」；Dropbox 相对应用文件夹），不往根目录随便放 ───────────── */
 export const DR = createDrives({ googleClientId: window.APP_CONFIG?.GOOGLE_CLIENT_ID || "", googleApiKey: window.APP_CONFIG?.GOOGLE_API_KEY || "", dropboxAppKey: window.APP_CONFIG?.DROPBOX_APP_KEY || "", tokPrefix: "homeworks.backup", legacyPrefixes: ["hmh-backup"], defaultFolder: "爱家小助手备份", fileRe: FILE_RE, keepDays: KEEP_DAYS, t, load: lsLoad, save: lsSave, getPaths: () => { const s = settings(); return { gd: s.gdPath, gdId: s.gdId, gdName: s.gdName, dbx: s.dbxPath }; } });   // 令牌前缀四个应用相同：连一次全连上
 /** 能列出 / 恢复的来源（文件夹和下载的备份通过「选备份文件」读回来） */
-export const SOURCES = {
-  cloud: { icon: "🗄️", label: "应用云端", ready: () => Store.mode === "cloud" && !!CloudStore.hid, list: listCloud, read: readCloud, del: deleteCloud },
+export const SOURCES = {   // 顺序即显示顺序：Google Drive 在前（默认选它），再 Dropbox，最后应用云端
   gdrive: { icon: "▲", label: "Google Drive", ready: () => DR.gdOn(), list: () => DR.gdList(false), read: DR.gdRead, del: DR.gdDelete },
   dropbox: { icon: "◆", label: "Dropbox", ready: () => DR.dbxOn(), list: DR.dbxList, read: DR.dbxRead, del: DR.dbxDelete },
+  cloud: { icon: "🗄️", label: "应用云端", ready: () => Store.mode === "cloud" && !!CloudStore.hid, list: listCloud, read: readCloud, del: deleteCloud },
 };
 export const available = () => Object.keys(SOURCES).filter((k) => SOURCES[k].ready());
 /** 打开应用时调一次：从 Dropbox 授权页跳回来（?code=…&state=dbx）就换成令牌，勾上 Dropbox，并跳到备份页 */

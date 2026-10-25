@@ -41,8 +41,9 @@ export function backupPanel() {
     state.backupSrc = srcs.includes(state.backupSrc) ? state.backupSrc : srcs[0]; const src = state.backupSrc, list = (ui.lists || {})[src] || [], S0 = SOURCES[src];
     const row = (f) => `<li><div class="grow"><span class="name">${esc(f.name)}</span><small>${esc(when(f.at))} · ${kb(f.size)}</small></div>
         <button type="button" class="btn btn-sm btn-ghost" data-action="backup-dl" data-src="${src}" data-id="${esc(f.id || f.name)}" data-name="${esc(f.name)}">${t("下载")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="backup-use" data-src="${src}" data-id="${esc(f.id || f.name)}">${t("恢复")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="backup-rm" data-src="${src}" data-id="${esc(f.id || f.name)}" data-name="${esc(f.name)}" aria-label="${esc(t("删除"))}">✕</button></li>`;
-    cloudList = `<div class="panel bk-panel"><h3>${t("已有的备份")}</h3>${srcs.length > 1 ? `<div class="chips bk-srcs">${srcs.map((k) => `<button type="button" class="chip" data-action="backup-src" data-src="${k}" aria-pressed="${k === src}">${SOURCES[k].icon} ${t(SOURCES[k].label)}</button>`).join("")}</div>` : `<p class="muted">${S0.icon} ${t(S0.label)}</p>`}
-      ${ui.loading ? `<p class="muted">${t("读取中…")}</p>` : list.length ? `<ul class="restock-list">${list.slice(0, 12).map(row).join("")}</ul>` : `<p class="muted" style="margin:0">${t("这里还没有备份。上面勾上它，再点「现在备份」。")}</p>`}</div>`;
+    const shown = list.slice(0, 3), rest = list.slice(3, 30);
+    cloudList = `<div class="panel bk-panel"><h3>${t("备份记录")}</h3>${srcs.length > 1 ? `<div class="chips bk-srcs">${srcs.map((k) => `<button type="button" class="chip" data-action="backup-src" data-src="${k}" aria-pressed="${k === src}">${SOURCES[k].icon} ${t(SOURCES[k].label)}</button>`).join("")}</div>` : `<p class="muted">${S0.icon} ${t(S0.label)}</p>`}
+      ${ui.loading ? `<p class="muted">${t("读取中…")}</p>` : list.length ? `<ul class="restock-list">${shown.map(row).join("")}</ul>${rest.length ? `<details class="bk-more"><summary>${t("更早的 {n} 条", { n: rest.length })}</summary><ul class="restock-list">${rest.map(row).join("")}</ul></details>` : ""}` : `<p class="muted" style="margin:0">${t("这里还没有备份。上面勾上它，再点「现在备份」。")}</p>`}</div>`;
   }
   const notCfg = t("需要先在 config.js 里填好（见 README「云盘备份」）");
   const driveCard = (k, icon, label, cfgd, tk, pathName, pathLabel, pathVal, ph, pathText) => card(k, has(k), icon, label, cfgd ? t("放在你 {d} 里指定的文件夹，手机电脑都能用；只留 {n} 天", { d: label, n: KEEP_DAYS }) : notCfg,
@@ -55,16 +56,15 @@ export function backupPanel() {
       <div class="bk-row" style="margin-top:8px"><button type="button" class="btn btn-primary btn-sm" data-action="backup-restore-confirm">${t("恢复到当前家庭")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="backup-restore-cancel">${t("取消")}</button></div></div>`
     : `<div class="notice" role="alert"><b>${t("不能恢复：{why}", { why: esc(pv.why) })}</b> <button type="button" class="btn btn-sm btn-ghost" data-action="backup-restore-cancel">${t("关闭")}</button></div>`) : "";
   const result = state.backupResult ? `<div class="notice ${state.backupResult.ok === false ? "bad" : ""}" role="status"><b>${esc(state.backupResult.title)}</b>${state.backupResult.detail ? `<div class="muted" style="font-size:12.5px;margin-top:4px">${esc(state.backupResult.detail)}</div>` : ""}</div>` : "";
-  const sync = cloud ? `<div class="bk-sync"><span class="sync ${syncState.err ? "err" : ""}">${esc(syncState.text || t("已连接云端"))}</span><button type="button" class="btn btn-sm btn-ghost" data-action="reload">${t("重新读取")}</button></div>` : `<div class="bk-sync"><span class="sync">${t("本地演示：数据只在这个浏览器里，更要备份")}</span></div>`;
+  const sync = cloud ? `<div class="bk-sync"><span id="syncBadge" class="sync ${syncState.err ? "err" : ""}" role="status">${esc(syncState.text || t("已同步"))}</span><button type="button" class="btn btn-sm" data-action="reload">${t("立即同步")}</button></div>` : `<div class="bk-sync"><span class="sync">${t("本地演示：数据只在这个浏览器里，更要备份")}</span></div>`;
   return `${sync}
     ${state.backupPending ? `<div class="notice" role="status"><b>${t("定时备份在等你点一下")}</b> ${t("写入这台电脑的文件夹需要你授权一次。")} <button type="button" class="btn btn-sm" data-action="backup-continue">${t("继续备份")}</button></div>` : ""}
     ${result}
     <div class="panel bk-panel bk-status"><div><b>${esc(status)}</b><small>${s.lastInfo ? `${esc(s.lastInfo)} · ` : ""}${esc(nextTxt)}</small></div>
       <div class="bk-row"><button type="button" class="btn btn-primary" data-action="backup-now">${t("现在备份")}</button><button type="button" class="btn btn-ghost" data-action="backup-download">${t("下载一份")}</button></div></div>
     <form id="backupForm" class="panel bk-panel" onsubmit="return false">
-      <h3>${t("多久备份一次")}</h3>
-      <div class="seg-radio bk-seg">${[["off", "关"], ["week", "每周"], ["month", "每月"], ["custom", "自定义"]].map(([v, l]) => `<label class="radio-pill"><input type="radio" name="every" value="${v}" ${s.every === v ? "checked" : ""}><span>${t(l)}</span></label>`).join("")}
-        <label class="bk-days" data-backup-days ${s.every === "custom" ? "" : "hidden"}><input name="days" type="number" min="1" max="365" inputmode="numeric" value="${s.days}" aria-label="${esc(t("每隔几天"))}"> ${t("天")}</label></div>
+      <div class="bk-sched"><label>${t("多久备份一次")} <select name="every" aria-label="${esc(t("多久备份一次"))}">${[["off", "不自动备份"], ["week", "每周"], ["month", "每月"], ["custom", "自定义（天）"]].map(([v, l]) => `<option value="${v}" ${s.every === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
+        <label data-backup-days ${s.every === "custom" ? "" : "hidden"}>${t("每隔几天")} <input name="days" type="number" min="1" max="365" inputmode="numeric" value="${s.days}" aria-label="${esc(t("每隔几天"))}"> ${t("天")}</label></div>
       <p class="muted">${t("网页关着时跑不了：到期后下次打开应用时自动备份一次。")}</p>
       <h3>${t("备份到哪")} <small class="muted">${t("可多选")}</small></h3>
       <div class="bk-cards">

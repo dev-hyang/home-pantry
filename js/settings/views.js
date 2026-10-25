@@ -168,7 +168,7 @@ export const SETTING_SECTIONS = [
   { id: "locations", icon: "📍", name: "存放位置" },
   { id: "modules", icon: "🧩", name: "模块开关" },
   { id: "print", icon: "🖨️", name: "打印" },
-  { id: "backup", icon: "🛟", name: "备份与恢复" },
+  { id: "backup", icon: "🛟", name: "同步、备份与恢复" },
   { id: "data", icon: "🔔", name: "通知" },
   { id: "apps", icon: "🔗", name: "姐妹站点与介绍" },
 ];
@@ -302,8 +302,7 @@ export function viewSettings() {
       ai: aiReady() ? `${t("{p} · 已填 key", { p: t(providerOf(aiSettings().provider).name) })}${(() => { const q = aiQuota(); return q.cap ? ` · ${t("今天 {n}/{cap}", { n: q.used, cap: q.cap })}` : ""; })()}` : t("未填 key，用“复制提示词”模式"),
       apps: t("小月亮、家庭学堂；介绍与注意事项"),
     };
-    return `<section class="section menu-page"><div class="section-head"><p>${t("家庭、房产、语言、存放位置、模块、备份、AI、姐妹站点")}</p>
-        <div class="head-acts"><span id="syncBadge" class="sync ${syncState.err ? "err" : ""}" role="status">${esc(syncState.text)}</span>${cloud ? `<button type="button" class="btn btn-sm" data-action="reload">${t("立即同步")}</button>` : ""}</div></div>
+    return `<section class="section menu-page"><div class="section-head"><p>${t("家庭、房产、语言、存放位置、模块、同步与备份、AI、姐妹站点")}</p></div>
       <div class="panel mlist">${SETTING_SECTIONS.map((s) => `<a class="mrow" href="${href("me", "settings")}?sec=${s.id}"><span class="mi" aria-hidden="true">${s.icon === "__AI__" ? aiIcon(24) : s.icon}</span><span class="mt"><b>${t(s.name)}</b><small>${esc(status[s.id])}</small></span><span class="mch" aria-hidden="true">›</span></a>`).join("")}</div>
       <div class="form-actions" style="margin-top:14px">${cloud ? `<button type="button" class="btn btn-danger-ghost" data-action="logout">${t("退出登录")}</button>` : `<button type="button" class="btn btn-danger-ghost" data-action="reset-demo">${t("恢复演示数据")}</button>`}</div>
     </section>`;
@@ -314,8 +313,7 @@ export function viewSettings() {
     family: () => `
     <div class="panel">
       <div class="kv"><div><b>${esc(state.household?.name || "")}</b><div class="muted">${cloud ? t("云端协同：家人修改会实时同步") : t("本地演示：数据只保存在这个浏览器里")}</div></div>
-        <div class="head-acts"><span id="syncBadge" class="sync ${syncState.err ? "err" : ""}" role="status">${esc(syncState.text)}</span>
-          ${cloud ? `<button type="button" class="btn btn-sm" data-action="reload">${t("立即同步")}</button>` : ""}</div></div>
+        ${cloud ? `<a class="btn btn-sm btn-ghost" href="${href("me", "settings")}?sec=backup">${t("同步与备份")} ›</a>` : ""}</div>
     </div>
     ${cloud ? `
     <div class="panel">
