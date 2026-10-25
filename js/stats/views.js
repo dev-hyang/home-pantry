@@ -146,6 +146,16 @@ export async function ensureYearLoaded(n) {
   if (fresh.length) state.purchases = [...state.purchases, ...fresh];
   return fresh.length > 0;
 }
+/** 银行导入「查看 / 修改」：云端平时只读近 400 天，补录的老对账单（日期更早）不在内存里，筛出来就是空的——按这一批的日期范围把它们读回来 */
+export async function ensureBatchLoaded() {
+  const id = state.spendFilter.batch, bt = id ? batchOf(id) : null; if (!bt?.b.from) return false;
+  state.batchLoaded ||= {}; if (state.batchLoaded[id]) return false; state.batchLoaded[id] = true;
+  const day = (s, d) => new Date(new Date(`${s}T00:00:00Z`).getTime() + d * 864e5).toISOString();
+  const rows = await Store.listPurchasesRange(day(bt.b.from, -1), day(bt.b.to || bt.b.from, 2)).catch(() => []);
+  const have = new Set(state.purchases.map((p) => p.id)), fresh = rows.filter((p) => !have.has(p.id));
+  if (fresh.length) state.purchases = [...state.purchases, ...fresh];
+  return fresh.length > 0;
+}
 /** 最早有记录的年份（只查一次），下拉里的往年选项到这一年为止 */
 export async function ensureFirstYear() {
   if (state.stats.firstYear) return false;

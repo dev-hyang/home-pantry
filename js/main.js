@@ -53,7 +53,7 @@ import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, ne
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
-import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureFirstYear, ensureYearLoaded, exportAnnual, rememberStore, renderSpendList, renderSpendRecords, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
+import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureBatchLoaded, ensureFirstYear, ensureYearLoaded, exportAnnual, rememberStore, renderSpendList, renderSpendRecords, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
 
 const APP_NAME = "爱家小助手";
 
@@ -313,7 +313,7 @@ function onRoute() {
   }
   if (next.section === "scan" && prev.section !== "scan") resetScan();
   // 从图表 / 名称钻取来的：套上筛选，再把地址里的筛选参数去掉（刷新或再次进入不会重复套用）
-  if (next.section === "bills" && next.sub === "spend" && next.q.get("tab") === "records" && applySpendDrill(next.q)) history.replaceState(null, "", `${href("bills", "spend")}?tab=records`);
+  if (next.section === "bills" && next.sub === "spend" && next.q.get("tab") === "records" && applySpendDrill(next.q)) { history.replaceState(null, "", `${href("bills", "spend")}?tab=records`); ensureBatchLoaded().then((fresh) => { if (fresh) render(false); }); }
   state.route = next;
   render(true);
   if (next.section === "me" && next.sub === "settings" && next.q.get("sec") === "ai") hydrateModelSelect();   // AI 设置：后台查这个 key 实际能用的模型，填进下拉
