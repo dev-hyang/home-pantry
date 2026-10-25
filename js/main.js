@@ -31,7 +31,7 @@ import { completeVehicleDeal, dealAlertItems } from "./house/deals.js";
 import { billAlertItems } from "./bills/logic.js";
 // 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
 [pantryAlertItems, billAlertItems, budgetAlertItems, escrowAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
-import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
+import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, updateHoaTotal, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { printSheet } from "./settings/print.js";
 import { resetScan, scanAction, viewScan } from "./pantry/scan.js";
 import { budgetAction, budgetAlertItems, groupForCategory, maybeAutoGenerate, viewBudget } from "./bills/budget.js";
@@ -425,7 +425,14 @@ main.addEventListener("input", (e) => {
   if (e.target.id === "billSearch") { state.billsFilter.q = e.target.value; renderBillList(); }
   if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; renderAssetList(); }
   const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
+  if (e.target.matches("textarea[data-grow]")) autoGrow(e.target);
+  const hf = e.target.closest("#houseForm"); if (hf && /^hoa_(dues|sa_)/.test(e.target.name || "")) updateHoaTotal(hf);   // HOA 金额 / 评估字段一改，每月总计卡马上重算
 });
+/** 说明 / 备注框：随内容长高（空着一行），接近上限时显示计数 */
+function autoGrow(el) {
+  el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`;
+  const c = el.nextElementSibling; if (c?.classList.contains("grow-count")) { const max = +el.maxLength || 0; c.hidden = !(max && el.value.length >= max * 0.8); c.textContent = `${el.value.length}/${max}`; }
+}
 /** 备份：手动 / 定时到期后点「继续」 */
 const backupTargetName = (k) => ({ download: t("下载"), folder: t("文件夹"), cloud: t("云端"), gdrive: "Google Drive", dropbox: "Dropbox" }[k] || k);
 async function doBackup(targets, el) {

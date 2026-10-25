@@ -673,6 +673,19 @@ button.mrow:last-child { border-bottom: 0; }
 .asset-card .acts { display: flex; gap: 6px; flex-wrap: wrap; }
 .form-grid label.check-inline { display: flex; align-items: center; gap: 8px; font-weight: 500; }   /* .form-grid label 是上下排，勾选框和说明要同一行 */
 .form-grid label.check-inline input { width: 18px; height: 18px; min-height: 0; flex: 0 0 auto; accent-color: var(--pine); }
+.form-grid label.check { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 14px; padding: 6px 0; }   /* 表单里的多选格（税务减免）：勾选框和文字同一行，不继承 label 的上下排 */
+.form-grid .form-field { display: grid; gap: 4px; font-size: 13px; font-weight: 700; align-content: start; min-width: 0; }   /* 装一组勾选项的“字段”，不用 label 包（label 套 label 会误勾第一项） */
+.form-grid .form-field > small { font-weight: 400; color: var(--muted); }
+.hoa-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--ok-bg); border: 1px solid var(--line); }   /* HOA 每月总计卡：输入时实时更新 */
+.hoa-total .ht-label { font-size: 13px; font-weight: 700; }
+.hoa-total b { font-size: 20px; color: var(--pine); }
+.hoa-total small { font-weight: 400; color: var(--muted); flex-basis: 100%; }
+textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; line-height: 1.4; }   /* 说明 / 备注：空着一行高，随内容长高 */
+.house-form textarea.grow { min-height: 0; resize: none; overflow: hidden; }
+.sticky-actions .hoa-mini { margin-left: auto; font-size: 13px; color: var(--muted); align-self: center; }   /* HOA 表单的保存栏右侧：每月总计随输入实时变 */
+.sticky-actions .hoa-mini b { font-size: 16px; color: var(--pine); }
+.grow-count { display: block; text-align: right; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.grow-count[hidden] { display: none; }
 .maint-grid .check-inline { display: flex; align-items: center; gap: 8px; font-weight: 500; }
 .maint-grid .check-inline input { width: 18px; height: 18px; min-height: 0; accent-color: var(--pine); }
 .task-list { list-style: none; margin: 0; padding: 0; }
