@@ -33,8 +33,8 @@ export const statCat = (id, merge = state.stats.billMerge) => {
   if (TRIP.isTravel(id)) return "travel";
   if (id === "life_dining") return "dining";   // 餐饮外食单独一组（通常是第二大可变开支，单独做预算）
   if (id === "life_transit" || id === "vehicle_fuel") return "vehicle";
-  if (String(id).startsWith("work_") || id === "legal") return "work";   // 工作与专业：付费软件、考证、律师会计（非房产）、办公用品；法律税务一次性账单也算这里
-  if (id === "life_gov" || id === "life_fees" || id === "life_mail") return "admin";   // 政务与手续：证件罚单报税、手续费、邮寄、法律税务
+  if (String(id).startsWith("work_")) return "work";   // 工作与专业：付费软件、考证、律师会计（非房产）、办公用品
+  if (id === "life_gov" || id === "life_fees" || id === "life_mail" || id === "legal") return "admin";   // 政务与手续：证件罚单报税、手续费、邮寄、法律税务
   if (id === "life_shopping") return "other";   // 综合购物（待细分）：统计里归其他
   if (String(id).startsWith("life_")) return "life";   // 娱乐、美容、健身、礼物、课程…统计里合并成「休闲与个人」
   if (id === "grocery_misc") return id;   // 超市杂货（银行导入里没细分的）：统计里和日常储备各分类并排   // 机票、住宿、门票、燃油…统计里合并成“旅行出行”一组
