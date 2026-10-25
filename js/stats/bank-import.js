@@ -114,7 +114,8 @@ const RULES = [
   ["bill_donation", /donation|church|tithe|gofundme|red cross|unicef|捐款|教会|奉献/i], ["bill_tuition", /tuition|daycare|preschool|学费|托儿/i],
   ["bill_activities", /\bcamp\b|dance|piano|swim|gymnastics|karate|ymca|kumon|夏令营|兴趣班/i], ["bill_toll", /e-?zpass|ipass|sunpass|\btoll\b|过路费/i], ["life_transit", /parking|parkmobile|spothero|停车|uber|lyft|taxi|滴滴|打车|metra|\bcta\b|\bmta\b|bus pass|公交|地铁/i],
   ["pet_care", /\bvet\b|veterinar|animal hospital|兽医/i], ["pet", /petco|petsmart|chewy|宠物/i],
-  ["vehicle_fuel", /shell|chevron|exxon|mobil\b|\bbp\b|speedway|sunoco|marathon|kwik trip|wawa|citgo|casey'?s|gas station|\bfuel\b|supercharg|electrify america|chargepoint|加油|充电|洗车|car wash/i],
+  // 加油排在超市 / 仓储超市关键词之前：COSTCO GAS、SAM'S FUEL、KROGER FUEL 是加油不是买菜——说明里带 gas / fuel 的都先算加油（燃气公司在更前面的账单规则里）
+  ["vehicle_fuel", /shell|chevron|exxon|mobil\b|\bbp\b|speedway|sunoco|marathon|kwik trip|wawa|citgo|casey'?s|gas station|\bgas\b|gasoline|petrol|\bfuel\b|supercharg|electrify america|chargepoint|加油|油费|燃油|充电|洗车|car wash/i],
   ["vehicle_maint", /jiffy lube|valvoline|firestone|pep boys|autozone|o'?reilly|napa auto|midas|discount tire|auto repair|汽车维修|保养/i],
   ["house_maint", /home depot|lowe'?s|menards|ace hardware|家得宝/i],
   ["medical", /hospital|clinic|medical|dental|dentist|quest diag|labcorp|urgent care|physician|optom|医院|诊所|牙科|体检/i], ["health", /\bcvs\b|walgreens|rite aid|pharmacy|药房|药店/i],
@@ -138,12 +139,16 @@ const userRules = () => meta("_bank_rules", {}) || {};
 /** 归类：你教过的 > 已有账单的收款方（金额也得像那条账单）> AI 给的 > 内置关键词（含旅行关键词）> 银行自带分类；都不认识返回 ""
  *  账单收款方那条原来太宽：Amazon Prime / Costco 会员建了账单后，所有 Amazon / Costco 的购物都被归成「会员」。
  *  现在要么金额和账单的通常金额对得上（±15%），要么这家商家内置关键词也认不出，才按账单归类 */
+// 以前记住的规则是按老的商家名存的（带流水码，如「costco gas 0123」）；商家名清理规则改过之后对不上了——把老键按同样的清理再比一次
+const normKey = (k) => String(k).split(" ").filter((w) => !/^\d+$/.test(w) && !(/\d/.test(w) && /[a-z]/i.test(w) && !/^\d+-[a-z]+$/i.test(w))).join(" ");
+const learnedFor = (key) => { const rules = userRules(); if (rules[key]) return rules[key]; const k = Object.keys(rules).find((x) => normKey(x) === key); return k ? rules[k] : ""; };
 export function classify(row) { return classifyWhy(row).cat; }
 /** 同上，但带来源：learned（你教过的）/ bill / rule / ai / bank / ""。内置关键词认得的商家（Amazon、Costco、Shell…）优先于 AI 的猜测——AI 常把 Amazon 购物猜成会员 */
 export function classifyWhy(row) {
   const key = keyOf(row.desc), d = row.desc.toLowerCase();
-  const ur = userRules()[key]; if (ur) return { cat: canonCat(ur), src: "learned" };
-  const rule = (RULES.find(([, re]) => re.test(row.desc)) || [])[0] || "";
+  const ur = learnedFor(key); if (ur) return { cat: canonCat(ur), src: "learned" };
+  let rule = (RULES.find(([, re]) => re.test(row.desc)) || [])[0] || "";
+  if (rule === "grocery_misc" && row.bankCat && /gas|fuel/i.test(row.bankCat)) rule = "vehicle_fuel";   // 银行自己标了 Gas：超市 / 仓储超市的加油站
   for (const b of (state.billsEnriched?.length ? state.billsEnriched : state.bills) || []) {
     const p = String(b.payee || b.name || "").toLowerCase(); if (p.length < 4 || !d.includes(p)) continue;
     const est = num(b.est ?? b.typical_amount, 0), amt = Math.abs(num(row.out, 0));
