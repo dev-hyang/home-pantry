@@ -58,6 +58,14 @@ window.canonCat = (id) => window.CAT_ALIAS[id] || id;
 window.LIFE_GROUP = { id: "life", name: "休闲与个人", icon: "🎭", color: "#8a5fb0" };
 window.DINING_GROUP = { id: "dining", name: "餐饮外食", icon: "🍔", color: "#c0603a" };
 window.ADMIN_GROUP = { id: "admin", name: "政务与手续", icon: "🏛️", color: "#6b7280" };
+window.WORK_GROUP = { id: "work", name: "工作与专业", icon: "💼", color: "#3f6c8f" };
+window.WORK_CATS = [   // 和工作、职业直接相关的花费（个人订阅型的软件放账单里；房产交易的律师费在资本性支出）
+  { id: "work_software", name: "付费软件 / 工具 / 云服务（一次性买断或年付）", icon: "💻", color: "#3f6c8f" },
+  { id: "work_cert",     name: "考证 / 执照 / 专业会员 / 考试费", icon: "🎓", color: "#5b7fa6" },
+  { id: "work_legal",    name: "律师 / 会计 / 法律咨询（非房产：移民、遗嘱、公司、劳动…）", icon: "⚖️", color: "#6b7a8f" },
+  { id: "work_supplies", name: "办公 / 职业用品（耗材、工作服、名片、打印）", icon: "🗂️", color: "#7a8f6b" },
+  { id: "work_other",    name: "其他工作花费（行业会议、差旅杂费…）", icon: "💼", color: "#8a948f" },
+];
 window.GROCERY_MISC = { id: "grocery_misc", name: "超市杂货（未细分）", icon: "🛒", color: "#3f8f5a" };
 window.LIFE_CATS = [   // id 前缀都是 life_，归哪一组看 stats/views.js 的 statCat
   { id: "life_dining",   name: "外出就餐 / 外卖 / 咖啡", icon: "🍔", color: "#c0603a" },
@@ -92,6 +100,7 @@ window.SPEND_GROUPS = () => {
     ["餐饮外食", [L("life_dining")]],
     ["车与交通", [window.VEHICLE_FUEL, L("life_transit"), window.VEHICLE_CAT]],
     ["休闲与个人", ["life_fun", "life_care", "life_fitness", "life_gifts", "life_edu"].map(L)],
+    ["工作与专业（付费软件 · 考证 · 律师会计 · 办公用品）", window.WORK_CATS],
     ["政务与手续（证件罚单报税 · 手续费 · 邮寄）", ["life_gov", "life_fees", "life_mail"].map(L)],
     ["旅行专属（旅途中的吃饭 / 加油 / 门票记上面的普通分类，再填行程）", window.TRAVEL_CATS],
     ["待细分 / 其他", [L("life_shopping"), L("life_other")]],

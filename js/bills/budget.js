@@ -21,7 +21,8 @@ export const GROUPS = [
   { id: "gear", name: "装备", icon: "🧳", color: "#7563c0", w: 0.05 },
   { id: "dining", name: "餐饮外食", icon: "🍔", color: "#c0603a", w: 0.08 },   // 餐厅、外卖、咖啡：单独一组
   { id: "life", name: "休闲与个人", icon: "🎭", color: "#8a5fb0", w: 0.05 },   // 娱乐门票、美容、健身、礼物、课程（综合购物待细分算“其他”，超市杂货算“日常储备”）
-  { id: "admin", name: "政务与手续", icon: "🏛️", color: "#6b7280", w: 0.02 },   // 证件罚单报税、银行手续费、法律税务、邮寄
+  { id: "work", name: "工作与专业", icon: "💼", color: "#3f6c8f", w: 0.03 },   // 付费软件、考证、律师会计（非房产）、办公用品
+  { id: "admin", name: "政务与手续", icon: "🏛️", color: "#6b7280", w: 0.02 },   // 证件罚单报税、银行手续费、邮寄
   { id: "travel", name: "旅行出行", icon: "🧳", color: "#0f8b8d", w: 0.05 },   // 机票、住宿、门票、燃油、饭店…（不算“大件”）；没有旅行花费的家庭这一组显示为 0
   { id: "other", name: "其他", icon: "🧺", color: "#8a948f", w: 0.05 },
 ];
@@ -38,7 +39,7 @@ export const groupOf = (category, amount = 0) => {
   if (s === "capital") return "capital";   // 资本性支出（房产交易、买车整付）：不进预算
   if (s === "travel") return "travel";
   if (category === "grocery_misc") return "groceries";   // 超市杂货（银行导入里没细分的）算“日常储备”
-  if (s === "life" || s === "dining" || s === "admin") return s;   // 旅行出行：机票再贵也不当“大件”
+  if (s === "life" || s === "dining" || s === "admin" || s === "work") return s;   // 旅行出行：机票再贵也不当“大件”
   if (category === "pet_care") return "other";   // 宠物账单（兽医、寄养）算“其他”；宠物粮食仍在日常储备
   if (s !== "vehicle" && category !== "house_maint" && amount >= bigThreshold()) return "big";   // 大件：单笔大额，但账单、车辆、维修保养不算
   return ["house", "vehicle", "gear", "other"].includes(s) ? s : "groceries";

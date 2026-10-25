@@ -313,7 +313,7 @@ async function ingest(files) {
 
 /* ───────────── AI 解析（PDF 对账单 / 截图 / 扫描件 / 粘贴的文字） ───────────── */
 const catalog = () => {
-  const cats = [...window.CATEGORIES.filter((c) => c.space === "pantry" || c.space === "gear"), window.GROCERY_MISC, ...window.LIFE_CATS, window.VEHICLE_FUEL, { id: "vehicle_maint", name: "车辆维修保养" }, window.MAINT_CAT, ...window.TRAVEL_CATS, ...window.BILLS_GROUP.cats(), { id: "medical", name: "医疗" }, { id: "pet_care", name: "宠物医疗 / 服务" }];
+  const cats = [...window.CATEGORIES.filter((c) => c.space === "pantry" || c.space === "gear"), window.GROCERY_MISC, ...window.LIFE_CATS, ...window.WORK_CATS, window.VEHICLE_FUEL, { id: "vehicle_maint", name: "车辆维修保养" }, window.MAINT_CAT, ...window.TRAVEL_CATS, ...window.BILLS_GROUP.cats(), { id: "medical", name: "医疗" }, { id: "pet_care", name: "宠物医疗 / 服务" }];
   return { text: cats.map((c) => `${c.id}=${t(c.name)}`).join("; "), ids: new Set(cats.map((c) => c.id)) };
 };
 async function aiParse(i) {
@@ -405,7 +405,7 @@ function panelHtml() {
 /** 记住的归类规则：列出来、可逐条删或全部清除（归错了一次又勾了「记住」，不清掉会一直错） */
 function rulesHtml() {
   const rules = userRules(), keys = Object.keys(rules); if (!keys.length) return "";
-  const nameOf = (id) => { const c = [...window.CATEGORIES, ...window.BILLS_GROUP.cats(), ...window.LIFE_CATS, ...window.TRAVEL_CATS, window.GROCERY_MISC, window.VEHICLE_FUEL, window.MAINT_CAT, window.VEHICLE_CAT, window.MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾" }, window.OTHER_CAT].find((x) => x && x.id === id); return c ? `${c.icon} ${t(c.name)}` : id; };
+  const nameOf = (id) => { const c = [...window.CATEGORIES, ...window.BILLS_GROUP.cats(), ...window.LIFE_CATS, ...window.WORK_CATS, ...window.TRAVEL_CATS, window.GROCERY_MISC, window.VEHICLE_FUEL, window.MAINT_CAT, window.VEHICLE_CAT, window.MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾" }, window.OTHER_CAT].find((x) => x && x.id === id); return c ? `${c.icon} ${t(c.name)}` : id; };
   return `<details class="ref-panel panel" style="margin-top:10px"><summary><b>${t("记住的归类")}</b><small>${t("{n} 家商家", { n: keys.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
     <div class="ref-body"><p class="muted" style="margin:0 0 6px;font-size:12.5px">${t("导入时勾了「记住我选的归类」后，这些商家下次自动按这里归。归错了就删掉这一条（或在导入清单里改选，会记住新的）。")}</p>
     <ul class="restock-list">${keys.sort().map((k) => `<li><div class="grow"><span class="name">${esc(k)}</span><small>${esc(nameOf(rules[k]))}</small></div><button type="button" class="btn btn-sm btn-ghost" data-bank-act="rule-del" data-key="${esc(k)}" aria-label="${esc(t("删除这条"))}">✕</button></li>`).join("")}</ul>
