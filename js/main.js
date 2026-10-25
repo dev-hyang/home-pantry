@@ -42,7 +42,7 @@ import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyIt
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
-import { deleteBillPay, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
+import { deleteBillPay, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { moveCat, renderInvList, scoreRecipes, setShopOpen, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
@@ -493,7 +493,9 @@ main.addEventListener("change", async (e) => {
     return;
   }
   if (e.target.matches("select[data-pay-acct]")) {   // 付款账户下拉：选了「其他」才显示说明框
-    const box = e.target.closest("form")?.querySelector("[data-pay-other]"); if (box) box.hidden = e.target.value !== "other";
+    const form = e.target.closest("form"), box = form?.querySelector("[data-pay-other]"); if (box) box.hidden = e.target.value !== "other";
+    const exp = form?.querySelector("[data-pay-exp]"), note = form?.querySelector("[data-pay-exp-note]"), card = state.cards.find((c) => c.id === e.target.value);   // 账单表单：选了卡就不用填有效期
+    if (exp) exp.hidden = !!card; if (note) { note.hidden = !card; note.textContent = payExpNote(card); }
     return;
   }
   if (e.target.id === "billTrend") { state.billsFilter.trend = e.target.value; render(); }

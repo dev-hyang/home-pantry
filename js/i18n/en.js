@@ -1523,5 +1523,9 @@ export const EN = {
   "补标失败：{msg}": "Fill-in failed: {msg}",
   "付款方式 / 账户": "Method / account",
   "付款账户（银行账户、账单扣款 / 缴费用的卡）": "payment accounts (bank accounts, bill / payment cards)",
+  "到期前 45 天提醒换卡（选了卡就按卡的到期年月，不用填）": "Reminded 45 days before expiry (with a card chosen, its expiry is used; leave blank)",
+  "银行账户没有到期日": "Bank accounts don't expire",
+  "按 {name} 的到期年月 {d} 提醒换卡；要改去 用卡 里改": "Uses {name}'s expiry {d}; change it under Cards",
+  "{name} 还没填到期年月，去 用卡 里填上才会提醒换卡": "{name} has no expiry yet; fill it in under Cards to get the reminder",
   "每天": "daily", "每分钟": "per-minute", "Google 返回的 {m} {f}上限是 {n} 次，目录里是 {w}，已按实际的更新。": "Google reports {m}'s {f} limit as {n}; the catalog said {w}. Updated to the real value.", "这个 key 的模型列表有变化：": "This key's model list changed:", "新增": "added", "下线": "retired", "你选的 {m} 已不在这个 key 的可用列表里，会自动换别的模型；建议改选“自动”或另一个。": "Your selected {m} is no longer on this key's available list; another model will be used automatically. Consider choosing Auto or another model.", "免费上限目录更新于 {d}（{n} 天前）": "Free-tier limits catalog last updated {d} ({n} days ago)", "可能已过期，上限以控制台为准": "may be out of date; the console is authoritative", "现在刷新模型列表": "Refresh model list now", "正在查…": "Checking…", "已刷新": "Refreshed",
 };

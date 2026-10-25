@@ -418,6 +418,7 @@ export function viewBillForm() {
     currency: Units.region.currency, frequency: "monthly", due_day: null, due_dates: [], grace_days: 0, autopay: false, statement_channel: "email", reminder_days: [7, 1],
     essential: true, active: true, property_id: state.propertyId };
   const d = (x) => esc(x ?? "");
+  const payAcct = acctById(v.pay_card_id);   // 选了卡：到期年月直接看卡的，不再抄一份（抄过去的会过期不同步）
   const cloud = Store.mode === "cloud";
   const opts = (map, sel) => Object.entries(map).map(([k, n]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${t(n)}</option>`).join("");
   // 面包屑根：进来之前的页面（注意事项 / 账单 / 房屋…），没有就回账单清单
@@ -475,7 +476,8 @@ export function viewBillForm() {
             <label>${t("付款账户 / 卡")}<select name="pay_account" data-pay-acct>${accountOptions(payAcctValue(v.pay_card_id, v.autopay_method), { none: "（未指定）", extra: [["cash", "现金"], ["other", "其他（手填）"]] })}</select><small>${t("自动扣款从它扣；手动缴费时记缴费也默认用它。卡和银行账户在 账单 → 用卡 里添加。")}</small></label>
             <label data-pay-other ${payAcctValue(v.pay_card_id, v.autopay_method) === "other" ? "" : "hidden"}>${t("账户说明")}<input name="autopay_method" maxlength="40" placeholder="${t("例如：公司代扣 / 支票")}" value="${d(v.autopay_method)}"></label>
             <label class="check-inline span-2"><input type="checkbox" name="autopay" ${v.autopay ? "checked" : ""}><span>${t("已设置自动扣款（到期前后提醒核对，而不是提醒缴费）")}</span></label>
-            <label>${t("扣款卡有效期")}<input name="autopay_card_expires" type="month" value="${d(v.autopay_card_expires)}"><small>${t("选了卡就按卡的到期年月提醒换卡，这里可留空；到期前 45 天提醒")}</small></label>
+            <label data-pay-exp ${payAcct ? "hidden" : ""}>${t("扣款卡有效期")}<input name="autopay_card_expires" type="month" value="${d(v.autopay_card_expires)}"><small>${t("到期前 45 天提醒换卡（选了卡就按卡的到期年月，不用填）")}</small></label>
+            <p class="muted" data-pay-exp-note style="margin:0;font-size:12.5px" ${payAcct ? "" : "hidden"}>${esc(payExpNote(payAcct))}</p>
           </div>
         </fieldset>
         <fieldset data-sec="other" ${hide("other")}>
@@ -631,6 +633,8 @@ export async function saveBillForm(f, { silent = false } = {}) {
   } catch (e) { if (silent) throw e; err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; return false; }
 }
 
+/** 选了卡 / 账户时「扣款卡有效期」那行的说明 */
+export const payExpNote = (c) => (!c ? "" : c.kind === "checking" || c.kind === "savings" ? t("银行账户没有到期日") : c.expires_on ? t("按 {name} 的到期年月 {d} 提醒换卡；要改去 用卡 里改", { name: c.name, d: c.expires_on.slice(0, 7) }) : t("{name} 还没填到期年月，去 用卡 里填上才会提醒换卡", { name: c.name }));
 /** 账单的付款账户字段：下拉选卡 → pay_card_id；现金 / 其他 → autopay_method 文字 */
 const payFields = (value, text) => { const r = resolvePayAccount(value, text); return { pay_card_id: r.card_id, autopay_method: r.method }; };
 /** 记一笔缴费 / 核对 / 跳过：写 purchases（有金额且为应付，带上用的卡）、写记录、把账单推到下一期 */
