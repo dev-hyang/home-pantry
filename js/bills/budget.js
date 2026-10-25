@@ -7,7 +7,7 @@ import { lang, t } from "../core/i18n.js";
 import { alertsOf } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { budgetBridge } from "../core/budget-bridge.js";
-import { dq, hitAttrs, lastMonths, monthKey, monthLabel, rangeChipsHtml, rangeMonths, statCat } from "../stats/views.js";
+import { dq, hitAttrs, lastMonths, monthKey, monthLabel, rangeChipsHtml, rangeMonths, statCat, timeBarHtml } from "../stats/views.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { BUDGET_TABS, activeTab } from "../core/tabs.js";
 
@@ -403,7 +403,8 @@ export function viewBudget() {
     // 趋势：预算 vs 实际、年度预算
     trend: () => `
     <section class="section">
-      <div class="section-head"><h2>${t("预算 vs 实际")}</h2><div class="head-acts">${rangeChipsHtml()}</div></div>
+      <div class="section-head"><h2>${t("预算 vs 实际")}</h2></div>
+      ${timeBarHtml(null)}   <!-- 和花费页同一个时间条、同一个范围值 -->
       <div class="panel chart-panel"><h3>${t("账单和实际花费的关系")}</h3><p class="muted" style="margin:0 0 6px;font-size:13px">${t("按缴费日记账；年付账单缴费的那个月会特别高，看年度更准。")}</p>${stacked}</div>
       <div class="panel chart-panel"><h3>${t("每月：实际 vs 预算 vs 收入")}</h3>${vs}</div>
     </section>

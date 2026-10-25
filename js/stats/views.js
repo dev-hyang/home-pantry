@@ -205,10 +205,11 @@ function spendOverviewTab(sd, withHub = false) {
     series: cats.map((c) => ({ name: t(c.name), color: c.color, values: months.map((m) => byMC[m][c.id] || 0) })),
     drill: (k, i) => dq({ cat: cats[k].id, month: months[i] }), legendDrill: (k) => dq({ cat: cats[k].id, range: months.length }),
   });
+  // 时间条 → 数字卡片 → 图表连在一起；手机上的「其他功能」入口行放最后（原来夹在数字卡片和图表中间，把筛选和图表隔开了）
   return `${spendKpis(sd)}
-    ${withHub ? tabHub(SPEND_TABS, spendHref, t("更多")) : ""}
     ${sd.otherCurrency ? `<p class="muted" style="font-size:13px">${t("另有 {n} 笔非 {cur} 记录未计入。", { n: sd.otherCurrency, cur: Units.region.currency })}</p>` : ""}
-    ${totals.some((v) => v > 0) ? `<div class="panel chart-panel"><h3>${t("每月花了多少")}</h3>${spendBars}${DRILL_HINT()}</div>` : noSpend()}`;
+    ${totals.some((v) => v > 0) ? `<div class="panel chart-panel"><h3>${t("每月花了多少")}</h3>${spendBars}${DRILL_HINT()}</div>` : noSpend()}
+    ${withHub ? tabHub(SPEND_TABS, spendHref, t("其他功能")) : ""}`;
 }
 function spendCategoryTab(sd) {
   const st = state.stats, { months, byMC, cats, totals } = sd;
@@ -309,7 +310,9 @@ function spendExportTab() {
 }
 
 /** 时间条：时间范围 + 月份（分类 / 商店页才有；默认「整段」= 和时间范围一致）+ 合并 / 资本性支出开关，放在标签下面、内容上面，一眼能看到 */
-function timeBarHtml(sd, tab) {
+/** 时间条；sd 为空 = 只有时间范围（预算趋势页用，同一个范围值） */
+export function timeBarHtml(sd, tab) {
+  if (!sd) return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label></div>`;
   const withMonth = tab === "category" || tab === "stores" || tab === "all";
   const m = state.stats.month && sd.months.includes(state.stats.month) ? state.stats.month : "";
   const monthSel = withMonth ? `<label class="tb-field"><span>${t("月份")}</span><select id="statsMonth" aria-label="${t("选择月份")}" data-nosearch><option value="" ${m ? "" : "selected"}>${t("整段（{r}）", { r: rangeLabel() })}</option>${[...sd.months].reverse().map((x) => `<option value="${x}" ${x === m ? "selected" : ""}>${monthOpt(x)}</option>`).join("")}</select></label>` : "";

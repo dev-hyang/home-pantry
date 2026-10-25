@@ -364,6 +364,7 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .tb-field { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
 .tb-field select, select.range-sel { width: auto; min-height: 34px; padding: 4px 30px 4px 10px; font-size: 13px; font-weight: 600; }
 .time-bar .check-inline { font-size: 13px; }
+@media (max-width: 440px) { .time-bar { padding: 8px 10px; gap: 6px 10px; } .tb-field { flex: 1 1 100%; justify-content: space-between; } .tb-field select, select.range-sel { flex: 0 1 64%; width: 64%; } .tabhub { margin-top: 6px; } }
 /* 记花费的三种记法：三个等宽的格子（图标 + 一行字）；「手动记一笔」点了才展开下面的表单 */
 .entry-ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 10px; max-width: 560px; }
 .entry-ways .way { display: grid; justify-items: center; align-content: center; gap: 4px; min-height: 66px; padding: 8px 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700; text-decoration: none; text-align: center; cursor: pointer; line-height: 1.25; }
