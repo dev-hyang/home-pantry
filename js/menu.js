@@ -95,7 +95,9 @@ export function viewPropertyList() {
 export function viewMenu(section) {
   const sec = SECTIONS[section]; if (!sec?.subs) return "";
   const extra = Object.entries(META[section] || {}).filter(([k, m]) => m.href && !sec.subs.some(([s]) => s === k) && (!m.when || m.when())).map(([k, m]) => [k, { bills: "账单" }[k] || k]);
-  const rows = [...sec.subs.filter(([k, , hidden]) => !hidden && !HIDDEN(section, k)), ...extra].map(([k, label]) => {
+  const ORDER = { house: ["overview", "profile", "bills", "tasks", "assets", "deal"] };   // 房产目录：概览 → 房屋资料 → 账单 → 季节任务 → 设备保养 → 交易
+  const idx = (k) => { const i = (ORDER[section] || []).indexOf(k); return i < 0 ? 99 : i; };
+  const rows = [...sec.subs.filter(([k, , hidden]) => !hidden && !HIDDEN(section, k)), ...extra].sort((a, b) => idx(a[0]) - idx(b[0])).map(([k, label]) => {
     const m = META[section]?.[k] || {};
     let count = 0; try { count = m.count ? m.count() : 0; } catch { count = 0; }
     return menuRow({ href: m.href ? m.href() : href(section, k), icon: m.icon || "•", title: t(label), desc: m.desc ? t(m.desc) : "", count, countLabel: m.countLabel ? t(m.countLabel) : "" });

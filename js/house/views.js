@@ -4,6 +4,7 @@ import { autofillBar } from "../core/autofill.js";
 import { alertsOf } from "../core/logic.js";
 import { state } from "../core/state.js";
 import { href } from "../core/router.js";
+import { askInline, ctx as askCtx } from "../core/ask.js";
 import { daysUntil, esc, fmtDate, inSpace, money } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { restockPanel, shelfGrid } from "../pantry/views.js";
@@ -189,6 +190,10 @@ const emergencyOf = (d) => d?.emergency || {};
 const emergencyFilled = (d) => EMERGENCY_FIELDS.filter((f) => emergencyOf(d)[f.id]).length;
 
 /* ── 资料分区：列表页显示完成度，点进去只改一块 ── */
+/** 房屋资料各块的「问咩咩」问题 */
+const PROFILE_ASK = { type: "我这种房型通常要自己负责哪些维护？", address: "建成年份从哪查？老房子要特别注意什么？", insurance: "我这种房子买哪种保险、保额怎么定？保单上这些项是什么意思？",
+  hoa: "HOA 月费一般包含什么？特殊评估、出租限制、储备金这些怎么看？", emergency: "总水阀、燃气阀、配电箱一般在哪？怎么关？", features: "家里这些设施各自要做什么日常保养？", materials: "这几种外墙 / 屋面 / 地面材料各要注意什么？",
+  ownership: "缴税号（PIN）在哪查？车位是否 deeded、税务减免怎么申请？" };
 export const PROFILE_SECTIONS = [
   { id: "type", icon: "🏡", name: "地区与房型" },
   { id: "address", icon: "📍", name: "地址与建成年份" },
@@ -535,6 +540,7 @@ function viewProfileSection(sec) {
     <section class="section form-page house-form">
       ${sec === "insurance" ? autofillBar("insurance", "#houseForm") : ""}
       <form id="houseForm" class="panel" data-sec="${sec}" novalidate data-autosave>
+        ${askInline({ id: `profile-${state.propertyId}-${sec}`, title: t(meta?.name || sec), question: PROFILE_ASK[sec] ? t(PROFILE_ASK[sec]) : t("这一块该填什么、去哪里找？"), context: () => askCtx.property(state.propertyId) })}
         ${body}
         <p id="houseFormError" class="form-error" role="alert"></p>
         <div class="form-actions sticky-actions">

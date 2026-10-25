@@ -9,6 +9,7 @@ import { href } from "../core/router.js";
 import { compare, joinList, lang, t } from "../core/i18n.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
 import { cardHintHtml, cardSelectHtml } from "../bills/cards-views.js";
+import { askInline } from "../core/ask.js";
 import { shopAdviceHtml, shopForecastHtml } from "../bills/budget.js";
 
 /* ── 概览（储藏 / 房屋耗材共用）── */
@@ -86,6 +87,7 @@ export function viewDashboard() {
       <div class="section-head"><h2 id="h-restock">${t("该补货了")}</h2>
         ${alerts.length ? `<button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">${t("全部加入采购清单")}</button>` : ""}</div>
       <div class="panel">${alerts.length ? restockPanel(alerts) : `<div class="empty"><strong>${t("库存都很充足")}</strong>${t("用掉东西时在“库存”里点一下 −，提醒会更准。")}</div>`}</div>
+      ${alerts.length ? askInline({ id: "restock", title: t("该补货了"), question: t("这些要补的东西怎么安排采购最省钱省时间？哪些可以等？"), context: () => [t("要补：{s}", { s: alerts.slice(0, 15).map((a) => a.name || a.item?.name).filter(Boolean).join("、") }), t("家庭人数 {n}", { n: state.members?.length || 1 })] }) : ""}
     </section>
 
     ${expiring.length ? `<section class="section" aria-labelledby="h-exp">

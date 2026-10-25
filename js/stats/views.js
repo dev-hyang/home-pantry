@@ -1,6 +1,7 @@
 import { categoryOptions } from "../pantry/views.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
+import { askInline } from "../core/ask.js";
 import { $, DAY, catOf, du, esc, fmt, money, num, showQty, toast } from "../core/util.js";
 import { compare, lang, locale, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
@@ -269,6 +270,13 @@ export function spendGlance() {
 /* 花费页分为 5 个标签（概览 / 分类 / 商店 / 明细 / 导出打印），一次只画一块，页面不再一屏接一屏地长；
  * 统计页（账单模块关闭时）仍用 "all"：全部连在一起 */
 const spendHref = (id) => `${href("bills", "spend")}${id === "overview" ? "" : `?tab=${id}`}`;
+/** 花费图的「问咩咩」：为什么涨、怎么控（带每月合计和前三类） */
+function spendAsk(sd) {
+  const { months, totals, byMC, cats } = sd, sum = {}; for (const m of months) for (const [c, v] of Object.entries(byMC[m] || {})) sum[c] = (sum[c] || 0) + v;
+  const top = Object.entries(sum).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c, v]) => `${t(cats.find((x) => x.id === c)?.name || c)} ${money(v)}`);
+  return { id: `spend-${months[0]}-${months.at(-1)}`, title: t("{r}的花费", { r: rangeLabel() }), question: t("这段时间花费为什么变多了？主要在哪几类？怎么控制？"),
+    context: () => [t("按月合计：{s}", { s: months.map((m, i) => `${monthLabel(m)} ${money(totals[i])}`).join("，") }), t("前三类：{s}", { s: top.join("，") }), t("家庭人数 {n}", { n: state.members?.length || 1 })] };
+}
 function spendOverviewTab(sd, withHub = false) {
   const { months, byMC, cats, totals } = sd;
   const spendBars = Charts.bars({
@@ -279,7 +287,7 @@ function spendOverviewTab(sd, withHub = false) {
   // 时间条 → 数字卡片 → 图表连在一起；手机上的「其他功能」入口行放最后（原来夹在数字卡片和图表中间，把筛选和图表隔开了）
   return `${periodKpis(sd)}
     ${sd.otherCurrency ? `<p class="muted" style="font-size:13px">${t("另有 {n} 笔非 {cur} 记录未计入。", { n: sd.otherCurrency, cur: Units.region.currency })}</p>` : ""}
-    ${totals.some((v) => v > 0) ? `<div class="panel chart-panel"><h3>${t("每月花了多少")}</h3>${spendBars}${DRILL_HINT()}</div>` : noSpend()}
+    ${totals.some((v) => v > 0) ? `<div class="panel chart-panel"><h3>${t("每月花了多少")}</h3>${spendBars}${DRILL_HINT()}${askInline(spendAsk(sd))}</div>` : noSpend()}
     ${withHub ? tabHub(SPEND_TABS, spendHref, t("其他功能")) : ""}`;
 }
 function spendCategoryTab(sd) {

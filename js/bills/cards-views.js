@@ -8,6 +8,7 @@ import { enrichBills, initialDue } from "./logic.js";
 import { ACCT_KINDS, CARDS_HREF, bonusLeft, cardById, cardHref, expDays, feeDays, fromCatalog, holderName, isBankAcct, kindIcon, kindName, networkName, pickCards, pickFor, quarterOf, reloadCards, reviewMonth, rewardCatIcon, rewardCatName, rotatingNow, usage } from "./cards.js";
 export { isBankAcct, kindIcon, kindName };
 import { aiReady, aiSettings, askText, providerOf } from "../core/ai.js";
+import { askInline } from "../core/ask.js";
 
 const D = () => window.CARDS;
 const d = (v) => esc(v ?? "");
@@ -134,6 +135,7 @@ function pickPanel() {
       <label class="check-inline"><input type="checkbox" name="abroad" ${p.abroad ? "checked" : ""}><span>${t("境外消费")}</span></label>
     </div>
     <div id="cardPickOut">${pickResultHtml()}</div>
+    ${askInline({ id: "cardpick", title: t("用卡推荐"), question: t("为什么推荐这张卡？我的几张卡平时怎么分工最划算？"), context: () => [t("卡：{s}", { s: state.cards.filter((c) => c.active !== false && !isBankAcct(c)).map((c) => `${c.name}（${t("其他 {b}%", { b: num(c.rewards?.base, 0) })}${Object.entries(c.rewards?.cats || {}).slice(0, 4).map(([k, v]) => `，${rewardCatName(k)} ${v}%`).join("")}）`).join("；") }), t("场景：{c}{m}", { c: rewardCatName(p.cat), m: p.merchant ? ` · ${p.merchant}` : "" })] })}
   </form>`;
 }
 export function pickResultHtml() {

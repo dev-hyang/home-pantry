@@ -34,6 +34,7 @@
     { id: "boiler",         name: "锅炉 + 暖气片",        region: "na" },
     { id: "heat_pump",      name: "热泵",                region: "na" },
     { id: "central_ac",     name: "中央空调",            region: "both" },
+    { id: "window_ac",      name: "窗机 / 分体空调",     region: "both" },   // 公寓常见：没有中央空调，一间一台
     { id: "humidifier",     name: "全屋加湿器",          region: "na" },
     { id: "water_softener", name: "软水机",              region: "both" },
     { id: "sump_pump",      name: "排水泵（Sump pump）", region: "na" },

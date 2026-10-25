@@ -6,6 +6,7 @@ import { esc, toast } from "./core/util.js";
 import { href } from "./core/router.js";
 import { lang, t } from "./core/i18n.js";
 import { aiIcon, aiQuota, aiReady, aiSettings, askText, generalPrompt, generalPromptText, providerOf, quotaMessage } from "./core/ai.js";
+import { askHandoff } from "./core/ask.js";
 
 export const TOPICS = [
   { id: "menu", icon: "🍳", name: "今天吃什么", q: null, link: () => `${href("pantry", "meals")}?ai=` },
@@ -26,6 +27,7 @@ const st = () => (state.aiPage ||= { q: "", busy: false, answer: null, error: nu
 export function viewAi() {
   const a = st(), ready = aiReady(), p = providerOf(aiSettings().provider);
   const q = ready ? aiQuota() : null, blocked = !!q && !q.ok;   // 免费额度用完：不发请求，改用复制提示词
+  const from = state.route?.q?.get("from"); if (from && !a.q) { a.q = askHandoff(from); a.fromId = from; }   // 某一项的「追问」：带上那次的问题和答案
   const qTopic = state.route?.q?.get("topic"); if (qTopic) { const tp = TOPICS.find((x) => x.id === qTopic); if (tp?.q && !a.q) a.q = t(tp.q); }
   const topics = TOPICS.map((x) => x.link ? `<a class="chip" href="${x.link()}">${x.icon} ${t(x.name)}</a>` : `<button type="button" class="chip" data-action="ai-topic" data-topic="${x.id}">${x.icon} ${t(x.name)}</button>`).join("");
   const sites = AI_SITES.map(([n, u]) => `<a class="btn btn-sm btn-ghost" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("");

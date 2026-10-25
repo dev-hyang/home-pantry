@@ -11,6 +11,7 @@ import { href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { houseBar } from "./property-form.js";
 import { careCard } from "./assets.js";
+import { askButton, askPanel, ctx as askCtx } from "../core/ask.js";
 
 const H = () => window.HOUSE;
 export const MONTHS = ["1 月", "2 月", "3 月", "4 月", "5 月", "6 月", "7 月", "8 月", "9 月", "10 月", "11 月", "12 月"];
@@ -78,7 +79,8 @@ export function taskRow(x, year, month) {
     : task.once ? `${onceDue(task)}${task.note ? ` · ${esc(t(task.note))}` : ""}`
     : task.note ? esc(t(task.note)) : task.months.length >= 12 ? t("每月一次") : joinList(task.months.map(monthName));
   const attrs = Object.entries(taskAttrs(x, year, month)).map(([k, v]) => `${k}="${esc(v)}"`).join(" ");
-  const card = task.custom ? "" : careCard(task.card || task.key);   // 有检查卡的任务，行下带“怎么查、什么时候叫人”
+  const sAsk = seasonAsk(task, x.pid || x.property_id || state.propertyId, month);
+  const card = task.custom ? "" : careCard(task.card || task.key, { ask: sAsk });   // 有检查卡的任务，行下带“怎么查、什么时候叫人”，卡里还能问咩咩
   const badge = task.custom ? ` <span class="badge" style="background:var(--surface-2)">${task.once ? t("一次性") : t("自定义")}</span>` : "";
   const overdue = task.once && !done && task.rec.due_on < todayISO();
   const editing = task.custom && state.seasonForm?.id === task.rec.id;
@@ -86,11 +88,16 @@ export function taskRow(x, year, month) {
     <input type="checkbox" id="${id}" ${attrs} ${done ? "checked" : ""}>
     <div class="grow"><label for="${id}"><b>${esc(task.custom ? task.name : t(task.name))}${badge}</b><small>${when}</small></label>${card}</div>
     ${task.custom ? `<button type="button" class="task-edit" data-action="season-edit" data-id="${esc(task.rec.id)}" aria-label="${esc(t("编辑：{name}", { name: task.name }))}" title="${esc(t("编辑"))}">✎</button>` : ""}
+    ${task.custom || !(task.card || task.key) || !window.CARE?.cardOf?.(task.card || task.key) ? askButton(sAsk) : ""}
     ${editing ? seasonForm(task.rec, year, month) : ""}
+    ${askPanel(sAsk)}
   </li>`;
 }
 
 /** 提醒总线：所有活跃房产本月没做的季节任务（留意级；一次性任务逾期升为“今天”级） */
+/** 季节任务的「问咩咩」：怎么查、发现什么要叫人 */
+export const seasonAsk = (task, pid, month) => ({ id: `season-${task.custom ? task.rec?.id : task.key}`, title: task.custom ? task.name : t(task.name),
+  question: t("{m}月的「{name}」具体怎么查？发现什么情况要叫人？", { m: month, name: task.custom ? task.name : t(task.name) }), guide: task.note && !window.CARE?.cardOf?.(task.card || task.key) ? { why: task.note } : null, context: () => askCtx.property(pid) });
 export function seasonAlertItems() {
   if (!state.houseEnabled || state.pending?.seasonal) return [];   // 完成记录还在加载：不然本月任务都会被当成没做
   const d = new Date(), y = d.getFullYear(), m = d.getMonth() + 1, today = todayISO();
@@ -101,7 +108,7 @@ export function seasonAlertItems() {
       return {
         source: "season", severity: late ? 1 : 3, must: false, due: x.task.once ? x.task.rec.due_on : null, daysLeft: null, property_id: p.id,
         title: x.task.custom ? x.task.name : t(x.task.name), detail: x.task.once ? onceDue(x.task) : x.task.note ? t(x.task.note) : t("{month}季节任务", { month: monthName(m) }), href: href("house", "tasks"),
-        actions: [{ type: "check", attrs: taskAttrs(x, y, m) }],
+        actions: [{ type: "check", attrs: taskAttrs(x, y, m) }], ask: seasonAsk(x.task, p.id, m),
       };
     });
   });

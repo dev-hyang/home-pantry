@@ -4,6 +4,7 @@
  *   actions：{ type: "link", href, label, cls?, external? } | { type: "button", action, id, label, cls? } | { type: "check", attrs } | { type: "tag", label, cls?, href? }（状态标签，如“已加入采购”）
  * 房产归属：多于一套活跃房产时统一加房产芯片（propertyTag），单套不显示。 */
 import { state } from "./state.js";
+import { askButton, askPanel } from "./ask.js";
 import { esc } from "./util.js";
 import { t } from "./i18n.js";
 
@@ -63,5 +64,5 @@ export function alertRow(it) {
     : `<button type="button" class="${menu ? "act-item" : `btn btn-sm ${a.cls || ""}`}" data-action="${esc(a.action)}" data-id="${esc(a.id || "")}">${esc(a.label)}</button>`;
   const rest = list.filter((_, k) => k !== pi);
   const acts = list.length ? `<div class="alert-acts">${one(list[pi], false)}${rest.length ? `<details class="act-more"><summary class="btn btn-sm btn-ghost" aria-label="${esc(t("更多操作"))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">${rest.map((a) => one(a, true)).join("")}</div></details>` : ""}</div>` : "";
-  return `<li class="alert-row sev-${it.severity}">${lead}<div class="grow">${propertyTag(it.property_id)}${it.must ? `<span class="badge b-out" style="margin-right:4px">${t("必须")}</span>` : ""}${title}<small>${esc(it.detail || "")}</small></div>${acts}</li>`;
+  return `<li class="alert-row sev-${it.severity}">${lead}<div class="grow">${propertyTag(it.property_id)}${it.must ? `<span class="badge b-out" style="margin-right:4px">${t("必须")}</span>` : ""}${title}<small>${esc(it.detail || "")}</small></div>${acts}${it.ask ? askButton(it.ask) : ""}${it.ask ? askPanel(it.ask) : ""}</li>`;
 }

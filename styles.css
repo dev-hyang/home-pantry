@@ -1491,3 +1491,18 @@ body.editing .minibar { display: none; }
 @media (max-width: 420px) { .synccard { flex-wrap: wrap; } .synccard .btn { flex: 0 0 auto; width: calc(100% - 24px); margin-left: 24px; } }
 .bk-statushead { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed var(--line); }
 .bk-err{margin:6px 0;color:#b4506a;font-size:13px}.bk-err .btn,.bk-err .chip{margin-left:6px}
+/* 随手问咩咩（js/core/ask.js）：行末小问号 → 就地展开 静态说明 + 一键提问 + 答案 */
+.ask-btn { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-weight: 800; font-size: 13px; line-height: 22px; text-align: center; padding: 0; cursor: pointer; margin-left: 6px; }
+.ask-btn:hover, .ask-btn.on { border-color: var(--pine); color: var(--pine); }
+.ask-btn.on { background: var(--ok-bg, #e4f2e8); }
+.ask-panel { flex-basis: 100%; width: 100%; margin: 8px 0 2px; padding: 10px 12px; border-left: 3px solid var(--pine); background: var(--surface-2); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 13.5px; }
+.ask-guide p { margin: 0 0 6px; line-height: 1.5; } .ask-guide p b { margin-right: 6px; } .ask-guide .ask-meta { color: var(--muted); font-size: 12.5px; }
+.ask-inline { margin-top: 6px; } .ask-inline.standalone { margin: 8px 0 10px; }
+.ask-inline .ask-q { display: block; margin-bottom: 4px; font-size: 13px; color: var(--ink); } .ask-keylink { font-size: 12.5px; color: var(--muted); }
+.ask-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .ask-acts .btn { white-space: normal; text-align: left; }
+.ask-answer { margin-top: 8px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); font-size: 13.5px; line-height: 1.55; }
+.ask-answer-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; } .ask-answer-head .spacer { flex: 1; }
+.ask-answer p { margin: 4px 0; } .ask-answer ul { margin: 4px 0 4px 18px; padding: 0; } .ask-answer .disclaimer { color: var(--muted); font-size: 11.5px; margin-top: 6px; }
+.care-card .ask-inline { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); } .care-card-ask { margin-top: 6px; }
+.task-row .ask-btn, .alert-row .ask-btn { align-self: center; }
+.task-row, .alert-row { flex-wrap: wrap; }

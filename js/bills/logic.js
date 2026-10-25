@@ -142,6 +142,8 @@ export function alertText(b) {
 }
 
 /** 提醒总线：逾期 = 紧急，今天到期 = 今天，待核对 / 即将 / 换卡 = 尽快 */
+/** 账单的「问咩咩」：这条账单贵不贵、怎么省 */
+export const billAsk = (b) => ({ id: `bill-${b.id}`, title: `${window.BILLS.catOf(b.category).icon} ${b.name}`, question: t("这条账单和同地区比贵不贵？有什么省钱或该核对的地方？"), context: () => window.__askCtx ? window.__askCtx.bill(b) : [] });
 export function billAlertItems() {
   if (!state.billsEnabled) return [];
   const B = window.BILLS;
@@ -154,7 +156,7 @@ export function billAlertItems() {
     actions.push(b.autopay ? { type: "button", action: "bill-verify", id: b.id, label: t("已核对") } : { type: "link", href: `${href("bill", b.id)}?pay=1`, label: t("记缴费") });
     return { source: "bill", severity: sev, must: b.status === "overdue" || !!b.trialSoon, due: b.trialSoon ? b.trial_ends_on : b.next_due_on, daysLeft: b.trialSoon ? b.trialDays : b.daysLeft, property_id: b.property_id, assigned_to: b.assigned_to,
       title: `${B.catOf(b.category).icon} ${b.name}`, detail: [acctText(b), alertText(b), amount].filter(Boolean).join(" · "), href: href("bill", b.id),
-      badge: { label, cls: sev === 0 ? "b-out" : sev === 1 ? "b-low" : "b-soon" }, actions };
+      badge: { label, cls: sev === 0 ? "b-out" : sev === 1 ? "b-low" : "b-soon" }, actions, ask: billAsk(b) };
   });
 }
 

@@ -2,6 +2,7 @@
  * 一笔交易挂在房产（property_id）或车辆（asset_id）上；页面 #/house/deal，车辆交易带 ?asset=<id>，看历史交易带 ?deal=<id> */
 import { propertyActive } from "../core/lifecycle.js";
 import { state } from "../core/state.js";
+import { askButton, askPanel, ctx as askCtx } from "../core/ask.js";
 import { Store } from "../core/store.js";
 import { $, DAY, daysUntil, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
 import { href } from "../core/router.js";
@@ -159,16 +160,21 @@ const editBtn = (x) => `<button type="button" class="task-edit" data-action="dea
 const taskNotes = (x) => [x.note && esc(t(x.note)), x.userNote && `${t("备注")}：${esc(x.userNote)}`].filter(Boolean).map((n) => `<br>${n}`).join("");
 const customBadge = (x) => (x.custom ? ` <span class="badge" style="background:var(--surface-2)">${t("自定义")}</span>` : "");
 
+/** 交易事项的「问咩咩」：这一步现在该做什么、找谁、要注意什么（事项备注当「为什么」） */
+export const dealAsk = (x) => ({ id: `deal-${x.deal.id}-${x.key}`, title: `${t(D().KINDS[x.deal.kind] || x.deal.kind)} · ${t(x.name)}`,
+  question: t("「{name}」这一步现在该做什么、找谁、要注意什么？", { name: t(x.name) }), guide: x.note ? { why: x.note } : null,
+  context: () => [...askCtx.property(x.deal.property_id), t(D().KINDS[x.deal.kind] || ""), x.deal.contract_on ? t("合同日 {d}", { d: x.deal.contract_on }) : "", x.deal.closing_on ? t("交割日 {d}", { d: x.deal.closing_on }) : ""].filter(Boolean) });
 export function taskRow(x, { showProp = false } = {}) {
-  const id = `deal-${x.deal.id}-${x.key}`;
+  const id = `deal-${x.deal.id}-${x.key}`, dAsk = dealAsk(x);
   const prop = showProp ? state.properties.find((p) => p.id === x.deal.property_id) : null;
   const editing = isEditing(x);
   return `<li class="task-row ${x.done ? "done" : ""} ${x.overdue ? "overdue" : ""} ${editing ? "editing" : ""}">
     <input type="checkbox" id="${id}" data-deal-task="${esc(x.key)}" data-deal="${x.deal.id}" ${x.done ? "checked" : ""}>
     <label for="${id}"><span class="tt"><b>${esc(t(x.name))}</b> <span class="badge ${PRIO_CLS[x.priority]}">${t(D().PRIORITY[x.priority])}</span>${customBadge(x)}</span>
       <small>${dateLine(x)}${prop ? ` · ${esc(prop.name)}` : ""}${taskNotes(x)}</small></label>
-    ${editBtn(x)}
+    ${editBtn(x)}${askButton(dAsk)}
     ${editing ? taskEditForm(x.deal, x) : ""}
+    ${askPanel(dAsk)}
   </li>`;
 }
 

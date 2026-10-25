@@ -17,6 +17,8 @@ import { RECURRING_TABS, activeTab } from "../core/tabs.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 import { acctById, acctLabel, accountOptions, billPayLabel, payAcctValue, paymentPayLabel, resolvePayAccount } from "./cards-views.js";
+import { askInline } from "../core/ask.js";
+import { billAsk } from "./logic.js";
 
 const B = () => window.BILLS;
 const BADGE = { overdue: "b-out", due: "b-low", verify: "b-soon", soon: "b-soon", ok: "b-ok", escrow: "b-ok", none: "", ended: "", inactive: "" };
@@ -520,6 +522,7 @@ function billHub(b, root) {
   return `<section class="section">
     ${crumbNav([...billTrail(b, root, href("bill", b.id)).slice(0, -1), { label: b.name, icon: billCat(b.category).icon }])}
     ${billSummary(b)}
+    ${askInline(billAsk(b))}
     ${hubList(rows)}
     <div class="form-actions" style="margin-top:14px">
       ${b.pay_url && !b.autopay ? `<a class="btn btn-ghost" href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${t("去缴费")}</a>` : ""}

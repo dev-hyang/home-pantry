@@ -3,6 +3,7 @@
  * - 保养记录：挂在设备下；记一次后自动算下次保养日期；有费用的同时写入 purchases（分类 house_maint，统计并入“房屋维护”）
  * - 页面：#/house/assets 列表、#/house/asset-template 生成、#/asset/new 与 #/asset/<id> 整页表单（编辑页下方带保养记录） */
 import { STATUS, state } from "../core/state.js";
+import { askButton, askInline, askPanel, ctx as askCtx } from "../core/ask.js";
 import { Store } from "../core/store.js";
 import { $, DAY, addMonths, daysUntil, esc, fmt, fmtDate, fmtShort, inSpace, money, num, stampText, todayISO, toast } from "../core/util.js";
 import { openShopFor } from "../core/logic.js";
@@ -122,7 +123,7 @@ export function assetAlertItems() {
     daysLeft: a.followUp ? -(-daysUntil(a.followUp.done_on)) : a.service === "overdue" || a.service === "due" ? a.dueDays : a.wDays,
     property_id: a.property_id, title: `${a.t?.icon || "⚙️"} ${assetName(a)}`, detail: alertText(a), href: href("asset", a.id),
     badge: { label: a.followUp ? t(C().RESULTS[a.followUp.result]) : a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修"), cls: a.followUp || a.service === "overdue" ? "b-out" : "b-soon" },
-    actions: [{ type: "link", href: `${href("asset", a.id)}?log=1`, label: a.followUp ? t("记处理结果") : t("记保养") }],
+    actions: [{ type: "link", href: `${href("asset", a.id)}?log=1`, label: a.followUp ? t("记处理结果") : t("记保养") }], ask: assetAsk(a),
   }));
   // 车辆证照与保险：牌照 / 排放 / 保险 30 天内到期（尽快·必须，过期 → 今天）；租赁 90 天内（留意）
   for (const a of state.assetsEnriched.filter((x) => isVehicle(x) && V().inService(x))) {
@@ -154,8 +155,11 @@ export function alertText(a) {
 }
 
 /* ── 检查卡：看什么、正常是什么样、自己做什么、什么时候叫人、红线、费用、时段 ── */
-export function careCard(key, { open = false } = {}) {
-  const c = C().cardOf(key); if (!c) return "";
+/** 设备 / 车辆保养项的「问咩咩」：问题替用户写好，带这一项的情况 */
+export const assetAsk = (a, careName = "") => ({ id: `asset-${a.id}${careName ? "-" + careName.replace(/\W+/g, "_") : ""}`, title: `${assetName(a)}${careName ? ` · ${careName}` : ""}`,
+  question: careName ? t("「{c}」这项保养怎么做？自己做还是叫人？大概多少钱？", { c: careName }) : t("这台设备现在该做什么保养？什么情况要叫人？"), context: () => (isVehicle(a) ? askCtx.vehicle(a) : askCtx.asset(a)) });
+export function careCard(key, { open = false, ask = null } = {}) {
+  const c = C().cardOf(key); if (!c) return "";   // 没检查卡的项不在这里画「问咩咩」：由行末的小问号负责，默认收着
   const list = (title, arr, cls = "") => (arr?.length ? `<div class="care-sec ${cls}"><h4>${title}</h4><ul class="tips">${arr.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></div>` : "");
   return `<details class="care-card" ${open ? "open" : ""}><summary>🔍 ${t("怎么查、什么时候叫人")}</summary>
     ${list(t("看什么"), c.check)}
@@ -165,6 +169,7 @@ export function careCard(key, { open = false } = {}) {
     ${list(t("马上处理"), c.urgent, "care-urgent")}
     ${c.cost ? `<p class="care-meta"><b>${t("费用")}</b>${esc(t(c.cost))}</p>` : ""}
     ${c.when ? `<p class="care-meta"><b>${t("什么时候")}</b>${esc(t(c.when))}</p>` : ""}
+    ${ask ? askInline(ask) : ""}
   </details>`;
 }
 
@@ -324,7 +329,7 @@ function vehicleCard(a) {
     </div>
     ${vehDealLine(a)}
     ${vehStatus(a) === "looking" ? `<small class="muted">${t("选购中：提车后把名称、车牌、里程补上。")}</small>`
-      : upcoming.length ? `<ul class="veh-due">${upcoming.map((s) => `<li class="${s.days < 0 ? "late" : s.days <= 30 ? "soon" : ""}"><span>${esc(t(s.name))}</span><small>${fmtDate(s.next)}${s.nextMiles != null ? ` · ${fmt(s.nextMiles)} ${distUnit()}` : ""}</small></li>`).join("")}</ul>`
+      : upcoming.length ? `<ul class="veh-due">${upcoming.map((s) => `<li class="${s.days < 0 ? "late" : s.days <= 30 ? "soon" : ""}"><span>${esc(t(s.name))}</span>${askButton(assetAsk(a, t(s.name)))}<small>${fmtDate(s.next)}${s.nextMiles != null ? ` · ${fmt(s.nextMiles)} ${distUnit()}` : ""}</small>${askPanel(assetAsk(a, t(s.name)))}</li>`).join("")}</ul>`
       : `<small class="muted">${t("填购车日期或记第一次保养后，这里会列出下一步该做的保养。")}</small>`}
     <div class="acts"><a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></div>
   </article>`;
@@ -523,7 +528,7 @@ export function viewAssetForm() {
   if (a && sec === "log") return `<section class="section form-page">${assetCrumb(a, root, hubHref, t("保养记录"))}${maintSection(a, r.q.get("log") === "1")}</section>`;
   if (a && sec === "schedule") return `<section class="section">${assetCrumb(a, root, hubHref, t("保养时间表"))}${vehicleSchedule(a)}</section>`;
   if (a && sec === "supplies") return `<section class="section">${assetCrumb(a, root, hubHref, t("相关耗材"))}${suppliesSection(a)}</section>`;
-  if (a && sec === "care") return `<section class="section">${assetCrumb(a, root, hubHref, t("检查卡"))}${careCard(a.type, { open: true })}</section>`;
+  if (a && sec === "care") return `<section class="section">${assetCrumb(a, root, hubHref, t("检查卡"))}${careCard(a.type, { open: true, ask: assetAsk(a) })}</section>`;
   const hide = (k) => (a && sec && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">

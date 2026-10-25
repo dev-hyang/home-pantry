@@ -48,6 +48,7 @@ import { moveCat, renderInvList, scoreRecipes, setShopOpen, shopUnit, viewDashbo
 import { viewSettings } from "./settings/views.js";
 import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
 import * as Backup from "./core/backup.js";
+import * as Ask from "./core/ask.js";
 import { viewAbout } from "./settings/about.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
@@ -1026,6 +1027,10 @@ main.addEventListener("click", async (e) => {
       case "backup-forget-sql": await Backup.forgetSqlFolder(); refreshBackupUi(); return render(false);
       case "backup-grant": { const st = await Backup.folderStatus(); if (st.handle) { try { await st.handle.requestPermission({ mode: "readwrite" }); } catch { /* 用户取消 */ } } refreshBackupUi(); return render(false); }
       case "backup-relist": { el.disabled = true; try { const S0 = Backup.SOURCES[el.dataset.src], r = await (S0.relist || S0.list)(); state.backupUi = { ...(state.backupUi || {}), lists: { ...(state.backupUi?.lists || {}), [el.dataset.src]: r }, errs: { ...(state.backupUi?.errs || {}), [el.dataset.src]: "" } }; } catch (err) { toast(t("读取失败：{msg}", { msg: err.message === "NEED_GESTURE" ? t("需要重新登录 Google") : err.message })); } return render(false); }
+      case "ask-toggle": Ask.toggleAsk(el.dataset.ask); return render(false);
+      case "ask-run": return Ask.runAsk(el.dataset.ask);
+      case "ask-copy": return Ask.copyAskPrompt(el.dataset.ask);
+      case "ask-copy-answer": return Ask.copyAskAnswer(el.dataset.ask);
       case "backup-src": state.backupSrc = el.dataset.src; return render(false);
       case "backup-dl": try { const d = await Backup.SOURCES[el.dataset.src].read(el.dataset.id); Backup.download(Backup.toBlob(d), el.dataset.name); } catch (err) { toast(t("下载失败：{msg}", { msg: err.message })); } return;
       case "backup-use": try { const d = await Backup.SOURCES[el.dataset.src].read(el.dataset.id); state.backupPreview = { ...Backup.inspect(d), data: d, from: el.dataset.name }; } catch (err) { toast(t("读取失败：{msg}", { msg: err.message })); } return render(false);
