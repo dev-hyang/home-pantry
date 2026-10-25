@@ -324,7 +324,7 @@ export function viewBudget() {
   }
 
   const mp = monthProgress(plan), cm = mp.month;
-  const months = rangeMonths(state.stats.months), abm = actualByMonth();
+  const months = rangeMonths(state.stats.months === "m" ? 3 : state.stats.months), abm = actualByMonth();
   const ser = [BILLS_GROUP, ...GROUPS, MEDICAL_BUDGET_GROUP];   // 实际花费：医疗不管计不计入预算都算在里面
   const totals = months.map((m) => ser.reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0));
   const stacked = Charts.bars({ title: t("每月花费构成（账单 vs 其他）"), labels: months.map(monthLabel), fmt: money,

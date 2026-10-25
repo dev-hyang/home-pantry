@@ -344,6 +344,7 @@ function onRoute() {
 // 滚动位置由我们自己记忆和恢复，关闭浏览器的自动恢复以免互相干扰
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 window.addEventListener("hashchange", onRoute);
+window.addEventListener("spend-data-loaded", () => render(false));   // 对比用的前一段花费从云端读回来了
 
 /* ── 底部页签：点别的页签 = 进入该页签首页并恢复默认筛选（多套房产时账单回“全部房产”）；浏览器后退不走这里，筛选照旧。
  * 当前页签：点一下就回该页签首页并恢复默认筛选、回到顶部。 */
@@ -512,7 +513,7 @@ main.addEventListener("change", async (e) => {
   { const k = { spendCat: "cat", spendStore: "store", spendMonth: "month", spendSort: "sort" }[e.target.id]; if (k) { state.spendFilter[k] = e.target.value; if (k === "store") state.spendFilter.stores = null; if (k === "cat") state.spendFilter.grp = null; if (k === "month") state.spendFilter.months = null; state.spendFilter.limit = 20; renderSpendList(); } }   // 手动选了单个商店 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”
   if (e.target.dataset?.action === "stats-bill-merge") { setBillMerge(e.target.checked); render(); }
   if (e.target.dataset?.action === "stats-capital") { state.stats.includeCapital = e.target.checked; render(); }
-  if (e.target.id === "statsRange") { const v = e.target.value; state.stats.months = v.startsWith("y:") ? v : +v; state.stats.month = null; render(); ensureYearLoaded(v).then((fresh) => { if (fresh) render(false); }); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（往年按需读回来）
+  if (e.target.id === "statsRange") { const v = e.target.value; state.stats.months = v.startsWith("y:") || v === "m" ? v : +v; state.stats.month = null; render(); ensureYearLoaded(v).then((fresh) => { if (fresh) render(false); }); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（往年按需读回来）
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
   if (e.target.id === "hhSwitch") { localStorage.setItem("hmh-hid", e.target.value); location.reload(); }

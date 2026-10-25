@@ -128,13 +128,14 @@ export function itemSeries(item, starts) {
 export const RANGES = [3, 6, 9, 12];
 const thisYear = () => new Date().getFullYear();
 export function rangeMonths(n = state.stats.months) {
+  if (n === "m") return lastMonths(1);   // 本月
   if (typeof n === "string" && n.startsWith("y:")) { const y = +n.slice(2), last = y === thisYear() ? new Date().getMonth() + 1 : 12; return Array.from({ length: last }, (_, i) => `${y}-${String(i + 1).padStart(2, "0")}`); }
   return lastMonths(+n || 6);
 }
 export const rangeChipsHtml = () => {
   const y0 = thisYear(), first = state.stats.firstYear || y0, years = Array.from({ length: Math.max(0, Math.min(12, y0 - first + 1)) }, (_, i) => y0 - i);
   const cur = String(state.stats.months);
-  return `<select id="statsRange" class="range-sel" aria-label="${t("时间范围")}" data-nosearch>${RANGES.map((n) => `<option value="${n}" ${cur === String(n) ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}${years.map((y) => `<option value="y:${y}" ${cur === `y:${y}` ? "selected" : ""}>${y === y0 ? t("今年") : t("{y} 年", { y })}</option>`).join("")}</select>`;
+  return `<select id="statsRange" class="range-sel" aria-label="${t("时间范围")}" data-nosearch><option value="m" ${cur === "m" ? "selected" : ""}>${t("本月")}</option>${RANGES.map((n) => `<option value="${n}" ${cur === String(n) ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}${years.map((y) => `<option value="y:${y}" ${cur === `y:${y}` ? "selected" : ""}>${y === y0 ? t("今年") : t("{y} 年", { y })}</option>`).join("")}</select>`;
 };
 /** 选了往年：那一年的花费不在平时读的近 400 天里，按需读回来并进 state.purchases（去重）；返回 true 表示读到了新的 */
 export async function ensureYearLoaded(n) {
@@ -175,7 +176,8 @@ const DRILL_HINT = () => `<p class="muted drill-hint">${t("点图里的色块、
 export function applySpendDrill(q) {
   if (!["cat", "grp", "store", "stores", "month", "range", "year", "q", "batch"].some((k) => q.has(k))) return false;
   const f = state.spendFilter;
-  Object.assign(f, { q: "", cat: "all", grp: null, store: "all", stores: null, month: "all", months: null, batch: null, sort: "new", limit: 20 });
+  Object.assign(f, { q: "", cat: "all", grp: null, store: "all", stores: null, month: "all", months: null, batch: null, dmax: null, sort: "new", limit: 20 });
+  if (q.get("dmax")) f.dmax = +q.get("dmax") || null;   // 只看每月 1–N 日（「上月同期」对比用）
   if (q.get("batch")) f.batch = q.get("batch");   // 银行导入「查看 / 修改」：只看这一批
   if (q.get("q")) f.q = q.get("q");   // 旅行页「查看明细」：按「【行程名】」搜名称
   if (q.get("grp")) f.grp = q.get("grp");
@@ -183,6 +185,7 @@ export function applySpendDrill(q) {
   if (q.get("store")) f.store = q.get("store");
   if (q.get("stores")) f.stores = q.get("stores").split(",").map(decodeURIComponent);
   if (q.get("month")) f.month = q.get("month");
+  else if (q.get("mlist")) f.months = q.get("mlist").split(",").filter((x) => /^\d{4}-\d{2}$/.test(x));
   else if (q.get("range")) f.months = lastMonths(Math.max(1, Math.min(24, +q.get("range") || 6)));
   else if (q.get("year")) { const y = +q.get("year"), now = new Date(), last = y === now.getFullYear() ? now.getMonth() + 1 : 12; f.months = Array.from({ length: last }, (_, i) => `${y}-${String(i + 1).padStart(2, "0")}`); }   // 年度预算：今年到本月为止
   return true;
@@ -198,6 +201,63 @@ export function spendKpis(sd) {
     <div class="kpi ch-hit-row"${hitAttrs(dq({ month: months.at(-2) }), t("上月花费"))}><span>${t("上月花费")}</span><b>${money(prevTotal)}</b>
       <small class="${change > 0 ? "up" : "down"}">${change == null ? t("上月无记录") : change > 0 ? t("多了 {p}%", { p: Math.abs(change) }) : t("少了 {p}%", { p: Math.abs(change) })}</small></div>
     <div class="kpi ch-hit-row"${hitAttrs(dq({ range: months.length }), t("近 {n} 个月月均", { n: months.length }))}><span>${t("近 {n} 个月月均", { n: months.length })}</span><b>${money(avg)}</b><small>${t("本月进度供参考")} ›</small></div>
+  </div>`;
+}
+/* ── 花费概览的三个数字：随时间范围变化，前两个时间长度对等 ──
+ *   本月      → 本月至今 | 上月同期（1–今天） | 本月日均
+ *   近 N 个月 → 近 N 个月合计 | 再往前的 N 个月合计 | 近 N 个月月均
+ *   某一年    → 该年（今年到本月）| 前一年同期 | 该年月均
+ *  前一段可能不在平时读的近 400 天里，ensureCompareLoaded 按需读回来。 */
+const monthNums = (ms) => {
+  const ym = (m) => `${m.slice(0, 4)}.${+m.slice(5)}`;
+  if (ms.length === 1) return monthLabel(ms[0]);
+  if (ms[0].slice(0, 4) === ms.at(-1).slice(0, 4)) return `${+ms[0].slice(5)}–${+ms.at(-1).slice(5)}${lang === "en" ? "" : " 月"}`;   // 同一年：8–10 月
+  return `${ym(ms[0])}–${ym(ms.at(-1))}`;   // 跨年带上年份，免得「前 12 个月」和「近 12 个月」看起来一样
+};
+const shiftYear = (m, d) => `${+m.slice(0, 4) + d}${m.slice(4)}`;
+export function comparePlan(n = state.stats.months) {
+  const now = new Date(), cur = lastMonths(1)[0];
+  if (n === "m") { const prev = lastMonths(2)[0]; return { a: { months: [cur], label: t("本月至今"), drill: { month: cur } }, b: { months: [prev], dmax: now.getDate(), label: t("上月同期（1–{d} 日）", { d: now.getDate() }), drill: { month: prev, dmax: now.getDate() } }, avg: "day" }; }
+  if (typeof n === "string" && n.startsWith("y:")) {
+    const y = +n.slice(2), ms = rangeMonths(n), pm = ms.map((m) => shiftYear(m, -1)), part = ms.length < 12;
+    return { a: { months: ms, label: y === thisYear() ? t("本年花费") : t("{y} 年花费", { y }), drill: { year: y } }, b: { months: pm, label: part ? t("{y} 年同期（{r}）", { y: y - 1, r: monthNums(pm) }) : t("{y} 年花费", { y: y - 1 }), drill: { mlist: pm.join(",") } }, avg: "month" };
+  }
+  const k = +n || 6, all = lastMonths(k * 2), am = all.slice(k), bm = all.slice(0, k);
+  return { a: { months: am, label: t("近 {n} 个月（{r}）", { n: k, r: monthNums(am) }), drill: { range: k } }, b: { months: bm, label: t("前 {n} 个月（{r}）", { n: k, r: monthNums(bm) }), drill: { mlist: bm.join(",") } }, avg: "month" };
+}
+/** 一段时间的合计（口径同 spendData：本币、资本性支出默认不算）；dmax = 只算每月 1–N 日 */
+function windowSum(months, dmax) {
+  const cur = Units.region.currency, set = new Set(months); let total = 0, n = 0;
+  for (const p of state.purchases) {
+    if (p.amount == null || (p.currency && p.currency !== cur) || !set.has(monthKey(p.purchased_at))) continue;
+    if (dmax && new Date(p.purchased_at).getDate() > dmax) continue;
+    if (statCat(p.category) === "capital" && !state.stats.includeCapital) continue;
+    total += num(p.amount); n++;
+  }
+  return { total, n };
+}
+export async function ensureCompareLoaded() {
+  const plan = comparePlan(), ms = plan.b.months, first = ms[0], key = first + ms.length;
+  if (first >= monthKey(new Date(Date.now() - 395 * 864e5))) return false;   // 平时读的是近 400 天
+  state.compareLoaded ||= {}; if (state.compareLoaded[key]) return false;
+  state.compareLoaded[key] = true;
+  const next = (m) => { const [y, mo] = m.split("-").map(Number); return new Date(Date.UTC(y, mo, 1)).toISOString(); };
+  const rows = await Store.listPurchasesRange(`${first}-01T00:00:00.000Z`, next(ms.at(-1))).catch(() => []);
+  const have = new Set(state.purchases.map((p) => p.id)), fresh = rows.filter((p) => !have.has(p.id));
+  if (fresh.length) state.purchases = [...state.purchases, ...fresh];
+  return fresh.length > 0;
+}
+export function periodKpis(sd) {
+  const plan = comparePlan(), A = windowSum(plan.a.months, plan.a.dmax), B = windowSum(plan.b.months, plan.b.dmax);
+  const change = B.total > 0 ? Math.round(((A.total - B.total) / B.total) * 100) : null;
+  const today = new Date().getDate(), avgLabel = plan.avg === "day" ? t("本月日均") : t("近 {n} 个月月均", { n: sd.months.length });
+  const avgVal = plan.avg === "day" ? A.total / Math.max(1, today) : sd.totals.reduce((a, b) => a + b, 0) / (sd.totals.length || 1);
+  const drill = (o) => hitAttrs(dq(o), "");
+  return `<div class="kpis">
+    <div class="kpi ch-hit-row"${drill(plan.a.drill)}><span>${plan.a.label}</span><b>${money(A.total)}</b><small>${t("{n} 笔", { n: A.n })} ›</small></div>
+    <div class="kpi ch-hit-row"${drill(plan.b.drill)}><span>${plan.b.label}</span><b>${money(B.total)}</b>
+      <small class="${change > 0 ? "up" : "down"}">${change == null ? t("这段时间无记录") : change > 0 ? t("多了 {p}%", { p: Math.abs(change) }) : t("少了 {p}%", { p: Math.abs(change) })}</small></div>
+    <div class="kpi ch-hit-row"${drill(plan.a.drill)}><span>${avgLabel}</span><b>${money(avgVal)}</b><small>${plan.avg === "day" ? t("{n} 笔", { n: A.n }) : t("本月进度供参考")} ›</small></div>
   </div>`;
 }
 /** 账单概览里的花费速览：只放三个数字，详细的在 账单 → 花费 */
@@ -217,7 +277,7 @@ function spendOverviewTab(sd, withHub = false) {
     drill: (k, i) => dq({ cat: cats[k].id, month: months[i] }), legendDrill: (k) => dq({ cat: cats[k].id, range: months.length }),
   });
   // 时间条 → 数字卡片 → 图表连在一起；手机上的「其他功能」入口行放最后（原来夹在数字卡片和图表中间，把筛选和图表隔开了）
-  return `${spendKpis(sd)}
+  return `${periodKpis(sd)}
     ${sd.otherCurrency ? `<p class="muted" style="font-size:13px">${t("另有 {n} 笔非 {cur} 记录未计入。", { n: sd.otherCurrency, cur: Units.region.currency })}</p>` : ""}
     ${totals.some((v) => v > 0) ? `<div class="panel chart-panel"><h3>${t("每月花了多少")}</h3>${spendBars}${DRILL_HINT()}</div>` : noSpend()}
     ${withHub ? tabHub(SPEND_TABS, spendHref, t("其他功能")) : ""}`;
@@ -226,7 +286,9 @@ function spendCategoryTab(sd) {
   const st = state.stats, { months, byMC, cats, totals } = sd;
   if (!totals.some((v) => v > 0)) return noSpend();
   const selMonth = st.month && byMC[st.month] ? st.month : "";   // 空 = 整段（和时间范围一致）
-  const selCat = st.cat && cats.some((c) => c.id === st.cat) ? st.cat : cats[0]?.id;
+  const PRIORITY = ["grocery_misc", "dining", "other", "medical"];   // 单个分类趋势：超市、餐饮、网购（待细分归「其他」）、医疗排前面，其余照原顺序
+  const ordCats = [...PRIORITY.map((id) => cats.find((c) => c.id === id)).filter(Boolean), ...cats.filter((c) => !PRIORITY.includes(c.id))];
+  const selCat = st.cat && ordCats.some((c) => c.id === st.cat) ? st.cat : ordCats[0]?.id;
   const sumCat = (id) => (selMonth ? byMC[selMonth][id] || 0 : months.reduce((a, m) => a + (byMC[m][id] || 0), 0));
   const donut = Charts.donut({
     title: selMonth ? t("{month}分类占比", { month: monthLabel(selMonth) }) : t("{r}分类占比", { r: rangeLabel() }), fmt: money,
@@ -241,7 +303,7 @@ function spendCategoryTab(sd) {
   }) : "";
   return `<div class="panel chart-panel"><h3>${t("分类占比")}</h3>${donut}${DRILL_HINT()}</div>
     <div class="panel chart-panel"><h3>${t("单个分类的月度趋势")}</h3>
-      <div class="chips" role="group" aria-label="${t("选择分类")}">${cats.map((c) => `<button type="button" class="chip" data-action="stats-cat" data-cat="${c.id}" aria-pressed="${c.id === selCat}">${c.icon} ${t(c.name)}</button>`).join("")}</div>
+      <div class="chips" role="group" aria-label="${t("选择分类")}">${ordCats.map((c) => `<button type="button" class="chip" data-action="stats-cat" data-cat="${c.id}" aria-pressed="${c.id === selCat}">${c.icon} ${t(c.name)}</button>`).join("")}</div>
       ${catTrend}
       ${catObj ? `<div class="form-actions"><button type="button" class="btn btn-sm" data-drill="${esc(dq({ cat: selCat, range: months.length }))}">${t("查看「{cat}」近 {n} 个月的明细", { cat: t(catObj.name), n: months.length })} ›</button></div>` : ""}${DRILL_HINT()}</div>`;
 }
@@ -331,6 +393,7 @@ export function timeBarHtml(sd, tab) {
 }
 /** 当前时间范围的叫法：近 6 个月 / 今年 / 2025 年 */
 export function rangeLabel(n = state.stats.months) {
+  if (n === "m") return t("本月");
   if (typeof n === "string" && n.startsWith("y:")) { const y = +n.slice(2); return y === thisYear() ? t("今年") : t("{y} 年", { y }); }
   return t("近 {n} 个月", { n: +n || 6 });
 }
@@ -351,6 +414,7 @@ export function viewSpend() {
   const r = state.route, onSpendPage = r?.section === "bills" && r?.sub === "spend";
   const tab = onSpendPage ? activeTab(r) : "all";
   const sd = spendData();
+  ensureCompareLoaded().then((fresh) => { if (fresh) window.dispatchEvent(new Event("spend-data-loaded")); });   // 前一段在近 400 天之外：读回来再重画
   const ranged = tab === "overview" || tab === "category" || tab === "stores" || tab === "all";
   const body = {
     overview: () => spendOverviewTab(sd, onSpendPage), category: () => spendCategoryTab(sd), stores: () => viewStoreStats(sd.months) || noSpend(),
@@ -420,6 +484,7 @@ export function filteredSpend() {
     if (f.cat !== "all" && !catMatches(f.cat, p.category)) return false;
     if (f.month !== "all" && monthKey(p.purchased_at) !== f.month) return false;
     if (f.months?.length && !f.months.includes(monthKey(p.purchased_at))) return false;
+    if (f.dmax && new Date(p.purchased_at).getDate() > f.dmax) return false;
     if (f.grp && budgetBridge.groupOf) { const g = budgetBridge.groupOf(p.category, amountOf(p)); if (f.grp === "!bills" ? g === "bills" : g !== f.grp) return false; }   // 预算分组（“!bills” = 除账单以外）   // 从图表钻取来的“近 N 个月”
     if (f.stores?.length && !f.stores.includes(storeKey(storeOf(p)) || "__none__")) return false;   // “其他商店”：一组商店
     if (f.store !== "all" && (f.store === "__none__" ? !!storeOf(p) : storeKey(storeOf(p)) !== f.store)) return false;
