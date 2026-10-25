@@ -148,7 +148,7 @@ export async function deleteCloud(name) { await bucket().remove([`${CloudStore.h
 
 /* ───────────── 云盘直连：Google Drive、Dropbox（代码在 cloud-drives.js，四个应用共用；在 config.js 填应用 key，见 README「云盘备份」）
    备份放在你在卡片里填的文件夹路径下（Drive 默认「爱家小助手备份」；Dropbox 相对应用文件夹），不往根目录随便放 ───────────── */
-export const DR = createDrives({ googleClientId: window.APP_CONFIG?.GOOGLE_CLIENT_ID || "", googleApiKey: window.APP_CONFIG?.GOOGLE_API_KEY || "", dropboxAppKey: window.APP_CONFIG?.DROPBOX_APP_KEY || "", tokPrefix: "homeworks.backup", defaultFolder: "爱家小助手备份", fileRe: FILE_RE, keepDays: KEEP_DAYS, t, load: lsLoad, save: lsSave, getPaths: () => { const s = settings(); return { gd: s.gdPath, gdId: s.gdId, gdName: s.gdName, dbx: s.dbxPath }; } });   // 令牌前缀四个应用相同：连一次全连上
+export const DR = createDrives({ googleClientId: window.APP_CONFIG?.GOOGLE_CLIENT_ID || "", googleApiKey: window.APP_CONFIG?.GOOGLE_API_KEY || "", dropboxAppKey: window.APP_CONFIG?.DROPBOX_APP_KEY || "", tokPrefix: "homeworks.backup", legacyPrefixes: ["hmh-backup"], defaultFolder: "爱家小助手备份", fileRe: FILE_RE, keepDays: KEEP_DAYS, t, load: lsLoad, save: lsSave, getPaths: () => { const s = settings(); return { gd: s.gdPath, gdId: s.gdId, gdName: s.gdName, dbx: s.dbxPath }; } });   // 令牌前缀四个应用相同：连一次全连上
 /** 能列出 / 恢复的来源（文件夹和下载的备份通过「选备份文件」读回来） */
 export const SOURCES = {
   cloud: { icon: "🗄️", label: "应用云端", ready: () => Store.mode === "cloud" && !!CloudStore.hid, list: listCloud, read: readCloud, del: deleteCloud },

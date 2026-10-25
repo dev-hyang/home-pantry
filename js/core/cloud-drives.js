@@ -13,6 +13,7 @@ export function createDrives(cfg) {
   const { t } = cfg;
   const TOK = { gd: `${cfg.tokPrefix}.gdrive`, dbx: `${cfg.tokPrefix}.dropbox` };
   const tok = (k) => cfg.load(TOK[k], null), setTok = (k, v) => cfg.save(TOK[k], v);
+  for (const old of cfg.legacyPrefixes || []) for (const k of ["gd", "dbx"]) { const v = cfg.load(`${old}.${k === "gd" ? "gdrive" : "dropbox"}`, null); if (v && !tok(k)) { setTok(k, v); } if (v) cfg.save(`${old}.${k === "gd" ? "gdrive" : "dropbox"}`, null); }   // 升级前各应用各连各的：把旧前缀的令牌搬到共用前缀
   const gdConfigured = () => /\.apps\.googleusercontent\.com$/.test(cfg.googleClientId || "");
   const gdPickerAvailable = () => gdConfigured() && !!cfg.googleApiKey && !/YOUR/.test(cfg.googleApiKey);
   const dbxConfigured = () => !!cfg.dropboxAppKey && !/YOUR/.test(cfg.dropboxAppKey);

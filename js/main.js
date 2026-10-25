@@ -426,7 +426,7 @@ main.addEventListener("input", (e) => {
   const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
 });
 /** 备份：手动 / 定时到期后点「继续」 */
-const backupTargetName = (k) => ({ download: t("下载"), folder: t("文件夹"), cloud: t("云端") }[k] || k);
+const backupTargetName = (k) => ({ download: t("下载"), folder: t("文件夹"), cloud: t("云端"), gdrive: "Google Drive", dropbox: "Dropbox" }[k] || k);
 async function doBackup(targets, el) {
   if (el) el.disabled = true;
   try {
