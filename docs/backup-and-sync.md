@@ -42,10 +42,13 @@
 5. 复制 **客户端 ID**，填进配置（见 1.5）。
 
 ### 1.3 创建 API Key（可选，用于「在 Drive 里选文件夹」）
-1. **Credentials → 创建凭据 → API 密钥**。
-2. 点这个密钥 → **应用限制**选「网站」，添加 `https://dev-hyang.github.io/*`；**API 限制**选「限制密钥」，只勾 **Google Picker API**。
-3. 复制密钥，填进配置的 `GOOGLE_API_KEY`。
-4. 效果：连接 Google Drive 后，卡片上多出「或在 Drive 里选一个文件夹…」，可以选你自己建好的任意目录（如 `备份/家庭/2026`），备份就写进那里。
+1. **先启用 Picker API**：APIs & Services → Library → 搜索 **Google Picker API** → 启用。（**「API 限制」下拉里只会列出本项目已启用的 API**——如果只看到 Gemini / Google Drive API 而没有 Picker，就是这一步漏了；启用后刷新密钥页面再选。）
+2. **Credentials → 创建凭据 → API 密钥**，点这个密钥进入编辑。
+3. **应用限制**选「网站」，添加 `https://dev-hyang.github.io/*`。
+4. **API 限制**选「限制密钥」，勾 **Google Picker API**（启用后才有）。如果下拉里实在找不到，退而求其次勾 **Google Drive API** 也能用，但**不要勾 Gemini**——这个密钥会出现在网页源码里，别让它能调用 Gemini。
+5. 复制密钥，填进配置的 `GOOGLE_API_KEY`。
+6. 效果：连接 Google Drive 后，卡片上多出「或在 Drive 里选一个文件夹…」，可以选你自己建好的任意目录（如 `备份/家庭/2026`），备份就写进那里。
+7. **路径输入框只认应用自己建的文件夹**（权限只有 `drive.file`）：你在 Drive 网页上手工建好的文件夹，填路径应用看不见，会在根目录另外新建一个同名文件夹。想用已有的文件夹，必须用这里的选择器。
 
 ### 1.4 配置到四个应用
 | 应用 | 文件 | 写法 |

@@ -1472,3 +1472,4 @@ body.editing .minibar { display: none; }
 .swipe-src:focus, .swipe-src:focus-visible { position: static !important; width: auto; height: auto; margin: 0; padding: revert; border: revert; overflow: visible; clip: auto; }
 @media (prefers-reduced-motion: reduce) { .swipe-row > *, .swipe-row::after { transition: none; } }
 @media print { .swipe-row::after { display: none; } }
+.bk-hint{display:block;color:var(--muted,#6b7280);font-size:12px;line-height:1.4;margin:2px 0 4px}
