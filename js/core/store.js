@@ -571,8 +571,10 @@ export const CloudStore = {
     const row = { property_id: pid, household_id: this.hid, region: p.region, house_type: p.house_type, year_built: p.year_built ?? null,
       features: p.features || [], exterior: p.exterior || [], roof: p.roof || null, flooring: p.flooring || [], updated_by: state.user.id };
     for (const k of INSURANCE_FIELDS) row[k] = p[k] ?? (k === "insured" ? false : null);
-    row.emergency = p.emergency ?? null;
-    this.must(await this.sb.from("house_profiles").upsert(row, { onConflict: "property_id" }));
+    row.emergency = p.emergency ?? null; row.hoa = p.hoa ?? null; row.ownership = p.ownership ?? null;   // jsonb：HOA（含费用拆分、出租规则、诉讼）、产权税务车位（迁移 038）
+    let r = await this.sb.from("house_profiles").upsert(row, { onConflict: "property_id" });
+    if (r.error && /ownership/i.test(r.error.message) && !row.ownership) { delete row.ownership; r = await this.sb.from("house_profiles").upsert(row, { onConflict: "property_id" }); }   // 还没执行迁移 038 且没填产权那块：照旧保存
+    this.must(r);
   },
   async listAssets() { return this.must(await this.sb.from("assets").select("*").eq("household_id", this.hid).order("name")); },
   async saveAsset(a) {

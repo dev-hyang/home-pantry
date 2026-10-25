@@ -5,7 +5,7 @@ import { alertsOf } from "../core/logic.js";
 import { state } from "../core/state.js";
 import { href } from "../core/router.js";
 import { askInline, ctx as askCtx } from "../core/ask.js";
-import { daysUntil, esc, fmtDate, inSpace, money } from "../core/util.js";
+import { daysUntil, esc, fmtDate, inSpace, money, num } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { restockPanel, shelfGrid } from "../pantry/views.js";
 import { alertText, assetAlerts, assetName, myAssets } from "./assets.js";
@@ -34,6 +34,13 @@ function statusLine() {
 }
 
 /* ── HOA / 物业 ── */
+/* ── 产权、税务与车位（house_profiles.ownership jsonb，迁移 038）：公寓常见但独栋也用得上 ── */
+export const PARKING_TYPES = [["none", "没有车位"], ["street", "路边 / 街道停车许可"], ["lot_assigned", "露天指定车位"], ["lot_open", "露天先到先得"], ["garage_attached", "连通的车库（室内直达）"], ["garage_detached", "独立车库 / 车库楼"]];
+export const STORAGE_TYPES = [["none", "没有"], ["assigned", "指定储物间 / 储物柜"], ["fcfs", "公用，先到先得"]];
+export const RENT_POLICIES = [["unknown", "不清楚"], ["allowed", "可以出租"], ["approval", "可以出租，需 HOA 审批 / 登记"], ["cap", "有出租比例上限（可能要轮候）"], ["no", "不允许出租"]];
+export const TAX_EXEMPTIONS = [["homeowner", "自住减免（Homeowner）"], ["senior", "老年人减免（Senior）"], ["senior_freeze", "老年人评估冻结（Senior Freeze）"], ["veteran", "退伍军人"], ["disabled", "残障人士"], ["longtime", "长期居住（Longtime Occupant）"], ["home_improvement", "房屋改造（Home Improvement）"], ["other", "其他"]];
+export const ownershipOf = (p) => ({ pin: "", parking_type: "", parking_deeded: false, parking_pin: "", parking_no: "", storage_type: "", storage_no: "", roof_access: false, tax_exemptions: [], tax_notes: "", ...((p && p.ownership) || {}) });
+const labelOf = (list, k) => t((list.find(([id]) => id === k) || [])[1] || "");
 /** 当前资料的 HOA 对象（没填过按房型默认） */
 export function hoaOf(p) {
   if (!p) return null;
@@ -79,9 +86,12 @@ function hoaBlock(p) {
     hoa.url ? `<a href="${esc(hoa.url)}" target="_blank" rel="noopener noreferrer">🔗 ${t("业主门户")}</a>` : "",
   ].filter(Boolean).join(" · ");
   const sa = assessmentStatus(hoa);
+  const saPeriod = hoa.sa_from || hoa.sa_to ? ` · ${t("有效期 {a} → {b}", { a: hoa.sa_from ? fmtDate(hoa.sa_from) : "?", b: hoa.sa_to ? fmtDate(hoa.sa_to) : "?" })}` : "";
+  const saEach = hoa.sa_each > 0 ? ` · ${t("每期 {a}", { a: money(hoa.sa_each) })}` : "";
+  const breakdown = hoa.dues_unit || hoa.dues_parking || hoa.dues_other ? ` <small class="muted">(${[hoa.dues_unit ? t("单元 {a}", { a: money(hoa.dues_unit) }) : "", hoa.dues_parking ? t("车位 {a}", { a: money(hoa.dues_parking) }) : "", hoa.dues_other ? `${esc(hoa.dues_other_label || t("其他"))} ${money(hoa.dues_other)}` : ""].filter(Boolean).join(" + ")})</small>` : "";
   const saText = sa.kind === "none" ? t("没有进行中的特殊评估")
     : sa.kind === "paid" ? `${money(hoa.sa_amount)}${hoa.sa_purpose ? ` · ${esc(hoa.sa_purpose)}` : ""} <span class="badge b-ok">${t("已缴")}</span>`
-    : `<b>${money(hoa.sa_amount)}</b>${hoa.sa_purpose ? ` · ${esc(hoa.sa_purpose)}` : ""}${hoa.sa_due ? ` · ${t("截止 {d}", { d: fmtDate(hoa.sa_due) })}` : ""} <span class="badge ${sa.days != null && sa.days < 0 ? "b-out" : "b-soon"}">${sa.days == null ? t("待缴") : sa.days < 0 ? t("已逾期 {d} 天", { d: -sa.days }) : t("{d} 天后到期", { d: sa.days })}</span>`;
+    : `<b>${money(hoa.sa_amount)}</b>${hoa.sa_purpose ? ` · ${esc(hoa.sa_purpose)}` : ""}${hoa.sa_due ? ` · ${t("截止 {d}", { d: fmtDate(hoa.sa_due) })}` : ""}${saPeriod}${saEach} <span class="badge ${sa.days != null && sa.days < 0 ? "b-out" : "b-soon"}">${sa.days == null ? t("待缴") : sa.days < 0 ? t("已逾期 {d} 天", { d: -sa.days }) : t("{d} 天后到期", { d: sa.days })}</span>`;
   const hoaBill = state.bills.find((b) => b.category === "hoa" && (!b.property_id || b.property_id === state.propertyId) && !b.archived);
   // 标签 / 值的事实行（与房屋卡片同款）：值可换行，手机上不会把内容挤到屏幕外；表格 + 横向滚动会让长邮箱、备注把值列推出视野
   const row = (k, v) => (v ? `<div class="fact wide"><dt>${k}</dt><dd>${v}</dd></div>` : "");
@@ -91,8 +101,10 @@ function hoaBlock(p) {
       <dl class="fact-grid one">
         ${row(t("管理公司 / 联系人"), hoa.mgmt ? esc(hoa.mgmt) : "")}
         ${row(t("联系方式"), contact)}
-        ${row(t("费用"), hoa.dues > 0 ? `${t(H().DUES_PERIODS[hoa.dues_period] || "每月")} ${money(hoa.dues)}${hoaBill ? ` · <a href="${href("bill", hoaBill.id)}">${t("账单：{name}", { name: esc(hoaBill.name) })}</a>` : state.billsEnabled ? ` · <a href="${href("bills", "template")}">${t("建一条账单提醒缴费")}</a>` : ""}` : "")}
+        ${row(t("费用"), hoa.dues > 0 ? `${t(H().DUES_PERIODS[hoa.dues_period] || "每月")} ${money(hoa.dues)}${breakdown}${hoaBill ? ` · <a href="${href("bill", hoaBill.id)}">${t("账单：{name}", { name: esc(hoaBill.name) })}</a>` : state.billsEnabled ? ` · <a href="${href("bills", "template")}">${t("建一条账单提醒缴费")}</a>` : ""}` : "")}
         ${row(t("特殊评估 / 摊派"), saText)}
+        ${row(t("出租规则"), hoa.rent_policy && hoa.rent_policy !== "unknown" ? [labelOf(RENT_POLICIES, hoa.rent_policy), hoa.rent_cap_pct ? t("上限 {p}%", { p: hoa.rent_cap_pct }) : "", hoa.rent_min_months ? t("最短 {n} 个月", { n: hoa.rent_min_months }) : "", hoa.rent_notes ? esc(hoa.rent_notes) : ""].filter(Boolean).join(" · ") : "")}
+        ${row(t("诉讼与纠纷"), hoa.lawsuit ? `<span class="badge b-low">${t("有")}</span> ${esc(hoa.lawsuit_note || "")}` : "")}
         ${row(t("规则与限制"), hoa.rules ? `<span class="pre">${esc(hoa.rules)}</span>` : "")}
         ${row(t("备注"), hoa.notes ? `<span class="pre">${esc(hoa.notes)}</span>` : "")}
       </dl>
@@ -166,10 +178,19 @@ export function readHouseForm(form) {
     if (!Object.values(d.emergency).some(Boolean)) d.emergency = null;
   }
   if (has("hoa_enabled")) {
+    const unit = num(fe.hoa_dues_unit.value), parking = num(fe.hoa_dues_parking.value), other = num(fe.hoa_dues_other.value);
+    const parts = (unit || 0) + (parking || 0) + (other || 0);   // 月费 = 单元 + 车位 + 其他；都没填就用原来的总额
     d.hoa = { enabled: fe.hoa_enabled.checked, name: str("hoa_name"), mgmt: str("hoa_mgmt"), phone: str("hoa_phone"), email: str("hoa_email"), url: str("hoa_url"),
-      dues: num(fe.hoa_dues.value), dues_period: fe.hoa_dues_period.value || "monthly",
-      sa_amount: num(fe.hoa_sa_amount.value), sa_purpose: str("hoa_sa_purpose"), sa_due: fe.hoa_sa_due.value || null, sa_paid: fe.hoa_sa_paid.checked,
+      dues: parts > 0 ? Math.round(parts * 100) / 100 : num(fe.hoa_dues.value), dues_unit: unit, dues_parking: parking, dues_other: other, dues_other_label: str("hoa_dues_other_label"), dues_period: fe.hoa_dues_period.value || "monthly",
+      sa_amount: num(fe.hoa_sa_amount.value), sa_purpose: str("hoa_sa_purpose"), sa_due: fe.hoa_sa_due.value || null, sa_from: fe.hoa_sa_from.value || null, sa_to: fe.hoa_sa_to.value || null, sa_each: num(fe.hoa_sa_each.value), sa_paid: fe.hoa_sa_paid.checked,
+      rent_policy: fe.hoa_rent_policy.value || "unknown", rent_cap_pct: num(fe.hoa_rent_cap.value), rent_min_months: num(fe.hoa_rent_min.value), rent_notes: str("hoa_rent_notes"),
+      lawsuit: fe.hoa_lawsuit.checked, lawsuit_note: str("hoa_lawsuit_note"),
       rules: str("hoa_rules"), notes: str("hoa_notes") };
+  }
+  if (has("own_pin")) {
+    const o = { pin: str("own_pin"), parking_type: fe.own_parking_type.value || "", parking_deeded: fe.own_parking_deeded.checked, parking_pin: str("own_parking_pin"), parking_no: str("own_parking_no"),
+      storage_type: fe.own_storage_type.value || "", storage_no: str("own_storage_no"), roof_access: fe.own_roof.checked, tax_exemptions: checked("own_tax"), tax_notes: str("own_tax_notes") };
+    d.ownership = Object.values(o).some((v) => (Array.isArray(v) ? v.length : v)) ? o : null;
   }
   return d;
 }
@@ -199,6 +220,7 @@ export const PROFILE_SECTIONS = [
   { id: "address", icon: "📍", name: "地址与建成年份" },
   { id: "insurance", icon: "🛡️", name: "房屋保险" },
   { id: "hoa", icon: "🏘️", name: "HOA / 物业" },
+  { id: "ownership", icon: "📜", name: "产权、税务与车位" },
   { id: "emergency", icon: "🚨", name: "应急信息与关键位置" },
   { id: "features", icon: "🔧", name: "家里有这些设施" },
   { id: "materials", icon: "🧱", name: "外墙、屋面与地面材料" },
@@ -217,8 +239,12 @@ export function sectionStatus(d, id) {
     }
     case "hoa": {
       const h = hoaOf(d); if (!h.enabled) return { text: t("无 {label}", { label: t(Hh.assocOf(d.house_type).label) }), pct: null };
-      const n = filled([h.name, h.mgmt, h.phone || h.email || h.url, h.dues, h.rules]);
-      return { text: `${n} / 5${h.sa_amount > 0 && !h.sa_paid ? ` · ${t("特殊评估待缴")}` : ""}`, pct: n * 20 };
+      const n = filled([h.name, h.mgmt, h.phone || h.email || h.url, h.dues, h.rules, h.rent_policy && h.rent_policy !== "unknown"]);
+      return { text: `${n} / 6${h.sa_amount > 0 && !h.sa_paid ? ` · ${t("特殊评估待缴")}` : ""}${h.lawsuit ? ` · ${t("有诉讼")}` : ""}`, pct: Math.round(n / 6 * 100) };
+    }
+    case "ownership": {
+      const o = ownershipOf(d), n = filled([o.pin, o.parking_type, o.parking_type && o.parking_type !== "none" && (o.parking_pin || o.parking_no || o.parking_deeded), o.storage_type, (o.tax_exemptions || []).length]);
+      return { text: n ? `${n} / 5${o.parking_deeded ? ` · ${t("车位有独立产权")}` : ""}` : t("未填"), pct: n * 20 };
     }
     case "emergency": { const n = emergencyFilled(d); return { text: n ? t("{n} / {m}", { n, m: EMERGENCY_FIELDS.length }) : t("未填"), pct: Math.round((n / EMERGENCY_FIELDS.length) * 100) }; }
     case "features": return { text: t("{n} 项", { n: (d.features || []).length }), pct: null };
@@ -379,6 +405,7 @@ export function viewHouse() {
     ${refSection("house-owners", { title: t("哪些部位归谁维护"), hint: esc(t(ht?.desc || "")),
       body: `<div class="ch-scroll"><table class="owner-table"><tbody>${ownerRows}</tbody></table></div><p class="disclaimer">${t("这是该房型的常见情况，具体以 HOA 章程、物业服务合同或租约为准。")}</p>` })}
     ${hoa ? refSection("house-hoa", hoa) : ""}
+    ${ownershipBlock(p)}
     ${ext.length || roof.length || floors.length ? refSection("house-care", { title: t("材料保养建议"), hint: [...ext, ...roof, ...floors].map((m) => t(m.name)).join("、"),
       body: `<div class="care-grid">${careBlock(t("外墙"), ext)}${careBlock(t("屋面"), roof)}${careBlock(t("地面"), floors)}</div><p class="disclaimer">${t("周期与寿命为常见经验值，实际以产品说明书和专业人士检查为准。")}</p>` })
       : refSection("house-care", { title: t("材料保养建议"), hint: t("还没填材料"), body: `${t("补充外墙、屋面和地面材料后，这里会给出对应的保养建议。")}<p><a class="btn btn-ghost btn-sm" href="${href("house", "profile")}">${t("补充材料")}</a></p>` })}`;
@@ -446,17 +473,35 @@ function hoaFieldset(d) {
       <label>${t("电话")}<input name="hoa_phone" type="tel" maxlength="40" value="${esc(hoa.phone || "")}"></label>
       <label>${t("邮箱")}<input name="hoa_email" type="email" maxlength="120" value="${esc(hoa.email || "")}"></label>
       <label class="span-2">${t("业主门户 / 缴费网址")}<input name="hoa_url" type="url" maxlength="200" placeholder="https://" value="${esc(hoa.url || "")}"></label>
-      <label>${t("费用")}<input name="hoa_dues" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.dues ?? ""}"></label>
+      <input type="hidden" name="hoa_dues" value="${hoa.dues ?? ""}">
+      <label>${t("单元月费")}<input name="hoa_dues_unit" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.dues_unit ?? (hoa.dues_parking || hoa.dues_other ? "" : hoa.dues ?? "")}"></label>
+      <label>${t("车位月费（没有留空）")}<input name="hoa_dues_parking" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.dues_parking ?? ""}"></label>
+      <label>${t("其他固定费（储物、宠物…）")}<input name="hoa_dues_other" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.dues_other ?? ""}"></label>
+      <label>${t("其他费是什么")}<input name="hoa_dues_other_label" maxlength="60" placeholder="${t("例如：储物柜、宠物费")}" value="${esc(hoa.dues_other_label || "")}"></label>
+      <p class="hint span-2" data-hoa-total>${t("合计每期：{a}（保存时按三项相加；特殊评估单独记在下面）", { a: money((num(hoa.dues_unit) || 0) + (num(hoa.dues_parking) || 0) + (num(hoa.dues_other) || 0) || num(hoa.dues) || 0) })}</p>
       <label>${t("频率")}<select name="hoa_dues_period">${Object.entries(P).map(([k, n]) => `<option value="${k}" ${hoa.dues_period === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select><small>${t("按期缴费提醒请在账单里建“HOA / 物业费”")}</small></label>
     </div>
     <h4 class="sub-legend">${t("特殊评估 / 大额摊派")}<small>${t("储备金不够大修时按份额摊的款项；截止前 45 天开始提醒，逾期置顶")}</small></h4>
     <div class="form-grid">
       <label>${t("金额")}<input name="hoa_sa_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.sa_amount ?? ""}"></label>
-      <label>${t("截止日")}<input name="hoa_sa_due" type="date" value="${esc(hoa.sa_due || "")}"></label>
+      <label>${t("下次缴款截止日")}<input name="hoa_sa_due" type="date" value="${esc(hoa.sa_due || "")}"></label>
+      <label>${t("有效期：从")}<input name="hoa_sa_from" type="date" value="${esc(hoa.sa_from || "")}"></label>
+      <label>${t("有效期：到")}<input name="hoa_sa_to" type="date" value="${esc(hoa.sa_to || "")}"><small>${t("分期摊派都有期限；没期限的应该算进常规月费")}</small></label>
+      <label>${t("每期金额（分期才填）")}<input name="hoa_sa_each" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.sa_each ?? ""}"></label>
       <label class="span-2">${t("用途")}<input name="hoa_sa_purpose" maxlength="120" placeholder="${t("例如：屋顶更换、电梯大修、外墙维修")}" value="${esc(hoa.sa_purpose || "")}"></label>
       <label class="check-inline span-2"><input type="checkbox" name="hoa_sa_paid" ${hoa.sa_paid ? "checked" : ""}><span>${t("已缴清")}</span></label>
     </div>
-    <h4 class="sub-legend">${t("规则与限制")}<small>${t("宠物、出租限制、装修审批、停车、安静时段、搬家预约等")}</small></h4>
+    <h4 class="sub-legend">${t("出租规则")}<small>${t("公寓常见：出租比例上限、最短租期、要不要 HOA 审批；买前、想出租前都要看")}</small></h4>
+    <div class="form-grid">
+      <label>${t("能不能出租")}<select name="hoa_rent_policy">${RENT_POLICIES.map(([k, n]) => `<option value="${k}" ${(hoa.rent_policy || "unknown") === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
+      <label>${t("出租比例上限 %")}<input name="hoa_rent_cap" type="number" inputmode="decimal" min="0" max="100" step="1" value="${hoa.rent_cap_pct ?? ""}"></label>
+      <label>${t("最短租期（月）")}<input name="hoa_rent_min" type="number" inputmode="numeric" min="0" step="1" value="${hoa.rent_min_months ?? ""}"></label>
+      <label class="span-2">${t("说明")}<input name="hoa_rent_notes" maxlength="200" placeholder="${t("例如：需自住满 1 年；出租名额已满，轮候中")}" value="${esc(hoa.rent_notes || "")}"></label>
+    </div>
+    <h4 class="sub-legend">${t("诉讼与纠纷")}<small>${t("HOA 正在打的官司会影响贷款和转手；买卖前问 22.1 披露")}</small></h4>
+    <label class="check-inline"><input type="checkbox" name="hoa_lawsuit" ${hoa.lawsuit ? "checked" : ""}><span>${t("HOA / 楼盘目前有诉讼或纠纷")}</span></label>
+    <input name="hoa_lawsuit_note" maxlength="300" style="margin-top:6px" placeholder="${t("例如：和开发商的渗水诉讼，2025 年起；储备金是否受影响")}" value="${esc(hoa.lawsuit_note || "")}">
+    <h4 class="sub-legend">${t("规则与限制")}<small>${t("宠物、装修审批、停车、安静时段、搬家预约等")}</small></h4>
     <textarea name="hoa_rules" rows="3" maxlength="1000" placeholder="${t("例如：最多 2 只宠物、出租需满 1 年自住、装修 9–17 点、访客停车 48 小时")}">${esc(hoa.rules || "")}</textarea>
     <label style="display:block;margin-top:8px">${t("备注")}<input name="hoa_notes" maxlength="500" placeholder="${t("例如：年会 3 月、储备金研究 2025、门禁码在钥匙盒")}" value="${esc(hoa.notes || "")}"></label>
     ${a.tips.length ? `<details class="hoa-tips" style="margin-top:10px"><summary>${t("{label}须知（{type}）", { label, type: t(H().typeOf(d.region, d.house_type)?.name || "") })}</summary><ul class="tips">${a.tips.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></details>` : ""}
@@ -514,6 +559,7 @@ function viewProfileSection(sec) {
     insurance: () => insuranceFieldset(d),
     hoa: () => hoaFieldset(d),
     emergency: () => emergencyFieldset(d),
+    ownership: () => ownershipFieldset(d),
     features: () => `
         <fieldset>
           <legend>${t("家里有这些设施")}</legend>
@@ -549,6 +595,52 @@ function viewProfileSection(sec) {
         </div>
       </form>
     </section>`;
+}
+
+/** 产权、税务与车位 */
+function ownershipFieldset(d) {
+  const o = ownershipOf(d), sel = (name, list, cur) => `<select name="${name}">${list.map(([k, n]) => `<option value="${k}" ${cur === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select>`;
+  return `<fieldset>
+    <legend>${t("缴税号与减免")}</legend>
+    <div class="form-grid">
+      <label>${t("房产缴税号（PIN / 税号）")}<input name="own_pin" maxlength="40" placeholder="${t("例如 17-10-200-001-1234")}" value="${esc(o.pin || "")}"><small>${t("在房产税账单或县评估办网站上能查到；一个单元一个号")}</small></label>
+      <label class="span-2">${t("已申请的税务减免")}<div class="check-grid">${TAX_EXEMPTIONS.map(([k, n]) => `<label class="check"><input type="checkbox" name="own_tax" value="${k}" ${(o.tax_exemptions || []).includes(k) ? "checked" : ""}><span>${t(n)}</span></label>`).join("")}</div><small>${t("库克县等地自住减免要主动申请、换房后重新申请；老年减免每年续")}</small></label>
+      <label class="span-2">${t("说明")}<input name="own_tax_notes" maxlength="200" placeholder="${t("例如：2026 年起自住减免已生效；老年冻结 2027 再续")}" value="${esc(o.tax_notes || "")}"></label>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>${t("车位")}</legend>
+    <div class="form-grid">
+      <label>${t("车位类型")}${sel("own_parking_type", [["", t("未填")], ...PARKING_TYPES], o.parking_type || "")}</label>
+      <label>${t("车位编号")}<input name="own_parking_no" maxlength="40" placeholder="${t("例如 P-12 / 2 个")}" value="${esc(o.parking_no || "")}"></label>
+      <label class="check-inline span-2"><input type="checkbox" name="own_parking_deeded" ${o.parking_deeded ? "checked" : ""}><span>${t("车位有独立产权（deeded）——转手时单独过户，常有自己的缴税号")}</span></label>
+      <label>${t("车位缴税号（有独立产权才有）")}<input name="own_parking_pin" maxlength="40" value="${esc(o.parking_pin || "")}"></label>
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>${t("储物与屋顶")}</legend>
+    <div class="form-grid">
+      <label>${t("储物间")}${sel("own_storage_type", [["", t("未填")], ...STORAGE_TYPES], o.storage_type || "")}</label>
+      <label>${t("储物间编号")}<input name="own_storage_no" maxlength="40" value="${esc(o.storage_no || "")}"></label>
+      <label class="check-inline span-2"><input type="checkbox" name="own_roof" ${o.roof_access ? "checked" : ""}><span>${t("可以上屋顶 / 有屋顶露台使用权")}</span></label>
+    </div>
+  </fieldset>`;
+}
+/** 概览里的「产权、税务与车位」参考块（填了才显示） */
+function ownershipBlock(p) {
+  const o = ownershipOf(p);
+  const has = o.pin || o.parking_type || o.storage_type || (o.tax_exemptions || []).length || o.roof_access; if (!has) return "";
+  const row = (k, v) => (v ? `<div class="fact wide"><dt>${k}</dt><dd>${v}</dd></div>` : "");
+  const parking = o.parking_type ? [labelOf(PARKING_TYPES, o.parking_type), o.parking_no ? esc(o.parking_no) : "", o.parking_deeded ? t("独立产权") : "", o.parking_pin ? t("缴税号 {n}", { n: esc(o.parking_pin) }) : ""].filter(Boolean).join(" · ") : "";
+  const hint = [o.pin ? t("PIN {n}", { n: o.pin }) : "", o.parking_type ? labelOf(PARKING_TYPES, o.parking_type) : "", (o.tax_exemptions || []).length ? t("减免 {n} 项", { n: o.tax_exemptions.length }) : ""].filter(Boolean).join(" · ");
+  return refSection("house-ownership", { title: `📜 ${t("产权、税务与车位")}`, hint, body: `<p style="margin:0 0 6px;text-align:right"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}?sec=ownership">${t("修改")}</a></p>
+    <dl class="fact-grid one">
+      ${row(t("缴税号"), o.pin ? esc(o.pin) : "")}
+      ${row(t("税务减免"), (o.tax_exemptions || []).length ? `${o.tax_exemptions.map((k) => labelOf(TAX_EXEMPTIONS, k)).join("、")}${o.tax_notes ? ` · ${esc(o.tax_notes)}` : ""}` : "")}
+      ${row(t("车位"), parking)}
+      ${row(t("储物间"), o.storage_type ? `${labelOf(STORAGE_TYPES, o.storage_type)}${o.storage_no ? ` · ${esc(o.storage_no)}` : ""}` : "")}
+      ${row(t("屋顶"), o.roof_access ? t("可以上 / 有使用权") : "")}
+    </dl>` });
 }
 
 /** 应急信息与关键位置：全是文本，爆水管 / 跳闸时家人打开手机就能看 */

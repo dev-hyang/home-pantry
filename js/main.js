@@ -393,7 +393,7 @@ initCompactFilters({ root: main, ui: uiKind });
 miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
 initSwipeRows({ kinds: ["budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase"], del: () => t("删除"), release: () => t("松手删除") });   // 行记录左滑删除（js/swipe-rows.js）
 /* 云端报错翻译：数据库还没升级到某个迁移时，PostgREST 只会说「找不到某列 / 某表」，这里换成告诉你该执行哪个迁移文件 */
-const MIGRATION_HINTS = [[/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/pay_card_id|bill_payments.*card_id|medical_payments.*card_id|cards_kind_check/i, "036_pay_accounts.sql", "付款账户（银行账户、账单扣款 / 缴费用的卡）"], [/relation .*\bcards\b|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
+const MIGRATION_HINTS = [[/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/pay_card_id|bill_payments.*card_id|medical_payments.*card_id|cards_kind_check/i, "036_pay_accounts.sql", "付款账户（银行账户、账单扣款 / 缴费用的卡）"], [/house_profiles.*ownership|ownership.*house_profiles/i, "038_house_ownership.sql", "房屋资料：产权、税务与车位"], [/relation .*\bcards\b|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
 function friendlyErr(msg) {
   const m = String(msg || "");
   for (const [re, file, what] of MIGRATION_HINTS) if (re.test(m)) return t("还没执行数据库迁移 {file}（{what}）：先在 Supabase → SQL Editor 里执行 supabase/migrations/{file}，再试一次。", { file, what });
