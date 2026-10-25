@@ -56,13 +56,17 @@ export function backupPanel() {
       <div class="bk-row" style="margin-top:8px"><button type="button" class="btn btn-primary btn-sm" data-action="backup-restore-confirm">${t("恢复到当前家庭")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="backup-restore-cancel">${t("取消")}</button></div></div>`
     : `<div class="notice" role="alert"><b>${t("不能恢复：{why}", { why: esc(pv.why) })}</b> <button type="button" class="btn btn-sm btn-ghost" data-action="backup-restore-cancel">${t("关闭")}</button></div>`) : "";
   const result = state.backupResult ? `<div class="notice ${state.backupResult.ok === false ? "bad" : ""}" role="status"><b>${esc(state.backupResult.title)}</b>${state.backupResult.detail ? `<div class="muted" style="font-size:12.5px;margin-top:4px">${esc(state.backupResult.detail)}</div>` : ""}</div>` : "";
-  const sync = cloud ? `<div class="bk-sync"><span id="syncBadge" class="sync ${syncState.err ? "err" : ""}" role="status">${esc(syncState.text || t("已同步"))}</span><button type="button" class="btn btn-sm" data-action="reload">${t("立即同步")}</button></div>` : `<div class="bk-sync"><span class="sync">${t("本地演示：数据只在这个浏览器里，更要备份")}</span></div>`;
-  return `${sync}
+  const fam = cloud ? state.household?.name || "" : "";
+  const sync = `<div class="panel synccard ${cloud ? (syncState.err ? "bad" : "ok") : "off"}"><span class="sdot" aria-hidden="true"></span>
+    <div class="stext"><b id="syncBadge" class="syncb ${syncState.err ? "err" : ""}" role="status">${cloud ? esc(syncState.text || t("已同步")) : t("保存在这个浏览器")}</b><small>${cloud ? `${esc(fam)}${state.members?.length ? ` · ${t("{n} 位成员", { n: state.members.length })}` : ""}` : t("本地演示：数据只在这个浏览器里，更要备份")}</small></div>
+    ${cloud ? `<button type="button" class="btn" data-action="reload">${t("立即同步")}</button>` : ""}</div>`;
+  return `<h2 class="bk-h">${t("同步")}</h2>${sync}
+    <h2 class="bk-h">${t("备份")}</h2>
     ${state.backupPending ? `<div class="notice" role="status"><b>${t("定时备份在等你点一下")}</b> ${t("写入这台电脑的文件夹需要你授权一次。")} <button type="button" class="btn btn-sm" data-action="backup-continue">${t("继续备份")}</button></div>` : ""}
     ${result}
-    <div class="panel bk-panel bk-status"><div><b>${esc(status)}</b><small>${s.lastInfo ? `${esc(s.lastInfo)} · ` : ""}${esc(nextTxt)}</small></div>
+    <div class="panel bk-panel"><div class="bk-status bk-statushead"><div><b>${esc(status)}</b><small>${s.lastInfo ? `${esc(s.lastInfo)} · ` : ""}${esc(nextTxt)}</small></div>
       <div class="bk-row"><button type="button" class="btn btn-primary" data-action="backup-now">${t("现在备份")}</button><button type="button" class="btn btn-ghost" data-action="backup-download">${t("下载一份")}</button></div></div>
-    <form id="backupForm" class="panel bk-panel" onsubmit="return false">
+    <form id="backupForm" onsubmit="return false">
       <div class="bk-sched"><label>${t("多久备份一次")} <select name="every" aria-label="${esc(t("多久备份一次"))}">${[["off", "不自动备份"], ["week", "每周"], ["month", "每月"], ["custom", "自定义（天）"]].map(([v, l]) => `<option value="${v}" ${s.every === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
         <label data-backup-days ${s.every === "custom" ? "" : "hidden"}>${t("每隔几天")} <input name="days" type="number" min="1" max="365" inputmode="numeric" value="${s.days}" aria-label="${esc(t("每隔几天"))}"> ${t("天")}</label></div>
       <p class="muted">${t("网页关着时跑不了：到期后下次打开应用时自动备份一次。")}</p>
@@ -75,7 +79,7 @@ export function backupPanel() {
         ${card("download", has("download"), "⬇️", t("下载到设备"), t("每次弹出下载。手机上下载后可以「存储到文件」放进 iCloud Drive / Google Drive；浏览器下载的旧文件不会自动清理。"))}
       </div>
       <div class="bk-sql"><b>⚠️ ${t("数据库脚本不在备份里")}</b><small>${t("supabase/schema.sql 和 migrations 只在你的电脑上（不进 git）。电脑没了，备份文件就导不回去。请把这个文件夹手动拷到云盘或别的位置；选了云盘同步文件夹的话，可以让每次备份顺带把 .sql 一起拷进去：")}</small>${sqlBody}</div>
-    </form>
+    </form></div>
     ${cloudList}
     <div class="panel bk-panel"><h3>${t("从备份恢复")}</h3><p class="muted">${t("换了手机、数据库被删、或换了 Supabase 项目：先登录并建好家庭（新项目要先在 SQL Editor 执行 supabase/schema.sql），再选备份文件导回来。")}</p>
       <div class="bk-row"><label class="btn btn-sm">${t("选备份文件")}<input id="backupFile" type="file" accept="application/json,.json" hidden></label></div>
