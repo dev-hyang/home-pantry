@@ -64,6 +64,7 @@ export function createDrives(cfg) {
     }
     setTok("gd", { ...tok("gd"), folder: parent, folderPath: key }); return parent;
   }
+  // setAppId = Cloud 项目编号（就是 Client ID 开头那串数字）：只有带上它，drive.file 权限才会把「你在选择器里选的文件夹」授权给这个应用，之后才能往里写
   /** Google Picker：让用户在自己的 Drive 里选一个文件夹（选了就授权给这个应用）。必须在点击里调用；返回 { id, name } 或 null（取消） */
   async function gdPickFolder() {
     if (!gdPickerAvailable()) throw new Error(t("还没在 config 里填 GOOGLE_API_KEY（Picker 要用）"));
@@ -72,7 +73,7 @@ export function createDrives(cfg) {
     await new Promise((res, rej) => window.gapi.load("picker", { callback: res, onerror: () => rej(new Error(t("Google 组件加载失败"))) }));
     return new Promise((res) => {
       const view = new window.google.picker.DocsView(window.google.picker.ViewId.FOLDERS).setIncludeFolders(true).setSelectFolderEnabled(true).setMimeTypes(FOLDER);
-      new window.google.picker.PickerBuilder().addView(view).setOAuthToken(token).setDeveloperKey(cfg.googleApiKey).setTitle(t("选一个放备份的文件夹"))
+      new window.google.picker.PickerBuilder().addView(view).setOAuthToken(token).setDeveloperKey(cfg.googleApiKey).setAppId(String(cfg.googleClientId || "").split("-")[0]).setTitle(t("选一个放备份的文件夹"))
         .setCallback((d) => { if (d.action === "picked" && d.docs?.[0]) res({ id: d.docs[0].id, name: d.docs[0].name }); else if (d.action === "cancel") res(null); }).build().setVisible(true);
     });
   }
