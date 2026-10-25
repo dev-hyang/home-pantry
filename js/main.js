@@ -209,7 +209,7 @@ export function render(force = true) {
   const r = state.route;
   const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0])
     : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section === "bill" ? (state.prevRoute?.section || "bills")
-    : r.section === "scan" ? "shopping" : r.section === "alerts" || r.section === "ai" ? "today" : r.section;   // 注意事项、小Y问都是首页的子页，底栏高亮「今日」
+    : r.section === "scan" ? "shopping" : r.section === "alerts" || r.section === "ai" ? "today" : r.section;   // 注意事项、咩咩咩都是首页的子页，底栏高亮「今日」
   document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
     a.hidden = (a.dataset.section === "house" && !state.houseEnabled) || (a.dataset.section === "bills" && !state.billsEnabled);
     if (a.dataset.section === navSection) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
@@ -962,7 +962,7 @@ main.addEventListener("click", async (e) => {
       case "ai-copy": return copyPrompt($("#aiForm"));
       case "ai-again": { const fm = $("#aiForm"); return fm ? fm.requestSubmit() : null; }
       case "ai-add-missing": await addAiMissing(); return refresh();
-      // 小Y问整页
+      // 咩咩咩整页
       case "ai-topic": { pickTopic(el.dataset.topic); render(); const fm = $("#aiPageForm"); if (fm) { if (aiReady()) fm.requestSubmit(); else fm.elements.q.focus(); } return; }
       case "ai-copy-general": return copyGeneralPrompt($("#aiPageForm"));
       case "ai-copy-answer": return copyAnswer();

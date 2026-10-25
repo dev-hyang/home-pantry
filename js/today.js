@@ -1,4 +1,4 @@
-/* 首页 · 今日：格子块（注意事项 / 小Y问 / 采购清单 / 今天吃什么 / 快捷操作）。
+/* 首页 · 今日：格子块（注意事项 / 咩咩咩 / 采购清单 / 今天吃什么 / 快捷操作）。
  * 「注意事项」点开是 #/alerts：从提醒总线取全部提醒，排序下拉（按轻重 / 按房产 / 按来源 / 按到期）。各模块只把自己的提醒注册进总线，首页不认识任何模块。 */
 import { state } from "./core/state.js";
 import { aiIcon, aiQuota, aiReady } from "./core/ai.js";
@@ -32,11 +32,11 @@ export function viewToday() {
   const noProfile = state.houseEnabled && state.propertyId && !state.houseProfiles[state.propertyId];
   const sevPills = [0, 1, 2, 3].filter((s) => counts.bySeverity[s]).map((s) => `<span class="pill sev-${s}"><i>${counts.bySeverity[s]}</i>${t(SEVERITY_LABEL[s])}</span>`).join("");
 
-  // 大块：注意事项、小Y问、采购清单、今天吃什么
+  // 大块：注意事项、咩咩咩、采购清单、今天吃什么
   const big = [
     tile({ href: href("alerts"), cls: `t-alerts ${counts.important ? "is-hot" : ""}`, icon: counts.important ? "🔔" : "✅", count: all.length,   // 数字 = 全部提醒（含“留意”级），不再要紧时是一个数、没有要紧的时候又换成另一个数
       name: t("注意事项"), sub: counts.important ? (counts.bySeverity[3] ? t("{n} 件要紧，{m} 件留意", { n: counts.important, m: counts.bySeverity[3] }) : t("{n} 件要紧", { n: counts.important })) : all.length ? t("没有急事，{n} 件可以留意", { n: all.length }) : t("今天没有需要处理的事"), foot: sevPills ? `<div class="pills">${sevPills}</div>` : "" }),
-    tile({ href: href("ai"), cls: "t-ai", icon: aiIcon(40), name: t("小Y问"), sub: aiReady() ? (aiQuota().ok ? t("直接问：保养、账单、买卖房、收纳、带娃") : t("免费额度用完了，先用复制提示词")) : t("问家里任何事，复制提示词到任一 AI"), foot: `<span class="pill pill-none">${t("AI 助手")}</span>` }),
+    tile({ href: href("ai"), cls: "t-ai", icon: aiIcon(40), name: t("咩咩咩"), sub: aiReady() ? (aiQuota().ok ? t("直接问：保养、账单、买卖房、收纳、带娃") : t("免费额度用完了，先用复制提示词")) : t("问家里任何事，复制提示词到任一 AI"), foot: `<span class="pill pill-none">${t("AI 助手")}</span>` }),
     tile({ href: href("shopping"), cls: "t-shop", icon: "🛒", count: open.length + claimed.length, name: t("采购清单"),   // 数字 = 待买 + 家人正在买（和底部导航角标一致）
       sub: open.length ? (claimed.length ? t("{n} 项待买，{m} 项家人正在买", { n: open.length, m: claimed.length }) : t("{n} 项待买", { n: open.length })) : claimed.length ? t("{m} 项家人正在买", { m: claimed.length }) : t("清单是空的"),
       foot: claimed.length ? `<span class="pill pill-ok"><i>✓</i>${esc(joinList([...new Set(claimed.map((c) => c.claimed_by_name || t("家人")))]))}</span>` : "" }),
@@ -106,7 +106,7 @@ const PRESETS = () => [
   state.billsEnabled ? [href("bills", "cards"), "💳", t("用卡：该刷哪张")] : null, state.billsEnabled ? [`${href("bills", "cards")}?card=new`, "💳", t("添加信用卡")] : null,
   state.houseEnabled ? [href("house"), "🏠", t("房屋")] : null, state.houseEnabled ? [`${href("pantry", "inventory")}?space=house`, "🧰", t("房屋耗材")] : null, state.houseEnabled ? [`${href("item", "new")}?space=house`, "➕", t("添加房屋耗材")] : null, state.houseEnabled ? [href("house", "assets"), "⚙️", t("设备保养")] : null,
   state.houseEnabled ? [href("house", "tasks"), "📅", t("季节任务")] : null, state.houseEnabled ? [href("house", "deal"), "📝", t("交易")] : null, state.houseEnabled ? [href("house", "vehicles"), "🚗", t("车辆")] : null, state.houseEnabled ? [href("asset", "new"), "🛠️", t("添加设备")] : null,
-  [href("shopping"), "🛒", t("采购清单")], [href("scan"), "🧾", t("录入购物")], [href("alerts"), "🔔", t("注意事项")], [href("ai"), "🤖", t("小Y问")], !state.billsEnabled ? [href("me", "stats"), "📊", t("花费统计")] : null, [href("me", "settings"), "⚙️", t("设置")],
+  [href("shopping"), "🛒", t("采购清单")], [href("scan"), "🧾", t("录入购物")], [href("alerts"), "🔔", t("注意事项")], [href("ai"), "🤖", t("咩咩咩")], !state.billsEnabled ? [href("me", "stats"), "📊", t("花费统计")] : null, [href("me", "settings"), "⚙️", t("设置")],
   ["action:print", "🖨️", t("打印")],
 ].filter(Boolean);
 

@@ -3,7 +3,7 @@
 export const SECTIONS = {
   today:    { name: "今日",   subs: null },
   alerts:   { name: "注意事项", subs: null },   // #/alerts：今日格子里“注意事项”点开的清单（带排序）
-  ai:       { name: "小Y问",  subs: null },   // #/ai：AI 助手整页（菜单在储藏 → 菜单，这里问家里任何事）
+  ai:       { name: "咩咩咩",  subs: null },   // #/ai：AI 助手整页（菜单在储藏 → 菜单，这里问家里任何事）
   pantry:   { name: "储藏",   subs: [["overview", "概览"], ["inventory", "库存"], ["gear", "装备"], ["meals", "菜单"]] },   // 装备：耐用品和工具，只记数量和位置
   // 房屋：#/house 是房产列表；#/house/pages 是某套房产的页面目录；车辆挂家庭，从房产列表进
   house:    { name: "房屋",   subs: [["overview", "概览"], ["assets", "设备保养"], ["tasks", "季节任务"], ["deal", "交易"], ["profile", "房屋资料"],

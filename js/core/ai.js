@@ -9,16 +9,16 @@ import { lang, locale, t } from "./i18n.js";
 const KEY = "hmh-ai";
 const USAGE_KEY = "hmh-ai-usage";   // 本机调用计数：{ provider: { day, count, minute, mcount, blockedUntil } }
 
-/** AI 助手图标：圆角渐变底 + 白色 Y 字（两臂微弯）+ 右上角一颗芥末黄小星，内联 SVG，随文字大小缩放 */
-export function aiIcon(size = 22, cls = "") {
-  return `<svg class="ai-ico ${cls}" width="${size}" height="${size}" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <defs><linearGradient id="aiG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6d5a"/><stop offset="1" stop-color="#7cc4a8"/></linearGradient></defs>
-    <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#aiG)"/>
-    <path d="M9.5 9.5 C11.5 13 13.5 15 16 17.5 C18.5 15 20.5 13 22.5 9.5" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M16 17.5 V24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>
-    <path d="M24.5 4.5 L25.6 7.4 L28.5 8.5 L25.6 9.6 L24.5 12.5 L23.4 9.6 L20.5 8.5 L23.4 7.4 Z" fill="#e9b949"/>
-  </svg>`;
-}
+/** 咩咩图标：一只白绒绒的小羊咩咩，额头上一枚珊瑚红的字母 Y（四个应用同一只；颜色固定，深浅色主题下都一样），随文字大小缩放 */
+export const aiIcon = (size = 22, cls = "") => `<svg class="ai-ico ${cls}" width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+  <ellipse cx="9" cy="37" rx="8.5" ry="4.6" transform="rotate(-24 9 37)" fill="#F6D5C3" stroke="#2C3A4B" stroke-width="2.6"/>
+  <ellipse cx="55" cy="37" rx="8.5" ry="4.6" transform="rotate(24 55 37)" fill="#F6D5C3" stroke="#2C3A4B" stroke-width="2.6"/>
+  <g fill="#fff" stroke="#2C3A4B" stroke-width="2.6"><circle cx="32" cy="14" r="10.5"/><circle cx="19" cy="20" r="8.5"/><circle cx="45" cy="20" r="8.5"/><circle cx="13" cy="31" r="7.5"/><circle cx="51" cy="31" r="7.5"/><circle cx="16" cy="43" r="7"/><circle cx="48" cy="43" r="7"/><circle cx="24" cy="51" r="7"/><circle cx="40" cy="51" r="7"/><circle cx="32" cy="53" r="7"/><circle cx="32" cy="32" r="17"/></g><g fill="#fff"><circle cx="32" cy="14" r="10.5"/><circle cx="19" cy="20" r="8.5"/><circle cx="45" cy="20" r="8.5"/><circle cx="13" cy="31" r="7.5"/><circle cx="51" cy="31" r="7.5"/><circle cx="16" cy="43" r="7"/><circle cx="48" cy="43" r="7"/><circle cx="24" cy="51" r="7"/><circle cx="40" cy="51" r="7"/><circle cx="32" cy="53" r="7"/><circle cx="32" cy="32" r="17"/></g>
+  <ellipse cx="32" cy="41" rx="13" ry="12" fill="#F6D5C3" stroke="#2C3A4B" stroke-width="2.4"/>
+  <circle cx="27" cy="39.5" r="2.1" fill="#2C3A4B"/><circle cx="37" cy="39.5" r="2.1" fill="#2C3A4B"/>
+  <path d="M32 44.5v1.6M29.3 48q2.7 2.4 5.4 0" fill="none" stroke="#2C3A4B" stroke-width="1.9" stroke-linecap="round"/>
+  <circle cx="23.2" cy="44.5" r="1.9" fill="#F4A3B1" opacity=".9"/><circle cx="40.8" cy="44.5" r="1.9" fill="#F4A3B1" opacity=".9"/>
+  <path d="M25.5 11.5l6.5 8 6.5-8M32 19.5v9" fill="none" stroke="#D9655F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 // 默认 Gemini：美国可用的免费额度；其余按性价比排序。免费档的次数上限见 FREE_TIER，到上限就停
 export const PROVIDERS = [
   // keyHint：怎么拿 key、长什么样；keyPrefix：key 开头（测试连接时先核对，贴错服务的 key 会直接提示）。模型名和地址都有默认值，只有“自定义”需要填
@@ -488,7 +488,7 @@ export async function askModel(ask, opts = {}) {
   return { text, menu: parseMenu(text) };
 }
 
-/* ── 小Y问：家里任何事（房屋保养、账单、买卖房、清洁收纳…）的上下文 ── */
+/* ── 咩咩咩：家里任何事（房屋保养、账单、买卖房、清洁收纳…）的上下文 ── */
 export function homeContext() {
   const L = [], en = lang === "en";
   const push = (label, body) => L.push(`${label}${en ? ": " : "："}${body}`);

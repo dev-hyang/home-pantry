@@ -876,7 +876,7 @@ button.mrow:last-child { border-bottom: 0; }
 .act-item:hover, .act-item:focus-visible { background: var(--surface-2); }
 .act-item:focus-visible { outline: 2px solid var(--pine); outline-offset: -2px; }
 @media print { .alert-acts { display: none; } }
-/* 首页格子块：注意事项 / 小Y问 / 采购清单 / 今天吃什么 四大块 + 快捷操作小块 */
+/* 首页格子块：注意事项 / 咩咩咩 / 采购清单 / 今天吃什么 四大块 + 快捷操作小块 */
 .today-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 @media (min-width: 900px) { .today-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .ttile { display: grid; gap: 10px; align-content: start; padding: 14px; border-radius: 18px; background: var(--surface); color: var(--ink); text-decoration: none; min-height: 140px; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 0 0 1px color-mix(in srgb, var(--line) 60%, transparent); }
@@ -953,7 +953,7 @@ body.quick-dragging { overflow-anchor: none; user-select: none; -webkit-user-sel
 .crumb-tools { flex-wrap: wrap; }
 .sort-dd { margin-left: auto; }
 .sort-dd select { width: auto; min-height: 0; padding: 5px 28px 5px 12px; font-size: 13px; font-weight: 700; border-radius: 999px; }
-/* 小Y问整页 */
+/* 咩咩咩整页 */
 .ai-hero { display: flex; gap: 14px; align-items: center; margin-bottom: 4px; }
 .ai-hero-ico .ai-ico { margin: 0; vertical-align: 0; }
 .ai-hero h2 { font-size: 22px; font-weight: 800; margin: 0; }
