@@ -10,6 +10,7 @@ import { modelsCachedAt } from "../core/ai.js";
 import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
 import { viewPrintSettings } from "./print.js";
 import { incomePanel } from "./income.js";
+import { backupPanel, backupSummary } from "./backup-views.js";
 import { budgetPlan, isHouseholdOwner, myId } from "../bills/budget.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
@@ -167,7 +168,8 @@ export const SETTING_SECTIONS = [
   { id: "locations", icon: "📍", name: "存放位置" },
   { id: "modules", icon: "🧩", name: "模块开关" },
   { id: "print", icon: "🖨️", name: "打印" },
-  { id: "data", icon: "💾", name: "通知与备份" },
+  { id: "backup", icon: "🛟", name: "备份与恢复" },
+  { id: "data", icon: "🔔", name: "通知" },
   { id: "apps", icon: "🔗", name: "姐妹站点与介绍" },
 ];
 /** AI 设置：模型、key（只存本机）、人数；提交与“测试连接”共用 */
@@ -295,7 +297,8 @@ export function viewSettings() {
       locations: t("{n} 个位置 · 自定义 {m}", { n: window.LOCATIONS.length, m: customLocations().length }),
       modules: [state.houseEnabled ? t("房屋 ✓") : t("房屋 ✗"), state.billsEnabled ? t("账单 ✓") : t("账单 ✗"), state.gearEnabled ? t("装备 ✓") : t("装备 ✗")].join(" · "),
       print: state.billsEnabled ? t("采购清单、账单概览") : t("采购清单"),
-      data: `${notif === "granted" ? t("通知已开启") : t("通知未开启")} · ${t("导出 JSON")}`,
+      data: notif === "granted" ? t("通知已开启") : t("通知未开启"),
+      backup: backupSummary(),
       ai: aiReady() ? `${t("{p} · 已填 key", { p: t(providerOf(aiSettings().provider).name) })}${(() => { const q = aiQuota(); return q.cap ? ` · ${t("今天 {n}/{cap}", { n: q.used, cap: q.cap })}` : ""; })()}` : t("未填 key，用“复制提示词”模式"),
       apps: t("小月亮、家庭学堂；介绍与注意事项"),
     };
@@ -362,8 +365,8 @@ export function viewSettings() {
     data: () => `
     <div class="panel"><div class="kv"><div><b>${t("浏览器通知")}</b><div class="muted">${t("打开网页时，若有新的缺货或少货会弹出提醒")}</div></div>
       ${notif === "granted" ? `<span class="badge b-ok">${t("已开启")}</span>` : notif === "unsupported" ? `<span class="muted">${t("此浏览器不支持")}</span>` : `<button type="button" class="btn btn-sm" data-action="notif">${t("开启通知")}</button>`}</div></div>
-    <div class="panel"><div class="kv"><div><b>${t("导出数据")}</b><div class="muted">${t("下载库存和采购清单的 JSON 备份")}</div></div>
-      <button type="button" class="btn btn-sm" data-action="export">${t("导出 JSON")}</button></div></div>`,
+    `,
+    backup: () => backupPanel(),
     ai: () => aiBlock(),
     print: () => viewPrintSettings(),
     locations: () => locationsPanel(),

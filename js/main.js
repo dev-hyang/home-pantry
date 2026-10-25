@@ -46,6 +46,8 @@ import { deleteBillPay, renderBillList, renderPayList, billTemplateItems, export
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { moveCat, renderInvList, scoreRecipes, setShopOpen, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
+import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
+import * as Backup from "./core/backup.js";
 import { viewAbout } from "./settings/about.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
@@ -121,6 +123,7 @@ export async function refresh() {
       render(false);
       loadPurchasesSoon();
       maybeAutoGenerate();   // 家主有收入但还没预算：自动生成第一版
+      Backup.runScheduled().then((r) => { if (!r) return; if (r.ok.length) toast(t("已自动备份（{to}）", { to: r.ok.map(backupTargetName).join("、") })); if (r.needGesture) toast(t("定时备份要写进文件夹，去 设置 → 备份与恢复 点一下「继续备份」")); refreshBackupUi(); if (state.route?.section === "me") render(false); });   // 定时备份到期了就在后台做一次
     } catch (e) {
       setSync(t("同步失败，点设置页重试"), true);
       toast(t("读取数据失败：{msg}", { msg: e.message }));
@@ -344,7 +347,8 @@ function onRoute() {
 // 滚动位置由我们自己记忆和恢复，关闭浏览器的自动恢复以免互相干扰
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 window.addEventListener("hashchange", onRoute);
-window.addEventListener("spend-data-loaded", () => render(false));   // 对比用的前一段花费从云端读回来了
+window.addEventListener("spend-data-loaded", () => render(false));
+window.addEventListener("hmh-rerender", () => render(false));   // 异步读完（备份页的文件夹 / 云端列表）后重画一次   // 对比用的前一段花费从云端读回来了
 
 /* ── 底部页签：点别的页签 = 进入该页签首页并恢复默认筛选（多套房产时账单回“全部房产”）；浏览器后退不走这里，筛选照旧。
  * 当前页签：点一下就回该页签首页并恢复默认筛选、回到顶部。 */
@@ -421,7 +425,46 @@ main.addEventListener("input", (e) => {
   if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; renderAssetList(); }
   const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
 });
+/** 备份：手动 / 定时到期后点「继续」 */
+const backupTargetName = (k) => ({ download: t("下载"), folder: t("文件夹"), cloud: t("云端") }[k] || k);
+async function doBackup(targets, el) {
+  if (el) el.disabled = true;
+  try {
+    const r = await Backup.runBackup(targets, { gesture: true });
+    state.backupPending = r.needGesture;
+    state.backupResult = r.ok.length ? { title: t("已备份到 {to}：{name}（{n} 行）", { to: r.ok.map(backupTargetName).join("、"), name: r.name, n: r.rows }), detail: r.failed.map(([k, why]) => `${backupTargetName(k)}：${why}`).join("；") }
+      : { title: t("备份没成功"), detail: r.failed.map(([k, why]) => `${backupTargetName(k)}：${why}`).join("；") };
+  } catch (err) { state.backupResult = { title: t("备份没成功"), detail: friendlyErr(err.message) }; }
+  if (el) el.disabled = false;
+  refreshBackupUi(); render(false);
+}
+async function doRestore(el) {
+  const pv = state.backupPreview; if (!pv?.ok || !pv.data) return;
+  if (!confirm(t("把备份（{d}，{n} 行）导回当前家庭「{h}」？同 id 的行会被文件里的覆盖。", { d: String(pv.exported_at).slice(0, 16).replace("T", " "), n: pv.rows, h: state.household?.name || t("演示家庭") }))) return;
+  el.disabled = true; el.textContent = t("恢复中…");
+  try {
+    const r = await Backup.restore(pv.data, (tb) => { el.textContent = t("恢复中… {t}", { t: tb }); });
+    const n = Object.values(r.done).reduce((a, b) => a + b, 0), sk = Object.entries(r.skipped).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join("、");
+    state.backupResult = { title: r.errors.length ? t("恢复了 {n} 行，但有表出错", { n }) : t("已恢复 {n} 行", { n }), detail: [sk ? t("跳过：{s}", { s: sk }) : "", ...r.errors.map(([tb, why]) => `${tb}：${friendlyErr(why)}`)].filter(Boolean).join("；") };
+    state.backupPreview = null;
+    await refresh();
+  } catch (err) { state.backupResult = { title: t("恢复失败"), detail: friendlyErr(err.message) }; }
+  render(false);
+}
 main.addEventListener("change", async (e) => {
+  if (e.target.closest("#backupForm")) {   // 备份设置：改了就存（存本机）
+    const f = e.target.closest("#backupForm"), targets = [...f.querySelectorAll('input[name="target"]:checked')].map((x) => x.value);
+    Backup.saveSettings({ every: f.elements.every.value, days: Math.max(1, +f.elements.days.value || 14), targets });
+    const box = f.querySelector("[data-backup-days]"); if (box) box.hidden = f.elements.every.value !== "custom";
+    if (e.target.name === "every") return render(false);
+    return;
+  }
+  if (e.target.id === "backupFile") {   // 选了备份文件：先看一眼，确认后才恢复
+    const file = e.target.files?.[0]; if (!file) return;
+    try { const d = JSON.parse(await file.text()); state.backupPreview = { ...Backup.inspect(d), data: d, from: file.name }; }
+    catch { state.backupPreview = { ok: false, why: t("不是有效的 JSON 文件") }; }
+    e.target.value = ""; return render(false);
+  }
   if (e.target.id === "cardReviewMonth") { state.cardReviewMonth = e.target.value; return render(); }
   if (e.target.matches('#cardForm select[name="catalog"]')) return applyCatalogPick(e.target.value);   // 用卡：选了目录，按目录重画表单
   if (e.target.closest("#cardPickForm")) { const fe = e.target.form.elements; Object.assign(state.cardPick, { cat: fe.cat.value, merchant: fe.merchant.value.trim(), amount: fe.amount.value, abroad: fe.abroad.checked }); const o = $("#cardPickOut"); if (o) o.innerHTML = pickResultHtml(); return; }
@@ -973,6 +1016,16 @@ main.addEventListener("click", async (e) => {
       case "copy-invite": await navigator.clipboard.writeText(state.household.invite_code); return toast(t("邀请码已复制"));
       case "notif": await Notification.requestPermission(); return render();
       case "export": return exportJson();
+      case "backup-now": case "backup-continue": return doBackup(Backup.settings().targets.length ? Backup.settings().targets : ["download"], el);
+      case "backup-download": return doBackup(["download"], el);
+      case "backup-pick-folder": try { await Backup.pickFolder(); toast(t("已记住这个文件夹")); } catch (err) { if (err.name !== "AbortError") toast(t("选文件夹失败：{msg}", { msg: err.message })); } refreshBackupUi(); return render(false);
+      case "backup-forget-folder": await Backup.forgetFolder(); refreshBackupUi(); return render(false);
+      case "backup-grant": { const st = await Backup.folderStatus(); if (st.handle) { try { await st.handle.requestPermission({ mode: "readwrite" }); } catch { /* 用户取消 */ } } refreshBackupUi(); return render(false); }
+      case "backup-cloud-dl": try { const d = await Backup.readCloud(el.dataset.name); Backup.download(Backup.toBlob(d), el.dataset.name); } catch (err) { toast(t("下载失败：{msg}", { msg: err.message })); } return;
+      case "backup-cloud-restore": try { const d = await Backup.readCloud(el.dataset.name); state.backupPreview = { ...Backup.inspect(d), data: d, from: el.dataset.name }; } catch (err) { toast(t("读取失败：{msg}", { msg: err.message })); } return render(false);
+      case "backup-cloud-del": if (!confirm(t("删除云端备份 {n}？", { n: el.dataset.name }))) return; try { await Backup.deleteCloud(el.dataset.name); } catch (err) { toast(t("删除失败：{msg}", { msg: err.message })); } refreshBackupUi(); return render(false);
+      case "backup-restore-cancel": state.backupPreview = null; return render(false);
+      case "backup-restore-confirm": return doRestore(el);
       case "csv-summary": return exportAnnual("summary");
       case "csv-detail": return exportAnnual("detail");
       case "reload": return refresh();
