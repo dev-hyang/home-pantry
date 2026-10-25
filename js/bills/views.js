@@ -648,13 +648,26 @@ export async function recordPayment(bill, { paid_on, due_on, amount, status, met
   }
   await Store.addBillPayment({ bill_id: bill.id, due_on: due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),
     currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, status, notes: notes || null, purchase_id, ...(card_id ? { card_id } : {}) });
-  // 推到下一期：以这次对应的到期日为基准，保证不会漏期
+  // 推到下一期：以这次对应的到期日为基准，保证不会漏期。补记更早一期（到期日早于当前下次到期）不往回推，下次到期不动
   const base = due_on || bill.next_due_on || paid_on;
-  const next = advanceDue(bill, base);
+  const catchUp = !!(bill.next_due_on && base < bill.next_due_on && bill.frequency !== "one_time");
+  const next = catchUp ? bill.next_due_on : advanceDue(bill, base);
   const patch = { ...bill, next_due_on: next };
   if (!next && bill.frequency === "one_time") patch.active = false;
   for (const k of ["pays", "last", "avg", "est", "priceUp", "daysLeft", "status", "cardDays", "cardExpiring", "monthly", "ended"]) delete patch[k];
   await Store.saveBill(patch);
+  return { next, catchUp };
+}
+/** 改了记录的到期日后，账单的下次到期跟着对：这条正是把账单推到当前这期的那条，或改后的到期日已经不早于当前下次到期，就按新到期日重推；否则不动 */
+async function resyncDue(bill, old, newDue) {
+  if (!newDue || bill.frequency === "one_time") return null;
+  const pushedIt = old.due_on && bill.next_due_on === advanceDue(bill, old.due_on);
+  if (!pushedIt && bill.next_due_on && newDue < bill.next_due_on) return null;
+  const next = advanceDue(bill, newDue); if (!next || next === bill.next_due_on) return null;
+  const patch = { ...bill, next_due_on: next };
+  for (const k of ["pays", "last", "avg", "est", "priceUp", "daysLeft", "status", "cardDays", "cardExpiring", "monthly", "ended"]) delete patch[k];
+  await Store.saveBill(patch);
+  return next;
 }
 
 /** 删一条缴费记录：同时退回它推进过的到期日（只在它正是把账单推到当前这一期的那条时才退；之后又记了别的期，或同一期还有别的记录，就不动）。返回退回后的到期日，没退回返回 null */
@@ -687,7 +700,8 @@ async function updatePayment(bill, fe) {
   else if (purchase_id) { await Store.deletePurchase(purchase_id); purchase_id = null; }
   else if (total > 0 && bill.direction !== "receivable") purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: payee, amount: total, currency, purchased_at: at, ...cardPatch });
   await Store.updateBillPayment(old.id, { paid_on, due_on: fe.due_on.value || null, amount, currency, method: pay.method, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, status, notes: fe.notes.value.trim() || null, purchase_id, ...cardPatch });
-  toast(t("已保存修改"));
+  const moved = fe.due_on.value !== (old.due_on || "") ? await resyncDue(bill, old, fe.due_on.value || null) : null;   // 到期日改了：账单的下次到期跟着对
+  toast(moved ? t("已保存修改，下次到期 {d}", { d: fmtDate(moved) }) : t("已保存修改"));
 }
 export async function saveBillPayForm(f) {
   const fe = f.elements;
@@ -695,9 +709,10 @@ export async function saveBillPayForm(f) {
   if (!bill) return toast(t("账单不存在"));
   if (fe.pay_id?.value) return updatePayment(bill, fe);
   const pay = resolvePayAccount(fe.pay_account?.value, fe.method.value);
-  await recordPayment(bill, { paid_on: fe.paid_on.value || todayISO(), due_on: fe.due_on.value || null, amount: fe.amount.value === "" ? null : fe.amount.value, status: fe.status.value,
+  const r = await recordPayment(bill, { paid_on: fe.paid_on.value || todayISO(), due_on: fe.due_on.value || null, amount: fe.amount.value === "" ? null : fe.amount.value, status: fe.status.value,
     method: pay.method, card_id: pay.card_id, confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, notes: fe.notes.value.trim(), store: fe.store?.value });
-  toast(fe.status.value === "skipped" ? t("已跳过这期") : t("已记录，下次到期 {d}", { d: fmtDate(advanceDue(bill, fe.due_on.value || bill.next_due_on || fe.paid_on.value) || "") || t("无") }));
+  const nextTxt = fmtDate(r.next || "") || t("无");
+  toast(fe.status.value === "skipped" ? t("已跳过这期，下次到期 {d}", { d: nextTxt }) : r.catchUp ? t("已补记 {due} 那期；下次到期仍是 {d}", { due: fmtDate(fe.due_on.value), d: nextTxt }) : t("已记录，下次到期 {d}", { d: nextTxt }));
 }
 
 /** 概览里的“已核对”：自动扣款账单一键记录（金额取通常金额或平均） */
@@ -705,6 +720,6 @@ export async function quickVerify(id) {
   const bill = state.billsEnriched.find((x) => x.id === id);
   if (!bill) return;
   const pay = bill.pay_card_id ? resolvePayAccount(bill.pay_card_id) : { card_id: null, method: bill.autopay_method || t("自动扣款") };
-  await recordPayment(bill, { paid_on: todayISO(), due_on: bill.next_due_on, amount: bill.est, status: "verified", method: pay.method, card_id: pay.card_id, late_fee: 0 });
-  toast(t("已核对 {name}，下次 {d}", { name: withProperty(bill.property_id, bill.name), d: fmtDate(advanceDue(bill, bill.next_due_on || todayISO()) || "") || t("无") }));
+  const r = await recordPayment(bill, { paid_on: todayISO(), due_on: bill.next_due_on, amount: bill.est, status: "verified", method: pay.method, card_id: pay.card_id, late_fee: 0 });
+  toast(t("已核对 {name}，下次 {d}", { name: withProperty(bill.property_id, bill.name), d: fmtDate(r.next || "") || t("无") }));
 }
