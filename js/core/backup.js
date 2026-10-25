@@ -8,6 +8,14 @@ import { Store, CloudStore, DemoStore } from "./store.js";
 import { t } from "./i18n.js";
 
 export const APP = "home-pantry", FORMAT = 2, KEEP_DAYS = 60, KEY = "hmh-backup";
+/** 云盘：Google Drive / Dropbox / OneDrive / iCloud Drive 的电脑客户端都会在本机放一个同步文件夹，把备份写进去就等于上了那家云盘（网页没法直接调它们的 API：要各家注册 OAuth 应用，这里不做） */
+export const PROVIDERS = [
+  { id: "any", name: "任意文件夹 / 其他云盘", hint: "电脑上的任何文件夹都行；用别家云盘就选它的同步文件夹" },
+  { id: "gdrive", name: "Google Drive", hint: "装了 Google Drive 桌面版后，Windows 一般在「G:\\我的云端硬盘」或「Google Drive」盘，Mac 在 ~/Google Drive" },
+  { id: "dropbox", name: "Dropbox", hint: "Windows 一般在 C:\\Users\\<你>\\Dropbox，Mac 在 ~/Dropbox" },
+  { id: "onedrive", name: "OneDrive", hint: "Windows 一般在 C:\\Users\\<你>\\OneDrive，Mac 在 ~/OneDrive" },
+  { id: "icloud", name: "iCloud Drive", hint: "Mac 在 ~/Library/Mobile Documents/com~apple~CloudDocs（访达侧栏的 iCloud 云盘）；Windows 装 iCloud 后在 C:\\Users\\<你>\\iCloudDrive" },
+];
 /** 恢复时的写入顺序：被引用的表在前（assets → items/property_deals，cards → purchases/bills，purchases → maintenance_logs/bill_payments，household_people → medical_bills）。
  *  cards.bill_id 和 bills.pay_card_id 互相引用：cards 先不带 bill_id 写入，bills 写完再补。 */
 export const TABLES = ["properties", "house_profiles", "custom_categories", "custom_locations", "custom_terms", "custom_seasonal_tasks", "seasonal_tasks", "assets", "items", "stock_logs", "shopping_list",
@@ -16,7 +24,7 @@ export const TABLES = ["properties", "house_profiles", "custom_categories", "cus
 const PAGE = 1000;   // PostgREST 单次最多 1000 行，大表分页读
 
 /* ───────────── 设置（存本机：文件夹本来就是这台电脑的） ───────────── */
-const DEFAULTS = { every: "off", days: 14, targets: ["download"], last: null, lastInfo: "" };
+const DEFAULTS = { every: "off", days: 14, targets: ["download"], provider: "any", last: null, lastInfo: "" };
 export function settings() { try { return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(KEY) || "null") || {}) }; } catch { return { ...DEFAULTS }; } }
 export function saveSettings(patch) { const s = { ...settings(), ...patch }; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* 隐私模式 */ } return s; }
 export const intervalDays = (s = settings()) => (s.every === "week" ? 7 : s.every === "month" ? 30 : s.every === "custom" ? Math.max(1, +s.days || 14) : 0);
@@ -78,6 +86,23 @@ export async function writeFolder(blob, name, { gesture = false } = {}) {
   if (st.perm !== "granted") { if (!gesture) throw new Error("NEED_GESTURE"); const p = await st.handle.requestPermission({ mode: "readwrite" }); if (p !== "granted") throw new Error("NEED_GESTURE"); }
   const fh = await st.handle.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(blob); await w.close();
   await pruneFolder(st.handle);
+  try { const n = await copySqlInto(st.handle, gesture); if (n) lastSqlCopied = n; } catch { /* 拷不动 SQL 不影响备份本身 */ }
+}
+let lastSqlCopied = 0;
+/* ---- 数据库脚本：supabase/ 目录在电脑上、不进 git，备份文件里也没有；选一次它的位置，每次写云盘文件夹时把 *.sql 一起拷进 sql/ 子目录 ---- */
+export async function pickSqlFolder() { const h = await window.showDirectoryPicker({ mode: "read", id: "hmh-sql", startIn: "documents" }); await idbSet("sqldir", h); return h; }
+export const forgetSqlFolder = () => idbSet("sqldir", null);
+export async function sqlStatus() { const h = await idbGet("sqldir"); return h ? { name: h.name, handle: h } : { name: "" }; }
+async function copySqlInto(dst, gesture) {
+  const src = await idbGet("sqldir"); if (!src) return 0;
+  let perm = "prompt"; try { perm = await src.queryPermission({ mode: "read" }); } catch { /* 旧版 */ }
+  if (perm !== "granted") { if (!gesture) return 0; if ((await src.requestPermission({ mode: "read" })) !== "granted") return 0; }
+  const out = await dst.getDirectoryHandle("sql", { create: true }); let n = 0;
+  const walk = async (dir, to) => { for await (const [name, h] of dir.entries()) {
+    if (h.kind === "directory") { if (name.startsWith(".")) continue; await walk(h, await to.getDirectoryHandle(name, { create: true })); }
+    else if (/\.(sql|md)$/i.test(name)) { const f = await h.getFile(), w = await (await to.getFileHandle(name, { create: true })).createWritable(); await w.write(await f.arrayBuffer()); await w.close(); n++; }
+  } };
+  await walk(src, out); return n;
 }
 async function pruneFolder(handle) {
   const cut = new Date(Date.now() - KEEP_DAYS * 864e5).toISOString().slice(0, 10);
@@ -123,8 +148,9 @@ export async function runBackup(targets, { gesture = false } = {}) {
       ok.push(tg);
     } catch (e) { if (e.message === "NEED_GESTURE") needGesture = true; failed.push([tg, e.message === "NO_FOLDER" ? t("还没选文件夹") : e.message === "NEED_GESTURE" ? t("需要你点一下授权") : e.message]); }
   }
-  if (ok.length) saveSettings({ last: new Date().toISOString(), lastInfo: `${name} · ${ok.join("+")} · ${rowCount(data)} ${t("行")}` });
-  return { ok, failed, needGesture, name, rows: rowCount(data) };
+  const sqlN = lastSqlCopied; lastSqlCopied = 0;
+  if (ok.length) saveSettings({ last: new Date().toISOString(), lastInfo: `${name} · ${ok.join("+")} · ${rowCount(data)} ${t("行")}${sqlN ? ` · ${t("SQL {n} 个", { n: sqlN })}` : ""}` });
+  return { ok, failed, needGesture, name, rows: rowCount(data), sqlN };
 }
 /** 打开应用时的定时检查：到期了就在后台做一次（文件夹要点一下授权的，记下来让界面提示） */
 let checked = false;

@@ -432,8 +432,9 @@ async function doBackup(targets, el) {
   try {
     const r = await Backup.runBackup(targets, { gesture: true });
     state.backupPending = r.needGesture;
-    state.backupResult = r.ok.length ? { title: t("已备份到 {to}：{name}（{n} 行）", { to: r.ok.map(backupTargetName).join("、"), name: r.name, n: r.rows }), detail: r.failed.map(([k, why]) => `${backupTargetName(k)}：${why}`).join("；") }
-      : { title: t("备份没成功"), detail: r.failed.map(([k, why]) => `${backupTargetName(k)}：${why}`).join("；") };
+    const sqlNote = r.sqlN ? t("已顺带拷贝 {n} 个 SQL 文件。", { n: r.sqlN }) : t("提醒：数据库脚本（supabase/*.sql）不在备份里，请手动把它拷到云盘或别的位置。");
+    state.backupResult = r.ok.length ? { title: t("已备份到 {to}：{name}（{n} 行）", { to: r.ok.map(backupTargetName).join("、"), name: r.name, n: r.rows }), detail: [sqlNote, ...r.failed.map(([k, why]) => `${backupTargetName(k)}：${why}`)].join("；") }
+      : { ok: false, title: t("备份没成功"), detail: r.failed.map(([k, why]) => `${backupTargetName(k)}：${why}`).join("；") };
   } catch (err) { state.backupResult = { title: t("备份没成功"), detail: friendlyErr(err.message) }; }
   if (el) el.disabled = false;
   refreshBackupUi(); render(false);
@@ -454,9 +455,9 @@ async function doRestore(el) {
 main.addEventListener("change", async (e) => {
   if (e.target.closest("#backupForm")) {   // 备份设置：改了就存（存本机）
     const f = e.target.closest("#backupForm"), targets = [...f.querySelectorAll('input[name="target"]:checked')].map((x) => x.value);
-    Backup.saveSettings({ every: f.elements.every.value, days: Math.max(1, +f.elements.days.value || 14), targets });
+    Backup.saveSettings({ every: f.elements.every.value, days: Math.max(1, +f.elements.days.value || 14), targets, provider: f.elements.provider?.value || "any" });
     const box = f.querySelector("[data-backup-days]"); if (box) box.hidden = f.elements.every.value !== "custom";
-    if (e.target.name === "every") return render(false);
+    if (e.target.name === "every" || e.target.name === "provider" || e.target.name === "target") return render(false);
     return;
   }
   if (e.target.id === "backupFile") {   // 选了备份文件：先看一眼，确认后才恢复
@@ -1020,6 +1021,8 @@ main.addEventListener("click", async (e) => {
       case "backup-download": return doBackup(["download"], el);
       case "backup-pick-folder": try { await Backup.pickFolder(); toast(t("已记住这个文件夹")); } catch (err) { if (err.name !== "AbortError") toast(t("选文件夹失败：{msg}", { msg: err.message })); } refreshBackupUi(); return render(false);
       case "backup-forget-folder": await Backup.forgetFolder(); refreshBackupUi(); return render(false);
+      case "backup-pick-sql": try { await Backup.pickSqlFolder(); toast(t("以后每次写云盘文件夹时会把 .sql 一起拷进 sql/ 子目录")); } catch (err) { if (err.name !== "AbortError") toast(t("选文件夹失败：{msg}", { msg: err.message })); } refreshBackupUi(); return render(false);
+      case "backup-forget-sql": await Backup.forgetSqlFolder(); refreshBackupUi(); return render(false);
       case "backup-grant": { const st = await Backup.folderStatus(); if (st.handle) { try { await st.handle.requestPermission({ mode: "readwrite" }); } catch { /* 用户取消 */ } } refreshBackupUi(); return render(false); }
       case "backup-cloud-dl": try { const d = await Backup.readCloud(el.dataset.name); Backup.download(Backup.toBlob(d), el.dataset.name); } catch (err) { toast(t("下载失败：{msg}", { msg: err.message })); } return;
       case "backup-cloud-restore": try { const d = await Backup.readCloud(el.dataset.name); state.backupPreview = { ...Backup.inspect(d), data: d, from: el.dataset.name }; } catch (err) { toast(t("读取失败：{msg}", { msg: err.message })); } return render(false);
