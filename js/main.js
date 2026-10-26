@@ -139,7 +139,10 @@ function loadPurchasesSoon() {
   if (purchasesLoading) { purchasesAgain = true; return; }
   purchasesLoading = true;
   Store.listPurchases().then((p) => {
-    state.purchases = p; mergeMedical();   // 医疗付款作为虚拟花费并进统计
+    // 云端平时只读近 400 天；按批次查看 / 往年报表按需读回来的更早记录不在这次结果里，要留着（不然一同步就“消失”）
+    const have = new Set(p.map((x) => x.id)), edge = Date.now() - 395 * 864e5;
+    const keep = state.purchases.filter((x) => !x.virtual && !have.has(x.id) && new Date(x.purchased_at).getTime() < edge);
+    state.purchases = keep.length ? [...p, ...keep] : p; mergeMedical();   // 医疗付款作为虚拟花费并进统计
     const r = state.route;
     if ((r.section === "me" && r.sub === "stats") || (r.section === "bills" && (r.sub === "spend" || r.sub === "overview"))) render(false);
     else { const dl = $("#storeList"); if (dl) dl.outerHTML = storeDatalist(); }   // 采购 / 统计页的商店联想
@@ -640,7 +643,7 @@ main.addEventListener("submit", async (e) => {
       await refresh(); return render(true);
     }
     if (f.id === "spendEditForm") {   // 花费记录就地编辑
-      const e2 = f.elements, name = e2.name.value.trim(), amount = e2.amount.value === "" ? null : Math.round(Math.max(0, num(e2.amount.value)) * 100) / 100;
+      const e2 = f.elements, name = e2.name.value.trim(), amount = e2.amount.value === "" ? null : Math.round(num(e2.amount.value) * 100) / 100;   // 负数 = 退款 / 报销，照存
       if (!name) return toast(t("请填写名称"));
       const store = cleanStore(e2.store.value), day = e2.date.value, patch = { name, category: e2.category.value, amount, store };
       if (e2.card_id) patch.card_id = e2.card_id.value || null;

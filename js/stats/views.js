@@ -150,10 +150,10 @@ export async function ensureYearLoaded(n) {
 }
 /** 银行导入「查看 / 修改」：云端平时只读近 400 天，补录的老对账单（日期更早）不在内存里，筛出来就是空的——按这一批的日期范围把它们读回来 */
 export async function ensureBatchLoaded() {
-  const id = state.spendFilter.batch, bt = id ? batchOf(id) : null; if (!bt?.b.from) return false;
-  state.batchLoaded ||= {}; if (state.batchLoaded[id]) return false; state.batchLoaded[id] = true;
-  const day = (s, d) => new Date(new Date(`${s}T00:00:00Z`).getTime() + d * 864e5).toISOString();
-  const rows = await Store.listPurchasesRange(day(bt.b.from, -1), day(bt.b.to || bt.b.from, 2)).catch(() => []);
+  const id = state.spendFilter.batch, bt = id ? batchOf(id) : null; if (!bt) return false;
+  let rows = [];
+  if (bt.b.tagged || bt.ids.size) rows = await Store.listPurchasesByBatch(id, [...bt.ids]).catch(() => []);   // 按批次 id / 旧批次的 id 列表直接读，不猜日期
+  else if (bt.b.from) { const day = (s, d) => new Date(new Date(`${s}T00:00:00Z`).getTime() + d * 864e5).toISOString(); rows = await Store.listPurchasesRange(day(bt.b.from, -1), day(bt.b.to || bt.b.from, 2)).catch(() => []); }
   const have = new Set(state.purchases.map((p) => p.id)), fresh = rows.filter((p) => !have.has(p.id));
   if (fresh.length) state.purchases = [...state.purchases, ...fresh];
   return fresh.length > 0;
@@ -525,7 +525,7 @@ function spendEditRow(p) {
   return `<li class="spend-edit"><form id="spendEditForm" data-id="${p.id}" class="form-grid" novalidate>
     <label class="span-2">${t("名称")}<input name="name" required maxlength="60" value="${esc(p.name)}"></label>
     <label>${t("分类")}<select name="category">${hasCat ? "" : `<option value="${esc(p.category)}" selected>${esc(t((ALL_CATS().find((c) => c.id === p.category) || OTHER_CAT).name))}</option>`}${opts}</select></label>
-    <label>${t("金额（{cur}）", { cur: p.currency || Units.region.currency })}<input name="amount" type="number" min="0" step="0.01" inputmode="decimal" value="${p.amount != null ? num(p.amount).toFixed(2) : ""}"></label>
+    <label>${t("金额（{cur}）", { cur: p.currency || Units.region.currency })}<input name="amount" type="number" step="0.01" inputmode="decimal" value="${p.amount != null ? num(p.amount).toFixed(2) : ""}"><small>${t("退款 / 报销填负数")}</small></label>
     <label>${t("商店 / 收款方")}<input name="store" maxlength="40" list="storeList" value="${esc(p.store || "")}"></label>
     <label>${t("日期")}<input name="date" type="date" max="${new Date().toISOString().slice(0, 10)}" value="${esc(day)}"></label>
     ${state.cards.length ? `<label>${t("用的哪张卡")}<select name="card_id">${cardOptions(p.card_id || "")}</select></label>` : ""}
