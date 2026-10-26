@@ -1557,3 +1557,22 @@ body.editing .minibar { display: none; }
 .fix-quick .care-card > p { padding: 6px 12px; }
 .fix-quick .care-card ol.tips { margin: 0; padding-left: 18px; }
 .fix-quick .care-card .care-sec p { margin: 0; }
+
+/* ── 行右滑：左边露出绿色的次要动作（js/swipe-rows.js，data-swipe-alt）；用卡页的卡行：右滑停用 / 启用，左滑删除 ── */
+.swipe-row.swipe-alt::before { content: var(--swipe-alt); position: absolute; top: 0; left: 0; bottom: 0; width: var(--saw, 0px); z-index: 3; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--pine); color: #fff; font-weight: 700; font-size: 14px; line-height: 1; white-space: nowrap; cursor: pointer; transition: width .18s ease; }
+.swipe-row.ready-alt::before { content: var(--swipe-alt-go); background: #1f5c3f; }
+.swipe-row.swiping::before { transition: none; }
+.swipe-alt-src { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.swipe-alt-src:focus, .swipe-alt-src:focus-visible { position: static !important; width: auto; height: auto; margin: 0; padding: revert; border: revert; overflow: visible; clip: auto; }
+@media (hover: hover) and (pointer: fine) { .card-list li:hover .swipe-src, .card-list li:hover .swipe-alt-src { position: static !important; width: auto; height: auto; margin: 0; padding: revert; border: revert; overflow: visible; clip: auto; } }
+@media (prefers-reduced-motion: reduce) { .swipe-row::before { transition: none; } }
+@media print { .swipe-row::before { display: none; } }
+.card-row .row-acts { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; align-items: center; }
+.card-net.net-gift { background: #b8860b; color: #fff; }
+.gift-bal { flex: 0 0 auto; min-width: 72px; text-align: right; font-size: 16px; font-weight: 800; color: var(--pine); }
+.gift-bal.done { color: var(--muted); font-weight: 600; font-size: 13px; }
+.gift-bal small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
+.gift-toolbar { margin-bottom: 8px; }
+.gift-toolbar .check-inline { margin: 0; font-size: 13px; }
+.card-del-box { border-color: var(--out); }
+.card-del-box .form-actions { margin-top: 8px; }

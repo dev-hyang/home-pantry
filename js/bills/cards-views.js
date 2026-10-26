@@ -1,7 +1,7 @@
 /* 信用卡（用卡）界面：「现在该刷哪张」快速查询、卡列表、卡表单；采购清单 / 补记花费旁的一行建议。逻辑在 cards.js。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
+import { $, daysUntil, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href, go } from "../core/router.js";
 import { enrichBills, initialDue } from "./logic.js";
@@ -76,31 +76,89 @@ export const payAcctSelectHtml = (name, value, { extra = PAY_EXTRA, none = "（�
 export function viewCards() {
   const id = state.route.q.get("card");
   if (id) return cardForm(id);
-  const live = state.cards.filter((c) => c.active !== false), cards = live.filter((c) => !noRewards(c)), banks = live.filter(noRewards), off = state.cards.filter((c) => c.active === false);
+  const live = state.cards.filter((c) => c.active !== false), cards = live.filter((c) => !noRewards(c)), banks = live.filter(isBankAcct), gifts = live.filter((c) => c.kind === "gift");
+  // 停用的：最近停用的在前（没有停用日期的老记录按最后修改时间）
+  const off = state.cards.filter((c) => c.active === false).sort((a, b) => String(b.inactive_since || "").localeCompare(String(a.inactive_since || "")) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
   const addChips = `<div class="acct-add">${Object.entries(ACCT_KINDS).map(([k, [name, icon]]) => `<a class="chip" href="${cardHref("new")}&kind=${k}">＋ ${icon} ${esc(t(name))}</a>`).join("")}</div>`;
   return `<section class="section">
     <div class="section-head"><h2>${t("用卡")}</h2><p>${t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。银行账户也记在这里，账单扣款、缴费记录能直接选。")}</p>
       <div class="head-acts"><a class="btn btn-primary btn-sm" href="${cardHref("new")}">${t("添加卡 / 账户")}</a></div></div>
+    ${state.cardDelete ? deleteConfirmHtml(state.cardDelete) : ""}
     ${cards.length ? pickPanel() : ""}
     ${cards.length ? reviewHtml() : ""}
     ${cards.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("我的卡")}</h2><p>${t("{n} 张在用", { n: cards.length })}${catalogAge() > 90 ? ` · <span class="bank-dup">${t("目录更新于 {d}，可能过期，返现规则以发卡行为准", { d: D().AS_OF })}</span>` : ""}</p></div>
       <div class="panel"><ul class="restock-list card-list">${cards.map(cardRow).join("")}</ul></div>` : live.length ? "" : emptyHtml()}
-    ${banks.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("银行账户与礼品卡")}</h2><p>${t("支票 / 储蓄账户：账单自动扣款、缴费记录、信用卡还款从哪扣；礼品卡：花费记到它名下，自动算余额")}</p></div>
+    ${banks.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("银行账户")}</h2><p>${t("支票 / 储蓄账户：账单自动扣款、缴费记录、信用卡还款从哪扣")}</p></div>
       <div class="panel"><ul class="restock-list card-list">${banks.map(cardRow).join("")}</ul></div>` : ""}
+    ${gifts.length ? giftSection(gifts) : ""}
     ${addChips}
-    ${off.length ? `<details class="ref-panel panel" style="margin-top:10px"><summary><b>${t("停用的卡")}</b><small>${t("{n} 张", { n: off.length })}</small><span class="mch" aria-hidden="true">›</span></summary><ul class="restock-list card-list ref-body">${off.map(cardRow).join("")}</ul></details>` : ""}
+    ${off.length ? `<details class="ref-panel panel" style="margin-top:10px"><summary><b>${t("停用的卡")}</b><small>${t("{n} 张卡", { n: off.length })}</small><span class="mch" aria-hidden="true">›</span></summary><ul class="restock-list card-list ref-body">${off.map(cardRow).join("")}</ul><p class="muted" style="margin:0;padding:6px 14px 10px;font-size:12.5px">${t("按停用时间由近到远；右滑一行可重新启用。")}</p></details>` : ""}
+    <p class="muted" style="margin-top:8px;font-size:12.5px">${t("手机上：一行向右滑 = 停用 / 启用，向左滑 = 删除（删除前会问花费记录怎么办）；电脑上鼠标移到行上出现同样的按钮。")}</p>
     <p class="muted kinds-note" style="margin-top:10px">${t("只记发卡行、产品、末四位、到期年月，不记完整卡号和密码。返现规则来自内置目录或你自己填，会变，以发卡行为准。")}</p>
   </section>`;
+}
+/* ── 礼品卡：一组、带筛选排序；余额 = 面值 − 花费；用完就停用（右滑） ── */
+const GIFT_SORTS = [["balance", "余额：多 → 少"], ["balance_asc", "余额：少 → 多"], ["expiry", "有效期：近 → 远"], ["opened", "购入：新 → 旧"], ["name", "名称 A → Z"]];
+const giftFilter = () => (state.giftFilter ||= { issuer: "all", sort: "balance", used: false });
+const giftOf = (c) => ({ c, bal: giftBalance(c, state.purchases), exp: c.expires_on ? daysUntil(c.expires_on) : null, n: state.purchases.filter((p) => p.card_id === c.id).length });
+function giftRows(gifts) {
+  const f = giftFilter();
+  const rows = gifts.map(giftOf).filter((g) => (f.issuer === "all" || (g.c.issuer || "") === f.issuer) && (f.used || g.bal == null || g.bal > 0));
+  const by = { balance: (a, b) => (b.bal ?? -1) - (a.bal ?? -1), balance_asc: (a, b) => (a.bal ?? 1e12) - (b.bal ?? 1e12), expiry: (a, b) => (a.exp ?? 1e9) - (b.exp ?? 1e9),
+    opened: (a, b) => String(b.c.opened_on || "").localeCompare(String(a.c.opened_on || "")), name: (a, b) => String(a.c.name).localeCompare(String(b.c.name), undefined, { sensitivity: "base" }) }[f.sort] || (() => 0);
+  return rows.sort((a, b) => by(a, b) || String(a.c.name).localeCompare(String(b.c.name)));
+}
+function giftSection(gifts) {
+  const f = giftFilter(), rows = giftRows(gifts), all = gifts.map(giftOf);
+  const total = all.reduce((s, g) => s + Math.max(0, g.bal ?? 0), 0), used = all.filter((g) => g.bal != null && g.bal <= 0).length;
+  const issuers = [...new Set(gifts.map((c) => c.issuer || ""))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  const opt = (v, label, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(label)}</option>`;
+  const toolbar = gifts.length > 1 ? `<div class="toolbar gift-toolbar">
+      ${issuers.length > 1 ? `<select id="giftIssuer" aria-label="${esc(t("按商家筛选"))}">${opt("all", t("全部商家"), f.issuer)}${issuers.map((i) => opt(i, i || t("（没填商家）"), f.issuer)).join("")}</select>` : ""}
+      <select id="giftSort" aria-label="${esc(t("排序"))}">${GIFT_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
+      ${used ? `<label class="check-inline"><input type="checkbox" id="giftUsed" ${f.used ? "checked" : ""}><span>${t("显示已用完的（{n}）", { n: used })}</span></label>` : ""}</div>` : "";
+  return `<div class="section-head" style="margin-top:14px"><h2>${t("礼品卡")}</h2><p>${t("{n} 张卡", { n: gifts.length })}${total ? ` · ${t("余额合计 {m}", { m: money(total) })}` : ""}${used ? ` · ${t("{n} 张已用完", { n: used })}` : ""}</p></div>
+    ${toolbar}
+    <div class="panel">${rows.length ? `<ul class="restock-list card-list">${rows.map((g) => cardRow(g.c)).join("")}</ul>` : `<p class="muted" style="margin:0">${t("没有符合条件的礼品卡")}</p>`}</div>
+    <p class="muted" style="margin:6px 0 0;font-size:12.5px">${t("「商家」填在哪用（Amazon、Target、Costco…），通用的 Visa / Mastercard 礼品卡写「通用」；用完的卡右滑停用，就不会再出现在付款下拉里。")}</p>`;
+}
+/** 删除卡前的确认：这张卡名下的花费记录怎么办——保留（花费上改成文字）还是一起删 */
+function deleteConfirmHtml(id) {
+  const c = cardById(id); if (!c) return "";
+  const ps = state.purchases.filter((p) => p.card_id === c.id && !p.virtual), sum = ps.reduce((s, p) => s + num(p.amount), 0);
+  const bills = state.bills.filter((b) => b.pay_card_id === c.id).length;
+  const label = `${kindName(c.kind)} · ${c.name}`.slice(0, 40);
+  return `<div class="panel cta-panel card-del-box" role="alertdialog" aria-labelledby="cardDelTitle"><div>
+      <b id="cardDelTitle">${t("删除「{name}」？", { name: c.name })}</b>
+      <p class="muted" style="margin:4px 0 0">${ps.length ? t("这张卡名下有 {n} 笔花费记录，合计 {m}。", { n: ps.length, m: money(sum) }) : t("这张卡名下没有花费记录。")}${bills ? ` ${t("有 {n} 条账单从它扣款，删除后改成未指定。", { n: bills })}` : ""}</p>
+      <div class="form-actions">
+        ${ps.length ? `<button type="button" class="btn btn-sm btn-primary" data-action="card-del-keep" data-id="${esc(c.id)}">${t("保留花费，只删卡")}</button>
+          <button type="button" class="btn btn-sm btn-danger-ghost" data-action="card-del-all" data-id="${esc(c.id)}">${t("连 {n} 笔花费一起删", { n: ps.length })}</button>`
+        : `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="card-del-all" data-id="${esc(c.id)}">${t("删除")}</button>`}
+        <button type="button" class="btn btn-sm btn-ghost" data-action="card-del-cancel">${t("取消")}</button></div>
+      ${ps.length ? `<small class="muted">${t("保留时花费上的付款方式改成文字「{label}」，统计照旧算进去。", { label })}</small>` : ""}</div></div>`;
 }
 const emptyHtml = () => `<div class="panel empty"><strong>${t("还没有卡")}</strong>${t("从内置目录选一张常见卡，填上末四位、到期月、还款日就行；不在目录里的手填规则。")}<p><a class="btn btn-primary" href="${cardHref("new")}">${t("添加第一张卡")}</a></p></div>`;
 
 function cardRow(c) {
-  if (noRewards(c)) {   // 银行账户 / 礼品卡：没有返现 / 到期，只看哪些账单从这里扣、记了多少笔；礼品卡再显示余额
-    const bills = state.billsEnriched.filter((b) => b.pay_card_id === c.id && b.active), n = state.purchases.filter((p) => p.card_id === c.id).length, gb = giftBalance(c, state.purchases);
-    return `<li class="card-row ${c.active === false ? "inactive" : ""}"><span class="card-net net-bank" aria-hidden="true">${c.kind === "gift" ? t("礼品") : c.kind === "savings" ? t("储蓄") : t("支票")}</span>
+  const offSince = c.active === false && c.inactive_since ? t("停用于 {d}", { d: fmtDate(c.inactive_since) }) : null;
+  if (c.kind === "gift") {   // 礼品卡：右侧大字余额；商家、购入日期、有效期、几笔花费
+    const g = giftOf(c), tags = [];
+    if (g.exp != null && g.exp < 0) tags.push(`<span class="badge b-out">${t("已过期")}</span>`); else if (g.exp != null && g.exp <= 60) tags.push(`<span class="badge b-soon">${t("{d} 天后到期", { d: g.exp })}</span>`);
+    if (g.bal != null && g.bal <= 0) tags.push(`<span class="badge" style="background:var(--surface-2)">${t("已用完")}</span>`);
+    return `<li class="card-row gift-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)}><span class="card-net net-gift" aria-hidden="true">🎁</span>
       <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">••${d(c.last4)}</span>` : ""}
-        <small>${[c.issuer, holderName(c), gb != null ? (gb <= 0 ? t("已用完") : t("余额约 {m}", { m: money(gb) })) : null, bills.length ? t("{n} 条账单从这里扣：{names}", { n: bills.length, names: bills.slice(0, 3).map((b) => b.name).join("、") + (bills.length > 3 ? "…" : "") }) : t("还没有账单从这里扣"), n ? t("{n} 笔花费", { n }) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
-      <a class="btn btn-sm btn-ghost" href="${cardHref(c.id)}">${t("编辑")}</a></li>`;
+        <small>${[c.issuer, holderName(c), c.opened_on ? t("{d} 购入", { d: fmtDate(c.opened_on) }) : null, c.expires_on ? t("有效期至 {d}", { d: String(c.expires_on).slice(0, 7) }) : null, g.n ? t("{n} 笔花费", { n: g.n }) : null, offSince].filter(Boolean).map(esc).join(" · ")}</small>
+        ${tags.length ? `<div class="card-tags">${tags.join(" ")}</div>` : ""}</div>
+      ${g.bal != null ? `<b class="gift-bal ${g.bal <= 0 ? "done" : ""}">${g.bal <= 0 ? t("已用完") : money(g.bal)}${c.balance != null && g.bal > 0 ? `<small>/ ${money(num(c.balance))}</small>` : ""}</b>` : `<span class="gift-bal done">${t("未填面值")}</span>`}
+      ${rowActs(c)}</li>`;
+  }
+  if (noRewards(c)) {   // 银行账户：没有返现 / 到期，只看哪些账单从这里扣、记了多少笔
+    const bills = state.billsEnriched.filter((b) => b.pay_card_id === c.id && b.active), n = state.purchases.filter((p) => p.card_id === c.id).length;
+    return `<li class="card-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)}><span class="card-net net-bank" aria-hidden="true">${c.kind === "savings" ? t("储蓄") : t("支票")}</span>
+      <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">••${d(c.last4)}</span>` : ""}
+        <small>${[c.issuer, holderName(c), bills.length ? t("{n} 条账单从这里扣：{names}", { n: bills.length, names: bills.slice(0, 3).map((b) => b.name).join("、") + (bills.length > 3 ? "…" : "") }) : t("还没有账单从这里扣"), n ? t("{n} 笔花费", { n }) : null, offSince].filter(Boolean).map(esc).join(" · ")}</small></div>
+      ${rowActs(c)}</li>`;
   }
   const ed = expDays(c), fd = feeDays(c), rot = rotatingNow(c), bl = bonusLeft(c), rw = c.rewards || {};
   const best = Object.entries(rw.cats || {}).sort((a, b) => num(b[1]) - num(a[1])).slice(0, 3).map(([k, v]) => `${rewardCatIcon(k)} ${v}%`).join(" ");
@@ -116,11 +174,24 @@ function cardRow(c) {
   const rot0 = rotatingNow(c), rotLim = num(rot0?.cap ?? c.rewards?.rotating_cap, 0);
   if (rot0 && !rot0.empty && rotLim) { const used = usage(c).rotUsed(); bars.push(progressHtml(t("本季轮换封顶"), Math.min(100, Math.round(used / rotLim * 100)), `${money(used)} / ${money(rotLim)}`)); }
   const NET_SHORT = { visa: "VISA", mastercard: "MC", amex: "AMEX", discover: "DISC", unionpay: "银联", other: "卡" };
-  return `<li class="card-row ${c.active === false ? "inactive" : ""}"><span class="card-net net-${esc(c.network || "other")}" aria-hidden="true" title="${esc(networkName(c.network))}">${esc(NET_SHORT[c.network] || NET_SHORT.other)}</span>
+  return `<li class="card-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)}><span class="card-net net-${esc(c.network || "other")}" aria-hidden="true" title="${esc(networkName(c.network))}">${esc(NET_SHORT[c.network] || NET_SHORT.other)}</span>
     <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">••${d(c.last4)}</span>` : ""}
       <small>${[holderName(c), c.expires_on ? t("到期 {d}", { d: c.expires_on.slice(0, 7) }) : null, num(c.annual_fee) ? t("年费 {a}", { a: money(num(c.annual_fee)) }) : t("无年费"), bill ? t("还款 {d}", { d: fmtDate(bill.next_due_on) }) : c.due_day ? t("每月 {d} 号还款", { d: c.due_day }) : null, best ? `${t("其他 {b}%", { b: num(rw.base, 0) })} · ${best}` : t("所有消费 {b}%", { b: num(rw.base, 0) })].filter(Boolean).map(esc).join(" · ")}</small>
-      ${tags.length ? `<div class="card-tags">${tags.join(" ")}</div>` : ""}${bars.length ? `<div class="card-bars">${bars.join("")}</div>` : ""}</div>
-    <a class="btn btn-sm btn-ghost" href="${cardHref(c.id)}">${t("编辑")}</a></li>`;
+      ${tags.length ? `<div class="card-tags">${tags.join(" ")}${offSince ? ` <span class="badge" style="background:var(--surface-2)">${esc(offSince)}</span>` : ""}</div>` : offSince ? `<div class="card-tags"><span class="badge" style="background:var(--surface-2)">${esc(offSince)}</span></div>` : ""}${bars.length ? `<div class="card-bars">${bars.join("")}</div>` : ""}</div>
+    ${rowActs(c)}</li>`;
+}
+/** 行的手势属性：右滑 停用 / 启用，左滑 删除（js/swipe-rows.js） */
+const swipeAttrs = (c) => `data-swipe-del="card" data-swipe-alt="card" data-swipe-alt-label="${esc(c.active === false ? t("启用") : t("停用"))}" data-swipe-alt-go="${esc(c.active === false ? t("松手启用") : t("松手停用"))}"`;
+/** 行右侧：编辑 + （手势 / 悬停才出现的）停用 / 启用、删除 */
+const rowActs = (c) => `<span class="row-acts"><a class="btn btn-sm btn-ghost" href="${cardHref(c.id)}">${t("编辑")}</a>
+    <button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="${c.active === false ? "card-react" : "card-deact"}" data-id="${esc(c.id)}">${c.active === false ? t("启用") : t("停用")}</button>
+    <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="card-del" data-id="${esc(c.id)}" aria-label="${esc(t("删除 {name}", { name: c.name }))}">${t("删除")}</button></span>`;
+/** 停用 / 启用：记停用日期，「停用的卡」按它排 */
+export async function setCardActive(id, on) {
+  const c = cardById(id); if (!c) return;
+  await Store.saveCard({ ...c, active: on, inactive_since: on ? null : todayISO() });
+  await reloadCards();
+  toast(on ? t("已启用「{name}」", { name: c.name }) : t("已停用「{name}」，在「停用的卡」里", { name: c.name }));
 }
 
 const progressHtml = (label, pct, text) => `<div class="prog"><span>${esc(label)}</span><i class="prog-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><b style="width:${pct}%"></b></i><small>${esc(text)}</small></div>`;
@@ -209,12 +280,13 @@ function cardForm(id) {
         ${aiBtn}
         <input type="hidden" name="catalog_id" value="${d(v.catalog_id)}"><input type="hidden" name="rules_as_of" value="${d(v.rules_as_of)}">
         <label>${t("名称")}<input name="name" required maxlength="60" value="${d(v.name)}" placeholder="${esc(bank ? t("例如 Chase Checking") : t("例如 Chase Freedom Unlimited"))}"></label>
-        <label>${t("发卡行 / 银行")}<input name="issuer" maxlength="40" value="${d(v.issuer)}"></label>
+        <label><span ${only("gift")}>${t("商家 / 品牌（在哪用）")}</span><span ${only("credit debit wallet checking savings")}>${t("发卡行 / 银行")}</span><input name="issuer" maxlength="40" list="giftMerchants" value="${d(v.issuer)}"><small ${only("gift")}>${t("通用的 Visa / Mastercard 礼品卡写「通用」；筛选按它分")}</small></label>
+        <datalist id="giftMerchants">${["Amazon", "Target", "Walmart", "Costco", "Trader Joe's", "Whole Foods", "Home Depot", "Lowe's", "Starbucks", "Apple", "Visa 通用", "Mastercard 通用", "京东", "天猫", "盒马"].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
         <label ${only("credit debit")}>${t("网络")}<select name="network">${Object.entries(D().NETWORKS).map(([k, n]) => opt(k, t(n), (v.network || "visa") === k)).join("")}</select><small>${t("Costco 这类只收某个网络的商家，推荐时会用到")}</small></label>
         <label>${t("末四位")}<input name="last4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" value="${d(v.last4)}" placeholder="1234"><small>${t("只记后 4 位，银行导入时靠它认账户")}</small></label>
         <label ${only("gift")}>${t("面值 / 充值总额（{cur}）", { cur: cur() })}<input name="balance" type="number" min="0" step="0.01" inputmode="decimal" value="${NUMF(v.balance)}"><small>${t("余额 = 它减去记在这张卡上的花费；用完了把「在用」取消")}</small></label>
         <label>${t("持卡人 / 户主")}<select name="holder_user_id">${opt("", t("共用"), !v.holder_user_id)}${members.map((m) => opt(m.user_id, m.display_name || t("家人"), v.holder_user_id === m.user_id)).join("")}</select></label>
-        <label ${only("credit debit")}>${t("到期年月")}<input name="expires_on" type="month" value="${d((v.expires_on || "").slice(0, 7))}"></label>
+        <label ${only("credit debit gift")}><span ${only("gift")}>${t("有效期至（可选）")}</span><span ${only("credit debit")}>${t("到期年月")}</span><input name="expires_on" type="month" value="${d((v.expires_on || "").slice(0, 7))}"></label>
         <label>${t("开卡 / 开户日期")}<input name="opened_on" type="date" value="${d(v.opened_on)}"></label>
         <label ${only("credit")}>${t("年费（{cur}）", { cur: cur() })}<input name="annual_fee" type="number" min="0" step="0.01" inputmode="decimal" value="${NUMF(v.annual_fee)}"></label>
         <label ${only("credit")}>${t("年费哪个月收")}<select name="fee_month">${opt("", t("按开卡月"), !v.fee_month)}${Array.from({ length: 12 }, (_, i) => opt(i + 1, t("{m} 月", { m: i + 1 }), v.fee_month === i + 1)).join("")}</select></label>
@@ -289,7 +361,8 @@ export async function saveCardForm(f) {
   const payFrom = fe.pay_from?.value || null;   // 信用卡从哪个账户还款：写到关联的还款账单上
   const card = { id: old?.id, name, issuer: fe.issuer.value.trim() || null, network: fe.network.value, kind: fe.kind.value, last4: /^\d{4}$/.test(fe.last4.value.trim()) ? fe.last4.value.trim() : null, holder_user_id: fe.holder_user_id.value || null,
     expires_on: fe.expires_on.value ? `${fe.expires_on.value}-01` : null, opened_on: fe.opened_on.value || null, annual_fee: n("annual_fee") ?? 0, balance: fe.kind.value === "gift" ? n("balance") : null, fee_month: n("fee_month"), credit_limit: n("credit_limit"), statement_day: n("statement_day"), due_day: n("due_day"), autopay: fe.autopay.checked,
-    bill_id: bill_id === "__new" ? null : bill_id, catalog_id: fe.catalog_id.value || null, rewards, bonus, credits, rules_as_of: fe.rules_as_of.value || (old?.rules_as_of ?? todayISO()), active: fe.active.checked, notes: fe.notes.value.trim() || null };
+    bill_id: bill_id === "__new" ? null : bill_id, catalog_id: fe.catalog_id.value || null, rewards, bonus, credits, rules_as_of: fe.rules_as_of.value || (old?.rules_as_of ?? todayISO()), active: fe.active.checked, notes: fe.notes.value.trim() || null,
+    inactive_since: fe.active.checked ? null : (old?.active === false ? old.inactive_since || null : todayISO()) };   // 刚取消「在用」：记今天为停用日期
   const btn = f.querySelector('button[type="submit"]'); btn.disabled = true; err.textContent = "";
   try {
     if (bill_id === "__new") {   // 新建一条「信用卡」类周期账单：到期 / 核对提醒、缴费记录都走账单模块
@@ -315,7 +388,14 @@ export async function saveCardForm(f) {
     btn.disabled = false; return false;
   }
 }
-export async function deleteCard(id) { await Store.deleteCard(id); await reloadCards(); toast(t("已删除")); go(CARDS_HREF()); }
+/** 删除卡：purchases = "keep"（花费保留，付款方式改成文字「礼品卡 · 名字」）或 "delete"（名下花费一起删） */
+export async function deleteCard(id, { purchases = "keep" } = {}) {
+  const c = cardById(id); if (!c) return;
+  const ps = state.purchases.filter((p) => p.card_id === id && !p.virtual), label = `${kindName(c.kind)} · ${c.name}`.slice(0, 40);
+  for (const p of ps) { if (purchases === "delete") await Store.deletePurchase(p.id); else await Store.updatePurchase(p.id, { card_id: null, method: label }); }
+  await Store.deleteCard(id); state.cardDelete = null; await reloadCards();
+  toast(ps.length ? (purchases === "delete" ? t("已删除，连同 {n} 笔花费", { n: ps.length }) : t("已删除，{n} 笔花费保留", { n: ps.length })) : t("已删除")); go(CARDS_HREF());
+}
 
 /* ───────────── AI 起草返现规则（只发卡名；起草结果填进表单，由你核对后保存） ───────────── */
 const AI_SYSTEM = [

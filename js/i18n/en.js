@@ -1898,4 +1898,15 @@ export const EN = {
   "手动 · 纸质支票": "Manual · paper check", "手动 · 礼品卡": "Manual · gift card", "已用完": "Used up", "礼品": "Gift", "余额约 {m}": "Balance ≈ {m}", "银行账户与礼品卡": "Bank accounts & gift cards",
   "支票 / 储蓄账户：账单自动扣款、缴费记录、信用卡还款从哪扣；礼品卡：花费记到它名下，自动算余额": "Checking / savings: where bills autopay, payments and credit-card payments draw from; gift cards: spending logged to them keeps a running balance",
   "面值 / 充值总额（{cur}）": "Face value / total loaded ({cur})", "余额 = 它减去记在这张卡上的花费；用完了把「在用」取消": "Balance = this minus spending logged to the card; untick “in use” when it's used up",
+  // ── 用卡页：礼品卡分组 / 筛选排序、右滑停用、删除时花费去留（迁移 041） ──
+  "银行账户": "Bank accounts", "支票 / 储蓄账户：账单自动扣款、缴费记录、信用卡还款从哪扣": "Checking / savings: where bills autopay, payments and credit-card payments draw from",
+  "余额：多 → 少": "Balance: high → low", "余额：少 → 多": "Balance: low → high", "有效期：近 → 远": "Expiry: soonest first", "购入：新 → 旧": "Bought: newest first", "全部商家": "All merchants", "（没填商家）": "(no merchant)", "显示已用完的（{n}）": "Show used up ({n})", "余额合计 {m}": "total balance {m}", "{n} 张已用完": "{n} used up",
+  "没有符合条件的礼品卡": "No gift cards match", "「商家」填在哪用（Amazon、Target、Costco…），通用的 Visa / Mastercard 礼品卡写「通用」；用完的卡右滑停用，就不会再出现在付款下拉里。": "“Merchant” is where it can be spent (Amazon, Target, Costco…); for open-loop Visa / Mastercard cards write “universal”. Swipe a used-up card right to deactivate it, and it leaves the payment dropdown.",
+  "删除「{name}」？": "Delete “{name}”?", "这张卡名下有 {n} 笔花费记录，合计 {m}。": "{n} spending records totalling {m} are on this card.", "这张卡名下没有花费记录。": "No spending records are on this card.", "有 {n} 条账单从它扣款，删除后改成未指定。": "{n} bills draw from it; they become unassigned.",
+  "保留花费，只删卡": "Keep spending, delete card only", "连 {n} 笔花费一起删": "Delete with {n} records", "保留时花费上的付款方式改成文字「{label}」，统计照旧算进去。": "Kept records show “{label}” as the payment method and still count in statistics.",
+  "已删除，连同 {n} 笔花费": "Deleted along with {n} records", "已删除，{n} 笔花费保留": "Deleted; {n} records kept", "已启用「{name}」": "Enabled “{name}”", "已停用「{name}」，在「停用的卡」里": "Deactivated “{name}”; see “Inactive cards”",
+  "{n} 张卡": "{n} cards", "停用": "Deactivate", "启用": "Enable", "松手停用": "Release to deactivate", "松手启用": "Release to enable", "停用于 {d}": "inactive since {d}", "有效期至 {d}": "valid until {d}", "未填面值": "no face value",
+  "按停用时间由近到远；右滑一行可重新启用。": "Most recently deactivated first; swipe a row right to enable it again.",
+  "手机上：一行向右滑 = 停用 / 启用，向左滑 = 删除（删除前会问花费记录怎么办）；电脑上鼠标移到行上出现同样的按钮。": "On a phone: swipe a row right to deactivate / enable, left to delete (you'll be asked what to do with its spending records); on a computer the same buttons appear on hover.",
+  "商家 / 品牌（在哪用）": "Merchant / brand (where it's spent)", "通用的 Visa / Mastercard 礼品卡写「通用」；筛选按它分": "Write “universal” for open-loop Visa / Mastercard cards; the filter groups by this", "有效期至（可选）": "Valid until (optional)",
 };
