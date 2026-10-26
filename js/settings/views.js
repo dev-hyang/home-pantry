@@ -198,7 +198,7 @@ function quotaBlock(s, p) {
 /* ── 模型下拉：常用免费模型目录（带上限）+ 这个 key 实际能用的列表（画出来后后台查，缓存一天）；没有目录的服务商仍是手填 ── */
 const modelOption = (pid, m, cur) => {
   const lim = m.rpm ? ` · ${t("{a}/分 · {b}/天", { a: m.rpm, b: m.rpd })}` : m.live ? ` · ${t("上限以控制台为准")}` : "";
-  return `<option value="${esc(m.id)}" ${m.id === cur ? "selected" : ""} ${m.dead ? "disabled" : ""}>${esc(m.name)}${m.name !== m.id ? ` (${esc(m.id)})` : ""}${lim}${m.dead ? `（${t("这个 key 已不可用")}）` : ""}</option>`;
+  return `<option value="${esc(m.id)}" ${m.id === cur ? "selected" : ""} ${m.dead ? "disabled" : ""}>${esc(t(m.name))}${m.name !== m.id ? ` (${esc(m.id)})` : ""}${lim}${m.dead ? `（${t("这个 key 已不可用")}）` : ""}</option>`;
 };
 export const modelOptionsHtml = (pid, list, cur, custom) => `<option value="">${t("自动：按这个 key 能用的模型自动选（推荐）")}</option>${list.map((m) => modelOption(pid, m, custom ? "" : cur)).join("")}${cur && !custom && !list.some((m) => m.id === cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}<option value="__custom" ${custom ? "selected" : ""}>${t("其他（手填模型名）…")}</option>`;
 export function limitHint(pid, id) {
