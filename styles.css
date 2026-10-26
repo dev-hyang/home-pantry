@@ -1524,3 +1524,36 @@ body.editing .minibar { display: none; }
 .care-card .ask-inline { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); } .care-card-ask { margin-top: 6px; }
 .task-row .ask-btn, .alert-row .ask-btn { align-self: center; }
 .task-row, .alert-row { flex-wrap: wrap; }
+
+/* ── 固定装置：位置与数量（设备表单）；出了问题？诊断与配件页 ── */
+#assetForm:not(.is-fixture) .fx-only { display: none; }
+.unit-row { display: grid; grid-template-columns: minmax(0, 1.4fr) 64px minmax(0, 2fr) auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+.unit-row select, .unit-row input { margin: 0; min-width: 0; }
+.unit-row .btn { padding: 0 8px; min-height: 36px; }
+@media (max-width: 520px) { .unit-row { grid-template-columns: minmax(0, 1fr) 60px auto; } .unit-row input[name="unit_note"] { grid-column: 1 / -1; } }
+.fix-page .form-grid label small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.fix-summary { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+.fix-urgent { padding: 8px 10px; border-radius: var(--r-sm); margin: 0 0 8px; }
+.fix-urgent b { margin-right: 6px; }
+.fix-result h4, .fix-plan h3 { margin: 6px 0 4px; font-size: 14px; }
+.fix-plan { margin-top: 10px; }
+.fix-plan-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 4px; }
+.fix-plan-head h3 { margin: 0; }
+.fix-steps { margin: 6px 0; padding-left: 20px; }
+.fix-steps li { margin: 3px 0; }
+.fix-causes li { margin: 4px 0; }
+.fix-causes .badge { margin-right: 4px; }
+.fix-parts li { align-items: flex-start; }
+.fix-parts .fix-have { color: var(--pine); display: block; margin-top: 2px; }
+.fix-where { font-size: 12.5px; margin-top: 2px; }
+.fix-where summary { cursor: pointer; color: var(--muted); list-style: none; }
+.fix-where summary::-webkit-details-marker { display: none; }
+.fix-where summary::before { content: "🛒 "; }
+.fix-where .chips { flex-wrap: wrap; overflow: visible; padding-bottom: 0; margin-bottom: 0; }
+.fix-pro { border-left: 3px solid #b8860b; }
+.fix-pro h4 { margin: 0 0 4px; color: #b8860b; }
+.fix-pro p { margin: 0 0 4px; }
+.fix-quick .care-card { margin: 0 0 8px; }
+.fix-quick .care-card > p { padding: 6px 12px; }
+.fix-quick .care-card ol.tips { margin: 0; padding-left: 18px; }
+.fix-quick .care-card .care-sec p { margin: 0; }

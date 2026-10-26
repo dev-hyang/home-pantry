@@ -430,7 +430,7 @@ export function seedDemo() {
 /* ───────────── 数据层：Supabase 云端 ───────────── */
 export const ITEM_FIELDS = ["name", "category", "subcategory", "unit", "quantity", "min_quantity", "location", "expiry_date", "lead_days", "avg_daily_use", "notes", "asset_ids"];
 export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", "brand", "model", "serial", "installed_on", "manufacture_year", "warranty_until", "labor_warranty_until",
-  "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes", "vehicle"];
+  "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes", "vehicle", "units"];
 export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "acquired_on", "purchase_price", "sold_on", "sale_price", "archived", "notes"];
 export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email", "hoa"];
 export const MED_FIELDS = ["kind", "subkind", "provider", "patient", "patient_id", "guarantor", "guarantor_id", "bill_ref", "claim_ref", "insurer", "service_date", "bill_date", "due_on", "billed_amount", "insurance_paid", "adjustment", "patient_amount", "currency", "status", "hsa_eligible", "visibility", "notes"];

@@ -156,7 +156,7 @@ export function viewAlerts() {
       </div>` : "";
 
   return `
-    <nav class="crumb crumb-tools" aria-label="${t("位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("注意事项")}</b>
+    <nav class="crumb crumb-tools" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("注意事项")}</b>
       <label class="sort-dd"><span class="sr-only">${t("排序")}</span><select id="alertSort" aria-label="${t("排序")}">${sorts}</select></label></nav>
     <section class="section today-head">${pager}${tools}</section>
     <div class="swipe-zone" data-swipe="alerts">${body}</div>`;

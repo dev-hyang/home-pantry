@@ -119,7 +119,7 @@ export function viewMenu(section) {
 /** 子页顶部的面包屑：‹ 回目录 · 当前页名（房屋子页回到该房产的目录，车辆回到房产列表） */
 const SPLIT_FIRST = (r) => firstTab(r);   // 第一个标签就是页面本身，面包屑不再多一层
 export function crumb(r) {
-  const sec = SECTIONS[r.section]; if (!sec?.subs || r.sub === "menu" || r.sub === "pages") return "";
+  const sec = SECTIONS[r.section]; if (!sec?.subs || r.sub === "menu" || r.sub === "pages" || (r.section === "house" && r.sub === "fix")) return "";   // 出了问题？页自己画带设备名的面包屑
   const parent = r.section === "bills" ? { template: "recurring" } : { template: "supplies", "asset-template": "assets" };
   const cur = sec.subs.find(([k]) => k === r.sub) || sec.subs.find(([k]) => k === parent[r.sub]);
   const prop = r.section === "house" && r.sub !== "vehicles" ? state.properties.find((p) => p.id === state.propertyId) : null;

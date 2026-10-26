@@ -20,7 +20,7 @@ export function crumbNav(parts, cls = "") {
     if (p.action) return `<button type="button" class="link-name crumb-mid" data-action="${esc(p.action)}" ${p.attrs || ""}>${label}</button>`;
     return `<a href="${esc(p.href || "#/")}">${i === 0 ? "‹ " : ""}${label}</a>`;
   };
-  return `<nav class="crumb ${cls}" aria-label="${t("位置")}">${parts.map((p, i) => `${i ? `<span class="sep">/</span>` : ""}${node(p, i, i === parts.length - 1)}`).join("")}</nav>`;
+  return `<nav class="crumb ${cls}" aria-label="${t("当前位置")}">${parts.map((p, i) => `${i ? `<span class="sep">/</span>` : ""}${node(p, i, i === parts.length - 1)}`).join("")}</nav>`;
 }
 /** 枢纽子页面包屑：‹ 来源页 / 枢纽（如“电费”） / 当前块；root 省略时两级 */
 export const sectionCrumb = (backHref, backLabel, cur, root = null) => crumbNav([...(root ? [root] : []), { href: backHref, label: backLabel }, { label: cur }]);

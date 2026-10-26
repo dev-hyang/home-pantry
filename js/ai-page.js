@@ -11,6 +11,7 @@ import { askHandoff } from "./core/ask.js";
 export const TOPICS = [
   { id: "menu", icon: "🍳", name: "今天吃什么", q: null, link: () => `${href("pantry", "meals")}?ai=` },
   { id: "house", icon: "🏠", name: "房屋保养", q: "家里的设备和房子，最近该做哪些保养和检查？按优先级列出来。" },
+  { id: "fix", icon: "🩺", name: "东西坏了", q: null, link: () => href("house", "fix") },   // 诊断与配件：常见小毛病 + 拍照问咩咩 + 配件加采购
   { id: "bills", icon: "🧾", name: "账单与省钱", q: "看看我家近期的账单，哪些可以省钱或该核对？有什么建议？" },
   { id: "deal", icon: "📝", name: "买房卖房", q: "我在伊利诺伊州，买房 / 卖房流程里最容易漏掉的事有哪些？" },
   { id: "clean", icon: "🧹", name: "清洁收纳", q: "给我一份一周家务清洁计划，按天分配，适合有小孩的家庭。" },
@@ -32,7 +33,7 @@ export function viewAi() {
   const topics = TOPICS.map((x) => x.link ? `<a class="chip" href="${x.link()}">${x.icon} ${t(x.name)}</a>` : `<button type="button" class="chip" data-action="ai-topic" data-topic="${x.id}">${x.icon} ${t(x.name)}</button>`).join("");
   const sites = AI_SITES.map(([n, u]) => `<a class="btn btn-sm btn-ghost" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("");
   return `<section class="section ai-page">
-    <nav class="crumb" aria-label="${t("位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("咩咩咩")}</b></nav>
+    <nav class="crumb" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("咩咩咩")}</b></nav>
     <div class="ai-hero"><div class="ai-hero-ico">${aiIcon(44)}</div><div><p class="${blocked ? "form-error" : "muted"}">${!ready ? t("家里的事都可以问：保养、账单、买卖房、收纳、带娃。没填 key 时会把问题连同家里的情况拼成提示词，复制到任一 AI 即可。") : blocked ? esc(quotaMessage(q)) : `${t("用 {p} 直接回答；也可以复制提示词去别的 AI 问", { p: t(p.name) })}${q.cap ? ` · ${t("今天还剩 {n} 次免费", { n: q.remaining })}` : ""}`}</p></div></div>
     <div class="chips" style="margin:12px 0 8px">${topics}</div>
     <form id="aiPageForm" class="panel">

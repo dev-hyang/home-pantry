@@ -274,7 +274,7 @@
     hot_tub: ["热水浴缸水质试纸", "热水浴缸消毒剂"],
     smoke_alarm: ["9V 电池（烟雾报警器）", "5 号电池"], thermostat: ["AA 电池", "5 号电池"],
     leak_sensor: ["AA 电池", "5 号电池"], security_system: ["AA 电池", "5 号电池"],
-    deck: ["木平台防护油 / 染色剂", "木平台防护油"], garage_door: ["WD-40 润滑防锈剂"],
+    deck: ["木平台防护油 / 染色剂", "木平台防护油"], garage_door: ["WD-40 润滑防锈剂"], doors: ["WD-40 润滑防锈剂"], ceiling_fan: ["LED 灯泡"], fire_extinguisher: [],
     generator: ["机油"],
   };
 
@@ -338,7 +338,15 @@
     { id: "septic",         name: "化粪池系统",       en: "Septic system",      icon: "🛢️", kind: "equipment", life: 30, interval: 36, system: "plumbing",     region: "na",   when: ["f:septic"],       tip: "每 3–5 年抽一次；排水场上别停车、别种树；少用垃圾处理器。" },
     { id: "well_pump",      name: "井泵与压力罐",     en: "Well pump & pressure tank", icon: "⛲", kind: "equipment", life: 12, interval: 12, system: "plumbing", region: "na", when: ["f:well"],       tip: "每年验水质（细菌、硝酸盐）；压力罐气压比启动压力低 2 psi；泵频繁启停多半是压力罐坏了。" },
     // ── 建筑 ──
-    { id: "windows",        name: "门窗",             en: "Windows & doors",    icon: "🪟", kind: "equipment", life: 25, interval: 12, system: "windows",      region: "both", when: ["*"],              tip: "每年查密封条、排水孔；双层玻璃中间起雾 = 密封失效。" },
+    { id: "windows",        name: "窗户",             en: "Windows",            icon: "🪟", kind: "equipment", life: 25, interval: 12, system: "windows",      region: "both", when: ["*"],              tip: "每年查密封条、排水孔、纱窗；双层玻璃中间起雾 = 密封失效。有几扇、各在哪写在「位置与数量」。", fixture: true },
+    // ── 固定装置（fixture: true）：一类一条，不是一个一条——位置和数量写在「位置与数量」里；多数没有「寿命」概念，坏了修零件。生成页默认不勾，需要时再勾 ──
+    { id: "doors",          name: "门（内门 / 外门 / 纱门）", en: "Doors",         icon: "🚪", kind: "equipment", life: null, interval: 12, system: null,         region: "both", when: ["*"], optional: true, fixture: true, tip: "每年给合页、锁舌上一次硅基润滑剂或 WD-40；外门查密封条、门槛扫地条；吱呀响、关不严见「出了问题」。" },
+    { id: "toilet",         name: "马桶",             en: "Toilets",            icon: "🚽", kind: "equipment", life: 30, interval: 12, system: "plumbing",     region: "both", when: ["*"], optional: true, fixture: true, tip: "一直流水 / 要按两次多半是止水皮（flapper）或进水阀，零件 $10–25 自己换；底座渗水、晃动要换蜡圈。" },
+    { id: "faucet_shower",  name: "水龙头 / 花洒",    en: "Faucets & showerheads", icon: "🚿", kind: "equipment", life: 15, interval: 6, system: "plumbing",     region: "both", when: ["*"], optional: true, fixture: true, tip: "每半年拆起泡器 / 花洒头泡白醋除垢；滴水多是阀芯（cartridge）或 O 圈，记下品牌型号方便买配件。" },
+    { id: "ceiling_fan",    name: "吊扇",             en: "Ceiling fans",       icon: "💨", kind: "equipment", life: 12, interval: 12, system: null,           region: "both", when: ["*"], optional: true, fixture: true, tip: "每年擦叶片、紧一遍叶片螺丝；晃得厉害用平衡配重贴；夏天逆时针吹风、冬天顺时针低速。" },
+    { id: "window_treatments", name: "窗帘 / 百叶窗",  en: "Blinds & curtains",  icon: "🎐", kind: "equipment", life: 10, interval: 12, system: null,           region: "both", when: ["*"], optional: true, fixture: true, tip: "电动款记电池 / 充电方式和遥控配对；拉绳款查绳子磨损（有小孩用无绳款）；布艺窗帘只记数量的放 储藏 → 装备。" },
+    { id: "outlets",        name: "插座、开关与 GFCI", en: "Outlets, switches & GFCI", icon: "🔌", kind: "equipment", life: 25, interval: 3, system: null,        region: "both", when: ["*"], optional: true, fixture: true, tip: "厨卫 / 车库 / 室外的 GFCI 每季度按 TEST 再按 RESET；插头松、面板发热变色的插座要换；有小孩用防触电款。不用登记每一个，只记有问题的和 GFCI 在哪。" },
+    { id: "fire_extinguisher", name: "灭火器",        en: "Fire extinguishers", icon: "🧯", kind: "equipment", life: 12, interval: 12, system: null,           region: "both", when: ["*"], fixture: true, tip: "每年看压力表指针在绿区、保险销在、喷嘴没堵；干粉款每年倒过来摇几下防结块；厨房和车库各放一个。" },
     { id: "bath_fan",       name: "浴室排风扇",       en: "Bathroom exhaust fans", icon: "🌀", kind: "equipment", life: 10, interval: 12, system: null,        region: "both", when: ["*"],              tip: "每年拆格栅清灰；一张纸贴不住格栅就是风量不够了。" },
     { id: "attic",          name: "阁楼通风与保温",   en: "Attic ventilation & insulation", icon: "🏚️", kind: "equipment", life: 25, interval: 12, system: "roof", region: "na", when: ["type:sfh", "type:townhome"], optional: true, tip: "每年看一次：有没有漏水痕迹、保温层塌陷、通风口被堵；冬天屋檐结冰坝多半是阁楼太热。" },
     { id: "fence",          name: "栅栏 / 挡土墙",    en: "Fence / retaining wall", icon: "🪵", kind: "equipment", life: 20, interval: 12, system: "exterior",   region: "na",   when: ["type:sfh"], optional: true, tip: "每年查立柱松动、底部腐烂；挡土墙鼓出、排水孔堵塞要尽早处理。" },
@@ -352,6 +360,9 @@
     { id: "other_tool",     name: "其他工具",         en: "Other tool",         icon: "🧰", kind: "tool",      life: null, interval: null, system: null,       region: "both", when: [] },
   ];
   const ASSET_KINDS = { equipment: { name: "设备", icon: "⚙️" }, tool: { name: "工具", icon: "🧰" }, vehicle: { name: "车辆", icon: "🚗" } };
+  // 固定装置：kind 仍是 equipment（表结构不变），靠类型上的 fixture 标记分组显示；一类一条，位置数量在 units 里
+  const FIXTURE_GROUP = { name: "固定装置", icon: "🚪", hint: "按类记一条，不是一个一条：马桶有 3 个就在「位置与数量」里写 3 处；坏了在那一条下面记维修。" };
+  const isFixtureType = (id) => !!assetType(id)?.fixture;
   const MAINT_KINDS = { inspect: "检查", service: "保养", repair: "维修", replace: "更换" };
   // 设备维修保养的花费记到 purchases 时用的分类（不在物品分类里，统计并入“房屋维护”；车辆另有 VEHICLE_CAT）
   window.MAINT_CAT = { id: "house_maint", name: "设备维修保养", icon: "🔧", color: "#5c6b63" };
@@ -510,5 +521,5 @@
   }
 
   window.HOUSE = { REGIONS, FEATURES, MATERIALS, OWNERS, SYSTEMS, HOUSE_TYPES, SUPPLIES, ASSET_SUPPLIES, HOUSE_CATEGORIES, recommendSupplies, forRegion, typeOf,
-    ASSET_TYPES, ASSET_KINDS, MAINT_KINDS, SEASONAL_TASKS, assetType, recommendAssets, seasonalTasksFor, ASSOC, DUES_PERIODS, assocOf };
+    ASSET_TYPES, ASSET_KINDS, FIXTURE_GROUP, isFixtureType, MAINT_KINDS, SEASONAL_TASKS, assetType, recommendAssets, seasonalTasksFor, ASSOC, DUES_PERIODS, assocOf };
 })();
