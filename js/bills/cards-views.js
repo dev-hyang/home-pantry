@@ -92,7 +92,7 @@ export function viewCards() {
       <div class="panel"><ul class="restock-list card-list">${banks.map(cardRow).join("")}</ul></div>` : ""}
     ${gifts.length ? giftSection(gifts) : ""}
     ${addChips}
-    ${off.length ? `<details class="ref-panel panel" style="margin-top:10px"><summary><b>${t("停用的卡")}</b><small>${t("{n} 张卡", { n: off.length })}</small><span class="mch" aria-hidden="true">›</span></summary><ul class="restock-list card-list ref-body">${off.map(cardRow).join("")}</ul><p class="muted" style="margin:0;padding:6px 14px 10px;font-size:12.5px">${t("按停用时间由近到远；右滑一行可重新启用。")}</p></details>` : ""}
+    ${off.length ? offSection(off) : ""}
     <p class="muted" style="margin-top:8px;font-size:12.5px">${t("手机上：一行向右滑 = 停用 / 启用，向左滑 = 删除（删除前会问花费记录怎么办）；电脑上鼠标移到行上出现同样的按钮。")}</p>
     <p class="muted kinds-note" style="margin-top:10px">${t("只记发卡行、产品、末四位、到期年月，不记完整卡号和密码。返现规则来自内置目录或你自己填，会变，以发卡行为准。")}</p>
   </section>`;
@@ -122,6 +122,55 @@ function giftSection(gifts) {
     <div class="panel">${rows.length ? `<ul class="restock-list card-list">${rows.map((g) => cardRow(g.c)).join("")}</ul>` : `<p class="muted" style="margin:0">${t("没有符合条件的礼品卡")}</p>`}</div>
     <p class="muted" style="margin:6px 0 0;font-size:12.5px">${t("「商家」填在哪用（Amazon、Target、Costco…），通用的 Visa / Mastercard 礼品卡写「通用」；用完的卡右滑停用，就不会再出现在付款下拉里。")}</p>`;
 }
+/* ── 停用的卡：按停用时间由近到远；≥ 6 张时给搜索（名字 / 商家 / 末四位）、种类切换、两档排序；一键清理用完的礼品卡 ── */
+const OFF_KINDS = [["all", "全部种类"], ["gift", "礼品卡"], ["card", "信用卡 / 借记卡 / 钱包"], ["bank", "银行账户"]];
+const offFilter = () => (state.offFilter ||= { q: "", kind: "all", sort: "since" });
+const offKindOf = (c) => (c.kind === "gift" ? "gift" : isBankAcct(c) ? "bank" : "card");
+const CLEAN_DAYS = 365;
+/** 可一键清理的：停用超过一年（或老记录没有停用日期）、余额为 0 / 没填面值、名下没有花费的礼品卡；recent = 一年内停用但其余条件满足的 */
+function cleanupPool(off) {
+  const ok = (c) => c.kind === "gift" && !state.purchases.some((p) => p.card_id === c.id) && !(giftBalance(c, state.purchases) > 0);
+  const old = (c) => !c.inactive_since || daysUntil(c.inactive_since) <= -CLEAN_DAYS;
+  const pool = off.filter(ok);
+  return { eligible: pool.filter(old), recent: pool.filter((c) => !old(c)), withSpend: off.filter((c) => c.kind === "gift" && !(giftBalance(c, state.purchases) > 0) && state.purchases.some((p) => p.card_id === c.id)).length };
+}
+function offSection(off) {
+  const f = offFilter(), q = f.q.trim().toLowerCase();
+  const counts = { gift: off.filter((c) => offKindOf(c) === "gift").length, card: off.filter((c) => offKindOf(c) === "card").length, bank: off.filter((c) => offKindOf(c) === "bank").length };
+  const rows = off.filter((c) => (f.kind === "all" || offKindOf(c) === f.kind) && (!q || [c.name, c.issuer, c.last4].filter(Boolean).some((x) => String(x).toLowerCase().includes(q))))
+    .sort(f.sort === "name" ? (a, b) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: "base" }) : () => 0);   // 默认顺序 = 传进来的停用时间顺序
+  const opt = (v, label, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(label)}</option>`;
+  const toolbar = off.length >= 6 ? `<div class="toolbar off-toolbar">
+      <input type="search" id="offQ" value="${esc(f.q)}" placeholder="${esc(t("搜名字 / 商家 / 末四位"))}" aria-label="${esc(t("搜索停用的卡"))}">
+      <select id="offKind" aria-label="${esc(t("按种类筛选"))}">${OFF_KINDS.filter(([v]) => v === "all" || counts[v]).map(([v, l]) => opt(v, v === "all" ? t(l) : `${t(l)}（${counts[v]}）`, f.kind)).join("")}</select>
+      <select id="offSort" aria-label="${esc(t("排序"))}">${opt("since", t("停用时间：近 → 远"), f.sort)}${opt("name", t("名称 A → Z"), f.sort)}</select></div>` : "";
+  const pool = cleanupPool(off), cleanable = pool.eligible.length + pool.recent.length;
+  const summary = [counts.gift ? t("礼品卡 {n}", { n: counts.gift }) : "", counts.card ? t("信用卡 {n}", { n: counts.card }) : "", counts.bank ? t("账户 {n}", { n: counts.bank }) : ""].filter(Boolean).join(" · ");
+  return `<details class="ref-panel panel" style="margin-top:10px" ${state.cardCleanup || q || f.kind !== "all" || f.sort !== "since" ? "open" : ""}><summary><b>${t("停用的卡")}</b><small>${t("{n} 张卡", { n: off.length })}${summary ? ` · ${summary}` : ""}</small><span class="mch" aria-hidden="true">›</span></summary>
+    <div class="ref-body" style="padding:10px 14px 0">${toolbar}
+      ${state.cardCleanup ? cleanupHtml(pool) : cleanable ? `<p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("有 {n} 张用完的礼品卡可以一键清掉", { n: cleanable })} <button type="button" class="btn btn-sm btn-ghost" data-action="card-cleanup-open">${t("清理")}</button></p>` : ""}</div>
+    <ul class="restock-list card-list ref-body" style="padding-top:0">${rows.length ? rows.map(cardRow).join("") : `<li class="muted" style="font-size:13px">${t("没有符合条件的卡")}</li>`}</ul>
+    <p class="muted" style="margin:0;padding:6px 14px 10px;font-size:12.5px">${t("按停用时间由近到远；右滑一行可重新启用。停用了但还有余额的会标出来。")}</p></details>`;
+}
+/** 清理确认：列出要删的卡；一年内停用的可勾选加入；名下有花费的不在这里（单张删除时选保留 / 一起删） */
+function cleanupHtml(pool) {
+  const inc = !!state.cardCleanupRecent, list = inc ? [...pool.eligible, ...pool.recent] : pool.eligible;
+  return `<div class="panel cta-panel card-del-box" role="alertdialog" aria-labelledby="cleanTitle" style="margin-bottom:10px"><div>
+      <b id="cleanTitle">${t("清理用完的礼品卡")}</b>
+      <p class="muted" style="margin:4px 0 0">${t("条件：余额为 0 或没填面值、名下没有花费记录、停用超过 {d} 天（老记录没有停用日期的也算）。", { d: CLEAN_DAYS })}${pool.withSpend ? ` ${t("另有 {n} 张用完的卡名下有花费，请单张删除并选择花费去留。", { n: pool.withSpend })}` : ""}</p>
+      ${pool.recent.length ? `<label class="check-inline" style="margin:6px 0 0"><input type="checkbox" id="cleanRecent" ${inc ? "checked" : ""}><span>${t("也包括 {d} 天内停用的（{n} 张）", { d: CLEAN_DAYS, n: pool.recent.length })}</span></label>` : ""}
+      ${list.length ? `<p style="margin:6px 0 0;font-size:13px">${t("将删除 {n} 张：", { n: list.length })}${esc(list.map((c) => c.name).join("、"))}</p>` : `<p class="muted" style="margin:6px 0 0">${t("没有符合条件的卡。")}</p>`}
+      <div class="form-actions">
+        ${list.length ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="card-cleanup-run">${t("删除这 {n} 张", { n: list.length })}</button>` : ""}
+        <button type="button" class="btn btn-sm btn-ghost" data-action="card-cleanup-cancel">${t("取消")}</button></div></div></div>`;
+}
+export async function runCleanup() {
+  const off = state.cards.filter((c) => c.active === false), pool = cleanupPool(off);
+  const list = state.cardCleanupRecent ? [...pool.eligible, ...pool.recent] : pool.eligible;
+  for (const c of list) await Store.deleteCard(c.id);
+  state.cardCleanup = false; state.cardCleanupRecent = false;
+  await reloadCards(); toast(t("已清掉 {n} 张礼品卡", { n: list.length }));
+}
 /** 删除卡前的确认：这张卡名下的花费记录怎么办——保留（花费上改成文字）还是一起删 */
 function deleteConfirmHtml(id) {
   const c = cardById(id); if (!c) return "";
@@ -146,6 +195,7 @@ function cardRow(c) {
     const g = giftOf(c), tags = [];
     if (g.exp != null && g.exp < 0) tags.push(`<span class="badge b-out">${t("已过期")}</span>`); else if (g.exp != null && g.exp <= 60) tags.push(`<span class="badge b-soon">${t("{d} 天后到期", { d: g.exp })}</span>`);
     if (g.bal != null && g.bal <= 0) tags.push(`<span class="badge" style="background:var(--surface-2)">${t("已用完")}</span>`);
+    if (c.active === false && g.bal != null && g.bal > 0) tags.push(`<span class="badge b-soon">${t("还有余额 {m}", { m: money(g.bal) })}</span>`);   // 停用了但没用完：多半是误停用或又充值了
     return `<li class="card-row gift-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)}><span class="card-net net-gift" aria-hidden="true">🎁</span>
       <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">••${d(c.last4)}</span>` : ""}
         <small>${[c.issuer, holderName(c), c.opened_on ? t("{d} 购入", { d: fmtDate(c.opened_on) }) : null, c.expires_on ? t("有效期至 {d}", { d: String(c.expires_on).slice(0, 7) }) : null, g.n ? t("{n} 笔花费", { n: g.n }) : null, offSince].filter(Boolean).map(esc).join(" · ")}</small>

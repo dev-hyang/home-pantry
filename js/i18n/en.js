@@ -1909,4 +1909,11 @@ export const EN = {
   "按停用时间由近到远；右滑一行可重新启用。": "Most recently deactivated first; swipe a row right to enable it again.",
   "手机上：一行向右滑 = 停用 / 启用，向左滑 = 删除（删除前会问花费记录怎么办）；电脑上鼠标移到行上出现同样的按钮。": "On a phone: swipe a row right to deactivate / enable, left to delete (you'll be asked what to do with its spending records); on a computer the same buttons appear on hover.",
   "商家 / 品牌（在哪用）": "Merchant / brand (where it's spent)", "通用的 Visa / Mastercard 礼品卡写「通用」；筛选按它分": "Write “universal” for open-loop Visa / Mastercard cards; the filter groups by this", "有效期至（可选）": "Valid until (optional)",
+  // ── 停用的卡：搜索 / 种类 / 排序 / 清理 ──
+  "全部种类": "All kinds", "信用卡 / 借记卡 / 钱包": "Credit / debit / wallet", "搜名字 / 商家 / 末四位": "Search name / merchant / last 4", "搜索停用的卡": "Search inactive cards", "按种类筛选": "Filter by kind", "停用时间：近 → 远": "Deactivated: newest first",
+  "礼品卡 {n}": "{n} gift cards", "信用卡 {n}": "{n} credit cards", "账户 {n}": "{n} bank accounts", "还有余额 {m}": "{m} left", "没有符合条件的卡": "No cards match", "有 {n} 张用完的礼品卡可以一键清掉": "{n} used-up gift cards can be cleared in one go", "清理": "Clean up",
+  "按停用时间由近到远；右滑一行可重新启用。停用了但还有余额的会标出来。": "Most recently deactivated first; swipe a row right to enable it again. Inactive cards that still have a balance are flagged.",
+  "清理用完的礼品卡": "Clear used-up gift cards", "条件：余额为 0 或没填面值、名下没有花费记录、停用超过 {d} 天（老记录没有停用日期的也算）。": "Criteria: zero balance or no face value, no spending records, inactive for over {d} days (older records without a date count too).",
+  "另有 {n} 张用完的卡名下有花费，请单张删除并选择花费去留。": "{n} more used-up cards have spending records; delete those one by one and choose what to do with the records.", "也包括 {d} 天内停用的（{n} 张）": "Also include ones deactivated within {d} days ({n})",
+  "将删除 {n} 张：": "Will delete {n}: ", "没有符合条件的卡。": "No cards match.", "删除这 {n} 张": "Delete these {n}", "已清掉 {n} 张礼品卡": "Cleared {n} gift cards",
 };

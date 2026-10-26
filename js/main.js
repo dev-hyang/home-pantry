@@ -17,7 +17,7 @@ import { initSwipeRows } from "./swipe-rows.js";
 import { initBankImport } from "./stats/bank-import.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
-import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml, purchasePayFields, rememberCard, resolvePayAccount, saveCardForm, setCardActive, viewCards } from "./bills/cards-views.js";
+import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml, purchasePayFields, rememberCard, resolvePayAccount, runCleanup, saveCardForm, setCardActive, viewCards } from "./bills/cards-views.js";
 import "./bills/cards.js";   // 注册信用卡提醒
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
@@ -428,6 +428,11 @@ main.addEventListener("input", (e) => {
   if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; state.spendFilter.limit = 20; renderSpendList(); }
   if (e.target.id === "billSearch") { state.billsFilter.q = e.target.value; renderBillList(); }
   if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; renderAssetList(); }
+  if (e.target.id === "offQ") {   // 停用的卡搜索：只重画那张列表，输入框不丢焦点
+    (state.offFilter ||= { q: "", kind: "all", sort: "since" }).q = e.target.value;
+    const panel = e.target.closest("details"), ul = panel?.querySelector("ul.card-list"); if (!ul) return;
+    const tmp = document.createElement("div"); tmp.innerHTML = viewCards(); const fresh = tmp.querySelector("details.ref-panel ul.card-list"); if (fresh) ul.replaceWith(fresh);
+  }
   const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
   if (e.target.matches("textarea[data-grow]")) autoGrow(e.target);
   const hf = e.target.closest("#houseForm"); if (hf && /^hoa_(dues|sa_)/.test(e.target.name || "")) updateHoaTotal(hf);   // HOA 金额 / 评估字段一改，每月总计卡马上重算
@@ -505,6 +510,8 @@ main.addEventListener("change", async (e) => {
   { const k = { shopCat: "cat", shopWho: "who", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
   { const k = { assetType: "type", assetService: "service", assetWarranty: "warranty", assetLoc: "loc", assetSort: "sort" }[e.target.id]; if (k) { state.assetFilter[k] = e.target.value; renderAssetList(); } }
   { const k = { giftIssuer: "issuer", giftSort: "sort", giftUsed: "used" }[e.target.id]; if (k) { (state.giftFilter ||= { issuer: "all", sort: "balance", used: false })[k] = k === "used" ? e.target.checked : e.target.value; return render(false); } }   // 礼品卡的筛选 / 排序
+  { const k = { offKind: "kind", offSort: "sort" }[e.target.id]; if (k) { (state.offFilter ||= { q: "", kind: "all", sort: "since" })[k] = e.target.value; return render(false); } }   // 停用的卡：种类 / 排序
+  if (e.target.id === "cleanRecent") { state.cardCleanupRecent = e.target.checked; return render(false); }
   if (e.target.name === "location" && e.target.form?.elements.new_location) {   // 选“＋ 新位置…”：旁边出现输入框
     const inp = e.target.form.elements.new_location, on = e.target.value === "__new__";
     inp.hidden = !on; if (on) inp.focus();
@@ -1020,6 +1027,9 @@ main.addEventListener("click", async (e) => {
       case "card-del-keep": el.disabled = true; await deleteCard(el.dataset.id, { purchases: "keep" }); return refresh();
       case "card-del-all": el.disabled = true; await deleteCard(el.dataset.id, { purchases: "delete" }); return refresh();
       case "card-del-cancel": state.cardDelete = null; return render();
+      case "card-cleanup-open": state.cardCleanup = true; render(); document.getElementById("cleanTitle")?.scrollIntoView({ block: "center" }); return;
+      case "card-cleanup-cancel": state.cardCleanup = false; state.cardCleanupRecent = false; return render();
+      case "card-cleanup-run": el.disabled = true; await runCleanup(); return refresh();
       case "card-deact": el.disabled = true; await setCardActive(el.dataset.id, false); return refresh();
       case "card-react": el.disabled = true; await setCardActive(el.dataset.id, true); return refresh();
       case "med-pay-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteMedPay(el.dataset.id);
