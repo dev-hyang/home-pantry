@@ -373,6 +373,7 @@ function spendRecordsTab() {
         <label class="check-inline pr-refund" title="${esc(t("退货退款、报销收回：记成负数，统计里按净额算"))}"><input type="checkbox" name="refund"><span>${t("退款 / 报销")}</span></label>
         <button class="btn btn-primary pr-go" type="submit">${t("记一笔")}</button>
       </form>
+      <p id="purchaseDupHint" class="dup-hint" role="status" hidden></p>
       <p id="purchaseCardHint" class="card-hint-line">${cardHintHtml("fresh", lastStore(), null)}</p>
       <p class="muted cat-hint">${t("分类怎么选：买回家吃的、用的（会用完）→ 日常储备；买回家长期用的 → 装备；花钱买体验或服务、没有东西留在家里 → 外出与服务。")}</p>
     </section>

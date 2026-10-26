@@ -11,6 +11,7 @@ import { cleanStore, rememberStore, storeDatalist } from "../stats/views.js";
 import { categoryOptions } from "./views.js";
 import { compressImage as compress } from "../core/autofill.js";
 import { cardSelectHtml, purchasePayFields } from "../bills/cards-views.js";
+import { dupNote, similarPurchases } from "../stats/dup-check.js";
 
 const MAX_IMAGES = 8;   // 一次最多 8 张：可以是几张不同的小票，也可以是一张长小票的几段
 const sc = { kind: "receipt", mode: "auto", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] };
@@ -132,7 +133,8 @@ function rowHtml(x, ri, i, cur) {
           <label>${t("金额")}（${esc(cur)}）<input name="amount" type="number" min="0" step="0.01" inputmode="decimal" value="${x.amount ?? ""}"></label>
           <label class="span-2">${t("放进库存")}<select name="target" data-def="${esc(x.def || "")}">${targetOptions(x)}</select></label>
           <label class="span-2 scan-cat">${t("新物品的分类")}<select name="cat">${categoryOptions(x.category)}</select></label>
-        </div></li>`;
+        </div>
+        <p class="dup-hint" role="status" hidden></p></li>`;
 }
 function receiptHtml(r, ri, many, cur) {
   return `<fieldset class="scan-rcpt panel" data-r="${ri}" style="margin:0 0 12px">
@@ -161,11 +163,24 @@ function reviewHtml() {
         <button type="button" class="btn btn-ghost" data-action="scan-back">${t("返回重来")}</button></div>
     </form>`;
 }
+/** 每一行和已有花费对一下：疑似别人（或自己）已经记过的，在行下面提醒；返回「勾选了的小票里被提醒的行数」 */
+function markDups(box) {
+  const store = box.querySelector('[name="store"]').value, date = box.querySelector('[name="date"]').value || todayISO();
+  let n = 0;
+  box.querySelectorAll(".scan-row").forEach((r) => {
+    const g = (k) => r.querySelector(`[name="${k}"]`).value, hint = r.querySelector(".dup-hint");
+    const list = g("amount") === "" ? [] : similarPurchases({ name: g("name"), amount: num(g("amount")), store, at: new Date(`${date}T12:00:00`) });
+    hint.innerHTML = dupNote(list); hint.hidden = !list.length;
+    if (list.length && r.querySelector('[name="inc"]').checked) n++;
+  });
+  return n;
+}
 function updateSum() {
   const f = $("#scanForm"), el = $("#scanSum"); if (!f || !el || !sc.result) return;
   let all = 0, rn = 0, rows = 0;
   f.querySelectorAll(".scan-rcpt").forEach((box) => {
     const ri = +box.dataset.r, on = box.querySelector('[name="rinc"]')?.checked !== false;
+    markDups(box);
     const sel = [...box.querySelectorAll(".scan-row")].filter((r) => r.querySelector('[name="inc"]').checked);
     const sum = sel.reduce((s, r) => s + num(r.querySelector('[name="amount"]').value), 0), tot = sc.result.receipts[ri]?.total;
     box.querySelector(".scan-rsum").textContent = t("选中 {n} 项，合计 {m}", { n: sel.length, m: Units.money(sum) })
@@ -193,12 +208,12 @@ document.addEventListener("change", async (e) => {
     });
     const note = box.querySelector(".scan-past"); if (note) note.hidden = !past;
   }
-  if (e.target.closest?.("#scanForm")) updateSum();
+  if (e.target.closest?.("#scanForm")) { sc.dupAck = false; updateSum(); }
 });
 document.addEventListener("input", (e) => {
   if (e.target.id === "scanDate") { sc.date = e.target.value; return; }
   if (e.target.id === "scanText") { sc.text = e.target.value; const b = document.querySelector('[data-action="scan-run"]'); if (b) b.disabled = !aiReady() || sc.busy || (!sc.images.length && !sc.text.trim()); }
-  else if (e.target.closest?.("#scanForm")) updateSum();
+  else if (e.target.closest?.("#scanForm")) { sc.dupAck = false; updateSum(); }
 });
 
 async function run() {
@@ -239,7 +254,9 @@ async function confirm(ctx) {
   if (!rows.length) { sc.error = t("没有勾选任何一行。"); return repaint2(); }
   if (rows.some((x) => !x.name)) { sc.error = t("有一行没有名称。"); return repaint2(); }
   if (rows.some((x) => x.target !== "__skip" && !(x.qty > 0))) { sc.error = t("入库的行数量要大于 0。"); return repaint2(); }
-  sc.busy = true; sc.error = ""; repaint2();
+  const dupRows = boxes.reduce((s, b) => s + markDups(b), 0);   // 疑似重复的行：第一次点只提醒，确认无误再点一次才入库
+  if (dupRows && !sc.dupAck) { sc.dupAck = true; sc.error = t("有 {n} 行疑似已经记过（见各行下面的提醒）。确认不是重复的，再点一次“确认入库”；是重复的就取消勾选那一行。", { n: dupRows }); return repaint2(); }
+  sc.dupAck = false; sc.busy = true; sc.error = ""; repaint2();
   let stocked = 0, spendOnly = 0, created = 0; const warns = [], newItems = new Map(), doneShop = new Set();
   try {
     // 先建新物品（同名同分类合并成一条，几张小票的也合并）：这一步失败时还没写任何花费和库存，可以直接重试

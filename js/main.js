@@ -58,6 +58,7 @@ import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLoc
 import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
 import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureBatchLoaded, ensureFirstYear, ensureYearLoaded, exportAnnual, filteredSpend, rememberStore, renderSpendList, renderSpendRecords, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
+import { showPurchaseDup } from "./stats/dup-check.js";
 
 const APP_NAME = "爱家小助手";
 
@@ -741,6 +742,9 @@ main.addEventListener("submit", async (e) => {
       const signed = e2.refund?.checked ? -amount : amount;   // “退款 / 报销”：记成负数，统计里按净额算
       const day = e2.date.value || new Date().toISOString().slice(0, 10);
       const store = cleanStore(e2.store.value);
+      const dups = showPurchaseDup(f);   // 疑似重复：第一次点只提醒，内容没改再点一次才记
+      if (dups.length && f.dataset.dupAck !== "1") { f.dataset.dupAck = "1"; return toast(t("可能重复了（见表单下面的提醒）。确认不是，再点一次“记一笔”。")); }
+      f.dataset.dupAck = "";
       if (store) rememberStore(store);
       const payV = e2.card_id?.value || ""; rememberCard(payV);
       await Store.addPurchase({ item_id: null, name, category: e2.category.value, quantity: null, unit: null, store,

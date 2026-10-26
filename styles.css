@@ -810,6 +810,7 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .bank-chk input { width: 20px; height: 20px; min-height: 0; accent-color: var(--pine); }
 .bank-row.is-skip { opacity: .8; }
 .bank-dup { color: var(--soon); font-weight: 600; }
+.dup-hint { color: var(--soon); font-weight: 600; font-size: 13px; margin: 6px 0 0; }
 .bank-src { color: var(--pine); font-weight: 600; }
 .bank-batches li { flex-wrap: wrap; } .bank-batches li .grow { flex-basis: 160px; }
 .bank-acct { display: grid; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }

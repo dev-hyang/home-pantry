@@ -2297,4 +2297,8 @@ export const EN = {
   "电动款记电池 / 充电方式和遥控配对；拉绳款查绳子磨损（有小孩用无绳款）；布艺窗帘只记数量的放 储藏 → 装备。": "Motorized: note the battery / charging method and remote pairing; corded: check for cord wear (cordless with kids); fabric curtains you only count go under Pantry → Gear.",
   "牧羊人": "Shepherd",
   "身心灵记录": "body, mind & spirit records",
+  "可能重复：{who}{d} 已记过「{name}」{m}": "Possible duplicate: {who}{d} already logged “{name}” {m}",
+  "{w}在 ": "{w} on ", "你": "You", "家里别人": "Someone in the household", "（另有 {n} 笔类似的）": " ({n} more similar)",
+  "可能重复了（见表单下面的提醒）。确认不是，再点一次“记一笔”。": "This may be a duplicate (see the note below the form). If it isn't, tap “Log it” again.",
+  "有 {n} 行疑似已经记过（见各行下面的提醒）。确认不是重复的，再点一次“确认入库”；是重复的就取消勾选那一行。": "{n} row(s) look already logged (see the notes under each row). If they aren't duplicates, tap “Confirm” again; otherwise untick those rows.",
 };
