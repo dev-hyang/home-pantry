@@ -1893,4 +1893,9 @@ export const EN = {
   "常见小毛病：先看这里": "Common fixes: check here first", "不用问 AI；配件能直接加采购": "No AI needed; parts can go straight to the shopping list", "多半是": "Most likely", "提醒": "Tip",
   "家里有：{name}": "At home: {name}", "已在采购清单": "On the shopping list", "还是买一个": "Buy one anyway", "在哪买": "Where to buy", "已经在清单里了": "Already on the list", "已加入采购清单：{name}": "Added to shopping list: {name}",
   "东西坏了": "Something broke", "接着上面这个问题：": "Following up on: ", "你之前的回答：": "Your earlier answer: ", "我想再问：": "My follow-up: ",
+  // ── 付款方式统一（迁移 040）：现金 / 纸质支票 / 礼品卡 / 其他；礼品卡卡种 ──
+  "礼品卡": "Gift card", "纸质支票": "Paper check", "礼品卡（没登记的）": "Gift card (not registered)", "怎么付的": "Paid with", "（没记怎么付）": "(payment not recorded)", "付款方式": "Payment method",
+  "手动 · 纸质支票": "Manual · paper check", "手动 · 礼品卡": "Manual · gift card", "已用完": "Used up", "礼品": "Gift", "余额约 {m}": "Balance ≈ {m}", "银行账户与礼品卡": "Bank accounts & gift cards",
+  "支票 / 储蓄账户：账单自动扣款、缴费记录、信用卡还款从哪扣；礼品卡：花费记到它名下，自动算余额": "Checking / savings: where bills autopay, payments and credit-card payments draw from; gift cards: spending logged to them keeps a running balance",
+  "面值 / 充值总额（{cur}）": "Face value / total loaded ({cur})", "余额 = 它减去记在这张卡上的花费；用完了把「在用」取消": "Balance = this minus spending logged to the card; untick “in use” when it's used up",
 };

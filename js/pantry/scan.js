@@ -10,6 +10,7 @@ import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core
 import { cleanStore, rememberStore, storeDatalist } from "../stats/views.js";
 import { categoryOptions } from "./views.js";
 import { compressImage as compress } from "../core/autofill.js";
+import { cardSelectHtml, purchasePayFields } from "../bills/cards-views.js";
 
 const MAX_IMAGES = 8;   // 一次最多 8 张：可以是几张不同的小票，也可以是一张长小票的几段
 const sc = { kind: "receipt", mode: "auto", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] };
@@ -138,6 +139,7 @@ function receiptHtml(r, ri, many, cur) {
       ${many ? `<legend><label class="check-inline"><input type="checkbox" name="rinc" ${r.include ? "checked" : ""}><span><b>🧾 ${t("第 {n} 张小票", { n: ri + 1 })}</b>${r.store ? ` · ${esc(r.store)}` : ""} · ${esc(r.date)}</span></label></legend>` : ""}
       <div class="form-grid">
         <label>${t("商店")}<input name="store" maxlength="40" list="storeList" value="${esc(r.store)}"></label>
+        ${cardSelectHtml("pay", r.pay) ? `<label>${t("怎么付的")}${cardSelectHtml("pay", r.pay)}</label>` : ""}
         <label>${t("购买日期")}<input name="date" type="date" max="${todayISO()}" value="${esc(r.date)}"><small class="${r.dateSrc === "today" ? "form-error" : "muted"}">${r.dateSrc === "user" ? t("你填的日期") : r.dateSrc === "receipt" ? t("取自小票 / 文字，不对可以改") : t("没有读到日期，先用今天；补记的话请改成实际购买日")}</small></label>
       </div>
       <p class="muted scan-past" ${r.date < todayISO() ? "" : "hidden"} style="margin:8px 0 0;font-size:13px">📌 ${t("补记以前的购物：默认只记花费，不入库（东西多半已经用掉）。要加库存的行，把“放进库存”改成对应物品。")}</p>
@@ -228,9 +230,10 @@ async function confirm(ctx) {
   const cur = Units.region.currency, boxes = [...f.querySelectorAll(".scan-rcpt")].filter((b) => b.querySelector('[name="rinc"]')?.checked !== false);
   const rows = boxes.flatMap((box) => {
     const store = cleanStore(box.querySelector('[name="store"]').value), date = box.querySelector('[name="date"]').value || todayISO(), now = new Date(`${date}T12:00:00`).toISOString();
+    const pay = purchasePayFields(box.querySelector('[name="pay"]')?.value || "");   // 这张小票怎么付的：卡 → card_id，现金 / 支票 / 礼品卡 → method
     return [...box.querySelectorAll(".scan-row")].filter((r) => r.querySelector('[name="inc"]').checked).map((r) => {
       const g = (n) => r.querySelector(`[name="${n}"]`).value;
-      return { store, now, name: g("name").trim(), qty: num(g("qty"), 0), unit: g("unit").trim() || t("个"), amount: g("amount") === "" ? null : Math.round(Math.max(0, num(g("amount"))) * 100) / 100, target: g("target"), cat: g("cat") };
+      return { store, now, pay, name: g("name").trim(), qty: num(g("qty"), 0), unit: g("unit").trim() || t("个"), amount: g("amount") === "" ? null : Math.round(Math.max(0, num(g("amount"))) * 100) / 100, target: g("target"), cat: g("cat") };
     });
   });
   if (!rows.length) { sc.error = t("没有勾选任何一行。"); return repaint2(); }
@@ -249,7 +252,7 @@ async function confirm(ctx) {
     if (newItems.size) { await Store.addItems([...newItems.values()]); created = newItems.size; }
     for (const x of rows) {
       const item = x.target.startsWith("__") ? null : state.items.find((i) => i.id === x.target);
-      await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store });
+      await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay });
       if (x.target === "__skip") { spendOnly++; continue; }
       if (item) {
         const add = !x.unit || x.unit === item.unit ? x.qty : Units.convert(x.qty, x.unit, item.unit);
@@ -270,7 +273,7 @@ function repaint2() {
   if (f && sc.result) {
     f.querySelectorAll(".scan-rcpt").forEach((box) => {
       const rc = sc.result.receipts[+box.dataset.r]; if (!rc) return;
-      rc.include = box.querySelector('[name="rinc"]')?.checked !== false; rc.store = box.querySelector('[name="store"]').value; rc.date = box.querySelector('[name="date"]').value;
+      rc.include = box.querySelector('[name="rinc"]')?.checked !== false; rc.store = box.querySelector('[name="store"]').value; rc.date = box.querySelector('[name="date"]').value; rc.pay = box.querySelector('[name="pay"]')?.value ?? rc.pay;
       box.querySelectorAll(".scan-row").forEach((r) => {
         const x = rc.rows[+r.dataset.i], g = (n) => r.querySelector(`[name="${n}"]`).value;
         Object.assign(x, { include: r.querySelector('[name="inc"]').checked, name: g("name"), qty: num(g("qty"), 0), unit: g("unit"), amount: g("amount") === "" ? null : num(g("amount")), category: g("cat"), match: g("target") === "__new" ? "" : g("target") === "__skip" ? "skip" : g("target") });

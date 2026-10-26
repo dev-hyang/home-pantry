@@ -5,8 +5,8 @@ import { $, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href, go } from "../core/router.js";
 import { enrichBills, initialDue } from "./logic.js";
-import { ACCT_KINDS, CARDS_HREF, bonusLeft, cardById, cardHref, expDays, feeDays, fromCatalog, holderName, isBankAcct, kindIcon, kindName, networkName, pickCards, pickFor, quarterOf, reloadCards, reviewMonth, rewardCatIcon, rewardCatName, rotatingNow, usage } from "./cards.js";
-export { isBankAcct, kindIcon, kindName };
+import { ACCT_KINDS, CARDS_HREF, bonusLeft, cardById, cardHref, expDays, feeDays, fromCatalog, giftBalance, holderName, isBankAcct, kindIcon, kindName, networkName, noRewards, pickCards, pickFor, quarterOf, reloadCards, reviewMonth, rewardCatIcon, rewardCatName, rotatingNow, usage } from "./cards.js";
+export { isBankAcct, kindIcon, kindName, noRewards };
 import { aiReady, aiSettings, askText, providerOf } from "../core/ai.js";
 import { askInline } from "../core/ask.js";
 
@@ -30,36 +30,53 @@ export function accountOptions(selected, { none = "（未指定）", extra = [],
   const groups = Object.entries(ACCT_KINDS).map(([k, [name]]) => { const cs = list.filter((c) => (c.kind || "credit") === k); return cs.length ? `<optgroup label="${esc(t(name))}">${cs.map((c) => opt(c.id, `${c.name}${c.last4 ? ` ••${c.last4}` : ""}`)).join("")}</optgroup>` : ""; }).join("");
   return `${none != null ? opt("", t(none)) : ""}${groups}${extra.map(([v, l]) => opt(v, t(l))).join("")}`;
 }
-/** 记花费的「用的哪张卡」：selected 为空时默认选上次用的 */
+/* 付款方式（迁移 040 起全站统一）：登记过的卡 / 账户 / 礼品卡存 id（card_id / pay_card_id），其余存文字（method / autopay_method）：
+ * 现金、支票（纸质）、礼品卡（没登记的）、其他（手填）。电子钱包（PayPal / Venmo / 支付宝 / 微信）按一张 kind = wallet 的卡登记，不另设选项。 */
+const CASH = "现金", CHECK = "支票", GIFT = "礼品卡", OTHER = "其他";
+/** 下拉里卡 / 账户之后的固定选项 [value, label]；记花费的紧凑下拉没有手填框，「其他」直接存“其他” */
+export const PAY_EXTRA = [["cash", "现金"], ["check", "纸质支票"], ["giftcard", "礼品卡（没登记的）"], ["other", "其他（手填）"]];
+export const SPEND_EXTRA = [["cash", "现金"], ["check", "纸质支票"], ["giftcard", "礼品卡（没登记的）"], ["other", "其他"]];
+/** 记花费的「怎么付的」：selected 为空时默认选上次用的（卡 id 或 cash / check…） */
 export function cardOptions(selected, { withNone = true } = {}) {
   const sel = selected === undefined ? lastCard() : selected || "";
-  return accountOptions(sel, { none: withNone ? "（没记哪张卡）" : null });
+  return accountOptions(sel, { none: withNone ? "（没记怎么付）" : null, extra: SPEND_EXTRA });
 }
-export const cardSelectHtml = (name, selected, attrs = "") => (state.billsEnabled && state.cards.some((c) => c.active !== false) ? `<select name="${name}" aria-label="${esc(t("用的哪张卡"))}" ${attrs}>${cardOptions(selected)}</select>` : "");
-/* 账单 / 缴费记录的付款账户：卡或账户存 id（pay_card_id / card_id），现金和手填的说明存文字（autopay_method / method） */
-const CASH = "现金";
+/** 记一笔 / 采购已买到 / 录入购物 / 保养费用共用的紧凑下拉：没登记卡也有现金 / 支票 / 礼品卡可选 */
+export const cardSelectHtml = (name, selected, attrs = "") => (state.billsEnabled ? `<select name="${name}" aria-label="${esc(t("怎么付的"))}" ${attrs}>${cardOptions(selected)}</select>` : "");
 export const isCashText = (m) => m === CASH || /^cash$/i.test(m || "");
-/** 下拉的当前值：卡 id / "cash" / "other" / "" */
-export const payAcctValue = (cardId, text) => cardId || (isCashText(text) ? "cash" : text ? "other" : "");
+const isCheckText = (m) => m === CHECK || m === "纸质支票" || /^(paper )?che(ck|que)$/i.test(m || "");
+const isGiftText = (m) => m === GIFT || /^gift ?card$/i.test(m || "");
+/** 下拉的当前值：卡 id / "cash" / "check" / "giftcard" / "other" / "" */
+export const payAcctValue = (cardId, text) => cardId || (isCashText(text) ? "cash" : isCheckText(text) ? "check" : isGiftText(text) ? "giftcard" : text ? "other" : "");
 /** 下拉选的值 + 手填说明 → { card_id, method }；选了卡时 method 记成卡名（导出 / 旧版本显示用） */
 export function resolvePayAccount(value, text) {
   if (value === "cash") return { card_id: null, method: CASH };
-  if (value === "check") return { card_id: null, method: "支票" };
-  if (value === "other" || !value) return { card_id: null, method: (text || "").trim().slice(0, 40) || null };
+  if (value === "check") return { card_id: null, method: CHECK };
+  if (value === "giftcard") return { card_id: null, method: GIFT };
+  if (value === "other" || !value) return { card_id: null, method: (text || "").trim().slice(0, 40) || (value === "other" ? OTHER : null) };
   const c = acctById(value); return c ? { card_id: c.id, method: `${c.name}${c.last4 ? ` ••${c.last4}` : ""}`.slice(0, 40) } : { card_id: null, method: (text || "").trim().slice(0, 40) || null };
+}
+/** 花费（purchases）上的付款字段：刷卡记 card_id、method 留空（显示时按卡现在的名字）；其余记 method。
+ * 旧库没执行迁移 033 / 040 时，没选过就不带这个字段，照样能存；old = 正在编辑的那笔（它原来有的字段要清掉） */
+export function purchasePayFields(value, old = null) {
+  const r = resolvePayAccount(value, "");
+  const out = {};
+  if (r.card_id || old?.card_id) out.card_id = r.card_id;
+  if ((r.method && !r.card_id) || old?.method) out.method = r.card_id ? null : r.method;
+  return out;
 }
 /** 账单 / 缴费记录上显示的付款账户：有卡就按卡现在的名字，否则按文字 */
 export const payAcctLabel = (cardId, text) => { const c = acctById(cardId); return c ? acctLabel(c) : text ? t(text) : ""; };
 export const billPayLabel = (b) => payAcctLabel(b.pay_card_id, b.autopay_method);
 export const paymentPayLabel = (p) => payAcctLabel(p.card_id, p.method);
 /** 付款账户下拉里「其他（手填）」对应的说明框：选了其他才显示 */
-export const payAcctSelectHtml = (name, value, { extra = [["cash", "现金"], ["other", "其他（手填）"]], none = "（未指定）", exclude = "" } = {}) => `<select name="${name}" data-pay-acct>${accountOptions(value, { none, extra, exclude })}</select>`;
+export const payAcctSelectHtml = (name, value, { extra = PAY_EXTRA, none = "（未指定）", exclude = "" } = {}) => `<select name="${name}" data-pay-acct>${accountOptions(value, { none, extra, exclude })}</select>`;
 
 /* ───────────── 页面 ───────────── */
 export function viewCards() {
   const id = state.route.q.get("card");
   if (id) return cardForm(id);
-  const live = state.cards.filter((c) => c.active !== false), cards = live.filter((c) => !isBankAcct(c)), banks = live.filter(isBankAcct), off = state.cards.filter((c) => c.active === false);
+  const live = state.cards.filter((c) => c.active !== false), cards = live.filter((c) => !noRewards(c)), banks = live.filter(noRewards), off = state.cards.filter((c) => c.active === false);
   const addChips = `<div class="acct-add">${Object.entries(ACCT_KINDS).map(([k, [name, icon]]) => `<a class="chip" href="${cardHref("new")}&kind=${k}">＋ ${icon} ${esc(t(name))}</a>`).join("")}</div>`;
   return `<section class="section">
     <div class="section-head"><h2>${t("用卡")}</h2><p>${t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。银行账户也记在这里，账单扣款、缴费记录能直接选。")}</p>
@@ -68,7 +85,7 @@ export function viewCards() {
     ${cards.length ? reviewHtml() : ""}
     ${cards.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("我的卡")}</h2><p>${t("{n} 张在用", { n: cards.length })}${catalogAge() > 90 ? ` · <span class="bank-dup">${t("目录更新于 {d}，可能过期，返现规则以发卡行为准", { d: D().AS_OF })}</span>` : ""}</p></div>
       <div class="panel"><ul class="restock-list card-list">${cards.map(cardRow).join("")}</ul></div>` : live.length ? "" : emptyHtml()}
-    ${banks.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("银行账户")}</h2><p>${t("支票 / 储蓄账户：账单自动扣款、缴费记录、信用卡还款从哪扣")}</p></div>
+    ${banks.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("银行账户与礼品卡")}</h2><p>${t("支票 / 储蓄账户：账单自动扣款、缴费记录、信用卡还款从哪扣；礼品卡：花费记到它名下，自动算余额")}</p></div>
       <div class="panel"><ul class="restock-list card-list">${banks.map(cardRow).join("")}</ul></div>` : ""}
     ${addChips}
     ${off.length ? `<details class="ref-panel panel" style="margin-top:10px"><summary><b>${t("停用的卡")}</b><small>${t("{n} 张", { n: off.length })}</small><span class="mch" aria-hidden="true">›</span></summary><ul class="restock-list card-list ref-body">${off.map(cardRow).join("")}</ul></details>` : ""}
@@ -78,11 +95,11 @@ export function viewCards() {
 const emptyHtml = () => `<div class="panel empty"><strong>${t("还没有卡")}</strong>${t("从内置目录选一张常见卡，填上末四位、到期月、还款日就行；不在目录里的手填规则。")}<p><a class="btn btn-primary" href="${cardHref("new")}">${t("添加第一张卡")}</a></p></div>`;
 
 function cardRow(c) {
-  if (isBankAcct(c)) {   // 银行账户：没有返现 / 到期，只看哪些账单从这里扣、记了多少笔
-    const bills = state.billsEnriched.filter((b) => b.pay_card_id === c.id && b.active), n = state.purchases.filter((p) => p.card_id === c.id).length;
-    return `<li class="card-row ${c.active === false ? "inactive" : ""}"><span class="card-net net-bank" aria-hidden="true">${c.kind === "savings" ? t("储蓄") : t("支票")}</span>
+  if (noRewards(c)) {   // 银行账户 / 礼品卡：没有返现 / 到期，只看哪些账单从这里扣、记了多少笔；礼品卡再显示余额
+    const bills = state.billsEnriched.filter((b) => b.pay_card_id === c.id && b.active), n = state.purchases.filter((p) => p.card_id === c.id).length, gb = giftBalance(c, state.purchases);
+    return `<li class="card-row ${c.active === false ? "inactive" : ""}"><span class="card-net net-bank" aria-hidden="true">${c.kind === "gift" ? t("礼品") : c.kind === "savings" ? t("储蓄") : t("支票")}</span>
       <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">••${d(c.last4)}</span>` : ""}
-        <small>${[c.issuer, holderName(c), bills.length ? t("{n} 条账单从这里扣：{names}", { n: bills.length, names: bills.slice(0, 3).map((b) => b.name).join("、") + (bills.length > 3 ? "…" : "") }) : t("还没有账单从这里扣"), n ? t("{n} 笔花费", { n }) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
+        <small>${[c.issuer, holderName(c), gb != null ? (gb <= 0 ? t("已用完") : t("余额约 {m}", { m: money(gb) })) : null, bills.length ? t("{n} 条账单从这里扣：{names}", { n: bills.length, names: bills.slice(0, 3).map((b) => b.name).join("、") + (bills.length > 3 ? "…" : "") }) : t("还没有账单从这里扣"), n ? t("{n} 笔花费", { n }) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
       <a class="btn btn-sm btn-ghost" href="${cardHref(c.id)}">${t("编辑")}</a></li>`;
   }
   const ed = expDays(c), fd = feeDays(c), rot = rotatingNow(c), bl = bonusLeft(c), rw = c.rewards || {};
@@ -169,7 +186,7 @@ function cardForm(id) {
   if (isNew && qKind && ACCT_KINDS[qKind] && !state.cardDraft) state.cardDraft = { name: "", issuer: "", network: qKind === "credit" || qKind === "debit" ? "visa" : "other", kind: qKind, annual_fee: 0, active: true, rewards: { base: 0, cats: {}, caps: {}, merchants: {}, point_value: 1, foreign_fee: 0, has_rotating: false, rotating: [] }, credits: [] };
   if (!isNew && !c) return `<section class="section"><div class="panel empty"><strong>${t("找不到这张卡")}</strong><p><a class="btn" href="${CARDS_HREF()}">${t("回用卡")}</a></p></div></section>`;
   const v = c || state.cardDraft || { name: "", issuer: "", network: "visa", kind: "credit", annual_fee: 0, active: true, rewards: { base: 1, cats: {}, caps: {}, merchants: {}, point_value: 1, foreign_fee: 0, has_rotating: false, rotating: [] }, credits: [] };
-  const kind = v.kind || "credit", bank = kind === "checking" || kind === "savings";
+  const kind = v.kind || "credit", bank = noRewards({ kind });   // 银行账户 / 礼品卡：精简表单
   const only = (ks) => `data-kind="${ks}" ${ks.split(" ").includes(kind) ? "" : "hidden"}`;   // 只有这些种类才显示的字段 / 分区（换种类时 main.js 按 data-kind 切换）
   const linkedBill = v.bill_id ? state.bills.find((x) => x.id === v.bill_id) : null;
   const rw = v.rewards || {}, q = quarterOf(), rot = (rw.rotating || []).find((x) => x.from === q.from) || { from: q.from, to: q.to, cats: [], rate: 5, activated: false };
@@ -195,6 +212,7 @@ function cardForm(id) {
         <label>${t("发卡行 / 银行")}<input name="issuer" maxlength="40" value="${d(v.issuer)}"></label>
         <label ${only("credit debit")}>${t("网络")}<select name="network">${Object.entries(D().NETWORKS).map(([k, n]) => opt(k, t(n), (v.network || "visa") === k)).join("")}</select><small>${t("Costco 这类只收某个网络的商家，推荐时会用到")}</small></label>
         <label>${t("末四位")}<input name="last4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" value="${d(v.last4)}" placeholder="1234"><small>${t("只记后 4 位，银行导入时靠它认账户")}</small></label>
+        <label ${only("gift")}>${t("面值 / 充值总额（{cur}）", { cur: cur() })}<input name="balance" type="number" min="0" step="0.01" inputmode="decimal" value="${NUMF(v.balance)}"><small>${t("余额 = 它减去记在这张卡上的花费；用完了把「在用」取消")}</small></label>
         <label>${t("持卡人 / 户主")}<select name="holder_user_id">${opt("", t("共用"), !v.holder_user_id)}${members.map((m) => opt(m.user_id, m.display_name || t("家人"), v.holder_user_id === m.user_id)).join("")}</select></label>
         <label ${only("credit debit")}>${t("到期年月")}<input name="expires_on" type="month" value="${d((v.expires_on || "").slice(0, 7))}"></label>
         <label>${t("开卡 / 开户日期")}<input name="opened_on" type="date" value="${d(v.opened_on)}"></label>
@@ -270,7 +288,7 @@ export async function saveCardForm(f) {
   let bill_id = fe.bill_id.value || null;
   const payFrom = fe.pay_from?.value || null;   // 信用卡从哪个账户还款：写到关联的还款账单上
   const card = { id: old?.id, name, issuer: fe.issuer.value.trim() || null, network: fe.network.value, kind: fe.kind.value, last4: /^\d{4}$/.test(fe.last4.value.trim()) ? fe.last4.value.trim() : null, holder_user_id: fe.holder_user_id.value || null,
-    expires_on: fe.expires_on.value ? `${fe.expires_on.value}-01` : null, opened_on: fe.opened_on.value || null, annual_fee: n("annual_fee") ?? 0, fee_month: n("fee_month"), credit_limit: n("credit_limit"), statement_day: n("statement_day"), due_day: n("due_day"), autopay: fe.autopay.checked,
+    expires_on: fe.expires_on.value ? `${fe.expires_on.value}-01` : null, opened_on: fe.opened_on.value || null, annual_fee: n("annual_fee") ?? 0, balance: fe.kind.value === "gift" ? n("balance") : null, fee_month: n("fee_month"), credit_limit: n("credit_limit"), statement_day: n("statement_day"), due_day: n("due_day"), autopay: fe.autopay.checked,
     bill_id: bill_id === "__new" ? null : bill_id, catalog_id: fe.catalog_id.value || null, rewards, bonus, credits, rules_as_of: fe.rules_as_of.value || (old?.rules_as_of ?? todayISO()), active: fe.active.checked, notes: fe.notes.value.trim() || null };
   const btn = f.querySelector('button[type="submit"]'); btn.disabled = true; err.textContent = "";
   try {

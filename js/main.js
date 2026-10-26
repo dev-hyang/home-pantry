@@ -17,7 +17,7 @@ import { initSwipeRows } from "./swipe-rows.js";
 import { initBankImport } from "./stats/bank-import.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
-import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml, rememberCard, saveCardForm, viewCards } from "./bills/cards-views.js";
+import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml, purchasePayFields, rememberCard, resolvePayAccount, saveCardForm, viewCards } from "./bills/cards-views.js";
 import "./bills/cards.js";   // 注册信用卡提醒
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
@@ -397,7 +397,7 @@ initCompactFilters({ root: main, ui: uiKind });
 miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
 initSwipeRows({ kinds: ["budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase"], del: () => t("删除"), release: () => t("松手删除") });   // 行记录左滑删除（js/swipe-rows.js）
 /* 云端报错翻译：数据库还没升级到某个迁移时，PostgREST 只会说「找不到某列 / 某表」，这里换成告诉你该执行哪个迁移文件 */
-const MIGRATION_HINTS = [[/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/pay_card_id|bill_payments.*card_id|medical_payments.*card_id|cards_kind_check/i, "036_pay_accounts.sql", "付款账户（银行账户、账单扣款 / 缴费用的卡）"], [/house_profiles.*ownership|ownership.*house_profiles/i, "038_house_ownership.sql", "房屋资料：产权、税务与车位"], [/assets.*units|units.*assets/i, "039_asset_units.sql", "固定装置的位置与数量"], [/relation .*\bcards\b|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
+const MIGRATION_HINTS = [[/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/pay_card_id|bill_payments.*card_id|medical_payments.*card_id|cards_kind_check/i, "036_pay_accounts.sql", "付款账户（银行账户、账单扣款 / 缴费用的卡）"], [/house_profiles.*ownership|ownership.*house_profiles/i, "038_house_ownership.sql", "房屋资料：产权、税务与车位"], [/assets.*\bunits\b|\bunits\b.*assets/i, "039_asset_units.sql", "固定装置的位置与数量"], [/purchases.*\bmethod\b|\bmethod\b.*purchases|cards.*\bbalance\b|\bgift\b/i, "040_purchase_method.sql", "付款方式（现金 / 支票 / 礼品卡）与礼品卡"], [/relation .*\bcards\b|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
 function friendlyErr(msg) {
   const m = String(msg || "");
   for (const [re, file, what] of MIGRATION_HINTS) if (re.test(m)) return t("还没执行数据库迁移 {file}（{what}）：先在 Supabase → SQL Editor 里执行 supabase/migrations/{file}，再试一次。", { file, what });
@@ -541,8 +541,8 @@ main.addEventListener("change", async (e) => {
     const b = state.bills.find((x) => x.id === e.target.dataset.billPay);
     if (!b) return;
     const [mode, acct] = e.target.value.split(":"), autopay = mode === "auto";
-    const patch = { ...b, autopay, pay_channel: autopay ? "autopay" : (b.pay_channel === "autopay" ? "online" : b.pay_channel),
-      pay_card_id: acct && acct !== "cash" && acct !== "other" ? acct : null, autopay_method: acct === "cash" ? "现金" : acct === "other" ? b.autopay_method : null };
+    const pay = acct ? resolvePayAccount(acct, b.autopay_method) : { card_id: null, method: null };   // 卡 / 账户 / 现金 / 纸质支票 / 礼品卡 / 其他（保留原说明）
+    const patch = { ...b, autopay, pay_channel: autopay ? "autopay" : (b.pay_channel === "autopay" ? "online" : b.pay_channel), pay_card_id: pay.card_id, autopay_method: pay.card_id ? null : pay.method };
     e.target.disabled = true;
     try { await Store.saveBill(patch); toast(autopay ? t("已标为自动扣款，到期前会提醒核对") : t("已改为手动缴费，到期前会提醒缴费")); }
     catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
@@ -652,7 +652,7 @@ main.addEventListener("submit", async (e) => {
       const e2 = f.elements, name = e2.name.value.trim(), amount = e2.amount.value === "" ? null : Math.round(num(e2.amount.value) * 100) / 100;   // 负数 = 退款 / 报销，照存
       if (!name) return toast(t("请填写名称"));
       const store = cleanStore(e2.store.value), day = e2.date.value, patch = { name, category: e2.category.value, amount, store };
-      if (e2.card_id) patch.card_id = e2.card_id.value || null;
+      if (e2.card_id) Object.assign(patch, purchasePayFields(e2.card_id.value, state.purchases.find((x) => x.id === f.dataset.id)));   // 卡 → card_id；现金 / 支票 / 礼品卡 / 其他 → method
       if (day) patch.purchased_at = new Date(`${day}T12:00:00`).toISOString();
       await Store.updatePurchase(f.dataset.id, patch);
       const bp = e2.card_id && state.billPayments.find((x) => x.purchase_id === f.dataset.id);   // 这笔是账单缴费记的花费：改了卡，缴费记录同步
@@ -734,9 +734,9 @@ main.addEventListener("submit", async (e) => {
       const day = e2.date.value || new Date().toISOString().slice(0, 10);
       const store = cleanStore(e2.store.value);
       if (store) rememberStore(store);
-      const cardId = e2.card_id?.value || ""; rememberCard(cardId);
+      const payV = e2.card_id?.value || ""; rememberCard(payV);
       await Store.addPurchase({ item_id: null, name, category: e2.category.value, quantity: null, unit: null, store,
-        amount: Math.round(signed * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString(), ...(cardId ? { card_id: cardId } : {}) });
+        amount: Math.round(signed * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString(), ...purchasePayFields(payV) });
       toast(t("已记录 {name} {m}", { name, m: money(signed) })); return refresh();
     }
     if (f.id === "shopForm") {
@@ -1194,10 +1194,10 @@ export async function markBought(id) {
   const item = state.items.find((i) => i.id === s.item_id);
   const qty = num(s.quantity, 1), now = new Date().toISOString();
   await Store.saveShopping({ id, status: "bought", bought_at: now, amount, claimed_by_name: s.claimed_by_name || state.displayName });
-  const cardId = document.querySelector(`[data-card-for="${CSS.escape(id)}"]`)?.value || ""; if (document.querySelector(`[data-card-for="${CSS.escape(id)}"]`)) rememberCard(cardId);
+  const paySel = document.querySelector(`[data-card-for="${CSS.escape(id)}"]`), payV = paySel?.value || ""; if (paySel) rememberCard(payV);
   await Store.addPurchase({
     item_id: item?.id || null, name: s.name, category: item?.category || s.category || "other",
-    quantity: qty, unit: s.unit || item?.unit || null, amount, currency: Units.region.currency, purchased_at: now, store, ...(cardId ? { card_id: cardId } : {}),
+    quantity: qty, unit: s.unit || item?.unit || null, amount, currency: Units.region.currency, purchased_at: now, store, ...purchasePayFields(payV),
   });
   if (item) {
     if (!s.unit || s.unit === item.unit) {

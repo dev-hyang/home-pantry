@@ -12,7 +12,7 @@ import { medicalVirtuals } from "../bills/medical.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
 import { bankImportTab } from "./bank-import.js";
-import { cardHintHtml, cardOptions, cardSelectHtml } from "../bills/cards-views.js";
+import { cardHintHtml, cardOptions, cardSelectHtml, payAcctValue, paymentPayLabel } from "../bills/cards-views.js";
 
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
@@ -515,7 +515,7 @@ function spendRow(p) {
   const sel = state.spendSel && !p.virtual ? `<input type="checkbox" class="sel" data-sel="${p.id}" aria-label="${esc(t("选中 {name}", { name: p.name }))}" ${state.spendSel.has(p.id) ? "checked" : ""}>` : "";
   return `<li data-swipe-del="purchase">${sel}
     <span class="badge" style="background:var(--surface-2)">${esc(d.toLocaleDateString(locale(), sameYear ? { month: "numeric", day: "numeric" } : { year: "2-digit", month: "numeric", day: "numeric" }))}</span>
-    <div class="grow"><span class="name">${title}</span><small>${esc(`${cat.icon || ""} ${t(cat.name)}`.trim())}${storeOf(p) ? `，${esc(storeOf(p))}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
+    <div class="grow"><span class="name">${title}</span><small>${esc(`${cat.icon || ""} ${t(cat.name)}`.trim())}${storeOf(p) ? `，${esc(storeOf(p))}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${paymentPayLabel(p) ? `，${esc(paymentPayLabel(p))}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
     <b>${p.amount != null && num(p.amount) < 0 ? `<span class="badge b-ok">${t("退款")}</span> ` : ""}${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>
     ${p.virtual ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button>`}</li>`;
 }
@@ -529,7 +529,7 @@ function spendEditRow(p) {
     <label>${t("金额（{cur}）", { cur: p.currency || Units.region.currency })}<input name="amount" type="number" step="0.01" inputmode="decimal" value="${p.amount != null ? num(p.amount).toFixed(2) : ""}"><small>${t("退款 / 报销填负数")}</small></label>
     <label>${t("商店 / 收款方")}<input name="store" maxlength="40" list="storeList" value="${esc(p.store || "")}"></label>
     <label>${t("日期")}<input name="date" type="date" max="${new Date().toISOString().slice(0, 10)}" value="${esc(day)}"></label>
-    ${state.cards.length ? `<label>${t("用的哪张卡")}<select name="card_id">${cardOptions(p.card_id || "")}</select></label>` : ""}
+    ${state.billsEnabled ? `<label>${t("怎么付的")}<select name="card_id">${cardOptions(payAcctValue(p.card_id, p.method))}</select></label>` : ""}
     <div class="form-actions span-2"><button type="submit" class="btn btn-primary btn-sm">${t("保存修改")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-edit-cancel">${t("取消")}</button></div></form></li>`;
 }
 /** 明细页顶部的筛选条：当前生效的筛选一项一个标签，点标签去掉那一项，“清除全部”一键回到全部。从图表 / 名称钻取进来时靠它看清“现在看的是什么” */
@@ -746,10 +746,10 @@ export async function exportAnnual(kind) {
   const fileBase = `${hh.replace(/[\\/:*?"<>|（）()\s]/g, "")}-${year}`;
 
   if (kind === "detail") {
-    const rows = [[t("日期"), t("物品"), t("分类"), t("商店 / 收款方"), t("数量"), t("单位"), t("金额"), t("货币"), t("关联库存")]];
+    const rows = [[t("日期"), t("物品"), t("分类"), t("商店 / 收款方"), t("数量"), t("单位"), t("金额"), t("货币"), t("付款方式"), t("关联库存")]];
     for (const p of list) {
       rows.push([ymd(p.purchased_at), p.name, catName(p.category), storeOf(p), p.quantity == null ? "" : num(p.quantity), p.unit ? t(p.unit) : "",
-        p.amount == null ? "" : num(p.amount), p.currency || "", p.item_id ? t("是") : t("否")]);
+        p.amount == null ? "" : num(p.amount), p.currency || "", paymentPayLabel(p), p.item_id ? t("是") : t("否")]);
     }
     download(`${fileBase}-${t("采购明细")}.csv`, toCsv(rows));
     return toast(t("已导出 {n} 笔明细", { n: list.length }));

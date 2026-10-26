@@ -16,7 +16,7 @@ import { medRow } from "./medical-views.js";
 import { RECURRING_TABS, activeTab } from "../core/tabs.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
-import { acctById, acctLabel, accountOptions, billPayLabel, payAcctValue, paymentPayLabel, resolvePayAccount } from "./cards-views.js";
+import { PAY_EXTRA, acctById, acctLabel, accountOptions, billPayLabel, payAcctValue, paymentPayLabel, resolvePayAccount } from "./cards-views.js";
 import { askInline } from "../core/ask.js";
 import { billAsk } from "./logic.js";
 
@@ -192,7 +192,7 @@ function payModeSelect(b) {
   const o = (v, l) => `<option value="${v}" ${v === cur ? "selected" : ""}>${esc(l)}</option>`;
   const legacy = b.autopay_method && !b.pay_card_id && payAcctValue(null, b.autopay_method) === "other" ? o(`${b.autopay ? "auto" : "manual"}:other`, `${b.autopay ? t("自动扣款") : t("手动")} · ${b.autopay_method}`) : "";
   return `<select class="bill-pay-sel" data-bill-pay="${b.id}" aria-label="${esc(t("怎么付"))}" title="${esc(t("自动扣款从哪张卡 / 账户扣；手动缴费时记缴费默认用它"))}">
-    <optgroup label="${esc(t("手动缴费"))}">${o("manual:", t("手动 · 未指定账户"))}${o("manual:cash", t("手动 · 现金"))}${accts.map((c) => o(`manual:${c.id}`, `${t("手动")} · ${acctLabel(c)}`)).join("")}</optgroup>
+    <optgroup label="${esc(t("手动缴费"))}">${o("manual:", t("手动 · 未指定账户"))}${o("manual:cash", t("手动 · 现金"))}${o("manual:check", t("手动 · 纸质支票"))}${o("manual:giftcard", t("手动 · 礼品卡"))}${accts.map((c) => o(`manual:${c.id}`, `${t("手动")} · ${acctLabel(c)}`)).join("")}</optgroup>
     ${accts.length ? `<optgroup label="${esc(t("自动扣款"))}">${accts.map((c) => o(`auto:${c.id}`, `${t("自动")} · ${acctLabel(c)}`)).join("")}</optgroup>` : `<optgroup label="${esc(t("自动扣款"))}">${o("auto:", t("自动 · 未指定账户"))}</optgroup>`}${legacy}${b.autopay && !b.pay_card_id && !legacy && !b.autopay_method ? o("auto:", t("自动 · 未指定账户")) : ""}</select>`;
 }
 export function viewBillsList() {
@@ -475,7 +475,7 @@ export function viewBillForm() {
         <fieldset data-sec="autopay" ${hide("autopay")}>
           <legend>${t("付款账户与自动扣款")}</legend>
           <div class="form-grid">
-            <label>${t("付款账户 / 卡")}<select name="pay_account" data-pay-acct>${accountOptions(payAcctValue(v.pay_card_id, v.autopay_method), { none: "（未指定）", extra: [["cash", "现金"], ["other", "其他（手填）"]] })}</select><small>${t("自动扣款从它扣；手动缴费时记缴费也默认用它。卡和银行账户在 账单 → 用卡 里添加。")}</small></label>
+            <label>${t("付款账户 / 卡")}<select name="pay_account" data-pay-acct>${accountOptions(payAcctValue(v.pay_card_id, v.autopay_method), { none: "（未指定）", extra: PAY_EXTRA })}</select><small>${t("自动扣款从它扣；手动缴费时记缴费也默认用它。卡和银行账户在 账单 → 用卡 里添加。")}</small></label>
             <label data-pay-other ${payAcctValue(v.pay_card_id, v.autopay_method) === "other" ? "" : "hidden"}>${t("账户说明")}<input name="autopay_method" maxlength="40" placeholder="${t("例如：公司代扣 / 支票")}" value="${d(v.autopay_method)}"></label>
             <label class="check-inline span-2"><input type="checkbox" name="autopay" ${v.autopay ? "checked" : ""}><span>${t("已设置自动扣款（到期前后提醒核对，而不是提醒缴费）")}</span></label>
             <label data-pay-exp ${payAcct ? "hidden" : ""}>${t("扣款卡有效期")}<input name="autopay_card_expires" type="month" value="${d(v.autopay_card_expires)}"><small>${t("到期前 45 天提醒换卡（选了卡就按卡的到期年月，不用填）")}</small></label>
@@ -566,7 +566,7 @@ function paySection(b, focus, edit = null) {
         <label>${t("对应到期日")}<input name="due_on" type="date" value="${esc(edit ? edit.due_on || "" : b.next_due_on || "")}"></label>
         <label>${t("金额（{cur}）", { cur: b.currency || Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? (edit.amount != null ? num(edit.amount).toFixed(2) : "") : b.est != null ? num(b.est).toFixed(2) : ""}"></label>
         <label>${t("状态")}<select name="status"><option value="paid" ${edit?.status === "paid" ? "selected" : ""}>${t("已缴费")}</option><option value="verified" ${edit ? (edit.status === "verified" ? "selected" : "") : b.autopay ? "selected" : ""}>${t("已核对（自动扣款）")}</option><option value="skipped" ${edit?.status === "skipped" ? "selected" : ""}>${t("跳过这期")}</option></select></label>
-        <label>${t("用哪张卡 / 账户")}<select name="pay_account" data-pay-acct>${accountOptions(payVal, { none: "（未指定）", extra: [["cash", "现金"], ["check", "支票"], ["other", "其他（手填）"]] })}</select></label>
+        <label>${t("用哪张卡 / 账户")}<select name="pay_account" data-pay-acct>${accountOptions(payVal, { none: "（未指定）", extra: PAY_EXTRA })}</select></label>
         <label data-pay-other ${payVal === "other" ? "" : "hidden"}>${t("方式说明")}<input name="method" maxlength="40" placeholder="${t("例如：网银 / 支票 #1023 / 自动扣款")}" value="${esc(edit ? edit.method || "" : b.autopay_method || "")}"></label>
         <label>${t("收款方")}<input name="store" maxlength="40" value="${esc(edit ? (linked?.store || b.payee || b.name || "") : b.payee || b.name || "")}" placeholder="${esc(b.payee || b.name)}"><small>${edit ? t("只改这一条；中途换了收款方，旧记录保留当时的名字。") : t("没填就用账单的收款方。")}</small></label>
         <label>${t("确认号")}<input name="confirmation_ref" maxlength="60" value="${esc(edit?.confirmation_ref || "")}"></label>

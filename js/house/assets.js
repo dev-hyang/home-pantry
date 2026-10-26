@@ -17,6 +17,7 @@ import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from
 import { dealHref, dealTasks, openVehicleDeal } from "./deals.js";
 import { autofillBar } from "../core/autofill.js";
 import { storeDatalist } from "../stats/views.js";
+import { cardSelectHtml, payAcctValue, purchasePayFields } from "../bills/cards-views.js";
 import { propertyName } from "../core/alerts.js";
 import { activeProperties } from "../core/lifecycle.js";
 
@@ -800,6 +801,7 @@ function maintSection(a, focusLog) {
               : `<label class="inspect-only">${t("检查结论")}<select name="result">${Object.entries(R).map(([k, n]) => `<option value="${k}" ${k === e.result ? "selected" : ""}>${t(n)}</option>`).join("")}</select><small>${t("“需保养 / 维修 / 更换”会提醒到记下一条为止")}</small></label>`}
         <label>${t("花费（{cur}，可不填）", { cur: Units.region.currency })}<input name="cost" type="number" inputmode="decimal" min="0" step="0.01" value="${e.cost ?? ""}"></label>
         <label>${t("收款方")}<input name="vendor" maxlength="40" list="storeList" value="${esc(e.vendor || "")}" placeholder="${t("维修商 / 师傅 / 商店，自己做可不填")}"></label>
+        ${(() => { const pur = e.purchase_id ? state.purchases.find((x) => x.id === e.purchase_id) : null, sel = cardSelectHtml("pay", pur ? payAcctValue(pur.card_id, pur.method) : undefined); return sel ? `<label>${t("怎么付的")}${sel}</label>` : ""; })()}
         <label class="span-2 check-inline"><input type="checkbox" name="diy" ${e.diy ? "checked" : ""}><span>${t("自己动手")}</span></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(e.notes || "")}" placeholder="${t("换了什么、师傅怎么说…")}"></label>
       </div>
@@ -911,9 +913,10 @@ export async function saveMaintForm(f) {
   const itemName = service_item ? t(V().serviceItem(service_item)?.name || service_item) : t(H().MAINT_KINDS[kind]);
   const editing = fe.log_id.value ? state.maintLogs.find((x) => x.id === fe.log_id.value) : null;
   let purchase_id = editing?.purchase_id || null;
-  const spend = { name: `${asset.name} · ${itemName}`, amount: cost, store: vendor, purchased_at: new Date(`${done_on}T12:00:00`).toISOString() };
+  const oldPur = purchase_id ? state.purchases.find((x) => x.id === purchase_id) : null;
+  const spend = { name: `${asset.name} · ${itemName}`, amount: cost, store: vendor, purchased_at: new Date(`${done_on}T12:00:00`).toISOString(), ...(fe.pay ? purchasePayFields(fe.pay.value, oldPur) : {}) };
   if (cost != null && cost > 0) {
-    if (purchase_id && state.purchases.some((x) => x.id === purchase_id)) await Store.updatePurchase(purchase_id, spend);   // 编辑：同步改关联的花费
+    if (oldPur) await Store.updatePurchase(purchase_id, spend);   // 编辑：同步改关联的花费（含怎么付的）
     else purchase_id = await Store.addPurchase({ item_id: null, category: veh ? VEHICLE_CAT.id : MAINT_CAT.id, quantity: null, unit: null, currency, ...spend });
   } else if (purchase_id) { await Store.deletePurchase(purchase_id); purchase_id = null; }   // 编辑时把花费清空：关联的花费一起删
   const fields = { done_on, kind, cost, currency: cost != null ? currency : null, diy, vendor, notes: fe.notes.value.trim() || null, purchase_id, result, service_item, odometer };

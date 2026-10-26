@@ -12,10 +12,14 @@ import { memberName } from "../core/logic.js";
 
 const D = () => window.CARDS;
 /* 账户种类：信用卡 / 借记卡 / 电子钱包是「卡」，支票 / 储蓄是银行账户（迁移 036）。银行账户没有返现，不参与推荐，只用来记「从哪扣的款」 */
-export const ACCT_KINDS = { credit: ["信用卡", "💳"], debit: ["借记卡", "💳"], wallet: ["电子钱包", "📱"], checking: ["支票账户", "🏦"], savings: ["储蓄账户", "🏦"] };
+export const ACCT_KINDS = { credit: ["信用卡", "💳"], debit: ["借记卡", "💳"], wallet: ["电子钱包", "📱"], checking: ["支票账户", "🏦"], savings: ["储蓄账户", "🏦"], gift: ["礼品卡", "🎁"] };   // 电子钱包 = PayPal / Venmo / 支付宝 / 微信这类，按一张卡登记；礼品卡见迁移 040
 export const kindName = (k) => t((ACCT_KINDS[k] || ACCT_KINDS.credit)[0]);
 export const kindIcon = (k) => (ACCT_KINDS[k] || ACCT_KINDS.credit)[1];
 export const isBankAcct = (c) => !!c && (c.kind === "checking" || c.kind === "savings");
+/** 没有返现、不参与推荐的：银行账户和礼品卡 */
+export const noRewards = (c) => !!c && (isBankAcct(c) || c.kind === "gift");
+/** 礼品卡余额：面值 / 充值总额 − 记在这张卡上的花费（没填面值返回 null） */
+export const giftBalance = (c, purchases) => (c?.kind === "gift" && c.balance != null ? r2(num(c.balance) - purchases.filter((p) => p.card_id === c.id && p.amount != null && !p.virtual).reduce((s, p) => s + num(p.amount), 0)) : null);
 export const CARDS_HREF = () => href("bills", "cards");
 export const cardHref = (id) => `${CARDS_HREF()}?card=${id || "new"}`;
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -123,7 +127,7 @@ export function evalCard(c, { rewardCat = "other", merchant = "", amount = null,
 }
 /** 输入 { rewardCat, merchant, amount, abroad, day } → 每张在用的卡的评估，按有效返现率排序 */
 export function pickCards(ctx = {}) {
-  return state.cards.filter((x) => x.active !== false && !isBankAcct(x)).map((c) => evalCard(c, ctx))
+  return state.cards.filter((x) => x.active !== false && !noRewards(x)).map((c) => evalCard(c, ctx))
     .sort((a, b) => (a.excluded ? 1 : 0) - (b.excluded ? 1 : 0) || b.eff - a.eff);
 }
 /** 给花费分类 + 商店直接推荐（采购清单、补记花费用） */
@@ -134,7 +138,7 @@ export function reviewMonth(month) {
   const cards = state.cards.filter((c) => c.active !== false || state.purchases.some((p) => p.card_id === c.id));
   const list = state.purchases.filter((p) => !p.virtual && p.amount != null && num(p.amount) > 0 && String(p.purchased_at).slice(0, 7) === month && (!p.currency || p.currency === Units.region.currency));
   const per = new Map(), misses = []; let tagged = 0, untagged = 0, untaggedN = 0, earned = 0, optimal = 0;
-  const live = state.cards.filter((c) => c.active !== false && !isBankAcct(c));
+  const live = state.cards.filter((c) => c.active !== false && !noRewards(c));
   for (const p of list) {
     const card = p.card_id && cards.find((c) => c.id === p.card_id);
     if (!card) { untagged += num(p.amount); untaggedN++; continue; }
@@ -143,7 +147,7 @@ export function reviewMonth(month) {
     const cash = r2(num(p.amount) * got.rate / 100), bestCash = r2(num(p.amount) * Math.max(best.rate, got.rate) / 100);
     tagged += num(p.amount); earned += cash; optimal += bestCash;
     const row = per.get(card.id) || { card, spend: 0, cash: 0, n: 0 }; row.spend += num(p.amount); row.cash += cash; row.n++; per.set(card.id, row);
-    if (bestCash - cash >= 0.5 && !isBankAcct(card)) misses.push({ p, used: card, best: best.card, gain: r2(bestCash - cash), rate: got.rate, bestRate: best.rate });
+    if (bestCash - cash >= 0.5 && !noRewards(card)) misses.push({ p, used: card, best: best.card, gain: r2(bestCash - cash), rate: got.rate, bestRate: best.rate });
   }
   return { rows: [...per.values()].sort((a, b) => b.spend - a.spend).map((r) => ({ ...r, spend: r2(r.spend), cash: r2(r.cash) })), tagged: r2(tagged), untagged: r2(untagged), untaggedN, earned: r2(earned), optimal: r2(optimal), gap: r2(optimal - earned), misses: misses.sort((a, b) => b.gain - a.gain).slice(0, 8) };
 }
