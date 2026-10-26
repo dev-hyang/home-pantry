@@ -175,7 +175,7 @@ export function classifyWhy(row) {
 }
 
 /* ───────────── 把表格变成交易行 ───────────── */
-const S = { parts: [], auto: {}, account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "" };
+const S = { parts: [], auto: {}, account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "", batchAcct: "all", batchShow: 20 };   // batchAcct / batchShow：「最近导入」列表的账户筛选和已展开的条数（重画也不丢）
 const cur = () => S.currency || Units.region.currency;
 let askFn = askText;   // 测试时可替换
 export const _setAsk = (fn) => { askFn = fn || askText; };
@@ -432,11 +432,21 @@ const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 
     <li>${t("以前已经手动记过的花费（日期差 3 天内、金额一样）自动跳过，所以同一个文件导两次也不会重复。")}</li>
     <li>${t("导入错了可以整批撤销。银行的 CSV 格式很多，列认错了可以手动选；国内银行的 GBK 编码也认得。")}</li></ul></div>`;
 const batchRow = (b) => { const can = b.tagged || b.ids?.length; return `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${b.from ? `${esc(b.from)} → ${esc(b.to)} · ` : ""}${t("{n} 笔", { n: b.n ?? b.ids?.length ?? 0 })} · ${money(b.sum || 0)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}${can ? "" : ` · ${t("（早期批次，只留了汇总）")}`}</small></div>${can ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}?tab=records&batch=${esc(b.id)}">${t("查看 / 修改")}</a><button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}</li>`;};
+const batchAcctKey = (b) => (b.account ? `${b.account}${b.last4 ? ` ····${b.last4}` : ""}` : "");
 const batchesHtml = (batches) => {
-  if (!batches.length) return "";
   const lost = batches.filter((b) => !b.tagged && !b.ids?.length).length;   // 早期批次：没有批次标记、花费 id 列表也被丢掉了
-  const all = batches.slice().reverse(), head = all.slice(0, 10), rest = all.slice(10);   // 最近 10 批直接显示，更早的折叠起来（页面不变长，每批照样能查看 / 修改 / 撤销）
-  return `<section class="section"><div class="section-head"><h2>${t("最近导入")}</h2><p>${t("「查看 / 修改」打开这一批的明细，每一笔都能改分类、金额、商店或删掉；「撤销」整批删除。")}</p></div>${coverageHtml(batches)}<div class="panel" style="margin-top:10px">${lost ? `<div class="notice" role="status" style="margin-bottom:8px"><b>${t("有 {n} 批早期导入只留了汇总，不能查看 / 修改 / 撤销。", { n: lost })}</b><br><small>${t("这是迁移 034 之前导入的（那时只保留最近 6 批的明细）。先在 Supabase 执行 034_purchase_import_batch.sql，再点下面的按钮：按导入时间和笔数把它们的花费找回来、补上批次标记，之后和新的批次一样。笔数对不上的会跳过，不会乱标。")}</small><div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-bank-act="recover">${t("找回早期批次")}</button></div></div>` : ""}<ul class="restock-list bank-batches">${head.map(batchRow).join("")}</ul>${rest.length ? `<details class="more-batches" style="margin-top:8px"><summary>${t("更早的导入（{n} 批）", { n: rest.length })}</summary><ul class="restock-list bank-batches">${rest.map(batchRow).join("")}</ul></details>` : ""}</div></section>`;
+  const accts = [...new Set(batches.map(batchAcctKey).filter(Boolean))].sort(), hasNone = batches.some((b) => !batchAcctKey(b));
+  if (S.batchAcct !== "all" && S.batchAcct !== "__none__" && !accts.includes(S.batchAcct)) S.batchAcct = "all";
+  const all = batches.slice().reverse().filter((b) => S.batchAcct === "all" || (S.batchAcct === "__none__" ? !batchAcctKey(b) : batchAcctKey(b) === S.batchAcct));
+  const head = all.slice(0, S.batchShow), rest = all.length - head.length;   // 默认最多 20 批，点「再看 20 批」继续（账户下拉和展开条数记在 S 里，重画不会收回去）
+  const opt = (v, l) => `<option value="${esc(v)}" ${S.batchAcct === v ? "selected" : ""}>${esc(l)}</option>`;
+  const recover = `<p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("以前导入过、这里却没有的批次（记录丢了或迁移前导入的）：")}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="recover" style="margin-left:4px">${t("找回批次")}</button></p>`;
+  if (!batches.length) return `<section class="section"><div class="panel">${recover}</div></section>`;
+  return `<section class="section"><div class="section-head"><h2>${t("最近导入")}</h2><p>${t("「查看 / 修改」打开这一批的明细，每一笔都能改分类、金额、商店或删掉；「撤销」整批删除。")}</p></div>${coverageHtml(batches)}<div class="panel" style="margin-top:10px">${lost ? `<div class="notice" role="status" style="margin-bottom:8px"><b>${t("有 {n} 批早期导入只留了汇总，不能查看 / 修改 / 撤销。", { n: lost })}</b><br><small>${t("这是迁移 034 之前导入的（那时只保留最近 6 批的明细）。先在 Supabase 执行 034_purchase_import_batch.sql，再点下面的按钮：按导入时间和笔数把它们的花费找回来、补上批次标记，之后和新的批次一样。笔数对不上的会跳过，不会乱标。")}</small><div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-bank-act="recover">${t("找回早期批次")}</button></div></div>` : ""}
+    ${accts.length > 1 || hasNone ? `<div class="toolbar" style="margin-bottom:8px"><select data-bank-batch-acct aria-label="${esc(t("按账户筛选"))}">${opt("all", t("全部账户（{n} 批）", { n: batches.length }))}${accts.map((a) => opt(a, `🏦 ${a}`)).join("")}${hasNone ? opt("__none__", t("没记账户")) : ""}</select></div>` : ""}
+    <ul class="restock-list bank-batches">${head.map(batchRow).join("")}</ul>
+    ${rest ? `<div class="form-actions" style="justify-content:center;margin-top:8px"><button type="button" class="btn btn-ghost btn-sm" data-bank-act="batches-more">${t("再看 {n} 批（还有 {m} 批）", { n: Math.min(20, rest), m: rest })}</button></div>` : ""}
+    ${lost ? "" : recover}</div></section>`;
 };
 
 export function bankImportTab() { return `<section class="section" id="bankImport">${panelHtml()}</section>`; }
@@ -505,7 +515,18 @@ async function undo(batchId) {
 async function recoverBatches() {
   if (S.busy) return; S.busy = true; redraw();
   try {
-    const all = meta("_bank_batches", []) || [], lost = all.filter((b) => !b.tagged && !b.ids?.length && b.from && b.to);
+    let all = meta("_bank_batches", []) || [];
+    // 第一步：花费上有批次标记、但批次记录不在列表里的（导入时记录没存上、或列表被改坏）——按标记把批次记录重建出来
+    const tagged = await Store.listTaggedPurchases().catch((e) => { if (/import_batch/i.test(e.message || "")) return []; throw e; });
+    const known = new Set(all.map((b) => b.id)), groups = new Map();
+    for (const p of tagged) {
+      if (known.has(p.import_batch)) continue;
+      const g = groups.get(p.import_batch) || { n: 0, sum: 0, dates: [], at: p.created_at || "", card: p.card_id || "" };
+      g.n++; g.sum += num(p.amount) || 0; g.dates.push(String(p.purchased_at).slice(0, 10)); if ((p.created_at || "") > g.at) g.at = p.created_at; groups.set(p.import_batch, g);
+    }
+    const rebuilt = [...groups].map(([id, g]) => { g.dates.sort(); const card = g.card && (state.cards || []).find((c) => c.id === g.card); return { id, at: g.at || new Date().toISOString(), file: "", ids: [], tagged: true, sum: Math.round(g.sum * 100) / 100, n: g.n, account: card ? card.name : "", last4: card?.last4 || "", from: g.dates[0] || "", to: g.dates.at(-1) || "", rebuilt: true }; });
+    if (rebuilt.length) { all = [...all, ...rebuilt].sort((a, b) => String(a.at).localeCompare(String(b.at))).slice(-60); await saveMeta({ _bank_batches: all }); }
+    const lost = all.filter((b) => !b.tagged && !b.ids?.length && b.from && b.to);
     const day = (s, d) => new Date(new Date(`${s}T00:00:00Z`).getTime() + d * 864e5).toISOString();
     const have = new Set(state.purchases.map((p) => p.id)); let fixed = 0, skipped = 0, rows = 0; const done = new Map();
     for (const b of lost) {
@@ -518,7 +539,8 @@ async function recoverBatches() {
       done.set(b.id, true); fixed++;
     }
     if (fixed) await saveMeta({ _bank_batches: all.map((b) => (done.has(b.id) ? { ...b, tagged: true, ids: [] } : b)) });
-    toast(fixed ? t("找回 {f} 批（{r} 笔）{s}", { f: fixed, r: rows, s: skipped ? t("，{n} 批笔数对不上，已跳过", { n: skipped }) : "" }) : t("没能找回：{n} 批笔数对不上或花费已被删改", { n: skipped }));
+    const re = rebuilt.length ? t("按花费上的批次标记重建了 {n} 批记录", { n: rebuilt.length }) : "";
+    toast([re, fixed ? t("找回 {f} 批（{r} 笔）{s}", { f: fixed, r: rows, s: skipped ? t("，{n} 批笔数对不上，已跳过", { n: skipped }) : "" }) : lost.length ? t("没能找回：{n} 批笔数对不上或花费已被删改", { n: skipped }) : ""].filter(Boolean).join("；") || t("没有要找回的批次：所有带标记的花费都已在列表里"));
   } catch (e) {
     toast(/import_batch/i.test(e.message || "") ? t("还没执行迁移 034（purchases.import_batch），先在 Supabase 执行 034_purchase_import_batch.sql") : t("找回失败：{msg}", { msg: e.message }));
   }
@@ -536,6 +558,7 @@ document.addEventListener("change", async (e) => {
   if (el.dataset.bankSign !== undefined) { S.spendSign = el.value; resetPicks(); rebuild(); return redraw(); }
   if (el.dataset.bankDmy !== undefined) { S.dmy = el.value === "dmy"; resetPicks(); rebuild(); return redraw(); }
   if (el.dataset.bankRemember !== undefined) { S.remember = el.checked; }
+  if (el.dataset.bankBatchAcct !== undefined) { S.batchAcct = el.value; S.batchShow = 20; return redraw(); }
   if (el.dataset.bankAcct !== undefined) { S.acctTouched = true; const v = el.value; const hit = accounts().find((x) => x.id === v);
     S.account = v === "none" ? { mode: "none", id: "", name: "", last4: "" } : hit ? { mode: "id", id: hit.id, name: hit.name, last4: hit.last4 } : { mode: "new", id: "", name: S.account.mode === "new" ? S.account.name : "", last4: S.parts.map((x) => x.acct?.last4).find(Boolean) || "" }; return redraw(); }
   if (el.dataset.bankAcctName !== undefined) { S.acctTouched = true; S.account.name = el.value; }
@@ -551,6 +574,7 @@ document.addEventListener("click", (e) => {
   else if (b.dataset.bankAct === "rules-clear") { if (confirm(t("清除全部记住的归类？下次导入这些商家会重新按关键词归类。"))) saveMeta({ _bank_rules: {} }).then(() => { toast(t("已清除")); if (S.parts.length) { resetPicks(); rebuild(); } redraw(); }); }
   else if (b.dataset.bankAct === "undo") undo(b.dataset.batch);
   else if (b.dataset.bankAct === "recover") recoverBatches();
+  else if (b.dataset.bankAct === "batches-more") { S.batchShow += 20; redraw(); }
   else if (b.dataset.bankAct === "undo-last" && S.last) undo(S.last.id);
   else if (b.dataset.bankAct === "ai") aiParse(+b.dataset.i);
   else if (b.dataset.bankAct === "rm") { S.parts.splice(+b.dataset.i, 1); resetPicks(); rebuild(); redraw(); }

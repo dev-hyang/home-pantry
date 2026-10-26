@@ -85,6 +85,7 @@ export const DemoStore = {
   async addPurchase(p) { const id = uid(); this.db.purchases.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
   async deletePurchase(id) { this.db.purchases = this.db.purchases.filter((x) => x.id !== id); this.persist(); },
   async firstPurchaseYear() { const d = this.db.purchases.map((x) => x.purchased_at).sort()[0]; return d ? +String(d).slice(0, 4) : null; },
+  async listTaggedPurchases() { return this.db.purchases.filter((x) => x.import_batch).map((x) => ({ id: x.id, import_batch: x.import_batch, purchased_at: x.purchased_at, amount: x.amount, card_id: x.card_id || null, created_at: x.created_at })); },
   async listPurchasesByBatch(batch, ids = []) { const set = new Set(ids); return this.db.purchases.filter((x) => x.import_batch === batch || set.has(x.id)).map((x) => ({ ...x, category: canonCat(x.category) })); },
   async deletePurchasesByBatch(batch) { const n = this.db.purchases.filter((x) => x.import_batch === batch).length; this.db.purchases = this.db.purchases.filter((x) => x.import_batch !== batch); this.persist(); return n; },
 
@@ -708,6 +709,10 @@ export const CloudStore = {
   async deletePurchase(id) { this.must(await this.sb.from("purchases").delete().eq("id", id)); },
   /** 最早一笔花费的年份（花费页时间范围下拉的往年选项到这一年为止） */
   async firstPurchaseYear() { const r = this.must(await this.sb.from("purchases").select("purchased_at").eq("household_id", this.hid).order("purchased_at").limit(1)); return r?.[0] ? +String(r[0].purchased_at).slice(0, 4) : null; },
+  /** 找回批次：所有带批次标记的花费（只取几列，不限日期），按 import_batch 重建丢失的批次记录 */
+  async listTaggedPurchases() {
+    return this.must(await this.sb.from("purchases").select("id,import_batch,purchased_at,amount,card_id,created_at").eq("household_id", this.hid).not("import_batch", "is", null).order("purchased_at").limit(10000));
+  },
   /** 银行导入「查看 / 修改」：这一批的全部花费（不限近 400 天）——按 import_batch 列，旧批次按 id 列表 */
   async listPurchasesByBatch(batch, ids = []) {
     const q = async (f) => this.must(await f(this.sb.from("purchases").select("*").eq("household_id", this.hid)).limit(5000)).map((x) => ({ ...x, category: canonCat(x.category) }));

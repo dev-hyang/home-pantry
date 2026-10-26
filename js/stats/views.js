@@ -512,7 +512,8 @@ function spendRow(p) {
   const title = p.virtual === "medical" ? `<a class="link-name" href="${href("bills", "onetime")}?bill=${p.bill_id}" title="${esc(t("到医疗账单里看 / 改"))}">${esc(p.name)}</a>`
     : bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${pay.id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
     : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>`;
-  return `<li data-swipe-del="purchase">
+  const sel = state.spendSel && !p.virtual ? `<input type="checkbox" class="sel" data-sel="${p.id}" aria-label="${esc(t("选中 {name}", { name: p.name }))}" ${state.spendSel.has(p.id) ? "checked" : ""}>` : "";
+  return `<li data-swipe-del="purchase">${sel}
     <span class="badge" style="background:var(--surface-2)">${esc(d.toLocaleDateString(locale(), sameYear ? { month: "numeric", day: "numeric" } : { year: "2-digit", month: "numeric", day: "numeric" }))}</span>
     <div class="grow"><span class="name">${title}</span><small>${esc(`${cat.icon || ""} ${t(cat.name)}`.trim())}${storeOf(p) ? `，${esc(storeOf(p))}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
     <b>${p.amount != null && num(p.amount) < 0 ? `<span class="badge b-ok">${t("退款")}</span> ` : ""}${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>
@@ -543,7 +544,7 @@ function activeFilterChips() {
   if (f.month !== "all") out.push(["month", monthName(f.month)]);
   if (f.months?.length) { const m0 = f.months[0], whole = m0.endsWith("-01") && f.months.every((m) => m.startsWith(m0.slice(0, 4))); out.push(["months", whole ? t("{y} 年", { y: m0.slice(0, 4) }) : t("近 {n} 个月", { n: f.months.length })]); }
   if (f.q.trim()) out.push(["q", `“${f.q.trim()}”`]);
-  if (f.batch) { const bt = batchOf(f.batch); out.push(["batch", t("导入批次：{name}", { name: bt ? (bt.b.account || bt.b.file || f.batch) + (bt.b.at ? ` · ${String(bt.b.at).slice(0, 10)}` : "") : f.batch })]); }
+  if (f.batch) { const bt = batchOf(f.batch); out.push(["batch", t("导入批次：{name}", { name: bt ? (bt.b.account || bt.b.file || t("银行导入")) + (bt.b.from ? ` · ${bt.b.from} → ${bt.b.to || bt.b.from}` : bt.b.at ? ` · ${String(bt.b.at).slice(0, 10)}` : "") : f.batch })]); }
   return out;
 }
 function spendChipsHtml() {
@@ -575,7 +576,14 @@ function spendListHtml() {
     }
     out += spendRow(p);
   }
-  return `<ul class="restock-list rec-list">${out}</ul>
+  const S = state.spendSel, delN = S ? [...S].filter((id) => all.some((p) => p.id === id)).length : 0;
+  const selBar = S ? `<div class="sel-bar" role="region" aria-label="${esc(t("多选删除"))}"><b id="selCount">${t("已选 {n} 笔", { n: delN })}</b>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-all">${t("全选这 {n} 笔", { n: all.filter((p) => !p.virtual).length })}</button>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-none">${t("清空")}</button>
+      <button type="button" class="btn btn-sm btn-danger-ghost" data-action="spend-sel-del" ${delN ? "" : "disabled"}>${t("删除所选")}</button>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${t("退出多选")}</button>
+      <small class="muted" style="flex-basis:100%">${t("先用上面的筛选（月份、商店、分类、批次）缩小范围，再全选；删除前会再确认一次。")}</small></div>` : "";
+  return `${selBar}<ul class="restock-list rec-list${S ? " selecting" : ""}">${out}</ul>
     ${all.length > shown.length ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-ghost" data-action="spend-more">${t("再显示 {n} 笔（还有 {m} 笔）", { n: Math.min(PAGE, all.length - shown.length), m: all.length - shown.length })}</button></div>` : ""}`;
 }
 function spendSummary() {
@@ -604,7 +612,7 @@ function spendRecordsHtml() {
   if (cats.filter((c) => isBill(c.id)).length > 1) cats.splice(firstBill, 0, BILLS_GROUP);   // 多种账单时多一个“全部账单”总筛选，排在各具体种类前
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;
   const mo = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
-  return `<div class="section-head"><h2>${t("花费记录")}</h2><div class="head-acts"><span id="spendSum" class="muted">${esc(spendSummary())}</span><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="spend" data-filtered="1">${t("打印")}</button></div></div>
+  return `<div class="section-head"><h2>${t("花费记录")}</h2><div class="head-acts"><span id="spendSum" class="muted">${esc(spendSummary())}</span><button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${state.spendSel ? t("退出多选") : t("多选删除")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="spend" data-filtered="1">${t("打印")}</button></div></div>
     <div class="panel">
       <div class="filter-bar"><div id="spendChips">${spendChipsHtml()}</div>
       <div class="toolbar">
@@ -615,7 +623,7 @@ function spendRecordsHtml() {
         <select id="spendSort" aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
       </div></div>
       <div id="spendList">${spendListHtml()}</div>
-      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("这里是近 400 天的记录。")}</p>
+      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("这里是近 400 天的记录。")} ${t("删一笔：手机上把那一行向左滑；电脑上鼠标移到行上，右边出现「删除」。要删很多笔用「多选删除」。")}</p>
     </div>`;
 }
 

@@ -36,6 +36,7 @@ export const state = {
   budget: null,                                // 预算设置：{ income_amount, income_period, savings_pct, cat_budgets }
   shopAdvice: null,                            // 采购清单：刚加入的带预估金额的项目的预算提示
   spendEdit: null,                             // 花费记录：正在就地编辑的那一笔 id
+  spendSel: null,                              // 花费记录：多选删除模式下选中的 id 集合（null = 不在多选）
   spendFilter: { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: 20 },   // 花费记录的搜索、筛选、排序
   stats: { months: 6, month: null, cat: null, itemId: null, includeCapital: false },
   filter: { space: "pantry", cat: "all", sub: "all", q: "", status: "all", loc: "all", sort: "default" },   // 库存清单：空间、分类、关键词、状态、存放位置

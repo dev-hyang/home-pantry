@@ -1171,6 +1171,11 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 /* 花费记录：按月分组的小标题 */
 .rec-list .rec-month { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 6px; padding: 8px 0 4px; border-bottom: 1px solid var(--line); font-size: 13px; }
 .rec-list .rec-month:first-child { margin-top: 0; }
+.rec-list li > input.sel { width: 20px; height: 20px; min-height: 0; flex: 0 0 auto; margin-right: 2px; }   /* 多选删除的勾选框 */
+.sel-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface-2); font-size: 13px; }
+@media (hover: hover) and (pointer: fine) {   /* 用鼠标的设备：行上悬停时显示「删除」（手机靠左滑） */
+  .rec-list li:hover .swipe-src { position: static !important; width: auto; height: auto; margin: 0; padding: revert; border: revert; overflow: visible; clip: auto; }
+}
 .rec-list .rec-month b { font-size: 14px; }
 
 /* 预算 */

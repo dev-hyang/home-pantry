@@ -56,7 +56,7 @@ import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, ne
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
-import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureBatchLoaded, ensureFirstYear, ensureYearLoaded, exportAnnual, rememberStore, renderSpendList, renderSpendRecords, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
+import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureBatchLoaded, ensureFirstYear, ensureYearLoaded, exportAnnual, filteredSpend, rememberStore, renderSpendList, renderSpendRecords, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
 
 const APP_NAME = "爱家小助手";
 
@@ -362,7 +362,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: 20 }); state.spendEdit = null; break;
+    case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: 20 }); state.spendEdit = null; state.spendSel = null; break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
     default: break;
   }
@@ -464,6 +464,10 @@ async function doRestore(el) {
   render(false);
 }
 main.addEventListener("change", async (e) => {
+  if (e.target.matches("#spendList input[data-sel]")) {   // 多选删除：勾一笔
+    const S = state.spendSel; if (!S) return; if (e.target.checked) S.add(e.target.dataset.sel); else S.delete(e.target.dataset.sel);
+    const n = [...S].filter((id) => state.purchases.some((p) => p.id === id)).length, c = $("#selCount"); if (c) c.textContent = t("已选 {n} 笔", { n }); const d = $('[data-action="spend-sel-del"]'); if (d) d.disabled = !n; return;
+  }
   if (e.target.closest("#backupForm")) {   // 备份设置：改了就存（存本机）
     const f = e.target.closest("#backupForm"), targets = [...f.querySelectorAll('input[name="target"]:checked')].map((x) => x.value);
     Backup.saveSettings({ every: f.elements.every.value, days: Math.max(1, +f.elements.days.value || 14), targets, provider: f.elements.provider?.value || "any", gdPath: (f.elements.gdPath?.value || "").trim(), dbxPath: (f.elements.dbxPath?.value || "").trim() });
@@ -1021,6 +1025,18 @@ main.addEventListener("click", async (e) => {
       case "person-del": if (!armed(el, t("再点一次确认删除"))) return; return personDelete(el.dataset.id);
       case "people-bulk": return peopleBulk();
       case "spend-more": state.spendFilter.limit += 20; return renderSpendList();
+      case "spend-sel-toggle": state.spendSel = state.spendSel ? null : new Set(); state.spendEdit = null; return render();
+      case "spend-sel-all": { const S = state.spendSel || (state.spendSel = new Set()); filteredSpend().forEach((p) => { if (!p.virtual) S.add(p.id); }); return renderSpendList(); }
+      case "spend-sel-none": state.spendSel = new Set(); return renderSpendList();
+      case "spend-sel-del": {   // 多选删除：只删当前筛选结果里选中的
+        const S = state.spendSel; if (!S?.size) return;
+        const list = filteredSpend().filter((p) => S.has(p.id)), sum = list.reduce((a, p) => a + (p.amount != null ? num(p.amount) : 0), 0);
+        if (!list.length || !confirm(t("删除选中的 {n} 笔花费（合计 {m}）？删了就找不回来，建议先备份。", { n: list.length, m: money(sum) }))) return;
+        el.disabled = true; let fail = 0;
+        for (let i = 0; i < list.length; i += 6) await Promise.all(list.slice(i, i + 6).map((p) => Store.deletePurchase(p.id).catch(() => { fail++; })));
+        const gone = new Set(list.map((p) => p.id)); state.purchases = state.purchases.filter((p) => !gone.has(p.id)); state.spendSel = null;
+        toast(fail ? t("删了 {n} 笔，{k} 笔失败", { n: list.length - fail, k: fail }) : t("已删除 {n} 笔", { n: list.length })); render(); return refresh();
+      }
       case "stats-months": state.stats.months = +el.dataset.months; return render();
       case "spend-add-toggle": { state.spendAddOpen = !state.spendAddOpen; render(); if (state.spendAddOpen) requestAnimationFrame(() => $("#purchaseForm")?.elements.name.focus({ preventScroll: true })); return; }
       case "stats-cat": state.stats.cat = el.dataset.cat; return render();
