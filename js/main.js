@@ -58,7 +58,7 @@ import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLoc
 import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
 import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureBatchLoaded, ensureFirstYear, ensureYearLoaded, exportAnnual, filteredSpend, rememberStore, renderSpendList, renderSpendRecords, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
-import { showPurchaseDup } from "./stats/dup-check.js";
+import { matchOpenShopping, showPurchaseDup } from "./stats/dup-check.js";
 
 const APP_NAME = "爱家小助手";
 
@@ -749,7 +749,9 @@ main.addEventListener("submit", async (e) => {
       const payV = e2.card_id?.value || ""; rememberCard(payV);
       await Store.addPurchase({ item_id: null, name, category: e2.category.value, quantity: null, unit: null, store,
         amount: Math.round(signed * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString(), ...purchasePayFields(payV) });
-      toast(t("已记录 {name} {m}", { name, m: money(signed) })); return refresh();
+      const cart = signed > 0 ? matchOpenShopping({ name: item, at: new Date(`${day}T12:00:00`) }) : null;   // 采购清单里有同名的未买项：顺手标成已买到
+      if (cart) await Store.saveShopping({ id: cart.id, status: "bought", bought_at: new Date(`${day}T12:00:00`).toISOString(), amount: Math.round(signed * 100) / 100, claimed_by_name: cart.claimed_by_name || state.displayName });
+      toast(t("已记录 {name} {m}", { name, m: money(signed) }) + (cart ? t("；采购清单里的「{n}」已标成已买到", { n: cart.name }) : "")); return refresh();
     }
     if (f.id === "shopForm") {
       const name = f.elements.name.value.trim();

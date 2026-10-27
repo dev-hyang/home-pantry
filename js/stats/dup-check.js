@@ -51,3 +51,12 @@ export function showPurchaseDup(f) {
 }
 document.addEventListener("input", (e) => { if (e.target.closest?.("#purchaseForm")) { e.target.closest("form").dataset.dupAck = ""; showPurchaseDup(e.target.closest("form")); } });
 document.addEventListener("change", (e) => { if (e.target.closest?.("#purchaseForm")) showPurchaseDup(e.target.closest("form")); });
+
+/* 记花费 ↔ 采购清单：买到了就该把清单里对应的那一项标成「已买到」。
+ * 对上的条件：关联同一个库存物品，或名称相近；而且购买日期不早于它加进清单的前一天多（更早的是上一次买的）。 */
+export function matchOpenShopping(c, taken = new Set()) {
+  const tm = new Date(c.at).getTime();
+  const open = state.shopping.filter((s) => s.status !== "bought" && !taken.has(s.id)
+    && (!s.created_at || !Number.isFinite(tm) || tm >= new Date(s.created_at).getTime() - 1.5 * DAY));
+  return (c.item_id && open.find((s) => s.item_id === c.item_id)) || open.find((s) => nameClose(s.name, c.name)) || null;
+}

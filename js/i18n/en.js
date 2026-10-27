@@ -2301,4 +2301,7 @@ export const EN = {
   "{w}在 ": "{w} on ", "你": "You", "家里别人": "Someone in the household", "（另有 {n} 笔类似的）": " ({n} more similar)",
   "可能重复了（见表单下面的提醒）。确认不是，再点一次“记一笔”。": "This may be a duplicate (see the note below the form). If it isn't, tap “Log it” again.",
   "有 {n} 行疑似已经记过（见各行下面的提醒）。确认不是重复的，再点一次“确认入库”；是重复的就取消勾选那一行。": "{n} row(s) look already logged (see the notes under each row). If they aren't duplicates, tap “Confirm” again; otherwise untick those rows.",
+  "采购清单里的「{n}」会标成已买到": "“{n}” on the shopping list will be marked as bought",
+  "；采购清单 {n} 项已标成已买到": "; {n} shopping-list item(s) marked as bought",
+  "；采购清单里的「{n}」已标成已买到": "; “{n}” on the shopping list marked as bought",
 };
