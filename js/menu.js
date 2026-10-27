@@ -44,6 +44,7 @@ const META = {
     overview:  { icon: "🧾", desc: "周期性 + 一次性账单一览：要处理的、未来 30 天要交、未结余额" },
     recurring: { icon: "🔁", desc: "水电气网、房贷房租、保险、订阅、信用卡：按周期反复出现，算下次到期并提醒；含清单、缴费记录", count: () => billAlerts(state.billsEnriched).length },
     onetime:   { icon: "🏥", desc: "一次事件产生的账单：医疗、宠物、法律税务、装修工程；有总额、可分次付、有余额", count: () => state.medEnriched.filter((b) => b.open).length },
+    income:    { icon: "💵", desc: "进账：工资、电汇、Zelle 转入、赠与；收入 vs 花费 vs 差额，付款方历史，只有家主（或被允许的人）能看全家的" },
     budget:    { icon: "💰", desc: "收入、固定账单、储蓄 → 月度 / 年度预算，对比实际花费，超预算提醒，大额购物规划" },
     spend:     { icon: "📊", desc: "所有花费：每月花了多少、分类占比、商店、年度报表，可搜索筛选排序" },
     cards:     { icon: "💳", desc: "信用卡：该刷哪张（按场景比返现）、到期 / 年费 / 轮换类别 / 开卡奖励提醒", count: () => state.cards.filter((c) => c.active !== false).length },

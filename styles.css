@@ -1600,3 +1600,19 @@ body.editing .minibar { display: none; }
 .src-dd { display: block; width: 100%; max-width: 420px; margin: 0 0 10px; }
 .src-dd select { display: block; width: 100%; min-width: 0; box-sizing: border-box; min-height: 44px; padding: 8px 40px 8px 14px; border: 1.5px solid var(--line); border-radius: 12px; font-size: 15px; font-weight: 600; background-color: var(--surface); color: inherit; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23777' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
 .src-dd select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* 账单 → 收入 */
+.inc-list { list-style: none; margin: 0; padding: 0; }
+.inc-li { border-bottom: 1px solid var(--line); }
+.inc-li:last-child { border-bottom: 0; }
+.inc-main { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 2px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; min-height: 48px; }
+.inc-main:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 8px; }
+.inc-main .grow { min-width: 0; display: grid; gap: 2px; flex: 1; }
+.inc-main small { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.inc-ico { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--k) 20%, var(--surface)); }
+.inc-amt { color: var(--pine); white-space: nowrap; }
+.inc-kind { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; background: color-mix(in srgb, var(--k) 18%, var(--surface)); white-space: nowrap; }
+.inc-detail { padding: 2px 4px 12px 46px; }
+.inc-repay { margin: 0 0 8px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
+.inc-filter { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+@media (max-width: 440px) { .inc-detail { padding-left: 4px; } }

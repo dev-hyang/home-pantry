@@ -10,7 +10,7 @@ export const DemoStore = {
     if (!this.db || !Array.isArray(this.db.items)) this.db = seedDemo();
     const db = this.db;
     db.purchases ||= []; db.assets ||= []; db.maint_logs ||= []; db.seasonal ||= [];
-    db.bills ||= []; db.bill_payments ||= []; db.medical_bills ||= []; db.medical_payments ||= []; db.people ||= [];
+    db.bills ||= []; db.bill_payments ||= []; db.medical_bills ||= []; db.medical_payments ||= []; db.people ||= []; db.income_records ||= []; db.income_repayments ||= [];
     // 多房产：没有房产的旧演示库补一条默认房产，并把房屋资料 / 设备 / 季节任务挂上去
     if (!Array.isArray(db.properties) || !db.properties.length) {
       db.properties = [{ id: uid(), name: t("我的家"), kind: "other", role: "owner_occupied", status: "owned", address: null, is_default: true, archived: false, notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
@@ -253,6 +253,22 @@ export const DemoStore = {
   async addMedicalPayment(p) { const id = uid(); this.db.medical_payments.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
   async updateMedicalPayment(id, patch) { const i = this.db.medical_payments.findIndex((x) => x.id === id); if (i >= 0) { this.db.medical_payments[i] = { ...this.db.medical_payments[i], ...patch }; this.persist(); } },
   async deleteMedicalPayment(id) { this.db.medical_payments = this.db.medical_payments.filter((x) => x.id !== id); this.persist(); },
+  /* 收入：演示模式存本机（没有账号，不能做真正的权限隔离，界面上会提示） */
+  async listIncomeRecords() { return this.db.income_records.map((x) => ({ ...x })); },
+  async saveIncomeRecord(r) {
+    const now = new Date().toISOString(), row = pick(r, INCOME_FIELDS, {});
+    if (r.id) { const i = this.db.income_records.findIndex((x) => x.id === r.id); if (i < 0) throw new Error("记录不存在"); this.db.income_records[i] = { ...this.db.income_records[i], ...row, updated_at: now }; this.persist(); return r.id; }
+    const id = uid(); this.db.income_records.push({ ...row, id, created_by: "demo", created_at: now, updated_at: now }); this.persist(); return id;
+  },
+  async addIncomeRecords(rows) { const now = new Date().toISOString(); for (const r of rows) this.db.income_records.push({ ...pick(r, INCOME_FIELDS, {}), id: uid(), created_by: "demo", created_at: now, updated_at: now }); this.persist(); },
+  async deleteIncomeRecord(id) { this.db.income_records = this.db.income_records.filter((x) => x.id !== id); this.db.income_repayments = this.db.income_repayments.filter((p) => p.record_id !== id); this.persist(); },
+  async deleteIncomeByBatch(batch) { const gone = new Set(this.db.income_records.filter((x) => x.import_batch === batch).map((x) => x.id)); this.db.income_records = this.db.income_records.filter((x) => !gone.has(x.id)); this.db.income_repayments = this.db.income_repayments.filter((p) => !gone.has(p.record_id)); this.persist(); },
+  async renameIncomeSource(ids, name) { const set = new Set(ids); for (const x of this.db.income_records) if (set.has(x.id)) x.source_name = name; this.persist(); },
+  async listIncomeRepayments() { return this.db.income_repayments.map((x) => ({ ...x })); },
+  async addIncomeRepayment(p) { const id = uid(); this.db.income_repayments.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
+  async deleteIncomeRepayment(id) { this.db.income_repayments = this.db.income_repayments.filter((x) => x.id !== id); this.persist(); },
+  async listIncomeAccess() { return []; },
+  async setIncomeAccess() {}, async deleteIncomeAccess() {},
 
   /* 信用卡（用卡）：卡档案 + 返现画像 */
   async listCards() { return (this.db.cards || []).map((x) => ({ ...x })); },
@@ -433,6 +449,7 @@ export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", 
   "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes", "vehicle", "units"];
 export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "acquired_on", "purchase_price", "sold_on", "sale_price", "archived", "notes"];
 export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email", "hoa"];
+export const INCOME_FIELDS = ["received_on", "amount", "currency", "orig_amount", "orig_currency", "fee", "source_name", "kind", "channel", "person_id", "account", "import_batch", "repay_required", "repay_due_on", "repay_amount", "notes"];
 export const MED_FIELDS = ["kind", "subkind", "provider", "patient", "patient_id", "guarantor", "guarantor_id", "bill_ref", "claim_ref", "insurer", "service_date", "bill_date", "due_on", "billed_amount", "insurance_paid", "adjustment", "patient_amount", "currency", "status", "hsa_eligible", "visibility", "notes"];
 export const CARD_FIELDS = ["name", "issuer", "network", "last4", "holder_user_id", "kind", "expires_on", "opened_on", "annual_fee", "fee_month", "credit_limit", "statement_day", "due_day", "autopay", "bill_id", "catalog_id", "rewards", "bonus", "credits", "rules_as_of", "active", "notes", "balance", "inactive_since"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
@@ -655,6 +672,28 @@ export const CloudStore = {
   async addMedicalPayment(p) { return this.must(await this.sb.from("medical_payments").insert({ ...p, household_id: this.hid, paid_by: state.user.id }).select("id").single()).id; },
   async updateMedicalPayment(id, patch) { this.must(await this.sb.from("medical_payments").update(patch).eq("id", id)); },
   async deleteMedicalPayment(id) { this.must(await this.sb.from("medical_payments").delete().eq("id", id)); },
+  /* 收入（迁移 042）：行级安全按「家主 / 已允许 / 自己记的」过滤；表不存在时由调用方当作空 */
+  async listIncomeRecords() { return this.must(await this.sb.from("income_records").select("*").eq("household_id", this.hid).order("received_on", { ascending: false }).limit(20000)); },
+  async saveIncomeRecord(r) {
+    const row = pick(r, INCOME_FIELDS, { household_id: this.hid });
+    if (r.id) { this.must(await this.sb.from("income_records").update(row).eq("id", r.id)); return r.id; }
+    return this.must(await this.sb.from("income_records").insert(row).select("id").single()).id;
+  },
+  async addIncomeRecords(rows) {   // 银行导入：一批一起写
+    for (let i = 0; i < rows.length; i += 200) this.must(await this.sb.from("income_records").insert(rows.slice(i, i + 200).map((r) => pick(r, INCOME_FIELDS, { household_id: this.hid }))));
+  },
+  async deleteIncomeRecord(id) { this.must(await this.sb.from("income_records").delete().eq("id", id)); },   // 还款记录级联删除
+  async deleteIncomeByBatch(batch) { this.must(await this.sb.from("income_records").delete().eq("household_id", this.hid).eq("import_batch", batch)); },
+  async renameIncomeSource(ids, name) { for (let i = 0; i < ids.length; i += 100) this.must(await this.sb.from("income_records").update({ source_name: name }).in("id", ids.slice(i, i + 100))); },
+  async listIncomeRepayments() { return this.must(await this.sb.from("income_repayments").select("*").eq("household_id", this.hid).order("paid_on", { ascending: false }).limit(5000)); },
+  async addIncomeRepayment(p) { return this.must(await this.sb.from("income_repayments").insert({ ...p, household_id: this.hid, paid_by: state.user.id }).select("id").single()).id; },
+  async deleteIncomeRepayment(id) { this.must(await this.sb.from("income_repayments").delete().eq("id", id)); },
+  async listIncomeAccess() { return this.must(await this.sb.from("income_access").select("*").eq("household_id", this.hid)); },
+  async setIncomeAccess(userId, status, note = null) {
+    const row = { household_id: this.hid, user_id: userId, status, note, ...(status === "requested" ? { requested_at: new Date().toISOString(), decided_by: null, decided_at: null } : { decided_by: state.user.id, decided_at: new Date().toISOString() }) };
+    this.must(await this.sb.from("income_access").upsert(row, { onConflict: "household_id,user_id" }));
+  },
+  async deleteIncomeAccess(userId) { this.must(await this.sb.from("income_access").delete().eq("household_id", this.hid).eq("user_id", userId)); },
   /* 信用卡（迁移 032） */
   async listCards() { return this.must(await this.sb.from("cards").select("*").eq("household_id", this.hid).order("created_at")); },
   async saveCard(c) {
@@ -768,7 +807,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments", "income_access", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();

@@ -15,6 +15,8 @@ import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initBankImport } from "./stats/bank-import.js";
+import { initIncome, viewIncome } from "./income/views.js";
+import { loadIncome } from "./income/logic.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
 import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml, purchasePayFields, rememberCard, resolvePayAccount, runCleanup, saveCardForm, setCardActive, viewCards } from "./bills/cards-views.js";
@@ -119,6 +121,7 @@ export async function refresh() {
       state.assetsEnriched = enrichAssets(assets, maintLogs);
       state.billsEnriched = enrichBills(bills, billPayments);
       state.people = people; applyMedical(medBills, medPays);
+      loadIncome().then(() => { if (state.route?.section === "bills" && state.route?.sub === "income") render(false); });   // 收入（迁移 042）单独读：行级安全只给家主 / 已允许的人全家的；读不到不影响别的功能
       state.cards = cards || [];
       ensureAdults().then((added) => { if (added) { applyMedical(state.medBills, state.medPayments); render(false); } }).catch(() => {});
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
@@ -166,13 +169,13 @@ const VIEWS = {
   pantry:   { overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix },
-  bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, budget: viewBudget, cards: viewCards, template: viewBillTemplate },
+  bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, budget: viewBudget, cards: viewCards, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout },
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
-const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "onetime" && !!r.q.get("bill"));   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
+const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "onetime" && !!r.q.get("bill")) || (r.section === "bills" && r.sub === "income" && !!state.inc?.form);   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
 // 二级页顶部的面包屑和每个页签的目录页在 js/menu.js（参考家庭学堂“我的”页：一栏一行，点进去）
 const offPanel = (title, action, btn) => `<div class="panel empty"><strong>${title}</strong>${t("在“我的 → 设置”里可以重新打开。")}<p><button type="button" class="btn btn-primary" data-action="${action}">${btn}</button></p></div>`;
 
@@ -398,13 +401,14 @@ initCompactFilters({ root: main, ui: uiKind });
 miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
 initSwipeRows({ kinds: ["budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card"], altKinds: ["card"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });   // 卡行还能右滑停用 / 启用   // 行记录左滑删除（js/swipe-rows.js）
 /* 云端报错翻译：数据库还没升级到某个迁移时，PostgREST 只会说「找不到某列 / 某表」，这里换成告诉你该执行哪个迁移文件 */
-const MIGRATION_HINTS = [[/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/pay_card_id|bill_payments.*card_id|medical_payments.*card_id|cards_kind_check/i, "036_pay_accounts.sql", "付款账户（银行账户、账单扣款 / 缴费用的卡）"], [/house_profiles.*ownership|ownership.*house_profiles/i, "038_house_ownership.sql", "房屋资料：产权、税务与车位"], [/assets.*\bunits\b|\bunits\b.*assets/i, "039_asset_units.sql", "固定装置的位置与数量"], [/purchases.*\bmethod\b|\bmethod\b.*purchases|cards.*\bbalance\b|\bgift\b/i, "040_purchase_method.sql", "付款方式（现金 / 支票 / 礼品卡）与礼品卡"], [/inactive_since/i, "041_card_inactive_since.sql", "卡的停用日期"], [/relation .*\bcards\b|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
+const MIGRATION_HINTS = [[/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/pay_card_id|bill_payments.*card_id|medical_payments.*card_id|cards_kind_check/i, "036_pay_accounts.sql", "付款账户（银行账户、账单扣款 / 缴费用的卡）"], [/house_profiles.*ownership|ownership.*house_profiles/i, "038_house_ownership.sql", "房屋资料：产权、税务与车位"], [/assets.*\bunits\b|\bunits\b.*assets/i, "039_asset_units.sql", "固定装置的位置与数量"], [/purchases.*\bmethod\b|\bmethod\b.*purchases|cards.*\bbalance\b|\bgift\b/i, "040_purchase_method.sql", "付款方式（现金 / 支票 / 礼品卡）与礼品卡"], [/inactive_since/i, "041_card_inactive_since.sql", "卡的停用日期"], [/income_records|income_repayments|income_access/i, "042_income_records.sql", "收入（进账）记录和查看权限"], [/relation .*\bcards\b|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
 function friendlyErr(msg) {
   const m = String(msg || "");
   for (const [re, file, what] of MIGRATION_HINTS) if (re.test(m)) return t("还没执行数据库迁移 {file}（{what}）：先在 Supabase → SQL Editor 里执行 supabase/migrations/{file}，再试一次。", { file, what });
   return m;
 }
 initBankImport({ refresh });
+initIncome({ render, refresh });
 initSelectSearch();   // 选项很多的下拉（分类等）变成可搜索的（js/select-search.js）
 initQuickDrag({ isEditing: () => !!state.quickEdit, enter: () => { state.quickEdit = true; state.quickAdd = false; render(); }, save: async (ids) => { try { await saveQuick(ids); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } render(); } });   // 今日页快捷操作：长按进入编辑并拖动排序   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
 // 「⋯」更多操作菜单：点别处或点菜单里的某项就收起（原生 details 不会自己收）

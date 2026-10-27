@@ -20,7 +20,7 @@ export const PROVIDERS = [
 /** 恢复时的写入顺序：被引用的表在前（assets → items/property_deals，cards → purchases/bills，purchases → maintenance_logs/bill_payments，household_people → medical_bills）。
  *  cards.bill_id 和 bills.pay_card_id 互相引用：cards 先不带 bill_id 写入，bills 写完再补。 */
 export const TABLES = ["properties", "house_profiles", "custom_categories", "custom_locations", "custom_terms", "custom_seasonal_tasks", "seasonal_tasks", "assets", "items", "stock_logs", "shopping_list",
-  "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "household_people", "cards", "purchases", "maintenance_logs", "bills", "bill_payments", "medical_bills", "medical_payments",
+  "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "household_people", "cards", "purchases", "maintenance_logs", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments",
   "member_incomes", "household_budgets"];
 const PAGE = 1000;   // PostgREST 单次最多 1000 行，大表分页读
 
@@ -214,6 +214,8 @@ export async function restore(data, onProgress = () => {}) {
     if (!rows.length) continue;
     onProgress(tb);
     if (tb === "member_incomes") { const keep = rows.filter((r) => members.has(uid(r.user_id))); skipped[tb] = rows.length - keep.length; rows = keep.map((r) => ({ ...r, user_id: uid(r.user_id) })); }   // 收入按人存，人不在这个家庭里的导不进（外键）
+    if (tb === "income_records") rows = rows.map(({ source_key, ...r }) => r);   // source_key 是数据库算出来的列，不能写入
+    if (tb === "household_people") rows = rows.map(({ name_key, ...r }) => r);   // name_key 同理
     if (tb === "cards") rows = rows.map((r) => { if (r.bill_id) cardBills.push([r.id, r.bill_id]); return { ...r, bill_id: null }; });   // 和 bills 互相引用：先不带 bill_id
     if (tb === "stock_logs") {   // id 是自增、不能指定：去掉 id，按 (item_id, created_at) 跳过已有的
       const { data: have } = await sb.from("stock_logs").select("item_id,created_at").eq("household_id", hid).limit(10000);

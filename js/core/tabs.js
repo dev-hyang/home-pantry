@@ -10,7 +10,8 @@ export const SPEND_TABS = [["overview", "概览", "📊"], ["records", "明细",
 export const BUDGET_TABS = [["month", "本月", "📆"], ["bills", "账单", "🧾", "固定账单、订阅年成本、现金流"], ["plan", "规划", "🧮", "各类月预算、补货、大件基金、大额购物、应急金"], ["trend", "趋势", "📈", "预算对比实际、年度预算"], ["goals", "目标", "🎯", "储蓄目标和家庭分摊"]];
 export const RECURRING_TABS = [["overview", "概览", "🔁"], ["list", "清单", "📋", "全部周期性账单：按房产、分类筛选，自动扣款开关"], ["history", "记录", "📈", "每条账单的缴费记录、金额趋势、CSV 导出"]];
 export const MEDICAL_TABS = [["overview", "概览", "🏥"], ["list", "账单", "🧾", "全部医疗账单：按患者、医院、状态筛选"], ["report", "年度报表", "📊", "按患者和医院汇总，HSA / 报税导出"]];
-const DEFS = { spend: SPEND_TABS, budget: BUDGET_TABS, onetime: MEDICAL_TABS, recurring: RECURRING_TABS };
+export const INCOME_TABS = [["overview", "概览", "📊"], ["records", "明细", "🧾", "查看、搜索、补记收入；个人赠与 / 借款的还款"], ["senders", "付款方", "🏷️", "谁给过我钱：今年 / 近 3 年 / 近 5 年 / 全部历史"], ["report", "报表", "📈", "收入 vs 花费 vs 差额：双周 / 月 / 季 / 年，导出，AI 分析"], ["access", "权限", "🔐", "谁能看收入：申请 / 批准"]];
+const DEFS = { income: INCOME_TABS, spend: SPEND_TABS, budget: BUDGET_TABS, onetime: MEDICAL_TABS, recurring: RECURRING_TABS };
 export const firstTab = (r) => (DEFS[r?.sub] || [])[0]?.[0] || null;
 
 /** 当前路由的页内标签 id（不认识的回到第一个）；不是花费 / 预算页返回 null */
