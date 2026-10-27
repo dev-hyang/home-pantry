@@ -1642,3 +1642,6 @@ body.editing .minibar { display: none; }
 .usage-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .usage-small { margin: 0; font-size: 13px; }
 @media (prefers-reduced-motion: reduce) { .usage-bar > i { transition: none; } }
+.ix-drafts { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.ix-draft { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 6px; }
+#incomePage .entry-ways { margin: 0 0 12px; }

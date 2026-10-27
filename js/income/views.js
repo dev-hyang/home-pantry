@@ -8,6 +8,7 @@ import { lang, t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { tabBar } from "../core/hub.js";
 import { INCOME_TABS, activeTab } from "../core/tabs.js";
+import { initIncomeScan, scanHtml } from "./scan.js";
 import { monthlyOf, saveMeta, totalIncomeMonthly } from "../bills/budget.js";
 import { incomePanel } from "../settings/income.js";
 import { medicalVirtuals } from "../bills/medical.js";
@@ -161,10 +162,15 @@ const listHtml = () => {
     ${all.length > head.length ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-sm btn-ghost" data-inc="more">${t("再看 40 笔（还有 {n} 笔）", { n: all.length - head.length })}</button></div>` : ""}`;
 };
 export const renderIncList = () => { const el = $("#incList"); if (el) el.innerHTML = listHtml(); };
+/** 三种记法（和「记一笔花费」一样）：手动 / 拍照识别 / 导入对账单 */
+const waysHtml = () => { const I = inc(); return `<div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}">
+  <button type="button" class="way ${I.form ? "is-cur" : ""}" data-inc="way-manual" aria-expanded="${I.form ? "true" : "false"}"><span class="way-ico" aria-hidden="true">✍️</span><span>${t("手动记一笔")}</span></button>
+  <button type="button" class="way ${I.scanOpen ? "is-cur" : ""}" data-inc="way-scan" aria-expanded="${I.scanOpen ? "true" : "false"}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍照识别")}</span></button>
+  <a class="way" href="${href("bills", "spend")}?tab=import"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a></div>`; };
 function recordsTab() {
-  const I = inc();
-  if (!I.rec.length && !I.form) return empty() + kindManager();
-  return `${I.form ? formHtml() : ""}<div class="panel"><div class="form-grid ix-filter">
+  const I = inc(), top = `${waysHtml()}${I.scanOpen ? scanHtml() : ""}${I.form ? formHtml() : ""}`;
+  if (!I.rec.length && !I.form) return top + empty() + kindManager();
+  return `${top}<div class="panel"><div class="form-grid ix-filter">
     <label>${t("搜索")}<input type="search" data-inc-f="q" value="${esc(I.q)}" placeholder="${esc(t("付款方 / 备注"))}"></label>
     <label>${t("类型")}<select data-inc-f="kind" data-nosearch><option value="all">${t("全部")}</option>${kindList().map((k) => `<option value="${k.id}" ${I.kind === k.id ? "selected" : ""}>${k.icon} ${esc(t(k.name))}</option>`).join("")}</select></label>
     <label>${t("谁的")}<select data-inc-f="person" data-nosearch>${personOptions(I.person, { all: true })}</select></label>
@@ -365,12 +371,14 @@ const reload = async () => { await loadIncome(); rerender(); };
 const goTab = (id) => { location.hash = incomeHref(id); };
 
 export function initIncome({ render, refresh }) {
-  hooks = { render, refresh };
+  hooks = { render, refresh }; initIncomeScan({ render });
   const main = document.getElementById("main");
   main.addEventListener("click", (e) => {
     const b = e.target.closest?.("[data-inc]"); if (!b) return;
     const I = inc(), id = b.dataset.id, act = b.dataset.inc;
     if (act === "add") { I.form = { rec: null }; if (activeTab(state.route) !== "records" || state.route.sub !== "income") goTab("records"); else rerender(); return; }
+    if (act === "way-manual") { I.form = I.form ? null : { rec: null }; I.scanOpen = false; return rerender(); }
+    if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return rerender(); }
     if (act === "cancel") { I.form = null; return rerender(); }
     if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.person = "all"; goTab("records"); return; } return rerender(); }
     if (act === "more") { I.limit += 40; return renderIncList(); }
