@@ -2305,4 +2305,8 @@ export const EN = {
   "；采购清单 {n} 项已标成已买到": "; {n} shopping-list item(s) marked as bought",
   "；采购清单里的「{n}」已标成已买到": "; “{n}” on the shopping list marked as bought",
   "待买、家人正在买的清单；买到了一键入库、记花费": "Items to buy and what family is buying; one tap to stock and log the spend when bought",
+  "没有新的花费要导入（都已经记录过）": "Nothing new to import (all already logged)",
+  "；批次记录没存上，「各账户已补到哪个月」不会更新，请重试": "; the batch record wasn't saved so “Months back-filled per account” won't update — please retry",
+  "；没选账户，这批不计入「各账户已补到哪个月」": "; no account was selected, so this batch isn't counted in “Months back-filled per account”",
+  "（都是已记录过的，只更新了补到哪个月）": "(all already logged; only the covered months were updated)",
 };

@@ -431,7 +431,7 @@ const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 
     <li>${t("退款（卡上入账的退货）会记成负数花费，统计按净额算。")}</li>
     <li>${t("以前已经手动记过的花费（日期差 3 天内、金额一样）自动跳过，所以同一个文件导两次也不会重复。")}</li>
     <li>${t("导入错了可以整批撤销。银行的 CSV 格式很多，列认错了可以手动选；国内银行的 GBK 编码也认得。")}</li></ul></div>`;
-const batchRow = (b) => { const can = b.tagged || b.ids?.length; return `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${b.from ? `${esc(b.from)} → ${esc(b.to)} · ` : ""}${t("{n} 笔", { n: b.n ?? b.ids?.length ?? 0 })} · ${money(b.sum || 0)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}${can ? "" : ` · ${t("（早期批次，只留了汇总）")}`}</small></div>${can ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}?tab=records&batch=${esc(b.id)}">${t("查看 / 修改")}</a><button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}</li>`;};
+const batchRow = (b) => { const can = (b.tagged && b.n !== 0) || b.ids?.length; return `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${b.from ? `${esc(b.from)} → ${esc(b.to)} · ` : ""}${t("{n} 笔", { n: b.n ?? b.ids?.length ?? 0 })} · ${money(b.sum || 0)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}${can ? "" : ` · ${b.n === 0 ? t("（都是已记录过的，只更新了补到哪个月）") : t("（早期批次，只留了汇总）")}`}</small></div>${can ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}?tab=records&batch=${esc(b.id)}">${t("查看 / 修改")}</a><button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}</li>`;};
 const batchAcctKey = (b) => (b.account ? `${b.account}${b.last4 ? ` ····${b.last4}` : ""}` : "");
 const batchesHtml = (batches) => {
   const lost = batches.filter((b) => !b.tagged && !b.ids?.length).length;   // 早期批次：没有批次标记、花费 id 列表也被丢掉了
@@ -477,7 +477,7 @@ async function doImport() {
   };
   for (let i = 0; i < picks.length; i += 6) await Promise.all(picks.slice(i, i + 6).map(one));   // 6 个一组并发，云端模式几百笔也不会太慢
   // 账户标签：新账户记进列表；这批的日期范围按文件里全部交易算（跳过的还款 / 转账也在范围里，免得月份缺口误报）
-  let acctList = meta("_bank_accounts", []) || [], acct = null;
+  let acctList = meta("_bank_accounts", []) || [], acct = null, metaFailed = false;
   if (S.account.mode === "new" && S.account.name.trim()) { acct = { id: `a${Date.now().toString(36)}`, name: S.account.name.trim().slice(0, 40), last4: S.account.last4 || "" }; acctList = [...acctList, acct]; }
   else if (S.account.mode === "id") acct = accounts().find((x) => x.id === S.account.id) || null;
   const cardId = acct && String(acct.id).startsWith("card:") ? String(acct.id).slice(5) : "";   // 选的是用卡模块里的卡：花费记到这张卡上（复盘 / 封顶进度用）
@@ -492,11 +492,12 @@ async function doImport() {
     const keys = Object.keys(rules);
     if (keys.length > 400) keys.map((k, i) => [k, ruleUse(rules[k]), i]).sort((a, b) => a[1].t.localeCompare(b[1].t) || a[1].n - b[1].n || a[2] - b[2]).slice(0, keys.length - 400).forEach(([k]) => delete rules[k]);   // 满了：先淘汰最久没用到的（旧格式没日期的最先）
     // 最近 60 批留着（查看 / 修改 / 撤销靠花费上的批次 id）；没执行迁移 034 的旧批次靠 id 列表，只有最近 6 批保留（免得预算设置里存太多）
-    const all = [...(meta("_bank_batches", []) || []), ...(ids.length ? [batch] : [])].slice(-60).map((b, i, arr) => (!b.tagged && i < arr.length - 6 ? { ...b, ids: [], n: b.n ?? b.ids?.length ?? 0 } : b));
+    const all = [...(meta("_bank_batches", []) || []), ...(ids.length || (S.rows.length && !failed) ? [batch] : [])].slice(-60).map((b, i, arr) => (!b.tagged && i < arr.length - 6 ? { ...b, ids: [], n: b.n ?? b.ids?.length ?? 0 } : b));
     await saveMeta({ _bank_rules: rules, _bank_batches: all, _bank_accounts: acctList.slice(-30) });
-  } catch (e) { /* 记不住规则 / 撤销记录不影响已导入的花费 */ }
+  } catch (e) { metaFailed = true; }   // 花费已经导入了；只是批次记录 / 覆盖表没存上，要告诉用户，不能悄悄吞掉
   S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = ""; S.acctTouched = false; S.account = acct ? { mode: "id", id: acct.id, name: acct.name, last4: acct.last4 } : { mode: "none", id: "", name: "", last4: "" };
-  toast(failed ? t("导入了 {n} 笔，{k} 笔失败", { n: ids.length, k: failed }) : t("已导入 {n} 笔", { n: ids.length }));
+  toast((failed ? t("导入了 {n} 笔，{k} 笔失败", { n: ids.length, k: failed }) : ids.length ? t("已导入 {n} 笔", { n: ids.length }) : t("没有新的花费要导入（都已经记录过）"))
+    + (metaFailed ? t("；批次记录没存上，「各账户已补到哪个月」不会更新，请重试") : !acct ? t("；没选账户，这批不计入「各账户已补到哪个月」") : ""));
   if (refreshFn) await refreshFn(); else redraw();
   redraw();
 }
