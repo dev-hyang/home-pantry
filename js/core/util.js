@@ -58,8 +58,10 @@ export function setSync(text, err = false, ok = false) {
 }
 
 export function toast(msg) {
-  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2600);
+  const t = $("#toast"), parts = String(msg).split(/[；;]s*/).filter(Boolean);   // 「；」分开的几段各占一行，第一行是结论
+  t.replaceChildren(...parts.map((p, i) => Object.assign(document.createElement("div"), { textContent: p, className: i ? "toast-line" : "toast-main" })));
+  t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), Math.min(9000, 2600 + String(msg).length * 60));   // 字多的多停一会儿
 }
 
 
