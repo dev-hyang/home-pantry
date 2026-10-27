@@ -27,7 +27,7 @@ export const GROUPS = [
   { id: "other", name: "其他", icon: "🧺", color: "#8a948f", w: 0.05 },
 ];
 const BILLS_GROUP = { id: "bills", name: "账单", icon: "🧾", color: "#2f5d8a" };
-/* 医疗：默认不计入每月“可支配”预算（大额、不可预测，和日常花费分开看）；在 设置 → 收入与预算 里可以改成计入，那时它和其他分类一样有月预算 */
+/* 医疗：默认不计入每月“可支配”预算（大额、不可预测，和日常花费分开看）；在 账单 → 收入 → 预算与计划 里可以改成计入，那时它和其他分类一样有月预算 */
 const MEDICAL_BUDGET_GROUP = { id: "medical", name: "医疗", icon: "🏥", color: "#c2475f", w: 0.08 };
 export const medInPool = () => meta("_med_in_pool", false) === true;
 export const groupsNow = () => (medInPool() ? [...GROUPS, MEDICAL_BUDGET_GROUP] : GROUPS);
@@ -148,7 +148,7 @@ export async function saveBudgetBase(patch) {
 /** 家主：按当前全家收入生成（或重新生成）预算；改过的各类金额保留 */
 export async function generatePlan() {
   if (!isHouseholdOwner()) throw new Error(t("只有家主能生成预算"));
-  const total = totalIncomeMonthly(); if (!(total > 0)) throw new Error(t("先在 设置 → 收入与预算 里填收入"));
+  const total = totalIncomeMonthly(); if (!(total > 0)) throw new Error(t("先在 账单 → 收入 → 预算与计划 里填收入"));
   const base = state.budget || { savings_pct: 20, cat_budgets: {} }, pctv = clamp(num(base.savings_pct, 20), 0, 90), c = computeGroups(total, pctv);
   state.incomePrompt = false;
   await saveBudgetBase({ savings_pct: pctv, cat_budgets: { ...(base.cat_budgets || {}), _plan: { groups: c.groups, fromFund: c.fromFund, hasHistory: c.hasHistory, savings_pct: pctv, generated_at: new Date().toISOString() } } });
@@ -312,13 +312,13 @@ const row = (g, spent, budget, pace, extra = "", drill = "") => `<div class="bud
 const budgetHref = (id) => `${href("bills", "budget")}${id === "month" ? "" : `?tab=${id}`}`;
 export function viewBudget() {
   const plan = budgetPlan(), b = state.budget || {};
-  const owner = isHouseholdOwner(), mine = state.incomes.find((i) => i.user_id === myId()), settingsHref = `${href("me", "settings")}?sec=income`;
+  const owner = isHouseholdOwner(), mine = state.incomes.find((i) => i.user_id === myId()), settingsHref = `${href("bills", "income")}?tab=plan`;
   if (!plan) {
     const body = owner
       ? (totalIncomeMonthly() > 0
         ? `<div class="panel cta-panel"><div><b>${t("收入已经设置了，还没有预算")}</b><p class="muted">${t("按全家收入、固定账单和储蓄比例生成第一版。")}</p></div><button type="button" class="btn btn-primary" data-action="budget-generate">${t("生成预算")}</button></div>`
-        : `<div class="panel cta-panel"><div><b>${t("还没有预算：先设置收入")}</b><p class="muted">${t("在 设置 → 收入与预算 填你的收入（每个人只能看到自己的），预算会自动生成。")}</p></div><a class="btn btn-primary" href="${settingsHref}">${t("去设置收入")}</a></div>`)
-      : `<div class="panel cta-panel"><div><b>${mine ? t("家主还没有生成预算") : t("还没有预算")}</b><p class="muted">${mine ? t("你的收入已经填好了，等家主生成预算就能在这里看到。") : t("先在 设置 → 收入与预算 填你自己的收入；预算由家主按全家收入生成。")}</p></div>${mine ? "" : `<a class="btn btn-primary" href="${settingsHref}">${t("去设置收入")}</a>`}</div>`;
+        : `<div class="panel cta-panel"><div><b>${t("还没有预算：先设置收入")}</b><p class="muted">${t("在 账单 → 收入 → 预算与计划 填你的收入（每个人只能看到自己的），预算会自动生成。")}</p></div><a class="btn btn-primary" href="${settingsHref}">${t("去设置收入")}</a></div>`)
+      : `<div class="panel cta-panel"><div><b>${mine ? t("家主还没有生成预算") : t("还没有预算")}</b><p class="muted">${mine ? t("你的收入已经填好了，等家主生成预算就能在这里看到。") : t("先在 账单 → 收入 → 预算与计划 填你自己的收入；预算由家主按全家收入生成。")}</p></div>${mine ? "" : `<a class="btn btn-primary" href="${settingsHref}">${t("去设置收入")}</a>`}</div>`;
     return `<section class="section"><div class="section-head"><h2>${t("预算")}</h2></div>${body}
       <p class="muted">${t("预算 = 全家收入 − 固定账单 − 储蓄，剩下的“可支配额”按过去的花费比例分给各类；超了会在首页提醒。")}</p></section>`;
   }
@@ -365,7 +365,7 @@ export function viewBudget() {
         ${row(BILLS_GROUP, mp.bills, plan.billsM, mp.pace, "", dq({ grp: "bills", month: cm }))}
         ${mp.rows.map((r) => row(r, r.spent, r.budget, mp.pace, "", dq({ grp: r.id, month: cm }))).join("")}
         <div class="bud-total">${row({ icon: "💰", name: "可支配花费合计" }, mp.spent, mp.variable, mp.pace, "", dq({ grp: "!bills", month: cm }))}</div>
-        ${!medInPool() && mp.medical > 0 ? `<div class="bud-row ch-hit-row"${hitAttrs(dq({ grp: "medical", month: cm }), t("医疗"))}><div class="bud-head"><b>🏥 ${t("医疗")}</b><span>${t("已付 {a}", { a: money(mp.medical) })}</span></div><small class="muted">${t("不计入可支配预算；在 设置 → 收入与预算 里可以改成计入")}</small></div>` : ""}
+        ${!medInPool() && mp.medical > 0 ? `<div class="bud-row ch-hit-row"${hitAttrs(dq({ grp: "medical", month: cm }), t("医疗"))}><div class="bud-head"><b>🏥 ${t("医疗")}</b><span>${t("已付 {a}", { a: money(mp.medical) })}</span></div><small class="muted">${t("不计入可支配预算；在 账单 → 收入 → 预算与计划 里可以改成计入")}</small></div>` : ""}
         ${DRILL_HINT()}
       </div>
     </section>
@@ -417,7 +417,7 @@ export function viewBudget() {
         ${plan.income != null ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("年收入 {i}，计划储蓄 {s}；预计全年花费 {p} 时，结余约 {r}。", { i: money(plan.income * 12), s: money(plan.savings * 12), p: yrProj != null ? money(yrProj) : "—", r: yrProj != null ? money(plan.income * 12 - yrProj) : "—" })}</p>` : ""}
       </div>
     </section>`,
-    // 目标：储蓄目标、家庭分摊（在 设置 → 收入与预算 里启用）
+    // 目标：储蓄目标、家庭分摊（在 账单 → 收入 → 预算与计划 里启用）
     goals: () => extras("goals", ctx) || empty(t("还没有内容")),
   };
   return `

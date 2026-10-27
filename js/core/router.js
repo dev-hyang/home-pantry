@@ -26,6 +26,7 @@ export function parseRoute(hash = location.hash) {
   const parts = path.split("/").filter(Boolean).map(decodeURIComponent);
   if (parts[0] === "gear") parts.splice(0, 1, "pantry", "gear");   // 旧链接 #/gear → 储藏 / 装备
   const query = new URLSearchParams(qs || "");
+  if (parts[0] === "me" && parts[1] === "settings" && query.get("sec") === "income") { parts.splice(0, 2, "bills", "income"); query.delete("sec"); query.set("tab", "plan"); }   // 收入与预算已并入 账单 → 收入 → 预算与计划
   // 账单页重新分层（周期性 / 一次性）：旧链接和已保存的快捷操作仍然有效——清单、记录进周期性账单的标签，医疗与事件改名一次性账单
   if (parts[0] === "bills") {
     const alias = { list: ["recurring", "list"], history: ["recurring", "history"], medical: ["onetime", null] }[parts[1]];

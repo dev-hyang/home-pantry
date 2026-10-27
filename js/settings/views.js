@@ -9,7 +9,6 @@ import { AUTH_STYLES, FREE_TIER, PROVIDERS, aiIcon, aiQuota, aiReady, aiSettings
 import { modelsCachedAt } from "../core/ai.js";
 import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
 import { viewPrintSettings } from "./print.js";
-import { incomePanel } from "./income.js";
 import { backupPanel, backupSummary } from "./backup-views.js";
 import { budgetPlan, isHouseholdOwner, myId } from "../bills/budget.js";
 
@@ -163,7 +162,6 @@ export const SETTING_SECTIONS = [
   { id: "family", icon: "👨‍👩‍👧", name: "家庭与成员" },
   { id: "prefs", icon: "🌐", name: "语言、地区与单位" },
   { id: "properties", icon: "🏠", name: "房产" },
-  { id: "income", icon: "💰", name: "收入与预算" },
   { id: "categories", icon: "🗂️", name: "分类与小类" },
   { id: "locations", icon: "📍", name: "存放位置" },
   { id: "modules", icon: "🧩", name: "模块开关" },
@@ -291,7 +289,6 @@ export function viewSettings() {
     const status = {
       family: cloud ? t("{name} · {n} 位成员", { name: state.household?.name || "", n: state.members.length }) : t("本地演示：数据只保存在这个浏览器里"),
       properties: t("{n} 套", { n: state.properties.filter((p) => !p.archived).length }),
-      income: state.incomes.some((i) => i.user_id === myId()) ? (isHouseholdOwner() ? (budgetPlan() ? t("已设置收入 · 预算已生成") : t("已设置收入")) : t("已设置我的收入")) : t("还没设置我的收入"),
       prefs: `${LANGS[langOverride() || detectLang()]} · ${t(Units.region.name)} · ${Units.region.currency}`,
       categories: t("{n} 个分类 · 自建 {m} · 改过 {k}", { n: CATEGORIES.filter((c) => !c.hidden).length, m: CATEGORIES.filter((c) => c.custom).length, k: CATEGORIES.filter((c) => c.overridden).length }),
       locations: t("{n} 个位置 · 自定义 {m}", { n: window.LOCATIONS.length, m: customLocations().length }),
@@ -355,7 +352,6 @@ export function viewSettings() {
         ${t("已有物品按原单位保存，显示时自动换算；按“个、盒、袋”计数的物品不换算。")}</p>
     </div>`,
     properties: () => propertiesPanel(),
-    income: () => incomePanel(),
     modules: () => `
     ${sw("houseToggle", state.houseEnabled, t("房屋维护模块"), t("关闭后导航和首页只显示日常储备，适合租房或不需要的家庭；数据不会删除"))}
     ${sw("billsToggle", state.billsEnabled, t("账单模块"), t("水电气、网络、HOA、房产税、房贷、保险等周期账单的提醒与记录；关闭后导航里不再显示，数据不会删除"))}

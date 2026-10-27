@@ -8,7 +8,8 @@ import { lang, t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { tabBar } from "../core/hub.js";
 import { INCOME_TABS, activeTab } from "../core/tabs.js";
-import { saveMeta } from "../bills/budget.js";
+import { monthlyOf, saveMeta, totalIncomeMonthly } from "../bills/budget.js";
+import { incomePanel } from "../settings/income.js";
 import { medicalVirtuals } from "../bills/medical.js";
 import { aiReady, askText } from "../core/ai.js";
 import { STAT_CATS, download, statCat, toCsv, ymd } from "../stats/views.js";
@@ -76,8 +77,8 @@ export function viewIncome() {
   const I = inc(), tab = activeTab(state.route) || "overview";
   if (!I.loaded && !I.loading) { I.loading = true; loadIncome().finally(() => { I.loading = false; rerender(); }); }
   if (!I.loaded) return shell(tab, `<div class="panel empty"><strong>${t("加载中…")}</strong></div>`);
-  const body = { overview: overviewTab, records: recordsTab, senders: sendersTab, report: reportTab, access: accessTab }[tab]();
-  return shell(tab, I.ok ? body : tab === "access" ? body : "");
+  const body = { overview: overviewTab, records: recordsTab, senders: sendersTab, report: reportTab, plan: planTab, access: accessTab }[tab]();
+  return shell(tab, I.ok || tab === "plan" || tab === "access" ? body : "");
 }
 
 /* ───────────── 公共小件 ───────────── */
@@ -313,6 +314,30 @@ async function runAi() {
   I.aiBusy = false; rerender();
 }
 
+/* ───────────── 预算与计划：预期收入（member_incomes，用来生成预算）+ 对比实际到账 ─────────────
+ * 收入只在这里设置：原来在 设置 → 收入与预算 的预期收入、储蓄比例、生成预算、医疗计入、家庭分摊都挪到了这一页，设置里不再有第二份。 */
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/** 最近 n 个整月（不含本月）的窗口 */
+const lastMonthsWin = (n) => { const d = new Date(); return { from: iso(new Date(d.getFullYear(), d.getMonth() - n, 1)), to: iso(new Date(d.getFullYear(), d.getMonth(), 0)) }; };
+function compareHtml() {
+  const I = inc(), n = [3, 6, 12].includes(+I.planWin) ? +I.planWin : 6, w = lastMonthsWin(n);
+  // 实际月均：到账金额，不含「需要还」的赠与 / 借款（那不是真收入）
+  const rows = I.rec.filter((r) => r.received_on >= w.from && r.received_on <= w.to && !r.repay_required);
+  const actualOf = (pid) => R2(sumOf(rows.filter((r) => (pid === "" ? !r.person_id : r.person_id === pid))) / n);
+  const lines = state.members.map((m) => { const p = state.people.find((x) => x.member_user_id === m.user_id), plan = state.incomes.find((i) => i.user_id === m.user_id); return { name: m.display_name || t("家人"), plan: plan ? R2(monthlyOf(plan)) : null, act: p ? actualOf(p.id) : null }; })
+    .filter((l) => l.plan != null || l.act != null);
+  const un = actualOf(""), planned = R2(totalIncomeMonthly()), actual = R2(sumOf(rows) / n);
+  const diff = (p, a) => (p > 0 ? `<span class="${a < p ? "down" : ""}">${a >= p ? "+" : ""}${Math.round(((a - p) / p) * 100)}%</span>` : "—");
+  const sel = `<label class="tb-field"><span>${t("对比最近")}</span><select data-inc-f="planWin" data-nosearch>${[3, 6, 12].map((v) => `<option value="${v}" ${v === n ? "selected" : ""}>${t("{n} 个月", { n: v })}</option>`).join("")}</select></label>`;
+  return `<div class="panel"><div class="time-bar" style="margin:0 0 8px"><h3 style="margin:0;flex:1">${t("计划 vs 实际到账")}</h3>${sel}</div>
+    ${I.ok ? `<div class="kpis">${kpi(t("计划月收入"), fmtMoney(planned), t("下面填的预期收入"))}${kpi(t("实际月均到账"), fmtMoney(actual), t("最近 {n} 个整月", { n }))}${kpi(t("实际 vs 计划"), diff(planned, actual), planned > 0 ? "" : t("还没填计划收入"))}</div>
+    ${lines.length > 1 || un ? `<div class="ch-scroll"><table class="store-table ix-tbl"><thead><tr><th scope="col">${t("成员")}</th><th scope="col">${t("计划 / 月")}</th><th scope="col">${t("实际月均")}</th><th scope="col">${t("差")}</th></tr></thead><tbody>
+      ${lines.map((l) => `<tr><th scope="row">${esc(l.name)}</th><td>${l.plan == null ? "—" : fmtMoney(l.plan)}</td><td>${l.act == null ? "—" : fmtMoney(l.act)}</td><td>${l.plan && l.act != null ? diff(l.plan, l.act) : "—"}</td></tr>`).join("")}
+      ${un ? `<tr><th scope="row">${t("未指定 / 全家")}</th><td>—</td><td>${fmtMoney(un)}</td><td>—</td></tr>` : ""}</tbody></table></div>` : ""}
+    <p class="muted small" style="margin:8px 0 0">${t("计划收入填的是税后固定收入，用来生成预算；实际是银行到账的收入记录（含奖金等一次性收入，不含需要还的赠与 / 借款），所以两者不会完全一样。想让预算更贴近实际，参考这里的实际月均去改计划。")}</p>` : `<p class="muted small">${t("收入记录还没读到（迁移 042 没执行？），先填下面的计划收入也可以。")}</p>`}</div>`;
+}
+function planTab() { return `${compareHtml()}${incomePanel()}`; }
+
 /* ───────────── 权限 ───────────── */
 function accessTab() {
   const I = inc(), me = state.user?.id, st = myAccess();
@@ -330,7 +355,7 @@ function accessTab() {
   return `<div class="panel"><h3 style="margin:0 0 6px">🔐 ${t("谁能看收入")}</h3><p class="muted small" style="margin:0 0 8px">${t("家主默认能看、能改全家的收入。其他成员默认只能看到自己记的那几条；你批准后，才能看全家的。这是数据库层面的限制，不只是界面藏起来。")}</p>
     ${pending.length ? `<div class="notice" role="status"><b>${t("{n} 个申请等你处理", { n: pending.length })}</b></div>` : ""}
     <ul class="restock-list">${others.map(row).join("") || `<li class="muted">${t("家里还没有其他成员")}</li>`}</ul></div>
-    <div class="panel"><b>${t("提醒")}</b><ul class="plain small" style="margin:6px 0 0"><li>${t("收入不会出现在花费、预算、AI 助手的问答里，也不在导出的花费 CSV 里。")}</li><li>${t("设置 → 备份与恢复 的备份文件会包含你能看到的收入，保存备份的位置请自己保管好。")}</li></ul></div>`;
+    <div class="panel"><b>${t("提醒")}</b><ul class="plain small" style="margin:6px 0 0"><li>${t("收入不会出现在花费、预算、AI 助手的问答里，也不在导出的花费 CSV 里。")}</li><li>${t("「预算与计划」里每个人填的预期收入用同一套权限：家主和被允许的人能看全家的，其他人只看自己的。")}</li><li>${t("设置 → 备份与恢复 的备份文件会包含你能看到的收入，保存备份的位置请自己保管好。")}</li></ul></div>`;
 }
 
 /* ───────────── 事件 ───────────── */
