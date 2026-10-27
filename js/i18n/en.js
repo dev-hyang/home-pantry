@@ -2315,4 +2315,5 @@ export const EN = {
   "只改这批记录的起止日期（“各账户已补到哪个月”按它算），不改每一笔花费的日期。": "Only changes this batch's date range (used by “Months back-filled per account”), not the date of each spend.",
   "起止日期都要填": "Fill in both dates", "起始日期不能晚于结束日期": "The start date can't be after the end date", "已更新这批的日期：{a} → {b}": "Batch dates updated: {a} → {b}",
   "对上的：{x}": "Matched: {x}",
+  "核对 / 取消跳过": "Review / stop skipping", "仍然导入": "Import anyway",
 };

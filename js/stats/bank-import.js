@@ -195,7 +195,7 @@ export function classifyWhy(row) {
 }
 
 /* ───────────── 把表格变成交易行 ───────────── */
-const S = { parts: [], auto: {}, account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "", batchAcct: "all", batchShow: 20, editDates: "" };   // batchAcct / batchShow：「最近导入」列表的账户筛选和已展开的条数（重画也不丢）
+const S = { parts: [], auto: {}, account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "", batchAcct: "all", batchShow: 20, editDates: "", force: new Set() };   // force：看过以后手动改成「仍然导入」的那几笔（按 日期|金额|描述#序号 记，重新解析 / 改列也保留）   // batchAcct / batchShow：「最近导入」列表的账户筛选和已展开的条数（重画也不丢）
 const cur = () => S.currency || Units.region.currency;
 let askFn = askText;   // 测试时可替换
 export const _setAsk = (fn) => { askFn = fn || askText; };
@@ -273,11 +273,13 @@ function rebuild() {
   }
   // 和已有花费对得上的（金额一样、日期差 ≤ 3 天，每条已有花费只配一次）：疑似已记录，默认跳过；重复导入同一个文件也靠它防重
   const pool = state.purchases.filter((p) => !p.virtual && p.amount != null).map((p) => ({ a: Math.round(num(p.amount) * 100) / 100, t: new Date(p.purchased_at).getTime(), used: false, name: p.name, day: String(p.purchased_at).slice(0, 10) }));
+  const seen = {};
   for (const r of rows) {
+    const k0 = `${r.date}|${r.out}|${r.desc}`; r.fk = `${k0}#${seen[k0] = (seen[k0] || 0) + 1}`;
     if (r.skip) continue;
     const tm = new Date(`${r.date}T12:00:00`).getTime();
     const hit = pool.find((p) => !p.used && Math.abs(p.a - r.out) < 0.005 && Math.abs(p.t - tm) <= 3.5 * 864e5);
-    if (hit) { hit.used = true; r.dup = true; r.dupOf = `${hit.name} · ${hit.day}`; }
+    if (hit) { hit.used = true; r.dupOf = `${hit.name} · ${hit.day}`; if (S.force.has(r.fk)) r.forced = true; else r.dup = true; }   // 手动确认过不是重复的：照常导入
   }
   S.rows = rows;
   const g = new Map();
@@ -397,11 +399,14 @@ const catOpts = (sel) => {
   return `<option value="" ${!sel ? "selected" : ""}>${esc(t("— 请选择 —"))}</option>${categoryOptions(sel, { withOther: true, spend: true })}
     <optgroup label="${esc(t("账单"))}">${own(bills)}</optgroup><optgroup label="${esc(t("其他"))}">${own([window.MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾" }])}</optgroup>`;
 };
+/** 疑似已记录的几笔：每笔写出对上的是哪条已有花费，核对过确实不是重复的，勾上「仍然导入」就不再跳过 */
+const dupListHtml = (rows) => '<details class="bank-dups" ' + (rows.some((r) => r.forced) ? "open" : "") + '><summary>' + t("核对 / 取消跳过") + '</summary><ul class="plain small" style="margin:6px 0 0">'
+  + rows.map((r) => '<li><label class="check-inline"><input type="checkbox" data-bank-force="' + esc(r.fk) + '" ' + (r.forced ? "checked" : "") + '><span>' + t("仍然导入") + ' · ' + esc(r.date) + ' · ' + money(r.out) + ' · <span class="muted">' + esc(t("对上的：{x}", { x: r.dupOf })) + '</span></span></label></li>').join("") + '</ul></details>';
 function groupRow(g) {
-  const inc = !!S.include[g.id], dups = g.rows.filter((r) => r.dup).length, n = g.rows.length;
+  const inc = !!S.include[g.id], dups = g.rows.filter((r) => r.dup).length, n = g.rows.length, matched = g.rows.filter((r) => r.dupOf);
   const sel = `<select data-bank-cat="${esc(g.id)}" aria-label="${esc(t("分类"))}">${catOpts(S.pick[g.id])}</select>`;   // 默认跳过的也能勾上、选个分类导入
   return `<li class="bank-row${g.skip ? " is-skip" : ""}"><label class="bank-chk"><input type="checkbox" data-bank-inc="${esc(g.id)}" ${inc ? "checked" : ""} aria-label="${esc(t("导入"))}"></label>
-    <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n })} · ${money(g.total)} · ${esc(rangeOf(g.rows))}${g.src === "learned" ? ` · <span class="bank-src" title="${esc(t("上次你给这家选的分类；改了会记住新的"))}">${t("上次你选的")}</span>` : g.src === "ai" ? ` · <span class="bank-src">${t("AI 猜的")}</span>` : g.src === "bill" ? ` · <span class="bank-src">${t("按账单收款方")}</span>` : ""}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b> <small class="muted">${esc(t("对上的：{x}", { x: g.rows.find((r) => r.dup)?.dupOf || "" }))}</small>` : ""}</small></div>${sel}</li>`;
+    <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n })} · ${money(g.total)} · ${esc(rangeOf(g.rows))}${g.src === "learned" ? ` · <span class="bank-src" title="${esc(t("上次你给这家选的分类；改了会记住新的"))}">${t("上次你选的")}</span>` : g.src === "ai" ? ` · <span class="bank-src">${t("AI 猜的")}</span>` : g.src === "bill" ? ` · <span class="bank-src">${t("按账单收款方")}</span>` : ""}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b>` : ""}</small>${matched.length ? dupListHtml(matched) : ""}</div>${sel}</li>`;
 }
 const chosen = () => {
   let n = 0, sum = 0;
@@ -558,7 +563,7 @@ async function doImport() {
     const all = [...(meta("_bank_batches", []) || []), ...(ids.length || (S.rows.length && !failed) ? [batch] : [])].slice(-60).map((b, i, arr) => (!b.tagged && i < arr.length - 6 ? { ...b, ids: [], n: b.n ?? b.ids?.length ?? 0 } : b));
     await saveMeta({ _bank_rules: rules, _bank_batches: all, _bank_accounts: acctList.slice(-30) });
   } catch (e) { metaFailed = true; }   // 花费已经导入了；只是批次记录 / 覆盖表没存上，要告诉用户，不能悄悄吞掉
-  S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = ""; S.acctTouched = false; S.account = acct ? { mode: "id", id: acct.id, name: acct.name, last4: acct.last4 } : { mode: "none", id: "", name: "", last4: "" };
+  S.force = new Set(); S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = ""; S.acctTouched = false; S.account = acct ? { mode: "id", id: acct.id, name: acct.name, last4: acct.last4 } : { mode: "none", id: "", name: "", last4: "" };
   toast((failed ? t("导入了 {n} 笔，{k} 笔失败", { n: ids.length, k: failed }) : ids.length ? t("已导入 {n} 笔", { n: ids.length }) : t("没有新的花费要导入（都已经记录过）"))
     + (metaFailed ? t("；批次记录没存上，「各账户已补到哪个月」不会更新，请重试") : !acct ? t("；没选账户，这批不计入「各账户已补到哪个月」") : ""));
   if (refreshFn) await refreshFn(); else redraw();
@@ -620,6 +625,7 @@ document.addEventListener("change", async (e) => {
   if (el.id === "bankFile") { const fs = [...(el.files || [])]; if (!fs.length) return; S.status = t("正在读取…"); redraw(); await ingest(fs); S.status = ""; return redraw(); }
   if (el.dataset.bankCat !== undefined) { S.pick[el.dataset.bankCat] = el.value; if (el.value) S.include[el.dataset.bankCat] = true; return redraw(); }
   if (el.dataset.bankInc !== undefined) { S.include[el.dataset.bankInc] = el.checked; return redraw(); }
+  if (el.dataset.bankForce !== undefined) { if (el.checked) S.force.add(el.dataset.bankForce); else S.force.delete(el.dataset.bankForce); rebuild(); return redraw(); }
   if (el.dataset.bankCol !== undefined && tp) { tp.map[el.dataset.bankCol] = +el.value; S.parts[0].error = ""; resetPicks(); rebuild(); return redraw(); }
   if (el.dataset.bankSign !== undefined) { S.spendSign = el.value; resetPicks(); rebuild(); return redraw(); }
   if (el.dataset.bankDmy !== undefined) { S.dmy = el.value === "dmy"; resetPicks(); rebuild(); return redraw(); }
