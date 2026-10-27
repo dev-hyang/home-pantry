@@ -2496,4 +2496,11 @@ export const EN = {
   "收入 + 花费 + 差额（合并）": "Income + spending + difference (combined)",
   "只要收入（按类型）": "Income only (by type)",
   "只要花费（按分类）": "Spending only (by category)",
+  "其中：还款": "Of which: repayments",
+  "其中「还款」= 还给个人赠与 / 借款的钱：钱从账户里出去了，已经算在花费里（记还款时默认同时记一笔花费；银行导入的转账也会算），这一列只是告诉你其中有多少。差额 = 收入 − 花费。": "“Repayments” = money paid back on personal gifts / loans. It left your account, so it is already counted in spending (logging a repayment also logs a spending entry by default, and bank-imported transfers count too); this column just shows how much of spending it is. Difference = income − spending.",
+  "同时记为一笔花费（钱从账户里出去了）": "Also log as a spending entry (the money left your account)",
+  "如果这笔转账已经从银行对账单导入成花费了，系统会发现并不再重复记；也可以取消勾选。": "If this transfer was already imported from a bank statement as spending, it will be detected and not logged twice; you can also untick this.",
+  "已计入花费": "counted in spending",
+  "；已有对上的花费（{n}），没有重复记": "; a matching spending entry already exists ({n}), not logged twice",
+  "还款给 {n}": "Repayment to {n}",
 };

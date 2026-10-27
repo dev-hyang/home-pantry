@@ -686,7 +686,12 @@ export const CloudStore = {
   async deleteIncomeByBatch(batch) { this.must(await this.sb.from("income_records").delete().eq("household_id", this.hid).eq("import_batch", batch)); },
   async renameIncomeSource(ids, name) { for (let i = 0; i < ids.length; i += 100) this.must(await this.sb.from("income_records").update({ source_name: name }).in("id", ids.slice(i, i + 100))); },
   async listIncomeRepayments() { return this.must(await this.sb.from("income_repayments").select("*").eq("household_id", this.hid).order("paid_on", { ascending: false }).limit(5000)); },
-  async addIncomeRepayment(p) { return this.must(await this.sb.from("income_repayments").insert({ ...p, household_id: this.hid, paid_by: state.user.id }).select("id").single()).id; },
+  async addIncomeRepayment(p) {
+    const ins = (row) => this.sb.from("income_repayments").insert({ ...row, household_id: this.hid, paid_by: state.user.id }).select("id").single();
+    let r = await ins(p);
+    if (r.error && /purchase_id/i.test(r.error.message) && p.purchase_id) { const { purchase_id, ...rest } = p; r = await ins(rest); }   // 迁移 043 还没执行：不记关联，花费照记
+    return this.must(r).id;
+  },
   async deleteIncomeRepayment(id) { this.must(await this.sb.from("income_repayments").delete().eq("id", id)); },
   async listIncomeAccess() { return this.must(await this.sb.from("income_access").select("*").eq("household_id", this.hid)); },
   async setIncomeAccess(userId, status, note = null) {

@@ -54,9 +54,9 @@ function cashflow({ range, from, to, unit, person }) {
   const list = person === "all" ? spendFor(w) : null;
   if (list) for (const p of spendRowsOk(list)) { const k = bucketKey(ymd(p.purchased_at), unit); if (k in spend) { spend[k] += num(p.amount); const c = statCat(p.category); spendCats[c] = spendCats[c] || zero(); spendCats[c][k] += num(p.amount); } }
   const hasSpend = person === "all" && !!list, hasRepaid = Object.values(repaid).some((v) => v > 0);
-  const lines = keys.map((k) => { const i = R2(income[k]), s = hasSpend ? R2(spend[k]) : null, rp = R2(repaid[k]); return { key: k, label: periodLabel(k, unit), income: i, spend: s, repaid: rp, net: s == null ? null : R2(i - s - rp) }; });
+  const lines = keys.map((k) => { const i = R2(income[k]), s = hasSpend ? R2(spend[k]) : null, rp = R2(repaid[k]); return { key: k, label: periodLabel(k, unit), income: i, spend: s, repaid: rp, net: s == null ? null : R2(i - s) }; });
   const tot = { income: R2(lines.reduce((a, l) => a + l.income, 0)), spend: hasSpend ? R2(lines.reduce((a, l) => a + l.spend, 0)) : null, repaid: R2(lines.reduce((a, l) => a + l.repaid, 0)) };
-  tot.net = tot.spend == null ? null : R2(tot.income - tot.spend - tot.repaid);
+  tot.net = tot.spend == null ? null : R2(tot.income - tot.spend);   // 还款是钱从账户里出去了，已经算在花费里（记还款时同时记一笔花费，或银行导入）：这里的「还款」只是告诉你其中有多少
   return { w, keys, lines, tot, byKind, rows, hasSpend, hasRepaid, spendCats, unit, loading: person === "all" && !list };
 }
 
@@ -105,10 +105,10 @@ const kindDonut = (byKind) => {
   const items = Object.entries(byKind).map(([id, value]) => ({ name: t(kindOf(id).name), value: R2(value), color: kindOf(id).color }));
   return items.length && window.Charts ? `<div class="panel chart-panel"><h3>${t("按收入类型")}</h3>${window.Charts.donut({ items, fmt: fmtMoney, title: t("按收入类型"), center: fmtMoney(items.reduce((a, x) => a + x.value, 0), true) })}</div>` : "";
 };
-const lineTable = (cf) => `<div class="panel"><div class="ch-scroll"><table class="store-table"><thead><tr><th scope="col">${t("周期")}</th><th scope="col">${t("收入")}</th>${cf.hasSpend ? `<th scope="col">${t("花费")}</th>` : ""}${cf.hasRepaid ? `<th scope="col">${t("还款")}</th>` : ""}${cf.hasSpend ? `<th scope="col">${t("差额")}</th><th scope="col">${t("结余率")}</th>` : ""}</tr></thead><tbody>
+const lineTable = (cf) => `<div class="panel"><div class="ch-scroll"><table class="store-table"><thead><tr><th scope="col">${t("周期")}</th><th scope="col">${t("收入")}</th>${cf.hasSpend ? `<th scope="col">${t("花费")}</th>` : ""}${cf.hasRepaid ? `<th scope="col">${t("其中：还款")}</th>` : ""}${cf.hasSpend ? `<th scope="col">${t("差额")}</th><th scope="col">${t("结余率")}</th>` : ""}</tr></thead><tbody>
   ${cf.lines.map((l) => `<tr><th scope="row">${esc(l.label)}</th><td>${fmtMoney(l.income)}</td>${cf.hasSpend ? `<td>${fmtMoney(l.spend)}</td>` : ""}${cf.hasRepaid ? `<td>${fmtMoney(l.repaid)}</td>` : ""}${cf.hasSpend ? `<td class="${l.net < 0 ? "down" : ""}">${fmtMoney(l.net)}</td><td>${rate(l.net, l.income)}</td>` : ""}</tr>`).join("")}
   <tr><th scope="row"><b>${t("合计")}</b></th><td><b>${fmtMoney(cf.tot.income)}</b></td>${cf.hasSpend ? `<td><b>${fmtMoney(cf.tot.spend)}</b></td>` : ""}${cf.hasRepaid ? `<td><b>${fmtMoney(cf.tot.repaid)}</b></td>` : ""}${cf.hasSpend ? `<td><b>${fmtMoney(cf.tot.net)}</b></td><td><b>${rate(cf.tot.net, cf.tot.income)}</b></td>` : ""}</tr></tbody></table></div>
-  ${cf.hasRepaid ? `<p class="muted" style="font-size:12.5px;margin:6px 0 0">${t("还款 = 还给个人赠与 / 借款的钱：算现金流出，但不算花费，所以不进花费统计和预算。")}</p>` : ""}</div>`;
+  ${cf.hasRepaid ? `<p class="muted" style="font-size:12.5px;margin:6px 0 0">${t("其中「还款」= 还给个人赠与 / 借款的钱：钱从账户里出去了，已经算在花费里（记还款时默认同时记一笔花费；银行导入的转账也会算），这一列只是告诉你其中有多少。差额 = 收入 − 花费。")}</p>` : ""}</div>`;
 
 /* ───────────── 概览 ───────────── */
 function overviewTab() {
@@ -149,8 +149,8 @@ function recordDetail(r, s) {
   const extra = [r.orig_amount && `${t("原币种")} ${r.orig_amount} ${r.orig_currency || ""}`, r.fee != null && `${t("手续费")} ${fmtMoney(r.fee)}`, r.import_batch && t("银行导入"), r.created_by && r.created_by !== state.user?.id && memberLabel(r.created_by) && t("{n} 记的", { n: memberLabel(r.created_by) })].filter(Boolean);
   const reps = inc().rep.filter((p) => p.record_id === r.id).sort((a, b) => b.paid_on.localeCompare(a.paid_on));
   const repay = s ? `<div class="inc-repay"><b>🤝 ${t("还款")}</b> · ${t("总额 {a}，已还 {b}，还差 {c}", { a: fmtMoney(s.total), b: fmtMoney(s.paid), c: fmtMoney(s.left) })}${r.repay_due_on ? ` · ${t("到期 {d}", { d: r.repay_due_on })}` : ""}
-    <ul class="plain small">${reps.map((p) => `<li>${p.paid_on} · ${fmtMoney(p.amount)}${p.method ? ` · ${esc(p.method)}` : ""} <button type="button" class="btn btn-sm btn-ghost" data-inc="rep-del" data-id="${p.id}">${t("删除")}</button></li>`).join("") || `<li class="muted">${t("还没有还款记录")}</li>`}</ul>
-    ${s.left > 0 ? `<form data-inc-form="repay" data-id="${r.id}" class="form-grid" style="margin-top:6px"><label>${t("还款日期")}<input type="date" name="paid_on" value="${todayISO()}" required></label><label>${t("金额")}<input type="number" name="amount" step="0.01" min="0.01" value="${s.left}" required></label><label>${t("方式")}<input name="method" maxlength="40" placeholder="Zelle / ${esc(t("现金"))}"></label><div class="form-actions"><button class="btn btn-sm btn-primary">${t("记一笔还款")}</button></div></form>` : ""}</div>` : "";
+    <ul class="plain small">${reps.map((p) => `<li>${p.paid_on} · ${fmtMoney(p.amount)}${p.method ? ` · ${esc(p.method)}` : ""}${p.purchase_id ? ` · <span class="muted">${t("已计入花费")}</span>` : ""} <button type="button" class="btn btn-sm btn-ghost" data-inc="rep-del" data-id="${p.id}">${t("删除")}</button></li>`).join("") || `<li class="muted">${t("还没有还款记录")}</li>`}</ul>
+    ${s.left > 0 ? `<form data-inc-form="repay" data-id="${r.id}" class="form-grid" style="margin-top:6px"><label>${t("还款日期")}<input type="date" name="paid_on" value="${todayISO()}" required></label><label>${t("金额")}<input type="number" name="amount" step="0.01" min="0.01" value="${s.left}" required></label><label>${t("方式")}<input name="method" maxlength="40" placeholder="Zelle / ${esc(t("现金"))}"></label><label class="check-inline" style="grid-column:1/-1"><input type="checkbox" name="as_spend" checked><span>${t("同时记为一笔花费（钱从账户里出去了）")}</span></label><small class="muted" style="grid-column:1/-1">${t("如果这笔转账已经从银行对账单导入成花费了，系统会发现并不再重复记；也可以取消勾选。")}</small><div class="form-actions"><button class="btn btn-sm btn-primary">${t("记一笔还款")}</button></div></form>` : ""}</div>` : "";
   return `<div class="inc-detail">${extra.length ? `<p class="muted small" style="margin:0 0 6px">${extra.map(esc).join(" · ")}</p>` : ""}${r.notes ? `<p style="margin:0 0 6px">${esc(r.notes)}</p>` : ""}${repay}
     ${canEdit(r) ? `<div class="form-actions"><button type="button" class="btn btn-sm" data-inc="edit" data-id="${r.id}">${t("编辑")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="del" data-id="${r.id}">${t("删除")}</button></div>` : ""}</div>`;
 }
@@ -271,7 +271,7 @@ function exportReport() {
     const cats = STAT_CATS().filter((c) => cf.spendCats[c.id]);
     rows = [[t("周期"), ...cats.map((c) => t(c.name)), t("合计")], ...cf.keys.map((k) => [periodLabel(k, r.unit), ...cats.map((c) => R2(cf.spendCats[c.id][k])), cf.lines.find((l) => l.key === k).spend]), [t("合计"), ...cats.map((c) => R2(Object.values(cf.spendCats[c.id]).reduce((a, b) => a + b, 0))), cf.tot.spend]];
   } else {
-    rows = [[t("周期"), t("收入"), ...(cf.hasSpend ? [t("花费")] : []), ...(cf.hasRepaid ? [t("还款")] : []), ...(cf.hasSpend ? [t("差额"), t("结余率")] : [])],
+    rows = [[t("周期"), t("收入"), ...(cf.hasSpend ? [t("花费")] : []), ...(cf.hasRepaid ? [t("其中：还款")] : []), ...(cf.hasSpend ? [t("差额"), t("结余率")] : [])],
       ...cf.lines.map((l) => [l.label, l.income, ...(cf.hasSpend ? [l.spend] : []), ...(cf.hasRepaid ? [l.repaid] : []), ...(cf.hasSpend ? [l.net, rate(l.net, l.income)] : [])]),
       [t("合计"), cf.tot.income, ...(cf.hasSpend ? [cf.tot.spend] : []), ...(cf.hasRepaid ? [cf.tot.repaid] : []), ...(cf.hasSpend ? [cf.tot.net, rate(cf.tot.net, cf.tot.income)] : [])]];
   }
@@ -302,7 +302,7 @@ async function runAi() {
   const senders = groupSum(cf.rows, (x) => skey(x.source_name)).slice(0, 10), mask = !r.unmask, pm = new Map(); let pi = 0;
   const pname = (id) => { if (!id) return t("未指定"); if (!mask) return personName(id); if (!pm.has(id)) pm.set(id, `${t("成员")} ${String.fromCharCode(65 + pi++)}`); return pm.get(id); };
   const data = { currency: cur(), window: cf.w, unit: r.unit, scope: r.person === "all" ? "household" : pname(r.person === "none" ? "" : r.person),
-    periods: cf.lines.map((l) => ({ period: l.label, income: l.income, spending: l.spend, repaid_to_people: l.repaid, net: l.net })), totals: cf.tot,
+    periods: cf.lines.map((l) => ({ period: l.label, income: l.income, spending: l.spend, of_which_repayments_to_people_already_in_spending: l.repaid, net: l.net })), totals: cf.tot,
     income_by_type: Object.entries(cf.byKind).map(([k, v]) => ({ type: kindOf(k).name, total: R2(v) })),
     income_by_member: groupSum(cf.rows, (x) => x.person_id || "").map((x) => ({ member: pname(x.key), total: x.total })),
     top_senders: senders.map((x, i) => ({ sender: mask ? `${t("付款方")} ${i + 1}` : x.rows[0].source_name, type: kindOf(groupSum(x.rows, (y) => y.kind)[0].key).name, count: x.n, total: x.total })),
@@ -351,7 +351,7 @@ export function initIncome({ render, refresh }) {
     if (act === "more") { I.limit += 40; return renderIncList(); }
     if (act === "edit") { I.form = { rec: I.rec.find((r) => r.id === id) }; return rerender(); }
     if (act === "del") { if (!armed(b, t("再点一次确认删除"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }
-    if (act === "rep-del") { if (!armed(b, t("再点一次确认"))) return; return guard(async () => { await Store.deleteIncomeRepayment(id); await reload(); }); }
+    if (act === "rep-del") { if (!armed(b, t("再点一次确认"))) return; return guard(async () => { const p = I.rep.find((x) => x.id === id); await Store.deleteIncomeRepayment(id); if (p?.purchase_id) { await Store.deletePurchase(p.purchase_id).catch(() => {}); state.purchases = state.purchases.filter((x) => x.id !== p.purchase_id); } await reload(); }); }
     if (act === "sender-open") { I.q = b.dataset.key; I.kind = "all"; I.year = "all"; goTab("records"); return; }
     if (act === "sender-rename") { I.renameKey = b.dataset.key || null; return rerender(); }
     if (act === "csv-detail") { const l = filteredRecords(); if (!l.length) return toast(t("没有可导出的记录")); download(`${fileHead()}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
@@ -373,7 +373,17 @@ export function initIncome({ render, refresh }) {
     e.preventDefault(); e.stopPropagation();
     const kind = f.dataset.incForm, I = inc(), fd = new FormData(f), g = (k) => String(fd.get(k) ?? "").trim();
     if (kind === "record") return saveRecord(f);
-    if (kind === "repay") return guard(async () => { await Store.addIncomeRepayment({ record_id: f.dataset.id, paid_on: g("paid_on") || todayISO(), amount: num(g("amount")), method: g("method") || null, notes: null }); toast(t("已记录还款")); await reload(); });
+    if (kind === "repay") return guard(async () => {
+      const rec = I.rec.find((r) => r.id === f.dataset.id), amount = num(g("amount")), paid_on = g("paid_on") || todayISO(); if (!rec || !(amount > 0)) return;
+      let purchase_id = null, note = "";
+      if (fd.get("as_spend") === "on") {   // 还款是钱从账户里出去了：同时记一笔花费，花费统计里才看得到
+        const tm = new Date(paid_on + "T12:00:00").getTime(), dup = state.purchases.find((p) => !p.virtual && Math.abs(num(p.amount) - amount) < 0.005 && Math.abs(new Date(p.purchased_at).getTime() - tm) <= 3.5 * 864e5);
+        if (dup) note = t("；已有对上的花费（{n}），没有重复记", { n: dup.name });
+        else purchase_id = await Store.addPurchase({ item_id: null, name: t("还款给 {n}", { n: rec.source_name }), category: "other", quantity: null, unit: null, store: rec.source_name, amount, currency: cur(), purchased_at: new Date(paid_on + "T12:00:00").toISOString() });
+      }
+      await Store.addIncomeRepayment({ record_id: rec.id, paid_on, amount, method: g("method") || null, notes: null, ...(purchase_id ? { purchase_id } : {}) });
+      toast(t("已记录还款") + note); await reload(); if (purchase_id) hooks.refresh();
+    });
     if (kind === "kind") return guard(async () => { const name = g("name"); if (!name) return; await saveMeta({ _income_kinds: [...customKinds(), { id: `c_${Date.now().toString(36)}`, name, icon: g("icon") || "🏷️" }].slice(0, 30) }); rerender(); });
     if (kind === "rename") return guard(async () => { const to = g("to"), key = f.dataset.key; if (!to) return; const ids = I.rec.filter((r) => skey(r.source_name) === key && canEdit(r)).map((r) => r.id); await Store.renameIncomeSource(ids, to); I.renameKey = null; toast(t("已改名 {n} 笔", { n: ids.length })); await reload(); });
     if (kind === "request") return guard(async () => { await Store.setIncomeAccess(state.user.id, "requested", g("note") || null); toast(t("已发送申请，等家主批准")); await reload(); });
