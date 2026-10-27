@@ -149,12 +149,21 @@ function refSection(id, { title, hint, body, open = false }) {
     <div class="ref-body">${body}</div></details></section>`;
 }
 
+/** 特殊评估的「下次缴款截止日」是房屋资料里手填的，和账单里的缴费记录原来互不相通：账单（HOA 类、同一房产或没挂房产）里已经有
+ *  这一期的缴费记录（到期日就是这一天，或缴费日在这一天前后一周内、状态不是跳过），这一期就算处理了，不再提醒 */
+export function saHandledByBill(prop, hoa) {
+  if (!hoa?.sa_due) return false;
+  const day = new Date(hoa.sa_due + "T12:00:00").getTime(), near = (d) => d && Math.abs(new Date(d + "T12:00:00").getTime() - day) <= 7 * 864e5;
+  const ids = new Set((state.bills || []).filter((b) => b.category === "hoa" && (!b.property_id || b.property_id === prop.id)).map((b) => b.id));
+  return (state.billPayments || []).some((p) => ids.has(p.bill_id) && p.status !== "skipped" && (p.due_on === hoa.sa_due || near(p.paid_on)));
+}
+
 /** 提醒总线：特殊评估未缴且 45 天内到期或已逾期（必须） */
 export function hoaAlertItems() {
   if (!state.houseEnabled) return [];
   return state.properties.filter(propertyLive).flatMap((prop) => {
     const p = state.houseProfiles[prop.id]; const hoa = hoaOf(p); const sa = assessmentStatus(hoa);
-    if (sa.kind !== "due" || sa.days == null || sa.days > 45) return [];
+    if (sa.kind !== "due" || sa.days == null || sa.days > 45 || saHandledByBill(prop, hoa)) return [];
     const severity = sa.days < 0 ? 0 : sa.days <= 3 ? 1 : sa.days <= 14 ? 2 : 3;
     const a = H().assocOf(p.house_type);
     return [{ source: "house", severity, must: true, due: hoa.sa_due, daysLeft: sa.days, property_id: prop.id,

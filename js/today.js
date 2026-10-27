@@ -137,29 +137,25 @@ export function viewAlerts() {
   const src = pref.source && counts.bySource[pref.source] ? pref.source : null;
   const idx = tabs.indexOf(src || "all");
   const shown = src ? all.filter((x) => x.source === src) : all;
-  const restockable = all.some((x) => (x.source === "pantry" || x.source === "house") && x.actions?.some((a) => a.action === "shop-add-item"));
   const mode = SORTS.some(([k]) => k === pref.mode) ? pref.mode : "severity";
   const sorts = SORTS.filter(([k]) => k !== "property" || multiProperty()).map(([k, n]) => `<option value="${k}" ${k === mode ? "selected" : ""}>${t(n)}</option>`).join("");
   const toggle = (key, label, on) => `<button type="button" class="chip" data-action="today-pref" data-key="${key}" aria-pressed="${on ? "true" : "false"}">${label}</button>`;
   const body = mode === "property" && multiProperty() ? byProperty(shown) : mode === "source" && !src ? bySource(shown) : mode === "due" ? byDue(shown) : bySeverity(shown);
   const tabName = (k) => (k === "all" ? t("全部") : `${SOURCE_ICON[k] || ""} ${t(SOURCE_LABEL[k] || k)}`);
   const tabCount = (k) => (k === "all" ? all.length : counts.bySource[k] || 0);
-  // 当前来源页：‹ 名称（数量）›，下面一行小圆点表示还有几页；整页列表区域可左右滑
-  const pager = tabs.length > 1 ? `<div class="page-nav swipe-zone" data-swipe="alerts" role="group" aria-label="${t("提醒来源")}">
-      <button type="button" class="month-btn" data-action="alerts-prev" ${idx <= 0 ? "disabled" : ""} aria-label="${t("上一个来源")}">‹</button>
-      <div class="month-cur"><b>${tabName(tabs[idx])}<span class="muted"> ${tabCount(tabs[idx])}</span></b><small class="dots" aria-hidden="true">${tabs.map((_, i) => `<i class="${i === idx ? "on" : ""}"></i>`).join("")}</small></div>
-      <button type="button" class="month-btn" data-action="alerts-next" ${idx >= tabs.length - 1 ? "disabled" : ""} aria-label="${t("下一个来源")}">›</button>
-    </div>` : "";
-  const tools = canMine || restockable ? `<div class="chips today-chips">
+  // 来源筛选：下拉列表（全部 / 各来源 + 数量），换来源不用左右翻页
+  const pager = tabs.length > 1 ? `<label class="src-dd"><span class="sr-only">${t("提醒来源")}</span><select id="alertSource" aria-label="${t("提醒来源")}">${tabs.map((k) => `<option value="${k}" ${k === tabs[idx] ? "selected" : ""}>${tabName(k)} (${tabCount(k)})</option>`).join("")}</select></label>` : "";
+  const restockHere = src === "pantry" && all.some((x) => x.source === "pantry" && x.actions?.some((a) => a.action === "shop-add-item"));   // 只有选了「储藏」才显示；其他来源（账单、房屋…）和「全部」都不显示
+  const tools = canMine || restockHere ? `<div class="chips today-chips">
         ${canMine ? toggle("mine", t("只看我负责的"), !!pref.mine) : ""}
-        ${restockable ? `<button type="button" class="chip" data-action="shop-add-alerts" data-space="all">${t("补货全部加入采购清单")}</button>` : ""}
+        ${restockHere ? `<button type="button" class="chip" data-action="shop-add-alerts" data-space="pantry">${t("补货全部加入采购清单")}</button>` : ""}
       </div>` : "";
 
   return `
     <nav class="crumb crumb-tools" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("注意事项")}</b>
       <label class="sort-dd"><span class="sr-only">${t("排序")}</span><select id="alertSort" aria-label="${t("排序")}">${sorts}</select></label></nav>
     <section class="section today-head">${pager}${tools}</section>
-    <div class="swipe-zone" data-swipe="alerts">${body}</div>`;
+    <div>${body}</div>`;
 }
 
 const section = (title, sub, items) => (items.length ? `<section class="section">

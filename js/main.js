@@ -517,6 +517,7 @@ main.addEventListener("change", async (e) => {
     const inp = e.target.form.elements.new_location, on = e.target.value === "__new__";
     inp.hidden = !on; if (on) inp.focus();
   }
+  if (e.target.id === "alertSource") { setTodayPref({ source: e.target.value === "all" ? null : e.target.value }); return render(); }
   if (e.target.id === "alertSort") { setTodayPref({ mode: e.target.value }); return render(); }
   if (e.target.closest("#aiSettingsForm") && e.target.name === "provider") {   // 换服务商：清掉上一家残留的模型名 / 地址（否则会把请求发到别家 → 404），重画 key 说明、默认模型、免费额度
     const f = e.target.form; f.elements.model.value = ""; f.elements.base.value = ""; if (f.elements.rpm) { f.elements.rpm.value = ""; f.elements.rpd.value = ""; }   // 上限是按服务商 / 模型的，一起清
