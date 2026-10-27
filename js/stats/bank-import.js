@@ -491,7 +491,7 @@ async function doImport() {
   else if (S.account.mode === "id") acct = accounts().find((x) => x.id === S.account.id) || null;
   const cardId = acct && String(acct.id).startsWith("card:") ? String(acct.id).slice(5) : "";   // 选的是用卡模块里的卡：花费记到这张卡上（复盘 / 封顶进度用）
   const dates = S.rows.map((r) => r.date).sort();
-  const batch = { id: batchId, at: new Date().toISOString(), file: S.parts.map((x) => x.name).join(", ").slice(0, 400), files: S.parts.map((x) => String(x.name).slice(0, 150)).slice(0, 30),   // file 原来只留 60 个字符，几份文件的名字被截断；现在留 400，另存每个文件名（files）
+  const batch = { id: batchId, at: new Date().toISOString(), file: S.parts.map((x) => x.name).join(", ").slice(0, 1000), files: S.parts.map((x) => String(x.name).slice(0, 150)).slice(0, 30),   // file 原来只留 60 个字符，几份文件的名字被截断；现在留 1000，另存每个文件名（files）
     ids: tagged ? [] : ids, tagged, sum: Math.round(sum * 100) / 100, n: ids.length,
     account: acct ? acct.name : "", last4: acct ? acct.last4 : "", from: dates[0] || "", to: dates.at(-1) || "" };
   try {
