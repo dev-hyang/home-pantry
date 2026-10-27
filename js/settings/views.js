@@ -10,6 +10,7 @@ import { modelsCachedAt } from "../core/ai.js";
 import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
 import { viewPrintSettings } from "./print.js";
 import { backupPanel, backupSummary } from "./backup-views.js";
+import { usageHTML } from "../core/usage.js";
 import { budgetPlan, isHouseholdOwner, myId } from "../bills/budget.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
@@ -167,6 +168,7 @@ export const SETTING_SECTIONS = [
   { id: "modules", icon: "🧩", name: "模块开关" },
   { id: "print", icon: "🖨️", name: "打印" },
   { id: "backup", icon: "🛟", name: "同步、备份与恢复" },
+  { id: "usage", icon: "📊", name: "存储用量" },
   { id: "data", icon: "🔔", name: "通知" },
   { id: "apps", icon: "🔗", name: "姐妹站点与介绍" },
 ];
@@ -296,6 +298,7 @@ export function viewSettings() {
       print: state.billsEnabled ? t("采购清单、账单概览") : t("采购清单"),
       data: notif === "granted" ? t("通知已开启") : t("通知未开启"),
       backup: backupSummary(),
+      usage: cloud ? t("数据库与文件存储，对照免费额度") : t("本地演示：没有云端空间"),
       ai: aiReady() ? `${t("{p} · 已填 key", { p: t(providerOf(aiSettings().provider).name) })}${(() => { const q = aiQuota(); return q.cap ? ` · ${t("今天 {n}/{cap}", { n: q.used, cap: q.cap })}` : ""; })()}` : t("未填 key，用“复制提示词”模式"),
       apps: t("小月亮、家庭学堂；介绍与注意事项"),
     };
@@ -361,6 +364,7 @@ export function viewSettings() {
       ${notif === "granted" ? `<span class="badge b-ok">${t("已开启")}</span>` : notif === "unsupported" ? `<span class="muted">${t("此浏览器不支持")}</span>` : `<button type="button" class="btn btn-sm" data-action="notif">${t("开启通知")}</button>`}</div></div>
     `,
     backup: () => backupPanel(),
+    usage: () => `<p class="muted" style="margin:0 0 10px">${t("看看数据占了 Supabase 免费空间的多少，快满之前会变黄、变红提醒你。")}</p>${usageHTML()}`,
     ai: () => aiBlock(),
     print: () => viewPrintSettings(),
     locations: () => locationsPanel(),
