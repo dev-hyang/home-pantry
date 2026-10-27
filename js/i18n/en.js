@@ -2503,4 +2503,11 @@ export const EN = {
   "已计入花费": "counted in spending",
   "；已有对上的花费（{n}），没有重复记": "; a matching spending entry already exists ({n}), not logged twice",
   "还款给 {n}": "Repayment to {n}",
+  "到期日 {d}": "Due {d}",
+  "还款（还给对方）": "Paying back",
+  "{n} 笔收入": "{n} income entries",
+  "收支差额": "Net (income − spending)",
+  "还款到期日": "Pay-back due date",
+  "付款方历史": "Senders",
+  "收到次数": "Times received",
 };
