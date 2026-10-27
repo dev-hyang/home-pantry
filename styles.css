@@ -1645,3 +1645,23 @@ body.editing .minibar { display: none; }
 .ix-drafts { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .ix-draft { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 6px; }
 #incomePage .entry-ways { margin: 0 0 12px; }
+
+/* 收入：概览 / 类型 / 收支对比（和花费同一套版式）*/
+.kpi small.gain { color: var(--ok); } .kpi small.loss { color: var(--out); }
+.ix-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; margin-bottom: 12px; }
+.ix-two > * { margin: 0; min-width: 0; }
+@media (max-width: 820px) { .ix-two { grid-template-columns: minmax(0, 1fr); } }
+.ix-rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.ix-rank .rk-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ix-rank .rk-top .link-name { min-height: 32px; text-align: left; overflow-wrap: anywhere; }
+.ix-rank .rk-top b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ix-rank .rk-bar { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin: 3px 0 4px; }
+.ix-rank .rk-bar i { display: block; height: 100%; border-radius: 99px; background: var(--pine); }
+.ix-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ix-selbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; margin: 0 0 8px; border-radius: 12px; background: var(--surface-2); }
+.ix-selbar span { flex: 1 1 auto; font-weight: 700; font-size: 13.5px; }
+.ix-chk { width: 20px; height: 20px; flex: none; accent-color: var(--pine); }
+@media (max-width: 560px) { .ix-tools .btn, .ix-selbar .btn { flex: 1 1 auto; min-height: 40px; } }
+#incomePage .export-grid > * { min-width: 0; }
+#incomePage .export-pick { flex-wrap: wrap; }
+#incomePage .export-pick select { flex: 1 1 200px; min-width: 0; max-width: 100%; }

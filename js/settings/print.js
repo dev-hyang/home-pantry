@@ -12,6 +12,7 @@ import { alertText, billAlerts, billCat, propertyName, subscriptionSummary, upco
 
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
 const stamp = () => t("打印于 {d}", { d: fmtDate(todayISO()) });
+export const printStamp = stamp;
 
 /** 设置里的“打印”页：每种可打印的内容一行，账单概览可选房产（默认全部房产） */
 export function viewPrintSettings() {
@@ -85,7 +86,10 @@ function budgetSheet() {
 /** 生成打印内容并调出浏览器打印；打印结束后清掉 */
 export async function printSheet(kind, arg = "all") {
   if (kind === "spend" && !state.purchases.length) { try { state.purchases = await Store.listPurchases(); mergeMedical(); } catch { /* 用已有的 */ } }   // 采购花费是后台读的，打印前确保读到了
-  const html = kind === "shopping" ? shoppingSheet() : kind === "spend" ? spendSheet(arg) : kind === "budget" ? budgetSheet() : billsSheet(arg);
+  printHtml(kind === "shopping" ? shoppingSheet() : kind === "spend" ? spendSheet(arg) : kind === "budget" ? budgetSheet() : billsSheet(arg));
+}
+/** 把一段 HTML 放进 #printSheet 并调出浏览器打印（收入报表等别的模块也用） */
+export function printHtml(html) {
   let host = $("#printSheet");
   if (!host) { host = document.createElement("div"); host.id = "printSheet"; document.body.appendChild(host); }
   host.innerHTML = html;

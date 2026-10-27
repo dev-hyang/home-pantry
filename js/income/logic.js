@@ -94,10 +94,13 @@ export function periodKeys(from, to, unit) {
 }
 export const periodLabel = (k, unit) => (unit === "quarter" ? k.replace("-Q", " Q") : unit === "biweek" ? k.slice(2) : k);
 
-export const RANGES = [["12m", "近 12 个月"], ["24m", "近 24 个月"], ["ytd", "今年"], ["lastyear", "去年"], ["3y", "近 3 年"], ["5y", "近 5 年"], ["all", "全部历史"], ["custom", "自定义"]];
+export const RANGES = [["month", "本月"], ["3m", "近 3 个月"], ["6m", "近 6 个月"], ["12m", "近 12 个月"], ["24m", "近 24 个月"], ["ytd", "今年"], ["lastyear", "去年"], ["3y", "近 3 年"], ["5y", "近 5 年"], ["all", "全部历史"], ["custom", "自定义"]];
 /** 时间窗口 → { from, to }（含）；全部历史从最早一笔收入算起 */
 export function windowOf(range, c = {}) {
   const today = todayISO(), y = +today.slice(0, 4), ago = (months) => { const d = new Date(); d.setMonth(d.getMonth() - months); d.setDate(d.getDate() + 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  if (range === "month") return { from: `${today.slice(0, 7)}-01`, to: today };
+  if (range === "3m") return { from: ago(3), to: today };
+  if (range === "6m") return { from: ago(6), to: today };
   if (range === "ytd") return { from: `${y}-01-01`, to: today };
   if (range === "lastyear") return { from: `${y - 1}-01-01`, to: `${y - 1}-12-31` };
   if (range === "24m") return { from: ago(24), to: today };
