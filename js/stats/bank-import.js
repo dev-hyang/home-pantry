@@ -101,6 +101,19 @@ const SKIP = {
   card_payment: [/(payment|pmt).*(thank|received|autopay)|autopay|auto pay|automatic payment|online (payment|pmt)|e-?payment|credit card (pmt|payment)|crcardpmt|card payment|epay|还款|信用卡还款|自动还款/i, "信用卡还款"],
   transfer: [/transfer|xfer|zelle|venmo|cash ?app|apple cash|wire|ach (credit|debit)|转账|汇款|转入|转出|财付通|支付宝|微信|\batm\b|取款|存款|withdrawal|\bdeposit\b/i, "转账 / 取现"],
 };
+/** 转账分两种：自己账户之间倒腾（活期 → 储蓄、还自己的卡）钱还在家里，不算花费；转给别人 / 取现 / 汇款钱是真的出去了，算花费。
+ *  internal = 自己的账户之间；external = 转给外部（Zelle / Venmo / 电汇 / 取现…）；其余写「转账」但看不出去向的叫 unknown，按以前一样默认不计。 */
+const XFER_WORDS = SKIP.transfer[0];
+const XFER_INTERNAL = /(between|internal|own)\s+(my\s+|your\s+)?accounts?|(transfer|xfer)\s+(to|from)\s+(my\s+|your\s+)?(savings?|sav|checking|chk|money market|brokerage|investment|ira|529|hsa)\b|\b(savings?|checking|chk|sav)\b.{0,30}(transfer|xfer)|(transfer|xfer).{0,30}\b(savings?|checking|chk|sav)\b|本人|本行|活期|定期|理财|自己|账户间|行内转/i;
+const XFER_EXTERNAL = /zelle|venmo|cash ?app|apple cash|paypal|\bwire\b|western union|moneygram|remit|\batm\b|cash withdrawal|withdrawal|ach (debit|withdrawal)|external|汇款|取款|财付通|支付宝|微信/i;
+function ownLast4s() { const set = new Set((accounts() || []).map((a) => a.last4).filter(Boolean)); if (S.account?.last4) set.add(S.account.last4); return set; }
+function transferKind(txt) {
+  const tail = [...txt.matchAll(/(?:acct|account|ending|x{2,}|\*{2,}|[•…]{2,}|\.{2,}|#)\s*(\d{4})\b/gi)].map((m) => m[1]), own = ownLast4s();
+  if (tail.some((x) => own.has(x))) return "internal";   // 写着自己某个账户的尾号
+  if (XFER_EXTERNAL.test(txt)) return "external";
+  if (XFER_INTERNAL.test(txt)) return "internal";
+  return "unknown";
+}
 const REFUND = /refund|return|reversal|credit adjustment|退款|退货|冲正/i;
 const RULES = [
   ["bill_mortgage", /mortgage|mr\.? cooper|rocket mortgage|loancare|房贷/i], ["bill_rent", /\brent\b|apartments?\b|property management|房租|租金/i],
@@ -241,11 +254,14 @@ function rebuild() {
   for (const r0 of all) {
     const row = { ...r0, skip: "" }, typeTxt = `${row.type} ${row.desc}`;
     if (row.kind === "card_payment" || SKIP.card_payment[0].test(typeTxt) || /^payment$/i.test(row.type)) row.skip = "card_payment";
-    else if (row.kind === "transfer" || SKIP.transfer[0].test(typeTxt)) row.skip = "transfer";
+    else if (row.kind === "transfer" || XFER_WORDS.test(typeTxt)) {
+      if (row.out > 0 && transferKind(typeTxt) === "external") row.xfer = "external";   // 转给别人 / 取现 / 汇款：钱出去了，按花费记
+      else row.skip = "transfer";
+    }
     else if (row.kind === "income") row.skip = "income";
     else if (row.out < 0) row.skip = row.kind === "refund" || REFUND.test(typeTxt) ? "" : "income";   // 入账：退款算（负花费），其余是收入
     row.refund = row.out < 0 && !row.skip;
-    row.key = keyOf(row.desc); const cw = row.skip ? { cat: "", src: "" } : classifyWhy(row); row.cat = cw.cat; row.src = cw.src;
+    row.key = keyOf(row.desc); const cw = row.skip ? { cat: "", src: "" } : classifyWhy(row); row.cat = cw.cat || (row.xfer ? "other" : ""); row.src = cw.cat ? cw.src : row.xfer ? "rule" : cw.src;
     rows.push(row);
   }
   // 和已有花费对得上的（金额一样、日期差 ≤ 3 天，每条已有花费只配一次）：疑似已记录，默认跳过；重复导入同一个文件也靠它防重
@@ -435,7 +451,7 @@ function rulesHtml() {
 }
 const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("怎么归类？")}</h3><ul class="plain small" style="margin:0">
     <li>${t("只有一笔刷卡 / 扣款、没有小票也没关系：按商家名自动归类（超市、餐饮、加油、水电网、订阅、机票酒店…），认不出的你选一次，之后记住。")}</li>
-    <li>${t("信用卡还款、账户之间转账、工资入账不是花费，默认跳过——否则会重复算一遍。")}</li>
+    <li>${t("信用卡还款、自己账户之间的转账（活期 ↔ 储蓄）、工资入账不是花费，默认跳过——否则会重复算一遍。转给别人（Zelle / Venmo / 电汇）和取现是真的花出去了，会按花费记（默认分到“其他”，可以改）；写着“转账”但看不出去向的默认跳过。")}</li>
     <li>${t("分类怎么选：买回家吃的、用的（会用完）→ 日常储备；买回家长期用的 → 装备；花钱买体验或服务、没有东西留在家里 → 外出与服务。银行流水里看不出买了什么的，超市算“超市杂货”（归日常储备），网购算“网购 / 综合购物（未细分）”。")}</li>
     <li>${t("退款（卡上入账的退货）会记成负数花费，统计按净额算。")}</li>
     <li>${t("以前已经手动记过的花费（日期差 3 天内、金额一样）自动跳过，所以同一个文件导两次也不会重复。")}</li>
