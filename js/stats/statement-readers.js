@@ -208,7 +208,7 @@ const SYSTEM = [
   "You read bank / credit-card statement text or images and return ONLY JSON. Never invent transactions; copy dates and amounts exactly.",
   'Return {"currency": "USD"|null, "transactions": [{"date":"YYYY-MM-DD","description":"merchant as printed (no account numbers)","amount":number,"kind":"purchase|refund|card_payment|transfer|income|fee|interest","category":"id or null"}]}.',
   "amount: positive = money that LEFT the account (purchase, fee, interest); negative = money that CAME IN (refund, card payment received, deposit, salary). kind: card_payment = payment toward a credit card; transfer = movement between accounts, Zelle/Venmo, ATM; income = salary/deposit; refund = returned purchase credited back.",
-  "Skip running balances, totals, summaries, rewards and marketing text. If a date has no year, use the statement period to infer it (a January statement can contain December transactions).",
+  "Direction of person-to-person payments follows the wording, not your guess: \"Zelle payment FROM x\" / \"Venmo from x\" is money that CAME IN (negative amount), \"Zelle payment TO x\" is money that LEFT (positive amount). Skip running balances, totals, summaries, rewards and marketing text. If a date has no year, use the statement period to infer it (a January statement can contain December transactions).",
   "category = the best matching id from the list given below for purchases / refunds / fees; null when unsure or for payments / transfers / income.",
 ].join("\n");
 const VALID_KIND = new Set(["purchase", "refund", "card_payment", "transfer", "income", "fee", "interest"]);
