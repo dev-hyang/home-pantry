@@ -2570,4 +2570,9 @@ export const EN = {
   "保存中…": "Saving…",
   "保存 {n} 条": "Save {n}",
   "重新识别": "Scan again",
+  "只看一次银行导入的入账": "Showing income from one bank import only",
+  "看全部收入": "Show all income",
+  "查看花费": "View spending",
+  "查看收入": "View income",
+  "从「收入」进来的：同一份对账单里的入账（工资、电汇、Zelle 转入…）会单独列在「收入」一栏，导入后在 账单 → 收入 → 明细 里查看；花费和收入分开记，不会重复。": "Opened from Income: incoming payments in the same statement (payroll, wires, Zelle received…) are listed separately as income; view them after import under Bills → Income → Records. Spending and income are recorded separately, so nothing is counted twice.",
 };

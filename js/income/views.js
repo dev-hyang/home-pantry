@@ -76,6 +76,8 @@ function noticeHtml() {
 }
 export function viewIncome() {
   const I = inc(), tab = activeTab(state.route) || "overview";
+  const qb = state.route?.q?.get("batch");   // 银行导入「查看收入」：只看这一批入账
+  if (qb && I.batchFrom !== qb) { I.batch = qb; I.batchFrom = qb; Object.assign(I, { q: "", kind: "all", year: "all", person: "all", limit: 40 }); } else if (!qb) I.batchFrom = null;
   if (!I.loaded && !I.loading) { I.loading = true; loadIncome().finally(() => { I.loading = false; rerender(); }); }
   if (!I.loaded) return shell(tab, `<div class="panel empty"><strong>${t("加载中…")}</strong></div>`);
   const body = { overview: overviewTab, records: recordsTab, senders: sendersTab, report: reportTab, plan: planTab, access: accessTab }[tab]();
@@ -136,7 +138,7 @@ function repayPanel() {
 /* ───────────── 明细 ───────────── */
 function filteredRecords() {
   const I = inc(), q = skey(I.q);
-  return I.rec.filter((r) => (I.kind === "all" || r.kind === I.kind) && (I.person === "all" || (I.person === "none" ? !r.person_id : r.person_id === I.person)) && (I.year === "all" || r.received_on.startsWith(I.year))
+  return I.rec.filter((r) => (I.kind === "all" || r.kind === I.kind) && (I.person === "all" || (I.person === "none" ? !r.person_id : r.person_id === I.person)) && (I.year === "all" || r.received_on.startsWith(I.year)) && (!I.batch || r.import_batch === I.batch)
     && (!q || skey(`${r.source_name} ${r.notes || ""} ${r.account || ""} ${kindOf(r.kind).name}`).includes(q))).sort((a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at)));
 }
 const canEdit = (r) => isOwnerNow() || r.created_by === state.user?.id;
@@ -166,7 +168,7 @@ export const renderIncList = () => { const el = $("#incList"); if (el) el.innerH
 const waysHtml = () => { const I = inc(); return `<div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}">
   <button type="button" class="way ${I.form ? "is-cur" : ""}" data-inc="way-manual" aria-expanded="${I.form ? "true" : "false"}"><span class="way-ico" aria-hidden="true">✍️</span><span>${t("手动记一笔")}</span></button>
   <button type="button" class="way ${I.scanOpen ? "is-cur" : ""}" data-inc="way-scan" aria-expanded="${I.scanOpen ? "true" : "false"}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍照识别")}</span></button>
-  <a class="way" href="${href("bills", "spend")}?tab=import"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a></div>`; };
+  <a class="way" href="${href("bills", "spend")}?tab=import&from=income"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a></div>`; };
 function recordsTab() {
   const I = inc(), top = `${waysHtml()}${I.scanOpen ? scanHtml() : ""}${I.form ? formHtml() : ""}`;
   if (!I.rec.length && !I.form) return top + empty() + kindManager();
@@ -175,6 +177,7 @@ function recordsTab() {
     <label>${t("类型")}<select data-inc-f="kind" data-nosearch><option value="all">${t("全部")}</option>${kindList().map((k) => `<option value="${k.id}" ${I.kind === k.id ? "selected" : ""}>${k.icon} ${esc(t(k.name))}</option>`).join("")}</select></label>
     <label>${t("谁的")}<select data-inc-f="person" data-nosearch>${personOptions(I.person, { all: true })}</select></label>
     <label>${t("年份")}<select data-inc-f="year" data-nosearch><option value="all">${t("全部")}</option>${yearsOf().map((v) => `<option value="${v}" ${I.year === v ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>
+    ${I.batch ? `<div class="muted small" style="margin-top:8px">${t("只看一次银行导入的入账")} <button type="button" class="btn btn-sm btn-ghost" data-inc="batch-clear">${t("看全部收入")}</button></div>` : ""}
     <div id="incList" style="margin-top:8px">${listHtml()}</div>
     <div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm btn-ghost" data-inc="csv-detail">${t("导出当前列表 CSV")}</button></div></div>${kindManager()}`;
 }
@@ -378,6 +381,7 @@ export function initIncome({ render, refresh }) {
     const I = inc(), id = b.dataset.id, act = b.dataset.inc;
     if (act === "add") { I.form = { rec: null }; if (activeTab(state.route) !== "records" || state.route.sub !== "income") goTab("records"); else rerender(); return; }
     if (act === "way-manual") { I.form = I.form ? null : { rec: null }; I.scanOpen = false; return rerender(); }
+    if (act === "batch-clear") { I.batch = null; history.replaceState(null, "", `${href("bills", "income")}?tab=records`); return rerender(); }
     if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return rerender(); }
     if (act === "cancel") { I.form = null; return rerender(); }
     if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.person = "all"; goTab("records"); return; } return rerender(); }
