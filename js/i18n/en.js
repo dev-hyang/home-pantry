@@ -2304,4 +2304,5 @@ export const EN = {
   "采购清单里的「{n}」会标成已买到": "“{n}” on the shopping list will be marked as bought",
   "；采购清单 {n} 项已标成已买到": "; {n} shopping-list item(s) marked as bought",
   "；采购清单里的「{n}」已标成已买到": "; “{n}” on the shopping list marked as bought",
+  "待买、家人正在买的清单；买到了一键入库、记花费": "Items to buy and what family is buying; one tap to stock and log the spend when bought",
 };

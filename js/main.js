@@ -163,7 +163,7 @@ const VIEWS = {
   today:    () => viewToday(),
   alerts:   () => viewAlerts(),
   ai:       () => viewAi(),
-  pantry:   { overview: viewDashboard, inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
+  pantry:   { overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix },
   bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, budget: viewBudget, cards: viewCards, template: viewBillTemplate },

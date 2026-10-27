@@ -1581,3 +1581,17 @@ body.editing .minibar { display: none; }
 .gift-toolbar .check-inline { margin: 0; font-size: 13px; }
 .card-del-box { border-color: var(--out); }
 .card-del-box .form-actions { margin-top: 8px; }
+
+/* 银行导入「最近导入」的账户筛选：整行宽、不超出屏幕，文字过长用省略号；左边银行图标，右边下拉箭头 */
+.bank-acct-bar { position: relative; display: block; width: 100%; max-width: 100%; margin: 0 0 10px; }
+.bank-acct-bar .bab-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 16px; }
+.bank-acct-bar select {
+  display: block; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; min-height: 44px; padding: 8px 40px 8px 42px;
+  border: 1.5px solid var(--line); border-radius: 12px; font-size: 15px; font-weight: 600; background-color: var(--surface); color: inherit;
+  text-overflow: ellipsis; white-space: nowrap; overflow: hidden; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23777' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 16px center;
+}
+.bank-acct-bar select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (min-width: 640px) { .bank-acct-bar { max-width: 420px; } }
