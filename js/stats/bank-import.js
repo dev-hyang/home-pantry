@@ -272,12 +272,12 @@ function rebuild() {
     rows.push(row);
   }
   // 和已有花费对得上的（金额一样、日期差 ≤ 3 天，每条已有花费只配一次）：疑似已记录，默认跳过；重复导入同一个文件也靠它防重
-  const pool = state.purchases.filter((p) => !p.virtual && p.amount != null).map((p) => ({ a: Math.round(num(p.amount) * 100) / 100, t: new Date(p.purchased_at).getTime(), used: false }));
+  const pool = state.purchases.filter((p) => !p.virtual && p.amount != null).map((p) => ({ a: Math.round(num(p.amount) * 100) / 100, t: new Date(p.purchased_at).getTime(), used: false, name: p.name, day: String(p.purchased_at).slice(0, 10) }));
   for (const r of rows) {
     if (r.skip) continue;
     const tm = new Date(`${r.date}T12:00:00`).getTime();
     const hit = pool.find((p) => !p.used && Math.abs(p.a - r.out) < 0.005 && Math.abs(p.t - tm) <= 3.5 * 864e5);
-    if (hit) { hit.used = true; r.dup = true; }
+    if (hit) { hit.used = true; r.dup = true; r.dupOf = `${hit.name} · ${hit.day}`; }
   }
   S.rows = rows;
   const g = new Map();
@@ -287,7 +287,22 @@ function rebuild() {
     x.rows.push(r); x.total += r.out; g.set(id, x);
   }
   S.groups = [...g.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
+  freshenDupPool();   // 内存里的花费可能是旧的（撤销 / 在别处删掉的），按这批的日期范围从云端重读一遍再比
   for (const x of S.groups) { x.src = x.rows[0].src || ""; if (!(x.id in S.auto)) S.auto[x.id] = x.skip ? "" : x.rows[0].cat; if (!(x.id in S.pick)) S.pick[x.id] = x.skip ? "" : x.rows[0].cat; if (!(x.id in S.include)) S.include[x.id] = !x.skip; }
+}
+/** 查重用的「已有花费」是内存里的缓存：近 400 天以外按需读进来的老花费不会被后台同步清掉，撤销 / 家人在别处删掉后就成了幽灵，
+ *  导入时被误判成「已记录」。所以这批的日期范围（前后各留几天）从数据库重读一次，范围内的以数据库为准；有变化就重新判断。 */
+let dupSyncKey = "";
+async function freshenDupPool() {
+  const ds = S.rows.map((r) => r.date).sort(); if (!ds.length) return;
+  const from = new Date(ds[0] + "T00:00:00Z").getTime() - 5 * 864e5, to = new Date(ds.at(-1) + "T00:00:00Z").getTime() + 6 * 864e5, key = from + "|" + to;
+  if (key === dupSyncKey) return; dupSyncKey = key;
+  let rows; try { rows = await Store.listPurchasesRange(new Date(from).toISOString(), new Date(to).toISOString()); } catch (e) { dupSyncKey = ""; return; }
+  const ids = new Set(rows.map((p) => p.id)), inWin = (p) => { const tm = new Date(p.purchased_at).getTime(); return tm >= from && tm < to; };
+  const ghosts = state.purchases.filter((p) => !p.virtual && inWin(p) && !ids.has(p.id)).length, known = new Set(state.purchases.map((p) => p.id));
+  if (!ghosts && rows.every((p) => known.has(p.id))) return;
+  state.purchases = [...state.purchases.filter((p) => p.virtual || !inWin(p)), ...rows];
+  rebuild(); redraw();
 }
 const resetPicks = () => { S.pick = {}; S.include = {}; S.auto = {}; };
 
@@ -386,7 +401,7 @@ function groupRow(g) {
   const inc = !!S.include[g.id], dups = g.rows.filter((r) => r.dup).length, n = g.rows.length;
   const sel = `<select data-bank-cat="${esc(g.id)}" aria-label="${esc(t("分类"))}">${catOpts(S.pick[g.id])}</select>`;   // 默认跳过的也能勾上、选个分类导入
   return `<li class="bank-row${g.skip ? " is-skip" : ""}"><label class="bank-chk"><input type="checkbox" data-bank-inc="${esc(g.id)}" ${inc ? "checked" : ""} aria-label="${esc(t("导入"))}"></label>
-    <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n })} · ${money(g.total)} · ${esc(rangeOf(g.rows))}${g.src === "learned" ? ` · <span class="bank-src" title="${esc(t("上次你给这家选的分类；改了会记住新的"))}">${t("上次你选的")}</span>` : g.src === "ai" ? ` · <span class="bank-src">${t("AI 猜的")}</span>` : g.src === "bill" ? ` · <span class="bank-src">${t("按账单收款方")}</span>` : ""}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b>` : ""}</small></div>${sel}</li>`;
+    <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n })} · ${money(g.total)} · ${esc(rangeOf(g.rows))}${g.src === "learned" ? ` · <span class="bank-src" title="${esc(t("上次你给这家选的分类；改了会记住新的"))}">${t("上次你选的")}</span>` : g.src === "ai" ? ` · <span class="bank-src">${t("AI 猜的")}</span>` : g.src === "bill" ? ` · <span class="bank-src">${t("按账单收款方")}</span>` : ""}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b> <small class="muted">${esc(t("对上的：{x}", { x: g.rows.find((r) => r.dup)?.dupOf || "" }))}</small>` : ""}</small></div>${sel}</li>`;
 }
 const chosen = () => {
   let n = 0, sum = 0;
@@ -555,6 +570,7 @@ async function undo(batchId) {
   for (let i = 0; i < (b.ids || []).length; i += 6) await Promise.all(b.ids.slice(i, i + 6).map((id) => Store.deletePurchase(id).catch(() => {})));
   if (b.tagged) { try { await Store.deletePurchasesByBatch(b.id); } catch (e) { toast(t("撤销失败：{msg}", { msg: e.message })); return; } }
   try { await saveMeta({ _bank_batches: all.filter((x) => x.id !== batchId) }); } catch (e) { /* 忽略 */ }
+  const gone = new Set(b.ids || []); state.purchases = state.purchases.filter((p) => !gone.has(p.id) && p.import_batch !== batchId);   // 内存里也清掉：近 400 天以外的老花费后台同步不会清，留着会被当成「已记录」
   if (S.last?.id === batchId) S.last = null;
   toast(t("已撤销")); if (refreshFn) await refreshFn(); redraw();
 }
