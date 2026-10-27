@@ -195,7 +195,7 @@ export function classifyWhy(row) {
 }
 
 /* ───────────── 把表格变成交易行 ───────────── */
-const S = { parts: [], auto: {}, account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "", batchAcct: "all", batchShow: 20 };   // batchAcct / batchShow：「最近导入」列表的账户筛选和已展开的条数（重画也不丢）
+const S = { parts: [], auto: {}, account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "", batchAcct: "all", batchShow: 20, editDates: "" };   // batchAcct / batchShow：「最近导入」列表的账户筛选和已展开的条数（重画也不丢）
 const cur = () => S.currency || Units.region.currency;
 let askFn = askText;   // 测试时可替换
 export const _setAsk = (fn) => { askFn = fn || askText; };
@@ -463,7 +463,23 @@ const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 
     <li>${t("退款（卡上入账的退货）会记成负数花费，统计按净额算。")}</li>
     <li>${t("以前已经手动记过的花费（日期差 3 天内、金额一样）自动跳过，所以同一个文件导两次也不会重复。")}</li>
     <li>${t("导入错了可以整批撤销。银行的 CSV 格式很多，列认错了可以手动选；国内银行的 GBK 编码也认得。")}</li></ul></div>`;
-const batchRow = (b) => { const can = (b.tagged && b.n !== 0) || b.ids?.length; return `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${b.from ? `${esc(b.from)} → ${esc(b.to)} · ` : ""}${t("{n} 笔", { n: b.n ?? b.ids?.length ?? 0 })} · ${money(b.sum || 0)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}${can ? "" : ` · ${b.n === 0 ? t("（都是已记录过的，只更新了补到哪个月）") : t("（早期批次，只留了汇总）")}`}</small></div>${can ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}?tab=records&batch=${esc(b.id)}">${t("查看 / 修改")}</a><button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}</li>`;};
+/** 手动改一批的起止日期（AI 没读出日期、或读错了年份）：只改这一批的记录，覆盖表按它算；不动每一笔花费的日期 */
+const datesEditHtml = (b) => '<div class="bank-dates-edit" style="flex:1 1 100%;display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:6px">'
+  + '<label>' + t("起") + '<input type="date" name="bfrom" value="' + esc(b.from || "") + '"></label>'
+  + '<label>' + t("止") + '<input type="date" name="bto" value="' + esc(b.to || "") + '"></label>'
+  + '<button type="button" class="btn btn-sm btn-primary" data-bank-act="dates-save" data-batch="' + esc(b.id) + '">' + t("保存") + '</button>'
+  + '<button type="button" class="btn btn-sm btn-ghost" data-bank-act="dates-cancel">' + t("取消") + '</button>'
+  + '<small class="muted" style="flex-basis:100%">' + t("只改这批记录的起止日期（“各账户已补到哪个月”按它算），不改每一笔花费的日期。") + '</small></div>';
+async function saveBatchDates(id, li) {
+  const from = li.querySelector('[name="bfrom"]')?.value || "", to = li.querySelector('[name="bto"]')?.value || "";
+  if (!from || !to) return toast(t("起止日期都要填"));
+  if (from > to) return toast(t("起始日期不能晚于结束日期"));
+  const all = (meta("_bank_batches", []) || []).map((b) => (b.id === id ? { ...b, from, to, datesEdited: true } : b));
+  try { await saveMeta({ _bank_batches: all }); S.editDates = ""; toast(t("已更新这批的日期：{a} → {b}", { a: from, b: to })); }
+  catch (e) { return toast(t("保存失败：{msg}", { msg: e.message })); }
+  if (refreshFn) await refreshFn(); redraw();
+}
+const batchRow = (b) => { const can = (b.tagged && b.n !== 0) || b.ids?.length; return `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${b.from ? `${esc(b.from)} → ${esc(b.to)} · ` : ""}${t("{n} 笔", { n: b.n ?? b.ids?.length ?? 0 })} · ${money(b.sum || 0)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}${can ? "" : ` · ${b.n === 0 ? t("（都是已记录过的，只更新了补到哪个月）") : t("（早期批次，只留了汇总）")}`}</small></div>${can ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}?tab=records&batch=${esc(b.id)}">${t("查看 / 修改")}</a><button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="dates-edit" data-batch="${esc(b.id)}" title="${esc(t("AI 没读出日期、或读错了时，手动填这批的起止日期"))}">${t("改日期")}</button>${S.editDates === b.id ? datesEditHtml(b) : ""}</li>`;};
 const batchAcctKey = (b) => (b.account ? `${b.account}${b.last4 ? ` ····${b.last4}` : ""}` : "");
 const batchesHtml = (batches) => {
   const lost = batches.filter((b) => !b.tagged && !b.ids?.length).length;   // 早期批次：没有批次标记、花费 id 列表也被丢掉了
@@ -606,6 +622,9 @@ document.addEventListener("click", (e) => {
     if (list.length && confirm(t("删除这 {n} 条规则？{names}", { n: list.length, names: `\n${list.slice(0, 8).join("、")}${list.length > 8 ? "…" : ""}` }))) { const rules = { ...userRules() }; list.forEach((k) => delete rules[k]); saveMeta({ _bank_rules: rules }).then(() => { toast(t("已清理 {n} 条", { n: list.length })); if (S.parts.length) { resetPicks(); rebuild(); } redraw(); }); }
   }
   else if (b.dataset.bankAct === "rules-clear") { if (confirm(t("清除全部记住的归类？下次导入这些商家会重新按关键词归类。"))) saveMeta({ _bank_rules: {} }).then(() => { toast(t("已清除")); if (S.parts.length) { resetPicks(); rebuild(); } redraw(); }); }
+  else if (b.dataset.bankAct === "dates-edit") { S.editDates = S.editDates === b.dataset.batch ? "" : b.dataset.batch; redraw(); }
+  else if (b.dataset.bankAct === "dates-cancel") { S.editDates = ""; redraw(); }
+  else if (b.dataset.bankAct === "dates-save") saveBatchDates(b.dataset.batch, b.closest("li"));
   else if (b.dataset.bankAct === "undo") undo(b.dataset.batch);
   else if (b.dataset.bankAct === "recover") recoverBatches();
   else if (b.dataset.bankAct === "batches-more") { S.batchShow += 20; redraw(); }

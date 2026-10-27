@@ -2311,4 +2311,7 @@ export const EN = {
   "（都是已记录过的，只更新了补到哪个月）": "(all already logged; only the covered months were updated)",
   "日期 {a} → {b}，有 {n} 笔不在 {y} 年：如果这是一份 {y} 年的对账单，多半是年份读错了——检查文件，或用 AI 重新解析（也可以导入后在「查看 / 修改」里改）": "Dates {a} → {b}; {n} row(s) fall outside {y}. If this is a {y} statement the year was probably misread — check the file, or re-parse with AI (you can also fix rows under View / edit after importing)",
   "信用卡还款、自己账户之间的转账（活期 ↔ 储蓄）、工资入账不是花费，默认跳过——否则会重复算一遍。除此之外钱出去了就算花费：转给别人（Zelle / Venmo / 电汇）、取现、转到别的账户（如 Robinhood）都会按花费记（默认分到“其他”，可以改）；Zelle / Venmo 的“from”是别人转给你，按入账处理。": "Credit-card payments, transfers between your own accounts (checking ↔ savings) and salary deposits aren't spending and are skipped by default — otherwise they'd be counted twice. Anything else that left the account counts as spending: transfers to other people (Zelle / Venmo / wire), cash withdrawals and transfers to other accounts (e.g. Robinhood) are logged as spending (default category “Other”, changeable). Zelle / Venmo “from” is money coming in to you and is treated as income.",
+  "改日期": "Edit dates", "AI 没读出日期、或读错了时，手动填这批的起止日期": "Set this batch's date range by hand if the AI couldn't read the dates or got them wrong", "起": "From", "止": "To",
+  "只改这批记录的起止日期（“各账户已补到哪个月”按它算），不改每一笔花费的日期。": "Only changes this batch's date range (used by “Months back-filled per account”), not the date of each spend.",
+  "起止日期都要填": "Fill in both dates", "起始日期不能晚于结束日期": "The start date can't be after the end date", "已更新这批的日期：{a} → {b}": "Batch dates updated: {a} → {b}",
 };
