@@ -371,13 +371,22 @@ const chosen = () => {
   return { n, sum };
 };
 const KIND_ICON = { csv: "📄", xlsx: "📊", ofx: "🏦", qif: "🏦", pdf: "📕", image: "🖼️", paste: "📋" };
+/** 这个文件里交易日期的范围；跨度超过一年的，标出落在「主要那一年」之外的笔数（年份读错的典型症状） */
+function spanOf(p) {
+  const rows = p.table ? tableRows(p) : p.rows; if (!rows.length) return "";
+  const ds = rows.map((r) => r.date).sort(), from = ds[0], to = ds.at(-1), span = (new Date(to) - new Date(from)) / 864e5;
+  if (span <= 366) return ` · ${esc(from)} → ${esc(to)}`;
+  const cnt = {}; ds.forEach((d) => { cnt[d.slice(0, 4)] = (cnt[d.slice(0, 4)] || 0) + 1; });
+  const [main, nMain] = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+  return ` · <b class="bank-dup">${t("日期 {a} → {b}，有 {n} 笔不在 {y} 年：如果这是一份 {y} 年的对账单，多半是年份读错了——检查文件，或用 AI 重新解析（也可以导入后在「查看 / 修改」里改）", { a: from, b: to, n: ds.length - nMain, y: main })}</b>`;
+}
 function partsHtml() {
   if (!S.parts.length) return "";
   const ai = aiReady(), needsAiHint = S.parts.some((p) => ["pdf", "image", "paste"].includes(p.kind));
   return `<ul class="restock-list bank-parts">${S.parts.map((p, i) => {
     const how = p.ai ? t("AI 解析") : p.local ? t("本地规则") : p.table ? t("表格") : ["ofx", "qif"].includes(p.kind) ? p.kind.toUpperCase() : "";
     const canAi = ["pdf", "image", "paste"].includes(p.kind);
-    return `<li><div class="grow"><span class="name">${KIND_ICON[p.kind] || "📄"} ${esc(p.name)}</span><small>${p.scan ? t("没有文字层的扫描件 / 图片，需要 AI 才能读") : t("读出 {n} 笔", { n: p.rows.length })}${how ? ` · ${how}` : ""}${p.pages ? ` · ${t("{n} 页", { n: p.pages })}` : ""}${reconcileHtml(p)}${p.error ? ` · <b class="bank-dup">${esc(p.error)}</b>` : ""}</small></div>
+    return `<li><div class="grow"><span class="name">${KIND_ICON[p.kind] || "📄"} ${esc(p.name)}</span><small>${p.scan ? t("没有文字层的扫描件 / 图片，需要 AI 才能读") : t("读出 {n} 笔", { n: p.rows.length })}${how ? ` · ${how}` : ""}${p.pages ? ` · ${t("{n} 页", { n: p.pages })}` : ""}${p.scan ? "" : spanOf(p)}${reconcileHtml(p)}${p.error ? ` · <b class="bank-dup">${esc(p.error)}</b>` : ""}</small></div>
       ${canAi ? `<button type="button" class="btn btn-sm ${p.scan ? "" : "btn-ghost"}" data-bank-act="ai" data-i="${i}" ${S.busy ? "disabled" : ""}>${p.ai ? t("用 AI 重新解析") : t("用 AI 解析")}</button>` : ""}
       <button type="button" class="btn btn-sm btn-ghost" data-bank-act="rm" data-i="${i}" aria-label="${esc(t("移除"))}">✕</button></li>`;
   }).join("")}</ul>${needsAiHint && !ai ? `<p class="muted" style="font-size:13px;margin:6px 0 0">${t("PDF / 截图本地规则读不准或读不了时，可以用 AI 解析：到 设置 → AI 助手 填 key（Gemini 有免费额度）。")}</p>` : ""}

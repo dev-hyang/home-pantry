@@ -120,9 +120,12 @@ const moneyVal = (tok) => { const neg = /^\(|-$|^-|CR/i.test(tok.trim()); const 
 
 function yearHint(lines) {
   const txt = lines.slice(0, 80).join(" ");
-  const m = txt.match(/(?:statement|closing|billing|period|through|ending)[^0-9]{0,40}(?:\d{1,2}[/.-]\d{1,2}[/.-](\d{2,4})|[A-Za-z]{3,9}\.? \d{1,2},? (\d{4}))/i) || txt.match(/\b(20\d{2})\b/);
-  const y = m ? +(m[1] || m[2] || m[0]) : new Date().getFullYear();
-  return y < 100 ? 2000 + y : y;
+  const m = txt.match(/(?:statement|closing|billing|period|through|ending)[^0-9]{0,40}(?:\d{1,2}[/.-]\d{1,2}[/.-](\d{2,4})|[A-Za-z]{3,9}\.? \d{1,2},? (\d{4}))/i);
+  if (m) { const y = +(m[1] || m[2]); return y < 100 ? 2000 + y : y; }
+  // 没找到账单日期：取开头文字里出现最多的年份（并列取较新的）——不能取第一个，「2019 年开户 / 会员」这类字样会把整份账单的年份带偏
+  const cnt = new Map(); for (const y of txt.match(/\b20\d{2}\b/g) || []) cnt.set(+y, (cnt.get(+y) || 0) + 1);
+  const best = [...cnt].sort((p, q) => q[1] - p[1] || q[0] - p[0])[0];
+  return best ? best[0] : new Date().getFullYear();
 }
 function toISO(token, year, stmtMonth) {
   let m;

@@ -2309,4 +2309,5 @@ export const EN = {
   "；批次记录没存上，「各账户已补到哪个月」不会更新，请重试": "; the batch record wasn't saved so “Months back-filled per account” won't update — please retry",
   "；没选账户，这批不计入「各账户已补到哪个月」": "; no account was selected, so this batch isn't counted in “Months back-filled per account”",
   "（都是已记录过的，只更新了补到哪个月）": "(all already logged; only the covered months were updated)",
+  "日期 {a} → {b}，有 {n} 笔不在 {y} 年：如果这是一份 {y} 年的对账单，多半是年份读错了——检查文件，或用 AI 重新解析（也可以导入后在「查看 / 修改」里改）": "Dates {a} → {b}; {n} row(s) fall outside {y}. If this is a {y} statement the year was probably misread — check the file, or re-parse with AI (you can also fix rows under View / edit after importing)",
 };
