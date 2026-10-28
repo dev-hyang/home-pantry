@@ -16,7 +16,7 @@ import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initBankImport } from "./stats/bank-import.js";
 import { initIncome, viewIncome } from "./income/views.js";
-import { viewStatements } from "./stats/statements.js";
+import { initStatements, viewStatements } from "./stats/statements.js";
 import { loadIncome } from "./income/logic.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
@@ -411,6 +411,7 @@ function friendlyErr(msg) {
 }
 initBankImport({ refresh });
 initIncome({ render, refresh });
+initStatements({ render });
 initSelectSearch();   // 选项很多的下拉（分类等）变成可搜索的（js/select-search.js）
 initQuickDrag({ isEditing: () => !!state.quickEdit, enter: () => { state.quickEdit = true; state.quickAdd = false; render(); }, save: async (ids) => { try { await saveQuick(ids); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } render(); } });   // 今日页快捷操作：长按进入编辑并拖动排序   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
 // 「⋯」更多操作菜单：点别处或点菜单里的某项就收起（原生 details 不会自己收）

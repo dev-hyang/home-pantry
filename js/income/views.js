@@ -407,6 +407,8 @@ function exportTab() {
       <div class="panel export-grid"><div class="export-btns"><button type="button" class="btn btn-primary btn-sm" data-inc="print-report">${t("打印这段时间的收入报表")}</button></div></div>
       <p class="muted" style="margin:6px 0 0;font-size:13px">${t("要打印筛选后的明细，到“明细”标签里点“打印”。")}</p></section>`;
 }
+/** 对账单 → 全部流水用：这段时间里记过的花费（已按币种 / 资本性支出过滤），还在读时返回 null */
+export function loggedSpend(w) { const list = spendFor(w); return list ? spendRowsOk(list) : null; }
 /** 给 账单 → 对账单 → 导出打印 用：收入 / 收支报表的导出块（数据没读过先读） */
 export function incomeExportHtml() {
   const I = inc();
