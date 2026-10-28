@@ -2698,4 +2698,11 @@ export const EN = {
   "已晚": "Late",
   "跳过 {n} 项": "{n} skipped",
   "跳过此步": "Skip step",
+  "展开详情": "Show details",
+  "删除这笔收入？": "Delete this income entry?",
+  "最近的在前": "Newest first",
+  "最早的在前": "Oldest first",
+  "金额从大到小": "Amount, high to low",
+  "金额从小到大": "Amount, low to high",
+  "预期收入（用来生成预算）、储蓄比例、对比实际到账": "Expected income (used to build the budget), savings rate, compare with actual",
 };

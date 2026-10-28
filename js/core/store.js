@@ -575,6 +575,7 @@ export const CloudStore = {
   async listDealDone() { return this.must(await this.sb.from("deal_task_done").select("*").eq("household_id", this.hid)); },
   async setDealDone(deal_id, task_key, done, done_by_name, done_on) {
     if (done) {
+      done_by_name = (done_by_name || "").slice(0, 20) || null;   // 列约束 ≤ 20 个字符，超了数据库会 400
       const was = state.dealDone.find((d) => d.deal_id === deal_id && d.task_key === task_key);
       if (was?.status === "skipped") { this.must(await this.sb.from("deal_task_done").update({ status: "done", done_by: state.user.id, done_by_name, done_on: done_on || new Date().toISOString().slice(0, 10) }).eq("deal_id", deal_id).eq("task_key", task_key)); return; }   // 原来是「已跳过」：改成已完成
       const { error } = await this.sb.from("deal_task_done").insert({ household_id: this.hid, deal_id, task_key, done_by: state.user.id, done_by_name, ...(done_on ? { done_on } : {}) });
@@ -584,6 +585,7 @@ export const CloudStore = {
   },
   /** 跳过 / 恢复一个模板事项（迁移 047 加的 status 列；没执行时这里会报错提示）*/
   async setDealSkip(deal_id, task_key, skip, by) {
+    by = (by || "").slice(0, 20) || null;
     this.must(await this.sb.from("deal_task_done").delete().eq("deal_id", deal_id).eq("task_key", task_key));
     if (skip) this.must(await this.sb.from("deal_task_done").insert({ household_id: this.hid, deal_id, task_key, status: "skipped", done_by: state.user.id, done_by_name: by }));
   },
@@ -604,6 +606,7 @@ export const CloudStore = {
   async saveDealCustom(c) {
     const row = pick(c, DEAL_CUSTOM_FIELDS, { household_id: this.hid, updated_by: state.user.id });
     row.done_by = c.done_on ? state.user.id : null;
+    if (row.done_by_name) row.done_by_name = String(row.done_by_name).slice(0, 20);
     if (c.skipped === undefined) delete row.skipped;   // 迁移 047 没执行时，不带这一列照常保存
     if (c.id) this.must(await this.sb.from("deal_custom_tasks").update(row).eq("id", c.id));
     else this.must(await this.sb.from("deal_custom_tasks").insert(row));
@@ -611,6 +614,7 @@ export const CloudStore = {
   async deleteDealCustom(id) { this.must(await this.sb.from("deal_custom_tasks").delete().eq("id", id)); },
   async saveDealEvent(e) {
     const row = pick(e, DEAL_EVENT_FIELDS, { household_id: this.hid });
+    if (row.created_by_name) row.created_by_name = String(row.created_by_name).slice(0, 20);
     if (e.id) this.must(await this.sb.from("deal_events").update(row).eq("id", e.id));
     else this.must(await this.sb.from("deal_events").insert({ ...row, created_by: state.user.id }));
   },
