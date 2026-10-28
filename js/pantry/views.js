@@ -247,9 +247,13 @@ export function viewInventory(space = "pantry") {
   // 小类筛选：打开某个分类后，列出里面实际有物品的小类；换了分类（小类不属于它）就回到“全部”
   if (!cur || !(cur.subs || []).includes(f.sub)) f.sub = "all";
   const subCounts = cur ? (cur.subs || []).map((s) => [s, mine.filter((x) => x.category === cur.id && x.subcategory === s).length]).filter(([, n]) => n > 0) : [];
-  const subBar = subCounts.length > 1 ? `<div class="chips" role="group" aria-label="${t("按小类筛选")}">
+  const subChips = subCounts.length > 1 ? `<div class="chips" role="group" aria-label="${t("按小类筛选")}">
         <button type="button" class="chip" data-action="inv-sub" data-sub="all" aria-pressed="${f.sub === "all"}">${t("全部小类")}</button>
         ${subCounts.map(([s, n]) => `<button type="button" class="chip" data-action="inv-sub" data-sub="${esc(s)}" aria-pressed="${f.sub === s}">${esc(t(s))} <span class="muted">${n}</span></button>`).join("")}</div>` : "";
+  // 手机：进了某个大类后，原来「全部小类」芯片的位置放两个下拉——大类（默认当前，切换就换路径）+ 小类（默认全部小类）；电脑页横向够宽，大类芯片 / 小类芯片照旧一眼能点
+  const subSel = subCounts.length > 1 ? `<select id="invSubSel" aria-label="${t("按小类筛选")}"><option value="all">${t("全部小类")}</option>${subCounts.map(([s, n]) => `<option value="${esc(s)}" ${f.sub === s ? "selected" : ""}>${esc(t(s))} (${n})</option>`).join("")}</select>` : "";
+  const subBar = phone && cur ? `<div class="inv-filters${subSel ? "" : " solo"}">
+        <select id="invCatSel" aria-label="${t("按分类筛选")}"><option value="all">${t("全部")}</option>${orderedCats(space).map((c) => `<option value="${esc(c.id)}" ${c.id === cur.id ? "selected" : ""}>${c.icon} ${esc(t(c.name))}</option>`).join("")}</select>${subSel}</div>` : subChips;
   return `
     <section class="section">
       <div class="section-head"><p>${cur ? t("{n} 件", { n: mine.filter((x) => x.category === cur.id).length }) : t("{n} 件", { n: mine.length })}</p>

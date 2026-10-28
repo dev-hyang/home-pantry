@@ -1819,3 +1819,8 @@ body.editing .minibar { display: none; }
 }
 .spend-edit .spend-head { padding: 4px 0 8px; }
 .spend-edit .spend-head b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* 手机库存：大类 / 小类两个下拉并排，各占一半、文字过长就省略，不超框 */
+.inv-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 12px; }
+.inv-filters.solo { grid-template-columns: minmax(0, 1fr); }
+.inv-filters select { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; text-overflow: ellipsis; }
