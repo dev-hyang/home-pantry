@@ -2,7 +2,7 @@
  * 数据在 income_records（迁移 042），逻辑在 logic.js。花费来自 purchases（按需读取时间窗口，医疗付款并进来），和这里的收入合成现金流。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, daysUntil, esc, money, moneyExact, num, todayISO, toast } from "../core/util.js";
+import { $, applyDraft, daysUntil, esc, formDraft, money, moneyExact, num, todayISO, toast } from "../core/util.js";
 import { registerAlerts } from "../core/alerts.js";
 import { lang, t } from "../core/i18n.js";
 import { href } from "../core/router.js";
@@ -223,7 +223,7 @@ function recordRow(r) {
   const who = r.person_id ? personName(r.person_id) : "", sub = [r.received_on, esc(t(kindOf(r.kind).name)), who && esc(who), r.account && esc(r.account), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
   const rb = s ? `<span class="badge ${s.status === "paid" ? "b-ok" : s.overdue ? "b-out" : "b-soon"}">${s.status === "paid" ? t("已还清") : s.overdue ? t("逾期") : t("待还 {a}", { a: fmtMoney(s.left) })}</span>` : "";
   return `<li class="ix-li${open || editing ? " is-open" : ""}" data-id="${r.id}"${canEdit(r) && !pick && !editing ? ' data-swipe-del="income"' : ""}>${pick ? `<label class="ix-main"><input type="checkbox" class="ix-chk" data-inc-sel="${r.id}" ${I.sel?.has(r.id) ? "checked" : ""} ${canEdit(r) ? "" : "disabled"} aria-label="${esc(t("选择"))}">` : `<button type="button" class="ix-main" data-inc="${canEdit(r) ? "edit" : "open"}" data-id="${r.id}" ${canEdit(r) ? `title="${esc(editing ? t("再点一下收起") : t("点一下编辑"))}" aria-expanded="${editing}"` : `aria-expanded="${open}"`}>`}
-    <span class="ix-ico" style="--k:${kindOf(r.kind).color}" aria-hidden="true">${kindOf(r.kind).icon}</span><span class="grow"><b class="name">${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt">+${fmtMoney(r.amount)}</b>${rb}</span>${pick ? "</label>" : "</button>" + rowTools(r, open)}${editing ? `<div class="ix-edit">${formHtml()}</div>` : ""}${open && !pick ? recordDetail(r, s) : ""}</li>`;
+    <span class="ix-ico" style="--k:${kindOf(r.kind).color}" aria-hidden="true">${kindOf(r.kind).icon}</span><span class="grow"><b class="name">${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt">+${fmtMoney(r.amount)}</b>${I.drafts?.[r.id] ? `<span class="badge b-soon">${t("草稿")}</span>` : ""}${rb}</span>${pick ? "</label>" : "</button>" + rowTools(r, open)}${editing ? `<div class="ix-edit">${formHtml()}</div>` : ""}${open && !pick ? recordDetail(r, s) : ""}</li>`;
 }
 /** 行右边：▾ 展开 / 收起详情（还款、备注、原币种…）；隐藏的「删除」给左滑用（js/swipe-rows.js），键盘 Tab 到它也能删 */
 const rowTools = (r, open) => `<button type="button" class="ix-more" data-inc="open" data-id="${r.id}" aria-expanded="${open}" aria-label="${esc(t("展开详情"))}" title="${esc(t("展开详情"))}">${open ? "▴" : "▾"}</button>${canEdit(r) ? `<button type="button" class="swipe-src" data-inc="del-swipe" data-id="${r.id}">${t("删除")}</button>` : ""}`;
@@ -348,6 +348,7 @@ async function saveRecord(form) {
     const was = defAcct(), want = fd.get("acct_default") === "on";   // 勾「设为默认」：记住；取消勾选且现在选的正是默认：清掉
     const next = want && accSel && accSel !== "other" ? accSel : !want && accSel && accSel === was ? "" : was;
     if (next !== was) await saveDefaultAcct(next).catch(() => toast(t("默认账户没存上，下次再试")));
+    if (I.drafts && f.rec?.id) delete I.drafts[f.rec.id];
     I.form = null; await loadIncome(); toast(t("已保存")); rerender(); }
   catch (e) { fail(t("保存失败：{msg}", { msg: e.message })); }
 }
@@ -557,14 +558,18 @@ export function initIncome({ render, refresh }) {
     if (act === "way-manual") { I.form = I.form && !I.form.rec?.id ? null : { rec: null }; I.scanOpen = false; return redraw(); }
     if (act === "batch-clear") { I.batch = null; history.replaceState(null, "", `${href("bills", "income")}?tab=records`); return redraw(); }
     if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return redraw(); }
-    if (act === "cancel") { I.form = null; return redraw(); }
+    if (act === "cancel") { if (I.drafts && I.form?.rec?.id) delete I.drafts[I.form.rec.id]; I.form = null; return redraw(); }
     if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.person = "all"; goTab("records"); return; } return redraw(); }
     if (act === "more") { I.limit += 40; return renderIncList(); }
     if (act === "edit") {   // 点行 / 点「编辑」：打开编辑表单（不在「明细」标签就先切过去）；这一行已经展开着，再点一下行就收起（不保存）
-      if (b.classList.contains("ix-main") && I.form?.rec?.id === id && inlineEditId() === id) { I.form = null; return redraw(); }
+      if (b.classList.contains("ix-main") && I.form?.rec?.id === id && inlineEditId() === id) {   // 收起但留着草稿：再展开时填回去，行上有「草稿」小标
+        const f = $("#incForm"); if (f) (I.drafts = I.drafts || {})[id] = formDraft(f);
+        I.form = null; return redraw();
+      }
       I.form = { rec: I.rec.find((r) => r.id === id) }; I.scanOpen = false;
       if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.month = "all"; I.person = "all"; I.batch = null; I._keep = true; goTab("records"); return; }
-      redraw(); setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
+      redraw(); const dr = I.drafts?.[id]; if (dr) applyDraft($("#incForm"), dr);   // 之前收起时留的草稿
+      setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
     }
     if (act === "del-swipe") { if (!window.confirm(t("删除这笔收入？"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }   // 左滑删除：用确认框（滑动代码按它判断用户有没有取消）
     if (act === "del") { if (!armed(b, t("再点一次确认删除"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }

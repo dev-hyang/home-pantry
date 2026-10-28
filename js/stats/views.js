@@ -511,7 +511,7 @@ function spendRow(p) {
   const pay = state.billPayments.find((x) => x.purchase_id === p.id), bill = pay && state.bills.find((x) => x.id === pay.bill_id);
   const title = p.virtual === "medical" ? `<a class="link-name" href="${href("bills", "onetime")}?bill=${p.bill_id}" title="${esc(t("到医疗账单里看 / 改"))}">${esc(p.name)}</a>`
     : bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${pay.id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
-    : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>`;
+    : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>${state.spendDrafts?.[p.id] ? ` <span class="badge b-soon">${t("草稿")}</span>` : ""}`;
   const sel = state.spendSel && !p.virtual ? `<input type="checkbox" class="sel" data-sel="${p.id}" aria-label="${esc(t("选中 {name}", { name: p.name }))}" ${state.spendSel.has(p.id) ? "checked" : ""}>` : "";
   return `<li data-swipe-del="purchase">${sel}
     <span class="badge" style="background:var(--surface-2)">${esc(d.toLocaleDateString(locale(), sameYear ? { month: "numeric", day: "numeric" } : { year: "2-digit", month: "numeric", day: "numeric" }))}</span>
@@ -525,7 +525,7 @@ function spendEditRow(p) {
   const hasCat = opts.includes(`value="${p.category}"`);
   const d = new Date(p.purchased_at), cat = ALL_CATS().find((c) => c.id === p.category) || OTHER_CAT;
   // 顶上保留这一行的摘要，再点它就收起（不保存）
-  const head = `<button type="button" class="ix-main spend-head" data-action="spend-edit-cancel" aria-expanded="true" title="${esc(t("再点一下收起"))}"><span class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${d.toLocaleDateString(locale(), { year: "numeric", month: "numeric", day: "numeric" })} · ${cat.icon || ""} ${t(cat.name)}`.trim())}</small></span><b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : ""}</b><span aria-hidden="true">▴</span></button>`;
+  const head = `<button type="button" class="ix-main spend-head" data-action="spend-edit-collapse" aria-expanded="true" title="${esc(t("再点一下收起"))}"><span class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${d.toLocaleDateString(locale(), { year: "numeric", month: "numeric", day: "numeric" })} · ${cat.icon || ""} ${t(cat.name)}`.trim())}</small></span><b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : ""}</b><span aria-hidden="true">▴</span></button>`;
   return `<li class="spend-edit">${head}<form id="spendEditForm" data-id="${p.id}" class="form-grid" novalidate>
     <label class="span-2">${t("名称")}<input name="name" required maxlength="60" value="${esc(p.name)}"></label>
     <label>${t("分类")}<select name="category">${hasCat ? "" : `<option value="${esc(p.category)}" selected>${esc(t((ALL_CATS().find((c) => c.id === p.category) || OTHER_CAT).name))}</option>`}${opts}</select></label>

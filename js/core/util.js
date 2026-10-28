@@ -19,6 +19,25 @@ export const showQty = (q, unit) => `${fmt(toDisp(q, unit))} ${esc(t(du(unit) ||
 export const storedStep = (unit) => Units.step(du(unit)) / Units.factor(unit);
 export const money = (v, short) => Units.money(v, undefined, !!short);
 /** 单笔记录的金额：用户填了几位小数就显示几位（始终两位），不像汇总数那样 ≥ 1000 就省掉小数 */
+/** 收起编辑表单时记下已填的内容、再展开时填回去（不保存到数据库）。只认 name；复选框记 checked，下拉 / 勾选变了会发 change 让联动（比如「需要还」展开的那块）跟着动 */
+export function formDraft(f) {
+  const d = {};
+  for (const el of f.elements) {
+    if (!el.name) continue;
+    if (el.type === "checkbox") d[el.name] = { checked: el.checked };
+    else if (el.type === "radio") { if (el.checked) d[el.name] = el.value; }
+    else if (el.type !== "submit" && el.type !== "button") d[el.name] = el.value;
+  }
+  return d;
+}
+export function applyDraft(f, d) {
+  for (const [n, v] of Object.entries(d || {})) {
+    const el = f.elements[n]; if (!el) continue;
+    if (el instanceof RadioNodeList) { el.value = v; continue; }
+    if (v && typeof v === "object") { if (el.checked !== v.checked) { el.checked = v.checked; el.dispatchEvent(new Event("change", { bubbles: true })); } continue; }
+    if (el.value !== v) { el.value = v; if (el.tagName === "SELECT") el.dispatchEvent(new Event("change", { bubbles: true })); }
+  }
+}
 export const moneyExact = (v) => Units.money(v, undefined, false, true);
 export const catOf = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[0];
 // 分类分三个空间：pantry 日常储备 / house 房屋耗材 / gear 装备（耐用品，只记数量和位置）

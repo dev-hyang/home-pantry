@@ -2,7 +2,7 @@ import { checkConfig } from "./core/config-check.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
-import { $, MUTE_FOREVER, armed, catOf, du, esc, fillUnitList, fmtDate, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast } from "./core/util.js";
+import { $, MUTE_FOREVER, applyDraft, armed, catOf, du, esc, fillUnitList, fmtDate, formDraft, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { resilientFetch } from "./core/net.js";
@@ -678,6 +678,7 @@ main.addEventListener("submit", async (e) => {
       if (bp && (bp.card_id || null) !== (patch.card_id || null)) await Store.updateBillPayment(bp.id, { card_id: patch.card_id || null }).catch(() => {});
       if (store) rememberStore(store);
       state.purchases = state.purchases.map((x) => (x.id === f.dataset.id ? { ...x, ...patch } : x));   // 先改内存里的，页面立刻是新的
+      if (state.spendDrafts) delete state.spendDrafts[f.dataset.id];
       state.spendEdit = null; toast(t("已保存修改")); render(); return refresh();
     }
     if (f.id === "billForm") return saveBillForm(f);
@@ -1033,13 +1034,14 @@ main.addEventListener("click", async (e) => {
         finally { el.disabled = false; }
         return;
       }
-      case "spend-edit": state.spendEdit = id; return renderSpendList();
+      case "spend-edit": { state.spendEdit = id; renderSpendList(); const dr = state.spendDrafts?.[id], f = $("#spendEditForm"); if (dr && f) applyDraft(f, dr); return; }   // 之前收起时留的草稿填回去
+      case "spend-edit-collapse": { const f = $("#spendEditForm"); if (f) (state.spendDrafts = state.spendDrafts || {})[f.dataset.id] = formDraft(f); state.spendEdit = null; return renderSpendList(); }   // 收起但留着草稿
       case "trip-reclass": {   // 旅行页的归类建议：把以前记成“其他”的花费归到某个旅行类型
         await Store.updatePurchase(id, { category: el.dataset.cat });
         state.purchases = state.purchases.map((x) => (x.id === id ? { ...x, category: el.dataset.cat } : x));
         toast(t("已归类")); render(); return refresh();
       }
-      case "spend-edit-cancel": state.spendEdit = null; return renderSpendList();
+      case "spend-edit-cancel": { if (state.spendDrafts && state.spendEdit) delete state.spendDrafts[state.spendEdit]; state.spendEdit = null; return renderSpendList(); }
       case "pay-more": state.payFilter.limit += 50; return renderPayList();
       case "deal-filter": state.dealFilter = el.dataset.val; return render();
       case "tasks-undone": state.tasksOnlyUndone = !state.tasksOnlyUndone; return render();
