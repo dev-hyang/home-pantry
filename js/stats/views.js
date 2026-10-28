@@ -11,7 +11,6 @@ import { tabBar, tabHub } from "../core/hub.js";
 import { medicalVirtuals } from "../bills/medical.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
-import { bankImportTab } from "./bank-import.js";
 import { cardHintHtml, cardOptions, cardSelectHtml, payAcctValue, paymentPayLabel } from "../bills/cards-views.js";
 
 /* ── 统计：花费与消耗趋势 ── */
@@ -359,7 +358,7 @@ function spendRecordsTab() {
       <div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}">
         <button type="button" class="way ${open ? "is-cur" : ""}" data-action="spend-add-toggle" aria-expanded="${open ? "true" : "false"}"><span class="way-ico" aria-hidden="true">✍️</span><span>${t("手动记一笔")}</span></button>
         <a class="way" href="${href("scan")}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍小票识别")}</span></a>
-        <a class="way" href="${href("bills", "spend")}?tab=import"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a></div>
+        <a class="way" href="${href("bills", "statements")}"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a></div>
       ${storeDatalist()}
       ${open ? "" : "<!-- 表单收着 -->"}
       <form id="purchaseForm" class="panel add-row purchase-row" ${open ? "" : "hidden"}>
@@ -379,7 +378,7 @@ function spendRecordsTab() {
     </section>
     <section class="section" id="spendRecords">${spendRecordsHtml()}</section>`;
 }
-function spendExportTab() {
+export function spendExportTab() {
   return `${viewAnnualExport()}
     <section class="section">
       <div class="section-head"><h2>${t("打印")}</h2><p>${t("浏览器的打印窗口里也可以另存为 PDF")}</p></div>
@@ -427,7 +426,7 @@ export function viewSpend() {
   const ranged = tab === "overview" || tab === "category" || tab === "stores" || tab === "all";
   const body = {
     overview: () => spendOverviewTab(sd, onSpendPage), category: () => spendCategoryTab(sd), stores: () => viewStoreStats(sd.months) || noSpend(),
-    records: spendRecordsTab, trips: spendTripsTab, import: bankImportTab, export: spendExportTab,
+    records: spendRecordsTab, trips: spendTripsTab, export: spendExportTab,
     all: () => `${spendOverviewTab(sd)}${spendCategoryTab(sd)}${viewStoreStats(sd.months)}${viewAnnualExport()}${spendRecordsTab()}`,
   }[tab]();
   return `

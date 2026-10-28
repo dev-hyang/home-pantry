@@ -79,6 +79,8 @@ function noticeHtml() {
 }
 export function viewIncome() {
   const I = inc(), tab = activeTab(state.route) || "overview";
+  if (I._lastTab !== undefined && I._lastTab !== tab) { if (I._keep) I._keep = false; else { I.form = null; I.scanOpen = false; I.selMode = false; } }   // 换标签：不带着没关的表单 / 识别面板
+  I._lastTab = tab;
   const qb = state.route?.q?.get("batch");   // 银行导入「查看收入」：只看这一批入账
   if (qb && I.batchFrom !== qb) { I.batch = qb; I.batchFrom = qb; Object.assign(I, { q: "", kind: "all", year: "all", person: "all", limit: 40 }); } else if (!qb) I.batchFrom = null;
   if (!I.loaded && !I.loading) { I.loading = true; loadIncome().finally(() => { I.loading = false; rerender(); }); }
@@ -92,7 +94,7 @@ const kindBadge = (id) => { const k = kindOf(id); return `<span class="ix-kind" 
 const personOptions = (sel, { all = false } = {}) => `${all ? `<option value="all" ${sel === "all" ? "selected" : ""}>${t("全家")}</option>` : ""}<option value="none" ${sel === "none" ? "selected" : ""}>${t(all ? "未指定的" : "未指定 / 全家")}</option>${adults().map((p) => `<option value="${p.id}" ${sel === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}`;
 const selOpts = (list, sel) => list.map(([v, l]) => `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(t(l))}</option>`).join("");
 const yearsOf = () => [...new Set(inc().rec.map((r) => r.received_on.slice(0, 4)).concat(String(new Date().getFullYear())))].sort().reverse();
-const empty = () => `<div class="panel empty"><strong>${t("还没有收入记录")}</strong>${t("点右上角「记一笔收入」；在「花费 → 银行导入」导入对账单时，工资、电汇、Zelle 转入这些入账会单独列出来，勾上就能一起导入。")}</div>`;
+const empty = () => `<div class="panel empty"><strong>${t("还没有收入记录")}</strong>${t("点右上角「记一笔收入」；在「账单 → 对账单」导入对账单时，工资、电汇、Zelle 转入这些入账会单独列出来，勾上就能一起导入。")}</div>`;
 const kpi = (label, val, sub = "") => `<div class="kpi"><span>${esc(label)}</span><b>${val}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
 const rate = (n, i) => (i > 0 && n != null ? `${Math.round((n / i) * 100)}%` : "—");
 const fmtMoney = (v, short) => money(v, !!short);
@@ -194,7 +196,7 @@ function importTab() {
   const batches = (meta("_bank_batches", []) || []).filter((b) => b.inN).slice().reverse().slice(0, 20);
   return `<div class="panel"><h3 style="margin:0 0 6px">🏦 ${t("从银行对账单导入收入")}</h3>
     <p class="muted small" style="margin:0 0 10px">${t("同一个入口：选一次对账单（CSV、Excel、OFX、PDF、截图），里面刷卡 / 扣款记成花费，工资、电汇、Zelle 转入这些入账单独列出来记成收入，互不重复。自己账户之间的转账会跳过。")}</p>
-    <div class="form-actions"><a class="btn btn-primary btn-sm" href="${href("bills", "spend")}?tab=import&from=income">${t("去导入对账单")}</a><a class="btn btn-sm" href="${incomeHref("records")}">${t("或者拍照 / 手动记一笔")}</a></div></div>
+    <div class="form-actions"><a class="btn btn-primary btn-sm" href="${href("bills", "statements")}">${t("去导入对账单")}</a><a class="btn btn-sm" href="${incomeHref("records")}">${t("或者拍照 / 手动记一笔")}</a></div></div>
   <div class="panel"><h3 style="margin:0 0 6px">${t("最近导入的收入")}</h3>${batches.length ? `<ul class="restock-list">${batches.map((b) => `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${t("收入 {n} 笔", { n: b.inN })} · ${fmtMoney(b.inSum || 0)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}</small></div><a class="btn btn-sm btn-ghost" href="${href("bills", "income")}?tab=records&batch=${esc(b.id)}">${t("查看收入")}</a></li>`).join("")}</ul>` : `<p class="muted small" style="margin:0">${t("还没有从对账单导入过收入。")}</p>`}</div>`;
 }
 
@@ -212,12 +214,14 @@ function filteredRecords() {
 }
 const SORTS = { new: (a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at)), old: (a, b) => a.received_on.localeCompare(b.received_on), big: (a, b) => b.amount - a.amount, small: (a, b) => a.amount - b.amount };
 const canEdit = (r) => isOwnerNow() || r.created_by === state.user?.id;
+/** 正在改哪一条：它就在已显示的列表里时，表单在那一行下面展开；否则（被筛掉 / 还没翻到）表单放顶部 */
+const inlineEditId = () => { const I = inc(), id = I.form?.rec?.id; return id && activeTab(state.route) === "records" && filteredRecords().slice(0, I.limit).some((x) => x.id === id) ? id : null; };
 function recordRow(r) {
-  const I = inc(), s = repayState(r), open = I.open === r.id, pick = !!I.selMode && activeTab(state.route) === "records";
+  const I = inc(), s = repayState(r), pick = !!I.selMode && activeTab(state.route) === "records", editing = !pick && inlineEditId() === r.id, open = I.open === r.id && !editing;
   const who = r.person_id ? personName(r.person_id) : "", sub = [r.received_on, esc(t(kindOf(r.kind).name)), who && esc(who), r.account && esc(r.account), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
   const rb = s ? `<span class="badge ${s.status === "paid" ? "b-ok" : s.overdue ? "b-out" : "b-soon"}">${s.status === "paid" ? t("已还清") : s.overdue ? t("逾期") : t("待还 {a}", { a: fmtMoney(s.left, true) })}</span>` : "";
-  return `<li class="ix-li${open ? " is-open" : ""}" data-id="${r.id}"${canEdit(r) && !pick ? ' data-swipe-del="income"' : ""}>${pick ? `<label class="ix-main"><input type="checkbox" class="ix-chk" data-inc-sel="${r.id}" ${I.sel?.has(r.id) ? "checked" : ""} ${canEdit(r) ? "" : "disabled"} aria-label="${esc(t("选择"))}">` : `<button type="button" class="ix-main" data-inc="${canEdit(r) ? "edit" : "open"}" data-id="${r.id}" ${canEdit(r) ? `title="${esc(t("点一下编辑"))}"` : `aria-expanded="${open}"`}>`}
-    <span class="ix-ico" style="--k:${kindOf(r.kind).color}" aria-hidden="true">${kindOf(r.kind).icon}</span><span class="grow"><b class="name">${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt">+${fmtMoney(r.amount)}</b>${rb}</span>${pick ? "</label>" : "</button>" + rowTools(r, open)}${open && !pick ? recordDetail(r, s) : ""}</li>`;
+  return `<li class="ix-li${open || editing ? " is-open" : ""}" data-id="${r.id}"${canEdit(r) && !pick && !editing ? ' data-swipe-del="income"' : ""}>${pick ? `<label class="ix-main"><input type="checkbox" class="ix-chk" data-inc-sel="${r.id}" ${I.sel?.has(r.id) ? "checked" : ""} ${canEdit(r) ? "" : "disabled"} aria-label="${esc(t("选择"))}">` : `<button type="button" class="ix-main" data-inc="${canEdit(r) ? "edit" : "open"}" data-id="${r.id}" ${canEdit(r) ? `title="${esc(t("点一下编辑"))}"` : `aria-expanded="${open}"`}>`}
+    <span class="ix-ico" style="--k:${kindOf(r.kind).color}" aria-hidden="true">${kindOf(r.kind).icon}</span><span class="grow"><b class="name">${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt">+${fmtMoney(r.amount)}</b>${rb}</span>${pick ? "</label>" : "</button>" + rowTools(r, open)}${editing ? `<div class="ix-edit">${formHtml()}</div>` : ""}${open && !pick ? recordDetail(r, s) : ""}</li>`;
 }
 /** 行右边：▾ 展开 / 收起详情（还款、备注、原币种…）；隐藏的「删除」给左滑用（js/swipe-rows.js），键盘 Tab 到它也能删 */
 const rowTools = (r, open) => `<button type="button" class="ix-more" data-inc="open" data-id="${r.id}" aria-expanded="${open}" aria-label="${esc(t("展开详情"))}" title="${esc(t("展开详情"))}">${open ? "▴" : "▾"}</button>${canEdit(r) ? `<button type="button" class="swipe-src" data-inc="del-swipe" data-id="${r.id}">${t("删除")}</button>` : ""}`;
@@ -238,12 +242,12 @@ const listHtml = () => {
 };
 export const renderIncList = () => { const el = $("#incList"); if (el) el.innerHTML = listHtml(); };
 /** 三种记法（和「记一笔花费」一样）：手动 / 拍照识别 / 导入对账单 */
-const waysHtml = () => { const I = inc(); return `<div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}">
-  <button type="button" class="way ${I.form ? "is-cur" : ""}" data-inc="way-manual" aria-expanded="${I.form ? "true" : "false"}"><span class="way-ico" aria-hidden="true">✍️</span><span>${t("手动记一笔")}</span></button>
-  <button type="button" class="way ${I.scanOpen ? "is-cur" : ""}" data-inc="way-scan" aria-expanded="${I.scanOpen ? "true" : "false"}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍照识别")}</span></button>
-  <a class="way" href="${href("bills", "spend")}?tab=import&from=income"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a></div>`; };
+const waysHtml = () => { const I = inc(), newOpen = !!I.form && !I.form.rec?.id; return `<div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}">
+  <button type="button" class="way ${newOpen ? "is-cur" : ""}" data-inc="way-manual" aria-pressed="${newOpen ? "true" : "false"}"><span class="way-ico" aria-hidden="true">✍️</span><span>${t("手动记一笔")}</span></button>
+  <button type="button" class="way ${I.scanOpen ? "is-cur" : ""}" data-inc="way-scan" aria-pressed="${I.scanOpen ? "true" : "false"}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍照识别")}</span></button>
+  <a class="way" href="${href("bills", "statements")}"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a></div>`; };
 function recordsTab() {
-  const I = inc(), top = `${waysHtml()}${I.scanOpen ? scanHtml() : ""}${I.form ? formHtml() : ""}`;
+  const I = inc(), top = `${waysHtml()}${I.scanOpen ? scanHtml() : ""}${I.form && !inlineEditId() ? formHtml() : ""}`;
   if (!I.rec.length && !I.form) return top + empty() + kindManager();
   return `${top}<div class="panel"><div class="form-grid ix-filter">
     <label>${t("搜索")}<input type="search" data-inc-f="q" value="${esc(I.q)}" placeholder="${esc(t("付款方 / 备注"))}"></label>
@@ -403,6 +407,12 @@ function exportTab() {
       <div class="panel export-grid"><div class="export-btns"><button type="button" class="btn btn-primary btn-sm" data-inc="print-report">${t("打印这段时间的收入报表")}</button></div></div>
       <p class="muted" style="margin:6px 0 0;font-size:13px">${t("要打印筛选后的明细，到“明细”标签里点“打印”。")}</p></section>`;
 }
+/** 给 账单 → 对账单 → 导出打印 用：收入 / 收支报表的导出块（数据没读过先读） */
+export function incomeExportHtml() {
+  const I = inc();
+  if (!I.loaded && !I.loading) { I.loading = true; loadIncome().finally(() => { I.loading = false; rerender(); }); }
+  return I.loaded ? exportTab() : `<div class="panel empty"><strong>${t("加载中…")}</strong></div>`;
+}
 /** 打印：report = 当前时间范围的收入报表；list = 「明细」里筛选后的列表 */
 function printIncome(mode) {
   const hh = state.household?.name || t("家庭"), kpiH = (label, val) => `<div><span>${esc(label)}</span><b>${val}</b></div>`;
@@ -534,12 +544,13 @@ const goTab = (id) => { location.hash = incomeHref(id); };
 
 export function initIncome({ render, refresh }) {
   hooks = { render, refresh }; initIncomeScan({ render });
+  window.addEventListener("hashchange", () => { if (!location.hash.startsWith("#/bills/income")) { const I = inc(); I.form = null; I.scanOpen = false; I.selMode = false; I.open = null; I._lastTab = undefined; } });   // 离开收入页：下次进来是干净的，不会看着像「选了好几个」
   const main = document.getElementById("main");
   main.addEventListener("click", (e) => {
     const b = e.target.closest?.("[data-inc]"); if (!b) return;
     const I = inc(), id = b.dataset.id, act = b.dataset.inc;
-    if (act === "add") { I.form = { rec: null }; if (activeTab(state.route) !== "records" || state.route.sub !== "income") goTab("records"); else rerender(); return; }
-    if (act === "way-manual") { I.form = I.form ? null : { rec: null }; I.scanOpen = false; return rerender(); }
+    if (act === "add") { I.form = { rec: null }; I.scanOpen = false; I._keep = true; if (activeTab(state.route) !== "records" || state.route.sub !== "income") goTab("records"); else rerender(); return; }
+    if (act === "way-manual") { I.form = I.form && !I.form.rec?.id ? null : { rec: null }; I.scanOpen = false; return rerender(); }
     if (act === "batch-clear") { I.batch = null; history.replaceState(null, "", `${href("bills", "income")}?tab=records`); return rerender(); }
     if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return rerender(); }
     if (act === "cancel") { I.form = null; return rerender(); }
@@ -547,8 +558,8 @@ export function initIncome({ render, refresh }) {
     if (act === "more") { I.limit += 40; return renderIncList(); }
     if (act === "edit") {   // 点行 / 点「编辑」：打开编辑表单（不在「明细」标签就先切过去）
       I.form = { rec: I.rec.find((r) => r.id === id) }; I.scanOpen = false;
-      if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.month = "all"; I.person = "all"; I.batch = null; goTab("records"); return; }
-      rerender(); setTimeout(() => $("#incForm")?.scrollIntoView({ block: "center", behavior: "smooth" }), 0); return;
+      if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.month = "all"; I.person = "all"; I.batch = null; I._keep = true; goTab("records"); return; }
+      rerender(); setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
     }
     if (act === "del-swipe") { if (!window.confirm(t("删除这笔收入？"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }   // 左滑删除：用确认框（滑动代码按它判断用户有没有取消）
     if (act === "del") { if (!armed(b, t("再点一次确认删除"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }

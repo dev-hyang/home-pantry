@@ -16,6 +16,7 @@ import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initBankImport } from "./stats/bank-import.js";
 import { initIncome, viewIncome } from "./income/views.js";
+import { viewStatements } from "./stats/statements.js";
 import { loadIncome } from "./income/logic.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
@@ -122,7 +123,7 @@ export async function refresh() {
       state.assetsEnriched = enrichAssets(assets, maintLogs);
       state.billsEnriched = enrichBills(bills, billPayments);
       state.people = people; applyMedical(medBills, medPays);
-      loadIncome().then(() => { if (state.route?.section === "bills" && state.route?.sub === "income") render(false); });   // 收入（迁移 042）单独读：行级安全只给家主 / 已允许的人全家的；读不到不影响别的功能
+      loadIncome().then(() => { if (state.route?.section === "bills" && ["income", "statements"].includes(state.route?.sub)) render(false); });   // 收入（迁移 042）单独读：行级安全只给家主 / 已允许的人全家的；读不到不影响别的功能
       state.cards = cards || [];
       ensureAdults().then((added) => { if (added) { applyMedical(state.medBills, state.medPayments); render(false); } }).catch(() => {});
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
@@ -170,7 +171,7 @@ const VIEWS = {
   pantry:   { overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix },
-  bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, budget: viewBudget, cards: viewCards, template: viewBillTemplate },
+  bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout },

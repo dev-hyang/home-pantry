@@ -459,3 +459,9 @@ GitHub Pages 会把每个文件缓存 10 分钟。页面启动时会比较本次
 - Google Drive：Google Cloud Console → APIs & Services → 启用 Google Drive API → OAuth 2.0 客户端（类型 Web 应用），「已获授权的 JavaScript 来源」填站点地址，Client ID 填到 `GOOGLE_CLIENT_ID`。权限只有 drive.file（只看得到这个应用自己建的文件）。
 - Dropbox：Dropbox App Console → Create app → Scoped access，Access type 选 **App folder**，Permissions 勾 `files.content.write` / `files.content.read` / `account_info.read`，Redirect URIs 填站点地址（带结尾的 /），App key 填到 `DROPBOX_APP_KEY`。
 - 备份放在卡片里填的路径下：Drive 默认「爱家小助手备份」（可多级，不存在就逐级建）；Dropbox 是应用文件夹里的子路径。令牌存本机 localStorage，「断开」会吊销并清掉。代码在 `js/core/cloud-drives.js`，四个应用共用同一份。
+
+
+## 账单 → 对账单（花费和收入共用）
+- 一个入口：选一份银行 / 信用卡对账单（CSV、Excel、OFX、PDF、截图或粘贴文字），刷卡 / 扣款记成花费，入账（工资、电汇、Zelle 转入…）单独列在「收入」一栏、勾上就记成收入，信用卡还款和自己账户之间的转账跳过；导入可整批撤销。原来的 花费 → 银行导入 搬到这里，旧链接 `#/bills/spend?tab=import` 自动跳过来。
+- 导出打印：花费（年度 CSV、打印）和收入 / 收支差额（CSV、打印）放在同一页。代码：`js/stats/statements.js`（页面壳）、`js/stats/bank-import.js`（导入）、`js/stats/views.js` 的 `spendExportTab`、`js/income/views.js` 的 `incomeExportHtml`。
+- 收入行里记的账户文字和 收入 → 入到哪个账户 同一个写法：登记过的账户存「名称 ••尾号」。

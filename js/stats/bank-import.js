@@ -462,7 +462,7 @@ function partsHtml() {
 }
 function panelHtml() {
   const hasRows = S.groups.length > 0, batches = meta("_bank_batches", []) || [];
-  const head = `<div class="panel bank-pick">${state.route?.q?.get("from") === "income" ? `<p class="muted small" style="margin:0 0 8px">${t("从「收入」进来的：同一份对账单里的入账（工资、电汇、Zelle 转入…）会单独列在「收入」一栏，导入后在 账单 → 收入 → 明细 里查看；花费和收入分开记，不会重复。")}</p>` : ""}<p style="margin:0 0 8px">${t("从银行或信用卡网站下载对账单，选中文件：支持 CSV、Excel、OFX / QFX、QIF，以及 PDF 月结单、截图（PDF 先用本地规则读，读不准再用 AI）。可以一次选多个月。文件只在你的浏览器里处理；只有你点“用 AI 解析”才会把内容发给你设置的模型。")}</p>
+  const head = `<div class="panel bank-pick"><p class="muted small" style="margin:0 0 8px">${t("一份对账单，花费和收入一次导入：刷卡 / 扣款记成花费；入账（工资、电汇、Zelle 转入…）单独列在「收入」一栏，勾上就记成收入（只有家主和被允许的人看得到）；信用卡还款、自己账户之间的转账跳过。")}</p><p style="margin:0 0 8px">${t("从银行或信用卡网站下载对账单，选中文件：支持 CSV、Excel、OFX / QFX、QIF，以及 PDF 月结单、截图（PDF 先用本地规则读，读不准再用 AI）。可以一次选多个月。文件只在你的浏览器里处理；只有你点“用 AI 解析”才会把内容发给你设置的模型。")}</p>
     <label class="btn btn-primary btn-sm" style="cursor:pointer">${t("选择文件（可多选）")}<input type="file" id="bankFile" multiple accept=".csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx,.qif,.pdf,image/*,text/csv,text/plain,application/pdf" hidden></label>
     <details class="bank-paste" style="margin-top:8px"><summary>${t("或者直接粘贴文字")}</summary><textarea id="bankPaste" rows="5" placeholder="${esc(t("把网银页面或 PDF 里的交易几行直接复制粘贴到这里"))}" style="margin-top:6px"></textarea>
       <div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-bank-act="paste">${t("读取这段文字")}</button></div></details>
@@ -504,7 +504,7 @@ function rulesHtml() {
 }
 const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("怎么归类？")}</h3><ul class="plain small" style="margin:0">
     <li>${t("只有一笔刷卡 / 扣款、没有小票也没关系：按商家名自动归类（超市、餐饮、加油、水电网、订阅、机票酒店…），认不出的你选一次，之后记住。")}</li>
-    <li>${t("信用卡还款、自己账户之间的转账（活期 ↔ 储蓄）、工资入账不是花费，默认跳过——否则会重复算一遍。除此之外钱出去了就算花费：转给别人（Zelle / Venmo / 电汇）、取现、转到别的账户（如 Robinhood）都会按花费记（默认分到“其他”，可以改）；Zelle / Venmo 的“from”是别人转给你，按入账处理。")}</li>
+    <li>${t("信用卡还款、自己账户之间的转账（活期 ↔ 储蓄）跳过——否则会重复算一遍。除此之外钱出去了就算花费：转给别人（Zelle / Venmo / 电汇）、取现、转到别的账户（如 Robinhood）都会按花费记（默认分到“其他”，可以改）。钱进来的（工资、电汇、Zelle / Venmo 的 from、退税…）单独列在「收入」一栏，勾上就记成收入；商家退款记成负数花费。")}</li>
     <li>${t("分类怎么选：买回家吃的、用的（会用完）→ 日常储备；买回家长期用的 → 装备；花钱买体验或服务、没有东西留在家里 → 外出与服务。银行流水里看不出买了什么的，超市算“超市杂货”（归日常储备），网购算“网购 / 综合购物（未细分）”。")}</li>
     <li>${t("退款（卡上入账的退货）会记成负数花费，统计按净额算。")}</li>
     <li>${t("以前已经手动记过的花费（日期差 3 天内、金额一样）自动跳过，所以同一个文件导两次也不会重复。")}</li>
@@ -582,7 +582,8 @@ async function doImport() {
   // 入账（收入）：勾上的付款方写进 income_records（和花费分开存、权限也不同）；用同一个批次 id，撤销这批时一起删
   let inN = 0, incFailed = false; const learnedInc = {};
   if (incomeOk()) {
-    const acctLabel = acct ? `${acct.name}${acct.last4 ? ` ····${acct.last4}` : ""}` : null, who = incWho() === "none" ? null : incWho(), rowsIn = [];
+    const acctLabel = acct ? `${String(acct.name).replace(/^[^\p{L}\p{N}]+/u, "")}${acct.last4 && !String(acct.name).includes(acct.last4) ? ` ••${acct.last4}` : ""}` : null,   // 去掉名字前的图标；和「收入 → 入到哪个账户」里的「名称 ••尾号」同一个写法，编辑时对得上登记过的账户
+      who = incWho() === "none" ? null : incWho(), rowsIn = [];
     for (const g of S.groups) {
       if (!g.inc || !S.include[g.id]) continue;
       const kind = S.ikind[g.id] || "other";

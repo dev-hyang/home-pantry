@@ -369,7 +369,7 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .entry-ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 10px; max-width: 560px; }
 .entry-ways .way { display: grid; justify-items: center; align-content: center; gap: 4px; min-height: 66px; padding: 8px 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700; text-decoration: none; text-align: center; cursor: pointer; line-height: 1.25; }
 .entry-ways .way-ico { font-size: 22px; line-height: 1; }
-.entry-ways .way:hover { border-color: var(--pine); }
+@media (hover: hover) { .entry-ways .way:hover { border-color: var(--pine); } }   /* 手机点一下后 :hover 会一直粘着，看起来像选中了 */
 .entry-ways .way.is-cur { border-color: var(--pine); background: var(--ok-bg); box-shadow: inset 0 0 0 1px var(--pine); }
 .entry-ways .way:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 #purchaseForm[hidden], #purchaseForm[hidden] ~ .cat-hint, #purchaseForm[hidden] ~ .card-hint-line { display: none; }   /* 表单收着时它下面的提示也一起收 */
@@ -1776,3 +1776,7 @@ body.editing .minibar { display: none; }
 @media (max-width: 640px) { .ix-more { width: 34px; } }
 .ix-acct-def { grid-column: 1 / -1; display: grid; gap: 4px; margin-top: -2px; }
 .ix-acct-def small a { color: var(--pine); font-weight: 700; }
+
+.ix-edit { flex: 1 0 100%; padding: 6px 4px 12px; }
+.ix-edit > form { margin: 0; box-shadow: none; }
+.entry-ways .way[aria-pressed="false"]:not(:hover):not(.is-cur) { border-color: var(--line); background: var(--surface); box-shadow: none; }
