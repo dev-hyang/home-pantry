@@ -523,7 +523,10 @@ function spendRow(p) {
 function spendEditRow(p) {
   const day = String(p.purchased_at).slice(0, 10), opts = categoryOptions(p.category, { withOther: true, spend: true });   // 当前分类已在选项里时会自动选中
   const hasCat = opts.includes(`value="${p.category}"`);
-  return `<li class="spend-edit"><form id="spendEditForm" data-id="${p.id}" class="form-grid" novalidate>
+  const d = new Date(p.purchased_at), cat = ALL_CATS().find((c) => c.id === p.category) || OTHER_CAT;
+  // 顶上保留这一行的摘要，再点它就收起（不保存）
+  const head = `<button type="button" class="ix-main spend-head" data-action="spend-edit-cancel" aria-expanded="true" title="${esc(t("再点一下收起"))}"><span class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${d.toLocaleDateString(locale(), { year: "numeric", month: "numeric", day: "numeric" })} · ${cat.icon || ""} ${t(cat.name)}`.trim())}</small></span><b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : ""}</b><span aria-hidden="true">▴</span></button>`;
+  return `<li class="spend-edit">${head}<form id="spendEditForm" data-id="${p.id}" class="form-grid" novalidate>
     <label class="span-2">${t("名称")}<input name="name" required maxlength="60" value="${esc(p.name)}"></label>
     <label>${t("分类")}<select name="category">${hasCat ? "" : `<option value="${esc(p.category)}" selected>${esc(t((ALL_CATS().find((c) => c.id === p.category) || OTHER_CAT).name))}</option>`}${opts}</select></label>
     <label>${t("金额（{cur}）", { cur: p.currency || Units.region.currency })}<input name="amount" type="number" step="0.01" inputmode="decimal" value="${p.amount != null ? num(p.amount).toFixed(2) : ""}"><small>${t("退款 / 报销填负数")}</small></label>

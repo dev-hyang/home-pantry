@@ -222,7 +222,7 @@ function recordRow(r) {
   const I = inc(), s = repayState(r), pick = !!I.selMode && activeTab(state.route) === "records", editing = !pick && inlineEditId() === r.id, open = I.open === r.id && !editing;
   const who = r.person_id ? personName(r.person_id) : "", sub = [r.received_on, esc(t(kindOf(r.kind).name)), who && esc(who), r.account && esc(r.account), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
   const rb = s ? `<span class="badge ${s.status === "paid" ? "b-ok" : s.overdue ? "b-out" : "b-soon"}">${s.status === "paid" ? t("已还清") : s.overdue ? t("逾期") : t("待还 {a}", { a: fmtMoney(s.left) })}</span>` : "";
-  return `<li class="ix-li${open || editing ? " is-open" : ""}" data-id="${r.id}"${canEdit(r) && !pick && !editing ? ' data-swipe-del="income"' : ""}>${pick ? `<label class="ix-main"><input type="checkbox" class="ix-chk" data-inc-sel="${r.id}" ${I.sel?.has(r.id) ? "checked" : ""} ${canEdit(r) ? "" : "disabled"} aria-label="${esc(t("选择"))}">` : `<button type="button" class="ix-main" data-inc="${canEdit(r) ? "edit" : "open"}" data-id="${r.id}" ${canEdit(r) ? `title="${esc(t("点一下编辑"))}"` : `aria-expanded="${open}"`}>`}
+  return `<li class="ix-li${open || editing ? " is-open" : ""}" data-id="${r.id}"${canEdit(r) && !pick && !editing ? ' data-swipe-del="income"' : ""}>${pick ? `<label class="ix-main"><input type="checkbox" class="ix-chk" data-inc-sel="${r.id}" ${I.sel?.has(r.id) ? "checked" : ""} ${canEdit(r) ? "" : "disabled"} aria-label="${esc(t("选择"))}">` : `<button type="button" class="ix-main" data-inc="${canEdit(r) ? "edit" : "open"}" data-id="${r.id}" ${canEdit(r) ? `title="${esc(editing ? t("再点一下收起") : t("点一下编辑"))}" aria-expanded="${editing}"` : `aria-expanded="${open}"`}>`}
     <span class="ix-ico" style="--k:${kindOf(r.kind).color}" aria-hidden="true">${kindOf(r.kind).icon}</span><span class="grow"><b class="name">${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt">+${fmtMoney(r.amount)}</b>${rb}</span>${pick ? "</label>" : "</button>" + rowTools(r, open)}${editing ? `<div class="ix-edit">${formHtml()}</div>` : ""}${open && !pick ? recordDetail(r, s) : ""}</li>`;
 }
 /** 行右边：▾ 展开 / 收起详情（还款、备注、原币种…）；隐藏的「删除」给左滑用（js/swipe-rows.js），键盘 Tab 到它也能删 */
@@ -560,7 +560,8 @@ export function initIncome({ render, refresh }) {
     if (act === "cancel") { I.form = null; return redraw(); }
     if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.person = "all"; goTab("records"); return; } return redraw(); }
     if (act === "more") { I.limit += 40; return renderIncList(); }
-    if (act === "edit") {   // 点行 / 点「编辑」：打开编辑表单（不在「明细」标签就先切过去）
+    if (act === "edit") {   // 点行 / 点「编辑」：打开编辑表单（不在「明细」标签就先切过去）；这一行已经展开着，再点一下行就收起（不保存）
+      if (b.classList.contains("ix-main") && I.form?.rec?.id === id && inlineEditId() === id) { I.form = null; return redraw(); }
       I.form = { rec: I.rec.find((r) => r.id === id) }; I.scanOpen = false;
       if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.month = "all"; I.person = "all"; I.batch = null; I._keep = true; goTab("records"); return; }
       redraw(); setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;

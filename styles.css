@@ -1817,3 +1817,5 @@ body.editing .minibar { display: none; }
   .kpi b { font-size: 16.5px; }
   .ix-amt, .st-amt, .bill-amt { font-size: 13px; }
 }
+.spend-edit .spend-head { padding: 4px 0 8px; }
+.spend-edit .spend-head b { font-variant-numeric: tabular-nums; white-space: nowrap; }
