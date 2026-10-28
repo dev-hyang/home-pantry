@@ -85,10 +85,10 @@
     timeZone, setRegion, convert, displayUnit, factor,
     list: () => UNIT_SETS[current.system],
     step: (displayU) => STEPS[displayU] || 1,
-    // short=true：坐标轴等空间紧张处，不显示小数；exact=true：单笔记录的金额，永远带两位小数（3344.12 不能显示成 3344）
+    // short=true：坐标轴等空间紧张处，不显示小数；不带 short 一律显示两位小数（3344.12 不能显示成 3344）；exact 参数保留，行为已和默认一致
     money(v, currency = current.currency, short = false, exact = false) {
       const loc = { USD: "en-US", CAD: "en-CA", CNY: "zh-CN" }[currency] || current.locale;
-      const digits = short ? 0 : exact || v < 1000 ? 2 : 0;
+      const digits = short ? 0 : 2;   // 只有 short（紧凑模式）省小数；其余一律显示到分
       try { return new Intl.NumberFormat(loc, { style: "currency", currency, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v); }
       catch { return `${currency} ${Number(v).toFixed(2)}`; }
     },
