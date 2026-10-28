@@ -2706,6 +2706,7 @@ export const EN = {
   "金额从小到大": "Amount, low to high",
   "预期收入（用来生成预算）、储蓄比例、对比实际到账": "Expected income (used to build the budget), savings rate, compare with actual",
   "设为我的默认入账账户": "Make this my default deposit account",
+  "设为我的默认（选填，下次记收入时自动带上）": "Make my default (optional; prefilled next time you log income)", "默认值没存上，下次再试": "Defaults weren't saved; try again next time",
   "还没登记银行账户？到「用卡」里登记后，这里就能选。": "No bank account registered yet? Add one under Cards and it will show up here.",
   "去登记": "Add one",
   "默认账户没存上，下次再试": "Couldn’t save the default account; try again next time",

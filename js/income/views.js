@@ -297,14 +297,32 @@ function acctSelectHtml(sel) {
   const groups = Object.entries(ACCT_KINDS).map(([k, [name]]) => { const cs = list.filter((c) => (c.kind || "credit") === k); return cs.length ? `<optgroup label="${esc(t(name))}">${cs.map((c) => opt(c.id, acctText(c))).join("")}</optgroup>` : ""; }).join("");
   return `${opt("", t("（未指定）"))}${groups}${INCOME_ACCT_EXTRA.map(([v, l]) => opt(v, t(l))).join("")}`;
 }
+/* ── 其他默认值（选填）：付款方 / 类型 / 收款方式，同样按人存在 _income_cfg.defs[用户 id]；只在「新记一笔」时预填 ── */
+const DEF_FIELDS = [["source_name", "付款方"], ["kind", "类型"], ["channel", "收款方式"]];
+const defOf = (k) => String(incCfg().defs?.[state.user?.id || "me"]?.[k] || "");
+/** 类型 / 收款方式的默认值已经被删掉（自定义类型）时不再用 */
+const defValid = (k) => { const v = defOf(k); return k === "kind" ? (kindList().some((x) => x.id === v) ? v : "") : k === "channel" ? (CHANNELS.some((c) => c[0] === v) ? v : "") : v; };
+const defsHtml = (r) => `<div class="ix-acct-def"><small class="muted">${t("设为我的默认（选填，下次记收入时自动带上）")}</small><div class="chips">${DEF_FIELDS.map(([k, l]) => `<label class="check-inline"><input type="checkbox" name="def_${k}" data-inc-def="${k}" ${r[k] && r[k] === defValid(k) ? "checked" : ""}><span>${t(l)}</span></label>`).join("")}</div></div>`;
+async function saveDefaults(fd) {
+  const g = (k) => String(fd.get(k) ?? "").trim(), cfg = incCfg(), uid = state.user?.id || "me", mine = { ...(cfg.defs?.[uid] || {}) };
+  let changed = false;
+  for (const [k] of DEF_FIELDS) {
+    const want = fd.get(`def_${k}`) === "on", val = g(k), was = defOf(k);
+    const next = want && val ? val : !want && val === was ? "" : was;   // 勾上：记住当前值；取消勾选且当前值正是默认：清掉
+    if (next !== was) { changed = true; if (next) mine[k] = next; else delete mine[k]; }
+  }
+  if (changed) await saveMeta({ _income_cfg: { ...cfg, defs: { ...(cfg.defs || {}), [uid]: mine } } });
+}
 async function saveDefaultAcct(value) {
   const cfg = incCfg(); await saveMeta({ _income_cfg: { ...cfg, defAcct: { ...(cfg.defAcct || {}), [state.user?.id || "me"]: value } } });
 }
 
 /* ── 表单 ── */
 function formHtml() {
-  const I = inc(), f = I.form, r = f.rec || {}, owner = isOwnerNow(), mine = myPersonId();
+  const I = inc(), f = I.form, owner = isOwnerNow(), mine = myPersonId();
+  let r = f.rec || {};
   const person = r.person_id !== undefined ? r.person_id : mine, d = (v) => esc(v ?? "");
+  if (!r.id) r = { ...r, source_name: r.source_name || defValid("source_name") || undefined, kind: r.kind || defValid("kind") || undefined, channel: r.channel || defValid("channel") || undefined };   // 新记一笔：预填默认的付款方 / 类型 / 收款方式
   const accVal = r.id ? acctValueOf(r.account) : defAcctValid();   // 新记一笔默认选上你设的默认账户；编辑按原来的文字对上登记过的账户
   const persons = owner ? personOptions(person || "none") : `<option value="${mine || "none"}">${esc(personName(mine) || t("未指定 / 全家"))}</option>`;
   return `<form class="panel" data-inc-form="record" id="incForm" autocomplete="off"><h3 style="margin:0 0 8px">${r.id ? t("编辑收入") : t("记一笔收入")}</h3>
@@ -314,6 +332,7 @@ function formHtml() {
       <label>${t("谁给的（付款方 / 雇主）")}<input name="source_name" list="incSenders" maxlength="80" value="${d(r.source_name)}" required placeholder="${esc(t("公司名 / 汇款人"))}"><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></label>
       <label>${t("类型")}<select name="kind">${kindList().map((k) => `<option value="${k.id}" ${(r.kind || "other") === k.id ? "selected" : ""}>${k.icon} ${esc(t(k.name))}</option>`).join("")}</select></label>
       <label>${t("收款方式")}<select name="channel" data-nosearch><option value="">${t("未填")}</option>${selOpts(CHANNELS, r.channel)}</select></label>
+      ${defsHtml(r)}
       <label>${t("这是谁的收入")}<select name="person_id" data-nosearch>${persons}</select></label>
       <label>${t("入到哪个账户")}<select name="acct_sel" data-inc-acct>${acctSelectHtml(accVal)}</select>
         <input name="account" maxlength="60" value="${accVal === "other" ? d(r.account) : ""}" placeholder="Chase ····1234" style="margin-top:6px" ${accVal === "other" ? "" : "hidden"}></label>
@@ -345,6 +364,7 @@ async function saveRecord(form) {
   if (dup && f.dupAck !== key) { f.dupAck = key; return fail(t("看起来已经记过：{d} · {n} · {a}。确认不是重复的话，再点一次保存。", { d: dup.received_on, n: dup.source_name, a: fmtMoney(dup.amount) })); }
   try {
     await Store.saveIncomeRecord(row);
+    await saveDefaults(fd).catch(() => toast(t("默认值没存上，下次再试")));
     const was = defAcct(), want = fd.get("acct_default") === "on";   // 勾「设为默认」：记住；取消勾选且现在选的正是默认：清掉
     const next = want && accSel && accSel !== "other" ? accSel : !want && accSel && accSel === was ? "" : was;
     if (next !== was) await saveDefaultAcct(next).catch(() => toast(t("默认账户没存上，下次再试")));
@@ -621,6 +641,7 @@ export function initIncome({ render, refresh }) {
   main.addEventListener("change", (e) => {
     const el = e.target, I = inc();
     if (el.dataset?.incAcct !== undefined) { const f = el.closest("form"), box = f?.elements.account, cb = f?.elements.acct_default; if (box) { box.hidden = el.value !== "other"; if (!box.hidden) box.focus(); } if (cb) cb.checked = !!el.value && el.value === defAcct(); return; }
+    if (el.name && DEF_FIELDS.some(([k]) => k === el.name)) { const cb = el.closest("form")?.elements[`def_${el.name}`]; if (cb) cb.checked = !!el.value && el.value === defOf(el.name); }   // 改了值：「设为默认」跟着当前值是不是默认来（不 return，别的处理照走）
     if (el.dataset?.incRepay !== undefined) { const box = el.closest("form")?.querySelector("[data-inc-repay-box]"); if (box) box.hidden = !el.checked; return; }
     if (el.dataset?.incSel !== undefined) { (I.sel ||= new Set())[el.checked ? "add" : "delete"](el.dataset.incSel); const n = $("#incSelN"); if (n) n.textContent = t("已选 {n} 笔", { n: I.sel.size }); return; }
     if (el.dataset?.incOv) { const o = OV(); o[el.dataset.incOv] = el.value; if (el.dataset.incOv === "range") o.month = ""; return rerender(); }
