@@ -1774,3 +1774,5 @@ body.editing .minibar { display: none; }
 .ix-main[title] { cursor: pointer; }
 .ix-main:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); border-radius: 12px; }
 @media (max-width: 640px) { .ix-more { width: 34px; } }
+.ix-acct-def { grid-column: 1 / -1; display: grid; gap: 4px; margin-top: -2px; }
+.ix-acct-def small a { color: var(--pine); font-weight: 700; }

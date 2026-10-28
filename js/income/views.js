@@ -12,6 +12,8 @@ import { INCOME_TABS, activeTab } from "../core/tabs.js";
 import { initIncomeScan, scanHtml } from "./scan.js";
 import { meta, monthlyOf, saveMeta, totalIncomeMonthly } from "../bills/budget.js";
 import { incomePanel } from "../settings/income.js";
+import { acctById } from "../bills/cards-views.js";
+import { ACCT_KINDS, CARDS_HREF } from "../bills/cards.js";
 import { medicalVirtuals } from "../bills/medical.js";
 import { aiReady, askText } from "../core/ai.js";
 import { STAT_CATS, download, statCat, toCsv, ymd } from "../stats/views.js";
@@ -262,10 +264,42 @@ function kindManager() {
     <form data-inc-form="kind" class="form-grid"><label>${t("图标")}<input name="icon" maxlength="4" value="🏷️" style="width:4em"></label><label>${t("名称")}<input name="name" maxlength="20" required placeholder="${esc(t("例如：稿费、副业"))}"></label><div class="form-actions"><button class="btn btn-sm">${t("添加类型")}</button></div></form></div></details>`;
 }
 
+/* ── 入账账户：和「记花费」的付款账户同一套下拉（用卡里登记的银行账户 / 借记卡 / 钱包），可设默认 ──
+ * 记录上存的还是文字（income_records.account，不改数据库）：登记过的账户存「名称 ••尾号」，现金存「现金」，其他手填。
+ * 默认账户按人存在预算设置 _income_cfg.defAcct[用户 id]（登记账户的 id 或 cash）。 */
+const INCOME_ACCT_KINDS = ["checking", "savings", "debit", "wallet"];
+const INCOME_ACCT_EXTRA = [["cash", "现金"], ["other", "其他（手填）"]];
+const acctText = (c) => `${c.name}${c.last4 ? ` ••${c.last4}` : ""}`;
+const incomeAccts = () => (state.cards || []).filter((c) => INCOME_ACCT_KINDS.includes(c.kind || "credit"));
+const hasBankAcct = () => incomeAccts().some((c) => c.active !== false);
+const incCfg = () => meta("_income_cfg", {}) || {};
+const defAcct = () => incCfg().defAcct?.[state.user?.id || "me"] || "";
+/** 默认账户还在（没被删 / 没停用）才用 */
+const defAcctValid = () => { const v = defAcct(); return v === "cash" || (v && incomeAccts().some((c) => c.id === v && c.active !== false)) ? v : ""; };
+/** 记录上的账户文字 → 下拉的值：登记账户 id / cash / other / 空 */
+function acctValueOf(text) {
+  const s = String(text || "").trim(); if (!s) return "";
+  if (s === "现金" || /^cash$/i.test(s)) return "cash";
+  const list = incomeAccts(), exact = list.find((c) => acctText(c) === s);
+  if (exact) return exact.id;
+  const byLast4 = list.find((c) => c.last4 && new RegExp(`(^|[^0-9])${c.last4}($|[^0-9])`).test(s));   // 银行导入记的「Chase ····1234」这类
+  return byLast4 ? byLast4.id : "other";
+}
+function acctSelectHtml(sel) {
+  const def = defAcct(), list = incomeAccts().filter((c) => c.active !== false || c.id === sel);
+  const opt = (v, label) => `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(label)}${v && v === def ? ` ★ ${t("默认")}` : ""}</option>`;
+  const groups = Object.entries(ACCT_KINDS).map(([k, [name]]) => { const cs = list.filter((c) => (c.kind || "credit") === k); return cs.length ? `<optgroup label="${esc(t(name))}">${cs.map((c) => opt(c.id, acctText(c))).join("")}</optgroup>` : ""; }).join("");
+  return `${opt("", t("（未指定）"))}${groups}${INCOME_ACCT_EXTRA.map(([v, l]) => opt(v, t(l))).join("")}`;
+}
+async function saveDefaultAcct(value) {
+  const cfg = incCfg(); await saveMeta({ _income_cfg: { ...cfg, defAcct: { ...(cfg.defAcct || {}), [state.user?.id || "me"]: value } } });
+}
+
 /* ── 表单 ── */
 function formHtml() {
   const I = inc(), f = I.form, r = f.rec || {}, owner = isOwnerNow(), mine = myPersonId();
   const person = r.person_id !== undefined ? r.person_id : mine, d = (v) => esc(v ?? "");
+  const accVal = r.id ? acctValueOf(r.account) : defAcctValid();   // 新记一笔默认选上你设的默认账户；编辑按原来的文字对上登记过的账户
   const persons = owner ? personOptions(person || "none") : `<option value="${mine || "none"}">${esc(personName(mine) || t("未指定 / 全家"))}</option>`;
   return `<form class="panel" data-inc-form="record" id="incForm" autocomplete="off"><h3 style="margin:0 0 8px">${r.id ? t("编辑收入") : t("记一笔收入")}</h3>
     <div class="form-grid">
@@ -275,7 +309,10 @@ function formHtml() {
       <label>${t("类型")}<select name="kind">${kindList().map((k) => `<option value="${k.id}" ${(r.kind || "other") === k.id ? "selected" : ""}>${k.icon} ${esc(t(k.name))}</option>`).join("")}</select></label>
       <label>${t("收款方式")}<select name="channel" data-nosearch><option value="">${t("未填")}</option>${selOpts(CHANNELS, r.channel)}</select></label>
       <label>${t("这是谁的收入")}<select name="person_id" data-nosearch>${persons}</select></label>
-      <label>${t("入到哪个账户")}<input name="account" maxlength="60" value="${d(r.account)}" placeholder="Chase ····1234"></label>
+      <label>${t("入到哪个账户")}<select name="acct_sel" data-inc-acct>${acctSelectHtml(accVal)}</select>
+        <input name="account" maxlength="60" value="${accVal === "other" ? d(r.account) : ""}" placeholder="Chase ····1234" style="margin-top:6px" ${accVal === "other" ? "" : "hidden"}></label>
+      <div class="ix-acct-def"><label class="check-inline"><input type="checkbox" name="acct_default" ${accVal && accVal === defAcct() ? "checked" : ""}><span>${t("设为我的默认入账账户")}</span></label>
+        ${hasBankAcct() ? "" : `<small class="muted">${t("还没登记银行账户？到「用卡」里登记后，这里就能选。")} <a href="${CARDS_HREF()}">${t("去登记")}</a></small>`}</div>
       <label>${t("备注")}<input name="notes" maxlength="500" value="${d(r.notes)}"></label></div>
     <details style="margin-top:8px" ${r.orig_amount || r.fee != null ? "open" : ""}><summary>${t("国际电汇 / 外币（选填）")}</summary><div class="form-grid" style="margin-top:6px">
       <label>${t("汇出金额（原币种）")}<input type="number" name="orig_amount" step="0.01" min="0" value="${d(r.orig_amount)}"></label><label>${t("原币种")}<input name="orig_currency" maxlength="3" value="${d(r.orig_currency)}" placeholder="CNY"></label>
@@ -292,13 +329,20 @@ async function saveRecord(form) {
   if (!(amount > 0)) return fail(t("请填写大于 0 的金额"));
   if (!name) return fail(t("请填写付款方"));
   const repay = fd.get("repay_required") === "on", pid = g("person_id");
+  const accSel = g("acct_sel"), accCard = accSel && accSel !== "cash" && accSel !== "other" ? acctById(accSel) : null;
+  const account = accSel === "cash" ? "现金" : accSel === "other" ? g("account") || null : accCard ? acctText(accCard) : null;
   const row = { id: f.rec?.id, received_on: g("received_on") || todayISO(), amount, currency: cur(), orig_amount: num(g("orig_amount")) > 0 ? num(g("orig_amount")) : null, orig_currency: g("orig_currency").toUpperCase().slice(0, 3) || null,
-    fee: g("fee") === "" ? null : num(g("fee")), source_name: name, kind: g("kind") || "other", channel: g("channel") || null, person_id: pid && pid !== "none" ? pid : null, account: g("account") || null,
+    fee: g("fee") === "" ? null : num(g("fee")), source_name: name, kind: g("kind") || "other", channel: g("channel") || null, person_id: pid && pid !== "none" ? pid : null, account,
     import_batch: f.rec?.import_batch || null, repay_required: repay, repay_due_on: repay ? g("repay_due_on") || null : null, repay_amount: repay && num(g("repay_amount")) > 0 ? num(g("repay_amount")) : null, notes: g("notes") || null };
   if (row.orig_currency && !/^[A-Z]{3}$/.test(row.orig_currency)) return fail(t("原币种填 3 位字母，如 CNY"));
   const dup = !row.id && similarIncome(row), key = `${row.received_on}|${row.amount}|${skey(name)}`;
   if (dup && f.dupAck !== key) { f.dupAck = key; return fail(t("看起来已经记过：{d} · {n} · {a}。确认不是重复的话，再点一次保存。", { d: dup.received_on, n: dup.source_name, a: fmtMoney(dup.amount) })); }
-  try { await Store.saveIncomeRecord(row); I.form = null; await loadIncome(); toast(t("已保存")); rerender(); }
+  try {
+    await Store.saveIncomeRecord(row);
+    const was = defAcct(), want = fd.get("acct_default") === "on";   // 勾「设为默认」：记住；取消勾选且现在选的正是默认：清掉
+    const next = want && accSel && accSel !== "other" ? accSel : !want && accSel && accSel === was ? "" : was;
+    if (next !== was) await saveDefaultAcct(next).catch(() => toast(t("默认账户没存上，下次再试")));
+    I.form = null; await loadIncome(); toast(t("已保存")); rerender(); }
   catch (e) { fail(t("保存失败：{msg}", { msg: e.message })); }
 }
 
@@ -555,12 +599,13 @@ export function initIncome({ render, refresh }) {
   main.addEventListener("input", (e) => { const el = e.target; if (el.dataset?.incF === "q") { inc().q = el.value; inc().limit = 40; renderIncList(); } });
   main.addEventListener("change", (e) => {
     const el = e.target, I = inc();
+    if (el.dataset?.incAcct !== undefined) { const f = el.closest("form"), box = f?.elements.account, cb = f?.elements.acct_default; if (box) { box.hidden = el.value !== "other"; if (!box.hidden) box.focus(); } if (cb) cb.checked = !!el.value && el.value === defAcct(); return; }
     if (el.dataset?.incRepay !== undefined) { const box = el.closest("form")?.querySelector("[data-inc-repay-box]"); if (box) box.hidden = !el.checked; return; }
     if (el.dataset?.incSel !== undefined) { (I.sel ||= new Set())[el.checked ? "add" : "delete"](el.dataset.incSel); const n = $("#incSelN"); if (n) n.textContent = t("已选 {n} 笔", { n: I.sel.size }); return; }
     if (el.dataset?.incOv) { const o = OV(); o[el.dataset.incOv] = el.value; if (el.dataset.incOv === "range") o.month = ""; return rerender(); }
     if (el.dataset?.incF) { const k = el.dataset.incF; if (k === "q") return; I[k] = el.value; I.limit = 40; return rerender(); }
     if (el.dataset?.incR) { const r = R(); r[el.dataset.incR] = el.value; return rerender(); }
-    if (el.dataset?.incAnchor !== undefined) { if (el.value) guard(async () => { await saveMeta({ _income_cfg: { anchor: el.value } }); rerender(); }); return; }
+    if (el.dataset?.incAnchor !== undefined) { if (el.value) guard(async () => { await saveMeta({ _income_cfg: { ...incCfg(), anchor: el.value } }); rerender(); }); return; }
     if (el.dataset?.incAi === "consent") { try { localStorage.setItem("hmh-income-ai-ok", el.checked ? "1" : "0"); } catch { /* 忽略 */ } return rerender(); }
     if (el.dataset?.incAi === "unmask") { R().unmask = el.checked; return; }
   });
