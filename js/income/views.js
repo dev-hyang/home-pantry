@@ -25,6 +25,8 @@ const GREEN = "#2c6a57", RED = "#d4694c", BLUE = "#3b7fc4";
 const R2 = (v) => Math.round(v * 100) / 100;
 let hooks = { render: () => {}, refresh: async () => {} };
 const rerender = () => hooks.render(false);
+/** 用户自己点的操作（展开 / 编辑 / 取消 / 删除…）要立刻重画：main.js 的 render(false) 只给后台刷新用，页面上只要有任何 <form>（明细页底部的「类型管理」就有一个）它就直接跳过，点行编辑就「没反应也没报错」 */
+const redraw = () => hooks.render(true);
 const cur = () => Units.region.currency;
 
 /* ───────────── 花费：按时间窗口读取（缓存 60 秒），和收入合成现金流 ───────────── */
@@ -541,7 +543,7 @@ function accessTab() {
 /* ───────────── 事件 ───────────── */
 function armed(el, msg) { if (el.dataset.armed) return true; el.dataset.armed = "1"; const old = el.textContent; el.textContent = msg; setTimeout(() => { delete el.dataset.armed; el.textContent = old; }, 4000); return false; }
 const guard = async (fn) => { try { await fn(); } catch (e) { toast(t("操作失败：{msg}", { msg: e.message })); } };
-const reload = async () => { await loadIncome(); rerender(); };
+const reload = async () => { await loadIncome(); redraw(); };
 const goTab = (id) => { location.hash = incomeHref(id); };
 
 export function initIncome({ render, refresh }) {
@@ -551,23 +553,23 @@ export function initIncome({ render, refresh }) {
   main.addEventListener("click", (e) => {
     const b = e.target.closest?.("[data-inc]"); if (!b) return;
     const I = inc(), id = b.dataset.id, act = b.dataset.inc;
-    if (act === "add") { I.form = { rec: null }; I.scanOpen = false; I._keep = true; if (activeTab(state.route) !== "records" || state.route.sub !== "income") goTab("records"); else rerender(); return; }
-    if (act === "way-manual") { I.form = I.form && !I.form.rec?.id ? null : { rec: null }; I.scanOpen = false; return rerender(); }
-    if (act === "batch-clear") { I.batch = null; history.replaceState(null, "", `${href("bills", "income")}?tab=records`); return rerender(); }
-    if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return rerender(); }
-    if (act === "cancel") { I.form = null; return rerender(); }
-    if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.person = "all"; goTab("records"); return; } return rerender(); }
+    if (act === "add") { I.form = { rec: null }; I.scanOpen = false; I._keep = true; if (activeTab(state.route) !== "records" || state.route.sub !== "income") goTab("records"); else redraw(); return; }
+    if (act === "way-manual") { I.form = I.form && !I.form.rec?.id ? null : { rec: null }; I.scanOpen = false; return redraw(); }
+    if (act === "batch-clear") { I.batch = null; history.replaceState(null, "", `${href("bills", "income")}?tab=records`); return redraw(); }
+    if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return redraw(); }
+    if (act === "cancel") { I.form = null; return redraw(); }
+    if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.person = "all"; goTab("records"); return; } return redraw(); }
     if (act === "more") { I.limit += 40; return renderIncList(); }
     if (act === "edit") {   // 点行 / 点「编辑」：打开编辑表单（不在「明细」标签就先切过去）
       I.form = { rec: I.rec.find((r) => r.id === id) }; I.scanOpen = false;
       if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.month = "all"; I.person = "all"; I.batch = null; I._keep = true; goTab("records"); return; }
-      rerender(); setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
+      redraw(); setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
     }
     if (act === "del-swipe") { if (!window.confirm(t("删除这笔收入？"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }   // 左滑删除：用确认框（滑动代码按它判断用户有没有取消）
     if (act === "del") { if (!armed(b, t("再点一次确认删除"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }
     if (act === "rep-del") { if (!armed(b, t("再点一次确认"))) return; return guard(async () => { const p = I.rep.find((x) => x.id === id); await Store.deleteIncomeRepayment(id); if (p?.purchase_id) { await Store.deletePurchase(p.purchase_id).catch(() => {}); state.purchases = state.purchases.filter((x) => x.id !== p.purchase_id); } await reload(); }); }
     if (act === "sender-open") { I.q = b.dataset.key; I.kind = "all"; I.year = "all"; goTab("records"); return; }
-    if (act === "sender-rename") { I.renameKey = b.dataset.key || null; return rerender(); }
+    if (act === "sender-rename") { I.renameKey = b.dataset.key || null; return redraw(); }
     if (act === "csv-detail") { const l = filteredRecords(); if (!l.length) return toast(t("没有可导出的记录")); download(`${fileHead()}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
     if (act === "csv-detail-window") { const w = windowOf(R().range, R()), l = incomeIn(w.from, w.to, R().person); if (!l.length) return toast(t("这段时间没有收入")); download(`${fileHead()}-${w.from}_${w.to}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
     if (act === "csv-senders") {
@@ -577,13 +579,13 @@ export function initIncome({ render, refresh }) {
     if (act === "csv-report") return exportReport();
     if (act === "print-report") return printIncome("report");
     if (act === "print-list") return printIncome("list");
-    if (act === "ov-kind") { OV().kind = id; return rerender(); }
+    if (act === "ov-kind") { OV().kind = id; return redraw(); }
     if (act === "kind-open") { Object.assign(I, { kind: id, person: OV().person, year: "all", month: "all", q: "", batch: null, limit: 40 }); goTab("records"); return; }
-    if (act === "sel-toggle") { I.selMode = !I.selMode; I.sel = new Set(); return rerender(); }
+    if (act === "sel-toggle") { I.selMode = !I.selMode; I.sel = new Set(); return redraw(); }
     if (act === "sel-all") { I.sel = new Set(filteredRecords().slice(0, I.limit).filter(canEdit).map((r) => r.id)); return renderIncList(); }
     if (act === "sel-del") { const ids = [...(I.sel || [])]; if (!ids.length) return toast(t("先勾选要删的收入")); if (!armed(b, t("再点一次确认删除 {n} 笔", { n: ids.length }))) return; return guard(async () => { for (const x of ids) await Store.deleteIncomeRecord(x); I.sel = new Set(); I.selMode = false; I.open = null; toast(t("已删除 {n} 笔", { n: ids.length })); await reload(); }); }
     if (act === "ai-run") return runAi();
-    if (act === "kind-del") { if (!armed(b, t("再点一次确认删除"))) return; if (I.rec.some((r) => r.kind === id)) return toast(t("还有收入记录用着这个类型，先把它们改成别的类型")); return guard(async () => { await saveMeta({ _income_kinds: customKinds().filter((k) => k.id !== id) }); rerender(); }); }
+    if (act === "kind-del") { if (!armed(b, t("再点一次确认删除"))) return; if (I.rec.some((r) => r.kind === id)) return toast(t("还有收入记录用着这个类型，先把它们改成别的类型")); return guard(async () => { await saveMeta({ _income_kinds: customKinds().filter((k) => k.id !== id) }); redraw(); }); }
     if (act === "acc-grant") return guard(async () => { await Store.setIncomeAccess(id, "granted"); toast(t("已允许")); await reload(); });
     if (act === "acc-deny") return guard(async () => { await Store.setIncomeAccess(id, "denied"); await reload(); });
     if (act === "acc-revoke") { if (!armed(b, t("再点一次撤销"))) return; return guard(async () => { await Store.deleteIncomeAccess(id); await reload(); }); }
