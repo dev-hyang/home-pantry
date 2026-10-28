@@ -70,9 +70,9 @@ function vehMatches(cond, asset, bills) {
 const dayDiff = (a, b) => Math.round((new Date(`${a}T12:00:00`) - new Date(`${b}T12:00:00`)) / DAY);
 
 /** 补上到期天数、是否逾期、完成相对应完成日期的滞后天数（lag > 0 = 滞后，< 0 = 提前；只有已完成且有应完成日期时才有） */
-function finishTask(x, dn) {
+function finishTask(x, dn, sk = null) {
   const daysLeft = x.due ? daysUntil(x.due) : null;
-  return { ...x, daysLeft, done: dn, overdue: !dn && daysLeft != null && daysLeft < 0, lag: dn && x.due ? dayDiff(dn.done_on, x.due) : null };
+  return { ...x, daysLeft, done: dn, skipped: sk, overdue: !dn && !sk && daysLeft != null && daysLeft < 0, lag: dn && x.due ? dayDiff(dn.done_on, x.due) : null };
 }
 
 /** 交易的清单任务：
@@ -97,12 +97,12 @@ export function dealTasks(deal) {
     const base = x.base === "contract" ? deal.contract_on : deal.closing_on;
     const plan = base ? addDays(base, x.offset) : null;
     const ov = over.find((o) => o.task_key === x.key) || null;
-    const dn = done.find((d) => d.task_key === x.key) || null;
-    return finishTask({ ...x, deal, plan, baseline: deal.baseline?.[x.key] || plan, due: ov?.due_on || plan, moved: !!ov?.due_on && ov.due_on !== plan, userNote: ov?.note || null, custom: false }, dn);
+    const dn = done.find((d) => d.task_key === x.key && (d.status || "done") === "done") || null, sk = done.find((d) => d.task_key === x.key && d.status === "skipped") || null;   // 跳过：这笔交易用不上的步骤
+    return finishTask({ ...x, deal, plan, baseline: deal.baseline?.[x.key] || plan, due: ov?.due_on || plan, moved: !!ov?.due_on && ov.due_on !== plan, userNote: ov?.note || null, custom: false }, dn, sk);
   });
   const custom = state.dealCustom.filter((c) => c.deal_id === deal.id).map((c) =>
     finishTask({ key: `c:${c.id}`, name: c.name, priority: c.priority, stage: c.stage, note: c.note, deal, plan: null, baseline: null, due: c.due_on, moved: false, custom: true, rec: c },
-      c.done_on ? { done_on: c.done_on, done_by_name: c.done_by_name } : null));
+      c.done_on ? { done_on: c.done_on, done_by_name: c.done_by_name } : null, c.skipped && !c.done_on ? { by: c.done_by_name || null } : null));
   return [...tpl, ...custom];
 }
 
@@ -110,7 +110,7 @@ export function dealTasks(deal) {
 export function dealAlerts() {
   const rank = { must: 0, should: 1, optional: 2 };
   return state.deals.filter((d) => !d.outcome).flatMap(dealTasks)
-    .filter((x) => !x.done && x.daysLeft != null && x.daysLeft <= 7)
+    .filter((x) => !x.done && !x.skipped && x.daysLeft != null && x.daysLeft <= 7)
     .sort((a, b) => rank[a.priority] - rank[b.priority] || a.daysLeft - b.daysLeft);
 }
 
@@ -146,6 +146,7 @@ export function lagText(x) {
 
 /** 日期对比一行：应完成 / 实际完成 / 滞后；调整过的标出推荐日期。showDue=false 时不重复应完成日期（时间线上日期已在节点标题里） */
 function dateLine(x, { showDue = true } = {}) {
+  if (x.skipped) return t("已跳过：这一步不适用于这笔交易");
   const bits = [];
   if (showDue && x.due) bits.push(t("应完成 {d}", { d: fmtDate(x.due) }));
   if (x.done) {
@@ -160,6 +161,8 @@ function dateLine(x, { showDue = true } = {}) {
 const isEditing = (x) => state.dealTaskEdit?.deal === x.deal.id && state.dealTaskEdit.key === x.key;
 const editBtn = (x) => `<button type="button" class="task-edit" data-action="deal-task-edit" data-deal="${x.deal.id}" data-key="${esc(x.key)}" aria-label="${esc(t("调整日期 / 备注：{name}", { name: t(x.name) }))}" title="${esc(t("调整日期 / 备注"))}">✎</button>`;
 const taskNotes = (x) => [x.note && esc(t(x.note)), x.userNote && `${t("备注")}：${esc(x.userNote)}`].filter(Boolean).map((n) => `<br>${n}`).join("");
+/** 跳过 / 恢复（已完成的不能跳过）：⊘ 跳过这一步，↩ 恢复 */
+export const skipBtn = (x) => (x.done ? "" : `<button type="button" class="task-skip" data-action="deal-task-skip" data-deal="${x.deal.id}" data-key="${esc(x.key)}" data-skip="${x.skipped ? "0" : "1"}" aria-label="${esc(x.skipped ? t("恢复：{name}", { name: t(x.name) }) : t("跳过：{name}", { name: t(x.name) }))}" title="${esc(x.skipped ? t("恢复这一步") : t("跳过这一步（不适用）"))}">${x.skipped ? "↩" : "⊘"}</button>`);
 const customBadge = (x) => (x.custom ? ` <span class="badge" style="background:var(--surface-2)">${t("自定义")}</span>` : "");
 
 /** 交易事项的「问咩咩」：这一步现在该做什么、找谁、要注意什么（事项备注当「为什么」） */
@@ -170,11 +173,11 @@ export function taskRow(x, { showProp = false } = {}) {
   const id = `deal-${x.deal.id}-${x.key}`, dAsk = dealAsk(x);
   const prop = showProp ? state.properties.find((p) => p.id === x.deal.property_id) : null;
   const editing = isEditing(x);
-  return `<li class="task-row ${x.done ? "done" : ""} ${x.overdue ? "overdue" : ""} ${editing ? "editing" : ""}">
+  return `<li class="task-row ${x.done ? "done" : ""} ${x.skipped ? "skipped" : ""} ${x.overdue ? "overdue" : ""} ${editing ? "editing" : ""}">
     <input type="checkbox" id="${id}" data-deal-task="${esc(x.key)}" data-deal="${x.deal.id}" ${x.done ? "checked" : ""}>
     <label for="${id}"><span class="tt"><b>${esc(t(x.name))}</b> <span class="badge ${PRIO_CLS[x.priority]}">${t(D().PRIORITY[x.priority])}</span>${customBadge(x)}</span>
       <small>${dateLine(x)}${prop ? ` · ${esc(prop.name)}` : ""}${taskNotes(x)}</small></label>
-    ${editBtn(x)}${askButton(dAsk)}
+    ${editBtn(x)}${skipBtn(x)}${askButton(dAsk)}
     ${editing ? taskEditForm(x.deal, x) : ""}
     ${askPanel(dAsk)}
   </li>`;
@@ -197,6 +200,7 @@ function taskEditForm(deal, x, stage = "special") {
     </div>
     <div class="form-actions" style="margin-top:10px"><button class="btn btn-primary btn-sm" type="submit">${t("保存")}</button>
       <button class="btn btn-ghost btn-sm" type="button" data-action="deal-task-cancel">${t("取消")}</button>
+      ${x && !x.done ? `<button class="btn btn-ghost btn-sm" type="button" data-action="deal-task-skip" data-deal="${esc(deal.id)}" data-key="${esc(x.key)}" data-skip="${x.skipped ? "0" : "1"}">${x.skipped ? t("恢复这一步") : t("跳过这一步（不适用）")}</button>` : ""}
       ${rec ? `<button class="btn btn-ghost btn-sm" type="button" data-action="deal-task-delete" data-id="${esc(rec.id)}">${t("删除这条事项")}</button>` : ""}
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>
   </form>`;
@@ -211,8 +215,8 @@ const addTaskRow = (deal, stage, row) => row(null, "➕", t("添加自定义事�
 
 /* ── 交易页：主体是当前房产，或 ?asset=<id> 指定的车辆 ── */
 const DEAL_VIEWS = [["list", "☰", "清单"], ["plan", "📋", "计划"], ["actual", "✅", "实际"], ["compare", "⚖️", "对比"]];
-const DEAL_FILTERS = [["all", "全部"], ["undone", "未完成"], ["overdue", "逾期"], ["must", "必须项"]];
-const filterDealRows = (rows) => rows.filter((x) => ({ all: true, undone: !x.done, overdue: !x.done && x.overdue, must: !x.done && x.priority === "must" }[state.dealFilter] ?? true));
+const DEAL_FILTERS = [["all", "全部"], ["undone", "未完成"], ["overdue", "逾期"], ["must", "必须项"], ["skipped", "已跳过"]];
+const filterDealRows = (rows) => rows.filter((x) => ({ all: true, undone: !x.done && !x.skipped, overdue: !x.done && !x.skipped && x.overdue, must: !x.done && !x.skipped && x.priority === "must", skipped: !!x.skipped }[state.dealFilter] ?? true));
 const dealFilterBar = () => `<div class="chips" role="group" aria-label="${t("按完成情况筛选")}">${DEAL_FILTERS.map(([v, l]) => `<button type="button" class="chip" data-action="deal-filter" data-val="${v}" aria-pressed="${(state.dealFilter || "all") === v}">${t(l)}</button>`).join("")}</div>`;
 export function viewDeal() {
   const q = state.route?.q;
@@ -247,7 +251,7 @@ export function viewDeal() {
   const tasks = dealTasks(deal), an = analyze(deal, tasks);
   if (needsFreeze(deal, tasks)) freezeBaseline(deal, tasks);   // 填了合同日：把模板日期冻结成「计划」基线（只补没有的，后台写，不挡渲染）
   const groups = Object.entries(D().stagesOf(deal.kind)).map(([k, n]) => ({ k, n, rows: tasks.filter((x) => x.stage === k) })).filter((g) => g.rows.length);
-  const undone = tasks.filter((x) => !x.done), mustLeft = undone.filter((x) => x.priority === "must").length;
+  const skippedAll = tasks.filter((x) => x.skipped).length, undone = tasks.filter((x) => !x.done && !x.skipped), mustLeft = undone.filter((x) => x.priority === "must").length;
   const K = D().KINDS;
   const sec = ((closed || veh) && q?.get("sec") === "closeout" ? "" : q?.get("sec")) || "";   // 历史交易、车辆交易没有交割页（车辆直接一键完成）
   // ── 子页：交易信息 / 某个阶段的清单 / 交割（面包屑由 menu.js 统一画：‹ 房产 / 交易 / 子页名）──
@@ -255,9 +259,9 @@ export function viewDeal() {
   if (sec.startsWith("stage:")) {
     const sk = sec.slice(6), ST = D().stagesOf(deal.kind), g = groups.find((x) => x.k === sk) || (ST[sk] ? { k: sk, n: ST[sk], rows: [] } : null);   // 空阶段（如删光自定义事项后）也画出来，方便再添加
     if (!g) return `<section class="section"><div class="panel empty"><strong>${t("没有这个阶段")}</strong></div></section>`;
-    const done = g.rows.filter((x) => x.done).length;
+    const done = g.rows.filter((x) => x.done).length, skippedN = g.rows.filter((x) => x.skipped).length;
     return `${newTaskPanel(deal)}<section class="section">
-      <p class="muted" style="margin:-6px 0 12px;font-size:13px">${t("{kind}流程", { kind: t(K[deal.kind]) })} · ${t("已完成 {a} / {b}", { a: done, b: g.rows.length })}</p>
+      <p class="muted" style="margin:-6px 0 12px;font-size:13px">${t("{kind}流程", { kind: t(K[deal.kind]) })} · ${t("已完成 {a} / {b}", { a: done, b: g.rows.length - skippedN })}${skippedN ? ` · ⊘ ${t("跳过 {n}", { n: skippedN })}` : ""}</p>
       ${g.rows.length ? dealFilterBar() : ""}
       <div class="panel">${filterDealRows(g.rows).length ? `<ul class="task-list">${filterDealRows(g.rows).sort((a, b) => (a.due || "9").localeCompare(b.due || "9")).map((x) => taskRow(x)).join("")}</ul>` : `<div class="empty"><strong>${t("没有符合条件的事项")}</strong></div>`}</div>
       <p><button type="button" class="btn btn-sm btn-ghost" data-action="deal-task-new" data-deal="${deal.id}" data-stage="${g.k}">＋ ${t("添加自定义事项")}</button></p>
@@ -270,7 +274,7 @@ export function viewDeal() {
           <button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel">${t("取消这笔交易")}</button></div></div></div>`}
     </section>`;
   // ── 枢纽页：总进度 + 一行一个入口，各带完成度 ──
-  const total = tasks.length, doneN = total - undone.length, pct = total ? Math.round((doneN / total) * 100) : 0;
+  const total = tasks.length - skippedAll, doneN = total - undone.length, pct = total ? Math.round((doneN / total) * 100) : 0;
   const INFO_FIELDS = veh ? ["contract_on", "closing_on", "price", "earnest_money", "lender", "agent"] : ["contract_on", "closing_on", "review_deadline", "financing_deadline", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector"];
   const infoN = INFO_FIELDS.filter((k) => deal[k] != null && deal[k] !== "").length;
   const nextDue = undone.filter((x) => x.due).sort((a, b) => a.due.localeCompare(b.due))[0];
@@ -280,11 +284,15 @@ export function viewDeal() {
       <span class="mt"><b>${title}</b><small>${desc}</small>${prog != null ? `<span class="mprog"><i style="width:${prog}%"></i></span>` : ""}</span>
       ${badge}<span class="mch" aria-hidden="true">›</span></${url ? "a" : "button"}>`;
   const stageRows = groups.map((g) => {
-    const d = g.rows.filter((x) => x.done).length, late = g.rows.filter((x) => !x.done && x.overdue).length, must = g.rows.filter((x) => !x.done && x.priority === "must").length;
-    const next = g.rows.filter((x) => !x.done && x.due).sort((a, b) => a.due.localeCompare(b.due))[0];
-    const desc = d === g.rows.length ? t("全部完成") : [next ? t("下一项 {date}：{name}", { date: fmtDate(next.due), name: t(next.name) }) : null, must ? t("{n} 项必须", { n: must }) : null].filter(Boolean).join(" · ") || t("还有 {n} 项", { n: g.rows.length - d });
-    const badge = late ? `<span class="badge b-out mcount">${t("逾期 {n}", { n: late })}</span>` : d === g.rows.length ? `<span class="badge b-ok mcount">✓</span>` : `<span class="badge mcount" style="background:var(--surface-2)">${d}/${g.rows.length}</span>`;
-    return row(link(`stage:${g.k}`), d === g.rows.length ? "✅" : "☐", t(g.n), esc(desc), Math.round((d / g.rows.length) * 100), badge);
+    const live = g.rows.filter((x) => !x.skipped), s = g.rows.length - live.length, n = live.length, d = live.filter((x) => x.done).length;
+    const late = live.filter((x) => !x.done && x.overdue).length, must = live.filter((x) => !x.done && x.priority === "must").length, allDone = n > 0 && d === n;
+    const next = live.filter((x) => !x.done && x.due).sort((a, b) => a.due.localeCompare(b.due))[0];
+    const desc = n === 0 ? t("这一阶段的事项都已跳过") : allDone ? t("全部完成") : [next ? t("下一项 {date}：{name}", { date: fmtDate(next.due), name: t(next.name) }) : null, must ? t("{n} 项必须", { n: must }) : null].filter(Boolean).join(" · ") || t("还有 {n} 项", { n: n - d });
+    // 科目后面的统计：2/2 ✔ 表示做完，⊘ 1 表示跳过了 1 项；逾期另有红色徽章
+    const badge = `<span class="mbadges">` + (late ? `<span class="badge b-out mcount">${t("逾期 {n}", { n: late })}</span>` : "")
+      + (n ? `<span class="badge mcount ${allDone ? "b-ok" : ""}" ${allDone ? "" : 'style="background:var(--surface-2)"'}>${d}/${n}${allDone ? " ✔" : ""}</span>` : "")
+      + (s ? `<span class="badge mcount skipb" title="${esc(t("已跳过 {n} 项（不适用）", { n: s }))}">⊘ ${s}</span>` : "") + `</span>`;
+    return row(link(`stage:${g.k}`), allDone ? "✅" : n === 0 ? "⊘" : "☐", t(g.n), esc(desc), n ? Math.round((d / n) * 100) : 100, badge);
   }).join("");
   const infoRow = row(link("info"), "📝", t("交易信息"), veh ? (infoN ? t("日期、价格、贷款行 / 租赁公司、对方联系方式") : t("先填{a}和{b}，清单日期按它们推算", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })) : infoN ? t("合同日、交割日、价格、律师、贷款行、经纪人等") : t("先填合同日和交割日，清单截止日按它们推算"), Math.round((infoN / INFO_FIELDS.length) * 100), `<span class="badge mcount" style="background:var(--surface-2)">${infoN}/${INFO_FIELDS.length}</span>`);
   const addRow = addTaskRow(deal, "special", row);
@@ -296,13 +304,13 @@ export function viewDeal() {
   const cancelRow = closed ? "" : `<p style="margin:8px 0 0;text-align:right"><button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel" data-deal="${deal.id}">${t("取消这笔交易")}</button></p>`;
   const openNow = veh ? openVehicleDeal(veh.id) : openDeal(p.id);
   const view = DEAL_VIEWS.some((v) => v[0] === state.dealView) ? state.dealView : "list";
-  const laneH = { isEditing, editBtn, editForm: (x) => taskEditForm(x.deal, x) };
+  const laneH = { isEditing, editBtn, skipBtn, editForm: (x) => taskEditForm(x.deal, x) };
   return `${bar}${headCard}
     <section class="section">
       <div class="section-head"><h2>${closed ? (deal.outcome === "cancelled" ? t("{kind}已取消", { kind: t(K[deal.kind]) }) : t("{kind}已完成", { kind: t(K[deal.kind]) })) : t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${deal.closing_on ? `${t(dateLabels(deal)[1])} ${fmtDate(deal.closing_on)}` : t("还没填{d}", { d: t(dateLabels(deal)[1]) })}</p></div>
       ${closed ? `<p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。")}${openNow ? ` <a href="${dealHref(openNow)}">${t("回到进行中的交易")}</a>` : ""}</p>` : ""}
       <div class="panel deal-progress">
-        <div class="kv"><div><b>${t("总进度 {p}%", { p: pct })}</b><div class="muted">${t("已完成 {a} / {b}", { a: doneN, b: total })}${mustLeft ? ` · ${t("必须项还剩 {n}", { n: mustLeft })}` : ""}${nextDue ? ` · ${t("最近截止 {date}", { date: fmtDate(nextDue.due) })}` : ""}</div></div></div>
+        <div class="kv"><div><b>${t("总进度 {p}%", { p: pct })}</b><div class="muted">${t("已完成 {a} / {b}", { a: doneN, b: total })}${skippedAll ? ` · ⊘ ${t("跳过 {n}", { n: skippedAll })}` : ""}${mustLeft ? ` · ${t("必须项还剩 {n}", { n: mustLeft })}` : ""}${nextDue ? ` · ${t("最近截止 {date}", { date: fmtDate(nextDue.due) })}` : ""}</div></div></div>
         <div class="life-bar big"><i style="width:${pct}%"></i></div>
       </div>
     </section>
@@ -504,10 +512,19 @@ export async function toggleDealTask(input) {
   const key = input.dataset.dealTask;
   if (key.startsWith("c:")) {   // 自定义事项：完成状态存在它自己那一行
     const c = state.dealCustom.find((x) => x.id === key.slice(2));
-    if (c) await Store.saveDealCustom({ ...c, done_on: input.checked ? todayISO() : null, done_by_name: input.checked ? state.displayName : null });
+    if (c) await Store.saveDealCustom({ ...c, done_on: input.checked ? todayISO() : null, done_by_name: input.checked ? state.displayName : null, skipped: false });
     return;
   }
   await Store.setDealDone(input.dataset.deal, key, input.checked, state.displayName);
+}
+
+/** 跳过 / 恢复一个事项：这笔交易用不上的步骤（不算完成，也不算延误，不再提醒） */
+export async function toggleDealSkip(dealId, key, skip) {
+  if (key.startsWith("c:")) {
+    const c = state.dealCustom.find((x) => x.id === key.slice(2));
+    if (c) await Store.saveDealCustom({ ...c, skipped: !!skip, done_on: null, done_by_name: skip ? state.displayName : null });
+  } else await Store.setDealSkip(dealId, key, !!skip, state.displayName);
+  toast(skip ? t("已跳过这一步") : t("已恢复这一步"));
 }
 
 /** 保存“调整事项”表单：模板任务存应完成日期调整 + 备注 + 实际完成日期；自定义事项（新建 / 修改）整行保存 */

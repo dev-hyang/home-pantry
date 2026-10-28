@@ -352,7 +352,7 @@ function vehicleCard(a) {
 /** 卡片 / 枢纽里的一行：进行中的交易进度 */
 function vehDealLine(a) {
   const d = openVehicleDeal(a.id); if (!d) return "";
-  const tasks = dealTasks(d), done = tasks.filter((x) => x.done).length, late = tasks.filter((x) => !x.done && x.overdue).length;
+  const tasks = dealTasks(d).filter((x) => !x.skipped), done = tasks.filter((x) => x.done).length, late = tasks.filter((x) => !x.done && x.overdue).length;
   return `<a class="meta-tag b-soon" href="${dealHref(d)}"><small>${t(window.DEALS.KINDS[d.kind])}</small>${t("进行中 {a} / {b}", { a: done, b: tasks.length })}${late ? ` · <b class="lag-late">${t("逾期 {n}", { n: late })}</b>` : ""}</a>`;
 }
 
@@ -749,7 +749,7 @@ function vehDealRow(a) {
   const d = openVehicleDeal(a.id), K = window.DEALS.KINDS, st = vehStatus(a), v = a.vehicle || {};
   const hist = state.deals.filter((x) => x.asset_id === a.id && x.outcome).length;
   let desc, badge = "";
-  if (d) { const tasks = dealTasks(d), done = tasks.filter((x) => x.done).length, late = tasks.filter((x) => !x.done && x.overdue).length; desc = t("{kind}进行中 · 已完成 {a} / {b}", { kind: t(K[d.kind]), a: done, b: tasks.length }); badge = late ? `<span class="badge b-out mcount">${t("逾期 {n}", { n: late })}</span>` : `<span class="badge b-soon mcount">${done}/${tasks.length}</span>`; }
+  if (d) { const tasks = dealTasks(d).filter((x) => !x.skipped), done = tasks.filter((x) => x.done).length, late = tasks.filter((x) => !x.done && x.overdue).length; desc = t("{kind}进行中 · 已完成 {a} / {b}", { kind: t(K[d.kind]), a: done, b: tasks.length }); badge = late ? `<span class="badge b-out mcount">${t("逾期 {n}", { n: late })}</span>` : `<span class="badge b-soon mcount">${done}/${tasks.length}</span>`; }
   else if (st === "looking") desc = t("选购中：开始买车流程，按步骤办产权、上牌、保险");
   else if (st === "leased") desc = t("租赁{d}：到期前走归还流程", { d: v.lease_end ? ` ${fmtDate(v.lease_end)} ${t("到期")}` : "" });
   else if (st === "sold" || st === "returned") desc = [t(V().STATUS[st].name), v.disposed_on ? fmtDate(v.disposed_on) : null, v.sale_price != null ? money(num(v.sale_price)) : null].filter(Boolean).join(" · ") + (hist ? ` · ${t("{n} 笔历史交易", { n: hist })}` : "");

@@ -55,11 +55,12 @@ export function analyze(deal, tasks) {
     if (memo.has(x.key)) return memo.get(x.key);
     memo.set(x.key, x.done?.done_on || x.due || null);   // 先占位，防止依赖成环
     let v;
-    if (x.done) v = x.done.done_on;
+    if (x.skipped) v = null;
+    else if (x.done) v = x.done.done_on;
     else {
       v = x.due || null;
       for (const k of deps[x.key] || []) {
-        const d = byKey.get(k); if (!d) continue;
+        const d = byKey.get(k); if (!d || d.skipped) continue;   // 跳过的前置步骤不拖后面
         const de = eff(d), b0 = base(x), bd = base(d); if (!de || !b0 || !bd) continue;
         const from = d.done ? de : de < today ? today : de;   // 没做完的前置步骤，最早也是今天才能做完
         const cand = addDays(from, Math.max(0, dayDiff(b0, bd)));   // 保持模板里两步之间的间隔
@@ -68,14 +69,17 @@ export function analyze(deal, tasks) {
     }
     memo.set(x.key, v); return v;
   };
+  const evs = eventsOf(deal);
   const rows = tasks.map((x) => {
-    const baseline = base(x), actual = x.done?.done_on || null, forecast = x.done ? null : eff(x), ref = actual || forecast;
-    const held = x.done ? [] : (deps[x.key] || []).map((k) => byKey.get(k)).filter((d) => d && !d.done && d.baseline && d.baseline < today).map((d) => d.name);
-    return { ...x, baseline, actual, forecast, slip: baseline && ref ? dayDiff(ref, baseline) : null, lateNow: !x.done && baseline && baseline < today ? dayDiff(today, baseline) : 0, held };
+    const off = !!x.skipped, baseline = base(x), actual = x.done?.done_on || null, forecast = x.done || off ? null : eff(x), ref = actual || forecast;
+    const held = x.done || off ? [] : (deps[x.key] || []).map((k) => byKey.get(k)).filter((d) => d && !d.done && !d.skipped && d.baseline && d.baseline < today).map((d) => d.name);
+    return { ...x, baseline, actual, forecast, slip: !off && baseline && ref ? dayDiff(ref, baseline) : null, lateNow: !x.done && !off && baseline && baseline < today ? dayDiff(today, baseline) : 0, held,
+      prog: !x.done && !off && evs.some((e) => (e.task_keys || []).includes(x.key)) };   // 进行中：已经记过进展、还没完成
   });
   const overdue = rows.filter((r) => r.lateNow > 0).sort((a, b) => b.lateNow - a.lateNow || (a.baseline || "").localeCompare(b.baseline || ""));
   const ms = rows.find((r) => r.key === D().MILESTONE?.[deal.kind]) || null;
-  return { rows, overdue, done: rows.filter((r) => r.done).length, total: rows.length, late: rows.filter((r) => r.slip > 0).length, ms };
+  const skipped = rows.filter((r) => r.skipped).length;
+  return { rows, overdue, skipped, done: rows.filter((r) => r.done).length, total: rows.length - skipped, late: rows.filter((r) => r.slip > 0).length, ms };
 }
 
 /** 进展记录 + 没有被记录覆盖的清单完成，按时间正序（和计划方向一致） */
@@ -103,7 +107,7 @@ function evLine(ev) {
 /** 计划那一侧：模板事项（基线日期） */
 function planCell(deal, x) {
   const moved = x.baseline && x.due && x.due !== x.baseline;
-  return `<span class="dl-tag">📋 ${t("计划")}</span><div class="dl-card dl-plan ${x.priority === "must" ? "must" : ""}">
+  return `<span class="dl-tag">📋 ${t("计划")}</span><div class="dl-card dl-plan ${x.priority === "must" ? "must" : ""} ${x.skipped ? "skipped" : ""}">
     <div class="dl-top"><time>${x.baseline ? md(x.baseline) : x.due ? md(x.due) : t("未排期")}</time><b>${esc(t(x.name))}</b></div>
     <div class="dl-meta"><span class="badge ${PRIO_CLS[x.priority]}">${t(D().PRIORITY[x.priority])}</span> <span class="badge" style="background:var(--surface-2)">${esc(stageName(deal, x))}</span>${x.custom ? ` <span class="badge" style="background:var(--surface-2)">${t("自定义")}</span>` : ""}</div>
     ${moved ? `<small>${t("现计划 {d}", { d: md(x.due) })}${x.moved ? ` · ${t("已手动调整")}` : ""}</small>` : ""}${x.note ? `<small class="muted">${esc(t(x.note))}</small>` : ""}</div>`;
@@ -115,13 +119,15 @@ function actCell(deal, x, evs, h) {
   let head;
   if (x.done) head = `<div class="dl-top"><time>${md(x.done.done_on)}</time><b>✓ ${t("已完成")}</b>${varPill(x.slip)}</div>${x.done.done_by_name ? `<small class="muted">${esc(x.done.done_by_name)}</small>` : ""}`;
   else if (x.lateNow > 0) head = `<div class="dl-top"><b>${t("还没做")}</b>${pill("late", t("已晚 {n} 天", { n: x.lateNow }))}</div><small>${t("本来应该 {d} 完成", { d: md(x.baseline) })}${x.forecast && x.forecast >= today ? ` · ${t("预计 {d}", { d: md(x.forecast) })}` : ""}</small>`;
-  else head = `<div class="dl-top"><b class="muted">${x.forecast ? t("预计 {d}", { d: md(x.forecast) }) : t("还没排期")}</b>${x.slip > 0 ? pill("late", t("预计晚 {n} 天", { n: x.slip })) : ""}</div>`;
+  else head = `<div class="dl-top">${x.prog ? `<b>◐ ${t("进行中")}</b>` : ""}<b class="muted">${x.forecast ? t("预计 {d}", { d: md(x.forecast) }) : t("还没排期")}</b>${x.slip > 0 ? pill("late", t("预计晚 {n} 天", { n: x.slip })) : ""}</div>`;
   const held = x.held.length ? `<small class="dl-held">⏳ ${t("在等：{n}", { n: x.held.map((n) => t(n)).join("、") })}</small>` : "";
   const editing = h.isEditing(x);
+  if (x.skipped) return `<span class="dl-tag">✅ ${t("实际")}</span><div class="dl-card dl-act skipped"><div class="dl-top"><b>⊘ ${t("已跳过")}</b></div><small>${t("这一步不适用于这笔交易，不算完成也不算延误")}</small>${evs.map(evLine).join("")}
+    <div class="dl-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="deal-task-skip" data-deal="${deal.id}" data-key="${esc(x.key)}" data-skip="0">↩ ${t("恢复这一步")}</button></div></div>`;
   return `<span class="dl-tag">✅ ${t("实际")}</span><div class="dl-card dl-act ${x.done ? "done" : x.lateNow > 0 ? "late" : "todo"}">
     ${head}${held}${evs.map(evLine).join("")}
     <div class="dl-acts"><label class="dl-check" for="${id}"><input type="checkbox" id="${id}" data-deal-task="${esc(x.key)}" data-deal="${deal.id}" ${x.done ? "checked" : ""}><span>${x.done ? t("已完成") : t("标记完成")}</span></label>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="deal-event-new" data-deal="${deal.id}" data-key="${esc(x.key)}">＋ ${t("记一笔进展")}</button>${h.editBtn(x)}</div>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="deal-event-new" data-deal="${deal.id}" data-key="${esc(x.key)}">＋ ${t("记一笔进展")}</button>${x.done ? "" : `<button type="button" class="btn btn-sm btn-ghost" data-action="deal-task-skip" data-deal="${deal.id}" data-key="${esc(x.key)}" data-skip="1" title="${esc(t("跳过这一步（不适用）"))}">⊘ ${t("跳过此步")}</button>`}${h.editBtn(x)}</div>
     ${editing ? h.editForm(x) : ""}</div>`;
 }
 
@@ -142,7 +148,7 @@ export function lanesHtml(deal, an, rows, mode, h) {
   const today = todayISO(), evs = eventsOf(deal);
   if (mode === "actual") return actualHtml(deal, an, h);
   const firstKey = (e) => (e.task_keys || []).find((k) => an.rows.some((r) => r.key === k));
-  const items = rows.filter((x) => x.baseline || x.due).map((x) => ({ d: x.baseline || x.due, html: `<li class="dl-row ${x.done ? "is-done" : x.lateNow > 0 ? "is-late" : ""}"><div class="dl-c dl-cp">${planCell(deal, x)}</div><i class="dl-dot" aria-hidden="true"></i>
+  const items = rows.filter((x) => x.baseline || x.due).map((x) => ({ d: x.baseline || x.due, html: `<li class="dl-row ${x.skipped ? "is-skip" : x.done ? "is-done" : x.lateNow > 0 ? "is-late" : ""}${x.prog ? " is-prog" : ""}"><div class="dl-c dl-cp">${planCell(deal, x)}</div><i class="dl-dot" aria-hidden="true"></i>
     <div class="dl-c dl-ca">${mode === "compare" ? actCell(deal, x, evs.filter((e) => firstKey(e) === x.key), h) : ""}</div></li>` }));
   if (mode === "compare") for (const e of evs.filter((e) => !firstKey(e))) items.push({ d: e.happened_on, html: `<li class="dl-row dl-solo"><div class="dl-c dl-cp"><span class="dl-empty">${t("清单之外")}</span></div><i class="dl-dot dl-dot-ev" aria-hidden="true"></i><div class="dl-c dl-ca"><span class="dl-tag">✅ ${t("实际")}</span><div class="dl-card dl-act done">${evLine(e)}</div></div></li>` });
   for (const k of ["contract", "closing"]) { const m = markRow(deal, k); if (m) items.push(m); }
@@ -150,7 +156,8 @@ export function lanesHtml(deal, an, rows, mode, h) {
   const at = items.findIndex((i) => i.d > today);
   items.splice(at < 0 ? items.length : at, 0, { d: today, html: `<li class="dl-today"><span>${t("今天")} · ${fmtDate(today)}</span></li>` });
   const undated = rows.filter((x) => !x.baseline && !x.due);
-  return `<div class="panel dl dl-m-${mode}">${mode === "compare" ? `<div class="dl-head" aria-hidden="true"><span>📋 ${t("计划（模板，冻结的日期）")}</span><span></span><span>✅ ${t("实际（我们做的）")}</span></div>` : ""}
+  const legend = `<p class="dl-legend" aria-label="${esc(t("图例"))}"><span><i class="dl-lg done"></i>${t("已完成")}</span><span><i class="dl-lg prog"></i>${t("进行中")}</span><span><i class="dl-lg skp"></i>${t("已跳过")}</span><span><i class="dl-lg"></i>${t("未开始")}</span><span><i class="dl-lg late"></i>${t("已晚")}</span></p>`;
+  return `<div class="panel dl dl-m-${mode}">${legend}${mode === "compare" ? `<div class="dl-head" aria-hidden="true"><span>📋 ${t("计划（模板，冻结的日期）")}</span><span></span><span>✅ ${t("实际（我们做的）")}</span></div>` : ""}
     <ol class="dl-rows">${items.map((i) => i.html).join("")}</ol>
     ${undated.length ? `<h3 class="tl-sub">${t("还没排期")}</h3><p class="muted" style="font-size:12.5px;margin:0 0 6px">${t("填了合同日 / 交割日，或点 ✎ 手动设日期，就会排进上面的时间线")}</p><ul class="dl-undated">${undated.map((x) => `<li>${esc(t(x.name))}</li>`).join("")}</ul>` : ""}</div>`;
 }
@@ -180,7 +187,7 @@ export function briefHtml(deal, an, h) {
   const list = an.overdue.slice(0, 5).map((x) => `<li><div class="grow"><b>${esc(t(x.name))}</b><small>${t("本来应该 {d} 完成，已晚 {n} 天", { d: fmtDate(x.baseline), n: x.lateNow })}${x.priority === "must" ? ` · ${t("必须项")}` : ""}${x.held.length ? ` · ${t("在等：{n}", { n: x.held.map((n) => t(n)).join("、") })}` : ""}</small></div>
     <button type="button" class="btn btn-sm btn-ghost" data-action="deal-event-new" data-deal="${deal.id}" data-key="${esc(x.key)}">＋ ${t("记一笔进展")}</button></li>`).join("");
   return `<div class="panel dl-brief"><h3 style="margin:0 0 8px">${t("对照计划")}</h3>
-    <div class="kpis">${kpiS(t("已完成"), `${an.done} / ${an.total}`)}${kpiS(t("晚于计划"), `<span class="${an.late ? "down" : ""}">${an.late}</span>`, `<small>${t("含预计会晚的")}</small>`)}${kpiS(t("已过原计划日"), `<span class="${an.overdue.length ? "down" : ""}">${an.overdue.length}</span>`, `<small>${t("还没做")}</small>`)}</div>
+    <div class="kpis">${kpiS(t("已完成"), `${an.done} / ${an.total}`, an.skipped ? `<small>⊘ ${t("跳过 {n} 项", { n: an.skipped })}</small>` : "")}${kpiS(t("晚于计划"), `<span class="${an.late ? "down" : ""}">${an.late}</span>`, `<small>${t("含预计会晚的")}</small>`)}${kpiS(t("已过原计划日"), `<span class="${an.overdue.length ? "down" : ""}">${an.overdue.length}</span>`, `<small>${t("还没做")}</small>`)}</div>
     ${msLine}${an.overdue.length ? `<ul class="restock-list dl-late-list">${list}</ul>${an.overdue.length > 5 ? `<p class="muted small" style="margin:6px 0 0">${t("还有 {n} 项…", { n: an.overdue.length - 5 })}</p>` : ""}` : `<p class="muted small" style="margin:6px 0 0">${t("没有超过原计划日的事项。")}</p>`}
     ${aiHtml(deal)}</div>`;
 }
@@ -201,7 +208,7 @@ export async function runDealAi(deal, an) {
   state.dealAiBusy = true;
   let ci = 0;
   const steps = an.rows.filter((x) => x.baseline || x.due).map((x) => ({ step: x.custom ? t("自定义事项 {n}", { n: ++ci }) : t(x.name), priority: x.priority, planned: x.baseline || null, currently_planned: x.due || null,
-    actual_done: x.actual, expected: x.forecast, days_late_or_early: x.slip, days_overdue_now: x.lateNow || 0, waiting_on: x.held }));
+    skipped_not_applicable: !!x.skipped, actual_done: x.actual, expected: x.forecast, days_late_or_early: x.slip, days_overdue_now: x.lateNow || 0, waiting_on: x.held }));
   const data = { kind: D().KINDS[deal.kind], today: todayISO(), anchors: { contract_planned: deal.baseline?._contract_on || null, contract_now: deal.contract_on, closing_planned: deal.baseline?._closing_on || null, closing_now: deal.closing_on },
     progress: { done: an.done, total: an.total }, milestone: an.ms ? { step: an.ms.name, planned: an.ms.baseline, expected: an.ms.forecast || an.ms.actual, days_late: an.ms.slip } : null,
     note_count: eventsOf(deal).length, steps };
@@ -216,7 +223,7 @@ export function eventFormPanel(deal, an) {
   const e = state.dealEventEdit; if (!e || e.deal !== deal.id) return "";
   const ev = e.id ? (state.dealEvents || []).find((x) => x.id === e.id) : null, key = ev ? (ev.task_keys || [])[0] || "" : e.key || "";
   const opt = (x) => `<option value="${esc(x.key)}" ${x.key === key ? "selected" : ""}>${x.done ? "✓ " : ""}${esc(t(x.name))}</option>`;
-  const undone = an.rows.filter((x) => !x.done), done = an.rows.filter((x) => x.done);
+  const undone = an.rows.filter((x) => !x.done && !x.skipped), done = an.rows.filter((x) => x.done);
   const step = key ? an.rows.find((x) => x.key === key) : null;
   return `<section class="section"><form id="dealEventForm" class="panel" novalidate>
     <h3 style="margin:0 0 8px">${ev ? t("修改进展记录") : t("记一笔进展")}</h3>

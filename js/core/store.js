@@ -140,11 +140,17 @@ export const DemoStore = {
   /** done_on：实际完成日期（不传 = 今天；已完成的再传 = 只改日期） */
   async setDealDone(deal_id, task_key, done, done_by_name, done_on) {
     const list = this.db.deal_done ||= [], cur = list.find((x) => x.deal_id === deal_id && x.task_key === task_key);
-    if (done && cur) { if (done_on) cur.done_on = done_on; }
+    if (done && cur) { if (cur.status === "skipped") { cur.status = "done"; cur.done_on = done_on || new Date().toISOString().slice(0, 10); cur.done_by_name = done_by_name; } else if (done_on) cur.done_on = done_on; }
     else {
       this.db.deal_done = list.filter((x) => x !== cur);
       if (done) this.db.deal_done.push({ id: uid(), deal_id, task_key, done_on: done_on || new Date().toISOString().slice(0, 10), done_by_name, created_at: new Date().toISOString() });
     }
+    this.persist();
+  },
+  /** 跳过 / 恢复一个模板事项（这笔交易用不上的步骤）：同一个事项只有一行，要么完成要么跳过（迁移 047） */
+  async setDealSkip(deal_id, task_key, skip, by) {
+    this.db.deal_done = (this.db.deal_done || []).filter((x) => !(x.deal_id === deal_id && x.task_key === task_key));
+    if (skip) this.db.deal_done.push({ id: uid(), deal_id, task_key, status: "skipped", done_on: new Date().toISOString().slice(0, 10), done_by_name: by, created_at: new Date().toISOString() });
     this.persist();
   },
   /** 模板任务的应完成日期调整与备注；日期和备注都空 = 删掉调整（回到推荐日期） */
@@ -469,7 +475,7 @@ export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
 export const TERM_FIELDS = ["term", "zh", "en", "hant"];
 export const DEAL_FIELDS = ["property_id", "asset_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at", "baseline"];
 export const DEAL_EVENT_FIELDS = ["deal_id", "happened_on", "title", "note", "contact", "task_keys", "created_by_name"];
-export const DEAL_CUSTOM_FIELDS = ["deal_id", "name", "stage", "priority", "due_on", "note", "done_on", "done_by_name"];
+export const DEAL_CUSTOM_FIELDS = ["deal_id", "name", "stage", "priority", "due_on", "note", "done_on", "done_by_name", "skipped"];
 export const CUSTOM_SEASONAL_FIELDS = ["property_id", "name", "note", "months", "due_on", "done_on", "done_by_name"];
 /** 一个人所有收入折合每月的合计（存在旧的 income_amount 列里，兼容旧版） */
 const incomeTotal = (lines) => Math.round((lines || []).reduce((s, l) => s + (l.period === "year" ? num(l.amount) / 12 : num(l.amount)), 0) * 100) / 100;
@@ -569,10 +575,17 @@ export const CloudStore = {
   async listDealDone() { return this.must(await this.sb.from("deal_task_done").select("*").eq("household_id", this.hid)); },
   async setDealDone(deal_id, task_key, done, done_by_name, done_on) {
     if (done) {
+      const was = state.dealDone.find((d) => d.deal_id === deal_id && d.task_key === task_key);
+      if (was?.status === "skipped") { this.must(await this.sb.from("deal_task_done").update({ status: "done", done_by: state.user.id, done_by_name, done_on: done_on || new Date().toISOString().slice(0, 10) }).eq("deal_id", deal_id).eq("task_key", task_key)); return; }   // 原来是「已跳过」：改成已完成
       const { error } = await this.sb.from("deal_task_done").insert({ household_id: this.hid, deal_id, task_key, done_by: state.user.id, done_by_name, ...(done_on ? { done_on } : {}) });
       if (error && error.code !== "23505") throw new Error(error.message);
       if (error && done_on) this.must(await this.sb.from("deal_task_done").update({ done_on }).eq("deal_id", deal_id).eq("task_key", task_key));   // 已经勾过：只改实际完成日期
     } else this.must(await this.sb.from("deal_task_done").delete().eq("deal_id", deal_id).eq("task_key", task_key));
+  },
+  /** 跳过 / 恢复一个模板事项（迁移 047 加的 status 列；没执行时这里会报错提示）*/
+  async setDealSkip(deal_id, task_key, skip, by) {
+    this.must(await this.sb.from("deal_task_done").delete().eq("deal_id", deal_id).eq("task_key", task_key));
+    if (skip) this.must(await this.sb.from("deal_task_done").insert({ household_id: this.hid, deal_id, task_key, status: "skipped", done_by: state.user.id, done_by_name: by }));
   },
   /** 迁移 017 还没执行时读不到这两张表：不影响交易页其余功能 */
   async listDealExtras() {
@@ -591,6 +604,7 @@ export const CloudStore = {
   async saveDealCustom(c) {
     const row = pick(c, DEAL_CUSTOM_FIELDS, { household_id: this.hid, updated_by: state.user.id });
     row.done_by = c.done_on ? state.user.id : null;
+    if (c.skipped === undefined) delete row.skipped;   // 迁移 047 没执行时，不带这一列照常保存
     if (c.id) this.must(await this.sb.from("deal_custom_tasks").update(row).eq("id", c.id));
     else this.must(await this.sb.from("deal_custom_tasks").insert(row));
   },

@@ -489,7 +489,7 @@ function tasksPanel() {
 /** 进行中交易的清单：未做的按到期排在前，做完的保留在后打勾 */
 function dealPanel() {
   const d = openDeal(currentProp()?.id); if (!d) return "";
-  const tasks = dealTasks(d);
+  const tasks = dealTasks(d).filter((x) => !x.skipped);   // 已跳过的不在这里显示
   if (!tasks.length) return "";
   const undone = tasks.filter((x) => !x.done).sort((a, b) => (a.due || "9").localeCompare(b.due || "9")), done = tasks.filter((x) => x.done);
   return `<section class="section">
