@@ -10,6 +10,7 @@ import { joinList, t } from "../core/i18n.js";
 import { addDays } from "../bills/logic.js";
 import { houseBar } from "./property-form.js";
 import { assetName, isVehicle } from "./assets.js";
+import { analyze, briefHtml, eventFormPanel, freezeBaseline, lanesHtml, needsFreeze } from "./deal-progress.js";
 
 const D = () => window.DEALS;
 const V = () => window.VEHICLES;
@@ -97,10 +98,10 @@ export function dealTasks(deal) {
     const plan = base ? addDays(base, x.offset) : null;
     const ov = over.find((o) => o.task_key === x.key) || null;
     const dn = done.find((d) => d.task_key === x.key) || null;
-    return finishTask({ ...x, deal, plan, due: ov?.due_on || plan, moved: !!ov?.due_on && ov.due_on !== plan, userNote: ov?.note || null, custom: false }, dn);
+    return finishTask({ ...x, deal, plan, baseline: deal.baseline?.[x.key] || plan, due: ov?.due_on || plan, moved: !!ov?.due_on && ov.due_on !== plan, userNote: ov?.note || null, custom: false }, dn);
   });
   const custom = state.dealCustom.filter((c) => c.deal_id === deal.id).map((c) =>
-    finishTask({ key: `c:${c.id}`, name: c.name, priority: c.priority, stage: c.stage, note: c.note, deal, plan: null, due: c.due_on, moved: false, custom: true, rec: c },
+    finishTask({ key: `c:${c.id}`, name: c.name, priority: c.priority, stage: c.stage, note: c.note, deal, plan: null, baseline: null, due: c.due_on, moved: false, custom: true, rec: c },
       c.done_on ? { done_on: c.done_on, done_by_name: c.done_by_name } : null));
   return [...tpl, ...custom];
 }
@@ -152,6 +153,7 @@ function dateLine(x, { showDue = true } = {}) {
     if (x.lag != null) bits.push(`<b class="${x.lag > 0 ? "lag-late" : "lag-ok"}">${lagText(x)}</b>`);
   } else bits.push(x.due == null ? t(x.custom ? "没设日期" : "填日期后计算") : dueText(x));
   if (x.moved) bits.push(x.plan ? t("已调整，推荐 {d}", { d: fmtDate(x.plan) }) : t("手动设置的日期"));
+  if (x.baseline && x.due && x.baseline !== x.due && !(x.moved && x.baseline === x.plan)) bits.push(t("原计划 {d}", { d: fmtDate(x.baseline) }));
   return bits.join(" · ");
 }
 
@@ -207,40 +209,8 @@ function newTaskPanel(deal) {
 }
 const addTaskRow = (deal, stage, row) => row(null, "➕", t("添加自定义事项"), isVehDeal(deal) ? t("车行 / 租赁公司的特别要求，或自己想记的事；也留作记录") : t("某个 condo / village / HOA 的特别要求，如必须申报 intent to sell；也留作记录"), null, "", `data-action="deal-task-new" data-deal="${deal.id}" data-stage="${stage}"`);
 
-/** 时间线视图：竖线 + 每条事项一个圆点（就是勾选框），按应完成日期排；签约 / 交割日和“今天”做标记，没日期的排在最后 */
-function timeline(deal, tasks) {
-  const rank = { must: 0, should: 1, optional: 2 }, today = todayISO();
-  const dated = tasks.filter((x) => x.due).sort((a, b) => a.due.localeCompare(b.due) || rank[a.priority] - rank[b.priority]);
-  const nodes = [
-    ...[[deal.contract_on, dateLabels(deal)[0]], [deal.closing_on, dateLabels(deal)[1]]].filter(([d]) => d).map(([date, mark]) => ({ date, mark, order: 0 })),
-    ...dated.map((task) => ({ date: task.due, task, order: 1 })),
-  ].sort((a, b) => a.date.localeCompare(b.date) || a.order - b.order);
-  if (nodes.length) {
-    const at = nodes.findIndex((n) => n.date > today);
-    nodes.splice(at < 0 ? nodes.length : at, 0, { date: today, today: true });
-  }
-  const node = (n) => {
-    if (n.today) return `<li class="tl-today"><span>${t("今天")} · ${fmtDate(today)}</span></li>`;
-    if (n.mark) return `<li class="tl-mark"><span class="tl-dot" aria-hidden="true"></span><time datetime="${n.date}">${fmtDate(n.date)}</time><b>${t(n.mark)}</b></li>`;
-    return tlItem(n.task, true);
-  };
-  const undated = tasks.filter((x) => !x.due);
-  return `<div class="panel"><ol class="tl">${nodes.map(node).join("")}</ol>
-    ${undated.length ? `<h3 class="tl-sub">${t("还没排期")}</h3><p class="muted" style="font-size:12.5px;margin:0 0 4px">${t("填了合同日 / 交割日，或点 ✎ 手动设日期，就会排进上面的时间线")}</p><ol class="tl tl-undated">${undated.map((x) => tlItem(x, false)).join("")}</ol>` : ""}</div>`;
-}
-function tlItem(x, withDate) {
-  const id = `deal-${x.deal.id}-${x.key}-tl`, editing = isEditing(x);
-  return `<li class="tl-item ${x.done ? "done" : ""} ${x.overdue ? "overdue" : ""} ${x.priority === "must" ? "must" : ""}">
-    <input type="checkbox" id="${id}" data-deal-task="${esc(x.key)}" data-deal="${x.deal.id}" ${x.done ? "checked" : ""}>
-    <label for="${id}">${withDate ? `<time datetime="${x.due}">${fmtDate(x.due)}</time>` : ""}
-      <span class="tt"><b>${esc(t(x.name))}</b> <span class="badge ${PRIO_CLS[x.priority]}">${t(D().PRIORITY[x.priority])}</span> <span class="badge" style="background:var(--surface-2)">${esc(t(D().stagesOf(x.deal.kind)[x.stage] || ""))}</span>${customBadge(x)}</span>
-      <small>${dateLine(x, { showDue: !withDate })}${taskNotes(x)}</small></label>
-    ${editBtn(x)}
-    ${editing ? taskEditForm(x.deal, x) : ""}
-  </li>`;
-}
-
 /* ── 交易页：主体是当前房产，或 ?asset=<id> 指定的车辆 ── */
+const DEAL_VIEWS = [["list", "☰", "清单"], ["plan", "📋", "计划"], ["actual", "✅", "实际"], ["compare", "⚖️", "对比"]];
 const DEAL_FILTERS = [["all", "全部"], ["undone", "未完成"], ["overdue", "逾期"], ["must", "必须项"]];
 const filterDealRows = (rows) => rows.filter((x) => ({ all: true, undone: !x.done, overdue: !x.done && x.overdue, must: !x.done && x.priority === "must" }[state.dealFilter] ?? true));
 const dealFilterBar = () => `<div class="chips" role="group" aria-label="${t("按完成情况筛选")}">${DEAL_FILTERS.map(([v, l]) => `<button type="button" class="chip" data-action="deal-filter" data-val="${v}" aria-pressed="${(state.dealFilter || "all") === v}">${t(l)}</button>`).join("")}</div>`;
@@ -274,7 +244,8 @@ export function viewDeal() {
            ${!live ? `<span class="muted">${veh ? t("已卖出或已归还的车只保留历史。") : t("已卖出或退租的房产只保留历史。")}</span>` : ""}</p></div></section>
       ${dealHistory(history, null, histLink)}`;
   }
-  const tasks = dealTasks(deal);
+  const tasks = dealTasks(deal), an = analyze(deal, tasks);
+  if (needsFreeze(deal, tasks)) freezeBaseline(deal, tasks);   // 填了合同日：把模板日期冻结成「计划」基线（只补没有的，后台写，不挡渲染）
   const groups = Object.entries(D().stagesOf(deal.kind)).map(([k, n]) => ({ k, n, rows: tasks.filter((x) => x.stage === k) })).filter((g) => g.rows.length);
   const undone = tasks.filter((x) => !x.done), mustLeft = undone.filter((x) => x.priority === "must").length;
   const K = D().KINDS;
@@ -324,6 +295,8 @@ export function viewDeal() {
     : row(link("closeout"), deal.kind === "buy" ? "🔑" : "📦", deal.kind === "buy" ? t("完成交割") : t("交割与退出"), deal.kind === "buy" ? t("交割后标为持有，记买入日期和价格") : t("账单结束日期、取消自动扣款、归档房产"), null);
   const cancelRow = closed ? "" : `<p style="margin:8px 0 0;text-align:right"><button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel" data-deal="${deal.id}">${t("取消这笔交易")}</button></p>`;
   const openNow = veh ? openVehicleDeal(veh.id) : openDeal(p.id);
+  const view = DEAL_VIEWS.some((v) => v[0] === state.dealView) ? state.dealView : "list";
+  const laneH = { isEditing, editBtn, editForm: (x) => taskEditForm(x.deal, x) };
   return `${bar}${headCard}
     <section class="section">
       <div class="section-head"><h2>${closed ? (deal.outcome === "cancelled" ? t("{kind}已取消", { kind: t(K[deal.kind]) }) : t("{kind}已完成", { kind: t(K[deal.kind]) })) : t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${deal.closing_on ? `${t(dateLabels(deal)[1])} ${fmtDate(deal.closing_on)}` : t("还没填{d}", { d: t(dateLabels(deal)[1]) })}</p></div>
@@ -335,13 +308,13 @@ export function viewDeal() {
     </section>
     ${newTaskPanel(deal)}
     <section class="section">
-      <div class="seg deal-view" role="group" aria-label="${esc(t("视图"))}">
-        <button type="button" class="chip" data-action="deal-view" data-view="list" aria-pressed="${state.dealView !== "timeline"}">☰ ${t("清单")}</button>
-        <button type="button" class="chip" data-action="deal-view" data-view="timeline" aria-pressed="${state.dealView === "timeline"}">⏐ ${t("时间线")}</button>
-      </div>
-      ${state.dealView === "timeline" ? `<div class="panel mlist">${infoRow}</div>${dealFilterBar()}${timeline(deal, filterDealRows(tasks))}<div class="panel mlist" style="margin-top:12px">${addRow}${closeRow}</div>`
-        : `<div class="panel mlist">${infoRow}${stageRows}${addRow}${closeRow}</div>`}${cancelRow}
-      <p class="disclaimer">${t("截止日按{a}和{b}推算，可点 ✎ 调整；必须项逾期会在首页置顶", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })}</p>
+      <div class="seg deal-view" role="group" aria-label="${esc(t("视图"))}">${DEAL_VIEWS.map(([v, ico, name]) => `<button type="button" class="chip" data-action="deal-view" data-view="${v}" aria-pressed="${view === v}">${ico} ${t(name)}</button>`).join("")}</div>
+      ${view === "list" ? `<div class="panel mlist">${infoRow}${stageRows}${addRow}${closeRow}</div>` : `<div class="panel mlist">${infoRow}</div>
+        ${view !== "plan" ? briefHtml(deal, an, laneH) : ""}
+        <div class="dl-bar">${view !== "plan" ? `<button type="button" class="btn btn-primary btn-sm" data-action="deal-event-new" data-deal="${deal.id}">＋ ${t("记一笔进展")}</button>` : ""}</div>
+        ${view !== "actual" ? dealFilterBar() : ""}${eventFormPanel(deal, an)}${lanesHtml(deal, an, filterDealRows(an.rows), view, laneH)}
+        <div class="panel mlist" style="margin-top:12px">${addRow}${closeRow}</div>`}${cancelRow}
+      <p class="disclaimer">${t("截止日按{a}和{b}推算，可点 ✎ 调整；必须项逾期会在首页置顶", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })}${deal.baseline?._at ? ` ${t("「计划」是填了合同日后冻结的模板日期，改期只影响「预计」，不会改掉原计划。")}` : ""}</p>
     </section>
     ${dealHistory(history, viewed?.id || null, histLink)}`;
 }
@@ -517,6 +490,7 @@ export async function saveDealForm(f) {
   // 房产：合同日填了、审查截止没填，按 5 个工作日估一个
   if (!isVehDeal(d) && patch.contract_on && !patch.review_deadline) patch.review_deadline = addBusinessDays(patch.contract_on, 5);
   await Store.saveDeal(patch);
+  try { await freezeBaseline(patch, dealTasks(patch)); } catch { /* 基线补不上不影响保存 */ }   // 填了合同日：冻结模板日期当作计划
   toast(t("交易信息已保存"));
 }
 function addBusinessDays(iso, n) {

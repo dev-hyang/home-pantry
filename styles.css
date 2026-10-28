@@ -1665,3 +1665,72 @@ body.editing .minibar { display: none; }
 #incomePage .export-grid > * { min-width: 0; }
 #incomePage .export-pick { flex-wrap: wrap; }
 #incomePage .export-pick select { flex: 1 1 200px; min-width: 0; max-width: 100%; }
+
+/* 交易进展：计划（模板基线）/ 实际 / 对比。手机单轨（计划在上、实际在下），宽屏左右双轨 */
+.dl-bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.dl-bar:empty { display: none; }
+.dl { padding: 14px 12px; }
+.dl-head { display: none; }
+.dl-rows { list-style: none; margin: 0; padding: 0; position: relative; display: grid; gap: 14px; }
+.dl-rows::before { content: ""; position: absolute; top: 8px; bottom: 8px; left: 11px; width: 2px; background: var(--line); }
+.dl-row { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 0 10px; align-items: start; position: relative; }
+.dl-row > .dl-dot { grid-column: 1; grid-row: 1; justify-self: center; margin-top: 14px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 3px solid var(--pine); position: relative; z-index: 1; box-sizing: border-box; }
+.dl-row.is-late > .dl-dot { border-color: var(--out); }
+.dl-row.is-done > .dl-dot { background: var(--pine); }
+.dl-dot-ev { border-color: var(--ink) !important; }
+.dl-diamond { border-radius: 3px !important; transform: rotate(45deg); background: var(--ink) !important; border-color: var(--ink) !important; width: 11px !important; height: 11px !important; }
+.dl-row > .dl-c { grid-column: 2; grid-row: 1; min-width: 0; }
+.dl-row > .dl-ca { grid-row: 2; margin-top: 8px; }
+.dl-m-plan .dl-ca { display: none; }
+.dl-tag { display: none; }
+.dl-m-compare .dl-tag { display: inline-block; font-size: 11.5px; font-weight: 800; color: var(--muted); margin: 0 0 4px; letter-spacing: .02em; }
+.dl-card { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); display: grid; gap: 5px; min-width: 0; }
+.dl-card.dl-plan { border-left: 4px solid var(--line); }
+.dl-card.dl-plan.must { border-left-color: var(--out); }
+.dl-card.dl-act.done { border-left: 4px solid var(--pine); background: color-mix(in srgb, var(--pine) 6%, var(--surface)); }
+.dl-card.dl-act.late { border-left: 4px solid var(--out); background: color-mix(in srgb, var(--out) 7%, var(--surface)); }
+.dl-card.dl-act.todo { border-style: dashed; border-left: 4px dashed var(--line); }
+.dl-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; }
+.dl-top time { font-size: 12.5px; font-weight: 800; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dl-top b { font-size: 14.5px; line-height: 1.35; overflow-wrap: anywhere; flex: 1 1 140px; min-width: 0; font-weight: 700; }
+.dl-card small { color: var(--muted); font-size: 12.5px; line-height: 1.4; overflow-wrap: anywhere; }
+.dl-card small.dl-held { color: var(--soon, #b8860b); }
+.dl-meta { display: flex; flex-wrap: wrap; gap: 4px; }
+.dl-pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.dl-pill.late { background: color-mix(in srgb, var(--out) 16%, var(--surface)); color: var(--out); }
+.dl-pill.early, .dl-pill.ok { background: color-mix(in srgb, var(--pine) 16%, var(--surface)); color: var(--pine); }
+.dl-ev { padding: 8px 0 0; border-top: 1px dashed var(--line); display: grid; gap: 2px; }
+.dl-ev:first-child { padding-top: 0; border-top: 0; }
+.dl-ev .task-edit { position: static; margin-left: auto; }
+.dl-links { display: grid; gap: 2px; }
+.dl-link { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.dl-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 2px; }
+.dl-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; cursor: pointer; min-height: 36px; }
+.dl-check input { width: 20px; height: 20px; margin: 0; accent-color: var(--pine); }
+.dl-card .task-edit-form { margin-top: 8px; }
+.dl-today { grid-column: 1 / -1; position: relative; z-index: 1; padding-left: 32px; }
+.dl-today span { display: inline-block; padding: 1px 10px; border-radius: 99px; background: var(--pine); color: var(--surface); font-size: 12px; font-weight: 700; }
+.dl-mark { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding: 6px 2px; }
+.dl-mark time { font-size: 12.5px; font-weight: 800; color: var(--muted); }
+.dl-empty { display: inline-block; padding: 6px 10px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: 12.5px; }
+.dl-undated { margin: 0; padding-left: 20px; color: var(--muted); font-size: 13px; }
+.dl-brief .dl-ms { margin: 10px 0 4px; font-size: 14px; line-height: 1.6; }
+.dl-late-list { margin-top: 8px; }
+.dl-late-list li { align-items: flex-start; gap: 10px; }
+.dl-late-list li .btn { flex: none; }
+.dl-ai { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
+.dl-ai summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+.dl-m-actual .dl-row > .dl-c { grid-row: 1; margin-top: 0; }
+@media (max-width: 560px) { .dl { padding: 12px 8px; } .dl-acts .btn { min-height: 38px; } .dl-late-list li { flex-wrap: wrap; } .dl-late-list li .btn { width: 100%; min-height: 40px; } }
+@media (min-width: 761px) {
+  .dl-m-compare .dl-head { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr); gap: 0 10px; font-weight: 800; font-size: 13px; color: var(--muted); padding: 0 0 10px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .dl-m-compare .dl-rows::before { left: 50%; margin-left: -1px; }
+  .dl-m-compare .dl-row { grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr); }
+  .dl-m-compare .dl-row > .dl-cp { grid-column: 1; grid-row: 1; }
+  .dl-m-compare .dl-row > .dl-dot { grid-column: 2; }
+  .dl-m-compare .dl-row > .dl-ca { grid-column: 3; grid-row: 1; margin-top: 0; }
+  .dl-m-compare .dl-tag { display: none; }
+  .dl-m-compare .dl-today { text-align: center; padding-left: 0; }
+  .dl-m-compare .dl-card.dl-plan { margin-right: 4px; }
+  .dl-m-compare .dl-card.dl-act, .dl-m-compare .dl-mark { margin-left: 4px; }
+}

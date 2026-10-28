@@ -137,5 +137,22 @@
     { key: "vr_final",    name: "取消租金自动扣款；30 天内核对最终账单（处置费、超里程、磨损）", base: "closing", offset: 30, priority: "must", stage: "after" },
   ];
 
-  window.DEALS = { KINDS, VEHICLE_KINDS, isVehicleKind, PRIORITY, STAGES, VEHICLE_STAGES, stagesOf, DATE_LABELS, PROPERTY_STATUS, TASKS };
+  // 前置依赖：key → 必须先完成的事项 key。某一步晚了，只顺延依赖它的后续步骤（保持模板里的间隔），不相干的步骤不动
+  const DEPS = {
+    buy: { b_review: ["b_earnest"], b_loan_docs: ["b_review"], b_appraisal: ["b_loan_docs"], b_commitment: ["b_appraisal"], b_insurance: ["b_commitment"], b_title: ["b_commitment"], b_hoa_docs: ["b_commitment"],
+      b_funds: ["b_commitment"], b_walkthrough: ["b_funds"], b_closing: ["b_walkthrough", "b_funds", "b_commitment"], b_locks: ["b_closing"], b_setup: ["b_closing"], b_hoa_register: ["b_closing"], b_homestead: ["b_closing"] },
+    sell: { s_review: ["s_earnest"], s_appraisal: ["s_review"], s_payoff: ["s_appraisal"], s_walkthrough: ["s_payoff"], s_closing: ["s_appraisal", "s_payoff", "s_walkthrough"],
+      s_autopay: ["s_closing"], s_records: ["s_closing"], s_final_bills: ["s_closing"], s_mortgage_refund: ["s_closing"] },
+    move_out: { m_keys: ["m_clean"], m_autopay: ["m_keys"], m_deposit: ["m_keys"] },
+    veh_buy: { vb_contract: ["vb_history", "vb_ppi"], vb_pay: ["vb_contract"], vb_title: ["vb_contract"], vb_pickup: ["vb_pay", "vb_title", "vb_insure"], vb_register: ["vb_pickup"], vb_emission: ["vb_pickup"], vb_sticker: ["vb_pickup"],
+      vb_app: ["vb_pickup"], vb_loan: ["vb_pickup"], vb_docs: ["vb_pickup"], vb_first: ["vb_pickup"] },
+    veh_sell: { vs_meet: ["vs_clean"], vs_bos: ["vs_docs", "vs_meet"], vs_pay: ["vs_bos"], vs_plates: ["vs_pay"], vs_wipe: ["vs_pay"], vs_report: ["vs_plates"], vs_insurance: ["vs_pay"], vs_toll: ["vs_pay"],
+      vs_loan: ["vs_pay"], vs_archive: ["vs_pay"], vs_refund: ["vs_plates"], vs_records: ["vs_pay"] },
+    veh_return: { vr_preinspect: ["vr_options"], vr_miles: ["vr_preinspect"], vr_repair: ["vr_preinspect"], vr_appoint: ["vr_repair"], vr_return: ["vr_appoint", "vr_items", "vr_wipe"], vr_plates: ["vr_return"],
+      vr_insurance: ["vr_return"], vr_archive: ["vr_return"], vr_final: ["vr_return"] },
+  };
+  // 里程碑：对比页顶部「原计划 → 预计」看的那一步（交割 / 提车 / 交车 / 归还）
+  const MILESTONE = { buy: "b_closing", sell: "s_closing", move_out: "m_keys", veh_buy: "vb_pickup", veh_sell: "vs_pay", veh_return: "vr_return" };
+
+  window.DEALS = { DEPS, MILESTONE, KINDS, VEHICLE_KINDS, isVehicleKind, PRIORITY, STAGES, VEHICLE_STAGES, stagesOf, DATE_LABELS, PROPERTY_STATUS, TASKS };
 })();

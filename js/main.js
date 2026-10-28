@@ -44,7 +44,8 @@ import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyIt
 import { fixAction, runFix, viewFix } from "./house/fix.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
-import { applyCloseout, cancelDeal, completeBuy, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
+import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
+import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealTask, viewDeal } from "./house/deals.js";
 import { deleteBillPay, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { moveCat, renderInvList, scoreRecipes, setShopOpen, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
@@ -116,7 +117,7 @@ export async function refresh() {
       applyCustomCategories(customCats);   // 自定义分类并入全局分类表，后面的 enrich / 视图都能用
       applyCustomLocations(customLocs);    // 自定义 / 重命名的存放位置并入分组列表
       const houseProfiles = Object.fromEntries(profiles.map((p) => [p.property_id, p]));
-      Object.assign(state, { items, logs, shopping, houseProfiles, houseProfile: pid ? houseProfiles[pid] || null : null, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, dealOverrides: dealExtras.overrides, dealCustom: dealExtras.custom });
+      Object.assign(state, { items, logs, shopping, houseProfiles, houseProfile: pid ? houseProfiles[pid] || null : null, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, dealOverrides: dealExtras.overrides, dealCustom: dealExtras.custom, dealEvents: dealExtras.events || [] });
       state.enriched = enrich(items, logs);
       state.assetsEnriched = enrichAssets(assets, maintLogs);
       state.billsEnriched = enrichBills(bills, billPayments);
@@ -232,7 +233,7 @@ export function render(force = true) {
   if (!force && FORM_PAGES(r) && $("#main form")) return;
   if (!force && r.section === "scan" && $("#main .scan-page")) return;   // 录入购物：识别中 / 确认页的改动不被后台同步冲掉（页面还没画出来时，比如直接刷新在这一页，要先画）
   // 数据刷新（切回标签页、家人改动）会重画整页：先把内嵌表单里还没保存的改动记下来，画完再填回去，不让用户白填
-  const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#seasonForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm", "#medBillForm", "#medPayForm"]);
+  const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#dealEventForm", "#seasonForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm", "#medBillForm", "#medPayForm"]);
   try { renderBody(r); } finally { restoreUnsaved(kept); }
 }
 /** 表单里与渲染默认值不同的字段（用户正在填的）；没有改动返回 null */
@@ -438,7 +439,7 @@ main.addEventListener("input", (e) => {
     const panel = e.target.closest("details"), ul = panel?.querySelector("ul.card-list"); if (!ul) return;
     const tmp = document.createElement("div"); tmp.innerHTML = viewCards(); const fresh = tmp.querySelector("details.ref-panel ul.card-list"); if (fresh) ul.replaceWith(fresh);
   }
-  const df = e.target.closest("#dealForm, #dealTaskForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
+  const df = e.target.closest("#dealForm, #dealTaskForm, #dealEventForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
   if (e.target.matches("textarea[data-grow]")) autoGrow(e.target);
   const hf = e.target.closest("#houseForm"); if (hf && /^hoa_(dues|sa_)/.test(e.target.name || "")) updateHoaTotal(hf);   // HOA 金额 / 评估字段一改，每月总计卡马上重算
 });
@@ -550,6 +551,7 @@ main.addEventListener("change", async (e) => {
     try { await toggleDealTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
     return refresh();
   }
+  if (e.target.matches("input[data-deal-ai]")) { setDealAiConsent(e.target.checked); return render(); }
   if (e.target.id === "langSel") return changeLang(e.target.value || null);
   if (e.target.matches("select[data-bill-pay]")) {   // 清单里的「怎么付」：自动扣款 · 某张卡 / 账户，或手动（可选默认账户 / 现金）
     const b = state.bills.find((x) => x.id === e.target.dataset.billPay);
@@ -717,6 +719,7 @@ main.addEventListener("submit", async (e) => {
       state.deleteProperty = null; toast(t("已彻底删除“{name}”及其账单、设备和资料；花费记录保留", { name: p.name })); return refresh();
     }
     if (f.id === "dealForm") { await saveDealForm(f); f.dataset.saved = "1"; return refresh(); }   // 已保存：刷新时不再当作未保存改动
+    if (f.id === "dealEventForm") { await saveDealEventForm(f); state.dealEventEdit = null; return refresh(); }
     if (f.id === "dealTaskForm") { await saveDealTaskForm(f); state.dealTaskEdit = null; return refresh(); }
     if (f.id === "seasonForm") { if (await saveSeasonForm(f)) { state.seasonForm = null; return refresh(); } return; }
     if (f.id === "closeoutForm") { await applyCloseout(f); go(href("house", "overview")); return refresh(); }
@@ -902,8 +905,13 @@ main.addEventListener("click", async (e) => {
       case "deal-task-delete":
         if (!armed(el, t("再点一次确认删除"))) return;
         await deleteCustomTask(el.dataset.id); state.dealTaskEdit = null; toast(t("已删除这条事项")); return refresh();
+      case "deal-event-new": state.dealEventEdit = { deal: el.dataset.deal, id: "", key: el.dataset.key || "" }; render(); { const f = $("#dealEventForm"); f?.scrollIntoView({ block: "center" }); f?.elements.title?.focus(); } return;
+      case "deal-event-edit": { const ev = state.dealEvents.find((x) => x.id === el.dataset.id); if (!ev) return; state.dealEventEdit = { deal: ev.deal_id, id: ev.id, key: "" }; render(); { const f = $("#dealEventForm"); f?.scrollIntoView({ block: "center" }); f?.elements.title?.focus(); } return; }
+      case "deal-event-cancel": state.dealEventEdit = null; return render();
+      case "deal-event-delete": if (!armed(el, t("再点一次确认删除"))) return; await deleteDealEvent(el.dataset.id); state.dealEventEdit = null; toast(t("已删除")); return refresh();
+      case "deal-ai-run": { const d = state.deals.find((x) => x.id === el.dataset.deal); if (!d) return; const p = runDealAi(d, analyze(d, dealTasks(d))); render(); await p; return render(); }
       case "deal-view":
-        state.dealView = el.dataset.view === "timeline" ? "timeline" : "list";
+        state.dealView = ["plan", "actual", "compare"].includes(el.dataset.view) ? el.dataset.view : "list";
         try { localStorage.setItem("hmh-deal-view", state.dealView); } catch { /* 忽略 */ }
         return render();
       case "deal-closeout-cancel": state.closeout = null; return go(href("house", "deal"));

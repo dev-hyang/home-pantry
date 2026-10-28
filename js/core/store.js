@@ -16,7 +16,7 @@ export const DemoStore = {
       db.properties = [{ id: uid(), name: t("我的家"), kind: "other", role: "owner_occupied", status: "owned", address: null, is_default: true, archived: false, notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
     }
     for (const p of db.properties) p.status ||= (p.role === "tenant" ? "renting" : "owned");
-    db.deals ||= []; db.deal_done ||= []; db.deal_overrides ||= []; db.deal_custom ||= []; db.categories ||= []; db.custom_seasonal ||= [];
+    db.deals ||= []; db.deal_done ||= []; db.deal_overrides ||= []; db.deal_custom ||= []; db.deal_events ||= []; db.categories ||= []; db.custom_seasonal ||= [];
     const def = db.properties.find((p) => p.is_default) || db.properties[0];
     db.house_profiles ||= {};
     if (db.house_profile) { db.house_profiles[def.id] ||= db.house_profile; delete db.house_profile; }
@@ -118,6 +118,7 @@ export const DemoStore = {
     db.deal_done = (db.deal_done || []).filter((x) => !dealIds.has(x.deal_id));
     db.deal_overrides = (db.deal_overrides || []).filter((x) => !dealIds.has(x.deal_id));
     db.deal_custom = (db.deal_custom || []).filter((x) => !dealIds.has(x.deal_id));
+    db.deal_events = (db.deal_events || []).filter((x) => !dealIds.has(x.deal_id));
     db.properties = db.properties.filter((p) => p.id !== id);
     this.persist();
   },
@@ -147,7 +148,15 @@ export const DemoStore = {
     this.persist();
   },
   /** 模板任务的应完成日期调整与备注；日期和备注都空 = 删掉调整（回到推荐日期） */
-  async listDealExtras() { return { overrides: (this.db.deal_overrides || []).map((x) => ({ ...x })), custom: (this.db.deal_custom || []).map((x) => ({ ...x })) }; },
+  async listDealExtras() { return { overrides: (this.db.deal_overrides || []).map((x) => ({ ...x })), custom: (this.db.deal_custom || []).map((x) => ({ ...x })), events: (this.db.deal_events || []).map((x) => ({ ...x })) }; },
+  /** 交易进展：实际发生的事（迁移 046） */
+  async saveDealEvent(e) {
+    const now = new Date().toISOString(); this.db.deal_events ||= [];
+    if (e.id) { const i = this.db.deal_events.findIndex((x) => x.id === e.id); if (i < 0) throw new Error("记录不存在"); this.db.deal_events[i] = { ...this.db.deal_events[i], ...e, updated_at: now }; }
+    else this.db.deal_events.push({ ...e, id: uid(), created_at: now, updated_at: now });
+    this.persist();
+  },
+  async deleteDealEvent(id) { this.db.deal_events = (this.db.deal_events || []).filter((x) => x.id !== id); this.persist(); },
   async saveDealOverride(deal_id, task_key, due_on, note) {
     const now = new Date().toISOString();
     this.db.deal_overrides = (this.db.deal_overrides || []).filter((x) => !(x.deal_id === deal_id && x.task_key === task_key));
@@ -458,7 +467,8 @@ export const BILL_FIELDS = ["property_id", "name", "category", "direction", "pay
 export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", "subs", "hidden", "sort"];
 export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
 export const TERM_FIELDS = ["term", "zh", "en", "hant"];
-export const DEAL_FIELDS = ["property_id", "asset_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at"];
+export const DEAL_FIELDS = ["property_id", "asset_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at", "baseline"];
+export const DEAL_EVENT_FIELDS = ["deal_id", "happened_on", "title", "note", "contact", "task_keys", "created_by_name"];
 export const DEAL_CUSTOM_FIELDS = ["deal_id", "name", "stage", "priority", "due_on", "note", "done_on", "done_by_name"];
 export const CUSTOM_SEASONAL_FIELDS = ["property_id", "name", "note", "months", "due_on", "done_on", "done_by_name"];
 /** 一个人所有收入折合每月的合计（存在旧的 income_amount 列里，兼容旧版） */
@@ -549,9 +559,12 @@ export const CloudStore = {
   async listDeals() { return this.must(await this.sb.from("property_deals").select("*").eq("household_id", this.hid).order("created_at", { ascending: false })); },
   async saveDeal(d) {
     const row = pick(d, DEAL_FIELDS, { household_id: this.hid, updated_by: state.user.id });
-    if (d.id) this.must(await this.sb.from("property_deals").update(row).eq("id", d.id));
-    else return this.must(await this.sb.from("property_deals").insert(row).select("id").single()).id;
-    return d.id;
+    if (state.noBaselineCol) delete row.baseline;
+    const run = async (r) => (d.id ? this.sb.from("property_deals").update(r).eq("id", d.id) : this.sb.from("property_deals").insert(r).select("id").single());
+    let res = await run(row);
+    if (res.error && /baseline/i.test(res.error.message) && "baseline" in row) { state.noBaselineCol = true; const { baseline, ...rest } = row; res = await run(rest); }   // 迁移 046 还没执行：不存基线，交易照常保存
+    const out = this.must(res);
+    return d.id || out.id;
   },
   async listDealDone() { return this.must(await this.sb.from("deal_task_done").select("*").eq("household_id", this.hid)); },
   async setDealDone(deal_id, task_key, done, done_by_name, done_on) {
@@ -566,8 +579,10 @@ export const CloudStore = {
     const [o, c] = await Promise.all([
       this.sb.from("deal_task_overrides").select("*").eq("household_id", this.hid),
       this.sb.from("deal_custom_tasks").select("*").eq("household_id", this.hid).order("created_at")]);
-    if (o.error || c.error) { console.warn("[deal extras]", (o.error || c.error).message); return { overrides: [], custom: [] }; }
-    return { overrides: o.data, custom: c.data };
+    const ev = await this.sb.from("deal_events").select("*").eq("household_id", this.hid).order("happened_on").order("created_at");   // 迁移 046 没执行：读不到，只是没有进展记录
+    if (ev.error) console.warn("[deal events]", ev.error.message);
+    if (o.error || c.error) { console.warn("[deal extras]", (o.error || c.error).message); return { overrides: [], custom: [], events: ev.data || [] }; }
+    return { overrides: o.data, custom: c.data, events: ev.error ? [] : ev.data };
   },
   async saveDealOverride(deal_id, task_key, due_on, note) {
     if (!due_on && !note) return this.must(await this.sb.from("deal_task_overrides").delete().eq("deal_id", deal_id).eq("task_key", task_key));
@@ -580,6 +595,12 @@ export const CloudStore = {
     else this.must(await this.sb.from("deal_custom_tasks").insert(row));
   },
   async deleteDealCustom(id) { this.must(await this.sb.from("deal_custom_tasks").delete().eq("id", id)); },
+  async saveDealEvent(e) {
+    const row = pick(e, DEAL_EVENT_FIELDS, { household_id: this.hid });
+    if (e.id) this.must(await this.sb.from("deal_events").update(row).eq("id", e.id));
+    else this.must(await this.sb.from("deal_events").insert({ ...row, created_by: state.user.id }));
+  },
+  async deleteDealEvent(id) { this.must(await this.sb.from("deal_events").delete().eq("id", id)); },
 
   /* 房屋资料 / 设备 / 季节任务（按房产） */
   async getHouseProfile(pid) {
@@ -812,7 +833,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments", "income_access", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments", "income_access", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();
