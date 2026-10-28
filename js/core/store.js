@@ -126,6 +126,7 @@ export const DemoStore = {
     for (const { id, ends_on } of entries) { const b = this.db.bills.find((x) => x.id === id); if (b) { b.ends_on = ends_on; b.updated_at = new Date().toISOString(); } }
     this.persist();
   },
+  async listPendingMembers() { return []; },
   async listDeals() { return (this.db.deals || []).map((x) => ({ ...x })); },
   async saveDeal(d) {
     const now = new Date().toISOString(); this.db.deals ||= [];
@@ -840,9 +841,18 @@ export const CloudStore = {
   },
   async deleteShopping(id) { this.must(await this.sb.from("shopping_list").delete().eq("id", id)); },
   async clearBought() { this.must(await this.sb.from("shopping_list").delete().eq("household_id", this.hid).eq("status", "bought")); },
-  async listMembers() {
-    return this.must(await this.sb.from("household_members").select("user_id,display_name,role,joined_at").eq("household_id", this.hid).order("joined_at"));
+  async listMembers() {   // 只列正式成员（迁移 049 起新加入的人先是「待批准」）；没执行 049 时没有 status 列，退回原来的读法
+    let r = await this.sb.from("household_members").select("user_id,display_name,role,joined_at").eq("household_id", this.hid).eq("status", "active").order("joined_at");
+    if (r.error && /status/i.test(r.error.message)) r = await this.sb.from("household_members").select("user_id,display_name,role,joined_at").eq("household_id", this.hid).order("joined_at");
+    return this.must(r);
   },
+  /** 等家主批准的加入申请（读不到 = 没有） */
+  async listPendingMembers() {
+    const r = await this.sb.from("household_members").select("user_id,display_name,joined_at").eq("household_id", this.hid).eq("status", "pending").order("joined_at");
+    return r.error ? [] : r.data;
+  },
+  async approveMember(userId) { this.must(await this.sb.rpc("approve_member", { p_household: this.hid, p_user: userId })); },
+  async closeInvite() { this.must(await this.sb.rpc("close_invite", { p_household: this.hid })); },
   /* 家主管理（security definer RPC，见 migrations/004、005） */
   async setMemberRole(userId, role) { this.must(await this.sb.rpc("set_member_role", { p_household: this.hid, p_user: userId, p_role: role })); },
   async removeMember(userId) { this.must(await this.sb.rpc("remove_member", { p_household: this.hid, p_user: userId })); },

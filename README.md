@@ -467,3 +467,10 @@ GitHub Pages 会把每个文件缓存 10 分钟。页面启动时会比较本次
 - 导出打印：花费（年度 CSV、打印）和收入 / 收支差额（CSV、打印）放在同一页。代码：`js/stats/statements.js`（页面壳）、`js/stats/bank-import.js`（导入）、`js/stats/views.js` 的 `spendExportTab`、`js/income/views.js` 的 `incomeExportHtml`。
 - 收入行里记的账户文字和 收入 → 入到哪个账户 同一个写法：登记过的账户存「名称 ••尾号」。
 - 安全：浏览器里的 anon key 本来就是公开的，数据靠行级安全（RLS）。迁移 `048_revoke_anon.sql` 把未登录角色的表权限整个收回（纵深防御）。
+
+## 加入家庭（迁移 049）
+- 第一位用邮箱登录并「创建家庭」的人是家主。邀请码 **7 天有效**（设置 → 家庭里看得到到期时间），家主可以「重新生成」（旧码立即失效）或「关闭邀请」。
+- 家人用邀请码（可以不收邮件，匿名进入）+ 称呼**申请加入**，先看到「等家主批准」页（每 20 秒自动检查）；家主在 今天 的提醒里或 设置 → 家庭 点「批准 / 拒绝」后才能看到数据。待批准的人读不到任何表（行级安全只认正式成员）。
+- **猜码限速**：猜错 / 过期的邀请码记在 `join_attempts`，同一个登录身份 15 分钟内 5 次、同一个 IP 10 次、全站 60 次，超了返回「试得太多次」；待批准的申请最多 10 个。`join_household` 返回 jsonb（invalid / expired / throttled / full / pending / active），不抛异常，否则失败记录会被回滚。
+- **修了一个提权漏洞**：原来成员能直接改自己那行的 role = owner；现在 `household_members` 只允许更新 display_name，角色和状态只能走 `set_member_role` / `approve_member`。
+- 升级顺序：先执行 `048_revoke_anon.sql`，再 `049_join_hardening.sql`；已有的家庭，现有邀请码从执行那天起算 7 天，已加入的成员不受影响。没执行 049 时新版页面照旧能用（按「直接加入」处理）。

@@ -125,6 +125,7 @@ export async function refresh() {
       state.people = people; applyMedical(medBills, medPays);
       loadIncome().then(() => { if (state.route?.section === "bills" && ["income", "statements"].includes(state.route?.sub)) render(false); });   // 收入（迁移 042）单独读：行级安全只给家主 / 已允许的人全家的；读不到不影响别的功能
       state.cards = cards || [];
+      loadPending();
       ensureAdults().then((added) => { if (added) { applyMedical(state.medBills, state.medPayments); render(false); } }).catch(() => {});
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
       if (!pendingAny()) notifyIfNeeded();
@@ -1141,7 +1142,30 @@ main.addEventListener("click", async (e) => {
         if (!armed(el, t("再点一次确认重置"))) return;
         const { data, error } = await CloudStore.sb.rpc("rotate_invite_code", { p_household: state.household.id });
         if (error) throw new Error(error.message);
-        state.household.invite_code = data; toast(t("邀请码已重置，旧邀请码立即失效")); return render();
+        state.household.invite_code = data;
+        const { data: hh } = await CloudStore.sb.from("households").select("invite_expires_at").eq("id", state.household.id).single();
+        state.household.invite_expires_at = hh?.invite_expires_at || null;
+        toast(t("已生成新邀请码（7 天内有效），旧邀请码立即失效")); return render();
+      }
+      case "close-invite": {
+        if (!armed(el, t("再点一次关闭邀请"))) return;
+        await CloudStore.closeInvite(); state.household.invite_expires_at = new Date().toISOString();
+        toast(t("已关闭邀请：现在谁也不能用邀请码加入了")); return render();
+      }
+      case "member-approve": {
+        await CloudStore.approveMember(id);
+        state.members = await CloudStore.listMembers(); state.pendingMembers = await CloudStore.listPendingMembers();
+        toast(t("已批准，对方现在可以进入了")); return render();
+      }
+      case "member-reject": {
+        if (!armed(el, t("再点一次确认拒绝"))) return;
+        await CloudStore.removeMember(id); state.pendingMembers = await CloudStore.listPendingMembers();
+        toast(t("已拒绝这个申请")); return render();
+      }
+      case "join-recheck": return afterLogin();
+      case "join-cancel": {
+        await CloudStore.sb.from("household_members").delete().eq("household_id", el.dataset.hid).eq("user_id", state.user.id);
+        clearInterval(waitTimer); return afterLogin();
       }
     }
   } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); refresh(); }
@@ -1401,18 +1425,31 @@ export async function doCreateHousehold(f) {
   localStorage.setItem("hmh-hid", data); afterLogin();
 }
 
+/** join_household 的结果：旧库（没执行迁移 049）返回家庭 id 字符串 = 直接加入；新库返回 { status, household_id }：invalid / expired / throttled / full / pending / active */
+function joinOutcome(data) {
+  if (typeof data === "string") return { status: "active", hid: data };
+  return { status: data?.status || "invalid", hid: data?.household_id || null };
+}
+const JOIN_MSG = { invalid: "邀请码不正确，请向家主确认", expired: "邀请码已过期，请向家主要一个新的", throttled: "试得太多次了，请 15 分钟后再试", full: "等家主批准的申请太多了，请联系家主先处理" };
 export async function doJoinHousehold(f) {
   const { data, error } = await CloudStore.sb.rpc("join_household", { p_code: f.elements.code.value.trim(), p_display_name: f.elements.display_name.value.trim() });
-  if (error) return toast(error.message.includes("invalid") ? t("邀请码不正确，请向家人确认") : t("加入失败：{msg}", { msg: error.message }));
-  localStorage.setItem("hmh-hid", data); afterLogin();
+  if (error) return toast(error.message.includes("invalid") ? t("邀请码不正确，请向家主确认") : t("加入失败：{msg}", { msg: error.message }));
+  const o = joinOutcome(data);
+  if (JOIN_MSG[o.status]) return toast(t(JOIN_MSG[o.status]));
+  if (o.hid) localStorage.setItem("hmh-hid", o.hid);
+  afterLogin();   // pending → 「等家主批准」页；active → 直接进入
 }
 
 export async function afterLogin() {
   const sb = CloudStore.sb;
-  const { data, error } = await sb.from("household_members")
-    .select("household_id, display_name, households(id, name, invite_code, created_by)").eq("user_id", state.user.id);
+  let { data, error } = await sb.from("household_members")
+    .select("household_id, display_name, status, households(id, name, invite_code, invite_expires_at, created_by)").eq("user_id", state.user.id);
+  if (error && /status|invite_expires_at/i.test(error.message)) ({ data, error } = await sb.from("household_members").select("household_id, display_name, households(id, name, invite_code, created_by)").eq("user_id", state.user.id));   // 迁移 049 还没执行
   if (error) return toast(t("读取家庭失败：{msg}", { msg: error.message }));
-  if (!data.length) return renderOnboarding();
+  const pend = data.filter((d) => d.status === "pending");
+  data = data.filter((d) => (d.status || "active") === "active" && d.households);
+  if (!data.length) return pend.length ? renderPending(pend[0]) : renderOnboarding();
+  clearInterval(waitTimer);
   state.households = data.map((d) => d.households).filter(Boolean);
   const saved = localStorage.getItem("hmh-hid");
   const mine = data.find((d) => d.household_id === saved) || data[0];
@@ -1427,6 +1464,33 @@ export async function afterLogin() {
   // 同一个人开了多个浏览器 / 设备会变成多位“爸爸”：发现和别人同名，推荐加序列号或日期
   membersP.then(() => promptDuplicateName({ save: saveMyName }))   // refresh 读完会把 state.membersReady 清空，所以用局部变量.then((v) => { if (v) render(false); }).catch(() => {});
 }
+
+/** 申请已提交、等家主批准：每 20 秒自动再查一次，批准了就直接进去 */
+let waitTimer = null;
+function renderPending(row) {
+  gate(`<div class="panel gate-card"><h2>${t("申请已发出，等家主批准")}</h2>
+    <p class="muted">${t("你用邀请码申请加入了这个家庭。家主在「设置 → 家庭」里点「批准」之后，你就能进来；在那之前这里看不到任何家里的数据。")}</p>
+    <p class="muted small">${t("这个页面会自动检查，也可以手动再查一次。")}</p>
+    <div class="form-actions"><button type="button" class="btn btn-primary" data-action="join-recheck">${t("再查一次")}</button>
+      <button type="button" class="btn btn-ghost" data-action="join-cancel" data-hid="${esc(row.household_id)}">${t("取消申请")}</button>
+      <button type="button" class="btn btn-ghost" data-action="logout">${t("退出登录")}</button></div></div>`);
+  setSync(t("等待家主批准"));
+  clearInterval(waitTimer); waitTimer = setInterval(() => { if (!document.body.classList.contains("gate")) return clearInterval(waitTimer); afterLogin(); }, 20000);
+}
+
+/** 家主：有没有等批准的加入申请（读完人数变了就重画）；顺带给提醒总线用 */
+async function loadPending() {
+  const owner = state.members?.some((m) => m.user_id === state.user?.id && m.role === "owner");
+  if (Store.mode === "demo" || !owner) { if (state.pendingMembers?.length) state.pendingMembers = []; return; }
+  const p = await CloudStore.listPendingMembers().catch(() => []);
+  const changed = p.length !== (state.pendingMembers || []).length; state.pendingMembers = p;
+  if (changed) render(false);
+}
+registerAlerts(() => {
+  const p = state.pendingMembers || []; if (!p.length) return [];
+  const link = `${href("me", "settings")}?sec=family`;
+  return [{ source: "join", severity: 1, must: true, title: t("{n} 人申请加入家庭", { n: p.length }), detail: p.map((m) => m.display_name).join("、"), href: link, actions: [{ type: "link", href: link, label: t("去批准"), cls: "btn-primary" }] }];
+});
 
 /** 保存我自己的称呼（家庭成员表），并刷新成员列表 */
 async function saveMyName(v) {
@@ -1473,12 +1537,13 @@ export async function boot() {
       if (state.pendingJoin) {
         const { code, name } = state.pendingJoin; state.pendingJoin = null;
         const { data, error } = await CloudStore.sb.rpc("join_household", { p_code: code, p_display_name: name });
-        if (error) {
+        const o = error ? null : joinOutcome(data);
+        if (error || JOIN_MSG[o.status]) {
           started = false;
           await CloudStore.sb.auth.signOut();   // 加入失败就不保留这个匿名身份
-          return renderLogin(error.message.includes("invalid") ? t("邀请码不正确，请向家人确认。") : t("加入失败：{msg}", { msg: error.message }));
+          return renderLogin(error ? (error.message.includes("invalid") ? t("邀请码不正确，请向家主确认。") : t("加入失败：{msg}", { msg: error.message })) : t(JOIN_MSG[o.status]));
         }
-        localStorage.setItem("hmh-hid", data);
+        if (o.hid) localStorage.setItem("hmh-hid", o.hid);
       }
       afterLogin();
     };

@@ -23,6 +23,7 @@ export const state = {
   deleteProperty: null,                        // 设置页：正在确认彻底删除的已归档房产 id
   deals: [], dealDone: [],                     // 房产交易（买入 / 卖出 / 退租）与清单完成记录
   dealOverrides: [], dealCustom: [], dealEvents: [],   // 交易清单：模板任务的应完成日期调整、自定义事项、实际发生的事（进展记录）
+  pendingMembers: [],                          // 家主看到的加入申请（等批准）
   dealEventEdit: null, dealAi: {}, dealAiBusy: false,   // 进展记录：正在编辑的 { deal, id, key }；AI 对照分析的结果
   dealTaskEdit: null,                          // 交易清单：正在编辑的事项 { deal, key } 或新建 { deal, key: "", stage }
   dealView: (() => { try { const v = localStorage.getItem("hmh-deal-view"); return v === "timeline" ? "plan" : ["plan", "actual", "compare"].includes(v) ? v : "list"; } catch { return "list"; } })(),   // 交易页视图：list 清单 / plan 计划 / actual 实际 / compare 对比

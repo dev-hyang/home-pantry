@@ -17,6 +17,21 @@ import { budgetPlan, isHouseholdOwner, myId } from "../bills/budget.js";
 export const isOwner = () => state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
 
 /** 家庭成员列表：家主能设 / 取消家主、移出成员；不能对自己操作（退出走“退出登录”），最后一位家主不能被取消或移出（数据库同样校验） */
+/** 邀请码有效期的一句话（家主看得到到期时间；没执行迁移 049 时没有这个字段 = 不显示） */
+const inviteLine = () => {
+  const exp = state.household?.invite_expires_at; if (!exp) return "";
+  const ms = new Date(exp).getTime() - Date.now();
+  return ms <= 0 ? `<b style="color:var(--out)">${t("邀请码已过期")}</b>` : t("有效期至 {d}（还有 {n} 天）", { d: fmtShort(exp), n: Math.max(1, Math.ceil(ms / 864e5)) });
+};
+/** 家主：等批准的加入申请 */
+function pendingList() {
+  const p = state.pendingMembers || []; if (!isOwner() || !p.length) return "";
+  const row = (m) => `<li><div class="grow"><b>${esc(m.display_name)}</b>${m.joined_at ? `<small class="muted">${t("{d} 申请", { d: fmtShort(m.joined_at) })}</small>` : ""}</div>
+      <span class="head-acts"><button type="button" class="btn btn-sm btn-primary" data-action="member-approve" data-id="${m.user_id}">${t("批准")}</button><button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-reject" data-id="${m.user_id}">${t("拒绝")}</button></span></li>`;
+  return `<div class="panel pend-panel" style="margin-top:12px"><h3 style="font-size:15px;margin:0 0 6px">${t("等你批准（{n}）", { n: p.length })}</h3>
+    <p class="muted small" style="margin:0 0 8px">${t("认识这个人再批准：批准后对方能看到家里的数据（收入除外，要另外授权）。不认识就拒绝，并重新生成邀请码。")}</p>
+    <ul class="member-list">${p.map(row).join("")}</ul></div>`;
+}
 function membersList() {
   const me = state.user?.id, owner = isOwner();
   const owners = state.members.filter((m) => m.role === "owner").length;
@@ -317,11 +332,12 @@ export function viewSettings() {
     </div>
     ${cloud ? `
     <div class="panel">
-      <div class="kv"><div><div class="muted">${t("邀请家人：把这个邀请码发给他们")}</div><div class="code">${esc(state.household.invite_code)}</div></div>
+      <div class="kv"><div><div class="muted">${t("邀请家人：把这个邀请码发给他们")}</div><div class="code">${esc(state.household.invite_code)}</div><div class="muted small">${inviteLine()}</div></div>
         <div class="head-acts"><button type="button" class="btn btn-sm" data-action="copy-invite">${t("复制邀请码")}</button>
-          ${isOwner() ? `<button type="button" class="btn btn-sm btn-ghost" data-action="rotate-invite">${t("重置邀请码")}</button>` : ""}</div></div>
-      <p class="muted" style="font-size:12px;margin:8px 0 0">${t("家人可以用邀请码直接进入（不用收邮件）。邀请码就是这个家的钥匙，泄露了请家主点“重置邀请码”，旧码立即失效，已加入的家人不受影响。")}</p>
+          ${isOwner() ? `<button type="button" class="btn btn-sm btn-ghost" data-action="rotate-invite">${t("重新生成")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="close-invite">${t("关闭邀请")}</button>` : ""}</div></div>
+      <p class="muted" style="font-size:12px;margin:8px 0 0">${t("家人用邀请码申请加入（不用收邮件），邀请码 7 天有效；申请后要家主在这里批准才能进来。邀请码泄露了或家人都加好了，请家主点「重新生成」或「关闭邀请」，旧码立即失效，已加入的家人不受影响。")}</p>
       ${state.user?.is_anonymous ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("你是通过邀请码直接进入的，身份保存在本设备浏览器里；清除浏览器数据或换手机后需要重新用邀请码进入。")}</p>` : ""}
+      ${pendingList()}
       <h3 style="font-size:15px;margin:16px 0 6px">${t("家庭成员")}</h3>
       ${membersList()}
       ${isOwner() ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("家主可以改家人的称呼、把家人设为家主（可以有多位）、取消家主，或把误加入的人移出家庭。最后一位家主不能被取消或移出。")}</p>` : ""}
