@@ -18,6 +18,8 @@ export const toDisp = (q, unit) => num(q) * Units.factor(unit);
 export const showQty = (q, unit) => `${fmt(toDisp(q, unit))} ${esc(t(du(unit) || ""))}`.trim();
 export const storedStep = (unit) => Units.step(du(unit)) / Units.factor(unit);
 export const money = (v, short) => Units.money(v, undefined, !!short);
+/** 单笔记录的金额：用户填了几位小数就显示几位（始终两位），不像汇总数那样 ≥ 1000 就省掉小数 */
+export const moneyExact = (v) => Units.money(v, undefined, false, true);
 export const catOf = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[0];
 // 分类分三个空间：pantry 日常储备 / house 房屋耗材 / gear 装备（耐用品，只记数量和位置）
 export const catsOf = (space, { withHidden = false } = {}) => CATEGORIES.filter((c) => c.space === space && (withHidden || !c.hidden));   // 隐藏的内置分类不出现在方块、芯片、下拉里

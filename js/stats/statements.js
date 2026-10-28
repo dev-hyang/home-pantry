@@ -4,7 +4,7 @@
  * · 导出打印：花费（年度 CSV、打印）和收入 / 收支差额（CSV、打印）放在一起，逻辑还在 stats/views.js 和 income/views.js，这里只是把它们摆到同一页。
  * 原来在 花费 → 银行导入、收入 → 银行导入 的入口都指到这里（旧链接 #/bills/spend?tab=import 自动跳过来）。 */
 import { state } from "../core/state.js";
-import { $, esc, fmtDate, money, num, toast } from "../core/util.js";
+import { $, esc, fmtDate, money, moneyExact, num, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { tabBar } from "../core/hub.js";
@@ -22,7 +22,7 @@ let render = () => {};
 const RANGES = [["month", "本月"], ["3m", "近 3 个月"], ["6m", "近 6 个月"], ["12m", "近 12 个月"], ["ytd", "今年"], ["lastyear", "去年"]];
 const DIRS = [["all", "全部"], ["spend", "花费"], ["income", "收入"]];
 const SS = () => (state.stmt ||= { range: "3m", dir: "all", q: "", limit: 100 });
-const sgn = (v, short) => `${v < 0 ? "−" : "+"}${money(Math.abs(v), !!short)}`;
+const sgn = (v, short) => `${v < 0 ? "−" : "+"}${short ? money(Math.abs(v), true) : moneyExact(Math.abs(v))}`;
 
 /** 这段时间的流水：花费（purchases）+ 收入（income_records），按日期新到旧；spendLoading = 花费还在读 */
 function build() {

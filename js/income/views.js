@@ -2,7 +2,7 @@
  * 数据在 income_records（迁移 042），逻辑在 logic.js。花费来自 purchases（按需读取时间窗口，医疗付款并进来），和这里的收入合成现金流。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, daysUntil, esc, money, num, todayISO, toast } from "../core/util.js";
+import { $, daysUntil, esc, money, moneyExact, num, todayISO, toast } from "../core/util.js";
 import { registerAlerts } from "../core/alerts.js";
 import { lang, t } from "../core/i18n.js";
 import { href } from "../core/router.js";
@@ -99,7 +99,7 @@ const yearsOf = () => [...new Set(inc().rec.map((r) => r.received_on.slice(0, 4)
 const empty = () => `<div class="panel empty"><strong>${t("还没有收入记录")}</strong>${t("点右上角「记一笔收入」；在「账单 → 对账单」导入对账单时，工资、电汇、Zelle 转入这些入账会单独列出来，勾上就能一起导入。")}</div>`;
 const kpi = (label, val, sub = "") => `<div class="kpi"><span>${esc(label)}</span><b>${val}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
 const rate = (n, i) => (i > 0 && n != null ? `${Math.round((n / i) * 100)}%` : "—");
-const fmtMoney = (v, short) => money(v, !!short);
+const fmtMoney = (v, short) => (short ? money(v, true) : moneyExact(v));   // 不带 short：记录和合计都显示到分；short 只给图表中心、月均这类紧凑处
 
 /** 收入 / 花费分组柱 + 差额（结余 / 超支）柱 + 趋势线 */
 function flowCharts(cf, title, { trend: withTrend = true } = {}) {
@@ -221,7 +221,7 @@ const inlineEditId = () => { const I = inc(), id = I.form?.rec?.id; return id &&
 function recordRow(r) {
   const I = inc(), s = repayState(r), pick = !!I.selMode && activeTab(state.route) === "records", editing = !pick && inlineEditId() === r.id, open = I.open === r.id && !editing;
   const who = r.person_id ? personName(r.person_id) : "", sub = [r.received_on, esc(t(kindOf(r.kind).name)), who && esc(who), r.account && esc(r.account), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
-  const rb = s ? `<span class="badge ${s.status === "paid" ? "b-ok" : s.overdue ? "b-out" : "b-soon"}">${s.status === "paid" ? t("已还清") : s.overdue ? t("逾期") : t("待还 {a}", { a: fmtMoney(s.left, true) })}</span>` : "";
+  const rb = s ? `<span class="badge ${s.status === "paid" ? "b-ok" : s.overdue ? "b-out" : "b-soon"}">${s.status === "paid" ? t("已还清") : s.overdue ? t("逾期") : t("待还 {a}", { a: fmtMoney(s.left) })}</span>` : "";
   return `<li class="ix-li${open || editing ? " is-open" : ""}" data-id="${r.id}"${canEdit(r) && !pick && !editing ? ' data-swipe-del="income"' : ""}>${pick ? `<label class="ix-main"><input type="checkbox" class="ix-chk" data-inc-sel="${r.id}" ${I.sel?.has(r.id) ? "checked" : ""} ${canEdit(r) ? "" : "disabled"} aria-label="${esc(t("选择"))}">` : `<button type="button" class="ix-main" data-inc="${canEdit(r) ? "edit" : "open"}" data-id="${r.id}" ${canEdit(r) ? `title="${esc(t("点一下编辑"))}"` : `aria-expanded="${open}"`}>`}
     <span class="ix-ico" style="--k:${kindOf(r.kind).color}" aria-hidden="true">${kindOf(r.kind).icon}</span><span class="grow"><b class="name">${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt">+${fmtMoney(r.amount)}</b>${rb}</span>${pick ? "</label>" : "</button>" + rowTools(r, open)}${editing ? `<div class="ix-edit">${formHtml()}</div>` : ""}${open && !pick ? recordDetail(r, s) : ""}</li>`;
 }
