@@ -220,7 +220,7 @@ export function eventFormPanel(deal, an) {
   const step = key ? an.rows.find((x) => x.key === key) : null;
   return `<section class="section"><form id="dealEventForm" class="panel" novalidate>
     <h3 style="margin:0 0 8px">${ev ? t("修改进展记录") : t("记一笔进展")}</h3>
-    <input type="hidden" name="deal_id" value="${esc(deal.id)}"><input type="hidden" name="id" value="${esc(ev?.id || "")}">
+    <input type="hidden" name="deal_id" value="${esc(deal.id)}"><input type="hidden" name="event_id" value="${esc(ev?.id || "")}">
     <div class="form-grid">
       <label>${t("发生日期")}<input name="happened_on" type="date" required value="${esc(ev?.happened_on || todayISO())}"></label>
       <label>${t("联系人（可选）")}<input name="contact" maxlength="120" value="${esc(ev?.contact || "")}" placeholder="${esc(t("律师 / 经纪人 / ComEd …"))}"></label>
@@ -239,7 +239,7 @@ export async function saveDealEventForm(f) {
   const fe = f.elements, deal = state.deals.find((d) => d.id === fe.deal_id.value); if (!deal) return;
   const title = fe.title.value.trim(), on = fe.happened_on.value || todayISO(), key = fe.task_key.value;
   if (!title) throw new Error(t("请填写做了什么"));
-  const prev = fe.id.value ? (state.dealEvents || []).find((x) => x.id === fe.id.value) : null;
+  const prev = fe.event_id.value ? (state.dealEvents || []).find((x) => x.id === fe.event_id.value) : null;
   await Store.saveDealEvent({ id: prev?.id, deal_id: deal.id, happened_on: on, title, note: fe.note.value.trim() || null, contact: fe.contact.value.trim() || null, task_keys: key ? [key] : [], created_by_name: prev?.created_by_name || state.displayName || null });
   if (key && fe.mark_done.checked) {
     if (key.startsWith("c:")) { const c = state.dealCustom.find((x) => x.id === key.slice(2)); if (c && !c.done_on) await Store.saveDealCustom({ ...c, done_on: on, done_by_name: state.displayName }); }
