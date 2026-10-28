@@ -13,14 +13,16 @@ export const hubList = (rows) => `<div class="panel mlist">${rows.join("")}</div
 
 /** 面包屑：一行连续的层级，最后一项加粗当标题，中间项可点（href 链接或 action 按钮）。
  * parts: [{ href?, action?, attrs?, label, icon? }, …]；全站所有子页都用它，页面不再另起一行标题。 */
+export const backBtn = (parentHref) => `<button type="button" class="crumb-back" data-action="nav-back" data-href="${esc(parentHref || "#/")}" aria-label="${t("返回")}">‹ ${t("返回")}</button>`;
 export function crumbNav(parts, cls = "") {
   const node = (p, i, last) => {
     const label = `${p.icon ? `${p.icon} ` : ""}${esc(p.label)}`;
     if (last) return `<b aria-current="page">${label}</b>`;
     if (p.action) return `<button type="button" class="link-name crumb-mid" data-action="${esc(p.action)}" ${p.attrs || ""}>${label}</button>`;
-    return `<a href="${esc(p.href || "#/")}">${i === 0 ? "‹ " : ""}${label}</a>`;
+    return `<a href="${esc(p.href || "#/")}">${label}</a>`;
   };
-  return `<nav class="crumb ${cls}" aria-label="${t("当前位置")}">${parts.map((p, i) => `${i ? `<span class="sep">/</span>` : ""}${node(p, i, i === parts.length - 1)}`).join("")}</nav>`;
+  const up = parts.length > 1 ? parts[parts.length - 2] : null;   // 退一层时去的地方；父级是 action 按钮（没有 href）就回首页
+  return `<nav class="crumb ${cls}" aria-label="${t("当前位置")}">${backBtn(up && up.href)}${parts.map((p, i) => `${i ? `<span class="sep">/</span>` : ""}${node(p, i, i === parts.length - 1)}`).join("")}</nav>`;
 }
 /** 枢纽子页面包屑：‹ 来源页 / 枢纽（如“电费”） / 当前块；root 省略时两级 */
 export const sectionCrumb = (backHref, backLabel, cur, root = null) => crumbNav([...(root ? [root] : []), { href: backHref, label: backLabel }, { label: cur }]);

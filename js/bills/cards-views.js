@@ -4,6 +4,7 @@ import { Store } from "../core/store.js";
 import { $, daysUntil, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href, go } from "../core/router.js";
+import { backBtn } from "../core/hub.js";
 import { enrichBills, initialDue } from "./logic.js";
 import { ACCT_KINDS, CARDS_HREF, bonusLeft, cardById, cardHref, expDays, feeDays, fromCatalog, giftBalance, holderName, isBankAcct, kindIcon, kindName, networkName, noRewards, pickCards, pickFor, quarterOf, reloadCards, reviewMonth, rewardCatIcon, rewardCatName, rotatingNow, usage } from "./cards.js";
 export { isBankAcct, kindIcon, kindName, noRewards };
@@ -322,7 +323,7 @@ function cardForm(id) {
   const credits = (v.credits || []).map((x) => `${x.name} | ${num(x.amount)} | ${x.period || "year"} | ${x.resets_on || ""} | ${num(x.used, 0)}`).join("\n");
   const b = v.bonus || {};
   return `<section class="section form-page">
-    <nav class="crumb" aria-label="${t("当前位置")}"><a href="${CARDS_HREF()}">‹ ${t("用卡")}</a><span class="sep">/</span><b>${isNew ? (bank ? t("添加账户") : t("添加卡")) : d(v.name)}</b></nav>
+    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(CARDS_HREF())}<a href="${CARDS_HREF()}">${t("用卡")}</a><span class="sep">/</span><b>${isNew ? (bank ? t("添加账户") : t("添加卡")) : d(v.name)}</b></nav>
     <form id="cardForm" class="panel" novalidate data-id="${d(c?.id)}">
       <fieldset><legend>${bank ? t("这个账户") : t("这张卡")}</legend><div class="form-grid">
         <label>${t("类型")}<select name="kind">${Object.entries(ACCT_KINDS).map(([k, [n, icon]]) => opt(k, `${icon} ${t(n)}`, kind === k)).join("")}</select><small>${t("支票 / 储蓄账户没有返现，不参与推荐；用来记账单从哪扣款、缴费用的哪个账户")}</small></label>

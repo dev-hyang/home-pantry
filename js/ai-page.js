@@ -4,6 +4,7 @@
 import { state } from "./core/state.js";
 import { esc, toast } from "./core/util.js";
 import { href } from "./core/router.js";
+import { backBtn } from "./core/hub.js";
 import { lang, t } from "./core/i18n.js";
 import { aiIcon, aiQuota, aiReady, aiSettings, askText, generalPrompt, generalPromptText, providerOf, quotaMessage } from "./core/ai.js";
 import { askHandoff } from "./core/ask.js";
@@ -33,7 +34,7 @@ export function viewAi() {
   const topics = TOPICS.map((x) => x.link ? `<a class="chip" href="${x.link()}">${x.icon} ${t(x.name)}</a>` : `<button type="button" class="chip" data-action="ai-topic" data-topic="${x.id}">${x.icon} ${t(x.name)}</button>`).join("");
   const sites = AI_SITES.map(([n, u]) => `<a class="btn btn-sm btn-ghost" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("");
   return `<section class="section ai-page">
-    <nav class="crumb" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("咩咩咩")}</b></nav>
+    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(href("today"))}<a href="${href("today")}">${t("今日")}</a><span class="sep">/</span><b>${t("咩咩咩")}</b></nav>
     <div class="ai-hero"><div class="ai-hero-ico">${aiIcon(44)}</div><div><p class="${blocked ? "form-error" : "muted"}">${!ready ? t("家里的事都可以问：保养、账单、买卖房、收纳、带娃。没填 key 时会把问题连同家里的情况拼成提示词，复制到任一 AI 即可。") : blocked ? esc(quotaMessage(q)) : `${t("用 {p} 直接回答；也可以复制提示词去别的 AI 问", { p: t(p.name) })}${q.cap ? ` · ${t("今天还剩 {n} 次免费", { n: q.remaining })}` : ""}`}</p></div></div>
     <div class="chips" style="margin:12px 0 8px">${topics}</div>
     <form id="aiPageForm" class="panel">

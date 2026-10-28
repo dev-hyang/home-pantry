@@ -1824,3 +1824,8 @@ body.editing .minibar { display: none; }
 .inv-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 12px; }
 .inv-filters.solo { grid-template-columns: minmax(0, 1fr); }
 .inv-filters select { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; text-overflow: ellipsis; }
+
+/* 面包屑最前面的「‹ 返回」：回到刚才来的那一页（没有就退一层）；后面的路径按层级跳 */
+.crumb .crumb-back { display: inline-flex; align-items: center; min-height: 30px; margin: 0 8px 0 -5px; padding: 2px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--pine); font: inherit; font-size: 13.5px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.crumb .crumb-back:hover, .crumb .crumb-back:active { background: var(--surface-2); }
+.crumb .crumb-back:focus-visible { outline: 3px solid var(--pine); outline-offset: 1px; }

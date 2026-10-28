@@ -47,9 +47,16 @@ export function parseRoute(hash = location.hash) {
 export const href = (section, sub, extra = "") => `#/${section}${sub ? `/${sub}` : ""}${extra}`;
 export const routeKey = (r) => `${r.section}/${r.sub || ""}/${r.id || ""}`;
 
+/* 「‹ 返回」= 回到刚才来的那一页（浏览器历史里上一条）；直接打开 / 刷新后没有上一页时退到上一层（面包屑里的父级）。
+ * hops = 本次打开后在应用内新增的历史条数；replace / 同页重画不算。四个姊妹应用同一套规则。 */
+const nav = { hops: 0, popping: false, silent: false };
+window.addEventListener("hashchange", () => { if (nav.silent) { nav.silent = false; return; } if (nav.popping) { nav.popping = false; nav.hops = Math.max(0, nav.hops - 1); } else nav.hops++; });
+export function goBack(fallback = "#/") {
+  if (nav.hops > 0) { nav.popping = true; history.back(); } else go(fallback);
+}
 /** 跳转；replace=true 时不新增历史记录 */
 export function go(hash, { replace = false } = {}) {
-  if (location.hash === hash) { window.dispatchEvent(new HashChangeEvent("hashchange")); return; }
-  if (replace) history.replaceState(null, "", hash), window.dispatchEvent(new HashChangeEvent("hashchange"));
+  if (location.hash === hash) { nav.silent = true; window.dispatchEvent(new HashChangeEvent("hashchange")); return; }
+  if (replace) { history.replaceState(null, "", hash); nav.silent = true; window.dispatchEvent(new HashChangeEvent("hashchange")); }
   else location.hash = hash;
 }

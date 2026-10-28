@@ -4,7 +4,7 @@ import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, MUTE_FOREVER, applyDraft, armed, catOf, du, esc, fillUnitList, fmtDate, formDraft, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
-import { SECTIONS, go, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
+import { SECTIONS, go, goBack, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { resilientFetch } from "./core/net.js";
 import { applyMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
 import { ensureAdults, mergeMedical } from "./bills/medical.js";
@@ -955,6 +955,7 @@ main.addEventListener("click", async (e) => {
       case "cat": state.filter.cat = el.dataset.cat; state.filter.sub = "all"; state.catSort = false; state.catForm = null; return render();
       case "cat-new": state.catForm = { space: el.dataset.space || state.filter.space }; render(); $("#catForm input[name=name]")?.focus(); return;
       case "cat-edit": { const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (c) state.catForm = catFormOf(c, t); render(); $("#catForm")?.scrollIntoView({ block: "start" }); return; }
+      case "nav-back": return goBack(el.dataset.href);
       case "cat-cancel": state.catForm = null; return render();
       case "cat-restore": {   // 内置分类：删掉覆盖行，恢复默认名称 / 图标 / 小类
         const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (!c?.overridden) return;
