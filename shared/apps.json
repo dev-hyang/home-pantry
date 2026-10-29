@@ -12,6 +12,9 @@
       "sub":   { "zh": "储藏 · 房屋 · 账单", "tw": "儲藏 · 房屋 · 帳單", "en": "Pantry · home · bills" } },
     { "id": "shepherd",    "icon": "🐑", "url": "https://dev-hyang.github.io/shepherd/",
       "name":  { "zh": "牧羊人",     "tw": "牧羊人",     "en": "Shepherd" },
-      "sub":   { "zh": "身心灵记录", "tw": "身心靈記錄", "en": "Body, mind & spirit" } }
+      "sub":   { "zh": "身心灵记录", "tw": "身心靈記錄", "en": "Body, mind & spirit" } },
+    { "id": "seed-ledger", "icon": "🌾", "url": "https://dev-hyang.github.io/seed-ledger/",
+      "name":  { "zh": "稻种账本",   "tw": "稻種帳本",   "en": "Rice Seed Ledger" },
+      "sub":   { "zh": "稻种经销 · 账务", "tw": "稻種經銷 · 帳務", "en": "Seed dealer · ledger" } }
   ]
 }

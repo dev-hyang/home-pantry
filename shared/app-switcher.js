@@ -1,4 +1,4 @@
-/* 应用切换器：四个姊妹站点（小月亮 / 学堂 / 爱家小助手 / 牧羊人）共用的顶栏入口。
+/* 应用切换器：五个姊妹站点（小月亮 / 学堂 / 爱家小助手 / 牧羊人 / 稻种账本）共用的顶栏入口。
  *
  * 位置：顶栏右侧一个“九宫格”按钮（Google Workspace 的做法）。标题本身留给各站自己的用途——
  * 小月亮、学堂点标题是切换孩子，所以应用切换不能占用标题。
@@ -18,6 +18,7 @@ const FALLBACK = [
   { id: "homeschool", icon: "📚", url: "https://dev-hyang.github.io/homeschool/", name: { zh: "家庭学堂", tw: "家庭學堂", en: "Family Homeschool" }, sub: { zh: "在家教育", tw: "在家教育", en: "Homeschooling" } },
   { id: "home-pantry", icon: "🥫", url: "https://dev-hyang.github.io/home-pantry/", name: { zh: "爱家小助手", tw: "愛家小助手", en: "Loving Home Helper" }, sub: { zh: "储藏 · 房屋 · 账单", tw: "儲藏 · 房屋 · 帳單", en: "Pantry · home · bills" } },
   { id: "shepherd", icon: "🐑", url: "https://dev-hyang.github.io/shepherd/", name: { zh: "牧羊人", tw: "牧羊人", en: "Shepherd" }, sub: { zh: "身心灵记录", tw: "身心靈記錄", en: "Body, mind & spirit" } },
+  { id: "seed-ledger", icon: "🌾", url: "https://dev-hyang.github.io/seed-ledger/", name: { zh: "稻种账本", tw: "稻種帳本", en: "Rice Seed Ledger" }, sub: { zh: "稻种经销 · 账务", tw: "稻種經銷 · 帳務", en: "Seed dealer · ledger" } },
 ];
 const TEXT = {
   zh: { open: "切换应用", title: "切换应用", close: "关闭", current: "当前" },

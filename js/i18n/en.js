@@ -2297,6 +2297,7 @@ export const EN = {
   "每年给合页、锁舌上一次硅基润滑剂或 WD-40；外门查密封条、门槛扫地条；吱呀响、关不严见「出了问题」。": "Lubricate hinges and latches yearly with silicone spray or WD-40; check exterior-door weatherstripping and sweeps; for squeaks or doors that won't close see “Something wrong?”.",
   "电动款记电池 / 充电方式和遥控配对；拉绳款查绳子磨损（有小孩用无绳款）；布艺窗帘只记数量的放 储藏 → 装备。": "Motorized: note the battery / charging method and remote pairing; corded: check for cord wear (cordless with kids); fabric curtains you only count go under Pantry → Gear.",
   "牧羊人": "Shepherd",
+  "稻种账本": "Rice Seed Ledger", "账本": "Ledger", "稻种经销 · 账务": "Seed dealer · ledger",
   "身心灵记录": "body, mind & spirit records",
   "可能重复：{who}{d} 已记过「{name}」{m}": "Possible duplicate: {who}{d} already logged “{name}” {m}",
   "{w}在 ": "{w} on ", "你": "You", "家里别人": "Someone in the household", "（另有 {n} 笔类似的）": " ({n} more similar)",
