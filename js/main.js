@@ -5,6 +5,7 @@ import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
 import { $, MUTE_FOREVER, applyDraft, armed, catOf, du, esc, fillUnitList, fmtDate, formDraft, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, goBack, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
+import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.js";
 import { resilientFetch } from "./core/net.js";
 import { applyMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
 import { ensureAdults, mergeMedical } from "./bills/medical.js";
@@ -29,6 +30,7 @@ import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./a
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
 import { assetAlertItems, startVehiclePurchase } from "./house/assets.js";
+import { recallAction, saveRecallForm } from "./house/recall.js";
 import { seasonAlertItems } from "./house/tasks.js";
 import { completeVehicleDeal, dealAlertItems } from "./house/deals.js";
 import { billAlertItems } from "./bills/logic.js";
@@ -132,7 +134,7 @@ export async function refresh() {
       render(false);
       loadPurchasesSoon();
       maybeAutoGenerate();   // 家主有收入但还没预算：自动生成第一版
-      Backup.runScheduled().then((r) => { if (!r) return; if (r.ok.length) toast(t("已自动备份（{to}）", { to: r.ok.map(backupTargetName).join("、") })); if (r.needGesture) toast(t("定时备份要写进文件夹，去 设置 → 备份与恢复 点一下「继续备份」")); refreshBackupUi(); if (state.route?.section === "me") render(false); });   // 定时备份到期了就在后台做一次
+      if (financeOk()) Backup.runScheduled().then((r) => { if (!r) return; if (r.ok.length) toast(t("已自动备份（{to}）", { to: r.ok.map(backupTargetName).join("、") })); if (r.needGesture) toast(t("定时备份要写进文件夹，去 设置 → 备份与恢复 点一下「继续备份」")); refreshBackupUi(); if (state.route?.section === "me") render(false); });   // 定时备份到期了就在后台做一次
     } catch (e) {
       setSync(t("同步失败，点设置页重试"), true);
       toast(t("读取数据失败：{msg}", { msg: e.message }));
@@ -274,6 +276,7 @@ function renderBody(r) {
   if (r.section === "bill") { $("#main").innerHTML = viewBillForm(); return; }
   if (r.section === "house" && !state.houseEnabled) { $("#main").innerHTML = offPanel(t("房屋维护模块已关闭"), "house-enable", t("打开房屋维护")); return; }
   if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("账单模块已关闭"), "bills-enable", t("打开账单")); return; }
+  if (routeBlocked(r)) { $("#main").innerHTML = ""; toast(t("家主还没给你开财务权限")); go(financeFallback(r), { replace: true }); return; }   // 对账单 / 收入 / 预算 / 添加卡：没有财务权限时直接打开网址也跳走
   if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = crumb(r) + offPanel(t("装备模块已关闭"), "gear-enable", t("打开装备")); return; }
   if (r.sub === "menu") { $("#main").innerHTML = r.section === "house" ? viewPropertyList() : viewMenu(r.section); return; }   // 页签目录页；房屋先列房产
   const v = VIEWS[r.section];
@@ -661,6 +664,7 @@ main.addEventListener("submit", async (e) => {
       state.locForm = null; return refresh();
     }
     if (f.id === "assetForm") return saveAssetForm(f);
+    if (f.id === "recallForm" || f.id === "recallFixForm" || f.id === "recallRefundForm") return saveRecallForm(f, { refresh, render });   // 设备召回：登记 / 修好了 / 退款
     if (f.id === "maintForm") {
       const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
       let ok = false;
@@ -813,6 +817,7 @@ main.addEventListener("click", async (e) => {
   try {
     if (action?.startsWith("scan-")) return scanAction(action, el, { go, refresh });
     if (action?.startsWith("fix-")) return fixAction(action, el, { refresh, render, go });   // 出了问题？诊断与配件
+    if (action?.startsWith("recall-")) return recallAction(action, el, { refresh, render });   // 设备召回：清除标记 / 重新打开
     if (action?.startsWith("budget-") || action === "shop-advice-close") return budgetAction(action, { refresh, render }, el);
     switch (action) {
       case "add-item": return openItem(null, { space: el.dataset.space });
@@ -1135,6 +1140,14 @@ main.addEventListener("click", async (e) => {
         await CloudStore.setMemberRole(id, role);
         state.members = await CloudStore.listMembers();
         toast(role === "owner" ? t("{name} 已设为家主", { name: m.display_name }) : t("{name} 已取消家主", { name: m.display_name })); return render();
+      }
+      case "member-finance": {   // 家主开 / 关某位家人的财务权限（对账单、收入、预算、用卡）
+        const m = state.members.find((x) => x.user_id === id), on = el.dataset.on === "1";
+        if (!m) return;
+        if (on && !armed(el, t("再点一次开放财务"))) return;
+        try { await CloudStore.setMemberFinance(id, on); } catch (err) { toast(err.message); return; }
+        state.members = await CloudStore.listMembers();
+        toast(on ? t("{name} 现在能看、能改对账单、收入、预算和用卡", { name: m.display_name }) : t("已收回 {name} 的财务权限", { name: m.display_name })); return render();
       }
       case "member-remove": {
         const m = state.members.find((x) => x.user_id === id);

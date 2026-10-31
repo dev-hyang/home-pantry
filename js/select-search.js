@@ -45,9 +45,10 @@ function enhance(sel) {
 }
 function build(box) {
   const sel = box._sel, list = box.querySelector(".ssel-list"), cur = sel.value, parts = [];
-  const opt = (o) => `<div class="ssel-opt ${o.value === cur ? "is-cur" : ""} ${o.disabled ? "is-off" : ""}" role="option" aria-selected="${o.value === cur}" data-v="${esc(o.value)}" data-t="${esc(o.textContent.trim().toLowerCase())}">${esc(o.textContent.trim())}</div>`;
+  // 组里的选项可带 data-short（组标题已经写了大类，这里只显示小类）；打字筛选仍按完整文字匹配（打「工作」能找到整组）
+  const opt = (o, inGrp = false) => `<div class="ssel-opt${inGrp ? " in-grp" : ""} ${o.value === cur ? "is-cur" : ""} ${o.disabled ? "is-off" : ""}" role="option" aria-selected="${o.value === cur}" data-v="${esc(o.value)}" data-t="${esc(`${o.textContent.trim()} ${o.dataset.short || ""}`.toLowerCase())}"${inGrp && o.dataset.short ? ` aria-label="${esc(o.textContent.trim())}"` : ""}>${esc((inGrp && o.dataset.short) || o.textContent.trim())}</div>`;
   for (const n of sel.children) {
-    if (n.tagName === "OPTGROUP") { parts.push(`<div class="ssel-grp" data-grp>${esc(n.label)}</div>`); for (const o of n.children) parts.push(opt(o)); }
+    if (n.tagName === "OPTGROUP") { parts.push(`<div class="ssel-grp" data-grp role="presentation">${esc(n.label)}</div>`); for (const o of n.children) parts.push(opt(o, true)); }
     else if (n.tagName === "OPTION") parts.push(opt(n));
   }
   list.innerHTML = parts.join("");

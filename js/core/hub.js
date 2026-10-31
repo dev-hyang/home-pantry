@@ -34,7 +34,11 @@ export const countBadge = (n, m, cls = "") => `<span class="badge mcount ${cls}"
 export const filledCount = (vals) => vals.filter((v) => v != null && v !== "" && v !== false && !(Array.isArray(v) && !v.length)).length;
 
 /** 页内标签条（三级导航）：链接形式，地址带 ?tab=，后退键、分享、刷新都保持在同一标签；手机上可横向滑动 */
-export const tabBar = (tabs, active, hrefOf, label) => {
+export const tabBar = (tabs, active, hrefOf, label) => `${tabPick(tabs, active, hrefOf, label)}${tabStrip(tabs, active, hrefOf, label)}`;
+/** 手机（≤ 640px）用的下拉切换：横滑标签条在手机上难点，换成一个整宽的下拉框（和标签条用同一份 tabs，权限隐藏的标签这里也不会出现） */
+const tabPick = (tabs, active, hrefOf, label) => `<label class="subtab-pick"><span class="sr-only">${esc(label)}</span><select data-subtab-nav data-nosearch aria-label="${esc(label)}">${tabs.map(([id, name, icon]) => `<option value="${esc(hrefOf(id))}" ${id === active ? "selected" : ""}>${icon} ${esc(t(name))}</option>`).join("")}</select></label>`;
+if (typeof document !== "undefined") document.addEventListener("change", (e) => { const s = e.target; if (s?.matches?.("select[data-subtab-nav]") && s.value) location.hash = s.value.replace(/^#/, ""); });
+const tabStrip = (tabs, active, hrefOf, label) => {
   const link = ([id, name, icon], cls = "") => `<a href="${esc(hrefOf(id))}" class="subtab ${cls}" ${id === active ? 'aria-current="page"' : ""}><span aria-hidden="true">${icon}</span> ${esc(t(name))}</a>`;
   const main = tabs.filter((x) => !x[4]), more = tabs.filter((x) => x[4]);
   if (!more.length) return `<nav class="subtabs" aria-label="${esc(label)}">${tabs.map((x) => link(x)).join("")}</nav>`;

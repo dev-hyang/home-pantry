@@ -6,13 +6,14 @@ import { locale, t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { meta, saveMeta } from "./budget.js";
 import { escrowMonthlyFor, propertyName } from "./logic.js";
+import { financeOk } from "../core/finance-access.js";
 
 const monthName = (m) => new Date(2000, m - 1, 1).toLocaleDateString(locale(), { month: "long" });
 const cfgOf = (pid) => (meta("_escrow", {}) || {})[pid || "_"] || {};
 
 /** 有房贷、且同一房产上有 Escrow 代缴的账单：每套房产一个 */
 export function escrowSetups() {
-  if (!state.billsEnabled) return [];
+  if (!state.billsEnabled || !financeOk()) return [];   // 核对状态存在预算设置里（household_budgets，迁移 050 起只有有财务权限的人读写得到）
   const out = [];
   for (const m of state.billsEnriched.filter((b) => b.active && !b.ended && b.category === "mortgage")) {
     const escrow = escrowMonthlyFor(m.property_id);

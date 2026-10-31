@@ -8,6 +8,7 @@ import { esc } from "./core/util.js";
 import { joinList, locale, t } from "./core/i18n.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SEVERITY_LABEL, SOURCE_ICON, SOURCE_LABEL, alertCounts, alertRow, collectAlerts, liveProperties, multiProperty, propertyName } from "./core/alerts.js";
+import { quickOk } from "./core/finance-access.js";
 
 const PREF_KEY = "hmh-today";
 export function setTodayPref(patch) {
@@ -108,7 +109,7 @@ const PRESETS = () => [
   state.houseEnabled ? [href("house", "tasks"), "📅", t("季节任务")] : null, state.houseEnabled ? [href("house", "deal"), "📝", t("交易")] : null, state.houseEnabled ? [href("house", "vehicles"), "🚗", t("车辆")] : null, state.houseEnabled ? [href("asset", "new"), "🛠️", t("添加设备")] : null,
   [href("shopping"), "🛒", t("采购清单")], [href("scan"), "🧾", t("录入购物")], [href("alerts"), "🔔", t("注意事项")], [href("ai"), "🤖", t("咩咩咩")], !state.billsEnabled ? [href("me", "stats"), "📊", t("花费统计")] : null, [href("me", "settings"), "⚙️", t("设置")],
   ["action:print", "🖨️", t("打印")],
-].filter(Boolean);
+].filter(Boolean).filter(([id]) => quickOk(id));   // 没有财务权限：对账单 / 收入 / 预算 / 添加信用卡不出现，也加不进来（已存的照样不显示）
 
 function tile({ href: h, cls = "", icon, count, name, sub, foot = "" }) {
   return `<a class="ttile ${cls}" href="${h}">

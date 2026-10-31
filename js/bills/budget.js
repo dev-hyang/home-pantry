@@ -10,6 +10,7 @@ import { budgetBridge } from "../core/budget-bridge.js";
 import { dq, hitAttrs, lastMonths, monthKey, monthLabel, rangeChipsHtml, rangeMonths, statCat, timeBarHtml } from "../stats/views.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { BUDGET_TABS, activeTab } from "../core/tabs.js";
+import { financeOk } from "../core/finance-access.js";
 
 /* ───────────── 预算分组 ───────────── */
 // 固定账单单独算（从账单项目的每月折算得来）；其余花费分成这几组，按过去 6 个月的比例分配“可支配额”
@@ -116,8 +117,8 @@ export function actualByMonth() {
 
 /* ───────────── 收入与预算生成（收入按人私有；预算方案由家主生成并存成快照，全家共用） ───────────── */
 export const myId = () => state.user?.id || "me";
-/** 演示模式只有一个人，当家主；云端按 household_members.role */
-export const isHouseholdOwner = () => Store.mode !== "cloud" || state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
+/** 演示模式只有一个人，当家主；云端：家主，或家主开了财务权限的家人（迁移 050：开了 = 和家主一样能看、能改收入与预算） */
+export const isHouseholdOwner = () => financeOk();
 /** 一个人的收入明细：多份收入（主业、兼职…）；旧数据只有一个金额时当作一份 */
 export const linesOf = (row) => (row?.lines?.length ? row.lines : row && num(row.income_amount) > 0 ? [{ id: "legacy", label: "", amount: num(row.income_amount), period: row.income_period || "month" }] : []);
 export const monthlyOf = (row) => linesOf(row).reduce((s, l) => s + (l.period === "year" ? num(l.amount) / 12 : num(l.amount)), 0);
@@ -176,6 +177,7 @@ export function incomeBanner() {
 
 /** 预算方案：读家主生成的快照（各类建议金额）+ 用户改过的金额；收入和储蓄只有家主算得出来 */
 export function budgetPlan() {
+  if (!financeOk()) return null;   // 没有财务权限：预算整块看不到（打印、采购清单的预算提示、超预算提醒都跟着消失）
   const b = state.budget, snap = b?.cat_budgets?._plan;
   if (!snap?.groups) return null;
   const owner = isHouseholdOwner(), income = owner && totalIncomeMonthly() > 0 ? totalIncomeMonthly() : null;
@@ -282,7 +284,7 @@ const sitesHtml = () => `<ul class="bud-sites">${DEAL_SITES.map((s) => `<li><a c
 
 /** 购物清单里填了预估金额时的提示（点“加入清单”后显示在清单上方） */
 export function shopAdviceHtml() {
-  const a = state.shopAdvice; if (!a) return "";
+  const a = state.shopAdvice; if (!a || !financeOk()) return "";
   const plan = budgetPlan();
   if (!plan) return `<div class="panel bud-tip"><b>💰 ${esc(a.name)} · ${money(a.estimate)}</b><p class="muted" style="margin:4px 0 0">${t("填上月收入就能看预算提示：")} <a href="${href("bills", "budget")}">${t("去设置预算")}</a></p></div>`;
   const ev = saleEvents(new Date(), 1)[0];

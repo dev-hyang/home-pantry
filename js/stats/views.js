@@ -12,6 +12,7 @@ import { medicalVirtuals } from "../bills/medical.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
 import { cardHintHtml, cardOptions, cardSelectHtml, payAcctValue, paymentPayLabel } from "../bills/cards-views.js";
+import { financeOk } from "../core/finance-access.js";   // 没有财务权限：花费页不显示「导入对账单」
 
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
@@ -358,7 +359,7 @@ function spendRecordsTab() {
       <div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}">
         <button type="button" class="way ${open ? "is-cur" : ""}" data-action="spend-add-toggle" aria-expanded="${open ? "true" : "false"}"><span class="way-ico" aria-hidden="true">✍️</span><span>${t("手动记一笔")}</span></button>
         <a class="way" href="${href("scan")}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍小票识别")}</span></a>
-        <a class="way" href="${href("bills", "statements")}"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a></div>
+        ${financeOk() ? `<a class="way" href="${href("bills", "statements")}"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a>` : ""}</div>
       ${storeDatalist()}
       ${open ? "" : "<!-- 表单收着 -->"}
       <form id="purchaseForm" class="panel add-row purchase-row" ${open ? "" : "hidden"}>

@@ -12,6 +12,7 @@ import { viewPrintSettings } from "./print.js";
 import { backupPanel, backupSummary } from "./backup-views.js";
 import { usageHTML } from "../core/usage.js";
 import { budgetPlan, isHouseholdOwner, myId } from "../bills/budget.js";
+import { financeOk } from "../core/finance-access.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
 export const isOwner = () => state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
@@ -29,7 +30,7 @@ function pendingList() {
   const row = (m) => `<li><div class="grow"><b>${esc(m.display_name)}</b>${m.joined_at ? `<small class="muted">${t("{d} 申请", { d: fmtShort(m.joined_at) })}</small>` : ""}</div>
       <span class="head-acts"><button type="button" class="btn btn-sm btn-primary" data-action="member-approve" data-id="${m.user_id}">${t("批准")}</button><button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-reject" data-id="${m.user_id}">${t("拒绝")}</button></span></li>`;
   return `<div class="panel pend-panel" style="margin-top:12px"><h3 style="font-size:15px;margin:0 0 6px">${t("等你批准（{n}）", { n: p.length })}</h3>
-    <p class="muted small" style="margin:0 0 8px">${t("认识这个人再批准：批准后对方能看到家里的数据（收入除外，要另外授权）。不认识就拒绝，并重新生成邀请码。")}</p>
+    <p class="muted small" style="margin:0 0 8px">${t("认识这个人再批准：批准后对方能看到家里的数据（对账单、收入、预算除外，要另外开财务权限）。不认识就拒绝，并重新生成邀请码。")}</p>
     <ul class="member-list">${p.map(row).join("")}</ul></div>`;
 }
 function membersList() {
@@ -44,13 +45,17 @@ function membersList() {
         <button class="btn btn-sm btn-primary" type="submit">${t("保存")}</button>
         <button class="btn btn-sm btn-ghost" type="button" data-action="member-rename" data-id="">${t("取消")}</button></form></li>`;
     }
+    // 财务权限（迁移 050）：家主恒有；普通成员默认关，只有家主能开关。aria-pressed 让读屏念出开 / 关
+    const fin = !isO && m.can_finance === true;
+    const finBtn = owner && !self && !isO ? `<button type="button" class="btn btn-sm ${fin ? "btn-primary" : "btn-ghost"}" data-action="member-finance" data-id="${m.user_id}" data-on="${fin ? "0" : "1"}" aria-pressed="${fin ? "true" : "false"}" title="${esc(t("对账单、收入、预算：能看能改；用卡：能改。关闭时只能看用卡、照常记花费"))}">💰 ${fin ? t("财务：已开") : t("财务：未开")}</button>` : "";
     const acts = owner && !self ? `<span class="head-acts">
+        ${finBtn}
         <button type="button" class="btn btn-sm btn-ghost" data-action="member-rename" data-id="${m.user_id}">${t("改称呼")}</button>
         ${isO ? (owners > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="member-role" data-id="${m.user_id}" data-role="member">${t("取消家主")}</button>` : "")
               : `<button type="button" class="btn btn-sm btn-ghost" data-action="member-role" data-id="${m.user_id}" data-role="owner">${t("设为家主")}</button>`}
         ${!isO || owners > 1 ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-remove" data-id="${m.user_id}">${t("移出家庭")}</button>` : ""}
       </span>` : "";
-    return `<li><div class="grow"><b>${esc(m.display_name)}</b>${isO ? ` <span class="badge b-ok">${t("家主")}</span>` : ""}${self ? ` <span class="muted">${t("（我）")}</span>` : ""}
+    return `<li><div class="grow"><b>${esc(m.display_name)}</b>${isO ? ` <span class="badge b-ok">${t("家主")}</span>` : fin ? ` <span class="badge b-ok">${t("可看财务")}</span>` : ""}${self ? ` <span class="muted">${t("（我）")}</span>` : ""}
       ${m.joined_at ? `<small class="muted">${t("{d} 加入", { d: fmtShort(m.joined_at) })}</small>` : ""}</div>${acts}</li>`;
   }).join("")}</ul>`;
 }
@@ -312,7 +317,7 @@ export function viewSettings() {
       modules: [state.houseEnabled ? t("房屋 ✓") : t("房屋 ✗"), state.billsEnabled ? t("账单 ✓") : t("账单 ✗"), state.gearEnabled ? t("装备 ✓") : t("装备 ✗")].join(" · "),
       print: state.billsEnabled ? t("采购清单、账单概览") : t("采购清单"),
       data: notif === "granted" ? t("通知已开启") : t("通知未开启"),
-      backup: backupSummary(),
+      backup: financeOk() ? backupSummary() : t("需要财务权限"),
       usage: cloud ? t("数据库与文件存储，对照免费额度") : t("本地演示：没有云端空间"),
       ai: aiReady() ? `${t("{p} · 已填 key", { p: t(providerOf(aiSettings().provider).name) })}${(() => { const q = aiQuota(); return q.cap ? ` · ${t("今天 {n}/{cap}", { n: q.used, cap: q.cap })}` : ""; })()}` : t("未填 key，用“复制提示词”模式"),
       apps: t("小月亮、家庭学堂；介绍与注意事项"),
@@ -340,7 +345,8 @@ export function viewSettings() {
       ${pendingList()}
       <h3 style="font-size:15px;margin:16px 0 6px">${t("家庭成员")}</h3>
       ${membersList()}
-      ${isOwner() ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("家主可以改家人的称呼、把家人设为家主（可以有多位）、取消家主，或把误加入的人移出家庭。最后一位家主不能被取消或移出。")}</p>` : ""}
+      ${isOwner() ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("家主可以改家人的称呼、把家人设为家主（可以有多位）、取消家主，或把误加入的人移出家庭。最后一位家主不能被取消或移出。")}</p>
+        <p class="muted" style="font-size:12px;margin:4px 0 0">${t("💰 财务权限：默认不开。不开的家人照常记花费、采购、保养，能看用卡（不能改），看不到对账单、收入和预算；开了就和家主一样全部能看能改。")}</p>` : ""}
       <form id="nameForm" class="add-row" style="grid-template-columns:1fr auto;margin-top:12px">
         <input name="display_name" maxlength="20" value="${esc(state.displayName)}" aria-label="${t("我在家里的称呼")}">
         <button class="btn btn-sm" type="submit">${t("保存称呼")}</button></form>
@@ -379,7 +385,7 @@ export function viewSettings() {
     <div class="panel"><div class="kv"><div><b>${t("浏览器通知")}</b><div class="muted">${t("打开网页时，若有新的缺货或少货会弹出提醒")}</div></div>
       ${notif === "granted" ? `<span class="badge b-ok">${t("已开启")}</span>` : notif === "unsupported" ? `<span class="muted">${t("此浏览器不支持")}</span>` : `<button type="button" class="btn btn-sm" data-action="notif">${t("开启通知")}</button>`}</div></div>
     `,
-    backup: () => backupPanel(),
+    backup: () => (financeOk() ? backupPanel() : `<div class="panel"><p style="margin:0">${t("备份里有全家的收入、预算和对账单，只有家主和有财务权限的家人能备份、恢复。数据本身已经实时存在云端。")}</p></div>`),
     usage: () => `<p class="muted" style="margin:0 0 10px">${t("看看数据占了 Supabase 免费空间的多少，快满之前会变黄、变红提醒你。")}</p>${usageHTML()}`,
     ai: () => aiBlock(),
     print: () => viewPrintSettings(),

@@ -19,6 +19,7 @@ import { medBillLabel } from "./bills/medical-views.js";
 import { collectAlerts } from "./core/alerts.js";
 import { houseBar } from "./house/property-form.js";
 import { PROFILE_SECTIONS } from "./house/views.js";
+import { FINANCE_HIDDEN_SUBS, financeOk } from "./core/finance-access.js";
 
 const SECTION_ICON = { pantry: "🥫", house: "🏠", bills: "🧾", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”
@@ -56,7 +57,8 @@ const META = {
     about:     { icon: "✎", desc: "这个网站是什么、怎么用、注意事项" },
   },
 };
-const HIDDEN = (section, k) => section === "pantry" && k === "gear" && !state.gearEnabled;
+const HIDDEN = (section, k) => (section === "pantry" && k === "gear" && !state.gearEnabled)
+  || (section === "bills" && FINANCE_HIDDEN_SUBS.includes(k) && !financeOk());   // 没有财务权限：对账单 / 收入 / 预算不进目录
 
 export const menuRow = ({ href: url, icon, title, desc, count, countLabel, external }) => `<a class="mrow" href="${esc(url)}" ${external ? 'target="_blank" rel="noopener noreferrer"' : ""}>
     <span class="mi" aria-hidden="true">${icon}</span>

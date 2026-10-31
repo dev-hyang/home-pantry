@@ -503,8 +503,8 @@ export function homeContext() {
     push(t("房产"), `${p.name}${paren([t(ST[p.status] || "持有"), t(K[p.kind] || ""), ht ? t(ht.name) : null, prof?.year_built ? t("{y} 年建", { y: prof.year_built }) : null].filter(Boolean).join(sep))}${feats.length ? `${sep}${t("设施")}${en ? ": " : "："}${feats.join(list)}` : ""}${prof?.hoa?.enabled ? `${sep}${t("有 HOA / 物业")}` : ""}`);
   }
   const paren = (s) => (en ? ` (${s})` : `（${s}）`);
-  const assets = (state.assetsEnriched || []).filter((a) => a.service === "overdue" || a.service === "due" || a.followUp);
-  if (assets.length) push(t("设备待处理"), assets.slice(0, 8).map((a) => `${a.name}${paren(a.followUp ? t("检查发现需处理") : a.service === "overdue" ? t("保养逾期") : t("该保养了"))}`).join(list));
+  const assets = (state.assetsEnriched || []).filter((a) => !a.retired && (a.recallSt || a.service === "overdue" || a.service === "due" || a.followUp));   // 召回没处理完的排在里面（recallSt：js/house/recall.js）
+  if (assets.length) push(t("设备待处理"), assets.slice(0, 8).map((a) => `${a.name}${paren(a.recallSt === "stop_use" ? t("产品召回，停止使用") : a.recallSt ? t("产品召回待处理") : a.followUp ? t("检查发现需处理") : a.service === "overdue" ? t("保养逾期") : t("该保养了"))}`).join(list));
   const bills = (state.billsEnriched || []).filter((b) => ["overdue", "due", "soon", "verify"].includes(b.status));
   if (bills.length) push(t("近期账单"), bills.slice(0, 8).map((b) => `${b.name}${b.est != null ? ` ${Units.money(b.est, b.currency || Units.region.currency)}` : ""}${b.next_due_on ? paren(b.next_due_on) : ""}`).join(list));
   const pc = pantryContext();

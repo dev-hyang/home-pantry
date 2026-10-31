@@ -65,7 +65,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* 桌面：顶栏、内容同一条居中的窄列（920px），底部导航也居中；表单、设置等不再各自限宽靠左，免得和底部页签错位 */
 .topbar-inner, .tabs, main { max-width: 920px; margin: 0 auto; padding-left: 20px; padding-right: 20px; }
 .topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; padding-bottom: 6px; }
-.brand { display: flex; align-items: center; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand > div { min-width: 0; }
+.brand > div > :not(.brand-row) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* 副标题（家庭名）太长时省略，不压到右边的同步状态上 */
 .brand-mark { color: var(--ink); flex: 0 0 auto; }
 .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: .02em; }
 .brand-row { display: flex; align-items: center; gap: 8px; position: relative; }
@@ -444,6 +446,13 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .donut-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto 3em; gap: 6px; align-items: center; }
 .donut-list b { font-weight: 700; }
 .donut-list em { font-style: normal; color: var(--muted); text-align: right; }
+.donut-side { min-width: 0; }
+.donut-side .dl-toggle { margin-top: 8px; }
+.donut-list li[hidden] { display: none; }
+/* 上下排：图在上、列表在下（半宽面板、类型很多时不挤）；列表在宽面板里自动分两栏 */
+.donut-wrap.donut-stack { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.donut-stack > svg { width: 100%; max-width: 230px; margin: 0 auto; display: block; }
+.donut-stack .donut-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 4px 20px; padding-top: 12px; border-top: 1px solid var(--line); }
 
 /* ── 菜单 ── */
 .seg { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -587,6 +596,30 @@ button.mrow:last-child { border-bottom: 0; }
 .today-head h2 { font-size: 26px; font-weight: 800; letter-spacing: .01em; }
 .cta-panel { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-left: 6px solid var(--mustard); }
 .cta-panel p { margin: 4px 0 0; }
+/* 设备召回（js/house/recall.js）：横幅、卡片描边、处理完的三个出口（宽屏三列，手机一列） */
+.recall-banner { margin-bottom: 12px; border-left-color: var(--soon); }
+.recall-banner.is-stop { border-left-color: var(--out); background: var(--out-bg); }
+.recall-banner.is-stop b { color: var(--out); }
+.recall-banner.is-done { border-left-color: var(--ok); }
+.recall-banner > div { flex: 1 1 220px; min-width: 0; }
+.recall-from { margin: -4px 0 12px; font-size: 13px; }
+.asset-card.is-recall { border-color: var(--soon); }
+.asset-card.is-recall-stop { border-color: var(--out); box-shadow: inset 4px 0 0 var(--out); }
+.recall-exits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }
+.rc-exit { padding: 0; }
+.rc-exit > summary { display: flex; gap: 10px; align-items: center; padding: 12px 14px; cursor: pointer; list-style: none; min-height: 44px; }
+.rc-exit > summary::-webkit-details-marker { display: none; }
+.rc-exit > summary:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; border-radius: var(--r-md); }
+.rc-exit > summary > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.rc-exit > summary small { color: var(--muted); font-size: 12.5px; }
+.rc-exit[open] > summary { border-bottom: 1px solid var(--line); }
+.rc-ico { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; font-size: 19px; }
+.rc-body { display: grid; gap: 10px; padding: 12px 14px 14px; }
+.rc-body label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; min-width: 0; }
+.rc-body input, .rc-body select { width: 100%; min-width: 0; box-sizing: border-box; }
+.rc-body .hint { margin: 0; }
+.rc-body .btn { justify-self: start; }
+@media (max-width: 760px) { .recall-exits { grid-template-columns: 1fr; } }
 .quick { display: flex; gap: 10px; flex-wrap: wrap; }
 .quick-link { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-weight: 700; }
 .quick-link:hover { border-color: var(--pine); }
@@ -840,7 +873,11 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .ssel-list { position: absolute; left: 0; min-width: min(300px, calc(100vw - 28px)); width: 100%; top: calc(100% + 4px); z-index: 30; max-height: min(300px, 45vh); overflow-y: auto; overscroll-behavior: contain; padding: 4px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); box-shadow: 0 10px 28px rgba(0, 0, 0, .18); }
 .ssel.is-up .ssel-list { top: auto; bottom: calc(100% + 4px); }
 .ssel.is-right .ssel-list { left: auto; right: 0; }
-.ssel-grp { padding: 8px 10px 2px; font-size: 11.5px; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+/* 分组标题（大类，例如「💼 工作收入」）：比选项大、加粗、上面一条分隔线；组里的小类缩进、常规字重 */
+.ssel-grp { margin-top: 4px; padding: 10px 10px 4px; font-size: 15px; font-weight: 800; color: var(--ink); border-top: 1px solid var(--line); cursor: default; }
+.ssel-list > .ssel-grp:first-child { margin-top: 0; border-top-color: transparent; }
+.ssel-opt.in-grp { padding-left: 26px; font-weight: 400; }
+.ssel-opt.in-grp.is-cur { font-weight: 700; }
 .ssel-opt { padding: 9px 10px; min-height: 40px; display: flex; align-items: center; border-radius: 8px; font-size: 14px; cursor: pointer; }
 .ssel-opt:hover, .ssel-opt.is-hl { background: var(--surface-2); }
 .ssel-opt.is-cur { background: var(--ok-bg); font-weight: 700; }
@@ -1277,11 +1314,18 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 @media print { .subtabs { display: none !important; } }
 .head-acts .seg { margin: 0; }
 
-/* 窄屏（≤ 440px，iPhone Pro Max 宽度）：不用横向标签条，改成第一个标签下面的入口行；子页靠面包屑返回。宽屏相反 */
+/* 手机（≤ 640px）：页内标签不用横滑条（难点、看不全），换成整宽下拉框切换（js/core/hub.js 的 tabPick）；宽屏照旧用标签条 */
+.subtab-pick { display: none; }
+@media (max-width: 640px) {
+  .subtabs { display: none; }
+  .subtab-pick { display: block; margin: 0 0 12px; }
+  .subtab-pick select { width: 100%; min-height: 46px; padding: 8px 40px 8px 14px; font-size: 16px; font-weight: 700; color: var(--ink); background-color: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--mustard); border-radius: var(--r-md); }
+}
+@media print { .subtab-pick { display: none !important; } }
+/* 窄屏（≤ 440px）：不用横向标签条，只用上面的整宽下拉框切换；原来第一个标签下面的「其他功能」入口行和下拉框重复，不再显示 */
 .tabhub { display: none; }
 @media (max-width: 440px) {
   .subtabs { display: none; }
-  .tabhub { display: block; }
 }
 
 /* 图表钻取：色块、图例、占比行、名称、数字卡片都能点（也能用键盘 Enter / 空格），点了跳到“明细”并套上对应筛选。手机上色块小，图例和占比行是 ≥ 44px 的主要点击区 */
@@ -1640,6 +1684,38 @@ body.editing .minibar { display: none; }
 .th-sort span { color: var(--muted); font-weight: 400; }
 .th-sort.is-on span { color: inherit; }
 .th-sort:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+/* 收入 → 付款方表：宽屏各列放得下（名称、类型可以折行，数字不折），不用横向滚动；手机（≤ 640px）每个付款方一张卡片 */
+.ix-stbl { white-space: normal; table-layout: auto; }
+.ix-stbl th, .ix-stbl td { vertical-align: middle; }
+.ix-stbl .s-name { text-align: left; min-width: 12em; }
+.ix-stbl .s-name .link-name { padding: 6px 0; min-height: 32px; overflow-wrap: anywhere; line-height: 1.35; }
+.ix-stbl .s-kind { text-align: left; }
+.ix-stbl .s-kind .ix-kind { white-space: normal; border-radius: 8px; padding: 2px 8px; line-height: 1.35; }
+.ix-stbl .s-n, .ix-stbl .s-total, .ix-stbl .s-share, .ix-stbl .s-last, .ix-stbl .s-act { white-space: nowrap; }
+.ix-stbl td.s-total b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ix-stbl .s-act { width: 1%; text-align: right; }
+@media (max-width: 640px) {
+  .ix-stbl, .ix-stbl tbody { display: block; margin-top: 4px; }
+  .ix-stbl thead { display: none; }
+  .ix-stbl tr { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+  .ix-stbl tr > * { display: block; padding: 0; border: 0; text-align: left; }
+  .ix-stbl .s-name { flex: 1 1 0; min-width: 0; font-size: 15px; }
+  .ix-stbl td.s-total { order: 1; flex: 0 0 auto; margin-left: auto; font-size: 15px; text-align: right; }   /* 卡片第一行：名称 + 金额 */
+  .ix-stbl td.s-kind { order: 2; flex: 1 1 100%; }
+  .ix-stbl td.s-n, .ix-stbl td.s-share, .ix-stbl td.s-last { order: 3; flex: 0 0 auto; font-size: 12.5px; color: var(--muted); }
+  .ix-stbl td.s-n::before, .ix-stbl td.s-share::before, .ix-stbl td.s-last::before { content: attr(data-l) " "; }
+  .ix-stbl td.s-act { order: 4; flex: 0 0 auto; width: auto; margin-left: auto; }
+  .ix-stbl td.s-act:empty { display: none; }
+  .ix-stbl tr.s-form { display: block; }
+  .ix-stbl tr.s-form > td { display: block; }
+}
+/* 收入明细 / 付款方的筛选条：宽屏一行，搜索框占剩下的宽度；类型下拉（可搜索）给够宽度 */
+.ix-toolbar, .ix-stoolbar { align-items: center; margin-bottom: 8px; }
+.ix-toolbar > input[type="search"] { flex: 1 1 100%; }   /* 下拉多（5 个）：搜索框独占一行，下拉在第二行均分，不会零散折行 */
+.ix-toolbar > select, .ix-toolbar .tb-panel > select { flex: 1 1 auto; }
+.ix-toolbar .ssel { flex: 1.6 1 180px; }
+.ix-stoolbar .ssel { flex: 0 1 240px; }
+@media (max-width: 440px) { .toolbar.tb-on .tb-panel .ssel, .ix-stoolbar.tb-on .tb-panel > select { grid-column: 1 / -1; } }
 
 /* 存储用量（js/core/usage.js）：手机上上下叠、电脑上数字靠右；状态靠图标 + 文字，不只靠颜色 */
 .usage { display: grid; gap: 18px; }

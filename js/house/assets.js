@@ -3,7 +3,9 @@
  * - 保养记录：挂在设备下；记一次后自动算下次保养日期；有费用的同时写入 purchases（分类 house_maint，统计并入“房屋维护”）
  * - 页面：#/house/assets 列表、#/house/asset-template 生成、#/asset/new 与 #/asset/<id> 整页表单（编辑页下方带保养记录）
  * - 固定装置（类型上 fixture: true：马桶、门、水龙头 / 花洒、吊扇、窗帘 / 百叶窗、插座、灭火器、窗户）：一类一条，位置和数量记在 units 里，
- *   列表里单独分组；「出了问题？」入口去 js/house/fix.js（常见小毛病 + 咩咩诊断 + 配件加采购） */
+ *   列表里单独分组；「出了问题？」入口去 js/house/fix.js（常见小毛病 + 咩咩诊断 + 配件加采购）
+ * - 小家电 / 季节电器（类型上 portable: true：风扇、取暖器、除湿机…）：一台一条，列表单独分组；不设保养周期，换季提醒走季节任务
+ * - 产品召回：assets.recall（迁移 051），登记、提醒和修 / 换 / 退三个出口在 js/house/recall.js；换新、退款处理完的旧设备“退役”，不进列表和提醒 */
 import { STATUS, state } from "../core/state.js";
 import { askButton, askInline, askPanel, ctx as askCtx } from "../core/ask.js";
 import { Store } from "../core/store.js";
@@ -20,6 +22,7 @@ import { storeDatalist } from "../stats/views.js";
 import { cardSelectHtml, payAcctValue, purchasePayFields } from "../bills/cards-views.js";
 import { propertyName } from "../core/alerts.js";
 import { activeProperties } from "../core/lifecycle.js";
+import { RECALL_STATUS, finishReplace, isRetired, recallActive, recallAlertText, recallBadge, recallBanner, recallHubRow, recallOf, recallSection, replaceDefaults } from "./recall.js";
 
 const H = () => window.HOUSE;
 const V = () => window.VEHICLES;
@@ -28,6 +31,8 @@ const OWNER_OPTS = ["self", "hoa", "landlord", "property", "varies"];
 export const isVehicle = (a) => a?.kind === "vehicle";
 /** 固定装置：一类一条（马桶 ×3 是一条），位置和数量在 units：[{ loc, qty, note }] */
 export const isFixture = (a) => !!(a?.t?.fixture || H().isFixtureType?.(a?.type));
+/** 小家电 / 季节电器：一台一条，只是列表里单独一组 */
+export const isPortable = (a) => !!(a?.t?.portable || H().isPortableType?.(a?.type));
 export const unitsOf = (a) => (Array.isArray(a?.units) ? a.units.filter((u) => u && (u.loc || u.note || num(u.qty) > 0)) : []);
 export const unitsCount = (a) => unitsOf(a).reduce((n, u) => n + (num(u.qty) > 0 ? num(u.qty) : 1), 0);
 /** “共 3 处：主卫 1 · 客卫 1 · 地下室 1” */
@@ -83,7 +88,8 @@ export function enrichAssets(assets, logs) {
     const lastInspect = mine.find((l) => l.kind === "inspect" && l.result && l.result !== "ok");
     const fixedAfter = lastInspect && mine.some((l) => l.kind !== "inspect" && (l.done_on || "") >= (lastInspect.done_on || "") && l.id !== lastInspect.id);
     const followUp = lastInspect && !fixedAfter ? lastInspect : null;
-    const out = { ...a, t: at, logs: mine, lastService, next, dueDays, service, ageYears, lifePct, wDays, warranty, totalCost, followUp };
+    // 召回：recallSt = stop_use / open（没处理完）；retired = 换新或退款处理完的旧设备
+    const out = { ...a, t: at, logs: mine, lastService, next, dueDays, service, ageYears, lifePct, wDays, warranty, totalCost, followUp, recallSt: recallActive(a), retired: isRetired(a) };
     if (a.kind === "vehicle") Object.assign(out, vehicleStatus(out, mine));
     return out;
   });
@@ -120,23 +126,29 @@ export const activeVehicles = () => myVehicles().filter((a) => V().isActive(a));
 export const pastVehicles = () => myVehicles().filter((a) => !V().isActive(a)).sort((x, y) => (y.vehicle?.disposed_on || "").localeCompare(x.vehicle?.disposed_on || ""));
 
 /** 当前房产的设备（不含车辆，车辆挂在家庭上） */
-export const myAssets = () => state.assetsEnriched.filter((a) => a.property_id === state.propertyId && !isVehicle(a));
-/** 概览用：检查发现问题 > 逾期 > 该保养 > 保修快到期 */
+export const myAssets = () => state.assetsEnriched.filter((a) => a.property_id === state.propertyId && !isVehicle(a) && !a.retired);
+/** 当前房产里召回后已换新 / 退款的旧设备 */
+export const retiredAssets = () => state.assetsEnriched.filter((a) => a.property_id === state.propertyId && !isVehicle(a) && a.retired);
+/** 概览用：召回停止使用 > 召回待处理 > 检查发现问题 > 逾期 > 该保养 > 保修快到期（退役的不算） */
 export const assetAlerts = (list) => list
-  .filter((a) => a.followUp || a.service === "overdue" || a.service === "due" || a.warranty === "expiring")
+  .filter((a) => !a.retired && (a.recallSt || a.followUp || a.service === "overdue" || a.service === "due" || a.warranty === "expiring"))
   .sort((x, y) => rank(x) - rank(y) || (x.dueDays ?? 999) - (y.dueDays ?? 999));
-const rank = (a) => (a.followUp ? 0 : a.service === "overdue" ? 1 : a.service === "due" ? 2 : 3);
+const rank = (a) => (a.recallSt === "stop_use" ? -2 : a.recallSt ? -1 : a.followUp ? 0 : a.service === "overdue" ? 1 : a.service === "due" ? 2 : 3);
+/** 列表 / 提醒里的徽章和主操作：召回 → 处理召回；其余 → 记保养 */
+export const alertBadge = (a) => (a.recallSt ? { label: t(RECALL_STATUS[a.recallSt].short), cls: RECALL_STATUS[a.recallSt].cls }
+  : a.followUp ? { label: t(C().RESULTS[a.followUp.result]), cls: "b-out" } : a.service === "overdue" ? { label: t("逾期"), cls: "b-out" } : a.service === "due" ? { label: t("保养"), cls: "b-soon" } : { label: t("保修"), cls: "b-soon" });
+export const alertAct = (a) => (a.recallSt ? { href: `${href("asset", a.id)}?sec=recall`, label: t("处理召回") } : { href: `${href("asset", a.id)}?log=1`, label: a.followUp ? t("记处理结果") : t("记保养") });
 
 /** 提醒总线：所有活跃房产的设备 + 家庭的车辆（检查发现问题 = 尽快·必须；保养逾期 = 今天级；到期 / 保修 = 尽快级） */
 export function assetAlertItems() {
   if (!state.houseEnabled || state.pending?.maint) return [];   // 保养记录还在加载：没有记录会被误判成“从没保养过”
   const live = new Set(activeProperties().map((p) => p.id));
+  // 召回：停止使用 = 紧急·必须，待处理 = 尽快·必须，直到在设备页选了处理结果
   const out = assetAlerts(state.assetsEnriched.filter((a) => (isVehicle(a) ? V().inService(a) : live.has(a.property_id)))).map((a) => ({
-    source: "asset", severity: a.followUp ? 2 : a.service === "overdue" ? 1 : 2, must: !!a.followUp, due: a.next,
-    daysLeft: a.followUp ? -(-daysUntil(a.followUp.done_on)) : a.service === "overdue" || a.service === "due" ? a.dueDays : a.wDays,
-    property_id: a.property_id, title: `${a.t?.icon || "⚙️"} ${assetName(a)}`, detail: alertText(a), href: href("asset", a.id),
-    badge: { label: a.followUp ? t(C().RESULTS[a.followUp.result]) : a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修"), cls: a.followUp || a.service === "overdue" ? "b-out" : "b-soon" },
-    actions: [{ type: "link", href: `${href("asset", a.id)}?log=1`, label: a.followUp ? t("记处理结果") : t("记保养") }], ask: assetAsk(a),
+    source: "asset", severity: a.recallSt === "stop_use" ? 0 : a.recallSt ? 2 : a.followUp ? 2 : a.service === "overdue" ? 1 : 2, must: !!(a.recallSt || a.followUp), due: a.recallSt ? null : a.next,
+    daysLeft: a.recallSt ? (recallOf(a).found_on ? daysUntil(recallOf(a).found_on) : null) : a.followUp ? -(-daysUntil(a.followUp.done_on)) : a.service === "overdue" || a.service === "due" ? a.dueDays : a.wDays,
+    property_id: a.property_id, title: a.recallSt === "stop_use" ? `⛔ ${t("停止使用：{name}", { name: assetName(a) })}` : `${a.t?.icon || "⚙️"} ${assetName(a)}`, detail: alertText(a), href: href("asset", a.id),
+    badge: alertBadge(a), actions: [{ type: "link", ...alertAct(a) }], ask: assetAsk(a),
   }));
   // 车辆证照与保险：牌照 / 排放 / 保险 30 天内到期（尽快·必须，过期 → 今天）；租赁 90 天内（留意）
   for (const a of state.assetsEnriched.filter((x) => isVehicle(x) && V().inService(x))) {
@@ -156,6 +168,7 @@ export function assetAlertItems() {
 }
 
 export function alertText(a) {
+  if (a.recallSt) return recallAlertText(a);
   if (a.followUp) return t("{date} 检查结论：{r}，还没记处理", { date: fmtDate(a.followUp.done_on), r: t(C().RESULTS[a.followUp.result]) });
   if (isVehicle(a) && a.vSoonest && (a.service === "overdue" || a.service === "due")) {
     const s = a.vSoonest, item = t(s.name);
@@ -198,7 +211,7 @@ const assetCrumb = (a, root, hubHref, cur) => crumbNav([...assetTrail(a, root, h
 const ageText = (a) => (a.ageYears < 1 ? t("不到 1 年") : t("{n} 年", { n: Math.floor(a.ageYears) }));
 
 /* ── 设备列表：搜索 + 类型 / 保养 / 保修 / 位置 筛选（只作用在下面的分组列表，上面的“要处理”提醒不受影响） ── */
-const SERVICE_FILTERS = [["all", "全部保养状态"], ["attention", "需要处理"], ["overdue", "保养逾期"], ["due", "该保养了"], ["ok", "保养正常"], ["unknown", "未记录保养"], ["none", "没设保养周期"]];
+const SERVICE_FILTERS = [["all", "全部保养状态"], ["attention", "需要处理"], ["recall", "产品召回"], ["overdue", "保养逾期"], ["due", "该保养了"], ["ok", "保养正常"], ["unknown", "未记录保养"], ["none", "没设保养周期"]];
 const WARRANTY_FILTERS = [["all", "全部保修状态"], ["active", "保修中"], ["expiring", "保修快到期"], ["expired", "已过保"], ["none", "没填保修"]];
 const ASSET_SORTS = [["alert", "提醒优先"], ["due", "下次保养：近 → 远"], ["name", "名称 A → Z"], ["age", "设备年龄：老 → 新"], ["life", "已用寿命：多 → 少"]];
 const assetTypeLabel = (a) => (a.t ? t(a.t.name) : t(a.type || "其他"));
@@ -206,7 +219,7 @@ const matchAsset = (a, f) => {
   if (f.type !== "all" && a.type !== f.type) return false;
   if (f.loc !== "all" && a.location !== f.loc) return false;
   if (f.warranty !== "all" && a.warranty !== f.warranty) return false;
-  if (f.service === "attention" ? !(a.followUp || a.service === "overdue" || a.service === "due") : f.service !== "all" && a.service !== f.service) return false;
+  if (f.service === "attention" ? !(a.recallSt || a.followUp || a.service === "overdue" || a.service === "due") : f.service === "recall" ? !a.recallSt : f.service !== "all" && a.service !== f.service) return false;
   const q = f.q.trim().toLowerCase();
   return !q || [assetName(a), a.brand, a.model, a.location, assetTypeLabel(a)].filter(Boolean).some((x) => String(x).toLowerCase().includes(q));
 };
@@ -221,16 +234,17 @@ function assetGroups(list) {
   const f = assetFilterNow(list), rows = list.filter((a) => matchAsset(a, f));
   const sorter = { alert: (x, y) => rank(x) - rank(y) || compare(x.name, y.name), due: (x, y) => (x.next || "9999").localeCompare(y.next || "9999") || compare(x.name, y.name), name: (x, y) => compare(assetName(x), assetName(y)),
     age: (x, y) => (y.ageYears ?? -1) - (x.ageYears ?? -1) || compare(x.name, y.name), life: (x, y) => (y.lifePct ?? -1) - (x.lifePct ?? -1) || compare(x.name, y.name) }[f.sort] || ((x, y) => rank(x) - rank(y));
-  // 三组：设备（一台一条）/ 固定装置（一类一条，位置数量在里面）/ 工具
-  const group = (kind, fx = false) => rows.filter((a) => a.kind === kind && (kind !== "equipment" || isFixture(a) === fx)).sort(sorter);
-  const section = (kind, fx = false) => {
-    const g = group(kind, fx);
-    if (!g.length) return "";
-    const k = fx ? H().FIXTURE_GROUP : H().ASSET_KINDS[kind];
-    return `<section class="section"><div class="section-head"><h2>${k.icon} ${t(k.name)}<span class="muted">（${g.length}）</span></h2>${fx ? `<p>${esc(t(k.hint))}</p>` : ""}</div>
-      <div class="asset-grid">${g.map(assetCard).join("")}</div></section>`;
+  // 四组：设备（一台一条）/ 小家电与季节电器（一台一条）/ 固定装置（一类一条，位置数量在里面）/ 工具
+  const sub = (a) => (isFixture(a) ? "fixture" : isPortable(a) ? "portable" : "");
+  const group = (kind, g = "") => rows.filter((a) => a.kind === kind && (kind !== "equipment" || sub(a) === g)).sort(sorter);
+  const section = (kind, g = "") => {
+    const list = group(kind, g);
+    if (!list.length) return "";
+    const k = g === "fixture" ? H().FIXTURE_GROUP : g === "portable" ? H().PORTABLE_GROUP : H().ASSET_KINDS[kind];
+    return `<section class="section"><div class="section-head"><h2>${k.icon} ${t(k.name)}<span class="muted">（${list.length}）</span></h2>${k.hint ? `<p>${esc(t(k.hint))}</p>` : ""}</div>
+      <div class="asset-grid">${list.map(assetCard).join("")}</div></section>`;
   };
-  return { rows, html: rows.length ? section("equipment") + section("equipment", true) + section("tool") : `<div class="panel empty"><strong>${t("没有符合条件的设备")}</strong>${t("换个关键词或筛选试试。")}</div>` };
+  return { rows, html: rows.length ? section("equipment") + section("equipment", "portable") + section("equipment", "fixture") + section("tool") : `<div class="panel empty"><strong>${t("没有符合条件的设备")}</strong>${t("换个关键词或筛选试试。")}</div>` };
 }
 const assetCountText = (rows, list) => (rows.length === list.length ? t("{n} 台", { n: list.length }) : t("{m} / {n} 台", { m: rows.length, n: list.length }));
 /** 搜索 / 筛选变化：只重画列表和数量，输入框不丢焦点 */
@@ -267,16 +281,29 @@ export function viewAssets() {
           <a class="btn btn-primary" href="${href("asset", "new")}">${t("添加设备")}</a></div></div>
       <p class="muted" style="margin:0 0 10px;font-size:12.5px">${t("设备 = 有保养周期或保修的，一台一条（热水器、割草机）；固定装置按类记一条（马桶、门、吊扇、插座），位置和数量写在里面；只记数量和位置的（梯子、床品、节日装饰）放在 储藏 → 装备；灯泡、电池是耗材，在 储藏 → 库存 → 房屋耗材。")}</p>
       <p class="muted" style="margin:0 0 10px;font-size:12.5px">🩺 ${t("东西坏了？")}<a href="${href("house", "fix")}">${t("描述毛病（可拍照），先看常见小毛病，再让咩咩分析原因、给方案，配件直接加采购")}</a></p>
-      ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.slice(0, 6).map((a) => `<li>
-          <span class="badge ${a.service === "overdue" ? "b-out" : "b-soon"}">${a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修")}</span>
+      ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.slice(0, 6).map((a) => { const b = alertBadge(a), act = alertAct(a); return `<li>
+          <span class="badge ${b.cls}">${esc(b.label)}</span>
           <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a><small>${esc(alertText(a))}</small></div>
-          <a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a></li>`).join("")}</ul></div>`
+          <a class="btn btn-sm" href="${act.href}">${esc(act.label)}</a></li>`; }).join("")}</ul></div>`
         : list.length ? `<p class="muted" style="margin:0;font-size:13px">${t("保养都在周期内，保修也没有快到期的。")}</p>` : ""}
     </section>
     ${list.length ? `<section class="section">${assetToolbar(list)}<div id="assetList">${html}</div></section>` : `<section class="section"><div class="panel empty"><strong>${t("还没有设备档案")}</strong>
       ${p ? t("按房屋资料一次生成炉子、热水器、排水泵、屋顶等设备，再补充品牌、型号和安装年份。") : t("先填写房屋资料，就能按设施一键生成设备清单。")}
       <p>${p ? `<a class="btn btn-primary" href="${href("house", "asset-template")}">${t("生成设备清单")}</a>` : `<a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a>`}
-         <a class="btn btn-ghost" href="${href("asset", "new")}">${t("手动添加一台")}</a></p></div></section>`}`;
+         <a class="btn btn-ghost" href="${href("asset", "new")}">${t("手动添加一台")}</a></p></div></section>`}
+    ${retiredSection(retiredAssets())}`;
+}
+
+/** 召回后已换新 / 退款的旧设备：折叠在列表底部，点开还能看档案和保养记录 */
+function retiredSection(list) {
+  if (!list.length) return "";
+  return `<section class="section"><details class="panel ref-panel"><summary><b>${t("已更换 / 已退货")}</b><small>${t("{n} 台，召回后换新或退款；档案和保养记录保留", { n: list.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
+    <ul class="restock-list hist-list ref-body">${list.map((a) => { const r = recallOf(a) || {}, n = r.replaced_by ? state.assets.find((x) => x.id === r.replaced_by) : null; return `<li>
+      <span class="asset-ico" aria-hidden="true">${a.t?.icon || "⚙️"}</span>
+      <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>
+        <small>${[t(r.remedy === "refund" ? "已退款" : "已换新"), r.resolved_on ? fmtDate(r.resolved_on) : null, r.remedy === "refund" && r.refund_amount != null ? money(num(r.refund_amount)) : null,
+          n ? t("换成：{name}", { name: assetName(n) }) : null, [a.brand, a.model].filter(Boolean).join(" ") || null].filter(Boolean).map(esc).join(" · ")}</small></div>
+      <span class="hist-act"><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></span></li>`; }).join("")}</ul></details></section>`;
 }
 
 /* ── 车辆页：家庭的所有车（不分房产），每辆的保养到期、证照与保险 ── */
@@ -369,18 +396,19 @@ export function assetCard(a) {
     o && t("负责：{who}", { who: t(o.name) }),
   ].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")
     + ((a.updated_at || a.created_at) ? `<span title="${esc(stampText(a))}">${t("{d} 更新", { d: fmtShort(a.updated_at || a.created_at) })}</span>` : "");
-  return `<article class="asset-card">
+  return `<article class="asset-card ${a.recallSt === "stop_use" ? "is-recall-stop" : a.recallSt ? "is-recall" : ""}">
     <div class="asset-head"><span class="asset-ico" aria-hidden="true">${a.t?.icon || "⚙️"}</span>
       <div class="grow"><a class="asset-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>
         <div class="item-meta">${meta || `<span>${esc(a.t ? t(a.t.name) : "")}</span>`}</div></div></div>
     <div class="asset-badges">
+      ${recallBadge(a)}
       ${a.followUp ? `<span class="badge b-out">${t("检查：{r}", { r: t(C().RESULTS[a.followUp.result]) })}</span>` : ""}
       ${sb.label ? `<span class="badge ${sb.cls}">${t(sb.label)}${a.next && a.service !== "unknown" ? ` · ${fmtDate(a.next)}` : ""}</span>` : ""}
       ${wb.label ? `<span class="badge ${wb.cls}">${t(wb.label)}</span>` : ""}
     </div>
     ${a.ageYears != null || life ? `<div class="life"><div class="life-bar ${lifeCls}"><i style="width:${pct ?? 0}%"></i></div>
       <small>${a.ageYears != null ? t("已用 {age}", { age: ageText(a) }) : t("安装日期未填")}${life ? t(" · 常见寿命约 {n} 年", { n: fmt(life) }) : ""}${pct != null && pct >= 75 ? t("，已到 {p}%", { p: pct }) : ""}</small></div>` : ""}
-    <div class="acts"><a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></div>
+    <div class="acts">${a.recallSt ? `<a class="btn btn-sm btn-primary" href="${href("asset", a.id)}?sec=recall">${t("处理召回")}</a>` : `<a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a>`}<a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></div>
   </article>`;
 }
 
@@ -391,7 +419,8 @@ export function viewAssetTemplate() {
   const recs = H().recommendAssets(p);
   const haveTypes = new Set(state.assets.filter((a) => a.property_id === state.propertyId).map((a) => a.type));
   const groups = [
-    { kind: "equipment", k: H().ASSET_KINDS.equipment, rows: recs.filter((r) => r.kind === "equipment" && !r.fixture) },
+    { kind: "equipment", k: H().ASSET_KINDS.equipment, rows: recs.filter((r) => r.kind === "equipment" && !r.fixture && !r.portable) },
+    { kind: "portable", k: H().PORTABLE_GROUP, rows: recs.filter((r) => r.kind === "equipment" && r.portable) },
     { kind: "fixture", k: H().FIXTURE_GROUP, rows: recs.filter((r) => r.kind === "equipment" && r.fixture) },
     { kind: "tool", k: H().ASSET_KINDS.tool, rows: recs.filter((r) => r.kind === "tool") },
   ].filter((g) => g.rows.length);
@@ -458,6 +487,10 @@ function typeOptions(selected, kind) {
   const opt = (x) => `<option value="${x.id}" ${x.id === selected ? "selected" : ""}>${x.icon} ${esc(t(x.name))}</option>`;
   if (kind === "vehicle") return list.filter((x) => x.kind === "vehicle").map(opt).join("");   // 车辆只在动力类型里选
   const mine = list.filter((x) => x.kind === kind), others = list.filter((x) => x.kind !== kind && x.kind !== "vehicle");
+  if (kind === "equipment") {   // 设备再分：一台一条的 / 小家电与季节电器 / 固定装置，和列表分组一致
+    const grp = (label, xs) => (xs.length ? `<optgroup label="${esc(t(label))}">${xs.map(opt).join("")}</optgroup>` : "");
+    return `${mine.filter((x) => !x.fixture && !x.portable).map(opt).join("")}${grp(H().PORTABLE_GROUP.name, mine.filter((x) => x.portable))}${grp(H().FIXTURE_GROUP.name, mine.filter((x) => x.fixture))}${grp("工具", others)}`;
+  }
   return `${mine.map(opt).join("")}<optgroup label="${kind === "tool" ? t("设备") : t("工具")}">${others.map(opt).join("")}</optgroup>`;
 }
 
@@ -543,6 +576,10 @@ function vehicleSchedule(a) {
     <div class="panel"><div class="ch-scroll"><table class="owner-table veh-table"><thead><tr><th>${t("项目")}</th><th>${t("周期")}</th><th>${t("上次")}</th><th>${t("下次")}</th><th></th></tr></thead><tbody>${items.map(row).join("")}</tbody></table></div></div>`;
 }
 
+/** 从装备升级时按名称猜类型（季节电器 / 小家电最常见）；猜不到用“其他设备” */
+const PORTABLE_GUESS = [[/风扇|电扇|塔扇|\bfan\b/i, "portable_fan"], [/取暖|暖风|热风|电暖器|油汀|heater/i, "space_heater"], [/净化器|purifier/i, "air_purifier"], [/除湿|dehumid/i, "dehumidifier"], [/加湿|humidif/i, "room_humidifier"], [/空调|窗机|air condition|\bac\b/i, "portable_ac"]];
+export const guessAssetType = (name) => PORTABLE_GUESS.find(([re]) => re.test(name || ""))?.[1] || null;
+
 export function viewAssetForm() {
   const r = state.route;
   const a = r.id && r.id !== "new" ? state.assetsEnriched.find((x) => x.id === r.id) : null;
@@ -552,9 +589,12 @@ export function viewAssetForm() {
   const qType = r.q.get("type"), tplType = qType ? H().assetType(qType) : null;
   // 从装备物品升级：?from_item=<id> 带入名称、位置、备注
   const fromItem = !a && r.q.get("from_item") ? state.items.find((i) => i.id === r.q.get("from_item")) : null;
-  const v = a || {
-    kind: tplType?.kind || "equipment", type: tplType?.id || (fromItem ? "other_equipment" : "water_heater"), name: fromItem ? fromItem.name : tplType ? t(tplType.name) : "", location: fromItem?.location || "",
-    expected_life_years: tplType?.life ?? "", service_interval_months: tplType?.interval ?? "", owner: "self", notes: fromItem?.notes || "",
+  const baseT = tplType || (fromItem ? H().assetType(guessAssetType(fromItem.name)) : null);
+  // 召回换新：?replaces=<旧id> 带入名称、类型、位置、品牌；保存后旧机标成已更换
+  const rep = !a && r.q.get("replaces") ? replaceDefaults(r.q.get("replaces")) : null;
+  const v = a || rep?.v || {
+    kind: baseT?.kind || "equipment", type: baseT?.id || (fromItem ? "other_equipment" : "water_heater"), name: fromItem ? fromItem.name : tplType ? t(tplType.name) : "", location: fromItem?.location || "",
+    expected_life_years: baseT?.life ?? "", service_interval_months: baseT?.interval ?? "", owner: "self", notes: fromItem?.notes || "",
   };
   const tool = v.kind === "tool", veh = v.kind === "vehicle";
   // 面包屑根：进来之前的页面（注意事项 / 房屋…），没有就回设备档案或车辆列表
@@ -570,6 +610,7 @@ export function viewAssetForm() {
   if (a && sec === "log") return `<section class="section form-page">${assetCrumb(a, root, hubHref, t("保养记录"))}${maintSection(a, r.q.get("log") === "1")}</section>`;
   if (a && sec === "schedule") return `<section class="section">${assetCrumb(a, root, hubHref, t("保养时间表"))}${vehicleSchedule(a)}</section>`;
   if (a && sec === "supplies") return `<section class="section">${assetCrumb(a, root, hubHref, t("相关耗材"))}${suppliesSection(a)}</section>`;
+  if (a && sec === "recall") return `<section class="section form-page">${assetCrumb(a, root, hubHref, t("产品召回"))}${recallSection(a)}</section>`;
   if (a && sec === "care") return `<section class="section">${assetCrumb(a, root, hubHref, t("检查卡"))}${careCard(a.type, { open: true, ask: assetAsk(a) })}</section>`;
   const hide = (k) => (a && sec && sec !== k ? "hidden" : "");
   return `
@@ -580,6 +621,7 @@ export function viewAssetForm() {
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
         ${fromItem ? `<input type="hidden" name="from_item" value="${esc(fromItem.id)}"><p class="hint" style="margin-top:0">${t("由装备“{name}”升级：补上品牌、安装日期、保修和保养周期后保存。", { name: esc(fromItem.name) })}</p>
           <label class="check-inline" style="margin-bottom:10px"><input type="checkbox" name="drop_item"><span>${t("建好后从装备里移除这件物品")}</span></label>` : ""}
+        ${rep ? `<input type="hidden" name="replaces" value="${esc(rep.from.id)}"><p class="hint" style="margin-top:0">🔁 ${t("替换被召回的“{name}”：填上新机的型号、序列号、购买日期和保修；保存后旧机标成“已更换”，不再提醒。", { name: esc(assetName(rep.from)) })}</p>` : ""}
         <fieldset data-sec="basic" ${hide("basic")}>
           <legend>${t("基本信息")}</legend>
           <div class="seg-radio" style="margin-bottom:10px">${kindPill("equipment")}${kindPill("tool")}${kindPill("vehicle")}</div>
@@ -732,9 +774,11 @@ function assetHub(a, root) {
     !veh && C().cardOf(a.type) ? hubRow({ href: `${base}?sec=care`, icon: "🔍", title: t("检查卡"), desc: t("怎么查、什么时候叫人") }) : "",
     // 出了问题：常见小毛病（离线）+ 咩咩诊断（可拍照）+ 配件加采购；车辆也能用（保养项以外的毛病）
     (() => { const n = C().fixesOf(a.type).length; return hubRow({ href: `${href("house", "fix")}?asset=${a.id}`, icon: "🩺", title: t("出了问题？"), desc: n ? t("{n} 个常见小毛病先看；描述毛病让咩咩分析原因、给方案，配件直接加采购", { n }) : t("描述毛病（可拍照），咩咩分析原因、给方案，配件直接加采购") }); })(),
+    veh ? "" : hubRow(recallHubRow(a)),   // 产品召回：登记 → 修 / 换 / 退（车辆召回走保养项里的“召回查询”）
   ].filter(Boolean);
   return `<section class="section">
     ${crumbNav([...assetTrail(a, root, href("asset", a.id)).slice(0, -1), { label: assetName(a), icon: a.t?.icon || "⚙️" }])}
+    ${veh ? "" : recallBanner(a)}
     ${assetSummary(a)}
     ${hubList(more)}
     <div class="section-head" style="margin-top:18px"><h3 style="font-size:15px">${t("档案")}</h3></div>
@@ -887,7 +931,8 @@ export async function saveAssetForm(f, { silent = false } = {}) {
   btn.disabled = true;
   try {
     a.location = await resolveLocation(fe);
-    await Store.saveAsset(a);
+    const savedId = await Store.saveAsset(a);
+    if (fe.replaces?.value) await finishReplace(fe.replaces.value, a.id || savedId);   // 召回换新：旧机标成已更换、退役
     if (silent) return true;
     toast(a.id ? t("已保存修改") : t("已添加 {name}", { name }));
     if (fe.from_item?.value && fe.drop_item?.checked) { await Store.deleteItem(fe.from_item.value); state.prevRoute = null; }   // 升级后移除原装备：别再退回那条已删除的物品页

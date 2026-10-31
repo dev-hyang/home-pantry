@@ -7,6 +7,7 @@ import { state } from "./state.js";
 import { askButton, askPanel } from "./ask.js";
 import { esc } from "./util.js";
 import { t } from "./i18n.js";
+import { FINANCE_ALERT_SOURCES, financeOk } from "./finance-access.js";
 
 export const SEVERITY_LABEL = ["紧急", "今天", "尽快", "留意"];
 export const SEVERITY_CLS = ["b-out", "b-low", "b-soon", "b-ok"];
@@ -22,6 +23,7 @@ export function collectAlerts() {
   for (const p of providers) {
     try { out.push(...(p() || [])); } catch (e) { console.error("[alerts]", e); }
   }
+  if (!financeOk()) { const hide = new Set(FINANCE_ALERT_SOURCES); for (let i = out.length - 1; i >= 0; i--) if (hide.has(out[i].source)) out.splice(i, 1); }   // 没有财务权限：预算、收入还款的提醒不出现
   // 带房产的房屋类提醒：链接加上 ?prop=，点进去先切到那套房产
   const withProp = (h, pid) => (h && pid && h.startsWith("#/house") && !h.includes("?") ? `${h}?prop=${pid}` : h);
   for (const it of out) if (it.property_id) { it.href = withProp(it.href, it.property_id); for (const a of it.actions || []) if (a.type === "link") a.href = withProp(a.href, it.property_id); }

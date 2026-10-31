@@ -347,6 +347,13 @@
     { id: "window_treatments", name: "窗帘 / 百叶窗",  en: "Blinds & curtains",  icon: "🎐", kind: "equipment", life: 10, interval: 12, system: null,           region: "both", when: ["*"], optional: true, fixture: true, tip: "电动款记电池 / 充电方式和遥控配对；拉绳款查绳子磨损（有小孩用无绳款）；布艺窗帘只记数量的放 储藏 → 装备。" },
     { id: "outlets",        name: "插座、开关与 GFCI", en: "Outlets, switches & GFCI", icon: "🔌", kind: "equipment", life: 25, interval: 3, system: null,        region: "both", when: ["*"], optional: true, fixture: true, tip: "厨卫 / 车库 / 室外的 GFCI 每季度按 TEST 再按 RESET；插头松、面板发热变色的插座要换；有小孩用防触电款。不用登记每一个，只记有问题的和 GFCI 在哪。" },
     { id: "fire_extinguisher", name: "灭火器",        en: "Fire extinguishers", icon: "🧯", kind: "equipment", life: 12, interval: 12, system: null,           region: "both", when: ["*"], fixture: true, tip: "每年看压力表指针在绿区、保险销在、喷嘴没堵；干粉款每年倒过来摇几下防结块；厨房和车库各放一个。" },
+    // ── 小家电 / 季节电器（portable: true）：能搬动的电器，一台一条（要记型号 / 序列号查保修和召回）；不设保养周期，换季清洁和安全检查走季节任务（when: "a:<类型>"）。生成页默认不勾 ──
+    { id: "portable_fan",   name: "立式风扇 / 塔扇",  en: "Standing / tower fan", icon: "🌀", kind: "equipment", life: 8, interval: null, system: null,          region: "both", when: ["*"], optional: true, portable: true, tip: "入夏拿出来、入秋收纳前各擦一次叶片和网罩；摇头卡顿、转得慢、有焦味就停用。记下型号和序列号，方便查保修和召回。" },
+    { id: "space_heater",   name: "取暖器 / 热风扇",  en: "Space heater",       icon: "🔥", kind: "equipment", life: 8,  interval: null, system: null,         region: "both", when: ["*"], optional: true, portable: true, tip: "直接插墙上插座，不接排插或延长线；周围 3 英尺（约 1 米）内不放可燃物；出门、睡觉关掉。取暖器是召回高发品类，记下型号和序列号。" },
+    { id: "air_purifier",   name: "空气净化器",       en: "Air purifier",       icon: "🍃", kind: "equipment", life: 8,  interval: null, system: null,         region: "both", when: ["*"], optional: true, portable: true, tip: "预滤网 1–2 个月吸尘或水洗；主滤网（HEPA）按指示灯或 6–12 个月换，滤网型号记在备注里。" },
+    { id: "dehumidifier",   name: "除湿机",           en: "Dehumidifier",       icon: "💧", kind: "equipment", life: 8,  interval: null, system: null,         region: "both", when: ["*"], optional: true, portable: true, tip: "每 2–4 周洗滤网；水箱每次倒空、每月消毒防霉；接排水管的查管子有没有打折。" },
+    { id: "room_humidifier", name: "加湿器（房间用）", en: "Room humidifier",   icon: "💦", kind: "equipment", life: 5,  interval: null, system: null,         region: "both", when: ["*"], optional: true, portable: true, tip: "用纯净水或蒸馏水少结白粉；每周倒空、除垢消毒，水箱别放隔夜水；收纳前彻底晾干。" },
+    { id: "portable_ac",    name: "移动空调 / 窗机",  en: "Portable / window AC", icon: "❄️", kind: "equipment", life: 10, interval: null, system: null,       region: "both", when: ["*"], optional: true, portable: true, tip: "用的季节每 2 周洗滤网；装机查排风管和窗口密封；收纳前排干冷凝水、开送风吹干再收。" },
     { id: "bath_fan",       name: "浴室排风扇",       en: "Bathroom exhaust fans", icon: "🌀", kind: "equipment", life: 10, interval: 12, system: null,        region: "both", when: ["*"],              tip: "每年拆格栅清灰；一张纸贴不住格栅就是风量不够了。" },
     { id: "attic",          name: "阁楼通风与保温",   en: "Attic ventilation & insulation", icon: "🏚️", kind: "equipment", life: 25, interval: 12, system: "roof", region: "na", when: ["type:sfh", "type:townhome"], optional: true, tip: "每年看一次：有没有漏水痕迹、保温层塌陷、通风口被堵；冬天屋檐结冰坝多半是阁楼太热。" },
     { id: "fence",          name: "栅栏 / 挡土墙",    en: "Fence / retaining wall", icon: "🪵", kind: "equipment", life: 20, interval: 12, system: "exterior",   region: "na",   when: ["type:sfh"], optional: true, tip: "每年查立柱松动、底部腐烂；挡土墙鼓出、排水孔堵塞要尽早处理。" },
@@ -363,6 +370,9 @@
   // 固定装置：kind 仍是 equipment（表结构不变），靠类型上的 fixture 标记分组显示；一类一条，位置数量在 units 里
   const FIXTURE_GROUP = { name: "固定装置", icon: "🚪", hint: "按类记一条，不是一个一条：马桶有 3 个就在「位置与数量」里写 3 处；坏了在那一条下面记维修。" };
   const isFixtureType = (id) => !!assetType(id)?.fixture;
+  // 小家电 / 季节电器：同样只是显示分组（kind 仍是 equipment），一台一条
+  const PORTABLE_GROUP = { name: "小家电 / 季节电器", icon: "🌀", hint: "风扇、取暖器、除湿机这类能搬动的电器：一台一条，记型号和序列号方便查保修和召回；不设保养周期，换季时在季节任务里提醒清洁和安全检查。" };
+  const isPortableType = (id) => !!assetType(id)?.portable;
   const MAINT_KINDS = { inspect: "检查", service: "保养", repair: "维修", replace: "更换" };
   // 设备维修保养的花费记到 purchases 时用的分类（不在物品分类里，统计并入“房屋维护”；车辆另有 VEHICLE_CAT）
   window.MAINT_CAT = { id: "house_maint", name: "设备维修保养", icon: "🔧", color: "#5c6b63" };
@@ -437,9 +447,22 @@
     ],
   };
 
-  function matches(cond, p) {
+  // 小家电的换季任务：两地相同，按「有这台设备」出现（a:<类型>），key 加地区前缀；card = 检查卡（data/care.js）
+  const PORTABLE_TASKS = [
+    { k: "spr_portable",     months: [5, 6],  name: "风扇、除湿机、移动空调拿出来：擦叶片、洗滤网、查电线", when: ["a:portable_fan", "a:dehumidifier", "a:portable_ac"], note: "电线破皮、插头发黑发烫的别再用。", card: "portable_fan" },
+    { k: "fall_fan_store",   months: [9, 10], name: "风扇、移动空调清洁后收纳",        when: ["a:portable_fan", "a:portable_ac"], note: "擦净叶片和网罩、吹净进风口；移动空调排干冷凝水、开送风吹干再套袋收。", card: "portable_fan" },
+    { k: "fall_heater",      months: [10, 11], name: "取暖器使用前安全检查",           when: ["a:space_heater"], note: "电线插头不发热变色、倾倒断电开关好用、周围 3 英尺（约 1 米）无可燃物；直接插墙，不接排插。", card: "space_heater" },
+    { k: "spr_heater_store", months: [4],     name: "取暖器清灰后收纳",                when: ["a:space_heater"], card: "space_heater" },
+    { k: "fall_room_humid",  months: [10, 11], name: "房间加湿器拿出来：除垢消毒、换滤芯", when: ["a:room_humidifier"] },
+    { k: "purifier_filter",  months: [3, 9],  name: "空气净化器洗预滤网、看主滤网要不要换", when: ["a:air_purifier"] },
+  ];
+  for (const r of ["na", "cn"]) SEASONAL_TASKS[r].push(...PORTABLE_TASKS.map(({ k, ...x }) => ({ key: `${r}_${k}`, ...x })));
+
+  // have：这套房产已有（未退役）的设备类型；"a:<类型>" = 有这台设备才出现（小家电的换季任务）
+  function matches(cond, p, have = []) {
     if (cond === "*") return true;
     const [k, v] = cond.split(":");
+    if (k === "a") return have.includes(v);
     if (k === "f") return (p.features || []).includes(v);
     if (k === "ext") return (p.exterior || []).includes(v);
     if (k === "floor") return (p.flooring || []).includes(v);
@@ -515,11 +538,11 @@
   }
 
   /** 该家庭适用的季节任务（按地区和设施过滤） */
-  function seasonalTasksFor(profile) {
+  function seasonalTasksFor(profile, have = []) {
     if (!profile) return [];
-    return (SEASONAL_TASKS[profile.region] || []).filter((t) => t.when.some((c) => matches(c, profile)));
+    return (SEASONAL_TASKS[profile.region] || []).filter((t) => t.when.some((c) => matches(c, profile, have)));
   }
 
   window.HOUSE = { REGIONS, FEATURES, MATERIALS, OWNERS, SYSTEMS, HOUSE_TYPES, SUPPLIES, ASSET_SUPPLIES, HOUSE_CATEGORIES, recommendSupplies, forRegion, typeOf,
-    ASSET_TYPES, ASSET_KINDS, FIXTURE_GROUP, isFixtureType, MAINT_KINDS, SEASONAL_TASKS, assetType, recommendAssets, seasonalTasksFor, ASSOC, DUES_PERIODS, assocOf };
+    ASSET_TYPES, ASSET_KINDS, FIXTURE_GROUP, isFixtureType, PORTABLE_GROUP, isPortableType, MAINT_KINDS, SEASONAL_TASKS, assetType, recommendAssets, seasonalTasksFor, ASSOC, DUES_PERIODS, assocOf };
 })();

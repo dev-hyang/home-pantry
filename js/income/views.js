@@ -143,7 +143,7 @@ function flowCharts(cf, title, { trend: withTrend = true } = {}) {
 }
 const kindDonut = (cf) => {
   const items = statKinds(inc().merge).filter((k) => cf.byKind[k.id]).map((k) => ({ name: `${k.icon} ${kindLabel(k.id)}`, value: R2(cf.byKind[k.id]), color: k.color, drill: incDrill({ kind: k.id, ...cf.w, person: cf.person }) }));
-  return items.length && window.Charts ? `<div class="panel chart-panel"><h3>${t("按收入类型")}</h3>${window.Charts.donut({ items, fmt: fmtMoney, title: t("按收入类型"), center: fmtMoney(items.reduce((a, x) => a + x.value, 0), true) })}</div>` : "";
+  return items.length && window.Charts ? `<div class="panel chart-panel"><h3>${t("按收入类型")}</h3>${window.Charts.donut({ items, fmt: fmtMoney, stack: true, title: t("按收入类型"), center: fmtMoney(items.reduce((a, x) => a + x.value, 0), true) })}</div>` : "";
 };
 const lineTable = (cf) => `<div class="panel"><div class="ch-scroll"><table class="store-table"><thead><tr><th scope="col">${t("周期")}</th><th scope="col">${t("收入")}</th>${cf.hasSpend ? `<th scope="col">${t("花费")}</th>` : ""}${cf.hasRepaid ? `<th scope="col">${t("其中：还款")}</th>` : ""}${cf.hasSpend ? `<th scope="col">${t("收支差额")}</th><th scope="col">${t("结余率")}</th>` : ""}</tr></thead><tbody>
   ${cf.lines.map((l) => `<tr><th scope="row">${esc(l.label)}</th><td>${fmtMoney(l.income)}</td>${cf.hasSpend ? `<td>${fmtMoney(l.spend)}</td>` : ""}${cf.hasRepaid ? `<td>${fmtMoney(l.repaid)}</td>` : ""}${cf.hasSpend ? `<td class="${l.net < 0 ? "down" : ""}">${fmtMoney(l.net)}</td><td>${rate(l.net, l.income)}</td>` : ""}</tr>`).join("")}
@@ -210,13 +210,13 @@ function categoryTab() {
   const bar = ovBar(O, { keys: cf.keys, cf }), win = O.month ? periodWin(O.month, "month", cf.w) : cf.w, kd = (id) => incDrill({ kind: id, ...win, person: O.person });
   if (!kinds.length) return `${bar}<div class="panel empty"><strong>${t("这段时间没有收入")}</strong>${t("换个时间范围或月份。")}</div>`;
   const sel = kinds.find((k) => k.id === O.kind) || kinds[0], total = R2(kinds.reduce((a, k) => a + sum(k.id), 0));
-  const donut = window.Charts.donut({ title: t("收入类型占比"), fmt: fmtMoney, center: fmtMoney(total, true), items: kinds.map((k) => ({ name: `${k.icon} ${kindLabel(k.id)}`, color: k.color, value: sum(k.id), drill: kd(k.id) })) });
+  const donut = window.Charts.donut({ title: t("收入类型占比"), fmt: fmtMoney, stack: true, center: fmtMoney(total, true), items: kinds.map((k) => ({ name: `${k.icon} ${kindLabel(k.id)}`, color: k.color, value: sum(k.id), drill: kd(k.id) })) });
   const trend = window.Charts.line({ title: t("{k}月度收入趋势", { k: kindLabel(sel.id) }), labels: cf.keys.map((k) => periodLabel(k, "month")), fmt: fmtMoney, series: [{ name: kindLabel(sel.id), color: sel.color, values: cf.keys.map((k) => R2(g[sel.id]?.[k] || 0)) }],
     drill: (_, i) => incDrill({ kind: sel.id, ...periodWin(cf.keys[i], "month", cf.w), person: O.person }) });
   const table = `<div class="panel"><div class="ch-scroll"><table class="store-table ix-tbl"><thead><tr><th scope="col">${t("类型")}</th><th scope="col">${t("笔数")}</th><th scope="col">${t("合计")}</th><th scope="col">${t("占比")}</th><th scope="col">${t("平均每笔")}</th></tr></thead><tbody>
     ${kinds.map((k) => `<tr class="ch-hit-row"${hitAttrs(kd(k.id), kindLabel(k.id))}><th scope="row">${kindBadge(k.id)}</th><td>${cnt(k.id)}</td><td>${fmtMoney(sum(k.id))}</td><td>${rate(sum(k.id), total)}</td><td>${fmtMoney(cnt(k.id) ? sum(k.id) / cnt(k.id) : 0)}</td></tr>`).join("")}
     <tr><th scope="row"><b>${t("合计")}</b></th><td><b>${kinds.reduce((a, k) => a + cnt(k.id), 0)}</b></td><td><b>${fmtMoney(total)}</b></td><td>100%</td><td></td></tr></tbody></table></div></div>`;
-  return `${bar}<div class="ix-two"><div class="panel chart-panel"><h3>${t("类型占比")}</h3>${donut}${DRILL_HINT()}</div>${table}</div>
+  return `${bar}<div class="panel chart-panel ix-share"><h3>${t("类型占比")}</h3>${donut}${DRILL_HINT()}</div>${table}
     <div class="panel chart-panel"><h3>${t("单个类型的月度趋势")}</h3>
       <div class="chips" role="group" aria-label="${esc(t("选择类型"))}">${kinds.map((k) => `<button type="button" class="chip" data-inc="ov-kind" data-id="${esc(k.id)}" aria-pressed="${k.id === sel.id}">${k.icon} ${esc(kindLabel(k.id))}</button>`).join("")}</div>
       ${trend}<div class="form-actions"><button type="button" class="btn btn-sm" data-drill="${esc(kd(sel.id))}">${t("查看「{k}」的明细", { k: kindLabel(sel.id) })} ›</button></div></div>`;
@@ -296,13 +296,15 @@ const waysHtml = () => { const I = inc(), newOpen = !!I.form && !I.form.rec?.id;
 function recordsTab() {
   const I = inc(), top = `${waysHtml()}${I.scanOpen ? scanHtml() : ""}${I.form && !inlineEditId() ? formHtml() : ""}`;
   if (!I.rec.length && !I.form) return top + empty() + kindManager();
-  return `${top}<div class="panel"><div class="form-grid ix-filter">
-    <label>${t("搜索")}<input type="search" data-inc-f="q" value="${esc(I.q)}" placeholder="${esc(t("付款方 / 备注"))}"></label>
-    <label>${t("类型")}<select data-inc-f="kind">${kindOptionsHtml(I.kind, { all: true, groups: true })}</select></label>
-    <label>${t("谁的")}<select data-inc-f="person" data-nosearch>${personOptions(I.person, { all: true })}</select></label>
-    <label>${t("年份")}<select data-inc-f="year" data-nosearch><option value="all">${t("全部")}</option>${yearsOf().map((v) => `<option value="${v}" ${I.year === v ? "selected" : ""}>${v}</option>`).join("")}</select></label>
-    <label>${t("月份")}<select data-inc-f="month" data-nosearch><option value="all">${t("全部")}</option>${Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => `<option value="${m}" ${I.month === m ? "selected" : ""}>${t("{m} 月", { m: +m })}</option>`).join("")}</select></label>
-    <label>${t("排序")}<select data-inc-f="sort" data-nosearch>${selOpts([["new", "最近的在前"], ["old", "最早的在前"], ["big", "金额从大到小"], ["small", "金额从小到大"], ["kind", "按类型（大类 - 小类）"]], I.sort || "new")}</select></label></div>
+  // 和花费明细同一套 .toolbar：宽屏一行（搜索 + 下拉）；手机收成「搜索框 + 筛选」按钮，点开才出下拉（shared/compact-filters.js）
+  const opt = (v, l, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(l)}</option>`;
+  return `${top}<div class="panel"><div class="toolbar ix-toolbar">
+    <input type="search" data-inc-f="q" value="${esc(I.q)}" placeholder="${esc(t("搜索付款方 / 备注"))}" aria-label="${esc(t("搜索收入"))}">
+    <select id="incKindF" data-inc-f="kind" aria-label="${esc(t("按类型筛选"))}">${kindOptionsHtml(I.kind, { all: true, groups: true, allLabel: t("全部类型") })}</select>
+    <select id="incPersonF" data-inc-f="person" data-nosearch aria-label="${esc(t("按成员筛选"))}">${personOptions(I.person, { all: true })}</select>
+    <select id="incYearF" data-inc-f="year" data-nosearch aria-label="${esc(t("按年份筛选"))}">${opt("all", t("全部年份"), I.year)}${yearsOf().map((v) => opt(v, v, I.year)).join("")}</select>
+    <select id="incMonthF" data-inc-f="month" data-nosearch aria-label="${esc(t("按月份筛选"))}">${opt("all", t("全部月份"), I.month || "all")}${Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => opt(m, t("{m} 月", { m: +m }), I.month)).join("")}</select>
+    <select id="incSort" data-inc-f="sort" data-nosearch aria-label="${esc(t("排序"))}">${selOpts([["new", "最近的在前"], ["old", "最早的在前"], ["big", "金额从大到小"], ["small", "金额从小到大"], ["kind", "按类型（大类 - 小类）"]], I.sort || "new")}</select></div>
     ${drillChips()}
     ${I.batch ? `<div class="muted small" style="margin-top:8px">${t("只看一次银行导入的入账")} <button type="button" class="btn btn-sm btn-ghost" data-inc="batch-clear">${t("看全部收入")}</button></div>` : ""}
     <div class="ix-tools"><button type="button" class="btn btn-sm btn-ghost" data-inc="sel-toggle">${I.selMode ? t("退出多选") : t("多选删除")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="print-list">${t("打印")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="csv-detail">${t("导出当前列表 CSV")}</button></div>
@@ -439,23 +441,32 @@ function sendersListHtml() {
   const I = inc(), { list, total } = senderGroups(), lim = I.slimit || S_PAGE;
   const page = list.slice(0, lim + 1), hasNext = page.length > lim, shown = page.slice(0, lim);   // 多取一个：有第 lim+1 个才显示「加载更多」
   const { k = "total", dir = "desc" } = I.ssort || {};
-  const th = ([key, label]) => { const on = k === key; return `<th scope="col" ${on ? `aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : ""}><button type="button" class="th-sort${on ? " is-on" : ""}" data-inc="s-sort" data-k="${key}" title="${esc(t("点一下按这一列排序"))}">${t(label)}<span aria-hidden="true">${on ? (dir === "asc" ? " ▲" : " ▼") : " ↕"}</span></button></th>`; };
-  return `<p class="muted small" style="margin:0 0 8px">${t("合计 {m}", { m: fmtMoney(total) })}</p>
-    <div class="ch-scroll"><table class="store-table ix-tbl"><thead><tr>${S_COLS.map(th).join("")}<th><span class="sr-only">${t("操作")}</span></th></tr></thead><tbody>
-    ${shown.map((x) => `<tr><th scope="row"><button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(sNameOf(x))}</button></th><td>${kindBadge(sMainKind(x))}</td><td>${x.n}</td><td>${fmtMoney(x.total)}</td><td>${rate(x.total, total)}</td><td>${x.last}</td>
-      <td>${x.rows.every(canEdit) ? `<button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</td></tr>
-      ${I.renameKey === x.key ? `<tr><td colspan="7"><form data-inc-form="rename" data-key="${esc(x.key)}" class="form-grid"><label>${t("统一改成")}<input name="to" maxlength="80" required value="${esc(sNameOf(x))}" list="incSenders"></label><div class="form-actions"><button class="btn btn-sm btn-primary">${t("改名（相同名字的会合并成一个）")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="">${t("取消")}</button></div></form><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></td></tr>` : ""}`).join("") || `<tr><td colspan="7" class="muted">${t("没有符合条件的付款方")}</td></tr>`}</tbody></table></div>
-    ${hasNext ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-sm btn-ghost" data-inc="s-more">${t("加载更多")}</button></div>` : ""}`;
+  const th = ([key, label]) => { const on = k === key; return `<th scope="col" class="s-${key}" ${on ? `aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : ""}><button type="button" class="th-sort${on ? " is-on" : ""}" data-inc="s-sort" data-k="${key}" title="${esc(t("点一下按这一列排序"))}">${t(label)}<span aria-hidden="true">${on ? (dir === "asc" ? " ▲" : " ▼") : " ↕"}</span></button></th>`; };
+  const cell = (key, inner) => `<td class="s-${key}" data-l="${esc(t(S_COLS.find((c) => c[0] === key)[1]))}">${inner}</td>`;
+  return `<p class="muted small" style="margin:0 0 8px">${t("{n} 个付款方，合计 {m}", { n: list.length, m: fmtMoney(total) })}</p>
+    <table class="store-table ix-stbl"><thead><tr>${S_COLS.map(th).join("")}<th scope="col" class="s-act"><span class="sr-only">${t("操作")}</span></th></tr></thead><tbody>
+    ${shown.map((x) => `<tr><th scope="row" class="s-name"><button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(sNameOf(x))}</button></th>${cell("kind", kindBadge(sMainKind(x)))}${cell("n", x.n)}${cell("total", `<b>${fmtMoney(x.total)}</b>`)}${cell("share", rate(x.total, total))}${cell("last", x.last)}
+      <td class="s-act">${x.rows.every(canEdit) ? `<button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</td></tr>
+      ${I.renameKey === x.key ? `<tr class="s-form"><td colspan="7"><form data-inc-form="rename" data-key="${esc(x.key)}" class="form-grid"><label>${t("统一改成")}<input name="to" maxlength="80" required value="${esc(sNameOf(x))}" list="incSenders"></label><div class="form-actions"><button class="btn btn-sm btn-primary">${t("改名（相同名字的会合并成一个）")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="">${t("取消")}</button></div></form><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></td></tr>` : ""}`).join("") || `<tr class="s-form"><td colspan="7" class="muted">${t("没有符合条件的付款方")}</td></tr>`}</tbody></table>
+    ${hasNext ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-sm btn-ghost" data-inc="s-more">${t("加载更多（还有 {n} 个）", { n: list.length - lim })}</button></div>` : ""}`;
 }
-const renderSenders = () => { const el = $("#incSendersList"); if (el) el.innerHTML = sendersListHtml(); };
+/** 排序下拉（手机上表头不显示，靠它排序；宽屏点表头和它是同一个设置） */
+const S_SORTS = [["total:desc", "金额从高到低"], ["total:asc", "金额从低到高"], ["last:desc", "最近到账的在前"], ["last:asc", "最早到账的在前"], ["n:desc", "收到次数最多"], ["name:asc", "名称 A → Z"], ["name:desc", "名称 Z → A"], ["kind:asc", "按类型"]];
+function sSortOptions() {
+  const { k = "total", dir = "desc" } = inc().ssort || {}, cur = `${k === "share" ? "total" : k}:${dir}`, list = [...S_SORTS];
+  if (!list.some(([v]) => v === cur)) list.push([cur, `${t((S_COLS.find((c) => c[0] === k) || [])[1] || k)} ${dir === "asc" ? "↑" : "↓"}`]);   // 点表头排出来的少见组合
+  return list.map(([v, l]) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(t(l))}</option>`).join("");
+}
+const renderSenders = () => { const el = $("#incSendersList"); if (el) el.innerHTML = sendersListHtml(); const ss = $("#incSsort"); if (ss) ss.innerHTML = sSortOptions(); };
 function sendersTab() {
   const I = inc(), range = I.sRange || "all";
   if (!I.rec.length) return empty();
   return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-inc-f="sRange" data-nosearch>${[["ytd", "今年"], ["3y", "近 3 年"], ["5y", "近 5 年"], ["all", "全部历史"]].map(([v, l]) => `<option value="${v}" ${v === range ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
     <label class="tb-field"><span>${t("谁的")}</span><select data-inc-f="person" data-nosearch>${personOptions(I.person, { all: true })}</select></label></div>
-    <div class="panel"><div class="form-grid ix-filter" style="margin-bottom:8px">
-      <label>${t("搜索")}<input type="search" data-inc-sq value="${esc(I.sq || "")}" placeholder="${esc(t("付款方 / 类型"))}"></label>
-      <label>${t("类型")}<select data-inc-f="skind">${kindOptionsHtml(I.skind || "all", { all: true, groups: true })}</select></label></div>
+    <div class="panel"><div class="toolbar ix-stoolbar">
+      <input type="search" data-inc-sq value="${esc(I.sq || "")}" placeholder="${esc(t("搜索付款方 / 类型"))}" aria-label="${esc(t("搜索付款方"))}">
+      <select id="incSkindF" data-inc-f="skind" aria-label="${esc(t("按类型筛选"))}">${kindOptionsHtml(I.skind || "all", { all: true, groups: true, allLabel: t("全部类型") })}</select>
+      <select id="incSsort" data-inc-ssort data-nosearch aria-label="${esc(t("排序"))}">${sSortOptions()}</select></div>
     <div id="incSendersList">${sendersListHtml()}</div>
     <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm" data-inc="csv-senders">${t("导出付款方汇总 CSV")}</button></div></div>`;
 }
@@ -472,7 +483,7 @@ const controlsHtml = (r, cf = null) => {
 };
 const spendDonut = (cf) => {
   const items = STAT_CATS().filter((c) => cf.spendCats[c.id]).map((c) => ({ name: `${c.icon} ${t(c.name)}`, color: c.color, value: R2(Object.values(cf.spendCats[c.id]).reduce((a, b) => a + b, 0)) })).filter((x) => x.value > 0);
-  return items.length && window.Charts ? `<div class="panel chart-panel"><h3>${t("花费去向（按分类）")}</h3>${window.Charts.donut({ items, fmt: fmtMoney, title: t("花费去向"), center: fmtMoney(items.reduce((a, x) => a + x.value, 0), true) })}</div>` : "";
+  return items.length && window.Charts ? `<div class="panel chart-panel"><h3>${t("花费去向（按分类）")}</h3>${window.Charts.donut({ items, fmt: fmtMoney, stack: true, title: t("花费去向"), center: fmtMoney(items.reduce((a, x) => a + x.value, 0), true) })}</div>` : "";
 };
 /* ───────────── 收支对比：收入 vs 花费 vs 差额（组合图），双周 / 月 / 季 / 年 ───────────── */
 function reportTab() {
@@ -722,7 +733,14 @@ export function initIncome({ render, refresh }) {
     if (el.dataset?.incTog === "merge") { setIncMerge(el.checked); return rerender(); }
     if (el.dataset?.incTog === "extra") { I.extra = el.checked; return rerender(); }
     if (el.dataset?.incKparent) { const kid = el.dataset.incKparent, v = el.value; guard(async () => { await saveMeta({ _income_kinds: customKinds().map((k) => (k.id === kid ? { ...k, parent: v } : k)) }); rerender(); }); return; }
-    if (el.dataset?.incF) { const k = el.dataset.incF; if (k === "q") return; I[k] = el.value; I.limit = 40; I.slimit = S_PAGE; return rerender(); }
+    if (el.dataset?.incSsort !== undefined) { const [k, dir] = el.value.split(":"); I.ssort = { k, dir }; I.slimit = S_PAGE; return renderSenders(); }
+    if (el.dataset?.incF) {
+      const k = el.dataset.incF; if (k === "q") return; I[k] = el.value; I.limit = 40; I.slimit = S_PAGE;
+      // 明细 / 付款方的筛选条：只重画列表（手机上「筛选」面板不会因为整页重画被收起，选完一个还能接着选）
+      if (el.closest(".ix-toolbar")) return renderIncList();
+      if (el.closest(".ix-stoolbar")) return renderSenders();
+      return rerender();
+    }
     if (el.dataset?.incR) { const r = R(); r[el.dataset.incR] = el.value; return rerender(); }
     if (el.dataset?.incAnchor !== undefined) { if (el.value) guard(async () => { await saveMeta({ _income_cfg: { ...incCfg(), anchor: el.value } }); rerender(); }); return; }
     if (el.dataset?.incAi === "consent") { try { localStorage.setItem("hmh-income-ai-ok", el.checked ? "1" : "0"); } catch { /* 忽略 */ } return rerender(); }

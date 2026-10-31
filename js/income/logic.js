@@ -6,6 +6,7 @@ import { Store } from "../core/store.js";
 import { meta } from "../bills/budget.js";
 import { esc, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
+import { financeOk } from "../core/finance-access.js";
 
 /* ───────────── 收入类型：大类 - 小类（和花费的分类一样两级） ─────────────
  * 记录上存的还是小类 id（income_records.kind，和以前一样），大类由下面的表推出来：老记录不用改数据，自然归到对应大类。
@@ -44,10 +45,11 @@ export const statKind = (kind, merge) => (merge ? groupOf(kind).id : kind);
 /** 合并 / 不合并时图表里出现的项（顺序固定） */
 export const statKinds = (merge) => (merge ? groupList() : kindList());
 /** 类型下拉：按大类分组（optgroup）；groups = 每组前面多一个「全部 X」（筛选用），all = 最前面「全部」 */
-export function kindOptionsHtml(sel, { all = false, groups = false } = {}) {
-  const opt = (v, label) => `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(label)}</option>`;
+export function kindOptionsHtml(sel, { all = false, groups = false, allLabel = "" } = {}) {
+  // short = 可搜索下拉（js/select-search.js）列表里显示的短名：大类已经是组标题，组里只写小类；选中后框里仍显示完整的「大类 - 小类」
+  const opt = (v, label, short = "") => `<option value="${esc(v)}" ${v === sel ? "selected" : ""}${short ? ` data-short="${esc(short)}"` : ""}>${esc(label)}</option>`;
   const ks = kindList();
-  return `${all ? opt("all", t("全部")) : ""}${groupList().map((g) => { const cs = ks.filter((k) => k.group === g.gid); return cs.length ? `<optgroup label="${esc(`${g.icon} ${t(g.name)}`)}">${groups ? opt(g.id, t("全部「{g}」", { g: t(g.name) })) : ""}${cs.map((k) => opt(k.id, `${k.icon} ${t(g.name)} - ${t(k.name)}`)).join("")}</optgroup>` : ""; }).join("")}`;
+  return `${all ? opt("all", allLabel || t("全部")) : ""}${groupList().map((g) => { const cs = ks.filter((k) => k.group === g.gid); return cs.length ? `<optgroup label="${esc(`${g.icon} ${t(g.name)}`)}">${groups ? opt(g.id, t("全部「{g}」", { g: t(g.name) }), t("全部{g}", { g: t(g.name) })) : ""}${cs.map((k) => opt(k.id, `${k.icon} ${t(g.name)} - ${t(k.name)}`, `${k.icon} ${t(k.name)}`)).join("")}</optgroup>` : ""; }).join("")}`;
 }
 export const CHANNELS = [["ach", "银行转账 / ACH"], ["wire", "电汇"], ["zelle", "Zelle / Venmo"], ["check", "支票"], ["cash", "现金"], ["other", "其他"]];
 
@@ -57,10 +59,12 @@ export const inc = () => (state.inc ||= { rec: [], rep: [], acc: [], loaded: fal
 const MERGE_KEY = "hmh-inc-merge";
 function mergeSaved() { try { return localStorage.getItem(MERGE_KEY) === "1"; } catch { return false; } }
 export const setIncMerge = (on) => { inc().merge = !!on; try { localStorage.setItem(MERGE_KEY, on ? "1" : "0"); } catch { /* 隐私模式下忽略 */ } };
-export const isOwnerNow = () => Store.mode === "demo" || state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
+/* 迁移 050 起收入归「财务权限」管：家主和家主开了财务权限的家人看、改全家的收入（和家主一样）；没开的人连收入页都进不来。
+ * 原来的「收入 → 权限」申请 / 批准（income_access）被它取代，那个标签不再显示。 */
+export const isOwnerNow = () => financeOk();
 export const myAccess = () => inc().acc.find((a) => a.user_id === state.user?.id) || null;
-/** 能不能看全家的收入：家主，或家主已允许。其余人数据库只给他们自己记的那几条 */
-export const canSeeAll = () => isOwnerNow() || myAccess()?.status === "granted";
+/** 能不能看全家的收入 */
+export const canSeeAll = () => financeOk();
 export const myPersonId = () => state.people.find((p) => p.member_user_id === state.user?.id)?.id || null;
 export const adults = () => state.people.filter((p) => (p.kind || "adult") === "adult");
 export const personName = (id) => state.people.find((p) => p.id === id)?.name || "";

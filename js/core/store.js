@@ -20,7 +20,7 @@ export const DemoStore = {
     const def = db.properties.find((p) => p.is_default) || db.properties[0];
     db.house_profiles ||= {};
     if (db.house_profile) { db.house_profiles[def.id] ||= db.house_profile; delete db.house_profile; }
-    for (const a of db.assets) a.property_id ||= def.id;
+    for (const a of db.assets) { a.property_id ||= def.id; a.recall ??= null; }   // recall：设备召回状态（云端是迁移 051 的 assets.recall）
     for (const s of db.seasonal) s.property_id ||= def.id;
     this.persist();
   },
@@ -462,7 +462,7 @@ export function seedDemo() {
 /* ───────────── 数据层：Supabase 云端 ───────────── */
 export const ITEM_FIELDS = ["name", "category", "subcategory", "unit", "quantity", "min_quantity", "location", "expiry_date", "lead_days", "avg_daily_use", "notes", "asset_ids"];
 export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", "brand", "model", "serial", "installed_on", "manufacture_year", "warranty_until", "labor_warranty_until",
-  "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes", "vehicle", "units"];
+  "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes", "vehicle", "units", "recall"];
 export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "acquired_on", "purchase_price", "sold_on", "sale_price", "archived", "notes"];
 export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email", "hoa"];
 export const INCOME_FIELDS = ["received_on", "amount", "currency", "orig_amount", "orig_currency", "fee", "source_name", "kind", "channel", "person_id", "account", "import_batch", "repay_required", "repay_due_on", "repay_amount", "notes"];
@@ -653,12 +653,25 @@ export const CloudStore = {
     const row = pick(a, ASSET_FIELDS, { household_id: this.hid, updated_by: state.user.id });
     if (row.kind === "vehicle") row.property_id = null;   // 车辆挂在家庭上
     else if (!row.property_id) row.property_id = state.propertyId;
-    if (a.id) { this.must(await this.sb.from("assets").update(row).eq("id", a.id)); return a.id; }
-    return this.must(await this.sb.from("assets").insert(row).select("id").single()).id;
+    // 召回（迁移 051）：调用方没带 recall 就不写这一列——改档案不会把召回状态冲掉，没执行迁移时也照常保存
+    if (!("recall" in a) || (!a.id && !a.recall)) delete row.recall;
+    if (a.id) { await this.assetWrite([row], () => this.sb.from("assets").update(row).eq("id", a.id)); return a.id; }
+    return (await this.assetWrite([row], () => this.sb.from("assets").insert(row).select("id").single())).id;
   },
   async addAssets(list, pid) {
     const rows = list.map((a) => pick({ ...a, property_id: pid }, ASSET_FIELDS, { household_id: this.hid, updated_by: state.user.id }));
-    this.must(await this.sb.from("assets").insert(rows));
+    rows.forEach((r) => { if (!r.recall) delete r.recall; });
+    await this.assetWrite(rows, () => this.sb.from("assets").insert(rows));
+  },
+  /** 还没执行迁移 051（assets.recall）：要清空召回就去掉这一列重试；要写召回则提示先执行迁移 */
+  async assetWrite(rows, run) {
+    let r = await run();
+    if (r.error && /recall/i.test(r.error.message || "")) {
+      if (rows.some((x) => x.recall)) throw new Error(t("还没执行数据库迁移 051（设备召回），先在 Supabase 里执行 supabase/migrations/051_asset_recall.sql"));
+      rows.forEach((x) => delete x.recall);
+      r = await run();
+    }
+    return this.must(r);
   },
   async deleteAsset(id) { this.must(await this.sb.from("assets").delete().eq("id", id)); },   // 保养记录随外键级联删除
   async listMaintLogs() {
@@ -857,9 +870,18 @@ export const CloudStore = {
   async deleteShopping(id) { this.must(await this.sb.from("shopping_list").delete().eq("id", id)); },
   async clearBought() { this.must(await this.sb.from("shopping_list").delete().eq("household_id", this.hid).eq("status", "bought")); },
   async listMembers() {   // 只列正式成员（迁移 049 起新加入的人先是「待批准」）；没执行 049 时没有 status 列，退回原来的读法
-    let r = await this.sb.from("household_members").select("user_id,display_name,role,joined_at").eq("household_id", this.hid).eq("status", "active").order("joined_at");
-    if (r.error && /status/i.test(r.error.message)) r = await this.sb.from("household_members").select("user_id,display_name,role,joined_at").eq("household_id", this.hid).order("joined_at");
+    const base = "user_id,display_name,role,joined_at";
+    const q = (cols, active) => { let b = this.sb.from("household_members").select(cols).eq("household_id", this.hid); if (active) b = b.eq("status", "active"); return b.order("joined_at"); };
+    let r = await q(`${base},can_finance`, true);   // can_finance：财务权限（迁移 050）
+    if (r.error && /can_finance/i.test(r.error.message)) r = await q(base, true);   // 没执行 050：普通成员按「没有财务权限」处理
+    if (r.error && /status/i.test(r.error.message)) r = await q(base, false);
     return this.must(r);
+  },
+  /** 家主给某位成员开 / 关财务权限（security definer RPC，迁移 050） */
+  async setMemberFinance(userId, on) {
+    const r = await this.sb.rpc("set_member_finance", { p_household: this.hid, p_user: userId, p_on: !!on });
+    if (r.error && /set_member_finance|could not find the function|schema cache/i.test(r.error.message || "")) throw new Error(t("数据库还没升级：请先执行 migrations/050_finance_access.sql"));
+    this.must(r);
   },
   /** 等家主批准的加入申请（读不到 = 没有） */
   async listPendingMembers() {

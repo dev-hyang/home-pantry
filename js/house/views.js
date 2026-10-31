@@ -8,7 +8,7 @@ import { askInline, ctx as askCtx } from "../core/ask.js";
 import { daysUntil, esc, fmtDate, inSpace, money, num } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { restockPanel, shelfGrid } from "../pantry/views.js";
-import { alertText, assetAlerts, assetName, myAssets } from "./assets.js";
+import { alertAct, alertBadge, alertText, assetAlerts, assetName, myAssets } from "./assets.js";
 import { monthName, monthTasks, taskRow } from "./tasks.js";
 import { houseBar } from "./property-form.js";
 import { currentProp, dealTasks, openDeal, propertyLive, statusText, taskRow as dealTaskRow } from "./deals.js";
@@ -457,10 +457,10 @@ function assetsPanel() {
   const body = !list.length
     ? `<div class="empty"><strong>${t("还没有设备档案")}</strong>${t("按房屋资料一次生成炉子、热水器、排水泵等设备，记录保修和保养周期。")}<p><a class="btn btn-primary" href="${href("house", "asset-template")}">${t("生成设备清单")}</a></p></div>`
     : alerts.length
-      ? `<ul class="restock-list">${alerts.slice(0, 4).map((a) => `<li>
-          <span class="badge ${a.service === "overdue" ? "b-out" : "b-soon"}">${a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修")}</span>
+      ? `<ul class="restock-list">${alerts.slice(0, 4).map((a) => { const b = alertBadge(a), act = alertAct(a); return `<li>
+          <span class="badge ${b.cls}">${esc(b.label)}</span>
           <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${a.t?.icon || "⚙️"} ${esc(assetName(a))}</a><small>${esc(alertText(a))}</small></div>
-          <a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a></li>`).join("")}</ul>`
+          <a class="btn btn-sm" href="${act.href}">${esc(act.label)}</a></li>`; }).join("")}</ul>`
       : `<div class="empty"><strong>${t("{n} 台设备，保养都在周期内", { n: list.length })}</strong></div>`;
   return `<section class="section">
     <div class="section-head"><h2>${t("设备档案")}</h2><div class="head-acts">

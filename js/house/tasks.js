@@ -11,6 +11,7 @@ import { href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { houseBar } from "./property-form.js";
 import { careCard } from "./assets.js";
+import { isRetired } from "./recall.js";
 import { askButton, askPanel, ctx as askCtx } from "../core/ask.js";
 
 const H = () => window.HOUSE;
@@ -42,7 +43,9 @@ export const customKey = (c) => `c_${String(c.id).replace(/-/g, "")}`;
 export function monthTasks(year, month, profile = state.houseProfile, pid = state.propertyId) {
   const period = periodOf(year, month);
   const doneOf = (key, periods) => state.seasonalDone.find((d) => d.task_key === key && d.property_id === pid && periods.includes(d.period)) || null;
-  const tpl = H().seasonalTasksFor(profile)
+  // 这套房产已有的设备类型（不含召回后退役的）：小家电的换季任务按“有这台设备”出现（a:<类型>）
+  const have = [...new Set(state.assets.filter((a) => a.property_id === pid && !isRetired(a)).map((a) => a.type))];
+  const tpl = H().seasonalTasksFor(profile, have)
     .filter((x) => x.months.includes(month))
     .map((task) => { const periods = windowPeriods(task, year, month); return { task, periods, done: doneOf(task.key, periods), pid }; });
   const custom = (state.customSeasonal || []).filter((c) => c.property_id === pid).flatMap((c) => {

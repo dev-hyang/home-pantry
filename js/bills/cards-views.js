@@ -10,6 +10,13 @@ import { ACCT_KINDS, CARDS_HREF, bonusLeft, cardById, cardHref, expDays, feeDays
 export { isBankAcct, kindIcon, kindName, noRewards };
 import { aiReady, aiSettings, askText, providerOf } from "../core/ai.js";
 import { askInline } from "../core/ask.js";
+import { cardsRO } from "../core/finance-access.js";
+
+/** 没有财务权限的家人：用卡只读。写入口都先过这里（界面上的按钮也不画；数据库由迁移 050 的行级安全兜底） */
+function roStop() {
+  if (!cardsRO()) return false;
+  toast(t("用卡是只读的：家主开放财务权限后才能修改")); return true;
+}
 
 const D = () => window.CARDS;
 const d = (v) => esc(v ?? "");
@@ -75,16 +82,17 @@ export const payAcctSelectHtml = (name, value, { extra = PAY_EXTRA, none = "（�
 
 /* ───────────── 页面 ───────────── */
 export function viewCards() {
-  const id = state.route.q.get("card");
-  if (id) return cardForm(id);
+  const id = state.route.q.get("card"), ro = cardsRO();
+  if (id && !(ro && id === "new")) return cardForm(id, ro);   // 只读：能打开看，不能新建
   const live = state.cards.filter((c) => c.active !== false), cards = live.filter((c) => !noRewards(c)), banks = live.filter(isBankAcct), gifts = live.filter((c) => c.kind === "gift");
   // 停用的：最近停用的在前（没有停用日期的老记录按最后修改时间）
   const off = state.cards.filter((c) => c.active === false).sort((a, b) => String(b.inactive_since || "").localeCompare(String(a.inactive_since || "")) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
   const addChips = `<div class="acct-add">${Object.entries(ACCT_KINDS).map(([k, [name, icon]]) => `<a class="chip" href="${cardHref("new")}&kind=${k}">＋ ${icon} ${esc(t(name))}</a>`).join("")}</div>`;
   return `<section class="section">
     <div class="section-head"><h2>${t("用卡")}</h2><p>${t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。银行账户也记在这里，账单扣款、缴费记录能直接选。")}</p>
-      <div class="head-acts"><a class="btn btn-primary btn-sm" href="${cardHref("new")}">${t("添加卡 / 账户")}</a></div></div>
-    ${state.cardDelete ? deleteConfirmHtml(state.cardDelete) : ""}
+      <div class="head-acts">${ro ? `<span class="badge" style="background:var(--surface-2)">${t("只读")}</span>` : `<a class="btn btn-primary btn-sm" href="${cardHref("new")}">${t("添加卡 / 账户")}</a>`}</div></div>
+    ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("你可以查看卡和推荐；添加、修改、停用、删除要家主在「设置 → 家庭与成员」里给你开财务权限。")}</p>` : ""}
+    ${state.cardDelete && !ro ? deleteConfirmHtml(state.cardDelete) : ""}
     ${cards.length ? pickPanel() : ""}
     ${cards.length ? reviewHtml() : ""}
     ${cards.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("我的卡")}</h2><p>${t("{n} 张在用", { n: cards.length })}${catalogAge() > 90 ? ` · <span class="bank-dup">${t("目录更新于 {d}，可能过期，返现规则以发卡行为准", { d: D().AS_OF })}</span>` : ""}</p></div>
@@ -92,9 +100,9 @@ export function viewCards() {
     ${banks.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("银行账户")}</h2><p>${t("支票 / 储蓄账户：账单自动扣款、缴费记录、信用卡还款从哪扣")}</p></div>
       <div class="panel"><ul class="restock-list card-list">${banks.map(cardRow).join("")}</ul></div>` : ""}
     ${gifts.length ? giftSection(gifts) : ""}
-    ${addChips}
+    ${ro ? "" : addChips}
     ${off.length ? offSection(off) : ""}
-    <p class="muted" style="margin-top:8px;font-size:12.5px">${t("手机上：一行向右滑 = 停用 / 启用，向左滑 = 删除（删除前会问花费记录怎么办）；电脑上鼠标移到行上出现同样的按钮。")}</p>
+    <p class="muted" style="margin-top:8px;font-size:12.5px" ${ro ? "hidden" : ""}>${t("手机上：一行向右滑 = 停用 / 启用，向左滑 = 删除（删除前会问花费记录怎么办）；电脑上鼠标移到行上出现同样的按钮。")}</p>
     <p class="muted kinds-note" style="margin-top:10px">${t("只记发卡行、产品、末四位、到期年月，不记完整卡号和密码。返现规则来自内置目录或你自己填，会变，以发卡行为准。")}</p>
   </section>`;
 }
@@ -149,7 +157,7 @@ function offSection(off) {
   const summary = [counts.gift ? t("礼品卡 {n}", { n: counts.gift }) : "", counts.card ? t("信用卡 {n}", { n: counts.card }) : "", counts.bank ? t("账户 {n}", { n: counts.bank }) : ""].filter(Boolean).join(" · ");
   return `<details class="ref-panel panel" style="margin-top:10px" ${state.cardCleanup || q || f.kind !== "all" || f.sort !== "since" ? "open" : ""}><summary><b>${t("停用的卡")}</b><small>${t("{n} 张卡", { n: off.length })}${summary ? ` · ${summary}` : ""}</small><span class="mch" aria-hidden="true">›</span></summary>
     <div class="ref-body" style="padding:10px 14px 0">${toolbar}
-      ${state.cardCleanup ? cleanupHtml(pool) : cleanable ? `<p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("有 {n} 张用完的礼品卡可以一键清掉", { n: cleanable })} <button type="button" class="btn btn-sm btn-ghost" data-action="card-cleanup-open">${t("清理")}</button></p>` : ""}</div>
+      ${cardsRO() ? "" : state.cardCleanup ? cleanupHtml(pool) : cleanable ? `<p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("有 {n} 张用完的礼品卡可以一键清掉", { n: cleanable })} <button type="button" class="btn btn-sm btn-ghost" data-action="card-cleanup-open">${t("清理")}</button></p>` : ""}</div>
     <ul class="restock-list card-list ref-body" style="padding-top:0">${rows.length ? rows.map(cardRow).join("") : `<li class="muted" style="font-size:13px">${t("没有符合条件的卡")}</li>`}</ul>
     <p class="muted" style="margin:0;padding:6px 14px 10px;font-size:12.5px">${t("按停用时间由近到远；右滑一行可重新启用。停用了但还有余额的会标出来。")}</p></details>`;
 }
@@ -166,6 +174,7 @@ function cleanupHtml(pool) {
         <button type="button" class="btn btn-sm btn-ghost" data-action="card-cleanup-cancel">${t("取消")}</button></div></div></div>`;
 }
 export async function runCleanup() {
+  if (roStop()) return;
   const off = state.cards.filter((c) => c.active === false), pool = cleanupPool(off);
   const list = state.cardCleanupRecent ? [...pool.eligible, ...pool.recent] : pool.eligible;
   for (const c of list) await Store.deleteCard(c.id);
@@ -232,13 +241,14 @@ function cardRow(c) {
     ${rowActs(c)}</li>`;
 }
 /** 行的手势属性：右滑 停用 / 启用，左滑 删除（js/swipe-rows.js） */
-const swipeAttrs = (c) => `data-swipe-del="card" data-swipe-alt="card" data-swipe-alt-label="${esc(c.active === false ? t("启用") : t("停用"))}" data-swipe-alt-go="${esc(c.active === false ? t("松手启用") : t("松手停用"))}"`;
+const swipeAttrs = (c) => cardsRO() ? "" : `data-swipe-del="card" data-swipe-alt="card" data-swipe-alt-label="${esc(c.active === false ? t("启用") : t("停用"))}" data-swipe-alt-go="${esc(c.active === false ? t("松手启用") : t("松手停用"))}"`;
 /** 行右侧：编辑 + （手势 / 悬停才出现的）停用 / 启用、删除 */
-const rowActs = (c) => `<span class="row-acts"><a class="btn btn-sm btn-ghost" href="${cardHref(c.id)}">${t("编辑")}</a>
+const rowActs = (c) => cardsRO() ? "" : `<span class="row-acts"><a class="btn btn-sm btn-ghost" href="${cardHref(c.id)}">${t("编辑")}</a>
     <button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="${c.active === false ? "card-react" : "card-deact"}" data-id="${esc(c.id)}">${c.active === false ? t("启用") : t("停用")}</button>
     <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="card-del" data-id="${esc(c.id)}" aria-label="${esc(t("删除 {name}", { name: c.name }))}">${t("删除")}</button></span>`;
 /** 停用 / 启用：记停用日期，「停用的卡」按它排 */
 export async function setCardActive(id, on) {
+  if (roStop()) return;
   const c = cardById(id); if (!c) return;
   await Store.saveCard({ ...c, active: on, inactive_since: on ? null : todayISO() });
   await reloadCards();
@@ -298,7 +308,7 @@ export function cardHintHtml(category, store, amount) {
 
 /* ───────────── 表单 ───────────── */
 const NUMF = (v) => (v == null || v === "" ? "" : num(v));
-function cardForm(id) {
+function cardForm(id, ro = false) {
   const isNew = id === "new", c = isNew ? null : cardById(id);
   const preset = state.route.q.get("preset");
   if (isNew && preset && !state.cardDraft) {   // 链接预填：#/bills/cards?card=new&preset=<目录 id>&last4=1234&due=24
@@ -324,7 +334,8 @@ function cardForm(id) {
   const b = v.bonus || {};
   return `<section class="section form-page">
     <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(CARDS_HREF())}<a href="${CARDS_HREF()}">${t("用卡")}</a><span class="sep">/</span><b>${isNew ? (bank ? t("添加账户") : t("添加卡")) : d(v.name)}</b></nav>
-    <form id="cardForm" class="panel" novalidate data-id="${d(c?.id)}">
+    <form id="cardForm" class="panel" novalidate data-id="${d(c?.id)}" ${ro ? 'data-readonly="1"' : ""}>
+      ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("只读：家主开放财务权限后才能修改")}</p><fieldset disabled style="border:0;padding:0;margin:0;min-width:0">` : ""}
       <fieldset><legend>${bank ? t("这个账户") : t("这张卡")}</legend><div class="form-grid">
         <label>${t("类型")}<select name="kind">${Object.entries(ACCT_KINDS).map(([k, [n, icon]]) => opt(k, `${icon} ${t(n)}`, kind === k)).join("")}</select><small>${t("支票 / 储蓄账户没有返现，不参与推荐；用来记账单从哪扣款、缴费用的哪个账户")}</small></label>
         ${catalogSel}
@@ -384,9 +395,9 @@ function cardForm(id) {
         <label>${t("每行一条：名称 | 金额 | year 或 quarter 或 month | 清零日期 | 已用")}<textarea name="credits" rows="3" placeholder="${esc(t("旅行报销 | 300 | year | 2027-01-01 | 120"))}">${d(credits)}</textarea></label>
       </fieldset>
       <label>${t("备注")}<input name="notes" maxlength="500" value="${d(v.notes)}"></label>
-      <p id="cardError" class="form-error" role="alert"></p>
+      ${ro ? `</fieldset><div class="form-actions"><a class="btn btn-ghost" href="${CARDS_HREF()}">${t("返回")}</a></div>` : `<p id="cardError" class="form-error" role="alert"></p>
       <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button><a class="btn btn-ghost" href="${CARDS_HREF()}">${t("取消")}</a>
-        ${c ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="card-del" data-id="${c.id}">${bank ? t("删除这个账户") : t("删除这张卡")}</button>` : ""}</div>
+        ${c ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="card-del" data-id="${c.id}">${bank ? t("删除这个账户") : t("删除这张卡")}</button>` : ""}</div>`}
     </form>
   </section>`;
 }
@@ -396,6 +407,7 @@ export function applyCatalogPick(id) {
   state.cardDraft = draft; go(cardHref("new"), { replace: true });
 }
 export async function saveCardForm(f) {
+  if (roStop()) return false;
   const fe = f.elements, err = $("#cardError");
   const name = fe.name.value.trim(); if (!name) { err.textContent = t("请填名称"); fe.name.focus(); return false; }
   const old = f.dataset.id ? cardById(f.dataset.id) : null, rw0 = old?.rewards || state.cardDraft?.rewards || {};
@@ -441,6 +453,7 @@ export async function saveCardForm(f) {
 }
 /** 删除卡：purchases = "keep"（花费保留，付款方式改成文字「礼品卡 · 名字」）或 "delete"（名下花费一起删） */
 export async function deleteCard(id, { purchases = "keep" } = {}) {
+  if (roStop()) { state.cardDelete = null; return; }
   const c = cardById(id); if (!c) return;
   const ps = state.purchases.filter((p) => p.card_id === id && !p.virtual), label = `${kindName(c.kind)} · ${c.name}`.slice(0, 40);
   for (const p of ps) { if (purchases === "delete") await Store.deletePurchase(p.id); else await Store.updatePurchase(p.id, { card_id: null, method: label }); }
@@ -456,6 +469,7 @@ const AI_SYSTEM = [
   "notes: one short sentence about important conditions (caps, membership required, activation).",
 ].join("\n");
 export async function aiDraftCard(f) {
+  if (roStop()) return;
   const name = f.elements.name.value.trim(), issuer = f.elements.issuer.value.trim();
   if (!name) return toast(t("先在名称里填卡的名字，例如 Chase Sapphire Preferred"));
   if (!aiReady()) return toast(t("还没填 API key，去 设置 → AI 助手 填一个（Gemini 有免费额度）"));

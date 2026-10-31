@@ -14,8 +14,29 @@
   // 可点击：带 data-drill（查询串，由页面的全局点击处理跳到明细）；键盘 Enter / 空格同样可用
   const hit = (q, label) => (q ? ` class="ch-hit" data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(label)}"` : "");
   const tip = (q) => (q ? `（${t("点击查看明细")}）` : "");
-  const both = (title, draw) => SIZES.map((z) =>
-    `<svg class="${z.cls}" viewBox="0 0 ${z.W} ${z.H}" role="img" aria-label="${esc(title)}">${draw(z)}</svg>`).join("");
+  // labels 传入时先按标签宽度排版横轴（见 fitX），放不下就斜着排并加高画布底部
+  const both = (title, draw, labels = null) => SIZES.map((z0) => {
+    const z = labels ? fitX(z0, labels) : z0;
+    return `<svg class="${z.cls}" viewBox="0 0 ${z.W} ${z.H}" role="img" aria-label="${esc(title)}">${draw(z)}</svg>`;
+  }).join("");
+
+  // 估算 12px 刻度字的宽度（中日韩字约一个字号宽，数字字母约 0.58 个字号）
+  const textW = (s) => [...String(s)].reduce((a, c) => a + (c.charCodeAt(0) > 0x2e80 ? 12 : /[A-Z0-9]/.test(c) ? 7.2 : 6.4), 0);
+  const ROT = 40, SIN = Math.sin((ROT * Math.PI) / 180), COS = Math.cos((ROT * Math.PI) / 180);
+  /** 横轴标签：横排放得下就横排（隔几个显示一个）；放不下就旋转 40°，按行距抽稀，画布底部加高，标签永不重叠 */
+  function fitX(z, labels) {
+    const n = labels.length;
+    if (!n) return z;
+    const iw = z.W - z.PAD.l - z.PAD.r, step = iw / n;          // 柱状图每格宽度；折线图间距略大，按小的算更稳妥
+    const every = Math.ceil(n / z.maxLabels);
+    const maxW = Math.min(110, Math.max(...labels.map(textW)));
+    // 横排放得下就横排，并且尽量多显示（短标签如「10月」可以每个都显示）；1.5 倍：首尾标签贴边对齐时会往里多伸半个标签
+    const everyH = Math.max(1, Math.ceil((maxW * 1.5 + 8) / step));
+    if (everyH <= every) return { ...z, every: everyH, rot: false };
+    const everyR = Math.max(1, Math.ceil(22 / step));            // 斜排后相邻两行至少隔 22 × sin40° ≈ 14px
+    const b = Math.ceil(maxW * SIN + 12 * COS + 14);
+    return { ...z, every: everyR, rot: true, H: z.H - z.PAD.b + b, PAD: { ...z.PAD, b } };
+  }
 
   function niceMax(v) {
     if (!(v > 0)) return 1;
@@ -24,7 +45,8 @@
     return 10 * p;
   }
 
-  function axes({ W, H, PAD, maxLabels }, max, labels, fmt, xAt) {
+  function axes(z, max, labels, fmt, xAt) {
+    const { W, H, PAD, maxLabels } = z;
     const ih = H - PAD.t - PAD.b;
     let g = "";
     for (let i = 0; i <= 4; i++) {
@@ -32,13 +54,28 @@
       g += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${y}" y2="${y}" class="ch-grid"/>`;
       g += `<text x="${PAD.l - 6}" y="${y + 4}" text-anchor="end" class="ch-tick">${esc(fmt((max * i) / 4, true))}</text>`;
     }
-    const every = Math.ceil(labels.length / maxLabels);
-    labels.forEach((l, i) => {
-      if (!(i % every === 0 || i === labels.length - 1)) return;
-      const x = xAt(i);   // 贴边的首尾标签改为左/右对齐，避免被裁掉
-      const anchor = x - PAD.l < 16 ? "start" : W - PAD.r - x < 16 ? "end" : "middle";
-      g += `<text x="${x}" y="${H - 10}" text-anchor="${anchor}" class="ch-tick">${esc(l)}</text>`;
+    const every = z.every || Math.ceil(labels.length / maxLabels), last = labels.length - 1;
+    // 每隔 every 个显示一个；末尾标签总要显示，它和前一个挨得太近时让掉前一个
+    const shown = labels.map((_, i) => i).filter((i) => i % every === 0);
+    if (shown[shown.length - 1] !== last) { if (shown.length > 1) shown.pop(); shown.push(last); }
+    if (z.rot) {   // 斜排：文字右端对齐刻度位置，往左下方斜
+      const y = PAD.t + ih + 14;
+      shown.forEach((i) => { const x = xAt(i).toFixed(1); g += `<text x="${x}" y="${y}" text-anchor="end" transform="rotate(-${ROT} ${x} ${y})" class="ch-tick">${esc(labels[i])}</text>`; });
+      return g;
+    }
+    // 横排：居中放；伸出画布的首尾标签改为左 / 右对齐。再按实际占的宽度去掉会相碰的（末尾标签优先保留）
+    const boxes = shown.map((i) => {
+      const x = xAt(i), w = textW(labels[i]);
+      const anchor = x - w / 2 < 2 ? "start" : x + w / 2 > W - 2 ? "end" : "middle";
+      const x0 = anchor === "start" ? x : anchor === "end" ? x - w : x - w / 2;
+      return { i, x, anchor, x0, x1: x0 + w };
     });
+    const kept = [];
+    boxes.forEach((b) => {
+      while (kept.length && kept[kept.length - 1].x1 + 6 > b.x0) { if (b.i === last) kept.pop(); else return; }
+      kept.push(b);
+    });
+    kept.forEach((b) => { g += `<text x="${b.x}" y="${H - 10}" text-anchor="${b.anchor}" class="ch-tick">${esc(labels[b.i])}</text>`; });
     return g;
   }
 
@@ -84,7 +121,7 @@
       });
       return axes(z, max, labels, fmt, xAt) + marks;
     };
-    return `<figure class="chart">${both(title, draw)}
+    return `<figure class="chart">${both(title, draw, labels)}
       ${legend(series, legendDrill)}${table(labels, stacked && series.length > 1 ? [...series, { name: t("合计"), values: totals }] : series, fmt)}</figure>`;
   }
 
@@ -116,12 +153,13 @@
       return axes(z, max, labels, fmt, xAt) + marks;
     };
     const allSeries = [...(barSeries ? [barSeries] : []), ...series];
-    return `<figure class="chart">${both(title, draw)}
+    return `<figure class="chart">${both(title, draw, labels)}
       ${legend(allSeries)}${table(labels, allSeries, fmt)}</figure>`;
   }
 
   /** 环形图（分类占比） */
-  function donut({ items, fmt = String, title, center = "" }) {
+  const LIST_TOP = 20;   // 占比列表默认只列前 20 项，其余收在「显示更多」后面
+  function donut({ items, fmt = String, title, center = "", stack = false }) {
     const total = items.reduce((a, x) => a + x.value, 0);
     const S = 220, R = 92, r = 58, cx = S / 2, cy = S / 2;
     let arcs = "";
@@ -142,14 +180,24 @@
     } else {
       arcs = `<circle cx="${cx}" cy="${cy}" r="${(R + r) / 2}" fill="none" class="ch-empty" stroke-width="${R - r}"/>`;
     }
-    const rows = items.filter((x) => x.value > 0).sort((a, b) => b.value - a.value)
-      .map((x) => `<li${x.drill ? ` class="ch-hit-row" data-drill="${esc(x.drill)}" role="link" tabindex="0" aria-label="${esc(x.name)}：${esc(fmt(x.value))}，${esc(t("查看明细"))}"` : ""}><i style="background:${x.color}"></i><span>${esc(x.name)}</span><b>${esc(fmt(x.value))}</b><em>${Math.round((x.value / total) * 100)}%</em>${x.drill ? '<u aria-hidden="true">›</u>' : ""}</li>`).join("");
-    return `<figure class="chart donut-wrap">
+    const pos = items.filter((x) => x.value > 0).sort((a, b) => b.value - a.value), extra = pos.length - LIST_TOP;
+    const rows = pos
+      .map((x, i) => `<li${x.drill ? ` class="ch-hit-row" data-drill="${esc(x.drill)}" role="link" tabindex="0" aria-label="${esc(x.name)}：${esc(fmt(x.value))}，${esc(t("查看明细"))}"` : ""}${i >= LIST_TOP ? " data-more hidden" : ""}><i style="background:${x.color}"></i><span>${esc(x.name)}</span><b>${esc(fmt(x.value))}</b><em>${Math.round((x.value / total) * 100)}%</em>${x.drill ? '<u aria-hidden="true">›</u>' : ""}</li>`).join("");
+    const more = extra > 0 ? `<button type="button" class="btn btn-sm btn-ghost dl-toggle" aria-expanded="false" data-more-n="${extra}">${esc(t("显示更多（还有 {n} 项）").replace("{n}", extra))}</button>` : "";
+    return `<figure class="chart donut-wrap${stack ? " donut-stack" : ""}">
       <svg viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(title)}">${arcs}
         <text x="${cx}" y="${cy - 4}" text-anchor="middle" class="ch-center">${esc(center)}</text>
         <text x="${cx}" y="${cy + 16}" text-anchor="middle" class="ch-tick">${t("合计")}</text></svg>
-      <ul class="donut-list">${rows || `<li class="muted">${t("这个月还没有花费记录")}</li>`}</ul></figure>`;
+      <div class="donut-side"><ul class="donut-list">${rows || `<li class="muted">${t("这个月还没有花费记录")}</li>`}</ul>${more}</div></figure>`;
   }
+  // 「显示更多 / 收起」：只切换本列表里第 21 项以后的行（图表 HTML 每次重画都是收起的）
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest?.(".dl-toggle"); if (!b) return;
+    const open = b.getAttribute("aria-expanded") !== "true";
+    b.closest(".donut-side").querySelectorAll("li[data-more]").forEach((li) => { li.hidden = !open; });
+    b.setAttribute("aria-expanded", String(open));
+    b.textContent = open ? t("收起") : t("显示更多（还有 {n} 项）").replace("{n}", b.dataset.moreN);
+  });
 
   window.Charts = { bars, line, donut };
 })();

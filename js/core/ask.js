@@ -99,7 +99,8 @@ export const ctx = {
   },
   asset(a) {
     const base = ctx.property(a.property_id);
-    return [...base, a.t ? t(a.t.name) : a.name, a.ageYears != null ? t("{n} 年", { n: Math.floor(a.ageYears) }) : t("安装年份未填"), a.lastService ? t("上次保养 {d}", { d: String(a.lastService).slice(0, 10) }) : t("没记过保养"), a.expected_life_years ? t("预期寿命 {n} 年", { n: a.expected_life_years }) : ""].filter(Boolean);
+    return [...base, a.t ? t(a.t.name) : a.name, a.ageYears != null ? t("{n} 年", { n: Math.floor(a.ageYears) }) : t("安装年份未填"), a.lastService ? t("上次保养 {d}", { d: String(a.lastService).slice(0, 10) }) : t("没记过保养"), a.expected_life_years ? t("预期寿命 {n} 年", { n: a.expected_life_years }) : "",
+      a.recallSt ? `${t(a.recallSt === "stop_use" ? "产品召回，停止使用" : "产品召回待处理")}${a.recall?.ref ? ` ${a.recall.ref}` : ""}` : "", a.brand || a.model ? [a.brand, a.model].filter(Boolean).join(" ") : ""].filter(Boolean);
   },
   vehicle(a) {
     const V = window.VEHICLES;
