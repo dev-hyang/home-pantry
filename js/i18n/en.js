@@ -2905,4 +2905,7 @@ export const EN = {
   "继续加载": "Load more", "列表每次显示": "Rows per list", "列表每次显示 {n} 条": "Lists now show {n} rows at a time",
   "花费、缴费、收入、库存、设备等长列表先显示这么多条，往下点“继续加载”再看更多。只存在这台设备上；没改过时手机 10 条、电脑 20 条。": "Long lists (spending, payments, income, inventory, equipment…) show this many rows first; tap “Load more” for more. Saved on this device only; defaults to 10 on phones and 20 on computers.",
   "最后一位家主不能被取消或移出": "The last owner can't be demoted or removed", "数据库还没升级：请先执行 migrations/052_member_profile.sql": "Database not upgraded yet: run migrations/052_member_profile.sql first",
+  // ── 记花费的分类下拉：账单、医疗（和导入对账单同一份分类） ──
+  "账单（水电气网 · 住房 · 车 · 保险贷款税 · 孩子宠物 · 家庭服务订阅）": "Bills (utilities · housing · car · insurance, loans & tax · kids & pets · home services & subscriptions)",
+  "医疗 / 宠物医疗（没建医疗账单的零星付款）": "Medical / vet (one-off payments without a medical bill)",
 };

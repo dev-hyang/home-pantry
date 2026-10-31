@@ -384,7 +384,7 @@ async function ingest(files) {
 
 /* ───────────── AI 解析（PDF 对账单 / 截图 / 扫描件 / 粘贴的文字） ───────────── */
 const catalog = () => {
-  const cats = [...window.CATEGORIES.filter((c) => c.space === "pantry" || c.space === "gear"), window.GROCERY_MISC, ...window.LIFE_CATS, ...window.WORK_CATS, window.VEHICLE_FUEL, { id: "vehicle_maint", name: "车辆维修保养" }, window.MAINT_CAT, ...window.TRAVEL_CATS, ...window.BILLS_GROUP.cats(), { id: "medical", name: "医疗" }, { id: "pet_care", name: "宠物医疗 / 服务" }];
+  const cats = [...window.CATEGORIES.filter((c) => c.space === "pantry" || c.space === "gear"), window.GROCERY_MISC, ...window.LIFE_CATS, ...window.WORK_CATS, window.VEHICLE_FUEL, { id: "vehicle_maint", name: "车辆维修保养" }, window.MAINT_CAT, ...window.TRAVEL_CATS, ...window.BILLS_GROUP.cats(), window.MEDICAL_GROUP, window.PET_CARE_CAT];
   return { text: cats.map((c) => `${c.id}=${t(c.name)}`).join("; "), ids: new Set(cats.map((c) => c.id)) };
 };
 async function aiParse(i) {
@@ -412,12 +412,8 @@ async function aiParse(i) {
 
 /* ───────────── 界面 ───────────── */
 const rangeOf = (rows) => { const d = rows.map((r) => r.date).sort(); return d.length ? `${d[0]} → ${d.at(-1)}` : ""; };
-const catOpts = (sel) => {
-  const own = (cats) => cats.map((c) => `<option value="${c.id}" ${c.id === sel ? "selected" : ""}>${c.icon} ${esc(t(c.name))}</option>`).join("");
-  const bills = window.BILLS_GROUP.cats().map((c) => ({ ...c, name: c.name }));
-  return `<option value="" ${!sel ? "selected" : ""}>${esc(t("— 请选择 —"))}</option>${categoryOptions(sel, { withOther: true, spend: true })}
-    <optgroup label="${esc(t("账单"))}">${own(bills)}</optgroup><optgroup label="${esc(t("其他"))}">${own([window.MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾" }])}</optgroup>`;
-};
+/** 分类下拉：和手动记一笔同一份（categoryOptions 的 spend 模式已含账单、医疗 / 宠物医疗，见 data.js SPEND_GROUPS） */
+const catOpts = (sel) => `<option value="" ${!sel ? "selected" : ""}>${esc(t("— 请选择 —"))}</option>${categoryOptions(sel, { withOther: true, spend: true })}`;
 /** 疑似已记录的几笔：每笔写出对上的是哪条已有花费，核对过确实不是重复的，勾上「仍然导入」就不再跳过 */
 const dupListHtml = (rows) => '<details class="bank-dups" ' + (rows.some((r) => r.forced) ? "open" : "") + '><summary>' + t("核对 / 取消跳过") + '</summary><ul class="plain small" style="margin:6px 0 0">'
   + rows.map((r) => '<li><label class="check-inline"><input type="checkbox" data-bank-force="' + esc(r.fk) + '" ' + (r.forced ? "checked" : "") + '><span>' + t("仍然导入") + ' · ' + esc(r.date) + ' · ' + money(r.out) + ' · <span class="muted">' + esc(t("对上的：{x}", { x: r.dupOf })) + '</span></span></label></li>').join("") + '</ul></details>';
@@ -502,7 +498,7 @@ function panelHtml() {
 /** 记住的归类规则：列出来、可逐条删或全部清除（归错了一次又勾了「记住」，不清掉会一直错） */
 function rulesHtml() {
   const rules = userRules(), keys = Object.keys(rules); if (!keys.length) return "";
-  const nameOf = (id) => { const c = [...window.CATEGORIES, ...window.BILLS_GROUP.cats(), ...window.LIFE_CATS, ...window.WORK_CATS, ...window.TRAVEL_CATS, window.GROCERY_MISC, window.VEHICLE_FUEL, window.MAINT_CAT, window.VEHICLE_CAT, window.MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾" }, window.OTHER_CAT].find((x) => x && x.id === id); return c ? `${c.icon} ${t(c.name)}` : id; };
+  const nameOf = (id) => { const c = [...window.CATEGORIES, ...window.BILLS_GROUP.cats(), ...window.LIFE_CATS, ...window.WORK_CATS, ...window.TRAVEL_CATS, window.GROCERY_MISC, window.VEHICLE_FUEL, window.MAINT_CAT, window.VEHICLE_CAT, window.MEDICAL_GROUP, window.PET_CARE_CAT, window.OTHER_CAT].find((x) => x && x.id === id); return c ? `${c.icon} ${t(c.name)}` : id; };
   return `<details class="ref-panel panel" style="margin-top:10px"><summary><b>${t("记住的归类")}</b><small>${t("{n} 家商家", { n: keys.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
     <div class="ref-body"><p class="muted" style="margin:0 0 6px;font-size:12.5px">${t("导入时勾了「记住我选的归类」后，这些商家下次自动按这里归。归错了就删掉这一条（或在导入清单里改选，会记住新的）。")}</p>
     <ul class="restock-list">${keys.sort((a, b) => ruleUse(rules[b]).t.localeCompare(ruleUse(rules[a]).t) || a.localeCompare(b)).map((k) => { const u = ruleUse(rules[k]); return `<li><div class="grow"><span class="name">${esc(k)}</span><small>${esc(nameOf(ruleCat(rules[k])))}${u.t ? ` · ${t("用过 {n} 次 · 最近 {d}", { n: u.n, d: u.t })}` : ""}</small></div><button type="button" class="btn btn-sm btn-ghost" data-bank-act="rule-del" data-key="${esc(k)}" aria-label="${esc(t("删除这条"))}">✕</button></li>`; }).join("")}</ul>

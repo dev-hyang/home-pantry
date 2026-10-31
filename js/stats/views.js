@@ -18,7 +18,7 @@ import { financeOk } from "../core/finance-access.js";   // 没有财务权限�
 /* ── 统计：花费与消耗趋势 ── */
 // 账单分类在 purchases 里记为 bill_<category>，名字取自 data/bills.js
 const BILL_CATS = () => BILLS_GROUP.cats();
-export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), ...TRAVEL_CATS, TRAVEL_GROUP, ...LIFE_CATS, LIFE_GROUP, DINING_GROUP, ADMIN_GROUP, ...CAPITAL_CATS, CAPITAL_GROUP, ...WORK_CATS, WORK_GROUP, GROCERY_MISC, VEHICLE_FUEL, MEDICAL_GROUP, { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" }, { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" }, { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" }, OTHER_CAT];
+export const ALL_CATS = () => [...CATEGORIES, MAINT_CAT, VEHICLE_CAT, ...BILL_CATS(), ...TRAVEL_CATS, TRAVEL_GROUP, ...LIFE_CATS, LIFE_GROUP, DINING_GROUP, ADMIN_GROUP, ...CAPITAL_CATS, CAPITAL_GROUP, ...WORK_CATS, WORK_GROUP, GROCERY_MISC, VEHICLE_FUEL, MEDICAL_GROUP, PET_CARE_CAT, { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" }, { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" }, OTHER_CAT];
 // 统计图里：储藏各分类单独显示，房屋耗材和设备维修保养合并为“房屋维护”、装备合并为“装备”、车辆维修保养为“车辆”各一组；
 // 账单按具体种类各一项（电费、燃气费、房贷…，只有有花费的才会出现在图里），同类账单同色相
 // 花费页有个“同一大类合并显示”开关（水电气网、住房、车…各合成一项，颜色少一些），选择记在本机；

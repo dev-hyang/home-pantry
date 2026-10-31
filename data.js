@@ -29,6 +29,7 @@ window.GEAR_CATEGORIES = [
 window.CATEGORIES.push(...window.GEAR_CATEGORIES);
 window.GEAR_GROUP = { id: "gear", name: "装备", icon: "🧳", color: "#a0522d" };   // 统计图里合并显示
 window.MEDICAL_GROUP = { id: "medical", name: "医疗", icon: "🏥", color: "#c2475f" };   // 医疗账单的付款（js/bills/medical.js 变成虚拟花费并进统计）
+window.PET_CARE_CAT = { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" };   // 兽医、寄养、美容；宠物类事件型账单的付款也记成这个分类（统计里并进“宠物”一组）
 
 /* 旅行出行：机票、船票、车票、燃油、租车、住宿、饭店、门票、旅行团……
  * 花费分类 id 是 travel_*（purchases.category 允许），统计里合并成“旅行出行”一组（点进去看明细时可以按具体类型筛）；
@@ -93,7 +94,8 @@ window.CAPITAL_CATS = [
   { id: "capital_other",   name: "其他资本性支出",            icon: "🧱", color: "#9ca3af" },
 ];
 window.isCapital = (id) => String(id || "").startsWith("capital_");
-/* 记花费的分类下拉怎么分组（日常储备 / 房屋耗材 / 装备三组由 categoryOptions 按空间生成，这里是后面的几组） */
+/* 记花费的分类下拉怎么分组（日常储备 / 房屋耗材 / 装备三组由 categoryOptions 按空间生成，这里是后面的几组）。
+ * 手动记一笔、就地编辑、导入对账单、设备召回退款都用这一份（pantry/views.js 的 categoryOptions(…, { spend: true })），不要在别处另列一份 */
 window.SPEND_GROUPS = () => {
   const L = (id) => window.LIFE_CATS.find((c) => c.id === id);
   return [
@@ -103,6 +105,9 @@ window.SPEND_GROUPS = () => {
     ["工作与专业（付费软件 · 考证 · 律师会计 · 办公用品）", window.WORK_CATS],
     ["政务与手续（证件罚单报税 · 手续费 · 邮寄）", ["life_gov", "life_fees", "life_mail"].map(L)],
     ["旅行专属（旅途中的吃饭 / 加油 / 门票记上面的普通分类，再填行程）", window.TRAVEL_CATS],
+    // 账单类（电费、燃气、水费、网络、房贷房租、保险、订阅…）和医疗：建了周期账单的缴费时会自动记，没建账单的零星付款也要能手动记 / 导入时选
+    ["账单（水电气网 · 住房 · 车 · 保险贷款税 · 孩子宠物 · 家庭服务订阅）", window.BILLS_GROUP ? window.BILLS_GROUP.cats() : []],
+    ["医疗 / 宠物医疗（没建医疗账单的零星付款）", [window.MEDICAL_GROUP, window.PET_CARE_CAT]],
     ["待细分 / 其他", [L("life_shopping"), L("life_other")]],
     ["资本性支出（房产交易、买车整付——不进日常统计和预算）", window.CAPITAL_CATS],
   ];
