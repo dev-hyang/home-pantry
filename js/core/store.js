@@ -526,7 +526,7 @@ export const CloudStore = {
     }
     return out;
   },
-  async listItems() { return this.must(await this.sb.from("items").select("*").eq("household_id", this.hid).order("name")); },
+  async listItems() { return this.pageAll(() => this.sb.from("items").select("*").eq("household_id", this.hid).order("name").order("id")); },
   async listCategories() { return this.must(await this.sb.from("custom_categories").select("*").eq("household_id", this.hid).order("sort").order("created_at")); },
   async saveCategory(c) {
     const row = pick(c, CATEGORY_FIELDS, { household_id: this.hid, updated_by: state.user.id });
@@ -567,8 +567,8 @@ export const CloudStore = {
   async deleteTerm(term) { this.must(await this.sb.from("custom_terms").delete().eq("household_id", this.hid).eq("term", term)); },
   async listLogs() {
     const since = new Date(Date.now() - STATS_LOG_DAYS * DAY).toISOString();
-    return this.must(await this.sb.from("stock_logs").select("item_id,delta,reason,created_at")
-      .eq("household_id", this.hid).gte("created_at", since).order("created_at").limit(10000));
+    return this.pageAll(() => this.sb.from("stock_logs").select("id,item_id,delta,reason,created_at")
+      .eq("household_id", this.hid).gte("created_at", since).order("created_at").order("id"));   // 分页：.limit(10000) 实际只回 1000 行，90 天里超过的最新记录会被截掉
   },
   async listPurchases() {
     const since = new Date(Date.now() - 400 * DAY).toISOString();
@@ -673,7 +673,7 @@ export const CloudStore = {
     if (r.error && /ownership/i.test(r.error.message) && !row.ownership) { delete row.ownership; r = await this.sb.from("house_profiles").upsert(row, { onConflict: "property_id" }); }   // 还没执行迁移 038 且没填产权那块：照旧保存
     this.must(r);
   },
-  async listAssets() { return this.must(await this.sb.from("assets").select("*").eq("household_id", this.hid).order("name")); },
+  async listAssets() { return this.pageAll(() => this.sb.from("assets").select("*").eq("household_id", this.hid).order("name").order("id")); },
   async saveAsset(a) {
     const row = pick(a, ASSET_FIELDS, { household_id: this.hid, updated_by: state.user.id });
     if (row.kind === "vehicle") row.property_id = null;   // 车辆挂在家庭上
@@ -700,7 +700,7 @@ export const CloudStore = {
   },
   async deleteAsset(id) { this.must(await this.sb.from("assets").delete().eq("id", id)); },   // 保养记录随外键级联删除
   async listMaintLogs() {
-    return this.must(await this.sb.from("maintenance_logs").select("*").eq("household_id", this.hid).order("done_on", { ascending: false }).limit(5000));
+    return this.pageAll(() => this.sb.from("maintenance_logs").select("*").eq("household_id", this.hid).order("done_on", { ascending: false }).order("id"));   // 分页读，超过 1000 条也不丢
   },
   async addMaintLog(l) {
     return this.must(await this.sb.from("maintenance_logs").insert({ ...l, household_id: this.hid, created_by: state.user.id }).select("id").single()).id;
@@ -752,14 +752,14 @@ export const CloudStore = {
   },
 
   /* 医疗账单：RLS 按 visibility 过滤（私密的只有创建人和家主读得到）；还没执行迁移 027 时表不存在，由调用方当作空 */
-  async listMedicalBills() { return this.must(await this.sb.from("medical_bills").select("*").eq("household_id", this.hid).order("service_date", { ascending: false, nullsFirst: false }).limit(2000)); },
+  async listMedicalBills() { return this.pageAll(() => this.sb.from("medical_bills").select("*").eq("household_id", this.hid).order("service_date", { ascending: false, nullsFirst: false }).order("id")); },   // 分页读，超过 1000 张也不丢
   async saveMedicalBill(b) {
     const row = pick(b, MED_FIELDS, { household_id: this.hid });
     if (b.id) { this.must(await this.sb.from("medical_bills").update(row).eq("id", b.id)); return b.id; }
     return this.must(await this.sb.from("medical_bills").insert(row).select("id").single()).id;
   },
   async deleteMedicalBill(id) { this.must(await this.sb.from("medical_bills").delete().eq("id", id)); },   // 付款级联删除
-  async listMedicalPayments() { return this.must(await this.sb.from("medical_payments").select("*").eq("household_id", this.hid).order("paid_on", { ascending: false }).limit(5000)); },
+  async listMedicalPayments() { return this.pageAll(() => this.sb.from("medical_payments").select("*").eq("household_id", this.hid).order("paid_on", { ascending: false }).order("id")); },
   async addMedicalPayment(p) { return this.must(await this.sb.from("medical_payments").insert({ ...p, household_id: this.hid, paid_by: state.user.id }).select("id").single()).id; },
   async updateMedicalPayment(id, patch) { this.must(await this.sb.from("medical_payments").update(patch).eq("id", id)); },
   async deleteMedicalPayment(id) { this.must(await this.sb.from("medical_payments").delete().eq("id", id)); },
@@ -816,7 +816,7 @@ export const CloudStore = {
   async deleteBill(id) { this.must(await this.sb.from("bills").delete().eq("id", id)); },   // 缴费记录级联删除；关联的 purchases 保留
   async listBillPayments() {
     const since = new Date(Date.now() - 400 * DAY).toISOString().slice(0, 10);
-    return this.must(await this.sb.from("bill_payments").select("*").eq("household_id", this.hid).gte("paid_on", since).order("paid_on", { ascending: false }).limit(5000));
+    return this.pageAll(() => this.sb.from("bill_payments").select("*").eq("household_id", this.hid).gte("paid_on", since).order("paid_on", { ascending: false }).order("id"));   // 分页：近 400 天超过 1000 笔时最早的不会被截掉
   },
   async addBillPayment(p) {
     return this.must(await this.sb.from("bill_payments").insert({ ...p, household_id: this.hid, paid_by: state.user.id }).select("id").single()).id;
@@ -852,7 +852,7 @@ export const CloudStore = {
   },
   /** 银行导入「查看 / 修改」：这一批的全部花费（不限近 400 天）——按 import_batch 列，旧批次按 id 列表 */
   async listPurchasesByBatch(batch, ids = []) {
-    const q = async (f) => this.must(await f(this.sb.from("purchases").select("*").eq("household_id", this.hid)).limit(5000)).map((x) => ({ ...x, category: canonCat(x.category) }));
+    const q = async (f) => (await this.pageAll(() => f(this.sb.from("purchases").select("*").eq("household_id", this.hid)).order("purchased_at").order("id"))).map((x) => ({ ...x, category: canonCat(x.category) }));   // 分页：一批超过 1000 笔也读全
     const byTag = await q((b) => b.eq("import_batch", batch)).catch((e) => { if (/import_batch/i.test(e.message || "")) return []; throw e; });   // 没跑迁移 034 就只靠 id 列表
     if (!ids.length) return byTag;
     const have = new Set(byTag.map((x) => x.id)), rest = ids.filter((i) => !have.has(i)), more = [];
