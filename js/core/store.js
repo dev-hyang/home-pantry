@@ -2,6 +2,10 @@ import { state } from "./state.js";
 import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
 import { t } from "./i18n.js";
 
+/* 成员资料（迁移 052）：只在 设置 → 家庭与成员 里用，不进 AI 提示词、不进备份（个人数据，只给本家庭看） */
+const PROFILE_COLS = "phone,email,address";
+const demoMe = () => ({ user_id: "me", display_name: state.displayName || t("我"), role: "owner", can_finance: false, joined_at: new Date().toISOString(), phone: null, email: null, address: null });
+
 /* ───────────── 数据层：本地演示 ───────────── */
 export const DemoStore = {
   mode: "demo", key: "hmh-demo-v3", db: null,
@@ -23,6 +27,27 @@ export const DemoStore = {
     for (const a of db.assets) { a.property_id ||= def.id; a.recall ??= null; }   // recall：设备召回状态（云端是迁移 051 的 assets.recall）
     for (const s of db.seasonal) s.property_id ||= def.id;
     this.persist();
+  },
+  /* 家庭成员（演示：只有“我”= 家主，user_id 固定为 "me"，和 budget.js 的 myId() 一致）；不放进 state.members，免得名册、分摊等演示数据跟着变 */
+  members() { if (!this.db.members?.length) { this.db.members = [demoMe()]; this.persist(); } return this.db.members.map((m) => ({ ...m })); },
+  async listMembers() { return this.members(); },
+  demoMember(id) { this.members(); const m = this.db.members.find((x) => x.user_id === id); if (!m) throw new Error(t("没有找到这位成员")); return m; },
+  async setMemberProfile(id, p) {
+    const name = (p.display_name || "").trim(); if (!name || name.length > 20) throw new Error(t("称呼要 1–20 个字"));
+    Object.assign(this.demoMember(id), { display_name: name, phone: p.phone || null, email: p.email || null, address: p.address || null });
+    if (id === "me") state.displayName = name;
+    this.persist();
+  },
+  async setMemberFinance(id, on) { this.demoMember(id).can_finance = !!on; this.persist(); },
+  async setMemberRole(id, role) {
+    const m = this.demoMember(id);
+    if (role !== "owner" && m.role === "owner" && this.db.members.filter((x) => x.role === "owner").length < 2) throw new Error(t("最后一位家主不能被取消或移出"));
+    m.role = role === "owner" ? "owner" : "member"; this.persist();
+  },
+  async removeMember(id) {
+    const m = this.demoMember(id);
+    if (m.role === "owner" && this.db.members.filter((x) => x.role === "owner").length < 2) throw new Error(t("最后一位家主不能被取消或移出"));
+    this.db.members = this.db.members.filter((x) => x.user_id !== id); this.persist();
   },
   persist() { try { localStorage.setItem(this.key, JSON.stringify(this.db)); } catch { /* 隐私模式下可能不可写，忽略 */ } },
   reset() { this.db = seedDemo(); this.load(); },
@@ -872,8 +897,10 @@ export const CloudStore = {
   async listMembers() {   // 只列正式成员（迁移 049 起新加入的人先是「待批准」）；没执行 049 时没有 status 列，退回原来的读法
     const base = "user_id,display_name,role,joined_at";
     const q = (cols, active) => { let b = this.sb.from("household_members").select(cols).eq("household_id", this.hid); if (active) b = b.eq("status", "active"); return b.order("joined_at"); };
-    let r = await q(`${base},can_finance`, true);   // can_finance：财务权限（迁移 050）
-    if (r.error && /can_finance/i.test(r.error.message)) r = await q(base, true);   // 没执行 050：普通成员按「没有财务权限」处理
+    let r = await q(`${base},can_finance,${PROFILE_COLS}`, true);   // 电话 / 邮箱 / 地址：成员资料（迁移 052）
+    state.noProfileCols = !!(r.error && /phone|email|address|can_finance|status|does not exist|schema cache/i.test(r.error.message));
+    if (state.noProfileCols) r = await q(`${base},can_finance`, true);   // 没执行 052：资料字段在界面上灰掉，提示先执行迁移
+    if (r.error && /can_finance/i.test(r.error.message)) r = await q(base, true);   // can_finance：财务权限（迁移 050）；没执行 050：普通成员按「没有财务权限」处理
     if (r.error && /status/i.test(r.error.message)) r = await q(base, false);
     return this.must(r);
   },
@@ -894,6 +921,13 @@ export const CloudStore = {
   async setMemberRole(userId, role) { this.must(await this.sb.rpc("set_member_role", { p_household: this.hid, p_user: userId, p_role: role })); },
   async removeMember(userId) { this.must(await this.sb.rpc("remove_member", { p_household: this.hid, p_user: userId })); },
   async setMemberName(userId, name) { this.must(await this.sb.rpc("set_member_name", { p_household: this.hid, p_user: userId, p_name: name })); },
+  /** 改成员资料（称呼 + 电话 / 邮箱 / 地址）：本人改自己的、家主改任何人的，数据库函数里校验（迁移 052）。没执行 052 时只改称呼（迁移 005 的 set_member_name） */
+  async setMemberProfile(userId, p) {
+    if (state.noProfileCols) return this.setMemberName(userId, p.display_name);
+    const r = await this.sb.rpc("set_member_profile", { p_household: this.hid, p_user: userId, p_name: p.display_name, p_phone: p.phone || null, p_email: p.email || null, p_address: p.address || null });
+    if (r.error && /set_member_profile|could not find the function|schema cache/i.test(r.error.message || "")) throw new Error(t("数据库还没升级：请先执行 migrations/052_member_profile.sql"));
+    this.must(r);
+  },
   subscribe(onChange) {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };

@@ -13,11 +13,11 @@ import { backupPanel, backupSummary } from "./backup-views.js";
 import { usageHTML } from "../core/usage.js";
 import { budgetPlan, isHouseholdOwner, myId } from "../bills/budget.js";
 import { financeOk } from "../core/finance-access.js";
+import { amOwner, famMembers, membersList, viewMemberProfile } from "./members.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
-export const isOwner = () => state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
+export const isOwner = () => amOwner();
 
-/** 家庭成员列表：家主能设 / 取消家主、移出成员；不能对自己操作（退出走“退出登录”），最后一位家主不能被取消或移出（数据库同样校验） */
 /** 邀请码有效期的一句话（家主看得到到期时间；没执行迁移 049 时没有这个字段 = 不显示） */
 const inviteLine = () => {
   const exp = state.household?.invite_expires_at; if (!exp) return "";
@@ -29,37 +29,10 @@ function pendingList() {
   const p = state.pendingMembers || []; if (!isOwner() || !p.length) return "";
   const row = (m) => `<li><div class="grow"><b>${esc(m.display_name)}</b>${m.joined_at ? `<small class="muted">${t("{d} 申请", { d: fmtShort(m.joined_at) })}</small>` : ""}</div>
       <span class="head-acts"><button type="button" class="btn btn-sm btn-primary" data-action="member-approve" data-id="${m.user_id}">${t("批准")}</button><button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-reject" data-id="${m.user_id}">${t("拒绝")}</button></span></li>`;
-  return `<div class="panel pend-panel" style="margin-top:12px"><h3 style="font-size:15px;margin:0 0 6px">${t("等你批准（{n}）", { n: p.length })}</h3>
+  return `<div class="panel pend-panel"><h3 style="font-size:15px;margin:0 0 6px">${t("等你批准（{n}）", { n: p.length })}</h3>
     <p class="muted small" style="margin:0 0 8px">${t("认识这个人再批准：批准后对方能看到家里的数据（对账单、收入、预算除外，要另外开财务权限）。不认识就拒绝，并重新生成邀请码。")}</p>
     <ul class="member-list">${p.map(row).join("")}</ul></div>`;
 }
-function membersList() {
-  const me = state.user?.id, owner = isOwner();
-  const owners = state.members.filter((m) => m.role === "owner").length;
-  return `<ul class="member-list">${state.members.map((m) => {
-    const self = m.user_id === me, isO = m.role === "owner";
-    // 家主正在改某位家人的称呼：这一行换成内联表单
-    if (owner && !self && state.editMember === m.user_id) {
-      return `<li><form class="member-rename" data-id="${m.user_id}">
-        <input name="display_name" required maxlength="20" value="${esc(m.display_name)}" aria-label="${t("家人的称呼")}">
-        <button class="btn btn-sm btn-primary" type="submit">${t("保存")}</button>
-        <button class="btn btn-sm btn-ghost" type="button" data-action="member-rename" data-id="">${t("取消")}</button></form></li>`;
-    }
-    // 财务权限（迁移 050）：家主恒有；普通成员默认关，只有家主能开关。aria-pressed 让读屏念出开 / 关
-    const fin = !isO && m.can_finance === true;
-    const finBtn = owner && !self && !isO ? `<button type="button" class="btn btn-sm ${fin ? "btn-primary" : "btn-ghost"}" data-action="member-finance" data-id="${m.user_id}" data-on="${fin ? "0" : "1"}" aria-pressed="${fin ? "true" : "false"}" title="${esc(t("对账单、收入、预算：能看能改；用卡：能改。关闭时只能看用卡、照常记花费"))}">💰 ${fin ? t("财务：已开") : t("财务：未开")}</button>` : "";
-    const acts = owner && !self ? `<span class="head-acts">
-        ${finBtn}
-        <button type="button" class="btn btn-sm btn-ghost" data-action="member-rename" data-id="${m.user_id}">${t("改称呼")}</button>
-        ${isO ? (owners > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="member-role" data-id="${m.user_id}" data-role="member">${t("取消家主")}</button>` : "")
-              : `<button type="button" class="btn btn-sm btn-ghost" data-action="member-role" data-id="${m.user_id}" data-role="owner">${t("设为家主")}</button>`}
-        ${!isO || owners > 1 ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-remove" data-id="${m.user_id}">${t("移出家庭")}</button>` : ""}
-      </span>` : "";
-    return `<li><div class="grow"><b>${esc(m.display_name)}</b>${isO ? ` <span class="badge b-ok">${t("家主")}</span>` : fin ? ` <span class="badge b-ok">${t("可看财务")}</span>` : ""}${self ? ` <span class="muted">${t("（我）")}</span>` : ""}
-      ${m.joined_at ? `<small class="muted">${t("{d} 加入", { d: fmtShort(m.joined_at) })}</small>` : ""}</div>${acts}</li>`;
-  }).join("")}</ul>`;
-}
-
 /** 房产列表：改名、设默认、归档；编辑中的那行换成内联表单（表单与房屋页共用 property-form.js） */
 function propertiesPanel() {
   const B = window.BILLS;
@@ -330,10 +303,17 @@ export function viewSettings() {
   const sw = (id, on, title, desc) => `<div class="panel"><div class="kv"><div><b>${title}</b><div class="muted">${desc}</div></div>
       <label class="switch"><input type="checkbox" id="${id}" ${on ? "checked" : ""}><span>${on ? t("已打开") : t("已关闭")}</span></label></div></div>`;
   const blocks = {
-    family: () => `
+    family: () => (state.route.q.get("member") ? viewMemberProfile(state.route.q.get("member")) : `
     <div class="panel">
       <div class="kv"><div><b>${esc(state.household?.name || "")}</b><div class="muted">${cloud ? t("云端协同：家人修改会实时同步") : t("本地演示：数据只保存在这个浏览器里")}</div></div>
         ${cloud ? `<a class="btn btn-sm btn-ghost" href="${href("me", "settings")}?sec=backup">${t("同步与备份")} ›</a>` : ""}</div>
+      ${cloud && state.households.length > 1 ? `<label style="display:grid;gap:4px;margin-top:12px">${t("切换家庭")}<select id="hhSwitch">${state.households.map((h) => `<option value="${h.id}" ${h.id === state.household.id ? "selected" : ""}>${esc(h.name)}</option>`).join("")}</select></label>` : ""}
+    </div>
+    ${cloud ? pendingList() : ""}
+    <div class="panel">
+      <h3 class="mem-h">${t("家庭成员（{n}）", { n: famMembers().length })}</h3>
+      ${membersList()}
+      <p class="muted mem-note">${amOwner() ? t("点一位家人查看和修改资料、财务权限、家主角色，或移出家庭。") : t("点自己可以改称呼和联系方式；家人的资料只能查看。")}</p>
     </div>
     ${cloud ? `
     <div class="panel">
@@ -342,21 +322,12 @@ export function viewSettings() {
           ${isOwner() ? `<button type="button" class="btn btn-sm btn-ghost" data-action="rotate-invite">${t("重新生成")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="close-invite">${t("关闭邀请")}</button>` : ""}</div></div>
       <p class="muted" style="font-size:12px;margin:8px 0 0">${t("家人用邀请码申请加入（不用收邮件），邀请码 7 天有效；申请后要家主在这里批准才能进来。邀请码泄露了或家人都加好了，请家主点「重新生成」或「关闭邀请」，旧码立即失效，已加入的家人不受影响。")}</p>
       ${state.user?.is_anonymous ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("你是通过邀请码直接进入的，身份保存在本设备浏览器里；清除浏览器数据或换手机后需要重新用邀请码进入。")}</p>` : ""}
-      ${pendingList()}
-      <h3 style="font-size:15px;margin:16px 0 6px">${t("家庭成员")}</h3>
-      ${membersList()}
-      ${isOwner() ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("家主可以改家人的称呼、把家人设为家主（可以有多位）、取消家主，或把误加入的人移出家庭。最后一位家主不能被取消或移出。")}</p>
-        <p class="muted" style="font-size:12px;margin:4px 0 0">${t("💰 财务权限：默认不开。不开的家人照常记花费、采购、保养，能看用卡（不能改），看不到对账单、收入和预算；开了就和家主一样全部能看能改。")}</p>` : ""}
-      <form id="nameForm" class="add-row" style="grid-template-columns:1fr auto;margin-top:12px">
-        <input name="display_name" maxlength="20" value="${esc(state.displayName)}" aria-label="${t("我在家里的称呼")}">
-        <button class="btn btn-sm" type="submit">${t("保存称呼")}</button></form>
-      ${state.households.length > 1 ? `<label style="display:grid;gap:4px;margin-top:12px">${t("切换家庭")}<select id="hhSwitch">${state.households.map((h) => `<option value="${h.id}" ${h.id === state.household.id ? "selected" : ""}>${esc(h.name)}</option>`).join("")}</select></label>` : ""}
     </div>` : `
     <div class="panel config-diag">
       <b>${t("为什么还是本地演示模式")}</b>
       <p>${esc(t(state.configIssue || "没有检测到 Supabase 配置。"))}</p>
       <p class="muted" style="margin:0">${t("自查：在浏览器打开 {link}，确认看到的是你填好的地址和 key；改完后等 1–2 分钟，再按 Ctrl+F5（Mac：Cmd+Shift+R）强制刷新。", { link: `<a href="config.js" target="_blank" rel="noopener">${t("本站的 config.js")}</a>` })}</p>
-    </div>`}`,
+    </div>`}`),
     prefs: () => `
     <div class="panel">
       <label class="field-label" for="langSel">${t("语言")}</label>

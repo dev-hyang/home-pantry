@@ -1916,3 +1916,55 @@ body.editing .minibar { display: none; }
 .crumb .crumb-back { display: inline-flex; align-items: center; min-height: 30px; margin: 0 8px 0 -5px; padding: 2px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--pine); font: inherit; font-size: 13.5px; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .crumb .crumb-back:hover, .crumb .crumb-back:active { background: var(--surface-2); }
 .crumb .crumb-back:focus-visible { outline: 3px solid var(--pine); outline-offset: 1px; }
+
+/* ── 设置 → 家庭与成员：成员列表一人一行 + 成员资料页（js/settings/members.js） ── */
+.settings > *, .mem-profile > * { min-width: 0; }   /* 网格项默认 min-width:auto：长称呼（不换行省略）会把整页撑宽 */
+.mem-h { font-size: 15px; margin: 0 0 8px; }
+.mem-note { font-size: 12px; margin: 8px 0 0; }
+.mem-list { padding: 0; }
+.mem-av { flex: none; width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 17px; line-height: 1; }
+.mem-av.lg { width: 56px; height: 56px; font-size: 24px; }
+.mem-av.tone-0 { background: var(--ok-bg); color: var(--ok); }
+.mem-av.tone-1 { background: var(--low-bg); color: var(--low); }
+.mem-av.tone-2 { background: var(--exp-bg); color: var(--exp); }
+.mem-av.tone-3 { background: var(--surface-2); color: var(--pine); }
+.mem-av.tone-4 { background: var(--out-bg); color: var(--out); }
+.mem-row .mt b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mem-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 3px; }
+.mem-badges small { font-size: 12px; color: var(--muted); }
+.mem-b { background: var(--surface-2); color: var(--ink); font-weight: 600; }
+.mem-b-fin { background: var(--low-bg); color: var(--low); }
+.mem-go { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--pine); font-weight: 600; }
+.mem-head { display: flex; align-items: center; gap: 14px; }
+.mem-head-t { min-width: 0; }
+.mem-head-t h2 { margin: 0; font-size: 20px; overflow-wrap: anywhere; }
+.mem-head-t small { display: block; margin-top: 4px; font-size: 12px; }
+.mem-profile { display: grid; gap: 14px; }
+.mem-profile .form-grid .mem-wide { grid-column: 1 / -1; }
+.mem-profile textarea { resize: vertical; min-height: 60px; }
+.mem-profile input:disabled, .mem-profile textarea:disabled { opacity: .55; cursor: not-allowed; }
+.mem-mig { color: var(--low); }
+.mem-addr { white-space: pre-wrap; }
+.mem-perm { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px dashed var(--line); }
+.mem-h + .mem-perm { border-top: 0; padding-top: 2px; }
+.mem-perm .grow { flex: 1; min-width: 0; }
+.mem-perm .muted { font-size: 12.5px; margin-top: 2px; line-height: 1.45; }
+.mem-perm .btn { flex: none; }
+.mem-danger { border-color: var(--out); }
+.mem-danger .mem-h { color: var(--out); }
+/* 开关按钮：role="switch"，aria-checked 决定样式；44px 高的点击区域 */
+.tgl { flex: none; position: relative; width: 52px; height: 30px; padding: 0; border-radius: 99px; border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; transition: background .15s; }
+.tgl::before { content: ""; position: absolute; inset: -7px -2px; }
+.tgl-knob { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .15s; }
+.tgl[aria-checked="true"] { background: var(--pine); border-color: var(--pine); }
+.tgl[aria-checked="true"] .tgl-knob { transform: translateX(22px); }
+.tgl:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.tgl-state { flex: none; min-width: 2.5em; font-size: 13px; font-weight: 600; color: var(--muted); }
+@media (max-width: 480px) {
+  .mem-go { font-size: 0; }   /* 手机上只留 › ，整行都能点 */
+  .mem-go .mch { font-size: 20px; }
+  .mem-perm { flex-wrap: wrap; }
+  .mem-perm .grow { flex-basis: calc(100% - 100px); }
+  .mem-danger .mem-perm .btn { flex: 1 1 100%; min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .tgl, .tgl-knob { transition: none; } }

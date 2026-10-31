@@ -53,6 +53,7 @@ import { deleteBillPay, renderBillList, renderPayList, billTemplateItems, export
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { moveCat, renderInvList, scoreRecipes, setShopOpen, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
+import { famMembers, familyHref, meId, profileErr, readMemberForm, reloadMembers } from "./settings/members.js";
 import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
 import * as Backup from "./core/backup.js";
 import * as Ask from "./core/ask.js";
@@ -180,7 +181,7 @@ const VIEWS = {
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout },
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
-const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "onetime" && !!r.q.get("bill")) || (r.section === "bills" && r.sub === "income" && !!state.inc?.form);   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
+const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "onetime" && !!r.q.get("bill")) || (r.section === "bills" && r.sub === "income" && !!state.inc?.form) || (r.section === "me" && r.sub === "settings" && !!r.q.get("member"));   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
 // 二级页顶部的面包屑和每个页签的目录页在 js/menu.js（参考家庭学堂“我的”页：一栏一行，点进去）
 const offPanel = (title, action, btn) => `<div class="panel empty"><strong>${title}</strong>${t("在“我的 → 设置”里可以重新打开。")}<p><button type="button" class="btn btn-primary" data-action="${action}">${btn}</button></p></div>`;
 
@@ -374,7 +375,7 @@ function resetSectionFilters(section) {
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
     case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: 20 }); state.spendEdit = null; state.spendSel = null; break;
-    case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.editMember = null; state.locForm = null; break;
+    case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.locForm = null; break;
     default: break;
   }
 }
@@ -780,18 +781,16 @@ main.addEventListener("submit", async (e) => {
       { const est = num(f.elements.estimate?.value, NaN); state.shopAdvice = Number.isFinite(est) && est > 0 ? { name, estimate: est, group: groupForCategory(linked?.category || f.elements.category.value, est) } : null; }
       toast(t("已加入：{name}", { name })); refresh();
     }
-    if (f.id === "nameForm") {
-      const v = f.elements.display_name.value.trim();
-      if (!v) return;
-      dupNameCheck(v, state.user.id);
-      await saveMyName(v); toast(t("称呼已保存")); render();
-    }
-    if (f.classList.contains("member-rename")) {   // 家主改家人的称呼
-      const v = f.elements.display_name.value.trim();
-      if (!v) return;
-      dupNameCheck(v, f.dataset.id);
-      await CloudStore.setMemberName(f.dataset.id, v);
-      state.editMember = null; state.members = await CloudStore.listMembers(); toast(t("称呼已保存")); return render();
+    if (f.id === "memberForm") {   // 成员资料：本人改自己的，家主改任何人的（数据库函数同样校验，迁移 052）
+      const err = $("#memberErr"); if (err) err.textContent = "";
+      try {
+        const p = readMemberForm(f), id = f.dataset.id;
+        dupNameCheck(p.display_name, id);
+        await Store.setMemberProfile(id, p);
+        if (id === meId()) state.displayName = p.display_name;
+        await reloadMembers();
+      } catch (ex) { if (err) { err.textContent = profileErr(friendlyErr(ex.message)); return; } throw ex; }
+      toast(t("资料已保存")); return go(familyHref(), { replace: true });
     }
     if (f.id === "loginForm") return doLogin(f);
     if (f.id === "phoneForm") return doPhoneLogin(f);
@@ -1132,30 +1131,29 @@ main.addEventListener("click", async (e) => {
       case "login-mode": state.loginMode = el.dataset.mode; state.phonePending = null; return renderLogin();
       case "otp-back": state.phonePending = null; return renderLogin();
       case "lang": return changeLang(el.dataset.lang || null);
-      case "member-rename": state.editMember = id || null; render(); if (id) $(`.member-rename input`)?.focus(); return;
       case "member-role": {
-        const m = state.members.find((x) => x.user_id === id), role = el.dataset.role;
+        const m = famMembers().find((x) => x.user_id === id), role = el.dataset.role;
         if (!m) return;
         if (!armed(el, role === "owner" ? t("再点一次设为家主") : t("再点一次取消家主"))) return;
-        await CloudStore.setMemberRole(id, role);
-        state.members = await CloudStore.listMembers();
+        await Store.setMemberRole(id, role);
+        await reloadMembers();
         toast(role === "owner" ? t("{name} 已设为家主", { name: m.display_name }) : t("{name} 已取消家主", { name: m.display_name })); return render();
       }
       case "member-finance": {   // 家主开 / 关某位家人的财务权限（对账单、收入、预算、用卡）
-        const m = state.members.find((x) => x.user_id === id), on = el.dataset.on === "1";
+        const m = famMembers().find((x) => x.user_id === id), on = el.dataset.on === "1";
         if (!m) return;
-        if (on && !armed(el, t("再点一次开放财务"))) return;
-        try { await CloudStore.setMemberFinance(id, on); } catch (err) { toast(err.message); return; }
-        state.members = await CloudStore.listMembers();
-        toast(on ? t("{name} 现在能看、能改对账单、收入、预算和用卡", { name: m.display_name }) : t("已收回 {name} 的财务权限", { name: m.display_name })); return render();
+        if (on && !confirm(t("给 {name} 开财务权限？开了就能看、能改对账单、收入、预算和用卡。", { name: m.display_name }))) return;
+        try { await Store.setMemberFinance(id, on); } catch (err) { toast(err.message); return; }
+        await reloadMembers();
+        toast(on ? t("{name} 现在能看、能改对账单、收入、预算和用卡", { name: m.display_name }) : t("已收回 {name} 的财务权限", { name: m.display_name })); render(); $(".tgl")?.focus(); return;   // 重画后把焦点放回开关（键盘 / 读屏）
       }
       case "member-remove": {
-        const m = state.members.find((x) => x.user_id === id);
+        const m = famMembers().find((x) => x.user_id === id);
         if (!m) return;
         if (!armed(el, t("再点一次确认移出"))) return;
-        await CloudStore.removeMember(id);
-        state.members = await CloudStore.listMembers();
-        toast(t("{name} 已移出家庭", { name: m.display_name })); return render();
+        await Store.removeMember(id);
+        await reloadMembers();
+        toast(t("{name} 已移出家庭", { name: m.display_name })); return go(familyHref(), { replace: true });
       }
       case "rotate-invite": {
         if (!armed(el, t("再点一次确认重置"))) return;
@@ -1519,8 +1517,9 @@ async function saveMyName(v) {
 }
 /** 改称呼前检查：和别的成员同名就拦住，并给出推荐（exceptId = 正在被改名的那位） */
 function dupNameCheck(v, exceptId) {
-  if (!sameNameMember(v, state.members, exceptId)) return;
-  throw new Error(t("已有成员叫“{n}”，建议改成：{s}", { n: v, s: suggestNames(v, state.members, exceptId).join(" / ") }));
+  const list = famMembers();
+  if (!sameNameMember(v, list, exceptId)) return;
+  throw new Error(t("已有成员叫“{n}”，建议改成：{s}", { n: v, s: suggestNames(v, list, exceptId).join(" / ") }));
 }
 
 
@@ -1576,6 +1575,7 @@ export async function boot() {
   } else {
     setStore(DemoStore);
     DemoStore.load();
+    state.displayName = DemoStore.members().find((m) => m.user_id === "me")?.display_name || state.displayName;   // 演示：在资料页改过的称呼
     state.household = { name: t("演示家庭（数据仅存于本浏览器）") };
     state.route = parseRoute();
     await refresh();
