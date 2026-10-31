@@ -18,6 +18,7 @@ import { tabBar, tabHub } from "../core/hub.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 import { PAY_EXTRA, acctById, acctLabel, accountOptions, billPayLabel, payAcctValue, paymentPayLabel, resolvePayAccount } from "./cards-views.js";
 import { askInline } from "../core/ask.js";
+import { moreBtn, pageLimit, pageMoreBtn } from "../core/pager.js";
 import { billAsk } from "./logic.js";
 
 const B = () => window.BILLS;
@@ -213,15 +214,18 @@ export function viewBillsList() {
     if (f.cat && f.cat !== "all") list = list.filter((b) => b.category === f.cat);
     const q = (f.q || "").trim().toLowerCase();
     if (q) list = list.filter((b) => `${b.name}${b.payee || ""}${b.account_last4 || ""}`.toLowerCase().includes(q));
-    const mode = f.sort || "category";
+    const mode = f.sort || "category", lim = pageLimit("bills", JSON.stringify([f.property, f.channel, f.cat, q, mode]));   // 分批显示：筛选 / 搜索 / 排序变了回到一页
     if (mode !== "category") {   // 换了排序就不分组，跨分类按一条线排
       const sorter = { due: (x, y) => (x.next_due_on || "9999").localeCompare(y.next_due_on || "9999") || compare(x.name, y.name), amount: (x, y) => num(y.est) - num(x.est), name: (x, y) => compare(x.name, y.name),
         updated: (x, y) => String(y.updated_at || "").localeCompare(String(x.updated_at || "")) }[mode];
-      return list.length ? `<div class="panel"><ul class="bill-list">${[...list].sort(sorter).map((b) => row(b, true)).join("")}</ul></div>` : `<div class="panel empty"><strong>${t("没有符合条件的账单")}</strong></div>`;
+      return list.length ? `<div class="panel"><ul class="bill-list">${[...list].sort(sorter).slice(0, lim).map((b) => row(b, true)).join("")}</ul></div>${pageMoreBtn("bills", list.length, lim)}` : `<div class="panel empty"><strong>${t("没有符合条件的账单")}</strong></div>`;
     }
     const groups = B().CATEGORIES.map((c) => ({ c, rows: list.filter((b) => b.category === c.id).sort((x, y) => (B().isSubCat(c.id) ? kindOrder.indexOf(x.sub_kind || "other") - kindOrder.indexOf(y.sub_kind || "other") : 0) || STATUS_RANK[x.status] - STATUS_RANK[y.status] || compare(x.name, y.name)) })).filter((g) => g.rows.length);
-    return groups.length ? groups.map(({ c, rows }) => `<div class="cat-group" style="--cat:var(--pine)"><h3>${c.icon} ${t(c.name)}<span class="muted">（${rows.length}）</span></h3>
-        <div class="panel"><ul class="bill-list">${rows.map((b) => row(b)).join("")}</ul></div></div>`).join("")
+    let left = lim;   // 跨分组一共只画前 lim 条；分组标题的条数仍按完整结果
+    const html = groups.map(({ c, rows }) => { if (left <= 0) return ""; const part = rows.slice(0, left); left -= part.length;
+      return `<div class="cat-group" style="--cat:var(--pine)"><h3>${c.icon} ${t(c.name)}<span class="muted">（${rows.length}）</span></h3>
+        <div class="panel"><ul class="bill-list">${part.map((b) => row(b)).join("")}</ul></div></div>`; }).join("");
+    return groups.length ? html + pageMoreBtn("bills", list.length, lim)
       : `<div class="panel empty"><strong>${t("没有符合条件的账单")}</strong></div>`;
   };
   const used = new Set(state.billsEnriched.map((b) => b.category));
@@ -255,20 +259,21 @@ const billLabel = (b) => (b ? withProperty(b.property_id, b.name) : "");
 const billOption = (b) => `${billLabel(b)}${endedSuffix(propertyById(b.property_id))}`;
 const byInUse = (x, y) => (billInUse(y) ? 1 : 0) - (billInUse(x) ? 1 : 0);
 /** 这笔缴费的收款方：缴费当时记在花费上的，没有就用账单的收款方 */
-const payeeOf = (p, b) => (p.purchase_id ? state.purchases.find((x) => x.id === p.purchase_id)?.store : "") || b?.payee || "";
+const payeeOf = (p, b, stores) => (p.purchase_id ? (stores ? stores.get(p.purchase_id) : state.purchases.find((x) => x.id === p.purchase_id)?.store) : "") || b?.payee || "";   // stores：画列表时先建好的 花费 id → 商店
 function payListInner() {
   const f = state.payFilter, byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b])), all = filteredPays(), shown = all.slice(0, f.limit);
   if (!state.billPayments.length) return `<div class="empty"><strong>${t("还没有缴费记录")}</strong>${t("在账单页记一笔，或在概览里点“已核对”。")}</div>`;
   if (!all.length) return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个筛选试试。")}</div>`;
   const cur = Units.region.currency, sum = all.filter((p) => p.status !== "skipped" && (p.currency || cur) === cur).reduce((s, p) => s + num(p.amount), 0);
+  const need = new Set(shown.map((p) => p.purchase_id).filter(Boolean)), stores = new Map(state.purchases.filter((x) => need.has(x.id)).map((x) => [x.id, x.store]).reverse());
   return `<p class="muted" style="margin:0 0 6px;font-size:13px">${t("{n} 笔", { n: all.length })} · ${money(sum)}</p><ul class="restock-list">${shown.map((p) => {
     const b = byBill[p.bill_id];
     return `<li data-swipe-del="bill-pay"><${b ? `a href="${href("bill", b.id)}?sec=pay&edit=${p.id}" title="${t("点一下编辑")}"` : "span"} class="badge pay-date" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</${b ? "a" : "span"}>
       <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(billLabel(b))}</a>` : t("（已删除的账单）")}</span>
-        <small>${[b ? acctText(b) : null, payeeOf(p, b) ? t("收款方：{who}", { who: payeeOf(p, b) }) : null, t(B().PAYMENT_STATUS[p.status] || p.status), paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+        <small>${[b ? acctText(b) : null, payeeOf(p, b, stores) ? t("收款方：{who}", { who: payeeOf(p, b, stores) }) : null, t(B().PAYMENT_STATUS[p.status] || p.status), paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b>${p.amount != null ? mny(p.amount, p.currency) : `<span class="muted">${t("未填金额")}</span>`}</b>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="billpay-del" data-id="${p.id}">${t("删除")}</button></li>`;
-  }).join("")}</ul>${all.length > shown.length ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-ghost" data-action="pay-more">${t("再显示 {n} 笔（还有 {m} 笔）", { n: Math.min(50, all.length - shown.length), m: all.length - shown.length })}</button></div>` : ""}`;
+  }).join("")}</ul>${moreBtn(all.length > shown.length, 'data-action="pay-more"')}`;
 }
 export function renderPayList() { const h = $("#payList"); if (h) h.innerHTML = payListInner(); }
 function payToolbar(byBill) {

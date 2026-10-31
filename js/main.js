@@ -7,7 +7,8 @@ import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, goBack, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.js";
 import { resilientFetch } from "./core/net.js";
-import { applyMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
+import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
+import { applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
 import { ensureAdults, mergeMedical } from "./bills/medical.js";
 import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-check.js";
 import { mountAppSwitcher } from "../shared/app-switcher.js";
@@ -43,7 +44,7 @@ import { budgetAction, budgetAlertItems, groupForCategory, maybeAutoGenerate, vi
 import "./settings/income.js";
 import { escrowAlertItems } from "./bills/escrow.js";
 import "./bills/finance.js";
-import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
+import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { fixAction, runFix, viewFix } from "./house/fix.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
@@ -161,8 +162,54 @@ function loadPurchasesSoon() {
     .finally(() => { purchasesLoading = false; if (purchasesAgain) { purchasesAgain = false; loadPurchasesSoon(); } });
 }
 
+/* 列表分批显示（js/core/pager.js）：「继续加载」后只重画这些列表；没列在这里的整页重画 */
+const PAGE_RENDER = { inv: () => renderInvList(), bills: () => renderBillList(), assets: () => renderAssetList(), med: () => renderMedList(), maint: () => renderMaintLogs() };
+/** 所有列表回到一页（换页面、改了每页条数）：新列表的计数清掉，自带 limit 的几个列表也改回一页 */
+function resetListPages() {
+  resetPages();
+  const n = pageSize(); state.spendFilter.limit = n; state.payFilter.limit = n;
+  if (state.inc) { state.inc.limit = n; state.inc.slimit = null; }
+  if (state.stmt) state.stmt.limit = n;
+}
+/* ── 实时同步按表重读：家人改了哪张表，就只重读那张表（和由它推出来的 enrich），不再整轮读 24 张表。
+ * 下面没列的表（房产、房屋资料、自定义分类 / 位置 / 翻译——会影响当前房产和全局分类表）照旧整轮 refresh。 */
+const reloadDealExtras = () => Store.listDealExtras().then((x) => { state.dealOverrides = x.overrides; state.dealCustom = x.custom; state.dealEvents = x.events || []; });
+const TABLE_RELOAD = {
+  items: () => Promise.all([Store.listItems(), Store.listLogs()]).then(([items, logs]) => { state.items = items; state.logs = logs; state.enriched = enrich(items, logs); }),   // 加减库存同时写 stock_logs（没订阅），一起重读
+  shopping_list: () => Store.listShopping().then((r) => { state.shopping = r; }),
+  purchases: () => { loadPurchasesSoon(); },   // 自己读完会重画统计页
+  assets: () => Store.listAssets().then((r) => { state.assets = r; state.assetsEnriched = enrichAssets(r, state.maintLogs); }),
+  maintenance_logs: () => Store.listMaintLogs().then((r) => { state.maintLogs = r; state.assetsEnriched = enrichAssets(state.assets, r); }),
+  seasonal_tasks: () => Store.listSeasonal(seasonalSince()).then((r) => { state.seasonalDone = r; }),
+  custom_seasonal_tasks: () => Store.listCustomSeasonal().then((r) => { state.customSeasonal = r; }),
+  bills: () => Store.listBills().then((r) => { state.bills = r; state.billsEnriched = enrichBills(r, state.billPayments); }),
+  bill_payments: () => Store.listBillPayments().then((r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); }),
+  medical_bills: () => reloadMedical(), medical_payments: () => reloadMedical(),
+  income_records: () => loadIncome(), income_repayments: () => loadIncome(), income_access: () => loadIncome(),
+  property_deals: () => Store.listDeals().then((r) => { state.deals = r; }),
+  deal_task_done: () => Store.listDealDone().then((r) => { state.dealDone = r; }),
+  deal_task_overrides: reloadDealExtras, deal_custom_tasks: reloadDealExtras, deal_events: reloadDealExtras,
+};
+const changedTables = new Set();
+let fullPending = false;
+async function refreshTables() {
+  const tables = [...changedTables], full = fullPending; changedTables.clear(); fullPending = false;
+  if (full || tables.some((x) => !TABLE_RELOAD[x])) return refresh();
+  if (refreshing) await refreshing.catch(() => {});   // 整轮读还在进行：等它完，再补读这几张表
+  const jobs = [...new Set(tables.map((x) => TABLE_RELOAD[x]))];   // 同一个重读函数（例如交易的三张附表）只跑一次
+  try {
+    await Promise.all(jobs.map((f) => f()));
+    setSync(t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, true);
+    if (!pendingAny()) notifyIfNeeded();
+    render(false);
+  } catch (e) { console.warn("[realtime]", tables.join(","), e.message); return refresh(); }   // 按表读失败：退回整轮刷新
+}
 export let debounceT;
-export const refreshSoon = () => { clearTimeout(debounceT); debounceT = setTimeout(refresh, 400); };
+/** payload = 实时同步的变更（带 table）：只重读那张表；不带（切回前台等）= 整轮刷新。仍然 400ms 防抖，连着几条变更合成一次 */
+export const refreshSoon = (payload) => {
+  if (payload?.table) changedTables.add(payload.table); else fullPending = true;
+  clearTimeout(debounceT); debounceT = setTimeout(refreshTables, 400);
+};
 
 
 /* ───────────── 页面与路由 ───────────── */
@@ -331,6 +378,8 @@ function onRoute() {
     else Object.assign(state.filter, { cat: "all", status: "all", q: "", loc: "all" });
   }
   if (next.section === "scan" && prev.section !== "scan") resetScan();
+  // 换了页面 / 页签 / 钻取参数：所有列表回到一页（从表单页返回原列表时保留，滚动位置才对得上）
+  if ((routeKey(prev) !== routeKey(next) || prev.q?.toString() !== next.q.toString()) && !isFormSection(prev)) resetListPages();
   // 从图表 / 名称钻取来的：套上筛选，再把地址里的筛选参数去掉（刷新或再次进入不会重复套用）
   if (next.section === "bills" && next.sub === "spend" && next.q.get("tab") === "records" && applySpendDrill(next.q)) { history.replaceState(null, "", `${href("bills", "spend")}?tab=records`); ensureBatchLoaded().then((fresh) => { if (fresh) render(false); }); }
   state.route = next;
@@ -374,7 +423,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: 50 }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: 20 }); state.spendEdit = null; state.spendSel = null; break;
+    case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: pageSize() }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: pageSize() }); state.spendEdit = null; state.spendSel = null; break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.locForm = null; break;
     default: break;
   }
@@ -435,16 +484,18 @@ main.addEventListener("touchend", (e) => {
   if (!document.querySelector(".month-nav")) return;
   shiftTasksMonth(dx < 0 ? 1 : -1); render();
 }, { passive: true });
+const searchSoon = debounce((fn) => fn());
 main.addEventListener("input", (e) => {
-  if (e.target.id === "invSearch") { state.filter.q = e.target.value; renderInvList(); }
-  if (e.target.id === "medSearch") { state.medFilter.q = e.target.value; renderMedList(); }
-  if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; state.spendFilter.limit = 20; renderSpendList(); }
-  if (e.target.id === "billSearch") { state.billsFilter.q = e.target.value; renderBillList(); }
-  if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; renderAssetList(); }
+  // 搜索框：筛选条件马上记下，列表停下 ~200ms 再重画（不是每敲一个字都重画整张列表）
+  if (e.target.id === "invSearch") { state.filter.q = e.target.value; searchSoon(renderInvList); }
+  if (e.target.id === "medSearch") { state.medFilter.q = e.target.value; searchSoon(renderMedList); }
+  if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; state.spendFilter.limit = pageSize(); searchSoon(renderSpendList); }
+  if (e.target.id === "billSearch") { state.billsFilter.q = e.target.value; searchSoon(renderBillList); }
+  if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; searchSoon(renderAssetList); }
   if (e.target.id === "offQ") {   // 停用的卡搜索：只重画那张列表，输入框不丢焦点
     (state.offFilter ||= { q: "", kind: "all", sort: "since" }).q = e.target.value;
-    const panel = e.target.closest("details"), ul = panel?.querySelector("ul.card-list"); if (!ul) return;
-    const tmp = document.createElement("div"); tmp.innerHTML = viewCards(); const fresh = tmp.querySelector("details.ref-panel ul.card-list"); if (fresh) ul.replaceWith(fresh);
+    const panel = e.target.closest("details");
+    searchSoon(() => { const ul = panel?.querySelector("ul.card-list"); if (!ul) return; const tmp = document.createElement("div"); tmp.innerHTML = viewCards(); const fresh = tmp.querySelector("details.ref-panel ul.card-list"); if (fresh) ul.replaceWith(fresh); });   // 整页 viewCards() 较重：停下再算
   }
   const df = e.target.closest("#dealForm, #dealTaskForm, #dealEventForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
   if (e.target.matches("textarea[data-grow]")) autoGrow(e.target);
@@ -521,7 +572,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.name === "kindPick") return onKindPick(e);
   if (e.target.matches?.("#medBillForm select[name=patient_id], #medBillForm select[name=guarantor_id]")) return onPersonPick(e);
   if (e.target.id === "medReportYear") { state.medYear = e.target.value; render(); }
-  { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; state.payFilter.limit = 50; renderPayList(); } }
+  { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; state.payFilter.limit = pageSize(); renderPayList(); } }
   { const k = { shopCat: "cat", shopWho: "who", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
   { const k = { assetType: "type", assetService: "service", assetWarranty: "warranty", assetLoc: "loc", assetSort: "sort" }[e.target.id]; if (k) { state.assetFilter[k] = e.target.value; renderAssetList(); } }
   { const k = { giftIssuer: "issuer", giftSort: "sort", giftUsed: "used" }[e.target.id]; if (k) { (state.giftFilter ||= { issuer: "all", sort: "balance", used: false })[k] = k === "used" ? e.target.checked : e.target.value; return render(false); } }   // 礼品卡的筛选 / 排序
@@ -590,6 +641,7 @@ main.addEventListener("change", async (e) => {
     try { localStorage.setItem("hmh-bills-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? t("已打开账单") : t("已关闭账单，导航里不再显示")); render();
   }
+  if (e.target.id === "pageSizeSel") { setPageSize(e.target.value); resetListPages(); toast(t("列表每次显示 {n} 条", { n: pageSize() })); render(); }
   if (e.target.id === "regionSel") {
     Units.setRegion(e.target.value || null); fillUnitList();
     state.enriched = enrich(state.items, state.logs); toast(t("已切换为{region}单位", { region: t(Units.region.name) })); render();
@@ -610,7 +662,7 @@ main.addEventListener("change", async (e) => {
     try { localStorage.setItem("hmh-gear-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? t("已打开装备") : t("已关闭装备，导航里不再显示")); render();
   }
-  { const k = { spendCat: "cat", spendStore: "store", spendMonth: "month", spendSort: "sort" }[e.target.id]; if (k) { state.spendFilter[k] = e.target.value; if (k === "store") state.spendFilter.stores = null; if (k === "cat") state.spendFilter.grp = null; if (k === "month") state.spendFilter.months = null; state.spendFilter.limit = 20; renderSpendList(); } }   // 手动选了单个商店 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”
+  { const k = { spendCat: "cat", spendStore: "store", spendMonth: "month", spendSort: "sort" }[e.target.id]; if (k) { state.spendFilter[k] = e.target.value; if (k === "store") state.spendFilter.stores = null; if (k === "cat") state.spendFilter.grp = null; if (k === "month") state.spendFilter.months = null; state.spendFilter.limit = pageSize(); renderSpendList(); } }   // 手动选了单个商店 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”
   if (e.target.dataset?.action === "stats-bill-merge") { setBillMerge(e.target.checked); render(); }
   if (e.target.dataset?.action === "stats-capital") { state.stats.includeCapital = e.target.checked; render(); }
   if (e.target.id === "statsRange") { const v = e.target.value; state.stats.months = v.startsWith("y:") || v === "m" ? v : +v; state.stats.month = null; render(); ensureYearLoaded(v).then((fresh) => { if (fresh) render(false); }); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（往年按需读回来）
@@ -1050,7 +1102,8 @@ main.addEventListener("click", async (e) => {
         toast(t("已归类")); render(); return refresh();
       }
       case "spend-edit-cancel": { if (state.spendDrafts && state.spendEdit) delete state.spendDrafts[state.spendEdit]; state.spendEdit = null; return renderSpendList(); }
-      case "pay-more": state.payFilter.limit += 50; return renderPayList();
+      case "pay-more": state.payFilter.limit += pageSize(); return renderPayList();
+      case "page-more": { const k = el.dataset.page; pageMore(k); const fn = PAGE_RENDER[k.split(":")[0]]; return fn ? fn() : render(false); }   // 「继续加载」：能只重画列表的就只重画列表
       case "deal-filter": state.dealFilter = el.dataset.val; return render();
       case "tasks-undone": state.tasksOnlyUndone = !state.tasksOnlyUndone; return render();
       case "spend-chip-clear": clearSpendFilter(el.dataset.k); return renderSpendRecords();
@@ -1078,7 +1131,7 @@ main.addEventListener("click", async (e) => {
       case "person-merge": return personMerge(el.dataset.id);
       case "person-del": if (!armed(el, t("再点一次确认删除"))) return; return personDelete(el.dataset.id);
       case "people-bulk": return peopleBulk();
-      case "spend-more": state.spendFilter.limit += 20; return renderSpendList();
+      case "spend-more": state.spendFilter.limit += pageSize(); return renderSpendList();
       case "spend-sel-toggle": state.spendSel = state.spendSel ? null : new Set(); state.spendEdit = null; return render();
       case "spend-sel-all": { const S = state.spendSel || (state.spendSel = new Set()); filteredSpend().forEach((p) => { if (!p.virtual) S.add(p.id); }); return renderSpendList(); }
       case "spend-sel-none": state.spendSel = new Set(); return renderSpendList();
@@ -1532,7 +1585,7 @@ export async function boot() {
   applyChrome();
   fillUnitList();
   document.addEventListener("budget-saved", () => render());
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && state.enriched) refreshSoon(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && state.enriched) refreshSoon(null); });
   // 跨过手机 / 宽屏分界（旋转 iPad、拖窗口）：库存页在方块仪表盘和分类导航之间切换
   window.matchMedia("(max-width: 640px)").addEventListener("change", () => { const r = state.route; if (state.enriched && ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies"))) render(true); });
 

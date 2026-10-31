@@ -9,6 +9,7 @@ import { tabBar, tabHub } from "../core/hub.js";
 import { MEDICAL_TABS, activeTab } from "../core/tabs.js";
 import { dq, download, lastMonths, monthLabel, toCsv } from "../stats/views.js";
 import { autofillBar } from "../core/autofill.js";
+import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { kindsNote } from "./kinds.js";
 import { accountOptions, acctById, paymentPayLabel } from "./cards-views.js";
 import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, enrichMedical, findPerson, kindOf, mergeMedical, peopleFor, subIcon, subName } from "./medical.js";
@@ -52,7 +53,8 @@ function listInner() {
   if (!state.medEnriched.length) return emptyHtml();
   if (!all.length) return `<div class="empty"><strong>${t("没有符合条件的账单")}</strong>${t("换个筛选试试。")}</div>`;
   const owe = all.reduce((s, b) => s + (b.open && b.balance ? b.balance : 0), 0);
-  return `<p class="muted" style="margin:0 0 6px;font-size:13px">${t("{n} 张", { n: all.length })} · ${t("余额 {a}", { a: mny(owe) })}</p><ul class="restock-list">${all.slice(0, 200).map(medRow).join("")}</ul>`;
+  const lim = pageLimit("med", JSON.stringify(state.medFilter));   // 分批显示（原来硬性只画前 200 张、没有按钮）
+  return `<p class="muted" style="margin:0 0 6px;font-size:13px">${t("{n} 张", { n: all.length })} · ${t("余额 {a}", { a: mny(owe) })}</p><ul class="restock-list">${all.slice(0, lim).map(medRow).join("")}</ul>${pageMoreBtn("med", all.length, lim)}`;
 }
 export function renderMedList() { const h = $("#medList"); if (h) h.innerHTML = listInner(); }
 const emptyHtml = () => `<div class="empty"><strong>${t("还没有医疗账单")}</strong>${t("就诊后收到的账单、保险说明（EOB）都记在这里：总额、保险已付、自付金额、分次付款。默认只有你自己和家主看得到。")}
@@ -62,9 +64,10 @@ const emptyHtml = () => `<div class="empty"><strong>${t("还没有医疗账单")
 function overviewTab() {
   const list = state.medEnriched, open = list.filter((b) => b.open), owe = open.reduce((s, b) => s + (b.balance || 0), 0);
   const wait = list.filter((b) => b.status === "awaiting_insurance").length, y = String(new Date().getFullYear());
-  const paidYear = state.medPayments.filter((p) => String(p.paid_on).startsWith(y) && state.medBills.some((b) => b.id === p.bill_id)).reduce((s, p) => s + num(p.amount), 0);
+  const billIds = new Set(state.medBills.map((b) => b.id));   // 建一次，付款逐条判断不再线性查找
+  const paidYear = state.medPayments.filter((p) => String(p.paid_on).startsWith(y) && billIds.has(p.bill_id)).reduce((s, p) => s + num(p.amount), 0);
   const months = lastMonths(12), byM = Object.fromEntries(months.map((m) => [m, 0]));
-  for (const p of state.medPayments) { const m = String(p.paid_on).slice(0, 7); if (m in byM && state.medBills.some((b) => b.id === p.bill_id)) byM[m] += num(p.amount); }
+  for (const p of state.medPayments) { const m = String(p.paid_on).slice(0, 7); if (m in byM && billIds.has(p.bill_id)) byM[m] += num(p.amount); }
   const chart = list.length && Object.values(byM).some((v) => v > 0) ? Charts.bars({ title: t("每月医疗付款"), labels: months.map(monthLabel), fmt: money,
     series: [{ name: t("已付"), color: window.MEDICAL_GROUP.color, values: months.map((m) => byM[m]) }], drill: (_, i) => dq({ cat: "medical", month: months[i] }) }) : "";
   const kpi = (label, val, sub, drill) => `<div class="kpi"><span>${label}</span><b>${val}</b><small>${sub}</small></div>`;
@@ -97,12 +100,13 @@ function listTab() {
 function reportTab() {
   const y = state.medYear || String(new Date().getFullYear()), years = [...new Set([String(new Date().getFullYear()), ...state.medEnriched.map((b) => String(b.service_date || b.bill_date || "").slice(0, 4)).filter(Boolean)])].sort().reverse();
   const inYear = state.medEnriched.filter((b) => String(b.service_date || b.bill_date || b.created_at || "").startsWith(y));
-  const payYear = state.medPayments.filter((p) => String(p.paid_on).startsWith(y) && state.medBills.some((b) => b.id === p.bill_id));
+  const billById = new Map(state.medBills.map((b) => [b.id, b]).reverse());
+  const payYear = state.medPayments.filter((p) => String(p.paid_on).startsWith(y) && billById.has(p.bill_id));
   const sum = (arr, f) => arr.reduce((s, x) => s + f(x), 0);
   const group = (key) => { const m = new Map(); for (const b of inYear) { const k = b[key] || t("（未填）"); const g = m.get(k) || { name: k, n: 0, billed: 0, ins: 0, adj: 0, owed: 0, paid: 0 }; g.n++; g.billed += num(b.billed_amount); g.ins += num(b.insurance_paid); g.adj += num(b.adjustment); g.owed += b.owed || 0; g.paid += b.paid; m.set(k, g); } return [...m.values()].sort((a, b) => b.owed - a.owed); };
   const table = (title, rows) => `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${title}</h3><div class="ch-scroll"><table class="store-table med-tbl"><thead><tr><th scope="col">${t("名称")}</th><th scope="col">${t("张数")}</th><th scope="col">${t("账单总额")}</th><th scope="col">${t("保险已付")}</th><th scope="col">${t("自付金额")}</th><th scope="col">${t("已付")}</th></tr></thead>
     <tbody>${rows.map((g) => `<tr><th scope="row">${esc(g.name)}</th><td data-label="${esc(t("张数"))}">${g.n}</td><td data-label="${esc(t("账单总额"))}">${esc(mny(g.billed))}</td><td data-label="${esc(t("保险已付"))}">${esc(mny(g.ins))}</td><td data-label="${esc(t("自付金额"))}">${esc(mny(g.owed))}</td><td data-label="${esc(t("已付"))}">${esc(mny(g.paid))}</td></tr>`).join("")}</tbody></table></div></div>`;
-  const hsa = sum(payYear.filter((p) => state.medBills.find((b) => b.id === p.bill_id)?.hsa_eligible), (p) => num(p.amount));
+  const hsa = sum(payYear.filter((p) => billById.get(p.bill_id)?.hsa_eligible), (p) => num(p.amount));
   return `<div class="range-row"><label class="field-label" for="medReportYear" style="margin:0">${t("年份")}</label>
       <select id="medReportYear">${years.map((v) => `<option value="${v}" ${v === y ? "selected" : ""}>${t("{y} 年", { y: v })}</option>`).join("")}</select>
       <button type="button" class="btn btn-sm btn-primary" data-action="med-csv">${t("导出 CSV")}</button>

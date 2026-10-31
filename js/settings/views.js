@@ -13,6 +13,7 @@ import { backupPanel, backupSummary } from "./backup-views.js";
 import { usageHTML } from "../core/usage.js";
 import { budgetPlan, isHouseholdOwner, myId } from "../bills/budget.js";
 import { financeOk } from "../core/finance-access.js";
+import { PAGE_SIZES, pageSize } from "../core/pager.js";
 import { amOwner, famMembers, membersList, viewMemberProfile } from "./members.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
@@ -346,6 +347,13 @@ export function viewSettings() {
       </select>
       <p class="muted" style="margin:8px 0 0;font-size:13px">${t("当前：{units}，货币 {cur}。", { units: Units.region.system === "us" ? t("美制单位 lb、oz、fl oz、qt、gal") : t("公制单位 kg、g、斤、L、mL"), cur: Units.region.currency })}
         ${t("已有物品按原单位保存，显示时自动换算；按“个、盒、袋”计数的物品不换算。")}</p>
+    </div>
+    <div class="panel">
+      <label class="field-label" for="pageSizeSel">${t("列表每次显示")}</label>
+      <select id="pageSizeSel" data-nosearch>
+        ${PAGE_SIZES.map((n) => `<option value="${n}" ${pageSize() === n ? "selected" : ""}>${t("{n} 条", { n })}</option>`).join("")}
+      </select>
+      <p class="muted" style="margin:8px 0 0;font-size:13px">${t("花费、缴费、收入、库存、设备等长列表先显示这么多条，往下点“继续加载”再看更多。只存在这台设备上；没改过时手机 10 条、电脑 20 条。")}</p>
     </div>`,
     properties: () => propertiesPanel(),
     modules: () => `

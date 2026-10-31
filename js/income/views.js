@@ -16,6 +16,7 @@ import { acctById } from "../bills/cards-views.js";
 import { ACCT_KINDS, CARDS_HREF } from "../bills/cards.js";
 import { medicalVirtuals } from "../bills/medical.js";
 import { aiReady, askText } from "../core/ai.js";
+import { debounce, moreBtn, pageSize } from "../core/pager.js";
 import { STAT_CATS, download, dq, hitAttrs, statCat, toCsv, ymd } from "../stats/views.js";
 import { CHANNELS, GROUPS, RANGES, UNITS, adults, bucketKey, canSeeAll, customKinds, groupList, groupOf, groupSum, inc, incomeIn, isExtra, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, knownSenders, loadIncome, memberLabel, myAccess, myPersonId, openRepayments, periodKeys, personOk,
   periodLabel, personName, repayState, repaidOf, setIncMerge, similarIncome, skey, spanLabel, spanOk, spanOptionsHtml, spanPrev, spanWindow, statKind, statKinds, sumOf, windowOf } from "./logic.js";
@@ -85,7 +86,7 @@ export function viewIncome() {
   if (I._lastTab !== undefined && I._lastTab !== tab) { if (I._keep) I._keep = false; else { I.form = null; I.scanOpen = false; I.selMode = false; } }   // 换标签：不带着没关的表单 / 识别面板
   I._lastTab = tab;
   const qb = state.route?.q?.get("batch");   // 银行导入「查看收入」：只看这一批入账
-  if (qb && I.batchFrom !== qb) { I.batch = qb; I.batchFrom = qb; Object.assign(I, { q: "", kind: "all", year: "all", person: "all", limit: 40, from: "", to: "", ex: false }); } else if (!qb) I.batchFrom = null;
+  if (qb && I.batchFrom !== qb) { I.batch = qb; I.batchFrom = qb; Object.assign(I, { q: "", kind: "all", year: "all", person: "all", limit: pageSize(), from: "", to: "", ex: false }); } else if (!qb) I.batchFrom = null;
   const dqs = tab === "records" && state.route?.q?.get("inc") ? state.route.q.toString() : "";   // 概览 / 类型图表点进来：套上对应筛选（同一个链接只套一次，之后用户改筛选不被覆盖）
   if (dqs && I.drillFrom !== dqs) { I.drillFrom = dqs; applyIncomeDrill(state.route.q); } else if (!dqs) I.drillFrom = null;
   if (!I.loaded && !I.loading) { I.loading = true; loadIncome().finally(() => { I.loading = false; rerender(); }); }
@@ -241,7 +242,7 @@ function repayPanel() {
 /** 图表钻取的查询串 → 明细筛选：类型（小类 / g:大类）、日期段 from–to、成员、搜索、ex = 不含国际电汇 / 个人赠与 */
 function applyIncomeDrill(q) {
   const I = inc(), d = (k) => (/^\d{4}-\d{2}-\d{2}$/.test(q.get(k) || "") ? q.get(k) : "");
-  Object.assign(I, { q: q.get("q") || "", kind: q.get("kind") || "all", person: q.get("person") || "all", year: "all", month: "all", batch: null, from: d("from"), to: d("to"), ex: q.get("ex") === "1", limit: 40, open: null, selMode: false });
+  Object.assign(I, { q: q.get("q") || "", kind: q.get("kind") || "all", person: q.get("person") || "all", year: "all", month: "all", batch: null, from: d("from"), to: d("to"), ex: q.get("ex") === "1", limit: pageSize(), open: null, selMode: false });
 }
 function filteredRecords() {
   const I = inc(), q = skey(I.q);
@@ -285,7 +286,7 @@ const selBar = () => { const I = inc(); return I.selMode ? `<div class="ix-selba
 const listHtml = () => {
   const I = inc(), all = filteredRecords(), head = all.slice(0, I.limit);
   return `${selBar()}<div class="muted small" style="margin:0 0 6px">${t("{n} 笔，合计 {m}", { n: all.length, m: fmtMoney(sumOf(all)) })}</div><ul class="restock-list ix-list">${head.map(recordRow).join("") || `<li class="muted">${t("没有符合条件的记录")}</li>`}</ul>
-    ${all.length > head.length ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-sm btn-ghost" data-inc="more">${t("再看 40 笔（还有 {n} 笔）", { n: all.length - head.length })}</button></div>` : ""}`;
+    ${moreBtn(all.length > head.length, 'data-inc="more"')}`;
 };
 export const renderIncList = () => { const el = $("#incList"); if (el) el.innerHTML = listHtml(); };
 /** 三种记法（和「记一笔花费」一样）：手动 / 拍照识别 / 导入对账单 */
@@ -423,7 +424,7 @@ async function saveRecord(form) {
 }
 
 /* ───────────── 付款方历史：搜索 + 类型筛选 + 点表头排序，每次显示 20 个，「加载更多」（多取一个判断还有没有，不算总数） ───────────── */
-const S_PAGE = 20;
+const S_PAGE = () => pageSize();   // 付款方每次显示几个：跟全站的每页条数设置
 const S_COLS = [["name", "付款方"], ["kind", "类型"], ["n", "收到次数"], ["total", "合计"], ["share", "占比"], ["last", "最近一次"]];
 const sNameOf = (x) => x.rows.find((r) => r.source_name)?.source_name || x.key;
 const sMainKind = (x) => groupSum(x.rows, (r) => r.kind)[0]?.key || "other";
@@ -438,7 +439,7 @@ function senderGroups() {
   return { w, rows, list, total: sumOf(rows) };
 }
 function sendersListHtml() {
-  const I = inc(), { list, total } = senderGroups(), lim = I.slimit || S_PAGE;
+  const I = inc(), { list, total } = senderGroups(), lim = I.slimit || S_PAGE();
   const page = list.slice(0, lim + 1), hasNext = page.length > lim, shown = page.slice(0, lim);   // 多取一个：有第 lim+1 个才显示「加载更多」
   const { k = "total", dir = "desc" } = I.ssort || {};
   const th = ([key, label]) => { const on = k === key; return `<th scope="col" class="s-${key}" ${on ? `aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : ""}><button type="button" class="th-sort${on ? " is-on" : ""}" data-inc="s-sort" data-k="${key}" title="${esc(t("点一下按这一列排序"))}">${t(label)}<span aria-hidden="true">${on ? (dir === "asc" ? " ▲" : " ▼") : " ↕"}</span></button></th>`; };
@@ -448,7 +449,7 @@ function sendersListHtml() {
     ${shown.map((x) => `<tr><th scope="row" class="s-name"><button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(sNameOf(x))}</button></th>${cell("kind", kindBadge(sMainKind(x)))}${cell("n", x.n)}${cell("total", `<b>${fmtMoney(x.total)}</b>`)}${cell("share", rate(x.total, total))}${cell("last", x.last)}
       <td class="s-act">${x.rows.every(canEdit) ? `<button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</td></tr>
       ${I.renameKey === x.key ? `<tr class="s-form"><td colspan="7"><form data-inc-form="rename" data-key="${esc(x.key)}" class="form-grid"><label>${t("统一改成")}<input name="to" maxlength="80" required value="${esc(sNameOf(x))}" list="incSenders"></label><div class="form-actions"><button class="btn btn-sm btn-primary">${t("改名（相同名字的会合并成一个）")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="">${t("取消")}</button></div></form><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></td></tr>` : ""}`).join("") || `<tr class="s-form"><td colspan="7" class="muted">${t("没有符合条件的付款方")}</td></tr>`}</tbody></table>
-    ${hasNext ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-sm btn-ghost" data-inc="s-more">${t("加载更多（还有 {n} 个）", { n: list.length - lim })}</button></div>` : ""}`;
+    ${moreBtn(hasNext, 'data-inc="s-more"')}`;
 }
 /** 排序下拉（手机上表头不显示，靠它排序；宽屏点表头和它是同一个设置） */
 const S_SORTS = [["total:desc", "金额从高到低"], ["total:asc", "金额从低到高"], ["last:desc", "最近到账的在前"], ["last:asc", "最早到账的在前"], ["n:desc", "收到次数最多"], ["name:asc", "名称 A → Z"], ["name:desc", "名称 Z → A"], ["kind:asc", "按类型"]];
@@ -647,7 +648,7 @@ const guard = async (fn) => { try { await fn(); } catch (e) { toast(t("操作失
 const reload = async () => { await loadIncome(); redraw(); };
 const goTab = (id) => { location.hash = incomeHref(id); };
 /** 去「明细」前清掉所有筛选（含图表钻取带来的日期段 / 不含电汇赠与） */
-const NO_FILTER = () => ({ q: "", kind: "all", year: "all", month: "all", person: "all", batch: null, from: "", to: "", ex: false, limit: 40 });
+const NO_FILTER = () => ({ q: "", kind: "all", year: "all", month: "all", person: "all", batch: null, from: "", to: "", ex: false, limit: pageSize() });
 
 export function initIncome({ render, refresh }) {
   hooks = { render, refresh }; initIncomeScan({ render });
@@ -662,7 +663,7 @@ export function initIncome({ render, refresh }) {
     if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return redraw(); }
     if (act === "cancel") { if (I.drafts && I.form?.rec?.id) delete I.drafts[I.form.rec.id]; I.form = null; return redraw(); }
     if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { Object.assign(I, NO_FILTER()); goTab("records"); return; } return redraw(); }
-    if (act === "more") { I.limit += 40; return renderIncList(); }
+    if (act === "more") { I.limit += pageSize(); return renderIncList(); }
     if (act === "edit") {   // 点行 / 点「编辑」：打开编辑表单（不在「明细」标签就先切过去）；这一行已经展开着，再点一下行就收起（不保存）
       if (b.classList.contains("ix-main") && I.form?.rec?.id === id && inlineEditId() === id) {   // 收起但留着草稿：再展开时填回去，行上有「草稿」小标
         const f = $("#incForm"); if (f) (I.drafts = I.drafts || {})[id] = formDraft(f);
@@ -677,7 +678,7 @@ export function initIncome({ render, refresh }) {
     if (act === "del") { if (!armed(b, t("再点一次确认删除"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }
     if (act === "rep-del") { if (!armed(b, t("再点一次确认"))) return; return guard(async () => { const p = I.rep.find((x) => x.id === id); await Store.deleteIncomeRepayment(id); if (p?.purchase_id) { await Store.deletePurchase(p.purchase_id).catch(() => {}); state.purchases = state.purchases.filter((x) => x.id !== p.purchase_id); } await reload(); }); }
     if (act === "sender-open") { Object.assign(I, NO_FILTER(), { q: b.dataset.key }); goTab("records"); return; }
-    if (act === "drill-clear") { if (b.dataset.k === "range") { I.from = ""; I.to = ""; } else if (b.dataset.k === "ex") I.ex = false; I.limit = 40; return redraw(); }
+    if (act === "drill-clear") { if (b.dataset.k === "range") { I.from = ""; I.to = ""; } else if (b.dataset.k === "ex") I.ex = false; I.limit = pageSize(); return redraw(); }
     if (act === "sender-rename") { I.renameKey = b.dataset.key || null; return redraw(); }
     if (act === "csv-detail") { const l = filteredRecords(); if (!l.length) return toast(t("没有可导出的记录")); download(`${fileHead()}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
     if (act === "csv-detail-window") { const w = windowOf(R().range, R()), l = incomeIn(w.from, w.to, R().person).filter((r) => I.extra || !isExtra(r.kind)); if (!l.length) return toast(t("这段时间没有收入")); download(`${fileHead()}-${w.from}_${w.to}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
@@ -685,8 +686,8 @@ export function initIncome({ render, refresh }) {
       const { w, list, total: tot } = senderGroups();
       return download(`${fileHead()}-${t("付款方汇总")}-${w.from}_${w.to}.csv`, toCsv([[t("付款方"), t("主要类型"), t("次数"), t("合计"), t("占比"), t("第一次"), t("最近一次")], ...list.map((x) => [sNameOf(x), kindLabel(sMainKind(x)), x.n, x.total, rate(x.total, tot), x.first, x.last])]));
     }
-    if (act === "s-sort") { const k = b.dataset.k, o = I.ssort || { k: "total", dir: "desc" }; I.ssort = { k, dir: o.k === k ? (o.dir === "asc" ? "desc" : "asc") : k === "name" || k === "kind" ? "asc" : "desc" }; I.slimit = S_PAGE; renderSenders(); $(`#incSendersList [data-k="${k}"]`)?.focus(); return; }
-    if (act === "s-more") { I.slimit = (I.slimit || S_PAGE) + S_PAGE; return renderSenders(); }
+    if (act === "s-sort") { const k = b.dataset.k, o = I.ssort || { k: "total", dir: "desc" }; I.ssort = { k, dir: o.k === k ? (o.dir === "asc" ? "desc" : "asc") : k === "name" || k === "kind" ? "asc" : "desc" }; I.slimit = S_PAGE(); renderSenders(); $(`#incSendersList [data-k="${k}"]`)?.focus(); return; }
+    if (act === "s-more") { I.slimit = (I.slimit || S_PAGE()) + S_PAGE(); return renderSenders(); }
     if (act === "csv-report") return exportReport();
     if (act === "print-report") return printIncome("report");
     if (act === "print-list") return printIncome("list");
@@ -722,7 +723,8 @@ export function initIncome({ render, refresh }) {
     if (kind === "rename") return guard(async () => { const to = g("to"), key = f.dataset.key; if (!to) return; const ids = I.rec.filter((r) => skey(r.source_name) === key && canEdit(r)).map((r) => r.id); await Store.renameIncomeSource(ids, to); I.renameKey = null; toast(t("已改名 {n} 笔", { n: ids.length })); await reload(); });
     if (kind === "request") return guard(async () => { await Store.setIncomeAccess(state.user.id, "requested", g("note") || null); toast(t("已发送申请，等家主批准")); await reload(); });
   }, true);
-  main.addEventListener("input", (e) => { const el = e.target; if (el.dataset?.incF === "q") { inc().q = el.value; inc().limit = 40; renderIncList(); } if (el.dataset?.incSq !== undefined) { inc().sq = el.value; inc().slimit = S_PAGE; renderSenders(); } });
+  const incListSoon = debounce(() => renderIncList()), sendersSoon = debounce(() => renderSenders());   // 搜索：停下 ~200ms 再重画，不是每敲一个字都重画
+  main.addEventListener("input", (e) => { const el = e.target; if (el.dataset?.incF === "q") { inc().q = el.value; inc().limit = pageSize(); incListSoon(); } if (el.dataset?.incSq !== undefined) { inc().sq = el.value; inc().slimit = S_PAGE(); sendersSoon(); } });
   main.addEventListener("change", (e) => {
     const el = e.target, I = inc();
     if (el.dataset?.incAcct !== undefined) { const f = el.closest("form"), box = f?.elements.account, cb = f?.elements.acct_default; if (box) { box.hidden = el.value !== "other"; if (!box.hidden) box.focus(); } if (cb) cb.checked = !!el.value && el.value === defAcct(); return; }
@@ -733,9 +735,9 @@ export function initIncome({ render, refresh }) {
     if (el.dataset?.incTog === "merge") { setIncMerge(el.checked); return rerender(); }
     if (el.dataset?.incTog === "extra") { I.extra = el.checked; return rerender(); }
     if (el.dataset?.incKparent) { const kid = el.dataset.incKparent, v = el.value; guard(async () => { await saveMeta({ _income_kinds: customKinds().map((k) => (k.id === kid ? { ...k, parent: v } : k)) }); rerender(); }); return; }
-    if (el.dataset?.incSsort !== undefined) { const [k, dir] = el.value.split(":"); I.ssort = { k, dir }; I.slimit = S_PAGE; return renderSenders(); }
+    if (el.dataset?.incSsort !== undefined) { const [k, dir] = el.value.split(":"); I.ssort = { k, dir }; I.slimit = S_PAGE(); return renderSenders(); }
     if (el.dataset?.incF) {
-      const k = el.dataset.incF; if (k === "q") return; I[k] = el.value; I.limit = 40; I.slimit = S_PAGE;
+      const k = el.dataset.incF; if (k === "q") return; I[k] = el.value; I.limit = pageSize(); I.slimit = S_PAGE();
       // 明细 / 付款方的筛选条：只重画列表（手机上「筛选」面板不会因为整页重画被收起，选完一个还能接着选）
       if (el.closest(".ix-toolbar")) return renderIncList();
       if (el.closest(".ix-stoolbar")) return renderSenders();

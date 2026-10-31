@@ -22,6 +22,7 @@ import { storeDatalist } from "../stats/views.js";
 import { cardSelectHtml, payAcctValue, purchasePayFields } from "../bills/cards-views.js";
 import { propertyName } from "../core/alerts.js";
 import { activeProperties } from "../core/lifecycle.js";
+import { pageLimit, pageMoreBtn, pageSize } from "../core/pager.js";
 import { RECALL_STATUS, finishReplace, isRetired, recallActive, recallAlertText, recallBadge, recallBanner, recallHubRow, recallOf, recallSection, replaceDefaults } from "./recall.js";
 
 const H = () => window.HOUSE;
@@ -66,9 +67,11 @@ export const WARRANTY_BADGE = {
 /* ── 计算：房龄、寿命占比、下次保养、保修 ── */
 export function enrichAssets(assets, logs) {
   const today = new Date(`${todayISO()}T12:00:00`).getTime();
+  const byAsset = new Map();   // 先按设备分好组（一次遍历），每台设备不再扫全部保养记录
+  for (const l of logs) { const arr = byAsset.get(l.asset_id); if (arr) arr.push(l); else byAsset.set(l.asset_id, [l]); }
   return assets.map((a) => {
     const at = H().assetType(a.type);
-    const mine = logs.filter((l) => l.asset_id === a.id).sort((x, y) => (y.done_on || "").localeCompare(x.done_on || ""));
+    const mine = (byAsset.get(a.id) || []).slice().sort((x, y) => (y.done_on || "").localeCompare(x.done_on || ""));
     // 检查 / 保养 / 更换都算“做过保养”；维修不重置周期
     const lastService = mine.find((l) => l.kind !== "repair")?.done_on || null;
     const interval = num(a.service_interval_months);
@@ -237,14 +240,16 @@ function assetGroups(list) {
   // 四组：设备（一台一条）/ 小家电与季节电器（一台一条）/ 固定装置（一类一条，位置数量在里面）/ 工具
   const sub = (a) => (isFixture(a) ? "fixture" : isPortable(a) ? "portable" : "");
   const group = (kind, g = "") => rows.filter((a) => a.kind === kind && (kind !== "equipment" || sub(a) === g)).sort(sorter);
+  const lim = pageLimit("assets", JSON.stringify([state.propertyId, f])); let left = lim;   // 分批显示：四组按顺序一共只画前 lim 台，组标题的台数仍按完整结果
   const section = (kind, g = "") => {
     const list = group(kind, g);
-    if (!list.length) return "";
+    if (!list.length || left <= 0) return "";
+    const part = list.slice(0, left); left -= part.length;
     const k = g === "fixture" ? H().FIXTURE_GROUP : g === "portable" ? H().PORTABLE_GROUP : H().ASSET_KINDS[kind];
     return `<section class="section"><div class="section-head"><h2>${k.icon} ${t(k.name)}<span class="muted">（${list.length}）</span></h2>${k.hint ? `<p>${esc(t(k.hint))}</p>` : ""}</div>
-      <div class="asset-grid">${list.map(assetCard).join("")}</div></section>`;
+      <div class="asset-grid">${part.map(assetCard).join("")}</div></section>`;
   };
-  return { rows, html: rows.length ? section("equipment") + section("equipment", "portable") + section("equipment", "fixture") + section("tool") : `<div class="panel empty"><strong>${t("没有符合条件的设备")}</strong>${t("换个关键词或筛选试试。")}</div>` };
+  return { rows, html: rows.length ? section("equipment") + section("equipment", "portable") + section("equipment", "fixture") + section("tool") + pageMoreBtn("assets", rows.length, lim) : `<div class="panel empty"><strong>${t("没有符合条件的设备")}</strong>${t("换个关键词或筛选试试。")}</div>` };
 }
 const assetCountText = (rows, list) => (rows.length === list.length ? t("{n} 台", { n: list.length }) : t("{m} / {n} 台", { m: rows.length, n: list.length }));
 /** 搜索 / 筛选变化：只重画列表和数量，输入框不丢焦点 */
@@ -297,13 +302,14 @@ export function viewAssets() {
 /** 召回后已换新 / 退款的旧设备：折叠在列表底部，点开还能看档案和保养记录 */
 function retiredSection(list) {
   if (!list.length) return "";
-  return `<section class="section"><details class="panel ref-panel"><summary><b>${t("已更换 / 已退货")}</b><small>${t("{n} 台，召回后换新或退款；档案和保养记录保留", { n: list.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
-    <ul class="restock-list hist-list ref-body">${list.map((a) => { const r = recallOf(a) || {}, n = r.replaced_by ? state.assets.find((x) => x.id === r.replaced_by) : null; return `<li>
+  const lim = pageLimit("retired", state.propertyId);   // 点过「继续加载」就保持展开（整页重画会把 details 收起）
+  return `<section class="section"><details class="panel ref-panel"${lim > pageSize() ? " open" : ""}><summary><b>${t("已更换 / 已退货")}</b><small>${t("{n} 台，召回后换新或退款；档案和保养记录保留", { n: list.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
+    <ul class="restock-list hist-list ref-body">${list.slice(0, lim).map((a) => { const r = recallOf(a) || {}, n = r.replaced_by ? state.assets.find((x) => x.id === r.replaced_by) : null; return `<li>
       <span class="asset-ico" aria-hidden="true">${a.t?.icon || "⚙️"}</span>
       <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>
         <small>${[t(r.remedy === "refund" ? "已退款" : "已换新"), r.resolved_on ? fmtDate(r.resolved_on) : null, r.remedy === "refund" && r.refund_amount != null ? money(num(r.refund_amount)) : null,
           n ? t("换成：{name}", { name: assetName(n) }) : null, [a.brand, a.model].filter(Boolean).join(" ") || null].filter(Boolean).map(esc).join(" · ")}</small></div>
-      <span class="hist-act"><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></span></li>`; }).join("")}</ul></details></section>`;
+      <span class="hist-act"><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></span></li>`; }).join("")}</ul>${pageMoreBtn("retired", list.length, lim)}</details></section>`;
 }
 
 /* ── 车辆页：家庭的所有车（不分房产），每辆的保养到期、证照与保险 ── */
@@ -819,16 +825,28 @@ function maintSection(a, focusLog) {
   const editLog = a.logs.find((l) => l.id === state.route?.q?.get("edit")) || null;   // 编辑某条记录：表单带入原值
   const e = editLog || {}, isInspect = !veh && e.kind === "inspect";
   const preItem = editLog ? e.service_item || "" : state.route?.q?.get("item") || "";   // 时间表里“记一次”带过来的保养项目
-  const rows = a.logs.map((l) => `<li data-swipe-del="maint">
+  const rows = maintLogsHtml(a);
+  const followUp = a.followUp ? `<div class="panel cta-panel" style="margin-bottom:10px"><div><b>${t("{date} 检查结论：{r}", { date: fmtDate(a.followUp.done_on), r: t(R[a.followUp.result]) })}</b>
+      <p class="muted">${t("记一条保养、维修或更换后，这条提醒会消失。")}</p></div></div>` : "";
+  return maintSectionHtml(a, focusLog, { K, R, veh, editLog, e, isInspect, preItem, rows, followUp });
+}
+/** 保养记录列表（分批显示）：「继续加载」只重画这一块，上面没保存的保养表单不会被冲掉 */
+function maintLogsHtml(a) {
+  const K = H().MAINT_KINDS, R = C().RESULTS, lim = pageLimit(`maint:${a.id}`);
+  return a.logs.length ? `<ul class="restock-list">${a.logs.slice(0, lim).map((l) => `<li data-swipe-del="maint">
       <span class="badge ${l.kind === "repair" ? "b-low" : l.kind === "replace" ? "b-exp" : l.result && l.result !== "ok" ? "b-out" : "b-ok"}">${t(K[l.kind] || l.kind)}${l.result ? ` · ${t(R[l.result] || l.result)}` : ""}</span>
       <div class="grow"><span class="name">${esc(fmtDate(l.done_on))}${l.service_item ? ` · ${esc(t(V().serviceItem(l.service_item)?.name || l.service_item))}` : ""}</span>
         <small>${joinList([l.odometer != null ? `${fmt(l.odometer)} ${distUnit()}` : null, l.vendor ? t("收款方：{who}", { who: l.vendor }) : null, l.diy ? t("自己做的") : null, l.cost != null ? t("花费 {m}", { m: Units.money(num(l.cost), l.currency || Units.region.currency) }) : null, l.notes,
           l.created_at && t("{d} 记录", { d: fmtShort(l.created_at) })].filter(Boolean).map(esc))}</small></div>
       <a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?log=1&edit=${l.id}" aria-label="${t("编辑这条记录")}">${t("编辑")}</a>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="maint-del" data-id="${l.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>
-    </li>`).join("");
-  const followUp = a.followUp ? `<div class="panel cta-panel" style="margin-bottom:10px"><div><b>${t("{date} 检查结论：{r}", { date: fmtDate(a.followUp.done_on), r: t(R[a.followUp.result]) })}</b>
-      <p class="muted">${t("记一条保养、维修或更换后，这条提醒会消失。")}</p></div></div>` : "";
+    </li>`).join("")}</ul>${pageMoreBtn(`maint:${a.id}`, a.logs.length, lim)}` : "";
+}
+export function renderMaintLogs() {
+  const host = $("#maintLogs"), a = host && state.assetsEnriched.find((x) => x.id === host.dataset.asset); if (!a) return;
+  host.innerHTML = maintLogsHtml(a) || `<div class="empty"><strong>${t("还没有记录")}</strong>${t("上面记第一次检查或保养，之后会按周期提醒。")}</div>`;
+}
+function maintSectionHtml(a, focusLog, { K, R, veh, editLog, e, isInspect, preItem, rows, followUp }) {
   return `
     <div class="section-head"><p>${veh ? t("按保养项目算下次到期；维修不重置") : t("检查、保养、更换会重算下次保养日期；维修不会")}</p></div>
     ${followUp}
@@ -852,7 +870,7 @@ function maintSection(a, focusLog) {
       <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${editLog ? t("保存修改") : t("记一笔")}</button>${editLog ? `<a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?log=1">${t("取消")}</a>` : ""}
         <small class="muted">${veh ? t("填了花费会同时记入“车辆”花费统计。") : t("填了花费会同时记入“房屋维护”花费统计。")}</small></div>
     </form>
-    <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有记录")}</strong>${t("上面记第一次检查或保养，之后会按周期提醒。")}</div>`}</div>`;
+    <div class="panel" id="maintLogs" data-asset="${esc(a.id)}" style="margin-top:10px">${rows || `<div class="empty"><strong>${t("还没有记录")}</strong>${t("上面记第一次检查或保养，之后会按周期提醒。")}</div>`}</div>`;
 }
 
 /** 表单联动：切换类型时带入默认值（只对新设备）；切换种类时隐藏设备专用字段并换类型列表 */

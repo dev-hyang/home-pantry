@@ -69,8 +69,11 @@ export const STATUS_RANK = { overdue: 0, due: 1, verify: 2, soon: 3, ok: 4, escr
 
 /** 丰富账单：最近缴费、平均金额、状态、距到期天数、涨价、扣款卡到期 */
 export function enrichBills(bills, payments) {
+  const byBill = new Map();   // 先按账单分好组（一次遍历），每张账单不再扫全部缴费记录
+  for (const p of payments) { const arr = byBill.get(p.bill_id); if (arr) arr.push(p); else byBill.set(p.bill_id, [p]); }
+  const props = new Map(state.properties.map((p) => [p.id, p]).reverse());
   return bills.map((b) => {
-    const pays = payments.filter((p) => p.bill_id === b.id).sort((x, y) => (y.paid_on || "").localeCompare(x.paid_on || ""));
+    const pays = (byBill.get(b.id) || []).slice().sort((x, y) => (y.paid_on || "").localeCompare(x.paid_on || ""));
     const amounts = pays.filter((p) => p.amount != null && p.status !== "skipped").map((p) => num(p.amount));
     const recent = amounts.slice(0, 6);
     const avg = recent.length ? recent.reduce((s, v) => s + v, 0) / recent.length : null;
@@ -81,7 +84,7 @@ export function enrichBills(bills, payments) {
     const daysLeft = b.next_due_on ? daysUntil(b.next_due_on) : null;
     const maxRem = Math.max(0, ...(b.reminder_days || [7, 1]));
     // 已结束：填了结束日期就看日期（卖房后水电气还有最后一期要提醒）；没填的看房产是否已卖出 / 退租 / 归档
-    const prop = b.property_id ? state.properties.find((p) => p.id === b.property_id) : null;
+    const prop = b.property_id ? props.get(b.property_id) || null : null;
     const ended = b.ends_on ? !!(b.next_due_on && b.next_due_on > b.ends_on) : !!(prop && (prop.archived || ["sold", "moved_out"].includes(prop.status)));
     let status;
     if (!b.active) status = "inactive";

@@ -2901,5 +2901,8 @@ export const EN = {
   "点一位家人查看和修改资料、财务权限、家主角色，或移出家庭。": "Tap a member to view or edit their profile, finance access and owner role, or to remove them.",
   "点自己可以改称呼和联系方式；家人的资料只能查看。": "Tap yourself to edit your name and contact info; other members' profiles are view-only.",
   "资料已保存": "Profile saved", "给 {name} 开财务权限？开了就能看、能改对账单、收入、预算和用卡。": "Give {name} finance access? They will be able to view and edit statements, income, budgets and cards.",
+  // ── 列表分批显示（js/core/pager.js） ──
+  "继续加载": "Load more", "列表每次显示": "Rows per list", "列表每次显示 {n} 条": "Lists now show {n} rows at a time",
+  "花费、缴费、收入、库存、设备等长列表先显示这么多条，往下点“继续加载”再看更多。只存在这台设备上；没改过时手机 10 条、电脑 20 条。": "Long lists (spending, payments, income, inventory, equipment…) show this many rows first; tap “Load more” for more. Saved on this device only; defaults to 10 on phones and 20 on computers.",
   "最后一位家主不能被取消或移出": "The last owner can't be demoted or removed", "数据库还没升级：请先执行 migrations/052_member_profile.sql": "Database not upgraded yet: run migrations/052_member_profile.sql first",
 };

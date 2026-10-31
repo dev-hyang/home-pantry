@@ -8,6 +8,7 @@ import { $, DAY, daysUntil, esc, fmtDate, money, num, todayISO, toast } from "..
 import { href } from "../core/router.js";
 import { joinList, t } from "../core/i18n.js";
 import { addDays } from "../bills/logic.js";
+import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { houseBar } from "./property-form.js";
 import { assetName, isVehicle } from "./assets.js";
 import { analyze, briefHtml, eventFormPanel, freezeBaseline, lanesHtml, needsFreeze } from "./deal-progress.js";
@@ -414,13 +415,13 @@ function dealForm(d) {
 /** 历史交易：每条可点开（?deal=<id>）查看、修改当时的清单、时间线和交易信息；current = 正在看的那条 */
 function dealHistory(list, current, linkOf) {
   if (!list.length) return "";
-  const K = D().KINDS;
+  const K = D().KINDS, lim = pageLimit("deals");   // 分批显示；换页面回到一页
   // 一行：种类徽章 + 日期 / 摘要；“查看清单”固定在右上角（手机上摘要换行也不会和按钮叠在一起）
-  return `<section class="section"><div class="section-head"><h2>${t("历史交易")}</h2></div><div class="panel"><ul class="restock-list hist-list">${list.map((d) => `<li ${d.id === current ? 'aria-current="true"' : ""}>
+  return `<section class="section"><div class="section-head"><h2>${t("历史交易")}</h2></div><div class="panel"><ul class="restock-list hist-list">${list.slice(0, lim).map((d) => `<li ${d.id === current ? 'aria-current="true"' : ""}>
     <span class="badge" style="background:var(--surface-2)">${t(K[d.kind])}</span>
     <div class="grow"><a class="link-name" href="${linkOf(d)}">${d.closing_on ? fmtDate(d.closing_on) : fmtDate((d.closed_at || d.updated_at || "").slice(0, 10))}</a>
       <small>${[d.outcome === "cancelled" ? t("已取消") : isVehDeal(d) ? t("已完成") : t("已交割"), d.price ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>
-    <span class="hist-act">${d.id === current ? `<span class="badge b-ok">${t("正在查看")}</span>` : `<a class="btn btn-sm btn-ghost" href="${linkOf(d)}">${t("查看清单")}</a>`}</span></li>`).join("")}</ul></div></section>`;
+    <span class="hist-act">${d.id === current ? `<span class="badge b-ok">${t("正在查看")}</span>` : `<a class="btn btn-sm btn-ghost" href="${linkOf(d)}">${t("查看清单")}</a>`}</span></li>`).join("")}</ul>${pageMoreBtn("deals", list.length, lim)}</div></section>`;
 }
 
 /** 退出向导（卖出 / 退租）：交割日、成交价、每条账单的结束日期 */

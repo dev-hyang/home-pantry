@@ -1,3 +1,5 @@
+import { pageSize } from "./pager.js";   // 列表每页条数（本机设置）
+
 export const state = {
   route: { section: "today", sub: null, id: null, q: new URLSearchParams() },
   prevRoute: null,                     // 进入物品编辑页之前所在的页面，用于“返回”
@@ -15,7 +17,7 @@ export const state = {
   bills: [], billPayments: [], billsEnriched: [],   // 账单 B1
   assetFilter: { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" },   // 设备保养页的搜索与筛选
   billsFilter: { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" },
-  payFilter: { bill: "all", year: "all", status: "all", sort: "new", limit: 50 },   // 缴费记录的筛选与排序
+  payFilter: { bill: "all", year: "all", status: "all", sort: "new", limit: pageSize() },   // 缴费记录的筛选与排序
   shopFilter: { cat: "all", who: "all", sort: "new" },                             // 采购清单的筛选与排序
   dealFilter: "all",                                                               // 交易清单：全部 / 未完成 / 逾期 / 必须
   tasksOnlyUndone: false,                                                          // 季节任务：只看未完成
@@ -39,7 +41,7 @@ export const state = {
   shopAdvice: null,                            // 采购清单：刚加入的带预估金额的项目的预算提示
   spendEdit: null,                             // 花费记录：正在就地编辑的那一笔 id
   spendSel: null,                              // 花费记录：多选删除模式下选中的 id 集合（null = 不在多选）
-  spendFilter: { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: 20 },   // 花费记录的搜索、筛选、排序
+  spendFilter: { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: pageSize() },   // 花费记录的搜索、筛选、排序
   stats: { months: 6, month: null, cat: null, itemId: null, includeCapital: false },
   filter: { space: "pantry", cat: "all", sub: "all", q: "", status: "all", loc: "all", sort: "default" },   // 库存清单：空间、分类、关键词、状态、存放位置
   locForm: null,                               // 设置 → 存放位置：正在新建 / 重命名的位置 { id?, name, grp, replaces?, oldName? }

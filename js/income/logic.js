@@ -7,6 +7,7 @@ import { meta } from "../bills/budget.js";
 import { esc, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { financeOk } from "../core/finance-access.js";
+import { pageSize } from "../core/pager.js";
 
 /* ───────────── 收入类型：大类 - 小类（和花费的分类一样两级） ─────────────
  * 记录上存的还是小类 id（income_records.kind，和以前一样），大类由下面的表推出来：老记录不用改数据，自然归到对应大类。
@@ -54,7 +55,7 @@ export function kindOptionsHtml(sel, { all = false, groups = false, allLabel = "
 export const CHANNELS = [["ach", "银行转账 / ACH"], ["wire", "电汇"], ["zelle", "Zelle / Venmo"], ["check", "支票"], ["cash", "现金"], ["other", "其他"]];
 
 /* ───────────── 状态与权限 ───────────── */
-export const inc = () => (state.inc ||= { rec: [], rep: [], acc: [], loaded: false, ok: true, err: "", form: null, open: null, q: "", kind: "all", person: "all", year: "all", limit: 40, tab: {}, ai: {}, renameKey: null, repayFor: null, extra: false, merge: mergeSaved() });
+export const inc = () => (state.inc ||= { rec: [], rep: [], acc: [], loaded: false, ok: true, err: "", form: null, open: null, q: "", kind: "all", person: "all", year: "all", limit: pageSize(), tab: {}, ai: {}, renameKey: null, repayFor: null, extra: false, merge: mergeSaved() });
 /* 「同一个大类合并显示」记在本机（和花费的合并开关一样）；「含国际电汇 / 个人赠与」每次打开默认不勾（和花费的「含资本性支出」一样） */
 const MERGE_KEY = "hmh-inc-merge";
 function mergeSaved() { try { return localStorage.getItem(MERGE_KEY) === "1"; } catch { return false; } }

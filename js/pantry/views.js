@@ -10,6 +10,7 @@ import { compare, joinList, lang, t } from "../core/i18n.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
 import { cardHintHtml, cardSelectHtml } from "../bills/cards-views.js";
 import { askInline } from "../core/ask.js";
+import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { shopAdviceHtml, shopForecastHtml } from "../bills/budget.js";
 
 /* ── 概览（储藏 / 房屋耗材共用）── */
@@ -313,13 +314,16 @@ export function renderInvList() {
           : `<div class="panel empty"><strong>${t("库存还是空的")}</strong>${t("从最常用的几样开始，例如鸡蛋、大米、抽纸。")}</div>`;
     return;
   }
+  // 分批显示：按分类顺序排好后一共只画前 lim 件，分类标题的件数仍按完整结果；筛选 / 搜索 / 排序变了回到一页
+  const lim = pageLimit("inv", JSON.stringify(f)); let left = lim;
+  const byCat = new Map(); for (const x of list) { const arr = byCat.get(x.category); if (arr) arr.push(x); else byCat.set(x.category, [x]); }
   host.innerHTML = orderedCats(f.space).map((c) => {
-    const inCat = list.filter((x) => x.category === c.id)
-      .sort(invSorter(f.sort));
-    if (!inCat.length) return "";
+    const inCat = (byCat.get(c.id) || []).sort(invSorter(f.sort));
+    if (!inCat.length || left <= 0) return "";
+    const part = inCat.slice(0, left); left -= part.length;
     return `<div class="cat-group" style="--cat:${c.color}"><h3><span class="dot" aria-hidden="true"></span>${c.icon} ${t(c.name)}<span class="muted">（${inCat.length}）</span></h3>
-      <div class="items">${inCat.map(itemCard).join("")}</div></div>`;
-  }).join("");
+      <div class="items">${part.map(itemCard).join("")}</div></div>`;
+  }).join("") + pageMoreBtn("inv", orderedCats(f.space).reduce((n, c) => n + (byCat.get(c.id)?.length || 0), 0), lim);
 }
 
 export function itemCard(it) {
@@ -391,6 +395,8 @@ const shopCat = (s) => state.items.find((i) => i.id === s.item_id)?.category || 
 /** 采购清单的筛选和排序（分类、谁认领的） */
 function shopRows(status) {
   const f = state.shopFilter, me = state.user?.id;
+  const cats = new Map(state.items.map((i) => [i.id, i.category]).reverse());   // 建一次，筛选 / 排序时不再逐条查库存
+  const shopCat = (s) => cats.get(s.item_id) || s.category || "other";
   const mineOf = (s) => Store.mode === "demo" || s.claimed_by === me;
   const rows = state.shopping.filter((s) => s.status === status && (f.cat === "all" || shopCat(s) === f.cat)
     && (f.who === "all" || (f.who === "mine" ? s.status === "claimed" && mineOf(s) : f.who === "others" ? s.status === "claimed" && !mineOf(s) : s.status === "todo")));
@@ -441,7 +447,7 @@ export function viewShopping() {
   // 默认：待购买展开、认领中有内容才展开、已买到收起（它只是记录）；手动开合会记住（localStorage）。
   const col = (key, title, rows, empty, extra = "") => `<details class="shop-col shop-${key}" data-shopsec="${key}" ${shopSecOpen(key, rows.length) ? "open" : ""}>
     <summary><span class="sec-title">${title}</span><span class="sec-count" aria-label="${t("{n} 项", { n: rows.length })}">${rows.length}</span><span class="sec-chev" aria-hidden="true"></span></summary>
-    <div class="sec-body">${extra}${rows.length ? `<ul>${rows.map(row).join("")}</ul>` : `<p class="muted">${empty}</p>`}</div></details>`;
+    <div class="sec-body">${extra}${rows.length ? `<ul>${rows.slice(0, pageLimit(`shop:${key}`, JSON.stringify(state.shopFilter))).map(row).join("")}</ul>${pageMoreBtn(`shop:${key}`, rows.length, pageLimit(`shop:${key}`, JSON.stringify(state.shopFilter)))}` : `<p class="muted">${empty}</p>`}</div></details>`;   // 每个区块各自分批显示
   const bought = by("bought");
   return `
     <section class="section">

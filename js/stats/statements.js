@@ -8,6 +8,7 @@ import { $, esc, fmtDate, money, moneyExact, num, toast } from "../core/util.js"
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { tabBar } from "../core/hub.js";
+import { debounce, moreBtn, pageSize } from "../core/pager.js";
 import { STATEMENT_TABS, activeTab } from "../core/tabs.js";
 import { bankImportTab } from "./bank-import.js";
 import { STAT_CATS, download, spendExportTab, statCat, toCsv, ymd } from "./views.js";
@@ -21,7 +22,7 @@ let render = () => {};
 /* ───────────── 全部流水（只读） ───────────── */
 const RANGES = [["month", "本月"], ["3m", "近 3 个月"], ["6m", "近 6 个月"], ["12m", "近 12 个月"], ["ytd", "今年"], ["lastyear", "去年"]];
 const DIRS = [["all", "全部"], ["spend", "花费"], ["income", "收入"]];
-const SS = () => (state.stmt ||= { range: "3m", dir: "all", q: "", limit: 100 });
+const SS = () => (state.stmt ||= { range: "3m", dir: "all", q: "", limit: pageSize() });
 const sgn = (v, short) => `${v < 0 ? "−" : "+"}${short ? money(Math.abs(v), true) : moneyExact(Math.abs(v))}`;
 
 /** 这段时间的流水：花费（purchases）+ 收入（income_records），按日期新到旧；spendLoading = 花费还在读 */
@@ -52,7 +53,7 @@ function listHtml() {
   }).join("");
   return `<div class="muted small" style="margin:0 0 6px">${b.loading ? t("正在读取花费…") : t("{n} 笔", { n: b.rows.length })}</div>
     <ul class="st-list">${items || `<li class="muted" style="padding:10px 0">${t("这段时间没有记录")}</li>`}</ul>
-    ${b.rows.length > head.length ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-sm btn-ghost" data-stmt="more">${t("再看 100 笔（还有 {n} 笔）", { n: b.rows.length - head.length })}</button></div>` : ""}`;
+    ${moreBtn(b.rows.length > head.length, 'data-stmt="more"')}`;
 }
 function allTab() {
   const o = SS(), b = build(), I = inc();
@@ -85,15 +86,16 @@ export function initStatements({ render: r }) {
   const onStmtPage = () => state.route?.section === "bills" && state.route?.sub === "statements";
   main.addEventListener("click", (e) => {
     const chip = e.target.closest?.("[data-stmt-dir]");
-    if (chip && onStmtPage()) { const o = SS(); o.dir = chip.dataset.stmtDir; o.limit = 100; return render(false); }
+    if (chip && onStmtPage()) { const o = SS(); o.dir = chip.dataset.stmtDir; o.limit = pageSize(); return render(false); }
     const b = e.target.closest?.("[data-stmt]"); if (!b || b.tagName === "SELECT" || !onStmtPage()) return;
     const o = SS();
-    if (b.dataset.stmt === "more") { o.limit += 100; const el = $("#stmtList"); if (el) el.innerHTML = listHtml(); return; }
+    if (b.dataset.stmt === "more") { o.limit += pageSize(); const el = $("#stmtList"); if (el) el.innerHTML = listHtml(); return; }
     if (b.dataset.stmt === "csv") {
       const rows = build().rows; if (!rows.length) return toast(t("没有可导出的记录"));
       download(`${(state.household?.name || t("家庭")).replace(/[\\/:*?"<>|\s]/g, "")}-${t("全部流水")}.csv`, toCsv([[t("日期"), t("类型"), t("名称"), t("说明"), t("金额")], ...rows.map((x) => [x.d, x.tag, x.name, x.sub, x.amt])]));
     }
   });
-  main.addEventListener("change", (e) => { const el = e.target; if (el.dataset?.stmt === "range" && onStmtPage()) { const o = SS(); o.range = el.value; o.limit = 100; render(false); } });
-  main.addEventListener("input", (e) => { const el = e.target; if (el.dataset?.stmtQ !== undefined && onStmtPage()) { const o = SS(); o.q = el.value; o.limit = 100; const box = $("#stmtList"); if (box) box.innerHTML = listHtml(); } });
+  main.addEventListener("change", (e) => { const el = e.target; if (el.dataset?.stmt === "range" && onStmtPage()) { const o = SS(); o.range = el.value; o.limit = pageSize(); render(false); } });
+  const listSoon = debounce(() => { const box = $("#stmtList"); if (box) box.innerHTML = listHtml(); });   // 搜索：停下 ~200ms 再重画
+  main.addEventListener("input", (e) => { const el = e.target; if (el.dataset?.stmtQ !== undefined && onStmtPage()) { const o = SS(); o.q = el.value; o.limit = pageSize(); listSoon(); } });
 }
