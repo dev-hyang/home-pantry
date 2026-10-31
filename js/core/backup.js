@@ -47,10 +47,14 @@ export const isDue = (s = settings()) => { const n = nextDue(s); return !!n && n
 const stamp = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`; };
 export const fileName = () => `${APP}-${stamp()}.json`;
 export const FILE_RE = /^home-pantry-(\d{4}-\d{2}-\d{2})-\d{4}\.json$/;   // 清理旧备份时只认我们自己起的名字
+/** 分页必须有确定的排序，否则 Postgres 每页的顺序可能不同，跨页会漏行 / 重复；这几张表没有 id 列（每套房产 / 每人一行，不会超过一页） */
+const NO_ID = new Set(["house_profiles", "member_incomes", "household_budgets", "income_access"]);
 async function readAll(sb, table) {
   const out = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await sb.from(table).select("*").eq("household_id", CloudStore.hid).range(from, from + PAGE - 1);
+    let q = sb.from(table).select("*").eq("household_id", CloudStore.hid);
+    if (!NO_ID.has(table)) q = q.order("id");
+    const { data, error } = await q.range(from, from + PAGE - 1);
     if (error) { if (/does not exist|schema cache/i.test(error.message)) return out; throw new Error(`${table}: ${error.message}`); }   // 还没执行迁移的表：当作空
     out.push(...(data || [])); if (!data || data.length < PAGE) return out;
   }
@@ -218,7 +222,8 @@ export async function restore(data, onProgress = () => {}) {
     if (tb === "household_people") rows = rows.map(({ name_key, ...r }) => r);   // name_key 同理
     if (tb === "cards") rows = rows.map((r) => { if (r.bill_id) cardBills.push([r.id, r.bill_id]); return { ...r, bill_id: null }; });   // 和 bills 互相引用：先不带 bill_id
     if (tb === "stock_logs") {   // id 是自增、不能指定：去掉 id，按 (item_id, created_at) 跳过已有的
-      const { data: have } = await sb.from("stock_logs").select("item_id,created_at").eq("household_id", hid).limit(10000);
+      const have = await CloudStore.pageAll(() => sb.from("stock_logs").select("item_id,created_at").eq("household_id", hid).order("created_at").order("id"))   // 分页读全：.limit(10000) 实际只回 1000 行，超过的会被当成“没有”而重复写入
+        .catch((e) => { console.warn("[restore stock_logs]", e.message); return []; });
       const seen = new Set((have || []).map((x) => `${x.item_id}|${x.created_at}`)), before = rows.length;
       rows = rows.filter((r) => !seen.has(`${r.item_id}|${r.created_at}`)).map(({ id, ...r }) => r); skipped[tb] = before - rows.length;
     }
