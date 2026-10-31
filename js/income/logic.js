@@ -4,22 +4,59 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { meta } from "../bills/budget.js";
-import { num, todayISO } from "../core/util.js";
+import { esc, num, todayISO } from "../core/util.js";
+import { t } from "../core/i18n.js";
 
-/* ───────────── 收入类型（内置 + 自定义） ───────────── */
+/* ───────────── 收入类型：大类 - 小类（和花费的分类一样两级） ─────────────
+ * 记录上存的还是小类 id（income_records.kind，和以前一样），大类由下面的表推出来：老记录不用改数据，自然归到对应大类。
+ * 自定义类型存在预算设置 _income_kinds（{ id, name, icon, parent }），没填大类的归「其他收入」。 */
 // [id, 名称, 图标, 颜色]
 export const KINDS = [["payroll", "工资", "💼", "#2c6a57"], ["bonus", "奖金 / 年终", "🎁", "#3f8f5a"], ["package", "薪酬福利包", "📦", "#5a9a7a"], ["wire", "国际电汇", "🌐", "#3b7fc4"],
   ["zelle", "Zelle / Venmo 转入", "👥", "#7563c0"], ["interest", "利息 / 分红", "🏦", "#b07a1a"], ["rental", "租金收入", "🏠", "#a0522d"], ["tax_refund", "退税", "🧾", "#6b7280"],
   ["reimburse", "报销", "💵", "#d4694c"], ["insurance", "保险理赔", "🛡️", "#c75a85"], ["gift", "个人赠与", "🎀", "#c0603a"], ["sale", "出售所得", "🏷️", "#8a5fb0"],
   ["cashback", "返现 / 奖励", "💳", "#3f6c8f"], ["other", "其他", "📥", "#8a948f"]];
+// 大类：[id, 名称, 图标, 颜色, 小类 id…]；顺序就是下拉、图表里的顺序
+export const GROUPS = [["work", "工作收入", "💼", "#2c6a57", ["payroll", "bonus", "package"]], ["invest", "投资与租金", "🏦", "#b07a1a", ["interest", "rental"]],
+  ["refund", "退款与返还", "🧾", "#6b7280", ["tax_refund", "reimburse", "insurance", "cashback"]], ["transfer", "转账与赠与", "👥", "#7563c0", ["zelle", "wire", "gift"]], ["other", "其他收入", "📥", "#8a948f", ["sale", "other"]]];
+/** 不算「真正挣的」收入：国际电汇、个人赠与（家人转来的钱）——概览、类型、收支对比默认不算，勾「含国际电汇 / 个人赠与」才算 */
+export const EXTRA_KINDS = ["wire", "gift"];
+export const isExtra = (id) => EXTRA_KINDS.includes(id);
 const CUSTOM_COLORS = ["#2f8f9d", "#9a6b3c", "#b0527a", "#6a8f2f", "#4f5fc0", "#c08a1a"];
-export const customKinds = () => (meta("_income_kinds", []) || []).filter((k) => k && /^c_[a-z0-9]{1,20}$/.test(k.id));
-export const kindList = () => [...KINDS.map(([id, name, icon, color]) => ({ id, name, icon, color, custom: false })), ...customKinds().map((k, i) => ({ id: k.id, name: k.name, icon: k.icon || "🏷️", color: CUSTOM_COLORS[i % CUSTOM_COLORS.length], custom: true }))];
-export const kindOf = (id) => kindList().find((k) => k.id === id) || { id, name: id || "其他", icon: "📥", color: "#8a948f", custom: false };
+const groupIds = () => GROUPS.map((g) => g[0]);
+export const customKinds = () => (meta("_income_kinds", []) || []).filter((k) => k && /^c_[a-z0-9]{1,20}$/.test(k.id)).map((k) => ({ ...k, parent: groupIds().includes(k.parent) ? k.parent : "other" }));
+const builtinGroup = (id) => (GROUPS.find((g) => g[4].includes(id)) || GROUPS.at(-1))[0];
+/** 全部小类，按大类排好（每个带 group = 大类 id） */
+export function kindList() {
+  const base = KINDS.map(([id, name, icon, color]) => ({ id, name, icon, color, custom: false, group: builtinGroup(id) }));
+  const cs = customKinds().map((k, i) => ({ id: k.id, name: k.name, icon: k.icon || "🏷️", color: CUSTOM_COLORS[i % CUSTOM_COLORS.length], custom: true, group: k.parent }));
+  return GROUPS.flatMap(([g, , , , ids]) => [...ids.map((id) => base.find((k) => k.id === id)), ...cs.filter((k) => k.group === g)]);
+}
+/** 大类（id 带 "g:" 前缀，和小类区分：筛选、钻取、合并后的图表都用它） */
+export const groupList = () => GROUPS.map(([id, name, icon, color]) => ({ id: `g:${id}`, gid: id, name, icon, color, custom: false, isGroup: true }));
+export const groupOf = (kindId) => { const k = kindList().find((x) => x.id === kindId); const gid = k ? k.group : "other"; return groupList().find((g) => g.gid === gid); };
+export const kindOf = (id) => (String(id).startsWith("g:") ? groupList().find((g) => g.id === id) : null) || kindList().find((k) => k.id === id) || { id, name: id || "其他", icon: "📥", color: "#8a948f", custom: false, group: "other" };
+/** 显示用：「大类 - 小类」（已翻译）；大类 id 只显示大类名 */
+export const kindLabel = (id) => { const k = kindOf(id); return k.isGroup ? t(k.name) : `${t(groupOf(id).name)} - ${t(k.name)}`; };
+/** 筛选：all / 大类（g:xxx）/ 小类 */
+export const kindMatch = (sel, kind) => !sel || sel === "all" || (String(sel).startsWith("g:") ? groupOf(kind).id === sel : kind === sel);
+/** 统计时用哪个 key：合并显示时归到大类 */
+export const statKind = (kind, merge) => (merge ? groupOf(kind).id : kind);
+/** 合并 / 不合并时图表里出现的项（顺序固定） */
+export const statKinds = (merge) => (merge ? groupList() : kindList());
+/** 类型下拉：按大类分组（optgroup）；groups = 每组前面多一个「全部 X」（筛选用），all = 最前面「全部」 */
+export function kindOptionsHtml(sel, { all = false, groups = false } = {}) {
+  const opt = (v, label) => `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(label)}</option>`;
+  const ks = kindList();
+  return `${all ? opt("all", t("全部")) : ""}${groupList().map((g) => { const cs = ks.filter((k) => k.group === g.gid); return cs.length ? `<optgroup label="${esc(`${g.icon} ${t(g.name)}`)}">${groups ? opt(g.id, t("全部「{g}」", { g: t(g.name) })) : ""}${cs.map((k) => opt(k.id, `${k.icon} ${t(g.name)} - ${t(k.name)}`)).join("")}</optgroup>` : ""; }).join("")}`;
+}
 export const CHANNELS = [["ach", "银行转账 / ACH"], ["wire", "电汇"], ["zelle", "Zelle / Venmo"], ["check", "支票"], ["cash", "现金"], ["other", "其他"]];
 
 /* ───────────── 状态与权限 ───────────── */
-export const inc = () => (state.inc ||= { rec: [], rep: [], acc: [], loaded: false, ok: true, err: "", form: null, open: null, q: "", kind: "all", person: "all", year: "all", limit: 40, tab: {}, ai: {}, renameKey: null, repayFor: null });
+export const inc = () => (state.inc ||= { rec: [], rep: [], acc: [], loaded: false, ok: true, err: "", form: null, open: null, q: "", kind: "all", person: "all", year: "all", limit: 40, tab: {}, ai: {}, renameKey: null, repayFor: null, extra: false, merge: mergeSaved() });
+/* 「同一个大类合并显示」记在本机（和花费的合并开关一样）；「含国际电汇 / 个人赠与」每次打开默认不勾（和花费的「含资本性支出」一样） */
+const MERGE_KEY = "hmh-inc-merge";
+function mergeSaved() { try { return localStorage.getItem(MERGE_KEY) === "1"; } catch { return false; } }
+export const setIncMerge = (on) => { inc().merge = !!on; try { localStorage.setItem(MERGE_KEY, on ? "1" : "0"); } catch { /* 隐私模式下忽略 */ } };
 export const isOwnerNow = () => Store.mode === "demo" || state.members.some((m) => m.user_id === state.user?.id && m.role === "owner");
 export const myAccess = () => inc().acc.find((a) => a.user_id === state.user?.id) || null;
 /** 能不能看全家的收入：家主，或家主已允许。其余人数据库只给他们自己记的那几条 */
@@ -109,6 +146,33 @@ export function windowOf(range, c = {}) {
   if (range === "all") { const first = inc().rec.map((r) => r.received_on).sort()[0]; return { from: first || ago(12), to: today }; }
   if (range === "custom" && c.from && c.to && c.from <= c.to) return { from: c.from, to: c.to };
   return { from: ago(12), to: today };
+}
+
+/* ── 概览 / 类型页的时间范围：和花费页同一套下拉——本月、近 3 / 6 / 9 / 12 个月（按自然月，含本月）、今年、往年（有收入的最早一年起，最多 12 年） ──
+ * 值：m / 3 / 6 / 9 / 12 / y:2025 */
+export const SPAN_MONTHS = [3, 6, 9, 12];
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+export const firstIncomeYear = () => { const y0 = new Date().getFullYear(), f = inc().rec.map((r) => r.received_on).sort()[0]; return f ? Math.min(y0, +f.slice(0, 4)) : y0; };
+export const spanOk = (v) => v === "m" || SPAN_MONTHS.includes(+v) || (/^y:\d{4}$/.test(String(v)) && +String(v).slice(2) <= new Date().getFullYear());
+export function spanWindow(v) {
+  const today = todayISO(), now = new Date();
+  if (v === "m") return { from: `${today.slice(0, 7)}-01`, to: today };
+  if (String(v).startsWith("y:")) { const y = +String(v).slice(2); return { from: `${y}-01-01`, to: y === now.getFullYear() ? today : `${y}-12-31` }; }
+  const n = SPAN_MONTHS.includes(+v) ? +v : 12; return { from: iso(new Date(now.getFullYear(), now.getMonth() - (n - 1), 1)), to: today };
+}
+/** 上一段同样长的时间（比上期多 / 少）：本月 → 上月同期；近 N 个月 → 再往前 N 个自然月；某一年 → 前一年同期 */
+export function spanPrev(v) {
+  const now = new Date(), w = spanWindow(v);
+  if (v === "m") { const last = new Date(now.getFullYear(), now.getMonth(), 0); return { from: iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)), to: iso(new Date(last.getFullYear(), last.getMonth(), Math.min(now.getDate(), last.getDate()))) }; }
+  if (String(v).startsWith("y:")) return { from: `${+w.from.slice(0, 4) - 1}${w.from.slice(4)}`, to: `${+w.to.slice(0, 4) - 1}${w.to.slice(4)}` };
+  const n = SPAN_MONTHS.includes(+v) ? +v : 12, start = new Date(+w.from.slice(0, 4), +w.from.slice(5, 7) - 1, 1);
+  return { from: iso(new Date(start.getFullYear(), start.getMonth() - n, 1)), to: iso(new Date(start.getFullYear(), start.getMonth(), 0)) };
+}
+export const spanLabel = (v) => (v === "m" ? t("本月") : String(v).startsWith("y:") ? (+String(v).slice(2) === new Date().getFullYear() ? t("今年") : t("{y} 年", { y: +String(v).slice(2) })) : t("近 {n} 个月", { n: +v }));
+export function spanOptionsHtml(cur) {
+  const y0 = new Date().getFullYear(), years = Array.from({ length: Math.max(1, Math.min(12, y0 - firstIncomeYear() + 1)) }, (_, i) => y0 - i);
+  const opt = (v) => `<option value="${v}" ${String(cur) === String(v) ? "selected" : ""}>${esc(spanLabel(v))}</option>`;
+  return [opt("m"), ...SPAN_MONTHS.map(opt), ...years.map((y) => opt(`y:${y}`))].join("");
 }
 
 /* ───────────── 筛选与汇总 ───────────── */

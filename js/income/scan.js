@@ -7,7 +7,7 @@ import { esc, num, todayISO, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
 import { compressImage } from "../core/autofill.js";
-import { CHANNELS, adults, guessChannel, guessKind, inc, kindList, loadIncome, myPersonId, similarIncome } from "./logic.js";
+import { CHANNELS, adults, guessChannel, guessKind, inc, kindList, kindOptionsHtml, loadIncome, myPersonId, similarIncome } from "./logic.js";
 
 const MAX_IMAGES = 4, CONSENT = "hmh-income-scan-ok";
 const sc = { images: [], text: "", busy: false, error: "", items: null, who: null };
@@ -62,7 +62,7 @@ function resultHtml() {
     <div class="form-grid"><label>${t("到账日期")}<input type="date" data-sc-f="date" value="${esc(x.date)}"></label>
       <label>${t("到账金额")}（${esc(cur())}）<input type="number" data-sc-f="amount" step="0.01" min="0" inputmode="decimal" value="${esc(x.amount)}"></label>
       <label>${t("谁给的")}<input data-sc-f="sender" maxlength="80" value="${esc(x.sender)}"></label>
-      <label>${t("类型")}<select data-sc-f="kind">${kindList().map((k) => `<option value="${k.id}" ${x.kind === k.id ? "selected" : ""}>${k.icon} ${esc(t(k.name))}</option>`).join("")}</select></label></div>
+      <label>${t("类型")}<select data-sc-f="kind">${kindOptionsHtml(x.kind)}</select></label></div>
     ${x.fx ? `<small class="bank-dup">${t("原金额 {a} {c}：请把到账金额改成实际收到的 {cur} 金额", { a: x.orig_amount, c: x.orig_currency, cur: cur() })}</small>` : ""}
     ${x.dup ? `<small class="bank-dup">${t("看起来已经记过：{d} · {n}，默认没勾", { d: x.dup.received_on, n: x.dup.source_name })}</small>` : ""}
     ${x.noDate ? `<small class="muted">${t("没读出日期，先填了今天，请核对")}</small>` : ""}</li>`;

@@ -12,13 +12,28 @@ const want = (sel) => sel.matches("select") && !sel.dataset.nosearch && !sel.dat
 let openBox = null;
 
 const label = (sel) => { const o = sel.selectedOptions[0]; return o ? o.textContent.trim() : ""; };
+/** select 选上有效值后，撤掉输入框上借来的“必填”错误（不然它自己会一直挡着提交） */
+function syncValid(box) { const inp = box.querySelector(".ssel-in"); if (box._sel.validity.valid && inp.validationMessage) { inp.setCustomValidity(""); inp.removeAttribute("aria-invalid"); } }
 function enhance(sel) {
   sel.dataset.sselReady = "1";
   const box = document.createElement("div"); box.className = "ssel";
   box.innerHTML = `<input type="text" class="ssel-in" role="combobox" aria-expanded="false" aria-autocomplete="list" autocomplete="off" spellcheck="false" aria-label="${esc(sel.getAttribute("aria-label") || sel.closest("label")?.firstChild?.textContent?.trim() || "")}"><div class="ssel-list" role="listbox" hidden></div>`;
-  sel.classList.add("ssel-native"); sel.tabIndex = -1; sel.setAttribute("aria-hidden", "true");
+  // 原生 select 只是不让 Tab 走到（tabIndex = -1），不加 aria-hidden：它仍然会被聚焦——点外层 <label>、表单校验跳到没填的 required 字段、
+  // 代码 .focus()——aria-hidden 的元素拿到焦点，读屏就“听不到焦点在哪”，Chrome 也会报 Blocked aria-hidden。改成焦点一落到它身上就转给能看见的输入框。
+  sel.classList.add("ssel-native"); sel.tabIndex = -1; sel.removeAttribute("aria-hidden");
   sel.after(box); box._sel = sel; sel._ssel = box;
   const inp = box.querySelector(".ssel-in"); inp.value = label(sel); inp.disabled = sel.disabled;
+  if (sel.required) inp.setAttribute("aria-required", "true");
+  sel.addEventListener("focus", () => { if (!inp.disabled) inp.focus(); });
+  // required 没选：浏览器要聚焦这个 1px 的隐形 select 并在它旁边弹提示。拦下来，改在输入框上提示（排在表单里第一个没填的才抢焦点，
+  // 放到 setTimeout 里是为了在浏览器处理完这一轮校验之后再聚焦，不被后面别的无效字段抢走）
+  sel.addEventListener("invalid", (e) => {
+    e.preventDefault();
+    inp.setCustomValidity(sel.validationMessage || t("请选择一项")); inp.setAttribute("aria-invalid", "true");
+    const first = sel.form && [...sel.form.elements].find((el) => !el.classList.contains("ssel-in") && el.willValidate && !el.validity.valid);
+    if (!sel.form || first === sel) setTimeout(() => inp.reportValidity(), 0);
+  });
+  inp.addEventListener("invalid", (e) => { if (sel.validity.valid) { e.preventDefault(); syncValid(box); } });   // select 已经被代码改成有效值（没派发 change）：别再拦提交
   inp.addEventListener("focus", () => open(box));
   inp.addEventListener("click", () => { if (!box.classList.contains("is-open")) open(box); });
   inp.addEventListener("input", () => { box.dataset.typed = "1"; filter(box); });
@@ -62,7 +77,7 @@ function open(box) {
 function close(box) {
   const inp = box.querySelector(".ssel-in");
   box.classList.remove("is-open", "is-up", "is-right"); box.querySelector(".ssel-list").hidden = true; inp.setAttribute("aria-expanded", "false");
-  inp.value = label(box._sel); inp.placeholder = ""; delete box.dataset.typed;
+  inp.value = label(box._sel); inp.placeholder = ""; delete box.dataset.typed; syncValid(box);
   if (openBox === box) openBox = null;
 }
 function pick(box, v) {
@@ -84,6 +99,6 @@ export function initSelectSearch() {
   scan(document);
   let queued = false;
   new MutationObserver(() => { if (queued) return; queued = true; setTimeout(() => { queued = false; scan(document); }, 0); }).observe(document.body, { childList: true, subtree: true });
-  document.addEventListener("change", (e) => { const sel = e.target; if (sel._ssel && !sel._ssel.classList.contains("is-open")) sel._ssel.querySelector(".ssel-in").value = label(sel); });   // 别处改了 select 的值（自动填表、重置）
+  document.addEventListener("change", (e) => { const sel = e.target; if (!sel._ssel) return; syncValid(sel._ssel); if (!sel._ssel.classList.contains("is-open")) sel._ssel.querySelector(".ssel-in").value = label(sel); });   // 别处改了 select 的值（自动填表、重置）
   document.addEventListener("pointerdown", (e) => { if (openBox && !openBox.contains(e.target)) close(openBox); }, true);
 }

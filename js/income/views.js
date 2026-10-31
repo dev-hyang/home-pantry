@@ -16,9 +16,9 @@ import { acctById } from "../bills/cards-views.js";
 import { ACCT_KINDS, CARDS_HREF } from "../bills/cards.js";
 import { medicalVirtuals } from "../bills/medical.js";
 import { aiReady, askText } from "../core/ai.js";
-import { STAT_CATS, download, statCat, toCsv, ymd } from "../stats/views.js";
-import { CHANNELS, RANGES, UNITS, adults, bucketKey, canSeeAll, customKinds, groupSum, inc, incomeIn, isOwnerNow, kindList, kindOf, knownSenders, loadIncome, memberLabel, myAccess, myPersonId, openRepayments, periodKeys, personOk,
-  periodLabel, personName, repayState, repaidOf, similarIncome, skey, sumOf, windowOf } from "./logic.js";
+import { STAT_CATS, download, dq, hitAttrs, statCat, toCsv, ymd } from "../stats/views.js";
+import { CHANNELS, GROUPS, RANGES, UNITS, adults, bucketKey, canSeeAll, customKinds, groupList, groupOf, groupSum, inc, incomeIn, isExtra, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, knownSenders, loadIncome, memberLabel, myAccess, myPersonId, openRepayments, periodKeys, personOk,
+  periodLabel, personName, repayState, repaidOf, setIncMerge, similarIncome, skey, spanLabel, spanOk, spanOptionsHtml, spanPrev, spanWindow, statKind, statKinds, sumOf, windowOf } from "./logic.js";
 
 const incomeHref = (id) => `${href("bills", "income")}${id === "overview" ? "" : `?tab=${id}`}`;
 const GREEN = "#2c6a57", RED = "#d4694c", BLUE = "#3b7fc4";
@@ -48,11 +48,12 @@ function spendFor(w) {
 const spendRowsOk = (list) => list.filter((p) => p.amount != null && (!p.currency || p.currency === cur()) && (state.stats.includeCapital || statCat(p.category) !== "capital"));
 
 /** 一个时间窗口 + 周期的现金流：每个周期的收入 / 花费 / 还款 / 差额；花费不分人，只在选「全家」时有 */
-function cashflow({ range, from, to, unit, person }) {
-  const w = windowOf(range, { from, to }), keys = periodKeys(w.from, w.to, unit), zero = () => Object.fromEntries(keys.map((k) => [k, 0]));
+function cashflow({ range, from, to, unit, person, win = null }) {
+  const I = inc(), w = win || windowOf(range, { from, to }), keys = periodKeys(w.from, w.to, unit), zero = () => Object.fromEntries(keys.map((k) => [k, 0]));
   const income = zero(), spend = zero(), repaid = zero(), byKind = {}, spendCats = {};
-  const rows = incomeIn(w.from, w.to, person);
-  for (const r of rows) { income[bucketKey(r.received_on, unit)] += r.amount; byKind[r.kind] = (byKind[r.kind] || 0) + r.amount; }
+  const allRows = incomeIn(w.from, w.to, person), extraRows = allRows.filter((r) => isExtra(r.kind));
+  const rows = I.extra ? allRows : allRows.filter((r) => !isExtra(r.kind));   // 默认不算国际电汇 / 个人赠与（勾「含…」才算）
+  for (const r of rows) { const k = statKind(r.kind, I.merge); income[bucketKey(r.received_on, unit)] += r.amount; byKind[k] = (byKind[k] || 0) + r.amount; }
   for (const p of inc().rep) {
     if (p.paid_on < w.from || p.paid_on > w.to) continue;
     const rec = inc().rec.find((r) => r.id === p.record_id); if (!rec || !personOk(rec, person)) continue;
@@ -64,7 +65,7 @@ function cashflow({ range, from, to, unit, person }) {
   const lines = keys.map((k) => { const i = R2(income[k]), s = hasSpend ? R2(spend[k]) : null, rp = R2(repaid[k]); return { key: k, label: periodLabel(k, unit), income: i, spend: s, repaid: rp, net: s == null ? null : R2(i - s) }; });
   const tot = { income: R2(lines.reduce((a, l) => a + l.income, 0)), spend: hasSpend ? R2(lines.reduce((a, l) => a + l.spend, 0)) : null, repaid: R2(lines.reduce((a, l) => a + l.repaid, 0)) };
   tot.net = tot.spend == null ? null : R2(tot.income - tot.spend);   // 还款是钱从账户里出去了，已经算在花费里（记还款时同时记一笔花费，或银行导入）：这里的「还款」只是告诉你其中有多少
-  return { w, keys, lines, tot, byKind, rows, hasSpend, hasRepaid, spendCats, unit, loading: person === "all" && !list };
+  return { w, keys, lines, tot, byKind, rows, allRows, extraRows, hasSpend, hasRepaid, spendCats, unit, person, loading: person === "all" && !list };
 }
 
 /* ───────────── 页面外壳 ───────────── */
@@ -84,7 +85,9 @@ export function viewIncome() {
   if (I._lastTab !== undefined && I._lastTab !== tab) { if (I._keep) I._keep = false; else { I.form = null; I.scanOpen = false; I.selMode = false; } }   // 换标签：不带着没关的表单 / 识别面板
   I._lastTab = tab;
   const qb = state.route?.q?.get("batch");   // 银行导入「查看收入」：只看这一批入账
-  if (qb && I.batchFrom !== qb) { I.batch = qb; I.batchFrom = qb; Object.assign(I, { q: "", kind: "all", year: "all", person: "all", limit: 40 }); } else if (!qb) I.batchFrom = null;
+  if (qb && I.batchFrom !== qb) { I.batch = qb; I.batchFrom = qb; Object.assign(I, { q: "", kind: "all", year: "all", person: "all", limit: 40, from: "", to: "", ex: false }); } else if (!qb) I.batchFrom = null;
+  const dqs = tab === "records" && state.route?.q?.get("inc") ? state.route.q.toString() : "";   // 概览 / 类型图表点进来：套上对应筛选（同一个链接只套一次，之后用户改筛选不被覆盖）
+  if (dqs && I.drillFrom !== dqs) { I.drillFrom = dqs; applyIncomeDrill(state.route.q); } else if (!dqs) I.drillFrom = null;
   if (!I.loaded && !I.loading) { I.loading = true; loadIncome().finally(() => { I.loading = false; rerender(); }); }
   if (!I.loaded) return shell(tab, `<div class="panel empty"><strong>${t("加载中…")}</strong></div>`);
   const body = { overview: overviewTab, records: recordsTab, category: categoryTab, senders: sendersTab, compare: reportTab, import: importTab, export: exportTab, plan: planTab, access: accessTab }[tab]();
@@ -92,7 +95,31 @@ export function viewIncome() {
 }
 
 /* ───────────── 公共小件 ───────────── */
-const kindBadge = (id) => { const k = kindOf(id); return `<span class="ix-kind" style="--k:${k.color}">${k.icon} ${esc(t(k.name))}</span>`; };
+const kindBadge = (id) => { const k = kindOf(id); return `<span class="ix-kind" style="--k:${k.color}">${k.icon} ${esc(kindLabel(id))}</span>`; };
+/* ── 钻取：图表色块、图例、数字卡片、表格行点一下 → 「明细」并套上对应筛选（类型 / 日期段 / 成员 / 不含电汇赠与）。
+ * 和花费图表同一套 data-drill（查询串）；带 inc=1 的由 main.js 的 drillTo 送到 收入 → 明细，applyIncomeDrill 套筛选。 */
+const incDrill = (o) => dq({ inc: 1, ...o, ex: inc().extra ? "" : 1, person: o.person && o.person !== "all" ? o.person : "" });
+const monthEnd = (y, m) => iso(new Date(y, m, 0));
+/** 一个周期（图表上的一根柱子）对应的日期段，夹在时间窗口里 */
+function periodWin(k, unit, w) {
+  let from, to;
+  if (unit === "year") { from = `${k}-01-01`; to = `${k}-12-31`; }
+  else if (unit === "quarter") { const y = +k.slice(0, 4), q = +k.slice(-1); from = `${y}-${String(q * 3 - 2).padStart(2, "0")}-01`; to = monthEnd(y, q * 3); }
+  else if (unit === "month") { from = `${k}-01`; to = monthEnd(+k.slice(0, 4), +k.slice(5, 7)); }
+  else { from = k; to = addDay(k, 13); }
+  return { from: from < w.from ? w.from : from, to: to > w.to ? w.to : to };
+}
+/** 花费那一列点一下：到花费明细（按月 / 季 / 年；双周没有对应筛选，不可点） */
+const spendDrillOf = (k, unit) => (unit === "month" ? dq({ month: k }) : unit === "year" ? dq({ year: k }) : unit === "quarter" ? dq({ mlist: [0, 1, 2].map((i) => `${k.slice(0, 4)}-${String(+k.slice(-1) * 3 - 2 + i).padStart(2, "0")}`).join(",") }) : null);
+const DRILL_HINT = () => `<p class="muted drill-hint">${t("点图里的色块、图例或数字，可以查看对应的收入明细。")}</p>`;
+/** 时间条里的两个勾选（和花费的「同一大类账单合并显示」「含资本性支出」一样）：同一个大类合并显示；含国际电汇 / 个人赠与（默认不含，看的是挣来的收入） */
+function togglesHtml(cf) {
+  const I = inc(), used = [...new Set(cf.allRows.filter((r) => I.extra || !isExtra(r.kind)).map((r) => r.kind))];
+  const multi = groupList().some((g) => used.filter((k) => groupOf(k).id === g.id).length > 1);
+  const merge = multi || I.merge ? `<label class="check-inline" title="${esc(t("工资、奖金、福利包合成「工作收入」，利息、租金合成「投资与租金」等，图里颜色更少"))}"><input type="checkbox" data-inc-tog="merge" ${I.merge ? "checked" : ""}><span>${t("同一个大类合并显示")}</span></label>` : "";
+  const extra = cf.extraRows.length ? `<label class="check-inline" title="${esc(t("国际电汇、个人赠与多是家人转来的钱，不是挣来的收入：默认不算进合计和图表，勾上一起看"))}"><input type="checkbox" data-inc-tog="extra" ${I.extra ? "checked" : ""}><span>${t("含国际电汇 / 个人赠与 {a}（{n} 笔）", { a: fmtMoney(sumOf(cf.extraRows)), n: cf.extraRows.length })}</span></label>` : "";
+  return merge + extra;
+}
 const personOptions = (sel, { all = false } = {}) => `${all ? `<option value="all" ${sel === "all" ? "selected" : ""}>${t("全家")}</option>` : ""}<option value="none" ${sel === "none" ? "selected" : ""}>${t(all ? "未指定的" : "未指定 / 全家")}</option>${adults().map((p) => `<option value="${p.id}" ${sel === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}`;
 const selOpts = (list, sel) => list.map(([v, l]) => `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(t(l))}</option>`).join("");
 const yearsOf = () => [...new Set(inc().rec.map((r) => r.received_on.slice(0, 4)).concat(String(new Date().getFullYear())))].sort().reverse();
@@ -106,14 +133,16 @@ function flowCharts(cf, title, { trend: withTrend = true } = {}) {
   if (!window.Charts || !cf.lines.length) return "";
   const labels = cf.lines.map((l) => l.label), f = (v, s) => fmtMoney(v, s);
   const grouped = window.Charts.bars({ labels, title, stacked: false, showTotals: false, fmt: f,
+    drill: (k, i) => { const key = cf.lines[i].key; return k === 0 ? incDrill({ ...periodWin(key, cf.unit, cf.w), person: cf.person }) : spendDrillOf(key, cf.unit); },
+    legendDrill: (k) => (k === 0 ? incDrill({ ...cf.w, person: cf.person }) : null),
     series: [{ name: t("收入"), color: GREEN, values: cf.lines.map((l) => l.income) }, ...(cf.hasSpend ? [{ name: t("花费"), color: RED, values: cf.lines.map((l) => Math.max(0, l.spend)) }] : [])] });
   const diff = cf.hasSpend ? window.Charts.bars({ labels, title: t("收支差额"), stacked: true, showTotals: false, fmt: f,
     series: [{ name: t("结余（收入 − 花费）"), color: BLUE, values: cf.lines.map((l) => Math.max(0, l.net)) }, { name: t("超支"), color: "#b23b3b", values: cf.lines.map((l) => Math.max(0, -l.net)) }] }) : "";
   const trend = withTrend && cf.lines.length > 2 ? window.Charts.line({ labels, title: t("趋势"), fmt: f, series: [{ name: t("收入"), color: GREEN, values: cf.lines.map((l) => l.income) }, ...(cf.hasSpend ? [{ name: t("花费"), color: RED, values: cf.lines.map((l) => Math.max(0, l.spend)) }] : [])] }) : "";
   return `<div class="panel chart-panel"><h3>${t("收入 vs 花费")}</h3>${grouped}</div>${diff ? `<div class="panel chart-panel"><h3>${t("差额：结余 / 超支")}</h3>${diff}</div>` : ""}${trend ? `<div class="panel chart-panel"><h3>${t("趋势")}</h3>${trend}</div>` : ""}`;
 }
-const kindDonut = (byKind) => {
-  const items = Object.entries(byKind).map(([id, value]) => ({ name: t(kindOf(id).name), value: R2(value), color: kindOf(id).color }));
+const kindDonut = (cf) => {
+  const items = statKinds(inc().merge).filter((k) => cf.byKind[k.id]).map((k) => ({ name: `${k.icon} ${kindLabel(k.id)}`, value: R2(cf.byKind[k.id]), color: k.color, drill: incDrill({ kind: k.id, ...cf.w, person: cf.person }) }));
   return items.length && window.Charts ? `<div class="panel chart-panel"><h3>${t("按收入类型")}</h3>${window.Charts.donut({ items, fmt: fmtMoney, title: t("按收入类型"), center: fmtMoney(items.reduce((a, x) => a + x.value, 0), true) })}</div>` : "";
 };
 const lineTable = (cf) => `<div class="panel"><div class="ch-scroll"><table class="store-table"><thead><tr><th scope="col">${t("周期")}</th><th scope="col">${t("收入")}</th>${cf.hasSpend ? `<th scope="col">${t("花费")}</th>` : ""}${cf.hasRepaid ? `<th scope="col">${t("其中：还款")}</th>` : ""}${cf.hasSpend ? `<th scope="col">${t("收支差额")}</th><th scope="col">${t("结余率")}</th>` : ""}</tr></thead><tbody>
@@ -122,51 +151,50 @@ const lineTable = (cf) => `<div class="panel"><div class="ch-scroll"><table clas
   ${cf.hasRepaid ? `<p class="muted" style="font-size:12.5px;margin:6px 0 0">${t("其中「还款」= 还给个人赠与 / 借款的钱：钱从账户里出去了，已经算在花费里（记还款时默认同时记一笔花费；银行导入的转账也会算），这一列只是告诉你其中有多少。差额 = 收入 − 花费。")}</p>` : ""}</div>`;
 
 /* ───────────── 概览：和「花费」同一套——时间条 → 数字卡片 → 图表；下面是二级入口 ───────────── */
-const OV_RANGES = [["month", "本月"], ["3m", "近 3 个月"], ["6m", "近 6 个月"], ["12m", "近 12 个月"], ["ytd", "今年"], ["lastyear", "去年"], ["3y", "近 3 年"]];
-/** 概览 / 类型页共用的时间范围和成员（切标签不丢） */
+/** 概览 / 类型页共用的时间范围和成员（切标签不丢）；时间范围和花费页同一套：本月 / 近 3·6·9·12 个月 / 今年 / 往年（logic.js 的 span*） */
 const OV = () => {
-  const o = (inc().ov ||= { range: "12m", person: "all", month: "", kind: "" });
-  if (!OV_RANGES.some((r) => r[0] === o.range)) o.range = "12m";
+  const o = (inc().ov ||= { range: "12", person: "all", month: "", kind: "" });
+  if (!spanOk(o.range)) o.range = "12";
   if (!(o.person === "all" || o.person === "none" || adults().some((p) => p.id === o.person))) o.person = "all";
   return o;
 };
-const ovUnit = (range) => (range === "month" ? "biweek" : range === "3y" ? "quarter" : "month");
+const ovUnit = (range) => (range === "m" ? "biweek" : "month");
 const dayDiff = (a, b) => Math.round((new Date(`${b}T12:00:00`) - new Date(`${a}T12:00:00`)) / 864e5);
-/** 上一个同样长的时间段（比较「比上期多 / 少」） */
-const prevWin = (w) => { const n = dayDiff(w.from, w.to) + 1; return { from: addDay(w.from, -n), to: addDay(w.from, -1) }; };
-const kpiS = (label, val, small = "") => `<div class="kpi"><span>${esc(label)}</span><b>${val}</b>${small}</div>`;
+const kpiS = (label, val, small = "", drill = "") => `<div class="kpi${drill ? " ch-hit-row" : ""}"${hitAttrs(drill, label)}><span>${esc(label)}</span><b>${val}</b>${small}</div>`;
 const changeHtml = (now, before) => (before > 0 ? `<small class="${now >= before ? "gain" : "loss"}">${now >= before ? t("比上期多 {p}%", { p: Math.round(((now - before) / before) * 100) }) : t("比上期少 {p}%", { p: Math.round(((before - now) / before) * 100) })}</small>` : `<small>${t("上期没有收入")}</small>`);
 const senderLabel = (x) => x.rows.find((r) => r.source_name)?.source_name || x.key;
-const ovBar = (O, { keys = null } = {}) => `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-inc-ov="range" data-nosearch>${selOpts(OV_RANGES, O.range)}</select></label>
+const ovBar = (O, { keys = null, cf = null } = {}) => `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-inc-ov="range" class="range-sel" data-nosearch>${spanOptionsHtml(O.range)}</select></label>
   <label class="tb-field"><span>${t("谁的")}</span><select data-inc-ov="person" data-nosearch>${personOptions(O.person, { all: true })}</select></label>
-  ${keys ? `<label class="tb-field"><span>${t("月份")}</span><select data-inc-ov="month" data-nosearch><option value="">${t("整段")}</option>${[...keys].reverse().map((k) => `<option value="${k}" ${k === O.month ? "selected" : ""}>${esc(periodLabel(k, "month"))}</option>`).join("")}</select></label>` : ""}</div>`;
-/** 每个周期按收入类型的金额：{ kindId: { periodKey: 金额 } } */
-const kindGrid = (cf) => { const g = {}; for (const r of cf.rows) { const b = bucketKey(r.received_on, cf.unit); (g[r.kind] ||= Object.fromEntries(cf.keys.map((k) => [k, 0])))[b] += r.amount; } return g; };
+  ${keys ? `<label class="tb-field"><span>${t("月份")}</span><select data-inc-ov="month" data-nosearch><option value="">${t("整段（{r}）", { r: spanLabel(O.range) })}</option>${[...keys].reverse().map((k) => `<option value="${k}" ${k === O.month ? "selected" : ""}>${esc(periodLabel(k, "month"))}</option>`).join("")}</select></label>` : ""}${cf ? togglesHtml(cf) : ""}</div>`;
+/** 每个周期按收入类型的金额：{ 类型（合并时是大类）: { periodKey: 金额 } } */
+const kindGrid = (cf) => { const g = {}, m = inc().merge; for (const r of cf.rows) { const b = bucketKey(r.received_on, cf.unit); (g[statKind(r.kind, m)] ||= Object.fromEntries(cf.keys.map((k) => [k, 0])))[b] += r.amount; } return g; };
 /** 付款方排行：名字 + 金额 + 占比条 */
-const rankHtml = (list, total) => `<ul class="ix-rank">${list.map((x) => `<li><div class="rk-top"><button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(senderLabel(x))}</button><b>${fmtMoney(x.total)}</b></div>
+const rankHtml = (list, total, cf) => `<ul class="ix-rank">${list.map((x) => `<li><div class="rk-top"><button type="button" class="link-name" data-drill="${esc(incDrill({ q: senderLabel(x), ...cf.w, person: cf.person }))}">${esc(senderLabel(x))}</button><b>${fmtMoney(x.total)}</b></div>
   <div class="rk-bar" aria-hidden="true"><i style="width:${total > 0 ? Math.max(2, Math.round((x.total / total) * 100)) : 0}%"></i></div><small class="muted">${t("{n} 次", { n: x.n })} · ${rate(x.total, total)}</small></li>`).join("")}</ul>`;
 function overviewTab() {
   const I = inc(), O = OV();
   if (!I.rec.length) return empty();
-  const cf = cashflow({ range: O.range, unit: ovUnit(O.range), person: O.person }), pw = prevWin(cf.w), before = sumOf(incomeIn(pw.from, pw.to, O.person));
+  const cf = cashflow({ win: spanWindow(O.range), unit: ovUnit(O.range), person: O.person }), pw = spanPrev(O.range), before = sumOf(incomeIn(pw.from, pw.to, O.person).filter((r) => I.extra || !isExtra(r.kind)));
   const months = Math.max(1, dayDiff(cf.w.from, cf.w.to) / 30.4), g = kindGrid(cf), labels = cf.lines.map((l) => l.label);
-  const biggest = cf.rows.reduce((m, r) => (r.amount > (m?.amount || 0) ? r : m), null);
-  const kpis = `<div class="kpis">${kpiS(t("收入"), fmtMoney(cf.tot.income), changeHtml(cf.tot.income, before))}${kpiS(t("月均收入"), fmtMoney(cf.tot.income / months), `<small>${t("{n} 笔收入", { n: cf.rows.length })}</small>`)}
+  const biggest = cf.rows.reduce((m, r) => (r.amount > (m?.amount || 0) ? r : m), null), ks = statKinds(I.merge).filter((k) => g[k.id]);
+  const all = incDrill({ ...cf.w, person: O.person });
+  const kpis = `<div class="kpis">${kpiS(t("收入"), fmtMoney(cf.tot.income), changeHtml(cf.tot.income, before), all)}${kpiS(t("月均收入"), fmtMoney(cf.tot.income / months), `<small>${t("{n} 笔收入", { n: cf.rows.length })} ›</small>`, all)}
     ${cf.hasSpend ? `${kpiS(t("花费"), fmtMoney(cf.tot.spend), `<small>${t("月均 {m}", { m: fmtMoney(cf.tot.spend / months, true) })}</small>`)}${kpiS(t("结余（收入 − 花费）"), `<span class="${cf.tot.net < 0 ? "down" : ""}">${fmtMoney(cf.tot.net)}</span>`, `<small class="${cf.tot.net < 0 ? "loss" : "gain"}">${t("结余率 {r}", { r: rate(cf.tot.net, cf.tot.income) })}</small>`)}`
-      : kpiS(t("最大一笔"), biggest ? fmtMoney(biggest.amount) : "—", biggest ? `<small>${esc(biggest.source_name)}</small>` : "")}</div>`;
+      : kpiS(t("最大一笔"), biggest ? fmtMoney(biggest.amount) : "—", biggest ? `<small>${esc(biggest.source_name)}</small>` : "", biggest ? incDrill({ q: biggest.source_name, from: biggest.received_on, to: biggest.received_on, person: O.person }) : "")}</div>`;
   const kindBars = window.Charts && cf.rows.length ? `<div class="panel chart-panel"><h3>${t("每{u}收入（按类型）", { u: t((UNITS.find((u) => u[0] === cf.unit) || [])[1]) })}</h3>${window.Charts.bars({ labels, title: t("收入（按类型）"), fmt: fmtMoney,
-    series: kindList().filter((k) => g[k.id]).map((k) => ({ name: `${k.icon} ${t(k.name)}`, color: k.color, values: cf.keys.map((x) => R2(g[k.id][x])) })) })}</div>` : `<div class="panel empty"><strong>${t("这段时间没有收入")}</strong>${t("换个时间范围，或点右上角「记一笔收入」。")}</div>`;
+    drill: (k, i) => incDrill({ kind: ks[k].id, ...periodWin(cf.keys[i], cf.unit, cf.w), person: O.person }), legendDrill: (k) => incDrill({ kind: ks[k].id, ...cf.w, person: O.person }),
+    series: ks.map((k) => ({ name: `${k.icon} ${kindLabel(k.id)}`, color: k.color, values: cf.keys.map((x) => R2(g[k.id][x])) })) })}${DRILL_HINT()}</div>` : `<div class="panel empty"><strong>${t("这段时间没有收入")}</strong>${t("换个时间范围，或点右上角「记一笔收入」。")}</div>`;
   const senders = groupSum(cf.rows, (r) => skey(r.source_name)), top = senders.slice(0, 5), total = sumOf(cf.rows);
-  const rank = top.length ? `<div class="panel"><div class="chart-head"><h3>${t("主要付款方")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("senders")}">${t("全部付款方")} ›</a></div>${rankHtml(top, total)}</div>` : "";
+  const rank = top.length ? `<div class="panel"><div class="chart-head"><h3>${t("主要付款方")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("senders")}">${t("全部付款方")} ›</a></div>${rankHtml(top, total, cf)}</div>` : "";
   const byP = groupSum(cf.rows, (r) => r.person_id || "");
   const members = byP.length > 1 || (byP.length === 1 && byP[0].key) ? `<div class="panel"><h3 style="margin:0 0 8px">${t("按成员")}</h3><div class="ch-scroll"><table class="store-table ix-tbl"><thead><tr><th scope="col">${t("成员")}</th><th scope="col">${t("笔数")}</th><th scope="col">${t("合计")}</th><th scope="col">${t("占比")}</th></tr></thead><tbody>
-    ${byP.map((x) => `<tr><th scope="row">${esc(x.key ? personName(x.key) || t("已删除的成员") : t("未指定 / 全家"))}</th><td>${x.n}</td><td>${fmtMoney(x.total)}</td><td>${rate(x.total, total)}</td></tr>`).join("")}
+    ${byP.map((x) => `<tr class="ch-hit-row"${hitAttrs(incDrill({ ...cf.w, person: x.key || "none" }), x.key ? personName(x.key) : t("未指定 / 全家"))}><th scope="row">${esc(x.key ? personName(x.key) || t("已删除的成员") : t("未指定 / 全家"))}</th><td>${x.n}</td><td>${fmtMoney(x.total)}</td><td>${rate(x.total, total)}</td></tr>`).join("")}
     <tr><th scope="row"><b>${t("全家合计")}</b></th><td><b>${byP.reduce((a, x) => a + x.n, 0)}</b></td><td><b>${fmtMoney(total)}</b></td><td>100%</td></tr></tbody></table></div></div>` : "";
   const recent = I.rec.filter((r) => personOk(r, O.person)).slice().sort((a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5);
   const recentHtml = recent.length ? `<div class="panel"><div class="chart-head"><h3>${t("最近到账")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("records")}">${t("全部明细")} ›</a></div><ul class="restock-list ix-list">${recent.map(recordRow).join("")}</ul></div>` : "";
-  return `${ovBar(O)}${kpis}${cf.loading ? `<p class="muted" role="status">${t("正在读取花费…")}</p>` : ""}${kindBars}
+  return `${ovBar(O, { cf })}${kpis}${cf.loading ? `<p class="muted" role="status">${t("正在读取花费…")}</p>` : ""}${kindBars}
     ${flowCharts(cf, t("收入 vs 花费"), { trend: false })}
-    <div class="ix-two">${kindDonut(cf.byKind)}${rank}</div>${members}${recentHtml}${repayPanel()}
+    <div class="ix-two">${kindDonut(cf)}${rank}</div>${members}${recentHtml}${repayPanel()}
     ${tabHub(INCOME_TABS, incomeHref, t("其他功能"))}`;
 }
 
@@ -174,23 +202,24 @@ function overviewTab() {
 function categoryTab() {
   const I = inc(), O = OV();
   if (!I.rec.length) return empty();
-  const cf = cashflow({ range: O.range, unit: "month", person: O.person }), g = kindGrid(cf);
+  const cf = cashflow({ win: spanWindow(O.range), unit: "month", person: O.person }), g = kindGrid(cf);
   if (O.month && !cf.keys.includes(O.month)) O.month = "";
   const sum = (id) => R2(O.month ? g[id]?.[O.month] || 0 : cf.keys.reduce((a, k) => a + (g[id]?.[k] || 0), 0));
-  const cnt = (id) => cf.rows.filter((r) => r.kind === id && (!O.month || bucketKey(r.received_on, "month") === O.month)).length;
-  const kinds = kindList().filter((k) => g[k.id] && sum(k.id) > 0).sort((a, b) => sum(b.id) - sum(a.id));
-  const bar = ovBar(O, { keys: cf.keys });
+  const cnt = (id) => cf.rows.filter((r) => statKind(r.kind, I.merge) === id && (!O.month || bucketKey(r.received_on, "month") === O.month)).length;
+  const kinds = statKinds(I.merge).filter((k) => g[k.id] && sum(k.id) > 0).sort((a, b) => sum(b.id) - sum(a.id));
+  const bar = ovBar(O, { keys: cf.keys, cf }), win = O.month ? periodWin(O.month, "month", cf.w) : cf.w, kd = (id) => incDrill({ kind: id, ...win, person: O.person });
   if (!kinds.length) return `${bar}<div class="panel empty"><strong>${t("这段时间没有收入")}</strong>${t("换个时间范围或月份。")}</div>`;
   const sel = kinds.find((k) => k.id === O.kind) || kinds[0], total = R2(kinds.reduce((a, k) => a + sum(k.id), 0));
-  const donut = window.Charts.donut({ title: t("收入类型占比"), fmt: fmtMoney, center: fmtMoney(total, true), items: kinds.map((k) => ({ name: `${k.icon} ${t(k.name)}`, color: k.color, value: sum(k.id) })) });
-  const trend = window.Charts.line({ title: t("{k}月度收入趋势", { k: t(sel.name) }), labels: cf.keys.map((k) => periodLabel(k, "month")), fmt: fmtMoney, series: [{ name: t(sel.name), color: sel.color, values: cf.keys.map((k) => R2(g[sel.id]?.[k] || 0)) }] });
+  const donut = window.Charts.donut({ title: t("收入类型占比"), fmt: fmtMoney, center: fmtMoney(total, true), items: kinds.map((k) => ({ name: `${k.icon} ${kindLabel(k.id)}`, color: k.color, value: sum(k.id), drill: kd(k.id) })) });
+  const trend = window.Charts.line({ title: t("{k}月度收入趋势", { k: kindLabel(sel.id) }), labels: cf.keys.map((k) => periodLabel(k, "month")), fmt: fmtMoney, series: [{ name: kindLabel(sel.id), color: sel.color, values: cf.keys.map((k) => R2(g[sel.id]?.[k] || 0)) }],
+    drill: (_, i) => incDrill({ kind: sel.id, ...periodWin(cf.keys[i], "month", cf.w), person: O.person }) });
   const table = `<div class="panel"><div class="ch-scroll"><table class="store-table ix-tbl"><thead><tr><th scope="col">${t("类型")}</th><th scope="col">${t("笔数")}</th><th scope="col">${t("合计")}</th><th scope="col">${t("占比")}</th><th scope="col">${t("平均每笔")}</th></tr></thead><tbody>
-    ${kinds.map((k) => `<tr><th scope="row">${kindBadge(k.id)}</th><td>${cnt(k.id)}</td><td>${fmtMoney(sum(k.id))}</td><td>${rate(sum(k.id), total)}</td><td>${fmtMoney(cnt(k.id) ? sum(k.id) / cnt(k.id) : 0)}</td></tr>`).join("")}
+    ${kinds.map((k) => `<tr class="ch-hit-row"${hitAttrs(kd(k.id), kindLabel(k.id))}><th scope="row">${kindBadge(k.id)}</th><td>${cnt(k.id)}</td><td>${fmtMoney(sum(k.id))}</td><td>${rate(sum(k.id), total)}</td><td>${fmtMoney(cnt(k.id) ? sum(k.id) / cnt(k.id) : 0)}</td></tr>`).join("")}
     <tr><th scope="row"><b>${t("合计")}</b></th><td><b>${kinds.reduce((a, k) => a + cnt(k.id), 0)}</b></td><td><b>${fmtMoney(total)}</b></td><td>100%</td><td></td></tr></tbody></table></div></div>`;
-  return `${bar}<div class="ix-two"><div class="panel chart-panel"><h3>${t("类型占比")}</h3>${donut}</div>${table}</div>
+  return `${bar}<div class="ix-two"><div class="panel chart-panel"><h3>${t("类型占比")}</h3>${donut}${DRILL_HINT()}</div>${table}</div>
     <div class="panel chart-panel"><h3>${t("单个类型的月度趋势")}</h3>
-      <div class="chips" role="group" aria-label="${esc(t("选择类型"))}">${kinds.map((k) => `<button type="button" class="chip" data-inc="ov-kind" data-id="${esc(k.id)}" aria-pressed="${k.id === sel.id}">${k.icon} ${esc(t(k.name))}</button>`).join("")}</div>
-      ${trend}<div class="form-actions"><button type="button" class="btn btn-sm" data-inc="kind-open" data-id="${esc(sel.id)}">${t("查看「{k}」的明细", { k: t(sel.name) })} ›</button></div></div>`;
+      <div class="chips" role="group" aria-label="${esc(t("选择类型"))}">${kinds.map((k) => `<button type="button" class="chip" data-inc="ov-kind" data-id="${esc(k.id)}" aria-pressed="${k.id === sel.id}">${k.icon} ${esc(kindLabel(k.id))}</button>`).join("")}</div>
+      ${trend}<div class="form-actions"><button type="button" class="btn btn-sm" data-drill="${esc(kd(sel.id))}">${t("查看「{k}」的明细", { k: kindLabel(sel.id) })} ›</button></div></div>`;
 }
 
 /* ───────────── 银行导入：对账单里的入账补入收入（和「花费 → 银行导入」是同一个入口） ───────────── */
@@ -209,18 +238,34 @@ function repayPanel() {
 }
 
 /* ───────────── 明细 ───────────── */
+/** 图表钻取的查询串 → 明细筛选：类型（小类 / g:大类）、日期段 from–to、成员、搜索、ex = 不含国际电汇 / 个人赠与 */
+function applyIncomeDrill(q) {
+  const I = inc(), d = (k) => (/^\d{4}-\d{2}-\d{2}$/.test(q.get(k) || "") ? q.get(k) : "");
+  Object.assign(I, { q: q.get("q") || "", kind: q.get("kind") || "all", person: q.get("person") || "all", year: "all", month: "all", batch: null, from: d("from"), to: d("to"), ex: q.get("ex") === "1", limit: 40, open: null, selMode: false });
+}
 function filteredRecords() {
   const I = inc(), q = skey(I.q);
-  return I.rec.filter((r) => (I.kind === "all" || r.kind === I.kind) && (I.person === "all" || (I.person === "none" ? !r.person_id : r.person_id === I.person)) && (I.year === "all" || r.received_on.startsWith(I.year)) && (!I.batch || r.import_batch === I.batch) && (!I.month || I.month === "all" || r.received_on.slice(5, 7) === I.month)
-    && (!q || skey(`${r.source_name} ${r.notes || ""} ${r.account || ""} ${kindOf(r.kind).name}`).includes(q))).sort(SORTS[I.sort] || SORTS.new);
+  return I.rec.filter((r) => kindMatch(I.kind, r.kind) && (I.person === "all" || (I.person === "none" ? !r.person_id : r.person_id === I.person)) && (I.year === "all" || r.received_on.startsWith(I.year)) && (!I.batch || r.import_batch === I.batch) && (!I.month || I.month === "all" || r.received_on.slice(5, 7) === I.month)
+    && (!I.from || r.received_on >= I.from) && (!I.to || r.received_on <= I.to) && (!I.ex || !isExtra(r.kind))
+    && (!q || skey(`${r.source_name} ${r.notes || ""} ${r.account || ""} ${kindLabel(r.kind)} ${kindOf(r.kind).name} ${groupOf(r.kind).name}`).includes(q))).sort(SORTS[I.sort] || SORTS.new);
 }
-const SORTS = { new: (a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at)), old: (a, b) => a.received_on.localeCompare(b.received_on), big: (a, b) => b.amount - a.amount, small: (a, b) => a.amount - b.amount };
+const kindRank = (id) => { const i = kindList().findIndex((k) => k.id === id); return i < 0 ? 999 : i; };
+const SORTS = { new: (a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at)), old: (a, b) => a.received_on.localeCompare(b.received_on), big: (a, b) => b.amount - a.amount, small: (a, b) => a.amount - b.amount,
+  kind: (a, b) => kindRank(a.kind) - kindRank(b.kind) || b.received_on.localeCompare(a.received_on) };   // 按类型：大类 → 小类的顺序，同类里新的在前
+/** 明细顶部「当前筛选」：图表点进来的日期段、不含电汇 / 赠与，可逐个去掉（和花费明细的筛选条一样） */
+function drillChips() {
+  const I = inc(), out = [];
+  if (I.from || I.to) out.push(["range", I.from === I.to ? I.from : `${I.from || "…"} → ${I.to || "…"}`]);
+  if (I.ex) out.push(["ex", t("不含国际电汇 / 个人赠与")]);
+  if (!out.length) return "";
+  return `<div class="filter-chips" role="group" aria-label="${esc(t("当前筛选"))}"><span class="muted">${t("当前筛选")}</span>${out.map(([k, label]) => `<button type="button" class="chip fchip" data-inc="drill-clear" data-k="${k}" aria-label="${esc(t("去掉筛选：{x}", { x: label }))}">${esc(label)} <span aria-hidden="true">✕</span></button>`).join("")}</div>`;
+}
 const canEdit = (r) => isOwnerNow() || r.created_by === state.user?.id;
 /** 正在改哪一条：它就在已显示的列表里时，表单在那一行下面展开；否则（被筛掉 / 还没翻到）表单放顶部 */
 const inlineEditId = () => { const I = inc(), id = I.form?.rec?.id; return id && activeTab(state.route) === "records" && filteredRecords().slice(0, I.limit).some((x) => x.id === id) ? id : null; };
 function recordRow(r) {
   const I = inc(), s = repayState(r), pick = !!I.selMode && activeTab(state.route) === "records", editing = !pick && inlineEditId() === r.id, open = I.open === r.id && !editing;
-  const who = r.person_id ? personName(r.person_id) : "", sub = [r.received_on, esc(t(kindOf(r.kind).name)), who && esc(who), r.account && esc(r.account), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
+  const who = r.person_id ? personName(r.person_id) : "", sub = [r.received_on, esc(kindLabel(r.kind)), who && esc(who), r.account && esc(r.account), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
   const rb = s ? `<span class="badge ${s.status === "paid" ? "b-ok" : s.overdue ? "b-out" : "b-soon"}">${s.status === "paid" ? t("已还清") : s.overdue ? t("逾期") : t("待还 {a}", { a: fmtMoney(s.left) })}</span>` : "";
   return `<li class="ix-li${open || editing ? " is-open" : ""}" data-id="${r.id}"${canEdit(r) && !pick && !editing ? ' data-swipe-del="income"' : ""}>${pick ? `<label class="ix-main"><input type="checkbox" class="ix-chk" data-inc-sel="${r.id}" ${I.sel?.has(r.id) ? "checked" : ""} ${canEdit(r) ? "" : "disabled"} aria-label="${esc(t("选择"))}">` : `<button type="button" class="ix-main" data-inc="${canEdit(r) ? "edit" : "open"}" data-id="${r.id}" ${canEdit(r) ? `title="${esc(editing ? t("再点一下收起") : t("点一下编辑"))}" aria-expanded="${editing}"` : `aria-expanded="${open}"`}>`}
     <span class="ix-ico" style="--k:${kindOf(r.kind).color}" aria-hidden="true">${kindOf(r.kind).icon}</span><span class="grow"><b class="name">${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt">+${fmtMoney(r.amount)}</b>${I.drafts?.[r.id] ? `<span class="badge b-soon">${t("草稿")}</span>` : ""}${rb}</span>${pick ? "</label>" : "</button>" + rowTools(r, open)}${editing ? `<div class="ix-edit">${formHtml()}</div>` : ""}${open && !pick ? recordDetail(r, s) : ""}</li>`;
@@ -253,11 +298,12 @@ function recordsTab() {
   if (!I.rec.length && !I.form) return top + empty() + kindManager();
   return `${top}<div class="panel"><div class="form-grid ix-filter">
     <label>${t("搜索")}<input type="search" data-inc-f="q" value="${esc(I.q)}" placeholder="${esc(t("付款方 / 备注"))}"></label>
-    <label>${t("类型")}<select data-inc-f="kind" data-nosearch><option value="all">${t("全部")}</option>${kindList().map((k) => `<option value="${k.id}" ${I.kind === k.id ? "selected" : ""}>${k.icon} ${esc(t(k.name))}</option>`).join("")}</select></label>
+    <label>${t("类型")}<select data-inc-f="kind">${kindOptionsHtml(I.kind, { all: true, groups: true })}</select></label>
     <label>${t("谁的")}<select data-inc-f="person" data-nosearch>${personOptions(I.person, { all: true })}</select></label>
     <label>${t("年份")}<select data-inc-f="year" data-nosearch><option value="all">${t("全部")}</option>${yearsOf().map((v) => `<option value="${v}" ${I.year === v ? "selected" : ""}>${v}</option>`).join("")}</select></label>
     <label>${t("月份")}<select data-inc-f="month" data-nosearch><option value="all">${t("全部")}</option>${Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => `<option value="${m}" ${I.month === m ? "selected" : ""}>${t("{m} 月", { m: +m })}</option>`).join("")}</select></label>
-    <label>${t("排序")}<select data-inc-f="sort" data-nosearch>${selOpts([["new", "最近的在前"], ["old", "最早的在前"], ["big", "金额从大到小"], ["small", "金额从小到大"]], I.sort || "new")}</select></label></div>
+    <label>${t("排序")}<select data-inc-f="sort" data-nosearch>${selOpts([["new", "最近的在前"], ["old", "最早的在前"], ["big", "金额从大到小"], ["small", "金额从小到大"], ["kind", "按类型（大类 - 小类）"]], I.sort || "new")}</select></label></div>
+    ${drillChips()}
     ${I.batch ? `<div class="muted small" style="margin-top:8px">${t("只看一次银行导入的入账")} <button type="button" class="btn btn-sm btn-ghost" data-inc="batch-clear">${t("看全部收入")}</button></div>` : ""}
     <div class="ix-tools"><button type="button" class="btn btn-sm btn-ghost" data-inc="sel-toggle">${I.selMode ? t("退出多选") : t("多选删除")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="print-list">${t("打印")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="csv-detail">${t("导出当前列表 CSV")}</button></div>
     <div id="incList" style="margin-top:8px">${listHtml()}</div>
@@ -266,8 +312,9 @@ function recordsTab() {
 function kindManager() {
   const cs = customKinds();
   return `<details class="panel ref-panel" style="margin-top:10px"><summary><b>${t("管理收入类型")}</b><small>${t("内置 {n} 种，自定义 {m} 种", { n: 14, m: cs.length })}</small><span class="mch" aria-hidden="true">›</span></summary><div class="ref-body">
-    <ul class="plain small">${cs.map((k) => `<li>${esc(k.icon || "🏷️")} ${esc(k.name)} <button type="button" class="btn btn-sm btn-ghost" data-inc="kind-del" data-id="${esc(k.id)}">${t("删除")}</button></li>`).join("") || `<li class="muted">${t("还没有自定义类型")}</li>`}</ul>
-    <form data-inc-form="kind" class="form-grid"><label>${t("图标")}<input name="icon" maxlength="4" value="🏷️" style="width:4em"></label><label>${t("名称")}<input name="name" maxlength="20" required placeholder="${esc(t("例如：稿费、副业"))}"></label><div class="form-actions"><button class="btn btn-sm">${t("添加类型")}</button></div></form></div></details>`;
+    <p class="muted small" style="margin:0 0 6px">${t("内置类型的大类：{g}", { g: GROUPS.map(([, n, , , ids]) => `${t(n)}（${ids.map((id) => t(kindOf(id).name)).join("、")}）`).join("；") })}</p>
+    <ul class="plain small">${cs.map((k) => `<li>${esc(k.icon || "🏷️")} ${esc(kindLabel(k.id))} <select data-inc-kparent="${esc(k.id)}" aria-label="${esc(t("大类"))}" data-nosearch>${GROUPS.map(([g, n]) => `<option value="${g}" ${k.parent === g ? "selected" : ""}>${esc(t(n))}</option>`).join("")}</select> <button type="button" class="btn btn-sm btn-ghost" data-inc="kind-del" data-id="${esc(k.id)}">${t("删除")}</button></li>`).join("") || `<li class="muted">${t("还没有自定义类型")}</li>`}</ul>
+    <form data-inc-form="kind" class="form-grid"><label>${t("大类")}<select name="parent" data-nosearch>${GROUPS.map(([g, n]) => `<option value="${g}" ${g === "other" ? "selected" : ""}>${esc(t(n))}</option>`).join("")}</select></label><label>${t("图标")}<input name="icon" maxlength="4" value="🏷️" style="width:4em"></label><label>${t("名称")}<input name="name" maxlength="20" required placeholder="${esc(t("例如：稿费、副业"))}"></label><div class="form-actions"><button class="btn btn-sm">${t("添加类型")}</button></div></form></div></details>`;
 }
 
 /* ── 入账账户：和「记花费」的付款账户同一套下拉（用卡里登记的银行账户 / 借记卡 / 钱包），可设默认 ──
@@ -330,7 +377,7 @@ function formHtml() {
       <label>${t("到账日期")}<input type="date" name="received_on" value="${d(r.received_on || todayISO())}" required></label>
       <label>${t("到账金额")}（${esc(cur())}）<input type="number" name="amount" step="0.01" min="0.01" inputmode="decimal" value="${d(r.amount)}" required></label>
       <label>${t("谁给的（付款方 / 雇主）")}<input name="source_name" list="incSenders" maxlength="80" value="${d(r.source_name)}" required placeholder="${esc(t("公司名 / 汇款人"))}"><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></label>
-      <label>${t("类型")}<select name="kind">${kindList().map((k) => `<option value="${k.id}" ${(r.kind || "other") === k.id ? "selected" : ""}>${k.icon} ${esc(t(k.name))}</option>`).join("")}</select></label>
+      <label>${t("类型")}<select name="kind">${kindOptionsHtml(r.kind || "other")}</select></label>
       <label>${t("收款方式")}<select name="channel" data-nosearch><option value="">${t("未填")}</option>${selOpts(CHANNELS, r.channel)}</select></label>
       ${defsHtml(r)}
       <label>${t("这是谁的收入")}<select name="person_id" data-nosearch>${persons}</select></label>
@@ -373,32 +420,54 @@ async function saveRecord(form) {
   catch (e) { fail(t("保存失败：{msg}", { msg: e.message })); }
 }
 
-/* ───────────── 付款方历史 ───────────── */
-function sendersTab() {
-  const I = inc(), range = I.sRange || "all", person = I.person;
-  const rows = I.rec.filter((r) => { const w = sWindow(range); return r.received_on >= w.from && r.received_on <= w.to && (person === "all" || (person === "none" ? !r.person_id : r.person_id === person)); });
-  if (!I.rec.length) return empty();
-  const list = groupSum(rows, (r) => skey(r.source_name)), total = sumOf(rows);
-  const mainKind = (x) => { const k = groupSum(x.rows, (r) => r.kind)[0]?.key; return k ? kindBadge(k) : ""; };
-  const nameOf = (x) => x.rows.find((r) => r.source_name)?.source_name || x.key;
-  return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-inc-f="sRange" data-nosearch>${[["ytd", "今年"], ["3y", "近 3 年"], ["5y", "近 5 年"], ["all", "全部历史"]].map(([v, l]) => `<option value="${v}" ${v === range ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
-    <label class="tb-field"><span>${t("谁的")}</span><select data-inc-f="person" data-nosearch>${personOptions(person, { all: true })}</select></label></div>
-    <div class="panel"><p class="muted small" style="margin:0 0 8px">${t("{n} 个付款方，合计 {m}", { n: list.length, m: fmtMoney(total) })}</p>
-    <div class="ch-scroll"><table class="store-table ix-tbl"><thead><tr><th scope="col">${t("付款方")}</th><th scope="col">${t("类型")}</th><th scope="col">${t("收到次数")}</th><th scope="col">${t("合计")}</th><th scope="col">${t("占比")}</th><th scope="col">${t("最近一次")}</th><th></th></tr></thead><tbody>
-    ${list.map((x) => `<tr><th scope="row"><button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(nameOf(x))}</button></th><td>${mainKind(x)}</td><td>${x.n}</td><td>${fmtMoney(x.total)}</td><td>${rate(x.total, total)}</td><td>${x.last}</td>
+/* ───────────── 付款方历史：搜索 + 类型筛选 + 点表头排序，每次显示 20 个，「加载更多」（多取一个判断还有没有，不算总数） ───────────── */
+const S_PAGE = 20;
+const S_COLS = [["name", "付款方"], ["kind", "类型"], ["n", "收到次数"], ["total", "合计"], ["share", "占比"], ["last", "最近一次"]];
+const sNameOf = (x) => x.rows.find((r) => r.source_name)?.source_name || x.key;
+const sMainKind = (x) => groupSum(x.rows, (r) => r.kind)[0]?.key || "other";
+/** 当前时间范围 / 成员 / 类型 / 搜索下的付款方（已排序）；rows = 参与统计的收入 */
+function senderGroups() {
+  const I = inc(), w = sWindow(I.sRange || "all"), q = skey(I.sq), sk = I.skind || "all";
+  const rows = I.rec.filter((r) => r.received_on >= w.from && r.received_on <= w.to && personOk(r, I.person) && kindMatch(sk, r.kind));
+  const list = groupSum(rows, (r) => skey(r.source_name)).filter((x) => !q || skey(`${x.rows.map((r) => r.source_name).join(" ")} ${kindLabel(sMainKind(x))}`).includes(q));
+  const { k = "total", dir = "desc" } = I.ssort || {}, sgn = dir === "asc" ? 1 : -1;
+  const val = { name: (x) => skey(sNameOf(x)), kind: (x) => kindLabel(sMainKind(x)), n: (x) => x.n, total: (x) => x.total, share: (x) => x.total, last: (x) => x.last }[k] || ((x) => x.total);
+  list.sort((a, b) => { const va = val(a), vb = val(b); return (typeof va === "number" ? va - vb : String(va).localeCompare(String(vb))) * sgn || b.total - a.total; });
+  return { w, rows, list, total: sumOf(rows) };
+}
+function sendersListHtml() {
+  const I = inc(), { list, total } = senderGroups(), lim = I.slimit || S_PAGE;
+  const page = list.slice(0, lim + 1), hasNext = page.length > lim, shown = page.slice(0, lim);   // 多取一个：有第 lim+1 个才显示「加载更多」
+  const { k = "total", dir = "desc" } = I.ssort || {};
+  const th = ([key, label]) => { const on = k === key; return `<th scope="col" ${on ? `aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : ""}><button type="button" class="th-sort${on ? " is-on" : ""}" data-inc="s-sort" data-k="${key}" title="${esc(t("点一下按这一列排序"))}">${t(label)}<span aria-hidden="true">${on ? (dir === "asc" ? " ▲" : " ▼") : " ↕"}</span></button></th>`; };
+  return `<p class="muted small" style="margin:0 0 8px">${t("合计 {m}", { m: fmtMoney(total) })}</p>
+    <div class="ch-scroll"><table class="store-table ix-tbl"><thead><tr>${S_COLS.map(th).join("")}<th><span class="sr-only">${t("操作")}</span></th></tr></thead><tbody>
+    ${shown.map((x) => `<tr><th scope="row"><button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(sNameOf(x))}</button></th><td>${kindBadge(sMainKind(x))}</td><td>${x.n}</td><td>${fmtMoney(x.total)}</td><td>${rate(x.total, total)}</td><td>${x.last}</td>
       <td>${x.rows.every(canEdit) ? `<button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</td></tr>
-      ${I.renameKey === x.key ? `<tr><td colspan="7"><form data-inc-form="rename" data-key="${esc(x.key)}" class="form-grid"><label>${t("统一改成")}<input name="to" maxlength="80" required value="${esc(nameOf(x))}" list="incSenders"></label><div class="form-actions"><button class="btn btn-sm btn-primary">${t("改名（相同名字的会合并成一个）")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="">${t("取消")}</button></div></form><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></td></tr>` : ""}`).join("")}</tbody></table></div>
+      ${I.renameKey === x.key ? `<tr><td colspan="7"><form data-inc-form="rename" data-key="${esc(x.key)}" class="form-grid"><label>${t("统一改成")}<input name="to" maxlength="80" required value="${esc(sNameOf(x))}" list="incSenders"></label><div class="form-actions"><button class="btn btn-sm btn-primary">${t("改名（相同名字的会合并成一个）")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="">${t("取消")}</button></div></form><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></td></tr>` : ""}`).join("") || `<tr><td colspan="7" class="muted">${t("没有符合条件的付款方")}</td></tr>`}</tbody></table></div>
+    ${hasNext ? `<div class="form-actions" style="justify-content:center"><button type="button" class="btn btn-sm btn-ghost" data-inc="s-more">${t("加载更多")}</button></div>` : ""}`;
+}
+const renderSenders = () => { const el = $("#incSendersList"); if (el) el.innerHTML = sendersListHtml(); };
+function sendersTab() {
+  const I = inc(), range = I.sRange || "all";
+  if (!I.rec.length) return empty();
+  return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-inc-f="sRange" data-nosearch>${[["ytd", "今年"], ["3y", "近 3 年"], ["5y", "近 5 年"], ["all", "全部历史"]].map(([v, l]) => `<option value="${v}" ${v === range ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
+    <label class="tb-field"><span>${t("谁的")}</span><select data-inc-f="person" data-nosearch>${personOptions(I.person, { all: true })}</select></label></div>
+    <div class="panel"><div class="form-grid ix-filter" style="margin-bottom:8px">
+      <label>${t("搜索")}<input type="search" data-inc-sq value="${esc(I.sq || "")}" placeholder="${esc(t("付款方 / 类型"))}"></label>
+      <label>${t("类型")}<select data-inc-f="skind">${kindOptionsHtml(I.skind || "all", { all: true, groups: true })}</select></label></div>
+    <div id="incSendersList">${sendersListHtml()}</div>
     <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm" data-inc="csv-senders">${t("导出付款方汇总 CSV")}</button></div></div>`;
 }
 function sWindow(range) { return windowOf(range === "ytd" ? "ytd" : range === "3y" ? "3y" : range === "5y" ? "5y" : "all"); }
 
 const R = () => (inc().r ||= { unit: "month", range: "12m", from: "", to: "", person: "all", what: "both", unmask: false });
 /** 周期 / 时间范围 / 谁的（收支对比页和导出页共用，同一份设置） */
-const controlsHtml = (r) => {
+const controlsHtml = (r, cf = null) => {
   const sel = (id, list, v) => `<label class="tb-field"><span>${t(id)}</span><select data-inc-r="${id === "周期" ? "unit" : "range"}" data-nosearch>${selOpts(list, v)}</select></label>`;
   return `<div class="time-bar">${sel("周期", UNITS, r.unit)}${sel("时间范围", RANGES, r.range)}
     <label class="tb-field"><span>${t("谁的")}</span><select data-inc-r="person" data-nosearch>${personOptions(r.person, { all: true })}</select></label>
-    ${r.range === "custom" ? `<label class="tb-field"><span>${t("从")}</span><input type="date" data-inc-r="from" value="${esc(r.from)}"></label><label class="tb-field"><span>${t("到")}</span><input type="date" data-inc-r="to" value="${esc(r.to)}"></label>` : ""}</div>
+    ${r.range === "custom" ? `<label class="tb-field"><span>${t("从")}</span><input type="date" data-inc-r="from" value="${esc(r.from)}"></label><label class="tb-field"><span>${t("到")}</span><input type="date" data-inc-r="to" value="${esc(r.to)}"></label>` : ""}${cf ? togglesHtml(cf) : ""}</div>
     ${r.unit === "biweek" ? `<p class="muted small" style="margin:-4px 0 8px">${t("双周起点（每 14 天一个周期，对上你的发薪日）：")}<input type="date" data-inc-anchor value="${esc(cfAnchor())}" aria-label="${esc(t("双周起点"))}"></p>` : ""}`;
 };
 const spendDonut = (cf) => {
@@ -411,15 +480,15 @@ function reportTab() {
   if (!I.rec.length) return empty();
   const cf = cashflow(r), person = r.person;
   const note = person !== "all" ? `<p class="muted small" role="status">${t("花费不分人：选「全家」才会显示花费和差额。")}</p>` : cf.loading ? `<p class="muted small" role="status">${t("正在读取花费…")}</p>` : "";
-  return `${controlsHtml(r)}${note}${kpiRow(cf)}${flowCharts(cf, t("每{u}收入 vs 花费", { u: t((UNITS.find((u) => u[0] === r.unit) || [])[1]) }))}${lineTable(cf)}
-    <div class="ix-two">${kindDonut(cf.byKind)}${spendDonut(cf)}</div>${aiPanel(cf)}`;
+  return `${controlsHtml(r, cf)}${note}${kpiRow(cf)}${flowCharts(cf, t("每{u}收入 vs 花费", { u: t((UNITS.find((u) => u[0] === r.unit) || [])[1]) }))}${lineTable(cf)}
+    <div class="ix-two">${kindDonut(cf)}${spendDonut(cf)}</div>${aiPanel(cf)}`;
 }
 /* ───────────── 导出打印：CSV（收入 / 花费 / 合并）+ 打印 ───────────── */
 function exportTab() {
   const I = inc(), r = R();
   if (!I.rec.length) return empty();
   const cf = cashflow(r);
-  return `${controlsHtml(r)}${r.person !== "all" ? `<p class="muted small" role="status">${t("花费不分人：选「全家」才会有花费和差额。")}</p>` : ""}
+  return `${controlsHtml(r, cf)}${r.person !== "all" ? `<p class="muted small" role="status">${t("花费不分人：选「全家」才会有花费和差额。")}</p>` : ""}
     <section class="section"><div class="section-head"><h2>${t("导出 CSV")}</h2><p>${t("可用 Excel、Numbers 或 Google 表格打开")}</p></div>
       <div class="panel export-grid">
         <label class="export-pick"><span>${t("内容")}</span><select data-inc-r="what" data-nosearch>${selOpts([["both", "收入 + 花费 + 差额（合并）"], ["income", "只要收入（按类型）"], ["spend", "只要花费（按分类）"]], r.what)}</select></label>
@@ -446,14 +515,14 @@ function printIncome(mode) {
     const list = filteredRecords(), recs = list.slice(0, 300);
     html = `<h1>${esc(hh)} · ${t("收入明细")}</h1><p class="ps-meta">${esc(printStamp())}</p>
       <div class="ps-kpis">${kpiH(t("笔数"), list.length)}${kpiH(t("合计"), fmtMoney(sumOf(list)))}</div>
-      <table><thead><tr><th>${t("到账日期")}</th><th>${t("付款方")}</th><th>${t("类型")}</th><th>${t("成员")}</th><th>${t("金额")}</th></tr></thead><tbody>${recs.map((r) => `<tr><td>${r.received_on}</td><td>${esc(r.source_name)}</td><td>${esc(t(kindOf(r.kind).name))}</td><td>${esc(personName(r.person_id))}</td><td>${fmtMoney(r.amount)}</td></tr>`).join("")}</tbody></table>${list.length > recs.length ? `<p class="ps-meta">${t("只打印前 300 笔")}</p>` : ""}`;
+      <table><thead><tr><th>${t("到账日期")}</th><th>${t("付款方")}</th><th>${t("类型")}</th><th>${t("成员")}</th><th>${t("金额")}</th></tr></thead><tbody>${recs.map((r) => `<tr><td>${r.received_on}</td><td>${esc(r.source_name)}</td><td>${esc(kindLabel(r.kind))}</td><td>${esc(personName(r.person_id))}</td><td>${fmtMoney(r.amount)}</td></tr>`).join("")}</tbody></table>${list.length > recs.length ? `<p class="ps-meta">${t("只打印前 300 笔")}</p>` : ""}`;
   } else {
     const r = R(), cf = cashflow(r), top = groupSum(cf.rows, (x) => skey(x.source_name)).slice(0, 15);
-    const kinds = kindList().filter((k) => cf.byKind[k.id]).sort((a, b) => cf.byKind[b.id] - cf.byKind[a.id]);
+    const kinds = statKinds(inc().merge).filter((k) => cf.byKind[k.id]).sort((a, b) => cf.byKind[b.id] - cf.byKind[a.id]);
     html = `<h1>${esc(hh)} · ${t("收入报表")}</h1><p class="ps-meta">${cf.w.from} → ${cf.w.to} · ${esc(printStamp())}</p>
       <div class="ps-kpis">${kpiH(t("收入"), fmtMoney(cf.tot.income))}${cf.hasSpend ? kpiH(t("花费"), fmtMoney(cf.tot.spend)) + kpiH(t("收支差额"), fmtMoney(cf.tot.net)) : ""}${kpiH(t("笔数"), cf.rows.length)}</div>
       <h2>${t("按{u}", { u: t((UNITS.find((u) => u[0] === r.unit) || [])[1]) })}</h2><table><thead><tr><th>${t("周期")}</th><th>${t("收入")}</th>${cf.hasSpend ? `<th>${t("花费")}</th><th>${t("收支差额")}</th>` : ""}</tr></thead><tbody>${cf.lines.map((l) => `<tr><td>${esc(l.label)}</td><td>${fmtMoney(l.income)}</td>${cf.hasSpend ? `<td>${fmtMoney(l.spend)}</td><td>${fmtMoney(l.net)}</td>` : ""}</tr>`).join("")}</tbody></table>
-      <h2>${t("按类型")}</h2><table><thead><tr><th>${t("类型")}</th><th>${t("占比")}</th><th>${t("合计")}</th></tr></thead><tbody>${kinds.map((k) => `<tr><td>${k.icon} ${esc(t(k.name))}</td><td>${rate(cf.byKind[k.id], cf.tot.income)}</td><td>${fmtMoney(cf.byKind[k.id])}</td></tr>`).join("")}</tbody></table>
+      <h2>${t("按类型")}</h2><table><thead><tr><th>${t("类型")}</th><th>${t("占比")}</th><th>${t("合计")}</th></tr></thead><tbody>${kinds.map((k) => `<tr><td>${k.icon} ${esc(kindLabel(k.id))}</td><td>${rate(cf.byKind[k.id], cf.tot.income)}</td><td>${fmtMoney(cf.byKind[k.id])}</td></tr>`).join("")}</tbody></table>
       <h2>${t("主要付款方")}</h2><table><thead><tr><th>${t("付款方")}</th><th>${t("次数")}</th><th>${t("合计")}</th></tr></thead><tbody>${top.map((x) => `<tr><td>${esc(senderLabel(x))}</td><td>${x.n}</td><td>${fmtMoney(x.total)}</td></tr>`).join("")}</tbody></table>`;
   }
   printHtml(html);
@@ -467,9 +536,9 @@ function exportReport() {
   const head = [[t("{hh} 现金流（{u}）", { hh: state.household?.name || t("家庭"), u: unitName })], [t("时间"), `${cf.w.from} → ${cf.w.to}`, t("货币：{cur}", { cur: cur() }), t("谁的：{p}", { p: r.person === "all" ? t("全家") : r.person === "none" ? t("未指定") : personName(r.person) })], []];
   let rows;
   if (r.what === "income") {
-    const kinds = kindList().filter((k) => cf.rows.some((x) => x.kind === k.id));
-    const grid = Object.fromEntries(cf.keys.map((k) => [k, {}])); for (const x of cf.rows) { const g = grid[bucketKey(x.received_on, r.unit)]; g[x.kind] = (g[x.kind] || 0) + x.amount; }
-    rows = [[t("周期"), ...kinds.map((k) => t(k.name)), t("合计")], ...cf.keys.map((k) => [periodLabel(k, r.unit), ...kinds.map((c) => R2(grid[k][c.id] || 0)), R2(Object.values(grid[k]).reduce((a, b) => a + b, 0))]), [t("合计"), ...kinds.map((c) => R2(cf.byKind[c.id] || 0)), cf.tot.income]];
+    const m = inc().merge, kinds = statKinds(m).filter((k) => cf.byKind[k.id]);
+    const grid = Object.fromEntries(cf.keys.map((k) => [k, {}])); for (const x of cf.rows) { const g = grid[bucketKey(x.received_on, r.unit)], sk = statKind(x.kind, m); g[sk] = (g[sk] || 0) + x.amount; }
+    rows = [[t("周期"), ...kinds.map((k) => kindLabel(k.id)), t("合计")], ...cf.keys.map((k) => [periodLabel(k, r.unit), ...kinds.map((c) => R2(grid[k][c.id] || 0)), R2(Object.values(grid[k]).reduce((a, b) => a + b, 0))]), [t("合计"), ...kinds.map((c) => R2(cf.byKind[c.id] || 0)), cf.tot.income]];
   } else if (r.what === "spend") {
     if (!cf.hasSpend) return toast(t("花费还没读出来，或选了某个成员（花费不分人）"));
     const cats = STAT_CATS().filter((c) => cf.spendCats[c.id]);
@@ -483,8 +552,8 @@ function exportReport() {
 }
 function detailRows(list) {
   const rs = (r) => { const s = repayState(r); return s ? (s.status === "paid" ? t("已还清") : t("待还 {a}", { a: s.left })) : ""; };
-  return [[t("到账日期"), t("付款方"), t("类型"), t("金额"), t("货币"), t("收款方式"), t("成员"), t("账户"), t("原币种金额"), t("原币种"), t("手续费"), t("还款状态"), t("备注")],
-    ...list.map((r) => [r.received_on, r.source_name, t(kindOf(r.kind).name), r.amount, r.currency || "", (CHANNELS.find((c) => c[0] === r.channel) || [])[1] ? t(CHANNELS.find((c) => c[0] === r.channel)[1]) : "", personName(r.person_id), r.account || "", r.orig_amount ?? "", r.orig_currency || "", r.fee ?? "", rs(r), r.notes || ""])];
+  return [[t("到账日期"), t("付款方"), t("大类"), t("类型"), t("金额"), t("货币"), t("收款方式"), t("成员"), t("账户"), t("原币种金额"), t("原币种"), t("手续费"), t("还款状态"), t("备注")],
+    ...list.map((r) => [r.received_on, r.source_name, t(groupOf(r.kind).name), kindLabel(r.kind), r.amount, r.currency || "", (CHANNELS.find((c) => c[0] === r.channel) || [])[1] ? t(CHANNELS.find((c) => c[0] === r.channel)[1]) : "", personName(r.person_id), r.account || "", r.orig_amount ?? "", r.orig_currency || "", r.fee ?? "", rs(r), r.notes || ""])];
 }
 const fileHead = () => `${(state.household?.name || t("家庭")).replace(/[\\/:*?"<>|\s]/g, "")}-${t("收入")}`;
 
@@ -507,9 +576,9 @@ async function runAi() {
   const pname = (id) => { if (!id) return t("未指定"); if (!mask) return personName(id); if (!pm.has(id)) pm.set(id, `${t("成员")} ${String.fromCharCode(65 + pi++)}`); return pm.get(id); };
   const data = { currency: cur(), window: cf.w, unit: r.unit, scope: r.person === "all" ? "household" : pname(r.person === "none" ? "" : r.person),
     periods: cf.lines.map((l) => ({ period: l.label, income: l.income, spending: l.spend, of_which_repayments_to_people_already_in_spending: l.repaid, net: l.net })), totals: cf.tot,
-    income_by_type: Object.entries(cf.byKind).map(([k, v]) => ({ type: kindOf(k).name, total: R2(v) })),
+    income_by_type: Object.entries(cf.byKind).map(([k, v]) => ({ type: kindLabel(k), total: R2(v) })), excludes_international_wires_and_personal_gifts: !inc().extra,
     income_by_member: groupSum(cf.rows, (x) => x.person_id || "").map((x) => ({ member: pname(x.key), total: x.total })),
-    top_senders: senders.map((x, i) => ({ sender: mask ? `${t("付款方")} ${i + 1}` : x.rows[0].source_name, type: kindOf(groupSum(x.rows, (y) => y.kind)[0].key).name, count: x.n, total: x.total })),
+    top_senders: senders.map((x, i) => ({ sender: mask ? `${t("付款方")} ${i + 1}` : x.rows[0].source_name, type: kindLabel(groupSum(x.rows, (y) => y.kind)[0].key), count: x.n, total: x.total })),
     open_paybacks_total: R2(openRepayments().reduce((a, x) => a + x.s.left, 0)) };
   const sys = `You are a careful household cash-flow analyst. You are NOT a licensed financial advisor. Reply in ${lang === "en" ? "English" : lang === "zh-Hant" ? "Traditional Chinese" : "Simplified Chinese"}, concise, plain text with short sections: 1) Overview 2) Trends 3) Unusual periods or concentration risk (e.g. one sender dominating) 4) Savings rate and stability 5) Three practical suggestions. Use only the numbers given; if spending is null it was not available. Do not invent data.`;
   try { I.ai[key] = String(await askText(sys, JSON.stringify(data), { maxTokens: 1400, temperature: 0.3 })).trim(); }
@@ -525,7 +594,7 @@ const lastMonthsWin = (n) => { const d = new Date(); return { from: iso(new Date
 function compareHtml() {
   const I = inc(), n = [3, 6, 12].includes(+I.planWin) ? +I.planWin : 6, w = lastMonthsWin(n);
   // 实际月均：到账金额，不含「需要还」的赠与 / 借款（那不是真收入）
-  const rows = I.rec.filter((r) => r.received_on >= w.from && r.received_on <= w.to && !r.repay_required);
+  const rows = I.rec.filter((r) => r.received_on >= w.from && r.received_on <= w.to && !r.repay_required && (I.extra || !isExtra(r.kind)));   // 国际电汇 / 个人赠与跟着「含…」勾选走（默认不算）
   const actualOf = (pid) => R2(sumOf(rows.filter((r) => (pid === "" ? !r.person_id : r.person_id === pid))) / n);
   const lines = state.members.map((m) => { const p = state.people.find((x) => x.member_user_id === m.user_id), plan = state.incomes.find((i) => i.user_id === m.user_id); return { name: m.display_name || t("家人"), plan: plan ? R2(monthlyOf(plan)) : null, act: p ? actualOf(p.id) : null }; })
     .filter((l) => l.plan != null || l.act != null);
@@ -537,7 +606,7 @@ function compareHtml() {
     ${lines.length > 1 || un ? `<div class="ch-scroll"><table class="store-table ix-tbl"><thead><tr><th scope="col">${t("成员")}</th><th scope="col">${t("计划 / 月")}</th><th scope="col">${t("实际月均")}</th><th scope="col">${t("差")}</th></tr></thead><tbody>
       ${lines.map((l) => `<tr><th scope="row">${esc(l.name)}</th><td>${l.plan == null ? "—" : fmtMoney(l.plan)}</td><td>${l.act == null ? "—" : fmtMoney(l.act)}</td><td>${l.plan && l.act != null ? diff(l.plan, l.act) : "—"}</td></tr>`).join("")}
       ${un ? `<tr><th scope="row">${t("未指定 / 全家")}</th><td>—</td><td>${fmtMoney(un)}</td><td>—</td></tr>` : ""}</tbody></table></div>` : ""}
-    <p class="muted small" style="margin:8px 0 0">${t("计划收入填的是税后固定收入，用来生成预算；实际是银行到账的收入记录（含奖金等一次性收入，不含需要还的赠与 / 借款），所以两者不会完全一样。想让预算更贴近实际，参考这里的实际月均去改计划。")}</p>` : `<p class="muted small">${t("收入记录还没读到（迁移 042 没执行？），先填下面的计划收入也可以。")}</p>`}</div>`;
+    <p class="muted small" style="margin:8px 0 0">${t("计划收入填的是税后固定收入，用来生成预算；实际是银行到账的收入记录（含奖金等一次性收入，不含需要还的赠与 / 借款），所以两者不会完全一样。想让预算更贴近实际，参考这里的实际月均去改计划。")}${I.extra ? "" : ` ${t("国际电汇和个人赠与默认不算（在概览里勾「含国际电汇 / 个人赠与」才算）。")}`}</p>` : `<p class="muted small">${t("收入记录还没读到（迁移 042 没执行？），先填下面的计划收入也可以。")}</p>`}</div>`;
 }
 function planTab() { return `${compareHtml()}${incomePanel()}`; }
 
@@ -566,6 +635,8 @@ function armed(el, msg) { if (el.dataset.armed) return true; el.dataset.armed = 
 const guard = async (fn) => { try { await fn(); } catch (e) { toast(t("操作失败：{msg}", { msg: e.message })); } };
 const reload = async () => { await loadIncome(); redraw(); };
 const goTab = (id) => { location.hash = incomeHref(id); };
+/** 去「明细」前清掉所有筛选（含图表钻取带来的日期段 / 不含电汇赠与） */
+const NO_FILTER = () => ({ q: "", kind: "all", year: "all", month: "all", person: "all", batch: null, from: "", to: "", ex: false, limit: 40 });
 
 export function initIncome({ render, refresh }) {
   hooks = { render, refresh }; initIncomeScan({ render });
@@ -579,7 +650,7 @@ export function initIncome({ render, refresh }) {
     if (act === "batch-clear") { I.batch = null; history.replaceState(null, "", `${href("bills", "income")}?tab=records`); return redraw(); }
     if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return redraw(); }
     if (act === "cancel") { if (I.drafts && I.form?.rec?.id) delete I.drafts[I.form.rec.id]; I.form = null; return redraw(); }
-    if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.person = "all"; goTab("records"); return; } return redraw(); }
+    if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { Object.assign(I, NO_FILTER()); goTab("records"); return; } return redraw(); }
     if (act === "more") { I.limit += 40; return renderIncList(); }
     if (act === "edit") {   // 点行 / 点「编辑」：打开编辑表单（不在「明细」标签就先切过去）；这一行已经展开着，再点一下行就收起（不保存）
       if (b.classList.contains("ix-main") && I.form?.rec?.id === id && inlineEditId() === id) {   // 收起但留着草稿：再展开时填回去，行上有「草稿」小标
@@ -587,26 +658,29 @@ export function initIncome({ render, refresh }) {
         I.form = null; return redraw();
       }
       I.form = { rec: I.rec.find((r) => r.id === id) }; I.scanOpen = false;
-      if (activeTab(state.route) !== "records") { I.q = ""; I.kind = "all"; I.year = "all"; I.month = "all"; I.person = "all"; I.batch = null; I._keep = true; goTab("records"); return; }
+      if (activeTab(state.route) !== "records") { Object.assign(I, NO_FILTER()); I._keep = true; goTab("records"); return; }
       redraw(); const dr = I.drafts?.[id]; if (dr) applyDraft($("#incForm"), dr);   // 之前收起时留的草稿
       setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
     }
     if (act === "del-swipe") { if (!window.confirm(t("删除这笔收入？"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }   // 左滑删除：用确认框（滑动代码按它判断用户有没有取消）
     if (act === "del") { if (!armed(b, t("再点一次确认删除"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }
     if (act === "rep-del") { if (!armed(b, t("再点一次确认"))) return; return guard(async () => { const p = I.rep.find((x) => x.id === id); await Store.deleteIncomeRepayment(id); if (p?.purchase_id) { await Store.deletePurchase(p.purchase_id).catch(() => {}); state.purchases = state.purchases.filter((x) => x.id !== p.purchase_id); } await reload(); }); }
-    if (act === "sender-open") { I.q = b.dataset.key; I.kind = "all"; I.year = "all"; goTab("records"); return; }
+    if (act === "sender-open") { Object.assign(I, NO_FILTER(), { q: b.dataset.key }); goTab("records"); return; }
+    if (act === "drill-clear") { if (b.dataset.k === "range") { I.from = ""; I.to = ""; } else if (b.dataset.k === "ex") I.ex = false; I.limit = 40; return redraw(); }
     if (act === "sender-rename") { I.renameKey = b.dataset.key || null; return redraw(); }
     if (act === "csv-detail") { const l = filteredRecords(); if (!l.length) return toast(t("没有可导出的记录")); download(`${fileHead()}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
-    if (act === "csv-detail-window") { const w = windowOf(R().range, R()), l = incomeIn(w.from, w.to, R().person); if (!l.length) return toast(t("这段时间没有收入")); download(`${fileHead()}-${w.from}_${w.to}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
-    if (act === "csv-senders") {
-      const w = sWindow(I.sRange || "all"), l = I.rec.filter((r) => r.received_on >= w.from && r.received_on <= w.to && (I.person === "all" || (I.person === "none" ? !r.person_id : r.person_id === I.person))), tot = sumOf(l);
-      return download(`${fileHead()}-${t("付款方汇总")}-${w.from}_${w.to}.csv`, toCsv([[t("付款方"), t("主要类型"), t("次数"), t("合计"), t("占比"), t("第一次"), t("最近一次")], ...groupSum(l, (r) => skey(r.source_name)).map((x) => [x.rows[0].source_name, t(kindOf(groupSum(x.rows, (y) => y.kind)[0].key).name), x.n, x.total, rate(x.total, tot), x.first, x.last])]));
+    if (act === "csv-detail-window") { const w = windowOf(R().range, R()), l = incomeIn(w.from, w.to, R().person).filter((r) => I.extra || !isExtra(r.kind)); if (!l.length) return toast(t("这段时间没有收入")); download(`${fileHead()}-${w.from}_${w.to}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
+    if (act === "csv-senders") {   // 导出：和表格同样的筛选和排序，不分页
+      const { w, list, total: tot } = senderGroups();
+      return download(`${fileHead()}-${t("付款方汇总")}-${w.from}_${w.to}.csv`, toCsv([[t("付款方"), t("主要类型"), t("次数"), t("合计"), t("占比"), t("第一次"), t("最近一次")], ...list.map((x) => [sNameOf(x), kindLabel(sMainKind(x)), x.n, x.total, rate(x.total, tot), x.first, x.last])]));
     }
+    if (act === "s-sort") { const k = b.dataset.k, o = I.ssort || { k: "total", dir: "desc" }; I.ssort = { k, dir: o.k === k ? (o.dir === "asc" ? "desc" : "asc") : k === "name" || k === "kind" ? "asc" : "desc" }; I.slimit = S_PAGE; renderSenders(); $(`#incSendersList [data-k="${k}"]`)?.focus(); return; }
+    if (act === "s-more") { I.slimit = (I.slimit || S_PAGE) + S_PAGE; return renderSenders(); }
     if (act === "csv-report") return exportReport();
     if (act === "print-report") return printIncome("report");
     if (act === "print-list") return printIncome("list");
     if (act === "ov-kind") { OV().kind = id; return redraw(); }
-    if (act === "kind-open") { Object.assign(I, { kind: id, person: OV().person, year: "all", month: "all", q: "", batch: null, limit: 40 }); goTab("records"); return; }
+    if (act === "kind-open") { Object.assign(I, NO_FILTER(), { kind: id, person: OV().person }); goTab("records"); return; }
     if (act === "sel-toggle") { I.selMode = !I.selMode; I.sel = new Set(); return redraw(); }
     if (act === "sel-all") { I.sel = new Set(filteredRecords().slice(0, I.limit).filter(canEdit).map((r) => r.id)); return renderIncList(); }
     if (act === "sel-del") { const ids = [...(I.sel || [])]; if (!ids.length) return toast(t("先勾选要删的收入")); if (!armed(b, t("再点一次确认删除 {n} 笔", { n: ids.length }))) return; return guard(async () => { for (const x of ids) await Store.deleteIncomeRecord(x); I.sel = new Set(); I.selMode = false; I.open = null; toast(t("已删除 {n} 笔", { n: ids.length })); await reload(); }); }
@@ -633,11 +707,11 @@ export function initIncome({ render, refresh }) {
       await Store.addIncomeRepayment({ record_id: rec.id, paid_on, amount, method: g("method") || null, notes: null, ...(purchase_id ? { purchase_id } : {}) });
       toast(t("已记录还款") + note); await reload(); if (purchase_id) hooks.refresh();
     });
-    if (kind === "kind") return guard(async () => { const name = g("name"); if (!name) return; await saveMeta({ _income_kinds: [...customKinds(), { id: `c_${Date.now().toString(36)}`, name, icon: g("icon") || "🏷️" }].slice(0, 30) }); rerender(); });
+    if (kind === "kind") return guard(async () => { const name = g("name"); if (!name) return; const parent = GROUPS.some((x) => x[0] === g("parent")) ? g("parent") : "other"; await saveMeta({ _income_kinds: [...customKinds(), { id: `c_${Date.now().toString(36)}`, name, icon: g("icon") || "🏷️", parent }].slice(0, 30) }); rerender(); });
     if (kind === "rename") return guard(async () => { const to = g("to"), key = f.dataset.key; if (!to) return; const ids = I.rec.filter((r) => skey(r.source_name) === key && canEdit(r)).map((r) => r.id); await Store.renameIncomeSource(ids, to); I.renameKey = null; toast(t("已改名 {n} 笔", { n: ids.length })); await reload(); });
     if (kind === "request") return guard(async () => { await Store.setIncomeAccess(state.user.id, "requested", g("note") || null); toast(t("已发送申请，等家主批准")); await reload(); });
   }, true);
-  main.addEventListener("input", (e) => { const el = e.target; if (el.dataset?.incF === "q") { inc().q = el.value; inc().limit = 40; renderIncList(); } });
+  main.addEventListener("input", (e) => { const el = e.target; if (el.dataset?.incF === "q") { inc().q = el.value; inc().limit = 40; renderIncList(); } if (el.dataset?.incSq !== undefined) { inc().sq = el.value; inc().slimit = S_PAGE; renderSenders(); } });
   main.addEventListener("change", (e) => {
     const el = e.target, I = inc();
     if (el.dataset?.incAcct !== undefined) { const f = el.closest("form"), box = f?.elements.account, cb = f?.elements.acct_default; if (box) { box.hidden = el.value !== "other"; if (!box.hidden) box.focus(); } if (cb) cb.checked = !!el.value && el.value === defAcct(); return; }
@@ -645,7 +719,10 @@ export function initIncome({ render, refresh }) {
     if (el.dataset?.incRepay !== undefined) { const box = el.closest("form")?.querySelector("[data-inc-repay-box]"); if (box) box.hidden = !el.checked; return; }
     if (el.dataset?.incSel !== undefined) { (I.sel ||= new Set())[el.checked ? "add" : "delete"](el.dataset.incSel); const n = $("#incSelN"); if (n) n.textContent = t("已选 {n} 笔", { n: I.sel.size }); return; }
     if (el.dataset?.incOv) { const o = OV(); o[el.dataset.incOv] = el.value; if (el.dataset.incOv === "range") o.month = ""; return rerender(); }
-    if (el.dataset?.incF) { const k = el.dataset.incF; if (k === "q") return; I[k] = el.value; I.limit = 40; return rerender(); }
+    if (el.dataset?.incTog === "merge") { setIncMerge(el.checked); return rerender(); }
+    if (el.dataset?.incTog === "extra") { I.extra = el.checked; return rerender(); }
+    if (el.dataset?.incKparent) { const kid = el.dataset.incKparent, v = el.value; guard(async () => { await saveMeta({ _income_kinds: customKinds().map((k) => (k.id === kid ? { ...k, parent: v } : k)) }); rerender(); }); return; }
+    if (el.dataset?.incF) { const k = el.dataset.incF; if (k === "q") return; I[k] = el.value; I.limit = 40; I.slimit = S_PAGE; return rerender(); }
     if (el.dataset?.incR) { const r = R(); r[el.dataset.incR] = el.value; return rerender(); }
     if (el.dataset?.incAnchor !== undefined) { if (el.value) guard(async () => { await saveMeta({ _income_cfg: { ...incCfg(), anchor: el.value } }); rerender(); }); return; }
     if (el.dataset?.incAi === "consent") { try { localStorage.setItem("hmh-income-ai-ok", el.checked ? "1" : "0"); } catch { /* 忽略 */ } return rerender(); }

@@ -12,7 +12,7 @@ import { STATEMENT_TABS, activeTab } from "../core/tabs.js";
 import { bankImportTab } from "./bank-import.js";
 import { STAT_CATS, download, spendExportTab, statCat, toCsv, ymd } from "./views.js";
 import { incomeExportHtml, loggedSpend } from "../income/views.js";
-import { canSeeAll, inc, incomeIn, kindOf, personName, skey, windowOf } from "../income/logic.js";
+import { canSeeAll, inc, incomeIn, kindLabel, kindOf, personName, skey, windowOf } from "../income/logic.js";
 
 const hrefOf = (id) => `${href("bills", "statements")}${id === "import" ? "" : `?tab=${id}`}`;
 const R2 = (v) => Math.round(v * 100) / 100;
@@ -34,7 +34,7 @@ function build() {
   }
   if (o.dir !== "spend" && I.ok) for (const r of incomeIn(w.from, w.to, "all")) {
     const k = kindOf(r.kind);
-    out.push({ d: r.received_on, at: r.created_at || r.received_on, spend: false, amt: r.amount, ico: k.icon, name: r.source_name, sub: [r.received_on, t(k.name), r.person_id && personName(r.person_id), r.account].filter(Boolean).join(" · "), id: r.id, tag: t("收入") });
+    out.push({ d: r.received_on, at: r.created_at || r.received_on, spend: false, amt: r.amount, ico: k.icon, name: r.source_name, sub: [r.received_on, kindLabel(r.kind), r.person_id && personName(r.person_id), r.account].filter(Boolean).join(" · "), id: r.id, tag: t("收入") });
   }
   const q = skey(o.q || "");
   const rows = out.filter((x) => !q || skey(`${x.name} ${x.sub}`).includes(q)).sort((a, b) => b.d.localeCompare(a.d) || String(b.at).localeCompare(String(a.at)));

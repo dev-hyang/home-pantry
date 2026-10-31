@@ -485,9 +485,22 @@ export const personKey = (n) => String(n || "").trim().replace(/\s+/g, " ").toLo
 const personError = (e) => (/household_people_name_idx|duplicate key/i.test(e.message || "") ? t("名册里已经有这个名字了（忽略大小写和空格）") : /household_people|does not exist|schema cache/i.test(e.message || "") ? t("还没执行数据库迁移 029（家庭成员名册），先在 Supabase 里执行 supabase/migrations/029_people.sql") : e.message);
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
+/** 每页行数：和 Supabase 默认的 max-rows（1000）一样；项目里把 max-rows 调小的话这里也要跟着调小，否则读到第一页就会以为读完了 */
+const PAGE_ROWS = 1000;
 export const CloudStore = {
   mode: "cloud", sb: null, hid: null, channel: null,
   must({ data, error }) { if (error) throw new Error(error.message); return data; },
+  /** 分页读完：Supabase（PostgREST）每次请求最多返回 max-rows 行（默认 1000），.limit(10000) 并不能突破——超过的行被悄悄截掉。
+   *  build() 每次新建同一个查询（必须带确定的排序，最后加 id 兜底），按 .range() 每页 1000 行读到不满一页为止；cap = 最多读多少行（防失控） */
+  async pageAll(build, cap = 50000) {
+    const out = [];
+    for (let from = 0; from < cap; from += PAGE_ROWS) {
+      const rows = this.must(await build().range(from, Math.min(from + PAGE_ROWS, cap) - 1)) || [];
+      out.push(...rows);
+      if (rows.length < PAGE_ROWS) break;
+    }
+    return out;
+  },
   async listItems() { return this.must(await this.sb.from("items").select("*").eq("household_id", this.hid).order("name")); },
   async listCategories() { return this.must(await this.sb.from("custom_categories").select("*").eq("household_id", this.hid).order("sort").order("created_at")); },
   async saveCategory(c) {
@@ -534,8 +547,8 @@ export const CloudStore = {
   },
   async listPurchases() {
     const since = new Date(Date.now() - 400 * DAY).toISOString();
-    return this.must(await this.sb.from("purchases").select("*").eq("household_id", this.hid)
-      .gte("purchased_at", since).order("purchased_at", { ascending: false }).limit(5000)).map((x) => ({ ...x, category: canonCat(x.category) }));   // 旧分类按别名表换成新的（迁移 035 跑过就没差别）
+    return (await this.pageAll(() => this.sb.from("purchases").select("*").eq("household_id", this.hid)
+      .gte("purchased_at", since).order("purchased_at", { ascending: false }).order("id"), 20000)).map((x) => ({ ...x, category: canonCat(x.category) }));   // 旧分类按别名表换成新的（迁移 035 跑过就没差别）；分页读，近 400 天超过 1000 笔也不丢
   },
   async addPurchase(p) { return this.must(await this.sb.from("purchases").insert({ ...p, household_id: this.hid }).select("id").single()).id; },
 
@@ -713,7 +726,7 @@ export const CloudStore = {
   async updateMedicalPayment(id, patch) { this.must(await this.sb.from("medical_payments").update(patch).eq("id", id)); },
   async deleteMedicalPayment(id) { this.must(await this.sb.from("medical_payments").delete().eq("id", id)); },
   /* 收入（迁移 042）：行级安全按「家主 / 已允许 / 自己记的」过滤；表不存在时由调用方当作空 */
-  async listIncomeRecords() { return this.must(await this.sb.from("income_records").select("*").eq("household_id", this.hid).order("received_on", { ascending: false }).limit(20000)); },
+  async listIncomeRecords() { return this.pageAll(() => this.sb.from("income_records").select("*").eq("household_id", this.hid).order("received_on", { ascending: false }).order("id"), 20000); },   // 分页：超过 1000 笔时最早的不会被截掉
   async saveIncomeRecord(r) {
     const row = pick(r, INCOME_FIELDS, { household_id: this.hid });
     if (r.id) { this.must(await this.sb.from("income_records").update(row).eq("id", r.id)); return r.id; }
@@ -725,7 +738,7 @@ export const CloudStore = {
   async deleteIncomeRecord(id) { this.must(await this.sb.from("income_records").delete().eq("id", id)); },   // 还款记录级联删除
   async deleteIncomeByBatch(batch) { this.must(await this.sb.from("income_records").delete().eq("household_id", this.hid).eq("import_batch", batch)); },
   async renameIncomeSource(ids, name) { for (let i = 0; i < ids.length; i += 100) this.must(await this.sb.from("income_records").update({ source_name: name }).in("id", ids.slice(i, i + 100))); },
-  async listIncomeRepayments() { return this.must(await this.sb.from("income_repayments").select("*").eq("household_id", this.hid).order("paid_on", { ascending: false }).limit(5000)); },
+  async listIncomeRepayments() { return this.pageAll(() => this.sb.from("income_repayments").select("*").eq("household_id", this.hid).order("paid_on", { ascending: false }).order("id"), 5000); },
   async addIncomeRepayment(p) {
     const ins = (row) => this.sb.from("income_repayments").insert({ ...row, household_id: this.hid, paid_by: state.user.id }).select("id").single();
     let r = await ins(p);
@@ -786,16 +799,18 @@ export const CloudStore = {
     });
     this.must(await this.sb.from("items").insert(rows));
   },
+  /** 一段时间的花费（收支对比、往年、全部流水都用它）。必须分页：原来一次 .limit(10000) 实际只回 1000 行（max-rows），又是按日期从旧到新排——
+   *  「近 5 年」超过 1000 笔时只读到最早的 1000 笔，最近几年全被截掉，所以比「近 3 年」的花费还少 */
   async listPurchasesRange(from, to) {
-    return this.must(await this.sb.from("purchases").select("*").eq("household_id", this.hid)
-      .gte("purchased_at", from).lt("purchased_at", to).order("purchased_at").limit(10000)).map((x) => ({ ...x, category: canonCat(x.category) }));
+    return (await this.pageAll(() => this.sb.from("purchases").select("*").eq("household_id", this.hid)
+      .gte("purchased_at", from).lt("purchased_at", to).order("purchased_at").order("id"))).map((x) => ({ ...x, category: canonCat(x.category) }));
   },
   async deletePurchase(id) { this.must(await this.sb.from("purchases").delete().eq("id", id)); },
   /** 最早一笔花费的年份（花费页时间范围下拉的往年选项到这一年为止） */
   async firstPurchaseYear() { const r = this.must(await this.sb.from("purchases").select("purchased_at").eq("household_id", this.hid).order("purchased_at").limit(1)); return r?.[0] ? +String(r[0].purchased_at).slice(0, 4) : null; },
   /** 找回批次：所有带批次标记的花费（只取几列，不限日期），按 import_batch 重建丢失的批次记录 */
   async listTaggedPurchases() {
-    return this.must(await this.sb.from("purchases").select("id,import_batch,purchased_at,amount,card_id,created_at").eq("household_id", this.hid).not("import_batch", "is", null).order("purchased_at").limit(10000));
+    return this.pageAll(() => this.sb.from("purchases").select("id,import_batch,purchased_at,amount,card_id,created_at").eq("household_id", this.hid).not("import_batch", "is", null).order("purchased_at").order("id"));
   },
   /** 银行导入「查看 / 修改」：这一批的全部花费（不限近 400 天）——按 import_batch 列，旧批次按 id 列表 */
   async listPurchasesByBatch(batch, ids = []) {

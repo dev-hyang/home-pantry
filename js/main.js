@@ -800,6 +800,7 @@ main.addEventListener("submit", async (e) => {
 
 /* 图表色块、图例、名称、数字卡片：点一下（或 Enter / 空格）看对应的花费明细 */
 function drillTo(qs) {
+  if (qs.startsWith("inc=1")) return go(`${href("bills", "income")}?tab=records&${qs}`);   // 收入图表（带 inc=1）：到 收入 → 明细，筛选由 income/views.js 的 applyIncomeDrill 套上
   if (state.billsEnabled) return go(`${href("bills", "spend")}?tab=records&${qs}`);
   applySpendDrill(new URLSearchParams(qs)); render(); $("#spendRecords")?.scrollIntoView({ block: "start" });   // 账单模块关闭：明细就在统计页下面
 }

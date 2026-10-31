@@ -1404,6 +1404,7 @@ export const EN = {
   "输入几个字筛选…": "Type to filter…",
   "搜索选项": "Search options",
   "没有匹配的选项": "No matching options",
+  "请选择一项": "Please select an item",
   "上次你给这家选的分类；改了会记住新的": "The category you chose for this merchant last time; changing it remembers the new one",
   "上次你选的": "your earlier choice",
   "AI 猜的": "AI guess",
@@ -2764,4 +2765,24 @@ export const EN = {
   "认识这个人再批准：批准后对方能看到家里的数据（收入除外，要另外授权）。不认识就拒绝，并重新生成邀请码。": "Approve only people you know: once approved they can see the household’s data (income excepted, which needs separate permission). If you don’t recognise them, reject and generate a new invite code.",
   "关闭邀请": "Close invites",
   "家人用邀请码申请加入（不用收邮件），邀请码 7 天有效；申请后要家主在这里批准才能进来。邀请码泄露了或家人都加好了，请家主点「重新生成」或「关闭邀请」，旧码立即失效，已加入的家人不受影响。": "Family members ask to join with the invite code (no email needed). The code is valid for 7 days, and the owner has to approve each request here before they get in. If the code leaks, or everyone has joined, the owner should tap “Regenerate” or “Close invites”; the old code stops working immediately and existing members aren’t affected.",
+
+  // ── 收入：大类 - 小类、合并 / 含电汇赠与、钻取、付款方表格 ──
+  "工作收入": "Work income", "投资与租金": "Investments & rent", "退款与返还": "Refunds & returns", "转账与赠与": "Transfers & gifts", "其他收入": "Other income",
+  "全部「{g}」": "All “{g}”",
+  "点图里的色块、图例或数字，可以查看对应的收入明细。": "Tap a bar, legend entry or number to see the matching income records.",
+  "工资、奖金、福利包合成「工作收入」，利息、租金合成「投资与租金」等，图里颜色更少": "Combine salary, bonus and benefits into “Work income”, interest and rent into “Investments & rent”, and so on, so charts have fewer colours",
+  "同一个大类合并显示": "Group by main category",
+  "国际电汇、个人赠与多是家人转来的钱，不是挣来的收入：默认不算进合计和图表，勾上一起看": "International wires and personal gifts are usually money sent by family, not earned income: they are left out of totals and charts by default; tick to include them",
+  "含国际电汇 / 个人赠与 {a}（{n} 笔）": "Include international wires / personal gifts {a} ({n})",
+  "不含国际电汇 / 个人赠与": "Excluding international wires / personal gifts",
+  "内置类型的大类：{g}": "Main categories of the built-in types: {g}",
+  "按类型（大类 - 小类）": "By type (category - subcategory)",
+  "国际电汇和个人赠与默认不算（在概览里勾「含国际电汇 / 个人赠与」才算）。": "International wires and personal gifts are left out by default (tick “Include international wires / personal gifts” on the overview to count them).",
+  "点一下按这一列排序": "Tap to sort by this column", "合计 {m}": "Total {m}", "操作": "Actions", "没有符合条件的付款方": "No payers match", "加载更多": "Load more", "付款方 / 类型": "Payer / type",
+  // ── 对账单：这批是哪个账户的 ──
+  "不选择（不记账户）": "None (don’t tag an account)", "已有账户": "Existing accounts", "从列表删掉这个账户": "Remove this account from the list",
+  "这是「用卡」里登记的卡：不用了就到 用卡 里停用，这里就不再列出。": "This card is registered under Cards: deactivate it there when you no longer use it and it will drop off this list.",
+  "这个账户来自账单里的尾号：到对应账单里清掉尾号或删掉账单，这里就不再列出。": "This account comes from the last 4 digits on a bill: clear them on that bill (or delete the bill) and it will drop off this list.",
+  "从列表删掉「{n}」？已经导入的 {k} 批不受影响（批次上记的是账户名字），只是以后选不到它。": "Remove “{n}” from the list? The {k} batches already imported keep their label (they store the account name); you just won’t be able to pick it any more.",
+  "从列表删掉「{n}」？": "Remove “{n}” from the list?",
 };

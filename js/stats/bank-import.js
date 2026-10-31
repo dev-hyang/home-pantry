@@ -12,7 +12,7 @@ import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { categoryOptions } from "../pantry/views.js";
 import { meta, saveMeta } from "../bills/budget.js";
-import { adults, guessChannel, guessKind, inc as incState, incomeRules, kindList, loadIncome, myPersonId, senderName, similarIncome, skey } from "../income/logic.js";
+import { adults, guessChannel, guessKind, inc as incState, incomeRules, kindOptionsHtml, loadIncome, myPersonId, senderName, similarIncome, skey } from "../income/logic.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
 import { compressImage } from "../core/autofill.js";
 import { aiExtract, chunkLines, detectAccount, looksOFX, looksQIF, parseStatementLines, pdfImages, pdfLines, readOFX, readQIF, readXLSX, redactLines, statementTotals } from "./statement-readers.js";
@@ -331,20 +331,26 @@ export function accounts() {
   const seen = new Set([...cards, ...own].map((a) => a.last4).filter(Boolean));
   return [...cards, ...own, ...bills.filter((b) => !(b.last4 && seen.has(b.last4)))];
 }
-/** 文件里认出的发卡行 / 末四位 → 对上已有账户就选它，否则预填一个新账户名；用户动过选择就不再改 */
+/** 默认「不选择」；只有文件里认出的末四位正好对上一个已有账户时才替你选上它（不再自动预填「新账户」）；用户动过选择就不再改 */
+const NO_ACCT = () => ({ mode: "none", id: "", name: "", last4: "" });
 function suggestAccount() {
   if (S.acctTouched) return;
-  const hints = S.parts.map((x) => x.acct).filter(Boolean), last4 = hints.map((h) => h.last4).find(Boolean) || "", issuer = hints.map((h) => h.issuer).find(Boolean) || "";
-  const list = accounts(), hit = last4 ? list.find((a) => a.last4 === last4) : null;
-  if (hit) S.account = { mode: "id", id: hit.id, name: hit.name, last4: hit.last4 };
-  else if (last4 || issuer) S.account = { mode: "new", id: "", name: `${issuer || t("银行卡")}${last4 ? ` ••${last4}` : ""}`, last4 };
-  else if (S.account.mode === "new") S.account = { mode: "none", id: "", name: "", last4: "" };
+  const hints = S.parts.map((x) => x.acct).filter(Boolean), last4 = hints.map((h) => h.last4).find(Boolean) || "";
+  const hit = last4 ? accounts().find((a) => a.last4 === last4) : null;
+  S.account = hit ? { mode: "id", id: hit.id, name: hit.name, last4: hit.last4 } : NO_ACCT();
 }
+/** 新账户的预填名字：文件里认出的发卡行 + 末四位 */
+const guessAcctName = () => { const hints = S.parts.map((x) => x.acct).filter(Boolean), last4 = hints.map((h) => h.last4).find(Boolean) || "", issuer = hints.map((h) => h.issuer).find(Boolean) || ""; return last4 || issuer ? `${issuer || t("银行卡")}${last4 ? ` ••${last4}` : ""}` : ""; };
+/** 「这批是哪个账户的」：放在「记住我选的归类」下面、导入按钮上面。选项顺序：不选择 → 新账户… → 已有账户（用卡里的卡 / 以前导入建的 / 账单里带尾号的） */
 function accountHtml() {
-  const list = accounts(), a = S.account;
+  const list = accounts(), a = S.account, cur = a.mode === "id" ? list.find((x) => x.id === a.id) : null;
   const opt = (v, label, on) => `<option value="${esc(v)}" ${on ? "selected" : ""}>${esc(label)}</option>`;
-  return `<div class="bank-acct"><label>${t("这批是哪个账户的")}<select data-bank-acct>${opt("none", t("（不记账户）"), a.mode === "none")}${list.map((x) => opt(x.id, `${x.name}${x.last4 && !x.name.includes(x.last4) ? ` ••${x.last4}` : ""}`, a.mode === "id" && a.id === x.id)).join("")}${opt("new", t("新账户…"), a.mode === "new")}</select></label>
+  const hint = cur?.src === "own" ? `<button type="button" class="btn btn-sm btn-ghost" data-bank-act="acct-del" data-id="${esc(cur.id)}">${t("从列表删掉这个账户")}</button>`
+    : cur?.src === "card" ? `<small class="muted">${t("这是「用卡」里登记的卡：不用了就到 用卡 里停用，这里就不再列出。")}</small>`
+    : cur?.src === "bill" ? `<small class="muted">${t("这个账户来自账单里的尾号：到对应账单里清掉尾号或删掉账单，这里就不再列出。")}</small>` : "";
+  return `<div class="bank-acct"><label>${t("这批是哪个账户的")}<select data-bank-acct>${opt("none", t("不选择（不记账户）"), a.mode === "none")}${opt("new", t("新账户…"), a.mode === "new")}${list.length ? `<optgroup label="${esc(t("已有账户"))}">${list.map((x) => opt(x.id, `${x.name}${x.last4 && !x.name.includes(x.last4) ? ` ••${x.last4}` : ""}`, a.mode === "id" && a.id === x.id)).join("")}</optgroup>` : ""}</select></label>
     ${a.mode === "new" ? `<label>${t("账户名")}<input data-bank-acct-name maxlength="40" value="${esc(a.name)}" placeholder="${esc(t("例如 Chase Freedom ••1234"))}"></label>` : ""}
+    ${hint ? `<div class="bank-acct-tools">${hint}</div>` : ""}
     <small class="muted">${t("记在这批导入上（不记到每一笔花费上），用来看哪个账户哪几个月已经补过。")}</small></div>`;
 }
 /** 对账单合计 vs 读出来的：差太多就提示可能漏读 */
@@ -425,7 +431,7 @@ const incChosen = () => { let n = 0, sum = 0; for (const g of S.groups) { if (!g
 const incWho = () => S.incPerson ?? (myPersonId() || "none");
 function incomeRow(g) {
   const on = !!S.include[g.id], dups = g.rows.filter((r) => r.idup).length, matched = g.rows.filter((r) => r.dupOf), unsure = g.rows.every((r) => r.incUnsure);
-  const kinds = kindList().map((k) => `<option value="${k.id}" ${S.ikind[g.id] === k.id ? "selected" : ""}>${k.icon} ${esc(t(k.name))}</option>`).join("");
+  const kinds = kindOptionsHtml(S.ikind[g.id] || "other");   // 收入类型按「大类 - 小类」分组，和 收入 → 明细 同一个下拉
   return `<li class="bank-row"><label class="bank-chk"><input type="checkbox" data-bank-inc="${esc(g.id)}" ${on ? "checked" : ""} aria-label="${esc(t("导入"))}"></label>
     <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n: g.rows.length })} · ${money(-g.total)} · ${esc(rangeOf(g.rows))}${unsure ? ` · <span class="bank-src">${t("只写着转账 / 存款，看不出来源，默认没勾")}</span>` : ""}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b>` : ""}</small>${matched.length ? dupListHtml(matched) : ""}</div>
     <select data-bank-ikind="${esc(g.id)}" aria-label="${esc(t("收入类型"))}">${kinds}</select></li>`;
@@ -466,7 +472,7 @@ function panelHtml() {
     <label class="btn btn-primary btn-sm" style="cursor:pointer">${t("选择文件（可多选）")}<input type="file" id="bankFile" multiple accept=".csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx,.qif,.pdf,image/*,text/csv,text/plain,application/pdf" hidden></label>
     <details class="bank-paste" style="margin-top:8px"><summary>${t("或者直接粘贴文字")}</summary><textarea id="bankPaste" rows="5" placeholder="${esc(t("把网银页面或 PDF 里的交易几行直接复制粘贴到这里"))}" style="margin-top:6px"></textarea>
       <div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-bank-act="paste">${t("读取这段文字")}</button></div></details>
-    ${partsHtml()}${S.parts.length ? accountHtml() : ""}${S.error ? `<p class="form-error" role="alert">${esc(S.error)}</p>` : ""}</div>`;
+    ${partsHtml()}${S.error ? `<p class="form-error" role="alert">${esc(S.error)}</p>` : ""}</div>`;
   if (!S.parts.length) return head + tipsHtml() + rulesHtml() + batchesHtml(batches);
   const tp = S.parts.length === 1 && S.parts[0].table ? S.parts[0].table : null;
   let mapping = "";
@@ -488,6 +494,7 @@ function panelHtml() {
     ${incomeSection(incs)}
     ${skipped.length ? `<section class="section"><details class="ref-panel panel"><summary><b>${t("默认跳过")}</b><small>${t("还款 / 转账 / 收入")}</small><span class="mch" aria-hidden="true">›</span></summary><ul class="restock-list bank-list ref-body">${skipped.map(groupRow).join("")}</ul></details></section>` : ""}
     <div class="panel bank-go"><label class="check-inline"><input type="checkbox" data-bank-remember ${S.remember ? "checked" : ""}><span>${t("记住我选的归类（下次同一商家自动归类，全家共用）")}</span></label>
+      ${accountHtml()}
       <div class="form-actions"><button type="button" class="btn btn-primary" data-bank-act="import" ${(c.n || ic.n) && !S.busy ? "" : "disabled"}>${S.busy ? t("导入中…") : ic.n ? t("导入 {n} 笔花费 + {m} 笔收入", { n: c.n, m: ic.n }) : t("导入 {n} 笔", { n: c.n })}</button></div></div>
     ${S.last ? `<div class="panel" role="status"><b>${t("已导入 {n} 笔，合计 {m}", { n: S.last.n, m: money(S.last.sum) })}</b> <button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo-last">${t("撤销这批")}</button></div>` : ""}
     ${batchesHtml(batches)}`;
@@ -546,6 +553,17 @@ const batchesHtml = (batches) => {
 export function bankImportTab() { return `<section class="section" id="bankImport">${panelHtml()}</section>`; }
 const redraw = () => { const el = document.getElementById("bankImport"); if (el) el.innerHTML = panelHtml(); };
 
+/** 删掉以前导入时建的账户（只删 _bank_accounts 里这一条）：已导入的批次存的是账户名字和尾号文字，不是 id，所以「最近导入」和按账户筛选都不受影响；
+ *  用卡里的卡 / 账单里的尾号不在这里删（分别到 用卡 停用、到账单里改）。删掉后这个尾号的「自己账户之间的转账」不再自动认出。 */
+async function deleteOwnAccount(id) {
+  const list = meta("_bank_accounts", []) || [], a = list.find((x) => x.id === id); if (!a) return;
+  const used = (meta("_bank_batches", []) || []).filter((b) => b.account === a.name).length;
+  if (!confirm(used ? t("从列表删掉「{n}」？已经导入的 {k} 批不受影响（批次上记的是账户名字），只是以后选不到它。", { n: a.name, k: used }) : t("从列表删掉「{n}」？", { n: a.name }))) return;
+  try { await saveMeta({ _bank_accounts: list.filter((x) => x.id !== id) }); if (S.account.id === id) { S.account = NO_ACCT(); S.acctTouched = true; } toast(t("已删除")); }
+  catch (e) { toast(t("操作失败：{msg}", { msg: e.message })); }
+  redraw();
+}
+
 /* ───────────── 导入 / 撤销 ───────────── */
 async function doImport() {
   if (S.busy) return; S.busy = true; redraw();
@@ -603,7 +621,7 @@ async function doImport() {
     const all = [...(meta("_bank_batches", []) || []), ...(ids.length || (S.rows.length && !failed) ? [batch] : [])].slice(-60).map((b, i, arr) => (!b.tagged && i < arr.length - 6 ? { ...b, ids: [], n: b.n ?? b.ids?.length ?? 0 } : b));
     await saveMeta({ _bank_rules: rules, _bank_batches: all, _bank_accounts: acctList.slice(-30), ...(Object.keys(learnedInc).length ? { _income_rules: Object.fromEntries(Object.entries({ ...incomeRules(), ...learnedInc }).slice(-300)) } : {}) });
   } catch (e) { metaFailed = true; }   // 花费已经导入了；只是批次记录 / 覆盖表没存上，要告诉用户，不能悄悄吞掉
-  S.force = new Set(); S.ikind = {}; S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = ""; S.acctTouched = false; S.account = acct ? { mode: "id", id: acct.id, name: acct.name, last4: acct.last4 } : { mode: "none", id: "", name: "", last4: "" };
+  S.force = new Set(); S.ikind = {}; S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = ""; S.acctTouched = false; S.account = NO_ACCT();   // 下一批回到默认「不选择」
   toast((failed ? t("导入了 {n} 笔，{k} 笔失败", { n: ids.length, k: failed }) : ids.length ? t("已导入 {n} 笔", { n: ids.length }) : inN ? "" : t("没有新的花费要导入（都已经记录过）"))
     + (inN ? (ids.length ? t("；另记了 {n} 笔收入", { n: inN }) : t("已记了 {n} 笔收入", { n: inN })) : "") + (incFailed ? t("；收入没写进去（迁移 042 没执行？），请重试") : "")
     + (metaFailed ? t("；批次记录没存上，「各账户已补到哪个月」不会更新，请重试") : !acct ? t("；没选账户，这批不计入「各账户已补到哪个月」") : ""));
@@ -676,7 +694,7 @@ document.addEventListener("change", async (e) => {
   if (el.dataset.bankRemember !== undefined) { S.remember = el.checked; }
   if (el.dataset.bankBatchAcct !== undefined) { S.batchAcct = el.value; S.batchShow = 20; return redraw(); }
   if (el.dataset.bankAcct !== undefined) { S.acctTouched = true; const v = el.value; const hit = accounts().find((x) => x.id === v);
-    S.account = v === "none" ? { mode: "none", id: "", name: "", last4: "" } : hit ? { mode: "id", id: hit.id, name: hit.name, last4: hit.last4 } : { mode: "new", id: "", name: S.account.mode === "new" ? S.account.name : "", last4: S.parts.map((x) => x.acct?.last4).find(Boolean) || "" }; return redraw(); }
+    S.account = v === "none" ? NO_ACCT() : hit ? { mode: "id", id: hit.id, name: hit.name, last4: hit.last4 } : { mode: "new", id: "", name: S.account.mode === "new" ? S.account.name : guessAcctName(), last4: S.parts.map((x) => x.acct?.last4).find(Boolean) || "" }; return redraw(); }
   if (el.dataset.bankAcctName !== undefined) { S.acctTouched = true; S.account.name = el.value; }
 });
 document.addEventListener("click", (e) => {
@@ -692,6 +710,7 @@ document.addEventListener("click", (e) => {
   else if (b.dataset.bankAct === "dates-cancel") { S.editDates = ""; redraw(); }
   else if (b.dataset.bankAct === "dates-save") saveBatchDates(b.dataset.batch, b.closest("li"));
   else if (b.dataset.bankAct === "undo") undo(b.dataset.batch);
+  else if (b.dataset.bankAct === "acct-del") deleteOwnAccount(b.dataset.id);
   else if (b.dataset.bankAct === "recover") recoverBatches();
   else if (b.dataset.bankAct === "batches-more") { S.batchShow += 20; redraw(); }
   else if (b.dataset.bankAct === "undo-last" && S.last) undo(S.last.id);

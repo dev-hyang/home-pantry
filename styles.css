@@ -820,13 +820,17 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .bank-acct { display: grid; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
 .bank-acct label { display: grid; gap: 3px; font-size: 13px; font-weight: 700; }
 @media (min-width: 640px) { .bank-acct { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .bank-acct small { grid-column: 1 / -1; } }
+/* 账户下拉放在「记住我选的归类」和导入按钮之间：手机上一列铺满，电脑上两列（下拉 | 新账户名），最宽 720px，不会拉得很长 */
+.bank-go .bank-acct { max-width: 720px; margin-bottom: 10px; }
+.bank-acct select, .bank-acct input { width: 100%; min-width: 0; }
+.bank-acct-tools { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .cover-table { border-collapse: collapse; font-size: 12.5px; white-space: nowrap; }
 .cover-table th, .cover-table td { padding: 4px 5px; text-align: center; border-bottom: 1px dashed var(--line); }
 .cover-table th[scope="row"] { text-align: left; font-weight: 600; }
 .cover-table td { color: var(--muted); } .cover-table td.on { color: var(--ok); font-weight: 700; }
 @media (min-width: 640px) { .bank-list li { grid-template-columns: auto minmax(0, 1fr) minmax(200px, 260px); } .bank-list li select { grid-column: auto; } }
 /* 可搜索的下拉（js/select-search.js）：原 select 藏起来；输入框长得和 select 一样（当前选项 + 右边小箭头），点进去原位打字筛选，列表贴在下面 */
-.ssel-native { position: absolute !important; opacity: 0; width: 1px; height: 1px; min-height: 0; padding: 0; margin: 0; border: 0; pointer-events: none; }
+.ssel-native { position: absolute !important; opacity: 0; width: 1px !important; height: 1px !important; min-width: 0 !important; max-width: 1px !important; min-height: 0; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); pointer-events: none; }   /* 页面上别的 select 宽度规则（如筛选栏 width:100%）不能把它撑开，否则整页出现横向滚动条 */
 .ssel { position: relative; min-width: 0; }
 .ssel::after { content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px; margin-top: -5px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); pointer-events: none; transition: transform .15s; }
 .ssel.is-open::after { transform: rotate(-135deg); margin-top: -2px; }
@@ -1246,7 +1250,9 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 
 .linkbtn { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; text-align: left; }
 .linkbtn:hover, .linkbtn:focus-visible { text-decoration: underline; text-underline-offset: 3px; color: var(--pine); }
-.spend-edit { display: block; padding: 10px 0; }
+/* 选择器要带上 .restock-list li：单写 .spend-edit（0,1,0）压不过 .restock-list li（0,1,1）的 display:flex，
+ * 摘要按钮和表单会变成左右两栏、表单只占一半宽 */
+.restock-list li.spend-edit { display: block; padding: 10px 0; }
 .spend-edit .form-actions { margin-top: 4px; }
 
 .restock-list li.is-paid { opacity: .78; }
@@ -1629,6 +1635,11 @@ body.editing .minibar { display: none; }
 .ix-tbl td { vertical-align: middle; }
 .ix-tbl .link-name { padding: 6px 0; min-height: 32px; text-align: left; }
 @media (max-width: 640px) { .ix-tbl th:nth-child(3), .ix-tbl td:nth-child(3), .ix-tbl th:nth-child(5), .ix-tbl td:nth-child(5) { display: none; } }
+/* 可排序的表头（收入 → 付款方）：整个表头是按钮，键盘可达；当前列加粗并带 ▲ / ▼，aria-sort 在 th 上 */
+.th-sort { appearance: none; background: none; border: 0; padding: 4px 0; min-height: 32px; font: inherit; font-weight: 700; color: inherit; cursor: pointer; white-space: nowrap; text-align: inherit; }
+.th-sort span { color: var(--muted); font-weight: 400; }
+.th-sort.is-on span { color: inherit; }
+.th-sort:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
 
 /* 存储用量（js/core/usage.js）：手机上上下叠、电脑上数字靠右；状态靠图标 + 文字，不只靠颜色 */
 .usage { display: grid; gap: 18px; }
