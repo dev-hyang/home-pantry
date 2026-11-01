@@ -430,9 +430,15 @@ export function viewBillForm() {
   const b = r.id && r.id !== "new" ? state.billsEnriched.find((x) => x.id === r.id) : null;
   if (r.id !== "new" && !b) return `<div class="panel empty"><strong>${t("找不到这条账单")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("bills", "list")}">${t("回到账单")}</a></p></div>`;
   const qCat = r.q.get("category");
+  // 从房屋资料「创建账单」进来（保险年保费、HOA 月费以前记在资料里，2026-11 起账单是唯一来源）：把旧值带过来，不让数据丢
+  const qAmt = num(r.q.get("amount"), NaN), qFreq = r.q.get("freq"), qProp = r.q.get("prop");
+  const pre = b ? {} : {
+    ...(r.q.get("name") ? { name: r.q.get("name").slice(0, 60) } : {}), ...(r.q.get("payee") ? { payee: r.q.get("payee").slice(0, 60) } : {}),
+    ...(qFreq && B().FREQUENCIES[qFreq] ? { frequency: qFreq } : {}), ...(Number.isFinite(qAmt) && qAmt >= 0 ? { typical_amount: Math.round(qAmt * 100) / 100, amount_type: "fixed" } : {}),
+    ...(qProp && state.properties.some((p) => p.id === qProp) ? { property_id: qProp } : {}) };
   const v = b || { category: qCat && B().CATEGORIES.some((c) => c.id === qCat) ? qCat : "electric", direction: "payable", pay_channel: "online", amount_type: "variable",
     currency: Units.region.currency, frequency: "monthly", due_day: null, due_dates: [], grace_days: 0, autopay: false, statement_channel: "email", reminder_days: [7, 1],
-    essential: true, active: true, property_id: state.propertyId };
+    essential: true, active: true, property_id: state.propertyId, ...pre };
   const d = (x) => esc(x ?? "");
   const payAcct = acctById(v.pay_card_id);   // 选了卡：到期年月直接看卡的，不再抄一份（抄过去的会过期不同步）
   const cloud = Store.mode === "cloud";

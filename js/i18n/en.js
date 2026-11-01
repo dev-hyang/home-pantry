@@ -717,7 +717,7 @@ export const EN = {
   "有房屋保险（租住填租客保险）": "Insured (renters: renter's insurance)", "保险公司": "Insurer", "例如：State Farm": "e.g. State Farm", "保单号": "Policy #", "生效日": "Effective", "到期日": "Expires",
   "到期前 30 天提醒续保": "Renewal reminder 30 days before expiry", "保障范围": "Coverage", "例如：房屋 $400k、责任 $300k、自付额 $1,000": "e.g. dwelling $400k, liability $300k, $1,000 deductible",
   "年保费": "Annual premium", "理赔电话": "Claims phone", "理赔代理": "Claims agent", "出险时直接联系的人，概览里可一键拨打 / 发邮件": "Who to call when something happens; tap to call or email from the overview",
-  "代理 / 经纪人": "Agent / broker", "姓名或办公室": "Name or office", "理赔邮箱": "Claims email", "只记摘要，不存保单文件；账单里的“房屋保险”负责缴费提醒，这里负责到期续保提醒。": "Summary only, no policy documents. The Home insurance bill handles payment reminders; this handles renewal reminders.",
+  "代理 / 经纪人": "Agent / broker", "姓名或办公室": "Name or office", "理赔邮箱": "Claims email", "只记摘要，不存保单文件；保费以账单里的“房屋保险”为准（缴费提醒也在那里），这里负责到期续保提醒。": "Summary only, no policy documents. The premium comes from the Home insurance bill (which also handles payment reminders); this handles renewal reminders.",
   "有效": "Active", "快到期": "Expiring", "未填到期日": "No expiry date", "未填保险": "Not recorded", "未填": "not recorded", "补充": "Add", "{d} 天": "{d} days", "更新保单": "Update policy",
   "已过期 {d} 天，尽快续保": "Expired {d} days ago; renew soon", "{d} 天后到期，续保前比价": "Expires in {d} days; compare quotes before renewing",
   "已完成 {a} / {b}": "Done {a} / {b}", "{kind}清单": "{kind} checklist", "交易页": "Transaction", "还有 {n} 项，": "{n} more, ", "去交易页查看": "see them on the transaction page",
@@ -3179,5 +3179,10 @@ export const EN = {
   "房产账单每月": "Property bills / month", "自己交的部分，不含 Escrow 代缴": "What you pay directly, excluding escrow", "房产列表": "Properties", "车辆列表": "Vehicles", "还没有车辆": "No vehicles yet",
   "买入 / 卖出价在交易交割时写入（房屋 → 交易）；花费按记账时选的房产统计，账单缴费自动带上账单的房产。": "Purchase / sale prices are written when a deal closes (Home → Deal). Spending counts what was tagged to the property; bill payments carry the bill's property automatically.",
   "没对上具体车辆的车贷账单（账单名里写上车名就会归到那辆车）：": "Car loan bills not matched to a vehicle (put the vehicle's name in the bill name to match):",
+  // ── 保险年保费 / HOA 费用：账单是唯一来源 ──
+  "创建账单": "Create bill", "资料里的旧值": "Old profile value", "（资料里的旧值）": "(old profile value)", "年保费 {a}": "Premium {a}/yr", "常规费用": "Regular dues",
+  "月费来自 HOA 账单，评估分期在下面填": "Dues come from the HOA bill; enter assessment installments below",
+  "金额在账单里改：账单是唯一来源，预算和现金流都按它算": "Change the amount on the bill: the bill is the single source, and budgets and cash flow use it",
+  "评估分期只在有效期内、没缴清时计入每月总计": "Assessment installments count toward the monthly total only while active and unpaid",
   "还没有登记账户": "No accounts yet", "在 卡与账户 里添加支票、储蓄、券商、退休、HSA、贷款或现金账户。": "Add checking, savings, brokerage, retirement, HSA, loan or cash accounts under Cards & accounts.",
 };

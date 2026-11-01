@@ -2020,3 +2020,7 @@ button.hb-name { color: var(--pine); font-weight: 700; padding: 6px 0; min-heigh
 .node-crumb b { padding: 6px 4px; }
 .node-crumb .sep { color: var(--muted); }
 .xfer-badge { background: var(--surface-2); color: var(--muted); }
+/* 房屋资料里的只读金额（保险年保费、HOA 常规费用：来自账单）：和输入框同高，链接好点 */
+.ro-field { display: flex; flex-direction: column; }
+.ro-field > span:not(.field-label) { min-height: 44px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
+.ro-field small { color: var(--muted); font-size: 12px; }

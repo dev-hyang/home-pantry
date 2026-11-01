@@ -12,8 +12,42 @@ import { alertAct, alertBadge, alertText, assetAlerts, assetName, myAssets } fro
 import { monthName, monthTasks, taskRow } from "./tasks.js";
 import { houseBar } from "./property-form.js";
 import { currentProp, dealTasks, openDeal, propertyLive, statusText, taskRow as dealTaskRow } from "./deals.js";
+import { freqText, monthlyEquivalent } from "../bills/logic.js";
 
 const H = () => window.HOUSE;
+
+/* ── 保险年保费、HOA 常规费用：账单是唯一来源（2026-11，财务 P1）──
+ * 资料里不再能改金额，只读显示这套房产「房屋保险」/「HOA / 物业费」类账单的金额，点过去改账单。
+ * 旧数据：资料里填过金额、还没有对应账单 → 照样显示（标「资料里的旧值」）并给一个预填好的「创建账单」；旧值原样留在资料里，不悄悄丢。 */
+/** 这套房产某类在用的账单：先找挂在这套房产上的，再找没挂房产的（和以前 HOA 链接的规则一致） */
+export function linkedBill(pid, cat) {
+  const list = (state.billsEnriched || []).filter((b) => b.category === cat && b.active !== false && !b.ended);
+  return list.find((b) => b.property_id === pid) || list.find((b) => !b.property_id) || null;
+}
+/** 预填好的新建账单地址（带房产、金额、频率、名称） */
+export const newBillHref = (cat, pid, { amount, freq, name, payee } = {}) => `${href("bill", "new")}?${new URLSearchParams(Object.entries({ category: cat, prop: pid || "", amount: amount ?? "", freq: freq || "", name: name || "", payee: payee || "" }).filter(([, v]) => v !== "")).toString()}`;
+/** 房屋保险年保费：{ amount（每年，没有为 null）, src: "bill" | "profile" | null, bill } */
+export function insurancePremium(pid, p) {
+  const b = linkedBill(pid, "insurance_home");
+  if (b) return { amount: b.est == null ? null : Math.round((monthlyEquivalent(b, b.est) * 12 || num(b.est)) * 100) / 100, src: "bill", bill: b };
+  return num(p?.insurance_premium) > 0 ? { amount: num(p.insurance_premium), src: "profile", bill: null } : { amount: null, src: null, bill: null };
+}
+const HOA_FREQ = { monthly: "monthly", quarterly: "quarterly", yearly: "annual" };   // 资料里的缴费周期 → 账单频率
+/** HOA 常规费用：{ monthly（折合每月，没有为 null）, text, src, bill, legacy }；账单优先，其次资料里的旧值 */
+export function hoaRegular(pid, h) {
+  const b = linkedBill(pid, "hoa");
+  if (b) return { monthly: b.est == null ? null : monthlyEquivalent(b, b.est) || num(b.est), text: b.est == null ? t("金额未填") : `${money(b.est)} · ${freqText(b)}`, src: "bill", bill: b };
+  const parts = num(h?.dues_unit) + num(h?.dues_parking) + num(h?.dues_other), legacy = parts > 0 ? parts : num(h?.dues);
+  if (!(legacy > 0)) return { monthly: null, text: "", src: null, bill: null };
+  const per = h.dues_period || "monthly";
+  return { monthly: per === "quarterly" ? legacy / 3 : per === "yearly" ? legacy / 12 : legacy, text: `${t(H().DUES_PERIODS[per] || "每月")} ${money(legacy)}`, src: "profile", bill: null, legacy, freq: HOA_FREQ[per] || "monthly" };
+}
+/** 金额旁边的来源说明 + 链接：账单 → 「账单：名称」可点去改；旧值 → 「资料里的旧值 · 创建账单」；都没有 → 「建一条账单」 */
+function amountSource(src, bill, cat, pid, pre) {
+  if (src === "bill") return `<a href="${href("bill", bill.id)}">${t("账单：{name}", { name: esc(bill.name) })}</a>`;
+  const create = `<a href="${esc(newBillHref(cat, pid, pre))}">${t("创建账单")}</a>`;
+  return src === "profile" ? `<span class="badge b-soon">${t("资料里的旧值")}</span> ${create}` : create;
+}
 
 /** 房屋概览顶部：房产状态、进行中的交易、编辑房产（同设置页的表单） */
 function statusLine() {
@@ -49,9 +83,9 @@ export function hoaOf(p) {
 }
 
 /** 每月要交多少：常规月费（单元 + 车位 + 其他）+ 进行中的特殊评估分期；sa 只在没缴清、还在有效期内时算 */
-export function hoaMonthly(h) {
+export function hoaMonthly(h, pid = state.propertyId) {
   const unit = num(h.dues_unit) || 0, parking = num(h.dues_parking) || 0, other = num(h.dues_other) || 0;
-  const regular = unit + parking + other || num(h.dues) || 0;
+  const reg = hoaRegular(pid, h), regular = reg.monthly || 0;   // 常规月费：账单优先（单元 / 车位 / 其他只是资料里的旧拆分，留作参考）
   const today = new Date().toISOString().slice(0, 10);
   const saActive = num(h.sa_each) > 0 && !h.sa_paid && (!h.sa_to || h.sa_to >= today) && (!h.sa_from || h.sa_from <= today);
   const sa = saActive ? num(h.sa_each) : 0;
@@ -60,9 +94,9 @@ export function hoaMonthly(h) {
 /** 资料表单里的「每月总计」卡：输入时实时更新（main.js 调 updateHoaTotal） */
 export function hoaTotalHtml(h) {
   const m = hoaMonthly(h);
-  const parts = [m.unit ? t("单元 {a}", { a: money(m.unit) }) : "", m.parking ? t("车位 {a}", { a: money(m.parking) }) : "", m.other ? `${esc(h.dues_other_label || t("其他"))} ${money(m.other)}` : "", m.sa ? t("评估分期 {a}", { a: money(m.sa) }) : ""].filter(Boolean);
+  const parts = [m.regular ? t("月费 {a}", { a: money(m.regular) }) : "", m.sa ? t("评估分期 {a}", { a: money(m.sa) }) : ""].filter(Boolean);
   const note = num(h.sa_each) > 0 && !m.saActive ? ` <small>${h.sa_paid ? t("（评估已缴清，不计）") : t("（评估已过有效期，不计）")}</small>` : "";
-  return `<span class="ht-label">${t("每月总计")}</span><b>${money(m.total)}</b><small>${parts.length ? "= " + parts.join(" + ") : t("填上面几项，这里自动合计")}</small>${note}`;
+  return `<span class="ht-label">${t("每月总计")}</span><b>${money(m.total)}</b><small>${parts.length ? "= " + parts.join(" + ") : t("月费来自 HOA 账单，评估分期在下面填")}</small>${note}`;
 }
 /** 表单里改了任一金额 / 评估字段 → 重算总计卡（不等保存） */
 export function updateHoaTotal(form) {
@@ -92,7 +126,8 @@ function hoaFact(p) {
   const bits = [];
   if (hoa.name) bits.push(`<b>${esc(hoa.name)}</b>`);
   if (hoa.mgmt) bits.push(esc(hoa.mgmt));
-  if (hoa.dues > 0) bits.push(`${t(H().DUES_PERIODS[hoa.dues_period] || "每月")} ${money(hoa.dues)}`);
+  const reg = hoaRegular(p.property_id || state.propertyId, hoa);
+  if (reg.src) bits.push(`${reg.text}${reg.src === "profile" ? ` <small class="muted">${t("（资料里的旧值）")}</small>` : ""}`);
   const sa = assessmentStatus(hoa);
   if (sa.kind === "due") bits.push(`<span class="badge ${sa.days != null && sa.days <= 14 ? "b-out" : "b-soon"}">${t("特殊评估")} ${money(hoa.sa_amount)} ${t("待缴")}</span>`);
   return { k: `🏘️ ${esc(t(a.label))}`, v: bits.length ? bits.join(" · ") : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充")}</a>` };
@@ -122,16 +157,16 @@ function hoaBlock(p) {
   const saText = sa.kind === "none" ? t("没有进行中的特殊评估")
     : sa.kind === "paid" ? `${money(hoa.sa_amount || hoa.sa_each)}${hoa.sa_purpose ? ` · ${esc(hoa.sa_purpose)}` : ""} <span class="badge b-ok">${t("已缴")}</span>`
     : `<b>${hoa.sa_amount > 0 ? money(hoa.sa_amount) : t("每期 {a}", { a: money(hoa.sa_each) })}</b>${hoa.sa_purpose ? ` · ${esc(hoa.sa_purpose)}` : ""}${hoa.sa_due ? ` · ${t("截止 {d}", { d: fmtDate(hoa.sa_due) })}` : ""}${saPeriod}${saEach} <span class="badge ${sa.days != null && sa.days < 0 ? "b-out" : "b-soon"}">${sa.days == null ? t("待缴") : sa.days < 0 ? t("已逾期 {d} 天", { d: -sa.days }) : t("{d} 天后到期", { d: sa.days })}</span>`;
-  const hoaBill = state.bills.find((b) => b.category === "hoa" && (!b.property_id || b.property_id === state.propertyId) && !b.archived);
+  const reg = hoaRegular(state.propertyId, hoa);   // 常规费用：HOA 账单（唯一来源）；以前的 bills.archived 判断是个不存在的字段，现在按 active / 已结束挑
   // 标签 / 值的事实行（与房屋卡片同款）：值可换行，手机上不会把内容挤到屏幕外；表格 + 横向滚动会让长邮箱、备注把值列推出视野
   const row = (k, v) => (v ? `<div class="fact wide"><dt>${k}</dt><dd>${v}</dd></div>` : "");
-  const hint = [hoa.dues > 0 ? `${t(H().DUES_PERIODS[hoa.dues_period] || "每月")} ${money(hoa.dues)}` : null, sa.kind !== "none" && sa.kind !== "paid" ? t("特殊评估待缴") : null, hoa.mgmt].filter(Boolean).join(" · ");
+  const hint = [reg.src ? reg.text : null, sa.kind !== "none" && sa.kind !== "paid" ? t("特殊评估待缴") : null, hoa.mgmt].filter(Boolean).join(" · ");
   return { title: `${esc(t(a.label))}${hoa.name ? ` · ${esc(hoa.name)}` : ""}`, hint, open: sa.kind !== "none" && sa.kind !== "paid",
     body: `<p style="margin:0 0 6px;text-align:right"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改")}</a></p>
       <dl class="fact-grid one">
         ${row(t("管理公司 / 联系人"), hoa.mgmt ? esc(hoa.mgmt) : "")}
         ${row(t("联系方式"), contact)}
-        ${row(t("费用"), hoa.dues > 0 ? `${t(H().DUES_PERIODS[hoa.dues_period] || "每月")} ${money(hoa.dues)}${breakdown}${hoaBill ? ` · <a href="${href("bill", hoaBill.id)}">${t("账单：{name}", { name: esc(hoaBill.name) })}</a>` : state.billsEnabled ? ` · <a href="${href("bills", "template")}">${t("建一条账单提醒缴费")}</a>` : ""}` : "")}
+        ${row(t("费用"), `${reg.src ? `${reg.text}${reg.src === "profile" ? breakdown : ""} · ` : ""}${amountSource(reg.src, reg.bill, "hoa", state.propertyId, { amount: reg.legacy, freq: reg.freq, name: hoa.name ? `HOA · ${hoa.name}`.slice(0, 60) : t("HOA 月费"), payee: hoa.name || hoa.mgmt || "" })}`)}
         ${row(t("特殊评估 / 摊派"), saText)}
         ${(() => { const m = hoaMonthly(hoa); return m.sa ? row(t("每月总计"), `<b>${money(m.total)}</b> <small class="muted">= ${t("月费 {a}", { a: money(m.regular) })} + ${t("评估分期 {a}", { a: money(m.sa) })}</small>`) : ""; })()}
         ${row(t("出租规则"), hoa.rent_policy && hoa.rent_policy !== "unknown" ? [labelOf(RENT_POLICIES, hoa.rent_policy), hoa.rent_cap_pct ? t("上限 {p}%", { p: hoa.rent_cap_pct }) : "", hoa.rent_min_months ? t("最短 {n} 个月", { n: hoa.rent_min_months }) : "", hoa.rent_notes ? esc(hoa.rent_notes) : ""].filter(Boolean).join(" · ") : "")}
@@ -274,12 +309,12 @@ export function sectionStatus(d, id) {
     case "address": { const n = filled([d.address, d.year_built]); return { text: `${n} / 2`, pct: n * 50 }; }
     case "insurance": {
       if (!d.insured) return { text: t("未投保"), pct: null };
-      const n = filled([d.insurance_provider, d.insurance_policy, d.insurance_from, d.insurance_to, d.insurance_coverage, d.insurance_premium, d.insurance_agent, d.insurance_phone, d.insurance_email]);
+      const n = filled([d.insurance_provider, d.insurance_policy, d.insurance_from, d.insurance_to, d.insurance_coverage, insurancePremium(state.propertyId, d).src === "bill", d.insurance_agent, d.insurance_phone, d.insurance_email]);
       return { text: `${n} / 9`, pct: Math.round((n / 9) * 100) };
     }
     case "hoa": {
       const h = hoaOf(d); if (!h.enabled) return { text: t("无 {label}", { label: t(Hh.assocOf(d.house_type).label) }), pct: null };
-      const n = filled([h.name, h.mgmt, h.phone || h.email || h.url, h.dues, h.rules, h.rent_policy && h.rent_policy !== "unknown"]);
+      const n = filled([h.name, h.mgmt, h.phone || h.email || h.url, hoaRegular(state.propertyId, h).src === "bill", h.rules, h.rent_policy && h.rent_policy !== "unknown"]);
       return { text: `${n} / 6${h.sa_amount > 0 && !h.sa_paid ? ` · ${t("特殊评估待缴")}` : ""}${h.lawsuit ? ` · ${t("有诉讼")}` : ""}`, pct: Math.round(n / 6 * 100) };
     }
     case "ownership": {
@@ -319,6 +354,8 @@ export function insuranceFact(p) {
   if (period) bits.push(esc(period));
   if (p.insurance_policy) bits.push(`${t("保单号")} ${esc(p.insurance_policy)}`);
   if (p.insurance_coverage) bits.push(esc(p.insurance_coverage));
+  const prem = insurancePremium(state.propertyId, p);   // 年保费：保险账单是唯一来源
+  if (prem.amount != null) bits.push(`${t("年保费 {a}", { a: money(prem.amount) })}${prem.src === "profile" ? ` <small class="muted">${t("（资料里的旧值）")}</small>` : ""}`);
   return { k, v: bits.join(" · "), sub: agentValue(p) };
 }
 
@@ -500,10 +537,20 @@ function dealPanel() {
   </section>`;
 }
 
+/** HOA 常规费用（只读）：来自 HOA 账单；资料里以前填的单元 / 车位 / 其他月费和周期放在隐藏字段里原样保存（不丢），没账单时显示旧值并给预填的「创建账单」 */
+function hoaDuesReadonly(d, hoa) {
+  const reg = hoaRegular(state.propertyId, hoa);
+  const hidden = [["hoa_dues", hoa.dues], ["hoa_dues_unit", hoa.dues_unit], ["hoa_dues_parking", hoa.dues_parking], ["hoa_dues_other", hoa.dues_other], ["hoa_dues_other_label", hoa.dues_other_label], ["hoa_dues_period", hoa.dues_period || "monthly"]]
+    .map(([n, v]) => `<input type="hidden" name="${n}" value="${esc(v ?? "")}">`).join("");
+  const split = reg.src === "profile" && (hoa.dues_unit || hoa.dues_parking || hoa.dues_other)
+    ? ` <small class="muted">(${[hoa.dues_unit ? t("单元 {a}", { a: money(hoa.dues_unit) }) : "", hoa.dues_parking ? t("车位 {a}", { a: money(hoa.dues_parking) }) : "", hoa.dues_other ? `${esc(hoa.dues_other_label || t("其他"))} ${money(hoa.dues_other)}` : ""].filter(Boolean).join(" + ")})</small>` : "";
+  const link = amountSource(reg.src, reg.bill, "hoa", state.propertyId, { amount: reg.legacy, freq: reg.freq, name: hoa.name ? `HOA · ${hoa.name}`.slice(0, 60) : t("HOA 月费"), payee: hoa.name || hoa.mgmt || "" });
+  return `${hidden}<div class="span-2 form-field ro-field"><span class="field-label">${t("常规费用")}</span><span>${reg.src ? `<b>${reg.text}</b>${split} · ` : `<span class="muted">${t("未填")}</span> · `}${link}</span><small>${t("金额在账单里改：账单是唯一来源，预算和现金流都按它算")}</small></div>`;
+}
+
 /** 资料表单里的 HOA / 物业区块：叫法和默认值按当前房型 */
 function hoaFieldset(d) {
   const a = H().assocOf(d.house_type), hoa = hoaOf(d), label = t(a.label);
-  const P = H().DUES_PERIODS;
   return `<fieldset id="hoa">
     <legend>${esc(label)}</legend>
     <label class="check-inline" style="margin-bottom:8px"><input type="checkbox" name="hoa_enabled" ${hoa.enabled ? "checked" : ""}><span>${t("有 {label}（按房型默认，可改）", { label })}</span></label>
@@ -513,14 +560,9 @@ function hoaFieldset(d) {
       <label>${t("电话")}<input name="hoa_phone" type="tel" maxlength="40" value="${esc(hoa.phone || "")}"></label>
       <label>${t("邮箱")}<input name="hoa_email" type="email" maxlength="120" value="${esc(hoa.email || "")}"></label>
       <label class="span-2">${t("业主门户 / 缴费网址")}<input name="hoa_url" type="url" maxlength="200" placeholder="https://" value="${esc(hoa.url || "")}"></label>
-      <input type="hidden" name="hoa_dues" value="${hoa.dues ?? ""}">
-      <label>${t("单元月费")}<input name="hoa_dues_unit" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.dues_unit ?? (hoa.dues_parking || hoa.dues_other ? "" : hoa.dues ?? "")}"></label>
-      <label>${t("车位月费（没有留空）")}<input name="hoa_dues_parking" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.dues_parking ?? ""}"></label>
-      <label>${t("其他固定费（储物、宠物…）")}<input name="hoa_dues_other" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.dues_other ?? ""}"></label>
-      <label>${t("其他费是什么")}<input name="hoa_dues_other_label" maxlength="60" placeholder="${t("例如：储物柜、宠物费")}" value="${esc(hoa.dues_other_label || "")}"></label>
+      ${hoaDuesReadonly(d, hoa)}
       <div class="span-2 hoa-total" data-hoa-total>${hoaTotalHtml(hoa)}</div>
-      <p class="hint span-2" style="margin:0">${t("常规月费 = 单元 + 车位 + 其他，保存时自动相加；评估分期只在有效期内、没缴清时计入")}</p>
-      <label>${t("频率")}<select name="hoa_dues_period">${Object.entries(P).map(([k, n]) => `<option value="${k}" ${hoa.dues_period === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select><small>${t("按期缴费提醒请在账单里建“HOA / 物业费”")}</small></label>
+      <p class="hint span-2" style="margin:0">${t("评估分期只在有效期内、没缴清时计入每月总计")}</p>
     </div>
     <h4 class="sub-legend">${t("特殊评估 / 大额摊派")}<small>${t("储备金不够大修时按份额摊的款项；截止前 45 天开始提醒，逾期置顶")}</small></h4>
     <div class="form-grid">
@@ -710,7 +752,7 @@ function insuranceFieldset(d) {
             <label>${t("生效日")}<input name="insurance_from" type="date" value="${esc(d.insurance_from || "")}"></label>
             <label>${t("到期日")}<input name="insurance_to" type="date" value="${esc(d.insurance_to || "")}"><small>${t("到期前 30 天提醒续保")}</small></label>
             <label class="span-2">${t("保障范围")}<input name="insurance_coverage" maxlength="200" placeholder="${t("例如：房屋 $400k、责任 $300k、自付额 $1,000")}" value="${esc(d.insurance_coverage || "")}"></label>
-            <label>${t("年保费")}<input name="insurance_premium" type="number" inputmode="decimal" min="0" step="0.01" value="${d.insurance_premium ?? ""}"></label>
+            ${premiumReadonly(d)}
           </div>
           <h4 class="sub-legend">${t("理赔代理")}<small>${t("出险时直接联系的人，概览里可一键拨打 / 发邮件")}</small></h4>
           <div class="form-grid">
@@ -718,8 +760,16 @@ function insuranceFieldset(d) {
             <label>${t("理赔电话")}<input name="insurance_phone" type="tel" maxlength="40" value="${esc(d.insurance_phone || "")}"></label>
             <label class="span-2">${t("理赔邮箱")}<input name="insurance_email" type="email" maxlength="120" value="${esc(d.insurance_email || "")}"></label>
           </div>
-          <p class="hint">${t("只记摘要，不存保单文件；账单里的“房屋保险”负责缴费提醒，这里负责到期续保提醒。")}</p>
+          <p class="hint">${t("只记摘要，不存保单文件；保费以账单里的“房屋保险”为准（缴费提醒也在那里），这里负责到期续保提醒。")}</p>
         </fieldset>`;
+}
+/** 资料表单里的年保费：只读，来自保险账单；旧值放在隐藏字段里原样保存（不丢），并给「创建账单」 */
+function premiumReadonly(d) {
+  const pr = insurancePremium(state.propertyId, d);
+  const val = pr.amount != null ? `<b>${money(pr.amount)}</b>` : `<span class="muted">${t("未填")}</span>`;
+  const link = amountSource(pr.src, pr.bill, "insurance_home", state.propertyId, { amount: pr.src === "profile" ? pr.amount : null, freq: "annual", name: t("房屋保险"), payee: d.insurance_provider || "" });
+  return `<input type="hidden" name="insurance_premium" value="${d.insurance_premium ?? ""}">
+    <div class="form-field ro-field"><span class="field-label">${t("年保费")}</span><span>${val} · ${link}</span><small>${t("金额在账单里改：账单是唯一来源，预算和现金流都按它算")}</small></div>`;
 }
 
 /* ── 推荐耗材（按模板批量添加） ── */
