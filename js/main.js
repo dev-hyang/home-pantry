@@ -46,6 +46,7 @@ import { effNature, l1IdOf, l2IdOf, natureOptions } from "./core/taxonomy.js";
 import "./settings/income.js";
 import { escrowAlertItems } from "./bills/escrow.js";
 import "./bills/finance.js";
+import { viewFinAssets } from "./bills/fin-assets.js";   // 财务 → 资产
 import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { fixAction, runFix, viewFix } from "./house/fix.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
@@ -209,7 +210,7 @@ const VIEWS = {
   pantry:   { overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix },
-  bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, template: viewBillTemplate },
+  bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout },

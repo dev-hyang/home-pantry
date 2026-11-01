@@ -3168,4 +3168,16 @@ export const EN = {
   "贷款与借款": "Loans & lending", "房贷、车贷、和家人朋友之间的借款：还款计划、本金 / 利息拆分、Escrow": "Mortgage, car loans and loans with family or friends: payment schedule, principal / interest split, escrow",
   "收入明细、类型、付款方：工作 / 投资 / 房产 / 其他；个人赠与 / 借款的还款": "Income records, types and payers: work / investment / property / other; repayments of personal gifts or loans",
   "和钱有关的都在这里；房子、车的日常维护在「房屋」": "Everything money-related lives here; day-to-day upkeep of the house and cars stays under Home",
+
+  // ── 财务 → 资产 ──
+  "资产": "Assets", "房产、车辆、账户的钱的一面：买入 / 卖出价、关联账单、今年花费、车贷；资料仍在房屋里改": "The money side of your properties, vehicles and accounts: purchase / sale prices, linked bills, spending this year, car loans; edit details under Home",
+  "/月": "/mo", "{n} 条账单": "{n} bills", "没有挂账单": "No linked bills", "在房屋里打开 {name}": "Open {name} under Home", "在房屋里打开": "Open under Home",
+  "未记录": "Not recorded", "关联账单": "Linked bills", "估值": "Value", "打开车辆 {name}": "Open vehicle {name}", "打开车辆": "Open vehicle", "归还": "Returned",
+  "租约到期": "Lease ends", "贷款到期": "Loan ends", "车贷账单": "Car loan bills", "余额：P3": "Balance: P3",
+  "房产、车辆和账户的钱的那一面；改资料回到原来的地方（房屋 / 车辆 / 卡与账户），这里只读": "The money side of properties, vehicles and accounts. Read-only here: edit them where they live (Home / Vehicles / Cards & accounts)",
+  "持有的房产": "Properties held", "共 {n} 套有记录": "{n} on record", "在用的车辆": "Vehicles in use", "共 {n} 辆有记录": "{n} on record",
+  "房产账单每月": "Property bills / month", "自己交的部分，不含 Escrow 代缴": "What you pay directly, excluding escrow", "房产列表": "Properties", "车辆列表": "Vehicles", "还没有车辆": "No vehicles yet",
+  "买入 / 卖出价在交易交割时写入（房屋 → 交易）；花费按记账时选的房产统计，账单缴费自动带上账单的房产。": "Purchase / sale prices are written when a deal closes (Home → Deal). Spending counts what was tagged to the property; bill payments carry the bill's property automatically.",
+  "没对上具体车辆的车贷账单（账单名里写上车名就会归到那辆车）：": "Car loan bills not matched to a vehicle (put the vehicle's name in the bill name to match):",
+  "还没有登记账户": "No accounts yet", "在 卡与账户 里添加支票、储蓄、券商、退休、HSA、贷款或现金账户。": "Add checking, savings, brokerage, retirement, HSA, loan or cash accounts under Cards & accounts.",
 };

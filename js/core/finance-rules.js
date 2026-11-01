@@ -5,7 +5,7 @@
  * 数据库里由 finance_can_see() + 行级安全强制，这里只管界面。 */
 
 /** 账单下面整块隐藏的二级页 */
-export const FINANCE_HIDDEN_SUBS = ["statements", "income", "budget"];
+export const FINANCE_HIDDEN_SUBS = ["statements", "income", "budget", "assets"];   // assets：财务 → 资产（2026-11）
 /** 没有财务权限时不注册的提醒来源（见 core/alerts.js 的 SOURCE_LABEL） */
 export const FINANCE_ALERT_SOURCES = ["budget", "income"];
 
