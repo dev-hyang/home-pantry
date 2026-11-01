@@ -9,6 +9,7 @@ import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { registerAlerts } from "../core/alerts.js";
 import { memberName } from "../core/logic.js";
+import { TZ, cached } from "../core/spend-data.js";
 
 const D = () => window.CARDS;
 /* 卡与账户的种类：信用卡 / 借记卡 / 电子钱包 / 礼品卡是「卡」；支票 / 储蓄（迁移 036）、券商 / 退休（401K / IRA）/ HSA / 贷款（负债）/ 现金（迁移 056）是「账户」。
@@ -24,8 +25,17 @@ export const kindIcon = (k) => (ACCT_KINDS[k] || ACCT_KINDS.credit)[1];
 export const isBankAcct = (c) => !!c && ACCOUNT_KINDS.includes(c.kind);   // 名字沿用：现在指所有「账户」（银行、券商、退休、HSA、贷款、现金）
 /** 没有返现、不参与推荐的：银行账户和礼品卡 */
 export const noRewards = (c) => !!c && (isBankAcct(c) || c.kind === "gift");
+/* ── 卡名下的花费（迁移 057：不再在浏览器里存整表花费，按需向数据库要聚合）──
+ * TOTALS：每张卡的笔数、合计、有花费的月份（card_totals）；SPEND：卡 × 本地日期 × 分类 × 商店 的金额（card_spend，开卡奖励 / 封顶 / 轮换用量）；
+ * MONTH：返现复盘那个月的每一笔（花费流水按年月筛选）。花费变了全部过期，读完重画（js/core/spend-data.js） */
+const TOTALS = cached(() => Store.cardTotals(TZ()).then((rows) => new Map((rows || []).map((r) => [r.card_id, { n: +r.n || 0, sum: +r.sum || 0, months: r.months || [] }]))), { max: 1, fallback: new Map() });
+const NO_TOTAL = { n: 0, sum: 0, months: [] };
+/** 这张卡名下的花费 { n, sum, months }（还没读到时是 0） */
+export const cardTotal = (id) => TOTALS.get("t")?.get(id) || NO_TOTAL;
+/** 有记到卡上的花费的月份（新 → 旧）；还没读到返回 null */
+export const cardMonths = () => { const m = TOTALS.get("t"); return m ? [...new Set([...m.values()].flatMap((x) => x.months))].sort().reverse() : null; };
 /** 礼品卡余额：面值 / 充值总额 − 记在这张卡上的花费（没填面值返回 null） */
-export const giftBalance = (c, purchases) => (c?.kind === "gift" && c.balance != null ? r2(num(c.balance) - purchases.filter((p) => p.card_id === c.id && p.amount != null && !p.virtual).reduce((s, p) => s + num(p.amount), 0)) : null);
+export const giftBalance = (c) => (c?.kind === "gift" && c.balance != null ? r2(num(c.balance) - cardTotal(c.id).sum) : null);
 export const CARDS_HREF = () => href("bills", "cards");
 export const cardHref = (id) => `${CARDS_HREF()}?card=${id || "new"}`;
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -74,8 +84,26 @@ const windowOf = (period, day) => {   // 封顶周期的起止
   if (period === "quarter") { const q = quarterOf(day); return [q.from, q.to]; }
   return [`${y}-01-01`, `${y}-12-31`];
 };
-const spentOn = (c, from, to, pred = () => true) => state.purchases.filter((p) => p.card_id === c.id && p.amount != null && !p.virtual && String(p.purchased_at).slice(0, 10) >= from && String(p.purchased_at).slice(0, 10) <= to && pred(p))
-  .reduce((sum, p) => sum + num(p.amount), 0);
+/** 用量要看的最早一天：今年 1 月 1 日（年度封顶）、本季开始，以及还没完成的开卡奖励的起点（最多往前 3 年） */
+function spendFrom() {
+  const y = new Date().getFullYear(), floor = `${y - 3}-01-01`;
+  let from = `${y}-01-01`;
+  for (const c of state.cards || []) {
+    const b = c.bonus; if (c.active === false || !b?.spend || b.done) continue;
+    const s = b.start || c.opened_on || floor; if (s < from) from = s < floor ? floor : s;
+  }
+  return from;
+}
+const SPEND = cached((from) => Store.cardSpend(from, null, TZ()).then((rows) => {
+  const by = new Map();
+  for (const r of rows || []) { const l = by.get(r.card_id) || []; l.push({ day: String(r.day).slice(0, 10), category: canonCat(r.category), store: r.store || "", sum: +r.sum || 0 }); by.set(r.card_id, l); }
+  return { from, by };
+}), { max: 2 });
+/** 一张卡在 [from, to]（本地日期，含两头）记的花费合计；pred 按 { category, store } 过滤。还没读到按 0 算（读完会重画） */
+const spentOn = (c, from, to, pred = () => true) => {
+  const S = SPEND.get(spendFrom(), spendFrom()); if (!S) return 0;
+  return (S.by.get(c.id) || []).filter((p) => p.day >= from && p.day <= to && pred(p)).reduce((sum, p) => sum + p.sum, 0);
+};
 /** { bonusSpent, cap(cat) → 已用, rotUsed } */
 export function usage(c, day = todayISO()) {
   const D2 = D(), cats = Object.keys(c.rewards?.cats || {}), rc = (p) => D2.rewardCatOf(p.category, p.store);
@@ -140,9 +168,21 @@ export function pickCards(ctx = {}) {
 export const pickFor = (category, store, amount) => pickCards({ rewardCat: D().rewardCatOf(category, store), merchant: store, amount });
 
 /* ───────────── 复盘：某个月记到各张卡上的花费，估算返现 vs 用最优卡能返多少 ───────────── */
+/** 那个月（本地）的花费流水：按年月筛选、按页读完（一个月的量，不是整表） */
+const MONTH = cached(async (month) => {
+  const f = { tz: TZ(), cur: Units.region.currency, sort: "new", year: month.slice(0, 4), mon: month.slice(5, 7) }, out = []; let after = null;
+  while (out.length < 5000) {
+    const raw = (await Store.listPage("spend", f, after, 500)) || [], page = raw.slice(0, 500);
+    out.push(...page); if (raw.length <= 500 || !page.length) break;
+    const r = page.at(-1); after = { d: r.sort_d, id: String(r.id), a: r.sort_a == null ? 0 : +r.sort_a, n: r.sort_n ?? "" };
+  }
+  return out.map((p) => ({ ...p, category: canonCat(p.category) }));
+}, { max: 3, fallback: [] });
+/** 还没读到那个月的花费时返回 null */
 export function reviewMonth(month) {
-  const cards = state.cards.filter((c) => c.active !== false || state.purchases.some((p) => p.card_id === c.id));
-  const list = state.purchases.filter((p) => !p.virtual && p.amount != null && num(p.amount) > 0 && String(p.purchased_at).slice(0, 7) === month && (!p.currency || p.currency === Units.region.currency));
+  const rowsM = MONTH.get(month, month); if (!rowsM) return null;
+  const cards = state.cards.filter((c) => c.active !== false || cardTotal(c.id).n > 0);
+  const list = rowsM.filter((p) => !p.virtual && p.amount != null && num(p.amount) > 0 && (!p.currency || p.currency === Units.region.currency));
   const per = new Map(), misses = []; let tagged = 0, untagged = 0, untaggedN = 0, earned = 0, optimal = 0;
   const live = state.cards.filter((c) => c.active !== false && !noRewards(c));
   for (const p of list) {

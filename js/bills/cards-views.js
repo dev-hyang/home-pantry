@@ -6,11 +6,12 @@ import { t } from "../core/i18n.js";
 import { href, go } from "../core/router.js";
 import { backBtn } from "../core/hub.js";
 import { enrichBills, initialDue } from "./logic.js";
-import { ACCT_KINDS, ACCT_SHORT, CARDS_HREF, bonusLeft, cardById, cardHref, expDays, feeDays, fromCatalog, giftBalance, holderName, isBankAcct, kindIcon, kindName, networkName, noRewards, pickCards, pickFor, quarterOf, reloadCards, reviewMonth, rewardCatIcon, rewardCatName, rotatingNow, usage } from "./cards.js";
+import { ACCT_KINDS, ACCT_SHORT, CARDS_HREF, bonusLeft, cardById, cardHref, expDays, feeDays, fromCatalog, cardMonths, cardTotal, giftBalance, holderName, isBankAcct, kindIcon, kindName, networkName, noRewards, pickCards, pickFor, quarterOf, reloadCards, reviewMonth, rewardCatIcon, rewardCatName, rotatingNow, usage } from "./cards.js";
 export { isBankAcct, kindIcon, kindName, noRewards };
 import { aiReady, aiSettings, askText, providerOf } from "../core/ai.js";
 import { askInline } from "../core/ask.js";
 import { cardsRO } from "../core/finance-access.js";
+import { spendChanged } from "../core/spend-data.js";
 
 /** 没有财务权限的家人：用卡只读。写入口都先过这里（界面上的按钮也不画；数据库由迁移 050 的行级安全兜底） */
 function roStop() {
@@ -109,7 +110,7 @@ export function viewCards() {
 /* ── 礼品卡：一组、带筛选排序；余额 = 面值 − 花费；用完就停用（右滑） ── */
 const GIFT_SORTS = [["balance", "余额：多 → 少"], ["balance_asc", "余额：少 → 多"], ["expiry", "有效期：近 → 远"], ["opened", "购入：新 → 旧"], ["name", "名称 A → Z"]];
 const giftFilter = () => (state.giftFilter ||= { issuer: "all", sort: "balance", used: false });
-const giftOf = (c) => ({ c, bal: giftBalance(c, state.purchases), exp: c.expires_on ? daysUntil(c.expires_on) : null, n: state.purchases.filter((p) => p.card_id === c.id).length });
+const giftOf = (c) => ({ c, bal: giftBalance(c), exp: c.expires_on ? daysUntil(c.expires_on) : null, n: cardTotal(c.id).n });   // 名下花费：数据库按卡聚合（card_totals，迁移 057）
 function giftRows(gifts) {
   const f = giftFilter();
   const rows = gifts.map(giftOf).filter((g) => (f.issuer === "all" || (g.c.issuer || "") === f.issuer) && (f.used || g.bal == null || g.bal > 0));
@@ -138,10 +139,10 @@ const offKindOf = (c) => (c.kind === "gift" ? "gift" : isBankAcct(c) ? "bank" : 
 const CLEAN_DAYS = 365;
 /** 可一键清理的：停用超过一年（或老记录没有停用日期）、余额为 0 / 没填面值、名下没有花费的礼品卡；recent = 一年内停用但其余条件满足的 */
 function cleanupPool(off) {
-  const ok = (c) => c.kind === "gift" && !state.purchases.some((p) => p.card_id === c.id) && !(giftBalance(c, state.purchases) > 0);
+  const ok = (c) => c.kind === "gift" && !cardTotal(c.id).n && !(giftBalance(c) > 0);
   const old = (c) => !c.inactive_since || daysUntil(c.inactive_since) <= -CLEAN_DAYS;
   const pool = off.filter(ok);
-  return { eligible: pool.filter(old), recent: pool.filter((c) => !old(c)), withSpend: off.filter((c) => c.kind === "gift" && !(giftBalance(c, state.purchases) > 0) && state.purchases.some((p) => p.card_id === c.id)).length };
+  return { eligible: pool.filter(old), recent: pool.filter((c) => !old(c)), withSpend: off.filter((c) => c.kind === "gift" && !(giftBalance(c) > 0) && cardTotal(c.id).n > 0).length };
 }
 function offSection(off) {
   const f = offFilter(), q = f.q.trim().toLowerCase();
@@ -184,7 +185,7 @@ export async function runCleanup() {
 /** 删除卡前的确认：这张卡名下的花费记录怎么办——保留（花费上改成文字）还是一起删 */
 function deleteConfirmHtml(id) {
   const c = cardById(id); if (!c) return "";
-  const ps = state.purchases.filter((p) => p.card_id === c.id && !p.virtual), sum = ps.reduce((s, p) => s + num(p.amount), 0);
+  const tot = cardTotal(c.id), ps = { length: tot.n }, sum = tot.sum;   // 名下花费的笔数、合计（card_totals）
   const bills = state.bills.filter((b) => b.pay_card_id === c.id).length;
   const label = `${kindName(c.kind)} · ${c.name}`.slice(0, 40);
   return `<div class="panel cta-panel card-del-box" role="alertdialog" aria-labelledby="cardDelTitle"><div>
@@ -214,7 +215,7 @@ function cardRow(c) {
       ${rowActs(c)}</li>`;
   }
   if (noRewards(c)) {   // 银行账户：没有返现 / 到期，只看哪些账单从这里扣、记了多少笔
-    const bills = state.billsEnriched.filter((b) => b.pay_card_id === c.id && b.active), n = state.purchases.filter((p) => p.card_id === c.id).length;
+    const bills = state.billsEnriched.filter((b) => b.pay_card_id === c.id && b.active), n = cardTotal(c.id).n;
     return `<li class="card-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)}><span class="card-net net-bank" aria-hidden="true">${t(ACCT_SHORT[c.kind] || "支票")}</span>
       <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">••${d(c.last4)}</span>` : ""}
         <small>${[c.issuer, holderName(c), bills.length ? t("{n} 条账单从这里扣：{names}", { n: bills.length, names: bills.slice(0, 3).map((b) => b.name).join("、") + (bills.length > 3 ? "…" : "") }) : t("还没有账单从这里扣"), n ? t("{n} 笔花费", { n }) : null, offSince].filter(Boolean).map(esc).join(" · ")}</small></div>
@@ -259,9 +260,11 @@ const progressHtml = (label, pct, text) => `<div class="prog"><span>${esc(label)
 
 /* ───────────── 复盘：各卡花了多少、返现估算、用最优卡能多赚多少 ───────────── */
 export function reviewHtml() {
-  const months = [...new Set(state.purchases.filter((p) => p.card_id).map((p) => String(p.purchased_at).slice(0, 7)))].sort().reverse();
+  const months = cardMonths();   // 有记到卡上的花费的月份（card_totals）
+  if (!months) return `<div class="panel"><h3 style="font-size:15px;margin:0 0 4px">${t("返现复盘")}</h3><p class="muted" role="status" style="margin:0">${t("加载中…")}</p></div>`;
   if (!months.length) return `<div class="panel"><h3 style="font-size:15px;margin:0 0 4px">${t("返现复盘")}</h3><p class="muted" style="margin:0;font-size:13px">${t("记花费、采购「已买到」、银行导入时选一下用的哪张卡，这里就会算出每张卡花了多少、估算返现，以及用对卡本来能多赚多少。")}</p></div>`;
   const cur0 = state.cardReviewMonth && months.includes(state.cardReviewMonth) ? state.cardReviewMonth : months[0], r = reviewMonth(cur0);
+  if (!r) return `<div class="panel card-review"><h3 style="font-size:15px;margin:0 0 4px">${t("返现复盘")}</h3><p class="muted" role="status" style="margin:0">${t("加载中…")}</p></div>`;   // 那个月的花费还在读
   return `<div class="panel card-review"><div class="row" style="align-items:center;margin-bottom:6px"><h3 style="font-size:15px;margin:0;flex:1">${t("返现复盘")}</h3>
       <select id="cardReviewMonth" aria-label="${esc(t("选择月份"))}" style="width:auto">${months.map((m) => `<option value="${m}" ${m === cur0 ? "selected" : ""}>${m}</option>`).join("")}</select></div>
     <div class="kpis"><div class="kpi"><span>${t("记到卡上的花费")}</span><b>${money(r.tagged)}</b></div><div class="kpi"><span>${t("估算返现")}</span><b>${money(r.earned)}</b></div>
@@ -455,10 +458,11 @@ export async function saveCardForm(f) {
 export async function deleteCard(id, { purchases = "keep" } = {}) {
   if (roStop()) { state.cardDelete = null; return; }
   const c = cardById(id); if (!c) return;
-  const ps = state.purchases.filter((p) => p.card_id === id && !p.virtual), label = `${kindName(c.kind)} · ${c.name}`.slice(0, 40);
-  for (const p of ps) { if (purchases === "delete") await Store.deletePurchase(p.id); else await Store.updatePurchase(p.id, { card_id: null, method: label }); }
-  await Store.deleteCard(id); state.cardDelete = null; await reloadCards();
-  toast(ps.length ? (purchases === "delete" ? t("已删除，连同 {n} 笔花费", { n: ps.length }) : t("已删除，{n} 笔花费保留", { n: ps.length })) : t("已删除")); go(CARDS_HREF());
+  const label = `${kindName(c.kind)} · ${c.name}`.slice(0, 40);
+  // 名下花费在数据库里一次改完 / 删完（不再逐笔：浏览器里也没有整表花费）
+  const n = purchases === "delete" ? await Store.deleteCardPurchases(id) : await Store.detachCardPurchases(id, label);
+  await Store.deleteCard(id); state.cardDelete = null; await reloadCards(); if (n) spendChanged();
+  toast(n ? (purchases === "delete" ? t("已删除，连同 {n} 笔花费", { n }) : t("已删除，{n} 笔花费保留", { n })) : t("已删除")); go(CARDS_HREF());
 }
 
 /* ───────────── AI 起草返现规则（只发卡名；起草结果填进表单，由你核对后保存） ───────────── */
