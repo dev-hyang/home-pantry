@@ -1968,3 +1968,27 @@ body.editing .minibar { display: none; }
   .mem-danger .mem-perm .btn { flex: 1 1 100%; min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) { .tgl, .tgl-knob { transition: none; } }
+
+/* ── 花费统计（迁移 055 之后）：横向条形排行、折线空心点、统计开关、分类面包屑 ── */
+.ch-dot { fill: var(--surface); stroke-width: 2; }
+.hb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 14px; }
+.hb-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 3.2em; gap: 2px 8px; align-items: baseline; border-radius: var(--r-sm); }
+.hb-row.ch-hit-row { cursor: pointer; padding: 4px 6px; margin: -4px -6px; }
+.hb-row.ch-hit-row:hover, .hb-row.ch-hit-row:focus-visible { background: var(--surface-2); }
+.hb-name { min-width: 0; overflow-wrap: anywhere; text-align: left; font: inherit; color: var(--ink); }
+button.hb-name { color: var(--pine); font-weight: 700; padding: 6px 0; min-height: 32px; }
+.hb-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+.hb-pct { font-style: normal; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.hb-track { grid-column: 1 / -1; height: 10px; background: var(--surface-2); border-radius: 5px; overflow: hidden; }
+.hb-bar { display: flex; height: 100%; border-radius: 5px; overflow: hidden; }
+.hb-bar i { display: block; height: 100%; min-width: 2px; }
+.hbars .ch-legend { margin-top: 12px; }
+.kpi b .kpi-sub { font-size: 15px; font-weight: 700; color: var(--muted); }
+.kpi.kpi-wide { grid-column: span 2; }
+@media (max-width: 560px) { .kpi.kpi-wide { grid-column: 1 / -1; } }
+.time-bar .check-inline { min-height: 44px; }
+.node-crumb { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; margin: 0 0 10px; font-size: 14px; }
+.node-crumb button { color: var(--pine); font-weight: 600; padding: 6px 4px; min-height: 36px; }
+.node-crumb b { padding: 6px 4px; }
+.node-crumb .sep { color: var(--muted); }
+.xfer-badge { background: var(--surface-2); color: var(--muted); }

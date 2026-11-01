@@ -40,7 +40,8 @@ import { billAlertItems } from "./bills/logic.js";
 import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, updateHoaTotal, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { printSheet } from "./settings/print.js";
 import { resetScan, scanAction, viewScan } from "./pantry/scan.js";
-import { budgetAction, budgetAlertItems, groupForCategory, maybeAutoGenerate, viewBudget } from "./bills/budget.js";
+import { bigThreshold, budgetAction, budgetAlertItems, groupForCategory, maybeAutoGenerate, viewBudget } from "./bills/budget.js";
+import { effNature, l1IdOf, l2IdOf, natureOptions } from "./core/taxonomy.js";
 import "./settings/income.js";
 import { escrowAlertItems } from "./bills/escrow.js";
 import "./bills/finance.js";
@@ -65,7 +66,7 @@ import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, ne
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
-import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureFirstYear, ensureYearLoaded, exportAnnual, exportSpendList, patchSpendRow, rememberStore, renderSpendList, renderSpendRecords, spendList, spendRowsLoaded, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
+import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureFirstYear, ensureYearLoaded, exportAnnual, exportSpendList, patchSpendRow, rememberStore, renderSpendList, renderSpendRecords, spendList, spendRowsLoaded, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
 import { matchOpenShopping, showPurchaseDup } from "./stats/dup-check.js";
 
 const APP_NAME = "爱家小助手";
@@ -557,6 +558,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.matches('#cardForm select[name="catalog"]')) return applyCatalogPick(e.target.value);   // 用卡：选了目录，按目录重画表单
   if (e.target.closest("#cardPickForm")) { const fe = e.target.form.elements; Object.assign(state.cardPick, { cat: fe.cat.value, merchant: fe.merchant.value.trim(), amount: fe.amount.value, abroad: fe.abroad.checked }); const o = $("#cardPickOut"); if (o) o.innerHTML = pickResultHtml(); return; }
   if (e.target.matches("input[data-store-for]")) { const li = e.target.closest(".shop-item"), s = state.shopping.find((x) => x.id === e.target.dataset.storeFor), h = li?.querySelector(".card-hint-slot"); if (h && s) h.innerHTML = cardHintHtml(s.category || state.items.find((i) => i.id === s.item_id)?.category, e.target.value); }   // 填了在哪买：刷新用卡建议
+  if (e.target.name === "category" && e.target.form?.elements.nature && (e.target.closest("#purchaseForm") || e.target.closest("#spendEditForm"))) { const ns = e.target.form.elements.nature, v = ns.value; ns.innerHTML = natureOptions(v, { leaf: e.target.value }); }   // 换了分类：「按分类默认（…）」跟着变
   if (e.target.closest("#purchaseForm") && (e.target.name === "category" || e.target.name === "store" || e.target.name === "amount")) { const fe = e.target.form.elements, h = $("#purchaseCardHint"); if (h) h.innerHTML = cardHintHtml(fe.category.value, fe.store.value, fe.amount.value === "" ? null : num(fe.amount.value)); }
   if (e.target.matches("input[data-qty-for]")) return setShopQty(e.target.dataset.qtyFor, e.target.value);
   if (e.target.matches("input[data-unit-for]")) return setShopUnit(e.target.dataset.unitFor, e.target.value);   // 采购清单：改单位   // 采购清单：直接输入数量
@@ -663,9 +665,10 @@ main.addEventListener("change", async (e) => {
     try { localStorage.setItem("hmh-gear-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? t("已打开装备") : t("已关闭装备，导航里不再显示")); render();
   }
-  { const k = { spendCat: "cat", spendStore: "store", spendYear: "year", spendMon: "mon", spendSort: "sort" }[e.target.id]; if (k) { const f = state.spendFilter; f[k] = e.target.value; if (k === "store") f.stores = null; if (k === "cat") f.grp = null; if (k === "year" || k === "mon") { f.months = null; f.dmax = null; } renderSpendList(); } }   // 手动选了商店 / 年份 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”；回到第一页重新查
-  if (e.target.dataset?.action === "stats-bill-merge") { setBillMerge(e.target.checked); render(); }
-  if (e.target.dataset?.action === "stats-capital") { state.stats.includeCapital = e.target.checked; render(); }
+  { const k = { spendCat: "cat", spendNat: "nat", spendProp: "prop", spendStore: "store", spendYear: "year", spendMon: "mon", spendSort: "sort" }[e.target.id]; if (k) { const f = state.spendFilter; f[k] = e.target.value; if (k === "store") f.stores = null; if (k === "cat") f.grp = null; if (k === "year" || k === "mon") { f.months = null; f.dmax = null; } renderSpendList(); } }   // 手动选了商店 / 年份 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”；回到第一页重新查
+  if (e.target.dataset?.action === "stats-excap") { state.stats.exCap = e.target.checked; render(); }   // 花费统计：排除资本性 / 排除投资（概览趋势、分类、商店一起变）
+  if (e.target.dataset?.action === "stats-exinv") { state.stats.exInv = e.target.checked; render(); }
+  if (e.target.id === "statsStoreL1") { state.stats.storeL1 = e.target.value; render(); }
   if (e.target.id === "statsRange") { const v = e.target.value; state.stats.months = v.startsWith("y:") || v === "m" ? v : +v; state.stats.month = null; render(); ensureYearLoaded(v).then((fresh) => { if (fresh) render(false); }); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（往年按需读回来）
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
@@ -690,6 +693,7 @@ main.addEventListener("submit", async (e) => {
       const canon = cur && !cur.custom ? canonName(cur, name, t) : name;
       // 内置分类：key 用内置 id，这一行就是“覆盖”；自建分类：新 key
       const row = { id: cf.id, key: cf.key || newCatKey(), space: fe.space.value, name: canon, icon: fe.icon.value || "📦", color: fe.color.value || "#8a948f", loc: null, subs, hidden: !!cf.hidden, sort: cf.sort ?? CATEGORIES.filter((c) => c.custom).length };
+      if (fe.parent && !(cur && !cur.custom)) row.parent = fe.parent.value || null;   // 自建分类：花费统计里挂在哪个二级分类下（空 = 按空间默认）
       if (cur && !cur.custom && !cf.hidden) {   // 内置分类保存时和默认完全一样：不留覆盖行（有就删掉），免得标“改过”
         const b = cur.base, same = canon === b.name && row.icon === b.icon && row.color === b.color && JSON.stringify(subs) === JSON.stringify(b.subs);
         if (same) { if (cf.id) await Store.deleteCategory(cf.id); state.catForm = null; toast(t("和默认一样，没有改动")); return refresh(); }
@@ -733,6 +737,8 @@ main.addEventListener("submit", async (e) => {
       const store = cleanStore(e2.store.value), day = e2.date.value, patch = { name, category: e2.category.value, amount, store };
       if (e2.card_id) Object.assign(patch, purchasePayFields(e2.card_id.value, state.purchases.find((x) => x.id === f.dataset.id) || spendList.rows.find((x) => x.id === f.dataset.id)));   // 往年的花费不在内存里：用明细读到的那一行   // 卡 → card_id；现金 / 支票 / 礼品卡 / 其他 → method
       if (day) patch.purchased_at = new Date(`${day}T12:00:00`).toISOString();
+      if (e2.nature) patch.nature = e2.nature.value || null;   // 经济性质：空 = 按分类默认（迁移 055）
+      if (e2.property_id) patch.property_id = e2.property_id.value || null;
       await Store.updatePurchase(f.dataset.id, patch);
       const row = spendList.rows.find((x) => x.id === f.dataset.id), bp = e2.card_id && (state.billPayments.find((x) => x.purchase_id === f.dataset.id) || (row?.pay_id ? { id: row.pay_id, card_id: undefined } : null));   // 这笔是账单缴费记的花费：改了卡，缴费记录同步
       if (bp && (bp.card_id || null) !== (patch.card_id || null)) await Store.updateBillPayment(bp.id, { card_id: patch.card_id || null }).catch(() => {});
@@ -819,8 +825,15 @@ main.addEventListener("submit", async (e) => {
       f.dataset.dupAck = "";
       if (store) rememberStore(store);
       const payV = e2.card_id?.value || ""; rememberCard(payV);
-      await Store.addPurchase({ item_id: null, name, category: e2.category.value, quantity: null, unit: null, store,
-        amount: Math.round(signed * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString(), ...purchasePayFields(payV) });
+      // 经济性质：空 = 按分类默认（迁移 055）。以前的「大件」门槛现在只是记的时候问一句：金额较大、算进日常的，要不要标成资本性支出
+      const cat = e2.category.value;
+      let nature = e2.nature?.value || null;
+      if (!nature && signed >= bigThreshold() && effNature(cat, null) === "operating" && ["shopping", "home_maint", "transport"].includes(l2IdOf(cat)) && confirm(t("金额较大（{a}），标为资本性支出？\n资本性支出（大件、装修、买车…）不算进日常生活成本，现金流出里照样有。", { a: money(signed) }))) nature = "capital";
+      // 关联房产：选了就记；没选、分类在「房产住房」下、家里只有一套房的，自动挂上这套
+      const props = state.properties.filter((p) => !p.archived), property_id = e2.property_id?.value || (l1IdOf(cat) === "housing" && props.length === 1 ? props[0].id : null);
+      await Store.addPurchase({ item_id: null, name, category: cat, quantity: null, unit: null, store,
+        amount: Math.round(signed * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString(), ...purchasePayFields(payV),
+        ...(nature ? { nature } : {}), ...(property_id ? { property_id } : {}) });
       const cart = signed > 0 ? matchOpenShopping({ name: item, at: new Date(`${day}T12:00:00`) }) : null;   // 采购清单里有同名的未买项：顺手标成已买到
       if (cart) await Store.saveShopping({ id: cart.id, status: "bought", bought_at: new Date(`${day}T12:00:00`).toISOString(), amount: Math.round(signed * 100) / 100, claimed_by_name: cart.claimed_by_name || state.displayName });
       toast(t("已记录 {name} {m}", { name, m: money(signed) }) + (cart ? t("；采购清单里的「{n}」已标成已买到", { n: cart.name }) : "")); return refresh();
@@ -1148,7 +1161,8 @@ main.addEventListener("click", async (e) => {
       }
       case "stats-months": state.stats.months = +el.dataset.months; return render();
       case "spend-add-toggle": { state.spendAddOpen = !state.spendAddOpen; render(); if (state.spendAddOpen) requestAnimationFrame(() => $("#purchaseForm")?.elements.name.focus({ preventScroll: true })); return; }
-      case "stats-cat": state.stats.cat = el.dataset.cat; return render();
+      case "stats-node": state.stats.node = el.dataset.node || null; state.stats.byTrip = false; render(); return requestAnimationFrame(() => document.querySelector(".node-crumb")?.scrollIntoView({ block: "nearest" }));   // 分类页：点进下一层 / 面包屑回上层
+      case "stats-trips": state.stats.byTrip = !state.stats.byTrip; return render();   // 分类 → 旅行：按行程看
       case "purchase-del": if (!armed(el, t("确认删除"))) return; await Store.deletePurchase(id); toast(t("已删除这笔记录")); return refresh();
       case "recipe-missing": return addRecipeMissing(el.dataset.name);
       case "copy-invite": await navigator.clipboard.writeText(state.household.invite_code); return toast(t("邀请码已复制"));

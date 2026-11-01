@@ -46,7 +46,7 @@ export function spendFeed(db, f = {}) {
     const s = String(p.store || "").trim(), bill = String(p.category || "").startsWith("bill_");
     const store_txt = s || (bill ? String(billByName.get(p.name)?.payee || "").trim() || String(p.name || "").trim() : "");
     const bp = pays.get(p.id);
-    out.push({ ...p, virtual: null, bill_id: null, pay_id: bp?.id || null, pay_bill_id: bp?.bill_id || null, store_txt, ...localMonth(p.purchased_at) });
+    out.push({ ...p, virtual: null, bill_id: null, pay_id: bp?.id || null, pay_bill_id: bp?.bill_id || null, store_txt, nature: p.nature || null, property_id: p.property_id || null, ...localMonth(p.purchased_at) });
   }
   const mbills = new Map((db.medical_bills || []).map((b) => [b.id, b]));
   for (const mp of db.medical_payments || []) {
@@ -55,15 +55,15 @@ export function spendFeed(db, f = {}) {
     const category = b.kind === "pet" ? "pet_care" : b.kind === "travel" ? `travel_${b.subkind || "other"}` : b.kind || "medical";
     out.push({ id: mp.id, virtual: "medical", bill_id: b.id, pay_id: null, pay_bill_id: null, item_id: null, name, category, store: b.provider, store_txt: String(b.provider || "").trim(),
       quantity: null, unit: null, amount: mp.amount, method: null, currency: mp.currency || b.currency, purchased_at: new Date(`${mp.paid_on}T12:00:00`).toISOString(),
-      lm: String(mp.paid_on).slice(0, 7), dd: +String(mp.paid_on).slice(8, 10), created_by: mp.paid_by, created_at: mp.created_at, card_id: mp.card_id || null, import_batch: null });
+      lm: String(mp.paid_on).slice(0, 7), dd: +String(mp.paid_on).slice(8, 10), created_by: mp.paid_by, created_at: mp.created_at, card_id: mp.card_id || null, import_batch: null, nature: null, property_id: null });
   }
   return out;
 }
-/** 花费：按筛选过滤（同 spend_filtered），每行补上 store_key 和排序键 */
+/** 花费：按筛选过滤（同 spend_filtered），每行补上 store_key、排序键、实际性质 nat_eff 和是不是转账 is_xfer（迁移 055） */
 export function spendFiltered(db, f = {}) {
   return spendFeed(db, f).map((s) => {
-    const amt = s.amount != null && (!s.currency || s.currency === f.cur) ? +s.amount : 0;
-    return { ...s, store_key: s.store_txt.trim().toLowerCase() || "__none__", sort_d: s.purchased_at, sort_a: amt, sort_n: String(s.name || "").toLowerCase() };
+    const amt = s.amount != null && (!s.currency || s.currency === f.cur) ? +s.amount : 0, nat_eff = s.nature || f.natx?.[s.category] || "operating";
+    return { ...s, store_key: s.store_txt.trim().toLowerCase() || "__none__", sort_d: s.purchased_at, sort_a: amt, sort_n: String(s.name || "").toLowerCase(), nat_eff, is_xfer: nat_eff === "transfer" || has(f.xfer, s.category) };
   }).filter((s) => {
     if (f.from && s.purchased_at < f.from) return false;
     if (f.to && s.purchased_at >= f.to) return false;
@@ -74,6 +74,8 @@ export function spendFiltered(db, f = {}) {
     if (f.batch && !(s.import_batch === f.batch || has(f.batch_ids, String(s.id)))) return false;
     if (isArr(f.stores) && !f.stores.includes(s.store_key)) return false;
     if (f.q && !`${s.name}${s.store_txt}`.toLowerCase().includes(f.q)) return false;
+    if (isArr(f.nat) && !f.nat.includes(s.nat_eff)) return false;
+    if (f.prop && !(f.prop === "none" ? !s.property_id : s.property_id === f.prop)) return false;
     if (isArr(f.known)) {
       const hi = s.sort_a >= (+f.big || 0), bill = String(s.category).startsWith("bill_");
       const hit = has(hi ? f.hi : f.lo, s.category) || (!f.known.includes(s.category) && has(f.unk, `${bill ? "b" : ""}${hi ? "hi" : "lo"}`));
@@ -84,14 +86,29 @@ export function spendFiltered(db, f = {}) {
 }
 export function spendStats(db, f, facets) {
   const rows = spendFiltered(db, f), months = {};
-  for (const s of rows) { const m = (months[s.lm] ||= { n: 0, sum: 0 }); m.n++; m.sum = round2(m.sum + s.sort_a); }
-  const out = { n: rows.length, own: rows.filter((s) => !s.virtual).length, sum: round2(rows.reduce((a, s) => a + s.sort_a, 0)), months, facets: null };
+  for (const s of rows) { const m = (months[s.lm] ||= { n: 0, sum: 0 }); m.n++; if (!s.is_xfer) m.sum = round2(m.sum + s.sort_a); }   // 转账照样列出、计笔数，合计不算
+  const xf = rows.filter((s) => s.is_xfer);
+  const out = { n: rows.length, own: rows.filter((s) => !s.virtual).length, sum: round2(rows.filter((s) => !s.is_xfer).reduce((a, s) => a + s.sort_a, 0)), xn: xf.length, xsum: round2(xf.reduce((a, s) => a + s.sort_a, 0)), months, facets: null };
   if (facets) {
     const all = spendFeed(db, f), stores = new Map();
     for (const s of all) { const v = s.store_txt.trim(), k = v.toLowerCase(); if (v && (!stores.has(k) || v < stores.get(k))) stores.set(k, v); }
     out.facets = { years: [...new Set(all.map((s) => s.lm.slice(0, 4)))].sort().reverse(), cats: [...new Set(all.map((s) => s.category))], stores: [...stores.values()].sort((a, b) => cmp(a.toLowerCase(), b.toLowerCase())) };
   }
   return out;
+}
+
+/** 统计用的聚合（同 spend_rollup / spend_rollup_store）：from / to = 本地日期 YYYY-MM-DD（含 from，不含 to），空 = 不限；store = 商店版 */
+export function spendRollup(db, from, to, store = false) {
+  const lo = from ? new Date(`${from}T00:00:00`).toISOString() : null, hi = to ? new Date(`${to}T00:00:00`).toISOString() : null, map = new Map();
+  for (const s of spendFeed(db, {})) {
+    if (s.amount == null || (lo && s.purchased_at < lo) || (hi && s.purchased_at >= hi)) continue;
+    const sk = store ? s.store_txt.trim().toLowerCase() || "__none__" : null;
+    const k = [s.lm, sk, s.category, s.nature || "", store ? "" : s.property_id || "", s.currency || ""].join("|");
+    const r = map.get(k) || (store ? { month: s.lm, store_key: sk, store: s.store_txt.trim(), category: s.category, nature: s.nature || null, currency: s.currency || null, sum: 0, n: 0 }
+      : { month: s.lm, category: s.category, nature: s.nature || null, property_id: s.property_id || null, currency: s.currency || null, sum: 0, n: 0 });
+    r.sum = round2(r.sum + +s.amount); r.n++; map.set(k, r);
+  }
+  return [...map.values()];
 }
 
 /** 账单付款（同 pay_filtered） */

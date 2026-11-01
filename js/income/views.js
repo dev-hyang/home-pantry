@@ -20,6 +20,7 @@ import { debounce, moreBtn, pageSize } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
 import { compact } from "../core/list-query.js";
 import { STAT_CATS, download, dq, hitAttrs, statCat, toCsv, ymd } from "../stats/views.js";
+import { counted } from "../core/taxonomy.js";
 import { CHANNELS, EXTRA_KINDS, GROUPS, RANGES, UNITS, adults, bucketKey, canSeeAll, customKinds, groupList, groupOf, groupSum, inc, incomeIn, isExtra, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, knownSenders, loadIncome, memberLabel, myAccess, myPersonId, openRepayments, periodKeys, personOk,
   periodLabel, personName, repayState, repaidOf, setIncMerge, similarIncome, skey, spanLabel, spanOk, spanOptionsHtml, spanPrev, spanWindow, statKind, statKinds, sumOf, windowOf } from "./logic.js";
 
@@ -48,7 +49,8 @@ function spendFor(w) {
   }
   return c?.list || null;   // 还在读：先用上一次的（没有就是 null）
 }
-const spendRowsOk = (list) => list.filter((p) => p.amount != null && (!p.currency || p.currency === cur()) && (state.stats.includeCapital || statCat(p.category) !== "capital"));
+/** 收支对比里算的花费：本币；转账永远不算；资本性 / 投资跟花费页的「排除资本性 / 排除投资」开关（js/core/taxonomy.js 的 counted） */
+const spendRowsOk = (list) => list.filter((p) => p.amount != null && (!p.currency || p.currency === cur()) && counted(p.category, p.nature, { exCap: state.stats.exCap !== false, exInv: state.stats.exInv !== false }));
 
 /** 一个时间窗口 + 周期的现金流：每个周期的收入 / 花费 / 还款 / 差额；花费不分人，只在选「全家」时有 */
 function cashflow({ range, from, to, unit, person, win = null }) {

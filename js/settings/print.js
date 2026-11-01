@@ -4,7 +4,9 @@ import { $, esc, fmtDate, fmtShort, money, num, toast, todayISO } from "../core/
 import { t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { budgetPlan, monthProgress } from "../bills/budget.js";
-import { ALL_CATS, STAT_CATS, fetchSpendRows, monthKey, monthLabel, spendData, storeOf } from "../stats/views.js";
+import { fetchSpendRows, lastMonths, monthKey, monthLabel, spendAggAsync, storeOf } from "../stats/views.js";
+import { l2List, leafLabel } from "../core/taxonomy.js";
+import { livingSeries, outflowSeries, sum, withHousingSeries } from "../stats/report.js";
 import { Store } from "../core/store.js";
 import { mergeMedical } from "../bills/medical.js";
 import { billInUse, propertyOptionsHtml } from "../core/lifecycle.js";
@@ -57,20 +59,22 @@ function billsSheet(prop) {
 }
 
 /** recs = 「明细」里按筛选从数据库读出来的（useFilter 时由 printSheet 先读好，最多 300 笔）；这时明细不再按打印的时间范围截，筛的是哪一年就打哪一年 */
-function spendSheet({ months: n = 6, useFilter = false, recs: picked = [] } = {}) {
-  const sd = spendData(n), cur = Units.region.currency, set = new Set(sd.months);
+/** agg = 数据库按月聚合后的汇总（printSheet 先读好，口径同花费页：转账不算，资本性 / 投资跟「排除」开关） */
+function spendSheet({ useFilter = false, recs: picked = [], agg } = {}) {
+  const cur = Units.region.currency, set = new Set(agg.months);
   const all = state.purchases.filter((p) => set.has(monthKey(p.purchased_at)) && p.amount != null && (!p.currency || p.currency === cur));
-  const total = sd.totals.reduce((a, b) => a + b, 0), count = sd.months.reduce((a, m) => a + sd.counts[m], 0);
-  const byCat = STAT_CATS().map((c) => ({ c, v: sd.months.reduce((s, m) => s + (sd.byMC[m][c.id] || 0), 0) })).filter((x) => x.v > 0).sort((a, b) => b.v - a.v);
+  const out = outflowSeries(agg), liv = livingSeries(agg), hou = withHousingSeries(agg), total = sum(out), count = agg.months.reduce((a, m) => a + agg.n[m], 0);
+  const sd = { months: agg.months, totals: out, counts: agg.n };
+  const byCat = l2List().map((c) => ({ c, v: agg.months.reduce((s, m) => s + (agg.l2[m][c.id] || 0), 0) })).filter((x) => x.v > 0).sort((a, b) => b.v - a.v);
   const recs = useFilter ? picked.slice(0, 300) : [...state.purchases].sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at)).filter((p) => set.has(monthKey(p.purchased_at))).slice(0, 300);
   const f = state.spendFilter, filterNote = useFilter && (f.q || f.cat !== "all" || f.store !== "all" || f.stores?.length || f.grp || f.year !== "all" || f.mon !== "all" || f.months?.length || f.batch) ? ` · ${t("已按筛选条件")}` : "";
   const kpi = (label, val) => `<div><span>${label}</span><b>${val}</b></div>`;
   return `<h1>${t("花费统计")} · ${t("近 {n} 个月", { n: sd.months.length })}</h1><p class="ps-meta">${esc(stamp())}${esc(filterNote)}</p>
-    <div class="ps-kpis">${kpi(t("合计"), money(total))}${kpi(t("月均"), money(total / (sd.months.length || 1)))}${kpi(t("笔数"), count)}</div>
-    <h2>${t("按月")}</h2><table><thead><tr><th>${t("月份")}</th><th>${t("笔数")}</th><th>${t("合计")}</th></tr></thead><tbody>${sd.months.map((m, i) => `<tr><td>${esc(monthLabel(m))}</td><td>${sd.counts[m]}</td><td>${money(sd.totals[i])}</td></tr>`).join("")}</tbody></table>
+    <div class="ps-kpis">${kpi(t("现金流出合计"), money(total))}${kpi(t("日常生活月均"), `${money(sum(liv) / (sd.months.length || 1))} / ${t("含住房")} ${money(sum(hou) / (sd.months.length || 1))}`)}${kpi(t("笔数"), count)}</div>
+    <h2>${t("按月")}</h2><table><thead><tr><th>${t("月份")}</th><th>${t("笔数")}</th><th>${t("日常")}</th><th>${t("含住房")}</th><th>${t("现金流出")}</th></tr></thead><tbody>${sd.months.map((m, i) => `<tr><td>${esc(monthLabel(m))}</td><td>${sd.counts[m]}</td><td>${money(liv[i])}</td><td>${money(hou[i])}</td><td>${money(sd.totals[i])}</td></tr>`).join("")}</tbody></table>
     <h2>${t("按分类")}</h2><table><thead><tr><th>${t("分类")}</th><th>${t("占比")}</th><th>${t("合计")}</th></tr></thead><tbody>${byCat.map((x) => `<tr><td>${x.c.icon} ${esc(t(x.c.name))}</td><td>${total ? Math.round((x.v / total) * 100) : 0}%</td><td>${money(x.v)}</td></tr>`).join("")}</tbody></table>
     <h2>${t("花费明细")}（${recs.length}${all.length > recs.length && !useFilter ? ` / ${all.length}` : ""}）</h2>
-    <table><thead><tr><th>${t("日期")}</th><th>${t("名称")}</th><th>${t("分类")}</th><th>${t("商店 / 收款方")}</th><th>${t("金额")}</th></tr></thead><tbody>${recs.map((p) => `<tr><td>${esc(fmtDate(String(p.purchased_at).slice(0, 10)))}</td><td>${esc(p.name)}</td><td>${esc(t((ALL_CATS().find((c) => c.id === p.category) || { name: "其他" }).name))}</td><td>${esc(storeOf(p))}</td><td>${p.amount != null ? mny(p.amount, p.currency) : ""}</td></tr>`).join("")}</tbody></table>`;
+    <table><thead><tr><th>${t("日期")}</th><th>${t("名称")}</th><th>${t("分类")}</th><th>${t("商店 / 收款方")}</th><th>${t("金额")}</th></tr></thead><tbody>${recs.map((p) => `<tr><td>${esc(fmtDate(String(p.purchased_at).slice(0, 10)))}</td><td>${esc(p.name)}</td><td>${esc(leafLabel(p.category))}</td><td>${esc(storeOf(p))}</td><td>${p.amount != null ? mny(p.amount, p.currency) : ""}</td></tr>`).join("")}</tbody></table>`;
 }
 
 function budgetSheet() {
@@ -88,6 +92,7 @@ function budgetSheet() {
 export async function printSheet(kind, arg = "all") {
   if (kind === "spend" && !state.purchases.length) { try { state.purchases = await Store.listPurchases(); mergeMedical(); } catch { /* 用已有的 */ } }
   if (kind === "spend" && arg?.useFilter) { try { arg = { ...arg, recs: await fetchSpendRows(300) }; } catch (e) { return toast(t("读取列表失败：{msg}", { msg: e.message })); } }   // 明细是服务器分页：按筛选读前 300 笔来打   // 采购花费是后台读的，打印前确保读到了
+  if (kind === "spend") { try { arg = { ...arg, agg: await spendAggAsync(lastMonths(+arg?.months || 6)) }; } catch (e) { return toast(t("读取列表失败：{msg}", { msg: e.message })); } }   // 统计用数据库的按月聚合（迁移 055）
   printHtml(kind === "shopping" ? shoppingSheet() : kind === "spend" ? spendSheet(arg) : kind === "budget" ? budgetSheet() : billsSheet(arg));
 }
 /** 把一段 HTML 放进 #printSheet 并调出浏览器打印（收入报表等别的模块也用） */

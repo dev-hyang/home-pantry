@@ -1,4 +1,4 @@
-/* 轻量 SVG 图表：堆叠柱状图、折线图、环形图
+/* 轻量 SVG 图表：堆叠柱状图（可叠虚线折线）、折线图、环形图，外加 HTML 的横向条形排行
  * 用固定 viewBox + width:100% 缩放，不读取窗口宽高，各种屏幕上比例一致；
  * 每个图都配一份数据表（<details>），方便读屏软件和精确查看。
  */
@@ -92,11 +92,11 @@
       return q ? `<li class="ch-hit-row" data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(s.name)}，${esc(t("查看明细"))}"><i style="background:${s.color}"></i>${esc(s.name)}</li>` : `<li><i style="background:${s.color}"></i>${esc(s.name)}</li>`; }).join("")}</ul>`;
   }
 
-  /** 柱状图；stacked=true 时各系列叠加并在顶部标总量 */
-  function bars({ labels, series, fmt = String, title, stacked = true, showTotals = true, drill = null, legendDrill = null }) {
+  /** 柱状图；stacked=true 时各系列叠加并在顶部标总量；lines = 同一纵轴上再画几条虚线折线（不参与堆叠，例如 资本性 / 投资） */
+  function bars({ labels, series, fmt = String, title, stacked = true, showTotals = true, drill = null, legendDrill = null, lines = [] }) {
     const n = labels.length || 1;
     const totals = labels.map((_, i) => series.reduce((a, s) => a + (s.values[i] || 0), 0));
-    const max = niceMax(stacked ? Math.max(0, ...totals) : Math.max(0, ...series.flatMap((s) => s.values)));
+    const max = niceMax(Math.max(stacked ? Math.max(0, ...totals) : Math.max(0, ...series.flatMap((s) => s.values)), ...lines.flatMap((s) => s.values)));
     const draw = (z) => {
       const { W, H, PAD } = z, iw = W - PAD.l - PAD.r, ih = H - PAD.t - PAD.b, band = iw / n;
       const xAt = (i) => PAD.l + band * i + band / 2;
@@ -119,10 +119,41 @@
           marks += `<text x="${xAt(i)}" y="${(PAD.t + ih - (totals[i] / max) * ih - 6).toFixed(1)}" text-anchor="middle" class="ch-val">${esc(fmt(totals[i], true))}</text>`;
         }
       });
+      // 折线：虚线 + 空心点，和实心的柱子一眼分得开（色弱也能靠线型分）
+      lines.forEach((s) => {
+        const yAt = (v) => PAD.t + ih - ((v || 0) / max) * ih;
+        marks += `<polyline points="${s.values.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(" ")}" style="fill:none;stroke:${s.color}" stroke-width="2.5" stroke-dasharray="6 4" stroke-linejoin="round" stroke-linecap="round"/>`;
+        s.values.forEach((v, i) => { marks += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="3.5" class="ch-dot" style="stroke:${s.color}"><title>${esc(labels[i])} ${esc(s.name)}：${esc(fmt(v || 0))}</title></circle>`; });
+      });
       return axes(z, max, labels, fmt, xAt) + marks;
     };
+    const all = [...series, ...lines];
     return `<figure class="chart">${both(title, draw, labels)}
-      ${legend(series, legendDrill)}${table(labels, stacked && series.length > 1 ? [...series, { name: t("合计"), values: totals }] : series, fmt)}</figure>`;
+      ${legend(all, legendDrill)}${table(labels, stacked && series.length > 1 ? [...series, { name: t("合计"), values: totals }, ...lines] : all, fmt)}</figure>`;
+  }
+
+  /** 横向条形排行（HTML，不是 SVG：文字可选、屏幕阅读器按列表读、手机上自动换行）。
+   *  items = [{ name, value, color, drill?（查询串）, btn?（按钮的 data- 属性串，调用方已转义）, parts?: [{ name, value, color }]（条内分段，如商店的分类构成） }]
+   *  total = 算百分比的分母（默认各项之和）；条长按最大的一项算 */
+  function hbars({ items, fmt = String, title, total = null, empty = "" }) {
+    const pos = items.filter((x) => x.value > 0), sum = total ?? pos.reduce((a, x) => a + x.value, 0), max = Math.max(0, ...pos.map((x) => x.value)) || 1;
+    if (!pos.length) return empty ? `<p class="muted">${esc(empty)}</p>` : "";
+    const pct = (v) => (sum > 0 ? Math.round((v / sum) * 100) : 0);
+    const legendParts = new Map();
+    const rows = pos.map((x) => {
+      const w = Math.max(1, (x.value / max) * 100), label = `${x.name}：${fmt(x.value)}（${pct(x.value)}%）`;
+      const parts = (x.parts || []).filter((p) => p.value > 0).sort((a, b) => b.value - a.value);
+      parts.forEach((p) => legendParts.set(p.name, p.color));
+      const track = parts.length
+        ? parts.map((p) => `<i style="width:${((p.value / x.value) * 100).toFixed(2)}%;background:${p.color}" title="${esc(p.name)}：${esc(fmt(p.value))}"></i>`).join("")
+        : `<i style="width:100%;background:${x.color}"></i>`;
+      const partsTxt = parts.length ? `<span class="sr-only">${esc(parts.map((p) => `${p.name} ${Math.round((p.value / x.value) * 100)}%`).join("，"))}</span>` : "";
+      const name = x.btn ? `<button type="button" class="linkbtn hb-name" ${x.btn}>${esc(x.name)}</button>` : `<span class="hb-name">${esc(x.name)}</span>`;
+      const attrs = x.drill && !x.btn ? ` class="hb-row ch-hit-row" data-drill="${esc(x.drill)}" role="link" tabindex="0" aria-label="${esc(label)}，${esc(t("查看明细"))}"` : ` class="hb-row"`;
+      return `<li${attrs}>${name}<b class="hb-val">${esc(fmt(x.value))}</b><em class="hb-pct">${pct(x.value)}%</em><span class="hb-track" aria-hidden="true"><span class="hb-bar" style="width:${w.toFixed(2)}%">${track}</span></span>${partsTxt}</li>`;
+    }).join("");
+    const lg = legendParts.size > 1 ? `<ul class="ch-legend">${[...legendParts].map(([n, c]) => `<li><i style="background:${c}"></i>${esc(n)}</li>`).join("")}</ul>` : "";
+    return `<figure class="chart hbars"><figcaption class="sr-only">${esc(title || "")}</figcaption><ul class="hb-list">${rows}</ul>${lg}</figure>`;
   }
 
   /** 折线图；可叠一组柱子（bars）作为第二种度量（共用同一纵轴单位时使用） */
@@ -199,5 +230,5 @@
     b.textContent = open ? t("收起") : t("显示更多（还有 {n} 项）").replace("{n}", b.dataset.moreN);
   });
 
-  window.Charts = { bars, line, donut };
+  window.Charts = { bars, line, donut, hbars };
 })();

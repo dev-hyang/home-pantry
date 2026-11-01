@@ -1,0 +1,93 @@
+/* ───────────── 花费统计的汇总（只做加法，规则全在 js/core/taxonomy.js） ─────────────
+ * 输入是数据库 spend_rollup / spend_rollup_store 的紧凑行（迁移 055：按 月 × 分类 × 性质 × 房产 × 币种 聚合，含医疗等事件型账单的付款），
+ * 在这里按分类树和统计桶再汇总一遍：概览、分类、商店、账单概览的速览、打印都用这里的结果，不再读 state.purchases。
+ * 这里不碰 DOM、不读 state，方便单独测试。 */
+import { bucketOf, counted, isNode, l1IdOf, l2IdOf, leavesOf, nodeOf } from "../core/taxonomy.js";
+
+const r2 = (v) => Math.round(v * 100) / 100;
+const canon = (id) => (window.canonCat ? window.canonCat(id) : id);
+
+/** 数据库的行 → { m, c, nat, prop, cur, sum, n }（商店行多 sk / store） */
+export const normRow = (x) => ({ m: x.month, c: canon(x.category), nat: x.nature || null, prop: x.property_id || null, cur: x.currency || "", sum: +x.sum || 0, n: +x.n || 0,
+  ...(x.store_key != null ? { sk: x.store_key, store: x.store || "" } : {}) });
+
+const zeroBuckets = () => ({ living: 0, housing: 0, financial: 0, capital: 0, investment: 0 });
+/** 一段月份的汇总：
+ *  bucket[m]  = 各统计桶（不受开关影响：日常 / 住房 / 财务 / 资本性 / 投资；转账不在里面）
+ *  l2[m], leaf[m] = 按二级分类 / 叶子（受「排除资本性 / 排除投资」开关影响，分类页和预算式的图用）
+ *  bills[m]   = 各桶里账单类（bill_*）的部分（算「均摊」用）；liv[m] = 日常生活桶按二级分类
+ *  n[m]       = 笔数（不含转账）；xfer = 转账 { n, sum }；otherCur = 其他币种的笔数 */
+export function aggregate(rows, months, { cur = "", exCap = false, exInv = false } = {}) {
+  const set = new Set(months), out = { months, bucket: {}, bills: {}, liv: {}, l2: {}, leaf: {}, n: {}, xfer: { n: 0, sum: 0 }, otherCur: 0 };
+  for (const m of months) { out.bucket[m] = zeroBuckets(); out.bills[m] = zeroBuckets(); out.liv[m] = {}; out.l2[m] = {}; out.leaf[m] = {}; out.n[m] = 0; }
+  for (const r of rows) {
+    if (!set.has(r.m)) continue;
+    if (cur && r.cur && r.cur !== cur) { out.otherCur += r.n; continue; }
+    const b = bucketOf(r.c, r.nat);
+    if (!b) { out.xfer.n += r.n; out.xfer.sum = r2(out.xfer.sum + r.sum); continue; }
+    out.bucket[r.m][b] += r.sum; out.n[r.m] += r.n;
+    if (String(r.c).startsWith("bill_")) out.bills[r.m][b] += r.sum;
+    if (b === "living") { const k = l2IdOf(r.c); out.liv[r.m][k] = (out.liv[r.m][k] || 0) + r.sum; }   // 日常生活按二级分类（概览的构成）
+    if (!counted(r.c, r.nat, { exCap, exInv })) continue;
+    const l2 = l2IdOf(r.c);
+    out.l2[r.m][l2] = (out.l2[r.m][l2] || 0) + r.sum;
+    out.leaf[r.m][r.c] = (out.leaf[r.m][r.c] || 0) + r.sum;
+  }
+  return out;
+}
+/** 某个月（或整段：m 为空）某个节点（一级 / 二级 / 叶子）的合计，按 l2 / leaf 表（受开关影响） */
+export function nodeSum(agg, id, m = null) {
+  const ms = m ? [m] : agg.months;
+  let s = 0;
+  for (const k of ms) {
+    if (!agg.l2[k]) continue;
+    if (id === "all") s += Object.values(agg.l2[k]).reduce((a, v) => a + v, 0);
+    else if (isNode(id) && agg.l2[k][id] != null) s += agg.l2[k][id];
+    else if (isNode(id)) s += Object.entries(agg.l2[k]).filter(([l2]) => l1OfL2(l2) === id).reduce((a, [, v]) => a + v, 0);
+    else s += leavesOf(id).reduce((a, x) => a + (agg.leaf[k][x] || 0), 0);
+  }
+  return s;
+}
+const l1OfL2 = (l2) => nodeOf(l2)?.p;
+/** 每个月的一个数：f(bucket, m) */
+export const series = (agg, f) => agg.months.map((m) => f(agg.bucket[m], m));
+export const sum = (arr) => arr.reduce((a, b) => a + b, 0);
+export const avg = (arr) => (arr.length ? sum(arr) / arr.length : 0);
+export function median(arr) {
+  const x = [...arr].sort((a, b) => a - b), n = x.length;
+  return n ? (n % 2 ? x[(n - 1) / 2] : (x[n / 2 - 1] + x[n / 2]) / 2) : 0;
+}
+/** 日常 / 含住房：每个月的值；含住房 = 日常 + 住房（房产住房下性质是日常消费的） */
+export const livingSeries = (agg) => series(agg, (b) => b.living);
+export const withHousingSeries = (agg) => series(agg, (b) => b.living + b.housing);
+/** 现金流出 = 五个桶之和（转账不在桶里） */
+export const outflowSeries = (agg) => series(agg, (b) => b.living + b.housing + b.financial + b.capital + b.investment);
+/** 算月均 / 中位数用的月份：一段时间超过一个月时不含还没过完的本月（否则月均被拉低） */
+export const fullMonths = (months, thisMonth) => (months.length > 1 ? months.filter((m) => m !== thisMonth) : months);
+/** 均摊月均：账单按「每月折算」（年付、半年付的摊到每个月）代替实际缴费那个月的金额，其余照实际算
+ *  bills = 账单（有 monthly 每月折算、category、currency）；bucket = living / housing */
+export function normalizedMonthly(agg, months, bills, bucket, cur = "") {
+  if (!months.length) return 0;
+  const nonBill = avg(months.map((m) => (agg.bucket[m]?.[bucket] || 0) - (agg.bills[m]?.[bucket] || 0)));
+  const billM = (bills || []).filter((b) => b.active !== false && !b.ended && !b.escrow && b.direction !== "receivable" && (!cur || (b.currency || cur) === cur) && bucketOf(`bill_${b.category}`, null) === bucket)
+    .reduce((a, b) => a + (+b.monthly || 0), 0);
+  return nonBill + billM;
+}
+/** 子节点在一段时间里的合计（排行用），从大到小；只留 > 0 的 */
+export const rankChildren = (agg, ids, m = null) => ids.map((id) => ({ id, v: r2(nodeSum(agg, id, m)) })).filter((x) => x.v > 0).sort((a, b) => b.v - a.v);
+
+/** 商店汇总：rows = 商店行；sel = 只看某个月（空 = 整段）；l1 = 只看某个一级分类（all = 现金流出，不含转账） */
+export function storeAgg(rows, months, { sel = "", cur = "", l1 = "all", exCap = false, exInv = false } = {}) {
+  const set = new Set(sel ? [sel] : months), map = new Map();
+  for (const r of rows) {
+    if (!set.has(r.m) || (cur && r.cur && r.cur !== cur)) continue;
+    if (!counted(r.c, r.nat, { exCap, exInv })) continue;
+    if (l1 !== "all" && l1IdOf(r.c) !== l1) continue;
+    const k = r.sk || "__none__", a = map.get(k) || { key: k, name: "", total: 0, count: 0, byL2: {} };
+    if (!a.name && r.store) a.name = r.store;
+    a.total += r.sum; a.count += r.n;
+    const l2 = l2IdOf(r.c); a.byL2[l2] = (a.byL2[l2] || 0) + r.sum;
+    map.set(k, a);
+  }
+  return [...map.values()].filter((a) => a.count).sort((a, b) => b.total - a.total);
+}

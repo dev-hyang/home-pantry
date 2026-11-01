@@ -12,6 +12,7 @@ import { debounce, moreBtn, pageSize } from "../core/pager.js";
 import { STATEMENT_TABS, activeTab } from "../core/tabs.js";
 import { bankImportTab } from "./bank-import.js";
 import { STAT_CATS, download, spendExportTab, statCat, toCsv, ymd } from "./views.js";
+import { isTransfer } from "../core/taxonomy.js";
 import { incomeExportHtml, loggedSpend } from "../income/views.js";
 import { canSeeAll, inc, incomeIn, kindLabel, kindOf, personName, skey, windowOf } from "../income/logic.js";
 
@@ -30,8 +31,8 @@ function build() {
   const o = SS(), w = windowOf(SS().range), I = inc(), cats = Object.fromEntries(STAT_CATS().map((c) => [c.id, c]));
   const sp = o.dir === "income" ? [] : loggedSpend(w), out = [];
   for (const p of sp || []) {
-    const c = cats[statCat(p.category)], d = ymd(p.purchased_at), amt = -num(p.amount);
-    out.push({ d, at: p.purchased_at, spend: true, amt, ico: c?.icon || "🧾", name: p.name, sub: [d, c && t(c.name), p.store, p.virtual && t("账单")].filter(Boolean).join(" · "), href: `${href("bills", "spend")}?tab=records&q=${encodeURIComponent(p.name)}`, tag: amt > 0 ? t("退款") : t("花费") });
+    const c = cats[statCat(p.category)], d = ymd(p.purchased_at), amt = -num(p.amount), xfer = isTransfer(p.category, p.nature);   // 转账（信用卡还款、自己账户之间）：列出来，不算花费也不算收入
+    out.push({ d, at: p.purchased_at, spend: true, amt, ico: c?.icon || "🧾", name: p.name, sub: [d, c && t(c.name), p.store, p.virtual && t("账单")].filter(Boolean).join(" · "), href: `${href("bills", "spend")}?tab=records&q=${encodeURIComponent(p.name)}`, xfer, tag: xfer ? t("转账") : amt > 0 ? t("退款") : t("花费") });
   }
   if (o.dir !== "spend" && I.ok) for (const r of incomeIn(w.from, w.to, "all")) {
     const k = kindOf(r.kind);
@@ -39,7 +40,7 @@ function build() {
   }
   const q = skey(o.q || "");
   const rows = out.filter((x) => !q || skey(`${x.name} ${x.sub}`).includes(q)).sort((a, b) => b.d.localeCompare(a.d) || String(b.at).localeCompare(String(a.at)));
-  const inc$ = R2(rows.filter((x) => x.amt > 0 && !x.spend).reduce((a, x) => a + x.amt, 0)), spend$ = R2(rows.filter((x) => x.spend).reduce((a, x) => a + -x.amt, 0));
+  const inc$ = R2(rows.filter((x) => x.amt > 0 && !x.spend).reduce((a, x) => a + x.amt, 0)), spend$ = R2(rows.filter((x) => x.spend && !x.xfer).reduce((a, x) => a + -x.amt, 0));
   return { rows, w, loading: o.dir !== "income" && sp == null, inc: inc$, spend: spend$, net: R2(inc$ - spend$) };
 }
 function listHtml() {

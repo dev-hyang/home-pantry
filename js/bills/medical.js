@@ -12,8 +12,8 @@ import { Store } from "../core/store.js";
 
 /* 事件型账单的种类：同一套数据（账单 + 分次付款 + 余额），换标签和小类。
  * insurance = 有没有“保险已付 / 保险公司 / 理赔号”这几项；visibility = 新建时默认谁能看（医疗、法律默认私密）；
- * 统计归类见 stats/views.js 的 statCat：medical → 医疗，pet（category = pet_care）→ 宠物，legal → 其他，project → 房屋维护，
- * travel → 旅行出行（付款的花费分类按小类取 travel_<小类>：机票、住宿、门票…；名称写成「【行程名】提供方」，统计的“旅行”标签按行程汇总）。
+ * 统计归类见 js/core/taxonomy.js（三级分类）：medical → 医疗健康，pet（category = pet_care）→ 宠物，legal → 政务手续，project → 装修改善（默认资本性），
+ * travel → 生活消费 · 旅行（付款的花费分类按小类取 travel_<小类>：机票、住宿…；名称写成「【行程名】提供方」，分类 → 旅行「按行程看」里按行程汇总）。
  * travel 需要数据库迁移 031（放宽 medical_bills.kind 的检查约束）。 */
 export const KINDS = {
   medical: { name: "医疗", icon: "🏥", provider: "医院 / 化验所", who: "患者 Patient", guarantor: true, insurance: true, visibility: "private", billed: "账单总额", owed: "自付金额 Patient responsibility", subs: [["hospital", "医院", "🏥"], ["clinic", "门诊 / 诊所", "🩺"], ["lab", "化验", "🧪"], ["imaging", "影像", "🩻"], ["pharmacy", "药房", "💊"], ["dental", "牙科", "🦷"], ["vision", "视力", "👓"], ["therapy", "治疗 / 康复", "🧠"], ["ambulance", "救护车", "🚑"], ["other", "其他", "📄"]] },

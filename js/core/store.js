@@ -1,7 +1,7 @@
 import { state } from "./state.js";
 import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
 import { t } from "./i18n.js";
-import { localPage, localStats } from "./list-query.js";
+import { localPage, localStats, spendRollup } from "./list-query.js";
 
 /* 成员资料（迁移 052）：只在 设置 → 家庭与成员 里用，不进 AI 提示词、不进备份（个人数据，只给本家庭看） */
 const PROFILE_COLS = "phone,email,address";
@@ -101,6 +101,9 @@ export const DemoStore = {
   /** 服务器分页的本地版（演示模式没有数据库）：筛选 / 排序 / 键集分页 / 统计照 054 的规则在内存里做，见 list-query.js */
   async listPage(kind, f, after, limit) { return localPage(this.db, kind, f, after, limit); },
   async listStats(kind, f, facets = false) { return localStats(this.db, kind, f, facets); },
+  /** 统计用的聚合（迁移 055 的 spend_rollup / spend_rollup_store 的本地版） */
+  async spendRollup(from, to) { return spendRollup(this.db, from, to); },
+  async spendRollupStore(from, to) { return spendRollup(this.db, from, to, true); },
   async listPurchases() { return this.db.purchases.map((x) => ({ ...x, category: canonCat(x.category) })); },
   async addItems(list) {
     const now = new Date().toISOString();
@@ -534,10 +537,15 @@ export const CloudStore = {
    *  返回最多 limit + 1 行（多 1 行 = 还有下一页），不数总行数；统计（合计、笔数、月小计…）另由 listStats 一次聚合 */
   async listPage(kind, f, after, limit) { return this.must(await this.sb.rpc(`${kind}_page`, { p_household: this.hid, p_f: f, p_after: after || null, p_limit: limit })) || []; },
   async listStats(kind, f, facets = false) { return this.must(await this.sb.rpc(`${kind}_stats`, { p_household: this.hid, p_f: f, p_facets: !!facets })) || {}; },
+  /** 统计用的聚合（迁移 055）：按 月 × 分类 × 性质 × 房产 × 币种（商店版再加商店）聚合好的紧凑行；from / to = 本地日期（含 from，不含 to），tz = 浏览器时区。
+   *  行数可能过 1000（PostgREST 的 max-rows），按固定顺序分页读全 */
+  async spendRollup(from, to, tz) { return this.pageAll(() => this.sb.rpc("spend_rollup", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz }).order("month").order("category").order("nature").order("property_id").order("currency")); },
+  async spendRollupStore(from, to, tz) { return this.pageAll(() => this.sb.rpc("spend_rollup_store", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz }).order("month").order("store_key").order("category").order("nature").order("currency")); },
   async listItems() { return this.pageAll(() => this.sb.from("items").select("*").eq("household_id", this.hid).order("name").order("id")); },
   async listCategories() { return this.must(await this.sb.from("custom_categories").select("*").eq("household_id", this.hid).order("sort").order("created_at")); },
   async saveCategory(c) {
     const row = pick(c, CATEGORY_FIELDS, { household_id: this.hid, updated_by: state.user.id });
+    if (c.parent !== undefined) row.parent = c.parent || null;   // 自建分类挂在哪个二级花费分类下（迁移 055）；不传就不动这一列
     if (c.id) this.must(await this.sb.from("custom_categories").update(row).eq("id", c.id));
     else this.must(await this.sb.from("custom_categories").insert(row));
   },
