@@ -1,6 +1,7 @@
 import { state } from "./state.js";
 import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
 import { t } from "./i18n.js";
+import { localPage, localStats } from "./list-query.js";
 
 /* 成员资料（迁移 052）：只在 设置 → 家庭与成员 里用，不进 AI 提示词、不进备份（个人数据，只给本家庭看） */
 const PROFILE_COLS = "phone,email,address";
@@ -97,6 +98,9 @@ export const DemoStore = {
     const since = Date.now() - STATS_LOG_DAYS * DAY;
     return this.db.logs.filter((l) => new Date(l.created_at).getTime() >= since);
   },
+  /** 服务器分页的本地版（演示模式没有数据库）：筛选 / 排序 / 键集分页 / 统计照 054 的规则在内存里做，见 list-query.js */
+  async listPage(kind, f, after, limit) { return localPage(this.db, kind, f, after, limit); },
+  async listStats(kind, f, facets = false) { return localStats(this.db, kind, f, facets); },
   async listPurchases() { return this.db.purchases.map((x) => ({ ...x, category: canonCat(x.category) })); },
   async addItems(list) {
     const now = new Date().toISOString();
@@ -526,6 +530,10 @@ export const CloudStore = {
     }
     return out;
   },
+  /** 服务器分页（迁移 054 的 *_page / *_stats RPC）：kind = spend / pay / inc；f = 筛选（只带生效的项）；after = 上一页最后一行的排序键（第一页为空）；
+   *  返回最多 limit + 1 行（多 1 行 = 还有下一页），不数总行数；统计（合计、笔数、月小计…）另由 listStats 一次聚合 */
+  async listPage(kind, f, after, limit) { return this.must(await this.sb.rpc(`${kind}_page`, { p_household: this.hid, p_f: f, p_after: after || null, p_limit: limit })) || []; },
+  async listStats(kind, f, facets = false) { return this.must(await this.sb.rpc(`${kind}_stats`, { p_household: this.hid, p_f: f, p_facets: !!facets })) || {}; },
   async listItems() { return this.pageAll(() => this.sb.from("items").select("*").eq("household_id", this.hid).order("name").order("id")); },
   async listCategories() { return this.must(await this.sb.from("custom_categories").select("*").eq("household_id", this.hid).order("sort").order("created_at")); },
   async saveCategory(c) {
@@ -824,7 +832,8 @@ export const CloudStore = {
   async updateBillPayment(id, patch) { this.must(await this.sb.from("bill_payments").update(patch).eq("id", id)); },
   async updatePurchase(id, patch) { this.must(await this.sb.from("purchases").update(patch).eq("id", id)); },
   async deleteBillPayment(id) {
-    const p = state.billPayments.find((x) => x.id === id);
+    // 内存里只有近 400 天的缴费；缴费记录列表能翻到更早的（服务器分页），那时到数据库里查它关联的花费，一起删
+    const p = state.billPayments.find((x) => x.id === id) || this.must(await this.sb.from("bill_payments").select("purchase_id").eq("id", id).maybeSingle());
     this.must(await this.sb.from("bill_payments").delete().eq("id", id));
     if (p?.purchase_id) this.must(await this.sb.from("purchases").delete().eq("id", p.purchase_id));
   },

@@ -61,6 +61,7 @@ export async function saveMeta(patch) {
 const underscoreKeys = (o) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => k.startsWith("_")));
 /** 大件门槛：美元 / 加元等 300，人民币 2000，可在“各类月预算”里改 */
 export const bigThreshold = () => num(meta("_big_threshold", null), 0) || (["CNY", "RMB"].includes(cur()) ? 2000 : 300);
+budgetBridge.bigThreshold = bigThreshold;   // 明细按预算分组筛选（「大件」按单笔金额分）时，数据库要知道门槛
 
 const slots = {}, actions = {};
 export const registerSection = (slot, order, fn) => { (slots[slot] ||= []).push({ order, fn }); };
