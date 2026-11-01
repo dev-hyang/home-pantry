@@ -1,5 +1,6 @@
 /* 账单 → 预算：按收入、固定账单和储蓄目标给出月度 / 年度预算建议，对比实际花费，超预算提醒，大额购物规划（一次付清 / 分期 / 预存到促销日）。
- * 实际花费来自 purchases（账单缴费也记在里面，分类 bill_*）；收入和预算存在 household_budgets（迁移 022；演示模式存本机）。 */
+ * 实际花费来自数据库按 月 × 分类 × 性质 聚合好的 spend_rollup（含账单缴费 bill_* 和医疗等事件型账单的付款，迁移 055 / 057），这里按预算分组再加一遍；
+ * 收入和预算存在 household_budgets（迁移 022；演示模式存本机）。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, esc, money, num, spaceOf, toast } from "../core/util.js";
@@ -7,7 +8,8 @@ import { lang, t } from "../core/i18n.js";
 import { alertsOf } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { budgetBridge } from "../core/budget-bridge.js";
-import { dq, hitAttrs, lastMonths, monthKey, monthLabel, rangeChipsHtml, rangeMonths, timeBarHtml } from "../stats/views.js";
+import { dq, hitAttrs, lastMonths, monthKey, monthLabel, rangeChipsHtml, rangeMonths, spendRollupFor, timeBarHtml } from "../stats/views.js";
+import { cached } from "../core/spend-data.js";
 import { LEGACY_BUDGET, budgetGroupOf, budgetL2s } from "../core/taxonomy.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { BUDGET_TABS, activeTab } from "../core/tabs.js";
@@ -41,7 +43,6 @@ function mapLegacy(obj) {
   return out;
 }
 const cur = () => Units.region.currency;
-const amountOf = (p) => (p.amount != null && (!p.currency || p.currency === cur()) ? num(p.amount) : 0);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : a > 0 ? 999 : 0);
 
@@ -70,24 +71,25 @@ export function applianceFund() {
   return { rows, monthly: rows.reduce((s, r) => s + r.monthly, 0), missing: eq.length - rows.length };
 }
 
-/** 补货预估：库存告急的东西 + 采购清单里没买的，按以前买它的花费（最近 3 次的中位数，没有就按同分类）估价（联动 储藏 / 采购） */
+/** 物品 / 分类最近几次的买价（数据库 item_purchase_stats，迁移 057）：key = 物品 + 分类 + 币种 */
+const PRICES = cached((cur, items, cats) => Store.itemPurchaseStats(cur, items, cats), { max: 8, fallback: [] });
+/** 补货预估：库存告急的东西 + 采购清单里没买的，按以前买它的花费（最近 3 次的中位数，没有就按同分类最近 10 次）估价（联动 储藏 / 采购）。
+ *  买价只查要估的这些物品和分类；还没读回来时 loading = true */
 export function restockForecast() {
-  const buys = [...state.purchases].filter((p) => p.amount != null && num(p.amount) > 0 && (!p.currency || p.currency === cur())).sort((a, b) => String(b.purchased_at).localeCompare(String(a.purchased_at)));
   const median = (a) => { const x = [...a].sort((p, q) => p - q); return x.length ? (x.length % 2 ? x[(x.length - 1) / 2] : (x[x.length / 2 - 1] + x[x.length / 2]) / 2) : null; };
-  const byItem = new Map(), byCat = new Map();
-  for (const p of buys) {
-    if (p.item_id) { const l = byItem.get(p.item_id) || []; if (l.length < 3) { l.push(num(p.amount)); byItem.set(p.item_id, l); } }
-    const c = byCat.get(p.category) || []; if (c.length < 10) { c.push(num(p.amount)); byCat.set(p.category, c); }
-  }
   const need = new Map();
   for (const it of alertsOf(state.enriched.filter((x) => spaceOf(x.category) !== "gear"))) need.set(it.id, { name: it.name, itemId: it.id, cat: it.category, src: "stock" });
   for (const s of state.shopping.filter((x) => x.status !== "bought")) {
     const key = s.item_id || `n:${s.name}`;
     if (!need.has(key)) { const it = state.items.find((i) => i.id === s.item_id); need.set(key, { name: s.name, itemId: s.item_id, cat: it?.category || s.category || "other", src: "list" }); }
   }
-  const rows = [...need.values()].map((r) => ({ ...r, est: median(byItem.get(r.itemId) || []) ?? median(byCat.get(r.cat) || []) })).sort((a, b) => (b.est ?? -1) - (a.est ?? -1));
+  const items = [...new Set([...need.values()].map((r) => r.itemId).filter(Boolean))].sort(), cats = [...new Set([...need.values()].map((r) => r.cat).filter(Boolean))].sort();
+  const stats = need.size ? PRICES.get(`${cur()}|${items.join(",")}|${cats.join(",")}`, cur(), items, cats) : [];
+  const byItem = new Map(), byCat = new Map();
+  for (const s of stats || []) (s.kind === "item" ? byItem : byCat).set(s.key, (s.amts || []).map(Number));
+  const rows = [...need.values()].map((r) => ({ ...r, est: median(byItem.get(String(r.itemId)) || []) ?? median(byCat.get(r.cat) || []) })).sort((a, b) => (b.est ?? -1) - (a.est ?? -1));
   const byGroup = {}; for (const r of rows) if (r.est != null) { const g = groupOf(r.cat); byGroup[g] = (byGroup[g] || 0) + r.est; }   // 按二级分类：餐饮 / 维护与服务 / 购物日用…
-  return { rows, total: rows.reduce((s, r) => s + (r.est || 0), 0), unknown: rows.filter((r) => r.est == null).length, byGroup };
+  return { rows, total: rows.reduce((s, r) => s + (r.est || 0), 0), unknown: rows.filter((r) => r.est == null).length, byGroup, loading: stats == null };
 }
 
 /** 本月账单：已缴、还要交（含已逾期的）、逾期笔数 */
@@ -97,15 +99,28 @@ export function billsThisMonth() {
   return { paid: actualByMonth()[m]?.bills || 0, due: open.reduce((s, b) => s + num(b.est), 0), dueN: open.length, overdueN: open.filter((b) => b.next_due_on < today).length };
 }
 
-/** 各月各组的实际花费 { "2026-10": { bills, food, home_maint, medical, … } }（还是读内存里的 state.purchases：近 400 天 + 按需读回的往年） */
+/** 预算要看的月份：近 7 个月（过去 6 个月 + 本月）、今年（年度进度）、花费页的时间范围（趋势图）——合成一段一次读 */
+function budgetMonths() {
+  const now = lastMonths(1)[0], ms = [...lastMonths(7), `${now.slice(0, 4)}-01`, ...rangeMonths(state.stats.months === "m" ? 3 : state.stats.months)].sort();
+  const out = []; for (let m = ms[0]; m <= now; m = nextM(m)) out.push(m);
+  return out;
+}
+const nextM = (m) => { const [y, mo] = m.split("-").map(Number); return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, "0")}`; };
+let abmMemo = { rows: null, key: "", out: {} };
+/** 各月各组的实际花费 { "2026-10": { bills, food, home_maint, medical, … } }：数据库的按月聚合（spend_rollup）按预算分组再加一遍；
+ *  只算本币（没填币种的当本币），退款（负数）照减；聚合还在读时返回 {}（读完会重画） */
 export function actualByMonth() {
+  const rows = spendRollupFor(budgetMonths()); if (!rows) return {};
+  const key = [cur(), medInPool(), state.stats.exCap].join("|");
+  if (abmMemo.rows === rows && abmMemo.key === key) return abmMemo.out;
   const out = {};
-  for (const p of state.purchases) {
-    const a = amountOf(p); if (!a) continue;
-    const m = monthKey(p.purchased_at), g = groupOf(p.category, p.nature);
+  for (const r of rows) {
+    if (!r.sum || (r.cur && r.cur !== cur())) continue;
+    const g = groupOf(r.c, r.nat);
     if (g === "transfer" || g === "capital" || g === "investment") continue;   // 转账、资本性、投资不算进预算的实际花费
-    ((out[m] ||= {})[g] = (out[m][g] || 0) + a);
+    ((out[r.m] ||= {})[g] = (out[r.m][g] || 0) + r.sum);
   }
+  abmMemo = { rows, key, out };
   return out;
 }
 

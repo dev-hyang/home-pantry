@@ -9,7 +9,15 @@ import { memberName } from "../core/logic.js";
 import { withProperty } from "../core/alerts.js";
 import { actualByMonth, billsThisMonth, applianceFund, meta, registerAction, registerSection, restockForecast, saveMeta } from "./budget.js";
 import { escrowMonthlyFor, freqText, upcoming } from "./logic.js";
-import { lastMonths, monthKey, monthLabel } from "../stats/views.js";
+import { lastMonths, monthLabel, spendBase } from "../stats/views.js";
+import { Store } from "../core/store.js";
+import { TZ, cached } from "../core/spend-data.js";
+
+/* 复盘、分摊要的花费都按需向数据库要（迁移 057），不读整表：
+ *   上个月最大的几笔 = 花费流水按金额排的前 3 行（spend_page，sort = high）；家庭分摊 = 按 月 × 记账人 聚合（spend_by_member） */
+const BIG = cached((m) => Store.listPage("spend", { ...spendBase("high"), year: m.slice(0, 4), mon: m.slice(5, 7) }, null, 3).then((r) => (r || []).slice(0, 3)), { max: 4, fallback: [] });
+const nextMonthStart = (m) => { const [y, mo] = m.split("-").map(Number); return mo === 12 ? `${y + 1}-01-01` : `${y}-${String(mo + 1).padStart(2, "0")}-01`; };
+const BY_MEMBER = cached((m) => Store.spendByMember(`${m}-01`, nextMonthStart(m), TZ()), { max: 4, fallback: [] });
 
 const B = () => window.BILLS;
 const cur = () => Units.region.currency;
@@ -26,7 +34,7 @@ registerSection("month", 0, ({ plan }) => {
   const varSpent = spent(a), prevVar = spent(b), bills = a.bills || 0, leftover = plan.income != null ? plan.income - Math.max(bills, plan.billsM) - varSpent : null;   // 账单还没缴的也先扣掉，免得结余看着偏大
   const over = plan.groups.filter((g) => g.budget > 0 && (a[g.id] || 0) > g.budget).sort((x, y) => (a[y.id] - y.budget) - (a[x.id] - x.budget)).slice(0, 3);
   const under = plan.groups.filter((g) => g.budget > 0 && (a[g.id] || 0) <= g.budget * 0.7).slice(0, 2);
-  const big = state.purchases.filter((p) => monthKey(p.purchased_at) === last && p.amount != null && (!p.currency || p.currency === cur())).sort((x, y) => num(y.amount) - num(x.amount)).slice(0, 3);
+  const big = (BIG.get(last, last) || []).filter((p) => p.amount != null && (!p.currency || p.currency === cur()) && num(p.amount) > 0);   // 按金额（本币）排的前 3 笔
   const goals = meta("_goals", []);
   const lines = [
     `${t("花了 {a}（可支配部分，预算 {b}），账单 {c}。", { a: money(varSpent), b: money(plan.variable), c: money(bills) })}${prevVar > 0 ? ` ${t("比前一个月{d}{p}%。", { d: varSpent >= prevVar ? t("多") : t("少"), p: Math.abs(pct(varSpent - prevVar, prevVar)) })}` : ""}`,
@@ -58,6 +66,7 @@ registerSection("bills", 0, ({ plan }) => {
 /* ───────────── 补货预估：联动库存和采购清单 ───────────── */
 registerSection("plan", 0, ({ plan, mp }) => {
   const fc = restockForecast();
+  if (fc.loading) return sec("budRestock", t("补货预估"), t("库存告急和采购清单里的东西，按你以前买它的花费估一下"), `<div class="panel"><p class="muted" role="status">${t("加载中…")}</p></div>`);
   const gRemain = (id) => { const r = mp.rows.find((x) => x.id === id); return r ? r.budget - r.spent : 0; };
   const rows = fc.rows.slice(0, 8);
   return sec("budRestock", t("补货预估"), t("库存告急和采购清单里的东西，按你以前买它的花费估一下"), `<div class="panel">
@@ -141,9 +150,11 @@ registerSection("goals", 10, () => {
   const chips = [["this", t("本月")], ["last", t("上月")]].map(([k, l]) => `<button type="button" class="chip" data-action="budget-split-month" data-m="${k}" aria-pressed="${which === k}">${l}</button>`).join("");
   if (members.length < 2) return sec("budSplit", t("家庭分摊"), "", `<div class="panel empty"><strong>${t("家里有两位以上成员时，这里会算谁多付了、谁该补多少")}</strong>${t("按“谁记的账”当作付款人；邀请家人加入后就能用（设置 → 家庭与成员）。")}</div>`);
   const w = meta("_split", {}), weight = (u) => (w[u] != null && w[u] !== "" ? num(w[u]) : 100 / members.length), wsum = members.reduce((s, x) => s + weight(x.user_id), 0) || 1;
-  const ps = state.purchases.filter((p) => monthKey(p.purchased_at) === m && p.amount != null && (!p.currency || p.currency === cur()) && num(p.amount) > 0);
-  const rec = ps.filter((p) => p.created_by && members.some((x) => x.user_id === p.created_by)), unrec = ps.length - rec.length, total = rec.reduce((s, p) => s + num(p.amount), 0);
-  const paid = Object.fromEntries(members.map((x) => [x.user_id, rec.filter((p) => p.created_by === x.user_id).reduce((s, p) => s + num(p.amount), 0)]));
+  const agg = BY_MEMBER.get(m, m);   // 这个月按记账人聚合的正数花费（本币；含医疗等事件型账单的付款，付款人算记账人）
+  if (!agg) return sec("budSplit", t("家庭分摊"), t("{m}，按“谁记的账”当作付款人", { m: monthLabel(m) }), `<div class="panel"><p class="muted" role="status">${t("加载中…")}</p></div>`);
+  const ps = agg.filter((r) => !r.currency || r.currency === cur()), isMember = (u) => u && members.some((x) => x.user_id === u);
+  const rec = ps.filter((r) => isMember(r.created_by)), unrec = ps.reduce((s, r) => s + r.n, 0) - rec.reduce((s, r) => s + r.n, 0), total = rec.reduce((s, r) => s + num(r.sum), 0);
+  const paid = Object.fromEntries(members.map((x) => [x.user_id, rec.filter((r) => r.created_by === x.user_id).reduce((s, r) => s + num(r.sum), 0)]));
   const net = members.map((x) => ({ x, paid: paid[x.user_id], share: (total * weight(x.user_id)) / wsum })).map((r) => ({ ...r, net: Math.round((r.paid - r.share) * 100) / 100 }));
   const cred = net.filter((r) => r.net > 0.5).map((r) => ({ ...r })), debt = net.filter((r) => r.net < -0.5).map((r) => ({ ...r })), moves = [];
   for (const d of debt) for (const c of cred) { const a = Math.min(-d.net, c.net); if (a > 0.5) { moves.push({ from: d.x.display_name, to: c.x.display_name, a }); d.net += a; c.net -= a; } }
