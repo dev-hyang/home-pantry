@@ -1,7 +1,7 @@
 import { state } from "./state.js";
 import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
 import { t } from "./i18n.js";
-import { incRollup, ledgerRange, ledgerRollup, localPage, localStats, spendRollup } from "./list-query.js";
+import { cardSpend, cardTotals, incRollup, itemPurchaseStats, ledgerRange, ledgerRollup, localPage, localStats, spendByMember, spendDupMatch, spendRollup, spendSuggest } from "./list-query.js";
 
 /* 成员资料（迁移 052）：只在 设置 → 家庭与成员 里用，不进 AI 提示词、不进备份（个人数据，只给本家庭看） */
 const PROFILE_COLS = "phone,email,address";
@@ -108,7 +108,18 @@ export const DemoStore = {
   async incRollup(from, to) { return incRollup(this.db, from, to); },
   async ledgerRollup(from, to, tz, unit = "month", anchor = null) { return ledgerRollup(this.db, from, to, unit, anchor); },
   async ledgerRange(from, to) { return ledgerRange(this.db, from, to); },
+  /** 全部花费：只给导出 JSON 用（按需读，平时不读整表） */
   async listPurchases() { return this.db.purchases.map((x) => ({ ...x, category: canonCat(x.category) })); },
+  /** 迁移 057 的按需查询（本地版，见 list-query.js） */
+  async spendByMember(from, to) { return spendByMember(this.db, from, to); },
+  async itemPurchaseStats(cur, items, cats) { return itemPurchaseStats(this.db, cur, items, cats); },
+  async spendDupMatch(rows, tz, days = 3.5) { return spendDupMatch(this.db, rows, days); },
+  async spendSuggest(since, limit = 300) { return spendSuggest(this.db, since, limit); },
+  async cardSpend(from, to) { return cardSpend(this.db, from, to); },
+  async cardTotals() { return cardTotals(this.db); },
+  async getPurchase(id) { const p = this.db.purchases.find((x) => x.id === id); return p ? { ...p, category: canonCat(p.category) } : null; },
+  async detachCardPurchases(cardId, label) { let n = 0; for (const p of this.db.purchases) if (p.card_id === cardId) { p.card_id = null; p.method = label; n++; } this.persist(); return n; },
+  async deleteCardPurchases(cardId) { const n = this.db.purchases.filter((x) => x.card_id === cardId).length; this.db.purchases = this.db.purchases.filter((x) => x.card_id !== cardId); this.persist(); return n; },
   async addItems(list) {
     const now = new Date().toISOString();
     for (const it of list) this.db.items.push({ ...it, id: uid(), created_at: now, updated_at: now });
@@ -597,11 +608,28 @@ export const CloudStore = {
     return this.pageAll(() => this.sb.from("stock_logs").select("id,item_id,delta,reason,created_at")
       .eq("household_id", this.hid).gte("created_at", since).order("created_at").order("id"));   // 分页：.limit(10000) 实际只回 1000 行，90 天里超过的最新记录会被截掉
   },
+  /** 全部花费：只给导出 JSON 用（按需读）。平时的页面不再读整表：统计 / 预算读聚合，明细分页，联想 / 查重 / 卡的用量都是定点查询（迁移 057） */
   async listPurchases() {
-    const since = new Date(Date.now() - 400 * DAY).toISOString();
     return (await this.pageAll(() => this.sb.from("purchases").select("*").eq("household_id", this.hid)
-      .gte("purchased_at", since).order("purchased_at", { ascending: false }).order("id"), 20000)).map((x) => ({ ...x, category: canonCat(x.category) }));   // 旧分类按别名表换成新的（迁移 035 跑过就没差别）；分页读，近 400 天超过 1000 笔也不丢
+      .order("purchased_at", { ascending: false }).order("id"))).map((x) => ({ ...x, category: canonCat(x.category) }));   // 旧分类按别名表换成新的（迁移 035 跑过就没差别）
   },
+  /* ── 迁移 057 的按需查询 ── */
+  /** 家庭分摊：按 月 × 记账人 × 币种 的正数花费 */
+  async spendByMember(from, to, tz) { return this.pageAll(() => this.sb.rpc("spend_by_member", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz }).order("month").order("created_by").order("currency")); },
+  /** 补货预估：物品最近几次买价、分类最近 10 次买价 */
+  async itemPurchaseStats(cur, items, cats) { return this.must(await this.sb.rpc("item_purchase_stats", { p_household: this.hid, p_cur: cur || null, p_items: items || [], p_cats: cats || [] })) || []; },
+  /** 查重：rows = [{ k, d, a }]，返回每条 ±days 天内金额相同的已有花费 */
+  async spendDupMatch(rows, tz, days = 3.5) { return this.pageAll(() => this.sb.rpc("spend_dup_match", { p_household: this.hid, p_rows: rows, p_tz: tz, p_days: days }).order("k").order("purchased_at", { ascending: false }).order("id")); },
+  /** 商店 / 行程联想 */
+  async spendSuggest(since, limit = 300) { return this.must(await this.sb.rpc("spend_suggest", { p_household: this.hid, p_since: since || null, p_limit: limit })) || {}; },
+  /** 卡的用量（卡 × 本地日期 × 分类 × 商店）/ 每张卡名下的笔数、合计、月份 */
+  async cardSpend(from, to, tz) { return this.pageAll(() => this.sb.rpc("card_spend", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz }).order("card_id").order("day").order("category").order("store")); },
+  async cardTotals(tz) { return this.must(await this.sb.rpc("card_totals", { p_household: this.hid, p_tz: tz })) || []; },
+  /** 一笔花费（编辑缴费 / 保养记录时读它的付款方式、收款方） */
+  async getPurchase(id) { const r = this.must(await this.sb.from("purchases").select("*").eq("id", id).maybeSingle()); return r ? { ...r, category: canonCat(r.category) } : null; },
+  /** 删除卡：名下花费改成文字付款方式 / 一起删；返回几笔 */
+  async detachCardPurchases(cardId, label) { return (this.must(await this.sb.from("purchases").update({ card_id: null, method: label }).eq("household_id", this.hid).eq("card_id", cardId).select("id")) || []).length; },
+  async deleteCardPurchases(cardId) { return (this.must(await this.sb.from("purchases").delete().eq("household_id", this.hid).eq("card_id", cardId).select("id")) || []).length; },
   async addPurchase(p) { return this.must(await this.sb.from("purchases").insert({ ...p, household_id: this.hid }).select("id").single()).id; },
 
   /* 房产 */
@@ -859,7 +887,7 @@ export const CloudStore = {
     });
     this.must(await this.sb.from("items").insert(rows));
   },
-  /** 一段时间的花费（收支对比、往年、全部流水都用它）。必须分页：原来一次 .limit(10000) 实际只回 1000 行（max-rows），又是按日期从旧到新排——
+  /** 一段时间的花费（现在只有银行导入「找回早期批次」按批次的日期窗口用；统计 / 对比都读聚合）。必须分页：原来一次 .limit(10000) 实际只回 1000 行（max-rows），又是按日期从旧到新排——
    *  「近 5 年」超过 1000 笔时只读到最早的 1000 笔，最近几年全被截掉，所以比「近 3 年」的花费还少 */
   async listPurchasesRange(from, to) {
     return (await this.pageAll(() => this.sb.from("purchases").select("*").eq("household_id", this.hid)

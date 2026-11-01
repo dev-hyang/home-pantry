@@ -203,5 +203,91 @@ export function ledgerRollup(db, from, to, unit = "month", anchor = null) {
 
 /** 本地演示的一页 / 统计：kind = spend / pay / inc */
 const FILTERED = { spend: spendFiltered, pay: payFiltered, inc: incFiltered }, STATS = { spend: spendStats, pay: payStats, inc: incStats };
-export const localPage = (db, kind, f, after, limit) => pageOf(FILTERED[kind](db, f), f.sort, after, limit);
+export const localPage = (db, kind, f, after, limit) => (kind === "spend" && !NON_NEW.has(f.sort) ? spendPageNew(db, f, after, limit) : pageOf(FILTERED[kind](db, f), f.sort, after, limit));
 export const localStats = (db, kind, f, facets) => STATS[kind](db, f, facets);
+
+/* ───────────── 迁移 057：「新 → 旧」快路 + 按需查询（本地演示版，规则同 SQL） ───────────── */
+const NON_NEW = new Set(["old", "high", "low", "name"]);
+/** 花费的「新 → 旧」（同 057 的 spend_page 快路）：purchases、事件型账单的付款两支各自跳过 cursor、取 n+1，再合并排好取 n+1。
+ *  全局的前 n+1 行一定在两支各自的前 n+1 行里，所以和 pageOf(全部) 逐行一样（校验脚本对过） */
+export function spendPageNew(db, f, after, limit) {
+  const rows = spendFiltered(db, f), branch = (v) => pageOf(rows.filter((r) => !!r.virtual === v), "new", after, limit);
+  return pageOf([...branch(false), ...branch(true)], "new", null, limit);
+}
+const localDay = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
+const inDays = (iso, from, to) => { const d = localDay(iso); return (!from || d >= from) && (!to || d < to); };
+const newest = (a, b) => cmp(String(b.purchased_at), String(a.purchased_at)) || cmp(String(b.id), String(a.id));
+
+/** 家庭分摊（同 spend_by_member）：本地日期 [from, to)，只算金额 > 0 */
+export function spendByMember(db, from, to) {
+  const map = new Map();
+  for (const s of spendFeed(db, {})) {
+    if (!(+s.amount > 0) || !inDays(s.purchased_at, from, to)) continue;
+    const k = [s.lm, s.created_by || "", s.currency || ""].join("|");
+    const r = map.get(k) || { month: s.lm, created_by: s.created_by || null, currency: s.currency || null, sum: 0, n: 0 };
+    r.sum = round2(r.sum + +s.amount); r.n++; map.set(k, r);
+  }
+  return [...map.values()];
+}
+/** 补货预估（同 item_purchase_stats）：物品最近 3 次买价 / 次数 / 最近一次 / 平均间隔天数，分类最近 10 次买价 */
+export function itemPurchaseStats(db, cur, items = [], cats = []) {
+  const ok = (db.purchases || []).filter((p) => +p.amount > 0 && (!cur || p.currency === cur)).sort(newest), out = [];
+  for (const id of new Set(items || [])) {
+    const l = ok.filter((p) => p.item_id === id); if (!l.length) continue;
+    const last = l[0].purchased_at, first = l.at(-1).purchased_at;
+    out.push({ kind: "item", key: String(id), amts: l.slice(0, 3).map((p) => +p.amount), n: l.length, last_at: last, last_store: String(l[0].store || "").trim() || null,
+      avg_days: l.length > 1 ? Math.round(((new Date(last) - new Date(first)) / 864e5 / (l.length - 1)) * 10) / 10 : null });
+  }
+  for (const c of new Set(cats || [])) {
+    const l = ok.filter((p) => p.category === c).slice(0, 10); if (!l.length) continue;
+    out.push({ kind: "cat", key: c, amts: l.map((p) => +p.amount), n: l.length, last_at: null, last_store: null, avg_days: null });
+  }
+  return out;
+}
+/** 查重（同 spend_dup_match）：rows = [{ k, d: 本地日期, a: 金额 }]，每条 ±days 天内金额相同的 purchases（不含事件型账单的付款） */
+export function spendDupMatch(db, rows = [], days = 3.5) {
+  const out = [];
+  for (const c of (rows || []).slice(0, 2000)) {
+    if (c?.k == null || !c.d || c.a == null) continue;
+    const t0 = new Date(`${c.d}T12:00:00`).getTime();
+    for (const p of db.purchases || []) {
+      if (p.amount == null || Math.abs(+p.amount - +c.a) >= 0.005 || Math.abs(new Date(p.purchased_at).getTime() - t0) > days * 864e5) continue;
+      out.push({ k: c.k, id: p.id, name: p.name, store: p.store ?? null, amount: +p.amount, purchased_at: p.purchased_at, created_by: p.created_by || null });
+    }
+  }
+  return out.sort((a, b) => cmp(a.k, b.k) || cmp(String(b.purchased_at), String(a.purchased_at)) || cmp(String(a.id), String(b.id)));
+}
+/** 输入框联想（同 spend_suggest）：since 之后用过的商店（按次数）和行程名（按最近） */
+export function spendSuggest(db, since = null, limit = 300) {
+  const st = new Map(), tr = new Map();
+  for (const s of spendFeed(db, {})) {
+    if (since && s.purchased_at < since) continue;
+    const v = s.store_txt.trim();
+    if (v) { const k = v.toLowerCase(), x = st.get(k) || { store: v, n: 0, last: "" }; x.n++; if (s.purchased_at > x.last) { x.last = s.purchased_at; x.store = v; } st.set(k, x); }
+    const m = s.amount != null && String(s.name || "").match(/^【([^】]{1,30})】/), trip = m ? m[1].trim() : "";
+    if (trip && !(tr.get(trip) >= s.purchased_at)) tr.set(trip, s.purchased_at);
+  }
+  return { stores: [...st.values()].sort((a, b) => b.n - a.n || cmp(b.last, a.last)).slice(0, Math.max(1, Math.min(1000, limit || 300))).map((x) => x.store),
+    trips: [...tr].sort((a, b) => cmp(b[1], a[1])).slice(0, 60).map(([x]) => x) };
+}
+/** 卡的用量（同 card_spend）：卡 × 本地日期 × 分类 × 商店 */
+export function cardSpend(db, from, to) {
+  const map = new Map();
+  for (const p of db.purchases || []) {
+    if (!p.card_id || p.amount == null || !inDays(p.purchased_at, from, to)) continue;
+    const day = localDay(p.purchased_at), store = String(p.store || "").trim(), k = [p.card_id, day, p.category, store].join("|");
+    const r = map.get(k) || { card_id: p.card_id, day, category: p.category, store, sum: 0, n: 0 };
+    r.sum = round2(r.sum + +p.amount); r.n++; map.set(k, r);
+  }
+  return [...map.values()];
+}
+/** 每张卡名下的花费（同 card_totals）：笔数、合计、有花费的本地月份 */
+export function cardTotals(db) {
+  const map = new Map();
+  for (const p of db.purchases || []) {
+    if (!p.card_id) continue;
+    const r = map.get(p.card_id) || { card_id: p.card_id, n: 0, sum: 0, months: new Set() };
+    r.n++; if (p.amount != null) r.sum = round2(r.sum + +p.amount); r.months.add(localMonth(p.purchased_at).lm); map.set(p.card_id, r);
+  }
+  return [...map.values()].map((r) => ({ ...r, months: [...r.months].sort() }));
+}
