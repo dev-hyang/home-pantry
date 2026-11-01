@@ -21,7 +21,9 @@ export const PROVIDERS = [
  *  cards.bill_id 和 bills.pay_card_id 互相引用：cards 先不带 bill_id 写入，bills 写完再补。 */
 export const TABLES = ["properties", "house_profiles", "custom_categories", "custom_locations", "custom_terms", "custom_seasonal_tasks", "seasonal_tasks", "assets", "items", "stock_logs", "shopping_list",
   "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "household_people", "cards", "purchases", "maintenance_logs", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments",
-  "member_incomes", "household_budgets"];
+  "member_incomes", "household_budgets",
+  // 迁移 058：价格旁表（只有财务权限能读；备份本来就只给有财务权限的人）、借贷。bills.debt_id 引用 debt_accounts：bills 先不带 debt_id 写，借贷写完再补
+  "property_financials", "deal_financials", "asset_financials", "debt_accounts", "debt_transactions"];
 const PAGE = 1000;   // PostgREST 单次最多 1000 行，大表分页读
 
 /* ───────────── 设置（存本机：文件夹本来就是这台电脑的） ───────────── */
@@ -48,7 +50,7 @@ const stamp = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"
 export const fileName = () => `${APP}-${stamp()}.json`;
 export const FILE_RE = /^home-pantry-(\d{4}-\d{2}-\d{2})-\d{4}\.json$/;   // 清理旧备份时只认我们自己起的名字
 /** 分页必须有确定的排序，否则 Postgres 每页的顺序可能不同，跨页会漏行 / 重复；这几张表没有 id 列（每套房产 / 每人一行，不会超过一页） */
-const NO_ID = new Set(["house_profiles", "member_incomes", "household_budgets", "income_access"]);
+const NO_ID = new Set(["house_profiles", "member_incomes", "household_budgets", "income_access", "property_financials", "deal_financials", "asset_financials"]);
 async function readAll(sb, table) {
   const out = [];
   for (let from = 0; ; from += PAGE) {
@@ -212,7 +214,7 @@ export async function restore(data, onProgress = () => {}) {
   if (Store.mode === "demo") { DemoStore.db = data.db; DemoStore.persist(); DemoStore.load(); return { done: { demo: rowCount(data) }, skipped: {}, errors: [] }; }
   const sb = CloudStore.sb, hid = CloudStore.hid, me = state.user?.id, exporter = data.exporter, members = new Set((state.members || []).map((m) => m.user_id));
   const uid = (v) => (v && v === exporter ? me : v);   // 导出者 → 现在登录的人；别的家人 id 原样留着（没有外键的列只是查不到名字）
-  const done = {}, skipped = {}, errors = [], cardBills = [];
+  const done = {}, skipped = {}, errors = [], cardBills = [], billDebts = [];
   for (const tb of TABLES) {
     let rows = (data.tables?.[tb] || []).map((r) => ({ ...r, household_id: hid }));
     if (!rows.length) continue;
@@ -220,7 +222,8 @@ export async function restore(data, onProgress = () => {}) {
     if (tb === "member_incomes") { const keep = rows.filter((r) => members.has(uid(r.user_id))); skipped[tb] = rows.length - keep.length; rows = keep.map((r) => ({ ...r, user_id: uid(r.user_id) })); }   // 收入按人存，人不在这个家庭里的导不进（外键）
     if (tb === "income_records") rows = rows.map(({ source_key, ...r }) => r);   // source_key 是数据库算出来的列，不能写入
     if (tb === "household_people") rows = rows.map(({ name_key, ...r }) => r);   // name_key 同理
-    if (tb === "cards") rows = rows.map((r) => { if (r.bill_id) cardBills.push([r.id, r.bill_id]); return { ...r, bill_id: null }; });   // 和 bills 互相引用：先不带 bill_id
+    if (tb === "cards") rows = rows.map((r) => { if (r.bill_id) cardBills.push([r.id, r.bill_id]); return { ...r, bill_id: null }; });
+    if (tb === "bills") rows = rows.map(({ debt_id, ...r }) => { if (debt_id) billDebts.push([r.id, debt_id]); return r; });   // 借贷表在后面才写   // 和 bills 互相引用：先不带 bill_id
     if (tb === "stock_logs") {   // id 是自增、不能指定：去掉 id，按 (item_id, created_at) 跳过已有的
       const have = await CloudStore.pageAll(() => sb.from("stock_logs").select("item_id,created_at").eq("household_id", hid).order("created_at").order("id"))   // 分页读全：.limit(10000) 实际只回 1000 行，超过的会被当成“没有”而重复写入
         .catch((e) => { console.warn("[restore stock_logs]", e.message); return []; });
@@ -238,5 +241,6 @@ export async function restore(data, onProgress = () => {}) {
     done[tb] = n;
   }
   for (const [id, bill_id] of cardBills) await sb.from("cards").update({ bill_id }).eq("id", id).then(() => {}, () => {});
+  for (const [id, debt_id] of billDebts) await sb.from("bills").update({ debt_id }).eq("id", id).then(() => {}, () => {});
   return { done, skipped, errors };
 }
