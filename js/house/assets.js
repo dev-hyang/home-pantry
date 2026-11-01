@@ -980,7 +980,7 @@ export async function saveMaintForm(f) {
   const spend = { name: `${asset.name} · ${itemName}`, amount: cost, store: vendor, purchased_at: new Date(`${done_on}T12:00:00`).toISOString(), ...(fe.pay ? purchasePayFields(fe.pay.value, oldPur) : {}) };
   if (cost != null && cost > 0) {
     if (oldPur) await Store.updatePurchase(purchase_id, spend);   // 编辑：同步改关联的花费（含怎么付的）
-    else purchase_id = await Store.addPurchase({ item_id: null, category: veh ? VEHICLE_CAT.id : MAINT_CAT.id, quantity: null, unit: null, currency, ...spend });
+    else purchase_id = await Store.addPurchase({ item_id: null, category: veh ? VEHICLE_CAT.id : MAINT_CAT.id, quantity: null, unit: null, currency, ...spend, ...(!veh && asset.property_id ? { property_id: asset.property_id } : {}) });   // 房屋设备的保养花费关联它所在的房产（迁移 055）
   } else if (purchase_id) { await Store.deletePurchase(purchase_id); purchase_id = null; }   // 编辑时把花费清空：关联的花费一起删
   const fields = { done_on, kind, cost, currency: cost != null ? currency : null, diy, vendor, notes: fe.notes.value.trim() || null, purchase_id, result, service_item, odometer };
   if (editing) await Store.updateMaintLog(editing.id, fields);

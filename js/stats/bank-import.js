@@ -11,6 +11,7 @@ import { esc, money, num, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { categoryOptions } from "../pantry/views.js";
+import { aiCatalog } from "../core/taxonomy.js";
 import { meta, saveMeta } from "../bills/budget.js";
 import { adults, guessChannel, guessKind, inc as incState, incomeRules, kindOptionsHtml, loadIncome, myPersonId, senderName, similarIncome, skey } from "../income/logic.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
@@ -125,7 +126,15 @@ function fixP2PSign(row) {
   return { ...row, out: inn ? -Math.abs(row.out) : Math.abs(row.out) };
 }
 const REFUND = /refund|return|reversal|credit adjustment|退款|退货|冲正/i;
+/** 默认跳过的几组（还款 / 自己账户之间），勾上导入时分类预选成对应的转账分类：不算任何花费（以前要手动挑一个花费分类） */
+const SKIP_CAT = { card_payment: "bill_credit_card", transfer: "transfer_account" };
+/* 转账类（「转账」一级分类，见 js/core/taxonomy.js：不算花费、不算现金流出、不进预算）排在最前面：信用卡还款、自己账户之间、投资账户内部；
+ * 转到券商 / 投资账户（钱离开银行账户去买基金股票）是「投资」（capital_invest：算现金流出，不算日常）。 */
 const RULES = [
+  ["bill_credit_card", /payment,? thank you|autopay payment|credit card (pmt|payment)|crcardpmt|card ?services? payment|信用卡还款|自动还款/i],
+  ["transfer_invest", /(internal|journal(ed)?|sweep|core position|money ?market) (transfer|trf|xfer|journal)|journal(ed)? (between|to|from) (accounts?|brokerage)|证券.*(内部|转换)/i],
+  ["transfer_account", /online (banking )?transfer (to|from)|(transfer|xfer) (to|from) (my |your )?(sav|savings|chk|checking)\b|between (my |your )?accounts|账户间|本人账户|行内转/i],
+  ["capital_invest", /robinhood|fidelity(?! national)|schwab|vanguard|e\*?trade|webull|wealthfront|betterment|acorns|interactive brokers|\bm1 finance|treasurydirect|brokerage|券商|基金申购|证券转入/i],
   ["bill_mortgage", /mortgage|mr\.? cooper|rocket mortgage|loancare|房贷/i], ["bill_rent", /\brent\b|apartments?\b|property management|房租|租金/i],
   ["bill_property_tax", /property tax|county treasurer|房产税/i], ["bill_income_tax", /\birs\b|usataxpymt|treas ?310|state tax|dept of revenue|个人所得税/i],
   ["bill_heating_oil", /heating oil|propane|ferrellgas|amerigas|取暖油/i], ["bill_solar", /sunrun|tesla energy|sunpower|solar/i], ["bill_storage", /public storage|extra space|cubesmart|life storage|储物/i], ["bill_pool", /pool (service|supply)|leslie'?s|泳池/i],
@@ -154,7 +163,7 @@ const RULES = [
   ["life_fees", /\bfee\b|interest charge|finance charge|annual membership|late fee|overdraft|foreign transaction|service charge|手续费|利息|年费|滞纳/i], ["life_mail", /usps|ups store|fedex|\bups\b|\bdhl\b|postage|快递|邮费|顺丰/i],
   ["life_shopping", /amazon|amzn|target|walmart|best ?buy|ikea|etsy|ebay|temu|shein|wayfair|淘宝|京东|拼多多|天猫/i],
 ];
-const BANK_CAT = [[/grocer/i, "grocery_misc"], [/food|dining|restaurant/i, "life_dining"], [/gas|fuel/i, "vehicle_fuel"], [/automotive/i, "vehicle_maint"], [/travel|airline|hotel/i, "travel_other"],
+const BANK_CAT = [[/credit card payment|payment\/credit/i, "bill_credit_card"], [/grocer/i, "grocery_misc"], [/food|dining|restaurant/i, "life_dining"], [/gas|fuel/i, "vehicle_fuel"], [/automotive/i, "vehicle_maint"], [/travel|airline|hotel/i, "travel_other"],
   [/shopping|merchandise/i, "life_shopping"], [/health|medical|pharmacy/i, "health"], [/entertainment/i, "life_fun"], [/home|improvement/i, "house_maint"], [/personal|beauty/i, "life_care"],
   [/education|book/i, "life_edu"], [/fee|interest/i, "life_fees"], [/gift|donation|charit/i, "life_gifts"]];
 
@@ -303,7 +312,7 @@ function rebuild() {
   }
   S.groups = [...g.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
   freshenDupPool();   // 内存里的花费可能是旧的（撤销 / 在别处删掉的），按这批的日期范围从云端重读一遍再比
-  for (const x of S.groups) { x.src = x.rows[0].src || ""; if (!(x.id in S.auto)) S.auto[x.id] = x.inc ? (incomeRules()[x.id.slice(3)] || guessKind(x.rows[0].desc)) : x.skip ? "" : x.rows[0].cat; if (!(x.id in S.pick)) S.pick[x.id] = x.skip ? "" : x.rows[0].cat; if (x.inc && !(x.id in S.ikind)) S.ikind[x.id] = S.auto[x.id]; if (!(x.id in S.include)) S.include[x.id] = x.inc ? !x.rows.every((r) => r.incUnsure) : !x.skip; }
+  for (const x of S.groups) { x.src = x.rows[0].src || ""; if (!(x.id in S.auto)) S.auto[x.id] = x.inc ? (incomeRules()[x.id.slice(3)] || guessKind(x.rows[0].desc)) : x.skip ? "" : x.rows[0].cat; if (!(x.id in S.pick)) S.pick[x.id] = x.skip ? SKIP_CAT[x.skip] || "" : x.rows[0].cat; if (x.inc && !(x.id in S.ikind)) S.ikind[x.id] = S.auto[x.id]; if (!(x.id in S.include)) S.include[x.id] = x.inc ? !x.rows.every((r) => r.incUnsure) : !x.skip; }
 }
 /** 查重用的「已有花费」是内存里的缓存：近 400 天以外按需读进来的老花费不会被后台同步清掉，撤销 / 家人在别处删掉后就成了幽灵，
  *  导入时被误判成「已记录」。所以这批的日期范围（前后各留几天）从数据库重读一次，范围内的以数据库为准；有变化就重新判断。 */
@@ -383,10 +392,8 @@ async function ingest(files) {
 }
 
 /* ───────────── AI 解析（PDF 对账单 / 截图 / 扫描件 / 粘贴的文字） ───────────── */
-const catalog = () => {
-  const cats = [...window.CATEGORIES.filter((c) => c.space === "pantry" || c.space === "gear"), window.GROCERY_MISC, ...window.LIFE_CATS, ...window.WORK_CATS, window.VEHICLE_FUEL, { id: "vehicle_maint", name: "车辆维修保养" }, window.MAINT_CAT, ...window.TRAVEL_CATS, ...window.BILLS_GROUP.cats(), window.MEDICAL_GROUP, window.PET_CARE_CAT];
-  return { text: cats.map((c) => `${c.id}=${t(c.name)}`).join("; "), ids: new Set(cats.map((c) => c.id)) };
-};
+/** 给 AI 的分类表：三级分类树（id=名称（一级 / 二级）），含转账、投资、资本性；见 js/core/taxonomy.js */
+const catalog = () => aiCatalog();
 async function aiParse(i) {
   const p = S.parts[i]; if (!p || S.busy) return;
   if (!aiReady()) return toast(t("还没填 API key，去 设置 → AI 助手 填一个（Gemini 有免费额度）"));
@@ -412,7 +419,7 @@ async function aiParse(i) {
 
 /* ───────────── 界面 ───────────── */
 const rangeOf = (rows) => { const d = rows.map((r) => r.date).sort(); return d.length ? `${d[0]} → ${d.at(-1)}` : ""; };
-/** 分类下拉：和手动记一笔同一份（categoryOptions 的 spend 模式已含账单、医疗 / 宠物医疗，见 data.js SPEND_GROUPS） */
+/** 分类下拉：和手动记一笔同一份（categoryOptions 的 spend 模式 = js/core/taxonomy.js 的三级分类，含账单、医疗、转账） */
 const catOpts = (sel) => `<option value="" ${!sel ? "selected" : ""}>${esc(t("— 请选择 —"))}</option>${categoryOptions(sel, { withOther: true, spend: true })}`;
 /** 疑似已记录的几笔：每笔写出对上的是哪条已有花费，核对过确实不是重复的，勾上「仍然导入」就不再跳过 */
 const dupListHtml = (rows) => '<details class="bank-dups" ' + (rows.some((r) => r.forced) ? "open" : "") + '><summary>' + t("核对 / 取消跳过") + '</summary><ul class="plain small" style="margin:6px 0 0">'
