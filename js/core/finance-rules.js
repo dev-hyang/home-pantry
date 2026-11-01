@@ -41,6 +41,7 @@ export function quickAllowed(id, allowed) {
   const [path, qs = ""] = s.split("?");
   const parts = path.replace(/^#\/?/, "").split("/").filter(Boolean);
   const q = new URLSearchParams(qs);
+  if (parts[0] === "finance") parts[0] = "bills";   // #/finance/… 是 #/bills/… 的别名（router.js），权限按同一处算
   if (parts[0] === "bills") {
     if (FINANCE_HIDDEN_SUBS.includes(parts[1])) return false;
     if (parts[1] === "spend" && q.get("tab") === "import") return false;   // 旧地址：银行导入 → 对账单
