@@ -15,6 +15,7 @@ import { DEBT_CATS, DIRECTIONS, FREQS, ROLES, STATUSES, TXN_TYPES, debtCat, debt
 import { billOfDebt, canSplit, clearOverride, debtById, debtHref, debtTxns, debtsEnriched, deleteDebtTxn, enrichDebt, loadDebts, overrideSplit, recordDebtTxn, resplitDebt, syncDebtStatus, syncVehicle, unsplitDebt } from "./debt-logic.js";
 import { loadIncome } from "../income/logic.js";
 import { assetName, isVehicle } from "../house/assets.js";
+import { liveNetWorth } from "./nw-logic.js";   // 资产净值（P3，迁移 059）
 
 let hooks = { render: () => {}, refresh: async () => {} };
 const ui = () => (state.debtUi ||= {});
@@ -36,6 +37,11 @@ const linkedText = (e) => {
 const periodPay = (e) => (e.pi != null ? e.pi + (e.escrow || 0) : e.scheduled_payment ?? e.bill?.est ?? null);
 
 /* ───────────── 列表 ───────────── */
+/** 关联资产的净值（净资产页同一份计算：市值 − 挂在这处资产上的全部贷款）；没估值时提示去资产页 */
+const equityText = (e) => {
+  const q = liveNetWorth().equity.find((x) => (e.property ? x.kind === "property" && x.item.id === e.property.id : x.kind !== "property" && x.item.id === e.asset?.id));
+  return q?.equity != null ? `<a href="${href("bills", "networth")}">${mny(q.equity)}</a>${q.source === "purchase" ? ` <small class="muted">${t("按购入价")}</small>` : ""}` : `<a class="muted" href="${href("bills", "assets")}">${t("未估值")}</a>`;
+};
 function loanCard(e) {
   const rate = e.interest_rate != null ? pct(e.interest_rate) : `<span class="muted">${t("未填")}</span>`;
   const term = e.term_months ? t("{n} 个月", { n: e.term_months }) : null;
@@ -51,7 +57,7 @@ function loanCard(e) {
       ${fact(t("每期还款"), pay != null ? `${mny(pay, e.currency)}${e.escrow ? ` <small class="muted">${t("含 Escrow {a}", { a: mny(e.escrow, e.currency) })}</small>` : ""}` : "—")}
       ${fact(t("下次还款"), e.nextDue ? esc(fmtDate(e.nextDue)) : e.bill ? `<span class="muted">${t("账单没填到期日")}</span>` : `<span class="muted">${t("没挂账单")}</span>`)}
       ${fact(t("资产"), linkedText(e) || `<span class="muted">${t("没关联")}</span>`)}
-      ${e.property && !isClosedStatus(e.status) ? fact(t("净值"), `<span class="muted">${t("估值 P3")}</span>`) : ""}
+      ${(e.property || e.asset) && !isClosedStatus(e.status) && state.nwOk ? fact(t("资产净值"), equityText(e)) : ""}
     </div></li>`;
 }
 function personCard(e) {

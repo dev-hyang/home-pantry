@@ -28,6 +28,8 @@ import { aggregate, householdFlow, incAggregate, incNodeSum, normIncRow, normRow
 import { sameAmountNear } from "../stats/dup-check.js";
 import { CHANNELS, GAIN_KINDS, RANGES, UNITS, adults, biweekAnchor, bucketKey, canSeeAll, capitalKinds, customKinds, groupList, groupOf, groupSum, inc, incSumOf, incomeIn, isIncomeKind, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, knownSenders, loadIncome, memberLabel, myPersonId, normKindSel, openRepayments, periodKeys, personOk,
   periodLabel, personName, recognized, repayState, repaidOf, setIncMerge, similarIncome, skey, spanLabel, spanOk, spanOptionsHtml, spanPrev, spanWindow, statKinds, sumOf, windowOf } from "./logic.js";
+import { liveNetWorth, thisMonth } from "../bills/nw-logic.js";   // 净资产（迁移 059）：收支总览上的小卡片
+import { monthChange, trendPoints } from "../stats/net-worth.js";
 
 const incomeHref = (id) => `${href("bills", "income")}${id === "overview" ? "" : `?tab=${id}`}`;
 const GREEN = "#2c6a57", RED = "#d4694c", BLUE = "#3b7fc4", TEAL = "#24897d", SLATE = "#64748b";
@@ -63,6 +65,16 @@ function roll(kind, from, to, unit = "month") {
       .finally(() => { e.busy = false; rerender(); });
   }
   return e.rows;
+}
+/** 覆盖这些月份的收入聚合行（净资产页「财富增长 vs 消费」用，和收支总览共用缓存）；还在读返回 null */
+export const incRollupFor = (months) => { const sp = spanOfMonths(months); return roll("inc", sp.from, sp.to); };
+/** 收支总览上的净资产小卡片：现在的净资产 + 比上月，点进 财务 → 净资产（只给有财务权限的人；没执行 059 不显示） */
+function netWorthCard() {
+  if (!state.nwOk || !canSeeAll()) return "";
+  const r = liveNetWorth(), m = thisMonth(), mom = monthChange(trendPoints(state.nwSnapshots, cur(), { live: r, month: m }), m);
+  const sgn = (v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${fmtMoney(Math.abs(v))}`;
+  return `<a class="panel nw-card" href="${href("bills", "networth")}"><span>📈 ${t("净资产")}</span><b class="${r.netWorth < 0 ? "down" : ""}">${fmtMoney(r.netWorth)}</b>
+    <small class="muted">${mom == null ? t("资产 {a} · 负债 {l}", { a: fmtMoney(r.assetsTotal, true), l: fmtMoney(r.liabilitiesTotal, true) }) : t("比上月 {d}", { d: sgn(mom) })}</small><span class="mch" aria-hidden="true">›</span></a>`;
 }
 const rollAsync = async (kind, from, to, unit = "month") => { roll(kind, from, to, unit); await ROLL.get(`${kind}|${from}|${to}|${unit}`)?.p; return ROLL.get(`${kind}|${from}|${to}|${unit}`)?.rows || []; };
 const staleAll = (kinds) => { for (const [k, e] of ROLL) if (kinds.includes(k.split("|")[0])) e.stale = true; };
@@ -266,7 +278,7 @@ function overviewTab() {
     <tr><th scope="row"><b>${t("全家合计")}</b></th><td><b>${byP.reduce((a, x) => a + x.n, 0)}</b></td><td><b>${fmtMoney(total)}</b></td><td>100%</td></tr></tbody></table></div></div>` : "";
   const recent = I.rec.filter((r) => personOk(r, O.person)).slice().sort((a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5);
   const recentHtml = recent.length ? `<div class="panel"><div class="chart-head"><h3>${t("最近到账")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("records")}">${t("全部明细")} ›</a></div><ul class="restock-list ix-list">${recent.map(recordRow).join("")}</ul></div>` : "";
-  return `${ovBar(O)}${kpis}${all ? waterfallHtml(F, spW) : ""}
+  return `${ovBar(O)}${kpis}${netWorthCard()}${all ? waterfallHtml(F, spW) : ""}
     <div class="panel chart-panel"><h3>${t("收入 vs 消费（近 12 个月）")}</h3>${trendChart}<p class="muted drill-hint">${t("柱子 = 认定收入和消费（日常 + 住房），虚线 = 投资转入。点一下看对应的明细。")}</p></div>
     ${breakdown}<div class="ix-two">${rank}${members}</div>${recentHtml}${repayPanel()}
     ${tabHub(INCOME_TABS, incomeHref, t("其他功能"))}`;

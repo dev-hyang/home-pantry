@@ -12,6 +12,7 @@ import { aiReady, aiSettings, askText, providerOf } from "../core/ai.js";
 import { askInline } from "../core/ask.js";
 import { cardsRO } from "../core/finance-access.js";
 import { spendChanged } from "../core/spend-data.js";
+import { balancePanel } from "./net-worth.js";   // 账户 / 信用卡的余额历史（P3，迁移 059；只给有财务权限的人）
 
 /** 没有财务权限的家人：用卡只读。写入口都先过这里（界面上的按钮也不画；数据库由迁移 050 的行级安全兜底） */
 function roStop() {
@@ -402,6 +403,7 @@ function cardForm(id, ro = false) {
       <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button><a class="btn btn-ghost" href="${CARDS_HREF()}">${t("取消")}</a>
         ${c ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="card-del" data-id="${c.id}">${bank ? t("删除这个账户") : t("删除这张卡")}</button>` : ""}</div>`}
     </form>
+    ${c && !ro ? `<div class="nw-card-bal">${balancePanel(c, { open: true })}</div>` : ""}
   </section>`;
 }
 /** 表单里选了目录：用目录内容重画（草稿放 state.cardDraft） */
