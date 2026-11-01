@@ -7,7 +7,7 @@ import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { memberName } from "../core/logic.js";
 import { withProperty } from "../core/alerts.js";
-import { GROUPS, actualByMonth, billsThisMonth, applianceFund, bigThreshold, meta, registerAction, registerSection, restockForecast, saveMeta, groupOf } from "./budget.js";
+import { actualByMonth, billsThisMonth, applianceFund, meta, registerAction, registerSection, restockForecast, saveMeta } from "./budget.js";
 import { escrowMonthlyFor, freqText, upcoming } from "./logic.js";
 import { lastMonths, monthKey, monthLabel } from "../stats/views.js";
 
@@ -62,7 +62,7 @@ registerSection("plan", 0, ({ plan, mp }) => {
   const rows = fc.rows.slice(0, 8);
   return sec("budRestock", t("补货预估"), t("库存告急和采购清单里的东西，按你以前买它的花费估一下"), `<div class="panel">
     ${fc.rows.length ? `<p style="margin:0">${t("共 {n} 项，预计 {a}{u}。", { n: fc.rows.length, a: money(fc.total), u: fc.unknown ? t("（另有 {k} 项没有价格记录）", { k: fc.unknown }) : "" })}</p>
-      <p class="muted" style="margin:4px 0 8px;font-size:13px">${t("日常储备本月还剩 {a}，预估占 {p}%；房屋耗材预估 {b}。", { a: money(gRemain("groceries")), p: pct(fc.byGroup.groceries || 0, Math.max(0, gRemain("groceries"))), b: money(fc.byGroup.house || 0) })}</p>
+      <p class="muted" style="margin:4px 0 8px;font-size:13px">${t("餐饮本月还剩 {a}，预估占 {p}%；维护与服务预估 {b}。", { a: money(gRemain("food")), p: pct(fc.byGroup.food || 0, Math.max(0, gRemain("food"))), b: money(fc.byGroup.home_maint || 0) })}</p>
       <ul class="restock-list">${rows.map((r) => `<li><span class="badge ${r.src === "stock" ? "b-low" : "b-ok"}">${r.src === "stock" ? t("告急") : t("清单")}</span><div class="grow"><span class="name">${esc(r.name)}</span></div><b>${r.est != null ? money(r.est) : `<span class="muted">${t("没价格记录")}</span>`}</b></li>`).join("")}</ul>`
       : `<div class="empty"><strong>${t("现在没有告急的库存，清单也是空的")}</strong></div>`}
     <div class="form-actions"><a class="btn btn-sm" href="${href("shopping")}">${t("去采购清单")}</a><a class="btn btn-sm btn-ghost" href="${href("pantry", "overview")}">${t("看库存")}</a></div></div>`);
@@ -70,13 +70,13 @@ registerSection("plan", 0, ({ plan, mp }) => {
 
 /* ───────────── 大件家电基金：按设备寿命每月预存 ───────────── */
 registerSection("plan", 10, ({ plan }) => {
-  const f = applianceFund(), big = plan.groups.find((g) => g.id === "big");
-  const body = f.rows.length ? `<div class="panel"><p style="margin:0">${t("按设备寿命和更换估价，每月预存约 {a}；“大件家电”预算现在是 {b}。", { a: money(f.monthly), b: money(big?.budget || 0) })}</p>
+  const f = applianceFund();
+  const body = f.rows.length ? `<div class="panel"><p style="margin:0">${t("按设备寿命和更换估价，每月预存约 {a}。", { a: money(f.monthly) })}</p>
       <ul class="restock-list" style="margin-top:8px">${f.rows.slice(0, 8).map((r) => `<li><span class="badge ${r.yearsLeft != null && r.yearsLeft <= 2 ? "b-low" : ""}" style="${r.yearsLeft != null && r.yearsLeft <= 2 ? "" : "background:var(--surface-2)"}">${r.yearsLeft != null ? (r.yearsLeft <= 0 ? t("已到寿命") : t("剩 {n} 年", { n: Math.max(0.1, Math.round(r.yearsLeft * 10) / 10) })) : t("寿命未知")}</span>
         <div class="grow"><a class="link-name" href="${href("asset", r.id)}">${esc(r.name)}</a><small>${t("估价 {a}，寿命 {l} 年", { a: money(r.cost), l: r.life })}</small></div><b>${money(r.monthly)} / ${t("月")}</b></li>`).join("")}</ul>
       ${f.missing ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("还有 {n} 台设备没填“更换估价”，填了会算进基金。", { n: f.missing })} <a href="${href("house", "assets")}">${t("去设备保养")}</a></p>` : ""}</div>`
     : `<div class="panel empty"><strong>${t("还没有可算基金的设备")}</strong>${t("在 房屋 → 设备保养 里给设备填“更换估价”和“常见寿命”，这里会算出每月该预存多少。")} <a href="${href("house", "assets")}">${t("去设备保养")}</a></div>`;
-  return sec("budFund", t("大件家电基金"), t("单笔 ≥ {a} 的花费（不含账单、维修保养）记为大件", { a: money(bigThreshold()) }), body);
+  return sec("budFund", t("大件家电基金"), t("换设备多半记成资本性支出（不算日常预算），按寿命每月单独预存"), body);
 });
 
 /* ───────────── 现金流预测：未来 90 天账单 vs 收入 ───────────── */

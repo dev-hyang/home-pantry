@@ -7,45 +7,39 @@ import { lang, t } from "../core/i18n.js";
 import { alertsOf } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { budgetBridge } from "../core/budget-bridge.js";
-import { dq, hitAttrs, lastMonths, monthKey, monthLabel, rangeChipsHtml, rangeMonths, statCat, timeBarHtml } from "../stats/views.js";
+import { dq, hitAttrs, lastMonths, monthKey, monthLabel, rangeChipsHtml, rangeMonths, timeBarHtml } from "../stats/views.js";
+import { LEGACY_BUDGET, budgetGroupOf, budgetL2s } from "../core/taxonomy.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { BUDGET_TABS, activeTab } from "../core/tabs.js";
 import { financeOk } from "../core/finance-access.js";
 
 /* ───────────── 预算分组 ───────────── */
-// 固定账单单独算（从账单项目的每月折算得来）；其余花费分成这几组，按过去 6 个月的比例分配“可支配额”
-export const GROUPS = [
-  { id: "groceries", name: "日常储备", icon: "🥫", color: "#3f8f5a", w: 0.4 },
-  { id: "house", name: "房屋维护", icon: "🏠", color: "#b07a1a", w: 0.15 },
-  { id: "big", name: "大件家电", icon: "🧊", color: "#a0522d", w: 0.1 },   // 单笔 ≥ 门槛的购买（不含账单、维修保养）；有设备更换估价时按设备寿命预存
-  { id: "vehicle", name: "车辆", icon: "🚗", color: "#3b7fc4", w: 0.1 },
-  { id: "gear", name: "装备", icon: "🧳", color: "#7563c0", w: 0.05 },
-  { id: "dining", name: "餐饮外食", icon: "🍔", color: "#c0603a", w: 0.08 },   // 餐厅、外卖、咖啡：单独一组
-  { id: "life", name: "休闲与个人", icon: "🎭", color: "#8a5fb0", w: 0.05 },   // 娱乐门票、美容、健身、礼物、课程（综合购物待细分算“其他”，超市杂货算“日常储备”）
-  { id: "work", name: "工作与专业", icon: "💼", color: "#3f6c8f", w: 0.03 },   // 付费软件、考证、律师会计（非房产）、办公用品
-  { id: "admin", name: "政务与手续", icon: "🏛️", color: "#6b7280", w: 0.02 },   // 证件罚单报税、银行手续费、邮寄
-  { id: "travel", name: "旅行出行", icon: "🧳", color: "#0f8b8d", w: 0.05 },   // 机票、住宿、门票、燃油、饭店…（不算“大件”）；没有旅行花费的家庭这一组显示为 0
-  { id: "other", name: "其他", icon: "🧺", color: "#8a948f", w: 0.05 },
-];
+// 固定账单单独算一组（从账单项目的每月折算得来）；其余花费按 二级分类 分组（js/core/taxonomy.js 的 budgetL2s：餐饮、交通、购物日用、维护与服务…），
+// 按过去 6 个月的比例分配“可支配额”。转账、资本性、投资不进预算（勾了花费页「排除资本性」以外的，资本性也不进：预算只管日常）。
+// 以前的分组键（groceries / dining / big / vehicle…，2026-10 之前存在 cat_budgets 里）读的时候按 LEGACY_BUDGET 换成二级分类，存储不改；以后保存写新键。
+const W = { food: 0.3, transport: 0.1, shopping: 0.1, home_maint: 0.1, kids: 0.06, healthcare: 0.05, fun: 0.05, travel: 0.05, living_other: 0.05, personal: 0.04, pets: 0.03, work: 0.03, gov_admin: 0.02, loans_fees: 0.01 };
+export const budgetGroups = () => budgetL2s().map((n) => ({ id: n.id, name: n.name, icon: n.icon, color: n.color, w: W[n.id] ?? 0.02 }));
 const BILLS_GROUP = { id: "bills", name: "账单", icon: "🧾", color: "#2f5d8a" };
-/* 医疗：默认不计入每月“可支配”预算（大额、不可预测，和日常花费分开看）；在 账单 → 收入 → 预算与计划 里可以改成计入，那时它和其他分类一样有月预算 */
-const MEDICAL_BUDGET_GROUP = { id: "medical", name: "医疗", icon: "🏥", color: "#c2475f", w: 0.08 };
+/* 医疗（事件型医疗账单的付款，叶子 medical）：默认不计入每月“可支配”预算（大额、不可预测，和日常花费分开看）；在 账单 → 收入 → 预算与计划 里可以改成计入，
+ * 那时它并进「医疗健康」这一组 */
+const MEDICAL_BUDGET_GROUP = { id: "medical", name: "医疗", icon: "🏥", color: "#c2475f" };
 export const medInPool = () => meta("_med_in_pool", false) === true;
-export const groupsNow = () => (medInPool() ? [...GROUPS, MEDICAL_BUDGET_GROUP] : GROUPS);
+export const groupsNow = () => budgetGroups();
 const DRILL_HINT = () => `<p class="muted drill-hint">${t("点预算行或图里的柱子，可以查看对应的花费明细。")}</p>`;
-export const groupOf = (category, amount = 0) => {
-  const s = statCat(category);
-  if (String(category || "").startsWith("bill_")) return "bills";   // 统计里账单已按具体种类分项，预算仍把全部账单算一组（固定支出）
-  if (s === "medical") return "medical";
-  if (s === "capital") return "capital";   // 资本性支出（房产交易、买车整付）：不进预算
-  if (s === "travel") return "travel";
-  if (category === "grocery_misc") return "groceries";   // 超市杂货（银行导入里没细分的）算“日常储备”
-  if (s === "life" || s === "dining" || s === "admin" || s === "work") return s;   // 旅行出行：机票再贵也不当“大件”
-  if (category === "pet_care") return "other";   // 宠物账单（兽医、寄养）算“其他”；宠物粮食仍在日常储备
-  if (s !== "vehicle" && category !== "house_maint" && amount >= bigThreshold()) return "big";   // 大件：单笔大额，但账单、车辆、维修保养不算
-  return ["house", "vehicle", "gear", "other"].includes(s) ? s : "groceries";
-};
-budgetBridge.groupOf = groupOf; budgetBridge.groups = [BILLS_GROUP, ...GROUPS, MEDICAL_BUDGET_GROUP, { id: "capital", name: "资本性支出", icon: "🏦", color: "#4b5563" }];   // 明细页按预算分组筛选时用
+/** 一笔花费归哪一组：bills / medical / 二级分类，或 transfer / capital / investment（这三种不进预算）；nature 空 = 按分类默认 */
+export const groupOf = (category, nature = null) => budgetGroupOf(category, nature, { medInPool: medInPool(), inclCapital: state.stats.exCap === false });   // 花费页去掉了「排除资本性」：资本性也按分类进预算
+budgetBridge.groupOf = groupOf;   // 明细页按预算分组筛选时用
+Object.defineProperty(budgetBridge, "groups", { get: () => [BILLS_GROUP, ...budgetGroups(), MEDICAL_BUDGET_GROUP, { id: "capital", name: "资本性支出", icon: "🏦", color: "#4b5563" }], configurable: true });
+/** 旧键 → 新键：cat_budgets / _plan.groups 里 2026-10 之前的分组键换算成二级分类（同一个目标的几个旧键相加）；已经有新键的以新键为准 */
+function mapLegacy(obj) {
+  const out = {}, src = obj || {};
+  for (const [k, v] of Object.entries(src)) if (!k.startsWith("_") && !(k in LEGACY_BUDGET && LEGACY_BUDGET[k] !== k) && v !== "" && v != null) out[k] = num(v);   // 新键（travel / work 新旧同名）
+  for (const [k, v] of Object.entries(src)) {
+    const to = LEGACY_BUDGET[k]; if (!to || to === k || v === "" || v == null || to in src) continue;
+    out[to] = (out[to] || 0) + num(v);
+  }
+  return out;
+}
 const cur = () => Units.region.currency;
 const amountOf = (p) => (p.amount != null && (!p.currency || p.currency === cur()) ? num(p.amount) : 0);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -59,9 +53,8 @@ export async function saveMeta(patch) {
   document.dispatchEvent(new CustomEvent("budget-saved"));
 }
 const underscoreKeys = (o) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => k.startsWith("_")));
-/** 大件门槛：美元 / 加元等 300，人民币 2000，可在“各类月预算”里改 */
+/** 大额门槛：美元 / 加元等 300，人民币 2000，可在“各类月预算”里改。以前用来分「大件家电」预算组；现在只在记一笔达到它时问一句要不要标成资本性支出 */
 export const bigThreshold = () => num(meta("_big_threshold", null), 0) || (["CNY", "RMB"].includes(cur()) ? 2000 : 300);
-budgetBridge.bigThreshold = bigThreshold;   // 明细按预算分组筛选（「大件」按单笔金额分）时，数据库要知道门槛
 
 const slots = {}, actions = {};
 export const registerSection = (slot, order, fn) => { (slots[slot] ||= []).push({ order, fn }); };
@@ -93,7 +86,7 @@ export function restockForecast() {
     if (!need.has(key)) { const it = state.items.find((i) => i.id === s.item_id); need.set(key, { name: s.name, itemId: s.item_id, cat: it?.category || s.category || "other", src: "list" }); }
   }
   const rows = [...need.values()].map((r) => ({ ...r, est: median(byItem.get(r.itemId) || []) ?? median(byCat.get(r.cat) || []) })).sort((a, b) => (b.est ?? -1) - (a.est ?? -1));
-  const byGroup = {}; for (const r of rows) if (r.est != null) { const g = spaceOf(r.cat) === "house" ? "house" : "groceries"; byGroup[g] = (byGroup[g] || 0) + r.est; }
+  const byGroup = {}; for (const r of rows) if (r.est != null) { const g = groupOf(r.cat); byGroup[g] = (byGroup[g] || 0) + r.est; }   // 按二级分类：餐饮 / 维护与服务 / 购物日用…
   return { rows, total: rows.reduce((s, r) => s + (r.est || 0), 0), unknown: rows.filter((r) => r.est == null).length, byGroup };
 }
 
@@ -104,13 +97,13 @@ export function billsThisMonth() {
   return { paid: actualByMonth()[m]?.bills || 0, due: open.reduce((s, b) => s + num(b.est), 0), dueN: open.length, overdueN: open.filter((b) => b.next_due_on < today).length };
 }
 
-/** 各月各组的实际花费 { "2026-10": { bills, groceries, house, … } } */
+/** 各月各组的实际花费 { "2026-10": { bills, food, home_maint, medical, … } }（还是读内存里的 state.purchases：近 400 天 + 按需读回的往年） */
 export function actualByMonth() {
   const out = {};
   for (const p of state.purchases) {
     const a = amountOf(p); if (!a) continue;
-    const m = monthKey(p.purchased_at), g = groupOf(p.category, a);
-    if (g === "capital") continue;   // 资本性支出不算进当月实际花费
+    const m = monthKey(p.purchased_at), g = groupOf(p.category, p.nature);
+    if (g === "transfer" || g === "capital" || g === "investment") continue;   // 转账、资本性、投资不算进预算的实际花费
     ((out[m] ||= {})[g] = (out[m][g] || 0) + a);
   }
   return out;
@@ -126,7 +119,8 @@ export const monthlyOf = (row) => linesOf(row).reduce((s, l) => s + (l.period ==
 /** 全家每月收入合计（家主读得到全部；其他成员只会有自己那一行，所以不要拿它当全家数字用） */
 export const totalIncomeMonthly = () => state.incomes.reduce((s, i) => s + monthlyOf(i), 0);
 
-/** 按全家月收入和储蓄比例算各类预算建议：收入 − 固定账单 − 储蓄 = 可支配额，大件按设备寿命预存，其余按过去 6 个月的花费比例分 */
+/** 按全家月收入和储蓄比例算各类预算建议：收入 − 固定账单 − 储蓄 = 可支配额，按过去 6 个月各二级分类的花费比例分（没有历史用常见比例）。
+ *  以前单独一组的「大件家电」不再是预算分组：大额更换记成资本性支出，设备更换基金在「规划」里单独看 */
 function computeGroups(totalM, savingsPct) {
   const bills = state.billsEnriched.filter((x) => x.active && !x.ended && x.direction !== "receivable" && (x.currency || cur()) === cur());
   const billsM = bills.reduce((s, x) => s + x.monthly, 0);
@@ -135,12 +129,9 @@ function computeGroups(totalM, savingsPct) {
   const GS = groupsNow();
   const hist = Object.fromEntries(GS.map((g) => [g.id, past.reduce((s, m) => s + (abm[m]?.[g.id] || 0), 0) / 6]));
   const histTotal = Object.values(hist).reduce((a, c) => a + c, 0);
-  const fund = applianceFund(), useFund = fund.monthly > 0;
-  const bigSug = useFund ? Math.min(Math.round(fund.monthly), Math.round(pool * 0.35)) : 0, poolRest = pool - bigSug;
-  const gs = GS.filter((g) => !(useFund && g.id === "big")), hist2 = gs.reduce((s, g) => s + hist[g.id], 0);
-  const raw = Object.fromEntries(gs.map((g) => [g.id, hist2 > 0 ? Math.max(0.03, hist[g.id] / hist2) : g.w])), rawSum = Object.values(raw).reduce((x, y) => x + y, 0) || 1;
-  const groups = Object.fromEntries(GS.map((g) => [g.id, useFund && g.id === "big" ? bigSug : Math.round((poolRest * raw[g.id]) / rawSum)]));
-  return { groups, fromFund: useFund, hasHistory: histTotal > 0 };
+  const raw = Object.fromEntries(GS.map((g) => [g.id, histTotal > 0 ? Math.max(0.01, hist[g.id] / histTotal) : g.w])), rawSum = Object.values(raw).reduce((x, y) => x + y, 0) || 1;
+  const groups = Object.fromEntries(GS.map((g) => [g.id, Math.round((pool * raw[g.id]) / rawSum)]));
+  return { groups, fromFund: false, hasHistory: histTotal > 0 };
 }
 export async function saveBudgetBase(patch) {
   const base = state.budget || { income_amount: 0, income_period: "month", savings_pct: 20, cat_budgets: {} };
@@ -185,12 +176,12 @@ export function budgetPlan() {
   const bills = state.billsEnriched.filter((x) => x.active && !x.ended && x.direction !== "receivable" && (x.currency || cur()) === cur());
   const billsM = bills.reduce((s, x) => s + x.monthly, 0), essentialM = bills.filter((x) => x.essential).reduce((s, x) => s + x.monthly, 0);
   const savingsPct = clamp(num(snap.savings_pct ?? b.savings_pct, 20), 0, 90), savings = income != null ? (income * savingsPct) / 100 : null;
-  const over = b.cat_budgets || {};
+  const over = mapLegacy(b.cat_budgets), sug = mapLegacy(snap.groups);   // 旧分组键（日常储备 / 大件家电…）读的时候换成二级分类
   const abm = actualByMonth(), past = lastMonths(7).slice(0, 6);
   const groups = groupsNow().map((g) => {
     const hist = past.reduce((s, m) => s + (abm[m]?.[g.id] || 0), 0) / 6;
-    const suggested = snap.groups[g.id] != null ? num(snap.groups[g.id]) : Math.round(hist), custom = over[g.id] != null && over[g.id] !== "";
-    return { ...g, hist, suggested, custom, budget: custom ? num(over[g.id]) : suggested, fromFund: !!snap.fromFund && g.id === "big" };
+    const suggested = sug[g.id] != null ? num(sug[g.id]) : Math.round(hist), custom = over[g.id] != null;
+    return { ...g, hist, suggested, custom, budget: custom ? num(over[g.id]) : suggested, fromFund: false };
   });
   const variable = groups.reduce((s, g) => s + g.budget, 0);
   return { income, owner, billsM, essentialM, savingsPct, savings, pool: variable, groups, variable, totalBudget: billsM + variable, left: income != null ? income - billsM - savings - variable : null, hasHistory: !!snap.hasHistory, generatedAt: snap.generated_at };
@@ -293,12 +284,12 @@ export function shopAdviceHtml() {
   return `<div class="panel bud-tip"><div class="section-head" style="margin-bottom:4px"><h3 style="font-size:15px">💰 ${esc(a.name)} · ${money(a.estimate)}</h3><button type="button" class="btn btn-sm btn-ghost" data-action="shop-advice-close">${t("知道了")}</button></div>
     ${adviceHtml(r)}<a class="btn btn-sm btn-ghost" href="${href("bills", "budget")}">${t("打开预算规划")}</a></div>`;
 }
-export const groupForCategory = (category, amount = 0) => (category ? groupOf(category, amount) : amount >= bigThreshold() ? "big" : "groceries");   // 没选分类的购物项，多半是日常用品
+export const groupForCategory = (category) => (category ? groupOf(category) : "food");   // 没选分类的购物项，多半是吃的用的
 
 /** 采购清单页顶部：清单 + 告急库存预估要花多少，对比本月预算 */
 export function shopForecastHtml() {
   const plan = budgetPlan(); if (!plan) return "";
-  const fc = restockForecast(), mp = monthProgress(plan), g = mp.rows.find((r) => r.id === "groceries");
+  const fc = restockForecast(), mp = monthProgress(plan), g = mp.rows.find((r) => r.id === "food");
   if (!fc.rows.length || !(fc.total > 0)) return "";
   return `<p class="muted bud-line">💰 ${t("清单和告急库存预计 {a}；日常储备本月还剩 {b}。", { a: money(fc.total), b: money(Math.max(0, g.budget - g.spent)) })} <a href="${href("bills", "budget")}">${t("看预算")}</a></p>`;
 }
@@ -328,7 +319,7 @@ export function viewBudget() {
 
   const mp = monthProgress(plan), cm = mp.month;
   const months = rangeMonths(state.stats.months === "m" ? 3 : state.stats.months), abm = actualByMonth();
-  const ser = [BILLS_GROUP, ...GROUPS, MEDICAL_BUDGET_GROUP];   // 实际花费：医疗不管计不计入预算都算在里面
+  const ser = [BILLS_GROUP, ...budgetGroups(), ...(medInPool() ? [] : [MEDICAL_BUDGET_GROUP])];   // 实际花费：医疗不管计不计入预算都算在里面
   const totals = months.map((m) => ser.reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0));
   const stacked = Charts.bars({ title: t("每月花费构成（账单 vs 其他）"), labels: months.map(monthLabel), fmt: money,
     series: [{ name: t("账单"), color: BILLS_GROUP.color, values: months.map((m) => abm[m]?.bills || 0) },
@@ -381,7 +372,7 @@ export function viewBudget() {
       <div class="section-head"><h2>${t("各类月预算")}</h2><p>${t("可以改，留空 = 用建议值")}</p></div>
       <form id="budgetCatsForm" class="panel">
         <div class="form-grid">${plan.groups.map((g) => `<label>${g.icon} ${esc(t(g.name))}（${t("建议 {a}", { a: money(g.suggested) })}${g.fromFund ? t("，按设备寿命") : ""}）<input name="cat_${g.id}" type="number" min="0" step="1" inputmode="decimal" value="${g.custom ? esc(g.budget) : ""}" placeholder="${g.suggested}" ${plan.owner ? "" : "disabled"}></label>`).join("")}</div>
-        <label style="display:block;margin-top:10px;font-size:13px;font-weight:700">${t("“大件”门槛（{cur}，单笔达到它就记为大件家电）", { cur: cur() })}<input name="big_threshold" type="number" min="1" step="1" inputmode="numeric" value="${meta("_big_threshold", "") || ""}" placeholder="${bigThreshold()}" style="max-width:160px;display:block;margin-top:4px" ${plan.owner ? "" : "disabled"}></label>
+        <label style="display:block;margin-top:10px;font-size:13px;font-weight:700">${t("“大额”提醒门槛（{cur}，记一笔达到它时问要不要标成资本性支出）", { cur: cur() })}<input name="big_threshold" type="number" min="1" step="1" inputmode="numeric" value="${meta("_big_threshold", "") || ""}" placeholder="${bigThreshold()}" style="max-width:160px;display:block;margin-top:4px" ${plan.owner ? "" : "disabled"}></label>
         <p class="${plan.left != null && plan.left < -1 ? "form-error" : "muted"}" style="margin:8px 0 0;font-size:13px">${!plan.owner ? t("只有家主能调整预算比例和各类金额。") : plan.left < -1 ? t("各类预算加起来超出可支配额 {a}，实际会吃掉储蓄。", { a: money(-plan.left) }) : t("账单、各类预算和储蓄加起来还剩 {a} 没分配。", { a: money(Math.max(0, plan.left)) })}</p>
         ${plan.owner ? `<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">${t("保存预算")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="budget-reset">${t("恢复建议值")}</button><a class="btn btn-sm btn-ghost" href="${settingsHref}">${t("调整收入和比例")}</a></div>` : ""}</form>
     </section>
@@ -392,7 +383,7 @@ export function viewBudget() {
         <div class="form-grid">
           <label>${t("想买什么（可不填）")}<input name="name" maxlength="60" placeholder="${t("例如：洗碗机、沙发")}"></label>
           <label>${t("价格（{cur}）", { cur: cur() })}<input name="price" type="number" min="1" step="1" inputmode="decimal" required></label>
-          <label>${t("算进哪一类")}<select name="group">${plan.groups.map((g) => `<option value="${g.id}" ${g.id === "house" ? "selected" : ""}>${g.icon} ${esc(t(g.name))}</option>`).join("")}</select></label>
+          <label>${t("算进哪一类")}<select name="group">${plan.groups.map((g) => `<option value="${g.id}" ${g.id === "home_maint" ? "selected" : ""}>${g.icon} ${esc(t(g.name))}</option>`).join("")}</select></label>
           <label>${t("打算在什么时候买")}<select name="event"><option value="">${t("尽快")}</option>${events.map((e, i) => `<option value="${i}">${esc(t(e.name))} · ${esc(fmtDate(e.date))}${e.approx ? t("（约）") : ""}</option>`).join("")}</select></label>
         </div>
         <div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">${t("帮我规划")}</button></div>
