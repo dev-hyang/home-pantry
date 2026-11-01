@@ -1,7 +1,7 @@
 # 财务信息架构（P1）设计
 
 > 2026-11。范围只是**信息架构**：改名、分组、新的「资产」视图、去掉房屋资料里和账单重复的金额、权限边界。
-> 借贷（P2）和净资产快照（P3）只在这里定方向，不写代码。相关：[design-bills.md](design-bills.md)、[design-house.md](design-house.md)、[design-cards.md](design-cards.md)、[design-income-ledger.md](design-income-ledger.md)。
+> 借贷（P2）已在 2026-11 实现（迁移 058，设计见 [design-debt-lending.md](design-debt-lending.md)）；净资产快照（P3）只在这里定方向。相关：[design-bills.md](design-bills.md)、[design-house.md](design-house.md)、[design-cards.md](design-cards.md)、[design-income-ledger.md](design-income-ledger.md)。
 
 ## 1. 问题与成功标准
 
@@ -30,7 +30,7 @@
 ├─ 预算            [财务权限]          ├─ 账户与资产
 └─ 卡与账户                            │  ├─ 卡与账户
                                        │  └─ 资产（新）                [财务权限]
-房屋 (#/house)                         ├─ 借贷：贷款与借款「即将推出」 [财务权限，P2，不可点]
+房屋 (#/house)                         ├─ 借贷：贷款与借款              [财务权限，P2 已实现]
 ├─ 房产列表 → 房产目录                 ├─ 预算与计划
 │  ├─ 概览 / 房屋资料 / 账单           │  └─ 预算                      [财务权限]
 │  ├─ 季节任务 / 设备保养 / 交易       └─ 分析
@@ -40,7 +40,7 @@
 ```
 
 - 宽屏（≥ 760px）：分组是两栏卡片（CSS `columns`，DOM 顺序 = 读屏 / Tab 顺序：先左栏再右栏）；手机：一列分组列表。分组标题是 `h3`，每组 `section aria-labelledby`。
-- 「借贷」放一张不可点的占位卡而不是省略：告诉有权限的人贷款以后在哪，不放会点进空白页的链接；没有财务权限的人整组不显示（以后借贷也归财务权限）。
+- 「借贷」原来是一张不可点的占位卡（P1），P2 起是真的页面 `#/bills/debts`（别名 `#/finance/debts`、`#/bills/loans`、`#/bills/debt`、`#/bills/lending`）；没有财务权限的人整组不显示。
 - 「收支总览」不另做一页：就是收入页的第一个标签；收支组里的「收入」行直接进明细，避免两行进同一页。
 
 ### 旧网址
@@ -56,6 +56,7 @@
 | `#/me/settings?sec=income` | 收入 → 预算与计划（原有别名） |
 | `#/finance/<sub>?…` | 新别名 = `#/bills/<sub>?…` |
 | `#/bills/assets` / `#/finance/assets` | 新：财务 → 资产 |
+| `#/bills/debts`（`?tab=asset｜personal｜txns`、`?id=`）/ `#/finance/debts` / `#/bills/loans` / `#/bills/debt` / `#/bills/lending` | P2：财务 → 借贷 |
 
 ## 3. 什么留在房屋，为什么
 
@@ -81,7 +82,9 @@ properties ──< bills.property_id ──< bill_payments ──> purchases (�
      ├──< property_deals.property_id  (price / earnest_money → 交割时写 properties.purchase_price / sale_price)
      └──< assets.property_id ──< maintenance_logs.purchase_id ──> purchases
 assets(kind=vehicle) ──< property_deals.asset_id (车辆交易：price → assets.purchase_price / vehicle.sale_price)
-                     ·· bills(category=car_loan)  （没有外键，资产页按账单名里含车名匹配）
+                     ──< debt_accounts.asset_id   （P2：车贷按 id 挂车辆；原来按账单名里的车名猜）
+properties ──< debt_accounts.property_id ──< debt_transactions >── bill_payments / purchases / income_records
+bills.debt_id ──> debt_accounts（贷款的还款计划）
 cards ──< purchases.card_id      cards ──< income_records.account_id      cards.bill_id → bills（信用卡还款提醒）
 ```
 
@@ -113,11 +116,11 @@ cards ──< purchases.card_id      cards ──< income_records.account_id    
 | 房屋里的房产买入 / 卖出价、交易成交价 / 定金、设备买价 / 更换估价、车辆卖出价 | ✓ | 不显示；表单里是隐藏字段（保存不清空原值）；JSON 导出也去掉 |
 | 备份 | ✓ | ✗（原有） |
 
-**只是界面闸门**：`properties`、`property_deals`、`assets` 的行级安全没动，全家成员仍能通过 API 读到这些列。
+**P1 只是界面闸门；P2（迁移 058）起数据库层面也挡住**：价格搬到 `property_financials` / `deal_financials` / `asset_financials` 旁表，只有财务权限能读写，见 [design-debt-lending.md](design-debt-lending.md) §6。以下是 P1 当时的说明：
 **建议（以后的迁移）**：把价格列移到只有 `finance_can_see()` 能读的旁表（如 `property_financials(property_id, purchase_price, sale_price, …)`、`deal_financials`、`asset_financials`），或者给这几张表加 `security_invoker` 视图、撤掉基表的直接 select，前端改读视图。旁表方案最干净（行级安全天然按行生效，不需要列级权限）。
 
 ## 8. 分期
 
 - **P1（本次）**：改名、分组目录、资产页、保险 / HOA 单一来源、价格界面闸门。没有迁移。
-- **P2 借贷**：`debt_accounts`（贷款方、本金、利率、期限、起始日、还款日；可挂 `property_id` / `asset_id` = 资产的融资关系；方向：借入 / 借出）；`debt_transactions`（每期还款：本金、利息、Escrow、其他）。按摊还表自动拆本金 / 利息，允许手动改（对账单上的实际数为准）；Escrow 部分对应房产税 / 保险账单（现有 `pay_channel = escrow`）。还款记的花费性质用「融资 / 还本」。车贷账单可以挂到具体车辆（替代现在的名字匹配）。
+- **P2 借贷（已实现，迁移 058，见 design-debt-lending.md）**：`debt_accounts`（贷款方、本金、利率、期限、起始日、还款日；可挂 `property_id` / `asset_id` = 资产的融资关系；方向：借入 / 借出）；`debt_transactions`（每期还款：本金、利息、Escrow、其他）。按摊还表自动拆本金 / 利息，允许手动改（对账单上的实际数为准）；Escrow 部分对应房产税 / 保险账单（现有 `pay_channel = escrow`）。还款记的花费性质用「融资 / 还本」。车贷账单可以挂到具体车辆（替代现在的名字匹配）。
 - **P3 净资产**：账户余额、房产 / 车辆估值（`market_value` + `as_of`），定期快照表；资产 − 负债（P2 的未还本金）= 净资产，按月趋势。
