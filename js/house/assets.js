@@ -25,6 +25,16 @@ import { propertyName } from "../core/alerts.js";
 import { activeProperties } from "../core/lifecycle.js";
 import { priceInput, priceOrNull, pricesOk } from "../core/finance-access.js";   // 买价 / 卖价 / 更换估价只给有财务权限的人看（界面闸门）
 import { pageLimit, pageMoreBtn, pageSize } from "../core/pager.js";
+import { debtHref, debts as allDebts, enrichDebt } from "../bills/debt-logic.js";
+import { isClosedStatus } from "../core/debt-rules.js";
+/** 车辆的车贷（按 id 关联，迁移 058）：有财务权限才显示，链到 财务 → 借贷；没有车贷时给「添加车贷」 */
+function vehicleLoanNote(a) {
+  if (!a?.id || !pricesOk() || !state.debtsOk) return "";
+  const list = allDebts().filter((x) => x.asset_id === a.id && x.direction === "payable");
+  const live = list.filter((x) => !isClosedStatus(x.status)).map(enrichDebt);
+  if (live.length) return `<small>${live.map((e) => `<a href="${esc(debtHref(e.id))}">${esc(e.name)}</a>${e.balance != null ? ` · ${t("未还 {a}", { a: money(e.balance) })}` : ""}${e.link_confirmed === false ? ` · ${t("待确认")}` : ""}`).join("；")}</small>`;
+  return list.length ? `<small>${t("车贷已还清")}</small>` : `<small><a href="${esc(debtHref(null, `new=1&cat=auto_loan&asset=${encodeURIComponent(a.id)}`))}">${t("添加车贷")}</a></small>`;
+}
 import { RECALL_STATUS, finishReplace, isRetired, recallActive, recallAlertText, recallBadge, recallBanner, recallHubRow, recallOf, recallSection, replaceDefaults } from "./recall.js";
 
 const H = () => window.HOUSE;
@@ -543,7 +553,7 @@ function vehicleFieldset(a, hide = () => "") {
         <label>${t("拥有状态")}<select name="veh_status">${Object.entries(V().STATUS).map(([k, x]) => `<option value="${k}" ${k === V().statusOf(a) ? "selected" : ""}>${t(x.name)}</option>`).join("")}</select>
           <small>${t("已卖出 / 已归还的车从列表和提醒里退出，档案和保养记录保留在“历史车辆”")}</small></label>
         <label>${t("租赁到期（租车才填）")}<input name="veh_lease_end" type="date" value="${d(v.lease_end)}"><small>${t("到期前 90 天提醒，可从车辆交易里走归还流程")}</small></label>
-        <label>${t("贷款结清日期（贷款中才填）")}<input name="veh_loan_end" type="date" value="${d(v.loan_end)}"></label>
+        <label>${t("贷款结清日期（贷款中才填）")}<input name="veh_loan_end" type="date" value="${d(v.loan_end)}">${vehicleLoanNote(a)}</label>
         <label>${t("卖出 / 归还日期")}<input name="veh_disposed_on" type="date" value="${d(v.disposed_on)}"></label>
         ${priceInput(`<label>${t("卖出价（{cur}）", { cur: Units.region.currency })}<input name="veh_sale_price" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.sale_price)}"></label>`, "veh_sale_price", v.sale_price)}
         <label>${t("牌照年贴到期")}<input name="veh_registration_due" type="date" value="${d(v.registration_due)}"><small>${t("到期前 30 天提醒")}</small></label>

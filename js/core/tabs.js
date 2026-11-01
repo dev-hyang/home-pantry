@@ -16,7 +16,9 @@ export const INCOME_TABS = [["overview", "收支总览", "📊"], ["records", "�
   ["export", "导出打印", "🖨️", "CSV 和打印：收入、花费、差额报表", true], ["plan", "预算与计划", "🎯", "预期收入（用来生成预算）、储蓄比例、对比实际认定收入", true]];
 // 原来的「权限」标签（income_access 申请 / 批准）已被财务权限取代（迁移 050，家主在 设置 → 家庭与成员 里逐人开关），代码已删；?tab=access 回到收支总览
 export const STATEMENT_TABS = [["import", "导入", "📥", "选对账单或粘贴文字：花费和收入一次导入，可撤销"], ["all", "全部流水", "🧮", "花费和收入按时间排在一起，只读：点一行去对应的页面修改"], ["export", "导出打印", "🖨️", "花费、收入、收支差额的 CSV 和打印"]];
-const DEFS = { statements: STATEMENT_TABS, income: INCOME_TABS, spend: SPEND_TABS, budget: BUDGET_TABS, onetime: MEDICAL_TABS, recurring: RECURRING_TABS };
+// 借贷（财务 P2，迁移 058）：资产融资（房贷 / 车贷 / HELOC / 学生贷款 / 分期）· 个人借贷（亲友之间）· 还款记录
+export const DEBT_TABS = [["asset", "资产融资", "🏦"], ["personal", "个人借贷", "🤝", "借给亲友、向亲友借的钱：余额、到期、部分还款"], ["txns", "还款记录", "🧾", "放款、还本、利息、Escrow 的全部流水"]];
+const DEFS = { debts: DEBT_TABS, statements: STATEMENT_TABS, income: INCOME_TABS, spend: SPEND_TABS, budget: BUDGET_TABS, onetime: MEDICAL_TABS, recurring: RECURRING_TABS };
 export const firstTab = (r) => (DEFS[r?.sub] || [])[0]?.[0] || null;
 
 /** 当前路由的页内标签 id（不认识的回到第一个）；不是花费 / 预算页返回 null */

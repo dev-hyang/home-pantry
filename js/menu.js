@@ -1,6 +1,8 @@
 /* 每个底部页签的“目录页”（参考家庭学堂“我的”页）：二级页不再用横向滑动的标签，而是一栏一栏的行，点进去；
  * 子页顶部一条面包屑「‹ 房屋」回目录。目录行带简短说明和当前要处理的数量。 */
 import { state } from "./core/state.js";
+import { debtsEnriched } from "./bills/debt-logic.js";
+import { isClosedStatus } from "./core/debt-rules.js";
 import { SECTIONS, href } from "./core/router.js";
 import { esc, inSpace } from "./core/util.js";
 import { t } from "./core/i18n.js";
@@ -53,7 +55,8 @@ const META = {
     budget:    { icon: "💰", desc: "收入、固定账单、储蓄 → 月度 / 年度预算，对比实际花费，超预算提醒，大额购物规划" },
     spend:     { icon: "📊", desc: "所有花费：每月花了多少、分类占比、商店、年度报表，可搜索筛选排序" },
     cards:     { icon: "💳", desc: "信用卡：该刷哪张（按场景比返现）、到期 / 年费 / 轮换类别 / 开卡奖励提醒；银行、券商、退休、HSA、贷款账户也记在这里", count: () => state.cards.filter((c) => c.active !== false).length },
-    assets:    { icon: "🏛️", desc: "房产、车辆、账户的钱的一面：买入 / 卖出价、关联账单、今年花费、车贷；资料仍在房屋里改" },
+    assets:    { icon: "🏛️", desc: "房产、车辆、账户的钱的一面：买入 / 卖出价、关联账单、今年花费、贷款；资料仍在房屋里改" },
+    debts:     { icon: "🏦", desc: "房贷、车贷、学生贷款、亲友借款：余额、还款计划、本金 / 利息拆分、Escrow", count: () => debtsEnriched().filter((e) => e.overdue || (e.asset_id && e.link_confirmed === false && !isClosedStatus(e.status))).length },
   },
   me: {
     stats:    { icon: "📊", desc: "库存使用趋势（花费统计在 财务 → 花费）" },
@@ -63,11 +66,11 @@ const META = {
 };
 /* 财务目录分组（2026-11，P1 信息架构）：同一页里的小标题，不多一层（底栏 → 目录 → 页面 → 页内标签）。
  * 手机：一列分组列表；宽屏：两栏分组卡片（CSS columns，读屏顺序 = 视觉顺序：先左栏再右栏）。
- * 借贷是 P2：先放一张不可点的「即将推出」卡（只给有财务权限的人看，和以后的权限一致），说明贷款以后放哪，而不是一个点进去空白的链接。 */
+ * 借贷（P2）：原来是一张不可点的「即将推出」卡，现在是真的页面（只给有财务权限的人看；g.soon 的画法留着给以后的占位用）。 */
 export const FIN_GROUPS = [
   { id: "flow", name: "收支", subs: ["spend", "income", "recurring", "onetime", "statements"] },
   { id: "accounts", name: "账户与资产", subs: ["cards", "assets"] },
-  { id: "debt", name: "借贷", soon: { icon: "🏦", title: "贷款与借款", desc: "房贷、车贷、和家人朋友之间的借款：还款计划、本金 / 利息拆分、Escrow" } },
+  { id: "debt", name: "借贷", subs: ["debts"] },   // P2（迁移 058）：原来的「即将推出」占位卡换成真的页面
   { id: "plan", name: "预算与计划", subs: ["budget"] },
   { id: "analysis", name: "分析", subs: ["overview", "cashflow"] },
 ];
@@ -194,6 +197,11 @@ export function crumb(r) {
   else if (ssec) parts.push({ href: subHref, label: curLabel }, { label: t(ssec.name), icon: ssec.icon === "__AI__" ? aiIcon(18) : ssec.icon });
   else if (cat) parts.push({ action: "cat", attrs: 'data-cat="all"', label: curLabel }, { label: t(cat.name), icon: cat.icon });   // “库存”可点回全部分类
   else if (r.section === "house" && r.sub === "template") return crumbNav([{ href: href("pantry"), label: t("储藏") }, { href: `${href("pantry", "inventory")}?space=house`, label: `${t("库存")} · ${t("房屋耗材")}` }, { label: curLabel }]);   // 推荐耗材是从 库存 · 房屋耗材 进来的
+  else if (r.section === "bills" && r.sub === "debts" && (q.get("id") || q.get("new"))) {   // 借贷 / 某笔贷款（/ 编辑）；借贷 / 添加
+    const d = q.get("id") ? debtsEnriched().find((x) => x.id === q.get("id")) : null;
+    if (d && q.get("edit")) parts.push({ href: subHref, label: curLabel }, { href: `${subHref}?id=${encodeURIComponent(d.id)}`, label: d.name }, { label: t("编辑") });
+    else parts.push({ href: subHref, label: curLabel }, { label: d ? d.name : q.get("new") ? t("添加") : t("找不到") });
+  }
   else if (r.section === "bills" && r.sub === "onetime" && q.get("people")) parts.push({ href: subHref, label: curLabel }, { label: t("家庭成员") });
   else if (r.section === "bills" && r.sub === "onetime" && q.get("bill")) parts.push({ href: subHref, label: curLabel }, { label: medBillLabel(q.get("bill")) });   // 账单 / 医疗 / 医院 · 患者
   else if (r.section === "bills" && activeTab(r) && activeTab(r) !== SPLIT_FIRST(r)) parts.push({ href: subHref, label: curLabel }, { label: t(tabLabel(r)) });   // 花费 / 预算的页内标签：账单 / 花费 / 明细

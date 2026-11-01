@@ -567,6 +567,16 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 .fa-fact small { font-size: 12px; color: var(--muted); }
 .fa-fact a { min-height: 24px; }
 @media (max-width: 480px) { .fa-facts { grid-template-columns: 1fr 1fr; } .fa-head .fa-edit { margin-left: 0; width: 100%; justify-content: center; } }
+/* 财务 → 借贷（P2）：摊还表横向可滚（键盘可聚焦），每期拆分一行一个可展开的 summary，点击区不小于 44px */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+.table-scroll:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.amort-table td, .amort-table th { padding: 6px 10px; text-align: right; font-variant-numeric: tabular-nums; }
+.amort-table td:nth-child(2), .amort-table th:nth-child(2) { text-align: left; }
+.amort-table tr.muted td { color: var(--muted); }
+.debt-pay { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 44px; cursor: pointer; }
+.debt-pay small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.fa-row details > form .form-actions { flex-wrap: wrap; }
+@media (max-width: 480px) { .amort-table th:nth-child(3), .amort-table td:nth-child(3) { display: none; } }   /* 手机：本息列省掉（= 利息 + 本金） */
 .mrow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 10px 10px; border-radius: var(--r-sm); color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); box-sizing: border-box; }
 .mrow:last-child { border-bottom: 0; }
 .mrow:hover { background: var(--bg); }

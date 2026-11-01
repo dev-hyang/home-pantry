@@ -11,6 +11,7 @@ import { href } from "../core/router.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { printHtml, printStamp } from "../settings/print.js";
 import { INCOME_TABS, activeTab } from "../core/tabs.js";
+import { debtHref, ensureBorrowDebt } from "../bills/debt-logic.js";
 import { initIncomeScan, scanHtml } from "./scan.js";
 import { meta, monthlyOf, saveMeta, totalIncomeMonthly } from "../bills/budget.js";
 import { incomePanel } from "../settings/income.js";
@@ -395,7 +396,9 @@ function recordDetail(r, s) {
   const sp = splitRecord(r);
   const extra = [sp.cap && t("认定收入 {a}，资本流入 {b}", { a: fmtMoney(sp.income), b: fmtMoney(sp.cap) }), r.orig_amount && `${t("原币种")} ${r.orig_amount} ${r.orig_currency || ""}`, r.fee != null && `${t("手续费")} ${fmtMoney(r.fee)}`, r.import_batch && t("银行导入"), r.created_by && r.created_by !== state.user?.id && memberLabel(r.created_by) && t("{n} 记的", { n: memberLabel(r.created_by) })].filter(Boolean);
   const reps = inc().rep.filter((p) => p.record_id === r.id).sort((a, b) => b.paid_on.localeCompare(a.paid_on));
-  const repay = s ? `<div class="ix-repay"><b>🤝 ${t("还款（还给对方）")}</b> · ${t("总额 {a}，已还 {b}，还差 {c}", { a: fmtMoney(s.total), b: fmtMoney(s.paid), c: fmtMoney(s.left) })}${r.repay_due_on ? ` · ${t("到期日 {d}", { d: r.repay_due_on })}` : ""}
+  const repay = s?.debt ? `<div class="ix-repay"><b>🤝 ${t("已转为借款")}</b> · ${t("总额 {a}，已还 {b}，还差 {c}", { a: fmtMoney(s.total), b: fmtMoney(s.paid), c: fmtMoney(s.left) })}
+      <p style="margin:6px 0 0"><a class="btn btn-sm" href="${esc(debtHref(s.debt))}">${t("去借贷里记还款")} ›</a></p></div>`   // 迁移 058：还款走借贷（余额、到期、提醒都在那里）
+    : s ? `<div class="ix-repay"><b>🤝 ${t("还款（还给对方）")}</b> · ${t("总额 {a}，已还 {b}，还差 {c}", { a: fmtMoney(s.total), b: fmtMoney(s.paid), c: fmtMoney(s.left) })}${r.repay_due_on ? ` · ${t("到期日 {d}", { d: r.repay_due_on })}` : ""}
     <ul class="ix-reps">${reps.map((p) => `<li><span>${p.paid_on} · <b>${fmtMoney(p.amount)}</b>${p.method ? ` · ${esc(p.method)}` : ""}${p.purchase_id ? ` · <span class="muted">${t("已计入花费")}</span>` : ""}</span><button type="button" class="btn btn-sm btn-ghost" data-inc="rep-del" data-id="${p.id}">${t("删除")}</button></li>`).join("") || `<li class="muted">${t("还没有还款记录")}</li>`}</ul>
     ${s.left > 0 ? `<form data-inc-form="repay" data-id="${r.id}" class="form-grid" style="margin-top:6px"><label>${t("还款日期")}<input type="date" name="paid_on" value="${todayISO()}" required></label><label>${t("金额")}<input type="number" name="amount" step="0.01" min="0.01" value="${s.left}" required></label><label>${t("方式")}<input name="method" maxlength="40" placeholder="Zelle / ${esc(t("现金"))}"></label><label class="check-inline" style="grid-column:1/-1"><input type="checkbox" name="as_spend" checked><span>${t("同时记为一笔花费（钱从账户里出去了）")}</span></label><small class="muted" style="grid-column:1/-1">${t("如果这笔转账已经从银行对账单导入成花费了，系统会发现并不再重复记；也可以取消勾选。")}</small><div class="form-actions"><button class="btn btn-sm btn-primary">${t("记一笔还款")}</button></div></form>` : ""}</div>` : "";
   return `<div class="ix-detail">${extra.length ? `<p class="muted small" style="margin:0 0 6px">${extra.map(esc).join(" · ")}</p>` : ""}${r.notes ? `<p style="margin:0 0 6px">${esc(r.notes)}</p>` : ""}${repay}
@@ -552,7 +555,8 @@ async function saveRecord(form) {
   const dup = !row.id && similarIncome(row), key = `${row.received_on}|${row.amount}|${skey(name)}`;
   if (dup && f.dupAck !== key) { f.dupAck = key; return fail(t("看起来已经记过：{d} · {n} · {a}。确认不是重复的话，再点一次保存。", { d: dup.received_on, n: dup.source_name, a: fmtMoney(dup.amount) })); }
   try {
-    await Store.saveIncomeRecord(row);
+    const savedId = await Store.saveIncomeRecord(row);
+    if (repay && state.debtsOk) await ensureBorrowDebt({ ...row, id: row.id || savedId }).catch((e) => console.warn("[debt]", e.message));   // 需要还 = 借入：建（或更新）对应的借款（迁移 058）
     await saveDefaults(fd).catch(() => toast(t("默认值没存上，下次再试")));
     const was = defAcct(), want = fd.get("acct_default") === "on";   // 勾「设为默认」：记住；取消勾选且现在选的正是默认：清掉
     const next = want && accSel && accSel !== "other" ? accSel : !want && accSel && accSel === was ? "" : was;

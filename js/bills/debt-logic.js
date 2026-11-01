@@ -221,6 +221,19 @@ export async function deleteDebtTxn(id, { cash = true } = {}) {
   await syncDebtStatus(x.debt_id);
 }
 
+/** 收入里勾了「需要还」：和 058 迁移同一套规则建一笔个人借入（已有就更新金额 / 到期日），放款流水指回这条收入 */
+export async function ensureBorrowDebt(r) {
+  if (!r?.id) return null;
+  const principal = r.repay_amount || r.amount, have = debtOfIncome(r.id);
+  const base = { name: String(r.source_name || "").slice(0, 60), category: "personal_lending", direction: "payable", counterparty_name: r.source_name, person_id: r.person_id || null,
+    original_principal: principal, currency: r.currency, start_date: r.received_on, maturity_date: r.repay_due_on || null, payment_frequency: "none" };
+  const id = await Store.saveDebt(have ? { ...have, ...base } : { ...base, status: "active", notes: r.notes || null });
+  const disb = debtTxns().find((x) => x.debt_id === id && x.type === "disbursement" && x.income_record_id === r.id);
+  await Store.upsertDebtTxns([{ id: disb?.id, debt_id: id, txn_date: r.received_on, type: "disbursement", principal_amount: principal, total: r.amount, income_record_id: r.id, split_source: "schedule" }]);
+  await loadDebts();
+  return id;
+}
+
 /* ───────────── 状态同步：还清 ↔ 车辆「贷款中」 ───────────── */
 /** 余额到 0 → 已还清；还清的又有了余额（删了还款）→ 还款中。车贷：还款中 ↔ 车辆「贷款中」，还清 → 车辆「持有」并写贷款结清日期 */
 export async function syncDebtStatus(id) {

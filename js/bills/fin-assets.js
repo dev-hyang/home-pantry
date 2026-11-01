@@ -2,7 +2,9 @@
  * 房产（properties：状态、买入 / 卖出日期和价格，交易交割时写入）、车辆（assets kind=vehicle：拥有状态含贷款中、贷款到期、买入 / 卖出价）、
  * 账户（cards 里 kind 是支票 / 储蓄 / 券商 / 退休 / HSA / 贷款 / 现金的那些）。每行都链回房屋 / 车辆 / 卡与账户的原记录去改——只有一个真相来源。
  * 估值（市值）和余额是第三期（净资产快照）的事，这里不加字段，只标「P3」。
- * 数据量：房产、车辆、账单、卡都是启动时整表读进内存的小表，直接在内存里算；只有「今年这套房的花费」要扫花费明细，
+ * 融资（2026-11，P2 迁移 058）：贷款按 id 挂在房产 / 车辆上（debt_accounts.property_id / asset_id），不再按账单名里的车名猜；
+ * 还没建贷款的贷款账单、没关联车辆的车贷列在区块底下，提示去关联。
+ * 数据量：房产、车辆、账单、卡、贷款都是启动时整表读进内存的小表，直接在内存里算；只有「今年这套房的花费」要扫花费明细，
  * 用现成的 spend_rollup 聚合（按月 × 分类 × 房产，和统计页共用缓存），不新增按行的查询。 */
 import { state } from "../core/state.js";
 import { href } from "../core/router.js";
@@ -12,6 +14,9 @@ import { hubList } from "../core/hub.js";
 import { isVehicle, myVehicles, assetName } from "../house/assets.js";
 import { ACCOUNT_KINDS, cardHref, kindIcon, kindName } from "./cards.js";
 import { spendRollupFor } from "../stats/views.js";
+import { debtHref, debtsEnriched } from "./debt-logic.js";
+import { isClosedStatus } from "../core/debt-rules.js";
+import { looseBillsHtml } from "./debts.js";
 
 const cur = () => Units.region.currency;
 /** 今年 1 月到本月 */
@@ -31,16 +36,15 @@ function propertyBills(pid) {
   return { n: list.length, monthly: list.reduce((s, b) => s + b.monthly, 0), escrow: list.reduce((s, b) => s + b.escrowMonthly, 0) };
 }
 
-/** 车贷账单：bills 没有指向车辆的外键，按分类 car_loan 找；名字里带车名的归到那辆车，其余列在车辆区底下 */
-function carLoanBills() {
-  return state.billsEnriched.filter((b) => b.category === "car_loan" && b.active && !b.ended);
-}
-const billMatchesVehicle = (b, a) => { const n = String(assetName(a) || "").trim().toLowerCase(); return n.length >= 2 && String(b.name || "").toLowerCase().includes(n); };
+/** 贷款（还在还的，按 id 挂在资产上）；没跑迁移 058 时是空的 */
+const liveDebts = () => (state.debtsOk ? debtsEnriched().filter((e) => e.direction === "payable" && !isClosedStatus(e.status)) : []);
+/** 贷款一行：名称（链到借贷详情）· 未还本金 · 每期；迁移猜的车辆标「待确认」 */
+const debtLine = (e) => `<a href="${esc(debtHref(e.id))}">${esc(e.name)}</a> ${e.balance != null ? `${t("未还 {a}", { a: money(e.balance) })}` : ""}${e.bill ? ` · ${money(e.bill.monthly)}${t("/月")}` : ""}${e.link_confirmed === false ? ` <span class="badge b-soon">${t("待确认")}</span>` : ""}`;
 
 const fact = (label, value) => (value ? `<span class="fa-fact"><small>${esc(label)}</small>${value}</span>` : "");
 const priceDate = (price, date) => [price != null && price !== "" ? money(num(price)) : "", date ? esc(fmtDate(date)) : ""].filter(Boolean).join(" · ");
 
-function propertyRow(p, spend) {
+function propertyRow(p, spend, loans = []) {
   const ST = window.DEALS.PROPERTY_STATUS, K = window.BILLS.PROPERTY_KINDS;
   const bills = propertyBills(p.id), y = new Date().getFullYear();
   const spent = spend == null ? `<span class="muted">${t("读取中…")}</span>` : money(spend[p.id] || 0);
@@ -52,6 +56,7 @@ function propertyRow(p, spend) {
       ${fact(t("买入"), priceDate(p.purchase_price, p.acquired_on) || `<span class="muted">${t("未记录")}</span>`)}
       ${p.sold_on || p.sale_price != null ? fact(t("卖出"), priceDate(p.sale_price, p.sold_on)) : ""}
       ${fact(t("关联账单"), billTxt)}
+      ${loans.length ? fact(t("贷款"), loans.map(debtLine).join("<br>")) : ""}
       ${fact(t("{y} 年花费", { y }), `${spent} · <a href="${href("bills", "spend")}?tab=records&prop=${encodeURIComponent(p.id)}&year=${y}">${t("明细")}</a>`)}
       ${fact(t("估值"), `<span class="muted">${t("P3")}</span>`)}
     </div></li>`;
@@ -59,7 +64,7 @@ function propertyRow(p, spend) {
 
 function vehicleRow(a, loans) {
   const V = window.VEHICLES, v = a.vehicle || {}, st = V.statusOf(a);
-  const loanTxt = loans.length ? loans.map((b) => `<a href="${href("bill", b.id)}">${esc(b.name)}</a> ${money(b.monthly)}${t("/月")}`).join(" · ") : "";
+  const loanTxt = loans.length ? loans.map(debtLine).join("<br>") : "";
   return `<li class="fa-row">
     <div class="fa-head"><b>${esc(assetName(a))}</b><span class="badge ${V.STATUS[st]?.cls || ""}">${esc(t(V.STATUS[st]?.name || st))}</span>
       <a class="btn btn-sm btn-ghost fa-edit" href="${href("asset", a.id)}" aria-label="${esc(t("打开车辆 {name}", { name: assetName(a) }))}">${t("打开车辆")} ›</a></div>
@@ -67,7 +72,7 @@ function vehicleRow(a, loans) {
       ${fact(t("买入"), priceDate(a.purchase_price, a.installed_on) || `<span class="muted">${t("未记录")}</span>`)}
       ${v.disposed_on || v.sale_price != null ? fact(st === "returned" ? t("归还") : t("卖出"), priceDate(v.sale_price, v.disposed_on)) : ""}
       ${st === "financed" || st === "leased" || v.loan_end ? fact(st === "leased" ? t("租约到期") : t("贷款到期"), v.loan_end ? esc(fmtDate(v.loan_end)) : `<span class="muted">${t("未填")}</span>`) : ""}
-      ${fact(t("车贷账单"), loanTxt)}
+      ${fact(t("车贷"), loanTxt)}
       ${fact(t("估值"), `<span class="muted">${t("P3")}</span>`)}
     </div></li>`;
 }
@@ -76,9 +81,9 @@ export function viewFinAssets() {
   const props = state.properties.filter((p) => !p.archived || p.purchase_price != null || p.sale_price != null);
   const spend = propertySpendThisYear();
   const vehicles = myVehicles().filter(isVehicle);
-  const loans = carLoanBills(), used = new Set();
-  const vRows = vehicles.map((a) => { const mine = loans.filter((b) => billMatchesVehicle(b, a)); mine.forEach((b) => used.add(b.id)); return vehicleRow(a, mine); });
-  const loose = loans.filter((b) => !used.has(b.id));
+  const debts = liveDebts();
+  const vRows = vehicles.map((a) => vehicleRow(a, debts.filter((e) => e.asset_id === a.id)));
+  const loose = debts.filter((e) => e.category === "auto_loan" && !e.asset_id);   // 没关联车辆的车贷
   const accts = state.cards.filter((c) => ACCOUNT_KINDS.includes(c.kind) && c.active !== false);
   const held = props.filter((p) => !["sold", "moved_out", "looking"].includes(p.status) && !p.archived).length;
   const liveVeh = vehicles.filter((a) => window.VEHICLES.isActive(a) && window.VEHICLES.statusOf(a) !== "looking").length;
@@ -96,11 +101,12 @@ export function viewFinAssets() {
       <div class="kpi"><span>${t("房产账单每月")}</span><b>${money(housing)}</b><small>${t("自己交的部分，不含 Escrow 代缴")}</small></div>
     </div>
     <div class="section-head"><h2>🏠 ${t("房产")}</h2>${state.houseEnabled ? `<a class="btn btn-sm btn-ghost" href="${href("house")}">${t("房产列表")}</a>` : ""}</div>
-    <div class="panel">${props.length ? `<ul class="fa-list">${props.map((p) => propertyRow(p, spend)).join("")}</ul>` : `<div class="empty"><strong>${t("还没有房产")}</strong></div>`}</div>
+    <div class="panel">${props.length ? `<ul class="fa-list">${props.map((p) => propertyRow(p, spend, debts.filter((e) => e.property_id === p.id))).join("")}</ul>` : `<div class="empty"><strong>${t("还没有房产")}</strong></div>`}</div>
     <p class="hint">${t("买入 / 卖出价在交易交割时写入（房屋 → 交易）；花费按记账时选的房产统计，账单缴费自动带上账单的房产。")}</p>
     <div class="section-head" style="margin-top:18px"><h2>🚗 ${t("车辆")}</h2><a class="btn btn-sm btn-ghost" href="${href("house", "vehicles")}">${t("车辆列表")}</a></div>
     <div class="panel">${vRows.length ? `<ul class="fa-list">${vRows.join("")}</ul>` : `<div class="empty"><strong>${t("还没有车辆")}</strong></div>`}
-      ${loose.length ? `<p class="muted" style="margin:10px 4px 4px;font-size:13px">${t("没对上具体车辆的车贷账单（账单名里写上车名就会归到那辆车）：")} ${loose.map((b) => `<a href="${href("bill", b.id)}">${esc(b.name)}</a> ${money(b.monthly)}${t("/月")}`).join(" · ")}</p>` : ""}</div>
+      ${loose.length ? `<p class="muted" style="margin:10px 4px 4px;font-size:13px">${t("还没关联车辆的车贷（在贷款详情里选车）：")} ${loose.map(debtLine).join(" · ")}</p>` : ""}</div>
+    ${looseBillsHtml()}
     <div class="section-head" style="margin-top:18px"><h2>🏦 ${t("账户")}</h2><a class="btn btn-sm btn-ghost" href="${href("bills", "cards")}">${t("卡与账户")}</a></div>
     ${acctRows.length ? hubList(acctRows) : `<div class="panel empty"><strong>${t("还没有登记账户")}</strong>${t("在 卡与账户 里添加支票、储蓄、券商、退休、HSA、贷款或现金账户。")}</div>`}
   </section>`;
