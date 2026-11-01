@@ -7,7 +7,7 @@ export const state = {
   houseEnabled: (() => { try { return localStorage.getItem("hmh-house-off") !== "1"; } catch { return true; } })(),
   gearEnabled: (() => { try { return localStorage.getItem("hmh-gear-off") !== "1"; } catch { return true; } })(),
   billsEnabled: (() => { try { return localStorage.getItem("hmh-bills-off") !== "1"; } catch { return true; } })(),
-  items: [], logs: [], shopping: [], purchases: [], members: [],
+  items: [], logs: [], shopping: [], members: [],   // 花费不在浏览器里整表存（迁移 057）：统计读聚合、明细分页、其余按需查
   assets: [], maintLogs: [], seasonalDone: [],  // 第二期：设备档案、保养记录、季节任务完成记录
   assetsEnriched: [],
   properties: [], propertyId: null,            // 多房产：当前查看的房产（房屋资料、设备、季节任务按它过滤）

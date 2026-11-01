@@ -9,7 +9,8 @@ import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.
 import { resilientFetch } from "./core/net.js";
 import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
 import { applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
-import { ensureAdults, mergeMedical } from "./bills/medical.js";
+import { ensureAdults } from "./bills/medical.js";
+import { spendChanged } from "./core/spend-data.js";
 import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-check.js";
 import { mountAppSwitcher } from "../shared/app-switcher.js";
 import { mountLangSwitcher } from "../shared/lang-switcher.js";
@@ -66,7 +67,7 @@ import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, ne
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
-import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureFirstYear, ensureYearLoaded, exportAnnual, exportSpendList, patchSpendRow, rememberStore, renderSpendList, renderSpendRecords, spendList, spendRowsLoaded, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
+import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureFirstYear, exportAnnual, exportSpendList, patchSpendRow, rememberStore, renderSpendList, renderSpendRecords, spendList, spendRowsLoaded, viewSpend, viewStats } from "./stats/views.js";
 import { matchOpenShopping, showPurchaseDup } from "./stats/dup-check.js";
 
 const APP_NAME = "爱家小助手";
@@ -136,7 +137,7 @@ export async function refresh() {
       if (!pendingAny()) notifyIfNeeded();
       render(false);
       reloadPayList();   // 缴费记录列表是服务器分页：统计 + 第一页重读（不在页面上只标记过期）
-      loadPurchasesSoon();
+      spendChanged();   // 花费不再整表读进来（迁移 057）：统计聚合、明细、联想、卡的用量等标过期，画到的时候按需重读
       maybeAutoGenerate();   // 家主有收入但还没预算：自动生成第一版
       if (financeOk()) Backup.runScheduled().then((r) => { if (!r) return; if (r.ok.length) toast(t("已自动备份（{to}）", { to: r.ok.map(backupTargetName).join("、") })); if (r.needGesture) toast(t("定时备份要写进文件夹，去 设置 → 备份与恢复 点一下「继续备份」")); refreshBackupUi(); if (state.route?.section === "me") render(false); });   // 定时备份到期了就在后台做一次
     } catch (e) {
@@ -147,22 +148,6 @@ export async function refresh() {
   return refreshing;
 }
 
-/** 采购花费（近 400 天，可能几千行）只有统计页和导出用：后台读，读完如果正停在统计页就重画 */
-let purchasesLoading = false, purchasesAgain = false;
-function loadPurchasesSoon() {
-  if (purchasesLoading) { purchasesAgain = true; return; }
-  purchasesLoading = true;
-  Store.listPurchases().then((p) => {
-    // 云端平时只读近 400 天；按批次查看 / 往年报表按需读回来的更早记录不在这次结果里，要留着（不然一同步就“消失”）
-    const have = new Set(p.map((x) => x.id)), edge = Date.now() - 395 * 864e5;
-    const keep = state.purchases.filter((x) => !x.virtual && !have.has(x.id) && new Date(x.purchased_at).getTime() < edge);
-    state.purchases = keep.length ? [...p, ...keep] : p; mergeMedical();   // 医疗付款作为虚拟花费并进统计
-    const r = state.route;
-    if ((r.section === "me" && r.sub === "stats") || (r.section === "bills" && (r.sub === "spend" || r.sub === "overview"))) render(false);
-    else { const dl = $("#storeList"); if (dl) dl.outerHTML = storeDatalist(); }   // 采购 / 统计页的商店联想
-  }).catch((e) => console.warn("[purchases]", e.message))
-    .finally(() => { purchasesLoading = false; if (purchasesAgain) { purchasesAgain = false; loadPurchasesSoon(); } });
-}
 
 /* 列表分批显示（js/core/pager.js）：「继续加载」后只重画这些列表；没列在这里的整页重画 */
 const PAGE_RENDER = { inv: () => renderInvList(), bills: () => renderBillList(), assets: () => renderAssetList(), med: () => renderMedList(), maint: () => renderMaintLogs() };
@@ -179,7 +164,7 @@ const reloadDealExtras = () => Store.listDealExtras().then((x) => { state.dealOv
 const TABLE_RELOAD = {
   items: () => Promise.all([Store.listItems(), Store.listLogs()]).then(([items, logs]) => { state.items = items; state.logs = logs; state.enriched = enrich(items, logs); }),   // 加减库存同时写 stock_logs（没订阅），一起重读
   shopping_list: () => Store.listShopping().then((r) => { state.shopping = r; }),
-  purchases: () => { loadPurchasesSoon(); },   // 自己读完会重画统计页
+  purchases: () => { spendChanged(); },   // 只把花费相关的缓存标过期（统计聚合、明细、联想、卡的用量…），重画时按需重读，不再整表重读
   assets: () => Store.listAssets().then((r) => { state.assets = r; state.assetsEnriched = enrichAssets(r, state.maintLogs); }),
   maintenance_logs: () => Store.listMaintLogs().then((r) => { state.maintLogs = r; state.assetsEnriched = enrichAssets(state.assets, r); }),
   seasonal_tasks: () => Store.listSeasonal(seasonalSince()).then((r) => { state.seasonalDone = r; }),
@@ -669,7 +654,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.dataset?.action === "stats-excap") { state.stats.exCap = e.target.checked; render(); }   // 花费统计：排除资本性 / 排除投资（概览趋势、分类、商店一起变）
   if (e.target.dataset?.action === "stats-exinv") { state.stats.exInv = e.target.checked; render(); }
   if (e.target.id === "statsStoreL1") { state.stats.storeL1 = e.target.value; render(); }
-  if (e.target.id === "statsRange") { const v = e.target.value; state.stats.months = v.startsWith("y:") || v === "m" ? v : +v; state.stats.month = null; render(); ensureYearLoaded(v).then((fresh) => { if (fresh) render(false); }); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（往年按需读回来）
+  if (e.target.id === "statsRange") { const v = e.target.value; state.stats.months = v.startsWith("y:") || v === "m" ? v : +v; state.stats.month = null; render(); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（数据库按月聚合，往年也一样）
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
   if (e.target.id === "hhSwitch") { localStorage.setItem("hmh-hid", e.target.value); location.reload(); }
@@ -735,7 +720,7 @@ main.addEventListener("submit", async (e) => {
       const e2 = f.elements, name = e2.name.value.trim(), amount = e2.amount.value === "" ? null : Math.round(num(e2.amount.value) * 100) / 100;   // 负数 = 退款 / 报销，照存
       if (!name) return toast(t("请填写名称"));
       const store = cleanStore(e2.store.value), day = e2.date.value, patch = { name, category: e2.category.value, amount, store };
-      if (e2.card_id) Object.assign(patch, purchasePayFields(e2.card_id.value, state.purchases.find((x) => x.id === f.dataset.id) || spendList.rows.find((x) => x.id === f.dataset.id)));   // 往年的花费不在内存里：用明细读到的那一行   // 卡 → card_id；现金 / 支票 / 礼品卡 / 其他 → method
+      if (e2.card_id) Object.assign(patch, purchasePayFields(e2.card_id.value, spendList.rows.find((x) => x.id === f.dataset.id)));   // 原来的付款方式：用明细读到的那一行   // 卡 → card_id；现金 / 支票 / 礼品卡 / 其他 → method
       if (day) patch.purchased_at = new Date(`${day}T12:00:00`).toISOString();
       if (e2.nature) patch.nature = e2.nature.value || null;   // 经济性质：空 = 按分类默认（迁移 055）
       if (e2.property_id) patch.property_id = e2.property_id.value || null;
@@ -743,7 +728,7 @@ main.addEventListener("submit", async (e) => {
       const row = spendList.rows.find((x) => x.id === f.dataset.id), bp = e2.card_id && (state.billPayments.find((x) => x.purchase_id === f.dataset.id) || (row?.pay_id ? { id: row.pay_id, card_id: undefined } : null));   // 这笔是账单缴费记的花费：改了卡，缴费记录同步
       if (bp && (bp.card_id || null) !== (patch.card_id || null)) await Store.updateBillPayment(bp.id, { card_id: patch.card_id || null }).catch(() => {});
       if (store) rememberStore(store);
-      state.purchases = state.purchases.map((x) => (x.id === f.dataset.id ? { ...x, ...patch } : x)); patchSpendRow(f.dataset.id, patch);   // 先改内存里的，页面立刻是新的
+      patchSpendRow(f.dataset.id, patch);   // 先改明细里读到的那一行，页面立刻是新的
       if (state.spendDrafts) delete state.spendDrafts[f.dataset.id];
       state.spendEdit = null; toast(t("已保存修改")); render(); return refresh();
     }
@@ -820,7 +805,7 @@ main.addEventListener("submit", async (e) => {
       const signed = e2.refund?.checked ? -amount : amount;   // “退款 / 报销”：记成负数，统计里按净额算
       const day = e2.date.value || new Date().toISOString().slice(0, 10);
       const store = cleanStore(e2.store.value);
-      const dups = showPurchaseDup(f);   // 疑似重复：第一次点只提醒，内容没改再点一次才记
+      const dups = await showPurchaseDup(f);   // 疑似重复：第一次点只提醒，内容没改再点一次才记
       if (dups.length && f.dataset.dupAck !== "1") { f.dataset.dupAck = "1"; return toast(t("可能重复了（见表单下面的提醒）。确认不是，再点一次“记一笔”。")); }
       f.dataset.dupAck = "";
       if (store) rememberStore(store);
@@ -1112,7 +1097,6 @@ main.addEventListener("click", async (e) => {
       case "spend-edit-collapse": { const f = $("#spendEditForm"); if (f) (state.spendDrafts = state.spendDrafts || {})[f.dataset.id] = formDraft(f); state.spendEdit = null; return renderSpendList(); }   // 收起但留着草稿
       case "trip-reclass": {   // 旅行页的归类建议：把以前记成“其他”的花费归到某个旅行类型
         await Store.updatePurchase(id, { category: el.dataset.cat });
-        state.purchases = state.purchases.map((x) => (x.id === id ? { ...x, category: el.dataset.cat } : x));
         toast(t("已归类")); render(); return refresh();
       }
       case "spend-edit-cancel": { if (state.spendDrafts && state.spendEdit) delete state.spendDrafts[state.spendEdit]; state.spendEdit = null; return renderSpendList(); }
@@ -1156,7 +1140,7 @@ main.addEventListener("click", async (e) => {
         if (!list.length || !confirm(t("删除选中的 {n} 笔花费（合计 {m}）？删了就找不回来，建议先备份。", { n: list.length, m: money(sum) }))) return;
         el.disabled = true; let fail = 0;
         for (let i = 0; i < list.length; i += 6) await Promise.all(list.slice(i, i + 6).map((p) => Store.deletePurchase(p.id).catch(() => { fail++; })));
-        const gone = new Set(list.map((p) => p.id)); state.purchases = state.purchases.filter((p) => !gone.has(p.id)); spendList.rows = spendList.rows.filter((p) => !gone.has(p.id)); state.spendSel = null;
+        const gone = new Set(list.map((p) => p.id)); spendList.rows = spendList.rows.filter((p) => !gone.has(p.id)); state.spendSel = null;
         toast(fail ? t("删了 {n} 笔，{k} 笔失败", { n: list.length - fail, k: fail }) : t("已删除 {n} 笔", { n: list.length })); render(); return refresh();
       }
       case "stats-months": state.stats.months = +el.dataset.months; return render();
@@ -1364,8 +1348,8 @@ export async function markBought(id) {
 }
 
 export async function exportJson() {
-  try { state.purchases = await Store.listPurchases(); mergeMedical(); } catch { /* 用已有的 */ }   // 采购花费是后台读的，导出前确保是最新的完整数据
-  const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), household: state.household?.name, items: state.items, shopping: state.shopping, purchases: state.purchases.filter((x) => !x.virtual), medical_bills: state.medBills, medical_payments: state.medPayments,
+  let purchases = []; try { purchases = await Store.listPurchases(); } catch { /* 读不到就不导出花费 */ }   // 花费不在内存里：导出时按需读全部（迁移 057）
+  const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), household: state.household?.name, items: state.items, shopping: state.shopping, purchases, medical_bills: state.medBills, medical_payments: state.medPayments,
     properties: state.properties, house_profile: state.houseProfile, assets: state.assets, maintenance_logs: state.maintLogs, seasonal_tasks: state.seasonalDone,
     bills: state.bills, bill_payments: state.billPayments, property_deals: state.deals, deal_task_done: state.dealDone, deal_task_overrides: state.dealOverrides, deal_custom_tasks: state.dealCustom }, null, 2)], { type: "application/json" });
   const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `pantry-${new Date().toISOString().slice(0, 10)}.json` });
