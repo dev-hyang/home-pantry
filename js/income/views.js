@@ -834,7 +834,7 @@ export function initIncome({ render, refresh }) {
       const rec = I.rec.find((r) => r.id === f.dataset.id), amount = num(g("amount")), paid_on = g("paid_on") || todayISO(); if (!rec || !(amount > 0)) return;
       let purchase_id = null, note = "";
       if (fd.get("as_spend") === "on") {   // 还款是钱从账户里出去了：同时记一笔花费，花费统计里才看得到
-        const dup = await sameAmountNear(paid_on, amount).catch(() => null);   // ±3.5 天内金额一样的已有花费（数据库查，迁移 057）
+        const dup = await sameAmountNear(paid_on, amount).catch(() => null);   // ±3.5 天内金额一样的已有花费（那几天的花费读进内存比，dup-check.js）
         if (dup) note = t("；已有对上的花费（{n}），没有重复记", { n: dup.name });
         else purchase_id = await Store.addPurchase({ item_id: null, name: t("还款给 {n}", { n: rec.source_name }), category: "other", quantity: null, unit: null, store: rec.source_name, amount, currency: cur(), purchased_at: new Date(paid_on + "T12:00:00").toISOString() });
       }

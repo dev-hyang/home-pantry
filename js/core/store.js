@@ -1,7 +1,7 @@
 import { state } from "./state.js";
 import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
 import { t } from "./i18n.js";
-import { cardSpend, cardTotals, incRollup, itemPurchaseStats, ledgerRange, ledgerRollup, localPage, localStats, spendByMember, spendDupMatch, spendRollup, spendSuggest } from "./list-query.js";
+import { cardSpend, cardTotals, incRollup, itemPurchaseStats, ledgerRange, ledgerRollup, localPage, localStats, spendRollup, spendSuggest } from "./list-query.js";
 
 /* 成员资料（迁移 052）：只在 设置 → 家庭与成员 里用，不进 AI 提示词、不进备份（个人数据，只给本家庭看） */
 const PROFILE_COLS = "phone,email,address";
@@ -111,9 +111,7 @@ export const DemoStore = {
   /** 全部花费：只给导出 JSON 用（按需读，平时不读整表） */
   async listPurchases() { return this.db.purchases.map((x) => ({ ...x, category: canonCat(x.category) })); },
   /** 迁移 057 的按需查询（本地版，见 list-query.js） */
-  async spendByMember(from, to) { return spendByMember(this.db, from, to); },
   async itemPurchaseStats(cur, items, cats) { return itemPurchaseStats(this.db, cur, items, cats); },
-  async spendDupMatch(rows, tz, days = 3.5) { return spendDupMatch(this.db, rows, days); },
   async spendSuggest(since, limit = 300) { return spendSuggest(this.db, since, limit); },
   async cardSpend(from, to) { return cardSpend(this.db, from, to); },
   async cardTotals() { return cardTotals(this.db); },
@@ -615,11 +613,9 @@ export const CloudStore = {
   },
   /* ── 迁移 057 的按需查询 ── */
   /** 家庭分摊：按 月 × 记账人 × 币种 的正数花费 */
-  async spendByMember(from, to, tz) { return this.pageAll(() => this.sb.rpc("spend_by_member", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz }).order("month").order("created_by").order("currency")); },
   /** 补货预估：物品最近几次买价、分类最近 10 次买价 */
   async itemPurchaseStats(cur, items, cats) { return this.must(await this.sb.rpc("item_purchase_stats", { p_household: this.hid, p_cur: cur || null, p_items: items || [], p_cats: cats || [] })) || []; },
   /** 查重：rows = [{ k, d, a }]，返回每条 ±days 天内金额相同的已有花费 */
-  async spendDupMatch(rows, tz, days = 3.5) { return this.pageAll(() => this.sb.rpc("spend_dup_match", { p_household: this.hid, p_rows: rows, p_tz: tz, p_days: days }).order("k").order("purchased_at", { ascending: false }).order("id")); },
   /** 商店 / 行程联想 */
   async spendSuggest(since, limit = 300) { return this.must(await this.sb.rpc("spend_suggest", { p_household: this.hid, p_since: since || null, p_limit: limit })) || {}; },
   /** 卡的用量（卡 × 本地日期 × 分类 × 商店）/ 每张卡名下的笔数、合计、月份 */

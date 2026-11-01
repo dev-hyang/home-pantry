@@ -1,10 +1,10 @@
 /* 重复记账提醒：记花费（手动 / 拍小票识别）时，和已有花费对一下——金额一样、日期差 ≤ 3 天，且名称相近或商店相同，
  * 多半是家人各记了一遍，或自己忘了已经记过。只提醒，不拦着（同一天买两份一样的东西也是有的）。
- * 已有花费不在浏览器里：按 日期 + 金额 向数据库要 ±3.5 天内金额相同的那几笔（spend_dup_match，迁移 057），按 日期|分 缓存；
- * 名称 / 商店是否相近仍在这里判断。花费变了缓存清空。 */
+ * 已有花费不在浏览器里：要查的那几天（前后各多 4 天）一次读进内存（listPurchasesRange，分页读全），之后每一笔都在内存里比；
+ * 记一笔 / 一张小票是一两天，对账单是一个月左右——范围小、数据少，不值得每行问一次数据库。读过的日期段记下来，花费变了清空。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { TZ, localDay } from "../core/spend-data.js";
+import { localDay } from "../core/spend-data.js";
 import { $, DAY, esc, fmtShort, money, num } from "../core/util.js";
 import { t } from "../core/i18n.js";
 
@@ -24,25 +24,33 @@ function whoOf(p) {
   return state.members?.find((m) => m.user_id === p.created_by)?.display_name || t("家里别人");
 }
 
-/* ── 数据库查重的缓存：key = 本地日期|金额（分），值 = 那天 ±3.5 天内金额相同的已有花费（null = 还在读）── */
-const NEAR = new Map();
-window.addEventListener("spend-rows-changed", () => NEAR.clear());
-const candKey = (day, amt) => `${day}|${amt}`;
-/** 一组 { d: 本地日期, a: 金额 } 里还没查过的，一次查完；返回 true = 查到了新的（调用方可以重画提示） */
+/* ── 查重用的花费池：读过的日期段（本地日期，含头含尾）+ 这些天的花费，都在内存里 ── */
+const PAD_DAYS = 4;   // 比 ±3.5 天多留半天，跨时区 / 中午时间点都盖得住
+let POOL = [], SPANS = [];   // SPANS = [[from, to]]，YYYY-MM-DD
+window.addEventListener("spend-rows-changed", () => { POOL = []; SPANS = []; });
+const shiftDay = (d, n) => localDay(new Date(new Date(`${d}T12:00:00`).getTime() + n * DAY));
+const covered = (from, to) => SPANS.some(([a, b]) => a <= from && to <= b);
+/** 一组 { d: 本地日期, a: 金额 } 涉及的日期段（前后各多 4 天）还没读过就一次读进来；返回 true = 读了新的（调用方可以重画提示） */
 export async function loadNear(cands) {
-  const miss = [...new Map(cands.filter((c) => c.d && Number.isFinite(+c.a) && +c.a !== 0).map((c) => [candKey(c.d, cents(c.a)), c])).entries()].filter(([k]) => !NEAR.has(k));
-  if (!miss.length) return false;
-  const p = Store.spendDupMatch(miss.map(([k, c]) => ({ k, d: c.d, a: Math.round(+c.a * 100) / 100 })), TZ());
-  for (const [k] of miss) NEAR.set(k, { rows: null, p });
+  const days = cands.filter((c) => c.d && Number.isFinite(+c.a) && +c.a !== 0).map((c) => c.d).sort();
+  if (!days.length) return false;
+  const from = shiftDay(days[0], -PAD_DAYS), to = shiftDay(days.at(-1), PAD_DAYS);
+  if (covered(from, to)) return false;
   try {
-    const rows = await p, by = new Map(miss.map(([k]) => [k, []]));
-    for (const r of rows || []) by.get(r.k)?.push(r);
-    for (const [k, l] of by) NEAR.set(k, { rows: l });
-  } catch (e) { for (const [k] of miss) NEAR.delete(k); console.warn("[dup]", e.message); return false; }
+    const rows = await Store.listPurchasesRange(new Date(`${from}T00:00:00`).toISOString(), new Date(`${shiftDay(to, 1)}T00:00:00`).toISOString());
+    const seen = new Set(POOL.map((p) => p.id));
+    POOL = [...POOL, ...rows.filter((p) => !seen.has(p.id))];
+    SPANS.push([from, to]);
+  } catch (e) { console.warn("[dup]", e.message); return false; }
   return true;
 }
-/** 已经查过的：这个日期 + 金额的已有花费（还没查过返回 null） */
-export const nearRows = (day, amount) => NEAR.get(candKey(day, cents(amount)))?.rows ?? null;
+/** 已经读过的：这个日期 ±3.5 天内金额相同的已有花费，新 → 旧（这一段还没读过返回 null） */
+export function nearRows(day, amount) {
+  if (!covered(shiftDay(day, -PAD_DAYS), shiftDay(day, PAD_DAYS))) return null;
+  const tm = new Date(`${day}T12:00:00`).getTime(), amt = cents(amount);
+  return POOL.filter((p) => p.amount != null && cents(p.amount) === amt && Math.abs(new Date(p.purchased_at).getTime() - tm) <= WINDOW_DAYS * DAY)
+    .sort((a, b) => String(b.purchased_at).localeCompare(String(a.purchased_at)) || String(b.id).localeCompare(String(a.id)));
+}
 const candOf = (c) => ({ d: localDay(c.at), a: c.amount });
 
 /** 找出疑似重复的已有花费。c = { name, amount, store, at(ISO 或 Date) }；exclude：同一批里已经配过的花费 id，别重复配。

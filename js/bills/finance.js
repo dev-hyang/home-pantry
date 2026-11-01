@@ -11,13 +11,25 @@ import { actualByMonth, billsThisMonth, applianceFund, meta, registerAction, reg
 import { escrowMonthlyFor, freqText, upcoming } from "./logic.js";
 import { lastMonths, monthLabel, spendBase } from "../stats/views.js";
 import { Store } from "../core/store.js";
-import { TZ, cached } from "../core/spend-data.js";
+import { cached } from "../core/spend-data.js";
 
 /* 复盘、分摊要的花费都按需向数据库要（迁移 057），不读整表：
- *   上个月最大的几笔 = 花费流水按金额排的前 3 行（spend_page，sort = high）；家庭分摊 = 按 月 × 记账人 聚合（spend_by_member） */
+ *   上个月最大的几笔 = 花费流水按金额排的前 3 行（spend_page，sort = high）；家庭分摊 = 当月花费读进内存按记账人汇总（一个月的量，不值得单独聚合） */
 const BIG = cached((m) => Store.listPage("spend", { ...spendBase("high"), year: m.slice(0, 4), mon: m.slice(5, 7) }, null, 3).then((r) => (r || []).slice(0, 3)), { max: 4, fallback: [] });
 const nextMonthStart = (m) => { const [y, mo] = m.split("-").map(Number); return mo === 12 ? `${y + 1}-01-01` : `${y}-${String(mo + 1).padStart(2, "0")}-01`; };
-const BY_MEMBER = cached((m) => Store.spendByMember(`${m}-01`, nextMonthStart(m), TZ()), { max: 4, fallback: [] });
+/* 家庭分摊：只看一个月——这个月的花费读进来（分页读全），加上内存里已有的医疗付款，在这里按记账人汇总；一个月的量不值得单独写 SQL 聚合 */
+const BY_MEMBER = cached(async (m) => {
+  const to = nextMonthStart(m), rows = await Store.listPurchasesRange(new Date(`${m}-01T00:00:00`).toISOString(), new Date(`${to}T00:00:00`).toISOString());
+  const meds = (state.medPayments || []).filter((p) => p.paid_on >= `${m}-01` && p.paid_on < to)
+    .map((p) => ({ amount: p.amount, created_by: p.paid_by, currency: p.currency || state.medBills.find((b) => b.id === p.bill_id)?.currency }));
+  const map = new Map();
+  for (const p of [...rows, ...meds]) {
+    if (!(+p.amount > 0)) continue;
+    const k = `${p.created_by || ""}|${p.currency || ""}`, r = map.get(k) || { month: m, created_by: p.created_by || null, currency: p.currency || null, sum: 0, n: 0 };
+    r.sum = Math.round((r.sum + +p.amount) * 100) / 100; r.n++; map.set(k, r);
+  }
+  return [...map.values()];
+}, { max: 4, fallback: [] });
 
 const B = () => window.BILLS;
 const cur = () => Units.region.currency;

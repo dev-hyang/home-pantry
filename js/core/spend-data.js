@@ -1,6 +1,6 @@
 /* ───────────── 花费的按需数据（迁移 057）：不再把花费整表读进浏览器 ─────────────
  * 以前启动时后台读近 400 天的花费放进 state.purchases，预算、复盘、补货预估、联想、查重、卡的用量都在内存里算；
- * 现在各自向数据库要聚合好的 / 定点的结果（spend_rollup、spend_by_member、item_purchase_stats、spend_suggest、card_spend…），
+ * 现在各自向数据库要聚合好的 / 定点的结果（spend_rollup、item_purchase_stats、spend_suggest、card_spend…），
  * 读回来的结果按 key 缓存在这里。花费变了（实时同步、自己记 / 改 / 删、医疗付款变了 → spend-rows-changed）全部标过期，
  * 下次画的时候后台重读；读完发 spend-data-loaded，main.js 重画当前页面（和 stats/views.js 的聚合缓存同一套）。 */
 import { Store } from "./store.js";

@@ -218,17 +218,6 @@ const localDay = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-
 const inDays = (iso, from, to) => { const d = localDay(iso); return (!from || d >= from) && (!to || d < to); };
 const newest = (a, b) => cmp(String(b.purchased_at), String(a.purchased_at)) || cmp(String(b.id), String(a.id));
 
-/** 家庭分摊（同 spend_by_member）：本地日期 [from, to)，只算金额 > 0 */
-export function spendByMember(db, from, to) {
-  const map = new Map();
-  for (const s of spendFeed(db, {})) {
-    if (!(+s.amount > 0) || !inDays(s.purchased_at, from, to)) continue;
-    const k = [s.lm, s.created_by || "", s.currency || ""].join("|");
-    const r = map.get(k) || { month: s.lm, created_by: s.created_by || null, currency: s.currency || null, sum: 0, n: 0 };
-    r.sum = round2(r.sum + +s.amount); r.n++; map.set(k, r);
-  }
-  return [...map.values()];
-}
 /** 补货预估（同 item_purchase_stats）：物品最近 3 次买价 / 次数 / 最近一次 / 平均间隔天数，分类最近 10 次买价 */
 export function itemPurchaseStats(db, cur, items = [], cats = []) {
   const ok = (db.purchases || []).filter((p) => +p.amount > 0 && (!cur || p.currency === cur)).sort(newest), out = [];
@@ -243,19 +232,6 @@ export function itemPurchaseStats(db, cur, items = [], cats = []) {
     out.push({ kind: "cat", key: c, amts: l.map((p) => +p.amount), n: l.length, last_at: null, last_store: null, avg_days: null });
   }
   return out;
-}
-/** 查重（同 spend_dup_match）：rows = [{ k, d: 本地日期, a: 金额 }]，每条 ±days 天内金额相同的 purchases（不含事件型账单的付款） */
-export function spendDupMatch(db, rows = [], days = 3.5) {
-  const out = [];
-  for (const c of (rows || []).slice(0, 2000)) {
-    if (c?.k == null || !c.d || c.a == null) continue;
-    const t0 = new Date(`${c.d}T12:00:00`).getTime();
-    for (const p of db.purchases || []) {
-      if (p.amount == null || Math.abs(+p.amount - +c.a) >= 0.005 || Math.abs(new Date(p.purchased_at).getTime() - t0) > days * 864e5) continue;
-      out.push({ k: c.k, id: p.id, name: p.name, store: p.store ?? null, amount: +p.amount, purchased_at: p.purchased_at, created_by: p.created_by || null });
-    }
-  }
-  return out.sort((a, b) => cmp(a.k, b.k) || cmp(String(b.purchased_at), String(a.purchased_at)) || cmp(String(a.id), String(b.id)));
 }
 /** 输入框联想（同 spend_suggest）：since 之后用过的商店（按次数）和行程名（按最近） */
 export function spendSuggest(db, since = null, limit = 300) {

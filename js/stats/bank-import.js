@@ -289,7 +289,7 @@ function rebuild() {
     rows.push(row);
   }
   // 和已有花费对得上的（金额一样、日期差 ≤ 3.5 天，每条已有花费只配一次）：疑似已记录，默认跳过；重复导入同一个文件也靠它防重。
-  // 已有花费不在浏览器里：每行的 日期 + 金额 向数据库查（spend_dup_match，迁移 057，dup-check.js 缓存）；还没查完的先按没有算，查回来重新判断
+  // 已有花费不在浏览器里：对账单这段日期（前后各多 4 天）一次读进内存（dup-check.js），每行在内存里比；还没读完的先按没有算，读完重新判断
   const cands = [...rows.filter((r) => !r.skip).map((r) => ({ d: r.date, a: r.out })), ...rows.filter((r) => r.inc).map((r) => ({ d: r.date, a: r.out }))];   // 收入行：找记成退款的（金额 = −到账）
   loadNear(cands).then((fresh) => { if (fresh) { rebuild(); redraw(); } }).catch(() => {});
   const used = new Set(), seen = {};
