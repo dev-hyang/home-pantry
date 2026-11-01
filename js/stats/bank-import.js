@@ -426,7 +426,7 @@ function incomeRow(g) {
     <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n: g.rows.length })} · ${money(-g.total)} · ${esc(rangeOf(g.rows))}${unsure ? ` · <span class="bank-src">${t("只写着转账 / 存款，看不出来源，默认没勾")}</span>` : ""}${capNote}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b>` : ""}</small>${matched.length ? dupListHtml(matched) : ""}</div>
     <select data-bank-ikind="${esc(g.id)}" aria-label="${esc(t("收入类型"))}">${kinds}</select></li>`;
 }
-const incomeSection = (list) => (list.length ? `<section class="section"><div class="section-head"><h2>💵 ${t("收入 / 入账")}（${list.length}）</h2><p>${t("工资、电汇、Zelle 转入、赠与等：勾上的会记进「账单 → 收入」，不会算进花费。自己账户之间的转账（如从 SAV 转入）已自动跳过；商家退款仍按负花费算。收入只有家主（和被允许的人）能看全家的。")}</p></div>
+const incomeSection = (list) => (list.length ? `<section class="section"><div class="section-head"><h2>💵 ${t("收入 / 入账")}（${list.length}）</h2><p>${t("工资、电汇、Zelle 转入、赠与等：勾上的会记进「财务 → 收入」，不会算进花费。自己账户之间的转账（如从 SAV 转入）已自动跳过；商家退款仍按负花费算。收入只有家主（和被允许的人）能看全家的。")}</p></div>
   <div class="panel"><label class="tb-field" style="margin-bottom:8px"><span>${t("这些收入记给谁")}</span><select data-bank-iperson data-nosearch><option value="none" ${incWho() === "none" ? "selected" : ""}>${t("未指定 / 全家")}</option>${adults().map((p) => `<option value="${p.id}" ${incWho() === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
   <ul class="restock-list bank-list">${list.map(incomeRow).join("")}</ul></div></section>` : "");
 const chosen = () => {

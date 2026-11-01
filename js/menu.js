@@ -22,7 +22,7 @@ import { houseBar } from "./house/property-form.js";
 import { PROFILE_SECTIONS } from "./house/views.js";
 import { FINANCE_HIDDEN_SUBS, financeOk } from "./core/finance-access.js";
 
-const SECTION_ICON = { pantry: "🥫", house: "🏠", bills: "🧾", me: "👤" };
+const SECTION_ICON = { pantry: "🥫", house: "🏠", bills: "💰", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”
 const META = {
   pantry: {
@@ -43,23 +43,35 @@ const META = {
     bills:     { icon: "🧾", desc: "这套房产的水电气网、HOA、房产税、房贷、保险", href: () => `${href("bills", "recurring")}?tab=list&prop=${state.propertyId}`, count: () => billAlerts(state.billsEnriched.filter((b) => b.property_id === state.propertyId)).length, when: () => state.billsEnabled },
   },
   bills: {
-    overview:  { icon: "🧾", desc: "周期性 + 一次性账单一览：要处理的、未来 30 天要交、未结余额" },
+    overview:  { icon: "🧾", title: "账单概览", desc: "周期性 + 一次性账单一览：要处理的、未来 30 天要交、未结余额" },
     recurring: { icon: "🔁", desc: "水电气网、房贷房租、保险、订阅、信用卡：按周期反复出现，算下次到期并提醒；含清单、缴费记录", count: () => billAlerts(state.billsEnriched).length },
     onetime:   { icon: "🏥", desc: "一次事件产生的账单：医疗、宠物、法律税务、装修工程；有总额、可分次付、有余额", count: () => state.medEnriched.filter((b) => b.open).length },
-    income:    { icon: "💵", desc: "收支总览：收入（工作 / 投资 / 房产 / 其他）vs 消费、储蓄率、投资率；资本流入（卖房卖股、借款、转入）单列不算收入" },
+    income:    { icon: "💵", href: () => `${href("bills", "income")}?tab=records`, desc: "收入明细、类型、付款方：工作 / 投资 / 房产 / 其他；个人赠与 / 借款的还款" },
+    // 分析组里的「收支总览」= 收入页的第一个标签（同一页，不另做一份）；sub 指向真正的二级页，权限按它判断
+    cashflow:  { icon: "⚖️", title: "收支总览", sub: "income", href: () => href("bills", "income"), desc: "收支总览：收入（工作 / 投资 / 房产 / 其他）vs 消费、储蓄率、投资率；资本流入（卖房卖股、借款、转入）单列不算收入" },
     statements: { icon: "🏦", desc: "银行 / 信用卡对账单：花费和收入一次导入；导出花费、收入、收支差额报表" },
     budget:    { icon: "💰", desc: "收入、固定账单、储蓄 → 月度 / 年度预算，对比实际花费，超预算提醒，大额购物规划" },
     spend:     { icon: "📊", desc: "所有花费：每月花了多少、分类占比、商店、年度报表，可搜索筛选排序" },
     cards:     { icon: "💳", desc: "信用卡：该刷哪张（按场景比返现）、到期 / 年费 / 轮换类别 / 开卡奖励提醒；银行、券商、退休、HSA、贷款账户也记在这里", count: () => state.cards.filter((c) => c.active !== false).length },
   },
   me: {
-    stats:     { icon: "📊", desc: "库存使用趋势（花费统计在 账单 → 花费）" },
+    stats:     { icon: "📊", desc: "库存使用趋势（花费统计在 财务 → 花费）" },
     settings:  { icon: "⚙️", desc: "家庭成员、邀请码、房产、语言、模块、备份" },
     about:     { icon: "✎", desc: "这个网站是什么、怎么用、注意事项" },
   },
 };
+/* 财务目录分组（2026-11，P1 信息架构）：同一页里的小标题，不多一层（底栏 → 目录 → 页面 → 页内标签）。
+ * 手机：一列分组列表；宽屏：两栏分组卡片（CSS columns，读屏顺序 = 视觉顺序：先左栏再右栏）。
+ * 借贷是 P2：先放一张不可点的「即将推出」卡（只给有财务权限的人看，和以后的权限一致），说明贷款以后放哪，而不是一个点进去空白的链接。 */
+export const FIN_GROUPS = [
+  { id: "flow", name: "收支", subs: ["spend", "income", "recurring", "onetime", "statements"] },
+  { id: "accounts", name: "账户与资产", subs: ["cards", "assets"] },
+  { id: "debt", name: "借贷", soon: { icon: "🏦", title: "贷款与借款", desc: "房贷、车贷、和家人朋友之间的借款：还款计划、本金 / 利息拆分、Escrow" } },
+  { id: "plan", name: "预算与计划", subs: ["budget"] },
+  { id: "analysis", name: "分析", subs: ["overview", "cashflow"] },
+];
 const HIDDEN = (section, k) => (section === "pantry" && k === "gear" && !state.gearEnabled)
-  || (section === "bills" && FINANCE_HIDDEN_SUBS.includes(k) && !financeOk());   // 没有财务权限：对账单 / 收入 / 预算不进目录
+  || (section === "bills" && FINANCE_HIDDEN_SUBS.includes(META.bills[k]?.sub || k) && !financeOk());   // 没有财务权限：对账单 / 收入 / 预算不进目录
 
 export const menuRow = ({ href: url, icon, title, desc, count, countLabel, external }) => `<a class="mrow" href="${esc(url)}" ${external ? 'target="_blank" rel="noopener noreferrer"' : ""}>
     <span class="mi" aria-hidden="true">${icon}</span>
@@ -98,7 +110,28 @@ export function viewPropertyList() {
 }
 
 /** 某个页签的目录页（房屋：当前房产的页面目录） */
+/** 财务目录：按 FIN_GROUPS 分组；没权限的行、整组都空的组不出现 */
+function viewFinanceMenu() {
+  const sec = SECTIONS.bills, known = new Set(sec.subs.filter(([, , h]) => !h).map(([k]) => k));
+  const row = (k) => {
+    const m = META.bills[k] || {}, label = m.title || sec.subs.find(([s]) => s === k)?.[1] || k;
+    let count = 0; try { count = m.count ? m.count() : 0; } catch { count = 0; }
+    return menuRow({ href: m.href ? m.href() : href("bills", k), icon: m.icon || "•", title: t(label), desc: m.desc ? t(m.desc) : "", count });
+  };
+  const groups = FIN_GROUPS.map((g) => {
+    const body = g.soon
+      ? (financeOk() ? `<div class="mrow mrow-soon" aria-disabled="true"><span class="mi" aria-hidden="true">${g.soon.icon}</span><span class="mt"><b>${esc(t(g.soon.title))}</b><small>${esc(t(g.soon.desc))}</small></span><span class="badge mcount">${esc(t("即将推出"))}</span></div>` : "")
+      : g.subs.filter((k) => (known.has(k) || META.bills[k]?.sub) && !HIDDEN("bills", k)).map(row).join("");
+    return body ? `<section class="fin-group" aria-labelledby="fg-${g.id}"><h3 class="fin-group-h" id="fg-${g.id}">${esc(t(g.name))}</h3><div class="panel mlist">${body}</div></section>` : "";
+  }).join("");
+  return `<section class="section menu-page">
+    <div class="section-head"><h2>${SECTION_ICON.bills} ${t(sec.name)}</h2><p>${t("和钱有关的都在这里；房子、车的日常维护在「房屋」")}</p></div>
+    <div class="fin-groups">${groups}</div>
+  </section>`;
+}
+
 export function viewMenu(section) {
+  if (section === "bills") return viewFinanceMenu();
   const sec = SECTIONS[section]; if (!sec?.subs) return "";
   const extra = Object.entries(META[section] || {}).filter(([k, m]) => m.href && !sec.subs.some(([s]) => s === k) && (!m.when || m.when())).map(([k, m]) => [k, { bills: "账单" }[k] || k]);
   const ORDER = { house: ["overview", "profile", "bills", "tasks", "assets", "deal"] };   // 房产目录：概览 → 房屋资料 → 账单 → 季节任务 → 设备保养 → 交易

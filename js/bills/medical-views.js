@@ -1,4 +1,4 @@
-/* 账单 → 医疗：概览 / 账单 / 年度报表三个标签（窄屏概览下面是入口行），账单详情页（?bill=<id|new>）里有金额、保险、付款记录。
+/* 财务 → 医疗：概览 / 账单 / 年度报表三个标签（窄屏概览下面是入口行），账单详情页（?bill=<id|new>）里有金额、保险、付款记录。
  * 隐私：默认“仅自己和家主可见”（visibility = private），可改成全家可见；列表里私密的带 🔒。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
@@ -79,7 +79,7 @@ function overviewTab() {
     ${tabHub(MEDICAL_TABS, medHref, t("更多"))}
     ${list.length ? `<section class="section"><div class="section-head"><h2>${t("待处理")}</h2></div><div class="panel">${open.length ? `<ul class="restock-list">${open.sort((a, b) => (a.due_on || "9999").localeCompare(b.due_on || "9999")).slice(0, 8).map(medRow).join("")}</ul>` : `<div class="empty"><strong>${t("没有待处理的账单")}</strong></div>`}</div></section>` : `<div class="panel">${emptyHtml()}</div>`}
     ${chart ? `<div class="panel chart-panel"><h3>${t("每月医疗付款")}</h3>${chart}<p class="muted drill-hint">${t("点柱子，可以查看对应的付款明细。")}</p></div>` : ""}
-    <p class="muted" style="font-size:12.5px">${t("医疗付款会自动并入 账单 → 花费 的“医疗”分类，商店 / 收款方是医院或化验所。")}</p>`;
+    <p class="muted" style="font-size:12.5px">${t("医疗付款会自动并入 财务 → 花费 的“医疗”分类，商店 / 收款方是医院或化验所。")}</p>`;
 }
 function listTab() {
   const f = state.medFilter, opt = (v, l, c) => `<option value="${esc(v)}" ${c === v ? "selected" : ""}>${esc(l)}</option>`;

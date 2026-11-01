@@ -1,4 +1,4 @@
-/* 账单 → 收入：收支总览、明细、类型（一级 → 叶子）、付款方历史、收支对比（双周 / 月 / 季 / 年，AI 分析）、导出、预算与计划。
+/* 财务 → 收入：收支总览、明细、类型（一级 → 叶子）、付款方历史、收支对比（双周 / 月 / 季 / 年，AI 分析）、导出、预算与计划。
  * 数据在 income_records（迁移 042 / 056），收入规则在 js/core/income-taxonomy.js（认定收入 vs 资本流入），花费规则在 js/core/taxonomy.js。
  * 统计不把花费读进浏览器：收支总览 / 类型读数据库按月聚合的 inc_rollup + spend_rollup，收支对比的花费一侧读 ledger_rollup（按月或双周），
  * 在 js/stats/report.js 汇总。明细是服务器分页（inc_page / inc_stats）。付款方、最近到账、还款、表单查重仍用整张收入表（I.rec）。 */
@@ -155,7 +155,7 @@ function togglesHtml(cf) {
 const personOptions = (sel, { all = false } = {}) => `${all ? `<option value="all" ${sel === "all" ? "selected" : ""}>${t("全家")}</option>` : ""}<option value="none" ${sel === "none" ? "selected" : ""}>${t(all ? "未指定的" : "未指定 / 全家")}</option>${adults().map((p) => `<option value="${p.id}" ${sel === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}`;
 const selOpts = (list, sel) => list.map(([v, l]) => `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(t(l))}</option>`).join("");
 const yearsOf = () => [...new Set(inc().rec.map((r) => r.received_on.slice(0, 4)).concat(String(new Date().getFullYear())))].sort().reverse();
-const empty = () => `<div class="panel empty"><strong>${t("还没有收入记录")}</strong>${t("点右上角「记一笔收入」；在「账单 → 对账单」导入对账单时，工资、电汇、Zelle 转入这些入账会单独列出来，勾上就能一起导入。")}</div>`;
+const empty = () => `<div class="panel empty"><strong>${t("还没有收入记录")}</strong>${t("点右上角「记一笔收入」；在「财务 → 对账单」导入对账单时，工资、电汇、Zelle 转入这些入账会单独列出来，勾上就能一起导入。")}</div>`;
 const kpi = (label, val, sub = "") => `<div class="kpi"><span>${esc(label)}</span><b>${val}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
 const rate = (n, i) => (i > 0 && n != null ? `${Math.round((n / i) * 100)}%` : "—");
 const pctOf = (r) => (r == null ? "—" : `${Math.round(r * 100)}%`);
@@ -651,7 +651,7 @@ function exportTab() {
       <div class="panel export-grid"><div class="export-btns"><button type="button" class="btn btn-primary btn-sm" data-inc="print-report">${t("打印这段时间的收入报表")}</button></div></div>
       <p class="muted" style="margin:6px 0 0;font-size:13px">${t("要打印筛选后的明细，到“明细”标签里点“打印”。")}</p></section>`;
 }
-/** 给 账单 → 对账单 → 导出打印 用：收入 / 收支报表的导出块（数据没读过先读） */
+/** 给 财务 → 对账单 → 导出打印 用：收入 / 收支报表的导出块（数据没读过先读） */
 export function incomeExportHtml() {
   const I = inc();
   if (!I.loaded && !I.loading) { I.loading = true; loadIncome().finally(() => { I.loading = false; rerender(); }); }

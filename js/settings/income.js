@@ -34,7 +34,7 @@ export function incomePanel() {
   const own = `<div class="panel"><div class="kv"><div><b>${t("我的收入")}</b><div class="muted">${t("税后，{cur}。只有你自己{o}能看到这里的数字。", { cur: cur(), o: owner ? "" : t("和家主") })}</div></div></div>
     ${incomeForm(me, mine)}
     <p class="muted" style="margin:8px 0 0;font-size:13px"><b>${t("填到手工资，不含已被扣掉的税和保险。")}</b> ${t("固定工资按月或按年填；兼职 / 副业填一个大概的月均就行。偶尔的一次性收入（例如卖二手）不用填，预算不把它算进去。")}</p></div>`;
-  if (!owner) return `${own}<div class="panel"><p class="muted" style="margin:0">${t("预算由家主按全家收入生成，你在 账单 → 预算 里能看到各类预算和进度，但看不到别人的收入。")}</p>
+  if (!owner) return `${own}<div class="panel"><p class="muted" style="margin:0">${t("预算由家主按全家收入生成，你在 财务 → 预算 里能看到各类预算和进度，但看不到别人的收入。")}</p>
     <div class="form-actions"><a class="btn btn-sm btn-ghost" href="${href("bills", "budget")}">${t("去看预算")}</a></div></div>`;
   const others = state.members.filter((m) => m.user_id !== me), total = totalIncomeMonthly(), b = state.budget || {};
   return `${incomeBanner()}${own}
@@ -50,7 +50,7 @@ export function incomePanel() {
     <div class="panel"><label class="check-inline"><input type="checkbox" id="medPoolToggle" ${medInPool() ? "checked" : ""}><span><b>${t("把医疗支出计入每月可支配预算")}</b></span></label>
       <p class="muted" style="margin:6px 0 0;font-size:13px">${t("默认不计入：医疗花费大额、不可预测，单独在预算页“本月”里列出。打开后医疗和其他分类一样有月预算，也会占用可支配额。")}</p></div>
     <div class="panel"><label class="check-inline"><input type="checkbox" id="splitToggle" ${meta("_split_on", false) === true ? "checked" : ""}><span><b>${t("启用家庭分摊")}</b></span></label>
-      <p class="muted" style="margin:6px 0 0;font-size:13px">${t("打开后，账单 → 预算 里会出现“家庭分摊”：按谁记的账算付款人，算谁多付了、谁该补多少。默认关闭。")}</p></div>`;
+      <p class="muted" style="margin:6px 0 0;font-size:13px">${t("打开后，财务 → 预算 里会出现“家庭分摊”：按谁记的账算付款人，算谁多付了、谁该补多少。默认关闭。")}</p></div>`;
 }
 
 /** 读一个人的卡片：金额为空的行忽略；金额填错给出提示 */

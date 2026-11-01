@@ -555,7 +555,7 @@ export const CloudStore = {
   async incRollup(from, to, tz) { return this.pageAll(() => this.sb.rpc("inc_rollup", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz }).order("month").order("kind").order("person_id").order("account_id").order("currency").order("repay")); },
   /** 账本聚合（迁移 056）：周期（month / biweek）× 来源 × 类型 × 方向 × 分类 × 性质 */
   async ledgerRollup(from, to, tz, unit = "month", anchor = null) { return this.pageAll(() => this.sb.rpc("ledger_rollup", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz, p_unit: unit, p_anchor: anchor }).order("period").order("source").order("type").order("direction").order("category").order("nature").order("repay").order("person_id").order("currency")); },
-  /** 统一账本 ledger_v 的一段（本地日期 [from, to)，新 → 旧）：对账单 → 全部流水 */
+  /** 统一账本 ledger_v 的一段（本地日期 [from, to)，新 → 旧）：对财务 → 全部流水 */
   async ledgerRange(from, to) {
     const lo = new Date(`${from}T00:00:00`).toISOString(), hi = new Date(`${to}T00:00:00`).toISOString();
     return this.pageAll(() => this.sb.from("ledger_v").select("*").eq("household_id", this.hid).gte("occurred_at", lo).lt("occurred_at", hi).order("occurred_at", { ascending: false }).order("id", { ascending: false }), 20000);

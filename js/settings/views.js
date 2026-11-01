@@ -358,7 +358,7 @@ export function viewSettings() {
     properties: () => propertiesPanel(),
     modules: () => `
     ${sw("houseToggle", state.houseEnabled, t("房屋维护模块"), t("关闭后导航和首页只显示日常储备，适合租房或不需要的家庭；数据不会删除"))}
-    ${sw("billsToggle", state.billsEnabled, t("账单模块"), t("水电气、网络、HOA、房产税、房贷、保险等周期账单的提醒与记录；关闭后导航里不再显示，数据不会删除"))}
+    ${sw("billsToggle", state.billsEnabled, t("财务模块"), t("水电气、网络、HOA、房产税、房贷、保险等周期账单的提醒与记录；关闭后导航里不再显示，数据不会删除"))}
     ${sw("gearToggle", state.gearEnabled, t("装备模块"), t("床品、电器、自行车、工具等耐用品，只记数量和位置；关闭后储藏里不再显示“装备”，数据不会删除"))}`,
     data: () => `
     <div class="panel"><div class="kv"><div><b>${t("浏览器通知")}</b><div class="muted">${t("打开网页时，若有新的缺货或少货会弹出提醒")}</div></div>

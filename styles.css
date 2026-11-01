@@ -548,6 +548,13 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 /* ── 页签目录页（参考家庭学堂“我的”页）：一栏一行，点进去；子页顶部一条面包屑回目录 ── */
 .menu-page { max-width: none; }   /* 目录页也占满居中列，和底部页签对齐 */
 .mlist { padding: 4px 6px; }
+/* 财务目录：分组小标题；手机一列，宽屏两栏卡片（columns 保持 DOM 顺序 = 读屏 / Tab 顺序，先左栏再右栏） */
+.fin-groups { display: block; }
+.fin-group { break-inside: avoid; margin: 0 0 16px; }
+.fin-group-h { font-size: 13px; font-weight: 700; letter-spacing: .02em; color: var(--muted); margin: 0 4px 6px; text-transform: uppercase; }
+@media (min-width: 760px) { .fin-groups { columns: 2; column-gap: 16px; } .fin-group { display: inline-block; width: 100%; } }
+.mrow-soon { cursor: default; }   /* 不降透明度：文字对比度保持 AA */
+.mrow-soon:hover { background: none; }
 .mrow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 10px 10px; border-radius: var(--r-sm); color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); box-sizing: border-box; }
 .mrow:last-child { border-bottom: 0; }
 .mrow:hover { background: var(--bg); }

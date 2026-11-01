@@ -310,7 +310,7 @@ function renderBody(r) {
   if (r.section === "asset") { $("#main").innerHTML = viewAssetForm(); return; }
   if (r.section === "bill") { $("#main").innerHTML = viewBillForm(); return; }
   if (r.section === "house" && !state.houseEnabled) { $("#main").innerHTML = offPanel(t("房屋维护模块已关闭"), "house-enable", t("打开房屋维护")); return; }
-  if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("账单模块已关闭"), "bills-enable", t("打开账单")); return; }
+  if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("财务模块已关闭"), "bills-enable", t("打开财务")); return; }
   if (routeBlocked(r)) { $("#main").innerHTML = ""; toast(t("家主还没给你开财务权限")); go(financeFallback(r), { replace: true }); return; }   // 对账单 / 收入 / 预算 / 添加卡：没有财务权限时直接打开网址也跳走
   if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = crumb(r) + offPanel(t("装备模块已关闭"), "gear-enable", t("打开装备")); return; }
   if (r.sub === "menu") { $("#main").innerHTML = r.section === "house" ? viewPropertyList() : viewMenu(r.section); return; }   // 页签目录页；房屋先列房产
@@ -627,7 +627,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "billsToggle") {
     state.billsEnabled = e.target.checked;
     try { localStorage.setItem("hmh-bills-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
-    toast(e.target.checked ? t("已打开账单") : t("已关闭账单，导航里不再显示")); render();
+    toast(e.target.checked ? t("已打开财务") : t("已关闭财务，导航里不再显示")); render();
   }
   if (e.target.id === "pageSizeSel") { setPageSize(e.target.value); resetListPages(); toast(t("列表每次显示 {n} 条", { n: pageSize() })); render(); }
   if (e.target.id === "regionSel") {

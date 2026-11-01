@@ -85,7 +85,7 @@ export function quickList() {
   if (Store.mode === "cloud") list = state.user?.user_metadata?.quick;
   else { try { list = JSON.parse(localStorage.getItem(QUICK_KEY) || "null"); } catch { list = null; } }
   if (!Array.isArray(list)) return DEFAULT_QUICK();
-  // 旧的“看花费统计”（我的 → 统计）在账单模块开着时改指向 账单 → 花费，并去掉重复
+  // 旧的“看花费统计”（我的 → 统计）在账单模块开着时改指向 财务 → 花费，并去掉重复
   return state.billsEnabled ? [...new Set(list.map((id) => (id === href("me", "stats") ? href("bills", "spend") : id)))] : list;
 }
 export async function saveQuick(list) {
@@ -95,7 +95,7 @@ export async function saveQuick(list) {
     state.user = data.user;
   } else { try { localStorage.setItem(QUICK_KEY, JSON.stringify(list)); } catch { /* 忽略 */ } }
 }
-/** 快捷操作的实际地址：账单带 ?prop=all（每次回到全部房产）；“看花费统计”在账单模块开着时指向 账单 → 花费 */
+/** 快捷操作的实际地址：账单带 ?prop=all（每次回到全部房产）；“看花费统计”在账单模块开着时指向 财务 → 花费 */
 const quickHref = (id) => (id === href("me", "stats") && state.billsEnabled ? href("bills", "spend") : id.startsWith("#/bills") ? `${id}${id.includes("?") ? "&" : "?"}prop=all` : id);   // 已经带参数的（如 ?tab=records）用 & 接
 /** 可放进快捷操作的页面与动作：[标识, 图标, 名称] */
 const PRESETS = () => [

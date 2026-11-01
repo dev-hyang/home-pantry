@@ -235,7 +235,7 @@ function overviewKpis() {
     ${kpi({ label: t("资本性支出"), value: money(cap), small: t("买房、买车、装修等，不算日常"), drill: { nat: "capital", ...plan.a.drill } })}
   </div>`;
 }
-/** 账单概览里的花费速览：本月日常 / 含住房、近 6 个月月均（中位数）、本月现金流出；详细的在 账单 → 花费 */
+/** 账单概览里的花费速览：本月日常 / 含住房、近 6 个月月均（中位数）、本月现金流出；详细的在 财务 → 花费 */
 export function spendGlance() {
   const ms = lastMonths(6), A = spendAgg(ms, 6), head = `<div class="section-head"><h2>${t("花费速览")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}">${t("看花费")}</a></div></div>`;
   if (!A) return `<section class="section">${head}${LOADING()}</section>`;
@@ -496,7 +496,7 @@ export function viewUsage() {
     });
   }
   return `
-    ${state.billsEnabled ? `<div class="panel cta-panel"><div><b>${t("花费统计搬到了 账单 → 花费")}</b><p class="muted">${t("每月花了多少、分类占比、商店、年度报表、补记和花费记录都在那里；这里只看库存的使用趋势。")}</p></div>
+    ${state.billsEnabled ? `<div class="panel cta-panel"><div><b>${t("花费统计搬到了 财务 → 花费")}</b><p class="muted">${t("每月花了多少、分类占比、商店、年度报表、补记和花费记录都在那里；这里只看库存的使用趋势。")}</p></div>
       <a class="btn btn-primary" href="#/bills/spend">${t("去看花费")}</a></div>` : ""}
     <section class="section">
       <div class="section-head"><h2>${t("消耗趋势")}</h2><p>${t("最近 12 周，来自家人点“−”的记录")}</p></div>
@@ -510,7 +510,7 @@ export function viewUsage() {
     `;
 }
 
-/** 我的 → 统计：账单模块开着时只看用量趋势（花费在 账单 → 花费）；关掉账单时花费和用量都在这里 */
+/** 我的 → 统计：账单模块开着时只看用量趋势（花费在 财务 → 花费）；关掉账单时花费和用量都在这里 */
 export function viewStats() {
   return state.billsEnabled ? viewUsage() : viewSpend() + viewUsage();
 }

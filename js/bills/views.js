@@ -489,7 +489,7 @@ export function viewBillForm() {
         <fieldset data-sec="autopay" ${hide("autopay")}>
           <legend>${t("付款账户与自动扣款")}</legend>
           <div class="form-grid">
-            <label>${t("付款账户 / 卡")}<select name="pay_account" data-pay-acct>${accountOptions(payAcctValue(v.pay_card_id, v.autopay_method), { none: "（未指定）", extra: PAY_EXTRA })}</select><small>${t("自动扣款从它扣；手动缴费时记缴费也默认用它。卡和银行账户在 账单 → 用卡 里添加。")}</small></label>
+            <label>${t("付款账户 / 卡")}<select name="pay_account" data-pay-acct>${accountOptions(payAcctValue(v.pay_card_id, v.autopay_method), { none: "（未指定）", extra: PAY_EXTRA })}</select><small>${t("自动扣款从它扣；手动缴费时记缴费也默认用它。卡和银行账户在 财务 → 用卡 里添加。")}</small></label>
             <label data-pay-other ${payAcctValue(v.pay_card_id, v.autopay_method) === "other" ? "" : "hidden"}>${t("账户说明")}<input name="autopay_method" maxlength="40" placeholder="${t("例如：公司代扣 / 支票")}" value="${d(v.autopay_method)}"></label>
             <label class="check-inline span-2"><input type="checkbox" name="autopay" ${v.autopay ? "checked" : ""}><span>${t("已设置自动扣款（到期前后提醒核对，而不是提醒缴费）")}</span></label>
             <label data-pay-exp ${payAcct ? "hidden" : ""}>${t("扣款卡有效期")}<input name="autopay_card_expires" type="month" value="${d(v.autopay_card_expires)}"><small>${t("到期前 45 天提醒换卡（选了卡就按卡的到期年月，不用填）")}</small></label>
