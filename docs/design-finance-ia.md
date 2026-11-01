@@ -1,7 +1,7 @@
 # 财务信息架构（P1）设计
 
 > 2026-11。范围只是**信息架构**：改名、分组、新的「资产」视图、去掉房屋资料里和账单重复的金额、权限边界。
-> 借贷（P2）已在 2026-11 实现（迁移 058，设计见 [design-debt-lending.md](design-debt-lending.md)）；净资产快照（P3）只在这里定方向。相关：[design-bills.md](design-bills.md)、[design-house.md](design-house.md)、[design-cards.md](design-cards.md)、[design-income-ledger.md](design-income-ledger.md)。
+> 借贷（P2）已在 2026-11 实现（迁移 058，设计见 [design-debt-lending.md](design-debt-lending.md)）；净资产（P3）也已实现（迁移 059，设计见 [design-net-worth.md](design-net-worth.md)）。相关：[design-bills.md](design-bills.md)、[design-house.md](design-house.md)、[design-cards.md](design-cards.md)、[design-income-ledger.md](design-income-ledger.md)。
 
 ## 1. 问题与成功标准
 
@@ -35,7 +35,8 @@
 │  ├─ 概览 / 房屋资料 / 账单           │  └─ 预算                      [财务权限]
 │  ├─ 季节任务 / 设备保养 / 交易       └─ 分析
 └─ 车辆                                   ├─ 账单概览
-                                          └─ 收支总览（= 收入页第一个标签）[财务权限]
+                                          ├─ 收支总览（= 收入页第一个标签）[财务权限]
+                                          └─ 净资产（P3）                [财务权限]
                                        房屋：不变
 ```
 
@@ -57,6 +58,7 @@
 | `#/finance/<sub>?…` | 新别名 = `#/bills/<sub>?…` |
 | `#/bills/assets` / `#/finance/assets` | 新：财务 → 资产 |
 | `#/bills/debts`（`?tab=asset｜personal｜txns`、`?id=`）/ `#/finance/debts` / `#/bills/loans` / `#/bills/debt` / `#/bills/lending` | P2：财务 → 借贷 |
+| `#/bills/networth`（`?range=12｜24｜all`）/ `#/finance/net-worth` / `#/finance/networth` / `#/bills/net-worth` / `#/bills/nw` | P3：财务 → 分析 → 净资产 |
 
 ## 3. 什么留在房屋，为什么
 
@@ -112,7 +114,7 @@ cards ──< purchases.card_id      cards ──< income_records.account_id    
 | 卡与账户 | 可改 | 只读，不能添加 |
 | 收入、收支总览、对账单、预算 | ✓ | ✗（目录、快捷操作、直接打开网址都挡） |
 | 资产（新） | ✓ | ✗ |
-| 借贷占位 / 以后的借贷、净资产 | ✓ | ✗ |
+| 借贷、净资产（P3：余额 / 估值 / 快照三张表也是数据库层面挡） | ✓ | ✗ |
 | 房屋里的房产买入 / 卖出价、交易成交价 / 定金、设备买价 / 更换估价、车辆卖出价 | ✓ | 不显示；表单里是隐藏字段（保存不清空原值）；JSON 导出也去掉 |
 | 备份 | ✓ | ✗（原有） |
 
@@ -123,4 +125,4 @@ cards ──< purchases.card_id      cards ──< income_records.account_id    
 
 - **P1（本次）**：改名、分组目录、资产页、保险 / HOA 单一来源、价格界面闸门。没有迁移。
 - **P2 借贷（已实现，迁移 058，见 design-debt-lending.md）**：`debt_accounts`（贷款方、本金、利率、期限、起始日、还款日；可挂 `property_id` / `asset_id` = 资产的融资关系；方向：借入 / 借出）；`debt_transactions`（每期还款：本金、利息、Escrow、其他）。按摊还表自动拆本金 / 利息，允许手动改（对账单上的实际数为准）；Escrow 部分对应房产税 / 保险账单（现有 `pay_channel = escrow`）。还款记的花费性质用「融资 / 还本」。车贷账单可以挂到具体车辆（替代现在的名字匹配）。
-- **P3 净资产**：账户余额、房产 / 车辆估值（`market_value` + `as_of`），定期快照表；资产 − 负债（P2 的未还本金）= 净资产，按月趋势。
+- **P3 净资产（已实现，迁移 059，见 design-net-worth.md）**：没有在原表上加 `market_value`，而是两张历史表（`account_balances` 账户余额、`asset_valuations` 房产 / 车辆估值，最新一行 = 当前值）+ 每月快照 `net_worth_snapshots`（打开财务时自动存本月，可手动保存 / 重建过去某月）；资产 − 负债（P2 的未还本金 + 信用卡欠款）= 净资产，按月趋势、财富增长 vs 消费、每处资产的净值。资产页的「估值 P3」「余额：P3」已换成真的数字和就地更新。
