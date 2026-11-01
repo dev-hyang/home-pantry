@@ -8,7 +8,8 @@ import { memberName } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { withProperty } from "../core/alerts.js";
 import { tabBar, tabHub } from "../core/hub.js";
-import { KINDS as MED_KINDS, medicalVirtuals } from "../bills/medical.js";
+import { KINDS as MED_KINDS } from "../bills/medical.js";
+import { spendSuggestions } from "../core/spend-data.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
 import { cardHintHtml, cardOptions, cardSelectHtml, payAcctValue, paymentPayLabel } from "../bills/cards-views.js";
@@ -22,7 +23,7 @@ import { aggregate, avg, fullMonths, livingSeries, median, nodeSum, normRow, nor
 
 /* ── 统计：花费分类树（js/core/taxonomy.js：叶子 → 二级 → 一级 + 经济性质 + 统计口径）──
  * 概览 / 分类 / 商店 / 账单概览的速览都读数据库按月聚合好的紧凑行（迁移 055 的 spend_rollup / spend_rollup_store），
- * 在 report.js 按分类树汇总；不再依赖 state.purchases 的整表读取。明细仍是 054 的服务器分页。 */
+ * 在 report.js 按分类树汇总；明细是 054 的服务器分页（new 排序走 057 的索引快路）。浏览器里不再有整表的花费（迁移 057 去掉了 state.purchases）。 */
 /** 全部叶子分类（名称 / 图标 / 颜色）：明细、CSV、打印按 id 找名字 */
 export const ALL_CATS = () => allLeaves();
 /** 旧接口（收入对比、全部流水用）：叶子 → 二级分类 id；STAT_CATS = 全部二级分类 */
@@ -60,6 +61,8 @@ function rollEntry(from, to, store) {
 const rollup = (from, to, store = false) => rollEntry(from, to, store).rows;
 /** 等它读完（打印用） */
 const rollupAsync = async (from, to, store = false) => { const e = rollEntry(from, to, store); await e.p; return e.rows || []; };
+/** 覆盖这些月份的聚合行（预算的实际花费用，规范化后的 { m, c, nat, cur, sum, n }）；还在读返回 null */
+export const spendRollupFor = (months) => { const sp = spanOfMonths(months); return rollup(sp.from, sp.to); };
 window.addEventListener("spend-rows-changed", () => { for (const e of ROLL.values()) e.stale = true; });
 const rollErr = () => [...ROLL.values()].find((e) => e.err)?.err || "";
 export const monthKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };
@@ -122,7 +125,7 @@ export function itemSeries(item, starts) {
 }
 
 /** 时间范围：近 3 / 6 / 9 / 12 个月，或某一年（"y:2025"，从今年到最早有记录的那年）；花费各标签和预算趋势共用（state.stats.months）。
- *  云端平时只读近 400 天的花费，选往年时按需把那一年读回来并进 state.purchases（见 ensureYearLoaded） */
+ *  数据都是数据库按月聚合的（spend_rollup），往年不用先读花费 */
 export const RANGES = [3, 6, 9, 12];
 const thisYear = () => new Date().getFullYear();
 export function rangeMonths(n = state.stats.months) {
@@ -135,16 +138,6 @@ export const rangeChipsHtml = () => {
   const cur = String(state.stats.months);
   return `<select id="statsRange" class="range-sel" aria-label="${t("时间范围")}" data-nosearch><option value="m" ${cur === "m" ? "selected" : ""}>${t("本月")}</option>${RANGES.map((n) => `<option value="${n}" ${cur === String(n) ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}${years.map((y) => `<option value="y:${y}" ${cur === `y:${y}` ? "selected" : ""}>${y === y0 ? t("今年") : t("{y} 年", { y })}</option>`).join("")}</select>`;
 };
-/** 选了往年：那一年的花费不在平时读的近 400 天里，按需读回来并进 state.purchases（去重）；返回 true 表示读到了新的 */
-export async function ensureYearLoaded(n) {
-  if (typeof n !== "string" || !n.startsWith("y:")) return false;
-  const y = +n.slice(2); state.yearLoaded ||= {}; if (state.yearLoaded[y]) return false;
-  state.yearLoaded[y] = true;
-  const rows = await Store.listPurchasesRange(`${y}-01-01T00:00:00.000Z`, `${y + 1}-01-01T00:00:00.000Z`).catch(() => []);
-  const have = new Set(state.purchases.map((p) => p.id)), fresh = rows.filter((p) => !have.has(p.id));
-  if (fresh.length) state.purchases = [...state.purchases, ...fresh];
-  return fresh.length > 0;
-}
 /** 最早有记录的年份（只查一次），下拉里的往年选项到这一年为止 */
 export async function ensureFirstYear() {
   if (state.stats.firstYear) return false;
@@ -340,7 +333,8 @@ function spendCategoryTab() {
  * 数据库按名称搜「【」读出带行程的花费（不读整表）；以前记成“其他”、看着像旅行的给出归类建议。 */
 const TRIPS = { rows: null, other: null, busy: false, err: "" };
 window.addEventListener("spend-rows-changed", () => { TRIPS.rows = null; });
-async function fetchSpendPages(f, max) {
+/** 按筛选把花费流水读出来（每页 500 行，最多 max 行）：行程、年度报表、打印、返现复盘、月度复盘都用它，不读整表 */
+export async function fetchSpendPages(f, max) {
   const out = []; let after = null;
   while (out.length < max) {
     const raw = (await Store.listPage("spend", f, after, 500)) || [], page = raw.slice(0, 500);
@@ -352,7 +346,7 @@ async function fetchSpendPages(f, max) {
 function loadTrips() {
   if (TRIPS.busy || TRIPS.rows) return;
   TRIPS.busy = true;
-  const base = { tz: TZ(), cur: Units.region.currency, med: medNames(), sort: "new", ...natureParams() };
+  const base = spendBase();
   Promise.all([fetchSpendPages({ ...base, q: "【" }, 3000), fetchSpendPages({ ...base, known: knownLeafIds(), lo: ["other"], hi: ["other"] }, 300)])
     .then(([a, b]) => { TRIPS.rows = a.map((r) => ({ ...r, category: canonCat(r.category) })); TRIPS.other = b; TRIPS.err = ""; })
     .catch((e) => { TRIPS.rows = []; TRIPS.other = []; TRIPS.err = e.message; })
@@ -370,8 +364,8 @@ const tripsOf = (list) => {
   }
   return [...map.values()].sort((a, b) => String(b.last).localeCompare(String(a.last)));
 };
-/** 记一笔时「行程」的候选：近 400 天里内存中已有的花费名称（不额外读数据库） */
-const tripDatalist = () => `<datalist id="tripList">${tripsOf(state.purchases).map((g) => `<option value="${esc(g.trip)}">`).join("")}</datalist>`;
+/** 记一笔时「行程」的候选：近 400 天用过的行程名（数据库 spend_suggest，迁移 057） */
+const tripDatalist = () => `<datalist id="tripList">${spendSuggestions().trips.map((x) => `<option value="${esc(x)}">`).join("")}</datalist>`;
 function tripsPanel() {
   loadTrips();
   if (!TRIPS.rows) return `<div class="panel">${LOADING()}</div>`;
@@ -528,8 +522,10 @@ export function viewStats() {
 export const SPEND_SORTS = [["new", "时间：新 → 旧"], ["old", "时间：旧 → 新"], ["high", "金额：高 → 低"], ["low", "金额：低 → 高"], ["name", "名称 A → Z"]];
 /** 银行导入的一批：{ 批次记录, 旧批次的花费 id 集合 }（记录在预算设置里） */
 const batchOf = (id) => { const b = (state.budget?.cat_budgets?._bank_batches || []).find((x) => x.id === id); return b ? { b, ids: new Set(b.ids || []) } : null; };
-/** 事件型账单（医疗 / 宠物 / 法律 / 项目 / 旅行）的显示名：数据库拼虚拟花费名称用，和 medicalVirtuals 一样 */
+/** 事件型账单（医疗 / 宠物 / 法律 / 项目 / 旅行）的显示名：数据库拼虚拟花费名称用（spend_feed） */
 const medNames = () => Object.fromEntries(Object.entries(MED_KINDS).map(([k, v]) => [k, t(v.name)]));
+/** 花费流水查询的基本参数（时区、本币、事件型账单的名称、分类的默认性质 / 转账）：别的模块按需读花费时在它上面加筛选 */
+export const spendBase = (sort = "new") => ({ tz: TZ(), cur: Units.region.currency, med: medNames(), sort, ...natureParams() });
 /** 分类节点 / 叶子是否包含这个叶子（"bills" = 全部账单、"billfam_*" = 账单的一个大类：旧钻取链接） */
 function catHas(sel, id) {
   if (sel === "bills") return isBill(id);
@@ -568,7 +564,7 @@ export function spendParams() {
     year: f.year !== "all" ? f.year : null, mon: f.mon !== "all" ? f.mon : null, months: f.months?.length ? f.months : null, dmax: f.dmax || null, ...spanOf(f),
     stores, q: f.q.trim().toLowerCase() || null, batch: f.batch || null, batch_ids: bt?.ids.size ? [...bt.ids] : null, prop: f.prop && f.prop !== "all" ? f.prop : null });
 }
-/** 明细列表：读到的几页 + 当前筛选的统计；虚拟的医疗付款 id 加 med: 前缀（和 medicalVirtuals 一样，不会当成真实花费去删 / 改） */
+/** 明细列表：读到的几页 + 当前筛选的统计；虚拟的医疗付款 id 加 med: 前缀（不会当成真实花费去删 / 改；cursor 用的是加前缀之前的原始行） */
 export const spendList = serverList("spend", {
   host: "#spendList",
   map: (r) => ({ ...r, id: r.virtual ? `med:${r.id}` : r.id, category: canonCat(r.category) }),
@@ -688,12 +684,12 @@ export const spendRowsLoaded = () => spendList.rows.filter((p) => !p.virtual);
 export const fetchSpendRows = (max) => spendList.fetchAll(max);
 function spendRecordsHtml() {
   const f = state.spendFilter, fc = spendList.facets || {};
-  if (fc.years && !fc.years.length && !state.purchases.length) return `<div class="section-head"><h2>${t("花费记录")}</h2></div><div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("采购清单点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;
-  // 下拉选项：数据库读到的（全部年份）+ 内存里近 400 天的，在第一次统计读回来之前也有东西可选
+  if (fc.years && !fc.years.length) return `<div class="section-head"><h2>${t("花费记录")}</h2></div><div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("采购清单点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;
+  // 下拉选项：数据库读到的（全部年份）+ 联想里近 400 天的商店，在第一次统计读回来之前也有东西可选
   const y0 = new Date().getFullYear(), first = Math.min(state.stats.firstYear || y0, ...(fc.years || []).map(Number));
   const years = [...new Set([...(fc.years || []), ...Array.from({ length: Math.max(1, y0 - first + 1) }, (_, i) => String(y0 - i))])].sort().reverse();
   const stores = [...new Map([...knownStores(), ...(fc.stores || [])].map((x) => [storeKey(x), x])).values()].sort(compare);
-  const used = new Set([...(fc.cats || []), ...state.purchases.map((p) => p.category)].map(canonCat));   // 分类树：一级、二级总在，叶子只列有记录的（和选中的）
+  const used = new Set((fc.cats || []).map(canonCat));   // 分类树：一级、二级总在，叶子只列有记录的（和选中的）
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;
   return `<div class="section-head"><h2>${t("花费记录")}</h2></div>
     <div class="panel">
@@ -738,15 +734,16 @@ export function storeOf(p) {
   const b = state.bills.find((x) => x.name === p.name);
   return (b?.payee || "").trim() || String(p.name || "").trim();
 }
+/** 用过的商店（近 400 天，按次数取前 300 个，数据库 spend_suggest；规则同 storeOf），按名称排 */
 export function knownStores() {
   const m = new Map();
-  for (const p of state.purchases) { const n = storeOf(p); if (n && !m.has(storeKey(n))) m.set(storeKey(n), n); }
+  for (const n of spendSuggestions().stores) if (n && !m.has(storeKey(n))) m.set(storeKey(n), n);
   return [...m.values()].sort(compare);
 }
 export const storeDatalist = () => `<datalist id="storeList">${knownStores().map((x) => `<option value="${esc(x)}">`).join("")}</datalist>`;
 
 /** 商店 / 收款方：排行（横条里按二级分类分段，看得出在这家主要买什么）+ 表格；可按一级分类筛（默认 = 现金流出，不含转账）。
- *  数据来自 spend_rollup_store（按 月 × 商店 × 分类 × 性质 聚合），不读 state.purchases。month = 只看某个月 */
+ *  数据来自 spend_rollup_store（按 月 × 商店 × 分类 × 性质 聚合），不读花费明细。month = 只看某个月 */
 const STORE_TOP = 12;
 export function viewStoreStats(months, month = state.stats.month) {
   const sel = month && months.includes(month) ? month : "", sp = spanOfMonths(months), rows = rollup(sp.from, sp.to, true), o = statOpts();
@@ -825,7 +822,9 @@ export async function exportAnnual(kind) {
   const year = +($("#csvYear")?.value || new Date().getFullYear());
   // 按本地时间：当年 1 月 1 日 0 点到次年 1 月 1 日 0 点
   const from = new Date(year, 0, 1).toISOString(), to = new Date(year + 1, 0, 1).toISOString();
-  const list = [...(await Store.listPurchasesRange(from, to)), ...medicalVirtuals().filter((p) => p.purchased_at >= from && p.purchased_at < to)];   // 医疗付款也在年度报表里
+  let list;   // 按年份筛选的花费流水（含医疗等事件型账单的付款），旧 → 新；数据库分页读，不读整表
+  try { list = (await fetchSpendPages({ ...spendBase("old"), year: String(year), from, to }, 50000)).map((r) => ({ ...r, category: canonCat(r.category) })); }
+  catch (e) { return toast(t("读取列表失败：{msg}", { msg: e.message })); }
   if (!list.length) return toast(t("{y} 年没有采购记录", { y: year }));
   const r2 = (v) => Math.round(v * 100) / 100;
   const hh = state.household?.name || t("家庭");

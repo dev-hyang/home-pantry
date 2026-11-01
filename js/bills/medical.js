@@ -2,7 +2,7 @@
  *
  * 一张账单 = 一次就诊 / 一次事件：总额 − 保险已付 − 冲减 = 自付金额（也可以直接填自付金额），分多次付款，余额和状态在这里算。
  * 付款（medical_payments）是花费的唯一来源：不另写 purchases——那会让私密账单的金额、医院在全家的花费明细里露出来；
- * 而是把“当前这个人有权限看到的付款”变成虚拟的花费记录并进 state.purchases，统计、预算、钻取、导出都照常。 */
+ * 数据库的花费流水（spend_feed / spend_rollup，迁移 054 / 055）把“当前这个人有权限看到的付款”当成虚拟花费并进去，统计、预算、钻取、导出都照常。 */
 import { state } from "../core/state.js";
 import { daysUntil, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
@@ -105,19 +105,8 @@ export function enrichMedical(bills, payments) {
   });
 }
 
-/** 有权限看到的付款 → 虚拟花费记录（category = medical，商店 = 医院 / 化验所）。id 带前缀，不会和真实花费冲突；明细里点它跳到账单页 */
-export function medicalVirtuals() {
-  const bills = new Map(state.medBills.map((b) => [b.id, b]));
-  return state.medPayments.filter((p) => bills.has(p.bill_id)).map((p) => {
-    const b = bills.get(p.bill_id);
-    return { id: `med:${p.id}`, virtual: "medical", bill_id: b.id, name: b.kind === "travel" ? TRIP.tag(b.patient, b.provider) : `${t(kindOf(b).name)} · ${b.provider}`,
-      category: b.kind === "pet" ? "pet_care" : b.kind === "travel" ? canonCat(`travel_${b.subkind || "other"}`) : b.kind || "medical", quantity: null, unit: null,
-      store: b.provider, amount: num(p.amount), currency: p.currency || b.currency, purchased_at: new Date(`${p.paid_on}T12:00:00`).toISOString(), created_by: p.paid_by, card_id: p.card_id || null };
-  });
-}
-/** 真实花费 + 虚拟的医疗付款：每次花费或医疗数据更新后调用 */
+/** 医疗付款变了：花费的统计、明细、联想等全部标过期（付款作为虚拟花费在数据库的花费流水里） */
 export function mergeMedical() {
-  state.purchases = [...state.purchases.filter((p) => !p.virtual), ...medicalVirtuals()];
   window.dispatchEvent(new Event("spend-rows-changed"));   // 花费明细是服务器分页（stats/views.js 的 spendList）：花费或医疗付款变了，统计 + 第一页重读
 }
 

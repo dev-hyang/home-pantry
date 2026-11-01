@@ -7,6 +7,7 @@
  * - 小家电 / 季节电器（类型上 portable: true：风扇、取暖器、除湿机…）：一台一条，列表单独分组；不设保养周期，换季提醒走季节任务
  * - 产品召回：assets.recall（迁移 051），登记、提醒和修 / 换 / 退三个出口在 js/house/recall.js；换新、退款处理完的旧设备“退役”，不进列表和提醒 */
 import { STATUS, state } from "../core/state.js";
+import { fetchPurchase, fillFromPurchase, purchaseById } from "../core/spend-data.js";
 import { askButton, askInline, askPanel, ctx as askCtx } from "../core/ask.js";
 import { Store } from "../core/store.js";
 import { $, DAY, addMonths, daysUntil, esc, fmt, fmtDate, fmtShort, inSpace, money, num, stampText, todayISO, toast } from "../core/util.js";
@@ -863,7 +864,7 @@ function maintSectionHtml(a, focusLog, { K, R, veh, editLog, e, isInspect, preIt
               : `<label class="inspect-only">${t("检查结论")}<select name="result">${Object.entries(R).map(([k, n]) => `<option value="${k}" ${k === e.result ? "selected" : ""}>${t(n)}</option>`).join("")}</select><small>${t("“需保养 / 维修 / 更换”会提醒到记下一条为止")}</small></label>`}
         <label>${t("花费（{cur}，可不填）", { cur: Units.region.currency })}<input name="cost" type="number" inputmode="decimal" min="0" step="0.01" value="${e.cost ?? ""}"></label>
         <label>${t("收款方")}<input name="vendor" maxlength="40" list="storeList" value="${esc(e.vendor || "")}" placeholder="${t("维修商 / 师傅 / 商店，自己做可不填")}"></label>
-        ${(() => { const pur = e.purchase_id ? state.purchases.find((x) => x.id === e.purchase_id) : null, sel = cardSelectHtml("pay", pur ? payAcctValue(pur.card_id, pur.method) : undefined); return sel ? `<label>${t("怎么付的")}${sel}</label>` : ""; })()}
+        ${(() => { const pur = e.purchase_id ? purchaseById(e.purchase_id) : null; if (e.purchase_id && !pur) fillFromPurchase(e.purchase_id, '#maintForm [name="pay"]', (p) => payAcctValue(p.card_id, p.method)); const sel = cardSelectHtml("pay", pur ? payAcctValue(pur.card_id, pur.method) : undefined); return sel ? `<label>${t("怎么付的")}${sel}</label>` : ""; })()}
         <label class="span-2 check-inline"><input type="checkbox" name="diy" ${e.diy ? "checked" : ""}><span>${t("自己动手")}</span></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(e.notes || "")}" placeholder="${t("换了什么、师傅怎么说…")}"></label>
       </div>
@@ -976,7 +977,7 @@ export async function saveMaintForm(f) {
   const itemName = service_item ? t(V().serviceItem(service_item)?.name || service_item) : t(H().MAINT_KINDS[kind]);
   const editing = fe.log_id.value ? state.maintLogs.find((x) => x.id === fe.log_id.value) : null;
   let purchase_id = editing?.purchase_id || null;
-  const oldPur = purchase_id ? state.purchases.find((x) => x.id === purchase_id) : null;
+  const oldPur = purchase_id ? await fetchPurchase(purchase_id).catch(() => null) : null;   // 关联的那笔花费（按 id 读；以前只在近 400 天的内存里找，老记录会被当成没有而另记一笔）
   const spend = { name: `${asset.name} · ${itemName}`, amount: cost, store: vendor, purchased_at: new Date(`${done_on}T12:00:00`).toISOString(), ...(fe.pay ? purchasePayFields(fe.pay.value, oldPur) : {}) };
   if (cost != null && cost > 0) {
     if (oldPur) await Store.updatePurchase(purchase_id, spend);   // 编辑：同步改关联的花费（含怎么付的）
