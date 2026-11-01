@@ -48,6 +48,7 @@ import { escrowAlertItems } from "./bills/escrow.js";
 import "./bills/finance.js";
 import { viewFinAssets } from "./bills/fin-assets.js";   // 财务 → 资产
 import { loadDebts } from "./bills/debt-logic.js";
+import { loadNetWorth, maybeAutoSnapshot } from "./bills/nw-logic.js";   // 净资产（迁移 059）：余额 / 估值 / 快照，打开财务时自动存本月快照
 import { initDebts, viewDebts } from "./bills/debts.js";   // 财务 → 借贷   // 借贷（迁移 058）：启动时读进内存，也注册借贷提醒
 import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { fixAction, runFix, viewFix } from "./house/fix.js";
@@ -134,7 +135,8 @@ export async function refresh() {
       state.people = people; applyMedical(medBills, medPays);
       loadIncome().then(() => { if (state.route?.section === "bills" && ["income", "statements"].includes(state.route?.sub)) render(false); });   // 收入（迁移 042）单独读：行级安全只给家主 / 已允许的人全家的；读不到不影响别的功能
       state.cards = cards || [];
-      loadDebts().then(() => { if (state.route?.section === "bills" || state.route?.section === "today") render(false); });   // 借贷（迁移 058）：只有财务权限读得到；表不存在时借贷页给提示
+      // 借贷（迁移 058）、净资产（迁移 059）：只有财务权限读得到；表不存在时借贷页 / 净资产页给提示。两样都读完再画（净资产要用贷款余额）
+      Promise.all([loadDebts(), loadNetWorth()]).then(() => { if (state.route?.section === "bills" || state.route?.section === "today") render(false); });
       loadPending();
       ensureAdults().then((added) => { if (added) { applyMedical(state.medBills, state.medPayments); render(false); } }).catch(() => {});
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
@@ -178,6 +180,7 @@ const TABLE_RELOAD = {
   medical_bills: () => reloadMedical(), medical_payments: () => reloadMedical(),
   income_records: () => loadIncome(), income_repayments: () => loadIncome(),
   debt_accounts: () => loadDebts(), debt_transactions: () => loadDebts(),
+  account_balances: () => loadNetWorth(), asset_valuations: () => loadNetWorth(), net_worth_snapshots: () => loadNetWorth(),
   property_deals: () => Store.listDeals().then((r) => { state.deals = r; }),
   deal_task_done: () => Store.listDealDone().then((r) => { state.dealDone = r; }),
   deal_task_overrides: reloadDealExtras, deal_custom_tasks: reloadDealExtras, deal_events: reloadDealExtras,
@@ -317,6 +320,7 @@ function renderBody(r) {
   if (r.section === "house" && !state.houseEnabled) { $("#main").innerHTML = offPanel(t("房屋维护模块已关闭"), "house-enable", t("打开房屋维护")); return; }
   if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("财务模块已关闭"), "bills-enable", t("打开财务")); return; }
   if (routeBlocked(r)) { $("#main").innerHTML = ""; toast(t("家主还没给你开财务权限")); go(financeFallback(r), { replace: true }); return; }   // 对账单 / 收入 / 预算 / 添加卡：没有财务权限时直接打开网址也跳走
+  if (r.section === "bills") maybeAutoSnapshot().then((w) => { if (w && state.route?.section === "bills" && state.route?.sub === "networth") render(false); });   // 本月还没有快照 / 自动快照的数字变了：后台写一行（不挡画面）
   if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = crumb(r) + offPanel(t("装备模块已关闭"), "gear-enable", t("打开装备")); return; }
   if (r.sub === "menu") { $("#main").innerHTML = r.section === "house" ? viewPropertyList() : viewMenu(r.section); return; }   // 页签目录页；房屋先列房产
   const v = VIEWS[r.section];
