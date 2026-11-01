@@ -23,6 +23,7 @@ import { storeDatalist } from "../stats/views.js";
 import { cardSelectHtml, payAcctValue, purchasePayFields } from "../bills/cards-views.js";
 import { propertyName } from "../core/alerts.js";
 import { activeProperties } from "../core/lifecycle.js";
+import { priceInput, priceOrNull, pricesOk } from "../core/finance-access.js";   // 买价 / 卖价 / 更换估价只给有财务权限的人看（界面闸门）
 import { pageLimit, pageMoreBtn, pageSize } from "../core/pager.js";
 import { RECALL_STATUS, finishReplace, isRetired, recallActive, recallAlertText, recallBadge, recallBanner, recallHubRow, recallOf, recallSection, replaceDefaults } from "./recall.js";
 
@@ -343,7 +344,7 @@ function pastVehiclesSection(past) {
     <ul class="restock-list hist-list ref-body">${past.map((a) => { const v = a.vehicle || {}; return `<li>
       <span class="asset-ico" aria-hidden="true">${V().POWERTRAINS[a.type]?.icon || "🚗"}</span>
       <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>
-        <small>${[t(V().STATUS[vehStatus(a)].name), v.disposed_on ? fmtDate(v.disposed_on) : null, v.sale_price != null ? money(num(v.sale_price)) : null,
+        <small>${[t(V().STATUS[vehStatus(a)].name), v.disposed_on ? fmtDate(v.disposed_on) : null, priceOrNull(v.sale_price) != null ? money(num(v.sale_price)) : null,
           a.installed_on ? t("{d} 购入", { d: fmtDate(a.installed_on) }) : null, a.logs.length ? t("{n} 条保养记录", { n: a.logs.length }) : null, a.totalCost ? t("共花 {m}", { m: money(a.totalCost) }) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
       <span class="hist-act"><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></span></li>`; }).join("")}</ul></details></section>`;
 }
@@ -544,7 +545,7 @@ function vehicleFieldset(a, hide = () => "") {
         <label>${t("租赁到期（租车才填）")}<input name="veh_lease_end" type="date" value="${d(v.lease_end)}"><small>${t("到期前 90 天提醒，可从车辆交易里走归还流程")}</small></label>
         <label>${t("贷款结清日期（贷款中才填）")}<input name="veh_loan_end" type="date" value="${d(v.loan_end)}"></label>
         <label>${t("卖出 / 归还日期")}<input name="veh_disposed_on" type="date" value="${d(v.disposed_on)}"></label>
-        <label>${t("卖出价（{cur}）", { cur: Units.region.currency })}<input name="veh_sale_price" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.sale_price)}"></label>
+        ${priceInput(`<label>${t("卖出价（{cur}）", { cur: Units.region.currency })}<input name="veh_sale_price" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.sale_price)}"></label>`, "veh_sale_price", v.sale_price)}
         <label>${t("牌照年贴到期")}<input name="veh_registration_due" type="date" value="${d(v.registration_due)}"><small>${t("到期前 30 天提醒")}</small></label>
         <label>${t("排放检测到期")}<input name="veh_emissions_due" type="date" value="${d(v.emissions_due)}"><small>${t("纯电免检可留空")}</small></label>
       </div>
@@ -687,10 +688,10 @@ export function viewAssetForm() {
         <fieldset data-sec="cost" ${hide("cost")}>
           <legend><span class="veh-hide">${t("费用与负责方")}</span><span class="veh-show">${t("购车价格")}</span></legend>
           <div class="form-grid">
-            <label>${t("购买价格（{cur}）", { cur })}
+            ${priceInput(`<label>${t("购买价格（{cur}）", { cur })}
               <input name="purchase_price" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.purchase_price)}">
-            </label>
-            <label class="eq-only">${t("更换估价（{cur}）", { cur })}
+            </label>`, "purchase_price", v.purchase_price)}
+            <label class="eq-only" ${pricesOk() ? "" : 'style="display:none" aria-hidden="true"'}><!-- 没财务权限：更换估价藏起来，值仍随表单原样保存 -->${t("更换估价（{cur}）", { cur })}
               <input name="replacement_cost_estimate" type="number" inputmode="decimal" min="0" step="0.01" placeholder="${t("第三期“修还是换”会用到")}" value="${d(v.replacement_cost_estimate)}">
             </label>
             <label class="eq-only">${t("谁负责维护")}
@@ -767,11 +768,11 @@ function assetHub(a, root) {
     insurance: () => { const n = filledCount([ins.provider, ins.policy, ins.to, ins.coverage, ins.agent, ins.phone]); return { text: ins.provider ? [ins.provider, ins.to ? t("到期 {d}", { d: fmtDate(ins.to) }) : null].filter(Boolean).join(" · ") : t("未填"), ...pct(n, 6) }; },
     years: () => { const n = filledCount([a.installed_on, a.manufacture_year, a.warranty_until]); return { text: [a.installed_on ? fmtDate(a.installed_on) : null, a.warranty_until ? t("保修到 {d}", { d: fmtDate(a.warranty_until) }) : null].filter(Boolean).join(" · ") || t("未填"), ...pct(n, 3) }; },
     life: () => { const n = filledCount([a.expected_life_years, a.service_interval_months]); return { text: [a.expected_life_years ? t("约 {n} 年", { n: fmt(a.expected_life_years) }) : null, a.service_interval_months ? t("每 {n} 个月保养", { n: a.service_interval_months }) : null].filter(Boolean).join(" · ") || t("未填"), ...pct(n, 2) }; },
-    cost: () => { const n = filledCount([a.purchase_price, veh ? null : a.owner]); return { text: [a.purchase_price != null ? money(num(a.purchase_price)) : null, !veh && a.owner ? t("负责：{who}", { who: t(H().OWNERS[a.owner]?.name || "") }) : null].filter(Boolean).join(" · ") || t("未填"), ...pct(n, veh ? 1 : 2) }; },
+    cost: () => { const pp = priceOrNull(a.purchase_price), n = filledCount([pp, veh ? null : a.owner]); return { text: [pp != null ? money(num(pp)) : null, !veh && a.owner ? t("负责：{who}", { who: t(H().OWNERS[a.owner]?.name || "") }) : null].filter(Boolean).join(" · ") || t("未填"), ...pct(n, veh ? 1 : 2) }; },
     notes: () => ({ text: a.notes ? a.notes.slice(0, 60) : t("无"), pct: null, badge: "" }),
     units: () => { const u = unitsOf(a); return { text: u.length ? unitsText(a, 6) : t("还没写：有几处、各在哪"), pct: null, badge: u.length ? `<span class="badge mcount" style="background:var(--surface-2)">${unitsCount(a)}</span>` : "" }; },
   };
-  const rows = ASSET_SECTIONS.filter((s) => (veh ? !s.eq : !s.veh) && (!s.fx || isFixture(a))).map((s) => { const x = st[s.id](); return hubRow({ href: `${base}?sec=${s.id}`, icon: s.icon, title: t(s.name), desc: esc(x.text), pct: x.pct, badge: x.badge }); });
+  const rows = ASSET_SECTIONS.filter((s) => (veh ? !s.eq : !s.veh) && (!s.fx || isFixture(a)) && !(veh && s.id === "cost" && !pricesOk()))   // 车辆的「费用」块只有购车价：没财务权限整块不出现.map((s) => { const x = st[s.id](); return hubRow({ href: `${base}?sec=${s.id}`, icon: s.icon, title: t(s.name), desc: esc(x.text), pct: x.pct, badge: x.badge }); });
   const more = [
     hubRow({ href: `${base}?log=1`, icon: "🛠️", title: t("保养记录"), desc: a.logs.length ? t("{n} 条，最近 {d}", { n: a.logs.length, d: fmtDate(a.logs[0].done_on) }) : t("还没有记录"), badge: a.followUp ? `<span class="badge b-out mcount">${t(C().RESULTS[a.followUp.result])}</span>` : a.service === "overdue" || a.service === "due" ? `<span class="badge b-soon mcount">${t(SERVICE_BADGE[a.service].label)}</span>` : "" }),
     veh ? hubRow({ href: `${base}?sec=schedule`, icon: "📋", title: t("保养时间表"), desc: a.vSoonest ? t("下一项：{name} {d}", { name: t(a.vSoonest.name), d: fmtDate(a.vSoonest.next) }) : t("记一次保养后开始算") }) : "",
@@ -803,7 +804,7 @@ function vehDealRow(a) {
   if (d) { const tasks = dealTasks(d).filter((x) => !x.skipped), done = tasks.filter((x) => x.done).length, late = tasks.filter((x) => !x.done && x.overdue).length; desc = t("{kind}进行中 · 已完成 {a} / {b}", { kind: t(K[d.kind]), a: done, b: tasks.length }); badge = late ? `<span class="badge b-out mcount">${t("逾期 {n}", { n: late })}</span>` : `<span class="badge b-soon mcount">${done}/${tasks.length}</span>`; }
   else if (st === "looking") desc = t("选购中：开始买车流程，按步骤办产权、上牌、保险");
   else if (st === "leased") desc = t("租赁{d}：到期前走归还流程", { d: v.lease_end ? ` ${fmtDate(v.lease_end)} ${t("到期")}` : "" });
-  else if (st === "sold" || st === "returned") desc = [t(V().STATUS[st].name), v.disposed_on ? fmtDate(v.disposed_on) : null, v.sale_price != null ? money(num(v.sale_price)) : null].filter(Boolean).join(" · ") + (hist ? ` · ${t("{n} 笔历史交易", { n: hist })}` : "");
+  else if (st === "sold" || st === "returned") desc = [t(V().STATUS[st].name), v.disposed_on ? fmtDate(v.disposed_on) : null, priceOrNull(v.sale_price) != null ? money(num(v.sale_price)) : null].filter(Boolean).join(" · ") + (hist ? ` · ${t("{n} 笔历史交易", { n: hist })}` : "");
   else desc = t("要卖车时从这里开始：估价、收款、拆车牌、已售通知") + (hist ? ` · ${t("{n} 笔历史交易", { n: hist })}` : "");
   return hubRow({ href: `${href("house", "deal")}?asset=${a.id}`, icon: "🤝", title: t("买卖 / 归还"), desc, badge });
 }

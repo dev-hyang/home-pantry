@@ -8,6 +8,7 @@ import { $, DAY, daysUntil, esc, fmtDate, money, num, todayISO, toast } from "..
 import { href } from "../core/router.js";
 import { joinList, t } from "../core/i18n.js";
 import { addDays } from "../bills/logic.js";
+import { priceInput, priceOrNull, pricesOk } from "../core/finance-access.js";   // 价格只给有财务权限的人看（界面闸门）
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { houseBar } from "./property-form.js";
 import { assetName, isVehicle } from "./assets.js";
@@ -276,7 +277,8 @@ export function viewDeal() {
     </section>`;
   // ── 枢纽页：总进度 + 一行一个入口，各带完成度 ──
   const total = tasks.length - skippedAll, doneN = total - undone.length, pct = total ? Math.round((doneN / total) * 100) : 0;
-  const INFO_FIELDS = veh ? ["contract_on", "closing_on", "price", "earnest_money", "lender", "agent"] : ["contract_on", "closing_on", "review_deadline", "financing_deadline", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector"];
+  const INFO_FIELDS = (veh ? ["contract_on", "closing_on", "price", "earnest_money", "lender", "agent"] : ["contract_on", "closing_on", "review_deadline", "financing_deadline", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector"])
+    .filter((k) => pricesOk() || !["price", "earnest_money"].includes(k));   // 没财务权限：完成度不数看不到的价格
   const infoN = INFO_FIELDS.filter((k) => deal[k] != null && deal[k] !== "").length;
   const nextDue = undone.filter((x) => x.due).sort((a, b) => a.due.localeCompare(b.due))[0];
   // url 为 null 时画成按钮（attrs 里带 data-action）
@@ -335,16 +337,16 @@ function propertyCard(p) {
   return `<section class="section"><div class="house-card">
       <span class="house-ico" aria-hidden="true">🏠</span>
       <div class="grow"><h2>${esc(p.name)}<span class="badge ${live ? "b-ok" : ""}" style="${live ? "" : "background:var(--surface-2)"}">${statusText(p)}</span></h2>
-        <p class="muted">${[t(B.PROPERTY_KINDS[p.kind] || ""), t(B.PROPERTY_ROLES[p.role] || ""), p.acquired_on ? t("{d} 买入", { d: fmtDate(p.acquired_on) }) : null, p.purchase_price ? money(num(p.purchase_price)) : null,
-          p.sold_on ? t("{d} 卖出", { d: fmtDate(p.sold_on) }) : null, p.sale_price ? money(num(p.sale_price)) : null].filter(Boolean).map(esc).join(" · ")}</p></div>
+        <p class="muted">${[t(B.PROPERTY_KINDS[p.kind] || ""), t(B.PROPERTY_ROLES[p.role] || ""), p.acquired_on ? t("{d} 买入", { d: fmtDate(p.acquired_on) }) : null, priceOrNull(p.purchase_price) ? money(num(p.purchase_price)) : null,
+          p.sold_on ? t("{d} 卖出", { d: fmtDate(p.sold_on) }) : null, priceOrNull(p.sale_price) ? money(num(p.sale_price)) : null].filter(Boolean).map(esc).join(" · ")}</p></div>
     </div></section>`;
 }
 /** 交易页顶部：车辆状态卡（面包屑由 menu.js 画：车辆 / 车名 / 交易） */
 function vehicleCard(a) {
   const v = a.vehicle || {}, st = V().STATUS[V().statusOf(a)], pt = V().POWERTRAINS[a.type];
   const meta = [[a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "), t(pt?.name || ""), v.plate ? `🪪 ${v.plate}` : null,
-    a.installed_on ? t("{d} 购入", { d: fmtDate(a.installed_on) }) : null, a.purchase_price ? money(num(a.purchase_price)) : null,
-    v.disposed_on ? `${V().statusOf(a) === "returned" ? t("{d} 归还", { d: fmtDate(v.disposed_on) }) : t("{d} 卖出", { d: fmtDate(v.disposed_on) })}` : null, v.sale_price ? money(num(v.sale_price)) : null].filter(Boolean);
+    a.installed_on ? t("{d} 购入", { d: fmtDate(a.installed_on) }) : null, priceOrNull(a.purchase_price) ? money(num(a.purchase_price)) : null,
+    v.disposed_on ? `${V().statusOf(a) === "returned" ? t("{d} 归还", { d: fmtDate(v.disposed_on) }) : t("{d} 卖出", { d: fmtDate(v.disposed_on) })}` : null, priceOrNull(v.sale_price) ? money(num(v.sale_price)) : null].filter(Boolean);
   return `<section class="section"><div class="house-card">
       <span class="house-ico" aria-hidden="true">${pt?.icon || "🚗"}</span>
       <div class="grow"><h2><a class="asset-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a><span class="badge ${st.cls}" style="${st.cls ? "" : "background:var(--surface-2)"}">${t(st.name)}</span></h2>
@@ -380,8 +382,8 @@ function dealForm(d) {
     <div class="form-grid">
       ${d.kind === "veh_return" ? "" : `<label>${t(c)}<input name="contract_on" type="date" value="${v("contract_on")}"><small>${t("准备阶段的事项按它推算")}</small></label>`}
       <label>${t(z)}<input name="closing_on" type="date" value="${v("closing_on")}"><small>${d.kind === "veh_return" ? t("预检、归还、最终账单都按它推算") : t("保险、上牌、拆车牌、已售通知按它推算")}</small></label>
-      <label>${d.kind === "veh_return" ? t("买断价（可选）") : t("成交价")}<input name="price" type="number" inputmode="decimal" min="0" step="0.01" value="${v("price")}"></label>
-      <label>${d.kind === "veh_return" ? t("处置费 / 预估超里程费") : t("定金")}<input name="earnest_money" type="number" inputmode="decimal" min="0" step="0.01" value="${v("earnest_money")}"></label>
+      ${priceInput(`<label>${d.kind === "veh_return" ? t("买断价（可选）") : t("成交价")}<input name="price" type="number" inputmode="decimal" min="0" step="0.01" value="${v("price")}"></label>`, "price", d.price)}
+      ${priceInput(`<label>${d.kind === "veh_return" ? t("处置费 / 预估超里程费") : t("定金")}<input name="earnest_money" type="number" inputmode="decimal" min="0" step="0.01" value="${v("earnest_money")}"></label>`, "earnest_money", d.earnest_money)}
       <label>${d.kind === "veh_return" ? t("租赁公司") : t("贷款行 / 租赁公司")}<input name="lender" maxlength="120" value="${v("lender")}"><small>${d.kind === "veh_buy" ? t("填了，完成时车会标为“贷款中”") : ""}</small></label>
       <label>${d.kind === "veh_buy" ? t("车行 / 卖家") : d.kind === "veh_sell" ? t("买家 / 车行") : t("经销商 / 归还地点")}<input name="agent" maxlength="120" placeholder="${t("姓名 · 电话 / 邮箱")}" value="${v("agent")}"></label>
       <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" value="${v("notes")}"></label>
@@ -397,8 +399,8 @@ function dealForm(d) {
       <label>${t("交割日")}<input name="closing_on" type="date" value="${v("closing_on")}"><small>${t("停服务、保险、交割后事项按它推算")}</small></label>
       <label>${t("律师审查截止")}<input name="review_deadline" type="date" value="${v("review_deadline")}"></label>
       <label>${t("贷款条款截止")}<input name="financing_deadline" type="date" value="${v("financing_deadline")}"></label>
-      <label>${t("成交价")}<input name="price" type="number" inputmode="decimal" min="0" step="0.01" value="${v("price")}"></label>
-      <label>${t("定金")}<input name="earnest_money" type="number" inputmode="decimal" min="0" step="0.01" value="${v("earnest_money")}"></label>
+      ${priceInput(`<label>${t("成交价")}<input name="price" type="number" inputmode="decimal" min="0" step="0.01" value="${v("price")}"></label>`, "price", d.price)}
+      ${priceInput(`<label>${t("定金")}<input name="earnest_money" type="number" inputmode="decimal" min="0" step="0.01" value="${v("earnest_money")}"></label>`, "earnest_money", d.earnest_money)}
       <label>${t("律师")}<input name="attorney" maxlength="120" placeholder="${t("姓名 · 电话 / 邮箱")}" value="${v("attorney")}"></label>
       <label>${t("贷款行 / 贷款经纪")}<input name="lender" maxlength="120" value="${v("lender")}"></label>
       <label>${t("经纪人")}<input name="agent" maxlength="120" value="${v("agent")}"></label>
@@ -420,7 +422,7 @@ function dealHistory(list, current, linkOf) {
   return `<section class="section"><div class="section-head"><h2>${t("历史交易")}</h2></div><div class="panel"><ul class="restock-list hist-list">${list.slice(0, lim).map((d) => `<li ${d.id === current ? 'aria-current="true"' : ""}>
     <span class="badge" style="background:var(--surface-2)">${t(K[d.kind])}</span>
     <div class="grow"><a class="link-name" href="${linkOf(d)}">${d.closing_on ? fmtDate(d.closing_on) : fmtDate((d.closed_at || d.updated_at || "").slice(0, 10))}</a>
-      <small>${[d.outcome === "cancelled" ? t("已取消") : isVehDeal(d) ? t("已完成") : t("已交割"), d.price ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>
+      <small>${[d.outcome === "cancelled" ? t("已取消") : isVehDeal(d) ? t("已完成") : t("已交割"), priceOrNull(d.price) ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>
     <span class="hist-act">${d.id === current ? `<span class="badge b-ok">${t("正在查看")}</span>` : `<a class="btn btn-sm btn-ghost" href="${linkOf(d)}">${t("查看清单")}</a>`}</span></li>`).join("")}</ul>${pageMoreBtn("deals", list.length, lim)}</div></section>`;
 }
 
@@ -431,7 +433,7 @@ function closeoutPanel(p, deal) {
   return `<form id="closeoutForm" class="panel" novalidate>
     <div class="form-grid">
       <label>${deal.kind === "move_out" ? t("退租日") : t("交割日")}<input name="closing_on" type="date" required value="${esc(closing)}"></label>
-      ${deal.kind === "sell" ? `<label>${t("成交价")}<input name="sale_price" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(deal.price ?? "")}"></label>` : ""}
+      ${deal.kind === "sell" ? priceInput(`<label>${t("成交价")}<input name="sale_price" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(deal.price ?? "")}"></label>`, "sale_price", deal.price) : ""}
     </div>
     <h3 style="font-size:15px;margin:14px 0 6px">${t("这套房产的账单（{n} 条）", { n: bills.length })}</h3>
     <p class="muted" style="font-size:13px;margin:0 0 8px">${t("结束日期之后不再提醒；水电气网默认多留 2–6 周等最后一期账单。自动扣款的请在清单里按“取消自动扣款”任务逐条去取消。")}</p>

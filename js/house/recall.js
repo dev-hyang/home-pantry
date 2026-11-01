@@ -12,6 +12,7 @@ import { t } from "../core/i18n.js";
 import { categoryOptions } from "../pantry/views.js";
 import { cardSelectHtml, purchasePayFields } from "../bills/cards-views.js";
 import { assetName } from "./assets.js";
+import { priceOrNull } from "../core/finance-access.js";   // 退款默认填买价：没财务权限时不预填（买价对他不可见）
 
 const H = () => window.HOUSE;
 export const RECALL_STATUS = {
@@ -111,7 +112,7 @@ export function recallSection(a) {
           <a class="btn btn-sm btn-primary" href="${href("asset", "new")}?replaces=${encodeURIComponent(a.id)}">${t("登记换来的新机")}</a></div></details>
       <details class="panel rc-exit"><summary><span class="rc-ico" aria-hidden="true">💵</span><span><b>${t("退款了")}</b><small>${t("退货退款，东西不要了")}</small></span></summary>
         <form id="recallRefundForm" class="rc-body"><input type="hidden" name="asset_id" value="${esc(a.id)}">
-          <label>${t("退款金额（{cur}）", { cur: Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${d(a.purchase_price)}"></label>
+          <label>${t("退款金额（{cur}）", { cur: Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${d(priceOrNull(a.purchase_price))}"></label>
           <label>${t("日期")}<input name="date" type="date" required value="${todayISO()}" max="${todayISO()}"></label>
           <label>${t("记到哪个分类")}<select name="category">${categoryOptions(defCat, { spend: true })}</select></label>
           ${pay ? `<label>${t("退回到")}${pay}</label>` : ""}
