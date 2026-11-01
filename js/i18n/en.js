@@ -2908,4 +2908,9 @@ export const EN = {
   // ── 记花费的分类下拉：账单、医疗（和导入对账单同一份分类） ──
   "账单（水电气网 · 住房 · 车 · 保险贷款税 · 孩子宠物 · 家庭服务订阅）": "Bills (utilities · housing · car · insurance, loans & tax · kids & pets · home services & subscriptions)",
   "医疗 / 宠物医疗（没建医疗账单的零星付款）": "Medical / vet (one-off payments without a medical bill)",
+  // ── 服务器分页的列表（花费明细 / 缴费记录 / 收入明细，迁移 054） ──
+  "读取列表失败：数据库还没升级，请先执行 supabase/migrations/054_server_paging.sql": "Could not load the list: database not upgraded yet, run supabase/migrations/054_server_paging.sql first",
+  "读取列表失败：{msg}": "Could not load the list: {msg}", "没读到花费记录": "Could not load spending", "没读到缴费记录": "Could not load payments",
+  "每月 1–{d} 日": "days 1–{d} of each month", "全选当前显示的 {n} 笔": "Select the {n} shown",
+  "先用上面的筛选（年份、月份、商店、分类、批次）缩小范围，再全选；删除前会再确认一次。": "Narrow it down with the filters above (year, month, store, category, batch) first, then select all; you'll be asked to confirm before deleting.",
 };

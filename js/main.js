@@ -17,7 +17,7 @@ import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initBankImport } from "./stats/bank-import.js";
-import { initIncome, viewIncome } from "./income/views.js";
+import { incList, initIncome, viewIncome } from "./income/views.js";
 import { initStatements, viewStatements } from "./stats/statements.js";
 import { loadIncome } from "./income/logic.js";
 import { initQuickDrag } from "./quick-drag.js";
@@ -50,7 +50,7 @@ import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggl
 import { enrichBills } from "./bills/logic.js";
 import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
-import { deleteBillPay, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
+import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { moveCat, renderInvList, scoreRecipes, setShopOpen, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
@@ -65,7 +65,7 @@ import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, ne
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
-import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureBatchLoaded, ensureFirstYear, ensureYearLoaded, exportAnnual, filteredSpend, rememberStore, renderSpendList, renderSpendRecords, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
+import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureFirstYear, ensureYearLoaded, exportAnnual, exportSpendList, patchSpendRow, rememberStore, renderSpendList, renderSpendRecords, spendList, spendRowsLoaded, setBillMerge, storeDatalist, viewSpend, viewStats } from "./stats/views.js";
 import { matchOpenShopping, showPurchaseDup } from "./stats/dup-check.js";
 
 const APP_NAME = "爱家小助手";
@@ -99,7 +99,7 @@ export async function refresh() {
         soft("maint", Store.listMaintLogs(), state.maintLogs || [], (r) => { state.maintLogs = r; state.assetsEnriched = enrichAssets(state.assets, r); }),
         soft("seasonal", Store.listSeasonal(seasonalSince()), state.seasonalDone || [], (r) => { state.seasonalDone = r; }),
         Store.listBills(),
-        soft("payments", Store.listBillPayments(), state.billPayments || [], (r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); }),
+        soft("payments", Store.listBillPayments(), state.billPayments || [], (r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); reloadPayList(); }),
         Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations(), Store.listDealExtras(),
         Store.listCustomSeasonal().catch((e) => { console.warn("[custom seasonal]", e.message); return []; }),   // 迁移还没执行时读不到：不影响其他功能
         Store.listTerms().catch((e) => { console.warn("[terms]", e.message); return null; }),
@@ -134,6 +134,7 @@ export async function refresh() {
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
       if (!pendingAny()) notifyIfNeeded();
       render(false);
+      reloadPayList();   // 缴费记录列表是服务器分页：统计 + 第一页重读（不在页面上只标记过期）
       loadPurchasesSoon();
       maybeAutoGenerate();   // 家主有收入但还没预算：自动生成第一版
       if (financeOk()) Backup.runScheduled().then((r) => { if (!r) return; if (r.ok.length) toast(t("已自动备份（{to}）", { to: r.ok.map(backupTargetName).join("、") })); if (r.needGesture) toast(t("定时备份要写进文件夹，去 设置 → 备份与恢复 点一下「继续备份」")); refreshBackupUi(); if (state.route?.section === "me") render(false); });   // 定时备份到期了就在后台做一次
@@ -164,11 +165,11 @@ function loadPurchasesSoon() {
 
 /* 列表分批显示（js/core/pager.js）：「继续加载」后只重画这些列表；没列在这里的整页重画 */
 const PAGE_RENDER = { inv: () => renderInvList(), bills: () => renderBillList(), assets: () => renderAssetList(), med: () => renderMedList(), maint: () => renderMaintLogs() };
-/** 所有列表回到一页（换页面、改了每页条数）：新列表的计数清掉，自带 limit 的几个列表也改回一页 */
+/** 所有列表回到一页（换页面、改了每页条数）：新列表的计数清掉，自带 limit 的几个列表也改回一页；服务器分页的三张列表下次画时重读第一页 */
 function resetListPages() {
   resetPages();
-  const n = pageSize(); state.spendFilter.limit = n; state.payFilter.limit = n;
-  if (state.inc) { state.inc.limit = n; state.inc.slimit = null; }
+  const n = pageSize(); spendList.stale(); payList.stale(); incList.stale();
+  if (state.inc) state.inc.slimit = null;
   if (state.stmt) state.stmt.limit = n;
 }
 /* ── 实时同步按表重读：家人改了哪张表，就只重读那张表（和由它推出来的 enrich），不再整轮读 24 张表。
@@ -183,7 +184,7 @@ const TABLE_RELOAD = {
   seasonal_tasks: () => Store.listSeasonal(seasonalSince()).then((r) => { state.seasonalDone = r; }),
   custom_seasonal_tasks: () => Store.listCustomSeasonal().then((r) => { state.customSeasonal = r; }),
   bills: () => Store.listBills().then((r) => { state.bills = r; state.billsEnriched = enrichBills(r, state.billPayments); }),
-  bill_payments: () => Store.listBillPayments().then((r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); }),
+  bill_payments: () => Store.listBillPayments().then((r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); reloadPayList(); }),
   medical_bills: () => reloadMedical(), medical_payments: () => reloadMedical(),
   income_records: () => loadIncome(), income_repayments: () => loadIncome(), income_access: () => loadIncome(),
   property_deals: () => Store.listDeals().then((r) => { state.deals = r; }),
@@ -381,7 +382,7 @@ function onRoute() {
   // 换了页面 / 页签 / 钻取参数：所有列表回到一页（从表单页返回原列表时保留，滚动位置才对得上）
   if ((routeKey(prev) !== routeKey(next) || prev.q?.toString() !== next.q.toString()) && !isFormSection(prev)) resetListPages();
   // 从图表 / 名称钻取来的：套上筛选，再把地址里的筛选参数去掉（刷新或再次进入不会重复套用）
-  if (next.section === "bills" && next.sub === "spend" && next.q.get("tab") === "records" && applySpendDrill(next.q)) { history.replaceState(null, "", `${href("bills", "spend")}?tab=records`); ensureBatchLoaded().then((fresh) => { if (fresh) render(false); }); }
+  if (next.section === "bills" && next.sub === "spend" && next.q.get("tab") === "records" && applySpendDrill(next.q)) history.replaceState(null, "", `${href("bills", "spend")}?tab=records`);   // 明细按筛选直接查数据库（批次、往年都在），不用先把记录读进内存
   state.route = next;
   render(true);
   if (next.section === "me" && next.sub === "settings" && next.q.get("sec") === "ai") hydrateModelSelect();   // AI 设置：后台查这个 key 实际能用的模型，填进下拉
@@ -423,7 +424,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new", limit: pageSize() }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, month: "all", months: null, batch: null, sort: "new", limit: pageSize() }); state.spendEdit = null; state.spendSel = null; break;
+    case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null, sort: "new" }); state.spendEdit = null; state.spendSel = null; break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.locForm = null; break;
     default: break;
   }
@@ -489,7 +490,7 @@ main.addEventListener("input", (e) => {
   // 搜索框：筛选条件马上记下，列表停下 ~200ms 再重画（不是每敲一个字都重画整张列表）
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; searchSoon(renderInvList); }
   if (e.target.id === "medSearch") { state.medFilter.q = e.target.value; searchSoon(renderMedList); }
-  if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; state.spendFilter.limit = pageSize(); searchSoon(renderSpendList); }
+  if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; searchSoon(renderSpendList); }   // 停下 ~200ms 再查数据库
   if (e.target.id === "billSearch") { state.billsFilter.q = e.target.value; searchSoon(renderBillList); }
   if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; searchSoon(renderAssetList); }
   if (e.target.id === "offQ") {   // 停用的卡搜索：只重画那张列表，输入框不丢焦点
@@ -536,7 +537,7 @@ async function doRestore(el) {
 main.addEventListener("change", async (e) => {
   if (e.target.matches("#spendList input[data-sel]")) {   // 多选删除：勾一笔
     const S = state.spendSel; if (!S) return; if (e.target.checked) S.add(e.target.dataset.sel); else S.delete(e.target.dataset.sel);
-    const n = [...S].filter((id) => state.purchases.some((p) => p.id === id)).length, c = $("#selCount"); if (c) c.textContent = t("已选 {n} 笔", { n }); const d = $('[data-action="spend-sel-del"]'); if (d) d.disabled = !n; return;
+    const n = spendRowsLoaded().filter((p) => S.has(p.id)).length, c = $("#selCount"); if (c) c.textContent = t("已选 {n} 笔", { n }); const d = $('[data-action="spend-sel-del"]'); if (d) d.disabled = !n; return;
   }
   if (e.target.closest("#backupForm")) {   // 备份设置：改了就存（存本机）
     const f = e.target.closest("#backupForm"), targets = [...f.querySelectorAll('input[name="target"]:checked')].map((x) => x.value);
@@ -572,7 +573,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.name === "kindPick") return onKindPick(e);
   if (e.target.matches?.("#medBillForm select[name=patient_id], #medBillForm select[name=guarantor_id]")) return onPersonPick(e);
   if (e.target.id === "medReportYear") { state.medYear = e.target.value; render(); }
-  { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; state.payFilter.limit = pageSize(); renderPayList(); } }
+  { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; renderPayList(); } }
   { const k = { shopCat: "cat", shopWho: "who", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
   { const k = { assetType: "type", assetService: "service", assetWarranty: "warranty", assetLoc: "loc", assetSort: "sort" }[e.target.id]; if (k) { state.assetFilter[k] = e.target.value; renderAssetList(); } }
   { const k = { giftIssuer: "issuer", giftSort: "sort", giftUsed: "used" }[e.target.id]; if (k) { (state.giftFilter ||= { issuer: "all", sort: "balance", used: false })[k] = k === "used" ? e.target.checked : e.target.value; return render(false); } }   // 礼品卡的筛选 / 排序
@@ -662,7 +663,7 @@ main.addEventListener("change", async (e) => {
     try { localStorage.setItem("hmh-gear-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? t("已打开装备") : t("已关闭装备，导航里不再显示")); render();
   }
-  { const k = { spendCat: "cat", spendStore: "store", spendMonth: "month", spendSort: "sort" }[e.target.id]; if (k) { state.spendFilter[k] = e.target.value; if (k === "store") state.spendFilter.stores = null; if (k === "cat") state.spendFilter.grp = null; if (k === "month") state.spendFilter.months = null; state.spendFilter.limit = pageSize(); renderSpendList(); } }   // 手动选了单个商店 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”
+  { const k = { spendCat: "cat", spendStore: "store", spendYear: "year", spendMon: "mon", spendSort: "sort" }[e.target.id]; if (k) { const f = state.spendFilter; f[k] = e.target.value; if (k === "store") f.stores = null; if (k === "cat") f.grp = null; if (k === "year" || k === "mon") { f.months = null; f.dmax = null; } renderSpendList(); } }   // 手动选了商店 / 年份 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”；回到第一页重新查
   if (e.target.dataset?.action === "stats-bill-merge") { setBillMerge(e.target.checked); render(); }
   if (e.target.dataset?.action === "stats-capital") { state.stats.includeCapital = e.target.checked; render(); }
   if (e.target.id === "statsRange") { const v = e.target.value; state.stats.months = v.startsWith("y:") || v === "m" ? v : +v; state.stats.month = null; render(); ensureYearLoaded(v).then((fresh) => { if (fresh) render(false); }); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（往年按需读回来）
@@ -730,13 +731,13 @@ main.addEventListener("submit", async (e) => {
       const e2 = f.elements, name = e2.name.value.trim(), amount = e2.amount.value === "" ? null : Math.round(num(e2.amount.value) * 100) / 100;   // 负数 = 退款 / 报销，照存
       if (!name) return toast(t("请填写名称"));
       const store = cleanStore(e2.store.value), day = e2.date.value, patch = { name, category: e2.category.value, amount, store };
-      if (e2.card_id) Object.assign(patch, purchasePayFields(e2.card_id.value, state.purchases.find((x) => x.id === f.dataset.id)));   // 卡 → card_id；现金 / 支票 / 礼品卡 / 其他 → method
+      if (e2.card_id) Object.assign(patch, purchasePayFields(e2.card_id.value, state.purchases.find((x) => x.id === f.dataset.id) || spendList.rows.find((x) => x.id === f.dataset.id)));   // 往年的花费不在内存里：用明细读到的那一行   // 卡 → card_id；现金 / 支票 / 礼品卡 / 其他 → method
       if (day) patch.purchased_at = new Date(`${day}T12:00:00`).toISOString();
       await Store.updatePurchase(f.dataset.id, patch);
-      const bp = e2.card_id && state.billPayments.find((x) => x.purchase_id === f.dataset.id);   // 这笔是账单缴费记的花费：改了卡，缴费记录同步
+      const row = spendList.rows.find((x) => x.id === f.dataset.id), bp = e2.card_id && (state.billPayments.find((x) => x.purchase_id === f.dataset.id) || (row?.pay_id ? { id: row.pay_id, card_id: undefined } : null));   // 这笔是账单缴费记的花费：改了卡，缴费记录同步
       if (bp && (bp.card_id || null) !== (patch.card_id || null)) await Store.updateBillPayment(bp.id, { card_id: patch.card_id || null }).catch(() => {});
       if (store) rememberStore(store);
-      state.purchases = state.purchases.map((x) => (x.id === f.dataset.id ? { ...x, ...patch } : x));   // 先改内存里的，页面立刻是新的
+      state.purchases = state.purchases.map((x) => (x.id === f.dataset.id ? { ...x, ...patch } : x)); patchSpendRow(f.dataset.id, patch);   // 先改内存里的，页面立刻是新的
       if (state.spendDrafts) delete state.spendDrafts[f.dataset.id];
       state.spendEdit = null; toast(t("已保存修改")); render(); return refresh();
     }
@@ -1102,7 +1103,7 @@ main.addEventListener("click", async (e) => {
         toast(t("已归类")); render(); return refresh();
       }
       case "spend-edit-cancel": { if (state.spendDrafts && state.spendEdit) delete state.spendDrafts[state.spendEdit]; state.spendEdit = null; return renderSpendList(); }
-      case "pay-more": state.payFilter.limit += pageSize(); return renderPayList();
+      case "pay-more": return payList.more();   // 「继续加载」：向数据库要下一页
       case "page-more": { const k = el.dataset.page; pageMore(k); const fn = PAGE_RENDER[k.split(":")[0]]; return fn ? fn() : render(false); }   // 「继续加载」：能只重画列表的就只重画列表
       case "deal-filter": state.dealFilter = el.dataset.val; return render();
       case "tasks-undone": state.tasksOnlyUndone = !state.tasksOnlyUndone; return render();
@@ -1131,17 +1132,18 @@ main.addEventListener("click", async (e) => {
       case "person-merge": return personMerge(el.dataset.id);
       case "person-del": if (!armed(el, t("再点一次确认删除"))) return; return personDelete(el.dataset.id);
       case "people-bulk": return peopleBulk();
-      case "spend-more": state.spendFilter.limit += pageSize(); return renderSpendList();
+      case "spend-more": return spendList.more();   // 「继续加载」：向数据库要下一页
+      case "spend-csv": return exportSpendList();
       case "spend-sel-toggle": state.spendSel = state.spendSel ? null : new Set(); state.spendEdit = null; return render();
-      case "spend-sel-all": { const S = state.spendSel || (state.spendSel = new Set()); filteredSpend().forEach((p) => { if (!p.virtual) S.add(p.id); }); return renderSpendList(); }
+      case "spend-sel-all": { const S = state.spendSel || (state.spendSel = new Set()); spendRowsLoaded().forEach((p) => S.add(p.id)); return renderSpendList(); }   // 已经读到的（要更多先「继续加载」）
       case "spend-sel-none": state.spendSel = new Set(); return renderSpendList();
       case "spend-sel-del": {   // 多选删除：只删当前筛选结果里选中的
         const S = state.spendSel; if (!S?.size) return;
-        const list = filteredSpend().filter((p) => S.has(p.id)), sum = list.reduce((a, p) => a + (p.amount != null ? num(p.amount) : 0), 0);
+        const list = spendRowsLoaded().filter((p) => S.has(p.id)), sum = list.reduce((a, p) => a + (p.amount != null ? num(p.amount) : 0), 0);
         if (!list.length || !confirm(t("删除选中的 {n} 笔花费（合计 {m}）？删了就找不回来，建议先备份。", { n: list.length, m: money(sum) }))) return;
         el.disabled = true; let fail = 0;
         for (let i = 0; i < list.length; i += 6) await Promise.all(list.slice(i, i + 6).map((p) => Store.deletePurchase(p.id).catch(() => { fail++; })));
-        const gone = new Set(list.map((p) => p.id)); state.purchases = state.purchases.filter((p) => !gone.has(p.id)); state.spendSel = null;
+        const gone = new Set(list.map((p) => p.id)); state.purchases = state.purchases.filter((p) => !gone.has(p.id)); spendList.rows = spendList.rows.filter((p) => !gone.has(p.id)); state.spendSel = null;
         toast(fail ? t("删了 {n} 笔，{k} 笔失败", { n: list.length - fail, k: fail }) : t("已删除 {n} 笔", { n: list.length })); render(); return refresh();
       }
       case "stats-months": state.stats.months = +el.dataset.months; return render();

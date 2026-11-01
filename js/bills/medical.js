@@ -116,7 +116,10 @@ export function medicalVirtuals() {
   });
 }
 /** 真实花费 + 虚拟的医疗付款：每次花费或医疗数据更新后调用 */
-export function mergeMedical() { state.purchases = [...state.purchases.filter((p) => !p.virtual), ...medicalVirtuals()]; }
+export function mergeMedical() {
+  state.purchases = [...state.purchases.filter((p) => !p.virtual), ...medicalVirtuals()];
+  window.dispatchEvent(new Event("spend-rows-changed"));   // 花费明细是服务器分页（stats/views.js 的 spendList）：花费或医疗付款变了，统计 + 第一页重读
+}
 
 /** 提醒：逾期 / 一周内到期 / 一个月内到期；等保险理赔超过 45 天（该问问了） */
 export function medicalAlertItems() {

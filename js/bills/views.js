@@ -19,6 +19,8 @@ import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from
 import { PAY_EXTRA, acctById, acctLabel, accountOptions, billPayLabel, payAcctValue, paymentPayLabel, resolvePayAccount } from "./cards-views.js";
 import { askInline } from "../core/ask.js";
 import { moreBtn, pageLimit, pageMoreBtn } from "../core/pager.js";
+import { serverList } from "../core/server-list.js";
+import { compact } from "../core/list-query.js";
 import { billAsk } from "./logic.js";
 
 const B = () => window.BILLS;
@@ -244,44 +246,58 @@ export function viewBillsList() {
     </section>`;
 }
 
-/* ── 记录：筛选（账单 / 年份 / 状态）+ 排序，分批显示 ── */
+/* ── 记录：筛选（账单 / 年份 / 状态）+ 排序；服务器分页（迁移 054 的 pay_page / pay_stats）：任何一年都能看，合计和「今年已缴」由数据库算 ── */
 const PAY_SORTS = [["new", "日期：新 → 旧"], ["old", "日期：旧 → 新"], ["high", "金额：高 → 低"], ["low", "金额：低 → 高"], ["bill", "账单名 A → Z"]];
-function filteredPays() {
-  const f = state.payFilter, byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b]));
-  const list = state.billPayments.filter((p) => (f.bill === "all" || p.bill_id === f.bill) && (f.year === "all" || (p.paid_on || "").startsWith(f.year)) && (f.status === "all" || p.status === f.status));
-  const sorter = { new: (x, y) => (y.paid_on || "").localeCompare(x.paid_on || ""), old: (x, y) => (x.paid_on || "").localeCompare(y.paid_on || ""), high: (x, y) => num(y.amount) - num(x.amount), low: (x, y) => num(x.amount) - num(y.amount),
-    bill: (x, y) => compare(byBill[x.bill_id]?.name || "", byBill[y.bill_id]?.name || "") || (y.paid_on || "").localeCompare(x.paid_on || "") }[f.sort] || (() => 0);
-  return list.sort(sorter);
-}
+/** 当前筛选 → 数据库的筛选对象（只带生效的项）；「账单名 A → Z」对应通用排序里的 name */
+const payParams = () => {
+  const f = state.payFilter;
+  return compact({ bill: f.bill !== "all" ? f.bill : null, year: f.year !== "all" ? f.year : null, status: f.status !== "all" ? f.status : null,
+    sort: f.sort === "bill" ? "name" : f.sort || "new", cur: Units.region.currency, kpi_year: String(new Date().getFullYear()) });
+};
+/** 缴费记录列表：读到的几页 + 当前筛选的统计；筛选框的选项（有记录的账单、年份）第一次读到 / 变了时连筛选条一起重画 */
+export const payList = serverList("pay", {
+  host: "#payList",
+  draw: (facetsChanged) => { const tb = $("#payToolbar"); if (facetsChanged && tb) tb.outerHTML = payToolbar(); renderPayList(); },
+});
+/** 缴费记录变了（实时同步、整轮刷新、自己记 / 删）：统计 + 第一页重读 */
+export const reloadPayList = () => payList.reload();
 /** 多套房产时账单名带房产前缀（“房 1 · 电费”），单套房产不变 */
 const billLabel = (b) => (b ? withProperty(b.property_id, b.name) : "");
 /** 下拉里用：已卖出 / 已退租房产的账单带上状态，在用的排前面 */
 const billOption = (b) => `${billLabel(b)}${endedSuffix(propertyById(b.property_id))}`;
 const byInUse = (x, y) => (billInUse(y) ? 1 : 0) - (billInUse(x) ? 1 : 0);
-/** 这笔缴费的收款方：缴费当时记在花费上的，没有就用账单的收款方 */
-const payeeOf = (p, b, stores) => (p.purchase_id ? (stores ? stores.get(p.purchase_id) : state.purchases.find((x) => x.id === p.purchase_id)?.store) : "") || b?.payee || "";   // stores：画列表时先建好的 花费 id → 商店
 function payListInner() {
-  const f = state.payFilter, byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b])), all = filteredPays(), shown = all.slice(0, f.limit);
-  if (!state.billPayments.length) return `<div class="empty"><strong>${t("还没有缴费记录")}</strong>${t("在账单页记一笔，或在概览里点“已核对”。")}</div>`;
-  if (!all.length) return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个筛选试试。")}</div>`;
-  const cur = Units.region.currency, sum = all.filter((p) => p.status !== "skipped" && (p.currency || cur) === cur).reduce((s, p) => s + num(p.amount), 0);
-  const need = new Set(shown.map((p) => p.purchase_id).filter(Boolean)), stores = new Map(state.purchases.filter((x) => need.has(x.id)).map((x) => [x.id, x.store]).reverse());
-  return `<p class="muted" style="margin:0 0 6px;font-size:13px">${t("{n} 笔", { n: all.length })} · ${money(sum)}</p><ul class="restock-list">${shown.map((p) => {
-    const b = byBill[p.bill_id];
+  const L = payList.sync(payParams()), st = L.stats || {}, byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b]));
+  if (!L.rows.length) {
+    if (L.busy) return `<p class="muted" role="status">${t("加载中…")}</p>`;
+    if (L.err) return `<div class="empty"><strong>${t("没读到缴费记录")}</strong>${esc(L.err)}</div>`;
+    if (L.facets && !L.facets.bills?.length) return `<div class="empty"><strong>${t("还没有缴费记录")}</strong>${t("在账单页记一笔，或在概览里点“已核对”。")}</div>`;
+    return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个筛选试试。")}</div>`;
+  }
+  return `<p class="muted" style="margin:0 0 6px;font-size:13px">${t("{n} 笔", { n: st.n ?? "…" })} · ${money(num(st.sum))}</p><ul class="restock-list">${L.rows.map((p) => {
+    const b = byBill[p.bill_id], payee = (p.purchase_id ? p.pur_store : "") || b?.payee || "";   // 收款方：缴费当时记在花费上的（数据库顺带带回），没有就用账单的收款方
     return `<li data-swipe-del="bill-pay"><${b ? `a href="${href("bill", b.id)}?sec=pay&edit=${p.id}" title="${t("点一下编辑")}"` : "span"} class="badge pay-date" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</${b ? "a" : "span"}>
       <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(billLabel(b))}</a>` : t("（已删除的账单）")}</span>
-        <small>${[b ? acctText(b) : null, payeeOf(p, b, stores) ? t("收款方：{who}", { who: payeeOf(p, b, stores) }) : null, t(B().PAYMENT_STATUS[p.status] || p.status), paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+        <small>${[b ? acctText(b) : null, payee ? t("收款方：{who}", { who: payee }) : null, t(B().PAYMENT_STATUS[p.status] || p.status), paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <b>${p.amount != null ? mny(p.amount, p.currency) : `<span class="muted">${t("未填金额")}</span>`}</b>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="billpay-del" data-id="${p.id}">${t("删除")}</button></li>`;
-  }).join("")}</ul>${moreBtn(all.length > shown.length, 'data-action="pay-more"')}`;
+  }).join("")}</ul>${L.busy ? `<p class="muted" role="status" style="text-align:center">${t("加载中…")}</p>` : moreBtn(L.hasMore, 'data-action="pay-more"')}`;
 }
-export function renderPayList() { const h = $("#payList"); if (h) h.innerHTML = payListInner(); }
-function payToolbar(byBill) {
-  const f = state.payFilter, opt = (v, l, c) => `<option value="${esc(v)}" ${c === v ? "selected" : ""}>${esc(l)}</option>`;
-  const ids = [...new Set(state.billPayments.map((p) => p.bill_id))], years = [...new Set(state.billPayments.map((p) => (p.paid_on || "").slice(0, 4)).filter(Boolean))].sort().reverse();
-  if (!state.billPayments.length) return "";
-  return `<div class="toolbar" style="margin-top:10px">
-    <select id="payBill" aria-label="${t("按账单筛选")}">${opt("all", t("全部账单"), f.bill)}${ids.map((id) => opt(id, billOption(byBill[id]) || t("（已删除的账单）"), f.bill)).sort().join("")}</select>
+/** 「YYYY 年已缴 / 滞纳金」：那一年全部缴费（不随筛选），数据库算好随统计一起带回 */
+function payKpisHtml() {
+  const k = payList.stats?.kpi, year = new Date().getFullYear(), late = num(k?.late);
+  return `<div class="kpi"><span>${t("{y} 年已缴", { y: year })}</span><b>${k ? money(num(k.sum)) : "…"}</b><small>${k ? t("{n} 笔", { n: k.n }) : ""}</small></div>
+    <div class="kpi"><span>${t("滞纳金")}</span><b>${k ? money(late) : "…"}</b><small>${!k ? "" : late ? t("按时缴费就能省下") : t("没有滞纳金")}</small></div>`;
+}
+export function renderPayList() { const h = $("#payList"); if (h) h.innerHTML = payListInner(); const k = $("#payKpis"); if (k) k.innerHTML = payKpisHtml(); }
+function payToolbar() {
+  const f = state.payFilter, byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b])), fc = payList.facets || {}, opt = (v, l, c) => `<option value="${esc(v)}" ${c === v ? "selected" : ""}>${esc(l)}</option>`;
+  // 选项：数据库里有记录的账单 / 年份（全部年份）+ 内存里近 400 天的，统计还没读回来时也有东西可选
+  const ids = [...new Set([...(fc.bills || []), ...state.billPayments.map((p) => p.bill_id)])];
+  const years = [...new Set([...(fc.years || []), ...state.billPayments.map((p) => (p.paid_on || "").slice(0, 4)).filter(Boolean)])].sort().reverse();
+  if (!ids.length) return `<div id="payToolbar"></div>`;
+  return `<div class="toolbar" id="payToolbar" style="margin-top:10px">
+    <select id="payBill" aria-label="${t("按账单筛选")}">${opt("all", t("全部账单"), f.bill)}${ids.map((id) => opt(id, byBill[id] ? billOption(byBill[id]) : t("（已删除的账单）"), f.bill)).sort().join("")}</select>
     <select id="payYear" aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
     <select id="payStatus" aria-label="${t("按状态筛选")}">${opt("all", t("全部状态"), f.status)}${Object.entries(B().PAYMENT_STATUS).map(([k, n]) => opt(k, t(n), f.status)).join("")}</select>
     <select id="paySort" aria-label="${t("排序")}">${PAY_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select></div>`;
@@ -289,13 +305,7 @@ function payToolbar(byBill) {
 
 /* ── 记录 ── */
 export function viewBillsHistory() {
-  const byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b]));
-  const pays = [...state.billPayments].sort((x, y) => (y.paid_on || "").localeCompare(x.paid_on || ""));
-  const cur = Units.region.currency;
-  const year = new Date().getFullYear();
-  const thisYear = pays.filter((p) => (p.paid_on || "").startsWith(String(year)) && p.status !== "skipped" && (p.currency || cur) === cur);
-  const total = thisYear.reduce((s, p) => s + num(p.amount), 0), late = thisYear.reduce((s, p) => s + num(p.late_fee), 0);
-  // 单账单趋势：选一条有 ≥ 2 笔记录的账单
+  // 单账单趋势：选一条有 ≥ 2 笔记录的账单（近 400 天的缴费，在内存里）
   const candidates = state.billsEnriched.filter((b) => b.pays.filter((p) => p.amount != null).length >= 2).sort(byInUse);   // 在用的排前面，已卖出房产的账单在后面但仍能选
   const sel = candidates.find((b) => b.id === state.billsFilter.trend) || candidates[0];
   let chart = "";
@@ -304,17 +314,15 @@ export function viewBillsHistory() {
     chart = Charts.line({ title: t("{name}缴费金额", { name: billLabel(sel) }), labels: series.map((p) => fmtShort(`${p.paid_on}T12:00:00`)), fmt: (v) => money(v),
       series: [{ name: billLabel(sel), color: "var(--pine)", values: series.map((p) => num(p.amount)) }] });
   }
+  const list = payListInner();   // 先同步筛选（第一次会发请求），下面的数字卡片和列表用同一份统计
   return `
     <section class="section">
       <div class="section-head"><h2>${t("缴费记录")}</h2><div class="head-acts"><button type="button" class="btn btn-sm" data-action="bills-csv">${t("导出今年 CSV")}</button></div></div>
-      <div class="kpis">
-        <div class="kpi"><span>${t("{y} 年已缴", { y: year })}</span><b>${money(total)}</b><small>${t("{n} 笔", { n: thisYear.length })}</small></div>
-        <div class="kpi"><span>${t("滞纳金")}</span><b>${money(late)}</b><small>${late ? t("按时缴费就能省下") : t("没有滞纳金")}</small></div>
-      </div>
+      <div class="kpis" id="payKpis">${payKpisHtml()}</div>
       ${sel ? `<div class="panel chart-panel"><div class="chart-head"><h3>${t("单账单金额趋势")}</h3>
         <select id="billTrend" aria-label="${t("选择账单")}">${candidates.map((b) => `<option value="${b.id}" ${b.id === sel.id ? "selected" : ""}>${esc(billOption(b))}</option>`).join("")}</select></div>${chart}</div>` : ""}
-      ${payToolbar(byBill)}
-      <div class="panel" id="payList" style="margin-top:10px">${payListInner()}</div>
+      ${payToolbar()}
+      <div class="panel" id="payList" style="margin-top:10px">${list}</div>
     </section>`;
 }
 

@@ -8,11 +8,13 @@ import { memberName } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { withProperty } from "../core/alerts.js";
 import { tabBar, tabHub } from "../core/hub.js";
-import { medicalVirtuals } from "../bills/medical.js";
+import { KINDS as MED_KINDS, medicalVirtuals } from "../bills/medical.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
 import { cardHintHtml, cardOptions, cardSelectHtml, payAcctValue, paymentPayLabel } from "../bills/cards-views.js";
-import { moreBtn, pageSize } from "../core/pager.js";
+import { moreBtn } from "../core/pager.js";
+import { serverList } from "../core/server-list.js";
+import { compact } from "../core/list-query.js";
 import { financeOk } from "../core/finance-access.js";   // 没有财务权限：花费页不显示「导入对账单」
 
 /* ── 统计：花费与消耗趋势 ── */
@@ -149,16 +151,6 @@ export async function ensureYearLoaded(n) {
   if (fresh.length) state.purchases = [...state.purchases, ...fresh];
   return fresh.length > 0;
 }
-/** 银行导入「查看 / 修改」：云端平时只读近 400 天，补录的老对账单（日期更早）不在内存里，筛出来就是空的——按这一批的日期范围把它们读回来 */
-export async function ensureBatchLoaded() {
-  const id = state.spendFilter.batch, bt = id ? batchOf(id) : null; if (!bt) return false;
-  let rows = [];
-  if (bt.b.tagged || bt.ids.size) rows = await Store.listPurchasesByBatch(id, [...bt.ids]).catch(() => []);   // 按批次 id / 旧批次的 id 列表直接读，不猜日期
-  else if (bt.b.from) { const day = (s, d) => new Date(new Date(`${s}T00:00:00Z`).getTime() + d * 864e5).toISOString(); rows = await Store.listPurchasesRange(day(bt.b.from, -1), day(bt.b.to || bt.b.from, 2)).catch(() => []); }
-  const have = new Set(state.purchases.map((p) => p.id)), fresh = rows.filter((p) => !have.has(p.id));
-  if (fresh.length) state.purchases = [...state.purchases, ...fresh];
-  return fresh.length > 0;
-}
 /** 最早有记录的年份（只查一次），下拉里的往年选项到这一年为止 */
 export async function ensureFirstYear() {
   if (state.stats.firstYear) return false;
@@ -176,9 +168,9 @@ const encKeys = (keys) => keys.map(encodeURIComponent).join(",");
 export const hitAttrs = (q, label) => (q ? ` data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(label)}"` : "");
 const DRILL_HINT = () => `<p class="muted drill-hint">${t("点图里的色块、图例或名称，可以查看对应的花费明细。")}</p>`;
 export function applySpendDrill(q) {
-  if (!["cat", "grp", "store", "stores", "month", "range", "year", "q", "batch"].some((k) => q.has(k))) return false;
+  if (!["cat", "grp", "store", "stores", "month", "mlist", "range", "year", "q", "batch"].some((k) => q.has(k))) return false;
   const f = state.spendFilter;
-  Object.assign(f, { q: "", cat: "all", grp: null, store: "all", stores: null, month: "all", months: null, batch: null, dmax: null, sort: "new", limit: pageSize() });
+  Object.assign(f, NO_SPEND_FILTER(), { sort: "new" });
   if (q.get("dmax")) f.dmax = +q.get("dmax") || null;   // 只看每月 1–N 日（「上月同期」对比用）
   if (q.get("batch")) f.batch = q.get("batch");   // 银行导入「查看 / 修改」：只看这一批
   if (q.get("q")) f.q = q.get("q");   // 旅行页「查看明细」：按「【行程名】」搜名称
@@ -186,10 +178,11 @@ export function applySpendDrill(q) {
   if (q.get("cat")) f.cat = q.get("cat");
   if (q.get("store")) f.store = q.get("store");
   if (q.get("stores")) f.stores = q.get("stores").split(",").map(decodeURIComponent);
-  if (q.get("month")) f.month = q.get("month");
+  const m = q.get("month") || "";
+  if (/^\d{4}-\d{2}$/.test(m)) { f.year = m.slice(0, 4); f.mon = m.slice(5, 7); }   // 一个月：就是筛选条上的「年份 + 月份」
   else if (q.get("mlist")) f.months = q.get("mlist").split(",").filter((x) => /^\d{4}-\d{2}$/.test(x));
   else if (q.get("range")) f.months = lastMonths(Math.max(1, Math.min(24, +q.get("range") || 6)));
-  else if (q.get("year")) { const y = +q.get("year"), now = new Date(), last = y === now.getFullYear() ? now.getMonth() + 1 : 12; f.months = Array.from({ length: last }, (_, i) => `${y}-${String(i + 1).padStart(2, "0")}`); }   // 年度预算：今年到本月为止
+  else if (/^\d{4}$/.test(q.get("year") || "")) f.year = q.get("year");   // 年度预算 / 往年：整年（今年就是到今天为止）
   return true;
 }
 
@@ -481,42 +474,68 @@ export function viewStats() {
   return state.billsEnabled ? viewUsage() : viewSpend() + viewUsage();
 }
 
-/* ── 花费记录：搜索 + 分类 / 商店 / 月份筛选 + 排序，按月分组带小计，分批显示 ── */
+/* ── 花费记录：搜索 + 分类 / 商店 / 年份 / 月份筛选 + 排序，按月分组带小计；服务器分页（迁移 054），任何一年、全部年份都能看 ──
+ * 筛选、排序、合计、月小计都在数据库里做（spend_page / spend_stats），这里只把界面上的筛选翻译成筛选对象（spendParams）；
+ * 分类、预算分组这类只有前端认识的规则（statCat / catMatches / 预算分组 + 大件门槛）先在这里展开成分类表，数据库只查表。
+ * 筛选条和 收入 → 明细 同一套：搜索 + 下拉一行（手机收成「筛选」按钮），图表钻取带来的其他条件在下面一行标签里，可逐项去掉。 */
 export const SPEND_SORTS = [["new", "时间：新 → 旧"], ["old", "时间：旧 → 新"], ["high", "金额：高 → 低"], ["low", "金额：低 → 高"], ["name", "名称 A → Z"]];
-const amountOf = (p) => (p.amount != null && (!p.currency || p.currency === Units.region.currency) ? num(p.amount) : 0);
 /** 银行导入的一批：{ 批次记录, 旧批次的花费 id 集合 }（记录在预算设置里） */
 const batchOf = (id) => { const b = (state.budget?.cat_budgets?._bank_batches || []).find((x) => x.id === id); return b ? { b, ids: new Set(b.ids || []) } : null; };
-export function filteredSpend() {
-  const f = state.spendFilter, q = f.q.trim().toLowerCase(), bt = f.batch ? batchOf(f.batch) : null;
-  let list = state.purchases.filter((p) => {
-    if (f.batch && !(p.import_batch === f.batch || (bt && bt.ids.has(p.id)))) return false;
-    if (f.cat !== "all" && !catMatches(f.cat, p.category)) return false;
-    if (f.month !== "all" && monthKey(p.purchased_at) !== f.month) return false;
-    if (f.months?.length && !f.months.includes(monthKey(p.purchased_at))) return false;
-    if (f.dmax && new Date(p.purchased_at).getDate() > f.dmax) return false;
-    if (f.grp && budgetBridge.groupOf) { const g = budgetBridge.groupOf(p.category, amountOf(p)); if (f.grp === "!bills" ? g === "bills" : g !== f.grp) return false; }   // 预算分组（“!bills” = 除账单以外）   // 从图表钻取来的“近 N 个月”
-    if (f.stores?.length && !f.stores.includes(storeKey(storeOf(p)) || "__none__")) return false;   // “其他商店”：一组商店
-    if (f.store !== "all" && (f.store === "__none__" ? !!storeOf(p) : storeKey(storeOf(p)) !== f.store)) return false;
-    return !q || `${p.name}${storeOf(p)}`.toLowerCase().includes(q);
-  });
-  const date = (p) => new Date(p.purchased_at).getTime();
-  const sorts = { new: (a, b) => date(b) - date(a), old: (a, b) => date(a) - date(b), high: (a, b) => amountOf(b) - amountOf(a) || date(b) - date(a), low: (a, b) => amountOf(a) - amountOf(b) || date(b) - date(a), name: (a, b) => compare(a.name, b.name) || date(b) - date(a) };
-  list = list.sort(sorts[f.sort] || sorts.new);
-  return list;
+/** 浏览器所在时区：月份、日按本地时间算（和 monthKey 一致） */
+const TZ = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; } };
+/** 事件型账单（医疗 / 宠物 / 法律 / 项目 / 旅行）的显示名：数据库拼虚拟花费名称用，和 medicalVirtuals 一样 */
+const medNames = () => Object.fromEntries(Object.entries(MED_KINDS).map(([k, v]) => [k, t(v.name)]));
+/** 分类 + 预算分组筛选 → 分类表（两个条件在这里先求交集）：
+ *  known = 认识的分类（含旧别名）；lo / hi = 金额低于 / 不低于「大件门槛」时算命中的分类（预算分组按单笔金额分「大件」）；
+ *  unk = 不认识的分类怎么算（lo / hi：普通的，blo / bhi：bill_ 开头的） */
+function catFilter(f) {
+  if (f.cat === "all" && !f.grp) return {};
+  const HUGE = 1e15, G = budgetBridge.groupOf;
+  const ok = (id, amt) => (f.cat === "all" || catMatches(f.cat, id)) && (!f.grp || !G || (f.grp === "!bills" ? G(id, amt) !== "bills" : G(id, amt) === f.grp));
+  const known = [...new Set([...ALL_CATS().map((c) => c.id), ...Object.keys(CAT_ALIAS)])];
+  const unk = [["lo", "zz_unknown", 0], ["hi", "zz_unknown", HUGE], ["blo", "bill_zz_unknown", 0], ["bhi", "bill_zz_unknown", HUGE]].filter(([, id, a]) => ok(id, a)).map(([k]) => k);
+  return { known, lo: known.filter((id) => ok(id, 0)), hi: known.filter((id) => ok(id, HUGE)), unk, big: budgetBridge.bigThreshold ? budgetBridge.bigThreshold() : 0 };
 }
-/** 每次画列表建一次查找表（分类、花费 → 缴费记录、账单），每行不再线性查找 */
+const monthStart = (m) => new Date(+m.slice(0, 4), +m.slice(5, 7) - 1, 1);
+/** 年份 / 钻取的月份 → 时间戳范围（本地时间）：只用来让数据库少扫，真正的筛选是 year / mon / months */
+function spanOf(f) {
+  if (f.months?.length) { const s = [...f.months].sort(), e = monthStart(s.at(-1)); return { from: monthStart(s[0]).toISOString(), to: new Date(e.getFullYear(), e.getMonth() + 1, 1).toISOString() }; }
+  if (f.year !== "all") { const y = +f.year; return { from: new Date(y, 0, 1).toISOString(), to: new Date(y + 1, 0, 1).toISOString() }; }
+  return {};
+}
+/** 当前筛选 → 数据库的筛选对象（只带生效的项） */
+export function spendParams() {
+  const f = state.spendFilter, bt = f.batch ? batchOf(f.batch) : null;
+  let stores = f.stores?.length ? [...f.stores] : null;   // “其他商店”：一组商店
+  if (f.store !== "all") stores = stores ? stores.filter((k) => k === f.store) : [f.store];
+  return compact({ tz: TZ(), cur: Units.region.currency, med: medNames(), sort: f.sort || "new", ...catFilter(f),
+    year: f.year !== "all" ? f.year : null, mon: f.mon !== "all" ? f.mon : null, months: f.months?.length ? f.months : null, dmax: f.dmax || null, ...spanOf(f),
+    stores, q: f.q.trim().toLowerCase() || null, batch: f.batch || null, batch_ids: bt?.ids.size ? [...bt.ids] : null });
+}
+/** 明细列表：读到的几页 + 当前筛选的统计；虚拟的医疗付款 id 加 med: 前缀（和 medicalVirtuals 一样，不会当成真实花费去删 / 改） */
+export const spendList = serverList("spend", {
+  host: "#spendList",
+  map: (r) => ({ ...r, id: r.virtual ? `med:${r.id}` : r.id, category: canonCat(r.category) }),
+  draw: (facetsChanged) => (facetsChanged && document.activeElement?.id !== "spendSearch" ? renderSpendRecords() : renderSpendList()),
+});
+/** 花费变了（实时同步、自己记 / 改 / 删、医疗付款变了）：明细的统计 + 第一页重读（mergeMedical 发出 spend-rows-changed） */
+export const reloadSpendList = () => spendList.reload();
+window.addEventListener("spend-rows-changed", reloadSpendList);
+/** 就地编辑保存后：先改已读到的那一行，页面立刻是新的（随后的重读会再对一遍） */
+export const patchSpendRow = (id, patch) => { spendList.rows = spendList.rows.map((x) => (x.id === id ? { ...x, ...patch } : x)); };
+/** 每次画列表建一次查找表（分类、账单），每行不再线性查找 */
 function spendLookups() {
   const first = (rows, key) => new Map(rows.map((x) => [key(x), x]).reverse());   // 重复的键保留第一条（和原来的 find 一样）
-  return { cats: first(ALL_CATS(), (c) => c.id), pays: first(state.billPayments.filter((x) => x.purchase_id), (x) => x.purchase_id), bills: first(state.bills, (b) => b.id) };
+  return { cats: first(ALL_CATS(), (c) => c.id), bills: first(state.bills, (b) => b.id) };
 }
 function spendRow(p, L = spendLookups()) {
   const d = new Date(p.purchased_at), sameYear = d.getFullYear() === new Date().getFullYear();
   const cat = L.cats.get(p.category) || OTHER_CAT;
   if (state.spendEdit === p.id) return spendEditRow(p);
-  // 账单缴费记的花费：名称链接到那条缴费记录的编辑页（改那里，花费会同步）；其余的在这一行里就地编辑
-  const pay = L.pays.get(p.id), bill = pay && L.bills.get(pay.bill_id);
+  // 账单缴费记的花费（数据库顺带带回关联的缴费记录 pay_id）：名称链接到那条缴费记录的编辑页（改那里，花费会同步）；其余的在这一行里就地编辑
+  const bill = p.pay_id ? L.bills.get(p.pay_bill_id) : null;
   const title = p.virtual === "medical" ? `<a class="link-name" href="${href("bills", "onetime")}?bill=${p.bill_id}" title="${esc(t("到医疗账单里看 / 改"))}">${esc(p.name)}</a>`
-    : bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${pay.id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
+    : bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
     : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>${state.spendDrafts?.[p.id] ? ` <span class="badge b-soon">${t("草稿")}</span>` : ""}`;
   const sel = state.spendSel && !p.virtual ? `<input type="checkbox" class="sel" data-sel="${p.id}" aria-label="${esc(t("选中 {name}", { name: p.name }))}" ${state.spendSel.has(p.id) ? "checked" : ""}>` : "";
   return `<li data-swipe-del="purchase">${sel}
@@ -541,18 +560,19 @@ function spendEditRow(p) {
     ${state.billsEnabled ? `<label>${t("怎么付的")}<select name="card_id">${cardOptions(payAcctValue(p.card_id, p.method))}</select></label>` : ""}
     <div class="form-actions span-2"><button type="submit" class="btn btn-primary btn-sm">${t("保存修改")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-edit-cancel">${t("取消")}</button></div></form></li>`;
 }
-/** 明细页顶部的筛选条：当前生效的筛选一项一个标签，点标签去掉那一项，“清除全部”一键回到全部。从图表 / 名称钻取进来时靠它看清“现在看的是什么” */
+const monthName = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
+/** 筛选条下面的标签：下拉里看不到的条件（图表钻取带来的预算分组、一组商店、一段月份、导入批次）一项一个，点标签去掉那一项。
+ *  分类 / 商店 / 年份 / 月份 / 搜索就在上面的筛选条里，不再重复（和收入明细一样） */
 function activeFilterChips() {
   const f = state.spendFilter, out = [];
-  const monthName = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
-  const storeName = (k) => (k === "__none__" ? t(STORE_NONE.name) : knownStores().find((x) => storeKey(x) === k) || k);
-  if (f.cat !== "all") { const c = f.cat === "bills" ? BILLS_GROUP : [...STAT_CATS(false), ...BILLS_GROUP.families()].find((x) => x.id === f.cat); out.push(["cat", c ? `${c.icon} ${t(c.name)}` : f.cat]); }
+  const storeName = (k) => (k === "__none__" ? t(STORE_NONE.name) : knownStores().find((x) => storeKey(x) === k) || (spendList.facets?.stores || []).find((x) => storeKey(x) === k) || k);
   if (f.grp) { const g = budgetBridge.groups.find((x) => x.id === f.grp); out.push(["grp", f.grp === "!bills" ? t("不含账单的花费") : g ? `${g.icon} ${t(g.name)}` : f.grp]); }
-  if (f.store !== "all") out.push(["store", storeName(f.store)]);
   if (f.stores?.length) { const n = f.stores.map(storeName); out.push(["stores", n.length <= 3 ? n.join("、") : t("{a} 等 {n} 家", { a: n.slice(0, 2).join("、"), n: n.length })]); }
-  if (f.month !== "all") out.push(["month", monthName(f.month)]);
-  if (f.months?.length) { const m0 = f.months[0], whole = m0.endsWith("-01") && f.months.every((m) => m.startsWith(m0.slice(0, 4))); out.push(["months", whole ? t("{y} 年", { y: m0.slice(0, 4) }) : t("近 {n} 个月", { n: f.months.length })]); }
-  if (f.q.trim()) out.push(["q", `“${f.q.trim()}”`]);
+  if (f.months?.length) {
+    const m0 = f.months[0], whole = m0.endsWith("-01") && f.months.every((m) => m.startsWith(m0.slice(0, 4)));
+    const label = f.months.length === 1 ? monthName(m0) : whole ? t("{y} 年", { y: m0.slice(0, 4) }) : `${monthName([...f.months].sort()[0])} → ${monthName([...f.months].sort().at(-1))}`;
+    out.push(["months", f.dmax ? `${label}（${t("每月 1–{d} 日", { d: f.dmax })}）` : label]);
+  } else if (f.dmax) out.push(["months", t("每月 1–{d} 日", { d: f.dmax })]);
   if (f.batch) { const bt = batchOf(f.batch); out.push(["batch", t("导入批次：{name}", { name: bt ? (bt.b.account || bt.b.file || t("银行导入")) + (bt.b.from ? ` · ${bt.b.from} → ${bt.b.to || bt.b.from}` : bt.b.at ? ` · ${String(bt.b.at).slice(0, 10)}` : "") : f.batch })]); }
   return out;
 }
@@ -560,82 +580,93 @@ function spendChipsHtml() {
   const chips = activeFilterChips(); if (!chips.length) return "";
   return `<div class="filter-chips" role="group" aria-label="${t("当前筛选")}"><span class="muted">${t("当前筛选")}</span>${chips.map(([k, label]) => `<button type="button" class="chip fchip" data-action="spend-chip-clear" data-k="${k}" aria-label="${esc(t("去掉筛选：{x}", { x: label }))}">${esc(label)} <span aria-hidden="true">✕</span></button>`).join("")}${chips.length > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="spend-chip-clear" data-k="all">${t("清除全部")}</button>` : ""}</div>`;
 }
+const NO_SPEND_FILTER = () => ({ q: "", cat: "all", grp: null, store: "all", stores: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
 export function clearSpendFilter(k) {
-  const f = state.spendFilter, d = { cat: ["cat", "all"], store: ["store", "all"], month: ["month", "all"], q: ["q", ""] };
-  if (k === "all") Object.assign(f, { q: "", cat: "all", grp: null, store: "all", stores: null, month: "all", months: null, batch: null });
-  else if (k === "grp") f.grp = null; else if (k === "batch") f.batch = null; else if (k === "stores") f.stores = null; else if (k === "months") f.months = null; else if (d[k]) f[d[k][0]] = d[k][1];
-  f.limit = pageSize();
+  const f = state.spendFilter;
+  if (k === "all") Object.assign(f, NO_SPEND_FILTER());
+  else if (k === "grp") f.grp = null; else if (k === "batch") f.batch = null; else if (k === "stores") f.stores = null; else if (k === "months") { f.months = null; f.dmax = null; }
 }
 /** 筛选条、各个下拉和搜索框都按当前筛选重画（点掉标签后下拉也跟着回到“全部”） */
 export function renderSpendRecords() { const h = $("#spendRecords"); if (h) h.innerHTML = spendRecordsHtml(); }
 
-/** 列表本体 + 合计；搜索 / 筛选变化只重画这一块（输入框不丢焦点） */
+/** 列表本体 + 合计；搜索 / 筛选变化只重画这一块（输入框不丢焦点）。月小计、合计来自 spend_stats（整组筛选结果，不只是已读到的几页） */
 function spendListHtml() {
-  const f = state.spendFilter, all = filteredSpend(), shown = all.slice(0, f.limit);
-  if (!all.length) return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个关键词或筛选试试。")}</div>`;
-  const byDate = f.sort === "new" || f.sort === "old";
+  const f = state.spendFilter, L = spendList.sync(spendParams()), st = L.stats || {};
+  if (!L.rows.length) {
+    if (L.busy) return `<p class="muted" role="status">${t("加载中…")}</p>`;
+    return L.err ? `<div class="empty"><strong>${t("没读到花费记录")}</strong>${esc(L.err)}</div>` : `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个关键词或筛选试试。")}</div>`;
+  }
+  const byDate = f.sort === "new" || f.sort === "old", months = st.months || {}, Lk = spendLookups();
   let out = "", cur = null;
-  const L = spendLookups(), months = new Map();   // 月小计按完整筛选结果算（只画前几行也不变）
-  if (byDate) for (const x of all) { const m = monthKey(x.purchased_at), o = months.get(m) || { n: 0, sum: 0 }; o.n++; o.sum += amountOf(x); months.set(m, o); }
-  for (const p of shown) {
+  for (const p of L.rows) {
     if (byDate) {
       const m = monthKey(p.purchased_at);
-      if (m !== cur) {
-        cur = m; const inM = months.get(m);
-        out += `<li class="rec-month"><b>${esc(lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }))}</b><span class="muted">${esc(t("{n} 笔", { n: inM.n }))} · ${esc(money(inM.sum))}</span></li>`;
-      }
+      if (m !== cur) { cur = m; const inM = months[m] || { n: 0, sum: 0 }; out += `<li class="rec-month"><b>${esc(monthName(m))}</b><span class="muted">${esc(t("{n} 笔", { n: inM.n }))} · ${esc(money(num(inM.sum)))}</span></li>`; }
     }
-    out += spendRow(p, L);
+    out += spendRow(p, Lk);
   }
-  const S = state.spendSel, inAll = S ? new Set(all.map((p) => p.id)) : null, delN = S ? [...S].filter((id) => inAll.has(id)).length : 0;
+  const S = state.spendSel, own = L.rows.filter((p) => !p.virtual), delN = S ? own.filter((p) => S.has(p.id)).length : 0;
   const selBar = S ? `<div class="sel-bar" role="region" aria-label="${esc(t("多选删除"))}"><b id="selCount">${t("已选 {n} 笔", { n: delN })}</b>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-all">${t("全选这 {n} 笔", { n: all.filter((p) => !p.virtual).length })}</button>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-all">${t("全选当前显示的 {n} 笔", { n: own.length })}</button>
       <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-none">${t("清空")}</button>
       <button type="button" class="btn btn-sm btn-danger-ghost" data-action="spend-sel-del" ${delN ? "" : "disabled"}>${t("删除所选")}</button>
       <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${t("退出多选")}</button>
-      <small class="muted" style="flex-basis:100%">${t("先用上面的筛选（月份、商店、分类、批次）缩小范围，再全选；删除前会再确认一次。")}</small></div>` : "";
-  return `${selBar}<ul class="restock-list rec-list${S ? " selecting" : ""}">${out}</ul>
-    ${moreBtn(all.length > shown.length, 'data-action="spend-more"')}`;
-}
-function spendSummary() {
-  const all = filteredSpend();
-  return `${t("{n} 笔", { n: all.length })} · ${money(all.reduce((a, p) => a + amountOf(p), 0))}`;
+      <small class="muted" style="flex-basis:100%">${t("先用上面的筛选（年份、月份、商店、分类、批次）缩小范围，再全选；删除前会再确认一次。")}</small></div>` : "";
+  return `${selBar}<div class="muted small" style="margin:0 0 6px">${t("{n} 笔，合计 {m}", { n: st.n ?? "…", m: money(num(st.sum)) })}</div><ul class="restock-list rec-list${S ? " selecting" : ""}">${out}</ul>
+    ${L.busy ? `<p class="muted" role="status" style="text-align:center">${t("加载中…")}</p>` : moreBtn(L.hasMore, 'data-action="spend-more"')}`;
 }
 export function renderSpendList() {
   const host = $("#spendList"); if (!host) return;
   host.innerHTML = spendListHtml();
-  const sum = $("#spendSum"); if (sum) sum.textContent = spendSummary();
   const chips = $("#spendChips"); if (chips) chips.innerHTML = spendChipsHtml();
 }
+/** 多选删除用：已经读到的（不含虚拟的医疗付款） */
+export const spendRowsLoaded = () => spendList.rows.filter((p) => !p.virtual);
+/** 导出 / 打印：按当前筛选把结果读出来（不只是已显示的几页） */
+export const fetchSpendRows = (max) => spendList.fetchAll(max);
 function spendRecordsHtml() {
-  const f = state.spendFilter, ps = state.purchases;
-  if (!ps.length) return `<div class="section-head"><h2>${t("花费记录")}</h2></div><div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("采购清单点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;
-  const months = [...new Set(ps.map((p) => monthKey(p.purchased_at)))].sort().reverse();
-  const stores = knownStores(), hasNone = ps.some((p) => !storeOf(p));
-  const cats = STAT_CATS(false).filter((c) => ps.some((p) => statCat(p.category, false) === c.id));   // 下拉始终列具体种类，不受“合并显示”开关影响
+  const f = state.spendFilter, fc = spendList.facets || {};
+  if (fc.years && !fc.years.length && !state.purchases.length) return `<div class="section-head"><h2>${t("花费记录")}</h2></div><div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("采购清单点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;
+  // 下拉选项：数据库读到的（全部年份）+ 内存里近 400 天的，在第一次统计读回来之前也有东西可选
+  const y0 = new Date().getFullYear(), first = Math.min(state.stats.firstYear || y0, ...(fc.years || []).map(Number));
+  const years = [...new Set([...(fc.years || []), ...Array.from({ length: Math.max(1, y0 - first + 1) }, (_, i) => String(y0 - i))])].sort().reverse();
+  const stores = [...new Map([...knownStores(), ...(fc.stores || [])].map((x) => [storeKey(x), x])).values()].sort(compare);
+  const used = new Set([...(fc.cats || []), ...state.purchases.map((p) => p.category)].map(canonCat)), usedStat = new Set([...used].map((id) => statCat(id, false)));
+  const cats = STAT_CATS(false).filter((c) => usedStat.has(c.id));   // 下拉始终列具体种类，不受“合并显示”开关影响
   const ti = cats.findIndex((c) => c.id === "travel");
-  if (ti >= 0) cats.splice(ti + 1, 0, ...TRAVEL_CATS.filter((c) => ps.some((p) => p.category === c.id)));   // “旅行出行”后面列有花费的具体类型（机票、住宿…），可以只看某一类
+  if (ti >= 0) cats.splice(ti + 1, 0, ...TRAVEL_CATS.filter((c) => used.has(c.id)));   // “旅行出行”后面列有花费的具体类型（机票、住宿…），可以只看某一类
   for (const gid of ["dining", "vehicle", "life", "work", "admin"]) {   // 这几组后面列有花费的具体类型（交通、燃油、娱乐…），可以只看某一类
     const gi = cats.findIndex((c) => c.id === gid); if (gi < 0) continue;
-    cats.splice(gi + 1, 0, ...[...LIFE_CATS, ...WORK_CATS, VEHICLE_FUEL].filter((c) => statCat(c.id, false) === gid && ps.some((p) => p.category === c.id)));
+    cats.splice(gi + 1, 0, ...[...LIFE_CATS, ...WORK_CATS, VEHICLE_FUEL].filter((c) => statCat(c.id, false) === gid && used.has(c.id)));
   }
   const firstBill = cats.findIndex((c) => isBill(c.id));
   if (cats.filter((c) => isBill(c.id)).length > 1) cats.splice(firstBill, 0, BILLS_GROUP);   // 多种账单时多一个“全部账单”总筛选，排在各具体种类前
+  if (f.cat !== "all" && !cats.some((c) => c.id === f.cat)) { const c = [...STAT_CATS(false), ...BILLS_GROUP.families(), BILLS_GROUP, ...TRAVEL_CATS, ...LIFE_CATS, ...WORK_CATS, VEHICLE_FUEL].find((x) => x.id === f.cat); if (c) cats.unshift(c); }   // 钻取来的分类（大类、还没读到的种类）也要在下拉里能看到
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;
-  const mo = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
-  return `<div class="section-head"><h2>${t("花费记录")}</h2><div class="head-acts"><span id="spendSum" class="muted">${esc(spendSummary())}</span><button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${state.spendSel ? t("退出多选") : t("多选删除")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="spend" data-filtered="1">${t("打印")}</button></div></div>
+  return `<div class="section-head"><h2>${t("花费记录")}</h2></div>
     <div class="panel">
-      <div class="filter-bar"><div id="spendChips">${spendChipsHtml()}</div>
-      <div class="toolbar">
+      <div class="toolbar ix-toolbar">
         <input type="search" id="spendSearch" placeholder="${t("搜索名称或商店")}" value="${esc(f.q)}" aria-label="${t("搜索花费记录")}">
-        <select id="spendCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${(f.cat.startsWith("billfam_") ? BILLS_GROUP.families().filter((c) => c.id === f.cat) : []).map((c) => opt(c.id, `${c.icon} ${t(c.name)}`, f.cat)).join("")}${cats.map((c) => opt(c.id, `${c.icon} ${t(c.name)}`, f.cat)).join("")}</select>
-        <select id="spendStore" aria-label="${t("按商店筛选")}">${opt("all", t("全部商店 / 收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${hasNone ? opt("__none__", t("未填写商店"), f.store) : ""}</select>
-        <select id="spendMonth" aria-label="${t("按月份筛选")}">${opt("all", t("全部月份"), f.month)}${months.map((m) => opt(m, mo(m), f.month)).join("")}</select>
-        <select id="spendSort" aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
-      </div></div>
-      <div id="spendList">${spendListHtml()}</div>
-      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("这里是近 400 天的记录。")} ${t("删一笔：手机上把那一行向左滑；电脑上鼠标移到行上，右边出现「删除」。要删很多笔用「多选删除」。")}</p>
+        <select id="spendCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c.id, `${c.icon} ${t(c.name)}`, f.cat)).join("")}</select>
+        <select id="spendStore" aria-label="${t("按商店筛选")}">${opt("all", t("全部商店 / 收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${opt("__none__", t("未填写商店"), f.store)}</select>
+        <select id="spendYear" data-nosearch aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
+        <select id="spendMon" data-nosearch aria-label="${t("按月份筛选")}">${opt("all", t("全部月份"), f.mon)}${Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => opt(m, t("{m} 月", { m: +m }), f.mon)).join("")}</select>
+        <select id="spendSort" data-nosearch aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
+      </div>
+      <div id="spendChips">${spendChipsHtml()}</div>
+      <div class="ix-tools"><button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${state.spendSel ? t("退出多选") : t("多选删除")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="spend" data-filtered="1">${t("打印")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-csv">${t("导出当前列表 CSV")}</button></div>
+      <div id="spendList" style="margin-top:8px">${spendListHtml()}</div>
+      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("删一笔：手机上把那一行向左滑；电脑上鼠标移到行上，右边出现「删除」。要删很多笔用「多选删除」。")}</p>
     </div>`;
+}
+/** 导出当前列表（按筛选，不只是已显示的几页）：列和年度报表的明细一样 */
+export async function exportSpendList() {
+  let list;
+  try { list = await fetchSpendRows(20000); } catch (e) { return toast(t("读取列表失败：{msg}", { msg: e.message })); }
+  if (!list.length) return toast(t("没有可导出的记录"));
+  const hh = (state.household?.name || t("家庭")).replace(/[\\/:*?"<>|（）()\s]/g, "");
+  download(`${hh}-${t("花费明细")}.csv`, toCsv(spendDetailRows(list)));
+  toast(t("已导出 {n} 笔明细", { n: list.length }));
 }
 
 /* ── 商店统计与年度报表 ── */
@@ -745,24 +776,25 @@ export function download(name, text, type = "text/csv;charset=utf-8") {
 
 export const ymd = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 
+/** 花费明细 CSV 的表头 + 每一笔（年度报表的明细、明细页「导出当前列表」共用） */
+function spendDetailRows(list) {
+  const catName = (id) => t((ALL_CATS().find((c) => c.id === id) || OTHER_CAT).name);
+  return [[t("日期"), t("物品"), t("分类"), t("商店 / 收款方"), t("数量"), t("单位"), t("金额"), t("货币"), t("付款方式"), t("关联库存")],
+    ...list.map((p) => [ymd(p.purchased_at), p.name, catName(p.category), storeOf(p), p.quantity == null ? "" : num(p.quantity), p.unit ? t(p.unit) : "",
+      p.amount == null ? "" : num(p.amount), p.currency || "", paymentPayLabel(p), p.item_id ? t("是") : t("否")])];
+}
 export async function exportAnnual(kind) {
   const year = +($("#csvYear")?.value || new Date().getFullYear());
   // 按本地时间：当年 1 月 1 日 0 点到次年 1 月 1 日 0 点
   const from = new Date(year, 0, 1).toISOString(), to = new Date(year + 1, 0, 1).toISOString();
   const list = [...(await Store.listPurchasesRange(from, to)), ...medicalVirtuals().filter((p) => p.purchased_at >= from && p.purchased_at < to)];   // 医疗付款也在年度报表里
   if (!list.length) return toast(t("{y} 年没有采购记录", { y: year }));
-  const catName = (id) => t((ALL_CATS().find((c) => c.id === id) || OTHER_CAT).name);
   const r2 = (v) => Math.round(v * 100) / 100;
   const hh = state.household?.name || t("家庭");
   const fileBase = `${hh.replace(/[\\/:*?"<>|（）()\s]/g, "")}-${year}`;
 
   if (kind === "detail") {
-    const rows = [[t("日期"), t("物品"), t("分类"), t("商店 / 收款方"), t("数量"), t("单位"), t("金额"), t("货币"), t("付款方式"), t("关联库存")]];
-    for (const p of list) {
-      rows.push([ymd(p.purchased_at), p.name, catName(p.category), storeOf(p), p.quantity == null ? "" : num(p.quantity), p.unit ? t(p.unit) : "",
-        p.amount == null ? "" : num(p.amount), p.currency || "", paymentPayLabel(p), p.item_id ? t("是") : t("否")]);
-    }
-    download(`${fileBase}-${t("采购明细")}.csv`, toCsv(rows));
+    download(`${fileBase}-${t("采购明细")}.csv`, toCsv(spendDetailRows(list)));
     return toast(t("已导出 {n} 笔明细", { n: list.length }));
   }
 

@@ -17,8 +17,10 @@ import { ACCT_KINDS, CARDS_HREF } from "../bills/cards.js";
 import { medicalVirtuals } from "../bills/medical.js";
 import { aiReady, askText } from "../core/ai.js";
 import { debounce, moreBtn, pageSize } from "../core/pager.js";
+import { serverList } from "../core/server-list.js";
+import { compact } from "../core/list-query.js";
 import { STAT_CATS, download, dq, hitAttrs, statCat, toCsv, ymd } from "../stats/views.js";
-import { CHANNELS, GROUPS, RANGES, UNITS, adults, bucketKey, canSeeAll, customKinds, groupList, groupOf, groupSum, inc, incomeIn, isExtra, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, knownSenders, loadIncome, memberLabel, myAccess, myPersonId, openRepayments, periodKeys, personOk,
+import { CHANNELS, EXTRA_KINDS, GROUPS, RANGES, UNITS, adults, bucketKey, canSeeAll, customKinds, groupList, groupOf, groupSum, inc, incomeIn, isExtra, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, knownSenders, loadIncome, memberLabel, myAccess, myPersonId, openRepayments, periodKeys, personOk,
   periodLabel, personName, repayState, repaidOf, setIncMerge, similarIncome, skey, spanLabel, spanOk, spanOptionsHtml, spanPrev, spanWindow, statKind, statKinds, sumOf, windowOf } from "./logic.js";
 
 const incomeHref = (id) => `${href("bills", "income")}${id === "overview" ? "" : `?tab=${id}`}`;
@@ -244,15 +246,20 @@ function applyIncomeDrill(q) {
   const I = inc(), d = (k) => (/^\d{4}-\d{2}-\d{2}$/.test(q.get(k) || "") ? q.get(k) : "");
   Object.assign(I, { q: q.get("q") || "", kind: q.get("kind") || "all", person: q.get("person") || "all", year: "all", month: "all", batch: null, from: d("from"), to: d("to"), ex: q.get("ex") === "1", limit: pageSize(), open: null, selMode: false });
 }
-function filteredRecords() {
-  const I = inc(), q = skey(I.q);
-  return I.rec.filter((r) => kindMatch(I.kind, r.kind) && (I.person === "all" || (I.person === "none" ? !r.person_id : r.person_id === I.person)) && (I.year === "all" || r.received_on.startsWith(I.year)) && (!I.batch || r.import_batch === I.batch) && (!I.month || I.month === "all" || r.received_on.slice(5, 7) === I.month)
-    && (!I.from || r.received_on >= I.from) && (!I.to || r.received_on <= I.to) && (!I.ex || !isExtra(r.kind))
-    && (!q || skey(`${r.source_name} ${r.notes || ""} ${r.account || ""} ${kindLabel(r.kind)} ${kindOf(r.kind).name} ${groupOf(r.kind).name}`).includes(q))).sort(SORTS[I.sort] || SORTS.new);
+/* 明细是服务器分页（迁移 054 的 inc_page / inc_stats）：每次「继续加载」向数据库要下一页，筛选、排序、合计都在 SQL 里做；
+ * 类型（小类 / 大类）、搜索里的类型名称这类只有前端认识的规则，先在这里展开成类型表。概览、类型、付款方、报表等别的标签仍用整张表（I.rec）。 */
+const SORT_KEY = { big: "high", small: "low", kind: "name" };   // 界面的排序 → 通用排序（按类型 = 按类型序号排）
+function incParams() {
+  const I = inc(), q = skey(I.q), ks = kindList().map((k) => k.id), sort = SORT_KEY[I.sort] || I.sort || "new", byKind = !!I.kind && I.kind !== "all";
+  const label = (id) => skey(`${kindLabel(id)} ${kindOf(id).name} ${groupOf(id).name}`);   // 和原来搜索时拼的类型文字一样
+  return compact({ kinds: byKind ? ks.filter((k) => kindMatch(I.kind, k)) : null, known: byKind ? ks : null, kunk: byKind && kindMatch(I.kind, "__unknown__") ? true : null,
+    person: I.person !== "all" ? I.person : null, year: I.year && I.year !== "all" ? I.year : null, mon: I.month && I.month !== "all" ? I.month : null, batch: I.batch || null,
+    from: I.from || null, to: I.to || null, ex: I.ex ? EXTRA_KINDS : null, q: q || null, qkinds: q ? ks.filter((k) => label(k).includes(q)) : null,
+    krank: sort === "name" ? Object.fromEntries(ks.map((k, i) => [k, i])) : null, sort });   // 按类型：大类 → 小类的顺序，同类里新的在前
 }
-const kindRank = (id) => { const i = kindList().findIndex((k) => k.id === id); return i < 0 ? 999 : i; };
-const SORTS = { new: (a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at)), old: (a, b) => a.received_on.localeCompare(b.received_on), big: (a, b) => b.amount - a.amount, small: (a, b) => a.amount - b.amount,
-  kind: (a, b) => kindRank(a.kind) - kindRank(b.kind) || b.received_on.localeCompare(a.received_on) };   // 按类型：大类 → 小类的顺序，同类里新的在前
+/** 明细列表：读到的几页 + 当前筛选的笔数、合计 */
+export const incList = serverList("inc", { host: "#incList", map: (r) => ({ ...r, amount: num(r.amount) }), draw: () => renderIncList() });
+window.addEventListener("income-rows-changed", () => incList.reload());   // loadIncome 读完（实时同步、自己改了）：统计 + 第一页重读
 /** 明细顶部「当前筛选」：图表点进来的日期段、不含电汇 / 赠与，可逐个去掉（和花费明细的筛选条一样） */
 function drillChips() {
   const I = inc(), out = [];
@@ -263,7 +270,7 @@ function drillChips() {
 }
 const canEdit = (r) => isOwnerNow() || r.created_by === state.user?.id;
 /** 正在改哪一条：它就在已显示的列表里时，表单在那一行下面展开；否则（被筛掉 / 还没翻到）表单放顶部 */
-const inlineEditId = () => { const I = inc(), id = I.form?.rec?.id; return id && activeTab(state.route) === "records" && filteredRecords().slice(0, I.limit).some((x) => x.id === id) ? id : null; };
+const inlineEditId = () => { const I = inc(), id = I.form?.rec?.id; return id && activeTab(state.route) === "records" && incList.rows.some((x) => x.id === id) ? id : null; };
 function recordRow(r) {
   const I = inc(), s = repayState(r), pick = !!I.selMode && activeTab(state.route) === "records", editing = !pick && inlineEditId() === r.id, open = I.open === r.id && !editing;
   const who = r.person_id ? personName(r.person_id) : "", sub = [r.received_on, esc(kindLabel(r.kind)), who && esc(who), r.account && esc(r.account), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
@@ -284,9 +291,10 @@ function recordDetail(r, s) {
 }
 const selBar = () => { const I = inc(); return I.selMode ? `<div class="ix-selbar"><span id="incSelN" role="status">${t("已选 {n} 笔", { n: I.sel?.size || 0 })}</span><button type="button" class="btn btn-sm btn-ghost" data-inc="sel-all">${t("全选当前显示的")}</button><button type="button" class="btn btn-sm" data-inc="sel-del">${t("删除所选")}</button></div>` : ""; };
 const listHtml = () => {
-  const I = inc(), all = filteredRecords(), head = all.slice(0, I.limit);
-  return `${selBar()}<div class="muted small" style="margin:0 0 6px">${t("{n} 笔，合计 {m}", { n: all.length, m: fmtMoney(sumOf(all)) })}</div><ul class="restock-list ix-list">${head.map(recordRow).join("") || `<li class="muted">${t("没有符合条件的记录")}</li>`}</ul>
-    ${moreBtn(all.length > head.length, 'data-inc="more"')}`;
+  const L = incList.sync(incParams()), st = L.stats || {};
+  const empty = `<li class="muted"${L.busy ? ' role="status"' : ""}>${L.busy ? t("加载中…") : L.err ? esc(L.err) : t("没有符合条件的记录")}</li>`;
+  return `${selBar()}<div class="muted small" style="margin:0 0 6px">${t("{n} 笔，合计 {m}", { n: st.n ?? "…", m: fmtMoney(num(st.sum)) })}</div><ul class="restock-list ix-list">${L.rows.map(recordRow).join("") || empty}</ul>
+    ${L.busy && L.rows.length ? `<p class="muted" role="status" style="text-align:center">${t("加载中…")}</p>` : moreBtn(L.hasMore, 'data-inc="more"')}`;
 };
 export const renderIncList = () => { const el = $("#incList"); if (el) el.innerHTML = listHtml(); };
 /** 三种记法（和「记一笔花费」一样）：手动 / 拍照识别 / 导入对账单 */
@@ -520,14 +528,15 @@ export function incomeExportHtml() {
   return I.loaded ? exportTab() : `<div class="panel empty"><strong>${t("加载中…")}</strong></div>`;
 }
 /** 打印：report = 当前时间范围的收入报表；list = 「明细」里筛选后的列表 */
-function printIncome(mode) {
+async function printIncome(mode) {
   const hh = state.household?.name || t("家庭"), kpiH = (label, val) => `<div><span>${esc(label)}</span><b>${val}</b></div>`;
   let html;
   if (mode === "list") {
-    const list = filteredRecords(), recs = list.slice(0, 300);
+    let recs; try { recs = await incList.fetchAll(300); } catch (e) { return toast(t("读取列表失败：{msg}", { msg: e.message })); }   // 明细是服务器分页：按筛选读前 300 笔
+    const st = incList.stats || {}, n = st.n ?? recs.length;
     html = `<h1>${esc(hh)} · ${t("收入明细")}</h1><p class="ps-meta">${esc(printStamp())}</p>
-      <div class="ps-kpis">${kpiH(t("笔数"), list.length)}${kpiH(t("合计"), fmtMoney(sumOf(list)))}</div>
-      <table><thead><tr><th>${t("到账日期")}</th><th>${t("付款方")}</th><th>${t("类型")}</th><th>${t("成员")}</th><th>${t("金额")}</th></tr></thead><tbody>${recs.map((r) => `<tr><td>${r.received_on}</td><td>${esc(r.source_name)}</td><td>${esc(kindLabel(r.kind))}</td><td>${esc(personName(r.person_id))}</td><td>${fmtMoney(r.amount)}</td></tr>`).join("")}</tbody></table>${list.length > recs.length ? `<p class="ps-meta">${t("只打印前 300 笔")}</p>` : ""}`;
+      <div class="ps-kpis">${kpiH(t("笔数"), n)}${kpiH(t("合计"), fmtMoney(st.sum != null ? num(st.sum) : sumOf(recs)))}</div>
+      <table><thead><tr><th>${t("到账日期")}</th><th>${t("付款方")}</th><th>${t("类型")}</th><th>${t("成员")}</th><th>${t("金额")}</th></tr></thead><tbody>${recs.map((r) => `<tr><td>${r.received_on}</td><td>${esc(r.source_name)}</td><td>${esc(kindLabel(r.kind))}</td><td>${esc(personName(r.person_id))}</td><td>${fmtMoney(r.amount)}</td></tr>`).join("")}</tbody></table>${n > recs.length ? `<p class="ps-meta">${t("只打印前 300 笔")}</p>` : ""}`;
   } else {
     const r = R(), cf = cashflow(r), top = groupSum(cf.rows, (x) => skey(x.source_name)).slice(0, 15);
     const kinds = statKinds(inc().merge).filter((k) => cf.byKind[k.id]).sort((a, b) => cf.byKind[b.id] - cf.byKind[a.id]);
@@ -663,13 +672,13 @@ export function initIncome({ render, refresh }) {
     if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return redraw(); }
     if (act === "cancel") { if (I.drafts && I.form?.rec?.id) delete I.drafts[I.form.rec.id]; I.form = null; return redraw(); }
     if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { Object.assign(I, NO_FILTER()); goTab("records"); return; } return redraw(); }
-    if (act === "more") { I.limit += pageSize(); return renderIncList(); }
+    if (act === "more") return incList.more();   // 「继续加载」：向数据库要下一页
     if (act === "edit") {   // 点行 / 点「编辑」：打开编辑表单（不在「明细」标签就先切过去）；这一行已经展开着，再点一下行就收起（不保存）
       if (b.classList.contains("ix-main") && I.form?.rec?.id === id && inlineEditId() === id) {   // 收起但留着草稿：再展开时填回去，行上有「草稿」小标
         const f = $("#incForm"); if (f) (I.drafts = I.drafts || {})[id] = formDraft(f);
         I.form = null; return redraw();
       }
-      I.form = { rec: I.rec.find((r) => r.id === id) }; I.scanOpen = false;
+      I.form = { rec: I.rec.find((r) => r.id === id) || incList.rows.find((r) => r.id === id) }; I.scanOpen = false;
       if (activeTab(state.route) !== "records") { Object.assign(I, NO_FILTER()); I._keep = true; goTab("records"); return; }
       redraw(); const dr = I.drafts?.[id]; if (dr) applyDraft($("#incForm"), dr);   // 之前收起时留的草稿
       setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
@@ -680,7 +689,7 @@ export function initIncome({ render, refresh }) {
     if (act === "sender-open") { Object.assign(I, NO_FILTER(), { q: b.dataset.key }); goTab("records"); return; }
     if (act === "drill-clear") { if (b.dataset.k === "range") { I.from = ""; I.to = ""; } else if (b.dataset.k === "ex") I.ex = false; I.limit = pageSize(); return redraw(); }
     if (act === "sender-rename") { I.renameKey = b.dataset.key || null; return redraw(); }
-    if (act === "csv-detail") { const l = filteredRecords(); if (!l.length) return toast(t("没有可导出的记录")); download(`${fileHead()}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
+    if (act === "csv-detail") return guard(async () => { const l = await incList.fetchAll(); if (!l.length) return toast(t("没有可导出的记录")); download(`${fileHead()}-${t("明细")}.csv`, toCsv(detailRows(l))); });   // 按当前筛选从数据库读全部，不只是已显示的
     if (act === "csv-detail-window") { const w = windowOf(R().range, R()), l = incomeIn(w.from, w.to, R().person).filter((r) => I.extra || !isExtra(r.kind)); if (!l.length) return toast(t("这段时间没有收入")); download(`${fileHead()}-${w.from}_${w.to}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
     if (act === "csv-senders") {   // 导出：和表格同样的筛选和排序，不分页
       const { w, list, total: tot } = senderGroups();
@@ -694,7 +703,7 @@ export function initIncome({ render, refresh }) {
     if (act === "ov-kind") { OV().kind = id; return redraw(); }
     if (act === "kind-open") { Object.assign(I, NO_FILTER(), { kind: id, person: OV().person }); goTab("records"); return; }
     if (act === "sel-toggle") { I.selMode = !I.selMode; I.sel = new Set(); return redraw(); }
-    if (act === "sel-all") { I.sel = new Set(filteredRecords().slice(0, I.limit).filter(canEdit).map((r) => r.id)); return renderIncList(); }
+    if (act === "sel-all") { I.sel = new Set(incList.rows.filter(canEdit).map((r) => r.id)); return renderIncList(); }
     if (act === "sel-del") { const ids = [...(I.sel || [])]; if (!ids.length) return toast(t("先勾选要删的收入")); if (!armed(b, t("再点一次确认删除 {n} 笔", { n: ids.length }))) return; return guard(async () => { for (const x of ids) await Store.deleteIncomeRecord(x); I.sel = new Set(); I.selMode = false; I.open = null; toast(t("已删除 {n} 笔", { n: ids.length })); await reload(); }); }
     if (act === "ai-run") return runAi();
     if (act === "kind-del") { if (!armed(b, t("再点一次确认删除"))) return; if (I.rec.some((r) => r.kind === id)) return toast(t("还有收入记录用着这个类型，先把它们改成别的类型")); return guard(async () => { await saveMeta({ _income_kinds: customKinds().filter((k) => k.id !== id) }); redraw(); }); }

@@ -1,10 +1,10 @@
 /* 设置 → 打印：采购清单、账单概览。点“打印”时把要印的内容生成到 #printSheet，只在打印时显示（见 styles.css），然后调出浏览器打印。 */
 import { state } from "../core/state.js";
-import { $, esc, fmtDate, fmtShort, money, num, todayISO } from "../core/util.js";
+import { $, esc, fmtDate, fmtShort, money, num, toast, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { budgetPlan, monthProgress } from "../bills/budget.js";
-import { ALL_CATS, STAT_CATS, filteredSpend, monthKey, monthLabel, spendData, storeOf } from "../stats/views.js";
+import { ALL_CATS, STAT_CATS, fetchSpendRows, monthKey, monthLabel, spendData, storeOf } from "../stats/views.js";
 import { Store } from "../core/store.js";
 import { mergeMedical } from "../bills/medical.js";
 import { billInUse, propertyOptionsHtml } from "../core/lifecycle.js";
@@ -56,13 +56,14 @@ function billsSheet(prop) {
     ${next30.length ? `<table><thead><tr><th>${t("到期日")}</th><th>${t("账单")}</th><th>${t("缴费方式")}</th><th>${t("金额")}</th></tr></thead><tbody>${next30.map(({ bill: b, due }) => `<tr><td>${esc(fmtShort(`${due}T12:00:00`))}</td><td>${where(b)}${billCat(b.category).icon} ${esc(b.name)}${b.assigned_to ? ` · ${esc(memberName(b.assigned_to) || "")}` : ""}</td><td>${b.autopay ? t("自动扣款") : esc(t(window.BILLS.CHANNELS[b.pay_channel] || ""))}</td><td>${mny(b.est, b.currency)}</td></tr>`).join("")}</tbody></table>` : `<p>${t("30 天内没有到期的账单")}</p>`}`;
 }
 
-function spendSheet({ months: n = 6, useFilter = false } = {}) {
+/** recs = 「明细」里按筛选从数据库读出来的（useFilter 时由 printSheet 先读好，最多 300 笔）；这时明细不再按打印的时间范围截，筛的是哪一年就打哪一年 */
+function spendSheet({ months: n = 6, useFilter = false, recs: picked = [] } = {}) {
   const sd = spendData(n), cur = Units.region.currency, set = new Set(sd.months);
   const all = state.purchases.filter((p) => set.has(monthKey(p.purchased_at)) && p.amount != null && (!p.currency || p.currency === cur));
   const total = sd.totals.reduce((a, b) => a + b, 0), count = sd.months.reduce((a, m) => a + sd.counts[m], 0);
   const byCat = STAT_CATS().map((c) => ({ c, v: sd.months.reduce((s, m) => s + (sd.byMC[m][c.id] || 0), 0) })).filter((x) => x.v > 0).sort((a, b) => b.v - a.v);
-  const recs = (useFilter ? filteredSpend() : [...state.purchases].sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at))).filter((p) => set.has(monthKey(p.purchased_at))).slice(0, 300);
-  const f = state.spendFilter, filterNote = useFilter && (f.q || f.cat !== "all" || f.store !== "all" || f.stores?.length || f.grp || f.month !== "all" || f.months?.length) ? ` · ${t("已按筛选条件")}` : "";
+  const recs = useFilter ? picked.slice(0, 300) : [...state.purchases].sort((a, b) => new Date(b.purchased_at) - new Date(a.purchased_at)).filter((p) => set.has(monthKey(p.purchased_at))).slice(0, 300);
+  const f = state.spendFilter, filterNote = useFilter && (f.q || f.cat !== "all" || f.store !== "all" || f.stores?.length || f.grp || f.year !== "all" || f.mon !== "all" || f.months?.length || f.batch) ? ` · ${t("已按筛选条件")}` : "";
   const kpi = (label, val) => `<div><span>${label}</span><b>${val}</b></div>`;
   return `<h1>${t("花费统计")} · ${t("近 {n} 个月", { n: sd.months.length })}</h1><p class="ps-meta">${esc(stamp())}${esc(filterNote)}</p>
     <div class="ps-kpis">${kpi(t("合计"), money(total))}${kpi(t("月均"), money(total / (sd.months.length || 1)))}${kpi(t("笔数"), count)}</div>
@@ -85,7 +86,8 @@ function budgetSheet() {
 
 /** 生成打印内容并调出浏览器打印；打印结束后清掉 */
 export async function printSheet(kind, arg = "all") {
-  if (kind === "spend" && !state.purchases.length) { try { state.purchases = await Store.listPurchases(); mergeMedical(); } catch { /* 用已有的 */ } }   // 采购花费是后台读的，打印前确保读到了
+  if (kind === "spend" && !state.purchases.length) { try { state.purchases = await Store.listPurchases(); mergeMedical(); } catch { /* 用已有的 */ } }
+  if (kind === "spend" && arg?.useFilter) { try { arg = { ...arg, recs: await fetchSpendRows(300) }; } catch (e) { return toast(t("读取列表失败：{msg}", { msg: e.message })); } }   // 明细是服务器分页：按筛选读前 300 笔来打   // 采购花费是后台读的，打印前确保读到了
   printHtml(kind === "shopping" ? shoppingSheet() : kind === "spend" ? spendSheet(arg) : kind === "budget" ? budgetSheet() : billsSheet(arg));
 }
 /** 把一段 HTML 放进 #printSheet 并调出浏览器打印（收入报表等别的模块也用） */

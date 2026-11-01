@@ -79,6 +79,7 @@ export async function loadIncome() {
     I.rec = rec.map((r) => ({ ...r, amount: num(r.amount) })); I.rep = rep.map((p) => ({ ...p, amount: num(p.amount) })); I.acc = acc; I.ok = true; I.err = "";
   } catch (e) { I.ok = false; I.err = e.message || String(e); }
   I.loaded = true;
+  window.dispatchEvent(new Event("income-rows-changed"));   // 明细是服务器分页（views.js 的 incList）：统计 + 第一页重读
 }
 
 /* ───────────── 付款方 ───────────── */
