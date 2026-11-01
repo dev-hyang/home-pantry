@@ -27,16 +27,13 @@ window.GEAR_CATEGORIES = [
   { id: "gear_study",  name: "图书与学习", icon: "📚", color: "#4a5fb0", loc: "卧室",   subs: ["图书绘本", "教材教辅", "乐器", "学习机电子", "运动器材"] },
 ].map((c) => ({ ...c, space: "gear" }));
 window.CATEGORIES.push(...window.GEAR_CATEGORIES);
-window.GEAR_GROUP = { id: "gear", name: "装备", icon: "🧳", color: "#a0522d" };   // 统计图里合并显示
-window.MEDICAL_GROUP = { id: "medical", name: "医疗", icon: "🏥", color: "#c2475f" };   // 医疗账单的付款（js/bills/medical.js 变成虚拟花费并进统计）
-window.PET_CARE_CAT = { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" };   // 兽医、寄养、美容；宠物类事件型账单的付款也记成这个分类（统计里并进“宠物”一组）
+window.MEDICAL_GROUP = { id: "medical", name: "医疗", icon: "🏥", color: "#c2475f" };   // 医疗账单的付款（js/bills/medical.js 变成虚拟花费并进统计）；叶子分类 medical
+window.PET_CARE_CAT = { id: "pet_care", name: "宠物医疗 / 服务", icon: "🐾", color: "#9a6b3c" };   // 兽医、寄养、美容；宠物类事件型账单的付款也记成这个分类（统计里在「宠物」下）
 
-/* 旅行出行：机票、船票、车票、燃油、租车、住宿、饭店、门票、旅行团……
- * 花费分类 id 是 travel_*（purchases.category 允许），统计里合并成“旅行出行”一组（点进去看明细时可以按具体类型筛）；
- * 预算里是单独一组“旅行出行”（不算“大件”，机票再贵也不会被当成家电）。
- * 行程：不加新表——花费名称写成「【行程名】项目」（例如「【东京 2026】机票」），按行程名汇总（统计 → 旅行标签）。 */
-window.TRAVEL_GROUP = { id: "travel", name: "旅行专属", icon: "🧳", color: "#0f8b8d" };
-window.TRAVEL_CATS = [   // 只放「不出门旅行就不会有」的花费；旅途中的吃饭、加油、门票记普通分类 + 「【行程】」标签，旅行页照样按行程汇总
+/* 旅行出行：机票、船票、车票、租车、住宿、旅行团……
+ * 花费分类 id 是 travel_*（purchases.category 允许），统计树里在 生活消费 → 旅行 下（js/core/taxonomy.js）。
+ * 行程：不加新表——花费名称写成「【行程名】项目」（例如「【东京 2026】机票」），分类页的「旅行」节点可以按行程汇总。 */
+window.TRAVEL_CATS = [   // 只放「不出门旅行就不会有」的花费；旅途中的吃饭、加油、门票记普通分类 + 「【行程】」标签，按行程汇总时照样算进这趟
   { id: "travel_flight",  name: "机票",                 icon: "✈️", color: "#0f6f8b" },
   { id: "travel_ship",    name: "船票 / 邮轮",          icon: "🚢", color: "#2a7fb5" },
   { id: "travel_ground",  name: "长途车票（火车 / 大巴）", icon: "🚆", color: "#4c8f6b" },
@@ -48,19 +45,10 @@ window.TRAVEL_CATS = [   // 只放「不出门旅行就不会有」的花费；�
 /* 旧分类 → 新分类（2026-10-24 重整）：旅行·餐饮 / 燃油 / 门票并入普通分类。读花费时自动按这张表换，所以没跑迁移 035 也不会乱 */
 window.CAT_ALIAS = { travel_dining: "life_dining", travel_fuel: "vehicle_fuel", travel_tickets: "life_fun" };
 window.canonCat = (id) => window.CAT_ALIAS[id] || id;
-/* 花钱分几种，每个分类只属于一处（2026-10-24 重整，见 docs/design-categories.md）：
- *   日常储备 = 买回家吃的、用的、会用完的（食品、日用、药品、母婴、文具、宠物用品），进库存，少了提醒补货；
- *   装备     = 买回家长期用的（家居、厨具、衣物、数码、工具、户外行李、图书），只记数量和位置，不提醒补货；
- *   餐饮外食 = 在外吃喝（餐厅、外卖、咖啡）；休闲与个人 = 娱乐门票、美容理发、健身、礼物、课程；
- *   车与交通 = 车辆保养、燃油充电、打车公交停车过路费；政务与手续 = 证件罚单报税、银行手续费利息、法律税务、邮寄；
- *   旅行专属 = 机票、船票、长途车票、住宿、租车、旅行团（旅途中的吃饭加油门票记普通分类 + 行程标签）；
- *   待细分   = 综合购物（Amazon 这类看不出买了什么的），统计里归「其他」，有空再细分。
- * 银行 / 信用卡导入里看不出买了什么的超市单子 = 超市杂货（grocery_misc），归日常储备。 */
-window.LIFE_GROUP = { id: "life", name: "休闲与个人", icon: "🎭", color: "#8a5fb0" };
-window.DINING_GROUP = { id: "dining", name: "餐饮外食", icon: "🍔", color: "#c0603a" };
-window.ADMIN_GROUP = { id: "admin", name: "政务与手续", icon: "🏛️", color: "#6b7280" };
-window.WORK_GROUP = { id: "work", name: "工作与专业", icon: "💼", color: "#3f6c8f" };
-window.WORK_CATS = [   // 和工作、职业直接相关的花费（个人订阅型的软件放账单里；房产交易的律师费在资本性支出）
+/* 下面是花费的「叶子分类」（purchases.category 存的就是这些 id，不改写）。归到哪个二级 / 一级分类、算进哪些统计，
+ * 全部由 js/core/taxonomy.js 决定（三级分类 + 经济性质，见 docs/design-categories.md），这里只放名称、图标、颜色。
+ * 银行 / 信用卡导入里看不出买了什么的超市单子 = 超市杂货（grocery_misc），归 餐饮。 */
+window.WORK_CATS = [   // 和工作、职业直接相关的花费（个人订阅型的软件放账单里；房产交易的律师费在 房产交易）
   { id: "work_software", name: "付费软件 / 工具 / 云服务（一次性买断或年付）", icon: "💻", color: "#3f6c8f" },
   { id: "work_cert",     name: "考证 / 执照 / 专业会员 / 考试费", icon: "🎓", color: "#5b7fa6" },
   { id: "work_legal",    name: "律师 / 会计 / 法律咨询（非房产：移民、遗嘱、公司、劳动…）", icon: "⚖️", color: "#6b7a8f" },
@@ -68,14 +56,15 @@ window.WORK_CATS = [   // 和工作、职业直接相关的花费（个人订阅
   { id: "work_other",    name: "其他工作花费（行业会议、差旅杂费…）", icon: "💼", color: "#8a948f" },
 ];
 window.GROCERY_MISC = { id: "grocery_misc", name: "超市杂货（未细分）", icon: "🛒", color: "#3f8f5a" };
-window.LIFE_CATS = [   // id 前缀都是 life_，归哪一组看 stats/views.js 的 statCat
+window.LIFE_CATS = [   // id 前缀都是 life_，归哪个二级分类看 js/core/taxonomy.js
   { id: "life_dining",   name: "外出就餐 / 外卖 / 咖啡", icon: "🍔", color: "#c0603a" },
   { id: "life_transit",  name: "交通出行（打车 / 公交地铁 / 停车 / 过路费）", icon: "🚕", color: "#4c8f6b" },
   { id: "life_fun",      name: "娱乐 / 门票 / 活动（电影 / 游戏 / 演出 / 景点）", icon: "🎬", color: "#5b7fa6" },
   { id: "life_care",     name: "个人护理 / 美容 / 理发", icon: "💇", color: "#d4694c" },
   { id: "life_fitness",  name: "运动健身",               icon: "🏋️", color: "#24897d" },
   { id: "life_gifts",    name: "礼物 / 节日 / 红包",     icon: "🎁", color: "#c75a85" },
-  { id: "life_edu",      name: "课程 / 培训 / 学习服务（一次性的；周期性的课外班在账单里）", icon: "📖", color: "#2f6fb0" },
+  // 大人自己的课程、培训、进修（在 财务及其他 → 工作与进修 下）；孩子的课外班、学费记 孩子与教育（账单里的课外班 / 学费，或 学习文具 / 图书）
+  { id: "life_edu",      name: "成人课程 / 培训 / 进修（一次性的；孩子的课外班记在 孩子与教育）", icon: "📖", color: "#2f6fb0" },
   { id: "life_gov",      name: "证件 / 罚单 / 政府收费 / 报税软件", icon: "🏛️", color: "#6b7280" },
   { id: "life_fees",     name: "银行手续费 / 利息 / 年费", icon: "🏦", color: "#8a948f" },
   { id: "life_mail",     name: "邮寄 / 快递",            icon: "📮", color: "#b07a1a" },
@@ -83,35 +72,24 @@ window.LIFE_CATS = [   // id 前缀都是 life_，归哪一组看 stats/views.js
   { id: "life_other",    name: "其他生活开销",           icon: "🧺", color: "#8a948f" },
 ];
 window.VEHICLE_FUEL = { id: "vehicle_fuel", name: "车辆燃油 / 充电 / 洗车", icon: "⛽", color: "#b0741a" };
-/* 资本性支出：买房卖房的房款 / 首付 / 律师 / 中介 / Title / 过户税、买车整付、大额投资转入——金额巨大、几年一次，
- * 混进日常花费会把每月占比、预算、趋势全部拉歪。所以单独一组：记录保留（明细里能看、能按行程式的「【交易】」标签汇总），
- * 但默认不进花费统计的图和预算；花费页有「含资本性支出」开关可以看合计。卖房 / 卖车的收入不在这里记（这里只记支出）。 */
-window.CAPITAL_GROUP = { id: "capital", name: "资本性支出（房产交易 / 买车整付，不计入日常）", icon: "🏦", color: "#4b5563" };
+/* 资本性 / 投资：买房卖房的房款 / 首付 / 律师 / 中介 / Title / 过户税、买车整付、投资转入——金额巨大、几年一次。
+ * 这几个分类默认的「经济性质」不是日常消费（capital_invest = 投资，其余 = 资本性），所以不进日常生活成本和预算；
+ * 现金流出、资本性 / 投资的统计照常算。卖房 / 卖车的收入不在这里记（这里只记支出）。 */
 window.CAPITAL_CATS = [
   { id: "capital_home",    name: "房产交易（房款 / 首付 / 律师 / 中介 / Title / 过户税 / 检查）", icon: "🏠", color: "#4b5563" },
   { id: "capital_vehicle", name: "买车整付 / 大额车款",      icon: "🚘", color: "#6b7280" },
-  { id: "capital_invest",  name: "投资 / 存款转入 / 大额一次性", icon: "📈", color: "#374151" },
+  { id: "capital_invest",  name: "投资 / 存款转入（买基金股票、转入投资账户）", icon: "📈", color: "#374151" },
   { id: "capital_other",   name: "其他资本性支出",            icon: "🧱", color: "#9ca3af" },
 ];
-window.isCapital = (id) => String(id || "").startsWith("capital_");
-/* 记花费的分类下拉怎么分组（日常储备 / 房屋耗材 / 装备三组由 categoryOptions 按空间生成，这里是后面的几组）。
- * 手动记一笔、就地编辑、导入对账单、设备召回退款都用这一份（pantry/views.js 的 categoryOptions(…, { spend: true })），不要在别处另列一份 */
-window.SPEND_GROUPS = () => {
-  const L = (id) => window.LIFE_CATS.find((c) => c.id === id);
-  return [
-    ["餐饮外食", [L("life_dining")]],
-    ["车与交通", [window.VEHICLE_FUEL, L("life_transit"), window.VEHICLE_CAT]],
-    ["休闲与个人", ["life_fun", "life_care", "life_fitness", "life_gifts", "life_edu"].map(L)],
-    ["工作与专业（付费软件 · 考证 · 律师会计 · 办公用品）", window.WORK_CATS],
-    ["政务与手续（证件罚单报税 · 手续费 · 邮寄）", ["life_gov", "life_fees", "life_mail"].map(L)],
-    ["旅行专属（旅途中的吃饭 / 加油 / 门票记上面的普通分类，再填行程）", window.TRAVEL_CATS],
-    // 账单类（电费、燃气、水费、网络、房贷房租、保险、订阅…）和医疗：建了周期账单的缴费时会自动记，没建账单的零星付款也要能手动记 / 导入时选
-    ["账单（水电气网 · 住房 · 车 · 保险贷款税 · 孩子宠物 · 家庭服务订阅）", window.BILLS_GROUP ? window.BILLS_GROUP.cats() : []],
-    ["医疗 / 宠物医疗（没建医疗账单的零星付款）", [window.MEDICAL_GROUP, window.PET_CARE_CAT]],
-    ["待细分 / 其他", [L("life_shopping"), L("life_other")]],
-    ["资本性支出（房产交易、买车整付——不进日常统计和预算）", window.CAPITAL_CATS],
-  ];
-};
+/* 转账：信用卡还款、自己银行账户之间转账、投资账户里买卖换仓——钱没离开这个家，记了也不算任何花费（避免重复计算），
+ * 明细里照样看得到（带「转账」标记）。现在家里默认不记信用卡还款，导入对账单时还款 / 转账默认跳过，要记才勾上。 */
+window.TRANSFER_CATS = [
+  { id: "transfer_account", name: "账户间转账（自己的银行账户之间）", icon: "🔁", color: "#64748b" },
+  { id: "transfer_invest",  name: "投资账户内部转换（买卖换仓、转存）", icon: "🔄", color: "#64748b" },
+];
+// 事件型账单（js/bills/medical.js）的另外两种付款分类：法律 / 税务、装修 / 项目
+window.LEGAL_CAT = { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" };
+window.PROJECT_CAT = { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" };
 
 window.TRIP = {
   isTravel: (id) => String(id || "").startsWith("travel_"),

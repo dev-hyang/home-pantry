@@ -2,6 +2,7 @@ import { alertsOf, hasStock, memberName, openShopFor } from "../core/logic.js";
 import { STATUS, state } from "../core/state.js";
 import { aiPanel } from "./ai.js";
 import { COLORS, ICONS } from "../core/categories.js";
+import { L1S, l2List, spendOptions } from "../core/taxonomy.js";
 import { locationGroups } from "../core/locations.js";
 import { Store } from "../core/store.js";
 import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText, toDisp } from "../core/util.js";
@@ -209,6 +210,12 @@ function catDashboard(space, all0) {
     <p class="muted dash-foot"><button type="button" class="link-name" data-action="cat-sort">${sorting ? t("完成排序") : t("调整顺序")}</button></p>`;
 }
 
+/** 自建分类在花费统计里挂在哪个二级分类下（js/core/taxonomy.js）；空 = 按空间默认（储藏 → 餐饮，装备 → 购物日用，房屋耗材 → 维护与服务） */
+function parentSelect(cf) {
+  const def = { pantry: "餐饮", gear: "购物日用", house: "维护与服务" }[cf.space] || "其他";
+  const groups = L1S.filter((l1) => l1.id !== "transfer").map((l1) => `<optgroup label="${esc(t(l1.name))}">${l2List(l1.id).map((n) => `<option value="${n.id}" ${cf.parent === n.id ? "selected" : ""}>${n.icon} ${esc(t(n.name))}</option>`).join("")}</optgroup>`).join("");
+  return `<label>${t("花费统计里算作")}<select name="parent" data-nosearch><option value="">${esc(t("按默认（{d}）", { d: t(def) }))}</option>${groups}</select><small>${t("记花费、看分类统计时，这个分类归到哪一组")}</small></label>`;
+}
 /** 分类表单（新建自建分类 / 编辑自建或内置分类）：名称、图标、颜色、常用小类。内置分类改过的叫“覆盖”，可恢复默认或隐藏 */
 export function catFormHtml(cf) {
   const editing = !!cf.key, builtin = !!cf.builtin, overridden = builtin && !!cf.id;
@@ -223,6 +230,7 @@ export function catFormHtml(cf) {
     <div class="form-grid">
       <label>${t("分类名")}<input name="name" required maxlength="20" placeholder="${t("例如：露营食品、手工材料")}" value="${esc(cf.name || "")}"></label>
       <label>${t("小类（逗号分隔，可选）")}<input name="subs" maxlength="200" placeholder="${t("例如：帐篷食品, 速食, 饮用水")}" value="${esc((cf.subs || []).join(", "))}"><small>${t("物品表单的“小类”下拉就按这里的顺序；改名不会改已有物品上的小类文字")}</small></label>
+      ${builtin ? "" : parentSelect(cf)}
     </div>
     <div class="pick-row" role="group" aria-label="${t("图标")}">${icons}</div>
     <div class="pick-row" role="group" aria-label="${t("颜色")}">${colors}</div>
@@ -546,13 +554,13 @@ export function viewMeals() {
     <section class="section"><div class="section-head"><h2>${t("可选菜谱")}</h2><p>${t("绿色是家里有的")}</p></div><div class="recipes">${cards}</div></section>`;
 }
 
-/** 分类下拉选项：储藏、房屋、装备分组显示 */
+/** 分类下拉选项：储藏、房屋、装备分组显示。
+ *  记花费（spend）的下拉按 一级 · 二级 分类分组，叶子在组里（js/core/taxonomy.js 的 spendOptions；手动记一笔、就地编辑、导入对账单、召回退款共用，不要在别处另列一份） */
 export function categoryOptions(selected, { withOther = true, spend = false } = {}) {
+  if (spend) return spendOptions(selected, { withOther });
   const opt = (c) => `<option value="${c.id}" ${c.id === selected ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`;
-  // 记花费的下拉（spend）在三个空间后面再列：餐饮外食 / 车与交通 / 休闲与个人 / 政务与手续 / 旅行专属 / 待细分（分组定义在 data.js SPEND_GROUPS）
-  return `<optgroup label="${t(spend ? "日常储备（吃的用的，会用完，进库存）" : "日常储备")}">${catsOf("pantry").map(opt).join("")}${spend ? opt(window.GROCERY_MISC) : ""}</optgroup>
+  return `<optgroup label="${t("日常储备")}">${catsOf("pantry").map(opt).join("")}</optgroup>
     <optgroup label="${t("房屋耗材")}">${catsOf("house").map(opt).join("")}${withOther ? opt(MAINT_CAT) : ""}</optgroup>
-    <optgroup label="${t(spend ? "装备（长期用的耐用品：衣物、数码、家居…）" : "装备（只记数量和位置）")}">${catsOf("gear").map(opt).join("")}</optgroup>
-    ${spend ? window.SPEND_GROUPS().map(([label, cats]) => `<optgroup label="${esc(t(label))}">${cats.filter(Boolean).map(opt).join("")}</optgroup>`).join("") : ""}
+    <optgroup label="${t("装备（只记数量和位置）")}">${catsOf("gear").map(opt).join("")}</optgroup>
     ${withOther ? opt(OTHER_CAT) : ""}`;
 }

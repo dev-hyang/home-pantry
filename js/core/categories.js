@@ -28,14 +28,14 @@ export function applyCustomCategories(rows) {
       Object.assign(builtin, { name: r.name || builtin.base.name, icon: r.icon || builtin.base.icon, color: r.color || builtin.base.color, subs: Array.isArray(r.subs) && r.subs.length ? r.subs : builtin.base.subs, hidden: !!r.hidden, dbId: r.id, overridden: true });
       continue;
     }
-    C.push({ id: r.key, name: r.name, icon: r.icon || "📦", color: r.color || "#8a948f", loc: r.loc || "储物间", subs: Array.isArray(r.subs) ? r.subs : [], space: r.space || "pantry", custom: true, hidden: !!r.hidden, dbId: r.id });
+    C.push({ id: r.key, name: r.name, icon: r.icon || "📦", color: r.color || "#8a948f", loc: r.loc || "储物间", subs: Array.isArray(r.subs) ? r.subs : [], space: r.space || "pantry", custom: true, hidden: !!r.hidden, dbId: r.id, parent: r.parent || null });   // parent：记花费时挂在哪个二级分类下（迁移 055，见 taxonomy.js）
   }
 }
 export const isCustomCat = (id) => !!window.CATEGORIES.find((c) => c.id === id && c.custom);
 /** 可编辑的分类表单初值：内置分类的名称和小类按当前语言显示（保存时 canonSubs 会把没改的还原成内置键，翻译照常） */
 export function catFormOf(c, t) {
   const builtin = !c.custom;
-  return { id: c.dbId, key: c.id, space: c.space, name: builtin ? t(c.name) : c.name, icon: c.icon, color: c.color, subs: (c.subs || []).map((s) => (builtin ? t(s) : s)), builtin, hidden: !!c.hidden };
+  return { id: c.dbId, key: c.id, space: c.space, name: builtin ? t(c.name) : c.name, icon: c.icon, color: c.color, subs: (c.subs || []).map((s) => (builtin ? t(s) : s)), builtin, hidden: !!c.hidden, parent: builtin ? undefined : c.parent || "" };
 }
 /** 保存内置分类时：用户没改的名称 / 小类（和当前语言的翻译一致）还原成内置键，这样切换语言仍会翻译；改过的按原样存 */
 export function canonName(c, name, t) { const b = c?.base; if (!b) return name; return name === t(b.name) || name === b.name ? b.name : name; }

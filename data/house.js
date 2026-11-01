@@ -20,7 +20,6 @@
     { id: "house_car",    name: "汽车养护",   icon: "🛢️", color: "#7a5c8e", loc: "车库",   subs: ["油液", "雨刮与灯泡", "清洁美容", "应急耗材"] },
   ].map((c) => ({ ...c, space: "house" }));
   window.CATEGORIES.push(...HOUSE_CATEGORIES);
-  window.HOUSE_GROUP = { id: "house", name: "房屋维护", icon: "🏠", color: "#5c6b63" };  // 统计图里合并显示
 
   // ── 地区 ──
   const REGIONS = {

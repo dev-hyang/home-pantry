@@ -57,5 +57,4 @@
   window.VEHICLES = { POWERTRAINS, SERVICE_ITEMS, itemsFor, serviceItem, REGION_NOTES, STATUS, statusOf, isActive, inService };
   // 车辆维修保养的花费记到 purchases 时用的分类；统计里单独一组
   window.VEHICLE_CAT = { id: "vehicle_maint", name: "车辆维修保养", icon: "🚗", color: "#4a6fa5" };
-  window.VEHICLE_GROUP = { id: "vehicle", name: "车辆", icon: "🚗", color: "#4a6fa5" };
 })();
