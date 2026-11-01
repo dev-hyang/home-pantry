@@ -772,7 +772,8 @@ function assetHub(a, root) {
     notes: () => ({ text: a.notes ? a.notes.slice(0, 60) : t("无"), pct: null, badge: "" }),
     units: () => { const u = unitsOf(a); return { text: u.length ? unitsText(a, 6) : t("还没写：有几处、各在哪"), pct: null, badge: u.length ? `<span class="badge mcount" style="background:var(--surface-2)">${unitsCount(a)}</span>` : "" }; },
   };
-  const rows = ASSET_SECTIONS.filter((s) => (veh ? !s.eq : !s.veh) && (!s.fx || isFixture(a)) && !(veh && s.id === "cost" && !pricesOk()))   // 车辆的「费用」块只有购车价：没财务权限整块不出现.map((s) => { const x = st[s.id](); return hubRow({ href: `${base}?sec=${s.id}`, icon: s.icon, title: t(s.name), desc: esc(x.text), pct: x.pct, badge: x.badge }); });
+  // 车辆的「费用」块只有购车价：没财务权限整块不出现
+  const rows = ASSET_SECTIONS.filter((s) => (veh ? !s.eq : !s.veh) && (!s.fx || isFixture(a)) && !(veh && s.id === "cost" && !pricesOk())).map((s) => { const x = st[s.id](); return hubRow({ href: `${base}?sec=${s.id}`, icon: s.icon, title: t(s.name), desc: esc(x.text), pct: x.pct, badge: x.badge }); });
   const more = [
     hubRow({ href: `${base}?log=1`, icon: "🛠️", title: t("保养记录"), desc: a.logs.length ? t("{n} 条，最近 {d}", { n: a.logs.length, d: fmtDate(a.logs[0].done_on) }) : t("还没有记录"), badge: a.followUp ? `<span class="badge b-out mcount">${t(C().RESULTS[a.followUp.result])}</span>` : a.service === "overdue" || a.service === "due" ? `<span class="badge b-soon mcount">${t(SERVICE_BADGE[a.service].label)}</span>` : "" }),
     veh ? hubRow({ href: `${base}?sec=schedule`, icon: "📋", title: t("保养时间表"), desc: a.vSoonest ? t("下一项：{name} {d}", { name: t(a.vSoonest.name), d: fmtDate(a.vSoonest.next) }) : t("记一次保养后开始算") }) : "",
