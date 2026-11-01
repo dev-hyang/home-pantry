@@ -6,7 +6,7 @@ import { t } from "../core/i18n.js";
 import { href, go } from "../core/router.js";
 import { backBtn } from "../core/hub.js";
 import { enrichBills, initialDue } from "./logic.js";
-import { ACCT_KINDS, CARDS_HREF, bonusLeft, cardById, cardHref, expDays, feeDays, fromCatalog, giftBalance, holderName, isBankAcct, kindIcon, kindName, networkName, noRewards, pickCards, pickFor, quarterOf, reloadCards, reviewMonth, rewardCatIcon, rewardCatName, rotatingNow, usage } from "./cards.js";
+import { ACCT_KINDS, ACCT_SHORT, CARDS_HREF, bonusLeft, cardById, cardHref, expDays, feeDays, fromCatalog, giftBalance, holderName, isBankAcct, kindIcon, kindName, networkName, noRewards, pickCards, pickFor, quarterOf, reloadCards, reviewMonth, rewardCatIcon, rewardCatName, rotatingNow, usage } from "./cards.js";
 export { isBankAcct, kindIcon, kindName, noRewards };
 import { aiReady, aiSettings, askText, providerOf } from "../core/ai.js";
 import { askInline } from "../core/ask.js";
@@ -89,7 +89,7 @@ export function viewCards() {
   const off = state.cards.filter((c) => c.active === false).sort((a, b) => String(b.inactive_since || "").localeCompare(String(a.inactive_since || "")) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
   const addChips = `<div class="acct-add">${Object.entries(ACCT_KINDS).map(([k, [name, icon]]) => `<a class="chip" href="${cardHref("new")}&kind=${k}">＋ ${icon} ${esc(t(name))}</a>`).join("")}</div>`;
   return `<section class="section">
-    <div class="section-head"><h2>${t("用卡")}</h2><p>${t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。银行账户也记在这里，账单扣款、缴费记录能直接选。")}</p>
+    <div class="section-head"><h2>${t("卡与账户")}</h2><p>${t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。银行账户也记在这里，账单扣款、缴费记录能直接选。")}</p>
       <div class="head-acts">${ro ? `<span class="badge" style="background:var(--surface-2)">${t("只读")}</span>` : `<a class="btn btn-primary btn-sm" href="${cardHref("new")}">${t("添加卡 / 账户")}</a>`}</div></div>
     ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("你可以查看卡和推荐；添加、修改、停用、删除要家主在「设置 → 家庭与成员」里给你开财务权限。")}</p>` : ""}
     ${state.cardDelete && !ro ? deleteConfirmHtml(state.cardDelete) : ""}
@@ -97,7 +97,7 @@ export function viewCards() {
     ${cards.length ? reviewHtml() : ""}
     ${cards.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("我的卡")}</h2><p>${t("{n} 张在用", { n: cards.length })}${catalogAge() > 90 ? ` · <span class="bank-dup">${t("目录更新于 {d}，可能过期，返现规则以发卡行为准", { d: D().AS_OF })}</span>` : ""}</p></div>
       <div class="panel"><ul class="restock-list card-list">${cards.map(cardRow).join("")}</ul></div>` : live.length ? "" : emptyHtml()}
-    ${banks.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("银行账户")}</h2><p>${t("支票 / 储蓄账户：账单自动扣款、缴费记录、信用卡还款从哪扣")}</p></div>
+    ${banks.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("银行与投资账户")}</h2><p>${t("支票 / 储蓄 / 券商 / 退休 / HSA / 贷款 / 现金：账单从哪扣、收入入到哪")}</p></div>
       <div class="panel"><ul class="restock-list card-list">${banks.map(cardRow).join("")}</ul></div>` : ""}
     ${gifts.length ? giftSection(gifts) : ""}
     ${ro ? "" : addChips}
@@ -215,7 +215,7 @@ function cardRow(c) {
   }
   if (noRewards(c)) {   // 银行账户：没有返现 / 到期，只看哪些账单从这里扣、记了多少笔
     const bills = state.billsEnriched.filter((b) => b.pay_card_id === c.id && b.active), n = state.purchases.filter((p) => p.card_id === c.id).length;
-    return `<li class="card-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)}><span class="card-net net-bank" aria-hidden="true">${c.kind === "savings" ? t("储蓄") : t("支票")}</span>
+    return `<li class="card-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)}><span class="card-net net-bank" aria-hidden="true">${t(ACCT_SHORT[c.kind] || "支票")}</span>
       <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">••${d(c.last4)}</span>` : ""}
         <small>${[c.issuer, holderName(c), bills.length ? t("{n} 条账单从这里扣：{names}", { n: bills.length, names: bills.slice(0, 3).map((b) => b.name).join("、") + (bills.length > 3 ? "…" : "") }) : t("还没有账单从这里扣"), n ? t("{n} 笔花费", { n }) : null, offSince].filter(Boolean).map(esc).join(" · ")}</small></div>
       ${rowActs(c)}</li>`;
@@ -333,7 +333,7 @@ function cardForm(id, ro = false) {
   const credits = (v.credits || []).map((x) => `${x.name} | ${num(x.amount)} | ${x.period || "year"} | ${x.resets_on || ""} | ${num(x.used, 0)}`).join("\n");
   const b = v.bonus || {};
   return `<section class="section form-page">
-    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(CARDS_HREF())}<a href="${CARDS_HREF()}">${t("用卡")}</a><span class="sep">/</span><b>${isNew ? (bank ? t("添加账户") : t("添加卡")) : d(v.name)}</b></nav>
+    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(CARDS_HREF())}<a href="${CARDS_HREF()}">${t("卡与账户")}</a><span class="sep">/</span><b>${isNew ? (bank ? t("添加账户") : t("添加卡")) : d(v.name)}</b></nav>
     <form id="cardForm" class="panel" novalidate data-id="${d(c?.id)}" ${ro ? 'data-readonly="1"' : ""}>
       ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("只读：家主开放财务权限后才能修改")}</p><fieldset disabled style="border:0;padding:0;margin:0;min-width:0">` : ""}
       <fieldset><legend>${bank ? t("这个账户") : t("这张卡")}</legend><div class="form-grid">
@@ -342,7 +342,7 @@ function cardForm(id, ro = false) {
         ${aiBtn}
         <input type="hidden" name="catalog_id" value="${d(v.catalog_id)}"><input type="hidden" name="rules_as_of" value="${d(v.rules_as_of)}">
         <label>${t("名称")}<input name="name" required maxlength="60" value="${d(v.name)}" placeholder="${esc(bank ? t("例如 Chase Checking") : t("例如 Chase Freedom Unlimited"))}"></label>
-        <label><span ${only("gift")}>${t("商家 / 品牌（在哪用）")}</span><span ${only("credit debit wallet checking savings")}>${t("发卡行 / 银行")}</span><input name="issuer" maxlength="40" list="giftMerchants" value="${d(v.issuer)}"><small ${only("gift")}>${t("通用的 Visa / Mastercard 礼品卡写「通用」；筛选按它分")}</small></label>
+        <label><span ${only("gift")}>${t("商家 / 品牌（在哪用）")}</span><span ${only("credit debit wallet checking savings brokerage retirement hsa loan cash")}>${t("发卡行 / 银行")}</span><input name="issuer" maxlength="40" list="giftMerchants" value="${d(v.issuer)}"><small ${only("gift")}>${t("通用的 Visa / Mastercard 礼品卡写「通用」；筛选按它分")}</small></label>
         <datalist id="giftMerchants">${["Amazon", "Target", "Walmart", "Costco", "Trader Joe's", "Whole Foods", "Home Depot", "Lowe's", "Starbucks", "Apple", "Visa 通用", "Mastercard 通用", "京东", "天猫", "盒马"].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
         <label ${only("credit debit")}>${t("网络")}<select name="network">${Object.entries(D().NETWORKS).map(([k, n]) => opt(k, t(n), (v.network || "visa") === k)).join("")}</select><small>${t("Costco 这类只收某个网络的商家，推荐时会用到")}</small></label>
         <label>${t("末四位")}<input name="last4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" value="${d(v.last4)}" placeholder="1234"><small>${t("只记后 4 位，银行导入时靠它认账户")}</small></label>

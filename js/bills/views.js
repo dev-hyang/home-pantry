@@ -16,7 +16,7 @@ import { medRow } from "./medical-views.js";
 import { RECURRING_TABS, activeTab } from "../core/tabs.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
-import { PAY_EXTRA, acctById, acctLabel, accountOptions, billPayLabel, payAcctValue, paymentPayLabel, resolvePayAccount } from "./cards-views.js";
+import { PAY_EXTRA, acctById, acctLabel, accountOptions, billPayLabel, isBankAcct, payAcctValue, paymentPayLabel, resolvePayAccount } from "./cards-views.js";
 import { askInline } from "../core/ask.js";
 import { moreBtn, pageLimit, pageMoreBtn } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
@@ -650,7 +650,7 @@ export async function saveBillForm(f, { silent = false } = {}) {
 }
 
 /** 选了卡 / 账户时「扣款卡有效期」那行的说明 */
-export const payExpNote = (c) => (!c ? "" : c.kind === "checking" || c.kind === "savings" ? t("银行账户没有到期日") : c.expires_on ? t("按 {name} 的到期年月 {d} 提醒换卡；要改去 用卡 里改", { name: c.name, d: c.expires_on.slice(0, 7) }) : t("{name} 还没填到期年月，去 用卡 里填上才会提醒换卡", { name: c.name }));
+export const payExpNote = (c) => (!c ? "" : isBankAcct(c) ? t("银行账户没有到期日") : c.expires_on ? t("按 {name} 的到期年月 {d} 提醒换卡；要改去 用卡 里改", { name: c.name, d: c.expires_on.slice(0, 7) }) : t("{name} 还没填到期年月，去 用卡 里填上才会提醒换卡", { name: c.name }));
 /** 账单的付款账户字段：下拉选卡 → pay_card_id；现金 / 其他 → autopay_method 文字 */
 const payFields = (value, text) => { const r = resolvePayAccount(value, text); return { pay_card_id: r.card_id, autopay_method: r.method }; };
 /** 记一笔缴费 / 核对 / 跳过：写 purchases（有金额且为应付，带上用的卡）、写记录、把账单推到下一期 */

@@ -11,11 +11,17 @@ import { registerAlerts } from "../core/alerts.js";
 import { memberName } from "../core/logic.js";
 
 const D = () => window.CARDS;
-/* 账户种类：信用卡 / 借记卡 / 电子钱包是「卡」，支票 / 储蓄是银行账户（迁移 036）。银行账户没有返现，不参与推荐，只用来记「从哪扣的款」 */
-export const ACCT_KINDS = { credit: ["信用卡", "💳"], debit: ["借记卡", "💳"], wallet: ["电子钱包", "📱"], checking: ["支票账户", "🏦"], savings: ["储蓄账户", "🏦"], gift: ["礼品卡", "🎁"] };   // 电子钱包 = PayPal / Venmo / 支付宝 / 微信这类，按一张卡登记；礼品卡见迁移 040
+/* 卡与账户的种类：信用卡 / 借记卡 / 电子钱包 / 礼品卡是「卡」；支票 / 储蓄（迁移 036）、券商 / 退休（401K / IRA）/ HSA / 贷款（负债）/ 现金（迁移 056）是「账户」。
+ * 账户没有返现，不参与推荐，只用来记「从哪扣的款、钱入到哪」（花费的 card_id、收入的 account_id）；余额 / 估值是第二期（净资产）的事 */
+export const ACCT_KINDS = { credit: ["信用卡", "💳"], debit: ["借记卡", "💳"], wallet: ["电子钱包", "📱"], checking: ["支票账户", "🏦"], savings: ["储蓄账户", "🏦"], gift: ["礼品卡", "🎁"],
+  brokerage: ["券商 / 投资账户", "📈"], retirement: ["退休账户（401K / IRA）", "🧓"], hsa: ["HSA 健康储蓄", "🩺"], loan: ["贷款（负债）", "🏦"], cash: ["现金", "💵"] };   // 电子钱包 = PayPal / Venmo / 支付宝 / 微信这类，按一张卡登记；礼品卡见迁移 040
+/** 是「账户」不是「卡」的种类 */
+export const ACCOUNT_KINDS = ["checking", "savings", "brokerage", "retirement", "hsa", "loan", "cash"];
+/** 账户列表里那块小标签的短名 */
+export const ACCT_SHORT = { checking: "支票", savings: "储蓄", brokerage: "投资", retirement: "退休", hsa: "HSA", loan: "贷款", cash: "现金" };
 export const kindName = (k) => t((ACCT_KINDS[k] || ACCT_KINDS.credit)[0]);
 export const kindIcon = (k) => (ACCT_KINDS[k] || ACCT_KINDS.credit)[1];
-export const isBankAcct = (c) => !!c && (c.kind === "checking" || c.kind === "savings");
+export const isBankAcct = (c) => !!c && ACCOUNT_KINDS.includes(c.kind);   // 名字沿用：现在指所有「账户」（银行、券商、退休、HSA、贷款、现金）
 /** 没有返现、不参与推荐的：银行账户和礼品卡 */
 export const noRewards = (c) => !!c && (isBankAcct(c) || c.kind === "gift");
 /** 礼品卡余额：面值 / 充值总额 − 记在这张卡上的花费（没填面值返回 null） */
