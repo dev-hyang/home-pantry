@@ -1,7 +1,7 @@
 import { state } from "./state.js";
 import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
 import { t } from "./i18n.js";
-import { localPage, localStats, spendRollup } from "./list-query.js";
+import { incRollup, ledgerRange, ledgerRollup, localPage, localStats, spendRollup } from "./list-query.js";
 
 /* 成员资料（迁移 052）：只在 设置 → 家庭与成员 里用，不进 AI 提示词、不进备份（个人数据，只给本家庭看） */
 const PROFILE_COLS = "phone,email,address";
@@ -104,6 +104,10 @@ export const DemoStore = {
   /** 统计用的聚合（迁移 055 的 spend_rollup / spend_rollup_store 的本地版） */
   async spendRollup(from, to) { return spendRollup(this.db, from, to); },
   async spendRollupStore(from, to) { return spendRollup(this.db, from, to, true); },
+  /** 收入聚合 / 统一账本（迁移 056 的 inc_rollup / ledger_rollup / ledger_v 的本地版） */
+  async incRollup(from, to) { return incRollup(this.db, from, to); },
+  async ledgerRollup(from, to, tz, unit = "month", anchor = null) { return ledgerRollup(this.db, from, to, unit, anchor); },
+  async ledgerRange(from, to) { return ledgerRange(this.db, from, to); },
   async listPurchases() { return this.db.purchases.map((x) => ({ ...x, category: canonCat(x.category) })); },
   async addItems(list) {
     const now = new Date().toISOString();
@@ -315,8 +319,6 @@ export const DemoStore = {
   async listIncomeRepayments() { return this.db.income_repayments.map((x) => ({ ...x })); },
   async addIncomeRepayment(p) { const id = uid(); this.db.income_repayments.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
   async deleteIncomeRepayment(id) { this.db.income_repayments = this.db.income_repayments.filter((x) => x.id !== id); this.persist(); },
-  async listIncomeAccess() { return []; },
-  async setIncomeAccess() {}, async deleteIncomeAccess() {},
 
   /* 信用卡（用卡）：卡档案 + 返现画像 */
   async listCards() { return (this.db.cards || []).map((x) => ({ ...x })); },
@@ -497,7 +499,7 @@ export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", 
   "expected_life_years", "service_interval_months", "purchase_price", "replacement_cost_estimate", "owner", "notes", "vehicle", "units", "recall"];
 export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "acquired_on", "purchase_price", "sold_on", "sale_price", "archived", "notes"];
 export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email", "hoa"];
-export const INCOME_FIELDS = ["received_on", "amount", "currency", "orig_amount", "orig_currency", "fee", "source_name", "kind", "channel", "person_id", "account", "import_batch", "repay_required", "repay_due_on", "repay_amount", "notes"];
+export const INCOME_FIELDS = ["received_on", "amount", "currency", "orig_amount", "orig_currency", "fee", "source_name", "kind", "channel", "person_id", "account", "import_batch", "repay_required", "repay_due_on", "repay_amount", "notes", "income_amount", "account_id"];
 export const MED_FIELDS = ["kind", "subkind", "provider", "patient", "patient_id", "guarantor", "guarantor_id", "bill_ref", "claim_ref", "insurer", "service_date", "bill_date", "due_on", "billed_amount", "insurance_paid", "adjustment", "patient_amount", "currency", "status", "hsa_eligible", "visibility", "notes"];
 export const CARD_FIELDS = ["name", "issuer", "network", "last4", "holder_user_id", "kind", "expires_on", "opened_on", "annual_fee", "fee_month", "credit_limit", "statement_day", "due_day", "autopay", "bill_id", "catalog_id", "rewards", "bonus", "credits", "rules_as_of", "active", "notes", "balance", "inactive_since"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
@@ -540,6 +542,15 @@ export const CloudStore = {
   /** 统计用的聚合（迁移 055）：按 月 × 分类 × 性质 × 房产 × 币种（商店版再加商店）聚合好的紧凑行；from / to = 本地日期（含 from，不含 to），tz = 浏览器时区。
    *  行数可能过 1000（PostgREST 的 max-rows），按固定顺序分页读全 */
   async spendRollup(from, to, tz) { return this.pageAll(() => this.sb.rpc("spend_rollup", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz }).order("month").order("category").order("nature").order("property_id").order("currency")); },
+  /** 收入聚合（迁移 056）：按 月 × 类型 × 成员 × 账户 × 币种 × 是否需要还；income_sum = 填了「其中已实现收益」的认定额，dflt_sum = 没填的到账金额 */
+  async incRollup(from, to, tz) { return this.pageAll(() => this.sb.rpc("inc_rollup", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz }).order("month").order("kind").order("person_id").order("account_id").order("currency").order("repay")); },
+  /** 账本聚合（迁移 056）：周期（month / biweek）× 来源 × 类型 × 方向 × 分类 × 性质 */
+  async ledgerRollup(from, to, tz, unit = "month", anchor = null) { return this.pageAll(() => this.sb.rpc("ledger_rollup", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz, p_unit: unit, p_anchor: anchor }).order("period").order("source").order("type").order("direction").order("category").order("nature").order("repay").order("person_id").order("currency")); },
+  /** 统一账本 ledger_v 的一段（本地日期 [from, to)，新 → 旧）：对账单 → 全部流水 */
+  async ledgerRange(from, to) {
+    const lo = new Date(`${from}T00:00:00`).toISOString(), hi = new Date(`${to}T00:00:00`).toISOString();
+    return this.pageAll(() => this.sb.from("ledger_v").select("*").eq("household_id", this.hid).gte("occurred_at", lo).lt("occurred_at", hi).order("occurred_at", { ascending: false }).order("id", { ascending: false }), 20000);
+  },
   async spendRollupStore(from, to, tz) { return this.pageAll(() => this.sb.rpc("spend_rollup_store", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz }).order("month").order("store_key").order("category").order("nature").order("currency")); },
   async listItems() { return this.pageAll(() => this.sb.from("items").select("*").eq("household_id", this.hid).order("name").order("id")); },
   async listCategories() { return this.must(await this.sb.from("custom_categories").select("*").eq("household_id", this.hid).order("sort").order("created_at")); },
@@ -800,12 +811,6 @@ export const CloudStore = {
     return this.must(r).id;
   },
   async deleteIncomeRepayment(id) { this.must(await this.sb.from("income_repayments").delete().eq("id", id)); },
-  async listIncomeAccess() { return this.must(await this.sb.from("income_access").select("*").eq("household_id", this.hid)); },
-  async setIncomeAccess(userId, status, note = null) {
-    const row = { household_id: this.hid, user_id: userId, status, note, ...(status === "requested" ? { requested_at: new Date().toISOString(), decided_by: null, decided_at: null } : { decided_by: state.user.id, decided_at: new Date().toISOString() }) };
-    this.must(await this.sb.from("income_access").upsert(row, { onConflict: "household_id,user_id" }));
-  },
-  async deleteIncomeAccess(userId) { this.must(await this.sb.from("income_access").delete().eq("household_id", this.hid).eq("user_id", userId)); },
   /* 信用卡（迁移 032） */
   async listCards() { return this.must(await this.sb.from("cards").select("*").eq("household_id", this.hid).order("created_at")); },
   async saveCard(c) {

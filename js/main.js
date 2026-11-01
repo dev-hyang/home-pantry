@@ -187,7 +187,7 @@ const TABLE_RELOAD = {
   bills: () => Store.listBills().then((r) => { state.bills = r; state.billsEnriched = enrichBills(r, state.billPayments); }),
   bill_payments: () => Store.listBillPayments().then((r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); reloadPayList(); }),
   medical_bills: () => reloadMedical(), medical_payments: () => reloadMedical(),
-  income_records: () => loadIncome(), income_repayments: () => loadIncome(), income_access: () => loadIncome(),
+  income_records: () => loadIncome(), income_repayments: () => loadIncome(),
   property_deals: () => Store.listDeals().then((r) => { state.deals = r; }),
   deal_task_done: () => Store.listDealDone().then((r) => { state.dealDone = r; }),
   deal_task_overrides: reloadDealExtras, deal_custom_tasks: reloadDealExtras, deal_events: reloadDealExtras,

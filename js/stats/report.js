@@ -1,8 +1,10 @@
 /* ───────────── 花费统计的汇总（只做加法，规则全在 js/core/taxonomy.js） ─────────────
  * 输入是数据库 spend_rollup / spend_rollup_store 的紧凑行（迁移 055：按 月 × 分类 × 性质 × 房产 × 币种 聚合，含医疗等事件型账单的付款），
  * 在这里按分类树和统计桶再汇总一遍：概览、分类、商店、账单概览的速览、打印都用这里的结果，不再读 state.purchases。
+ * 收入一侧（inc_rollup，迁移 056）和收支总览（householdFlow）也在这里汇总，规则在 js/core/income-taxonomy.js。
  * 这里不碰 DOM、不读 state，方便单独测试。 */
 import { bucketOf, counted, isNode, l1IdOf, l2IdOf, leavesOf, nodeOf } from "../core/taxonomy.js";
+import { splitAmounts } from "../core/income-taxonomy.js";
 
 const r2 = (v) => Math.round(v * 100) / 100;
 const canon = (id) => (window.canonCat ? window.canonCat(id) : id);
@@ -90,4 +92,54 @@ export function storeAgg(rows, months, { sel = "", cur = "", l1 = "all", exCap =
     map.set(k, a);
   }
   return [...map.values()].filter((a) => a.count).sort((a, b) => b.total - a.total);
+}
+
+/* ───────────── 收入与收支总览的汇总（规则全在 js/core/income-taxonomy.js） ─────────────
+ * 输入是数据库 inc_rollup 的紧凑行（迁移 056：按 月 × 类型 × 成员 × 入账账户 × 币种 × 是否需要还 聚合，
+ * income_sum = 填了「其中已实现收益」的认定额，dflt_sum = 没填的到账金额）；收入 / 资本流入怎么拆在 splitAmounts 里。 */
+/** 数据库的行 → { m, kind, person, acct, cur, repay, amount, set, dflt, n } */
+export const normIncRow = (x) => ({ m: x.month, kind: x.kind, person: x.person_id || null, acct: x.account_id || null, cur: x.currency || "", repay: !!x.repay,
+  amount: +x.amount_sum || 0, set: +x.income_sum || 0, dflt: +x.dflt_sum || 0, n: +x.n || 0 });
+/** 一段月份的收入汇总：
+ *  income[m] = 认定收入；l1[m][一级] / leaf[m]["一级|类型"] = 认定收入按一级 / 叶子（卖股票的收益记在 投资收益|stock_sale 下）
+ *  cap[m] = 资本流入（不算收入）；capLeaf[m][叶子]；cash[m] = 到账合计；n[m] = 笔数；otherCur = 其他币种的笔数
+ *  person：all / none（没指定成员的）/ 成员 id */
+export function incAggregate(rows, months, { cur = "", person = "all" } = {}) {
+  const set = new Set(months), out = { months, income: {}, l1: {}, leaf: {}, cap: {}, capLeaf: {}, cash: {}, n: {}, otherCur: 0 };
+  for (const m of months) { out.income[m] = 0; out.l1[m] = {}; out.leaf[m] = {}; out.cap[m] = 0; out.capLeaf[m] = {}; out.cash[m] = 0; out.n[m] = 0; }
+  for (const r of rows) {
+    if (!set.has(r.m)) continue;
+    if (person !== "all" && (person === "none" ? r.person : r.person !== person)) continue;
+    if (cur && r.cur && r.cur !== cur) { out.otherCur += r.n; continue; }
+    const s = splitAmounts(r), m = r.m;
+    out.cash[m] += r.amount; out.n[m] += r.n;
+    if (s.income) { out.income[m] += s.income; out.l1[m][s.l1] = (out.l1[m][s.l1] || 0) + s.income; const k = `${s.l1}|${r.kind}`; out.leaf[m][k] = (out.leaf[m][k] || 0) + s.income; }
+    if (s.cap) { out.cap[m] += s.cap; out.capLeaf[m][s.capLeaf] = (out.capLeaf[m][s.capLeaf] || 0) + s.cap; }
+  }
+  return out;
+}
+/** 收入汇总里某个节点（all / 一级 / "一级|叶子" / 叶子）在一段月份（或某个月）的认定收入；capital 一级 = 资本流入 */
+export function incNodeSum(agg, id, m = null) {
+  let s = 0;
+  for (const k of m ? [m] : agg.months) {
+    if (!agg.l1[k]) continue;
+    if (id === "all") s += agg.income[k];
+    else if (id === "capital") s += agg.cap[k];
+    else if (String(id).includes("|")) s += String(id).startsWith("capital|") ? agg.capLeaf[k][id.slice(8)] || 0 : agg.leaf[k][id] || 0;
+    else s += agg.l1[k][id] || 0;
+  }
+  return r2(s);
+}
+/** 收支总览：一段月份里收入（认定）、消费（日常 / 住房）、财务、资本性、投资、资本流入，和由它们算出的指标
+ *  净现金流 = 收入 − 消费（日常 + 住房，投资之前）；储蓄率 = 净现金流 ÷ 收入；投资率 = 投资（性质 = 投资的现金流出）÷ 收入；
+ *  剩余现金 = 收入 − 日常 − 住房 − 财务及其他 − 资本性支出 − 投资（资本流入不算，单独列出） */
+export function householdFlow(inc, sp, months) {
+  const tot = (f) => r2(months.reduce((a, m) => a + (f(m) || 0), 0));
+  const income = tot((m) => inc.income[m]), capIn = tot((m) => inc.cap[m]);
+  const b = (k) => tot((m) => sp?.bucket[m]?.[k]);
+  const living = b("living"), housing = b("housing"), financial = b("financial"), capital = b("capital"), investment = b("investment");
+  const consumption = r2(living + housing), net = r2(income - consumption);
+  return { income, capIn, living, housing, consumption, financial, capital, investment, net,
+    remaining: r2(income - living - housing - financial - capital - investment),
+    savingsRate: income > 0 ? net / income : null, investRate: income > 0 ? investment / income : null };
 }

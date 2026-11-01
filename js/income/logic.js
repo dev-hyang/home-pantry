@@ -1,4 +1,4 @@
-/* 收入（进账）：类型、查看权限、还款余额、周期分桶。纯逻辑，不画界面。
+/* 收入（进账）：类型（规则在 js/core/income-taxonomy.js）、查看权限、还款余额、周期分桶。纯逻辑，不画界面。
  * 收入存在 income_records（迁移 042），不和花费（purchases）混在一起：purchases 里的负数已经表示退款 / 报销，全家成员都读得到。
  * 一笔入账只会进其中一张表：商家退款 = 负花费（留在花费里），工资 / 电汇 / 个人转入 = 收入；自己账户之间的转账两边都不算。 */
 import { state } from "../core/state.js";
@@ -8,62 +8,43 @@ import { esc, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { financeOk } from "../core/finance-access.js";
 import { pageSize } from "../core/pager.js";
+import { INC_L1S, customIncomeKinds, incKindOptions, incL1Of, incLeaf, incLeafLabel, incLeaves, normParent, recognized as recognizedOf } from "../core/income-taxonomy.js";
 
-/* ───────────── 收入类型：大类 - 小类（和花费的分类一样两级） ─────────────
- * 记录上存的还是小类 id（income_records.kind，和以前一样），大类由下面的表推出来：老记录不用改数据，自然归到对应大类。
- * 自定义类型存在预算设置 _income_kinds（{ id, name, icon, parent }），没填大类的归「其他收入」。 */
-// [id, 名称, 图标, 颜色]
-export const KINDS = [["payroll", "工资", "💼", "#2c6a57"], ["bonus", "奖金 / 年终", "🎁", "#3f8f5a"], ["package", "薪酬福利包", "📦", "#5a9a7a"], ["wire", "国际电汇", "🌐", "#3b7fc4"],
-  ["zelle", "Zelle / Venmo 转入", "👥", "#7563c0"], ["interest", "利息 / 分红", "🏦", "#b07a1a"], ["rental", "租金收入", "🏠", "#a0522d"], ["tax_refund", "退税", "🧾", "#6b7280"],
-  ["reimburse", "报销", "💵", "#d4694c"], ["insurance", "保险理赔", "🛡️", "#c75a85"], ["gift", "个人赠与", "🎀", "#c0603a"], ["sale", "出售所得", "🏷️", "#8a5fb0"],
-  ["cashback", "返现 / 奖励", "💳", "#3f6c8f"], ["other", "其他", "📥", "#8a948f"]];
-// 大类：[id, 名称, 图标, 颜色, 小类 id…]；顺序就是下拉、图表里的顺序
-export const GROUPS = [["work", "工作收入", "💼", "#2c6a57", ["payroll", "bonus", "package"]], ["invest", "投资与租金", "🏦", "#b07a1a", ["interest", "rental"]],
-  ["refund", "退款与返还", "🧾", "#6b7280", ["tax_refund", "reimburse", "insurance", "cashback"]], ["transfer", "转账与赠与", "👥", "#7563c0", ["zelle", "wire", "gift"]], ["other", "其他收入", "📥", "#8a948f", ["sale", "other"]]];
-/** 不算「真正挣的」收入：国际电汇、个人赠与（家人转来的钱）——概览、类型、收支对比默认不算，勾「含国际电汇 / 个人赠与」才算 */
-export const EXTRA_KINDS = ["wire", "gift"];
-export const isExtra = (id) => EXTRA_KINDS.includes(id);
-const CUSTOM_COLORS = ["#2f8f9d", "#9a6b3c", "#b0527a", "#6a8f2f", "#4f5fc0", "#c08a1a"];
-const groupIds = () => GROUPS.map((g) => g[0]);
-export const customKinds = () => (meta("_income_kinds", []) || []).filter((k) => k && /^c_[a-z0-9]{1,20}$/.test(k.id)).map((k) => ({ ...k, parent: groupIds().includes(k.parent) ? k.parent : "other" }));
-const builtinGroup = (id) => (GROUPS.find((g) => g[4].includes(id)) || GROUPS.at(-1))[0];
-/** 全部小类，按大类排好（每个带 group = 大类 id） */
-export function kindList() {
-  const base = KINDS.map(([id, name, icon, color]) => ({ id, name, icon, color, custom: false, group: builtinGroup(id) }));
-  const cs = customKinds().map((k, i) => ({ id: k.id, name: k.name, icon: k.icon || "🏷️", color: CUSTOM_COLORS[i % CUSTOM_COLORS.length], custom: true, group: k.parent }));
-  return GROUPS.flatMap(([g, , , , ids]) => [...ids.map((id) => base.find((k) => k.id === id)), ...cs.filter((k) => k.group === g)]);
-}
-/** 大类（id 带 "g:" 前缀，和小类区分：筛选、钻取、合并后的图表都用它） */
-export const groupList = () => GROUPS.map(([id, name, icon, color]) => ({ id: `g:${id}`, gid: id, name, icon, color, custom: false, isGroup: true }));
-export const groupOf = (kindId) => { const k = kindList().find((x) => x.id === kindId); const gid = k ? k.group : "other"; return groupList().find((g) => g.gid === gid); };
-export const kindOf = (id) => (String(id).startsWith("g:") ? groupList().find((g) => g.id === id) : null) || kindList().find((k) => k.id === id) || { id, name: id || "其他", icon: "📥", color: "#8a948f", custom: false, group: "other" };
-/** 显示用：「大类 - 小类」（已翻译）；大类 id 只显示大类名 */
-export const kindLabel = (id) => { const k = kindOf(id); return k.isGroup ? t(k.name) : `${t(groupOf(id).name)} - ${t(k.name)}`; };
-/** 筛选：all / 大类（g:xxx）/ 小类 */
-export const kindMatch = (sel, kind) => !sel || sel === "all" || (String(sel).startsWith("g:") ? groupOf(kind).id === sel : kind === sel);
-/** 统计时用哪个 key：合并显示时归到大类 */
+/* ───────────── 收入类型：一级 → 叶子（规则全在 js/core/income-taxonomy.js，这里只是给界面用的薄包装） ─────────────
+ * 记录上存的还是叶子 id（income_records.kind，不改写）；一级（工作收入 / 投资收益 / 房产收入 / 其他收入 / 资本与资产流入）由分类表推出来。
+ * 一级在界面里的 id 带 "g:" 前缀（g:employment…），和叶子区分：筛选、钻取都用它；旧链接里的 g:work 这类按旧大类换算。
+ * 自定义类型存在预算设置 _income_kinds（{ id, name, icon, parent }），parent = 一级 id（旧的大类读的时候换算）。 */
+export { GAIN_KINDS, INC_L1S, capitalKinds, effKind, isIncomeKind, recognized, splitRecord } from "../core/income-taxonomy.js";
+export const customKinds = () => customIncomeKinds();
+/** 全部叶子，按一级排好（每个带 group = 一级 id） */
+export const kindList = () => incLeaves().map((k) => ({ ...k, group: k.l1 }));
+/** 一级（id 带 "g:" 前缀）；income = 算不算收入 */
+export const groupList = () => INC_L1S.map((g) => ({ id: `g:${g.id}`, gid: g.id, name: g.name, icon: g.icon, color: g.color, income: g.income, custom: false, isGroup: true }));
+/** 筛选值规整：旧的 g:work / g:invest… → 新一级 */
+export const normKindSel = (sel) => (String(sel).startsWith("g:") ? `g:${normParent(String(sel).slice(2))}` : sel || "all");
+export const groupOf = (kindId) => groupList().find((g) => g.gid === incL1Of(kindId));
+export const kindOf = (id) => (String(id).startsWith("g:") ? groupList().find((g) => g.id === normKindSel(id)) : null) || { ...incLeaf(id), group: incLeaf(id).l1 };
+/** 显示用：「一级 · 叶子」（已翻译）；一级 id 只显示一级名 */
+export const kindLabel = (id) => { const k = kindOf(id); return k.isGroup ? t(k.name) : incLeafLabel(id); };
+/** 筛选：all / 一级（g:xxx）/ 叶子 */
+export const kindMatch = (sel, kind) => { const s = normKindSel(sel); return !s || s === "all" || (s.startsWith("g:") ? incL1Of(kind) === s.slice(2) : kind === s); };
+/** 统计时用哪个 key：合并显示时归到一级 */
 export const statKind = (kind, merge) => (merge ? groupOf(kind).id : kind);
 /** 合并 / 不合并时图表里出现的项（顺序固定） */
 export const statKinds = (merge) => (merge ? groupList() : kindList());
-/** 类型下拉：按大类分组（optgroup）；groups = 每组前面多一个「全部 X」（筛选用），all = 最前面「全部」 */
-export function kindOptionsHtml(sel, { all = false, groups = false, allLabel = "" } = {}) {
-  // short = 可搜索下拉（js/select-search.js）列表里显示的短名：大类已经是组标题，组里只写小类；选中后框里仍显示完整的「大类 - 小类」
-  const opt = (v, label, short = "") => `<option value="${esc(v)}" ${v === sel ? "selected" : ""}${short ? ` data-short="${esc(short)}"` : ""}>${esc(label)}</option>`;
-  const ks = kindList();
-  return `${all ? opt("all", allLabel || t("全部")) : ""}${groupList().map((g) => { const cs = ks.filter((k) => k.group === g.gid); return cs.length ? `<optgroup label="${esc(`${g.icon} ${t(g.name)}`)}">${groups ? opt(g.id, t("全部「{g}」", { g: t(g.name) }), t("全部{g}", { g: t(g.name) })) : ""}${cs.map((k) => opt(k.id, `${k.icon} ${t(g.name)} - ${t(k.name)}`, `${k.icon} ${t(k.name)}`)).join("")}</optgroup>` : ""; }).join("")}`;
-}
+/** 类型下拉：按一级分组（optgroup）；groups = 每组前面多一个「全部 X」（筛选用），all = 最前面「全部」 */
+export const kindOptionsHtml = (sel, o = {}) => incKindOptions(normKindSel(sel), o);
 export const CHANNELS = [["ach", "银行转账 / ACH"], ["wire", "电汇"], ["zelle", "Zelle / Venmo"], ["check", "支票"], ["cash", "现金"], ["other", "其他"]];
 
 /* ───────────── 状态与权限 ───────────── */
-export const inc = () => (state.inc ||= { rec: [], rep: [], acc: [], loaded: false, ok: true, err: "", form: null, open: null, q: "", kind: "all", person: "all", year: "all", limit: pageSize(), tab: {}, ai: {}, renameKey: null, repayFor: null, extra: false, merge: mergeSaved() });
-/* 「同一个大类合并显示」记在本机（和花费的合并开关一样）；「含国际电汇 / 个人赠与」每次打开默认不勾（和花费的「含资本性支出」一样） */
+export const inc = () => (state.inc ||= { rec: [], rep: [], loaded: false, ok: true, err: "", form: null, open: null, q: "", kind: "all", acct: "all", person: "all", year: "all", limit: pageSize(), tab: {}, ai: {}, renameKey: null, repayFor: null, merge: mergeSaved() });
+/* 「同一个一级合并显示」记在本机（和花费的合并开关一样） */
 const MERGE_KEY = "hmh-inc-merge";
 function mergeSaved() { try { return localStorage.getItem(MERGE_KEY) === "1"; } catch { return false; } }
 export const setIncMerge = (on) => { inc().merge = !!on; try { localStorage.setItem(MERGE_KEY, on ? "1" : "0"); } catch { /* 隐私模式下忽略 */ } };
 /* 迁移 050 起收入归「财务权限」管：家主和家主开了财务权限的家人看、改全家的收入（和家主一样）；没开的人连收入页都进不来。
- * 原来的「收入 → 权限」申请 / 批准（income_access）被它取代，那个标签不再显示。 */
+ * 原来的「收入 → 权限」申请 / 批准（income_access）被它取代，界面和读取都已去掉（表留在数据库里，不删数据）。 */
 export const isOwnerNow = () => financeOk();
-export const myAccess = () => inc().acc.find((a) => a.user_id === state.user?.id) || null;
 /** 能不能看全家的收入 */
 export const canSeeAll = () => financeOk();
 export const myPersonId = () => state.people.find((p) => p.member_user_id === state.user?.id)?.id || null;
@@ -71,12 +52,13 @@ export const adults = () => state.people.filter((p) => (p.kind || "adult") === "
 export const personName = (id) => state.people.find((p) => p.id === id)?.name || "";
 export const memberLabel = (userId) => state.members.find((m) => m.user_id === userId)?.display_name || "";
 
-/** 读收入、还款、权限；表还没建（迁移 042 没执行）时记下错误，界面提示 */
+/** 读收入、还款；表还没建（迁移 042 没执行）时记下错误，界面提示 */
 export async function loadIncome() {
   const I = inc();
   try {
-    const [rec, rep, acc] = await Promise.all([Store.listIncomeRecords(), Store.listIncomeRepayments(), Store.listIncomeAccess().catch(() => [])]);
-    I.rec = rec.map((r) => ({ ...r, amount: num(r.amount) })); I.rep = rep.map((p) => ({ ...p, amount: num(p.amount) })); I.acc = acc; I.ok = true; I.err = "";
+    const [rec, rep] = await Promise.all([Store.listIncomeRecords(), Store.listIncomeRepayments()]);
+    I.rec = rec.map((r) => ({ ...r, amount: num(r.amount), income_amount: r.income_amount == null ? null : num(r.income_amount) })); I.rep = rep.map((p) => ({ ...p, amount: num(p.amount) })); I.ok = true; I.err = "";
+    window.dispatchEvent(new Event("income-data-changed"));   // 收支总览的聚合缓存（views.js）标过期
   } catch (e) { I.ok = false; I.err = e.message || String(e); }
   I.loaded = true;
   window.dispatchEvent(new Event("income-rows-changed"));   // 明细是服务器分页（views.js 的 incList）：统计 + 第一页重读
@@ -92,9 +74,15 @@ export function senderName(desc) {
   const clean = (x) => x.replace(/[#*]?\s*\b\d{4,}\b.*$/, "").replace(/[^\p{L}\p{N}&.,'’\- ]+/gu, " ").replace(/\s+/g, " ").trim();
   return (clean(s) || clean(raw) || raw).slice(0, 60);
 }
-const GUESS = [["payroll", /payroll|direct dep|salary|paychex|\badp\b|gusto|工资|薪资/i], ["bonus", /bonus|奖金/i], ["wire", /wire|swift|international|电汇|汇入/i],
-  ["zelle", /zelle|venmo|cash ?app|apple cash|paypal|转入/i], ["interest", /interest|dividend|利息|分红/i], ["tax_refund", /\birs\b|treas ?310|tax ref|退税/i],
-  ["insurance", /insurance|claim|理赔/i], ["rental", /\brent\b|租金/i], ["reimburse", /reimburs|expense|报销/i]];
+/* 银行流水描述 → 类型（按顺序，先命中的算）：券商 / 储蓄转入、贷款到账、利息、股息这类先认，免得被「转入」「interest」笼统归走 */
+const GUESS = [["loan_proceeds", /loan (?:proceeds|disb|funding|deposit)|disbursement|贷款(?:到账|发放)|借款到账/i],
+  ["xfer_invest", /fidelity|schwab|vanguard|robinhood|e\*?trade|brokerage|wealthfront|betterment|from (?:brokerage|invest)|券商|证券转入|投资账户转入/i],
+  ["xfer_savings", /from (?:sav|savings)|savings transfer|from share|储蓄转入|定期转入/i],
+  ["payroll", /payroll|direct dep|salary|paychex|\badp\b|gusto|工资|薪资/i], ["bonus", /bonus|奖金/i], ["commission", /commission|佣金|提成/i],
+  ["dividends", /dividend|div pay|分红|股息/i], ["bank_interest", /interest (?:paid|payment|earned)|int(?:erest)? pd|\binterest\b|利息/i],
+  ["tax_refund", /\birs\b|treas ?310|tax ref|state refund|退税/i], ["gov_benefit", /\bssa\b|social sec|unemploy|stimulus|benefit pay|补助|福利金/i],
+  ["insurance", /insurance|claim|理赔/i], ["rental", /\brent\b|租金/i], ["reimburse", /reimburs|expense rep|报销/i], ["cashback", /cash ?back|reward|返现/i],
+  ["wire", /wire|swift|international|电汇|汇入/i], ["zelle", /zelle|venmo|cash ?app|apple cash|paypal|转入/i]];
 export const guessKind = (desc) => (GUESS.find(([, re]) => re.test(desc)) || ["other"])[0];
 export const guessChannel = (desc) => (/wire|swift|电汇/i.test(desc) ? "wire" : /zelle|venmo|cash ?app|apple cash|paypal/i.test(desc) ? "zelle" : "ach");
 /** 之前记住的「付款方 → 类型」（银行导入时你改过的）；和花费的归类规则分开存 */
@@ -184,11 +172,16 @@ export function spanOptionsHtml(cur) {
 /* ───────────── 筛选与汇总 ───────────── */
 export const personOk = (r, person) => person === "all" || (person === "none" ? !r.person_id : r.person_id === person);
 export const incomeIn = (from, to, person = "all") => inc().rec.filter((r) => r.received_on >= from && r.received_on <= to && personOk(r, person));
+/** 到账合计（现金流入，含资本流入） */
 export const sumOf = (rows) => Math.round(rows.reduce((a, r) => a + r.amount, 0) * 100) / 100;
+/** 认定收入合计（规则见 js/core/income-taxonomy.js：借款、资本流入不算，填了「其中已实现收益」的只算那部分） */
+export const incSumOf = (rows) => Math.round(rows.reduce((a, r) => a + recognizedOf(r), 0) * 100) / 100;
+/** 分组汇总：total = 认定收入（排序按它），cash = 到账合计，cap = 资本流入（cash − total） */
 export function groupSum(rows, keyFn) {
   const m = new Map();
-  for (const r of rows) { const k = keyFn(r), x = m.get(k) || { key: k, n: 0, total: 0, first: r.received_on, last: r.received_on, rows: [] }; x.n++; x.total += r.amount; x.rows.push(r); if (r.received_on < x.first) x.first = r.received_on; if (r.received_on > x.last) x.last = r.received_on; m.set(k, x); }
-  return [...m.values()].map((x) => ({ ...x, total: Math.round(x.total * 100) / 100 })).sort((a, b) => b.total - a.total);
+  for (const r of rows) { const k = keyFn(r), x = m.get(k) || { key: k, n: 0, total: 0, cash: 0, first: r.received_on, last: r.received_on, rows: [] }; x.n++; x.total += recognizedOf(r); x.cash += r.amount; x.rows.push(r); if (r.received_on < x.first) x.first = r.received_on; if (r.received_on > x.last) x.last = r.received_on; m.set(k, x); }
+  const r2 = (v) => Math.round(v * 100) / 100;
+  return [...m.values()].map((x) => ({ ...x, total: r2(x.total), cash: r2(x.cash), cap: r2(x.cash - x.total) })).sort((a, b) => b.total - a.total || b.cash - a.cash);
 }
 /** 两条收入看起来是同一笔：日期差 ≤ 3 天、金额一样、付款方相近（银行导入和手动记重复时提醒） */
 export function similarIncome(row, ignoreId = null) {

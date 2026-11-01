@@ -11,9 +11,10 @@ export const SPEND_TABS = [["overview", "概览", "📊"], ["records", "明细",
 export const BUDGET_TABS = [["month", "本月", "📆"], ["bills", "账单", "🧾", "固定账单、订阅年成本、现金流"], ["plan", "规划", "🧮", "各类月预算、补货、大件基金、大额购物、应急金"], ["trend", "趋势", "📈", "预算对比实际、年度预算"], ["goals", "目标", "🎯", "储蓄目标和家庭分摊"]];
 export const RECURRING_TABS = [["overview", "概览", "🔁"], ["list", "清单", "📋", "全部周期性账单：按房产、分类筛选，自动扣款开关"], ["history", "记录", "📈", "每条账单的缴费记录、金额趋势、CSV 导出"]];
 export const MEDICAL_TABS = [["overview", "概览", "🏥"], ["list", "账单", "🧾", "全部医疗账单：按患者、医院、状态筛选"], ["report", "年度报表", "📊", "按患者和医院汇总，HSA / 报税导出"]];
-export const INCOME_TABS = [["overview", "概览", "📊"], ["records", "明细", "🧾", "查看、搜索、补记收入；个人赠与 / 借款的还款"], ["category", "类型", "🧩", "收入类型占比和单个类型的月度趋势"], ["senders", "付款方", "🏷️", "谁给过我钱：今年 / 近 3 年 / 近 5 年 / 全部历史"], ["compare", "收支对比", "⚖️", "收入 vs 花费 vs 差额：双周 / 月 / 季 / 年，AI 分析"], ["import", "银行导入", "🏦", "对账单里的入账（工资、电汇、Zelle 转入）补入收入"],
-  ["export", "导出打印", "🖨️", "CSV 和打印：收入、花费、差额报表", true], ["plan", "预算与计划", "🎯", "预期收入（用来生成预算）、储蓄比例、对比实际到账", true]];
-// 原来的「权限」标签（income_access 申请 / 批准）已被财务权限取代（迁移 050，家主在 设置 → 家庭与成员 里逐人开关），?tab=access 回到概览
+// 概览 = 收支总览（2026-10，迁移 056）：收入（认定）vs 消费、储蓄率、投资率、现金流瀑布；资本流入单列不算收入
+export const INCOME_TABS = [["overview", "收支总览", "📊"], ["records", "明细", "🧾", "查看、搜索、补记收入；按类型、账户筛；个人赠与 / 借款的还款"], ["category", "类型", "🧩", "一级 → 具体类型逐层看，每月走势"], ["senders", "付款方", "🏷️", "谁给过我钱：今年 / 近 3 年 / 近 5 年 / 全部历史"], ["compare", "收支对比", "⚖️", "收入 vs 消费 vs 储蓄率：双周 / 月 / 季 / 年，AI 分析"], ["import", "银行导入", "🏦", "对账单里的入账（工资、利息、转入）补入收入"],
+  ["export", "导出打印", "🖨️", "CSV 和打印：收入、花费、差额报表", true], ["plan", "预算与计划", "🎯", "预期收入（用来生成预算）、储蓄比例、对比实际认定收入", true]];
+// 原来的「权限」标签（income_access 申请 / 批准）已被财务权限取代（迁移 050，家主在 设置 → 家庭与成员 里逐人开关），代码已删；?tab=access 回到收支总览
 export const STATEMENT_TABS = [["import", "导入", "📥", "选对账单或粘贴文字：花费和收入一次导入，可撤销"], ["all", "全部流水", "🧮", "花费和收入按时间排在一起，只读：点一行去对应的页面修改"], ["export", "导出打印", "🖨️", "花费、收入、收支差额的 CSV 和打印"]];
 const DEFS = { statements: STATEMENT_TABS, income: INCOME_TABS, spend: SPEND_TABS, budget: BUDGET_TABS, onetime: MEDICAL_TABS, recurring: RECURRING_TABS };
 export const firstTab = (r) => (DEFS[r?.sub] || [])[0]?.[0] || null;

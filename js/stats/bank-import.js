@@ -13,6 +13,7 @@ import { href } from "../core/router.js";
 import { categoryOptions } from "../pantry/views.js";
 import { aiCatalog } from "../core/taxonomy.js";
 import { meta, saveMeta } from "../bills/budget.js";
+import { isIncomeKind } from "../core/income-taxonomy.js";
 import { adults, guessChannel, guessKind, inc as incState, incomeRules, kindOptionsHtml, loadIncome, myPersonId, senderName, similarIncome, skey } from "../income/logic.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
 import { compressImage } from "../core/autofill.js";
@@ -333,7 +334,7 @@ const resetPicks = () => { S.pick = {}; S.include = {}; S.auto = {}; };
 /* ───────────── 账户（哪张卡 / 哪个账户）：每批导入记一个标签，用来看“哪个账户哪几个月已经补过” ─────────────
  * 账户列表 = 以前导入时建的（预算设置 _bank_accounts）+ 账单里有账号尾号 / 信用卡类的账单。不改数据库、不记到每一笔上。 */
 export function accounts() {
-  const icon = { checking: "🏦 ", savings: "🏦 ", wallet: "📱 " };
+  const icon = { checking: "🏦 ", savings: "🏦 ", wallet: "📱 ", brokerage: "📈 ", retirement: "🧓 ", hsa: "🩺 ", loan: "🏦 ", cash: "💵 " };
   const cards = (state.cards || []).filter((c) => c.active !== false).map((c) => ({ id: `card:${c.id}`, name: `${icon[c.kind] || ""}${c.name}`, last4: c.last4 || "", src: "card" }));   // 用卡模块里的卡：选它，这批花费就记到这张卡上
   const own = (meta("_bank_accounts", []) || []).filter((a) => !(a.last4 && cards.some((c) => c.last4 === a.last4))).map((a) => ({ ...a, src: "own" }));
   const bills = (state.bills || []).filter((b) => b.category === "credit_card" || b.account_last4).map((b) => ({ id: `bill:${b.id}`, name: b.name, last4: String(b.account_last4 || "").slice(-4), src: "bill" }));
@@ -434,9 +435,9 @@ const incChosen = () => { let n = 0, sum = 0; for (const g of S.groups) { if (!g
 const incWho = () => S.incPerson ?? (myPersonId() || "none");
 function incomeRow(g) {
   const on = !!S.include[g.id], dups = g.rows.filter((r) => r.idup).length, matched = g.rows.filter((r) => r.dupOf), unsure = g.rows.every((r) => r.incUnsure);
-  const kinds = kindOptionsHtml(S.ikind[g.id] || "other");   // 收入类型按「大类 - 小类」分组，和 收入 → 明细 同一个下拉
+  const kinds = kindOptionsHtml(S.ikind[g.id] || "other"), capNote = isIncomeKind(S.ikind[g.id] || "other") ? "" : ` · <span class="bank-src">${t("资本流入：记下来，但不算收入")}</span>`;   // 收入类型按「一级 · 叶子」分组，和 收入 → 明细 同一个下拉
   return `<li class="bank-row"><label class="bank-chk"><input type="checkbox" data-bank-inc="${esc(g.id)}" ${on ? "checked" : ""} aria-label="${esc(t("导入"))}"></label>
-    <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n: g.rows.length })} · ${money(-g.total)} · ${esc(rangeOf(g.rows))}${unsure ? ` · <span class="bank-src">${t("只写着转账 / 存款，看不出来源，默认没勾")}</span>` : ""}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b>` : ""}</small>${matched.length ? dupListHtml(matched) : ""}</div>
+    <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n: g.rows.length })} · ${money(-g.total)} · ${esc(rangeOf(g.rows))}${unsure ? ` · <span class="bank-src">${t("只写着转账 / 存款，看不出来源，默认没勾")}</span>` : ""}${capNote}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b>` : ""}</small>${matched.length ? dupListHtml(matched) : ""}</div>
     <select data-bank-ikind="${esc(g.id)}" aria-label="${esc(t("收入类型"))}">${kinds}</select></li>`;
 }
 const incomeSection = (list) => (list.length ? `<section class="section"><div class="section-head"><h2>💵 ${t("收入 / 入账")}（${list.length}）</h2><p>${t("工资、电汇、Zelle 转入、赠与等：勾上的会记进「账单 → 收入」，不会算进花费。自己账户之间的转账（如从 SAV 转入）已自动跳过；商家退款仍按负花费算。收入只有家主（和被允许的人）能看全家的。")}</p></div>
@@ -600,7 +601,8 @@ async function doImport() {
   const batch = { id: batchId, at: new Date().toISOString(), file: S.parts.map((x) => x.name).join(", ").slice(0, 1000), files: S.parts.map((x) => String(x.name).slice(0, 150)).slice(0, 30),   // file 原来只留 60 个字符，几份文件的名字被截断；现在留 1000，另存每个文件名（files）
     ids: tagged ? [] : ids, tagged, sum: Math.round(sum * 100) / 100, n: ids.length,
     account: acct ? acct.name : "", last4: acct ? acct.last4 : "", from: dates[0] || "", to: dates.at(-1) || "" };
-  // 入账（收入）：勾上的付款方写进 income_records（和花费分开存、权限也不同）；用同一个批次 id，撤销这批时一起删
+  // 入账（收入）：勾上的付款方写进 income_records（和花费分开存、权限也不同）；用同一个批次 id，撤销这批时一起删。
+  // 选的是「卡与账户」里登记的账户：同时记 account_id（迁移 056），收入页能按账户筛；文字 account 照旧留着显示
   let inN = 0, incFailed = false; const learnedInc = {};
   if (incomeOk()) {
     const acctLabel = acct ? `${String(acct.name).replace(/^[^\p{L}\p{N}]+/u, "")}${acct.last4 && !String(acct.name).includes(acct.last4) ? ` ••${acct.last4}` : ""}` : null,   // 去掉名字前的图标；和「收入 → 入到哪个账户」里的「名称 ••尾号」同一个写法，编辑时对得上登记过的账户
@@ -608,7 +610,7 @@ async function doImport() {
     for (const g of S.groups) {
       if (!g.inc || !S.include[g.id]) continue;
       const kind = S.ikind[g.id] || "other";
-      for (const r of g.rows) { if (r.idup && !r.forced) continue; rowsIn.push({ received_on: r.date, amount: Math.round(-r.out * 100) / 100, currency: cur(), orig_amount: null, orig_currency: null, fee: null, source_name: g.name, kind, channel: guessChannel(r.desc), person_id: who, account: acctLabel, import_batch: batchId, repay_required: false, repay_due_on: null, repay_amount: null, notes: null }); }
+      for (const r of g.rows) { if (r.idup && !r.forced) continue; rowsIn.push({ received_on: r.date, amount: Math.round(-r.out * 100) / 100, currency: cur(), orig_amount: null, orig_currency: null, fee: null, source_name: g.name, kind, channel: guessChannel(r.desc), person_id: who, account: acctLabel, account_id: cardId || null, income_amount: null, import_batch: batchId, repay_required: false, repay_due_on: null, repay_amount: null, notes: null }); }
       if (S.remember && kind !== S.auto[g.id]) learnedInc[g.id.slice(3)] = kind;
     }
     if (rowsIn.length) { try { await Store.addIncomeRecords(rowsIn); inN = rowsIn.length; batch.inN = inN; batch.inSum = Math.round(rowsIn.reduce((a, r) => a + r.amount, 0) * 100) / 100; } catch (e) { incFailed = true; } }

@@ -3,7 +3,10 @@
  *   sort = new（日期新 → 旧）/ old（旧 → 新）/ high（金额大 → 小）/ low（小 → 大）/ name（名称键 A → Z），同值再按 日期 desc, id desc；
  *   每行带 sort_d（日期）、sort_a（金额）、sort_n（名称键），「继续加载」把上一页最后一行的这几个值 + id 作为 after 传回去，数据库从它后面接着读。
  * 筛选条件是一个对象（jsonb），只带生效的项（JSON 的 null 在 SQL 里不是 null，见 compact）。
- * 云端全在 SQL 里做；本地演示（DemoStore）没有数据库，用这里的 JS 版本照同样的规则筛选、排序、分页、汇总。 */
+ * 云端全在 SQL 里做；本地演示（DemoStore）没有数据库，用这里的 JS 版本照同样的规则筛选、排序、分页、汇总。
+ * 迁移 056 的 inc_rollup / ledger_v / ledger_rollup 也有本地版（规则直接用前端的分类表，SQL 那边是它的镜像）。 */
+import { effNature, l1IdOf } from "./taxonomy.js";
+import { incL1Of, incomeDirection, incomeLedgerType, splitRecord } from "./income-taxonomy.js";
 
 /** 上一页最后一行 → 下一页的起点 */
 export const cursorOf = (r) => ({ d: r.sort_d, id: String(r.id), a: r.sort_a == null ? 0 : +r.sort_a, n: r.sort_n ?? "" });
@@ -137,13 +140,65 @@ export function incFiltered(db, f = {}) {
     if (f.from && r.received_on < f.from) return false;
     if (f.to && r.received_on > f.to) return false;
     if (isArr(f.ex) && f.ex.includes(r.kind)) return false;
+    if (f.acct && !(f.acct === "none" ? !r.account_id : r.account_id === f.acct)) return false;
     if (f.q && !(skey(`${r.source_name} ${r.notes || ""} ${r.account || ""} ${r.kind}`).includes(f.q) || has(f.qkinds, r.kind))) return false;
     return true;
   }).map((r) => ({ ...r, sort_d: r.received_on, sort_a: +r.amount, sort_n: rank(r.kind) }));
 }
 export function incStats(db, f, facets) {
   const rows = incFiltered(db, f);
-  return { n: rows.length, sum: round2(rows.reduce((a, r) => a + +r.amount, 0)), facets: facets ? { years: [...new Set((db.income_records || []).map((r) => String(r.received_on).slice(0, 4)))].sort().reverse() } : null };
+  const inc = (r) => (r.repay_required ? 0 : r.income_amount != null ? Math.min(+r.income_amount, +r.amount) : has(f.capk, r.kind) ? 0 : +r.amount);   // 同 inc_stats 的 income_sum
+  const sum = round2(rows.reduce((a, r) => a + +r.amount, 0)), income_sum = round2(rows.reduce((a, r) => a + inc(r), 0));
+  return { n: rows.length, sum, income_sum, cap_sum: round2(sum - income_sum), facets: facets ? { years: [...new Set((db.income_records || []).map((r) => String(r.received_on).slice(0, 4)))].sort().reverse() } : null };
+}
+
+/** 收入聚合（同 inc_rollup）：from / to = 日期 YYYY-MM-DD（含 from，不含 to） */
+export function incRollup(db, from, to) {
+  const map = new Map();
+  for (const r of db.income_records || []) {
+    if ((from && r.received_on < from) || (to && r.received_on >= to)) continue;
+    const k = [String(r.received_on).slice(0, 7), r.kind, r.person_id || "", r.account_id || "", r.currency || "", !!r.repay_required].join("|");
+    const x = map.get(k) || { month: String(r.received_on).slice(0, 7), kind: r.kind, person_id: r.person_id || null, account_id: r.account_id || null, currency: r.currency || null, repay: !!r.repay_required, amount_sum: 0, income_sum: 0, dflt_sum: 0, n: 0 };
+    const a = +r.amount || 0, set = r.income_amount != null;
+    x.amount_sum = round2(x.amount_sum + a); x.n++;
+    if (!r.repay_required) { if (set) x.income_sum = round2(x.income_sum + Math.min(+r.income_amount, a)); else x.dflt_sum = round2(x.dflt_sum + a); }
+    map.set(k, x);
+  }
+  return [...map.values()];
+}
+/** 统一账本（同 ledger_v）：花费 + 事件型账单的付款 + 收入；amount 带符号（流入 +）；day = 本地日期 */
+export function ledgerFeed(db) {
+  const out = [];
+  for (const s of spendFeed(db, {})) {
+    if (s.amount == null) continue;
+    const cat = window.canonCat ? window.canonCat(s.category) : s.category, l1 = l1IdOf(cat), nat = effNature(cat, s.nature), amt = +s.amount;
+    const xfer = nat === "transfer" || l1 === "transfer";
+    const type = xfer ? "transfer" : nat === "capital" ? "asset_purchase" : nat === "investment" || l1 === "wealth" ? "investment" : nat === "financing" ? "loan" : "expense";
+    out.push({ source: s.virtual ? "medical" : "purchase", id: s.id, household_id: s.household_id || null, occurred_at: s.purchased_at, occurred_on: s.virtual ? s.purchased_at.slice(0, 10) : null, day: s.virtual ? s.purchased_at.slice(0, 10) : `${s.lm}-${pad2(s.dd)}`,
+      name: s.name, counterparty: s.store_txt || null, amount: -amt, currency: s.currency, type, cash_flow_direction: xfer ? "internal" : amt < 0 ? "inflow" : "outflow",
+      category: cat, l1, nature: s.nature || null, repay_required: false, income_amount: 0, expense_amount: nat === "operating" && (l1 === "living" || l1 === "housing") ? amt : 0,
+      account_id: s.card_id || null, property_id: s.property_id || null, person_id: null, created_by: s.created_by || null, import_batch: s.import_batch || null });
+  }
+  for (const r of db.income_records || []) {
+    out.push({ source: "income", id: r.id, household_id: r.household_id || null, occurred_at: new Date(`${r.received_on}T12:00:00Z`).toISOString(), occurred_on: r.received_on, day: r.received_on,
+      name: r.source_name, counterparty: r.source_name, amount: +r.amount, currency: r.currency, type: incomeLedgerType(r), cash_flow_direction: incomeDirection(r),
+      category: r.kind, l1: incL1Of(r.kind), nature: null, repay_required: !!r.repay_required, income_amount: splitRecord(r).income, expense_amount: 0,
+      account_id: r.account_id || null, property_id: null, person_id: r.person_id || null, created_by: r.created_by || null, import_batch: r.import_batch || null });
+  }
+  return out;
+}
+/** 一段本地日期的账本行（同 Store.ledgerRange 在云端读 ledger_v）：新 → 旧 */
+export const ledgerRange = (db, from, to) => ledgerFeed(db).filter((x) => (!from || x.day >= from) && (!to || x.day < to)).sort((a, b) => cmp(String(b.occurred_at), String(a.occurred_at)) || cmp(String(b.id), String(a.id)));
+/** 账本聚合（同 ledger_rollup）：unit = month / biweek（anchor 起每 14 天一段） */
+export function ledgerRollup(db, from, to, unit = "month", anchor = null) {
+  const dayN = (d) => Math.floor(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) / 864e5), a0 = dayN(anchor || "2024-01-01"), map = new Map();
+  for (const x of ledgerRange(db, from, to)) {
+    const period = unit === "biweek" ? new Date((a0 + Math.floor((dayN(x.day) - a0) / 14) * 14) * 864e5).toISOString().slice(0, 10) : x.day.slice(0, 7);
+    const k = [period, x.source, x.type, x.cash_flow_direction, x.category, x.nature || "", x.repay_required, x.person_id || "", x.currency || ""].join("|");
+    const r = map.get(k) || { period, source: x.source, type: x.type, direction: x.cash_flow_direction, category: x.category, nature: x.nature, repay: x.repay_required, person_id: x.person_id, currency: x.currency, amount_sum: 0, income_sum: 0, expense_sum: 0, n: 0 };
+    r.amount_sum = round2(r.amount_sum + x.amount); r.income_sum = round2(r.income_sum + x.income_amount); r.expense_sum = round2(r.expense_sum + x.expense_amount); r.n++; map.set(k, r);
+  }
+  return [...map.values()];
 }
 
 /** 本地演示的一页 / 统计：kind = spend / pay / inc */

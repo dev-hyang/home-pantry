@@ -1746,6 +1746,13 @@ body.editing .minibar { display: none; }
 .ix-rank .rk-top b { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ix-rank .rk-bar { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin: 3px 0 4px; }
 .ix-rank .rk-bar i { display: block; height: 100%; border-radius: 99px; background: var(--pine); }
+/* 收支总览的现金流瀑布：金额列右对齐，第三列一根比例条（读屏读表格，条形 aria-hidden）；手机上条形列收窄 */
+.wf-tbl td:nth-child(2) { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wf-tbl .wf-cell { width: 40%; min-width: 72px; }
+.wf-bar { display: block; height: 10px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.wf-bar i { display: block; height: 100%; border-radius: 99px; }
+.wf-tbl tr.ch-hit-row { cursor: pointer; }
+@media (max-width: 440px) { .wf-tbl .wf-cell { width: 28%; min-width: 48px; } }
 .ix-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .ix-selbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; margin: 0 0 8px; border-radius: 12px; background: var(--surface-2); }
 .ix-selbar span { flex: 1 1 auto; font-weight: 700; font-size: 13.5px; }

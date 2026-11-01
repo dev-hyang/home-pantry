@@ -7,6 +7,7 @@ import { esc, num, todayISO, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
 import { compressImage } from "../core/autofill.js";
+import { incAiCatalog } from "../core/income-taxonomy.js";
 import { CHANNELS, adults, guessChannel, guessKind, inc, kindList, kindOptionsHtml, loadIncome, myPersonId, similarIncome } from "./logic.js";
 
 const MAX_IMAGES = 4, CONSENT = "hmh-income-scan-ok";
@@ -25,7 +26,7 @@ function parseJson(text) {
   throw new Error(t("没能读出收入，换一张更清楚的图或补充文字再试。"));
 }
 const prompt = () => ({
-  system: `You extract MONEY-IN records (income received) from photos or text of: bank deposit slips, checks, pay stubs (use NET pay actually deposited, never gross), wire transfer confirmations, Zelle / Venmo / PayPal screenshots, tax refund notices, bank statement lines that show credits. Ignore money going OUT. Never output account numbers, SSNs or addresses. Reply with ONLY JSON: {"items":[{"date":"YYYY-MM-DD or empty string","amount":number received (positive),"currency":"3-letter code of the amount shown","sender":"who paid: employer / person / institution","kind":one of [${kindList().map((k) => k.id).join(",")}],"channel":one of [ach,wire,zelle,check,cash,other],"orig_amount":number or null (original foreign amount for international wires),"orig_currency":"3-letter code or empty","fee":number or null,"notes":"very short, optional"}]}. Kinds: payroll = salary / pay stub, bonus, package = compensation or benefits package, wire = international wire, zelle = person-to-person payment, interest, rental, tax_refund, reimburse, insurance, gift, sale, cashback, other. If nothing is income, return {"items":[]}.`,
+  system: `You extract MONEY-IN records (income received) from photos or text of: bank deposit slips, checks, pay stubs (use NET pay actually deposited, never gross), wire transfer confirmations, Zelle / Venmo / PayPal screenshots, tax refund notices, bank statement lines that show credits. Ignore money going OUT. Never output account numbers, SSNs or addresses. Reply with ONLY JSON: {"items":[{"date":"YYYY-MM-DD or empty string","amount":number received (positive),"currency":"3-letter code of the amount shown","sender":"who paid: employer / person / institution","kind":one of [${kindList().map((k) => k.id).join(",")}],"channel":one of [ach,wire,zelle,check,cash,other],"orig_amount":number or null (original foreign amount for international wires),"orig_currency":"3-letter code or empty","fee":number or null,"notes":"very short, optional"}]}. Kinds (id=meaning (group)): ${incAiCatalog()}. Pick the most specific kind: a brokerage / stock sale is stock_sale (not income), money moved in from the household's own savings or investment account is xfer_savings / xfer_invest, a loan disbursement is loan_proceeds, bank interest is bank_interest, dividends are dividends. If nothing is money in, return {"items":[]}.`,
   user: `Today is ${todayISO()}. The household currency is ${cur()}.${sc.text.trim() ? `\nText provided by the user:\n${sc.text.trim()}` : ""}${sc.images.length ? `\n${sc.images.length} image(s) attached.` : ""}`,
 });
 /** AI 读出来的 → 草稿行：金额 / 日期 / 类型都校验一遍；币种不是家庭货币的，原币种记下来，金额留给你按实际到账改 */
