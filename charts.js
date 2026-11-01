@@ -88,12 +88,15 @@
 
   function legend(series, legendDrill = null) {
     if (series.length < 2) return "";
+    // 折线系列（s.dash）的图例画成虚线段，和柱子的色块分开；能点和不能点的行同高（CSS .ch-legend li），排成一行时对齐
+    const mark = (s) => (s.dash ? `<i class="ch-dash" style="border-color:${s.color}"></i>` : `<i style="background:${s.color}"></i>`);
     return `<ul class="ch-legend">${series.map((s, k) => { const q = legendDrill?.(k);
-      return q ? `<li class="ch-hit-row" data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(s.name)}，${esc(t("查看明细"))}"><i style="background:${s.color}"></i>${esc(s.name)}</li>` : `<li><i style="background:${s.color}"></i>${esc(s.name)}</li>`; }).join("")}</ul>`;
+      return q ? `<li class="ch-hit-row" data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(s.name)}，${esc(t("查看明细"))}">${mark(s)}${esc(s.name)}</li>` : `<li>${mark(s)}${esc(s.name)}</li>`; }).join("")}</ul>`;
   }
 
-  /** 柱状图；stacked=true 时各系列叠加并在顶部标总量；lines = 同一纵轴上再画几条虚线折线（不参与堆叠，例如 资本性 / 投资） */
-  function bars({ labels, series, fmt = String, title, stacked = true, showTotals = true, drill = null, legendDrill = null, lines = [] }) {
+  /** 柱状图；stacked=true 时各系列叠加并在顶部标总量；lines = 同一纵轴上再画几条虚线折线（不参与堆叠，例如 资本性 / 投资）；
+   *  drill(k, i) = 第 k 个柱子系列第 i 格；lineDrill(j, i) = 第 j 条折线第 i 个点；legendDrill(k) 的 k 先数柱子系列、再数折线 */
+  function bars({ labels, series, fmt = String, title, stacked = true, showTotals = true, drill = null, legendDrill = null, lines = [], lineDrill = null }) {
     const n = labels.length || 1;
     const totals = labels.map((_, i) => series.reduce((a, s) => a + (s.values[i] || 0), 0));
     const max = niceMax(Math.max(stacked ? Math.max(0, ...totals) : Math.max(0, ...series.flatMap((s) => s.values)), ...lines.flatMap((s) => s.values)));
@@ -120,14 +123,17 @@
         }
       });
       // 折线：虚线 + 空心点，和实心的柱子一眼分得开（色弱也能靠线型分）
-      lines.forEach((s) => {
+      lines.forEach((s, j) => {
         const yAt = (v) => PAD.t + ih - ((v || 0) / max) * ih;
         marks += `<polyline points="${s.values.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(" ")}" style="fill:none;stroke:${s.color}" stroke-width="2.5" stroke-dasharray="6 4" stroke-linejoin="round" stroke-linecap="round"/>`;
-        s.values.forEach((v, i) => { marks += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="3.5" class="ch-dot" style="stroke:${s.color}"><title>${esc(labels[i])} ${esc(s.name)}：${esc(fmt(v || 0))}</title></circle>`; });
+        s.values.forEach((v, i) => {
+          const q = v > 0 ? lineDrill?.(j, i) : null;   // 0 的点不给链接（点进去也是空的）
+          marks += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="${q ? 5 : 3.5}" class="ch-dot${q ? " ch-hit" : ""}" style="stroke:${s.color}"${q ? ` data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(`${labels[i]} ${s.name}：${fmt(v || 0)}，${t("查看明细")}`)}"` : ""}><title>${esc(labels[i])} ${esc(s.name)}：${esc(fmt(v || 0))}${tip(q)}</title></circle>`;
+        });
       });
       return axes(z, max, labels, fmt, xAt) + marks;
     };
-    const all = [...series, ...lines];
+    const all = [...series, ...lines.map((s) => ({ ...s, dash: true }))];
     return `<figure class="chart">${both(title, draw, labels)}
       ${legend(all, legendDrill)}${table(labels, stacked && series.length > 1 ? [...series, { name: t("合计"), values: totals }, ...lines] : all, fmt)}</figure>`;
   }

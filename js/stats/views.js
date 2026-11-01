@@ -277,12 +277,14 @@ function spendOverviewTab(withHub = false) {
     if (!has) body = rollErr() ? `<div class="panel empty"><strong>${t("花费统计读不出来")}</strong>${esc(rollErr())}</div>` : noSpend();
     else {
       const B = (id) => bucketOf_(id), tmDrill = (typeof state.stats.months === "string" && state.stats.months.startsWith("y:")) ? winDrill() : { range: 12 };
-      const lines = [{ name: t(B("financial").name), color: B("financial").color, values: series(T, (b) => b.financial) },
-        ...(o.exCap ? [] : [{ name: t(B("capital").name), color: B("capital").color, values: series(T, (b) => b.capital) }]),
-        ...(o.exInv ? [] : [{ name: t(B("investment").name), color: B("investment").color, values: series(T, (b) => b.investment) }])];
+      // 每条虚线带上它的钻取条件：财务 = 财务及其他 · 日常性质；资本性 / 投资按经济性质（和上面 KPI 卡片的链接一致）
+      const lines = [{ name: t(B("financial").name), color: B("financial").color, values: series(T, (b) => b.financial), q: { cat: "financial", nat: "operating" } },
+        ...(o.exCap ? [] : [{ name: t(B("capital").name), color: B("capital").color, values: series(T, (b) => b.capital), q: { nat: "capital" } }]),
+        ...(o.exInv ? [] : [{ name: t(B("investment").name), color: B("investment").color, values: series(T, (b) => b.investment), q: { nat: "investment" } }])];
       const trend = Charts.bars({ title: t("每月花费：日常 + 住房（柱），财务 / 资本性 / 投资（虚线）"), labels: tm.map(monthLabel), fmt: money,
         series: [{ name: t(B("living").name), color: B("living").color, values: livingSeries(T) }, { name: t(B("housing").name), color: B("housing").color, values: series(T, (b) => b.housing) }], lines,
-        drill: (k, i) => dq({ cat: k === 0 ? "living" : "housing", nat: "operating", month: tm[i] }), legendDrill: (k) => (k < 2 ? dq({ cat: k === 0 ? "living" : "housing", nat: "operating", ...tmDrill }) : null) });
+        drill: (k, i) => dq({ cat: k === 0 ? "living" : "housing", nat: "operating", month: tm[i] }), legendDrill: (k) => (k < 2 ? dq({ cat: k === 0 ? "living" : "housing", nat: "operating", ...tmDrill }) : dq({ ...lines[k - 2].q, ...tmDrill })),
+        lineDrill: (j, i) => dq({ ...lines[j].q, month: tm[i] }) });
       const liv = l2List("living").map((n) => ({ name: `${n.icon} ${t(n.name)}`, color: n.color, value: Math.round(ms.reduce((s, m) => s + (A.liv[m]?.[n.id] || 0), 0) * 100) / 100, drill: dq({ cat: n.id, nat: "operating", ...winDrill() }) }));
       body = `<div class="panel chart-panel"><h3>${t("每月花了多少")}</h3><p class="muted" style="margin:0 0 6px;font-size:13px">${t("柱子 = 日常 + 住房（合起来就是「含住房」）；虚线是不算日常的部分。上面的开关可以把资本性、投资也画出来。")}</p>${trend}${DRILL_HINT()}${askInline(spendAsk(T))}</div>
         <div class="panel chart-panel"><h3>${t("日常生活花在哪（{r}）", { r: rangeLabel() })}</h3>${Charts.hbars({ items: liv, fmt: money, title: t("日常生活按类别"), empty: t("这段时间没有日常生活花费") })}${DRILL_HINT()}</div>`;

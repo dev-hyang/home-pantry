@@ -8,7 +8,10 @@ import { t } from "./core/i18n.js";
 
 const MIN = 20;
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const want = (sel) => sel.matches("select") && !sel.dataset.nosearch && !sel.dataset.sselReady && !sel.multiple && (sel.dataset.search !== undefined || sel.options.length >= MIN);
+/* 触屏（手机 / 平板）不替换：原生下拉在手机上本来就好用（系统滚轮 / 列表）；自制列表在弹键盘、页面滚动的时候，
+   手指落下的位置可能已经换成了别的选项（选「通行费」结果填成「餐饮」）。有鼠标的宽屏才换成可搜索的下拉 */
+const touch = () => { try { return matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches; } catch (e) { return false; } };
+const want = (sel) => sel.matches("select") && !touch() && !sel.dataset.nosearch && !sel.dataset.sselReady && !sel.multiple && (sel.dataset.search !== undefined || sel.options.length >= MIN);
 let openBox = null;
 
 const label = (sel) => { const o = sel.selectedOptions[0]; return o ? o.textContent.trim() : ""; };
@@ -70,7 +73,8 @@ function open(box) {
   inp.placeholder = label(box._sel) || t("输入几个字筛选…"); inp.value = "";   // 当前选项变成灰色占位，直接打字就是筛选
   box.classList.add("is-open"); list.hidden = false; inp.setAttribute("aria-expanded", "true"); openBox = box;
   filter(box);
-  list.querySelector(".ssel-opt.is-cur")?.scrollIntoView({ block: "center" });
+  // 只滚列表本身：scrollIntoView 会连整页一起滚，列表在鼠标 / 手指下面跳走
+  const cur = list.querySelector(".ssel-opt.is-cur"); if (cur) list.scrollTop = Math.max(0, cur.offsetTop - (list.clientHeight - cur.offsetHeight) / 2);
   box.classList.remove("is-right"); let r = list.getBoundingClientRect();
   if (r.right > window.innerWidth - 8) { box.classList.add("is-right"); r = list.getBoundingClientRect(); }   // 列表比输入框宽、伸出了右边：改成右对齐
   box.classList.toggle("is-up", r.bottom > window.innerHeight - 8 && r.top > r.height + 8);
