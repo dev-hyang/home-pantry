@@ -12,6 +12,7 @@ import { priceInput, priceOrNull, pricesOk } from "../core/finance-access.js";  
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { houseBar } from "./property-form.js";
 import { assetName, isVehicle } from "./assets.js";
+import { payOffForAsset } from "../bills/debt-logic.js";   // 卖房 / 卖车交割：挂在上面的贷款标为已还清（迁移 058）
 import { analyze, briefHtml, eventFormPanel, freezeBaseline, lanesHtml, needsFreeze } from "./deal-progress.js";
 
 const D = () => window.DEALS;
@@ -486,6 +487,7 @@ export async function completeVehicleDeal(deal) {
   }
   await Store.saveDeal({ ...deal, closing_on: day, outcome: "closed", closed_at: new Date().toISOString() });
   await Store.saveAsset({ ...patch, vehicle: v });
+  if (deal.kind === "veh_sell") await payOffForAsset({ asset_id: a.id, on: day }).catch(() => 0);   // 卖车款还清车贷
   toast(deal.kind === "veh_buy" ? t("已标为{st}，去车辆档案补车牌、里程和保险", { st: t(V().STATUS[v.status].name) }) : t("已标为{st}，档案和保养记录保留在“历史车辆”里", { st: t(V().STATUS[v.status].name) }));
 }
 
@@ -584,6 +586,8 @@ export async function applyCloseout(f) {
   await Store.saveProperty({ ...p, status: d.kind === "sell" ? "sold" : "moved_out", sold_on: closing, sale_price: d.kind === "sell" && fe.sale_price?.value !== "" ? Math.round(num(fe.sale_price.value) * 100) / 100 : p.sale_price ?? null,
     archived: fe.archive.checked, is_default: fe.archive.checked ? false : p.is_default });
   state.closeout = null;
+  const paidOff = d.kind === "sell" ? await payOffForAsset({ property_id: p.id, on: closing }).catch(() => 0) : 0;   // 卖房：房贷 / HELOC 标为已还清
+  if (paidOff) toast(t("{n} 笔房贷已标为还清", { n: paidOff }));
   const autopays = state.bills.filter((b) => b.property_id === p.id && b.active && b.autopay).map((b) => b.name);
   toast(autopays.length ? t("已记录。记得去取消自动扣款：{list}", { list: joinList(autopays) }) : t("已记录，相关账单到结束日期后不再提醒"));
 }

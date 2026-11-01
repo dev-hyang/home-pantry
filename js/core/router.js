@@ -9,7 +9,7 @@ export const SECTIONS = {
   house:    { name: "房屋",   subs: [["overview", "概览"], ["assets", "设备保养"], ["tasks", "季节任务"], ["deal", "交易"], ["profile", "房屋资料"],
                                      ["supplies", "房屋耗材", true], ["vehicles", "车辆", true], ["pages", "页面", true], ["template", "推荐耗材", true], ["asset-template", "生成设备", true], ["fix", "出了问题", true]] },  // 第三项 true = 不在目录显示
   // 财务（2026-11，原「账单」改名）：内部 id 仍是 bills，旧的 #/bills/… 网址、书签、快捷操作、提醒链接全部照旧；#/finance/… 是同一处的别名
-  bills:    { name: "财务",   subs: [["overview", "概览"], ["recurring", "周期性账单"], ["onetime", "一次性账单"], ["spend", "花费"], ["income", "收入"], ["statements", "对账单"], ["budget", "预算"], ["cards", "卡与账户"], ["assets", "资产"], ["template", "常用账单", true]] },
+  bills:    { name: "财务",   subs: [["overview", "概览"], ["recurring", "周期性账单"], ["onetime", "一次性账单"], ["spend", "花费"], ["income", "收入"], ["statements", "对账单"], ["budget", "预算"], ["cards", "卡与账户"], ["assets", "资产"], ["debts", "借贷"], ["template", "常用账单", true]] },
   shopping: { name: "采购",   subs: null },
   scan:     { name: "录入购物", subs: null },   // #/scan：拍小票 / 贴线上订单，AI 读成清单后入库（底栏高亮“采购”）
   me:       { name: "我的",   subs: [["stats", "统计"], ["settings", "设置"], ["about", "介绍"]] },
@@ -33,7 +33,7 @@ export function parseRoute(hash = location.hash) {
   if (parts[0] === "me" && parts[1] === "settings" && query.get("sec") === "income") { parts.splice(0, 2, "bills", "income"); query.delete("sec"); query.set("tab", "plan"); }   // 收入与预算已并入 财务 → 收入 → 预算与计划
   // 账单页重新分层（周期性 / 一次性）：旧链接和已保存的快捷操作仍然有效——清单、记录进周期性账单的标签，医疗与事件改名一次性账单
   if (parts[0] === "bills") {
-    const alias = { list: ["recurring", "list"], history: ["recurring", "history"], medical: ["onetime", null] }[parts[1]];
+    const alias = { list: ["recurring", "list"], history: ["recurring", "history"], medical: ["onetime", null], loans: ["debts", null], debt: ["debts", null], lending: ["debts", "personal"] }[parts[1]];   // 借贷的几个顺手的别名
     if (alias) { parts[1] = alias[0]; if (alias[1] && !query.has("tab")) query.set("tab", alias[1]); }
   }
   if (parts[0] === "house" && parts[1] === "supplies") { parts.splice(0, 2, "pantry", "inventory"); query.set("space", "house"); }   // 房屋耗材已并入 储藏 / 库存

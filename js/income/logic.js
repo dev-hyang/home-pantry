@@ -8,6 +8,8 @@ import { esc, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { financeOk } from "../core/finance-access.js";
 import { pageSize } from "../core/pager.js";
+import { debtOfIncome, enrichDebt } from "../bills/debt-logic.js";
+import { isClosedStatus } from "../core/debt-rules.js";
 import { INC_L1S, customIncomeKinds, incKindOptions, incL1Of, incLeaf, incLeafLabel, incLeaves, normParent, recognized as recognizedOf } from "../core/income-taxonomy.js";
 
 /* ───────────── 收入类型：一级 → 叶子（规则全在 js/core/income-taxonomy.js，这里只是给界面用的薄包装） ─────────────
@@ -100,11 +102,18 @@ export const repaidOf = (recId) => inc().rep.filter((p) => p.record_id === recId
 /** 需要还的收入：总额、已还、余额、状态（open / partial / overdue / paid）；不用还的返回 null */
 export function repayState(r) {
   if (!r.repay_required) return null;
+  // 迁移 058 起「需要还」的收入转成了个人借款：余额、已还按借贷流水算（还款也在 财务 → 借贷 里记），debt = 那笔借款
+  const debt = state.debtsOk ? debtOfIncome(r.id) : null;
+  if (debt) {
+    const e = enrichDebt(debt), total = e.original ?? (num(r.repay_amount) || r.amount), left = e.balance ?? total, paid = Math.max(0, Math.round((total - left) * 100) / 100);
+    const overdue = e.overdue && left > 0;
+    return { total, paid, left, overdue, debt: debt.id, status: left <= 0.004 || isClosedStatus(debt.status) ? "paid" : overdue ? "overdue" : paid > 0 ? "partial" : "open" };
+  }
   const total = num(r.repay_amount) || r.amount, paid = repaidOf(r.id), left = Math.max(0, Math.round((total - paid) * 100) / 100);
   const overdue = !!r.repay_due_on && r.repay_due_on < todayISO() && left > 0;
   return { total, paid, left, overdue, status: left <= 0.004 ? "paid" : overdue ? "overdue" : paid > 0 ? "partial" : "open" };
 }
-export const openRepayments = () => inc().rec.map((r) => ({ r, s: repayState(r) })).filter((x) => x.s && x.s.status !== "paid").sort((a, b) => (a.r.repay_due_on || "9999").localeCompare(b.r.repay_due_on || "9999"));
+export const openRepayments = () => inc().rec.map((r) => ({ r, s: repayState(r) })).filter((x) => x.s && x.s.status !== "paid" && !x.s.debt)   // 转成借款的由借贷页提醒，这里不重复.sort((a, b) => (a.r.repay_due_on || "9999").localeCompare(b.r.repay_due_on || "9999"));
 
 /* ───────────── 周期 ───────────── */
 export const UNITS = [["biweek", "双周"], ["month", "月"], ["quarter", "季度"], ["year", "年"]];

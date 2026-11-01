@@ -11,6 +11,7 @@ import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAle
 import { propertyTag, withProperty } from "../core/alerts.js";
 import { autofillBar } from "../core/autofill.js";
 import { escrowPanelHtml } from "./escrow.js";
+import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
 import { billInUse, endedSuffix, propertyActive, propertyById, propertyOptionsHtml } from "../core/lifecycle.js";
 import { kindsNote, ONETIME, RECURRING } from "./kinds.js";
 import { medRow } from "./medical-views.js";
@@ -670,8 +671,10 @@ export async function recordPayment(bill, { paid_on, due_on, amount, status, met
     purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: (store || "").trim().slice(0, 40) || bill.payee || bill.name || null,
       amount: Math.round(total * 100) / 100, currency, purchased_at: new Date(`${paid_on}T12:00:00`).toISOString(), ...(card_id ? { card_id } : {}), ...(bill.property_id ? { property_id: bill.property_id } : {}) });   // 关联账单的房产（迁移 055）
   }
-  await Store.addBillPayment({ bill_id: bill.id, due_on: due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),
-    currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, status, notes: notes || null, purchase_id, ...(card_id ? { card_id } : {}) });
+  const payRow = { bill_id: bill.id, due_on: due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),
+    currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, status, notes: notes || null, purchase_id, ...(card_id ? { card_id } : {}) };
+  const payId = await Store.addBillPayment(payRow);
+  if (bill.debt_id && purchase_id) await splitBillPayment(bill, { ...payRow, id: payId }).catch((e) => console.warn("[debt split]", e.message));   // 贷款：本金单独一行（性质 = 融资），主行只剩利息 + Escrow
   // 推到下一期：以这次对应的到期日为基准，保证不会漏期。补记更早一期（到期日早于当前下次到期）不往回推，下次到期不动
   const base = due_on || bill.next_due_on || paid_on;
   const catchUp = !!(bill.next_due_on && base < bill.next_due_on && bill.frequency !== "one_time");
@@ -698,6 +701,7 @@ async function resyncDue(bill, old, newDue) {
 export async function deleteBillPay(id) {
   const p = state.billPayments.find((x) => x.id === id);
   const bill = p && state.billsEnriched.find((b) => b.id === p.bill_id);
+  await beforeDeletePayment(id).catch(() => {});   // 贷款拆分的本金行（流水随缴费记录级联删除）
   await Store.deleteBillPayment(id);
   if (!bill || !p.due_on) return null;
   const sameDue = state.billPayments.some((x) => x.id !== id && x.bill_id === bill.id && x.due_on === p.due_on);
@@ -723,7 +727,10 @@ async function updatePayment(bill, fe) {
   if (purchase_id && total > 0) await Store.updatePurchase(purchase_id, { amount: total, purchased_at: at, store: payee, ...cardPatch });
   else if (purchase_id) { await Store.deletePurchase(purchase_id); purchase_id = null; }
   else if (total > 0 && bill.direction !== "receivable") purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: payee, amount: total, currency, purchased_at: at, ...cardPatch, ...(bill.property_id ? { property_id: bill.property_id } : {}) });
-  await Store.updateBillPayment(old.id, { paid_on, due_on: fe.due_on.value || null, amount, currency, method: pay.method, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, status, notes: fe.notes.value.trim() || null, purchase_id, ...cardPatch });
+  if (!purchase_id) await beforeDeletePayment(old.id).catch(() => {});   // 不再记花费了：贷款拆分的本金行和流水也去掉
+  const patch = { paid_on, due_on: fe.due_on.value || null, amount, currency, method: pay.method, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, status, notes: fe.notes.value.trim() || null, purchase_id, ...cardPatch };
+  await Store.updateBillPayment(old.id, patch);
+  if (bill.debt_id && purchase_id) await splitBillPayment(bill, { ...old, ...patch, id: old.id }).catch((e) => console.warn("[debt split]", e.message));
   const moved = fe.due_on.value !== (old.due_on || "") ? await resyncDue(bill, old, fe.due_on.value || null) : null;   // 到期日改了：账单的下次到期跟着对
   toast(moved ? t("已保存修改，下次到期 {d}", { d: fmtDate(moved) }) : t("已保存修改"));
 }

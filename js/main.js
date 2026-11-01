@@ -47,6 +47,7 @@ import "./settings/income.js";
 import { escrowAlertItems } from "./bills/escrow.js";
 import "./bills/finance.js";
 import { viewFinAssets } from "./bills/fin-assets.js";   // 财务 → 资产
+import { loadDebts } from "./bills/debt-logic.js";   // 借贷（迁移 058）：启动时读进内存，也注册借贷提醒
 import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { fixAction, runFix, viewFix } from "./house/fix.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
@@ -132,6 +133,7 @@ export async function refresh() {
       state.people = people; applyMedical(medBills, medPays);
       loadIncome().then(() => { if (state.route?.section === "bills" && ["income", "statements"].includes(state.route?.sub)) render(false); });   // 收入（迁移 042）单独读：行级安全只给家主 / 已允许的人全家的；读不到不影响别的功能
       state.cards = cards || [];
+      loadDebts().then(() => { if (state.route?.section === "bills" || state.route?.section === "today") render(false); });   // 借贷（迁移 058）：只有财务权限读得到；表不存在时借贷页给提示
       loadPending();
       ensureAdults().then((added) => { if (added) { applyMedical(state.medBills, state.medPayments); render(false); } }).catch(() => {});
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
@@ -174,6 +176,7 @@ const TABLE_RELOAD = {
   bill_payments: () => Store.listBillPayments().then((r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); reloadPayList(); }),
   medical_bills: () => reloadMedical(), medical_payments: () => reloadMedical(),
   income_records: () => loadIncome(), income_repayments: () => loadIncome(),
+  debt_accounts: () => loadDebts(), debt_transactions: () => loadDebts(),
   property_deals: () => Store.listDeals().then((r) => { state.deals = r; }),
   deal_task_done: () => Store.listDealDone().then((r) => { state.dealDone = r; }),
   deal_task_overrides: reloadDealExtras, deal_custom_tasks: reloadDealExtras, deal_events: reloadDealExtras,

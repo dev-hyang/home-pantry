@@ -87,6 +87,13 @@ window.TRANSFER_CATS = [
   { id: "transfer_account", name: "账户间转账（自己的银行账户之间）", icon: "🔁", color: "#64748b" },
   { id: "transfer_invest",  name: "投资账户内部转换（买卖换仓、转存）", icon: "🔄", color: "#64748b" },
 ];
+/* 借贷（财务 P2，迁移 058）：还款拆分 / 亲友借贷写的两个分类。
+ * debt_principal：借出给亲友、还亲友的本金（财务及其他 · 贷款利息与手续费下，默认性质「融资 / 还本」：算现金流出，不算消费）；
+ * loan_interest_auto：车贷每期里的利息（生活消费 · 交通）。房贷的利息 + Escrow 仍记 bill_mortgage，本金记 bill_mortgage + 性质「融资」。 */
+window.LOAN_CATS = [
+  { id: "debt_principal",     name: "借贷本金（借出 / 还亲友）", icon: "🤝", color: "#8a6d9b" },
+  { id: "loan_interest_auto", name: "车贷利息",                 icon: "🚙", color: "#5b7fa6" },
+];
 // 事件型账单（js/bills/medical.js）的另外两种付款分类：法律 / 税务、装修 / 项目
 window.LEGAL_CAT = { id: "legal", name: "法律 / 税务", icon: "⚖️", color: "#8a948f" };
 window.PROJECT_CAT = { id: "project", name: "装修 / 项目", icon: "🔨", color: "#b07a1a" };

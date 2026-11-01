@@ -12,6 +12,7 @@ import { KINDS as MED_KINDS } from "../bills/medical.js";
 import { spendSuggestions } from "../core/spend-data.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
+import { billExpenseMonthly } from "../bills/debt-logic.js";
 import { cardHintHtml, cardOptions, cardSelectHtml, payAcctValue, paymentPayLabel } from "../bills/cards-views.js";
 import { moreBtn } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
@@ -224,7 +225,8 @@ function overviewKpis() {
       small: B ? t("{label}：日常 {a} / 含住房 {b}", { label: plan.b.label, a: money(sum(livingSeries(B))), b: money(sum(withHousingSeries(B))) }) : "" });
   } else {
     const full = fullMonths(plan.a.months, lastMonths(1)[0]), pick = (arr) => full.map((m) => arr[A.months.indexOf(m)]);
-    const nl = normalizedMonthly(A, full, state.billsEnriched, "living", cur), nh = nl + normalizedMonthly(A, full, state.billsEnriched, "housing", cur);
+    const billsX = state.billsEnriched.map((b) => (b.debt_id ? { ...b, expMonthly: billExpenseMonthly(b) } : b));   // 贷款账单：本金不算消费（迁移 058）
+    const nl = normalizedMonthly(A, full, billsX, "living", cur), nh = nl + normalizedMonthly(A, full, billsX, "housing", cur);
     liv = kpi({ label: full.length < A.months.length ? t("日常生活成本（月均，不含本月）") : t("日常生活成本（月均）"), value: livHou(avg(pick(L)), avg(pick(H))), wide: true, drill: { cat: "living", nat: "operating", ...plan.a.drill },
       small: t("中位数 {a} / {b} · 均摊 {c} / {d}", { a: money(median(pick(L))), b: money(median(pick(H))), c: money(nl), d: money(nh) }) });
   }

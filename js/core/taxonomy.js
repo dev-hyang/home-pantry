@@ -13,7 +13,7 @@
  * 经济性质（purchases.nature，空 = 按分类默认）：operating 日常消费 / capital 资本性 / investment 投资 / financing 融资还本 / transfer 转账。
  * 大多数叶子默认 operating；买车整付、装修项目、房产交易、其他资本性默认 capital；投资转入默认 investment；转账类默认 transfer。
  * 统计口径（bucketOf）：每一笔只落进一个桶，几个桶加起来 = 现金流出：
- *   转账 → 不算；资本性 → capital；投资（或 L1 = 投资理财）→ investment；融资 → financial；
+ *   转账 → 不算；资本性 → capital；投资（或 L1 = 投资理财）→ investment；融资 → financial（贷款还本：迁移 058 起房贷 / 车贷的本金单独一行，性质 = 融资）；
  *   其余按 L1：living → 日常，housing → 住房，financial → 财务。
  * 自定义分类（custom_categories，c_xxxxxxxx）：parent = 挂在哪个二级分类下；没填按空间（储藏 → 餐饮，装备 → 购物日用，房屋耗材 → 维护与服务）；
  * 不认识的 id 一律算 生活消费 → 其他。 */
@@ -34,7 +34,7 @@ export const L1S = [
 export const L2S = [
   // 生活消费
   { id: "food",         p: "living", name: "餐饮",         icon: "🍽️", color: "#3f8f5a", leaves: ["fresh", "frozen", "dry", "drink", "grocery_misc", "life_dining"] },
-  { id: "transport",    p: "living", name: "交通",         icon: "🚗", color: "#3b7fc4", leaves: ["vehicle_fuel", "life_transit", "vehicle_maint", "gear_car", "house_car", "bill_insurance_auto", "bill_vehicle_reg", "bill_parking", "bill_toll", "capital_vehicle"] },
+  { id: "transport",    p: "living", name: "交通",         icon: "🚗", color: "#3b7fc4", leaves: ["vehicle_fuel", "life_transit", "vehicle_maint", "gear_car", "house_car", "bill_insurance_auto", "bill_vehicle_reg", "bill_parking", "bill_toll", "loan_interest_auto", "capital_vehicle"] },
   { id: "utilities",    p: "living", name: "水电网通讯",   icon: "💡", color: "#1f8a8a", leaves: ["bill_electric", "bill_gas", "bill_water", "bill_internet", "bill_mobile", "bill_cable_tv", "bill_heating_oil", "bill_solar"] },
   { id: "healthcare",   p: "living", name: "医疗健康",     icon: "🩺", color: "#c2475f", leaves: ["medical", "health", "bill_insurance_health"] },
   { id: "kids",         p: "living", name: "孩子与教育",   icon: "🎒", color: "#d4694c", leaves: ["baby", "study", "gear_study", "bill_tuition", "bill_activities"] },
@@ -57,7 +57,7 @@ export const L2S = [
   { id: "investing",      p: "wealth", name: "投资储蓄",       icon: "📈", color: "#2c6a57", leaves: ["capital_invest"] },
   // 财务及其他
   { id: "taxes",          p: "financial", name: "税务",             icon: "🧮", color: "#8a6d3b", leaves: ["bill_income_tax"] },
-  { id: "loans_fees",     p: "financial", name: "贷款利息与手续费", icon: "💳", color: "#b4506a", leaves: ["bill_student_loan", "bill_personal_loan", "bill_car_loan", "life_fees"] },
+  { id: "loans_fees",     p: "financial", name: "贷款利息与手续费", icon: "💳", color: "#b4506a", leaves: ["bill_student_loan", "bill_personal_loan", "bill_car_loan", "life_fees", "debt_principal"] },
   { id: "insurance",      p: "financial", name: "保险",             icon: "🛟", color: "#5f7fa8", leaves: ["bill_insurance_life", "bill_insurance_other"] },
   { id: "gov_admin",      p: "financial", name: "政务手续",         icon: "🏛️", color: "#6b7a8f", leaves: ["life_gov", "life_mail", "legal"] },
   { id: "donations",      p: "financial", name: "捐款奉献",         icon: "🙏", color: "#24897d", leaves: ["bill_donation"] },
@@ -78,7 +78,7 @@ export const NATURES = [
 ];
 const NATURE_IDS = new Set(NATURES.map((n) => n.id));
 /** 默认性质不是 operating 的叶子（其余全是 operating）；数据库筛选也用这张表（spend_filtered 的 natx） */
-export const NATURE_DEFAULT = { capital_vehicle: "capital", project: "capital", capital_home: "capital", capital_other: "capital", capital_invest: "investment", bill_credit_card: "transfer", transfer_account: "transfer", transfer_invest: "transfer" };
+export const NATURE_DEFAULT = { capital_vehicle: "capital", project: "capital", capital_home: "capital", capital_other: "capital", capital_invest: "investment", debt_principal: "financing", bill_credit_card: "transfer", transfer_account: "transfer", transfer_invest: "transfer" };
 
 /* ── 统计桶：每一笔只落进一个（转账不落），几个桶加起来 = 现金流出 ── */
 export const BUCKETS = [
@@ -110,7 +110,7 @@ function leafMap() {
   const key = `${C.length}|${C.filter((c) => c.custom).map((c) => `${c.id}:${c.name}:${c.parent || ""}`).join(",")}`;   // 自定义分类变了就重建
   if (leafCache && leafCacheKey === key) return leafCache;
   const list = [...C, W.MAINT_CAT, W.VEHICLE_CAT, ...(W.BILLS_GROUP?.cats?.() || []), ...(W.TRAVEL_CATS || []), ...(W.LIFE_CATS || []), ...(W.WORK_CATS || []), ...(W.CAPITAL_CATS || []),
-    ...(W.TRANSFER_CATS || []), W.GROCERY_MISC, W.VEHICLE_FUEL, W.MEDICAL_GROUP, W.PET_CARE_CAT, W.LEGAL_CAT, W.PROJECT_CAT, W.OTHER_CAT].filter(Boolean);
+    ...(W.TRANSFER_CATS || []), ...(W.LOAN_CATS || []), W.GROCERY_MISC, W.VEHICLE_FUEL, W.MEDICAL_GROUP, W.PET_CARE_CAT, W.LEGAL_CAT, W.PROJECT_CAT, W.OTHER_CAT].filter(Boolean);
   leafCache = new Map(); for (const c of list) if (!leafCache.has(c.id)) leafCache.set(c.id, c);
   leafCacheKey = key; return leafCache;
 }

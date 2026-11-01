@@ -67,12 +67,12 @@ export const outflowSeries = (agg) => series(agg, (b) => b.living + b.housing + 
 /** 算月均 / 中位数用的月份：一段时间超过一个月时不含还没过完的本月（否则月均被拉低） */
 export const fullMonths = (months, thisMonth) => (months.length > 1 ? months.filter((m) => m !== thisMonth) : months);
 /** 均摊月均：账单按「每月折算」（年付、半年付的摊到每个月）代替实际缴费那个月的金额，其余照实际算
- *  bills = 账单（有 monthly 每月折算、category、currency）；bucket = living / housing */
+ *  bills = 账单（有 monthly 每月折算、category、currency；expMonthly = 拆分后算消费的部分：房贷的本金不算住房，迁移 058）；bucket = living / housing */
 export function normalizedMonthly(agg, months, bills, bucket, cur = "") {
   if (!months.length) return 0;
   const nonBill = avg(months.map((m) => (agg.bucket[m]?.[bucket] || 0) - (agg.bills[m]?.[bucket] || 0)));
   const billM = (bills || []).filter((b) => b.active !== false && !b.ended && !b.escrow && b.direction !== "receivable" && (!cur || (b.currency || cur) === cur) && bucketOf(`bill_${b.category}`, null) === bucket)
-    .reduce((a, b) => a + (+b.monthly || 0), 0);
+    .reduce((a, b) => a + (+(b.expMonthly ?? b.monthly) || 0), 0);
   return nonBill + billM;
 }
 /** 子节点在一段时间里的合计（排行用），从大到小；只留 > 0 的 */

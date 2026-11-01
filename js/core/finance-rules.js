@@ -7,9 +7,9 @@
  * 设备 / 车辆买价和更换估价在房屋页面里也只给有权限的人看（finance-access.js 的 pricesOk / priceInput，只是界面闸门）。 */
 
 /** 账单下面整块隐藏的二级页 */
-export const FINANCE_HIDDEN_SUBS = ["statements", "income", "budget", "assets"];   // assets：财务 → 资产（2026-11）
+export const FINANCE_HIDDEN_SUBS = ["statements", "income", "budget", "assets", "debts"];   // assets：财务 → 资产（2026-11）；debts：借贷（P2，迁移 058）
 /** 没有财务权限时不注册的提醒来源（见 core/alerts.js 的 SOURCE_LABEL） */
-export const FINANCE_ALERT_SOURCES = ["budget", "income"];
+export const FINANCE_ALERT_SOURCES = ["budget", "income", "debt"];
 
 /** 当前用户有没有财务权限。mode：demo 只有一个人（就是家主）；cloud 看成员表里自己那一行 */
 export function financeAllowed({ mode, userId, members }) {
@@ -43,7 +43,7 @@ export function quickAllowed(id, allowed) {
   const q = new URLSearchParams(qs);
   if (parts[0] === "finance") parts[0] = "bills";   // #/finance/… 是 #/bills/… 的别名（router.js），权限按同一处算
   if (parts[0] === "bills") {
-    if (FINANCE_HIDDEN_SUBS.includes(parts[1])) return false;
+    if (FINANCE_HIDDEN_SUBS.includes(parts[1]) || ["loans", "debt", "lending"].includes(parts[1])) return false;   // 借贷的别名（router.js）
     if (parts[1] === "spend" && q.get("tab") === "import") return false;   // 旧地址：银行导入 → 对账单
     if (parts[1] === "cards" && q.get("card") === "new") return false;     // 添加信用卡
   }
