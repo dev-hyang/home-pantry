@@ -17,6 +17,7 @@ import { isIncomeKind } from "../core/income-taxonomy.js";
 import { adults, guessChannel, guessKind, inc as incState, incomeRules, kindOptionsHtml, loadIncome, myPersonId, senderName, similarIncome, skey } from "../income/logic.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
 import { compressImage } from "../core/autofill.js";
+import { loadNear, nearRows } from "./dup-check.js";
 import { aiExtract, chunkLines, detectAccount, looksOFX, looksQIF, parseStatementLines, pdfImages, pdfLines, readOFX, readQIF, readXLSX, redactLines, statementTotals } from "./statement-readers.js";
 
 let refreshFn = null;
@@ -287,22 +288,22 @@ function rebuild() {
     row.key = keyOf(row.desc); const cw = row.skip ? { cat: "", src: "" } : classifyWhy(row); row.cat = cw.cat || (row.xfer ? "other" : ""); row.src = cw.cat ? cw.src : row.xfer ? "rule" : cw.src;
     rows.push(row);
   }
-  // 和已有花费对得上的（金额一样、日期差 ≤ 3 天，每条已有花费只配一次）：疑似已记录，默认跳过；重复导入同一个文件也靠它防重
-  const pool = state.purchases.filter((p) => !p.virtual && p.amount != null).map((p) => ({ a: Math.round(num(p.amount) * 100) / 100, t: new Date(p.purchased_at).getTime(), used: false, name: p.name, day: String(p.purchased_at).slice(0, 10) }));
-  const seen = {};
+  // 和已有花费对得上的（金额一样、日期差 ≤ 3.5 天，每条已有花费只配一次）：疑似已记录，默认跳过；重复导入同一个文件也靠它防重。
+  // 已有花费不在浏览器里：每行的 日期 + 金额 向数据库查（spend_dup_match，迁移 057，dup-check.js 缓存）；还没查完的先按没有算，查回来重新判断
+  const cands = [...rows.filter((r) => !r.skip).map((r) => ({ d: r.date, a: r.out })), ...rows.filter((r) => r.inc).map((r) => ({ d: r.date, a: r.out }))];   // 收入行：找记成退款的（金额 = −到账）
+  loadNear(cands).then((fresh) => { if (fresh) { rebuild(); redraw(); } }).catch(() => {});
+  const used = new Set(), seen = {};
   for (const r of rows) {
     const k0 = `${r.date}|${r.out}|${r.desc}`; r.fk = `${k0}#${seen[k0] = (seen[k0] || 0) + 1}`;
     if (r.skip) continue;
-    const tm = new Date(`${r.date}T12:00:00`).getTime();
-    const hit = pool.find((p) => !p.used && Math.abs(p.a - r.out) < 0.005 && Math.abs(p.t - tm) <= 3.5 * 864e5);
-    if (hit) { hit.used = true; r.dupOf = `${hit.name} · ${hit.day}`; if (S.force.has(r.fk)) r.forced = true; else r.dup = true; }   // 手动确认过不是重复的：照常导入
+    const hit = (nearRows(r.date, r.out) || []).find((p) => !used.has(p.id));   // 数据库按 时间新 → 旧 给出
+    if (hit) { used.add(hit.id); r.dupOf = `${hit.name} · ${String(hit.purchased_at).slice(0, 10)}`; if (S.force.has(r.fk)) r.forced = true; else r.dup = true; }   // 手动确认过不是重复的：照常导入
   }
-  const refunds = state.purchases.filter((p) => !p.virtual && num(p.amount) < 0).map((p) => ({ a: -Math.round(num(p.amount) * 100) / 100, t: new Date(p.purchased_at).getTime(), name: p.name, day: String(p.purchased_at).slice(0, 10) }));
   for (const r of rows) {
     if (!r.inc) continue;
-    const amt = Math.round(-r.out * 100) / 100, tm = new Date(`${r.date}T12:00:00`).getTime(), hit = similarIncome({ received_on: r.date, amount: amt, source_name: senderName(r.desc) });
-    const ref = !hit && refunds.find((p) => Math.abs(p.a - amt) < 0.005 && Math.abs(p.t - tm) <= 3.5 * 864e5);
-    if (hit || ref) { r.dupOf = hit ? `${hit.source_name} · ${hit.received_on}` : `${ref.name} · ${ref.day}（${t("已记成退款")}）`; if (S.force.has(r.fk)) r.forced = true; else r.idup = true; }
+    const amt = Math.round(-r.out * 100) / 100, hit = similarIncome({ received_on: r.date, amount: amt, source_name: senderName(r.desc) });
+    const ref = !hit && (nearRows(r.date, r.out) || []).find((p) => num(p.amount) < 0);   // 已经记成退款（负花费）的
+    if (hit || ref) { r.dupOf = hit ? `${hit.source_name} · ${hit.received_on}` : `${ref.name} · ${String(ref.purchased_at).slice(0, 10)}（${t("已记成退款")}）`; if (S.force.has(r.fk)) r.forced = true; else r.idup = true; }
   }
   S.rows = rows;
   const g = new Map();
@@ -312,22 +313,7 @@ function rebuild() {
     x.rows.push(r); x.total += r.out; g.set(id, x);
   }
   S.groups = [...g.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
-  freshenDupPool();   // 内存里的花费可能是旧的（撤销 / 在别处删掉的），按这批的日期范围从云端重读一遍再比
   for (const x of S.groups) { x.src = x.rows[0].src || ""; if (!(x.id in S.auto)) S.auto[x.id] = x.inc ? (incomeRules()[x.id.slice(3)] || guessKind(x.rows[0].desc)) : x.skip ? "" : x.rows[0].cat; if (!(x.id in S.pick)) S.pick[x.id] = x.skip ? SKIP_CAT[x.skip] || "" : x.rows[0].cat; if (x.inc && !(x.id in S.ikind)) S.ikind[x.id] = S.auto[x.id]; if (!(x.id in S.include)) S.include[x.id] = x.inc ? !x.rows.every((r) => r.incUnsure) : !x.skip; }
-}
-/** 查重用的「已有花费」是内存里的缓存：近 400 天以外按需读进来的老花费不会被后台同步清掉，撤销 / 家人在别处删掉后就成了幽灵，
- *  导入时被误判成「已记录」。所以这批的日期范围（前后各留几天）从数据库重读一次，范围内的以数据库为准；有变化就重新判断。 */
-let dupSyncKey = "";
-async function freshenDupPool() {
-  const ds = S.rows.map((r) => r.date).sort(); if (!ds.length) return;
-  const from = new Date(ds[0] + "T00:00:00Z").getTime() - 5 * 864e5, to = new Date(ds.at(-1) + "T00:00:00Z").getTime() + 6 * 864e5, key = from + "|" + to;
-  if (key === dupSyncKey) return; dupSyncKey = key;
-  let rows; try { rows = await Store.listPurchasesRange(new Date(from).toISOString(), new Date(to).toISOString()); } catch (e) { dupSyncKey = ""; return; }
-  const ids = new Set(rows.map((p) => p.id)), inWin = (p) => { const tm = new Date(p.purchased_at).getTime(); return tm >= from && tm < to; };
-  const ghosts = state.purchases.filter((p) => !p.virtual && inWin(p) && !ids.has(p.id)).length, known = new Set(state.purchases.map((p) => p.id));
-  if (!ghosts && rows.every((p) => known.has(p.id))) return;
-  state.purchases = [...state.purchases.filter((p) => p.virtual || !inWin(p)), ...rows];
-  rebuild(); redraw();
 }
 const resetPicks = () => { S.pick = {}; S.include = {}; S.auto = {}; };
 
@@ -640,7 +626,6 @@ async function undo(batchId) {
   if (b.inN) { try { await Store.deleteIncomeByBatch(b.id); await loadIncome(); } catch (e) { toast(t("撤销失败：{msg}", { msg: e.message })); return; } }
   if (b.tagged) { try { await Store.deletePurchasesByBatch(b.id); } catch (e) { toast(t("撤销失败：{msg}", { msg: e.message })); return; } }
   try { await saveMeta({ _bank_batches: all.filter((x) => x.id !== batchId) }); } catch (e) { /* 忽略 */ }
-  const gone = new Set(b.ids || []); state.purchases = state.purchases.filter((p) => !gone.has(p.id) && p.import_batch !== batchId);   // 内存里也清掉：近 400 天以外的老花费后台同步不会清，留着会被当成「已记录」
   if (S.last?.id === batchId) S.last = null;
   toast(t("已撤销")); if (refreshFn) await refreshFn(); redraw();
 }
@@ -664,11 +649,10 @@ async function recoverBatches() {
     if (rebuilt.length) { all = [...all, ...rebuilt].sort((a, b) => String(a.at).localeCompare(String(b.at))).slice(-60); await saveMeta({ _bank_batches: all }); }
     const lost = all.filter((b) => !b.tagged && !b.ids?.length && b.from && b.to);
     const day = (s, d) => new Date(new Date(`${s}T00:00:00Z`).getTime() + d * 864e5).toISOString();
-    const have = new Set(state.purchases.map((p) => p.id)); let fixed = 0, skipped = 0, rows = 0; const done = new Map();
+    let fixed = 0, skipped = 0, rows = 0; const done = new Map();
     for (const b of lost) {
       const found = await Store.listPurchasesRange(day(b.from, -1), day(b.to, 2)).catch(() => []);
-      for (const p of found) if (!have.has(p.id)) { state.purchases = [...state.purchases, p]; have.add(p.id); }   // 老批次的花费可能不在内存里
-      const at = new Date(b.at).getTime(), pool = found.length ? found : state.purchases;
+      const at = new Date(b.at).getTime(), pool = found;   // 这一批日期范围内的花费（按需读这一小段，迁移 057 起浏览器里没有整表）
       const hit = pool.filter((p) => !p.import_batch && p.created_at && new Date(p.created_at).getTime() <= at + 60000 && new Date(p.created_at).getTime() >= at - 20 * 60000);
       if (!hit.length || hit.length !== (b.n ?? -1)) { skipped++; continue; }
       for (const p of hit) { await Store.updatePurchase(p.id, { import_batch: b.id }); p.import_batch = b.id; rows++; }

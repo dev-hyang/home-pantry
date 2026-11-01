@@ -11,7 +11,7 @@ import { cleanStore, rememberStore, storeDatalist } from "../stats/views.js";
 import { categoryOptions } from "./views.js";
 import { compressImage as compress } from "../core/autofill.js";
 import { cardSelectHtml, purchasePayFields } from "../bills/cards-views.js";
-import { dupNote, matchOpenShopping, similarPurchases } from "../stats/dup-check.js";
+import { dupNote, loadNear, matchOpenShopping, similarPurchases } from "../stats/dup-check.js";
 
 const MAX_IMAGES = 8;   // 一次最多 8 张：可以是几张不同的小票，也可以是一张长小票的几段
 const sc = { kind: "receipt", mode: "auto", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] };
@@ -163,8 +163,12 @@ function reviewHtml() {
         <button type="button" class="btn btn-ghost" data-action="scan-back">${t("返回重来")}</button></div>
     </form>`;
 }
-/** 每一行和已有花费对一下：疑似别人（或自己）已经记过的，在行下面提醒；返回「勾选了的小票里被提醒的行数」 */
+/** 这张小票每一行的 日期 + 金额（向数据库查重用） */
+const dupCands = (box) => { const date = box.querySelector('[name="date"]').value || todayISO(); return [...box.querySelectorAll(".scan-row")].map((r) => ({ d: date, a: r.querySelector('[name="amount"]').value })).filter((c) => c.a !== ""); };
+/** 每一行和已有花费对一下：疑似别人（或自己）已经记过的，在行下面提醒；返回「勾选了的小票里被提醒的行数」。
+ *  已有花费按 日期 + 金额 向数据库查（dup-check.js 的缓存）；还没查过的先按没有算，查回来再标一遍 */
 function markDups(box) {
+  loadNear(dupCands(box)).then((fresh) => { if (fresh && box.isConnected) markDups(box); }).catch(() => {});
   const store = box.querySelector('[name="store"]').value, date = box.querySelector('[name="date"]').value || todayISO();
   let n = 0; const taken = new Set();
   box.querySelectorAll(".scan-row").forEach((r) => {
@@ -257,6 +261,7 @@ async function confirm(ctx) {
   if (!rows.length) { sc.error = t("没有勾选任何一行。"); return repaint2(); }
   if (rows.some((x) => !x.name)) { sc.error = t("有一行没有名称。"); return repaint2(); }
   if (rows.some((x) => x.target !== "__skip" && !(x.qty > 0))) { sc.error = t("入库的行数量要大于 0。"); return repaint2(); }
+  await loadNear(boxes.flatMap(dupCands)).catch(() => {});   // 先把这几张小票的日期 + 金额查完，提醒才是准的
   const dupRows = boxes.reduce((s, b) => s + markDups(b), 0);   // 疑似重复的行：第一次点只提醒，确认无误再点一次才入库
   if (dupRows && !sc.dupAck) { sc.dupAck = true; sc.error = t("有 {n} 行疑似已经记过（见各行下面的提醒）。确认不是重复的，再点一次“确认入库”；是重复的就取消勾选那一行。", { n: dupRows }); return repaint2(); }
   sc.dupAck = false; sc.busy = true; sc.error = ""; repaint2();
