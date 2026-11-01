@@ -32,6 +32,7 @@ export const DemoStore = {
     // 借贷（迁移 058）：旧演示库里的贷款类账单、需要还的收入，按 058 同一套规则转成贷款（只做一次；source_key 防重复）
     db.debt_accounts ||= []; db.debt_transactions ||= [];
     if (!db._debt058) { migrateLegacyDebts(db, { uid, today: new Date().toISOString().slice(0, 10) }); db._debt058 = true; }
+    db.account_balances ||= []; db.asset_valuations ||= []; db.net_worth_snapshots ||= [];   // 净资产（迁移 059）
     this.persist();
   },
   /* 家庭成员（演示：只有“我”= 家主，user_id 固定为 "me"，和 budget.js 的 myId() 一致）；不放进 state.members，免得名册、分摊等演示数据跟着变 */
@@ -256,6 +257,7 @@ export const DemoStore = {
   async deleteAsset(id) {
     this.db.assets = this.db.assets.filter((x) => x.id !== id);
     this.db.maint_logs = this.db.maint_logs.filter((l) => l.asset_id !== id);
+    this.db.asset_valuations = (this.db.asset_valuations || []).filter((v) => v.asset_id !== id);
     this.persist();
   },
   async listMaintLogs() { return this.db.maint_logs.map((x) => ({ ...x })); },
@@ -341,7 +343,7 @@ export const DemoStore = {
     if (c.id) { const i = this.db.cards.findIndex((x) => x.id === c.id); if (i < 0) throw new Error("卡不存在"); this.db.cards[i] = { ...this.db.cards[i], ...c, updated_at: now }; this.persist(); return c.id; }
     const id = uid(); this.db.cards.push({ ...c, id, created_at: now, updated_at: now }); this.persist(); return id;
   },
-  async deleteCard(id) { this.db.cards = (this.db.cards || []).filter((x) => x.id !== id); this.persist(); },
+  async deleteCard(id) { this.db.cards = (this.db.cards || []).filter((x) => x.id !== id); this.db.account_balances = (this.db.account_balances || []).filter((x) => x.card_id !== id); this.persist(); },
 
   /* 账单 */
   async listBills() { return this.db.bills.map((x) => ({ ...x })); },
@@ -401,6 +403,21 @@ export const DemoStore = {
   },
   async deleteDebtTxns(ids) { const set = new Set(ids); this.db.debt_transactions = (this.db.debt_transactions || []).filter((x) => !set.has(x.id)); this.persist(); },
   async linkBillDebt(billId, debtId) { const b = this.db.bills.find((x) => x.id === billId); if (b) { b.debt_id = debtId || null; this.persist(); } },
+  /* 净资产（迁移 059）：余额历史、估值历史、每月快照 */
+  async listBalances() { return (this.db.account_balances || []).map((x) => ({ ...x })); },
+  async saveBalance(r) { const row = balanceRow(r); return demoSave(this, "account_balances", row, r.id, (x) => x.card_id === row.card_id && x.as_of === row.as_of); },
+  async deleteBalance(id) { this.db.account_balances = (this.db.account_balances || []).filter((x) => x.id !== id); this.persist(); },
+  async listValuations() { return (this.db.asset_valuations || []).map((x) => ({ ...x })); },
+  async saveValuation(r) { const row = valuationRow(r); return demoSave(this, "asset_valuations", row, r.id, (x) => x.as_of === row.as_of && (row.property_id ? x.property_id === row.property_id : x.asset_id === row.asset_id)); },
+  async deleteValuation(id) { this.db.asset_valuations = (this.db.asset_valuations || []).filter((x) => x.id !== id); this.persist(); },
+  async listSnapshots() { return (this.db.net_worth_snapshots || []).map((x) => ({ ...x })); },
+  /** auto：本月还没有才新建；已有且也是 auto 才更新（manual 的不覆盖）。否则（手动保存 / 重建）直接覆盖这个月 */
+  async saveSnapshot(s, { auto = false } = {}) {
+    const row = snapshotRow(s), old = (this.db.net_worth_snapshots || []).find((x) => x.month === row.month);
+    if (auto && old && old.source !== "auto") return;
+    demoSave(this, "net_worth_snapshots", row, old?.id || null, (x) => x.month === row.month);
+  },
+  async deleteSnapshot(id) { this.db.net_worth_snapshots = (this.db.net_worth_snapshots || []).filter((x) => x.id !== id); this.persist(); },
   async listPaymentsOfBill(billId) { return this.db.bill_payments.filter((p) => p.bill_id === billId).map((x) => ({ ...x })); },
   /** 批量写花费：带 id 的已有行只改给出的字段，没有的新建（还款拆分用） */
   async upsertPurchases(rows) {
@@ -575,6 +592,36 @@ function debtTxnRow(x) {
   for (const k of ["principal_amount", "interest_amount", "fee_amount", "escrow_amount", "total"]) r[k] = r2(r[k]);
   r.split_source ||= "schedule";
   return r;
+}
+/* 净资产（迁移 059） */
+export const BALANCE_FIELDS = ["card_id", "as_of", "balance", "currency", "source", "notes"];
+export const VALUATION_FIELDS = ["property_id", "asset_id", "as_of", "value", "currency", "source", "notes"];
+export const SNAPSHOT_FIELDS = ["month", "totals", "assets_total", "liabilities_total", "net_worth", "currency", "source", "meta"];
+function balanceRow(x) {
+  const r = pick(x, BALANCE_FIELDS, {});
+  r.balance = r2(r.balance); r.currency ||= Units.region.currency; r.source ||= "manual"; r.notes = r.notes ? String(r.notes).slice(0, 300) : null;
+  return r;
+}
+function valuationRow(x) {
+  const r = pick(x, VALUATION_FIELDS, {});
+  r.value = r2(r.value); r.currency ||= Units.region.currency; r.source ||= "manual"; r.notes = r.notes ? String(r.notes).slice(0, 300) : null;
+  if (r.property_id) r.asset_id = null;   // 恰好挂一处（数据库 check）
+  return r;
+}
+function snapshotRow(x) {
+  const r = pick(x, SNAPSHOT_FIELDS, {});
+  for (const k of ["assets_total", "liabilities_total", "net_worth"]) r[k] = r2(r[k]);
+  r.totals ||= {}; r.meta ||= {}; r.currency ||= Units.region.currency; r.source = r.source === "manual" ? "manual" : "auto";
+  return r;
+}
+/** 演示库：有 id 就改那一行，没有就按唯一键（同一账户同一天 / 同一资产同一天 / 同一个月）找；改了日期撞上同一天的另一行，那一行让位（和数据库的唯一约束一致） */
+function demoSave(store, table, row, id, sameKey) {
+  const now = new Date().toISOString();
+  let list = store.db[table] ||= [];
+  const target = (id && list.find((x) => x.id === id)) || list.find(sameKey) || null;
+  list = store.db[table] = list.filter((x) => x === target || !sameKey(x));
+  if (target) { Object.assign(target, row, { updated_at: now }); store.persist(); return target.id; }
+  const nid = uid(); list.push({ ...row, id: nid, created_by: "demo", created_at: now, updated_at: now }); store.persist(); return nid;
 }
 /* 价格旁表（迁移 058）：房产买卖价、交易成交价 / 定金、设备买价 / 更换估价 / 车辆卖出价只放在只有财务权限能读的旁表里。
  * 读：主表 + 旁表合并成原来的样子（界面代码不用改）；没权限的人旁表读出来是空的，价格就是 null。
@@ -1017,6 +1064,31 @@ export const CloudStore = {
   },
   async deleteDebtTxns(ids) { for (let i = 0; i < ids.length; i += 100) this.must(await this.sb.from("debt_transactions").delete().in("id", ids.slice(i, i + 100))); },
   async linkBillDebt(billId, debtId) { this.must(await this.sb.from("bills").update({ debt_id: debtId || null }).eq("id", billId)); },
+  /* 净资产（迁移 059）：三张小表（每个账户每次更新一行、每处资产每次估值一行、每月一行快照），只有财务权限读得到，启动时整表读进内存 */
+  async listBalances() { return this.pageAll(() => this.sb.from("account_balances").select("*").eq("household_id", this.hid).order("as_of", { ascending: false }).order("id")); },
+  async saveBalance(r) {
+    const row = { ...balanceRow(r), household_id: this.hid };
+    if (r.id) { this.must(await this.sb.from("account_balances").update(row).eq("id", r.id)); return r.id; }
+    return this.must(await this.sb.from("account_balances").upsert(row, { onConflict: "card_id,as_of" }).select("id").single()).id;   // 同一账户同一天：改那一行
+  },
+  async deleteBalance(id) { this.must(await this.sb.from("account_balances").delete().eq("id", id)); },
+  async listValuations() { return this.pageAll(() => this.sb.from("asset_valuations").select("*").eq("household_id", this.hid).order("as_of", { ascending: false }).order("id")); },
+  /** 同一资产同一天的唯一索引是部分索引（property_id / asset_id 各一个），PostgREST 的 onConflict 用不上：调用方先在内存里找同一天的行，带 id 来改 */
+  async saveValuation(r) {
+    const row = { ...valuationRow(r), household_id: this.hid };
+    if (r.id) { this.must(await this.sb.from("asset_valuations").update(row).eq("id", r.id)); return r.id; }
+    return this.must(await this.sb.from("asset_valuations").insert(row).select("id").single()).id;
+  },
+  async deleteValuation(id) { this.must(await this.sb.from("asset_valuations").delete().eq("id", id)); },
+  async listSnapshots() { return this.pageAll(() => this.sb.from("net_worth_snapshots").select("*").eq("household_id", this.hid).order("month").order("id")); },
+  /** auto：本月还没有才新建（ignoreDuplicates），已有的只在它也是 auto 时更新——别的设备刚手动保存的不会被盖掉；否则直接覆盖这个月 */
+  async saveSnapshot(s, { auto = false } = {}) {
+    const row = { ...snapshotRow(s), household_id: this.hid }, T = () => this.sb.from("net_worth_snapshots");
+    if (!auto) { this.must(await T().upsert(row, { onConflict: "household_id,month" })); return; }
+    const made = this.must(await T().upsert(row, { onConflict: "household_id,month", ignoreDuplicates: true }).select("id")) || [];
+    if (!made.length) this.must(await T().update(row).eq("household_id", this.hid).eq("month", row.month).eq("source", "auto"));
+  },
+  async deleteSnapshot(id) { this.must(await this.sb.from("net_worth_snapshots").delete().eq("id", id)); },
   /** 一条账单的全部缴费（内存里只有近 400 天的）：重新拆分历史还款用；一笔贷款最多几百期 */
   async listPaymentsOfBill(billId) { return this.pageAll(() => this.sb.from("bill_payments").select("*").eq("household_id", this.hid).eq("bill_id", billId).order("paid_on").order("id")); },
   /** 批量写花费（upsert）：同一批的行要有相同的列；已有行只改给出的列 */
@@ -1129,7 +1201,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "account_balances", "asset_valuations", "net_worth_snapshots", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();

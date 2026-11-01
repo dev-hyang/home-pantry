@@ -15,6 +15,7 @@ export const state = {
   today: (() => { try { return JSON.parse(localStorage.getItem("hmh-today") || "{}"); } catch { return {}; } })(),   // 首页偏好：{ mode: severity|property, mine, focus }
   bills: [], billPayments: [], billsEnriched: [],   // 账单 B1
   debts: [], debtTxns: [], debtsOk: false, debtsErr: "", debtUi: {},   // 借贷（迁移 058）
+  balances: [], valuations: [], nwSnapshots: [], nwOk: false, nwErr: "", nwUi: {},   // 净资产（迁移 059）：余额历史、估值历史、每月快照
   assetFilter: { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" },   // 设备保养页的搜索与筛选
   billsFilter: { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" },
   payFilter: { bill: "all", year: "all", status: "all", sort: "new" },   // 缴费记录的筛选与排序（服务器分页，读到的页在 bills/views.js 的 payList）

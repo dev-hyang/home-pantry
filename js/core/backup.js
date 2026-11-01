@@ -23,7 +23,9 @@ export const TABLES = ["properties", "house_profiles", "custom_categories", "cus
   "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "household_people", "cards", "purchases", "maintenance_logs", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments",
   "member_incomes", "household_budgets",
   // 迁移 058：价格旁表（只有财务权限能读；备份本来就只给有财务权限的人）、借贷。bills.debt_id 引用 debt_accounts：bills 先不带 debt_id 写，借贷写完再补
-  "property_financials", "deal_financials", "asset_financials", "debt_accounts", "debt_transactions"];
+  "property_financials", "deal_financials", "asset_financials", "debt_accounts", "debt_transactions",
+  // 迁移 059：净资产（余额历史引用 cards，估值引用 properties / assets，都在前面）
+  "account_balances", "asset_valuations", "net_worth_snapshots"];
 const PAGE = 1000;   // PostgREST 单次最多 1000 行，大表分页读
 
 /* ───────────── 设置（存本机：文件夹本来就是这台电脑的） ───────────── */
