@@ -1002,15 +1002,42 @@ html.force-phone .today-layout { grid-template-columns: 1fr; }   /* 桌面预览
 /* 待办 · 按模块的块头：轻重计数 + 看全部（原「需要注意」块并进来） */
 .ttodo-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; margin-bottom: 6px; }
 .ttodo-top .tatt-pills { margin-bottom: 0; }
-/* 模块页顶上的「要处理」（core/alerts.js attentionPanel）和房屋首页的「各房产要处理的事」 */
-.attn-sec .section-head h2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.attn-sec.is-hot > .panel, .house-todo.is-hot .house-todo-grp { border-left: 3px solid var(--out); }
-.house-todo .section-head h2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.house-todo-chips { margin: 0 0 10px; }
-.house-todo-chips .chip { min-height: 44px; display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
-.house-todo-grp + .house-todo-grp { margin-top: 10px; }
-.house-todo-grp > ul { padding: 0 12px 8px; }
-.house-todo-more { text-align: center; margin: 0 0 10px; }
+/* 「要处理」区块（core/alerts.js attentionPanel、房屋页签的「各房产要处理的事」）：标题 = 图标 + 文字 + 计数，间距统一 8px */
+.attn-sec .section-head h2, .house-todo-head h2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.attn-sec .section-head h2 .badge, .house-todo-head h2 .badge { font-size: 12px; font-weight: 800; }
+.attn-sec.is-hot > .panel { border-left: 3px solid var(--out); }
+.attn-sec > .panel { padding: 6px 16px; }
+.house-todo { margin-top: 24px; }
+.house-todo-tabs .subtabs { margin-bottom: 12px; }
+.house-todo-grp + .house-todo-grp { margin-top: 12px; }
+.house-todo.is-hot .house-todo-grp { border-left: 3px solid var(--out); }
+.house-todo-grp > summary small { display: inline-flex; align-items: center; gap: 6px; }
+.house-todo-grp > ul { padding: 0 14px 8px; border-top: 1px solid var(--line); }
+.house-todo-more { text-align: center; margin: 0 0 12px; }
+/* 房屋页签首页 · 资产：一个可折叠的大块，里面「房屋」「汽车」两小块各自可折叠（状态记在本机 hmh-house-fold） */
+.asset-box { padding: 0; }
+.asset-box > summary, .asset-sub > summary, .asset-ended > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.asset-box > summary::-webkit-details-marker, .asset-sub > summary::-webkit-details-marker, .asset-ended > summary::-webkit-details-marker { display: none; }
+.asset-box > summary { min-height: 56px; padding: 10px 16px; border-radius: var(--r-lg); }
+.asset-box > summary h3 { margin: 0; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.asset-box > summary small { color: var(--muted); font-size: 13px; }
+.asset-box > summary:focus-visible, .asset-sub > summary:focus-visible, .asset-ended > summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.asset-box .tchev { margin-left: auto; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s ease; }
+.asset-box[open] > summary > .tchev, .asset-sub[open] > summary > .tchev { transform: rotate(90deg); }
+.asset-box-body { display: grid; gap: 12px; padding: 0 12px 12px; }
+.asset-sub { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg); }
+.asset-sub > summary { min-height: 48px; padding: 8px 12px; border-radius: var(--r-md); }
+.asset-sub-title { font-size: 15px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; }
+.asset-sub[open] > summary { border-bottom: 1px solid var(--line); border-radius: var(--r-md) var(--r-md) 0 0; }
+.asset-sub-body { background: var(--surface); border-radius: 0 0 var(--r-md) var(--r-md); }
+.asset-sub-body > .mlist { padding: 2px 6px; }
+.mrow-add .mi { color: var(--pine); font-weight: 800; }
+.mrow-add b { color: var(--pine); }
+.asset-more { padding: 0 14px 4px; font-size: 14px; }
+.asset-ended { border-top: 1px solid var(--line); }
+.asset-ended > summary { min-height: 44px; padding: 8px 14px; font-weight: 700; font-size: 14px; }
+.asset-ended > summary small { color: var(--muted); font-weight: 400; font-size: 12.5px; }
+@media (prefers-reduced-motion: reduce) { .asset-box .tchev { transition: none; } }
 .tempty { text-align: left; }
 /* 看一眼的数字：整张卡是链接，数字等宽对齐 */
 .tkpis { margin-bottom: 0; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
@@ -2219,3 +2246,41 @@ a.kpi { color: inherit; text-decoration: none; display: block; }
 .clear-filters[hidden] { display: none !important; }
 .clear-filters:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .qdel::after { content: ""; position: absolute; inset: -11px; }   /* 小 × 的点按范围扩到 44px */
+/* 每期还款拆分：「按对账单改」「关联一笔花费」在这一期下面展开 */
+.dd-pay tr.dd-open > td { background: var(--surface-2); }
+.dd-pay tr.dd-inline > td { padding: 0 10px 12px; background: var(--surface-2); }
+.dd-inline .dd-edit { margin-top: 0; background: var(--surface); }
+@media (max-width: 640px) {
+  .dd-pay tr.dd-open { background: var(--surface-2); border-bottom: 0; padding: 10px 10px; border-radius: var(--r-md) var(--r-md) 0 0; }
+  .dd-pay tr.dd-open > td { background: none; }
+  .dd-pay tr.dd-inline { display: block; padding: 0 10px 12px; background: var(--surface-2); border-radius: 0 0 var(--r-md) var(--r-md); margin-bottom: 8px; }
+  .dd-pay tr.dd-inline > td { display: block; padding: 0; background: none; }
+}
+/* 2026-11-02.2 排版统一：「要处理」标题和其他区块标题同一个样式（20px 粗体，无图标），后面一个计数徽章 */
+.attn-count { min-width: 24px; justify-content: center; font-size: 12px; font-weight: 800; background: var(--surface-2); color: var(--ink); font-variant-numeric: tabular-nums; }
+.attn-count.b-out { background: var(--out-bg); color: var(--out); }
+/* 借贷流水一行两行字：日期 · 类型 · 金额 / 明细 · 「编辑」放在金额下面（不再单独占一行） */
+.dd-rows .dr-row { grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 10px 4px; }
+.dr-row > .dr-flow { grid-row: 1 / span 2; align-self: start; }
+.dr-row > .dd-row-main { grid-column: 2; grid-row: 1 / span 2; }
+.dr-row > .dd-amt { grid-column: 3; grid-row: 1; }
+.dr-row > .dd-row-act { grid-column: 3; grid-row: 2; justify-self: end; }
+.dr-row > .dd-row-act .btn { min-height: 36px; padding: 4px 12px; }
+.dr-row > .dr-edit { grid-column: 1 / -1; grid-row: 3; }
+@media (max-width: 640px) { .dr-row > .dd-row-act { grid-column: 3; } .dr-row > .dr-edit { grid-column: 1 / -1; } }
+/* 每期还款拆分：操作按钮一行排开（「⋯」不掉到下一行） */
+.dd-pay td.dd-act { white-space: nowrap; vertical-align: middle; }
+.dd-pay td.dd-act .btn, .dd-pay td.dd-act .act-more { vertical-align: middle; }
+.dd-pay td { vertical-align: middle; }
+/* 没有类名的普通链接（正文里的「去资产页更新估值」、借贷名、表格里的资产名）：统一用主色，不出现浏览器默认的蓝 / 紫 */
+#main a:not([class]) { color: var(--pine); text-underline-offset: 2px; }
+#main a:not([class]):hover { color: var(--ink); }
+/* 净资产页：各块之间统一 12px，块标题统一 16px 粗体 */
+.nw-page > * { margin-top: 0; margin-bottom: 12px; }
+.nw-page .panel h3 { font-size: 16px; font-weight: 800; margin: 0 0 8px; }
+.nw-page .chart-head h3 { margin: 0; }
+.nw-page .panel h3 small { font-weight: 600; }
+/* 「要处理」块上下留白和其他区块一致；首页待办的说明只占一行（太长的省略），行高一致 */
+.attn-sec { margin-top: 20px; margin-bottom: 20px; }
+.today-col .mlist .mt small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.today-col .mlist .mt { min-width: 0; flex: 1; }

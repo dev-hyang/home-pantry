@@ -196,6 +196,9 @@ function payTableHtml(e) {
   const lim = pageLimit(`debt-pay-${e.id}`), shown = rows.slice(0, lim), anyExtra = rows.some((r) => r.extra > 0), stale = rows.filter((r) => r.stale).length, c = e.currency;
   const edit = ui().editPay ? rows.find((r) => r.id === ui().editPay) : null, linking = ui().linkPay ? rows.find((r) => r.id === ui().linkPay) : null;
   const pay = (r) => state.billPayments.find((p) => p.id === r.id);
+  // 「按对账单改」「关联一笔花费」的表单就在这一期下面展开（占满一行），不跑到表格最下面
+  const cols = 9 + (anyExtra ? 1 : 0);
+  const inline = (r) => (edit?.id === r.id || linking?.id === r.id ? `<tr class="dd-inline"><td colspan="${cols}">${edit?.id === r.id ? overrideForm(e, edit) : payLinkForm(e, linking)}</td></tr>` : "");
   // 每行的「⋯」：手动编辑（账单的缴费记录表单：日期、金额、卡）、关联一笔花费、删除这笔缴费
   const more = (r) => `<details class="act-more"><summary class="btn btn-sm btn-ghost" aria-label="${esc(t("更多操作：{d}", { d: fmtDate(r.paid_on) }))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">
       <a class="act-item" href="${esc(`${href("bill", e.bill.id)}?sec=pay&edit=${encodeURIComponent(r.id)}`)}">${t("手动编辑这笔缴费")}</a>
@@ -203,9 +206,10 @@ function payTableHtml(e) {
       <button type="button" class="act-item" data-debt="pay-del" data-id="${esc(e.id)}" data-pay="${esc(r.id)}">${t("删除这笔缴费")}</button></div></details>`;
   const cell = (label, v, cls = "num") => `<td class="${cls}" data-label="${esc(label)}">${v}</td>`;
   const tr = (r) => {
+    const open = edit?.id === r.id || linking?.id === r.id;
     const tip = r.ok ? t("实付 = 本金 + 利息 + Escrow{f}", { f: r.fee ? t(" + 滞纳金") : "" }) : t("实付不够本息：先付利息，再付本金");
     const diff = r.source === "schedule" && r.escrowDiff != null && r.escrowDiff > 0.005 ? r.escrowDiff : 0;
-    return `<tr${r.stale ? ' class="dd-stale"' : ""}>
+    return `<tr class="${[r.stale ? "dd-stale" : "", open ? "dd-open" : ""].filter(Boolean).join(" ")}">
       ${cell(t("日期"), `<b>${esc(fmtDate(r.paid_on))}</b>${r.paid_on !== r.due ? ` <small class="muted">${t("应还 {d}", { d: fmtDate(r.due) })}</small>` : ""}`, "")}
       ${cell(t("期"), `#${r.k}`)}
       ${cell(t("实付"), `${mny(r.total, c)} <span class="${r.ok ? "dd-ok" : "dd-warn"}" title="${esc(tip)}">${r.ok ? "✓" : "⚠"}<span class="sr-only">${esc(tip)}</span></span>`)}
@@ -224,9 +228,9 @@ function payTableHtml(e) {
   return `${stale ? `<p class="notice" role="status">${t("{n} 期已存的拆分和摊还表不一样（表里是按摊还表算的）：点「按摊还表重新拆分」写入。", { n: stale })}</p>` : ""}
     <div class="table-scroll dd-pay-wrap" tabindex="0" role="region" aria-label="${esc(t("每期还款拆分"))}"><table class="dd-tbl dd-pay"><caption class="sr-only">${t("每期还款拆分")}</caption>
     <thead><tr><th scope="col">${t("日期")}</th><th scope="col" class="num">${t("期")}</th><th scope="col" class="num">${t("实付")}</th><th scope="col" class="num">${t("本金")}</th><th scope="col" class="num">${t("利息")}</th><th scope="col" class="num">Escrow</th>${anyExtra ? `<th scope="col" class="num">${t("额外本金")}</th>` : ""}<th scope="col" class="num">${t("还款后余额")}</th><th scope="col">${t("来源")}</th><th scope="col"><span class="sr-only">${t("操作")}</span></th></tr></thead>
-    <tbody>${shown.map(tr).join("")}</tbody></table></div>
+    <tbody>${shown.map((r) => tr(r) + inline(r)).join("")}</tbody></table></div>
     ${rows.length > lim ? `<p class="muted dd-note">${t("显示最近 {a} 期，共 {n} 期", { a: lim, n: rows.length })}</p>` : ""}${pageMoreBtn(`debt-pay-${e.id}`, rows.length, shown.length)}
-    ${edit ? overrideForm(e, edit) : ""}${linking ? payLinkForm(e, linking) : ""}`;
+`;
 }
 /** 一期还款「关联一笔花费」：缴费日前后 7 天、金额相近的花费（对账单导入的那笔多半就在里面）；选了以后缴费改指向它，原来自动记的那笔删掉 */
 function payLinkForm(e, r) {
@@ -476,7 +480,7 @@ export function viewDebts() {
       <div class="kpi"><span>${t("每月还款")}</span><b>${mny(A.r2(monthly))}</b><small>${t("按关联账单折算")}</small></div>
       <div class="kpi"><span>${t("借出未收")}</span><b>${mny(A.r2(lent))}</b><small>${overdue ? t("{n} 笔逾期", { n: overdue }) : t("没有逾期")}</small></div>
     </div>
-    ${attentionPanel(["debt"], { title: t("借贷 · 要处理"), sub: t("快到期、逾期的借款，待确认的车贷") })}
+    ${attentionPanel(["debt"], { title: t("要处理"), sub: t("快到期、逾期的借款，待确认的车贷") })}
     ${tabBar(DEBT_TABS, tab, tabHref, t("借贷内容"))}
     ${listTab(tab, all)}
   </section>`;
@@ -541,7 +545,7 @@ export function initDebts({ render, refresh }) {
     const act = b.dataset.debt, id = b.dataset.id, d = id ? debtById(id) : null;
     if (act === "tx-more") { ui().txLimit = (ui().txLimit || 50) + 50; return render(false); }
     if (act === "rec-open") { ui().recOpen = ui().recOpen === id ? null : id; render(false); requestAnimationFrame(() => document.querySelector(ui().recOpen ? "#dd-rec-form select, #dd-rec-form input" : `[data-debt="rec-open"]`)?.focus()); return; }
-    if (act === "pay-link") { ui().linkPay = b.dataset.pay && ui().linkPay !== b.dataset.pay ? b.dataset.pay : null; ui().payCand = null; ui().editPay = null; b.closest("details")?.removeAttribute("open"); render(false); if (ui().linkPay) requestAnimationFrame(() => document.getElementById("dd-link")?.scrollIntoView({ block: "nearest" })); return; }
+    if (act === "pay-link") { ui().linkPay = b.dataset.pay && ui().linkPay !== b.dataset.pay ? b.dataset.pay : null; ui().payCand = null; ui().editPay = null; b.closest("details")?.removeAttribute("open"); render(false); if (ui().linkPay) requestAnimationFrame(() => { const f = document.getElementById("dd-link"); f?.scrollIntoView({ block: "nearest" }); f?.querySelector("select, button")?.focus({ preventScroll: true }); }); return; }
     if (act === "pay-del" && d) { if (!armed(b, t("再点一次确认删除这笔缴费"))) return; return guard(async () => { const back = await deleteBillPay(b.dataset.pay); await hooks.refresh(); toast(back ? t("已删除这条记录，到期日回到 {d}", { d: fmtDate(back) }) : t("已删除这条记录")); await after(); }); }
     if (act === "amort-all") { ui().amortAll = ui().amortAll === id ? null : id; return render(false); }
     if (act === "resplit" && d) return guard(async () => { b.disabled = true; const n = await resplitDebt(d, { overwrite: !!ui().overwrite }); toast(t("已按摊还表拆分 {n} 笔还款", { n })); await after(); });

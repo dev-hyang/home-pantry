@@ -87,7 +87,7 @@ export function viewBillsHome() {
   const inCur = list.filter((b) => (b.currency || cur) === cur), monthlyTotal = inCur.reduce((s, b) => s + b.monthly, 0);
   const next30 = upcoming(list, 30), due30 = next30.filter((x) => (x.bill.currency || cur) === cur).reduce((s, x) => s + num(x.bill.est), 0);
   const open = state.medEnriched.filter((b) => b.open), owe = open.reduce((s, b) => s + (b.balance || 0), 0);
-  const attn = attentionPanel(["bill", "medical", "card", "budget", "debt", "income", "finance"], { title: t("财务 · 要处理"), sub: t("账单、卡、预算、借贷、收入和账户余额，最要紧的在前"), max: 8 });   // 整个财务的待办（各模块页顶上各自也有一份）
+  const attn = attentionPanel(["bill", "medical", "card", "budget", "debt", "income", "finance"], { title: t("要处理"), sub: t("账单、卡、预算、借贷、收入和账户余额，最要紧的在前"), max: 8 });   // 整个财务的待办（各模块页顶上各自也有一份）
   const card = (href_, icon, title, desc, stat, add) => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small></span><span class="kind-stat">${stat}</span><span class="mch" aria-hidden="true">›</span></a>${add}</div>`;
   return `
     <section class="section">
@@ -154,7 +154,7 @@ export function viewBillsOverview() {
         ${subs.count ? `<div class="kpi"><span>${t("订阅与会员")}</span><b>${money(subs.monthly)}<small>/${t("月")}</small></b><small>${t("{n} 项，{a} 项年付", { n: subs.count, a: subs.annualPaid })}</small></div>` : ""}
       </div>
     </section>
-    ${alerts.length ? `<section class="section attn-sec is-hot"><div class="section-head"><h2><span aria-hidden="true">🔔</span> ${t("要处理的账单")} <span class="badge mcount b-out">${alerts.length}</span></h2><p>${t("逾期、到期、即将到期和待核对的自动扣款")}</p></div>
+    ${alerts.length ? `<section class="section attn-sec is-hot"><div class="section-head"><h2>${t("要处理的账单")}<span class="badge attn-count b-out">${alerts.length}</span></h2><p>${t("逾期、到期、即将到期和待核对的自动扣款")}</p></div>
       <div class="panel"><ul class="restock-list">${alerts.map((b) => billRow(b)).join("")}</ul></div></section>`
       : `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单")}</strong></div></section>`}
     ${monthBillsHtml(list)}

@@ -78,7 +78,7 @@ export function attentionPanel(sources, { title = t("要处理"), sub = "", filt
   if (!list.length) return "";
   const hot = list.filter((x) => x.severity <= 2).length, id = `attn-${sources.join("-")}`;
   return `<section class="section attn-sec${hot ? " is-hot" : ""}" aria-labelledby="${id}">
-    <div class="section-head"><h2 id="${id}"><span aria-hidden="true">${hot ? "🔔" : "📌"}</span> ${esc(title)} <span class="badge mcount ${hot ? "b-out" : ""}">${list.length}</span></h2>${sub ? `<p>${esc(sub)}</p>` : ""}</div>
+    <div class="section-head"><h2 id="${id}">${esc(title)}<span class="badge attn-count ${hot ? "b-out" : ""}">${list.length}</span></h2>${sub ? `<p>${esc(sub)}</p>` : ""}</div>
     <div class="panel"><ul class="restock-list alert-list">${list.slice(0, max).map(alertRow).join("")}</ul>
       ${list.length > max ? `<div class="form-actions" style="justify-content:center"><a class="btn btn-sm btn-ghost" href="${esc(more)}">${esc(t("看全部 {n} 条", { n: list.length }))}</a></div>` : ""}</div></section>`;
 }

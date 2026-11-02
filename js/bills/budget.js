@@ -368,7 +368,7 @@ export function viewBudget() {
       </div>
       ${plan.income != null && plan.pool <= 0 ? `<p class="form-error">${t("固定账单和储蓄已经用完了收入，没有可支配额：先看看账单能不能压缩，或降低储蓄比例。")}</p>` : ""}
     </section>
-    ${attentionPanel(["budget"], { title: t("预算 · 要处理") })}
+    ${attentionPanel(["budget"], { title: t("要处理") })}
     ${tabHub(BUDGET_TABS, budgetHref, t("更多"))}
     <section class="section">
       <div class="section-head"><h2>${t("本月预算")}</h2><p>${t("竖线是本月已过去的进度；条越过竖线说明花得比时间快")}</p></div>

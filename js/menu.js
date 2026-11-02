@@ -8,7 +8,7 @@ import { SECTIONS, href } from "./core/router.js";
 import { esc, inSpace } from "./core/util.js";
 import { t } from "./core/i18n.js";
 import { alertsOf } from "./core/logic.js";
-import { activeVehicles, assetName, assetsDueCount, myVehicles } from "./house/assets.js";
+import { activeVehicles, assetName, assetsDueCount, myVehicles, vehStatus } from "./house/assets.js";
 import { undoneThisMonth } from "./house/tasks.js";
 import { dealSubLabel, historyLabel, openDeal, routeDeal } from "./house/deals.js";
 import { SETTING_SECTIONS } from "./settings/views.js";
@@ -100,22 +100,45 @@ export function viewPropertyList() {
       ${n ? `<span class="badge b-soon mcount">${n}</span>` : ""}
       <span class="mch" aria-hidden="true">›</span></button>`;
   };
-  const rows = activeProperties().map(rowOf).join("");
-  const ended = endedProperties();   // 已卖出 / 已退租：收进折叠区，档案、账单、设备、记录都还在
-  const endedHtml = ended.length ? `<details class="panel ref-panel" style="margin-top:12px"><summary><b>${t("已结束的房产")}</b><small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
-      <div class="mlist">${ended.map(rowOf).join("")}</div></details>` : "";
-  const vehicles = activeVehicles(), vAlerts = assetsDueCount({ vehicles: true });
-  return `<section class="section menu-page">
+  const props = activeProperties(), ended = endedProperties();   // 已卖出 / 已退租：收进「已结束」，档案、账单、设备、记录都还在
+  const vehicles = activeVehicles(), pastN = myVehicles().length - vehicles.length;
+  const vAlert = (a) => alerts.filter((x) => x.source === "asset" && x.asset_id === a.id && x.severity <= 2).length;
+  const vRow = (a) => {
+    const v = a.vehicle || {}, pt = window.VEHICLES?.POWERTRAINS?.[a.type];
+    const desc = [[a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "), v.plate, t(window.VEHICLES?.STATUS?.[vehStatus(a)]?.name || "")].filter(Boolean).join(" · ");
+    const n = vAlert(a);
+    return `<a class="mrow" href="${esc(href("asset", a.id))}"><span class="mi" aria-hidden="true">${pt?.icon || "🚗"}</span>
+      <span class="mt"><b>${esc(assetName(a))}</b>${desc ? `<small>${esc(desc)}</small>` : ""}</span>${n ? `<span class="badge b-soon mcount">${n}</span>` : ""}<span class="mch" aria-hidden="true">›</span></a>`;
+  };
+  const addRow = (attrs, title, desc) => `<${attrs.startsWith("href") ? "a" : "button type=\"button\""} class="mrow mrow-add" ${attrs}><span class="mi" aria-hidden="true">＋</span><span class="mt"><b>${title}</b><small>${desc}</small></span></${attrs.startsWith("href") ? "a" : "button"}>`;
+  const sub = (k, icon, title, count, body) => `<details class="asset-sub" data-hfold="${k}" ${houseFolded(k) ? "" : "open"}>
+      <summary><span class="asset-sub-title"><span aria-hidden="true">${icon}</span> ${title}</span><span class="badge attn-count">${count}</span><span class="tchev" aria-hidden="true">›</span></summary>
+      <div class="asset-sub-body">${body}</div></details>`;
+  const houses = sub("houses", "🏠", t("房屋"), props.length, `<div class="mlist">${props.map(rowOf).join("") || `<div class="empty"><strong>${t("还没有房产")}</strong></div>`}
+      ${state.editProperty === "new" ? "" : addRow(`data-action="property-edit" data-id=""`, t("添加房产"), t("自住、出租或租住的房子都可以"))}</div>
+    ${ended.length ? `<details class="asset-ended"><summary>${t("已结束的房产")} <small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small></summary><div class="mlist">${ended.map(rowOf).join("")}</div></details>` : ""}`);
+  const cars = sub("vehicles", "🚗", t("汽车"), vehicles.length, `<div class="mlist">${vehicles.map(vRow).join("")}
+      ${addRow(`href="${esc(href("asset", "new"))}?type=vehicle_gas"`, t("添加车辆"), t("油车、混动、纯电都可以"))}</div>
+    <a class="tmore asset-more" href="${esc(href("house", "vehicles"))}">${pastN ? t("车辆总览、保养时间表（另有 {n} 辆历史车辆）", { n: pastN }) : t("车辆总览、保养时间表、本地须知")} ›</a>`);
+  return `<section class="section menu-page house-landing">
     <div class="section-head"><h2>🏠 ${t("房屋")}</h2><p>${t("点一套房产进入它的概览、设备保养、季节任务、交易和资料")}</p></div>
     ${houseBar()}
-    <div class="panel mlist">${rows || `<div class="empty"><strong>${t("还没有房产")}</strong></div>`}
-      ${state.editProperty === "new" ? "" : `<button type="button" class="mrow" data-action="property-edit" data-id=""><span class="mi" aria-hidden="true">＋</span><span class="mt"><b>${t("添加房产")}</b><small>${t("自住、出租或租住的房子都可以")}</small></span></button>`}</div>
+    <details class="panel asset-box" data-hfold="assets" ${houseFolded("assets") ? "" : "open"}>
+      <summary><h3><span aria-hidden="true">🗂️</span> ${t("资产")}</h3><small>${t("{a} 套房产 · {b} 辆车", { a: props.length, b: vehicles.length })}</small><span class="tchev" aria-hidden="true">›</span></summary>
+      <div class="asset-box-body">${houses}${cars}</div>
+    </details>
     ${houseTodoBoard()}
-    ${endedHtml}
-    <div class="section-head" style="margin-top:22px"><h2>${t("全家")}</h2></div>
-    <div class="panel mlist">${menuRow({ href: href("house", "vehicles"), icon: "🚗", title: t("车辆"), desc: vehicles.length ? t("{n} 辆，保养时间表、牌照与保险", { n: vehicles.length }) : t("车辆档案、保养时间表、牌照与保险"), count: vAlerts })}</div>
   </section>`;
 }
+/* 房屋页签首页的折叠状态（资产 / 房屋 / 汽车）：记在这台设备上（hmh-house-fold），切换时不重画页面 */
+const HF_KEY = "hmh-house-fold";
+const houseFold = () => { if (!state.houseFold) { try { state.houseFold = JSON.parse(localStorage.getItem(HF_KEY) || "{}") || {}; } catch { state.houseFold = {}; } } return state.houseFold; };
+const houseFolded = (k) => !!houseFold()[k];
+if (typeof document !== "undefined") document.addEventListener("toggle", (e) => {   // toggle 不冒泡，用捕获
+  const d = e.target; if (!d?.matches?.("details[data-hfold]")) return;
+  const f = houseFold(); f[d.dataset.hfold] = !d.open;
+  try { localStorage.setItem(HF_KEY, JSON.stringify(f)); } catch { /* 忽略 */ }
+}, true);
 
 /** 某个页签的目录页（房屋：当前房产的页面目录） */
 /** 财务目录：按 FIN_GROUPS 分组；没权限的行、整组都空的组不出现 */

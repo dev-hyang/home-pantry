@@ -3592,4 +3592,7 @@ export const EN = {
   "要处理": "To handle", "财务 · 要处理": "Finance · to handle", "账单、卡、预算、借贷、收入和账户余额，最要紧的在前": "Bills, cards, budget, loans, income and balances, most urgent first",
   "财务这边最近没有要处理的事 ✓": "Nothing to handle in Finance ✓", "卡与账户 · 要处理": "Cards & accounts · to handle", "到期、年费、轮换类别、开卡奖励": "Expiry, annual fees, rotating categories, sign-up bonuses",
   "预算 · 要处理": "Budget · to handle", "设备与车辆": "Equipment & vehicles", "收入 · 要处理": "Income · to handle", "该收的还款": "Repayments due to you",
+  // ── 2026-11-02.2：房屋页签首页 · 资产（房屋 / 汽车） ──
+  "汽车": "Vehicles", "油车、混动、纯电都可以": "Gas, hybrid or electric", "车辆总览、保养时间表（另有 {n} 辆历史车辆）": "Vehicle overview and service schedule ({n} past vehicles)",
+  "车辆总览、保养时间表、本地须知": "Vehicle overview, service schedule, local notes", "{a} 套房产 · {b} 辆车": "{a} properties · {b} vehicles",
 };

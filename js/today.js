@@ -138,7 +138,7 @@ function todoBlock(all, counts) {
   const top = all.length ? `<div class="ttodo-top">${pills ? `<div class="pills tatt-pills" aria-label="${esc(t("按轻重"))}">${pills}</div>` : ""}<a class="tmore" href="${href("alerts")}">${t("全部 {n} 件，按轻重 / 到期排", { n: all.length })} ›</a></div>` : "";
   const row = (r) => `<a class="mrow" href="${esc(r.href)}"><span class="mi" aria-hidden="true">${r.icon}</span>
       <span class="mt"><b>${esc(r.name)}</b><small>${esc(r.first)}</small></span>
-      <span class="badge mcount ${r.worst <= 2 ? SEVERITY_CLS[r.worst] : ""}">${r.n}</span><span class="mch" aria-hidden="true">›</span></a>`;
+      <span class="badge mcount ${r.worst <= 2 ? SEVERITY_CLS[r.worst] : "attn-count"}">${r.n}</span><span class="mch" aria-hidden="true">›</span></a>`;
   const body = rows.length ? `${top}<div class="panel mlist">${rows.map(row).join("")}</div>`
     : `<div class="panel empty tempty"><strong>${t("各处都没有待办 ✓")}</strong>${t("采购清单是空的，账单、保养和季节任务都不急。")}</div>`;
   return block("todo", { icon: counts.important ? "🔔" : "🗂️", title: t("待办 · 按模块"), count: countPill(counts.important || rows.length, counts.important ? "b-out" : ""), cls: counts.important ? "is-hot" : "", body });

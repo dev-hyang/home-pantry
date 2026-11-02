@@ -97,7 +97,7 @@ export function viewCards() {
       <div class="head-acts">${ro ? `<span class="badge" style="background:var(--surface-2)">${t("只读")}</span>` : `<a class="btn btn-primary btn-sm" href="${cardHref("new")}">${t("添加卡 / 账户")}</a>`}</div></div>
     ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("你可以查看卡和推荐；添加、修改、停用、删除要家主在「设置 → 家庭与成员」里给你开财务权限。")}</p>` : ""}
     ${state.cardDelete && !ro ? deleteConfirmHtml(state.cardDelete) : ""}
-    ${attentionPanel(["card"], { title: t("卡与账户 · 要处理"), sub: t("到期、年费、轮换类别、开卡奖励") })}
+    ${attentionPanel(["card"], { title: t("要处理"), sub: t("到期、年费、轮换类别、开卡奖励") })}
     ${cards.length ? pickPanel() : ""}
     ${cards.length ? reviewHtml() : ""}
     ${cards.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("我的卡")}</h2><p>${t("{n} 张在用", { n: cards.length })}${catalogAge() > 90 ? ` · <span class="bank-dup">${t("目录更新于 {d}，可能过期，返现规则以发卡行为准", { d: D().AS_OF })}</span>` : ""}</p></div>
