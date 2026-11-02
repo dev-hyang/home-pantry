@@ -1,5 +1,6 @@
 /* 房产 / 车辆生命周期：状态、买入 / 卖出 / 退租（房产）与买车 / 卖车 / 租赁归还（车辆）交易、清单任务（模板在 data/deals.js）、退出向导、首页提醒
  * 一笔交易挂在房产（property_id）或车辆（asset_id）上；页面 #/house/deal，车辆交易带 ?asset=<id>，看历史交易带 ?deal=<id> */
+import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { propertyActive } from "../core/lifecycle.js";
 import { state } from "../core/state.js";
 import { askButton, askPanel, ctx as askCtx } from "../core/ask.js";
@@ -220,7 +221,7 @@ const addTaskRow = (deal, stage, row) => row(null, "➕", t("添加自定义事�
 const DEAL_VIEWS = [["list", "☰", "清单"], ["plan", "📋", "计划"], ["actual", "✅", "实际"], ["compare", "⚖️", "对比"]];
 const DEAL_FILTERS = [["all", "全部"], ["undone", "未完成"], ["overdue", "逾期"], ["must", "必须项"], ["skipped", "已跳过"]];
 const filterDealRows = (rows) => rows.filter((x) => ({ all: true, undone: !x.done && !x.skipped, overdue: !x.done && !x.skipped && x.overdue, must: !x.done && !x.skipped && x.priority === "must", skipped: !!x.skipped }[state.dealFilter] ?? true));
-const dealFilterBar = () => `<div class="chips" role="group" aria-label="${t("按完成情况筛选")}">${DEAL_FILTERS.map(([v, l]) => `<button type="button" class="chip" data-action="deal-filter" data-val="${v}" aria-pressed="${(state.dealFilter || "all") === v}">${t(l)}</button>`).join("")}</div>`;
+const dealFilterBar = () => `<div class="chips" role="group" aria-label="${t("按完成情况筛选")}">${DEAL_FILTERS.map(([v, l]) => `<button type="button" class="chip" data-action="deal-filter" data-val="${v}" aria-pressed="${(state.dealFilter || "all") === v}">${t(l)}</button>`).join("")}${clearFiltersBtn("deal", (state.dealFilter || "all") !== "all")}</div>`;
 export function viewDeal() {
   const q = state.route?.q;
   const assetId = q?.get("asset") || null;

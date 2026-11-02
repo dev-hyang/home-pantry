@@ -2157,3 +2157,8 @@ a.kpi { color: inherit; text-decoration: none; display: block; }
 }
 .debt-detail .btn { min-height: 44px; }
 @media (max-width: 560px) { .dd-kpis .kpi:last-child { grid-column: auto; } }
+
+/* 清除筛选（各页统一，js/core/clear-filters.js）：放在各页工具条里，手机上不换行、不被压扁 */
+.clear-filters { flex: 0 0 auto; min-height: 44px; white-space: nowrap; color: var(--pine); font-weight: 700; }
+.clear-filters[hidden] { display: none !important; }
+.clear-filters:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }

@@ -9,6 +9,7 @@ import { joinList, locale, t } from "./core/i18n.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SEVERITY_LABEL, SOURCE_ICON, SOURCE_LABEL, alertCounts, alertRow, collectAlerts, liveProperties, multiProperty, propertyName } from "./core/alerts.js";
 import { quickOk } from "./core/finance-access.js";
+import { clearFiltersBtn } from "./core/clear-filters.js";
 
 const PREF_KEY = "hmh-today";
 export function setTodayPref(patch) {
@@ -155,7 +156,7 @@ export function viewAlerts() {
   return `
     <nav class="crumb crumb-tools" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("注意事项")}</b>
       <label class="sort-dd"><span class="sr-only">${t("排序")}</span><select id="alertSort" aria-label="${t("排序")}">${sorts}</select></label></nav>
-    <section class="section today-head">${pager}${tools}</section>
+    <section class="section today-head">${pager}${tools}${clearFiltersBtn("alerts", !!src || !!pref.mine)}</section>
     <div>${body}</div>`;
 }
 

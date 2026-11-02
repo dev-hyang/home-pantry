@@ -6,6 +6,7 @@
  *   列表里单独分组；「出了问题？」入口去 js/house/fix.js（常见小毛病 + 咩咩诊断 + 配件加采购）
  * - 小家电 / 季节电器（类型上 portable: true：风扇、取暖器、除湿机…）：一台一条，列表单独分组；不设保养周期，换季提醒走季节任务
  * - 产品召回：assets.recall（迁移 051），登记、提醒和修 / 换 / 退三个出口在 js/house/recall.js；换新、退款处理完的旧设备“退役”，不进列表和提醒 */
+import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { STATUS, state } from "../core/state.js";
 import { fetchPurchase, fillFromPurchase, purchaseById } from "../core/spend-data.js";
 import { askButton, askInline, askPanel, ctx as askCtx } from "../core/ask.js";
@@ -282,7 +283,8 @@ function assetToolbar(list) {
     <select id="assetService" aria-label="${t("按保养状态筛选")}">${SERVICE_FILTERS.map(([v, l]) => opt(v, t(l), f.service)).join("")}</select>
     <select id="assetWarranty" aria-label="${t("按保修状态筛选")}">${WARRANTY_FILTERS.map(([v, l]) => opt(v, t(l), f.warranty)).join("")}</select>
     <select id="assetSort" aria-label="${t("排序")}">${ASSET_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
-    ${locs.length > 1 ? `<select id="assetLoc" aria-label="${t("按位置筛选")}">${opt("all", t("全部位置"), f.loc)}${locs.map((l) => opt(l, t(l), f.loc)).join("")}</select>` : ""}</div>`;
+    ${locs.length > 1 ? `<select id="assetLoc" aria-label="${t("按位置筛选")}">${opt("all", t("全部位置"), f.loc)}${locs.map((l) => opt(l, t(l), f.loc)).join("")}</select>` : ""}
+    ${clearFiltersBtn("asset", changed(f, FD.asset))}</div>`;
 }
 
 export function viewAssets() {

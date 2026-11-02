@@ -1,4 +1,5 @@
 /* 信用卡（用卡）界面：「现在该刷哪张」快速查询、卡列表、卡表单；采购清单 / 补记花费旁的一行建议。逻辑在 cards.js。 */
+import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, daysUntil, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
@@ -127,7 +128,7 @@ function giftSection(gifts) {
   const toolbar = gifts.length > 1 ? `<div class="toolbar gift-toolbar">
       ${issuers.length > 1 ? `<select id="giftIssuer" aria-label="${esc(t("按商家筛选"))}">${opt("all", t("全部商家"), f.issuer)}${issuers.map((i) => opt(i, i || t("（没填商家）"), f.issuer)).join("")}</select>` : ""}
       <select id="giftSort" aria-label="${esc(t("排序"))}">${GIFT_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
-      ${used ? `<label class="check-inline"><input type="checkbox" id="giftUsed" ${f.used ? "checked" : ""}><span>${t("显示已用完的（{n}）", { n: used })}</span></label>` : ""}</div>` : "";
+      ${used ? `<label class="check-inline"><input type="checkbox" id="giftUsed" ${f.used ? "checked" : ""}><span>${t("显示已用完的（{n}）", { n: used })}</span></label>` : ""}${clearFiltersBtn("gift", changed(f, FD.gift))}</div>` : "";
   return `<div class="section-head" style="margin-top:14px"><h2>${t("礼品卡")}</h2><p>${t("{n} 张卡", { n: gifts.length })}${total ? ` · ${t("余额合计 {m}", { m: money(total) })}` : ""}${used ? ` · ${t("{n} 张已用完", { n: used })}` : ""}</p></div>
     ${toolbar}
     <div class="panel">${rows.length ? `<ul class="restock-list card-list">${rows.map((g) => cardRow(g.c)).join("")}</ul>` : `<p class="muted" style="margin:0">${t("没有符合条件的礼品卡")}</p>`}</div>
@@ -154,7 +155,7 @@ function offSection(off) {
   const toolbar = off.length >= 6 ? `<div class="toolbar off-toolbar">
       <input type="search" id="offQ" value="${esc(f.q)}" placeholder="${esc(t("搜名字 / 商家 / 末四位"))}" aria-label="${esc(t("搜索停用的卡"))}">
       <select id="offKind" aria-label="${esc(t("按种类筛选"))}">${OFF_KINDS.filter(([v]) => v === "all" || counts[v]).map(([v, l]) => opt(v, v === "all" ? t(l) : `${t(l)}（${counts[v]}）`, f.kind)).join("")}</select>
-      <select id="offSort" aria-label="${esc(t("排序"))}">${opt("since", t("停用时间：近 → 远"), f.sort)}${opt("name", t("名称 A → Z"), f.sort)}</select></div>` : "";
+      <select id="offSort" aria-label="${esc(t("排序"))}">${opt("since", t("停用时间：近 → 远"), f.sort)}${opt("name", t("名称 A → Z"), f.sort)}</select>${clearFiltersBtn("off", changed(f, FD.off))}</div>` : "";
   const pool = cleanupPool(off), cleanable = pool.eligible.length + pool.recent.length;
   const summary = [counts.gift ? t("礼品卡 {n}", { n: counts.gift }) : "", counts.card ? t("信用卡 {n}", { n: counts.card }) : "", counts.bank ? t("账户 {n}", { n: counts.bank }) : ""].filter(Boolean).join(" · ");
   return `<details class="ref-panel panel" style="margin-top:10px" ${state.cardCleanup || q || f.kind !== "all" || f.sort !== "since" ? "open" : ""}><summary><b>${t("停用的卡")}</b><small>${t("{n} 张卡", { n: off.length })}${summary ? ` · ${summary}` : ""}</small><span class="mch" aria-hidden="true">›</span></summary>

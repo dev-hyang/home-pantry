@@ -1,5 +1,6 @@
 /* 财务 → 医疗：概览 / 账单 / 年度报表三个标签（窄屏概览下面是入口行），账单详情页（?bill=<id|new>）里有金额、保险、付款记录。
  * 隐私：默认“仅自己和家主可见”（visibility = private），可改成全家可见；列表里私密的带 🔒。 */
+import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, esc, fmtDate, money, num, toast, todayISO } from "../core/util.js";
@@ -94,6 +95,7 @@ function listTab() {
       <select id="medProvider" aria-label="${t("按商家筛选")}">${opt("all", t("全部医院 / 商家"), f.provider)}${uniq("provider").map((x) => opt(x, x, f.provider)).join("")}</select>
       <select id="medStatus" aria-label="${t("按状态筛选")}">${opt("all", t("全部状态"), f.status)}${opt("open", t("待处理（未结清）"), f.status)}${Object.entries(STATUS).map(([k, n]) => opt(k, t(n), f.status)).join("")}</select>
       <select id="medYear" aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
+      ${clearFiltersBtn("med", changed(f, FD.med))}
     </div>
     <div id="medList">${listInner()}</div></div>`;
 }

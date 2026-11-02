@@ -1,4 +1,5 @@
 import { categoryOptions } from "../pantry/views.js";
+import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { askInline } from "../core/ask.js";
@@ -438,14 +439,15 @@ export function spendExportTab() {
 /** 时间条：时间范围 + 月份（分类 / 商店页才有；默认「整段」= 和时间范围一致）+ 排除资本性 / 投资 的开关，放在标签下面、内容上面，一眼能看到。
  *  tab 为空 = 只有时间范围（预算趋势页用，同一个范围值） */
 export function timeBarHtml(tab) {
-  if (!tab) return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label></div>`;
+  const clr = clearFiltersBtn("stats", changed(state.stats, FD.stats));
+  if (!tab) return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${clr}</div>`;
   const ms = rangeMonths(), withMonth = tab === "category" || tab === "stores" || tab === "all";
   const m = state.stats.month && ms.includes(state.stats.month) ? state.stats.month : "";
   const monthSel = withMonth && ms.length > 1 ? `<label class="tb-field"><span>${t("月份")}</span><select id="statsMonth" aria-label="${t("选择月份")}" data-nosearch><option value="" ${m ? "" : "selected"}>${t("整段（{r}）", { r: rangeLabel() })}</option>${[...ms].reverse().map((x) => `<option value="${x}" ${x === m ? "selected" : ""}>${monthOpt(x)}</option>`).join("")}</select></label>` : "";
   const o = statOpts(), tg = (act, on, label, tip) => `<label class="check-inline" title="${esc(tip)}"><input type="checkbox" data-action="${act}" ${on ? "checked" : ""}><span>${label}</span></label>`;
   return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${monthSel}
     ${tg("stats-excap", o.exCap, t("排除资本性"), t("买房卖房、买车整付、装修：几年一次、金额巨大，默认不画进图里；去掉勾可以一起看"))}
-    ${tg("stats-exinv", o.exInv, t("排除投资"), t("转入投资账户、买基金股票：钱还是家里的，默认不画进图里；去掉勾可以一起看"))}</div>`;
+    ${tg("stats-exinv", o.exInv, t("排除投资"), t("转入投资账户、买基金股票：钱还是家里的，默认不画进图里；去掉勾可以一起看"))}${clr}</div>`;
 }
 /** 当前时间范围的叫法：近 6 个月 / 今年 / 2025 年 */
 export function rangeLabel(n = state.stats.months) {
@@ -637,7 +639,7 @@ function activeFilterChips() {
 }
 function spendChipsHtml() {
   const chips = activeFilterChips(); if (!chips.length) return "";
-  return `<div class="filter-chips" role="group" aria-label="${t("当前筛选")}"><span class="muted">${t("当前筛选")}</span>${chips.map(([k, label]) => `<button type="button" class="chip fchip" data-action="spend-chip-clear" data-k="${k}" aria-label="${esc(t("去掉筛选：{x}", { x: label }))}">${esc(label)} <span aria-hidden="true">✕</span></button>`).join("")}${chips.length > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="spend-chip-clear" data-k="all">${t("清除全部")}</button>` : ""}</div>`;
+  return `<div class="filter-chips" role="group" aria-label="${t("当前筛选")}"><span class="muted">${t("当前筛选")}</span>${chips.map(([k, label]) => `<button type="button" class="chip fchip" data-action="spend-chip-clear" data-k="${k}" aria-label="${esc(t("去掉筛选：{x}", { x: label }))}">${esc(label)} <span aria-hidden="true">✕</span></button>`).join("")}</div>`;   // 全部清除：工具条上统一的「清除筛选」
 }
 const NO_SPEND_FILTER = () => ({ q: "", cat: "all", grp: null, nat: "all", prop: "all", store: "all", stores: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
 export function clearSpendFilter(k) {
@@ -704,6 +706,7 @@ function spendRecordsHtml() {
         <select id="spendYear" data-nosearch aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
         <select id="spendMon" data-nosearch aria-label="${t("按月份筛选")}">${opt("all", t("全部月份"), f.mon)}${Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => opt(m, t("{m} 月", { m: +m }), f.mon)).join("")}</select>
         <select id="spendSort" data-nosearch aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
+        ${clearFiltersBtn("spend", changed(f, FD.spend))}
       </div>
       <div id="spendChips">${spendChipsHtml()}</div>
       <div class="ix-tools"><button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${state.spendSel ? t("退出多选") : t("多选删除")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="spend" data-filtered="1">${t("打印")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-csv">${t("导出当前列表 CSV")}</button></div>

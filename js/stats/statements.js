@@ -3,6 +3,7 @@
  * · 全部流水：统一账本 ledger_v（迁移 056）——花费和收入按时间排在一起，只读（对账时一眼看全；改动去对应的花费 / 收入页）。收入只显示你有权看到的（行级安全），认定收入和资本流入分开算。
  * · 导出打印：花费（年度 CSV、打印）和收入 / 收支差额（CSV、打印）放在一起，逻辑还在 stats/views.js 和 income/views.js，这里只是把它们摆到同一页。
  * 原来在 花费 → 银行导入、收入 → 银行导入 的入口都指到这里（旧链接 #/bills/spend?tab=import 自动跳过来）。 */
+import { FD, changed, clearFiltersBtn, onClearFilters } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { $, esc, fmtDate, money, moneyExact, num, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
@@ -88,7 +89,7 @@ function allTab() {
   return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-stmt="range" data-nosearch>${RANGES.map(([v, l]) => `<option value="${v}" ${v === o.range ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
       <div class="chips" role="group" aria-label="${esc(t("显示什么"))}" style="margin:0">${DIRS.map(([v, l]) => `<button type="button" class="chip" data-stmt-dir="${v}" aria-pressed="${o.dir === v}">${t(l)}</button>`).join("")}</div></div>
     ${note}<div class="kpis"><div class="kpi"><span>${t("收入（认定）")}</span><b>${money(b.inc)}</b>${b.cap ? `<small>${t("另有资本流入 {a} · 不计收入", { a: money(b.cap) })}</small>` : ""}</div><div class="kpi"><span>${t("花费")}</span><b>${money(b.spend)}</b></div><div class="kpi"><span>${t("收支差额")}</span><b class="${b.net < 0 ? "down" : ""}">${money(b.net)}</b></div></div>
-    <div class="panel"><div class="st-tools"><input type="search" data-stmt-q value="${esc(o.q)}" placeholder="${esc(t("搜索名称 / 商店 / 付款方 / 账户"))}" aria-label="${esc(t("搜索"))}"><button type="button" class="btn btn-sm btn-ghost" data-stmt="csv">${t("导出这个列表 CSV")}</button></div>
+    <div class="panel"><div class="st-tools"><input type="search" data-stmt-q value="${esc(o.q)}" placeholder="${esc(t("搜索名称 / 商店 / 付款方 / 账户"))}" aria-label="${esc(t("搜索"))}">${clearFiltersBtn("stmt", changed(o, FD.stmt))}<button type="button" class="btn btn-sm btn-ghost" data-stmt="csv">${t("导出这个列表 CSV")}</button></div>
       <p class="muted small" style="margin:6px 0 8px">${t("只读：花费和收入按时间排在一起。点一行去对应的花费 / 收入页查看或修改。")}</p>
       <div id="stmtList">${listHtml()}</div></div>`;
 }
@@ -109,6 +110,7 @@ export function viewStatements() {
 
 export function initStatements({ render: r }) {
   render = r;
+  onClearFilters("stmt", () => { Object.assign(SS(), FD.stmt, { limit: pageSize() }); render(false); }, () => changed(SS(), FD.stmt));
   const main = document.getElementById("main");
   const onStmtPage = () => state.route?.section === "bills" && state.route?.sub === "statements";
   main.addEventListener("click", (e) => {

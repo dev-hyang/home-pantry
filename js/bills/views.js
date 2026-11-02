@@ -1,4 +1,5 @@
 /* 账单 B1 · 页面：概览、清单、记录、常用账单模板、账单整页表单（含缴费记录） */
+import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { fillFromPurchase, purchaseById } from "../core/spend-data.js";
 import { Store } from "../core/store.js";
@@ -242,6 +243,7 @@ export function viewBillsList() {
         <select id="billCat" aria-label="${t("按分类筛选")}"><option value="all">${t("全部分类")}</option>${B().CATEGORIES.filter((c) => used.has(c.id)).map((c) => `<option value="${c.id}" ${f.cat === c.id ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`).join("")}</select>
         <select id="billChannel" aria-label="${t("按缴费方式筛选")}"><option value="all">${t("全部缴费方式")}</option>${Object.entries(B().CHANNELS).map(([k, n]) => `<option value="${k}" ${f.channel === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select>
         <select id="billSort" aria-label="${t("排序")}">${BILL_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "category") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
+        ${clearFiltersBtn("bills", changed(f, FD.bills))}
       </div>
       ${hiddenEndedHint(state.billsEnriched)}
       <div id="billList">${billInner()}</div>
@@ -302,7 +304,7 @@ function payToolbar() {
     <select id="payBill" aria-label="${t("按账单筛选")}">${opt("all", t("全部账单"), f.bill)}${ids.map((id) => opt(id, byBill[id] ? billOption(byBill[id]) : t("（已删除的账单）"), f.bill)).sort().join("")}</select>
     <select id="payYear" aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
     <select id="payStatus" aria-label="${t("按状态筛选")}">${opt("all", t("全部状态"), f.status)}${Object.entries(B().PAYMENT_STATUS).map(([k, n]) => opt(k, t(n), f.status)).join("")}</select>
-    <select id="paySort" aria-label="${t("排序")}">${PAY_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select></div>`;
+    <select id="paySort" aria-label="${t("排序")}">${PAY_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>${clearFiltersBtn("pay", changed(f, FD.pay))}</div>`;
 }
 
 /* ── 记录 ── */

@@ -8,6 +8,7 @@ import { SECTIONS, go, goBack, href, isFormSection, parseRoute, routeKey } from 
 import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.js";
 import { resilientFetch } from "./core/net.js";
 import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
+import { FD, changed, clearUrlParams, onClearFilters } from "./core/clear-filters.js";
 import { applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
 import { ensureAdults } from "./bills/medical.js";
 import { spendChanged } from "./core/spend-data.js";
@@ -425,6 +426,21 @@ function resetSectionFilters(section) {
     default: break;
   }
 }
+/* ── 清除筛选（各页工具条上同一个按钮，js/core/clear-filters.js）：恢复这一页的默认筛选（排序不动）、分页回到第一页、网址里的筛选参数去掉 ── */
+const clearAnd = (fn) => () => { fn(); resetListPages(); render(false); };
+onClearFilters("inv", clearAnd(() => { Object.assign(state.filter, FD.inv); clearUrlParams(["cat", "status"]); }), () => changed(state.filter, FD.inv));
+onClearFilters("shop", clearAnd(() => Object.assign(state.shopFilter, FD.shop)), () => changed(state.shopFilter, FD.shop));
+onClearFilters("asset", clearAnd(() => Object.assign(state.assetFilter, FD.asset)), () => changed(state.assetFilter, FD.asset));
+onClearFilters("deal", clearAnd(() => { state.dealFilter = "all"; }));
+onClearFilters("bills", clearAnd(() => { Object.assign(state.billsFilter, FD.bills); clearUrlParams(["prop"]); }), () => changed(state.billsFilter, FD.bills));
+onClearFilters("pay", clearAnd(() => Object.assign(state.payFilter, FD.pay)), () => changed(state.payFilter, FD.pay));   // 服务器分页：resetListPages 标过期、回第一页
+onClearFilters("spend", () => { clearSpendFilter("all"); resetListPages(); renderSpendRecords(); }, () => changed(state.spendFilter, FD.spend));
+onClearFilters("med", clearAnd(() => Object.assign(state.medFilter, FD.med)), () => changed(state.medFilter, FD.med));
+onClearFilters("stats", clearAnd(() => { Object.assign(state.stats, FD.stats); clearUrlParams(["node", "month", "cat", "item"]); }));
+onClearFilters("gift", clearAnd(() => Object.assign((state.giftFilter ||= { sort: "balance" }), FD.gift)));
+onClearFilters("off", clearAnd(() => Object.assign((state.offFilter ||= { sort: "since" }), FD.off)), () => changed(state.offFilter, FD.off));
+onClearFilters("alerts", clearAnd(() => setTodayPref({ source: null, mine: false })));
+
 $("#tabs").addEventListener("click", (e) => {
   const a = e.target.closest("a[data-section]"); if (!a) return;
   const sec = a.dataset.section, root = a.getAttribute("href");

@@ -3548,4 +3548,5 @@ export const EN = {
   "已取消校准": "Calibration removed",
   "已保存，重新拆分了 {n} 笔": "Saved; re-split {n} payments",
   "请填日期、本金和利息": "Enter the date, principal and interest",
+  "清除筛选": "Clear filters",
 };

@@ -2,6 +2,7 @@
  * 数据在 income_records（迁移 042 / 056），收入规则在 js/core/income-taxonomy.js（认定收入 vs 资本流入），花费规则在 js/core/taxonomy.js。
  * 统计不把花费读进浏览器：收支总览 / 类型读数据库按月聚合的 inc_rollup + spend_rollup，收支对比的花费一侧读 ledger_rollup（按月或双周），
  * 在 js/stats/report.js 汇总。明细是服务器分页（inc_page / inc_stats）。付款方、最近到账、还款、表单查重仍用整张收入表（I.rec）。 */
+import { FD, changed, clearFiltersBtn, clearUrlParams, onClearFilters } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, applyDraft, daysUntil, esc, formDraft, money, moneyExact, num, todayISO, toast } from "../core/util.js";
@@ -448,6 +449,7 @@ function recordsTab() {
     <select id="incPersonF" data-inc-f="person" data-nosearch aria-label="${esc(t("按成员筛选"))}">${personOptions(I.person, { all: true })}</select>
     <select id="incYearF" data-inc-f="year" data-nosearch aria-label="${esc(t("按年份筛选"))}">${opt("all", t("全部年份"), I.year)}${yearsOf().map((v) => opt(v, v, I.year)).join("")}</select>
     <select id="incMonthF" data-inc-f="month" data-nosearch aria-label="${esc(t("按月份筛选"))}">${opt("all", t("全部月份"), I.month || "all")}${Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => opt(m, t("{m} 月", { m: +m }), I.month)).join("")}</select>
+    ${clearFiltersBtn("incRec", changed(I, FD.incRec))}
     <select id="incSort" data-inc-f="sort" data-nosearch aria-label="${esc(t("排序"))}">${selOpts([["new", "最近的在前"], ["old", "最早的在前"], ["big", "金额从大到小"], ["small", "金额从小到大"], ["kind", "按类型（一级 · 具体类型）"]], I.sort || "new")}</select></div>
     ${drillChips()}
     ${I.batch ? `<div class="muted small" style="margin-top:8px">${t("只看一次银行导入的入账")} <button type="button" class="btn btn-sm btn-ghost" data-inc="batch-clear">${t("看全部收入")}</button></div>` : ""}
@@ -623,7 +625,7 @@ function sendersTab() {
     <div class="panel"><div class="toolbar ix-stoolbar">
       <input type="search" data-inc-sq value="${esc(I.sq || "")}" placeholder="${esc(t("搜索付款方 / 类型"))}" aria-label="${esc(t("搜索付款方"))}">
       <select id="incSkindF" data-inc-f="skind" aria-label="${esc(t("按类型筛选"))}">${kindOptionsHtml(I.skind || "all", { all: true, groups: true, allLabel: t("全部类型") })}</select>
-      <select id="incSsort" data-inc-ssort data-nosearch aria-label="${esc(t("排序"))}">${sSortOptions()}</select></div>
+      <select id="incSsort" data-inc-ssort data-nosearch aria-label="${esc(t("排序"))}">${sSortOptions()}</select>${clearFiltersBtn("incSend", changed(I, FD.incSend))}</div>
     <div id="incSendersList">${sendersListHtml()}</div>
     <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm" data-inc="csv-senders">${t("导出付款方汇总 CSV")}</button></div></div>`;
 }
@@ -794,6 +796,9 @@ const NO_FILTER = () => ({ q: "", kind: "all", acct: "all", year: "all", month: 
 
 export function initIncome({ render, refresh }) {
   hooks = { render, refresh }; initIncomeScan({ render });
+  // 清除筛选：收入记录（搜索、下拉、下钻日期段、导入批次，网址参数一起去掉）/ 付款方汇总
+  onClearFilters("incRec", () => { Object.assign(inc(), FD.incRec, { limit: pageSize() }); clearUrlParams("*"); redraw(); }, () => changed(inc(), FD.incRec));
+  onClearFilters("incSend", () => { Object.assign(inc(), FD.incSend, { slimit: null }); redraw(); }, () => changed(inc(), FD.incSend));
   window.addEventListener("hashchange", () => { if (!location.hash.startsWith("#/bills/income")) { const I = inc(); I.form = null; I.scanOpen = false; I.selMode = false; I.open = null; I._lastTab = undefined; } });   // 离开收入页：下次进来是干净的，不会看着像「选了好几个」
   const main = document.getElementById("main");
   main.addEventListener("click", (e) => {

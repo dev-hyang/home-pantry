@@ -12,6 +12,7 @@ import { lastStore, storeDatalist } from "../stats/views.js";
 import { cardHintHtml, cardSelectHtml } from "../bills/cards-views.js";
 import { askInline } from "../core/ask.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
+import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { shopAdviceHtml, shopForecastHtml } from "../bills/budget.js";
 
 /* ── 概览（储藏 / 房屋耗材共用）── */
@@ -283,6 +284,7 @@ export function viewInventory(space = "pantry") {
         </select>`}
         ${locationFilter(mine, f)}
         <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.filter(([v]) => !(gear && v === "exp")).map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
+        ${clearFiltersBtn("inv", changed(f, FD.inv))}
       </div>
       ${phone ? "" : `<div class="chips" role="group" aria-label="${t("按分类筛选")}">
         ${chip("all", t("全部"))}${orderedCats(space).map((c) => chip(c.id, `${c.icon} ${t(c.name)}`)).join("")}
@@ -419,7 +421,7 @@ function shopToolbar() {
   return `<div class="toolbar" style="margin-top:12px">
     <select id="shopCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c, `${(window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).icon || ""} ${t((window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).name)}`.trim(), f.cat)).join("")}</select>
     <select id="shopWho" aria-label="${t("按认领筛选")}">${opt("all", t("全部"), f.who)}${opt("todo", t("没人认领的"), f.who)}${opt("mine", t("我认领的"), f.who)}${opt("others", t("家人认领的"), f.who)}</select>
-    <select id="shopSort" aria-label="${t("排序")}">${SHOP_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select></div>`;
+    <select id="shopSort" aria-label="${t("排序")}">${SHOP_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>${clearFiltersBtn("shop", changed(f, FD.shop))}</div>`;
 }
 /* 采购清单各区块的展开状态：手动开合过的记在本机，没动过的用默认（待购买展开、认领中有内容才展开、已买到收起） */
 const SHOP_OPEN_KEY = "hmh-shop-open";
