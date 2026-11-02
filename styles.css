@@ -964,33 +964,59 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .act-item:hover, .act-item:focus-visible { background: var(--surface-2); }
 .act-item:focus-visible { outline: 2px solid var(--pine); outline-offset: -2px; }
 @media print { .alert-acts { display: none; } }
-/* 首页格子块：注意事项 / 咩咩咩 / 采购清单 / 今天吃什么 四大块 + 快捷操作小块 */
-.today-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-@media (min-width: 900px) { .today-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.ttile { display: grid; gap: 10px; align-content: start; padding: 14px; border-radius: 18px; background: var(--surface); color: var(--ink); text-decoration: none; min-height: 140px; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 0 0 1px color-mix(in srgb, var(--line) 60%, transparent); }
-.ttile:active { transform: scale(.98); }
-.ttile:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08), 0 0 0 1px var(--pine); }
-.ttile-ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; background: var(--surface-2); }
-.ttile .ai-ico { margin: 0; vertical-align: 0; filter: none; }
-.t-ai .ttile-ico { background: transparent; }
-.t-alerts .ttile-ico { background: var(--ok-bg); }
-.t-alerts.is-hot .ttile-ico { background: var(--out-bg); }
-.t-alerts.is-hot .tile-count { color: var(--out); }
-.t-shop .ttile-ico { background: var(--low-bg); }
-.t-meals .ttile-ico { background: color-mix(in srgb, var(--mustard) 28%, var(--surface)); }
-.ttile .tile-count { color: var(--ink); }
-.ttile-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
-.ttile .pills { display: flex; flex-wrap: wrap; gap: 4px; }
-.ttile .pill i { width: auto; min-width: 14px; padding: 0 4px; }
-.ttile .pill .ai-ico { vertical-align: -3px; }
+/* 首页 · 今日（2026-11 重排，docs/design-today.md）：手机一栏；宽屏两栏（左：要做的事，右：看一眼的数字和咩咩），读屏顺序 = 先左栏再右栏 */
+.today-layout { display: grid; gap: 18px; align-items: start; }
+@media (min-width: 900px) { .today-layout { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 22px; } }
+html.force-phone .today-layout { grid-template-columns: 1fr; }   /* 桌面预览手机布局 */
+.today-col { display: grid; gap: 18px; align-content: start; min-width: 0; }
+.today-col > .section { margin: 0; }
+.today-hi { font-size: 24px; font-weight: 800; margin: 2px 0 4px; }
+.today-status { margin: 0; font-size: 15px; font-weight: 700; }
+.today-status.is-hot { color: var(--out); }
+.today-status.is-calm { color: var(--ok); }
+/* 可折叠的一块：summary 整行可点（≥ 44px），h3 当标题，右边计数和 › */
+.tsec > summary { list-style: none; display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; border-radius: 10px; padding: 0 2px; margin-bottom: 6px; }
+.tsec > summary::-webkit-details-marker { display: none; }
+.tsec > summary h3 { margin: 0; font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+.tsec > summary h3 .ai-ico { margin: 0; vertical-align: 0; }
+.tsec > summary .tchev { margin-left: auto; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s ease; }
+.tsec[open] > summary .tchev { transform: rotate(90deg); }
+.tsec > summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.tsec > summary .badge { margin-left: 2px; }
+@media (prefers-reduced-motion: reduce) { .tsec > summary .tchev { transition: none; } }
+/* 需要注意：最要紧的几条，整行是链接 */
+.tatt-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.tatt-pills .pill i { width: auto; min-width: 14px; padding: 0 4px; }
+.tatt-note { margin: 0 0 4px; font-size: 13px; }
+.tatt-list { list-style: none; margin: 0; padding: 0; }
+.tatt-list li + li { border-top: 1px solid var(--line); }
+.tatt-row { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 9px 2px; color: inherit; text-decoration: none; }
+.tatt-row:hover b { text-decoration: underline; }
+.tatt-row .badge { flex: none; margin-top: 1px; }
+.tatt-row .grow { min-width: 0; }
+.tatt-row b { font-weight: 700; }
+.tatt-row small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.tatt-row .mch { margin-left: auto; color: var(--muted); align-self: center; }
+.tmore { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; color: var(--pine); text-decoration: none; }
+.tmore:hover { text-decoration: underline; }
+.tempty { text-align: left; }
+/* 看一眼的数字：整张卡是链接，数字等宽对齐 */
+.tkpis { margin-bottom: 0; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.tkpi { min-height: 44px; }
+.tkpi:hover { border-color: var(--pine); }
+.tkpi b { font-variant-numeric: tabular-nums; }
+.tkpi b.down { color: var(--out); }
+@media (max-width: 560px) { .tkpis { grid-template-columns: 1fr 1fr; } .tkpis .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; } .tkpis .kpi:last-child:nth-child(even) { grid-column: auto; } }
+/* 咩咩咩 */
+.tai-acts { margin-top: 10px; }
+/* 快捷操作：编辑按钮一行 */
+.tquick-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -2px 0 8px; font-size: 13px; }
 .pill.sev-0 { background: var(--out-bg); color: var(--out); } .pill.sev-0 i { background: var(--out); }
 .pill.sev-1 { background: var(--low-bg); color: var(--low); } .pill.sev-1 i { background: var(--low); }
 .pill.sev-2 { background: var(--exp-bg); color: var(--exp); } .pill.sev-2 i { background: var(--exp); }
 .pill.sev-3 { background: var(--surface-2); color: var(--muted); } .pill.sev-3 i { background: var(--muted); }
-.today-sub { font-size: 14px; font-weight: 800; margin: 0 0 8px; color: var(--muted); }
 .quick-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-@media (min-width: 900px) { .quick-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-html.force-phone .today-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }   /* 桌面预览手机布局 */
+@media (min-width: 900px) { .quick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }   /* 今日左栏里：4 列 */
 html.force-phone .quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .qtile { display: grid; justify-items: center; gap: 6px; padding: 12px 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 12.5px; font-weight: 700; text-align: center; }
 .qtile:hover { border-color: var(--pine); }
@@ -2070,3 +2096,4 @@ a.kpi { color: inherit; text-decoration: none; display: block; }
 .nw-page .chip { min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; color: inherit; }
 .nw-page .chip[aria-current="true"] { color: var(--bg); }
 @media (max-width: 640px) { .nw-tbl .nw-opt { display: none; } }
+.qdel::after { content: ""; position: absolute; inset: -11px; }   /* 小 × 的点按范围扩到 44px */
