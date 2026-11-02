@@ -1,0 +1,90 @@
+# 今日（Today）页设计（2026-11 重排）
+
+配合 房屋（日常运营）/ 财务（原「账单」，分组：收支 · 账户与资产 · 借贷 · 预算与计划 · 分析）的新信息架构，首页从「四个大格子 + 快捷操作」改成按用途分块。代码：`js/today.js`（`viewToday`），样式：`styles.css`「首页 · 今日」一段。
+
+## 问题与目标
+
+- 旧版：注意事项 / 咩咩咩 / 采购清单 / 今天吃什么四个同等大小的格子，下面是快捷操作；快捷操作默认里有「账单概览」等旧名字，没有钱的数字，也看不出各模块分别有多少事。
+- 目标：一眼看到「今天要做什么」（按要紧程度和按模块两个角度）、「家里和钱现在怎么样」、「常用动作一键到」；按角色给不同的内容；手机和电脑都好用。
+
+## 分块（自上而下 = 读屏顺序）
+
+| 块 | 内容 | 链接 |
+|---|---|---|
+| 问候 | 日期、问候（早上好 / 下午好…，有名字时带名字）、一句话状态：要紧件数 / 可留意件数 / 没有要处理的事 ✓ | — |
+| 房屋资料提示 | 当前房产没填房屋资料时出现（沿用旧版） | `#/house/profile` |
+| 需要注意 | 提醒总线最要紧的 5 条（紧急 / 今天 / 尽快）；没有时列 3 条「留意」；四档药丸计数 | 每条 → 提醒自带的地址（没有时 `#/alerts`）；查看全部 → `#/alerts` |
+| 待办 · 按模块 | 每个有事的模块一行：数量 + 最近的一件；按最要紧的一件排序 | 见下表 |
+| 快捷操作 | 每人自己的一份，可增删、点格子替换、长按拖动排序、恢复默认 | 预设见 `PRESETS()` |
+| 钱 · 本月（财务） | 本月日常 / 含住房、本月现金流出、未来 30 天账单、本月收入、净资产 | `#/bills/spend`、`#/bills/spend`、`#/bills/recurring`、`#/bills/income`、`#/bills/networth`；去财务 → `#/bills` |
+| 家里 · 一览 | 储藏要补货件数、采购清单、设备该保养台数；非财务成员另有未来 30 天账单笔数 | `#/pantry/overview`、`#/shopping`、`#/house/assets`、`#/bills/recurring` |
+| 咩咩咩 | 说明文字（随 AI 状态变化），问咩咩、今天吃什么 | `#/ai`、`#/pantry/meals?ai=` |
+
+宽屏（≥ 900px）两栏：左栏 = 需要注意、待办、快捷操作（要做的事）；右栏 = 钱、家里、咩咩（看一眼的东西）。手机一栏，顺序同 DOM（先左栏后右栏），读屏和 Tab 顺序与视觉一致。
+
+每块是一个 `<details data-fold>`，summary 里是 h3 标题和计数，整行 ≥ 44px 可点；收起状态存在 `localStorage["hmh-today"].fold`（只在这台设备），切换时不重画页面。问候是 h2（站名是 h1）。
+
+### 待办的模块与链接
+
+| 模块 | 提醒来源 | 链接 | 只给财务 |
+|---|---|---|---|
+| 采购清单 | 内存里的 `state.shopping`（待买 + 家人正在买） | `#/shopping` | |
+| 周期性账单 | `bill` | `#/bills/recurring` | |
+| 一次性账单 | `medical` | `#/bills/onetime` | |
+| 借贷还款 | `debt` | `#/bills/debts` | ✓ |
+| 卡与账户 | `card` | `#/bills/cards` | |
+| 预算 | `budget` | `#/bills/budget` | ✓ |
+| 收入还款 | `income` | `#/bills/income?tab=records` | ✓ |
+| 设备保养 | `asset` | `#/house/assets` | |
+| 季节任务 | `season` | `#/house/tasks` | |
+| 交易 | `deal` | `#/house/deal` | |
+| 储藏补货 | `pantry` | `#/pantry/overview` | |
+| 房屋耗材 | `house` | `#/pantry/inventory?space=house` | |
+| 加入申请 | `join` | `#/me/settings?sec=family` | |
+
+模块关掉（房屋 / 财务）时对应行不出现。
+
+## 角色
+
+规则函数：`js/core/finance-rules.js`（`financeAllowed`、`quickAllowed`、`FINANCE_ALERT_SOURCES`），界面读法：`js/core/finance-access.js`（`financeOk`、`quickOk`）。
+
+| | 家主 | 有财务权限的成员 | 没有财务权限的成员 |
+|---|---|---|---|
+| 需要注意 / 待办 | 全部来源 | 全部来源 | 没有预算、收入还款、借贷（总线里就去掉了，待办链接再过一遍 `quickOk`） |
+| 钱 · 本月 | ✓ | ✓ | 不画（不是 CSS 隐藏），也不发聚合请求 |
+| 家里 · 一览 | 储藏、采购、设备 | 同左 | 同左 + 未来 30 天账单笔数（账单本来全家可见；只给笔数，不给金额） |
+| 快捷操作默认 | 录入购物、记一笔花费、采购清单、添加账单、记一笔收入、财务概览 | 同左 | 录入购物、记一笔花费、采购清单、储藏概览、设备保养、季节任务 |
+| 快捷操作可选 | 全部预设 | 全部预设 | 去掉 对账单 / 收入 / 预算 / 资产 / 借贷 / 净资产 / 添加信用卡；已存的也不画 |
+
+演示模式只有一个人（家主），`financeOk()` 恒为 true。
+
+## 数据来源与性能
+
+首页每次画都只读内存和现有缓存，不新增逐条查询：
+
+- 提醒：`collectAlerts()`（各模块注册的提供者，全在内存里算）。
+- 采购、储藏、设备、账单：`state.shopping`、`state.enriched`、`state.assetsEnriched`、`state.billsEnriched`（启动时已读）；未来 30 天账单用 `bills/logic.js` 的 `upcoming()`。
+- 本月日常 / 含住房 / 现金流出：`stats/views.js` 的 `spendAgg(lastMonths(6), 6)`，和 财务 → 概览 的「花费速览」是同一份 `spend_rollup` 缓存（读近 12 个月的聚合一次，花费变了标过期后台重读，读完 `spend-data-loaded` 重画）。
+- 本月收入：`income/views.js` 的 `incRollupFor([上月, 本月])`（`inc_rollup` 聚合，按参数缓存）+ `stats/report.js` 的 `incAggregate`。
+- 净资产：`bills/nw-logic.js` 的 `liveNetWorth()`（内存里的余额、估值、贷款）+ `trendPoints` / `monthChange`（内存里的月度快照）；没执行迁移 059 或没权限时 `state.nwOk = false`，这张卡不出现。
+- 还在读时数字位置显示「…」，读完自动重画。
+
+## 快捷操作
+
+- 存储不变：云端存在 `user_metadata.quick`（换设备也在），演示模式存本机 `hmh-quick`。
+- 改名：账单概览 → 财务概览；新增：记一笔花费（`#/bills/spend?tab=records&add=1`，直接展开表单）、记一笔收入（`#/bills/income?tab=records&add=1`，`main.js` 的 `onRoute` 打开表单后去掉参数）、财务、收入、对账单、资产、借贷、净资产、房屋资料。
+- 旧地址照旧可用（`router.js` 的别名：`#/bills/list`、`#/bills/history`、`#/finance/…`）；读出已存列表时，旧的「补记一笔花费」（`?tab=records`）换成新的「记一笔花费」，财务开着时「花费统计」（`#/me/stats`）换成 `#/bills/spend`。
+- 财务的快捷地址都带 `prop=all`（每次回到全部房产），沿用旧规则。
+
+## 无障碍与响应式
+
+- 标题层级：h1 站名 → h2 问候 → h3 各块；summary、卡片、行都是 ≥ 44px 的点按区域；快捷操作编辑模式的 × 用伪元素扩大点按范围。
+- 颜色全部用现有 token（浅色 / 深色都有定义）；状态文字红 / 绿之外还有文字说明。
+- 折叠箭头的旋转在 `prefers-reduced-motion: reduce` 时关闭。
+- 数字 `tabular-nums` 对齐；手机上 KPI 两列，最后单出的一张占满一行。
+
+## 没做 / 以后
+
+- 待办里的季节任务 / 设备直接勾选完成（现在点进模块页面做）。
+- 首页的快捷操作没有按使用频率自动排序（只按用户自己排）。
+- 「家里 · 一览」没有车辆（车辆提醒已在需要注意 / 设备保养里）。
