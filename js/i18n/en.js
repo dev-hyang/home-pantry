@@ -3549,4 +3549,16 @@ export const EN = {
   "已保存，重新拆分了 {n} 笔": "Saved; re-split {n} payments",
   "请填日期、本金和利息": "Enter the date, principal and interest",
   "清除筛选": "Clear filters",
+  // 今日（2026-11 重排）
+  "夜深了": "Good night", "早上好": "Good morning", "中午好": "Good afternoon", "下午好": "Good afternoon", "晚上好": "Good evening", "{hi}，{name}": "{hi}, {name}",
+  "今天有 {n} 件事要处理": "To handle today: {n}", "没有要处理的事 ✓": "Nothing to deal with ✓",
+  "没有急事，下面这些可以留意": "Nothing urgent; these are worth a look", "查看全部 {n} 件": "See all {n}",
+  "账单、保养、季节任务、补货有动静时会出现在这里。": "Bills, maintenance, seasonal tasks and restocking show up here when something is due.",
+  "需要注意": "Needs attention", "各处都没有待办 ✓": "No to-dos anywhere ✓", "采购清单是空的，账单、保养和季节任务都不急。": "The shopping list is empty; bills, maintenance and seasonal tasks can wait.",
+  "待办 · 按模块": "To-dos by area", "本月日常": "Everyday this month", "{m}：{a} / {b}": "{m}: {a} / {b}", "{m}：{a}": "{m}: {a}",
+  "未来 30 天账单": "Bills next 30 days", "本月收入": "Income this month", "钱 · 本月": "Money · this month", "去财务": "Go to Finance",
+  "都够用": "All stocked", "共 {n} 件": "{n} items", "{n} 件要补货": "{n} to restock", "空的": "Empty", "去看看谁在买": "See who's buying", "想到要买的随手加": "Add things as you think of them",
+  "{n} 台该保养": "{n} need service", "都正常": "All good", "共 {n} 台": "{n} total", "到期前会出现在需要注意里": "Shows in Needs attention before it's due",
+  "家里 · 一览": "Home at a glance", "点格子换成别的，长按拖动排序": "Tap a tile to swap it; long-press to reorder", "财务概览": "Finance overview",
+  "{n} 笔账单": "{n} bills", "借贷还款": "Loan payments", "收入还款": "Repayments to you", "储藏补货": "Pantry restock", "问咩咩": "Ask Baa Baa", "记一笔收入": "Log income", "记一笔花费": "Log spending",
 };

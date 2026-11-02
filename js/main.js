@@ -21,7 +21,7 @@ import { initSwipeRows } from "./swipe-rows.js";
 import { initBankImport } from "./stats/bank-import.js";
 import { incList, initIncome, viewIncome } from "./income/views.js";
 import { initStatements, viewStatements } from "./stats/statements.js";
-import { loadIncome } from "./income/logic.js";
+import { inc, loadIncome } from "./income/logic.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
 import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml, purchasePayFields, rememberCard, resolvePayAccount, runCleanup, saveCardForm, setCardActive, viewCards } from "./bills/cards-views.js";
@@ -380,6 +380,12 @@ function onRoute() {
   if ((routeKey(prev) !== routeKey(next) || prev.q?.toString() !== next.q.toString()) && !isFormSection(prev)) resetListPages();
   // 从图表 / 名称钻取来的：套上筛选，再把地址里的筛选参数去掉（刷新或再次进入不会重复套用）
   if (next.section === "bills" && next.sub === "spend" && next.q.get("tab") === "records" && applySpendDrill(next.q)) history.replaceState(null, "", `${href("bills", "spend")}?tab=records`);   // 明细按筛选直接查数据库（批次、往年都在），不用先把记录读进内存
+  // 首页快捷操作「记一笔收入」：#/bills/income?tab=records&add=1 → 直接展开记收入表单，再把参数去掉（没有财务权限时 render 里的路由守卫照样挡住）
+  if (next.section === "bills" && next.sub === "income" && next.q.get("add") && financeOk()) {
+    Object.assign(inc(), { form: { rec: null }, scanOpen: false, _keep: true });
+    next.q.delete("add"); next.q.delete("prop"); next.q.set("tab", "records");
+    history.replaceState(null, "", `${href("bills", "income")}?tab=records`);
+  }
   state.route = next;
   render(true);
   if (next.section === "me" && next.sub === "settings" && next.q.get("sec") === "ai") hydrateModelSelect();   // AI 设置：后台查这个 key 实际能用的模型，填进下拉
