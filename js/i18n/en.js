@@ -3595,4 +3595,8 @@ export const EN = {
   // ── 2026-11-02.2：房屋页签首页 · 资产（房屋 / 汽车） ──
   "汽车": "Vehicles", "油车、混动、纯电都可以": "Gas, hybrid or electric", "车辆总览、保养时间表（另有 {n} 辆历史车辆）": "Vehicle overview and service schedule ({n} past vehicles)",
   "车辆总览、保养时间表、本地须知": "Vehicle overview, service schedule, local notes", "{a} 套房产 · {b} 辆车": "{a} properties · {b} vehicles",
+  // ── 2026-11-02.4：对账单 · 最近导入（实时笔数 / 合计、继续加载） ──
+  "花费 {n} 笔": "{n} spending", "（导入的都已删除）": "(everything from this import has been deleted)", "（导入时 {n} 笔 {m}，之后改过）": "(imported {n} for {m}; changed since)",
+  "{n} 批": "{n} imports", "显示 {a} / 共 {b} 批": "Showing {a} of {b} imports", "（导入时 {n} 笔，之后改过）": "(imported {n}; changed since)",
+  "只保留最近 {n} 批的记录；更早的花费 / 收入都还在，只是不在这里列出、不能整批撤销": "Only the latest {n} imports are kept here; older spending / income is still recorded, it just isn't listed or undoable as a batch",
 };

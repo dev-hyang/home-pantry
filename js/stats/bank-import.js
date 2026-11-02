@@ -18,6 +18,7 @@ import { adults, guessChannel, guessKind, inc as incState, incomeRules, kindOpti
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
 import { compressImage } from "../core/autofill.js";
 import { loadNear, nearRows } from "./dup-check.js";
+import { pageLimit, pageMore } from "../core/pager.js";
 import { aiExtract, chunkLines, detectAccount, looksOFX, looksQIF, parseStatementLines, pdfImages, pdfLines, readOFX, readQIF, readXLSX, redactLines, statementTotals } from "./statement-readers.js";
 
 let refreshFn = null;
@@ -209,7 +210,8 @@ export function classifyWhy(row) {
 }
 
 /* ───────────── 把表格变成交易行 ───────────── */
-const S = { parts: [], auto: {}, account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "", ikind: {}, incPerson: null, batchAcct: "all", batchShow: 20, editDates: "", force: new Set() };   // force：看过以后手动改成「仍然导入」的那几笔（按 日期|金额|描述#序号 记，重新解析 / 改列也保留）   // batchAcct / batchShow：「最近导入」列表的账户筛选和已展开的条数（重画也不丢）
+const BATCH_KEEP = 120;   // 「最近导入」记几批（存在家庭设置里；原来 60）
+const S = { parts: [], auto: {}, account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "", ikind: {}, incPerson: null, batchAcct: "all", editDates: "", force: new Set() };   // force：看过以后手动改成「仍然导入」的那几笔（按 日期|金额|描述#序号 记，重新解析 / 改列也保留）   // batchAcct / batchShow：「最近导入」列表的账户筛选和已展开的条数（重画也不丢）
 const cur = () => S.currency || Units.region.currency;
 let askFn = askText;   // 测试时可替换
 export const _setAsk = (fn) => { askFn = fn || askText; };
@@ -522,21 +524,55 @@ async function saveBatchDates(id, li) {
   catch (e) { return toast(t("保存失败：{msg}", { msg: e.message })); }
   if (refreshFn) await refreshFn(); redraw();
 }
-const batchRow = (b) => { const can = (b.tagged && b.n !== 0) || b.ids?.length || b.inN; return `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${b.from ? `${esc(b.from)} → ${esc(b.to)} · ` : ""}${t("{n} 笔", { n: b.n ?? b.ids?.length ?? 0 })} · ${money(b.sum || 0)}${b.inN ? ` · ${t("收入 {n} 笔", { n: b.inN })} ${money(b.inSum || 0)}` : ""} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}${can ? "" : ` · ${b.n === 0 ? t("（都是已记录过的，只更新了补到哪个月）") : t("（早期批次，只留了汇总）")}`}</small></div>${can ? `${(b.n ?? b.ids?.length ?? 0) > 0 || !b.inN ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}?tab=records&batch=${esc(b.id)}">${b.inN ? t("查看花费") : t("查看 / 修改")}</a>` : ""}${b.inN ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "income")}?tab=records&batch=${esc(b.id)}">${t("查看收入")}</a>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="dates-edit" data-batch="${esc(b.id)}" title="${esc(t("AI 没读出日期、或读错了时，手动填这批的起止日期"))}">${t("改日期")}</button>${S.editDates === b.id ? datesEditHtml(b) : ""}</li>`;};
-const batchAcctKey = (b) => (b.account ? `${b.account}${b.last4 ? ` ····${b.last4}` : ""}` : "");
+/* ── 「最近导入」的统计（2026-11-02 重新设计）──
+ * 以前每批显示的「N 笔 · 合计」是导入那一刻存下的快照：之后在「查看 / 修改」里删了、改了金额，或者整批撤销了一部分，这里还是旧数字，和点进去看到的对不上。
+ * 现在：笔数和合计按现在还带着这批标记的花费 / 收入实时算（Store.batchTotals，只读当前这一页的几批、两列），和「查看」页的合计同一口径（净额，退款是负数）；
+ * 和导入时不一样就在后面注一句「导入时 N 笔」。早期没有批次标记的批次（只存了 id 列表）照旧显示快照。数字读到前先显示快照。 */
+const LIVE = new Map();   // 批次 id → { sn, ss, in, is }（in / is = null：没有收入权限）
+let liveBusy = false;
+if (typeof window !== "undefined") for (const ev of ["spend-rows-changed", "income-rows-changed", "income-data-changed"]) window.addEventListener(ev, () => LIVE.clear());
+function ensureLive(list) {
+  const ids = list.filter((b) => b.tagged && !LIVE.has(b.id)).map((b) => b.id);
+  if (!ids.length || liveBusy) return;
+  liveBusy = true;
+  Store.batchTotals(ids).then((r) => { for (const id of ids) LIVE.set(id, { sn: r.spend[id]?.n ?? 0, ss: r.spend[id]?.sum ?? 0, in: r.inc ? r.inc[id]?.n ?? 0 : null, is: r.inc ? r.inc[id]?.sum ?? 0 : null }); })
+    .catch((e) => console.warn("[batch totals]", e.message))
+    .finally(() => { liveBusy = false; redraw(); });
+}
+/** 一批现在的数字：{ n, sum, inN, inSum, changed, live } */
+function batchNums(b) {
+  const L = b.tagged ? LIVE.get(b.id) : null, n0 = b.n ?? b.ids?.length ?? 0;
+  if (!L) return { n: n0, sum: b.sum || 0, inN: b.inN || 0, inSum: b.inSum || 0, changed: false, live: false };
+  const inN = L.in ?? (b.inN || 0), inSum = L.is ?? (b.inSum || 0);
+  return { n: L.sn, sum: L.ss, inN, inSum, live: true, changed: L.sn !== n0 || Math.abs(L.ss - (b.sum || 0)) >= 0.005 || (L.in != null && L.in !== (b.inN || 0)) };
+}
+const batchRow = (b) => {
+  const x = batchNums(b), n0 = b.n ?? b.ids?.length ?? 0, can = (b.tagged && (x.n || x.inN)) || b.ids?.length;
+  const gone = b.tagged && x.live && !x.n && !x.inN && (n0 || b.inN);   // 导入的那几笔后来全删了
+  const stats = [b.from ? `${esc(b.from)} → ${esc(b.to)}` : null, x.n || !x.inN ? `${t("花费 {n} 笔", { n: x.n })} ${money(x.sum)}` : null, x.inN ? `${t("收入 {n} 笔", { n: x.inN })} ${money(x.inSum)}` : null].filter(Boolean).join(" · ");
+  const note = gone ? t("（导入的都已删除）") : x.changed ? t("（导入时 {n} 笔 {m}，之后改过）", { n: n0, m: money(b.sum || 0) }) : !b.tagged && !b.ids?.length ? (n0 === 0 ? t("（都是已记录过的，只更新了补到哪个月）") : t("（早期批次，只留了汇总）")) : b.tagged && n0 === 0 && !b.inN ? t("（都是已记录过的，只更新了补到哪个月）") : "";
+  return `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}${b.last4 ? ` <span class="muted">··${esc(b.last4)}</span>` : ""}` : esc(b.file || t("银行导入"))}</span>
+    <small class="bank-batch-stats">${stats}${note ? ` <span class="${x.changed || gone ? "bank-dup" : "muted"}">${note}</span>` : ""}</small>
+    <small class="muted">${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}</small></div>
+    <span class="bank-batch-acts">${can ? `${x.n > 0 || (!x.inN && b.ids?.length) ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}?tab=records&batch=${esc(b.id)}">${x.inN ? t("查看花费") : t("查看 / 修改")}</a>` : ""}${x.inN ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "income")}?tab=records&batch=${esc(b.id)}">${t("查看收入")}</a>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="dates-edit" data-batch="${esc(b.id)}" title="${esc(t("AI 没读出日期、或读错了时，手动填这批的起止日期"))}">${t("改日期")}</button></span>${S.editDates === b.id ? datesEditHtml(b) : ""}</li>`;
+};
+const batchAcctKey = (b) => (b.account ? `${b.account}${b.last4 ? ` ··${b.last4}` : ""}` : "");
 const batchesHtml = (batches) => {
   const lost = batches.filter((b) => !b.tagged && !b.ids?.length).length;   // 早期批次：没有批次标记、花费 id 列表也被丢掉了
   const accts = [...new Set(batches.map(batchAcctKey).filter(Boolean))].sort(), hasNone = batches.some((b) => !batchAcctKey(b));
   if (S.batchAcct !== "all" && S.batchAcct !== "__none__" && !accts.includes(S.batchAcct)) S.batchAcct = "all";
   const all = batches.slice().reverse().filter((b) => S.batchAcct === "all" || (S.batchAcct === "__none__" ? !batchAcctKey(b) : batchAcctKey(b) === S.batchAcct));
-  const head = all.slice(0, S.batchShow), rest = all.length - head.length;   // 默认最多 20 批，点「再看 20 批」继续（账户下拉和展开条数记在 S 里，重画不会收回去）
+  const lim = pageLimit("bank-batches", S.batchAcct), head = all.slice(0, lim), rest = all.length - head.length;   // 全站每页条数（pager.js）；换账户回到一页
+  ensureLive(head);   // 只给这一页的几批读实时数字
+  const nOf = (pred) => batches.filter(pred).length;
   const opt = (v, l) => `<option value="${esc(v)}" ${S.batchAcct === v ? "selected" : ""}>${esc(l)}</option>`;
   const recover = `<p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("以前导入过、这里却没有的批次（记录丢了或迁移前导入的）：")}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="recover" style="margin-left:4px">${t("找回批次")}</button></p>`;
   if (!batches.length) return `<section class="section"><div class="panel">${recover}</div></section>`;
   return `<section class="section"><div class="section-head"><h2>${t("最近导入")}</h2><p>${t("「查看 / 修改」打开这一批的明细，每一笔都能改分类、金额、商店或删掉；「撤销」整批删除。")}</p></div>${coverageHtml(batches)}<div class="panel" style="margin-top:10px">${lost ? `<div class="notice" role="status" style="margin-bottom:8px"><b>${t("有 {n} 批早期导入只留了汇总，不能查看 / 修改 / 撤销。", { n: lost })}</b><br><small>${t("这是迁移 034 之前导入的（那时只保留最近 6 批的明细）。先在 Supabase 执行 034_purchase_import_batch.sql，再点下面的按钮：按导入时间和笔数把它们的花费找回来、补上批次标记，之后和新的批次一样。笔数对不上的会跳过，不会乱标。")}</small><div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-bank-act="recover">${t("找回早期批次")}</button></div></div>` : ""}
-    ${accts.length > 1 || hasNone ? `<div class="bank-acct-bar"><span class="bab-ico" aria-hidden="true">🏦</span><select data-bank-batch-acct aria-label="${esc(t("按账户筛选"))}">${opt("all", t("全部账户（{n} 批）", { n: batches.length }))}${accts.map((a) => opt(a, a)).join("")}${hasNone ? opt("__none__", t("没记账户")) : ""}</select></div>` : ""}
+    ${accts.length > 1 || hasNone ? `<div class="bank-acct-bar"><span class="bab-ico" aria-hidden="true">🏦</span><select data-bank-batch-acct aria-label="${esc(t("按账户筛选"))}">${opt("all", t("全部账户（{n} 批）", { n: batches.length }))}${accts.map((a) => opt(a, `${a}（${t("{n} 批", { n: nOf((b) => batchAcctKey(b) === a) })}）`)).join("")}${hasNone ? opt("__none__", `${t("没记账户")}（${t("{n} 批", { n: nOf((b) => !batchAcctKey(b)) })}）`) : ""}</select></div>` : ""}
     <ul class="restock-list bank-batches">${head.map(batchRow).join("")}</ul>
-    ${rest ? `<div class="form-actions" style="justify-content:center;margin-top:8px"><button type="button" class="btn btn-ghost btn-sm" data-bank-act="batches-more">${t("再看 {n} 批（还有 {m} 批）", { n: Math.min(20, rest), m: rest })}</button></div>` : ""}
+    <p class="muted bank-batch-count">${t("显示 {a} / 共 {b} 批", { a: head.length, b: all.length })}${batches.length >= BATCH_KEEP ? ` · ${t("只保留最近 {n} 批的记录；更早的花费 / 收入都还在，只是不在这里列出、不能整批撤销", { n: BATCH_KEEP })}` : ""}</p>
+    ${rest ? `<div class="form-actions" style="justify-content:center;margin-top:4px"><button type="button" class="btn btn-ghost" data-bank-act="batches-more">${t("继续加载")}</button></div>` : ""}
     ${lost ? "" : recover}</div></section>`;
 };
 
@@ -609,7 +645,7 @@ async function doImport() {
     const keys = Object.keys(rules);
     if (keys.length > 400) keys.map((k, i) => [k, ruleUse(rules[k]), i]).sort((a, b) => a[1].t.localeCompare(b[1].t) || a[1].n - b[1].n || a[2] - b[2]).slice(0, keys.length - 400).forEach(([k]) => delete rules[k]);   // 满了：先淘汰最久没用到的（旧格式没日期的最先）
     // 最近 60 批留着（查看 / 修改 / 撤销靠花费上的批次 id）；没执行迁移 034 的旧批次靠 id 列表，只有最近 6 批保留（免得预算设置里存太多）
-    const all = [...(meta("_bank_batches", []) || []), ...(ids.length || (S.rows.length && !failed) ? [batch] : [])].slice(-60).map((b, i, arr) => (!b.tagged && i < arr.length - 6 ? { ...b, ids: [], n: b.n ?? b.ids?.length ?? 0 } : b));
+    const all = [...(meta("_bank_batches", []) || []), ...(ids.length || (S.rows.length && !failed) ? [batch] : [])].slice(-BATCH_KEEP).map((b, i, arr) => (!b.tagged && i < arr.length - 6 ? { ...b, ids: [], n: b.n ?? b.ids?.length ?? 0 } : b));
     await saveMeta({ _bank_rules: rules, _bank_batches: all, _bank_accounts: acctList.slice(-30), ...(Object.keys(learnedInc).length ? { _income_rules: Object.fromEntries(Object.entries({ ...incomeRules(), ...learnedInc }).slice(-300)) } : {}) });
   } catch (e) { metaFailed = true; }   // 花费已经导入了；只是批次记录 / 覆盖表没存上，要告诉用户，不能悄悄吞掉
   S.force = new Set(); S.ikind = {}; S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = ""; S.acctTouched = false; S.account = NO_ACCT();   // 下一批回到默认「不选择」
@@ -646,7 +682,7 @@ async function recoverBatches() {
       g.n++; g.sum += num(p.amount) || 0; g.dates.push(String(p.purchased_at).slice(0, 10)); if ((p.created_at || "") > g.at) g.at = p.created_at; groups.set(p.import_batch, g);
     }
     const rebuilt = [...groups].map(([id, g]) => { g.dates.sort(); const card = g.card && (state.cards || []).find((c) => c.id === g.card); return { id, at: g.at || new Date().toISOString(), file: "", ids: [], tagged: true, sum: Math.round(g.sum * 100) / 100, n: g.n, account: card ? card.name : "", last4: card?.last4 || "", from: g.dates[0] || "", to: g.dates.at(-1) || "", rebuilt: true }; });
-    if (rebuilt.length) { all = [...all, ...rebuilt].sort((a, b) => String(a.at).localeCompare(String(b.at))).slice(-60); await saveMeta({ _bank_batches: all }); }
+    if (rebuilt.length) { all = [...all, ...rebuilt].sort((a, b) => String(a.at).localeCompare(String(b.at))).slice(-BATCH_KEEP); await saveMeta({ _bank_batches: all }); }
     const lost = all.filter((b) => !b.tagged && !b.ids?.length && b.from && b.to);
     const day = (s, d) => new Date(new Date(`${s}T00:00:00Z`).getTime() + d * 864e5).toISOString();
     let fixed = 0, skipped = 0, rows = 0; const done = new Map();
@@ -681,7 +717,7 @@ document.addEventListener("change", async (e) => {
   if (el.dataset.bankSign !== undefined) { S.spendSign = el.value; resetPicks(); rebuild(); return redraw(); }
   if (el.dataset.bankDmy !== undefined) { S.dmy = el.value === "dmy"; resetPicks(); rebuild(); return redraw(); }
   if (el.dataset.bankRemember !== undefined) { S.remember = el.checked; }
-  if (el.dataset.bankBatchAcct !== undefined) { S.batchAcct = el.value; S.batchShow = 20; return redraw(); }
+  if (el.dataset.bankBatchAcct !== undefined) { S.batchAcct = el.value; return redraw(); }
   if (el.dataset.bankAcct !== undefined) { S.acctTouched = true; const v = el.value; const hit = accounts().find((x) => x.id === v);
     S.account = v === "none" ? NO_ACCT() : hit ? { mode: "id", id: hit.id, name: hit.name, last4: hit.last4 } : { mode: "new", id: "", name: S.account.mode === "new" ? S.account.name : guessAcctName(), last4: S.parts.map((x) => x.acct?.last4).find(Boolean) || "" }; return redraw(); }
   if (el.dataset.bankAcctName !== undefined) { S.acctTouched = true; S.account.name = el.value; }
@@ -701,7 +737,7 @@ document.addEventListener("click", (e) => {
   else if (b.dataset.bankAct === "undo") undo(b.dataset.batch);
   else if (b.dataset.bankAct === "acct-del") deleteOwnAccount(b.dataset.id);
   else if (b.dataset.bankAct === "recover") recoverBatches();
-  else if (b.dataset.bankAct === "batches-more") { S.batchShow += 20; redraw(); }
+  else if (b.dataset.bankAct === "batches-more") { pageMore("bank-batches"); redraw(); }
   else if (b.dataset.bankAct === "undo-last" && S.last) undo(S.last.id);
   else if (b.dataset.bankAct === "ai") aiParse(+b.dataset.i);
   else if (b.dataset.bankAct === "rm") { S.parts.splice(+b.dataset.i, 1); resetPicks(); rebuild(); redraw(); }

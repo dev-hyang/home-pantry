@@ -19,7 +19,7 @@ import { incomePanel } from "../settings/income.js";
 import { acctById, acctLabel } from "../bills/cards-views.js";
 import { ACCT_KINDS, CARDS_HREF } from "../bills/cards.js";
 import { aiReady, askText } from "../core/ai.js";
-import { debounce, moreBtn, pageSize } from "../core/pager.js";
+import { debounce, moreBtn, pageLimit, pageMoreBtn, pageSize } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
 import { compact } from "../core/list-query.js";
 import { STAT_CATS, download, dq, hitAttrs, monthLabel, toCsv } from "../stats/views.js";
@@ -346,11 +346,16 @@ function categoryTab() {
 
 /* ───────────── 银行导入：对账单里的入账补入收入（和「花费 → 银行导入」是同一个入口） ───────────── */
 function importTab() {
-  const batches = (meta("_bank_batches", []) || []).filter((b) => b.inN).slice().reverse().slice(0, 20);
+  // 「最近导入的收入」：笔数 / 合计按现在还带着这批标记的收入算（收入已整表在内存里），和点「查看收入」看到的一致；导入时的数字不一样就注一句
+  const I = inc(), live = new Map();
+  for (const r of I.rec) if (r.import_batch) { const x = live.get(r.import_batch) || { n: 0, sum: 0 }; x.n++; x.sum = Math.round((x.sum + num(r.amount)) * 100) / 100; live.set(r.import_batch, x); }
+  const allB = (meta("_bank_batches", []) || []).filter((b) => b.inN || live.has(b.id)).slice().reverse();
+  const lim = pageLimit("inc-batches"), batches = allB.slice(0, lim);
+  const nums = (b) => live.get(b.id) || { n: 0, sum: 0 };
   return `<div class="panel"><h3 style="margin:0 0 6px">🏦 ${t("从银行对账单导入收入")}</h3>
     <p class="muted small" style="margin:0 0 10px">${t("同一个入口：选一次对账单（CSV、Excel、OFX、PDF、截图），里面刷卡 / 扣款记成花费，工资、利息、股息、转入这些入账单独列出来记成收入（借款到账、券商转入这类记成资本流入，不算收入），互不重复。自己账户之间的转账会跳过。")}</p>
     <div class="form-actions"><a class="btn btn-primary btn-sm" href="${href("bills", "statements")}">${t("去导入对账单")}</a><a class="btn btn-sm" href="${incomeHref("records")}">${t("或者拍照 / 手动记一笔")}</a></div></div>
-  <div class="panel"><h3 style="margin:0 0 6px">${t("最近导入的收入")}</h3>${batches.length ? `<ul class="restock-list">${batches.map((b) => `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${t("收入 {n} 笔", { n: b.inN })} · ${fmtMoney(b.inSum || 0)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}</small></div><a class="btn btn-sm btn-ghost" href="${href("bills", "income")}?tab=records&batch=${esc(b.id)}">${t("查看收入")}</a></li>`).join("")}</ul>` : `<p class="muted small" style="margin:0">${t("还没有从对账单导入过收入。")}</p>`}</div>`;
+  <div class="panel"><h3 style="margin:0 0 6px">${t("最近导入的收入")}</h3>${batches.length ? `<ul class="restock-list">${batches.map((b) => `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${t("收入 {n} 笔", { n: nums(b).n })} · ${fmtMoney(nums(b).sum)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${nums(b).n !== (b.inN || 0) ? ` <span class="bank-dup">${nums(b).n ? t("（导入时 {n} 笔，之后改过）", { n: b.inN || 0 }) : t("（导入的都已删除）")}</span>` : ""}</small></div>${nums(b).n ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "income")}?tab=records&batch=${esc(b.id)}">${t("查看收入")}</a>` : ""}</li>`).join("")}</ul><p class="muted bank-batch-count">${t("显示 {a} / 共 {b} 批", { a: batches.length, b: allB.length })}</p>${pageMoreBtn("inc-batches", allB.length, batches.length)}` : `<p class="muted small" style="margin:0">${t("还没有从对账单导入过收入。")}</p>`}</div>`;
 }
 
 function repayPanel() {

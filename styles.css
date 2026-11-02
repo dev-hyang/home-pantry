@@ -2305,3 +2305,12 @@ html.force-phone .today-layout { grid-template-columns: minmax(0, 1fr); }
   .purchase-row .pr-nat, .purchase-row .pr-prop { min-width: 0; width: 100%; }
   .purchase-row .pr-refund { grid-column: 1 / -1; }
 }
+/* 对账单 · 最近导入（2026-11-02 重新设计）：一行 = 账户 / 文件、现在的笔数和合计（和导入时不同就注一句）、导入日期；按钮靠右一组 */
+.bank-batches > li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.bank-batches > li > .grow { flex: 1 1 260px; min-width: 0; }
+.bank-batches small { display: block; overflow-wrap: anywhere; }
+.bank-batch-stats { font-variant-numeric: tabular-nums; color: var(--ink); }
+.bank-batch-acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.bank-batch-acts .btn { min-height: 40px; }
+.bank-batch-count { font-size: 12.5px; margin: 8px 0 0; text-align: center; }
+@media (max-width: 640px) { .bank-batch-acts { justify-content: flex-start; width: 100%; } }

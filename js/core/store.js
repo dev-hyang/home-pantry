@@ -138,6 +138,8 @@ export const DemoStore = {
   async firstPurchaseYear() { const d = this.db.purchases.map((x) => x.purchased_at).sort()[0]; return d ? +String(d).slice(0, 4) : null; },
   async listTaggedPurchases() { return this.db.purchases.filter((x) => x.import_batch).map((x) => ({ id: x.id, import_batch: x.import_batch, purchased_at: x.purchased_at, amount: x.amount, card_id: x.card_id || null, created_at: x.created_at })); },
   async listPurchasesByBatch(batch, ids = []) { const set = new Set(ids); return this.db.purchases.filter((x) => x.import_batch === batch || set.has(x.id)).map((x) => ({ ...x, category: canonCat(x.category) })); },
+  /** 「最近导入」的实时笔数 / 合计：只算这几批（当前一页） */
+  async batchTotals(ids) { return batchTotalsOf(ids, this.db.purchases, this.db.income_records || []); },
   async deletePurchasesByBatch(batch) { const n = this.db.purchases.filter((x) => x.import_batch === batch).length; this.db.purchases = this.db.purchases.filter((x) => x.import_batch !== batch); this.persist(); return n; },
 
   /* 房产 */
@@ -579,6 +581,15 @@ export const DEBT_060 = ["first_payment_date", "escrow_schedule", "statement_che
 export const schemaFlags = { debt060: true };
 export const DEBT_FIELDS = ["name", "category", "direction", "counterparty_name", "person_id", "lender_card_id", "original_principal", "currency", "interest_rate", "term_months", "start_date", "maturity_date",
   "payment_frequency", "scheduled_payment", "opening_balance", "opening_balance_on", "status", "property_id", "asset_id", "financing_role", "secured", "link_confirmed", "notes", ...DEBT_060];
+/** 按批次汇总：{ spend: { 批次: { n, sum } }, inc: 同上 | null }（sum 是净额：退款是负数） */
+function batchTotalsOf(ids, purchases, incomes, noInc = false) {
+  const want = new Set(ids), out = { spend: {}, inc: noInc ? null : {} };
+  for (const id of ids) { out.spend[id] = { n: 0, sum: 0 }; if (out.inc) out.inc[id] = { n: 0, sum: 0 }; }
+  const add = (bucket, x) => { if (!bucket || !want.has(x.import_batch)) return; const b = bucket[x.import_batch]; b.n++; b.sum = Math.round((b.sum + num(x.amount)) * 100) / 100; };
+  for (const p of purchases) add(out.spend, p);
+  for (const r of incomes) add(out.inc, r);
+  return out;
+}
 export const DEBT_TXN_FIELDS = ["debt_id", "txn_date", "type", "principal_amount", "interest_amount", "fee_amount", "escrow_amount", "total", "bill_payment_id", "purchase_id", "income_record_id", "income_repayment_id", "split_source", "notes", "extra_principal"];
 const r2 = (v) => Math.round(num(v) * 100) / 100;
 /** 写库前的贷款行：没给的列补默认（not null 的列不能写 null） */
@@ -1140,6 +1151,13 @@ export const CloudStore = {
     const have = new Set(byTag.map((x) => x.id)), rest = ids.filter((i) => !have.has(i)), more = [];
     for (let i = 0; i < rest.length; i += 200) more.push(...await q((b) => b.in("id", rest.slice(i, i + 200))));
     return [...byTag, ...more];
+  },
+  /** 「最近导入」的实时笔数 / 合计：只读当前一页这几批的两列（import_batch, amount），不读全部花费；收入没权限 / 没迁移时 inc = null */
+  async batchTotals(ids) {
+    if (!ids.length) return { spend: {}, inc: {} };
+    const rows = (table) => this.pageAll(() => this.sb.from(table).select("import_batch,amount").eq("household_id", this.hid).in("import_batch", ids).order("import_batch"));
+    const [sp, inc] = await Promise.all([rows("purchases"), rows("income_records").catch(() => null)]);
+    return batchTotalsOf(ids, sp, inc || [], !inc);
   },
   /** 撤销一批银行导入（迁移 034 的 import_batch 列）；返回删掉几笔 */
   async deletePurchasesByBatch(batch) { const r = this.must(await this.sb.from("purchases").delete().eq("household_id", this.hid).eq("import_batch", batch).select("id")); return (r || []).length; },
