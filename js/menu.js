@@ -69,12 +69,12 @@ const META = {
 /* 财务目录分组（2026-11，P1 信息架构）：同一页里的小标题，不多一层（底栏 → 目录 → 页面 → 页内标签）。
  * 手机：一列分组列表；宽屏：两栏分组卡片（CSS columns，读屏顺序 = 视觉顺序：先左栏再右栏）。
  * 借贷（P2）：原来是一张不可点的「即将推出」卡，现在是真的页面（只给有财务权限的人看；g.soon 的画法留着给以后的占位用）。 */
-export const FIN_GROUPS = [
+export const FIN_GROUPS = [   // 顺序（2026-11-02）：分析 · 收支 · 借贷 · 预算与计划 · 账户与资产；手机一列、宽屏两栏都按这个读屏顺序
+  { id: "analysis", name: "分析", subs: ["overview", "cashflow", "networth"] },   // 净资产（P3，迁移 059）
   { id: "flow", name: "收支", subs: ["spend", "income", "recurring", "onetime", "statements"] },
-  { id: "accounts", name: "账户与资产", subs: ["cards", "assets"] },
   { id: "debt", name: "借贷", subs: ["debts"] },   // P2（迁移 058）：原来的「即将推出」占位卡换成真的页面
   { id: "plan", name: "预算与计划", subs: ["budget"] },
-  { id: "analysis", name: "分析", subs: ["overview", "cashflow", "networth"] },   // 净资产（P3，迁移 059）
+  { id: "accounts", name: "账户与资产", subs: ["cards", "assets"] },
 ];
 const HIDDEN = (section, k) => (section === "pantry" && k === "gear" && !state.gearEnabled)
   || (section === "bills" && FINANCE_HIDDEN_SUBS.includes(META.bills[k]?.sub || k) && !financeOk());   // 没有财务权限：对账单 / 收入 / 预算不进目录
