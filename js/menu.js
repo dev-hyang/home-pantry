@@ -8,7 +8,7 @@ import { SECTIONS, href } from "./core/router.js";
 import { esc, inSpace } from "./core/util.js";
 import { t } from "./core/i18n.js";
 import { alertsOf } from "./core/logic.js";
-import { activeVehicles, assetAlerts, assetName, myAssets, myVehicles } from "./house/assets.js";
+import { activeVehicles, assetName, assetsDueCount, myVehicles } from "./house/assets.js";
 import { undoneThisMonth } from "./house/tasks.js";
 import { dealSubLabel, historyLabel, openDeal, routeDeal } from "./house/deals.js";
 import { SETTING_SECTIONS } from "./settings/views.js";
@@ -38,7 +38,7 @@ const META = {
   house: {
     overview:  { icon: "🏠", desc: "房屋卡片、耗材提醒、谁负责维护、本月任务" },
     supplies:  { icon: "🧰", desc: "滤网、电池、融雪盐等房屋耗材", count: () => alertsOf(state.enriched.filter(inSpace("house"))).length },
-    assets:    { icon: "⚙️", desc: "设备档案、保养记录、检查卡与相关耗材", count: () => assetAlerts(myAssets()).length },
+    assets:    { icon: "⚙️", desc: "设备档案、保养记录、检查卡与相关耗材", count: () => assetsDueCount({ property: state.propertyId }) },   // 和首页、房屋首页同一个口径（assets.js 的 assetsDue）
     tasks:     { icon: "📅", desc: "按月的检修清单，勾了家人都看到", count: () => (state.houseProfile ? undoneThisMonth().length : 0) },
     deal:      { icon: "📝", desc: "买入 / 卖出 / 退租流程清单", count: () => (openDeal() ? 1 : 0), countLabel: "进行中" },
     profile:   { icon: "🏡", desc: "房型、设施、材料、地址、保险、HOA" },
@@ -103,7 +103,7 @@ export function viewPropertyList() {
   const ended = endedProperties();   // 已卖出 / 已退租：收进折叠区，档案、账单、设备、记录都还在
   const endedHtml = ended.length ? `<details class="panel ref-panel" style="margin-top:12px"><summary><b>${t("已结束的房产")}</b><small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
       <div class="mlist">${ended.map(rowOf).join("")}</div></details>` : "";
-  const vehicles = activeVehicles(), vAlerts = assetAlerts(vehicles.filter((a) => window.VEHICLES.inService(a))).length;
+  const vehicles = activeVehicles(), vAlerts = assetsDueCount({ vehicles: true });
   return `<section class="section menu-page">
     <div class="section-head"><h2>🏠 ${t("房屋")}</h2><p>${t("点一套房产进入它的概览、设备保养、季节任务、交易和资料")}</p></div>
     ${houseBar()}

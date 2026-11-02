@@ -21,6 +21,7 @@ import { liveNetWorth, thisMonth } from "./bills/nw-logic.js";
 import { monthChange, trendPoints } from "./stats/net-worth.js";
 import { upcoming } from "./bills/logic.js";
 import { clearFiltersBtn } from "./core/clear-filters.js";
+import { assetsDueCount } from "./house/assets.js";
 
 const PREF_KEY = "hmh-today";
 export function setTodayPref(patch) {
@@ -126,7 +127,7 @@ export function todoRows(all = myAlerts()) {
     const items = all.filter((x) => a.src.includes(x.source));
     if (!items.length) continue;
     const top = items[0];   // 总线已经按轻重 → 必须 → 到期排好
-    rows.push({ name: t(a.name), icon: a.icon, href: a.href, n: items.length, worst: Math.min(...items.map((x) => x.severity)),
+    rows.push({ name: t(a.name), icon: a.icon, href: a.href, n: a.src[0] === "asset" ? assetsDueCount() || items.length : items.length,   // 设备按台数（一辆车两条提醒算 1 台），和房屋首页同一个口径 worst: Math.min(...items.map((x) => x.severity)),
       first: `${withProperty(top.property_id, top.title)}${top.detail ? ` · ${top.detail}` : ""}` });
   }
   return rows.sort((x, y) => x.worst - y.worst);
@@ -174,7 +175,7 @@ function homeBlock(fin) {
   if (state.houseEnabled) {
     const live = new Set(liveProperties().filter(propertyActive).map((p) => p.id));
     const eq = (state.assetsEnriched || []).filter((a) => !a.retired && live.has(a.property_id));
-    const due = eq.filter((a) => a.recallSt || a.followUp || a.service === "overdue" || a.service === "due").length;
+    const due = assetsDueCount();   // 和待办「设备保养」、房屋首页同一个口径
     cards.push(kpiLink(href("house", "assets"), t("设备"), due ? t("{n} 台该保养", { n: due }) : t("都正常"), t("共 {n} 台", { n: eq.length }), due ? "down" : ""));
   }
   if (!fin && state.billsEnabled) {   // 账单全家可见：这里只给笔数，不给金额
