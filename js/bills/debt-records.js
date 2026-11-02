@@ -55,7 +55,7 @@ function matches(x, f) {
   if (f.link === "no" && linked(x)) return false;
   const q = skey(f.q);
   if (q) {
-    const hay = skey([d?.name, d?.counterparty_name, x.notes, txnName(x), x.txn_date, fmtDate(x.txn_date), r2(x.total).toFixed(2), r2(x.principal_amount).toFixed(2), r2(x.interest_amount).toFixed(2)].join(" "));
+    const hay = skey([d?.name, d?.counterparty_name, debtLabel(d), sentence(x, d), x.notes, txnName(x), x.txn_date, fmtDate(x.txn_date), r2(x.total).toFixed(2), r2(x.principal_amount).toFixed(2), r2(x.interest_amount).toFixed(2)].join(" "));
     if (!q.split(" ").every((w) => hay.includes(w))) return false;
   }
   return true;
@@ -90,14 +90,25 @@ export function recordsList(key, { txns, showDebt = false, dirFilter = showDebt,
   onClearFilters(`debt-rec-${key}`, () => { ui().recF[key] = { ...DEF }; refreshAll(); }, () => changed(filt(key), DEF));
   if (all.length < 6 && !changed(f, DEF)) return `<div class="dr-list" id="drl-${esc(key)}">${innerHtml(key)}</div>`;   // 几条而已：不要工具条
   const types = [...new Set(all.map((x) => x.type))];
-  const debts = showDebt ? [...new Map(all.map((x) => [x.debt_id, debtById(x.debt_id)])).values()].filter(Boolean).sort((a, b) => String(a.name).localeCompare(String(b.name))) : [];
-  const sel = (name, label, opts) => `<select data-rec-f="${name}" data-rec="${esc(key)}" aria-label="${esc(label)}">${opts.map(([v, n]) => `<option value="${esc(v)}" ${String(f[name]) === String(v) ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>`;
+  const debts = showDebt ? [...new Map(all.map((x) => [x.debt_id, debtById(x.debt_id)])).values()].filter(Boolean).sort((a, b) => whoOf(a).localeCompare(whoOf(b)) || String(a.start_date || "").localeCompare(String(b.start_date || ""))) : [];
+  const optH = ([v, n]) => `<option value="${esc(v)}" ${String(f[name0]) === String(v) ? "selected" : ""}>${esc(n)}</option>`;
+  let name0 = "";
+  const sel = (name, label, opts) => { name0 = name; return `<select data-rec-f="${name}" data-rec="${esc(key)}" aria-label="${esc(label)}">${opts.map((o) => (o.group ? `<optgroup label="${esc(o.group)}">${o.items.map(optH).join("")}</optgroup>` : optH(o))).join("")}</select>`; };
+  // 「哪笔借贷」按 借出（别人欠我）/ 借入（我欠别人）/ 贷款 分组：同一个人既借过他、又借给过他时分得清；同一组里重名的加上起始日期
+  const debtGroups = () => {
+    const G = [["lent", t("借出 · 别人欠我"), (d) => isPersonal(d) && d.direction === "receivable"], ["borrowed", t("借入 · 我欠别人"), (d) => isPersonal(d) && d.direction !== "receivable"], ["loan", t("贷款"), (d) => !isPersonal(d)]];
+    return G.map(([, label, pred]) => {
+      const ds = debts.filter(pred); if (!ds.length) return null;
+      const n = (d) => whoOf(d), dup = (d) => ds.filter((y) => n(y) === n(d)).length > 1;
+      return { group: label, items: ds.map((d) => [d.id, `${n(d)}${dup(d) ? ` · ${d.start_date ? fmtDate(d.start_date) : mny(d.original_principal, d.currency)}` : ""}`]) };
+    }).filter(Boolean);
+  };
   return `<div class="toolbar dr-tools">
       <input type="search" data-rec-q="${esc(key)}" value="${esc(f.q)}" placeholder="${esc(t("搜索：对方、备注、金额"))}" aria-label="${esc(t("搜索借贷流水"))}">
-      ${dirFilter ? sel("dir", t("借入 / 借出"), [["all", t("借入和借出")], ["borrowed", t("借入（我欠）")], ["lent", t("借出（别人欠我）")]]) : ""}
+      ${dirFilter ? sel("dir", t("借入 / 借出"), [["all", t("借入和借出")], ["lent", t("借出（别人欠我）")], ["borrowed", t("借入（我欠别人，含贷款）")]]) : ""}
       ${sel("flow", t("资金方向"), [["all", t("流入和流出")], ["in", `↙ ${t("资金流入")}`], ["out", `↗ ${t("资金流出")}`], ["none", `⇄ ${t("不动钱")}`]])}
       ${types.length > 1 ? sel("type", t("类型"), [["all", t("全部类型")], ...types.map((k) => [k, t(TXN_TYPES[k]?.name || k)])]) : ""}
-      ${debts.length > 1 ? sel("debt", t("哪笔借贷"), [["all", t("全部借贷")], ...debts.map((d) => [d.id, d.counterparty_name && d.category === "personal_lending" ? d.counterparty_name : d.name])]) : ""}
+      ${debts.length > 1 ? sel("debt", t("哪笔借贷"), [["all", t("全部借贷")], ...debtGroups()]) : ""}
       ${sel("link", t("关联"), [["all", t("关联不限")], ["yes", t("已关联花费 / 收入")], ["no", t("没关联")]])}
       ${clearFiltersBtn(`debt-rec-${key}`, changed(f, DEF))}
     </div>
@@ -107,22 +118,45 @@ let rerender = () => {};
 const refreshAll = () => rerender(false);
 
 /* ───────────── 一行 ───────────── */
+/* ── 一行怎么读（2026-11-02.6）：原来是「日期 · 还款（本金）· [借出] · Tom」，要自己想「借出 + 还款」是谁还谁。
+ * 现在第一行是一句话（站在家里的角度，「我」= 家里）：Tom 还我 / 借给 Tom / 向 Mom 借入 / 我还 Mom / 还 房贷 本金；
+ * 第二行：日期 · 是哪笔借贷（借给 Tom 的钱 / 向 Mom 借的钱 / 🏦 贷款名，点进去是那笔借贷）· 本金 / 利息拆分 · 关联了什么 · 备注。金额在右边。 */
+const isPersonal = (d) => d?.category === "personal_lending";
+const whoOf = (d) => (d ? (isPersonal(d) ? d.counterparty_name || d.name : d.name) : "");
+/** 这笔借贷叫什么（第二行、下拉框里用）：借给 Tom 的钱 / 向 Mom 借的钱 / 贷款名 */
+export const debtLabel = (d) => (!d ? "" : isPersonal(d) ? (d.direction === "receivable" ? t("借给 {who} 的钱", { who: whoOf(d) }) : t("向 {who} 借的钱", { who: whoOf(d) })) : d.name);
+/** 第一行的一句话 */
+function sentence(x, d) {
+  const who = whoOf(d), recv = d?.direction === "receivable", loan = !isPersonal(d);
+  if (loan) return ({
+    disbursement: t("{loan} 放款", { loan: who }), principal_repayment: x.bill_payment_id ? t("还 {loan} 月供", { loan: who }) : t("还 {loan} 本金", { loan: who }),
+    interest_payment: x.bill_payment_id ? t("还 {loan} 月供（只有利息）", { loan: who }) : t("付 {loan} 利息", { loan: who }), fee: t("付 {loan} 手续费", { loan: who }),
+    escrow: t("付 {loan} 的 Escrow", { loan: who }), adjustment: t("调整 {loan} 的余额", { loan: who }), write_off: t("核销 {loan}", { loan: who }),
+  })[x.type] || `${txnName(x)} · ${who}`;
+  return (recv ? {
+    disbursement: t("借给 {who}", { who }), principal_repayment: t("{who} 还我", { who }), interest_income: t("{who} 付我利息", { who }),
+    fee: t("{who} 付手续费", { who }), adjustment: t("调整 {who} 欠我的余额", { who }), write_off: t("核销 {who} 欠我的钱", { who }),
+  } : {
+    disbursement: t("向 {who} 借入", { who }), principal_repayment: t("我还 {who}", { who }), interest_payment: t("我付 {who} 利息", { who }),
+    fee: t("我付 {who} 手续费", { who }), adjustment: t("调整我欠 {who} 的余额", { who }), write_off: t("{who} 免了我欠的钱", { who }),
+  })[x.type] || `${txnName(x)} · ${who}`;
+}
 function rowHtml(x, L) {
   const d = debtById(x.debt_id), c = d?.currency;
   const parts = [x.principal_amount ? t("本金 {a}", { a: mny(x.principal_amount, c) }) : null, x.interest_amount ? t("利息 {a}", { a: mny(x.interest_amount, c) }) : null,
-    x.escrow_amount ? t("Escrow {a}", { a: mny(x.escrow_amount, c) }) : null, x.fee_amount ? t("滞纳金 {a}", { a: mny(x.fee_amount, c) }) : null].filter(Boolean);
+    x.escrow_amount ? t("Escrow {a}", { a: mny(x.escrow_amount, c) }) : null, x.fee_amount ? t("滞纳金 {a}", { a: mny(x.fee_amount, c) }) : null];
+  // 只有一项（例如只有本金）且等于金额时不重复写
+  const split = parts.filter(Boolean).length > 1 ? parts.filter(Boolean) : [];
   const src = x.bill_payment_id ? t("账单缴费") : x.purchase_id ? t("已关联花费") : x.income_record_id ? t("已关联收入") : t("没关联花费 / 收入");
-  const who = d ? (d.category === "personal_lending" ? d.counterparty_name || d.name : d.name) : "";
-  const editing = ui().recEdit === x.id;
-  const dirBadge = L.showDebt && d ? `<span class="badge dr-dir">${d.direction === "receivable" ? t("借出") : t("借入")}</span>` : "";
+  const editing = ui().recEdit === x.id, title = sentence(x, d);
   const act = x.bill_payment_id
-    ? `<a class="btn btn-sm btn-ghost" href="${esc(debtHref(x.debt_id))}">${t("去拆分表改")}<span class="sr-only"> ${esc(fmtDate(x.txn_date))}</span></a>`
-    : `<button type="button" class="btn btn-sm btn-ghost" data-rec-act="edit" data-id="${esc(x.id)}" aria-expanded="${editing}" aria-controls="dr-edit-${esc(x.id)}">${editing ? t("收起") : t("编辑")}<span class="sr-only"> ${esc(fmtDate(x.txn_date))} ${esc(txnName(x))}</span></button>`;
+    ? `<a class="btn btn-sm btn-ghost" href="${esc(debtHref(x.debt_id))}">${t("去拆分表改")}<span class="sr-only"> ${esc(fmtDate(x.txn_date))} ${esc(title)}</span></a>`
+    : `<button type="button" class="btn btn-sm btn-ghost" data-rec-act="edit" data-id="${esc(x.id)}" aria-expanded="${editing}" aria-controls="dr-edit-${esc(x.id)}">${editing ? t("收起") : t("编辑")}<span class="sr-only"> ${esc(fmtDate(x.txn_date))} ${esc(title)}</span></button>`;
+  const ctx = L.showDebt && d ? `<a href="${esc(debtHref(d.id))}">${isPersonal(d) ? "" : "🏦 "}${esc(debtLabel(d))}</a>` : "";
   return `<li class="fa-row dd-row dr-row${editing ? " is-editing" : ""}">
     ${flowIcon(flowOf(x, d))}
-    <div class="dd-row-main"><span class="dd-row-top"><b>${esc(fmtDate(x.txn_date))}</b><span>${esc(txnName(x))}</span>${dirBadge}${x.split_source === "manual" && x.bill_payment_id ? `<span class="badge b-soon">${t("手动")}</span>` : ""}
-      ${L.showDebt && d ? `<a href="${esc(debtHref(d.id))}">${esc(who)}</a>` : ""}</span>
-      <small class="muted">${[...parts, src, x.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+    <div class="dd-row-main"><span class="dd-row-top"><b class="dr-title">${esc(title)}</b>${x.split_source === "manual" && x.bill_payment_id ? `<span class="badge b-soon">${t("手动")}</span>` : ""}</span>
+      <small class="muted dr-meta"><span>${esc(fmtDate(x.txn_date))}</span>${ctx ? `<span>${ctx}</span>` : ""}${[...split, src, x.notes].filter(Boolean).map((v) => `<span>${esc(v)}</span>`).join("")}</small></div>
     <b class="dd-amt">${mny(x.total, c)}</b>
     <div class="dd-row-act">${act}</div>
     ${editing ? editForm(x, d) : ""}</li>`;
@@ -146,15 +180,16 @@ function editForm(x, d) {
   const linkSel = !cand ? `<select name="link" disabled><option>${t("正在找前后几天的花费和收入…")}</option></select>`
     : `<select name="link"><option value="">${t("不关联")}</option>${curMissing ? `<option value="${esc(cur)}" selected>${t("保持现在的关联")}</option>` : ""}
         ${near.length ? `<optgroup label="${esc(t("日期和金额相近"))}">${near.map(opt).join("")}</optgroup>` : ""}
-        ${other.length ? `<optgroup label="${esc(t("前后 7 天、金额差得多一些的"))}">${other.map(opt).join("")}</optgroup>` : ""}</select>`;
-  const hint = !cand ? "" : cand.err ? `<small class="form-error">${esc(cand.err)}</small>`
+        ${other.length ? `<optgroup label="${esc(t("前后 7 天、金额差得多一些的"))}">${other.map(opt).join("")}</optgroup>` : ""}
+        ${takenGroup(cand)}</select>`;
+  const hint = !cand ? "" : `${seenLine(cand)}${cand.err ? `<small class="form-error">${esc(cand.err)}</small>`
     : !cur && cand.best ? `<small class="muted">${t("按日期和金额自动选了最像的一笔，不对就改成别的或「不关联」。")}</small>`
-    : !cur && !near.length ? `<small class="muted">${t("前后 7 天没有金额相近的花费或收入，先留空。")}</small>` : "";
+    : !cur && !near.length ? `<small class="muted">${t("前后 7 天没有金额相近的花费或收入，先留空。")}</small>` : ""}`;
   const hasCash = !!(x.purchase_id || x.income_record_id);
-  return `<form id="dr-edit-${esc(x.id)}" class="dd-edit dr-edit" data-rec-form="edit" data-id="${esc(x.id)}" aria-label="${esc(t("编辑 {d} 这笔{k}", { d: fmtDate(x.txn_date), k: txnName(x) }))}">
+  return `<form id="dr-edit-${esc(x.id)}" class="dd-edit dr-edit" data-rec-form="edit" data-id="${esc(x.id)}" aria-label="${esc(t("编辑 {d} 这笔{k}", { d: fmtDate(x.txn_date), k: sentence(x, d) }))}">
     <div class="form-grid">
       <label>${t("日期")}<input type="date" name="date" required value="${esc(x.txn_date)}"></label>
-      <label>${t("类型")}<select name="type">${[...new Set([x.type, ...typesFor(d)])].map((k) => `<option value="${k}" ${k === x.type ? "selected" : ""}>${esc(t(TXN_TYPES[k]?.name || k))}</option>`).join("")}</select></label>
+      <label>${t("类型")}<select name="type">${[...new Set([x.type, ...typesFor(d)])].map((k) => `<option value="${k}" ${k === x.type ? "selected" : ""}>${esc(sentence({ type: k }, d))}</option>`).join("")}</select></label>
       <label>${t("本金")}<input type="number" name="principal" inputmode="decimal" step="0.01" value="${x.principal_amount || ""}"></label>
       <label>${t("利息")}<input type="number" name="interest" inputmode="decimal" step="0.01" min="0" value="${x.interest_amount || ""}"></label>
       <label>${t("手续费 / 滞纳金")}<input type="number" name="fee" inputmode="decimal" step="0.01" min="0" value="${x.fee_amount || ""}"></label>
@@ -170,6 +205,13 @@ function editForm(x, d) {
   </form>`;
 }
 
+/** 候选下拉框末尾：已挂在别处的（灰色、不能选），写清楚挂在哪 */
+export const takenGroup = (cand, side = null) => {
+  const list = (cand?.taken || []).filter((o) => !side || o.v.startsWith(side));
+  return list.length ? `<optgroup label="${esc(t("已关联到别处（不能重复关联）"))}">${list.map((o) => `<option disabled>${esc(`${o.label} — ${o.why}`)}</option>`).join("")}</optgroup>` : "";
+};
+/** 读到了多少：前后 7 天 N 笔花费、M 笔收入（刷新后能看出确实重新读了） */
+export const seenLine = (cand, side = null) => (cand?.seen ? `<small class="muted dr-seen">${side === "p:" ? t("前后 7 天读到 {p} 笔花费", { p: cand.seen.p }) : t("前后 7 天读到 {p} 笔花费、{i} 笔收入", cand.seen)}${cand.taken?.length ? ` · ${t("{n} 笔金额相近的已关联到别处", { n: cand.taken.filter((o) => !side || o.v.startsWith(side)).length })}` : ""}</small>` : "");
 /* ───────────── 关联候选：前后 7 天的花费 + 收入，金额相近的排前面 ───────────── */
 const WIN = 7;
 const shift = (iso, n) => localDay(new Date(new Date(`${iso}T12:00:00`).getTime() + n * DAY));
@@ -186,29 +228,37 @@ export async function refreshCandidateData() { purchaseCache.clear(); await load
 export async function linkCandidates({ date, amount, flow, selfId = null, exclude = new Set(), fresh = false }) {
   if (fresh) await refreshCandidateData();
   const I = inc(); if (!I.loaded) await loadIncome();
-  const used = new Set([...debtTxns().filter((y) => y.id !== selfId).flatMap((y) => [y.purchase_id, y.income_record_id]), ...(state.billPayments || []).map((p) => p.purchase_id)].filter(Boolean));
-  for (const id of exclude) used.add(id);
+  // 已经挂在别处的花费 / 收入：不能再关联（同一笔钱不能算两次），但不再悄悄丢掉——列成灰色的一组，写清楚挂在哪（以前用户刷新后看到 API 里有那笔、下拉框里却没有）
+  const usedBy = new Map();
+  for (const y of debtTxns()) if (y.id !== selfId) for (const id of [y.purchase_id, y.income_record_id]) if (id) usedBy.set(id, t("已关联：{what}", { what: `${sentence(y, debtById(y.debt_id))} ${fmtDate(y.txn_date)}` }));
+  for (const bp of state.billPayments || []) if (bp.purchase_id && !usedBy.has(bp.purchase_id)) usedBy.set(bp.purchase_id, t("已是账单缴费：{what}", { what: `${state.bills?.find((b) => b.id === bp.bill_id)?.name || ""} ${fmtDate(bp.paid_on)}` }));
+  for (const id of exclude) usedBy.set(id, t("就是现在关联的这一笔"));
+  const used = usedBy;
   const target = Math.abs(num(amount)), tol = Math.max(1, target * 0.1);
   const dayGap = (iso) => Math.abs(Math.round((new Date(`${String(iso).slice(0, 10)}T12:00:00`) - new Date(`${date}T12:00:00`)) / DAY));
   const out = [];
+  const taken = [], seen = { p: 0, i: 0 };
+  const keepTaken = (o, id) => { if (o.amt >= target * 0.5 && o.amt <= target * 2) taken.push({ ...o, why: used.get(id) }); };
   for (const p of await purchasesNear(date)) {
-    if (used.has(p.id)) continue;
+    seen.p++;
     const a = Math.abs(num(p.amount)), day = localDay(new Date(p.purchased_at)), diff = Math.abs(a - target), xfer = isTransfer(p.category, p.nature);
-    out.push({ v: `p:${p.id}`, side: "out", amt: a, near: diff <= tol, score: diff / Math.max(1, target) + dayGap(day) * 0.02,
+    (used.has(p.id) ? { push: (o) => keepTaken(o, p.id) } : out).push({ v: `p:${p.id}`, side: "out", amt: a, near: diff <= tol, score: diff / Math.max(1, target) + dayGap(day) * 0.02,
       label: `${xfer ? t("转账") : t("花费")} · ${fmtDate(day)} · ${p.name || p.store || ""}${p.store && p.name !== p.store ? ` · ${p.store}` : ""} · ${mny(p.amount, p.currency)}` });
   }
   const lo = shift(date, -WIN), hi = shift(date, WIN);
   for (const r of I.rec) {
-    if (used.has(r.id) || !r.received_on || r.received_on < lo || r.received_on > hi) continue;
+    if (!r.received_on || r.received_on < lo || r.received_on > hi) continue;
+    seen.i++;
     const diff = Math.abs(Math.abs(num(r.amount)) - target), internal = INTERNAL_KINDS.includes(r.kind);
-    out.push({ v: `i:${r.id}`, side: "in", amt: Math.abs(num(r.amount)), near: diff <= tol, score: diff / Math.max(1, target) + dayGap(r.received_on) * 0.02,
+    (used.has(r.id) ? { push: (o) => keepTaken(o, r.id) } : out).push({ v: `i:${r.id}`, side: "in", amt: Math.abs(num(r.amount)), near: diff <= tol, score: diff / Math.max(1, target) + dayGap(r.received_on) * 0.02,
       label: `${internal ? t("资金转入") : t("收入")} · ${fmtDate(r.received_on)} · ${r.source_name || kindLabel(r.kind)} · ${mny(r.amount, r.currency)}` });
   }
   out.sort((a, b) => (b.near - a.near) || ((flow && b.side === flow) - (flow && a.side === flow)) || a.score - b.score);
   const near = out.filter((o) => o.near), best = (near.find((o) => !flow || o.side === flow) || null)?.v || "";
   // 「其他」只留金额在一半到两倍之间的（拆成几笔付、带手续费的那种），不把同期的零碎小额花费都列出来
   const other = out.filter((o) => !o.near && o.amt >= target * 0.5 && o.amt <= target * 2).slice(0, 10);
-  return { list: [...near, ...other], best };
+  taken.sort((a, b) => (b.near - a.near) || a.score - b.score);
+  return { list: [...near, ...other], best, taken: taken.slice(0, 10), seen };
 }
 function loadCands(x) {
   if (ui().recCandLoading === x.id) return;

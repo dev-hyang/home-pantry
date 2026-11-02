@@ -2323,3 +2323,10 @@ html.force-phone .today-layout { grid-template-columns: minmax(0, 1fr); }
 @keyframes dr-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .dr-refresh[disabled] span { animation: none; } }
 .dr-link-field > small, .dd-edit .dr-link-row + small { display: block; margin-top: 4px; }
+/* 借贷流水一行：第一行是一句话（Tom 还我 / 我还 Mom / 还 房贷 月供），第二行 日期 · 哪笔借贷 · 拆分 · 关联 · 备注 */
+.dr-title { font-weight: 700; }
+.dr-meta { display: flex; flex-wrap: wrap; align-items: baseline; row-gap: 2px; }
+.dr-meta > span + span::before { content: "·"; margin: 0 6px; color: var(--muted); }
+.dr-meta a { font-weight: 600; }
+.dr-meta > span { white-space: nowrap; }
+.dr-meta > span:last-child { white-space: normal; overflow-wrap: anywhere; }

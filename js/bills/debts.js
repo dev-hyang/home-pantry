@@ -13,7 +13,7 @@ import { DEBT_TABS, activeTab } from "../core/tabs.js";
 import * as A from "../core/amortization.js";
 import { DEBT_CATS, DIRECTIONS, FREQS, ROLES, STATUSES, TXN_TYPES, debtCat, debtCatOfBill, debtGroup, freqOfBill, isClosedStatus, isLoanBillCat, isPersonalDebt } from "../core/debt-rules.js";
 import { billOfDebt, calibrateDebt, canSplit, clearOverride, debt060, debtById, paymentTable, setExtraPrincipal, splitMissing, debtHref, debtTxns, debtsEnriched, deleteDebtTxn, enrichDebt, loadDebts, overrideSplit, recordDebtTxn, relinkPaymentPurchase, resplitDebt, syncDebtStatus, syncVehicle, unsplitDebt, updateDebtTxn } from "./debt-logic.js";
-import { initRecords, linkCandidates, recordsList, setRecordFilter } from "./debt-records.js";
+import { initRecords, linkCandidates, recordsList, seenLine, setRecordFilter, takenGroup } from "./debt-records.js";
 import { deleteBillPay } from "./views.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { loadIncome } from "../income/logic.js";
@@ -240,7 +240,7 @@ function payLinkForm(e, r) {
     ui().payCandLoading = r.id;
     const cur0 = state.billPayments.find((p) => p.id === r.id)?.purchase_id;
     linkCandidates({ date: r.paid_on, amount: r.total, flow: "out", exclude: new Set(cur0 ? [cur0] : []), fresh })
-      .then((x) => { ui().payCand = { id: r.id, ...x, list: x.list.filter((o) => o.v.startsWith("p:")) }; ui().payCand.best = ui().payCand.list.find((o) => o.near)?.v || ""; },
+      .then((x) => { ui().payCand = { id: r.id, ...x, list: x.list.filter((o) => o.v.startsWith("p:")), seen: x.seen }; ui().payCand.best = ui().payCand.list.find((o) => o.near)?.v || ""; },
         (err) => { ui().payCand = { id: r.id, list: [], best: "", err: err.message }; })
       .finally(() => { ui().payCandLoading = null; hooks.render(false); });
   }
@@ -248,8 +248,8 @@ function payLinkForm(e, r) {
   return `<form id="dd-link" data-debt-form="pay-link" data-id="${esc(e.id)}" data-pay="${esc(r.id)}" class="dd-edit" aria-label="${esc(t("把 {d} 这一期关联到一笔花费", { d: fmtDate(r.paid_on) }))}">
     <p class="dd-edit-title"><b>${t("把 {d} 这一期关联到一笔花费", { d: fmtDate(r.paid_on) })}</b> <small class="muted">${t("实付 {a}", { a: mny(r.total, e.currency) })}</small></p>
     <div class="dr-link-row"><label>${t("花费")}${!cand ? `<select disabled><option>${t("正在找前后几天的花费…")}</option></select>` : cand.err ? `<span class="form-error">${esc(cand.err)}</span>`
-      : cand.list.length ? `<select name="purchase" required><option value="">${t("选一笔")}</option>${opts}</select>` : `<span class="muted">${t("前后 7 天没有可关联的花费。")}</span>`}</label>
-      <button type="button" class="btn btn-sm btn-ghost dr-refresh" data-debt="pay-cand-refresh" data-pay="${esc(r.id)}" ${cand ? "" : "disabled"} aria-label="${esc(t("重新查找相近的花费和收入"))}" title="${esc(t("重新查找相近的花费和收入（刚导入或刚记了一笔时用）"))}"><span aria-hidden="true">↻</span></button></div>
+      : cand.list.length || cand.taken?.some((o) => o.v.startsWith("p:")) ? `<select name="purchase" required><option value="">${t("选一笔")}</option>${opts}${takenGroup(cand, "p:")}</select>` : `<span class="muted">${t("前后 7 天没有可关联的花费。")}</span>`}</label>
+      <button type="button" class="btn btn-sm btn-ghost dr-refresh" data-debt="pay-cand-refresh" data-pay="${esc(r.id)}" ${cand ? "" : "disabled"} aria-label="${esc(t("重新查找相近的花费和收入"))}" title="${esc(t("重新查找相近的花费和收入（刚导入或刚记了一笔时用）"))}"><span aria-hidden="true">↻</span></button></div>${cand ? seenLine(cand, "p:") : ""}
     <p class="muted dd-note">${t("★ = 日期和金额相近。关联后这笔缴费就记在那笔花费上（原来自动记的那笔删掉），花费会改成利息 + Escrow 部分，本金另记一行——同一笔钱不重复计算。")}</p>
     <div class="form-actions"><button class="btn btn-sm btn-primary" ${cand?.list.length ? "" : "disabled"}>${t("关联")}</button><button type="button" class="btn btn-sm btn-ghost" data-debt="pay-link" data-pay="">${t("取消")}</button></div>
   </form>`;
