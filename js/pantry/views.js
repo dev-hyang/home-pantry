@@ -428,6 +428,18 @@ const SHOP_OPEN_KEY = "hmh-shop-open";
 const shopOpenPref = () => { try { return JSON.parse(localStorage.getItem(SHOP_OPEN_KEY) || "{}") || {}; } catch { return {}; } };
 export function setShopOpen(key, open) { try { localStorage.setItem(SHOP_OPEN_KEY, JSON.stringify({ ...shopOpenPref(), [key]: !!open })); } catch { /* 记不住就算了 */ } }
 const shopSecOpen = (key, n) => { const p = shopOpenPref()[key]; return p === undefined ? (key === "todo" || (key === "claimed" && n > 0)) : !!p; };
+/* 从别的应用带来的采购项（2026-11，牧羊人的饮食模版「加进爱家采购清单」）：#/shopping?add=燕麦|糙米|…&from=DASH 低钠
+ * 牧羊人是另一个 Supabase 项目，只能把名字放在网址里带过来；这里列出来勾选确认后才加，已在清单里（待买 / 在买）的默认不勾 */
+export const importNames = () => { const raw = state.route?.q?.get("add"); return raw ? [...new Set(raw.split("|").map((s) => s.trim().slice(0, 60)).filter(Boolean))].slice(0, 40) : []; };
+function shopImportHtml() {
+  const names = importNames(); if (!names.length) return "";
+  const open = new Set(state.shopping.filter((s) => s.status !== "bought").map((s) => String(s.name).trim().toLowerCase()));
+  const from = state.route.q.get("from") || "";
+  return `<div class="panel shop-import" id="shopImport" role="region" aria-label="${esc(t("从别的应用带来的采购项"))}">
+    <b>🐑 ${from ? t("来自牧羊人 · {n}", { n: from }) : t("来自牧羊人")}</b><p class="muted" style="margin:4px 0 8px;font-size:13px">${t("勾选要买的，再点「加进采购清单」。已经在清单里的默认不勾。")}</p>
+    <div class="shop-import-list">${names.map((n) => { const dup = open.has(n.toLowerCase()); return `<label class="check-inline"><input type="checkbox" value="${esc(n)}" ${dup ? "" : "checked"}><span>${esc(n)}${dup ? ` <small class="muted">${t("已在清单里")}</small>` : ""}</span></label>`; }).join("")}</div>
+    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-primary btn-sm" data-action="shop-import">${t("加进采购清单")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="shop-import-cancel">${t("不用了")}</button></div></div>`;
+}
 export function viewShopping() {
   const by = (s) => shopRows(s);
   const row = (s) => {
@@ -464,7 +476,7 @@ export function viewShopping() {
       <div class="section-head"><h2>${t("采购清单")}</h2>
         <div class="head-acts"><a class="btn btn-sm btn-primary" href="${href("scan")}">🧾 ${t("录入购物")}</a>
           <button type="button" class="btn btn-sm" data-action="shop-add-alerts">${t("把补货提醒加进来")}</button></div></div>
-      ${shopAdviceHtml()}${shopForecastHtml()}
+      ${shopImportHtml()}${shopAdviceHtml()}${shopForecastHtml()}
       <form class="panel add-row shop-row" id="shopForm" aria-label="${t("手动添加采购项")}">
         <input name="name" required maxlength="60" placeholder="${t("要买什么")}" list="itemNames" aria-label="${t("名称")}">
         <input name="quantity" type="number" min="0.1" step="0.1" value="1" aria-label="${t("数量")}">

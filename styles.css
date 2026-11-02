@@ -2330,3 +2330,7 @@ html.force-phone .today-layout { grid-template-columns: minmax(0, 1fr); }
 .dr-meta a { font-weight: 600; }
 .dr-meta > span { white-space: nowrap; }
 .dr-meta > span:last-child { white-space: normal; overflow-wrap: anywhere; }
+/* 采购清单 · 从牧羊人带来的采购项（#/shopping?add=…） */
+.shop-import { border-left: 3px solid var(--pine); margin-bottom: 12px; }
+.shop-import-list { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.shop-import-list .check-inline { min-height: 40px; }

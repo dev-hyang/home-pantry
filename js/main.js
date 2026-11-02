@@ -1095,6 +1095,13 @@ main.addEventListener("click", async (e) => {
         return addAlertsToShopping(alertsOf(pool));
       }
       case "property-of-bill": return;
+      case "shop-import": {   // 牧羊人带来的采购项（#/shopping?add=…）：勾了的逐个加，按名字对上库存物品就关联
+        const names = [...document.querySelectorAll("#shopImport input[type=checkbox]:checked")].map((x) => x.value);
+        for (const name of names) { const it = state.items.find((i) => String(i.name).trim().toLowerCase() === name.toLowerCase()); await Store.saveShopping({ name, quantity: 1, unit: it?.unit || "", item_id: it?.id || null, category: it?.category || "other" }); }
+        toast(names.length ? t("已加进采购清单：{n} 项", { n: names.length }) : t("没有勾选"));
+        go(href("shopping"), { replace: true }); return refresh();
+      }
+      case "shop-import-cancel": go(href("shopping"), { replace: true }); return render(true);
       case "shop-claim": await Store.saveShopping({ id, status: "claimed", claimed_by: state.user?.id || null, claimed_by_name: state.displayName }); toast(t("已认领，家人会看到你在买")); return refresh();
       case "shop-unclaim": await Store.saveShopping({ id, status: "todo", claimed_by: null, claimed_by_name: null }); return refresh();
       case "shop-bought": return markBought(id);
