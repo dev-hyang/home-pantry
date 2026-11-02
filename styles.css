@@ -2284,3 +2284,24 @@ a.kpi { color: inherit; text-decoration: none; display: block; }
 .attn-sec { margin-top: 20px; margin-bottom: 20px; }
 .today-col .mlist .mt small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .today-col .mlist .mt { min-width: 0; flex: 1; }
+/* 2026-11-02.3 修复：首页单栏（手机、< 900px 的笔记本）没有显式列宽，待办说明不换行时把整栏撑出屏幕 → 单栏也用 minmax(0, 1fr) */
+.today-layout { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .today-layout { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); } }
+html.force-phone .today-layout { grid-template-columns: minmax(0, 1fr); }
+.today-col > * { min-width: 0; }
+.today-col .mrow { min-width: 0; }
+/* 记一笔花费（笔记本）：三行 12 列——名称 5 · 分类 4 · 行程 3 / 金额 3 · 商店 3 · 日期 3 · 卡 3 / 性质 3 · 房产 3 · 退款 3 · 「记一笔」3（右对齐）；
+ * 性质、房产两个下拉原来没给列宽，只占 1/12，看不到选项 */
+@media (min-width: 721px) {
+  .purchase-row .pr-amt, .purchase-row .pr-store, .purchase-row .pr-date { grid-column: span 3; }
+  .purchase-row .pr-card, .purchase-row .ssel:has(.pr-card) { grid-column: span 3; }
+  .purchase-row .pr-nat, .purchase-row .pr-prop, .purchase-row .pr-refund { grid-column: span 3; }
+  .purchase-row .pr-go { grid-column: span 3; justify-self: end; min-width: 140px; min-height: 44px; }
+  .purchase-row:not(:has(.pr-prop)) .pr-refund { grid-column: span 6; }
+  .purchase-row > input, .purchase-row > select, .purchase-row .ssel-in { min-height: 44px; min-width: 0; width: 100%; }
+}
+/* 手机：两列，性质 / 房产各占半行，「记一笔」整行 */
+@media (max-width: 720px) {
+  .purchase-row .pr-nat, .purchase-row .pr-prop { min-width: 0; width: 100%; }
+  .purchase-row .pr-refund { grid-column: 1 / -1; }
+}
