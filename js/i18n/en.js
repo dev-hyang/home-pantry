@@ -3599,4 +3599,5 @@ export const EN = {
   "花费 {n} 笔": "{n} spending", "（导入的都已删除）": "(everything from this import has been deleted)", "（导入时 {n} 笔 {m}，之后改过）": "(imported {n} for {m}; changed since)",
   "{n} 批": "{n} imports", "显示 {a} / 共 {b} 批": "Showing {a} of {b} imports", "（导入时 {n} 笔，之后改过）": "(imported {n}; changed since)",
   "只保留最近 {n} 批的记录；更早的花费 / 收入都还在，只是不在这里列出、不能整批撤销": "Only the latest {n} imports are kept here; older spending / income is still recorded, it just isn't listed or undoable as a batch",
+  "重新查找相近的花费和收入": "Search again for similar spending and income", "重新查找相近的花费和收入（刚导入或刚记了一笔时用）": "Search again for similar spending and income (after importing or logging something)",
 };

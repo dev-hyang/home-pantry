@@ -138,7 +138,8 @@ function editForm(x, d) {
   const c = d?.currency, cand = ui().recCand?.id === x.id ? ui().recCand : null;
   if (!cand) loadCands(x);
   const cur = x.purchase_id ? `p:${x.purchase_id}` : x.income_record_id ? `i:${x.income_record_id}` : "";
-  const pick = cur || cand?.best || "";
+  const kept = ui().recKeep?.id === x.id ? ui().recKeep.v : null;   // 点了 ↻：保留刚才下拉框里选的（还在候选里的话）
+  const pick = kept && cand?.list.some((o) => o.v === kept) ? kept : cur || cand?.best || "";   // 刚才是「不关联」：按重新找到的最像的一笔自动选
   const opt = (o) => `<option value="${esc(o.v)}" ${o.v === pick ? "selected" : ""}>${esc(o.label)}</option>`;
   const near = cand?.list.filter((o) => o.near) || [], other = cand?.list.filter((o) => !o.near) || [];
   const curMissing = cur && cand && !cand.list.some((o) => o.v === cur);   // 已关联的那笔不在前后 7 天里（改过日期）：照样保留
@@ -158,7 +159,8 @@ function editForm(x, d) {
       <label>${t("利息")}<input type="number" name="interest" inputmode="decimal" step="0.01" min="0" value="${x.interest_amount || ""}"></label>
       <label>${t("手续费 / 滞纳金")}<input type="number" name="fee" inputmode="decimal" step="0.01" min="0" value="${x.fee_amount || ""}"></label>
       <label>${t("备注")}<input name="notes" maxlength="200" value="${esc(x.notes || "")}"></label>
-      <label style="grid-column:1/-1">${t("关联一笔花费 / 收入 / 转账")}${linkSel}${hint}</label>
+      <div class="dr-link-field" style="grid-column:1/-1"><div class="dr-link-row"><label>${t("关联一笔花费 / 收入 / 转账")}${linkSel}</label>
+        <button type="button" class="btn btn-sm btn-ghost dr-refresh" data-rec-act="cand-refresh" data-id="${esc(x.id)}" ${cand ? "" : "disabled"} aria-label="${esc(t("重新查找相近的花费和收入"))}" title="${esc(t("重新查找相近的花费和收入（刚导入或刚记了一笔时用）"))}"><span aria-hidden="true">↻</span></button></div>${hint}</div>
     </div>
     <p class="muted dd-note">${t("关联只记下「这笔钱就是那一笔」，不改那笔花费或收入本身；金额以这里为准，合计 {a}。", { a: mny(x.total, c) })}</p>
     <div class="form-actions"><button class="btn btn-sm btn-primary">${t("保存")}</button><button type="button" class="btn btn-sm btn-ghost" data-rec-act="edit" data-id="${esc(x.id)}">${t("取消")}</button>
@@ -179,7 +181,10 @@ async function purchasesNear(iso) {
   return purchaseCache.get(k);
 }
 /** 候选列表：[{ v: "p:<id>" | "i:<id>", label, near, score }]；best = 自动选中的（金额相近里分最低的，偏向资金方向对的那一边） */
-export async function linkCandidates({ date, amount, flow, selfId = null, exclude = new Set() }) {
+/** 候选里的花费 / 收入重新读一遍（下拉框旁边的 ↻：刚导入了对账单、刚记了一笔时用） */
+export async function refreshCandidateData() { purchaseCache.clear(); await loadIncome(); }
+export async function linkCandidates({ date, amount, flow, selfId = null, exclude = new Set(), fresh = false }) {
+  if (fresh) await refreshCandidateData();
   const I = inc(); if (!I.loaded) await loadIncome();
   const used = new Set([...debtTxns().filter((y) => y.id !== selfId).flatMap((y) => [y.purchase_id, y.income_record_id]), ...(state.billPayments || []).map((p) => p.purchase_id)].filter(Boolean));
   for (const id of exclude) used.add(id);
@@ -207,8 +212,9 @@ export async function linkCandidates({ date, amount, flow, selfId = null, exclud
 }
 function loadCands(x) {
   if (ui().recCandLoading === x.id) return;
+  const fresh = ui().recFresh === x.id; ui().recFresh = null;
   ui().recCandLoading = x.id;
-  linkCandidates({ date: x.txn_date, amount: x.total, flow: flowOf(x), selfId: x.id })
+  linkCandidates({ date: x.txn_date, amount: x.total, flow: flowOf(x), selfId: x.id, fresh })
     .then((r) => { ui().recCand = { id: x.id, ...r }; }, (e) => { ui().recCand = { id: x.id, list: [], best: "", err: t("读取花费 / 收入失败：{msg}", { msg: e.message }) }; })
     .finally(() => { ui().recCandLoading = null; if (ui().recEdit === x.id) rerender(false); });
 }
@@ -230,6 +236,12 @@ export function initRecords({ render, save }) {
   });
   main.addEventListener("click", (e) => {
     const b = e.target.closest?.("[data-rec-act]"); if (!b) return;
+    if (b.dataset.recAct === "cand-refresh") {   // ↻：重新查找相近的花费 / 收入（已选的那一项保留，重新读完后如果还在就照样选中）
+      const x = debtTxns().find((y) => y.id === b.dataset.id); if (!x) return;
+      const keep = b.closest("form")?.elements.link?.value || "";
+      ui().recKeep = { id: x.id, v: keep }; ui().recCand = null; ui().recFresh = x.id; render(false);   // 重画时 editForm 调 loadCands，看到 recFresh 就重新读
+      return;
+    }
     if (b.dataset.recAct === "edit") {
       const id = b.dataset.id; ui().recEdit = ui().recEdit === id ? null : id; ui().recCand = null; render(false);
       if (ui().recEdit) requestAnimationFrame(() => document.querySelector(`#dr-edit-${CSS.escape(id)} input`)?.focus());

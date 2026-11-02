@@ -236,9 +236,10 @@ function payTableHtml(e) {
 function payLinkForm(e, r) {
   const cand = ui().payCand?.id === r.id ? ui().payCand : null;
   if (!cand && ui().payCandLoading !== r.id) {
+    const fresh = ui().payFresh === r.id; ui().payFresh = null;
     ui().payCandLoading = r.id;
     const cur0 = state.billPayments.find((p) => p.id === r.id)?.purchase_id;
-    linkCandidates({ date: r.paid_on, amount: r.total, flow: "out", exclude: new Set(cur0 ? [cur0] : []) })
+    linkCandidates({ date: r.paid_on, amount: r.total, flow: "out", exclude: new Set(cur0 ? [cur0] : []), fresh })
       .then((x) => { ui().payCand = { id: r.id, ...x, list: x.list.filter((o) => o.v.startsWith("p:")) }; ui().payCand.best = ui().payCand.list.find((o) => o.near)?.v || ""; },
         (err) => { ui().payCand = { id: r.id, list: [], best: "", err: err.message }; })
       .finally(() => { ui().payCandLoading = null; hooks.render(false); });
@@ -246,8 +247,9 @@ function payLinkForm(e, r) {
   const opts = cand ? cand.list.map((o) => `<option value="${esc(o.v.slice(2))}" ${o.v === cand.best ? "selected" : ""}>${o.near ? "★ " : ""}${esc(o.label)}</option>`).join("") : "";
   return `<form id="dd-link" data-debt-form="pay-link" data-id="${esc(e.id)}" data-pay="${esc(r.id)}" class="dd-edit" aria-label="${esc(t("把 {d} 这一期关联到一笔花费", { d: fmtDate(r.paid_on) }))}">
     <p class="dd-edit-title"><b>${t("把 {d} 这一期关联到一笔花费", { d: fmtDate(r.paid_on) })}</b> <small class="muted">${t("实付 {a}", { a: mny(r.total, e.currency) })}</small></p>
-    <label>${t("花费")}${!cand ? `<select disabled><option>${t("正在找前后几天的花费…")}</option></select>` : cand.err ? `<span class="form-error">${esc(cand.err)}</span>`
+    <div class="dr-link-row"><label>${t("花费")}${!cand ? `<select disabled><option>${t("正在找前后几天的花费…")}</option></select>` : cand.err ? `<span class="form-error">${esc(cand.err)}</span>`
       : cand.list.length ? `<select name="purchase" required><option value="">${t("选一笔")}</option>${opts}</select>` : `<span class="muted">${t("前后 7 天没有可关联的花费。")}</span>`}</label>
+      <button type="button" class="btn btn-sm btn-ghost dr-refresh" data-debt="pay-cand-refresh" data-pay="${esc(r.id)}" ${cand ? "" : "disabled"} aria-label="${esc(t("重新查找相近的花费和收入"))}" title="${esc(t("重新查找相近的花费和收入（刚导入或刚记了一笔时用）"))}"><span aria-hidden="true">↻</span></button></div>
     <p class="muted dd-note">${t("★ = 日期和金额相近。关联后这笔缴费就记在那笔花费上（原来自动记的那笔删掉），花费会改成利息 + Escrow 部分，本金另记一行——同一笔钱不重复计算。")}</p>
     <div class="form-actions"><button class="btn btn-sm btn-primary" ${cand?.list.length ? "" : "disabled"}>${t("关联")}</button><button type="button" class="btn btn-sm btn-ghost" data-debt="pay-link" data-pay="">${t("取消")}</button></div>
   </form>`;
@@ -546,6 +548,7 @@ export function initDebts({ render, refresh }) {
     if (act === "tx-more") { ui().txLimit = (ui().txLimit || 50) + 50; return render(false); }
     if (act === "rec-open") { ui().recOpen = ui().recOpen === id ? null : id; render(false); requestAnimationFrame(() => document.querySelector(ui().recOpen ? "#dd-rec-form select, #dd-rec-form input" : `[data-debt="rec-open"]`)?.focus()); return; }
     if (act === "pay-link") { ui().linkPay = b.dataset.pay && ui().linkPay !== b.dataset.pay ? b.dataset.pay : null; ui().payCand = null; ui().editPay = null; b.closest("details")?.removeAttribute("open"); render(false); if (ui().linkPay) requestAnimationFrame(() => { const f = document.getElementById("dd-link"); f?.scrollIntoView({ block: "nearest" }); f?.querySelector("select, button")?.focus({ preventScroll: true }); }); return; }
+    if (act === "pay-cand-refresh") { ui().payFresh = b.dataset.pay; ui().payCand = null; render(false); return; }   // ↻：重新读前后几天的花费再找
     if (act === "pay-del" && d) { if (!armed(b, t("再点一次确认删除这笔缴费"))) return; return guard(async () => { const back = await deleteBillPay(b.dataset.pay); await hooks.refresh(); toast(back ? t("已删除这条记录，到期日回到 {d}", { d: fmtDate(back) }) : t("已删除这条记录")); await after(); }); }
     if (act === "amort-all") { ui().amortAll = ui().amortAll === id ? null : id; return render(false); }
     if (act === "resplit" && d) return guard(async () => { b.disabled = true; const n = await resplitDebt(d, { overwrite: !!ui().overwrite }); toast(t("已按摊还表拆分 {n} 笔还款", { n })); await after(); });
