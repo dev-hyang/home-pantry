@@ -18,6 +18,7 @@ import { APP_VERSION } from "./core/version.js";
 import { crumbNav } from "./core/hub.js";
 import { billAlerts } from "./bills/logic.js";
 import { activeProperties, endedProperties } from "./core/lifecycle.js";
+import { houseTodoBoard } from "./house/todo-board.js";   // 房屋页签首页：各房产要处理的事（不分当前房产）
 import { activeTab, firstTab, tabLabel } from "./core/tabs.js";
 import { medBillLabel } from "./bills/medical-views.js";
 import { collectAlerts } from "./core/alerts.js";
@@ -109,6 +110,7 @@ export function viewPropertyList() {
     ${houseBar()}
     <div class="panel mlist">${rows || `<div class="empty"><strong>${t("还没有房产")}</strong></div>`}
       ${state.editProperty === "new" ? "" : `<button type="button" class="mrow" data-action="property-edit" data-id=""><span class="mi" aria-hidden="true">＋</span><span class="mt"><b>${t("添加房产")}</b><small>${t("自住、出租或租住的房子都可以")}</small></span></button>`}</div>
+    ${houseTodoBoard()}
     ${endedHtml}
     <div class="section-head" style="margin-top:22px"><h2>${t("全家")}</h2></div>
     <div class="panel mlist">${menuRow({ href: href("house", "vehicles"), icon: "🚗", title: t("车辆"), desc: vehicles.length ? t("{n} 辆，保养时间表、牌照与保险", { n: vehicles.length }) : t("车辆档案、保养时间表、牌照与保险"), count: vAlerts })}</div>

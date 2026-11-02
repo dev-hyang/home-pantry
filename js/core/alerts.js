@@ -11,8 +11,8 @@ import { FINANCE_ALERT_SOURCES, financeOk } from "./finance-access.js";
 
 export const SEVERITY_LABEL = ["紧急", "今天", "尽快", "留意"];
 export const SEVERITY_CLS = ["b-out", "b-low", "b-soon", "b-ok"];
-export const SOURCE_LABEL = { bill: "账单", deal: "交易", asset: "设备", season: "季节任务", pantry: "储藏", house: "房屋耗材", budget: "预算", medical: "医疗账单", card: "信用卡", income: "收入还款", debt: "借贷", join: "加入申请" };
-export const SOURCE_ICON = { bill: "🧾", deal: "📝", asset: "⚙️", season: "📅", pantry: "🥫", house: "🧰", budget: "💰", medical: "🏥", card: "💳", income: "🤝", debt: "🏦", join: "👥" };
+export const SOURCE_LABEL = { bill: "账单", deal: "交易", asset: "设备", season: "季节任务", pantry: "储藏", house: "房屋耗材", budget: "预算", medical: "医疗账单", card: "信用卡", income: "收入还款", debt: "借贷", finance: "财务", join: "加入申请" };
+export const SOURCE_ICON = { bill: "🧾", deal: "📝", asset: "⚙️", season: "📅", pantry: "🥫", house: "🧰", budget: "💰", medical: "🏥", card: "💳", income: "🤝", debt: "🏦", finance: "📈", join: "👥" };
 
 const providers = [];
 export const registerAlerts = (fn) => { providers.push(fn); };
@@ -67,4 +67,18 @@ export function alertRow(it) {
   const rest = list.filter((_, k) => k !== pi);
   const acts = list.length ? `<div class="alert-acts">${one(list[pi], false)}${rest.length ? `<details class="act-more"><summary class="btn btn-sm btn-ghost" aria-label="${esc(t("更多操作"))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">${rest.map((a) => one(a, true)).join("")}</div></details>` : ""}</div>` : "";
   return `<li class="alert-row sev-${it.severity}">${lead}<div class="grow">${propertyTag(it.property_id)}${it.must ? `<span class="badge b-out" style="margin-right:4px">${t("必须")}</span>` : ""}${title}<small>${esc(it.detail || "")}</small></div>${acts}${it.ask ? askButton(it.ask) : ""}${it.ask ? askPanel(it.ask) : ""}</li>`;
+}
+
+/** 模块页顶上的「要处理」（2026-11）：这个模块在提醒总线里的事，放在看板数字下面、明细上面，进来第一眼就看到。
+ *  sources = 来源（SOURCE_LABEL 的键）；filter = 再筛一次（例如只看当前房产）；max = 最多列几条（多的给「看全部」，去 #/alerts）。
+ *  没有要处理的事就什么都不画（不占位置）。和首页「待办 · 按模块」、#/alerts 是同一份提醒，数字一致 */
+export function attentionPanel(sources, { title = t("要处理"), sub = "", filter = null, max = 5, more = "#/alerts" } = {}) {
+  let list = collectAlerts().filter((x) => sources.includes(x.source));
+  if (filter) list = list.filter(filter);
+  if (!list.length) return "";
+  const hot = list.filter((x) => x.severity <= 2).length, id = `attn-${sources.join("-")}`;
+  return `<section class="section attn-sec${hot ? " is-hot" : ""}" aria-labelledby="${id}">
+    <div class="section-head"><h2 id="${id}"><span aria-hidden="true">${hot ? "🔔" : "📌"}</span> ${esc(title)} <span class="badge mcount ${hot ? "b-out" : ""}">${list.length}</span></h2>${sub ? `<p>${esc(sub)}</p>` : ""}</div>
+    <div class="panel"><ul class="restock-list alert-list">${list.slice(0, max).map(alertRow).join("")}</ul>
+      ${list.length > max ? `<div class="form-actions" style="justify-content:center"><a class="btn btn-sm btn-ghost" href="${esc(more)}">${esc(t("看全部 {n} 条", { n: list.length }))}</a></div>` : ""}</div></section>`;
 }

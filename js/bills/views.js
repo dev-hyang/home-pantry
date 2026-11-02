@@ -9,7 +9,7 @@ import { compare, joinList, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { download, monthKey, spendGlance } from "../stats/views.js";
 import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
-import { propertyTag, withProperty } from "../core/alerts.js";
+import { attentionPanel, propertyTag, withProperty } from "../core/alerts.js";
 import { autofillBar } from "../core/autofill.js";
 import { escrowPanelHtml } from "./escrow.js";
 import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
@@ -87,6 +87,7 @@ export function viewBillsHome() {
   const inCur = list.filter((b) => (b.currency || cur) === cur), monthlyTotal = inCur.reduce((s, b) => s + b.monthly, 0);
   const next30 = upcoming(list, 30), due30 = next30.filter((x) => (x.bill.currency || cur) === cur).reduce((s, x) => s + num(x.bill.est), 0);
   const open = state.medEnriched.filter((b) => b.open), owe = open.reduce((s, b) => s + (b.balance || 0), 0);
+  const attn = attentionPanel(["bill", "medical", "card", "budget", "debt", "income", "finance"], { title: t("财务 · 要处理"), sub: t("账单、卡、预算、借贷、收入和账户余额，最要紧的在前"), max: 8 });   // 整个财务的待办（各模块页顶上各自也有一份）
   const card = (href_, icon, title, desc, stat, add) => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small></span><span class="kind-stat">${stat}</span><span class="mch" aria-hidden="true">›</span></a>${add}</div>`;
   return `
     <section class="section">
@@ -104,12 +105,11 @@ export function viewBillsHome() {
       </div>
       <p class="muted kinds-note">${t("区别：周期性账单每隔一段时间自己再来一张，系统帮你算下次到期；一次性账单是一次事件产生的，付清就结束，可以分几次付。")}</p>
     </section>
+    ${attn}
     ${monthBillsHtml(list)}
-    ${alerts.length ? `<section class="section"><div class="section-head"><h2>${t("要处理的周期性账单")}</h2><p>${t("逾期、到期、即将到期和待核对的自动扣款")}</p></div>
-      <div class="panel"><ul class="restock-list">${alerts.slice(0, 6).map((b) => billRow(b)).join("")}</ul>${alerts.length > 6 ? `<div class="form-actions" style="justify-content:center"><a class="btn btn-sm btn-ghost" href="${RECURRING()}">${t("看全部 {n} 条", { n: alerts.length })}</a></div>` : ""}</div></section>` : ""}
     ${open.length ? `<section class="section"><div class="section-head"><h2>${t("未结的一次性账单")}</h2><p>${t("按到期日排序")}</p></div>
       <div class="panel"><ul class="restock-list">${[...open].sort((a, b) => (a.due_on || "9999").localeCompare(b.due_on || "9999")).slice(0, 6).map(medRow).join("")}</ul></div></section>` : ""}
-    ${!alerts.length && !open.length ? `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单")}</strong></div></section>` : ""}
+    ${!attn && !open.length ? `<section class="section"><div class="panel empty"><strong>${t("财务这边最近没有要处理的事 ✓")}</strong></div></section>` : ""}
     ${spendGlance()}`;
 }
 
@@ -154,12 +154,12 @@ export function viewBillsOverview() {
         ${subs.count ? `<div class="kpi"><span>${t("订阅与会员")}</span><b>${money(subs.monthly)}<small>/${t("月")}</small></b><small>${t("{n} 项，{a} 项年付", { n: subs.count, a: subs.annualPaid })}</small></div>` : ""}
       </div>
     </section>
+    ${alerts.length ? `<section class="section attn-sec is-hot"><div class="section-head"><h2><span aria-hidden="true">🔔</span> ${t("要处理的账单")} <span class="badge mcount b-out">${alerts.length}</span></h2><p>${t("逾期、到期、即将到期和待核对的自动扣款")}</p></div>
+      <div class="panel"><ul class="restock-list">${alerts.map((b) => billRow(b)).join("")}</ul></div></section>`
+      : `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单")}</strong></div></section>`}
     ${monthBillsHtml(list)}
     ${spendGlance()}
     ${escrowPanelHtml()}
-    ${alerts.length ? `<section class="section"><div class="section-head"><h2>${t("要处理的账单")}</h2><p>${t("逾期、到期、即将到期和待核对的自动扣款")}</p></div>
-      <div class="panel"><ul class="restock-list">${alerts.map((b) => billRow(b)).join("")}</ul></div></section>`
-      : `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单")}</strong></div></section>`}
     ${cards.length ? `<section class="section"><div class="panel cta-panel"><div><b>${t("自动扣款的卡快过期了")}</b><p class="muted">${joinList(cards.map((b) => `${esc(b.name)}（${esc(b.autopay_method || "")} ${esc(b.autopay_card_expires)}）`))}</p></div></div></section>` : ""}
     <section class="section">
       <div class="section-head"><h2>${t("未来 30 天")}</h2><p>${t("按到期日排列")}</p></div>

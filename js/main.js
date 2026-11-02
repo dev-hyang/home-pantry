@@ -51,6 +51,7 @@ import { viewFinAssets } from "./bills/fin-assets.js";   // 财务 → 资产
 import { loadDebts } from "./bills/debt-logic.js";
 import { loadNetWorth, maybeAutoSnapshot } from "./bills/nw-logic.js";   // 净资产（迁移 059）：余额 / 估值 / 快照，打开财务时自动存本月快照
 import { initDebts, viewDebts } from "./bills/debts.js";
+import "./bills/finance-alerts.js";   // 财务层面的提醒（余额太久没更新、快照没存上、借贷流水没关联）
 import { initNetWorth, viewNetWorth } from "./bills/net-worth.js";   // 财务 → 分析 → 净资产（迁移 059）   // 财务 → 借贷   // 借贷（迁移 058）：启动时读进内存，也注册借贷提醒
 import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { fixAction, runFix, viewFix } from "./house/fix.js";

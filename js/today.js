@@ -1,6 +1,8 @@
-/* 首页 · 今日（2026-11 重排，配合 房屋 / 财务 的新信息架构）：
- *   问候 + 一句话状态 → 需要注意（提醒总线前几条）→ 待办 · 按模块 → 快捷操作 ‖ 钱 · 本月（只给有财务权限的人）→ 家里 · 一览 → 咩咩咩
- * 宽屏两栏（左：要做的事；右：看一眼的数字和咩咩），手机一栏；每块都能折叠，折叠状态记在这台设备上（hmh-today 的 fold）。
+/* 首页 · 今日（2026-11 重排，配合 房屋 / 财务 的新信息架构；11-02 再调）：
+ *   问候 + 一句话状态 → 咩咩咩 → 待办 · 按模块（顶上是轻重计数 + 「查看全部」）‖ 家里 · 一览 → 钱 · 本月（只给有财务权限的人）→ 快捷操作
+ * 原来单独的「需要注意」块去掉了：它和「待办 · 按模块」是同一份提醒的两种排法，轻重计数并进待办的块头，完整清单仍在 #/alerts；
+ * 每个模块自己的页面顶上（看板数字下面）列这个模块要处理的事（见 core/alerts.js 的 attentionPanel）。
+ * 宽屏两栏（左：咩咩和要做的事；右：看一眼的数字和快捷操作），手机一栏；每块都能折叠，折叠状态记在这台设备上（hmh-today 的 fold）。
  * 角色：没有财务权限的家人看不到「钱 · 本月」整块（不是 CSS 隐藏，是根本不画），待办里没有预算 / 收入 / 借贷，快捷操作里没有财务专属的页面。
  * 数字全部来自内存里的小表和现有的聚合缓存（spend_rollup 经 stats/views.js、inc_rollup 经 income/views.js、净资产在内存里算），首页不新增逐条查询。
  * 「注意事项」点开是 #/alerts：从提醒总线取全部提醒，排序下拉（按轻重 / 按房产 / 按来源 / 按到期）。各模块只把自己的提醒注册进总线，首页不认识任何模块。
@@ -56,8 +58,8 @@ const countPill = (n, cls = "") => (n ? `<span class="badge mcount ${cls}">${n}<
 export function viewToday() {
   const all = myAlerts(), counts = alertCounts(all), fin = financeOk();
   const noProfile = state.houseEnabled && state.propertyId && !state.houseProfiles[state.propertyId];
-  const left = [attentionBlock(all, counts), todoBlock(all), quickBlock()].join("");
-  const right = [fin && state.billsEnabled ? moneyBlock() : "", homeBlock(fin), aiBlock()].join("");
+  const left = [aiBlock(), todoBlock(all, counts)].join("");
+  const right = [homeBlock(fin), fin && state.billsEnabled ? moneyBlock() : "", quickBlock()].join("");
   return `
     ${headHtml(all, counts)}
     ${noProfile ? `<section class="section"><div class="panel cta-panel">
@@ -79,24 +81,6 @@ function headHtml(all, counts) {
     <p class="today-status ${counts.important ? "is-hot" : "is-calm"}" role="status">${esc(status)}</p></section>`;
 }
 
-/* ── 需要注意：提醒总线里最要紧的几条（紧急 / 今天 / 尽快），没有就列「留意」的前几条；全部在 #/alerts ── */
-const ATT_MAX = 5;
-function attentionBlock(all, counts) {
-  const hot = all.filter((x) => x.severity <= 2), list = (hot.length ? hot : all).slice(0, hot.length ? ATT_MAX : 3);
-  const pills = [0, 1, 2, 3].filter((s) => counts.bySeverity[s]).map((s) => `<span class="pill sev-${s}"><i>${counts.bySeverity[s]}</i>${t(SEVERITY_LABEL[s])}</span>`).join("");
-  const row = (it) => `<li><a class="tatt-row" href="${esc(it.href || href("alerts"))}">
-      <span class="badge ${it.badge?.cls || SEVERITY_CLS[it.severity]}">${esc(it.badge?.label || t(SEVERITY_LABEL[it.severity]))}</span>
-      <span class="grow">${propertyTag(it.property_id)}<b>${esc(it.title)}</b>${it.detail ? `<small>${esc(it.detail)}</small>` : ""}</span>
-      <span class="mch" aria-hidden="true">›</span></a></li>`;
-  const body = all.length
-    ? `<div class="panel tatt">${pills ? `<div class="pills tatt-pills">${pills}</div>` : ""}
-        ${!hot.length ? `<p class="muted tatt-note">${t("没有急事，下面这些可以留意")}</p>` : ""}
-        <ul class="tatt-list">${list.map(row).join("")}</ul>
-        <a class="tmore" href="${href("alerts")}">${t("查看全部 {n} 件", { n: all.length })} ›</a></div>`
-    : `<div class="panel empty tempty"><strong>${t("没有要处理的事 ✓")}</strong>${t("账单、保养、季节任务、补货有动静时会出现在这里。")}</div>`;
-  return block("att", { icon: counts.important ? "🔔" : "✅", title: t("需要注意"), count: countPill(counts.important || all.length, counts.important ? "b-out" : ""), cls: counts.important ? "is-hot" : "", body });
-}
-
 /* ── 待办 · 按模块：每个模块一行（数量 + 最近的一件），点进模块自己的页面 ──
  * 来源全是提醒总线（已经按财务权限去掉了预算 / 收入 / 借贷）+ 内存里的采购清单；链接再过一遍 quickOk，没权限的页面不会出现 */
 const AREAS = () => [
@@ -107,10 +91,11 @@ const AREAS = () => [
   { src: ["budget"], icon: "💰", name: "预算", href: href("bills", "budget"), on: state.billsEnabled },
   { src: ["income"], icon: "🤝", name: "收入还款", href: `${href("bills", "income")}?tab=records`, on: state.billsEnabled },
   { src: ["asset"], icon: "⚙️", name: "设备保养", href: href("house", "assets"), on: state.houseEnabled },
-  { src: ["season"], icon: "📅", name: "季节任务", href: href("house", "tasks"), on: state.houseEnabled },
-  { src: ["deal"], icon: "📝", name: "交易", href: href("house", "deal"), on: state.houseEnabled },
+  { src: ["season"], icon: "📅", name: "季节任务", href: `${href("house")}?todo=season`, on: state.houseEnabled },   // 季节任务、交易可能分属几套房产：先到房屋首页的「各房产要处理的事」看全部
+  { src: ["deal"], icon: "📝", name: "交易", href: `${href("house")}?todo=deal`, on: state.houseEnabled },
   { src: ["pantry"], icon: "🥫", name: "储藏补货", href: href("pantry", "overview"), on: true },
-  { src: ["house"], icon: "🧰", name: "房屋耗材", href: `${href("pantry", "inventory")}?space=house`, on: state.houseEnabled },
+  { src: ["house"], icon: "🧰", name: "房屋耗材 · HOA · 保险", href: `${href("house")}?todo=house`, on: state.houseEnabled },
+  { src: ["finance"], icon: "📈", name: "财务", href: href("bills", "overview"), on: state.billsEnabled },
   { src: ["join"], icon: "👥", name: "加入申请", href: `${href("me", "settings")}?sec=family`, on: true },
 ];
 /** 待办的行（导出给测试用）：[{ name, icon, href, n, worst, first }] */
@@ -127,19 +112,36 @@ export function todoRows(all = myAlerts()) {
     const items = all.filter((x) => a.src.includes(x.source));
     if (!items.length) continue;
     const top = items[0];   // 总线已经按轻重 → 必须 → 到期排好
-    rows.push({ name: t(a.name), icon: a.icon, href: a.href, n: a.src[0] === "asset" ? assetsDueCount() || items.length : items.length,   // 设备按台数（一辆车两条提醒算 1 台），和房屋首页同一个口径 worst: Math.min(...items.map((x) => x.severity)),
-      first: `${withProperty(top.property_id, top.title)}${top.detail ? ` · ${top.detail}` : ""}` });
+    const spread = multiBucket(items);   // 分属几套房产 / 车辆：首行写分布（例如「自住 2 台 · 车辆 1 台」），免得和某一套房产页上的数字对不上
+    rows.push({ name: t(a.name), icon: a.icon, href: spread && a.src[0] === "asset" ? `${href("house")}?todo=asset` : a.href, src: a.src,   // 设备分属几处：去房屋页签的「各房产要处理的事」，不进某一套房产的设备页
+      n: a.src[0] === "asset" ? assetsDueCount() || items.length : items.length,   // 设备按台数（一辆车两条提醒算 1 台），和房屋首页、设备页同一个口径
+      worst: Math.min(...items.map((x) => x.severity)),
+      first: spread || `${withProperty(top.property_id, top.title)}${top.detail ? ` · ${top.detail}` : ""}` });
   }
   return rows.sort((x, y) => x.worst - y.worst);
 }
-function todoBlock(all) {
+/** 一组提醒分属不止一处（几套房产、车辆、与房产无关）时的分布文字；只有一处返回 ""。设备按台数去重 */
+function multiBucket(items) {
+  const isAsset = items[0]?.source === "asset", m = new Map();
+  for (const x of items) {
+    const veh = isAsset && !x.property_id, k = veh ? "veh" : x.property_id || "none";
+    if (!m.has(k)) m.set(k, new Set());
+    m.get(k).add(isAsset ? x.asset_id || x.title : `${x.title}|${x.due || ""}|${m.get(k).size}`);
+  }
+  if (m.size < 2) return "";
+  const name = (k) => (k === "veh" ? t("车辆") : k === "none" ? t("其他") : propertyName(k) || t("其他"));
+  return [...m].map(([k, set]) => `${name(k)} ${isAsset ? t("{n} 台", { n: set.size }) : t("{n} 件", { n: set.size })}`).join(" · ");
+}
+function todoBlock(all, counts) {
   const rows = todoRows(all);
+  const pills = [0, 1, 2, 3].filter((s) => counts.bySeverity[s]).map((s) => `<span class="pill sev-${s}"><i>${counts.bySeverity[s]}</i>${t(SEVERITY_LABEL[s])}</span>`).join("");
+  const top = all.length ? `<div class="ttodo-top">${pills ? `<div class="pills tatt-pills" aria-label="${esc(t("按轻重"))}">${pills}</div>` : ""}<a class="tmore" href="${href("alerts")}">${t("全部 {n} 件，按轻重 / 到期排", { n: all.length })} ›</a></div>` : "";
   const row = (r) => `<a class="mrow" href="${esc(r.href)}"><span class="mi" aria-hidden="true">${r.icon}</span>
       <span class="mt"><b>${esc(r.name)}</b><small>${esc(r.first)}</small></span>
       <span class="badge mcount ${r.worst <= 2 ? SEVERITY_CLS[r.worst] : ""}">${r.n}</span><span class="mch" aria-hidden="true">›</span></a>`;
-  const body = rows.length ? `<div class="panel mlist">${rows.map(row).join("")}</div>`
+  const body = rows.length ? `${top}<div class="panel mlist">${rows.map(row).join("")}</div>`
     : `<div class="panel empty tempty"><strong>${t("各处都没有待办 ✓")}</strong>${t("采购清单是空的，账单、保养和季节任务都不急。")}</div>`;
-  return block("todo", { icon: "🗂️", title: t("待办 · 按模块"), count: countPill(rows.length), body });
+  return block("todo", { icon: counts.important ? "🔔" : "🗂️", title: t("待办 · 按模块"), count: countPill(counts.important || rows.length, counts.important ? "b-out" : ""), cls: counts.important ? "is-hot" : "", body });
 }
 
 /* ── 钱 · 本月（只给家主和有财务权限的人；调用前已判断）：数字来自 spend_rollup / inc_rollup 的缓存和内存里的账单、净资产 ── */

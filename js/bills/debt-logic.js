@@ -293,6 +293,30 @@ export async function deleteDebtTxn(id, { cash = true } = {}) {
   await syncDebtStatus(x.debt_id);
 }
 
+/** 改一条不挂缴费的借贷流水（日期、类型、金额、备注、关联的花费 / 收入）：只改流水本身，关联的那笔花费 / 收入不动 */
+export async function updateDebtTxn(x, patch) {
+  if (x.bill_payment_id) throw new Error(t("这条是账单缴费的拆分：去账单的缴费记录里改或删"));
+  await Store.upsertDebtTxns([{ ...x, ...patch, id: x.id }]);
+  state.debtTxns = (await Store.listDebtTxns()).map(normTxn);
+  await syncDebtStatus(x.debt_id);
+}
+/** 房贷每期还款「关联一笔花费」：缴费改指向已有的那笔花费（多半是对账单导入的同一笔钱），原来自动记的那笔删掉；
+ *  然后按摊还表重写这一期：关联的花费变成主行（利息 + Escrow，分类见 interestLeafOf），本金照旧另一行——和记缴费同一套，不重复计算 */
+export async function relinkPaymentPurchase(d, paymentId, purchaseId) {
+  const bill = billOfDebt(d); if (!bill || !purchaseId) return false;
+  const pays = await Store.listPaymentsOfBill(bill.id), p = pays.find((x) => x.id === paymentId);
+  if (!p || p.purchase_id === purchaseId) return false;
+  const old = p.purchase_id;
+  await Store.updateBillPayment(p.id, { purchase_id: purchaseId });
+  state.billPayments = (state.billPayments || []).map((x) => (x.id === p.id ? { ...x, purchase_id: purchaseId } : x));
+  if (old) await Store.deletePurchase(old);
+  if (canSplit(d)) {
+    const input = await engineInput(d, bill), res = runEngine(d, bill, input), s = res?.rows.get(p.id);
+    if (s) await writeSplits(d, bill, [{ p: { ...p, purchase_id: purchaseId }, s }]);
+  } else spendChanged();
+  return true;
+}
+
 /** 收入里勾了「需要还」：和 058 迁移同一套规则建一笔个人借入（已有就更新金额 / 到期日），放款流水指回这条收入 */
 export async function ensureBorrowDebt(r) {
   if (!r?.id) return null;

@@ -9,7 +9,7 @@
 /** 账单下面整块隐藏的二级页 */
 export const FINANCE_HIDDEN_SUBS = ["statements", "income", "budget", "assets", "debts", "networth"];   // assets：财务 → 资产（2026-11）；debts：借贷（P2，迁移 058）；networth：净资产（P3，迁移 059）
 /** 没有财务权限时不注册的提醒来源（见 core/alerts.js 的 SOURCE_LABEL） */
-export const FINANCE_ALERT_SOURCES = ["budget", "income", "debt"];
+export const FINANCE_ALERT_SOURCES = ["budget", "income", "debt", "finance"];
 
 /** 当前用户有没有财务权限。mode：demo 只有一个人（就是家主）；cloud 看成员表里自己那一行 */
 export function financeAllowed({ mode, userId, members }) {

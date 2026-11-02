@@ -12,10 +12,14 @@ import { tabBar } from "../core/hub.js";
 import { DEBT_TABS, activeTab } from "../core/tabs.js";
 import * as A from "../core/amortization.js";
 import { DEBT_CATS, DIRECTIONS, FREQS, ROLES, STATUSES, TXN_TYPES, debtCat, debtCatOfBill, debtGroup, freqOfBill, isClosedStatus, isLoanBillCat, isPersonalDebt } from "../core/debt-rules.js";
-import { billOfDebt, calibrateDebt, canSplit, clearOverride, debt060, debtById, paymentTable, setExtraPrincipal, splitMissing, debtHref, debtTxns, debtsEnriched, deleteDebtTxn, enrichDebt, loadDebts, overrideSplit, recordDebtTxn, resplitDebt, syncDebtStatus, syncVehicle, unsplitDebt } from "./debt-logic.js";
+import { billOfDebt, calibrateDebt, canSplit, clearOverride, debt060, debtById, paymentTable, setExtraPrincipal, splitMissing, debtHref, debtTxns, debtsEnriched, deleteDebtTxn, enrichDebt, loadDebts, overrideSplit, recordDebtTxn, relinkPaymentPurchase, resplitDebt, syncDebtStatus, syncVehicle, unsplitDebt, updateDebtTxn } from "./debt-logic.js";
+import { initRecords, linkCandidates, recordsList, setRecordFilter } from "./debt-records.js";
+import { deleteBillPay } from "./views.js";
+import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { loadIncome } from "../income/logic.js";
 import { assetName, isVehicle } from "../house/assets.js";
-import { liveNetWorth } from "./nw-logic.js";   // 资产净值（P3，迁移 059）
+import { liveNetWorth } from "./nw-logic.js";
+import { attentionPanel } from "../core/alerts.js";   // 资产净值（P3，迁移 059）
 
 let hooks = { render: () => {}, refresh: async () => {} };
 const ui = () => (state.debtUi ||= {});
@@ -86,7 +90,7 @@ export const looseBillsHtml = () => {
 export const newFromBillHref = (b) => debtHref(null, `new=1&bill=${encodeURIComponent(b.id)}`);
 
 function listTab(tab, all) {
-  if (tab === "txns") return txnsTab(all);
+  if (tab === "txns") return txnsTab();
   const open = (e) => !isClosedStatus(e.status);
   if (tab === "personal") {
     const mine = all.filter((e) => debtGroup(e) === "personal");
@@ -104,6 +108,8 @@ function listTab(tab, all) {
 }
 
 const txnName = (x) => t(TXN_TYPES[x.type]?.name || x.type);
+const txnsOf0 = (id) => debtTxns().filter((x) => x.debt_id === id);
+/** 已存的拆分流水（不能按摊还表拆时的只读列表） */
 function txnRow(x, d, { manage = false } = {}) {
   const parts = [x.principal_amount ? t("本金 {a}", { a: mny(x.principal_amount, d?.currency) }) : null, x.interest_amount ? t("利息 {a}", { a: mny(x.interest_amount, d?.currency) }) : null,
     x.escrow_amount ? t("Escrow {a}", { a: mny(x.escrow_amount, d?.currency) }) : null, x.fee_amount ? t("滞纳金 {a}", { a: mny(x.fee_amount, d?.currency) }) : null].filter(Boolean);
@@ -115,12 +121,9 @@ function txnRow(x, d, { manage = false } = {}) {
     <b class="dd-amt">${mny(x.total, d?.currency)}</b>
     ${manage && !x.bill_payment_id ? `<div class="dd-row-act"><button type="button" class="btn btn-sm btn-ghost" data-debt="txn-del" data-id="${esc(x.id)}">${t("删除")}<span class="sr-only"> ${esc(fmtDate(x.txn_date))} ${esc(txnName(x))}</span></button></div>` : ""}</li>`;
 }
-function txnsTab(all) {
-  const by = new Map(all.map((e) => [e.id, e])), list = debtTxns().slice().sort((a, b) => b.txn_date.localeCompare(a.txn_date) || String(b.id).localeCompare(String(a.id)));
-  const lim = ui().txLimit || 50, shown = list.slice(0, lim);
-  return `<div class="panel" style="margin-top:12px">${shown.length ? `<ul class="fa-list dd-rows">${shown.map((x) => txnRow(x, by.get(x.debt_id))).join("")}</ul>` : `<div class="empty">${t("还没有借贷流水")}</div>`}
-    ${list.length > lim ? `<p style="text-align:center"><button type="button" class="btn btn-sm" data-debt="tx-more">${t("继续加载（还有 {n} 条）", { n: list.length - lim })}</button></p>` : ""}</div>
-    <p class="hint">${t("账单缴费的拆分在缴费时自动生成；钱本身记在花费 / 收入里，这里是同一笔钱的借贷视角，不重复计算。")}</p>`;
+function txnsTab() {
+  return `<div class="panel" style="margin-top:12px">${recordsList("txns", { txns: debtTxns, showDebt: true, empty: t("还没有借贷流水") })}</div>
+    <p class="hint">${t("↙ 资金流入、↗ 资金流出、⇄ 不动钱（调整、核销）。账单缴费的拆分在缴费时自动生成；钱本身记在花费 / 收入里，这里是同一笔钱的借贷视角，不重复计算。")}</p>`;
 }
 
 /* ───────────── 详情 ─────────────
@@ -190,8 +193,14 @@ function payTableHtml(e) {
   if (pt.err) return `<p class="form-error" role="alert">${esc(pt.err)}</p>`;
   const rows = pt.data?.rows || [];
   if (!rows.length) return `<p class="muted">${t("这条账单还没有缴费记录。")}</p>`;
-  const lim = ui().payLimit || 12, shown = rows.slice(0, lim), anyExtra = rows.some((r) => r.extra > 0), stale = rows.filter((r) => r.stale).length, c = e.currency;
-  const edit = ui().editPay ? rows.find((r) => r.id === ui().editPay) : null;
+  const lim = pageLimit(`debt-pay-${e.id}`), shown = rows.slice(0, lim), anyExtra = rows.some((r) => r.extra > 0), stale = rows.filter((r) => r.stale).length, c = e.currency;
+  const edit = ui().editPay ? rows.find((r) => r.id === ui().editPay) : null, linking = ui().linkPay ? rows.find((r) => r.id === ui().linkPay) : null;
+  const pay = (r) => state.billPayments.find((p) => p.id === r.id);
+  // 每行的「⋯」：手动编辑（账单的缴费记录表单：日期、金额、卡）、关联一笔花费、删除这笔缴费
+  const more = (r) => `<details class="act-more"><summary class="btn btn-sm btn-ghost" aria-label="${esc(t("更多操作：{d}", { d: fmtDate(r.paid_on) }))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">
+      <a class="act-item" href="${esc(`${href("bill", e.bill.id)}?sec=pay&edit=${encodeURIComponent(r.id)}`)}">${t("手动编辑这笔缴费")}</a>
+      <button type="button" class="act-item" data-debt="pay-link" data-pay="${esc(r.id)}" aria-controls="dd-link">${t("关联一笔花费")}</button>
+      <button type="button" class="act-item" data-debt="pay-del" data-id="${esc(e.id)}" data-pay="${esc(r.id)}">${t("删除这笔缴费")}</button></div></details>`;
   const cell = (label, v, cls = "num") => `<td class="${cls}" data-label="${esc(label)}">${v}</td>`;
   const tr = (r) => {
     const tip = r.ok ? t("实付 = 本金 + 利息 + Escrow{f}", { f: r.fee ? t(" + 滞纳金") : "" }) : t("实付不够本息：先付利息，再付本金");
@@ -208,14 +217,36 @@ function payTableHtml(e) {
       ${cell(t("来源"), `${r.source === "manual" ? `<span class="badge b-soon">${t("手动")}</span>` : `<span class="badge">${t("摊还表")}</span>`}${r.stale ? ` <span class="badge b-out">${t("未保存")}</span>` : ""}${r.fee ? ` <small class="muted">${t("滞纳金 {a}", { a: mny(r.fee, c) })}</small>` : ""}`, "dd-src")}
       <td class="dd-act">${diff ? `<button type="button" class="btn btn-sm btn-ghost" data-debt="mark-extra" data-id="${esc(e.id)}" data-pay="${esc(r.id)}" data-amt="${diff}">${t("多 {a} 记为额外本金", { a: mny(diff, c) })}</button>` : ""}
         ${r.extra > 0 && r.source === "schedule" ? `<button type="button" class="btn btn-sm btn-ghost" data-debt="mark-extra" data-id="${esc(e.id)}" data-pay="${esc(r.id)}" data-amt="0">${t("取消额外本金")}</button>` : ""}
-        <button type="button" class="btn btn-sm btn-ghost" data-debt="pay-edit" data-pay="${esc(r.id)}" aria-expanded="${edit?.id === r.id}" aria-controls="dd-edit">${t("按对账单改")}<span class="sr-only"> ${esc(fmtDate(r.paid_on))}</span></button></td></tr>`;
+        <button type="button" class="btn btn-sm btn-ghost" data-debt="pay-edit" data-pay="${esc(r.id)}" aria-expanded="${edit?.id === r.id}" aria-controls="dd-edit">${t("按对账单改")}<span class="sr-only"> ${esc(fmtDate(r.paid_on))}</span></button>
+        ${r.source === "manual" ? `<button type="button" class="btn btn-sm btn-ghost" data-debt="override-clear" data-id="${esc(e.id)}" data-pay="${esc(r.id)}">${t("按摊还表")}<span class="sr-only"> ${esc(fmtDate(r.paid_on))}</span></button>` : ""}
+        ${pay(r) ? more(r) : ""}</td></tr>`;
   };
   return `${stale ? `<p class="notice" role="status">${t("{n} 期已存的拆分和摊还表不一样（表里是按摊还表算的）：点「按摊还表重新拆分」写入。", { n: stale })}</p>` : ""}
     <div class="table-scroll dd-pay-wrap" tabindex="0" role="region" aria-label="${esc(t("每期还款拆分"))}"><table class="dd-tbl dd-pay"><caption class="sr-only">${t("每期还款拆分")}</caption>
     <thead><tr><th scope="col">${t("日期")}</th><th scope="col" class="num">${t("期")}</th><th scope="col" class="num">${t("实付")}</th><th scope="col" class="num">${t("本金")}</th><th scope="col" class="num">${t("利息")}</th><th scope="col" class="num">Escrow</th>${anyExtra ? `<th scope="col" class="num">${t("额外本金")}</th>` : ""}<th scope="col" class="num">${t("还款后余额")}</th><th scope="col">${t("来源")}</th><th scope="col"><span class="sr-only">${t("操作")}</span></th></tr></thead>
     <tbody>${shown.map(tr).join("")}</tbody></table></div>
-    ${rows.length > lim ? `<p><button type="button" class="btn btn-sm btn-ghost" data-debt="pay-more">${t("继续加载（还有 {n} 期）", { n: rows.length - lim })}</button></p>` : ""}
-    ${edit ? overrideForm(e, edit) : ""}`;
+    ${rows.length > lim ? `<p class="muted dd-note">${t("显示最近 {a} 期，共 {n} 期", { a: lim, n: rows.length })}</p>` : ""}${pageMoreBtn(`debt-pay-${e.id}`, rows.length, shown.length)}
+    ${edit ? overrideForm(e, edit) : ""}${linking ? payLinkForm(e, linking) : ""}`;
+}
+/** 一期还款「关联一笔花费」：缴费日前后 7 天、金额相近的花费（对账单导入的那笔多半就在里面）；选了以后缴费改指向它，原来自动记的那笔删掉 */
+function payLinkForm(e, r) {
+  const cand = ui().payCand?.id === r.id ? ui().payCand : null;
+  if (!cand && ui().payCandLoading !== r.id) {
+    ui().payCandLoading = r.id;
+    const cur0 = state.billPayments.find((p) => p.id === r.id)?.purchase_id;
+    linkCandidates({ date: r.paid_on, amount: r.total, flow: "out", exclude: new Set(cur0 ? [cur0] : []) })
+      .then((x) => { ui().payCand = { id: r.id, ...x, list: x.list.filter((o) => o.v.startsWith("p:")) }; ui().payCand.best = ui().payCand.list.find((o) => o.near)?.v || ""; },
+        (err) => { ui().payCand = { id: r.id, list: [], best: "", err: err.message }; })
+      .finally(() => { ui().payCandLoading = null; hooks.render(false); });
+  }
+  const opts = cand ? cand.list.map((o) => `<option value="${esc(o.v.slice(2))}" ${o.v === cand.best ? "selected" : ""}>${o.near ? "★ " : ""}${esc(o.label)}</option>`).join("") : "";
+  return `<form id="dd-link" data-debt-form="pay-link" data-id="${esc(e.id)}" data-pay="${esc(r.id)}" class="dd-edit" aria-label="${esc(t("把 {d} 这一期关联到一笔花费", { d: fmtDate(r.paid_on) }))}">
+    <p class="dd-edit-title"><b>${t("把 {d} 这一期关联到一笔花费", { d: fmtDate(r.paid_on) })}</b> <small class="muted">${t("实付 {a}", { a: mny(r.total, e.currency) })}</small></p>
+    <label>${t("花费")}${!cand ? `<select disabled><option>${t("正在找前后几天的花费…")}</option></select>` : cand.err ? `<span class="form-error">${esc(cand.err)}</span>`
+      : cand.list.length ? `<select name="purchase" required><option value="">${t("选一笔")}</option>${opts}</select>` : `<span class="muted">${t("前后 7 天没有可关联的花费。")}</span>`}</label>
+    <p class="muted dd-note">${t("★ = 日期和金额相近。关联后这笔缴费就记在那笔花费上（原来自动记的那笔删掉），花费会改成利息 + Escrow 部分，本金另记一行——同一笔钱不重复计算。")}</p>
+    <div class="form-actions"><button class="btn btn-sm btn-primary" ${cand?.list.length ? "" : "disabled"}>${t("关联")}</button><button type="button" class="btn btn-sm btn-ghost" data-debt="pay-link" data-pay="">${t("取消")}</button></div>
+  </form>`;
 }
 /** 改一期（按对账单）：本金 / 额外本金 / 利息 / Escrow */
 function overrideForm(e, r) {
@@ -322,7 +353,7 @@ function headHtml(e) {
 
 function personalDetail(e) {
   const recv = e.direction === "receivable", paidPct = e.original > 0 && e.balance != null ? Math.round(((e.original - e.balance) / e.original) * 100) : null, c = e.currency;
-  const list = e.txns.slice().sort((a, b) => b.txn_date.localeCompare(a.txn_date) || String(b.id).localeCompare(String(a.id)));
+  const n = e.txns.length, open = ui().recOpen === e.id;
   return `<section class="section debt-detail">${headHtml(e)}
     <div class="kpis dd-kpis">
       ${kpi(recv ? t("对方还欠") : t("我还欠"), mny(e.balance, c), paidPct != null ? t("已还 {p}%", { p: paidPct }) : "")}
@@ -331,9 +362,10 @@ function personalDetail(e) {
       ${kpi(recv ? t("收到的利息") : t("付的利息"), e.paid.interest ? mny(e.paid.interest, c) : "—")}
     </div>
     ${e.notes ? `<p class="muted dd-notes">${esc(e.notes)}</p>` : ""}
-    <div class="section-head dd-sec"><h2>${t("还款记录")}</h2><small class="muted">${t("{n} 条", { n: list.length })}</small></div>
-    <div class="panel">${list.length ? `<ul class="fa-list dd-rows">${list.map((x) => txnRow(x, null, { manage: true })).join("")}</ul>` : `<p class="muted">${t("还没有记录")}</p>`}</div>
-    ${fold(t("记一笔还款 / 借款"), "", recordForm(e), { open: true })}
+    <div class="section-head dd-sec"><h2>${t("还款记录")}</h2><div class="head-acts"><small class="muted">${t("{n} 条", { n })}</small>
+      <button type="button" class="btn btn-sm ${open ? "btn-ghost" : "btn-primary"}" data-debt="rec-open" data-id="${esc(e.id)}" aria-expanded="${open}" aria-controls="dd-rec-form">${open ? t("收起") : `＋ ${t("记一笔还款")}`}</button></div></div>
+    ${open ? `<div class="panel dd-rec-form" id="dd-rec-form">${recordForm(e)}</div>` : ""}
+    <div class="panel">${recordsList(`p-${e.id}`, { txns: () => e.txns, empty: t("还没有记录") })}</div>
     <p class="dd-foot"><button type="button" class="btn btn-sm btn-ghost" data-debt="delete" data-id="${esc(e.id)}">${t("删除这笔借贷")}</button></p>
   </section>`;
 }
@@ -371,8 +403,8 @@ function detail(id) {
 }
 /** 不挂缴费的流水（额外还本、放款、调整） */
 function otherTxnsHtml(e) {
-  const others = e.txns.filter((x) => !x.bill_payment_id).sort((a, b) => b.txn_date.localeCompare(a.txn_date));
-  return others.length ? `<div class="section-head dd-sec"><h2>${t("其他流水")}</h2></div><div class="panel"><ul class="fa-list dd-rows">${others.map((x) => txnRow(x, null, { manage: true })).join("")}</ul></div>` : "";
+  const others = () => txnsOf0(e.id).filter((x) => !x.bill_payment_id);
+  return others().length ? `<div class="section-head dd-sec"><h2>${t("其他流水")}</h2></div><div class="panel">${recordsList(`o-${e.id}`, { txns: others })}</div>` : "";
 }
 
 /* ───────────── 新建 / 编辑 ───────────── */
@@ -432,6 +464,7 @@ export function viewDebts() {
   if (q.get("new")) return `<section class="section">${debtForm(null)}</section>`;
   if (q.get("id")) return detail(q.get("id"));
   const tab = activeTab(state.route) || "asset", all = debtsEnriched();
+  if (tab === "txns" && q.get("link") && ui().linkQ !== state.route) { ui().linkQ = state.route; setRecordFilter("txns", { link: q.get("link") === "no" ? "no" : "yes" }); }   // 提醒「没关联花费 / 收入」点进来：直接筛好
   const open = all.filter((e) => !isClosedStatus(e.status));
   const owe = open.filter((e) => e.direction === "payable" && e.balance != null).reduce((s, e) => s + e.balance, 0);
   const lent = open.filter((e) => e.direction === "receivable" && e.balance != null).reduce((s, e) => s + e.balance, 0);
@@ -443,6 +476,7 @@ export function viewDebts() {
       <div class="kpi"><span>${t("每月还款")}</span><b>${mny(A.r2(monthly))}</b><small>${t("按关联账单折算")}</small></div>
       <div class="kpi"><span>${t("借出未收")}</span><b>${mny(A.r2(lent))}</b><small>${overdue ? t("{n} 笔逾期", { n: overdue }) : t("没有逾期")}</small></div>
     </div>
+    ${attentionPanel(["debt"], { title: t("借贷 · 要处理"), sub: t("快到期、逾期的借款，待确认的车贷") })}
     ${tabBar(DEBT_TABS, tab, tabHref, t("借贷内容"))}
     ${listTab(tab, all)}
   </section>`;
@@ -451,7 +485,7 @@ export function viewDebts() {
 /* ───────────── 动作 ───────────── */
 const guard = async (fn) => { try { await fn(); } catch (e) { toast(t("操作失败：{msg}", { msg: e.message })); } };
 const numOrNull = (v) => (v === "" || v == null ? null : Math.round(num(v) * 10000) / 10000);
-const after = async () => { ui().pt = null; ui().editPay = null; await loadDebts(); hooks.render(false); };   // 逐期表重新读
+const after = async () => { ui().pt = null; ui().editPay = null; ui().linkPay = null; ui().recEdit = null; await loadDebts(); hooks.render(false); };   // 逐期表重新读
 
 async function saveDebtForm(f) {
   const fd = new FormData(f), g = (k) => String(fd.get(k) ?? "").trim(), err = f.querySelector("[data-debt-err]");
@@ -491,6 +525,7 @@ async function saveDebtForm(f) {
 
 export function initDebts({ render, refresh }) {
   hooks = { render, refresh };
+  initRecords({ render, save: async (x, patch) => guard(async () => { await updateDebtTxn(x, patch); toast(t("已保存")); await after(); }) });
   const main = document.getElementById("main");
   main.addEventListener("change", (e) => {
     if (e.target.matches?.("[data-debt-overwrite]")) { ui().overwrite = e.target.checked; return; }
@@ -505,10 +540,12 @@ export function initDebts({ render, refresh }) {
     const b = e.target.closest?.("[data-debt]"); if (!b) return;
     const act = b.dataset.debt, id = b.dataset.id, d = id ? debtById(id) : null;
     if (act === "tx-more") { ui().txLimit = (ui().txLimit || 50) + 50; return render(false); }
-    if (act === "pay-more") { ui().payLimit = (ui().payLimit || 12) + 24; return render(false); }
+    if (act === "rec-open") { ui().recOpen = ui().recOpen === id ? null : id; render(false); requestAnimationFrame(() => document.querySelector(ui().recOpen ? "#dd-rec-form select, #dd-rec-form input" : `[data-debt="rec-open"]`)?.focus()); return; }
+    if (act === "pay-link") { ui().linkPay = b.dataset.pay && ui().linkPay !== b.dataset.pay ? b.dataset.pay : null; ui().payCand = null; ui().editPay = null; b.closest("details")?.removeAttribute("open"); render(false); if (ui().linkPay) requestAnimationFrame(() => document.getElementById("dd-link")?.scrollIntoView({ block: "nearest" })); return; }
+    if (act === "pay-del" && d) { if (!armed(b, t("再点一次确认删除这笔缴费"))) return; return guard(async () => { const back = await deleteBillPay(b.dataset.pay); await hooks.refresh(); toast(back ? t("已删除这条记录，到期日回到 {d}", { d: fmtDate(back) }) : t("已删除这条记录")); await after(); }); }
     if (act === "amort-all") { ui().amortAll = ui().amortAll === id ? null : id; return render(false); }
     if (act === "resplit" && d) return guard(async () => { b.disabled = true; const n = await resplitDebt(d, { overwrite: !!ui().overwrite }); toast(t("已按摊还表拆分 {n} 笔还款", { n })); await after(); });
-    if (act === "pay-edit") { ui().editPay = b.dataset.pay && ui().editPay !== b.dataset.pay ? b.dataset.pay : null; render(false); if (ui().editPay) requestAnimationFrame(() => document.querySelector("#dd-edit input")?.focus()); return; }
+    if (act === "pay-edit") { ui().linkPay = null; ui().editPay = b.dataset.pay && ui().editPay !== b.dataset.pay ? b.dataset.pay : null; render(false); if (ui().editPay) requestAnimationFrame(() => document.querySelector("#dd-edit input")?.focus()); return; }
     if (act === "mark-extra" && d) return guard(async () => { b.disabled = true; await setExtraPrincipal(d, b.dataset.pay, num(b.dataset.amt)); toast(num(b.dataset.amt) > 0 ? t("已记为额外本金，后面各期重新计算") : t("已取消额外本金")); await after(); });
     if (act === "calib-clear" && d) return guard(async () => { await Store.saveDebt({ ...d, statement_check: null }); ui().calib = null; await loadDebts(); await resplitDebt(debtById(id), { onlyChanged: true }); toast(t("已取消校准")); await after(); });
     if ((act === "calib-save" || act === "calib-anchor") && d && ui().calib?.id === id) return guard(async () => {
@@ -522,7 +559,11 @@ export function initDebts({ render, refresh }) {
     if (act === "override-clear" && d) return guard(async () => { await clearOverride(d, b.dataset.pay); toast(t("已改回按摊还表")); await after(); });
     if (act === "link-confirm" && d) return guard(async () => { await Store.saveDebt({ ...d, link_confirmed: true }); await loadDebts(); await syncVehicle(debtById(id)); toast(t("已确认")); await after(); });
     if (act === "link-clear" && d) return guard(async () => { await Store.saveDebt({ ...d, asset_id: null, link_confirmed: true }); toast(t("已解除关联")); await after(); });
-    if (act === "txn-del") { if (!armed(b, t("再点一次确认删除"))) return; return guard(async () => { await deleteDebtTxn(id); await loadIncome(); toast(t("已删除")); await after(); }); }
+    if (act === "txn-del") {
+      if (!armed(b, t("再点一次确认删除"))) return;
+      const cashBox = b.closest("form")?.elements?.cash, cash = cashBox ? cashBox.checked : true;   // 编辑表单里可以只删流水、留下关联的花费 / 收入
+      return guard(async () => { await deleteDebtTxn(id, { cash }); ui().recEdit = null; await loadIncome(); toast(t("已删除")); await after(); });
+    }
     if (act === "delete" && d) {
       if (!armed(b, t("再点一次确认删除（花费、收入、账单都保留）"))) return;
       return guard(async () => { const bill = billOfDebt(d); if (bill) await unsplitDebt(d, bill); await Store.deleteDebt(id); await loadDebts(); await hooks.refresh(); toast(t("已删除")); go(href("bills", "debts"), { replace: true }); });
@@ -533,6 +574,13 @@ export function initDebts({ render, refresh }) {
     e.preventDefault(); e.stopPropagation();
     const kind = f.dataset.debtForm, d = f.dataset.id ? debtById(f.dataset.id) : null, fd = new FormData(f), g = (k) => String(fd.get(k) ?? "").trim();
     if (kind === "debt") return saveDebtForm(f);
+    if (kind === "pay-link" && d) return guard(async () => {
+      const pid = g("purchase"); if (!pid) return toast(t("请选一笔花费"));
+      f.querySelector("button.btn-primary").disabled = true;
+      const ok = await relinkPaymentPurchase(d, f.dataset.pay, pid);
+      ui().linkPay = null; ui().payCand = null; await hooks.refresh();
+      toast(ok ? t("已关联，这笔缴费记在那笔花费上") : t("没有变化")); await after();
+    });
     if (kind === "override" && d) return guard(async () => { await overrideSplit(d, f.dataset.pay, { principal: g("principal"), interest: g("interest"), escrow: g("escrow"), extra: g("extra") }); toast(t("已按对账单改")); await after(); });
     if (kind === "calib" && d) return guard(async () => {
       const input = { date: g("date"), principal: g("principal"), interest: g("interest"), balance: g("balance") };
@@ -545,6 +593,7 @@ export function initDebts({ render, refresh }) {
       const acct = g("acct") || null, card = acct ? (state.cards || []).find((c) => c.id === acct) : null;
       const n = await recordDebtTxn(d, { kind: g("kind"), date: g("date") || todayISO(), principal, interest, cash: fd.get("cash") === "on", card_id: card && !["checking", "savings", "brokerage", "retirement", "hsa", "cash", "loan"].includes(card.kind) ? card.id : null, account_id: card?.id || null, notes: g("notes") || null });
       if (fd.get("cash") === "on") await loadIncome();
+      if (n) ui().recOpen = null;   // 记好了：表单收起，留下还款记录
       toast(n ? t("已记录") : t("没有要记的金额")); await after();
     });
     if (kind === "link" && d) return guard(async () => {

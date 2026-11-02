@@ -999,6 +999,18 @@ html.force-phone .today-layout { grid-template-columns: 1fr; }   /* 桌面预览
 .tatt-row .mch { margin-left: auto; color: var(--muted); align-self: center; }
 .tmore { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; color: var(--pine); text-decoration: none; }
 .tmore:hover { text-decoration: underline; }
+/* 待办 · 按模块的块头：轻重计数 + 看全部（原「需要注意」块并进来） */
+.ttodo-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; margin-bottom: 6px; }
+.ttodo-top .tatt-pills { margin-bottom: 0; }
+/* 模块页顶上的「要处理」（core/alerts.js attentionPanel）和房屋首页的「各房产要处理的事」 */
+.attn-sec .section-head h2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.attn-sec.is-hot > .panel, .house-todo.is-hot .house-todo-grp { border-left: 3px solid var(--out); }
+.house-todo .section-head h2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.house-todo-chips { margin: 0 0 10px; }
+.house-todo-chips .chip { min-height: 44px; display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
+.house-todo-grp + .house-todo-grp { margin-top: 10px; }
+.house-todo-grp > ul { padding: 0 12px 8px; }
+.house-todo-more { text-align: center; margin: 0 0 10px; }
 .tempty { text-align: left; }
 /* 看一眼的数字：整张卡是链接，数字等宽对齐 */
 .tkpis { margin-bottom: 0; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
@@ -2149,6 +2161,24 @@ a.kpi { color: inherit; text-decoration: none; display: block; }
 .dd-row-act { grid-column: 1 / -1; }
 .dd-row-act .btn, .dd-foot .btn { min-height: 44px; }
 .dd-foot { margin-top: 16px; text-align: right; }
+/* 借贷流水列表（debt-records.js）：资金方向图标 | 日期 · 类型 · 明细 | 金额；编辑表单在这一行下面占满一行 */
+.dd-rows .dr-row { grid-template-columns: 28px minmax(0, 1fr) auto; }
+.dr-row > .dd-row-act, .dr-row > .dr-edit { grid-column: 2 / -1; }
+.dr-row.is-editing { background: var(--surface-2); border-radius: var(--r-md); }
+.dr-flow { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-weight: 800; font-size: 15px; line-height: 1; margin-top: 1px; }
+.dr-in { color: var(--ok); background: var(--ok-bg); }
+.dr-out { color: var(--out); background: var(--out-bg); }
+.dr-none { color: var(--muted); background: var(--surface-2); }
+.dr-dir { background: var(--surface-2); }
+.dr-sum { font-size: 13px; margin: 0 0 6px; font-variant-numeric: tabular-nums; }
+.dr-tools { margin-bottom: 8px; }
+.dr-edit { margin-top: 8px; background: var(--surface); }
+.dr-edit .form-actions { flex-wrap: wrap; align-items: center; gap: 8px; }
+.dr-edit .btn { min-height: 44px; }
+.dr-edit label small { display: block; margin-top: 4px; font-weight: 400; }
+.dd-rec-form { margin-bottom: 12px; }
+.dd-act .act-more { display: inline-block; vertical-align: middle; }
+@media (max-width: 640px) { .dr-row > .dd-row-act, .dr-row > .dr-edit { grid-column: 1 / -1; } }
 .dd-note { font-size: 13px; margin: 0 0 8px; }
 .dd-notes { white-space: pre-line; margin: 10px 0 0; font-size: 13px; }
 .dd-escrow { border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px 12px 10px; margin: 0; min-width: 0; }

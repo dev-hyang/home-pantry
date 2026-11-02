@@ -68,6 +68,8 @@ export async function deleteSnapshot(id) { await Store.deleteSnapshot(id); await
 
 /** 自动快照：财务页每次画的时候调；条件不满足立即返回，写过一次同样的数字就不再写（snapshotNeeded 比对本月那一行） */
 let autoBusy = false, autoFailed = null;   // 写失败（比如权限刚被收回）：这个月本次打开不再重试
+/** 本月的自动快照这次打开写失败了（提醒总线用：只有自动快照失败、本月又没有快照时才提醒，见 finance-alerts.js） */
+export const autoSnapshotFailed = () => autoFailed === thisMonth();
 export async function maybeAutoSnapshot() {
   if (autoBusy || autoFailed === thisMonth() || !state.nwOk || !state.debtsOk || !financeOk()) return false;
   const live = liveNetWorth(), m = thisMonth(), snap = toSnapshot(live, m, "auto");

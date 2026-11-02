@@ -6,7 +6,7 @@ import { FD, changed, clearFiltersBtn, clearUrlParams, onClearFilters } from "..
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, applyDraft, daysUntil, esc, formDraft, money, moneyExact, num, todayISO, toast } from "../core/util.js";
-import { registerAlerts } from "../core/alerts.js";
+import { attentionPanel, registerAlerts } from "../core/alerts.js";
 import { lang, t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { tabBar, tabHub } from "../core/hub.js";
@@ -119,7 +119,7 @@ function cashflow({ range, from, to, unit, person, win = null }) {
 /* ───────────── 页面外壳 ───────────── */
 const shell = (tab, body) => `<section class="section" id="incomePage">
   <div class="section-head"><h2>💰 ${t("收入")}</h2><div class="head-acts"><button type="button" class="btn btn-primary btn-sm" data-inc="add">＋ ${t("记一笔收入")}</button></div></div>
-  ${tabBar(INCOME_TABS, tab, incomeHref, t("收入内容"))}${noticeHtml()}${body}</section>`;
+  ${tabBar(INCOME_TABS, tab, incomeHref, t("收入内容"))}${noticeHtml()}${tab === "overview" || tab === "records" ? attentionPanel(["income"], { title: t("收入 · 要处理"), sub: t("该收的还款") }) : ""}${body}</section>`;
 function noticeHtml() {
   const I = inc();
   if (!I.ok) return `<div class="notice" role="alert"><b>${t("还没执行数据库迁移 042（收入表）：先在 Supabase → SQL Editor 里执行 supabase/migrations/042_income_records.sql，再刷新。")}</b><br><small>${esc(I.err)}</small></div>`;
