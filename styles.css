@@ -2070,3 +2070,90 @@ a.kpi { color: inherit; text-decoration: none; display: block; }
 .nw-page .chip { min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; color: inherit; }
 .nw-page .chip[aria-current="true"] { color: var(--bg); }
 @media (max-width: 640px) { .nw-tbl .nw-opt { display: none; } }
+
+/* ── 借贷详情（版面整理）：头部 → KPI → 下一期构成 / 贷款条款（笔记本两栏）→ 逐期表（手机变卡片）→ 折叠区；金额等宽、右对齐 ── */
+.debt-detail { max-width: 1120px; }
+.dd-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: start; margin-bottom: 12px; }
+.dd-title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.dd-title h2 { font-size: 22px; font-weight: 800; margin: 0; overflow-wrap: anywhere; }
+.dd-badges { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.dd-sub { grid-column: 1; margin: 0; color: var(--muted); font-size: 14px; overflow-wrap: anywhere; line-height: 1.8; }
+.dd-edit-btn { grid-column: 2; grid-row: 1 / span 2; min-height: 44px; display: inline-flex; align-items: center; }
+.dd-kpis .kpi b { font-variant-numeric: tabular-nums; }
+.dd-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (min-width: 880px) { .dd-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); } }
+.dd-card h3 { font-size: 15px; font-weight: 800; margin: 0 0 10px; }
+.dd-dl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px 16px; margin: 0; font-size: 14px; }
+.dd-dl dt { color: var(--muted); min-width: 0; }
+.dd-dl dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.dd-dl dd small { display: block; font-size: 12px; }
+.dd-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--surface-2); margin: 0 0 12px; }
+.dd-bar i { display: block; height: 100%; min-width: 2px; }
+.dd-sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.dd-bar .p, .dd-sw.p { background: var(--pine); }
+.dd-bar .i, .dd-sw.i { background: var(--low); }
+.dd-bar .e, .dd-sw.e { background: var(--muted); }
+.dd-hint { font-size: 13px; margin: 10px 0 0; }
+.dd-hint small { color: var(--muted); }
+.dd-sec { margin-top: 20px; align-items: center; }
+.dd-resplit { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.dd-resplit .check-inline, .dd-resplit .btn { min-height: 44px; }
+.dd-tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.dd-tbl th, .dd-tbl td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.dd-tbl thead th { font-size: 12.5px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.dd-tbl .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dd-tbl tbody tr:last-child td, .dd-tbl tbody tr:last-child th { border-bottom: 0; }
+.dd-pay td small { display: block; font-size: 12px; }
+.dd-diff { color: var(--low); }
+.dd-ok { color: var(--ok); font-weight: 800; }
+.dd-warn { color: var(--out); font-weight: 800; }
+.dd-stale td { background: var(--low-bg); }
+.dd-act { text-align: right; }
+.dd-act .btn { min-height: 44px; margin: 2px 0 2px 4px; }
+.dd-edit { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
+.dd-edit-title { margin: 0 0 10px; }
+.dd-fold { margin-top: 12px; }
+.dd-fold-body { padding: 12px 14px 14px; min-width: 0; }
+.dd-rows .dd-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: start; }
+.dd-row-main { min-width: 0; }
+.dd-row-main > small { display: block; margin-top: 2px; overflow-wrap: anywhere; }
+.dd-row-top { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.dd-row-top a { min-height: 24px; }
+.dd-amt { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dd-row-act { grid-column: 1 / -1; }
+.dd-row-act .btn, .dd-foot .btn { min-height: 44px; }
+.dd-foot { margin-top: 16px; text-align: right; }
+.dd-note { font-size: 13px; margin: 0 0 8px; }
+.dd-notes { white-space: pre-line; margin: 10px 0 0; font-size: 13px; }
+.dd-escrow { border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px 12px 10px; margin: 0; min-width: 0; }
+.dd-escrow legend { font-size: 13px; font-weight: 700; padding: 0 4px; }
+.dd-escrow-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-bottom: 8px; }
+.dd-escrow-row label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; min-width: 0; }
+.dd-escrow-row input { min-height: 44px; min-width: 0; }
+.dd-calib-res { margin-top: 12px; }
+.dd-ok-line { color: var(--ok); font-weight: 700; margin: 0 0 8px; }
+.dd-warn-line { color: var(--out); font-weight: 700; margin: 0 0 8px; }
+.dd-hints { margin: 6px 0 10px; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+.dd-calib-res .form-actions { flex-wrap: wrap; }
+.dd-calib-res .btn { min-height: 44px; }
+@media (max-width: 640px) {
+  .dd-head { grid-template-columns: minmax(0, 1fr); }
+  .dd-edit-btn { grid-column: 1; grid-row: auto; justify-self: start; }
+  .dd-title h2 { font-size: 20px; }
+  /* 逐期表：一期一张卡片（标签在数值上面），不横向滚动 */
+  .dd-pay-wrap { overflow: visible; }
+  .dd-pay thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .dd-pay, .dd-pay tbody { display: block; }
+  .dd-pay tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .dd-pay tbody tr:last-child { border-bottom: 0; }
+  .dd-pay td { display: block; border: 0; padding: 0; min-width: 0; }
+  .dd-pay td.num { text-align: left; white-space: normal; }
+  .dd-pay td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .dd-pay td:first-child, .dd-pay .dd-src, .dd-pay .dd-act { grid-column: 1 / -1; }
+  .dd-pay td:first-child::before, .dd-pay .dd-src::before { display: none; }
+  .dd-pay .dd-act { display: flex; flex-wrap: wrap; gap: 6px; text-align: left; }
+  .dd-pay .dd-act .btn { margin: 0; }
+  .dd-escrow-row { grid-template-columns: 1fr; }
+}
+.debt-detail .btn { min-height: 44px; }
+@media (max-width: 560px) { .dd-kpis .kpi:last-child { grid-column: auto; } }
