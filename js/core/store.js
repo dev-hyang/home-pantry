@@ -574,9 +574,12 @@ export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", 
 export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
 export const TERM_FIELDS = ["term", "zh", "en", "hant"];
 /* 借贷（迁移 058） */
+/** 迁移 060 加的列（第一期还款日、银行 Escrow 计划、对账单校准；流水的额外本金）：库里还没有这些列时写库前去掉（debt060 = false），其余照旧 */
+export const DEBT_060 = ["first_payment_date", "escrow_schedule", "statement_check"];
+export const schemaFlags = { debt060: true };
 export const DEBT_FIELDS = ["name", "category", "direction", "counterparty_name", "person_id", "lender_card_id", "original_principal", "currency", "interest_rate", "term_months", "start_date", "maturity_date",
-  "payment_frequency", "scheduled_payment", "opening_balance", "opening_balance_on", "status", "property_id", "asset_id", "financing_role", "secured", "link_confirmed", "notes"];
-export const DEBT_TXN_FIELDS = ["debt_id", "txn_date", "type", "principal_amount", "interest_amount", "fee_amount", "escrow_amount", "total", "bill_payment_id", "purchase_id", "income_record_id", "income_repayment_id", "split_source", "notes"];
+  "payment_frequency", "scheduled_payment", "opening_balance", "opening_balance_on", "status", "property_id", "asset_id", "financing_role", "secured", "link_confirmed", "notes", ...DEBT_060];
+export const DEBT_TXN_FIELDS = ["debt_id", "txn_date", "type", "principal_amount", "interest_amount", "fee_amount", "escrow_amount", "total", "bill_payment_id", "purchase_id", "income_record_id", "income_repayment_id", "split_source", "notes", "extra_principal"];
 const r2 = (v) => Math.round(num(v) * 100) / 100;
 /** 写库前的贷款行：没给的列补默认（not null 的列不能写 null） */
 function debtRow(d) {
@@ -585,12 +588,16 @@ function debtRow(d) {
   r.category ||= "other"; r.direction ||= "payable"; r.status ||= "active"; r.payment_frequency ||= "monthly";
   r.currency ||= Units.region.currency; r.secured = !!r.secured; r.link_confirmed = r.link_confirmed !== false;
   if (r.opening_balance == null || !r.opening_balance_on) { r.opening_balance = null; r.opening_balance_on = null; }   // 两个一起填才有意义（数据库 check）
+  if ("escrow_schedule" in r) r.escrow_schedule = Array.isArray(r.escrow_schedule) ? r.escrow_schedule.slice(0, 60) : [];
+  if (!schemaFlags.debt060) for (const k of DEBT_060) delete r[k];
   return r;
 }
 function debtTxnRow(x) {
   const r = pick(x, DEBT_TXN_FIELDS, {});
   for (const k of ["principal_amount", "interest_amount", "fee_amount", "escrow_amount", "total"]) r[k] = r2(r[k]);
   r.split_source ||= "schedule";
+  r.extra_principal = Math.max(0, r2(r.extra_principal));
+  if (!schemaFlags.debt060) delete r.extra_principal;
   return r;
 }
 /* 净资产（迁移 059） */
@@ -1049,7 +1056,13 @@ export const CloudStore = {
     if (p?.purchase_id) this.must(await this.sb.from("purchases").delete().eq("id", p.purchase_id));
   },
   /* 借贷（迁移 058）：两张小表，启动时整表读进内存（一个家庭几笔贷款，流水最多每笔几百条） */
-  async listDebts() { return this.pageAll(() => this.sb.from("debt_accounts").select("*").eq("household_id", this.hid).order("created_at").order("id")); },
+  async listDebts() {
+    const rows = await this.pageAll(() => this.sb.from("debt_accounts").select("*").eq("household_id", this.hid).order("created_at").order("id"));
+    // 迁移 060 有没有执行：有行就看列在不在，没行试读一次那一列（失败 = 没执行，写库时去掉 060 的列）
+    if (rows.length) schemaFlags.debt060 = "first_payment_date" in rows[0];
+    else { const r = await this.sb.from("debt_accounts").select("first_payment_date").limit(1); schemaFlags.debt060 = !r.error; }
+    return rows;
+  },
   async saveDebt(d) {
     const row = { ...debtRow(d), household_id: this.hid };
     if (d.id) { this.must(await this.sb.from("debt_accounts").update(row).eq("id", d.id)); return d.id; }

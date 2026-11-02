@@ -1,7 +1,8 @@
 /* 借贷（财务 P2，迁移 058）· 计算与写入：贷款的余额、下次还款、逾期；账单缴费时按摊还表拆 本金 / 利息 / Escrow；
  * 亲友借贷的放款 / 还款 / 利息；车辆「贷款中」状态和车贷同步；提醒。
  * 数据量：debt_accounts / debt_transactions 是小表（几笔贷款，每笔最多几百条流水），启动时整表读进内存（state.debts / state.debtTxns），在内存里算。
- * 只有「重新拆分历史还款」要读这条账单的全部缴费（内存里只有近 400 天的）：按账单 id 读一次（最多几百行）。
+ * 按摊还表拆分（重新拆分、记一笔缴费、详情页的逐期表）要读这条账单的全部缴费（内存里只有近 400 天的）：按账单 id 读一次（最多几百行），记缴费时只写有变化的几笔。
+ * 本息只按摊还表算（第一期还款日、原始本金 / 利率 / 期限，或对账单校准），Escrow = 实付 − 本息 − 额外本金；Escrow 账单只做参考提示（迁移 060）。
  * 规则（分类、方向）在 js/core/debt-rules.js，摊还在 js/core/amortization.js；设计见 docs/design-debt-lending.md。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
@@ -14,6 +15,7 @@ import { spendChanged } from "../core/spend-data.js";
 import * as A from "../core/amortization.js";
 import { DEBT_INTEREST_LEAF, DEBT_PRINCIPAL_LEAF, debtCat, interestLeafOf, isClosedStatus, isPersonalDebt, principalLeafOf } from "../core/debt-rules.js";
 import { escrowMonthlyFor, monthlyEquivalent } from "./logic.js";
+import { schemaFlags } from "../core/store.js";
 
 const r2 = A.r2;
 /** 读借贷两张表；没执行迁移 058（表不存在）或没有财务权限：空，debtsOk = false（借贷页给出提示，其余页面照旧） */
@@ -25,8 +27,12 @@ export async function loadDebts() {
   return state.debts;
 }
 const nOrNull = (v) => (v == null || v === "" ? null : num(v));
-const normDebt = (d) => ({ ...d, original_principal: nOrNull(d.original_principal), interest_rate: nOrNull(d.interest_rate), term_months: nOrNull(d.term_months), scheduled_payment: nOrNull(d.scheduled_payment), opening_balance: nOrNull(d.opening_balance) });
-const normTxn = (x) => ({ ...x, principal_amount: num(x.principal_amount), interest_amount: num(x.interest_amount), fee_amount: num(x.fee_amount), escrow_amount: num(x.escrow_amount), total: num(x.total) });
+const normDebt = (d) => ({ ...d, original_principal: nOrNull(d.original_principal), interest_rate: nOrNull(d.interest_rate), term_months: nOrNull(d.term_months), scheduled_payment: nOrNull(d.scheduled_payment), opening_balance: nOrNull(d.opening_balance),
+  first_payment_date: d.first_payment_date || null, escrow_schedule: Array.isArray(d.escrow_schedule) ? d.escrow_schedule.filter((x) => x && /^\d{4}-\d{2}$/.test(x.from || "") && num(x.amount) >= 0).map((x) => ({ from: x.from, amount: num(x.amount) })) : [],
+  statement_check: d.statement_check && typeof d.statement_check === "object" ? d.statement_check : null });
+const normTxn = (x) => ({ ...x, principal_amount: num(x.principal_amount), interest_amount: num(x.interest_amount), fee_amount: num(x.fee_amount), escrow_amount: num(x.escrow_amount), total: num(x.total), extra_principal: num(x.extra_principal) });
+/** 迁移 060 执行了没有（第一期还款日 / Escrow 计划 / 对账单校准 / 额外本金这几列）：没执行时这些字段不显示、不保存 */
+export const debt060 = () => Store.mode !== "cloud" || schemaFlags.debt060;
 export const debts = () => state.debts || [];
 export const debtTxns = () => state.debtTxns || [];
 export const debtById = (id) => debts().find((d) => d.id === id) || null;
@@ -39,28 +45,55 @@ export function debtOfIncome(recordId) {
   const x = debtTxns().find((y) => y.income_record_id === recordId);
   return x ? debtById(x.debt_id) : debts().find((d) => d.source_key === `income:${recordId}`) || null;
 }
-const freqOf = (d) => (d.payment_frequency && d.payment_frequency !== "none" ? d.payment_frequency : "monthly");
+const freqOf = A.freqOfDebt;
 
-/** 房贷类（挂在房产上）且这套房产有 Escrow 代缴账单：月供里含 Escrow */
+/** Escrow 参考（只做提示）：房贷类挂的房产上 Escrow 代缴账单（房屋保险 + 房产税 …）÷ 12，折成每期。
+ *  银行实际收的 Escrow 会因为缓冲（cushion）、每年的 Escrow 分析和它不一样；从不用它算本息 */
 export function escrowFor(d, bill = billOfDebt(d)) {
   if (!["mortgage", "heloc", "home_equity"].includes(d.category)) return 0;
   const pid = d.property_id || bill?.property_id || null;
   const m = escrowMonthlyFor(pid);
   return m > 0 ? r2((m * 12) / (A.PERIODS_PER_YEAR[freqOf(d)] || 12)) : 0;   // 折成每期
 }
-/** 每期本息（不含 Escrow）：本金 + 利率 + 期限都有 → 等额本息公式；否则 每期还款（或账单金额）− Escrow */
+/** 银行的 Escrow 计划在某天的金额（贷款设置里填的，跟着每年的 Escrow 分析变）；没填 null */
+export const bankEscrowAt = (d, date = todayISO()) => A.escrowAt(d?.escrow_schedule, date);
+/** 每期本息（不含 Escrow）：对账单校准 / 原始本金 + 利率 + 期限 / 某天余额 + 剩余期数（amortization.piOfDebt）；
+ *  都没有时：每期还款（或账单金额）− 银行 Escrow 计划；没有 Escrow 计划又挂着 Escrow 账单的房贷算不出（不从 Escrow 账单倒推） */
 export function piOf(d, bill = billOfDebt(d)) {
-  const n = A.periodsOf(d.term_months, freqOf(d));
-  if (d.original_principal > 0 && d.interest_rate != null && n) return A.payment(d.original_principal, d.interest_rate, n, freqOf(d));
-  const total = d.scheduled_payment ?? bill?.est ?? null;
-  return total == null ? null : r2(Math.max(0, num(total) - escrowFor(d, bill)));
+  const pi = A.piOfDebt(d); if (pi != null) return pi;
+  const total = d.scheduled_payment ?? bill?.est ?? null; if (total == null) return null;
+  const esc = bankEscrowAt(d);
+  if (esc == null && escrowFor(d, bill) > 0) return null;
+  return r2(Math.max(0, num(total) - (esc || 0)));
 }
-/** 能不能按摊还表拆分：填了利率，并且知道某个时点的本金（原始本金 / 某天的余额 / 放款记录）；亲友借贷不按账单拆 */
-export const canSplit = (d) => !!d && !isPersonalDebt(d) && d.interest_rate != null && !!A.balanceAnchor(d, txnsOf(d.id));
+/** 能不能按摊还表拆分：填了利率、知道每期本息和某个时点的本金（原始本金 / 某天的余额 / 放款记录），还对得上期数（第一期还款日 / 起始日 / 某天的余额）；亲友借贷不按账单拆 */
+export const canSplit = (d) => !!d && !isPersonalDebt(d) && d.interest_rate != null && !!A.balanceAnchor(d, txnsOf(d.id)) && piOf(d) != null && !!(A.firstDue(d) || d.opening_balance_on);
+/** 拆分缺什么（给详情页提示）：rate / principal / pi / first */
+export function splitMissing(d) {
+  if (!d || isPersonalDebt(d)) return [];
+  const out = [];
+  if (d.interest_rate == null) out.push("rate");
+  if (!A.balanceAnchor(d, txnsOf(d.id))) out.push("principal");
+  if (piOf(d) == null) out.push("pi");
+  if (!A.firstDue(d) && !d.opening_balance_on) out.push("first");
+  return out;
+}
+/** 已有拆分流水 → 摊还引擎的输入（缴费 = 流水本身）：算余额用，不用读缴费表 */
+const engineFromTxns = (d, txns) => {
+  const split = txns.filter((x) => x.bill_payment_id);
+  return A.splitBySchedule({ debt: d, pi: piOf(d),
+    payments: split.map((x) => ({ id: x.bill_payment_id, paid_on: x.txn_date, amount: r2(x.total - x.fee_amount), late_fee: x.fee_amount })),
+    others: txns.filter((x) => !x.bill_payment_id),
+    manual: new Map(split.filter((x) => x.split_source === "manual").map((x) => [x.bill_payment_id, { principal: x.principal_amount, interest: x.interest_amount, escrow: x.escrow_amount, fee: x.fee_amount, extra: x.extra_principal }])),
+    extras: new Map(split.filter((x) => x.extra_principal > 0).map((x) => [x.bill_payment_id, x.extra_principal])) });
+};
 
 /** 贷款的派生信息：余额、已还、下次还款、逾期、预计还清、关联的账单 / 资产 */
 export function enrichDebt(d) {
-  const txns = txnsOf(d.id), bill = billOfDebt(d), balance = A.outstanding(d, txns), paid = A.paidTotals(d, txns);
+  const txns = txnsOf(d.id), bill = billOfDebt(d), split = canSplit(d), paid = A.paidTotals(d, txns);
+  // 能按摊还表拆的：余额 = 摊还表走到最后一笔缴费（中间没记的期按计划）再算上额外还本；否则 = 起点 ± 流水
+  const eng = split && txns.some((x) => x.bill_payment_id) ? engineFromTxns(d, txns) : null;
+  const balance = eng ? eng.balance : A.outstanding(d, txns);
   const freq = freqOf(d), rate = A.periodRate(d.interest_rate, freq), pi = piOf(d, bill);
   const closed = isClosedStatus(d.status);
   const nextDue = closed ? null : bill && bill.active && !bill.ended ? bill.next_due_on : d.maturity_date && balance !== 0 ? d.maturity_date : null;
@@ -71,7 +104,8 @@ export function enrichDebt(d) {
   const asset = d.asset_id ? state.assetsEnriched?.find((a) => a.id === d.asset_id) || state.assets.find((a) => a.id === d.asset_id) || null : null;
   const property = d.property_id ? state.properties.find((p) => p.id === d.property_id) || null : null;
   const original = d.original_principal ?? (txns.filter((x) => x.type === "disbursement").reduce((s, x) => s + x.principal_amount, 0) || null);
-  return { ...d, txns, bill, balance, paid, pi, rate, freq, nextDue, overdue, status, payoff, left, asset, property, original, escrow: escrowFor(d, bill), split: canSplit(d) };
+  const escrowBank = bankEscrowAt(d), escrowRef = escrowFor(d, bill);
+  return { ...d, txns, bill, balance, paid, pi, rate, freq, nextDue, overdue, status, payoff, left, asset, property, original, escrow: escrowBank ?? escrowRef, escrowBank, escrowRef, split, first: A.firstDue(d, freq) };
 }
 export const debtsEnriched = () => debts().map(enrichDebt);
 
@@ -103,7 +137,8 @@ async function writeSplits(d, bill, items) {
         store: payee ? String(payee).slice(0, 40) : null, amount: principal, currency: p.currency || cur, purchased_at: isoAt(p.paid_on), card_id: p.card_id || null, property_id: bill.property_id || null });
     } else if (pid) { drop.push(pid); pid = null; }
     txns.push({ id: old?.id, debt_id: d.id, txn_date: p.paid_on, type: principal > 0 ? "principal_repayment" : "interest_payment", principal_amount: principal, interest_amount: s.interest, fee_amount: s.fee,
-      escrow_amount: s.escrow, total, bill_payment_id: p.id, purchase_id: pid, income_record_id: null, income_repayment_id: null, split_source: s.source || "schedule", notes: old?.notes || null });
+      escrow_amount: s.escrow, total, bill_payment_id: p.id, purchase_id: pid, income_record_id: null, income_repayment_id: null, split_source: s.source || "schedule", notes: old?.notes || null,
+      extra_principal: r2(Math.min(num(s.extra), principal)) });   // 本金含额外本金；extra_principal 记其中标成额外的部分
   }
   if (main.length) await Store.upsertPurchases(main);
   if (principalRows.length) await Store.upsertPurchases(principalRows);
@@ -131,16 +166,56 @@ export async function unsplitDebt(d, bill = billOfDebt(d)) {
   return list.length;
 }
 
-/** 按摊还表重新拆分这笔贷款的全部历史还款（手动改过的保留）；返回拆了几笔。不能拆（缺利率 / 本金）返回 0 */
-export async function resplitDebt(d) {
-  const bill = billOfDebt(d); if (!bill || !canSplit(d)) return 0;
+/** 摊还引擎的输入：这条账单的全部缴费（按账单 id 读一次，最多几百行）+ 这笔贷款流水里的手动拆分 / 额外本金 */
+async function engineInput(d, bill, { overwrite = false, extraPatch = null } = {}) {
   const pays = (await Store.listPaymentsOfBill(bill.id)).filter((p) => p.status !== "skipped" && num(p.amount) > 0 && p.purchase_id);
-  const txns = txnsOf(d.id);
-  const manual = new Map(txns.filter((x) => x.split_source === "manual" && x.bill_payment_id).map((x) => [x.bill_payment_id, { principal: x.principal_amount, interest: x.interest_amount, escrow: x.escrow_amount, fee: x.fee_amount }]));
-  const pi = piOf(d, bill), esc = escrowFor(d, bill);
-  const escrowOf = (p, piv) => A.escrowPortion({ paid: num(p.amount), pi: piv, hasEscrow: esc > 0, cap: esc > 0 ? esc * 1.5 : null });
-  const splits = A.splitHistory({ debt: d, payments: pays, others: txns.filter((x) => !x.bill_payment_id), manual, escrowOf, pi });
-  return writeSplits(d, bill, pays.filter((p) => splits.has(p.id)).map((p) => ({ p, s: splits.get(p.id) })));
+  const txns = txnsOf(d.id), split = txns.filter((x) => x.bill_payment_id);
+  const manual = overwrite ? new Map() : new Map(split.filter((x) => x.split_source === "manual").map((x) => [x.bill_payment_id, { principal: x.principal_amount, interest: x.interest_amount, escrow: x.escrow_amount, fee: x.fee_amount, extra: x.extra_principal }]));
+  const extras = new Map(split.filter((x) => x.extra_principal > 0).map((x) => [x.bill_payment_id, x.extra_principal]));
+  if (extraPatch) for (const [k, v] of extraPatch) { if (v > 0) extras.set(k, v); else extras.delete(k); }
+  return { pays, txns, manual, extras };
+}
+const runEngine = (d, bill, { pays, txns, manual, extras }) => A.splitBySchedule({ debt: d, payments: pays, others: txns.filter((x) => !x.bill_payment_id), manual, extras, pi: piOf(d, bill) });
+/** 已存的拆分流水和算出来的一样（金额、日期、来源、额外本金、本金行都在）：onlyChanged 时跳过 */
+function sameSplit(p, s) {
+  const x = debtTxns().find((y) => y.bill_payment_id === p.id), total = r2(num(p.amount) + num(p.late_fee)), eq = (a, b) => Math.abs(num(a) - num(b)) < 0.005;
+  return !!x && x.txn_date === p.paid_on && eq(x.total, total) && eq(x.principal_amount, s.principal) && eq(x.interest_amount, s.interest) && eq(x.escrow_amount, s.escrow)
+    && eq(x.fee_amount, s.fee) && eq(x.extra_principal, s.extra) && x.split_source === s.source && (!!x.purchase_id || !(s.principal > 0));
+}
+/** 按摊还表重新拆分这笔贷款的全部历史还款；返回写了几笔。不能拆（缺利率 / 本金 / 本息 / 期数起点）返回 0。
+ *  overwrite = true：手动改过的也按摊还表重算（标成额外本金的保留）；onlyChanged = true：只写拆分有变化的（记一笔缴费时用，不用每次重写几百行）；
+ *  extraPatch：Map(缴费 id → 额外本金)，先改再算 */
+export async function resplitDebt(d, { overwrite = false, onlyChanged = false, extraPatch = null } = {}) {
+  const bill = billOfDebt(d); if (!bill || !canSplit(d)) return 0;
+  const input = await engineInput(d, bill, { overwrite, extraPatch }), res = runEngine(d, bill, input);
+  if (!res) return 0;
+  const items = input.pays.filter((p) => res.rows.has(p.id)).map((p) => ({ p, s: res.rows.get(p.id) })).filter(({ p, s }) => !onlyChanged || !sameSplit(p, s));
+  const n = items.length ? await writeSplits(d, bill, items) : 0;
+  await syncDebtStatus(d.id);
+  return n;
+}
+/** 详情页的逐期表：每笔缴费的 日期、实付、本金、利息、Escrow、额外本金、还款后余额、来源、第几期、P + I + E (+ 滞纳金) 对不对得上、
+ *  和银行 Escrow 计划的差；saved = 已存的拆分，stale = 已存的和摊还表不一样（要点重新拆分）。读一次缴费表 */
+export async function paymentTable(d) {
+  const bill = billOfDebt(d); if (!bill || !canSplit(d)) return null;
+  const input = await engineInput(d, bill), res = runEngine(d, bill, input);
+  if (!res) return null;
+  const rows = input.pays.filter((p) => res.rows.has(p.id)).map((p) => {
+    const s = res.rows.get(p.id), x = input.txns.find((y) => y.bill_payment_id === p.id) || null, total = r2(num(p.amount) + num(p.late_fee)), exp = bankEscrowAt(d, s.due);
+    return { id: p.id, paid_on: p.paid_on, total, ...s, saved: x, stale: !x || !sameSplit(p, s),
+      ok: !s.short && Math.abs(r2(s.principal + s.interest + s.escrow + s.fee) - total) < 0.005, expEscrow: exp, escrowDiff: exp != null ? r2(s.escrow - exp) : null };
+  }).sort((a, b) => b.paid_on.localeCompare(a.paid_on));
+  return { rows, pi: res.pi, first: res.first, balance: res.balance };
+}
+/** 把一期里多出来的标成额外本金（0 = 取消）：额外本金让余额变少，后面每期的利息都变，所以整段重算 */
+export async function setExtraPrincipal(d, paymentId, amount) {
+  return resplitDebt(d, { onlyChanged: true, extraPatch: new Map([[paymentId, r2(Math.max(0, num(amount)))]]) });
+}
+/** 用一张对账单校准（不写库）：statement = { date, principal, interest, balance } → amortization.calibrate 的结果 */
+export async function calibrateDebt(d, statement) {
+  const bill = billOfDebt(d);
+  const input = bill ? await engineInput(d, bill) : { pays: [], txns: txnsOf(d.id), manual: new Map(), extras: new Map() };
+  return A.calibrate({ debt: d, statement, payments: input.pays, others: input.txns.filter((x) => !x.bill_payment_id), manual: input.manual, extras: input.extras });
 }
 
 /** 记了 / 改了一笔账单缴费：这条账单挂着能拆分的贷款就拆。payment = 缴费记录（含 id、purchase_id） */
@@ -149,18 +224,13 @@ export async function splitBillPayment(bill, payment) {
   if (!d || !payment?.purchase_id || payment.status === "skipped" || !(num(payment.amount) > 0)) return false;
   const old = debtTxns().find((x) => x.bill_payment_id === payment.id);
   if (!canSplit(d)) return false;
-  // 起点（某天的余额）之前补记的旧账：整段重算；手动改过且金额没变的：保留手动拆分
-  if (d.opening_balance_on && payment.paid_on <= d.opening_balance_on) return !!(await resplitDebt(d));
+  // 手动改过的这一期金额变了：改回按摊还表（金额没变的保留手动）。然后整段按摊还表算（期数按日期对，补记旧账、改日期都对），只写有变化的几笔
   const total = r2(num(payment.amount) + num(payment.late_fee));
-  if (old?.split_source === "manual" && Math.abs(old.total - total) < 0.005) return !!(await writeSplits(d, bill, [{ p: payment, s: { principal: old.principal_amount, interest: old.interest_amount, escrow: old.escrow_amount, fee: old.fee_amount, source: "manual" } }]));
-  const others = txnsOf(d.id).filter((x) => x.id !== old?.id && !(x.bill_payment_id && x.txn_date > payment.paid_on));
-  const balance = A.outstanding(d, others, payment.paid_on);
-  const pi = piOf(d, bill), esc = escrowFor(d, bill);
-  const s = A.splitPayment({ balance, rate: A.periodRate(d.interest_rate, freqOf(d)), paid: num(payment.amount), fee: num(payment.late_fee),
-    escrow: A.escrowPortion({ paid: num(payment.amount), pi, hasEscrow: esc > 0, cap: esc > 0 ? esc * 1.5 : null }) });
-  await writeSplits(d, bill, [{ p: payment, s: { ...s, source: "schedule" } }]);
-  await syncDebtStatus(d.id);
-  return true;
+  if (old?.split_source === "manual" && Math.abs(old.total - total) >= 0.005) {
+    await Store.upsertDebtTxns([{ ...old, split_source: "schedule" }]);
+    state.debtTxns = debtTxns().map((y) => (y.id === old.id ? { ...y, split_source: "schedule" } : y));
+  }
+  return (await resplitDebt(d, { onlyChanged: true })) > 0;
 }
 /** 删一笔账单缴费之前：删掉它的本金行（流水随缴费记录级联删除） */
 export async function beforeDeletePayment(paymentId) {
@@ -168,20 +238,22 @@ export async function beforeDeletePayment(paymentId) {
   if (x?.purchase_id) await Store.deletePurchases([x.purchase_id]);
   if (x) { await Store.deleteDebtTxns([x.id]); state.debtTxns = debtTxns().filter((y) => y.id !== x.id); }
 }
-/** 手动改一期的拆分（按对账单）：split_source = manual，重新拆分时不覆盖 */
-export async function overrideSplit(d, paymentId, { principal, interest, escrow }) {
+/** 手动改一期的拆分（按对账单）：split_source = manual，重新拆分时不覆盖（除非选了覆盖）。principal = 本金（不含额外），extra = 额外本金；
+ *  额外本金改变后面的余额，所以写完整段重算（手动的这一期原样保留，只写有变化的） */
+export async function overrideSplit(d, paymentId, { principal, interest, escrow, extra = 0 }) {
   const bill = billOfDebt(d); if (!bill) return;
   const p = (await Store.listPaymentsOfBill(bill.id)).find((x) => x.id === paymentId); if (!p) return;
-  const total = r2(num(p.amount)), pr = r2(Math.max(0, Math.min(total, num(principal)))), es = r2(Math.max(0, Math.min(total - pr, num(escrow))));
-  const it = interest === "" || interest == null ? r2(total - pr - es) : r2(Math.max(0, num(interest)));
-  await writeSplits(d, bill, [{ p, s: { principal: pr, interest: it, escrow: es, fee: num(p.late_fee), source: "manual" } }]);
-  await syncDebtStatus(d.id);
+  const total = r2(num(p.amount)), ex = r2(Math.max(0, Math.min(total, num(extra)))), pr = r2(Math.max(0, Math.min(total - ex, num(principal))));
+  const es = r2(Math.max(0, Math.min(total - pr - ex, num(escrow))));
+  const it = interest === "" || interest == null ? r2(total - pr - ex - es) : r2(Math.max(0, num(interest)));
+  await writeSplits(d, bill, [{ p, s: { principal: r2(pr + ex), extra: ex, interest: it, escrow: es, fee: num(p.late_fee), source: "manual" } }]);
+  await resplitDebt(debtById(d.id) || d, { onlyChanged: true });
 }
-/** 撤销手动拆分：回到按摊还表 */
+/** 撤销手动拆分：回到按摊还表（标成额外本金的保留） */
 export async function clearOverride(d, paymentId) {
   const x = debtTxns().find((y) => y.bill_payment_id === paymentId);
   if (x) { await Store.upsertDebtTxns([{ ...x, split_source: "schedule" }]); state.debtTxns = debtTxns().map((y) => (y.id === x.id ? { ...y, split_source: "schedule" } : y)); }
-  await resplitDebt(debtById(d.id) || d);
+  await resplitDebt(debtById(d.id) || d, { onlyChanged: true });
 }
 
 /* ───────────── 亲友借贷 / 不挂账单的还款 ─────────────

@@ -35,22 +35,166 @@ export function addPeriods(start, freq, k) {
   return ymd(new Date(first.getFullYear(), first.getMonth(), Math.min(day, last)));
 }
 
-/** 还款计划：从本金 / 年利率 / 期数（或每期还款）/ 起始日算每一期：[{ n, date, payment, interest, principal, balance }]
- *  start = 放款日（第 1 期是 start 往后一个周期）；只给了每期还款没给期数的，算到还清为止（最多 maxRows 期） */
-export function schedule({ principal, annualRate, periods = null, pay = null, start, freq = "monthly", maxRows = 1200 }) {
-  let bal = r2(principal);
+/* ───────────── 精确到分 ───────────── */
+const cents = (v) => Math.round((Number(v) || 0) * 100);
+const dayNum = (iso) => Math.round(parse(iso).getTime() / DAY);
+/** 贷款的还款频率（不定期 none 按每月） */
+export const freqOfDebt = (d) => (d?.payment_frequency && d.payment_frequency !== "none" ? d.payment_frequency : "monthly");
+
+/** 一期利息（分）：余额（分）× 年利率 ÷ 每年期数，四舍五入到分（半分进位）。
+ *  用整数算（年利率最多 4 位小数：利息 = 余额 × R ÷ (10⁶ × 每年期数)，R = 年利率 × 10⁴），不受浮点误差影响，和银行对账单逐分一致 */
+export function interestCents(balCents, annualPct, freq = "monthly") {
+  const R = Math.round((Number(annualPct) || 0) * 10000), b = Math.round(Number(balCents) || 0);
+  if (!(R > 0) || !(b > 0)) return 0;
+  const num = BigInt(b) * BigInt(R), den = 1000000n * BigInt(PERIODS_PER_YEAR[freq] || 12);
+  return Number(num / den + (2n * (num % den) >= den ? 1n : 0n));
+}
+
+/** 还款计划：从本金 / 年利率 / 期数（或每期还款）算每一期：[{ n, date, payment, interest, principal, balance }]
+ *  first = 第一期还款日（第 n 期 = first 往后 n−1 个周期）；没有就用 start = 放款日（第 1 期 = start 往后一个周期）。
+ *  余额按分记，每期利息四舍五入到分；只给了每期还款没给期数的，算到还清为止（最多 maxRows 期） */
+export function schedule({ principal, annualRate, periods = null, pay = null, start = null, first = null, freq = "monthly", maxRows = 1200 }) {
+  let bal = cents(principal);
   if (!(bal > 0)) return [];
-  const r = periodRate(annualRate, freq);
-  const pmt = pay != null && Number(pay) > 0 ? r2(pay) : payment(bal, annualRate, periods, freq);
-  if (!(pmt > 0)) return [];
-  if (r > 0 && pmt <= r2(bal * r)) return [];   // 每期还款不够付利息：永远还不完，不画计划
+  const pmt = cents(pay != null && Number(pay) > 0 ? pay : payment(principal, annualRate, periods, freq));
+  if (!(pmt > 0) || pmt <= interestCents(bal, annualRate, freq)) return [];   // 每期还款不够付利息：永远还不完，不画计划
   const out = [];
-  for (let n = 1; bal > 0.004 && n <= maxRows; n++) {
-    const interest = r2(bal * r);
-    let principalPart = r2(pmt - interest);
-    if (principalPart > bal || (periods && n === Number(periods))) principalPart = bal;   // 最后一期把零头还清
-    bal = r2(bal - principalPart);
-    out.push({ n, date: addPeriods(start, freq, n), payment: r2(principalPart + interest), interest, principal: principalPart, balance: bal });
+  for (let n = 1; bal > 0 && n <= maxRows; n++) {
+    const i = interestCents(bal, annualRate, freq);
+    let p = pmt - i;
+    if (p > bal || (periods && n === Number(periods))) p = bal;   // 最后一期把零头还清
+    bal -= p;
+    out.push({ n, date: first ? addPeriods(first, freq, n - 1) : addPeriods(start, freq, n), payment: (p + i) / 100, interest: i / 100, principal: p / 100, balance: bal / 100 });
+  }
+  return out;
+}
+
+/** 第一期还款日：填了就用；没填按旧办法 = 放款日往后一个周期；都没有 null */
+export const firstDue = (debt, freq = freqOfDebt(debt)) => debt.first_payment_date || (debt.start_date ? addPeriods(debt.start_date, freq, 1) : null);
+/** 一个日期对到第几期（1 起）：离它最近的那一期还款日（提前或晚几天交的都算那一期）；在第一期之前的算第 1 期 */
+export function dueIndex(first, freq, date) {
+  const len = 365.25 / (PERIODS_PER_YEAR[freq] || 12), d = dayNum(date), est = Math.round((d - dayNum(first)) / len);
+  let best = 0, gap = Infinity;
+  for (let j = Math.max(0, est - 1); j <= Math.max(0, est + 1); j++) { const g = Math.abs(d - dayNum(addPeriods(first, freq, j))); if (g < gap) { best = j; gap = g; } }
+  return best + 1;
+}
+/** 到这一天（含）为止到期了几期 */
+export function duesUpTo(first, freq, date) {
+  const len = 365.25 / (PERIODS_PER_YEAR[freq] || 12), est = Math.floor((dayNum(date) - dayNum(first)) / len);
+  let k = 0;
+  for (let j = Math.max(0, est - 2); j <= Math.max(0, est + 2); j++) if (addPeriods(first, freq, j) <= date) k = j + 1;
+  return k;
+}
+/** 银行的 Escrow 计划 [{ from: 'YYYY-MM', amount }] 在某天的金额（最近一条 from ≤ 那个月）；没填 null */
+export function escrowAt(list, date) {
+  const m = String(date || "").slice(0, 7);
+  const hit = (Array.isArray(list) ? list : []).filter((x) => x && x.from && x.from <= m && Number(x.amount) >= 0).sort((a, b) => b.from.localeCompare(a.from))[0];
+  return hit ? r2(hit.amount) : null;
+}
+
+/** 每期本息（不含 Escrow）：对账单校准（本金 + 利息，银行的四舍五入）> 原始本金 / 利率 / 期限的公式 > 某天的余额 + 剩余期数；都不知道 null。
+ *  从不从 Escrow 账单倒推 */
+export function piOfDebt(debt) {
+  const freq = freqOfDebt(debt), sc = debt.statement_check, n = periodsOf(debt.term_months, freq);
+  if (sc && Number(sc.principal) > 0 && sc.interest != null && sc.interest !== "") return r2(Number(sc.principal) + Number(sc.interest));
+  if (debt.interest_rate == null) return null;
+  if (debt.original_principal > 0 && n) return payment(debt.original_principal, debt.interest_rate, n, freq);
+  const F = firstDue(debt, freq);
+  if (debt.opening_balance > 0 && debt.opening_balance_on && n && F) { const left = n - duesUpTo(F, freq, debt.opening_balance_on); if (left > 0) return payment(debt.opening_balance, debt.interest_rate, left, freq); }
+  return null;
+}
+
+/** 按摊还表逐期拆分（重新拆分 / 记缴费 / 算余额）——本息只看摊还表，和 Escrow 账单无关：
+ *  · 每笔缴费按日期对到最近的一期（第 k 期还款日 = 第一期还款日往后 k−1 个周期；早几天、晚几天都对得上）；同一期两笔的，后一笔顺延到下一期；
+ *  · 第 k 期利息 = 期初余额 × 期利率（四舍五入到分），本金 = 本息 − 利息；Escrow = 实付 − 本息 − 额外本金（滞纳金另记）；
+ *  · 标成额外本金的（extras）、不挂缴费的还本 / 调整让余额变少，之后每期的利息跟着变；没记缴费的期按计划（假定按时还了）；
+ *  · 实付不够本息（short）：先付利息再付本金，Escrow 0；手动改过的（manual）原样用。
+ *  debt：interest_rate、payment_frequency、term_months、first_payment_date / start_date、original_principal 或 opening_balance(_on)、statement_check
+ *  payments：[{ id, paid_on, amount（不含滞纳金）, late_fee }]；others：不挂缴费的流水；manual：Map(id → { principal（含额外）, interest, escrow, fee, extra })
+ *  extras：Map(id → 额外本金)；pi：每期本息（默认 piOfDebt）；untilK：至少算到第几期（校准用）
+ *  返回 { rows: Map(id → { k, due, interest, principal（含额外本金）, extra, escrow, fee, balance, source, short }), trace: Map(k → 计划行), balance, pi, first, k0 }；
+ *  不能拆（缺利率、本息、本金起点或第一期还款日）返回 null */
+export function splitBySchedule({ debt, payments = [], others = [], manual = new Map(), extras = new Map(), pi = null, untilK = 0 }) {
+  if (debt.interest_rate == null) return null;
+  const freq = freqOfDebt(debt), rate = debt.interest_rate, PI = cents(pi ?? piOfDebt(debt)), n = periodsOf(debt.term_months, freq);
+  if (!(PI > 0)) return null;
+  const evts = others.filter((x) => !x.bill_payment_id);
+  const anchor = balanceAnchor(debt, evts); if (!anchor) return null;
+  const opening = !!anchor.after;
+  const first = firstDue(debt, freq) || (opening ? addPeriods(anchor.after, freq, 1) : null);
+  if (!first) return null;
+  const pays = payments.filter((p) => p.paid_on && Number(p.amount) > 0).slice().sort((a, b) => a.paid_on.localeCompare(b.paid_on) || String(a.id).localeCompare(String(b.id)));
+  const byK = new Map();
+  let prev = 0;
+  for (const p of pays) { let k = dueIndex(first, freq, p.paid_on); if (k <= prev) k = prev + 1; prev = k; byK.set(k, p); }
+  // 起点：opening = 那天的余额（那天及以前的缴费已经算在里面），original = 第 0 期（放款）
+  let k0 = 0;
+  if (opening) { k0 = duesUpTo(first, freq, anchor.after); for (const [k, p] of byK) if (p.paid_on <= anchor.after && k > k0) k0 = k; }
+  const evAt = new Map();
+  for (const x of evts) {
+    if (opening && x.txn_date <= anchor.after) continue;
+    const kd = Math.max(k0, duesUpTo(first, freq, x.txn_date));
+    if (!evAt.has(kd)) evAt.set(kd, []);
+    evAt.get(kd).push(x);
+  }
+  const rows = new Map(), trace = new Map();
+  const one = (p, i, sp, bal, k, due) => {
+    const m = manual.get(p.id), amt = cents(p.amount), base = { k, due, fee: r2(p.late_fee) };
+    if (m) { const P = cents(m.principal), left = Math.max(0, bal - P); return [{ ...base, interest: r2(m.interest), principal: P / 100, extra: r2(m.extra || 0), escrow: r2(m.escrow), fee: r2(m.fee ?? p.late_fee), balance: left / 100, source: "manual", short: false }, left]; }
+    if (amt < sp + i) { const I = Math.min(amt, i), P = Math.min(bal, amt - I); return [{ ...base, interest: I / 100, principal: P / 100, extra: 0, escrow: 0, balance: (bal - P) / 100, source: "schedule", short: true }, bal - P]; }
+    const x = Math.max(0, Math.min(cents(extras.get(p.id) || 0), amt - sp - i, bal - sp)), left = bal - sp - x;
+    return [{ ...base, interest: i / 100, principal: (sp + x) / 100, extra: x / 100, escrow: (amt - sp - i - x) / 100, balance: left / 100, source: "schedule", short: false }, left];
+  };
+  const schedP = (bal, i, k) => { let sp = Math.max(0, PI - i); if (sp > bal || (n && k >= n)) sp = bal; return sp; };
+  // 往后
+  let bal = cents(anchor.base);
+  const applyEv = (k) => { for (const x of evAt.get(k) || []) bal = Math.max(0, bal + cents(balanceEffect(x))); };
+  applyEv(k0);
+  const lastK = Math.max(k0, untilK, ...byK.keys(), ...evAt.keys());
+  for (let k = k0 + 1; k <= lastK; k++) {
+    const i = interestCents(bal, rate, freq), sp = schedP(bal, i, k), due = addPeriods(first, freq, k - 1);
+    trace.set(k, { k, due, before: bal / 100, interest: i / 100, principal: sp / 100, balance: (bal - sp) / 100 });
+    const p = byK.get(k);
+    if (p) { const [row, left] = one(p, i, sp, bal, k, due); rows.set(p.id, row); bal = left; } else bal -= sp;   // 没记缴费的一期：按计划
+    applyEv(k);
+  }
+  // 往前（只有 opening 起点）：起点当天及以前的缴费已经反映在起点余额里；倒推期初 B：B − (本息 − 利息(B)) − 额外 = 期末
+  if (opening && byK.size) {
+    const minK = Math.min(...byK.keys()), r = periodRate(rate, freq);
+    let b = cents(anchor.base);
+    for (let k = k0; k >= minK && k >= 1; k--) {
+      const p = byK.get(k), m = p ? manual.get(p.id) : null, x = p && !m ? cents(extras.get(p.id) || 0) : 0, due = addPeriods(first, freq, k - 1);
+      let before;
+      if (m) before = b + cents(m.principal);
+      else { before = Math.round((b + x + PI) / (1 + r)); for (let it = 0; it < 3; it++) before = b + x + PI - interestCents(before, rate, freq); }
+      if (p) { const i = interestCents(before, rate, freq); const [row] = one(p, i, schedP(before, i, k), before, k, due); rows.set(p.id, { ...row, balance: b / 100 }); }
+      b = before;
+    }
+  }
+  return { rows, trace, balance: Math.max(0, bal) / 100, pi: PI / 100, first, k0 };
+}
+
+/** 用一张对账单校准：statement = { date（这一期的还款日）, principal, interest, balance（还款后余额，可空）}；ctx = splitBySchedule 的其他参数。
+ *  返回 { k, expected（摊还表上这一期）, diff, ok, pi（对账单的本息）, piCalc（按公式的本息）, impliedBefore / impliedAfter（由利息倒推的余额）, hints[] }
+ *  hints：{ code, ... }：pi_mismatch / shift（和第 k±1 期一致，第一期还款日差一个周期）/ extra_before（余额比计划少：之前有额外本金）/ no_schedule / before_anchor */
+export function calibrate({ debt, statement, ...ctx }) {
+  const freq = freqOfDebt(debt), P = r2(statement.principal), I = r2(statement.interest), r = periodRate(debt.interest_rate, freq);
+  const out = { k: null, expected: null, diff: null, ok: false, pi: r2(P + I), piCalc: piOfDebt({ ...debt, statement_check: null }), impliedBefore: null, impliedAfter: null, hints: [] };
+  if (r > 0 && I > 0) { out.impliedBefore = r2(I / r); out.impliedAfter = r2(out.impliedBefore - P); }
+  if (out.piCalc != null && Math.abs(out.piCalc - out.pi) > 0.005) out.hints.push({ code: "pi_mismatch", calc: out.piCalc, stmt: out.pi });
+  const first = firstDue(debt, freq);
+  if (!first || !statement.date) { out.hints.push({ code: "no_schedule" }); return out; }
+  const k = dueIndex(first, freq, statement.date);
+  out.k = k;
+  const res = splitBySchedule({ debt: { ...debt, statement_check: null }, ...ctx, untilK: k + 1 });
+  const row = res?.trace.get(k);
+  if (!row) { out.hints.push({ code: res ? "before_anchor" : "no_schedule" }); return out; }
+  out.expected = row;
+  out.diff = { principal: r2(P - row.principal), interest: r2(I - row.interest), balance: statement.balance != null && statement.balance !== "" ? r2(Number(statement.balance) - row.balance) : null };
+  out.ok = Math.abs(out.diff.principal) < 0.005 && Math.abs(out.diff.interest) < 0.005 && (out.diff.balance == null || Math.abs(out.diff.balance) < 0.005);
+  if (!out.ok) {
+    for (const j of [k - 1, k + 1]) { const t = res.trace.get(j); if (t && Math.abs(t.principal - P) < 0.005 && Math.abs(t.interest - I) < 0.005) out.hints.push({ code: "shift", k: j, by: j - k }); }
+    if (Math.abs(out.diff.interest) >= 0.005 && out.impliedBefore != null && out.impliedBefore < row.before - 1) out.hints.push({ code: "extra_before", amount: r2(row.before - out.impliedBefore) });
   }
   return out;
 }
@@ -63,13 +207,6 @@ export function splitPayment({ balance, rate, paid, escrow = 0, fee = 0 }) {
   const interest = Math.min(pi, r2(b * rate));
   const principal = r2(pi - interest);   // 还清后多付的也算本金（是要退回的钱，不是消费）；余额不低于 0
   return { interest: r2(interest), principal, escrow: esc, fee: r2(fee), balance: r2(Math.max(0, b - principal)) };
-}
-
-/** Escrow 部分：有 Escrow 代缴账单的房贷，实付 − 本息 = Escrow（上限 cap，防止把多还的本金算成 Escrow）；其余 0 */
-export function escrowPortion({ paid, pi, hasEscrow, cap = null }) {
-  if (!hasEscrow || !(pi > 0)) return 0;
-  const e = Math.max(0, r2(paid - pi));
-  return cap != null && cap > 0 ? Math.min(e, r2(cap)) : e;
 }
 
 /** 借贷流水对余额的影响（正 = 增加未还本金） */
@@ -111,50 +248,6 @@ export function paidTotals(debt, txns) {
     interest += Number(x.interest_amount) || 0; escrow += Number(x.escrow_amount) || 0; fee += Number(x.fee_amount) || 0;
   }
   return { principal: r2(principal), interest: r2(interest), escrow: r2(escrow), fee: r2(fee) };
-}
-
-/** 按历史还款逐笔拆分（重新拆分 / 回填）：
- *  debt：贷款（interest_rate、payment_frequency、opening_balance / opening_balance_on 或 original_principal / start_date）
- *  payments：账单缴费 [{ id, paid_on, amount, late_fee }]（顺序不限）
- *  others：这笔贷款不挂缴费的流水（额外还本、放款、调整、核销），按日期参与余额
- *  manual：Map(缴费 id → { principal, interest, escrow, fee })：手动改过的，原样用
- *  escrowOf(payment, pi)：这一期的 Escrow（没有 = 0）；pi = 每期本息
- *  返回 Map(缴费 id → { interest, principal, escrow, fee, balance, source })；利率或本金起点不知道时返回空 Map（不拆） */
-export function splitHistory({ debt, payments, others = [], manual = new Map(), escrowOf = () => 0, pi = null }) {
-  const out = new Map();
-  if (debt.interest_rate == null) return out;
-  const rate = periodRate(debt.interest_rate, debt.payment_frequency === "none" ? "monthly" : debt.payment_frequency);
-  const pays = payments.filter((p) => p.paid_on && Number(p.amount) > 0).slice().sort((a, b) => a.paid_on.localeCompare(b.paid_on) || String(a.id).localeCompare(String(b.id)));
-  const extra = others.filter((x) => !x.bill_payment_id);
-  const anchor = balanceAnchor(debt, extra); if (!anchor) return out;
-  const opening = !!anchor.after, start = opening ? anchor.after : debt.start_date || null;
-  const one = (p, b) => {
-    const m = manual.get(p.id);
-    if (m) return { interest: r2(m.interest), principal: r2(m.principal), escrow: r2(m.escrow), fee: r2(m.fee ?? p.late_fee), balance: r2(Math.max(0, b - r2(m.principal))), source: "manual" };
-    return { ...splitPayment({ balance: b, rate, paid: r2(p.amount), escrow: escrowOf(p, pi), fee: r2(p.late_fee) }), source: "schedule" };
-  };
-  // 往后：opening 起点 = 那天之后的还款和流水；original 起点 = 起始日当天及以后（没填起始日 = 全部）
-  const after = (d) => (opening ? d > start : !start || d >= start);
-  const evts = [...pays.filter((p) => after(p.paid_on)).map((p) => ({ d: p.paid_on, k: 1, p })), ...extra.filter((x) => !opening || x.txn_date > start).map((x) => ({ d: x.txn_date, k: 0, x }))]
-    .sort((a, b) => a.d.localeCompare(b.d) || a.k - b.k);   // 同一天：先放款 / 调整，再还款
-  let b = anchor.base;
-  for (const e of evts) {
-    if (e.x) { b = r2(Math.max(0, b + balanceEffect(e.x))); continue; }
-    const s = one(e.p, b); out.set(e.p.id, s); b = s.balance;
-  }
-  // 往前（只有 opening 起点）：起点当天及以前的还款已经反映在起点余额里，倒推：期初 = (期末 + 本息) ÷ (1 + 期利率)
-  if (opening) {
-    let bal = anchor.base;
-    for (const p of pays.filter((x) => x.paid_on <= start).reverse()) {
-      const m = manual.get(p.id);
-      if (m) { out.set(p.id, { interest: r2(m.interest), principal: r2(m.principal), escrow: r2(m.escrow), fee: r2(m.fee ?? p.late_fee), balance: bal, source: "manual" }); bal = r2(bal + r2(m.principal)); continue; }
-      const paid = r2(p.amount), esc = Math.min(paid, escrowOf(p, pi)), piPaid = r2(paid - esc);
-      const before = r2((bal + piPaid) / (1 + rate)), interest = Math.min(piPaid, r2(before * rate));
-      out.set(p.id, { interest, principal: r2(piPaid - interest), escrow: r2(esc), fee: r2(p.late_fee), balance: bal, source: "schedule" });
-      bal = before;
-    }
-  }
-  return out;
 }
 
 /** 剩余期数：余额、期利率、每期本息（还不完返回 null） */
