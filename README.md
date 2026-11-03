@@ -543,6 +543,7 @@ GitHub Pages 会把每个文件缓存 10 分钟。页面启动时会比较本次
 - Google Drive：Google Cloud Console → APIs & Services → 启用 Google Drive API → OAuth 2.0 客户端（类型 Web 应用），「已获授权的 JavaScript 来源」填站点地址，Client ID 填到 `GOOGLE_CLIENT_ID`。权限只有 drive.file（只看得到这个应用自己建的文件）。
 - Dropbox：Dropbox App Console → Create app → Scoped access，Access type 选 **App folder**，Permissions 勾 `files.content.write` / `files.content.read` / `account_info.read`，Redirect URIs 填站点地址（带结尾的 /），App key 填到 `DROPBOX_APP_KEY`。
 - 备份放在卡片里填的路径下：Drive 默认「爱家小助手备份」（可多级，不存在就逐级建）；Dropbox 是应用文件夹里的子路径。令牌存本机 localStorage，「断开」会吊销并清掉。代码在 `js/core/cloud-drives.js`，四个应用共用同一份。
+- 备份哪些表：`js/core/backup.js` 的 `TABLES`（顺序也是恢复顺序：被引用的在前）。**以后每个迁移只要建了新表，都要同时决定它进不进 `TABLES`**（只加列不用改：整行备份、按列名恢复）。故意不进的：`households` / `household_members`（重建家庭时由加入流程生成）、`income_access`（成员申请、家主批准的查看权限，换项目后账号 id 都变了，要重新申请）、`join_attempts`（限速日志）。2026-11-03 核对到迁移 060，数据表都在。
 
 
 ## 账单 → 对账单（花费和收入共用）
