@@ -315,7 +315,7 @@ function rebuild() {
     x.rows.push(r); x.total += r.out; g.set(id, x);
   }
   S.groups = [...g.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
-  for (const x of S.groups) { x.src = x.rows[0].src || ""; if (!(x.id in S.auto)) S.auto[x.id] = x.inc ? (incomeRules()[x.id.slice(3)] || guessKind(x.rows[0].desc)) : x.skip ? "" : x.rows[0].cat; if (!(x.id in S.pick)) S.pick[x.id] = x.skip ? SKIP_CAT[x.skip] || "" : x.rows[0].cat; if (x.inc && !(x.id in S.ikind)) S.ikind[x.id] = S.auto[x.id]; if (!(x.id in S.include)) S.include[x.id] = x.inc ? !x.rows.every((r) => r.incUnsure) : !x.skip; }
+  for (const x of S.groups) { x.src = x.rows[0].src || ""; if (!(x.id in S.auto)) S.auto[x.id] = x.inc ? (incomeRules()[x.id.slice(3)] || guessKind(x.rows[0].desc)) : x.skip ? "" : x.rows[0].cat; if (!(x.id in S.pick)) S.pick[x.id] = x.inc ? "" : x.skip ? SKIP_CAT[x.skip] || "" : x.rows[0].cat; if (x.inc && !(x.id in S.ikind)) S.ikind[x.id] = S.auto[x.id]; if (!(x.id in S.include)) S.include[x.id] = x.inc ? !x.rows.every((r) => r.incUnsure) : !x.skip; }
 }
 const resetPicks = () => { S.pick = {}; S.include = {}; S.auto = {}; };
 
@@ -463,7 +463,7 @@ const incomeSection = (list) => (list.length ? `<section class="section"><div cl
   <ul class="restock-list bank-list">${list.map(incomeRow).join("")}</ul></div></section>` : "");
 const chosen = () => {
   let n = 0, sum = 0;
-  for (const g of S.groups) { if (!S.include[g.id] || !S.pick[g.id]) continue; for (const r of g.rows) { if (r.dup) continue; n++; sum += r.out; } }
+  for (const g of S.groups) { if (g.inc || !S.include[g.id] || !S.pick[g.id]) continue; for (const r of g.rows) { if (r.dup) continue; n++; sum += r.out; } }
   return { n, sum };
 };
 const KIND_ICON = { csv: "📄", xlsx: "📊", ofx: "🏦", qif: "🏦", pdf: "📕", image: "🖼️", paste: "📋" };
@@ -625,7 +625,7 @@ async function doImport() {
   if (S.busy) return; S.busy = true; redraw();
   const picks = [], learned = {}, hits = {};
   for (const g of S.groups) {
-    if (!S.include[g.id]) continue; const cat = S.pick[g.id]; if (!cat) continue;
+    if (g.inc || !S.include[g.id]) continue; const cat = S.pick[g.id]; if (!cat) continue;   // 收入组只进 income_records，不能再记一笔负花费（以前 Zelle / 电汇转入会预选「账户间转账」，两边都记了）
     for (const r of g.rows) { if (r.dup) continue; picks.push({ r, cat }); }
     // 只记你改过的（或原来认不出、你选了的）；自动归出来的不记，免得把归错的也「学」进去，以后一直错
     if (S.remember && !g.skip && cat && g.id.indexOf("__") !== 0 && cat !== S.auto[g.id]) learned[g.id] = cat;
