@@ -138,8 +138,10 @@ export function householdFlow(inc, sp, months) {
   const income = tot((m) => inc.income[m]), capIn = tot((m) => inc.cap[m]);
   const b = (k) => tot((m) => sp?.bucket[m]?.[k]);
   const living = b("living"), housing = b("housing"), financial = b("financial"), capital = b("capital"), investment = b("investment");
-  const consumption = r2(living + housing), net = r2(income - consumption);
-  return { income, capIn, living, housing, consumption, financial, capital, investment, net,
-    remaining: r2(income - living - housing - financial - capital - investment),
-    savingsRate: income > 0 ? net / income : null, investRate: income > 0 ? investment / income : null };
+  // 2026-11-03 口径统一：净现金流 = 收入 − 全部流出（日常、住房、财务及其他、资本性、投资），就是账上实际剩下的；
+  // 以前的「净现金流」只减了日常 + 住房，税、保险、利息、奉献、买车装修、投资都没减，看起来结余很多。那个数现在叫 surplus（日常结余）。
+  // 储蓄率 = 存下来的（含投资）÷ 收入 = （收入 − 消费 − 财务及其他 − 资本性）÷ 收入。资本流入（卖房卖股本金、借款…）不算收入，也不在净现金流里。
+  const consumption = r2(living + housing), surplus = r2(income - consumption), saved = r2(surplus - financial - capital), net = r2(saved - investment);
+  return { income, capIn, living, housing, consumption, financial, capital, investment, surplus, saved, net, remaining: net,
+    savingsRate: income > 0 ? saved / income : null, investRate: income > 0 ? investment / income : null };
 }
