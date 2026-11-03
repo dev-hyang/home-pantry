@@ -427,7 +427,7 @@ function resetSectionFilters(section) {
     case "today": setTodayPref({ source: null }); break;
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
-    case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
+    case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
     case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null, sort: "new" }); state.spendEdit = null; state.spendSel = null; break;
     case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.locForm = null; break;
     default: break;
@@ -438,7 +438,7 @@ const clearAnd = (fn) => () => { fn(); resetListPages(); render(false); };
 onClearFilters("inv", clearAnd(() => { Object.assign(state.filter, FD.inv); clearUrlParams(["cat", "status"]); }), () => changed(state.filter, FD.inv));
 onClearFilters("shop", clearAnd(() => Object.assign(state.shopFilter, FD.shop)), () => changed(state.shopFilter, FD.shop));
 onClearFilters("asset", clearAnd(() => Object.assign(state.assetFilter, FD.asset)), () => changed(state.assetFilter, FD.asset));
-onClearFilters("deal", clearAnd(() => { state.dealFilter = "all"; }));
+onClearFilters("deal", clearAnd(() => { state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; }));   // 排序不动
 onClearFilters("bills", clearAnd(() => { Object.assign(state.billsFilter, FD.bills); clearUrlParams(["prop"]); }), () => changed(state.billsFilter, FD.bills));
 onClearFilters("pay", clearAnd(() => Object.assign(state.payFilter, FD.pay)), () => changed(state.payFilter, FD.pay));   // 服务器分页：resetListPages 标过期、回第一页
 onClearFilters("spend", () => { clearSpendFilter("all"); resetListPages(); renderSpendRecords(); }, () => changed(state.spendFilter, FD.spend));
@@ -556,6 +556,12 @@ async function doRestore(el) {
   render(false);
 }
 main.addEventListener("change", async (e) => {
+  if (e.target.dataset?.dealSel) {   // 交易时间线：完成情况 / 阶段 / 显示 / 排序（下拉框）
+    const v = e.target.value, k = e.target.dataset.dealSel;
+    if (k === "filter") state.dealFilter = v; else if (k === "stage") state.dealStage = v; else if (k === "act") state.dealActFilter = v;
+    else if (k === "sort") { state.dealSort = v === "asc" ? "asc" : "desc"; try { localStorage.setItem("hmh-deal-sort", state.dealSort); } catch { /* 忽略 */ } }
+    return render(false);
+  }
   if (e.target.matches("#spendList input[data-sel]")) {   // 多选删除：勾一笔
     const S = state.spendSel; if (!S) return; if (e.target.checked) S.add(e.target.dataset.sel); else S.delete(e.target.dataset.sel);
     const n = spendRowsLoaded().filter((p) => S.has(p.id)).length, c = $("#selCount"); if (c) c.textContent = t("已选 {n} 笔", { n }); const d = $('[data-action="spend-sel-del"]'); if (d) d.disabled = !n; return;

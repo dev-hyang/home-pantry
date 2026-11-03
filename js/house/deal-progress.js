@@ -142,6 +142,16 @@ function markRow(deal, kind) {
     <div class="dl-c dl-ca"><span class="dl-tag">✅ ${t("实际")}</span>${shift ? `<div class="dl-mark"><time>${md(now)}</time><b>${t("现在是 {d}", { d: fmtDate(now) })}</b>${varPill(shift)}</div>` : now ? `<div class="dl-mark muted"><b>${t("没有变化")}</b></div>` : ""}</div></li>` };
 }
 
+/** 按日期排序并插入「今天」分隔线：desc 由近及远（默认，最新的在最上面）/ asc 由远及近 */
+function orderWithToday(items, sort, today) {
+  const desc = sort !== "asc";
+  items.sort((a, b) => (desc ? b.d.localeCompare(a.d) : a.d.localeCompare(b.d)));
+  const at = items.findIndex((i) => (desc ? i.d < today : i.d > today));
+  items.splice(at < 0 ? items.length : at, 0, { d: today, html: `<li class="dl-today"><span>${t("今天")} · ${fmtDate(today)}</span></li>` });
+  return items;
+}
+const noMatch = () => `<div class="panel empty"><strong>${t("没有符合条件的记录")}</strong>${t("换一个筛选条件，或点「清除筛选」。")}</div>`;
+
 /* ───────────── 三种视图：计划 / 实际 / 对比 ───────────── */
 /** mode: plan / actual / compare。an = analyze() 的结果（已按筛选过滤的 rows 通过 rows 传进来）；h = deals.js 传来的编辑小件 */
 export function lanesHtml(deal, an, rows, mode, h) {
@@ -150,20 +160,22 @@ export function lanesHtml(deal, an, rows, mode, h) {
   const firstKey = (e) => (e.task_keys || []).find((k) => an.rows.some((r) => r.key === k));
   const items = rows.filter((x) => x.baseline || x.due).map((x) => ({ d: x.baseline || x.due, html: `<li class="dl-row ${x.skipped ? "is-skip" : x.done ? "is-done" : x.lateNow > 0 ? "is-late" : ""}${x.prog ? " is-prog" : ""}"><div class="dl-c dl-cp">${planCell(deal, x)}</div><i class="dl-dot" aria-hidden="true"></i>
     <div class="dl-c dl-ca">${mode === "compare" ? actCell(deal, x, evs.filter((e) => firstKey(e) === x.key), h) : ""}</div></li>` }));
-  if (mode === "compare") for (const e of evs.filter((e) => !firstKey(e))) items.push({ d: e.happened_on, html: `<li class="dl-row dl-solo"><div class="dl-c dl-cp"><span class="dl-empty">${t("清单之外")}</span></div><i class="dl-dot dl-dot-ev" aria-hidden="true"></i><div class="dl-c dl-ca"><span class="dl-tag">✅ ${t("实际")}</span><div class="dl-card dl-act done">${evLine(e)}</div></div></li>` });
-  for (const k of ["contract", "closing"]) { const m = markRow(deal, k); if (m) items.push(m); }
-  items.sort((a, b) => a.d.localeCompare(b.d));
-  const at = items.findIndex((i) => i.d > today);
-  items.splice(at < 0 ? items.length : at, 0, { d: today, html: `<li class="dl-today"><span>${t("今天")} · ${fmtDate(today)}</span></li>` });
+  const plain = (h.filter || "all") === "all" && (h.stage || "all") === "all";   // 清单之外的进展、合同日 / 交割日：只在没有筛选时显示（筛「未完成」时它们是噪音）
+  if (mode === "compare" && plain) for (const e of evs.filter((e) => !firstKey(e))) items.push({ d: e.happened_on, html: `<li class="dl-row dl-solo"><div class="dl-c dl-cp"><span class="dl-empty">${t("清单之外")}</span></div><i class="dl-dot dl-dot-ev" aria-hidden="true"></i><div class="dl-c dl-ca"><span class="dl-tag">✅ ${t("实际")}</span><div class="dl-card dl-act done">${evLine(e)}</div></div></li>` });
+  if (plain) for (const k of ["contract", "closing"]) { const m = markRow(deal, k); if (m) items.push(m); }
   const undated = rows.filter((x) => !x.baseline && !x.due);
+  if (!items.length && !undated.length) return noMatch();
+  orderWithToday(items, h.sort, today);
   const legend = `<p class="dl-legend" aria-label="${esc(t("图例"))}"><span><i class="dl-lg done"></i>${t("已完成")}</span><span><i class="dl-lg prog"></i>${t("进行中")}</span><span><i class="dl-lg skp"></i>${t("已跳过")}</span><span><i class="dl-lg"></i>${t("未开始")}</span><span><i class="dl-lg late"></i>${t("已晚")}</span></p>`;
   return `<div class="panel dl dl-m-${mode}">${legend}${mode === "compare" ? `<div class="dl-head" aria-hidden="true"><span>📋 ${t("计划（模板，冻结的日期）")}</span><span></span><span>✅ ${t("实际（我们做的）")}</span></div>` : ""}
     <ol class="dl-rows">${items.map((i) => i.html).join("")}</ol>
     ${undated.length ? `<h3 class="tl-sub">${t("还没排期")}</h3><p class="muted" style="font-size:12.5px;margin:0 0 6px">${t("填了合同日 / 交割日，或点 ✎ 手动设日期，就会排进上面的时间线")}</p><ul class="dl-undated">${undated.map((x) => `<li>${esc(t(x.name))}</li>`).join("")}</ul>` : ""}</div>`;
 }
 function actualHtml(deal, an, h) {
-  const today = todayISO(), list = actualEntries(deal, an.rows), byKey = new Map(an.rows.map((r) => [r.key, r]));
-  if (!list.length) return `<div class="panel empty"><strong>${t("还没有实际进展")}</strong>${t("做了什么就记一笔：和卖方律师改合同、联系 ComEd 停服务、签字……也可以在清单里勾选完成。")}</div>`;
+  const today = todayISO(), all = actualEntries(deal, an.rows), byKey = new Map(an.rows.map((r) => [r.key, r]));
+  if (!all.length) return `<div class="panel empty"><strong>${t("还没有实际进展")}</strong>${t("做了什么就记一笔：和卖方律师改合同、联系 ComEd 停服务、签字……也可以在清单里勾选完成。")}</div>`;
+  const list = all.filter((en) => ({ all: true, events: !!en.ev, tasks: !!en.task }[h.act || "all"] ?? true));   // 显示：全部 / 进展记录 / 勾选完成的事项
+  if (!list.length) return noMatch();
   const items = list.map((en) => {
     if (en.task) {
       const x = en.task;
@@ -174,8 +186,7 @@ function actualHtml(deal, an, h) {
     const link = links.length ? `<div class="dl-links">${links.map((x) => `<span class="dl-link">↳ ${esc(t(x.name))}${x.baseline ? ` · ${t("原计划 {d}", { d: md(x.baseline) })}` : ""}${x.done?.done_on === en.date ? ` ${varPill(x.slip)}` : ""}</span>`).join("")}</div>` : "";
     return { d: en.date, html: `<li class="dl-row dl-solo"><i class="dl-dot dl-dot-ev" aria-hidden="true"></i><div class="dl-c"><div class="dl-card dl-act done">${evLine(en.ev)}${link}</div></div></li>` };
   });
-  const at = items.findIndex((i) => i.d > today);
-  items.splice(at < 0 ? items.length : at, 0, { d: today, html: `<li class="dl-today"><span>${t("今天")} · ${fmtDate(today)}</span></li>` });
+  orderWithToday(items, h.sort, today);
   return `<div class="panel dl dl-m-actual"><ol class="dl-rows">${items.map((i) => i.html).join("")}</ol></div>`;
 }
 

@@ -219,9 +219,23 @@ const addTaskRow = (deal, stage, row) => row(null, "➕", t("添加自定义事�
 
 /* ── 交易页：主体是当前房产，或 ?asset=<id> 指定的车辆 ── */
 const DEAL_VIEWS = [["list", "☰", "清单"], ["plan", "📋", "计划"], ["actual", "✅", "实际"], ["compare", "⚖️", "对比"]];
-const DEAL_FILTERS = [["all", "全部"], ["undone", "未完成"], ["overdue", "逾期"], ["must", "必须项"], ["skipped", "已跳过"]];
-const filterDealRows = (rows) => rows.filter((x) => ({ all: true, undone: !x.done && !x.skipped, overdue: !x.done && !x.skipped && x.overdue, must: !x.done && !x.skipped && x.priority === "must", skipped: !!x.skipped }[state.dealFilter] ?? true));
-const dealFilterBar = () => `<div class="chips" role="group" aria-label="${t("按完成情况筛选")}">${DEAL_FILTERS.map(([v, l]) => `<button type="button" class="chip" data-action="deal-filter" data-val="${v}" aria-pressed="${(state.dealFilter || "all") === v}">${t(l)}</button>`).join("")}${clearFiltersBtn("deal", (state.dealFilter || "all") !== "all")}</div>`;
+const DEAL_FILTERS = [["all", "全部"], ["undone", "未完成"], ["overdue", "逾期"], ["must", "必须项（未完成）"], ["done", "已完成"], ["skipped", "已跳过"]];
+const DEAL_ACT_FILTERS = [["all", "全部"], ["events", "进展记录"], ["tasks", "勾选完成的事项"]];
+const DEAL_SORTS = [["desc", "由近及远"], ["asc", "由远及近"]];
+/** 完成情况筛选；stage = true 时再按阶段筛（时间线用；单个阶段页本来就只有一个阶段） */
+const filterDealRows = (rows, { stage = false } = {}) => rows.filter((x) => ({ all: true, undone: !x.done && !x.skipped, overdue: !x.done && !x.skipped && x.overdue, must: !x.done && !x.skipped && x.priority === "must", done: !!x.done, skipped: !!x.skipped }[state.dealFilter] ?? true)
+  && (!stage || (state.dealStage || "all") === "all" || x.stage === state.dealStage));
+const dealFiltered = (view) => (view === "actual" ? (state.dealActFilter || "all") !== "all" : (state.dealFilter || "all") !== "all" || (state.dealStage || "all") !== "all");
+/** 筛选 / 阶段 / 排序：下拉框（和收入、花费页的时间条同一个样子）。view = list（单个阶段页，只有完成情况）/ plan / actual / compare */
+function dealToolbar(view, deal = null) {
+  const sel = (key, label, list, v) => `<label class="tb-field"><span>${t(label)}</span><select data-deal-sel="${key}" data-nosearch aria-label="${esc(t(label))}">${list.map(([k, l]) => `<option value="${k}"${k === v ? " selected" : ""}>${esc(t(l))}</option>`).join("")}</select></label>`;
+  const stages = deal ? Object.entries(D().stagesOf(deal.kind)).map(([k, n]) => [k, n]) : [];
+  const parts = view === "actual" ? [sel("act", "显示", DEAL_ACT_FILTERS, state.dealActFilter || "all")]
+    : [sel("filter", "完成情况", DEAL_FILTERS, state.dealFilter || "all"), ...(view !== "list" && stages.length ? [sel("stage", "阶段", [["all", "全部阶段"], ...stages], state.dealStage || "all")] : [])];
+  if (view !== "list") parts.push(sel("sort", "排序", DEAL_SORTS, state.dealSort === "asc" ? "asc" : "desc"));
+  return `<div class="time-bar deal-tools" role="group" aria-label="${esc(t("筛选和排序"))}">${parts.join("")}${clearFiltersBtn("deal", dealFiltered(view))}</div>`;
+}
+const dealFilterBar = () => dealToolbar("list");
 export function viewDeal() {
   const q = state.route?.q;
   const assetId = q?.get("asset") || null;
@@ -314,7 +328,7 @@ export function viewDeal() {
   const cancelRow = closed ? "" : `<p style="margin:8px 0 0;text-align:right"><button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel" data-deal="${deal.id}">${t("取消这笔交易")}</button></p>`;
   const openNow = veh ? openVehicleDeal(veh.id) : openDeal(p.id);
   const view = DEAL_VIEWS.some((v) => v[0] === state.dealView) ? state.dealView : "list";
-  const laneH = { isEditing, editBtn, skipBtn, editForm: (x) => taskEditForm(x.deal, x) };
+  const laneH = { isEditing, editBtn, skipBtn, editForm: (x) => taskEditForm(x.deal, x), sort: state.dealSort === "asc" ? "asc" : "desc", filter: state.dealFilter || "all", stage: state.dealStage || "all", act: state.dealActFilter || "all" };
   return `${bar}${headCard}
     <section class="section">
       <div class="section-head"><h2>${closed ? (deal.outcome === "cancelled" ? t("{kind}已取消", { kind: t(K[deal.kind]) }) : t("{kind}已完成", { kind: t(K[deal.kind]) })) : t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${deal.closing_on ? `${t(dateLabels(deal)[1])} ${fmtDate(deal.closing_on)}` : t("还没填{d}", { d: t(dateLabels(deal)[1]) })}</p></div>
@@ -330,7 +344,7 @@ export function viewDeal() {
       ${view === "list" ? `<div class="panel mlist">${infoRow}${stageRows}${addRow}${closeRow}${loanRow}</div>` : `<div class="panel mlist">${infoRow}</div>
         ${view !== "plan" ? briefHtml(deal, an, laneH) : ""}
         <div class="dl-bar">${view !== "plan" ? `<button type="button" class="btn btn-primary btn-sm" data-action="deal-event-new" data-deal="${deal.id}">＋ ${t("记一笔进展")}</button>` : ""}</div>
-        ${view !== "actual" ? dealFilterBar() : ""}${eventFormPanel(deal, an)}${lanesHtml(deal, an, filterDealRows(an.rows), view, laneH)}
+        ${dealToolbar(view, deal)}${eventFormPanel(deal, an)}${lanesHtml(deal, an, filterDealRows(an.rows, { stage: true }), view, laneH)}
         <div class="panel mlist" style="margin-top:12px">${addRow}${closeRow}${loanRow}</div>`}${cancelRow}
       <p class="disclaimer">${t("截止日按{a}和{b}推算，可点 ✎ 调整；必须项逾期会在首页置顶", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })}${deal.baseline?._at ? ` ${t("「计划」是填了合同日后冻结的模板日期，改期只影响「预计」，不会改掉原计划。")}` : ""}</p>
     </section>
