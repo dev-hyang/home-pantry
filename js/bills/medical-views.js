@@ -141,7 +141,11 @@ function viewDetail(id, payId) {
   const isNew = id === "new", b = isNew ? null : state.medEnriched.find((x) => x.id === id);
   if (!isNew && !b) return `<section class="section"><div class="panel empty"><strong>${t("找不到这张账单")}</strong>${t("可能已被删除，或它是别人的私密账单。")}<p><a class="btn" href="${medHref("list")}">${t("回账单列表")}</a></p></div></section>`;
   const newKind = KINDS[state.route.q.get("kind")] ? state.route.q.get("kind") : "medical";
-  const v = b || { kind: newKind, status: "open", visibility: KINDS[newKind].visibility, currency: cur(), insurance_paid: 0, adjustment: 0, service_date: "", hsa_eligible: false }, K = kindOf(v);
+  // 从别的应用带来的预填（牧羊人的就诊「去爱家记医疗账单」：不同数据库，只能把机构、日期、就诊人放在网址里）：?bill=new&provider=…&date=…&patient=…&note=…
+  const pq = state.route.q, pre = isNew ? { provider: (pq.get("provider") || "").slice(0, 60), service_date: /^\d{4}-\d{2}-\d{2}$/.test(pq.get("date") || "") ? pq.get("date") : "",
+    patient_text: (pq.get("patient") || "").slice(0, 40), notes: (pq.get("note") || "").slice(0, 500) } : {};
+  if (isNew && pre.patient_text) { const hit = (state.people || []).find((p) => String(p.name).trim() === pre.patient_text.trim()); if (hit) pre.patient_id = hit.id; else pre.notes = [t("就诊人：{n}", { n: pre.patient_text }), pre.notes].filter(Boolean).join(" · "); delete pre.patient_text; }   // 名字和家庭成员对得上就直接选那个人，对不上写进备注（不当成「旧记录」）
+  const v = b || { kind: newKind, status: "open", visibility: KINDS[newKind].visibility, currency: cur(), insurance_paid: 0, adjustment: 0, service_date: "", hsa_eligible: false, ...pre }, K = kindOf(v);
   const subs = K.subs.map(([k, n, ic]) => `<option value="${k}" ${v.subkind === k ? "selected" : ""}>${ic} ${t(n)}</option>`).join("");
   const num0 = (x) => (x == null || x === "" ? "" : num(x).toFixed(2));
   const pay = payId && b ? b.pays.find((p) => p.id === payId) : null;
