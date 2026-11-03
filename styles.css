@@ -2334,3 +2334,6 @@ html.force-phone .today-layout { grid-template-columns: minmax(0, 1fr); }
 .shop-import { border-left: 3px solid var(--pine); margin-bottom: 12px; }
 .shop-import-list { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .shop-import-list .check-inline { min-height: 40px; }
+/* 各账户已补到哪个月：按天算，◐ = 这个月只补了一部分；账户名下面一行写补到哪天、中间缺哪几天 */
+.cover-table td.part { color: var(--soon, #a15c00); font-weight: 700; }
+.cover-table th[scope="row"] small { display: block; font-weight: 400; font-size: 11.5px; white-space: normal; max-width: 22em; }

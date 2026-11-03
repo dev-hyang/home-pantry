@@ -359,16 +359,46 @@ function reconcileHtml(p) {
   return Math.abs(diff) < 0.015 ? ` · <span style="color:var(--ok)">✓ ${t("和对账单合计对上")}</span>` : ` · <b class="bank-dup">${t("对账单写的消费 {a}（含手续费 / 利息），读出 {b}，差 {d}——可能漏读或多读了几行，核对一下或用 AI 解析", { a: money(stated), b: money(read), d: money(diff) })}</b>`;
 }
 const monthsBetween = (a, b) => { const out = []; let [y, m] = String(a).slice(0, 7).split("-").map(Number); const end = String(b).slice(0, 7); for (let i = 0; i < 60; i++) { const k = `${y}-${String(m).padStart(2, "0")}`; out.push(k); if (k >= end) break; if (++m > 12) { m = 1; y++; } } return out; };
-/** 覆盖表：每个账户最近 12 个月哪些已经导过（按每批的日期范围算） */
+/** 覆盖表：每个账户最近 12 个月补到了哪里（2026-11-03 重新设计）。
+ * 只看「最近导入」里每批的起止日期（批次记录本来就全在家庭设置里，和花费 / 收入明细怎么分页读取无关）。
+ * 以前按月算：一张 10/15–11/14 的信用卡账单会把 10 月、11 月都打 ✓，其实 10/1–10/14 没补；同名不同尾号的两张卡也被算成一个账户。
+ * 现在按天算：同一账户（名字 + 尾号）各批的日期段先合并，每个月 ✓ = 整月都有、◐ = 补了一部分（悬停看哪几天）、· = 没有；
+ * 本月只算到今天。每个账户再写「补到哪天」和中间缺的日期段（最多 3 段）。导入的那几笔后来全删了的批次（读到了实时数字的）不算。 */
+const DAY_MS = 864e5;
+const dayN = (iso) => { const [y, m, d] = String(iso).slice(0, 10).split("-").map(Number); return Date.UTC(y, m - 1, d) / DAY_MS; };   // 按 UTC 的日数算，不受时区影响
+const isoN = (n) => new Date(n * DAY_MS).toISOString().slice(0, 10);
+const shortD = (iso) => String(iso).slice(5).replace("-", "/");
+function mergeSpans(spans) {
+  const out = [];
+  for (const [a, b] of spans.slice().sort((x, y) => x[0] - y[0])) { const last = out[out.length - 1]; if (last && a <= last[1] + 1) last[1] = Math.max(last[1], b); else out.push([a, b]); }
+  return out;
+}
+const coveredIn = (spans, a, b) => spans.reduce((n, [x, y]) => n + Math.max(0, Math.min(y, b) - Math.max(x, a) + 1), 0);
 function coverageHtml(batches) {
-  const withAcct = batches.filter((b) => b.account && b.from && b.to); if (!withAcct.length) return "";
-  const now = new Date(), months = []; for (let i = 11; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`); }
+  const gone = (b) => { const L = b.tagged ? LIVE.get(b.id) : null; return L && !L.sn && !L.in && ((b.n ?? 0) > 0 || (b.inN || 0) > 0); };
+  const withAcct = batches.filter((b) => b.account && b.from && b.to && b.from <= b.to && !gone(b)); if (!withAcct.length) return "";
+  const now = new Date(), todayN = dayN(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`), months = [];
+  for (let i = 11; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`); }
   const by = new Map();
-  for (const b of withAcct) { const set = by.get(b.account) || new Set(); monthsBetween(b.from, b.to).forEach((k) => set.add(k)); by.set(b.account, set); }
-  const rows = [...by.entries()].map(([name, set]) => { const first = months.findIndex((k) => set.has(k)); const gaps = months.filter((k, i) => first >= 0 && i > first && i < months.length - 1 && !set.has(k)).length;
-    return `<tr><th scope="row">${esc(name)}${gaps ? ` <small class="bank-dup">${t("缺 {n} 个月", { n: gaps })}</small>` : ""}</th>${months.map((k) => `<td class="${set.has(k) ? "on" : ""}" title="${k}">${set.has(k) ? "✓" : "·"}</td>`).join("")}</tr>`; });
-  return `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("各账户已补到哪个月")}</h3><div class="ch-scroll"><table class="cover-table"><thead><tr><th></th>${months.map((k) => `<th>${k.slice(5)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>
-    <p class="muted" style="margin:6px 0 0;font-size:12.5px">${t("按每批导入的交易日期范围算；中间空着的月份就是还没补的。只看最近 12 个月。")}</p></div>`;
+  for (const b of withAcct) { const k = batchAcctKey(b); if (!by.has(k)) by.set(k, []); by.get(k).push([dayN(b.from), dayN(b.to)]); }
+  const rows = [...by.entries()].sort((x, y) => x[0].localeCompare(y[0])).map(([name, raw]) => {
+    const spans = mergeSpans(raw), lastTo = spans[spans.length - 1][1];
+    const cells = months.map((m) => {
+      const [y, mo] = m.split("-").map(Number), a = dayN(`${m}-01`), end = dayN(new Date(Date.UTC(y, mo, 0)).toISOString()), b = Math.min(end, todayN);
+      const days = b - a + 1, got = coveredIn(spans, a, b);
+      const st = got >= days ? "on" : got > 0 ? "part" : "";
+      const tip = st === "on" ? t("{m}：整月都有", { m }) : st === "part" ? t("{m}：补了 {a} / {b} 天（{r}）", { m, a: got, b: days, r: spans.filter(([x, z]) => z >= a && x <= b).map(([x, z]) => `${shortD(isoN(Math.max(x, a)))}–${shortD(isoN(Math.min(z, b)))}`).join("、") }) : t("{m}：还没补", { m });
+      return `<td class="${st}" title="${esc(tip)}"><span aria-hidden="true">${st === "on" ? "✓" : st === "part" ? "◐" : "·"}</span><span class="sr-only">${esc(tip)}</span></td>`;
+    });
+    // 中间缺的日期段：从第一段开始到最后一段结束之间没覆盖的
+    const gaps = []; for (let i = 1; i < spans.length; i++) gaps.push([spans[i - 1][1] + 1, spans[i][0] - 1]);
+    const recent = gaps.filter(([, z]) => z >= todayN - 400);
+    const note = [t("补到 {d}", { d: isoN(lastTo) }), todayN - lastTo > 35 ? t("已经 {n} 天没补", { n: todayN - lastTo }) : null,
+      recent.length ? t("中间缺 {g}", { g: recent.slice(-3).map(([x, z]) => (x === z ? isoN(x) : `${isoN(x)} → ${isoN(z)}`)).join("、") + (recent.length > 3 ? "…" : "") }) : null].filter(Boolean).join(" · ");
+    return `<tr><th scope="row">${esc(name)}<small class="${recent.length || todayN - lastTo > 35 ? "bank-dup" : "muted"}">${esc(note)}</small></th>${cells.join("")}</tr>`;
+  });
+  return `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("各账户已补到哪个月")}</h3><div class="ch-scroll"><table class="cover-table"><thead><tr><th></th>${months.map((k) => `<th scope="col">${k.slice(5)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>
+    <p class="muted" style="margin:6px 0 0;font-size:12.5px">${t("按每批导入的交易起止日期、逐天合并算：✓ 整月都有，◐ 只补了一部分（悬停看哪几天），· 还没补；本月算到今天。同一账户按名字 + 尾号区分。")}</p></div>`;
 }
 
 async function ingest(files) {
