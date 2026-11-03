@@ -133,15 +133,21 @@ export function incNodeSum(agg, id, m = null) {
 /** 收支总览：一段月份里收入（认定）、消费（日常 / 住房）、财务、资本性、投资、资本流入，和由它们算出的指标
  *  净现金流 = 收入 − 消费（日常 + 住房，投资之前）；储蓄率 = 净现金流 ÷ 收入；投资率 = 投资（性质 = 投资的现金流出）÷ 收入；
  *  剩余现金 = 收入 − 日常 − 住房 − 财务及其他 − 资本性支出 − 投资（资本流入不算，单独列出） */
+/** 资本流入里「从储蓄账户转入」：自己账户之间挪钱，不算进账面净现金流（转出那一边本来就不算支出） */
+export const OWN_XFER = "xfer_savings";
 export function householdFlow(inc, sp, months) {
   const tot = (f) => r2(months.reduce((a, m) => a + (f(m) || 0), 0));
   const income = tot((m) => inc.income[m]), capIn = tot((m) => inc.cap[m]);
   const b = (k) => tot((m) => sp?.bucket[m]?.[k]);
   const living = b("living"), housing = b("housing"), financial = b("financial"), capital = b("capital"), investment = b("investment");
-  // 2026-11-03 口径统一：净现金流 = 收入 − 全部流出（日常、住房、财务及其他、资本性、投资），就是账上实际剩下的；
-  // 以前的「净现金流」只减了日常 + 住房，税、保险、利息、奉献、买车装修、投资都没减，看起来结余很多。那个数现在叫 surplus（日常结余）。
-  // 储蓄率 = 存下来的（含投资）÷ 收入 = （收入 − 消费 − 财务及其他 − 资本性）÷ 收入。资本流入（卖房卖股本金、借款…）不算收入，也不在净现金流里。
-  const consumption = r2(living + housing), surplus = r2(income - consumption), saved = r2(surplus - financial - capital), net = r2(saved - investment);
-  return { income, capIn, living, housing, consumption, financial, capital, investment, surplus, saved, net, remaining: net,
+  // 2026-11-03 口径（用户定）：
+  //   surplus 日常结余 = 收入 − 日常 − 住房
+  //   incNet  收入结余 = 收入 − 全部流出（日常、住房、财务及其他、资本性、投资）
+  //   net     净现金流（账面）= 全部流入 − 全部流出 = 收入结余 + 资本流入。资本流入（卖房卖股本金、借款、本金返还、从投资账户转回…）不算收入，但账面上钱是进来了。
+  //           「从储蓄账户转入」不算：那是自己账户之间挪钱，转出去时（转账类）也没算支出，只算一边会虚增。
+  //   储蓄率 = 存下来的（含投资）÷ 收入 =（收入 − 消费 − 财务及其他 − 资本性）÷ 收入，只看收入，不看资本流入。
+  const consumption = r2(living + housing), surplus = r2(income - consumption), saved = r2(surplus - financial - capital), incNet = r2(saved - investment);
+  const capOwn = tot((m) => inc.capLeaf?.[m]?.[OWN_XFER] || 0), capBook = r2(capIn - capOwn), net = r2(incNet + capBook);
+  return { income, capIn, capBook, capOwn, living, housing, consumption, financial, capital, investment, surplus, saved, incNet, net, remaining: incNet,
     savingsRate: income > 0 ? saved / income : null, investRate: income > 0 ? investment / income : null };
 }

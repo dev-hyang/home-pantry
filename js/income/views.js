@@ -25,7 +25,7 @@ import { compact } from "../core/list-query.js";
 import { STAT_CATS, download, dq, hitAttrs, monthLabel, toCsv } from "../stats/views.js";
 import { BUCKETS, bucketOf, l2IdOf } from "../core/taxonomy.js";
 import { INC_L1S, incL1, incLeaf, incLeavesOf, splitRecord } from "../core/income-taxonomy.js";
-import { aggregate, householdFlow, incAggregate, incNodeSum, normIncRow, normRow } from "../stats/report.js";
+import { OWN_XFER, aggregate, householdFlow, incAggregate, incNodeSum, normIncRow, normRow } from "../stats/report.js";
 import { sameAmountNear } from "../stats/dup-check.js";
 import { CHANNELS, GAIN_KINDS, RANGES, UNITS, adults, biweekAnchor, bucketKey, canSeeAll, capitalKinds, customKinds, groupList, groupOf, groupSum, inc, incSumOf, incomeIn, isIncomeKind, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, knownSenders, loadIncome, memberLabel, myPersonId, normKindSel, openRepayments, periodKeys, personOk,
   periodLabel, personName, recognized, repayState, repaidOf, setIncMerge, similarIncome, skey, spanLabel, spanOk, spanOptionsHtml, spanPrev, spanWindow, statKinds, sumOf, windowOf } from "./logic.js";
@@ -87,11 +87,11 @@ window.addEventListener("spend-rows-changed", () => staleAll(["spend", "ledger"]
  * 花费不分人，只在选「全家」时有。 */
 function cashflow({ range, from, to, unit, person, win = null }) {
   const I = inc(), w = win || windowOf(range, { from, to }), keys = periodKeys(w.from, w.to, unit), zero = () => Object.fromEntries(keys.map((k) => [k, 0]));
-  const income = zero(), capIn = zero(), spend = zero(), invest = zero(), other = zero(), repaid = zero(), byKind = {}, spendCats = {};
+  const income = zero(), capIn = zero(), capBook = zero(), spend = zero(), invest = zero(), other = zero(), repaid = zero(), byKind = {}, spendCats = {};
   const rows = incomeIn(w.from, w.to, person);
   for (const r of rows) {
     const s = splitRecord(r), k = bucketKey(r.received_on, unit);
-    income[k] += s.income; capIn[k] += s.cap;
+    income[k] += s.income; capIn[k] += s.cap; if (s.capLeaf !== OWN_XFER) capBook[k] += s.cap;   // 账面：从储蓄账户转入不算（自己账户之间）
     if (s.income) { const sk = I.merge ? `g:${s.l1}` : r.kind; byKind[sk] = (byKind[sk] || 0) + s.income; }
   }
   for (const p of I.rep) {
@@ -109,12 +109,13 @@ function cashflow({ range, from, to, unit, person, win = null }) {
     else if (b) other[k] += amt;
   }
   const hasSpend = person === "all" && !!list, hasRepaid = Object.values(repaid).some((v) => v > 0);
-  // 净现金流 = 收入 − 消费 − 其他流出（税、保险、利息、奉献、资本性）− 投资：账上实际剩下的；saved = 存下来的（含投资），储蓄率用它
+  // incNet 收入结余 = 收入 − 消费 − 其他流出（税、保险、利息、奉献、资本性）− 投资；net 净现金流（账面）= 收入结余 + 资本流入（全部流入 − 全部流出）；
+  // saved = 存下来的（含投资），储蓄率用它（只看收入）
   const lines = keys.map((k) => { const i = R2(income[k]), s = hasSpend ? R2(spend[k]) : null, o = hasSpend ? R2(other[k]) : null, v = hasSpend ? R2(invest[k]) : null;
-    return { key: k, label: periodLabel(k, unit), income: i, capIn: R2(capIn[k]), spend: s, invest: v, other: o, repaid: R2(repaid[k]), saved: s == null ? null : R2(i - s - o), net: s == null ? null : R2(i - s - o - v), noSpend: hasSpend && i > 0 && !s && !o && !v }; });
+    return { key: k, label: periodLabel(k, unit), income: i, capIn: R2(capIn[k]), spend: s, invest: v, other: o, repaid: R2(repaid[k]), saved: s == null ? null : R2(i - s - o), incNet: s == null ? null : R2(i - s - o - v), capBook: R2(capBook[k]), net: s == null ? null : R2(i - s - o - v + capBook[k]), noSpend: hasSpend && i > 0 && !s && !o && !v }; });
   const tsum = (f) => R2(lines.reduce((a, l) => a + (f(l) || 0), 0));
   const tot = { income: tsum((l) => l.income), capIn: tsum((l) => l.capIn), spend: hasSpend ? tsum((l) => l.spend) : null, invest: hasSpend ? tsum((l) => l.invest) : null, other: hasSpend ? tsum((l) => l.other) : null, repaid: tsum((l) => l.repaid) };
-  tot.saved = tot.spend == null ? null : R2(tot.income - tot.spend - tot.other); tot.net = tot.spend == null ? null : R2(tot.saved - tot.invest);   // 还款是钱从账户里出去了，已经算在花费里（记还款时同时记一笔花费，或银行导入）：这里的「还款」只是告诉你其中有多少
+  tot.saved = tot.spend == null ? null : R2(tot.income - tot.spend - tot.other); tot.incNet = tot.spend == null ? null : R2(tot.saved - tot.invest); tot.capBook = tsum((l) => l.capBook); tot.capOwn = R2(tot.capIn - tot.capBook); tot.net = tot.spend == null ? null : R2(tot.incNet + tot.capBook);   // 还款是钱从账户里出去了，已经算在花费里（记还款时同时记一笔花费，或银行导入）：这里的「还款」只是告诉你其中有多少
   const noSpend = lines.filter((l) => l.noSpend).map((l) => l.label);   // 有收入、却一笔花费都没有：多半是那段对账单还没导入，净现金流会偏高
   return { w, keys, lines, tot, byKind, rows, hasSpend, hasRepaid, spendCats, unit, person, noSpend, loading: person === "all" && !list };
 }
@@ -199,10 +200,10 @@ const kindDonut = (cf) => {
   const items = statKinds(inc().merge).filter((k) => cf.byKind[k.id]).map((k) => ({ name: `${k.icon} ${kindLabel(k.id)}`, value: R2(cf.byKind[k.id]), color: k.color, drill: incDrill({ kind: k.id, ...cf.w, person: cf.person }) }));
   return items.length && window.Charts ? `<div class="panel chart-panel"><h3>${t("收入按类型（认定收入）")}</h3>${window.Charts.donut({ items, fmt: fmtMoney, stack: true, title: t("按收入类型"), center: fmtMoney(items.reduce((a, x) => a + x.value, 0), true) })}</div>` : "";
 };
-const lineTable = (cf) => `<div class="panel"><div class="ch-scroll"><table class="store-table"><thead><tr><th scope="col">${t("周期")}</th><th scope="col">${t("收入")}</th>${cf.hasSpend ? `<th scope="col">${t("消费（含住房）")}</th><th scope="col">${t("其他流出")}</th><th scope="col">${t("投资")}</th>` : ""}${cf.hasRepaid ? `<th scope="col">${t("其中：还款")}</th>` : ""}${cf.hasSpend ? `<th scope="col">${t("净现金流")}</th><th scope="col">${t("储蓄率")}</th>` : ""}<th scope="col">${t("资本流入（不计收入）")}</th></tr></thead><tbody>
-  ${cf.lines.map((l) => `<tr><th scope="row">${esc(l.label)}</th><td>${fmtMoney(l.income)}</td>${cf.hasSpend ? `<td>${fmtMoney(l.spend)}</td><td>${fmtMoney(l.other)}</td><td>${fmtMoney(l.invest)}</td>` : ""}${cf.hasRepaid ? `<td>${fmtMoney(l.repaid)}</td>` : ""}${cf.hasSpend ? `<td class="${l.net < 0 ? "down" : ""}">${fmtMoney(l.net)}${l.noSpend ? ` <span class="bank-dup" title="${esc(t("这段一笔花费都没有，可能对账单还没导入"))}">⚠</span>` : ""}</td><td>${rate(l.saved, l.income)}</td>` : ""}<td>${l.capIn ? fmtMoney(l.capIn) : "—"}</td></tr>`).join("")}
-  <tr><th scope="row"><b>${t("合计")}</b></th><td><b>${fmtMoney(cf.tot.income)}</b></td>${cf.hasSpend ? `<td><b>${fmtMoney(cf.tot.spend)}</b></td><td><b>${fmtMoney(cf.tot.other)}</b></td><td><b>${fmtMoney(cf.tot.invest)}</b></td>` : ""}${cf.hasRepaid ? `<td><b>${fmtMoney(cf.tot.repaid)}</b></td>` : ""}${cf.hasSpend ? `<td><b>${fmtMoney(cf.tot.net)}</b></td><td><b>${rate(cf.tot.saved, cf.tot.income)}</b></td>` : ""}<td><b>${cf.tot.capIn ? fmtMoney(cf.tot.capIn) : "—"}</b></td></tr></tbody></table></div>
-  <p class="muted" style="font-size:12.5px;margin:6px 0 0">${t("收入 = 认定收入（卖房卖股的本金、借款、自己账户转入不算）；消费 = 日常 + 住房（和花费页「含住房」一样）；净现金流 = 收入 − 消费，在投资之前；储蓄率 = 净现金流 ÷ 收入。")}${cf.hasRepaid ? ` ${t("其中「还款」= 还给个人赠与 / 借款的钱，已经算在花费里，这一列只是告诉你其中有多少。")}` : ""}</p></div>`;
+const lineTable = (cf) => `<div class="panel"><div class="ch-scroll"><table class="store-table"><thead><tr><th scope="col">${t("周期")}</th><th scope="col">${t("收入")}</th><th scope="col">${t("资本流入")}</th>${cf.hasSpend ? `<th scope="col">${t("消费（含住房）")}</th><th scope="col">${t("其他流出")}</th><th scope="col">${t("投资")}</th>` : ""}${cf.hasRepaid ? `<th scope="col">${t("其中：还款")}</th>` : ""}${cf.hasSpend ? `<th scope="col">${t("收入结余")}</th><th scope="col">${t("净现金流（账面）")}</th><th scope="col">${t("储蓄率")}</th>` : ""}</tr></thead><tbody>
+  ${cf.lines.map((l) => `<tr><th scope="row">${esc(l.label)}</th><td>${fmtMoney(l.income)}</td><td>${l.capIn ? fmtMoney(l.capIn) : "—"}</td>${cf.hasSpend ? `<td>${fmtMoney(l.spend)}</td><td>${fmtMoney(l.other)}</td><td>${fmtMoney(l.invest)}</td>` : ""}${cf.hasRepaid ? `<td>${fmtMoney(l.repaid)}</td>` : ""}${cf.hasSpend ? `<td class="${l.incNet < 0 ? "down" : ""}">${fmtMoney(l.incNet)}</td><td class="${l.net < 0 ? "down" : ""}"><b>${fmtMoney(l.net)}</b>${l.noSpend ? ` <span class="bank-dup" title="${esc(t("这段一笔花费都没有，可能对账单还没导入"))}">⚠</span>` : ""}</td><td>${rate(l.saved, l.income)}</td>` : ""}</tr>`).join("")}
+  <tr><th scope="row"><b>${t("合计")}</b></th><td><b>${fmtMoney(cf.tot.income)}</b></td><td><b>${cf.tot.capIn ? fmtMoney(cf.tot.capIn) : "—"}</b></td>${cf.hasSpend ? `<td><b>${fmtMoney(cf.tot.spend)}</b></td><td><b>${fmtMoney(cf.tot.other)}</b></td><td><b>${fmtMoney(cf.tot.invest)}</b></td>` : ""}${cf.hasRepaid ? `<td><b>${fmtMoney(cf.tot.repaid)}</b></td>` : ""}${cf.hasSpend ? `<td><b>${fmtMoney(cf.tot.incNet)}</b></td><td><b>${fmtMoney(cf.tot.net)}</b></td><td><b>${rate(cf.tot.saved, cf.tot.income)}</b></td>` : ""}</tr></tbody></table></div>
+  <p class="muted" style="font-size:12.5px;margin:6px 0 0">${t("收入 = 认定收入；资本流入 = 卖房卖股的本金、借款、本金返还、从投资账户转回等，不算收入；消费 = 日常 + 住房；其他流出 = 税、保险、利息、奉献、资本性支出。收入结余 = 收入 − 全部流出；净现金流（账面）= 全部流入 − 全部流出 = 收入结余 + 资本流入；储蓄率 =（收入 − 消费 − 其他流出）÷ 收入，只看收入。")}${cf.tot.capOwn ? ` ${t("从储蓄账户转入的 {a} 没算进净现金流：那是自己账户之间挪钱，转出去时也没算支出。", { a: fmtMoney(cf.tot.capOwn) })}` : ""}${cf.hasRepaid ? ` ${t("其中「还款」= 还给个人赠与 / 借款的钱，已经算在花费里，这一列只是告诉你其中有多少。")}` : ""}</p></div>`;
 
 /* ───────────── 收支总览（原「概览」）：时间条 → 五个指标 → 现金流瀑布 → 12 个月收支走势 → 收入按一级 → 付款方 / 成员 / 最近到账 ─────────────
  * 收入 = 认定收入（js/core/income-taxonomy.js）；消费 = 日常 / 含住房（和花费页同一口径）；净现金流 = 收入 − 消费（投资之前）；
@@ -230,13 +231,13 @@ function ovMonths(O) {
   return { w, months, trend, span: spanOfMonths([...months, ...trend]) };
 }
 /** 现金流瀑布：收入 → − 日常 − 住房 = 净现金流 → − 财务及其他 − 资本性 − 投资 = 剩余现金（表格 + 条形，读屏读表格） */
-function waterfallHtml(F, drillW) {
-  const max = Math.max(F.income, F.living + F.housing + F.financial + F.capital + F.investment, 1);
+function waterfallHtml(F, drillW, capDrill = "") {
+  const max = Math.max(F.income + F.capBook, F.living + F.housing + F.financial + F.capital + F.investment, 1);
   const bar = (v, color) => `<span class="rk-bar wf-bar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, Math.round((Math.abs(v) / max) * 100)))}%;background:${color}"></i></span>`;
   const sd = (o) => esc(dq({ ...o, ...drillW }));
   const row = (label, v, color, { sign = "−", total = false, drill = "" } = {}) => `<tr${drill ? ` class="ch-hit-row" data-drill="${drill}" role="link" tabindex="0" aria-label="${esc(label)}"` : ""}><th scope="row">${total ? `<b>${esc(label)}</b>` : esc(label)}</th><td class="${total && v < 0 ? "down" : ""}">${total ? `<b>${fmtMoney(v)}</b>` : `${sign === "+" ? "+" : "−"}${fmtMoney(Math.abs(v))}`}</td><td class="wf-cell">${bar(v, color)}</td></tr>`;
   const B = (id) => BUCKETS.find((b) => b.id === id)?.color || SLATE;
-  return `<div class="panel"><h3 style="margin:0 0 8px">${t("现金流")}</h3><div class="ch-scroll"><table class="store-table ix-tbl wf-tbl"><caption class="sr-only">${t("现金流：收入减去各项支出")}</caption>
+  return `<div class="panel"><h3 style="margin:0 0 8px">${t("现金流")}</h3><div class="ch-scroll"><table class="store-table ix-tbl wf-tbl"><caption class="sr-only">${t("现金流：收入和资本流入减去各项支出")}</caption>
     <thead><tr><th scope="col">${t("项目")}</th><th scope="col">${t("金额")}</th><th scope="col"><span class="sr-only">${t("比例")}</span></th></tr></thead><tbody>
     ${row(t("收入（认定）"), F.income, GREEN, { sign: "+" })}
     ${row(t("日常生活"), F.living, B("living"), { drill: sd({ cat: "living", nat: "operating" }) })}
@@ -245,8 +246,10 @@ function waterfallHtml(F, drillW) {
     ${F.financial ? row(t("财务及其他（税、保险、利息…）"), F.financial, B("financial")) : ""}
     ${F.capital ? row(t("资本性支出（买车、装修、房产交易）"), F.capital, B("capital"), { drill: sd({ nat: "capital" }) }) : ""}
     ${row(t("投资转入"), F.investment, B("investment"), { drill: sd({ nat: "investment" }) })}
-    ${row(t("净现金流（账上剩下的）"), F.net, SLATE, { total: true })}</tbody></table></div>
-    ${F.capIn ? `<p class="muted small" style="margin:6px 0 0">${t("另有资本流入 {a}（卖房卖股的本金、借款、自己账户转入…）· 不计收入，不在上面的剩余现金里。", { a: fmtMoney(F.capIn) })}</p>` : ""}</div>`;
+    ${row(t("收入结余（收入 − 全部流出）"), F.incNet, BLUE, { total: true })}
+    ${F.capBook ? row(t("资本流入（卖房卖股本金、借款、本金返还…，不算收入）"), F.capBook, SLATE, { sign: "+", drill: capDrill }) : ""}
+    ${row(t("净现金流（账面：全部流入 − 全部流出）"), F.net, SLATE, { total: true })}</tbody></table></div>
+    ${F.capOwn ? `<p class="muted small" style="margin:6px 0 0">${t("从储蓄账户转入的 {a} 没算进来：那是自己账户之间挪钱，转出去时也没算支出。", { a: fmtMoney(F.capOwn) })}</p>` : ""}</div>`;
 }
 function overviewTab() {
   const I = inc(), O = OV();
@@ -259,7 +262,7 @@ function overviewTab() {
   const spW = String(O.range).startsWith("y:") ? { year: String(O.range).slice(2) } : O.range === "m" ? { month: months[0] } : { mlist: months.join(",") };
   const kpis = `<div class="kpis">${kpiS(t("收入（认定）"), fmtMoney(F.income), changeHtml(F.income, before), allDrill)}
     ${all ? `${kpiS(t("消费"), `${t("日常")} ${fmtMoney(F.living, true)} <span class="kpi-sub">/ ${t("含住房")} ${fmtMoney(F.consumption, true)}</span>`, `<small>${t("和花费页同一口径")}</small>`, dq({ cat: "living", nat: "operating", ...spW }))}
-      ${kpiS(t("净现金流"), `<span class="${F.net < 0 ? "down" : ""}">${fmtMoney(F.net)}</span>`, `<small>${t("收入 − 全部支出（含税、保险、利息、奉献、资本性、投资）")}</small>`)}
+      ${kpiS(t("净现金流（账面）"), `<span class="${F.net < 0 ? "down" : ""}">${fmtMoney(F.net)}</span>`, `<small>${t("全部流入 − 全部流出 · 收入结余 {a}", { a: fmtMoney(F.incNet, true) })}</small>`)}
       ${kpiS(t("储蓄率"), pctOf(F.savingsRate), `<small>${t("存下来的（含投资）÷ 收入")}</small>`)}
       ${kpiS(t("投资率"), pctOf(F.investRate), `<small>${t("投资 {a} ÷ 收入", { a: fmtMoney(F.investment, true) })}</small>`, dq({ nat: "investment", ...spW }))}` : ""}</div>
     ${all ? "" : `<p class="muted small" role="status">${t("花费不分人：选「全家」才会显示消费、净现金流、储蓄率和投资率。")}</p>`}`;
@@ -283,7 +286,7 @@ function overviewTab() {
     <tr><th scope="row"><b>${t("全家合计")}</b></th><td><b>${byP.reduce((a, x) => a + x.n, 0)}</b></td><td><b>${fmtMoney(total)}</b></td><td>100%</td></tr></tbody></table></div></div>` : "";
   const recent = I.rec.filter((r) => personOk(r, O.person)).slice().sort((a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5);
   const recentHtml = recent.length ? `<div class="panel"><div class="chart-head"><h3>${t("最近到账")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("records")}">${t("全部明细")} ›</a></div><ul class="restock-list ix-list">${recent.map(recordRow).join("")}</ul></div>` : "";
-  return `${ovBar(O)}${kpis}${netWorthCard()}${all ? waterfallHtml(F, spW) : ""}
+  return `${ovBar(O)}${kpis}${netWorthCard()}${all ? waterfallHtml(F, spW, esc(incDrill({ kind: "g:capital", ...w, person: O.person }))) : ""}
     <div class="panel chart-panel"><h3>${t("收入 vs 消费（近 12 个月）")}</h3>${trendChart}<p class="muted drill-hint">${t("柱子 = 认定收入和消费（日常 + 住房），虚线 = 投资转入。点一下看对应的明细。")}</p></div>
     ${breakdown}<div class="ix-two">${rank}${members}</div>${recentHtml}${repayPanel()}
     ${tabHub(INCOME_TABS, incomeHref, t("其他功能"))}`;
@@ -704,15 +707,15 @@ async function printIncome(mode) {
     const r = R(), cf = await cashflowReady(r), top = groupSum(cf.rows, (x) => skey(x.source_name)).filter((x) => x.total > 0).slice(0, 15);
     const kinds = statKinds(inc().merge).filter((k) => cf.byKind[k.id]).sort((a, b) => cf.byKind[b.id] - cf.byKind[a.id]);
     html = `<h1>${esc(hh)} · ${t("收入报表")}</h1><p class="ps-meta">${cf.w.from} → ${cf.w.to} · ${esc(printStamp())}</p>
-      <div class="ps-kpis">${kpiH(t("收入（认定）"), fmtMoney(cf.tot.income))}${cf.hasSpend ? kpiH(t("消费（含住房）"), fmtMoney(cf.tot.spend)) + kpiH(t("净现金流"), fmtMoney(cf.tot.net)) + kpiH(t("储蓄率"), rate(cf.tot.saved, cf.tot.income)) : ""}${cf.tot.capIn ? kpiH(t("资本流入（不计收入）"), fmtMoney(cf.tot.capIn)) : ""}${kpiH(t("笔数"), cf.rows.length)}</div>
-      <h2>${t("按{u}", { u: t((UNITS.find((u) => u[0] === r.unit) || [])[1]) })}</h2><table><thead><tr><th>${t("周期")}</th><th>${t("收入")}</th>${cf.hasSpend ? `<th>${t("消费")}</th><th>${t("净现金流")}</th>` : ""}</tr></thead><tbody>${cf.lines.map((l) => `<tr><td>${esc(l.label)}</td><td>${fmtMoney(l.income)}</td>${cf.hasSpend ? `<td>${fmtMoney(l.spend)}</td><td>${fmtMoney(l.net)}</td>` : ""}</tr>`).join("")}</tbody></table>
+      <div class="ps-kpis">${kpiH(t("收入（认定）"), fmtMoney(cf.tot.income))}${cf.hasSpend ? kpiH(t("消费（含住房）"), fmtMoney(cf.tot.spend)) + kpiH(t("净现金流（账面）"), fmtMoney(cf.tot.net)) + kpiH(t("储蓄率"), rate(cf.tot.saved, cf.tot.income)) : ""}${cf.tot.capIn ? kpiH(t("资本流入（不计收入）"), fmtMoney(cf.tot.capIn)) : ""}${kpiH(t("笔数"), cf.rows.length)}</div>
+      <h2>${t("按{u}", { u: t((UNITS.find((u) => u[0] === r.unit) || [])[1]) })}</h2><table><thead><tr><th>${t("周期")}</th><th>${t("收入")}</th>${cf.hasSpend ? `<th>${t("消费")}</th><th>${t("净现金流（账面）")}</th>` : ""}</tr></thead><tbody>${cf.lines.map((l) => `<tr><td>${esc(l.label)}</td><td>${fmtMoney(l.income)}</td>${cf.hasSpend ? `<td>${fmtMoney(l.spend)}</td><td>${fmtMoney(l.net)}</td>` : ""}</tr>`).join("")}</tbody></table>
       <h2>${t("按类型")}</h2><table><thead><tr><th>${t("类型")}</th><th>${t("占比")}</th><th>${t("合计")}</th></tr></thead><tbody>${kinds.map((k) => `<tr><td>${k.icon} ${esc(kindLabel(k.id))}</td><td>${rate(cf.byKind[k.id], cf.tot.income)}</td><td>${fmtMoney(cf.byKind[k.id])}</td></tr>`).join("")}</tbody></table>
       <h2>${t("主要付款方")}</h2><table><thead><tr><th>${t("付款方")}</th><th>${t("次数")}</th><th>${t("合计")}</th></tr></thead><tbody>${top.map((x) => `<tr><td>${esc(senderLabel(x))}</td><td>${x.n}</td><td>${fmtMoney(x.total)}</td></tr>`).join("")}</tbody></table>`;
   }
   printHtml(html);
 }
 const cfAnchor = () => (state.budget?.cat_budgets?._income_cfg?.anchor) || "2024-01-01";
-const kpiRow = (cf) => `${noSpendNote(cf.noSpend)}<div class="kpis">${kpi(t("收入（认定）"), fmtMoney(cf.tot.income), `${cf.w.from} → ${cf.w.to}`)}${cf.hasSpend ? kpi(t("消费（含住房）"), fmtMoney(cf.tot.spend)) : ""}${cf.hasSpend ? kpi(t("其他流出"), fmtMoney(cf.tot.other), t("税、保险、利息、奉献、资本性支出")) : ""}${cf.hasSpend ? kpi(t("净现金流"), `<span class="${cf.tot.net < 0 ? "down" : ""}">${fmtMoney(cf.tot.net)}</span>`, t("收入 − 消费 − 其他流出 − 投资 · 储蓄率 {r}", { r: rate(cf.tot.saved, cf.tot.income) })) : ""}${cf.hasSpend ? kpi(t("投资率"), rate(cf.tot.invest, cf.tot.income), t("投资 {a}", { a: fmtMoney(cf.tot.invest, true) })) : ""}${cf.tot.capIn ? kpi(t("资本流入"), fmtMoney(cf.tot.capIn), t("不计收入")) : ""}</div>`;
+const kpiRow = (cf) => `${noSpendNote(cf.noSpend)}<div class="kpis">${kpi(t("收入（认定）"), fmtMoney(cf.tot.income), `${cf.w.from} → ${cf.w.to}`)}${cf.hasSpend ? kpi(t("消费（含住房）"), fmtMoney(cf.tot.spend)) : ""}${cf.hasSpend ? kpi(t("其他流出"), fmtMoney(cf.tot.other), t("税、保险、利息、奉献、资本性支出")) : ""}${cf.hasSpend ? kpi(t("净现金流（账面）"), `<span class="${cf.tot.net < 0 ? "down" : ""}">${fmtMoney(cf.tot.net)}</span>`, t("全部流入 − 全部流出 · 收入结余 {a} · 储蓄率 {r}", { a: fmtMoney(cf.tot.incNet, true), r: rate(cf.tot.saved, cf.tot.income) })) : ""}${cf.hasSpend ? kpi(t("投资率"), rate(cf.tot.invest, cf.tot.income), t("投资 {a}", { a: fmtMoney(cf.tot.invest, true) })) : ""}${cf.tot.capIn ? kpi(t("资本流入"), fmtMoney(cf.tot.capIn), t("不计收入，算进账面净现金流")) : ""}</div>`;
 
 /** 有收入、却一笔花费都没有的周期：提醒净现金流会偏高（近 3 年 / 5 年常见：早年的对账单没导入） */
 const noSpendNote = (list) => (list?.length ? `<div class="notice" role="status" style="margin-bottom:8px"><b>${t("有 {n} 个周期只有收入、没有任何花费记录，那几段的净现金流会偏高：", { n: list.length })}</b> ${esc(list.slice(0, 8).join("、"))}${list.length > 8 ? "…" : ""}<br><small>${t("多半是那段时间的对账单还没导入。去 财务 → 对账单 补上，或把时间范围缩到已经补齐的那段。")}</small></div>` : "");
@@ -731,9 +734,9 @@ async function exportReport() {
     const cats = STAT_CATS().filter((c) => cf.spendCats[c.id]);
     rows = [[t("周期"), ...cats.map((c) => t(c.name)), t("消费合计")], ...cf.lines.map((l) => [l.label, ...cats.map((c) => R2(cf.spendCats[c.id][l.key])), l.spend]), [t("合计"), ...cats.map((c) => R2(Object.values(cf.spendCats[c.id]).reduce((a, b) => a + b, 0))), cf.tot.spend]];
   } else {
-    rows = [[t("周期"), t("收入"), ...(cf.hasSpend ? [t("消费（含住房）"), t("投资"), t("财务及其他 / 资本性")] : []), ...(cf.hasRepaid ? [t("其中：还款")] : []), ...(cf.hasSpend ? [t("净现金流"), t("储蓄率")] : []), t("资本流入（不计收入）")],
-      ...cf.lines.map((l) => [l.label, l.income, ...(cf.hasSpend ? [l.spend, l.invest, l.other] : []), ...(cf.hasRepaid ? [l.repaid] : []), ...(cf.hasSpend ? [l.net, rate(l.saved, l.income)] : []), l.capIn]),
-      [t("合计"), cf.tot.income, ...(cf.hasSpend ? [cf.tot.spend, cf.tot.invest, cf.tot.other] : []), ...(cf.hasRepaid ? [cf.tot.repaid] : []), ...(cf.hasSpend ? [cf.tot.net, rate(cf.tot.saved, cf.tot.income)] : []), cf.tot.capIn]];
+    rows = [[t("周期"), t("收入"), ...(cf.hasSpend ? [t("消费（含住房）"), t("投资"), t("财务及其他 / 资本性")] : []), ...(cf.hasRepaid ? [t("其中：还款")] : []), ...(cf.hasSpend ? [t("收入结余"), t("净现金流（账面）"), t("储蓄率")] : []), t("资本流入（不计收入）")],
+      ...cf.lines.map((l) => [l.label, l.income, ...(cf.hasSpend ? [l.spend, l.invest, l.other] : []), ...(cf.hasRepaid ? [l.repaid] : []), ...(cf.hasSpend ? [l.incNet, l.net, rate(l.saved, l.income)] : []), l.capIn]),
+      [t("合计"), cf.tot.income, ...(cf.hasSpend ? [cf.tot.spend, cf.tot.invest, cf.tot.other] : []), ...(cf.hasRepaid ? [cf.tot.repaid] : []), ...(cf.hasSpend ? [cf.tot.incNet, cf.tot.net, rate(cf.tot.saved, cf.tot.income)] : []), cf.tot.capIn]];
   }
   download(`${base}-${r.what}.csv`, toCsv([...head, ...rows])); toast(t("已导出"));
 }
@@ -762,9 +765,9 @@ async function runAi() {
   const senders = groupSum(cf.rows, (x) => skey(x.source_name)).slice(0, 10), mask = !r.unmask, pm = new Map(); let pi = 0;
   const pname = (id) => { if (!id) return t("未指定"); if (!mask) return personName(id); if (!pm.has(id)) pm.set(id, `${t("成员")} ${String.fromCharCode(65 + pi++)}`); return pm.get(id); };
   const data = { currency: cur(), window: cf.w, unit: r.unit, scope: r.person === "all" ? "household" : pname(r.person === "none" ? "" : r.person),
-    definitions: "income = recognized income (excludes capital inflows such as sale principal, loan proceeds, own-account transfers); consumption = living + housing operating costs; other_outflows = taxes, insurance, loan interest / principal, donations, capital purchases; net = income - consumption - other_outflows - investing (cash actually left); savings_rate = (income - consumption - other_outflows) / income (investing counts as saved); periods_with_income_but_no_spending likely have statements not yet imported, so their net is overstated",
+    definitions: "income = recognized income (excludes capital inflows such as sale principal, loan proceeds, own-account transfers); consumption = living + housing operating costs; other_outflows = taxes, insurance, loan interest / principal, donations, capital purchases; income_net = income - consumption - other_outflows - investing; net = book net cash flow = all inflows - all outflows = income_net + capital inflows (excluding transfers from the household's own savings accounts); savings_rate = (income - consumption - other_outflows) / income (investing counts as saved); periods_with_income_but_no_spending likely have statements not yet imported, so their net is overstated",
     periods_with_income_but_no_spending: cf.noSpend,
-    periods: cf.lines.map((l) => ({ period: l.label, income: l.income, consumption: l.spend, investing: l.invest, other_outflows: l.other, of_which_repayments_to_people_already_in_spending: l.repaid, net: l.net, capital_inflows_not_income: l.capIn })), totals: cf.tot,
+    periods: cf.lines.map((l) => ({ period: l.label, income: l.income, consumption: l.spend, investing: l.invest, other_outflows: l.other, of_which_repayments_to_people_already_in_spending: l.repaid, income_net: l.incNet, net: l.net, capital_inflows_not_income: l.capIn })), totals: cf.tot,
     income_by_type: Object.entries(cf.byKind).map(([k, v]) => ({ type: kindLabel(k), total: R2(v) })),
     income_by_member: groupSum(cf.rows, (x) => x.person_id || "").map((x) => ({ member: pname(x.key), total: x.total })),
     top_senders: senders.map((x, i) => ({ sender: mask ? `${t("付款方")} ${i + 1}` : x.rows[0].source_name, type: kindLabel(sMainKind(x)), count: x.n, income: x.total, capital_inflow: x.cap })),
