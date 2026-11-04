@@ -118,9 +118,9 @@ export function viewFinAssets() {
   return `<section class="section fin-assets">
     <p class="muted" style="margin:-6px 0 12px;font-size:13px">${t("房产、车辆和账户的钱的那一面；改资料回到原来的地方（房屋 / 车辆 / 卡与账户），这里只读")}</p>
     <div class="kpis">
-      <div class="kpi"><span>${t("持有的房产")}</span><b>${held}</b><small>${t("共 {n} 套有记录", { n: props.length })}</small></div>
-      <div class="kpi"><span>${t("在用的车辆")}</span><b>${liveVeh}</b><small>${t("共 {n} 辆有记录", { n: vehicles.length })}</small></div>
-      <div class="kpi"><span>${t("账户")}</span><b>${accts.length}</b><small>${cashLike == null ? t("余额：执行 059 后可记") : t("余额合计 {a}", { a: money(cashLike) })}</small></div>
+      ${state.houseEnabled ? `<a class="kpi" href="${href("house")}">` : `<div class="kpi">`}<span>${t("持有的房产")}</span><b>${held}</b><small>${t("共 {n} 套有记录", { n: props.length })}${state.houseEnabled ? " ›" : ""}</small>${state.houseEnabled ? "</a>" : "</div>"}
+      <a class="kpi" href="${href("house", "vehicles")}"><span>${t("在用的车辆")}</span><b>${liveVeh}</b><small>${t("共 {n} 辆有记录", { n: vehicles.length })} ›</small></a>
+      <a class="kpi" href="${href("bills", "cards")}"><span>${t("账户")}</span><b>${accts.length}</b><small>${cashLike == null ? t("余额：执行 059 后可记") : t("余额合计 {a}", { a: money(cashLike) })} ›</small></a>
       ${nw ? `<a class="kpi" href="${href("bills", "networth")}"><span>${t("净资产")}</span><b class="${nw.netWorth < 0 ? "down" : ""}">${money(nw.netWorth)}</b><small>${t("资产 − 负债")} ›</small></a>` : ""}
       <div class="kpi"><span>${t("房产账单每月")}</span><b>${money(housing)}</b><small>${t("自己交的部分，不含 Escrow 代缴")}</small></div>
     </div>

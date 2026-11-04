@@ -2340,3 +2340,74 @@ html.force-phone .today-layout { grid-template-columns: minmax(0, 1fr); }
 .bank-ipick select { width: 100%; }
 .aafix .bank-list li { grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 640px) { .bank-ipick { grid-column: auto; } .aafix .bank-list li { grid-template-columns: minmax(0, 1fr) minmax(220px, 300px); } }
+
+/* 更新估值 / 更新余额（2026-11）：标签在上、输入框同高（44px）底边对齐；笔记本一行（日期 · 金额 · 来源 · 备注 · 保存），
+   手机两列（日期 + 金额一行，来源 + 备注一行，保存占满一行）；输入框不再撑出格子互相挤在一起 */
+.nw-form { display: grid; grid-template-columns: minmax(140px, 170px) minmax(130px, 1fr) minmax(130px, 1fr) minmax(160px, 1.6fr) auto; gap: 10px 12px; align-items: end; padding: 10px 0 8px; border-top: 1px solid var(--line); }
+.nw-form[data-nw-form="bal"] { grid-template-columns: minmax(140px, 170px) minmax(140px, 1fr) minmax(180px, 2fr) auto; }
+.nw-form label { min-width: 0; gap: 6px; font-weight: 700; color: var(--muted); }
+.nw-form input, .nw-form select { width: 100%; min-width: 0; height: 44px; min-height: 44px; box-sizing: border-box; padding: 8px 12px; color: var(--ink); }
+.nw-form input[type="number"] { text-align: right; font-variant-numeric: tabular-nums; }
+.nw-form > .btn { box-sizing: border-box; height: 44px; padding: 0 18px; white-space: nowrap; border-radius: var(--r-sm); margin: 0; }
+.nw-form.nw-inline { border-top: 0; }
+.nw-form.nw-inline label { flex: 0 1 200px; }
+@media (max-width: 720px) {
+  .nw-form, .nw-form[data-nw-form="bal"] { grid-template-columns: 1fr 1fr; }
+  .nw-form[data-nw-form="bal"] .nw-note, .nw-form > .btn { grid-column: 1 / -1; }
+  .nw-form > .btn { width: auto; justify-self: stretch; }
+}
+@media (max-width: 360px) { .nw-form, .nw-form[data-nw-form="bal"] { grid-template-columns: 1fr; } }
+
+/* 借贷：可点的 KPI 卡、欠款构成卡（5 张卡笔记本一行排下） */
+.debt-kpis { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.debt-kpis a.kpi:hover, .nw-page a.kpi:hover, .fin-assets a.kpi:hover { border-color: var(--pine); }
+.kpi-split { display: flex; flex-direction: column; gap: 4px; }
+.kpi-split .ks-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-height: 28px; color: inherit; text-decoration: none; font-size: 13px; }
+.kpi-split .ks-row span { display: inline; color: var(--pine); text-decoration: underline; text-underline-offset: 2px; }
+.kpi-split .ks-row b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.kpi-split .ks-row:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.ks-bar { display: block; height: 6px; border-radius: 3px; background: #b45309; overflow: hidden; margin-top: 2px; }
+.ks-bar i { display: block; height: 100%; background: #d4694c; }
+
+/* 个人借贷的筛选条 */
+.debt-pf .tb-q { flex: 1 1 220px; }
+.debt-pf .tb-q > span { white-space: nowrap; }
+.pc-prog { display: grid; gap: 4px; min-width: 120px; }
+.pc-prog .ds-bar { height: 8px; }
+@media (max-width: 560px) { .debt-kpis { grid-auto-flow: dense; } .debt-kpis .kpi-split { grid-column: 1 / -1; } .debt-kpis .kpi:last-child:not(.kpi-split), .debt-sum .kpis .kpi:last-child { grid-column: auto; } }
+.debt-pf .tb-q input { min-height: 34px; padding: 4px 10px; font-size: 13px; }
+.debt-pf-sum { font-size: 13px; margin: -4px 0 8px; }
+.head-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* 借贷总览：进度条（借入橙、借出蓝、结清绿）、构成条、可排序表 */
+.debt-sum > * { margin-bottom: 12px; }
+.debt-sum .panel h3 { font-size: 16px; font-weight: 800; margin: 0 0 8px; }
+.debt-sum .chart-head h3 { margin: 0; }
+.ds-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ds-two > .panel { margin: 0; }
+@media (max-width: 760px) { .ds-two { grid-template-columns: 1fr; } }
+.ds-plist, .ds-olist { list-style: none; margin: 0; padding: 0; }
+.ds-prow { padding: 10px 0; border-top: 1px solid var(--line); }
+.ds-prow:first-child { border-top: 0; }
+.ds-ptop { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.ds-ptop .ds-pct { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ds-pct.done { color: var(--ok); }
+.ds-bar { display: block; height: 10px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.ds-bar i { display: block; height: 100%; border-radius: 5px; background: #d4694c; }
+.ds-bar.recv i { background: #3b7fc4; }
+.ds-bar.done i { background: #2c6a57; }
+.ds-bar.o-a i { background: #d4694c; } .ds-bar.o-p i { background: #b45309; } .ds-bar.o-r i { background: #3b7fc4; }
+.ds-pnums { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 6px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.ds-left { color: var(--out); font-weight: 700; }
+.ds-olist li { display: grid; grid-template-columns: minmax(110px, 160px) 1fr auto; gap: 10px; align-items: center; min-height: 36px; }
+.ds-olist b { font-variant-numeric: tabular-nums; }
+.ds-olabel { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.ds-sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.ds-sw.a { background: #d4694c; } .ds-sw.p { background: #b45309; } .ds-sw.r { background: #3b7fc4; }
+.ds-rel { font-size: 13px; margin: 8px 0 0; }
+.ds-tbl th[aria-sort] { padding: 0; }
+.ds-sort { all: unset; box-sizing: border-box; display: block; width: 100%; min-height: 40px; padding: 8px 10px; cursor: pointer; font-weight: 700; white-space: nowrap; }
+th.num .ds-sort { text-align: right; }
+.ds-sort:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; border-radius: 4px; }
+.ds-tbl tbody th { font-weight: 600; text-align: left; }
+@media (max-width: 480px) { .ds-olist li { grid-template-columns: 1fr auto; } .ds-olist .ds-bar { grid-column: 1 / -1; order: 3; } }
