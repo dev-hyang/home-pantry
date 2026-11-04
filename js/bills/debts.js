@@ -5,7 +5,7 @@
  * 数据都在内存里（state.debts / state.debtTxns，见 debt-logic.js）；还款记录多了按页显示。设计见 docs/design-debt-lending.md。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { armed, esc, fmtDate, money, num, toast, todayISO } from "../core/util.js";
+import { esc, fmtDate, money, num, toast, todayISO, confirmDelete } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { go, href } from "../core/router.js";
 import { tabBar } from "../core/hub.js";
@@ -549,7 +549,7 @@ export function initDebts({ render, refresh }) {
     if (act === "rec-open") { ui().recOpen = ui().recOpen === id ? null : id; render(false); requestAnimationFrame(() => document.querySelector(ui().recOpen ? "#dd-rec-form select, #dd-rec-form input" : `[data-debt="rec-open"]`)?.focus()); return; }
     if (act === "pay-link") { ui().linkPay = b.dataset.pay && ui().linkPay !== b.dataset.pay ? b.dataset.pay : null; ui().payCand = null; ui().editPay = null; b.closest("details")?.removeAttribute("open"); render(false); if (ui().linkPay) requestAnimationFrame(() => { const f = document.getElementById("dd-link"); f?.scrollIntoView({ block: "nearest" }); f?.querySelector("select, button")?.focus({ preventScroll: true }); }); return; }
     if (act === "pay-cand-refresh") { ui().payFresh = b.dataset.pay; ui().payCand = null; render(false); return; }   // ↻：重新读前后几天的花费再找
-    if (act === "pay-del" && d) { if (!armed(b, t("再点一次确认删除这笔缴费"))) return; return guard(async () => { const back = await deleteBillPay(b.dataset.pay); await hooks.refresh(); toast(back ? t("已删除这条记录，到期日回到 {d}", { d: fmtDate(back) }) : t("已删除这条记录")); await after(); }); }
+    if (act === "pay-del" && d) { if (!confirmDelete(t("删除这条缴费记录？"))) return; return guard(async () => { const back = await deleteBillPay(b.dataset.pay); await hooks.refresh(); toast(back ? t("已删除这条记录，到期日回到 {d}", { d: fmtDate(back) }) : t("已删除这条记录")); await after(); }); }
     if (act === "amort-all") { ui().amortAll = ui().amortAll === id ? null : id; return render(false); }
     if (act === "resplit" && d) return guard(async () => { b.disabled = true; const n = await resplitDebt(d, { overwrite: !!ui().overwrite }); toast(t("已按摊还表拆分 {n} 笔还款", { n })); await after(); });
     if (act === "pay-edit") { ui().linkPay = null; ui().editPay = b.dataset.pay && ui().editPay !== b.dataset.pay ? b.dataset.pay : null; render(false); if (ui().editPay) requestAnimationFrame(() => document.querySelector("#dd-edit input")?.focus()); return; }
@@ -567,12 +567,12 @@ export function initDebts({ render, refresh }) {
     if (act === "link-confirm" && d) return guard(async () => { await Store.saveDebt({ ...d, link_confirmed: true }); await loadDebts(); await syncVehicle(debtById(id)); toast(t("已确认")); await after(); });
     if (act === "link-clear" && d) return guard(async () => { await Store.saveDebt({ ...d, asset_id: null, link_confirmed: true }); toast(t("已解除关联")); await after(); });
     if (act === "txn-del") {
-      if (!armed(b, t("再点一次确认删除"))) return;
+      if (!confirmDelete(t("删除这条借贷记录？"))) return;
       const cashBox = b.closest("form")?.elements?.cash, cash = cashBox ? cashBox.checked : true;   // 编辑表单里可以只删流水、留下关联的花费 / 收入
       return guard(async () => { await deleteDebtTxn(id, { cash }); ui().recEdit = null; await loadIncome(); toast(t("已删除")); await after(); });
     }
     if (act === "delete" && d) {
-      if (!armed(b, t("再点一次确认删除（花费、收入、账单都保留）"))) return;
+      if (!confirmDelete(t("删除这笔借贷？关联的花费、收入、账单都会保留。"))) return;
       return guard(async () => { const bill = billOfDebt(d); if (bill) await unsplitDebt(d, bill); await Store.deleteDebt(id); await loadDebts(); await hooks.refresh(); toast(t("已删除")); go(href("bills", "debts"), { replace: true }); });
     }
   });

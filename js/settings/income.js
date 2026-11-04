@@ -3,7 +3,7 @@
  * 收入存在 member_incomes（迁移 023 / 024，行级安全：本人或家主可读写）；预算本身（各类金额）是全家共用的。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { esc, money, num, toast } from "../core/util.js";
+import { esc, money, num, toast, confirmDelete } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { budgetPlan, generatePlan, incomeBanner, isHouseholdOwner, linesOf, medInPool, meta, monthlyOf, myId, saveBudgetBase, saveMeta, totalIncomeMonthly } from "../bills/budget.js";
@@ -106,8 +106,8 @@ document.addEventListener("click", async (e) => {
     form.querySelector(".inc-empty").hidden = true; form.querySelector(".inc-card:last-child input").focus(); return;
   }
   const del = e.target.closest?.('[data-action="income-del-row"]');
-  if (del) {   // 删除整张卡片：点两次确认，立即保存
-    if (del.dataset.armed !== "1") { del.dataset.armed = "1"; del.dataset.label = del.textContent; del.textContent = t("再点一次删除"); setTimeout(() => { del.dataset.armed = ""; del.textContent = del.dataset.label; }, 3000); return; }
+  if (del) {   // 删除整张卡片：确认框，立即保存
+    if (!confirmDelete(t("删除这一项收入？"))) return;
     const form = del.closest(".inc-form"), card = del.closest(".inc-card"), uid = form.dataset.uid;
     card.remove(); form.querySelector(".inc-empty").hidden = !!form.querySelector(".inc-card");
     try { await persist(uid, readLines(form)); } catch (err) { fail(err); }

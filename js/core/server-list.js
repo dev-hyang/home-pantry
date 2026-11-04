@@ -23,14 +23,17 @@ export function serverList(kind, { map = (r) => r, draw, host }) {
     if (page.length) L.after = cursorOf(page.at(-1));
     L.rows = [...L.rows, ...page.map(map)]; L.hasMore = more;
   }
-  async function first() {
-    const seq = ++L.seq, f = L.f, size = pageSize(), wantFacets = !L.facets || L.needFacets;
+  /** 读第一页。keep = true（数据变了的重读，不是换了筛选）：不先清空列表、不显示「加载中」，
+   *  按已经读到的行数重读（至少一页），读完一次换上——列表不闪、不变短，页面停在原来的位置（2026-11-04：改完一条总跳回顶部） */
+  async function first(keep = false) {
+    const seq = ++L.seq, f = L.f, size = keep ? Math.max(pageSize(), L.rows.length) : pageSize(), wantFacets = !L.facets || L.needFacets;
     let changed = false;   // 筛选框的选项变了（第一次读到 / 有了新的年份、商店…）：调用方可以连筛选框一起重画
-    Object.assign(L, { busy: true, rows: [], after: null, hasMore: false, stats: null, err: "", needFacets: false });
+    if (keep) Object.assign(L, { err: "", needFacets: false });
+    else Object.assign(L, { busy: true, rows: [], after: null, hasMore: false, stats: null, err: "", needFacets: false });
     try {
       const [raw, st] = await Promise.all([Store.listPage(kind, f, null, size), Store.listStats(kind, f, wantFacets)]);
       if (seq !== L.seq) return;
-      take(raw || [], size); L.stats = st || {};
+      L.rows = []; L.after = null; take(raw || [], size); L.stats = st || {};
       if (st?.facets) { changed = JSON.stringify(st.facets) !== JSON.stringify(L.facets); L.facets = st.facets; }
     } catch (e) { if (seq === L.seq) fail(e); }
     finally { if (seq === L.seq) { L.busy = false; draw(changed); } }
@@ -46,13 +49,13 @@ export function serverList(kind, { map = (r) => r, draw, host }) {
     catch (e) { if (seq === L.seq) fail(e); }
     finally { if (seq === L.seq) { L.busy = false; draw(false); } }
   };
-  /** 数据变了（实时同步 / 自己改了）：统计 + 第一页重读（顺带重读筛选框的选项）；列表不在页面上就只标记过期。连着几次变更合成一次 */
+  /** 数据变了（实时同步 / 自己改了）：统计 + 已读到的这些行重读（顺带重读筛选框的选项），原地换上；列表不在页面上就只标记过期。连着几次变更合成一次 */
   let soon = null;
   L.reload = () => {
     L.needFacets = true;
     if (!L.f) return;
     if (host && !document.querySelector(host)) { L.sig = null; return; }
-    clearTimeout(soon); soon = setTimeout(() => { L.sig = JSON.stringify(L.f); first(); }, 60);
+    clearTimeout(soon); soon = setTimeout(() => { L.sig = JSON.stringify(L.f); first(true); }, 60);
   };
   /** 换页面 / 改了每页条数：下次画的时候回到第一页重读（不在这里发请求） */
   L.stale = () => { L.sig = null; };

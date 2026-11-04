@@ -5,7 +5,7 @@
 import { FD, changed, clearFiltersBtn, clearUrlParams, onClearFilters } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, applyDraft, daysUntil, esc, formDraft, money, moneyExact, num, todayISO, toast } from "../core/util.js";
+import { $, applyDraft, daysUntil, esc, formDraft, money, moneyExact, num, todayISO, toast, confirmDelete } from "../core/util.js";
 import { attentionPanel, registerAlerts } from "../core/alerts.js";
 import { lang, t } from "../core/i18n.js";
 import { href } from "../core/router.js";
@@ -838,9 +838,9 @@ export function initIncome({ render, refresh }) {
       redraw(); const dr = I.drafts?.[id]; if (dr) applyDraft($("#incForm"), dr);   // 之前收起时留的草稿
       setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
     }
-    if (act === "del-swipe") { if (!window.confirm(t("删除这笔收入？"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }   // 左滑删除：用确认框（滑动代码按它判断用户有没有取消）
-    if (act === "del") { if (!armed(b, t("再点一次确认删除"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }
-    if (act === "rep-del") { if (!armed(b, t("再点一次确认"))) return; return guard(async () => { const p = I.rep.find((x) => x.id === id); await Store.deleteIncomeRepayment(id); if (p?.purchase_id) { await Store.deletePurchase(p.purchase_id).catch(() => {}); hooks.refresh(); } await reload(); }); }
+    if (act === "del-swipe") { if (!confirmDelete(t("删除这笔收入？"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }   // 左滑删除：用确认框（滑动代码按它判断用户有没有取消）
+    if (act === "del") { if (!confirmDelete(t("删除这笔收入？"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }
+    if (act === "rep-del") { if (!confirmDelete(t("删除这条还款记录？"))) return; return guard(async () => { const p = I.rep.find((x) => x.id === id); await Store.deleteIncomeRepayment(id); if (p?.purchase_id) { await Store.deletePurchase(p.purchase_id).catch(() => {}); hooks.refresh(); } await reload(); }); }
     if (act === "sender-open") { Object.assign(I, NO_FILTER(), { q: b.dataset.key }); goTab("records"); return; }
     if (act === "drill-clear") { if (b.dataset.k === "range") { I.from = ""; I.to = ""; } else if (b.dataset.k === "ex") I.ex = false; I.limit = pageSize(); return redraw(); }
     if (act === "sender-rename") { I.renameKey = b.dataset.key || null; return redraw(); }
@@ -858,9 +858,9 @@ export function initIncome({ render, refresh }) {
     if (act === "kind-open") { Object.assign(I, NO_FILTER(), { kind: id, person: OV().person }); goTab("records"); return; }
     if (act === "sel-toggle") { I.selMode = !I.selMode; I.sel = new Set(); return redraw(); }
     if (act === "sel-all") { I.sel = new Set(incList.rows.filter(canEdit).map((r) => r.id)); return renderIncList(); }
-    if (act === "sel-del") { const ids = [...(I.sel || [])]; if (!ids.length) return toast(t("先勾选要删的收入")); if (!armed(b, t("再点一次确认删除 {n} 笔", { n: ids.length }))) return; return guard(async () => { for (const x of ids) await Store.deleteIncomeRecord(x); I.sel = new Set(); I.selMode = false; I.open = null; toast(t("已删除 {n} 笔", { n: ids.length })); await reload(); }); }
+    if (act === "sel-del") { const ids = [...(I.sel || [])]; if (!ids.length) return toast(t("先勾选要删的收入")); if (!confirmDelete(t("删除选中的 {n} 笔收入？", { n: ids.length }))) return; return guard(async () => { for (const x of ids) await Store.deleteIncomeRecord(x); I.sel = new Set(); I.selMode = false; I.open = null; toast(t("已删除 {n} 笔", { n: ids.length })); await reload(); }); }
     if (act === "ai-run") return runAi();
-    if (act === "kind-del") { if (!armed(b, t("再点一次确认删除"))) return; if (I.rec.some((r) => r.kind === id)) return toast(t("还有收入记录用着这个类型，先把它们改成别的类型")); return guard(async () => { await saveMeta({ _income_kinds: rawKinds().filter((k) => k.id !== id) }); redraw(); }); }
+    if (act === "kind-del") { if (!confirmDelete(t("删除这个收入类型？"))) return; if (I.rec.some((r) => r.kind === id)) return toast(t("还有收入记录用着这个类型，先把它们改成别的类型")); return guard(async () => { await saveMeta({ _income_kinds: rawKinds().filter((k) => k.id !== id) }); redraw(); }); }
   });
   main.addEventListener("submit", (e) => {
     const f = e.target.closest?.("[data-inc-form]"); if (!f) return;

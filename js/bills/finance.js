@@ -1,7 +1,7 @@
 /* 预算页的联动与常用功能：固定账单、补货预估（联动库存）、大件家电基金（联动设备）、现金流预测、储蓄目标、
  * 订阅与固定账单年成本、月度复盘、家庭分摊。每一块往 budget.js 的“插槽”里注册，预算页按顺序拼出来。 */
 import { state } from "../core/state.js";
-import { esc, money, num, toast } from "../core/util.js";
+import { esc, money, num, toast, confirmDelete } from "../core/util.js";
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}${Math.random().toString(16).slice(2)}`);
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
@@ -182,7 +182,7 @@ registerAction("budget-split-month", (el, ctx) => { state.budgetSplitMonth = el.
 
 /* ───────────── 交互 ───────────── */
 const goals = () => [...meta("_goals", [])];
-registerAction("budget-goal-del", async (el, ctx) => { await saveMeta({ _goals: goals().filter((g) => g.id !== el.dataset.id) }); toast(t("已删除")); });
+registerAction("budget-goal-del", async (el, ctx) => { if (!confirmDelete(t("删除这个目标？"))) return; await saveMeta({ _goals: goals().filter((g) => g.id !== el.dataset.id) }); toast(t("已删除")); });
 registerAction("budget-goal-save", async (el) => {
   const inp = document.querySelector(`[data-goal-amt="${CSS.escape(el.dataset.id)}"]`), a = num(inp?.value, 0); if (a <= 0) return toast(t("请填写存入金额"));
   await saveMeta({ _goals: goals().map((g) => (g.id === el.dataset.id ? { ...g, saved: num(g.saved) + a } : g)) }); toast(t("已存入 {a}", { a: money(a) }));

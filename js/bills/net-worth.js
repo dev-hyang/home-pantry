@@ -5,7 +5,7 @@
  * 设计见 docs/design-net-worth.md。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { armed, esc, fmtDate, num, toast, todayISO } from "../core/util.js";
+import { esc, fmtDate, num, toast, todayISO, confirmDelete } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { financeOk } from "../core/finance-access.js";
@@ -190,9 +190,9 @@ export function initNetWorth({ render }) {
     const b = e.target.closest?.("[data-nw]"); if (!b) return;
     const act = b.dataset.nw, id = b.dataset.id;
     if (act === "more") { ui().more[b.dataset.key] = (ui().more[b.dataset.key] || SHOW) + SHOW * 4; return after(); }
-    if (act === "bal-del") { if (!armed(b, t("再点一次确认删除"))) return; return guard(async () => { await deleteBalance(id); toast(t("已删除")); after(); }); }
-    if (act === "val-del") { if (!armed(b, t("再点一次确认删除"))) return; return guard(async () => { await deleteValuation(id); toast(t("已删除")); after(); }); }
-    if (act === "snap-del") { if (!armed(b, t("再点一次确认删除"))) return; return guard(async () => { await deleteSnapshot(id); toast(t("已删除")); after(); }); }
+    if (act === "bal-del") { if (!confirmDelete(t("删除这条余额记录？"))) return; return guard(async () => { await deleteBalance(id); toast(t("已删除")); after(); }); }
+    if (act === "val-del") { if (!confirmDelete(t("删除这条估值记录？"))) return; return guard(async () => { await deleteValuation(id); toast(t("已删除")); after(); }); }
+    if (act === "snap-del") { if (!confirmDelete(t("删除这个快照？"))) return; return guard(async () => { await deleteSnapshot(id); toast(t("已删除")); after(); }); }
     if (act === "snap-save") return guard(async () => { b.disabled = true; await saveMonthSnapshot(); toast(t("已保存本月快照")); after(); });
   });
   main.addEventListener("submit", (e) => {

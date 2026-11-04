@@ -2,7 +2,7 @@ import { checkConfig } from "./core/config-check.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
-import { $, MUTE_FOREVER, applyDraft, armed, catOf, du, esc, fillUnitList, fmtDate, formDraft, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast } from "./core/util.js";
+import { $, MUTE_FOREVER, applyDraft, armed, catOf, du, esc, fillUnitList, fmtDate, formDraft, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast, confirmDelete } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, goBack, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.js";
@@ -915,14 +915,14 @@ main.addEventListener("click", async (e) => {
       case "edit": return openItem(id);
       case "item-cancel": return leaveItem(false);
       case "item-delete":
-        if (!armed(el, t("再点一次确认删除"))) return;
+        if (!confirmDelete(t("删除这个物品？"))) return;
         await Store.deleteItem(state.route.id); toast(t("已删除")); return leaveItem(true);
       case "asset-cancel": return leaveAsset(false);
       case "asset-delete":
-        if (!armed(el, t("再点一次确认删除"))) return;
+        if (!confirmDelete(t("删除这台设备和它的保养记录？"))) return;
         await Store.deleteAsset(state.route.id); toast(t("已删除设备及其保养记录")); return leaveAsset(true);
       case "maint-del":
-        if (!armed(el, t("确认删除"))) return;
+        if (!confirmDelete(t("删除这条保养记录？"))) return;
         await Store.deleteMaintLog(id); toast(t("已删除这条记录")); await refresh(); return render(true);
       case "tasks-prev": shiftTasksMonth(-1); return render();
       case "tasks-next": shiftTasksMonth(1); return render();
@@ -931,7 +931,7 @@ main.addEventListener("click", async (e) => {
       case "season-edit": state.seasonForm = { id: el.dataset.id }; render(); $("#seasonForm input[name=name]")?.focus(); return;
       case "season-cancel": state.seasonForm = null; return render();
       case "season-delete":
-        if (!armed(el, t("再点一次确认删除"))) return;
+        if (!confirmDelete(t("删除这条任务？"))) return;
         await deleteSeasonTask(el.dataset.id); state.seasonForm = null; toast(t("已删除这条任务")); return refresh();
       case "today-pref": {
         const k = el.dataset.key;
@@ -960,10 +960,10 @@ main.addEventListener("click", async (e) => {
       case "alerts-next": shiftAlertSource(1); return render();
       case "bill-cancel": return leaveBill(false);
       case "bill-delete":
-        if (!armed(el, t("再点一次确认删除"))) return;
+        if (!confirmDelete(t("删除这个账单和它的缴费记录？"))) return;
         await Store.deleteBill(state.route.id); toast(t("已删除账单及其缴费记录")); return leaveBill(true);
       case "billpay-del":
-        if (!armed(el, t("确认删除"))) return;
+        if (!confirmDelete(t("删除这条缴费记录？"))) return;
         { const back = await deleteBillPay(id); toast(back ? t("已删除这条记录，到期日回到 {d}", { d: fmtDate(back) }) : t("已删除这条记录")); }
         await refresh(); return render(true);
       case "bill-verify": el.disabled = true; await quickVerify(id); return refresh();
@@ -1007,12 +1007,12 @@ main.addEventListener("click", async (e) => {
       case "deal-task-cancel": state.dealTaskEdit = null; return render();
       case "deal-due-reset": el.form.elements.due_on.value = el.dataset.plan || ""; return markDirty(el.form, true);   // 只回填输入框，点保存才生效
       case "deal-task-delete":
-        if (!armed(el, t("再点一次确认删除"))) return;
+        if (!confirmDelete(t("删除这条自定义事项？"))) return;
         await deleteCustomTask(el.dataset.id); state.dealTaskEdit = null; toast(t("已删除这条事项")); return refresh();
       case "deal-event-new": state.dealEventEdit = { deal: el.dataset.deal, id: "", key: el.dataset.key || "" }; render(); { const f = $("#dealEventForm"); f?.scrollIntoView({ block: "center" }); f?.elements.title?.focus(); } return;
       case "deal-event-edit": { const ev = state.dealEvents.find((x) => x.id === el.dataset.id); if (!ev) return; state.dealEventEdit = { deal: ev.deal_id, id: ev.id, key: "" }; render(); { const f = $("#dealEventForm"); f?.scrollIntoView({ block: "center" }); f?.elements.title?.focus(); } return; }
       case "deal-event-cancel": state.dealEventEdit = null; return render();
-      case "deal-event-delete": if (!armed(el, t("再点一次确认删除"))) return; await deleteDealEvent(el.dataset.id); state.dealEventEdit = null; toast(t("已删除")); return refresh();
+      case "deal-event-delete": if (!confirmDelete(t("删除这条进展记录？"))) return; await deleteDealEvent(el.dataset.id); state.dealEventEdit = null; toast(t("已删除")); return refresh();
       case "deal-ai-run": { const d = state.deals.find((x) => x.id === el.dataset.deal); if (!d) return; const p = runDealAi(d, analyze(d, dealTasks(d))); render(); await p; return render(); }
       case "deal-view":
         state.dealView = ["plan", "actual", "compare"].includes(el.dataset.view) ? el.dataset.view : "list";
@@ -1076,12 +1076,12 @@ main.addEventListener("click", async (e) => {
         render(); $("#locForm input[name=name]")?.focus(); return;
       }
       case "loc-cancel": state.locForm = null; return render();
-      case "loc-del": { const c = customLocations().find((x) => x.id === id); if (!c || !armed(el, t("再点一次确认删除"))) return; await deleteLocation(state, c); state.locForm = null; return refresh(); }
+      case "loc-del": { const c = customLocations().find((x) => x.id === id); if (!c || !confirmDelete(t("删除这个位置？"))) return; await deleteLocation(state, c); state.locForm = null; return refresh(); }
       case "house-cancel": state.skipAutosave = true; return;   // 链接本身会跳回分区列表；明确取消就不自动保存
       case "cat-delete": {
         const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (!c?.custom) return;
         if (state.items.some((i) => i.category === c.id)) return toast(t("这个分类下还有物品，先把它们改到别的分类"));
-        if (!armed(el, t("再点一次确认删除"))) return;
+        if (!confirmDelete(t("删除这个分类？"))) return;
         await Store.deleteCategory(c.dbId); state.catForm = null; if (state.filter.cat === c.id) state.filter.cat = "all"; toast(t("已删除分类")); return refresh();
       }
       case "cat-sort": state.catSort = !state.catSort; return render();   // 手机仪表盘：调整方块顺序
@@ -1112,7 +1112,7 @@ main.addEventListener("click", async (e) => {
       case "shop-unclaim": await Store.saveShopping({ id, status: "todo", claimed_by: null, claimed_by_name: null }); return refresh();
       case "shop-bought": return markBought(id);
       case "shop-qty": return stepShopQty(id, +el.dataset.dir);
-      case "shop-del": await Store.deleteShopping(id); return refresh();
+      case "shop-del": if (!confirmDelete(t("从采购清单删除这一项？"))) return; await Store.deleteShopping(id); return refresh();
       case "shop-clear": await Store.clearBought(); return refresh();
       case "diet": state.diet = el.dataset.diet; state.mealShift = 0; localStorage.setItem("hmh-diet", state.diet); return render();
       case "shuffle": state.mealShift++; state.slotShift = {}; return render();
@@ -1153,7 +1153,7 @@ main.addEventListener("click", async (e) => {
       case "deal-filter": state.dealFilter = el.dataset.val; return render();
       case "tasks-undone": state.tasksOnlyUndone = !state.tasksOnlyUndone; return render();
       case "spend-chip-clear": clearSpendFilter(el.dataset.k); return renderSpendRecords();
-      case "med-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteMedBill(el.dataset.id);
+      case "med-del": if (!confirmDelete(t("删除这张医疗账单？"))) return; return deleteMedBill(el.dataset.id);
       case "card-ai": return aiDraftCard(el.closest("form"));
       case "card-del": state.cardDelete = el.dataset.id; render(); document.getElementById("cardDelTitle")?.scrollIntoView({ block: "center" }); return;   // 先问花费记录怎么办
       case "card-del-keep": el.disabled = true; await deleteCard(el.dataset.id, { purchases: "keep" }); return refresh();
@@ -1164,7 +1164,7 @@ main.addEventListener("click", async (e) => {
       case "card-cleanup-run": el.disabled = true; await runCleanup(); return refresh();
       case "card-deact": el.disabled = true; await setCardActive(el.dataset.id, false); return refresh();
       case "card-react": el.disabled = true; await setCardActive(el.dataset.id, true); return refresh();
-      case "med-pay-del": if (!armed(el, t("再点一次确认删除"))) return; return deleteMedPay(el.dataset.id);
+      case "med-pay-del": if (!confirmDelete(t("删除这条付款记录？"))) return; return deleteMedPay(el.dataset.id);
       case "med-csv": return exportMedicalCsv();
       case "person-add-do": return personAddDo();
       case "person-add-cancel": return personAddCancel();
@@ -1175,7 +1175,7 @@ main.addEventListener("click", async (e) => {
       case "person-merge-open": return personMergeOpen(el.dataset.id);
       case "person-merge-cancel": return personMergeCancel();
       case "person-merge": return personMerge(el.dataset.id);
-      case "person-del": if (!armed(el, t("再点一次确认删除"))) return; return personDelete(el.dataset.id);
+      case "person-del": if (!confirmDelete(t("删除这位家人的资料？"))) return; return personDelete(el.dataset.id);
       case "people-bulk": return peopleBulk();
       case "spend-more": return spendList.more();   // 「继续加载」：向数据库要下一页
       case "spend-csv": return exportSpendList();
@@ -1195,7 +1195,11 @@ main.addEventListener("click", async (e) => {
       case "spend-add-toggle": { state.spendAddOpen = !state.spendAddOpen; render(); if (state.spendAddOpen) requestAnimationFrame(() => $("#purchaseForm")?.elements.name.focus({ preventScroll: true })); return; }
       case "stats-node": state.stats.node = el.dataset.node || null; state.stats.byTrip = false; render(); return requestAnimationFrame(() => document.querySelector(".node-crumb")?.scrollIntoView({ block: "nearest" }));   // 分类页：点进下一层 / 面包屑回上层
       case "stats-trips": state.stats.byTrip = !state.stats.byTrip; return render();   // 分类 → 旅行：按行程看
-      case "purchase-del": if (!armed(el, t("确认删除"))) return; await Store.deletePurchase(id); toast(t("已删除这笔记录")); return refresh();
+      case "purchase-del":   // 以前是「点两次」：左滑只替它点一次，所以滑了删不掉；现在用确认框
+        if (!confirmDelete(t("删除这笔花费？"))) return;
+        await Store.deletePurchase(id);
+        spendList.rows = spendList.rows.filter((p) => p.id !== id); renderSpendList();   // 先从已读到的列表里拿掉（和多选删除一样），随后的重读再对一遍
+        toast(t("已删除这笔记录")); return refresh();
       case "recipe-missing": return addRecipeMissing(el.dataset.name);
       case "copy-invite": await navigator.clipboard.writeText(state.household.invite_code); return toast(t("邀请码已复制"));
       case "notif": await Notification.requestPermission(); return render();

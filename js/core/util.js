@@ -86,7 +86,12 @@ export function toast(msg) {
 }
 
 
-// 两步确认：第一次点击变成“再点一次确认”，4 秒内再点才执行（替代浏览器 confirm 弹窗）
+/** 删除前的确认框（全应用统一，2026-11-04 用户定：所有删除按钮和左滑删除都弹确认框，和 收入 → 明细 一样）。
+ *  用浏览器原生 confirm：左滑删除（js/swipe-rows.js）替行里的删除按钮点一下，再靠包住 window.confirm 判断用户有没有点取消（取消 = 行弹回去）。
+ *  msg 写清楚删的是什么，例如「删除这笔花费？」；不传就用通用的一句。 */
+export const confirmDelete = (msg) => window.confirm(`${msg || t("确认删除？")}\n${t("删了就找不回来。")}`);
+
+// 两步确认：第一次点击变成“再点一次确认”，4 秒内再点才执行（替代浏览器 confirm 弹窗）。删除不要再用它，用上面的 confirmDelete
 export function armed(el, text) {
   if (el.dataset.armed) return true;
   const old = el.textContent;

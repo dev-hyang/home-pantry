@@ -7,7 +7,7 @@
  *   确认后一次导入，可以整批撤销。选过的归类可以记住（存在家庭预算设置里，全家共用，下次同一商家自动归类）。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { esc, fmtDate, money, num, toast } from "../core/util.js";
+import { esc, fmtDate, money, num, toast, confirmDelete } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { categoryOptions } from "../pantry/views.js";
@@ -738,7 +738,7 @@ document.addEventListener("change", async (e) => {
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("#bankImport [data-bank-act]"); if (!b) return;
   if (b.dataset.bankAct === "import") doImport();
-  else if (b.dataset.bankAct === "rule-del") { const rules = { ...userRules() }; delete rules[b.dataset.key]; saveMeta({ _bank_rules: rules }).then(() => { toast(t("已删除")); if (S.parts.length) { resetPicks(); rebuild(); } redraw(); }); }
+  else if (b.dataset.bankAct === "rule-del") { if (!confirmDelete(t("删除这条记住的分类规则？"))) return; const rules = { ...userRules() }; delete rules[b.dataset.key]; saveMeta({ _bank_rules: rules }).then(() => { toast(t("已删除")); if (S.parts.length) { resetPicks(); rebuild(); } redraw(); }); }
   else if (b.dataset.bankAct === "rules-tidy" || b.dataset.bankAct === "rules-stale") {
     const list = b.dataset.bankAct === "rules-tidy" ? redundantRules() : staleRules();
     if (list.length && confirm(t("删除这 {n} 条规则？{names}", { n: list.length, names: `\n${list.slice(0, 8).join("、")}${list.length > 8 ? "…" : ""}` }))) { const rules = { ...userRules() }; list.forEach((k) => delete rules[k]); saveMeta({ _bank_rules: rules }).then(() => { toast(t("已清理 {n} 条", { n: list.length })); if (S.parts.length) { resetPicks(); rebuild(); } redraw(); }); }
