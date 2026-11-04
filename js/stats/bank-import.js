@@ -129,6 +129,15 @@ function fixP2PSign(row) {
   return { ...row, out: inn ? -Math.abs(row.out) : Math.abs(row.out) };
 }
 const REFUND = /refund|return|reversal|credit adjustment|退款|退货|冲正/i;
+/* ── Zelle / Venmo 这类个人转账（2026-11-04 用户定）──
+ * 转入：朋友 AA 还给我、我替人垫付后还回 = 我自己的钱回来了，不是收入 → 「支出退回」：记成所选花费分类的负数花费，抵掉我先付的那部分。
+ *       付款方猜成 Zelle 转入 / 报销 时默认就是支出退回（要选个分类才会导入）；真是赠与、副业收款，在下拉里改成收入类型。
+ * 转出：大多是朋友先垫付、我转回给他（我的消费，按实际买的东西归类），或付上门维修；借给朋友 / 还朋友借款选「借贷本金」，不算消费。
+ *       所以不再自动归到「其他」，而是放进「请归类」让你选；选过的按收款人记住。 */
+const AA_BACK = "__aa";
+const AA_KINDS = ["zelle", "reimburse"];   // 猜成这两种的入账：默认当支出退回
+const refundRules = () => meta("_refund_rules", {}) || {};   // { 付款方 key: 花费分类 }，和收入类型规则、花费归类规则分开存
+const isP2POut = (r) => r.out > 0 && P2P.test(r.desc);
 /** 默认跳过的几组（还款 / 自己账户之间），勾上导入时分类预选成对应的转账分类：不算任何花费（以前要手动挑一个花费分类） */
 const SKIP_CAT = { card_payment: "bill_credit_card", transfer: "transfer_account" };
 /* 转账类（「转账」一级分类，见 js/core/taxonomy.js：不算花费、不算现金流出、不进预算）排在最前面：信用卡还款、自己账户之间、投资账户内部；
@@ -211,7 +220,7 @@ export function classifyWhy(row) {
 
 /* ───────────── 把表格变成交易行 ───────────── */
 const BATCH_KEEP = 120;   // 「最近导入」记几批（存在家庭设置里；原来 60）
-const S = { parts: [], auto: {}, account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "", ikind: {}, incPerson: null, batchAcct: "all", editDates: "", force: new Set() };   // force：看过以后手动改成「仍然导入」的那几笔（按 日期|金额|描述#序号 记，重新解析 / 改列也保留）   // batchAcct / batchShow：「最近导入」列表的账户筛选和已展开的条数（重画也不丢）
+const S = { parts: [], auto: {}, account: { mode: "none", id: "", name: "", last4: "" }, acctTouched: false, spendSign: "auto", autoSign: "pos", dmy: false, currency: "", rows: [], groups: [], pick: {}, include: {}, remember: true, last: null, busy: false, status: "", error: "", ikind: {}, rcat: {}, incPerson: null, batchAcct: "all", editDates: "", force: new Set() };   // force：看过以后手动改成「仍然导入」的那几笔（按 日期|金额|描述#序号 记，重新解析 / 改列也保留）   // batchAcct / batchShow：「最近导入」列表的账户筛选和已展开的条数（重画也不丢）
 const cur = () => S.currency || Units.region.currency;
 let askFn = askText;   // 测试时可替换
 export const _setAsk = (fn) => { askFn = fn || askText; };
@@ -287,7 +296,9 @@ function rebuild() {
     // 入账：商家退款留在花费里（负花费）；自己账户之间的转账（写着自己尾号 / 转自 SAV·CHK）两边都不算；其余（工资、电汇、Zelle 转入、赠与…）是收入候选
     row.inc = incomeOk() && row.out < 0 && !row.refund && !row.xfer && (row.skip === "income" || (row.skip === "transfer" && transferKind(typeTxt) !== "internal"));
     row.incUnsure = row.inc && row.skip === "transfer" && transferKind(typeTxt) === "unknown";   // 只写着「转账 / 存款」看不出来源：默认不勾
-    row.key = keyOf(row.desc); const cw = row.skip ? { cat: "", src: "" } : classifyWhy(row); row.cat = cw.cat || (row.xfer ? "other" : ""); row.src = cw.cat ? cw.src : row.xfer ? "rule" : cw.src;
+    row.key = keyOf(row.desc); const cw = row.skip ? { cat: "", src: "" } : classifyWhy(row), p2pOut = row.xfer && isP2POut(row);
+    // 转出的 Zelle / Venmo：可能是消费（朋友垫付后转回、上门维修），也可能是借给朋友 / 还朋友的钱——不猜，放进「请归类」（记住过的照用）
+    row.p2p = p2pOut; row.cat = cw.cat || (row.xfer && !p2pOut ? "other" : ""); row.src = cw.cat ? cw.src : row.xfer && !p2pOut ? "rule" : cw.src;
     rows.push(row);
   }
   // 和已有花费对得上的（金额一样、日期差 ≤ 3.5 天，每条已有花费只配一次）：疑似已记录，默认跳过；重复导入同一个文件也靠它防重。
@@ -315,9 +326,9 @@ function rebuild() {
     x.rows.push(r); x.total += r.out; g.set(id, x);
   }
   S.groups = [...g.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
-  for (const x of S.groups) { x.src = x.rows[0].src || ""; if (!(x.id in S.auto)) S.auto[x.id] = x.inc ? (incomeRules()[x.id.slice(3)] || guessKind(x.rows[0].desc)) : x.skip ? "" : x.rows[0].cat; if (!(x.id in S.pick)) S.pick[x.id] = x.inc ? "" : x.skip ? SKIP_CAT[x.skip] || "" : x.rows[0].cat; if (x.inc && !(x.id in S.ikind)) S.ikind[x.id] = S.auto[x.id]; if (!(x.id in S.include)) S.include[x.id] = x.inc ? !x.rows.every((r) => r.incUnsure) : !x.skip; }
+  for (const x of S.groups) { x.src = x.rows[0].src || ""; if (!(x.id in S.auto)) S.auto[x.id] = x.inc ? (incomeRules()[x.id.slice(3)] || guessKind(x.rows[0].desc)) : x.skip ? "" : x.rows[0].cat; if (!(x.id in S.pick)) S.pick[x.id] = x.inc ? "" : x.skip ? SKIP_CAT[x.skip] || "" : x.rows[0].cat; if (x.inc && !(x.id in S.ikind)) { const rr = refundRules()[x.id.slice(3)]; S.ikind[x.id] = rr ? AA_BACK : !incomeRules()[x.id.slice(3)] && AA_KINDS.includes(S.auto[x.id]) ? AA_BACK : S.auto[x.id]; if (rr && !(x.id in S.rcat)) S.rcat[x.id] = rr; } if (!(x.id in S.include)) S.include[x.id] = x.inc ? !x.rows.every((r) => r.incUnsure) : !x.skip; }
 }
-const resetPicks = () => { S.pick = {}; S.include = {}; S.auto = {}; };
+const resetPicks = () => { S.pick = {}; S.include = {}; S.auto = {}; S.rcat = {}; };
 
 /* ───────────── 账户（哪张卡 / 哪个账户）：每批导入记一个标签，用来看“哪个账户哪几个月已经补过” ─────────────
  * 账户列表 = 以前导入时建的（预算设置 _bank_accounts）+ 账单里有账号尾号 / 信用卡类的账单。不改数据库、不记到每一笔上。 */
@@ -430,23 +441,29 @@ function groupRow(g) {
   const inc = !!S.include[g.id], dups = g.rows.filter((r) => r.dup).length, n = g.rows.length, matched = g.rows.filter((r) => r.dupOf);
   const sel = `<select data-bank-cat="${esc(g.id)}" aria-label="${esc(t("分类"))}">${catOpts(S.pick[g.id])}</select>`;   // 默认跳过的也能勾上、选个分类导入
   return `<li class="bank-row${g.skip ? " is-skip" : ""}"><label class="bank-chk"><input type="checkbox" data-bank-inc="${esc(g.id)}" ${inc ? "checked" : ""} aria-label="${esc(t("导入"))}"></label>
-    <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n })} · ${money(g.total)} · ${esc(rangeOf(g.rows))}${g.src === "learned" ? ` · <span class="bank-src" title="${esc(t("上次你给这家选的分类；改了会记住新的"))}">${t("上次你选的")}</span>` : g.src === "ai" ? ` · <span class="bank-src">${t("AI 猜的")}</span>` : g.src === "bill" ? ` · <span class="bank-src">${t("按账单收款方")}</span>` : ""}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b>` : ""}</small>${matched.length ? dupListHtml(matched) : ""}</div>${sel}</li>`;
+    <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n })} · ${money(g.total)} · ${esc(rangeOf(g.rows))}${g.rows.every((r) => r.p2p) && !S.pick[g.id] ? ` · <span class="bank-src">${t("Zelle / Venmo 转出：替你付的、上门维修等选实际的分类；借给朋友 / 还朋友的钱选「借贷本金」，不算消费")}</span>` : ""}${g.src === "learned" ? ` · <span class="bank-src" title="${esc(t("上次你给这家选的分类；改了会记住新的"))}">${t("上次你选的")}</span>` : g.src === "ai" ? ` · <span class="bank-src">${t("AI 猜的")}</span>` : g.src === "bill" ? ` · <span class="bank-src">${t("按账单收款方")}</span>` : ""}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b>` : ""}</small>${matched.length ? dupListHtml(matched) : ""}</div>${sel}</li>`;
 }
-const incChosen = () => { let n = 0, sum = 0; for (const g of S.groups) { if (!g.inc || !S.include[g.id]) continue; for (const r of g.rows) { if (r.idup && !r.forced) continue; n++; sum += -r.out; } } return { n, sum: Math.round(sum * 100) / 100 }; };
+const incChosen = () => { let n = 0, sum = 0; for (const g of S.groups) { if (!g.inc || !S.include[g.id] || S.ikind[g.id] === AA_BACK) continue; for (const r of g.rows) { if (r.idup && !r.forced) continue; n++; sum += -r.out; } } return { n, sum: Math.round(sum * 100) / 100 }; };
 const incWho = () => S.incPerson ?? (myPersonId() || "none");
 function incomeRow(g) {
   const on = !!S.include[g.id], dups = g.rows.filter((r) => r.idup).length, matched = g.rows.filter((r) => r.dupOf), unsure = g.rows.every((r) => r.incUnsure);
-  const kinds = kindOptionsHtml(S.ikind[g.id] || "other"), capNote = isIncomeKind(S.ikind[g.id] || "other") ? "" : ` · <span class="bank-src">${t("资本流入：记下来，但不算收入")}</span>`;   // 收入类型按「一级 · 叶子」分组，和 收入 → 明细 同一个下拉
+  const aa = S.ikind[g.id] === AA_BACK;
+  const kinds = `<optgroup label="${esc(t("不算收入"))}"><option value="${AA_BACK}" ${aa ? "selected" : ""}>${esc(t("支出退回（AA / 垫付还回）→ 负数花费"))}</option></optgroup>${kindOptionsHtml(aa ? "" : S.ikind[g.id] || "other")}`;   // 收入类型按「一级 · 叶子」分组，和 收入 → 明细 同一个下拉
+  const capNote = aa ? ` · <span class="bank-src">${t("不算收入：记成所选分类的负数花费，抵掉你先付的那部分")}</span>${S.rcat[g.id] ? "" : ` · <b class="bank-dup">${t("选个花费分类才会导入")}</b>`}`
+    : isIncomeKind(S.ikind[g.id] || "other") ? "" : ` · <span class="bank-src">${t("资本流入：记下来，但不算收入")}</span>`;
   return `<li class="bank-row"><label class="bank-chk"><input type="checkbox" data-bank-inc="${esc(g.id)}" ${on ? "checked" : ""} aria-label="${esc(t("导入"))}"></label>
     <div class="grow"><span class="name">${esc(g.name)}</span><small>${t("{n} 笔", { n: g.rows.length })} · ${money(-g.total)} · ${esc(rangeOf(g.rows))}${unsure ? ` · <span class="bank-src">${t("只写着转账 / 存款，看不出来源，默认没勾")}</span>` : ""}${capNote}${dups ? ` · <b class="bank-dup">${t("{k} 笔疑似已记录，会跳过", { k: dups })}</b>` : ""}</small>${matched.length ? dupListHtml(matched) : ""}</div>
-    <select data-bank-ikind="${esc(g.id)}" aria-label="${esc(t("收入类型"))}">${kinds}</select></li>`;
+    <div class="bank-ipick"><select data-bank-ikind="${esc(g.id)}" aria-label="${esc(t("收入类型"))}">${kinds}</select>${aa ? `<select data-bank-rcat="${esc(g.id)}" aria-label="${esc(t("退回到哪个花费分类"))}">${catOpts(S.rcat[g.id])}</select>` : ""}</div></li>`;
 }
-const incomeSection = (list) => (list.length ? `<section class="section"><div class="section-head"><h2>💵 ${t("收入 / 入账")}（${list.length}）</h2><p>${t("工资、电汇、Zelle 转入、赠与等：勾上的会记进「财务 → 收入」，不会算进花费。自己账户之间的转账（如从 SAV 转入）已自动跳过；商家退款仍按负花费算。收入只有家主（和被允许的人）能看全家的。")}</p></div>
+const incomeSection = (list) => (list.length ? `<section class="section"><div class="section-head"><h2>💵 ${t("收入 / 入账")}（${list.length}）</h2><p>${t("工资、电汇、赠与等：勾上的会记进「财务 → 收入」，不会算进花费。Zelle / Venmo 转入、报销默认是「支出退回」（朋友 AA 还你、替人垫付后还回）：记成负数花费，不算收入；真是赠与或副业收款就在下拉里改。自己账户之间的转账已自动跳过；商家退款仍按负花费算。")}</p></div>
   <div class="panel"><label class="tb-field" style="margin-bottom:8px"><span>${t("这些收入记给谁")}</span><select data-bank-iperson data-nosearch><option value="none" ${incWho() === "none" ? "selected" : ""}>${t("未指定 / 全家")}</option>${adults().map((p) => `<option value="${p.id}" ${incWho() === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
   <ul class="restock-list bank-list">${list.map(incomeRow).join("")}</ul></div></section>` : "");
 const chosen = () => {
   let n = 0, sum = 0;
-  for (const g of S.groups) { if (g.inc || !S.include[g.id] || !S.pick[g.id]) continue; for (const r of g.rows) { if (r.dup) continue; n++; sum += r.out; } }
+  for (const g of S.groups) {
+    if (g.inc) { if (S.include[g.id] && S.ikind[g.id] === AA_BACK && S.rcat[g.id]) for (const r of g.rows) { if (r.idup && !r.forced) continue; n++; sum += r.out; } continue; }   // 支出退回：负数花费
+    if (!S.include[g.id] || !S.pick[g.id]) continue; for (const r of g.rows) { if (r.dup) continue; n++; sum += r.out; }
+  }
   return { n, sum };
 };
 const KIND_ICON = { csv: "📄", xlsx: "📊", ofx: "🏦", qif: "🏦", pdf: "📕", image: "🖼️", paste: "📋" };
@@ -608,7 +625,12 @@ async function doImport() {
   if (S.busy) return; S.busy = true; redraw();
   const picks = [], learned = {}, hits = {};
   for (const g of S.groups) {
-    if (g.inc || !S.include[g.id]) continue; const cat = S.pick[g.id]; if (!cat) continue;   // 收入组只进 income_records，不能再记一笔负花费（以前 Zelle / 电汇转入会预选「账户间转账」，两边都记了）
+    if (g.inc) {   // 入账组只进 income_records；只有选了「支出退回」的记成负数花费（不算收入）
+      const rc = S.rcat[g.id];
+      if (S.include[g.id] && S.ikind[g.id] === AA_BACK && rc) for (const r of g.rows) { if (r.idup && !r.forced) continue; picks.push({ r, cat: rc, name: t("{n} · 支出退回", { n: g.name }), store: g.name }); }
+      continue;
+    }
+    if (!S.include[g.id]) continue; const cat = S.pick[g.id]; if (!cat) continue;   // 收入组只进 income_records，不能再记一笔负花费（以前 Zelle / 电汇转入会预选「账户间转账」，两边都记了）
     for (const r of g.rows) { if (r.dup) continue; picks.push({ r, cat }); }
     // 只记你改过的（或原来认不出、你选了的）；自动归出来的不记，免得把归错的也「学」进去，以后一直错
     if (S.remember && !g.skip && cat && g.id.indexOf("__") !== 0 && cat !== S.auto[g.id]) learned[g.id] = cat;
@@ -617,8 +639,8 @@ async function doImport() {
   const ids = [], rowsDone = []; let sum = 0, failed = 0;
   const batchId = `b${Date.now().toString(36)}`;   // 每笔花费记上批次 id（迁移 034）；没执行迁移时退回只记 id 列表
   let tagged = !S.noBatchCol;
-  const one = async ({ r, cat }) => {
-    const row = { item_id: null, name: merchantName(r.desc), category: cat, quantity: null, unit: null, store: merchantName(r.desc), amount: r.out, currency: cur(), purchased_at: new Date(`${r.date}T12:00:00`).toISOString(), ...(S.account.mode === "id" && String(S.account.id).startsWith("card:") ? { card_id: String(S.account.id).slice(5) } : {}) };
+  const one = async ({ r, cat, name, store }) => {
+    const row = { item_id: null, name: name || merchantName(r.desc), category: cat, quantity: null, unit: null, store: store || merchantName(r.desc), amount: r.out, currency: cur(), purchased_at: new Date(`${r.date}T12:00:00`).toISOString(), ...(S.account.mode === "id" && String(S.account.id).startsWith("card:") ? { card_id: String(S.account.id).slice(5) } : {}) };
     try {
       let id;
       try { id = await Store.addPurchase(tagged ? { ...row, import_batch: batchId } : row); }
@@ -643,13 +665,19 @@ async function doImport() {
     const acctLabel = acct ? `${String(acct.name).replace(/^[^\p{L}\p{N}]+/u, "")}${acct.last4 && !String(acct.name).includes(acct.last4) ? ` ••${acct.last4}` : ""}` : null,   // 去掉名字前的图标；和「收入 → 入到哪个账户」里的「名称 ••尾号」同一个写法，编辑时对得上登记过的账户
       who = incWho() === "none" ? null : incWho(), rowsIn = [];
     for (const g of S.groups) {
-      if (!g.inc || !S.include[g.id]) continue;
+      if (!g.inc || !S.include[g.id] || S.ikind[g.id] === AA_BACK) continue;
       const kind = S.ikind[g.id] || "other";
       for (const r of g.rows) { if (r.idup && !r.forced) continue; rowsIn.push({ received_on: r.date, amount: Math.round(-r.out * 100) / 100, currency: cur(), orig_amount: null, orig_currency: null, fee: null, source_name: g.name, kind, channel: guessChannel(r.desc), person_id: who, account: acctLabel, account_id: cardId || null, income_amount: null, import_batch: batchId, repay_required: false, repay_due_on: null, repay_amount: null, notes: null }); }
       if (S.remember && kind !== S.auto[g.id]) learnedInc[g.id.slice(3)] = kind;
     }
     if (rowsIn.length) { try { await Store.addIncomeRecords(rowsIn); inN = rowsIn.length; batch.inN = inN; batch.inSum = Math.round(rowsIn.reduce((a, r) => a + r.amount, 0) * 100) / 100; } catch (e) { incFailed = true; } }
     if (inN || incFailed) await loadIncome();
+  }
+  const refRules = { ...refundRules() }; let refChanged = false;
+  if (S.remember) for (const g of S.groups) {
+    if (!g.inc || !S.include[g.id]) continue; const key = g.id.slice(3);
+    if (S.ikind[g.id] === AA_BACK && S.rcat[g.id]) { if (refRules[key] !== S.rcat[g.id]) { refRules[key] = S.rcat[g.id]; refChanged = true; } }
+    else if (refRules[key]) { delete refRules[key]; refChanged = true; }   // 这次改成了收入类型：以后按收入类型来
   }
   try {
     const rules = { ...userRules() }, today = todayStr();
@@ -659,9 +687,9 @@ async function doImport() {
     if (keys.length > 400) keys.map((k, i) => [k, ruleUse(rules[k]), i]).sort((a, b) => a[1].t.localeCompare(b[1].t) || a[1].n - b[1].n || a[2] - b[2]).slice(0, keys.length - 400).forEach(([k]) => delete rules[k]);   // 满了：先淘汰最久没用到的（旧格式没日期的最先）
     // 最近 60 批留着（查看 / 修改 / 撤销靠花费上的批次 id）；没执行迁移 034 的旧批次靠 id 列表，只有最近 6 批保留（免得预算设置里存太多）
     const all = [...(meta("_bank_batches", []) || []), ...(ids.length || (S.rows.length && !failed) ? [batch] : [])].slice(-BATCH_KEEP).map((b, i, arr) => (!b.tagged && i < arr.length - 6 ? { ...b, ids: [], n: b.n ?? b.ids?.length ?? 0 } : b));
-    await saveMeta({ _bank_rules: rules, _bank_batches: all, _bank_accounts: acctList.slice(-30), ...(Object.keys(learnedInc).length ? { _income_rules: Object.fromEntries(Object.entries({ ...incomeRules(), ...learnedInc }).slice(-300)) } : {}) });
+    await saveMeta({ _bank_rules: rules, _bank_batches: all, _bank_accounts: acctList.slice(-30), ...(Object.keys(learnedInc).length ? { _income_rules: Object.fromEntries(Object.entries({ ...incomeRules(), ...learnedInc }).slice(-300)) } : {}), ...(refChanged ? { _refund_rules: Object.fromEntries(Object.entries(refRules).slice(-300)) } : {}) });
   } catch (e) { metaFailed = true; }   // 花费已经导入了；只是批次记录 / 覆盖表没存上，要告诉用户，不能悄悄吞掉
-  S.force = new Set(); S.ikind = {}; S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = ""; S.acctTouched = false; S.account = NO_ACCT();   // 下一批回到默认「不选择」
+  S.force = new Set(); S.ikind = {}; S.rcat = {}; S.busy = false; S.last = { n: ids.length, sum: batch.sum, id: batch.id }; S.parts = []; S.groups = []; S.rows = []; S.pick = {}; S.include = {}; S.status = ""; S.acctTouched = false; S.account = NO_ACCT();   // 下一批回到默认「不选择」
   toast((failed ? t("导入了 {n} 笔，{k} 笔失败", { n: ids.length, k: failed }) : ids.length ? t("已导入 {n} 笔", { n: ids.length }) : inN ? "" : t("没有新的花费要导入（都已经记录过）"))
     + (inN ? (ids.length ? t("；另记了 {n} 笔收入", { n: inN }) : t("已记了 {n} 笔收入", { n: inN })) : "") + (incFailed ? t("；收入没写进去（迁移 042 没执行？），请重试") : "")
     + (metaFailed ? t("；批次记录没存上，「各账户已补到哪个月」不会更新，请重试") : !acct ? t("；没选账户，这批不计入「各账户已补到哪个月」") : ""));
@@ -723,6 +751,7 @@ document.addEventListener("change", async (e) => {
   if (el.id === "bankFile") { const fs = [...(el.files || [])]; if (!fs.length) return; S.status = t("正在读取…"); redraw(); await ingest(fs); S.status = ""; return redraw(); }
   if (el.dataset.bankCat !== undefined) { S.pick[el.dataset.bankCat] = el.value; if (el.value) S.include[el.dataset.bankCat] = true; return redraw(); }
   if (el.dataset.bankIkind !== undefined) { S.ikind[el.dataset.bankIkind] = el.value; return redraw(); }
+  if (el.dataset.bankRcat !== undefined) { S.rcat[el.dataset.bankRcat] = el.value; if (el.value) S.include[el.dataset.bankRcat] = true; return redraw(); }
   if (el.dataset.bankIperson !== undefined) { S.incPerson = el.value; return; }
   if (el.dataset.bankInc !== undefined) { S.include[el.dataset.bankInc] = el.checked; return redraw(); }
   if (el.dataset.bankForce !== undefined) { if (el.checked) S.force.add(el.dataset.bankForce); else S.force.delete(el.dataset.bankForce); rebuild(); return redraw(); }

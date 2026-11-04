@@ -14,6 +14,7 @@ import { printHtml, printStamp } from "../settings/print.js";
 import { INCOME_TABS, activeTab } from "../core/tabs.js";
 import { debtHref, ensureBorrowDebt } from "../bills/debt-logic.js";
 import { initIncomeScan, scanHtml } from "./scan.js";
+import { aaFixHtml, initAaFix } from "./aa-fix.js";   // 把记成收入的 Zelle 转入 / 报销 逐个付款方整理成支出退回
 import { meta, monthlyOf, saveMeta, totalIncomeMonthly } from "../bills/budget.js";
 import { incomePanel } from "../settings/income.js";
 import { acctById, acctLabel } from "../bills/cards-views.js";
@@ -450,7 +451,7 @@ function acctFilterOptions(sel) {
   return `${opt("all", t("全部账户"))}${list.map((c) => opt(c.id, acctLabel(c))).join("")}${opt("none", t("没关联登记账户的"))}`;
 }
 function recordsTab() {
-  const I = inc(), top = `${waysHtml()}${I.scanOpen ? scanHtml() : ""}${I.form && !inlineEditId() ? formHtml() : ""}`;
+  const I = inc(), top = `${aaFixHtml()}${waysHtml()}${I.scanOpen ? scanHtml() : ""}${I.form && !inlineEditId() ? formHtml() : ""}`;
   if (!I.rec.length && !I.form) return top + empty() + kindManager();
   // 和花费明细同一套 .toolbar：宽屏一行（搜索 + 下拉）；手机收成「搜索框 + 筛选」按钮，点开才出下拉（shared/compact-filters.js）
   const opt = (v, l, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(l)}</option>`;
@@ -530,7 +531,8 @@ async function saveDefaultAcct(value) {
 
 /* ── 表单 ── */
 /** 类型下面的一句说明：资本流入不算收入；卖出类可以填「其中已实现收益」 */
-const kindHint = (kind) => (GAIN_KINDS.includes(kind) ? t("卖出 / 资本利得：到账金额里只有赚的那部分算收入，填在下面「其中已实现收益」；不填 = {d}。", { d: isIncomeKind(kind) ? t("整笔都算收入") : t("整笔都不算收入") })
+const kindHint = (kind) => (kind === "zelle" || kind === "reimburse" ? t("朋友 AA 还你、替人垫付后还回、报销：是你自己的钱回来了，不算收入——请在 花费 里记一笔负数（勾「退款 / 报销」，选当初那笔的分类）。这里只记真正的收入：赠与、副业收款等。")
+  : GAIN_KINDS.includes(kind) ? t("卖出 / 资本利得：到账金额里只有赚的那部分算收入，填在下面「其中已实现收益」；不填 = {d}。", { d: isIncomeKind(kind) ? t("整笔都算收入") : t("整笔都不算收入") })
   : isIncomeKind(kind) ? "" : t("资本与资产流入：记下来（现金流里看得到），但不算收入。"));
 function formHtml() {
   const I = inc(), f = I.form, owner = isOwnerNow(), mine = myPersonId();
@@ -811,7 +813,7 @@ const goTab = (id) => { location.hash = incomeHref(id); };
 const NO_FILTER = () => ({ q: "", kind: "all", acct: "all", year: "all", month: "all", person: "all", batch: null, from: "", to: "", ex: false, limit: pageSize() });
 
 export function initIncome({ render, refresh }) {
-  hooks = { render, refresh }; initIncomeScan({ render });
+  hooks = { render, refresh }; initIncomeScan({ render }); initAaFix({ redraw: () => hooks.render(true) });
   // 清除筛选：收入记录（搜索、下拉、下钻日期段、导入批次，网址参数一起去掉）/ 付款方汇总
   onClearFilters("incRec", () => { Object.assign(inc(), FD.incRec, { limit: pageSize() }); clearUrlParams("*"); redraw(); }, () => changed(inc(), FD.incRec));
   onClearFilters("incSend", () => { Object.assign(inc(), FD.incSend, { slimit: null }); redraw(); }, () => changed(inc(), FD.incSend));

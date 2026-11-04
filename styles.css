@@ -2335,3 +2335,8 @@ html.force-phone .today-layout { grid-template-columns: minmax(0, 1fr); }
 .bank-last { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; padding: 4px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; }
 .bank-last:last-child { border-bottom: 0; } .bank-last b { min-width: 9em; }
 .deal-tools { margin-top: 10px; }   /* 交易时间线的筛选 / 排序条：和上面的交易信息面板留点距离 */
+/* 银行导入的入账行 / 收入的 Zelle 整理：类型下拉 + 花费分类下拉竖着叠（窄屏占满一行，宽屏在右边一列） */
+.bank-ipick { display: flex; flex-direction: column; gap: 6px; min-width: 0; grid-column: 1 / -1; }
+.bank-ipick select { width: 100%; }
+.aafix .bank-list li { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .bank-ipick { grid-column: auto; } .aafix .bank-list li { grid-template-columns: minmax(0, 1fr) minmax(220px, 300px); } }
