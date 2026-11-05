@@ -75,6 +75,7 @@ import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLoc
 import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
 import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureFirstYear, exportAnnual, exportSpendList, patchSpendRow, rememberStore, renderSpendList, renderSpendRecords, spendList, spendRowsLoaded, viewSpend, viewStats } from "./stats/views.js";
+import { customChanged, normRange, setFinRange, setFinUnit } from "./core/time-range.js";
 import { payeeAction, payeeChange, payeeInput } from "./stats/payees.js";
 import { matchOpenShopping, showPurchaseDup } from "./stats/dup-check.js";
 
@@ -430,7 +431,7 @@ function resetSectionFilters(section) {
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
     case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null, sort: "new" }); state.spendEdit = null; state.spendSel = null; break;
-    case "me": Object.assign(state.stats, { months: 6, month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.locForm = null; break;
+    case "me": Object.assign(state.stats, { month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.locForm = null; break;
     default: break;
   }
 }
@@ -444,7 +445,7 @@ onClearFilters("bills", clearAnd(() => { Object.assign(state.billsFilter, FD.bil
 onClearFilters("pay", clearAnd(() => Object.assign(state.payFilter, FD.pay)), () => changed(state.payFilter, FD.pay));   // 服务器分页：resetListPages 标过期、回第一页
 onClearFilters("spend", () => { clearSpendFilter("all"); resetListPages(); renderSpendRecords(); }, () => changed(state.spendFilter, FD.spend));
 onClearFilters("med", clearAnd(() => Object.assign(state.medFilter, FD.med)), () => changed(state.medFilter, FD.med));
-onClearFilters("stats", clearAnd(() => { Object.assign(state.stats, FD.stats); clearUrlParams(["node", "month", "cat", "item"]); }));
+onClearFilters("stats", clearAnd(() => { Object.assign(state.stats, FD.stats); setFinRange(state.stats.months); setFinUnit("auto"); clearUrlParams(["node", "month", "cat", "item"]); }));
 onClearFilters("gift", clearAnd(() => Object.assign((state.giftFilter ||= { sort: "balance" }), FD.gift)));
 onClearFilters("off", clearAnd(() => Object.assign((state.offFilter ||= { sort: "since" }), FD.off)), () => changed(state.offFilter, FD.off));
 onClearFilters("alerts", clearAnd(() => setTodayPref({ source: null, mine: false })));
@@ -508,6 +509,8 @@ main.addEventListener("touchend", (e) => {
   shiftTasksMonth(dx < 0 ? 1 : -1); render();
 }, { passive: true });
 const searchSoon = debounce((fn) => fn());
+/** 改共享的时间范围：花费（state.stats.months）和收入页一起变，存在本机 */
+function setSharedRange(v) { state.stats.months = normRange(v); state.stats.month = null; setFinRange(state.stats.months); }
 main.addEventListener("input", (e) => {
   // 搜索框：筛选条件马上记下，列表停下 ~200ms 再重画（不是每敲一个字都重画整张列表）
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; searchSoon(renderInvList); }
@@ -699,7 +702,9 @@ main.addEventListener("change", async (e) => {
   if (e.target.dataset?.action === "stats-exinv") { state.stats.exInv = e.target.checked; render(); }
   if (e.target.id === "statsStoreL1") { state.stats.storeL1 = e.target.value; render(); }
   if (payeeChange(e)) return;
-  if (e.target.id === "statsRange") { const v = e.target.value; state.stats.months = v.startsWith("y:") || v === "m" ? v : +v; state.stats.month = null; render(); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（数据库按月聚合，往年也一样）
+  if (e.target.id === "statsRange") { setSharedRange(e.target.value); render(); }   // 财务统一的时间范围（js/core/time-range.js）：花费、预算趋势、收入共用
+  if (e.target.dataset?.finC) { setSharedRange(customChanged(state.stats.months, e.target.dataset.finC, e.target.value)); render(); }   // 自定义的起止月份
+  if (e.target.id === "finUnit") { setFinUnit(e.target.value); render(); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（数据库按月聚合，往年也一样）
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
   if (e.target.id === "hhSwitch") { localStorage.setItem("hmh-hid", e.target.value); location.reload(); }
@@ -1196,7 +1201,7 @@ main.addEventListener("click", async (e) => {
         const gone = new Set(list.map((p) => p.id)); spendList.rows = spendList.rows.filter((p) => !gone.has(p.id)); state.spendSel = null;
         toast(fail ? t("删了 {n} 笔，{k} 笔失败", { n: list.length - fail, k: fail }) : t("已删除 {n} 笔", { n: list.length })); render(); return refresh();
       }
-      case "stats-months": state.stats.months = +el.dataset.months; return render();
+      case "stats-months": setSharedRange(String(el.dataset.months)); return render();
       case "spend-add-toggle": { state.spendAddOpen = !state.spendAddOpen; render(); if (state.spendAddOpen) requestAnimationFrame(() => $("#purchaseForm")?.elements.name.focus({ preventScroll: true })); return; }
       case "stats-node": state.stats.node = el.dataset.node || null; state.stats.byTrip = false; render(); return requestAnimationFrame(() => document.querySelector(".node-crumb")?.scrollIntoView({ block: "nearest" }));   // 分类页：点进下一层 / 面包屑回上层
       case "stats-trips": state.stats.byTrip = !state.stats.byTrip; return render();   // 分类 → 旅行：按行程看

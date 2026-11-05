@@ -3620,4 +3620,6 @@ export const EN = {
   "拍小票或贴线上订单，确认后自动入库、记花费": "Snap a receipt or paste an online order; once confirmed, items go into stock and the spending is recorded",
   // ── 收入 → 付款方：指标卡、图表、多选合并 ──
   "前 3 家占比": "Top 3 share", "卖房卖股的本金、借款、转回，不计收入": "Principal from selling property or stock, loans, transfers back; not income", "收入最多的 10 家": "Top 10 payers", "最大付款方": "Largest payer", "点条、色块或名称，可以查看对应的收入明细。": "Tap a bar, slice or name to see the matching income records.", "越高越依赖少数几个来源": "higher = more reliant on a few sources",
+  // ── 财务统一时间条（js/core/time-range.js）──
+  "{cat}花费走势": "{cat} spending trend", "从哪个月": "From month", "全部历史 / 自定义范围不做对比": "No comparison for all history / custom ranges", "到哪个月": "To month", "前一段（{r}）": "previous period ({r})", "收入 vs 消费（{r}）": "Income vs spending ({r})", "自动（{u}）": "Auto ({u})", "自定义…": "Custom…", "花费走势：日常 + 住房（柱），财务 / 资本性 / 投资（虚线）": "Spending trend: living + housing (bars), financial / capital / investment (dashed)", "每季度花了多少": "Spending per quarter", "每年花了多少": "Spending per year", "季": "Quarter",
 };

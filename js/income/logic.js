@@ -4,6 +4,7 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { meta } from "../bills/budget.js";
+import { customHtml, prevMonthsOf, rangeLabelOf, rangeOk, rangeOptionsHtml, rangeWindow } from "../core/time-range.js";
 import { esc, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { financeOk } from "../core/finance-access.js";
@@ -156,30 +157,25 @@ export function windowOf(range, c = {}) {
 
 /* ── 概览 / 类型页的时间范围：和花费页同一套下拉——本月、近 3 / 6 / 9 / 12 个月（按自然月，含本月）、今年、往年（有收入的最早一年起，最多 12 年） ──
  * 值：m / 3 / 6 / 9 / 12 / y:2025 */
-export const SPAN_MONTHS = [3, 6, 9, 12];
+export const SPAN_MONTHS = [3, 6, 12];
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 export const firstIncomeYear = () => { const y0 = new Date().getFullYear(), f = inc().rec.map((r) => r.received_on).sort()[0]; return f ? Math.min(y0, +f.slice(0, 4)) : y0; };
-export const spanOk = (v) => v === "m" || SPAN_MONTHS.includes(+v) || (/^y:\d{4}$/.test(String(v)) && +String(v).slice(2) <= new Date().getFullYear());
-export function spanWindow(v) {
-  const today = todayISO(), now = new Date();
-  if (v === "m") return { from: `${today.slice(0, 7)}-01`, to: today };
-  if (String(v).startsWith("y:")) { const y = +String(v).slice(2); return { from: `${y}-01-01`, to: y === now.getFullYear() ? today : `${y}-12-31` }; }
-  const n = SPAN_MONTHS.includes(+v) ? +v : 12; return { from: iso(new Date(now.getFullYear(), now.getMonth() - (n - 1), 1)), to: today };
-}
-/** 上一段同样长的时间（比上期多 / 少）：本月 → 上月同期；近 N 个月 → 再往前 N 个自然月；某一年 → 前一年同期 */
+/* 时间范围已统一到 js/core/time-range.js（和花费同一个值、同一个下拉，存在本机）；这几个名字保留给收入页用 */
+export const spanOk = (v) => rangeOk(String(v));
+export const spanWindow = (v) => rangeWindow(v, { first: firstIncomeYear() });
+/** 上一段同样长的时间（比上期多 / 少）：本月 → 上月同期；今年 / 某一年 → 前一年同期；近 N → 再往前 N 个月；全部历史 / 自定义 → null（不比） */
 export function spanPrev(v) {
   const now = new Date(), w = spanWindow(v);
   if (v === "m") { const last = new Date(now.getFullYear(), now.getMonth(), 0); return { from: iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)), to: iso(new Date(last.getFullYear(), last.getMonth(), Math.min(now.getDate(), last.getDate()))) }; }
   if (String(v).startsWith("y:")) return { from: `${+w.from.slice(0, 4) - 1}${w.from.slice(4)}`, to: `${+w.to.slice(0, 4) - 1}${w.to.slice(4)}` };
-  const n = SPAN_MONTHS.includes(+v) ? +v : 12, start = new Date(+w.from.slice(0, 4), +w.from.slice(5, 7) - 1, 1);
-  return { from: iso(new Date(start.getFullYear(), start.getMonth() - n, 1)), to: iso(new Date(start.getFullYear(), start.getMonth(), 0)) };
+  const pm = prevMonthsOf(v); if (!pm) return null;
+  const end = new Date(+pm.at(-1).slice(0, 4), +pm.at(-1).slice(5, 7), 0);
+  return { from: `${pm[0]}-01`, to: iso(end) };
 }
-export const spanLabel = (v) => (v === "m" ? t("本月") : String(v).startsWith("y:") ? (+String(v).slice(2) === new Date().getFullYear() ? t("今年") : t("{y} 年", { y: +String(v).slice(2) })) : t("近 {n} 个月", { n: +v }));
-export function spanOptionsHtml(cur) {
-  const y0 = new Date().getFullYear(), years = Array.from({ length: Math.max(1, Math.min(12, y0 - firstIncomeYear() + 1)) }, (_, i) => y0 - i);
-  const opt = (v) => `<option value="${v}" ${String(cur) === String(v) ? "selected" : ""}>${esc(spanLabel(v))}</option>`;
-  return [opt("m"), ...SPAN_MONTHS.map(opt), ...years.map((y) => opt(`y:${y}`))].join("");
-}
+export const spanLabel = (v) => rangeLabelOf(v);
+export const spanOptionsHtml = (cur) => rangeOptionsHtml(cur, { first: firstIncomeYear() });
+/** 收入页的时间范围下拉：和花费页同一个 id（main.js 统一处理，改了花费 / 收入一起变）+ 自定义的起止月份 */
+export const sharedRangeHtml = () => `<label class="tb-field"><span>${t("时间范围")}</span><select id="statsRange" class="range-sel" data-nosearch aria-label="${esc(t("时间范围"))}">${spanOptionsHtml(state.stats.months)}</select></label>${customHtml(state.stats.months, { first: firstIncomeYear(), attr: "data-fin-c" })}`;
 
 /* ───────────── 筛选与汇总 ───────────── */
 export const personOk = (r, person) => person === "all" || (person === "none" ? !r.person_id : r.person_id === person);

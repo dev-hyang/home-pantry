@@ -23,13 +23,13 @@ import { aiReady, askText } from "../core/ai.js";
 import { debounce, moreBtn, pageLimit, pageMoreBtn, pageSize } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
 import { compact } from "../core/list-query.js";
-import { STAT_CATS, download, dq, hitAttrs, monthLabel, toCsv } from "../stats/views.js";
+import { STAT_CATS, download, dq, hitAttrs, monthLabel, toCsv, trendPeriods } from "../stats/views.js";
 import { BUCKETS, bucketOf, l2IdOf } from "../core/taxonomy.js";
 import { INC_L1S, incL1, incLeaf, incLeavesOf, splitRecord } from "../core/income-taxonomy.js";
 import { OWN_XFER, aggregate, householdFlow, incAggregate, incNodeSum, normIncRow, normRow } from "../stats/report.js";
 import { sameAmountNear } from "../stats/dup-check.js";
 import { CHANNELS, GAIN_KINDS, RANGES, UNITS, adults, biweekAnchor, bucketKey, canSeeAll, capitalKinds, customKinds, groupList, groupOf, groupSum, inc, incSumOf, incomeIn, isIncomeKind, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, knownSenders, loadIncome, memberLabel, myPersonId, normKindSel, openRepayments, periodKeys, personOk,
-  periodLabel, personName, recognized, repayState, repaidOf, setIncMerge, similarIncome, skey, spanLabel, spanOk, spanOptionsHtml, spanPrev, spanWindow, statKinds, sumOf, windowOf } from "./logic.js";
+  periodLabel, personName, recognized, repayState, repaidOf, setIncMerge, similarIncome, skey, sharedRangeHtml, spanLabel, spanOk, spanOptionsHtml, spanPrev, spanWindow, statKinds, sumOf, windowOf } from "./logic.js";
 import { liveNetWorth, thisMonth } from "../bills/nw-logic.js";   // 净资产（迁移 059）：收支总览上的小卡片
 import { monthChange, trendPoints } from "../stats/net-worth.js";
 
@@ -87,7 +87,7 @@ window.addEventListener("spend-rows-changed", () => staleAll(["spend", "ledger"]
  * 消费 = 日常 + 住房（和花费页「含住房」同一口径，js/core/taxonomy.js 的 bucketOf）；投资 = 性质是投资的现金流出；其他流出 = 财务及其他 + 资本性支出。
  * 花费不分人，只在选「全家」时有。 */
 function cashflow({ range, from, to, unit, person, win = null }) {
-  const I = inc(), w = win || windowOf(range, { from, to }), keys = periodKeys(w.from, w.to, unit), zero = () => Object.fromEntries(keys.map((k) => [k, 0]));
+  const I = inc(), w = win || spanWindow(range), keys = periodKeys(w.from, w.to, unit), zero = () => Object.fromEntries(keys.map((k) => [k, 0]));
   const income = zero(), capIn = zero(), capBook = zero(), spend = zero(), invest = zero(), other = zero(), repaid = zero(), byKind = {}, spendCats = {};
   const rows = incomeIn(w.from, w.to, person);
   for (const r of rows) {
@@ -212,14 +212,14 @@ const lineTable = (cf) => `<div class="panel"><div class="ch-scroll"><table clas
 /** 概览 / 类型页共用的时间范围、成员、节点（切标签不丢）；时间范围和花费页同一套：本月 / 近 3·6·9·12 个月 / 今年 / 往年 */
 const OV = () => {
   const o = (inc().ov ||= { range: "12", person: "all", month: "", node: "" });
-  if (!spanOk(o.range)) o.range = "12";
+  if (o.range !== state.stats.months) { o.range = spanOk(state.stats.months) ? state.stats.months : "12"; o.month = ""; }   // 共享的时间范围（js/core/time-range.js）：花费页改了这里也跟着变
   if (!(o.person === "all" || o.person === "none" || adults().some((p) => p.id === o.person))) o.person = "all";
   return o;
 };
 const kpiS = (label, val, small = "", drill = "") => `<div class="kpi${drill ? " ch-hit-row" : ""}"${hitAttrs(drill, label)}><span>${esc(label)}</span><b>${val}</b>${small}</div>`;
 const changeHtml = (now, before) => (before > 0 ? `<small class="${now >= before ? "gain" : "loss"}">${now >= before ? t("比上期多 {p}%", { p: Math.round(((now - before) / before) * 100) }) : t("比上期少 {p}%", { p: Math.round(((before - now) / before) * 100) })}</small>` : `<small>${t("上期没有收入")}</small>`);
 const senderLabel = (x) => x.rows.find((r) => r.source_name)?.source_name || x.key;
-const ovBar = (O, { keys = null } = {}) => `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-inc-ov="range" class="range-sel" data-nosearch>${spanOptionsHtml(O.range)}</select></label>
+const ovBar = (O, { keys = null } = {}) => `<div class="time-bar">${sharedRangeHtml()}
   <label class="tb-field"><span>${t("谁的")}</span><select data-inc-ov="person" data-nosearch>${personOptions(O.person, { all: true })}</select></label>
   ${keys ? `<label class="tb-field"><span>${t("月份")}</span><select data-inc-ov="month" data-nosearch><option value="">${t("整段（{r}）", { r: spanLabel(O.range) })}</option>${[...keys].reverse().map((k) => `<option value="${k}" ${k === O.month ? "selected" : ""}>${esc(periodLabel(k, "month"))}</option>`).join("")}</select></label>` : ""}</div>`;
 /** 付款方排行：名字 + 金额 + 占比条 */
@@ -228,7 +228,7 @@ const rankHtml = (list, total, w, person) => `<ul class="ix-rank">${list.map((x)
 /** 总览要用的月份：时间范围（月）、12 个月走势（选了某一年 = 那一年） */
 function ovMonths(O) {
   const w = spanWindow(O.range), months = monthsBetween(w.from, w.to);
-  const now = new Date(), trend = String(O.range).startsWith("y:") ? months : monthsBetween(iso(new Date(now.getFullYear(), now.getMonth() - 11, 1)), todayISO());
+  const now = new Date(), trend = months.length >= 6 ? months : monthsBetween(iso(new Date(now.getFullYear(), now.getMonth() - 11, 1)), todayISO());   // 和花费页一样：6 个月以上画这段，更短看满近 12 个月
   return { w, months, trend, span: spanOfMonths([...months, ...trend]) };
 }
 /** 现金流瀑布：收入 → − 日常 − 住房 = 净现金流 → − 财务及其他 − 资本性 − 投资 = 剩余现金（表格 + 条形，读屏读表格） */
@@ -259,8 +259,8 @@ function overviewTab() {
   const ir = roll("inc", span.from, span.to), sr = all ? roll("spend", span.from, span.to) : [];
   if (!ir || !sr) return `${ovBar(O)}<p class="muted" role="status">${t("加载中…")}</p>`;
   const IA = incAggregate(ir, months, { cur: cur(), person: O.person }), SA = all ? aggregate(sr, months, { cur: cur() }) : null, F = householdFlow(IA, SA, months);
-  const pw = spanPrev(O.range), before = incSumOf(incomeIn(pw.from, pw.to, O.person)), allDrill = incDrill({ ...w, person: O.person, ex: 1 });
-  const spW = String(O.range).startsWith("y:") ? { year: String(O.range).slice(2) } : O.range === "m" ? { month: months[0] } : { mlist: months.join(",") };
+  const pw = spanPrev(O.range), before = pw ? incSumOf(incomeIn(pw.from, pw.to, O.person)) : 0, allDrill = incDrill({ ...w, person: O.person, ex: 1 });
+  const spW = String(O.range).startsWith("y:") ? { year: String(O.range).slice(2) } : months.length === 1 ? { month: months[0] } : O.range === "all" ? {} : { mlist: months.join(",") };
   const kpis = `<div class="kpis">${kpiS(t("收入（认定）"), fmtMoney(F.income), changeHtml(F.income, before), allDrill)}
     ${all ? `${kpiS(t("消费"), `${t("日常")} ${fmtMoney(F.living, true)} <span class="kpi-sub">/ ${t("含住房")} ${fmtMoney(F.consumption, true)}</span>`, `<small>${t("和花费页同一口径")}</small>`, dq({ cat: "living", nat: "operating", ...spW }))}
       ${kpiS(t("净现金流（账面）"), `<span class="${F.net < 0 ? "down" : ""}">${fmtMoney(F.net)}</span>`, `<small>${t("全部流入 − 全部流出 · 收入结余 {a}", { a: fmtMoney(F.incNet, true) })}</small>`)}
@@ -273,11 +273,13 @@ function overviewTab() {
     ${F.capIn ? `<p class="muted small" style="margin:6px 0 0"><button type="button" class="linkbtn" data-drill="${esc(incDrill({ kind: "g:capital", ...w, person: O.person }))}">🔁 ${t("资本流入 {a} · 不计收入", { a: fmtMoney(F.capIn) })}</button></p>` : ""}${DRILL_HINT()}</div>`;
   // 12 个月：收入 vs 消费（柱），投资（虚线）
   const TI = incAggregate(ir, trend, { cur: cur(), person: O.person }), TS = all ? aggregate(sr, trend, { cur: cur() }) : null;
-  const trendChart = window.Charts ? window.Charts.bars({ title: t("每月收入 vs 消费"), labels: trend.map(monthLabel), stacked: false, showTotals: false, fmt: fmtMoney,
-    series: [{ name: t("收入"), color: GREEN, values: trend.map((m) => R2(TI.income[m])) }, ...(TS ? [{ name: t("消费（日常 + 住房）"), color: RED, values: trend.map((m) => R2(TS.bucket[m].living + TS.bucket[m].housing)) }] : [])],
-    lines: TS ? [{ name: t("投资"), color: TEAL, values: trend.map((m) => R2(TS.bucket[m].investment)) }] : [],
-    drill: (k, i) => (k === 0 ? incDrill({ ...periodWin(trend[i], "month", { from: `${trend[0]}-01`, to: todayISO() }), person: O.person, ex: 1 }) : dq({ month: trend[i] })),
-    lineDrill: (_, i) => dq({ nat: "investment", month: trend[i] }),
+  const TP = trendPeriods(trend), pEnd = (i) => { const m = TP.when(i); const last = m.month || m.mlist.split(",").at(-1); const d = new Date(+last.slice(0, 4), +last.slice(5, 7), 0); const e = iso(d); return e > todayISO() ? todayISO() : e; };
+  const pFrom = (i) => `${(TP.when(i).month || TP.when(i).mlist.split(",")[0])}-01`;
+  const trendChart = window.Charts ? window.Charts.bars({ title: t("收入 vs 消费"), labels: TP.labels, stacked: false, showTotals: false, fmt: fmtMoney,
+    series: [{ name: t("收入"), color: GREEN, values: TP.agg(trend.map((m) => R2(TI.income[m]))) }, ...(TS ? [{ name: t("消费（日常 + 住房）"), color: RED, values: TP.agg(trend.map((m) => R2(TS.bucket[m].living + TS.bucket[m].housing))) }] : [])],
+    lines: TS ? [{ name: t("投资"), color: TEAL, values: TP.agg(trend.map((m) => R2(TS.bucket[m].investment))) }] : [],
+    drill: (k, i) => (k === 0 ? incDrill({ from: pFrom(i), to: pEnd(i), person: O.person, ex: 1 }) : dq(TP.when(i))),
+    lineDrill: (_, i) => dq({ nat: "investment", ...TP.when(i) }),
     legendDrill: (k) => (k === 0 ? incDrill({ from: `${trend[0]}-01`, to: todayISO(), person: O.person, ex: 1 }) : null) }) : "";
   const rows = incomeIn(w.from, w.to, O.person), senders = groupSum(rows, (r) => skey(r.source_name)).filter((x) => x.total > 0), top = senders.slice(0, 5), total = incSumOf(rows);
   const rank = top.length ? `<div class="panel"><div class="chart-head"><h3>${t("主要付款方")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("senders")}">${t("全部付款方")} ›</a></div>${rankHtml(top, total, w, O.person)}</div>` : "";
@@ -288,7 +290,7 @@ function overviewTab() {
   const recent = I.rec.filter((r) => personOk(r, O.person)).slice().sort((a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5);
   const recentHtml = recent.length ? `<div class="panel"><div class="chart-head"><h3>${t("最近到账")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("records")}">${t("全部明细")} ›</a></div><ul class="restock-list ix-list">${recent.map(recordRow).join("")}</ul></div>` : "";
   return `${ovBar(O)}${kpis}${netWorthCard()}${all ? waterfallHtml(F, spW, esc(incDrill({ kind: "g:capital", ...w, person: O.person }))) : ""}
-    <div class="panel chart-panel"><h3>${t("收入 vs 消费（近 12 个月）")}</h3>${trendChart}<p class="muted drill-hint">${t("柱子 = 认定收入和消费（日常 + 住房），虚线 = 投资转入。点一下看对应的明细。")}</p></div>
+    <div class="panel chart-panel"><h3>${t("收入 vs 消费（{r}）", { r: trend.length === months.length ? spanLabel(O.range) : t("近 12 个月") })}</h3>${trendChart}<p class="muted drill-hint">${t("柱子 = 认定收入和消费（日常 + 住房），虚线 = 投资转入。点一下看对应的明细。")}</p></div>
     ${breakdown}<div class="ix-two">${rank}${members}</div>${recentHtml}${repayPanel()}
     ${tabHub(INCOME_TABS, incomeHref, t("其他功能"))}`;
 }
@@ -602,7 +604,7 @@ const sNameOf = (x) => x.rows.find((r) => r.source_name)?.source_name || x.key;
 const sMainKind = (x) => { const m = new Map(); for (const r of x.rows) m.set(r.kind, (m.get(r.kind) || 0) + r.amount); return [...m].sort((a, b) => b[1] - a[1])[0]?.[0] || "other"; };
 /** 当前时间范围 / 成员 / 类型 / 搜索下的付款方（已排序）；rows = 参与统计的收入 */
 function senderGroups({ noSearch = false } = {}) {
-  const I = inc(), w = sWindow(I.sRange || "all"), q = noSearch ? "" : skey(I.sq), sk = I.skind || "all";
+  const I = inc(), w = spanWindow(state.stats.months), q = noSearch ? "" : skey(I.sq), sk = I.skind || "all";
   const rows = I.rec.filter((r) => r.received_on >= w.from && r.received_on <= w.to && personOk(r, I.person) && kindMatch(sk, r.kind));
   const list = groupSum(rows, (r) => skey(r.source_name)).filter((x) => !q || skey(`${x.rows.map((r) => r.source_name).join(" ")} ${kindLabel(sMainKind(x))}`).includes(q));
   const { k = "total", dir = "desc" } = I.ssort || {}, sgn = dir === "asc" ? 1 : -1;
@@ -666,9 +668,9 @@ function sSortOptions() {
 }
 const renderSenders = () => { const el = $("#incSendersList"); if (el) el.innerHTML = sendersListHtml(); const ss = $("#incSsort"); if (ss) ss.innerHTML = sSortOptions(); };
 function sendersTab() {
-  const I = inc(), range = I.sRange || "all";
+  const I = inc();
   if (!I.rec.length) return empty();
-  return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-inc-f="sRange" data-nosearch>${[["ytd", "今年"], ["3y", "近 3 年"], ["5y", "近 5 年"], ["all", "全部历史"]].map(([v, l]) => `<option value="${v}" ${v === range ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
+  return `<div class="time-bar">${sharedRangeHtml()}
     <label class="tb-field"><span>${t("谁的")}</span><select data-inc-f="person" data-nosearch>${personOptions(I.person, { all: true })}</select></label></div>
     ${sendersDashHtml()}
     <div class="panel"><div class="toolbar ix-stoolbar">
@@ -684,15 +686,14 @@ async function rememberSenders(keys, to) {
   for (const k of keys) if (k && k !== skey(to) && a[k] !== to) { a[k] = to; changed = true; }
   if (changed) await saveMeta({ _sender_alias: a });
 }
-function sWindow(range) { return windowOf(range === "ytd" ? "ytd" : range === "3y" ? "3y" : range === "5y" ? "5y" : "all"); }
 
-const R = () => (inc().r ||= { unit: "month", range: "12m", from: "", to: "", person: "all", what: "both", unmask: false });
+const R = () => { const r = (inc().r ||= { unit: "month", range: "12", from: "", to: "", person: "all", what: "both", unmask: false }); r.range = state.stats.months; return r; };   // 时间范围是共享的（js/core/time-range.js）
 /** 周期 / 时间范围 / 谁的（收支对比页和导出页共用，同一份设置） */
 const controlsHtml = (r, cf = null) => {
   const sel = (id, list, v) => `<label class="tb-field"><span>${t(id)}</span><select data-inc-r="${id === "周期" ? "unit" : "range"}" data-nosearch>${selOpts(list, v)}</select></label>`;
-  return `<div class="time-bar">${sel("周期", UNITS, r.unit)}${sel("时间范围", RANGES, r.range)}
+  return `<div class="time-bar">${sel("周期", UNITS, r.unit)}${sharedRangeHtml()}
     <label class="tb-field"><span>${t("谁的")}</span><select data-inc-r="person" data-nosearch>${personOptions(r.person, { all: true })}</select></label>
-    ${r.range === "custom" ? `<label class="tb-field"><span>${t("从")}</span><input type="date" data-inc-r="from" value="${esc(r.from)}"></label><label class="tb-field"><span>${t("到")}</span><input type="date" data-inc-r="to" value="${esc(r.to)}"></label>` : ""}${cf ? togglesHtml(cf) : ""}</div>
+    ${cf ? togglesHtml(cf) : ""}</div>
     ${r.unit === "biweek" ? `<p class="muted small" style="margin:-4px 0 8px">${t("双周起点（每 14 天一个周期，对上你的发薪日）：")}<input type="date" data-inc-anchor value="${esc(cfAnchor())}" aria-label="${esc(t("双周起点"))}"></p>` : ""}`;
 };
 const spendDonut = (cf) => {
@@ -732,7 +733,7 @@ export function incomeExportHtml() {
 }
 /** 收支对比的花费一侧还在读时，等它读完（导出 / 打印用） */
 async function cashflowReady(r) {
-  const w = windowOf(r.range, r);
+  const w = spanWindow(r.range);
   if (r.person === "all") await rollAsync("ledger", w.from, addDay(w.to, 1), r.unit === "biweek" ? "biweek" : "month");
   return cashflow(r);
 }
@@ -896,7 +897,7 @@ export function initIncome({ render, refresh }) {
       I.ssel = null; I.smergeTo = ""; toast(t("已合并：{n} 笔记成「{to}」", { n: ids.length, to })); await reload();
     });
     if (act === "csv-detail") return guard(async () => { const l = await incList.fetchAll(); if (!l.length) return toast(t("没有可导出的记录")); download(`${fileHead()}-${t("明细")}.csv`, toCsv(detailRows(l))); });   // 按当前筛选从数据库读全部，不只是已显示的
-    if (act === "csv-detail-window") { const w = windowOf(R().range, R()), l = incomeIn(w.from, w.to, R().person); if (!l.length) return toast(t("这段时间没有收入")); download(`${fileHead()}-${w.from}_${w.to}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
+    if (act === "csv-detail-window") { const w = spanWindow(R().range), l = incomeIn(w.from, w.to, R().person); if (!l.length) return toast(t("这段时间没有收入")); download(`${fileHead()}-${w.from}_${w.to}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
     if (act === "csv-senders") {   // 导出：和表格同样的筛选和排序，不分页
       const { w, list, total: tot } = senderGroups();
       return download(`${fileHead()}-${t("付款方汇总")}-${w.from}_${w.to}.csv`, toCsv([[t("付款方"), t("主要类型"), t("次数"), t("收入"), t("资本流入"), t("占比"), t("第一次"), t("最近一次")], ...list.map((x) => [sNameOf(x), kindLabel(sMainKind(x)), x.n, x.total, x.cap, rate(x.total, tot), x.first, x.last])]));

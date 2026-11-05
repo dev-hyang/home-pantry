@@ -19,7 +19,8 @@ import { moreBtn } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
 import { compact, cursorOf } from "../core/list-query.js";
 import { financeOk } from "../core/finance-access.js";
-import { viewPayees } from "./payees.js";   // 没有财务权限：花费页不显示「导入对账单」
+import { viewPayees } from "./payees.js";
+import { customHtml, effUnit, normRange, periodsOf, prevMonthsOf, rangeLabelOf, rangeMonthsOf, rangeOptionsHtml, sumByPeriods, unitOptionsHtml, finUnit } from "../core/time-range.js";   // 没有财务权限：花费页不显示「导入对账单」
 import { BUCKETS, L1S, LEGACY_STAT, NATURES, allLeaves, bucketOf, childrenOf, coversUnknown, defaultNature, effNature, isNode, isTransfer, knownLeafIds, l1Of, l2IdOf, l2List,
   l2Of, leafInfo, leafLabel, leavesOf, natureName, natureOptions, natureParams, nodeOf, parentOf, treeOptions } from "../core/taxonomy.js";
 import { aggregate, avg, fullMonths, livingSeries, median, nodeSum, normRow, normalizedMonthly, outflowSeries, rankChildren, series, storeAgg, sum, withHousingSeries } from "./report.js";
@@ -79,8 +80,15 @@ export function lastMonths(n) {
   return out;
 }
 
-/** 趋势图的月份：选了某一年 = 那一年；其余 = 近 12 个月（时间范围更短时也看满 12 个月的走势） */
-export const trendMonths = (n = state.stats.months) => (typeof n === "string" && n.startsWith("y:") ? rangeMonths(n) : lastMonths(12));
+/** 趋势图的月份：时间范围有 6 个月以上就画这段；更短（本月、上月、近 3 个月）也看满近 12 个月的走势 */
+export const trendMonths = (n = state.stats.months) => { const ms = rangeMonths(n); return ms.length >= 6 ? ms : lastMonths(12); };
+/** 走势图按周期（月 / 季 / 年，js/core/time-range.js）分组：labels、按月数组 → 按周期求和、每根柱子的钻取 */
+export function trendPeriods(months) {
+  const unit = effUnit(months), ps = periodsOf(months, unit);
+  return { unit, labels: ps.map((p) => (unit === "month" ? monthLabel(p.key) : p.label)), agg: (vals) => (unit === "month" ? vals : sumByPeriods(ps, months, vals)),
+    when: (i) => (ps[i].months.length === 1 ? { month: ps[i].months[0] } : { mlist: ps[i].months.join(",") }) };
+}
+const PER_TITLE = { month: "每月花了多少", quarter: "每季度花了多少", year: "每年花了多少" };
 /** 概览 / 分类 / 速览要用到的全部月份（时间范围 + 对比的前一段 + 趋势），合成一段一次读 */
 const baseSpan = (n = state.stats.months) => spanOfMonths([...rangeMonths(n), ...comparePlan(n).b.months, ...trendMonths(n)]);
 /** 一组月份的汇总（月份要在 baseSpan 里）；还在读返回 null */
@@ -127,20 +135,15 @@ export function itemSeries(item, starts) {
   return { used: used.map((v) => v * f), level: level.map((v) => v * f), unit: t(du(item.unit)) };
 }
 
-/** 时间范围：近 3 / 6 / 9 / 12 个月，或某一年（"y:2025"，从今年到最早有记录的那年）；花费各标签和预算趋势共用（state.stats.months）。
- *  数据都是数据库按月聚合的（spend_rollup），往年不用先读花费 */
-export const RANGES = [3, 6, 9, 12];
+/** 时间范围：财务统一的时间条（js/core/time-range.js）——本月、上月、近 3 / 6 / 12 个月、今年、去年、往年、近 3 / 5 年、全部历史、自定义；
+ *  花费各标签、预算趋势和收入页共用（state.stats.months，存在本机）。数据都是数据库按月聚合的（spend_rollup），往年不用先读花费 */
 const thisYear = () => new Date().getFullYear();
-export function rangeMonths(n = state.stats.months) {
-  if (n === "m") return lastMonths(1);   // 本月
-  if (typeof n === "string" && n.startsWith("y:")) { const y = +n.slice(2), last = y === thisYear() ? new Date().getMonth() + 1 : 12; return Array.from({ length: last }, (_, i) => `${y}-${String(i + 1).padStart(2, "0")}`); }
-  return lastMonths(+n || 6);
-}
-export const rangeChipsHtml = () => {
-  const y0 = thisYear(), first = state.stats.firstYear || y0, years = Array.from({ length: Math.max(0, Math.min(12, y0 - first + 1)) }, (_, i) => y0 - i);
-  const cur = String(state.stats.months);
-  return `<select id="statsRange" class="range-sel" aria-label="${t("时间范围")}" data-nosearch><option value="m" ${cur === "m" ? "selected" : ""}>${t("本月")}</option>${RANGES.map((n) => `<option value="${n}" ${cur === String(n) ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}${years.map((y) => `<option value="y:${y}" ${cur === `y:${y}` ? "selected" : ""}>${y === y0 ? t("今年") : t("{y} 年", { y })}</option>`).join("")}</select>`;
-};
+export const rangeMonths = (n = state.stats.months) => rangeMonthsOf(n, { first: state.stats.firstYear || thisYear() });
+export const rangeChipsHtml = () => `<select id="statsRange" class="range-sel" aria-label="${t("时间范围")}" data-nosearch>${rangeOptionsHtml(state.stats.months, { first: state.stats.firstYear || thisYear() })}</select>`;
+/** 自定义范围的起止月份（选了「自定义…」才有） */
+const customBar = () => customHtml(state.stats.months, { first: state.stats.firstYear || thisYear(), attr: "data-fin-c" });
+/** 周期下拉（有走势图的页面才有）：自动 / 月 / 季 / 年 */
+const unitSel = () => `<label class="tb-field"><span>${t("周期")}</span><select id="finUnit" data-nosearch aria-label="${t("周期")}">${unitOptionsHtml(finUnit(), trendMonths())}</select></label>`;
 /** 最早有记录的年份（只查一次），下拉里的往年选项到这一年为止 */
 export async function ensureFirstYear() {
   if (state.stats.firstYear) return false;
@@ -197,8 +200,12 @@ export function comparePlan(n = state.stats.months) {
     const y = +n.slice(2), ms = rangeMonths(n), pm = ms.map((m) => shiftYear(m, -1)), part = ms.length < 12;
     return { a: { months: ms, label: y === thisYear() ? t("本年花费") : t("{y} 年花费", { y }), drill: { year: y } }, b: { months: pm, label: part ? t("{y} 年同期（{r}）", { y: y - 1, r: monthNums(pm) }) : t("{y} 年花费", { y: y - 1 }), drill: { mlist: pm.join(",") } }, avg: "month" };
   }
-  const k = +n || 6, all = lastMonths(k * 2), am = all.slice(k), bm = all.slice(0, k);
-  return { a: { months: am, label: t("近 {n} 个月（{r}）", { n: k, r: monthNums(am) }), drill: { range: k } }, b: { months: bm, label: t("前 {n} 个月（{r}）", { n: k, r: monthNums(bm) }), drill: { mlist: bm.join(",") } }, avg: "month" };
+  n = normRange(n);
+  const am = rangeMonths(n), bm = prevMonthsOf(n) || [], k = +n;
+  const aDrill = n === "all" ? {} : [3, 6, 12].includes(k) ? { range: k } : am.length === 1 ? { month: am[0] } : { mlist: am.join(",") };
+  const aLabel = [3, 6, 12].includes(k) ? t("近 {n} 个月（{r}）", { n: k, r: monthNums(am) }) : am.length === 1 ? monthLabel(am[0]) : `${rangeLabelOf(n)}（${monthNums(am)}）`;
+  const bLabel = !bm.length ? "" : [3, 6, 12].includes(k) ? t("前 {n} 个月（{r}）", { n: k, r: monthNums(bm) }) : bm.length === 1 ? monthLabel(bm[0]) : t("前一段（{r}）", { r: monthNums(bm) });
+  return { a: { months: am, label: aLabel, drill: aDrill }, b: { months: bm, label: bLabel, drill: bm.length ? { mlist: bm.join(",") } : {} }, avg: "month" };
 }
 /** 当前时间范围的钻取参数（明细里套上同样的月份） */
 const winDrill = () => comparePlan().a.drill;
@@ -234,7 +241,7 @@ function overviewKpis() {
   }
   const inv = sum(series(A, (b) => b.investment)), cap = sum(series(A, (b) => b.capital));
   return `<div class="kpis">${liv}
-    ${kpi({ label: t("现金流出 · {r}", { r: plan.a.label }), value: money(outA), small: `${t("比{r}", { r: plan.b.label })}${changeTxt(outA, outB)}`, drill: plan.a.drill })}
+    ${kpi({ label: t("现金流出 · {r}", { r: plan.a.label }), value: money(outA), small: plan.b.months.length ? `${t("比{r}", { r: plan.b.label })}${changeTxt(outA, outB)}` : t("全部历史 / 自定义范围不做对比"), drill: plan.a.drill })}
     ${kpi({ label: t("投资"), value: money(inv), small: t("算现金流出，不算日常"), drill: { nat: "investment", ...plan.a.drill } })}
     ${kpi({ label: t("资本性支出"), value: money(cap), small: t("买房、买车、装修等，不算日常"), drill: { nat: "capital", ...plan.a.drill } })}
   </div>`;
@@ -273,17 +280,17 @@ function spendOverviewTab(withHub = false) {
     const has = sum(outflowSeries(T)) > 0 || sum(outflowSeries(A)) > 0;
     if (!has) body = rollErr() ? `<div class="panel empty"><strong>${t("花费统计读不出来")}</strong>${esc(rollErr())}</div>` : noSpend();
     else {
-      const B = (id) => bucketOf_(id), tmDrill = (typeof state.stats.months === "string" && state.stats.months.startsWith("y:")) ? winDrill() : { range: 12 };
+      const B = (id) => bucketOf_(id), tmDrill = rangeMonths().length >= 6 ? winDrill() : { range: 12 }, TP = trendPeriods(tm);
       // 每条虚线带上它的钻取条件：财务 = 财务及其他 · 日常性质；资本性 / 投资按经济性质（和上面 KPI 卡片的链接一致）
-      const lines = [{ name: t(B("financial").name), color: B("financial").color, values: series(T, (b) => b.financial), q: { cat: "financial", nat: "operating" } },
-        ...(o.exCap ? [] : [{ name: t(B("capital").name), color: B("capital").color, values: series(T, (b) => b.capital), q: { nat: "capital" } }]),
-        ...(o.exInv ? [] : [{ name: t(B("investment").name), color: B("investment").color, values: series(T, (b) => b.investment), q: { nat: "investment" } }])];
-      const trend = Charts.bars({ title: t("每月花费：日常 + 住房（柱），财务 / 资本性 / 投资（虚线）"), labels: tm.map(monthLabel), fmt: money,
-        series: [{ name: t(B("living").name), color: B("living").color, values: livingSeries(T) }, { name: t(B("housing").name), color: B("housing").color, values: series(T, (b) => b.housing) }], lines,
-        drill: (k, i) => dq({ cat: k === 0 ? "living" : "housing", nat: "operating", month: tm[i] }), legendDrill: (k) => (k < 2 ? dq({ cat: k === 0 ? "living" : "housing", nat: "operating", ...tmDrill }) : dq({ ...lines[k - 2].q, ...tmDrill })),
-        lineDrill: (j, i) => dq({ ...lines[j].q, month: tm[i] }) });
+      const lines = [{ name: t(B("financial").name), color: B("financial").color, values: TP.agg(series(T, (b) => b.financial)), q: { cat: "financial", nat: "operating" } },
+        ...(o.exCap ? [] : [{ name: t(B("capital").name), color: B("capital").color, values: TP.agg(series(T, (b) => b.capital)), q: { nat: "capital" } }]),
+        ...(o.exInv ? [] : [{ name: t(B("investment").name), color: B("investment").color, values: TP.agg(series(T, (b) => b.investment)), q: { nat: "investment" } }])];
+      const trend = Charts.bars({ title: t("花费走势：日常 + 住房（柱），财务 / 资本性 / 投资（虚线）"), labels: TP.labels, fmt: money,
+        series: [{ name: t(B("living").name), color: B("living").color, values: TP.agg(livingSeries(T)) }, { name: t(B("housing").name), color: B("housing").color, values: TP.agg(series(T, (b) => b.housing)) }], lines,
+        drill: (k, i) => dq({ cat: k === 0 ? "living" : "housing", nat: "operating", ...TP.when(i) }), legendDrill: (k) => (k < 2 ? dq({ cat: k === 0 ? "living" : "housing", nat: "operating", ...tmDrill }) : dq({ ...lines[k - 2].q, ...tmDrill })),
+        lineDrill: (j, i) => dq({ ...lines[j].q, ...TP.when(i) }) });
       const liv = l2List("living").map((n) => ({ name: `${n.icon} ${t(n.name)}`, color: n.color, value: Math.round(ms.reduce((s, m) => s + (A.liv[m]?.[n.id] || 0), 0) * 100) / 100, drill: dq({ cat: n.id, nat: "operating", ...winDrill() }) }));
-      body = `<div class="panel chart-panel"><h3>${t("每月花了多少")}</h3><p class="muted" style="margin:0 0 6px;font-size:13px">${t("柱子 = 日常 + 住房（合起来就是「含住房」）；虚线是不算日常的部分。上面的开关可以把资本性、投资也画出来。")}</p>${trend}${DRILL_HINT()}${askInline(spendAsk(T))}</div>
+      body = `<div class="panel chart-panel"><h3>${t(PER_TITLE[TP.unit])}</h3><p class="muted" style="margin:0 0 6px;font-size:13px">${t("柱子 = 日常 + 住房（合起来就是「含住房」）；虚线是不算日常的部分。上面的开关可以把资本性、投资也画出来。")}</p>${trend}${DRILL_HINT()}${askInline(spendAsk(T))}</div>
         <div class="panel chart-panel"><h3>${t("日常生活花在哪（{r}）", { r: rangeLabel() })}</h3>${Charts.hbars({ items: liv, fmt: money, title: t("日常生活按类别"), empty: t("这段时间没有日常生活花费") })}${DRILL_HINT()}</div>`;
     }
   } else body = LOADING();
@@ -320,8 +327,9 @@ function spendCategoryTab() {
     const ids = leaf ? [node] : rankChildren(C, kids.map((k) => k.id)).map((x) => x.id), top = ids.slice(0, MAX_SERIES), rest = ids.slice(MAX_SERIES);
     const ser = top.map((id) => { const k = byId.get(id) || leafInfo(id); return { id, name: t(k.name), color: k.color || "#8a948f", values: cm.map((m) => nodeSum(C, id, m)) }; });
     if (rest.length) ser.push({ id: node, name: t("其他"), color: "#8a948f", values: cm.map((m) => rest.reduce((s, id) => s + nodeSum(C, id, m), 0)) });
-    chart = ser.length ? Charts.bars({ title: t("{cat}每月花费", { cat: node ? nodeName(node) : t("全部分类") }), labels: cm.map(monthLabel), fmt: money, series: ser,
-      drill: (k, i) => dq({ cat: ser[k].id || "", month: cm[i] }), legendDrill: (k) => (ser[k].id ? dq({ cat: ser[k].id, ...(ms.length > 1 ? winDrill() : { range: 6 }) }) : null) }) : "";
+    const TP = trendPeriods(cm); for (const x of ser) x.values = TP.agg(x.values);
+    chart = ser.length ? Charts.bars({ title: t("{cat}花费走势", { cat: node ? nodeName(node) : t("全部分类") }), labels: TP.labels, fmt: money, series: ser,
+      drill: (k, i) => dq({ cat: ser[k].id || "", ...TP.when(i) }), legendDrill: (k) => (ser[k].id ? dq({ cat: ser[k].id, ...(ms.length > 1 ? winDrill() : { range: 6 }) }) : null) }) : "";
   } else chart = LOADING();
   const trips = node === "travel" ? `<div class="form-actions"><button type="button" class="btn btn-sm" data-action="stats-trips" aria-expanded="${st.byTrip ? "true" : "false"}">🧳 ${st.byTrip ? t("收起按行程") : t("按行程看")}</button></div>${st.byTrip ? tripsPanel() : ""}` : "";
   return `${nodeCrumb(node)}
@@ -441,21 +449,18 @@ export function spendExportTab() {
  *  tab 为空 = 只有时间范围（预算趋势页用，同一个范围值） */
 export function timeBarHtml(tab) {
   const clr = clearFiltersBtn("stats", changed(state.stats, FD.stats));
-  if (!tab) return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${clr}</div>`;
+  if (!tab) return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${customBar()}${clr}</div>`;
   const ms = rangeMonths(), withMonth = tab === "category" || tab === "stores" || tab === "all";
   const m = state.stats.month && ms.includes(state.stats.month) ? state.stats.month : "";
   const monthSel = withMonth && ms.length > 1 ? `<label class="tb-field"><span>${t("月份")}</span><select id="statsMonth" aria-label="${t("选择月份")}" data-nosearch><option value="" ${m ? "" : "selected"}>${t("整段（{r}）", { r: rangeLabel() })}</option>${[...ms].reverse().map((x) => `<option value="${x}" ${x === m ? "selected" : ""}>${monthOpt(x)}</option>`).join("")}</select></label>` : "";
   const o = statOpts(), tg = (act, on, label, tip) => `<label class="check-inline" title="${esc(tip)}"><input type="checkbox" data-action="${act}" ${on ? "checked" : ""}><span>${label}</span></label>`;
-  return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${monthSel}
+  const withUnit = tab === "overview" || tab === "category" || tab === "all";
+  return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${customBar()}${withUnit ? unitSel() : ""}${monthSel}
     ${tg("stats-excap", o.exCap, t("排除资本性"), t("买房卖房、买车整付、装修：几年一次、金额巨大，默认不画进图里；去掉勾可以一起看"))}
     ${tg("stats-exinv", o.exInv, t("排除投资"), t("转入投资账户、买基金股票：钱还是家里的，默认不画进图里；去掉勾可以一起看"))}${clr}</div>`;
 }
 /** 当前时间范围的叫法：近 6 个月 / 今年 / 2025 年 */
-export function rangeLabel(n = state.stats.months) {
-  if (n === "m") return t("本月");
-  if (typeof n === "string" && n.startsWith("y:")) { const y = +n.slice(2); return y === thisYear() ? t("今年") : t("{y} 年", { y }); }
-  return t("近 {n} 个月", { n: +n || 6 });
-}
+export const rangeLabel = (n = state.stats.months) => rangeLabelOf(n);
 
 export function viewSpend() {
   const r = state.route, onSpendPage = r?.section === "bills" && r?.sub === "spend";
