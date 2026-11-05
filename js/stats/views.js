@@ -672,8 +672,20 @@ function spendListHtml() {
       <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${t("退出多选")}</button>
       <small class="muted" style="flex-basis:100%">${t("先用上面的筛选（年份、月份、商店、分类、批次）缩小范围，再全选；删除前会再确认一次。")}</small></div>` : "";
   const xNote = st.xn ? `；${t("其中 {n} 笔转账（{a}）不算进合计", { n: st.xn, a: money(num(st.xsum)) })}` : "";
-  return `${selBar}<div class="muted small" style="margin:0 0 6px">${t("{n} 笔，合计 {m}", { n: st.n ?? "…", m: money(num(st.sum)) })}${xNote}</div><ul class="restock-list rec-list${S ? " selecting" : ""}">${out}</ul>
+  return `${selBar}<div class="muted small" style="margin:0 0 6px">${t("{n} 笔，合计 {m}", { n: st.n ?? "…", m: money(num(st.sum)) })}${xNote}${totalSplitHtml(st)}</div><ul class="restock-list rec-list${S ? " selecting" : ""}">${out}</ul>
     ${L.busy ? `<p class="muted" role="status" style="text-align:center">${t("加载中…")}</p>` : moreBtn(L.hasMore, 'data-action="spend-more"')}`;
+}
+/** 合计按统计桶拆开（spend_stats.bycat，迁移 061）：明细的合计 = 除转账外的全部流出，收支总览的「消费」只算 日常 + 住房，
+ *  这里把两者对上。只有一个桶时不拆；没跑迁移（没有 bycat）时不显示。 */
+function totalSplitHtml(st) {
+  if (!Array.isArray(st.bycat) || !st.bycat.length) return "";
+  const by = {};
+  for (const r of st.bycat) { const b = bucketOf(canonCat(r.c), r.nat); if (b) by[b] = (by[b] || 0) + num(r.sum); }
+  const parts = BUCKETS.filter((b) => Math.abs(by[b.id] || 0) >= 0.005);
+  if (parts.length < 2) return "";
+  const cons = (by.living || 0) + (by.housing || 0);
+  return `<div class="total-split">${parts.map((b) => `<span><i aria-hidden="true" style="background:${b.color}"></i>${esc(t(b.name))} ${esc(money(by[b.id]))}</span>`).join("")}</div>
+    <div>${t("收支总览里的「消费」= 日常生活 + 住房 = {m}；财务及其他（税、保险、利息、奉献、还本）、资本性、投资另算。", { m: money(cons) })}</div>`;
 }
 export function renderSpendList() {
   const host = $("#spendList"); if (!host) return;
