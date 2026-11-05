@@ -144,11 +144,18 @@ export const rangeChipsHtml = () => `<select id="statsRange" class="range-sel" a
 const customBar = () => customHtml(state.stats.months, { first: state.stats.firstYear || thisYear(), attr: "data-fin-c" });
 /** 周期下拉（有走势图的页面才有）：自动 / 月 / 季 / 年 */
 const unitSel = () => `<label class="tb-field"><span>${t("周期")}</span><select id="finUnit" data-nosearch aria-label="${t("周期")}">${unitOptionsHtml(finUnit(), trendMonths())}</select></label>`;
-/** 最早有记录的年份（只查一次），下拉里的往年选项到这一年为止 */
-export async function ensureFirstYear() {
-  if (state.stats.firstYear) return false;
-  const y = await Store.firstPurchaseYear().catch(() => null);
-  state.stats.firstYear = y || thisYear(); return true;
+/** 最早有记录的年份：「全部历史」从这一年算起，下拉里的往年选项也到这一年为止。
+ *  刷新页面时路由先到、登录 / 家庭还没就绪，这时查询会失败或查不到——以前当成「今年」记住了，全部历史就只剩今年。
+ *  现在：没就绪、出错都不记，下次画花费页再查；查到了才记（没有任何花费也记成今年）。 */
+let fyBusy = null;
+const storeReady = () => Store.mode !== "cloud" || !!Store.hid;
+export function ensureFirstYear() {
+  if (state.stats.firstYear) return Promise.resolve(false);
+  if (!storeReady()) return Promise.resolve(false);
+  return (fyBusy ||= Store.firstPurchaseYear()
+    .then((y) => { state.stats.firstYear = Math.min(y || thisYear(), thisYear()); return true; })
+    .catch(() => false)
+    .finally(() => { fyBusy = null; }));
 }
 const monthOpt = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
 const noSpend = () => `<div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("在采购清单点“已买到”时填上实际花费，或在“明细”里补记一笔。")}</div>`;
@@ -470,7 +477,10 @@ export function viewSpend() {
     history.replaceState(null, "", `${href("bills", "spend")}?tab=category`);
   }
   const ranged = tab === "overview" || tab === "category" || tab === "stores" || tab === "all";
-  const body = {
+  // 「全部历史」要等最早的年份查到再画，否则会先按今年算（刷新页面时最明显）
+  if (!state.stats.firstYear) ensureFirstYear().then((fresh) => { if (fresh) window.dispatchEvent(new Event("spend-data-loaded")); });   // main.js 收到就重画
+  const waitFirst = ranged && normRange(state.stats.months) === "all" && !state.stats.firstYear;
+  const body = waitFirst ? LOADING() : {
     overview: () => spendOverviewTab(onSpendPage), category: spendCategoryTab, stores: () => viewStoreStats(rangeMonths()) || noSpend(),
     records: spendRecordsTab, export: spendExportTab,
     all: () => `${spendOverviewTab()}${spendCategoryTab()}${viewStoreStats(rangeMonths())}${viewAnnualExport()}${spendRecordsTab()}`,
