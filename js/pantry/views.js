@@ -70,7 +70,7 @@ export function viewDashboard() {
 
   return `
     <section class="section" aria-labelledby="h-alert">
-      <div class="section-head"><h2 id="h-alert">${t("储藏概况")}</h2><div class="head-acts"><p>${t("按家人的使用记录估算")}</p><a class="btn btn-primary btn-sm" href="${href("item", "new")}?space=pantry">${t("添加物品")}</a></div></div>
+      <div class="section-head"><h2 id="h-alert">${t("储藏概况")}</h2><div class="head-acts"><p>${t("按家人的使用记录估算")}</p><a class="btn btn-ghost btn-sm" href="${href("scan")}" title="${esc(t("拍小票或贴线上订单，确认后自动入库、记花费"))}">🧾 ${t("录入购物")}</a><a class="btn btn-primary btn-sm" href="${href("item", "new")}?space=pantry">${t("添加物品")}</a></div></div>
       ${withHouse ? `<h3 class="strip-label">🥫 ${t("日常储备")}</h3>` : ""}
       <div class="alert-strip">
         ${tile("pantry", "t-out", n(pantry, "out"), t("缺货"), "out")}

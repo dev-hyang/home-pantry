@@ -193,7 +193,8 @@ function aiBlock() {
   return block("ai", { icon: "", title: `${aiIcon(20)} ${t("咩咩咩")}`, body: `<div class="panel tai">
       <p class="muted" style="margin:0">${sub}</p>
       <div class="form-actions tai-acts"><a class="btn btn-primary btn-sm" href="${href("ai")}">${t("问咩咩")}</a>
-        <a class="btn btn-ghost btn-sm" href="${href("pantry", "meals")}?ai=">🍳 ${t("今天吃什么")}</a></div></div>` });
+        <a class="btn btn-ghost btn-sm" href="${href("pantry", "meals")}?ai=">🍳 ${t("今天吃什么")}</a>
+        <a class="btn btn-ghost btn-sm" href="${href("scan")}">🧾 ${t("录入购物")}</a></div></div>` });
 }
 
 /* ── 快捷操作：每位用户自己的一份（云端存在账号上，换设备也在；演示模式存本机）；编辑模式点格子改成别的、长按拖动排序 ── */
