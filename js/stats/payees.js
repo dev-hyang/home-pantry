@@ -15,8 +15,10 @@ import { builtinPayee, userPayeeAliases } from "../core/payee-alias.js";
 import { spendChanged } from "../core/spend-data.js";
 import { moreBtn, pageSize } from "../core/pager.js";
 import { STORE_NONE, STORE_REST, dq, download, hitAttrs, monthLabel, rangeLabel, statKit, storeDatalist, toCsv } from "./views.js";
+import { rangeMonthsOf } from "../core/time-range.js";
+import { href } from "../core/router.js";
 
-const P = () => (state.payees ||= { q: "", sort: { k: "total", dir: "desc" }, limit: 0, renameKey: null, sel: null, mergeTo: "", tidy: false, tidyOff: new Set(), tidyTo: {} });
+const P = () => (state.payees ||= { q: "", sort: { k: "total", dir: "desc" }, limit: 0, renameKey: null, sel: null, mergeTo: "", tidy: false, tidyOff: new Set(), tidyTo: {}, open: null });
 const TZ = () => Units.timeZone() || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 /* ── 全历史名单（最近一次、整理预览）：读一次缓存，花费变了重读 ── */
@@ -26,7 +28,7 @@ function loadNames() {
   NAMES.busy = true;
   Store.payeeNames(TZ()).then((rows) => { NAMES.rows = rows || []; NAMES.missing = rows == null; })
     .catch(() => { NAMES.rows = []; })
-    .finally(() => { NAMES.busy = false; if ($("#payeeList") || $(".tidy-panel")) window.dispatchEvent(new Event("spend-data-loaded")); });
+    .finally(() => { NAMES.busy = false; if ($("#payeeList") || $(".tidy-panel") || $("[data-tidy-wait]")) window.dispatchEvent(new Event("spend-data-loaded")); });
 }
 window.addEventListener("spend-rows-changed", () => { NAMES.rows = null; });
 const namesByKey = () => new Map((NAMES.rows || []).map((r) => [r.store_key, r]));
@@ -60,6 +62,7 @@ export function viewPayees(months, month = state.stats.month) {
   const sel = month && months.includes(month) ? month : "";
   const l1 = L1S.some((x) => x.id === state.stats.storeL1 && x.id !== "transfer") ? state.stats.storeL1 : "all";
   CTX = { sel, l1 };
+  if (state.route?.q?.get("tidy") === "1") { if (!P().tidyFromLink) { P().tidy = true; P().tidyFromLink = true; } } else P().tidyFromLink = false;   // 导入完成页「去整理」带过来的（每次点链接都打开一次）
   if (!NAMES.rows) loadNames();
   const l1Sel = `<label class="tb-field"><span>${t("只看")}</span><select id="statsStoreL1" data-nosearch aria-label="${t("按一级分类筛选收款方")}"><option value="all" ${l1 === "all" ? "selected" : ""}>${t("全部花费（不含转账）")}</option>${L1S.filter((x) => x.id !== "transfer").map((x) => `<option value="${x.id}" ${x.id === l1 ? "selected" : ""}>${x.icon} ${esc(t(x.name))}</option>`).join("")}</select></label>`;
   const head = `<div class="section-head"><h2>${t("收款方")}</h2><p>${esc(sel ? monthLabel(sel) : rangeLabel())}${t("；账单、订阅、保险按收款方；名称不区分大小写")}</p></div><div class="time-bar">${l1Sel}</div>`;
@@ -138,7 +141,8 @@ function listHtml(all) {
     const pick = S.sel && own ? `<input type="checkbox" class="sel" data-action="payee-pick" data-key="${esc(x.key)}" ${picked ? "checked" : ""} aria-label="${esc(t("选中 {name}", { name: x.name }))}">` : "";
     const tr = `<tr${picked ? ' class="is-picked"' : ""}><th scope="row" class="s-name"><span class="s-name-in">${pick}<button type="button" class="link-name linkbtn" data-drill="${esc(payeeDrill([x.key]))}" title="${esc(t("查看明细"))}">${esc(x.name)}</button></span></th>
       ${cell("kind", x.node ? `<span class="ix-kind">${esc(nodeText(x.node))}</span>` : "")}${cell("n", x.count)}${cell("total", `<b>${esc(money(x.total))}</b>`)}${cell("share", total > 0 ? `${Math.round((x.total / total) * 1000) / 10}%` : "–")}${cell("avg", esc(money(x.total / x.count)))}${hasLast ? cell("last", x.last ? esc(fmtDay(x.last)) : "–") : ""}
-      <td class="s-act">${own && !S.sel ? `<button type="button" class="btn btn-sm btn-ghost" data-action="payee-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</td></tr>`;
+      <td class="s-act"><span class="s-act-in"><button type="button" class="btn btn-sm btn-ghost" data-action="payee-open" data-key="${esc(x.key)}" aria-expanded="${S.open === x.key}" aria-label="${esc(t("{name} 近 12 个月走势", { name: x.name }))}">${S.open === x.key ? "▾" : "▸"} ${t("走势")}</button>${own && !S.sel ? `<button type="button" class="btn btn-sm btn-ghost" data-action="payee-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</span></td></tr>
+      ${S.open === x.key ? `<tr class="s-form s-detail"><td colspan="${span}">${detailHtml(x)}</td></tr>` : ""}`;
     const form = S.renameKey === x.key ? `<tr class="s-form"><td colspan="${span}"><div class="payee-form">
       <label>${t("统一改成")}<input id="payeeTo" maxlength="40" list="storeList" value="${esc(x.name)}" autocomplete="off"></label>
       <div class="form-actions"><button type="button" class="btn btn-sm btn-primary" data-action="payee-rename-go" data-key="${esc(x.key)}">${t("改名（同名的会合并成一个）")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="payee-rename" data-key="">${t("取消")}</button></div>
@@ -155,6 +159,32 @@ function listHtml(all) {
   return `${selBar}<p class="muted small" style="margin:0 0 6px">${t("{n} 家，合计 {m}", { n: list.length, m: money(list.reduce((a, x) => a + x.total, 0)) })}</p>
     ${list.length ? `<table class="store-table ix-stbl payee-tbl"><thead><tr>${cols.map(th).join("")}<th scope="col" class="s-act"><span class="sr-only">${t("操作")}</span></th></tr></thead><tbody>${shown.map(row).join("")}</tbody></table>` : `<p class="muted">${t("没有符合条件的收款方")}</p>`}
     ${moreBtn(list.length > shown.length, 'data-action="payee-more"')}`;
+}
+
+/* ── 展开一行：这家近 12 个月每月花了多少 + 主要买什么（和时间范围无关，看得出是不是越花越多） ── */
+function detailHtml(x) {
+  const ms = rangeMonthsOf("12"), rows = statKit.rollup(`${ms[0]}-01`, `${nextMonth(ms.at(-1))}-01`, true);
+  if (!rows) return statKit.LOADING();
+  const mine = rows.filter((r) => (r.sk || "__none__") === x.key), opts = { l1: CTX.l1, ...statKit.statOpts() };
+  const vals = ms.map((m) => Math.round((storeAgg(mine, [m], opts)[0]?.total || 0) * 100) / 100), tot = vals.reduce((a, v) => a + v, 0);
+  const all = storeAgg(mine, ms, opts)[0], parts = all ? Object.entries(all.byL2).sort((a, b) => b[1] - a[1]).slice(0, 4) : [];
+  const chart = window.Charts.bars({ title: t("{name} 近 12 个月", { name: x.name }), labels: ms.map(monthLabel), fmt: money, showTotals: false,
+    series: [{ name: x.name, color: "var(--pine, #2c6a57)", values: vals }], drill: (_, i) => dq({ store: x.key, month: ms[i], ...(CTX.l1 !== "all" ? { cat: CTX.l1 } : {}) }) });
+  const used = vals.filter((v) => v > 0).length;
+  return `<div class="payee-detail"><div class="pd-head"><b>${esc(t("近 12 个月"))}</b><span class="muted small">${esc(t("合计 {m} · {n} 个月有花费 · 月均 {a}", { m: money(tot), n: used, a: money(used ? tot / used : 0) }))}</span></div>
+    ${chart}
+    ${parts.length ? `<p class="pd-parts">${parts.map(([k, v]) => `<span class="chip tidy-chip">${esc(nodeText(nodeOf(k)) || k)} <small>${all.total > 0 ? Math.round((v / all.total) * 100) : 0}%</small></span>`).join("")}</p>` : ""}
+    <div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-drill="${esc(payeeDrill([x.key]))}">${t("查看明细")} ›</button></div></div>`;
+}
+const nextMonth = (m) => { const d = new Date(+m.slice(0, 4), +m.slice(5, 7), 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
+
+/** 导入完成页的提示：全历史里还有几组可以合并的收款方（名单没读到时先读，读完重画）；0 组不显示 */
+export function tidyHintHtml() {
+  if (!NAMES.rows) { loadNames(); return `<span data-tidy-wait hidden></span>`; }
+  if (NAMES.missing) return "";
+  const groups = tidyGroups(); if (!groups.length) return "";
+  const eg = groups[0], from = eg.members.find((m) => m.store !== eg.to)?.store || eg.members[0].store;
+  return `<p class="tidy-hint"><span>${esc(t("另有 {n} 组收款方是同一家的不同写法（比如 {a} → {b}），可以合并。", { n: groups.length, a: from, b: eg.to }))}</span> <a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}?tab=stores&tidy=1">${t("去整理")} ›</a></p>`;
 }
 
 /* ── 整理收款方：按内置规则 / 你记的别名，把同一家的不同写法归成一组（全历史） ── */
@@ -232,6 +262,7 @@ export async function payeeAction(act, el, { render }) {
     case "payee-sort": { const k = el.dataset.k, o = S.sort; S.sort = { k, dir: o.k === k ? (o.dir === "asc" ? "desc" : "asc") : k === "name" || k === "kind" ? "asc" : "desc" }; return renderPayeeList(); }
     case "payee-more": S.limit = (S.limit || pageSize()) + pageSize(); return renderPayeeList();
     case "payee-rename": S.renameKey = el.dataset.key || null; renderPayeeList(); $("#payeeTo")?.focus(); return;
+    case "payee-open": S.open = S.open === el.dataset.key ? null : el.dataset.key; return renderPayeeList();
     case "payee-rename-go": {
       const to = $("#payeeTo")?.value.trim(); if (!to) return;
       el.disabled = true;

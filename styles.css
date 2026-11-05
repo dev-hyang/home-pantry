@@ -2447,3 +2447,12 @@ th.num .ds-sort { text-align: right; }
   .tidy-row { grid-template-columns: auto minmax(0, 1fr); }
   .tidy-to { grid-column: 2; }
 }
+/* 收款方 / 付款方：一行的「走势」展开（近 12 个月）+ 导入完成页的「可以合并」提示 */
+.s-act-in { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; flex-wrap: wrap; }
+.payee-tbl tr.s-detail > td { padding: 4px 0 12px; background: var(--surface-2); }
+.payee-detail { padding: 8px 12px; }
+.pd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 4px; }
+.pd-parts { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
+.payee-detail .form-actions { margin-top: 6px; }
+.tidy-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 0; font-size: 13px; }
+@media (max-width: 640px) { .payee-tbl tr.s-detail > td { padding: 4px 0 8px; } .payee-detail { padding: 6px 4px; } }

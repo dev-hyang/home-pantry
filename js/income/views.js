@@ -628,9 +628,21 @@ function sendersListHtml() {
   return `${selBar}<p class="muted small" style="margin:0 0 8px">${t("{n} 个付款方，收入 {m}", { n: list.length, m: fmtMoney(total) })}${cap > 0 ? ` · ${t("另有资本流入 {a}（不计收入）", { a: fmtMoney(cap) })}` : ""}</p>
     <table class="store-table ix-stbl payee-tbl"><thead><tr>${S_COLS.map(th).join("")}<th scope="col" class="s-act"><span class="sr-only">${t("操作")}</span></th></tr></thead><tbody>
     ${shown.map((x) => `<tr><th scope="row" class="s-name"><span class="s-name-in">${sel && x.rows.every(canEdit) ? `<input type="checkbox" class="sel" data-inc="sender-pick" data-key="${esc(x.key)}" ${sel.has(x.key) ? "checked" : ""} aria-label="${esc(t("选中 {name}", { name: sNameOf(x) }))}">` : ""}<button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(sNameOf(x))}</button></span></th>${cell("kind", kindBadge(sMainKind(x)))}${cell("n", x.n)}${cell("total", `<b>${fmtMoney(x.total)}</b>${x.cap ? `<br><small class="muted">${t("资本流入 {a}", { a: fmtMoney(x.cap) })}</small>` : ""}`)}${cell("share", rate(x.total, total))}${cell("last", x.last)}
-      <td class="s-act">${x.rows.every(canEdit) && !sel ? `<button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</td></tr>
+      <td class="s-act"><span class="s-act-in"><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-trend" data-key="${esc(x.key)}" aria-expanded="${I.sopen === x.key}" aria-label="${esc(t("{name} 近 12 个月走势", { name: sNameOf(x) }))}">${I.sopen === x.key ? "▾" : "▸"} ${t("走势")}</button>${x.rows.every(canEdit) && !sel ? `<button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</span></td></tr>
+      ${I.sopen === x.key ? `<tr class="s-form s-detail"><td colspan="7">${senderTrendHtml(x)}</td></tr>` : ""}
       ${I.renameKey === x.key ? `<tr class="s-form"><td colspan="7"><form data-inc-form="rename" data-key="${esc(x.key)}" class="form-grid"><label>${t("统一改成")}<input name="to" maxlength="80" required value="${esc(sNameOf(x))}" list="incSenders"></label><div class="form-actions"><button class="btn btn-sm btn-primary">${t("改名（相同名字的会合并成一个）")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="">${t("取消")}</button></div></form><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></td></tr>` : ""}`).join("") || `<tr class="s-form"><td colspan="7" class="muted">${t("没有符合条件的付款方")}</td></tr>`}</tbody></table>
     ${moreBtn(hasNext, 'data-inc="s-more"')}`;
+}
+/** 展开一个付款方：近 12 个月每月的认定收入（和上面的时间范围无关），点柱子看那个月的收入明细 */
+function senderTrendHtml(x) {
+  const I = inc(), now = new Date(), ms = Array.from({ length: 12 }, (_, i) => { const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; });
+  const by = Object.fromEntries(ms.map((m) => [m, 0]));
+  for (const r of I.rec) if (skey(r.source_name) === x.key && personOk(r, I.person) && by[r.received_on.slice(0, 7)] != null) by[r.received_on.slice(0, 7)] += recognized(r);
+  const vals = ms.map((m) => Math.round(by[m] * 100) / 100), tot = vals.reduce((a, v) => a + v, 0), used = vals.filter((v) => v > 0).length, name = sNameOf(x);
+  const end = (m) => { const d = new Date(+m.slice(0, 4), +m.slice(5, 7), 0); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  const chart = window.Charts ? window.Charts.bars({ title: t("{name} 近 12 个月", { name }), labels: ms.map(monthLabel), fmt: fmtMoney, showTotals: false,
+    series: [{ name, color: groupOf(sMainKind(x))?.color || "#2c6a57", values: vals }], drill: (_, i) => incDrill({ q: name, from: `${ms[i]}-01`, to: end(ms[i]), person: I.person }) }) : "";
+  return `<div class="payee-detail"><div class="pd-head"><b>${esc(t("近 12 个月"))}</b><span class="muted small">${esc(t("合计 {m} · {n} 个月有收入 · 月均 {a}", { m: fmtMoney(tot), n: used, a: fmtMoney(used ? tot / used : 0) }))}</span></div>${chart}</div>`;
 }
 /** 付款方页顶部：指标卡 + 前 10 名横条 + 按一级类型的环形图（不随搜索变；随时间范围、成员、类型筛选变）。点条 / 扇区 = 到收入明细看那几笔 */
 function sendersDashHtml() {
@@ -888,6 +900,7 @@ export function initIncome({ render, refresh }) {
     if (act === "sender-open") { Object.assign(I, NO_FILTER(), { q: b.dataset.key }); goTab("records"); return; }
     if (act === "drill-clear") { if (b.dataset.k === "range") { I.from = ""; I.to = ""; } else if (b.dataset.k === "ex") I.ex = false; I.limit = pageSize(); return redraw(); }
     if (act === "sender-rename") { I.renameKey = b.dataset.key || null; return redraw(); }
+    if (act === "sender-trend") { I.sopen = I.sopen === b.dataset.key ? null : b.dataset.key; return renderSenders(); }
     if (act === "sender-sel") { I.ssel = I.ssel ? null : new Set(); I.smergeTo = ""; I.renameKey = null; return redraw(); }
     if (act === "sender-pick") { const k = b.dataset.key; I.ssel.has(k) ? I.ssel.delete(k) : I.ssel.add(k); return renderSenders(); }
     if (act === "sender-merge") return guard(async () => {

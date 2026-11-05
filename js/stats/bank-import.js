@@ -14,6 +14,7 @@ import { categoryOptions } from "../pantry/views.js";
 import { aiCatalog } from "../core/taxonomy.js";
 import { meta, saveMeta } from "../bills/budget.js";
 import { canonicalPayee } from "../core/payee-alias.js";
+import { tidyHintHtml } from "./payees.js";
 import { isIncomeKind } from "../core/income-taxonomy.js";
 import { adults, guessChannel, guessKind, inc as incState, incomeRules, kindOptionsHtml, loadIncome, myPersonId, senderName, similarIncome, skey } from "../income/logic.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
@@ -522,7 +523,7 @@ function panelHtml() {
     <div class="panel bank-go"><label class="check-inline"><input type="checkbox" data-bank-remember ${S.remember ? "checked" : ""}><span>${t("记住我选的归类（下次同一商家自动归类，全家共用）")}</span></label>
       ${accountHtml()}
       <div class="form-actions"><button type="button" class="btn btn-primary" data-bank-act="import" ${(c.n || ic.n) && !S.busy ? "" : "disabled"}>${S.busy ? t("导入中…") : ic.n ? t("导入 {n} 笔花费 + {m} 笔收入", { n: c.n, m: ic.n }) : t("导入 {n} 笔", { n: c.n })}</button></div></div>
-    ${S.last ? `<div class="panel" role="status"><b>${t("已导入 {n} 笔，合计 {m}", { n: S.last.n, m: money(S.last.sum) })}</b> <button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo-last">${t("撤销这批")}</button></div>` : ""}
+    ${S.last ? `<div class="panel" role="status"><b>${t("已导入 {n} 笔，合计 {m}", { n: S.last.n, m: money(S.last.sum) })}</b> <button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo-last">${t("撤销这批")}</button>${tidyHintHtml()}</div>` : ""}
     ${batchesHtml(batches)}`;
 }
 /** 记住的归类规则：列出来、可逐条删或全部清除（归错了一次又勾了「记住」，不清掉会一直错） */
