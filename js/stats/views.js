@@ -717,10 +717,10 @@ function spendRecordsHtml() {
     <div class="panel">
       <div class="toolbar ix-toolbar">
         <input type="search" id="spendSearch" placeholder="${t("搜索名称或收款方")}" value="${esc(f.q)}" aria-label="${t("搜索花费记录")}">
-        <select id="spendCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${f.cat === "bills" || String(f.cat).startsWith("billfam_") ? opt(f.cat, t("账单"), f.cat) : ""}${treeOptions(f.cat, used)}</select>
+        <select id="spendCat" data-search aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${f.cat === "bills" || String(f.cat).startsWith("billfam_") ? opt(f.cat, t("账单"), f.cat) : ""}${treeOptions(f.cat, used)}</select>
         <select id="spendNat" data-nosearch aria-label="${t("按经济性质筛选")}">${opt("all", t("全部性质"), f.nat || "all")}${NATURES.map((n) => opt(n.id, t(n.name), f.nat)).join("")}</select>
         ${activeProps().length > 1 || (f.prop && f.prop !== "all") ? `<select id="spendProp" data-nosearch aria-label="${t("按房产筛选")}">${opt("all", t("全部房产"), f.prop || "all")}${activeProps().map((p) => opt(p.id, p.name, f.prop)).join("")}${opt("none", t("没关联房产"), f.prop)}</select>` : ""}
-        <select id="spendStore" aria-label="${t("按收款方筛选")}">${opt("all", t("全部收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${opt("__none__", t("未填写收款方"), f.store)}</select>
+        <select id="spendStore" data-search aria-label="${t("按收款方筛选")}">${opt("all", t("全部收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${opt("__none__", t("未填写收款方"), f.store)}</select>
         <select id="spendRange" class="range-sel" data-nosearch aria-label="${t("时间范围")}">${rangeOptionsHtml(f.range || "all", { first })}</select>
         ${customHtml(f.range || "all", { first, attr: "data-spend-c" })}
         <select id="spendSort" data-nosearch aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>

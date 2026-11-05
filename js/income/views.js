@@ -459,7 +459,7 @@ function recordsTab() {
   const opt = (v, l, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(l)}</option>`;
   return `${top}<div class="panel"><div class="toolbar ix-toolbar">
     <input type="search" data-inc-f="q" value="${esc(I.q)}" placeholder="${esc(t("搜索付款方 / 备注"))}" aria-label="${esc(t("搜索收入"))}">
-    <select id="incKindF" data-inc-f="kind" aria-label="${esc(t("按类型筛选"))}">${kindOptionsHtml(I.kind, { all: true, groups: true, allLabel: t("全部类型") })}</select>
+    <select id="incKindF" data-search data-inc-f="kind" aria-label="${esc(t("按类型筛选"))}">${kindOptionsHtml(I.kind, { all: true, groups: true, allLabel: t("全部类型") })}</select>
     <select id="incAcctF" data-inc-f="acct" data-nosearch aria-label="${esc(t("按账户筛选"))}">${acctFilterOptions(I.acct || "all")}</select>
     <select id="incPersonF" data-inc-f="person" data-nosearch aria-label="${esc(t("按成员筛选"))}">${personOptions(I.person, { all: true })}</select>
     <select id="incYearF" data-inc-f="year" data-nosearch aria-label="${esc(t("按年份筛选"))}">${opt("all", t("全部年份"), I.year)}${yearsOf().map((v) => opt(v, v, I.year)).join("")}</select>
@@ -687,7 +687,7 @@ function sendersTab() {
     ${sendersDashHtml()}
     <div class="panel"><div class="toolbar ix-stoolbar">
       <input type="search" data-inc-sq value="${esc(I.sq || "")}" placeholder="${esc(t("搜索付款方 / 类型"))}" aria-label="${esc(t("搜索付款方"))}">
-      <select id="incSkindF" data-inc-f="skind" aria-label="${esc(t("按类型筛选"))}">${kindOptionsHtml(I.skind || "all", { all: true, groups: true, allLabel: t("全部类型") })}</select>
+      <select id="incSkindF" data-search data-inc-f="skind" aria-label="${esc(t("按类型筛选"))}">${kindOptionsHtml(I.skind || "all", { all: true, groups: true, allLabel: t("全部类型") })}</select>
       <select id="incSsort" data-inc-ssort data-nosearch aria-label="${esc(t("排序"))}">${sSortOptions()}</select>${clearFiltersBtn("incSend", changed(I, FD.incSend))}</div>
     <div class="ix-tools payee-tools"><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-sel">${I.ssel ? t("退出多选") : t("多选合并")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="csv-senders">${t("导出 CSV")}</button></div>
     <div id="incSendersList">${sendersListHtml()}</div></div>`;

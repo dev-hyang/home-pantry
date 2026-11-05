@@ -263,7 +263,7 @@ export function viewInventory(space = "pantry") {
   // 手机：进了某个大类后，原来「全部小类」芯片的位置放两个下拉——大类（默认当前，切换就换路径）+ 小类（默认全部小类）；电脑页横向够宽，大类芯片 / 小类芯片照旧一眼能点
   const subSel = subCounts.length > 1 ? `<select id="invSubSel" aria-label="${t("按小类筛选")}"><option value="all">${t("全部小类")}</option>${subCounts.map(([s, n]) => `<option value="${esc(s)}" ${f.sub === s ? "selected" : ""}>${esc(t(s))} (${n})</option>`).join("")}</select>` : "";
   const subBar = phone && cur ? `<div class="inv-filters${subSel ? "" : " solo"}">
-        <select id="invCatSel" aria-label="${t("按分类筛选")}"><option value="all">${t("全部")}</option>${orderedCats(space).map((c) => `<option value="${esc(c.id)}" ${c.id === cur.id ? "selected" : ""}>${c.icon} ${esc(t(c.name))}</option>`).join("")}</select>${subSel}</div>` : subChips;
+        <select id="invCatSel" data-search aria-label="${t("按分类筛选")}"><option value="all">${t("全部")}</option>${orderedCats(space).map((c) => `<option value="${esc(c.id)}" ${c.id === cur.id ? "selected" : ""}>${c.icon} ${esc(t(c.name))}</option>`).join("")}</select>${subSel}</div>` : subChips;
   return `
     <section class="section">
       <div class="section-head"><p>${cur ? t("{n} 件", { n: mine.filter((x) => x.category === cur.id).length }) : t("{n} 件", { n: mine.length })}</p>
@@ -419,7 +419,7 @@ function shopToolbar() {
   const cats = [...new Set(state.shopping.map(shopCat))];
   if (state.shopping.length < 3) return "";
   return `<div class="toolbar" style="margin-top:12px">
-    <select id="shopCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c, `${(window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).icon || ""} ${t((window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).name)}`.trim(), f.cat)).join("")}</select>
+    <select id="shopCat" data-search aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c, `${(window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).icon || ""} ${t((window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).name)}`.trim(), f.cat)).join("")}</select>
     <select id="shopWho" aria-label="${t("按认领筛选")}">${opt("all", t("全部"), f.who)}${opt("todo", t("没人认领的"), f.who)}${opt("mine", t("我认领的"), f.who)}${opt("others", t("家人认领的"), f.who)}</select>
     <select id="shopSort" aria-label="${t("排序")}">${SHOP_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>${clearFiltersBtn("shop", changed(f, FD.shop))}</div>`;
 }
