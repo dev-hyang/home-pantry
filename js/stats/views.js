@@ -18,7 +18,8 @@ import { cardHintHtml, cardOptions, cardSelectHtml, payAcctValue, paymentPayLabe
 import { moreBtn } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
 import { compact, cursorOf } from "../core/list-query.js";
-import { financeOk } from "../core/finance-access.js";   // 没有财务权限：花费页不显示「导入对账单」
+import { financeOk } from "../core/finance-access.js";
+import { viewPayees } from "./payees.js";   // 没有财务权限：花费页不显示「导入对账单」
 import { BUCKETS, L1S, LEGACY_STAT, NATURES, allLeaves, bucketOf, childrenOf, coversUnknown, defaultNature, effNature, isNode, isTransfer, knownLeafIds, l1Of, l2IdOf, l2List,
   l2Of, leafInfo, leafLabel, leavesOf, natureName, natureOptions, natureParams, nodeOf, parentOf, treeOptions } from "../core/taxonomy.js";
 import { aggregate, avg, fullMonths, livingSeries, median, nodeSum, normRow, normalizedMonthly, outflowSeries, rankChildren, series, storeAgg, sum, withHousingSeries } from "./report.js";
@@ -757,41 +758,10 @@ export function knownStores() {
 }
 export const storeDatalist = () => `<datalist id="storeList">${knownStores().map((x) => `<option value="${esc(x)}">`).join("")}</datalist>`;
 
-/** 商店 / 收款方：排行（横条里按二级分类分段，看得出在这家主要买什么）+ 表格；可按一级分类筛（默认 = 现金流出，不含转账）。
- *  数据来自 spend_rollup_store（按 月 × 商店 × 分类 × 性质 聚合），不读花费明细。month = 只看某个月 */
-const STORE_TOP = 12;
-export function viewStoreStats(months, month = state.stats.month) {
-  const sel = month && months.includes(month) ? month : "", sp = spanOfMonths(months), rows = rollup(sp.from, sp.to, true), o = statOpts();
-  const l1 = L1S.some((x) => x.id === state.stats.storeL1 && x.id !== "transfer") ? state.stats.storeL1 : "all";
-  const l1Sel = `<label class="tb-field"><span>${t("只看")}</span><select id="statsStoreL1" data-nosearch aria-label="${t("按一级分类筛选收款方")}"><option value="all" ${l1 === "all" ? "selected" : ""}>${t("全部花费（不含转账）")}</option>${L1S.filter((x) => x.id !== "transfer").map((x) => `<option value="${x.id}" ${x.id === l1 ? "selected" : ""}>${x.icon} ${esc(t(x.name))}</option>`).join("")}</select></label>`;
-  const head = `<div class="section-head"><h2>${t("按收款方统计")}</h2><p>${sel ? monthLabel(sel) : rangeLabel()}${t("；账单、订阅、保险按收款方；名称不区分大小写")}</p></div><div class="time-bar">${l1Sel}</div>`;
-  if (!rows) return `<section class="section">${head}${LOADING()}</section>`;
-  const list = storeAgg(rows, months, { sel, l1, ...o });
-  if (!list.length) return `<section class="section">${head}<div class="panel empty"><strong>${t("这段时间没有符合条件的花费")}</strong></div></section>`;
-  const named = list.filter((a) => a.key !== "__none__"), none = list.find((a) => a.key === "__none__"), top = named.slice(0, STORE_TOP), rest = named.slice(STORE_TOP);
-  const groups = top.map((a) => ({ ...a, keys: [a.key] }));
-  if (rest.length) groups.push(rest.reduce((g, v) => { g.total += v.total; g.count += v.count; g.keys.push(v.key); for (const [k, x] of Object.entries(v.byL2)) g.byL2[k] = (g.byL2[k] || 0) + x; return g; },
-    { name: t(STORE_REST.name), total: 0, count: 0, byL2: {}, keys: [], members: rest, isRest: true }));
-  if (none) groups.push({ ...none, name: t(STORE_NONE.name), keys: ["__none__"] });
-  const total = groups.reduce((a, g) => a + g.total, 0);
-  // 点一个商店 / “其他商店”：跳到明细，套上这家（或这一组）商店 + 一级分类；month 为空 = 整个时间范围
-  const gDrill = (g) => dq({ ...(g.keys.length === 1 ? { store: g.keys[0] } : { stores: encKeys(g.keys) }), ...(l1 !== "all" ? { cat: l1 } : {}), ...(sel ? { month: sel } : winDrill()) });
-  const bars = Charts.hbars({ title: t("在哪里花得最多"), fmt: money, total,
-    items: groups.map((g) => ({ name: g.isRest ? `${g.name}（${t("{n} 家", { n: g.members.length })}）` : g.name, value: Math.round(g.total * 100) / 100, color: "#8a948f", drill: gDrill(g),
-      parts: Object.entries(g.byL2).map(([k, v]) => { const n = nodeOf(k); return { name: `${n?.icon || ""} ${t(n?.name || k)}`.trim(), value: v, color: n?.color || "#8a948f" }; }) })) });
-  const trs = groups.map((g) => `<tr><th scope="row"><button type="button" class="link-name linkbtn" data-drill="${esc(gDrill(g))}" title="${esc(t("查看明细"))}">${esc(g.name)}</button>${g.isRest ? ` <small class="muted">${t("{n} 家", { n: g.members.length })}</small>` : ""}
-    <td>${g.count}</td><td>${esc(money(g.total))}</td><td>${esc(money(g.total / g.count))}</td><td>${total ? Math.round((g.total / total) * 100) : 0}%</td></tr>`).join("");
-  // “其他商店”里到底有哪些：展开列出每一家，每家也能点进明细
-  const rg = groups.find((g) => g.isRest);
-  const restDetail = rg ? `<details class="rest-detail"><summary><span class="rd-text"><b>${t("“其他收款方”包含 {n} 家", { n: rg.members.length })}</b><small>${t("花费较少的收款方合并在一起；点开看每一家，再点收起")}</small></span><span class="mch" aria-hidden="true">›</span></summary>
-    <ul class="rest-list">${rg.members.map((v) => `<li class="ch-hit-row"${hitAttrs(gDrill({ keys: [v.key] }), v.name)}><span class="grow">${esc(v.name)}</span><small class="muted">${t("{n} 笔", { n: v.count })}</small><b>${esc(money(v.total))}</b><u aria-hidden="true">›</u></li>`).join("")}</ul></details>` : "";
-  return `<section class="section">${head}
-    <div class="panel chart-panel"><h3>${t("在哪里花得最多")}</h3><p class="muted" style="margin:0 0 8px;font-size:13px">${t("每条按二级分类分段：看得出在这家主要买什么。")}</p>${bars}
-      <details class="ch-table"><summary>${t("查看数据表")}</summary><div class="ch-scroll"><table class="store-table"><thead><tr><th scope="col">${t("商店 / 收款方")}</th><th scope="col">${t("次数")}</th><th scope="col">${t("合计")}</th><th scope="col">${t("平均每次")}</th><th scope="col">${t("占比")}</th></tr></thead><tbody>${trs}</tbody></table></div></details>
-      ${restDetail}${DRILL_HINT()}
-    </div>
-  </section>`;
-}
+/** 收款方页：实现在 js/stats/payees.js（指标卡、图表、表格、改名 / 合并、整理收款方） */
+export const viewStoreStats = (months, month = state.stats.month) => viewPayees(months, month);
+/** payees.js 要用的统计小工具（运行时才取，循环引用无妨） */
+export const statKit = { rollup: (from, to, store) => rollup(from, to, store), statOpts: () => statOpts(), spanOfMonths: (ms) => spanOfMonths(ms), winDrill: () => winDrill(), LOADING: () => LOADING() };
 
 export function viewAnnualExport() {
   const y = new Date().getFullYear();

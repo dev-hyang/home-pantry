@@ -3,7 +3,7 @@ import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
 import { t } from "./i18n.js";
 import { financeAllowed } from "./finance-rules.js";
 import { migrateLegacyDebts } from "./debt-rules.js";
-import { cardSpend, cardTotals, incRollup, itemPurchaseStats, ledgerRange, ledgerRollup, localPage, localStats, spendRollup, spendSuggest } from "./list-query.js";
+import { cardSpend, cardTotals, incRollup, itemPurchaseStats, ledgerRange, ledgerRollup, localPage, localStats, spendFeed, spendRollup, spendSuggest } from "./list-query.js";
 
 /* 成员资料（迁移 052）：只在 设置 → 家庭与成员 里用，不进 AI 提示词、不进备份（个人数据，只给本家庭看） */
 const PROFILE_COLS = "phone,email,address";
@@ -110,6 +110,29 @@ export const DemoStore = {
   /** 统计用的聚合（迁移 055 的 spend_rollup / spend_rollup_store 的本地版） */
   async spendRollup(from, to) { return spendRollup(this.db, from, to); },
   async spendRollupStore(from, to) { return spendRollup(this.db, from, to, true); },
+  /** 收款方名单（同 spend_payee_names，迁移 062）：全部历史的笔数、金额、最近一次 */
+  async payeeNames() {
+    const m = new Map();
+    for (const s of spendFeed(this.db, {})) {
+      const v = s.store_txt.trim(), k = v.toLowerCase() || "__none__", r = m.get(k) || { store_key: k, store: v, n: 0, sum: 0, last_at: s.purchased_at };
+      r.n++; r.sum += +s.amount || 0; if (s.purchased_at > r.last_at) r.last_at = s.purchased_at; if (v && v < r.store) r.store = v; m.set(k, r);
+    }
+    return [...m.values()];
+  },
+  /** 批量改名 / 合并（同 rename_payees）：返回改了的行和原值（撤销用） */
+  async renamePayees(fromKeys, to) {
+    const set = new Set(fromKeys), out = [], name = String(to).trim();
+    if (!name) return out;
+    for (const p of this.db.purchases) {
+      const k = String(p.store || "").trim().toLowerCase(); if (!k || !set.has(k)) continue;
+      out.push({ id: p.id, old_store: p.store, old_name: p.name });
+      if (String(p.name || "").trim().toLowerCase() === k) p.name = name.slice(0, 60);
+      p.store = name.slice(0, 40);
+    }
+    this.persist(); return out;
+  },
+  /** 撤销改名：按原值写回 */
+  async restorePayees(rows) { const by = new Map(rows.map((r) => [r.id, r])); for (const p of this.db.purchases) { const r = by.get(p.id); if (r) { p.store = r.old_store; p.name = r.old_name; } } this.persist(); },
   /** 收入聚合 / 统一账本（迁移 056 的 inc_rollup / ledger_rollup / ledger_v 的本地版） */
   async incRollup(from, to) { return incRollup(this.db, from, to); },
   async ledgerRollup(from, to, tz, unit = "month", anchor = null) { return ledgerRollup(this.db, from, to, unit, anchor); },
@@ -692,6 +715,15 @@ export const CloudStore = {
   async ledgerRange(from, to) {
     const lo = new Date(`${from}T00:00:00`).toISOString(), hi = new Date(`${to}T00:00:00`).toISOString();
     return this.pageAll(() => this.sb.from("ledger_v").select("*").eq("household_id", this.hid).gte("occurred_at", lo).lt("occurred_at", hi).order("occurred_at", { ascending: false }).order("id", { ascending: false }), 20000);
+  },
+  /** 收款方名单（迁移 062）：没执行迁移时返回 null（页面照常，只是没有「最近一次」和整理功能） */
+  async payeeNames(tz) { try { return await this.pageAll(() => this.sb.rpc("spend_payee_names", { p_household: this.hid, p_tz: tz }).order("store_key")); } catch (e) { if (/spend_payee_names|function|schema cache/i.test(e.message || "")) return null; throw e; } },
+  async renamePayees(fromKeys, to) { return this.must(await this.sb.rpc("rename_payees", { p_household: this.hid, p_from: fromKeys, p_to: to })) || []; },
+  /** 撤销改名：按（原收款方, 原名称）分组，每组一次 update（几十组以内） */
+  async restorePayees(rows) {
+    const groups = new Map();
+    for (const r of rows) { const k = JSON.stringify([r.old_store, r.old_name]); (groups.get(k) || groups.set(k, []).get(k)).push(r.id); }
+    for (const [k, ids] of groups) { const [store, name] = JSON.parse(k); for (let i = 0; i < ids.length; i += 100) this.must(await this.sb.from("purchases").update({ store, name }).eq("household_id", this.hid).in("id", ids.slice(i, i + 100))); }
   },
   async spendRollupStore(from, to, tz) { return this.pageAll(() => this.sb.rpc("spend_rollup_store", { p_household: this.hid, p_from: from || null, p_to: to || null, p_tz: tz }).order("month").order("store_key").order("category").order("nature").order("currency")); },
   async listItems() { return this.pageAll(() => this.sb.from("items").select("*").eq("household_id", this.hid).order("name").order("id")); },

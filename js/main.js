@@ -75,6 +75,7 @@ import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLoc
 import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
 import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureFirstYear, exportAnnual, exportSpendList, patchSpendRow, rememberStore, renderSpendList, renderSpendRecords, spendList, spendRowsLoaded, viewSpend, viewStats } from "./stats/views.js";
+import { payeeAction, payeeChange, payeeInput } from "./stats/payees.js";
 import { matchOpenShopping, showPurchaseDup } from "./stats/dup-check.js";
 
 const APP_NAME = "爱家小助手";
@@ -512,6 +513,7 @@ main.addEventListener("input", (e) => {
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; searchSoon(renderInvList); }
   if (e.target.id === "medSearch") { state.medFilter.q = e.target.value; searchSoon(renderMedList); }
   if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; searchSoon(renderSpendList); }   // 停下 ~200ms 再查数据库
+  if (payeeInput(e, searchSoon)) return;   // 收款方：搜索、合并后的名字
   if (e.target.id === "billSearch") { state.billsFilter.q = e.target.value; searchSoon(renderBillList); }
   if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; searchSoon(renderAssetList); }
   if (e.target.id === "offQ") {   // 停用的卡搜索：只重画那张列表，输入框不丢焦点
@@ -696,6 +698,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.dataset?.action === "stats-excap") { state.stats.exCap = e.target.checked; render(); }   // 花费统计：排除资本性 / 排除投资（概览趋势、分类、商店一起变）
   if (e.target.dataset?.action === "stats-exinv") { state.stats.exInv = e.target.checked; render(); }
   if (e.target.id === "statsStoreL1") { state.stats.storeL1 = e.target.value; render(); }
+  if (payeeChange(e)) return;
   if (e.target.id === "statsRange") { const v = e.target.value; state.stats.months = v.startsWith("y:") || v === "m" ? v : +v; state.stats.month = null; render(); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（数据库按月聚合，往年也一样）
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
@@ -911,6 +914,7 @@ main.addEventListener("click", async (e) => {
     if (action?.startsWith("fix-")) return fixAction(action, el, { refresh, render, go });   // 出了问题？诊断与配件
     if (action?.startsWith("recall-")) return recallAction(action, el, { refresh, render });   // 设备召回：清除标记 / 重新打开
     if (action?.startsWith("budget-") || action === "shop-advice-close") return budgetAction(action, { refresh, render }, el);
+    if (action?.startsWith("payee-")) return payeeAction(action, el, { render });   // 花费 → 收款方（js/stats/payees.js）
     switch (action) {
       case "add-item": return openItem(null, { space: el.dataset.space });
       case "edit": return openItem(id);

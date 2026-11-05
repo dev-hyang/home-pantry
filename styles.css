@@ -1787,7 +1787,7 @@ body.editing .minibar { display: none; }
 .ix-stbl .s-name .link-name { padding: 6px 0; min-height: 32px; overflow-wrap: anywhere; line-height: 1.35; }
 .ix-stbl .s-kind { text-align: left; }
 .ix-stbl .s-kind .ix-kind { white-space: normal; border-radius: 8px; padding: 2px 8px; line-height: 1.35; }
-.ix-stbl .s-n, .ix-stbl .s-total, .ix-stbl .s-share, .ix-stbl .s-last, .ix-stbl .s-act { white-space: nowrap; }
+.ix-stbl .s-n, .ix-stbl .s-total, .ix-stbl .s-share, .ix-stbl .s-avg, .ix-stbl .s-last, .ix-stbl .s-act { white-space: nowrap; }
 .ix-stbl td.s-total b { font-weight: 700; font-variant-numeric: tabular-nums; }
 .ix-stbl .s-act { width: 1%; text-align: right; }
 @media (max-width: 640px) {
@@ -1798,8 +1798,8 @@ body.editing .minibar { display: none; }
   .ix-stbl .s-name { flex: 1 1 0; min-width: 0; font-size: 15px; }
   .ix-stbl td.s-total { order: 1; flex: 0 0 auto; margin-left: auto; font-size: 15px; text-align: right; }   /* 卡片第一行：名称 + 金额 */
   .ix-stbl td.s-kind { order: 2; flex: 1 1 100%; }
-  .ix-stbl td.s-n, .ix-stbl td.s-share, .ix-stbl td.s-last { order: 3; flex: 0 0 auto; font-size: 12.5px; color: var(--muted); }
-  .ix-stbl td.s-n::before, .ix-stbl td.s-share::before, .ix-stbl td.s-last::before { content: attr(data-l) " "; }
+  .ix-stbl td.s-n, .ix-stbl td.s-share, .ix-stbl td.s-avg, .ix-stbl td.s-last { order: 3; flex: 0 0 auto; font-size: 12.5px; color: var(--muted); }
+  .ix-stbl td.s-n::before, .ix-stbl td.s-share::before, .ix-stbl td.s-avg::before, .ix-stbl td.s-last::before { content: attr(data-l) " "; }
   .ix-stbl td.s-act { order: 4; flex: 0 0 auto; width: auto; margin-left: auto; }
   .ix-stbl td.s-act:empty { display: none; }
   .ix-stbl tr.s-form { display: block; }
@@ -2416,3 +2416,34 @@ th.num .ds-sort { text-align: right; }
 .ds-sort:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; border-radius: 4px; }
 .ds-tbl tbody th { font-weight: 600; text-align: left; }
 @media (max-width: 480px) { .ds-olist li { grid-template-columns: 1fr auto; } .ds-olist .ds-bar { grid-column: 1 / -1; order: 3; } }
+
+/* ── 花费 → 收款方（js/stats/payees.js）：表格沿用付款方的 ix-stbl（手机上变成卡片）；下面是这一页自己的部分 ── */
+.chart-sub { margin: 0 0 8px; font-size: 13px; }
+.payee-tools { margin: 0 0 10px; }
+.payee-tbl .s-name-in { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
+.payee-tbl .s-name .sel { flex: none; width: 18px; height: 18px; margin: 0; }
+.payee-tbl .s-avg, .payee-tbl .s-share, .payee-tbl .s-n, .payee-tbl .s-last { font-variant-numeric: tabular-nums; }
+.payee-tbl tr.is-picked { background: var(--surface-2); }
+.payee-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; padding: 4px 0; }
+.payee-form label { display: flex; flex-direction: column; gap: 4px; flex: 1 1 220px; min-width: 0; font-size: 13px; color: var(--muted); }
+.payee-form input { width: 100%; box-sizing: border-box; }
+.payee-form .form-actions { margin: 0; }
+.payee-form small { flex-basis: 100%; }
+.payee-sel { gap: 8px 10px; }
+.payee-merge-to { display: flex; align-items: center; gap: 6px; flex: 1 1 220px; min-width: 0; }
+.payee-merge-to input { flex: 1 1 auto; min-width: 0; }
+.tidy-panel h3 { font-size: 15px; margin: 0 0 4px; }
+.tidy-list { list-style: none; margin: 0 0 10px; padding: 0; }
+.tidy-row { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(180px, 260px); align-items: center; gap: 8px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.tidy-pick { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; }
+.tidy-pick input { width: 18px; height: 18px; margin: 0; }
+.tidy-from { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.tidy-chip { cursor: default; max-width: 100%; overflow-wrap: anywhere; }
+.tidy-chip small { color: var(--muted); font-weight: 400; }
+.tidy-to { display: flex; align-items: center; gap: 6px; min-width: 0; flex-wrap: wrap; }
+.tidy-to input { flex: 1 1 120px; min-width: 0; }
+.tidy-to small { flex-basis: 100%; padding-left: 18px; }
+@media (max-width: 640px) {
+  .tidy-row { grid-template-columns: auto minmax(0, 1fr); }
+  .tidy-to { grid-column: 2; }
+}
