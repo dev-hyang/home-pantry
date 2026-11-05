@@ -697,12 +697,13 @@ main.addEventListener("change", async (e) => {
     try { localStorage.setItem("hmh-gear-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? t("已打开装备") : t("已关闭装备，导航里不再显示")); render();
   }
-  { const k = { spendCat: "cat", spendNat: "nat", spendProp: "prop", spendStore: "store", spendYear: "year", spendMon: "mon", spendSort: "sort" }[e.target.id]; if (k) { const f = state.spendFilter; f[k] = e.target.value; if (k === "store") f.stores = null; if (k === "cat") f.grp = null; if (k === "year" || k === "mon") { f.months = null; f.dmax = null; } renderSpendList(); } }   // 手动选了商店 / 年份 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”；回到第一页重新查
+  { const k = { spendCat: "cat", spendNat: "nat", spendProp: "prop", spendStore: "store", spendRange: "range", spendSort: "sort" }[e.target.id]; if (k) { const f = state.spendFilter; f[k] = e.target.value; if (k === "store") f.stores = null; if (k === "cat") f.grp = null; if (k === "range") { f.months = null; f.dmax = null; f.year = "all"; f.mon = "all"; renderSpendRecords(); } renderSpendList(); } }   // 手动选了商店 / 年份 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”；回到第一页重新查
   if (e.target.dataset?.action === "stats-excap") { state.stats.exCap = e.target.checked; render(); }   // 花费统计：排除资本性 / 排除投资（概览趋势、分类、商店一起变）
   if (e.target.dataset?.action === "stats-exinv") { state.stats.exInv = e.target.checked; render(); }
   if (e.target.id === "statsStoreL1") { state.stats.storeL1 = e.target.value; render(); }
   if (payeeChange(e)) return;
   if (e.target.id === "statsRange") { setSharedRange(e.target.value); render(); }   // 财务统一的时间范围（js/core/time-range.js）：花费、预算趋势、收入共用
+  if (e.target.dataset?.spendC) { const f = state.spendFilter; f.range = customChanged(f.range, e.target.dataset.spendC, e.target.value); f.months = null; f.dmax = null; renderSpendRecords(); renderSpendList(); }   // 明细的自定义起止月份
   if (e.target.dataset?.finC) { setSharedRange(customChanged(state.stats.months, e.target.dataset.finC, e.target.value)); render(); }   // 自定义的起止月份
   if (e.target.id === "finUnit") { setFinUnit(e.target.value); render(); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（数据库按月聚合，往年也一样）
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }

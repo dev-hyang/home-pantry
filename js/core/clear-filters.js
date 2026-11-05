@@ -15,12 +15,12 @@ export const FD = {
   asset: { q: "", type: "all", service: "all", warranty: "all", loc: "all" },
   bills: { property: "all", cat: "all", autopay: "all", channel: "all", q: "" },
   pay: { bill: "all", year: "all", status: "all" },
-  spend: { q: "", cat: "all", nat: "all", prop: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null },
+  spend: { q: "", cat: "all", nat: "all", prop: "all", store: "all", stores: null, grp: null, range: "all", year: "all", mon: "all", months: null, dmax: null, batch: null },
   med: { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" },
   incRec: { q: "", kind: "all", acct: "all", person: "all", year: "all", month: "all", from: "", to: "", ex: false, batch: null },   // 收入记录（含图表下钻的日期段、导入批次）
   incSend: { person: "all", sq: "", skind: "all" },   // 付款方汇总
   debtP: { q: "", dir: "all", st: "all" },   // 借贷 → 个人借贷
-  stmt: { range: "3m", dir: "all", q: "" },   // 全部流水
+  stmt: { range: "3", dir: "all", q: "" },   // 全部流水
   gift: { issuer: "all", used: false },   // 卡与账户：礼品卡
   off: { q: "", kind: "all" },             // 卡与账户：停用的卡
   stats: { months: "12", month: null, exCap: true, exInv: true, node: null, byTrip: false, storeL1: "all" },   // 花费统计 / 预算趋势：时间范围、月份、分类树下钻、开关

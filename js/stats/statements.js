@@ -17,16 +17,18 @@ import { isTransfer } from "../core/taxonomy.js";
 import { Store } from "../core/store.js";
 import { splitRecord } from "../core/income-taxonomy.js";
 import { incomeExportHtml } from "../income/views.js";
-import { canSeeAll, inc, kindLabel, kindOf, personName, skey, windowOf } from "../income/logic.js";
+import { canSeeAll, firstIncomeYear, inc, kindLabel, kindOf, personName, skey } from "../income/logic.js";
+import { customChanged, customHtml, normRange, rangeOptionsHtml, rangeWindow } from "../core/time-range.js";
 
 const hrefOf = (id) => `${href("bills", "statements")}${id === "import" ? "" : `?tab=${id}`}`;
 const R2 = (v) => Math.round(v * 100) / 100;
 let render = () => {};
 
 /* ───────────── 全部流水（只读） ───────────── */
-const RANGES = [["month", "本月"], ["3m", "近 3 个月"], ["6m", "近 6 个月"], ["12m", "近 12 个月"], ["ytd", "今年"], ["lastyear", "去年"]];
+// 时间范围：和财务其他页面同一组选项（js/core/time-range.js），但流水是列表，自己记一个范围，默认近 3 个月
+const firstYear = () => Math.min(firstIncomeYear(), state.stats.firstYear || new Date().getFullYear());
 const DIRS = [["all", "全部"], ["spend", "花费"], ["income", "收入"]];
-const SS = () => (state.stmt ||= { range: "3m", dir: "all", q: "", limit: pageSize() });
+const SS = () => { const o = (state.stmt ||= { range: "3", dir: "all", q: "", limit: pageSize() }); o.range = normRange(o.range); return o; };
 const sgn = (v, short) => `${v < 0 ? "−" : "+"}${short ? money(Math.abs(v), true) : moneyExact(Math.abs(v))}`;
 
 /** 这段时间的统一账本（迁移 056 的 ledger_v：花费 + 事件型账单的付款 + 收入，行级安全照常），按窗口缓存；数据变了标过期 */
@@ -48,7 +50,7 @@ function ledgerFor(w) {
 /** 这段时间的流水：统一账本里的花费和收入，按日期新到旧；spendLoading = 还在读。
  *  收入按前端规则拆成认定收入 / 资本流入（js/core/income-taxonomy.js）；花费的转账照样列出，不算花费 */
 function build() {
-  const o = SS(), w = windowOf(SS().range), I = inc(), cats = Object.fromEntries(STAT_CATS().map((c) => [c.id, c]));
+  const o = SS(), w = rangeWindow(o.range, { first: firstYear() }), I = inc(), cats = Object.fromEntries(STAT_CATS().map((c) => [c.id, c]));
   const list = ledgerFor(w), out = [], cur = Units.region.currency;
   for (const x of list || []) {
     if (x.source === "income") {
@@ -86,7 +88,7 @@ function listHtml() {
 function allTab() {
   const o = SS(), b = build(), I = inc();
   const note = !I.ok ? `<p class="muted small" role="status">${t("收入还没读到（迁移 042 没执行？），这里先只显示花费。")}</p>` : !canSeeAll() && o.dir !== "spend" ? `<p class="muted small" role="status">${t("你只能看到自己记的收入；家主在 设置 → 家庭与成员 给你开财务权限后，才能看全家的。")}</p>` : "";
-  return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-stmt="range" data-nosearch>${RANGES.map(([v, l]) => `<option value="${v}" ${v === o.range ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
+  return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-stmt="range" class="range-sel" data-nosearch aria-label="${esc(t("时间范围"))}">${rangeOptionsHtml(o.range, { first: firstYear() })}</select></label>${customHtml(o.range, { first: firstYear(), attr: "data-stmt-c" })}
       <div class="chips" role="group" aria-label="${esc(t("显示什么"))}" style="margin:0">${DIRS.map(([v, l]) => `<button type="button" class="chip" data-stmt-dir="${v}" aria-pressed="${o.dir === v}">${t(l)}</button>`).join("")}</div></div>
     ${note}<div class="kpis"><div class="kpi"><span>${t("收入（认定）")}</span><b>${money(b.inc)}</b>${b.cap ? `<small>${t("另有资本流入 {a} · 不计收入", { a: money(b.cap) })}</small>` : ""}</div><div class="kpi"><span>${t("花费")}</span><b>${money(b.spend)}</b></div><div class="kpi"><span>${t("收支差额")}</span><b class="${b.net < 0 ? "down" : ""}">${money(b.net)}</b></div></div>
     <div class="panel"><div class="st-tools"><input type="search" data-stmt-q value="${esc(o.q)}" placeholder="${esc(t("搜索名称 / 商店 / 付款方 / 账户"))}" aria-label="${esc(t("搜索"))}">${clearFiltersBtn("stmt", changed(o, FD.stmt))}<button type="button" class="btn btn-sm btn-ghost" data-stmt="csv">${t("导出这个列表 CSV")}</button></div>
@@ -124,7 +126,11 @@ export function initStatements({ render: r }) {
       download(`${(state.household?.name || t("家庭")).replace(/[\\/:*?"<>|\s]/g, "")}-${t("全部流水")}.csv`, toCsv([[t("日期"), t("类型"), t("名称"), t("说明"), t("金额")], ...rows.map((x) => [x.d, x.tag, x.name, x.sub, x.amt])]));
     }
   });
-  main.addEventListener("change", (e) => { const el = e.target; if (el.dataset?.stmt === "range" && onStmtPage()) { const o = SS(); o.range = el.value; o.limit = pageSize(); render(false); } });
+  main.addEventListener("change", (e) => {
+    const el = e.target; if (!onStmtPage()) return;
+    if (el.dataset?.stmt === "range") { const o = SS(); o.range = normRange(el.value); o.limit = pageSize(); render(false); }
+    if (el.dataset?.stmtC) { const o = SS(); o.range = customChanged(o.range, el.dataset.stmtC, el.value); o.limit = pageSize(); render(false); }   // 自定义的起止月份
+  });
   const listSoon = debounce(() => { const box = $("#stmtList"); if (box) box.innerHTML = listHtml(); });   // 搜索：停下 ~200ms 再重画
   main.addEventListener("input", (e) => { const el = e.target; if (el.dataset?.stmtQ !== undefined && onStmtPage()) { const o = SS(); o.q = el.value; o.limit = pageSize(); listSoon(); } });
 }

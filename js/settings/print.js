@@ -65,7 +65,7 @@ function spendSheet({ useFilter = false, recs: picked = [], allN = 0, agg } = {}
   const sd = { months: agg.months, totals: out, counts: agg.n };
   const byCat = l2List().map((c) => ({ c, v: agg.months.reduce((s, m) => s + (agg.l2[m][c.id] || 0), 0) })).filter((x) => x.v > 0).sort((a, b) => b.v - a.v);
   const recs = picked.slice(0, 300);
-  const f = state.spendFilter, filterNote = useFilter && (f.q || f.cat !== "all" || f.store !== "all" || f.stores?.length || f.grp || f.year !== "all" || f.mon !== "all" || f.months?.length || f.batch) ? ` · ${t("已按筛选条件")}` : "";
+  const f = state.spendFilter, filterNote = useFilter && (f.q || f.cat !== "all" || f.store !== "all" || f.stores?.length || f.grp || (f.range && f.range !== "all") || f.year !== "all" || f.mon !== "all" || f.months?.length || f.batch) ? ` · ${t("已按筛选条件")}` : "";
   const kpi = (label, val) => `<div><span>${label}</span><b>${val}</b></div>`;
   return `<h1>${t("花费统计")} · ${t("近 {n} 个月", { n: sd.months.length })}</h1><p class="ps-meta">${esc(stamp())}${esc(filterNote)}</p>
     <div class="ps-kpis">${kpi(t("现金流出合计"), money(total))}${kpi(t("日常生活月均"), `${money(sum(liv) / (sd.months.length || 1))} / ${t("含住房")} ${money(sum(hou) / (sd.months.length || 1))}`)}${kpi(t("笔数"), count)}</div>

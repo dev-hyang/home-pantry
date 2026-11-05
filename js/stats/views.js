@@ -18,9 +18,9 @@ import { cardHintHtml, cardOptions, cardSelectHtml, payAcctValue, paymentPayLabe
 import { moreBtn } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
 import { compact, cursorOf } from "../core/list-query.js";
-import { financeOk } from "../core/finance-access.js";
+import { financeOk } from "../core/finance-access.js";   // 没有财务权限：花费页不显示「导入对账单」
 import { viewPayees } from "./payees.js";
-import { customHtml, effUnit, normRange, periodsOf, prevMonthsOf, rangeLabelOf, rangeMonthsOf, rangeOptionsHtml, sumByPeriods, unitOptionsHtml, finUnit } from "../core/time-range.js";   // 没有财务权限：花费页不显示「导入对账单」
+import { customHtml, effUnit, normRange, periodsOf, prevMonthsOf, rangeLabelOf, rangeMonthsOf, rangeOptionsHtml, sumByPeriods, unitOptionsHtml, finUnit } from "../core/time-range.js";
 import { BUCKETS, L1S, LEGACY_STAT, NATURES, allLeaves, bucketOf, childrenOf, coversUnknown, defaultNature, effNature, isNode, isTransfer, knownLeafIds, l1Of, l2IdOf, l2List,
   l2Of, leafInfo, leafLabel, leavesOf, natureName, natureOptions, natureParams, nodeOf, parentOf, treeOptions } from "../core/taxonomy.js";
 import { aggregate, avg, fullMonths, livingSeries, median, nodeSum, normRow, normalizedMonthly, outflowSeries, rankChildren, series, storeAgg, sum, withHousingSeries } from "./report.js";
@@ -174,10 +174,10 @@ export function applySpendDrill(q) {
   if (q.get("store")) f.store = q.get("store");
   if (q.get("stores")) f.stores = q.get("stores").split(",").map(decodeURIComponent);
   const m = q.get("month") || "";
-  if (/^\d{4}-\d{2}$/.test(m)) { f.year = m.slice(0, 4); f.mon = m.slice(5, 7); }   // 一个月：就是筛选条上的「年份 + 月份」
-  else if (q.get("mlist")) f.months = q.get("mlist").split(",").filter((x) => /^\d{4}-\d{2}$/.test(x));
-  else if (q.get("range")) f.months = lastMonths(Math.max(1, Math.min(24, +q.get("range") || 6)));
-  else if (/^\d{4}$/.test(q.get("year") || "")) f.year = q.get("year");   // 年度预算 / 往年：整年（今年就是到今天为止）
+  if (/^\d{4}-\d{2}$/.test(m)) f.range = `c:${m}:${m}`;   // 一个月：时间范围 = 自定义的这一个月
+  else if (q.get("mlist")) f.months = q.get("mlist").split(",").filter((x) => /^\d{4}-\d{2}$/.test(x));   // 一组月份：筛选条下面的标签
+  else if (q.get("range")) { const n = +q.get("range") || 6; if ([3, 6, 12].includes(n)) f.range = String(n); else f.months = lastMonths(Math.max(1, Math.min(60, n))); }
+  else if (/^\d{4}$/.test(q.get("year") || "")) f.range = `y:${q.get("year")}`;   // 年度预算 / 往年：整年（今年就是到今天为止）
   return true;
 }
 
@@ -569,9 +569,11 @@ function spanOf(f) {
 export function spendParams() {
   const f = state.spendFilter, bt = f.batch ? batchOf(f.batch) : null;
   let stores = f.stores?.length ? [...f.stores] : null;   // “其他商店”：一组商店
+  // 时间范围（js/core/time-range.js）→ 月份；和图表钻取带来的一组月份（f.months）同时有时取交集
+  const rm = f.range && f.range !== "all" ? rangeMonths(f.range) : null, months = rm && f.months?.length ? f.months.filter((m) => rm.includes(m)) : rm || (f.months?.length ? f.months : null);
   if (f.store !== "all") stores = stores ? stores.filter((k) => k === f.store) : [f.store];
   return compact({ tz: TZ(), cur: Units.region.currency, med: medNames(), sort: f.sort || "new", ...natureParams(), ...catFilter(f),
-    year: f.year !== "all" ? f.year : null, mon: f.mon !== "all" ? f.mon : null, months: f.months?.length ? f.months : null, dmax: f.dmax || null, ...spanOf(f),
+    year: f.year !== "all" ? f.year : null, mon: f.mon !== "all" ? f.mon : null, months: months ? (months.length ? months : ["0000-00"]) : null, dmax: f.dmax || null, ...spanOf({ ...f, months }),
     stores, q: f.q.trim().toLowerCase() || null, batch: f.batch || null, batch_ids: bt?.ids.size ? [...bt.ids] : null, prop: f.prop && f.prop !== "all" ? f.prop : null });
 }
 /** 明细列表：读到的几页 + 当前筛选的统计；虚拟的医疗付款 id 加 med: 前缀（不会当成真实花费去删 / 改；cursor 用的是加前缀之前的原始行） */
@@ -645,7 +647,7 @@ function spendChipsHtml() {
   const chips = activeFilterChips(); if (!chips.length) return "";
   return `<div class="filter-chips" role="group" aria-label="${t("当前筛选")}"><span class="muted">${t("当前筛选")}</span>${chips.map(([k, label]) => `<button type="button" class="chip fchip" data-action="spend-chip-clear" data-k="${k}" aria-label="${esc(t("去掉筛选：{x}", { x: label }))}">${esc(label)} <span aria-hidden="true">✕</span></button>`).join("")}</div>`;   // 全部清除：工具条上统一的「清除筛选」
 }
-const NO_SPEND_FILTER = () => ({ q: "", cat: "all", grp: null, nat: "all", prop: "all", store: "all", stores: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
+const NO_SPEND_FILTER = () => ({ q: "", cat: "all", grp: null, nat: "all", prop: "all", store: "all", stores: null, range: "all", year: "all", mon: "all", months: null, dmax: null, batch: null });
 export function clearSpendFilter(k) {
   const f = state.spendFilter;
   if (k === "all") Object.assign(f, NO_SPEND_FILTER());
@@ -719,8 +721,8 @@ function spendRecordsHtml() {
         <select id="spendNat" data-nosearch aria-label="${t("按经济性质筛选")}">${opt("all", t("全部性质"), f.nat || "all")}${NATURES.map((n) => opt(n.id, t(n.name), f.nat)).join("")}</select>
         ${activeProps().length > 1 || (f.prop && f.prop !== "all") ? `<select id="spendProp" data-nosearch aria-label="${t("按房产筛选")}">${opt("all", t("全部房产"), f.prop || "all")}${activeProps().map((p) => opt(p.id, p.name, f.prop)).join("")}${opt("none", t("没关联房产"), f.prop)}</select>` : ""}
         <select id="spendStore" aria-label="${t("按收款方筛选")}">${opt("all", t("全部收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${opt("__none__", t("未填写收款方"), f.store)}</select>
-        <select id="spendYear" data-nosearch aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
-        <select id="spendMon" data-nosearch aria-label="${t("按月份筛选")}">${opt("all", t("全部月份"), f.mon)}${Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => opt(m, t("{m} 月", { m: +m }), f.mon)).join("")}</select>
+        <select id="spendRange" class="range-sel" data-nosearch aria-label="${t("时间范围")}">${rangeOptionsHtml(f.range || "all", { first })}</select>
+        ${customHtml(f.range || "all", { first, attr: "data-spend-c" })}
         <select id="spendSort" data-nosearch aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
         ${clearFiltersBtn("spend", changed(f, FD.spend))}
       </div>
