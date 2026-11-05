@@ -670,7 +670,7 @@ function spendListHtml() {
       <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-none">${t("清空")}</button>
       <button type="button" class="btn btn-sm btn-danger-ghost" data-action="spend-sel-del" ${delN ? "" : "disabled"}>${t("删除所选")}</button>
       <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${t("退出多选")}</button>
-      <small class="muted" style="flex-basis:100%">${t("先用上面的筛选（年份、月份、商店、分类、批次）缩小范围，再全选；删除前会再确认一次。")}</small></div>` : "";
+      <small class="muted" style="flex-basis:100%">${t("先用上面的筛选（年份、月份、收款方、分类、批次）缩小范围，再全选；删除前会再确认一次。")}</small></div>` : "";
   const xNote = st.xn ? `；${t("其中 {n} 笔转账（{a}）不算进合计", { n: st.xn, a: money(num(st.xsum)) })}` : "";
   return `${selBar}<div class="muted small" style="margin:0 0 6px">${t("{n} 笔，合计 {m}", { n: st.n ?? "…", m: money(num(st.sum)) })}${xNote}${totalSplitHtml(st)}</div><ul class="restock-list rec-list${S ? " selecting" : ""}">${out}</ul>
     ${L.busy ? `<p class="muted" role="status" style="text-align:center">${t("加载中…")}</p>` : moreBtn(L.hasMore, 'data-action="spend-more"')}`;
@@ -708,11 +708,11 @@ function spendRecordsHtml() {
   return `<div class="section-head"><h2>${t("花费记录")}</h2></div>
     <div class="panel">
       <div class="toolbar ix-toolbar">
-        <input type="search" id="spendSearch" placeholder="${t("搜索名称或商店")}" value="${esc(f.q)}" aria-label="${t("搜索花费记录")}">
+        <input type="search" id="spendSearch" placeholder="${t("搜索名称或收款方")}" value="${esc(f.q)}" aria-label="${t("搜索花费记录")}">
         <select id="spendCat" aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${f.cat === "bills" || String(f.cat).startsWith("billfam_") ? opt(f.cat, t("账单"), f.cat) : ""}${treeOptions(f.cat, used)}</select>
         <select id="spendNat" data-nosearch aria-label="${t("按经济性质筛选")}">${opt("all", t("全部性质"), f.nat || "all")}${NATURES.map((n) => opt(n.id, t(n.name), f.nat)).join("")}</select>
         ${activeProps().length > 1 || (f.prop && f.prop !== "all") ? `<select id="spendProp" data-nosearch aria-label="${t("按房产筛选")}">${opt("all", t("全部房产"), f.prop || "all")}${activeProps().map((p) => opt(p.id, p.name, f.prop)).join("")}${opt("none", t("没关联房产"), f.prop)}</select>` : ""}
-        <select id="spendStore" aria-label="${t("按商店筛选")}">${opt("all", t("全部商店 / 收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${opt("__none__", t("未填写商店"), f.store)}</select>
+        <select id="spendStore" aria-label="${t("按收款方筛选")}">${opt("all", t("全部收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${opt("__none__", t("未填写收款方"), f.store)}</select>
         <select id="spendYear" data-nosearch aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
         <select id="spendMon" data-nosearch aria-label="${t("按月份筛选")}">${opt("all", t("全部月份"), f.mon)}${Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => opt(m, t("{m} 月", { m: +m }), f.mon)).join("")}</select>
         <select id="spendSort" data-nosearch aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
@@ -736,7 +736,7 @@ export async function exportSpendList() {
 
 /* ── 商店统计与年度报表 ── */
 export const STORE_COLORS = ["#2c6a57", "#d4694c", "#3b7fc4", "#b07a1a", "#7563c0", "#c75a85"];
-export const STORE_REST = { name: "其他商店", color: "#8a948f" }, STORE_NONE = { name: "未填写商店", color: "#c3cbc6" };
+export const STORE_REST = { name: "其他收款方", color: "#8a948f" }, STORE_NONE = { name: "未填写收款方", color: "#c3cbc6" };
 export const cleanStore = (v) => (v || "").trim().replace(/\s+/g, " ").slice(0, 40) || null;
 export const lastStore = () => { try { return localStorage.getItem("hmh-last-store") || ""; } catch { return ""; } };
 export const rememberStore = (v) => { try { localStorage.setItem("hmh-last-store", v); } catch { /* 忽略 */ } };
@@ -763,8 +763,8 @@ const STORE_TOP = 12;
 export function viewStoreStats(months, month = state.stats.month) {
   const sel = month && months.includes(month) ? month : "", sp = spanOfMonths(months), rows = rollup(sp.from, sp.to, true), o = statOpts();
   const l1 = L1S.some((x) => x.id === state.stats.storeL1 && x.id !== "transfer") ? state.stats.storeL1 : "all";
-  const l1Sel = `<label class="tb-field"><span>${t("只看")}</span><select id="statsStoreL1" data-nosearch aria-label="${t("按一级分类筛选商店")}"><option value="all" ${l1 === "all" ? "selected" : ""}>${t("全部花费（不含转账）")}</option>${L1S.filter((x) => x.id !== "transfer").map((x) => `<option value="${x.id}" ${x.id === l1 ? "selected" : ""}>${x.icon} ${esc(t(x.name))}</option>`).join("")}</select></label>`;
-  const head = `<div class="section-head"><h2>${t("按商店 / 收款方统计")}</h2><p>${sel ? monthLabel(sel) : rangeLabel()}${t("；账单、订阅、保险按收款方；名称不区分大小写")}</p></div><div class="time-bar">${l1Sel}</div>`;
+  const l1Sel = `<label class="tb-field"><span>${t("只看")}</span><select id="statsStoreL1" data-nosearch aria-label="${t("按一级分类筛选收款方")}"><option value="all" ${l1 === "all" ? "selected" : ""}>${t("全部花费（不含转账）")}</option>${L1S.filter((x) => x.id !== "transfer").map((x) => `<option value="${x.id}" ${x.id === l1 ? "selected" : ""}>${x.icon} ${esc(t(x.name))}</option>`).join("")}</select></label>`;
+  const head = `<div class="section-head"><h2>${t("按收款方统计")}</h2><p>${sel ? monthLabel(sel) : rangeLabel()}${t("；账单、订阅、保险按收款方；名称不区分大小写")}</p></div><div class="time-bar">${l1Sel}</div>`;
   if (!rows) return `<section class="section">${head}${LOADING()}</section>`;
   const list = storeAgg(rows, months, { sel, l1, ...o });
   if (!list.length) return `<section class="section">${head}<div class="panel empty"><strong>${t("这段时间没有符合条件的花费")}</strong></div></section>`;
@@ -783,7 +783,7 @@ export function viewStoreStats(months, month = state.stats.month) {
     <td>${g.count}</td><td>${esc(money(g.total))}</td><td>${esc(money(g.total / g.count))}</td><td>${total ? Math.round((g.total / total) * 100) : 0}%</td></tr>`).join("");
   // “其他商店”里到底有哪些：展开列出每一家，每家也能点进明细
   const rg = groups.find((g) => g.isRest);
-  const restDetail = rg ? `<details class="rest-detail"><summary><span class="rd-text"><b>${t("“其他商店”包含 {n} 家", { n: rg.members.length })}</b><small>${t("花费较少的商店合并在一起；点开看每一家，再点收起")}</small></span><span class="mch" aria-hidden="true">›</span></summary>
+  const restDetail = rg ? `<details class="rest-detail"><summary><span class="rd-text"><b>${t("“其他收款方”包含 {n} 家", { n: rg.members.length })}</b><small>${t("花费较少的收款方合并在一起；点开看每一家，再点收起")}</small></span><span class="mch" aria-hidden="true">›</span></summary>
     <ul class="rest-list">${rg.members.map((v) => `<li class="ch-hit-row"${hitAttrs(gDrill({ keys: [v.key] }), v.name)}><span class="grow">${esc(v.name)}</span><small class="muted">${t("{n} 笔", { n: v.count })}</small><b>${esc(money(v.total))}</b><u aria-hidden="true">›</u></li>`).join("")}</ul></details>` : "";
   return `<section class="section">${head}
     <div class="panel chart-panel"><h3>${t("在哪里花得最多")}</h3><p class="muted" style="margin:0 0 8px;font-size:13px">${t("每条按二级分类分段：看得出在这家主要买什么。")}</p>${bars}
@@ -800,7 +800,7 @@ export function viewAnnualExport() {
     <div class="section-head"><h2>${t("年度花费报表")}</h2><p>${t("导出 CSV，可用 Excel、Numbers 或 Google 表格打开")}</p></div>
     <div class="panel export-grid">
       <label class="export-pick"><span>${t("年份")}</span><select id="csvYear" data-nosearch>${years.map((v) => `<option value="${v}">${t("{y} 年", { y: v })}</option>`).join("")}</select></label>
-      <div class="export-btns"><button type="button" class="btn btn-primary btn-sm" data-action="csv-summary">${t("导出汇总（月份 × 分类、商店）")}</button>
+      <div class="export-btns"><button type="button" class="btn btn-primary btn-sm" data-action="csv-summary">${t("导出汇总（月份 × 分类、收款方）")}</button>
       <button type="button" class="btn btn-sm" data-action="csv-detail">${t("导出明细（每一笔）")}</button></div>
     </div>
   </section>`;
@@ -885,7 +885,7 @@ export async function exportAnnual(kind) {
   grid.forEach((g, i) => rows.push([t("{m}月", { m: i + 1 }), ...used.map((c) => r2(g[c.id])), r2(used.reduce((a, c) => a + g[c.id], 0))]));
   rows.push([t("全年"), ...used.map((c) => r2(catYear(c.id))), r2(yearTotal)]);
   rows.push([t("占比"), ...used.map((c) => (yearTotal ? `${r2((catYear(c.id) / yearTotal) * 100)}%` : "")), "100%"]);
-  rows.push([], [t("商店"), t("次数"), t("合计"), t("平均每次"), t("占比")]);
+  rows.push([], [t("收款方"), t("次数"), t("合计"), t("平均每次"), t("占比")]);
   [...stores.values()].sort((a, b) => b.total - a.total).forEach((st) =>
     rows.push([st.name, st.count, r2(st.total), r2(st.total / st.count), yearTotal ? `${r2((st.total / yearTotal) * 100)}%` : ""]));
   if (skipped || noAmount || xferN) rows.push([], [t("说明：{a}{b}明细表中仍可查看。", { a: (skipped ? t("{n} 笔非 {cur} 记录未计入；", { n: skipped, cur }) : "") + (xferN ? t("{n} 笔转账不算花费；", { n: xferN }) : ""), b: noAmount ? t("{n} 笔未填金额；", { n: noAmount }) : "" })]);

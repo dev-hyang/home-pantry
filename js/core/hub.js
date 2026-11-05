@@ -49,5 +49,23 @@ const tabStrip = (tabs, active, hrefOf, label) => {
       <div class="act-menu">${more.map(([id, name, icon]) => `<a class="act-item" href="${esc(hrefOf(id))}" ${id === active ? 'aria-current="page"' : ""}><span aria-hidden="true">${icon}</span> ${esc(t(name))}</a>`).join("")}</div></details></nav>`;
 };
 
+/* priority+：宽屏（≥ 641px）先试着把次要标签也直接排在标签条里（fit-all）；放不下才收回「更多」。
+ * 笔记本上花费的 收款方 / 导出打印 能直接点，窄一点的窗口照旧收进「更多」。每次页面画完（DOM 变化）和窗口变宽变窄时重算。 */
+function fitSubtabs() {
+  for (const nav of document.querySelectorAll(".subtabs.has-more")) {
+    nav.classList.add("fit-all");
+    if (!window.matchMedia("(min-width: 641px)").matches) continue;
+    const kids = [...nav.children].filter((el) => el.offsetParent !== null);
+    const need = kids.reduce((a, el) => a + el.offsetWidth, 0) + 2 * Math.max(0, kids.length - 1);
+    if (need > nav.clientWidth) nav.classList.remove("fit-all");
+  }
+}
+if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") {
+  let raf = 0; const later = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; fitSubtabs(); }); };
+  const start = () => { new MutationObserver(later).observe(document.body, { childList: true, subtree: true }); later(); };
+  document.body ? start() : document.addEventListener("DOMContentLoaded", start);
+  window.addEventListener("resize", later);
+}
+
 /** 窄屏的“入口行”：第一个标签下面列出其余标签，每行带图标和一句说明；宽屏隐藏（那里用标签条）。hrefOf 与 tabBar 共用 */
 export const tabHub = (tabs, hrefOf, title) => `<section class="section tabhub"><div class="section-head"><h2>${esc(title)}</h2></div>${hubList(tabs.filter((x) => x[3]).map(([id, name, icon, desc]) => hubRow({ href: hrefOf(id), icon, title: t(name), desc: esc(t(desc)) })))}</section>`;

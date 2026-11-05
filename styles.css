@@ -1400,6 +1400,8 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .subtab-more .act-item[aria-current="page"] { font-weight: 800; background: var(--surface-2); }
 .subtabs.has-more .subtab-more { display: none; }
 @media (min-width: 641px) { .subtabs.has-more { overflow: visible; } .subtabs.has-more .sec-inline { display: none; } .subtabs.has-more .subtab-more { display: block; margin-left: auto; } }
+/* priority+（js/core/hub.js fitSubtabs）：放得下时次要标签直接排出来，不用「更多」 */
+@media (min-width: 641px) { .subtabs.has-more.fit-all .sec-inline { display: inline-flex; } .subtabs.has-more.fit-all .subtab-more { display: none; } }
 @media (max-width: 640px) { .subtab { padding: 0 12px; } }
 .range-row { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; margin: 0 0 12px; }
 .range-row .seg { margin: 0; }

@@ -13,6 +13,7 @@ import { href } from "../core/router.js";
 import { categoryOptions } from "../pantry/views.js";
 import { aiCatalog } from "../core/taxonomy.js";
 import { meta, saveMeta } from "../bills/budget.js";
+import { canonicalPayee } from "../core/payee-alias.js";
 import { isIncomeKind } from "../core/income-taxonomy.js";
 import { adults, guessChannel, guessKind, inc as incState, incomeRules, kindOptionsHtml, loadIncome, myPersonId, senderName, similarIncome, skey } from "../income/logic.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
@@ -95,8 +96,10 @@ function headerIndex(rows) {
 
 /* ───────────── 商家合并、归类规则 ───────────── */
 const NOISE = /\b(pos|debit card|purchase|authorized on|checkcard|recurring|payment to|sq \*|tst\*|sp \*|pp\*|paypal \*|ach|web id|ref|card ending|visa|mastercard|dda)\b/gi;
-/** 说明 → 商家显示名（去掉卡号 / 流水号 / 日期等噪音，最多 3 个词） */
-export function merchantName(desc) {
+/** 说明 → 收款方显示名：先清理（cleanMerchant），再归一（Amazon 的各种写法 → Amazon、你改名 / 合并记下的别名，js/core/payee-alias.js） */
+export const merchantName = (desc) => canonicalPayee(cleanMerchant(desc), String(desc || ""));
+/** 说明 → 清理后的商家名（去掉卡号 / 流水号 / 日期等噪音，最多 3 个词） */
+function cleanMerchant(desc) {
   let s = String(desc || "").replace(/^\s*(sq|tst|sp|pp|py|dd|ub|pos|dbt)\s*\*\s*/i, " ").replace(/amzn\.com\/bill|amzn\.com/gi, " ").replace(/\d{2}\/\d{2}(\/\d{2,4})?/g, " ").replace(/\b\d{5,}\b/g, " ").replace(/[xX*#]{2,}\s*\d+/g, " ").replace(NOISE, " ").replace(/[#*]+/g, " ").replace(/\s+/g, " ").trim();
   // 纯数字、字母数字混杂的流水码（AB12、2X4R5、XY99）、州名缩写（IL、CA）不要——否则 AMAZON MKTPL*AB12 和 AMAZON MKTPL*2X4R5 会被当成两家，记住的归类也对不上
   s = s.split(" ").filter((w) => !/^\d+$/.test(w) && !(/\d/.test(w) && /[a-z]/i.test(w) && !/^\d+-[a-z]+$/i.test(w)) && !/^[A-Z]{2}$/.test(w)).slice(0, 3).join(" ");
@@ -189,7 +192,8 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
  *  现在要么金额和账单的通常金额对得上（±15%），要么这家商家内置关键词也认不出，才按账单归类 */
 // 以前记住的规则是按老的商家名存的（带流水码，如「costco gas 0123」）；商家名清理规则改过之后对不上了——把老键按同样的清理再比一次
 const normKey = (k) => String(k).split(" ").filter((w) => !/^\d+$/.test(w) && !(/\d/.test(w) && /[a-z]/i.test(w) && !/^\d+-[a-z]+$/i.test(w))).join(" ");
-const learnedKey = (key) => { const rules = userRules(); return rules[key] ? key : Object.keys(rules).find((x) => normKey(x) === key) || ""; };
+// 收款方归一之后（AMAZON MKTPL → Amazon）老规则的键也要按同样的归一再比一次，记住的归类才不会失效
+const learnedKey = (key) => { const rules = userRules(); return rules[key] ? key : Object.keys(rules).find((x) => normKey(x) === key) || Object.keys(rules).find((x) => canonicalPayee(normKey(x)).toLowerCase() === key) || ""; };
 const learnedFor = (key) => { const k = learnedKey(key); return k ? ruleCat(userRules()[k]) : ""; };
 /** 内置关键词（含旅行关键词）现在会给这家商家什么分类；认不出返回 "" */
 const builtinCat = (key) => (RULES.find(([, re]) => re.test(key)) || [])[0] || TRIP.guess(key, "") || "";
