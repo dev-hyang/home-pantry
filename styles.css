@@ -2456,3 +2456,6 @@ th.num .ds-sort { text-align: right; }
 .payee-detail .form-actions { margin-top: 6px; }
 .tidy-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 0; font-size: 13px; }
 @media (max-width: 640px) { .payee-tbl tr.s-detail > td { padding: 4px 0 8px; } .payee-detail { padding: 6px 4px; } }
+/* 工具条里的可搜索下拉（data-search）：给个合适的宽度，不被挤窄；:where 不抬高优先级，收入 / 明细工具条自己的规则照旧生效 */
+.toolbar > :where(.ssel), .toolbar .tb-panel > :where(.ssel) { flex: 0 1 200px; min-width: 150px; }
+@media (max-width: 440px) { .toolbar > :where(.ssel) { flex: 1 1 100%; } }
