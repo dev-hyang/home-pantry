@@ -2,7 +2,7 @@ import { checkConfig } from "./core/config-check.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
-import { $, MUTE_FOREVER, applyDraft, armed, catOf, du, esc, fillUnitList, fmtDate, formDraft, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast, confirmDelete } from "./core/util.js";
+import { $, MUTE_FOREVER, applyDraft, armed, catOf, du, esc, fillUnitList, fmtDate, fmtDay, formDraft, setDateFormat, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast, confirmDelete } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, goBack, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.js";
@@ -670,6 +670,7 @@ main.addEventListener("change", async (e) => {
     try { localStorage.setItem("hmh-bills-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? t("已打开财务") : t("已关闭财务，导航里不再显示")); render();
   }
+  if (e.target.id === "dateFmtSel") { setDateFormat(e.target.value); toast(t("日期显示为 {ex}", { ex: fmtDay(new Date()) })); render(); }
   if (e.target.id === "pageSizeSel") { setPageSize(e.target.value); resetListPages(); toast(t("列表每次显示 {n} 条", { n: pageSize() })); render(); }
   if (e.target.id === "regionSel") {
     Units.setRegion(e.target.value || null); fillUnitList();

@@ -63,10 +63,35 @@ export function addMonths(iso, n) {
   d.setDate(Math.min(day, last));
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-export const fmtDate = (iso) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString(locale(), { year: "numeric", month: "numeric", day: "numeric" }) : "");
+/* ── 日期显示格式（设置 → 语言、地区与单位 → 日期格式）：全站的 fmtDate / fmtShort / fmtDateTime 都走这里；只存在这台设备上。
+ * 默认 YYYY-MM-DD：不随排序 / 语言变化，年份永远在，不会把 03/04 看成 3 月 4 日还是 4 月 3 日。CSV / 数据库照旧用 ISO，不受影响。 */
+export const DATE_FMTS = ["ymd", "mdy", "dmy", "cn", "auto"];
+let dateFmt = "ymd";
+try { const v = localStorage.getItem("hmh-datefmt"); if (DATE_FMTS.includes(v)) dateFmt = v; } catch { /* 忽略 */ }
+export const dateFormat = () => dateFmt;
+export function setDateFormat(v) {
+  dateFmt = DATE_FMTS.includes(v) ? v : "ymd";
+  try { dateFmt === "ymd" ? localStorage.removeItem("hmh-datefmt") : localStorage.setItem("hmh-datefmt", dateFmt); } catch { /* 忽略 */ }
+}
+const pad2 = (n) => String(n).padStart(2, "0");
+/** 按用户选的格式显示一个日期（Date / 时间戳 / "YYYY-MM-DD"）；short = 不带年份（卡片上的“月/日”）；fmt 用来在设置里出示例 */
+export function fmtDay(v, short = false, fmt = dateFmt) {
+  if (v == null || v === "") return "";
+  const x = v instanceof Date ? v : new Date(/^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? `${v}T12:00:00` : v);   // 只有日期的按本地中午，避免时区把日期挪一天
+  if (Number.isNaN(x.getTime())) return "";
+  const y = x.getFullYear(), m = x.getMonth() + 1, d = x.getDate();
+  switch (fmt) {
+    case "ymd": return short ? `${pad2(m)}-${pad2(d)}` : `${y}-${pad2(m)}-${pad2(d)}`;
+    case "mdy": return short ? `${pad2(m)}/${pad2(d)}` : `${pad2(m)}/${pad2(d)}/${y}`;
+    case "dmy": return short ? `${pad2(d)}/${pad2(m)}` : `${pad2(d)}/${pad2(m)}/${y}`;
+    case "cn": return short ? `${m}月${d}日` : `${y}年${m}月${d}日`;
+    default: return x.toLocaleDateString(locale(), short ? { month: "numeric", day: "numeric" } : { year: "numeric", month: "numeric", day: "numeric" });   // auto：跟随语言
+  }
+}
+export const fmtDate = (iso) => fmtDay(iso);
 // 记录的创建 / 更新时间（timestamptz）：卡片上显示“月/日”，悬停或编辑页显示完整时间
-export const fmtShort = (iso) => (iso ? new Date(iso).toLocaleDateString(locale(), { month: "numeric", day: "numeric" }) : "");
-export const fmtDateTime = (iso) => (iso ? new Date(iso).toLocaleString(locale(), { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "");
+export const fmtShort = (iso) => fmtDay(iso, true);
+export const fmtDateTime = (iso) => (iso ? `${fmtDay(iso)} ${new Date(iso).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" })}` : "");
 export const stampText = (r) => [r?.created_at && t("添加于 {d}", { d: fmtDateTime(r.created_at) }), r?.updated_at && r.updated_at !== r.created_at && t("更新于 {d}", { d: fmtDateTime(r.updated_at) })].filter(Boolean).join(t("，"));
 
 /** 同步状态只显示在设置页（顶栏小屏幕放不下）；设置页没打开时先记着，渲染时再读 */

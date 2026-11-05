@@ -3,7 +3,7 @@ import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { askInline } from "../core/ask.js";
-import { $, DAY, catOf, du, esc, fmt, money, num, showQty, toast } from "../core/util.js";
+import { $, DAY, catOf, du, esc, fmt, fmtDay, money, num, showQty, toast } from "../core/util.js";
 import { compare, lang, locale, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { href } from "../core/router.js";
@@ -585,7 +585,6 @@ function spendLookups() {
   return { cats: first(ALL_CATS(), (c) => c.id), bills: first(state.bills, (b) => b.id) };
 }
 function spendRow(p, L = spendLookups()) {
-  const d = new Date(p.purchased_at), sameYear = d.getFullYear() === new Date().getFullYear();
   if (state.spendEdit === p.id) return spendEditRow(p);
   // 转账：数据库已判断（is_xfer）；性质和分类默认不一样时标出来；关联了房产（多套房时）也写出来
   const xfer = p.is_xfer ?? isTransfer(p.category, p.nature), nat = p.nature && p.nature !== defaultNature(p.category) ? p.nature : null;
@@ -598,7 +597,7 @@ function spendRow(p, L = spendLookups()) {
     : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>${state.spendDrafts?.[p.id] ? ` <span class="badge b-soon">${t("草稿")}</span>` : ""}`;
   const sel = state.spendSel && !p.virtual ? `<input type="checkbox" class="sel" data-sel="${p.id}" aria-label="${esc(t("选中 {name}", { name: p.name }))}" ${state.spendSel.has(p.id) ? "checked" : ""}>` : "";
   return `<li data-swipe-del="purchase">${sel}
-    <span class="badge" style="background:var(--surface-2)">${esc(d.toLocaleDateString(locale(), sameYear ? { month: "numeric", day: "numeric" } : { year: "2-digit", month: "numeric", day: "numeric" }))}</span>
+    <span class="badge rec-date">${esc(fmtDay(p.purchased_at))}</span>
     <div class="grow"><span class="name">${title}${tags}</span><small>${esc(leafLabel(p.category))}${prop ? `，🏠 ${esc(prop)}` : ""}${storeOf(p) ? `，${esc(storeOf(p))}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${paymentPayLabel(p) ? `，${esc(paymentPayLabel(p))}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
     <b>${p.amount != null && num(p.amount) < 0 ? `<span class="badge b-ok">${t("退款")}</span> ` : ""}${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>
     ${p.virtual ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button>`}</li>`;
@@ -607,9 +606,8 @@ function spendRow(p, L = spendLookups()) {
 function spendEditRow(p) {
   const day = String(p.purchased_at).slice(0, 10), opts = categoryOptions(p.category, { withOther: true, spend: true });   // 当前分类已在选项里时会自动选中
   const hasCat = opts.includes(`value="${p.category}"`);
-  const d = new Date(p.purchased_at);
   // 顶上保留这一行的摘要，再点它就收起（不保存）
-  const head = `<button type="button" class="ix-main spend-head" data-action="spend-edit-collapse" aria-expanded="true" title="${esc(t("再点一下收起"))}"><span class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${d.toLocaleDateString(locale(), { year: "numeric", month: "numeric", day: "numeric" })} · ${leafLabel(p.category)}`.trim())}</small></span><b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : ""}</b><span aria-hidden="true">▴</span></button>`;
+  const head = `<button type="button" class="ix-main spend-head" data-action="spend-edit-collapse" aria-expanded="true" title="${esc(t("再点一下收起"))}"><span class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${fmtDay(p.purchased_at)} · ${leafLabel(p.category)}`.trim())}</small></span><b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : ""}</b><span aria-hidden="true">▴</span></button>`;
   return `<li class="spend-edit">${head}<form id="spendEditForm" data-id="${p.id}" class="form-grid" novalidate>
     <label class="span-2">${t("名称")}<input name="name" required maxlength="60" value="${esc(p.name)}"></label>
     <label>${t("分类")}<select name="category">${hasCat ? "" : `<option value="${esc(p.category)}" selected>${esc(t(leafInfo(p.category).name))}</option>`}${opts}</select></label>

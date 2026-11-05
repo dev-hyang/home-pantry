@@ -1,6 +1,6 @@
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, catsOf, esc, fmtShort, syncState, toast } from "../core/util.js";
+import { $, DATE_FMTS, catsOf, dateFormat, esc, fmtDay, fmtShort, syncState, toast } from "../core/util.js";
 import { catFormHtml } from "../pantry/views.js";
 import { LANGS, detectLang, glossaryOf, langOverride, t } from "../core/i18n.js";
 import { propertyForm } from "../house/property-form.js";
@@ -347,6 +347,13 @@ export function viewSettings() {
       </select>
       <p class="muted" style="margin:8px 0 0;font-size:13px">${t("当前：{units}，货币 {cur}。", { units: Units.region.system === "us" ? t("美制单位 lb、oz、fl oz、qt、gal") : t("公制单位 kg、g、斤、L、mL"), cur: Units.region.currency })}
         ${t("已有物品按原单位保存，显示时自动换算；按“个、盒、袋”计数的物品不换算。")}</p>
+    </div>
+    <div class="panel">
+      <label class="field-label" for="dateFmtSel">${t("日期格式")}</label>
+      <select id="dateFmtSel" data-nosearch>
+        ${DATE_FMTS.map((k) => `<option value="${k}" ${dateFormat() === k ? "selected" : ""}>${esc(k === "auto" ? t("跟随语言（{ex}）", { ex: fmtDay(new Date(), false, "auto") }) : fmtDay(new Date(), false, k) + ({ ymd: "  (YYYY-MM-DD)", mdy: "  (MM/DD/YYYY)", dmy: "  (DD/MM/YYYY)", cn: "" }[k] || ""))}</option>`).join("")}
+      </select>
+      <p class="muted" style="margin:8px 0 0;font-size:13px">${t("花费、收入、账单等列表里的日期都按这个显示，按金额 / 名称排序时也看得出年月。只存在这台设备上；导出的 CSV 仍是 YYYY-MM-DD。")}</p>
     </div>
     <div class="panel">
       <label class="field-label" for="pageSizeSel">${t("列表每次显示")}</label>

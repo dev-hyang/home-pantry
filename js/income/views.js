@@ -5,7 +5,7 @@
 import { FD, changed, clearFiltersBtn, clearUrlParams, onClearFilters } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, applyDraft, daysUntil, esc, formDraft, money, moneyExact, num, todayISO, toast, confirmDelete } from "../core/util.js";
+import { $, applyDraft, daysUntil, esc, fmtDate, formDraft, money, moneyExact, num, todayISO, toast, confirmDelete } from "../core/util.js";
 import { attentionPanel, registerAlerts } from "../core/alerts.js";
 import { lang, t } from "../core/i18n.js";
 import { href } from "../core/router.js";
@@ -411,7 +411,7 @@ function recBadge(r) {
 }
 function recordRow(r) {
   const I = inc(), s = repayState(r), pick = !!I.selMode && activeTab(state.route) === "records", editing = !pick && inlineEditId() === r.id, open = I.open === r.id && !editing;
-  const who = r.person_id ? personName(r.person_id) : "", acct = acctShow(r), sub = [r.received_on, esc(kindLabel(r.kind)), who && esc(who), acct && esc(acct), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
+  const who = r.person_id ? personName(r.person_id) : "", acct = acctShow(r), sub = [esc(fmtDate(r.received_on)), esc(kindLabel(r.kind)), who && esc(who), acct && esc(acct), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
   const rb = s ? `<span class="badge ${s.status === "paid" ? "b-ok" : s.overdue ? "b-out" : "b-soon"}">${s.status === "paid" ? t("已还清") : s.overdue ? t("逾期") : t("待还 {a}", { a: fmtMoney(s.left) })}</span>` : "";
   return `<li class="ix-li${open || editing ? " is-open" : ""}" data-id="${r.id}"${canEdit(r) && !pick && !editing ? ' data-swipe-del="income"' : ""}>${pick ? `<label class="ix-main"><input type="checkbox" class="ix-chk" data-inc-sel="${r.id}" ${I.sel?.has(r.id) ? "checked" : ""} ${canEdit(r) ? "" : "disabled"} aria-label="${esc(t("选择"))}">` : `<button type="button" class="ix-main" data-inc="${canEdit(r) ? "edit" : "open"}" data-id="${r.id}" ${canEdit(r) ? `title="${esc(editing ? t("再点一下收起") : t("点一下编辑"))}" aria-expanded="${editing}"` : `aria-expanded="${open}"`}>`}
     <span class="ix-ico" style="--k:${kindOf(r.kind).color}" aria-hidden="true">${kindOf(r.kind).icon}</span><span class="grow"><b class="name">${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt">+${fmtMoney(r.amount)}</b>${recBadge(r)}${I.drafts?.[r.id] ? `<span class="badge b-soon">${t("草稿")}</span>` : ""}${rb}</span>${pick ? "</label>" : "</button>" + rowTools(r, open)}${editing ? `<div class="ix-edit">${formHtml()}</div>` : ""}${open && !pick ? recordDetail(r, s) : ""}</li>`;
@@ -704,7 +704,7 @@ async function printIncome(mode) {
     const st = incList.stats || {}, n = st.n ?? recs.length;
     html = `<h1>${esc(hh)} · ${t("收入明细")}</h1><p class="ps-meta">${esc(printStamp())}</p>
       <div class="ps-kpis">${kpiH(t("笔数"), n)}${kpiH(t("到账合计"), fmtMoney(st.sum != null ? num(st.sum) : sumOf(recs)))}${kpiH(t("认定收入"), fmtMoney(st.income_sum != null ? num(st.income_sum) : incSumOf(recs)))}</div>
-      <table><thead><tr><th>${t("到账日期")}</th><th>${t("付款方")}</th><th>${t("类型")}</th><th>${t("成员")}</th><th>${t("金额")}</th><th>${t("认定收入")}</th></tr></thead><tbody>${recs.map((r) => `<tr><td>${r.received_on}</td><td>${esc(r.source_name)}</td><td>${esc(kindLabel(r.kind))}</td><td>${esc(personName(r.person_id))}</td><td>${fmtMoney(r.amount)}</td><td>${fmtMoney(recognized(r))}</td></tr>`).join("")}</tbody></table>${n > recs.length ? `<p class="ps-meta">${t("只打印前 300 笔")}</p>` : ""}`;
+      <table><thead><tr><th>${t("到账日期")}</th><th>${t("付款方")}</th><th>${t("类型")}</th><th>${t("成员")}</th><th>${t("金额")}</th><th>${t("认定收入")}</th></tr></thead><tbody>${recs.map((r) => `<tr><td>${esc(fmtDate(r.received_on))}</td><td>${esc(r.source_name)}</td><td>${esc(kindLabel(r.kind))}</td><td>${esc(personName(r.person_id))}</td><td>${fmtMoney(r.amount)}</td><td>${fmtMoney(recognized(r))}</td></tr>`).join("")}</tbody></table>${n > recs.length ? `<p class="ps-meta">${t("只打印前 300 笔")}</p>` : ""}`;
   } else {
     const r = R(), cf = await cashflowReady(r), top = groupSum(cf.rows, (x) => skey(x.source_name)).filter((x) => x.total > 0).slice(0, 15);
     const kinds = statKinds(inc().merge).filter((k) => cf.byKind[k.id]).sort((a, b) => cf.byKind[b.id] - cf.byKind[a.id]);
