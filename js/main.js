@@ -446,7 +446,7 @@ onClearFilters("bills", clearAnd(() => { Object.assign(state.billsFilter, FD.bil
 onClearFilters("pay", clearAnd(() => Object.assign(state.payFilter, FD.pay)), () => changed(state.payFilter, FD.pay));   // 服务器分页：resetListPages 标过期、回第一页
 onClearFilters("spend", () => { clearSpendFilter("all"); resetListPages(); renderSpendRecords(); }, () => changed(state.spendFilter, FD.spend));
 onClearFilters("med", clearAnd(() => Object.assign(state.medFilter, FD.med)), () => changed(state.medFilter, FD.med));
-onClearFilters("stats", clearAnd(() => { Object.assign(state.stats, FD.stats); setFinRange(state.stats.months); setFinUnit("auto"); clearUrlParams(["node", "month", "cat", "item"]); }));
+onClearFilters("stats", clearAnd(() => { Object.assign(state.stats, FD.stats); setFinRange(state.stats.months); setFinUnit("auto"); saveStatToggles(); clearUrlParams(["node", "month", "cat", "item"]); }));
 onClearFilters("gift", clearAnd(() => Object.assign((state.giftFilter ||= { sort: "balance" }), FD.gift)));
 onClearFilters("off", clearAnd(() => Object.assign((state.offFilter ||= { sort: "since" }), FD.off)), () => changed(state.offFilter, FD.off));
 onClearFilters("alerts", clearAnd(() => setTodayPref({ source: null, mine: false })));
@@ -511,6 +511,8 @@ main.addEventListener("touchend", (e) => {
 }, { passive: true });
 const searchSoon = debounce((fn) => fn());
 /** 改共享的时间范围：花费（state.stats.months）和收入页一起变，存在本机 */
+/** 排除资本性 / 排除投资：和时间范围一样存在本机，下次打开照旧（默认都排除） */
+function saveStatToggles() { try { localStorage.setItem("hmh-fin-excap", state.stats.exCap ? "1" : "0"); localStorage.setItem("hmh-fin-exinv", state.stats.exInv ? "1" : "0"); } catch { /* 忽略 */ } }
 function setSharedRange(v) { state.stats.months = normRange(v); state.stats.month = null; setFinRange(state.stats.months); }
 main.addEventListener("input", (e) => {
   // 搜索框：筛选条件马上记下，列表停下 ~200ms 再重画（不是每敲一个字都重画整张列表）
@@ -699,8 +701,8 @@ main.addEventListener("change", async (e) => {
     toast(e.target.checked ? t("已打开装备") : t("已关闭装备，导航里不再显示")); render();
   }
   { const k = { spendCat: "cat", spendNat: "nat", spendProp: "prop", spendStore: "store", spendRange: "range", spendSort: "sort" }[e.target.id]; if (k) { const f = state.spendFilter; f[k] = e.target.value; if (k === "store") f.stores = null; if (k === "cat") f.grp = null; if (k === "range") { f.months = null; f.dmax = null; f.year = "all"; f.mon = "all"; renderSpendRecords(); } renderSpendList(); } }   // 手动选了商店 / 年份 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”；回到第一页重新查
-  if (e.target.dataset?.action === "stats-excap") { state.stats.exCap = e.target.checked; render(); }   // 花费统计：排除资本性 / 排除投资（概览趋势、分类、商店一起变）
-  if (e.target.dataset?.action === "stats-exinv") { state.stats.exInv = e.target.checked; render(); }
+  if (e.target.dataset?.action === "stats-excap") { state.stats.exCap = e.target.checked; saveStatToggles(); render(); }   // 花费统计：排除资本性 / 排除投资（概览趋势、分类、商店一起变）
+  if (e.target.dataset?.action === "stats-exinv") { state.stats.exInv = e.target.checked; saveStatToggles(); render(); }
   if (e.target.id === "statsStoreL1") { state.stats.storeL1 = e.target.value; render(); }
   if (payeeChange(e)) return;
   if (e.target.id === "statsRange") { setSharedRange(e.target.value); render(); }   // 财务统一的时间范围（js/core/time-range.js）：花费、预算趋势、收入共用
