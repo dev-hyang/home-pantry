@@ -76,7 +76,8 @@ export function senderName(desc) {
   // 流水号（JPM99A1B、WFCT0XYZ123 这类纯字母数字混杂、5 位以上的词）也去掉：否则同一个人每笔都是新付款方，记住的类型 / 分类对不上
   const ref = (w) => /^[a-z0-9]{5,}$/i.test(w) && /\d/.test(w) && /[a-z]/i.test(w);
   const clean = (x) => x.replace(/[#*]?\s*\b\d{4,}\b.*$/, "").replace(/[^\p{L}\p{N}&.,'’\- ]+/gu, " ").split(" ").filter((w) => !ref(w)).join(" ").replace(/\s+/g, " ").trim();
-  return (clean(s) || clean(raw) || raw).slice(0, 60);
+  const name = (clean(s) || clean(raw) || raw).slice(0, 60), alias = meta("_sender_alias", {}) || {};
+  return alias[skey(name)] || name;   // 付款方改名 / 合并时记下的别名（js/income/views.js rememberSenders）
 }
 /* 银行流水描述 → 类型（按顺序，先命中的算）：券商 / 储蓄转入、贷款到账、利息、股息这类先认，免得被「转入」「interest」笼统归走 */
 const GUESS = [["loan_proceeds", /loan (?:proceeds|disb|funding|deposit)|disbursement|贷款(?:到账|发放)|借款到账/i],

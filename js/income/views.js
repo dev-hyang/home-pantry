@@ -601,8 +601,8 @@ const S_COLS = [["name", "付款方"], ["kind", "类型"], ["n", "收到次数"]
 const sNameOf = (x) => x.rows.find((r) => r.source_name)?.source_name || x.key;
 const sMainKind = (x) => { const m = new Map(); for (const r of x.rows) m.set(r.kind, (m.get(r.kind) || 0) + r.amount); return [...m].sort((a, b) => b[1] - a[1])[0]?.[0] || "other"; };
 /** 当前时间范围 / 成员 / 类型 / 搜索下的付款方（已排序）；rows = 参与统计的收入 */
-function senderGroups() {
-  const I = inc(), w = sWindow(I.sRange || "all"), q = skey(I.sq), sk = I.skind || "all";
+function senderGroups({ noSearch = false } = {}) {
+  const I = inc(), w = sWindow(I.sRange || "all"), q = noSearch ? "" : skey(I.sq), sk = I.skind || "all";
   const rows = I.rec.filter((r) => r.received_on >= w.from && r.received_on <= w.to && personOk(r, I.person) && kindMatch(sk, r.kind));
   const list = groupSum(rows, (r) => skey(r.source_name)).filter((x) => !q || skey(`${x.rows.map((r) => r.source_name).join(" ")} ${kindLabel(sMainKind(x))}`).includes(q));
   const { k = "total", dir = "desc" } = I.ssort || {}, sgn = dir === "asc" ? 1 : -1;
@@ -616,12 +616,46 @@ function sendersListHtml() {
   const { k = "total", dir = "desc" } = I.ssort || {};
   const th = ([key, label]) => { const on = k === key; return `<th scope="col" class="s-${key}" ${on ? `aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : ""}><button type="button" class="th-sort${on ? " is-on" : ""}" data-inc="s-sort" data-k="${key}" title="${esc(t("点一下按这一列排序"))}">${t(label)}<span aria-hidden="true">${on ? (dir === "asc" ? " ▲" : " ▼") : " ↕"}</span></button></th>`; };
   const cell = (key, inner) => `<td class="s-${key}" data-l="${esc(t(S_COLS.find((c) => c[0] === key)[1]))}">${inner}</td>`;
-  return `<p class="muted small" style="margin:0 0 8px">${t("{n} 个付款方，收入 {m}", { n: list.length, m: fmtMoney(total) })}${cap > 0 ? ` · ${t("另有资本流入 {a}（不计收入）", { a: fmtMoney(cap) })}` : ""}</p>
-    <table class="store-table ix-stbl"><thead><tr>${S_COLS.map(th).join("")}<th scope="col" class="s-act"><span class="sr-only">${t("操作")}</span></th></tr></thead><tbody>
-    ${shown.map((x) => `<tr><th scope="row" class="s-name"><button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(sNameOf(x))}</button></th>${cell("kind", kindBadge(sMainKind(x)))}${cell("n", x.n)}${cell("total", `<b>${fmtMoney(x.total)}</b>${x.cap ? `<br><small class="muted">${t("资本流入 {a}", { a: fmtMoney(x.cap) })}</small>` : ""}`)}${cell("share", rate(x.total, total))}${cell("last", x.last)}
-      <td class="s-act">${x.rows.every(canEdit) ? `<button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</td></tr>
+  const sel = I.ssel, pickedN = sel ? list.filter((x) => sel.has(x.key)).length : 0;
+  const defTo = I.smergeTo || [...list].filter((x) => sel?.has(x.key)).sort((a, b) => b.n - a.n).map(sNameOf)[0] || "";
+  const selBar = sel ? `<div class="sel-bar payee-sel" role="region" aria-label="${esc(t("多选合并"))}"><b>${t("已选 {n} 家", { n: pickedN })}</b>
+      <label class="payee-merge-to"><span>${t("合并为")}</span><input id="incMergeTo" maxlength="80" list="incSendersAll" value="${esc(defTo)}" autocomplete="off"></label>
+      <button type="button" class="btn btn-sm btn-primary" data-inc="sender-merge" ${pickedN >= 2 ? "" : "disabled"}>${t("合并")}</button>
+      <button type="button" class="btn btn-sm btn-ghost" data-inc="sender-sel">${t("退出多选")}</button>
+      <small class="muted" style="flex-basis:100%">${t("勾两家以上，合并成一个名字（默认用笔数最多的那个）。")}</small><datalist id="incSendersAll">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></div>` : "";
+  return `${selBar}<p class="muted small" style="margin:0 0 8px">${t("{n} 个付款方，收入 {m}", { n: list.length, m: fmtMoney(total) })}${cap > 0 ? ` · ${t("另有资本流入 {a}（不计收入）", { a: fmtMoney(cap) })}` : ""}</p>
+    <table class="store-table ix-stbl payee-tbl"><thead><tr>${S_COLS.map(th).join("")}<th scope="col" class="s-act"><span class="sr-only">${t("操作")}</span></th></tr></thead><tbody>
+    ${shown.map((x) => `<tr><th scope="row" class="s-name"><span class="s-name-in">${sel && x.rows.every(canEdit) ? `<input type="checkbox" class="sel" data-inc="sender-pick" data-key="${esc(x.key)}" ${sel.has(x.key) ? "checked" : ""} aria-label="${esc(t("选中 {name}", { name: sNameOf(x) }))}">` : ""}<button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(sNameOf(x))}</button></span></th>${cell("kind", kindBadge(sMainKind(x)))}${cell("n", x.n)}${cell("total", `<b>${fmtMoney(x.total)}</b>${x.cap ? `<br><small class="muted">${t("资本流入 {a}", { a: fmtMoney(x.cap) })}</small>` : ""}`)}${cell("share", rate(x.total, total))}${cell("last", x.last)}
+      <td class="s-act">${x.rows.every(canEdit) && !sel ? `<button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</td></tr>
       ${I.renameKey === x.key ? `<tr class="s-form"><td colspan="7"><form data-inc-form="rename" data-key="${esc(x.key)}" class="form-grid"><label>${t("统一改成")}<input name="to" maxlength="80" required value="${esc(sNameOf(x))}" list="incSenders"></label><div class="form-actions"><button class="btn btn-sm btn-primary">${t("改名（相同名字的会合并成一个）")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="">${t("取消")}</button></div></form><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></td></tr>` : ""}`).join("") || `<tr class="s-form"><td colspan="7" class="muted">${t("没有符合条件的付款方")}</td></tr>`}</tbody></table>
     ${moreBtn(hasNext, 'data-inc="s-more"')}`;
+}
+/** 付款方页顶部：指标卡 + 前 10 名横条 + 按一级类型的环形图（不随搜索变；随时间范围、成员、类型筛选变）。点条 / 扇区 = 到收入明细看那几笔 */
+function sendersDashHtml() {
+  const I = inc(), { w, list, total, cap } = senderGroups({ noSearch: true });
+  if (!list.length) return "";
+  const person = I.person, top3 = list.slice(0, 3).reduce((a, x) => a + x.total, 0), big = list[0];
+  const card = (label, value, small = "", drill = "") => `<div class="kpi${drill ? " ch-hit-row" : ""}"${drill ? hitAttrs(drill, label) : ""}><span>${esc(label)}</span><b>${value}</b><small>${small}${drill ? " ›" : ""}</small></div>`;
+  const kpis = `<div class="kpis">
+    ${card(t("付款方"), esc(t("{n} 家", { n: list.length })))}
+    ${card(t("收入合计"), esc(fmtMoney(total)), esc(t("认定收入")), incDrill({ ...w, person }))}
+    ${cap > 0 ? card(t("资本流入"), esc(fmtMoney(cap)), esc(t("卖房卖股的本金、借款、转回，不计收入"))) : ""}
+    ${card(t("前 3 家占比"), total > 0 ? `${Math.round((top3 / total) * 100)}%` : "–", esc(t("越高越依赖少数几个来源")))}
+    ${card(t("最大付款方"), esc(sNameOf(big)), esc(fmtMoney(big.total)), incDrill({ q: sNameOf(big), ...w, person }))}
+  </div>`;
+  if (!window.Charts) return kpis;
+  const R2_ = (v) => Math.round(v * 100) / 100;
+  const top = list.slice(0, 10), rest = list.slice(10);
+  const items = top.map((x) => { const g = groupOf(sMainKind(x)); return { name: sNameOf(x), value: x.total, color: g?.color || "#8a948f", drill: incDrill({ q: sNameOf(x), ...w, person }) }; });
+  if (rest.length) items.push({ name: `${t("其他")}（${t("{n} 家", { n: rest.length })}）`, value: R2_(rest.reduce((a, x) => a + x.total, 0)), color: "#c3cbc6" });
+  const by = new Map();
+  for (const x of list) for (const r of x.rows) { const g = groupOf(r.kind); if (!g) continue; const v = splitRecord(r).income || 0; if (v > 0) by.set(g.gid, (by.get(g.gid) || 0) + v); }
+  let slices = [...by].sort((a, b) => b[1] - a[1]).map(([gid, v]) => { const g = groupList().find((x) => x.gid === gid); return { name: `${g.icon} ${t(g.name)}`, value: R2_(v), color: g.color, drill: incDrill({ kind: g.id, ...w, person }) }; });
+  if (slices.length > 6) slices = [...slices.slice(0, 5), { name: t("其他"), value: R2_(slices.slice(5).reduce((a, x) => a + x.value, 0)), color: "#c3cbc6" }];
+  return `${kpis}<div class="chart-grid">
+    <div class="panel chart-panel"><h3>${t("收入最多的 10 家")}</h3>${window.Charts.hbars({ title: t("收入最多的 10 家"), fmt: fmtMoney, total, items })}</div>
+    <div class="panel chart-panel"><h3>${t("按收入类型")}</h3>${slices.length ? window.Charts.donut({ items: slices, fmt: fmtMoney, title: t("按收入类型"), center: fmtMoney(total), stack: true }) : `<p class="muted">${t("这段时间没有认定收入")}</p>`}</div>
+  </div><p class="muted drill-hint">${t("点条、色块或名称，可以查看对应的收入明细。")}</p>`;
 }
 /** 排序下拉（手机上表头不显示，靠它排序；宽屏点表头和它是同一个设置） */
 const S_SORTS = [["total:desc", "金额从高到低"], ["total:asc", "金额从低到高"], ["last:desc", "最近到账的在前"], ["last:asc", "最早到账的在前"], ["n:desc", "收到次数最多"], ["name:asc", "名称 A → Z"], ["name:desc", "名称 Z → A"], ["kind:asc", "按类型"]];
@@ -636,12 +670,19 @@ function sendersTab() {
   if (!I.rec.length) return empty();
   return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-inc-f="sRange" data-nosearch>${[["ytd", "今年"], ["3y", "近 3 年"], ["5y", "近 5 年"], ["all", "全部历史"]].map(([v, l]) => `<option value="${v}" ${v === range ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
     <label class="tb-field"><span>${t("谁的")}</span><select data-inc-f="person" data-nosearch>${personOptions(I.person, { all: true })}</select></label></div>
+    ${sendersDashHtml()}
     <div class="panel"><div class="toolbar ix-stoolbar">
       <input type="search" data-inc-sq value="${esc(I.sq || "")}" placeholder="${esc(t("搜索付款方 / 类型"))}" aria-label="${esc(t("搜索付款方"))}">
       <select id="incSkindF" data-inc-f="skind" aria-label="${esc(t("按类型筛选"))}">${kindOptionsHtml(I.skind || "all", { all: true, groups: true, allLabel: t("全部类型") })}</select>
       <select id="incSsort" data-inc-ssort data-nosearch aria-label="${esc(t("排序"))}">${sSortOptions()}</select>${clearFiltersBtn("incSend", changed(I, FD.incSend))}</div>
-    <div id="incSendersList">${sendersListHtml()}</div>
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm" data-inc="csv-senders">${t("导出付款方汇总 CSV")}</button></div></div>`;
+    <div class="ix-tools payee-tools"><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-sel">${I.ssel ? t("退出多选") : t("多选合并")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="csv-senders">${t("导出 CSV")}</button></div>
+    <div id="incSendersList">${sendersListHtml()}</div></div>`;
+}
+/** 改名 / 合并后记下别名（meta._sender_alias：原名键 → 新名），以后银行导入的入账自动用新名字（logic.js 的 senderName） */
+async function rememberSenders(keys, to) {
+  const a = { ...(meta("_sender_alias", {}) || {}) }; let changed = false;
+  for (const k of keys) if (k && k !== skey(to) && a[k] !== to) { a[k] = to; changed = true; }
+  if (changed) await saveMeta({ _sender_alias: a });
 }
 function sWindow(range) { return windowOf(range === "ytd" ? "ytd" : range === "3y" ? "3y" : range === "5y" ? "5y" : "all"); }
 
@@ -846,6 +887,14 @@ export function initIncome({ render, refresh }) {
     if (act === "sender-open") { Object.assign(I, NO_FILTER(), { q: b.dataset.key }); goTab("records"); return; }
     if (act === "drill-clear") { if (b.dataset.k === "range") { I.from = ""; I.to = ""; } else if (b.dataset.k === "ex") I.ex = false; I.limit = pageSize(); return redraw(); }
     if (act === "sender-rename") { I.renameKey = b.dataset.key || null; return redraw(); }
+    if (act === "sender-sel") { I.ssel = I.ssel ? null : new Set(); I.smergeTo = ""; I.renameKey = null; return redraw(); }
+    if (act === "sender-pick") { const k = b.dataset.key; I.ssel.has(k) ? I.ssel.delete(k) : I.ssel.add(k); return renderSenders(); }
+    if (act === "sender-merge") return guard(async () => {
+      const to = ($("#incMergeTo")?.value || "").trim(), keys = [...(I.ssel || [])]; if (!to || keys.length < 2) return;
+      const ids = I.rec.filter((r) => keys.includes(skey(r.source_name)) && canEdit(r)).map((r) => r.id);
+      await Store.renameIncomeSource(ids, to); await rememberSenders(keys, to);
+      I.ssel = null; I.smergeTo = ""; toast(t("已合并：{n} 笔记成「{to}」", { n: ids.length, to })); await reload();
+    });
     if (act === "csv-detail") return guard(async () => { const l = await incList.fetchAll(); if (!l.length) return toast(t("没有可导出的记录")); download(`${fileHead()}-${t("明细")}.csv`, toCsv(detailRows(l))); });   // 按当前筛选从数据库读全部，不只是已显示的
     if (act === "csv-detail-window") { const w = windowOf(R().range, R()), l = incomeIn(w.from, w.to, R().person); if (!l.length) return toast(t("这段时间没有收入")); download(`${fileHead()}-${w.from}_${w.to}-${t("明细")}.csv`, toCsv(detailRows(l))); return; }
     if (act === "csv-senders") {   // 导出：和表格同样的筛选和排序，不分页
@@ -881,7 +930,7 @@ export function initIncome({ render, refresh }) {
       toast(t("已记录还款") + note); await reload(); if (purchase_id) hooks.refresh();
     });
     if (kind === "kind") return guard(async () => { const name = g("name"); if (!name) return; const parent = INC_L1S.some((x) => x.id === g("parent")) ? g("parent") : "other_income"; await saveMeta({ _income_kinds: [...rawKinds(), { id: `c_${Date.now().toString(36)}`, name, icon: g("icon") || "🏷️", parent }].slice(0, 30) }); rerender(); });
-    if (kind === "rename") return guard(async () => { const to = g("to"), key = f.dataset.key; if (!to) return; const ids = I.rec.filter((r) => skey(r.source_name) === key && canEdit(r)).map((r) => r.id); await Store.renameIncomeSource(ids, to); I.renameKey = null; toast(t("已改名 {n} 笔", { n: ids.length })); await reload(); });
+    if (kind === "rename") return guard(async () => { const to = g("to"), key = f.dataset.key; if (!to) return; const ids = I.rec.filter((r) => skey(r.source_name) === key && canEdit(r)).map((r) => r.id); await Store.renameIncomeSource(ids, to); await rememberSenders([key], to); I.renameKey = null; toast(t("已改名 {n} 笔", { n: ids.length })); await reload(); });
   }, true);
   const incListSoon = debounce(() => renderIncList()), sendersSoon = debounce(() => renderSenders());
   let datePend = null, dateT = 0;
@@ -940,3 +989,6 @@ export function incomeAlertItems() {
 }
 registerAlerts(incomeAlertItems);
 export { openRepayments, repaidOf };
+
+// 付款方多选合并：输入的「合并为」名字记下来，勾选别的付款方重画时不丢
+if (typeof document !== "undefined") document.addEventListener("input", (e) => { if (e.target?.id === "incMergeTo") inc().smergeTo = e.target.value; });
