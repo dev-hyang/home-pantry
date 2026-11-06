@@ -11,7 +11,8 @@ import { href } from "../core/router.js";
 import { financeOk } from "../core/finance-access.js";
 import { ASSET_BUCKETS, BALANCE_KINDS, LIAB_BUCKETS, growthRows, isLiabilityKind, monthChange, trendPoints } from "../stats/net-worth.js";
 import { aggregate, incAggregate } from "../stats/report.js";
-import { monthLabel, spendRollupFor } from "../stats/views.js";
+import { monthLabel, spendRollupFor, trendHead, trendPeriods } from "../stats/views.js";
+import { monthsBetween, unitSelectHtml } from "../core/time-range.js";
 import { incRollupFor } from "../income/views.js";
 import { STALE_DAYS, balancesOf, deleteBalance, deleteSnapshot, liveNetWorth, rebuildSnapshot, saveBalance, saveMonthSnapshot, saveValuation, thisMonth, valuationsOf, deleteValuation } from "./nw-logic.js";
 import { debtHref } from "./debt-logic.js";
@@ -109,10 +110,14 @@ function breakdown(r) {
 function trend(points, range) {
   const pick = range === "all" ? points : points.slice(-Number(range));
   const chips = `<div class="chips" role="group" aria-label="${esc(t("时间范围"))}">${RANGES.map(([k, l]) => `<a class="chip ${k === range ? "on" : ""}" href="${NW_HREF()}?range=${k}" ${k === range ? 'aria-current="true"' : ""}>${t(l)}</a>`).join("")}</div>`;
-  const chart = pick.length > 1 && window.Charts ? window.Charts.line({ title: t("净资产走势"), labels: pick.map((p) => monthLabel(p.month)), fmt: (v) => Units.money(v, cur(), true),   // 纵轴用短格式（$520K），长数字会被截掉
-    series: [{ name: t("净资产"), color: "#2c6a57", values: pick.map((p) => p.nw) }, { name: t("资产"), color: "#3b7fc4", values: pick.map((p) => p.assets) }, { name: t("负债"), color: "#d4694c", values: pick.map((p) => p.liabilities) }] })
+  // 统一的周期（js/core/time-range.js）：快照是余额，按季 / 按年时取那一期最后一个月的快照（不相加）；缺的月份留空
+  const months = pick.length ? monthsBetween(pick[0].month, pick.at(-1).month) : [], byM = new Map(pick.map((p) => [p.month, p]));
+  const TP = trendPeriods(months), col = (k) => TP.last(months.map((m) => byM.get(m)?.[k] ?? null));
+  const chart = pick.length > 1 && window.Charts ? window.Charts.line({ title: `${t("净资产走势")} · ${TP.title}`, labels: TP.labels, fmt: (v) => Units.money(v, cur(), true), partial: TP.partial,   // 纵轴用短格式（$520K），长数字会被截掉
+    series: [{ name: t("净资产"), color: "#2c6a57", values: col("nw") }, { name: t("资产"), color: "#3b7fc4", values: col("assets") }, { name: t("负债"), color: "#d4694c", values: col("liabilities") }] })
     : `<p class="muted">${t("每月一个快照：再过一个月就能看到走势。也可以在下面「重建过去某月」补上以前的月份。")}</p>`;
-  return `<div class="panel chart-panel"><div class="chart-head"><h3>${t("净资产走势")}</h3>${chips}</div>${chart}
+  return `<div class="panel chart-panel"><div class="chart-head">${trendHead(t("净资产走势"), TP)}<div class="nw-trend-ctl">${chips}${months.length > 1 ? unitSelectHtml(months) : ""}</div></div>${chart}
+    ${TP.unit !== "month" && pick.length > 1 ? `<p class="muted small">${t("按季 / 按年时，每一期取最后一个月的快照（余额不相加）。")}</p>` : ""}
     ${pick.some((p) => p.nw < 0) ? `<p class="muted small">${t("有的月份净资产是负数，图上画在 0 以下；准确数字见图下的表。")}</p>` : ""}</div>`;
 }
 /** 财富增长 vs 消费：近 12 个快照月份的 净资产变化 / 收入 / 消费 / 储蓄 / 其他变化（表格：负数也看得清，读屏按表读） */

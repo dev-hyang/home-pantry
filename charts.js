@@ -79,10 +79,10 @@
     return g;
   }
 
-  function table(labels, series, fmt) {
+  function table(labels, series, fmt, partial = null) {
     return `<details class="ch-table"><summary>${t("查看数据表")}</summary><div class="ch-scroll"><table>
       <thead><tr><th scope="col"></th>${series.map((s) => `<th scope="col">${esc(s.name)}</th>`).join("")}</tr></thead>
-      <tbody>${labels.map((l, i) => `<tr><th scope="row">${esc(l)}</th>${series.map((s) => `<td>${esc(fmt(s.values[i] || 0))}</td>`).join("")}</tr>`).join("")}</tbody>
+      <tbody>${labels.map((l, i) => `<tr><th scope="row">${esc(l)}${partial?.[i] ? ` <small>${esc(t("（不完整）"))}</small>` : ""}</th>${series.map((s) => `<td>${s.values[i] == null ? "—" : esc(fmt(s.values[i] || 0))}</td>`).join("")}</tr>`).join("")}</tbody>
     </table></div></details>`;
   }
 
@@ -94,9 +94,13 @@
       return q ? `<li class="ch-hit-row" data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(s.name)}，${esc(t("查看明细"))}">${mark(s)}${esc(s.name)}</li>` : `<li>${mark(s)}${esc(s.name)}</li>`; }).join("")}</ul>`;
   }
 
+  /* 不完整的周期（本月 / 本季 / 今年至今，或范围只盖住一部分）：partial[i] = true 的柱子画浅色虚边、折线点画空心，图下一行说明 */
+  const partTip = (p, i) => (p?.[i] ? ` ${t("（不完整的周期）")}` : "");
+  const partNote = (p) => (p?.some(Boolean) ? `<p class="ch-note">${esc(t("浅色 = 不完整的周期（还没过完，或只含其中几个月）"))}</p>` : "");
+
   /** 柱状图；stacked=true 时各系列叠加并在顶部标总量；lines = 同一纵轴上再画几条虚线折线（不参与堆叠，例如 资本性 / 投资）；
    *  drill(k, i) = 第 k 个柱子系列第 i 格；lineDrill(j, i) = 第 j 条折线第 i 个点；legendDrill(k) 的 k 先数柱子系列、再数折线 */
-  function bars({ labels, series, fmt = String, title, stacked = true, showTotals = true, drill = null, legendDrill = null, lines = [], lineDrill = null }) {
+  function bars({ labels, series, fmt = String, title, stacked = true, showTotals = true, drill = null, legendDrill = null, lines = [], lineDrill = null, partial = null }) {
     const n = labels.length || 1;
     const totals = labels.map((_, i) => series.reduce((a, s) => a + (s.values[i] || 0), 0));
     const max = niceMax(Math.max(stacked ? Math.max(0, ...totals) : Math.max(0, ...series.flatMap((s) => s.values)), ...lines.flatMap((s) => s.values)));
@@ -114,7 +118,8 @@
           const x = stacked ? xAt(i) - bw / 2 : xAt(i) - (bw * series.length) / 2 + k * bw;
           const y = PAD.t + ih - (stacked ? base + h : h);
           const q = drill?.(k, i);
-          marks += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" style="fill:${s.color}" rx="2"${hit(q, `${lab} ${s.name}：${fmt(v)}，${t("查看明细")}`)}><title>${esc(lab)} ${esc(s.name)}：${esc(fmt(v))}${tip(q)}</title></rect>`;
+          const pt = partial?.[i] ? ` fill-opacity=".42" stroke-dasharray="3 2" stroke-width="1.2" class="ch-part"` : "";
+          marks += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" style="fill:${s.color}${pt ? `;stroke:${s.color}` : ""}" rx="2"${pt}${hit(q, `${lab} ${s.name}：${fmt(v)}${partTip(partial, i)}，${t("查看明细")}`)}><title>${esc(lab)} ${esc(s.name)}：${esc(fmt(v))}${partTip(partial, i)}${tip(q)}</title></rect>`;
           if (stacked) base += h;
         });
         // 手机画布上柱子较窄，总额标签只在宽屏显示
@@ -135,7 +140,7 @@
     };
     const all = [...series, ...lines.map((s) => ({ ...s, dash: true }))];
     return `<figure class="chart">${both(title, draw, labels)}
-      ${legend(all, legendDrill)}${table(labels, stacked && series.length > 1 ? [...series, { name: t("合计"), values: totals }, ...lines] : all, fmt)}</figure>`;
+      ${legend(all, legendDrill)}${partNote(partial)}${table(labels, stacked && series.length > 1 ? [...series, { name: t("合计"), values: totals }, ...lines] : all, fmt, partial)}</figure>`;
   }
 
   /** 横向条形排行（HTML，不是 SVG：文字可选、屏幕阅读器按列表读、手机上自动换行）。
@@ -163,9 +168,10 @@
   }
 
   /** 折线图；可叠一组柱子（bars）作为第二种度量（共用同一纵轴单位时使用） */
-  function line({ labels, series, fmt = String, title, barSeries = null, drill = null, barDrill = null }) {
+  /** drill(k, i) = 第 k 条折线第 i 个点；null 的点不画（余额没有记录的月份） */
+  function line({ labels, series, fmt = String, title, barSeries = null, drill = null, barDrill = null, partial = null, legendDrill = null }) {
     const n = labels.length;
-    const all = [...series, ...(barSeries ? [barSeries] : [])].flatMap((s) => s.values);
+    const all = [...series, ...(barSeries ? [barSeries] : [])].flatMap((s) => s.values).filter((v) => v != null);
     const max = niceMax(Math.max(0, ...all));
     const draw = (z) => {
       const { W, H, PAD } = z, iw = W - PAD.l - PAD.r, ih = H - PAD.t - PAD.b;
@@ -178,20 +184,21 @@
           if (v > 0) { const q = barDrill?.(i); marks += `<rect x="${(xAt(i) - bw / 2).toFixed(1)}" y="${yAt(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${((v / max) * ih).toFixed(1)}" style="fill:${barSeries.color}" opacity=".55" rx="2"${hit(q, `${labels[i]} ${barSeries.name}：${fmt(v)}，${t("查看明细")}`)}><title>${esc(labels[i])} ${esc(barSeries.name)}：${esc(fmt(v))}${tip(q)}</title></rect>`; }
         });
       }
-      series.forEach((s) => {
-        const pts = s.values.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v || 0).toFixed(1)}`).join(" ");
+      series.forEach((s, k) => {
+        const pts = s.values.map((v, i) => (v == null ? null : `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`)).filter(Boolean).join(" ");
         marks += `<polyline points="${pts}" style="fill:none;stroke:${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
         s.values.forEach((v, i) => {
-          const q = drill?.(0, i);
-          if (q) marks += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(v || 0).toFixed(1)}" r="14" style="fill:transparent"${hit(q, `${labels[i]} ${s.name}：${fmt(v || 0)}，${t("查看明细")}`)}><title>${esc(labels[i])} ${esc(s.name)}：${esc(fmt(v || 0))}${tip(q)}</title></circle>`;   // 手机上点的是这个大一点的透明圈
-          marks += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(v || 0).toFixed(1)}" r="3.5" style="fill:${s.color};pointer-events:none"><title>${esc(labels[i])} ${esc(s.name)}：${esc(fmt(v || 0))}</title></circle>`;
+          if (v == null) return;
+          const q = drill?.(k, i), pt = partTip(partial, i);
+          if (q) marks += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="14" style="fill:transparent"${hit(q, `${labels[i]} ${s.name}：${fmt(v)}${pt}，${t("查看明细")}`)}><title>${esc(labels[i])} ${esc(s.name)}：${esc(fmt(v))}${pt}${tip(q)}</title></circle>`;   // 手机上点的是这个大一点的透明圈
+          marks += `<circle cx="${xAt(i).toFixed(1)}" cy="${yAt(v).toFixed(1)}" r="${pt ? 4 : 3.5}" style="${pt ? `fill:var(--surface, #fff);stroke:${s.color};stroke-width:2` : `fill:${s.color}`};pointer-events:none"><title>${esc(labels[i])} ${esc(s.name)}：${esc(fmt(v))}${pt}</title></circle>`;
         });
       });
       return axes(z, max, labels, fmt, xAt) + marks;
     };
     const allSeries = [...(barSeries ? [barSeries] : []), ...series];
     return `<figure class="chart">${both(title, draw, labels)}
-      ${legend(allSeries)}${table(labels, allSeries, fmt)}</figure>`;
+      ${legend(allSeries, legendDrill)}${partNote(partial)}${table(labels, allSeries, fmt, partial)}</figure>`;
   }
 
   /** 环形图（分类占比） */

@@ -8,7 +8,7 @@ import { lang, t } from "../core/i18n.js";
 import { alertsOf } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { budgetBridge } from "../core/budget-bridge.js";
-import { dq, hitAttrs, lastMonths, monthKey, monthLabel, rangeChipsHtml, rangeMonths, spendRollupFor, timeBarHtml } from "../stats/views.js";
+import { dq, hitAttrs, lastMonths, monthKey, monthLabel, perWord, rangeChipsHtml, rangeMonths, spendRollupFor, timeBarHtml, trendHead, trendPeriods } from "../stats/views.js";
 import { cached } from "../core/spend-data.js";
 import { LEGACY_BUDGET, budgetGroupOf, budgetL2s } from "../core/taxonomy.js";
 import { tabBar, tabHub } from "../core/hub.js";
@@ -337,14 +337,16 @@ export function viewBudget() {
   const months = rangeMonths(state.stats.months === "m" ? 3 : state.stats.months), abm = actualByMonth();
   const ser = [BILLS_GROUP, ...budgetGroups(), ...(medInPool() ? [] : [MEDICAL_BUDGET_GROUP])];   // 实际花费：医疗不管计不计入预算都算在里面
   const totals = months.map((m) => ser.reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0));
-  const stacked = Charts.bars({ title: t("每月花费构成（账单 vs 其他）"), labels: months.map(monthLabel), fmt: money,
-    series: [{ name: t("账单"), color: BILLS_GROUP.color, values: months.map((m) => abm[m]?.bills || 0) },
-      { name: t("其他花费"), color: "#d4694c", values: months.map((m) => ser.slice(1).reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0)) }],
-    drill: (k, i) => dq({ grp: k === 0 ? "bills" : "!bills", month: months[i] }), legendDrill: (k) => dq({ grp: k === 0 ? "bills" : "!bills", range: months.length }) });
-  const vs = Charts.line({ title: t("实际花费 vs 预算 vs 收入"), labels: months.map(monthLabel), fmt: money,
-    barDrill: (i) => dq({ month: months[i] }),
-    barSeries: { name: t("实际花费"), color: "#d4694c", values: totals },
-    series: [{ name: t("预算合计"), color: "var(--pine)", values: months.map(() => plan.totalBudget) }, ...(plan.income != null ? [{ name: t("月收入"), color: "var(--ink)", values: months.map(() => plan.income) }] : [])] });
+  // 统一的周期（js/core/time-range.js）：范围长了按季 / 按年；预算、收入按月 × 这一期的月数
+  const TP = trendPeriods(months), per = (v) => TP.agg(months.map(() => v));
+  const stacked = Charts.bars({ title: `${t("花费构成（账单 vs 其他）")} · ${TP.title}`, labels: TP.labels, fmt: money, partial: TP.partial,
+    series: [{ name: t("账单"), color: BILLS_GROUP.color, values: TP.agg(months.map((m) => abm[m]?.bills || 0)) },
+      { name: t("其他花费"), color: "#d4694c", values: TP.agg(months.map((m) => ser.slice(1).reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0))) }],
+    drill: (k, i) => dq({ grp: k === 0 ? "bills" : "!bills", ...TP.when(i) }), legendDrill: (k) => dq({ grp: k === 0 ? "bills" : "!bills", range: months.length }) });
+  const vs = Charts.line({ title: `${t("实际花费 vs 预算 vs 收入")} · ${TP.title}`, labels: TP.labels, fmt: money, partial: TP.partial,
+    barDrill: (i) => dq(TP.when(i)),
+    barSeries: { name: t("实际花费"), color: "#d4694c", values: TP.agg(totals) },
+    series: [{ name: t("预算合计"), color: "var(--pine)", values: per(plan.totalBudget) }, ...(plan.income != null ? [{ name: TP.unit === "month" ? t("月收入") : t("收入（按月 × 月数）"), color: "var(--ink)", values: per(plan.income) }] : [])] });
 
   // 年度：今年已过的月份 × 月预算
   const now = new Date(), yr = now.getFullYear(), elapsed = now.getMonth() + (now.getDate() / new Date(yr, now.getMonth() + 1, 0).getDate());
@@ -416,9 +418,9 @@ export function viewBudget() {
     trend: () => `
     <section class="section">
       <div class="section-head"><h2>${t("预算 vs 实际")}</h2></div>
-      ${timeBarHtml(null)}   <!-- 和花费页同一个时间条、同一个范围值 -->
-      <div class="panel chart-panel"><h3>${t("账单和实际花费的关系")}</h3><p class="muted" style="margin:0 0 6px;font-size:13px">${t("按缴费日记账；年付账单缴费的那个月会特别高，看年度更准。")}</p>${stacked}</div>
-      <div class="panel chart-panel"><h3>${t("每月：实际 vs 预算 vs 收入")}</h3>${vs}</div>
+      ${timeBarHtml(null, { unitMonths: months })}   <!-- 和花费页同一个时间条、同一个范围值、同一个周期 -->
+      <div class="panel chart-panel">${trendHead(t("账单和实际花费的关系"), TP)}<p class="muted" style="margin:0 0 6px;font-size:13px">${t("按缴费日记账；年付账单缴费的那个月会特别高，看年度更准。")}</p>${stacked}</div>
+      <div class="panel chart-panel"><h3>${TP.unit === "month" ? t("每月：实际 vs 预算 vs 收入") : t("{p}：实际 vs 预算 vs 收入", { p: perWord(TP.unit) })}</h3>${vs}</div>
     </section>
     <section class="section">
       <div class="section-head"><h2>${t("{y} 年度预算", { y: yr })}</h2><p>${t("预算 = 月预算 × 12；预计全年按今年已花的速度推算")}</p></div>

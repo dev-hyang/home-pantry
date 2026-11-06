@@ -23,7 +23,10 @@ import { aiReady, askText } from "../core/ai.js";
 import { debounce, moreBtn, pageLimit, pageMoreBtn, pageSize } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
 import { compact } from "../core/list-query.js";
-import { STAT_CATS, download, dq, hitAttrs, monthLabel, toCsv, trendPeriods } from "../stats/views.js";
+import { STAT_CATS, download, dq, hitAttrs, monthLabel, toCsv, trendHead, trendPeriods } from "../stats/views.js";
+import { autoUnit, chartUnit, finUnit, unitNote, unitSelectHtml } from "../core/time-range.js";
+/** 分组柱（收入 / 消费…并排）超过 12 期就太挤：改画折线（2026-11 统一规则） */
+const GROUPED_MAX = 12;
 import { BUCKETS, bucketOf, l2IdOf } from "../core/taxonomy.js";
 import { INC_L1S, incL1, incLeaf, incLeavesOf, splitRecord } from "../core/income-taxonomy.js";
 import { OWN_XFER, aggregate, householdFlow, incAggregate, incNodeSum, normIncRow, normRow } from "../stats/report.js";
@@ -186,15 +189,27 @@ const acctShow = (r) => { const c = r.account_id && acctById(r.account_id); retu
 function flowCharts(cf, title) {
   if (!window.Charts || !cf.lines.length) return "";
   const labels = cf.lines.map((l) => l.label), f = (v, s) => fmtMoney(v, s);
-  const grouped = window.Charts.bars({ labels, title, stacked: false, showTotals: false, fmt: f,
+  // 没过完的周期（本月 / 本季…）或只盖住一部分的：图上浅色
+  const partial = cf.lines.map((l) => { const nat = periodWin(l.key, cf.unit, { from: "0000-01-01", to: "9999-12-31" }); return nat.from < cf.w.from || nat.to > cf.w.to; });
+  const drillOf = (k, i) => { const key = cf.lines[i].key; return k === 0 ? incDrill({ ...periodWin(key, cf.unit, cf.w), person: cf.person, ex: 1 }) : k === 1 ? spendDrillOf(key, cf.unit) : null; };
+  if (cf.lines.length > GROUPED_MAX) {   // 期数多：并排柱子太挤，收入 / 消费 / 其他流出 / 投资画成折线；净现金流仍是一期一根柱子
+    const flow = window.Charts.line({ labels, title, fmt: f, partial, drill: drillOf, legendDrill: (k) => (k === 0 ? incDrill({ ...cf.w, person: cf.person, ex: 1 }) : null),
+      series: [{ name: t("收入"), color: GREEN, values: cf.lines.map((l) => l.income) }, ...(cf.hasSpend ? [{ name: t("消费（日常 + 住房）"), color: RED, values: cf.lines.map((l) => Math.max(0, l.spend)) },
+        ...(cf.lines.some((l) => l.other > 0) ? [{ name: t("其他流出（税、保险、利息、奉献、资本性）"), color: "#8a5fb0", values: cf.lines.map((l) => Math.max(0, l.other)) }] : []),
+        ...(cf.lines.some((l) => l.invest > 0) ? [{ name: t("投资"), color: TEAL, values: cf.lines.map((l) => Math.max(0, l.invest)) }] : [])] : [])] });
+    const net = cf.hasSpend ? window.Charts.bars({ labels, title: t("净现金流"), stacked: true, showTotals: false, fmt: f, partial,
+      series: [{ name: t("结余"), color: BLUE, values: cf.lines.map((l) => Math.max(0, l.net)) }, { name: t("超支"), color: "#b23b3b", values: cf.lines.map((l) => Math.max(0, -l.net)) }] }) : "";
+    return `<div class="panel chart-panel"><h3>${t("收入 vs 消费")}</h3>${flow}</div>${net ? `<div class="panel chart-panel"><h3>${t("净现金流：结余 / 超支")}</h3>${net}</div>` : ""}`;
+  }
+  const grouped = window.Charts.bars({ labels, title, stacked: false, showTotals: false, fmt: f, partial,
     drill: (k, i) => { const key = cf.lines[i].key; return k === 0 ? incDrill({ ...periodWin(key, cf.unit, cf.w), person: cf.person, ex: 1 }) : spendDrillOf(key, cf.unit); },
     legendDrill: (k) => (k === 0 ? incDrill({ ...cf.w, person: cf.person, ex: 1 }) : null),
     series: [{ name: t("收入"), color: GREEN, values: cf.lines.map((l) => l.income) }, ...(cf.hasSpend ? [{ name: t("消费（日常 + 住房）"), color: RED, values: cf.lines.map((l) => Math.max(0, l.spend)) }] : []),
       ...(cf.hasSpend && cf.lines.some((l) => l.other > 0) ? [{ name: t("其他流出（税、保险、利息、奉献、资本性）"), color: "#8a5fb0", values: cf.lines.map((l) => Math.max(0, l.other)) }] : [])],
     lines: cf.hasSpend && cf.lines.some((l) => l.invest > 0) ? [{ name: t("投资"), color: TEAL, values: cf.lines.map((l) => Math.max(0, l.invest)) }] : [] });
-  const diff = cf.hasSpend ? window.Charts.bars({ labels, title: t("净现金流"), stacked: true, showTotals: false, fmt: f,
+  const diff = cf.hasSpend ? window.Charts.bars({ labels, title: t("净现金流"), stacked: true, showTotals: false, fmt: f, partial,
     series: [{ name: t("结余"), color: BLUE, values: cf.lines.map((l) => Math.max(0, l.net)) }, { name: t("超支"), color: "#b23b3b", values: cf.lines.map((l) => Math.max(0, -l.net)) }] }) : "";
-  const trend = cf.lines.length > 2 ? window.Charts.line({ labels, title: t("趋势"), fmt: f, series: [{ name: t("收入"), color: GREEN, values: cf.lines.map((l) => l.income) }, ...(cf.hasSpend ? [{ name: t("消费（日常 + 住房）"), color: RED, values: cf.lines.map((l) => Math.max(0, l.spend)) }] : [])] }) : "";
+  const trend = cf.lines.length > 2 ? window.Charts.line({ labels, title: t("趋势"), fmt: f, partial, series: [{ name: t("收入"), color: GREEN, values: cf.lines.map((l) => l.income) }, ...(cf.hasSpend ? [{ name: t("消费（日常 + 住房）"), color: RED, values: cf.lines.map((l) => Math.max(0, l.spend)) }] : [])] }) : "";
   return `<div class="panel chart-panel"><h3>${t("收入 vs 消费")}</h3>${grouped}</div>${diff ? `<div class="panel chart-panel"><h3>${t("净现金流：结余 / 超支")}</h3>${diff}</div>` : ""}${trend ? `<div class="panel chart-panel"><h3>${t("趋势")}</h3>${trend}</div>` : ""}`;
 }
 const kindDonut = (cf) => {
@@ -219,7 +234,7 @@ const OV = () => {
 const kpiS = (label, val, small = "", drill = "") => `<div class="kpi${drill ? " ch-hit-row" : ""}"${hitAttrs(drill, label)}><span>${esc(label)}</span><b>${val}</b>${small}</div>`;
 const changeHtml = (now, before) => (before > 0 ? `<small class="${now >= before ? "gain" : "loss"}">${now >= before ? t("比上期多 {p}%", { p: Math.round(((now - before) / before) * 100) }) : t("比上期少 {p}%", { p: Math.round(((before - now) / before) * 100) })}</small>` : `<small>${t("上期没有收入")}</small>`);
 const senderLabel = (x) => x.rows.find((r) => r.source_name)?.source_name || x.key;
-const ovBar = (O, { keys = null } = {}) => `<div class="time-bar">${sharedRangeHtml()}
+const ovBar = (O, { keys = null, unit = null } = {}) => `<div class="time-bar">${sharedRangeHtml()}${unit ? unitSelectHtml(unit) : ""}
   <label class="tb-field"><span>${t("谁的")}</span><select data-inc-ov="person" data-nosearch>${personOptions(O.person, { all: true })}</select></label>
   ${keys ? `<label class="tb-field"><span>${t("月份")}</span><select data-inc-ov="month" data-nosearch><option value="">${t("整段（{r}）", { r: spanLabel(O.range) })}</option>${[...keys].reverse().map((k) => `<option value="${k}" ${k === O.month ? "selected" : ""}>${esc(periodLabel(k, "month"))}</option>`).join("")}</select></label>` : ""}</div>`;
 /** 付款方排行：名字 + 金额 + 占比条 */
@@ -257,7 +272,7 @@ function overviewTab() {
   if (!I.rec.length) return empty();
   const { w, months, trend, span } = ovMonths(O), all = O.person === "all";
   const ir = roll("inc", span.from, span.to), sr = all ? roll("spend", span.from, span.to) : [];
-  if (!ir || !sr) return `${ovBar(O)}<p class="muted" role="status">${t("加载中…")}</p>`;
+  if (!ir || !sr) return `${ovBar(O, { unit: trend })}<p class="muted" role="status">${t("加载中…")}</p>`;
   const IA = incAggregate(ir, months, { cur: cur(), person: O.person }), SA = all ? aggregate(sr, months, { cur: cur() }) : null, F = householdFlow(IA, SA, months);
   const pw = spanPrev(O.range), before = pw ? incSumOf(incomeIn(pw.from, pw.to, O.person)) : 0, allDrill = incDrill({ ...w, person: O.person, ex: 1 });
   const spW = String(O.range).startsWith("y:") ? { year: String(O.range).slice(2) } : months.length === 1 ? { month: months[0] } : O.range === "all" ? {} : { mlist: months.join(",") };
@@ -273,14 +288,19 @@ function overviewTab() {
     ${F.capIn ? `<p class="muted small" style="margin:6px 0 0"><button type="button" class="linkbtn" data-drill="${esc(incDrill({ kind: "g:capital", ...w, person: O.person }))}">🔁 ${t("资本流入 {a} · 不计收入", { a: fmtMoney(F.capIn) })}</button></p>` : ""}${DRILL_HINT()}</div>`;
   // 12 个月：收入 vs 消费（柱），投资（虚线）
   const TI = incAggregate(ir, trend, { cur: cur(), person: O.person }), TS = all ? aggregate(sr, trend, { cur: cur() }) : null;
-  const TP = trendPeriods(trend), pEnd = (i) => { const m = TP.when(i); const last = m.month || m.mlist.split(",").at(-1); const d = new Date(+last.slice(0, 4), +last.slice(5, 7), 0); const e = iso(d); return e > todayISO() ? todayISO() : e; };
-  const pFrom = (i) => `${(TP.when(i).month || TP.when(i).mlist.split(",")[0])}-01`;
-  const trendChart = window.Charts ? window.Charts.bars({ title: t("收入 vs 消费"), labels: TP.labels, stacked: false, showTotals: false, fmt: fmtMoney,
-    series: [{ name: t("收入"), color: GREEN, values: TP.agg(trend.map((m) => R2(TI.income[m]))) }, ...(TS ? [{ name: t("消费（日常 + 住房）"), color: RED, values: TP.agg(trend.map((m) => R2(TS.bucket[m].living + TS.bucket[m].housing))) }] : [])],
-    lines: TS ? [{ name: t("投资"), color: TEAL, values: TP.agg(trend.map((m) => R2(TS.bucket[m].investment))) }] : [],
-    drill: (k, i) => (k === 0 ? incDrill({ from: pFrom(i), to: pEnd(i), person: O.person, ex: 1 }) : dq(TP.when(i))),
-    lineDrill: (_, i) => dq({ nat: "investment", ...TP.when(i) }),
-    legendDrill: (k) => (k === 0 ? incDrill({ from: `${trend[0]}-01`, to: todayISO(), person: O.person, ex: 1 }) : null) }) : "";
+  const TP = trendPeriods(trend), asLine = TP.n > GROUPED_MAX;
+  const incV = TP.agg(trend.map((m) => R2(TI.income[m]))), spV = TS ? TP.agg(trend.map((m) => R2(TS.bucket[m].living + TS.bucket[m].housing))) : null, invV = TS ? TP.agg(trend.map((m) => R2(TS.bucket[m].investment))) : null;
+  const tDrill = (k, i) => (k === 0 ? incDrill({ ...TP.win(i), person: O.person, ex: 1 }) : k === 1 ? dq(TP.when(i)) : dq({ nat: "investment", ...TP.when(i) }));
+  const tLegend = (k) => (k === 0 ? incDrill({ from: `${trend[0]}-01`, to: todayISO(), person: O.person, ex: 1 }) : null);
+  const tTitle = `${t("收入 vs 消费")} · ${TP.title}`;
+  // 期数多：三条折线（收入、消费、投资）；少：并排柱子 + 投资虚线
+  const trendChart = !window.Charts ? "" : asLine
+    ? window.Charts.line({ title: tTitle, labels: TP.labels, fmt: fmtMoney, partial: TP.partial, drill: tDrill, legendDrill: tLegend,
+      series: [{ name: t("收入"), color: GREEN, values: incV }, ...(TS ? [{ name: t("消费（日常 + 住房）"), color: RED, values: spV }, { name: t("投资"), color: TEAL, values: invV }] : [])] })
+    : window.Charts.bars({ title: tTitle, labels: TP.labels, stacked: false, showTotals: false, fmt: fmtMoney, partial: TP.partial,
+      series: [{ name: t("收入"), color: GREEN, values: incV }, ...(TS ? [{ name: t("消费（日常 + 住房）"), color: RED, values: spV }] : [])],
+      lines: TS ? [{ name: t("投资"), color: TEAL, values: invV }] : [],
+      drill: tDrill, lineDrill: (_, i) => tDrill(2, i), legendDrill: tLegend });
   const rows = incomeIn(w.from, w.to, O.person), senders = groupSum(rows, (r) => skey(r.source_name)).filter((x) => x.total > 0), top = senders.slice(0, 5), total = incSumOf(rows);
   const rank = top.length ? `<div class="panel"><div class="chart-head"><h3>${t("主要付款方")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("senders")}">${t("全部付款方")} ›</a></div>${rankHtml(top, total, w, O.person)}</div>` : "";
   const byP = groupSum(rows, (r) => r.person_id || "");
@@ -289,8 +309,8 @@ function overviewTab() {
     <tr><th scope="row"><b>${t("全家合计")}</b></th><td><b>${byP.reduce((a, x) => a + x.n, 0)}</b></td><td><b>${fmtMoney(total)}</b></td><td>100%</td></tr></tbody></table></div></div>` : "";
   const recent = I.rec.filter((r) => personOk(r, O.person)).slice().sort((a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5);
   const recentHtml = recent.length ? `<div class="panel"><div class="chart-head"><h3>${t("最近到账")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("records")}">${t("全部明细")} ›</a></div><ul class="restock-list ix-list">${recent.map(recordRow).join("")}</ul></div>` : "";
-  return `${ovBar(O)}${kpis}${netWorthCard()}${all ? waterfallHtml(F, spW, esc(incDrill({ kind: "g:capital", ...w, person: O.person }))) : ""}
-    <div class="panel chart-panel"><h3>${t("收入 vs 消费（{r}）", { r: trend.length === months.length ? spanLabel(O.range) : t("近 12 个月") })}</h3>${trendChart}<p class="muted drill-hint">${t("柱子 = 认定收入和消费（日常 + 住房），虚线 = 投资转入。点一下看对应的明细。")}</p></div>
+  return `${ovBar(O, { unit: trend })}${kpis}${netWorthCard()}${all ? waterfallHtml(F, spW, esc(incDrill({ kind: "g:capital", ...w, person: O.person }))) : ""}
+    <div class="panel chart-panel">${trendHead(`${t("收入 vs 消费（{r}）", { r: trend.length === months.length ? spanLabel(O.range) : t("近 12 个月") })} · ${TP.title}`, TP)}${trendChart}<p class="muted drill-hint">${asLine ? t("折线 = 认定收入、消费（日常 + 住房）和投资转入。点一个点看对应的明细。") : t("柱子 = 认定收入和消费（日常 + 住房），虚线 = 投资转入。点一下看对应的明细。")}</p></div>
     ${breakdown}<div class="ix-two">${rank}${members}</div>${recentHtml}${repayPanel()}
     ${tabHub(INCOME_TABS, incomeHref, t("其他功能"))}`;
 }
@@ -322,8 +342,8 @@ function categoryTab() {
   if (!I.rec.length) return empty();
   const { w, months, span } = ovMonths(O);
   if (O.month && !months.includes(O.month)) O.month = "";
-  const node = O.node && (INC_L1S.some((g) => g.id === nodeL1(O.node))) ? O.node : "", bar = ovBar(O, { keys: months });
   const cm = months.length > 1 ? months : monthsBetween(iso(new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1)), todayISO());
+  const node = O.node && (INC_L1S.some((g) => g.id === nodeL1(O.node))) ? O.node : "", bar = ovBar(O, { keys: months, unit: cm });
   const cspan = spanOfMonths([...months, ...cm]);
   const rows = roll("inc", cspan.from, cspan.to);
   if (!rows) return `${bar}${nodeCrumb(node)}<p class="muted" role="status">${t("加载中…")}</p>`;
@@ -341,9 +361,10 @@ function categoryTab() {
   const top = ids.slice(0, MAX_SERIES), rest = ids.slice(MAX_SERIES);
   const ser = top.map((id) => { const isL1 = !String(id).includes("|"), k = isL1 ? incL1(id) : incLeaf(String(id).split("|")[1]); return { id, name: nodeName(id), color: k.color, values: cm.map((m) => incNodeSum(C, id, m)) }; });
   if (rest.length) ser.push({ id: node, name: t("其他"), color: "#8a948f", values: cm.map((m) => R2(rest.reduce((s, id) => s + incNodeSum(C, id, m), 0))) });
-  const cmW = { from: `${cm[0]}-01`, to: todayISO() };
-  const chart = ser.length && window.Charts ? window.Charts.bars({ title: t("{k}每月", { k: nodeName(node) }), labels: cm.map(monthLabel), fmt: fmtMoney, series: ser,
-    drill: (k, i) => incDrill({ kind: nodeKindSel(ser[k].id), ...periodWin(cm[i], "month", cmW), person: O.person }), legendDrill: (k) => incDrill({ kind: nodeKindSel(ser[k].id), ...(months.length > 1 ? w : cmW), person: O.person }) })
+  const cmW = { from: `${cm[0]}-01`, to: todayISO() }, TP = trendPeriods(cm);   // 统一的周期：范围长了按季 / 按年
+  for (const x of ser) x.values = TP.agg(x.values);
+  const chart = ser.length && window.Charts ? window.Charts.bars({ title: `${t("{k}收入", { k: nodeName(node) })} · ${TP.title}`, labels: TP.labels, fmt: fmtMoney, series: ser, partial: TP.partial,
+    drill: (k, i) => incDrill({ kind: nodeKindSel(ser[k].id), ...TP.win(i), person: O.person }), legendDrill: (k) => incDrill({ kind: nodeKindSel(ser[k].id), ...(months.length > 1 ? w : cmW), person: O.person }) })
     : `<p class="muted">${t("这段时间没有收入")}</p>`;
   const capNote = !node && val("capital") > 0 ? `<p class="muted small" style="margin:6px 0 0">${t("资本与资产流入（卖房卖股的本金、借款、自己账户转入、国际电汇…）只是现金流入，不算收入，不在合计里。")}</p>` : "";
   return `${bar}${nodeCrumb(node)}
@@ -351,7 +372,7 @@ function categoryTab() {
       <p class="muted" style="margin:2px 0 8px;font-size:13px">${sel ? monthLabel(sel) : spanLabel(O.range)}${leaf ? "" : ` · ${t("点名称看下一层，点条看明细")}`}</p>
       ${leaf ? "" : window.Charts ? window.Charts.hbars({ items, fmt: fmtMoney, total: node ? total : null, title: t("子类排行"), empty: t("这段时间没有收入") }) : ""}${capNote}
       <div class="form-actions"><button type="button" class="btn btn-sm" data-drill="${esc(incDrill({ kind: nodeKindSel(node), ...win, person: O.person, ex: node ? "" : 1 }))}">${t("查看明细")} ›</button></div></div>
-    <div class="panel chart-panel"><h3>${t("每月走势")}</h3>${chart}${DRILL_HINT()}</div>`;
+    <div class="panel chart-panel">${trendHead(TP.title, TP)}${chart}${DRILL_HINT()}</div>`;
 }
 
 /* ───────────── 银行导入：对账单里的入账补入收入（和「花费 → 银行导入」是同一个入口） ───────────── */
@@ -699,13 +720,19 @@ async function rememberSenders(keys, to) {
   if (changed) await saveMeta({ _sender_alias: a });
 }
 
-const R = () => { const r = (inc().r ||= { unit: "month", range: "12", from: "", to: "", person: "all", what: "both", unmask: false }); r.range = state.stats.months; return r; };   // 时间范围是共享的（js/core/time-range.js）
+/** 收支对比 / 导出的设置。时间范围、周期都是共享的（js/core/time-range.js，周期这里多一个双周）。
+ *  r.unit = 实际用的周期：收支对比按统一规则（太密退回自动，r.cu.fell）；导出 exp = true 不限（按月导 5 年也行） */
+const R = ({ exp = false } = {}) => {
+  const r = (inc().r ||= { unit: "month", range: "12", from: "", to: "", person: "all", what: "both", unmask: false });
+  r.range = state.stats.months; r.ms = spanWindow(r.range).months; r.pick = finUnit({ biweek: true }); r.exp = exp;
+  r.cu = exp ? { unit: r.pick === "auto" ? autoUnit(r.ms) : r.pick, fell: false } : chartUnit(r.ms, r.pick);
+  r.unit = r.cu.unit; return r;
+};
 /** 周期 / 时间范围 / 谁的（收支对比页和导出页共用，同一份设置） */
 const controlsHtml = (r, cf = null) => {
-  const sel = (id, list, v) => `<label class="tb-field"><span>${t(id)}</span><select data-inc-r="${id === "周期" ? "unit" : "range"}" data-nosearch>${selOpts(list, v)}</select></label>`;
-  return `<div class="time-bar">${sel("周期", UNITS, r.unit)}${sharedRangeHtml()}
+  return `<div class="time-bar">${unitSelectHtml(r.ms, { biweek: true, nocap: r.exp })}${sharedRangeHtml()}
     <label class="tb-field"><span>${t("谁的")}</span><select data-inc-r="person" data-nosearch>${personOptions(r.person, { all: true })}</select></label>
-    ${cf ? togglesHtml(cf) : ""}</div>
+    ${cf ? togglesHtml(cf) : ""}</div>${r.cu.fell ? `<p class="muted small trend-note" role="status">${esc(unitNote(r.cu))}</p>` : ""}
     ${r.unit === "biweek" ? `<p class="muted small" style="margin:-4px 0 8px">${t("双周起点（每 14 天一个周期，对上你的发薪日）：")}<input type="date" data-inc-anchor value="${esc(cfAnchor())}" aria-label="${esc(t("双周起点"))}"></p>` : ""}`;
 };
 const spendDonut = (cf) => {
@@ -723,7 +750,7 @@ function reportTab() {
 }
 /* ───────────── 导出打印：CSV（收入 / 花费 / 合并）+ 打印 ───────────── */
 function exportTab() {
-  const I = inc(), r = R();
+  const I = inc(), r = R({ exp: true });
   if (!I.rec.length) return empty();
   const cf = cashflow(r);
   return `${controlsHtml(r, cf)}${r.person !== "all" ? `<p class="muted small" role="status">${t("花费不分人：选「全家」才会有花费和差额。")}</p>` : ""}
@@ -760,7 +787,7 @@ async function printIncome(mode) {
       <div class="ps-kpis">${kpiH(t("笔数"), n)}${kpiH(t("到账合计"), fmtMoney(st.sum != null ? num(st.sum) : sumOf(recs)))}${kpiH(t("认定收入"), fmtMoney(st.income_sum != null ? num(st.income_sum) : incSumOf(recs)))}</div>
       <table><thead><tr><th>${t("到账日期")}</th><th>${t("付款方")}</th><th>${t("类型")}</th><th>${t("成员")}</th><th>${t("金额")}</th><th>${t("认定收入")}</th></tr></thead><tbody>${recs.map((r) => `<tr><td>${esc(fmtDate(r.received_on))}</td><td>${esc(r.source_name)}</td><td>${esc(kindLabel(r.kind))}</td><td>${esc(personName(r.person_id))}</td><td>${fmtMoney(r.amount)}</td><td>${fmtMoney(recognized(r))}</td></tr>`).join("")}</tbody></table>${n > recs.length ? `<p class="ps-meta">${t("只打印前 300 笔")}</p>` : ""}`;
   } else {
-    const r = R(), cf = await cashflowReady(r), top = groupSum(cf.rows, (x) => skey(x.source_name)).filter((x) => x.total > 0).slice(0, 15);
+    const r = R({ exp: true }), cf = await cashflowReady(r), top = groupSum(cf.rows, (x) => skey(x.source_name)).filter((x) => x.total > 0).slice(0, 15);
     const kinds = statKinds(inc().merge).filter((k) => cf.byKind[k.id]).sort((a, b) => cf.byKind[b.id] - cf.byKind[a.id]);
     html = `<h1>${esc(hh)} · ${t("收入报表")}</h1><p class="ps-meta">${cf.w.from} → ${cf.w.to} · ${esc(printStamp())}</p>
       <div class="ps-kpis">${kpiH(t("收入（认定）"), fmtMoney(cf.tot.income))}${cf.hasSpend ? kpiH(t("消费（含住房）"), fmtMoney(cf.tot.spend)) + kpiH(t("净现金流（账面）"), fmtMoney(cf.tot.net)) + kpiH(t("储蓄率"), rate(cf.tot.saved, cf.tot.income)) : ""}${cf.tot.capIn ? kpiH(t("资本流入（不计收入）"), fmtMoney(cf.tot.capIn)) : ""}${kpiH(t("笔数"), cf.rows.length)}</div>
@@ -778,7 +805,7 @@ const noSpendNote = (list) => (list?.length ? `<div class="notice" role="status"
 
 /* ── 导出 ── */
 async function exportReport() {
-  const r = R(), cf = await cashflowReady(r), hh = (state.household?.name || t("家庭")).replace(/[\\/:*?"<>|\s]/g, ""), base = `${hh}-${t("现金流")}-${cf.w.from}_${cf.w.to}`, unitName = t((UNITS.find((u) => u[0] === r.unit) || [])[1]);
+  const r = R({ exp: true }), cf = await cashflowReady(r), hh = (state.household?.name || t("家庭")).replace(/[\\/:*?"<>|\s]/g, ""), base = `${hh}-${t("现金流")}-${cf.w.from}_${cf.w.to}`, unitName = t((UNITS.find((u) => u[0] === r.unit) || [])[1]);
   const head = [[t("{hh} 现金流（{u}）", { hh: state.household?.name || t("家庭"), u: unitName })], [t("时间"), `${cf.w.from} → ${cf.w.to}`, t("货币：{cur}", { cur: cur() }), t("谁的：{p}", { p: r.person === "all" ? t("全家") : r.person === "none" ? t("未指定") : personName(r.person) })], []];
   let rows;
   if (r.what === "income") {   // 认定收入按类型；资本流入单列一列
