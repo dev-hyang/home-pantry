@@ -867,7 +867,7 @@ main.addEventListener("submit", async (e) => {
       // 经济性质：空 = 按分类默认（迁移 055）。以前的「大件」门槛现在只是记的时候问一句：金额较大、算进日常的，要不要标成资本性支出
       const cat = e2.category.value;
       let nature = e2.nature?.value || null;
-      if (!nature && signed >= bigThreshold() && effNature(cat, null) === "operating" && ["shopping", "home_maint", "transport"].includes(l2IdOf(cat)) && confirm(t("金额较大（{a}），标为资本性支出？\n资本性支出（大件、装修、买车…）不算进日常生活成本，现金流出里照样有。", { a: money(signed) }))) nature = "capital";
+      if (!nature && signed >= bigThreshold() && effNature(cat, null) === "operating" && ["home_goods", "digital", "apparel", "shop_misc", "home_maint", "transport"].includes(l2IdOf(cat)) && confirm(t("金额较大（{a}），标为资本性支出？\n资本性支出（大件、装修、买车…）不算进日常生活成本，现金流出里照样有。", { a: money(signed) }))) nature = "capital";
       // 关联房产：选了就记；没选、分类在「房产住房」下、家里只有一套房的，自动挂上这套
       const props = state.properties.filter((p) => !p.archived), property_id = e2.property_id?.value || (l1IdOf(cat) === "housing" && props.length === 1 ? props[0].id : null);
       await Store.addPurchase({ item_id: null, name, category: cat, quantity: null, unit: null, store,

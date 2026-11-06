@@ -3,6 +3,7 @@ import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
 import { t } from "./i18n.js";
 import { financeAllowed } from "./finance-rules.js";
 import { migrateLegacyDebts } from "./debt-rules.js";
+import { migrateLocalCategories } from "./category-moves.js";
 import { cardSpend, cardTotals, incRollup, itemPurchaseStats, ledgerRange, ledgerRollup, localPage, localStats, spendFeed, spendRollup, spendSuggest } from "./list-query.js";
 
 /* 成员资料（迁移 052）：只在 设置 → 家庭与成员 里用，不进 AI 提示词、不进备份（个人数据，只给本家庭看） */
@@ -33,6 +34,7 @@ export const DemoStore = {
     db.debt_accounts ||= []; db.debt_transactions ||= [];
     if (!db._debt058) { migrateLegacyDebts(db, { uid, today: new Date().toISOString().slice(0, 10) }); db._debt058 = true; }
     db.account_balances ||= []; db.asset_valuations ||= []; db.net_worth_snapshots ||= [];   // 净资产（迁移 059）
+    if (!db._cat063) { migrateLocalCategories(db); db._cat063 = true; }   // 分类重整（迁移 063 的本机版）
     this.persist();
   },
   /* 家庭成员（演示：只有“我”= 家主，user_id 固定为 "me"，和 budget.js 的 myId() 一致）；不放进 state.members，免得名册、分摊等演示数据跟着变 */
@@ -559,20 +561,20 @@ export function seedDemo() {
   add("燕麦片", "dry", "米面杂粮", "袋", 2, 1, "厨房柜", 0.06, 180, 20);
   add("食用油", "dry", "食用油", "瓶", 1, 0, "厨房柜", 0.06, null, 70);
   add("生抽", "dry", "调味品", "瓶", 1, 0, "厨房柜", 0.03, null, 15);
-  add("原味坚果", "dry", "零食坚果", "袋", 3, 1, "常温", 0.15, 60, 40);
+  add("原味坚果", "drink", "零食坚果", "袋", 3, 1, "常温", 0.15, 60, 40);
   add("饮用水", "drink", "饮用水", "提", 2, 1, "储物间", 0.25, null, 30);
   add("抽纸", "daily", "纸品", "包", 5, 4, "储物间", 0.4, null, 4);
   add("卷纸", "daily", "纸品", "卷", 12, 6, "卫生间", 0.6, null, 2.5);
-  add("洗洁精", "daily", "清洁用品", "瓶", 1, 0, "厨房柜", 0.03, null, 15);
+  add("洗洁精", "daily", "清洁洗涤", "瓶", 1, 0, "厨房柜", 0.03, null, 15);
   add("垃圾袋", "daily", "厨房耗材", "卷", 2, 1, "厨房柜", 0.07, null, 8);
   add("纸尿裤 NB码", "baby", "纸尿裤", "片", 18, 30, "储物间", 9, null, 1.5);
   add("婴儿湿巾", "baby", "湿巾", "包", 3, 2, "储物间", 0.3, null, 12);
-  add("防溢乳垫", "baby", "哺乳用品", "片", 40, 20, "储物间", 6, null, 0.8);
+  add("防溢乳垫", "baby", "哺乳耗材", "片", 40, 20, "储物间", 6, null, 0.8);
   add("复合维生素", "health", "维生素营养", "片", 3, 0, "常温", 1, 200, 1.5);
   // 装备（耐用品）：只有数量和位置，没有消耗记录
   add("床单被罩四件套", "gear_home", "床上用品", "套", 3, 0, "衣柜", 0, null, 0);
-  add("电热毯", "gear_home", "季节电器", "条", 1, 0, "衣柜", 0, null, 0);
-  add("旅行婴儿床（Pack and Play）", "gear_travel", "旅行婴儿用品", "个", 1, 0, "地下室", 0, null, 0);
+  add("电热毯", "gear_home", "家用电器", "条", 1, 0, "衣柜", 0, null, 0);
+  add("旅行婴儿床（Pack and Play）", "gear_baby", "出行用品", "个", 1, 0, "地下室", 0, null, 0);
   add("儿童自行车", "gear_travel", "自行车", "辆", 1, 0, "车库", 0, null, 0);
   add("千斤顶", "gear_car", "应急工具", "个", 1, 0, "车内", 0, null, 0);
   add("搭电线（Jumper）", "gear_car", "应急工具", "套", 1, 0, "车内", 0, null, 0);

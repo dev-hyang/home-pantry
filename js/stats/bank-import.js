@@ -167,7 +167,7 @@ const RULES = [
   ["vehicle_maint", /jiffy lube|valvoline|firestone|pep boys|autozone|o'?reilly|napa auto|midas|discount tire|auto repair|汽车维修|保养/i],
   ["house_maint", /home depot|lowe'?s|menards|ace hardware|家得宝/i],
   ["medical", /hospital|clinic|medical|dental|dentist|quest diag|labcorp|urgent care|physician|optom|医院|诊所|牙科|体检/i], ["health", /\bcvs\b|walgreens|rite aid|pharmacy|药房|药店/i],
-  ["grocery_misc", /weee|sayweee|hmart|h-mart|yamibuy|亚米|costco|trader joe|whole foods|kroger|safeway|aldi|publix|wegmans|h ?mart|99 ranch|mitsuwa|jewel-?osco|mariano|meijer|food lion|giant|stop & shop|sprouts|\bheb\b|harris teeter|sam'?s club|instacart|超市|大华|永辉|盒马/i],
+  ["grocery_misc", /weee|sayweee|hmart|h-mart|yamibuy|亚米|trader joe|whole foods|kroger|safeway|aldi|publix|wegmans|h ?mart|99 ranch|mitsuwa|jewel-?osco|mariano|meijer|food lion|giant|stop & shop|sprouts|\bheb\b|harris teeter|instacart|超市|大华|永辉|盒马/i],
   ["life_dining", /restaurant|cafe|coffee|starbucks|dunkin|mcdonald|chipotle|chick-?fil|panda express|subway|domino|pizza|taco|burger|bbq|grill|sushi|ramen|doordash|uber ?eats|grubhub|bakery|boba|tea\b|餐厅|饭店|外卖|美团|饿了么|咖啡|奶茶|麦当劳|肯德基/i],
   ["gear_clothes", /nordstrom|macy|old navy|\bgap\b|h&m|zara|uniqlo|nike|adidas|lululemon|tj ?maxx|marshalls|\bross\b|kohl|carter'?s|children'?s place|服装|优衣库/i],
   ["life_care", /salon|barber|haircut|\bspa\b|nail|massage|sephora|ulta|beauty|waxing|理发|美容|美甲|按摩/i], ["life_fitness", /\bgym\b|fitness|peloton|yoga|crossfit|orangetheory|健身|瑜伽|游泳/i],
@@ -177,7 +177,8 @@ const RULES = [
   ["capital_home", /title (company|co\b|insurance)|first american|fidelity national title|chicago title|stewart title|closing (cost|fee)|settlement (statement|fee)|real estate attorney|realtor commission|earnest money|过户|契税|首付|房款|中介费|律师费.*(房|购)/i],
   ["life_gov", /\bdmv\b|secretary of state|\bsos\b|passport|vital records|county clerk|city clerk|citation|violation|court|turbotax|h&r block|freetaxusa|taxact|罚单|交警|车管所|护照|签证|出生证|公证|社保局|税务局/i],
   ["life_fees", /\bfee\b|interest charge|finance charge|annual membership|late fee|overdraft|foreign transaction|service charge|手续费|利息|年费|滞纳/i], ["life_mail", /usps|ups store|fedex|\bups\b|\bdhl\b|postage|快递|邮费|顺丰/i],
-  ["life_shopping", /amazon|amzn|target|walmart|best ?buy|ikea|etsy|ebay|temu|shein|wayfair|淘宝|京东|拼多多|天猫/i],
+  // 仓储 / 综合超市（Costco、Sam's、BJ's、Walmart、Target）一张单子里吃的用的穿的都有：先进 综合购物（待细分），你改过一次这家就记住了
+  ["life_shopping", /costco|sam'?s club|bj'?s wholesale|amazon|amzn|target|walmart|best ?buy|ikea|etsy|ebay|temu|shein|wayfair|淘宝|京东|拼多多|天猫/i],
 ];
 const BANK_CAT = [[/credit card payment|payment\/credit/i, "bill_credit_card"], [/grocer/i, "grocery_misc"], [/food|dining|restaurant/i, "life_dining"], [/gas|fuel/i, "vehicle_fuel"], [/automotive/i, "vehicle_maint"], [/travel|airline|hotel/i, "travel_other"],
   [/shopping|merchandise/i, "life_shopping"], [/health|medical|pharmacy/i, "health"], [/entertainment/i, "life_fun"], [/home|improvement/i, "house_maint"], [/personal|beauty/i, "life_care"],
@@ -208,7 +209,7 @@ export function classifyWhy(row) {
   const key = keyOf(row.desc), d = row.desc.toLowerCase();
   const ur = learnedFor(key); if (ur) return { cat: canonCat(ur), src: "learned" };
   let rule = (RULES.find(([, re]) => re.test(row.desc)) || [])[0] || "";
-  if (rule === "grocery_misc" && row.bankCat && /gas|fuel/i.test(row.bankCat)) rule = "vehicle_fuel";   // 银行自己标了 Gas：超市 / 仓储超市的加油站
+  if ((rule === "grocery_misc" || rule === "life_shopping") && row.bankCat && /gas|fuel/i.test(row.bankCat)) rule = "vehicle_fuel";   // 银行自己标了 Gas：超市 / 仓储超市的加油站
   for (const b of (state.billsEnriched?.length ? state.billsEnriched : state.bills) || []) {
     const p = String(b.payee || b.name || "").toLowerCase(); if (p.length < 4 || !d.includes(p)) continue;
     const est = num(b.est ?? b.typical_amount, 0), amt = Math.abs(num(row.out, 0));
@@ -539,7 +540,7 @@ function rulesHtml() {
 const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("怎么归类？")}</h3><ul class="plain small" style="margin:0">
     <li>${t("只有一笔刷卡 / 扣款、没有小票也没关系：按商家名自动归类（超市、餐饮、加油、水电网、订阅、机票酒店…），认不出的你选一次，之后记住。")}</li>
     <li>${t("信用卡还款、自己账户之间的转账（活期 ↔ 储蓄）跳过——否则会重复算一遍。除此之外钱出去了就算花费：转给别人（Zelle / Venmo / 电汇）、取现、转到别的账户（如 Robinhood）都会按花费记（默认分到“其他”，可以改）。钱进来的（工资、电汇、Zelle / Venmo 的 from、退税…）单独列在「收入」一栏，勾上就记成收入；商家退款记成负数花费。")}</li>
-    <li>${t("分类怎么选：买回家吃的、用的（会用完）→ 日常储备；买回家长期用的 → 装备；花钱买体验或服务、没有东西留在家里 → 外出与服务。银行流水里看不出买了什么的，超市算“超市杂货”（归日常储备），网购算“网购 / 综合购物（未细分）”。")}</li>
+    <li>${t("分类按买的是什么，不按在哪家店买：买菜 → 食品杂货；纸巾、洗洁精、洗发水 → 日用个护；衣服鞋子 → 服饰鞋包；下馆子、外卖、咖啡 → 餐饮。银行流水里看不出买了什么的：买菜的超市（H Mart、Weee、Kroger…）算“超市买菜（未细分）”；Costco、Walmart、Target、Amazon 这类什么都卖的算“综合购物（待细分）”，改过一次这家就记住了。")}</li>
     <li>${t("退款（卡上入账的退货）会记成负数花费，统计按净额算。")}</li>
     <li>${t("以前已经手动记过的花费（日期差 3 天内、金额一样）自动跳过，所以同一个文件导两次也不会重复。")}</li>
     <li>${t("导入错了可以整批撤销。银行的 CSV 格式很多，列认错了可以手动选；国内银行的 GBK 编码也认得。")}</li></ul></div>`;

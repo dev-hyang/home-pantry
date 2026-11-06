@@ -15,8 +15,12 @@
  * 统计口径（bucketOf）：每一笔只落进一个桶，几个桶加起来 = 现金流出：
  *   转账 → 不算；资本性 → capital；投资（或 L1 = 投资理财）→ investment；融资 → financial（贷款还本：迁移 058 起房贷 / 车贷的本金单独一行，性质 = 融资）；
  *   其余按 L1：living → 日常，housing → 住房，financial → 财务。
- * 自定义分类（custom_categories，c_xxxxxxxx）：parent = 挂在哪个二级分类下；没填按空间（储藏 → 餐饮，装备 → 购物日用，房屋耗材 → 维护与服务）；
- * 不认识的 id 一律算 生活消费 → 其他。 */
+ * 自定义分类（custom_categories，c_xxxxxxxx）：parent = 挂在哪个二级分类下；没填按空间（储藏 → 食品杂货，装备 → 家居家电，房屋耗材 → 维护与服务）；
+ * 不认识的 id 一律算 生活消费 → 其他。
+ *
+ * 二级分类（2026-11 重整，参考美国 BLS 消费支出调查、国家统计局居民消费八大类）：买菜（食品杂货）和下馆子（餐饮）分开；
+ * 日用耗材、个护不算食品；衣物、数码、家居各自一组；按「买的是什么」分，不按在哪家店买。储藏的每个分类都是这里的一个三级分类（叶子），
+ * 储藏页按这里的二级分组显示。旧的二级 food / shopping 只在读旧数据时出现：LEGACY_L2 / LEGACY_SPLIT 换算。 */
 import { t } from "./i18n.js";
 
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -33,15 +37,20 @@ export const L1S = [
 /* ── 二级分类：leaves = 内置叶子分类（顺序 = 下拉里的顺序）。每个内置叶子只能出现一次（校验脚本会查） ── */
 export const L2S = [
   // 生活消费
-  { id: "food",         p: "living", name: "餐饮",         icon: "🍽️", color: "#3f8f5a", leaves: ["fresh", "frozen", "dry", "drink", "grocery_misc", "life_dining"] },
+  { id: "grocery",      p: "living", name: "食品杂货",     icon: "🛒", color: "#3f8f5a", leaves: ["fresh", "frozen", "dry", "drink", "grocery_misc"] },
+  { id: "dining",       p: "living", name: "餐饮",         icon: "🍜", color: "#c0603a", leaves: ["life_dining"] },   // 只算下馆子：外出就餐、外卖、咖啡奶茶
+  { id: "essentials",   p: "living", name: "日用个护",     icon: "🧴", color: "#7563c0", leaves: ["daily", "personal_care", "life_care"] },
+  { id: "home_goods",   p: "living", name: "家居家电",     icon: "🛋️", color: "#6b8e7a", leaves: ["gear_home", "gear_kitchen", "gear_tools", "gear_garden"] },
+  { id: "apparel",      p: "living", name: "服饰鞋包",     icon: "👕", color: "#b8576f", leaves: ["gear_clothes"] },
+  { id: "digital",      p: "living", name: "数码电子",     icon: "💻", color: "#4f7f9f", leaves: ["gear_digital"] },
+  { id: "shop_misc",    p: "living", name: "综合购物（待细分）", icon: "🛍️", color: "#7a5c8e", leaves: ["life_shopping"] },   // Costco / Amazon / Target 看不出买了什么的，改了分类就从这里消失
   { id: "transport",    p: "living", name: "交通",         icon: "🚗", color: "#3b7fc4", leaves: ["vehicle_fuel", "life_transit", "vehicle_maint", "gear_car", "house_car", "bill_insurance_auto", "bill_vehicle_reg", "bill_parking", "bill_toll", "loan_interest_auto", "capital_vehicle"] },
   { id: "utilities",    p: "living", name: "水电网通讯",   icon: "💡", color: "#1f8a8a", leaves: ["bill_electric", "bill_gas", "bill_water", "bill_internet", "bill_mobile", "bill_cable_tv", "bill_heating_oil", "bill_solar"] },
   { id: "healthcare",   p: "living", name: "医疗健康",     icon: "🩺", color: "#c2475f", leaves: ["medical", "health", "bill_insurance_health"] },
-  { id: "kids",         p: "living", name: "孩子与教育",   icon: "🎒", color: "#d4694c", leaves: ["baby", "study", "gear_study", "bill_tuition", "bill_activities"] },
-  { id: "shopping",     p: "living", name: "购物日用",     icon: "🛍️", color: "#7563c0", leaves: ["daily", "gear_home", "gear_kitchen", "gear_clothes", "gear_digital", "gear_travel", "gear_tools", "gear_garden", "life_shopping"] },
+  { id: "kids",         p: "living", name: "孩子与教育",   icon: "🎒", color: "#d4694c", leaves: ["baby", "study", "gear_baby", "gear_study", "bill_tuition", "bill_activities"] },
   { id: "travel",       p: "living", name: "旅行",         icon: "🧳", color: "#0f6f8b", leaves: ["travel_flight", "travel_ship", "travel_ground", "travel_lodging", "travel_rental", "travel_tour", "travel_other"] },
-  { id: "fun",          p: "living", name: "休闲娱乐",     icon: "🎬", color: "#c75a85", leaves: ["life_fun", "life_fitness", "bill_subscription", "bill_membership"] },
-  { id: "personal",     p: "living", name: "个人与家庭",   icon: "💝", color: "#9a6b3c", leaves: ["life_care", "life_gifts", "bill_family_support"] },
+  { id: "fun",          p: "living", name: "休闲娱乐",     icon: "🎬", color: "#c75a85", leaves: ["life_fun", "life_fitness", "gear_travel", "bill_subscription", "bill_membership"] },
+  { id: "personal",     p: "living", name: "个人与家庭",   icon: "💝", color: "#9a6b3c", leaves: ["life_gifts", "bill_family_support"] },
   { id: "pets",         p: "living", name: "宠物",         icon: "🐾", color: "#6b8e23", leaves: ["pet", "pet_care", "bill_pet"] },
   { id: "living_other", p: "living", name: "其他",         icon: "🧺", color: "#8a948f", leaves: ["life_other", "other", "bill_other"] },
   // 房产住房
@@ -95,7 +104,10 @@ const L2_BY = new Map(L2S.map((n) => [n.id, { ...n, level: 2 }]));
 for (const n of L1S) n.level = 1;
 const BUILTIN_PARENT = new Map(L2S.flatMap((n) => n.leaves.map((id) => [id, n.id])));
 /** 自定义分类（储藏 / 房屋耗材 / 装备的自建分类）按空间的默认父级 */
-const SPACE_PARENT = { pantry: "food", gear: "shopping", house: "home_maint" };
+const SPACE_PARENT = { pantry: "grocery", gear: "home_goods", house: "home_maint" };
+/** 旧的二级分类 id（2026-11 拆分前）→ 新的：自建分类的 parent 迁移 063 已经改了，这里兜底（演示模式、没跑迁移） */
+export const LEGACY_L2 = { food: "grocery", shopping: "home_goods" };
+const legacyParent = (p, space) => (p === "shopping" && space === "pantry" ? "essentials" : LEGACY_L2[p] || p);
 const canon = (id) => (window.canonCat ? window.canonCat(id) : id);
 
 /** 是不是分类树上的节点（一级 / 二级） */
@@ -127,7 +139,7 @@ export function l2IdOf(leafId) {
   const id = canon(leafId), b = BUILTIN_PARENT.get(id);
   if (b) return b;
   const c = (window.CATEGORIES || []).find((x) => x.id === id && x.custom);
-  if (c) return L2_BY.has(c.parent) ? c.parent : SPACE_PARENT[c.space] || OTHER_L2;
+  if (c) { const p = legacyParent(c.parent, c.space); return L2_BY.has(p) ? p : SPACE_PARENT[c.space] || OTHER_L2; }
   return OTHER_L2;
 }
 export const l2Of = (leafId) => L2_BY.get(l2IdOf(leafId));
@@ -188,9 +200,11 @@ export function budgetGroupOf(leafId, nature, { medInPool = false, inclCapital =
   return l2IdOf(id);
 }
 /** 旧的预算分组键（2026-10 之前存在 cat_budgets 里的）→ 二级分类；读的时候换算，不改存储（相同目标的几个旧键相加） */
-export const LEGACY_BUDGET = { groceries: "food", dining: "food", house: "home_maint", big: "shopping", gear: "shopping", vehicle: "transport", life: "fun", work: "work", admin: "gov_admin", travel: "travel", other: "living_other", medical: "healthcare" };
-/** 旧的统计分组 id（书签、旧钻取链接里的 cat=dining…）→ 新的节点 / 叶子 */
-export const LEGACY_STAT = { dining: "life_dining", vehicle: "transport", life: "fun", admin: "gov_admin", house: "home_maint", gear: "shopping", capital: "property_deal" };
+export const LEGACY_BUDGET = { groceries: "grocery", house: "home_maint", big: "home_goods", gear: "home_goods", vehicle: "transport", life: "fun", work: "work", admin: "gov_admin", travel: "travel", other: "living_other", medical: "healthcare" };
+/** 2026-11 拆开的二级分类：旧键的预算按过去 6 个月这几组的实际花费比例分下去（没有历史按默认权重） */
+export const LEGACY_SPLIT = { food: ["grocery", "dining"], shopping: ["essentials", "home_goods", "apparel", "digital", "shop_misc"] };
+/** 旧的统计分组 id（书签、旧钻取链接里的 cat=dining…）→ 新的节点 / 叶子；dining 现在本身就是二级分类（餐饮），不再换 */
+export const LEGACY_STAT = { vehicle: "transport", life: "fun", admin: "gov_admin", house: "home_maint", gear: "home_goods", capital: "property_deal", food: "grocery", shopping: "shop_misc" };
 
 /* ── 记账下拉：按 一级 · 二级 分组（optgroup），叶子在组里；手动记一笔、就地编辑、导入对账单、设备召回退款都用这一份 ── */
 export function spendOptions(selected, { withOther = true } = {}) {

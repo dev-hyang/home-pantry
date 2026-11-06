@@ -10,17 +10,17 @@ import { href } from "../core/router.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { dq, hitAttrs, lastMonths, monthKey, monthLabel, perWord, rangeChipsHtml, rangeMonths, spendRollupFor, timeBarHtml, trendHead, trendPeriods } from "../stats/views.js";
 import { cached } from "../core/spend-data.js";
-import { LEGACY_BUDGET, budgetGroupOf, budgetL2s } from "../core/taxonomy.js";
+import { LEGACY_BUDGET, LEGACY_SPLIT, budgetGroupOf, budgetL2s } from "../core/taxonomy.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { BUDGET_TABS, activeTab } from "../core/tabs.js";
 import { financeOk } from "../core/finance-access.js";
 import { attentionPanel } from "../core/alerts.js";
 
 /* ───────────── 预算分组 ───────────── */
-// 固定账单单独算一组（从账单项目的每月折算得来）；其余花费按 二级分类 分组（js/core/taxonomy.js 的 budgetL2s：餐饮、交通、购物日用、维护与服务…），
+// 固定账单单独算一组（从账单项目的每月折算得来）；其余花费按 二级分类 分组（js/core/taxonomy.js 的 budgetL2s：食品杂货、餐饮、交通、日用个护、维护与服务…），
 // 按过去 6 个月的比例分配“可支配额”。转账、资本性、投资不进预算（勾了花费页「排除资本性」以外的，资本性也不进：预算只管日常）。
 // 以前的分组键（groceries / dining / big / vehicle…，2026-10 之前存在 cat_budgets 里）读的时候按 LEGACY_BUDGET 换成二级分类，存储不改；以后保存写新键。
-const W = { food: 0.3, transport: 0.1, shopping: 0.1, home_maint: 0.1, kids: 0.06, healthcare: 0.05, fun: 0.05, travel: 0.05, living_other: 0.05, personal: 0.04, pets: 0.03, work: 0.03, gov_admin: 0.02, loans_fees: 0.01 };
+const W = { grocery: 0.2, dining: 0.1, essentials: 0.05, home_goods: 0.04, apparel: 0.03, digital: 0.02, shop_misc: 0.03, transport: 0.1, home_maint: 0.1, kids: 0.06, healthcare: 0.05, fun: 0.05, travel: 0.05, living_other: 0.05, personal: 0.04, pets: 0.03, work: 0.03, gov_admin: 0.02, loans_fees: 0.01 };
 export const budgetGroups = () => budgetL2s().map((n) => ({ id: n.id, name: n.name, icon: n.icon, color: n.color, w: W[n.id] ?? 0.02 }));
 const BILLS_GROUP = { id: "bills", name: "账单", icon: "🧾", color: "#2f5d8a" };
 /* 医疗（事件型医疗账单的付款，叶子 medical）：默认不计入每月“可支配”预算（大额、不可预测，和日常花费分开看）；在 财务 → 收入 → 预算与计划 里可以改成计入，
@@ -33,15 +33,29 @@ const DRILL_HINT = () => `<p class="muted drill-hint">${t("点预算行或图里
 export const groupOf = (category, nature = null) => budgetGroupOf(category, nature, { medInPool: medInPool(), inclCapital: state.stats.exCap === false });   // 花费页去掉了「排除资本性」：资本性也按分类进预算
 budgetBridge.groupOf = groupOf;   // 明细页按预算分组筛选时用
 Object.defineProperty(budgetBridge, "groups", { get: () => [BILLS_GROUP, ...budgetGroups(), MEDICAL_BUDGET_GROUP, { id: "capital", name: "资本性支出", icon: "🏦", color: "#4b5563" }], configurable: true });
-/** 旧键 → 新键：cat_budgets / _plan.groups 里 2026-10 之前的分组键换算成二级分类（同一个目标的几个旧键相加）；已经有新键的以新键为准 */
+/** 旧键 → 新键：cat_budgets / _plan.groups 里 2026-10 之前的分组键换算成二级分类（同一个目标的几个旧键相加）；已经有新键的以新键为准。
+ *  2026-11 拆开的 food（餐饮 → 食品杂货 + 餐饮）、shopping（购物日用 → 日用个护 / 家居家电 / 服饰鞋包 / 数码电子 / 综合购物）：
+ *  旧金额按过去 6 个月这几组的实际花费比例分（splitShares）；存储不改，下次保存预算就写成新键 */
 function mapLegacy(obj) {
-  const out = {}, src = obj || {};
-  for (const [k, v] of Object.entries(src)) if (!k.startsWith("_") && !(k in LEGACY_BUDGET && LEGACY_BUDGET[k] !== k) && v !== "" && v != null) out[k] = num(v);   // 新键（travel / work 新旧同名）
+  const out = {}, src = obj || {}, skip = (k) => (k in LEGACY_BUDGET && LEGACY_BUDGET[k] !== k) || k in LEGACY_SPLIT;
+  for (const [k, v] of Object.entries(src)) if (!k.startsWith("_") && !skip(k) && v !== "" && v != null) out[k] = num(v);   // 新键（travel / work 新旧同名）
   for (const [k, v] of Object.entries(src)) {
     const to = LEGACY_BUDGET[k]; if (!to || to === k || v === "" || v == null || to in src) continue;
     out[to] = (out[to] || 0) + num(v);
   }
+  for (const [k, tos] of Object.entries(LEGACY_SPLIT)) {
+    const v = src[k]; if (v === "" || v == null || tos.some((x) => x in src)) continue;
+    const sh = splitShares(tos); let left = Math.round(num(v));
+    tos.forEach((x, i) => { const a = i === tos.length - 1 ? left : Math.round(num(v) * sh[i]); left -= a; out[x] = (out[x] || 0) + a; });
+  }
   return out;
+}
+/** 拆分比例：过去 6 个月（不含本月）各组的实际花费；都没有就按默认权重 W */
+function splitShares(ids) {
+  const abm = actualByMonth(), past = lastMonths(7).slice(0, 6);
+  const h = ids.map((id) => past.reduce((s, m) => s + (abm[m]?.[id] || 0), 0)), tot = h.reduce((a, b) => a + b, 0);
+  const w = tot > 0 ? h : ids.map((id) => W[id] ?? 0.02), wt = w.reduce((a, b) => a + b, 0) || 1;
+  return w.map((x) => x / wt);
 }
 const cur = () => Units.region.currency;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -300,14 +314,17 @@ export function shopAdviceHtml() {
   return `<div class="panel bud-tip"><div class="section-head" style="margin-bottom:4px"><h3 style="font-size:15px">💰 ${esc(a.name)} · ${money(a.estimate)}</h3><button type="button" class="btn btn-sm btn-ghost" data-action="shop-advice-close">${t("知道了")}</button></div>
     ${adviceHtml(r)}<a class="btn btn-sm btn-ghost" href="${href("bills", "budget")}">${t("打开预算规划")}</a></div>`;
 }
-export const groupForCategory = (category) => (category ? groupOf(category) : "food");   // 没选分类的购物项，多半是吃的用的
+export const groupForCategory = (category) => (category ? groupOf(category) : "grocery");   // 没选分类的购物项，多半是吃的
+/** 采购清单 / 告急库存主要落在这两组（买菜 + 日用个护）：预算提示按两组合计 */
+export const STOCK_GROUPS = ["grocery", "essentials"];
 
 /** 采购清单页顶部：清单 + 告急库存预估要花多少，对比本月预算 */
 export function shopForecastHtml() {
   const plan = budgetPlan(); if (!plan) return "";
-  const fc = restockForecast(), mp = monthProgress(plan), g = mp.rows.find((r) => r.id === "food");
+  const fc = restockForecast(), mp = monthProgress(plan), gs = mp.rows.filter((r) => STOCK_GROUPS.includes(r.id));
   if (!fc.rows.length || !(fc.total > 0)) return "";
-  return `<p class="muted bud-line">💰 ${t("清单和告急库存预计 {a}；日常储备本月还剩 {b}。", { a: money(fc.total), b: money(Math.max(0, g.budget - g.spent)) })} <a href="${href("bills", "budget")}">${t("看预算")}</a></p>`;
+  const left = gs.reduce((s, g) => s + g.budget - g.spent, 0);
+  return `<p class="muted bud-line">💰 ${t("清单和告急库存预计 {a}；食品杂货和日用个护本月还剩 {b}。", { a: money(fc.total), b: money(Math.max(0, left)) })} <a href="${href("bills", "budget")}">${t("看预算")}</a></p>`;
 }
 
 /* ───────────── 页面 ───────────── */

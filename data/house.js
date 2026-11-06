@@ -12,11 +12,11 @@
   const HOUSE_CATEGORIES = [
     { id: "house_hvac",   name: "暖通与空气", icon: "🌀", color: "#3b7fc4", loc: "地下室", subs: ["炉子滤网", "加湿器滤芯", "新风滤网", "空调配件"] },
     { id: "house_water",  name: "水与管道",   icon: "🚰", color: "#24897d", loc: "地下室", subs: ["净水滤芯", "软水盐", "疏通除臭", "浴缸水疗"] },
-    { id: "house_season", name: "季节与庭院", icon: "❄️", color: "#5f7fa8", loc: "车库",   subs: ["融雪用品", "草坪花园", "防潮除湿"] },
+    { id: "house_season", name: "季节与庭院", icon: "❄️", color: "#5f7fa8", loc: "车库",   subs: ["融雪用品", "土壤肥料", "防潮除湿"] },
     { id: "house_pest",   name: "防虫防鼠",   icon: "🐜", color: "#b07a1a", loc: "车库",   subs: ["捕鼠", "防虫诱饵", "驱蚊"] },
-    { id: "house_safety", name: "安全与电力", icon: "🔋", color: "#c75a85", loc: "储物间", subs: ["电池", "灯泡灯管", "保险丝"] },
-    { id: "house_repair", name: "维修耗材",   icon: "🧰", color: "#7563c0", loc: "工具间", subs: ["密封胶", "修补材料", "润滑防锈", "胶带五金"] },
-    { id: "house_care",   name: "外墙地面养护", icon: "🧽", color: "#8a6d3b", loc: "储物间", subs: ["地板护理", "外墙清洁", "木作防护", "瓷砖石材"] },
+    { id: "house_safety", name: "电池灯泡",   icon: "🔋", color: "#c75a85", loc: "储物间", subs: ["电池", "灯泡灯管", "保险丝"] },
+    { id: "house_repair", name: "维修耗材",   icon: "🧰", color: "#7563c0", loc: "工具间", subs: ["密封胶", "修补材料", "润滑防锈", "螺丝五金"] },
+    { id: "house_care",   name: "地面外墙养护", icon: "🧽", color: "#8a6d3b", loc: "储物间", subs: ["地板护理", "外墙清洗", "木作防护", "瓷砖石材"] },   // 养护房子表面的（打蜡、外墙清洗剂、防护油）；日常的洗洁精、洗衣液在日常储备 → 家庭日用
     { id: "house_car",    name: "汽车养护",   icon: "🛢️", color: "#7a5c8e", loc: "车库",   subs: ["油液", "雨刮与灯泡", "清洁美容", "应急耗材"] },
   ].map((c) => ({ ...c, space: "house" }));
   window.CATEGORIES.push(...HOUSE_CATEGORIES);
@@ -208,7 +208,7 @@
       { name: "热水浴缸消毒剂", category: "house_water", sub: "浴缸水疗", unit: "瓶", qty: 1, min: 1, every: 45, loc: "储物间", when: ["f:hot_tub"] },
       { name: "融雪盐", category: "house_season", sub: "融雪用品", unit: "袋", qty: 2, min: 1, loc: "车库", when: ["f:snow"],
         note: "入冬前备好；有宠物可选宠物友好型。" },
-      { name: "草坪肥料", category: "house_season", sub: "草坪花园", unit: "袋", qty: 1, min: 0, every: 180, loc: "车库", when: ["f:lawn"],
+      { name: "草坪肥料", category: "house_season", sub: "土壤肥料", unit: "袋", qty: 1, min: 0, every: 180, loc: "车库", when: ["f:lawn"],
         note: "芝加哥地区常见春、秋两季施肥。" },
       { name: "捕鼠器", category: "house_pest", sub: "捕鼠", unit: "个", qty: 4, min: 2, loc: "车库", when: ["type:sfh", "type:townhome", "f:basement", "f:garage"],
         note: "秋季天冷后老鼠容易进屋，地下室、车库角落提前布置。" },
@@ -223,7 +223,7 @@
       { name: "WD-40 润滑防锈剂", category: "house_repair", sub: "润滑防锈", unit: "瓶", qty: 1, min: 0, loc: "工具间", when: ["type:sfh", "type:townhome", "f:garage"] },
       { name: "木地板清洁剂", category: "house_care", sub: "地板护理", unit: "瓶", qty: 1, min: 1, every: 120, loc: "储物间", when: ["floor:hardwood", "floor:engineered"],
         note: "选中性、标明适用木地板的产品。" },
-      { name: "外墙清洁剂", category: "house_care", sub: "外墙清洁", unit: "瓶", qty: 1, min: 0, every: 365, loc: "车库", when: ["ext:vinyl"] },
+      { name: "外墙清洁剂", category: "house_care", sub: "外墙清洗", unit: "瓶", qty: 1, min: 0, every: 365, loc: "车库", when: ["ext:vinyl"] },
       { name: "木平台防护油 / 染色剂", category: "house_care", sub: "木作防护", unit: "罐", qty: 1, min: 0, loc: "车库", when: ["f:deck"],
         note: "木平台通常 2–3 年重新涂一次，视日晒和产品。" },
       { name: "填缝封护剂", category: "house_care", sub: "瓷砖石材", unit: "瓶", qty: 1, min: 0, loc: "储物间", when: ["floor:tile"] },
@@ -248,7 +248,7 @@
       { name: "电蚊香液", category: "house_pest", sub: "驱蚊", unit: "瓶", qty: 2, min: 1, every: 30, loc: "储物间", when: ["*"] },
       { name: "除湿袋", category: "house_season", sub: "防潮除湿", unit: "袋", qty: 6, min: 2, every: 30, loc: "储物间", when: ["f:humid_season", "f:basement"],
         note: "梅雨季、回南天放在衣柜和储物间。" },
-      { name: "花肥", category: "house_season", sub: "草坪花园", unit: "袋", qty: 1, min: 0, every: 180, loc: "阳台", when: ["f:lawn"] },
+      { name: "花肥", category: "house_season", sub: "土壤肥料", unit: "袋", qty: 1, min: 0, every: 180, loc: "阳台", when: ["f:lawn"] },
       { name: "融雪剂", category: "house_season", sub: "融雪用品", unit: "袋", qty: 1, min: 0, loc: "车库", when: ["f:snow"] },
       { name: "5 号电池", category: "house_safety", sub: "电池", unit: "节", qty: 8, min: 4, loc: "储物间", when: ["*"] },
       { name: "7 号电池", category: "house_safety", sub: "电池", unit: "节", qty: 8, min: 4, loc: "储物间", when: ["*"] },

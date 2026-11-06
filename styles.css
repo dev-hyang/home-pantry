@@ -240,6 +240,12 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .stat:disabled { opacity: .45; cursor: default; }
 .stat.s-out b { color: var(--out); } .stat.s-warn b { color: var(--low); } .stat.s-exp b { color: var(--exp); }
 .cat-dash { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+/* 储藏按花费二级分组（2026-11）：手机方块每组一行小标题，电脑芯片每组前一个小标签，电脑列表每组一个标题 */
+.cat-grp-h { grid-column: 1 / -1; margin: 6px 2px -4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.cat-grp-h:first-child { margin-top: 0; }
+.chip-grp { flex: none; align-self: center; margin-left: 8px; padding-left: 10px; border-left: 1px solid var(--line); font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.inv-grp-h { margin: 18px 0 8px; font-size: 15px; font-weight: 700; color: var(--muted); }
+.inv-grp-h:first-child { margin-top: 0; }
 .tile { position: relative; display: grid; gap: 8px; align-content: start; text-align: left; padding: 14px; border-radius: 18px; border: 0; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 0 0 1px color-mix(in srgb, var(--line) 60%, transparent); min-height: 118px; }
 .tile:active { transform: scale(.98); }
 .tile.is-empty { opacity: .55; }

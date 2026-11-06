@@ -2,7 +2,7 @@ import { alertsOf, hasStock, memberName, openShopFor } from "../core/logic.js";
 import { STATUS, state } from "../core/state.js";
 import { aiPanel } from "./ai.js";
 import { COLORS, ICONS } from "../core/categories.js";
-import { L1S, l2List, spendOptions } from "../core/taxonomy.js";
+import { L1S, l2List, l2Of, spendOptions } from "../core/taxonomy.js";
 import { locationGroups } from "../core/locations.js";
 import { Store } from "../core/store.js";
 import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText, toDisp } from "../core/util.js";
@@ -123,6 +123,23 @@ export function orderedCats(space) {
   const idx = (c) => { const i = order.indexOf(c.id); return i < 0 ? 1000 + cats.indexOf(c) : i; };
   return [...cats].sort((a, b) => idx(a) - idx(b));
 }
+/** 按花费的二级分类分组显示（食品杂货 / 日用个护 / 家居家电…，js/core/taxonomy.js）：组的顺序 = 组里第一个分类在自定义顺序里的位置，组内保持自定义顺序 */
+export function groupedCats(space, cats = orderedCats(space)) {
+  const out = [], by = new Map();
+  for (const c of cats) { const g = l2Of(c.id); let e = by.get(g.id); if (!e) { e = { g, cats: [] }; by.set(g.id, e); out.push(e); } e.cats.push(c); }
+  return out;
+}
+const grpName = (g) => `${g.icon} ${t(g.name)}`;
+/** 手机：进了分类后的「大类」下拉，按组分 optgroup */
+function catSelOpts(space, curId) {
+  const o = (c) => `<option value="${esc(c.id)}" ${c.id === curId ? "selected" : ""}>${c.icon} ${esc(t(c.name))}</option>`, grps = groupedCats(space);
+  return grps.length < 2 ? grps.flatMap((e) => e.cats).map(o).join("") : grps.map((e) => `<optgroup label="${esc(t(e.g.name))}">${e.cats.map(o).join("")}</optgroup>`).join("");
+}
+/** 电脑：分类芯片一行，每组前面一个小标签（食品杂货 · 日用个护…）；只有一组时不加 */
+function chipGroups(space, chip) {
+  const grps = groupedCats(space), one = (c) => chip(c.id, `${c.icon} ${t(c.name)}`);
+  return grps.length < 2 ? grps.flatMap((e) => e.cats).map(one).join("") : grps.map((e) => `<span class="chip-grp" aria-hidden="true">${esc(t(e.g.name))}</span>${e.cats.map(one).join("")}`).join("");
+}
 /** 把某个分类往前 / 往后挪一位 */
 export function moveCat(space, id, dir) {
   const ids = orderedCats(space).map((c) => c.id), i = ids.indexOf(id), j = i + dir;
@@ -195,7 +212,7 @@ function catDashboard(space, all0) {
         <div class="sum-main"><b>${mine.length}</b><span>${t("件物品")}</span><small>${all.kind === "ok" ? t("库存都充足") : t("{n} 件要补货", { n: all.out + lowN })}</small></div>
         <div class="sum-stats">${stat(all.out, t("缺货"), "out", "s-out")}${stat(lowN, t("少货"), "low", "s-warn")}${stat(expN, t("临期"), "exp", "s-exp")}</div>
       </div>`;
-  const tiles = cats.map((c, i) => {
+  const tile = (c, i) => {
     const items = mine.filter((x) => x.category === c.id), s = gear ? { kind: items.length ? "ok" : "none", out: 0, warn: 0 } : catStatus(items);
     const count = gear ? items.reduce((a, x) => a + num(x.qty), 0) : items.length;
     const arrows = sorting ? `<span class="tile-sort"><button type="button" data-action="cat-move" data-cat="${c.id}" data-dir="-1" ${i === 0 ? "disabled" : ""} aria-label="${t("往前")}">‹</button><button type="button" data-action="cat-move" data-cat="${c.id}" data-dir="1" ${i === cats.length - 1 ? "disabled" : ""} aria-label="${t("往后")}">›</button></span>` : "";
@@ -205,15 +222,19 @@ function catDashboard(space, all0) {
       ${gear ? (items.length ? `<span class="pill pill-none">${t("{n} 种", { n: items.length })}</span>` : `<span class="pill pill-none">${t("空")}</span>`) : stPill(s, items)}${arrows}`;
     const cls = `tile st-${s.kind} ${items.length ? "" : "is-empty"}`;
     return sorting ? `<div class="${cls} is-sorting">${body}</div>` : `<button type="button" class="${cls}" data-action="cat" data-cat="${c.id}">${body}</button>`;
-  }).join("");
+  };
+  // 不排序时按花费二级分组，每组一行小标题（排序模式是一整列，好挪位置）
+  const grps = sorting ? [] : groupedCats(space, cats);
+  const tiles = sorting || grps.length < 2 ? cats.map(tile).join("")
+    : grps.map((e) => `<h4 class="cat-grp-h">${esc(grpName(e.g))}</h4>${e.cats.map((c) => tile(c, cats.indexOf(c))).join("")}`).join("");
   const addTile = sorting ? "" : `<button type="button" class="tile tile-add" data-action="cat-new" data-space="${space}"><span class="tile-top"><span class="tile-ico" style="--cat:#8a948f" aria-hidden="true">＋</span></span><span class="tile-name">${t("新分类")}</span><span class="pill pill-none">${t("自定义")}</span></button>`;
   return `${summary}<div class="cat-dash" id="catDash">${tiles}${addTile}</div>
     <p class="muted dash-foot"><button type="button" class="link-name" data-action="cat-sort">${sorting ? t("完成排序") : t("调整顺序")}</button></p>`;
 }
 
-/** 自建分类在花费统计里挂在哪个二级分类下（js/core/taxonomy.js）；空 = 按空间默认（储藏 → 餐饮，装备 → 购物日用，房屋耗材 → 维护与服务） */
+/** 自建分类在花费统计里挂在哪个二级分类下（js/core/taxonomy.js）；空 = 按空间默认（储藏 → 食品杂货，装备 → 家居家电，房屋耗材 → 维护与服务） */
 function parentSelect(cf) {
-  const def = { pantry: "餐饮", gear: "购物日用", house: "维护与服务" }[cf.space] || "其他";
+  const def = { pantry: "食品杂货", gear: "家居家电", house: "维护与服务" }[cf.space] || "其他";
   const groups = L1S.filter((l1) => l1.id !== "transfer").map((l1) => `<optgroup label="${esc(t(l1.name))}">${l2List(l1.id).map((n) => `<option value="${n.id}" ${cf.parent === n.id ? "selected" : ""}>${n.icon} ${esc(t(n.name))}</option>`).join("")}</optgroup>`).join("");
   return `<label>${t("花费统计里算作")}<select name="parent" data-nosearch><option value="">${esc(t("按默认（{d}）", { d: t(def) }))}</option>${groups}</select><small>${t("记花费、看分类统计时，这个分类归到哪一组")}</small></label>`;
 }
@@ -263,7 +284,7 @@ export function viewInventory(space = "pantry") {
   // 手机：进了某个大类后，原来「全部小类」芯片的位置放两个下拉——大类（默认当前，切换就换路径）+ 小类（默认全部小类）；电脑页横向够宽，大类芯片 / 小类芯片照旧一眼能点
   const subSel = subCounts.length > 1 ? `<select id="invSubSel" aria-label="${t("按小类筛选")}"><option value="all">${t("全部小类")}</option>${subCounts.map(([s, n]) => `<option value="${esc(s)}" ${f.sub === s ? "selected" : ""}>${esc(t(s))} (${n})</option>`).join("")}</select>` : "";
   const subBar = phone && cur ? `<div class="inv-filters${subSel ? "" : " solo"}">
-        <select id="invCatSel" data-search aria-label="${t("按分类筛选")}"><option value="all">${t("全部")}</option>${orderedCats(space).map((c) => `<option value="${esc(c.id)}" ${c.id === cur.id ? "selected" : ""}>${c.icon} ${esc(t(c.name))}</option>`).join("")}</select>${subSel}</div>` : subChips;
+        <select id="invCatSel" data-search aria-label="${t("按分类筛选")}"><option value="all">${t("全部")}</option>${catSelOpts(space, cur.id)}</select>${subSel}</div>` : subChips;
   return `
     <section class="section">
       <div class="section-head"><p>${cur ? t("{n} 件", { n: mine.filter((x) => x.category === cur.id).length }) : t("{n} 件", { n: mine.length })}</p>
@@ -287,7 +308,7 @@ export function viewInventory(space = "pantry") {
         ${clearFiltersBtn("inv", changed(f, FD.inv))}
       </div>
       ${phone ? "" : `<div class="chips" role="group" aria-label="${t("按分类筛选")}">
-        ${chip("all", t("全部"))}${orderedCats(space).map((c) => chip(c.id, `${c.icon} ${t(c.name)}`)).join("")}
+        ${chip("all", t("全部"))}${chipGroups(space, chip)}
         <button type="button" class="chip chip-add" data-action="cat-new" data-space="${space}">＋ ${t("新分类")}</button>
       </div>`}
       ${cf ? catFormHtml(cf) : ""}
@@ -327,11 +348,14 @@ export function renderInvList() {
   // 分批显示：按分类顺序排好后一共只画前 lim 件，分类标题的件数仍按完整结果；筛选 / 搜索 / 排序变了回到一页
   const lim = pageLimit("inv", JSON.stringify(f)); let left = lim;
   const byCat = new Map(); for (const x of list) { const arr = byCat.get(x.category); if (arr) arr.push(x); else byCat.set(x.category, [x]); }
-  host.innerHTML = orderedCats(f.space).map((c) => {
+  const grps = groupedCats(f.space), shown = new Set(grps.filter((e) => e.cats.some((c) => byCat.has(c.id))).map((e) => e.g.id)), withHead = shown.size > 1;
+  let lastG = "";
+  host.innerHTML = grps.flatMap((e) => e.cats.map((c) => [e.g, c])).map(([g, c]) => {
     const inCat = (byCat.get(c.id) || []).sort(invSorter(f.sort));
     if (!inCat.length || left <= 0) return "";
     const part = inCat.slice(0, left); left -= part.length;
-    return `<div class="cat-group" style="--cat:${c.color}"><h3><span class="dot" aria-hidden="true"></span>${c.icon} ${t(c.name)}<span class="muted">（${inCat.length}）</span></h3>
+    const head = withHead && g.id !== lastG ? `<h2 class="inv-grp-h">${esc(grpName(g))}</h2>` : ""; lastG = g.id;
+    return `${head}<div class="cat-group" style="--cat:${c.color}"><h3><span class="dot" aria-hidden="true"></span>${c.icon} ${t(c.name)}<span class="muted">（${inCat.length}）</span></h3>
       <div class="items">${part.map(itemCard).join("")}</div></div>`;
   }).join("") + pageMoreBtn("inv", orderedCats(f.space).reduce((n, c) => n + (byCat.get(c.id)?.length || 0), 0), lim);
 }
@@ -573,8 +597,8 @@ export function viewMeals() {
 export function categoryOptions(selected, { withOther = true, spend = false } = {}) {
   if (spend) return spendOptions(selected, { withOther });
   const opt = (c) => `<option value="${c.id}" ${c.id === selected ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`;
-  return `<optgroup label="${t("日常储备")}">${catsOf("pantry").map(opt).join("")}</optgroup>
-    <optgroup label="${t("房屋耗材")}">${catsOf("house").map(opt).join("")}${withOther ? opt(MAINT_CAT) : ""}</optgroup>
-    <optgroup label="${t("装备（只记数量和位置）")}">${catsOf("gear").map(opt).join("")}</optgroup>
+  // 空间 · 花费二级（日常储备 · 食品杂货）一组；下拉里 optgroup 不能嵌套，所以两级拼在组名里
+  const sp = (space, label, extra = "") => groupedCats(space).map((e, i, a) => `<optgroup label="${esc(`${label} · ${t(e.g.name)}`)}">${e.cats.map(opt).join("")}${i === a.length - 1 ? extra : ""}</optgroup>`).join("");
+  return `${sp("pantry", t("日常储备"))}${sp("house", t("房屋耗材"), withOther ? opt(MAINT_CAT) : "")}${sp("gear", t("装备"))}
     ${withOther ? opt(OTHER_CAT) : ""}`;
 }

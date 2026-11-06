@@ -1,30 +1,36 @@
 // 静态数据：物品分类、单位、存放位置、饮食模式、内置菜谱库
 // 菜谱 ings 为“必需食材”，每项是同义词数组，库存物品名包含任一词即算有货。
 
+/* 三个空间（2026-11 重整，docs/design-categories.md 「分类重整：储藏三个空间」），按两个问题分，互不重叠：
+ *   ① 会不会用完？不会 → 装备（耐用品：只记几件、放哪，坏了再换）
+ *   ② 会用完：给人 / 宠物吃用的 → 日常储备；给房子、院子、车、设备用的 → 房屋耗材（data/house.js）
+ * 每个分类同时是一个花费的三级分类，挂在 js/core/taxonomy.js 的一个二级分类下；储藏页按这个二级分组显示。 */
 window.CATEGORIES = [
   { id: "fresh",  name: "生鲜",     icon: "🥬", color: "#3f8f5a", loc: "冷藏",  subs: ["蔬菜", "水果", "肉禽", "水产", "蛋奶", "豆制品"] },
   { id: "frozen", name: "冷冻",     icon: "🧊", color: "#3b7fc4", loc: "冷冻",  subs: ["速冻面点", "冷冻肉禽", "冷冻水产", "冰品甜点"] },
-  { id: "dry",    name: "干货粮油", icon: "🌾", color: "#b07a1a", loc: "常温",  subs: ["米面杂粮", "干货菌菇", "食用油", "调味品", "零食坚果", "冲饮"] },
-  { id: "drink",  name: "饮品",     icon: "🧃", color: "#c75a85", loc: "常温",  subs: ["饮用水", "牛奶饮品", "茶咖啡", "果汁饮料"] },
-  { id: "daily",  name: "日用品",   icon: "🧻", color: "#7563c0", loc: "储物间", subs: ["纸品", "清洁用品", "洗护用品", "厨房耗材"] },
-  { id: "baby",   name: "母婴",     icon: "🍼", color: "#d4694c", loc: "储物间", subs: ["纸尿裤", "奶粉辅食", "湿巾", "哺乳用品"] },
-  { id: "health", name: "药品健康", icon: "💊", color: "#24897d", loc: "常温",  subs: ["常备药", "维生素营养", "护理用品"] },
-  { id: "study",  name: "学习文具", icon: "✏️", color: "#2f6fb0", loc: "储物间", subs: ["文具", "练习本", "打印纸墨", "美术用品", "学生用品"] },
+  { id: "dry",    name: "粮油干货", icon: "🌾", color: "#b07a1a", loc: "常温",  subs: ["米面杂粮", "干货菌菇", "食用油", "调味品"] },
+  { id: "drink",  name: "零食饮品", icon: "🧃", color: "#c75a85", loc: "常温",  subs: ["饮用水", "牛奶饮品", "茶咖啡冲饮", "果汁饮料", "零食坚果"] },
+  { id: "daily",  name: "家庭日用", icon: "🧻", color: "#7563c0", loc: "储物间", subs: ["纸品", "清洁洗涤", "厨房耗材"] },   // 厨房耗材 = 保鲜膜、锡纸、垃圾袋（保鲜盒是装备 → 厨具餐具）
+  { id: "personal_care", name: "个人护理", icon: "🧴", color: "#b8576f", loc: "卫生间", subs: ["洗发沐浴", "口腔护理", "护肤", "卫生用品"] },
+  { id: "health", name: "药品健康", icon: "💊", color: "#24897d", loc: "常温",  subs: ["常备药", "维生素营养", "急救护理"] },
+  { id: "baby",   name: "母婴耗材", icon: "🍼", color: "#d4694c", loc: "储物间", subs: ["纸尿裤", "奶粉辅食", "湿巾", "哺乳耗材"] },   // 推车、安全座椅、吸奶器是装备 → 婴童用品
+  { id: "study",  name: "文具耗材", icon: "✏️", color: "#2f6fb0", loc: "储物间", subs: ["文具", "练习本", "打印纸墨", "美术用品"] },   // 书包、计算器是装备 → 图书乐器
   { id: "pet",    name: "宠物用品", icon: "🐾", color: "#9a6b3c", loc: "储物间", subs: ["主粮", "零食", "猫砂尿垫", "洗护", "玩具用品"] },
 ].map((c) => ({ ...c, space: "pantry" }));   // 房屋耗材分类在 data/house.js 里追加（space = "house"）；自定义分类由 js/core/categories.js 在加载数据后合并进来
 
 // 装备：耐用品和工具（床品、电器、自行车、千斤顶、园艺工具…），只记数量和位置，
 // 不算消耗、不提醒补货、不进采购提醒（space = "gear"）。需要保养周期的设备将来进第二期的设备档案。
 window.GEAR_CATEGORIES = [
-  { id: "gear_home",   name: "家居用品", icon: "🛏️", color: "#6b8e7a", loc: "储物间", subs: ["床上用品", "毛巾浴巾", "窗帘布艺", "季节电器", "节日装饰", "收纳杂物"] },   // 窗帘、圣诞装饰这类只记数量和位置的软装放这里；要保养的固定装置（百叶窗电机、吊扇）在 房屋 → 设备保养
-  { id: "gear_kitchen", name: "厨房用品", icon: "🍽️", color: "#c0773a", loc: "厨房柜", subs: ["餐具碗盘", "锅具炊具", "烘焙工具", "烤盘托盘", "刀具砧板", "厨房小工具", "小家电", "保鲜收纳"] },   // 反复使用的厨具餐具：不算消耗，坏了才换新（卡片上有“损坏了，换新”）
+  { id: "gear_home",   name: "家居用品", icon: "🛏️", color: "#6b8e7a", loc: "储物间", subs: ["床上用品", "毛巾浴巾", "窗帘布艺", "家用电器", "节日装饰", "收纳杂物"] },   // 窗帘、圣诞装饰这类只记数量和位置的软装放这里；要保养的固定装置（百叶窗电机、吊扇）在 房屋 → 设备保养
+  { id: "gear_kitchen", name: "厨具餐具", icon: "🍽️", color: "#c0773a", loc: "厨房柜", subs: ["餐具碗盘", "锅具炊具", "烘焙工具", "烤盘托盘", "刀具砧板", "厨房小工具", "小家电", "保鲜盒"] },   // 反复使用的厨具餐具：不算消耗，坏了才换新（卡片上有“损坏了，换新”）
+  { id: "gear_tools",  name: "工具",     icon: "🔧", color: "#8a6d3b", loc: "工具间", subs: ["手动工具", "电动工具", "测量工具", "梯子登高"] },   // 螺丝钉子、胶带是耗材 → 房屋耗材 · 维修耗材
+  { id: "gear_garden", name: "园艺工具", icon: "🌱", color: "#5a8f3f", loc: "车库",   subs: ["割草修剪", "浇水用品", "花盆", "园艺手工具"] },   // 土壤、肥料、草籽是耗材 → 房屋耗材 · 季节与庭院
   { id: "gear_clothes", name: "衣物",     icon: "🧥", color: "#b8576f", loc: "衣柜",   subs: ["冬衣", "秋衣", "春衣", "夏衣", "内衣袜子", "鞋靴", "帽围巾手套", "换季收纳"] },
-  { id: "gear_travel", name: "户外与行李", icon: "🚲", color: "#4f7f9f", loc: "车库",   subs: ["旅行婴儿用品", "推车拖车", "自行车", "露营野餐", "行李箱包"] },
+  { id: "gear_digital", name: "数码电子", icon: "💻", color: "#4f7f9f", loc: "书房",   subs: ["电脑平板", "手机配件", "相机", "耳机音响", "游戏机", "智能家居", "学习机", "充电线材"] },   // 买一次用很久的电子产品（银行流水里的 Apple / Best Buy 归这里）
+  { id: "gear_travel", name: "运动户外与行李", icon: "🚲", color: "#4f7f9f", loc: "车库", subs: ["自行车", "运动器材", "露营野餐", "行李箱包"] },
+  { id: "gear_baby",   name: "婴童用品", icon: "👶", color: "#d4694c", loc: "储物间", subs: ["推车座椅", "出行用品", "喂养用品", "婴儿床围栏"] },   // 耐用的婴童用品（推车、安全座椅、吸奶器、旅行床）；纸尿裤这类耗材在日常储备 → 母婴耗材
+  { id: "gear_study",  name: "图书乐器", icon: "📚", color: "#4a5fb0", loc: "卧室",   subs: ["图书绘本", "教材教辅", "乐器", "学习用品"] },   // 学习用品 = 书包、计算器这类耐用的
   { id: "gear_car",    name: "汽车装备", icon: "🚗", color: "#7a5c8e", loc: "车内",   subs: ["应急工具", "备胎", "车载电器", "车内收纳"] },
-  { id: "gear_tools",  name: "工具",     icon: "🔧", color: "#8a6d3b", loc: "工具间", subs: ["手动工具", "电动工具", "五金配件", "梯子登高"] },
-  { id: "gear_garden", name: "园艺工具", icon: "🌱", color: "#5a8f3f", loc: "车库",   subs: ["割草修剪", "浇水用品", "花盆土壤", "园艺手工具"] },
-  { id: "gear_digital", name: "数码电子", icon: "💻", color: "#4f7f9f", loc: "书房",   subs: ["电脑平板", "手机配件", "相机", "耳机音响", "游戏机", "智能家居", "充电线材"] },   // 买一次用很久的电子产品（银行流水里的 Apple / Best Buy 归这里）
-  { id: "gear_study",  name: "图书与学习", icon: "📚", color: "#4a5fb0", loc: "卧室",   subs: ["图书绘本", "教材教辅", "乐器", "学习机电子", "运动器材"] },
 ].map((c) => ({ ...c, space: "gear" }));
 window.CATEGORIES.push(...window.GEAR_CATEGORIES);
 window.MEDICAL_GROUP = { id: "medical", name: "医疗", icon: "🏥", color: "#c2475f" };   // 医疗账单的付款（js/bills/medical.js 变成虚拟花费并进统计）；叶子分类 medical
@@ -47,7 +53,7 @@ window.CAT_ALIAS = { travel_dining: "life_dining", travel_fuel: "vehicle_fuel", 
 window.canonCat = (id) => window.CAT_ALIAS[id] || id;
 /* 下面是花费的「叶子分类」（purchases.category 存的就是这些 id，不改写）。归到哪个二级 / 一级分类、算进哪些统计，
  * 全部由 js/core/taxonomy.js 决定（三级分类 + 经济性质，见 docs/design-categories.md），这里只放名称、图标、颜色。
- * 银行 / 信用卡导入里看不出买了什么的超市单子 = 超市杂货（grocery_misc），归 餐饮。 */
+ * 银行 / 信用卡导入里看不出买了什么的买菜超市单子 = 超市买菜（grocery_misc），归 食品杂货；仓储 / 综合超市归 综合购物（待细分）。 */
 window.WORK_CATS = [   // 和工作、职业直接相关的花费（个人订阅型的软件放账单里；房产交易的律师费在 房产交易）
   { id: "work_software", name: "付费软件 / 工具 / 云服务（一次性买断或年付）", icon: "💻", color: "#3f6c8f" },
   { id: "work_cert",     name: "考证 / 执照 / 专业会员 / 考试费", icon: "🎓", color: "#5b7fa6" },
@@ -55,12 +61,12 @@ window.WORK_CATS = [   // 和工作、职业直接相关的花费（个人订阅
   { id: "work_supplies", name: "办公 / 职业用品（耗材、工作服、名片、打印）", icon: "🗂️", color: "#7a8f6b" },
   { id: "work_other",    name: "其他工作花费（行业会议、差旅杂费…）", icon: "💼", color: "#8a948f" },
 ];
-window.GROCERY_MISC = { id: "grocery_misc", name: "超市杂货（未细分）", icon: "🛒", color: "#3f8f5a" };
+window.GROCERY_MISC = { id: "grocery_misc", name: "超市买菜（未细分）", icon: "🛒", color: "#3f8f5a" };   // 只给买菜的超市（H Mart、Weee、Kroger…）；Costco / Walmart / Target 这类什么都卖的进 综合购物（待细分）
 window.LIFE_CATS = [   // id 前缀都是 life_，归哪个二级分类看 js/core/taxonomy.js
   { id: "life_dining",   name: "外出就餐 / 外卖 / 咖啡", icon: "🍔", color: "#c0603a" },
   { id: "life_transit",  name: "交通出行（打车 / 公交地铁 / 停车 / 过路费）", icon: "🚕", color: "#4c8f6b" },
   { id: "life_fun",      name: "娱乐 / 门票 / 活动（电影 / 游戏 / 演出 / 景点）", icon: "🎬", color: "#5b7fa6" },
-  { id: "life_care",     name: "个人护理 / 美容 / 理发", icon: "💇", color: "#d4694c" },
+  { id: "life_care",     name: "理发 / 美容 / 按摩（服务）", icon: "💇", color: "#d4694c" },   // 洗发水、牙膏这类买回家的东西是 个人护理（personal_care）
   { id: "life_fitness",  name: "运动健身",               icon: "🏋️", color: "#24897d" },
   { id: "life_gifts",    name: "礼物 / 节日 / 红包",     icon: "🎁", color: "#c75a85" },
   // 大人自己的课程、培训、进修（在 财务及其他 → 工作与进修 下）；孩子的课外班、学费记 孩子与教育（账单里的课外班 / 学费，或 学习文具 / 图书）
@@ -68,7 +74,7 @@ window.LIFE_CATS = [   // id 前缀都是 life_，归哪个二级分类看 js/co
   { id: "life_gov",      name: "证件 / 罚单 / 政府收费 / 报税软件", icon: "🏛️", color: "#6b7280" },
   { id: "life_fees",     name: "银行手续费 / 利息 / 年费", icon: "🏦", color: "#8a948f" },
   { id: "life_mail",     name: "邮寄 / 快递",            icon: "📮", color: "#b07a1a" },
-  { id: "life_shopping", name: "综合购物（待细分：Amazon / Target 这类看不出买了什么）", icon: "📦", color: "#7a5c8e" },
+  { id: "life_shopping", name: "综合购物（待细分：Costco / Amazon / Target 这类看不出买了什么）", icon: "📦", color: "#7a5c8e" },
   { id: "life_other",    name: "其他生活开销",           icon: "🧺", color: "#8a948f" },
 ];
 window.VEHICLE_FUEL = { id: "vehicle_fuel", name: "车辆燃油 / 充电 / 洗车", icon: "⛽", color: "#b0741a" };
