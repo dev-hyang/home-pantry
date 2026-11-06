@@ -11,6 +11,7 @@ import { compare, joinList, lang, t } from "../core/i18n.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
 import { cardHintHtml, cardSelectHtml } from "../bills/cards-views.js";
 import { askInline } from "../core/ask.js";
+import { catCheckAlt } from "../core/category-moves.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { shopAdviceHtml, shopForecastHtml } from "../bills/budget.js";
@@ -53,6 +54,29 @@ export function shelfGrid(space) {
   }).join("");
 }
 
+/** 「请确认分类」（迁移 064）：063 分类重整时按小类 + 名称猜着搬的物品，一件件确认。没有就不显示 */
+const SPACE_NAME = { pantry: "日常储备", house: "房屋耗材", gear: "装备" };
+function catCheckSection() {
+  const list = state.items.filter((it) => it.cat_check).sort((a, b) => compare(a.name, b.name));
+  if (!list.length) return "";
+  const where = (cat, sub) => { const c = catOf(cat); return `${c.icon} ${esc(t(c.name))}${sub ? ` · ${esc(t(sub))}` : ""}`; };
+  return `<section class="section" aria-labelledby="h-catcheck">
+      <div class="section-head"><h2 id="h-catcheck">${t("请确认分类")} <span class="muted">${list.length}</span></h2>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="cat-check-all">${t("全部没错")}</button></div>
+      <p class="muted cat-check-tip">${t("分类重整时，这些物品是按名称猜着放的。放对了点「没错」；放错了点「改成…」，连着的花费也跟着换。")}</p>
+      <div class="panel"><ul class="restock-list cat-check">${list.slice(0, 30).map((it) => {
+        const alt = catCheckAlt(it), sp = (c) => t(SPACE_NAME[catOf(c).space] || "");
+        return `<li>
+        <div class="grow"><button type="button" class="link-name" data-action="edit" data-id="${it.id}">${esc(it.name)}</button>
+          <small>${t("现在：")}${where(it.category, it.subcategory)}<span class="muted">（${sp(it.category)}）</span></small></div>
+        <div class="cat-check-acts">
+          <button type="button" class="btn btn-sm" data-action="cat-check-ok" data-id="${it.id}">${t("没错")}</button>
+          ${alt ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-check-alt" data-id="${it.id}" data-cat="${alt[0]}" data-sub="${esc(alt[1])}" title="${esc(t(SPACE_NAME[catOf(alt[0]).space] || ""))}">${t("改成")} ${where(alt[0], alt[1])}</button>` : ""}
+        </div></li>`;
+      }).join("")}</ul>${list.length > 30 ? `<p class="muted cat-check-more">${t("还有 {n} 件，确认完这些再显示", { n: list.length - 30 })}</p>` : ""}</div>
+    </section>`;
+}
+
 export function viewDashboard() {
   const withHouse = state.houseEnabled;   // 房屋耗材也算储藏：缺货、少货、补货提醒一起看
   const pantry = state.enriched.filter(inSpace("pantry")), house = withHouse ? state.enriched.filter(inSpace("house")) : [];
@@ -68,7 +92,7 @@ export function viewDashboard() {
 
   const shelf = shelfGrid("pantry"), houseShelf = withHouse ? shelfGrid("house") : "";
 
-  return `
+  return `${catCheckSection()}
     <section class="section" aria-labelledby="h-alert">
       <div class="section-head"><h2 id="h-alert">${t("储藏概况")}</h2><div class="head-acts"><p>${t("按家人的使用记录估算")}</p><a class="btn btn-ghost btn-sm" href="${href("scan")}" title="${esc(t("拍小票或贴线上订单，确认后自动入库、记花费"))}">🧾 ${t("录入购物")}</a><a class="btn btn-primary btn-sm" href="${href("item", "new")}?space=pantry">${t("添加物品")}</a></div></div>
       ${withHouse ? `<h3 class="strip-label">🥫 ${t("日常储备")}</h3>` : ""}

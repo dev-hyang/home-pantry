@@ -3,7 +3,7 @@ import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
 import { t } from "./i18n.js";
 import { financeAllowed } from "./finance-rules.js";
 import { migrateLegacyDebts } from "./debt-rules.js";
-import { migrateLocalCategories } from "./category-moves.js";
+import { flagLocalCatChecks, migrateLocalCategories } from "./category-moves.js";
 import { cardSpend, cardTotals, incRollup, itemPurchaseStats, ledgerRange, ledgerRollup, localPage, localStats, spendFeed, spendRollup, spendSuggest } from "./list-query.js";
 
 /* 成员资料（迁移 052）：只在 设置 → 家庭与成员 里用，不进 AI 提示词、不进备份（个人数据，只给本家庭看） */
@@ -15,7 +15,7 @@ export const DemoStore = {
   mode: "demo", key: "hmh-demo-v3", db: null,
   load() {
     try { this.db = JSON.parse(localStorage.getItem(this.key)); } catch { this.db = null; }
-    if (!this.db || !Array.isArray(this.db.items)) this.db = seedDemo();
+    if (!this.db || !Array.isArray(this.db.items)) this.db = Object.assign(seedDemo(), { _cat063: true, _cat064: true });   // 新演示库已经是新分类，不用迁移、不用确认
     const db = this.db;
     db.purchases ||= []; db.assets ||= []; db.maint_logs ||= []; db.seasonal ||= [];
     db.bills ||= []; db.bill_payments ||= []; db.medical_bills ||= []; db.medical_payments ||= []; db.people ||= []; db.income_records ||= []; db.income_repayments ||= [];
@@ -35,6 +35,7 @@ export const DemoStore = {
     if (!db._debt058) { migrateLegacyDebts(db, { uid, today: new Date().toISOString().slice(0, 10) }); db._debt058 = true; }
     db.account_balances ||= []; db.asset_valuations ||= []; db.net_worth_snapshots ||= [];   // 净资产（迁移 059）
     if (!db._cat063) { migrateLocalCategories(db); db._cat063 = true; }   // 分类重整（迁移 063 的本机版）
+    if (!db._cat064) { flagLocalCatChecks(db); db._cat064 = true; }   // 「请确认分类」标记（迁移 064 的本机版）
     this.persist();
   },
   /* 家庭成员（演示：只有“我”= 家主，user_id 固定为 "me"，和 budget.js 的 myId() 一致）；不放进 state.members，免得名册、分摊等演示数据跟着变 */
@@ -59,7 +60,7 @@ export const DemoStore = {
     this.db.members = this.db.members.filter((x) => x.user_id !== id); this.persist();
   },
   persist() { try { localStorage.setItem(this.key, JSON.stringify(this.db)); } catch { /* 隐私模式下可能不可写，忽略 */ } },
-  reset() { this.db = seedDemo(); this.load(); },
+  reset() { this.db = Object.assign(seedDemo(), { _cat063: true, _cat064: true }); this.load(); },
   async listItems() { return this.db.items.map((x) => ({ ...x })); },
   // 自定义分类
   async listCategories() { return (this.db.categories || []).map((x) => ({ ...x })); },
@@ -464,6 +465,15 @@ export const DemoStore = {
     } else {
       this.db.items.push({ ...it, id: uid(), created_at: now, updated_at: now });
     }
+    this.persist();
+  },
+  /** 「请确认分类」：没错 → 清标记 */
+  async clearCatCheck(ids) { const set = new Set(ids); for (const it of this.db.items) if (set.has(it.id)) it.cat_check = false; this.persist(); },
+  /** 「请确认分类」：改成候选分类；连着的花费、采购清单（还是旧分类的）跟着换 */
+  async recatItem(id, cat, sub) {
+    const it = this.db.items.find((x) => x.id === id); if (!it) throw new Error("物品不存在");
+    const old = it.category; Object.assign(it, { category: cat, subcategory: sub, cat_check: false, updated_at: new Date().toISOString() });
+    for (const r of [...this.db.purchases, ...this.db.shopping]) if (r.item_id === id && r.category === old) r.category = cat;
     this.persist();
   },
   async deleteItem(id) {
@@ -1206,6 +1216,14 @@ export const CloudStore = {
     } else this.must(await this.sb.from("items").insert(row));
   },
   async deleteItem(id) { this.must(await this.sb.from("items").delete().eq("id", id)); },
+  /** 「请确认分类」（迁移 064 的 items.cat_check）：没错 → 清标记 */
+  async clearCatCheck(ids) { if (ids.length) this.must(await this.sb.from("items").update({ cat_check: false }).eq("household_id", this.hid).in("id", ids)); },
+  /** 「请确认分类」：改成候选分类；连着的花费、采购清单（还是旧分类的）跟着换 */
+  async recatItem(id, cat, sub) {
+    const old = state.items.find((x) => x.id === id)?.category;
+    this.must(await this.sb.from("items").update({ category: cat, subcategory: sub, cat_check: false, updated_by: state.user.id }).eq("id", id));
+    if (old && old !== cat) for (const table of ["purchases", "shopping_list"]) this.must(await this.sb.from(table).update({ category: cat }).eq("household_id", this.hid).eq("item_id", id).eq("category", old));
+  },
   async adjust(id, delta, reason) {
     this.must(await this.sb.rpc("adjust_stock", { p_item_id: id, p_delta: delta, p_reason: reason }));
     if (reason === "restock" && state.items.find((x) => x.id === id)?.alert_mute_until) await this.sb.from("items").update({ alert_mute_until: null }).eq("id", id);   // 又买了：恢复提醒（还没执行迁移 030 时这行不会有值，也不会走到这里）

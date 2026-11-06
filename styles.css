@@ -206,6 +206,12 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .restock-list li:last-child { border-bottom: 0; }
 .restock-list .grow { flex: 1; min-width: 0; }
 .restock-list .name { font-weight: 700; }
+/* 首页「请确认分类」（迁移 064）：手机上按钮换到下一行，长分类名可以折行 */
+.cat-check-tip { margin: -4px 0 10px; font-size: 13px; }
+.cat-check .cat-check-acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex: none; max-width: 60%; }
+.cat-check .cat-check-acts .btn { white-space: normal; text-align: left; }
+.cat-check-more { margin: 8px 0 0; font-size: 13px; }
+@media (max-width: 640px) { .cat-check li { flex-wrap: wrap; } .cat-check .cat-check-acts { max-width: none; width: 100%; justify-content: flex-start; } }
 .restock-list small { color: var(--muted); display: block; }
 
 /* 分类货架 */

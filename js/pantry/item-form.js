@@ -200,6 +200,7 @@ export async function saveItemForm(f, { silent = false } = {}) {
   try {
     it.location = await resolveLocation(fe);   // 选了“＋ 新位置…”会先建位置
     await Store.saveItem(it);
+    if (it.id && raw.cat_check) await Store.clearCatCheck([it.id]).catch(() => {});   // 编辑页保存过 = 分类看过了，不再列在「请确认分类」里
     if (it.id && fe.alert_mute) {   // 不再提醒 / 暂停提醒：单独存（不放进通用字段，没执行迁移 030 的库其余保存照常）
       const until = muteChoice(fe.alert_mute.value, raw.alert_mute_until);
       if ((until || null) !== (raw.alert_mute_until || null)) { await Store.setItemMute(it.id, until); raw.alert_mute_until = until; }

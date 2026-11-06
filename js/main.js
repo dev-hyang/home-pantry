@@ -1103,6 +1103,20 @@ main.addEventListener("click", async (e) => {
       case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "shop-add-item": return addAlertsToShopping([state.enriched.find((x) => x.id === id)]);
+      case "cat-check-ok": case "cat-check-all": {   // 「请确认分类」：没错 → 清标记（迁移 064）
+        const ids = action === "cat-check-all" ? state.items.filter((x) => x.cat_check).map((x) => x.id) : [id];
+        el.disabled = true;
+        try { await Store.clearCatCheck(ids); } catch (e) { el.disabled = false; return toast(e.message); }
+        if (ids.length > 1) toast(t("已确认 {n} 件", { n: ids.length }));
+        return refresh();
+      }
+      case "cat-check-alt": {   // 「请确认分类」：改成候选分类，连着的花费、采购清单跟着换
+        const it = state.items.find((x) => x.id === id); if (!it) return;
+        el.disabled = true;
+        try { await Store.recatItem(id, el.dataset.cat, el.dataset.sub); } catch (e) { el.disabled = false; return toast(e.message); }
+        toast(t("{name} 已改到 {cat}", { name: it.name, cat: t(catOf(el.dataset.cat).name) }));
+        return refresh();
+      }
       case "mute-item": {   // 注意事项里的“不再提醒”：一直不提醒，直到下次补货入库或在编辑页恢复
         const it = state.items.find((x) => x.id === id); if (!it) return;
         el.disabled = true;
