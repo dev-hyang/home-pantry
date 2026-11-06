@@ -169,6 +169,7 @@ const RULES = [
   ["medical", /hospital|clinic|medical|dental|dentist|quest diag|labcorp|urgent care|physician|optom|医院|诊所|牙科|体检/i], ["health", /\bcvs\b|walgreens|rite aid|pharmacy|药房|药店/i],
   ["grocery_misc", /weee|sayweee|hmart|h-mart|yamibuy|亚米|trader joe|whole foods|kroger|safeway|aldi|publix|wegmans|h ?mart|99 ranch|mitsuwa|jewel-?osco|mariano|meijer|food lion|giant|stop & shop|sprouts|\bheb\b|harris teeter|instacart|超市|大华|永辉|盒马/i],
   ["life_dining", /restaurant|cafe|coffee|starbucks|dunkin|mcdonald|chipotle|chick-?fil|panda express|subway|domino|pizza|taco|burger|bbq|grill|sushi|ramen|doordash|uber ?eats|grubhub|bakery|boba|tea\b|餐厅|饭店|外卖|美团|饿了么|咖啡|奶茶|麦当劳|肯德基/i],
+  ["life_laundry", /laundr|wash ?(&|and|n) ?fold|dry ?clean|(?<!house |home |maid )cleaners|tailor|alteration|洗衣|干洗|改衣/i],   // 洗衣店 / 干洗 / 改衣（上门保洁不算：house cleaners）
   ["gear_clothes", /nordstrom|macy|old navy|\bgap\b|h&m|zara|uniqlo|nike|adidas|lululemon|tj ?maxx|marshalls|\bross\b|kohl|carter'?s|children'?s place|服装|优衣库/i],
   ["life_care", /salon|barber|haircut|\bspa\b|nail|massage|sephora|ulta|beauty|waxing|理发|美容|美甲|按摩/i], ["life_fitness", /\bgym\b|fitness|peloton|yoga|crossfit|orangetheory|健身|瑜伽|游泳/i],
   ["life_fun", /cinema|\bamc\b|regal|movie|theater|theatre|steam|playstation|xbox|nintendo|ticketmaster|stubhub|bowling|arcade|museum|\bzoo\b|aquarium|电影|游戏|演出/i],

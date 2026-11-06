@@ -103,7 +103,7 @@
 | 🍜 餐饮 dining | 外出就餐 / 外卖 / 咖啡 |
 | 🧴 日用个护 essentials | 家庭日用 · 个人护理（新 personal_care）· 理发美容（服务） |
 | 🛋️ 家居家电 home_goods | 家居用品 · 厨具餐具 · 工具 · 园艺工具 |
-| 👕 服饰鞋包 apparel | 衣物 |
+| 👕 服饰鞋包 apparel | 衣物 · 洗衣 / 干洗 / 改衣（life_laundry，衣物护理服务） |
 | 💻 数码电子 digital | 数码电子 |
 | 🛍️ 综合购物（待细分）shop_misc | Costco / Amazon / Target / Walmart 看不出买了什么的 |
 | 🎒 孩子与教育 | + 婴童用品（新 gear_baby） |

@@ -41,7 +41,7 @@ export const L2S = [
   { id: "dining",       p: "living", name: "餐饮",         icon: "🍜", color: "#c0603a", leaves: ["life_dining"] },   // 只算下馆子：外出就餐、外卖、咖啡奶茶
   { id: "essentials",   p: "living", name: "日用个护",     icon: "🧴", color: "#7563c0", leaves: ["daily", "personal_care", "life_care"] },
   { id: "home_goods",   p: "living", name: "家居家电",     icon: "🛋️", color: "#6b8e7a", leaves: ["gear_home", "gear_kitchen", "gear_tools", "gear_garden"] },
-  { id: "apparel",      p: "living", name: "服饰鞋包",     icon: "👕", color: "#b8576f", leaves: ["gear_clothes"] },
+  { id: "apparel",      p: "living", name: "服饰鞋包",     icon: "👕", color: "#b8576f", leaves: ["gear_clothes", "life_laundry"] },
   { id: "digital",      p: "living", name: "数码电子",     icon: "💻", color: "#4f7f9f", leaves: ["gear_digital"] },
   { id: "shop_misc",    p: "living", name: "综合购物（待细分）", icon: "🛍️", color: "#7a5c8e", leaves: ["life_shopping"] },   // Costco / Amazon / Target 看不出买了什么的，改了分类就从这里消失
   { id: "transport",    p: "living", name: "交通",         icon: "🚗", color: "#3b7fc4", leaves: ["vehicle_fuel", "life_transit", "vehicle_maint", "gear_car", "house_car", "bill_insurance_auto", "bill_vehicle_reg", "bill_parking", "bill_toll", "loan_interest_auto", "capital_vehicle"] },

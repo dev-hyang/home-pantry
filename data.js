@@ -74,6 +74,7 @@ window.LIFE_CATS = [   // id 前缀都是 life_，归哪个二级分类看 js/co
   { id: "life_gov",      name: "证件 / 罚单 / 政府收费 / 报税软件", icon: "🏛️", color: "#6b7280" },
   { id: "life_fees",     name: "银行手续费 / 利息 / 年费", icon: "🏦", color: "#8a948f" },
   { id: "life_mail",     name: "邮寄 / 快递",            icon: "📮", color: "#b07a1a" },
+  { id: "life_laundry",  name: "洗衣 / 干洗 / 改衣", icon: "👔", color: "#b8576f" },   // 洗衣店、Wash & fold、干洗、改衣服：衣物的护理服务（BLS 的 Apparel services、统计局的 衣着加工服务）；买洗衣液是 家庭日用，上门保洁是 家政
   { id: "life_shopping", name: "综合购物（待细分：Costco / Amazon / Target 这类看不出买了什么）", icon: "📦", color: "#7a5c8e" },
   { id: "life_other",    name: "其他生活开销",           icon: "🧺", color: "#8a948f" },
 ];
