@@ -20,6 +20,7 @@ export const FD = {
   incRec: { q: "", kind: "all", acct: "all", person: "all", year: "all", month: "all", from: "", to: "", ex: false, batch: null },   // 收入记录（含图表下钻的日期段、导入批次）
   incSend: { person: "all", sq: "", skind: "all" },   // 付款方汇总
   debtP: { q: "", dir: "all", st: "all" },   // 借贷 → 个人借贷
+  debtA: { q: "", st: "all", cat: "all" },   // 借贷 → 资产融资的贷款列表
   stmt: { range: "3", dir: "all", q: "" },   // 全部流水
   gift: { issuer: "all", used: false },   // 卡与账户：礼品卡
   off: { q: "", kind: "all" },             // 卡与账户：停用的卡

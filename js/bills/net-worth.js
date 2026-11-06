@@ -103,7 +103,7 @@ function breakdown(r) {
   const hb = (title, list) => (window.Charts ? window.Charts.hbars({ items: list, fmt: (v) => mny(v), title, empty: t("还没有") }) : "");
   return `<div class="ix-two">
     <div class="panel chart-panel"><div class="chart-head"><h3>${t("资产构成")} <small class="muted">${mny(r.assetsTotal)}</small></h3><a class="btn btn-sm btn-ghost" href="${href("bills", "assets")}">${t("详情")} ›</a></div>${hb(t("资产按分类"), items(ASSET_BUCKETS, r.assets))}</div>
-    <div class="panel chart-panel"><div class="chart-head"><h3>${t("负债构成")} <small class="muted">${mny(r.liabilitiesTotal)}</small></h3><a class="btn btn-sm btn-ghost" href="${esc(summaryHref())}">${t("借贷总览")} ›</a></div>${hb(t("负债按分类"), items(LIAB_BUCKETS, r.liabilities))}</div>
+    <div class="panel chart-panel"><div class="chart-head"><h3>${t("负债构成")} <small class="muted">${mny(r.liabilitiesTotal)}</small></h3><a class="btn btn-sm btn-ghost" href="${esc(summaryHref())}">${t("全部借贷")} ›</a></div>${hb(t("负债按分类"), items(LIAB_BUCKETS, r.liabilities))}</div>
   </div>`;
 }
 function trend(points, range) {

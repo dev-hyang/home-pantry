@@ -1,6 +1,8 @@
-/* 财务 → 借贷（财务 P2，迁移 058）：资产融资（房贷、车贷、HELOC、学生贷款、分期）· 个人借贷（借给亲友 / 向亲友借）· 还款记录；
+/* 财务 → 借贷（财务 P2，迁移 058）：全部借贷（进入页）· 资产融资（房贷、车贷、HELOC、学生贷款、分期）· 个人借贷（借给亲友 / 向亲友借）· 还款记录；
+ * 前三个标签上面是统计面板（debt-stats.js：指标、现在欠的钱、按对方 借入 / 借出 或 表格），资产融资 / 个人借贷下面是带筛选的列表（按页加载更多）。
  * 一笔贷款的详情：摊还表、每期还款的 本金 / 利息 / Escrow 拆分（可手动改）、关联账单和资产（按 id）。
- * 网址：#/bills/debts?tab=asset|personal|txns；详情 ?id=<贷款 id>；新建 ?new=1&cat=…&lender=…&principal=…&prop=…&asset=…&bill=…；编辑 ?id=…&edit=1。
+ * 网址：#/bills/debts[?tab=asset|personal|txns]；列表按名字筛好 ?tab=…&who=<名字>&dir=payable|receivable&at=rec；旧的 ?view=summary&seg=… 也认。
+ * 详情 ?id=<贷款 id>；新建 ?new=1&cat=…&lender=…&principal=…&prop=…&asset=…&bill=…；编辑 ?id=…&edit=1。
  * 别名：#/finance/debts、#/bills/loans、#/bills/debt、#/bills/lending（router.js）。只给有财务权限的人（finance-rules.js）。
  * 数据都在内存里（state.debts / state.debtTxns，见 debt-logic.js）；还款记录多了按页显示。设计见 docs/design-debt-lending.md。 */
 import { state } from "../core/state.js";
@@ -20,7 +22,7 @@ import { loadIncome } from "../income/logic.js";
 import { assetName, isVehicle } from "../house/assets.js";
 import { liveNetWorth } from "./nw-logic.js";
 import { attentionPanel } from "../core/alerts.js";   // 资产净值（P3，迁移 059）
-import { initDebtSummary, owedSplit, summaryHref, viewDebtSummary, debtFigures } from "./debt-stats.js";
+import { SEGS, debtDashboard, debtFigures, initDebtSummary } from "./debt-stats.js";
 import { FD, changed, clearFiltersBtn, onClearFilters } from "../core/clear-filters.js";
 
 let hooks = { render: () => {}, refresh: async () => {} };
@@ -28,7 +30,7 @@ const ui = () => (state.debtUi ||= {});
 const cur = () => Units.region.currency;
 const mny = (v, c) => (v == null ? "—" : Units.money(v, c || cur()));
 const pct = (v) => (v == null ? "—" : `${+Number(v).toFixed(3)}%`);
-const tabHref = (id) => `${href("bills", "debts")}?tab=${id}`;
+const tabHref = (id) => `${href("bills", "debts")}${id === "all" ? "" : `?tab=${id}`}`;
 const fact = (label, value) => (value ? `<span class="fa-fact"><small>${esc(label)}</small>${value}</span>` : "");
 const statusBadge = (e) => `<span class="badge ${STATUSES[e.status]?.cls || ""}">${esc(t(STATUSES[e.status]?.name || e.status))}</span>`;
 const catBadge = (e) => `<span class="badge" style="background:var(--surface-2)">${debtCat(e.category).icon} ${esc(t(debtCat(e.category).name))}</span>`;
@@ -92,16 +94,55 @@ export const looseBillsHtml = () => {
 };
 export const newFromBillHref = (b) => debtHref(null, `new=1&bill=${encodeURIComponent(b.id)}`);
 
-function listTab(tab, all) {
+/* ───────────── 标签页 ───────────── */
+const fsel = (attr, f, key, label, list) => `<label class="tb-field"><span>${t(label)}</span><select ${attr}="${key}" data-nosearch aria-label="${esc(t(label))}">${list.map(([k, l]) => `<option value="${k}"${k === f[key] ? " selected" : ""}>${esc(t(l))}</option>`).join("")}</select></label>`;
+const fsearch = (attr, f, ph, label) => `<label class="tb-field tb-q"><span>${t("搜索")}</span><input type="search" ${attr}="q" value="${esc(f.q)}" placeholder="${esc(t(ph))}" aria-label="${esc(t(label))}" autocomplete="off"></label>`;
+/** 列表区：标题 + 筛选条 + 小结 + 列表（按页）；id=debt-recs，统计面板里的名字链过来时滚到这里 */
+const recsBlock = ({ title, tools, sum, body }) => `<div class="debt-recs" id="debt-recs" tabindex="-1"><div class="ds-viewbar"><h3>${title}</h3></div>${tools}${sum}<div class="panel">${body}</div></div>`;
+
+function tabPage(tab, all) {
   if (tab === "txns") return txnsTab();
-  const open = (e) => !isClosedStatus(e.status);
-  if (tab === "personal") return personalTab(all.filter((e) => debtGroup(e) === "personal"));
-  const loans = all.filter((e) => debtGroup(e) === "asset").sort((a, b) => (open(b) - open(a)) || (b.balance || 0) - (a.balance || 0));
-  const live = loans.filter(open), ended = loans.filter((e) => !open(e));
-  return `<div class="section-head" style="margin-top:14px"><h2>🏦 ${t("贷款")}</h2><div class="head-acts"><a class="btn btn-sm" href="${esc(summaryHref("asset"))}">📊 ${t("总览")}</a><a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1"))}">＋ ${t("添加贷款")}</a></div></div>
-    <div class="panel">${live.length ? `<ul class="fa-list">${live.map(loanCard).join("")}</ul>` : `<div class="empty"><strong>${t("没有在还的贷款")}</strong>${t("房贷、车贷、学生贷款、分期都可以记在这里")}</div>`}</div>
-    ${ended.length ? `<details class="panel ref-panel" style="margin-top:12px"><summary><b>${t("已结束")}</b><small>${t("{n} 笔已还清或关闭", { n: ended.length })}</small><span class="mch" aria-hidden="true">›</span></summary><ul class="fa-list">${ended.map(loanCard).join("")}</ul></details>` : ""}
-    ${looseBillsHtml()}`;
+  const mine = all.filter((e) => tab === "all" || debtGroup(e) === tab), dash = debtDashboard(tab, all);
+  if (tab === "asset") return `<div class="section-head debt-head"><h2>🏦 ${t("资产融资")}</h2><div class="head-acts"><a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1"))}">＋ ${t("添加贷款")}</a></div></div>
+    ${dash}${assetRecs(mine)}${looseBillsHtml()}${sumHint()}`;
+  if (tab === "personal") return `<div class="section-head debt-head"><h2>🤝 ${t("个人借贷")}</h2><div class="head-acts">
+      <a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1&cat=personal_lending&dir=receivable"))}">＋ ${t("借出")}</a>
+      <a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1&cat=personal_lending&dir=payable"))}">＋ ${t("借入")}</a></div></div>
+    ${dash}${personalTab(mine)}${sumHint()}
+    <p class="hint">${t("借出是钱从账户出去（不算消费）；收回本金不算收入，收到的利息算投资收益。以前收入里「需要还」的记录已经转成这里的借入。")}</p>`;
+  // 全部借贷（进入页）
+  return `<div class="section-head debt-head"><h2>📊 ${t("全部借贷")} <small class="muted">${t("全部历史，含已还清的")}</small></h2></div>
+    ${dash || `<div class="panel empty"><strong>${t("还没有借贷记录")}</strong>${t("房贷、车贷、学生贷款、分期，和亲友之间的借款都可以记在这里")}
+      <div class="form-actions"><a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1"))}">＋ ${t("添加贷款")}</a><a class="btn btn-sm" href="${esc(tabHref("personal"))}">🤝 ${t("个人借贷")}</a></div></div>`}
+    ${attentionPanel(["debt"], { title: t("要处理"), sub: t("快到期、逾期的借款，待确认的车贷") })}
+    ${dash ? sumHint() : ""}`;
+}
+const sumHint = () => `<p class="hint">${t("总额 = 原始本金加上后来又借的；已还 = 总额 − 未还（房贷按摊还表）；已还清 / 核销 / 关闭的按结清算。同一个对方的几笔合在一行：点名字，一笔的进详情，几笔的在列表里筛出来。")}</p>`;
+
+/* 资产融资：贷款卡片列表，筛选（搜索、状态、类型）+ 排序（默认在还的在前、未还多的在前），按页加载更多 */
+const ASTS = [["all", "全部状态"], ["open", "在还"], ["ended", "已结束"]];
+const ASORTS = [["left", "未还 大 → 小"], ["new", "起始日期 新 → 旧"], ["old", "起始日期 旧 → 新"], ["name", "名称"]];
+const af = () => ({ ...FD.debtA, sort: "left", ...(ui().af || {}) });
+const isOpen = (e) => !isClosedStatus(e.status);
+function assetRows(loans) {
+  const f = af(), q = f.q.trim().toLowerCase();
+  const rows = loans.filter((e) => (f.st === "all" || (f.st === "open" ? isOpen(e) : !isOpen(e))) && (f.cat === "all" || e.category === f.cat) &&
+    (!q || [e.name, e.counterparty_name, e.notes, e.property?.name, e.asset ? assetName(e.asset) : ""].some((v) => String(v || "").toLowerCase().includes(q))));
+  const date = (e) => e.start_date || e.opening_balance_on || "";
+  const by = { left: (a, b) => isOpen(b) - isOpen(a) || (b.balance || 0) - (a.balance || 0), new: (a, b) => date(b).localeCompare(date(a)), old: (a, b) => (date(a) || "9").localeCompare(date(b) || "9"),
+    name: (a, b) => String(a.name).localeCompare(String(b.name)) }[f.sort] || ((a, b) => isOpen(b) - isOpen(a));
+  return rows.sort((a, b) => by(a, b) || String(a.name).localeCompare(String(b.name)));
+}
+function assetRecs(loans) {
+  const f = af(), rows = assetRows(loans), cats = [...new Set(loans.map((e) => e.category))];
+  const lim = pageLimit("debt-asset", JSON.stringify(f)), shown = rows.slice(0, lim), A_ = "data-debt-af";
+  const tools = loans.length ? `<div class="time-bar debt-pf" role="group" aria-label="${esc(t("筛选和排序"))}">${fsearch(A_, f, "贷款名称、贷款方、资产", "搜索贷款")}
+      ${fsel(A_, f, "st", "状态", ASTS)}${cats.length > 1 ? fsel(A_, f, "cat", "类型", [["all", "全部类型"], ...cats.map((c) => [c, debtCat(c).name])]) : ""}${fsel(A_, f, "sort", "排序", ASORTS)}${clearFiltersBtn("debtA", changed(f, FD.debtA))}</div>` : "";
+  const owe = rows.filter(isOpen).reduce((s, e) => s + (e.balance || 0), 0);
+  const sum = loans.length ? `<p class="muted debt-pf-sum" role="status">${t("{n} 笔贷款", { n: rows.length })}${owe ? ` · ${t("未还 {a}", { a: mny(A.r2(owe)) })}` : ""}</p>` : "";
+  const body = !loans.length ? `<div class="empty"><strong>${t("还没有贷款")}</strong>${t("房贷、车贷、学生贷款、分期都可以记在这里")}</div>`
+    : rows.length ? `<ul class="fa-list">${shown.map(loanCard).join("")}</ul>${pageMoreBtn("debt-asset", rows.length, shown.length)}` : `<div class="empty">${t("没有符合筛选的贷款")}</div>`;
+  return recsBlock({ title: `${t("全部贷款")} <small class="muted">${t("在还的在前")}</small>`, tools, sum, body });
 }
 
 /* 个人借贷：筛选（按人搜索、借出 / 借入、状态）+ 排序（默认按借款日期 新 → 旧），一个列表、按页显示 */
@@ -122,22 +163,15 @@ function personalRows(mine) {
   return rows.sort((a, b) => by(a, b) || newest(a, b));
 }
 function personalTab(mine) {
-  const f = pf(), rows = personalRows(mine);
-  const sel = (key, label, list) => `<label class="tb-field"><span>${t(label)}</span><select data-debt-pf="${key}" data-nosearch aria-label="${esc(t(label))}">${list.map(([k, l]) => `<option value="${k}"${k === f[key] ? " selected" : ""}>${esc(t(l))}</option>`).join("")}</select></label>`;
+  const f = pf(), rows = personalRows(mine), P_ = "data-debt-pf";
   const lim = pageLimit("debt-personal", JSON.stringify(f)), shown = rows.slice(0, lim);
   const left = (dir) => rows.filter((x) => x.e.direction === dir).reduce((s, x) => s + (x.f.left || 0), 0);
-  const tools = mine.length ? `<div class="time-bar debt-pf" role="group" aria-label="${esc(t("筛选和排序"))}">
-      <label class="tb-field tb-q"><span>${t("搜索")}</span><input type="search" data-debt-pf="q" value="${esc(f.q)}" placeholder="${esc(t("对方名字、备注"))}" aria-label="${esc(t("按人搜索"))}" autocomplete="off"></label>
-      ${sel("dir", "方向", PDIRS)}${sel("st", "状态", PSTS)}${sel("sort", "排序", PSORTS)}${clearFiltersBtn("debtP", pFiltered())}</div>` : "";
-  return `<div class="section-head" style="margin-top:14px"><h2>🤝 ${t("个人借贷")}</h2><div class="head-acts">
-      <a class="btn btn-sm" href="${esc(summaryHref("personal"))}">📊 ${t("总览")}</a>
-      <a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1&cat=personal_lending&dir=receivable"))}">＋ ${t("借出")}</a>
-      <a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1&cat=personal_lending&dir=payable"))}">＋ ${t("借入")}</a></div></div>
-    ${tools}
-    ${mine.length ? `<p class="muted debt-pf-sum" role="status">${t("{n} 笔借贷", { n: rows.length })}${left("receivable") ? ` · ${t("别人还欠我 {a}", { a: mny(A.r2(left("receivable"))) })}` : ""}${left("payable") ? ` · ${t("我还欠 {a}", { a: mny(A.r2(left("payable"))) })}` : ""}</p>` : ""}
-    <div class="panel">${!mine.length ? `<div class="empty">${t("还没有个人借贷：借给亲友、向亲友借的钱都可以记在这里")}</div>`
-      : rows.length ? `<ul class="fa-list">${shown.map((x) => personCard(x.e)).join("")}</ul>${pageMoreBtn("debt-personal", rows.length, shown.length)}` : `<div class="empty">${t("没有符合筛选的借贷")}</div>`}</div>
-    <p class="hint">${t("借出是钱从账户出去（不算消费）；收回本金不算收入，收到的利息算投资收益。以前收入里「需要还」的记录已经转成这里的借入。")}</p>`;
+  const tools = mine.length ? `<div class="time-bar debt-pf" role="group" aria-label="${esc(t("筛选和排序"))}">${fsearch(P_, f, "对方名字、备注", "按人搜索")}
+      ${fsel(P_, f, "dir", "方向", PDIRS)}${fsel(P_, f, "st", "状态", PSTS)}${fsel(P_, f, "sort", "排序", PSORTS)}${clearFiltersBtn("debtP", pFiltered())}</div>` : "";
+  const sum = mine.length ? `<p class="muted debt-pf-sum" role="status">${t("{n} 笔借贷", { n: rows.length })}${left("receivable") ? ` · ${t("别人还欠我 {a}", { a: mny(A.r2(left("receivable"))) })}` : ""}${left("payable") ? ` · ${t("我还欠 {a}", { a: mny(A.r2(left("payable"))) })}` : ""}</p>` : "";
+  const body = !mine.length ? `<div class="empty">${t("还没有个人借贷：借给亲友、向亲友借的钱都可以记在这里")}</div>`
+    : rows.length ? `<ul class="fa-list">${shown.map((x) => personCard(x.e)).join("")}</ul>${pageMoreBtn("debt-personal", rows.length, shown.length)}` : `<div class="empty">${t("没有符合筛选的借贷")}</div>`;
+  return recsBlock({ title: `${t("每一笔借贷")} <small class="muted">${t("默认按借款日期 新 → 旧")}</small>`, tools, sum, body });
 }
 
 const txnName = (x) => t(TXN_TYPES[x.type]?.name || x.type);
@@ -502,30 +536,21 @@ export function viewDebts() {
   if (!state.debtsOk) return `<section class="section"><div class="panel empty"><strong>${t("借贷还不能用")}</strong>${Store.mode === "cloud" ? t("数据库还没升级：请先执行 supabase/migrations/058_debt_lending.sql") : esc(state.debtsErr || "")}</div></section>`;
   if (q.get("new")) return `<section class="section">${debtForm(null)}</section>`;
   if (q.get("id")) return detail(q.get("id"));
-  if (q.get("view") === "summary") return viewDebtSummary();
-  const tab = activeTab(state.route) || "asset", all = debtsEnriched();
+  // 旧的「借贷总览」网址：?view=summary&seg=… 就是对应的标签
+  const seg = q.get("view") === "summary" ? (SEGS.some(([k]) => k === q.get("seg")) ? q.get("seg") : "all") : null;
+  const tab = seg || activeTab(state.route) || "all", all = debtsEnriched();
   if (tab === "txns" && q.get("link") && ui().linkQ !== state.route) { ui().linkQ = state.route; setRecordFilter("txns", { link: q.get("link") === "no" ? "no" : "yes" }); }   // 提醒「没关联花费 / 收入」点进来：直接筛好
-  const open = all.filter((e) => !isClosedStatus(e.status));
-  const owe = open.filter((e) => e.direction === "payable" && e.balance != null).reduce((s, e) => s + e.balance, 0);
-  const lent = open.filter((e) => e.direction === "receivable" && e.balance != null).reduce((s, e) => s + e.balance, 0);
-  const monthly = open.filter((e) => e.direction === "payable" && e.bill).reduce((s, e) => s + (e.bill.monthly || 0), 0);
-  const overdue = open.filter((e) => e.overdue).length, split = owedSplit(all);
-  const nw = state.nwOk ? liveNetWorth() : null;
-  const nwK = nw ? `<a class="kpi" href="${href("bills", "networth")}"><span>${t("负债 / 总资产")}</span><b>${nw.assetsTotal > 0 ? `${Math.round((nw.liabilitiesTotal / nw.assetsTotal) * 100)}%` : "—"}</b><small>${t("净资产 {a}", { a: mny(nw.netWorth) })} ›</small></a>` : "";
-  return `<section class="section">
-    <div class="kpis debt-kpis">
-      <a class="kpi" href="${esc(summaryHref())}"><span>${t("未还贷款")}</span><b>${mny(A.r2(owe))}</b><small>${t("{n} 笔在还", { n: open.filter((e) => e.direction === "payable").length })} · ${t("总览")} ›</small></a>
-      <div class="kpi kpi-split"><span>${t("欠款构成")}</span>
-        <a class="ks-row" href="${esc(summaryHref("asset"))}"><span>${t("资产融资所欠")}</span><b>${mny(split.asset)}</b></a>
-        <a class="ks-row" href="${esc(summaryHref("personal"))}"><span>${t("个人借贷所欠")}</span><b>${mny(split.personal)}</b></a>
-        ${owe > 0 ? `<span class="ks-bar" aria-hidden="true"><i style="width:${Math.round((split.asset / owe) * 100)}%"></i></span>` : ""}</div>
-      <div class="kpi"><span>${t("每月还款")}</span><b>${mny(A.r2(monthly))}</b><small>${t("按关联账单折算")}</small></div>
-      <a class="kpi" href="${esc(summaryHref("personal"))}"><span>${t("借出未收")}</span><b>${mny(A.r2(lent))}</b><small>${overdue ? t("{n} 笔逾期", { n: overdue }) : t("没有逾期")} · ${t("总览")} ›</small></a>
-      ${nwK}
-    </div>
-    ${attentionPanel(["debt"], { title: t("要处理"), sub: t("快到期、逾期的借款，待确认的车贷") })}
+  // 统计面板里点名字过来：下面的列表按名字（和方向）筛好，滚到列表（每次进来套一次，之后用户自己改筛选不受影响）
+  if ((tab === "asset" || tab === "personal") && q.has("who") && ui().whoQ !== state.route) {
+    ui().whoQ = state.route;
+    const who = q.get("who") || "";
+    if (tab === "asset") ui().af = { sort: af().sort, q: who };
+    else ui().pf = { sort: pf().sort, q: who, dir: ["payable", "receivable"].includes(q.get("dir")) ? q.get("dir") : "all" };
+    if (q.get("at") === "rec") requestAnimationFrame(() => { const el = document.getElementById("debt-recs"); if (el) { el.scrollIntoView({ block: "start" }); el.focus({ preventScroll: true }); } });
+  }
+  return `<section class="section debt-page">
     ${tabBar(DEBT_TABS, tab, tabHref, t("借贷内容"))}
-    ${listTab(tab, all)}
+    ${tabPage(tab, all)}
   </section>`;
 }
 
@@ -572,14 +597,20 @@ async function saveDebtForm(f) {
 
 export function initDebts({ render, refresh }) {
   hooks = { render, refresh };
-  initDebtSummary({ render, go });
+  initDebtSummary({ render });
   onClearFilters("debtP", () => { ui().pf = { sort: pf().sort }; render(false); });
+  onClearFilters("debtA", () => { ui().af = { sort: af().sort }; render(false); });
   initRecords({ render, save: async (x, patch) => guard(async () => { await updateDebtTxn(x, patch); toast(t("已保存")); await after(); }) });
   const main = document.getElementById("main");
   main.addEventListener("change", (e) => {
     if (e.target.matches?.("[data-debt-overwrite]")) { ui().overwrite = e.target.checked; return; }
-    const pfs = e.target.closest?.("select[data-debt-pf]");
-    if (pfs) { const k = pfs.dataset.debtPf; ui().pf = { ...pf(), [k]: pfs.value }; render(false); requestAnimationFrame(() => document.querySelector(`[data-debt-pf="${k}"]`)?.focus()); return; }
+    // 列表筛选：个人借贷（data-debt-pf）/ 资产融资（data-debt-af）
+    const fs = e.target.closest?.("select[data-debt-pf], select[data-debt-af]");
+    if (fs) {
+      const which = fs.dataset.debtPf != null ? "pf" : "af", k = fs.dataset.debtPf ?? fs.dataset.debtAf;
+      ui()[which] = { ...(which === "pf" ? pf() : af()), [k]: fs.value }; render(false);
+      requestAnimationFrame(() => document.querySelector(`[data-debt-${which}="${k}"]`)?.focus()); return;
+    }
     const s = e.target.closest?.("[data-debt-cat]"); if (!s) return;
     const personal = s.value === "personal_lending", f = s.closest("form");
     f.querySelectorAll("[data-debt-personal]").forEach((x) => { x.hidden = !personal; });
@@ -590,11 +621,12 @@ export function initDebts({ render, refresh }) {
   // 按人搜索：边打边筛（防抖），重画后焦点和光标留在搜索框
   let qTimer = 0;
   main.addEventListener("input", (e) => {
-    const inp = e.target.closest?.('input[data-debt-pf="q"]'); if (!inp) return;
+    const inp = e.target.closest?.('input[data-debt-pf="q"], input[data-debt-af="q"]'); if (!inp) return;
+    const which = inp.dataset.debtPf != null ? "pf" : "af";
     clearTimeout(qTimer);
     qTimer = setTimeout(() => {
-      ui().pf = { ...pf(), q: inp.value }; const at = inp.selectionStart; render(false);
-      const n = document.querySelector('input[data-debt-pf="q"]');
+      ui()[which] = { ...(which === "pf" ? pf() : af()), q: inp.value }; const at = inp.selectionStart; render(false);
+      const n = document.querySelector(`input[data-debt-${which}="q"]`);
       if (n) { n.focus(); try { n.setSelectionRange(at, at); } catch { /* 不支持选区的输入框：忽略 */ } }
     }, 250);
   });
