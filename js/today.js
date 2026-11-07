@@ -8,6 +8,7 @@
  * 「注意事项」点开是 #/alerts：从提醒总线取全部提醒，排序下拉（按轻重 / 按房产 / 按来源 / 按到期）。各模块只把自己的提醒注册进总线，首页不认识任何模块。
  * 设计说明见 docs/design-today.md。 */
 import { state } from "./core/state.js";
+import { currentWeather, enableWeather, wxLoc } from "./core/weather.js";
 import { aiIcon, aiQuota, aiReady } from "./core/ai.js";
 import { Store } from "./core/store.js";
 import { href } from "./core/router.js";
@@ -42,7 +43,7 @@ function myAlerts() {
 /* ── 卡片（2026-11-06 改回卡片：轻便、一眼看完；点卡片进对应页面）── */
 /** 一张卡：链接卡（整张可点）或容器卡（里面各行自己可点）。head 是标题行，body 是内容 */
 const card = ({ k, icon, title, count = "", href: h = "", headHref = "", headExtra = "", cls = "", body = "" }) => {
-  const inner = `<span class="tcard-ico" aria-hidden="true">${icon}</span><h3 id="tc-${k}">${title}</h3>${count}`;
+  const inner = `<span class="tcard-ico" aria-hidden="true">${icon}</span><h3 id="tc-${k}"><span class="tcard-t">${title}</span>${count}</h3>`;   // 计数紧跟标题（像通知）
   const head = headHref ? `<div class="tcard-head"><a class="tcard-hlink" href="${esc(headHref)}">${inner}<span class="tcard-ch" aria-hidden="true">›</span></a>${headExtra}</div>`
     : `<div class="tcard-head">${inner}${h ? `<span class="tcard-ch" aria-hidden="true">›</span>` : ""}${headExtra}</div>`;
   return h ? `<a class="tcard ${cls}" href="${esc(h)}" aria-labelledby="tc-${k}">${head}${body}</a>`
@@ -58,7 +59,7 @@ export function viewToday() {
   const noProfile = state.houseEnabled && state.propertyId && !state.houseProfiles[state.propertyId];
   const cards = [todoCard(all, counts), homeCard(fin), fin && state.billsEnabled ? moneyCard() : "", quickCard()].filter(Boolean);
   return `
-    ${headHtml(all, counts)}
+    ${headHtml()}
     ${aiBlock()}
     ${noProfile ? `<section class="section"><div class="panel cta-panel">
       <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的房屋耗材。")}</p></div>
@@ -66,17 +67,20 @@ export function viewToday() {
     <section class="section"><div class="tcards n${cards.length}">${cards.join("")}</div></section>`;
 }
 
-/** 问候 + 日期一行，状态一行 */
-function headHtml(all, counts) {
+/** 日期 · 星期 · 天气 一行小字在上，问候在下；「今天有几件事」不再单独一行（看待办卡标题旁的数字） */
+function headHtml() {
   const h = new Date().getHours(), hi = h < 5 ? t("夜深了") : h < 11 ? t("早上好") : h < 13 ? t("中午好") : h < 18 ? t("下午好") : t("晚上好");
   const dateText = new Date().toLocaleDateString(locale(), { month: "long", day: "numeric", weekday: "long" });
   const name = state.displayName && state.displayName !== "我" && state.displayName !== t("我") ? state.displayName : "";
-  const status = counts.important ? t("今天有 {n} 件事要处理", { n: counts.important })
-    : all.length ? t("没有急事，{n} 件可以留意", { n: all.length }) : t("没有要处理的事 ✓");
+  const wx = currentWeather(() => { if (state.route?.section === "today") rerenderToday(); });
+  const wxHtml = wx ? `<span class="today-wx" title="${esc(wx.label)}"><span aria-hidden="true">${wx.icon}</span><span class="sr-only">${esc(wx.label)}</span> ${wx.temp}${esc(wx.unit)}</span>`
+    : wxLoc() ? "" : `<button type="button" class="today-wx-on" data-action="wx-enable" title="${esc(t("允许定位后显示当地天气（位置只存在这台设备上）"))}">🌤️ ${t("显示天气")}</button>`;
   return `<section class="section today-head">
-    <h2 class="today-hi">${esc(name ? t("{hi}，{name}", { hi, name }) : hi)} <span class="today-date">${esc(dateText)}</span></h2>
-    <p class="today-status ${counts.important ? "is-hot" : "is-calm"}" role="status">${esc(status)}</p></section>`;
+    <p class="today-date">${esc(dateText)}${wxHtml}</p>
+    <h2 class="today-hi">${esc(name ? t("{hi}，{name}", { hi, name }) : hi)}</h2></section>`;
 }
+let rerenderToday = () => {};
+export const initTodayRender = (fn) => { rerenderToday = fn; };
 
 /* ── 待办 · 按模块：每个模块一行（数量 + 最近的一件），点进模块自己的页面 ──
  * 来源全是提醒总线（已经按财务权限去掉了预算 / 收入 / 借贷）+ 内存里的采购清单；链接再过一遍 quickOk，没权限的页面不会出现 */
@@ -132,11 +136,11 @@ function multiBucket(items) {
 /** 待办 | 注意事项：一个数（要紧的，没有就全部）+ 轻重计数 + 最急的三个模块；点进 #/alerts（按模块 / 按优先级两种视图） */
 function todoCard(all, counts) {
   const rows = todoRows(all), n = counts.important || all.length;
-  const pills = [0, 1, 2, 3].filter((s) => counts.bySeverity[s]).map((s) => `<span class="pill sev-${s}"><i>${counts.bySeverity[s]}</i>${t(SEVERITY_LABEL[s])}</span>`).join("");
-  const sub = counts.important ? t("{n} 件要紧", { n: counts.important }) : all.length ? t("没有急事，{n} 件可以留意", { n: all.length }) : t("各处都没有待办 ✓");
-  const top = rows.slice(0, 3).map((r) => `<li><span aria-hidden="true">${r.icon}</span><span class="grow">${esc(r.name)}</span><b class="num">${r.n}</b></li>`).join("");
-  return card({ k: "todo", icon: counts.important ? "🔔" : "🗂️", title: t("待办 | 注意事项"), href: href("alerts"), cls: counts.important ? "is-hot" : "",
-    body: `<div class="tcard-big"><b class="num">${n || "✓"}</b><span>${esc(sub)}</span></div>${pills ? `<div class="pills tcard-pills">${pills}</div>` : ""}${top ? `<ul class="tcard-list">${top}</ul>` : ""}` });
+  // 标题旁像通知一样一个数（有要紧的：要紧件数、红色；没有：全部件数、灰色）；下面最多四个模块
+  const badge = n ? `<span class="tbadge ${counts.important ? "is-hot" : ""}" aria-label="${esc(counts.important ? t("{n} 件要紧", { n }) : t("{n} 件可以留意", { n }))}">${n > 99 ? "99+" : n}</span>` : "";
+  const top = rows.slice(0, 4).map((r) => `<li><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow">${esc(r.name)}</span><b class="num ${r.worst <= 1 ? "down" : ""}">${r.n}</b></li>`).join("");
+  return card({ k: "todo", icon: counts.important ? "🔔" : "🗂️", title: t("待办 | 注意事项"), count: badge, href: href("alerts"), cls: counts.important ? "is-hot" : "",
+    body: top ? `<ul class="tcard-list">${top}</ul>` : `<p class="muted tcard-ok">${t("各处都没有待办 ✓")}</p>` });
 }
 
 /* ── 钱 · 本月（只给家主和有财务权限的人；调用前已判断）：数字来自 spend_rollup / inc_rollup 的缓存和内存里的账单、净资产 ── */

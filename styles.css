@@ -2619,3 +2619,21 @@ html.force-phone .pentries { display: none; } html.force-phone .pentry-dd { disp
 /* 录入购物 · 手动：「加一条」和说明一行，窄屏换行 */
 .scan-addrow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 4px 0 0; }
 .scan-addrow small { font-size: 12.5px; }
+/* 11-07 今日页头：日期 · 星期 · 天气一行小字在上，问候在下；不再有状态行 */
+.today-head { margin-bottom: 16px; }
+.today-head .today-date { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin: 0 0 2px; font-size: 13.5px; font-weight: 500; color: var(--muted); line-height: 1.5; }
+.today-head .today-hi { display: block; margin: 0; font-size: 20px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.today-wx { display: inline-flex; align-items: center; gap: 4px; padding: 1px 9px; border-radius: 99px; background: var(--surface-2); color: var(--ink); font-size: 13px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.today-wx-on { display: inline-flex; align-items: center; gap: 4px; min-height: 28px; padding: 1px 10px; border: 1px dashed var(--line); border-radius: 99px; background: none; color: var(--muted); font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+.today-wx-on:hover { color: var(--ink); border-color: var(--pine); }
+/* 待办卡标题旁的通知数字 */
+.tbadge { flex: none; display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--surface-2); color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.tbadge.is-hot { background: var(--out); color: #fff; }
+.tcard-list { gap: 4px; }
+.tcard-list li { min-height: 24px; font-size: 13.5px; }
+.tcard-list b.down { color: var(--out); }
+.tcard-ok { margin: 0; font-size: 13.5px; }
+@media (max-width: 640px) { .today-head .today-hi { font-size: 19px; } }
+.tcard-head h3 { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.tcard-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tcard-head .tcard-ch { margin-left: auto; }

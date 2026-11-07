@@ -29,7 +29,8 @@ import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, payAcctValue, 
 import "./bills/cards.js";   // 注册信用卡提醒
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
-import { DEFAULT_QUICK, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewQuick, viewToday } from "./today.js";
+import { DEFAULT_QUICK, initTodayRender, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewQuick, viewToday } from "./today.js";
+import { enableWeather } from "./core/weather.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
@@ -500,7 +501,8 @@ initIncome({ render, refresh });
 initDebts({ render, refresh });
 initNetWorth({ render });
 initStatements({ render });
-initHomeStats(render);   // 我的 → 家里的数字：近一年日志读完后重画
+initHomeStats(render);
+initTodayRender(() => render());   // 今日天气取回来后重画   // 我的 → 家里的数字：近一年日志读完后重画
 initSelectSearch();   // 选项很多的下拉（分类等）变成可搜索的（js/select-search.js）
 initQuickDrag({ isEditing: () => !!state.quickEdit, enter: () => { state.quickEdit = true; state.quickAdd = false; render(); }, save: async (ids) => { try { await saveQuick(ids); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } render(); } });   // 今日页快捷操作：长按进入编辑并拖动排序   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
 // 「⋯」更多操作菜单：点别处或点菜单里的某项就收起（原生 details 不会自己收）
@@ -960,6 +962,7 @@ main.addEventListener("click", async (e) => {
       case "season-delete":
         if (!confirmDelete(t("删除这条任务？"))) return;
         await deleteSeasonTask(el.dataset.id); state.seasonForm = null; toast(t("已删除这条任务")); return refresh();
+      case "wx-enable": { el.disabled = true; const ok = await enableWeather(() => render()); if (!ok) { el.disabled = false; toast(t("没拿到位置：浏览器里允许定位后再点一次")); } return; }   // 今日日期旁的天气（js/core/weather.js）
       case "today-view": setTodayPref({ view: el.dataset.v }); return render();   // 待办 | 注意事项：按模块 / 按优先级
       case "today-pref": {
         const k = el.dataset.key;
