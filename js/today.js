@@ -49,7 +49,7 @@ const card = ({ k, icon, title, count = "", href: h = "", headHref = "", headExt
     : `<section class="tcard ${cls}" aria-labelledby="tc-${k}">${head}${body}</section>`;
 };
 /** 卡里一行一个链接（家里一览、快捷操作同一个样子） */
-const rowLink = (h, icon, label, value = "", hot = false, attrs = "") => `<li><a href="${esc(h)}"${attrs}><span aria-hidden="true">${icon}</span><span class="grow">${label}</span>${value ? `<b class="${hot ? "down" : ""}">${value}</b>` : ""}<span class="tcard-ch" aria-hidden="true">›</span></a></li>`;
+const rowLink = (h, icon, label, value = "", hot = false, attrs = "") => `<li><a href="${esc(h)}"${attrs}><span class="tr-ico" aria-hidden="true">${icon}</span><span class="grow">${value ? `<span class="tr-k">${label}</span><b class="tr-v${hot ? " down" : ""}">${value}</b>` : `<span class="tr-k1">${label}</span>`}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`;   // 有值的两行（名称小字在上、数在下），窄卡片里不会挤出框
 
 /* ───────────── 今日 ───────────── */
 export function viewToday() {
@@ -191,9 +191,9 @@ function aiBlock() {
 function quickCard() {
   const mine = quickList().map((id) => PRESETS().find((p) => p[0] === id)).filter(Boolean);
   const one = ([id, icon, nm]) => id.startsWith("action:")
-    ? `<li><button type="button" data-action="quick-run" data-id="${esc(id)}"><span aria-hidden="true">${icon}</span><span class="grow">${esc(nm)}</span><span class="tcard-ch" aria-hidden="true">›</span></button></li>`
+    ? `<li><button type="button" data-action="quick-run" data-id="${esc(id)}"><span class="tr-ico" aria-hidden="true">${icon}</span><span class="grow"><span class="tr-k1">${esc(nm)}</span></span><span class="tcard-ch" aria-hidden="true">›</span></button></li>`
     : rowLink(quickHref(id), icon, esc(nm));
-  return card({ k: "quick", icon: "⚡", title: t("快捷操作"), cls: "tcard-quick", headExtra: `<a class="btn btn-sm btn-ghost tcard-edit" href="${href("quick")}">${t("编辑")}</a>`,
+  return card({ k: "quick", icon: "⚡", title: t("快捷操作"), cls: "tcard-quick", headHref: href("quick"),   // 标题行点进「编辑快捷操作」
     body: mine.length ? `<div class="tcard-scroll" tabindex="0" aria-label="${esc(t("快捷操作"))}"><ul class="tcard-rows">${mine.map(one).join("")}</ul></div>` : `<p class="muted" style="margin:0">${t("还没有快捷操作，点“编辑”添加。")}</p>` });
 }
 /** #/quick：编辑快捷操作（加、删、点格子换成别的、长按拖动排序；改完立刻保存） */

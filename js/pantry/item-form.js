@@ -1,5 +1,5 @@
 import { state } from "../core/state.js";
-import { findItem, similarItems } from "../core/item-match.js";
+import { aliasesOf, findItem, normName, similarItems } from "../core/item-match.js";
 import { cleanStore, lastStore, rememberStore, storeDatalist } from "../stats/views.js";
 import { cardSelectHtml, purchasePayFields } from "../bills/cards-views.js";
 import { copyOf, moreMenu } from "../core/more-menu.js";
@@ -71,7 +71,8 @@ export function viewItemForm() {
   const defCat = qCat && CATEGORIES.some((c) => c.id === qCat) ? qCat
     : state.filter.space === space && state.filter.cat !== "all" ? state.filter.cat : catsOf(space)[0].id;
   // 复制：带上原物品的分类、小类、单位、位置、少货线、备注；保质期、关联设备、提醒设置不带
-  const src = !it && r.q.get("copy") ? copyOf(state.items.find((x) => x.id === r.q.get("copy")), ["expiry_date", "asset_ids", "alert_mute_until", "cat_check", "avg_daily_use"]) : null;
+  const src = !it && r.q.get("copy") ? copyOf(state.items.find((x) => x.id === r.q.get("copy")), ["expiry_date", "asset_ids", "alert_mute_until", "cat_check", "avg_daily_use", "name_key"]) : null;
+  if (src) src.name = `${src.name}（2）`.slice(0, 60);   // 同一家不能有同名的两件：先加（2），自己改成品牌 / 规格
   const v = it || src || { category: defCat, unit: "个", quantity: 1, min_quantity: space === "gear" ? 0 : 1, lead_days: space === "house" ? 14 : space === "gear" ? 0 : 3, location: catOf(defCat).loc };
   state.editingCat = v.category;
   const gear = spaceOf(v.category) === "gear";
@@ -93,6 +94,10 @@ export function viewItemForm() {
             <label class="span-2">${t("名称")}
               <input name="name" required maxlength="60" autocomplete="off" placeholder="${t(NAME_HINT[spaceOf(v.category)] || NAME_HINT.pantry)}" value="${esc(v.name || "")}">
               <small class="name-hint" id="itemNameHint" role="status" ${it ? "" : "data-new"} hidden></small>
+            </label>
+            <label class="span-2">${t("别名（选填）")}
+              <input name="aliases" maxlength="200" autocomplete="off" placeholder="${esc(t("同一样东西的其他叫法，用逗号隔开，例如：milk, 牛乳"))}" value="${esc(it ? aliasesOf(it.id).join(", ") : "")}">
+              <small class="muted">${t("录入购物、采购清单、记花费写成这些叫法，也会对上这件")}</small>
             </label>
             <label>${t("大类")}
               <select name="category" required>${categoryOptions(v.category, { withOther: false })}</select>
@@ -190,9 +195,9 @@ export async function saveItemForm(f, { silent = false } = {}) {
   const name = fe.name.value.trim();
   const quantity = num(fe.quantity.value, NaN);
   if (!name) return fail(t("请填写物品名称。"), fe.name);
-  // 新建：已有写法一样的物品（忽略大小写、空格、全角半角、英文复数）→ 第一次只提醒，确认是另一件再点一次
-  const same = !fe.item_id.value && !silent ? findItem(name) : null;
-  if (same && f.dataset.dupAck !== same.id) { f.dataset.dupAck = same.id; return fail(t("已经有「{name}」（{cat}）。是同一样东西就去那件补库存；确实是另一件，再点一次「添加物品」。", { name: same.name, cat: t(catOf(same.category).name) }), fe.name); }
+  // 已有写法一样的物品（忽略大小写、空格、全角半角、英文复数）：不能再建一件同名的（迁移 066 的唯一索引），改名区分或去那件补库存
+  const same = findItem(name, { exceptId: fe.item_id.value || null });
+  if (same) return fail(t("已经有「{name}」（{cat}）。是同一样东西就去那件补库存；是另一件就在名字里加上品牌、规格区分。", { name: same.name, cat: t(catOf(same.category).name) }), fe.name);
   if (!Number.isFinite(quantity) || quantity < 0) return fail(t("数量需要是 0 或正数。"), fe.quantity);
   // 单位没改且属于换算显示：换算回存储单位；数值没动过则保留原始值，避免来回换算产生误差
   const typedUnit = fe.unit.value.trim() || "个";
@@ -227,6 +232,10 @@ export async function saveItemForm(f, { silent = false } = {}) {
   try {
     it.location = await resolveLocation(fe);   // 选了“＋ 新位置…”会先建位置
     const savedId = await Store.saveItem(it);
+    if (fe.aliases && (savedId || it.id)) {   // 别名：整组替换（和名字本身一样的、空的去掉）
+      const id = savedId || it.id, list = [...new Set(fe.aliases.value.split(/[,，、;；]/).map((x) => x.trim().slice(0, 60)).filter((x) => x && normName(x) !== normName(it.name)))];
+      if (list.join("|") !== aliasesOf(id).join("|")) await Store.setItemAliases(id, list).then(() => Store.listItemAliases()).then((r) => { state.itemAliases = r || []; }).catch(() => {});
+    }
     if (!it.id && fe.sp_amount && fe.sp_amount.value !== "" && num(fe.sp_amount.value) > 0) {   // 添加物品时填了金额：记一笔花费，关联到新物品
       const store = cleanStore(fe.sp_store?.value || ""), date = fe.sp_date?.value || todayISO();
       await Store.addPurchase({ item_id: savedId || null, name: it.name, category: it.category, quantity: it.quantity || null, unit: it.unit || null, amount: Math.round(num(fe.sp_amount.value) * 100) / 100,
@@ -242,7 +251,7 @@ export async function saveItemForm(f, { silent = false } = {}) {
     toast(it.id ? t("已保存修改") : t("已添加 {name}", { name }));
     leaveItem(true);
     return true;
-  } catch (e) { if (silent) throw e; err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; return false; }
+  } catch (e) { if (silent) throw e; err.textContent = /items_household_name_key_uniq/.test(e.message) ? t("已经有同名的物品了：换个名字区分（品牌、规格），或去那件补库存。") : t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; return false; }
 }
 
 /* ── 不再提醒 / 暂停提醒 ── 试过不好吃、暂时用完不想补：标记后不进注意事项和提醒数；下次补货入库自动恢复 */
@@ -270,7 +279,6 @@ function muteChoice(val, cur) {
 document.addEventListener("input", (e) => {
   if (e.target.name !== "name" || !e.target.closest?.("#itemForm")) return;
   const hint = document.getElementById("itemNameHint"), f = e.target.form; if (!hint || !f) return;
-  delete f.dataset.dupAck;
   const id = f.elements.item_id.value || null, same = findItem(e.target.value, { exceptId: id }), near = same ? [] : similarItems(e.target.value, { exceptId: id });
   hint.hidden = !same && !near.length;
   const link = (i) => `<a href="${href("item", i.id)}">${esc(i.name)}</a>`;

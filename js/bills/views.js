@@ -636,6 +636,11 @@ export async function saveBillForm(f, { silent = false } = {}) {
   const reminders = [...new Set(parseList(fe.reminder_days.value).filter((n) => n >= 0 && n <= 90))].sort((a, b) => b - a).slice(0, 5);
   const payUrl = fe.pay_url.value.trim();
   if (payUrl && !/^https?:\/\//i.test(payUrl)) return fail(t("缴费链接需要以 http:// 或 https:// 开头。"), fe.pay_url);
+  if (!silent) {   // 疑似重复（「电费」和「Electric」各建一条）：在用的账单里同名，或同一收款方 + 同一分类——先提醒一次
+    const payee = fe.payee.value.trim(), hit = (state.bills || []).find((x) => x.id !== fe.bill_id.value && x.active !== false && !x.ended_on
+      && (normName(x.name) === normName(name) || (payee && normName(x.payee) === normName(payee) && x.category === fe.category.value)));
+    if (dupOnce(f, hit?.id)) return fail(t("已经有在用的账单「{name}」（同名或同一收款方、同一分类）。确认是另一条，再点一次保存。", { name: hit.name }), fe.name);
+  }
   const b = {
     id: fe.bill_id.value || undefined, name, category: fe.category.value, property_id: fe.property_id.value || null, direction: fe.direction.value || "payable",
     payee: fe.payee.value.trim() || null, account_last4: fe.account_last4.value.trim() || null, login_hint: fe.login_hint.value.trim() || null, pay_url: payUrl || null,

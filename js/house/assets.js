@@ -7,6 +7,7 @@
  * - 小家电 / 季节电器（类型上 portable: true：风扇、取暖器、除湿机…）：一台一条，列表单独分组；不设保养周期，换季提醒走季节任务
  * - 产品召回：assets.recall（迁移 051），登记、提醒和修 / 换 / 退三个出口在 js/house/recall.js；换新、退款处理完的旧设备“退役”，不进列表和提醒 */
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
+import { dupOnce, normName } from "../core/item-match.js";
 import { STATUS, state } from "../core/state.js";
 import { fetchPurchase, fillFromPurchase, purchaseById } from "../core/spend-data.js";
 import { askButton, askInline, askPanel, ctx as askCtx } from "../core/ask.js";
@@ -952,6 +953,10 @@ export async function saveAssetForm(f, { silent = false } = {}) {
   const fail = (msg, el) => { if (silent) toast(t("没有自动保存：{msg}", { msg })); else { err.textContent = msg; el.focus(); } return false; };
   const name = fe.name.value.trim();
   if (!name) return fail(t("请填写设备名称。"), fe.name);
+  if (!silent) {   // 疑似重复：同一套房产（或车辆）里有同名、没退役的设备——先提醒一次
+    const prop = fe.property_id?.value || state.propertyId, hit = (state.assets || []).find((a) => a.id !== fe.asset_id.value && !isRetired(a) && (a.property_id || null) === (prop || null) && normName(a.name) === normName(name));
+    if (dupOnce(f, hit?.id)) return fail(t("这套房产已经有「{name}」了。确认是另一台（比如楼上楼下各一台），再点一次保存；也可以在名字里写上位置。", { name: hit.name }), fe.name);
+  }
   const numOrNull = (el, { int = false } = {}) => { if (el.value === "") return null; const n = num(el.value, NaN); return Number.isFinite(n) ? (int ? Math.round(n) : Math.round(n * 100) / 100) : null; };
   const thisYear = new Date().getFullYear();
   const year = numOrNull(fe.manufacture_year, { int: true });

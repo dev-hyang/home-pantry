@@ -1,5 +1,6 @@
 /* 信用卡（用卡）界面：「现在该刷哪张」快速查询、卡列表、卡表单；采购清单 / 补记花费旁的一行建议。逻辑在 cards.js。 */
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
+import { dupOnce, normName } from "../core/item-match.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, daysUntil, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
@@ -418,6 +419,10 @@ export async function saveCardForm(f) {
   if (roStop()) return false;
   const fe = f.elements, err = $("#cardError");
   const name = fe.name.value.trim(); if (!name) { err.textContent = t("请填名称"); fe.name.focus(); return false; }
+  { // 疑似重复：同名，或同样的末四位（手动加过、导入对账单时又加一次）——先提醒一次
+    const l4 = fe.last4?.value.trim() || "", hit = (state.cards || []).find((c) => c.id !== f.dataset.id && (normName(c.name) === normName(name) || (l4 && c.last4 === l4)));
+    if (dupOnce(f, hit?.id)) { err.textContent = t("已经有「{name}」了（同名或末四位一样）。确认是另一张，再点一次保存。", { name: acctLabel(hit) }); fe.name.focus(); return false; }
+  }
   const old = f.dataset.id ? cardById(f.dataset.id) : null, rw0 = old?.rewards || state.cardDraft?.rewards || {};
   const n = (k) => (fe[k] && fe[k].value !== "" ? num(fe[k].value) : null);
   const cats = {}; for (const [k] of D().REWARD_CATS) { const v = fe[`cat_${k}`]; if (v && v.value !== "") cats[k] = num(v.value); }

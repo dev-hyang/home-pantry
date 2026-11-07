@@ -17,7 +17,10 @@ const pool = (spaces) => (state.items || []).filter((i) => !spaces || spaces.inc
 /** 同一件：规范化后名字一样；exceptId = 正在编辑的那件自己 */
 export function findItem(name, { spaces = null, exceptId = null } = {}) {
   const k = normName(name); if (!k) return null;
-  return pool(spaces).find((i) => i.id !== exceptId && normName(i.name) === k) || null;
+  const byName = pool(spaces).find((i) => i.id !== exceptId && normName(i.name) === k);
+  if (byName) return byName;
+  const al = (state.itemAliases || []).find((a) => normName(a.alias) === k);   // 别名（迁移 066）：牛奶 / milk
+  return al ? pool(spaces).find((i) => i.id === al.item_id && i.id !== exceptId) || null : null;
 }
 
 /** 一个字的差别（替换 / 多一个 / 少一个），只对短名字有意义 */
@@ -41,5 +44,13 @@ export function similarItems(name, { spaces = null, exceptId = null, limit = 3 }
   }).slice(0, limit);
 }
 
+/** 卡 / 账单 / 设备这类「可以同名但多半是重复」的记录：第一次保存先提醒（返回 true = 先停下），同一个疑似对象再点一次就放行 */
+export function dupOnce(form, hitId) {
+  if (!hitId) { delete form.dataset.dupAck; return false; }
+  if (form.dataset.dupAck === String(hitId)) return false;
+  form.dataset.dupAck = String(hitId); return true;
+}
 /** 输入框联想：已有物品的名字（去重） */
-export const itemNameOptions = (spaces = null) => [...new Set(pool(spaces).map((i) => i.name))].sort((a, b) => a.localeCompare(b));
+export const itemNameOptions = (spaces = null) => { const ids = new Set(pool(spaces).map((i) => i.id)); return [...new Set([...pool(spaces).map((i) => i.name), ...(state.itemAliases || []).filter((a) => ids.has(a.item_id)).map((a) => a.alias)])].sort((a, b) => a.localeCompare(b)); };
+/** 这件物品的别名 */
+export const aliasesOf = (itemId) => (state.itemAliases || []).filter((a) => a.item_id === itemId).map((a) => a.alias);

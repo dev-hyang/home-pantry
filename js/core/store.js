@@ -1,4 +1,5 @@
 import { state } from "./state.js";
+import { normName } from "./item-match.js";
 import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
 import { t } from "./i18n.js";
 import { financeAllowed } from "./finance-rules.js";
@@ -73,6 +74,14 @@ export const DemoStore = {
   async deleteCategory(id) { this.db.categories = (this.db.categories || []).filter((x) => x.id !== id); this.persist(); },
   // 自定义存放位置（重命名时把用到旧名字的物品、设备一起改）
   async listLocations() { return (this.db.locations || []).map((x) => ({ ...x })); },
+  /* 物品别名（迁移 066）：同一样东西的其他叫法 */
+  async listItemAliases() { return (this.db.item_aliases || []).map((x) => ({ ...x })); },
+  async setItemAliases(itemId, list) {   // 这件物品的别名整组替换；别的物品已经用了的叫法跳过（一个叫法只对应一件）
+    this.db.item_aliases = (this.db.item_aliases || []).filter((x) => x.item_id !== itemId);
+    for (const alias of list) if (!this.db.item_aliases.some((x) => normName(x.alias) === normName(alias))) this.db.item_aliases.push({ id: uid(), item_id: itemId, alias, created_at: new Date().toISOString() });
+    this.persist();
+  },
+  async addItemAlias(itemId, alias) { const l = this.db.item_aliases ||= []; if (!l.some((x) => normName(x.alias) === normName(alias))) { l.push({ id: uid(), item_id: itemId, alias, created_at: new Date().toISOString() }); this.persist(); } },
   async saveLocation(c) {
     const now = new Date().toISOString(); this.db.locations ||= [];
     if (c.id) { const i = this.db.locations.findIndex((x) => x.id === c.id); if (i >= 0) this.db.locations[i] = { ...this.db.locations[i], ...c, updated_at: now }; }
@@ -466,6 +475,7 @@ export const DemoStore = {
       this.db.items[i] = { ...this.db.items[i], ...it, updated_at: now };
       this.persist(); return it.id;
     }
+    if (this.db.items.some((x) => normName(x.name) === normName(it.name))) throw new Error("duplicate key value violates unique constraint \"items_household_name_key_uniq\"");   // 和云端迁移 066 一样
     const id = uid(); this.db.items.push({ ...it, id, created_at: now, updated_at: now });
     this.persist(); return id;
   },
@@ -749,6 +759,12 @@ export const CloudStore = {
     else this.must(await this.sb.from("custom_categories").insert(row));
   },
   async deleteCategory(id) { this.must(await this.sb.from("custom_categories").delete().eq("id", id)); },
+  async listItemAliases() { return this.must(await this.sb.from("item_aliases").select("id,item_id,alias").eq("household_id", this.hid)); },
+  async setItemAliases(itemId, list) {
+    this.must(await this.sb.from("item_aliases").delete().eq("household_id", this.hid).eq("item_id", itemId));
+    if (list.length) this.must(await this.sb.from("item_aliases").upsert(list.map((alias) => ({ household_id: this.hid, item_id: itemId, alias })), { onConflict: "household_id,alias_key", ignoreDuplicates: true }));
+  },
+  async addItemAlias(itemId, alias) { this.must(await this.sb.from("item_aliases").upsert({ household_id: this.hid, item_id: itemId, alias }, { onConflict: "household_id,alias_key", ignoreDuplicates: true })); },
   async listLocations() { return this.must(await this.sb.from("custom_locations").select("*").eq("household_id", this.hid).order("sort").order("created_at")); },
   async saveLocation(c) {
     const row = pick(c, LOCATION_FIELDS, { household_id: this.hid, updated_by: state.user.id });

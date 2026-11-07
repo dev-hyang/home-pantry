@@ -19,7 +19,7 @@ export const PROVIDERS = [
 ];
 /** 恢复时的写入顺序：被引用的表在前（assets → items/property_deals，cards → purchases/bills，purchases → maintenance_logs/bill_payments，household_people → medical_bills）。
  *  cards.bill_id 和 bills.pay_card_id 互相引用：cards 先不带 bill_id 写入，bills 写完再补。 */
-export const TABLES = ["properties", "house_profiles", "custom_categories", "custom_locations", "custom_terms", "custom_seasonal_tasks", "seasonal_tasks", "assets", "items", "stock_logs", "shopping_list",
+export const TABLES = ["properties", "house_profiles", "custom_categories", "custom_locations", "custom_terms", "custom_seasonal_tasks", "seasonal_tasks", "assets", "items", "item_aliases", "stock_logs", "shopping_list",
   "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "household_people", "cards", "purchases", "maintenance_logs", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments",
   "member_incomes", "household_budgets",
   // 迁移 058：价格旁表（只有财务权限能读；备份本来就只给有财务权限的人）、借贷。bills.debt_id 引用 debt_accounts：bills 先不带 debt_id 写，借贷写完再补
@@ -224,6 +224,8 @@ export async function restore(data, onProgress = () => {}) {
     if (tb === "member_incomes") { const keep = rows.filter((r) => members.has(uid(r.user_id))); skipped[tb] = rows.length - keep.length; rows = keep.map((r) => ({ ...r, user_id: uid(r.user_id) })); }   // 收入按人存，人不在这个家庭里的导不进（外键）
     if (tb === "income_records") rows = rows.map(({ source_key, ...r }) => r);   // source_key 是数据库算出来的列，不能写入
     if (tb === "household_people") rows = rows.map(({ name_key, ...r }) => r);   // name_key 同理
+    if (tb === "items") rows = rows.map(({ name_key, ...r }) => r);   // items.name_key 也是算出来的（迁移 066）
+    if (tb === "item_aliases") rows = rows.map(({ alias_key, ...r }) => r);
     if (tb === "cards") rows = rows.map((r) => { if (r.bill_id) cardBills.push([r.id, r.bill_id]); return { ...r, bill_id: null }; });
     if (tb === "bills") rows = rows.map(({ debt_id, ...r }) => { if (debt_id) billDebts.push([r.id, debt_id]); return r; });   // 借贷表在后面才写   // 和 bills 互相引用：先不带 bill_id
     if (tb === "stock_logs") {   // id 是自增、不能指定：去掉 id，按 (item_id, created_at) 跳过已有的

@@ -80,6 +80,7 @@ import { customChanged, normRange, setFinRange, setFinUnit } from "./core/time-r
 import { payeeAction, payeeChange, payeeInput } from "./stats/payees.js";
 import { matchOpenShopping, showPurchaseDup } from "./stats/dup-check.js";
 import { initHomeStats } from "./stats/home-stats.js";
+import { isRetired } from "./house/recall.js";
 
 const APP_NAME = "爱家小助手";
 
@@ -104,6 +105,7 @@ export async function refresh() {
     try {
       // 所有表一次并行读完（云端一轮往返），再在内存里定当前房产；采购花费只有统计和导出用，不挡首屏，渲染后后台再读
       const members = state.membersReady; state.membersReady = null;   // 登录后与这一轮并行去读家庭成员
+      Store.listItemAliases().then((r) => { state.itemAliases = r || []; }).catch(() => { state.itemAliases = state.itemAliases || []; });   // 物品别名（迁移 066）：不挡首屏
       const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes, people, medBills, medPays, , cards] = await Promise.all([
         Store.listProperties(), Store.listItems(),
         soft("logs", Store.listLogs(), state.logs || [], (r) => { state.logs = r; state.enriched = enrich(state.items, r); }),
@@ -178,6 +180,7 @@ const reloadDealExtras = () => Store.listDealExtras().then((x) => { state.dealOv
 const TABLE_RELOAD = {
   items: () => Promise.all([Store.listItems(), Store.listLogs()]).then(([items, logs]) => { state.items = items; state.logs = logs; state.enriched = enrich(items, logs); }),   // 加减库存同时写 stock_logs（没订阅），一起重读
   shopping_list: () => Store.listShopping().then((r) => { state.shopping = r; }),
+  item_aliases: () => Store.listItemAliases().then((r) => { state.itemAliases = r || []; }),
   purchases: () => { spendChanged(); },   // 只把花费相关的缓存标过期（统计聚合、明细、联想、卡的用量…），重画时按需重读，不再整表重读
   assets: () => Store.listAssets().then((r) => { state.assets = r; state.assetsEnriched = enrichAssets(r, state.maintLogs); }),
   maintenance_logs: () => Store.listMaintLogs().then((r) => { state.maintLogs = r; state.assetsEnriched = enrichAssets(state.assets, r); }),
@@ -842,9 +845,10 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "assetTemplateForm") {
       const ids = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
       if (!ids.length) return toast(t("还没有勾选设备"));
-      const list = assetTemplateItems(ids);
-      await Store.addAssets(list, state.propertyId);
-      toast(t("已生成 {n} 台设备档案", { n: list.length }));
+      const have = new Set((state.assets || []).filter((a) => a.property_id === state.propertyId && !isRetired(a)).map((a) => normName(a.name)));
+      const all = assetTemplateItems(ids), list = all.filter((x) => !have.has(normName(x.name)));   // 这套房产已有同名的跳过
+      if (list.length) await Store.addAssets(list, state.propertyId);
+      toast(t("已生成 {n} 台设备档案", { n: list.length }) + (all.length > list.length ? t("；{m} 台已经有了，跳过", { m: all.length - list.length }) : ""));
       go(href("house", "assets"));
       return refresh();
     }

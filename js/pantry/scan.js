@@ -87,7 +87,7 @@ const blankRow = () => ({ include: true, raw: "", name: "", qty: 1, unit: t("个
 function startManual() {
   buildPool();
   sc.kind = "manual"; sc.error = ""; sc.dupAck = false;
-  sc.result = { manual: true, dropped: 0, receipts: [{ include: true, store: "", date: sc.date || todayISO(), dateSrc: "user", total: null, rows: [blankRow(), blankRow()] }] };
+  sc.result = { manual: true, dropped: 0, receipts: [{ include: true, store: "", date: sc.date || todayISO(), dateSrc: "user", total: null, rows: [blankRow()] }] };
   sc.step = "review";
 }
 const kindChips = () => {
@@ -161,7 +161,7 @@ function receiptHtml(r, ri, many, cur) {
       </div>
       <p class="muted scan-past" ${r.date < todayISO() ? "" : "hidden"} style="margin:8px 0 0;font-size:13px">📌 ${t("补记以前的购物：默认只记花费，不入库（东西多半已经用掉）。要加库存的行，把“放进库存”改成对应物品。")}</p>
       <ul class="scan-rows">${r.rows.map((x, i) => rowHtml(x, ri, i, cur)).join("")}</ul>
-      ${sc.result?.manual ? `<button type="button" class="btn btn-ghost btn-sm" data-action="scan-add-row" data-r="${ri}">＋ ${t("加一行")}</button>` : ""}
+      ${sc.result?.manual ? `<div class="scan-addrow"><button type="button" class="btn btn-ghost btn-sm" data-action="scan-add-row" data-r="${ri}">＋ ${t("加一条")}</button><small class="muted">${t("要手动录入多样东西，就再加一条")}</small></div>` : ""}
       <p class="muted scan-rsum" style="margin:8px 0 0;font-size:13px"></p></fieldset>`;
 }
 function reviewHtml() {
@@ -314,6 +314,7 @@ async function confirm(ctx) {
       const cart = matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 采购清单里对应的那一项：不管入不入库，买到了就标成已买到
       if (cart) { doneShop.add(cart.id); cartDone++; await Store.saveShopping({ id: cart.id, status: "bought", bought_at: x.now, amount: x.amount, claimed_by_name: cart.claimed_by_name || state.displayName }); }
       if (x.target === "__skip") { spendOnly++; continue; }
+      if (item && normName(x.name) !== normName(item.name) && !findItem(x.name)) Store.addItemAlias(item.id, x.name.slice(0, 60)).catch(() => {});   // 学会这个叫法
       if (item) {
         const add = !x.unit || x.unit === item.unit ? x.qty : Units.convert(x.qty, x.unit, item.unit);
         if (add == null) { warns.push(x.name); await Store.adjust(item.id, Math.round(x.qty * 100) / 100, "restock"); } else await Store.adjust(item.id, Math.round(add * 100) / 100, "restock");
