@@ -93,7 +93,7 @@ function inputHtml() {
   const canImg = visionCapable(p);
   const kindChip = (k, label) => `<button type="button" class="chip" data-action="scan-kind" data-kind="${k}" aria-pressed="${sc.kind === k}">${label}</button>`;
   return `
-    <div class="section-head"><h2>${t("录入购物")}</h2><p>${t("拍小票或贴线上订单，AI 读成清单，确认后自动入库、记花费")}</p></div>
+    <div class="section-head"><h2>${t("录入购物")}</h2><div class="head-acts"><p>${t("拍小票或贴线上订单，AI 读成清单，确认后自动入库、记花费")}</p><a class="btn btn-ghost btn-sm" href="${href("item", "new")}?space=pantry">✍️ ${t("手动添加一件")}</a></div></div>
     ${ready ? "" : `<div class="panel cta-panel"><div><b>${t("先填一个 AI key")}</b><p class="muted">${t("推荐 Gemini（有免费额度）。key 只存在这台设备的浏览器里。")}</p></div>
       <a class="btn btn-primary" href="${href("me", "settings")}?sec=ai">${t("去设置")}</a></div>`}
     <div class="chips" role="group" aria-label="${t("来源")}">${kindChip("receipt", `🧾 ${t("实体店小票")}`)}${kindChip("order", `📦 ${t("线上订单")}`)}</div>

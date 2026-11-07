@@ -7,6 +7,10 @@
   <title>爱家小助手</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40'%3E%3Crect x='4' y='1' width='24' height='7' rx='2' fill='%231e3a32'/%3E%3Crect x='3' y='8' width='26' height='30' rx='6' fill='white' stroke='%231e3a32' stroke-width='3'/%3E%3Crect x='6' y='22' width='20' height='13' rx='3' fill='%23e9b949'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <!-- Noto Sans SC 400/500/600：各平台同一套字重，标题用 600 不至于发黑（2026-11 轻量化）；加载不到时退回系统字体 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="styles.css">
   <!-- 模块依赖是一层套一层的，浏览器逐层发现会串行等待；这里一次性预取，首屏少好几轮往返 -->
   <link rel="modulepreload" href="js/ai-page.js">
@@ -76,7 +80,7 @@
     </div>
     <nav class="tabs" id="tabs" aria-label="主导航">
       <a href="#/today" data-section="today"><span aria-hidden="true">🗓️</span>今日</a>
-      <a href="#/pantry" data-section="pantry"><span aria-hidden="true">🥫</span>储藏</a>
+      <a href="#/pantry" data-section="pantry"><span aria-hidden="true">🗄️</span>储藏</a>
       <a href="#/house" data-section="house"><span aria-hidden="true">🏠</span>房屋</a>
       <a href="#/bills" data-section="bills"><span aria-hidden="true">💰</span>财务</a>
       <a href="#/shopping" data-section="shopping"><span aria-hidden="true">🛒</span>采购<b id="shopCount" class="tab-count" hidden></b></a>

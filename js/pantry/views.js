@@ -77,6 +77,21 @@ function catCheckSection() {
     </section>`;
 }
 
+/** 储藏概览顶上一排入口：采购清单（带数）、库存、装备、房屋耗材、今天吃什么（原来储藏目录页的几项） */
+function pantryEntries() {
+  const shop = state.shopping.filter((s) => s.status !== "bought").length;
+  const e = (h, icon, label, n = 0) => `<a class="pentry" href="${esc(h)}"><span class="pentry-ico" aria-hidden="true">${icon}</span><span>${label}</span>${n ? `<b class="badge">${n}</b>` : ""}</a>`;
+  return `<nav class="pentries" aria-label="${esc(t("储藏的页面"))}">${[
+    e(href("shopping"), "🛒", t("采购清单"), shop), e(href("pantry", "inventory"), "📦", t("库存")),
+    state.gearEnabled ? e(href("pantry", "gear"), "🧳", t("装备")) : "",
+    state.houseEnabled ? e(`${href("pantry", "inventory")}?space=house`, "🧰", t("房屋耗材")) : "",
+    e(href("pantry", "meals"), "🍳", t("今天吃什么"))].join("")}</nav>`;
+}
+/** 购物篮：去采购清单，带待买 + 家人正在买的数 */
+function cartBtn() {
+  const n = state.shopping.filter((s) => s.status !== "bought").length;
+  return `<a class="btn btn-ghost btn-sm" href="${href("shopping")}" aria-label="${esc(t("采购清单，{n} 项", { n }))}">🛒${n ? ` <b class="num">${n}</b>` : ""}</a>`;
+}
 export function viewDashboard() {
   const withHouse = state.houseEnabled;   // 房屋耗材也算储藏：缺货、少货、补货提醒一起看
   const pantry = state.enriched.filter(inSpace("pantry")), house = withHouse ? state.enriched.filter(inSpace("house")) : [];
@@ -94,7 +109,8 @@ export function viewDashboard() {
 
   return `${catCheckSection()}
     <section class="section" aria-labelledby="h-alert">
-      <div class="section-head"><h2 id="h-alert">${t("储藏概况")}</h2><div class="head-acts"><p>${t("按家人的使用记录估算")}</p><a class="btn btn-ghost btn-sm" href="${href("scan")}" title="${esc(t("拍小票或贴线上订单，确认后自动入库、记花费"))}">🧾 ${t("录入购物")}</a><a class="btn btn-primary btn-sm" href="${href("item", "new")}?space=pantry">${t("添加物品")}</a></div></div>
+      <div class="section-head"><h2 id="h-alert">${t("储藏概览")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${href("scan")}" title="${esc(t("拍小票、贴线上订单，或手动添加一件"))}">🧾 ${t("录入购物")}</a></div></div>
+      ${pantryEntries()}
       ${withHouse ? `<h3 class="strip-label">🥫 ${t("日常储备")}</h3>` : ""}
       <div class="alert-strip">
         ${tile("pantry", "t-out", n(pantry, "out"), t("缺货"), "out")}
@@ -112,7 +128,7 @@ export function viewDashboard() {
 
     <section class="section" aria-labelledby="h-restock">
       <div class="section-head"><h2 id="h-restock">${t("该补货了")}</h2>
-        ${alerts.length ? `<button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">${t("全部加入采购清单")}</button>` : ""}</div>
+        <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">${t("全部加入采购清单")}</button>` : ""}${cartBtn()}</div></div>
       <div class="panel">${alerts.length ? restockPanel(alerts) : `<div class="empty"><strong>${t("库存都很充足")}</strong>${t("用掉东西时在“库存”里点一下 −，提醒会更准。")}</div>`}</div>
       ${alerts.length ? askInline({ id: "restock", title: t("该补货了"), question: t("这些要补的东西怎么安排采购最省钱省时间？哪些可以等？"), context: () => [t("要补：{s}", { s: alerts.slice(0, 15).map((a) => a.name || a.item?.name).filter(Boolean).join("、") }), t("家庭人数 {n}", { n: state.members?.length || 1 })] }) : ""}
     </section>
@@ -125,12 +141,12 @@ export function viewDashboard() {
     </section>` : ""}
 
     <section class="section" aria-labelledby="h-shelf">
-      <div class="section-head"><h2 id="h-shelf">${t("家里的货架")}</h2><p>${t("点分类查看明细")}</p></div>
+      <div class="section-head"><h2 id="h-shelf">${t("家里的货架")}</h2><div class="head-acts"><p>${t("点分类查看明细")}</p><a class="hlink" href="${href("pantry", "inventory")}?space=pantry">${t("全部")} ›</a></div></div>
       ${shelf ? `<div class="shelf">${shelf}</div>` : `<div class="panel empty"><strong>${t("还没有物品")}</strong><a class="btn btn-primary" href="${href("item", "new")}?space=pantry">${t("添加第一件物品")}</a></div>`}
     </section>
 
     ${withHouse ? `<section class="section" aria-labelledby="h-house">
-      <div class="section-head"><h2 id="h-house">${t("房屋耗材")}</h2><p>${t("滤网、电池、融雪盐等，可关联到设备")}</p></div>
+      <div class="section-head"><h2 id="h-house">${t("房屋耗材")}</h2><div class="head-acts"><p>${t("滤网、电池、融雪盐等，可关联到设备")}</p><a class="hlink" href="${href("pantry", "inventory")}?space=house">${t("全部")} ›</a></div></div>
       ${houseShelf ? `<div class="shelf">${houseShelf}</div>` : `<div class="panel empty"><strong>${t("还没有房屋耗材")}</strong><a class="btn btn-primary" href="${href("house", "template")}">${t("按房屋资料推荐")}</a></div>`}
     </section>` : ""}`;
 }

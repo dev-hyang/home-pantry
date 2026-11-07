@@ -2,7 +2,8 @@
  * 好处：手机返回手势、浏览器后退天然可用；页面可以直接分享给家人。 */
 export const SECTIONS = {
   today:    { name: "今日",   subs: null },
-  alerts:   { name: "注意事项", subs: null },   // #/alerts：今日格子里“注意事项”点开的清单（带排序）
+  alerts:   { name: "待办 | 注意事项", subs: null },
+  quick:    { name: "快捷操作", subs: null },   // #/quick：编辑今日页的快捷操作（2026-11-06，今日改回卡片）   // #/alerts：今日格子里“注意事项”点开的清单（带排序）
   ai:       { name: "咩咩咩",  subs: null },   // #/ai：AI 助手整页（菜单在储藏 → 菜单，这里问家里任何事）
   pantry:   { name: "储藏",   subs: [["overview", "概览"], ["shopping", "采购"], ["inventory", "库存"], ["gear", "装备"], ["meals", "菜单"]] },   // 装备：耐用品和工具，只记数量和位置
   // 房屋：#/house 是房产列表；#/house/pages 是某套房产的页面目录；车辆挂家庭，从房产列表进
@@ -41,7 +42,8 @@ export function parseRoute(hash = location.hash) {
   const def = SECTIONS[section].subs;
   let sub = parts[1] || null, id = null;
   if (FORM_SECTIONS.has(section)) { id = parts[1] || "new"; sub = null; }
-  else if (def) { if (!sub) sub = "menu"; else if (!def.some(([k]) => k === sub)) sub = def[0][0]; id = parts[2] || null; }   // #/house 不带二级 → 目录页
+  else if (def) { if (!sub) sub = section === "pantry" ? "overview" : "menu";   // 储藏首页 = 储藏概览（2026-11-06，概览顶上一排入口）
+     else if (!def.some(([k]) => k === sub)) sub = def[0][0]; id = parts[2] || null; }   // #/house 不带二级 → 目录页
   else sub = null;
   return { section, sub, id, q: query };
 }

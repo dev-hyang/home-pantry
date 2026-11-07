@@ -28,7 +28,7 @@ import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml
 import "./bills/cards.js";   // 注册信用卡提醒
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
-import { DEFAULT_QUICK, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewToday } from "./today.js";
+import { DEFAULT_QUICK, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewQuick, viewToday } from "./today.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
@@ -219,6 +219,7 @@ const invSpace = () => (state.houseEnabled && state.route.q.get("space") === "ho
 const VIEWS = {
   today:    () => viewToday(),
   alerts:   () => viewAlerts(),
+  quick:    () => viewQuick(),   // #/quick：编辑今日页的快捷操作
   ai:       () => viewAi(),
   pantry:   { overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
@@ -272,7 +273,7 @@ export function render(force = true) {
   const r = state.route;
   const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0])
     : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section === "bill" ? (state.prevRoute?.section || "bills")
-    : r.section === "scan" ? "shopping" : r.section === "alerts" || r.section === "ai" ? "today" : r.section;   // 注意事项、咩咩咩都是首页的子页，底栏高亮「今日」
+    : r.section === "scan" ? "shopping" : r.section === "alerts" || r.section === "ai" || r.section === "quick" ? "today" : r.section;   // 注意事项、咩咩咩都是首页的子页，底栏高亮「今日」
   document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
     a.hidden = (a.dataset.section === "house" && !state.houseEnabled) || (a.dataset.section === "bills" && !state.billsEnabled);
     if (a.dataset.section === navSection) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
@@ -947,6 +948,7 @@ main.addEventListener("click", async (e) => {
       case "season-delete":
         if (!confirmDelete(t("删除这条任务？"))) return;
         await deleteSeasonTask(el.dataset.id); state.seasonForm = null; toast(t("已删除这条任务")); return refresh();
+      case "today-view": setTodayPref({ view: el.dataset.v }); return render();   // 待办 | 注意事项：按模块 / 按优先级
       case "today-pref": {
         const k = el.dataset.key;
         if (k === "mode") setTodayPref({ mode: "severity" }); else if (k === "mode-property") setTodayPref({ mode: "property" });

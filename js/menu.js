@@ -26,7 +26,7 @@ import { houseBar } from "./house/property-form.js";
 import { PROFILE_SECTIONS } from "./house/views.js";
 import { FINANCE_HIDDEN_SUBS, financeOk } from "./core/finance-access.js";
 
-const SECTION_ICON = { pantry: "🥫", house: "🏠", bills: "💰", me: "👤" };
+const SECTION_ICON = { pantry: "🗄️", house: "🏠", bills: "💰", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”
 const META = {
   pantry: {

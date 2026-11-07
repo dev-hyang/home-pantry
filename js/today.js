@@ -39,36 +39,30 @@ function myAlerts() {
   return all;
 }
 
-/* ── 折叠：每块一个 <details>，状态记在本机（state.today.fold = { 块: true 表示收起 }）；只记不重画 ── */
-const folded = (k) => !!state.today.fold?.[k];
-if (typeof document !== "undefined") document.addEventListener("toggle", (e) => {   // toggle 不冒泡，用捕获
-  const d = e.target; if (!d?.matches?.("details[data-fold]")) return;
-  const k = d.dataset.fold, shut = !d.open;
-  if (folded(k) !== shut) setTodayPref({ fold: { ...(state.today.fold || {}), [k]: shut } });
-}, true);
-/** 一块：标题在 summary 里（h3，问候是 h2，读屏能按标题跳），右边一个小计数；body 是内容 */
-const block = (k, { icon = "", title, count = "", cls = "", body }) => `<section class="section tsec-wrap ${cls}" aria-labelledby="th-${k}">
-  <details class="tsec" data-fold="${k}" ${folded(k) ? "" : "open"}>
-    <summary><h3 id="th-${k}"><span aria-hidden="true">${icon}</span> ${title}</h3>${count}<span class="tchev" aria-hidden="true">›</span></summary>
-    <div class="tsec-body">${body}</div>
-  </details></section>`;
-const countPill = (n, cls = "") => (n ? `<span class="badge mcount ${cls}">${n}</span>` : "");
+/* ── 卡片（2026-11-06 改回卡片：轻便、一眼看完；点卡片进对应页面）── */
+/** 一张卡：链接卡（整张可点）或容器卡（里面各行自己可点）。head 是标题行，body 是内容 */
+const card = ({ k, icon, title, count = "", href: h = "", cls = "", body = "" }) => {
+  const head = `<div class="tcard-head"><span class="tcard-ico" aria-hidden="true">${icon}</span><h3 id="tc-${k}">${title}</h3>${count}${h ? `<span class="tcard-ch" aria-hidden="true">›</span>` : ""}</div>`;
+  return h ? `<a class="tcard ${cls}" href="${esc(h)}" aria-labelledby="tc-${k}">${head}${body}</a>`
+    : `<section class="tcard ${cls}" aria-labelledby="tc-${k}">${head}${body}</section>`;
+};
 
 /* ───────────── 今日 ───────────── */
 export function viewToday() {
+  state.quickEdit = false; state.quickAdd = false; state.quickSwap = null;   // 编辑快捷操作在自己的页面（#/quick）
   const all = myAlerts(), counts = alertCounts(all), fin = financeOk();
   const noProfile = state.houseEnabled && state.propertyId && !state.houseProfiles[state.propertyId];
-  const left = [aiBlock(), todoBlock(all, counts)].join("");
-  const right = [homeBlock(fin), fin && state.billsEnabled ? moneyBlock() : "", quickBlock()].join("");
+  const cards = [todoCard(all, counts), homeCard(fin), fin && state.billsEnabled ? moneyCard() : "", quickCard()].filter(Boolean);
   return `
     ${headHtml(all, counts)}
+    ${aiBlock()}
     ${noProfile ? `<section class="section"><div class="panel cta-panel">
       <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的房屋耗材。")}</p></div>
       <a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></div></section>` : ""}
-    <div class="today-layout"><div class="today-col">${left}</div><div class="today-col">${right}</div></div>`;
+    <section class="section"><div class="tcards n${cards.length}">${cards.join("")}</div></section>`;
 }
 
-/** 问候 + 日期 + 一句话状态 */
+/** 问候 + 日期一行，状态一行 */
 function headHtml(all, counts) {
   const h = new Date().getHours(), hi = h < 5 ? t("夜深了") : h < 11 ? t("早上好") : h < 13 ? t("中午好") : h < 18 ? t("下午好") : t("晚上好");
   const dateText = new Date().toLocaleDateString(locale(), { month: "long", day: "numeric", weekday: "long" });
@@ -76,8 +70,7 @@ function headHtml(all, counts) {
   const status = counts.important ? t("今天有 {n} 件事要处理", { n: counts.important })
     : all.length ? t("没有急事，{n} 件可以留意", { n: all.length }) : t("没有要处理的事 ✓");
   return `<section class="section today-head">
-    <p class="today-date">${esc(dateText)}</p>
-    <h2 class="today-hi">${esc(name ? t("{hi}，{name}", { hi, name }) : hi)}</h2>
+    <h2 class="today-hi">${esc(name ? t("{hi}，{name}", { hi, name }) : hi)} <span class="today-date">${esc(dateText)}</span></h2>
     <p class="today-status ${counts.important ? "is-hot" : "is-calm"}" role="status">${esc(status)}</p></section>`;
 }
 
@@ -132,73 +125,81 @@ function multiBucket(items) {
   const name = (k) => (k === "veh" ? t("车辆") : k === "none" ? t("其他") : propertyName(k) || t("其他"));
   return [...m].map(([k, set]) => `${name(k)} ${isAsset ? t("{n} 台", { n: set.size }) : t("{n} 件", { n: set.size })}`).join(" · ");
 }
-function todoBlock(all, counts) {
-  const rows = todoRows(all);
+/** 待办 | 注意事项：一个数（要紧的，没有就全部）+ 轻重计数 + 最急的三个模块；点进 #/alerts（按模块 / 按优先级两种视图） */
+function todoCard(all, counts) {
+  const rows = todoRows(all), n = counts.important || all.length;
   const pills = [0, 1, 2, 3].filter((s) => counts.bySeverity[s]).map((s) => `<span class="pill sev-${s}"><i>${counts.bySeverity[s]}</i>${t(SEVERITY_LABEL[s])}</span>`).join("");
-  const top = all.length ? `<div class="ttodo-top">${pills ? `<div class="pills tatt-pills" aria-label="${esc(t("按轻重"))}">${pills}</div>` : ""}<a class="tmore" href="${href("alerts")}">${t("全部 {n} 件，按轻重 / 到期排", { n: all.length })} ›</a></div>` : "";
-  const row = (r) => `<a class="mrow" href="${esc(r.href)}"><span class="mi" aria-hidden="true">${r.icon}</span>
-      <span class="mt"><b>${esc(r.name)}</b><small>${esc(r.first)}</small></span>
-      <span class="badge mcount ${r.worst <= 2 ? SEVERITY_CLS[r.worst] : "attn-count"}">${r.n}</span><span class="mch" aria-hidden="true">›</span></a>`;
-  const body = rows.length ? `${top}<div class="panel mlist">${rows.map(row).join("")}</div>`
-    : `<div class="panel empty tempty"><strong>${t("各处都没有待办 ✓")}</strong>${t("采购清单是空的，账单、保养和季节任务都不急。")}</div>`;
-  return block("todo", { icon: counts.important ? "🔔" : "🗂️", title: t("待办 · 按模块"), count: countPill(counts.important || rows.length, counts.important ? "b-out" : ""), cls: counts.important ? "is-hot" : "", body });
+  const sub = counts.important ? t("{n} 件要紧", { n: counts.important }) : all.length ? t("没有急事，{n} 件可以留意", { n: all.length }) : t("各处都没有待办 ✓");
+  const top = rows.slice(0, 3).map((r) => `<li><span aria-hidden="true">${r.icon}</span><span class="grow">${esc(r.name)}</span><b class="num">${r.n}</b></li>`).join("");
+  return card({ k: "todo", icon: counts.important ? "🔔" : "🗂️", title: t("待办 | 注意事项"), href: href("alerts"), cls: counts.important ? "is-hot" : "",
+    body: `<div class="tcard-big"><b class="num">${n || "✓"}</b><span>${esc(sub)}</span></div>${pills ? `<div class="pills tcard-pills">${pills}</div>` : ""}${top ? `<ul class="tcard-list">${top}</ul>` : ""}` });
 }
 
 /* ── 钱 · 本月（只给家主和有财务权限的人；调用前已判断）：数字来自 spend_rollup / inc_rollup 的缓存和内存里的账单、净资产 ── */
-const kpiLink = (h, label, value, small = "", cls = "") => `<a class="kpi tkpi" href="${esc(h)}"><span>${label}</span><b class="${cls}">${value}</b>${small ? `<small>${small}</small>` : ""}</a>`;
 const LOADING = () => `<span class="muted" aria-label="${esc(t("加载中…"))}">…</span>`;
-function moneyBlock() {
+function moneyCard() {
   const ms = lastMonths(6), A = spendAgg(ms, 6), cm = ms.at(-1), pm = ms.at(-2), cur = Units.region.currency;   // 和 财务 → 概览 的「花费速览」同一份缓存（6 个月 → 读近 12 个月的聚合）
   const L = A ? livingSeries(A) : null, H = A ? withHousingSeries(A) : null, O = A ? outflowSeries(A) : null;
   const incRows = incRollupFor([pm, cm]), I = incRows ? incAggregate(incRows, [pm, cm], { cur }) : null;   // 两个月的收入聚合，读一次缓存
   const bills = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable");
   const next30 = upcoming(bills, 30), due30 = next30.filter((x) => (x.bill.currency || cur) === cur).reduce((s, x) => s + num(x.bill.est), 0);
-  const cards = [
-    kpiLink(href("bills", "spend"), t("本月日常"), A ? `${money(L.at(-1))} <span class="kpi-sub">/ ${t("含住房")} ${money(H.at(-1))}</span>` : LOADING(),
-      A ? t("{m}：{a} / {b}", { m: monthLabel(pm), a: money(L.at(-2)), b: money(H.at(-2)) }) : ""),
-    kpiLink(href("bills", "spend"), t("本月现金流出"), A ? money(O.at(-1)) : LOADING(), A ? t("{m}：{a}", { m: monthLabel(pm), a: money(O.at(-2)) }) : ""),
-    kpiLink(href("bills", "recurring"), t("未来 30 天账单"), money(due30), t("{n} 笔账单", { n: next30.length })),
-    kpiLink(href("bills", "income"), t("本月收入"), I ? money(I.income[cm]) : LOADING(), I ? t("{m}：{a}", { m: monthLabel(pm), a: money(I.income[pm]) }) : ""),
-  ];
+  const rowsKv = [[t("本月现金流出"), A ? money(O.at(-1)) : LOADING()], [t("未来 30 天账单"), `${money(due30)} <small>${t("{n} 笔", { n: next30.length })}</small>`], [t("本月收入"), I ? money(I.income[cm]) : LOADING()]];
   if (state.nwOk) {
     const r = liveNetWorth(), m = thisMonth(), mom = monthChange(trendPoints(state.nwSnapshots, cur, { live: r, month: m }), m);
-    cards.push(kpiLink(href("bills", "networth"), t("净资产"), money(r.netWorth), mom == null ? t("上个月没有快照") : t("比上月 {d}", { d: `${mom > 0 ? "+" : mom < 0 ? "−" : ""}${money(Math.abs(mom))}` }), r.netWorth < 0 ? "down" : ""));
+    rowsKv.push([t("净资产"), `${money(r.netWorth)}${mom == null ? "" : ` <small>${mom > 0 ? "+" : mom < 0 ? "−" : ""}${money(Math.abs(mom))}</small>`}`]);
   }
-  return block("money", { icon: "💰", title: t("钱 · 本月"), body: `<div class="kpis tkpis">${cards.join("")}</div><a class="tmore" href="${href("bills")}">${t("去财务")} ›</a>` });
+  // 卡片：本月日常大字（上个月小字），其余几行；整张点进财务
+  return card({ k: "money", icon: "💰", title: t("钱 · 本月"), href: href("bills"), body: `<div class="tcard-big"><b class="num">${A ? money(L.at(-1)) : LOADING()}</b><span>${t("本月日常")}${A ? ` · ${t("{m}：{a}", { m: monthLabel(pm), a: money(L.at(-2)) })}` : ""}</span></div>
+    <ul class="tcard-kv">${rowsKv.map(([k, v]) => `<li><span>${k}</span><b class="num">${v}</b></li>`).join("")}</ul>` });
 }
 
 /* ── 家里 · 一览：库存、采购、设备；没有财务权限的家人还看到本月账单的笔数（不显示金额） ── */
-function homeBlock(fin) {
+function homeCard(fin) {
   const items = state.enriched || [], inSpace = (sp) => items.filter((x) => spaceOf(x.category) === sp);
   const pantry = inSpace("pantry"), short = pantry.filter((x) => x.status === "out" || x.status === "low").length;
   const shop = state.shopping.filter((s) => s.status === "todo" || s.status === "claimed").length;
-  const cards = [kpiLink(href("pantry", "overview"), t("储藏"), short ? t("{n} 件要补货", { n: short }) : t("都够用"), t("共 {n} 件", { n: pantry.length }), short ? "down" : ""),
-    kpiLink(href("shopping"), t("采购清单"), shop ? t("{n} 项", { n: shop }) : t("空的"), shop ? t("去看看谁在买") : t("想到要买的随手加"))];
+  const row = (h, icon, label, value, hot) => `<li><a href="${esc(h)}"><span aria-hidden="true">${icon}</span><span class="grow">${label}</span><b class="${hot ? "down" : ""}">${value}</b><span class="tcard-ch" aria-hidden="true">›</span></a></li>`;
+  const rows = [row(href("pantry", "overview"), "🗄️", t("储藏"), short ? t("{n} 件要补货", { n: short }) : t("都够用"), short),
+    row(href("shopping"), "🛒", t("采购清单"), shop ? t("{n} 项", { n: shop }) : t("空的"), false)];
   if (state.houseEnabled) {
     const live = new Set(liveProperties().filter(propertyActive).map((p) => p.id));
-    const eq = (state.assetsEnriched || []).filter((a) => !a.retired && live.has(a.property_id));
-    const due = assetsDueCount();   // 和待办「设备保养」、房屋首页同一个口径
-    cards.push(kpiLink(href("house", "assets"), t("设备"), due ? t("{n} 台该保养", { n: due }) : t("都正常"), t("共 {n} 台", { n: eq.length }), due ? "down" : ""));
+    const eq = (state.assetsEnriched || []).filter((a) => !a.retired && live.has(a.property_id)), due = assetsDueCount();   // 和待办「设备保养」、房屋首页同一个口径
+    if (eq.length || due) rows.push(row(href("house", "assets"), "⚙️", t("设备"), due ? t("{n} 台该保养", { n: due }) : t("都正常"), due));
   }
   if (!fin && state.billsEnabled) {   // 账单全家可见：这里只给笔数，不给金额
     const n = upcoming(state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable"), 30).length;
-    cards.push(kpiLink(href("bills", "recurring"), t("未来 30 天账单"), t("{n} 笔账单", { n }), t("到期前会出现在需要注意里")));
+    rows.push(row(href("bills", "recurring"), "🧾", t("未来 30 天账单"), t("{n} 笔账单", { n }), false));
   }
-  return block("home", { icon: "🏡", title: t("家里 · 一览"), body: `<div class="kpis tkpis">${cards.join("")}</div>` });
+  return card({ k: "home", icon: "🏡", title: t("家里 · 一览"), body: `<ul class="tcard-rows">${rows.join("")}</ul>` });
 }
 
 /* ── 咩咩咩（AI）：和以前的格子同样的说明，外加「今天吃什么」 ── */
 function aiBlock() {
   const sub = aiReady() ? (aiQuota().ok ? t("直接问：保养、账单、买卖房、收纳、带娃") : t("免费额度用完了，先用复制提示词")) : t("问家里任何事，复制提示词到任一 AI");
-  return block("ai", { icon: "", title: `${aiIcon(20)} ${t("咩咩咩")}`, body: `<div class="panel tai">
-      <p class="muted" style="margin:0">${sub}</p>
+  return `<section class="section"><div class="panel tai"><div class="tai-head"><h3>${aiIcon(20)} ${t("咩咩咩")}</h3><p class="muted">${sub}</p></div>
       <div class="form-actions tai-acts"><a class="btn btn-primary btn-sm" href="${href("ai")}">${t("问咩咩")}</a>
         <a class="btn btn-ghost btn-sm" href="${href("pantry", "meals")}?ai=">🍳 ${t("今天吃什么")}</a>
-        <a class="btn btn-ghost btn-sm" href="${href("scan")}">🧾 ${t("录入购物")}</a></div></div>` });
+        <a class="btn btn-ghost btn-sm" href="${href("scan")}">🧾 ${t("录入购物")}</a></div></div></section>`;
 }
 
 /* ── 快捷操作：每位用户自己的一份（云端存在账号上，换设备也在；演示模式存本机）；编辑模式点格子改成别的、长按拖动排序 ── */
-function quickBlock() {
+/** 快捷操作卡：你的快捷操作一排小图标（点了直接去）；「编辑」进 #/quick 增删、换、拖动排序 */
+function quickCard() {
+  const mine = quickList().map((id) => PRESETS().find((p) => p[0] === id)).filter(Boolean);
+  const ic = ([id, icon, nm]) => id.startsWith("action:")
+    ? `<button type="button" class="tq" data-action="quick-run" data-id="${esc(id)}"><span class="tq-ico" aria-hidden="true">${icon}</span><span class="tq-nm">${esc(nm)}</span></button>`
+    : `<a class="tq" href="${esc(quickHref(id))}"><span class="tq-ico" aria-hidden="true">${icon}</span><span class="tq-nm">${esc(nm)}</span></a>`;
+  return `<section class="tcard tcard-quick" aria-labelledby="tc-quick"><div class="tcard-head"><span class="tcard-ico" aria-hidden="true">⚡</span><h3 id="tc-quick">${t("快捷操作")}</h3>
+      <a class="btn btn-sm btn-ghost tcard-edit" href="${href("quick")}">${t("编辑")}</a></div>
+    ${mine.length ? `<div class="tquick">${mine.map(ic).join("")}</div>` : `<p class="muted" style="margin:0">${t("还没有快捷操作，点“编辑”添加。")}</p>`}</section>`;
+}
+/** #/quick：编辑快捷操作（加、删、点格子换成别的、长按拖动排序；改完立刻保存） */
+export function viewQuick() {
+  state.quickEdit = true;
+  return `<nav class="crumb" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("快捷操作")}</b></nav>
+    <section class="section"><div class="section-head"><h2>${t("编辑快捷操作")}</h2><p>${t("今日页的快捷操作卡里显示这些；点格子换成别的，长按拖动排序，× 移除")}</p></div>${quickEditor()}</section>`;
+}
+function quickEditor() {
   const mine = quickList().map((id) => PRESETS().find((p) => p[0] === id)).filter(Boolean);   // 没权限的（已存的也一样）在这里就掉了：不画
   const editing = !!state.quickEdit;
   const tileBody = ([, ic, nm]) => `<span class="qtile-ico" aria-hidden="true">${ic}</span><span>${nm}</span>`;
@@ -217,10 +218,10 @@ function quickBlock() {
   const quick = mine.map(tileHtml).join("")
     + (editing && choices.length ? `<div class="qwrap"><button type="button" class="qtile qtile-add" data-action="quick-open" aria-expanded="${state.quickAdd ? "true" : "false"}"><span class="qtile-ico" aria-hidden="true">＋</span><span>${t("添加")}</span></button></div>` : "");
   // 编辑按钮放在内容里（summary 里不能放按钮）
-  const bar = `<div class="tquick-bar"><span class="muted">${editing ? t("点格子换成别的，长按拖动排序") : ""}</span><div class="head-acts">
-      ${editing ? `<button type="button" class="btn btn-sm btn-ghost" data-action="quick-reset">${t("恢复默认")}</button>` : ""}
-      <button type="button" class="btn btn-sm ${editing ? "btn-primary" : "btn-ghost"}" data-action="quick-edit" aria-pressed="${editing ? "true" : "false"}">${editing ? t("完成") : t("编辑")}</button></div></div>`;
-  return block("quick", { icon: "⚡", title: t("快捷操作"), body: `${bar}<div class="quick-grid ${editing ? "is-editing" : ""}">${quick || `<p class="muted">${t("还没有快捷操作，点“编辑”添加。")}</p>`}</div>${addPanel}` });
+  const bar = `<div class="tquick-bar"><span></span><div class="head-acts">
+      <button type="button" class="btn btn-sm btn-ghost" data-action="quick-reset">${t("恢复默认")}</button>
+      <a class="btn btn-sm btn-primary" href="${href("today")}">${t("完成")}</a></div></div>`;
+  return `${bar}<div class="quick-grid ${editing ? "is-editing" : ""}">${quick || `<p class="muted">${t("还没有快捷操作，点“添加”。")}</p>`}</div>${addPanel}`;
 }
 
 /* ── 每位用户自己的快捷操作：地址（或 action:xxx）的有序列表 ──
@@ -264,7 +265,7 @@ export const PRESETS = () => {
     [href("scan"), "🧾", t("录入购物")], B ? [SPEND_ADD(), "✍️", t("记一笔花费")] : null, [href("shopping"), "🛒", t("采购清单")],
     B ? [href("bill", "new"), "➕", t("添加账单")] : null, B ? [INCOME_ADD(), "💵", t("记一笔收入")] : null, B ? [`${href("bills", "onetime")}?bill=new`, "🏥", t("记一张一次性账单")] : null,
     // 储藏
-    [href("pantry", "overview"), "🥫", t("储藏概览")], [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "➕", t("添加储藏物品")],
+    [href("pantry", "overview"), "🗄️", t("储藏概览")], [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "➕", t("添加储藏物品")],
     G ? [href("pantry", "gear"), "🧳", t("装备")] : null, G ? [`${href("item", "new")}?space=gear`, "🧳", t("添加装备")] : null,
     // 房屋（日常运营）
     H ? [href("house"), "🏠", t("房屋")] : null, H ? [href("house", "assets"), "⚙️", t("设备保养")] : null, H ? [href("asset", "new"), "🛠️", t("添加设备")] : null, H ? [href("house", "tasks"), "📅", t("季节任务")] : null,
@@ -296,8 +297,25 @@ export function shiftAlertSource(delta) {
   const i = Math.min(tabs.length - 1, Math.max(0, tabs.indexOf(cur) + delta));
   setTodayPref({ source: tabs[i] === "all" ? null : tabs[i] });
 }
+/** 按模块：每个模块一行（数量 + 最近的一件），点进模块自己的页面（原来今日页的「待办 · 按模块」） */
+function byArea(all) {
+  const rows = todoRows(all);
+  if (!rows.length) return `<section class="section"><div class="panel empty"><strong>${t("各处都没有待办 ✓")}</strong>${t("采购清单是空的，账单、保养和季节任务都不急。")}</div></section>`;
+  const row = (r) => `<a class="mrow" href="${esc(r.href)}"><span class="mi" aria-hidden="true">${r.icon}</span>
+      <span class="mt"><b>${esc(r.name)}</b><small>${esc(r.first)}</small></span>
+      <span class="badge mcount ${r.worst <= 2 ? SEVERITY_CLS[r.worst] : "attn-count"}">${r.n}</span><span class="mch" aria-hidden="true">›</span></a>`;
+  return `<section class="section"><div class="panel mlist">${rows.map(row).join("")}</div></section>`;
+}
 export function viewAlerts() {
   const pref = state.today;
+  const view = pref.view === "priority" ? "priority" : "area";   // 两种视图：按模块（默认）/ 按优先级；记在这台设备上
+  const seg = `<div class="seg alerts-view" role="group" aria-label="${t("视图")}">
+      <button type="button" data-action="today-view" data-v="area" aria-pressed="${view === "area"}">${t("按模块")}</button>
+      <button type="button" data-action="today-view" data-v="priority" aria-pressed="${view === "priority"}">${t("按优先级")}</button></div>`;
+  if (view === "area") {
+    return `<nav class="crumb" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("待办 | 注意事项")}</b></nav>
+      <section class="section today-head">${seg}</section>${byArea(myAlerts())}`;
+  }
   const all = myAlerts(), counts = alertCounts(all);
   const canMine = Store.mode === "cloud" && collectAlerts().some((x) => x.assigned_to);
   const tabs = alertSourceTabs(counts);
@@ -319,9 +337,9 @@ export function viewAlerts() {
       </div>` : "";
 
   return `
-    <nav class="crumb crumb-tools" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("注意事项")}</b>
+    <nav class="crumb crumb-tools" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("待办 | 注意事项")}</b>
       <label class="sort-dd"><span class="sr-only">${t("排序")}</span><select id="alertSort" aria-label="${t("排序")}">${sorts}</select></label></nav>
-    <section class="section today-head">${pager}${tools}${clearFiltersBtn("alerts", !!src || !!pref.mine)}</section>
+    <section class="section today-head">${seg}${pager}${tools}${clearFiltersBtn("alerts", !!src || !!pref.mine)}</section>
     <div>${body}</div>`;
 }
 
