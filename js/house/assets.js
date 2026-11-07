@@ -854,7 +854,9 @@ function assetSummary(a) {
 function maintSection(a, focusLog) {
   const K = H().MAINT_KINDS, R = C().RESULTS, veh = isVehicle(a);
   const editLog = a.logs.find((l) => l.id === state.route?.q?.get("edit")) || null;   // 编辑某条记录：表单带入原值
-  const e = editLog || {}, isInspect = !veh && e.kind === "inspect";
+  // 复制一条记录：同样的类型、项目、收款方、花费、备注带上；日期回到今天、不连已记的花费
+  const copyLog = !editLog && a.logs.find((l) => l.id === state.route?.q?.get("copy"));
+  const e = editLog || (copyLog ? { ...copyLog, id: undefined, done_on: undefined, created_at: undefined, purchase_id: null, odometer: null } : {}), isInspect = !veh && e.kind === "inspect";
   const preItem = editLog ? e.service_item || "" : state.route?.q?.get("item") || "";   // 时间表里“记一次”带过来的保养项目
   const rows = maintLogsHtml(a);
   const followUp = a.followUp ? `<div class="panel cta-panel" style="margin-bottom:10px"><div><b>${t("{date} 检查结论：{r}", { date: fmtDate(a.followUp.done_on), r: t(R[a.followUp.result]) })}</b>
@@ -870,6 +872,7 @@ function maintLogsHtml(a) {
         <small>${joinList([l.odometer != null ? `${fmt(l.odometer)} ${distUnit()}` : null, l.vendor ? t("收款方：{who}", { who: l.vendor }) : null, l.diy ? t("自己做的") : null, l.cost != null ? t("花费 {m}", { m: Units.money(num(l.cost), l.currency || Units.region.currency) }) : null, l.notes,
           l.created_at && t("{d} 记录", { d: fmtShort(l.created_at) })].filter(Boolean).map(esc))}</small></div>
       <a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?log=1&edit=${l.id}" aria-label="${t("编辑这条记录")}">${t("编辑")}</a>
+      <a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?log=1&copy=${l.id}" aria-label="${t("复制这条记录")}" title="${t("复制这条记录")}">${t("复制")}</a>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="maint-del" data-id="${l.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>
     </li>`).join("")}</ul>${pageMoreBtn(`maint:${a.id}`, a.logs.length, lim)}` : "";
 }

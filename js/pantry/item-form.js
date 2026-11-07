@@ -1,4 +1,5 @@
 import { state } from "../core/state.js";
+import { copyOf, moreMenu } from "../core/more-menu.js";
 import { Store } from "../core/store.js";
 import { $, MUTE_FOREVER, catOf, catsOf, daysFromTodayISO, du, esc, fmt, listRoute, num, spaceOf, stampText, todayISO, toast } from "../core/util.js";
 import { SECTIONS, go, href } from "../core/router.js";
@@ -52,7 +53,9 @@ export function viewItemForm() {
   const qCat = r.q.get("cat");
   const defCat = qCat && CATEGORIES.some((c) => c.id === qCat) ? qCat
     : state.filter.space === space && state.filter.cat !== "all" ? state.filter.cat : catsOf(space)[0].id;
-  const v = it || { category: defCat, unit: "个", quantity: 1, min_quantity: space === "gear" ? 0 : 1, lead_days: space === "house" ? 14 : space === "gear" ? 0 : 3, location: catOf(defCat).loc };
+  // 复制：带上原物品的分类、小类、单位、位置、少货线、备注；保质期、关联设备、提醒设置不带
+  const src = !it && r.q.get("copy") ? copyOf(state.items.find((x) => x.id === r.q.get("copy")), ["expiry_date", "asset_ids", "alert_mute_until", "cat_check", "avg_daily_use"]) : null;
+  const v = it || src || { category: defCat, unit: "个", quantity: 1, min_quantity: space === "gear" ? 0 : 1, lead_days: space === "house" ? 14 : space === "gear" ? 0 : 3, location: catOf(defCat).loc };
   state.editingCat = v.category;
   const gear = spaceOf(v.category) === "gear";
   // 面包屑根：进来之前的页面；没有就回对应空间的清单
@@ -61,7 +64,7 @@ export function viewItemForm() {
   const dv = (x) => (x == null || x === "" ? "" : fmt(num(x) * f));
   return `
     <section class="section form-page">
-      ${crumbNav([...itemBase(space), { label: it ? t("编辑：{name}", { name: it.name }) : t("添加物品"), icon: catOf(v.category).icon }])}
+      ${crumbNav([...itemBase(space), { label: it ? t("编辑：{name}", { name: it.name }) : src ? t("复制：{name}", { name: src.name }) : t("添加物品"), icon: catOf(v.category).icon }])}
       ${autofillBar("item", "#itemForm")}
       <form id="itemForm" class="panel ${gear ? "is-gear" : ""} ${spaceOf(v.category) === "house" ? "is-house" : ""}" novalidate data-autosave>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">
@@ -120,8 +123,10 @@ export function viewItemForm() {
         <div class="form-actions sticky-actions">
           <button type="submit" class="btn btn-primary">${it ? t("保存修改") : t("添加物品")}</button>
           <button type="button" class="btn btn-ghost" data-action="item-cancel">${t("取消")}</button>
-          ${it && gear ? `<a class="btn btn-ghost" href="#/asset/new?from_item=${esc(it.id)}">${t("升级为设备档案")}</a>` : ""}
-          ${it ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="item-delete">${t("删除物品")}</button>` : ""}
+          ${it ? `<span class="spacer"></span>${moreMenu([
+            { label: gear ? t("复制为新装备") : t("复制为新物品"), href: `${href("item", "new")}?copy=${encodeURIComponent(it.id)}&space=${spaceOf(it.category)}` },
+            gear && { label: t("升级为设备档案"), href: `#/asset/new?from_item=${encodeURIComponent(it.id)}` },
+            { label: t("删除物品"), action: "item-delete", danger: true }], { up: true })}` : ""}
         </div>
       </form>
       ${it && stampText(it) ? `<p class="record-meta">${esc(stampText(it))}${Store.mode === "cloud" && memberName(it.updated_by) ? `（${esc(memberName(it.updated_by))}）` : ""}</p>` : ""}

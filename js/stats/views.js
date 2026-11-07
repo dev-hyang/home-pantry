@@ -645,7 +645,7 @@ function spendEditRow(p) {
     <label>${t("商店 / 收款方")}<input name="store" maxlength="40" list="storeList" value="${esc(p.store || "")}"></label>
     <label>${t("日期")}<input name="date" type="date" max="${new Date().toISOString().slice(0, 10)}" value="${esc(day)}"></label>
     ${state.billsEnabled ? `<label>${t("怎么付的")}<select name="card_id">${cardOptions(payAcctValue(p.card_id, p.method))}</select></label>` : ""}
-    <div class="form-actions span-2"><button type="submit" class="btn btn-primary btn-sm">${t("保存修改")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-edit-cancel">${t("取消")}</button></div></form></li>`;
+    <div class="form-actions span-2"><button type="submit" class="btn btn-primary btn-sm">${t("保存修改")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-edit-cancel">${t("取消")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-copy" data-id="${esc(p.id)}" title="${esc(t("用这笔的名称、分类、金额、商店、付款方式新记一笔，日期是今天"))}">${t("复制一笔")}</button></div></form></li>`;
 }
 const monthName = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
 /** 筛选条下面的标签：下拉里看不到的条件（图表钻取带来的预算分组、一组商店、一段月份、导入批次）一项一个，点标签去掉那一项。

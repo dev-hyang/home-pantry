@@ -451,7 +451,7 @@ function recordDetail(r, s) {
     <ul class="ix-reps">${reps.map((p) => `<li><span>${p.paid_on} · <b>${fmtMoney(p.amount)}</b>${p.method ? ` · ${esc(p.method)}` : ""}${p.purchase_id ? ` · <span class="muted">${t("已计入花费")}</span>` : ""}</span><button type="button" class="btn btn-sm btn-ghost" data-inc="rep-del" data-id="${p.id}">${t("删除")}</button></li>`).join("") || `<li class="muted">${t("还没有还款记录")}</li>`}</ul>
     ${s.left > 0 ? `<form data-inc-form="repay" data-id="${r.id}" class="form-grid" style="margin-top:6px"><label>${t("还款日期")}<input type="date" name="paid_on" value="${todayISO()}" required></label><label>${t("金额")}<input type="number" name="amount" step="0.01" min="0.01" value="${s.left}" required></label><label>${t("方式")}<input name="method" maxlength="40" placeholder="Zelle / ${esc(t("现金"))}"></label><label class="check-inline" style="grid-column:1/-1"><input type="checkbox" name="as_spend" checked><span>${t("同时记为一笔花费（钱从账户里出去了）")}</span></label><small class="muted" style="grid-column:1/-1">${t("如果这笔转账已经从银行对账单导入成花费了，系统会发现并不再重复记；也可以取消勾选。")}</small><div class="form-actions"><button class="btn btn-sm btn-primary">${t("记一笔还款")}</button></div></form>` : ""}</div>` : "";
   return `<div class="ix-detail">${extra.length ? `<p class="muted small" style="margin:0 0 6px">${extra.map(esc).join(" · ")}</p>` : ""}${r.notes ? `<p style="margin:0 0 6px">${esc(r.notes)}</p>` : ""}${repay}
-    ${canEdit(r) ? `<div class="form-actions"><button type="button" class="btn btn-sm" data-inc="edit" data-id="${r.id}">${t("编辑")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="del" data-id="${r.id}">${t("删除")}</button></div>` : ""}</div>`;
+    ${canEdit(r) ? `<div class="form-actions"><button type="button" class="btn btn-sm" data-inc="edit" data-id="${r.id}">${t("编辑")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="copy" data-id="${r.id}">${t("复制")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="del" data-id="${r.id}">${t("删除")}</button></div>` : ""}</div>`;
 }
 const selBar = () => { const I = inc(); return I.selMode ? `<div class="ix-selbar"><span id="incSelN" role="status">${t("已选 {n} 笔", { n: I.sel?.size || 0 })}</span><button type="button" class="btn btn-sm btn-ghost" data-inc="sel-all">${t("全选当前显示的")}</button><button type="button" class="btn btn-sm" data-inc="sel-del">${t("删除所选")}</button></div>` : ""; };
 const listHtml = () => {
@@ -911,6 +911,13 @@ export function initIncome({ render, refresh }) {
     if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { Object.assign(I, NO_FILTER()); goTab("records"); return; } return redraw(); }
     if (act === "more") return incList.more();   // 「继续加载」：向数据库要下一页
     if (act === "node") { OV().node = b.dataset.node || ""; return redraw(); }   // 类型页：逐层点进去 / 面包屑回上层
+    if (act === "copy") {   // 复制：新记一笔，带上这笔的内容（日期回到今天，不带 id、导入批次、还款记录）
+      const src = I.rec.find((r) => r.id === id) || incList.rows.find((r) => r.id === id); if (!src) return;
+      const rec = { ...src }; for (const k of ["id", "household_id", "created_at", "updated_at", "created_by", "updated_by", "import_batch", "received_on", "purchase_id"]) delete rec[k];
+      I.form = { rec }; I.scanOpen = false; I.open = null;
+      if (activeTab(state.route) !== "records") { Object.assign(I, NO_FILTER()); I._keep = true; goTab("records"); return; }
+      redraw(); setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
+    }
     if (act === "edit") {   // 点行 / 点「编辑」：打开编辑表单（不在「明细」标签就先切过去）；这一行已经展开着，再点一下行就收起（不保存）
       if (b.classList.contains("ix-main") && I.form?.rec?.id === id && inlineEditId() === id) {   // 收起但留着草稿：再展开时填回去，行上有「草稿」小标
         const f = $("#incForm"); if (f) (I.drafts = I.drafts || {})[id] = formDraft(f);

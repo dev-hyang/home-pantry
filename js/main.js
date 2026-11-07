@@ -24,7 +24,7 @@ import { initStatements, viewStatements } from "./stats/statements.js";
 import { inc, loadIncome } from "./income/logic.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
-import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, pickResultHtml, purchasePayFields, rememberCard, resolvePayAccount, runCleanup, saveCardForm, setCardActive, viewCards } from "./bills/cards-views.js";
+import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, payAcctValue, pickResultHtml, purchasePayFields, rememberCard, resolvePayAccount, runCleanup, saveCardForm, setCardActive, viewCards } from "./bills/cards-views.js";
 import "./bills/cards.js";   // 注册信用卡提醒
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
@@ -1176,6 +1176,19 @@ main.addEventListener("click", async (e) => {
       case "trip-reclass": {   // 旅行页的归类建议：把以前记成“其他”的花费归到某个旅行类型
         await Store.updatePurchase(id, { category: el.dataset.cat });
         toast(t("已归类")); render(); return refresh();
+      }
+      case "spend-copy": {   // 花费「复制一笔」：收起编辑，展开「记一笔」并填好这笔的内容（日期今天、不是退款）
+        const p = spendList.rows.find((x) => x.id === id); if (!p) return;
+        state.spendEdit = null; state.spendAddOpen = true; render();
+        requestAnimationFrame(() => {
+          const f = $("#purchaseForm"); if (!f) return;
+          const set = (k, v) => { const el = f.elements[k]; if (el && v != null && v !== "") { el.value = v; el.dispatchEvent(new Event("change", { bubbles: true })); } };
+          set("name", p.name); set("category", p.category); set("trip", p.trip); set("amount", p.amount != null ? Math.abs(num(p.amount)).toFixed(2) : ""); set("store", p.store);
+          set("card_id", payAcctValue(p.card_id, p.method)); set("nature", p.nature || ""); set("property_id", p.property_id || "");
+          f.scrollIntoView({ block: "center", behavior: "smooth" }); f.elements.amount?.focus({ preventScroll: true });
+          toast(t("已带上「{name}」，改一下金额或日期再记", { name: p.name }));
+        });
+        return;
       }
       case "spend-edit-cancel": { if (state.spendDrafts && state.spendEdit) delete state.spendDrafts[state.spendEdit]; state.spendEdit = null; return renderSpendList(); }
       case "pay-more": return payList.more();   // 「继续加载」：向数据库要下一页

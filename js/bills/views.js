@@ -1,5 +1,6 @@
 /* 账单 B1 · 页面：概览、清单、记录、常用账单模板、账单整页表单（含缴费记录） */
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
+import { copyOf, moreMenu } from "../core/more-menu.js";
 import { state } from "../core/state.js";
 import { fillFromPurchase, purchaseById } from "../core/spend-data.js";
 import { Store } from "../core/store.js";
@@ -439,7 +440,10 @@ export function viewBillForm() {
     ...(r.q.get("name") ? { name: r.q.get("name").slice(0, 60) } : {}), ...(r.q.get("payee") ? { payee: r.q.get("payee").slice(0, 60) } : {}),
     ...(qFreq && B().FREQUENCIES[qFreq] ? { frequency: qFreq } : {}), ...(Number.isFinite(qAmt) && qAmt >= 0 ? { typical_amount: Math.round(qAmt * 100) / 100, amount_type: "fixed" } : {}),
     ...(qProp && state.properties.some((p) => p.id === qProp) ? { property_id: qProp } : {}) };
-  const v = b || { category: qCat && B().CATEGORIES.some((c) => c.id === qCat) ? qCat : "electric", direction: "payable", pay_channel: "online", amount_type: "variable",
+  // 复制：原账单的分类、收款方、金额、周期、扣款方式等都带上，名字也照旧（自己改），状态回到在用
+  const csrc = !b && r.q.get("copy") ? copyOf((state.bills || []).find((x) => x.id === r.q.get("copy")), ["ended_on", "end_reason"]) : null;
+  if (csrc) Object.assign(csrc, { active: true });
+  const v = b || csrc || { category: qCat && B().CATEGORIES.some((c) => c.id === qCat) ? qCat : "electric", direction: "payable", pay_channel: "online", amount_type: "variable",
     currency: Units.region.currency, frequency: "monthly", due_day: null, due_dates: [], grace_days: 0, autopay: false, statement_channel: "email", reminder_days: [7, 1],
     essential: true, active: true, property_id: state.propertyId, ...pre };
   const d = (x) => esc(x ?? "");
@@ -550,7 +554,7 @@ function billHub(b, root) {
     <div class="form-actions" style="margin-top:14px">
       ${b.pay_url && !b.autopay ? `<a class="btn btn-ghost" href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${t("去缴费")}</a>` : ""}
       <a class="btn btn-primary" href="${base}?pay=1">${b.autopay ? t("记核对") : t("记缴费")}</a>
-      <span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="bill-delete">${t("删除账单")}</button>
+      <span class="spacer"></span>${moreMenu([{ label: t("复制为新账单"), href: `${href("bill", "new")}?copy=${encodeURIComponent(b.id)}` }, { label: t("删除账单"), action: "bill-delete", danger: true }])}
     </div>
   </section>`;
 }

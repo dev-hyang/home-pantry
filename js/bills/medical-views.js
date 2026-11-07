@@ -1,6 +1,7 @@
 /* 财务 → 医疗：概览 / 账单 / 年度报表三个标签（窄屏概览下面是入口行），账单详情页（?bill=<id|new>）里有金额、保险、付款记录。
  * 隐私：默认“仅自己和家主可见”（visibility = private），可改成全家可见；列表里私密的带 🔒。 */
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
+import { copyOf } from "../core/more-menu.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, esc, fmtDate, money, num, toast, todayISO } from "../core/util.js";
@@ -145,7 +146,10 @@ function viewDetail(id, payId) {
   const pq = state.route.q, pre = isNew ? { provider: (pq.get("provider") || "").slice(0, 60), service_date: /^\d{4}-\d{2}-\d{2}$/.test(pq.get("date") || "") ? pq.get("date") : "",
     patient_text: (pq.get("patient") || "").slice(0, 40), notes: (pq.get("note") || "").slice(0, 500) } : {};
   if (isNew && pre.patient_text) { const hit = (state.people || []).find((p) => String(p.name).trim() === pre.patient_text.trim()); if (hit) pre.patient_id = hit.id; else pre.notes = [t("就诊人：{n}", { n: pre.patient_text }), pre.notes].filter(Boolean).join(" · "); delete pre.patient_text; }   // 名字和家庭成员对得上就直接选那个人，对不上写进备注（不当成「旧记录」）
-  const v = b || { kind: newKind, status: "open", visibility: KINDS[newKind].visibility, currency: cur(), insurance_paid: 0, adjustment: 0, service_date: "", hsa_eligible: false, ...pre }, K = kindOf(v);
+  // 复制：同一家机构 / 同一位就诊人 / 同类，日期清空、已付和保险清零，状态回到未结
+  const msrc = isNew && pq.get("copy") ? copyOf((state.medBills || []).find((x) => x.id === pq.get("copy")), ["service_date", "insurance_paid", "adjustment", "closed_on"]) : null;
+  if (msrc) Object.assign(msrc, { status: "open", service_date: "", insurance_paid: 0, adjustment: 0 });
+  const v = b || msrc || { kind: newKind, status: "open", visibility: KINDS[newKind].visibility, currency: cur(), insurance_paid: 0, adjustment: 0, service_date: "", hsa_eligible: false, ...pre }, K = kindOf(v);
   const subs = K.subs.map(([k, n, ic]) => `<option value="${k}" ${v.subkind === k ? "selected" : ""}>${ic} ${t(n)}</option>`).join("");
   const num0 = (x) => (x == null || x === "" ? "" : num(x).toFixed(2));
   const pay = payId && b ? b.pays.find((p) => p.id === payId) : null;
@@ -179,7 +183,7 @@ function viewDetail(id, payId) {
       ${peopleFor(v.kind) ? personAddPanel(v.kind) : ""}
       <datalist id="medProviders">${[...new Set(state.medBills.map((x) => x.provider))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
       <p id="medBillError" class="form-error" role="alert"></p>
-      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button></div>
+      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>${b ? `<a class="btn btn-ghost" href="${esc(detailHref("new"))}&copy=${encodeURIComponent(b.id)}">${t("复制为新账单")}</a>` : ""}</div>
     </form>
     ${b ? paymentsHtml(b, pay, owedNow) : `<p class="muted">${t("先保存账单，再记付款。")}</p>`}
     ${b ? `<div class="danger-zone"><button type="button" class="btn btn-danger-ghost" data-action="med-del" data-id="${b.id}">${t("删除这张账单")}</button><small class="muted">${t("连同这张账单的付款记录一起删除，点两次确认。")}</small></div>` : ""}

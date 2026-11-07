@@ -2557,3 +2557,7 @@ html.force-phone .tcards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .pentry .badge { margin-left: 2px; }
 .hlink { font-size: 13px; font-weight: 600; color: var(--pine); text-decoration: none; white-space: nowrap; padding: 6px 0; }
 .hlink:hover { text-decoration: underline; }
+/* 「⋯」菜单（js/core/more-menu.js）：底部固定按钮条里向上弹；删除这类红字 */
+.act-more.act-up .act-menu { top: auto; bottom: calc(100% + 6px); }
+.act-item.is-danger { color: var(--out); }
+.form-actions .act-more > summary { min-height: 38px; }
