@@ -139,7 +139,7 @@ function todoCard(all, counts) {
   // 标题旁像通知一样一个数（有要紧的：要紧件数、红色；没有：全部件数、灰色）；下面最多四个模块
   const badge = n ? `<span class="tbadge ${counts.important ? "is-hot" : ""}" aria-label="${esc(counts.important ? t("{n} 件要紧", { n }) : t("{n} 件可以留意", { n }))}">${n > 99 ? "99+" : n}</span>` : "";
   const top = rows.slice(0, 4).map((r) => `<li><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow">${esc(r.name)}</span><b class="num ${r.worst <= 1 ? "down" : ""}">${r.n}</b></li>`).join("");
-  return card({ k: "todo", icon: counts.important ? "🔔" : "🗂️", title: t("待办 | 注意事项"), count: badge, href: href("alerts"), cls: counts.important ? "is-hot" : "",
+  return card({ k: "todo", icon: counts.important ? "🔔" : "🗂️", title: t("待办"), count: badge, href: href("alerts"), cls: counts.important ? "is-hot" : "",
     body: top ? `<ul class="tcard-list">${top}</ul>` : `<p class="muted tcard-ok">${t("各处都没有待办 ✓")}</p>` });
 }
 
@@ -157,7 +157,7 @@ function moneyCard() {
     rowsKv.push([t("净资产"), `${money(r.netWorth)}${mom == null ? "" : ` <small>${mom > 0 ? "+" : mom < 0 ? "−" : ""}${money(Math.abs(mom))}</small>`}`]);
   }
   // 卡片：本月日常大字（上个月小字），其余几行；整张点进财务
-  return card({ k: "money", icon: "💰", title: t("钱 · 本月"), href: `${href("bills", "income")}?tab=overview&range=m`, body: `<div class="tcard-big"><b class="num">${A ? money(L.at(-1)) : LOADING()}</b><span>${t("本月日常")}${A ? ` · ${t("{m}：{a}", { m: monthLabel(pm), a: money(L.at(-2)) })}` : ""}</span></div>
+  return card({ k: "money", icon: "💰", title: t("钱 · 本月"), href: `${href("bills", "income")}?tab=overview&range=m`, body: `<div class="tcard-money"><p class="tm-main"><b class="num">${A ? money(L.at(-1)) : LOADING()}</b><span>${t("日常消费")}</span></p>${A ? `<p class="tm-prev">${esc(monthLabel(pm))} <span class="num">${money(L.at(-2))}</span></p>` : ""}</div>
     <ul class="tcard-kv">${rowsKv.map(([k, v]) => `<li><span>${k}</span><b class="num">${v}</b></li>`).join("")}</ul>` });
 }
 
