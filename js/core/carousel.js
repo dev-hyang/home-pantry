@@ -71,6 +71,7 @@ if (typeof document !== "undefined") {
   const release = () => document.querySelectorAll(".ttrack").forEach((tr) => {
     if (!tr._down) return;
     tr._down = false; const box = tr.closest(".tcarousel"); box.classList.remove("is-hold"); markDash(box, realOf(tr));
+    if (box.contains(document.activeElement) && document.activeElement !== document.body) document.activeElement.blur();   // 手指 / 鼠标点过：不把焦点留在卡片里（焦点在里面进度条会停）
     clearTimeout(tr._settle); tr._settle = setTimeout(() => settle(tr), 140);
   });
   document.addEventListener("pointerup", release, true); document.addEventListener("pointercancel", release, true);
