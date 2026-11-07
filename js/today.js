@@ -137,29 +137,61 @@ function multiBucket(items) {
 /** 待办 | 注意事项：一个数（要紧的，没有就全部）+ 轻重计数 + 最急的三个模块；点进 #/alerts（按模块 / 按优先级两种视图） */
 function todoCard(all, counts) {
   const rows = todoRows(all), n = counts.important || all.length;
-  // 标题旁像通知一样一个数（有要紧的：要紧件数、红色；没有：全部件数、灰色）；下面最多四个模块
+  // 标题旁像通知一样一个数（有要紧的：要紧件数、红色；没有：全部件数、灰色）
   const badge = n ? `<span class="tbadge ${counts.important ? "is-hot" : ""}" aria-label="${esc(counts.important ? t("{n} 件要紧", { n }) : t("{n} 件可以留意", { n }))}">${n > 99 ? "99+" : n}</span>` : "";
-  const top = rows.slice(0, 4).map((r) => `<li><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow">${esc(r.name)}</span><b class="num ${r.worst <= 1 ? "down" : ""}">${r.n}</b></li>`).join("");
+  if (!rows.length) return card({ k: "todo", icon: "🗂️", title: t("待办"), href: href("alerts"), body: `<div class="tcard-ok"><span class="tok-ico" aria-hidden="true">✓</span><div><b>${t("各处都没有待办")}</b><small>${t("采购清单是空的，账单、保养和季节任务都不急。")}</small></div></div>` });
+  const pills = [0, 1, 2, 3].filter((x) => counts.bySeverity[x]).map((x) => `<span class="pill sev-${x}"><i>${counts.bySeverity[x]}</i>${t(SEVERITY_LABEL[x])}</span>`).join("");
+  const cls = (w) => (w <= 2 ? SEVERITY_CLS[w] : "attn-count");
+  const list = rows.slice(0, 6).map((r) => `<li><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow"><span class="tr-k1">${esc(r.name)}</span><small class="tr-sub">${esc(r.first || "")}</small></span><span class="badge mcount ${cls(r.worst)}">${r.n}</span></li>`).join("");
+  const more = rows.length > 6 ? t("还有 {n} 个模块", { n: rows.length - 6 }) : "";
   return card({ k: "todo", icon: counts.important ? "🔔" : "🗂️", title: t("待办"), count: badge, href: href("alerts"), cls: counts.important ? "is-hot" : "",
-    body: top ? `<ul class="tcard-list">${top}</ul>` : `<p class="muted tcard-ok">${t("各处都没有待办 ✓")}</p>` });
+    body: `${pills ? `<div class="pills ttodo-pills">${pills}</div>` : ""}<ul class="tcard-list ttodo-list">${list}</ul>
+      <p class="tcard-foot"><span>${more}</span><span class="tcard-more">${t("全部 {n} 件", { n: all.length })} ›</span></p>` });
 }
 
 /* ── 钱 · 本月（只给家主和有财务权限的人；调用前已判断）：数字来自 spend_rollup / inc_rollup 的缓存和内存里的账单、净资产 ── */
 const LOADING = () => `<span class="muted" aria-label="${esc(t("加载中…"))}">…</span>`;
+/* 金额遮挡（11-07）：卡片标题旁的眼睛开关（记在这台设备上）。遮着时每个金额显示 ••••，点哪个只露哪个，10 秒后自动遮回 */
+const MASK_KEY = "hmh-money-mask";
+const moneyMasked = () => { try { return localStorage.getItem(MASK_KEY) !== "0"; } catch { return true; } };   // 出于隐私默认遮着；点眼睛才全部显示（记在这台设备上）
+const EYE_OFF = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M3 10c2.2 3 5.4 4.6 9 4.6s6.8-1.6 9-4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6 13.2 4.6 15.4M12 14.6v2.6M18 13.2l1.4 2.2M9 14.3l-.8 2.4M15 14.3l.8 2.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+const EYE_ON = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>`;
+/** 一个金额：遮着时是可点的 ••••（读屏读「点一下显示金额」） */
+const mask = (html) => (moneyMasked() ? `<button type="button" class="mmask" data-mmreveal aria-label="${esc(t("点一下显示这个金额，10 秒后自动隐藏"))}"><span class="mm-dots" aria-hidden="true">••••</span><span class="mm-val" hidden>${html}</span></button>` : html);
+if (typeof document !== "undefined") document.addEventListener("click", (e) => {
+  const tog = e.target.closest?.("[data-mmtoggle]");
+  if (tog) { e.preventDefault(); try { localStorage.setItem(MASK_KEY, moneyMasked() ? "0" : "1"); } catch { /* 忽略 */ } rerenderToday(); return; }
+  const b = e.target.closest?.("[data-mmreveal]"); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const dots = b.querySelector(".mm-dots"), val = b.querySelector(".mm-val"), show = val.hidden;
+  val.hidden = !show; dots.hidden = show; b.classList.toggle("is-open", show);
+  clearTimeout(b._t); if (show) b._t = setTimeout(() => { val.hidden = true; dots.hidden = false; b.classList.remove("is-open"); }, 10e3);
+});
 function moneyCard() {
   const ms = lastMonths(6), A = spendAgg(ms, 6), cm = ms.at(-1), pm = ms.at(-2), cur = Units.region.currency;   // 和 财务 → 概览 的「花费速览」同一份缓存（6 个月 → 读近 12 个月的聚合）
   const L = A ? livingSeries(A) : null, H = A ? withHousingSeries(A) : null, O = A ? outflowSeries(A) : null;
   const incRows = incRollupFor([pm, cm]), I = incRows ? incAggregate(incRows, [pm, cm], { cur }) : null;   // 两个月的收入聚合，读一次缓存
   const bills = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable");
   const next30 = upcoming(bills, 30), due30 = next30.filter((x) => (x.bill.currency || cur) === cur).reduce((s, x) => s + num(x.bill.est), 0);
-  const rowsKv = [[t("本月现金流出"), A ? money(O.at(-1)) : LOADING()], [t("未来 30 天账单"), `${money(due30)} <small>${t("{n} 笔", { n: next30.length })}</small>`], [t("本月收入"), I ? money(I.income[cm]) : LOADING()]];
+  const inc = I ? num(I.income[cm]) : null, out = A ? num(O.at(-1)) : null, bal = inc != null && out != null ? inc - out : null;
+  const amt = (v, cls = "") => `<b class="num ${cls}">${String(v).includes("…") ? v : mask(v)}</b>`, small = (x) => `<small>${x}</small>`;
+  const rowsKv = [
+    [t("含住房"), A ? amt(money(H.at(-1))) : amt(LOADING())],
+    [t("现金流出"), A ? amt(money(out)) : amt(LOADING())],
+    [t("收入"), I ? amt(money(inc)) : amt(LOADING())],
+    [t("结余"), bal != null ? amt(`${bal < 0 ? "−" : ""}${money(Math.abs(bal))}`, bal < 0 ? "down" : "up") : amt(LOADING())],
+    [t("未来 30 天账单"), `${small(t("{n} 笔", { n: next30.length }))}${amt(money(due30))}`],
+  ];
   if (state.nwOk) {
     const r = liveNetWorth(), m = thisMonth(), mom = monthChange(trendPoints(state.nwSnapshots, cur, { live: r, month: m }), m);
-    rowsKv.push([t("净资产"), `${money(r.netWorth)}${mom == null ? "" : ` <small>${mom > 0 ? "+" : mom < 0 ? "−" : ""}${money(Math.abs(mom))}</small>`}`]);
+    rowsKv.push([t("净资产"), `${mom == null ? "" : small(mask(`${mom > 0 ? "+" : mom < 0 ? "−" : ""}${money(Math.abs(mom))}`))}${amt(money(r.netWorth), r.netWorth < 0 ? "down" : "")}`]);
   }
-  // 卡片：本月日常大字（上个月小字），其余几行；整张点进财务
-  return card({ k: "money", icon: "💰", title: t("钱 · 本月"), href: `${href("bills", "income")}?tab=overview&range=m`, body: `<div class="tm-wrap"><div class="tcard-money"><p class="tm-main"><b class="num">${A ? money(L.at(-1)) : LOADING()}</b><span>${t("日常消费")}</span></p>${A ? `<p class="tm-prev">${esc(monthLabel(pm))} <span class="num">${money(L.at(-2))}</span></p>` : ""}</div>
-    <ul class="tcard-kv">${rowsKv.map(([k, v]) => `<li><span>${k}</span><b class="num">${v}</b></li>`).join("")}</ul></div>` });
+  // 卡片：本月日常消费大字，后面跟着「日常消费 · 上个月 $…」一行；下面明细两列（宽屏）；整张点进 财务 → 收支总览（本月）
+  const head = `<p class="tm-main"><b class="num">${A ? mask(money(L.at(-1))) : LOADING()}</b><span>${t("日常消费")}${A ? ` · ${esc(monthLabel(pm))} <span class="num">${mask(money(L.at(-2)))}</span>` : ""}</span></p>`;
+  const on = moneyMasked(), eye = `<button type="button" class="tm-eye" data-mmtoggle aria-pressed="${on}" aria-label="${esc(on ? t("显示全部金额") : t("隐藏金额"))}" title="${esc(on ? t("金额已隐藏：点单个金额看 10 秒；点这里全部显示") : t("隐藏金额（旁边有人时）"))}">${on ? EYE_OFF : EYE_ON}</button>`;
+  // 标题行点进 财务 → 收支总览（本月）；卡片本身不再是整张链接，金额才能单独点开
+  return card({ k: "money", icon: "💰", title: t("钱 · 本月"), headHref: `${href("bills", "income")}?tab=overview&range=m`, headExtra: eye,
+    body: `<div class="tcard-money">${head}</div><ul class="tcard-kv tm-kv">${rowsKv.map(([k, v]) => `<li><span>${k}</span><span class="tm-v">${v}</span></li>`).join("")}</ul>` });
 }
 
 /* ── 家里 · 一览：库存、采购、设备；没有财务权限的家人还看到本月账单的笔数（不显示金额） ── */

@@ -2701,3 +2701,56 @@ html.force-phone .tm-wrap { grid-template-columns: 1fr; }
 .tc-nav, .tc-nav.prev, .tc-nav.next { display: inline-grid; place-items: center; position: static; transform: none; opacity: 1; width: 32px; height: 32px; padding: 0 0 2px; border: 1px solid var(--line-soft); border-radius: 50%; background: var(--surface); color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer; }
 .tc-nav:hover { border-color: var(--pine); background: var(--surface); }
 .tc-ctrl { gap: 4px; }
+
+/* ── 11-07 第四轮 ── */
+/* 控制行：‹ 短划线 ›；当前那条像进度条 30 秒走满就换下一张；按着 / 悬停 / 焦点在里面时停住 */
+.tc-ctrl { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; min-height: 32px; }
+.tc-dashes { display: flex; align-items: center; gap: 6px; }
+.tc-dash { position: relative; width: 28px; height: 24px; border: 0; padding: 0; background: none; cursor: pointer; }
+.tc-dash::before { content: ""; position: absolute; left: 0; right: 0; top: 10px; height: 4px; border-radius: 2px; background: var(--line); }
+.tc-dash i { position: absolute; left: 0; top: 10px; height: 4px; width: 0; border-radius: 2px; background: var(--pine); }
+.tc-dash[aria-current="true"] { width: 44px; }
+.tc-dash[aria-current="true"] i { width: 100%; }
+.tc-dash.is-run i { width: 0; animation: tcprog 30s linear forwards; }
+@keyframes tcprog { from { width: 0; } to { width: 100%; } }
+.tcarousel:hover .tc-dash.is-run i, .tcarousel:focus-within .tc-dash.is-run i, .tcarousel.is-hold .tc-dash.is-run i { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .tc-dash.is-run i { animation: none; width: 100%; } }
+.tc-dash:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.tc-nav { width: 32px; height: 32px; }
+
+/* 待办：轻重小标一行；模块两行（名称 + 最近的一件）、右边数量徽章；底部「全部 N 件 ›」 */
+.ttodo-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.ttodo-list li { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 0; }
+.ttodo-list .grow { display: flex; flex-direction: column; min-width: 0; flex: 1; overflow: hidden; }
+.ttodo-list .tr-k1 { font-size: 14px; font-weight: 500; }
+.tr-sub { font-size: 12px; line-height: 1.35; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ttodo-list .mcount { flex: none; min-width: 24px; justify-content: center; }
+.tcard-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: auto 0 0; padding-top: 4px; font-size: 12.5px; color: var(--muted); }
+.tcard-more { color: var(--pine); font-weight: 600; white-space: nowrap; }
+.tcard-ok { display: flex; align-items: center; gap: 12px; margin: auto 0; }
+.tok-ico { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--ok-bg); color: var(--ok); font-size: 20px; font-weight: 600; }
+.tcard-ok div { display: flex; flex-direction: column; gap: 2px; }
+.tcard-ok small { color: var(--muted); font-size: 12.5px; }
+
+/* 钱：「金额 日常消费 · 10月 $…」一行（窄了才换行）；明细「数量 · 金额」一行，金额右对齐 */
+.tslide .tm-main { flex-wrap: wrap; row-gap: 2px; }
+.tslide .tm-main span { white-space: normal; }
+.tm-kv li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 10px; }
+.tm-v { display: inline-flex; align-items: baseline; justify-content: flex-end; gap: 6px; white-space: nowrap; }
+.tm-v small { font-size: 12px; color: var(--muted); font-weight: 400; }
+.tm-v b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tm-v b.up { color: var(--ok); } .tm-v b.down { color: var(--out); }
+@media (min-width: 720px) {
+  .tm-kv { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; }
+}
+html.force-phone .tm-kv { grid-template-columns: 1fr; }
+.tm-kv li > .tm-v { overflow: visible; min-width: auto; }   /* 金额永远完整显示，挤的时候缩名称 */
+/* 钱 · 本月的金额遮挡：•••• 可点，露出 10 秒；标题旁眼睛开关 */
+.mmask { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; min-height: 28px; padding: 0 6px; margin: -2px -6px; border-radius: 6px; cursor: pointer; font: inherit; color: inherit; letter-spacing: .08em; }
+.mmask:hover { background: var(--surface-2); }
+.mmask:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.mmask.is-open { letter-spacing: normal; background: color-mix(in srgb, var(--mustard) 22%, transparent); }
+.mm-dots { color: var(--muted); }
+.tm-eye { flex: none; display: grid; place-items: center; width: 34px; height: 34px; margin: -4px -4px -4px 4px; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; }
+.tm-eye:hover, .tm-eye[aria-pressed="false"] { color: var(--ink); background: var(--surface-2); }
+.tm-eye:focus-visible { outline: 2px solid var(--focus); }
