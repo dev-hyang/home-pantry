@@ -1,4 +1,5 @@
 import { categoryOptions } from "../pantry/views.js";
+import { viewHomeStats } from "./home-stats.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
@@ -542,7 +543,7 @@ export function viewUsage() {
 
 /** 我的 → 统计：账单模块开着时只看用量趋势（花费在 财务 → 花费）；关掉账单时花费和用量都在这里 */
 export function viewStats() {
-  return state.billsEnabled ? viewUsage() : viewSpend() + viewUsage();
+  return state.billsEnabled ? viewHomeStats() : viewSpend() + viewHomeStats();   // 2026-11-06：原来的消耗趋势并进「家里的数字」（js/stats/home-stats.js）
 }
 
 /* ── 花费记录：搜索 + 分类树 / 性质 / 房产 / 商店 / 年份 / 月份筛选 + 排序，按月分组带小计；服务器分页（迁移 054 / 055），任何一年、全部年份都能看 ──

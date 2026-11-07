@@ -107,6 +107,8 @@ export const DemoStore = {
     const since = Date.now() - STATS_LOG_DAYS * DAY;
     return this.db.logs.filter((l) => new Date(l.created_at).getTime() >= since);
   },
+  /** 我的 → 家里的数字：某个时间以来的库存日志（近一年） */
+  async listLogsSince(iso) { const since = new Date(iso).getTime(); return this.db.logs.filter((l) => new Date(l.created_at).getTime() >= since).map((l) => ({ ...l })); },
   /** 服务器分页的本地版（演示模式没有数据库）：筛选 / 排序 / 键集分页 / 统计照 054 的规则在内存里做，见 list-query.js */
   async listPage(kind, f, after, limit) { return localPage(this.db, kind, f, after, limit); },
   async listStats(kind, f, facets = false) { return localStats(this.db, kind, f, facets); },
@@ -778,6 +780,10 @@ export const CloudStore = {
   async listTerms() { return this.must(await this.sb.from("custom_terms").select("*").eq("household_id", this.hid)); },
   async saveTerm(r) { this.must(await this.sb.from("custom_terms").upsert(pick(r, TERM_FIELDS, { household_id: this.hid, updated_by: state.user.id }), { onConflict: "household_id,term" })); },
   async deleteTerm(term) { this.must(await this.sb.from("custom_terms").delete().eq("household_id", this.hid).eq("term", term)); },
+  /** 我的 → 家里的数字：某个时间以来的库存日志（近一年，带记录人）；只在打开那一页时读，按 1000 行一页 */
+  async listLogsSince(iso) {
+    return this.pageAll(() => this.sb.from("stock_logs").select("id,item_id,delta,reason,created_by,created_at").eq("household_id", this.hid).gte("created_at", iso).order("created_at").order("id"), 20000);
+  },
   async listLogs() {
     const since = new Date(Date.now() - STATS_LOG_DAYS * DAY).toISOString();
     return this.pageAll(() => this.sb.from("stock_logs").select("id,item_id,delta,reason,created_at")

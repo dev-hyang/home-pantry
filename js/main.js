@@ -78,6 +78,7 @@ import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureFirstYea
 import { customChanged, normRange, setFinRange, setFinUnit } from "./core/time-range.js";
 import { payeeAction, payeeChange, payeeInput } from "./stats/payees.js";
 import { matchOpenShopping, showPurchaseDup } from "./stats/dup-check.js";
+import { initHomeStats } from "./stats/home-stats.js";
 
 const APP_NAME = "爱家小助手";
 
@@ -492,6 +493,7 @@ initIncome({ render, refresh });
 initDebts({ render, refresh });
 initNetWorth({ render });
 initStatements({ render });
+initHomeStats(render);   // 我的 → 家里的数字：近一年日志读完后重画
 initSelectSearch();   // 选项很多的下拉（分类等）变成可搜索的（js/select-search.js）
 initQuickDrag({ isEditing: () => !!state.quickEdit, enter: () => { state.quickEdit = true; state.quickAdd = false; render(); }, save: async (ids) => { try { await saveQuick(ids); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } render(); } });   // 今日页快捷操作：长按进入编辑并拖动排序   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
 // 「⋯」更多操作菜单：点别处或点菜单里的某项就收起（原生 details 不会自己收）
@@ -1117,6 +1119,13 @@ main.addEventListener("click", async (e) => {
         el.disabled = true;
         try { await Store.recatItem(id, el.dataset.cat, el.dataset.sub); } catch (e) { el.disabled = false; return toast(e.message); }
         toast(t("{name} 已改到 {cat}", { name: it.name, cat: t(catOf(el.dataset.cat).name) }));
+        return refresh();
+      }
+      case "discard": {   // 过期扔掉：剩下的全部记成 discard（迁移 065；没跑迁移时云端会报错，提示先执行）
+        const it = state.items.find((x) => x.id === id); if (!it || !(num(it.quantity) > 0)) return;
+        el.disabled = true;
+        try { await Store.adjust(id, -num(it.quantity), "discard"); } catch (e) { el.disabled = false; return toast(/invalid reason/.test(e.message) ? t("要先在 Supabase 执行迁移 065，才能记「扔掉」") : e.message); }
+        toast(t("已记下：{name} 过期扔掉了；「我的 → 家里的数字」里能看到浪费", { name: it.name }));
         return refresh();
       }
       case "mute-item": {   // 注意事项里的“不再提醒”：一直不提醒，直到下次补货入库或在编辑页恢复

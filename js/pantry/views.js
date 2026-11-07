@@ -87,6 +87,8 @@ function pantryEntries() {
     state.houseEnabled ? e(`${href("pantry", "inventory")}?space=house`, "🧰", t("房屋耗材")) : "",
     e(href("pantry", "meals"), "🍳", t("今天吃什么"))].join("")}</nav>`;
 }
+/** 过期扔掉：把剩下的都记成 discard（迁移 065），「家里的数字 → 浪费」统计它；不算进日均用量 */
+const discardBtn = (it) => `<button type="button" class="btn btn-sm btn-ghost discard-btn" data-action="discard" data-id="${it.id}" aria-label="${esc(t("{name} 过期了，扔掉剩下的", { name: it.name }))}">🗑 ${t("扔掉")}</button>`;
 /** 购物篮：去采购清单，带待买 + 家人正在买的数 */
 function cartBtn() {
   const n = state.shopping.filter((s) => s.status !== "bought").length;
@@ -137,7 +139,7 @@ export function viewDashboard() {
       <div class="section-head"><h2 id="h-exp">${t("先吃这些")}</h2><p>${t("菜单推荐会优先用到它们")}</p></div>
       <div class="panel"><ul class="restock-list">${expiring.slice(0, 6).map((it) => `<li>
         <span class="badge b-exp">${it.exp === "expired" ? t("已过期") : it.expDays === 0 ? t("今天到期") : t("{d} 天后到期", { d: it.expDays })}</span>
-        <div class="grow"><span class="name">${esc(it.name)}</span><small>${esc(t(it.location || ""))} ${t("剩 {q} {u}", { q: fmt(it.dqty), u: esc(t(it.du)) })}</small></div></li>`).join("")}</ul></div>
+        <div class="grow"><span class="name">${esc(it.name)}</span><small>${esc(t(it.location || ""))} ${t("剩 {q} {u}", { q: fmt(it.dqty), u: esc(t(it.du)) })}</small></div>${it.exp === "expired" && it.qty > 0 ? discardBtn(it) : ""}</li>`).join("")}</ul></div>
     </section>` : ""}
 
     <section class="section" aria-labelledby="h-shelf">
@@ -430,7 +432,7 @@ export function itemCard(it) {
     it.rate && `<span title="${it.rateSrc === "manual" ? t("手动设置") : t("根据最近使用记录估算")}">${t("日均 {q} {u}", { q: fmt(it.drate), u: esc(du) })}</span>`,
     stamp,
   ].filter(Boolean).join("");
-  const expBadge = it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? t("已过期") : t("{d} 天内到期", { d: it.expDays })}</span>` : "";
+  const expBadge = it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? t("已过期") : t("{d} 天内到期", { d: it.expDays })}</span>${it.exp === "expired" && it.qty > 0 ? discardBtn(it) : ""}` : "";
   const label = `${it.name}，${t("剩余 {q} {u}", { q: fmt(it.dqty), u: du })}，${t(st.label)}`;
   return `<article class="item st-${it.status}" aria-label="${esc(label)}">
     <div class="jar st-${it.status}" role="img" aria-label="${t("存量约 {p}%", { p: Math.round(it.level * 100) })}">

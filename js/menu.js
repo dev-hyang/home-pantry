@@ -62,7 +62,7 @@ const META = {
     networth:  { icon: "📈", desc: "资产 − 负债：账户余额、房产 / 车辆估值、贷款余额；每月快照看走势，财富增长 vs 消费，每处资产的净值", count: () => (state.nwOk ? liveNetWorth().stale.length : 0), countLabel: "需要更新" },
   },
   me: {
-    stats:    { icon: "📊", desc: "库存使用趋势（花费统计在 财务 → 花费）" },
+    stats:    { icon: "📊", desc: "年度回顾、最常用、补货节奏、谁在出力、保养与季节任务、一周节奏、浪费（钱的统计在 财务 → 花费）" },
     settings:  { icon: "⚙️", desc: "家庭成员、邀请码、房产、语言、模块、备份" },
     about:     { icon: "✎", desc: "这个网站是什么、怎么用、注意事项" },
   },
