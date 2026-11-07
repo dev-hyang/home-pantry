@@ -1,4 +1,5 @@
 import { state } from "../core/state.js";
+import { tempUnitPref } from "../core/weather.js";
 import { Store } from "../core/store.js";
 import { $, DATE_FMTS, catsOf, dateFormat, esc, fmtDay, fmtShort, syncState, toast } from "../core/util.js";
 import { catFormHtml } from "../pantry/views.js";
@@ -354,6 +355,13 @@ export function viewSettings() {
         ${DATE_FMTS.map((k) => `<option value="${k}" ${dateFormat() === k ? "selected" : ""}>${esc(k === "auto" ? t("跟随语言（{ex}）", { ex: fmtDay(new Date(), false, "auto") }) : fmtDay(new Date(), false, k) + ({ ymd: "  (YYYY-MM-DD)", mdy: "  (MM/DD/YYYY)", dmy: "  (DD/MM/YYYY)", cn: "" }[k] || ""))}</option>`).join("")}
       </select>
       <p class="muted" style="margin:8px 0 0;font-size:13px">${t("花费、收入、账单等列表里的日期都按这个显示，按金额 / 名称排序时也看得出年月。只存在这台设备上；导出的 CSV 仍是 YYYY-MM-DD。")}</p>
+    </div>
+    <div class="panel">
+      <label class="field-label" for="tempUnitSel">${t("温度单位")}</label>
+      <select id="tempUnitSel" data-nosearch>
+        ${[["auto", t("跟随地区（现在是 {u}）", { u: Units.region.system === "us" ? "°F" : "°C" })], ["c", t("摄氏 °C")], ["f", t("华氏 °F")]].map(([k, l]) => `<option value="${k}" ${tempUnitPref() === k ? "selected" : ""}>${esc(l)}</option>`).join("")}
+      </select>
+      <p class="muted" style="margin:8px 0 0;font-size:13px">${t("今日页日期旁的天气用这个单位。只存在这台设备上。")}</p>
     </div>
     <div class="panel">
       <label class="field-label" for="pageSizeSel">${t("列表每次显示")}</label>

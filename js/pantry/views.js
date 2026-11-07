@@ -87,7 +87,7 @@ function pantryEntries() {
     [href("pantry", "meals"), "🍳", t("今天吃什么")]].filter(Boolean);
   // 宽屏一排入口；手机一个下拉（选了就跳过去），不占一整行横滑
   return `<nav class="pentries" aria-label="${esc(t("储藏的页面"))}">${list.map(([h, ic, l, n]) => e(h, ic, l, n)).join("")}</nav>
-    <label class="pentry-dd"><span class="sr-only">${t("去储藏的页面")}</span><select data-go data-nosearch aria-label="${esc(t("去储藏的页面"))}"><option value="">${t("去…（采购清单、库存、装备…）")}</option>${list.map(([h, ic, l, n]) => `<option value="${esc(h)}">${ic} ${esc(l)}${n ? ` · ${n}` : ""}</option>`).join("")}</select></label>`;
+    <label class="pentry-dd"><span class="sr-only">${t("去储藏的页面")}</span><select data-go data-nosearch aria-label="${esc(t("去储藏的页面"))}"><option value="" selected>📊 ${t("概览")}</option>${list.map(([h, ic, l, n]) => `<option value="${esc(h)}">${ic} ${esc(l)}${n ? ` · ${n}` : ""}</option>`).join("")}</select></label>`;
 }
 /** 过期扔掉：把剩下的都记成 discard（迁移 065），「家里的数字 → 浪费」统计它；不算进日均用量 */
 const discardBtn = (it) => `<button type="button" class="btn btn-sm btn-ghost discard-btn" data-action="discard" data-id="${it.id}" aria-label="${esc(t("{name} 过期了，扔掉剩下的", { name: it.name }))}">🗑 ${t("扔掉")}</button>`;

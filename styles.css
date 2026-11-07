@@ -2648,3 +2648,56 @@ html.force-phone .pentries { display: none; } html.force-phone .pentry-dd { disp
 .tcard-kv li > b { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 @media (max-width: 380px) { .tm-main b { font-size: 19px; } }
 .tcard-kv li > b small { display: block; font-size: 11.5px; line-height: 1.2; }   /* 笔数、比上月的差额换到金额下面，窄卡不挤出去 */
+
+/* ── 11-07 今日卡片：左右滑动（js/core/carousel.js），一屏一张；卡里字号、间距按整宽重排 ── */
+.tcarousel { position: relative; }
+.tc-view { position: relative; }
+.ttrack { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; border-radius: var(--r-lg); }
+.ttrack::-webkit-scrollbar { display: none; }
+.ttrack:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.tslide { flex: 0 0 100%; min-width: 0; display: flex; scroll-snap-align: center; scroll-snap-stop: always; }
+.tslide > .tcard { flex: 1; min-height: 196px; padding: 16px 18px; gap: 12px; }
+.tslide .tcard-head { min-height: 28px; }
+.tslide .tcard-head h3 { font-size: 15px; color: var(--ink); }
+.tslide .tcard-ico { font-size: 18px; }
+/* 行：两行一组（名称小字 / 数值），手机一列，宽屏两列 */
+.tslide .tcard-rows, .tslide .tcard-list { gap: 6px 18px; }
+.tslide .tcard-list li { min-height: 30px; font-size: 14px; padding: 2px 0; border-bottom: 1px solid var(--line-soft); }
+.tslide .tcard-list li:last-child { border-bottom: 0; }
+.tslide .tcard-rows a, .tslide .tcard-rows button { min-height: 44px; background: var(--surface-2); border-radius: 10px; padding: 6px 10px; }
+.tslide .tcard-rows a:hover, .tslide .tcard-rows button:hover { filter: brightness(.97); background: var(--surface-2); }
+/* 钱：金额一块 + 明细一块；宽屏左右两栏 */
+.tm-wrap { display: grid; gap: 12px; }
+.tslide .tm-main b { font-size: 24px; }
+.tslide .tcard-kv { gap: 6px; font-size: 14px; }
+.tslide .tcard-kv li { padding: 3px 0; border-bottom: 1px solid var(--line-soft); }
+.tslide .tcard-kv li:last-child { border-bottom: 0; }
+/* 快捷操作：一屏放得下就平铺，多了在卡里上下滑 */
+.tslide .tcard-scroll { flex: 1 1 auto; min-height: 0; max-height: 236px; }
+@media (min-width: 720px) {
+  .tslide .tcard-rows, .tslide .tcard-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tslide .tcard-quick .tcard-rows { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+  .tm-wrap { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: center; column-gap: 28px; }
+  .tslide .tm-main b { font-size: 28px; }
+}
+html.force-phone .tslide .tcard-rows, html.force-phone .tslide .tcard-list { grid-template-columns: 1fr; }
+html.force-phone .tm-wrap { grid-template-columns: 1fr; }
+/* 圆点 + 暂停：卡片下面一行居中；宽屏鼠标有左右箭头 */
+.tc-ctrl { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; position: relative; min-height: 32px; }
+.tc-dots { display: flex; gap: 2px; }
+.tc-dots button { width: 30px; height: 28px; border: 0; background: none; padding: 0; cursor: pointer; position: relative; }
+.tc-dots button::after { content: ""; position: absolute; left: 6px; right: 6px; top: 11px; height: 6px; border-radius: 3px; background: var(--line); transition: background .2s; }
+.tc-dots button[aria-current="true"]::after { background: var(--pine); }
+.tc-pause { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border: 1px solid var(--line-soft); border-radius: 50%; background: var(--surface); color: var(--muted); font-size: 12px; line-height: 1; cursor: pointer; }
+.tc-pause:hover { color: var(--ink); border-color: var(--pine); }
+.tc-nav { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .tc-nav { display: grid; place-items: center; position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 34px; height: 52px; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink); font-size: 26px; line-height: 1; cursor: pointer; padding: 0 0 4px; opacity: 0; transition: opacity .15s; }
+  .tc-view:hover .tc-nav, .tc-nav:focus-visible { opacity: 1; }
+  .tc-nav.prev { left: 6px; } .tc-nav.next { right: 6px; }
+  .tc-nav:hover { background: color-mix(in srgb, var(--ink) 18%, transparent); }
+}
+/* 箭头放在圆点两边（不盖住卡片内容），手机电脑都显示 */
+.tc-nav, .tc-nav.prev, .tc-nav.next { display: inline-grid; place-items: center; position: static; transform: none; opacity: 1; width: 32px; height: 32px; padding: 0 0 2px; border: 1px solid var(--line-soft); border-radius: 50%; background: var(--surface); color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer; }
+.tc-nav:hover { border-color: var(--pine); background: var(--surface); }
+.tc-ctrl { gap: 4px; }

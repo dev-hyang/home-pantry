@@ -1,4 +1,5 @@
 import { checkConfig } from "./core/config-check.js";
+import { restoreCarousels } from "./core/carousel.js";
 import { findItem, normName } from "./core/item-match.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
@@ -30,7 +31,7 @@ import "./bills/cards.js";   // 注册信用卡提醒
 import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
 import { DEFAULT_QUICK, initTodayRender, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewQuick, viewToday } from "./today.js";
-import { enableWeather } from "./core/weather.js";
+import { enableWeather, setTempUnit } from "./core/weather.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
@@ -295,6 +296,7 @@ export function render(force = true) {
   // 数据刷新（切回标签页、家人改动）会重画整页：先把内嵌表单里还没保存的改动记下来，画完再填回去，不让用户白填
   const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#dealEventForm", "#seasonForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm", "#medBillForm", "#medPayForm"]);
   try { renderBody(r); } finally { restoreUnsaved(kept); }
+  restoreCarousels();   // 左右滑动的卡片（今日）：放回刚才看的那张
 }
 /** 表单里与渲染默认值不同的字段（用户正在填的）；没有改动返回 null */
 function dirtyFields(f) {
@@ -690,6 +692,7 @@ main.addEventListener("change", async (e) => {
     try { localStorage.setItem("hmh-bills-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? t("已打开财务") : t("已关闭财务，导航里不再显示")); render();
   }
+  if (e.target.id === "tempUnitSel") { setTempUnit(e.target.value); toast(t("已保存")); render(); }   // 今日天气的温度单位（js/core/weather.js）
   if (e.target.id === "dateFmtSel") { setDateFormat(e.target.value); toast(t("日期显示为 {ex}", { ex: fmtDay(new Date()) })); render(); }
   if (e.target.id === "pageSizeSel") { setPageSize(e.target.value); resetListPages(); toast(t("列表每次显示 {n} 条", { n: pageSize() })); render(); }
   if (e.target.id === "regionSel") {

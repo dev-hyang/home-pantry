@@ -8,6 +8,7 @@
  * 「注意事项」点开是 #/alerts：从提醒总线取全部提醒，排序下拉（按轻重 / 按房产 / 按来源 / 按到期）。各模块只把自己的提醒注册进总线，首页不认识任何模块。
  * 设计说明见 docs/design-today.md。 */
 import { state } from "./core/state.js";
+import { carouselHtml } from "./core/carousel.js";
 import { currentWeather, enableWeather, wxLoc } from "./core/weather.js";
 import { aiIcon, aiQuota, aiReady } from "./core/ai.js";
 import { Store } from "./core/store.js";
@@ -64,7 +65,7 @@ export function viewToday() {
     ${noProfile ? `<section class="section"><div class="panel cta-panel">
       <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的房屋耗材。")}</p></div>
       <a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></div></section>` : ""}
-    <section class="section"><div class="tcards n${cards.length}">${cards.join("")}</div></section>`;
+    <section class="section" aria-label="${esc(t("今日卡片"))}">${carouselHtml("today", cards, { label: t("今日卡片：左右滑动，或点下面的圆点") })}</section>`;   // 一屏一张，左右滑、循环、每 30 秒自动换（js/core/carousel.js）
 }
 
 /** 日期 · 星期 · 天气 一行小字在上，问候在下；「今天有几件事」不再单独一行（看待办卡标题旁的数字） */
@@ -157,8 +158,8 @@ function moneyCard() {
     rowsKv.push([t("净资产"), `${money(r.netWorth)}${mom == null ? "" : ` <small>${mom > 0 ? "+" : mom < 0 ? "−" : ""}${money(Math.abs(mom))}</small>`}`]);
   }
   // 卡片：本月日常大字（上个月小字），其余几行；整张点进财务
-  return card({ k: "money", icon: "💰", title: t("钱 · 本月"), href: `${href("bills", "income")}?tab=overview&range=m`, body: `<div class="tcard-money"><p class="tm-main"><b class="num">${A ? money(L.at(-1)) : LOADING()}</b><span>${t("日常消费")}</span></p>${A ? `<p class="tm-prev">${esc(monthLabel(pm))} <span class="num">${money(L.at(-2))}</span></p>` : ""}</div>
-    <ul class="tcard-kv">${rowsKv.map(([k, v]) => `<li><span>${k}</span><b class="num">${v}</b></li>`).join("")}</ul>` });
+  return card({ k: "money", icon: "💰", title: t("钱 · 本月"), href: `${href("bills", "income")}?tab=overview&range=m`, body: `<div class="tm-wrap"><div class="tcard-money"><p class="tm-main"><b class="num">${A ? money(L.at(-1)) : LOADING()}</b><span>${t("日常消费")}</span></p>${A ? `<p class="tm-prev">${esc(monthLabel(pm))} <span class="num">${money(L.at(-2))}</span></p>` : ""}</div>
+    <ul class="tcard-kv">${rowsKv.map(([k, v]) => `<li><span>${k}</span><b class="num">${v}</b></li>`).join("")}</ul></div>` });
 }
 
 /* ── 家里 · 一览：库存、采购、设备；没有财务权限的家人还看到本月账单的笔数（不显示金额） ── */

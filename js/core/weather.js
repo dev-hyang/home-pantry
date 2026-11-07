@@ -4,7 +4,11 @@
  * 没开定位、没网、取不到时不显示温度，不报错。和家庭学堂睡眠卡的天气是同一个服务、同样的做法。 */
 import { t } from "./i18n.js";
 
-const LOC_KEY = "hmh-wxloc", WX_KEY = "hmh-wx", FRESH = 30 * 60e3;
+const LOC_KEY = "hmh-wxloc", WX_KEY = "hmh-wx", UNIT_KEY = "hmh-temp-unit", FRESH = 30 * 60e3;
+/** 温度单位设置（我的 → 设置）："auto" 跟随地区 / "c" / "f" */
+export const tempUnitPref = () => { try { const v = localStorage.getItem(UNIT_KEY); return v === "c" || v === "f" ? v : "auto"; } catch { return "auto"; } };
+export const setTempUnit = (v) => { try { localStorage.setItem(UNIT_KEY, v === "c" || v === "f" ? v : "auto"); } catch { /* 忽略 */ } };
+const useF = () => { const p = tempUnitPref(); return p === "f" || (p === "auto" && typeof Units !== "undefined" && Units.region?.system === "us"); };
 const read = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* 记不住就算了 */ } };
 let inflight = false, failedAt = 0;
@@ -25,16 +29,16 @@ function iconOf(code, isDay) {
 /** 现在能显示的天气：{ icon, label, temp }；没有返回 null。过期了在后台重取，取回来调用 onUpdate */
 export function currentWeather(onUpdate) {
   const l = wxLoc(); if (!l) return null;
-  const c = read(WX_KEY), fresh = c && c.lat === l.lat && c.lon === l.lon && Date.now() - c.at < FRESH;
+  const unit = useF() ? "°F" : "°C", c = read(WX_KEY), same = c && c.lat === l.lat && c.lon === l.lon && c.unit === unit, fresh = same && Date.now() - c.at < FRESH;
   if (!fresh && !inflight && Date.now() - failedAt > 5 * 60e3) fetchWx(l, onUpdate);
-  if (!c || c.lat !== l.lat || c.lon !== l.lon) return null;
+  if (!same) return null;
   const [icon, label] = iconOf(c.code, c.isDay);
   return { icon, label: t(label), temp: c.temp, unit: c.unit };
 }
 async function fetchWx(l, onUpdate) {
   inflight = true;
   try {
-    const fahrenheit = typeof Units !== "undefined" && Units.region?.system === "us";   // 美制显示华氏
+    const fahrenheit = useF();   // 设置里选的单位；跟随地区时美制显示华氏
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${l.lat}&longitude=${l.lon}&current=temperature_2m,weather_code,is_day${fahrenheit ? "&temperature_unit=fahrenheit" : ""}`;
     const r = await fetch(url); if (!r.ok) throw new Error(String(r.status));
     const j = await r.json(), cur = j.current || {};
