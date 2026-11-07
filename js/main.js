@@ -1,4 +1,5 @@
 import { checkConfig } from "./core/config-check.js";
+import { decoratePrivacy, initPrivacy, setMoneyHidden } from "./core/privacy.js";
 import { restoreCarousels } from "./core/carousel.js";
 import { findItem, normName } from "./core/item-match.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
@@ -297,6 +298,7 @@ export function render(force = true) {
   const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#dealEventForm", "#seasonForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm", "#medBillForm", "#medPayForm"]);
   try { renderBody(r); } finally { restoreUnsaved(kept); }
   restoreCarousels();   // 左右滑动的卡片（今日）：放回刚才看的那张
+  decoratePrivacy(r);   // 财务看板的大数字：遮挡模式下模糊（js/core/privacy.js）
 }
 /** 表单里与渲染默认值不同的字段（用户正在填的）；没有改动返回 null */
 function dirtyFields(f) {
@@ -504,7 +506,8 @@ initDebts({ render, refresh });
 initNetWorth({ render });
 initStatements({ render });
 initHomeStats(render);
-initTodayRender(() => render());   // 今日天气取回来后重画   // 我的 → 家里的数字：近一年日志读完后重画
+initTodayRender(() => render());   // 今日天气取回来后重画
+initPrivacy({ toast });   // 金额遮挡：外出 / 在家两种模式   // 我的 → 家里的数字：近一年日志读完后重画
 initSelectSearch();   // 选项很多的下拉（分类等）变成可搜索的（js/select-search.js）
 initQuickDrag({ isEditing: () => !!state.quickEdit, enter: () => { state.quickEdit = true; state.quickAdd = false; render(); }, save: async (ids) => { try { await saveQuick(ids); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } render(); } });   // 今日页快捷操作：长按进入编辑并拖动排序   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
 // 「⋯」更多操作菜单：点别处或点菜单里的某项就收起（原生 details 不会自己收）
@@ -692,6 +695,7 @@ main.addEventListener("change", async (e) => {
     try { localStorage.setItem("hmh-bills-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? t("已打开财务") : t("已关闭财务，导航里不再显示")); render();
   }
+  if (e.target.id === "moneyModeSel") { setMoneyHidden(e.target.value === "hide"); toast(e.target.value === "hide" ? t("已切回遮挡（外出）：点单个金额看 10 秒") : t("已切到常显示（在家）：页面在后台超过 30 分钟会自动切回遮挡")); }
   if (e.target.id === "tempUnitSel") { setTempUnit(e.target.value); toast(t("已保存")); render(); }   // 今日天气的温度单位（js/core/weather.js）
   if (e.target.id === "dateFmtSel") { setDateFormat(e.target.value); toast(t("日期显示为 {ex}", { ex: fmtDay(new Date()) })); render(); }
   if (e.target.id === "pageSizeSel") { setPageSize(e.target.value); resetListPages(); toast(t("列表每次显示 {n} 条", { n: pageSize() })); render(); }

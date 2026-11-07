@@ -1,4 +1,5 @@
 import { state } from "../core/state.js";
+import { moneyHidden } from "../core/privacy.js";
 import { tempUnitPref } from "../core/weather.js";
 import { Store } from "../core/store.js";
 import { $, DATE_FMTS, catsOf, dateFormat, esc, fmtDay, fmtShort, syncState, toast } from "../core/util.js";
@@ -356,6 +357,14 @@ export function viewSettings() {
       </select>
       <p class="muted" style="margin:8px 0 0;font-size:13px">${t("花费、收入、账单等列表里的日期都按这个显示，按金额 / 名称排序时也看得出年月。只存在这台设备上；导出的 CSV 仍是 YYYY-MM-DD。")}</p>
     </div>
+    ${financeOk() ? `<div class="panel">
+      <label class="field-label" for="moneyModeSel">${t("金额显示")}</label>
+      <select id="moneyModeSel" data-nosearch>
+        <option value="hide" ${moneyHidden() ? "selected" : ""}>${t("遮挡（外出）：大数字模糊，点一个看 10 秒")}</option>
+        <option value="show" ${moneyHidden() ? "" : "selected"}>${t("常显示（在家）")}</option>
+      </select>
+      <p class="muted" style="margin:8px 0 0;font-size:13px">${t("今日「钱 · 本月」和财务各页看板上的大数字。也可以在那里点眼睛：单击全部显示 10 秒，双击或长按切换模式。常显示时页面在后台超过 30 分钟，回来自动切回遮挡。只存在这台设备上。")}</p>
+    </div>` : ""}
     <div class="panel">
       <label class="field-label" for="tempUnitSel">${t("温度单位")}</label>
       <select id="tempUnitSel" data-nosearch>

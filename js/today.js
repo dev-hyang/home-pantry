@@ -8,6 +8,7 @@
  * 「注意事项」点开是 #/alerts：从提醒总线取全部提醒，排序下拉（按轻重 / 按房产 / 按来源 / 按到期）。各模块只把自己的提醒注册进总线，首页不认识任何模块。
  * 设计说明见 docs/design-today.md。 */
 import { state } from "./core/state.js";
+import { moneyEye } from "./core/privacy.js";
 import { carouselHtml } from "./core/carousel.js";
 import { currentWeather, enableWeather, wxLoc } from "./core/weather.js";
 import { aiIcon, aiQuota, aiReady } from "./core/ai.js";
@@ -151,22 +152,8 @@ function todoCard(all, counts) {
 
 /* ── 钱 · 本月（只给家主和有财务权限的人；调用前已判断）：数字来自 spend_rollup / inc_rollup 的缓存和内存里的账单、净资产 ── */
 const LOADING = () => `<span class="muted" aria-label="${esc(t("加载中…"))}">…</span>`;
-/* 金额遮挡（11-07）：卡片标题旁的眼睛开关（记在这台设备上）。遮着时每个金额显示 ••••，点哪个只露哪个，10 秒后自动遮回 */
-const MASK_KEY = "hmh-money-mask";
-const moneyMasked = () => { try { return localStorage.getItem(MASK_KEY) !== "0"; } catch { return true; } };   // 出于隐私默认遮着；点眼睛才全部显示（记在这台设备上）
-const EYE_OFF = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M3 10c2.2 3 5.4 4.6 9 4.6s6.8-1.6 9-4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6 13.2 4.6 15.4M12 14.6v2.6M18 13.2l1.4 2.2M9 14.3l-.8 2.4M15 14.3l.8 2.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
-const EYE_ON = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>`;
-/** 一个金额：遮着时是可点的 ••••（读屏读「点一下显示金额」） */
-const mask = (html) => (moneyMasked() ? `<button type="button" class="mmask" data-mmreveal aria-label="${esc(t("点一下显示这个金额，10 秒后自动隐藏"))}"><span class="mm-dots" aria-hidden="true">••••</span><span class="mm-val" hidden>${html}</span></button>` : html);
-if (typeof document !== "undefined") document.addEventListener("click", (e) => {
-  const tog = e.target.closest?.("[data-mmtoggle]");
-  if (tog) { e.preventDefault(); try { localStorage.setItem(MASK_KEY, moneyMasked() ? "0" : "1"); } catch { /* 忽略 */ } rerenderToday(); return; }
-  const b = e.target.closest?.("[data-mmreveal]"); if (!b) return;
-  e.preventDefault(); e.stopPropagation();
-  const dots = b.querySelector(".mm-dots"), val = b.querySelector(".mm-val"), show = val.hidden;
-  val.hidden = !show; dots.hidden = show; b.classList.toggle("is-open", show);
-  clearTimeout(b._t); if (show) b._t = setTimeout(() => { val.hidden = true; dots.hidden = false; b.classList.remove("is-open"); }, 10e3);
-});
+/* 金额遮挡：全局一套（js/core/privacy.js）。钱卡的金额带 data-money，遮挡模式下模糊、点一个露 10 秒；标题旁是同一只眼睛 */
+const mask = (html) => `<span data-money>${html}</span>`;
 function moneyCard() {
   const ms = lastMonths(6), A = spendAgg(ms, 6), cm = ms.at(-1), pm = ms.at(-2), cur = Units.region.currency;   // 和 财务 → 概览 的「花费速览」同一份缓存（6 个月 → 读近 12 个月的聚合）
   const L = A ? livingSeries(A) : null, H = A ? withHousingSeries(A) : null, O = A ? outflowSeries(A) : null;
@@ -188,7 +175,7 @@ function moneyCard() {
   }
   // 卡片：本月日常消费大字，后面跟着「日常消费 · 上个月 $…」一行；下面明细两列（宽屏）；整张点进 财务 → 收支总览（本月）
   const head = `<p class="tm-main"><b class="num">${A ? mask(money(L.at(-1))) : LOADING()}</b><span>${t("日常消费")}${A ? ` · ${esc(monthLabel(pm))} <span class="num">${mask(money(L.at(-2)))}</span>` : ""}</span></p>`;
-  const on = moneyMasked(), eye = `<button type="button" class="tm-eye" data-mmtoggle aria-pressed="${on}" aria-label="${esc(on ? t("显示全部金额") : t("隐藏金额"))}" title="${esc(on ? t("金额已隐藏：点单个金额看 10 秒；点这里全部显示") : t("隐藏金额（旁边有人时）"))}">${on ? EYE_OFF : EYE_ON}</button>`;
+  const eye = moneyEye("tm-eye");
   // 标题行点进 财务 → 收支总览（本月）；卡片本身不再是整张链接，金额才能单独点开
   return card({ k: "money", icon: "💰", title: t("钱 · 本月"), headHref: `${href("bills", "income")}?tab=overview&range=m`, headExtra: eye,
     body: `<div class="tcard-money">${head}</div><ul class="tcard-kv tm-kv">${rowsKv.map(([k, v]) => `<li><span>${k}</span><span class="tm-v">${v}</span></li>`).join("")}</ul>` });

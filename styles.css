@@ -2754,3 +2754,22 @@ html.force-phone .tm-kv { grid-template-columns: 1fr; }
 .tm-eye { flex: none; display: grid; place-items: center; width: 34px; height: 34px; margin: -4px -4px -4px 4px; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; }
 .tm-eye:hover, .tm-eye[aria-pressed="false"] { color: var(--ink); background: var(--surface-2); }
 .tm-eye:focus-visible { outline: 2px solid var(--focus); }
+/* ── 金额遮挡（js/core/privacy.js）：遮挡模式下看板大数字模糊（宽度不变、不跳）；点一个露 10 秒；单击眼睛全部露 10 秒（眼睛外圈倒计时） ── */
+html.money-hide [data-money] { filter: blur(7px); user-select: none; cursor: pointer; transition: filter .2s; }
+html.money-hide.money-peek [data-money], html.money-hide [data-money].is-peek { filter: none; user-select: auto; }
+html.money-hide [data-money].is-peek { background: color-mix(in srgb, var(--mustard) 18%, transparent); border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { html.money-hide [data-money] { transition: none; } }
+.money-eye { position: relative; flex: none; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid var(--line-soft); border-radius: 50%; background: var(--surface); color: var(--muted); cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.money-eye:hover { color: var(--ink); border-color: var(--pine); }
+.money-eye[aria-pressed="true"] { color: var(--pine); background: color-mix(in srgb, var(--pine) 10%, var(--surface)); }
+.money-eye:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.me-ico { display: grid; place-items: center; }
+.me-ring { position: absolute; inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); transform: rotate(-90deg); pointer-events: none; }
+.me-ring circle { fill: none; stroke: var(--pine); stroke-width: 2.5; stroke-dasharray: 100.5; stroke-dashoffset: 100.5; opacity: 0; }
+.money-eye.is-counting .me-ring circle { opacity: 1; animation: meRing 10s linear forwards; }
+@keyframes meRing { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 100.5; } }
+@media (prefers-reduced-motion: reduce) { .money-eye.is-counting .me-ring circle { animation: none; stroke-dashoffset: 0; } }
+/* 今日钱卡：眼睛在标题行右边；财务看板：每组看板右上角一行 */
+.tcard-head .money-eye { width: 32px; height: 32px; margin: -2px 0 -2px 6px; }
+.money-eye-row { display: flex; justify-content: flex-end; margin: 0 0 6px; }
+.money-eye-row + .kpis, .money-eye-row + .sum-main { margin-top: 0; }
