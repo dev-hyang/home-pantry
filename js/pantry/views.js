@@ -81,11 +81,13 @@ function catCheckSection() {
 function pantryEntries() {
   const shop = state.shopping.filter((s) => s.status !== "bought").length;
   const e = (h, icon, label, n = 0) => `<a class="pentry" href="${esc(h)}"><span class="pentry-ico" aria-hidden="true">${icon}</span><span>${label}</span>${n ? `<b class="badge">${n}</b>` : ""}</a>`;
-  return `<nav class="pentries" aria-label="${esc(t("储藏的页面"))}">${[
-    e(href("shopping"), "🛒", t("采购清单"), shop), e(href("pantry", "inventory"), "📦", t("库存")),
-    state.gearEnabled ? e(href("pantry", "gear"), "🧳", t("装备")) : "",
-    state.houseEnabled ? e(`${href("pantry", "inventory")}?space=house`, "🧰", t("房屋耗材")) : "",
-    e(href("pantry", "meals"), "🍳", t("今天吃什么"))].join("")}</nav>`;
+  const list = [[href("shopping"), "🛒", t("采购清单"), shop], [href("pantry", "inventory"), "📦", t("库存")],
+    state.gearEnabled ? [href("pantry", "gear"), "🧳", t("装备")] : null,
+    state.houseEnabled ? [`${href("pantry", "inventory")}?space=house`, "🧰", t("房屋耗材")] : null,
+    [href("pantry", "meals"), "🍳", t("今天吃什么")]].filter(Boolean);
+  // 宽屏一排入口；手机一个下拉（选了就跳过去），不占一整行横滑
+  return `<nav class="pentries" aria-label="${esc(t("储藏的页面"))}">${list.map(([h, ic, l, n]) => e(h, ic, l, n)).join("")}</nav>
+    <label class="pentry-dd"><span class="sr-only">${t("去储藏的页面")}</span><select data-go data-nosearch aria-label="${esc(t("去储藏的页面"))}"><option value="">${t("去…（采购清单、库存、装备…）")}</option>${list.map(([h, ic, l, n]) => `<option value="${esc(h)}">${ic} ${esc(l)}${n ? ` · ${n}` : ""}</option>`).join("")}</select></label>`;
 }
 /** 过期扔掉：把剩下的都记成 discard（迁移 065），「家里的数字 → 浪费」统计它；不算进日均用量 */
 const discardBtn = (it) => `<button type="button" class="btn btn-sm btn-ghost discard-btn" data-action="discard" data-id="${it.id}" aria-label="${esc(t("{name} 过期了，扔掉剩下的", { name: it.name }))}">🗑 ${t("扔掉")}</button>`;
@@ -644,3 +646,6 @@ export function categoryOptions(selected, { withOther = true, spend = false } = 
   return `${sp("pantry", t("日常储备"))}${sp("house", t("房屋耗材"), withOther ? opt(MAINT_CAT) : "")}${sp("gear", t("装备"))}
     ${withOther ? opt(OTHER_CAT) : ""}`;
 }
+
+/* 下拉导航（储藏概览在手机上的入口）：选了就跳过去 */
+document.addEventListener("change", (e) => { if (e.target.matches?.("select[data-go]") && e.target.value) location.hash = e.target.value; });

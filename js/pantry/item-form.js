@@ -1,4 +1,7 @@
 import { state } from "../core/state.js";
+import { findItem, similarItems } from "../core/item-match.js";
+import { cleanStore, lastStore, rememberStore, storeDatalist } from "../stats/views.js";
+import { cardSelectHtml, purchasePayFields } from "../bills/cards-views.js";
 import { copyOf, moreMenu } from "../core/more-menu.js";
 import { Store } from "../core/store.js";
 import { $, MUTE_FOREVER, catOf, catsOf, daysFromTodayISO, du, esc, fmt, listRoute, num, spaceOf, stampText, todayISO, toast } from "../core/util.js";
@@ -43,6 +46,20 @@ const NAME_HINT = { pantry: "例如：鸡蛋、抽纸、大米", house: "例如�
 const linkableAssets = () => state.assetsEnriched.filter((a) => a.kind !== "vehicle");
 const assetLabel = (a) => `${assetName(a)}${state.properties.length > 1 && a.property_id ? ` · ${propertyName(a.property_id)}` : ""}`;
 
+/** 添加物品时顺手记一笔花费（选填）：填了金额才记；商店、付款方式默认是最近一次用的（和「记一笔花费」一样） */
+function spendFieldset() {
+  return `<fieldset class="item-spend">
+          <legend>${t("花费（选填）")}</legend>
+          <p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("填了金额就同时记一笔花费，关联到这件物品；不填就只入库。")}</p>
+          <div class="form-grid">
+            <label>${t("金额（{cur}）", { cur: Units.region.currency })}<input name="sp_amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label>
+            <label>${t("商店 / 收款方")}<input name="sp_store" maxlength="40" list="storeList" value="${esc(lastStore())}"></label>
+            <label>${t("日期")}<input name="sp_date" type="date" max="${todayISO()}" value="${todayISO()}"></label>
+            ${cardSelectHtml("sp_card") ? `<label>${t("怎么付的")}${cardSelectHtml("sp_card")}</label>` : ""}
+          </div>
+          ${storeDatalist()}
+        </fieldset>`;
+}
 export function viewItemForm() {
   const r = state.route;
   const it = r.id && r.id !== "new" ? state.items.find((x) => x.id === r.id) : null;
@@ -75,6 +92,7 @@ export function viewItemForm() {
           <div class="form-grid">
             <label class="span-2">${t("名称")}
               <input name="name" required maxlength="60" autocomplete="off" placeholder="${t(NAME_HINT[spaceOf(v.category)] || NAME_HINT.pantry)}" value="${esc(v.name || "")}">
+              <small class="name-hint" id="itemNameHint" role="status" ${it ? "" : "data-new"} hidden></small>
             </label>
             <label>${t("大类")}
               <select name="category" required>${categoryOptions(v.category, { withOther: false })}</select>
@@ -119,6 +137,7 @@ export function viewItemForm() {
           <label class="sr-only" for="itemNotes">${t("备注")}</label>
           <textarea id="itemNotes" name="notes" rows="3" maxlength="500" placeholder="${gear ? t("品牌、型号、尺寸、购买时间、借给了谁…") : t("品牌、规格、在哪买更便宜…")}">${esc(v.notes || "")}</textarea>
         </fieldset>
+        ${it ? "" : spendFieldset()}
         <p id="itemFormError" class="form-error" role="alert"></p>
         <div class="form-actions sticky-actions">
           <button type="submit" class="btn btn-primary">${it ? t("保存修改") : t("添加物品")}</button>
@@ -171,6 +190,9 @@ export async function saveItemForm(f, { silent = false } = {}) {
   const name = fe.name.value.trim();
   const quantity = num(fe.quantity.value, NaN);
   if (!name) return fail(t("请填写物品名称。"), fe.name);
+  // 新建：已有写法一样的物品（忽略大小写、空格、全角半角、英文复数）→ 第一次只提醒，确认是另一件再点一次
+  const same = !fe.item_id.value && !silent ? findItem(name) : null;
+  if (same && f.dataset.dupAck !== same.id) { f.dataset.dupAck = same.id; return fail(t("已经有「{name}」（{cat}）。是同一样东西就去那件补库存；确实是另一件，再点一次「添加物品」。", { name: same.name, cat: t(catOf(same.category).name) }), fe.name); }
   if (!Number.isFinite(quantity) || quantity < 0) return fail(t("数量需要是 0 或正数。"), fe.quantity);
   // 单位没改且属于换算显示：换算回存储单位；数值没动过则保留原始值，避免来回换算产生误差
   const typedUnit = fe.unit.value.trim() || "个";
@@ -204,7 +226,13 @@ export async function saveItemForm(f, { silent = false } = {}) {
   btn.disabled = true;
   try {
     it.location = await resolveLocation(fe);   // 选了“＋ 新位置…”会先建位置
-    await Store.saveItem(it);
+    const savedId = await Store.saveItem(it);
+    if (!it.id && fe.sp_amount && fe.sp_amount.value !== "" && num(fe.sp_amount.value) > 0) {   // 添加物品时填了金额：记一笔花费，关联到新物品
+      const store = cleanStore(fe.sp_store?.value || ""), date = fe.sp_date?.value || todayISO();
+      await Store.addPurchase({ item_id: savedId || null, name: it.name, category: it.category, quantity: it.quantity || null, unit: it.unit || null, amount: Math.round(num(fe.sp_amount.value) * 100) / 100,
+        currency: Units.region.currency, purchased_at: new Date(`${date}T12:00:00`).toISOString(), store, ...purchasePayFields(fe.sp_card?.value || "") });
+      if (store) rememberStore(store);
+    }
     if (it.id && raw.cat_check) await Store.clearCatCheck([it.id]).catch(() => {});   // 编辑页保存过 = 分类看过了，不再列在「请确认分类」里
     if (it.id && fe.alert_mute) {   // 不再提醒 / 暂停提醒：单独存（不放进通用字段，没执行迁移 030 的库其余保存照常）
       const until = muteChoice(fe.alert_mute.value, raw.alert_mute_until);
@@ -237,3 +265,14 @@ function muteChoice(val, cur) {
   if (val === "keep") return cur || null;
   return null;
 }
+
+/* 添加物品：名称和已有物品对一下（js/core/item-match.js）——写法一样的给链接去那件，相近的列出来 */
+document.addEventListener("input", (e) => {
+  if (e.target.name !== "name" || !e.target.closest?.("#itemForm")) return;
+  const hint = document.getElementById("itemNameHint"), f = e.target.form; if (!hint || !f) return;
+  delete f.dataset.dupAck;
+  const id = f.elements.item_id.value || null, same = findItem(e.target.value, { exceptId: id }), near = same ? [] : similarItems(e.target.value, { exceptId: id });
+  hint.hidden = !same && !near.length;
+  const link = (i) => `<a href="${href("item", i.id)}">${esc(i.name)}</a>`;
+  hint.innerHTML = same ? t("已有同名物品：{link}", { link: link(same) }) : near.length ? t("相近的已有物品：{list}", { list: near.map(link).join("、") }) : "";
+});

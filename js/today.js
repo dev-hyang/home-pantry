@@ -41,11 +41,15 @@ function myAlerts() {
 
 /* ── 卡片（2026-11-06 改回卡片：轻便、一眼看完；点卡片进对应页面）── */
 /** 一张卡：链接卡（整张可点）或容器卡（里面各行自己可点）。head 是标题行，body 是内容 */
-const card = ({ k, icon, title, count = "", href: h = "", cls = "", body = "" }) => {
-  const head = `<div class="tcard-head"><span class="tcard-ico" aria-hidden="true">${icon}</span><h3 id="tc-${k}">${title}</h3>${count}${h ? `<span class="tcard-ch" aria-hidden="true">›</span>` : ""}</div>`;
+const card = ({ k, icon, title, count = "", href: h = "", headHref = "", headExtra = "", cls = "", body = "" }) => {
+  const inner = `<span class="tcard-ico" aria-hidden="true">${icon}</span><h3 id="tc-${k}">${title}</h3>${count}`;
+  const head = headHref ? `<div class="tcard-head"><a class="tcard-hlink" href="${esc(headHref)}">${inner}<span class="tcard-ch" aria-hidden="true">›</span></a>${headExtra}</div>`
+    : `<div class="tcard-head">${inner}${h ? `<span class="tcard-ch" aria-hidden="true">›</span>` : ""}${headExtra}</div>`;
   return h ? `<a class="tcard ${cls}" href="${esc(h)}" aria-labelledby="tc-${k}">${head}${body}</a>`
     : `<section class="tcard ${cls}" aria-labelledby="tc-${k}">${head}${body}</section>`;
 };
+/** 卡里一行一个链接（家里一览、快捷操作同一个样子） */
+const rowLink = (h, icon, label, value = "", hot = false, attrs = "") => `<li><a href="${esc(h)}"${attrs}><span aria-hidden="true">${icon}</span><span class="grow">${label}</span>${value ? `<b class="${hot ? "down" : ""}">${value}</b>` : ""}<span class="tcard-ch" aria-hidden="true">›</span></a></li>`;
 
 /* ───────────── 今日 ───────────── */
 export function viewToday() {
@@ -149,7 +153,7 @@ function moneyCard() {
     rowsKv.push([t("净资产"), `${money(r.netWorth)}${mom == null ? "" : ` <small>${mom > 0 ? "+" : mom < 0 ? "−" : ""}${money(Math.abs(mom))}</small>`}`]);
   }
   // 卡片：本月日常大字（上个月小字），其余几行；整张点进财务
-  return card({ k: "money", icon: "💰", title: t("钱 · 本月"), href: href("bills"), body: `<div class="tcard-big"><b class="num">${A ? money(L.at(-1)) : LOADING()}</b><span>${t("本月日常")}${A ? ` · ${t("{m}：{a}", { m: monthLabel(pm), a: money(L.at(-2)) })}` : ""}</span></div>
+  return card({ k: "money", icon: "💰", title: t("钱 · 本月"), href: `${href("bills", "income")}?tab=overview&range=m`, body: `<div class="tcard-big"><b class="num">${A ? money(L.at(-1)) : LOADING()}</b><span>${t("本月日常")}${A ? ` · ${t("{m}：{a}", { m: monthLabel(pm), a: money(L.at(-2)) })}` : ""}</span></div>
     <ul class="tcard-kv">${rowsKv.map(([k, v]) => `<li><span>${k}</span><b class="num">${v}</b></li>`).join("")}</ul>` });
 }
 
@@ -158,19 +162,19 @@ function homeCard(fin) {
   const items = state.enriched || [], inSpace = (sp) => items.filter((x) => spaceOf(x.category) === sp);
   const pantry = inSpace("pantry"), short = pantry.filter((x) => x.status === "out" || x.status === "low").length;
   const shop = state.shopping.filter((s) => s.status === "todo" || s.status === "claimed").length;
-  const row = (h, icon, label, value, hot) => `<li><a href="${esc(h)}"><span aria-hidden="true">${icon}</span><span class="grow">${label}</span><b class="${hot ? "down" : ""}">${value}</b><span class="tcard-ch" aria-hidden="true">›</span></a></li>`;
+  const row = rowLink;
   const rows = [row(href("pantry", "overview"), "🗄️", t("储藏"), short ? t("{n} 件要补货", { n: short }) : t("都够用"), short),
     row(href("shopping"), "🛒", t("采购清单"), shop ? t("{n} 项", { n: shop }) : t("空的"), false)];
   if (state.houseEnabled) {
     const live = new Set(liveProperties().filter(propertyActive).map((p) => p.id));
     const eq = (state.assetsEnriched || []).filter((a) => !a.retired && live.has(a.property_id)), due = assetsDueCount();   // 和待办「设备保养」、房屋首页同一个口径
-    if (eq.length || due) rows.push(row(href("house", "assets"), "⚙️", t("设备"), due ? t("{n} 台该保养", { n: due }) : t("都正常"), due));
+    if (eq.length || due) rows.push(row(`${href("house")}?todo=asset`, "⚙️", t("设备与车辆"), due ? t("{n} 台该保养", { n: due }) : t("都正常"), due));   // 房屋概览的「各房产要处理的事 · 设备与车辆」
   }
   if (!fin && state.billsEnabled) {   // 账单全家可见：这里只给笔数，不给金额
     const n = upcoming(state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable"), 30).length;
     rows.push(row(href("bills", "recurring"), "🧾", t("未来 30 天账单"), t("{n} 笔账单", { n }), false));
   }
-  return card({ k: "home", icon: "🏡", title: t("家里 · 一览"), body: `<ul class="tcard-rows">${rows.join("")}</ul>` });
+  return card({ k: "home", icon: "🏡", title: t("家里 · 一览"), headHref: state.houseEnabled ? href("house") : "", body: `<ul class="tcard-rows">${rows.join("")}</ul>` });   // 标题 → 房屋概览
 }
 
 /* ── 咩咩咩（AI）：和以前的格子同样的说明，外加「今天吃什么」 ── */
@@ -186,12 +190,11 @@ function aiBlock() {
 /** 快捷操作卡：你的快捷操作一排小图标（点了直接去）；「编辑」进 #/quick 增删、换、拖动排序 */
 function quickCard() {
   const mine = quickList().map((id) => PRESETS().find((p) => p[0] === id)).filter(Boolean);
-  const ic = ([id, icon, nm]) => id.startsWith("action:")
-    ? `<button type="button" class="tq" data-action="quick-run" data-id="${esc(id)}"><span class="tq-ico" aria-hidden="true">${icon}</span><span class="tq-nm">${esc(nm)}</span></button>`
-    : `<a class="tq" href="${esc(quickHref(id))}"><span class="tq-ico" aria-hidden="true">${icon}</span><span class="tq-nm">${esc(nm)}</span></a>`;
-  return `<section class="tcard tcard-quick" aria-labelledby="tc-quick"><div class="tcard-head"><span class="tcard-ico" aria-hidden="true">⚡</span><h3 id="tc-quick">${t("快捷操作")}</h3>
-      <a class="btn btn-sm btn-ghost tcard-edit" href="${href("quick")}">${t("编辑")}</a></div>
-    ${mine.length ? `<div class="tquick">${mine.map(ic).join("")}</div>` : `<p class="muted" style="margin:0">${t("还没有快捷操作，点“编辑”添加。")}</p>`}</section>`;
+  const one = ([id, icon, nm]) => id.startsWith("action:")
+    ? `<li><button type="button" data-action="quick-run" data-id="${esc(id)}"><span aria-hidden="true">${icon}</span><span class="grow">${esc(nm)}</span><span class="tcard-ch" aria-hidden="true">›</span></button></li>`
+    : rowLink(quickHref(id), icon, esc(nm));
+  return card({ k: "quick", icon: "⚡", title: t("快捷操作"), cls: "tcard-quick", headExtra: `<a class="btn btn-sm btn-ghost tcard-edit" href="${href("quick")}">${t("编辑")}</a>`,
+    body: mine.length ? `<div class="tcard-scroll" tabindex="0" aria-label="${esc(t("快捷操作"))}"><ul class="tcard-rows">${mine.map(one).join("")}</ul></div>` : `<p class="muted" style="margin:0">${t("还没有快捷操作，点“编辑”添加。")}</p>` });
 }
 /** #/quick：编辑快捷操作（加、删、点格子换成别的、长按拖动排序；改完立刻保存） */
 export function viewQuick() {

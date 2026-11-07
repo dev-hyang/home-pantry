@@ -464,10 +464,10 @@ export const DemoStore = {
       const d = Math.round((num(it.quantity) - num(this.db.items[i].quantity)) * 100) / 100;
       if (d) this.db.logs.push({ id: uid(), item_id: it.id, delta: d, reason: "adjust", created_at: now });
       this.db.items[i] = { ...this.db.items[i], ...it, updated_at: now };
-    } else {
-      this.db.items.push({ ...it, id: uid(), created_at: now, updated_at: now });
+      this.persist(); return it.id;
     }
-    this.persist();
+    const id = uid(); this.db.items.push({ ...it, id, created_at: now, updated_at: now });
+    this.persist(); return id;
   },
   /** 「请确认分类」：没错 → 清标记 */
   async clearCatCheck(ids) { const set = new Set(ids); for (const it of this.db.items) if (set.has(it.id)) it.cat_check = false; this.persist(); },
@@ -1219,7 +1219,9 @@ export const CloudStore = {
       this.must(await this.sb.from("items").update(row).eq("id", it.id));
       const d = old ? Math.round((num(it.quantity) - num(old.quantity)) * 100) / 100 : 0;
       if (d) this.must(await this.sb.from("stock_logs").insert({ household_id: this.hid, item_id: it.id, delta: d, reason: "adjust", created_by: state.user.id }));
-    } else this.must(await this.sb.from("items").insert(row));
+      return it.id;
+    }
+    return this.must(await this.sb.from("items").insert(row).select("id").single()).id;   // 新建：返回 id（添加物品时接着记花费）
   },
   async deleteItem(id) { this.must(await this.sb.from("items").delete().eq("id", id)); },
   /** 「请确认分类」（迁移 064 的 items.cat_check）：没错 → 清标记 */

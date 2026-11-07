@@ -1,4 +1,5 @@
 import { checkConfig } from "./core/config-check.js";
+import { findItem, normName } from "./core/item-match.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
@@ -392,8 +393,11 @@ function onRoute() {
     next.q.delete("add"); next.q.delete("prop"); next.q.set("tab", "records");
     history.replaceState(null, "", `${href("bills", "income")}?tab=records`);
   }
+  // 带 ?range= 进财务页（今日「钱 · 本月」→ 收支总览本月）：套用一次共享的时间范围
+  if (next.section === "bills" && next.q.get("range") && routeKey(prev) !== routeKey(next)) { const v = normRange(next.q.get("range")); if (v === next.q.get("range")) { state.stats.months = v; setFinRange(v); } }
   state.route = next;
   render(true);
+  if (next.section === "house" && next.q.get("todo")) requestAnimationFrame(() => $("#house-todo")?.scrollIntoView({ block: "start" }));   // 今日「家里一览 · 设备与车辆」：直接到「各房产要处理的事」
   if (next.section === "me" && next.sub === "settings" && next.q.get("sec") === "ai") hydrateModelSelect();   // AI 设置：后台查这个 key 实际能用的模型，填进下拉
   if (next.section === "bills" && (next.sub === "spend" || next.sub === "budget")) ensureFirstYear().then((fresh) => { if (fresh) render(false); });   // 时间范围下拉的往年选项：查一次最早年份
   if (next.section === "bills" && next.sub === "spend" && next.q.get("add")) {   // 花费页右上角“记一笔花费”：展开补记表单、滚过去并聚焦名称，再把参数去掉
@@ -848,9 +852,9 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "templateForm") {
       const keys = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
       if (!keys.length) return toast(t("还没有勾选耗材"));
-      const list = templateItems(keys);
-      await Store.addItems(list);
-      toast(t("已添加 {n} 项房屋耗材", { n: list.length }));
+      const all = templateItems(keys), list = all.filter((x) => !findItem(x.name));   // 已有同名（忽略大小写、空格、全角半角）的跳过，重复点不会建第二件
+      if (list.length) await Store.addItems(list);
+      toast(t("已添加 {n} 项房屋耗材", { n: list.length }) + (all.length > list.length ? t("；{m} 项库存里已有，跳过", { m: all.length - list.length }) : ""));
       Object.assign(state.filter, { space: "house", cat: "all", q: "", status: "all" });
       go(href("house", "supplies"));
       return refresh();
@@ -873,7 +877,8 @@ main.addEventListener("submit", async (e) => {
       if (!nature && signed >= bigThreshold() && effNature(cat, null) === "operating" && ["home_goods", "digital", "apparel", "shop_misc", "home_maint", "transport"].includes(l2IdOf(cat)) && confirm(t("金额较大（{a}），标为资本性支出？\n资本性支出（大件、装修、买车…）不算进日常生活成本，现金流出里照样有。", { a: money(signed) }))) nature = "capital";
       // 关联房产：选了就记；没选、分类在「房产住房」下、家里只有一套房的，自动挂上这套
       const props = state.properties.filter((p) => !p.archived), property_id = e2.property_id?.value || (l1IdOf(cat) === "housing" && props.length === 1 ? props[0].id : null);
-      await Store.addPurchase({ item_id: null, name, category: cat, quantity: null, unit: null, store,
+      const linkItem = findItem(item);   // 名称和已有物品写法一样：关联上这件（不新建物品、不加库存）
+      await Store.addPurchase({ item_id: linkItem?.id || null, name, category: cat, quantity: null, unit: null, store,
         amount: Math.round(signed * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString(), ...purchasePayFields(payV),
         ...(nature ? { nature } : {}), ...(property_id ? { property_id } : {}) });
       const cart = signed > 0 ? matchOpenShopping({ name: item, at: new Date(`${day}T12:00:00`) }) : null;   // 采购清单里有同名的未买项：顺手标成已买到
@@ -883,8 +888,9 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "shopForm") {
       const name = f.elements.name.value.trim();
       if (!name) return;
-      const linked = state.items.find((i) => i.name === name);
-      if (linked && openShopFor(linked.id)) return toast(t("{name} 已经在清单里了", { name }));
+      const linked = findItem(name);   // 写法一样就算同一件（以前要一字不差）
+      const openSame = state.shopping.find((s) => s.status !== "bought" && (linked ? s.item_id === linked.id : normName(s.name) === normName(name)));
+      if (openSame) return toast(t("{name} 已经在清单里了", { name: openSame.name }));
       await Store.saveShopping({ name, quantity: Math.max(0.1, num(f.elements.quantity.value, 1)), unit: f.elements.unit.value.trim() || linked?.unit || "", item_id: linked?.id || null, category: f.elements.category.value || linked?.category || "other" });
       { const est = num(f.elements.estimate?.value, NaN); state.shopAdvice = Number.isFinite(est) && est > 0 ? { name, estimate: est, group: groupForCategory(linked?.category || f.elements.category.value, est) } : null; }
       toast(t("已加入：{name}", { name })); refresh();
@@ -972,6 +978,7 @@ main.addEventListener("click", async (e) => {
       case "unit-del": { const row = el.closest(".unit-row"), host = row?.parentElement; if (row && host) { row.remove(); if (!host.children.length) host.insertAdjacentHTML("beforeend", unitRow()); } return; }
       case "supply-add": {   // 设备页“相关耗材”：一键把推荐耗材加进库存
         const it = supplyItem(el.dataset.name); if (!it) return;
+        const have = findItem(it.name); if (have) { toast(t("库存里已有「{name}」", { name: have.name })); return go(href("item", have.id)); }
         await Store.addItems([it]); toast(t("已添加到库存：{name}", { name: it.name })); return refresh();
       }
       case "alerts-prev": shiftAlertSource(-1); return render();
@@ -1142,7 +1149,7 @@ main.addEventListener("click", async (e) => {
       case "property-of-bill": return;
       case "shop-import": {   // 牧羊人带来的采购项（#/shopping?add=…）：勾了的逐个加，按名字对上库存物品就关联
         const names = [...document.querySelectorAll("#shopImport input[type=checkbox]:checked")].map((x) => x.value);
-        for (const name of names) { const it = state.items.find((i) => String(i.name).trim().toLowerCase() === name.toLowerCase()); await Store.saveShopping({ name, quantity: 1, unit: it?.unit || "", item_id: it?.id || null, category: it?.category || "other" }); }
+        for (const name of names) { const it = findItem(name); if (state.shopping.some((s) => s.status !== "bought" && (it ? s.item_id === it.id : normName(s.name) === normName(name)))) continue; await Store.saveShopping({ name, quantity: 1, unit: it?.unit || "", item_id: it?.id || null, category: it?.category || "other" }); }
         toast(names.length ? t("已加进采购清单：{n} 项", { n: names.length }) : t("没有勾选"));
         go(href("shopping"), { replace: true }); return refresh();
       }
