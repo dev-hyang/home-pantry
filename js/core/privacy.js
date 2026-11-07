@@ -8,6 +8,9 @@
 import { esc } from "./util.js";
 import { t } from "./i18n.js";
 
+let routeNow = () => ({});
+const state0 = () => routeNow() || {};
+export const setPrivacyRoute = (fn) => { routeNow = fn; };
 const KEY = "hmh-money-mask", AWAY_KEY = "hmh-money-away", PEEK_MS = 10e3, AWAY_MS = 30 * 60e3, HOLD_MS = 550;
 let toastFn = () => {};
 export const initPrivacy = ({ toast }) => { toastFn = toast || toastFn; applyMode(); };
@@ -34,9 +37,30 @@ function syncEyes() {
 
 /** 财务页画完以后：给看板上的大数字标 data-money，并在每组看板右上角放一只眼睛（今日的钱卡在自己的标记里已经有了） */
 const BOARD_NUMS = ".kpi > b, .sum-main b, .stat .v, .nw-card-bal, [data-money-auto] b";
+/* 表格和图表（11-07）：只遮「直接是钱」的格子——文字里有货币符号的（$ ¥ € £、USD / CAD / CNY…）；笔数、次数、百分比、月份不遮。
+ * 每个表格 / 图表是一块（data-money-block）：遮挡时点一下，整块露 10 秒（第一下只露、不触发行里的链接或钻取，再点才是原来的动作）。 */
+const CUR = /[$¥€£₩]|\b(?:USD|CAD|CNY|RMB|EUR|GBP)\b/;
+const isMoneyText = (s) => CUR.test(s) && /\d/.test(s);
+const CELL_SEL = "td, b, strong, small, .num, .badge, .hb-val, .ch-val, svg text";   // 叶子元素里带货币符号的才算
+const BLOCK_OF = (el) => el.closest("table, svg, .hb-list, .chart, .ch-table, .restock-list, .mlist, ul, .panel");
+function markCells(main) {
+  main.querySelectorAll(CELL_SEL).forEach((el) => {
+    if (el.closest("[data-money], [data-money-cell], form, .kpi, .sum-main, .tcard, .crumb, nav, button, select, label") || el.hasAttribute("data-money-cell")) return;   // 看板大数字、表单、按钮、导航不在这里遮   // 看板大数字、表单、今日卡片另有处理
+    if (el.children.length > 2 || !isMoneyText(el.textContent || "")) return;   // 只看叶子格子；没有货币符号 = 不是钱，不遮
+    el.setAttribute("data-money-cell", "");
+    const block = el.closest(".chart") || BLOCK_OF(el); if (block) block.setAttribute("data-money-block", "");
+  });
+}
+let observer = null, pending = false;
 export function decoratePrivacy(route) {
   const main = document.getElementById("main"); if (!main) return;
+  // 财务页的局部重画（明细「继续加载」、筛选、展开一行）不走整页 render：盯着 #main，有新内容就再标一遍
+  if (route?.section === "bills" && !observer && typeof MutationObserver !== "undefined") {
+    observer = new MutationObserver(() => { if (pending) return; pending = true; queueMicrotask(() => { pending = false; if (state0().section === "bills") markCells(main); }); });
+    observer.observe(main, { childList: true, subtree: true });
+  }
   if (route?.section !== "bills") return;
+  markCells(main);
   main.querySelectorAll(BOARD_NUMS).forEach((el) => el.setAttribute("data-money", ""));
   main.querySelectorAll(".kpis, .sum-main").forEach((box) => {   // 每组看板：右上角一只眼睛（同一个容器只放一次）
     if (box.previousElementSibling?.classList?.contains("money-eye-row") || !box.querySelector("[data-money]") && !box.matches("[data-money], .sum-main")) return;
@@ -79,6 +103,12 @@ if (typeof document !== "undefined") {
     }
     // 遮挡时点一个大数字：只露它 10 秒（它在链接里也先不跳转，再点一次才进去）
     const root = document.documentElement; if (!root.classList.contains("money-hide") || root.classList.contains("money-peek")) return;
+    const blk = e.target.closest?.("[data-money-block]");
+    if (blk && !blk.classList.contains("is-peek") && blk.querySelector("[data-money-cell]") && !e.target.closest("[data-money]")) {
+      e.preventDefault(); e.stopPropagation();
+      blk.classList.add("is-peek"); clearTimeout(blk._peek); blk._peek = setTimeout(() => blk.classList.remove("is-peek"), PEEK_MS);
+      return;
+    }
     const m = e.target.closest?.("[data-money]"); if (!m || m.classList.contains("is-peek")) return;
     e.preventDefault(); e.stopPropagation();
     m.classList.add("is-peek"); clearTimeout(m._peek); m._peek = setTimeout(() => m.classList.remove("is-peek"), PEEK_MS);

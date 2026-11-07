@@ -2783,3 +2783,18 @@ html.money-hide [data-money].is-peek { background: color-mix(in srgb, var(--must
 .tc-gear > summary::-webkit-details-marker { display: none; }
 .tc-gear .act-menu { min-width: 132px; right: 0; }
 .tc-gear .act-item[aria-pressed="true"] { color: var(--pine); }
+/* 金额遮挡 · 表格和图表（11-07）：遮挡模式下只遮钱的格子；图里的数字文字直接隐去（柱子、折线、月份照常），点一块整块露 10 秒 */
+html.money-hide:not(.money-peek) [data-money-block]:not(.is-peek) [data-money-cell]:not(svg *) { filter: blur(6px); user-select: none; }
+html.money-hide:not(.money-peek) [data-money-block]:not(.is-peek) svg [data-money-cell] { fill-opacity: 0; }
+html.money-hide [data-money-block] { cursor: pointer; }
+html.money-hide [data-money-block].is-peek { outline: 2px solid color-mix(in srgb, var(--mustard) 55%, transparent); outline-offset: 3px; border-radius: 8px; }
+/* 钱卡第一行（11-07）：本月金额和明细各行一样大；「日常消费」小字；上月小一号；▲ 红 / ▼ 绿 和百分比；一行放不下才换行 */
+.tm-main, .tslide .tm-main { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; margin: 0; font-size: 14px; }
+.tm-main b.tm-amt, .tslide .tm-main b.tm-amt { font-size: 14px; font-weight: 600; line-height: 1.4; letter-spacing: 0; white-space: nowrap; }
+.tm-main .tm-lbl { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.tm-main .tm-prev { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.tm-main .tm-prev .num { font-size: 12.5px; font-weight: 500; color: var(--ink); }
+.tm-trend { display: inline-flex; align-items: baseline; gap: 2px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.tm-trend.up { color: var(--out); } .tm-trend.down { color: var(--ok); }
+@media (min-width: 720px) { .tslide .tm-main b.tm-amt { font-size: 14px; } }
+.tm-main b.tm-amt span, .tm-main .tm-prev .num span { font-size: inherit; color: inherit; white-space: nowrap; }   /* 金额里的遮挡外壳不吃「日常消费」小字的样式（之前就是它把本月金额缩成了小字） */

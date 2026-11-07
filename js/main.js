@@ -1,5 +1,5 @@
 import { checkConfig } from "./core/config-check.js";
-import { decoratePrivacy, initPrivacy, setMoneyHidden } from "./core/privacy.js";
+import { decoratePrivacy, initPrivacy, setMoneyHidden, setPrivacyRoute } from "./core/privacy.js";
 import { restoreCarousels } from "./core/carousel.js";
 import { findItem, normName } from "./core/item-match.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
@@ -507,7 +507,7 @@ initNetWorth({ render });
 initStatements({ render });
 initHomeStats(render);
 initTodayRender(() => render());   // 今日天气取回来后重画
-initPrivacy({ toast });   // 金额遮挡：外出 / 在家两种模式   // 我的 → 家里的数字：近一年日志读完后重画
+initPrivacy({ toast }); setPrivacyRoute(() => state.route);   // 金额遮挡：外出 / 在家两种模式；表格 / 图表局部重画时按当前页面再标   // 我的 → 家里的数字：近一年日志读完后重画
 initSelectSearch();   // 选项很多的下拉（分类等）变成可搜索的（js/select-search.js）
 initQuickDrag({ isEditing: () => !!state.quickEdit, enter: () => { state.quickEdit = true; state.quickAdd = false; render(); }, save: async (ids) => { try { await saveQuick(ids); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } render(); } });   // 今日页快捷操作：长按进入编辑并拖动排序   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
 // 「⋯」更多操作菜单：点别处或点菜单里的某项就收起（原生 details 不会自己收）

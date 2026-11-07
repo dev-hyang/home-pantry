@@ -174,7 +174,10 @@ function moneyCard() {
     rowsKv.push([t("净资产"), `${mom == null ? "" : small(mask(`${mom > 0 ? "+" : mom < 0 ? "−" : ""}${money(Math.abs(mom))}`))}${amt(money(r.netWorth), r.netWorth < 0 ? "down" : "")}`]);
   }
   // 卡片：本月日常消费大字，后面跟着「日常消费 · 上个月 $…」一行；下面明细两列（宽屏）；整张点进 财务 → 收支总览（本月）
-  const head = `<p class="tm-main"><b class="num">${A ? mask(money(L.at(-1))) : LOADING()}</b><span>${t("日常消费")}${A ? ` · ${esc(monthLabel(pm))} <span class="num">${mask(money(L.at(-2)))}</span>` : ""}</span></p>`;
+  // 第一行：「$本月 日常消费 · 上月 $上月 ▲ 10%」——本月金额和下面各行一样大；上月小一号；花得比上月多是红 ▲、少是绿 ▼
+  const curL = A ? num(L.at(-1)) : null, prevL = A ? num(L.at(-2)) : null, pct = prevL > 0 ? Math.round(((curL - prevL) / prevL) * 100) : null;
+  const trend = pct == null || pct === 0 ? "" : `<span class="tm-trend ${pct > 0 ? "up" : "down"}" title="${esc(pct > 0 ? t("比上月多 {p}%", { p: pct }) : t("比上月少 {p}%", { p: -pct }))}"><span aria-hidden="true">${pct > 0 ? "▲" : "▼"}</span> ${Math.abs(pct)}%<span class="sr-only">${esc(pct > 0 ? t("比上月多 {p}%", { p: pct }) : t("比上月少 {p}%", { p: -pct }))}</span></span>`;
+  const head = `<p class="tm-main"><b class="tm-amt num">${A ? mask(money(curL)) : LOADING()}</b><span class="tm-lbl">${t("日常消费")}</span>${A ? `<span class="tm-prev">· ${esc(monthLabel(pm))} <span class="num">${mask(money(prevL))}</span></span>${trend}` : ""}</p>`;
   const eye = moneyEye("tm-eye");
   // 标题行点进 财务 → 收支总览（本月）；卡片本身不再是整张链接，金额才能单独点开
   return card({ k: "money", icon: "💰", title: t("钱 · 本月"), headHref: `${href("bills", "income")}?tab=overview&range=m`, headExtra: eye,
