@@ -2711,9 +2711,12 @@ html.force-phone .tm-wrap { grid-template-columns: 1fr; }
 .tc-dash i { position: absolute; left: 0; top: 10px; height: 4px; width: 0; border-radius: 2px; background: var(--pine); }
 .tc-dash[aria-current="true"] { width: 44px; }
 .tc-dash[aria-current="true"] i { width: 100%; }
-.tc-dash.is-run i { width: 0; animation: tcprog 30s linear forwards; }
+.tc-dash.is-run i { width: 0; animation: tcprog 10s linear forwards; }   /* 秒数由行内 animation-duration 定（⚙ 里选） */
+.tc-dashes.is-off .tc-dash.is-run i { animation: none; width: 100%; }
 @keyframes tcprog { from { width: 0; } to { width: 100%; } }
-.tcarousel:hover .tc-dash.is-run i, .tcarousel:focus-within .tc-dash.is-run i, .tcarousel.is-hold .tc-dash.is-run i { animation-play-state: paused; }
+/* 停住：手指按着；键盘焦点在里面；鼠标停在卡片上（只限有鼠标的设备——手机点过以后 :hover 会一直留着，不能用它停） */
+.tcarousel.is-hold .tc-dash.is-run i, .tcarousel:has(:focus-visible) .tc-dash.is-run i, .tcarousel:has(.tc-gear[open]) .tc-dash.is-run i { animation-play-state: paused; }
+@media (hover: hover) and (pointer: fine) { .tc-view:hover ~ .tc-ctrl .tc-dash.is-run i { animation-play-state: paused; } }
 @media (prefers-reduced-motion: reduce) { .tc-dash.is-run i { animation: none; width: 100%; } }
 .tc-dash:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
 .tc-nav { width: 32px; height: 32px; }
@@ -2773,3 +2776,10 @@ html.money-hide [data-money].is-peek { background: color-mix(in srgb, var(--must
 .tcard-head .money-eye { width: 32px; height: 32px; margin: -2px 0 -2px 6px; }
 .money-eye-row { display: flex; justify-content: flex-end; margin: 0 0 6px; }
 .money-eye-row + .kpis, .money-eye-row + .sum-main { margin-top: 0; }
+/* ⚙ 自动切换时间：控制行最右边，菜单向上弹 */
+.tc-ctrl { position: relative; }
+.tc-gear { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+.tc-gear > summary.tc-nav { list-style: none; font-size: 15px; color: var(--muted); }
+.tc-gear > summary::-webkit-details-marker { display: none; }
+.tc-gear .act-menu { min-width: 132px; right: 0; }
+.tc-gear .act-item[aria-pressed="true"] { color: var(--pine); }
