@@ -72,6 +72,8 @@ import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
 import * as Backup from "./core/backup.js";
 import * as Ask from "./core/ask.js";
 import { viewAbout } from "./settings/about.js";
+import { initReleases, releasePageHTML } from "./core/releases-ui.js";
+import { RELEASES } from "./releases-data.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
 import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, newCatKey } from "./core/categories.js";
@@ -235,7 +237,7 @@ const VIEWS = {
   bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
-  me:       { stats: viewStats, settings: viewSettings, about: viewAbout },
+  me:       { stats: viewStats, settings: viewSettings, about: viewAbout, releases: releasePageHTML },
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
 const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "onetime" && !!r.q.get("bill")) || (r.section === "bills" && r.sub === "income" && !!state.inc?.form) || (r.section === "me" && r.sub === "settings" && !!r.q.get("member"));   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
@@ -258,7 +260,7 @@ function applyChrome() {
 /* 顶栏右上角的语言切换（登录页也显示）：一个按钮，点开是列表（宽屏浮层 / 手机底部抽屉），以后加语言只要在 LANGS 里加一项；和 设置 → 语言 存同一个值 */
 const uiKind = () => (lang === "en" ? "en" : lang === "zh-Hant" ? "tw" : "zh");
 function renderLangSwitch() {
-  const ver = $("#appVer"); if (ver) ver.textContent = "v" + APP_VERSION; // 版本号放在顶栏，不用翻到“我的”页底部
+  const ver = $("#appVer"); if (ver) { ver.textContent = "v" + APP_VERSION; ver.setAttribute("aria-label", `${t("发布日志")} · v${APP_VERSION}`); ver.title = t("发布日志"); }   // 版本号放在顶栏，点一下进 我的 → 发布日志
   mountLangSwitcher({ host: $("#langSwitch"), languages: Object.entries(LANGS).map(([code, name]) => ({ code, name })), current: lang, ui: uiKind(), onSelect: (code) => changeLang(code) });
 }
 
@@ -1714,6 +1716,8 @@ function dupNameCheck(v, exceptId) {
 export async function boot() {
   Backup.initProviders(toast);   // 从 Dropbox 授权页跳回来时把 ?code= 换成令牌，再跳到备份页
   window.__hmhBooted = true;   // 告诉 index.html 的启动自检：主脚本已经运行
+  // 发布日志（js/core/releases-ui.js，四个姊妹应用共用）：记这台设备「新版本」提示出现几次；今日页顶上画提示，我的 → 发布日志 是整页
+  initReleases({ version: APP_VERSION, releases: RELEASES, lang: () => lang, accent: "var(--pine)", appId: "home-pantry", open: `href="${href("me", "releases")}"` });
   if (lang === "zh-Hant") await loadOpenCC();   // 繁體：先把转换库拉下来再渲染，避免先简后繁闪一下
   applyChrome();
   fillUnitList();

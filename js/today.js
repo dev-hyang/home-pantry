@@ -14,6 +14,7 @@ import { currentWeather, enableWeather, wxLoc } from "./core/weather.js";
 import { aiIcon, aiQuota, aiReady } from "./core/ai.js";
 import { Store } from "./core/store.js";
 import { href } from "./core/router.js";
+import { releaseBadgeHTML } from "./core/releases-ui.js";
 import { esc, money, num, spaceOf } from "./core/util.js";
 import { joinList, locale, t } from "./core/i18n.js";
 import { propertyActive } from "./core/lifecycle.js";
@@ -62,6 +63,7 @@ export function viewToday() {
   const cards = [todoCard(all, counts), homeCard(fin), fin && state.billsEnabled ? moneyCard() : "", quickCard()].filter(Boolean);
   return `
     ${headHtml()}
+    ${releaseBadgeHTML() ? `<section class="section today-rl">${releaseBadgeHTML()}</section>` : ""}
     ${aiBlock()}
     ${noProfile ? `<section class="section"><div class="panel cta-panel">
       <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的房屋耗材。")}</p></div>

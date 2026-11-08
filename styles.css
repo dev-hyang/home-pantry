@@ -77,6 +77,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .top-tools { display: inline-flex; align-items: center; gap: 2px; }
 /* 版本号：和另外三个站一样放在右上角切换按钮下面，对照更新不用翻到最后一页 */
 .appver { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; margin-right: 4px; margin-top: 1px; }   /* 语言、应用两个 44px 触控按钮并排 */
+/* 版本号是链接（顶栏 + 我的 页底）：点一下进 我的 → 发布日志；样子不变，悬停 / 键盘聚焦时才有下划线 */
+a.appver, a.ver-link { color: var(--muted); text-decoration: none; border-radius: 4px; }
+a.appver:hover, a.ver-link:hover, a.appver:focus-visible, a.ver-link:focus-visible { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+/* 今日页顶上的「新版本」提示（js/core/releases-ui.js 画，问候下面、卡片上面） */
+.today-rl { margin-bottom: 16px; }
+.today-rl .rl-badge { margin: 0; }
 /* 设置页姐妹站点列表 */
 .app-list { list-style: none; margin: 10px 0 0; padding: 0; }
 .app-list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); }

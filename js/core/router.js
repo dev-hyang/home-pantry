@@ -13,7 +13,7 @@ export const SECTIONS = {
   bills:    { name: "财务",   subs: [["overview", "概览"], ["recurring", "周期性账单"], ["onetime", "一次性账单"], ["spend", "花费"], ["income", "收入"], ["statements", "对账单"], ["budget", "预算"], ["cards", "卡与账户"], ["assets", "资产"], ["debts", "借贷"], ["networth", "净资产"], ["template", "常用账单", true]] },
   shopping: { name: "采购",   subs: null },
   scan:     { name: "录入购物", subs: null },   // #/scan：拍小票 / 贴线上订单，AI 读成清单后入库（底栏高亮“采购”）
-  me:       { name: "我的",   subs: [["stats", "家里的数字"], ["settings", "设置"], ["about", "介绍"]] },
+  me:       { name: "我的",   subs: [["stats", "家里的数字"], ["settings", "设置"], ["about", "介绍"], ["releases", "发布日志"]] },
   item:     { name: "物品",   subs: null },   // #/item/new?cat=xx 或 #/item/<id>
   asset:    { name: "设备",   subs: null },   // #/asset/new?type=xx 或 #/asset/<id>（含保养记录）
   bill:     { name: "账单",   subs: null },   // #/bill/new?category=xx 或 #/bill/<id>（含缴费记录）

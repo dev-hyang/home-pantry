@@ -65,6 +65,7 @@ const META = {
     stats:    { icon: "📊", desc: "年度回顾、最常用、补货节奏、谁在出力、保养与季节任务、一周节奏、浪费（钱的统计在 财务 → 花费）" },
     settings:  { icon: "⚙️", desc: "家庭成员、邀请码、房产、语言、模块、备份" },
     about:     { icon: "✎", desc: "这个网站是什么、怎么用、注意事项" },
+    releases:  { icon: "📰", desc: "每次更新了什么" },
   },
 };
 /* 财务目录分组（2026-11，P1 信息架构）：同一页里的小标题，不多一层（底栏 → 目录 → 页面 → 页内标签）。
@@ -182,7 +183,7 @@ export function viewMenu(section) {
     ${apps.length ? `<div class="section-head" style="margin-top:22px"><h2>${t("姐妹站点")}</h2></div>
       <div class="panel mlist">${apps.map((a) => menuRow({ href: a.url, icon: a.icon, title: t(a.name), desc: t(a.sub) })).join("")}</div>
       <p class="muted" style="font-size:13px;margin:8px 0 0">${t("同一作者的其他小工具，顶栏站名旁的小胶囊也能切换。")}</p>` : ""}
-    ${section === "me" ? `<p class="muted" style="margin-top:24px;font-size:13px">${t("爱家小助手")} · ${t("版本 {v}", { v: APP_VERSION })}</p>` : ""}
+    ${section === "me" ? `<p class="muted" style="margin-top:24px;font-size:13px">${t("爱家小助手")} · <a class="ver-link" href="${href("me", "releases")}" aria-label="${esc(t("发布日志"))}">${t("版本 {v}", { v: APP_VERSION })}</a></p>` : ""}
   </section>`;
 }
 
