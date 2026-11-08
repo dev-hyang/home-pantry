@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-08.2", title: { zh: "发布日志可以按天或按版本分组，补上了早期的更新记录", en: "Release notes group by day or version, with the full early history" }, items: [
+    { k: "new", zh: "发布日志新增「分组」：按版本或按天，记住你的选择", en: "New \"Group\" option in release notes: by version or by day, remembered" },
+    { k: "better", zh: "补上了从上线第一天起的更新记录", en: "Updates are now listed all the way back to the first day" },
+  ] },
   { v: "2026-11-08.1", title: { zh: "新增「发布日志」：看看每次更新了什么", en: "New: release notes for every update" }, items: [
     { k: "new", zh: "我的 → 发布日志：按类型、时间筛选，列表或时间线查看", en: "Me → Release notes: filter by type or time, as a list or timeline" },
     { k: "new", zh: "有新版本时，今日页顶上会出现一条提示，点开就能看", en: "After an update, Today shows a short note at the top; tap it to see what changed" },
@@ -234,5 +238,465 @@ export const RELEASES = [
     { k: "new", zh: "新增小家电和季节电器，带清洁和安全提醒", en: "Small and seasonal appliances, with cleaning and safety reminders" },
     { k: "new", zh: "设备召回：停用提醒和处理流程", en: "Equipment recalls: stop-use alerts and steps to resolve" },
     { k: "better", zh: "图表的日期不再挤在一起", en: "Chart dates no longer overlap" },
+  ] },
+  { v: "2026-10-31.1", title: { zh: "收入分类更细，看法和花费一样", en: "Income gets subcategories and spending-style views" }, items: [
+    { k: "new", zh: "收入分大类和小类", en: "Income has categories and subcategories" },
+    { k: "better", zh: "收入的时间范围、点图看明细，和花费一致", en: "Income time ranges and tap-through charts work like spending" },
+    { k: "better", zh: "付款方可以搜索和排序", en: "Payers can be searched and sorted" },
+    { k: "fix", zh: "近 5 年的花费少算了一部分", en: "Spending over 5 years was undercounted" },
+  ] },
+  { v: "2026-10-28.7", title: { zh: "应用切换里加入「稻种账本」", en: "Rice Seed Ledger joins the app switcher" }, items: [
+    { k: "new", zh: "右上角切换应用时可以打开「稻种账本」", en: "Open Rice Seed Ledger from the app switcher" },
+  ] },
+  { v: "2026-10-28.6", title: { zh: "收起不丢草稿，新增返回按钮", en: "Drafts stay when rows close; new Back button" }, items: [
+    { k: "better", zh: "明细行收起时保留没填完的内容", en: "Closing a row keeps what you've typed" },
+    { k: "new", zh: "记收入可以设默认付款方和类型", en: "Set a default payer and type for new income" },
+    { k: "better", zh: "手机上库存用下拉选分类和小类", en: "On phones, pick category and subcategory from dropdowns" },
+    { k: "new", zh: "路径旁加「‹ 返回」按钮", en: "A \"‹ Back\" button next to the page path" },
+  ] },
+  { v: "2026-10-28.5", title: { zh: "英文提示补齐", en: "English text filled in" }, items: [
+    { k: "better", zh: "「再点一下收起」也有英文了", en: "\"Tap again to close\" now shows in English" },
+  ] },
+  { v: "2026-10-28.4", title: { zh: "展开的行再点一下就收起", en: "Tap an open row again to close it" }, items: [
+    { k: "better", zh: "收入和花费明细里，再点一下正在编辑的行就收起", en: "In income and spending lists, tap the row you're editing to close it" },
+  ] },
+  { v: "2026-10-28.3", title: { zh: "手机上金额不再折行", en: "Amounts no longer wrap on phones" }, items: [
+    { k: "better", zh: "手机上金额字号小一号，数字对得更齐", en: "Amounts are a size smaller on phones and line up neatly" },
+  ] },
+  { v: "2026-10-28.2", title: { zh: "所有金额都显示到分", en: "All amounts show cents" }, items: [
+    { k: "fix", zh: "花费等页面上千的金额不再被四舍五入", en: "Amounts over 1,000 on spending and other pages are no longer rounded" },
+  ] },
+  { v: "2026-10-28.1", title: { zh: "收入金额显示到分", en: "Income amounts show cents" }, items: [
+    { k: "fix", zh: "收入金额的小数被四舍五入的问题", en: "Income amounts were rounded to whole numbers" },
+  ] },
+  { v: "2026-10-27.22", title: { zh: "收入明细可以正常编辑了", en: "Income entries can be edited again" }, items: [
+    { k: "fix", zh: "点收入行不能编辑、「手动记一笔」没反应", en: "Tapping an income row or \"Add manually\" did nothing" },
+  ] },
+  { v: "2026-10-27.21", title: { zh: "小更新", en: "Small update" }, items: [
+    { k: "better", zh: "后台整理，使用上没有变化", en: "Behind-the-scenes tidy-up; nothing changes for you" },
+  ] },
+  { v: "2026-10-27.20", title: { zh: "加入家庭更安全", en: "Safer family joining" }, items: [
+    { k: "new", zh: "邀请码 7 天过期，家主可重新生成或关闭", en: "Invite codes expire after 7 days; owners can renew or close them" },
+    { k: "new", zh: "新加入的人要家主批准后才能看到数据", en: "New members see nothing until an owner approves them" },
+  ] },
+  { v: "2026-10-27.19", title: { zh: "新增「全部流水」", en: "New: all transactions" }, items: [
+    { k: "new", zh: "花费和收入按时间排在一起看", en: "See spending and income together in date order" },
+    { k: "better", zh: "可按时间、花费或收入筛选", en: "Filter by time range, spending or income" },
+  ] },
+  { v: "2026-10-27.18", title: { zh: "新增「对账单」", en: "New: statements" }, items: [
+    { k: "new", zh: "一份对账单同时导入花费和收入", en: "One statement imports both spending and income" },
+    { k: "new", zh: "花费、收入可以导出和打印", en: "Export and print spending and income" },
+    { k: "fix", zh: "收入明细的两个小问题", en: "Two small problems in the income list" },
+  ] },
+  { v: "2026-10-27.17", title: { zh: "收入的入账账户可以直接选", en: "Pick the receiving account for income" }, items: [
+    { k: "better", zh: "入到哪个账户改成下拉，和记花费一样", en: "The receiving account is a dropdown, same as for spending" },
+  ] },
+  { v: "2026-10-27.16", title: { zh: "收入明细更好用", en: "Easier income list" }, items: [
+    { k: "better", zh: "点整行就能编辑收入", en: "Tap anywhere on a row to edit the income" },
+    { k: "new", zh: "收入也能左滑删除", en: "Swipe left to delete income" },
+  ] },
+  { v: "2026-10-27.15", title: { zh: "交易清单可以跳过步骤", en: "Skip steps in a deal checklist" }, items: [
+    { k: "new", zh: "用不上的步骤可以跳过，不算延误也不提醒", en: "Skip steps you don't need; they don't count as late or remind you" },
+    { k: "better", zh: "每个阶段后面显示完成情况", en: "Each stage shows how much is done" },
+  ] },
+  { v: "2026-10-27.14", title: { zh: "更新后新功能马上能用", en: "New features work right after an update" }, items: [
+    { k: "fix", zh: "更新后有些新页面还是旧的", en: "Some new pages still showed the old version after an update" },
+  ] },
+  { v: "2026-10-27.13", title: { zh: "记交易进展可以保存了", en: "Deal progress notes save again" }, items: [
+    { k: "fix", zh: "「记一笔进展」点保存没反应", en: "Saving a deal progress note did nothing" },
+  ] },
+  { v: "2026-10-27.12", title: { zh: "交易的计划和实际分开看", en: "Deals show plan and actual separately" }, items: [
+    { k: "new", zh: "房产和汽车交易记住原计划日期", en: "Home and car deals remember the original plan dates" },
+    { k: "better", zh: "改了日期也能看出提前还是延误", en: "After dates change you can still see what's early or late" },
+  ] },
+  { v: "2026-10-27.11", title: { zh: "收入页打不开的问题", en: "Income page wouldn't open" }, items: [
+    { k: "fix", zh: "点「收入」时应用出错", en: "Opening Income caused an error" },
+  ] },
+  { v: "2026-10-27.10", title: { zh: "收入页和花费页一样好用", en: "Income page works like spending" }, items: [
+    { k: "better", zh: "收入分概览、明细、类型、付款方、收支对比", en: "Income has Overview, Records, Types, Payers and In vs out" },
+    { k: "better", zh: "可以按时间和家人筛选", en: "Filter by time range and family member" },
+  ] },
+  { v: "2026-10-27.9", title: { zh: "导入的收入可以直接查看", en: "View imported income directly" }, items: [
+    { k: "better", zh: "导入批次里有收入时，可以一键看这批收入", en: "If an import includes income, open just that batch's income" },
+  ] },
+  { v: "2026-10-27.8", title: { zh: "记收入有三种方式", en: "Three ways to record income" }, items: [
+    { k: "new", zh: "手动记、拍照识别或导入对账单", en: "Enter by hand, scan a photo or import a statement" },
+    { k: "new", zh: "可识别支票、工资条、转账截图", en: "Recognises checks, pay stubs and transfer screenshots" },
+  ] },
+  { v: "2026-10-27.7", title: { zh: "看看用了多少存储空间", en: "See how much storage is used" }, items: [
+    { k: "new", zh: "设置 → 存储用量：快满时变黄、变红", en: "Settings → Storage: turns yellow, then red, as it fills up" },
+  ] },
+  { v: "2026-10-27.6", title: { zh: "收入只有一个入口", en: "One place for income" }, items: [
+    { k: "better", zh: "预期收入和预算并入收入页，不用再去设置里找", en: "Expected income and budget planning moved into the Income page" },
+  ] },
+  { v: "2026-10-27.4", title: { zh: "收入页面排版修好", en: "Income page layout fixed" }, items: [
+    { k: "fix", zh: "收入金额和明细行的显示错乱", en: "Income amounts and rows displayed wrongly" },
+  ] },
+  { v: "2026-10-27.3", title: { zh: "还给别人的钱也算进花费", en: "Money paid back counts as spending" }, items: [
+    { k: "fix", zh: "还给个人的钱默认同时记一笔花费", en: "Paying someone back also records a spending entry by default" },
+  ] },
+  { v: "2026-10-27.2", title: { zh: "新增收入记录", en: "New: income" }, items: [
+    { k: "new", zh: "记录每一笔进账，和花费分开", en: "Record money coming in, kept apart from spending" },
+    { k: "new", zh: "家主看全家的，其他人只看自己记的", en: "Owners see the whole family's; others see only their own" },
+  ] },
+  { v: "2026-10-27.1", title: { zh: "注意事项按来源筛选更方便", en: "Easier filtering of alerts by source" }, items: [
+    { k: "better", zh: "注意事项来源改成下拉，带数量", en: "Alert sources are a dropdown with counts" },
+    { k: "better", zh: "「全部加入采购」只在看储藏时出现", en: "\"Add all to shopping\" only shows for Storage alerts" },
+  ] },
+  { v: "2026-10-26.94", title: { zh: "导入时可以取消误判的跳过", en: "Undo a wrong skip when importing" }, items: [
+    { k: "new", zh: "核对后可把「疑似已记录」的那笔照样导入", en: "After checking, import entries flagged as possibly recorded" },
+  ] },
+  { v: "2026-10-26.93", title: { zh: "小更新", en: "Small update" }, items: [
+    { k: "better", zh: "后台整理，使用上没有变化", en: "Behind-the-scenes tidy-up; nothing changes for you" },
+  ] },
+  { v: "2026-10-26.92", title: { zh: "重新导入不再误判", en: "Re-imports no longer misflag entries" }, items: [
+    { k: "fix", zh: "撤销后重新导入，记录被误判为已记录", en: "After undoing an import, re-importing flagged entries as already recorded" },
+  ] },
+  { v: "2026-10-26.91", title: { zh: "导入批次可以改日期", en: "Change an import batch's dates" }, items: [
+    { k: "new", zh: "批次的起止日期读错时可以手动改", en: "Fix a batch's start and end dates by hand if they were read wrong" },
+  ] },
+  { v: "2026-10-26.90", title: { zh: "Chase 对账单转账判断更准", en: "More accurate Chase transfers" }, items: [
+    { k: "fix", zh: "只有自己账户之间的转账才不算花费", en: "Only transfers between your own accounts are left out of spending" },
+  ] },
+  { v: "2026-10-26.89", title: { zh: "转给别人的钱也记成花费", en: "Money sent to others counts as spending" }, items: [
+    { k: "fix", zh: "转账给别人和取现不再被当成内部转账跳过", en: "Payments to others and cash withdrawals are no longer skipped as transfers" },
+  ] },
+  { v: "2026-10-26.88", title: { zh: "导入记录的文件名存得更全", en: "Longer file names in import history" }, items: [
+    { k: "fix", zh: "一次导多份对账单时文件名能完整保存", en: "File names are kept in full when importing several statements" },
+  ] },
+  { v: "2026-10-26.87", title: { zh: "导入日期范围更准", en: "More accurate import date ranges" }, items: [
+    { k: "fix", zh: "导入的日期范围不再出现无关的老年份", en: "Import date ranges no longer stretch back to unrelated years" },
+  ] },
+  { v: "2026-10-26.86", title: { zh: "各账户补到哪个月显示正确", en: "Statement coverage shows correctly" }, items: [
+    { k: "fix", zh: "导入后「各账户已补到哪个月」没更新", en: "\"Covered up to\" per account didn't update after an import" },
+  ] },
+  { v: "2026-10-26.85", title: { zh: "小更新", en: "Small update" }, items: [
+    { k: "better", zh: "后台整理，使用上没有变化", en: "Behind-the-scenes tidy-up; nothing changes for you" },
+  ] },
+  { v: "2026-10-26.84", title: { zh: "导入记录的文件名不再截断", en: "Import file names no longer cut off" }, items: [
+    { k: "fix", zh: "导入多份对账单时文件名被截断", en: "File names were cut off when importing several statements" },
+  ] },
+  { v: "2026-10-26.83", title: { zh: "储藏里加了「采购」", en: "Shopping added under Storage" }, items: [
+    { k: "new", zh: "储藏下多一页「采购」，带待买数量", en: "Storage gets a Shopping page with the number to buy" },
+    { k: "better", zh: "导入记录的账户筛选更好用", en: "Easier account filter for imports" },
+  ] },
+  { v: "2026-10-26.82", title: { zh: "买到的东西自动从采购清单勾掉", en: "Bought items tick off the shopping list" }, items: [
+    { k: "fix", zh: "记花费或拍小票后，清单里对应的项自动标成已买到", en: "Recording a purchase or scanning a receipt marks the list item as bought" },
+  ] },
+  { v: "2026-10-26.81", title: { zh: "操作提示更好读", en: "Easier-to-read messages" }, items: [
+    { k: "better", zh: "操作结果提示改成卡片，分行显示", en: "Result messages show as a card, one point per line" },
+  ] },
+  { v: "2026-10-26.80", title: { zh: "记花费时提醒可能重复", en: "Duplicate warning when adding spending" }, items: [
+    { k: "new", zh: "金额、日期相近的花费会提醒可能记重了", en: "Similar amount and date? You're warned it may be a duplicate" },
+  ] },
+  { v: "2026-10-26.79", title: { zh: "英文界面补全", en: "English text completed" }, items: [
+    { k: "better", zh: "全站英文翻译补齐", en: "English translations filled in across the app" },
+  ] },
+  { v: "2026-10-26.78", title: { zh: "停用的卡更好找", en: "Easier to find retired cards" }, items: [
+    { k: "better", zh: "停用的卡按种类计数，可以搜索和筛选", en: "Retired cards show counts by type and can be searched and filtered" },
+  ] },
+  { v: "2026-10-26.77", title: { zh: "用卡页整理礼品卡", en: "Gift cards organised on the Cards page" }, items: [
+    { k: "new", zh: "礼品卡单独一组，显示余额合计", en: "Gift cards get their own group with a total balance" },
+    { k: "better", zh: "删除卡时可以选花费记录怎么处理", en: "When deleting a card, choose what happens to its spending" },
+  ] },
+  { v: "2026-10-26.76", title: { zh: "每笔花费记下怎么付的", en: "Record how each purchase was paid" }, items: [
+    { k: "new", zh: "记花费、采购、保养费用都能选付款方式", en: "Choose the payment method for spending, shopping and upkeep costs" },
+  ] },
+  { v: "2026-10-26.75", title: { zh: "设备坏了可以问「出了问题？」", en: "\"Something wrong?\" for home fixtures" }, items: [
+    { k: "new", zh: "门窗、马桶、水龙头等固定装置单独管理", en: "Fixtures like doors, windows, toilets and faucets are tracked separately" },
+    { k: "new", zh: "出了问题时给出排查和处理建议", en: "Get troubleshooting tips when something goes wrong" },
+  ] },
+  { v: "2026-10-26.74", title: { zh: "花费明细可以多选删除", en: "Delete several spending entries at once" }, items: [
+    { k: "new", zh: "勾选多笔一起删，删除前确认笔数和合计", en: "Select several entries and delete them, after confirming count and total" },
+  ] },
+  { v: "2026-10-25.73", title: { zh: "导入批次的明细稳定显示", en: "Import batch details show reliably" }, items: [
+    { k: "fix", zh: "查看导入批次时明细时有时无", en: "Import batch details sometimes disappeared" },
+  ] },
+  { v: "2026-10-25.72", title: { zh: "HOA 每月总计随时算好", en: "HOA monthly total updates as you type" }, items: [
+    { k: "better", zh: "改任何一项费用，每月总计马上更新", en: "Change any fee and the monthly total updates right away" },
+  ] },
+  { v: "2026-10-25.71", title: { zh: "房屋资料新增产权、税务与车位", en: "Home info: ownership, tax and parking" }, items: [
+    { k: "new", zh: "记房产税号、税务减免和车位", en: "Record the property tax number, exemptions and parking" },
+  ] },
+  { v: "2026-10-25.70", title: { zh: "随手问咩咩", en: "Ask Baa Baa anywhere" }, items: [
+    { k: "new", zh: "房屋、账单每一项旁有小问号", en: "A small ? next to each home and bill item" },
+    { k: "new", zh: "点开看为什么、怎么做、何时找人，也能一键提问", en: "See why, how and when to call someone, or ask with one tap" },
+  ] },
+  { v: "2026-10-25.69", title: { zh: "备份记录不再消失", en: "Backup history no longer disappears" }, items: [
+    { k: "fix", zh: "Google 登录过期时备份记录被清空", en: "Backup history was wiped when the Google sign-in expired" },
+    { k: "better", zh: "登录过期会提示重新授权", en: "You're prompted to sign in again when it expires" },
+  ] },
+  { v: "2026-10-25.68", title: { zh: "「小Y问」改名「咩咩咩」", en: "\"Ask Y\" is now \"Baa Baa\"" }, items: [
+    { k: "better", zh: "助理改叫「咩咩」，换上卡通小羊图标", en: "The assistant is now called Baa Baa, with a cartoon sheep icon" },
+  ] },
+  { v: "2026-10-25.67", title: { zh: "同步、备份与恢复页更清楚", en: "Clearer Sync & backup page" }, items: [
+    { k: "better", zh: "同步和备份各一块，状态和按钮放在一起", en: "Sync and backup each get one card with status and buttons together" },
+  ] },
+  { v: "2026-10-25.66", title: { zh: "备份频率设置修好", en: "Backup frequency setting fixed" }, items: [
+    { k: "fix", zh: "「每隔几天」只在选自定义时出现", en: "\"Every N days\" only shows when Custom is chosen" },
+  ] },
+  { v: "2026-10-25.65", title: { zh: "同步和备份放在一起", en: "Sync and backup in one place" }, items: [
+    { k: "better", zh: "同步状态和「立即同步」挪进「同步、备份与恢复」", en: "Sync status and \"Sync now\" moved into Sync & backup" },
+  ] },
+  { v: "2026-10-25.64", title: { zh: "Google Drive 选文件夹修好", en: "Google Drive folder picking fixed" }, items: [
+    { k: "fix", zh: "选了 Drive 文件夹后备份可能写不进去", en: "Backups could fail after picking a Drive folder" },
+  ] },
+  { v: "2026-10-25.63", title: { zh: "可以在 Drive 里选文件夹了", en: "Pick a folder in Google Drive" }, items: [
+    { k: "new", zh: "备份时能从 Google Drive 里选已有的文件夹", en: "Choose an existing Google Drive folder for backups" },
+  ] },
+  { v: "2026-10-25.62", title: { zh: "Drive 路径加了说明", en: "Tip for the Drive path" }, items: [
+    { k: "better", zh: "说明怎样用 Drive 里已有的文件夹", en: "Explains how to use a folder that's already in Drive" },
+  ] },
+  { v: "2026-10-25.61", title: { zh: "云盘不用重新连接", en: "No need to reconnect cloud drives" }, items: [
+    { k: "fix", zh: "升级后原来连好的云盘自动保留", en: "Connected cloud drives stay connected after the update" },
+    { k: "better", zh: "备份结果显示 Google Drive、Dropbox 名称", en: "Backup results name Google Drive or Dropbox" },
+  ] },
+  { v: "2026-10-25.60", title: { zh: "恢复更安全，云盘连一次全通", en: "Safer restore; connect cloud drives once" }, items: [
+    { k: "better", zh: "恢复只补缺的数据，不覆盖不删除", en: "Restore only fills in missing data; nothing is overwritten or deleted" },
+    { k: "better", zh: "四个应用共用云盘连接，连一次就行", en: "All four apps share the cloud drive connection" },
+  ] },
+  { v: "2026-10-25.59", title: { zh: "可以连接 Google Drive", en: "Google Drive connection ready" }, items: [
+    { k: "new", zh: "备份页能连接 Google Drive 了", en: "The backup page can now connect to Google Drive" },
+  ] },
+  { v: "2026-10-25.58", title: { zh: "备份可以直接存到云盘", en: "Back up straight to cloud drives" }, items: [
+    { k: "new", zh: "备份可直连 Google Drive 或 Dropbox", en: "Back up directly to Google Drive or Dropbox" },
+  ] },
+  { v: "2026-10-25.57", title: { zh: "备份页重新排版", en: "Backup page redesigned" }, items: [
+    { k: "better", zh: "状态卡、两个主按钮，频率一点就选", en: "Status card, two main buttons and one-tap frequency" },
+    { k: "new", zh: "可以勾选备份到哪里", en: "Choose where backups go" },
+  ] },
+  { v: "2026-10-25.56", title: { zh: "小更新", en: "Small update" }, items: [
+    { k: "better", zh: "后台整理，使用上没有变化", en: "Behind-the-scenes tidy-up; nothing changes for you" },
+  ] },
+  { v: "2026-10-25.55", title: { zh: "新增备份与恢复", en: "New: backup and restore" }, items: [
+    { k: "new", zh: "全家数据一键备份或下载", en: "Back up or download all family data in one tap" },
+    { k: "new", zh: "按周、按月自动备份", en: "Automatic weekly or monthly backups" },
+  ] },
+  { v: "2026-10-25.54", title: { zh: "缴费记录和到期日对得上", en: "Payments and due dates stay in step" }, items: [
+    { k: "fix", zh: "编辑或补记缴费后，下次到期日不对", en: "The next due date was wrong after editing or adding a payment" },
+  ] },
+  { v: "2026-10-25.53", title: { zh: "扣款卡到期按卡提醒", en: "Card expiry reminders follow the card" }, items: [
+    { k: "better", zh: "账单选了卡后，按那张卡的到期日提醒", en: "Bills paid by card remind you based on that card's expiry" },
+  ] },
+  { v: "2026-10-25.52", title: { zh: "银行账户也能登记", en: "Add bank accounts too" }, items: [
+    { k: "new", zh: "用卡里能加支票和储蓄账户", en: "Add checking and savings accounts under Cards" },
+    { k: "better", zh: "账单的扣款账户直接从卡和账户里选", en: "Pick a bill's payment account from your cards and accounts" },
+  ] },
+  { v: "2026-10-24.51", title: { zh: "导入记住的归类更聪明", en: "Smarter remembered import categories" }, items: [
+    { k: "better", zh: "常用的归类留着，可一键清理多余的", en: "Frequently used rules are kept; clear extras in one tap" },
+  ] },
+  { v: "2026-10-24.50", title: { zh: "花费可以看「本月」", en: "Spending: This month" }, items: [
+    { k: "new", zh: "时间范围加「本月」", en: "\"This month\" added to time ranges" },
+    { k: "better", zh: "顶部数字随时间范围变化，带同期对比", en: "Top numbers follow the time range, with a comparison" },
+  ] },
+  { v: "2026-10-24.49", title: { zh: "导入老对账单后能看到明细", en: "Old statement imports show their entries" }, items: [
+    { k: "fix", zh: "查看老对账单的导入批次时什么都没有", en: "Viewing an older statement's import showed nothing" },
+  ] },
+  { v: "2026-10-24.48", title: { zh: "导入记录更整齐", en: "Tidier import history" }, items: [
+    { k: "better", zh: "最近 10 批直接显示，更早的折叠起来", en: "The latest 10 imports show; older ones are folded away" },
+  ] },
+  { v: "2026-10-24.47", title: { zh: "法律税务账单分类修正", en: "Legal & tax bills back in place" }, items: [
+    { k: "fix", zh: "法律税务账单放回「政务与手续」", en: "Legal and tax bills moved back to Government & paperwork" },
+  ] },
+  { v: "2026-10-24.46", title: { zh: "新增「工作与专业」花费", en: "New: work & professional spending" }, items: [
+    { k: "new", zh: "软件、考证、专业咨询、办公用品等单独一组", en: "Software, licences, professional fees and office supplies get their own group" },
+  ] },
+  { v: "2026-10-24.45", title: { zh: "花费页手机排版更顺", en: "Better spending layout on phones" }, items: [
+    { k: "better", zh: "时间、数字、图表连在一起，其他入口放到下面", en: "Time range, numbers and charts sit together; other links move below" },
+  ] },
+  { v: "2026-10-24.44", title: { zh: "花费的时间和月份放在一条", en: "Time range and month in one bar" }, items: [
+    { k: "better", zh: "时间范围和月份筛选合到同一条，不易漏看", en: "Time range and month filters share one bar so they're easy to spot" },
+  ] },
+  { v: "2026-10-24.43", title: { zh: "Costco 加油归类正确", en: "Costco gas sorted correctly" }, items: [
+    { k: "fix", zh: "导入时加油站消费被归成超市", en: "Imported gas station purchases were sorted as groceries" },
+  ] },
+  { v: "2026-10-24.42", title: { zh: "花费可以看往年", en: "View spending from past years" }, items: [
+    { k: "new", zh: "时间范围加今年和往年", en: "Time ranges include this year and past years" },
+    { k: "better", zh: "记花费的三种方式并排：手动、拍小票、导入", en: "Three ways to add spending side by side: manual, receipt, import" },
+  ] },
+  { v: "2026-10-24.41", title: { zh: "花费页整理", en: "Spending page tidied" }, items: [
+    { k: "better", zh: "「采购花费」改叫「花费」", en: "\"Shopping spend\" is now just \"Spending\"" },
+    { k: "better", zh: "时间范围改成下拉", en: "The time range is a dropdown" },
+  ] },
+  { v: "2026-10-24.40", title: { zh: "花费分类重新整理", en: "Spending categories reorganised" }, items: [
+    { k: "better", zh: "每个分类只属于一处，统计不再重复", en: "Each category belongs in one place, so totals don't overlap" },
+  ] },
+  { v: "2026-10-24.39", title: { zh: "商家名清理修好了", en: "Merchant name clean-up fixed" }, items: [
+    { k: "fix", zh: "上一版没修好的商家名尾巴，这次去掉了", en: "Merchant name endings the last version missed are now removed" },
+  ] },
+  { v: "2026-10-24.38", title: { zh: "商家名清理", en: "Merchant name clean-up" }, items: [
+    { k: "fix", zh: "导入时去掉商家名后面多余的尾巴", en: "Extra text at the end of imported merchant names is removed" },
+  ] },
+  { v: "2026-10-24.37", title: { zh: "Amazon 不再被归成会员", en: "Amazon no longer sorted as membership" }, items: [
+    { k: "fix", zh: "常见商家按名字归类，不被猜错", en: "Well-known merchants are sorted by name, not guessed" },
+    { k: "better", zh: "只记住你自己选的归类", en: "Only categories you pick yourself are remembered" },
+  ] },
+  { v: "2026-10-24.36", title: { zh: "下拉框可以直接打字找", en: "Type to search in dropdowns" }, items: [
+    { k: "better", zh: "长下拉点进去就能打字筛选", en: "Tap a long dropdown and type to filter" },
+  ] },
+  { v: "2026-10-24.35", title: { zh: "导入归类更准", en: "More accurate import categories" }, items: [
+    { k: "fix", zh: "Amazon、Costco 购物不再都被归成会员费", en: "Amazon and Costco purchases are no longer all sorted as memberships" },
+  ] },
+  { v: "2026-10-24.34", title: { zh: "导入的批次可以查看、修改、撤销", en: "View, edit or undo an import" }, items: [
+    { k: "new", zh: "每批导入都能查看、逐笔修改或整批撤销", en: "Each import can be viewed, edited entry by entry or undone" },
+  ] },
+  { v: "2026-10-24.33", title: { zh: "出错提示更清楚", en: "Clearer error messages" }, items: [
+    { k: "better", zh: "出错时直接说明该怎么处理", en: "Errors explain what to do next" },
+  ] },
+  { v: "2026-10-24.32", title: { zh: "手机上勾选框和文字更清楚", en: "Clearer checkboxes and text on phones" }, items: [
+    { k: "fix", zh: "手机上勾选框变形、输入框文字显示不全", en: "Checkboxes looked odd and input text was cut off on phones" },
+  ] },
+  { v: "2026-10-24.31", title: { zh: "一次性账单页更简洁", en: "Simpler one-time bill page" }, items: [
+    { k: "better", zh: "「记一笔付款」收成按钮，点了才展开", en: "\"Add payment\" is a button that opens the form when needed" },
+  ] },
+  { v: "2026-10-24.30", title: { zh: "再拍一张会新建账单", en: "Another photo starts a new bill" }, items: [
+    { k: "fix", zh: "在已保存的账单页再拍照会改掉这张账单", en: "Taking a photo on a saved bill used to overwrite it" },
+  ] },
+  { v: "2026-10-24.29", title: { zh: "快捷操作可以直接替换", en: "Swap a shortcut in place" }, items: [
+    { k: "better", zh: "编辑时点格子就能换成别的快捷操作", en: "While editing, tap a tile to change it to another shortcut" },
+  ] },
+  { v: "2026-10-24.28", title: { zh: "快捷操作长按拖动排序", en: "Long-press to reorder shortcuts" }, items: [
+    { k: "new", zh: "长按快捷操作格子，拖到想要的位置", en: "Long-press a shortcut tile and drag it into place" },
+  ] },
+  { v: "2026-10-24.27", title: { zh: "快捷操作加入用卡", en: "Card shortcuts" }, items: [
+    { k: "new", zh: "可加「该刷哪张卡」和「添加信用卡」", en: "Add \"Which card to use\" and \"Add credit card\" shortcuts" },
+  ] },
+  { v: "2026-10-24.26", title: { zh: "登录后的小问题修好", en: "Small sign-in fix" }, items: [
+    { k: "fix", zh: "登录后偶尔出现的小错误", en: "A small error that sometimes appeared after signing in" },
+  ] },
+  { v: "2026-10-24.25", title: { zh: "花费能记用了哪张卡", en: "Record which card you used" }, items: [
+    { k: "new", zh: "记花费、采购、导入都能选哪张卡", en: "Choose the card for spending, shopping and imports" },
+    { k: "better", zh: "推荐会考虑开卡奖励、封顶和季度轮换", en: "Suggestions consider sign-up bonuses, caps and rotating categories" },
+  ] },
+  { v: "2026-10-24.24", title: { zh: "新增「用卡」：该刷哪张卡", en: "New: which card to use" }, items: [
+    { k: "new", zh: "登记信用卡：常见卡一键选，也能手填", en: "Add credit cards: pick common ones or enter by hand" },
+    { k: "new", zh: "按返现规则推荐这笔该刷哪张", en: "Suggests the best card for each purchase by its rewards" },
+  ] },
+  { v: "2026-10-24.23", title: { zh: "小更新", en: "Small update" }, items: [
+    { k: "better", zh: "后台整理，使用上没有变化", en: "Behind-the-scenes tidy-up; nothing changes for you" },
+  ] },
+  { v: "2026-10-24.22", title: { zh: "导入对账单认出是哪个账户", en: "Imports recognise the account" }, items: [
+    { k: "new", zh: "导入时自动认出银行和卡号末四位", en: "Imports detect the bank and card's last four digits" },
+    { k: "better", zh: "每批导入记下账户和日期范围", en: "Each import records the account and date range" },
+  ] },
+  { v: "2026-10-24.21", title: { zh: "花钱分类重新设计", en: "Spending groups redesigned" }, items: [
+    { k: "better", zh: "分成日常储备、装备、外出与服务三组", en: "Grouped into Supplies, Equipment, and Out & services" },
+  ] },
+  { v: "2026-10-24.20", title: { zh: "记一笔表单在电脑上不变形", en: "Spending form fixed on larger screens" }, items: [
+    { k: "fix", zh: "电脑和 iPad 上「记一笔」按钮变形", en: "The \"Add\" button looked broken on computers and iPads" },
+  ] },
+  { v: "2026-10-24.19", title: { zh: "家庭开销分类补全", en: "More household spending categories" }, items: [
+    { k: "new", zh: "新增外出就餐、网购、服装、个人护理等日常类别", en: "New everyday categories: dining out, online shopping, clothing, personal care and more" },
+  ] },
+  { v: "2026-10-24.18", title: { zh: "一次性账单新增「旅行」", en: "Trips added to one-time bills" }, items: [
+    { k: "new", zh: "订机票、邮轮、酒店、旅行团，定金尾款分次付", en: "Book flights, cruises, hotels or tours, paying deposit and balance separately" },
+  ] },
+  { v: "2026-10-24.17", title: { zh: "旅行花费计入统计和预算", en: "Travel spending in stats and budget" }, items: [
+    { k: "new", zh: "机票、住宿、租车等旅行花费可以分类记", en: "Record travel costs like flights, lodging and car rental by category" },
+  ] },
+  { v: "2026-10-24.16", title: { zh: "注意事项按钮更清爽", en: "Cleaner alert buttons" }, items: [
+    { k: "better", zh: "每行只露一个主按钮，其他收进「⋯」", en: "Each alert shows one main button; the rest are under \"⋯\"" },
+  ] },
+  { v: "2026-10-24.15", title: { zh: "设置页顺序更顺手", en: "Handier Settings order" }, items: [
+    { k: "better", zh: "常用的设置排在前面", en: "Settings you use most come first" },
+    { k: "fix", zh: "自定义名称翻译在手机上排版错乱", en: "The custom name translations table was squashed on phones" },
+  ] },
+  { v: "2026-10-24.14", title: { zh: "采购改了单位，库存跟着换", en: "Stock follows a changed unit" }, items: [
+    { k: "better", zh: "买到时换了单位，库存数量自动换算", en: "If you change the unit when buying, stock converts automatically" },
+  ] },
+  { v: "2026-10-24.13", title: { zh: "左滑删除不再误触", en: "Swipe-to-delete no longer misfires" }, items: [
+    { k: "fix", zh: "注意事项被误当成可以左滑删除", en: "Alerts could be swiped away by mistake" },
+  ] },
+  { v: "2026-10-24.12", title: { zh: "删缴费记录后到期日退回", en: "Due date rolls back when a payment is deleted" }, items: [
+    { k: "fix", zh: "删除一条缴费记录后，下次到期日退回原来那期", en: "Deleting a payment moves the next due date back" },
+  ] },
+  { v: "2026-10-24.11", title: { zh: "采购清单填写更顺手", en: "Smoother shopping list entry" }, items: [
+    { k: "better", zh: "商店不再自动填上次的，单位可以改", en: "The store isn't pre-filled from last time, and the unit can be changed" },
+    { k: "fix", zh: "左滑露出的删除按钮点了没反应", en: "The swipe delete button didn't respond" },
+  ] },
+  { v: "2026-10-24.10", title: { zh: "AI 模型列表可以手动刷新", en: "Refresh the AI model list" }, items: [
+    { k: "better", zh: "设置里加「↻ 刷新模型列表」按钮", en: "A \"↻ Refresh model list\" button in Settings" },
+  ] },
+  { v: "2026-10-24.9", title: { zh: "左滑删除后列表排版恢复", en: "List layout restored after swipe-to-delete" }, items: [
+    { k: "fix", zh: "左滑删除让明细列表排版乱了", en: "Swipe-to-delete broke the layout of record lists" },
+  ] },
+  { v: "2026-10-24.8", title: { zh: "左滑删除", en: "Swipe to delete" }, items: [
+    { k: "new", zh: "采购、付款、保养、花费等列表可以左滑删除", en: "Swipe left to delete in shopping, payments, upkeep, spending and more" },
+  ] },
+  { v: "2026-10-24.7", title: { zh: "手机上滚动时站名条固定在顶部", en: "Site name stays on top while scrolling" }, items: [
+    { k: "better", zh: "往下滚时顶部留一条站名，点一下回到顶部", en: "A slim title bar stays on top; tap it to jump back up" },
+  ] },
+  { v: "2026-10-24.6", title: { zh: "采购输入框不再超出", en: "Shopping inputs fit their card" }, items: [
+    { k: "fix", zh: "待购买里的输入框超出卡片边界", en: "Inputs in To buy stuck out of the card" },
+  ] },
+  { v: "2026-10-24.5", title: { zh: "采购页重新布局", en: "Shopping page redesigned" }, items: [
+    { k: "better", zh: "待购买、认领中、已买到三块，可以折叠", en: "To buy, Claimed and Bought sections that fold" },
+  ] },
+  { v: "2026-10-24.4", title: { zh: "装备新增「厨房用品」", en: "Kitchenware added to Equipment" }, items: [
+    { k: "new", zh: "餐具、锅具、烘焙工具等记数量和位置", en: "Track dishes, pots and baking tools by count and place" },
+  ] },
+  { v: "2026-10-24.3", title: { zh: "手机上顶栏版本号排得下", en: "Header version fits on phones" }, items: [
+    { k: "fix", zh: "窄屏时版本号放到同步状态下面", en: "On narrow screens the version sits under the sync status" },
+  ] },
+  { v: "2026-10-24.2", title: { zh: "顶栏显示同步状态", en: "Sync status in the header" }, items: [
+    { k: "new", zh: "顶栏显示「家庭同步 · N 人」和绿点，出错变红", en: "The header shows family sync and a green dot, red if something's wrong" },
+  ] },
+  { v: "2026-10-24.1", title: { zh: "顶栏显示版本号", en: "Version number in the header" }, items: [
+    { k: "better", zh: "版本号放在顶栏，不用翻到「我的」页底部", en: "The version is in the header, no need to scroll to the bottom of Me" },
+  ] },
+  { v: "2026-10-22.1", title: { zh: "开始有版本号", en: "Version numbers begin" }, items: [
+    { k: "new", zh: "「我的」页底部显示版本号，方便确认更新", en: "The version shows at the bottom of Me, so you can check you're up to date" },
+  ] },
+  { v: "2026-10-22", title: { zh: "菜谱更贴心，提醒可以关掉", en: "Kinder recipes; mute reminders" }, items: [
+    { k: "new", zh: "菜谱加追奶、产后恢复、先用旧食材", en: "Recipes for milk supply, postpartum recovery and using older food first" },
+    { k: "new", zh: "不想补的物品可以「不再提醒」", en: "Mute restock reminders for items you don't want to buy again" },
+    { k: "better", zh: "花费里账单按种类分开，也能合并同类", en: "Bills show by type in spending, or merged by group" },
+  ] },
+  { v: "2026-10-21", title: { zh: "医疗账单、可点的图表", en: "Medical bills and tappable charts" }, items: [
+    { k: "new", zh: "新增医疗账单，以及宠物、法律、装修等一次性账单", en: "Medical bills, plus one-time bills for pets, legal and renovation" },
+    { k: "new", zh: "花费和预算图表点一下就看到明细", en: "Tap a spending or budget chart to see the entries" },
+    { k: "better", zh: "右上角九宫格切换应用，手机上更紧凑", en: "Switch apps from the grid button; more compact on phones" },
+    { k: "better", zh: "加载更快，网不好也不会一直转圈", en: "Loads faster and doesn't spin forever on a bad connection" },
+  ] },
+  { v: "2026-10-20", title: { zh: "拍小票入库，新增预算", en: "Scan receipts; new budget" }, items: [
+    { k: "new", zh: "拍小票或贴订单，自动识别记花费、入库", en: "Snap a receipt or paste an order to log spending and stock" },
+    { k: "new", zh: "拍照填表：设备、车辆、账单拍一下就填好", en: "Photo fill: snap equipment, vehicles or bills to fill the form" },
+    { k: "new", zh: "新增预算：按收入和固定账单算每月预算", en: "New budget based on income and regular bills" },
+    { k: "better", zh: "今日快捷操作每人一份，可以自己改", en: "Everyone gets their own Today shortcuts to edit" },
+  ] },
+  { v: "2026-10-19", title: { zh: "季节任务按月看，分类可自定义", en: "Seasonal tasks by month; custom categories" }, items: [
+    { k: "new", zh: "季节任务按月查看，可加自己的任务", en: "View seasonal tasks month by month and add your own" },
+    { k: "new", zh: "房屋资料加应急信息：总水阀、配电箱等位置", en: "Emergency info: where the water shutoff, breaker panel and more are" },
+    { k: "new", zh: "分类和小类可以改名、增删", en: "Rename, add or remove categories and subcategories" },
+    { k: "better", zh: "设备模板补上北美常用家电和设施", en: "Equipment templates cover more common North American appliances" },
+  ] },
+  { v: "2026-10-18", title: { zh: "库存方块、AI 菜单和小Y问", en: "Stock tiles, AI menus and Ask Y" }, items: [
+    { k: "new", zh: "手机上库存按分类方块，一眼看出缺什么", en: "On phones, stock shows as category tiles so gaps stand out" },
+    { k: "new", zh: "AI 菜单助手：按库存配三餐，缺的进采购", en: "AI menu helper: plans meals from stock and adds what's missing to shopping" },
+    { k: "new", zh: "「小Y问」：家里的事都可以问", en: "Ask Y: ask anything about your home" },
+    { k: "better", zh: "表单离开自动保存；存放位置按房间分", en: "Forms save when you leave; storage places grouped by room" },
+  ] },
+  { v: "2026-10-17", title: { zh: "新增账单、车辆和房产买卖", en: "Bills, vehicles and home buying & selling" }, items: [
+    { k: "new", zh: "账单与缴费：到期提醒，支持多套房产", en: "Bills and payments with due reminders, for several homes" },
+    { k: "new", zh: "房产买卖、退租清单和提醒", en: "Checklists and reminders for buying, selling or moving out" },
+    { k: "new", zh: "车辆档案、保养和检查", en: "Vehicle records, upkeep and inspections" },
+    { k: "better", zh: "改名「爱家小助手」，可切换到姐妹应用", en: "Renamed Loving Home Helper, with links to sister apps" },
+  ] },
+  { v: "2026-10-16", title: { zh: "支持三种语言，家主管理成员", en: "Three languages and member management" }, items: [
+    { k: "new", zh: "支持简体、繁體和英文", en: "Simplified Chinese, Traditional Chinese and English" },
+    { k: "new", zh: "家主可以重置邀请码、设家主、移出成员", en: "Owners can reset invite codes, set owners and remove members" },
+    { k: "new", zh: "家主可以改家人的称呼", en: "Owners can change family members' display names" },
+  ] },
+  { v: "2026-10-15", title: { zh: "设备保养和季节任务", en: "Equipment upkeep and seasonal tasks" }, items: [
+    { k: "new", zh: "设备档案、保养记录和季节任务", en: "Equipment records, maintenance logs and seasonal tasks" },
+    { k: "new", zh: "储藏新增「装备」：耐用品记数量和位置", en: "Equipment in Storage: track durable things by count and place" },
+    { k: "new", zh: "手机验证码登录，或用邀请码直接进入", en: "Sign in with a phone code, or join directly with an invite code" },
+    { k: "better", zh: "记录显示创建和更新时间", en: "Records show when they were created and updated" },
+  ] },
+  { v: "2026-10-14", title: { zh: "上线：家里的库存、采购和维护", en: "Launch: home stock, shopping and upkeep" }, items: [
+    { k: "new", zh: "记下家里还有多少，按用量提醒补货", en: "Track what you have at home, with restock reminders based on use" },
+    { k: "new", zh: "采购清单全家共享，认领后不会重复买", en: "A shared shopping list; claim an item so no one buys it twice" },
+    { k: "new", zh: "按库存推荐一日三餐", en: "Meal ideas for the day based on what you have" },
+    { k: "new", zh: "房屋维护：保养建议和常用耗材", en: "Home upkeep: maintenance tips and common supplies" },
   ] },
 ];
