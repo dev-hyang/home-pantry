@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-09.1", title: { zh: "填表时没保存的内容不会再被刷新冲掉", en: "Unsaved form input no longer disappears" }, items: [
+    { k: "fix", zh: "添加卡和账户时，填到一半的内容过两三秒被清空的问题已修好", en: "Fixed: when adding a card or account, what you had typed was cleared after a few seconds" },
+    { k: "fix", zh: "所有表单都一样：后台刷新数据时，没保存的内容和光标都留着", en: "Same for every form: when data refreshes in the background, unsaved input and the cursor stay put" },
+  ] },
   { v: "2026-11-08.2", title: { zh: "发布日志可以按天或按版本分组，补上了早期的更新记录", en: "Release notes group by day or version, with the full early history" }, items: [
     { k: "new", zh: "发布日志新增「分组」：按版本或按天，记住你的选择", en: "New \"Group\" option in release notes: by version or by day, remembered" },
     { k: "better", zh: "补上了从上线第一天起的更新记录", en: "Updates are now listed all the way back to the first day" },

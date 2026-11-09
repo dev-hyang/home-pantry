@@ -240,7 +240,10 @@ const VIEWS = {
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout, releases: releasePageHTML },
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
-const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "onetime" && !!r.q.get("bill")) || (r.section === "bills" && r.sub === "income" && !!state.inc?.form) || (r.section === "me" && r.sub === "settings" && !!r.q.get("member"));   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
+/* 现在是不是正处在用户自己的操作里（点击、改下拉、输入、按键的处理过程中，含紧跟着的同一轮任务）：这时的 render(false) 是用户要的，不填回旧值 */
+let userActing = false;
+for (const ev of ["click", "change", "input", "keydown", "submit", "pointerup"]) document.addEventListener(ev, () => { userActing = true; setTimeout(() => { userActing = false; }, 0); }, true);
+const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "onetime" && !!r.q.get("bill")) || (r.section === "bills" && r.sub === "cards" && !!r.q.get("card")) || (r.section === "bills" && r.sub === "income" && !!state.inc?.form) || (r.section === "me" && r.sub === "settings" && !!r.q.get("member"));   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
 // 二级页顶部的面包屑和每个页签的目录页在 js/menu.js（参考家庭学堂“我的”页：一栏一行，点进去）
 const offPanel = (title, action, btn) => `<div class="panel empty"><strong>${title}</strong>${t("在“我的 → 设置”里可以重新打开。")}<p><button type="button" class="btn btn-primary" data-action="${action}">${btn}</button></p></div>`;
 
@@ -296,9 +299,10 @@ export function render(force = true) {
 
   if (!force && FORM_PAGES(r) && $("#main form")) return;
   if (!force && r.section === "scan" && $("#main .scan-page")) return;   // 录入购物：识别中 / 确认页的改动不被后台同步冲掉（页面还没画出来时，比如直接刷新在这一页，要先画）
-  // 数据刷新（切回标签页、家人改动）会重画整页：先把内嵌表单里还没保存的改动记下来，画完再填回去，不让用户白填
-  const kept = force ? [] : keepUnsaved(["#dealForm", "#dealTaskForm", "#dealEventForm", "#seasonForm", "#closeoutForm", "#propertyForm", "#maintForm", "#billPayForm", "#medBillForm", "#medPayForm"]);
-  try { renderBody(r); } finally { restoreUnsaved(kept); }
+  // 数据刷新（后台读完借贷 / 净资产 / 收入、切回标签页、家人改动）会重画整页：先把页面里「每一张」表单还没保存的改动记下来，
+  // 画完再填回去，连光标位置一起（11-09：以前只认一份表单名单，新加的表单——比如卡和账户——不在名单里，填到一半 2–3 秒就被冲掉）
+  const kept = force || userActing ? null : keepUnsaved();   // 用户自己点的（筛选、清除、展开…）照常按新状态画；只有后台刷新才保留
+  try { renderBody(r); } finally { if (kept) restoreUnsaved(kept); }
   restoreCarousels();   // 左右滑动的卡片（今日）：放回刚才看的那张
   decoratePrivacy(r);   // 财务看板的大数字：遮挡模式下模糊（js/core/privacy.js）
 }
@@ -307,25 +311,41 @@ function dirtyFields(f) {
   const vals = {};
   for (const el of f.elements) {
     if (!el.name) continue;
-    if (el.type === "checkbox" || el.type === "radio") { if (el.checked !== el.defaultChecked) vals[el.name] = { checked: el.checked }; }
+    if (el.type === "radio") { if (el.checked && !el.defaultChecked) vals[el.name] = { radio: el.value }; }   // 单选：记选中的那个值
+    else if (el.type === "checkbox") { if (el.checked !== el.defaultChecked) vals[el.name] = { checked: el.checked }; }
     else if (el.tagName === "SELECT") { const def = [...el.options].find((o) => o.defaultSelected)?.value ?? el.options[0]?.value; if (el.value !== def) vals[el.name] = { value: el.value }; }
     else if (el.value !== el.defaultValue) vals[el.name] = { value: el.value };
   }
   return Object.keys(vals).length ? vals : null;
 }
-function keepUnsaved(selectors) {
-  return selectors.map((sel) => {
-    const f = $(sel); if (!f || f.dataset.saved) return null;
-    const vals = dirtyFields(f);
-    return vals ? { sel, vals } : null;
-  }).filter(Boolean);
+/** 一张表单的「身份」：有 id 用 id（再带上 data-id，换了编辑对象就不算同一张），没有就按它在 #main 里是第几张表单 */
+const formKey = (f, i) => (f.id ? `#${f.id}|${f.dataset.id || ""}` : `@${i}|${f.dataset.id || ""}`);
+function keepUnsaved() {
+  const forms = [...document.querySelectorAll("#main form")];
+  const list = forms.map((f, i) => { if (f.dataset.saved) return null; const vals = dirtyFields(f); return vals ? { key: formKey(f, i), vals } : null; }).filter(Boolean);
+  // 正在输入的那一格（表单里外都算，比如搜索框）：画完把焦点和光标放回去
+  const a = document.activeElement, inMain = a && a !== document.body && a.closest?.("#main");
+  const focus = inMain && (a.name || a.id) ? { form: a.form ? formKey(a.form, forms.indexOf(a.form)) : null, name: a.name, id: a.id, s: a.selectionStart, e: a.selectionEnd, value: a.form ? null : a.value } : null;
+  return { list, focus };
 }
-function restoreUnsaved(kept) {
-  for (const k of kept) {
-    const f = $(k.sel); if (!f) continue;
-    for (const [n, v] of Object.entries(k.vals)) { const el = f.elements[n]; if (!el) continue; if ("checked" in v) el.checked = v.checked; else el.value = v.value; }
+function restoreUnsaved({ list, focus }) {
+  const forms = [...document.querySelectorAll("#main form")], byKey = new Map(forms.map((f, i) => [formKey(f, i), f]));
+  for (const k of list) {
+    const f = byKey.get(k.key); if (!f) continue;
+    for (const [n, v] of Object.entries(k.vals)) {
+      const el = f.elements[n]; if (!el) continue;
+      if ("radio" in v) { if (el instanceof RadioNodeList) el.value = v.radio; else el.checked = el.value === v.radio; continue; }
+      if ("checked" in v) el.checked = v.checked; else el.value = v.value;
+    }
     markDirty(f, true);
   }
+  if (!focus) return;
+  const f = focus.form ? byKey.get(focus.form) : null;
+  const el = f ? f.elements[focus.name] : (focus.id ? document.getElementById(focus.id) : document.querySelector(`#main [name="${CSS.escape(focus.name)}"]`));
+  if (!el || el instanceof RadioNodeList || typeof el.focus !== "function") return;
+  if (focus.value != null && el.value !== focus.value) el.value = focus.value;   // 表单外的输入框（搜索）
+  el.focus({ preventScroll: true });
+  try { if (focus.s != null) el.setSelectionRange(focus.s, focus.e); } catch { /* 日期、数字框不支持光标位置 */ }
 }
 /** 表单有未保存改动：显示“有未保存的修改”，保存按钮加粗提示 */
 function markDirty(f, on) {
