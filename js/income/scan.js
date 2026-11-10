@@ -60,7 +60,7 @@ export function scanHtml() {
 function resultHtml() {
   const who = sc.who ?? (myPersonId() || "none"), n = sc.items.filter((x) => x.on).length;
   const row = (x, i) => `<li class="ix-draft" data-i="${i}"><label class="check-inline"><input type="checkbox" data-sc-f="on" ${x.on ? "checked" : ""} aria-label="${esc(t("保存这条"))}"><span><b>${esc(x.sender || t("（没读出付款方）"))}</b></span></label>
-    <div class="form-grid"><label>${t("到账日期")}<input type="date" data-sc-f="date" value="${esc(x.date)}"></label>
+    <div class="form-grid"><label>${t("到账日期")}<input type="date" data-sc-f="date" max="${todayISO()}" value="${esc(x.date)}"></label>
       <label>${t("到账金额")}（${esc(cur())}）<input type="number" data-sc-f="amount" step="0.01" min="0" inputmode="decimal" value="${esc(x.amount)}"></label>
       <label>${t("谁给的")}<input data-sc-f="sender" maxlength="80" value="${esc(x.sender)}"></label>
       <label>${t("类型")}<select data-sc-f="kind">${kindOptionsHtml(x.kind)}</select></label></div>

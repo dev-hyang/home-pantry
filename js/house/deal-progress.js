@@ -240,7 +240,7 @@ export function eventFormPanel(deal, an) {
     <h3 style="margin:0 0 8px">${ev ? t("修改进展记录") : t("记一笔进展")}</h3>
     <input type="hidden" name="deal_id" value="${esc(deal.id)}"><input type="hidden" name="event_id" value="${esc(ev?.id || "")}">
     <div class="form-grid">
-      <label>${t("发生日期")}<input name="happened_on" type="date" required value="${esc(ev?.happened_on || todayISO())}"></label>
+      <label>${t("发生日期")}<input name="happened_on" type="date" required max="${todayISO()}" value="${esc(ev?.happened_on || todayISO())}"></label>
       <label>${t("联系人（可选）")}<input name="contact" maxlength="120" value="${esc(ev?.contact || "")}" placeholder="${esc(t("律师 / 经纪人 / ComEd …"))}"></label>
       <label class="span-2">${t("做了什么")}<input name="title" required maxlength="200" value="${esc(ev?.title || "")}" placeholder="${esc(t("例如：和卖方律师改完合同第二版；联系 ComEd 预约停服务"))}"></label>
       <label class="span-2">${t("对应的清单事项（可选）")}<select name="task_key"><option value="">${t("（不对应清单事项，只是记录）")}</option>

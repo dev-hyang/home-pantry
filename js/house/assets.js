@@ -562,7 +562,7 @@ function vehicleFieldset(a, hide = () => "") {
         <label>${t("车牌")}<input name="veh_plate" maxlength="12" value="${d(v.plate)}"></label>
         <label>${t("上牌州 / 省")}<input name="veh_plate_state" maxlength="12" placeholder="IL" value="${d(v.plate_state)}"></label>
         <label>${t("当前里程（{u}）", { u: distUnit() })}<input name="veh_odometer" type="number" inputmode="numeric" min="0" step="1" value="${d(v.odometer)}"></label>
-        <label>${t("里程记录日期")}<input name="veh_odometer_on" type="date" value="${d(v.odometer_on || todayISO())}"></label>
+        <label>${t("里程记录日期")}<input name="veh_odometer_on" type="date" max="${todayISO()}" value="${d(v.odometer_on || todayISO())}"></label>
         <label>${t("年均里程（{u}）", { u: distUnit() })}<input name="veh_annual_miles" type="number" inputmode="numeric" min="0" step="100" placeholder="12000" value="${d(v.annual_miles)}"><small>${t("用来把“按里程”的保养换算成日期")}</small></label>
       </div>
     </fieldset>

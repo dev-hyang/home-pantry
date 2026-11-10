@@ -357,7 +357,7 @@ function cardForm(id, ro = false) {
         <label ${only("gift")}>${t("面值 / 充值总额（{cur}）", { cur: cur() })}<input name="balance" type="number" min="0" step="0.01" inputmode="decimal" value="${NUMF(v.balance)}"><small>${t("余额 = 它减去记在这张卡上的花费；用完了把「在用」取消")}</small></label>
         <label>${t("持卡人 / 户主")}<select name="holder_user_id">${opt("", t("共用"), !v.holder_user_id)}${members.map((m) => opt(m.user_id, m.display_name || t("家人"), v.holder_user_id === m.user_id)).join("")}</select></label>
         <label ${only("credit debit gift")}><span ${only("gift")}>${t("有效期至（可选）")}</span><span ${only("credit debit")}>${t("到期年月")}</span><input name="expires_on" type="month" value="${d((v.expires_on || "").slice(0, 7))}"></label>
-        <label>${t("开卡 / 开户日期")}<input name="opened_on" type="date" value="${d(v.opened_on)}"></label>
+        <label>${t("开卡 / 开户日期")}<input name="opened_on" type="date" max="${todayISO()}" value="${d(v.opened_on)}"></label>
         <label ${only("credit")}>${t("年费（{cur}）", { cur: cur() })}<input name="annual_fee" type="number" min="0" step="0.01" inputmode="decimal" value="${NUMF(v.annual_fee)}"></label>
         <label ${only("credit")}>${t("年费哪个月收")}<select name="fee_month">${opt("", t("按开卡月"), !v.fee_month)}${Array.from({ length: 12 }, (_, i) => opt(i + 1, t("{m} 月", { m: i + 1 }), v.fee_month === i + 1)).join("")}</select></label>
         <label ${only("credit")}>${t("额度（可空）")}<input name="credit_limit" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(v.credit_limit)}"></label>

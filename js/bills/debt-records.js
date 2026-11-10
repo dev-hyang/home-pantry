@@ -7,7 +7,7 @@
  * 数据量：借贷流水是小表，已整表在内存里（debt-logic.js），筛选、分页都在内存里做。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { DAY, esc, fmtDate, num } from "../core/util.js";
+import { DAY, esc, fmtDate, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { TXN_TYPES } from "../core/debt-rules.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
@@ -188,7 +188,7 @@ function editForm(x, d) {
   const hasCash = !!(x.purchase_id || x.income_record_id);
   return `<form id="dr-edit-${esc(x.id)}" class="dd-edit dr-edit" data-rec-form="edit" data-id="${esc(x.id)}" aria-label="${esc(t("编辑 {d} 这笔{k}", { d: fmtDate(x.txn_date), k: sentence(x, d) }))}">
     <div class="form-grid">
-      <label>${t("日期")}<input type="date" name="date" required value="${esc(x.txn_date)}"></label>
+      <label>${t("日期")}<input type="date" name="date" required max="${todayISO()}" value="${esc(x.txn_date)}"></label>
       <label>${t("类型")}<select name="type">${[...new Set([x.type, ...typesFor(d)])].map((k) => `<option value="${k}" ${k === x.type ? "selected" : ""}>${esc(sentence({ type: k }, d))}</option>`).join("")}</select></label>
       <label>${t("本金")}<input type="number" name="principal" inputmode="decimal" step="0.01" value="${x.principal_amount || ""}"></label>
       <label>${t("利息")}<input type="number" name="interest" inputmode="decimal" step="0.01" min="0" value="${x.interest_amount || ""}"></label>

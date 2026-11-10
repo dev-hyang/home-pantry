@@ -755,6 +755,15 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "hhSwitch") { localStorage.setItem("hmh-hid", e.target.value); location.reload(); }
 });
 
+// 记录性质的日期框带 max（不能晚于今天）：选择器里已经灰掉；表单多是 novalidate，手动输入的未来日期在这里统一拦住。
+// 到期日、预约、计划这些能选未来的日期框不带 max，不受影响。
+document.addEventListener("submit", (e) => {
+  const late = [...e.target.querySelectorAll('input[type="date"][max], input[type="month"][max]')].find((el) => el.validity.rangeOverflow);
+  if (!late) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  toast(t("日期不能晚于 {d}", { d: late.max })); late.focus();
+}, true);
+
 main.addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = e.target;

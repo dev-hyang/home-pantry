@@ -388,7 +388,7 @@ function recordForm(e) {
   const accts = (state.cards || []).filter((c) => c.active !== false);
   return `<form data-debt-form="txn" data-id="${esc(e.id)}" class="form-grid">
     <label>${t("类型")}<select name="kind">${kinds.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("")}</select></label>
-    <label>${t("日期")}<input type="date" name="date" value="${todayISO()}" required></label>
+    <label>${t("日期")}<input type="date" name="date" value="${todayISO()}" max="${todayISO()}" required></label>
     <label>${t("本金")}<input type="number" name="principal" inputmode="decimal" step="0.01" min="0" value="${personal && e.balance > 0 ? e.balance : ""}"></label>
     ${personal ? `<label>${recv ? t("利息（收到的）") : t("利息（付的）")}<input type="number" name="interest" inputmode="decimal" step="0.01" min="0"></label>` : ""}
     <label>${t("账户")}<select name="acct"><option value="">${t("不指定")}</option>${accts.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}${c.last4 ? ` ··${esc(c.last4)}` : ""}</option>`).join("")}</select></label>
@@ -515,7 +515,7 @@ function debtForm(d) {
       <label>${t("每期还款（含 Escrow）")}<input name="scheduled_payment" type="number" inputmode="decimal" min="0" step="0.01" value="${val("scheduled_payment")}"></label>
       ${has060 ? escrowFields(v, personal) : ""}
       <label>${t("某天的未还本金")}<input name="opening_balance" type="number" inputmode="decimal" min="0" step="0.01" value="${val("opening_balance")}"></label>
-      <label>${t("那一天")}<input name="opening_balance_on" type="date" value="${val("opening_balance_on")}"></label>
+      <label>${t("那一天")}<input name="opening_balance_on" type="date" max="${todayISO()}" value="${val("opening_balance_on")}"></label>
       <label>${t("状态")}<select name="status">${opt(STATUSES, v.status)}</select></label>
       ${loanAccts.length ? `<label>${t("卡与账户里的贷款账户")}<select name="lender_card_id"><option value="">${t("不关联")}</option>${loanAccts.map((c) => `<option value="${esc(c.id)}" ${c.id === v.lender_card_id ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>` : ""}
       <label data-debt-asset ${personal ? "hidden" : ""}>${t("房产")}<select name="property_id"><option value="">${t("不关联")}</option>${state.properties.filter((p) => !p.archived || p.id === v.property_id).map((p) => `<option value="${esc(p.id)}" ${p.id === v.property_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>

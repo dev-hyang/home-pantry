@@ -1027,7 +1027,7 @@ export const EN = {
   "删除这条事项": "Delete this task", "添加自定义事项": "Add a custom task", "某个 condo / village / HOA 的特别要求，如必须申报 intent to sell；也留作记录": "Extra requirements from a condo / village / HOA, e.g. a required intent-to-sell filing; also kept as a record",
   "签约（合同日）": "Contract signed", "还没排期": "Not scheduled yet", "填了合同日 / 交割日，或点 ✎ 手动设日期，就会排进上面的时间线": "Set the contract / closing date, or tap ✎ to pick a date, and they will appear on the timeline above",
   "视图": "View", "清单": "List", "时间线": "Timeline", "补充事项": "Extra tasks", "没有这个阶段": "No such stage", "请填事项名称": "Please enter a task name",
-  "已保存": "Saved", "已添加自定义事项": "Custom task added", "已删除这条事项": "Task deleted",
+  "已保存": "Saved", "日期不能晚于 {d}": "The date can't be later than {d}", "已添加自定义事项": "Custom task added", "已删除这条事项": "Task deleted",
   "清单按伊利诺伊州（芝加哥）常见流程整理，日期和税费以合同、律师和产权公司为准；其他州请按本地流程增删。点事项右侧的 ✎ 可以调整应完成日期、记录实际完成日期。": "The checklist follows the usual Illinois (Chicago) process; dates and fees are governed by your contract, attorney and title company; for other states add or remove tasks to match local practice. Tap ✎ on a task to adjust its due date and record the actual completion date.",
   "截止日按合同日和交割日推算，可点 ✎ 调整；必须项逾期会在首页置顶": "Due dates are calculated from the contract and closing dates and can be adjusted with ✎; overdue must-do items are pinned on the Today page",
   "收款方：{who}": "Payee: {who}", "编辑这条记录": "Edit this record", "正在编辑 {d} 的这条记录": "Editing the record from {d}", "维修商 / 师傅 / 商店，自己做可不填": "Repair shop / technician / store; optional if you did it yourself",

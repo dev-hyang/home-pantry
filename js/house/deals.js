@@ -199,7 +199,7 @@ function taskEditForm(deal, x, stage = "special") {
         <label>${t("重要程度")}<select name="priority">${opts(D().PRIORITY, rec?.priority || "should")}</select></label>` : ""}
       <label>${t("应完成日期")}<input name="due_on" type="date" value="${esc(x?.due || "")}">
         ${x && !x.custom ? `<small>${x.plan ? `${t("推荐日期 {d}", { d: fmtDate(x.plan) })} <button type="button" class="link-btn" data-action="deal-due-reset" data-plan="${esc(x.plan)}">${t("恢复推荐")}</button>` : t("填了合同日 / 交割日才有推荐日期")}</small>` : ""}</label>
-      <label>${t("实际完成日期")}<input name="done_on" type="date" value="${esc(x?.done?.done_on || "")}"><small>${t("填了就算已完成，清空 = 未完成")}</small></label>
+      <label>${t("实际完成日期")}<input name="done_on" type="date" max="${todayISO()}" value="${esc(x?.done?.done_on || "")}"><small>${t("填了就算已完成，清空 = 未完成")}</small></label>
       <label class="span-2">${t("备注")}<input name="note" maxlength="1000" value="${esc((rec ? rec.note : x?.userNote) ?? "")}" placeholder="${esc(t("延迟原因、对方要求、联系人…"))}"></label>
     </div>
     <div class="form-actions" style="margin-top:10px"><button class="btn btn-primary btn-sm" type="submit">${t("保存")}</button>
