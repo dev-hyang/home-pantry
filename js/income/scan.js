@@ -51,7 +51,7 @@ export function scanHtml() {
       ${sc.images.map((im, i) => `<span class="scan-thumb"><img src="${im.url}" alt="${t("第 {n} 张", { n: i + 1 })}"><button type="button" data-sc="img-del" data-i="${i}" aria-label="${t("删除这张")}">×</button></span>`).join("")}
       ${sc.images.length < MAX_IMAGES ? `<label class="scan-add ${canImg ? "" : "is-off"}"><input type="file" id="incScanFile" accept="image/*" multiple ${canImg ? "" : "disabled"}><span>📷 ${t("拍照 / 选图")}</span></label>` : ""}</div>
     ${canImg ? "" : `<p class="form-error" style="margin:6px 0 0">${t("当前的 {p} 不能读图片：换成 Gemini（设置 → AI 助手），或只粘贴文字。", { p: t(p.name) })}</p>`}
-    <label class="scan-text">${t("或粘贴文字（电汇确认邮件、银行入账通知、Zelle 邮件）")}<textarea id="incScanText" rows="4" maxlength="8000">${esc(sc.text)}</textarea></label>
+    <label class="scan-text">${t("或粘贴文字（电汇确认邮件、银行入账通知、Zelle 邮件）")}<textarea id="incScanText" data-autosize rows="4" maxlength="8000">${esc(sc.text)}</textarea></label>
     <p class="muted small" style="margin:8px 0 0">${t("图片和文字会发给你在设置里选的 {p}，不会保存原图。拍之前请遮住账号、社保号、地址。", { p: t(p.name) })}</p>
     <label class="check-inline" style="margin-top:6px"><input type="checkbox" data-sc="consent" ${ok ? "checked" : ""}><span>${t("我同意把这些图片 / 文字发给 AI 服务商（收入是隐私数据）")}</span></label>
     ${sc.error ? `<p class="form-error" role="alert">${esc(sc.error)}</p>` : ""}

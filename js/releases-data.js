@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-12.1", title: { zh: "AI 输入框跟着内容长高", en: "AI text boxes grow with what you paste" }, items: [
+    { k: "better", zh: "录入购物、收入识别、报修、问 AI 等地方的文字框，粘贴多少就长多高，不用一开始就滑动", en: "Text boxes in shopping, income scan, repairs and Ask AI grow with the text, so you don't have to scroll right away" }
+  ] },
   { v: "2026-11-09.2", title: { zh: "已经发生的事，日期不能选到未来", en: "Dates for things that already happened can't be in the future" }, items: [
     { k: "better", zh: "开卡日期、借贷往来、收入到账、还款、交易进展、里程记录等：晚于今天的日期变灰、不能选", en: "Card opening, debt records, income received, repayments, deal progress, odometer readings and the like: dates after today are greyed out" },
     { k: "better", zh: "手动填了未来的日期，保存时会提醒", en: "A future date typed by hand gets a reminder when you save" },

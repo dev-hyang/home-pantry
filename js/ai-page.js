@@ -38,7 +38,7 @@ export function viewAi() {
     <div class="ai-hero"><div class="ai-hero-ico">${aiIcon(44)}</div><div><p class="${blocked ? "form-error" : "muted"}">${!ready ? t("家里的事都可以问：保养、账单、买卖房、收纳、带娃。没填 key 时会把问题连同家里的情况拼成提示词，复制到任一 AI 即可。") : blocked ? esc(quotaMessage(q)) : `${t("用 {p} 直接回答；也可以复制提示词去别的 AI 问", { p: t(p.name) })}${q.cap ? ` · ${t("今天还剩 {n} 次免费", { n: q.remaining })}` : ""}`}</p></div></div>
     <div class="chips" style="margin:12px 0 8px">${topics}</div>
     <form id="aiPageForm" class="panel">
-      <textarea name="q" rows="3" maxlength="1000" placeholder="${t("例如：热水器 12 年了要不要换？卖房前哪些账单要提前通知停？")}">${esc(a.q)}</textarea>
+      <textarea name="q" data-autosize rows="3" maxlength="1000" placeholder="${t("例如：热水器 12 年了要不要换？卖房前哪些账单要提前通知停？")}">${esc(a.q)}</textarea>
       <label class="check" style="margin-top:8px"><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}><span>${t("附带家里的情况（房产、设施、待处理设备、近期账单、库存概况；不含备注和个人信息）")}</span></label>
       <div class="form-actions" style="margin-top:10px">
         ${ready && !blocked ? `<button type="submit" class="btn btn-primary" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}

@@ -1,3 +1,4 @@
+import "./core/autosize.js";   // AI 输入框会自己长高（姊妹应用同一套）
 import { checkConfig } from "./core/config-check.js";
 import { decoratePrivacy, initPrivacy, setMoneyHidden, setPrivacyRoute } from "./core/privacy.js";
 import { restoreCarousels } from "./core/carousel.js";

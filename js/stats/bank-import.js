@@ -499,7 +499,7 @@ function panelHtml() {
   const hasRows = S.groups.length > 0, batches = meta("_bank_batches", []) || [];
   const head = `<div class="panel bank-pick"><p class="muted small" style="margin:0 0 8px">${t("一份对账单，花费和收入一次导入：刷卡 / 扣款记成花费；入账（工资、电汇、Zelle 转入…）单独列在「收入」一栏，勾上就记成收入（只有家主和被允许的人看得到）；信用卡还款、自己账户之间的转账跳过。")}</p><p style="margin:0 0 8px">${t("从银行或信用卡网站下载对账单，选中文件：支持 CSV、Excel、OFX / QFX、QIF，以及 PDF 月结单、截图（PDF 先用本地规则读，读不准再用 AI）。可以一次选多个月。文件只在你的浏览器里处理；只有你点“用 AI 解析”才会把内容发给你设置的模型。")}</p>
     <label class="btn btn-primary btn-sm" style="cursor:pointer">${t("选择文件（可多选）")}<input type="file" id="bankFile" multiple accept=".csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx,.qif,.pdf,image/*,text/csv,text/plain,application/pdf" hidden></label>
-    <details class="bank-paste" style="margin-top:8px"><summary>${t("或者直接粘贴文字")}</summary><textarea id="bankPaste" rows="5" placeholder="${esc(t("把网银页面或 PDF 里的交易几行直接复制粘贴到这里"))}" style="margin-top:6px"></textarea>
+    <details class="bank-paste" style="margin-top:8px"><summary>${t("或者直接粘贴文字")}</summary><textarea id="bankPaste" data-autosize rows="5" placeholder="${esc(t("把网银页面或 PDF 里的交易几行直接复制粘贴到这里"))}" style="margin-top:6px"></textarea>
       <div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-bank-act="paste">${t("读取这段文字")}</button></div></details>
     ${partsHtml()}${S.error ? `<p class="form-error" role="alert">${esc(S.error)}</p>` : ""}</div>`;
   if (!S.parts.length) return head + tipsHtml() + rulesHtml() + batchesHtml(batches);

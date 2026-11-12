@@ -2804,3 +2804,6 @@ html.money-hide [data-money-block].is-peek { outline: 2px solid color-mix(in srg
 .tm-trend.up { color: var(--out); } .tm-trend.down { color: var(--ok); }
 @media (min-width: 720px) { .tslide .tm-main b.tm-amt { font-size: 14px; } }
 .tm-main b.tm-amt span, .tm-main .tm-prev .num span { font-size: inherit; color: inherit; white-space: nowrap; }   /* 金额里的遮挡外壳不吃「日常消费」小字的样式（之前就是它把本月金额缩成了小字） */
+
+/* AI 输入框会自己长高（js/core/autosize.js）：不用手动拖 */
+textarea[data-autosize] { resize: none; transition: height .08s ease-out; }

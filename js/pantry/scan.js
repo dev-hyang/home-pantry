@@ -122,7 +122,7 @@ function inputHtml() {
       ${sc.images.length > 1 ? `<div class="scan-mode"><span class="pick-lbl">${t("这几张照片是")}</span><div class="chips" role="group" aria-label="${t("几张照片的关系")}">${[["auto", "自动判断"], ["separate", "每张是一张独立小票"], ["merge", "合起来是同一张小票"]].map(([k, l]) => `<button type="button" class="chip" data-action="scan-mode" data-mode="${k}" aria-pressed="${sc.mode === k}">${t(l)}</button>`).join("")}</div>
         <p class="muted" style="margin:0;font-size:12.5px">${t("补录几张不同商店、不同日期的小票：选“每张是一张独立小票”最稳，每张单独识别，不会混在一起；长小票分段拍选“合起来是同一张”。")}</p></div>` : ""}
       <label class="scan-text">${order ? t("订单文字（订单确认邮件、网页或 App 订单详情，整段粘贴）") : t("补充文字（可选，例如小票上识别不出的商品）")}
-        <textarea id="scanText" rows="${order ? 8 : 3}" maxlength="12000" placeholder="${order ? t("例如：Instacart / Amazon / 京东 / 盒马 的订单确认内容") : ""}">${esc(sc.text)}</textarea></label>
+        <textarea id="scanText" data-autosize rows="${order ? 8 : 3}" maxlength="12000" placeholder="${order ? t("例如：Instacart / Amazon / 京东 / 盒马 的订单确认内容") : ""}">${esc(sc.text)}</textarea></label>
       <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("图片和文字会发给你在设置里选的 {p}，不会保存原图。小票上的卡号、姓名建议裁掉或遮住再拍。Gemini 免费档的内容可能被用于改进产品，介意的话用付费 key。", { p: t(p.name) })}</p>
       <label class="scan-text">${t("购买日期（选填，不填就按小票上的日期，没有就是今天）")}<input type="date" id="scanDate" max="${todayISO()}" value="${esc(sc.date)}"></label>
       <p class="muted" style="margin:0;font-size:12.5px">${t("默认按小票上的日期记：拍照时把日期也拍进去，或在上面的文字里写上日期（例如 2026-10-18、上周六）。都没有就用今天。补记以前的购物，在这里选那天就行。")}</p>

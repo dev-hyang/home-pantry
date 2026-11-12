@@ -119,7 +119,7 @@ export function viewFix() {
           ${info ? `<small>${esc(info)}</small>` : ""}
         </label>
         <label class="span-2">${t("怎么了？")}
-          <textarea name="text" id="fixText" rows="3" maxlength="800" placeholder="${t("例如：主卫马桶冲完一直有细细的水声，隔十几分钟会自己补一下水；把手正常")}">${esc(f.text)}</textarea>
+          <textarea name="text" id="fixText" data-autosize rows="3" maxlength="800" placeholder="${t("例如：主卫马桶冲完一直有细细的水声，隔十几分钟会自己补一下水；把手正常")}">${esc(f.text)}</textarea>
         </label>
       </div>
       <div class="scan-thumbs" style="margin-top:8px">
