@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-12.2", title: { zh: "问咩咩可以带照片；家里一览多了房产和房屋入口", en: "Ask with photos; more home links on Today" }, items: [
+    { k: "new", zh: "问咩咩可以拍几张照片或选 PDF 一起问，比如冰箱里的菜「这些能做什么？」；每张都能删", en: "Ask with photos or PDFs, e.g. what's in the fridge: \"what can I make?\"; remove any of them" },
+    { k: "better", zh: "今日「家里 · 一览」：每套房产一行直接进概览，加上车辆、季节任务、东西坏了、房屋资料、耗材；放不下时底部「更多 › 房屋」", en: "Today's home card: one row per property, plus vehicles, seasonal tasks, repairs, home details and supplies; \"More › Home\" when it's full" }
+  ] },
   { v: "2026-11-12.1", title: { zh: "AI 输入框跟着内容长高", en: "AI text boxes grow with what you paste" }, items: [
     { k: "better", zh: "录入购物、收入识别、报修、问 AI 等地方的文字框，粘贴多少就长多高，不用一开始就滑动", en: "Text boxes in shopping, income scan, repairs and Ask AI grow with the text, so you don't have to scroll right away" }
   ] },

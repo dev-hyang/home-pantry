@@ -466,11 +466,11 @@ export async function askText(system, user, { json = false, maxTokens = 1500, im
       geminiCheck(j, text, json);
     } else if (p.kind === "anthropic") {
       const j = await withRetry(() => fetch(`${base}/messages`, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: images.length ? [...images.map((i) => ({ type: "image", source: { type: "base64", media_type: i.mime, data: i.b64 } })), { type: "text", text: user }] : user }] }) }).then(readJson), ctl.signal);
+        body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: images.length ? [...images.map((i) => (i.mime === "application/pdf" ? { type: "document", source: { type: "base64", media_type: i.mime, data: i.b64 } } : { type: "image", source: { type: "base64", media_type: i.mime, data: i.b64 } })), { type: "text", text: user }] : user }] }) }).then(readJson), ctl.signal);
       text = (j.content || []).map((x) => x.text || "").join("");
     } else {
       const j = await withRetry(() => fetch(`${base}/chat/completions`, { method: "POST", signal: ctl.signal, headers: openaiHeaders(s, p, key),
-        body: JSON.stringify({ model, temperature, messages: [{ role: "system", content: system }, { role: "user", content: images.length ? [{ type: "text", text: user }, ...images.map((i) => ({ type: "image_url", image_url: { url: `data:${i.mime};base64,${i.b64}` } }))] : user }] }) }).then(readJson), ctl.signal);
+        body: JSON.stringify({ model, temperature, messages: [{ role: "system", content: system }, { role: "user", content: images.length ? [{ type: "text", text: user }, ...images.map((i) => (i.mime === "application/pdf" ? { type: "file", file: { filename: "document.pdf", file_data: `data:${i.mime};base64,${i.b64}` } } : { type: "image_url", image_url: { url: `data:${i.mime};base64,${i.b64}` } }))] : user }] }) }).then(readJson), ctl.signal);
       text = j.choices?.[0]?.message?.content || "";
     }
     countUse(p);

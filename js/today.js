@@ -195,15 +195,26 @@ function homeCard(fin) {
   const rows = [row(href("pantry", "overview"), "🗄️", t("储藏"), short ? t("{n} 件要补货", { n: short }) : t("都够用"), short),
     row(href("shopping"), "🛒", t("采购清单"), shop ? t("{n} 项", { n: shop }) : t("空的"), false)];
   if (state.houseEnabled) {
-    const live = new Set(liveProperties().filter(propertyActive).map((p) => p.id));
+    const props = liveProperties().filter(propertyActive), live = new Set(props.map((p) => p.id));
     const eq = (state.assetsEnriched || []).filter((a) => !a.retired && live.has(a.property_id)), due = assetsDueCount();   // 和待办「设备保养」、房屋首页同一个口径
     if (eq.length || due) rows.push(row(`${href("house")}?todo=asset`, "⚙️", t("设备与车辆"), due ? t("{n} 台该保养", { n: due }) : t("都正常"), due));   // 房屋概览的「各房产要处理的事 · 设备与车辆」
+    // 2026-11-12：每套房产一行，直接进那套房产的概览（?prop= 先切到那一套）；后面是几个常用的房屋入口，卡片排满了就在底部「更多 › 房屋」
+    const alerts = myAlerts();
+    for (const pr of props) {
+      const n = alerts.filter((x) => x.property_id === pr.id).length;
+      rows.push(row(`${href("house", "overview")}?prop=${encodeURIComponent(pr.id)}`, "🏠", esc(pr.name || t("房产")), n ? t("{n} 件要处理", { n }) : t("概览"), n > 0));
+    }
+    const vehicles = (state.assetsEnriched || []).filter((a) => !a.retired && !a.property_id).length;
+    if (vehicles) rows.push(row(href("house", "vehicles"), "🚗", t("车辆"), t("{n} 辆", { n: vehicles }), false));
+    rows.push(row(`${href("house")}?todo=season`, "📅", t("季节任务")), row(href("house", "fix"), "🩺", t("东西坏了")), row(href("house", "profile"), "📋", t("房屋资料")), row(href("house", "supplies"), "🧰", t("房屋耗材")));
   }
   if (!fin && state.billsEnabled) {   // 账单全家可见：这里只给笔数，不给金额
     const n = upcoming(state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable"), 30).length;
-    rows.push(row(href("bills", "recurring"), "🧾", t("未来 30 天账单"), t("{n} 笔账单", { n }), false));
+    rows.splice(2, 0, row(href("bills", "recurring"), "🧾", t("未来 30 天账单"), t("{n} 笔账单", { n }), false));
   }
-  return card({ k: "home", icon: "🏡", title: t("家里 · 一览"), headHref: state.houseEnabled ? href("house") : "", body: `<ul class="tcard-rows">${rows.join("")}</ul>` });   // 标题 → 房屋概览
+  const MAX = 7, more = rows.length - MAX;   // 一张卡大约放 7 行；多出来的和待办卡一样，底部一行链接到房屋首页
+  const foot = state.houseEnabled && more > 0 ? `<p class="tcard-foot"><span>${t("还有 {n} 个入口", { n: more })}</span><a class="tcard-more" href="${href("house")}">${t("更多")} › ${t("房屋")}</a></p>` : "";
+  return card({ k: "home", icon: "🏡", title: t("家里 · 一览"), headHref: state.houseEnabled ? href("house") : "", body: `<ul class="tcard-rows">${rows.slice(0, MAX).join("")}</ul>${foot}` });   // 标题 → 房屋概览
 }
 
 /* ── 咩咩咩（AI）：和以前的格子同样的说明，外加「今天吃什么」 ── */

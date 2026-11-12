@@ -8,6 +8,7 @@ import { backBtn } from "./core/hub.js";
 import { lang, t } from "./core/i18n.js";
 import { aiIcon, aiQuota, aiReady, aiSettings, askText, generalPrompt, generalPromptText, providerOf, quotaMessage } from "./core/ai.js";
 import { askHandoff } from "./core/ask.js";
+import { attachHTML, attachPayload } from "./core/attach.js";
 
 export const TOPICS = [
   { id: "menu", icon: "🍳", name: "今天吃什么", q: null, link: () => `${href("pantry", "meals")}?ai=` },
@@ -39,6 +40,7 @@ export function viewAi() {
     <div class="chips" style="margin:12px 0 8px">${topics}</div>
     <form id="aiPageForm" class="panel">
       <textarea name="q" data-autosize rows="3" maxlength="1000" placeholder="${t("例如：热水器 12 年了要不要换？卖房前哪些账单要提前通知停？")}">${esc(a.q)}</textarea>
+      <div class="ai-att">${attachHTML("pantry-ask", { t, esc, noText: true, hint: ready ? t("可以拍几张照片一起问（比如冰箱里的菜「这些能做什么？」、设备铭牌、账单、报修单），也能选 PDF。照片不保存。") : t("填了 API key 才能带照片问；没 key 时只复制文字。") })}</div>
       <label class="check" style="margin-top:8px"><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}><span>${t("附带家里的情况（房产、设施、待处理设备、近期账单、库存概况；不含备注和个人信息）")}</span></label>
       <div class="form-actions" style="margin-top:10px">
         ${ready && !blocked ? `<button type="submit" class="btn btn-primary" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
@@ -70,9 +72,11 @@ function renderAnswer(text) {
 
 export async function runAiPage(form) {
   const a = st(); a.q = form.elements.q.value.trim(); a.withContext = form.elements.ctx.checked;
-  if (!a.q) { a.error = t("先写一句要问的"); return; }
+  const att = attachPayload("pantry-ask");   // 照片 / PDF / 文字文件（js/core/attach.js）
+  if (!a.q && !att.images.length && !att.text) { a.error = t("先写一句要问的"); return; }
+  if (!a.q) a.q = t("看看这些照片 / 文件，告诉我要注意什么、可以怎么做。");
   a.busy = true; a.error = null;
-  try { const { system, user } = generalPrompt(a.q, { withContext: a.withContext }); a.answer = await askText(system, user, { maxTokens: 1800 }); }
+  try { const { system, user } = generalPrompt(a.q, { withContext: a.withContext }); a.answer = await askText(system, user + (att.text ? `\n\n${t("附件里的文字")}：\n${att.text.slice(0, 12000)}` : "") + (att.images.length ? `\n\n${t("（附了 {n} 张照片 / 文件，请一起看）", { n: att.images.length })}` : ""), { maxTokens: 1800, images: att.images }); }
   catch (e) { a.error = e.message; }
   finally { a.busy = false; }
 }
