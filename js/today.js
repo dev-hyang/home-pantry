@@ -212,7 +212,8 @@ function homeCard(fin) {
     const n = upcoming(state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable"), 30).length;
     rows.splice(2, 0, row(href("bills", "recurring"), "🧾", t("未来 30 天账单"), t("{n} 笔账单", { n }), false));
   }
-  const MAX = 7, more = rows.length - MAX;   // 一张卡大约放 7 行；多出来的和待办卡一样，底部一行链接到房屋首页
+  const two = !document.documentElement.classList.contains("force-phone") && window.matchMedia?.("(min-width: 720px)").matches;   // 宽屏卡里两列：放 8 行刚好排满；手机一列放 7 行
+  const MAX = two ? 8 : 7, more = rows.length - MAX;   // 多出来的和待办卡一样，底部一行链接到房屋首页
   const foot = state.houseEnabled && more > 0 ? `<p class="tcard-foot"><span>${t("还有 {n} 个入口", { n: more })}</span><a class="tcard-more" href="${href("house")}">${t("更多")} › ${t("房屋")}</a></p>` : "";
   return card({ k: "home", icon: "🏡", title: t("家里 · 一览"), headHref: state.houseEnabled ? href("house") : "", body: `<ul class="tcard-rows">${rows.slice(0, MAX).join("")}</ul>${foot}` });   // 标题 → 房屋概览
 }

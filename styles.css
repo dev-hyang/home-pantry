@@ -2836,3 +2836,5 @@ textarea[data-autosize] { resize: none; transition: height .08s ease-out; }
 textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .ai-att{margin-top:10px}
 .att-n{color:var(--surface)}
+/* 今日卡片：每张卡自己做定位容器，卡里给读屏用的隐藏文字（.sr-only）不再跑到滑动区外面把整页撑宽（之前页面有横向滚动条） */
+.tslide { position: relative; }

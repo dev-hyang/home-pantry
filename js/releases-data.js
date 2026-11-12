@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-12.3", title: { zh: "今日页不再左右晃；家里一览在电脑上排满两列", en: "Today no longer scrolls sideways; home card fills both columns on laptops" }, items: [
+    { k: "fix", zh: "修好：电脑上今日页底部多出一条横向滚动条，页面能被拖到右边", en: "Fixed: an extra horizontal scrollbar on Today that let the page drift sideways" },
+    { k: "better", zh: "「家里 · 一览」在电脑上放 8 行，两列刚好排满", en: "The home card shows 8 rows on laptops so both columns are full" }
+  ] },
   { v: "2026-11-12.2", title: { zh: "问咩咩可以带照片；家里一览多了房产和房屋入口", en: "Ask with photos; more home links on Today" }, items: [
     { k: "new", zh: "问咩咩可以拍几张照片或选 PDF 一起问，比如冰箱里的菜「这些能做什么？」；每张都能删", en: "Ask with photos or PDFs, e.g. what's in the fridge: \"what can I make?\"; remove any of them" },
     { k: "better", zh: "今日「家里 · 一览」：每套房产一行直接进概览，加上车辆、季节任务、东西坏了、房屋资料、耗材；放不下时底部「更多 › 房屋」", en: "Today's home card: one row per property, plus vehicles, seasonal tasks, repairs, home details and supplies; \"More › Home\" when it's full" }
