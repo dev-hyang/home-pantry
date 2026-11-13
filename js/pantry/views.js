@@ -5,7 +5,8 @@ import { COLORS, ICONS } from "../core/categories.js";
 import { L1S, l2List, l2Of, spendOptions } from "../core/taxonomy.js";
 import { locationGroups } from "../core/locations.js";
 import { Store } from "../core/store.js";
-import { shopDealLine, shopsEntry } from "../shops/views.js";
+import { shopDealLine, shopsStats } from "../shops/views.js";
+import { crumbNav } from "../core/hub.js";
 import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText, toDisp } from "../core/util.js";
 import { href } from "../core/router.js";
 import { compare, joinList, lang, t } from "../core/i18n.js";
@@ -471,32 +472,33 @@ function shopQty(s) {
 }
 const SHOP_SORTS = [["new", "加入时间：新 → 旧"], ["old", "加入时间：旧 → 新"], ["name", "名称 A → Z"], ["cat", "按分类"]];
 const shopCat = (s) => state.items.find((i) => i.id === s.item_id)?.category || s.category || "other";
-/** 采购清单的筛选和排序（分类、谁认领的） */
-function shopRows(status) {
-  const f = state.shopFilter, me = state.user?.id;
+/* 采购（2026-11-13 重新设计）：#/shopping 是看板首页（几个数字 + 录入入口 + 待买预览），
+ * #/shopping/list?tab=… 是完整清单（按状态分页签），#/shopping/add 是「加入清单」的表单页 */
+const SHOP_TABS = [["open", "全部未买"], ["todo", "尚未认领"], ["claimed", "已认领"], ["mine", "我认领的"], ["bought", "已买到"]];
+const shopTab = () => { const v = state.route?.q?.get("tab"); return SHOP_TABS.some(([k]) => k === v) ? v : "open"; };
+const isMine = (s) => Store.mode === "demo" || s.claimed_by === state.user?.id;
+const whoName = (s) => s.claimed_by_name || (isMine(s) ? t("我") : t("家人"));
+const inTab = (tab) => (s) => (tab === "bought" ? s.status === "bought"
+  : s.status !== "bought" && (tab === "open" || (tab === "todo" ? s.status === "todo" : s.status === "claimed" && (tab === "claimed" || isMine(s)))));
+const listHref = (tab) => href("shopping", "list", tab && tab !== "open" ? `?tab=${tab}` : "");
+/** 某个页签里的采购项，按分类筛选、排好序（已买到按买到时间，新的在前） */
+function shopRows(tab) {
+  const f = state.shopFilter;
   const cats = new Map(state.items.map((i) => [i.id, i.category]).reverse());   // 建一次，筛选 / 排序时不再逐条查库存
-  const shopCat = (s) => cats.get(s.item_id) || s.category || "other";
-  const mineOf = (s) => Store.mode === "demo" || s.claimed_by === me;
-  const rows = state.shopping.filter((s) => s.status === status && (f.cat === "all" || shopCat(s) === f.cat)
-    && (f.who === "all" || (f.who === "mine" ? s.status === "claimed" && mineOf(s) : f.who === "others" ? s.status === "claimed" && !mineOf(s) : s.status === "todo")));
-  const date = (s) => String(s.created_at || "");
-  const sorter = { new: (a, b) => date(b).localeCompare(date(a)), old: (a, b) => date(a).localeCompare(date(b)), name: (a, b) => compare(a.name, b.name), cat: (a, b) => shopCat(a).localeCompare(shopCat(b)) || compare(a.name, b.name) }[f.sort] || (() => 0);
+  const catOfRow = (s) => cats.get(s.item_id) || s.category || "other";
+  const rows = state.shopping.filter((s) => inTab(tab)(s) && (f.cat === "all" || catOfRow(s) === f.cat));
+  const date = (s) => String((tab === "bought" && s.bought_at) || s.created_at || "");
+  const sorter = { new: (a, b) => date(b).localeCompare(date(a)), old: (a, b) => date(a).localeCompare(date(b)), name: (a, b) => compare(a.name, b.name), cat: (a, b) => catOfRow(a).localeCompare(catOfRow(b)) || compare(a.name, b.name) }[f.sort] || (() => 0);
   return rows.sort(sorter);
 }
 function shopToolbar() {
   const f = state.shopFilter, opt = (v, l, c) => `<option value="${esc(v)}" ${c === v ? "selected" : ""}>${esc(l)}</option>`;
   const cats = [...new Set(state.shopping.map(shopCat))];
   if (state.shopping.length < 3) return "";
-  return `<div class="toolbar" style="margin-top:12px">
+  return `<div class="toolbar">
     <select id="shopCat" data-search aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c, `${(window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).icon || ""} ${t((window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).name)}`.trim(), f.cat)).join("")}</select>
-    <select id="shopWho" aria-label="${t("按认领筛选")}">${opt("all", t("全部"), f.who)}${opt("todo", t("没人认领的"), f.who)}${opt("mine", t("我认领的"), f.who)}${opt("others", t("家人认领的"), f.who)}</select>
     <select id="shopSort" aria-label="${t("排序")}">${SHOP_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>${clearFiltersBtn("shop", changed(f, FD.shop))}</div>`;
 }
-/* 采购清单各区块的展开状态：手动开合过的记在本机，没动过的用默认（待购买展开、认领中有内容才展开、已买到收起） */
-const SHOP_OPEN_KEY = "hmh-shop-open";
-const shopOpenPref = () => { try { return JSON.parse(localStorage.getItem(SHOP_OPEN_KEY) || "{}") || {}; } catch { return {}; } };
-export function setShopOpen(key, open) { try { localStorage.setItem(SHOP_OPEN_KEY, JSON.stringify({ ...shopOpenPref(), [key]: !!open })); } catch { /* 记不住就算了 */ } }
-const shopSecOpen = (key, n) => { const p = shopOpenPref()[key]; return p === undefined ? (key === "todo" || (key === "claimed" && n > 0)) : !!p; };
 /* 从别的应用带来的采购项（2026-11，牧羊人的饮食模版「加进爱家采购清单」）：#/shopping?add=燕麦|糙米|…&from=DASH 低钠
  * 牧羊人是另一个 Supabase 项目，只能把名字放在网址里带过来；这里列出来勾选确认后才加，已在清单里（待买 / 在买）的默认不勾 */
 export const importNames = () => { const raw = state.route?.q?.get("add"); return raw ? [...new Set(raw.split("|").map((s) => s.trim().slice(0, 60)).filter(Boolean))].slice(0, 40) : []; };
@@ -509,61 +511,124 @@ function shopImportHtml() {
     <div class="shop-import-list">${names.map((n) => { const dup = open.has(n.toLowerCase()); return `<label class="check-inline"><input type="checkbox" value="${esc(n)}" ${dup ? "" : "checked"}><span>${esc(n)}${dup ? ` <small class="muted">${t("已在清单里")}</small>` : ""}</span></label>`; }).join("")}</div>
     <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-primary btn-sm" data-action="shop-import">${t("加进采购清单")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="shop-import-cancel">${t("不用了")}</button></div></div>`;
 }
-export function viewShopping() {
-  const by = (s) => shopRows(s);
-  const row = (s) => {
-    const mine = Store.mode === "demo" || s.claimed_by === state.user?.id;
-    let acts = "";
-    if (s.status === "todo") acts = `<button type="button" class="btn btn-sm btn-dark" data-action="shop-claim" data-id="${s.id}">${t("我来买")}</button>
-      <button type="button" class="btn btn-sm btn-primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button>`;
-    if (s.status === "claimed") acts = `${mine ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shop-unclaim" data-id="${s.id}">${t("不买了")}</button>` : ""}
-      <button type="button" class="btn btn-sm btn-primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button>`;
-    const priceBox = s.status === "bought" ? (s.amount != null ? `<div class="muted" style="font-size:12px">${t("花费 {m}", { m: money(num(s.amount)) })}</div>` : "")
-      : `<div class="price-in">
-          <input type="number" min="0" step="0.01" inputmode="decimal" data-price-for="${s.id}" placeholder="${esc(t("花费 {sym}（可不填）", { sym: Units.money(0).replace(/[\d.,\s]/g, "") }))}" aria-label="${esc(t("{name} 实际花费", { name: s.name }))}">
-          <input type="text" maxlength="40" list="storeList" data-store-for="${s.id}" placeholder="${t("在哪买（可不填）")}" aria-label="${esc(t("{name} 购买商店", { name: s.name }))}">
-          ${cardSelectHtml("card_id", undefined, `data-card-for="${s.id}"`)}
-        </div>`;
-    return `<li class="shop-item ${s.status === "bought" ? "done" : ""}" data-swipe-del="shop">
-      <div class="row"><span class="nm"><b>${esc(s.name)}</b> ${s.status === "bought" ? showQty(num(s.quantity, 1), shopUnit(s)) : shopQty(s)}${s.created_at ? ` <small class="muted" title="${esc(stampText(s))}">${t("{d} 加入", { d: fmtShort(s.created_at) })}</small>` : ""}</span>
-        <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shop-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button></div>
-      ${s.status === "claimed" ? `<div class="who">🛍 ${t("{who} 正在买", { who: esc(s.claimed_by_name || t("家人")) })}</div>` : ""}
-      ${s.status === "bought" ? "" : shopDealLine(s)}
-      ${s.item_id ? "" : `<div class="muted" style="font-size:12px">${t("未关联库存，买到后需手动入库")}</div>`}
-      ${priceBox}
-      ${s.status === "bought" ? "" : `<div class="card-hint-slot">${cardHintHtml(s.category || state.items.find((i) => i.id === s.item_id)?.category, "")}</div>`}
-      ${acts ? `<div class="acts">${acts}</div>` : ""}
-    </li>`;
-  };
-  // 三个区块上下叠放、可折叠：待购买很长时折起来，别的区块不用滚很远；展开时条目按宽度排成多列。
-  // 默认：待购买展开、认领中有内容才展开、已买到收起（它只是记录）；手动开合会记住（localStorage）。
-  const col = (key, title, rows, empty, extra = "") => `<details class="shop-col shop-${key}" data-shopsec="${key}" ${shopSecOpen(key, rows.length) ? "open" : ""}>
-    <summary><span class="sec-title">${title}</span><span class="sec-count" aria-label="${t("{n} 项", { n: rows.length })}">${rows.length}</span><span class="sec-chev" aria-hidden="true"></span></summary>
-    <div class="sec-body">${extra}${rows.length ? `<ul>${rows.slice(0, pageLimit(`shop:${key}`, JSON.stringify(state.shopFilter))).map(row).join("")}</ul>${pageMoreBtn(`shop:${key}`, rows.length, pageLimit(`shop:${key}`, JSON.stringify(state.shopFilter)))}` : `<p class="muted">${empty}</p>`}</div></details>`;   // 每个区块各自分批显示
-  const bought = by("bought");
-  return `
-    <section class="section">
-      <div class="section-head"><h2>${t("采购清单")}</h2>
-        <div class="head-acts"><a class="btn btn-sm btn-primary" href="${href("scan")}">🧾 ${t("录入购物")}</a>
-          <button type="button" class="btn btn-sm" data-action="shop-add-alerts">${t("把补货提醒加进来")}</button></div></div>
-      ${shopsEntry()}${shopImportHtml()}${shopAdviceHtml()}${shopForecastHtml()}
-      <form class="panel add-row shop-row" id="shopForm" aria-label="${t("手动添加采购项")}">
-        <input name="name" required maxlength="60" placeholder="${t("要买什么")}" list="itemNames" aria-label="${t("名称")}">
-        <input name="quantity" type="number" min="0.1" step="0.1" value="1" aria-label="${t("数量")}">
-        <input name="unit" list="unitList" placeholder="${t("单位")}" maxlength="10" aria-label="${t("单位")}">
-        <select name="category" aria-label="${t("分类")}"><option value="">${t("自动分类")}</option>${categoryOptions()}</select>
-        <input name="estimate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="${t("预估金额")}" aria-label="${t("预估金额（可不填，用来做预算提示）")}">
-        <button class="btn btn-primary" type="submit">${t("加入清单")}</button>
-      </form>
-      ${storeDatalist()}
-      <datalist id="itemNames">${state.items.map((i) => `<option value="${esc(i.name)}">`).join("")}</datalist>
-      ${shopToolbar()}
-      <div class="shop-secs">
-        ${col("todo", t("待购买"), by("todo"), t("没有待买的东西。"))}
-        ${col("claimed", t("家人认领中"), by("claimed"), t("点“我来买”认领，家人就不会重复买。"))}
-        ${col("bought", t("已买到"), bought, t("买到后自动加回库存。"), bought.length ? `<div class="sec-tools"><button type="button" class="btn btn-sm btn-ghost" data-action="shop-clear">${t("清空已买到")}</button></div>` : "")}
+
+/** 清单页的一行：数量可改、在哪买 / 花费 / 用卡、认领和买到 */
+function shopRowHtml(s) {
+  const mine = isMine(s);
+  let acts = "";
+  if (s.status === "todo") acts = `<button type="button" class="btn btn-sm btn-dark" data-action="shop-claim" data-id="${s.id}">${t("我来买")}</button>
+    <button type="button" class="btn btn-sm btn-primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button>`;
+  if (s.status === "claimed") acts = `${mine ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shop-unclaim" data-id="${s.id}">${t("不买了")}</button>` : ""}
+    <button type="button" class="btn btn-sm btn-primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button>`;
+  const priceBox = s.status === "bought" ? (s.amount != null ? `<div class="muted" style="font-size:12px">${t("花费 {m}", { m: money(num(s.amount)) })}</div>` : "")
+    : `<div class="price-in">
+        <input type="number" min="0" step="0.01" inputmode="decimal" data-price-for="${s.id}" placeholder="${esc(t("花费 {sym}（可不填）", { sym: Units.money(0).replace(/[\d.,\s]/g, "") }))}" aria-label="${esc(t("{name} 实际花费", { name: s.name }))}">
+        <input type="text" maxlength="40" list="storeList" data-store-for="${s.id}" placeholder="${t("在哪买（可不填）")}" aria-label="${esc(t("{name} 购买商店", { name: s.name }))}">
+        ${cardSelectHtml("card_id", undefined, `data-card-for="${s.id}"`)}
+      </div>`;
+  const when = s.status === "bought" && s.bought_at ? t("{d} 买到", { d: fmtShort(s.bought_at) }) : s.created_at ? t("{d} 加入", { d: fmtShort(s.created_at) }) : "";
+  return `<li class="shop-item ${s.status === "bought" ? "done" : ""}" data-swipe-del="shop">
+    <div class="row"><span class="nm"><b>${esc(s.name)}</b> ${s.status === "bought" ? showQty(num(s.quantity, 1), shopUnit(s)) : shopQty(s)}${when ? ` <small class="muted" title="${esc(stampText(s))}">${when}</small>` : ""}</span>
+      <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shop-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button></div>
+    ${s.status === "claimed" ? `<div class="who">🛍 ${t("{who} 正在买", { who: esc(whoName(s)) })}</div>` : ""}
+    ${s.status === "bought" ? (s.claimed_by_name ? `<div class="who">✅ ${t("{who} 买到的", { who: esc(s.claimed_by_name) })}</div>` : "") : shopDealLine(s)}
+    ${s.item_id ? "" : `<div class="muted" style="font-size:12px">${t("未关联库存，买到后需手动入库")}</div>`}
+    ${priceBox}
+    ${s.status === "bought" ? "" : `<div class="card-hint-slot">${cardHintHtml(s.category || state.items.find((i) => i.id === s.item_id)?.category, "")}</div>`}
+    ${acts ? `<div class="acts">${acts}</div>` : ""}
+  </li>`;
+}
+
+/** 看板上的数字：未买（尚未认领 / 已认领 / 谁认领了几样）、近 30 天买到和花费 */
+function shopStats() {
+  const open = state.shopping.filter((s) => s.status !== "bought"), claimed = open.filter((s) => s.status === "claimed");
+  const since = Date.now() - 30 * 864e5;
+  const recent = state.shopping.filter((s) => s.status === "bought" && Date.parse(s.bought_at || s.created_at || 0) >= since);
+  const byWho = new Map();
+  for (const s of claimed) { const w = whoName(s); byWho.set(w, (byWho.get(w) || 0) + 1); }
+  return { open: open.length, todo: open.length - claimed.length, claimed: claimed.length, byWho,
+    recent: recent.length, spent: recent.reduce((a, s) => a + num(s.amount, 0), 0), priced: recent.some((s) => s.amount != null) };
+}
+const tile = (to, icon, label, big, sub) => `<a class="panel sd-tile" href="${to}">
+  <span class="sd-top"><span class="sd-ico" aria-hidden="true">${icon}</span><span class="sd-lbl">${label}</span><span class="mch" aria-hidden="true">›</span></span>
+  <span class="sd-big">${big}</span><span class="sd-sub">${sub}</span></a>`;
+/** 首页的「待买」预览：没人认领的在前，最多 6 项；点「我来买 / 已买到」就地处理，要填价格、商店去完整清单 */
+function shopPreview() {
+  const open = state.shopping.filter((s) => s.status !== "bought")
+    .sort((a, b) => (a.status === "todo" ? 0 : 1) - (b.status === "todo" ? 0 : 1) || String(b.created_at || "").localeCompare(String(a.created_at || "")));
+  if (!open.length) return `<div class="panel sd-empty"><b>${t("没有待买的东西")}</b><span class="muted">${t("缺什么随手加进来，家人能看到、能认领。")}</span></div>`;
+  return `<div class="panel sd-preview"><div class="section-head"><h3>${t("待购买")}</h3><a class="btn btn-sm btn-ghost" href="${listHref("open")}">${t("查看全部 {n}", { n: open.length })} ›</a></div>
+    <ul>${open.slice(0, 6).map((s) => `<li class="sp-row">
+      <span class="sp-txt"><b>${esc(s.name)}</b> <small class="muted">${showQty(num(s.quantity, 1), shopUnit(s))}${s.status === "claimed" ? ` · 🛍 ${esc(whoName(s))}` : ""}</small>${shopDealLine(s)}</span>
+      <span class="sp-acts">${s.status === "todo" ? `<button type="button" class="btn btn-sm btn-dark" data-action="shop-claim" data-id="${s.id}">${t("我来买")}</button>` : ""}<button type="button" class="btn btn-sm btn-primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button></span>
+    </li>`).join("")}</ul></div>`;
+}
+function viewShopHome() {
+  const st = shopStats(), sh = shopsStats();
+  const who = [...st.byWho].map(([w, n]) => `${esc(w)} ${n}`).join(" · ");
+  return `<section class="section shop-home">
+    <div class="section-head"><h2>${t("采购")}</h2></div>
+    ${shopImportHtml()}
+    <div class="sd-acts" role="group" aria-label="${esc(t("录入清单"))}">
+      <a class="btn btn-primary" href="${href("shopping", "add")}">＋ ${t("手动添加")}</a>
+      <a class="btn" href="${href("scan")}">🧾 ${t("扫描小票录入")}</a>
+      <button type="button" class="btn btn-ghost" data-action="shop-add-alerts">🔔 ${t("把补货提醒加进来")}</button>
+    </div>
+    ${shopAdviceHtml()}
+    <div class="sd-grid">
+      <div class="panel sd-tile sd-main">
+        <a class="sd-top" href="${listHref("open")}"><span class="sd-ico" aria-hidden="true">🛒</span><span class="sd-lbl">${t("待购买")}</span><span class="mch" aria-hidden="true">›</span></a>
+        <a class="sd-big" href="${listHref("open")}" aria-label="${esc(t("待购买 {n} 项", { n: st.open }))}">${st.open}<small>${t("项")}</small></a>
+        <span class="sd-split"><a href="${listHref("todo")}"><b>${st.todo}</b> ${t("尚未认领")}</a><a href="${listHref("claimed")}"><b>${st.claimed}</b> ${t("已认领")}</a></span>
       </div>
-    </section>`;
+      ${tile(listHref("claimed"), "🛍", t("家人认领"), `${st.claimed}<small>${t("项")}</small>`, st.claimed ? who : t("点“我来买”认领，家人就不会重复买。"))}
+      ${tile(href("shops", "list"), "🏪", t("常去的商店与特价"), sh.shops ? `${sh.hits}<small>${t("项特价对上清单")}</small>` : "—",
+        sh.shops ? [t("{n} 家", { n: sh.shops }), t("特价 {n} 项", { n: sh.deals }), sh.due ? `<em>${t("{n} 家待更新", { n: sh.due })}</em>` : ""].filter(Boolean).join(" · ") : t("放进常去的超市，看本周特价、哪家最便宜"))}
+      ${tile(listHref("bought"), "✅", t("近 30 天买到"), `${st.recent}<small>${t("项")}</small>`, st.priced ? t("花费 {m}", { m: money(st.spent) }) : t("买到后自动加回库存。"))}
+    </div>
+    ${shopForecastHtml()}
+    ${shopPreview()}
+  </section>`;
+}
+function viewShopList() {
+  const tab = shopTab(), rows = shopRows(tab), key = `shop:${tab}`, sig = JSON.stringify(state.shopFilter), lim = pageLimit(key, sig);
+  const count = (k) => state.shopping.filter(inTab(k)).length;
+  const empty = { open: t("没有待买的东西。"), todo: t("都有人认领了。"), claimed: t("点“我来买”认领，家人就不会重复买。"), mine: t("你还没有认领要买的东西。"), bought: t("买到后自动加回库存。") }[tab];
+  return `<section class="section shop-list-page">
+    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("采购清单"), icon: "🛒" }])}
+    <div class="section-head"><h2>${t("采购清单")}</h2>
+      <div class="head-acts"><a class="btn btn-sm btn-primary" href="${href("shopping", "add")}">＋ ${t("添加")}</a><a class="btn btn-sm" href="${href("scan")}">🧾 ${t("录入购物")}</a></div></div>
+    <nav class="shop-tabs" aria-label="${esc(t("按状态"))}">${SHOP_TABS.map(([k, l]) => `<a class="chip" href="${listHref(k)}" ${k === tab ? 'aria-current="page"' : ""}>${t(l)} <span class="chip-n">${count(k)}</span></a>`).join("")}</nav>
+    ${shopToolbar()}
+    ${storeDatalist()}
+    ${tab === "bought" && rows.length ? `<div class="sec-tools"><button type="button" class="btn btn-sm btn-ghost" data-action="shop-clear">${t("清空已买到")}</button></div>` : ""}
+    ${rows.length ? `<ul class="shop-list">${rows.slice(0, lim).map(shopRowHtml).join("")}</ul>${pageMoreBtn(key, rows.length, lim)}` : `<p class="muted shops-empty">${empty}</p>`}
+  </section>`;
+}
+function viewShopAdd() {
+  const recent = state.shopping.filter((s) => s.status !== "bought").sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))).slice(0, 5);
+  return `<section class="section shop-add-page">
+    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("加入清单"), icon: "＋" }])}
+    <form class="panel shop-add-form" id="shopForm" aria-label="${t("手动添加采购项")}">
+      <label class="full">${t("要买什么")}<input name="name" required maxlength="60" placeholder="${t("例如：鸡蛋、牛奶、洗洁精")}" list="itemNames" autocomplete="off"></label>
+      <label>${t("数量")}<input name="quantity" type="number" min="0.1" step="0.1" value="1" inputmode="decimal"></label>
+      <label>${t("单位")}<input name="unit" list="unitList" placeholder="${t("不填自动选")}" maxlength="10"></label>
+      <label>${t("分类")}<select name="category"><option value="">${t("自动分类")}</option>${categoryOptions()}</select></label>
+      <label>${t("预估金额")}<input name="estimate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="${t("可不填，用来做预算提示")}"></label>
+      <div class="form-actions full"><button class="btn btn-primary" type="submit">${t("加入清单")}</button><a class="btn btn-ghost" href="${href("shopping")}">${t("完成")}</a></div>
+      <p class="muted full shop-add-tip">${t("加完一项可以接着加；库存里有的东西会自动关联，买到后自动入库。")}</p>
+    </form>
+    <datalist id="itemNames">${state.items.map((i) => `<option value="${esc(i.name)}">`).join("")}</datalist>
+    ${shopAdviceHtml()}
+    <a class="panel shops-entry" href="${href("scan")}"><span aria-hidden="true">🧾</span><span><b>${t("东西多？拍小票或贴网购订单")}</b><small>${t("AI 读成清单，确认后一起入库")}</small></span><span class="mch" aria-hidden="true">›</span></a>
+    ${recent.length ? `<div class="panel sd-preview"><div class="section-head"><h3>${t("最近加入")}</h3><a class="btn btn-sm btn-ghost" href="${listHref("open")}">${t("采购清单")} ›</a></div>
+      <ul>${recent.map((s) => `<li class="sp-row"><span class="sp-txt"><b>${esc(s.name)}</b> <small class="muted">${showQty(num(s.quantity, 1), shopUnit(s))}${s.created_at ? ` · ${t("{d} 加入", { d: fmtShort(s.created_at) })}` : ""}</small></span></li>`).join("")}</ul></div>` : ""}
+  </section>`;
+}
+/** 采购：#/shopping（看板）、#/shopping/list、#/shopping/add；储藏 → 采购（#/pantry/shopping）也是看板 */
+export function viewShopping() {
+  const sub = state.route?.section === "shopping" ? state.route.sub : "home";
+  return sub === "list" ? viewShopList() : sub === "add" ? viewShopAdd() : viewShopHome();
 }
 
 

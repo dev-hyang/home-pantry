@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.4", title: { zh: "采购页改版：一眼看清要买什么", en: "Shopping redesigned: see what to buy at a glance" }, items: [
+    { k: "better", zh: "采购首页变成看板：待购买（尚未认领 / 已认领）、家人认领、常去的商店与特价、近 30 天买到，点哪格进哪里", en: "Shopping now opens on a dashboard: to buy (unclaimed / claimed), claimed by family, stores & deals, bought in 30 days; tap a card to open it" },
+    { k: "better", zh: "「手动添加」「扫描小票录入」放在最上面；手动添加是单独一页，加完一项可以接着加", en: "\"Add by hand\" and \"Scan a receipt\" are at the top; adding by hand has its own page so you can keep adding" },
+    { k: "better", zh: "完整的采购清单按状态分页签：全部未买、尚未认领、已认领、我认领的、已买到", en: "The full list has tabs: all open, unclaimed, claimed, mine, bought" },
+    { k: "fix", zh: "找附近的商店：地图服务忙时不再一直转圈，改为先列出附近的常见连锁店；一周内同样的搜索直接用上次的结果", en: "Nearby stores: when the map service is busy you now get nearby chain stores instead of an error; repeat searches within a week reuse the last result" }
+  ] },
   { v: "2026-11-13.3", title: { zh: "用 Claude 整理特价、按清单比价", en: "Collect deals and compare your list with Claude" }, items: [
     { k: "new", zh: "常去的商店 →「用 Claude 整理」：复制指令给 Chrome 侧边栏里的 Claude，它只读你打开、搜好的广告页，按单价整理", en: "My stores → Ask Claude: copy instructions for Claude in the Chrome side panel; it reads only the ad pages you opened and sorts by unit price" },
     { k: "new", zh: "也可以复制「按采购清单比价」：让 Claude 找出清单上每样东西哪家最便宜", en: "Or copy \"compare my shopping list\": Claude finds the cheapest store for each item" },

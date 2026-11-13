@@ -1,5 +1,5 @@
 /* 常去的商店 + 特价：数据整理、分类、连锁店预设、按 ZIP 找附近门店（OpenStreetMap）、特价和采购清单对上（迁移 067）
- * 外部服务：ZIP → 经纬度用 zippopotam.us，附近门店用 OpenStreetMap 的 Overpass（几个镜像轮流试）。都不用 key，只发 ZIP 或坐标，不发别的。 */
+ * 外部服务：ZIP → 经纬度用 zippopotam.us，附近门店用 OpenStreetMap 的 Overpass（几个镜像），它忙时改用 Photon 按连锁店名字找。都不用 key，只发 ZIP 或坐标，不发别的。 */
 import { state } from "../core/state.js";
 import { normName } from "../core/item-match.js";
 import { todayISO } from "../core/util.js";
@@ -114,30 +114,86 @@ export function rememberPoint(p) { saveZip(p); }
 const OSM_CAT = { supermarket: "groceries", greengrocer: "groceries", butcher: "groceries", seafood: "groceries", wholesale: "warehouse", department_store: "department",
   general: "department", variety_store: "department", chemist: "pharmacy", hardware: "hardware", doityourself: "hardware", car_parts: "auto", tyres: "auto", pet: "pet", electronics: "electronics", furniture: "home", houseware: "home", interior_decoration: "home" };
 const OSM_BY_CAT = (cats) => Object.entries(OSM_CAT).filter(([, c]) => !cats?.length || cats.includes(c)).map(([k]) => k);
-const MIRRORS = ["https://overpass-api.de/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
-/** 附近的门店：半径（英里）内、选中分类的，按距离排好；公共服务器忙的时候换一个镜像再试 */
-export async function searchNearby(pt, radiusMi, cats) {
-  const m = Math.round(Math.min(25, Math.max(1, radiusMi)) * 1609.34);
-  const tags = OSM_BY_CAT(cats).join("|");
-  const q = `[out:json][timeout:40];(nwr["shop"~"^(${tags})$"]["name"](around:${m},${pt.lat},${pt.lon}););out center tags 400;`;
-  let lastErr = null;
-  for (const url of MIRRORS) {
-    try {
-      const r = await fetch(url, { method: "POST", body: new URLSearchParams({ data: q }) });
-      if (!r.ok) { lastErr = new Error(`HTTP ${r.status}`); continue; }
-      const j = await r.json().catch(() => null); if (!j?.elements) { lastErr = new Error("bad"); continue; }
-      return j.elements.map((e) => {
-        const g = e.tags || {}, lat = e.lat ?? e.center?.lat, lon = e.lon ?? e.center?.lon;
-        const name = g.brand && /^(Jewel-Osco|Aldi|Target|Walmart|Costco)$/i.test(g.brand) ? (g.brand === "Aldi" ? "ALDI" : g.brand) : g.name;
-        const chain = chainOf(g.brand || g.name);
-        const address = [[g["addr:housenumber"], g["addr:street"]].filter(Boolean).join(" "), g["addr:city"], [g["addr:state"], g["addr:postcode"]].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-        return { osm_id: `${e.type[0]}${e.id}`, name: String(name || "").slice(0, 60), chain, category: (chain && CHAINS[chain].cat) || OSM_CAT[g.shop] || "other",
-          address: address.slice(0, 200), zip: g["addr:postcode"] || null, lat, lon, phone: (g.phone || g["contact:phone"] || "").slice(0, 30) || null,
-          website: (g.website || g["contact:website"] || "").slice(0, 500) || null, dist: miles(pt, { lat, lon }) };
-      }).filter((x) => x.name && x.lat != null).sort((a, b) => a.dist - b.dist);
-    } catch (e) { lastErr = e; }
+// Overpass 公共服务器常常忙（502 / 504）：先同时问前两个，谁先回用谁；都不行再问后两个。每次最多等 25 秒。
+const MIRRORS = ["https://maps.mail.ru/osm/tools/overpass/api/interpreter", "https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
+async function getJson(url, init = {}, ms = 20000) {
+  const c = new AbortController(), timer = setTimeout(() => c.abort(), ms);
+  try { const r = await fetch(url, { ...init, signal: c.signal }); if (!r.ok) throw new Error(`HTTP ${r.status}`); return await r.json(); }
+  finally { clearTimeout(timer); }
+}
+/** 以 pt 为中心、半边 mi 英里的方框 [南, 西, 北, 东]；方框查询比 around 轻很多，距离再在本机算 */
+function bbox(pt, mi) {
+  const dLat = mi / 69, dLon = mi / (69 * Math.cos((pt.lat * Math.PI) / 180));
+  return [pt.lat - dLat, pt.lon - dLon, pt.lat + dLat, pt.lon + dLon].map((x) => +x.toFixed(4));
+}
+const addrOf = (no, street, city, st, zip) => [[no, street].filter(Boolean).join(" "), city, [st, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ").slice(0, 200);
+function shopRow(pt, { id, name, brand, shop, lat, lon, address, zip, phone, website }) {
+  const chain = chainOf(brand || name);
+  return { osm_id: id, name: String((chain && CHAINS[chain].re.test(name || "") ? CHAINS[chain].name : name) || "").slice(0, 60), chain,
+    category: (chain && CHAINS[chain].cat) || OSM_CAT[shop] || "other", address, zip: zip || null, lat, lon,
+    phone: String(phone || "").slice(0, 30) || null, website: String(website || "").slice(0, 500) || null, dist: miles(pt, { lat, lon }) };
+}
+async function overpass(pt, mi, cats) {
+  const [s, w, n, e] = bbox(pt, mi);
+  const q = `[out:json][timeout:25];nwr["shop"~"^(${OSM_BY_CAT(cats).join("|")})$"]["name"](${s},${w},${n},${e});out center tags 800;`;
+  const ask = (url) => getJson(url, { method: "POST", body: new URLSearchParams({ data: q }) }, 25000).then((j) => (j?.elements ? j.elements : Promise.reject(new Error("bad"))));
+  let els;
+  try { els = await Promise.any(MIRRORS.slice(0, 2).map(ask)); } catch { els = await Promise.any(MIRRORS.slice(2).map(ask)); }
+  return els.map((e) => {
+    const g = e.tags || {};
+    return shopRow(pt, { id: `${e.type[0]}${e.id}`, name: g.name, brand: g.brand, shop: g.shop, lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon,
+      address: addrOf(g["addr:housenumber"], g["addr:street"], g["addr:city"], g["addr:state"], g["addr:postcode"]), zip: g["addr:postcode"],
+      phone: g.phone || g["contact:phone"], website: g.website || g["contact:website"] });
+  });
+}
+/** 备用：Photon（komoot 的 OpenStreetMap 搜索，免费、不用 key）按连锁店名字在方框里搜。只认得 CHAINS 里的连锁店，所以只当后备 */
+async function photonChain(pt, mi, key) {
+  const [s, w, n, e] = bbox(pt, mi);
+  const u = `https://photon.komoot.io/api/?q=${encodeURIComponent(CHAINS[key].name)}&bbox=${w},${s},${e},${n}&lat=${pt.lat}&lon=${pt.lon}&limit=10&osm_tag=shop`;
+  const j = await getJson(u, {}, 15000);
+  return (j.features || []).map((f) => {
+    const p = f.properties || {}, [lon, lat] = f.geometry?.coordinates || [];
+    return shopRow(pt, { id: `${String(p.osm_type || "x")[0].toLowerCase()}${p.osm_id}`, name: p.name, shop: p.osm_value, lat, lon,
+      address: addrOf(p.housenumber, p.street, p.city, p.state, p.postcode), zip: p.postcode });
+  }).filter((x) => x.chain === key);
+}
+async function photonChains(pt, mi, keys) {
+  const out = [];
+  for (let i = 0; i < keys.length; i += 4) {   // 一次最多 4 个请求，别一下子压给公共服务
+    const got = await Promise.allSettled(keys.slice(i, i + 4).map((k) => photonChain(pt, mi, k)));
+    got.forEach((g) => g.status === "fulfilled" && out.push(...g.value));
   }
-  throw lastErr || new Error("overpass");
+  return out;
+}
+// 同一个地方、范围、分类，一周内不重复问地图服务（存在本机，最多记 6 次）
+const NEAR_KEY = "hmh-shop-near", WEEK = 7 * 864e5;
+const nearCache = () => { try { return JSON.parse(localStorage.getItem(NEAR_KEY) || "{}") || {}; } catch { return {}; } };
+function putNear(key, rows) {
+  try { const c = nearCache(); c[key] = { at: Date.now(), rows }; const keys = Object.keys(c).sort((a, b) => c[b].at - c[a].at).slice(0, 6);
+    localStorage.setItem(NEAR_KEY, JSON.stringify(Object.fromEntries(keys.map((k) => [k, c[k]])))); } catch { /* 存不下就算了 */ }
+}
+const tidy = (rows, mi) => { const seen = new Set(); return rows.filter((x) => x.name && x.lat != null && x.dist <= mi && !seen.has(x.osm_id) && seen.add(x.osm_id)).sort((a, b) => a.dist - b.dist); };
+/** 附近的门店：半径（英里）内、选中分类的，按距离排好。
+ * 先问 Overpass（什么店都有）；它忙的时候改用 Photon 只找常见连锁店，结果带 partial = true。fresh = true 跳过本机缓存。 */
+export async function searchNearby(pt, radiusMi, cats, { fresh = false } = {}) {
+  const mi = Math.min(25, Math.max(1, radiusMi));
+  const key = `${pt.lat.toFixed(2)},${pt.lon.toFixed(2)}|${mi}|${[...(cats || [])].sort().join(",")}`;
+  const hit = nearCache()[key];
+  if (!fresh && hit && Date.now() - hit.at < WEEK) return Object.assign(hit.rows, { cached: hit.at, partial: !!hit.partial });
+  let rows, partial = false;
+  try { rows = tidy(await overpass(pt, mi, cats), mi); }
+  catch {
+    const keys = Object.keys(CHAINS).filter((k) => !cats?.length || cats.includes(CHAINS[k].cat));
+    rows = tidy(await photonChains(pt, mi, keys), mi); partial = true;
+    if (!rows.length) throw new Error("overpass");
+  }
+  if (!partial) putNear(key, rows);
+  return Object.assign(rows, { partial });
+}
+/** 第一次打开时加的那几家：直接用 Photon 按名字找最近的门店（每家一个轻量请求，比整片区域查询快、也不容易碰上服务器忙） */
+export async function nearestChains(pt, keys, mi = 20) {
+  const rows = tidy(await photonChains(pt, mi, keys), mi);
+  return keys.map((k) => rows.find((r) => r.chain === k)).filter(Boolean);
 }
 
 /* ───────────── AI 读广告 → 特价 ───────────── */

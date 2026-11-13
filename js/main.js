@@ -67,7 +67,7 @@ import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsen
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
 import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
-import { moveCat, renderInvList, scoreRecipes, setShopOpen, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
+import { moveCat, renderInvList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { famMembers, familyHref, meId, profileErr, readMemberForm, reloadMembers } from "./settings/members.js";
 import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
@@ -941,7 +941,9 @@ main.addEventListener("submit", async (e) => {
       if (openSame) return toast(t("{name} 已经在清单里了", { name: openSame.name }));
       await Store.saveShopping({ name, quantity: Math.max(0.1, num(f.elements.quantity.value, 1)), unit: Units.normalize(f.elements.unit.value) || linked?.unit || Units.guess(name) || "", item_id: linked?.id || null, category: f.elements.category.value || linked?.category || "other" });   // 没填单位：已有物品用它的，新的按名字猜（牛奶 → 瓶）
       { const est = num(f.elements.estimate?.value, NaN); state.shopAdvice = Number.isFinite(est) && est > 0 ? { name, estimate: est, group: groupForCategory(linked?.category || f.elements.category.value, est) } : null; }
-      toast(t("已加入：{name}", { name })); refresh();
+      toast(t("已加入：{name}", { name }));
+      if (state.route.sub === "add") { f.reset(); f.elements.name.focus(); }   // 加入清单页：清空表单接着加
+      refresh();
     }
     if (f.id === "memberForm") {   // 成员资料：本人改自己的，家主改任何人的（数据库函数同样校验，迁移 052）
       const err = $("#memberErr"); if (err) err.textContent = "";
@@ -1555,7 +1557,6 @@ function paintHeaderSync() {
 syncState.onChange = paintHeaderSync;
 
 // 采购清单区块折叠 / 展开：记住这次的选择（toggle 事件不冒泡，所以用捕获）
-document.addEventListener("toggle", (e) => { const d = e.target; if (d && d.dataset && d.dataset.shopsec) setShopOpen(d.dataset.shopsec, d.open); }, true);
 export function gate(html) { document.body.classList.add("gate"); applyChrome(); $("#hhName").textContent = ""; $("#main").innerHTML = html; }
 
 /* 登录：邮箱魔法链接（默认）；手机号短信验证码（config.js 里 PHONE_LOGIN = true 且 Supabase 已接短信服务商时显示） */

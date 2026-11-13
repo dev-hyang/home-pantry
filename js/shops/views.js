@@ -12,7 +12,7 @@ import { crumbNav } from "../core/hub.js";
 import { aiReady, askText } from "../core/ai.js";
 import { attachHTML, attachPayload, attachReset } from "../core/attach.js";
 import { claudePrompt, dealCatName, importGroups } from "./logic.js";
-import { CHAINS, SHOP_CATS, STARTER, adUrl, bestDealFor, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, openShopping, parseLooseJson, rememberPoint, savedZip, searchNearby, shopCat, zipToPoint } from "./logic.js";
+import { CHAINS, SHOP_CATS, STARTER, adUrl, bestDealFor, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, nearestChains, openShopping, parseLooseJson, rememberPoint, savedZip, searchNearby, shopCat, zipToPoint } from "./logic.js";
 
 const DOW = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 const ui = () => (state.shopUi ||= { q: "", cat: "", status: "active", sort: "name", edit: null, find: { zip: savedZip()?.zip || "", radius: 10, cats: ["groceries", "warehouse", "department"], results: null, busy: false, error: "", pt: savedZip() }, deal: {} });
@@ -54,7 +54,7 @@ function viewList() {
   const catCount = (c) => pool.filter((s) => s.category === c).length;
   const chips = [["", t("全部"), "", pool.length], ...SHOP_CATS.filter(([c]) => catCount(c)).map(([c, n, i]) => [c, t(n), i, catCount(c)])];
   return `<section class="section shops-page">
-    ${crumbNav([{ href: href("shopping"), label: t("采购清单") }, { label: t("常去的商店"), icon: "🏪" }])}
+    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("常去的商店"), icon: "🏪" }])}
     ${missingPanel()}
     <div class="section-head"><h2>${t("常去的商店")}</h2><p>${t("每家的本周广告、特价都在这里；采购清单会标出哪家在打折。")}</p>
       <div class="head-acts"><button type="button" class="btn btn-sm" data-action="shops-claude" aria-expanded="${!!u.claude}">🤖 ${t("用 Claude 整理")}</button><a class="btn btn-sm" href="${href("shops", "find")}">📍 ${t("找附近的商店")}</a><button type="button" class="btn btn-sm btn-primary" data-action="shops-new">＋ ${t("手动添加")}</button></div></div>
@@ -120,7 +120,7 @@ function viewFind() {
   const f = ui().find, have = new Map((state.shops || []).filter((s) => s.osm_id).map((s) => [s.osm_id, s]));
   const fq = (f.q || "").trim().toLowerCase(), res = f.results && f.results.filter((x) => !fq || `${x.name} ${x.address}`.toLowerCase().includes(fq));   // 结果里再按名称 / 地址筛
   return `<section class="section shops-page">
-    ${crumbNav([{ href: href("shopping"), label: t("采购清单") }, { href: href("shops", "list"), label: t("常去的商店") }, { label: t("找附近的商店"), icon: "📍" }])}
+    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }, { label: t("找附近的商店"), icon: "📍" }])}
     ${missingPanel()}
     <form class="panel shops-find" id="shopsFindForm" aria-label="${esc(t("找附近的商店"))}">
       <div class="shops-find-row">
@@ -134,6 +134,8 @@ function viewFind() {
       ${f.error ? `<p class="form-error" role="alert">${esc(f.error)}</p>` : ""}
     </form>
     ${f.results?.length ? `<div class="shops-bar"><label class="shops-q"><span class="sr-only">${t("在结果里筛选")}</span><input type="search" data-find-q value="${esc(f.q || "")}" placeholder="${esc(t("在结果里筛选：名称、街道、城市"))}" autocomplete="off"></label></div>` : ""}
+    ${f.results?.partial ? `<p class="shops-note" role="status">${t("地图服务这会儿忙，先列出附近的常见连锁店；小店要等它不忙时再搜一次。")} <button type="button" class="btn btn-sm btn-ghost" data-action="shops-find-fresh">${t("再搜一次")}</button></p>`
+      : f.results?.cached ? `<p class="muted shops-count">${t("这是 {d} 搜过的结果（一周内不重复问地图服务）。", { d: fmtShort(new Date(f.results.cached).toISOString()) })} <button type="button" class="btn btn-sm btn-ghost" data-action="shops-find-fresh">${t("重新搜索")}</button></p>` : ""}
     ${res ? (res.length ? `<p class="muted shops-count">${fq ? t("{n} / {m} 家", { n: res.length, m: f.results.length }) : t("找到 {n} 家", { n: res.length })}</p><ul class="panel find-list">${res.map((x) => {
       const mine = have.get(x.osm_id), [, cn, icon] = shopCat(x.category);
       const btn = mine ? (mine.archived ? `<button type="button" class="btn btn-sm" data-action="shops-unarchive" data-id="${mine.id}">${t("加回常去")}</button>` : `<a class="btn btn-sm btn-ghost" href="${shopHref(mine)}">${t("已加入")} ›</a>`)
@@ -171,7 +173,7 @@ const copyBox = () => `<details class="shops-copy" open><summary>${t("没能自�
 /* ───────────── 单个商店 ───────────── */
 function viewShop(id) {
   const s = (state.shops || []).find((x) => x.id === id);
-  const base = [{ href: href("shopping"), label: t("采购清单") }, { href: href("shops", "list"), label: t("常去的商店") }];
+  const base = [{ href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }];
   if (!s) return `<section class="section shops-page">${crumbNav([...base, { label: t("商店") }])}<p class="muted">${state.shops ? t("这家商店不在了。") : t("加载中…")}</p></section>`;
   const [, cn, icon] = shopCat(s.category), d = distOf(s), du = dealUi(s.id), deals = liveDeals(s.id);
   const openUpd = du.rows || du.busy || state.route.q.get("update") === "1" || !deals.length;
@@ -277,12 +279,11 @@ export function shopDealLine(s) {
   const d = b.deal;
   return `<a class="shop-deal-line" href="${shopHref(b.shop)}">🏷 ${esc(b.shop.name)} ${d.price != null ? money(d.price) : esc(d.price_text || "")}${d.size ? ` <small>${esc(d.size)}</small>` : ""}${d.valid_to ? ` · ${t("到 {d}", { d: fmtShort(d.valid_to) })}` : ""}${b.n > 1 ? ` · ${t("另有 {n} 家", { n: b.n - 1 })}` : ""}</a>`;
 }
-/** 采购清单顶上的入口：几家商店、几条特价对上清单、几家待更新 */
-export function shopsEntry() {
-  const shops = (state.shops || []).filter((s) => !s.archived);
-  const open = openShopping(), hits = liveDeals().filter((d) => shops.some((s) => s.id === d.shop_id) && dealMatches(d, open).length).length, due = shops.filter(dealsDue).length;
-  const txt = !shops.length ? t("放进常去的超市，看本周特价、哪家最便宜") : [t("{n} 家", { n: shops.length }), hits ? t("{n} 项特价对上清单", { n: hits }) : "", due ? t("{n} 家待更新", { n: due }) : ""].filter(Boolean).join(" · ");
-  return `<a class="panel shops-entry" href="${href("shops", "list")}"><span aria-hidden="true">🏪</span><span><b>${t("常去的商店与特价")}</b><small>${txt}</small></span><span class="mch" aria-hidden="true">›</span></a>`;
+/** 采购看板上「常去的商店与特价」那一格的数字：几家常去、几条在有效期的特价、几条对上清单、几家待更新 */
+export function shopsStats() {
+  const shops = (state.shops || []).filter((s) => !s.archived), ids = new Set(shops.map((s) => s.id));
+  const live = liveDeals().filter((d) => ids.has(d.shop_id)), open = openShopping();
+  return { shops: shops.length, deals: live.length, hits: open.length ? live.filter((d) => dealMatches(d, open).length).length : 0, due: shops.filter(dealsDue).length };
 }
 
 /* ───────────── 操作 ───────────── */
@@ -304,6 +305,7 @@ export async function shopsAction(action, el, { render, go, refresh }) {
     case "shops-status": u.status = el.dataset.v; render(); return;
     case "shops-cat": u.cat = el.dataset.v; render(); return;
     case "shops-radius": u.find.radius = +el.dataset.v; render(); return;
+    case "shops-find-fresh": if (u.find.pt) { u.find.fresh = true; runFind(render); } return;
     case "shops-fcat": { const c = el.dataset.v, cs = u.find.cats; u.find.cats = cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]; render(); return; }
     case "shops-archive": { const s = shopById(id); if (!s) return; upsertLocal(await Store.saveShop({ ...s, archived: true })); u.edit = null; toast(t("{name} 已收进「不去了」，随时可以加回来", { name: s.name })); render(); return; }
     case "shops-unarchive": { const s = shopById(id); if (!s) return; upsertLocal(await Store.saveShop({ ...s, archived: false })); toast(t("{name} 已加回常去", { name: s.name })); render(); return; }
@@ -383,8 +385,9 @@ async function runFind(render) {
   const f = ui().find;
   if (!f.cats.length) { f.error = t("至少选一个分类。"); return render(); }
   f.busy = true; f.error = ""; render();
-  try { f.results = await searchNearby(f.pt, f.radius, f.cats); }
-  catch { f.error = t("地图服务这会儿太忙了，过一会儿再试；也可以手动添加。"); }
+  try { f.results = await searchNearby(f.pt, f.radius, f.cats, { fresh: !!f.fresh }); }
+  catch { f.results = null; f.error = t("地图服务这会儿太忙了，过一会儿再试；也可以手动添加。"); }
+  f.fresh = false;
   f.busy = false; render();
 }
 async function starter(render) {
@@ -392,7 +395,7 @@ async function starter(render) {
   f.busy = true; f.error = ""; render();
   let near = [];
   if (zip) {
-    try { f.zip = zip; f.pt = await zipToPoint(zip); near = await searchNearby(f.pt, 15, ["groceries", "warehouse", "department"]); }
+    try { f.zip = zip; f.pt = await zipToPoint(zip); near = await nearestChains(f.pt, STARTER.filter((k) => !(state.shops || []).some((s) => s.chain === k))); }
     catch (e) { f.error = e.message === "ZIP" ? t("没认出这个 ZIP，先只加名字。") : t("地图服务这会儿太忙了，先只加名字，地址以后可以补。"); }
   }
   let n = 0;
