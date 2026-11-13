@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.3", title: { zh: "用 Claude 整理特价、按清单比价", en: "Collect deals and compare your list with Claude" }, items: [
+    { k: "new", zh: "常去的商店 →「用 Claude 整理」：复制指令给 Chrome 侧边栏里的 Claude，它只读你打开、搜好的广告页，按单价整理", en: "My stores → Ask Claude: copy instructions for Claude in the Chrome side panel; it reads only the ad pages you opened and sorts by unit price" },
+    { k: "new", zh: "也可以复制「按采购清单比价」：让 Claude 找出清单上每样东西哪家最便宜", en: "Or copy \"compare my shopping list\": Claude finds the cheapest store for each item" },
+    { k: "new", zh: "把 Claude 给的结果贴回来，一次导入几家的特价（核对后才保存）；单个商店页也能直接贴", en: "Paste Claude's result back to import several stores at once (saved after you check); also works on a single store's page" }
+  ] },
   { v: "2026-11-13.2", title: { zh: "常去的商店和本周特价", en: "Your stores and this week's deals" }, items: [
     { k: "new", zh: "采购清单上面多了「常去的商店」：按分类筛选、搜索、排序，可以手动加、编辑，不想去的收进「不去了」，随时加回来", en: "\"My stores\" above the shopping list: filter by category, search, sort; add or edit stores, set aside the ones you stop using and add them back any time" },
     { k: "new", zh: "按 ZIP 或当前位置找附近 5 / 10 / 15 / 20 英里的超市、会员店、五金、汽配…，一键加入；第一次可以直接加 Jewel-Osco、Costco、ALDI 等 6 家最近的门店", en: "Find stores within 5–20 miles by ZIP or location and add them in one tap; start with the nearest Jewel-Osco, Costco, ALDI and more" },

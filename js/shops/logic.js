@@ -180,3 +180,39 @@ export function parseLooseJson(text) {
   if (a >= 0 && b > a) return JSON.parse(clean.slice(a, b + 1));
   throw new Error("JSON");
 }
+
+/* ───────────── 给 Claude（Chrome 侧边栏 / Claude Code 的 pantry-deals 技能）的指令 ─────────────
+ * 约定（个人比价、非商业）：用户自己先在 Flipp / 超市网站上打开广告、搜好要的东西；Claude 只读当前打开的标签页，
+ * 不自己去点搜索框、填邮编、翻几十页；按正常浏览节奏；结果按下面的 JSON 格式给出，贴回爱家小助手导入（导入前人工核对）。 */
+const DEAL_JSON = '{"stores":[{"store":"店名（和上面列的一致）","valid_from":"YYYY-MM-DD","valid_to":"YYYY-MM-DD","deals":[{"name":"","brand":null,"size":"64 fl oz","price":2.5,"price_text":"2 for $5","regular_price":null,"unit_price":0.039,"unit_label":"/fl oz","aka":"牛奶, milk","category":"dairy"}]}]}';
+const RULES = [
+  "只读我已经打开的标签页（我自己先搜好了）；不要自己去点搜索框、填邮编、翻很多页，按正常浏览节奏，一页最多往下滚几屏。",
+  "纯图片的传单就看截图读价格；小字看不清的写 null，不要猜。",
+  "price = 单件价：「2 for $5」记 2.50；「$3.99/lb」记 3.99、unit_label 写 /lb；price_text 保留广告原文。",
+  "unit_price + unit_label = 统一单价，方便比不同包装：肉、蔬果、散装按 /lb，包装食品按 /oz，饮料和液体按 /fl oz，按个数的按 /ct（鸡蛋、卷纸）。能从规格算就算，算不出写 null。",
+  "aka = 1–3 个通用叫法（逗号分开），要有一个中文，例如「鸡蛋, eggs」，用来和我的采购清单对上。",
+  "category 用：groceries, produce, meat, dairy, bakery, frozen, drinks, snacks, household, personal, baby, pet, pharmacy, hardware, auto, electronics, home, other。",
+  "先给一张按单价从低到高的表格让我看，最后再给一个 ```json 代码块（格式见下），我会贴回爱家小助手。不要替我在任何网站上点提交。",
+];
+export function claudePrompt({ shops = [], zip = "", list = [] } = {}) {
+  const names = shops.map((s) => `${s.name}${s.address ? `（${s.address}）` : ""}`).join("；");
+  return [
+    list.length ? `帮我比价：下面是我这周的采购清单，请根据我现在打开的几家超市传单标签页，找出每样东西去哪家买最便宜（按单价比），没有特价的就写「没看到」。`
+      : `帮我把我打开的超市传单标签页里的特价整理出来。`,
+    names ? `商店：${names}。${zip ? `ZIP：${zip}。` : ""}` : (zip ? `ZIP：${zip}。` : ""),
+    list.length ? `采购清单：${list.join("、")}` : "",
+    `今天是 ${todayISO()}。`,
+    "规则：", ...RULES.map((r, i) => `${i + 1}. ${r}`),
+    `JSON 格式（每家商店一项；比价时只放清单里那几样的特价）：${DEAL_JSON}`,
+  ].filter(Boolean).join("\n");
+}
+/** Claude 给的结果 → 每家商店一组：对上了哪家（按连锁名 / 名称），没对上的单独列出来 */
+export function importGroups(j) {
+  const groups = Array.isArray(j?.stores) ? j.stores : j?.deals ? [j] : [];
+  const shops = (state.shops || []).filter((s) => !s.archived);
+  return groups.map((g) => {
+    const nm = String(g.store || g.name || "").trim(), ch = chainOf(nm), k = normName(nm);
+    const shop = shops.find((s) => ch && s.chain === ch) || shops.find((s) => k && (normName(s.name).includes(k) || k.includes(normName(s.name))));
+    return { store: nm, shop, rows: cleanDeals(g), include: !!shop };
+  }).filter((g) => g.rows.length);
+}

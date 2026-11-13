@@ -11,7 +11,7 @@ import { href } from "../core/router.js";
 import { crumbNav } from "../core/hub.js";
 import { aiReady, askText } from "../core/ai.js";
 import { attachHTML, attachPayload, attachReset } from "../core/attach.js";
-import { dealCatName } from "./logic.js";
+import { claudePrompt, dealCatName, importGroups } from "./logic.js";
 import { CHAINS, SHOP_CATS, STARTER, adUrl, bestDealFor, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, openShopping, parseLooseJson, rememberPoint, savedZip, searchNearby, shopCat, zipToPoint } from "./logic.js";
 
 const DOW = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -57,8 +57,9 @@ function viewList() {
     ${crumbNav([{ href: href("shopping"), label: t("采购清单") }, { label: t("常去的商店"), icon: "🏪" }])}
     ${missingPanel()}
     <div class="section-head"><h2>${t("常去的商店")}</h2><p>${t("每家的本周广告、特价都在这里；采购清单会标出哪家在打折。")}</p>
-      <div class="head-acts"><a class="btn btn-sm" href="${href("shops", "find")}">📍 ${t("找附近的商店")}</a><button type="button" class="btn btn-sm btn-primary" data-action="shops-new">＋ ${t("手动添加")}</button></div></div>
+      <div class="head-acts"><button type="button" class="btn btn-sm" data-action="shops-claude" aria-expanded="${!!u.claude}">🤖 ${t("用 Claude 整理")}</button><a class="btn btn-sm" href="${href("shops", "find")}">📍 ${t("找附近的商店")}</a><button type="button" class="btn btn-sm btn-primary" data-action="shops-new">＋ ${t("手动添加")}</button></div></div>
     ${u.edit === "new" ? shopForm(null) : ""}
+    ${u.claude ? claudePanel() : ""}
     ${due.length && u.status === "active" ? `<div class="panel shops-due" role="status">🗓️ ${t("{n} 家本周的特价还没更新：{names}", { n: due.length, names: due.map((s) => esc(s.name)).join("、") })}</div>` : ""}
     ${all.length ? `<div class="shops-bar">
       <label class="shops-q"><span class="sr-only">${t("搜索商店")}</span><input type="search" data-shops-q value="${esc(u.q)}" placeholder="${esc(t("搜索名称、地址"))}" autocomplete="off"></label>
@@ -142,6 +143,31 @@ function viewFind() {
   </section>`;
 }
 
+/* ───────────── 用 Claude 整理（Chrome 侧边栏）：复制指令 → 贴回 JSON → 按商店导入 ───────────── */
+function claudePanel() {
+  const u = ui(), imp = u.imp;
+  return `<div class="panel shops-claude">
+    <b>🤖 ${t("用 Claude 整理特价")}</b>
+    <ol class="shops-steps">
+      <li>${t("在 Flipp 或超市网站上打开这几家本周的广告（一家一个标签页），自己先搜好要的东西。")}</li>
+      <li>${t("复制下面的指令，粘贴给 Chrome 侧边栏里的 Claude；它只读你打开的页面，不会自己去翻。")}</li>
+      <li>${t("把 Claude 最后给的 JSON 贴到下面，点「看看能导入什么」，核对后导入。")}</li>
+    </ol>
+    <div class="form-actions"><button type="button" class="btn btn-sm" data-action="shops-claude-copy" data-mode="all">📋 ${t("复制「整理特价」指令")}</button>
+      <button type="button" class="btn btn-sm" data-action="shops-claude-copy" data-mode="list">📋 ${t("复制「按采购清单比价」指令")}</button></div>
+    ${u.copyText ? copyBox() : ""}
+    <label class="att-text"><span>${t("Claude 给的 JSON")}</span><textarea id="shopsImportText" data-autosize rows="3" placeholder='{"stores":[{"store":"ALDI","deals":[…]}]}'>${esc(u.impText || "")}</textarea></label>
+    ${imp ? (imp.length ? `<ul class="shops-imp">${imp.map((g, i) => `<li><label class="check-inline"><input type="checkbox" data-imp="${i}" ${g.include ? "checked" : ""} ${g.shop ? "" : "disabled"}>
+        <span><b>${esc(g.store || t("没写店名"))}</b> · ${t("{n} 条", { n: g.rows.length })}${g.shop ? (g.shop.name !== g.store ? ` → ${esc(g.shop.name)}` : "") : ` <span class="warn-txt">${t("常去里没有这家，先添加再导入")}</span>`}</span></label></li>`).join("")}</ul>
+      <label class="check-inline"><input type="checkbox" id="shopsImpReplace" ${u.impReplace !== false ? "checked" : ""}><span>${t("替换这几家现有的特价（新一周的广告选这个）")}</span></label>
+      <div class="form-actions"><button type="button" class="btn btn-primary" data-action="shops-import-save">${t("导入勾选的")}</button><button type="button" class="btn btn-ghost" data-action="shops-import-cancel">${t("取消")}</button></div>`
+      : `<p class="form-error">${t("没读出任何一家的特价，检查一下贴的是不是 Claude 最后那段 JSON。")}</p>`)
+    : `<div class="form-actions"><button type="button" class="btn btn-primary" data-action="shops-import-parse">${t("看看能导入什么")}</button></div>`}
+    ${u.impError ? `<p class="form-error" role="alert">${esc(u.impError)}</p>` : ""}
+  </div>`;
+}
+const copyBox = () => `<details class="shops-copy" open><summary>${t("没能自动复制，请手动全选复制")}</summary><textarea readonly rows="6">${esc(ui().copyText)}</textarea></details>`;
+
 /* ───────────── 单个商店 ───────────── */
 function viewShop(id) {
   const s = (state.shops || []).find((x) => x.id === id);
@@ -175,7 +201,9 @@ function updateHtml(s, du) {
     ${attachHTML(id, { t, esc, textLabel: t("广告文字，或 Claude 整理好的结果（JSON）"), ph: t("在 Flipp 或超市网站上先搜好、打开这家本周的广告，再截图或复制文字贴到这里"), rows: 3,
       hint: `${t("小技巧：先自己在页面上搜出要的东西（鸡蛋、牛奶…），再截图让 AI 读，最快也最省额度。")}${ready ? "" : ` ${t("没填 AI key 时，只能导入 Claude 整理好的 JSON。")}`}` })}
     <div class="form-actions"><button type="button" class="btn btn-primary" data-action="shops-read" data-id="${s.id}" ${du.busy ? "disabled" : ""}>${du.busy ? t("正在读…（几十秒）") : t("读出特价")}</button>
+      <button type="button" class="btn btn-ghost" data-action="shops-claude-copy" data-id="${s.id}">📋 ${t("复制给 Claude 的指令")}</button>
       <button type="button" class="btn btn-ghost" data-action="shops-manual" data-id="${s.id}">＋ ${t("手动加一条")}</button></div>
+    ${ui().copyText ? copyBox() : ""}
     ${du.error ? `<p class="form-error" role="alert">${esc(du.error)}</p>` : ""}
   </div>`;
 }
@@ -299,6 +327,23 @@ export async function shopsAction(action, el, { render, go, refresh }) {
       toast(t("已加入 {name}", { name: saved.name })); render(); return;
     }
     case "shops-starter": return starter(render);
+    case "shops-claude": u.claude = !u.claude; u.copyText = ""; render(); return;
+    case "shops-claude-copy": {
+      const one = id ? shopById(id) : null, shops = one ? [one] : (state.shops || []).filter((s) => !s.archived);
+      const list = el.dataset.mode === "list" ? openShopping().map((s) => s.name) : [];
+      if (el.dataset.mode === "list" && !list.length) { toast(t("采购清单是空的。")); return; }
+      const text = claudePrompt({ shops, zip: home()?.zip || "", list });
+      try { await navigator.clipboard.writeText(text); u.copyText = ""; toast(t("已复制：在 Chrome 侧边栏里粘贴给 Claude")); }
+      catch { u.copyText = text; }
+      render(); return;
+    }
+    case "shops-import-parse": {
+      u.impText = $("#shopsImportText")?.value || ""; u.impError = "";
+      try { u.imp = importGroups(parseLooseJson(u.impText)); } catch { u.imp = null; u.impError = t("这段不是 JSON。把 Claude 最后 ```json 里的内容整段贴过来。"); }
+      render(); return;
+    }
+    case "shops-import-cancel": u.imp = null; u.impText = ""; u.impError = ""; render(); return;
+    case "shops-import-save": return importSave(render);
     case "shops-read": return readDeals(id, render);
     case "shops-manual": { const du = dealUi(id); du.rows = [{ include: true, name: "", size: null, price: null, price_text: null, unit_price: null, unit_label: null, valid_to: null, aka: null, category: null }]; du.manual = true; du.replace = false; render(); return; }
     case "shops-addrow": { const du = dealUi(id); keepReview(du); du.rows.push({ include: true, name: "" }); render(); return; }
@@ -318,6 +363,21 @@ export async function shopsAction(action, el, { render, go, refresh }) {
       toast(t("已加入采购清单：{name}", { name })); return refresh();
     }
   }
+}
+async function importSave(render) {
+  const u = ui(), groups = (u.imp || []).filter((g, i) => g.shop && (document.querySelector(`[data-imp="${i}"]`)?.checked ?? g.include));
+  if (!groups.length) { u.impError = t("没有勾选任何一家。"); return render(); }
+  const replace = document.getElementById("shopsImpReplace")?.checked !== false;
+  let n = 0, m = 0;
+  for (const g of groups) {
+    const old = replace ? liveDeals(g.shop.id).map((d) => d.id) : [];
+    const saved = await Store.addShopDeals(g.rows.map(({ include, ...r }) => ({ ...r, shop_id: g.shop.id, source: "claude" })));
+    if (old.length) { await Store.deleteShopDeals(old); state.shopDeals = state.shopDeals.filter((d) => !old.includes(d.id)); m += old.length; }
+    state.shopDeals.push(...saved); n += saved.length;
+    upsertLocal(await Store.saveShop({ ...g.shop, deals_at: new Date().toISOString() }));
+  }
+  u.imp = null; u.impText = ""; u.claude = false;
+  toast(t("已导入 {s} 家共 {n} 条特价", { s: groups.length, n }) + (m ? t("，替换了旧的 {m} 条", { m }) : "")); render();
 }
 async function runFind(render) {
   const f = ui().find;
