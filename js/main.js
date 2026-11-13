@@ -6,7 +6,7 @@ import { findItem, normName } from "./core/item-match.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
-import { $, MUTE_FOREVER, applyDraft, armed, catOf, du, esc, fillUnitList, fmtDate, fmtDay, formDraft, setDateFormat, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, spaceOf, storedStep, toast, confirmDelete } from "./core/util.js";
+import { $, MUTE_FOREVER, applyDraft, armed, catOf, du, esc, fillUnitList, fmt, fmtDate, fmtDay, formDraft, setDateFormat, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, toDisp, spaceOf, storedStep, toast, confirmDelete } from "./core/util.js";
 import { propertyActive } from "./core/lifecycle.js";
 import { SECTIONS, go, goBack, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
 import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.js";
@@ -936,7 +936,7 @@ main.addEventListener("submit", async (e) => {
       const linked = findItem(name);   // 写法一样就算同一件（以前要一字不差）
       const openSame = state.shopping.find((s) => s.status !== "bought" && (linked ? s.item_id === linked.id : normName(s.name) === normName(name)));
       if (openSame) return toast(t("{name} 已经在清单里了", { name: openSame.name }));
-      await Store.saveShopping({ name, quantity: Math.max(0.1, num(f.elements.quantity.value, 1)), unit: f.elements.unit.value.trim() || linked?.unit || "", item_id: linked?.id || null, category: f.elements.category.value || linked?.category || "other" });
+      await Store.saveShopping({ name, quantity: Math.max(0.1, num(f.elements.quantity.value, 1)), unit: Units.normalize(f.elements.unit.value) || linked?.unit || Units.guess(name) || "", item_id: linked?.id || null, category: f.elements.category.value || linked?.category || "other" });   // 没填单位：已有物品用它的，新的按名字猜（牛奶 → 瓶）
       { const est = num(f.elements.estimate?.value, NaN); state.shopAdvice = Number.isFinite(est) && est > 0 ? { name, estimate: est, group: groupForCategory(linked?.category || f.elements.category.value, est) } : null; }
       toast(t("已加入：{name}", { name })); refresh();
     }
@@ -1431,8 +1431,8 @@ export async function stepShopQty(id, dir) {
 /** 采购清单改单位：数量框里的数字不变，按新单位重新解释（和物品编辑页一样可以输入任何单位）；没改就什么也不做 */
 export async function setShopUnit(id, value) {
   const s = state.shopping.find((x) => x.id === id); if (!s) return;
-  const cur = shopUnit(s), typed = String(value || "").trim().slice(0, 10);
-  if (typed === du(cur) || typed === t(du(cur))) return;
+  const cur = shopUnit(s), typed = Units.normalize(value).slice(0, 10);   // 英文界面填 bottle / lbs 也存成统一写法
+  if (!typed || typed === Units.normalize(du(cur))) return;
   const disp = toDisp(num(s.quantity, 1), cur);
   await Store.saveShopping({ id, unit: typed, quantity: Math.round((disp / Units.factor(typed)) * 10000) / 10000 });
   refresh();
@@ -1488,10 +1488,16 @@ export async function markBought(id) {
     item_id: item?.id || null, name: s.name, category: item?.category || s.category || "other",
     quantity: qty, unit: s.unit || item?.unit || null, amount, currency: Units.region.currency, purchased_at: now, store, ...purchasePayFields(payV),
   });
+  const fit = item && s.unit ? Units.fit(s.unit, item.unit) : { kind: "same", factor: 1 };
   if (item) {
-    if (!s.unit || s.unit === item.unit) {
+    if (fit.kind === "same") {
       await Store.adjust(item.id, Math.round(qty * 100) / 100, "restock");
       toast(t("{name} 已入库 +{q}，记得更新保质期", { name: s.name, q: showQty(qty, item.unit) }));
+    } else if (fit.kind === "convert" || fit.kind === "count") {
+      // 2026-11-12：能换算的（lb → kg）换成库存的单位再补；计数单位之间（个 → 瓶）按 1:1 补。库存单位不动，提示一下换算了什么
+      const add = Math.round(qty * fit.factor * 100) / 100;
+      await Store.adjust(item.id, add, "restock");
+      toast(t("{name} 已入库 +{q}（{q1} {u1} 按库存单位记成 {q}），记得更新保质期", { name: s.name, q: showQty(add, item.unit), q1: fmt(toDisp(qty, s.unit)), u1: t(du(s.unit)) }));
     } else {
       // 采购时改了单位：库存的单位跟着改成新单位。能换算的（kg ↔ lb 等）把原有库存、最低库存、日均用量一起换成新单位；换算不了的（个 → 包）数字照旧，只换单位
       const r = Units.convert(1, item.unit, s.unit), k = r == null ? 1 : r, r2 = (v) => Math.round(v * 100) / 100;

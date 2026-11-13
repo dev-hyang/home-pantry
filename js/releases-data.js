@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-12.4", title: { zh: "单位更聪明：瓶、袋、盒自动选，补货自动换算", en: "Smarter units: bottle, bag, box picked for you; restocks convert" }, items: [
+    { k: "better", zh: "录入购物和新建物品按东西猜单位：牛奶、酱油 → 瓶，大米、薯片 → 袋，鸡蛋 → 盒；猜不出来才是「个」", en: "Shopping scans and new items guess the unit from the name: milk → bottle, rice → bag, eggs → box; \"pc\" only when unsure" },
+    { k: "better", zh: "补到已有物品时单位不一样：lb ↔ kg 自动换算，个 ↔ 瓶 按库存的单位记，每行和入库后都会说明换算了什么；换算不了的会提醒你改", en: "Adding to an existing item in a different unit: lb ↔ kg converts, pc ↔ bottle uses the stock's unit, and you're told what changed; if it can't convert you're asked to fix it" },
+    { k: "better", zh: "单位列表两套都有：在美国也能选 mL、g（照包装上印的填），显示时按地区换算", en: "Unit list now has both systems: pick mL or g as printed on the package, shown in your region's units" }
+  ] },
   { v: "2026-11-12.3", title: { zh: "今日页不再左右晃；家里一览在电脑上排满两列", en: "Today no longer scrolls sideways; home card fills both columns on laptops" }, items: [
     { k: "fix", zh: "修好：电脑上今日页底部多出一条横向滚动条，页面能被拖到右边", en: "Fixed: an extra horizontal scrollbar on Today that let the page drift sideways" },
     { k: "better", zh: "「家里 · 一览」在电脑上放 8 行，两列刚好排满", en: "The home card shows 8 rows on laptops so both columns are full" }

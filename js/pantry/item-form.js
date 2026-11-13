@@ -87,7 +87,7 @@ export function viewItemForm() {
       <form id="itemForm" class="panel ${gear ? "is-gear" : ""} ${spaceOf(v.category) === "house" ? "is-house" : ""}" novalidate data-autosave>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">
         <input type="hidden" name="orig_unit" value="${esc(v.unit)}">
-        <input type="hidden" name="disp_unit" value="${esc(dUnit)}">
+        <input type="hidden" name="disp_unit" value="${esc(Units.normalize(dUnit))}">
         <fieldset>
           <legend>${t("基本信息")}</legend>
           <div class="form-grid">
@@ -120,7 +120,7 @@ export function viewItemForm() {
               <input name="quantity" type="number" min="0" step="any" inputmode="decimal" required value="${dv(v.quantity ?? 0)}" data-orig="${dv(v.quantity ?? 0)}">
             </label>
             <label>${t("单位")}
-              <input name="unit" list="unitList" maxlength="10" required value="${esc(dUnit || "个")}">
+              <input name="unit" list="unitList" maxlength="10" required value="${esc(t(dUnit || "个"))}" ${it || src ? "" : 'data-auto="1"'}>
               ${dUnit !== v.unit ? `<small>${t("原单位 {u}，已按当前地区换算显示", { u: esc(v.unit) })}</small>` : ""}
             </label>
             <label class="not-gear">${t("少货线")}
@@ -200,7 +200,7 @@ export async function saveItemForm(f, { silent = false } = {}) {
   if (same) return fail(t("已经有「{name}」（{cat}）。是同一样东西就去那件补库存；是另一件就在名字里加上品牌、规格区分。", { name: same.name, cat: t(catOf(same.category).name) }), fe.name);
   if (!Number.isFinite(quantity) || quantity < 0) return fail(t("数量需要是 0 或正数。"), fe.quantity);
   // 单位没改且属于换算显示：换算回存储单位；数值没动过则保留原始值，避免来回换算产生误差
-  const typedUnit = fe.unit.value.trim() || "个";
+  const typedUnit = Units.normalize(fe.unit.value) || "个";   // 英文界面填的 bottle、lbs 等也存成统一写法
   const origUnit = fe.orig_unit.value, back = typedUnit === fe.disp_unit.value && typedUnit !== origUnit;
   const raw = state.items.find((x) => x.id === fe.item_id.value) || {};
   const val = (name) => {
@@ -277,8 +277,11 @@ function muteChoice(val, cur) {
 
 /* 添加物品：名称和已有物品对一下（js/core/item-match.js）——写法一样的给链接去那件，相近的列出来 */
 document.addEventListener("input", (e) => {
+  if (e.target.name === "unit" && e.target.closest?.("#itemForm")) { delete e.target.dataset.auto; return; }   // 手动改过单位就不再按名字猜
   if (e.target.name !== "name" || !e.target.closest?.("#itemForm")) return;
   const hint = document.getElementById("itemNameHint"), f = e.target.form; if (!hint || !f) return;
+  const u = f.elements.unit;   // 新物品、单位还没手动改过：按名字猜包装单位（牛奶 → 瓶、大米 → 袋），猜不出就是「个」
+  if (u?.dataset.auto === "1") u.value = t(Units.guess(e.target.value) || "个");
   const id = f.elements.item_id.value || null, same = findItem(e.target.value, { exceptId: id }), near = same ? [] : similarItems(e.target.value, { exceptId: id });
   hint.hidden = !same && !near.length;
   const link = (i) => `<a href="${href("item", i.id)}">${esc(i.name)}</a>`;

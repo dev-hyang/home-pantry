@@ -3665,4 +3665,11 @@ export const EN = {
   "PDF 太大了（最多 10 MB）": "That PDF is too large (10 MB max)",
   "只支持照片、PDF 和文字文件": "Only photos, PDFs and text files are supported",
   "这张图片打不开": "This image can't be opened",
+  "库存按 {u} 记，入库时换算成 {q} {u}": "Stock is kept in {u}; this will be added as {q} {u}",
+  "库存按 {u} 记，这一行按 {q} {u} 补进去": "Stock is kept in {u}; this line will be added as {q} {u}",
+  "单位对不上：库存按 {u} 记，{u2} 换算不过去。请把这一行改成几 {u}": "Units don't match: stock is kept in {u} and {u2} can't be converted. Change this line to a number of {u}",
+  "{name} {q1} {u1} → {q2} {u2}": "{name} {q1} {u1} → {q2} {u2}",
+  "；已换算单位：{list}": "; units converted: {list}",
+  "；{names} 的单位无法换算，按原数字记入了，请核对库存": "; couldn't convert units for {names}, added the number as is — please check the stock",
+  "{name} 已入库 +{q}（{q1} {u1} 按库存单位记成 {q}），记得更新保质期": "{name} restocked +{q} ({q1} {u1} recorded as {q} in the stock's unit); remember to update the expiry date",
 };

@@ -2609,6 +2609,8 @@ html.force-phone .pentries { display: none; } html.force-phone .pentry-dd { disp
 .scan-in-head .btn { flex: none; }
 .name-hint { display: block; margin: 4px 0 0; font-size: 12.5px; color: var(--pine); }
 .name-hint a { color: inherit; font-weight: 600; }
+.unit-hint { margin: 6px 0 0; font-size: 12.5px; color: var(--pine); }
+.unit-hint.warn { color: var(--soon); font-weight: 600; }
 .item-spend { margin-top: 6px; }
 /* 11-07 今日卡片行：名称小字在上、数值在下，窄卡（手机两列）里也不挤出框；图标定宽对齐 */
 .tcard { overflow: hidden; }

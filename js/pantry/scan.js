@@ -34,7 +34,7 @@ function scanPrompt(multi = "auto") {
       : multi === "one" ? "The attachment is ONE receipt or order: return exactly one entry in receipts."
       : "The photos / text may contain ONE OR SEVERAL separate receipts or orders (different stores, dates or times). Return one entry in receipts per separate receipt. Photos that are consecutive parts of one long receipt belong to the same entry. NEVER mix lines from different receipts, and never merge two stores into one entry.",
     `Write product names in short, generic ${names} (e.g. "Whole milk", not store abbreviations). Keep brand only when it matters.`,
-    "Each purchased product is one line. Put weight-priced items as qty = weight with unit lb/kg/oz/g; countable items as qty = count with unit pc/box/bag/bottle (or the local unit).",
+    "Each purchased product is one line. Weight-priced items (produce, meat, bulk): qty = weight, unit = lb / kg / oz / g. Everything else: qty = how many packages, unit = the PACKAGE TYPE it is sold in — one of: bottle (milk, juice, oil, sauces, detergent, shampoo), bag (rice, flour, chips, frozen food, bread), box (eggs, cereal, cookies, berries, trash bags), can (soda, beer, canned food, jars), pack (noodles, tissues, wipes, diapers), roll (paper towels, toilet paper, foil), tube (toothpaste), cup (yogurt), pc (single loose items, or when you can't tell). Never put the package size (e.g. 64 fl oz) as qty.",
     "amount = the final price paid for that line (apply line discounts). Skip tax, tip, bag fees, delivery/service fees, subtotal and payment lines (set skip=true or omit them).",
     "match = the index of the best matching existing inventory item from the list I give you, or null if none is a clear match.",
     `category = one of: ${cats}; use "other" if unsure.`,
@@ -59,13 +59,38 @@ function parseJson(text) {
   if (a >= 0 && b > a) return JSON.parse(clean.slice(a, b + 1));
   throw new Error(t("没能读出商品清单，换一张更清楚的图或补充文字再试。"));
 }
+/** 这一行用什么单位（库里统一存中文写法，显示再翻译）：
+ *  对上了已有物品 → 能换算的（lb ↔ kg）保留小票上的，入库时换算；都是计数单位（个 ↔ 瓶）→ 直接用库存的单位；
+ *  新物品 → AI 给的包装单位；AI 只给了「个」或没给 → 按名字猜（牛奶 → 瓶、大米 → 袋）；还猜不出来才是「个」 */
+function pickUnit(raw, name, m) {
+  const ai = Units.normalize(raw);
+  if (m) { const k = Units.fit(ai || m.unit, m.unit).kind; return (k === "count" || !ai ? Units.normalize(m.unit) || m.unit : ai).slice(0, 10); }
+  return (ai && ai !== "个" ? ai : Units.guess(name) || ai || "个").slice(0, 10);
+}
+/** 行的单位和要补进去的那件物品对不上时说一声：会换算成多少 / 按 1:1 记 / 换算不了请改 */
+const unitNoteText = (row) => noteFor(row.querySelector('[name="unit"]').value, num(row.querySelector('[name="qty"]').value, 0), row.querySelector('[name="target"]')?.value || "");
+function noteFor(rawUnit, qty, id) {
+  const item = id && !String(id).startsWith("__") && id !== "skip" ? sc.pool.find((i) => i.id === id) || state.items.find((i) => i.id === id) : null;
+  if (!item) return { text: "", warn: false };
+  const unit = Units.normalize(rawUnit), f = Units.fit(unit, item.unit);
+  if (f.kind === "same") return { text: "", warn: false };
+  const iu = t(Units.normalize(item.unit) || item.unit);
+  if (f.kind === "convert") return { text: t("库存按 {u} 记，入库时换算成 {q} {u}", { u: iu, q: fmt(Math.round(qty * f.factor * 100) / 100) }), warn: false };
+  if (f.kind === "count") return { text: t("库存按 {u} 记，这一行按 {q} {u} 补进去", { u: iu, q: fmt(qty) }), warn: false };
+  return { text: t("单位对不上：库存按 {u} 记，{u2} 换算不过去。请把这一行改成几 {u}", { u: iu, u2: t(unit) }), warn: true };
+}
+function unitNote(row) {
+  const el = row?.querySelector(".unit-hint"); if (!el) return;
+  const n = unitNoteText(row); el.hidden = !n.text; el.textContent = n.text; el.classList.toggle("warn", n.warn);
+}
+
 function buildReceipt(j) {
   const lines = Array.isArray(j?.lines) ? j.lines : [];
   const rows = lines.filter((l) => l && !l.skip && String(l.name || "").trim()).map((l) => {
     const m = (Number.isInteger(l.match) ? sc.pool[l.match] : null) || findItem(l.name, { spaces: ["pantry", "house"] });   // AI 没对上：写法一样的已有物品
     const valid = window.CATEGORIES.some((c) => c.id === l.category && c.space !== "gear");
     const amount = l.amount == null || l.amount === "" ? null : num(l.amount, NaN);
-    return { include: true, raw: String(l.raw || ""), name: String(l.name).trim().slice(0, 60), qty: num(l.qty, 1) > 0 ? num(l.qty, 1) : 1, unit: String(l.unit || m?.unit || t("个")).trim().slice(0, 10),
+    return { include: true, raw: String(l.raw || ""), name: String(l.name).trim().slice(0, 60), qty: num(l.qty, 1) > 0 ? num(l.qty, 1) : 1, unit: pickUnit(l.unit, l.name, m),
       amount: Number.isFinite(amount) ? Math.round(amount * 100) / 100 : null, def: m?.id || "", match: m?.id || "", category: valid ? l.category : m?.category || "other" };
   });
   const found = /^\d{4}-\d{2}-\d{2}$/.test(j?.date || "") && j.date <= todayISO();
@@ -144,12 +169,12 @@ function rowHtml(x, ri, i, cur) {
         <div class="form-grid">
           <label class="span-2">${t("名称")}<input name="name" maxlength="60" list="scanItemNames" autocomplete="off" value="${esc(x.name)}"></label>
           <label>${t("数量")}<input name="qty" type="number" min="0" step="any" inputmode="decimal" value="${esc(fmt(x.qty))}"></label>
-          <label>${t("单位")}<input name="unit" list="unitList" maxlength="10" value="${esc(x.unit)}"></label>
+          <label>${t("单位")}<input name="unit" list="unitList" maxlength="10" value="${esc(t(x.unit))}"></label>
           <label>${t("金额")}（${esc(cur)}）<input name="amount" type="number" min="0" step="0.01" inputmode="decimal" value="${x.amount ?? ""}"></label>
           <label class="span-2">${t("放进库存")}<select name="target" data-def="${esc(x.def || "")}">${targetOptions(x)}</select></label>
           <label class="span-2 scan-cat">${t("新物品的分类")}<select name="cat">${categoryOptions(x.category)}</select></label>
         </div>
-        <p class="dup-hint" role="status" hidden></p><p class="cart-hint" role="status" hidden></p><p class="name-hint" role="status" hidden></p></li>`;
+        <p class="dup-hint" role="status" hidden></p><p class="cart-hint" role="status" hidden></p><p class="name-hint" role="status" hidden></p>${(() => { const n = noteFor(x.unit, x.qty, x.match); return `<p class="unit-hint${n.warn ? " warn" : ""}" role="status" ${n.text ? "" : "hidden"}>${esc(n.text)}</p>`; })()}</li>`;
 }
 function receiptHtml(r, ri, many, cur) {
   return `<fieldset class="scan-rcpt panel" data-r="${ri}" style="margin:0 0 12px">
@@ -225,6 +250,7 @@ document.addEventListener("change", async (e) => {
   }
   const row = e.target.closest?.(".scan-row");
   if (row && e.target.name === "target") { row.classList.toggle("is-new", e.target.value === "__new"); if (e.isTrusted) e.target.dataset.touched = "1"; }
+  if (row && (e.target.name === "target" || e.target.name === "unit")) unitNote(row);
   if (e.target.name === "date" && e.target.closest?.("#scanForm")) {   // 改了某张小票的购买日期：它没手动选过的行，过去的日期 → 只记花费，今天 → 回到原来的默认
     const past = !!e.target.value && e.target.value < todayISO(), box = e.target.closest(".scan-rcpt");
     box.querySelectorAll(".scan-row").forEach((r) => {
@@ -240,6 +266,7 @@ document.addEventListener("input", (e) => {
   if (e.target.id === "scanText") { sc.text = e.target.value; document.querySelectorAll('[data-action="scan-run"]').forEach((b) => { b.disabled = !aiReady() || sc.busy || (!sc.images.length && !sc.text.trim()); }); }
   else if (e.target.closest?.("#scanForm")) {
     if (e.target.name === "name") nameMatch(e.target.closest(".scan-row"), e.target.value);
+    if (e.target.name === "qty" || e.target.name === "unit") unitNote(e.target.closest(".scan-row"));
     sc.dupAck = false; updateSum();
   }
 });
@@ -249,6 +276,7 @@ function nameMatch(row, name) {
   const sel = row.querySelector('[name="target"]'), hint = row.querySelector(".name-hint"), same = findItem(name, { spaces: ["pantry", "house"] });
   if (same && sel && sel.dataset.touched !== "1" && sel.value !== "__skip" && [...sel.options].some((o) => o.value === same.id)) { sel.value = same.id; row.classList.remove("is-new"); }
   else if (!same && sel && sel.dataset.touched !== "1" && sel.value !== "__skip" && !sel.value.startsWith("__")) { sel.value = "__new"; row.classList.add("is-new"); }
+  unitNote(row);
   if (!hint) return;
   const near = same ? [] : similarItems(name, { spaces: ["pantry", "house"] });
   hint.hidden = !same && !near.length;
@@ -288,7 +316,7 @@ async function confirm(ctx) {
     return [...box.querySelectorAll(".scan-row")].filter((r) => r.querySelector('[name="inc"]').checked).map((r) => {
       const g = (n) => r.querySelector(`[name="${n}"]`).value;
       const nm = g("name").trim(), same = g("target") === "__new" ? findItem(nm, { spaces: ["pantry", "house"] }) : null;   // 「新建」但库存里已有写法一样的：补到那件，不建第二件
-      return { store, now, pay, name: nm, qty: num(g("qty"), 0), unit: g("unit").trim() || t("个"), amount: g("amount") === "" ? null : Math.round(Math.max(0, num(g("amount"))) * 100) / 100, target: same ? same.id : g("target"), cat: g("cat") };
+      return { store, now, pay, name: nm, qty: num(g("qty"), 0), unit: Units.normalize(g("unit")) || "个", amount: g("amount") === "" ? null : Math.round(Math.max(0, num(g("amount"))) * 100) / 100, target: same ? same.id : g("target"), cat: g("cat") };
     });
   });
   if (!rows.length) { sc.error = t("没有勾选任何一行。"); return repaint2(); }
@@ -298,7 +326,7 @@ async function confirm(ctx) {
   const dupRows = boxes.reduce((s, b) => s + markDups(b), 0);   // 疑似重复的行：第一次点只提醒，确认无误再点一次才入库
   if (dupRows && !sc.dupAck) { sc.dupAck = true; sc.error = t("有 {n} 行疑似已经记过（见各行下面的提醒）。确认不是重复的，再点一次“确认入库”；是重复的就取消勾选那一行。", { n: dupRows }); return repaint2(); }
   sc.dupAck = false; sc.busy = true; sc.error = ""; repaint2();
-  let stocked = 0, spendOnly = 0, created = 0, cartDone = 0; const warns = [], newItems = new Map(), doneShop = new Set();
+  let stocked = 0, spendOnly = 0, created = 0, cartDone = 0; const warns = [], convs = [], newItems = new Map(), doneShop = new Set();
   try {
     // 先建新物品（同名同分类合并成一条，几张小票的也合并）：这一步失败时还没写任何花费和库存，可以直接重试
     for (const x of rows.filter((r) => r.target === "__new")) {
@@ -316,13 +344,15 @@ async function confirm(ctx) {
       if (x.target === "__skip") { spendOnly++; continue; }
       if (item && normName(x.name) !== normName(item.name) && !findItem(x.name)) Store.addItemAlias(item.id, x.name.slice(0, 60)).catch(() => {});   // 学会这个叫法
       if (item) {
-        const add = !x.unit || x.unit === item.unit ? x.qty : Units.convert(x.qty, x.unit, item.unit);
-        if (add == null) { warns.push(x.name); await Store.adjust(item.id, Math.round(x.qty * 100) / 100, "restock"); } else await Store.adjust(item.id, Math.round(add * 100) / 100, "restock");
+        const fit = Units.fit(x.unit, item.unit), add = fit.kind === "mismatch" ? x.qty : x.qty * fit.factor;   // 能换算的换成库存单位；计数单位之间 1:1
+        if (fit.kind === "mismatch") warns.push(x.name);
+        else if (fit.kind === "convert") convs.push(t("{name} {q1} {u1} → {q2} {u2}", { name: item.name, q1: fmt(x.qty), u1: t(x.unit), q2: fmt(Math.round(add * 100) / 100), u2: t(item.unit) }));
+        await Store.adjust(item.id, Math.round(add * 100) / 100, "restock");
         stocked++;
       }
     }
     for (const s of new Set(rows.map((x) => x.store).filter(Boolean))) rememberStore(s);
-    toast((boxes.length > 1 ? t("已录入 {r} 张小票：", { r: boxes.length }) : t("已录入：")) + t("入库 {a} 项，新建 {b} 项，只记花费 {c} 项", { a: stocked, b: created, c: spendOnly }) + (cartDone ? t("；采购清单 {n} 项已标成已买到", { n: cartDone }) : "") + (warns.length ? t("；{names} 的单位无法换算，请核对库存", { names: warns.join("、") }) : ""));
+    toast((boxes.length > 1 ? t("已录入 {r} 张小票：", { r: boxes.length }) : t("已录入：")) + t("入库 {a} 项，新建 {b} 项，只记花费 {c} 项", { a: stocked, b: created, c: spendOnly }) + (cartDone ? t("；采购清单 {n} 项已标成已买到", { n: cartDone }) : "") + (convs.length ? t("；已换算单位：{list}", { list: convs.join("、") }) : "") + (warns.length ? t("；{names} 的单位无法换算，按原数字记入了，请核对库存", { names: warns.join("、") }) : ""));
     resetScan(); ctx.go(href("shopping")); ctx.refresh();
   } catch (e) { sc.busy = false; sc.error = t("入库中途失败：{msg}。已写入的部分请回到库存和统计核对，不要直接重复提交。", { msg: e.message }); repaint2(); }
 }
