@@ -5,6 +5,7 @@ import { COLORS, ICONS } from "../core/categories.js";
 import { L1S, l2List, l2Of, spendOptions } from "../core/taxonomy.js";
 import { locationGroups } from "../core/locations.js";
 import { Store } from "../core/store.js";
+import { shopDealLine, shopsEntry } from "../shops/views.js";
 import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText, toDisp } from "../core/util.js";
 import { href } from "../core/router.js";
 import { compare, joinList, lang, t } from "../core/i18n.js";
@@ -527,6 +528,7 @@ export function viewShopping() {
       <div class="row"><span class="nm"><b>${esc(s.name)}</b> ${s.status === "bought" ? showQty(num(s.quantity, 1), shopUnit(s)) : shopQty(s)}${s.created_at ? ` <small class="muted" title="${esc(stampText(s))}">${t("{d} 加入", { d: fmtShort(s.created_at) })}</small>` : ""}</span>
         <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shop-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button></div>
       ${s.status === "claimed" ? `<div class="who">🛍 ${t("{who} 正在买", { who: esc(s.claimed_by_name || t("家人")) })}</div>` : ""}
+      ${s.status === "bought" ? "" : shopDealLine(s)}
       ${s.item_id ? "" : `<div class="muted" style="font-size:12px">${t("未关联库存，买到后需手动入库")}</div>`}
       ${priceBox}
       ${s.status === "bought" ? "" : `<div class="card-hint-slot">${cardHintHtml(s.category || state.items.find((i) => i.id === s.item_id)?.category, "")}</div>`}
@@ -544,7 +546,7 @@ export function viewShopping() {
       <div class="section-head"><h2>${t("采购清单")}</h2>
         <div class="head-acts"><a class="btn btn-sm btn-primary" href="${href("scan")}">🧾 ${t("录入购物")}</a>
           <button type="button" class="btn btn-sm" data-action="shop-add-alerts">${t("把补货提醒加进来")}</button></div></div>
-      ${shopImportHtml()}${shopAdviceHtml()}${shopForecastHtml()}
+      ${shopsEntry()}${shopImportHtml()}${shopAdviceHtml()}${shopForecastHtml()}
       <form class="panel add-row shop-row" id="shopForm" aria-label="${t("手动添加采购项")}">
         <input name="name" required maxlength="60" placeholder="${t("要买什么")}" list="itemNames" aria-label="${t("名称")}">
         <input name="quantity" type="number" min="0.1" step="0.1" value="1" aria-label="${t("数量")}">

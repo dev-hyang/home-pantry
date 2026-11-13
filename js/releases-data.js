@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.2", title: { zh: "常去的商店和本周特价", en: "Your stores and this week's deals" }, items: [
+    { k: "new", zh: "采购清单上面多了「常去的商店」：按分类筛选、搜索、排序，可以手动加、编辑，不想去的收进「不去了」，随时加回来", en: "\"My stores\" above the shopping list: filter by category, search, sort; add or edit stores, set aside the ones you stop using and add them back any time" },
+    { k: "new", zh: "按 ZIP 或当前位置找附近 5 / 10 / 15 / 20 英里的超市、会员店、五金、汽配…，一键加入；第一次可以直接加 Jewel-Osco、Costco、ALDI 等 6 家最近的门店", en: "Find stores within 5–20 miles by ZIP or location and add them in one tap; start with the nearest Jewel-Osco, Costco, ALDI and more" },
+    { k: "new", zh: "每家商店：本周广告、Flipp 链接；拍广告或截图让 AI 读出特价（单件价、单价、有效期），核对后保存；每周换广告那天提醒更新", en: "Each store: weekly ad and Flipp links; photograph the ad and AI reads the deals (price, unit price, dates) for you to confirm; reminders on the day the ad changes" },
+    { k: "new", zh: "采购清单里的东西在哪家打折，直接标在那一项下面", en: "Shopping list items show which store has them on sale" }
+  ] },
   { v: "2026-11-13.1", title: { zh: "修好：账单保存没反应", en: "Fixed: saving a bill did nothing" }, items: [
     { k: "fix", zh: "修好：编辑账单（比如 HOA 月费的付款账户与自动扣款）点保存没反应", en: "Fixed: tapping Save on a bill (e.g. HOA payment account and autopay) did nothing" }
   ] },

@@ -2840,3 +2840,118 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .att-n{color:var(--surface)}
 /* 今日卡片：每张卡自己做定位容器，卡里给读屏用的隐藏文字（.sr-only）不再跑到滑动区外面把整页撑宽（之前页面有横向滚动条） */
 .tslide { position: relative; }
+
+/* ───────────── 常去的商店与特价（js/shops/views.js，迁移 067）─────────────
+   电脑：商店卡片 2–3 列，特价是对齐的表格；手机：单列卡片，特价一条一张卡，操作按钮在底部，点按区域 ≥ 40px */
+.chip-n { display: inline-block; min-width: 18px; margin-left: 2px; padding: 0 5px; border-radius: 99px; background: var(--surface-2); color: var(--muted); font-size: 11.5px; font-weight: 600; text-align: center; }
+.chip[aria-pressed="true"] .chip-n { background: color-mix(in srgb, var(--bg) 25%, transparent); color: inherit; }
+.tag-ok { background: var(--ok-bg); color: var(--ok); }
+.tag-hot { background: var(--low-bg); color: var(--low); }
+.tag-warn { background: var(--soon-bg); color: var(--soon); }
+.warn-txt { color: var(--soon); }
+.shops-page .section-head { margin-bottom: 12px; }
+.shops-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 10px; }
+.shops-bar .seg, .shops-bar .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.shops-q { flex: 1 1 220px; min-width: 0; }
+.shops-q input { width: 100%; }
+.shops-cats { margin: 0 0 14px; }
+.shops-due { margin: 0 0 12px; padding: 10px 14px; background: var(--soon-bg); color: var(--soon); border-color: transparent; font-size: 14px; }
+.shops-empty, .shops-count { margin: 6px 2px 10px; }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.shop-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg); min-width: 0; }
+.shop-card.is-off { background: var(--bg); }
+.shop-main { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; min-height: 44px; }
+.shop-ico { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); font-size: 19px; }
+.shop-ico.big { width: 48px; height: 48px; font-size: 26px; border-radius: 12px; }
+.shop-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.shop-txt b { font-size: 15.5px; }
+.shop-txt small { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shop-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; }
+.shop-meta .tag { background: var(--surface-2); color: var(--ink); }
+.shop-meta .tag.tag-ok { background: var(--ok-bg); color: var(--ok); }
+.shop-meta .tag.tag-hot { background: var(--low-bg); color: var(--low); }
+.shop-meta .tag.tag-warn { background: var(--soon-bg); color: var(--soon); }
+.shop-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.shop-acts .btn { flex: 1 1 auto; justify-content: center; }
+.shops-starter { display: flex; flex-direction: column; gap: 8px; }
+.shops-starter p { margin: 0; }
+.shops-starter-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.shops-starter-row input { width: 110px; }
+.shop-form { margin: 0 0 14px; }
+/* 找附近 */
+.shops-find { display: flex; flex-direction: column; gap: 10px; }
+.shops-find-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.shops-find-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.shops-find-row input { width: 120px; }
+.shops-find-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.shops-find-opts .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.find-list { list-style: none; margin: 0; padding: 4px 12px; }
+.find-row { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.find-row:last-child { border-bottom: 0; }
+.find-row .btn { flex: none; }
+/* 单个商店 */
+.shop-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+.shop-head-main { display: flex; gap: 12px; min-width: 0; flex: 1 1 360px; }
+.shop-head-main p { margin: 3px 0 0; font-size: 13px; }
+.shop-title { font-size: 18px; }
+.shop-head-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.deal-upd { margin: 0 0 12px; }
+.deal-upd > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-height: 32px; }
+.deal-upd > summary .muted { font-size: 13px; }
+.deal-in, .deal-review { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+.deal-review p { margin: 0; font-size: 13px; }
+.deal-rv-head, .deal-rv { display: grid; grid-template-columns: 28px minmax(140px, 2.4fr) minmax(70px, 1fr) 80px minmax(80px, 1fr) 170px 150px; gap: 8px; align-items: center; }
+.deal-rv-head { font-size: 12px; color: var(--muted); padding: 0 2px; }
+.deal-rv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.deal-rv input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 38px; height: 38px; padding: 4px 8px; font-size: 14px; }
+.deal-up { display: flex; gap: 4px; }
+.deal-up input:first-child { flex: 1 1 auto; } .deal-up input:last-child { flex: 0 0 64px; }
+.deal-list-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; font-size: 15px; }
+.deal-th, .deal-row { display: grid; grid-template-columns: minmax(180px, 1fr) 100px 100px 84px 156px; gap: 10px; align-items: center; }
+.deal-th { font-size: 12px; color: var(--muted); padding: 0 4px 6px; border-bottom: 1px solid var(--line); }
+.deal-list { list-style: none; margin: 0; padding: 0; }
+.deal-row { padding: 8px 4px; border-bottom: 1px solid var(--line); min-height: 48px; }
+.deal-row:last-child { border-bottom: 0; }
+.deal-row.is-hit { background: color-mix(in srgb, var(--low-bg) 45%, transparent); border-radius: var(--r-sm); }
+.deal-row.editing { display: block; }
+.deal-nm { display: flex; flex-direction: column; min-width: 0; }
+.deal-nm small { color: var(--muted); font-size: 12.5px; }
+.deal-pr, .deal-unit { display: flex; flex-direction: column; font-variant-numeric: tabular-nums; }
+.deal-pr b { font-size: 15.5px; }
+.deal-pr small, .deal-unit small { font-size: 12px; color: var(--muted); }
+.deal-to { font-size: 12.5px; }
+.deal-acts { display: flex; gap: 4px; justify-content: flex-end; }
+.deal-edit { padding: 6px 0; }
+/* 采购清单里的入口和每项的特价 */
+.shops-entry { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 10px 14px; color: var(--ink); text-decoration: none; min-height: 52px; }
+.shops-entry > span:first-child { font-size: 22px; }
+.shops-entry > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.shops-entry small { color: var(--muted); font-size: 12.5px; }
+.shops-entry:hover { background: var(--bg); }
+.shop-deal-line { display: inline-block; margin: 4px 0 0; padding: 3px 10px; border-radius: 99px; background: var(--low-bg); color: var(--low); font-size: 12.5px; font-weight: 600; text-decoration: none; }
+.shop-deal-line small { font-weight: 400; }
+@media (max-width: 640px) {
+  .shop-grid { grid-template-columns: 1fr; }
+  .shop-acts .btn { min-height: 40px; }
+  .shops-bar > label:not(.shops-q) { flex: 1 1 auto; }
+  .shops-bar select { width: 100%; }
+  .shops-find-row input { width: 100%; }
+  .shops-find-row label { flex: 1 1 100%; }
+  .shops-find-row .btn { flex: 1 1 auto; min-height: 44px; }
+  .shop-head-acts .btn { flex: 1 1 auto; min-height: 40px; justify-content: center; }
+  /* 特价：一条一张卡（名称一行；价格 / 单价 / 到期一行；按钮在下面） */
+  .deal-th { display: none; }
+  .deal-row { grid-template-columns: 1fr 1fr auto; grid-template-areas: "nm nm nm" "pr un to" "ac ac ac"; gap: 4px 10px; padding: 10px 6px; }
+  .deal-nm { grid-area: nm; }
+  .deal-pr { grid-area: pr; }
+  .deal-unit { grid-area: un; }
+  .deal-to { grid-area: to; align-self: center; text-align: right; }
+  .deal-acts { grid-area: ac; }
+  .deal-acts .btn { min-height: 38px; }
+  /* 核对表：一条一张小卡，两列排 */
+  .deal-rv-head { display: none; }
+  .deal-rv { grid-template-columns: 28px 1fr 1fr; padding: 8px; border: 1px solid var(--line); border-radius: var(--r-md); }
+  .deal-rv > label { grid-row: span 4; align-self: start; padding-top: 8px; }
+  .deal-rv > input[name="name"] { grid-column: span 2; }
+  .deal-rv input { font-size: 16px; height: 42px; }
+}

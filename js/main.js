@@ -47,6 +47,7 @@ import { billAlertItems } from "./bills/logic.js";
 import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, updateHoaTotal, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { printSheet } from "./settings/print.js";
 import { resetScan, scanAction, viewScan } from "./pantry/scan.js";
+import { bindShops, loadShops, shopsAction, viewShops } from "./shops/views.js";
 import { bigThreshold, budgetAction, budgetAlertItems, groupForCategory, maybeAutoGenerate, viewBudget } from "./bills/budget.js";
 import { effNature, l1IdOf, l2IdOf, natureOptions } from "./core/taxonomy.js";
 import "./settings/income.js";
@@ -153,6 +154,7 @@ export async function refresh() {
       // 借贷（迁移 058）、净资产（迁移 059）：只有财务权限读得到；表不存在时借贷页 / 净资产页给提示。两样都读完再画（净资产要用贷款余额）
       Promise.all([loadDebts(), loadNetWorth()]).then(() => { if (state.route?.section === "bills" || state.route?.section === "today") render(false); });
       loadPending();
+      loadShops().then(() => { if (["shops", "shopping", "pantry"].includes(state.route?.section)) render(false); });   // 常去的商店与特价（迁移 067）：不挡首屏
       ensureAdults().then((added) => { if (added) { applyMedical(state.medBills, state.medPayments); render(false); } }).catch(() => {});
       ensureFirstYear().then((fresh) => { if (fresh && state.route?.section === "bills") render(false); });   // 「全部历史」的起始年：数据读好了再查（刷新页面时路由先到，那时查不到）
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
@@ -238,6 +240,7 @@ const VIEWS = {
   bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
+  shops:    () => viewShops(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout, releases: releasePageHTML },
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
@@ -287,7 +290,7 @@ export function render(force = true) {
   const r = state.route;
   const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0])
     : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section === "bill" ? (state.prevRoute?.section || "bills")
-    : r.section === "scan" ? "shopping" : r.section === "alerts" || r.section === "ai" || r.section === "quick" ? "today" : r.section;   // 注意事项、咩咩咩都是首页的子页，底栏高亮「今日」
+    : r.section === "scan" || r.section === "shops" ? "shopping" : r.section === "alerts" || r.section === "ai" || r.section === "quick" ? "today" : r.section;   // 注意事项、咩咩咩都是首页的子页，底栏高亮「今日」
   document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
     a.hidden = (a.dataset.section === "house" && !state.houseEnabled) || (a.dataset.section === "bills" && !state.billsEnabled);
     if (a.dataset.section === navSection) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
@@ -974,6 +977,7 @@ main.addEventListener("click", async (e) => {
   const { action, id } = el.dataset;
   try {
     if (action?.startsWith("scan-")) return scanAction(action, el, { go, refresh });
+    if (action?.startsWith("shops-")) return shopsAction(action, el, { render, go, refresh });   // 常去的商店与特价（js/shops/views.js）
     if (action?.startsWith("fix-")) return fixAction(action, el, { refresh, render, go });   // 出了问题？诊断与配件
     if (action?.startsWith("recall-")) return recallAction(action, el, { refresh, render });   // 设备召回：清除标记 / 重新打开
     if (action?.startsWith("budget-") || action === "shop-advice-close") return budgetAction(action, { refresh, render }, el);
@@ -1808,3 +1812,4 @@ export async function boot() {
   }
 }
 boot();
+bindShops((force) => render(force !== false));   // 常去的商店：表单提交、搜索框、筛选（js/shops/views.js）

@@ -104,6 +104,18 @@ export const DemoStore = {
   async deleteIncome(uid) { this.db.incomes = (this.db.incomes || []).filter((x) => x.user_id !== uid); this.persist(); },
   async getBudget() { return this.db.budget ? { ...this.db.budget } : null; },
   async saveBudget(b) { this.db.budget = { ...b, updated_at: new Date().toISOString() }; this.persist(); return { ...this.db.budget }; },
+  /* 常去的商店 + 特价（迁移 067）：演示模式存在本地 */
+  async listShops() { return (this.db.shops || []).map((x) => ({ ...x })); },
+  async saveShop(r) {
+    this.db.shops ||= []; const now = new Date().toISOString();
+    if (r.id) { const i = this.db.shops.findIndex((x) => x.id === r.id); if (i >= 0) this.db.shops[i] = { ...this.db.shops[i], ...r, updated_at: now }; this.persist(); return { ...this.db.shops[i] }; }
+    const row = { refresh: "weekly", refresh_dow: 3, archived: false, category: "groceries", ...r, id: uid(), created_at: now, updated_at: now }; this.db.shops.push(row); this.persist(); return { ...row };
+  },
+  async deleteShop(id) { this.db.shops = (this.db.shops || []).filter((x) => x.id !== id); this.db.shopDeals = (this.db.shopDeals || []).filter((x) => x.shop_id !== id); this.persist(); },
+  async listShopDeals(since) { return (this.db.shopDeals || []).filter((d) => !d.valid_to || d.valid_to >= since).map((x) => ({ ...x })); },
+  async addShopDeals(rows) { this.db.shopDeals ||= []; const now = new Date().toISOString(); const out = rows.map((r) => ({ source: "photo", ...r, id: uid(), created_at: now })); this.db.shopDeals.push(...out); this.persist(); return out.map((x) => ({ ...x })); },
+  async saveShopDeal(r) { const i = (this.db.shopDeals || []).findIndex((x) => x.id === r.id); if (i >= 0) this.db.shopDeals[i] = { ...this.db.shopDeals[i], ...r }; this.persist(); },
+  async deleteShopDeals(ids) { const set = new Set(ids); this.db.shopDeals = (this.db.shopDeals || []).filter((x) => !set.has(x.id)); this.persist(); },
   async listTerms() { return (this.db.terms || []).map((x) => ({ ...x })); },
   async saveTerm(r) {
     const now = new Date().toISOString(); this.db.terms ||= [];
@@ -706,6 +718,8 @@ const incomeTotal = (lines) => Math.round((lines || []).reduce((s, l) => s + (l.
 /** 名字比较用的键：忽略大小写和多余空格（数据库的唯一索引同一个规则） */
 export const personKey = (n) => String(n || "").trim().replace(/\s+/g, " ").toLowerCase();
 const personError = (e) => (/household_people_name_idx|duplicate key/i.test(e.message || "") ? t("名册里已经有这个名字了（忽略大小写和空格）") : /household_people|does not exist|schema cache/i.test(e.message || "") ? t("还没执行数据库迁移 029（家庭成员名册），先在 Supabase 里执行 supabase/migrations/029_people.sql") : e.message);
+const SHOP_FIELDS = ["name", "chain", "category", "address", "zip", "lat", "lon", "phone", "ad_url", "website", "refresh", "refresh_dow", "archived", "osm_id", "deals_at", "notes"];
+const SHOP_DEAL_FIELDS = ["shop_id", "name", "brand", "size", "price", "price_text", "regular_price", "unit_price", "unit_label", "aka", "category", "valid_from", "valid_to", "source", "notes"];
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
 /** 每页行数：和 Supabase 默认的 max-rows（1000）一样；项目里把 max-rows 调小的话这里也要跟着调小，否则读到第一页就会以为读完了 */
@@ -793,6 +807,22 @@ export const CloudStore = {
     const row = { household_id: this.hid, income_amount: b.income_amount ?? 0, income_period: b.income_period || "month", savings_pct: b.savings_pct ?? 20, cat_budgets: b.cat_budgets || {}, updated_by: state.user.id };   // 收入已挪到 member_incomes，这两列只为兼容旧表保留
     return this.must(await this.sb.from("household_budgets").upsert(row, { onConflict: "household_id" }).select().single());
   },
+  /* 常去的商店 + 特价（迁移 067）。特价只读还没过期太久的（since = 今天往前几周），老的留在库里供以后查价 */
+  async listShops() { return this.must(await this.sb.from("shops").select("*").eq("household_id", this.hid).order("name")); },
+  async saveShop(r) {
+    const row = pick(r, SHOP_FIELDS);
+    if (r.id) return this.must(await this.sb.from("shops").update(row).eq("id", r.id).select().single());
+    return this.must(await this.sb.from("shops").insert({ ...row, household_id: this.hid }).select().single());
+  },
+  async deleteShop(id) { this.must(await this.sb.from("shops").delete().eq("id", id)); },
+  async listShopDeals(since) { return this.pageAll(() => this.sb.from("shop_deals").select("*").eq("household_id", this.hid).or(`valid_to.is.null,valid_to.gte.${since}`).order("id")); },
+  async addShopDeals(rows) {
+    const out = [];
+    for (let i = 0; i < rows.length; i += 200) out.push(...(this.must(await this.sb.from("shop_deals").insert(rows.slice(i, i + 200).map((r) => ({ ...pick(r, SHOP_DEAL_FIELDS), household_id: this.hid }))).select()) || []));
+    return out;
+  },
+  async saveShopDeal(r) { this.must(await this.sb.from("shop_deals").update(pick(r, SHOP_DEAL_FIELDS)).eq("id", r.id)); },
+  async deleteShopDeals(ids) { for (let i = 0; i < ids.length; i += 100) this.must(await this.sb.from("shop_deals").delete().in("id", ids.slice(i, i + 100))); },
   async listTerms() { return this.must(await this.sb.from("custom_terms").select("*").eq("household_id", this.hid)); },
   async saveTerm(r) { this.must(await this.sb.from("custom_terms").upsert(pick(r, TERM_FIELDS, { household_id: this.hid, updated_by: state.user.id }), { onConflict: "household_id,term" })); },
   async deleteTerm(term) { this.must(await this.sb.from("custom_terms").delete().eq("household_id", this.hid).eq("term", term)); },
@@ -1308,7 +1338,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "account_balances", "asset_valuations", "net_worth_snapshots", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "account_balances", "asset_valuations", "net_worth_snapshots", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms", "shops", "shop_deals"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();
