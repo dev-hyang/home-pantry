@@ -118,6 +118,7 @@ export const DemoStore = {
   async addShopDeals(rows) { this.db.shopDeals ||= []; const now = new Date().toISOString(); const out = rows.map((r) => ({ source: "photo", ...r, id: uid(), created_at: now })); this.db.shopDeals.push(...out); this.persist(); return out.map((x) => ({ ...x })); },
   async saveShopDeal(r) { const i = (this.db.shopDeals || []).findIndex((x) => x.id === r.id); if (i >= 0) this.db.shopDeals[i] = { ...this.db.shopDeals[i], ...r }; this.persist(); },
   async deleteShopDeals(ids) { const set = new Set(ids); this.db.shopDeals = (this.db.shopDeals || []).filter((x) => !set.has(x.id)); this.persist(); },
+  async purgeShopDeals(before) { this.db.shopDeals = (this.db.shopDeals || []).filter((x) => !x.valid_to || x.valid_to >= before); this.persist(); },
   async listTerms() { return (this.db.terms || []).map((x) => ({ ...x })); },
   async saveTerm(r) {
     const now = new Date().toISOString(); this.db.terms ||= [];
@@ -833,6 +834,8 @@ export const CloudStore = {
   },
   async saveShopDeal(r) { this.must(await this.sb.from("shop_deals").update(dealRow(r)).eq("id", r.id)); },
   async deleteShopDeals(ids) { for (let i = 0; i < ids.length; i += 100) this.must(await this.sb.from("shop_deals").delete().in("id", ids.slice(i, i + 100))); },
+  /** 过期超过 6 个月的特价：删掉（以前的价格只看近 6 个月） */
+  async purgeShopDeals(before) { this.must(await this.sb.from("shop_deals").delete().eq("household_id", this.hid).lt("valid_to", before)); },
   async listTerms() { return this.must(await this.sb.from("custom_terms").select("*").eq("household_id", this.hid)); },
   async saveTerm(r) { this.must(await this.sb.from("custom_terms").upsert(pick(r, TERM_FIELDS, { household_id: this.hid, updated_by: state.user.id }), { onConflict: "household_id,term" })); },
   async deleteTerm(term) { this.must(await this.sb.from("custom_terms").delete().eq("household_id", this.hid).eq("term", term)); },

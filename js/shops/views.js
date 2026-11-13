@@ -11,7 +11,7 @@ import { href } from "../core/router.js";
 import { crumbNav } from "../core/hub.js";
 import { aiReady, askText } from "../core/ai.js";
 import { attachHTML, attachPayload, attachReset } from "../core/attach.js";
-import { DEAL_TYPES, FOCUS_SECTIONS, claudePrompt, dealCatName, dealTypeName, importGroups, weekWindow } from "./logic.js";
+import { DEAL_TYPES, FOCUS_SECTIONS, claudePrompt, histSince, priceHistory, replaceable, dealCatName, dealTypeName, importGroups, weekWindow } from "./logic.js";
 import { CHAINS, MAX_MI, SHOP_CATS, STARTER, adUrl, bestDealFor, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, nearestChains, openShopping, parseLooseJson, rememberPoint, restockWatch, savedZip, searchNearby, shopCat, zipToPoint } from "./logic.js";
 
 const DOW = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -21,10 +21,17 @@ const home = () => ui().find.pt || savedZip();
 const distOf = (s) => miles(home(), s);
 const shopHref = (s) => `${href("shops", "shop")}/${encodeURIComponent(s.id)}`;
 
+/** 过期超过 6 个月的特价：每台设备一天最多删一次（后台进行，失败不影响页面） */
+function purgeOld(before) {
+  const key = "hp-deal-purge", today = new Date().toISOString().slice(0, 10);
+  try { if (localStorage.getItem(key) === today) return; localStorage.setItem(key, today); } catch { return; }
+  Store.purgeShopDeals?.(before).catch((e) => console.warn("[shops] purge", e.message));
+}
 /* ───────────── 数据：和其他表一起刷新，读不到（还没执行 067）时给提示 ───────────── */
 export async function loadShops() {
   try {
-    const since = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);   // 过期两个月内的也读，供「查价」；更早的留在库里
+    const since = histSince();   // 过期 6 个月内的也读：特价旁边显示「以前的价格」
+    purgeOld(since);
     const [shops, deals] = await Promise.all([Store.listShops(), Store.listShopDeals(since)]);
     state.shops = shops || []; state.shopDeals = deals || []; state.shopsMissing = false;
     try { state.dealRuns = await Store.listDealRuns(); state.runsMissing = false; } catch { state.dealRuns = []; state.runsMissing = true; }
@@ -218,7 +225,7 @@ function updateHtml(s, du) {
   </div>`;
 }
 function reviewHtml(s, du) {
-  const rows = du.rows, has = liveDeals(s.id).length;
+  const rows = du.rows, has = replaceable(s, rows.filter((r) => r.include && r.name)).length, keep = liveDeals(s.id).length - has;
   const cell = (r, i, name, val, attrs = "") => `<input name="${name}" data-i="${i}" value="${esc(val ?? "")}" ${attrs} aria-label="${esc(t(COLS[name] || name))}">`;
   return `<form class="deal-review" id="dealReviewForm" data-id="${s.id}">
     <p class="muted">${t("核对一下：价格是单件价（2 for $5 记 2.50），单价用来比不同包装。不要的取消勾选。")}</p>
@@ -231,7 +238,7 @@ function reviewHtml(s, du) {
       ${cell(r, i, "valid_to", r.valid_to, 'type="date"')}
       ${r.deal_type ? `<span class="deal-rv-tags">${typeTags(r.deal_type)}</span>` : ""}
     </li>`).join("")}</ul>
-    ${has ? `<label class="check-inline"><input type="checkbox" name="replace" ${du.replace ? "checked" : ""}><span>${t("替换这家现有的 {n} 条特价（新一周的广告选这个）", { n: has })}</span></label>` : ""}
+    ${has ? `<label class="check-inline"><input type="checkbox" name="replace" ${du.replace ? "checked" : ""}><span>${t("替换这家现有的 {n} 条特价（新一周的广告选这个）", { n: has })}${keep > 0 ? ` <small class="muted">${t("另有 {n} 条到期更晚、这次没出现，会留着", { n: keep })}</small>` : ""}</span></label>` : ""}
     <div class="form-actions"><button type="submit" class="btn btn-primary">${t("保存 {n} 条", { n: rows.filter((r) => r.include).length })}</button>
       <button type="button" class="btn btn-ghost" data-action="shops-addrow" data-id="${s.id}">＋ ${t("再加一行")}</button>
       <button type="button" class="btn btn-ghost" data-action="shops-discard" data-id="${s.id}">${t("放弃")}</button></div>
@@ -242,6 +249,24 @@ const unitMoney = (v) => (v >= 1 ? money(v) : money(0).replace(/0([.,])00/, `0$1
 /** 折扣类型的小标签（Black Friday、店内、网上、Rollback…） */
 const typeTags = (v) => String(v || "").split(",").filter(Boolean).map((k) => `<span class="tag deal-type dt-${esc(k)}">${esc(t(dealTypeName(k)))}</span>`).join("");
 const COLS = { name: "名称", size: "规格", price: "价格", price_text: "广告原文", unit_price: "单价", unit_label: "单位", valid_to: "到期" };
+
+/** 以前的价格：一行小结（点开看明细）。现在是 6 个月最低 → 绿色；比以前最低贵 → 写出以前最低是多少、哪家、哪天 */
+const histVal = (h, x) => (h.by === "unit" ? `${unitMoney(+x.unit_price)}${esc(x.unit_label || "")}` : money(+x.price));
+const shopName = (id) => (state.shops || []).find((x) => x.id === id)?.name || "?";
+function histBtn(d, du) {
+  const h = priceHistory(d); if (!h) return "";
+  const open = du.hist === d.id;
+  const txt = h.isLow ? `<span class="tag tag-ok">${t("6 个月最低")}</span> <span>${t("以前 {n} 次", { n: h.list.length })}</span>`
+    : `<span>${t("以前最低 {v}（{s} {d}）", { v: histVal(h, h.low), s: esc(shopName(h.low.shop_id)), d: fmtShort(h.low.valid_to) })}</span>${h.pct > 0 ? ` <b class="warn-txt">+${h.pct}%</b>` : ""}`;
+  return `<button type="button" class="deal-hist-btn" data-action="shops-hist" data-deal="${d.id}" aria-expanded="${open}">📈 ${txt} <span aria-hidden="true">${open ? "▴" : "▾"}</span></button>`;
+}
+function histList(d) {
+  const h = priceHistory(d); if (!h) return "";
+  return `<ul class="deal-hist" aria-label="${esc(t("以前的价格"))}">${h.list.slice(0, 10).map((x) => `<li class="${x.id === h.low.id ? "is-low" : ""}">
+    <span class="dh-when">${x.valid_from ? `${fmtShort(x.valid_from)}–` : ""}${fmtShort(x.valid_to)}</span><span class="dh-shop">${esc(shopName(x.shop_id))}</span>
+    <span class="dh-nm">${esc(x.name)}${x.size ? ` <small>${esc(x.size)}</small>` : ""}</span><b class="dh-v">${histVal(h, x)}</b></li>`).join("")}</ul>
+    ${h.list.length > 10 ? `<p class="muted dh-more">${t("只列最近 10 次，共 {n} 次", { n: h.list.length })}</p>` : ""}`;
+}
 
 function dealsHtml(s, du, deals) {
   const open = openShopping(), q = du.q.trim().toLowerCase(), soon = (d) => d.valid_to && daysUntil(d.valid_to) <= 2;
@@ -263,13 +288,14 @@ function dealsHtml(s, du, deals) {
       ${state.runsMissing ? "" : `<fieldset class="span-2 deal-type-pick"><legend>${t("折扣类型")}</legend>${DEAL_TYPES.map(([k, l]) => `<label class="chip-check"><input type="checkbox" name="deal_type" value="${k}" ${String(d.deal_type || "").split(",").includes(k) ? "checked" : ""}><span>${esc(t(l))}</span></label>`).join("")}</fieldset>`}</div>
       <div class="form-actions"><button class="btn btn-primary btn-sm" type="submit">${t("保存")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="shops-deal-cancel" data-id="${s.id}">${t("取消")}</button></div></form></li>`;
     return `<li class="deal-row ${m.length ? "is-hit" : ""}">
-      <span class="deal-nm"><b>${esc(d.name)}</b>${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}<small>${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")}${m.length ? ` <span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : ""}</small></span>
+      <span class="deal-nm"><b>${esc(d.name)}</b>${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}<small>${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")}${m.length ? ` <span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : ""}</small>${histBtn(d, du)}</span>
       <span class="deal-pr"><b>${d.price != null ? money(d.price) : esc(d.price_text || "—")}</b>${d.price_text && d.price != null && d.price_text.replace(/\s/g, "") !== money(d.price).replace(/\s/g, "") ? `<small>${esc(d.price_text)}</small>` : ""}${d.regular_price ? `<small class="muted"><s>${money(d.regular_price)}</s></small>` : ""}</span>
       <span class="deal-unit">${d.unit_price != null ? `${unitMoney(d.unit_price)}<small>${esc(d.unit_label || "")}</small>` : `<small class="muted">—</small>`}</span>
       <span class="deal-to ${soon(d) ? "warn-txt" : "muted"}">${d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""}</span>
       <span class="deal-acts">${m.length ? "" : `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-tolist" data-deal="${d.id}">＋ ${t("清单")}</button>`}
         <button type="button" class="btn btn-sm btn-ghost" data-action="shops-deal-edit" data-deal="${d.id}" data-id="${s.id}" aria-label="${esc(t("修改 {name}", { name: d.name }))}">${t("改")}</button>
         <button type="button" class="btn btn-sm btn-ghost" data-action="shops-deal-del" data-deal="${d.id}" aria-label="${esc(t("删除 {name}", { name: d.name }))}">×</button></span>
+      ${du.hist === d.id ? histList(d) : ""}
     </li>`;
   };
   return `<div class="panel deal-list-panel">
@@ -443,6 +469,7 @@ export async function shopsAction(action, el, { render, go, refresh }) {
     case "shops-dfilter": dealUi(id).filter = el.dataset.v; render(); return;
     case "shops-dreset": Object.assign(dealUi(id), { q: "", cat: "", type: "", filter: "all" }); render(); return;
     case "shops-deal-edit": dealUi(id).edit = el.dataset.deal; render(); return;
+    case "shops-hist": { const d = (state.shopDeals || []).find((x) => x.id === el.dataset.deal); if (!d) return; const du = dealUi(d.shop_id); du.hist = du.hist === d.id ? null : d.id; render(); return; }
     case "shops-deal-cancel": dealUi(id).edit = null; render(); return;
     case "shops-deal-del": {
       const d = (state.shopDeals || []).find((x) => x.id === el.dataset.deal); if (!d) return;
@@ -459,7 +486,7 @@ export async function shopsAction(action, el, { render, go, refresh }) {
 }
 /** 把一家的特价存进去：replace = 先删掉这家现有的有效特价；记下更新时间。返回 { added, replaced } */
 async function applyDeals(shop, rows, { source, replace }) {
-  const old = replace ? liveDeals(shop.id).map((d) => d.id) : [];
+  const old = replace ? replaceable(shop, rows).map((d) => d.id) : [];   // 到期比这一期晚、新广告里又没有的留着
   const saved = await Store.addShopDeals(rows.map(({ include, ...r }) => ({ ...r, ...(state.runsMissing ? { deal_type: undefined } : {}), shop_id: shop.id, source,
     price: r.price == null || Number.isNaN(+r.price) ? null : Math.round(+r.price * 100) / 100, unit_price: r.unit_price == null || Number.isNaN(+r.unit_price) ? null : +r.unit_price })));
   if (old.length) { await Store.deleteShopDeals(old); state.shopDeals = state.shopDeals.filter((d) => !old.includes(d.id)); }

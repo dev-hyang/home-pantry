@@ -3930,4 +3930,10 @@ export const EN = {
   "买一送一": "BOGO",
   "多件优惠": "Multi-buy",
   "限时": "Limited time",
+  "另有 {n} 条到期更晚、这次没出现，会留着": "{n} more end later and aren't in this ad — they stay",
+  "6 个月最低": "6-month low",
+  "以前 {n} 次": "{n} earlier",
+  "以前最低 {v}（{s} {d}）": "Earlier low {v} ({s} {d})",
+  "以前的价格": "Earlier prices",
+  "只列最近 10 次，共 {n} 次": "Showing the latest 10 of {n}",
 };

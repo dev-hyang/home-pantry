@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.13", title: { zh: "特价旁边看以前的价格；长期特价换广告时不再被删", en: "Earlier prices next to each deal; long-running deals survive a new ad" }, items: [
+    { k: "new", zh: "每条特价下面显示以前的价格：现在是不是 6 个月最低；不是的话写出以前最低多少、哪家、哪天，点开看最近 10 次", en: "Each deal shows earlier prices: whether it's a 6-month low, or the earlier low, store and date — tap to see the last 10" },
+    { k: "better", zh: "换新一周的广告时，到期更晚、这次广告里没出现的特价（比如 Costco「到 12/7」）会留着，不再一起删掉", en: "When a new week's ad comes in, deals that end later and aren't in the new ad (like Costco's \"through 12/7\") are kept" },
+    { k: "better", zh: "过期超过 6 个月的特价自动清掉", en: "Deals that ended more than 6 months ago are cleared automatically" }
+  ] },
   { v: "2026-11-13.12", title: { zh: "脚本更新 Walmart 不再报错；特价只看吃的、日用、宝宝用品", en: "Walmart script update fixed; deals focus on food, household and baby" }, items: [
     { k: "fix", zh: "商店页「🤖 用脚本更新」和每周四自动更新：读完的特价存不进去（报 shop_deals_source_check）的问题修好了", en: "\"Update with script\" and the Thursday auto-update could not save the deals they read (shop_deals_source_check error) — fixed" },
     { k: "better", zh: "Walmart 这类大店只读 Food、Food savings、Household essentials savings、Baby savings 几个分区，跳过电视、家电、玩具", en: "Big stores like Walmart: only the Food, Food savings, Household essentials savings and Baby savings sections are read — TVs, appliances and toys are skipped" },

@@ -102,6 +102,18 @@ export function weekWindow(s) {
   return { valid_from: isoDay(from), valid_to: isoDay(to) };
 }
 
+/** 特价留多久：过期 6 个月内的留着看「以前的价格」，更早的自动删掉 */
+export const HIST_DAYS = 183;
+export const histSince = () => { const d = new Date(); d.setDate(d.getDate() - HIST_DAYS); return isoDay(d); };
+
+/** 换新一期广告时，这家现有的特价哪些要替换掉：没写到期的、在这一期结束前到期的、新广告里又出现的（同名）。
+ *  到期比这一期还晚的（Costco 会员价「到 12/7」这类）新广告里没有就留着。非每周的店：这一期 = 新特价里最晚的到期日；都没日期就全部替换 */
+export function replaceable(shop, rows) {
+  const names = new Set(rows.map((r) => normName(r.name || "")).filter(Boolean));
+  const end = weekWindow(shop).valid_to || rows.map((r) => r.valid_to).filter(Boolean).sort().pop() || null;
+  return liveDeals(shop?.id).filter((d) => !end || !d.valid_to || d.valid_to <= end || names.has(normName(d.name)));
+}
+
 /** 一条特价的比较键：名称、通用叫法（中英文）、品牌 */
 const dealKeys = (d) => [d.name, ...(String(d.aka || "").split(/[,，、/]/))].map(normName).filter((k) => k.length >= 2);
 const hit = (keys, k) => keys.some((x) => x.includes(k) || (k.length >= 3 && k.includes(x)));
@@ -345,4 +357,32 @@ export function importGroups(j) {
     const shop = shops.find((s) => ch && s.chain === ch) || shops.find((s) => k && (normName(s.name).includes(k) || k.includes(normName(s.name))));
     return { store: nm, shop, rows: cleanDeals(g, weekWindow(shop)), include: !!shop };   // 没写日期的：每周的店按换广告日补
   }).filter((g) => g.rows.length);
+}
+
+/* ───────────── 以前的价格（近 6 个月已过期的特价，各家都算） ───────────── */
+// 按「名称 / 通用叫法」完全一样建索引；state.shopDeals 换了或条数变了才重建
+let HIDX = { src: null, n: -1, map: null };
+function histIndex() {
+  const all = state.shopDeals || [];
+  if (HIDX.src === all && HIDX.n === all.length) return HIDX.map;
+  const today = todayISO(), map = new Map();
+  for (const x of all) if (x.valid_to && x.valid_to < today) for (const k of new Set(dealKeys(x))) (map.get(k) || map.set(k, []).get(k)).push(x);
+  HIDX = { src: all, n: all.length, map };
+  return map;
+}
+/** 这条特价和以前比：同一单位按单价比（不同包装也能比），没单价时同规格按价格比。没有可比的返回 null。
+ *  { by: "unit" | "price", cur, low（最便宜那条）, lowV, isLow（现在是 6 个月最低）, pct（比最低贵百分之几）, list（新的在前） } */
+export function priceHistory(d) {
+  if (!d) return null;
+  const map = histIndex(), seen = new Set(), past = [];
+  for (const k of dealKeys(d)) for (const x of map.get(k) || []) if (x.id !== d.id && !seen.has(x.id)) { seen.add(x.id); past.push(x); }
+  if (!past.length) return null;
+  const sameSize = (x) => d.size && x.size && normName(x.size) === normName(d.size);
+  const byUnit = d.unit_price != null && d.unit_label ? past.filter((x) => x.unit_price != null && x.unit_label === d.unit_label) : [];
+  const by = byUnit.length ? "unit" : "price", list = byUnit.length ? byUnit : d.price != null ? past.filter((x) => x.price != null && sameSize(x)) : [];
+  if (!list.length) return null;
+  const v = (x) => +(by === "unit" ? x.unit_price : x.price), cur = v(d);
+  const low = list.reduce((m, x) => (v(x) < v(m) ? x : m)), lowV = v(low);
+  list.sort((a, b) => String(b.valid_to).localeCompare(String(a.valid_to)));
+  return { by, cur, low, lowV, isLow: cur <= lowV + 1e-9, pct: lowV > 0 ? Math.round(((cur - lowV) / lowV) * 100) : 0, list };
 }

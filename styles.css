@@ -2975,6 +2975,20 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .deal-to { font-size: 12.5px; }
 .deal-acts { display: flex; gap: 4px; justify-content: flex-end; }
 .deal-edit { padding: 6px 0; }
+/* 以前的价格：名称下面一行（点开看明细，明细占整行） */
+.deal-hist-btn { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; align-self: flex-start; margin: 3px 0 0; padding: 2px 0; min-height: 28px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.deal-hist-btn:hover, .deal-hist-btn[aria-expanded="true"] { color: var(--ink); }
+.deal-hist-btn:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 4px; }
+.deal-hist-btn .tag { font-size: 11.5px; padding: 1px 7px; }
+.deal-hist { grid-column: 1 / -1; list-style: none; margin: 4px 0 2px; padding: 6px 10px; background: var(--surface-2); border-radius: var(--r-sm); font-size: 13px; }
+.deal-hist li { display: grid; grid-template-columns: 110px 140px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 4px 0; border-bottom: 1px dashed var(--line); }
+.deal-hist li:last-child { border-bottom: 0; }
+.deal-hist li.is-low .dh-v { color: var(--ok); }
+.deal-hist .dh-when, .deal-hist .dh-shop { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deal-hist .dh-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.deal-hist .dh-nm small { color: var(--muted); }
+.deal-hist .dh-v { font-variant-numeric: tabular-nums; }
+.dh-more { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12px; }
 /* 采购清单里的入口和每项的特价 */
 .shops-entry { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 10px 14px; color: var(--ink); text-decoration: none; min-height: 52px; }
 .shops-entry > span:first-child { font-size: 22px; }
@@ -3001,6 +3015,9 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
   .deal-to { grid-area: to; align-self: center; text-align: right; }
   .deal-acts { grid-area: ac; }
   .deal-acts .btn { min-height: 38px; }
+  .deal-hist-btn { min-height: 44px; }
+  .deal-hist li { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "nm nm v" "when shop shop"; gap: 2px 10px; }
+  .deal-hist .dh-nm { grid-area: nm; } .deal-hist .dh-v { grid-area: v; } .deal-hist .dh-when { grid-area: when; } .deal-hist .dh-shop { grid-area: shop; text-align: right; }
   /* 核对表：一条一张小卡，两列排 */
   .deal-rv-head { display: none; }
   .deal-rv { grid-template-columns: 28px 1fr 1fr; padding: 8px; border: 1px solid var(--line); border-radius: var(--r-md); }
