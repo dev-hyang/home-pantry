@@ -97,7 +97,7 @@ function shopCard(s) {
   return `<article class="shop-card ${s.archived ? "is-off" : ""}">
     <a class="shop-main" href="${shopHref(s)}"><span class="shop-ico" aria-hidden="true">${icon}</span>
       <span class="shop-txt"><b>${esc(s.name)}</b><small>${d != null ? `${t("{n} 英里", { n: d.toFixed(1) })} · ` : ""}${esc(s.address || t("没填地址"))}</small></span><span class="mch" aria-hidden="true">›</span></a>
-    <div class="shop-meta"><span class="tag">${esc(t(cn))}</span>${s.auto_update && s.refresh === "weekly" ? `<span class="tag" title="${esc(t("每周四由 Claude 定时任务自动更新"))}">🤖 ${t("自动")}</span>` : ""}
+    <div class="shop-meta"><span class="tag">${esc(t(cn))}</span>${s.auto_update && s.refresh === "weekly" ? `<span class="tag" title="${esc(t("换广告那天由 Claude 定时任务自动更新"))}">🤖 ${t("自动")}</span>` : ""}
       ${deals.length ? `<span class="tag tag-ok">${t("特价 {n} 项", { n: deals.length })}</span>` : ""}${hits ? `<span class="tag tag-hot">${t("对上清单 {n}", { n: hits })}</span>` : ""}
       ${due ? `<span class="tag tag-warn">${t("本周待更新")}</span>` : `<span class="muted">${upd}</span>`}</div>
     <div class="shop-acts">${s.archived
@@ -117,7 +117,7 @@ function shopForm(s) {
       <label>${t("电话")}<input name="phone" maxlength="30" value="${esc(v.phone || "")}"></label>
       <label>${t("更新特价")}<select name="refresh" data-nosearch><option value="weekly" ${v.refresh === "weekly" ? "selected" : ""}>${t("每周")}</option><option value="manual" ${v.refresh === "manual" ? "selected" : ""}>${t("需要时手动")}</option></select></label>
       <label>${t("每周哪天换广告")}<select name="refresh_dow" data-nosearch>${DOW.map((d, i) => `<option value="${i}" ${+v.refresh_dow === i ? "selected" : ""}>${t(d)}</option>`).join("")}</select></label>
-      <label class="span-2 check-inline shop-auto"><input type="checkbox" name="auto_update" ${v.auto_update ? "checked" : ""}><span>🤖 ${t("每周四自动更新（Claude 定时任务读广告、自动录入；只对「每周」的商店生效，季节 / 节日类的保持手动）")}</span></label>
+      <label class="span-2 check-inline shop-auto"><input type="checkbox" name="auto_update" ${v.auto_update ? "checked" : ""}><span>🤖 ${t("换广告那天自动更新（Claude 定时任务每天早上看一次，到了这家的换广告日就读广告、自动录入；只对「每周」的商店生效，季节 / 节日类的保持手动）")}</span></label>
       <label class="span-2">${t("备注")}<input name="notes" maxlength="300" value="${esc(v.notes || "")}" placeholder="${esc(t("会员卡、营业时间、哪个门口好停车…"))}"></label>
     </div>
     <datalist id="shopChains">${Object.values(CHAINS).map((c) => `<option value="${esc(c.name)}">`).join("")}</datalist>
@@ -190,7 +190,7 @@ function viewShop(id) {
   if (!s) return `<section class="section shops-page">${crumbNav([...base, { label: t("商店") }])}<p class="muted">${state.shops ? t("这家商店不在了。") : t("加载中…")}</p></section>`;
   const [, cn, icon] = shopCat(s.category), d = distOf(s), du = dealUi(s.id), deals = liveDeals(s.id);
   const openUpd = du.rows || du.busy || state.route.q.get("update") === "1" || !deals.length;
-  const refreshTxt = (s.refresh === "weekly" ? t("每{d}换广告", { d: t(DOW[s.refresh_dow ?? 3]) }) : t("需要时手动更新")) + (s.auto_update && s.refresh === "weekly" ? ` · 🤖 ${t("每周四自动更新")}` : "");
+  const refreshTxt = (s.refresh === "weekly" ? t("每{d}换广告", { d: t(DOW[s.refresh_dow ?? 3]) }) : t("需要时手动更新")) + (s.auto_update && s.refresh === "weekly" ? ` · 🤖 ${t("{d}自动更新", { d: t(DOW[s.refresh_dow ?? 3]) })}` : "");
   return `<section class="section shops-page shop-page">
     ${crumbNav([...base, { label: s.name, icon }])}
     ${missingPanel()}
@@ -342,7 +342,7 @@ function viewRuns() {
     ${state.runsMissing ? `<div class="panel cta-panel"><div><b>${t("数据库还没升级")}</b><p class="muted">${t("请在 Supabase 的 SQL Editor 执行 migrations/068_shop_deal_runs.sql，才能记录每次更新、打开每周自动更新。")}</p></div></div>` : ""}
     <div class="panel runs-auto">
       <b>🤖 ${t("每周自动更新")}</b>
-      <p class="muted">${autos.length ? t("每周四早上由 Claude 定时任务更新这 {n} 家：{names}", { n: autos.length, names: autos.map((x) => esc(x.name)).join("、") }) : t("还没有商店打开「每周四自动更新」。在商店的编辑里打开（只对每周换广告的商店）。")}</p>
+      <p class="muted">${autos.length ? t("Claude 定时任务每天早上 10 点看一次，到了换广告日就更新这家：{names}", { names: autos.map((x) => `${esc(x.name)}（${t(DOW[x.refresh_dow ?? 3])}）`).join("、") }) : t("还没有商店打开「换广告那天自动更新」。在商店的编辑里打开（只对每周换广告的商店）。")}</p>
       <p class="muted">${lastAuto ? t("上次自动更新：{d}", { d: fmtWhen(lastAuto.run_at) }) : t("还没有自动更新过。")} · ${t("电脑要开着、Chrome 要开着并登录爱家小助手，任务才能跑。")}</p>
     </div>
     <div class="toolbar shops-toolbar">
@@ -362,7 +362,8 @@ const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString(lang === "e
 
 /* ───────────── 给每周定时任务（Claude Code 的 /pantry-deals auto）用的入口 ─────────────
  * 定时任务在已登录的爱家小助手标签页里调用：
- *   await hmhDeals.autoShops()          → 打开了「每周四自动更新」的商店（含地址、ZIP、家里的 ZIP、广告链接、Flipp 链接、这一期起止日期）
+ *   await hmhDeals.autoShops()          → 打开了自动更新、而且到了换广告日还没更新的商店（dealsDue；定时任务每天跑，周日换广告的周日更新）
+ *                                          （含地址、ZIP、家里的 ZIP、广告链接、Flipp 链接、这一期起止日期）
  *   await hmhDeals.importAuto(json)     → json = {"stores":[…同 Claude 整理的格式…], "failed":[{"store":"","reason":""}], "note":""}
  *                                          每家先删掉现有的有效特价再存新的（特价本身记 source = claude——shop_deals 不认 auto）；没写日期的按换广告日补；写一条 source = auto 的更新记录；返回每家的结果
  * 只认 auto_update 打开的商店，别的店名一律跳过（记在记录里），所以任务不会改到手动维护的商店。
@@ -373,7 +374,7 @@ function installAutoHook() {
     async autoShops({ id = null } = {}) {
       await loadShops();
       const watch = restockWatch(), item_names = myItemNames();   // 每家都一样：家里告急的 / 清单上的 / 常补的，读广告时优先找；物品名用来填 aka
-      return (state.shops || []).filter((x) => (id ? x.id === id : !x.archived && x.auto_update && x.refresh === "weekly"))
+      return (state.shops || []).filter((x) => (id ? x.id === id : !x.archived && x.auto_update && x.refresh === "weekly" && dealsDue(x)))
         .map((x) => ({ id: x.id, name: x.name, chain: x.chain, address: x.address, zip: x.zip || null, home_zip: savedZip()?.zip || null, ad_url: adUrl(x), flipp_url: flippUrl(x), refresh_dow: x.refresh_dow ?? 3, ...weekWindow(x), due: dealsDue(x), deals_at: x.deals_at,
           sections: FOCUS_SECTIONS[x.chain] || null, watch, item_names }));
     },

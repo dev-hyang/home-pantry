@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.15", title: { zh: "自动更新跟着每家的换广告日走", en: "Auto-update follows each store's ad day" }, items: [
+    { k: "better", zh: "自动更新不再固定周四：每天早上看一次，哪家到了换广告日（周日、周三…）就更新哪家", en: "Auto-update is no longer Thursdays only: it checks every morning and updates each store on its own ad day (Sunday, Wednesday…)" },
+    { k: "better", zh: "那天电脑没开或者读失败了，第二天会再试", en: "If the laptop was off or a read failed, it tries again the next day" }
+  ] },
   { v: "2026-11-13.14", title: { zh: "英文特价对上家里的中文物品；不同牌子合在一起比", en: "English deals matched to your own item names; brands compared together" }, items: [
     { k: "better", zh: "录入特价时自动对上储藏里的物品名（中文也行），不同牌子的同一样东西（比如各家的鸡蛋）按同一个名字比价、看以前的价格", en: "New deals are matched to your storage item names (Chinese too), so the same thing from different brands — eggs from any store — is compared under one name" },
     { k: "fix", zh: "首页采购看板：「6 家待更新」在手机上不再被拆成两行", en: "Shopping dashboard: \"6 to update\" no longer splits across two lines on phones" }
