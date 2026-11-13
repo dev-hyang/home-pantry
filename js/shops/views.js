@@ -263,11 +263,12 @@ function dealsHtml(s, du, deals) {
   };
   return `<div class="panel deal-list-panel">
     <div class="deal-list-head"><b>${t("本周特价")}</b> <span class="muted">${deals.length ? t("{n} 项 · 对上清单 {m} 项", { n: deals.length, m: hits }) : t("还没有")}</span></div>
-    ${deals.length ? `<div class="shops-bar">
-      <div class="chips" role="group" aria-label="${esc(t("筛选特价"))}">${[["all", t("全部"), deals.length], ["list", t("对上清单"), hits], ["soon", t("快过期"), deals.filter(soon).length]].map(([k, l, n]) => `<button type="button" class="chip" data-action="shops-dfilter" data-id="${s.id}" data-v="${k}" aria-pressed="${du.filter === k}">${l} <span class="chip-n">${n}</span></button>`).join("")}</div>
+    ${deals.length ? `<div class="toolbar shops-toolbar deal-toolbar">
       <label class="shops-q"><span class="sr-only">${t("搜索特价")}</span><input type="search" data-deal-q="${s.id}" value="${esc(du.q)}" placeholder="${esc(t("搜索特价"))}" autocomplete="off"></label>
-      ${cats.length > 1 ? `<label><span class="sr-only">${t("分类")}</span><select data-deal-cat="${s.id}" data-nosearch><option value="">${t("全部分类")}</option>${cats.map((c) => `<option value="${esc(c)}" ${du.cat === c ? "selected" : ""}>${esc(t(dealCatName(c)))}</option>`).join("")}</select></label>` : ""}
-      <label><span class="sr-only">${t("排序")}</span><select data-deal-sort="${s.id}" data-nosearch>${[["unit", "按单价"], ["price", "按价格"], ["name", "按名称"]].map(([k, l]) => `<option value="${k}" ${du.sort === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
+      <select data-deal-filter="${s.id}" data-nosearch aria-label="${esc(t("筛选特价"))}">${[["all", t("全部特价"), deals.length], ["list", t("对上清单"), hits], ["soon", t("快过期"), deals.filter(soon).length]].map(([k, l, n]) => `<option value="${k}" ${du.filter === k ? "selected" : ""}>${esc(l)}${lang === "en" ? ` (${n})` : `（${n}）`}</option>`).join("")}</select>
+      ${cats.length > 1 ? `<select data-deal-cat="${s.id}" data-nosearch aria-label="${esc(t("分类"))}"><option value="">${t("全部分类")}</option>${cats.map((c) => `<option value="${esc(c)}" ${du.cat === c ? "selected" : ""}>${esc(t(dealCatName(c)))}</option>`).join("")}</select>` : ""}
+      <select data-deal-sort="${s.id}" data-nosearch aria-label="${esc(t("排序"))}">${[["unit", "按单价"], ["price", "按价格"], ["name", "按名称"]].map(([k, l]) => `<option value="${k}" ${du.sort === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
+      ${du.q || du.cat || (du.filter && du.filter !== "all") ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-dreset" data-id="${s.id}">${t("清除筛选")}</button>` : ""}
     </div>
     <div class="deal-th" aria-hidden="true"><span>${t("商品")}</span><span>${t("价格")}</span><span>${t("单价")}</span><span>${t("有效期")}</span><span></span></div>
     ${list.length ? `<ul class="deal-list">${list.map(row).join("")}</ul>` : `<p class="muted">${t("没有符合条件的特价。")}</p>`}` : `<p class="muted">${t("更新一次特价，这里就会列出本周在打折的东西。")}</p>`}
@@ -355,6 +356,7 @@ export async function shopsAction(action, el, { render, go, refresh }) {
     case "shops-addrow": { const du = dealUi(id); keepReview(du); du.rows.push({ include: true, name: "" }); render(); return; }
     case "shops-discard": { const du = dealUi(id); du.rows = null; du.error = ""; render(); return; }
     case "shops-dfilter": dealUi(id).filter = el.dataset.v; render(); return;
+    case "shops-dreset": Object.assign(dealUi(id), { q: "", cat: "", filter: "all" }); render(); return;
     case "shops-deal-edit": dealUi(id).edit = el.dataset.deal; render(); return;
     case "shops-deal-cancel": dealUi(id).edit = null; render(); return;
     case "shops-deal-del": {
@@ -499,6 +501,7 @@ export function bindShops(render) {
     else if (el.matches?.("[data-shops-status]")) { ui().status = el.value; ui().cat = ""; R(); }
     else if (el.matches?.("[data-shops-cat]")) { ui().cat = el.value; R(); }
     else if (el.matches?.("[data-deal-cat]")) { dealUi(el.dataset.dealCat).cat = el.value; R(); }
+    else if (el.matches?.("[data-deal-filter]")) { dealUi(el.dataset.dealFilter).filter = el.value; R(); }
     else if (el.matches?.("[data-deal-sort]")) { dealUi(el.dataset.dealSort).sort = el.value; R(); }
     else if (el.matches?.('#dealReviewForm [name="inc"]')) { const f = el.form, n = f.querySelectorAll('[name="inc"]:checked').length, b = f.querySelector('button[type="submit"]'); if (b) b.textContent = t("保存 {n} 条", { n }); }
   });

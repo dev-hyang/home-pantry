@@ -3888,4 +3888,5 @@ export const EN = {
   "自己填范围（英里）": "Custom range (miles)",
   "自己填": "Custom",
   "先列出附近的常见连锁店，正在找更多门店…": "Showing nearby chain stores first; looking for more…",
+  "全部特价": "All deals",
 };

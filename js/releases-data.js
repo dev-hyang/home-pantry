@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.8", title: { zh: "商店特价也用搜索 + 筛选", en: "Store deals use search and filters too" }, items: [
+    { k: "better", zh: "商店页的本周特价：搜索框后面是「全部特价 / 对上清单 / 快过期」、分类、排序三个下拉，手机上收进「筛选」", en: "A store's deals: after the search box, menus for all / on my list / ending soon, category and sort; folded under Filters on phones" }
+  ] },
   { v: "2026-11-13.7", title: { zh: "找附近的商店更快；商店列表改成搜索 + 筛选", en: "Faster nearby store search; store list uses search and filters" }, items: [
     { k: "better", zh: "找附近的商店：几秒内先列出附近的常见连锁店，完整结果（含小店）到了再换上；地图服务忙时也能用", en: "Nearby stores: common chain stores show up within seconds, then the full list (small shops too); still works when the map service is busy" },
     { k: "new", zh: "范围除了 5 / 10 / 15 / 20 英里，也可以自己填（最多 30 英里）", en: "Besides 5 / 10 / 15 / 20 miles, type your own range (up to 30 miles)" },
