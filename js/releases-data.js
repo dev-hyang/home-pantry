@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.5", title: { zh: "拍照加入采购清单；清单改成搜索 + 筛选", en: "Add to the shopping list from a photo; search and filters on the list" }, items: [
+    { k: "new", zh: "采购 →「拍照添加」：拍快用完的东西、空瓶空袋、手写清单或聊天截图，AI 认出要买什么，核对后加进采购清单（不动库存）", en: "Shopping → Add from photo: snap things running low, empty packages, a handwritten list or a chat; AI finds what to buy and you confirm before it goes on the list (inventory unchanged)" },
+    { k: "better", zh: "采购首页分清两件事：「加入采购清单」（手动 / 拍照 / 补货提醒）和「买回来了，录入库存」（小票 / 网购订单）", en: "The shopping page now separates adding to the list (by hand / photo / restock reminders) from adding bought things to inventory (receipt / online order)" },
+    { k: "better", zh: "采购清单：搜索框 + 状态、分类、排序下拉，默认加入最久的排在最前", en: "Shopping list: search plus status, category and sort menus; oldest items first by default" }
+  ] },
   { v: "2026-11-13.4", title: { zh: "采购页改版：一眼看清要买什么", en: "Shopping redesigned: see what to buy at a glance" }, items: [
     { k: "better", zh: "采购首页变成看板：待购买（尚未认领 / 已认领）、家人认领、常去的商店与特价、近 30 天买到，点哪格进哪里", en: "Shopping now opens on a dashboard: to buy (unclaimed / claimed), claimed by family, stores & deals, bought in 30 days; tap a card to open it" },
     { k: "better", zh: "「手动添加」「扫描小票录入」放在最上面；手动添加是单独一页，加完一项可以接着加", en: "\"Add by hand\" and \"Scan a receipt\" are at the top; adding by hand has its own page so you can keep adding" },

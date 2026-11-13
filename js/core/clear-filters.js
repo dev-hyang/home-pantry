@@ -11,7 +11,7 @@ import { state } from "./state.js";
 /** 各页筛选的默认值（不含排序：排序不是筛选，清除筛选不动它）；页面判断显隐、main.js 恢复默认都用这一份 */
 export const FD = {
   inv: { cat: "all", sub: "all", q: "", status: "all", loc: "all" },
-  shop: { cat: "all", who: "all" },
+  shop: { st: "open", cat: "all", q: "", sort: "old" },
   asset: { q: "", type: "all", service: "all", warranty: "all", loc: "all" },
   bills: { property: "all", cat: "all", autopay: "all", channel: "all", q: "" },
   pay: { bill: "all", year: "all", status: "all" },

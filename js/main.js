@@ -3,6 +3,7 @@ import { checkConfig } from "./core/config-check.js";
 import { decoratePrivacy, initPrivacy, setMoneyHidden, setPrivacyRoute } from "./core/privacy.js";
 import { restoreCarousels } from "./core/carousel.js";
 import { findItem, normName } from "./core/item-match.js";
+import { saveShopScan, shopScanAction } from "./pantry/shop-scan.js";
 import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
 import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
@@ -67,7 +68,7 @@ import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsen
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
 import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
-import { moveCat, renderInvList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
+import { moveCat, renderInvList, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { famMembers, familyHref, meId, profileErr, readMemberForm, reloadMembers } from "./settings/members.js";
 import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
@@ -469,7 +470,7 @@ function resetSectionFilters(section) {
   switch (section) {
     case "today": setTodayPref({ source: null }); break;
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
-    case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { cat: "all", who: "all", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
+    case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { st: "open", cat: "all", q: "", sort: "old" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
     case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null, sort: "new" }); state.spendEdit = null; state.spendSel = null; break;
     case "me": Object.assign(state.stats, { month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.locForm = null; break;
@@ -560,6 +561,7 @@ function setSharedRange(v) { state.stats.months = normRange(v); state.stats.mont
 main.addEventListener("input", (e) => {
   // 搜索框：筛选条件马上记下，列表停下 ~200ms 再重画（不是每敲一个字都重画整张列表）
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; searchSoon(renderInvList); }
+  if (e.target.id === "shopQ") { state.shopFilter.q = e.target.value; searchSoon(renderShopList); }   // 采购清单搜索：只重画清单那块
   if (e.target.id === "medSearch") { state.medFilter.q = e.target.value; searchSoon(renderMedList); }
   if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; searchSoon(renderSpendList); }   // 停下 ~200ms 再查数据库
   if (payeeInput(e, searchSoon)) return;   // 收款方：搜索、合并后的名字
@@ -653,7 +655,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.matches?.("#medBillForm select[name=patient_id], #medBillForm select[name=guarantor_id]")) return onPersonPick(e);
   if (e.target.id === "medReportYear") { state.medYear = e.target.value; render(); }
   { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; renderPayList(); } }
-  { const k = { shopCat: "cat", shopWho: "who", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
+  { const k = { shopSt: "st", shopCat: "cat", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
   { const k = { assetType: "type", assetService: "service", assetWarranty: "warranty", assetLoc: "loc", assetSort: "sort" }[e.target.id]; if (k) { state.assetFilter[k] = e.target.value; renderAssetList(); } }
   { const k = { giftIssuer: "issuer", giftSort: "sort", giftUsed: "used" }[e.target.id]; if (k) { (state.giftFilter ||= { issuer: "all", sort: "balance", used: false })[k] = k === "used" ? e.target.checked : e.target.value; return render(false); } }   // 礼品卡的筛选 / 排序
   { const k = { offKind: "kind", offSort: "sort" }[e.target.id]; if (k) { (state.offFilter ||= { q: "", kind: "all", sort: "since" })[k] = e.target.value; return render(false); } }   // 停用的卡：种类 / 排序
@@ -933,6 +935,7 @@ main.addEventListener("submit", async (e) => {
       if (cart) await Store.saveShopping({ id: cart.id, status: "bought", bought_at: new Date(`${day}T12:00:00`).toISOString(), amount: Math.round(signed * 100) / 100, claimed_by_name: cart.claimed_by_name || state.displayName });
       toast(t("已记录 {name} {m}", { name, m: money(signed) }) + (cart ? t("；采购清单里的「{n}」已标成已买到", { n: cart.name }) : "")); return refresh();
     }
+    if (f.id === "shopScanForm") return saveShopScan(refresh);
     if (f.id === "shopForm") {
       const name = f.elements.name.value.trim();
       if (!name) return;
@@ -979,7 +982,8 @@ main.addEventListener("click", async (e) => {
   const { action, id } = el.dataset;
   try {
     if (action?.startsWith("scan-")) return scanAction(action, el, { go, refresh });
-    if (action?.startsWith("shops-")) return shopsAction(action, el, { render, go, refresh });   // 常去的商店与特价（js/shops/views.js）
+    if (action?.startsWith("shops-")) return shopsAction(action, el, { render, go, refresh });
+    if (action?.startsWith("shopscan-")) return shopScanAction(action, el, { render: () => render(false) });   // 拍照加入采购清单（js/pantry/shop-scan.js）   // 常去的商店与特价（js/shops/views.js）
     if (action?.startsWith("fix-")) return fixAction(action, el, { refresh, render, go });   // 出了问题？诊断与配件
     if (action?.startsWith("recall-")) return recallAction(action, el, { refresh, render });   // 设备召回：清除标记 / 重新打开
     if (action?.startsWith("budget-") || action === "shop-advice-close") return budgetAction(action, { refresh, render }, el);

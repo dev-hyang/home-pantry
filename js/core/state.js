@@ -19,7 +19,7 @@ export const state = {
   assetFilter: { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" },   // 设备保养页的搜索与筛选
   billsFilter: { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" },
   payFilter: { bill: "all", year: "all", status: "all", sort: "new" },   // 缴费记录的筛选与排序（服务器分页，读到的页在 bills/views.js 的 payList）
-  shopFilter: { cat: "all", who: "all", sort: "new" },                             // 采购清单的筛选与排序
+  shopFilter: { st: "open", cat: "all", q: "", sort: "old" },                             // 采购清单的筛选与排序
   dealFilter: "all", dealStage: "all", dealActFilter: "all",   // 时间线：完成情况 / 阶段（计划、对比）；实际：进展记录 / 勾选完成
   dealSort: (() => { try { return localStorage.getItem("hmh-deal-sort") === "asc" ? "asc" : "desc"; } catch { return "desc"; } })(),   // 时间线排序：desc 由近及远（默认）/ asc 由远及近                                                               // 交易清单：全部 / 未完成 / 逾期 / 必须
   tasksOnlyUndone: false,                                                          // 季节任务：只看未完成
