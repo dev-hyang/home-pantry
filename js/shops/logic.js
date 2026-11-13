@@ -1,5 +1,5 @@
 /* 常去的商店 + 特价：数据整理、分类、连锁店预设、按 ZIP 找附近门店（OpenStreetMap）、特价和采购清单对上（迁移 067）
- * 外部服务：ZIP → 经纬度用 zippopotam.us，附近门店用 OpenStreetMap 的 Overpass（几个镜像），它忙时改用 Photon 按连锁店名字找。都不用 key，只发 ZIP 或坐标，不发别的。 */
+ * 外部服务：ZIP → 经纬度用 zippopotam.us，附近门店用 OpenStreetMap 的 Overpass（几个镜像，最全但常忙）；同时用 Photon（连不上再用 Nominatim）按连锁店名字先找出常见连锁店。都不用 key，只发 ZIP 或坐标，不发别的。 */
 import { state } from "../core/state.js";
 import { normName } from "../core/item-match.js";
 import { todayISO } from "../core/util.js";
@@ -166,6 +166,29 @@ async function photonChains(pt, mi, keys) {
   }
   return out;
 }
+/** 再后备：Nominatim（OpenStreetMap 官方搜索）按连锁店名字搜。它要求一秒最多一次请求，所以一家一家慢慢问 */
+async function nominatimChains(pt, mi, keys) {
+  const [s, w, n, e] = bbox(pt, mi), out = [];
+  for (const [i, k] of keys.entries()) {
+    if (i) await new Promise((r) => setTimeout(r, 1100));
+    const u = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=10&bounded=1&viewbox=${w},${n},${e},${s}&q=${encodeURIComponent(CHAINS[k].name)}`;
+    let j; try { j = await getJson(u, {}, 10000); } catch (err) { if (!i) throw err; continue; }   // 第一家就连不上：别再问了
+    for (const p of j || []) {
+      if (p.category !== "shop") continue;
+      const a = p.address || {};
+      const row = shopRow(pt, { id: `${String(p.osm_type || "x")[0]}${p.osm_id}`, name: p.name, shop: p.type, lat: +p.lat, lon: +p.lon,
+        address: addrOf(a.house_number, a.road, a.city || a.town || a.village, a.state, a.postcode), zip: a.postcode });
+      if (row.chain === k) out.push(row);
+    }
+  }
+  return out;
+}
+/** 常见连锁店：先问 Photon，连不上再问 Nominatim */
+async function quickChains(pt, mi, keys) {
+  try { const r = await photonChains(pt, mi, keys); if (r.length) return r; } catch { /* 换 Nominatim */ }
+  return nominatimChains(pt, mi, keys);
+}
+export const MAX_MI = 30;
 // 同一个地方、范围、分类，一周内不重复问地图服务（存在本机，最多记 6 次）
 const NEAR_KEY = "hmh-shop-near", WEEK = 7 * 864e5;
 const nearCache = () => { try { return JSON.parse(localStorage.getItem(NEAR_KEY) || "{}") || {}; } catch { return {}; } };
@@ -176,25 +199,24 @@ function putNear(key, rows) {
 const tidy = (rows, mi) => { const seen = new Set(); return rows.filter((x) => x.name && x.lat != null && x.dist <= mi && !seen.has(x.osm_id) && seen.add(x.osm_id)).sort((a, b) => a.dist - b.dist); };
 /** 附近的门店：半径（英里）内、选中分类的，按距离排好。
  * 先问 Overpass（什么店都有）；它忙的时候改用 Photon 只找常见连锁店，结果带 partial = true。fresh = true 跳过本机缓存。 */
-export async function searchNearby(pt, radiusMi, cats, { fresh = false } = {}) {
-  const mi = Math.min(25, Math.max(1, radiusMi));
+export async function searchNearby(pt, radiusMi, cats, { fresh = false, onQuick = null } = {}) {
+  const mi = Math.min(MAX_MI, Math.max(1, Math.round(radiusMi) || 10));
   const key = `${pt.lat.toFixed(2)},${pt.lon.toFixed(2)}|${mi}|${[...(cats || [])].sort().join(",")}`;
   const hit = nearCache()[key];
   if (!fresh && hit && Date.now() - hit.at < WEEK) return Object.assign(hit.rows, { cached: hit.at, partial: !!hit.partial });
+  // 同时开始：常见连锁店（快，几秒）+ Overpass 全部门店（慢，忙的时候会 502 / 504）；连锁店先给页面显示，Overpass 到了再换成完整的
+  const keys = Object.keys(CHAINS).filter((k) => !cats?.length || cats.includes(CHAINS[k].cat));
+  const quick = quickChains(pt, mi, keys).then((r) => { const t = Object.assign(tidy(r, mi), { partial: true }); if (t.length && onQuick) onQuick(t); return t; }).catch(() => []);
   let rows, partial = false;
   try { rows = tidy(await overpass(pt, mi, cats), mi); }
-  catch {
-    const keys = Object.keys(CHAINS).filter((k) => !cats?.length || cats.includes(CHAINS[k].cat));
-    rows = tidy(await photonChains(pt, mi, keys), mi); partial = true;
-    if (!rows.length) throw new Error("overpass");
-  }
+  catch { rows = await quick; partial = true; if (!rows.length) throw new Error("overpass"); }
   if (!partial) putNear(key, rows);
   return Object.assign(rows, { partial });
 }
 /** 第一次打开时加的那几家：直接用 Photon 按名字找最近的门店（每家一个轻量请求，比整片区域查询快、也不容易碰上服务器忙） */
 export async function nearestChains(pt, keys, mi = 20) {
   let rows = [];
-  try { rows = tidy(await photonChains(pt, mi, keys), mi); } catch { /* Photon 连不上：下面改问 Overpass */ }
+  try { rows = tidy(await quickChains(pt, mi, keys), mi); } catch { /* Photon、Nominatim 都连不上：下面改问 Overpass */ }
   if (keys.some((k) => !rows.some((r) => r.chain === k))) {   // 缺的几家用 Overpass 补（一次查完这几类店，再按连锁店挑最近的）
     const cats = [...new Set(keys.map((k) => CHAINS[k].cat))];
     try { rows = rows.concat(await searchNearby(pt, mi, cats)); } catch { if (!rows.length) throw new Error("overpass"); }

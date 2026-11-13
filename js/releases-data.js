@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.7", title: { zh: "找附近的商店更快；商店列表改成搜索 + 筛选", en: "Faster nearby store search; store list uses search and filters" }, items: [
+    { k: "better", zh: "找附近的商店：几秒内先列出附近的常见连锁店，完整结果（含小店）到了再换上；地图服务忙时也能用", en: "Nearby stores: common chain stores show up within seconds, then the full list (small shops too); still works when the map service is busy" },
+    { k: "new", zh: "范围除了 5 / 10 / 15 / 20 英里，也可以自己填（最多 30 英里）", en: "Besides 5 / 10 / 15 / 20 miles, type your own range (up to 30 miles)" },
+    { k: "better", zh: "常去的商店：搜索框 + 状态、分类、排序下拉，手机上收进「筛选」；改了筛选面板不会自己收起", en: "My stores: search plus status, category and sort menus, folded under Filters on phones; the filter panel stays open while you change it" }
+  ] },
   { v: "2026-11-13.6", title: { zh: "修好：按 ZIP 加商店失败", en: "Fixed: adding stores by ZIP failed" }, items: [
     { k: "fix", zh: "修好：按 ZIP 加入商店时保存失败（数据库报错）", en: "Fixed: stores added by ZIP couldn't be saved (database error)" },
     { k: "fix", zh: "找附近门店的备用地图服务连不上时，不再一直等，改用另一个服务把门店找全", en: "When the backup map service can't be reached, nearby stores are found with the other service instead of waiting" }

@@ -12,7 +12,7 @@ import { crumbNav } from "../core/hub.js";
 import { aiReady, askText } from "../core/ai.js";
 import { attachHTML, attachPayload, attachReset } from "../core/attach.js";
 import { claudePrompt, dealCatName, importGroups } from "./logic.js";
-import { CHAINS, SHOP_CATS, STARTER, adUrl, bestDealFor, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, nearestChains, openShopping, parseLooseJson, rememberPoint, savedZip, searchNearby, shopCat, zipToPoint } from "./logic.js";
+import { CHAINS, MAX_MI, SHOP_CATS, STARTER, adUrl, bestDealFor, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, nearestChains, openShopping, parseLooseJson, rememberPoint, savedZip, searchNearby, shopCat, zipToPoint } from "./logic.js";
 
 const DOW = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 const ui = () => (state.shopUi ||= { q: "", cat: "", status: "active", sort: "name", edit: null, find: { zip: savedZip()?.zip || "", radius: 10, cats: ["groceries", "warehouse", "department"], results: null, busy: false, error: "", pt: savedZip() }, deal: {} });
@@ -61,12 +61,13 @@ function viewList() {
     ${u.edit === "new" ? shopForm(null) : ""}
     ${u.claude ? claudePanel() : ""}
     ${due.length && u.status === "active" ? `<div class="panel shops-due" role="status">🗓️ ${t("{n} 家本周的特价还没更新：{names}", { n: due.length, names: due.map((s) => esc(s.name)).join("、") })}</div>` : ""}
-    ${all.length ? `<div class="shops-bar">
+    ${all.length ? `<div class="toolbar shops-toolbar">
       <label class="shops-q"><span class="sr-only">${t("搜索商店")}</span><input type="search" data-shops-q value="${esc(u.q)}" placeholder="${esc(t("搜索名称、地址"))}" autocomplete="off"></label>
-      <div class="seg" role="group" aria-label="${esc(t("显示哪些商店"))}">${[["active", t("常去"), all.filter((s) => !s.archived).length], ["archived", t("不去了"), all.filter((s) => s.archived).length]].map(([k, l, n]) => `<button type="button" class="chip" data-action="shops-status" data-v="${k}" aria-pressed="${u.status === k}">${l} <span class="chip-n">${n}</span></button>`).join("")}</div>
-      <label class="shops-sort"><span class="sr-only">${t("排序")}</span><select data-shops-sort data-nosearch>${[["name", "按名称"], ["dist", "按距离"], ["deals", "按特价多少"], ["updated", "按最近更新"]].map(([k, l]) => `<option value="${k}" ${u.sort === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
-    </div>
-    <div class="chips shops-cats" role="group" aria-label="${esc(t("按分类筛选"))}">${chips.map(([c, l, i, n]) => `<button type="button" class="chip" data-action="shops-cat" data-v="${c}" aria-pressed="${u.cat === c}">${i ? `${i} ` : ""}${esc(l)} <span class="chip-n">${n}</span></button>`).join("")}</div>` : ""}
+      <select data-shops-status data-nosearch aria-label="${esc(t("显示哪些商店"))}">${[["active", t("常去"), all.filter((s) => !s.archived).length], ["archived", t("不去了"), all.filter((s) => s.archived).length]].map(([k, l, n]) => `<option value="${k}" ${u.status === k ? "selected" : ""}>${esc(l)}${lang === "en" ? ` (${n})` : `（${n}）`}</option>`).join("")}</select>
+      <select data-shops-cat data-nosearch aria-label="${esc(t("按分类筛选"))}">${chips.map(([c, l, i, n]) => `<option value="${c}" ${u.cat === c ? "selected" : ""}>${i ? `${i} ` : ""}${esc(c ? l : t("全部分类"))}${lang === "en" ? ` (${n})` : `（${n}）`}</option>`).join("")}</select>
+      <select data-shops-sort data-nosearch aria-label="${esc(t("排序"))}">${[["name", "按名称"], ["dist", "按距离"], ["deals", "按特价多少"], ["updated", "按最近更新"]].map(([k, l]) => `<option value="${k}" ${u.sort === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
+      ${u.q || u.cat || u.status !== "active" || u.sort !== "name" ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-reset">${t("清除筛选")}</button>` : ""}
+    </div>` : ""}
     ${all.length ? (list.length ? `<div class="shop-grid">${list.map(shopCard).join("")}</div>` : `<p class="muted shops-empty">${u.status === "archived" ? t("没有收起来的商店。") : t("没有符合条件的商店。")}</p>`) : starterPanel()}
   </section>`;
 }
@@ -128,13 +129,15 @@ function viewFind() {
         <button type="button" class="btn btn-ghost" data-action="shops-locate">📍 ${t("用当前位置")}</button>
         <button type="submit" class="btn btn-primary" ${f.busy ? "disabled" : ""}>${f.busy ? t("正在找…") : t("搜索")}</button>
       </div>
-      <div class="shops-find-opts"><span class="pick-lbl">${t("范围")}</span><div class="chips" role="group" aria-label="${esc(t("范围"))}">${[5, 10, 15, 20].map((m) => `<button type="button" class="chip" data-action="shops-radius" data-v="${m}" aria-pressed="${f.radius === m}">${t("{n} 英里", { n: m })}</button>`).join("")}</div></div>
+      <div class="shops-find-opts"><span class="pick-lbl">${t("范围")}</span><div class="chips" role="group" aria-label="${esc(t("范围"))}">${[5, 10, 15, 20].map((m) => `<button type="button" class="chip" data-action="shops-radius" data-v="${m}" aria-pressed="${f.radius === m}">${t("{n} 英里", { n: m })}</button>`).join("")}
+        <label class="find-mi"><span class="sr-only">${t("自己填范围（英里）")}</span><input type="number" data-find-radius min="1" max="${MAX_MI}" step="1" inputmode="numeric" value="${[5, 10, 15, 20].includes(f.radius) ? "" : f.radius}" placeholder="${esc(t("自己填"))}"><span aria-hidden="true">${t("英里")}</span></label></div></div>
       <div class="shops-find-opts"><span class="pick-lbl">${t("分类")}</span><div class="chips" role="group" aria-label="${esc(t("分类"))}">${SHOP_CATS.filter(([c]) => c !== "other").map(([c, n, i]) => `<button type="button" class="chip" data-action="shops-fcat" data-v="${c}" aria-pressed="${f.cats.includes(c)}">${i} ${esc(t(n))}</button>`).join("")}</div></div>
       ${f.pt ? `<p class="muted" style="margin:0;font-size:12.5px">${t("中心：{p}", { p: esc(f.pt.place || `${f.pt.lat.toFixed(3)}, ${f.pt.lon.toFixed(3)}`) })} · ${t("门店数据来自 OpenStreetMap，可能不全；没找到的可以手动添加。")}</p>` : ""}
       ${f.error ? `<p class="form-error" role="alert">${esc(f.error)}</p>` : ""}
     </form>
     ${f.results?.length ? `<div class="shops-bar"><label class="shops-q"><span class="sr-only">${t("在结果里筛选")}</span><input type="search" data-find-q value="${esc(f.q || "")}" placeholder="${esc(t("在结果里筛选：名称、街道、城市"))}" autocomplete="off"></label></div>` : ""}
-    ${f.results?.partial ? `<p class="shops-note" role="status">${t("地图服务这会儿忙，先列出附近的常见连锁店；小店要等它不忙时再搜一次。")} <button type="button" class="btn btn-sm btn-ghost" data-action="shops-find-fresh">${t("再搜一次")}</button></p>`
+    ${f.results?.partial && f.busy ? `<p class="shops-note" role="status">⏳ ${t("先列出附近的常见连锁店，正在找更多门店…")}</p>`
+      : f.results?.partial ? `<p class="shops-note" role="status">${t("地图服务这会儿忙，先列出附近的常见连锁店；小店要等它不忙时再搜一次。")} <button type="button" class="btn btn-sm btn-ghost" data-action="shops-find-fresh">${t("再搜一次")}</button></p>`
       : f.results?.cached ? `<p class="muted shops-count">${t("这是 {d} 搜过的结果（一周内不重复问地图服务）。", { d: fmtShort(new Date(f.results.cached).toISOString()) })} <button type="button" class="btn btn-sm btn-ghost" data-action="shops-find-fresh">${t("重新搜索")}</button></p>` : ""}
     ${res ? (res.length ? `<p class="muted shops-count">${fq ? t("{n} / {m} 家", { n: res.length, m: f.results.length }) : t("找到 {n} 家", { n: res.length })}</p><ul class="panel find-list">${res.map((x) => {
       const mine = have.get(x.osm_id), [, cn, icon] = shopCat(x.category);
@@ -304,6 +307,7 @@ export async function shopsAction(action, el, { render, go, refresh }) {
     case "shops-edit-cancel": u.edit = null; render(); return;
     case "shops-status": u.status = el.dataset.v; render(); return;
     case "shops-cat": u.cat = el.dataset.v; render(); return;
+    case "shops-reset": Object.assign(u, { q: "", cat: "", status: "active", sort: "name" }); render(); return;
     case "shops-radius": u.find.radius = +el.dataset.v; render(); return;
     case "shops-find-fresh": if (u.find.pt) { u.find.fresh = true; runFind(render); } return;
     case "shops-fcat": { const c = el.dataset.v, cs = u.find.cats; u.find.cats = cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]; render(); return; }
@@ -385,7 +389,8 @@ async function runFind(render) {
   const f = ui().find;
   if (!f.cats.length) { f.error = t("至少选一个分类。"); return render(); }
   f.busy = true; f.error = ""; render();
-  try { f.results = await searchNearby(f.pt, f.radius, f.cats, { fresh: !!f.fresh }); }
+  // 先出常见连锁店（几秒），完整的结果（含小店）到了再换上
+  try { f.results = await searchNearby(f.pt, f.radius, f.cats, { fresh: !!f.fresh, onQuick: (rows) => { if (f.busy) { f.results = rows; render(); } } }); }
   catch { f.results = null; f.error = t("地图服务这会儿太忙了，过一会儿再试；也可以手动添加。"); }
   f.fresh = false;
   f.busy = false; render();
@@ -485,11 +490,14 @@ export function bindShops(render) {
     if (el.matches?.("[data-shops-q]")) { ui().q = el.value; R(); restoreFocus("[data-shops-q]", el); }
     else if (el.matches?.("[data-deal-q]")) { dealUi(el.dataset.dealQ).q = el.value; R(); restoreFocus(`[data-deal-q="${el.dataset.dealQ}"]`, el); }
     else if (el.matches?.("[data-shops-zip]")) ui().find.zip = el.value.trim();
+    else if (el.matches?.("[data-find-radius]")) { const v = Math.round(+el.value); if (v >= 1) { ui().find.radius = Math.min(MAX_MI, v); document.querySelectorAll('[data-action="shops-radius"]').forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.v === ui().find.radius))); } }
     else if (el.matches?.("[data-find-q]")) { ui().find.q = el.value; R(); restoreFocus("[data-find-q]", el); }
   });
   document.addEventListener("change", (e) => {
     const el = e.target;
     if (el.matches?.("[data-shops-sort]")) { ui().sort = el.value; R(); }
+    else if (el.matches?.("[data-shops-status]")) { ui().status = el.value; ui().cat = ""; R(); }
+    else if (el.matches?.("[data-shops-cat]")) { ui().cat = el.value; R(); }
     else if (el.matches?.("[data-deal-cat]")) { dealUi(el.dataset.dealCat).cat = el.value; R(); }
     else if (el.matches?.("[data-deal-sort]")) { dealUi(el.dataset.dealSort).sort = el.value; R(); }
     else if (el.matches?.('#dealReviewForm [name="inc"]')) { const f = el.form, n = f.querySelectorAll('[name="inc"]:checked').length, b = f.querySelector('button[type="submit"]'); if (b) b.textContent = t("保存 {n} 条", { n }); }

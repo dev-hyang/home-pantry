@@ -3885,4 +3885,7 @@ export const EN = {
   "加入最久的在前": "Oldest first",
   "最近加入的在前": "Newest first",
   "全部（含已买到）": "Everything (incl. bought)",
+  "自己填范围（英里）": "Custom range (miles)",
+  "自己填": "Custom",
+  "先列出附近的常见连锁店，正在找更多门店…": "Showing nearby chain stores first; looking for more…",
 };

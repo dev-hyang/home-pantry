@@ -3015,3 +3015,10 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .shops-imp li { padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-md); }
 .shops-copy textarea { width: 100%; box-sizing: border-box; font-size: 12.5px; margin-top: 6px; }
 .shops-copy summary { cursor: pointer; font-size: 13px; color: var(--soon); }
+/* 常去的商店：搜索框 + 下拉筛选（手机上收进「筛选」）；找附近：范围可以自己填英里数 */
+.shops-toolbar .shops-q { flex: 1 1 220px; display: flex; min-width: 0; }
+.shops-toolbar .shops-q input { flex: 1; min-width: 0; min-height: 44px; }
+.shops-toolbar select { min-height: 44px; }
+.find-mi { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: 13px; color: var(--muted); }
+.find-mi input { width: 76px; min-height: 36px; padding: 4px 8px; text-align: center; }
+@media (max-width: 640px) { .find-mi input { min-height: 40px; font-size: 16px; } }

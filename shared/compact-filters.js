@@ -37,6 +37,7 @@ export function initCompactFilters({ root = document.body, ui = () => "zh", sele
   if (!styled) { const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st); styled = true; }
   const label = () => TEXT[ui()] || TEXT.zh;
   let seq = 0;
+  let keepOpen = 0;   // 在打开的面板里改了筛选：页面随后整页重画时，新的面板保持打开（不然每改一项都要再点一次「筛选」）
   const refresh = (tb) => {
     const panel = tb.querySelector(":scope > .tb-panel"), btn = tb.querySelector(":scope > .tb-toggle"); if (!panel || !btn) return;
     const n = activeCount(panel), c = btn.querySelector(".tb-count");
@@ -53,6 +54,7 @@ export function initCompactFilters({ root = document.body, ui = () => "zh", sele
     btn.innerHTML = `${label()}<span class="tb-count" hidden>0</span>`;
     const search = tb.querySelector(":scope > input"); (search ? search.after(btn) : tb.prepend(btn));
     tb.appendChild(panel); tb.classList.add("tb-on");
+    if (Date.now() - keepOpen < 2000) { panel.classList.add("open"); btn.setAttribute("aria-expanded", "true"); }
     refresh(tb);
   };
   const scan = () => root.querySelectorAll(selector).forEach(setup);
@@ -64,7 +66,11 @@ export function initCompactFilters({ root = document.body, ui = () => "zh", sele
     // 点面板外：收起
     root.querySelectorAll(".tb-panel.open").forEach((p) => { if (!p.contains(e.target)) { p.classList.remove("open"); document.querySelector(`[aria-controls="${p.id}"]`)?.setAttribute("aria-expanded", "false"); } });
   });
-  root.addEventListener("change", (e) => { const tb = e.target.closest?.(`${selector}.tb-on`); if (tb) refresh(tb); });
+  root.addEventListener("change", (e) => {
+    const tb = e.target.closest?.(`${selector}.tb-on`); if (!tb) return;
+    keepOpen = e.target.closest(".tb-panel.open") ? Date.now() : 0;
+    refresh(tb);
+  }, true);
   root.addEventListener("keydown", (e) => { if (e.key === "Escape") root.querySelectorAll(".tb-panel.open").forEach((p) => { p.classList.remove("open"); const b = document.querySelector(`[aria-controls="${p.id}"]`); b?.setAttribute("aria-expanded", "false"); b?.focus(); }); });
 }
 
