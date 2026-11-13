@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.11", title: { zh: "单家商店也能用脚本更新；特价标出折扣类型", en: "Update one store with the script; deal types on deals" }, items: [
+    { k: "new", zh: "商店页「🤖 用脚本更新」：在装了脚本的笔记本上点一下，就为这一家跑一次自动更新，方便测试（手机上没反应）", en: "\"Update with script\" on a store page: on the laptop with the script, run the auto-update for just this store — handy for testing (does nothing on a phone)" },
+    { k: "new", zh: "特价标出折扣类型：Black Friday、Cyber Monday、节日、店内、网上、Rollback、清仓、电子券、会员价、买一送一、多件优惠、限时；可以按类型筛选，也可以手动改", en: "Deals show their type — Black Friday, Cyber Monday, holiday, in-store, online, Rollback, clearance, digital coupon, member price, BOGO, multi-buy, limited time; filter by type or edit it" }
+  ] },
   { v: "2026-11-13.10", title: { zh: "自动更新读的是你家附近那家门店的广告", en: "Auto-update reads the ad for your nearby store" }, items: [
     { k: "better", zh: "每周四自动更新：广告页显示的不是你家附近的门店时，按 ZIP 搜最近的门店、选好后再读那家的广告", en: "Thursday auto-update: if the ad page shows a different store, it searches your ZIP for the nearest store and reads that store's ad" }
   ] },

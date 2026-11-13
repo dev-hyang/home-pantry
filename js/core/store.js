@@ -721,7 +721,9 @@ const incomeTotal = (lines) => Math.round((lines || []).reduce((s, l) => s + (l.
 export const personKey = (n) => String(n || "").trim().replace(/\s+/g, " ").toLowerCase();
 const personError = (e) => (/household_people_name_idx|duplicate key/i.test(e.message || "") ? t("名册里已经有这个名字了（忽略大小写和空格）") : /household_people|does not exist|schema cache/i.test(e.message || "") ? t("还没执行数据库迁移 029（家庭成员名册），先在 Supabase 里执行 supabase/migrations/029_people.sql") : e.message);
 const SHOP_FIELDS = ["name", "chain", "category", "address", "zip", "lat", "lon", "phone", "ad_url", "website", "refresh", "refresh_dow", "archived", "osm_id", "deals_at", "notes", "auto_update"];
-const SHOP_DEAL_FIELDS = ["shop_id", "name", "brand", "size", "price", "price_text", "regular_price", "unit_price", "unit_label", "aka", "category", "valid_from", "valid_to", "source", "notes"];
+const SHOP_DEAL_FIELDS = ["shop_id", "name", "brand", "size", "price", "price_text", "regular_price", "unit_price", "unit_label", "aka", "category", "valid_from", "valid_to", "source", "notes", "deal_type"];
+/** 特价一行：deal_type 是迁移 068 加的列，没值就不送（没执行 068 时送了会报错） */
+const dealRow = (r) => { const row = pick(r, SHOP_DEAL_FIELDS); if (!r.deal_type) delete row.deal_type; return row; };
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
 /** 每页行数：和 Supabase 默认的 max-rows（1000）一样；项目里把 max-rows 调小的话这里也要跟着调小，否则读到第一页就会以为读完了 */
@@ -826,10 +828,10 @@ export const CloudStore = {
   async listShopDeals(since) { return this.pageAll(() => this.sb.from("shop_deals").select("*").eq("household_id", this.hid).or(`valid_to.is.null,valid_to.gte.${since}`).order("id")); },
   async addShopDeals(rows) {
     const out = [];
-    for (let i = 0; i < rows.length; i += 200) out.push(...(this.must(await this.sb.from("shop_deals").insert(rows.slice(i, i + 200).map((r) => ({ ...pick(r, SHOP_DEAL_FIELDS), household_id: this.hid }))).select()) || []));
+    for (let i = 0; i < rows.length; i += 200) out.push(...(this.must(await this.sb.from("shop_deals").insert(rows.slice(i, i + 200).map((r) => ({ ...dealRow(r), household_id: this.hid }))).select()) || []));
     return out;
   },
-  async saveShopDeal(r) { this.must(await this.sb.from("shop_deals").update(pick(r, SHOP_DEAL_FIELDS)).eq("id", r.id)); },
+  async saveShopDeal(r) { this.must(await this.sb.from("shop_deals").update(dealRow(r)).eq("id", r.id)); },
   async deleteShopDeals(ids) { for (let i = 0; i < ids.length; i += 100) this.must(await this.sb.from("shop_deals").delete().in("id", ids.slice(i, i + 100))); },
   async listTerms() { return this.must(await this.sb.from("custom_terms").select("*").eq("household_id", this.hid)); },
   async saveTerm(r) { this.must(await this.sb.from("custom_terms").upsert(pick(r, TERM_FIELDS, { household_id: this.hid, updated_by: state.user.id }), { onConflict: "household_id,term" })); },

@@ -13,6 +13,22 @@ export const SHOP_CATS = [
 export const DEAL_CATS = { groceries: "食品", produce: "蔬果", meat: "肉类海鲜", dairy: "蛋奶", bakery: "面包烘焙", frozen: "冷冻", drinks: "饮料", snacks: "零食", household: "日用清洁",
   personal: "个人护理", baby: "母婴", pet: "宠物", pharmacy: "药品保健", hardware: "五金", auto: "汽车", electronics: "电子", home: "家居", other: "其他" };
 export const dealCatName = (c) => DEAL_CATS[c] || c;
+// 折扣类型（可多个，存成逗号分开的 key）；re = AI / 广告上的各种写法
+export const DEAL_TYPES = [
+  ["black_friday", "Black Friday", /black\s*friday|黑五/i], ["cyber_monday", "Cyber Monday", /cyber\s*monday|网络星期一/i],
+  ["holiday", "节日特价", /holiday|christmas|thanksgiving|easter|4th of july|memorial|labor day|节日|圣诞|感恩节/i], ["weekly", "周广告", /^weekly|weekly ad|周广告/i],
+  ["instore", "店内", /in[-\s]?store|店内/i], ["online", "网上", /online|web only|网上|线上/i], ["rollback", "Rollback", /rollback/i],
+  ["clearance", "清仓", /clearance|清仓/i], ["coupon", "电子券", /coupon|digital|clip|电子券|优惠券/i], ["member", "会员价", /member|club|card|会员/i],
+  ["bogo", "买一送一", /bogo|buy one|b1g1|买一送一/i], ["multi", "多件优惠", /^multi|\d+\s*for\s*\$|mix\s*&?\s*match|多件/i], ["limited", "限时", /limited|lightning|flash|today only|限时/i],
+];
+export const dealTypeName = (k) => DEAL_TYPES.find((x) => x[0] === k)?.[1] || k;
+/** AI 给的类型（数组或逗号字符串、key 或广告原文）→ 去重的 key 字符串；认不出的丢掉 */
+export function normDealType(v) {
+  const parts = (Array.isArray(v) ? v : String(v || "").split(/[,，/|]/)).map((x) => String(x).trim()).filter(Boolean);
+  const keys = [];
+  for (const p of parts) { const k = DEAL_TYPES.find(([key, , re]) => key === p.toLowerCase() || re.test(p))?.[0]; if (k && !keys.includes(k)) keys.push(k); }
+  return keys.slice(0, 4).join(",") || null;
+}
 export const shopCat = (id) => SHOP_CATS.find((c) => c[0] === id) || SHOP_CATS[SHOP_CATS.length - 1];
 
 // 连锁店：名字的认法、分类、本周广告链接（2026-11 核对过能打开的；其余用 Flipp 搜索页）
@@ -243,13 +259,14 @@ export function dealPrompt(shop, lang) {
     "size = package size as printed (\"64 fl oz\", \"18 ct\", \"1 lb\"). brand only if printed.",
     `aka = 1–3 short generic names for matching a shopping list, comma separated, including a ${lang === "en" ? "short English" : "simplified Chinese"} name (e.g. \"鸡蛋, eggs\").`,
     "valid_from / valid_to = the ad's dates as YYYY-MM-DD if shown (US order month/day); null if not shown. If items have their OWN dates (e.g. Costco member savings \"valid through 12/7\"), put them on each deal; the top-level dates are for the whole ad.",
+    "deal_type = the kind of deal as a comma separated list of: black_friday, cyber_monday, holiday, weekly, instore, online, rollback, clearance, coupon, member, bogo, multi, limited (e.g. \"black_friday,online\" for a Black Friday online-only deal; \"rollback\" for Walmart Rollback; \"coupon\" for digital / clip coupons; \"member\" for club or card prices; \"multi\" for 2 for $5). Use what the ad says; null if nothing special.",
     `category = groceries, produce, meat, dairy, bakery, frozen, drinks, snacks, household, personal, baby, pet, pharmacy, hardware, auto, electronics, home or other.`,
     `Today is ${todayISO()}.`,
   ].join("\n");
   const user = [
     `Store: ${shop.name}${shop.address ? ` (${shop.address})` : ""}.`,
     open.length ? `Our shopping list (mention these first if they are on sale): ${open.join(", ")}` : "",
-    'Return exactly: {"valid_from":null,"valid_to":null,"deals":[{"name":"","brand":null,"size":null,"price":null,"price_text":"","regular_price":null,"unit_price":null,"unit_label":null,"aka":"","category":"groceries","valid_from":null,"valid_to":null}]}',
+    'Return exactly: {"valid_from":null,"valid_to":null,"deals":[{"name":"","brand":null,"size":null,"price":null,"price_text":"","regular_price":null,"unit_price":null,"unit_label":null,"aka":"","category":"groceries","deal_type":null,"valid_from":null,"valid_to":null}]}',
   ].filter(Boolean).join("\n");
   return { system, user };
 }
@@ -263,6 +280,7 @@ export function cleanDeals(j, fallback = {}) {
     include: true, name: String(x.name).trim().slice(0, 80), brand: s(x.brand, 40), size: s(x.size, 40), price: n(x.price), price_text: s(x.price_text, 40),
     regular_price: n(x.regular_price), unit_price: n(x.unit_price), unit_label: s(x.unit_label, 12), aka: s(x.aka, 120), category: s(x.category, 30),
     valid_from: d8(x.valid_from) || d8(j?.valid_from) || fallback.valid_from || null, valid_to: d8(x.valid_to) || d8(j?.valid_to) || fallback.valid_to || null,
+    deal_type: normDealType(x.deal_type ?? x.type) || normDealType(j?.deal_type),
   }));
 }
 export function parseLooseJson(text) {
@@ -276,7 +294,7 @@ export function parseLooseJson(text) {
 /* ───────────── 给 Claude（Chrome 侧边栏 / Claude Code 的 pantry-deals 技能）的指令 ─────────────
  * 约定（个人比价、非商业）：用户自己先在 Flipp / 超市网站上打开广告、搜好要的东西；Claude 只读当前打开的标签页，
  * 不自己去点搜索框、填邮编、翻几十页；按正常浏览节奏；结果按下面的 JSON 格式给出，贴回爱家小助手导入（导入前人工核对）。 */
-const DEAL_JSON = '{"stores":[{"store":"店名（和上面列的一致）","valid_from":"YYYY-MM-DD","valid_to":"YYYY-MM-DD","deals":[{"name":"","brand":null,"size":"64 fl oz","price":2.5,"price_text":"2 for $5","regular_price":null,"unit_price":0.039,"unit_label":"/fl oz","aka":"牛奶, milk","category":"dairy","valid_from":null,"valid_to":null}]}]}';
+const DEAL_JSON = '{"stores":[{"store":"店名（和上面列的一致）","valid_from":"YYYY-MM-DD","valid_to":"YYYY-MM-DD","deals":[{"name":"","brand":null,"size":"64 fl oz","price":2.5,"price_text":"2 for $5","regular_price":null,"unit_price":0.039,"unit_label":"/fl oz","aka":"牛奶, milk","category":"dairy","deal_type":"multi,coupon","valid_from":null,"valid_to":null}]}]}';
 const RULES = [
   "只读我已经打开的标签页（我自己先搜好了）；不要自己去点搜索框、填邮编、翻很多页，按正常浏览节奏，一页最多往下滚几屏。",
   "纯图片的传单就看截图读价格；小字看不清的写 null，不要猜。",
@@ -284,6 +302,7 @@ const RULES = [
   "unit_price + unit_label = 统一单价，方便比不同包装：肉、蔬果、散装按 /lb，包装食品按 /oz，饮料和液体按 /fl oz，按个数的按 /ct（鸡蛋、卷纸）。能从规格算就算，算不出写 null。",
   "aka = 1–3 个通用叫法（逗号分开），要有一个中文，例如「鸡蛋, eggs」，用来和我的采购清单对上。",
   "有效期：整份广告统一的日期写在商店那一层的 valid_from / valid_to；每样东西有效期不一样的（比如 Costco 会员特价写着「Valid 11/12 – 12/7」），写在那一条特价自己的 valid_from / valid_to。看不到日期就写 null，不要猜——我的应用会按这家商店的换广告日自动补。",
+  "deal_type = 折扣类型，按广告上写的，可以多个、逗号分开，只用这些：black_friday, cyber_monday, holiday, weekly, instore, online, rollback, clearance, coupon, member, bogo, multi, limited（Black Friday、Cyber Monday、节日、周广告、只限店内、只限网上、Walmart Rollback、清仓、电子券 / Clip coupon、会员价 / 会员卡价、买一送一、多件优惠如 2 for $5、限时）。没有特别说明的写 null。",
   "category 用：groceries, produce, meat, dairy, bakery, frozen, drinks, snacks, household, personal, baby, pet, pharmacy, hardware, auto, electronics, home, other。",
   "先给一张按单价从低到高的表格让我看，最后再给一个 ```json 代码块（格式见下），我会贴回爱家小助手。不要替我在任何网站上点提交。",
 ];

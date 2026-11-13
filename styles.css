@@ -3034,3 +3034,13 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .run-err { color: var(--out, #b3261e); font-size: 12.5px; }
 .run-note { margin: 6px 0 0; font-size: 12.5px; }
 .shop-auto span { font-weight: 400; font-size: 13px; }
+.autorun-hint { margin: 8px 0 0; font-size: 12.5px; }
+/* 特价的折扣类型标签 */
+.deal-types { display: inline-flex; flex-wrap: wrap; gap: 4px; margin: 2px 0; }
+.deal-type { font-size: 11.5px; padding: 1px 7px; }
+.dt-black_friday, .dt-cyber_monday { background: #1f1f1f; color: #fff; border-color: #1f1f1f; }
+.dt-rollback, .dt-clearance { background: color-mix(in srgb, var(--out, #b3261e) 14%, var(--surface)); color: var(--out, #b3261e); }
+.dt-online { background: color-mix(in srgb, var(--pine) 14%, var(--surface)); color: var(--pine); }
+.deal-rv-tags { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 4px; margin-top: -2px; }
+.deal-type-pick { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.deal-type-pick legend { font-weight: 700; font-size: 14px; margin-bottom: 6px; padding: 0; }
