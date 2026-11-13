@@ -27,7 +27,7 @@ export const TABLES = ["properties", "house_profiles", "custom_categories", "cus
   // 迁移 059：净资产（余额历史引用 cards，估值引用 properties / assets，都在前面）
   "account_balances", "asset_valuations", "net_worth_snapshots",
   // 迁移 067：常去的商店 → 特价（特价引用商店）
-  "shops", "shop_deals"];
+  "shops", "shop_deals", "shop_deal_runs"];
 const PAGE = 1000;   // PostgREST 单次最多 1000 行，大表分页读
 
 /* ───────────── 设置（存本机：文件夹本来就是这台电脑的） ───────────── */

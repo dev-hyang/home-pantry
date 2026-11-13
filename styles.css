@@ -3022,3 +3022,15 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .find-mi { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: 13px; color: var(--muted); }
 .find-mi input { width: 76px; min-height: 36px; padding: 4px 8px; text-align: center; }
 @media (max-width: 640px) { .find-mi input { min-height: 40px; font-size: 16px; } }
+/* 特价更新记录（迁移 068） */
+.runs-auto p { margin: 4px 0 0; font-size: 13px; }
+.runs-auto { margin-bottom: 12px; }
+.run-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.run-row { padding: 12px 14px; }
+.run-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.run-at { margin-left: auto; font-size: 12.5px; }
+.run-stores { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; font-size: 13.5px; }
+.run-stores li { display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.run-err { color: var(--out, #b3261e); font-size: 12.5px; }
+.run-note { margin: 6px 0 0; font-size: 12.5px; }
+.shop-auto span { font-weight: 400; font-size: 13px; }

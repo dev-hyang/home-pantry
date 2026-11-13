@@ -62,6 +62,13 @@ export function dealsDue(s) {
   return !s.deals_at || new Date(s.deals_at) < d;
 }
 export const lastWeekday = (dow) => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() - dow + 7) % 7)); return d; };
+const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/** 每周换广告的商店：这一期的起止日期（最近一个换广告日 → 再过 6 天）。广告上没写日期时用它补；不是每周的（Costco、季节 / 节日）不补 */
+export function weekWindow(s) {
+  if (!s || s.refresh !== "weekly") return {};
+  const from = lastWeekday(s.refresh_dow ?? 3), to = new Date(from); to.setDate(to.getDate() + 6);
+  return { valid_from: isoDay(from), valid_to: isoDay(to) };
+}
 
 /** 一条特价的比较键：名称、通用叫法（中英文）、品牌 */
 const dealKeys = (d) => [d.name, ...(String(d.aka || "").split(/[,，、/]/))].map(normName).filter((k) => k.length >= 2);
@@ -235,14 +242,14 @@ export function dealPrompt(shop, lang) {
     "unit_price + unit_label = price per common unit so different sizes compare: per lb for meat / produce / bulk, per oz for packaged food, per fl oz for drinks / liquids, per ct for counts (eggs, rolls). Compute it from size when the size is printed; null if unknown.",
     "size = package size as printed (\"64 fl oz\", \"18 ct\", \"1 lb\"). brand only if printed.",
     `aka = 1–3 short generic names for matching a shopping list, comma separated, including a ${lang === "en" ? "short English" : "simplified Chinese"} name (e.g. \"鸡蛋, eggs\").`,
-    "valid_from / valid_to = the ad's dates as YYYY-MM-DD if shown (US order month/day); null if not shown.",
+    "valid_from / valid_to = the ad's dates as YYYY-MM-DD if shown (US order month/day); null if not shown. If items have their OWN dates (e.g. Costco member savings \"valid through 12/7\"), put them on each deal; the top-level dates are for the whole ad.",
     `category = groceries, produce, meat, dairy, bakery, frozen, drinks, snacks, household, personal, baby, pet, pharmacy, hardware, auto, electronics, home or other.`,
     `Today is ${todayISO()}.`,
   ].join("\n");
   const user = [
     `Store: ${shop.name}${shop.address ? ` (${shop.address})` : ""}.`,
     open.length ? `Our shopping list (mention these first if they are on sale): ${open.join(", ")}` : "",
-    'Return exactly: {"valid_from":null,"valid_to":null,"deals":[{"name":"","brand":null,"size":null,"price":null,"price_text":"","regular_price":null,"unit_price":null,"unit_label":null,"aka":"","category":"groceries","valid_to":null}]}',
+    'Return exactly: {"valid_from":null,"valid_to":null,"deals":[{"name":"","brand":null,"size":null,"price":null,"price_text":"","regular_price":null,"unit_price":null,"unit_label":null,"aka":"","category":"groceries","valid_from":null,"valid_to":null}]}',
   ].filter(Boolean).join("\n");
   return { system, user };
 }
@@ -269,13 +276,14 @@ export function parseLooseJson(text) {
 /* ───────────── 给 Claude（Chrome 侧边栏 / Claude Code 的 pantry-deals 技能）的指令 ─────────────
  * 约定（个人比价、非商业）：用户自己先在 Flipp / 超市网站上打开广告、搜好要的东西；Claude 只读当前打开的标签页，
  * 不自己去点搜索框、填邮编、翻几十页；按正常浏览节奏；结果按下面的 JSON 格式给出，贴回爱家小助手导入（导入前人工核对）。 */
-const DEAL_JSON = '{"stores":[{"store":"店名（和上面列的一致）","valid_from":"YYYY-MM-DD","valid_to":"YYYY-MM-DD","deals":[{"name":"","brand":null,"size":"64 fl oz","price":2.5,"price_text":"2 for $5","regular_price":null,"unit_price":0.039,"unit_label":"/fl oz","aka":"牛奶, milk","category":"dairy"}]}]}';
+const DEAL_JSON = '{"stores":[{"store":"店名（和上面列的一致）","valid_from":"YYYY-MM-DD","valid_to":"YYYY-MM-DD","deals":[{"name":"","brand":null,"size":"64 fl oz","price":2.5,"price_text":"2 for $5","regular_price":null,"unit_price":0.039,"unit_label":"/fl oz","aka":"牛奶, milk","category":"dairy","valid_from":null,"valid_to":null}]}]}';
 const RULES = [
   "只读我已经打开的标签页（我自己先搜好了）；不要自己去点搜索框、填邮编、翻很多页，按正常浏览节奏，一页最多往下滚几屏。",
   "纯图片的传单就看截图读价格；小字看不清的写 null，不要猜。",
   "price = 单件价：「2 for $5」记 2.50；「$3.99/lb」记 3.99、unit_label 写 /lb；price_text 保留广告原文。",
   "unit_price + unit_label = 统一单价，方便比不同包装：肉、蔬果、散装按 /lb，包装食品按 /oz，饮料和液体按 /fl oz，按个数的按 /ct（鸡蛋、卷纸）。能从规格算就算，算不出写 null。",
   "aka = 1–3 个通用叫法（逗号分开），要有一个中文，例如「鸡蛋, eggs」，用来和我的采购清单对上。",
+  "有效期：整份广告统一的日期写在商店那一层的 valid_from / valid_to；每样东西有效期不一样的（比如 Costco 会员特价写着「Valid 11/12 – 12/7」），写在那一条特价自己的 valid_from / valid_to。看不到日期就写 null，不要猜——我的应用会按这家商店的换广告日自动补。",
   "category 用：groceries, produce, meat, dairy, bakery, frozen, drinks, snacks, household, personal, baby, pet, pharmacy, hardware, auto, electronics, home, other。",
   "先给一张按单价从低到高的表格让我看，最后再给一个 ```json 代码块（格式见下），我会贴回爱家小助手。不要替我在任何网站上点提交。",
 ];
@@ -298,6 +306,6 @@ export function importGroups(j) {
   return groups.map((g) => {
     const nm = String(g.store || g.name || "").trim(), ch = chainOf(nm), k = normName(nm);
     const shop = shops.find((s) => ch && s.chain === ch) || shops.find((s) => k && (normName(s.name).includes(k) || k.includes(normName(s.name))));
-    return { store: nm, shop, rows: cleanDeals(g), include: !!shop };
+    return { store: nm, shop, rows: cleanDeals(g, weekWindow(shop)), include: !!shop };   // 没写日期的：每周的店按换广告日补
   }).filter((g) => g.rows.length);
 }

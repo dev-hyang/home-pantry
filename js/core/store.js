@@ -106,6 +106,8 @@ export const DemoStore = {
   async saveBudget(b) { this.db.budget = { ...b, updated_at: new Date().toISOString() }; this.persist(); return { ...this.db.budget }; },
   /* 常去的商店 + 特价（迁移 067）：演示模式存在本地 */
   async listShops() { return (this.db.shops || []).map((x) => ({ ...x })); },
+  async listDealRuns() { return (this.db.dealRuns || []).slice().sort((a, b) => String(b.run_at).localeCompare(String(a.run_at))).slice(0, 200).map((x) => ({ ...x })); },
+  async addDealRun(r) { this.db.dealRuns ||= []; const row = { source: "manual", status: "ok", stores: [], ...r, id: uid(), run_at: r.run_at || new Date().toISOString() }; this.db.dealRuns.push(row); this.persist(); return { ...row }; },
   async saveShop(r) {
     this.db.shops ||= []; const now = new Date().toISOString();
     if (r.id) { const i = this.db.shops.findIndex((x) => x.id === r.id); if (i >= 0) this.db.shops[i] = { ...this.db.shops[i], ...r, updated_at: now }; this.persist(); return { ...this.db.shops[i] }; }
@@ -718,7 +720,7 @@ const incomeTotal = (lines) => Math.round((lines || []).reduce((s, l) => s + (l.
 /** 名字比较用的键：忽略大小写和多余空格（数据库的唯一索引同一个规则） */
 export const personKey = (n) => String(n || "").trim().replace(/\s+/g, " ").toLowerCase();
 const personError = (e) => (/household_people_name_idx|duplicate key/i.test(e.message || "") ? t("名册里已经有这个名字了（忽略大小写和空格）") : /household_people|does not exist|schema cache/i.test(e.message || "") ? t("还没执行数据库迁移 029（家庭成员名册），先在 Supabase 里执行 supabase/migrations/029_people.sql") : e.message);
-const SHOP_FIELDS = ["name", "chain", "category", "address", "zip", "lat", "lon", "phone", "ad_url", "website", "refresh", "refresh_dow", "archived", "osm_id", "deals_at", "notes"];
+const SHOP_FIELDS = ["name", "chain", "category", "address", "zip", "lat", "lon", "phone", "ad_url", "website", "refresh", "refresh_dow", "archived", "osm_id", "deals_at", "notes", "auto_update"];
 const SHOP_DEAL_FIELDS = ["shop_id", "name", "brand", "size", "price", "price_text", "regular_price", "unit_price", "unit_label", "aka", "category", "valid_from", "valid_to", "source", "notes"];
 const pick = (obj, fields, extra) => { const r = { ...extra }; fields.forEach((k) => { r[k] = obj[k] ?? null; }); return r; };
 
@@ -809,8 +811,12 @@ export const CloudStore = {
   },
   /* 常去的商店 + 特价（迁移 067）。特价只读还没过期太久的（since = 今天往前几周），老的留在库里供以后查价 */
   async listShops() { return this.must(await this.sb.from("shops").select("*").eq("household_id", this.hid).order("name")); },
+  /** 特价更新记录（迁移 068）：最近 200 次 */
+  async listDealRuns() { return this.must(await this.sb.from("shop_deal_runs").select("*").eq("household_id", this.hid).order("run_at", { ascending: false }).limit(200)); },
+  async addDealRun(r) { return this.must(await this.sb.from("shop_deal_runs").insert({ source: r.source || "manual", status: r.status || "ok", stores: r.stores || [], note: r.note || null, household_id: this.hid }).select().single()); },
   async saveShop(r) {
     const row = pick(r, SHOP_FIELDS);
+    if (r.auto_update === undefined || r.auto_update === null) delete row.auto_update;   // 没执行迁移 068 时这一列不存在：没设过就不送
     if (r.id) return this.must(await this.sb.from("shops").update(row).eq("id", r.id).select().single());
     // 新建：没给的字段不送（送 null 会撞上 refresh / refresh_dow / archived / category 的 not null，返回 400），让数据库用默认值
     const ins = Object.fromEntries(Object.entries(row).filter(([k]) => r[k] !== undefined && r[k] !== null));
@@ -1340,7 +1346,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "account_balances", "asset_valuations", "net_worth_snapshots", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms", "shops", "shop_deals"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "account_balances", "asset_valuations", "net_worth_snapshots", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms", "shops", "shop_deals", "shop_deal_runs"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();
