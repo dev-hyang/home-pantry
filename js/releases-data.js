@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.14", title: { zh: "英文特价对上家里的中文物品；不同牌子合在一起比", en: "English deals matched to your own item names; brands compared together" }, items: [
+    { k: "better", zh: "录入特价时自动对上储藏里的物品名（中文也行），不同牌子的同一样东西（比如各家的鸡蛋）按同一个名字比价、看以前的价格", en: "New deals are matched to your storage item names (Chinese too), so the same thing from different brands — eggs from any store — is compared under one name" },
+    { k: "fix", zh: "首页采购看板：「6 家待更新」在手机上不再被拆成两行", en: "Shopping dashboard: \"6 to update\" no longer splits across two lines on phones" }
+  ] },
   { v: "2026-11-13.13", title: { zh: "特价旁边看以前的价格；长期特价换广告时不再被删", en: "Earlier prices next to each deal; long-running deals survive a new ad" }, items: [
     { k: "new", zh: "每条特价下面显示以前的价格：现在是不是 6 个月最低；不是的话写出以前最低多少、哪家、哪天，点开看最近 10 次", en: "Each deal shows earlier prices: whether it's a 6-month low, or the earlier low, store and date — tap to see the last 10" },
     { k: "better", zh: "换新一周的广告时，到期更晚、这次广告里没出现的特价（比如 Costco「到 12/7」）会留着，不再一起删掉", en: "When a new week's ad comes in, deals that end later and aren't in the new ad (like Costco's \"through 12/7\") are kept" },

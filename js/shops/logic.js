@@ -74,6 +74,28 @@ export function restockWatch(limit = 40) {
     .sort((a, b) => num(b.rate) - num(a.rate)).map((x) => x.name).slice(0, limit);
   return { need, regular };
 }
+/** 家里储藏的物品名（不算设备；用得快的在前）：交给 AI / Claude，让它把特价对到我们自己的叫法上（中文英文都行） */
+export function myItemNames(limit = 120) {
+  return [...new Set((state.enriched || state.items || []).filter((x) => spaceOf(x.category) !== "gear")
+    .sort((a, b) => num(b.rate) - num(a.rate)).map((x) => String(x.name || "").trim()).filter(Boolean))].slice(0, limit);
+}
+/** 录入特价时对上家里的物品：特价的名称 / 通用叫法（aka）里有一个和储藏物品的名字或别名完全一样，就把物品名放到 aka 最前面。
+ *  AI 给的 aka 里本来就有中文通用名（「鸡蛋, eggs」），所以英文网站的特价也能对上中文物品；
+ *  不同牌子的同一样东西都带上同一个物品名 → 采购清单、以前的价格都按它合并。只认完全一样，不猜（「巧克力牛奶」不会算成「牛奶」）。 */
+export function linkItems(rows) {
+  const alias = state.itemAliases || [], idx = new Map();
+  for (const it of (state.items || []).filter((x) => spaceOf(x.category) !== "gear")) {
+    for (const k of [it.name, ...alias.filter((a) => a.item_id === it.id).map((a) => a.alias)].map(normName)) if (k.length >= 2 && !idx.has(k)) idx.set(k, it.name);
+  }
+  if (!idx.size) return rows;
+  return rows.map((r) => {
+    const name = dealKeys(r).map((k) => idx.get(k)).find(Boolean);
+    if (!name) return r;
+    const parts = String(r.aka || "").split(/[,，、]/).map((x) => x.trim()).filter((x) => x && normName(x) !== normName(name));
+    let aka = name; for (const p of parts) if (`${aka}, ${p}`.length <= 120) aka += `, ${p}`;
+    return { ...r, aka };
+  });
+}
 export const chainOf = (name) => Object.keys(CHAINS).find((k) => CHAINS[k].re.test(name || "")) || null;
 // 第一次打开：常用的这几家（按 ZIP 找最近的门店补上地址；找不到就先只加名字）
 export const STARTER = ["jewel", "costco", "aldi", "tonys", "target", "walmart"];
@@ -294,6 +316,7 @@ export function dealPrompt(shop, lang) {
   const user = [
     `Store: ${shop.name}${shop.address ? ` (${shop.address})` : ""}.`,
     open.length ? `Our shopping list (mention these first if they are on sale): ${open.join(", ")}` : "",
+    myItemNames().length ? `Our household's own item names (Chinese or English): ${myItemNames().join(", ")}. If a deal is the same kind of thing as one of these (any brand, any size), put that exact name FIRST in aka.` : "",
     'Return exactly: {"valid_from":null,"valid_to":null,"deals":[{"name":"","brand":null,"size":null,"price":null,"price_text":"","regular_price":null,"unit_price":null,"unit_label":null,"aka":"","category":"groceries","deal_type":null,"valid_from":null,"valid_to":null}]}',
   ].filter(Boolean).join("\n");
   return { system, user };
@@ -328,7 +351,7 @@ const RULES = [
   "纯图片的传单就看截图读价格；小字看不清的写 null，不要猜。",
   "price = 单件价：「2 for $5」记 2.50；「$3.99/lb」记 3.99、unit_label 写 /lb；price_text 保留广告原文。",
   "unit_price + unit_label = 统一单价，方便比不同包装：肉、蔬果、散装按 /lb，包装食品按 /oz，饮料和液体按 /fl oz，按个数的按 /ct（鸡蛋、卷纸）。能从规格算就算，算不出写 null。",
-  "aka = 1–3 个通用叫法（逗号分开），要有一个中文，例如「鸡蛋, eggs」，用来和我的采购清单对上。",
+  "aka = 1–3 个通用叫法（逗号分开），要有一个中文，例如「鸡蛋, eggs」，用来和我的采购清单对上。如果这样东西和上面「我家储藏里的物品名」里的某一个是同一种东西（不管牌子、包装大小），把那个名字原样放在 aka 第一个。",
   "有效期：整份广告统一的日期写在商店那一层的 valid_from / valid_to；每样东西有效期不一样的（比如 Costco 会员特价写着「Valid 11/12 – 12/7」），写在那一条特价自己的 valid_from / valid_to。看不到日期就写 null，不要猜——我的应用会按这家商店的换广告日自动补。",
   "deal_type = 折扣类型，按广告上写的，可以多个、逗号分开，只用这些：black_friday, cyber_monday, holiday, weekly, instore, online, rollback, clearance, coupon, member, bogo, multi, limited（Black Friday、Cyber Monday、节日、周广告、只限店内、只限网上、Walmart Rollback、清仓、电子券 / Clip coupon、会员价 / 会员卡价、买一送一、多件优惠如 2 for $5、限时）。没有特别说明的写 null。",
   "category 用：groceries, produce, meat, dairy, bakery, frozen, drinks, snacks, household, personal, baby, pet, pharmacy, hardware, auto, electronics, home, other。",
@@ -343,6 +366,7 @@ export function claudePrompt({ shops = [], zip = "", list = [] } = {}) {
     list.length ? `采购清单：${list.join("、")}` : "",
     list.length ? "" : (() => { const w = restockWatch(25), all = [...w.need, ...w.regular].slice(0, 40);
       return `重点：只要吃的、日用品（纸巾、洗涤、清洁）、宝宝用品；电视、家电、工具、玩具、衣服这些跳过。${all.length ? `家里常补的东西优先找：${all.join("、")}。` : ""}`; })(),
+    myItemNames().length ? `我家储藏里的物品名（录入 aka 用）：${myItemNames().join("、")}。` : "",
     `今天是 ${todayISO()}。`,
     "规则：", ...RULES.map((r, i) => `${i + 1}. ${r}`),
     `JSON 格式（每家商店一项；比价时只放清单里那几样的特价）：${DEAL_JSON}`,

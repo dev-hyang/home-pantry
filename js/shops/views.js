@@ -11,7 +11,7 @@ import { href } from "../core/router.js";
 import { crumbNav } from "../core/hub.js";
 import { aiReady, askText } from "../core/ai.js";
 import { attachHTML, attachPayload, attachReset } from "../core/attach.js";
-import { DEAL_TYPES, FOCUS_SECTIONS, claudePrompt, histSince, priceHistory, replaceable, dealCatName, dealTypeName, importGroups, weekWindow } from "./logic.js";
+import { DEAL_TYPES, FOCUS_SECTIONS, claudePrompt, histSince, linkItems, myItemNames, priceHistory, replaceable, dealCatName, dealTypeName, importGroups, weekWindow } from "./logic.js";
 import { CHAINS, MAX_MI, SHOP_CATS, STARTER, adUrl, bestDealFor, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, nearestChains, openShopping, parseLooseJson, rememberPoint, restockWatch, savedZip, searchNearby, shopCat, zipToPoint } from "./logic.js";
 
 const DOW = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -372,10 +372,10 @@ function installAutoHook() {
   window.hmhDeals = {
     async autoShops({ id = null } = {}) {
       await loadShops();
-      const watch = restockWatch();   // 每家都一样：家里告急的 / 清单上的 / 常补的，读广告时优先找
+      const watch = restockWatch(), item_names = myItemNames();   // 每家都一样：家里告急的 / 清单上的 / 常补的，读广告时优先找；物品名用来填 aka
       return (state.shops || []).filter((x) => (id ? x.id === id : !x.archived && x.auto_update && x.refresh === "weekly"))
         .map((x) => ({ id: x.id, name: x.name, chain: x.chain, address: x.address, zip: x.zip || null, home_zip: savedZip()?.zip || null, ad_url: adUrl(x), flipp_url: flippUrl(x), refresh_dow: x.refresh_dow ?? 3, ...weekWindow(x), due: dealsDue(x), deals_at: x.deals_at,
-          sections: FOCUS_SECTIONS[x.chain] || null, watch }));
+          sections: FOCUS_SECTIONS[x.chain] || null, watch, item_names }));
     },
     async importAuto(j, { only = null } = {}) {
       if (typeof j === "string") j = parseLooseJson(j);
@@ -486,6 +486,7 @@ export async function shopsAction(action, el, { render, go, refresh }) {
 }
 /** 把一家的特价存进去：replace = 先删掉这家现有的有效特价；记下更新时间。返回 { added, replaced } */
 async function applyDeals(shop, rows, { source, replace }) {
+  rows = linkItems(rows);   // 对上家里的物品名（中文也行）：不同牌子的同一样东西合在一起比
   const old = replace ? replaceable(shop, rows).map((d) => d.id) : [];   // 到期比这一期晚、新广告里又没有的留着
   const saved = await Store.addShopDeals(rows.map(({ include, ...r }) => ({ ...r, ...(state.runsMissing ? { deal_type: undefined } : {}), shop_id: shop.id, source,
     price: r.price == null || Number.isNaN(+r.price) ? null : Math.round(+r.price * 100) / 100, unit_price: r.unit_price == null || Number.isNaN(+r.unit_price) ? null : +r.unit_price })));

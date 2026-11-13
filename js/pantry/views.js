@@ -600,7 +600,7 @@ function viewShopHome() {
       </div>
       ${tile(listHref("claimed"), "🛍", t("家人认领"), `${st.claimed}<small>${t("项")}</small>`, st.claimed ? who : t("点“我来买”认领，家人就不会重复买。"))}
       ${tile(href("shops", "list"), "🏪", t("常去的商店与特价"), sh.shops ? `${sh.hits}<small>${t("项特价对上清单")}</small>` : "—",
-        sh.shops ? [t("{n} 家", { n: sh.shops }), t("特价 {n} 项", { n: sh.deals }), sh.due ? `<em>${t("{n} 家待更新", { n: sh.due })}</em>` : ""].filter(Boolean).join(" · ") : t("放进常去的超市，看本周特价、哪家最便宜"))}
+        sh.shops ? [t("{n} 家", { n: sh.shops }), t("特价 {n} 项", { n: sh.deals }), sh.due ? `<em>${t("{n} 家待更新", { n: sh.due })}</em>` : ""].filter(Boolean).map((x) => `<span class="nw">${x}</span>`).join(" · ") : t("放进常去的超市，看本周特价、哪家最便宜"))}
       ${tile(listHref("bought"), "✅", t("近 30 天买到"), `${st.recent}<small>${t("项")}</small>`, st.priced ? t("花费 {m}", { m: money(st.spent) }) : t("买到后自动加回库存。"))}
     </div>
     ${shopForecastHtml()}
