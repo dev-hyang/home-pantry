@@ -2,7 +2,8 @@
  * 外部服务：ZIP → 经纬度用 zippopotam.us，附近门店用 OpenStreetMap 的 Overpass（几个镜像，最全但常忙）；同时用 Photon（连不上再用 Nominatim）按连锁店名字先找出常见连锁店。都不用 key，只发 ZIP 或坐标，不发别的。 */
 import { state } from "../core/state.js";
 import { normName } from "../core/item-match.js";
-import { todayISO } from "../core/util.js";
+import { num, spaceOf, todayISO } from "../core/util.js";
+import { alertsOf } from "../core/logic.js";
 
 // 分类：照 Flipp 的分法（食品杂货、会员仓储、百货、药房、五金家装、汽车配件…）
 export const SHOP_CATS = [
@@ -58,6 +59,21 @@ export const CHAINS = {
   petco:      { name: "Petco", cat: "pet", re: /petco/i, ad: "" },
   bestbuy:    { name: "Best Buy", cat: "electronics", re: /best buy/i, ad: "" },
 };
+// 什么都卖的大店（Walmart、Target…）：读特价时只看这几个分区，跳过电视、家电、玩具、衣服这些（按网站上的分区名找链接 / 标签）
+export const FOCUS_SECTIONS = {
+  walmart: ["Food", "Food savings", "Household essentials savings", "Baby savings"],
+  target: ["Grocery", "Household essentials", "Baby"],
+  costco: ["Grocery", "Household", "Baby"],
+  sams: ["Grocery", "Household", "Baby"],
+};
+/** 家里常补的东西（读特价时优先找这些）：need = 现在告急的 + 采购清单里没买的；regular = 储藏里（不算设备）用得快 / 设了最低库存的，按每天用量排 */
+export function restockWatch(limit = 40) {
+  const pantry = (state.enriched || []).filter((x) => spaceOf(x.category) !== "gear");
+  const need = [...new Set([...alertsOf(pantry).map((x) => x.name), ...openShopping().map((s) => s.name)])].slice(0, limit);
+  const regular = pantry.filter((x) => !need.includes(x.name) && (num(x.rate) > 0 || num(x.min_quantity) > 0))
+    .sort((a, b) => num(b.rate) - num(a.rate)).map((x) => x.name).slice(0, limit);
+  return { need, regular };
+}
 export const chainOf = (name) => Object.keys(CHAINS).find((k) => CHAINS[k].re.test(name || "")) || null;
 // 第一次打开：常用的这几家（按 ZIP 找最近的门店补上地址；找不到就先只加名字）
 export const STARTER = ["jewel", "costco", "aldi", "tonys", "target", "walmart"];
@@ -313,6 +329,8 @@ export function claudePrompt({ shops = [], zip = "", list = [] } = {}) {
       : `帮我把我打开的超市传单标签页里的特价整理出来。`,
     names ? `商店：${names}。${zip ? `ZIP：${zip}。` : ""}` : (zip ? `ZIP：${zip}。` : ""),
     list.length ? `采购清单：${list.join("、")}` : "",
+    list.length ? "" : (() => { const w = restockWatch(25), all = [...w.need, ...w.regular].slice(0, 40);
+      return `重点：只要吃的、日用品（纸巾、洗涤、清洁）、宝宝用品；电视、家电、工具、玩具、衣服这些跳过。${all.length ? `家里常补的东西优先找：${all.join("、")}。` : ""}`; })(),
     `今天是 ${todayISO()}。`,
     "规则：", ...RULES.map((r, i) => `${i + 1}. ${r}`),
     `JSON 格式（每家商店一项；比价时只放清单里那几样的特价）：${DEAL_JSON}`,

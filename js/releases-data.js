@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.12", title: { zh: "脚本更新 Walmart 不再报错；特价只看吃的、日用、宝宝用品", en: "Walmart script update fixed; deals focus on food, household and baby" }, items: [
+    { k: "fix", zh: "商店页「🤖 用脚本更新」和每周四自动更新：读完的特价存不进去（报 shop_deals_source_check）的问题修好了", en: "\"Update with script\" and the Thursday auto-update could not save the deals they read (shop_deals_source_check error) — fixed" },
+    { k: "better", zh: "Walmart 这类大店只读 Food、Food savings、Household essentials savings、Baby savings 几个分区，跳过电视、家电、玩具", en: "Big stores like Walmart: only the Food, Food savings, Household essentials savings and Baby savings sections are read — TVs, appliances and toys are skipped" },
+    { k: "better", zh: "读特价时先找家里告急的、采购清单上的、储藏里常补的东西", en: "Reading deals looks first for what is running low, what is on the shopping list, and what you restock often" }
+  ] },
   { v: "2026-11-13.11", title: { zh: "单家商店也能用脚本更新；特价标出折扣类型", en: "Update one store with the script; deal types on deals" }, items: [
     { k: "new", zh: "商店页「🤖 用脚本更新」：在装了脚本的笔记本上点一下，就为这一家跑一次自动更新，方便测试（手机上没反应）", en: "\"Update with script\" on a store page: on the laptop with the script, run the auto-update for just this store — handy for testing (does nothing on a phone)" },
     { k: "new", zh: "特价标出折扣类型：Black Friday、Cyber Monday、节日、店内、网上、Rollback、清仓、电子券、会员价、买一送一、多件优惠、限时；可以按类型筛选，也可以手动改", en: "Deals show their type — Black Friday, Cyber Monday, holiday, in-store, online, Rollback, clearance, digital coupon, member price, BOGO, multi-buy, limited time; filter by type or edit it" }

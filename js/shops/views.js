@@ -11,8 +11,8 @@ import { href } from "../core/router.js";
 import { crumbNav } from "../core/hub.js";
 import { aiReady, askText } from "../core/ai.js";
 import { attachHTML, attachPayload, attachReset } from "../core/attach.js";
-import { DEAL_TYPES, claudePrompt, dealCatName, dealTypeName, importGroups, weekWindow } from "./logic.js";
-import { CHAINS, MAX_MI, SHOP_CATS, STARTER, adUrl, bestDealFor, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, nearestChains, openShopping, parseLooseJson, rememberPoint, savedZip, searchNearby, shopCat, zipToPoint } from "./logic.js";
+import { DEAL_TYPES, FOCUS_SECTIONS, claudePrompt, dealCatName, dealTypeName, importGroups, weekWindow } from "./logic.js";
+import { CHAINS, MAX_MI, SHOP_CATS, STARTER, adUrl, bestDealFor, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, nearestChains, openShopping, parseLooseJson, rememberPoint, restockWatch, savedZip, searchNearby, shopCat, zipToPoint } from "./logic.js";
 
 const DOW = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 const ui = () => (state.shopUi ||= { q: "", cat: "", status: "active", sort: "name", edit: null, find: { zip: savedZip()?.zip || "", radius: 10, cats: ["groceries", "warehouse", "department"], results: null, busy: false, error: "", pt: savedZip() }, deal: {} });
@@ -338,7 +338,7 @@ const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString(lang === "e
  * 定时任务在已登录的爱家小助手标签页里调用：
  *   await hmhDeals.autoShops()          → 打开了「每周四自动更新」的商店（含地址、ZIP、家里的 ZIP、广告链接、Flipp 链接、这一期起止日期）
  *   await hmhDeals.importAuto(json)     → json = {"stores":[…同 Claude 整理的格式…], "failed":[{"store":"","reason":""}], "note":""}
- *                                          每家先删掉现有的有效特价再存新的；没写日期的按换广告日补；写一条 source = auto 的更新记录；返回每家的结果
+ *                                          每家先删掉现有的有效特价再存新的（特价本身记 source = claude——shop_deals 不认 auto）；没写日期的按换广告日补；写一条 source = auto 的更新记录；返回每家的结果
  * 只认 auto_update 打开的商店，别的店名一律跳过（记在记录里），所以任务不会改到手动维护的商店。
  * 例外：商店页上手动点「🤖 用脚本更新」（pantrydeals://run?shop=<id>）→ 脚本跑 /pantry-deals auto <id>，
  *   这时 autoShops({ id }) 只返回那一家、importAuto(json, { only: id }) 只录那一家——不管它开没开自动更新（是你自己点的）。 */
@@ -346,8 +346,10 @@ function installAutoHook() {
   window.hmhDeals = {
     async autoShops({ id = null } = {}) {
       await loadShops();
+      const watch = restockWatch();   // 每家都一样：家里告急的 / 清单上的 / 常补的，读广告时优先找
       return (state.shops || []).filter((x) => (id ? x.id === id : !x.archived && x.auto_update && x.refresh === "weekly"))
-        .map((x) => ({ id: x.id, name: x.name, chain: x.chain, address: x.address, zip: x.zip || null, home_zip: savedZip()?.zip || null, ad_url: adUrl(x), flipp_url: flippUrl(x), refresh_dow: x.refresh_dow ?? 3, ...weekWindow(x), due: dealsDue(x), deals_at: x.deals_at }));
+        .map((x) => ({ id: x.id, name: x.name, chain: x.chain, address: x.address, zip: x.zip || null, home_zip: savedZip()?.zip || null, ad_url: adUrl(x), flipp_url: flippUrl(x), refresh_dow: x.refresh_dow ?? 3, ...weekWindow(x), due: dealsDue(x), deals_at: x.deals_at,
+          sections: FOCUS_SECTIONS[x.chain] || null, watch }));
     },
     async importAuto(j, { only = null } = {}) {
       if (typeof j === "string") j = parseLooseJson(j);
@@ -356,7 +358,7 @@ function installAutoHook() {
       const log = [];
       for (const g of importGroups(j)) {
         if (!g.shop || !autos.has(g.shop.id)) { log.push({ shop_id: g.shop?.id || null, name: g.store, added: 0, replaced: 0, error: t("不是自动更新的商店，跳过") }); continue; }
-        try { log.push({ shop_id: g.shop.id, name: g.shop.name, ...(await applyDeals(g.shop, g.rows, { source: "auto", replace: true })) }); }
+        try { log.push({ shop_id: g.shop.id, name: g.shop.name, ...(await applyDeals(g.shop, g.rows, { source: "claude", replace: true })) }); }
         catch (e) { log.push({ shop_id: g.shop.id, name: g.shop.name, added: 0, replaced: 0, error: String(e.message).slice(0, 200) }); }
       }
       for (const f of Array.isArray(j?.failed) ? j.failed : []) {
