@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.10", title: { zh: "自动更新读的是你家附近那家门店的广告", en: "Auto-update reads the ad for your nearby store" }, items: [
+    { k: "better", zh: "每周四自动更新：广告页显示的不是你家附近的门店时，按 ZIP 搜最近的门店、选好后再读那家的广告", en: "Thursday auto-update: if the ad page shows a different store, it searches your ZIP for the nearest store and reads that store's ad" }
+  ] },
   { v: "2026-11-13.9", title: { zh: "特价有效期自动补；每周四自动更新；更新记录", en: "Deal dates filled in; Thursday auto-update; update log" }, items: [
     { k: "better", zh: "每周换广告的商店：广告上没写日期时，按这家的换广告日自动补上这一期的起止日期；Costco 这类不是每周的，用每样东西自己的日期", en: "Weekly-ad stores: when the ad has no dates, this week's dates are filled in from the store's ad day; non-weekly stores like Costco keep each item's own dates" },
     { k: "new", zh: "商店编辑里可以打开「每周四自动更新」：电脑上的 Claude 定时任务自动打开广告、翻页、读取、录入（季节 / 节日类的保持手动）", en: "Turn on \"Update automatically every Thursday\" for a store: a Claude scheduled task on the computer opens the ad, pages through, reads and saves the deals (keep seasonal / holiday stores manual)" },

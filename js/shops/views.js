@@ -327,7 +327,7 @@ const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString(lang === "e
 
 /* ───────────── 给每周定时任务（Claude Code 的 /pantry-deals auto）用的入口 ─────────────
  * 定时任务在已登录的爱家小助手标签页里调用：
- *   await hmhDeals.autoShops()          → 打开了「每周四自动更新」的商店（含广告链接、Flipp 链接、这一期起止日期）
+ *   await hmhDeals.autoShops()          → 打开了「每周四自动更新」的商店（含地址、ZIP、家里的 ZIP、广告链接、Flipp 链接、这一期起止日期）
  *   await hmhDeals.importAuto(json)     → json = {"stores":[…同 Claude 整理的格式…], "failed":[{"store":"","reason":""}], "note":""}
  *                                          每家先删掉现有的有效特价再存新的；没写日期的按换广告日补；写一条 source = auto 的更新记录；返回每家的结果
  * 只认 auto_update 打开的商店，别的店名一律跳过（记在记录里），所以任务不会改到手动维护的商店。 */
@@ -336,7 +336,7 @@ function installAutoHook() {
     async autoShops() {
       await loadShops();
       return (state.shops || []).filter((x) => !x.archived && x.auto_update && x.refresh === "weekly")
-        .map((x) => ({ id: x.id, name: x.name, chain: x.chain, address: x.address, ad_url: adUrl(x), flipp_url: flippUrl(x), refresh_dow: x.refresh_dow ?? 3, ...weekWindow(x), due: dealsDue(x), deals_at: x.deals_at }));
+        .map((x) => ({ id: x.id, name: x.name, chain: x.chain, address: x.address, zip: x.zip || null, home_zip: savedZip()?.zip || null, ad_url: adUrl(x), flipp_url: flippUrl(x), refresh_dow: x.refresh_dow ?? 3, ...weekWindow(x), due: dealsDue(x), deals_at: x.deals_at }));
     },
     async importAuto(j) {
       if (typeof j === "string") j = parseLooseJson(j);
