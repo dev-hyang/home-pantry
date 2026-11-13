@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.17", title: { zh: "商店卡片左滑删除；网格里直接添加商店", en: "Swipe left to delete a store; add a store right in the grid" }, items: [
+    { k: "new", zh: "常去的商店：手机上商店卡片向左滑就能删除，删除前照样会确认", en: "My stores: on a phone, swipe a store card left to delete it — you still confirm first" },
+    { k: "new", zh: "商店列表最后多了一张「＋ 添加商店」空白卡，点一下就在那里展开表单；右上角「手动添加」再点一次就收起", en: "A blank \"+ Add store\" card at the end of the list opens the form right there; tap \"Add by hand\" again to close it" }
+  ] },
   { v: "2026-11-13.16", title: { zh: "商店卡片上标出每周几换广告", en: "Store cards show the weekly ad day" }, items: [
     { k: "better", zh: "常去的商店：设了每周换广告的商店，卡片上显示「每周三换广告」这样的标签；打开了自动更新的前面带 🤖", en: "My stores: stores with a weekly ad show a tag like \"New ad every Wed\"; ones with auto-update have a 🤖 in front" }
   ] },

@@ -3701,6 +3701,7 @@ export const EN = {
   "更新特价": "Update deals",
   "编辑商店": "Edit store",
   "添加商店": "Add store",
+  "名称、地址、每周几换广告": "Name, address, weekly ad day",
   "例如：ALDI": "e.g. ALDI",
   "门牌、街道、城市": "Number, street, city",
   "本周广告链接（可不填）": "Weekly ad link (optional)",

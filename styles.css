@@ -2912,6 +2912,15 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .shops-due { margin: 0 0 12px; padding: 10px 14px; background: var(--soon-bg); color: var(--soon); border-color: transparent; font-size: 14px; }
 .shops-empty, .shops-count { margin: 6px 2px 10px; }
 .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+/* 网格最后的「＋ 添加商店」空白卡；点开后表单占整行 */
+.shop-card.shop-new { align-items: center; justify-content: center; gap: 4px; min-height: 140px; border: 2px dashed var(--line); background: transparent; color: var(--muted); font: inherit; cursor: pointer; text-align: center; }
+.shop-card.shop-new b { color: var(--ink); font-size: 15px; }
+.shop-card.shop-new small { font-size: 12.5px; }
+.shop-new-plus { font-size: 26px; line-height: 1; color: var(--ink); }
+.shop-card.shop-new:hover { border-color: var(--muted); background: var(--surface); }
+.shop-card.shop-new:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.shop-new-slot { grid-column: 1 / -1; }
+.shop-new-slot .shop-form { margin: 0; }
 .shop-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg); min-width: 0; }
 .shop-card.is-off { background: var(--bg); }
 .shop-main { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; min-height: 44px; }

@@ -61,13 +61,14 @@ function viewList() {
   list = [...list].sort(sorters[u.sort] || sorters.name);
   const due = all.filter(dealsDue);
   const catCount = (c) => pool.filter((s) => s.category === c).length;
+  const gridOn = all.length > 0 && u.status !== "archived";   // 常去的商店：网格最后一张是「＋ 添加商店」空白卡，点开后表单就在那个位置
   const chips = [["", t("全部"), "", pool.length], ...SHOP_CATS.filter(([c]) => catCount(c)).map(([c, n, i]) => [c, t(n), i, catCount(c)])];
   return `<section class="section shops-page">
     ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("常去的商店"), icon: "🏪" }])}
     ${missingPanel()}
     <div class="section-head"><h2>${t("常去的商店")}</h2><p>${t("每家的本周广告、特价都在这里；采购清单会标出哪家在打折。")}</p>
-      <div class="head-acts"><button type="button" class="btn btn-sm" data-action="shops-claude" aria-expanded="${!!u.claude}">🤖 ${t("用 Claude 整理")}</button><a class="btn btn-sm" href="${href("shops", "find")}">📍 ${t("找附近的商店")}</a><a class="btn btn-sm" href="${href("shops", "log")}">📜 ${t("更新记录")}</a><button type="button" class="btn btn-sm btn-primary" data-action="shops-new">＋ ${t("手动添加")}</button></div></div>
-    ${u.edit === "new" ? shopForm(null) : ""}
+      <div class="head-acts"><button type="button" class="btn btn-sm" data-action="shops-claude" aria-expanded="${!!u.claude}">🤖 ${t("用 Claude 整理")}</button><a class="btn btn-sm" href="${href("shops", "find")}">📍 ${t("找附近的商店")}</a><a class="btn btn-sm" href="${href("shops", "log")}">📜 ${t("更新记录")}</a><button type="button" class="btn btn-sm btn-primary" data-action="shops-new" aria-expanded="${u.edit === "new"}" aria-controls="shopEditForm">${u.edit === "new" ? "－" : "＋"} ${t("手动添加")}</button></div></div>
+    ${u.edit === "new" && !gridOn ? shopForm(null) : ""}
     ${u.claude ? claudePanel() : ""}
     ${due.length && u.status === "active" ? `<div class="panel shops-due" role="status">🗓️ ${t("{n} 家本周的特价还没更新：{names}", { n: due.length, names: due.map((s) => esc(s.name)).join("、") })}</div>` : ""}
     ${all.length ? `<div class="toolbar shops-toolbar">
@@ -77,7 +78,8 @@ function viewList() {
       <select data-shops-sort data-nosearch aria-label="${esc(t("排序"))}">${[["name", "按名称"], ["dist", "按距离"], ["deals", "按特价多少"], ["updated", "按最近更新"]].map(([k, l]) => `<option value="${k}" ${u.sort === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
       ${u.q || u.cat || u.status !== "active" || u.sort !== "name" ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-reset">${t("清除筛选")}</button>` : ""}
     </div>` : ""}
-    ${all.length ? (list.length ? `<div class="shop-grid">${list.map(shopCard).join("")}</div>` : `<p class="muted shops-empty">${u.status === "archived" ? t("没有收起来的商店。") : t("没有符合条件的商店。")}</p>`) : starterPanel()}
+    ${gridOn ? `<div class="shop-grid">${list.map(shopCard).join("")}${u.edit === "new" ? `<div class="shop-new-slot">${shopForm(null)}</div>` : newCard()}</div>${list.length ? "" : `<p class="muted shops-empty">${t("没有符合条件的商店。")}</p>`}`
+      : all.length ? `<p class="muted shops-empty">${u.status === "archived" ? t("没有收起来的商店。") : t("没有符合条件的商店。")}</p>` : starterPanel()}
   </section>`;
 }
 function starterPanel() {
@@ -94,7 +96,7 @@ function shopCard(s) {
   const [, cn, icon] = shopCat(s.category), deals = liveDeals(s.id), open = openShopping();
   const hits = deals.filter((d) => dealMatches(d, open).length).length, d = distOf(s), due = dealsDue(s);
   const upd = s.deals_at ? t("{d} 更新", { d: fmtShort(s.deals_at) }) : t("还没有特价");
-  return `<article class="shop-card ${s.archived ? "is-off" : ""}">
+  return `<article class="shop-card ${s.archived ? "is-off" : ""}" data-swipe-del="store">
     <a class="shop-main" href="${shopHref(s)}"><span class="shop-ico" aria-hidden="true">${icon}</span>
       <span class="shop-txt"><b>${esc(s.name)}</b><small>${d != null ? `${t("{n} 英里", { n: d.toFixed(1) })} · ` : ""}${esc(s.address || t("没填地址"))}</small></span><span class="mch" aria-hidden="true">›</span></a>
     <div class="shop-meta"><span class="tag">${esc(t(cn))}</span>${s.refresh === "weekly"
@@ -104,8 +106,13 @@ function shopCard(s) {
       ${due ? `<span class="tag tag-warn">${t("本周待更新")}</span>` : `<span class="muted">${upd}</span>`}</div>
     <div class="shop-acts">${s.archived
       ? `<button type="button" class="btn btn-sm btn-primary" data-action="shops-unarchive" data-id="${s.id}">${t("加回常去")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>`
-      : `<a class="btn btn-sm btn-ghost" href="${esc(adUrl(s))}" target="_blank" rel="noopener">${t("本周广告")} ↗</a><a class="btn btn-sm" href="${shopHref(s)}?update=1">${t("更新特价")}</a>`}</div>
-  </article>`;
+      : `<a class="btn btn-sm btn-ghost" href="${esc(adUrl(s))}" target="_blank" rel="noopener">${t("本周广告")} ↗</a><a class="btn btn-sm" href="${shopHref(s)}?update=1">${t("更新特价")}</a>`}
+      <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shops-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button></div>
+  </article>`;   // 向左滑删除（js/swipe-rows.js 替这个隐藏按钮点一下，照旧弹确认框）
+}
+/** 网格最后的空白卡：点一下展开「添加商店」表单（和右上角「手动添加」是同一个） */
+function newCard() {
+  return `<button type="button" class="shop-card shop-new" data-action="shops-new" aria-expanded="false" aria-controls="shopEditForm"><span class="shop-new-plus" aria-hidden="true">＋</span><b>${t("添加商店")}</b><small>${t("名称、地址、每周几换广告")}</small></button>`;
 }
 function shopForm(s) {
   const v = s || { category: "groceries", refresh: "weekly", refresh_dow: 3 };
@@ -417,7 +424,10 @@ function formRow(f) {
 export async function shopsAction(action, el, { render, go, refresh }) {
   const u = ui(), id = el.dataset.id;
   switch (action) {
-    case "shops-new": u.edit = "new"; render(); $("#shopEditForm")?.elements.name.focus(); return;
+    case "shops-new": {   // 再点一次收起来
+      if (u.edit === "new") { u.edit = null; render(); return; }
+      u.edit = "new"; render(); const f = $("#shopEditForm"); f?.scrollIntoView({ block: "nearest", behavior: "smooth" }); f?.elements.name.focus({ preventScroll: true }); return;
+    }
     case "shops-edit": u.edit = id; render(); return;
     case "shops-edit-cancel": u.edit = null; render(); return;
     case "shops-status": u.status = el.dataset.v; render(); return;
