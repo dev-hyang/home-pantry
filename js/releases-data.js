@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.18", title: { zh: "特价列表在手机上更简洁：左滑删除、右滑加入清单", en: "Simpler deal list on phones: swipe left to delete, right to add to the list" }, items: [
+    { k: "better", zh: "手机上特价那一行不再放按钮：向左滑删除、向右滑加入采购清单（都会先确认），点商品名称就能修改", en: "On a phone, deal rows have no buttons: swipe left to delete, right to add to the shopping list (both ask first), tap the name to edit" },
+    { k: "better", zh: "修改特价时，折扣类型改成下拉选择，可以勾选好几个", en: "When editing a deal, the deal type is now a dropdown where you can tick several" }
+  ] },
   { v: "2026-11-13.17", title: { zh: "商店卡片左滑删除；网格里直接添加商店", en: "Swipe left to delete a store; add a store right in the grid" }, items: [
     { k: "new", zh: "常去的商店：手机上商店卡片向左滑就能删除，删除前照样会确认", en: "My stores: on a phone, swipe a store card left to delete it — you still confirm first" },
     { k: "new", zh: "商店列表最后多了一张「＋ 添加商店」空白卡，点一下就在那里展开表单；右上角「手动添加」再点一次就收起", en: "A blank \"+ Add store\" card at the end of the list opens the form right there; tap \"Add by hand\" again to close it" }

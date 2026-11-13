@@ -277,6 +277,14 @@ function histList(d) {
     ${h.list.length > 10 ? `<p class="muted dh-more">${t("只列最近 10 次，共 {n} 次", { n: h.list.length })}</p>` : ""}`;
 }
 
+/** 折扣类型：下拉多选（关着时像普通下拉，显示已选的；点开是一列勾选框）。可以选几个，比如 Black Friday + 网上 */
+const dtSummary = (keys) => (keys.length ? keys.map((k) => t(dealTypeName(k))).join("、") : t("没有特别类型"));
+function dealTypeDrop(value, labelId) {
+  const on = String(value || "").split(",").filter(Boolean);
+  return `<details class="dt-drop"><summary aria-labelledby="${labelId}" aria-describedby="${labelId}-v"><span class="dt-val" id="${labelId}-v">${esc(dtSummary(on))}</span></summary>
+    <div class="dt-menu" role="group" aria-labelledby="${labelId}">${DEAL_TYPES.map(([k, l]) => `<label class="dt-opt"><input type="checkbox" name="deal_type" value="${k}" ${on.includes(k) ? "checked" : ""}><span>${esc(t(l))}</span></label>`).join("")}</div></details>`;
+}
+
 function dealsHtml(s, du, deals) {
   const open = openShopping(), q = du.q.trim().toLowerCase(), soon = (d) => d.valid_to && daysUntil(d.valid_to) <= 2;
   const cats = [...new Set(deals.map((d) => d.category).filter(Boolean))].sort();
@@ -294,16 +302,18 @@ function dealsHtml(s, du, deals) {
       <label>${t("价格")}<input name="price" type="number" min="0" step="0.01" value="${d.price ?? ""}"></label><label>${t("广告原文")}<input name="price_text" maxlength="40" value="${esc(d.price_text || "")}"></label>
       <label>${t("单价")}<input name="unit_price" type="number" min="0" step="0.0001" value="${d.unit_price ?? ""}"></label><label>${t("单位")}<input name="unit_label" maxlength="12" value="${esc(d.unit_label || "")}"></label>
       <label>${t("到期")}<input name="valid_to" type="date" value="${esc(d.valid_to || "")}"></label><label class="span-2">${t("通用叫法")}<input name="aka" maxlength="120" value="${esc(d.aka || "")}" placeholder="${esc(t("鸡蛋, eggs"))}"></label>
-      ${state.runsMissing ? "" : `<fieldset class="span-2 deal-type-pick"><legend>${t("折扣类型")}</legend>${DEAL_TYPES.map(([k, l]) => `<label class="chip-check"><input type="checkbox" name="deal_type" value="${k}" ${String(d.deal_type || "").split(",").includes(k) ? "checked" : ""}><span>${esc(t(l))}</span></label>`).join("")}</fieldset>`}</div>
+      ${state.runsMissing ? "" : `<div class="span-2 dt-field"><span class="dt-lbl" id="dtLbl-${d.id}">${t("折扣类型")}</span>${dealTypeDrop(d.deal_type, `dtLbl-${d.id}`)}</div>`}</div>
       <div class="form-actions"><button class="btn btn-primary btn-sm" type="submit">${t("保存")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="shops-deal-cancel" data-id="${s.id}">${t("取消")}</button></div></form></li>`;
-    return `<li class="deal-row ${m.length ? "is-hit" : ""}">
-      <span class="deal-nm"><b>${esc(d.name)}</b>${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}<small>${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")}${m.length ? ` <span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : ""}</small>${histBtn(d, du)}</span>
+    // 手机：没有按钮，向左滑删除、向右滑加入清单（都先确认），点名称修改；电脑：按钮照旧（悬停 / Tab 也能用），点名称同样修改
+    const swipe = `data-swipe-del="deal"${m.length ? "" : ` data-swipe-alt="deal" data-swipe-alt-label="${esc(t("加入清单"))}" data-swipe-alt-go="${esc(t("松手加入清单"))}"`}`;
+    return `<li class="deal-row ${m.length ? "is-hit" : ""}" ${swipe}>
+      <span class="deal-nm"><button type="button" class="deal-nm-btn" data-action="shops-deal-edit" data-deal="${d.id}" data-id="${s.id}" title="${esc(t("点一下修改"))}"><b>${esc(d.name)}</b></button>${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}<small>${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")}${m.length ? ` <span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : ""}</small>${histBtn(d, du)}</span>
       <span class="deal-pr"><b>${d.price != null ? money(d.price) : esc(d.price_text || "—")}</b>${d.price_text && d.price != null && d.price_text.replace(/\s/g, "") !== money(d.price).replace(/\s/g, "") ? `<small>${esc(d.price_text)}</small>` : ""}${d.regular_price ? `<small class="muted"><s>${money(d.regular_price)}</s></small>` : ""}</span>
       <span class="deal-unit">${d.unit_price != null ? `${unitMoney(d.unit_price)}<small>${esc(d.unit_label || "")}</small>` : `<small class="muted">—</small>`}</span>
       <span class="deal-to ${soon(d) ? "warn-txt" : "muted"}">${d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""}</span>
-      <span class="deal-acts">${m.length ? "" : `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-tolist" data-deal="${d.id}">＋ ${t("清单")}</button>`}
+      <span class="deal-acts">${m.length ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="shops-tolist" data-deal="${d.id}">＋ ${t("清单")}</button>`}
         <button type="button" class="btn btn-sm btn-ghost" data-action="shops-deal-edit" data-deal="${d.id}" data-id="${s.id}" aria-label="${esc(t("修改 {name}", { name: d.name }))}">${t("改")}</button>
-        <button type="button" class="btn btn-sm btn-ghost" data-action="shops-deal-del" data-deal="${d.id}" aria-label="${esc(t("删除 {name}", { name: d.name }))}">×</button></span>
+        <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shops-deal-del" data-deal="${d.id}" aria-label="${esc(t("删除 {name}", { name: d.name }))}">×</button></span>
       ${du.hist === d.id ? histList(d) : ""}
     </li>`;
   };
@@ -492,6 +502,7 @@ export async function shopsAction(action, el, { render, go, refresh }) {
     case "shops-tolist": {
       const d = (state.shopDeals || []).find((x) => x.id === el.dataset.deal); if (!d) return;
       const name = (String(d.aka || "").split(/[,，]/).map((x) => x.trim()).find((x) => lang !== "en" ? /[一-鿿]/.test(x) : /^[\x20-\x7e]+$/.test(x)) || d.name).slice(0, 60);
+      if (!window.confirm(t("把「{name}」加入采购清单？", { name }))) return;   // 右滑加入清单也走这里：取消 = 不加
       await Store.saveShopping({ name, quantity: 1, unit: Units.guess(name) || Units.guess(d.name) || "", item_id: null, category: "other" });
       toast(t("已加入采购清单：{name}", { name })); return refresh();
     }
@@ -571,6 +582,12 @@ let R = () => {};
 export function bindShops(render) {
   R = render;
   installAutoHook();
+  // 折扣类型下拉：勾选时更新显示的文字；点下拉外面就收起
+  document.addEventListener("change", (e) => {
+    const box = e.target.closest?.(".dt-drop"); if (!box || e.target.name !== "deal_type") return;
+    const v = box.querySelector(".dt-val"); if (v) v.textContent = dtSummary([...box.querySelectorAll('[name="deal_type"]:checked')].map((x) => x.value));
+  });
+  document.addEventListener("click", (e) => { for (const dd of document.querySelectorAll(".dt-drop[open]")) if (!dd.contains(e.target)) dd.open = false; });
   document.addEventListener("submit", async (e) => {
     const f = e.target;
     if (!["shopEditForm", "shopsFindForm", "dealReviewForm", "dealEditForm"].includes(f.id)) return;
