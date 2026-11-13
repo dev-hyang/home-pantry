@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.1", title: { zh: "修好：账单保存没反应", en: "Fixed: saving a bill did nothing" }, items: [
+    { k: "fix", zh: "修好：编辑账单（比如 HOA 月费的付款账户与自动扣款）点保存没反应", en: "Fixed: tapping Save on a bill (e.g. HOA payment account and autopay) did nothing" }
+  ] },
   { v: "2026-11-12.4", title: { zh: "单位更聪明：瓶、袋、盒自动选，补货自动换算", en: "Smarter units: bottle, bag, box picked for you; restocks convert" }, items: [
     { k: "better", zh: "录入购物和新建物品按东西猜单位：牛奶、酱油 → 瓶，大米、薯片 → 袋，鸡蛋 → 盒；猜不出来才是「个」", en: "Shopping scans and new items guess the unit from the name: milk → bottle, rice → bag, eggs → box; \"pc\" only when unsure" },
     { k: "better", zh: "补到已有物品时单位不一样：lb ↔ kg 自动换算，个 ↔ 瓶 按库存的单位记，每行和入库后都会说明换算了什么；换算不了的会提醒你改", en: "Adding to an existing item in a different unit: lb ↔ kg converts, pc ↔ bottle uses the stock's unit, and you're told what changed; if it can't convert you're asked to fix it" },
