@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.19", title: { zh: "采购清单右滑「已买到」；「不买了」改叫「取消认领」", en: "Swipe right for \"Bought\" on the shopping list; \"Not buying\" is now \"Unclaim\"" }, items: [
+    { k: "better", zh: "手机上采购清单的一行：向右滑就是已买到（先确认），向左滑删除；「已买到」按钮在手机上不再显示", en: "On a phone, swipe a shopping-list row right to mark it bought (asks first), left to delete; the Bought button no longer shows on phones" },
+    { k: "better", zh: "认领后的「不买了」改名「取消认领」：东西还在清单上，只是不再算你在买", en: "\"Not buying\" after claiming is now \"Unclaim\": the item stays on the list, it's just no longer marked as yours" }
+  ] },
   { v: "2026-11-13.18", title: { zh: "特价列表在手机上更简洁：左滑删除、右滑加入清单", en: "Simpler deal list on phones: swipe left to delete, right to add to the list" }, items: [
     { k: "better", zh: "手机上特价那一行不再放按钮：向左滑删除、向右滑加入采购清单（都会先确认），点商品名称就能修改", en: "On a phone, deal rows have no buttons: swipe left to delete, right to add to the shopping list (both ask first), tap the name to edit" },
     { k: "better", zh: "修改特价时，折扣类型改成下拉选择，可以勾选好几个", en: "When editing a deal, the deal type is now a dropdown where you can tick several" }

@@ -422,6 +422,8 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .shop-qty input.unit-in { width: 46px; min-height: 26px; padding: 2px 4px; font-size: 12px; text-align: center; color: var(--muted); border-radius: 8px; }
 @media (max-width: 640px) { .shop-qty input { font-size: 16px; width: 64px; } .shop-qty input.unit-in { width: 56px; } }
 .shop-item .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.shop-item .swipe-alt-src { display: none; }   /* 右滑「已买到」的替身按钮：只给手势点（.click() 对隐藏的按钮也有效），看得见的「已买到」照旧 */
+@media (max-width: 640px) { .shop-item .acts [data-action="shop-bought"] { display: none; } .shop-item .acts:not(:has(> :not([data-action="shop-bought"]))) { display: none; } }   /* 手机：右滑就是已买到，不再放按钮 */
 .shop-item.done .nm { text-decoration: line-through; color: var(--muted); }
 
 /* ── 统计图表（SVG 按 viewBox 等比缩放，不依赖窗口尺寸计算） ── */
