@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.16", title: { zh: "商店卡片上标出每周几换广告", en: "Store cards show the weekly ad day" }, items: [
+    { k: "better", zh: "常去的商店：设了每周换广告的商店，卡片上显示「每周三换广告」这样的标签；打开了自动更新的前面带 🤖", en: "My stores: stores with a weekly ad show a tag like \"New ad every Wed\"; ones with auto-update have a 🤖 in front" }
+  ] },
   { v: "2026-11-13.15", title: { zh: "自动更新跟着每家的换广告日走", en: "Auto-update follows each store's ad day" }, items: [
     { k: "better", zh: "自动更新不再固定周四：每天早上看一次，哪家到了换广告日（周日、周三…）就更新哪家", en: "Auto-update is no longer Thursdays only: it checks every morning and updates each store on its own ad day (Sunday, Wednesday…)" },
     { k: "better", zh: "那天电脑没开或者读失败了，第二天会再试", en: "If the laptop was off or a read failed, it tries again the next day" }

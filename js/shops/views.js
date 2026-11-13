@@ -97,7 +97,9 @@ function shopCard(s) {
   return `<article class="shop-card ${s.archived ? "is-off" : ""}">
     <a class="shop-main" href="${shopHref(s)}"><span class="shop-ico" aria-hidden="true">${icon}</span>
       <span class="shop-txt"><b>${esc(s.name)}</b><small>${d != null ? `${t("{n} 英里", { n: d.toFixed(1) })} · ` : ""}${esc(s.address || t("没填地址"))}</small></span><span class="mch" aria-hidden="true">›</span></a>
-    <div class="shop-meta"><span class="tag">${esc(t(cn))}</span>${s.auto_update && s.refresh === "weekly" ? `<span class="tag" title="${esc(t("换广告那天由 Claude 定时任务自动更新"))}">🤖 ${t("自动")}</span>` : ""}
+    <div class="shop-meta"><span class="tag">${esc(t(cn))}</span>${s.refresh === "weekly"
+        ? `<span class="tag"${s.auto_update ? ` title="${esc(t("换广告那天由 Claude 定时任务自动更新"))}"` : ""}>${s.auto_update ? `🤖 ` : ""}${t("每{d}换广告", { d: t(DOW[s.refresh_dow ?? 3]) })}</span>`
+        : ""}
       ${deals.length ? `<span class="tag tag-ok">${t("特价 {n} 项", { n: deals.length })}</span>` : ""}${hits ? `<span class="tag tag-hot">${t("对上清单 {n}", { n: hits })}</span>` : ""}
       ${due ? `<span class="tag tag-warn">${t("本周待更新")}</span>` : `<span class="muted">${upd}</span>`}</div>
     <div class="shop-acts">${s.archived
