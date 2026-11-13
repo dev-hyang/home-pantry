@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-13.6", title: { zh: "修好：按 ZIP 加商店失败", en: "Fixed: adding stores by ZIP failed" }, items: [
+    { k: "fix", zh: "修好：按 ZIP 加入商店时保存失败（数据库报错）", en: "Fixed: stores added by ZIP couldn't be saved (database error)" },
+    { k: "fix", zh: "找附近门店的备用地图服务连不上时，不再一直等，改用另一个服务把门店找全", en: "When the backup map service can't be reached, nearby stores are found with the other service instead of waiting" }
+  ] },
   { v: "2026-11-13.5", title: { zh: "拍照加入采购清单；清单改成搜索 + 筛选", en: "Add to the shopping list from a photo; search and filters on the list" }, items: [
     { k: "new", zh: "采购 →「拍照添加」：拍快用完的东西、空瓶空袋、手写清单或聊天截图，AI 认出要买什么，核对后加进采购清单（不动库存）", en: "Shopping → Add from photo: snap things running low, empty packages, a handwritten list or a chat; AI finds what to buy and you confirm before it goes on the list (inventory unchanged)" },
     { k: "better", zh: "采购首页分清两件事：「加入采购清单」（手动 / 拍照 / 补货提醒）和「买回来了，录入库存」（小票 / 网购订单）", en: "The shopping page now separates adding to the list (by hand / photo / restock reminders) from adding bought things to inventory (receipt / online order)" },

@@ -812,7 +812,9 @@ export const CloudStore = {
   async saveShop(r) {
     const row = pick(r, SHOP_FIELDS);
     if (r.id) return this.must(await this.sb.from("shops").update(row).eq("id", r.id).select().single());
-    return this.must(await this.sb.from("shops").insert({ ...row, household_id: this.hid }).select().single());
+    // 新建：没给的字段不送（送 null 会撞上 refresh / refresh_dow / archived / category 的 not null，返回 400），让数据库用默认值
+    const ins = Object.fromEntries(Object.entries(row).filter(([k]) => r[k] !== undefined && r[k] !== null));
+    return this.must(await this.sb.from("shops").insert({ refresh: "weekly", refresh_dow: 3, archived: false, category: "groceries", ...ins, household_id: this.hid }).select().single());
   },
   async deleteShop(id) { this.must(await this.sb.from("shops").delete().eq("id", id)); },
   async listShopDeals(since) { return this.pageAll(() => this.sb.from("shop_deals").select("*").eq("household_id", this.hid).or(`valid_to.is.null,valid_to.gte.${since}`).order("id")); },

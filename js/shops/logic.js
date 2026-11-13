@@ -150,7 +150,7 @@ async function overpass(pt, mi, cats) {
 async function photonChain(pt, mi, key) {
   const [s, w, n, e] = bbox(pt, mi);
   const u = `https://photon.komoot.io/api/?q=${encodeURIComponent(CHAINS[key].name)}&bbox=${w},${s},${e},${n}&lat=${pt.lat}&lon=${pt.lon}&limit=10&osm_tag=shop`;
-  const j = await getJson(u, {}, 15000);
+  const j = await getJson(u, {}, 10000);
   return (j.features || []).map((f) => {
     const p = f.properties || {}, [lon, lat] = f.geometry?.coordinates || [];
     return shopRow(pt, { id: `${String(p.osm_type || "x")[0].toLowerCase()}${p.osm_id}`, name: p.name, shop: p.osm_value, lat, lon,
@@ -161,6 +161,7 @@ async function photonChains(pt, mi, keys) {
   const out = [];
   for (let i = 0; i < keys.length; i += 4) {   // 一次最多 4 个请求，别一下子压给公共服务
     const got = await Promise.allSettled(keys.slice(i, i + 4).map((k) => photonChain(pt, mi, k)));
+    if (got.every((g) => g.status === "rejected")) { if (!out.length) throw got[0].reason; break; }   // 这一批全连不上（服务器挂了 / 网络挡了）：后面的不用再试
     got.forEach((g) => g.status === "fulfilled" && out.push(...g.value));
   }
   return out;
@@ -192,7 +193,13 @@ export async function searchNearby(pt, radiusMi, cats, { fresh = false } = {}) {
 }
 /** 第一次打开时加的那几家：直接用 Photon 按名字找最近的门店（每家一个轻量请求，比整片区域查询快、也不容易碰上服务器忙） */
 export async function nearestChains(pt, keys, mi = 20) {
-  const rows = tidy(await photonChains(pt, mi, keys), mi);
+  let rows = [];
+  try { rows = tidy(await photonChains(pt, mi, keys), mi); } catch { /* Photon 连不上：下面改问 Overpass */ }
+  if (keys.some((k) => !rows.some((r) => r.chain === k))) {   // 缺的几家用 Overpass 补（一次查完这几类店，再按连锁店挑最近的）
+    const cats = [...new Set(keys.map((k) => CHAINS[k].cat))];
+    try { rows = rows.concat(await searchNearby(pt, mi, cats)); } catch { if (!rows.length) throw new Error("overpass"); }
+  }
+  rows.sort((a, b) => a.dist - b.dist);
   return keys.map((k) => rows.find((r) => r.chain === k)).filter(Boolean);
 }
 
