@@ -12,7 +12,7 @@ export const SHOP_CATS = [
 ];
 // 特价的分类（AI 给英文 id，界面显示中文）
 export const DEAL_CATS = { groceries: "食品", produce: "蔬果", meat: "肉类海鲜", dairy: "蛋奶", bakery: "面包烘焙", frozen: "冷冻", drinks: "饮料", snacks: "零食", household: "日用清洁",
-  personal: "个人护理", baby: "母婴", pet: "宠物", pharmacy: "药品保健", hardware: "五金", auto: "汽车", electronics: "电子", home: "家居", other: "其他" };
+  personal: "个人护理", baby: "母婴", pet: "宠物", pharmacy: "药品保健", optical: "眼镜光学", apparel: "服装", hardware: "五金", auto: "汽车", electronics: "电子", home: "家居", other: "其他" };
 export const dealCatName = (c) => DEAL_CATS[c] || c;
 // 折扣类型（可多个，存成逗号分开的 key）；re = AI / 广告上的各种写法
 export const DEAL_TYPES = [
@@ -59,11 +59,12 @@ export const CHAINS = {
   petco:      { name: "Petco", cat: "pet", re: /petco/i, ad: "" },
   bestbuy:    { name: "Best Buy", cat: "electronics", re: /best buy/i, ad: "" },
 };
-// 什么都卖的大店（Walmart、Target…）：读特价时只看这几个分区，跳过电视、家电、玩具、衣服这些（按网站上的分区名找链接 / 标签）
+// 什么都卖的大店：读特价时只看这几个分区（按网站上的分区名找链接 / 标签），这些分区里的东西都保留；没列出来的分区跳过。
+// Costco 2026-11-14 用户定：Grocery、Health & Personal Care、Apparel、Electronics，外加导航「See more」里的 Household、Optical、Pharmacy
 export const FOCUS_SECTIONS = {
   walmart: ["Food", "Food savings", "Household essentials savings", "Baby savings"],
   target: ["Grocery", "Household essentials", "Baby"],
-  costco: ["Grocery", "Household", "Baby"],
+  costco: ["Grocery", "Health & Personal Care", "Apparel", "Electronics", "Household (See more)", "Optical (See more)", "Pharmacy (See more)"],
   sams: ["Grocery", "Household", "Baby"],
 };
 /** 家里常补的东西（读特价时优先找这些）：need = 现在告急的 + 采购清单里没买的；regular = 储藏里（不算设备）用得快 / 设了最低库存的，按每天用量排 */
@@ -310,7 +311,7 @@ export function dealPrompt(shop, lang) {
     `aka = 1–3 short generic names for matching a shopping list, comma separated, including a ${lang === "en" ? "short English" : "simplified Chinese"} name (e.g. \"鸡蛋, eggs\").`,
     "valid_from / valid_to = the ad's dates as YYYY-MM-DD if shown (US order month/day); null if not shown. If items have their OWN dates (e.g. Costco member savings \"valid through 12/7\"), put them on each deal; the top-level dates are for the whole ad.",
     "deal_type = the kind of deal as a comma separated list of: black_friday, cyber_monday, holiday, weekly, instore, online, rollback, clearance, coupon, member, bogo, multi, limited (e.g. \"black_friday,online\" for a Black Friday online-only deal; \"rollback\" for Walmart Rollback; \"coupon\" for digital / clip coupons; \"member\" for club or card prices; \"multi\" for 2 for $5). Use what the ad says; null if nothing special.",
-    `category = groceries, produce, meat, dairy, bakery, frozen, drinks, snacks, household, personal, baby, pet, pharmacy, hardware, auto, electronics, home or other.`,
+    `category = groceries, produce, meat, dairy, bakery, frozen, drinks, snacks, household, personal, baby, pet, pharmacy, optical, apparel, hardware, auto, electronics, home or other.`,
     `Today is ${todayISO()}.`,
   ].join("\n");
   const user = [
@@ -354,7 +355,7 @@ const RULES = [
   "aka = 1–3 个通用叫法（逗号分开），要有一个中文，例如「鸡蛋, eggs」，用来和我的采购清单对上。如果这样东西和上面「我家储藏里的物品名」里的某一个是同一种东西（不管牌子、包装大小），把那个名字原样放在 aka 第一个。",
   "有效期：整份广告统一的日期写在商店那一层的 valid_from / valid_to；每样东西有效期不一样的（比如 Costco 会员特价写着「Valid 11/12 – 12/7」），写在那一条特价自己的 valid_from / valid_to。看不到日期就写 null，不要猜——我的应用会按这家商店的换广告日自动补。",
   "deal_type = 折扣类型，按广告上写的，可以多个、逗号分开，只用这些：black_friday, cyber_monday, holiday, weekly, instore, online, rollback, clearance, coupon, member, bogo, multi, limited（Black Friday、Cyber Monday、节日、周广告、只限店内、只限网上、Walmart Rollback、清仓、电子券 / Clip coupon、会员价 / 会员卡价、买一送一、多件优惠如 2 for $5、限时）。没有特别说明的写 null。",
-  "category 用：groceries, produce, meat, dairy, bakery, frozen, drinks, snacks, household, personal, baby, pet, pharmacy, hardware, auto, electronics, home, other。",
+  "category 用：groceries, produce, meat, dairy, bakery, frozen, drinks, snacks, household, personal, baby, pet, pharmacy, optical, apparel, hardware, auto, electronics, home, other。",
   "先给一张按单价从低到高的表格让我看，最后再给一个 ```json 代码块（格式见下），我会贴回爱家小助手。不要替我在任何网站上点提交。",
 ];
 export function claudePrompt({ shops = [], zip = "", list = [] } = {}) {

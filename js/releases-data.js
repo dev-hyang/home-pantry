@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.3", title: { zh: "Costco 特价按分区读全", en: "Costco deals read section by section" }, items: [
+    { k: "fix", zh: "Costco 用脚本更新时会一个一个打开分区：Grocery、Health & Personal Care、Apparel、Electronics，以及「See more」里的 Household、Optical、Pharmacy，不再漏掉整个 Grocery", en: "Updating Costco with the script now opens each section — Grocery, Health & Personal Care, Apparel, Electronics, plus Household, Optical and Pharmacy under \"See more\" — so Grocery is no longer missed" },
+    { k: "better", zh: "更新记录里写出每个分区读到几条，少了哪个一眼看得出；特价分类多了「服装」「眼镜光学」", en: "The update log shows how many deals each section had, so a missing one stands out; new deal categories Apparel and Optical" }
+  ] },
   { v: "2026-11-14.2", title: { zh: "今日页卡片更好点：钱卡每行可点、多了常用入口", en: "Today cards: tap each money row, more shortcuts" }, items: [
     { k: "fix", zh: "点卡片里的链接时，下面的进度条不再从头开始；只有左右滑动换卡时才重新计时", en: "Tapping a link in a card no longer restarts the progress bar; only swiping to another card does" },
     { k: "better", zh: "待办的每一行和其他卡片一样是浅灰底的圆角块，要紧的是淡红底", en: "To-do rows look like the other cards' rows; urgent ones are tinted red" },

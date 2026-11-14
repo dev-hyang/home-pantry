@@ -3703,6 +3703,8 @@ export const EN = {
   "添加商店": "Add store",
   "名称、地址、每周几换广告": "Name, address, weekly ad day",
   "取消认领": "Unclaim",
+  "眼镜光学": "Optical",
+  "服装": "Apparel",
   "加入采购清单": "Add to shopping list",
   "拍照加入采购清单": "Photo to shopping list",
   "常用": "Shortcuts",
