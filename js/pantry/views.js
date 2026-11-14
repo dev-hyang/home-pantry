@@ -5,7 +5,7 @@ import { COLORS, ICONS } from "../core/categories.js";
 import { L1S, l2List, l2Of, spendOptions } from "../core/taxonomy.js";
 import { locationGroups } from "../core/locations.js";
 import { Store } from "../core/store.js";
-import { shopDealLine, shopsStats } from "../shops/views.js";
+import { shopDealLine, shopDealPicker, shopsStats } from "../shops/views.js";
 import { crumbNav } from "../core/hub.js";
 import { shopScanHtml } from "./shop-scan.js";
 import { normName } from "../core/item-match.js";
@@ -547,7 +547,7 @@ function shopRowHtml(s) {
     <div class="row"><span class="nm"><b>${esc(s.name)}</b> ${s.status === "bought" ? showQty(num(s.quantity, 1), shopUnit(s)) : shopQty(s)}${when ? ` <small class="muted" title="${esc(stampText(s))}">${when}</small>` : ""}</span>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shop-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button>${s.status === "bought" ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="shop-bought" data-id="${s.id}" data-confirm="1" aria-label="${esc(t("{name} 已买到", { name: s.name }))}">${t("已买到")}</button>`}</div>
     ${s.status === "claimed" ? `<div class="who">🛍 ${t("{who} 正在买", { who: esc(whoName(s)) })}</div>` : ""}
-    ${s.status === "bought" ? (s.claimed_by_name ? `<div class="who">✅ ${t("{who} 买到的", { who: esc(s.claimed_by_name) })}</div>` : "") : shopDealLine(s)}
+    ${s.status === "bought" ? (s.claimed_by_name ? `<div class="who">✅ ${t("{who} 买到的", { who: esc(s.claimed_by_name) })}</div>` : "") : shopDealPicker(s)}
     ${s.item_id ? "" : `<div class="muted" style="font-size:12px">${t("未关联库存，买到后需手动入库")}</div>`}
     ${priceBox}
     ${s.status === "bought" ? "" : `<div class="card-hint-slot">${cardHintHtml(s.category || state.items.find((i) => i.id === s.item_id)?.category, "")}</div>`}
@@ -601,7 +601,7 @@ function viewShopHome() {
         <span class="sd-split"><a href="${listHref("todo")}"><b>${st.todo}</b> ${t("尚未认领")}</a><a href="${listHref("claimed")}"><b>${st.claimed}</b> ${t("已认领")}</a></span>
       </div>
       ${tile(listHref("claimed"), "🛍", t("家人认领"), `${st.claimed}<small>${t("项")}</small>`, st.claimed ? who : t("点“我来买”认领，家人就不会重复买。"))}
-      ${tile(href("shops", "list"), "🏪", t("常去的商店与特价"), sh.shops ? `${sh.hits}<small>${t("项特价对上清单")}</small>` : "—",
+      ${tile(sh.hits ? `${href("shops", "deals")}?f=list` : href("shops", "list"), "🏪", t("常去的商店与特价"), sh.shops ? `${sh.hits}<small>${t("项特价对上清单")}</small>` : "—",
         sh.shops ? [t("{n} 家", { n: sh.shops }), t("特价 {n} 项", { n: sh.deals }), sh.due ? `<em>${t("{n} 家待更新", { n: sh.due })}</em>` : ""].filter(Boolean).map((x) => `<span class="nw">${x}</span>`).join(" · ") : t("放进常去的超市，看本周特价、哪家最便宜"))}
       ${tile(listHref("bought"), "✅", t("近 30 天买到"), `${st.recent}<small>${t("项")}</small>`, st.priced ? t("花费 {m}", { m: money(st.spent) }) : t("买到后自动加回库存。"))}
     </div>

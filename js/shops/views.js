@@ -11,7 +11,7 @@ import { href } from "../core/router.js";
 import { crumbNav } from "../core/hub.js";
 import { aiReady, askText } from "../core/ai.js";
 import { attachHTML, attachPayload, attachReset } from "../core/attach.js";
-import { DEAL_TYPES, FOCUS_SECTIONS, claudePrompt, histSince, linkItems, myItemNames, priceHistory, replaceable, dealCatName, dealTypeName, importGroups, weekWindow } from "./logic.js";
+import { DEAL_TYPES, FOCUS_SECTIONS, claudePrompt, dealsFor, rankDeals, histSince, linkItems, myItemNames, priceHistory, replaceable, dealCatName, dealTypeName, importGroups, weekWindow } from "./logic.js";
 import { CHAINS, MAX_MI, SHOP_CATS, STARTER, adUrl, bestDealFor, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, nearestChains, openShopping, parseLooseJson, rememberPoint, restockWatch, savedZip, searchNearby, shopCat, zipToPoint } from "./logic.js";
 
 const DOW = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -46,6 +46,7 @@ export function viewShops() {
   if (r.sub === "find") return viewFind();
   if (r.sub === "shop") return viewShop(r.id);
   if (r.sub === "log") return viewRuns();
+  if (r.sub === "deals") return viewDeals();
   return viewList();
 }
 const missingPanel = () => (state.shopsMissing ? `<div class="panel cta-panel"><div><b>${t("数据库还没升级")}</b><p class="muted">${t("请在 Supabase 的 SQL Editor 执行 migrations/067_shops_deals.sql，商店和特价才能保存。")}</p></div></div>` : "");
@@ -67,7 +68,7 @@ function viewList() {
     ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("常去的商店"), icon: "🏪" }])}
     ${missingPanel()}
     <div class="section-head"><h2>${t("常去的商店")}</h2><p>${t("每家的本周广告、特价都在这里；采购清单会标出哪家在打折。")}</p>
-      <div class="head-acts"><button type="button" class="btn btn-sm" data-action="shops-claude" aria-expanded="${!!u.claude}">🤖 ${t("用 Claude 整理")}</button><a class="btn btn-sm" href="${href("shops", "find")}">📍 ${t("找附近的商店")}</a><a class="btn btn-sm" href="${href("shops", "log")}">📜 ${t("更新记录")}</a><button type="button" class="btn btn-sm btn-primary" data-action="shops-new" aria-expanded="${u.edit === "new"}" aria-controls="shopEditForm">${u.edit === "new" ? "－" : "＋"} ${t("手动添加")}</button></div></div>
+      <div class="head-acts"><button type="button" class="btn btn-sm" data-action="shops-claude" aria-expanded="${!!u.claude}">🤖 ${t("用 Claude 整理")}</button><a class="btn btn-sm" href="${href("shops", "find")}">📍 ${t("找附近的商店")}</a><a class="btn btn-sm" href="${href("shops", "deals")}">🏷 ${t("特价一览")}</a><a class="btn btn-sm" href="${href("shops", "log")}">📜 ${t("更新记录")}</a><button type="button" class="btn btn-sm btn-primary" data-action="shops-new" aria-expanded="${u.edit === "new"}" aria-controls="shopEditForm">${u.edit === "new" ? "－" : "＋"} ${t("手动添加")}</button></div></div>
     ${u.edit === "new" && !gridOn ? shopForm(null) : ""}
     ${u.claude ? claudePanel() : ""}
     ${due.length && u.status === "active" ? `<div class="panel shops-due" role="status">🗓️ ${t("{n} 家本周的特价还没更新：{names}", { n: due.length, names: due.map((s) => esc(s.name)).join("、") })}</div>` : ""}
@@ -336,9 +337,120 @@ function dealsHtml(s, du, deals) {
 /** 清单某一项现在最便宜的特价：「🏷 ALDI $2.49 · 到 11/18」 */
 export function shopDealLine(s) {
   if (!state.shops?.length) return "";
-  const b = bestDealFor(s); if (!b) return "";
-  const d = b.deal;
-  return `<a class="shop-deal-line" href="${shopHref(b.shop)}">🏷 ${esc(b.shop.name)} ${d.price != null ? money(d.price) : esc(d.price_text || "")}${d.size ? ` <small>${esc(d.size)}</small>` : ""}${d.valid_to ? ` · ${t("到 {d}", { d: fmtShort(d.valid_to) })}` : ""}${b.n > 1 ? ` · ${t("另有 {n} 家", { n: b.n - 1 })}` : ""}</a>`;
+  const list = dealsFor(s); if (!list.length) return "";
+  const d = pickedDeal(s, list) || list[0];
+  return `<a class="shop-deal-line" href="${dealsHref(s.id)}">🏷 ${esc(shopName(d.shop_id))} ${d.price != null ? money(d.price) : esc(d.price_text || "")}${d.size ? ` <small>${esc(d.size)}</small>` : ""}${d.valid_to ? ` · ${t("到 {d}", { d: fmtShort(d.valid_to) })}` : ""}${list.length > 1 ? ` · ${t("另有 {n} 家", { n: list.length - 1 })}` : ""}</a>`;
+}
+/* ───────────── 采购清单的特价：选用哪一家（下拉）+ 比一比（特价一览，只看这一项） ───────────── */
+const dealsHref = (itemId) => `${href("shops", "deals")}${itemId ? `?item=${encodeURIComponent(itemId)}` : ""}`;
+const PICK_KEY = "hp-deal-pick";   // 没执行 069（没有 deal_id 列）时，选的那家先记在这台设备上
+const localPicks = () => { try { return JSON.parse(localStorage.getItem(PICK_KEY) || "{}") || {}; } catch { return {}; } };
+function setLocalPick(itemId, dealId) { try { const m = localPicks(); if (dealId) m[itemId] = dealId; else delete m[itemId]; localStorage.setItem(PICK_KEY, JSON.stringify(m)); } catch { /* 忽略 */ } }
+/** 这一项选用的那条特价（还在有效期、还对得上才算）；没选返回 null */
+export function pickedDeal(s, list = dealsFor(s)) { const id = s.deal_id || localPicks()[s.id]; return (id && list.find((d) => d.id === id)) || null; }
+const priceTxt = (d) => (d.price != null ? money(d.price) : d.price_text || "—");
+const dealLabel = (d) => [shopName(d.shop_id), priceTxt(d), d.unit_price != null ? `${unitMoney(+d.unit_price)}${d.unit_label || ""}` : "", d.size || "", d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""].filter(Boolean).join(" · ");
+const WHY = { unit: "单价最低", brand: "单价差不多，是清单上写的牌子", freq: "单价差不多，你常去这家", near: "单价差不多，离家更近", price: "没有单价，按价格最低", none: "只写了「省多少」，按常去的商店排" };
+/** 采购清单一行里的特价：下拉选一家（默认按比价规则的第一条）+「比一比」进特价一览 */
+export function shopDealPicker(s) {
+  if (!state.shops?.length || s.status === "bought") return "";
+  const list = dealsFor(s); if (!list.length) return "";
+  const pick = pickedDeal(s, list), cur = pick || list[0];
+  return `<div class="deal-pick"><span class="deal-pick-ico" aria-hidden="true">🏷</span>
+    <select data-deal-pick="${s.id}" data-nosearch aria-label="${esc(t("{name} 的特价：选一家", { name: s.name }))}" title="${esc(pick ? t("你选的这家") : t("默认：{why}", { why: t(WHY[list.why] || WHY.unit) }))}">${list.map((d, i) => `<option value="${d.id}" ${d.id === cur.id ? "selected" : ""}>${esc(dealLabel(d))}${i === 0 ? " ★" : ""}</option>`).join("")}</select>
+    <a class="deal-pick-all" href="${dealsHref(s.id)}">${t("比一比 {n}", { n: list.length })} ›</a></div>`;
+}
+/** 选用一条特价：存到这一项上（069 的 deal_id，全家看得到）；没执行 069 时先记在这台设备。「在哪买」还空着就顺手填上商店名 */
+async function pickDeal(itemId, dealId, { rerender = false } = {}) {
+  const s = (state.shopping || []).find((x) => x.id === itemId); if (!s) return;
+  try { await Store.saveShopping({ id: itemId, deal_id: dealId || null }); s.deal_id = dealId || null; setLocalPick(itemId, null); }
+  catch (e) {
+    if (!/deal_id/.test(e.message || "")) { toast(t("保存失败：{msg}", { msg: e.message })); return; }
+    setLocalPick(itemId, dealId); toast(t("已记在这台设备上。在 Supabase 执行 migrations/069_shopping_deal_pick.sql 后，全家都能看到你选的这家。"));
+  }
+  const d = (state.shopDeals || []).find((x) => x.id === dealId), st = document.querySelector(`[data-store-for="${CSS.escape(itemId)}"]`);
+  if (d && st && !st.value.trim()) st.value = shopName(d.shop_id);
+  if (rerender) R?.();
+}
+
+/* ───────────── 特价一览：以商品为主（各家的特价放在一起比），列表 / 卡片两种看法；?item= 只看采购清单的某一项 ───────────── */
+const DV_SORTS = [["best", "推荐"], ["unit", "按单价"], ["price", "按价格"], ["soon", "快到期的在前"], ["shop", "按商店"]];
+function dvUi() {
+  const u = ui();
+  if (!u.dv) { let mode = "list"; try { mode = localStorage.getItem("hp-dv-mode") || "list"; } catch { /* 忽略 */ } u.dv = { q: "", shop: "", cat: "", type: "", f: "all", sort: "best", mode, hash: "" }; }
+  const v = u.dv;
+  if (v.hash !== location.hash) {   // 从别处点进来（看板的「对上清单」、清单的「比一比」）：按链接上的条件重新开始
+    v.hash = location.hash; const q = state.route.q;
+    Object.assign(v, { q: q.get("q") || "", shop: "", cat: "", type: "", f: q.get("f") === "list" ? "list" : "all", sort: q.get("item") ? "best" : q.get("f") === "list" ? "best" : "unit" });
+  }
+  return v;
+}
+function viewDeals() {
+  const v = dvUi(), itemId = state.route.q.get("item"), item = itemId ? (state.shopping || []).find((x) => x.id === itemId) : null;
+  const on = new Map((state.shops || []).filter((x) => !x.archived).map((x) => [x.id, x])), open = openShopping();
+  const base = item ? dealsFor(item) : liveDeals().filter((d) => on.has(d.shop_id));
+  const hits = new Map(base.map((d) => [d.id, item ? [] : dealMatches(d, open)]));
+  const typeOf = (d) => String(d.deal_type || "").split(",").filter(Boolean);
+  const q = v.q.trim().toLowerCase();
+  let list = base.filter((d) => (!v.shop || d.shop_id === v.shop) && (!v.cat || d.category === v.cat) && (!v.type || typeOf(d).includes(v.type))
+    && (item || v.f !== "list" || hits.get(d.id).length) && (!q || `${d.name} ${d.brand || ""} ${d.aka || ""} ${on.get(d.shop_id)?.name || ""}`.toLowerCase().includes(q)));
+  const unitCmp = (a, b) => (a.unit_price == null) - (b.unit_price == null) || (a.unit_label || "").localeCompare(b.unit_label || "") || (a.unit_price ?? 1e9) - (b.unit_price ?? 1e9);
+  const sorters = { unit: unitCmp, price: (a, b) => (a.price ?? 1e9) - (b.price ?? 1e9), soon: (a, b) => String(a.valid_to || "9999").localeCompare(String(b.valid_to || "9999")), shop: (a, b) => shopName(a.shop_id).localeCompare(shopName(b.shop_id)) || unitCmp(a, b) };
+  if (v.sort === "best") list = item ? list : (v.f === "list" ? groupByItem(list, hits) : rankDeals(list)); else list = [...list].sort(sorters[v.sort] || unitCmp);
+  const picked = item ? pickedDeal(item, base) : null, top = item ? base[0] : null;
+  const shopsWith = [...new Set(base.map((d) => d.shop_id))].map((id) => on.get(id)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+  const cats = [...new Set(base.map((d) => d.category).filter(Boolean))].sort(), types = DEAL_TYPES.map(([k]) => k).filter((k) => base.some((d) => typeOf(d).includes(k)));
+  const cnt = (n) => (lang === "en" ? ` (${n})` : `（${n}）`);
+  const crumbs = item ? [{ href: href("shopping"), label: t("采购") }, { label: t("「{name}」的特价", { name: item.name }) }]
+    : [{ href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }, { label: t("特价一览"), icon: "🏷" }];
+  const act = (d) => {
+    if (item) { const on2 = picked ? picked.id === d.id : false; return `<button type="button" class="btn btn-sm ${on2 ? "btn-primary" : ""}" data-action="shops-pick" data-item="${item.id}" data-deal="${d.id}" aria-pressed="${on2}">${on2 ? `✓ ${t("已选这家")}` : t("用这家")}</button>`; }
+    const m = hits.get(d.id) || [];
+    return m.length ? `<span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-tolist" data-deal="${d.id}">＋ ${t("清单")}</button>`;
+  };
+  const badge = (d) => (item && !picked && top && d.id === top.id ? `<span class="tag tag-ok" title="${esc(t(WHY[base.why] || WHY.unit))}">★ ${t("默认")}</span>` : priceHistory(d)?.isLow ? `<span class="tag tag-ok">${t("6 个月最低")}</span>` : "");
+  const unitTxt = (d) => (d.unit_price != null ? `${unitMoney(+d.unit_price)}<small>${esc(d.unit_label || "")}</small>` : `<small class="muted">—</small>`);
+  const isOn = (d) => (picked ? picked.id === d.id : item && top && d.id === top.id);
+  const row = (d) => `<li class="dv-row ${isOn(d) ? "is-pick" : ""}">
+      <span class="dv-nm"><b>${esc(d.name)}</b>${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}<small>${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")} ${badge(d)}</small></span>
+      <a class="dv-shop" href="${shopHref(on.get(d.shop_id) || { id: d.shop_id })}">${esc(shopName(d.shop_id))}</a>
+      <span class="dv-pr"><b>${esc(priceTxt(d))}</b>${d.price != null && d.price_text && d.price_text.replace(/\s/g, "") !== money(d.price).replace(/\s/g, "") ? `<small>${esc(d.price_text)}</small>` : ""}</span>
+      <span class="dv-unit">${unitTxt(d)}</span>
+      <span class="dv-to muted">${d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""}</span>
+      <span class="dv-act">${act(d)}</span></li>`;
+  const card = (d) => `<article class="dv-card ${isOn(d) ? "is-pick" : ""}">
+      <div class="dv-c-top"><a class="dv-shop" href="${shopHref(on.get(d.shop_id) || { id: d.shop_id })}">${esc(shopName(d.shop_id))}</a><span class="dv-to muted">${d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""}</span></div>
+      <b class="dv-c-nm">${esc(d.name)}</b><small class="muted">${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")}</small>
+      ${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}
+      <div class="dv-c-pr"><b>${esc(priceTxt(d))}</b><span class="dv-unit">${unitTxt(d)}</span></div>
+      <div class="dv-c-foot">${badge(d)}<span class="dv-act">${act(d)}</span></div></article>`;
+  const filtered = v.q || v.shop || v.cat || v.type || (!item && v.f === "list");
+  return `<section class="section shops-page dv-page">
+    ${crumbNav(crumbs)}
+    <div class="section-head"><h2>${item ? t("「{name}」的特价", { name: esc(item.name) }) : t("特价一览")}</h2>
+      <p>${item ? (base.length ? `${t("{n} 家有特价。", { n: new Set(base.map((d) => d.shop_id)).size })}${picked ? t("卡片上显示的是你选的这家。") : t("卡片上默认显示 ★ 那条（{why}）；点「用这家」换成你选的。", { why: t(WHY[base.why] || WHY.unit) })}` : t("现在没有对得上的特价。")) : t("各家有效期内的特价放在一起比；单价相同单位才好比。")}</p></div>
+    ${base.length ? `<div class="toolbar shops-toolbar dv-toolbar">
+      <label class="shops-q"><span class="sr-only">${t("搜索特价")}</span><input type="search" data-dv-q value="${esc(v.q)}" placeholder="${esc(t("搜索商品、牌子、商店"))}" autocomplete="off"></label>
+      ${item ? "" : `<select data-dv-f data-nosearch aria-label="${esc(t("筛选特价"))}"><option value="all" ${v.f === "all" ? "selected" : ""}>${t("全部特价")}${cnt(base.length)}</option><option value="list" ${v.f === "list" ? "selected" : ""}>${t("对上清单")}${cnt(base.filter((d) => hits.get(d.id).length).length)}</option></select>`}
+      ${shopsWith.length > 1 ? `<select data-dv-shop data-nosearch aria-label="${esc(t("商店"))}"><option value="">${t("全部商店")}</option>${shopsWith.map((s) => `<option value="${s.id}" ${v.shop === s.id ? "selected" : ""}>${esc(s.name)}${cnt(base.filter((d) => d.shop_id === s.id).length)}</option>`).join("")}</select>` : ""}
+      ${cats.length > 1 ? `<select data-dv-cat data-nosearch aria-label="${esc(t("分类"))}"><option value="">${t("全部分类")}</option>${cats.map((c) => `<option value="${esc(c)}" ${v.cat === c ? "selected" : ""}>${esc(t(dealCatName(c)))}</option>`).join("")}</select>` : ""}
+      ${types.length ? `<select data-dv-type data-nosearch aria-label="${esc(t("折扣类型"))}"><option value="">${t("全部折扣类型")}</option>${types.map((k) => `<option value="${k}" ${v.type === k ? "selected" : ""}>${esc(t(dealTypeName(k)))}</option>`).join("")}</select>` : ""}
+      <select data-dv-sort data-nosearch aria-label="${esc(t("排序"))}">${DV_SORTS.map(([k, l]) => `<option value="${k}" ${v.sort === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
+      <div class="dv-mode" role="group" aria-label="${esc(t("显示方式"))}"><button type="button" class="btn btn-sm ${v.mode === "list" ? "btn-dark" : "btn-ghost"}" data-action="shops-dv-mode" data-v="list" aria-pressed="${v.mode === "list"}">☰ ${t("列表")}</button><button type="button" class="btn btn-sm ${v.mode === "cards" ? "btn-dark" : "btn-ghost"}" data-action="shops-dv-mode" data-v="cards" aria-pressed="${v.mode === "cards"}">▦ ${t("卡片")}</button></div>
+      ${filtered ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-dv-reset">${t("清除筛选")}</button>` : ""}
+    </div>
+    <p class="muted dv-count">${t("{n} 条", { n: list.length })}</p>
+    ${!list.length ? `<p class="muted">${t("没有符合条件的特价。")}</p>` : v.mode === "cards" ? `<div class="dv-cards">${list.map(card).join("")}</div>`
+      : `<div class="panel dv-panel"><div class="dv-th" aria-hidden="true"><span>${t("商品")}</span><span>${t("商店")}</span><span>${t("价格")}</span><span>${t("单价")}</span><span>${t("有效期")}</span><span></span></div><ul class="dv-list">${list.map(row).join("")}</ul></div>`}`
+      : `<div class="panel"><p class="muted" style="margin:0">${item ? t("这一项现在没有对得上的特价。") : t("还没有特价。到商店页更新一次特价就会出现在这里。")}</p></div>`}
+  </section>`;
+}
+/** 「对上清单」的推荐排序：按清单的每一项分组，组内按比价规则（每组第一条就是那一项默认显示的） */
+function groupByItem(list, hits) {
+  const ids = new Set(list.map((d) => d.id)), seen = new Set(), out = [];
+  for (const s of openShopping()) for (const d of dealsFor(s)) if (ids.has(d.id) && !seen.has(d.id)) { seen.add(d.id); out.push(d); }
+  for (const d of list) if (!seen.has(d.id)) out.push(d);
+  return out;
 }
 /** 采购看板上「常去的商店与特价」那一格的数字：几家常去、几条在有效期的特价、几条对上清单、几家待更新 */
 export function shopsStats() {
@@ -492,6 +604,9 @@ export async function shopsAction(action, el, { render, go, refresh }) {
     case "shops-dfilter": dealUi(id).filter = el.dataset.v; render(); return;
     case "shops-dreset": Object.assign(dealUi(id), { q: "", cat: "", type: "", filter: "all" }); render(); return;
     case "shops-deal-edit": dealUi(id).edit = el.dataset.deal; render(); return;
+    case "shops-pick": { const s = (state.shopping || []).find((x) => x.id === el.dataset.item); if (!s) return; const cur = pickedDeal(s); await pickDeal(s.id, cur?.id === el.dataset.deal ? null : el.dataset.deal, { rerender: true }); return; }   // 再点一次「已选这家」= 取消，回到默认
+    case "shops-dv-mode": { const v = dvUi(); v.mode = el.dataset.v === "cards" ? "cards" : "list"; try { localStorage.setItem("hp-dv-mode", v.mode); } catch { /* 忽略 */ } render(); return; }
+    case "shops-dv-reset": Object.assign(dvUi(), { q: "", shop: "", cat: "", type: "", f: "all" }); render(); return;
     case "shops-hist": { const d = (state.shopDeals || []).find((x) => x.id === el.dataset.deal); if (!d) return; const du = dealUi(d.shop_id); du.hist = du.hist === d.id ? null : d.id; render(); return; }
     case "shops-deal-cancel": dealUi(id).edit = null; render(); return;
     case "shops-deal-del": {
@@ -610,6 +725,7 @@ export function bindShops(render) {
   document.addEventListener("input", (e) => {
     const el = e.target;
     if (el.matches?.("[data-shops-q]")) { ui().q = el.value; R(); restoreFocus("[data-shops-q]", el); }
+    else if (el.matches?.("[data-dv-q]")) { dvUi().q = el.value; R(); restoreFocus("[data-dv-q]", el); }
     else if (el.matches?.("[data-deal-q]")) { dealUi(el.dataset.dealQ).q = el.value; R(); restoreFocus(`[data-deal-q="${el.dataset.dealQ}"]`, el); }
     else if (el.matches?.("[data-shops-zip]")) ui().find.zip = el.value.trim();
     else if (el.matches?.("[data-find-radius]")) { const v = Math.round(+el.value); if (v >= 1) { ui().find.radius = Math.min(MAX_MI, v); document.querySelectorAll('[data-action="shops-radius"]').forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.v === ui().find.radius))); } }
@@ -626,6 +742,12 @@ export function bindShops(render) {
     else if (el.matches?.("[data-deal-type]")) { dealUi(el.dataset.dealType).type = el.value; R(); }
     else if (el.matches?.("[data-deal-filter]")) { dealUi(el.dataset.dealFilter).filter = el.value; R(); }
     else if (el.matches?.("[data-deal-sort]")) { dealUi(el.dataset.dealSort).sort = el.value; R(); }
+    else if (el.matches?.("[data-dv-f]")) { dvUi().f = el.value; R(); }
+    else if (el.matches?.("[data-dv-shop]")) { dvUi().shop = el.value; R(); }
+    else if (el.matches?.("[data-dv-cat]")) { dvUi().cat = el.value; R(); }
+    else if (el.matches?.("[data-dv-type]")) { dvUi().type = el.value; R(); }
+    else if (el.matches?.("[data-dv-sort]")) { dvUi().sort = el.value; R(); }
+    else if (el.matches?.("[data-deal-pick]")) { pickDeal(el.dataset.dealPick, el.value); el.title = t("你选的这家"); }   // 不重画：同一行里还没保存的花费、商店照旧
     else if (el.matches?.('#dealReviewForm [name="inc"]')) { const f = el.form, n = f.querySelectorAll('[name="inc"]:checked').length, b = f.querySelector('button[type="submit"]'); if (b) b.textContent = t("保存 {n} 条", { n }); }
   });
 }

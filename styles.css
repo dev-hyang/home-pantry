@@ -3037,6 +3037,49 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .shops-entry:hover { background: var(--bg); }
 .shop-deal-line { display: inline-block; margin: 4px 0 0; padding: 3px 10px; border-radius: 99px; background: var(--low-bg); color: var(--low); font-size: 12.5px; font-weight: 600; text-decoration: none; }
 .shop-deal-line small { font-weight: 400; }
+/* 采购清单一行的特价：下拉选一家 +「比一比」 */
+.deal-pick { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; min-width: 0; }
+.deal-pick-ico { flex: none; }
+.deal-pick select { flex: 1 1 auto; min-width: 0; max-width: 100%; min-height: 36px; padding: 4px 8px; border: 1px solid var(--low-bg); border-radius: var(--r-sm); background: color-mix(in srgb, var(--low-bg) 40%, var(--surface)); color: var(--ink); font-size: 13px; text-overflow: ellipsis; }
+.deal-pick-all { flex: none; font-size: 13px; font-weight: 600; color: var(--pine); white-space: nowrap; text-decoration: none; min-height: 36px; display: inline-flex; align-items: center; }
+@media (pointer: coarse) { .deal-pick select, .deal-pick-all { min-height: 44px; } }
+/* 特价一览：列表 / 卡片 */
+.dv-toolbar { flex-wrap: wrap; }
+.dv-mode { display: inline-flex; gap: 4px; }
+.dv-count { margin: 6px 0; font-size: 13px; }
+.dv-th, .dv-row { display: grid; grid-template-columns: minmax(180px, 1fr) 150px 96px 96px 78px 120px; gap: 10px; align-items: center; }
+.dv-th { font-size: 12px; color: var(--muted); padding: 0 6px 6px; border-bottom: 1px solid var(--line); }
+.dv-list { list-style: none; margin: 0; padding: 0; }
+.dv-row { padding: 8px 6px; border-bottom: 1px solid var(--line); min-height: 48px; }
+.dv-row:last-child { border-bottom: 0; }
+.dv-row.is-pick, .dv-card.is-pick { background: color-mix(in srgb, var(--ok-bg) 55%, transparent); border-radius: var(--r-sm); }
+.dv-nm { display: flex; flex-direction: column; min-width: 0; }
+.dv-nm b { overflow-wrap: anywhere; }
+.dv-nm small { color: var(--muted); font-size: 12.5px; }
+.dv-shop { color: var(--ink); font-weight: 600; font-size: 13.5px; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.dv-shop:hover { text-decoration: underline; }
+.dv-pr, .dv-unit { display: flex; flex-direction: column; font-variant-numeric: tabular-nums; }
+.dv-pr b { font-size: 15px; }
+.dv-pr small, .dv-unit small { font-size: 12px; color: var(--muted); }
+.dv-to { font-size: 12.5px; }
+.dv-act { display: flex; justify-content: flex-end; }
+.dv-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.dv-card { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg); min-width: 0; }
+.dv-c-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.dv-c-nm { font-size: 14.5px; overflow-wrap: anywhere; }
+.dv-c-pr { display: flex; align-items: baseline; gap: 10px; margin-top: 2px; }
+.dv-c-pr > b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.dv-c-pr .dv-unit { flex-direction: row; gap: 2px; align-items: baseline; }
+.dv-c-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; padding-top: 6px; }
+@media (max-width: 640px) {
+  .dv-th { display: none; }
+  .dv-row { grid-template-columns: 1fr 1fr auto; grid-template-areas: "nm nm nm" "shop shop to" "pr un act"; gap: 4px 10px; padding: 10px 6px; }
+  .dv-nm { grid-area: nm; } .dv-row .dv-shop { grid-area: shop; } .dv-row .dv-to { grid-area: to; text-align: right; }
+  .dv-row .dv-pr { grid-area: pr; } .dv-row .dv-unit { grid-area: un; } .dv-row .dv-act { grid-area: act; }
+  .dv-row .dv-act .btn { min-height: 40px; }
+  .dv-cards { grid-template-columns: 1fr 1fr; }
+  .dv-toolbar select { flex: 1 1 140px; min-width: 0; }
+}
 @media (max-width: 640px) {
   .shop-grid { grid-template-columns: 1fr; }
   .shop-acts .btn { min-height: 40px; }

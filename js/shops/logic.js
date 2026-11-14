@@ -4,6 +4,7 @@ import { state } from "../core/state.js";
 import { normName } from "../core/item-match.js";
 import { num, spaceOf, todayISO } from "../core/util.js";
 import { alertsOf } from "../core/logic.js";
+import { spendSuggestions } from "../core/spend-data.js";
 
 // 分类：照 Flipp 的分法（食品杂货、会员仓储、百货、药房、五金家装、汽车配件…）
 export const SHOP_CATS = [
@@ -151,13 +152,46 @@ export function openShopping() {
 }
 /** 采购清单里某一项现在最便宜的特价（各家都算），没有返回 null */
 export function bestDealFor(s) {
-  const keys = [s.name, ...(state.itemAliases || []).filter((a) => a.item_id && a.item_id === s.item_id).map((a) => a.alias)].map(normName).filter((k) => k.length >= 2);
-  if (!keys.length) return null;
-  const shops = new Map((state.shops || []).filter((x) => !x.archived).map((x) => [x.id, x]));
-  const list = liveDeals().filter((d) => shops.has(d.shop_id) && keys.some((k) => hit(dealKeys(d), k)));
-  if (!list.length) return null;
-  list.sort((a, b) => (a.price ?? 1e9) - (b.price ?? 1e9));
-  return { deal: list[0], shop: shops.get(list[0].shop_id), n: list.length };
+  const list = dealsFor(s); if (!list.length) return null;
+  return { deal: list[0], shop: (state.shops || []).find((x) => x.id === list[0].shop_id), n: list.length };
+}
+const itemKeys = (s) => [s.name, ...(state.itemAliases || []).filter((a) => a.item_id && a.item_id === s.item_id).map((a) => a.alias)].map(normName).filter((k) => k.length >= 2);
+/** 采购清单某一项对得上的全部特价（常去的商店、有效期内），按比价规则排好（第一条 = 默认显示的那条） */
+export function dealsFor(s) {
+  const keys = itemKeys(s); if (!keys.length) return [];
+  const on = new Set((state.shops || []).filter((x) => !x.archived).map((x) => x.id));
+  return rankDeals(liveDeals().filter((d) => on.has(d.shop_id) && keys.some((k) => hit(dealKeys(d), k))), s);
+}
+/** 比价规则（2026-11-14 用户定：单价为主）：
+ *  ① 有单价、而且是最常见的那种单位（/oz、/ct…）的按单价排；和最低单价差 5% 以内算「差不多」，这几条再按：
+ *     清单上写的牌子 → 常去的商店（近 400 天在那家买的次数）→ 离家近；
+ *  ② 只有价格、没单价（或单位不一样）的排在后面，按价格；
+ *  ③ 只写了「省 $X」、没有价格的最后，按常去的商店、远近。
+ *  返回排好的数组；数组的 why 是第一条为什么排第一：unit / brand / freq / near / price / none */
+const TIE = 0.05;
+export function rankDeals(list, s = null) {
+  const shops = new Map((state.shops || []).map((x) => [x.id, x]));
+  const freq = new Map();
+  (spendSuggestions().stores || []).forEach((name, i) => { for (const k of [chainOf(name), normName(name)]) if (k && !freq.has(k)) freq.set(k, i); });
+  const shopRank = (d) => { const sh = shops.get(d.shop_id); return (sh && (freq.get(sh.chain || "") ?? freq.get(normName(sh.name)))) ?? 999; };
+  const pt = savedZip(), dist = (d) => miles(pt, shops.get(d.shop_id)) ?? 999;
+  const want = s ? itemKeys(s).join(" ") : "";
+  const brand = (d) => (d.brand && want && want.includes(normName(d.brand)) ? 0 : 1);
+  const tieKey = (a, b) => brand(a) - brand(b) || shopRank(a) - shopRank(b) || dist(a) - dist(b);
+  const labels = {}; for (const d of list) if (d.unit_price != null && d.unit_label) labels[d.unit_label] = (labels[d.unit_label] || 0) + 1;
+  const main = Object.keys(labels).sort((a, b) => labels[b] - labels[a])[0];
+  const A = list.filter((d) => d.unit_price != null && d.unit_label === main).sort((a, b) => a.unit_price - b.unit_price);
+  const best = A[0]?.unit_price;
+  const tie = A.filter((d) => d.unit_price <= best * (1 + TIE) + 1e-9).sort(tieKey), restA = A.filter((d) => !tie.includes(d));
+  const B = list.filter((d) => !A.includes(d) && d.price != null).sort((a, b) => a.price - b.price || tieKey(a, b));
+  const C = list.filter((d) => !A.includes(d) && d.price == null).sort(tieKey);
+  const out = [...tie, ...restA, ...B, ...C];
+  const top = out[0];
+  // 第一条为什么排第一：和「差不多」里的下一条比，是哪一项分出了先后
+  const next = tie[1];
+  out.why = !top ? "" : !A.includes(top) ? (B.includes(top) ? "price" : "none")
+    : !next ? "unit" : brand(top) < brand(next) ? "brand" : shopRank(top) < shopRank(next) ? "freq" : dist(top) < dist(next) ? "near" : "unit";
+  return out;
 }
 
 /* ───────────── 位置：ZIP → 经纬度，按距离找门店 ───────────── */

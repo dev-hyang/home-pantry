@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.4", title: { zh: "特价一览：各家特价放在一起比，采购清单可以选用哪一家", en: "All deals side by side; pick which store's deal each list item uses" }, items: [
+    { k: "new", zh: "新的「特价一览」：各家有效期内的特价按商品列出，带价格、单价、商店；可搜索、按商店 / 分类 / 折扣类型筛选，列表和卡片两种看法。看板上「项特价对上清单」直接打开这里", en: "New \"All deals\": live deals from every store by item, with price, unit price and store; search, filter by store / category / deal type, list or card view. \"Deals on your list\" on the dashboard opens it" },
+    { k: "better", zh: "采购清单每一项的特价改成下拉：可以自己选一家；旁边「比一比」看这一项在各家的特价，点「用这家」就显示在卡片上", en: "Each shopping-list item now has a dropdown of deals to pick from; \"Compare\" shows that item's deals at every store and \"Use this\" puts one on the card" },
+    { k: "better", zh: "默认显示哪家：单价最低的；单价差不多时，先看清单上写的牌子，再看你常去的商店，再看远近。只写了「省 $4」没有价格的排在最后", en: "Default pick: lowest unit price; when similar, the brand on your list, then stores you use often, then distance. Deals showing only \"save $4\" come last" }
+  ] },
   { v: "2026-11-14.3", title: { zh: "Costco 特价按分区读全", en: "Costco deals read section by section" }, items: [
     { k: "fix", zh: "Costco 用脚本更新时会一个一个打开分区：Grocery、Health & Personal Care、Apparel、Electronics，以及「See more」里的 Household、Optical、Pharmacy，不再漏掉整个 Grocery", en: "Updating Costco with the script now opens each section — Grocery, Health & Personal Care, Apparel, Electronics, plus Household, Optical and Pharmacy under \"See more\" — so Grocery is no longer missed" },
     { k: "better", zh: "更新记录里写出每个分区读到几条，少了哪个一眼看得出；特价分类多了「服装」「眼镜光学」", en: "The update log shows how many deals each section had, so a missing one stands out; new deal categories Apparel and Optical" }
