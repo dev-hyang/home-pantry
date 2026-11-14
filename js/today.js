@@ -146,7 +146,7 @@ function todoCard(all, counts) {
   const pills = [0, 1, 2, 3].filter((x) => counts.bySeverity[x]).map((x) => `<span class="pill sev-${x}"><i>${counts.bySeverity[x]}</i>${t(SEVERITY_LABEL[x])}</span>`).join("");
   const cls = (w) => (w <= 2 ? SEVERITY_CLS[w] : "attn-count");
   // 2026-11-14：每一行自己是链接，直接进那个模块（采购清单、账单、设备保养…）；标题行和底部「全部 N 件」进 #/alerts
-  const list = rows.slice(0, 6).map((r) => `<li><a href="${esc(r.href)}"><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow"><span class="tr-k1">${esc(r.name)}</span><small class="tr-sub">${esc(r.first || "")}</small></span><span class="badge mcount ${cls(r.worst)}">${r.n}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`).join("");
+  const list = rows.slice(0, 6).map((r) => `<li><a href="${esc(r.href)}" class="${r.worst <= 1 ? "is-hot" : ""}"><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow"><span class="tr-k1">${esc(r.name)}</span><small class="tr-sub">${esc(r.first || "")}</small></span><span class="badge mcount ${cls(r.worst)}">${r.n}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`).join("");
   const more = rows.length > 6 ? t("还有 {n} 个模块", { n: rows.length - 6 }) : "";
   return card({ k: "todo", icon: counts.important ? "🔔" : "🗂️", title: t("待办"), count: badge, headHref: href("alerts"), cls: counts.important ? "is-hot" : "",
     body: `${pills ? `<div class="pills ttodo-pills">${pills}</div>` : ""}<ul class="tcard-list ttodo-list">${list}</ul>
@@ -165,16 +165,18 @@ function moneyCard() {
   const next30 = upcoming(bills, 30), due30 = next30.filter((x) => (x.bill.currency || cur) === cur).reduce((s, x) => s + num(x.bill.est), 0);
   const inc = I ? num(I.income[cm]) : null, out = A ? num(O.at(-1)) : null, bal = inc != null && out != null ? inc - out : null;
   const amt = (v, cls = "") => `<b class="num ${cls}">${String(v).includes("…") ? v : mask(v)}</b>`, small = (x) => `<small>${x}</small>`;
+  // 2026-11-14：每一行进对应的明细页（遮挡时点金额只露 10 秒、不跳转；点名称才跳转——js/core/privacy.js）
+  const OV = `${href("bills", "income")}?tab=overview&range=m`;
   const rowsKv = [
-    [t("含住房"), A ? amt(money(H.at(-1))) : amt(LOADING())],
-    [t("现金流出"), A ? amt(money(out)) : amt(LOADING())],
-    [t("收入"), I ? amt(money(inc)) : amt(LOADING())],
-    [t("结余"), bal != null ? amt(`${bal < 0 ? "−" : ""}${money(Math.abs(bal))}`, bal < 0 ? "down" : "up") : amt(LOADING())],
-    [t("未来 30 天账单"), `${small(t("{n} 笔", { n: next30.length }))}${amt(money(due30))}`],
+    [t("含住房"), A ? amt(money(H.at(-1))) : amt(LOADING()), href("bills", "spend")],
+    [t("现金流出"), A ? amt(money(out)) : amt(LOADING()), OV],
+    [t("收入"), I ? amt(money(inc)) : amt(LOADING()), `${href("bills", "income")}?tab=records`],
+    [t("结余"), bal != null ? amt(`${bal < 0 ? "−" : ""}${money(Math.abs(bal))}`, bal < 0 ? "down" : "up") : amt(LOADING()), OV],
+    [t("未来 30 天账单"), `${small(t("{n} 笔", { n: next30.length }))}${amt(money(due30))}`, href("bills", "recurring")],
   ];
   if (state.nwOk) {
     const r = liveNetWorth(), m = thisMonth(), mom = monthChange(trendPoints(state.nwSnapshots, cur, { live: r, month: m }), m);
-    rowsKv.push([t("净资产"), `${mom == null ? "" : small(mask(`${mom > 0 ? "+" : mom < 0 ? "−" : ""}${money(Math.abs(mom))}`))}${amt(money(r.netWorth), r.netWorth < 0 ? "down" : "")}`]);
+    rowsKv.push([t("净资产"), `${mom == null ? "" : small(mask(`${mom > 0 ? "+" : mom < 0 ? "−" : ""}${money(Math.abs(mom))}`))}${amt(money(r.netWorth), r.netWorth < 0 ? "down" : "")}`, href("bills", "networth")]);
   }
   // 卡片：本月日常消费大字，后面跟着「日常消费 · 上个月 $…」一行；下面明细两列（宽屏）；整张点进 财务 → 收支总览（本月）
   // 第一行：「$本月 日常消费 · 上月 $上月 ▲ 10%」——本月金额和下面各行一样大；上月小一号；花得比上月多是红 ▲、少是绿 ▼
@@ -184,7 +186,12 @@ function moneyCard() {
   const eye = moneyEye("tm-eye");
   // 标题行点进 财务 → 收支总览（本月）；卡片本身不再是整张链接，金额才能单独点开
   return card({ k: "money", icon: "💰", title: t("钱 · 本月"), headHref: `${href("bills", "income")}?tab=overview&range=m`, headExtra: eye,
-    body: `<div class="tcard-money">${head}</div><ul class="tcard-kv tm-kv">${rowsKv.map(([k, v]) => `<li><span>${k}</span><span class="tm-v">${v}</span></li>`).join("")}</ul>` });
+    body: `<div class="tcard-money">${head}</div><ul class="tcard-kv tm-kv">${rowsKv.map(([k, v, h]) => `<li><a href="${esc(h)}"><span>${k}</span><span class="tm-v">${v}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`).join("")}</ul>${moneyLinks()}` });
+}
+/** 钱卡底部的常用入口：对账单、记一笔花费 / 收入、预算（没权限的页面 quickOk 去掉） */
+function moneyLinks() {
+  const ls = [[href("bills", "statements"), "🏦", t("对账单")], [SPEND_ADD(), "✍️", t("记一笔花费")], [INCOME_ADD(), "💵", t("记一笔收入")], [href("bills", "budget"), "💰", t("预算")]].filter(([h]) => quickOk(h));
+  return ls.length ? `<nav class="tm-links" aria-label="${esc(t("常用"))}">${ls.map(([h, i, l]) => `<a class="tm-link" href="${esc(quickHref(h))}"><span aria-hidden="true">${i}</span>${l}</a>`).join("")}</nav>` : "";
 }
 
 /* ── 家里 · 一览：库存、采购、设备；没有财务权限的家人还看到本月账单的笔数（不显示金额） ── */
@@ -276,10 +283,10 @@ const QUICK_KEY = "hmh-quick";
  *  模块关掉的、没权限的自动跳过，用后面的补足 6 个 */
 export const DEFAULT_QUICK = () => {
   const want = financeOk()
-    ? [href("scan"), SPEND_ADD(), href("shopping"), href("bill", "new"), INCOME_ADD(), href("bills", "overview"), href("pantry", "overview"), href("house", "assets")]
-    : [href("scan"), SPEND_ADD(), href("shopping"), href("pantry", "overview"), href("house", "assets"), href("house", "tasks"), href("pantry", "inventory"), href("pantry", "meals")];
+    ? [href("scan"), href("shopping", "add"), SPEND_ADD(), href("shopping"), href("shops", "list"), href("bill", "new"), INCOME_ADD(), href("bills", "overview"), href("pantry", "overview"), href("house", "assets")]
+    : [href("scan"), href("shopping", "add"), SPEND_ADD(), href("shopping"), href("shops", "list"), href("pantry", "overview"), href("house", "assets"), href("house", "tasks"), href("pantry", "inventory"), href("pantry", "meals")];
   const ok = new Set(PRESETS().map((p) => p[0]));
-  return want.filter((id) => ok.has(id)).slice(0, 6);
+  return want.filter((id) => ok.has(id)).slice(0, 8);
 };
 const SPEND_ADD = () => `${href("bills", "spend")}?tab=records&add=1`;                // 花费页直接展开「记一笔」表单（main.js 的 onRoute）
 const INCOME_ADD = () => `${href("bills", "income")}?tab=records&add=1`;   // 收入明细直接展开「记一笔收入」（main.js 的 onRoute）
@@ -291,14 +298,23 @@ export function quickList() {
   else { try { list = JSON.parse(localStorage.getItem(QUICK_KEY) || "null"); } catch { list = null; } }
   if (!Array.isArray(list)) return DEFAULT_QUICK();
   const map = LEGACY();
-  return [...new Set(list.map((id) => map[id] || id))];   // 旧的“看花费统计”（我的 → 统计）在财务开着时改指向 财务 → 花费，旧的「补记一笔花费」改成直接打开表单；并去掉重复
+  let out = [...new Set(list.map((id) => map[id] || id))];
+  // 2026-11-14 新加的入口（加入采购清单、常去的商店）：已经自己排过快捷操作的人，也各补一次（排在最前面）；编辑保存后记下版本，删掉的不会再补回来
+  if (quickVer() < QUICK_VER) { const add = [href("shopping", "add"), href("shops", "list")].filter((id) => !out.includes(id) && quickOk(id)); out = [...add, ...out]; }
+  return out;   // 旧的“看花费统计”（我的 → 统计）在财务开着时改指向 财务 → 花费，旧的「补记一笔花费」改成直接打开表单；并去掉重复
 }
 export async function saveQuick(list) {
   if (Store.mode === "cloud") {
-    const { data, error } = await Store.sb.auth.updateUser({ data: { quick: list } });
+    const { data, error } = await Store.sb.auth.updateUser({ data: { quick: list, quick_v: QUICK_VER } });
     if (error) throw new Error(error.message);
     state.user = data.user;
-  } else { try { localStorage.setItem(QUICK_KEY, JSON.stringify(list)); } catch { /* 忽略 */ } }
+  } else { try { localStorage.setItem(QUICK_KEY, JSON.stringify(list)); localStorage.setItem(`${QUICK_KEY}-v`, String(QUICK_VER)); } catch { /* 忽略 */ } }
+}
+/** 快捷操作存的是第几版的入口清单（新加入口时 +1，让大家各补一次） */
+const QUICK_VER = 2;
+function quickVer() {
+  if (Store.mode === "cloud") return +(state.user?.user_metadata?.quick_v || 1);
+  try { return +(localStorage.getItem(`${QUICK_KEY}-v`) || 1); } catch { return 1; }
 }
 /** 快捷操作的实际地址：财务的页面带 ?prop=all（每次回到全部房产；已经带参数的用 & 接） */
 export const quickHref = (id) => (id.startsWith("#/bills") ? `${id}${id.includes("?") ? "&" : "?"}prop=all` : id);
@@ -308,6 +324,7 @@ export const PRESETS = () => {
   return [
     // 常用动作
     [href("scan"), "🧾", t("录入购物")], B ? [SPEND_ADD(), "✍️", t("记一笔花费")] : null, [href("shopping"), "🛒", t("采购清单")],
+    [href("shopping", "add"), "📝", t("加入采购清单")], [`${href("shopping", "add")}?mode=photo`, "📷", t("拍照加入采购清单")], [href("shops", "list"), "🏪", t("常去的商店")],
     B ? [href("bill", "new"), "➕", t("添加账单")] : null, B ? [INCOME_ADD(), "💵", t("记一笔收入")] : null, B ? [`${href("bills", "onetime")}?bill=new`, "🏥", t("记一张一次性账单")] : null,
     // 储藏
     [href("pantry", "overview"), "🗄️", t("储藏概览")], [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "➕", t("添加储藏物品")],

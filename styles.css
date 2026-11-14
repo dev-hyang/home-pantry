@@ -2792,6 +2792,27 @@ html.force-phone .tm-wrap { grid-template-columns: 1fr; }
 .ttodo-list li { display: flex; align-items: center; min-width: 0; }
 .ttodo-list li > a { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 44px; padding: 6px 4px; margin: 0 -4px; border-radius: 8px; color: inherit; text-decoration: none; }   /* 每行自己进对应模块 */
 .ttodo-list li > a:hover { background: var(--surface-2); }
+/* 2026-11-14：待办行和其他卡片的行一样是浅灰底的圆角块；要紧的（必须 / 逾期）淡红底 */
+.tslide .ttodo-list { gap: 6px; }
+.tslide .ttodo-list li { border-bottom: 0; padding: 0; min-height: 0; }
+.tslide .ttodo-list li > a { margin: 0; padding: 6px 10px; border-radius: 10px; background: var(--surface-2); min-height: 48px; }
+.tslide .ttodo-list li > a.is-hot { background: var(--low-bg); }
+.tslide .ttodo-list .mcount.attn-count { background: var(--surface); }   /* 灰底行里的数量徽章用白底，不然看不出来 */
+.tslide .ttodo-list li > a:hover { filter: brightness(.97); }
+/* 钱卡：每行可点（名称 · 金额 · ›），底部一排常用入口 */
+.tm-kv li > a { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; flex: 1; min-width: 0; min-height: 40px; padding: 2px 4px; margin: 0 -4px; border-radius: 8px; color: inherit; text-decoration: none; }
+.tm-kv li > a:hover { background: var(--surface-2); }
+.tm-kv li > a:focus-visible { outline: 2px solid var(--pine); outline-offset: 1px; }
+.tm-kv li > a > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.tm-kv .tm-v { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink); }
+.tm-kv .tm-v small { display: block; font-size: 11.5px; line-height: 1.2; color: var(--muted); }
+.tm-kv .tcard-ch { color: var(--muted); }
+.tslide .tm-kv li { padding: 0; }
+.tm-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tm-link { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 12px; border-radius: 99px; background: var(--surface-2); color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.tm-link:hover { filter: brightness(.97); }
+.tm-link:focus-visible { outline: 2px solid var(--pine); outline-offset: 1px; }
+@media (pointer: coarse) { .tm-link { min-height: 44px; } }
 .ttodo-list li > a:focus-visible { outline: 2px solid var(--pine); outline-offset: 1px; }
 .ttodo-list .tcard-ch { flex: none; color: var(--muted); }
 .tcard-foot a.tcard-more { text-decoration: none; min-height: 32px; display: inline-flex; align-items: center; }

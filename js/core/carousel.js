@@ -67,10 +67,11 @@ if (typeof document !== "undefined") {
     if (pos[box.dataset.carousel] !== i) { pos[box.dataset.carousel] = i; markDash(box, i); }
   }, true);
   // 按着：进度条停住（.is-hold），松开继续；松开后再看要不要跳回中间那份
-  document.addEventListener("pointerdown", (e) => { const tr = e.target.closest?.(".ttrack"); if (tr) { tr._down = true; tr.closest(".tcarousel").classList.add("is-hold"); } }, true);
+  document.addEventListener("pointerdown", (e) => { const tr = e.target.closest?.(".ttrack"); if (tr) { tr._down = true; tr._x0 = tr.scrollLeft; tr.closest(".tcarousel").classList.add("is-hold"); } }, true);
   const release = () => document.querySelectorAll(".ttrack").forEach((tr) => {
     if (!tr._down) return;
-    tr._down = false; const box = tr.closest(".tcarousel"); box.classList.remove("is-hold"); markDash(box, realOf(tr));
+    // 只是点了一下（没滑动）：进度条接着走，不从头开始——点卡片里的链接时不该看到进度条「重置」（2026-11-14）
+    tr._down = false; const box = tr.closest(".tcarousel"); box.classList.remove("is-hold"); markDash(box, realOf(tr), Math.abs(tr.scrollLeft - (tr._x0 ?? tr.scrollLeft)) > 4);
     if (box.contains(document.activeElement) && document.activeElement !== document.body) document.activeElement.blur();   // 手指 / 鼠标点过：不把焦点留在卡片里（焦点在里面进度条会停）
     clearTimeout(tr._settle); tr._settle = setTimeout(() => settle(tr), 140);
   });

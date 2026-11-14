@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.2", title: { zh: "今日页卡片更好点：钱卡每行可点、多了常用入口", en: "Today cards: tap each money row, more shortcuts" }, items: [
+    { k: "fix", zh: "点卡片里的链接时，下面的进度条不再从头开始；只有左右滑动换卡时才重新计时", en: "Tapping a link in a card no longer restarts the progress bar; only swiping to another card does" },
+    { k: "better", zh: "待办的每一行和其他卡片一样是浅灰底的圆角块，要紧的是淡红底", en: "To-do rows look like the other cards' rows; urgent ones are tinted red" },
+    { k: "better", zh: "钱 · 本月：每一行点进对应的明细；下面多了对账单、记一笔花费、记一笔收入、预算", en: "Money · this month: each row opens its details; shortcuts below for statements, log spending, log income and budget" },
+    { k: "new", zh: "快捷操作新加「加入采购清单」「拍照加入采购清单」「常去的商店」；前两个已经自动放进你的快捷操作，不要的可以在「编辑」里删", en: "Quick actions: new \"Add to shopping list\", \"Photo to shopping list\" and \"My stores\"; two are added to your list once — remove them in Edit if you don't want them" }
+  ] },
   { v: "2026-11-14.1", title: { zh: "今日页的待办可以一条一条点进去", en: "Tap each to-do on the Today page" }, items: [
     { k: "better", zh: "今日 → 待办：每一行直接进那个模块（采购清单、账单、设备保养…）；点标题或底部「全部 N 件」进完整的待办页", en: "Today → To-dos: each row opens its own module (shopping list, bills, maintenance…); tap the title or \"All N\" for the full to-do page" }
   ] },
