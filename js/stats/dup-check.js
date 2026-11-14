@@ -53,6 +53,50 @@ export function nearRows(day, amount) {
 }
 const candOf = (c) => ({ d: localDay(c.at), a: c.amount });
 
+/* ── 整张小票查重（11-14）：逐行比要金额一模一样，但同一张小票两个人录、或识别规则改过（Target 整单折扣分摊），
+ *   每行金额差几分就一行都对不上。整张比：同一天（±1 天）、同一家店，商品名对上一半以上，或合计差不到 1%。 ── */
+const storeClose = (a, b) => { const x = norm(a), y = norm(b); return !!x && !!y && (x === y || (Math.min(x.length, y.length) >= 3 && (x.includes(y) || y.includes(x)))); };
+/** 已有花费按「谁记的 + 录入时间（相隔 10 分钟内算同一次）」分成一批批 */
+function batchesOf(rows) {
+  const s = [...rows].sort((a, b) => String(a.created_by).localeCompare(String(b.created_by)) || String(a.created_at).localeCompare(String(b.created_at)));
+  const out = [];
+  for (const p of s) {
+    const last = out.at(-1), prev = last?.at(-1);
+    if (prev && prev.created_by === p.created_by && (!p.created_at || !prev.created_at || new Date(p.created_at) - new Date(prev.created_at) <= 10 * 60 * 1000)) last.push(p);
+    else out.push([p]);
+  }
+  return out;
+}
+/** 新行 ↔ 旧行配对：先按名称相近，再按金额相同；返回 [新行下标, 旧行] 的列表 */
+export function pairRows(mine, old) {
+  const used = new Set(), pairs = [];
+  for (const pass of ["name", "amount"]) mine.forEach((m, i) => {
+    if (pairs.some(([j]) => j === i)) return;
+    const hit = old.find((p) => !used.has(p.id) && (pass === "name" ? nameClose(p.name, m.name) : (m.amount != null && cents(p.amount) === cents(m.amount))));
+    if (hit) { used.add(hit.id); pairs.push([i, hit]); }
+  });
+  return pairs;
+}
+/** 这张小票（store, day = YYYY-MM-DD, rows = [{ name, amount }]）是不是已经有人整张录过：返回最像的那一批 { rows, who, total, at, pairs } 或 null。
+ *  同步：只看已经读进来的日期段（先 await loadNear） */
+export function sameReceipt({ store, day, rows }) {
+  const mine = rows.filter((r) => r.name || r.amount != null);
+  if (mine.length < 2 || !day || !covered(shiftDay(day, -PAD_DAYS), shiftDay(day, PAD_DAYS))) return null;
+  const tm = new Date(`${day}T12:00:00`).getTime(), myTotal = mine.reduce((s, r) => s + num(r.amount), 0);
+  const near = POOL.filter((p) => Math.abs(new Date(p.purchased_at).getTime() - tm) <= 1.5 * DAY && (!store || !p.store || storeClose(p.store, store)));
+  let best = null;
+  for (const b of batchesOf(near)) {
+    if (b.length < 2) continue;
+    const pairs = pairRows(mine, b), named = pairs.filter(([i, p]) => nameClose(p.name, mine[i].name)).length;
+    const total = b.reduce((s, p) => s + num(p.amount), 0), totalClose = Math.abs(total - myTotal) <= Math.max(0.5, Math.abs(myTotal) * 0.01);
+    const sameStore = !!store && b.some((p) => storeClose(p.store, store));
+    const ok = named >= Math.max(2, Math.ceil(Math.min(mine.length, b.length) / 2)) || (sameStore && totalClose);
+    const score = named * 2 + (totalClose ? 3 : 0) + (sameStore ? 1 : 0);
+    if (ok && (!best || score > best.score)) best = { rows: b, who: whoOf(b[0]), total: Math.round(total * 100) / 100, at: b[0].purchased_at, pairs, score };
+  }
+  return best;
+}
+
 /** 找出疑似重复的已有花费。c = { name, amount, store, at(ISO 或 Date) }；exclude：同一批里已经配过的花费 id，别重复配。
  *  同步：只看已经查过的（没查过返回 []，先 await loadNear([...]) 或用 similarPurchasesAsync） */
 export function similarPurchases(c, exclude = new Set()) {

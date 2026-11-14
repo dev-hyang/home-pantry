@@ -901,6 +901,13 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .bank-row.is-skip { opacity: .8; }
 .bank-dup { color: var(--soon); font-weight: 600; }
 .dup-hint { color: var(--soon); font-weight: 600; font-size: 13px; margin: 6px 0 0; }
+/* 整张小票可能已经录过：小票顶上一块提醒 + 两个选项（11-14） */
+.rcpt-dup { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--soon); border-radius: 10px; background: color-mix(in srgb, var(--soon) 8%, transparent); }
+.rcpt-dup .dup-hint { margin: 0 0 8px; }
+.rcpt-dup .chips { flex-wrap: wrap; margin: 0 0 6px; padding: 0; overflow: visible; }
+.rcpt-dup .chip { min-height: 44px; }
+.rcpt-dup-how { margin: 0; font-size: 12.5px; }
+@media (max-width: 600px) { .rcpt-dup .chip { flex: 1 1 100%; justify-content: center; } }
 .cart-hint { color: var(--ok); font-weight: 600; font-size: 13px; margin: 6px 0 0; }
 .bank-src { color: var(--pine); font-weight: 600; }
 .bank-batches li { flex-wrap: wrap; } .bank-batches li .grow { flex-basis: 160px; }
