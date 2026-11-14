@@ -232,6 +232,7 @@ function aiBlock() {
   return `<section class="section"><div class="panel tai"><div class="tai-head"><h3>${aiIcon(20)} ${t("咩咩咩")}</h3><p class="muted">${sub}</p></div>
       <div class="form-actions tai-acts"><a class="btn btn-primary btn-sm" href="${href("ai")}">${t("问咩咩")}</a>
         <a class="btn btn-ghost btn-sm" href="${href("pantry", "meals")}?ai=">🍳 ${t("今天吃什么")}</a>
+        <a class="btn btn-ghost btn-sm" href="${href("shopping", "add")}">📝 ${t("加入采购清单")}</a>
         <a class="btn btn-ghost btn-sm" href="${href("scan")}">🧾 ${t("录入购物")}</a></div></div></section>`;
 }
 

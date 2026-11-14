@@ -4,6 +4,7 @@
  *   #/shops/shop/<id>    单个商店：本周广告链接、更新特价（拍广告 / 贴文字 → AI 读；贴 Claude 整理的 JSON 直接导入）、特价列表
  * 布局：电脑上商店卡片多列、特价是表格；手机上单列卡片、特价一条一张卡，按钮在卡片底部。 */
 import { state } from "../core/state.js";
+import { normName } from "../core/item-match.js";
 import { Store } from "../core/store.js";
 import { $, confirmDelete, esc, fmtShort, money, toast, daysUntil } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
@@ -377,7 +378,7 @@ async function pickDeal(itemId, dealId, { rerender = false } = {}) {
 const DV_SORTS = [["best", "推荐"], ["unit", "按单价"], ["price", "按价格"], ["soon", "快到期的在前"], ["shop", "按商店"]];
 function dvUi() {
   const u = ui();
-  if (!u.dv) { let mode = "list"; try { mode = localStorage.getItem("hp-dv-mode") || "list"; } catch { /* 忽略 */ } u.dv = { q: "", shop: "", cat: "", type: "", f: "all", sort: "best", mode, hash: "" }; }
+  if (!u.dv) { let mode = "group"; try { mode = localStorage.getItem("hp-dv-mode") || "group"; } catch { /* 忽略 */ } u.dv = { q: "", shop: "", cat: "", type: "", f: "all", sort: "best", mode, hash: "" }; }
   const v = u.dv;
   if (v.hash !== location.hash) {   // 从别处点进来（看板的「对上清单」、清单的「比一比」）：按链接上的条件重新开始
     v.hash = location.hash; const q = state.route.q;
@@ -425,6 +426,15 @@ function viewDeals() {
       <div class="dv-c-pr"><b>${esc(priceTxt(d))}</b><span class="dv-unit">${unitTxt(d)}</span></div>
       <div class="dv-c-foot">${badge(d)}<span class="dv-act">${act(d)}</span></div></article>`;
   const filtered = v.q || v.shop || v.cat || v.type || (!item && v.f === "list");
+  const mode = item && v.mode === "group" ? "list" : v.mode;   // 单个商品的页面本来就是一组：按商品分组没意义，用列表
+  const groups = mode === "group" ? groupDeals(list, hits) : null;
+  const gRow = (d) => `<li class="${isOn(d) ? "is-pick" : ""}"><a class="dv-shop" href="${shopHref(on.get(d.shop_id) || { id: d.shop_id })}">${esc(shopName(d.shop_id))}</a>
+      <span class="dv-g-nm">${esc(d.name)}${d.size ? ` <small>${esc(d.size)}</small>` : ""}</span>
+      <b class="dv-g-pr">${esc(priceTxt(d))}</b><span class="dv-unit">${unitTxt(d)}</span><span class="dv-to muted">${d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""}</span></li>`;
+  const gCard = (g) => { const m = g.hits; const first = g.deals[0];
+    return `<section class="dv-group panel" aria-label="${esc(g.label)}"><div class="dv-g-head"><b>${esc(g.label)}</b><span class="muted">${t("{n} 家", { n: new Set(g.deals.map((d) => d.shop_id)).size })}</span>
+      <span class="dv-g-act">${m.length ? `<span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-tolist" data-deal="${first.id}">＋ ${t("清单")}</button>`}</span></div>
+      <ul class="dv-g-list">${g.deals.map(gRow).join("")}</ul></section>`; };
   return `<section class="section shops-page dv-page">
     ${crumbNav(crumbs)}
     <div class="section-head"><h2>${item ? t("「{name}」的特价", { name: esc(item.name) }) : t("特价一览")}</h2>
@@ -436,14 +446,30 @@ function viewDeals() {
       ${cats.length > 1 ? `<select data-dv-cat data-nosearch aria-label="${esc(t("分类"))}"><option value="">${t("全部分类")}</option>${cats.map((c) => `<option value="${esc(c)}" ${v.cat === c ? "selected" : ""}>${esc(t(dealCatName(c)))}</option>`).join("")}</select>` : ""}
       ${types.length ? `<select data-dv-type data-nosearch aria-label="${esc(t("折扣类型"))}"><option value="">${t("全部折扣类型")}</option>${types.map((k) => `<option value="${k}" ${v.type === k ? "selected" : ""}>${esc(t(dealTypeName(k)))}</option>`).join("")}</select>` : ""}
       <select data-dv-sort data-nosearch aria-label="${esc(t("排序"))}">${DV_SORTS.map(([k, l]) => `<option value="${k}" ${v.sort === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
-      <div class="dv-mode" role="group" aria-label="${esc(t("显示方式"))}"><button type="button" class="btn btn-sm ${v.mode === "list" ? "btn-dark" : "btn-ghost"}" data-action="shops-dv-mode" data-v="list" aria-pressed="${v.mode === "list"}">☰ ${t("列表")}</button><button type="button" class="btn btn-sm ${v.mode === "cards" ? "btn-dark" : "btn-ghost"}" data-action="shops-dv-mode" data-v="cards" aria-pressed="${v.mode === "cards"}">▦ ${t("卡片")}</button></div>
+      <div class="dv-mode" role="group" aria-label="${esc(t("显示方式"))}">${item ? "" : `<button type="button" class="btn btn-sm ${mode === "group" ? "btn-dark" : "btn-ghost"}" data-action="shops-dv-mode" data-v="group" aria-pressed="${mode === "group"}">🧺 ${t("按商品")}</button>`}<button type="button" class="btn btn-sm ${mode === "list" ? "btn-dark" : "btn-ghost"}" data-action="shops-dv-mode" data-v="list" aria-pressed="${mode === "list"}">☰ ${t("列表")}</button><button type="button" class="btn btn-sm ${mode === "cards" ? "btn-dark" : "btn-ghost"}" data-action="shops-dv-mode" data-v="cards" aria-pressed="${mode === "cards"}">▦ ${t("卡片")}</button></div>
       ${filtered ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-dv-reset">${t("清除筛选")}</button>` : ""}
     </div>
-    <p class="muted dv-count">${t("{n} 条", { n: list.length })}</p>
-    ${!list.length ? `<p class="muted">${t("没有符合条件的特价。")}</p>` : v.mode === "cards" ? `<div class="dv-cards">${list.map(card).join("")}</div>`
+    <p class="muted dv-count">${groups ? t("{g} 样商品 · {n} 条特价", { g: groups.length, n: list.length }) : t("{n} 条", { n: list.length })}</p>
+    ${!list.length ? `<p class="muted">${t("没有符合条件的特价。")}</p>` : groups ? `<div class="dv-groups">${groups.map(gCard).join("")}</div>` : mode === "cards" ? `<div class="dv-cards">${list.map(card).join("")}</div>`
       : `<div class="panel dv-panel"><div class="dv-th" aria-hidden="true"><span>${t("商品")}</span><span>${t("商店")}</span><span>${t("价格")}</span><span>${t("单价")}</span><span>${t("有效期")}</span><span></span></div><ul class="dv-list">${list.map(row).join("")}</ul></div>`}`
       : `<div class="panel"><p class="muted" style="margin:0">${item ? t("这一项现在没有对得上的特价。") : t("还没有特价。到商店页更新一次特价就会出现在这里。")}</p></div>`}
   </section>`;
+}
+/** 按商品分组：同一样东西（aka 的第一个叫法——录入时对上家里物品的就是物品名，否则是 AI 给的通用名，如「巧克力」）的各家特价放一组，
+ *  组内按比价规则排；对上采购清单的组在前，其余按名称。返回 [{ label, deals, hits }] */
+function groupDeals(list, hits) {
+  const m = new Map();
+  for (const d of list) {
+    const label = String(d.aka || "").split(/[,，、]/).map((x) => x.trim()).find(Boolean) || d.name, k = normName(label);
+    if (!m.has(k)) m.set(k, { label, deals: [] });
+    m.get(k).deals.push(d);
+  }
+  const open = new Map(openShopping().map((s) => [s.id, s]));
+  return [...m.values()].map((g) => {
+    const hs = new Map(); for (const d of g.deals) for (const s of hits.get(d.id) || []) hs.set(s.id, s);
+    const deals = rankDeals(g.deals, [...hs.values()][0] || null);
+    return { label: g.label, deals, hits: [...hs.values()].filter((s) => open.has(s.id)) };
+  }).sort((a, b) => (b.hits.length > 0) - (a.hits.length > 0) || a.label.localeCompare(b.label));
 }
 /** 「对上清单」的推荐排序：按清单的每一项分组，组内按比价规则（每组第一条就是那一项默认显示的） */
 function groupByItem(list, hits) {
@@ -605,7 +631,7 @@ export async function shopsAction(action, el, { render, go, refresh }) {
     case "shops-dreset": Object.assign(dealUi(id), { q: "", cat: "", type: "", filter: "all" }); render(); return;
     case "shops-deal-edit": dealUi(id).edit = el.dataset.deal; render(); return;
     case "shops-pick": { const s = (state.shopping || []).find((x) => x.id === el.dataset.item); if (!s) return; const cur = pickedDeal(s); await pickDeal(s.id, cur?.id === el.dataset.deal ? null : el.dataset.deal, { rerender: true }); return; }   // 再点一次「已选这家」= 取消，回到默认
-    case "shops-dv-mode": { const v = dvUi(); v.mode = el.dataset.v === "cards" ? "cards" : "list"; try { localStorage.setItem("hp-dv-mode", v.mode); } catch { /* 忽略 */ } render(); return; }
+    case "shops-dv-mode": { const v = dvUi(); v.mode = ["cards", "group"].includes(el.dataset.v) ? el.dataset.v : "list"; try { localStorage.setItem("hp-dv-mode", v.mode); } catch { /* 忽略 */ } render(); return; }
     case "shops-dv-reset": Object.assign(dvUi(), { q: "", shop: "", cat: "", type: "", f: "all" }); render(); return;
     case "shops-hist": { const d = (state.shopDeals || []).find((x) => x.id === el.dataset.deal); if (!d) return; const du = dealUi(d.shop_id); du.hist = du.hist === d.id ? null : d.id; render(); return; }
     case "shops-deal-cancel": dealUi(id).edit = null; render(); return;

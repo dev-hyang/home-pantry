@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.6", title: { zh: "特价一览按商品分组；今日页钱卡和咩咩咩小改", en: "All deals grouped by item; small Today tweaks" }, items: [
+    { k: "better", zh: "特价一览默认「按商品」：同一样东西各家的特价放在一组比（巧克力：ALDI、Walmart、Costco…），清单上有的排在前面；列表、卡片两种看法还在", en: "All deals now groups by item by default: each item's deals from every store together (chocolate: ALDI, Walmart, Costco…), items on your list first; list and card views are still there" },
+    { k: "better", zh: "今日页钱卡的每一行和其他卡片一样是浅灰底的圆角块；咩咩咩多了「加入采购清单」", en: "Money card rows on Today look like the other cards' rows; Baa Baa gets an \"Add to shopping list\" button" }
+  ] },
   { v: "2026-11-14.5", title: { zh: "今日页卡片不再「卡住」点不动", en: "Today cards no longer get stuck" }, items: [
     { k: "fix", zh: "今日页的卡片自动换到第一张之后，有时点什么都没反应；现在每次换完都会回到可以点的那张，点链接一定有反应", en: "After the Today cards wrapped back to the first card, taps sometimes did nothing; the cards now always settle on a tappable copy" }
   ] },

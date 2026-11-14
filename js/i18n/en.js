@@ -3704,6 +3704,8 @@ export const EN = {
   "名称、地址、每周几换广告": "Name, address, weekly ad day",
   "取消认领": "Unclaim",
   "特价一览": "All deals",
+  "按商品": "By item",
+  "{g} 样商品 · {n} 条特价": "{g} items · {n} deals",
   "「{name}」的特价": "Deals for \"{name}\"",
   "{name} 的特价：选一家": "Deals for {name}: pick one",
   "你选的这家": "Your pick",
