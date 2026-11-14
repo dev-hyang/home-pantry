@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.8", title: { zh: "Target 小票识别更准", en: "Better Target receipt reading" }, items: [
+    { k: "fix", zh: "Target 小票：商品下面的 Circle Offer 优惠并进那件商品；Target Circle Card / RedCard 5% 这类整单折扣按金额比例分到每件商品，合计和小票对得上，不再全扣在最后一件上", en: "Target receipts: a Circle Offer under an item is taken off that item; whole-receipt discounts like Target Circle Card / RedCard 5% are spread across the items so the total matches, instead of all coming off the last item" },
+    { k: "fix", zh: "「You saved」「Circle earnings」这类说明行、部门标题不再被当成商品；「2 @ $1.99」按 2 件、合计 3.98 记", en: "\"You saved\", \"Circle earnings\" and department headers are no longer read as items; \"2 @ $1.99\" is read as 2 items totalling 3.98" }
+  ] },
   { v: "2026-11-14.7", title: { zh: "特价一览打得开了；小票折扣并进商品；财务金额遮挡补齐", en: "All deals opens; receipt discounts merge into items; money masking filled in" }, items: [
     { k: "fix", zh: "「特价一览」和采购清单的「比一比」打不开的问题修好了；看板上改成「几样清单上的有特价」，并写出是哪几样", en: "\"All deals\" and \"Compare\" on the shopping list now open; the dashboard shows how many list items are on sale and names them" },
     { k: "fix", zh: "采购清单选了特价后自动填的「在哪买」不会再被刷新冲掉", en: "The store filled in after picking a deal no longer disappears on refresh" },

@@ -37,6 +37,10 @@ function scanPrompt(multi = "auto") {
     "Each purchased product is one line. Weight-priced items (produce, meat, bulk): qty = weight, unit = lb / kg / oz / g. Everything else: qty = how many packages, unit = the PACKAGE TYPE it is sold in — one of: bottle (milk, juice, oil, sauces, detergent, shampoo), bag (rice, flour, chips, frozen food, bread), box (eggs, cereal, cookies, berries, trash bags), can (soda, beer, canned food, jars), pack (noodles, tissues, wipes, diapers), roll (paper towels, toilet paper, foil), tube (toothpaste), cup (yogurt), pc (single loose items, or when you can't tell). Never put the package size (e.g. 64 fl oz) as qty.",
     "amount = the final price paid for that line (apply line discounts). Skip tax, tip, bag fees, delivery/service fees, subtotal and payment lines (set skip=true or omit them).",
     "DISCOUNT LINES ARE NOT PRODUCTS: a line with a negative amount (\"3.00-\", \"-3.00\") that is a coupon / instant savings / TPD / member discount belongs to the product it discounts — usually the line right above it or the product named after a slash. Costco example: \"1179 Pomegranates 11.99 E\" then \"000399701 /Pomegranate 3.00- E\" → ONE line: Pomegranates, amount 8.99. Subtract the discount from that product's amount and do NOT output the discount as its own line.",
+    "WHOLE-RECEIPT DISCOUNTS are different: a discount for the whole order, not one product (Target Circle Card / RedCard 5% savings, employee or team-member discount, \"order discount\", a percentage off the subtotal) → output ONE line with that negative amount and order_discount=true. Never subtract it from a single product.",
+    "QUANTITY LINES: \"2 @ $1.99\" (or \"2 @ 1.99\") printed under a product means qty = 2 and that product's amount = the line total (3.98). It is not a separate line. Weight lines like \"1.32 lb @ $2.49/lb\" give qty and unit for the product above.",
+    "NOT PURCHASES — never output these as lines: department / section headers (GROCERY, HOME, HEALTH AND BEAUTY, ELECTRONICS, BABY…), lines that are only an item code, tax letters (T, N, NF, F, E), \"You saved\", \"Total savings\", \"Target Circle earnings / rewards\", \"Circle 360\", gift-card or payment lines, change due.",
+    "TARGET receipts: product lines look like \"071010236 GG 2% MILK $3.49 NF\" — the 9-digit number (DPCI) and the trailing tax letters are not part of the name (GG = Good & Gather, UP = up&up, MP = Market Pantry are store brands). \"Circle Offer\" / \"Target Circle\" / \"Circle Deal\" -$1.00 right below a product is that product's discount; \"Target Circle Card 5%\" / \"RedCard 5%\" near the total is a whole-receipt discount.",
     "match = the index of the best matching existing inventory item from the list I give you, or null if none is a clear match.",
     `category = one of: ${cats}; use "other" if unsure.`,
     `Today is ${todayISO()}.`,
@@ -49,7 +53,7 @@ function scanPrompt(multi = "auto") {
     sc.date ? `The user says the purchase date is ${sc.date}; use it as date for every receipt.` : "",
     sc.text.trim() ? `Pasted text:\n${sc.text.trim().slice(0, 12000)}` : "",
     sc.images.length ? `${multi === "one" ? 1 : sc.images.length} image(s) attached.` : "",
-    'Return exactly: {"receipts":[{"store":"","date":null,"currency":"","total":null,"lines":[{"raw":"original line","name":"","qty":1,"unit":"","amount":null,"match":null,"category":"other","skip":false}]}]}',
+    'Return exactly: {"receipts":[{"store":"","date":null,"currency":"","total":null,"lines":[{"raw":"original line","name":"","qty":1,"unit":"","amount":null,"match":null,"category":"other","skip":false,"order_discount":false}]}]}',
   ].filter(Boolean).join("\n");
   return { system, user };
 }
@@ -92,9 +96,9 @@ function buildReceipt(j) {
     const valid = window.CATEGORIES.some((c) => c.id === l.category && c.space !== "gear");
     const amount = l.amount == null || l.amount === "" ? null : num(l.amount, NaN);
     return { include: true, raw: String(l.raw || ""), name: String(l.name).trim().slice(0, 60), qty: num(l.qty, 1) > 0 ? num(l.qty, 1) : 1, unit: pickUnit(l.unit, l.name, m),
-      amount: Number.isFinite(amount) ? Math.round(amount * 100) / 100 : null, def: m?.id || "", match: m?.id || "", category: valid ? l.category : m?.category || "other" };
-  });
-  mergeDiscounts(rows);
+      amount: Number.isFinite(amount) ? Math.round(amount * 100) / 100 : null, def: m?.id || "", match: m?.id || "", category: valid ? l.category : m?.category || "other", order: !!l.order_discount };
+  }).filter((r) => !INFO_LINE.test(r.raw) && !INFO_LINE.test(r.name));
+  mergeDiscounts(rows); spreadOrderDiscounts(rows);
   const found = /^\d{4}-\d{2}-\d{2}$/.test(j?.date || "") && j.date <= todayISO();
   const date = sc.date || (found ? j.date : todayISO()), dateSrc = sc.date ? "user" : found ? "receipt" : "today";   // 你填的 > 小票 / 文字里读到的 > 今天
   if (date < todayISO()) for (const r of rows) r.match = "skip";   // 补记以前的购物：东西多半已经用掉，默认只记花费、不加库存（要入库的行再改）
@@ -104,10 +108,30 @@ function buildReceipt(j) {
 /** 万一模型还是把折扣单独列成一行（负数金额，Costco「000399701 /Pomegranate 3.00-」这种）：并进它折扣的那件商品——
  *  往上找同名（或名字互相包含）的正价行；找不到、而原文是「/商品名」或 TPD / 优惠券写法的，并进紧挨着的上一行正价商品。
  *  例：石榴 11.99 + 石榴 −3.00 → 石榴 8.99（一行）。实在找不到对应商品的负数行留着（多半是退货 / 整单优惠），由用户自己看。 */
-function mergeDiscounts(rows) {
-  const DISC = /^\s*[\d\s]*\/|\b(?:tpd|inst(?:ant)?\s*sav|savings?|coupon|disc(?:ount)?|mfr|off)\b|优惠|折扣|折|减/i;
+/** 不是花钱的行（11-14 Target）：「You saved」「Total savings」「Circle earnings」这类说明，模型偶尔当成商品——直接丢掉 */
+const INFO_LINE = /\byou saved\b|\btotal savings\b|\bsavings total\b|circle (?:earnings|rewards)|rewards earned|\bcircle 360\b|change due|您节省|共节省/i;
+/** 整单折扣（Target Circle Card / RedCard 5%、员工折扣、整单百分比优惠）：模型标了 order_discount，或者原文看得出来 */
+const ORDER_DISC = /red\s*card|circle\s*card|employee|team\s*member|order\s*discount|whole\s*order|整单/i;   // 只有「20% off」不算：Target Circle 单件优惠也这样写，交给模型的 order_discount 判断
+const isOrderDisc = (r) => r.amount < 0 && (r.order || ORDER_DISC.test(r.raw || ""));
+/** 整单折扣按金额比例分到这张小票的每件商品上（每件记的是实际付的钱，合计和小票对得上），最后一件补零头；分完删掉折扣那一行 */
+function spreadOrderDiscounts(rows) {
   for (let i = rows.length - 1; i >= 0; i--) {
-    const r = rows[i]; if (!(r.amount < 0)) continue;
+    const d = rows[i]; if (!isOrderDisc(d)) continue;
+    const items = rows.filter((r) => r !== d && r.amount > 0 && !isOrderDisc(r)), sum = items.reduce((a, r) => a + r.amount, 0);
+    if (!items.length || sum <= 0) continue;
+    let left = Math.round(d.amount * 100);   // 负数，按分算
+    items.forEach((r, k) => {
+      const cut = k === items.length - 1 ? left : Math.round((d.amount * 100 * r.amount) / sum);
+      left -= cut; r.amount = Math.round(r.amount * 100 + cut) / 100;
+    });
+    rows.splice(rows.indexOf(d), 1);
+  }
+  return rows;
+}
+function mergeDiscounts(rows) {
+  const DISC = /^\s*[\d\s]*\/|\b(?:tpd|inst(?:ant)?\s*sav|savings?|coupon|disc(?:ount)?|mfr|off)\b|circle\s*(?:offer|deal)|target\s*circle(?!\s*card)|优惠|折扣|折|减/i;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i]; if (!(r.amount < 0) || isOrderDisc(r)) continue;   // 整单折扣另外按比例分（spreadOrderDiscounts）
     const k = normName(r.name);
     let j = -1;
     for (let x = i - 1; x >= 0; x--) { const p = rows[x], pk = normName(p.name); if (p.amount > 0 && pk && k && (pk === k || pk.includes(k) || k.includes(pk))) { j = x; break; } }
