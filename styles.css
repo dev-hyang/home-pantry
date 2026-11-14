@@ -2789,7 +2789,12 @@ html.force-phone .tm-wrap { grid-template-columns: 1fr; }
 
 /* 待办：轻重小标一行；模块两行（名称 + 最近的一件）、右边数量徽章；底部「全部 N 件 ›」 */
 .ttodo-pills { display: flex; flex-wrap: wrap; gap: 6px; }
-.ttodo-list li { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 0; }
+.ttodo-list li { display: flex; align-items: center; min-width: 0; }
+.ttodo-list li > a { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 44px; padding: 6px 4px; margin: 0 -4px; border-radius: 8px; color: inherit; text-decoration: none; }   /* 每行自己进对应模块 */
+.ttodo-list li > a:hover { background: var(--surface-2); }
+.ttodo-list li > a:focus-visible { outline: 2px solid var(--pine); outline-offset: 1px; }
+.ttodo-list .tcard-ch { flex: none; color: var(--muted); }
+.tcard-foot a.tcard-more { text-decoration: none; min-height: 32px; display: inline-flex; align-items: center; }
 .ttodo-list .grow { display: flex; flex-direction: column; min-width: 0; flex: 1; overflow: hidden; }
 .ttodo-list .tr-k1 { font-size: 14px; font-weight: 500; }
 .tr-sub { font-size: 12px; line-height: 1.35; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

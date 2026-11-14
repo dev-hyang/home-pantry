@@ -145,11 +145,12 @@ function todoCard(all, counts) {
   if (!rows.length) return card({ k: "todo", icon: "🗂️", title: t("待办"), href: href("alerts"), body: `<div class="tcard-ok"><span class="tok-ico" aria-hidden="true">✓</span><div><b>${t("各处都没有待办")}</b><small>${t("采购清单是空的，账单、保养和季节任务都不急。")}</small></div></div>` });
   const pills = [0, 1, 2, 3].filter((x) => counts.bySeverity[x]).map((x) => `<span class="pill sev-${x}"><i>${counts.bySeverity[x]}</i>${t(SEVERITY_LABEL[x])}</span>`).join("");
   const cls = (w) => (w <= 2 ? SEVERITY_CLS[w] : "attn-count");
-  const list = rows.slice(0, 6).map((r) => `<li><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow"><span class="tr-k1">${esc(r.name)}</span><small class="tr-sub">${esc(r.first || "")}</small></span><span class="badge mcount ${cls(r.worst)}">${r.n}</span></li>`).join("");
+  // 2026-11-14：每一行自己是链接，直接进那个模块（采购清单、账单、设备保养…）；标题行和底部「全部 N 件」进 #/alerts
+  const list = rows.slice(0, 6).map((r) => `<li><a href="${esc(r.href)}"><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow"><span class="tr-k1">${esc(r.name)}</span><small class="tr-sub">${esc(r.first || "")}</small></span><span class="badge mcount ${cls(r.worst)}">${r.n}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`).join("");
   const more = rows.length > 6 ? t("还有 {n} 个模块", { n: rows.length - 6 }) : "";
-  return card({ k: "todo", icon: counts.important ? "🔔" : "🗂️", title: t("待办"), count: badge, href: href("alerts"), cls: counts.important ? "is-hot" : "",
+  return card({ k: "todo", icon: counts.important ? "🔔" : "🗂️", title: t("待办"), count: badge, headHref: href("alerts"), cls: counts.important ? "is-hot" : "",
     body: `${pills ? `<div class="pills ttodo-pills">${pills}</div>` : ""}<ul class="tcard-list ttodo-list">${list}</ul>
-      <p class="tcard-foot"><span>${more}</span><span class="tcard-more">${t("全部 {n} 件", { n: all.length })} ›</span></p>` });
+      <p class="tcard-foot"><span>${more}</span><a class="tcard-more" href="${href("alerts")}">${t("全部 {n} 件", { n: all.length })} ›</a></p>` });
 }
 
 /* ── 钱 · 本月（只给家主和有财务权限的人；调用前已判断）：数字来自 spend_rollup / inc_rollup 的缓存和内存里的账单、净资产 ── */
