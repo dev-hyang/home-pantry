@@ -3705,6 +3705,8 @@ export const EN = {
   "取消认领": "Unclaim",
   "特价一览": "All deals",
   "按商品": "By item",
+  "更多操作": "More actions",
+  "样清单上的有特价": "list items on sale",
   "{g} 样商品 · {n} 条特价": "{g} items · {n} deals",
   "「{name}」的特价": "Deals for \"{name}\"",
   "{name} 的特价：选一家": "Deals for {name}: pick one",

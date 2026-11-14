@@ -45,23 +45,47 @@ const CELL_SEL = "td, b, strong, small, .num, .badge, .hb-val, .ch-val, svg text
 const BLOCK_OF = (el) => el.closest("table, svg, .hb-list, .chart, .ch-table, .restock-list, .mlist, ul, .panel");
 function markCells(main) {
   main.querySelectorAll(CELL_SEL).forEach((el) => {
-    if (el.closest("[data-money], [data-money-cell], form, .kpi, .sum-main, .tcard, .crumb, nav, button, select, label") || el.hasAttribute("data-money-cell")) return;   // 看板大数字、表单、按钮、导航不在这里遮   // 看板大数字、表单、今日卡片另有处理
+    if (el.closest("[data-money], [data-money-cell], [data-money-off], form, .kpi, .sum-main, .tcard, .crumb, nav, button, select, label") || el.hasAttribute("data-money-cell")) return;   // 看板大数字、表单、按钮、导航不在这里遮   // 看板大数字、表单、今日卡片另有处理
     if (el.children.length > 2 || !isMoneyText(el.textContent || "")) return;   // 只看叶子格子；没有货币符号 = 不是钱，不遮
     el.setAttribute("data-money-cell", "");
     const block = el.closest(".chart") || BLOCK_OF(el); if (block) block.setAttribute("data-money-block", "");
   });
+}
+/* 其余散在文字里的金额（2026-11-14，借贷 / 预算 / 资产 / 收入明细里写在按钮、说明句子里的「$1,234.56」）：
+ * 和种子账本一样，把文字里的金额包成 <span data-money>——遮挡时模糊，点它只露它 10 秒，行里别的地方照常点。
+ * 不碰：表单（正在填的）、下拉框、图表（上面按格子遮）、已经标过的、带 data-money-off 的（花费明细：用户定不遮）。 */
+const LOOSE_SKIP = "script, style, option, select, textarea, input, form, svg, [data-money], [data-money-cell], [data-money-off], .money-eye";
+const AMT = /[-−+]?(?:[A-Z]{1,3})?[$¥€£₩]\s?\d[\d,]*(?:\.\d+)?(?:\s?[KkMm万])?/g;
+function markLoose(main) {
+  const w = document.createTreeWalker(main, NodeFilter.SHOW_TEXT, { acceptNode: (n) => {
+    if (!n.nodeValue || !/[$¥€£₩]\s?\d/.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
+    const p = n.parentElement; return !p || p.closest(LOOSE_SKIP) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+  } });
+  const nodes = []; while (w.nextNode()) nodes.push(w.currentNode);
+  for (const n of nodes) {
+    const s = n.nodeValue, frag = document.createDocumentFragment(); let last = 0;
+    s.replace(AMT, (m, i) => {
+      if (i > last) frag.append(s.slice(last, i));
+      const sp = document.createElement("span"); sp.setAttribute("data-money", ""); sp.className = "money-auto"; sp.textContent = m; frag.append(sp);
+      last = i + m.length; return m;
+    });
+    if (!last) continue;
+    if (last < s.length) frag.append(s.slice(last));
+    n.replaceWith(frag);
+  }
 }
 let observer = null, pending = false;
 export function decoratePrivacy(route) {
   const main = document.getElementById("main"); if (!main) return;
   // 财务页的局部重画（明细「继续加载」、筛选、展开一行）不走整页 render：盯着 #main，有新内容就再标一遍
   if (route?.section === "bills" && !observer && typeof MutationObserver !== "undefined") {
-    observer = new MutationObserver(() => { if (pending) return; pending = true; queueMicrotask(() => { pending = false; if (state0().section === "bills") markCells(main); }); });
+    observer = new MutationObserver(() => { if (pending) return; pending = true; queueMicrotask(() => { pending = false; if (state0().section === "bills") { markCells(main); markLoose(main); } }); });
     observer.observe(main, { childList: true, subtree: true });
   }
   if (route?.section !== "bills") return;
   markCells(main);
   main.querySelectorAll(BOARD_NUMS).forEach((el) => el.setAttribute("data-money", ""));
+  markLoose(main);   // 看板、表格之外，句子 / 按钮里的金额
   main.querySelectorAll(".kpis, .sum-main").forEach((box) => {   // 每组看板：右上角一只眼睛（同一个容器只放一次）
     if (box.previousElementSibling?.classList?.contains("money-eye-row") || !box.querySelector("[data-money]") && !box.matches("[data-money], .sum-main")) return;
     box.insertAdjacentHTML("beforebegin", `<div class="money-eye-row">${moneyEye()}</div>`);

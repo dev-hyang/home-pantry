@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.7", title: { zh: "特价一览打得开了；小票折扣并进商品；财务金额遮挡补齐", en: "All deals opens; receipt discounts merge into items; money masking filled in" }, items: [
+    { k: "fix", zh: "「特价一览」和采购清单的「比一比」打不开的问题修好了；看板上改成「几样清单上的有特价」，并写出是哪几样", en: "\"All deals\" and \"Compare\" on the shopping list now open; the dashboard shows how many list items are on sale and names them" },
+    { k: "fix", zh: "采购清单选了特价后自动填的「在哪买」不会再被刷新冲掉", en: "The store filled in after picking a deal no longer disappears on refresh" },
+    { k: "fix", zh: "录入小票：Costco 这类单独一行的折扣（/Pomegranate 3.00-）会并进那件商品，记成一条「石榴 8.99」；退货的负数金额不再被记成 0", en: "Receipts: separate discount lines (Costco \"/Pomegranate 3.00-\") merge into the item — one line \"Pomegranates 8.99\"; refund amounts are no longer saved as 0" },
+    { k: "better", zh: "花费明细：去掉上面的统计和悬停「删除」，金额不遮；右边 ▾ 展开编辑 / 复制 / 删除。收入明细金额遮挡、去掉「N 笔，到账…」；借贷、预算、资产、收支总览里写在句子和按钮里的金额也会遮挡", en: "Spending details: no summary or hover Delete, amounts not masked, ▾ opens Edit / Copy / Delete. Income amounts are masked and the \"N records…\" line is gone; amounts in sentences and buttons on debts, budget, assets and the overview are masked too" }
+  ] },
   { v: "2026-11-14.6", title: { zh: "特价一览按商品分组；今日页钱卡和咩咩咩小改", en: "All deals grouped by item; small Today tweaks" }, items: [
     { k: "better", zh: "特价一览默认「按商品」：同一样东西各家的特价放在一组比（巧克力：ALDI、Walmart、Costco…），清单上有的排在前面；列表、卡片两种看法还在", en: "All deals now groups by item by default: each item's deals from every store together (chocolate: ALDI, Walmart, Costco…), items on your list first; list and card views are still there" },
     { k: "better", zh: "今日页钱卡的每一行和其他卡片一样是浅灰底的圆角块；咩咩咩多了「加入采购清单」", en: "Money card rows on Today look like the other cards' rows; Baa Baa gets an \"Add to shopping list\" button" }

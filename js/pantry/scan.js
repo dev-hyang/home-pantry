@@ -36,6 +36,7 @@ function scanPrompt(multi = "auto") {
     `Write product names in short, generic ${names} (e.g. "Whole milk", not store abbreviations). Keep brand only when it matters.`,
     "Each purchased product is one line. Weight-priced items (produce, meat, bulk): qty = weight, unit = lb / kg / oz / g. Everything else: qty = how many packages, unit = the PACKAGE TYPE it is sold in — one of: bottle (milk, juice, oil, sauces, detergent, shampoo), bag (rice, flour, chips, frozen food, bread), box (eggs, cereal, cookies, berries, trash bags), can (soda, beer, canned food, jars), pack (noodles, tissues, wipes, diapers), roll (paper towels, toilet paper, foil), tube (toothpaste), cup (yogurt), pc (single loose items, or when you can't tell). Never put the package size (e.g. 64 fl oz) as qty.",
     "amount = the final price paid for that line (apply line discounts). Skip tax, tip, bag fees, delivery/service fees, subtotal and payment lines (set skip=true or omit them).",
+    "DISCOUNT LINES ARE NOT PRODUCTS: a line with a negative amount (\"3.00-\", \"-3.00\") that is a coupon / instant savings / TPD / member discount belongs to the product it discounts — usually the line right above it or the product named after a slash. Costco example: \"1179 Pomegranates 11.99 E\" then \"000399701 /Pomegranate 3.00- E\" → ONE line: Pomegranates, amount 8.99. Subtract the discount from that product's amount and do NOT output the discount as its own line.",
     "match = the index of the best matching existing inventory item from the list I give you, or null if none is a clear match.",
     `category = one of: ${cats}; use "other" if unsure.`,
     `Today is ${todayISO()}.`,
@@ -93,11 +94,31 @@ function buildReceipt(j) {
     return { include: true, raw: String(l.raw || ""), name: String(l.name).trim().slice(0, 60), qty: num(l.qty, 1) > 0 ? num(l.qty, 1) : 1, unit: pickUnit(l.unit, l.name, m),
       amount: Number.isFinite(amount) ? Math.round(amount * 100) / 100 : null, def: m?.id || "", match: m?.id || "", category: valid ? l.category : m?.category || "other" };
   });
+  mergeDiscounts(rows);
   const found = /^\d{4}-\d{2}-\d{2}$/.test(j?.date || "") && j.date <= todayISO();
   const date = sc.date || (found ? j.date : todayISO()), dateSrc = sc.date ? "user" : found ? "receipt" : "today";   // 你填的 > 小票 / 文字里读到的 > 今天
   if (date < todayISO()) for (const r of rows) r.match = "skip";   // 补记以前的购物：东西多半已经用掉，默认只记花费、不加库存（要入库的行再改）
   const total = j?.total == null ? null : num(j.total, NaN);
   return { include: true, store: String(j?.store || "").trim().slice(0, 40), date, dateSrc, total: Number.isFinite(total) ? total : null, rows };
+}
+/** 万一模型还是把折扣单独列成一行（负数金额，Costco「000399701 /Pomegranate 3.00-」这种）：并进它折扣的那件商品——
+ *  往上找同名（或名字互相包含）的正价行；找不到、而原文是「/商品名」或 TPD / 优惠券写法的，并进紧挨着的上一行正价商品。
+ *  例：石榴 11.99 + 石榴 −3.00 → 石榴 8.99（一行）。实在找不到对应商品的负数行留着（多半是退货 / 整单优惠），由用户自己看。 */
+function mergeDiscounts(rows) {
+  const DISC = /^\s*[\d\s]*\/|\b(?:tpd|inst(?:ant)?\s*sav|savings?|coupon|disc(?:ount)?|mfr|off)\b|优惠|折扣|折|减/i;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i]; if (!(r.amount < 0)) continue;
+    const k = normName(r.name);
+    let j = -1;
+    for (let x = i - 1; x >= 0; x--) { const p = rows[x], pk = normName(p.name); if (p.amount > 0 && pk && k && (pk === k || pk.includes(k) || k.includes(pk))) { j = x; break; } }
+    if (j < 0 && DISC.test(r.raw || "")) for (let x = i - 1; x >= 0; x--) if (rows[x].amount > 0) { j = x; break; }
+    if (j < 0) continue;
+    const p = rows[j];
+    p.amount = Math.round((p.amount + r.amount) * 100) / 100;
+    p.raw = [p.raw, r.raw].filter(Boolean).join(" · ");
+    rows.splice(i, 1);
+  }
+  return rows;
 }
 /** 模型返回的 receipts（兼容旧的单张格式）→ 每张小票一条；没读到商品的小票丢掉但提醒 */
 function normalize(js) {
@@ -170,7 +191,7 @@ function rowHtml(x, ri, i, cur) {
           <label class="span-2">${t("名称")}<input name="name" maxlength="60" list="scanItemNames" autocomplete="off" value="${esc(x.name)}"></label>
           <label>${t("数量")}<input name="qty" type="number" min="0" step="any" inputmode="decimal" value="${esc(fmt(x.qty))}"></label>
           <label>${t("单位")}<input name="unit" list="unitList" maxlength="10" value="${esc(t(x.unit))}"></label>
-          <label>${t("金额")}（${esc(cur)}）<input name="amount" type="number" min="0" step="0.01" inputmode="decimal" value="${x.amount ?? ""}"></label>
+          <label>${t("金额")}（${esc(cur)}）<input name="amount" type="number" step="0.01" inputmode="decimal" value="${x.amount ?? ""}"></label>
           <label class="span-2">${t("放进库存")}<select name="target" data-def="${esc(x.def || "")}">${targetOptions(x)}</select></label>
           <label class="span-2 scan-cat">${t("新物品的分类")}<select name="cat">${categoryOptions(x.category)}</select></label>
         </div>
@@ -316,7 +337,7 @@ async function confirm(ctx) {
     return [...box.querySelectorAll(".scan-row")].filter((r) => r.querySelector('[name="inc"]').checked).map((r) => {
       const g = (n) => r.querySelector(`[name="${n}"]`).value;
       const nm = g("name").trim(), same = g("target") === "__new" ? findItem(nm, { spaces: ["pantry", "house"] }) : null;   // 「新建」但库存里已有写法一样的：补到那件，不建第二件
-      return { store, now, pay, name: nm, qty: num(g("qty"), 0), unit: Units.normalize(g("unit")) || "个", amount: g("amount") === "" ? null : Math.round(Math.max(0, num(g("amount"))) * 100) / 100, target: same ? same.id : g("target"), cat: g("cat") };
+      return { store, now, pay, name: nm, qty: num(g("qty"), 0), unit: Units.normalize(g("unit")) || "个", amount: g("amount") === "" ? null : Math.round(num(g("amount")) * 100) / 100,   /* 负数 = 退货 / 整单优惠（11-14：以前被截成 0） */ target: same ? same.id : g("target"), cat: g("cat") };
     });
   });
   if (!rows.length) { sc.error = t("没有勾选任何一行。"); return repaint2(); }

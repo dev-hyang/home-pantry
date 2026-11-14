@@ -331,9 +331,15 @@ function keepUnsaved() {
   // 正在输入的那一格（表单里外都算，比如搜索框）：画完把焦点和光标放回去
   const a = document.activeElement, inMain = a && a !== document.body && a.closest?.("#main");
   const focus = inMain && (a.name || a.id) ? { form: a.form ? formKey(a.form, forms.indexOf(a.form)) : null, name: a.name, id: a.id, s: a.selectionStart, e: a.selectionEnd, value: a.form ? null : a.value } : null;
-  return { list, focus };
+  // 表单外、没有 name 的输入框也要留（2026-11-14：采购清单每一行的花费 / 在哪买 / 用卡——选了特价顺手填的商店名，保存后家人同步一重画就没了）：带 data-keep 的都算
+  const loose = [...document.querySelectorAll("#main [data-keep]")].map((el) => {
+    const def = el.tagName === "SELECT" ? ([...el.options].find((o) => o.defaultSelected)?.value ?? el.options[0]?.value) : el.defaultValue;
+    return el.value !== def ? { key: el.dataset.keep, value: el.value } : null;
+  }).filter(Boolean);
+  return { list, focus, loose };
 }
-function restoreUnsaved({ list, focus }) {
+function restoreUnsaved({ list, focus, loose = [] }) {
+  for (const k of loose) { const el = document.querySelector(`#main [data-keep="${CSS.escape(k.key)}"]`); if (el && el.value !== k.value) el.value = k.value; }
   const forms = [...document.querySelectorAll("#main form")], byKey = new Map(forms.map((f, i) => [formKey(f, i), f]));
   for (const k of list) {
     const f = byKey.get(k.key); if (!f) continue;
@@ -1265,6 +1271,7 @@ main.addEventListener("click", async (e) => {
         });
         return;
       }
+      case "spend-open": { state.spendOpen = state.spendOpen === id ? null : id; return renderSpendList(); }   // 花费明细一行的 ▾：编辑 / 复制 / 删除
       case "spend-edit-cancel": { if (state.spendDrafts && state.spendEdit) delete state.spendDrafts[state.spendEdit]; state.spendEdit = null; return renderSpendList(); }
       case "pay-more": return payList.more();   // 「继续加载」：向数据库要下一页
       case "page-more": { const k = el.dataset.page; pageMore(k); const fn = PAGE_RENDER[k.split(":")[0]]; return fn ? fn() : render(false); }   // 「继续加载」：能只重画列表的就只重画列表

@@ -625,11 +625,14 @@ function spendRow(p, L = spendLookups()) {
     : bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
     : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>${state.spendDrafts?.[p.id] ? ` <span class="badge b-soon">${t("草稿")}</span>` : ""}`;
   const sel = state.spendSel && !p.virtual ? `<input type="checkbox" class="sel" data-sel="${p.id}" aria-label="${esc(t("选中 {name}", { name: p.name }))}" ${state.spendSel.has(p.id) ? "checked" : ""}>` : "";
-  return `<li data-swipe-del="purchase">${sel}
+  const open = !p.virtual && state.spendOpen === p.id;
+  return `<li data-swipe-del="purchase" class="${open ? "is-open" : ""}">${sel}
     <span class="badge rec-date">${esc(fmtDay(p.purchased_at))}</span>
     <div class="grow"><span class="name">${title}${tags}</span><small>${esc(leafLabel(p.category))}${prop ? `，🏠 ${esc(prop)}` : ""}${storeOf(p) ? `，${esc(storeOf(p))}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${paymentPayLabel(p) ? `，${esc(paymentPayLabel(p))}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
     <b>${p.amount != null && num(p.amount) < 0 ? `<span class="badge b-ok">${t("退款")}</span> ` : ""}${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>
-    ${p.virtual ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button>`}</li>`;
+    ${p.virtual ? "" : `<button type="button" class="ix-more" data-action="spend-open" data-id="${p.id}" aria-expanded="${open}" aria-label="${esc(t("更多操作"))}" title="${esc(t("更多操作"))}">${open ? "▴" : "▾"}</button>
+    <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button>`}
+    ${open ? `<div class="sp-acts">${bill ? `<a class="btn btn-sm" href="${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}">${t("编辑")}</a>` : `<button type="button" class="btn btn-sm" data-action="spend-edit" data-id="${p.id}">${t("编辑")}</button>`}<button type="button" class="btn btn-sm btn-ghost" data-action="spend-copy" data-id="${p.id}">${t("复制")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="purchase-del" data-id="${p.id}">${t("删除")}</button></div>` : ""}</li>`;
 }
 /** 就地编辑：名称、分类、经济性质、关联房产、金额、商店、日期（数量和单位不动） */
 function spendEditRow(p) {
@@ -701,7 +704,9 @@ function spendListHtml() {
       <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${t("退出多选")}</button>
       <small class="muted" style="flex-basis:100%">${t("先用上面的筛选（年份、月份、收款方、分类、批次）缩小范围，再全选；删除前会再确认一次。")}</small></div>` : "";
   const xNote = st.xn ? `；${t("其中 {n} 笔转账（{a}）不算进合计", { n: st.xn, a: money(num(st.xsum)) })}` : "";
-  return `${selBar}<div class="muted small" style="margin:0 0 6px">${t("{n} 笔，合计 {m}", { n: st.n ?? "…", m: money(num(st.sum)) })}${xNote}${totalSplitHtml(st)}</div><ul class="restock-list rec-list${S ? " selecting" : ""}">${out}</ul>
+  // 2026-11-14 用户定：明细上面不再放一大段统计（看板上有）；明细金额不遮（data-money-off）
+  void xNote;
+  return `${selBar}<ul class="restock-list rec-list${S ? " selecting" : ""}" data-money-off>${out}</ul>
     ${L.busy ? `<p class="muted" role="status" style="text-align:center">${t("加载中…")}</p>` : moreBtn(L.hasMore, 'data-action="spend-more"')}`;
 }
 /** 合计按统计桶拆开（spend_stats.bycat，迁移 061）：明细的合计 = 除转账外的全部流出，收支总览的「消费」只算 日常 + 住房，

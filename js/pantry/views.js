@@ -536,9 +536,9 @@ function shopRowHtml(s) {
     <button type="button" class="btn btn-sm btn-primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button>`;
   const priceBox = s.status === "bought" ? (s.amount != null ? `<div class="muted" style="font-size:12px">${t("花费 {m}", { m: money(num(s.amount)) })}</div>` : "")
     : `<div class="price-in">
-        <input type="number" min="0" step="0.01" inputmode="decimal" data-price-for="${s.id}" placeholder="${esc(t("花费 {sym}（可不填）", { sym: Units.money(0).replace(/[\d.,\s]/g, "") }))}" aria-label="${esc(t("{name} 实际花费", { name: s.name }))}">
-        <input type="text" maxlength="40" list="storeList" data-store-for="${s.id}" placeholder="${t("在哪买（可不填）")}" aria-label="${esc(t("{name} 购买商店", { name: s.name }))}">
-        ${cardSelectHtml("card_id", undefined, `data-card-for="${s.id}"`)}
+        <input type="number" min="0" step="0.01" inputmode="decimal" data-price-for="${s.id}" data-keep="price-${s.id}" placeholder="${esc(t("花费 {sym}（可不填）", { sym: Units.money(0).replace(/[\d.,\s]/g, "") }))}" aria-label="${esc(t("{name} 实际花费", { name: s.name }))}">
+        <input type="text" maxlength="40" list="storeList" data-store-for="${s.id}" data-keep="store-${s.id}" placeholder="${t("在哪买（可不填）")}" aria-label="${esc(t("{name} 购买商店", { name: s.name }))}">
+        ${cardSelectHtml("card_id", undefined, `data-card-for="${s.id}" data-keep="card-${s.id}"`)}
       </div>`;
   const when = s.status === "bought" && s.bought_at ? t("{d} 买到", { d: fmtShort(s.bought_at) }) : s.created_at ? t("{d} 加入", { d: fmtShort(s.created_at) }) : "";
   // 左滑删除；没买到的还能右滑「已买到」（先确认）。右滑替下面隐藏的 swipe-alt-src 点一下（带 data-confirm，按钮本身点了不弹框）
@@ -601,8 +601,8 @@ function viewShopHome() {
         <span class="sd-split"><a href="${listHref("todo")}"><b>${st.todo}</b> ${t("尚未认领")}</a><a href="${listHref("claimed")}"><b>${st.claimed}</b> ${t("已认领")}</a></span>
       </div>
       ${tile(listHref("claimed"), "🛍", t("家人认领"), `${st.claimed}<small>${t("项")}</small>`, st.claimed ? who : t("点“我来买”认领，家人就不会重复买。"))}
-      ${tile(sh.hits ? `${href("shops", "deals")}?f=list` : href("shops", "list"), "🏪", t("常去的商店与特价"), sh.shops ? `${sh.hits}<small>${t("项特价对上清单")}</small>` : "—",
-        sh.shops ? [t("{n} 家", { n: sh.shops }), t("特价 {n} 项", { n: sh.deals }), sh.due ? `<em>${t("{n} 家待更新", { n: sh.due })}</em>` : ""].filter(Boolean).map((x) => `<span class="nw">${x}</span>`).join(" · ") : t("放进常去的超市，看本周特价、哪家最便宜"))}
+      ${tile(sh.items ? `${href("shops", "deals")}?f=list` : href("shops", "list"), "🏪", t("常去的商店与特价"), sh.shops ? `${sh.items}<small>${t("样清单上的有特价")}</small>` : "—",
+        sh.shops ? [sh.items ? `<span class="sd-hitnames">${esc(sh.itemNames.slice(0, 4).join("、"))}${sh.items > 4 ? "…" : ""}</span>` : "", t("{n} 家", { n: sh.shops }), t("特价 {n} 项", { n: sh.deals }), sh.due ? `<em>${t("{n} 家待更新", { n: sh.due })}</em>` : ""].filter(Boolean).map((x) => `<span class="nw">${x}</span>`).join(" · ") : t("放进常去的超市，看本周特价、哪家最便宜"))}
       ${tile(listHref("bought"), "✅", t("近 30 天买到"), `${st.recent}<small>${t("项")}</small>`, st.priced ? t("花费 {m}", { m: money(st.spent) }) : t("买到后自动加回库存。"))}
     </div>
     ${shopForecastHtml()}

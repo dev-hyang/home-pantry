@@ -437,7 +437,7 @@ function recordRow(r) {
   const who = r.person_id ? personName(r.person_id) : "", acct = acctShow(r), sub = [esc(fmtDate(r.received_on)), esc(kindLabel(r.kind)), who && esc(who), acct && esc(acct), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
   const rb = s ? `<span class="badge ${s.status === "paid" ? "b-ok" : s.overdue ? "b-out" : "b-soon"}">${s.status === "paid" ? t("已还清") : s.overdue ? t("逾期") : t("待还 {a}", { a: fmtMoney(s.left) })}</span>` : "";
   return `<li class="ix-li${open || editing ? " is-open" : ""}" data-id="${r.id}"${canEdit(r) && !pick && !editing ? ' data-swipe-del="income"' : ""}>${pick ? `<label class="ix-main"><input type="checkbox" class="ix-chk" data-inc-sel="${r.id}" ${I.sel?.has(r.id) ? "checked" : ""} ${canEdit(r) ? "" : "disabled"} aria-label="${esc(t("选择"))}">` : `<button type="button" class="ix-main" data-inc="${canEdit(r) ? "edit" : "open"}" data-id="${r.id}" ${canEdit(r) ? `title="${esc(editing ? t("再点一下收起") : t("点一下编辑"))}" aria-expanded="${editing}"` : `aria-expanded="${open}"`}>`}
-    <span class="ix-ico" style="--k:${kindOf(r.kind).color}" aria-hidden="true">${kindOf(r.kind).icon}</span><span class="grow"><b class="name">${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt">+${fmtMoney(r.amount)}</b>${recBadge(r)}${I.drafts?.[r.id] ? `<span class="badge b-soon">${t("草稿")}</span>` : ""}${rb}</span>${pick ? "</label>" : "</button>" + rowTools(r, open)}${editing ? `<div class="ix-edit">${formHtml()}</div>` : ""}${open && !pick ? recordDetail(r, s) : ""}</li>`;
+    <span class="ix-ico" style="--k:${kindOf(r.kind).color}" aria-hidden="true">${kindOf(r.kind).icon}</span><span class="grow"><b class="name">${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt" data-money>+${fmtMoney(r.amount)}</b>${recBadge(r)}${I.drafts?.[r.id] ? `<span class="badge b-soon">${t("草稿")}</span>` : ""}${rb}</span>${pick ? "</label>" : "</button>" + rowTools(r, open)}${editing ? `<div class="ix-edit">${formHtml()}</div>` : ""}${open && !pick ? recordDetail(r, s) : ""}</li>`;
 }
 /** 行右边：▾ 展开 / 收起详情（还款、备注、原币种…）；隐藏的「删除」给左滑用（js/swipe-rows.js），键盘 Tab 到它也能删 */
 const rowTools = (r, open) => `<button type="button" class="ix-more" data-inc="open" data-id="${r.id}" aria-expanded="${open}" aria-label="${esc(t("展开详情"))}" title="${esc(t("展开详情"))}">${open ? "▴" : "▾"}</button>${canEdit(r) ? `<button type="button" class="swipe-src" data-inc="del-swipe" data-id="${r.id}">${t("删除")}</button>` : ""}`;
@@ -458,7 +458,8 @@ const listHtml = () => {
   const L = incList.sync(incParams()), st = L.stats || {}, capS = num(st.cap_sum);
   const empty = `<li class="muted"${L.busy ? ' role="status"' : ""}>${L.busy ? t("加载中…") : L.err ? esc(L.err) : t("没有符合条件的记录")}</li>`;
   const head = st.income_sum != null ? t("{n} 笔，到账 {m} · 认定收入 {i}", { n: st.n ?? "…", m: fmtMoney(num(st.sum)), i: fmtMoney(num(st.income_sum)) }) + (capS > 0 ? ` · ${t("资本流入 {a}", { a: fmtMoney(capS) })}` : "") : t("{n} 笔，合计 {m}", { n: st.n ?? "…", m: fmtMoney(num(st.sum)) });
-  return `${selBar()}<div class="muted small" style="margin:0 0 6px">${head}</div><ul class="restock-list ix-list">${L.rows.map(recordRow).join("") || empty}</ul>
+  void head;   // 2026-11-14 用户定：明细上面不再写「N 笔，到账…」（看板上有）
+  return `${selBar()}<ul class="restock-list ix-list">${L.rows.map(recordRow).join("") || empty}</ul>
     ${L.busy && L.rows.length ? `<p class="muted" role="status" style="text-align:center">${t("加载中…")}</p>` : moreBtn(L.hasMore, 'data-inc="more"')}`;
 };
 export const renderIncList = () => { const el = $("#incList"); if (el) el.innerHTML = listHtml(); };
