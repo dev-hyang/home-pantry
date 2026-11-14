@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.5", title: { zh: "今日页卡片不再「卡住」点不动", en: "Today cards no longer get stuck" }, items: [
+    { k: "fix", zh: "今日页的卡片自动换到第一张之后，有时点什么都没反应；现在每次换完都会回到可以点的那张，点链接一定有反应", en: "After the Today cards wrapped back to the first card, taps sometimes did nothing; the cards now always settle on a tappable copy" }
+  ] },
   { v: "2026-11-14.4", title: { zh: "特价一览：各家特价放在一起比，采购清单可以选用哪一家", en: "All deals side by side; pick which store's deal each list item uses" }, items: [
     { k: "new", zh: "新的「特价一览」：各家有效期内的特价按商品列出，带价格、单价、商店；可搜索、按商店 / 分类 / 折扣类型筛选，列表和卡片两种看法。看板上「项特价对上清单」直接打开这里", en: "New \"All deals\": live deals from every store by item, with price, unit price and store; search, filter by store / category / deal type, list or card view. \"Deals on your list\" on the dashboard opens it" },
     { k: "better", zh: "采购清单每一项的特价改成下拉：可以自己选一家；旁边「比一比」看这一项在各家的特价，点「用这家」就显示在卡片上", en: "Each shopping-list item now has a dropdown of deals to pick from; \"Compare\" shows that item's deals at every store and \"Use this\" puts one on the card" },

@@ -1,6 +1,7 @@
 /* 左右滑动的卡片（2026-11-07，今日页；做法和小月亮顶部大计时一样）：
  *  - 一屏一张，scroll-snap 吸附；手指 / 触控板左右滑；下面一行 ‹ 短划线 › 可点。
- *  - 循环：轨道里放 5 份同样的卡，停在中间那份；滑到靠边时悄悄跳回中间同一张，所以能一直滑下去（副本加 inert，读屏和 Tab 只走真的那份）。
+ *  - 循环：轨道里放 5 份同样的卡，停在中间那份；每次滑完（包括自动换到下一张）就悄悄跳回中间那份的同一张，所以能一直滑下去。
+ *    副本只加 aria-hidden、里面的链接和按钮移出 Tab 顺序（2026-11-14：原来用 inert，可停在副本上时点什么都没反应，像「卡住」了）（原：副本加 inert，读屏和 Tab 只走真的那份）。
  *  - 自动切换：当前那条短划线像进度条一样 30 秒走满，走满就到下一张、下一条重新开始。
  *    手指按着、鼠标停在卡片上、焦点在卡片里时进度条停住（CSS 暂停动画）；手动换张后从头走；系统要求减少动态效果时不走、不自动换。
  * 用法：carouselHtml(id, slides[]) 画出来；render 之后调 restoreCarousels()（main.js 每次 render 后会调）。 */
@@ -17,7 +18,7 @@ const reduced = () => !!window.matchMedia?.("(prefers-reduced-motion: reduce)").
 export function carouselHtml(id, slides, { label = "" } = {}) {
   const n = slides.length; if (!n) return "";
   const loop = n > 1, cur = Math.min(pos[id] || 0, n - 1);
-  const slide = (html, j, clone) => `<div class="tslide" ${clone ? 'inert aria-hidden="true"' : `role="group" aria-roledescription="${esc(t("卡片"))}" aria-label="${j + 1}/${n}"`}>${html}</div>`;
+  const slide = (html, j, clone) => `<div class="tslide" ${clone ? 'aria-hidden="true" data-clone="1"' : `role="group" aria-roledescription="${esc(t("卡片"))}" aria-label="${j + 1}/${n}"`}>${html}</div>`;
   const track = loop ? Array.from({ length: COPIES }, (_, c) => slides.map((h, j) => slide(h, j, c !== MID)).join("")).join("") : slide(slides[0], 0, false);
   const nav = (d, l, ch) => `<button type="button" class="tc-nav" data-tcnav="${d}" aria-label="${esc(l)}">${ch}</button>`;
   const secs = autoSecs();
@@ -37,7 +38,7 @@ const realOf = (tr) => ((pageOf(tr) % nOf(tr)) + nOf(tr)) % nOf(tr);
 /** 循环的轨道：离中间那份太远就悄悄跳回中间同一张 */
 function settle(tr) {
   if (tr._down || !tr.dataset.loop) return;
-  const n = nOf(tr), p = pageOf(tr); if (p >= n && p < (COPIES - 1) * n) return;
+  const n = nOf(tr), p = pageOf(tr); if (p >= MID * n && p < (MID + 1) * n) return;   // 已经在中间那份：不用跳
   tr.style.scrollSnapType = "none"; tr.scrollLeft = (MID * n + realOf(tr)) * stepW(tr);
   requestAnimationFrame(() => { tr.style.scrollSnapType = ""; });
 }
@@ -48,6 +49,8 @@ export function restoreCarousels() {
     const tr = box.querySelector(".ttrack"); if (!tr) return;
     const n = nOf(tr), i = Math.min(pos[box.dataset.carousel] || 0, n - 1);
     tr.scrollLeft = (tr.dataset.loop ? MID * n + i : i) * stepW(tr);
+    // 副本里的链接、按钮：点得到（万一正停在副本上），但不进 Tab 顺序（读屏也跳过，副本有 aria-hidden）
+    tr.querySelectorAll('[data-clone] a[href], [data-clone] button, [data-clone] input, [data-clone] select, [data-clone] textarea, [data-clone] summary, [data-clone] [tabindex]').forEach((el) => el.setAttribute("tabindex", "-1"));
   });
 }
 /** 当前那条短划线：换成第 i 条，进度条从头开始走 */
