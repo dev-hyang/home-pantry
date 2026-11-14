@@ -3052,7 +3052,9 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 @media (pointer: coarse) { .deal-pick select, .deal-pick-all { min-height: 44px; } }
 /* 特价一览：列表 / 卡片 */
 .dv-toolbar { flex-wrap: wrap; }
-.dv-mode { display: inline-flex; gap: 4px; }
+.dv-mode { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.dv-modebar { display: flex; justify-content: flex-start; margin: 0 0 10px; }   /* 看法切换：左上角单独一行，和下面的筛选分开 */
+@media (pointer: coarse) { .dv-modebar .btn { min-height: 44px; } }
 .dv-count { margin: 6px 0; font-size: 13px; }
 .dv-th, .dv-row { display: grid; grid-template-columns: minmax(180px, 1fr) 150px 96px 96px 78px 120px; gap: 10px; align-items: center; }
 .dv-th { font-size: 12px; color: var(--muted); padding: 0 6px 6px; border-bottom: 1px solid var(--line); }
