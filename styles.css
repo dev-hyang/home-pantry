@@ -3296,3 +3296,20 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .inv-row .inv-qty > .inv-unit { flex: none; width: 84px; }
 .inv-row .inv-qty > button { flex: none; }
 .inv-row .inv-qty > *, .inv-mute { box-sizing: border-box; }
+/* 库存多选：每行前面一个勾选框，点行选中；底部固定一条操作条（在底部导航上方） */
+.sel-mode .inv-row { grid-template-columns: 4px 28px minmax(0, 1fr) auto auto; }
+.inv-chk { width: 22px; height: 22px; margin: 0; accent-color: var(--pine); cursor: pointer; }
+.inv-row.is-picked { background: color-mix(in srgb, var(--pine) 10%, var(--surface)); }
+.inv-selbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(68px + env(safe-area-inset-bottom, 0px)); z-index: 26; width: min(760px, calc(100vw - 24px)); box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+.inv-selbar .btn { min-height: 44px; }
+.inv-seln { font-weight: 700; font-size: 14px; }
+.section:has(.inv-selbar) { padding-bottom: 96px; }
+@media (max-width: 640px) {
+  .sel-mode .inv-row { grid-template-columns: 4px 28px minmax(0, 1fr) auto; grid-template-areas: "bar chk main mute" "bar chk qty qty"; }
+  .sel-mode .inv-chk { grid-area: chk; }
+  .inv-selbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 8px; }
+  .inv-selbar .spacer { display: none; }
+  .inv-selbar .inv-seln { grid-column: span 2; align-self: center; padding-left: 4px; }
+  .inv-selbar .btn { justify-content: center; padding-inline: 4px; white-space: nowrap; font-size: 13px; }
+  .section:has(.inv-selbar) { padding-bottom: 140px; }
+}

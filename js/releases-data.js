@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.14", title: { zh: "库存可以多选", en: "Select several items in Inventory" }, items: [
+    { k: "new", zh: "库存点「多选」，再点行选中几件，一起加入采购清单、设成不提醒或删除；「全选」按当前筛选选", en: "Tap \"Select\" in Inventory, then tap rows to pick several items and add them to the shopping list, mute or delete them together; \"Select all\" follows the current filters" }
+  ] },
   { v: "2026-11-14.13", title: { zh: "库存：一件一行，点行就能改", en: "Inventory: one row per item, tap to edit" }, items: [
     { k: "new", zh: "库存默认按物品一行行列出，日常储备、房屋耗材各一个大块；右上角可以切回原来的分类视图", en: "Inventory now lists one row per item, with Everyday stock and Home supplies as two big blocks; switch back to the category view at the top right" },
     { k: "better", zh: "点这一行任何地方就进编辑；数量、单位直接在行里改，单位是下拉，也能选「其他…」手填", en: "Tap anywhere on a row to edit it; change quantity and unit right in the row (unit is a dropdown, or pick \"Other…\" to type one)" },

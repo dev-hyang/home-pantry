@@ -68,7 +68,7 @@ import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsen
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
 import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
-import { moveCat, pantryNav, renderInvList, setFold, setInvView, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
+import { moveCat, pantryNav, renderInvList, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { famMembers, familyHref, meId, profileErr, readMemberForm, reloadMembers } from "./settings/members.js";
 import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
@@ -432,6 +432,7 @@ function onRoute() {
     next.q.delete("status"); history.replaceState(null, "", `${href(next.section, next.sub)}${next.q.toString() ? `?${next.q}` : ""}`);
   }
   if (next.section === "scan" && prev.section !== "scan") resetScan();
+  if (!(next.section === "pantry" && next.sub === "inventory")) state.invSel = null;   // 离开库存：多选结束
   // 换了页面 / 页签 / 钻取参数：所有列表回到一页（从表单页返回原列表时保留，滚动位置才对得上）
   if ((routeKey(prev) !== routeKey(next) || prev.q?.toString() !== next.q.toString()) && !isFormSection(prev)) resetListPages();
   // 从图表 / 名称钻取来的：套上筛选，再把地址里的筛选参数去掉（刷新或再次进入不会重复套用）
@@ -991,6 +992,21 @@ function drillTo(qs) {
   if (state.billsEnabled) return go(`${href("bills", "spend")}?tab=records&${qs}`);
   applySpendDrill(new URLSearchParams(qs)); render(); $("#spendRecords")?.scrollIntoView({ block: "start" });   // 账单模块关闭：明细就在统计页下面
 }
+/* 库存多选：点行（或勾选框）选中 / 取消，只更新这一行和底部操作条，不重画整页 */
+function pickRow(id, on) {
+  if (!state.invSel) return;
+  if (on) state.invSel.add(id); else state.invSel.delete(id);
+  const row = document.querySelector(`.inv-row[data-id="${CSS.escape(id)}"]`);
+  if (row) { row.classList.toggle("is-picked", on); const c = row.querySelector(".inv-chk"); if (c) c.checked = on; }
+  const n = document.querySelector(".inv-seln"); if (n) n.textContent = selBarText();
+  document.querySelectorAll('.inv-selbar [data-action^="inv-sel-"]:not([data-action="inv-sel-all"])').forEach((b) => { b.disabled = !state.invSel.size; });
+}
+main.addEventListener("change", (e) => { if (e.target.matches?.(".inv-chk")) pickRow(e.target.dataset.selId, e.target.checked); });
+main.addEventListener("click", (e) => {
+  const row = e.target.closest?.("[data-row-sel]"); if (!row || e.target.closest("a, button, input, select, textarea, label")) return;
+  if (e.target.closest(".inv-link")) return;
+  pickRow(row.dataset.rowSel, !state.invSel?.has(row.dataset.rowSel));
+});
 /* 点行进编辑（2026-11-14）：带 data-row-open 的行，点到行里任何不是按钮 / 链接 / 输入框的地方，就打开它的编辑页 */
 main.addEventListener("click", (e) => {
   const row = e.target.closest?.("[data-row-open]"); if (!row || e.defaultPrevented) return;
@@ -1151,7 +1167,22 @@ main.addEventListener("click", async (e) => {
         toast(t("{name} 少了一件，已加入采购清单换新", { name: it.name }));
         return refresh();
       }
-      case "inv-view": setInvView(el.dataset.view); return render();
+      case "inv-view": setInvView(el.dataset.view); state.invSel = null; return render();
+      case "inv-select": state.invSel = state.invSel ? null : new Set(); return render();
+      case "inv-sel-all": { const ids = visibleItemIds(), all = ids.every((x) => state.invSel?.has(x)); state.invSel = new Set(all ? [] : ids); return render(); }
+      case "inv-sel-shop": { const list = [...(state.invSel || [])].map((x) => state.enriched.find((i) => i.id === x)).filter(Boolean); state.invSel = null; return addAlertsToShopping(list); }
+      case "inv-sel-mute": {
+        const ids = [...(state.invSel || [])]; if (!ids.length) return;
+        el.disabled = true; for (const x of ids) await Store.setItemMute(x, MUTE_FOREVER);
+        toast(t("{n} 件设为不提醒（下次补货入库后自动恢复）", { n: ids.length })); state.invSel = null; return refresh();
+      }
+      case "inv-sel-del": {
+        const ids = [...(state.invSel || [])]; if (!ids.length) return;
+        const names = ids.map((x) => state.items.find((i) => i.id === x)?.name).filter(Boolean);
+        if (!confirmDelete(t("删除这 {n} 件物品？\n{names}", { n: ids.length, names: names.slice(0, 8).join("、") + (names.length > 8 ? " …" : "") }))) return;
+        el.disabled = true; for (const x of ids) await Store.deleteItem(x);
+        toast(t("已删除 {n} 件物品", { n: ids.length })); state.invSel = null; return refresh();
+      }
       case "item-mute": {   // 物品行上的 🔔：一点就不提醒（下次补货入库自动恢复），再点恢复
         const it = state.items.find((x) => x.id === id); if (!it) return;
         const on = !!it.alert_mute_until && String(it.alert_mute_until) > new Date().toISOString().slice(0, 10);

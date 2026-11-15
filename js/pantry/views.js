@@ -328,7 +328,8 @@ function viewInvRows(space) {
   if (f.space !== space) Object.assign(f, { space, cat: "all" });
   const both = state.houseEnabled, all = state.enriched.filter((x) => inSpace("pantry")(x) || (both && inSpace("house")(x)));
   return `<section class="section inv-rows-page">
-      <div class="section-head"><p>${t("{n} 件", { n: all.length })}</p><div class="head-acts">${viewSeg("rows")}
+      <div class="section-head"><p>${t("{n} 件", { n: all.length })}</p><div class="head-acts">
+        <button type="button" class="btn btn-sm ${state.invSel ? "btn-primary" : "btn-ghost"}" data-action="inv-select" aria-pressed="${!!state.invSel}">${state.invSel ? t("完成") : `☑ ${t("多选")}`}</button>${viewSeg("rows")}
         <a class="btn btn-primary btn-sm hide-phone" href="${href("item", "new")}?space=${addSpace()}">＋ ${t("添加物品")}</a></div></div>
       <div class="toolbar">
         <input type="search" id="invSearch" placeholder="${t("搜索物品，例如：纸、蛋")}" value="${esc(f.q)}" aria-label="${t("搜索物品")}">
@@ -340,9 +341,27 @@ function viewInvRows(space) {
         <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
         ${clearFiltersBtn("inv", changed(f, FD.inv))}
       </div>
-      <div id="invRows" data-both="${both ? 1 : 0}"></div>
-      ${fab(addSpace(), t("添加物品"))}
+      <div id="invRows" data-both="${both ? 1 : 0}" class="${state.invSel ? "sel-mode" : ""}"></div>
+      ${state.invSel ? selBar() : fab(addSpace(), t("添加物品"))}
     </section>`;
+}
+/** 多选时底部的操作条：已选几项、全选、加入采购清单、不提醒、删除 */
+export function selBarText() { const n = state.invSel?.size || 0; return n ? t("已选 {n} 项", { n }) : t("点行来选"); }
+function selBar() {
+  const off = state.invSel.size ? "" : "disabled";
+  return `<div class="inv-selbar" role="toolbar" aria-label="${esc(t("多选操作"))}">
+    <span class="inv-seln" aria-live="polite">${esc(selBarText())}</span>
+    <button type="button" class="btn btn-sm btn-ghost" data-action="inv-sel-all">${t("全选")}</button>
+    <span class="spacer"></span>
+    <button type="button" class="btn btn-sm" data-action="inv-sel-shop" ${off}>🛒 ${t("加入采购")}</button>
+    <button type="button" class="btn btn-sm" data-action="inv-sel-mute" ${off}>🔕 ${t("不提醒")}</button>
+    <button type="button" class="btn btn-sm btn-danger-ghost" data-action="inv-sel-del" ${off}>🗑 ${t("删除")}</button>
+  </div>`;
+}
+/** 当前筛选下看得见的物品（全选用） */
+export function visibleItemIds() {
+  const f = state.filter, spaces = ["pantry", ...(state.houseEnabled ? ["house"] : [])];
+  return state.enriched.filter((x) => spaces.some((s) => inSpace(s)(x)) && matchItem(x, f, { withCat: false })).map((x) => x.id);
 }
 /** 物品视图的两个容器（折叠状态和概览大卡片共用一份本机记录） */
 function renderInvRows(host) {
@@ -368,10 +387,12 @@ export function itemRow(it) {
   const meta = [`${c.icon} ${esc(t(it.subcategory || c.name))}`, it.location && `📍${esc(t(it.location))}`,
     it.daysLeft != null && it.qty > 0 && `${t("约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) })}`, inList && `🛒 ${t("已在清单")}`].filter(Boolean).join(" · ");
   const badges = `${it.status !== "ok" ? `<span class="badge ${st.cls}">${t(st.label)}</span>` : ""}${m ? `<span class="badge b-muted">🔕 ${t("不提醒")}</span>` : ""}${it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? t("已过期") : t("{d} 天内到期", { d: it.expDays })}</span>` : ""}`;
-  const step = Units.step(it.du), nm = esc(it.name);
-  return `<li class="inv-row st-${it.status}" data-id="${it.id}" data-row-open="${esc(href("item", it.id))}" data-swipe-del="item" data-swipe-alt="item" data-swipe-alt-label="${esc(t("加入采购"))}" data-swipe-alt-go="${esc(t("松手加入采购"))}">
+  const step = Units.step(it.du), nm = esc(it.name), sel = state.invSel, on = sel?.has(it.id);
+  const rowAttrs = sel ? `data-row-sel="${it.id}"` : `data-row-open="${esc(href("item", it.id))}" data-swipe-del="item" data-swipe-alt="item" data-swipe-alt-label="${esc(t("加入采购"))}" data-swipe-alt-go="${esc(t("松手加入采购"))}"`;
+  return `<li class="inv-row st-${it.status}${on ? " is-picked" : ""}" data-id="${it.id}" ${rowAttrs}>
     <span class="inv-bar" aria-hidden="true"></span>
-    <div class="inv-main"><div class="inv-name"><a href="${esc(href("item", it.id))}" class="inv-link">${nm}</a>${badges}</div><div class="inv-meta">${meta}</div></div>
+    ${sel ? `<input type="checkbox" class="inv-chk" data-sel-id="${it.id}" ${on ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: it.name }))}">` : ""}
+    <div class="inv-main"><div class="inv-name">${sel ? `<span class="inv-link">${nm}</span>` : `<a href="${esc(href("item", it.id))}" class="inv-link">${nm}</a>`}${badges}</div><div class="inv-meta">${meta}</div></div>
     <button type="button" class="inv-mute" data-action="item-mute" data-id="${it.id}" aria-pressed="${m}" aria-label="${esc(m ? t("{name}：恢复提醒", { name: it.name }) : t("{name}：不提醒", { name: it.name }))}" title="${esc(m ? t("已设为不提醒，点一下恢复") : t("点一下设为不提醒"))}">${m ? "🔕" : "🔔"}</button>
     <div class="inv-qty" role="group" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
       <button type="button" data-action="consume" data-id="${it.id}" aria-label="${esc(t("{name} 用掉 {q} {u}", { name: it.name, q: step, u: t(it.du) }))}">−</button>
