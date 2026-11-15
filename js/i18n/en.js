@@ -2408,6 +2408,7 @@ export const EN = {
   "{n} 种，长期用的东西，只记数量和位置": "{n} kinds you keep; only count and location are tracked",
   "改回": "Move back to", "分类细化时，这些物品是按名称猜着搬的。放对了点「没错」；放错了点「改回…」或「改成…」，连着的花费也跟着换。": "When categories were refined, these items were moved by guessing from their names. Tap \"Correct\" if right, or \"Move back to…\" / \"Move to…\" if not; linked spending moves too.",
   "筛选": "Filter",
+  "{c}：{n} 件要补货，全部加入采购清单": "{c}: {n} need restocking, add all to the shopping list",
   "全部物品": "All items", "{n} 种，都充足": "{n} kinds, all stocked",
   "这张小票可能已经录过：{who}{d} 记了 {n} 项，合计 {m}（这次 {m2}）": "This receipt may already be logged: {who}{d} logged {n} items, total {m} (this one {m2})",
   "这张小票怎么处理": "What to do with this receipt",

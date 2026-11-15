@@ -3408,3 +3408,9 @@ button.fab { border: 0; cursor: pointer; padding: 0; font-family: inherit; }
 .sel-sheet { overflow: hidden; }
 .sel-sheet .ask-form { height: min(80vh, 640px); overflow: hidden; }
 @media (max-width: 640px) { .sel-sheet .ask-form { height: min(80vh, 640px); } }
+/* 分类视图：每个大类标题右边「🛒 全部加入采购清单 n」（只有要补货的才出现） */
+.cat-group-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.cat-group-h > h3 { display: flex; align-items: center; gap: 8px; font-size: 16px; margin: 0; }
+.cat-group-h > h3 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cat); }
+.cat-shop { min-height: 40px; white-space: nowrap; }
+.cat-shop .num { margin-left: 2px; padding: 0 6px; border-radius: 99px; background: var(--out); color: #fff; font-size: 12px; }

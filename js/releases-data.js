@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.23", title: { zh: "分类视图：每个大类可以一键加入采购清单", en: "Category view: add a whole category to the shopping list" }, items: [
+    { k: "new", zh: "库存的分类视图里，每个大类标题旁有「🛒 全部加入采购清单」和要补货的件数，加之前确认数量", en: "In Inventory's category view, each category heading has \"🛒 Add all to shopping list\" with the number to restock; you confirm quantities first" }
+  ] },
   { v: "2026-11-14.22", title: { zh: "物品表单的下拉可以打字筛选", en: "Type to filter in the item form's dropdowns" }, items: [
     { k: "better", zh: "添加 / 编辑物品时，大类、小类、存放位置可以打字筛选：电脑上点进去直接打字；手机上点了从底部弹出「搜索 + 清单」，不用滑很久", en: "When adding or editing an item, Category, Subcategory and Location can be filtered by typing: on a computer just type; on a phone a panel with a search box and the list slides up" }
   ] },

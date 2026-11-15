@@ -372,6 +372,8 @@ const invSpaces = () => ["pantry", ...(state.houseEnabled ? ["house"] : []), ...
 /** 物品视图的筛选：分类（从概览货架点进来）+ 搜索 / 状态 / 位置；小类不用 */
 const rowMatch = (it) => matchItem(it, { ...state.filter, sub: "all" });
 /** 某个容器里，按当前筛选要补货、还不在采购清单里的物品（「全部加入采购清单」用） */
+/** 分类视图：某个大类里，按当前筛选要补货、还不在采购清单里的物品 */
+export function catNeed(cat) { return state.enriched.filter((x) => x.category === cat && matchItem(x, { ...state.filter, cat, sub: "all" }) && x.status !== "ok" && !openShopFor(x.id)).sort(invSorter("default")); }
 export function secNeed(space) { return state.enriched.filter((x) => inSpace(space)(x) && rowMatch(x) && x.status !== "ok" && !openShopFor(x.id)).sort(invSorter("default")); }
 /** 当前筛选下看得见的物品（全选用） */
 export function visibleItemIds() {
@@ -517,7 +519,9 @@ export function renderInvList() {
     if (!inCat.length || left <= 0) return "";
     const part = inCat.slice(0, left); left -= part.length;
     const head = withHead && g.id !== lastG ? `<h2 class="inv-grp-h">${esc(grpName(g))}</h2>` : ""; lastG = g.id;
-    return `${head}<div class="cat-group" style="--cat:${c.color}"><h3><span class="dot" aria-hidden="true"></span>${c.icon} ${t(c.name)}<span class="muted">（${inCat.length}）</span></h3>
+    const need = f.space === "gear" ? 0 : inCat.filter((x) => x.status !== "ok" && !openShopFor(x.id)).length;   // 这个大类里要补货、还不在清单里的
+    return `${head}<div class="cat-group" style="--cat:${c.color}"><div class="cat-group-h"><h3><span class="dot" aria-hidden="true"></span>${c.icon} ${t(c.name)}<span class="muted">（${inCat.length}）</span></h3>
+      ${need ? `<button type="button" class="btn btn-sm cat-shop" data-action="inv-cat-shop" data-cat="${c.id}" aria-label="${esc(t("{c}：{n} 件要补货，全部加入采购清单", { c: t(c.name), n: need }))}">🛒 ${t("全部加入采购清单")} <b class="num">${need}</b></button>` : ""}</div>
       <div class="items">${part.map(itemCard).join("")}</div></div>`;
   }).join("") + pageMoreBtn("inv", orderedCats(f.space).reduce((n, c) => n + (byCat.get(c.id)?.length || 0), 0), lim);
 }
