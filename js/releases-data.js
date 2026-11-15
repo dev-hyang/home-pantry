@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.16", title: { zh: "列表里点整行就能打开", en: "Tap anywhere on a list row to open it" }, items: [
+    { k: "better", zh: "账单、设备、补货提醒、分类视图的物品等列表：点这一行任何空白处就打开编辑，不用非点名字", en: "Bills, equipment, restock reminders, items in the category view and other lists: tap anywhere on the row to open it, not just the name" }
+  ] },
   { v: "2026-11-14.15", title: { zh: "添加物品：默认不提醒，分块可折叠，单位用下拉", en: "Add item: no reminders by default, foldable sections, unit dropdown" }, items: [
     { k: "better", zh: "新物品默认不提醒；在「数量与提醒」里勾上「提醒补货」，才出现少货线和提前几天提醒", en: "New items have no reminders by default; tick \"Restock reminders\" under Quantity & reminders to set the low-stock line and days ahead" },
     { k: "better", zh: "表单按块折叠 / 展开（基本信息、数量与提醒、备注、花费）", en: "The form folds into sections (Basics, Quantity & reminders, Notes, Spending)" },

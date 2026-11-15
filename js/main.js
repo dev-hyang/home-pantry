@@ -1014,6 +1014,16 @@ main.addEventListener("click", (e) => {
   if (window.getSelection?.().toString()) return;   // 在选字，不跳
   location.hash = row.dataset.rowOpen.replace(/^#/, "");
 });
+/* 其余列表（账单、设备、花费、补货提醒、分类视图的物品卡…）同样点行就进编辑：行里只有一个「名称」链接 / 编辑按钮时，
+ * 点行里任何不是按钮 / 链接 / 输入框的地方，等于点了它。行里有好几个名称链接的（不知道该去哪）不处理 */
+const ROW_PRIMARY = 'a.link-name, a.asset-name, .item-title > button[data-action="edit"], .grow > button.link-name[data-action="edit"]';
+main.addEventListener("click", (e) => {
+  if (e.defaultPrevented || e.target.closest?.("[data-row-open], [data-row-sel], a, button, input, select, textarea, label, summary, [data-action], [data-drill], form, .crumb, nav")) return;
+  const row = e.target.closest?.("li, article.item"); if (!row || !main.contains(row)) return;
+  if (window.getSelection?.().toString()) return;
+  const cands = [...row.querySelectorAll(ROW_PRIMARY)].filter((el) => el.closest("li, article.item") === row);
+  if (cands.length === 1) cands[0].click();
+});
 main.addEventListener("click", (e) => { const d = e.target.closest?.("[data-drill]"); if (d) { e.preventDefault(); drillTo(d.dataset.drill); } });
 main.addEventListener("keydown", (e) => { if (e.key !== "Enter" && e.key !== " ") return; const d = e.target.closest?.("[data-drill]"); if (d && !(d instanceof HTMLButtonElement)) { e.preventDefault(); drillTo(d.dataset.drill); } });
 main.addEventListener("click", async (e) => {
