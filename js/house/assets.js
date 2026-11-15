@@ -315,7 +315,7 @@ export function viewAssets() {
       <div class="section-head"><p id="assetCount">${list.length ? assetCountText(rows, list) : ""}</p>
         <div class="head-acts">${p ? `<a class="btn btn-sm btn-ghost" href="${href("house", "asset-template")}">${t("按房屋资料生成")}</a>` : ""}
           <a class="btn btn-primary" href="${href("asset", "new")}">${t("添加设备")}</a></div></div>
-      <p class="muted" style="margin:0 0 10px;font-size:12.5px">${t("设备 = 有保养周期或保修的，一台一条（热水器、割草机）；固定装置按类记一条（马桶、门、吊扇、插座），位置和数量写在里面；只记数量和位置的（梯子、床品、节日装饰）放在 储藏 → 装备；灯泡、电池是耗材，在 储藏 → 库存 → 房屋耗材。")}</p>
+      <p class="muted" style="margin:0 0 10px;font-size:12.5px">${t("设备 = 有保养周期或保修的，一台一条（热水器、割草机）；固定装置按类记一条（马桶、门、吊扇、插座），位置和数量写在里面；只记数量和位置的（梯子、床品、节日装饰）放在 储藏 → 家居耐用品；灯泡、电池是耗材，在 储藏 → 库存 → 汽车房屋消耗品。")}</p>
       <p class="muted" style="margin:0 0 10px;font-size:12.5px">🩺 ${t("东西坏了？")}<a href="${href("house", "fix")}">${t("描述毛病（可拍照），先看常见小毛病，再让咩咩分析原因、给方案，配件直接加采购")}</a></p>
       ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.slice(0, 6).map((a) => { const b = alertBadge(a), act = alertAct(a); return `<li>
           <span class="badge ${b.cls}">${esc(b.label)}</span>
@@ -520,7 +520,7 @@ export function leaveAsset(changed) {
 
 function typeOptions(selected, kind) {
   const p = state.houseProfile;
-  const list = (p ? H().forRegion(H().ASSET_TYPES, p.region) : H().ASSET_TYPES).filter((x) => !x.legacy || x.id === selected);   // 梯子、电钻等无保养的工具归“装备”，旧记录仍能显示
+  const list = (p ? H().forRegion(H().ASSET_TYPES, p.region) : H().ASSET_TYPES).filter((x) => !x.legacy || x.id === selected);   // 梯子、电钻等无保养的工具归“家居耐用品”，旧记录仍能显示
   const opt = (x) => `<option value="${x.id}" ${x.id === selected ? "selected" : ""}>${x.icon} ${esc(t(x.name))}</option>`;
   if (kind === "vehicle") return list.filter((x) => x.kind === "vehicle").map(opt).join("");   // 车辆只在动力类型里选
   const mine = list.filter((x) => x.kind === kind), others = list.filter((x) => x.kind !== kind && x.kind !== "vehicle");
@@ -613,7 +613,7 @@ function vehicleSchedule(a) {
     <div class="panel"><div class="ch-scroll"><table class="owner-table veh-table"><thead><tr><th>${t("项目")}</th><th>${t("周期")}</th><th>${t("上次")}</th><th>${t("下次")}</th><th></th></tr></thead><tbody>${items.map(row).join("")}</tbody></table></div></div>`;
 }
 
-/** 从装备升级时按名称猜类型（季节电器 / 小家电最常见）；猜不到用“其他设备” */
+/** 从家居耐用品升级时按名称猜类型（季节电器 / 小家电最常见）；猜不到用“其他设备” */
 const PORTABLE_GUESS = [[/风扇|电扇|塔扇|\bfan\b/i, "portable_fan"], [/取暖|暖风|热风|电暖器|油汀|heater/i, "space_heater"], [/净化器|purifier/i, "air_purifier"], [/除湿|dehumid/i, "dehumidifier"], [/加湿|humidif/i, "room_humidifier"], [/空调|窗机|air condition|\bac\b/i, "portable_ac"]];
 export const guessAssetType = (name) => PORTABLE_GUESS.find(([re]) => re.test(name || ""))?.[1] || null;
 
@@ -624,7 +624,7 @@ export function viewAssetForm() {
     return `<div class="panel empty"><strong>${t("找不到这台设备")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("house", "assets")}">${t("回到设备档案")}</a></p></div>`;
   }
   const qType = r.q.get("type"), tplType = qType ? H().assetType(qType) : null;
-  // 从装备物品升级：?from_item=<id> 带入名称、位置、备注
+  // 从家居耐用品物品升级：?from_item=<id> 带入名称、位置、备注
   const fromItem = !a && r.q.get("from_item") ? state.items.find((i) => i.id === r.q.get("from_item")) : null;
   const baseT = tplType || (fromItem ? H().assetType(guessAssetType(fromItem.name)) : null);
   // 召回换新：?replaces=<旧id> 带入名称、类型、位置、品牌；保存后旧机标成已更换
@@ -656,8 +656,8 @@ export function viewAssetForm() {
       ${a && sec === "notes" ? "" : autofillBar(veh ? "vehicle" : "asset", "#assetForm")}
       <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${H().isFixtureType(v.type) ? "is-fixture" : ""} ${a && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
-        ${fromItem ? `<input type="hidden" name="from_item" value="${esc(fromItem.id)}"><p class="hint" style="margin-top:0">${t("由装备“{name}”升级：补上品牌、安装日期、保修和保养周期后保存。", { name: esc(fromItem.name) })}</p>
-          <label class="check-inline" style="margin-bottom:10px"><input type="checkbox" name="drop_item"><span>${t("建好后从装备里移除这件物品")}</span></label>` : ""}
+        ${fromItem ? `<input type="hidden" name="from_item" value="${esc(fromItem.id)}"><p class="hint" style="margin-top:0">${t("由家居耐用品“{name}”升级：补上品牌、安装日期、保修和保养周期后保存。", { name: esc(fromItem.name) })}</p>
+          <label class="check-inline" style="margin-bottom:10px"><input type="checkbox" name="drop_item"><span>${t("建好后从家居耐用品里移除这件物品")}</span></label>` : ""}
         ${rep ? `<input type="hidden" name="replaces" value="${esc(rep.from.id)}"><p class="hint" style="margin-top:0">🔁 ${t("替换被召回的“{name}”：填上新机的型号、序列号、购买日期和保修；保存后旧机标成“已更换”，不再提醒。", { name: esc(assetName(rep.from)) })}</p>` : ""}
         <fieldset data-sec="basic" ${hide("basic")}>
           <legend>${t("基本信息")}</legend>
@@ -743,7 +743,7 @@ export function viewAssetForm() {
     </section>`;
 }
 
-/* ── 设备 ↔ 耗材：这类设备用到的耗材，对应 储藏 → 库存 → 房屋耗材 里的物品；没备的可一键按模板加进库存 ── */
+/* ── 设备 ↔ 耗材：这类设备用到的耗材，对应 储藏 → 库存 → 汽车房屋消耗品 里的物品；没备的可一键按模板加进库存 ── */
 const supplyTpl = (name, region) => [region, "na", "cn"].map((r) => (H().SUPPLIES[r] || []).find((s) => s.name === name)).find(Boolean) || null;
 /** 按模板名生成一条库存物品（名称、单位按当前语言写入，之后作为用户数据不再翻译） */
 export function supplyItem(name) {
@@ -769,9 +769,9 @@ function suppliesSection(a) {
     : `<li><span class="badge" style="background:var(--surface-2)">${t("还没备")}</span>
         <div class="grow"><b>${esc(t(name))}</b><small>${t("库存里还没有这项")}</small></div>
         <button type="button" class="btn btn-sm btn-primary" data-action="supply-add" data-name="${esc(name)}">${t("加入库存")}</button></li>`;
-  return `<div class="panel"><p class="muted" style="margin:0 0 8px;font-size:13px">${t("这类设备用到的耗材。库存统一在 储藏 → 库存 → 房屋耗材 里管理，少货会进采购提醒。")}</p>
+  return `<div class="panel"><p class="muted" style="margin:0 0 8px;font-size:13px">${t("这类设备用到的耗材。库存统一在 储藏 → 库存 → 汽车房屋消耗品 里管理，少货会进采购提醒。")}</p>
     <ul class="restock-list">${rows.map(li).join("")}</ul>
-    <div class="form-actions" style="margin-top:10px"><a class="btn btn-sm btn-ghost" href="${href("pantry", "inventory")}?space=house">${t("看全部房屋耗材")}</a></div></div>`;
+    <div class="form-actions" style="margin-top:10px"><a class="btn btn-sm btn-ghost" href="${href("pantry", "inventory")}?space=house">${t("看全部汽车房屋消耗品")}</a></div></div>`;
 }
 
 const ASSET_SECTIONS = [
@@ -992,7 +992,7 @@ export async function saveAssetForm(f, { silent = false } = {}) {
     if (fe.replaces?.value) await finishReplace(fe.replaces.value, a.id || savedId);   // 召回换新：旧机标成已更换、退役
     if (silent) return true;
     toast(a.id ? t("已保存修改") : t("已添加 {name}", { name }));
-    if (fe.from_item?.value && fe.drop_item?.checked) { await Store.deleteItem(fe.from_item.value); state.prevRoute = null; }   // 升级后移除原装备：别再退回那条已删除的物品页
+    if (fe.from_item?.value && fe.drop_item?.checked) { await Store.deleteItem(fe.from_item.value); state.prevRoute = null; }   // 升级后移除原家居耐用品：别再退回那条已删除的物品页
     leaveAsset(true);
     return true;
   } catch (e) { if (silent) throw e; err.textContent = t("保存失败：{msg}", { msg: e.message }); btn.disabled = false; return false; }

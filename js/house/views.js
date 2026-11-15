@@ -1,6 +1,6 @@
 import { activeProperties } from "../core/lifecycle.js";
 import { autofillBar } from "../core/autofill.js";
-/* 房屋维护 · 第一期：房屋资料（房型、材料、设施）、责任归属、材料保养建议、按模板批量加入房屋耗材 */
+/* 房屋维护 · 第一期：房屋资料（房型、材料、设施）、责任归属、材料保养建议、按模板批量加入汽车房屋消耗品 */
 import { alertsOf } from "../core/logic.js";
 import { state } from "../core/state.js";
 import { href } from "../core/router.js";
@@ -412,11 +412,11 @@ export function viewHouse() {
   if (!p) {
     return `${houseBar()}${statusLine()}<section class="section house-intro">
       <h2>${t("先说说你家的房子")}</h2>
-      <p class="muted">${t("选一下房型、外墙和地面材料、家里有哪些设施，大约 1 分钟。之后会告诉你哪些部位归自己维护、各种材料怎么保养，并一次加好常用的房屋耗材。")}</p>
+      <p class="muted">${t("选一下房型、外墙和地面材料、家里有哪些设施，大约 1 分钟。之后会告诉你哪些部位归自己维护、各种材料怎么保养，并一次加好常用的汽车房屋消耗品。")}</p>
       <p><a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a>
          <a class="btn btn-ghost" href="${href("house", "supplies")}">${t("先直接记录耗材")}</a></p>
     </section>
-    ${shelf ? `<section class="section"><div class="section-head"><h2>${t("房屋耗材")}</h2></div><div class="shelf">${shelf}</div></section>` : ""}`;
+    ${shelf ? `<section class="section"><div class="section-head"><h2>${t("汽车房屋消耗品")}</h2></div><div class="shelf">${shelf}</div></section>` : ""}`;
   }
   const ht = H().typeOf(p.region, p.house_type);
   const names = (group, ids) => ids.map((id) => H().MATERIALS[group].find((m) => m.id === id)).filter(Boolean);
@@ -470,11 +470,11 @@ export function viewHouse() {
     ${assetsPanel()}
 
     <section class="section">
-      <div class="section-head"><h2>${t("房屋耗材提醒")}</h2>
+      <div class="section-head"><h2>${t("汽车房屋消耗品提醒")}</h2>
         <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="house">${t("全部加入采购清单")}</button>` : ""}
           <a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a></div></div>
-      <div class="panel">${alerts.length ? restockPanel(alerts) : shelf ? `<div class="empty"><strong>${t("房屋耗材都充足")}</strong></div>`
-        : `<div class="empty"><strong>${t("还没有房屋耗材")}</strong>${t("按你家的设施一次加好滤网、电池、融雪盐等。")}<p><a class="btn btn-primary" href="${href("house", "template")}">${t("查看推荐清单")}</a></p></div>`}</div>
+      <div class="panel">${alerts.length ? restockPanel(alerts) : shelf ? `<div class="empty"><strong>${t("汽车房屋消耗品都充足")}</strong></div>`
+        : `<div class="empty"><strong>${t("还没有汽车房屋消耗品")}</strong>${t("按你家的设施一次加好滤网、电池、融雪盐等。")}<p><a class="btn btn-primary" href="${href("house", "template")}">${t("查看推荐清单")}</a></p></div>`}</div>
       ${shelf ? `<div class="shelf" style="margin-top:10px">${shelf}</div>` : ""}
     </section>
 
@@ -783,7 +783,7 @@ export function viewHouseTemplate() {
   const fresh = recs.filter((r) => !exists(r)).length;
   return `
     <section class="section">
-      <div class="section-head"><h2>${t("推荐的房屋耗材")}</h2><p>${t("根据你的房屋资料，共 {n} 项", { n: recs.length })}${fresh < recs.length ? t("，其中 {n} 项已经有了", { n: recs.length - fresh }) : ""}</p></div>
+      <div class="section-head"><h2>${t("推荐的汽车房屋消耗品")}</h2><p>${t("根据你的房屋资料，共 {n} 项", { n: recs.length })}${fresh < recs.length ? t("，其中 {n} 项已经有了", { n: recs.length - fresh }) : ""}</p></div>
       <form id="templateForm" class="panel">
         <div class="tpl-bar">
           <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="1">${t("全选")}</button>

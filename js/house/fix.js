@@ -18,7 +18,7 @@ import { activeVehicles, assetName, isFixture, isVehicle, myAssets, unitsText } 
 
 const C = () => window.CARE, H = () => window.HOUSE;
 const MAX_IMAGES = 3;
-const SHOP_CAT = "house_repair";   // 配件进采购清单的分类：房屋耗材 → 维修耗材
+const SHOP_CAT = "house_repair";   // 配件进采购清单的分类：汽车房屋消耗品 → 维修耗材
 // 常用店的搜索入口（不是比价：模型不联网，价格只是估计；点进去按价格排序自己比）
 const STORES = {
   na: [["Home Depot", "https://www.homedepot.com/s/"], ["Lowe's", "https://www.lowes.com/search?searchTerm="], ["Ace Hardware", "https://www.acehardware.com/search?query="], ["Menards", "https://www.menards.com/main/search.html?search="], ["Amazon", "https://www.amazon.com/s?k="], ["Walmart", "https://www.walmart.com/search?q="]],

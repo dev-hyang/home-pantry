@@ -207,7 +207,7 @@ function targetOptions(row) {
   const grp = (space, label) => { const l = items.filter((i) => spaceOf(i.category) === space); return l.length ? `<optgroup label="${t(label)}">${l.map((i) => `<option value="${i.id}" ${row.match === i.id ? "selected" : ""}>${name(i)}</option>`).join("")}</optgroup>` : ""; };
   return `<option value="__skip" ${row.match === "skip" ? "selected" : ""}>${t("只记花费，不入库")}</option>
     <option value="__new" ${!row.match ? "selected" : ""}>＋ ${t("新建物品")}</option>
-    ${grp("pantry", "日常储备")}${grp("house", "房屋耗材")}`;
+    ${grp("pantry", "日常消耗品")}${grp("house", "汽车房屋消耗品")}`;
 }
 function rowHtml(x, ri, i, cur) {
   return `<li class="scan-row ${x.match ? "" : "is-new"}" data-r="${ri}" data-i="${i}">

@@ -15,7 +15,7 @@
  * 统计口径（bucketOf）：每一笔只落进一个桶，几个桶加起来 = 现金流出：
  *   转账 → 不算；资本性 → capital；投资（或 L1 = 投资理财）→ investment；融资 → financial（贷款还本：迁移 058 起房贷 / 车贷的本金单独一行，性质 = 融资）；
  *   其余按 L1：living → 日常，housing → 住房，financial → 财务。
- * 自定义分类（custom_categories，c_xxxxxxxx）：parent = 挂在哪个二级分类下；没填按空间（储藏 → 食品杂货，装备 → 家居家电，房屋耗材 → 维护与服务）；
+ * 自定义分类（custom_categories，c_xxxxxxxx）：parent = 挂在哪个二级分类下；没填按空间（储藏 → 食品杂货，家居耐用品 → 家居家电，汽车房屋消耗品 → 维护与服务）；
  * 不认识的 id 一律算 生活消费 → 其他。
  *
  * 二级分类（2026-11 重整，参考美国 BLS 消费支出调查、国家统计局居民消费八大类）：买菜（食品杂货）和下馆子（餐饮）分开；
@@ -37,17 +37,17 @@ export const L1S = [
 /* ── 二级分类：leaves = 内置叶子分类（顺序 = 下拉里的顺序）。每个内置叶子只能出现一次（校验脚本会查） ── */
 export const L2S = [
   // 生活消费
-  { id: "grocery",      p: "living", name: "食品杂货",     icon: "🛒", color: "#3f8f5a", leaves: ["fresh", "frozen", "dry", "drink", "grocery_misc"] },
+  { id: "grocery",      p: "living", name: "食品杂货",     icon: "🛒", color: "#3f8f5a", leaves: ["fresh", "meat_dairy", "frozen", "dry", "snacks", "drink", "grocery_misc"] },
   { id: "dining",       p: "living", name: "餐饮",         icon: "🍜", color: "#c0603a", leaves: ["life_dining"] },   // 只算下馆子：外出就餐、外卖、咖啡奶茶
   { id: "essentials",   p: "living", name: "日用个护",     icon: "🧴", color: "#7563c0", leaves: ["daily", "personal_care", "life_care"] },
-  { id: "home_goods",   p: "living", name: "家居家电",     icon: "🛋️", color: "#6b8e7a", leaves: ["gear_home", "gear_kitchen", "gear_tools", "gear_garden"] },
+  { id: "home_goods",   p: "living", name: "家居家电",     icon: "🛋️", color: "#6b8e7a", leaves: ["gear_furniture", "gear_home", "gear_appliance", "gear_kitchen", "gear_decor", "gear_tools", "gear_garden"] },
   { id: "apparel",      p: "living", name: "服饰鞋包",     icon: "👕", color: "#b8576f", leaves: ["gear_clothes", "life_laundry"] },
   { id: "digital",      p: "living", name: "数码电子",     icon: "💻", color: "#4f7f9f", leaves: ["gear_digital"] },
   { id: "shop_misc",    p: "living", name: "综合购物（待细分）", icon: "🛍️", color: "#7a5c8e", leaves: ["life_shopping"] },   // Costco / Amazon / Target 看不出买了什么的，改了分类就从这里消失
   { id: "transport",    p: "living", name: "交通",         icon: "🚗", color: "#3b7fc4", leaves: ["vehicle_fuel", "life_transit", "vehicle_maint", "gear_car", "house_car", "bill_insurance_auto", "bill_vehicle_reg", "bill_parking", "bill_toll", "loan_interest_auto", "capital_vehicle"] },
   { id: "utilities",    p: "living", name: "水电网通讯",   icon: "💡", color: "#1f8a8a", leaves: ["bill_electric", "bill_gas", "bill_water", "bill_internet", "bill_mobile", "bill_cable_tv", "bill_heating_oil", "bill_solar"] },
   { id: "healthcare",   p: "living", name: "医疗健康",     icon: "🩺", color: "#c2475f", leaves: ["medical", "health", "bill_insurance_health"] },
-  { id: "kids",         p: "living", name: "孩子与教育",   icon: "🎒", color: "#d4694c", leaves: ["baby", "study", "gear_baby", "gear_study", "bill_tuition", "bill_activities"] },
+  { id: "kids",         p: "living", name: "孩子与教育",   icon: "🎒", color: "#d4694c", leaves: ["baby", "study", "gear_baby", "gear_toys", "gear_study", "bill_tuition", "bill_activities"] },
   { id: "travel",       p: "living", name: "旅行",         icon: "🧳", color: "#0f6f8b", leaves: ["travel_flight", "travel_ship", "travel_ground", "travel_lodging", "travel_rental", "travel_tour", "travel_other"] },
   { id: "fun",          p: "living", name: "休闲娱乐",     icon: "🎬", color: "#c75a85", leaves: ["life_fun", "life_fitness", "gear_travel", "bill_subscription", "bill_membership"] },
   { id: "personal",     p: "living", name: "个人与家庭",   icon: "💝", color: "#9a6b3c", leaves: ["life_gifts", "bill_family_support"] },
@@ -103,7 +103,7 @@ const L1_BY = new Map(L1S.map((n) => [n.id, n]));
 const L2_BY = new Map(L2S.map((n) => [n.id, { ...n, level: 2 }]));
 for (const n of L1S) n.level = 1;
 const BUILTIN_PARENT = new Map(L2S.flatMap((n) => n.leaves.map((id) => [id, n.id])));
-/** 自定义分类（储藏 / 房屋耗材 / 装备的自建分类）按空间的默认父级 */
+/** 自定义分类（储藏 / 汽车房屋消耗品 / 家居耐用品的自建分类）按空间的默认父级 */
 const SPACE_PARENT = { pantry: "grocery", gear: "home_goods", house: "home_maint" };
 /** 旧的二级分类 id（2026-11 拆分前）→ 新的：自建分类的 parent 迁移 063 已经改了，这里兜底（演示模式、没跑迁移） */
 export const LEGACY_L2 = { food: "grocery", shopping: "home_goods" };

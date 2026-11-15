@@ -187,7 +187,7 @@ const KINDS = {
   },
 
   item: {
-    label: "拍包装 / 物品", hint: "药品、食品包装或一件装备：识别名称、分类、保质期（装备没有保质期）",
+    label: "拍包装 / 物品", hint: "药品、食品包装或一件家居耐用品：识别名称、分类、保质期（家居耐用品没有保质期）",
     prompt() {
       const cats = window.CATEGORIES.filter((c) => c.id !== "other").map((c) => ({ id: c.id, name: c.name, subs: c.subs }));
       return { system: SYSTEM, user: [

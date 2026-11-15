@@ -206,7 +206,7 @@ export function budgetPlan() {
   const bills = state.billsEnriched.filter((x) => x.active && !x.ended && x.direction !== "receivable" && (x.currency || cur()) === cur());
   const billsM = bills.reduce((s, x) => s + x.monthly, 0), essentialM = bills.filter((x) => x.essential).reduce((s, x) => s + x.monthly, 0);
   const savingsPct = clamp(num(snap.savings_pct ?? b.savings_pct, 20), 0, 90), savings = income != null ? (income * savingsPct) / 100 : null;
-  const over = mapLegacy(b.cat_budgets), sug = mapLegacy(snap.groups);   // 旧分组键（日常储备 / 大件家电…）读的时候换成二级分类
+  const over = mapLegacy(b.cat_budgets), sug = mapLegacy(snap.groups);   // 旧分组键（日常消耗品 / 大件家电…）读的时候换成二级分类
   const abm = actualByMonth(), past = lastMonths(7).slice(0, 6);
   const groups = groupsNow().map((g) => {
     const hist = past.reduce((s, m) => s + (abm[m]?.[g.id] || 0), 0) / 6;

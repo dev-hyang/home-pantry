@@ -40,7 +40,7 @@ export function applyDraft(f, d) {
 }
 export const moneyExact = (v) => Units.money(v, undefined, false, true);
 export const catOf = (id) => CATEGORIES.find((c) => c.id === id) || CATEGORIES[0];
-// 分类分三个空间：pantry 日常储备 / house 房屋耗材 / gear 装备（耐用品，只记数量和位置）
+// 分类分三个空间：pantry 日常消耗品 / house 汽车房屋消耗品 / gear 家居耐用品（耐用品，只记数量和位置）
 export const catsOf = (space, { withHidden = false } = {}) => CATEGORIES.filter((c) => c.space === space && (withHidden || !c.hidden));   // 隐藏的内置分类不出现在方块、芯片、下拉里
 export const spaceOf = (catId) => CATEGORIES.find((c) => c.id === catId)?.space || "pantry";
 export const inSpace = (space) => (it) => spaceOf(it.category) === space;

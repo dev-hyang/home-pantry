@@ -32,13 +32,13 @@ const META = {
   pantry: {
     overview:  { icon: "📊", desc: "补货与临期一览、各分类库存", count: () => alertsOf(state.enriched.filter(inSpace("pantry"))).length },
     shopping:  { icon: "🛒", desc: "待买、家人正在买的清单；买到了一键入库、记花费", count: () => state.shopping.filter((s) => s.status !== "bought").length },
-    inventory: { icon: "🥫", desc: "日常储备与房屋耗材，点 −/+ 记消耗" },
+    inventory: { icon: "🥫", desc: "日常消耗品与汽车房屋消耗品，点 −/+ 记消耗" },
     gear:      { icon: "🧳", desc: "床品、电器、自行车、工具：只记数量和位置" },
     meals:     { icon: "🍳", desc: "按现有食材推荐三餐" },
   },
   house: {
     overview:  { icon: "🏠", desc: "房屋卡片、耗材提醒、谁负责维护、本月任务" },
-    supplies:  { icon: "🧰", desc: "滤网、电池、融雪盐等房屋耗材", count: () => alertsOf(state.enriched.filter(inSpace("house"))).length },
+    supplies:  { icon: "🧰", desc: "滤网、电池、融雪盐等汽车房屋消耗品", count: () => alertsOf(state.enriched.filter(inSpace("house"))).length },
     assets:    { icon: "⚙️", desc: "设备档案、保养记录、检查卡与相关耗材", count: () => assetsDueCount({ property: state.propertyId }) },   // 和首页、房屋首页同一个口径（assets.js 的 assetsDue）
     tasks:     { icon: "📅", desc: "按月的检修清单，勾了家人都看到", count: () => (state.houseProfile ? undoneThisMonth().length : 0) },
     deal:      { icon: "📝", desc: "买入 / 卖出 / 退租流程清单", count: () => (openDeal() ? 1 : 0), countLabel: "进行中" },
@@ -224,7 +224,7 @@ export function crumb(r) {
   else if (ssec && ssec.id === "family" && q.get("member")) parts.push({ href: subHref, label: curLabel }, { href: familyHref(), label: t(ssec.name), icon: ssec.icon }, { label: memberCrumbLabel(q.get("member")) });   // 设置 / 家庭与成员 / 某位成员
   else if (ssec) parts.push({ href: subHref, label: curLabel }, { label: t(ssec.name), icon: ssec.icon === "__AI__" ? aiIcon(18) : ssec.icon });
   else if (cat) parts.push({ action: "cat", attrs: 'data-cat="all"', label: curLabel }, { label: t(cat.name), icon: cat.icon });   // “库存”可点回全部分类
-  else if (r.section === "house" && r.sub === "template") return crumbNav([{ href: href("pantry"), label: t("储藏") }, { href: `${href("pantry", "inventory")}?space=house`, label: `${t("库存")} · ${t("房屋耗材")}` }, { label: curLabel }]);   // 推荐耗材是从 库存 · 房屋耗材 进来的
+  else if (r.section === "house" && r.sub === "template") return crumbNav([{ href: href("pantry"), label: t("储藏") }, { href: `${href("pantry", "inventory")}?space=house`, label: `${t("库存")} · ${t("汽车房屋消耗品")}` }, { label: curLabel }]);   // 推荐耗材是从 库存 · 汽车房屋消耗品 进来的
   else if (r.section === "bills" && r.sub === "debts" && (q.get("id") || q.get("new"))) {   // 借贷 / 某笔贷款（/ 编辑）；借贷 / 添加
     const d = q.get("id") ? debtsEnriched().find((x) => x.id === q.get("id")) : null;
     if (d && q.get("edit")) parts.push({ href: subHref, label: curLabel }, { href: `${subHref}?id=${encodeURIComponent(d.id)}`, label: d.name }, { label: t("编辑") });

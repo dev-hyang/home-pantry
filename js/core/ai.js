@@ -298,7 +298,7 @@ export const aiReady = () => !!aiSettings().key.trim();
 
 /* ── 库存上下文：只传食材名、数量、单位、入库天数、临期天数 ──
  * 很多食材不知道保质期，只能按“先进先出”：入库越早的越先做掉。入库时间 = 最近一次补货（stock_logs restock）或录入时间，取晚者。 */
-const FOOD_CATS = new Set(["fresh", "frozen", "dry", "drink"]);
+const FOOD_CATS = new Set(["fresh", "meat_dairy", "frozen", "dry", "snacks", "drink"]);
 const OLDEST_N = 8;
 export function pantryContext() {
   const now = Date.now();

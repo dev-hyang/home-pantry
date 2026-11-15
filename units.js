@@ -46,7 +46,8 @@
     metric: { oz: "g", lb: "kg", "fl oz": "mL", qt: "L", gal: "L", ml: "mL" },
   };
 
-  const COUNT_UNITS = ["个", "盒", "箱", "袋", "包", "瓶", "罐", "杯", "条", "把", "卷", "片", "提", "板", "支"];
+  const COUNT_UNITS = ["个", "盒", "箱", "袋", "包", "瓶", "罐", "杯", "条", "把", "卷", "片", "提", "板", "支",
+    "件", "套", "双", "对", "张", "台", "只", "块", "本", "副", "顶", "根", "粒", "桶", "份", "束", "盆", "打"];   // 衣物一件、床品一套、鞋子一双、桌子一张、冰箱一台…
   const UNIT_SETS = {
     metric: [...COUNT_UNITS, "斤", "kg", "g", "L", "mL"],
     us:     [...COUNT_UNITS, "lb", "oz", "fl oz", "qt", "gal"],
@@ -79,7 +80,8 @@
 
   // 2026-11-12：英文界面、AI、小票里写的各种叫法 → 库里统一存的单位（显示时再按语言翻译，瓶 → bottle）
   const ALIASES = {
-    pc: "个", pcs: "个", piece: "个", pieces: "个", ea: "个", each: "个", ct: "个", count: "个", unit: "个", "件": "个", "只": "个", "颗": "个",
+    pc: "个", pcs: "个", piece: "个", pieces: "个", ea: "个", each: "个", ct: "个", count: "个", unit: "个", "颗": "个",
+    pair: "双", pairs: "双", set: "套", sets: "套", dozen: "打", doz: "打", dz: "打", bucket: "桶", pail: "桶", pot: "盆",
     case: "箱", cases: "箱", crate: "箱", ctn: "箱", cs: "箱",
     box: "盒", boxes: "盒", carton: "盒", tub: "盒", bag: "袋", bags: "袋", sack: "袋",
     pack: "包", pk: "包", pkg: "包", package: "包", packet: "包", bottle: "瓶", bottles: "瓶", btl: "瓶", jug: "瓶",
@@ -107,6 +109,12 @@
     ["盒", /鸡蛋|豆腐|麦片|燕麦|饼干|草莓|蓝莓|树莓|茶叶|茶包|垃圾袋|保鲜袋|冰淇淋|蛋糕|\beggs?\b|tofu|cereal|oat|cookie|cracker|berr|\btea\b|trash bag|garbage bag|zip ?loc|ice cream|cake|tissue box|kleenex|butter|cream cheese|mushroom/i],
     ["包", /方便面|泡面|挂面|面条|意面|米粉|纸巾|抽纸|湿巾|尿布|纸尿裤|卫生巾|酵母|instant noodle|ramen|noodle|pasta|spaghetti|napkin|tissue|wipes|diaper|\bpads?\b|yeast/i],
     ["杯", /酸奶|布丁|果冻|yogurt|pudding|jello/i],
+    // 耐用品（家居耐用品）：放在最后，前面的消耗品规则先匹配（洗衣液 → 瓶、纸尿裤 → 包）
+    ["双", /鞋|靴|袜|手套|拖鞋|筷子|shoes?\b|boots?\b|sneakers?|socks|gloves|slippers|chopsticks/i],
+    ["套", /四件套|套装|睡衣|西装|被套|床单|bedding set|sheet set|pajamas?|\bsuit\b/i],
+    ["台", /冰箱|冰柜|洗衣机|烘干机|空调|电视|微波炉|烤箱|洗碗机|吸尘器|扫地机|电脑|打印机|fridge|refrigerator|freezer|washer|dryer|\btv\b|microwave|oven|dishwasher|vacuum|printer|laptop/i],
+    ["张", /桌|椅|凳|床垫|沙发|地毯|table|chair|stool|mattress|sofa|couch|\brug\b/i],
+    ["件", /衣|衫|裤|裙|外套|夹克|毛衣|羽绒|T恤|shirt|pants|jeans|dress|jacket|coat|sweater|hoodie/i],
   ];
   function guess(name) {
     const s = String(name || "");

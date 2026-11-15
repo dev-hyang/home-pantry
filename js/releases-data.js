@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.20", title: { zh: "储藏分三类，名字说清楚用途", en: "Pantry in three clearly named groups" }, items: [
+    { k: "better", zh: "三类改名：日常消耗品（吃的用的，会用完）、汽车房屋消耗品（房子院子车要换的）、家居耐用品（长期用的，只记几件、放哪）", en: "Three groups, renamed: Groceries & daily consumables, Home & car supplies, Household durables" },
+    { k: "new", zh: "新分类：肉蛋奶、零食、家具、家用电器、玩具游戏、装饰收纳；婴童用品加「婴儿房」，常用的小类也补齐了", en: "New categories: Meat, eggs & dairy; Snacks; Furniture; Appliances; Toys & games; Decor & storage; Baby & kids gear gets Nursery, plus more subcategories" },
+    { k: "better", zh: "点 ＋ 添加物品先选是哪一类，再进表单；表单里大类只列这一类的。概览也有了家居耐用品", en: "Tapping ＋ asks which group first, then opens the form with only that group's categories; the overview now shows Household durables too" },
+    { k: "better", zh: "单位补齐：件、套、双、对、张、台、只、块、本、打等，衣服、鞋子、床品、家具、电器按名字自动选", en: "More units: piece, set, pair, table, unit, dozen and more, picked automatically for clothes, shoes, bedding, furniture and appliances" }
+  ] },
   { v: "2026-11-14.19", title: { zh: "储藏概览更简洁；装备并进库存", en: "Simpler Pantry overview; Gear joins Inventory" }, items: [
     { k: "better", zh: "概览把「该补货了」放在最前；日常储备、房屋耗材只显示缺货 / 少货统计和分类卡片，多了一张「全部分类」", en: "The overview puts \"Time to restock\" first; Everyday stock and Home supplies just show the out / low counts and category cards, plus an \"All categories\" card" },
     { k: "new", zh: "库存的物品视图里，每一块都有「全部加入采购清单」，把这一块要补货的一起加进去（加之前确认数量）", en: "In the Inventory item view, each block has \"Add all to shopping list\" for the items that need restocking (you confirm quantities first)" },

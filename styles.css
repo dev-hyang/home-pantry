@@ -3375,3 +3375,23 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .inv-catchip { margin: 0 0 10px; }
 .inv-catchip .chip { min-height: 40px; }
 .shelf-all { background: color-mix(in srgb, var(--pine) 6%, var(--surface)); }
+/* 添加物品：先选放在哪一类（弹框里三个大按钮）；物品表单里同样三张小卡片 */
+.space-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+.space-choice { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 14px; text-align: left; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; }
+.space-choice:hover, .space-choice:focus-visible { border-color: var(--pine); background: color-mix(in srgb, var(--pine) 6%, var(--surface)); }
+.space-ic { font-size: 26px; line-height: 1; }
+.space-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.space-txt b { font-size: 16px; }
+.space-txt small { color: var(--muted); font-size: 13px; line-height: 1.4; }
+.space-choice .mch { color: var(--muted); }
+#itemForm .space-pick { border: 0; margin: 0; padding: 0; min-width: 0; }
+#itemForm .space-pick legend { float: none; width: auto; font-size: 14px; font-weight: 600; margin: 0 0 6px; }
+.space-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.space-opt { position: relative; display: block; cursor: pointer; }
+.space-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.space-card { display: flex; flex-direction: column; gap: 2px; min-height: 64px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); }
+.space-card b { font-size: 15px; }
+.space-card small { color: var(--muted); font-size: 12.5px; line-height: 1.4; font-weight: 400; }
+.space-opt input:checked + .space-card { border-color: var(--pine); background: color-mix(in srgb, var(--pine) 8%, var(--surface)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--pine) 25%, transparent); }
+.space-opt input:focus-visible + .space-card { outline: 3px solid var(--focus); outline-offset: 2px; }
+button.fab { border: 0; cursor: pointer; padding: 0; font-family: inherit; }

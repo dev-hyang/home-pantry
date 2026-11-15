@@ -22,7 +22,9 @@ import { propertyName } from "../bills/logic.js";
 const DEFAULT_SUB = { frozen: "冷冻肉禽" };
 export function subOptions(catId, selected) {
   if (selected === undefined) selected = DEFAULT_SUB[catId];   // 只给新物品 / 换大类时用；已有物品小类为空就保持空
-  return catOf(catId).subs.map((s) => `<option value="${esc(s)}" ${s === selected ? "selected" : ""}>${esc(t(s))}</option>`).join("");
+  const subs = catOf(catId).subs || [];
+  if (selected && !subs.includes(selected)) return `<option value="${esc(selected)}" selected>${esc(t(selected))}</option>` + subs.map((s) => `<option value="${esc(s)}">${esc(t(s))}</option>`).join("");   // 旧小类：保留，不在保存时被换掉
+  return subs.map((s) => `<option value="${esc(s)}" ${s === selected ? "selected" : ""}>${esc(t(s))}</option>`).join("");
 }
 
 export function openItem(id, { space, cat } = {}) {
@@ -40,16 +42,27 @@ export function leaveItem(changed) {
   else go(href(...listRoute(spaceOf(state.editingCat || "fresh"))), { replace: true });
 }
 
-/** 物品页面包屑：储藏 / 库存（房屋耗材）或 储藏 / 装备 */
+/** 物品页面包屑：储藏 / 库存（汽车房屋消耗品）或 储藏 / 家居耐用品 */
 const itemBase = (space) => [{ href: href("pantry"), label: t("储藏") },
-  space === "gear" ? { href: href("pantry", "gear"), label: t("装备") } : { href: space === "house" ? `${href("pantry", "inventory")}?space=house` : href("pantry", "inventory"), label: space === "house" ? `${t("库存")} · ${t("房屋耗材")}` : t("库存") }];
-const SECTION_LABEL = { today: "今日", pantry: "储藏", house: "房屋", gear: "装备", shopping: "采购清单", me: "我的" };
+  space === "gear" ? { href: href("pantry", "gear"), label: t("家居耐用品") } : { href: space === "house" ? `${href("pantry", "inventory")}?space=house` : href("pantry", "inventory"), label: space === "house" ? `${t("库存")} · ${t("汽车房屋消耗品")}` : t("库存") }];
+const SECTION_LABEL = { today: "今日", pantry: "储藏", house: "房屋", gear: "家居耐用品", shopping: "采购清单", me: "我的" };
 const NAME_HINT = { pantry: "例如：鸡蛋、抽纸、大米", house: "例如：炉子滤网、电池、融雪盐", gear: "例如：被罩、千斤顶、儿童自行车" };
 
-/** 房屋耗材可关联的设备：房屋 → 设备保养里的设备（不含车辆）；多套房产时名字后带房产名 */
+/** 汽车房屋消耗品可关联的设备：房屋 → 设备保养里的设备（不含车辆）；多套房产时名字后带房产名 */
 const linkableAssets = () => state.assetsEnriched.filter((a) => a.kind !== "vehicle");
 const assetLabel = (a) => `${assetName(a)}${state.properties.length > 1 && a.property_id ? ` · ${propertyName(a.property_id)}` : ""}`;
 
+/* 放在哪一类（2026-11-14）：大类前面先选空间——会用完的日常消耗品 / 汽车房屋消耗品 / 长期用的家居耐用品，大类下拉只列这一类的 */
+export const SPACE_INFO = [
+  ["pantry", "🥫", "日常消耗品", "吃的喝的、纸巾洗护、药品、宠物粮：用了会少，要补货"],
+  ["house", "🧰", "汽车房屋消耗品", "滤网、电池、灯泡、融雪盐、机油：房子、院子、车定期要换的"],
+  ["gear", "🛋️", "家居耐用品", "家具、电器、厨具、衣物、玩具、工具：长期用，只记几件、放在哪"],
+];
+function spacePick(cur) {
+  const list = SPACE_INFO.filter(([s]) => s === cur || (s === "house" ? state.houseEnabled : s === "gear" ? state.gearEnabled : true));
+  return `<fieldset class="span-2 space-pick"><legend>${t("放在哪一类")}</legend><div class="space-opts">${list.map(([s, ic, name, desc]) => `<label class="space-opt">
+    <input type="radio" name="space" value="${s}" ${s === cur ? "checked" : ""}><span class="space-card"><b>${ic} ${t(name)}</b><small>${t(desc)}</small></span></label>`).join("")}</div></fieldset>`;
+}
 /* 表单分块（2026-11-14）：每块可以点标题折叠 / 展开；展开状态记在内存里，后台重画时不变 */
 const FOLD = new Map();
 const secKey = (id, k) => `${id || "new"}:${k}`;
@@ -112,8 +125,9 @@ export function viewItemForm() {
               <input name="aliases" maxlength="200" autocomplete="off" placeholder="${esc(t("同一样东西的其他叫法，用逗号隔开，例如：milk, 牛乳"))}" value="${esc(it ? aliasesOf(it.id).join(", ") : "")}">
               <small class="muted">${t("录入购物、采购清单、记花费写成这些叫法，也会对上这件")}</small>
             </label>
+            ${spacePick(spaceOf(v.category))}
             <label>${t("大类")}
-              <select name="category" required>${categoryOptions(v.category, { withOther: false })}</select>
+              <select name="category" required>${categoryOptions(v.category, { withOther: false, only: spaceOf(v.category) })}</select>
             </label>
             <label>${t("小类")}
               <select name="subcategory">${subOptions(v.category, v.subcategory)}</select>
@@ -125,7 +139,7 @@ export function viewItemForm() {
             ${assetField(v)}
           </div>`, true)}
         ${fsec(it?.id, "qty", `<span class="not-gear">${t("数量与提醒")}</span><span class="only-gear">${t("数量")}</span>`, `
-          <p class="muted only-gear" style="margin:0 0 10px;font-size:13px">${t("装备只记数量和位置，不算消耗，也不会提醒补货。需要保养周期或保修的，用下方“升级为设备档案”。")}</p>
+          <p class="muted only-gear" style="margin:0 0 10px;font-size:13px">${t("家居耐用品只记数量和位置，不算消耗，也不会提醒补货。需要保养周期或保修的，用下方“升级为设备档案”。")}</p>
           <div class="form-grid">
             <label>${t("当前数量")}
               <input name="quantity" type="number" min="0" step="any" inputmode="decimal" required value="${dv(v.quantity ?? 0)}" data-orig="${dv(v.quantity ?? 0)}">
@@ -158,7 +172,7 @@ export function viewItemForm() {
           <button type="submit" class="btn btn-primary">${it ? t("保存修改") : t("添加物品")}</button>
           <button type="button" class="btn btn-ghost" data-action="item-cancel">${t("取消")}</button>
           ${it ? `<span class="spacer"></span>${moreMenu([
-            { label: gear ? t("复制为新装备") : t("复制为新物品"), href: `${href("item", "new")}?copy=${encodeURIComponent(it.id)}&space=${spaceOf(it.category)}` },
+            { label: gear ? t("复制为新家居耐用品") : t("复制为新物品"), href: `${href("item", "new")}?copy=${encodeURIComponent(it.id)}&space=${spaceOf(it.category)}` },
             gear && { label: t("升级为设备档案"), href: `#/asset/new?from_item=${encodeURIComponent(it.id)}` },
             { label: t("删除物品"), action: "item-delete", danger: true }], { up: true })}` : ""}
         </div>
@@ -167,7 +181,7 @@ export function viewItemForm() {
     </section>`;
 }
 
-/** 关联设备：多选下拉，只有房屋耗材显示；选项就是 房屋 → 设备保养 里的设备 */
+/** 关联设备：多选下拉，只有汽车房屋消耗品显示；选项就是 房屋 → 设备保养 里的设备 */
 const pickText = (labels) => labels.join("、");
 function assetField(v) {
   const all = linkableAssets(), picked = new Set(Array.isArray(v.asset_ids) ? v.asset_ids : []);
@@ -220,7 +234,7 @@ export async function saveItemForm(f, { silent = false } = {}) {
     if (el.value === el.dataset.orig && raw[name] != null) return num(raw[name]);
     return Math.round((Math.max(0, num(el.value)) / Units.factor(origUnit)) * 1000) / 1000;
   };
-  // 装备没有补货概念：清掉少货线、提醒天数、用量和保质期，保证它永远不进提醒
+  // 家居耐用品没有补货概念：清掉少货线、提醒天数、用量和保质期，保证它永远不进提醒
   const gear = spaceOf(fe.category.value) === "gear", remind = !gear && !!fe.remind?.checked;   // 不提醒：少货线、提前天数都存 0
   const it = {
     id: fe.item_id.value || undefined, name,
@@ -232,7 +246,7 @@ export async function saveItemForm(f, { silent = false } = {}) {
     avg_daily_use: gear ? null : val("avg_daily_use"),
     notes: fe.notes.value.trim() || null,
   };
-  // 关联设备：只有房屋耗材存；没选过也没存过就不写这一列（还没执行迁移 021 的库也能照常保存）
+  // 关联设备：只有汽车房屋消耗品存；没选过也没存过就不写这一列（还没执行迁移 021 的库也能照常保存）
   if (spaceOf(it.category) === "house") {
     const ids = [...f.querySelectorAll('input[name="asset_ids"]:checked')].map((x) => x.value);
     if (ids.length || raw.asset_ids?.length) it.asset_ids = ids;
@@ -291,6 +305,12 @@ function muteChoice(val, cur) {
 /* 添加物品：名称和已有物品对一下（js/core/item-match.js）——写法一样的给链接去那件，相近的列出来 */
 document.addEventListener("input", (e) => {
   if (e.target.name === "unit" && e.target.closest?.("#itemForm")) { delete e.target.dataset.auto; return; }
+  if (e.target.name === "space" && e.target.closest?.("#itemForm")) {
+    const sel = e.target.form.elements.category;
+    sel.innerHTML = categoryOptions(null, { withOther: false, only: e.target.value });
+    sel.selectedIndex = 0; sel.dispatchEvent(new Event("change", { bubbles: true }));
+    return;
+  }
   if (e.target.name === "remind" && e.target.closest?.("#itemForm")) {   // 打开提醒：原来是「不再提醒」的，暂停选项回到「正常提醒」
     const f = e.target.form; f.classList.toggle("is-remind", e.target.checked);
     if (e.target.checked && f.elements.alert_mute?.value === "forever") f.elements.alert_mute.value = "";

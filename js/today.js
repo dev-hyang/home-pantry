@@ -66,7 +66,7 @@ export function viewToday() {
     ${releaseBadgeHTML() ? `<section class="section today-rl">${releaseBadgeHTML()}</section>` : ""}
     ${aiBlock()}
     ${noProfile ? `<section class="section"><div class="panel cta-panel">
-      <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的房屋耗材。")}</p></div>
+      <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的汽车房屋消耗品。")}</p></div>
       <a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></div></section>` : ""}
     <section class="section" aria-label="${esc(t("今日卡片"))}">${carouselHtml("today", cards, { label: t("今日卡片：左右滑动，或点下面的圆点") })}</section>`;   // 一屏一张，左右滑、循环、每 30 秒自动换（js/core/carousel.js）
 }
@@ -99,7 +99,7 @@ const AREAS = () => [
   { src: ["season"], icon: "📅", name: "季节任务", href: `${href("house")}?todo=season`, on: state.houseEnabled },   // 季节任务、交易可能分属几套房产：先到房屋首页的「各房产要处理的事」看全部
   { src: ["deal"], icon: "📝", name: "交易", href: `${href("house")}?todo=deal`, on: state.houseEnabled },
   { src: ["pantry"], icon: "🥫", name: "储藏补货", href: href("pantry", "overview"), on: true },
-  { src: ["house"], icon: "🧰", name: "房屋耗材 · HOA · 保险", href: `${href("house")}?todo=house`, on: state.houseEnabled },
+  { src: ["house"], icon: "🧰", name: "汽车房屋消耗品 · HOA · 保险", href: `${href("house")}?todo=house`, on: state.houseEnabled },
   { src: ["finance"], icon: "📈", name: "财务", href: href("bills", "overview"), on: state.billsEnabled },
   { src: ["join"], icon: "👥", name: "加入申请", href: `${href("me", "settings")}?sec=family`, on: true },
 ];
@@ -214,7 +214,7 @@ function homeCard(fin) {
     }
     const vehicles = (state.assetsEnriched || []).filter((a) => !a.retired && !a.property_id).length;
     if (vehicles) rows.push(row(href("house", "vehicles"), "🚗", t("车辆"), t("{n} 辆", { n: vehicles }), false));
-    rows.push(row(`${href("house")}?todo=season`, "📅", t("季节任务")), row(href("house", "fix"), "🩺", t("东西坏了")), row(href("house", "profile"), "📋", t("房屋资料")), row(href("house", "supplies"), "🧰", t("房屋耗材")));
+    rows.push(row(`${href("house")}?todo=season`, "📅", t("季节任务")), row(href("house", "fix"), "🩺", t("东西坏了")), row(href("house", "profile"), "📋", t("房屋资料")), row(href("house", "supplies"), "🧰", t("汽车房屋消耗品")));
   }
   if (!fin && state.billsEnabled) {   // 账单全家可见：这里只给笔数，不给金额
     const n = upcoming(state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable"), 30).length;
@@ -329,11 +329,11 @@ export const PRESETS = () => {
     B ? [href("bill", "new"), "➕", t("添加账单")] : null, B ? [INCOME_ADD(), "💵", t("记一笔收入")] : null, B ? [`${href("bills", "onetime")}?bill=new`, "🏥", t("记一张一次性账单")] : null,
     // 储藏
     [href("pantry", "overview"), "🗄️", t("储藏概览")], [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "➕", t("添加储藏物品")],
-    G ? [href("pantry", "gear"), "🧳", t("装备")] : null, G ? [`${href("item", "new")}?space=gear`, "🧳", t("添加装备")] : null,
+    G ? [href("pantry", "gear"), "🧳", t("家居耐用品")] : null, G ? [`${href("item", "new")}?space=gear`, "🧳", t("添加家居耐用品")] : null,
     // 房屋（日常运营）
     H ? [href("house"), "🏠", t("房屋")] : null, H ? [href("house", "assets"), "⚙️", t("设备保养")] : null, H ? [href("asset", "new"), "🛠️", t("添加设备")] : null, H ? [href("house", "tasks"), "📅", t("季节任务")] : null,
     H ? [href("house", "deal"), "📝", t("交易")] : null, H ? [href("house", "vehicles"), "🚗", t("车辆")] : null, H ? [href("house", "profile"), "📋", t("房屋资料")] : null,
-    H ? [`${href("pantry", "inventory")}?space=house`, "🧰", t("房屋耗材")] : null, H ? [`${href("item", "new")}?space=house`, "➕", t("添加房屋耗材")] : null,
+    H ? [`${href("pantry", "inventory")}?space=house`, "🧰", t("汽车房屋消耗品")] : null, H ? [`${href("item", "new")}?space=house`, "➕", t("添加汽车房屋消耗品")] : null,
     // 财务（收支 · 账户与资产 · 借贷 · 预算与计划 · 分析）；没有财务权限的那几页由 quickOk 去掉
     B ? [href("bills"), "💰", t("财务")] : null, B ? [href("bills", "overview"), "📊", t("财务概览")] : null,
     B ? [href("bills", "spend"), "📊", t("花费")] : null, B ? [href("bills", "income"), "💵", t("收入")] : null, B ? [href("bills", "recurring"), "🔁", t("周期性账单")] : null, B ? [href("bills", "onetime"), "🏥", t("一次性账单")] : null,

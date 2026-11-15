@@ -172,7 +172,7 @@ const noSpend = () => `<div class="panel empty"><strong>${t("还没有花费记�
 
 /* ── 钻取：图表色块、图例、名称、数字卡片都带 data-drill（查询串），点一下跳到 明细 并套上对应筛选（分类 / 商店 / 月份 / 近 N 个月）；
  * 全局点击处理在 main.js，筛选在 applySpendDrill，明细页顶部用筛选条显示并可逐项去掉。 */
-/** 预算页的“预算分组”（日常储备 / 房屋维护 / 大件家电…）和分类不是一回事（大件按单笔金额分），分组的判断函数由 budget.js 登记在这里，明细按它筛选 */
+/** 预算页的“预算分组”（日常消耗品 / 房屋维护 / 大件家电…）和分类不是一回事（大件按单笔金额分），分组的判断函数由 budget.js 登记在这里，明细按它筛选 */
 export const dq = (o) => new URLSearchParams(Object.entries(o).filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, String(v)])).toString();
 const encKeys = (keys) => keys.map(encodeURIComponent).join(",");
 export const hitAttrs = (q, label) => (q ? ` data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(label)}"` : "");

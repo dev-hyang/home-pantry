@@ -17,7 +17,7 @@ export function enrich(items, logs) {
   }
   return items.map((it) => {
     const qty = num(it.quantity);
-    // 装备：没有消耗速度、少货线和保质期，永远不进提醒
+    // 家居耐用品：没有消耗速度、少货线和保质期，永远不进提醒
     if (isGear(it)) {
       const f = Units.factor(it.unit);
       return { ...it, qty, min: 0, rate: null, rateSrc: null, daysLeft: null, status: "ok", exp: null, expDays: null,
@@ -57,7 +57,7 @@ export function enrich(items, logs) {
 
 export const alertsOf = (list) => list.filter((x) => x.status !== "ok").sort((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || (a.daysLeft ?? 0) - (b.daysLeft ?? 0));
 
-/** 提醒总线：储藏与房屋耗材的补货（缺货 = 尽快，少货 / 即将告罄 = 留意）和临期食材（留意） */
+/** 提醒总线：储藏与汽车房屋消耗品的补货（缺货 = 尽快，少货 / 即将告罄 = 留意）和临期食材（留意） */
 export function pantryAlertItems() {
   const items = [];
   const spaces = state.houseEnabled ? ["pantry", "house"] : ["pantry"];
@@ -82,6 +82,6 @@ export function pantryAlertItems() {
 }
 export const memberName = (userId) => state.members.find((m) => m.user_id === userId)?.display_name;
 export const openShopFor = (itemId) => state.shopping.find((s) => s.item_id === itemId && s.status !== "bought");
-// 菜单推荐只看日常储备（食材）里的东西；关键词中英文都有，英文不区分大小写
+// 菜单推荐只看日常消耗品（食材）里的东西；关键词中英文都有，英文不区分大小写
 export const nameHas = (name, kw) => { const n = String(name).toLowerCase(); return kw.some((k) => n.includes(k.toLowerCase())); };
 export const hasStock = (kw) => state.enriched.find((it) => it.qty > 0 && spaceOf(it.category) === "pantry" && nameHas(it.name, kw));

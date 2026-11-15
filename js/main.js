@@ -24,6 +24,7 @@ import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { askShopItems } from "./pantry/shop-ask.js";
+import { pickSpace } from "./pantry/space-pick.js";
 import { initBankImport } from "./stats/bank-import.js";
 import { incList, initIncome, viewIncome } from "./income/views.js";
 import { initStatements, viewStatements } from "./stats/statements.js";
@@ -229,7 +230,7 @@ export const refreshSoon = (payload) => {
 
 
 /* ───────────── 页面与路由 ───────────── */
-/** 库存页当前范围：?space=house 看房屋耗材（房屋模块关闭时只有厨房储藏） */
+/** 库存页当前范围：?space=house 看汽车房屋消耗品（房屋模块关闭时只有厨房储藏） */
 const invSpace = () => (state.houseEnabled && state.route.q.get("space") === "house" ? "house" : "pantry");
 const VIEWS = {
   today:    () => viewToday(),
@@ -372,13 +373,13 @@ function renderBody(r) {
   if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("财务模块已关闭"), "bills-enable", t("打开财务")); return; }
   if (routeBlocked(r)) { $("#main").innerHTML = ""; toast(t("家主还没给你开财务权限")); go(financeFallback(r), { replace: true }); return; }   // 对账单 / 收入 / 预算 / 添加卡：没有财务权限时直接打开网址也跳走
   if (r.section === "bills") maybeAutoSnapshot().then((w) => { if (w && state.route?.section === "bills" && state.route?.sub === "networth") render(false); });   // 本月还没有快照 / 自动快照的数字变了：后台写一行（不挡画面）
-  if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = crumb(r) + offPanel(t("装备模块已关闭"), "gear-enable", t("打开装备")); return; }
+  if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = crumb(r) + offPanel(t("家居耐用品模块已关闭"), "gear-enable", t("打开家居耐用品")); return; }
   if (r.sub === "menu") { $("#main").innerHTML = r.section === "house" ? viewPropertyList() : viewMenu(r.section); return; }   // 页签目录页；房屋先列房产
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
   $("#main").innerHTML = crumb(r) + (r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : "") + view();   // 储藏的每个页面顶上都有页面导航卡片
   if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies")) renderInvList();
-  const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : r.section === "pantry" && r.sub === "gear" ? $("#invSec-gear") : null;   // 从概览「房屋耗材」或旧的装备链接进来：展开并滚到那一块
+  const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : r.section === "pantry" && r.sub === "gear" ? $("#invSec-gear") : null;   // 从概览「汽车房屋消耗品」或旧的家居耐用品链接进来：展开并滚到那一块
   if (hs && !state.scrolledHouse) { hs.open = true; state.scrolledHouse = true; requestAnimationFrame(() => hs.scrollIntoView({ block: "start" })); }
   if (!hs) state.scrolledHouse = false;
 }
@@ -696,7 +697,7 @@ main.addEventListener("change", async (e) => {
     const fe = e.target.form.elements;
     fe.subcategory.innerHTML = subOptions(e.target.value);
     if (!fe.item_id.value) fe.location.value = catOf(e.target.value).loc;
-    // 换到装备分类时隐藏补货相关字段（保存时也会清掉它们）
+    // 换到家居耐用品分类时隐藏补货相关字段（保存时也会清掉它们）
     e.target.form.classList.toggle("is-gear", spaceOf(e.target.value) === "gear");
     e.target.form.classList.toggle("is-house", spaceOf(e.target.value) === "house");
   }
@@ -764,7 +765,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "gearToggle") {
     state.gearEnabled = e.target.checked;
     try { localStorage.setItem("hmh-gear-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
-    toast(e.target.checked ? t("已打开装备") : t("已关闭装备，导航里不再显示")); render();
+    toast(e.target.checked ? t("已打开家居耐用品") : t("已关闭家居耐用品，导航里不再显示")); render();
   }
   { const k = { spendCat: "cat", spendNat: "nat", spendProp: "prop", spendStore: "store", spendRange: "range", spendSort: "sort" }[e.target.id]; if (k) { const f = state.spendFilter; f[k] = e.target.value; if (k === "store") f.stores = null; if (k === "cat") f.grp = null; if (k === "range") { f.months = null; f.dmax = null; f.year = "all"; f.mon = "all"; renderSpendRecords(); } renderSpendList(); } }   // 手动选了商店 / 年份 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”；回到第一页重新查
   if (e.target.dataset?.action === "stats-excap") { state.stats.exCap = e.target.checked; saveStatToggles(); render(); }   // 花费统计：排除资本性 / 排除投资（概览趋势、分类、商店一起变）
@@ -923,7 +924,7 @@ main.addEventListener("submit", async (e) => {
       if (!keys.length) return toast(t("还没有勾选耗材"));
       const all = templateItems(keys), list = all.filter((x) => !findItem(x.name));   // 已有同名（忽略大小写、空格、全角半角）的跳过，重复点不会建第二件
       if (list.length) await Store.addItems(list);
-      toast(t("已添加 {n} 项房屋耗材", { n: list.length }) + (all.length > list.length ? t("；{m} 项库存里已有，跳过", { m: all.length - list.length }) : ""));
+      toast(t("已添加 {n} 项汽车房屋消耗品", { n: list.length }) + (all.length > list.length ? t("；{m} 项库存里已有，跳过", { m: all.length - list.length }) : ""));
       Object.assign(state.filter, { space: "house", cat: "all", q: "", status: "all" });
       go(href("house", "supplies"));
       return refresh();
@@ -1168,7 +1169,7 @@ main.addEventListener("click", async (e) => {
         state.gearEnabled = true; try { localStorage.setItem("hmh-gear-off", "0"); } catch { /* 忽略 */ }
         return render();
       case "tpl-all": e.preventDefault(); el.form.querySelectorAll('input[name="tpl"]:not(:disabled)').forEach((x) => { x.checked = el.dataset.on === "1"; }); return;
-      // 耐用品（装备，如厨房用品）坏了一件：数量减 1，并把换新的一件加进采购清单（买到后自动加回库存）
+      // 耐用品（家居耐用品，如厨房用品）坏了一件：数量减 1，并把换新的一件加进采购清单（买到后自动加回库存）
       case "gear-broke": {
         const it = state.enriched.find((x) => x.id === id); if (!it || !isGear(it) || it.qty <= 0) return;
         if (!confirm(t("“{name}”坏了一件？数量会减 1，并加入采购清单换新（买到后自动加回库存）。", { name: it.name }))) return;
@@ -1179,6 +1180,7 @@ main.addEventListener("click", async (e) => {
         return refresh();
       }
       case "inv-view": setInvView(el.dataset.view); state.invSel = null; return render();
+      case "add-item-pick": { const sp = await pickSpace(); if (sp) go(`${href("item", "new")}?space=${sp}`); return; }   // ＋ 添加物品：先选放在哪一类
       case "inv-sec-shop": return addAlertsToShopping(secNeed(el.dataset.space));   // 物品视图每个容器的「全部加入采购清单」
       case "inv-select": state.invSel = state.invSel ? null : new Set(); return render();
       case "inv-sel-all": { const ids = visibleItemIds(), all = ids.every((x) => state.invSel?.has(x)); state.invSel = new Set(all ? [] : ids); return render(); }

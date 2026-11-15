@@ -110,7 +110,7 @@ function termsPanel() {
 /* ── 分类与小类：按空间列出全部分类（含隐藏的）；点“编辑”用和库存页同一个表单改名、换图标颜色、增删小类；内置分类可恢复默认或隐藏 ── */
 function categoriesPanel() {
   const cf = state.catForm;
-  const spaces = [["pantry", "日常储备"], ["house", "房屋耗材"], ["gear", "装备"]].filter(([s]) => s !== "gear" || state.gearEnabled);
+  const spaces = [["pantry", "日常消耗品"], ["house", "汽车房屋消耗品"], ["gear", "家居耐用品"]].filter(([s]) => s !== "gear" || state.gearEnabled);
   const row = (c) => {
     const n = state.items.filter((i) => i.category === c.id).length;
     const tag = c.custom ? `<span class="badge b-ok">${t("自建")}</span>` : c.overridden ? `<span class="badge b-soon">${t("改过")}</span>` : "";
@@ -290,7 +290,7 @@ export function viewSettings() {
       prefs: `${LANGS[langOverride() || detectLang()]} · ${t(Units.region.name)} · ${Units.region.currency}`,
       categories: t("{n} 个分类 · 自建 {m} · 改过 {k}", { n: CATEGORIES.filter((c) => !c.hidden).length, m: CATEGORIES.filter((c) => c.custom).length, k: CATEGORIES.filter((c) => c.overridden).length }),
       locations: t("{n} 个位置 · 自定义 {m}", { n: window.LOCATIONS.length, m: customLocations().length }),
-      modules: [state.houseEnabled ? t("房屋 ✓") : t("房屋 ✗"), state.billsEnabled ? t("账单 ✓") : t("账单 ✗"), state.gearEnabled ? t("装备 ✓") : t("装备 ✗")].join(" · "),
+      modules: [state.houseEnabled ? t("房屋 ✓") : t("房屋 ✗"), state.billsEnabled ? t("账单 ✓") : t("账单 ✗"), state.gearEnabled ? t("家居耐用品 ✓") : t("家居耐用品 ✗")].join(" · "),
       print: state.billsEnabled ? t("采购清单、账单概览") : t("采购清单"),
       data: notif === "granted" ? t("通知已开启") : t("通知未开启"),
       backup: financeOk() ? backupSummary() : t("需要财务权限"),
@@ -381,9 +381,9 @@ export function viewSettings() {
     </div>`,
     properties: () => propertiesPanel(),
     modules: () => `
-    ${sw("houseToggle", state.houseEnabled, t("房屋维护模块"), t("关闭后导航和首页只显示日常储备，适合租房或不需要的家庭；数据不会删除"))}
+    ${sw("houseToggle", state.houseEnabled, t("房屋维护模块"), t("关闭后导航和首页只显示日常消耗品，适合租房或不需要的家庭；数据不会删除"))}
     ${sw("billsToggle", state.billsEnabled, t("财务模块"), t("水电气、网络、HOA、房产税、房贷、保险等周期账单的提醒与记录；关闭后导航里不再显示，数据不会删除"))}
-    ${sw("gearToggle", state.gearEnabled, t("装备模块"), t("床品、电器、自行车、工具等耐用品，只记数量和位置；关闭后储藏里不再显示“装备”，数据不会删除"))}`,
+    ${sw("gearToggle", state.gearEnabled, t("家居耐用品模块"), t("床品、电器、自行车、工具等耐用品，只记数量和位置；关闭后储藏里不再显示“家居耐用品”，数据不会删除"))}`,
     data: () => `
     <div class="panel"><div class="kv"><div><b>${t("浏览器通知")}</b><div class="muted">${t("打开网页时，若有新的缺货或少货会弹出提醒")}</div></div>
       ${notif === "granted" ? `<span class="badge b-ok">${t("已开启")}</span>` : notif === "unsupported" ? `<span class="muted">${t("此浏览器不支持")}</span>` : `<button type="button" class="btn btn-sm" data-action="notif">${t("开启通知")}</button>`}</div></div>
