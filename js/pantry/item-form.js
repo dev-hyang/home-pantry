@@ -14,6 +14,7 @@ import { locationField, resolveLocation } from "../core/locations.js";
 import { assetName } from "../house/assets.js";
 import { autofillBar } from "../core/autofill.js";
 import { unitSelect } from "../core/unit-pick.js";
+import { guessNew } from "../core/sub-guess.js";
 import { propertyName } from "../bills/logic.js";
 
 /* ───────────── 物品编辑：独立整页（路由 #/item/<id> 或 #/item/new） ─────────────
@@ -302,6 +303,15 @@ function muteChoice(val, cur) {
   return null;
 }
 
+/** 新物品：边打名字边按名称猜大类和小类（js/core/sub-guess.js），只在选好的那一类里；自己选过分类就不动 */
+function guessCategory(f, name) {
+  if (!f || f.elements.item_id.value || f.dataset.catTouched === "1") return;
+  const space = f.elements.space?.value || "pantry", g = guessNew(name, space, spaceOf); if (!g) return;
+  const [cat, sub] = g, cs = f.elements.category, ss = f.elements.subcategory;
+  if (![...cs.options].some((o) => o.value === cat)) return;
+  if (cs.value !== cat) { cs.value = cat; cs.dispatchEvent(new Event("change", { bubbles: true })); }
+  if (sub && [...ss.options].some((o) => o.value === sub)) ss.value = sub;
+}
 /* 添加物品：名称和已有物品对一下（js/core/item-match.js）——写法一样的给链接去那件，相近的列出来 */
 document.addEventListener("input", (e) => {
   if (e.target.name === "unit" && e.target.closest?.("#itemForm")) { delete e.target.dataset.auto; return; }
@@ -316,7 +326,9 @@ document.addEventListener("input", (e) => {
     if (e.target.checked && f.elements.alert_mute?.value === "forever") f.elements.alert_mute.value = "";
     return;
   }   // 手动改过单位就不再按名字猜
+  if ((e.target.name === "category" || e.target.name === "subcategory") && e.target.closest?.("#itemForm") && e.isTrusted) { e.target.form.dataset.catTouched = "1"; return; }   // 自己选过分类：不再按名字改
   if (e.target.name !== "name" || !e.target.closest?.("#itemForm")) return;
+  guessCategory(e.target.form, e.target.value);
   const hint = document.getElementById("itemNameHint"), f = e.target.form; if (!hint || !f) return;
   const u = f.elements.unit;   // 新物品、单位还没手动改过：按名字猜包装单位（牛奶 → 瓶、大米 → 袋），猜不出就是「个」
   if (u?.dataset.auto === "1") {   // 单位下拉：值是统一写法；猜出来的不在选项里就补一个

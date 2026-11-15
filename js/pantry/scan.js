@@ -14,6 +14,9 @@ import { compressImage as compress } from "../core/autofill.js";
 import { cardSelectHtml, purchasePayFields } from "../bills/cards-views.js";
 import { dupNote, loadNear, matchOpenShopping, pairRows, sameReceipt, similarPurchases } from "../stats/dup-check.js";
 import { spendChanged } from "../core/spend-data.js";
+import { guessFor } from "../core/sub-guess.js";
+/** 新物品的小类：按名称猜（只在 AI / 用户选的那个分类里取）；猜不到留空 */
+const subGuess = (name, cat) => { const g = guessFor(name, cat, null); return g && g[0] === cat ? g[1] : null; };
 
 const MAX_IMAGES = 8;   // 一次最多 8 张：可以是几张不同的小票，也可以是一张长小票的几段
 const sc = { kind: "receipt", mode: "auto", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] };
@@ -415,7 +418,7 @@ async function confirm(ctx) {
     for (const x of rows.filter((r) => r.target === "__new" && !r.replace)) {
       const key = normName(x.name), ex = newItems.get(key);   // 几行同名（不管分类）合成一件
       if (ex) ex.quantity = Math.round((ex.quantity + x.qty) * 100) / 100;
-      else newItems.set(key, { name: x.name.slice(0, 60), category: x.cat, subcategory: null, unit: x.unit, quantity: Math.round(x.qty * 100) / 100, min_quantity: 0,
+      else newItems.set(key, { name: x.name.slice(0, 60), category: x.cat, subcategory: subGuess(x.name, x.cat), unit: x.unit, quantity: Math.round(x.qty * 100) / 100, min_quantity: 0,
         location: catOf(x.cat).loc || null, expiry_date: null, lead_days: spaceOf(x.cat) === "house" ? 14 : spaceOf(x.cat) === "gear" ? 0 : 3, avg_daily_use: null, notes: null });
     }
     if (newItems.size) { await Store.addItems([...newItems.values()]); created = newItems.size; }

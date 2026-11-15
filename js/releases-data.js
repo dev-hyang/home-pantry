@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.21", title: { zh: "按名字自动选分类和小类", en: "Category and subcategory picked from the name" }, items: [
+    { k: "new", zh: "添加物品时边打名字边选好大类和小类（中英文都认：牛排 / steak → 肉蛋奶 · 肉禽，床垫 → 家具）；自己改过就不再动", en: "When adding an item, the category and subcategory are picked as you type the name (Chinese or English: steak → Meat, eggs & dairy, mattress → Furniture); once you change it yourself it stays" },
+    { k: "better", zh: "拍小票新建的物品也会按名字补上小类", en: "Items created from a receipt scan get a subcategory from their name too" },
+    { k: "better", zh: "已有物品按新分类整理后，搬过的会列在概览「请确认分类」里，可以一键「没错」或「改回」", en: "After existing items are re-sorted into the new categories, the moved ones are listed under \"Check categories\" on the overview, with one tap to confirm or move back" }
+  ] },
   { v: "2026-11-14.20", title: { zh: "储藏分三类，名字说清楚用途", en: "Pantry in three clearly named groups" }, items: [
     { k: "better", zh: "三类改名：日常消耗品（吃的用的，会用完）、汽车房屋消耗品（房子院子车要换的）、家居耐用品（长期用的，只记几件、放哪）", en: "Three groups, renamed: Groceries & daily consumables, Home & car supplies, Household durables" },
     { k: "new", zh: "新分类：肉蛋奶、零食、家具、家用电器、玩具游戏、装饰收纳；婴童用品加「婴儿房」，常用的小类也补齐了", en: "New categories: Meat, eggs & dairy; Snacks; Furniture; Appliances; Toys & games; Decor & storage; Baby & kids gear gets Nursery, plus more subcategories" },

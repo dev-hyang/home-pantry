@@ -101,6 +101,7 @@
   }
   // 按物品名猜包装单位（中英文关键词，先具体后笼统）；猜不出来返回 null，调用方再退回「个」
   const GUESS = [
+    ["个", /尿布台|婴儿床|尿布桶|crib|bassinet|changing table|diaper pail/i],   // 名字里带「尿布」的家具 / 用品，别被下面的 尿布 → 包 带走
     ["卷", /卫生纸|厕纸|卷纸|厨房纸|纸巾卷|保鲜膜|锡纸|铝箔|胶带|toilet paper|paper towel|bath tissue|plastic wrap|cling|foil|tape\b/i],
     ["支", /牙膏|唇膏|护手霜|toothpaste|lip balm|chapstick/i],
     ["罐", /罐头|可乐|雪碧|汽水|啤酒|果酱|花生酱|奶粉|咖啡粉|canned|\bsoda\b|\bcoke\b|sprite|\bbeer\b|\bjam\b|peanut butter|nutella|\bjar\b|formula/i],

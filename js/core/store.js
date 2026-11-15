@@ -4,7 +4,8 @@ import { $, DAY, STATS_LOG_DAYS, num, uid } from "./util.js";
 import { t } from "./i18n.js";
 import { financeAllowed } from "./finance-rules.js";
 import { migrateLegacyDebts } from "./debt-rules.js";
-import { flagLocalCatChecks, migrateLocalCategories } from "./category-moves.js";
+import { flagLocalCatChecks, migrateLocalCategories, refineLocalCategories } from "./category-moves.js";
+import { guessFor } from "./sub-guess.js";
 import { cardSpend, cardTotals, incRollup, itemPurchaseStats, ledgerRange, ledgerRollup, localPage, localStats, spendFeed, spendRollup, spendSuggest } from "./list-query.js";
 
 /* 成员资料（迁移 052）：只在 设置 → 家庭与成员 里用，不进 AI 提示词、不进备份（个人数据，只给本家庭看） */
@@ -37,6 +38,7 @@ export const DemoStore = {
     db.account_balances ||= []; db.asset_valuations ||= []; db.net_worth_snapshots ||= [];   // 净资产（迁移 059）
     if (!db._cat063) { migrateLocalCategories(db); db._cat063 = true; }   // 分类重整（迁移 063 的本机版）
     if (!db._cat064) { flagLocalCatChecks(db); db._cat064 = true; }   // 「请确认分类」标记（迁移 064 的本机版）
+    if (!db._cat070) { refineLocalCategories(db, guessFor); db._cat070 = true; }   // 分类细化（迁移 070 的本机版）
     this.persist();
   },
   /* 家庭成员（演示：只有“我”= 家主，user_id 固定为 "me"，和 budget.js 的 myId() 一致）；不放进 state.members，免得名册、分摊等演示数据跟着变 */

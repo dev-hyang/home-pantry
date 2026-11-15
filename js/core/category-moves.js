@@ -56,7 +56,24 @@ export const CAT_CHECK = {
   "gear_study/学习用品": ["study", "文具"],            // 旧「学生用品」：书包、计算器 ↔ 笔、本子这类耗材
   "house_repair/螺丝五金": ["gear_tools", "手动工具"], // 旧「五金配件」：螺丝钉子 ↔ 钻头、批头这类工具配件
 };
-export const catCheckAlt = (it) => CAT_CHECK[`${it.category}/${it.subcategory}`] || null;
+export const catCheckAlt = (it) => {
+  if (it.cat_prev) { const [c, s] = String(it.cat_prev).split("/"); if (c && c !== it.category) return [c, s || null]; }   // 迁移 070 搬过来的：可以改回原来的
+  return CAT_CHECK[`${it.category}/${it.subcategory}`] || null;
+};
+
+/** 演示库：迁移 070 的本机版——按名称把物品整理到新分类（js/core/sub-guess.js），换了分类的打标记、记下原来的 */
+export function refineLocalCategories(db, guessFor) {
+  const moved = new Map();
+  for (const it of db.items || []) {
+    const g = guessFor(it.name, it.category, it.subcategory); if (!g) continue;
+    const [nc, ns] = g; if (nc === it.category && ns === it.subcategory) continue;
+    if (nc !== it.category) { it.cat_prev = `${it.category}/${it.subcategory || ""}`; it.cat_check = true; moved.set(it.id, [it.category, nc]); }
+    it.category = nc; it.subcategory = ns;
+  }
+  for (const list of [db.purchases, db.shopping]) for (const r of list || []) {
+    const m = r.item_id && moved.get(r.item_id); if (m && r.category === m[0]) r.category = m[1];
+  }
+}
 
 /** 演示库：落在 CAT_CHECK 里的旧物品打上标记（只做一次，和迁移 064 一样） */
 export function flagLocalCatChecks(db) {
