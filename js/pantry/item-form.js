@@ -128,10 +128,10 @@ export function viewItemForm() {
             </label>
             ${spacePick(spaceOf(v.category))}
             <label>${t("大类")}
-              <select name="category" required>${categoryOptions(v.category, { withOther: false, only: spaceOf(v.category) })}</select>
+              <select name="category" required data-search>${categoryOptions(v.category, { withOther: false, only: spaceOf(v.category) })}</select>
             </label>
             <label>${t("小类")}
-              <select name="subcategory">${subOptions(v.category, v.subcategory)}</select>
+              <select name="subcategory" data-search>${subOptions(v.category, v.subcategory)}</select>
             </label>
             ${locationField(v.location)}
             <label class="not-gear">${t("保质期至")}
@@ -310,7 +310,7 @@ function guessCategory(f, name) {
   const [cat, sub] = g, cs = f.elements.category, ss = f.elements.subcategory;
   if (![...cs.options].some((o) => o.value === cat)) return;
   if (cs.value !== cat) { cs.value = cat; cs.dispatchEvent(new Event("change", { bubbles: true })); }
-  if (sub && [...ss.options].some((o) => o.value === sub)) ss.value = sub;
+  if (sub && [...ss.options].some((o) => o.value === sub) && ss.value !== sub) { ss.value = sub; ss.dispatchEvent(new Event("change", { bubbles: true })); }
 }
 /* 添加物品：名称和已有物品对一下（js/core/item-match.js）——写法一样的给链接去那件，相近的列出来 */
 document.addEventListener("input", (e) => {

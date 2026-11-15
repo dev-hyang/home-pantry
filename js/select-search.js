@@ -12,6 +12,9 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
    手指落下的位置可能已经换成了别的选项（选「通行费」结果填成「餐饮」）。有鼠标的宽屏才换成可搜索的下拉 */
 const touch = () => { try { return matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches; } catch (e) { return false; } };
 const want = (sel) => sel.matches("select") && !touch() && !sel.dataset.nosearch && !sel.dataset.sselReady && !sel.multiple && (sel.dataset.search !== undefined || sel.options.length >= MIN);
+/* 触屏上带 data-search 的长下拉（物品表单的大类 / 小类 / 存放位置）：点了从底部弹出一个面板——上面一个搜索框、下面整张清单，
+   打字只筛选面板里的清单，页面本身不动，所以不会出现上面说的「手指落下时选项换了」。没打字也能直接滑着点。（2026-11-14） */
+const wantSheet = (sel) => sel.matches("select") && touch() && sel.dataset.search !== undefined && !sel.dataset.sselReady && !sel.multiple;
 let openBox = null;
 
 const label = (sel) => { const o = sel.selectedOptions[0]; return o ? o.textContent.trim() : ""; };
@@ -26,6 +29,7 @@ function enhance(sel) {
   sel.classList.add("ssel-native"); sel.tabIndex = -1; sel.removeAttribute("aria-hidden");
   sel.after(box); box._sel = sel; sel._ssel = box;
   const inp = box.querySelector(".ssel-in"); inp.value = label(sel); inp.disabled = sel.disabled;
+  new MutationObserver(() => { if (!box.classList.contains("is-open")) inp.value = label(sel); }).observe(sel, { childList: true, subtree: true });   // 选项被重建：显示的文字跟着变
   if (sel.required) inp.setAttribute("aria-required", "true");
   sel.addEventListener("focus", () => { if (!inp.disabled) inp.focus(); });
   // required 没选：浏览器要聚焦这个 1px 的隐形 select 并在它旁边弹提示。拦下来，改在输入框上提示（排在表单里第一个没填的才抢焦点，
@@ -99,8 +103,50 @@ function onKey(e, box) {
   else if (e.key === "Tab") close(box);
 }
 
+/* ── 触屏：底部面板 ── */
+function enhanceSheet(sel) {
+  sel.dataset.sselReady = "1";
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.className = "ssel-btn";
+  btn.setAttribute("aria-haspopup", "dialog");
+  const lbl = sel.getAttribute("aria-label") || sel.closest("label")?.firstChild?.textContent?.trim() || "";
+  btn.setAttribute("aria-label", lbl);
+  const show = () => { btn.textContent = label(sel) || t("请选择"); btn.disabled = sel.disabled; };
+  show();
+  sel.classList.add("ssel-native"); sel.tabIndex = -1;
+  sel.after(btn); sel._sheetBtn = btn;
+  sel.addEventListener("change", show);
+  new MutationObserver(show).observe(sel, { childList: true, subtree: true });   // 选项被重建（换了大类，小类跟着换）：按钮上的文字跟着变
+  sel.addEventListener("focus", () => btn.focus());
+  btn.addEventListener("click", () => openSheet(sel, lbl, show));
+}
+function openSheet(sel, title, show) {
+  const dlg = document.createElement("dialog");
+  dlg.className = "ask-dlg sel-sheet";
+  dlg.innerHTML = `<div class="ask-form"><h3>${esc(title)}</h3>
+    <input type="search" class="sel-sheet-q" placeholder="${esc(t("输入几个字筛选…"))}" aria-label="${esc(t("筛选"))}" autocomplete="off" spellcheck="false">
+    <div class="ssel-list sel-sheet-list" role="listbox" aria-label="${esc(title)}"></div>
+    <div class="ask-acts"><button type="button" class="btn btn-ghost" data-x>${esc(t("取消"))}</button></div></div>`;
+  document.body.appendChild(dlg);
+  const box = { _sel: sel, querySelector: (q) => dlg.querySelector(q === ".ssel-in" ? ".sel-sheet-q" : q), querySelectorAll: (q) => dlg.querySelectorAll(q), dataset: {} };
+  build(box);
+  const list = dlg.querySelector(".sel-sheet-list"), q = dlg.querySelector(".sel-sheet-q");
+  const done = () => { dlg.close(); dlg.remove(); sel._sheetBtn?.focus(); };
+  q.addEventListener("input", () => { box.dataset.typed = q.value ? "1" : ""; if (!q.value) delete box.dataset.typed; filter(box); });
+  list.addEventListener("click", (e) => {
+    const row = e.target.closest(".ssel-opt"); if (!row || row.classList.contains("is-off")) return;
+    if (sel.value !== row.dataset.v) { sel.value = row.dataset.v; sel.dispatchEvent(new Event("change", { bubbles: true })); }
+    show(); done();
+  });
+  dlg.querySelector("[data-x]").addEventListener("click", done);
+  dlg.addEventListener("cancel", (e) => { e.preventDefault(); done(); });
+  dlg.addEventListener("click", (e) => { if (e.target === dlg) done(); });
+  dlg.showModal();
+  const cur = list.querySelector(".ssel-opt.is-cur"); if (cur) list.scrollTop = Math.max(0, cur.offsetTop - list.clientHeight / 2);
+}
+
 export function initSelectSearch() {
-  const scan = (root) => root.querySelectorAll && root.querySelectorAll("select").forEach((s) => { if (want(s)) enhance(s); });
+  const scan = (root) => root.querySelectorAll && root.querySelectorAll("select").forEach((s) => { if (wantSheet(s)) enhanceSheet(s); else if (want(s)) enhance(s); });
   scan(document);
   let queued = false;
   new MutationObserver(() => { if (queued) return; queued = true; setTimeout(() => { queued = false; scan(document); }, 0); }).observe(document.body, { childList: true, subtree: true });

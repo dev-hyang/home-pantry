@@ -38,7 +38,7 @@ export function locationOptions(selected, { addNew = true } = {}) {
 /** 位置字段：下拉 + 新位置输入框（选“＋ 新位置…”时显示） */
 export function locationField(selected, label = t("存放位置")) {
   return `<label>${label}
-    <select name="location">${locationOptions(selected)}</select>
+    <select name="location" data-search>${locationOptions(selected)}</select>
     <input name="new_location" maxlength="20" autocomplete="off" placeholder="${t("新位置名，例如：Emma 的房间")}" hidden style="margin-top:6px">
   </label>`;
 }
