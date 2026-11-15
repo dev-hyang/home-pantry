@@ -3199,3 +3199,54 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .dt-opt:hover { background: var(--surface-2); }
 .dt-opt input { width: 18px; height: 18px; flex: none; accent-color: var(--pine); }
 .deal-type-pick legend { font-weight: 700; font-size: 14px; margin-bottom: 6px; padding: 0; }
+
+/* ── 储藏页面导航（2026-11-14 重构）：每个储藏页面顶上一块小卡片，当前页背景高亮 ── */
+.pnav { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 8px; margin: 0 0 16px; padding: 8px; border-radius: 14px; background: var(--surface-2); }
+.pnav-card { position: relative; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line-soft); color: inherit; text-decoration: none; font-size: 14px; font-weight: 600; }
+.pnav-card:hover { border-color: var(--pine); }
+.pnav-card[aria-current="page"] { background: var(--pine); border-color: var(--pine); color: var(--surface); }
+.pnav-ico { font-size: 18px; line-height: 1; }
+.pnav-lbl { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pnav-n { min-width: 22px; padding: 1px 7px; border-radius: 99px; background: var(--out); color: #fff; font-size: 12px; text-align: center; }
+@media (max-width: 640px) {
+  .pnav { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; }
+  .pnav-card { flex: 1 1 calc(33.333% - 6px); }
+  .pnav-card { flex-direction: column; justify-content: center; gap: 2px; min-height: 58px; padding: 6px 4px; font-size: 13px; text-align: center; }
+  .pnav-lbl { flex: none; max-width: 100%; }
+  .pnav-n { position: absolute; top: 4px; right: 4px; min-width: 18px; padding: 0 5px; font-size: 11px; }
+}
+
+/* 储藏概览：两个大按钮 + 两个可折叠的大卡片（日常储备 / 房屋耗材） */
+.pv-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 14px; max-width: 520px; }
+.pv-act { min-height: 52px; font-size: 16px; justify-content: center; white-space: nowrap; padding-inline: 10px; }
+.pv-cards { display: flex; flex-direction: column; gap: 12px; }
+.pv-card { border: 1px solid var(--line-soft); border-radius: 14px; background: var(--surface); }
+.pv-card > summary { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 10px 16px; cursor: pointer; list-style: none; }
+.pv-card > summary::-webkit-details-marker { display: none; }
+.pv-ico { font-size: 26px; line-height: 1; }
+.pv-ttl { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.pv-ttl b { font-size: 17px; }
+.pv-ttl small { color: var(--muted); font-size: 13px; }
+.pv-ttl small.pv-bad { color: var(--out); font-weight: 600; }
+.pv-chev { color: var(--muted); transition: transform .2s; }
+.pv-card:not([open]) .pv-chev { transform: rotate(-90deg); }
+.pv-body { padding: 0 16px 16px; }
+.pv-stats { list-style: none; margin: 0 0 4px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.pv-stat { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line-soft); border-left: 4px solid var(--line); color: inherit; text-decoration: none; }
+.pv-stat:hover { border-color: var(--pine); }
+.pv-stat span:first-child { flex: 1; font-size: 14px; }
+.pv-stat b { font-size: 20px; }
+.pv-stat .pv-go { color: var(--muted); }
+.pv-stat.st-out { border-left-color: var(--out); } .pv-stat.st-out b { color: var(--out); }
+.pv-stat.st-low { border-left-color: var(--low); } .pv-stat.st-low b { color: var(--low); }
+.pv-stat.st-soon { border-left-color: var(--soon); } .pv-stat.st-soon b { color: var(--soon); }
+.pv-stat.st-exp { border-left-color: var(--exp); } .pv-stat.st-exp b { color: var(--exp); }
+.pv-stat.st-all { border-left-color: var(--pine); }
+.pv-stat.is-zero b { color: var(--muted); }
+.pv-sub { font-size: 13px; color: var(--muted); margin: 14px 0 8px; font-weight: 600; }
+@media (max-width: 640px) {
+  .pv-acts { max-width: none; }
+  .pv-act { font-size: 15px; }
+  .pv-stats { grid-template-columns: 1fr 1fr; }
+  .pv-card > summary, .pv-body { padding-inline: 12px; }
+}

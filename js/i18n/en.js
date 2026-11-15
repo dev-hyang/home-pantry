@@ -2376,6 +2376,7 @@ export const EN = {
   "牧羊人": "Shepherd",
   "稻种账本": "Rice Seed Ledger", "账本": "Ledger", "稻种经销 · 账务": "Seed dealer · ledger",
   "身心灵记录": "body, mind & spirit records",
+  "全部物品": "All items", "{n} 种，都充足": "{n} kinds, all stocked",
   "这张小票可能已经录过：{who}{d} 记了 {n} 项，合计 {m}（这次 {m2}）": "This receipt may already be logged: {who}{d} logged {n} items, total {m} (this one {m2})",
   "这张小票怎么处理": "What to do with this receipt",
   "以这次为准，更新那次": "Use this one, update the earlier entry",

@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.12", title: { zh: "储藏：页面导航卡片，概览更清楚", en: "Pantry: page cards on top, a clearer overview" }, items: [
+    { k: "new", zh: "储藏的每个页面顶上都有一排页面卡片（概览 / 库存 / 采购清单 / 装备 / 菜单），当前页高亮", en: "Every Pantry page has a row of page cards on top (Overview / Inventory / Shopping list / Gear / Meals), with the current one highlighted" },
+    { k: "better", zh: "概览只留「日常储备」「房屋耗材」两个大卡片，点标题折叠 / 展开；里面的缺货、少货等点一下直接看那些物品", en: "The overview has just two big cards, Everyday stock and Home supplies; tap the title to fold or open, and tap Out, Low and so on to see those items" },
+    { k: "better", zh: "「录入购物」旁边加了「添加物品」，两个按钮都更大", en: "\"Add item\" now sits next to \"Log a purchase\", and both buttons are bigger" }
+  ] },
   { v: "2026-11-14.11", title: { zh: "更正重复小票时，多出来的行由你决定删不删", en: "When correcting a duplicate receipt, you choose which extra lines to delete" }, items: [
     { k: "better", zh: "选「以这次为准」后，那次录了、这次没有的行默认保留，要删的自己勾上", en: "After \"Use this one\", lines only in the earlier entry are kept by default; tick the ones to delete" }
   ] },
