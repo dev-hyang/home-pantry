@@ -23,6 +23,7 @@ import { mountLangSwitcher } from "../shared/lang-switcher.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
+import { askShopItems } from "./pantry/shop-ask.js";
 import { initBankImport } from "./stats/bank-import.js";
 import { incList, initIncome, viewIncome } from "./income/views.js";
 import { initStatements, viewStatements } from "./stats/statements.js";
@@ -1200,7 +1201,11 @@ main.addEventListener("click", async (e) => {
         toast(on ? t("{name} 恢复提醒", { name: it.name }) : t("{name} 不再提醒", { name: it.name })); return refresh();
       }
       case "inv-del": { const it = state.items.find((x) => x.id === id); if (!it || !confirmDelete(t("删除「{name}」？", { name: it.name }))) return; await Store.deleteItem(id); toast(t("已删除 {name}", { name: it.name })); return refresh(); }
-      case "inv-shop": { const it = state.enriched.find((x) => x.id === id); if (!it) return; if (openShopFor(id)) { toast(t("{name} 已经在采购清单里", { name: it.name })); return; } await addAlertsToShopping([it]); return; }
+      case "inv-shop": {   // 右滑加入采购清单（先确认数量和单位，见 addAlertsToShopping）
+        const it = state.enriched.find((x) => x.id === id); if (!it) return;
+        if (openShopFor(id)) { toast(t("{name} 已经在采购清单里", { name: it.name })); return; }
+        return addAlertsToShopping([it]);
+      }
       case "consume": el.disabled = true; await Store.adjust(id, -storedStep(state.items.find((x) => x.id === id)?.unit), "consume"); return refresh();
       case "restock": el.disabled = true; await Store.adjust(id, storedStep(state.items.find((x) => x.id === id)?.unit), "restock"); return refresh();
       case "inv-sub": state.filter.sub = el.dataset.sub; return render();
@@ -1551,14 +1556,15 @@ async function setItemUnit(id, v) {
   try { await Store.saveItem({ ...it, unit: u, quantity: Math.round(q * 100) / 100 }); toast(t("{name} 的单位改成 {u}", { name: it.name, u: t(u) })); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); }
   refresh();
 }
+/** 所有「加入采购清单」按钮（行上的、右滑、全部加入、多选）：已在清单里的跳过，其余先弹框确认每件的数量和单位（js/pantry/shop-ask.js） */
 export async function addAlertsToShopping(list) {
-  let added = 0;
-  for (const it of list) {
-    if (!it || openShopFor(it.id)) continue;
-    await Store.saveShopping({ item_id: it.id, name: it.name, quantity: it.suggest, unit: it.unit, category: it.category });
-    added++;
-  }
-  toast(added ? t("已加入采购清单 {n} 项", { n: added }) : t("这些都已经在清单里了"));
+  const fresh = list.filter((it) => it && !openShopFor(it.id));
+  if (!fresh.length) { toast(list.length > 1 ? t("这些都已经在清单里了") : t("已经在采购清单里了")); return refresh(); }
+  const picked = await askShopItems(fresh);
+  if (!picked) return refresh();
+  for (const { it, quantity, unit } of picked) await Store.saveShopping({ item_id: it.id, name: it.name, quantity, unit, category: it.category });
+  const one = picked.length === 1 ? picked[0] : null;
+  toast(one ? t("已加入采购清单：{name} {q} {u}", { name: one.it.name, q: fmt(one.quantity), u: t(one.unit) }) : t("已加入采购清单 {n} 项", { n: picked.length }));
   refresh();
 }
 

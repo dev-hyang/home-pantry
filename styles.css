@@ -3342,3 +3342,29 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 @media (pointer: coarse), (max-width: 640px) {
   #main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), #main select, #main textarea, #main .ssel-in { font-size: 16px; }
 }
+/* 加入采购清单确认框（2026-11-14）：页面里的 <dialog>，电脑居中，手机贴底 */
+.ask-dlg { width: min(560px, calc(100vw - 32px)); max-height: min(80vh, 720px); padding: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); box-shadow: 0 18px 48px rgba(0,0,0,.28); }
+.ask-dlg::backdrop { background: rgba(0,0,0,.4); }
+.ask-form { display: flex; flex-direction: column; max-height: inherit; padding: 16px 18px; box-sizing: border-box; }
+.ask-form h3 { margin: 0 0 2px; font-size: 17px; }
+.ask-tip { margin: 0 0 10px; font-size: 13px; }
+.ask-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; min-height: 0; border-top: 1px solid var(--line-soft); }
+.ask-item { display: grid; grid-template-columns: auto minmax(0, 1fr) 76px 96px; align-items: center; gap: 8px; min-height: 56px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); }
+.ask-item:not(:has(.ask-inc)) { grid-template-columns: minmax(0, 1fr) 76px 96px; }
+.ask-item.is-off .ask-name, .ask-item.is-off .ask-qty, .ask-item.is-off .ask-unit { opacity: .45; }
+.ask-inc { width: 22px; height: 22px; margin: 0; accent-color: var(--pine); }
+.ask-name { font-weight: 600; overflow-wrap: anywhere; }
+.ask-qty, .ask-item .ask-unit { box-sizing: border-box; width: 100%; min-height: 44px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 16px; }
+.ask-qty { text-align: center; font-weight: 600; }
+.ask-err { margin: 8px 0 0; min-height: 0; }
+.ask-err:empty { display: none; }
+.ask-acts { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.ask-acts:not(:has(.spacer)) { justify-content: flex-end; }
+.ask-acts .btn { min-height: 44px; }
+@media (max-width: 640px) {
+  .ask-dlg { width: 100vw; max-width: 100vw; max-height: 88vh; margin: auto 0 0; border-radius: 18px 18px 0 0; border-bottom: 0; }
+  .ask-form { padding: 16px 14px calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .ask-item { grid-template-columns: auto minmax(0, 1fr) 68px 88px; gap: 6px; }
+  .ask-item:not(:has(.ask-inc)) { grid-template-columns: minmax(0, 1fr) 68px 88px; }
+  .ask-acts .ask-ok { flex: 1; }
+}

@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.18", title: { zh: "加入采购清单前确认数量和单位", en: "Confirm quantity and unit before adding to the shopping list" }, items: [
+    { k: "better", zh: "点任何「加入采购清单」（行上的按钮、右滑、全部加入、多选）都会先弹出一个框，确认每件买多少、什么单位；多件在同一个框里，不要的取消勾选", en: "Every \"Add to shopping list\" (row button, swipe, add all, multi-select) first opens a box to confirm how much and which unit; several items share one box, untick what you don't need" }
+  ] },
   { v: "2026-11-14.17", title: { zh: "提醒开关更清楚；采购清单输入不再放大页面", en: "Clearer reminder switch; shopping list no longer zooms when typing" }, items: [
     { k: "better", zh: "库存行上的 🔔 改成圆形按钮，不提醒时整圈变黄；补货不会再自动改回提醒，设成什么就是什么", en: "The 🔔 on inventory rows is now a round button that turns yellow when muted; restocking no longer turns reminders back on" },
     { k: "fix", zh: "手机上点采购清单里的输入框（在哪买、价格、数量），页面不再被放大", en: "On phones, tapping a shopping list field (store, price, quantity) no longer zooms the page" },
