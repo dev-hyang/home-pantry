@@ -82,13 +82,11 @@ function catCheckSection() {
     </section>`;
 }
 
-/** 储藏的页面导航（2026-11-14 重构）：每个储藏页面顶上都有这一块——一排小卡片（概览 / 库存 / 采购清单 / 装备 / 菜单），
- *  当前页背景高亮；库存卡带要补货的件数，采购卡带待买的项数。宽屏一行排开，手机两到三列网格（不横滑，点按区域 ≥ 44px） */
+/** 储藏的页面导航（2026-11-14 重构）：每个储藏页面顶上都有这一块——一排小卡片（概览 / 库存 / 装备 / 菜单；采购清单在底部导航），
+ *  当前页背景高亮；库存卡带要补货的件数。宽屏一行排开，手机两到三列网格（不横滑，点按区域 ≥ 44px） */
 export function pantryNav(cur) {
-  const shop = state.shopping.filter((s) => s.status !== "bought").length;
   const need = (state.enriched || []).filter((x) => !isGear(x) && x.status !== "ok").length;
   const list = [["overview", href("pantry"), "📊", t("概览")], ["inventory", href("pantry", "inventory"), "📦", t("库存"), need],
-    ["shopping", href("shopping"), "🛒", t("采购清单"), shop],
     state.gearEnabled ? ["gear", href("pantry", "gear"), "🧳", t("装备")] : null,
     ["meals", href("pantry", "meals"), "🍳", t("菜单")]].filter(Boolean);
   return `<nav class="pnav" aria-label="${esc(t("储藏的页面"))}">${list.map(([id, h, ic, l, n]) => `<a class="pnav-card" href="${esc(h)}" ${id === cur ? 'aria-current="page"' : ""}>
@@ -329,8 +327,7 @@ function viewInvRows(space) {
   const both = state.houseEnabled, all = state.enriched.filter((x) => inSpace("pantry")(x) || (both && inSpace("house")(x)));
   return `<section class="section inv-rows-page">
       <div class="section-head"><p>${t("{n} 件", { n: all.length })}</p><div class="head-acts">
-        <button type="button" class="btn btn-sm ${state.invSel ? "btn-primary" : "btn-ghost"}" data-action="inv-select" aria-pressed="${!!state.invSel}">${state.invSel ? t("完成") : `☑ ${t("多选")}`}</button>${viewSeg("rows")}
-        <a class="btn btn-primary btn-sm hide-phone" href="${href("item", "new")}?space=${addSpace()}">＋ ${t("添加物品")}</a></div></div>
+        <button type="button" class="btn btn-sm ${state.invSel ? "btn-primary" : "btn-ghost"}" data-action="inv-select" aria-pressed="${!!state.invSel}">${state.invSel ? t("完成") : `☑ ${t("多选")}`}</button>${viewSeg("rows")}</div></div>
       <div class="toolbar">
         <input type="search" id="invSearch" placeholder="${t("搜索物品，例如：纸、蛋")}" value="${esc(f.q)}" aria-label="${t("搜索物品")}">
         <select id="invStatus" aria-label="${t("按提醒筛选")}">
@@ -375,8 +372,7 @@ function renderInvRows(host) {
         : space === "house" ? `<strong>${t("还没有房屋耗材")}</strong><a class="btn btn-primary" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>`
         : `<strong>${t("库存还是空的")}</strong>${t("从最常用的几样开始，例如鸡蛋、大米、抽纸。")}`}</div>`;
     return `<details class="pv-card inv-sec" data-fold="${space}" id="invSec-${space}" ${fold[space] !== 0 ? "open" : ""}>
-      <summary><span class="pv-ico" aria-hidden="true">${icon}</span><span class="pv-ttl"><b>${esc(title)}</b><small>${list.length === mine.length ? t("{n} 件", { n: mine.length }) : t("{a} / {b} 件符合", { a: list.length, b: mine.length })}</small></span>
-        <a class="btn btn-sm btn-ghost inv-sec-add" href="${href("item", "new")}?space=${space}" aria-label="${esc(t("添加到{s}", { s: title }))}">＋</a><span class="pv-chev" aria-hidden="true">▾</span></summary>
+      <summary><span class="pv-ico" aria-hidden="true">${icon}</span><span class="pv-ttl"><b>${esc(title)}</b><small>${list.length === mine.length ? t("{n} 件", { n: mine.length }) : t("{a} / {b} 件符合", { a: list.length, b: mine.length })}</small></span><span class="pv-chev" aria-hidden="true">▾</span></summary>
       <div class="pv-body">${body}</div></details>`;
   };
   host.innerHTML = `<div class="pv-cards">${sec("pantry", "🥫", t("日常储备"))}${both ? sec("house", "🧰", t("房屋耗材")) : ""}</div>`;
@@ -393,7 +389,7 @@ export function itemRow(it) {
     <span class="inv-bar" aria-hidden="true"></span>
     ${sel ? `<input type="checkbox" class="inv-chk" data-sel-id="${it.id}" ${on ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: it.name }))}">` : ""}
     <div class="inv-main"><div class="inv-name">${sel ? `<span class="inv-link">${nm}</span>` : `<a href="${esc(href("item", it.id))}" class="inv-link">${nm}</a>`}${badges}</div><div class="inv-meta">${meta}</div></div>
-    <button type="button" class="inv-mute" data-action="item-mute" data-id="${it.id}" aria-pressed="${m}" aria-label="${esc(m ? t("{name}：恢复提醒", { name: it.name }) : t("{name}：不提醒", { name: it.name }))}" title="${esc(m ? t("已设为不提醒，点一下恢复") : t("点一下设为不提醒"))}">${m ? "🔕" : "🔔"}</button>
+    <button type="button" class="inv-mute" data-action="item-mute" data-id="${it.id}" aria-pressed="${m}" aria-label="${esc(m ? t("{name}：恢复提醒", { name: it.name }) : t("{name}：不提醒", { name: it.name }))}" title="${esc(m ? t("已设为不提醒，点一下恢复") : t("点一下设为不提醒"))}"><span aria-hidden="true">${m ? "🔕" : "🔔"}</span></button>
     <div class="inv-qty" role="group" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
       <button type="button" data-action="consume" data-id="${it.id}" aria-label="${esc(t("{name} 用掉 {q} {u}", { name: it.name, q: step, u: t(it.du) }))}">−</button>
       <input type="number" inputmode="decimal" min="0" step="any" value="${fmt(it.dqty)}" data-inv-qty="${it.id}" data-keep="invq:${it.id}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
@@ -432,7 +428,7 @@ export function viewInventory(space = "pantry") {
       <div class="section-head"><p>${cur ? t("{n} 件", { n: mine.filter((x) => x.category === cur.id).length }) : t("{n} 件", { n: mine.length })}</p>
         <div class="head-acts">${house && !phone ? `<a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>` : ""}
         ${cur && !cf ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-edit" data-cat="${cur.id}">${t("编辑分类")}</button>` : ""}
-        ${gear ? "" : viewSeg("cats")}<a class="btn btn-primary btn-sm hide-phone" href="${href("item", "new")}?space=${space}${cur ? `&cat=${cur.id}` : ""}">＋ ${gear ? t("添加装备") : t("添加物品")}</a></div></div>
+        ${gear ? "" : viewSeg("cats")}</div></div>
       ${gear || !state.houseEnabled ? "" : `<div class="chips" role="group" aria-label="${t("库存范围")}">
         <button type="button" class="chip" data-action="inv-space" data-space="pantry" aria-pressed="${!house}">🥫 ${t("日常储备")}</button>
         <button type="button" class="chip" data-action="inv-space" data-space="house" aria-pressed="${house}">🧰 ${t("房屋耗材")}</button></div>`}
@@ -457,7 +453,7 @@ export function viewInventory(space = "pantry") {
       ${subBar}
       ${dash && !cf ? `<div id="dashWrap" data-space="${space}">${catDashboard(space, mine)}</div>` : ""}
       <div id="invList" ${dash ? "hidden" : ""}></div>
-      ${fab(space, gear ? t("添加装备") : t("添加物品"))}
+      ${fab(`${space}${cur ? `&cat=${cur.id}` : ""}`, gear ? t("添加装备") : t("添加物品"))}
     </section>`;
 }
 
@@ -692,11 +688,7 @@ function viewShopHome() {
     </div>
     ${shopAdviceHtml()}
     <div class="sd-grid">
-      <div class="panel sd-tile sd-main">
-        <a class="sd-top" href="${listHref("open")}"><span class="sd-ico" aria-hidden="true">🛒</span><span class="sd-lbl">${t("待购买")}</span><span class="mch" aria-hidden="true">›</span></a>
-        <a class="sd-big" href="${listHref("open")}" aria-label="${esc(t("待购买 {n} 项", { n: st.open }))}">${st.open}<small>${t("项")}</small></a>
-        <span class="sd-split"><a href="${listHref("todo")}"><b>${st.todo}</b> ${t("尚未认领")}</a><a href="${listHref("claimed")}"><b>${st.claimed}</b> ${t("已认领")}</a></span>
-      </div>
+      ${tile(listHref("open"), "🛒", t("待购买"), `${st.open}<small>${t("项")}</small>`, `<span class="nw">${t("{n} 尚未认领", { n: st.todo })}</span> · <span class="nw">${t("{n} 已认领", { n: st.claimed })}</span>`)}
       ${tile(listHref("claimed"), "🛍", t("家人认领"), `${st.claimed}<small>${t("项")}</small>`, st.claimed ? who : t("点“我来买”认领，家人就不会重复买。"))}
       ${tile(sh.items ? `${href("shops", "deals")}?f=list` : href("shops", "list"), "🏪", t("常去的商店与特价"), sh.shops ? `${sh.items}<small>${t("样清单上的有特价")}</small>` : "—",
         sh.shops ? [sh.items ? `<span class="sd-hitnames">${esc(sh.itemNames.slice(0, 4).join("、"))}${sh.items > 4 ? "…" : ""}</span>` : "", t("{n} 家", { n: sh.shops }), t("特价 {n} 项", { n: sh.deals }), sh.due ? `<em>${t("{n} 家待更新", { n: sh.due })}</em>` : ""].filter(Boolean).map((x) => `<span class="nw">${x}</span>`).join(" · ") : t("放进常去的超市，看本周特价、哪家最便宜"))}

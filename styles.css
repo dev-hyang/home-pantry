@@ -3210,7 +3210,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .pnav-n { min-width: 22px; padding: 1px 7px; border-radius: 99px; background: var(--out); color: #fff; font-size: 12px; text-align: center; }
 @media (max-width: 640px) {
   .pnav { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; }
-  .pnav-card { flex: 1 1 calc(33.333% - 6px); }
+  .pnav-card { flex: 1 1 calc(25% - 6px); min-width: 0; }
   .pnav-card { flex-direction: column; justify-content: center; gap: 2px; min-height: 58px; padding: 6px 4px; font-size: 13px; text-align: center; }
   .pnav-lbl { flex: none; max-width: 100%; }
   .pnav-n { position: absolute; top: 4px; right: 4px; min-width: 18px; padding: 0 5px; font-size: 11px; }
@@ -3293,7 +3293,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 @media print { .fab { display: none; } }
 .section:has(> .fab) { padding-bottom: 72px; }   /* 最后一行不被右下角的 ＋ 挡住 */
 .inv-row .inv-qty > input[type="number"] { flex: none; width: 64px; }
-.inv-row .inv-qty > .inv-unit { flex: none; width: 84px; }
+.inv-row .inv-qty > .inv-unit { flex: none; width: 90px; }
 .inv-row .inv-qty > button { flex: none; }
 .inv-row .inv-qty > *, .inv-mute { box-sizing: border-box; }
 /* 库存多选：每行前面一个勾选框，点行选中；底部固定一条操作条（在底部导航上方） */
@@ -3332,3 +3332,13 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 #itemForm select.unit-pick { width: 100%; }
 /* 点行就进编辑的行：手型光标 */
 #main li:has(a.link-name, a.asset-name, .grow > button.link-name[data-action="edit"]), #main article.item:has(.item-title > button[data-action="edit"]) { cursor: pointer; }
+/* 🔔 不提醒按钮（2026-11-14）：圆形描边，一眼看出是按钮；不提醒时整圈填成琥珀色 */
+.inv-row .inv-mute { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border-radius: 50%; border: 1.5px solid var(--line); background: var(--surface); font-size: 18px; line-height: 1; opacity: 1; transition: background .15s, border-color .15s, transform .1s; }
+.inv-row .inv-mute:hover { border-color: var(--pine); background: var(--surface-2); }
+.inv-row .inv-mute:active { transform: scale(.92); }
+.inv-row .inv-mute[aria-pressed="true"] { background: var(--mustard); border-color: var(--mustard); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mustard) 30%, transparent); }
+.inv-row .inv-mute:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* 采购清单：手机上输入框至少 16px，聚焦时 iPhone 不再把页面放大 */
+@media (pointer: coarse), (max-width: 640px) {
+  #main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), #main select, #main textarea, #main .ssel-in { font-size: 16px; }
+}

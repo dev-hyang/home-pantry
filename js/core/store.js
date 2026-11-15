@@ -514,7 +514,6 @@ export const DemoStore = {
     if (!it) throw new Error("物品不存在");
     const oldq = num(it.quantity), newq = Math.max(0, Math.round((oldq + delta) * 100) / 100);
     it.quantity = newq; it.updated_at = new Date().toISOString();
-    if (reason === "restock" && it.alert_mute_until) it.alert_mute_until = null;   // 又买了：说明想要，恢复提醒
     if (newq !== oldq) this.db.logs.push({ id: uid(), item_id: id, delta: newq - oldq, reason, created_at: it.updated_at });
     this.persist();
   },
@@ -1293,7 +1292,6 @@ export const CloudStore = {
   },
   async adjust(id, delta, reason) {
     this.must(await this.sb.rpc("adjust_stock", { p_item_id: id, p_delta: delta, p_reason: reason }));
-    if (reason === "restock" && state.items.find((x) => x.id === id)?.alert_mute_until) await this.sb.from("items").update({ alert_mute_until: null }).eq("id", id);   // 又买了：恢复提醒（还没执行迁移 030 时这行不会有值，也不会走到这里）
   },
   /** 不再提醒 / 暂停提醒（见本机版说明）；没执行迁移 030 时会提示先执行 */
   async setItemMute(id, until) {

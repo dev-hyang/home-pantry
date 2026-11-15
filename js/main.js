@@ -1184,7 +1184,7 @@ main.addEventListener("click", async (e) => {
       case "inv-sel-mute": {
         const ids = [...(state.invSel || [])]; if (!ids.length) return;
         el.disabled = true; for (const x of ids) await Store.setItemMute(x, MUTE_FOREVER);
-        toast(t("{n} 件设为不提醒（下次补货入库后自动恢复）", { n: ids.length })); state.invSel = null; return refresh();
+        toast(t("{n} 件设为不提醒", { n: ids.length })); state.invSel = null; return refresh();
       }
       case "inv-sel-del": {
         const ids = [...(state.invSel || [])]; if (!ids.length) return;
@@ -1197,7 +1197,7 @@ main.addEventListener("click", async (e) => {
         const it = state.items.find((x) => x.id === id); if (!it) return;
         const on = !!it.alert_mute_until && String(it.alert_mute_until) > new Date().toISOString().slice(0, 10);
         el.disabled = true; await Store.setItemMute(id, on ? null : MUTE_FOREVER);
-        toast(on ? t("{name} 恢复提醒", { name: it.name }) : t("{name} 不再提醒（下次补货入库后自动恢复）", { name: it.name })); return refresh();
+        toast(on ? t("{name} 恢复提醒", { name: it.name }) : t("{name} 不再提醒", { name: it.name })); return refresh();
       }
       case "inv-del": { const it = state.items.find((x) => x.id === id); if (!it || !confirmDelete(t("删除「{name}」？", { name: it.name }))) return; await Store.deleteItem(id); toast(t("已删除 {name}", { name: it.name })); return refresh(); }
       case "inv-shop": { const it = state.enriched.find((x) => x.id === id); if (!it) return; if (openShopFor(id)) { toast(t("{name} 已经在采购清单里", { name: it.name })); return; } await addAlertsToShopping([it]); return; }

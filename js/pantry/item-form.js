@@ -91,7 +91,8 @@ export function viewItemForm() {
   // 面包屑根：进来之前的页面；没有就回对应空间的清单
   const root = { href: state.prevRoute && state.prevHash ? state.prevHash : href(...listRoute(space)), label: state.prevRoute ? t(SECTIONS[state.prevRoute.section]?.name || "上一页") : t(SECTION_LABEL[space] || "列表") };
   const f = Units.factor(v.unit), dUnit = du(v.unit);
-  const remind = (it || src) ? num(v.min_quantity) > 0 || num(v.lead_days) > 0 : false;   // 新物品默认不提醒（2026-11-14）
+  // 新物品默认不提醒（2026-11-14）；已有物品：设了少货线 / 提前天数、又没设成「不再提醒」才算提醒
+  const remind = (it || src) ? (num(v.min_quantity) > 0 || num(v.lead_days) > 0) && !(it && it.alert_mute_until === MUTE_FOREVER) : false;
   const dv = (x) => (x == null || x === "" ? "" : fmt(num(x) * f));
   return `
     <section class="section form-page">
@@ -252,7 +253,10 @@ export async function saveItemForm(f, { silent = false } = {}) {
       if (store) rememberStore(store);
     }
     if (it.id && raw.cat_check) await Store.clearCatCheck([it.id]).catch(() => {});   // 编辑页保存过 = 分类看过了，不再列在「请确认分类」里
-    if (it.id && fe.alert_mute && remind) {   // 不再提醒 / 暂停提醒：单独存（不放进通用字段，没执行迁移 030 的库其余保存照常）
+    const sid = it.id || savedId;
+    if (sid && !remind && !gear) {   // 不提醒：同一个开关（和库存行上的 🔔 一样），补货也不改
+      if ((raw.alert_mute_until || null) !== MUTE_FOREVER) await Store.setItemMute(sid, MUTE_FOREVER).catch(() => {});
+    } else if (it.id && fe.alert_mute && remind) {   // 不再提醒 / 暂停提醒：单独存（不放进通用字段，没执行迁移 030 的库其余保存照常）
       const until = muteChoice(fe.alert_mute.value, raw.alert_mute_until);
       if ((until || null) !== (raw.alert_mute_until || null)) { await Store.setItemMute(it.id, until); raw.alert_mute_until = until; }
     }
@@ -272,7 +276,7 @@ function muteField(v) {
     <select name="alert_mute">
       ${opt("", t("正常提醒"))}
       ${cur === "keep" ? opt("keep", t("暂停提醒，到 {d}", { d: esc(v.alert_mute_until) })) : ""}
-      ${opt("30", t("暂停 30 天"))}${opt("90", t("暂停 90 天"))}${opt("forever", t("不再提醒（下次补货入库后自动恢复）"))}
+      ${opt("30", t("暂停 30 天"))}${opt("90", t("暂停 90 天"))}${opt("forever", t("不再提醒"))}
     </select>
     <small>${t("试过不好吃、或暂时用完不想补：选一个，它就不会再出现在注意事项里。临期提醒不受影响。")}</small>
   </label>`;
@@ -287,7 +291,11 @@ function muteChoice(val, cur) {
 /* 添加物品：名称和已有物品对一下（js/core/item-match.js）——写法一样的给链接去那件，相近的列出来 */
 document.addEventListener("input", (e) => {
   if (e.target.name === "unit" && e.target.closest?.("#itemForm")) { delete e.target.dataset.auto; return; }
-  if (e.target.name === "remind" && e.target.closest?.("#itemForm")) { e.target.form.classList.toggle("is-remind", e.target.checked); return; }   // 手动改过单位就不再按名字猜
+  if (e.target.name === "remind" && e.target.closest?.("#itemForm")) {   // 打开提醒：原来是「不再提醒」的，暂停选项回到「正常提醒」
+    const f = e.target.form; f.classList.toggle("is-remind", e.target.checked);
+    if (e.target.checked && f.elements.alert_mute?.value === "forever") f.elements.alert_mute.value = "";
+    return;
+  }   // 手动改过单位就不再按名字猜
   if (e.target.name !== "name" || !e.target.closest?.("#itemForm")) return;
   const hint = document.getElementById("itemNameHint"), f = e.target.form; if (!hint || !f) return;
   const u = f.elements.unit;   // 新物品、单位还没手动改过：按名字猜包装单位（牛奶 → 瓶、大米 → 袋），猜不出就是「个」

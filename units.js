@@ -46,7 +46,7 @@
     metric: { oz: "g", lb: "kg", "fl oz": "mL", qt: "L", gal: "L", ml: "mL" },
   };
 
-  const COUNT_UNITS = ["个", "盒", "袋", "包", "瓶", "罐", "杯", "条", "把", "卷", "片", "提", "板", "支"];
+  const COUNT_UNITS = ["个", "盒", "箱", "袋", "包", "瓶", "罐", "杯", "条", "把", "卷", "片", "提", "板", "支"];
   const UNIT_SETS = {
     metric: [...COUNT_UNITS, "斤", "kg", "g", "L", "mL"],
     us:     [...COUNT_UNITS, "lb", "oz", "fl oz", "qt", "gal"],
@@ -80,6 +80,7 @@
   // 2026-11-12：英文界面、AI、小票里写的各种叫法 → 库里统一存的单位（显示时再按语言翻译，瓶 → bottle）
   const ALIASES = {
     pc: "个", pcs: "个", piece: "个", pieces: "个", ea: "个", each: "个", ct: "个", count: "个", unit: "个", "件": "个", "只": "个", "颗": "个",
+    case: "箱", cases: "箱", crate: "箱", ctn: "箱", cs: "箱",
     box: "盒", boxes: "盒", carton: "盒", tub: "盒", bag: "袋", bags: "袋", sack: "袋",
     pack: "包", pk: "包", pkg: "包", package: "包", packet: "包", bottle: "瓶", bottles: "瓶", btl: "瓶", jug: "瓶",
     can: "罐", cans: "罐", jar: "罐", tin: "罐", cup: "杯", roll: "卷", rolls: "卷", tube: "支", stick: "支", bunch: "把", sheet: "片", slice: "片", bar: "条", loaf: "条", tray: "盒",

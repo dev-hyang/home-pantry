@@ -4,7 +4,7 @@
 import { esc } from "./util.js";
 import { t } from "./i18n.js";
 
-const FIRST = ["袋", "瓶", "包", "条", "个", "盒"];
+const FIRST = ["袋", "瓶", "包", "条", "个", "盒", "箱"];
 export const OTHER = "__other";
 /** 下拉里的单位（统一写法），常用的在前 */
 export function unitChoices() {

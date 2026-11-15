@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.17", title: { zh: "提醒开关更清楚；采购清单输入不再放大页面", en: "Clearer reminder switch; shopping list no longer zooms when typing" }, items: [
+    { k: "better", zh: "库存行上的 🔔 改成圆形按钮，不提醒时整圈变黄；补货不会再自动改回提醒，设成什么就是什么", en: "The 🔔 on inventory rows is now a round button that turns yellow when muted; restocking no longer turns reminders back on" },
+    { k: "fix", zh: "手机上点采购清单里的输入框（在哪买、价格、数量），页面不再被放大", en: "On phones, tapping a shopping list field (store, price, quantity) no longer zooms the page" },
+    { k: "better", zh: "单位加了「箱」；储藏顶上的页面卡片去掉了采购清单（底部导航就有），库存只留右下角一个 ＋", en: "Added \"case\" as a unit; the Pantry page cards drop Shopping list (it's in the bottom bar), and Inventory keeps just the ＋ at the bottom right" },
+    { k: "better", zh: "采购首页「待购买」整张卡片点进清单，尚未认领 / 已认领只作说明", en: "On the Shopping home, the whole \"To buy\" card opens the list; unclaimed / claimed are shown as info" }
+  ] },
   { v: "2026-11-14.16", title: { zh: "列表里点整行就能打开", en: "Tap anywhere on a list row to open it" }, items: [
     { k: "better", zh: "账单、设备、补货提醒、分类视图的物品等列表：点这一行任何空白处就打开编辑，不用非点名字", en: "Bills, equipment, restock reminders, items in the category view and other lists: tap anywhere on the row to open it, not just the name" }
   ] },
