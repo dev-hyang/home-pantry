@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.15", title: { zh: "添加物品：默认不提醒，分块可折叠，单位用下拉", en: "Add item: no reminders by default, foldable sections, unit dropdown" }, items: [
+    { k: "better", zh: "新物品默认不提醒；在「数量与提醒」里勾上「提醒补货」，才出现少货线和提前几天提醒", en: "New items have no reminders by default; tick \"Restock reminders\" under Quantity & reminders to set the low-stock line and days ahead" },
+    { k: "better", zh: "表单按块折叠 / 展开（基本信息、数量与提醒、备注、花费）", en: "The form folds into sections (Basics, Quantity & reminders, Notes, Spending)" },
+    { k: "better", zh: "单位改成下拉，袋、瓶、包、条、个、盒排在前面，也能选「其他…」手填；大类选「冷冻」默认小类是冷冻肉禽", en: "Unit is a dropdown with bag, bottle, pack, bar, piece and box first, or \"Other…\" to type one; choosing Frozen defaults the subcategory to Frozen meat" }
+  ] },
   { v: "2026-11-14.14", title: { zh: "库存可以多选", en: "Select several items in Inventory" }, items: [
     { k: "new", zh: "库存点「多选」，再点行选中几件，一起加入采购清单、设成不提醒或删除；「全选」按当前筛选选", en: "Tap \"Select\" in Inventory, then tap rows to pick several items and add them to the shopping list, mute or delete them together; \"Select all\" follows the current filters" }
   ] },

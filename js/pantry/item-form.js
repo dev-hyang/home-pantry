@@ -13,11 +13,15 @@ import { categoryOptions } from "./views.js";
 import { locationField, resolveLocation } from "../core/locations.js";
 import { assetName } from "../house/assets.js";
 import { autofillBar } from "../core/autofill.js";
+import { unitSelect } from "../core/unit-pick.js";
 import { propertyName } from "../bills/logic.js";
 
 /* ───────────── 物品编辑：独立整页（路由 #/item/<id> 或 #/item/new） ─────────────
  * 用网址表示编辑页：手机返回手势、浏览器后退都能退出；返回时由 main.js 恢复来源页的滚动位置。 */
+/** 新物品选了大类时默认的小类（没有的大类按第一个） */
+const DEFAULT_SUB = { frozen: "冷冻肉禽" };
 export function subOptions(catId, selected) {
+  if (selected === undefined) selected = DEFAULT_SUB[catId];   // 只给新物品 / 换大类时用；已有物品小类为空就保持空
   return catOf(catId).subs.map((s) => `<option value="${esc(s)}" ${s === selected ? "selected" : ""}>${esc(t(s))}</option>`).join("");
 }
 
@@ -46,10 +50,19 @@ const NAME_HINT = { pantry: "例如：鸡蛋、抽纸、大米", house: "例如�
 const linkableAssets = () => state.assetsEnriched.filter((a) => a.kind !== "vehicle");
 const assetLabel = (a) => `${assetName(a)}${state.properties.length > 1 && a.property_id ? ` · ${propertyName(a.property_id)}` : ""}`;
 
+/* 表单分块（2026-11-14）：每块可以点标题折叠 / 展开；展开状态记在内存里，后台重画时不变 */
+const FOLD = new Map();
+const secKey = (id, k) => `${id || "new"}:${k}`;
+function fsec(id, k, title, body, openDefault, cls = "") {
+  const key = secKey(id, k), open = FOLD.has(key) ? FOLD.get(key) : openDefault;
+  return `<details class="fsec ${cls}" data-fsec="${esc(key)}" ${open ? "open" : ""}><summary><span>${title}</span><span class="fsec-chev" aria-hidden="true">▾</span></summary>
+    <fieldset><legend class="sr-only">${title}</legend>${body}</fieldset></details>`;
+}
+if (typeof document !== "undefined") document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.fsec[data-fsec]")) FOLD.set(d.dataset.fsec, d.open); }, true);
+
 /** 添加物品时顺手记一笔花费（选填）：填了金额才记；商店、付款方式默认是最近一次用的（和「记一笔花费」一样） */
 function spendFieldset() {
-  return `<fieldset class="item-spend">
-          <legend>${t("花费（选填）")}</legend>
+  return fsec("", "spend", t("花费（选填）"), `
           <p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("填了金额就同时记一笔花费，关联到这件物品；不填就只入库。")}</p>
           <div class="form-grid">
             <label>${t("金额（{cur}）", { cur: Units.region.currency })}<input name="sp_amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label>
@@ -57,8 +70,7 @@ function spendFieldset() {
             <label>${t("日期")}<input name="sp_date" type="date" max="${todayISO()}" value="${todayISO()}"></label>
             ${cardSelectHtml("sp_card") ? `<label>${t("怎么付的")}${cardSelectHtml("sp_card")}</label>` : ""}
           </div>
-          ${storeDatalist()}
-        </fieldset>`;
+          ${storeDatalist()}`, false, "item-spend");
 }
 export function viewItemForm() {
   const r = state.route;
@@ -79,17 +91,17 @@ export function viewItemForm() {
   // 面包屑根：进来之前的页面；没有就回对应空间的清单
   const root = { href: state.prevRoute && state.prevHash ? state.prevHash : href(...listRoute(space)), label: state.prevRoute ? t(SECTIONS[state.prevRoute.section]?.name || "上一页") : t(SECTION_LABEL[space] || "列表") };
   const f = Units.factor(v.unit), dUnit = du(v.unit);
+  const remind = (it || src) ? num(v.min_quantity) > 0 || num(v.lead_days) > 0 : false;   // 新物品默认不提醒（2026-11-14）
   const dv = (x) => (x == null || x === "" ? "" : fmt(num(x) * f));
   return `
     <section class="section form-page">
       ${crumbNav([...itemBase(space), { label: it ? t("编辑：{name}", { name: it.name }) : src ? t("复制：{name}", { name: src.name }) : t("添加物品"), icon: catOf(v.category).icon }])}
       ${autofillBar("item", "#itemForm")}
-      <form id="itemForm" class="panel ${gear ? "is-gear" : ""} ${spaceOf(v.category) === "house" ? "is-house" : ""}" novalidate data-autosave>
+      <form id="itemForm" class="panel ${gear ? "is-gear" : ""} ${spaceOf(v.category) === "house" ? "is-house" : ""} ${remind ? "is-remind" : ""}" novalidate data-autosave>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">
         <input type="hidden" name="orig_unit" value="${esc(v.unit)}">
         <input type="hidden" name="disp_unit" value="${esc(Units.normalize(dUnit))}">
-        <fieldset>
-          <legend>${t("基本信息")}</legend>
+        ${fsec(it?.id, "basic", t("基本信息"), `
           <div class="form-grid">
             <label class="span-2">${t("名称")}
               <input name="name" required maxlength="60" autocomplete="off" placeholder="${t(NAME_HINT[spaceOf(v.category)] || NAME_HINT.pantry)}" value="${esc(v.name || "")}">
@@ -110,24 +122,24 @@ export function viewItemForm() {
               <input name="expiry_date" type="date" value="${esc(v.expiry_date || "")}">
             </label>
             ${assetField(v)}
-          </div>
-        </fieldset>
-        <fieldset>
-          <legend><span class="not-gear">${t("数量与提醒")}</span><span class="only-gear">${t("数量")}</span></legend>
+          </div>`, true)}
+        ${fsec(it?.id, "qty", `<span class="not-gear">${t("数量与提醒")}</span><span class="only-gear">${t("数量")}</span>`, `
           <p class="muted only-gear" style="margin:0 0 10px;font-size:13px">${t("装备只记数量和位置，不算消耗，也不会提醒补货。需要保养周期或保修的，用下方“升级为设备档案”。")}</p>
           <div class="form-grid">
             <label>${t("当前数量")}
               <input name="quantity" type="number" min="0" step="any" inputmode="decimal" required value="${dv(v.quantity ?? 0)}" data-orig="${dv(v.quantity ?? 0)}">
             </label>
             <label>${t("单位")}
-              <input name="unit" list="unitList" maxlength="10" required value="${esc(t(dUnit || "个"))}" ${it || src ? "" : 'data-auto="1"'}>
+              ${unitSelect(`name="unit" required ${it || src ? "" : 'data-auto="1"'}`, dUnit || "个")}
               ${dUnit !== v.unit ? `<small>${t("原单位 {u}，已按当前地区换算显示", { u: esc(v.unit) })}</small>` : ""}
             </label>
-            <label class="not-gear">${t("少货线")}
+            <label class="span-2 not-gear remind-toggle check-inline"><input type="checkbox" name="remind" ${remind ? "checked" : ""}>
+              <span><b>${t("提醒补货")}</b><small class="muted">${t("打开后，少于少货线或快用完时提醒；不打开就不提醒")}</small></span></label>
+            <label class="not-gear remind-only">${t("少货线")}
               <input name="min_quantity" type="number" min="0" step="any" inputmode="decimal" value="${dv(v.min_quantity ?? 0)}" data-orig="${dv(v.min_quantity ?? 0)}">
               <small>${t("数量低于或等于它时提醒“少货”")}</small>
             </label>
-            <label class="not-gear">${t("提前几天提醒")}
+            <label class="not-gear remind-only">${t("提前几天提醒")}
               <input name="lead_days" type="number" min="0" max="60" step="1" inputmode="numeric" value="${esc(v.lead_days ?? 3)}">
               <small>${t("预计剩余天数低于它时提醒“即将告罄”")}</small>
             </label>
@@ -135,13 +147,10 @@ export function viewItemForm() {
               <input name="avg_daily_use" type="number" min="0" step="any" inputmode="decimal" placeholder="${t("留空则根据家人的使用记录自动估算")}" value="${dv(v.avg_daily_use)}" data-orig="${dv(v.avg_daily_use)}">
             </label>
             ${it ? muteField(v) : ""}
-          </div>
-        </fieldset>
-        <fieldset>
-          <legend>${t("备注")}</legend>
+          </div>`, true)}
+        ${fsec(it?.id, "notes", t("备注"), `
           <label class="sr-only" for="itemNotes">${t("备注")}</label>
-          <textarea id="itemNotes" name="notes" rows="3" maxlength="500" placeholder="${gear ? t("品牌、型号、尺寸、购买时间、借给了谁…") : t("品牌、规格、在哪买更便宜…")}">${esc(v.notes || "")}</textarea>
-        </fieldset>
+          <textarea id="itemNotes" name="notes" rows="3" maxlength="500" placeholder="${gear ? t("品牌、型号、尺寸、购买时间、借给了谁…") : t("品牌、规格、在哪买更便宜…")}">${esc(v.notes || "")}</textarea>`, !!v.notes)}
         ${it ? "" : spendFieldset()}
         <p id="itemFormError" class="form-error" role="alert"></p>
         <div class="form-actions sticky-actions">
@@ -191,7 +200,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.q
 /** silent=true：离开页面时自动保存（不跳转、不聚焦；校验不过就提示“没有自动保存”）。返回是否保存成功 */
 export async function saveItemForm(f, { silent = false } = {}) {
   const fe = f.elements, err = f.querySelector("#itemFormError");
-  const fail = (msg, el) => { if (silent) toast(t("没有自动保存：{msg}", { msg })); else { err.textContent = msg; el.focus(); } return false; };
+  const fail = (msg, el) => { if (silent) toast(t("没有自动保存：{msg}", { msg })); else { err.textContent = msg; const d = el.closest?.("details"); if (d) d.open = true; el.focus(); } return false; };
   const name = fe.name.value.trim();
   const quantity = num(fe.quantity.value, NaN);
   if (!name) return fail(t("请填写物品名称。"), fe.name);
@@ -211,13 +220,13 @@ export async function saveItemForm(f, { silent = false } = {}) {
     return Math.round((Math.max(0, num(el.value)) / Units.factor(origUnit)) * 1000) / 1000;
   };
   // 装备没有补货概念：清掉少货线、提醒天数、用量和保质期，保证它永远不进提醒
-  const gear = spaceOf(fe.category.value) === "gear";
+  const gear = spaceOf(fe.category.value) === "gear", remind = !gear && !!fe.remind?.checked;   // 不提醒：少货线、提前天数都存 0
   const it = {
     id: fe.item_id.value || undefined, name,
     category: fe.category.value, subcategory: fe.subcategory.value || null,
     unit: back ? origUnit : typedUnit, quantity: Math.round(val("quantity") * 100) / 100,
-    min_quantity: gear ? 0 : Math.round((val("min_quantity") || 0) * 100) / 100,
-    lead_days: gear ? 0 : Math.min(60, Math.max(0, Math.round(num(fe.lead_days.value, 3)))),
+    min_quantity: remind ? Math.round((val("min_quantity") || 0) * 100) / 100 : 0,
+    lead_days: remind ? Math.min(60, Math.max(0, Math.round(num(fe.lead_days.value, 3)))) : 0,
     location: null, expiry_date: gear ? null : fe.expiry_date.value || null,
     avg_daily_use: gear ? null : val("avg_daily_use"),
     notes: fe.notes.value.trim() || null,
@@ -243,7 +252,7 @@ export async function saveItemForm(f, { silent = false } = {}) {
       if (store) rememberStore(store);
     }
     if (it.id && raw.cat_check) await Store.clearCatCheck([it.id]).catch(() => {});   // 编辑页保存过 = 分类看过了，不再列在「请确认分类」里
-    if (it.id && fe.alert_mute) {   // 不再提醒 / 暂停提醒：单独存（不放进通用字段，没执行迁移 030 的库其余保存照常）
+    if (it.id && fe.alert_mute && remind) {   // 不再提醒 / 暂停提醒：单独存（不放进通用字段，没执行迁移 030 的库其余保存照常）
       const until = muteChoice(fe.alert_mute.value, raw.alert_mute_until);
       if ((until || null) !== (raw.alert_mute_until || null)) { await Store.setItemMute(it.id, until); raw.alert_mute_until = until; }
     }
@@ -259,7 +268,7 @@ const muteActive = (v) => !!v.alert_mute_until && String(v.alert_mute_until) > t
 function muteField(v) {
   const cur = muteActive(v) ? (v.alert_mute_until === MUTE_FOREVER ? "forever" : "keep") : "";
   const opt = (val, label) => `<option value="${val}" ${cur === val ? "selected" : ""}>${label}</option>`;
-  return `<label class="span-2 not-gear">${t("补货提醒")}
+  return `<label class="span-2 not-gear remind-only">${t("补货提醒")}
     <select name="alert_mute">
       ${opt("", t("正常提醒"))}
       ${cur === "keep" ? opt("keep", t("暂停提醒，到 {d}", { d: esc(v.alert_mute_until) })) : ""}
@@ -277,11 +286,16 @@ function muteChoice(val, cur) {
 
 /* 添加物品：名称和已有物品对一下（js/core/item-match.js）——写法一样的给链接去那件，相近的列出来 */
 document.addEventListener("input", (e) => {
-  if (e.target.name === "unit" && e.target.closest?.("#itemForm")) { delete e.target.dataset.auto; return; }   // 手动改过单位就不再按名字猜
+  if (e.target.name === "unit" && e.target.closest?.("#itemForm")) { delete e.target.dataset.auto; return; }
+  if (e.target.name === "remind" && e.target.closest?.("#itemForm")) { e.target.form.classList.toggle("is-remind", e.target.checked); return; }   // 手动改过单位就不再按名字猜
   if (e.target.name !== "name" || !e.target.closest?.("#itemForm")) return;
   const hint = document.getElementById("itemNameHint"), f = e.target.form; if (!hint || !f) return;
   const u = f.elements.unit;   // 新物品、单位还没手动改过：按名字猜包装单位（牛奶 → 瓶、大米 → 袋），猜不出就是「个」
-  if (u?.dataset.auto === "1") u.value = t(Units.guess(e.target.value) || "个");
+  if (u?.dataset.auto === "1") {   // 单位下拉：值是统一写法；猜出来的不在选项里就补一个
+    const g = Units.guess(e.target.value) || "个";
+    if (u.tagName === "SELECT" && ![...u.options].some((o) => o.value === g)) u.insertAdjacentHTML("afterbegin", `<option value="${esc(g)}">${esc(t(g))}</option>`);
+    u.value = u.tagName === "SELECT" ? g : t(g);
+  }
   const id = f.elements.item_id.value || null, same = findItem(e.target.value, { exceptId: id }), near = same ? [] : similarItems(e.target.value, { exceptId: id });
   hint.hidden = !same && !near.length;
   const link = (i) => `<a href="${href("item", i.id)}">${esc(i.name)}</a>`;

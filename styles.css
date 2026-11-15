@@ -3313,3 +3313,20 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
   .inv-selbar .btn { justify-content: center; padding-inline: 4px; white-space: nowrap; font-size: 13px; }
   .section:has(.inv-selbar) { padding-bottom: 140px; }
 }
+/* 物品表单分块（2026-11-14）：点标题折叠 / 展开 */
+.form-page .fsec { border-top: 1px dashed var(--line); }
+.form-page .fsec:first-of-type { border-top: 0; }
+.form-page .fsec > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; cursor: pointer; list-style: none; font-size: 15px; font-weight: 600; }
+.form-page .fsec > summary::-webkit-details-marker { display: none; }
+.form-page .fsec-chev { color: var(--muted); transition: transform .2s; }
+.form-page .fsec:not([open]) .fsec-chev { transform: rotate(-90deg); }
+.form-page .fsec > fieldset { margin: 0 0 16px; }
+.form-page .fsec > fieldset > legend.sr-only { float: none; width: 1px; }
+#itemForm .fsec[open] { padding-bottom: 2px; }
+/* 提醒补货：不勾就不显示少货线、提前天数、暂停提醒 */
+#itemForm:not(:has(input[name="remind"]:checked)) .remind-only { display: none; }
+#itemForm .remind-toggle { align-items: flex-start; gap: 10px; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: 10px; background: var(--surface-2); }
+#itemForm .remind-toggle input { width: 22px; height: 22px; margin-top: 1px; accent-color: var(--pine); flex: none; }
+#itemForm .remind-toggle span { display: flex; flex-direction: column; gap: 2px; }
+#itemForm .remind-toggle small { font-size: 12.5px; font-weight: 400; }
+#itemForm select.unit-pick { width: 100%; }

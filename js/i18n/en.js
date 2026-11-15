@@ -2384,6 +2384,7 @@ export const EN = {
   "{name} 已经在采购清单里": "{name} is already on the shopping list", "{name} 改成 {q}": "{name} set to {q}", "{name} 的单位改成 {u}": "{name} unit changed to {u}",
   "已选 {n} 项": "{n} selected", "点行来选": "Tap rows to select", "多选操作": "Actions for selected items", "多选": "Select", "选择 {name}": "Select {name}",
   "{n} 件设为不提醒（下次补货入库后自动恢复）": "{n} items muted (back on after the next restock)", "删除这 {n} 件物品？\n{names}": "Delete these {n} items?\n{names}", "已删除 {n} 件物品": "Deleted {n} items",
+  "提醒补货": "Restock reminders", "打开后，少于少货线或快用完时提醒；不打开就不提醒": "When on, you get a reminder below the low-stock line or when it's about to run out; when off, no reminders",
   "全部物品": "All items", "{n} 种，都充足": "{n} kinds, all stocked",
   "这张小票可能已经录过：{who}{d} 记了 {n} 项，合计 {m}（这次 {m2}）": "This receipt may already be logged: {who}{d} logged {n} items, total {m} (this one {m2})",
   "这张小票怎么处理": "What to do with this receipt",
