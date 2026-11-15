@@ -68,7 +68,7 @@ import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsen
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
 import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
-import { moveCat, pantryNav, renderInvList, setFold, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
+import { moveCat, pantryNav, renderInvList, setFold, setInvView, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { famMembers, familyHref, meId, profileErr, readMemberForm, reloadMembers } from "./settings/members.js";
 import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
@@ -377,6 +377,9 @@ function renderBody(r) {
   const view = typeof v === "function" ? v : v[r.sub];
   $("#main").innerHTML = crumb(r) + (r.section === "pantry" ? pantryNav(r.sub) : "") + view();   // 储藏的每个页面顶上都有页面导航卡片
   if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies")) renderInvList();
+  const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : null;   // 从概览「房屋耗材」点进来：展开并滚到房屋耗材那一块
+  if (hs && !state.scrolledHouse) { hs.open = true; state.scrolledHouse = true; requestAnimationFrame(() => hs.scrollIntoView({ block: "start" })); }
+  if (!hs) state.scrolledHouse = false;
 }
 
 const scrollMem = {};
@@ -531,7 +534,7 @@ export const main = $("#main");
 initCompactFilters({ root: main, ui: uiKind });
 miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
 document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.pv-card[data-fold]")) setFold(d.dataset.fold, d.open); }, true);   // 储藏概览大卡片折叠 / 展开：记在本机
-initSwipeRows({ kinds: ["income", "budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card", "store", "deal"], altKinds: ["card", "deal", "shop"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });   // 卡行还能右滑停用 / 启用   // 行记录左滑删除（js/swipe-rows.js）
+initSwipeRows({ kinds: ["item", "income", "budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card", "store", "deal"], altKinds: ["card", "deal", "shop", "item"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });   // 卡行还能右滑停用 / 启用   // 行记录左滑删除（js/swipe-rows.js）
 /* 云端报错翻译：数据库还没升级到某个迁移时，PostgREST 只会说「找不到某列 / 某表」，这里换成告诉你该执行哪个迁移文件 */
 const MIGRATION_HINTS = [[/deal_task_done.*status|status.*deal_task_done|deal_custom_tasks.*skipped|skipped.*deal_custom_tasks/i, "047_deal_skip.sql", "交易清单跳过"], [/deal_events|property_deals.*baseline|baseline.*property_deals/i, "046_deal_progress.sql", "交易进展"], [/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/pay_card_id|bill_payments.*card_id|medical_payments.*card_id|cards_kind_check/i, "036_pay_accounts.sql", "付款账户（银行账户、账单扣款 / 缴费用的卡）"], [/house_profiles.*ownership|ownership.*house_profiles/i, "038_house_ownership.sql", "房屋资料：产权、税务与车位"], [/assets.*\bunits\b|\bunits\b.*assets/i, "039_asset_units.sql", "固定装置的位置与数量"], [/purchases.*\bmethod\b|\bmethod\b.*purchases|cards.*\bbalance\b|\bgift\b/i, "040_purchase_method.sql", "付款方式（现金 / 支票 / 礼品卡）与礼品卡"], [/inactive_since/i, "041_card_inactive_since.sql", "卡的停用日期"], [/income_records|income_repayments|income_access/i, "042_income_records.sql", "收入（进账）记录和查看权限"], [/relation .*\bcards\b|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
 function friendlyErr(msg) {
@@ -651,6 +654,8 @@ main.addEventListener("change", async (e) => {
   if (e.target.matches("input[data-store-for]")) { const li = e.target.closest(".shop-item"), s = state.shopping.find((x) => x.id === e.target.dataset.storeFor), h = li?.querySelector(".card-hint-slot"); if (h && s) h.innerHTML = cardHintHtml(s.category || state.items.find((i) => i.id === s.item_id)?.category, e.target.value); }   // 填了在哪买：刷新用卡建议
   if (e.target.name === "category" && e.target.form?.elements.nature && (e.target.closest("#purchaseForm") || e.target.closest("#spendEditForm"))) { const ns = e.target.form.elements.nature, v = ns.value; ns.innerHTML = natureOptions(v, { leaf: e.target.value }); }   // 换了分类：「按分类默认（…）」跟着变
   if (e.target.closest("#purchaseForm") && (e.target.name === "category" || e.target.name === "store" || e.target.name === "amount")) { const fe = e.target.form.elements, h = $("#purchaseCardHint"); if (h) h.innerHTML = cardHintHtml(fe.category.value, fe.store.value, fe.amount.value === "" ? null : num(fe.amount.value)); }
+  if (e.target.matches("[data-inv-qty]")) return setItemQty(e.target.dataset.invQty, e.target.value);   // 库存物品行：直接改数量
+  if (e.target.matches("[data-inv-unit]")) return setItemUnit(e.target.dataset.invUnit, e.target.value);   // 库存物品行：改单位（下拉或「其他…」手填）
   if (e.target.matches("input[data-qty-for]")) return setShopQty(e.target.dataset.qtyFor, e.target.value);
   if (e.target.matches("input[data-unit-for]")) return setShopUnit(e.target.dataset.unitFor, e.target.value);   // 采购清单：改单位   // 采购清单：直接输入数量
   if (e.target.id === "invCatSel") { Object.assign(state.filter, { cat: e.target.value, sub: "all" }); state.catSort = false; state.catForm = null; render(); }
@@ -986,6 +991,13 @@ function drillTo(qs) {
   if (state.billsEnabled) return go(`${href("bills", "spend")}?tab=records&${qs}`);
   applySpendDrill(new URLSearchParams(qs)); render(); $("#spendRecords")?.scrollIntoView({ block: "start" });   // 账单模块关闭：明细就在统计页下面
 }
+/* 点行进编辑（2026-11-14）：带 data-row-open 的行，点到行里任何不是按钮 / 链接 / 输入框的地方，就打开它的编辑页 */
+main.addEventListener("click", (e) => {
+  const row = e.target.closest?.("[data-row-open]"); if (!row || e.defaultPrevented) return;
+  if (e.target.closest("a, button, input, select, textarea, label, summary, [data-action]")) return;
+  if (window.getSelection?.().toString()) return;   // 在选字，不跳
+  location.hash = row.dataset.rowOpen.replace(/^#/, "");
+});
 main.addEventListener("click", (e) => { const d = e.target.closest?.("[data-drill]"); if (d) { e.preventDefault(); drillTo(d.dataset.drill); } });
 main.addEventListener("keydown", (e) => { if (e.key !== "Enter" && e.key !== " ") return; const d = e.target.closest?.("[data-drill]"); if (d && !(d instanceof HTMLButtonElement)) { e.preventDefault(); drillTo(d.dataset.drill); } });
 main.addEventListener("click", async (e) => {
@@ -1139,6 +1151,15 @@ main.addEventListener("click", async (e) => {
         toast(t("{name} 少了一件，已加入采购清单换新", { name: it.name }));
         return refresh();
       }
+      case "inv-view": setInvView(el.dataset.view); return render();
+      case "item-mute": {   // 物品行上的 🔔：一点就不提醒（下次补货入库自动恢复），再点恢复
+        const it = state.items.find((x) => x.id === id); if (!it) return;
+        const on = !!it.alert_mute_until && String(it.alert_mute_until) > new Date().toISOString().slice(0, 10);
+        el.disabled = true; await Store.setItemMute(id, on ? null : MUTE_FOREVER);
+        toast(on ? t("{name} 恢复提醒", { name: it.name }) : t("{name} 不再提醒（下次补货入库后自动恢复）", { name: it.name })); return refresh();
+      }
+      case "inv-del": { const it = state.items.find((x) => x.id === id); if (!it || !confirmDelete(t("删除「{name}」？", { name: it.name }))) return; await Store.deleteItem(id); toast(t("已删除 {name}", { name: it.name })); return refresh(); }
+      case "inv-shop": { const it = state.enriched.find((x) => x.id === id); if (!it) return; if (openShopFor(id)) { toast(t("{name} 已经在采购清单里", { name: it.name })); return; } await addAlertsToShopping([it]); return; }
       case "consume": el.disabled = true; await Store.adjust(id, -storedStep(state.items.find((x) => x.id === id)?.unit), "consume"); return refresh();
       case "restock": el.disabled = true; await Store.adjust(id, storedStep(state.items.find((x) => x.id === id)?.unit), "restock"); return refresh();
       case "inv-sub": state.filter.sub = el.dataset.sub; return render();
@@ -1472,6 +1493,23 @@ export async function setShopQty(id, value) {
   refresh();
 }
 
+/** 库存物品行：直接改数量（按显示单位填，存回原单位；差额记一条调整记录） */
+async function setItemQty(id, v) {
+  const it = state.items.find((x) => x.id === id), n = num(v, NaN); if (!it) return;
+  if (!Number.isFinite(n) || n < 0) { toast(t("数量需要是 0 或正数。")); return render(); }
+  const stored = Math.round((n / (Units.factor(it.unit) || 1)) * 100) / 100, d = Math.round((stored - num(it.quantity)) * 100) / 100;
+  if (!d) return;
+  try { await Store.adjust(id, d, "adjust"); toast(t("{name} 改成 {q}", { name: it.name, q: fmt(n) })); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); }
+  refresh();
+}
+/** 库存物品行：改单位（只换单位名称，数量按现在显示的数字存，不做换算） */
+async function setItemUnit(id, v) {
+  const it = state.items.find((x) => x.id === id), u = Units.normalize(v) || String(v || "").trim().slice(0, 10); if (!it || !u || u === "__other") return render();
+  const row = document.querySelector(`.inv-row[data-id="${CSS.escape(id)}"] [data-inv-qty]`), q = row ? num(row.value, num(it.quantity)) : num(it.quantity);
+  if (u === it.unit && q === num(it.quantity)) return;
+  try { await Store.saveItem({ ...it, unit: u, quantity: Math.round(q * 100) / 100 }); toast(t("{name} 的单位改成 {u}", { name: it.name, u: t(u) })); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); }
+  refresh();
+}
 export async function addAlertsToShopping(list) {
   let added = 0;
   for (const it of list) {

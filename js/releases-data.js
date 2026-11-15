@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.13", title: { zh: "库存：一件一行，点行就能改", en: "Inventory: one row per item, tap to edit" }, items: [
+    { k: "new", zh: "库存默认按物品一行行列出，日常储备、房屋耗材各一个大块；右上角可以切回原来的分类视图", en: "Inventory now lists one row per item, with Everyday stock and Home supplies as two big blocks; switch back to the category view at the top right" },
+    { k: "better", zh: "点这一行任何地方就进编辑；数量、单位直接在行里改，单位是下拉，也能选「其他…」手填", en: "Tap anywhere on a row to edit it; change quantity and unit right in the row (unit is a dropdown, or pick \"Other…\" to type one)" },
+    { k: "new", zh: "每行有个 🔔，点一下就不提醒，行上显示「不提醒」；手机上左滑删除、右滑加入采购清单", en: "Each row has a 🔔: tap it to stop reminders and the row shows \"Muted\"; on phones swipe left to delete, right to add to the shopping list" },
+    { k: "better", zh: "右下角大号 ＋ 直接添加物品", en: "A big ＋ at the bottom right adds an item" }
+  ] },
   { v: "2026-11-14.12", title: { zh: "储藏：页面导航卡片，概览更清楚", en: "Pantry: page cards on top, a clearer overview" }, items: [
     { k: "new", zh: "储藏的每个页面顶上都有一排页面卡片（概览 / 库存 / 采购清单 / 装备 / 菜单），当前页高亮", en: "Every Pantry page has a row of page cards on top (Overview / Inventory / Shopping list / Gear / Meals), with the current one highlighted" },
     { k: "better", zh: "概览只留「日常储备」「房屋耗材」两个大卡片，点标题折叠 / 展开；里面的缺货、少货等点一下直接看那些物品", en: "The overview has just two big cards, Everyday stock and Home supplies; tap the title to fold or open, and tap Out, Low and so on to see those items" },

@@ -9,7 +9,7 @@ import { shopDealLine, shopDealPicker, shopsStats } from "../shops/views.js";
 import { crumbNav } from "../core/hub.js";
 import { shopScanHtml } from "./shop-scan.js";
 import { normName } from "../core/item-match.js";
-import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText, toDisp } from "../core/util.js";
+import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText, toDisp, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { compare, joinList, lang, t } from "../core/i18n.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
@@ -19,6 +19,7 @@ import { catCheckAlt } from "../core/category-moves.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { shopAdviceHtml, shopForecastHtml } from "../bills/budget.js";
+import { unitSelect } from "../core/unit-pick.js";
 
 /* ── 概览（储藏 / 房屋耗材共用）── */
 export function restockPanel(alerts, limit = 8) {
@@ -310,7 +311,81 @@ export function catFormHtml(cf) {
   </form>`;
 }
 
+/* ── 库存 · 物品视图（2026-11-14，默认）：日常储备、房屋耗材两个大容器，里面每件物品一行，不按分类分组。
+ *   点这一行进编辑；行里能直接改数量 / 单位、点 🔔 设成不提醒；手机上左滑删除、右滑加入采购清单。
+ *   右上「物品 / 分类」切换到原来的分类视图；选择记在本机。 ── */
+const VIEW_KEY = "hmh-inv-view";
+export function invView() { try { return localStorage.getItem(VIEW_KEY) === "cats" ? "cats" : "rows"; } catch { return "rows"; } }
+export function setInvView(v) { try { localStorage.setItem(VIEW_KEY, v === "cats" ? "cats" : "rows"); } catch { /* 忽略 */ } }
+const viewSeg = (cur) => `<div class="seg inv-seg" role="group" aria-label="${esc(t("怎么看"))}">${[["rows", "☰", "物品"], ["cats", "▦", "分类"]].map(([v, ic, l]) => `<button type="button" class="seg-btn" data-action="inv-view" data-view="${v}" aria-pressed="${cur === v}"><span aria-hidden="true">${ic}</span> ${t(l)}</button>`).join("")}</div>`;
+const muteOn = (it) => !!it.alert_mute_until && String(it.alert_mute_until) > todayISO();
+/** 新物品的空间：开着房屋耗材时跟着筛选的空间，否则日常储备 */
+const addSpace = () => (state.filter.space === "house" && state.houseEnabled ? "house" : "pantry");
+const fab = (space, label) => `<a class="fab" href="${href("item", "new")}?space=${space}" aria-label="${esc(label)}" title="${esc(label)}"><span aria-hidden="true">＋</span></a>`;
+
+function viewInvRows(space) {
+  const f = state.filter;
+  if (f.space !== space) Object.assign(f, { space, cat: "all" });
+  const both = state.houseEnabled, all = state.enriched.filter((x) => inSpace("pantry")(x) || (both && inSpace("house")(x)));
+  return `<section class="section inv-rows-page">
+      <div class="section-head"><p>${t("{n} 件", { n: all.length })}</p><div class="head-acts">${viewSeg("rows")}
+        <a class="btn btn-primary btn-sm hide-phone" href="${href("item", "new")}?space=${addSpace()}">＋ ${t("添加物品")}</a></div></div>
+      <div class="toolbar">
+        <input type="search" id="invSearch" placeholder="${t("搜索物品，例如：纸、蛋")}" value="${esc(f.q)}" aria-label="${t("搜索物品")}">
+        <select id="invStatus" aria-label="${t("按提醒筛选")}">
+          ${[["all", "全部状态"], ["alert", "需要补货"], ["out", "缺货"], ["low", "少货"], ["soon", "即将告罄"], ["exp", "临期或过期"], ["ok", "充足"]]
+            .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
+        </select>
+        ${locationFilter(all, f)}
+        <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
+        ${clearFiltersBtn("inv", changed(f, FD.inv))}
+      </div>
+      <div id="invRows" data-both="${both ? 1 : 0}"></div>
+      ${fab(addSpace(), t("添加物品"))}
+    </section>`;
+}
+/** 物品视图的两个容器（折叠状态和概览大卡片共用一份本机记录） */
+function renderInvRows(host) {
+  const f = state.filter, both = host.dataset.both === "1";
+  const fold = (() => { try { return JSON.parse(localStorage.getItem("hmh-pv-fold") || "{}"); } catch { return {}; } })();
+  const sec = (space, icon, title) => {
+    const mine = state.enriched.filter(inSpace(space)), list = mine.filter((it) => matchItem(it, f, { withCat: false })).sort(invSorter(f.sort));
+    const lim = pageLimit(`inv-${space}`, JSON.stringify(f)), part = list.slice(0, lim);
+    const body = list.length ? `<ul class="inv-list">${part.map(itemRow).join("")}</ul>${pageMoreBtn(`inv-${space}`, list.length, lim)}`
+      : `<div class="empty">${mine.length ? `<strong>${t("没有符合条件的物品")}</strong>${t("换个关键词或筛选试试。")}`
+        : space === "house" ? `<strong>${t("还没有房屋耗材")}</strong><a class="btn btn-primary" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>`
+        : `<strong>${t("库存还是空的")}</strong>${t("从最常用的几样开始，例如鸡蛋、大米、抽纸。")}`}</div>`;
+    return `<details class="pv-card inv-sec" data-fold="${space}" id="invSec-${space}" ${fold[space] !== 0 ? "open" : ""}>
+      <summary><span class="pv-ico" aria-hidden="true">${icon}</span><span class="pv-ttl"><b>${esc(title)}</b><small>${list.length === mine.length ? t("{n} 件", { n: mine.length }) : t("{a} / {b} 件符合", { a: list.length, b: mine.length })}</small></span>
+        <a class="btn btn-sm btn-ghost inv-sec-add" href="${href("item", "new")}?space=${space}" aria-label="${esc(t("添加到{s}", { s: title }))}">＋</a><span class="pv-chev" aria-hidden="true">▾</span></summary>
+      <div class="pv-body">${body}</div></details>`;
+  };
+  host.innerHTML = `<div class="pv-cards">${sec("pantry", "🥫", t("日常储备"))}${both ? sec("house", "🧰", t("房屋耗材")) : ""}</div>`;
+}
+/** 物品一行：状态色条 | 名称、标签、小类 · 位置 · 约够几天 | 🔔 不提醒 | − 数量 单位 + */
+export function itemRow(it) {
+  const st = STATUS[it.status], m = muteOn(it), c = catOf(it.category), inList = openShopFor(it.id);
+  const meta = [`${c.icon} ${esc(t(it.subcategory || c.name))}`, it.location && `📍${esc(t(it.location))}`,
+    it.daysLeft != null && it.qty > 0 && `${t("约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) })}`, inList && `🛒 ${t("已在清单")}`].filter(Boolean).join(" · ");
+  const badges = `${it.status !== "ok" ? `<span class="badge ${st.cls}">${t(st.label)}</span>` : ""}${m ? `<span class="badge b-muted">🔕 ${t("不提醒")}</span>` : ""}${it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? t("已过期") : t("{d} 天内到期", { d: it.expDays })}</span>` : ""}`;
+  const step = Units.step(it.du), nm = esc(it.name);
+  return `<li class="inv-row st-${it.status}" data-id="${it.id}" data-row-open="${esc(href("item", it.id))}" data-swipe-del="item" data-swipe-alt="item" data-swipe-alt-label="${esc(t("加入采购"))}" data-swipe-alt-go="${esc(t("松手加入采购"))}">
+    <span class="inv-bar" aria-hidden="true"></span>
+    <div class="inv-main"><div class="inv-name"><a href="${esc(href("item", it.id))}" class="inv-link">${nm}</a>${badges}</div><div class="inv-meta">${meta}</div></div>
+    <button type="button" class="inv-mute" data-action="item-mute" data-id="${it.id}" aria-pressed="${m}" aria-label="${esc(m ? t("{name}：恢复提醒", { name: it.name }) : t("{name}：不提醒", { name: it.name }))}" title="${esc(m ? t("已设为不提醒，点一下恢复") : t("点一下设为不提醒"))}">${m ? "🔕" : "🔔"}</button>
+    <div class="inv-qty" role="group" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
+      <button type="button" data-action="consume" data-id="${it.id}" aria-label="${esc(t("{name} 用掉 {q} {u}", { name: it.name, q: step, u: t(it.du) }))}">−</button>
+      <input type="number" inputmode="decimal" min="0" step="any" value="${fmt(it.dqty)}" data-inv-qty="${it.id}" data-keep="invq:${it.id}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
+      ${unitSelect(`data-inv-unit="${it.id}" aria-label="${esc(t("{name} 单位", { name: it.name }))}"`, it.du, { cls: "inv-unit" })}
+      <button type="button" data-action="restock" data-id="${it.id}" aria-label="${esc(t("{name} 补充 {q} {u}", { name: it.name, q: step, u: t(it.du) }))}">+</button>
+    </div>
+    <button type="button" class="swipe-src" data-action="inv-del" data-id="${it.id}">${t("删除 {name}", { name: it.name })}</button>
+    <button type="button" class="swipe-alt-src" data-action="inv-shop" data-id="${it.id}">${t("{name} 加入采购清单", { name: it.name })}</button>
+  </li>`;
+}
+
 export function viewInventory(space = "pantry") {
+  if (space !== "gear" && invView() === "rows") return viewInvRows(space);
   if (state.filter.space !== space) Object.assign(state.filter, { space, cat: "all", q: "", status: state.filter.status, loc: "all" });
   const f = state.filter;
   const house = space === "house", gear = space === "gear";
@@ -336,7 +411,7 @@ export function viewInventory(space = "pantry") {
       <div class="section-head"><p>${cur ? t("{n} 件", { n: mine.filter((x) => x.category === cur.id).length }) : t("{n} 件", { n: mine.length })}</p>
         <div class="head-acts">${house && !phone ? `<a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>` : ""}
         ${cur && !cf ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-edit" data-cat="${cur.id}">${t("编辑分类")}</button>` : ""}
-        <a class="btn btn-primary ${phone ? "btn-sm" : ""}" href="${href("item", "new")}?space=${space}${cur ? `&cat=${cur.id}` : ""}">${gear ? t("添加装备") : t("添加物品")}</a></div></div>
+        ${gear ? "" : viewSeg("cats")}<a class="btn btn-primary btn-sm hide-phone" href="${href("item", "new")}?space=${space}${cur ? `&cat=${cur.id}` : ""}">＋ ${gear ? t("添加装备") : t("添加物品")}</a></div></div>
       ${gear || !state.houseEnabled ? "" : `<div class="chips" role="group" aria-label="${t("库存范围")}">
         <button type="button" class="chip" data-action="inv-space" data-space="pantry" aria-pressed="${!house}">🥫 ${t("日常储备")}</button>
         <button type="button" class="chip" data-action="inv-space" data-space="house" aria-pressed="${house}">🧰 ${t("房屋耗材")}</button></div>`}
@@ -361,6 +436,7 @@ export function viewInventory(space = "pantry") {
       ${subBar}
       ${dash && !cf ? `<div id="dashWrap" data-space="${space}">${catDashboard(space, mine)}</div>` : ""}
       <div id="invList" ${dash ? "hidden" : ""}></div>
+      ${fab(space, gear ? t("添加装备") : t("添加物品"))}
     </section>`;
 }
 
@@ -373,6 +449,8 @@ const invSorter = (mode) => ({
   updated: (a, b) => String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || "")),
 }[mode] || ((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || compare(a.name, b.name)));
 export function renderInvList() {
+  const rowsHost = $("#invRows");
+  if (rowsHost) return renderInvRows(rowsHost);
   const f = state.filter;
   const mine = state.enriched.filter(inSpace(f.space));
   const list = mine.filter((it) => matchItem(it, f));
