@@ -259,16 +259,16 @@ const dupCands = (box) => { const date = box.querySelector('[name="date"]').valu
 const boxRows = (box) => [...box.querySelectorAll(".scan-row")].filter((r) => r.querySelector('[name="inc"]').checked)
   .map((r) => { const a = r.querySelector('[name="amount"]').value; return { name: r.querySelector('[name="name"]').value.trim(), amount: a === "" ? null : num(a) }; });
 /** 整张小票可能已经录过（家人先录了、或者自己以前录过）：小票上方提醒，选「以这次为准」或「两次都留」 */
-function rcptDupHtml(hit, mode, mine) {
+function rcptDupHtml(hit, mode, mine, drop = new Set()) {
   const myTotal = mine.reduce((s, r) => s + num(r.amount), 0);
   const head = t("这张小票可能已经录过：{who}{d} 记了 {n} 项，合计 {m}（这次 {m2}）", { who: hit.who ? t("{w}在 ", { w: hit.who }) : "", d: fmtShort(hit.at), n: hit.rows.length, m: Units.money(hit.total), m2: Units.money(myTotal) });
   const chip = (k, l) => `<button type="button" class="chip" data-action="scan-dupmode" data-mode="${k}" aria-pressed="${mode === k}">${esc(t(l))}</button>`;
   const paired = new Set(hit.pairs.map(([, p]) => p.id)), extra = hit.rows.filter((p) => !paired.has(p.id));
   const how = mode === "replace" ? t("那次对上的 {a} 项改成这次的名称和金额（库存不再重复加）；这次多出的 {b} 项照常记", { a: hit.pairs.length, b: mine.length - hit.pairs.length })
-      + (extra.length ? t("；那次多出的 {c} 项会删掉：{names}", { c: extra.length, names: extra.map((p) => p.name).join("、") }) : "")
+      + (extra.length ? t("；那次还有 {c} 项这次没有，默认保留，要删的勾上：", { c: extra.length }) : "")
     : mode === "keep" ? t("两次都留：这张照常全部记一遍。")
     : t("是同一张小票就选「以这次为准」，会更正那次的金额，不会记两遍。");
-  return `<p class="dup-hint">⚠ ${esc(head)}</p><div class="chips" role="group" aria-label="${esc(t("这张小票怎么处理"))}">${chip("replace", "以这次为准，更新那次")}${chip("keep", "不是同一张，两次都留")}</div><p class="muted rcpt-dup-how">${esc(how)}</p>`;
+  return `<p class="dup-hint">⚠ ${esc(head)}</p><div class="chips" role="group" aria-label="${esc(t("这张小票怎么处理"))}">${chip("replace", "以这次为准，更新那次")}${chip("keep", "不是同一张，两次都留")}</div><p class="muted rcpt-dup-how">${esc(how)}</p>${mode === "replace" && extra.length ? `<ul class="rcpt-dup-extra">${extra.map((p) => `<li><label class="check-inline"><input type="checkbox" data-drop-id="${esc(p.id)}" ${drop.has(p.id) ? "checked" : ""}><span>${t("删掉")}「${esc(p.name)}」<span class="muted">${esc(Units.money(num(p.amount)))}</span></span></label></li>`).join("")}</ul>` : ""}`;
 }
 /** 每一行和已有花费对一下：疑似别人（或自己）已经记过的，在行下面提醒；返回「勾选了的小票里被提醒的行数」。
  *  已有花费按 日期 + 金额 向数据库查（dup-check.js 的缓存）；还没查过的先按没有算，查回来再标一遍。
@@ -280,7 +280,7 @@ function markDups(box) {
   if (rc && !hit) rc.dupMode = "";
   const mode = hit ? rc?.dupMode || "" : "", banner = box.querySelector(".rcpt-dup");
   box._rcptDup = hit;
-  if (banner) { const html = hit ? rcptDupHtml(hit, mode, mine) : ""; if (banner.dataset.html !== html) { banner.innerHTML = html; banner.dataset.html = html; } banner.hidden = !hit; }
+  if (banner) { const html = hit ? rcptDupHtml(hit, mode, mine, rc?.dropSel) : ""; if (banner.dataset.html !== html) { banner.innerHTML = html; banner.dataset.html = html; } banner.hidden = !hit; }
   let n = 0; const taken = new Set();
   box.querySelectorAll(".scan-row").forEach((r) => {
     const g = (k) => r.querySelector(`[name="${k}"]`).value, hint = r.querySelector(".dup-hint");
@@ -326,6 +326,11 @@ document.addEventListener("change", async (e) => {
       sel.value = past ? "__skip" : (sel.dataset.def || "__new"); r.classList.toggle("is-new", sel.value === "__new");
     });
     const note = box.querySelector(".scan-past"); if (note) note.hidden = !past;
+  }
+  if (e.target.dataset?.dropId) {   // 那次多出来的行：勾上才删
+    const rc = sc.result?.receipts[+e.target.closest(".scan-rcpt").dataset.r]; if (!rc) return;
+    rc.dropSel ||= new Set(); if (e.target.checked) rc.dropSel.add(e.target.dataset.dropId); else rc.dropSel.delete(e.target.dataset.dropId);
+    return updateSum();
   }
   if (e.target.closest?.("#scanForm")) { sc.dupAck = false; updateSum(); }
 });
@@ -399,7 +404,8 @@ async function confirm(ctx) {
     const hit = b._rcptDup; if (!hit || sc.result.receipts[+b.dataset.r]?.dupMode !== "replace") return;
     const mine = rows.filter((x) => x.bi === bi), pairs = pairRows(mine, hit.rows), paired = new Set(pairs.map(([, p]) => p.id));
     for (const [i, p] of pairs) mine[i].replace = p;
-    dropIds.push(...hit.rows.filter((p) => !paired.has(p.id)).map((p) => p.id));
+    const sel = sc.result.receipts[+b.dataset.r]?.dropSel || new Set();   // 那次多出来的：只删勾上的
+    dropIds.push(...hit.rows.filter((p) => !paired.has(p.id) && sel.has(p.id)).map((p) => p.id));
   });
   if (dupRows && !sc.dupAck) { sc.dupAck = true; sc.error = t("有 {n} 行疑似已经记过（见各行下面的提醒）。确认不是重复的，再点一次“确认入库”；是重复的就取消勾选那一行。", { n: dupRows }); return repaint2(); }
   sc.dupAck = false; sc.busy = true; sc.error = ""; repaint2();
@@ -435,7 +441,7 @@ async function confirm(ctx) {
     if (dropIds.length) await Store.deletePurchases(dropIds);
     if (fixed || dropIds.length) spendChanged();
     for (const s of new Set(rows.map((x) => x.store).filter(Boolean))) rememberStore(s);
-    toast((boxes.length > 1 ? t("已录入 {r} 张小票：", { r: boxes.length }) : t("已录入：")) + t("入库 {a} 项，新建 {b} 项，只记花费 {c} 项", { a: stocked, b: created, c: spendOnly }) + (fixed || dropIds.length ? t("；更正了之前录的 {n} 项，删掉 {m} 项", { n: fixed, m: dropIds.length }) : "") + (cartDone ? t("；采购清单 {n} 项已标成已买到", { n: cartDone }) : "") + (convs.length ? t("；已换算单位：{list}", { list: convs.join("、") }) : "") + (warns.length ? t("；{names} 的单位无法换算，按原数字记入了，请核对库存", { names: warns.join("、") }) : ""));
+    toast((boxes.length > 1 ? t("已录入 {r} 张小票：", { r: boxes.length }) : t("已录入：")) + t("入库 {a} 项，新建 {b} 项，只记花费 {c} 项", { a: stocked, b: created, c: spendOnly }) + (fixed ? t("；更正了之前录的 {n} 项", { n: fixed }) : "") + (dropIds.length ? t("，删掉 {m} 项", { m: dropIds.length }) : "") + (cartDone ? t("；采购清单 {n} 项已标成已买到", { n: cartDone }) : "") + (convs.length ? t("；已换算单位：{list}", { list: convs.join("、") }) : "") + (warns.length ? t("；{names} 的单位无法换算，按原数字记入了，请核对库存", { names: warns.join("、") }) : ""));
     resetScan(); ctx.go(href("shopping")); ctx.refresh();
   } catch (e) { sc.busy = false; sc.error = t("入库中途失败：{msg}。已写入的部分请回到库存和统计核对，不要直接重复提交。", { msg: e.message }); repaint2(); }
 }

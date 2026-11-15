@@ -907,6 +907,8 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .rcpt-dup .chips { flex-wrap: wrap; margin: 0 0 6px; padding: 0; overflow: visible; }
 .rcpt-dup .chip { min-height: 44px; }
 .rcpt-dup-how { margin: 0; font-size: 12.5px; }
+.rcpt-dup-extra { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.rcpt-dup-extra .check-inline { min-height: 44px; align-items: center; font-size: 13px; }
 @media (max-width: 600px) { .rcpt-dup .chip { flex: 1 1 100%; justify-content: center; } }
 .cart-hint { color: var(--ok); font-weight: 600; font-size: 13px; margin: 6px 0 0; }
 .bank-src { color: var(--pine); font-weight: 600; }

@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.11", title: { zh: "更正重复小票时，多出来的行由你决定删不删", en: "When correcting a duplicate receipt, you choose which extra lines to delete" }, items: [
+    { k: "better", zh: "选「以这次为准」后，那次录了、这次没有的行默认保留，要删的自己勾上", en: "After \"Use this one\", lines only in the earlier entry are kept by default; tick the ones to delete" }
+  ] },
   { v: "2026-11-14.10", title: { zh: "同一张小票录第二遍会提醒，可以更正第一次", en: "Logging the same receipt twice is caught, and can fix the first entry" }, items: [
     { k: "fix", zh: "家人先录了同一张小票、每行金额差几分（比如 Target 折扣分法不同）也能认出来：小票上方提醒是谁、哪天录的、合计多少", en: "If a family member already logged the same receipt, it's caught even when each line differs by a few cents (e.g. Target discounts split differently): a note at the top shows who logged it, when, and the total" },
     { k: "new", zh: "可以选「以这次为准」：更正那次的名称和金额，不记两遍、库存不重复加；或者「两次都留」", en: "Choose \"Use this one\" to correct the earlier names and amounts without counting twice or adding stock again, or \"Keep both\"" }
