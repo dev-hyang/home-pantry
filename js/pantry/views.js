@@ -9,7 +9,7 @@ import { shopDealLine, shopDealPicker, shopsStats } from "../shops/views.js";
 import { crumbNav } from "../core/hub.js";
 import { shopScanHtml } from "./shop-scan.js";
 import { normName } from "../core/item-match.js";
-import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, stampText, toDisp, todayISO } from "../core/util.js";
+import { $, catOf, catsOf, du, esc, fmt, fmtShort, inSpace, isGear, money, num, showQty, spaceOf, stampText, toDisp, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { compare, joinList, lang, t } from "../core/i18n.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
@@ -82,12 +82,11 @@ function catCheckSection() {
     </section>`;
 }
 
-/** 储藏的页面导航（2026-11-14 重构）：每个储藏页面顶上都有这一块——一排小卡片（概览 / 库存 / 装备 / 菜单；采购清单在底部导航），
+/** 储藏的页面导航（2026-11-14 重构）：每个储藏页面顶上都有这一块——一排小卡片（概览 / 库存 / 菜单；采购清单在底部导航，装备并进了库存），
  *  当前页背景高亮；库存卡带要补货的件数。宽屏一行排开，手机两到三列网格（不横滑，点按区域 ≥ 44px） */
 export function pantryNav(cur) {
   const need = (state.enriched || []).filter((x) => !isGear(x) && x.status !== "ok").length;
   const list = [["overview", href("pantry"), "📊", t("概览")], ["inventory", href("pantry", "inventory"), "📦", t("库存"), need],
-    state.gearEnabled ? ["gear", href("pantry", "gear"), "🧳", t("装备")] : null,
     ["meals", href("pantry", "meals"), "🍳", t("菜单")]].filter(Boolean);
   return `<nav class="pnav" aria-label="${esc(t("储藏的页面"))}">${list.map(([id, h, ic, l, n]) => `<a class="pnav-card" href="${esc(h)}" ${id === cur ? 'aria-current="page"' : ""}>
     <span class="pnav-ico" aria-hidden="true">${ic}</span><span class="pnav-lbl">${esc(l)}</span>${n ? `<b class="pnav-n" aria-label="${esc(t("{n} 项", { n }))}">${n}</b>` : ""}</a>`).join("")}</nav>`;
@@ -96,6 +95,15 @@ export function pantryNav(cur) {
 const FOLD_KEY = "hmh-pv-fold";
 const foldGet = () => { try { return JSON.parse(localStorage.getItem(FOLD_KEY) || "{}"); } catch { return {}; } };
 export function setFold(id, open) { const m = foldGet(); m[id] = open ? 1 : 0; try { localStorage.setItem(FOLD_KEY, JSON.stringify(m)); } catch { /* 忽略 */ } }
+/** 货架第一格「全部分类」：和分类格子一样的样子，点进库存看这个空间的全部物品 */
+function allCell(space, list) {
+  const cnt = (s) => list.filter((x) => x.status === s).length, bad = list.length - cnt("ok");
+  const seg = (s, color) => cnt(s) ? `<i style="width:${(cnt(s) / list.length) * 100}%;background:${color}"></i>` : "";
+  return `<button type="button" class="shelf-cell shelf-all" style="--cat:var(--pine)" data-action="goto-cat" data-space="${space}" data-cat="all">
+    <span class="ico" aria-hidden="true">🗂️</span><h3>${t("全部分类")}</h3>
+    <p>${t("{n} 种", { n: list.length })}${bad ? t("，{n} 种需补", { n: bad }) : t("，都充足")}</p>
+    <div class="mix" aria-hidden="true">${seg("out", "var(--out)")}${seg("low", "var(--low)")}${seg("soon", "var(--mustard)")}${seg("ok", "var(--pine)")}</div></button>`;
+}
 function spaceCard(space, icon, title, list, shelf, empty) {
   const n = (s) => list.filter((x) => x.status === s).length, expN = list.filter((x) => x.exp).length;
   const rows = [["out", t("缺货"), n("out")], ["low", t("少货"), n("low")], ["soon", t("即将告罄"), n("soon")], ...(space === "pantry" ? [["exp", t("临期或过期"), expN]] : [])];
@@ -104,9 +112,7 @@ function spaceCard(space, icon, title, list, shelf, empty) {
   return `<details class="pv-card" data-fold="${space}" ${open ? "open" : ""}>
     <summary><span class="pv-ico" aria-hidden="true">${icon}</span><span class="pv-ttl"><b>${esc(title)}</b><small class="${bad ? "pv-bad" : ""}">${esc(sumTxt)}</small></span><span class="pv-chev" aria-hidden="true">▾</span></summary>
     <div class="pv-body">
-      ${list.length ? `<ul class="pv-stats">${rows.map(([st, label, c]) => `<li><a class="pv-stat st-${st} ${c ? "" : "is-zero"}" href="${esc(`${href("pantry", "inventory")}?space=${space}&status=${st}`)}"><span>${esc(label)}</span><b>${c}</b><span class="pv-go" aria-hidden="true">›</span></a></li>`).join("")}
-        <li><a class="pv-stat st-all" href="${esc(`${href("pantry", "inventory")}?space=${space}`)}"><span>${esc(t("全部物品"))}</span><b>${list.length}</b><span class="pv-go" aria-hidden="true">›</span></a></li></ul>` : ""}
-      ${shelf ? `<h3 class="pv-sub">${t("按分类")}</h3><div class="shelf">${shelf}</div>` : empty}
+      ${shelf ? `<div class="shelf">${allCell(space, list)}${shelf}</div>` : empty}
     </div></details>`;
 }
 /** 过期扔掉：把剩下的都记成 discard（迁移 065），「家里的数字 → 浪费」统计它；不算进日均用量 */
@@ -127,23 +133,23 @@ export function viewDashboard() {
   const shelf = shelfGrid("pantry"), houseShelf = withHouse ? shelfGrid("house") : "";
 
   return `${catCheckSection()}
-    <section class="section" aria-labelledby="h-alert">
-      <div class="section-head"><h2 id="h-alert">${t("储藏概览")}</h2></div>
-      <div class="pv-acts">
-        <a class="btn btn-primary pv-act" href="${href("scan")}" title="${esc(t("拍小票、贴线上订单，或手动添加一件"))}">🧾 ${t("录入购物")}</a>
-        <a class="btn pv-act" href="${href("item", "new")}?space=pantry">＋ ${t("添加物品")}</a>
-      </div>
-      <div class="pv-cards">
-        ${spaceCard("pantry", "🥫", t("日常储备"), pantry, shelf, `<div class="empty"><strong>${t("还没有物品")}</strong><a class="btn btn-primary" href="${href("item", "new")}?space=pantry">${t("添加第一件物品")}</a></div>`)}
-        ${withHouse ? spaceCard("house", "🧰", t("房屋耗材"), house, houseShelf, `<div class="empty"><strong>${t("还没有房屋耗材")}</strong><a class="btn btn-primary" href="${href("house", "template")}">${t("按房屋资料推荐")}</a></div>`) : ""}
-      </div>
-    </section>
-
+    <div class="pv-acts">
+      <a class="btn btn-primary pv-act" href="${href("scan")}" title="${esc(t("拍小票、贴线上订单，或手动添加一件"))}">🧾 ${t("录入购物")}</a>
+      <a class="btn pv-act" href="${href("item", "new")}?space=pantry">＋ ${t("添加物品")}</a>
+    </div>
     <section class="section" aria-labelledby="h-restock">
       <div class="section-head"><h2 id="h-restock">${t("该补货了")}</h2>
         <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">${t("全部加入采购清单")}</button>` : ""}${cartBtn()}</div></div>
       <div class="panel">${alerts.length ? restockPanel(alerts) : `<div class="empty"><strong>${t("库存都很充足")}</strong>${t("用掉东西时在“库存”里点一下 −，提醒会更准。")}</div>`}</div>
       ${alerts.length ? askInline({ id: "restock", title: t("该补货了"), question: t("这些要补的东西怎么安排采购最省钱省时间？哪些可以等？"), context: () => [t("要补：{s}", { s: alerts.slice(0, 15).map((a) => a.name || a.item?.name).filter(Boolean).join("、") }), t("家庭人数 {n}", { n: state.members?.length || 1 })] }) : ""}
+    </section>
+
+    <section class="section" aria-labelledby="h-alert">
+      <h2 id="h-alert" class="sr-only">${t("储藏概览")}</h2>
+      <div class="pv-cards">
+        ${spaceCard("pantry", "🥫", t("日常储备"), pantry, shelf, `<div class="empty"><strong>${t("还没有物品")}</strong><a class="btn btn-primary" href="${href("item", "new")}?space=pantry">${t("添加第一件物品")}</a></div>`)}
+        ${withHouse ? spaceCard("house", "🧰", t("房屋耗材"), house, houseShelf, `<div class="empty"><strong>${t("还没有房屋耗材")}</strong><a class="btn btn-primary" href="${href("house", "template")}">${t("按房屋资料推荐")}</a></div>`) : ""}
+      </div>
     </section>
 
     ${expiring.length ? `<section class="section" aria-labelledby="h-exp">
@@ -318,13 +324,14 @@ export function setInvView(v) { try { localStorage.setItem(VIEW_KEY, v === "cats
 const viewSeg = (cur) => `<div class="seg inv-seg" role="group" aria-label="${esc(t("怎么看"))}">${[["rows", "☰", "物品"], ["cats", "▦", "分类"]].map(([v, ic, l]) => `<button type="button" class="seg-btn" data-action="inv-view" data-view="${v}" aria-pressed="${cur === v}"><span aria-hidden="true">${ic}</span> ${t(l)}</button>`).join("")}</div>`;
 const muteOn = (it) => !!it.alert_mute_until && String(it.alert_mute_until) > todayISO();
 /** 新物品的空间：开着房屋耗材时跟着筛选的空间，否则日常储备 */
-const addSpace = () => (state.filter.space === "house" && state.houseEnabled ? "house" : "pantry");
+const addSpace = () => (state.filter.space === "house" && state.houseEnabled ? "house" : state.filter.space === "gear" ? "gear" : "pantry");
 const fab = (space, label) => `<a class="fab" href="${href("item", "new")}?space=${space}" aria-label="${esc(label)}" title="${esc(label)}"><span aria-hidden="true">＋</span></a>`;
 
 function viewInvRows(space) {
   const f = state.filter;
   if (f.space !== space) Object.assign(f, { space, cat: "all" });
-  const both = state.houseEnabled, all = state.enriched.filter((x) => inSpace("pantry")(x) || (both && inSpace("house")(x)));
+  const spaces = invSpaces(), all = state.enriched.filter((x) => spaces.some((s) => inSpace(s)(x)));
+  const cur = f.cat !== "all" ? catOf(f.cat) : null;
   return `<section class="section inv-rows-page">
       <div class="section-head"><p>${t("{n} 件", { n: all.length })}</p><div class="head-acts">
         <button type="button" class="btn btn-sm ${state.invSel ? "btn-primary" : "btn-ghost"}" data-action="inv-select" aria-pressed="${!!state.invSel}">${state.invSel ? t("完成") : `☑ ${t("多选")}`}</button>${viewSeg("rows")}</div></div>
@@ -338,7 +345,8 @@ function viewInvRows(space) {
         <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
         ${clearFiltersBtn("inv", changed(f, FD.inv))}
       </div>
-      <div id="invRows" data-both="${both ? 1 : 0}" class="${state.invSel ? "sel-mode" : ""}"></div>
+      ${cur ? `<div class="chips inv-catchip"><button type="button" class="chip" data-action="cat" data-cat="all" aria-pressed="true" aria-label="${esc(t("清除分类：{c}", { c: t(cur.name) }))}">${cur.icon} ${esc(t(cur.name))} <span aria-hidden="true">✕</span></button></div>` : ""}
+      <div id="invRows" class="${state.invSel ? "sel-mode" : ""}"></div>
       ${state.invSel ? selBar() : fab(addSpace(), t("添加物品"))}
     </section>`;
 }
@@ -355,27 +363,35 @@ function selBar() {
     <button type="button" class="btn btn-sm btn-danger-ghost" data-action="inv-sel-del" ${off}>🗑 ${t("删除")}</button>
   </div>`;
 }
+/** 物品视图里的几个容器：日常储备，开着的话再加房屋耗材、装备 */
+const invSpaces = () => ["pantry", ...(state.houseEnabled ? ["house"] : []), ...(state.gearEnabled ? ["gear"] : [])];
+/** 物品视图的筛选：分类（从概览货架点进来）+ 搜索 / 状态 / 位置；小类不用 */
+const rowMatch = (it) => matchItem(it, { ...state.filter, sub: "all" });
+/** 某个容器里，按当前筛选要补货、还不在采购清单里的物品（「全部加入采购清单」用） */
+export function secNeed(space) { return state.enriched.filter((x) => inSpace(space)(x) && rowMatch(x) && x.status !== "ok" && !openShopFor(x.id)).sort(invSorter("default")); }
 /** 当前筛选下看得见的物品（全选用） */
 export function visibleItemIds() {
-  const f = state.filter, spaces = ["pantry", ...(state.houseEnabled ? ["house"] : [])];
-  return state.enriched.filter((x) => spaces.some((s) => inSpace(s)(x)) && matchItem(x, f, { withCat: false })).map((x) => x.id);
+  return state.enriched.filter((x) => invSpaces().some((s) => inSpace(s)(x)) && rowMatch(x)).map((x) => x.id);
 }
 /** 物品视图的两个容器（折叠状态和概览大卡片共用一份本机记录） */
 function renderInvRows(host) {
-  const f = state.filter, both = host.dataset.both === "1";
+  const f = state.filter, cur = f.cat !== "all" ? catOf(f.cat) : null;
   const fold = (() => { try { return JSON.parse(localStorage.getItem("hmh-pv-fold") || "{}"); } catch { return {}; } })();
   const sec = (space, icon, title) => {
-    const mine = state.enriched.filter(inSpace(space)), list = mine.filter((it) => matchItem(it, f, { withCat: false })).sort(invSorter(f.sort));
+    if (cur && spaceOf(cur.id) !== space) return "";   // 按分类看：只留这个分类所在的容器
+    const mine = state.enriched.filter(inSpace(space)), list = mine.filter(rowMatch).sort(invSorter(f.sort)), need = space === "gear" ? [] : secNeed(space);
     const lim = pageLimit(`inv-${space}`, JSON.stringify(f)), part = list.slice(0, lim);
     const body = list.length ? `<ul class="inv-list">${part.map(itemRow).join("")}</ul>${pageMoreBtn(`inv-${space}`, list.length, lim)}`
       : `<div class="empty">${mine.length ? `<strong>${t("没有符合条件的物品")}</strong>${t("换个关键词或筛选试试。")}`
         : space === "house" ? `<strong>${t("还没有房屋耗材")}</strong><a class="btn btn-primary" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>`
+        : space === "gear" ? `<strong>${t("还没有装备")}</strong>${t("床单被罩、电热毯、旅行床、自行车、千斤顶、园艺工具……这些只需要记数量和位置的东西都放这里。")}`
         : `<strong>${t("库存还是空的")}</strong>${t("从最常用的几样开始，例如鸡蛋、大米、抽纸。")}`}</div>`;
     return `<details class="pv-card inv-sec" data-fold="${space}" id="invSec-${space}" ${fold[space] !== 0 ? "open" : ""}>
       <summary><span class="pv-ico" aria-hidden="true">${icon}</span><span class="pv-ttl"><b>${esc(title)}</b><small>${list.length === mine.length ? t("{n} 件", { n: mine.length }) : t("{a} / {b} 件符合", { a: list.length, b: mine.length })}</small></span><span class="pv-chev" aria-hidden="true">▾</span></summary>
-      <div class="pv-body">${body}</div></details>`;
+      <div class="pv-body">${need.length && !state.invSel ? `<div class="inv-sec-bar"><span class="muted">${t("{n} 件要补货", { n: need.length })}</span><button type="button" class="btn btn-sm" data-action="inv-sec-shop" data-space="${space}">🛒 ${t("全部加入采购清单")}</button></div>` : ""}${body}</div></details>`;
   };
-  host.innerHTML = `<div class="pv-cards">${sec("pantry", "🥫", t("日常储备"))}${both ? sec("house", "🧰", t("房屋耗材")) : ""}</div>`;
+  const SEC = { pantry: ["🥫", t("日常储备")], house: ["🧰", t("房屋耗材")], gear: ["🧳", t("装备")] };
+  host.innerHTML = `<div class="pv-cards">${invSpaces().map((s) => sec(s, ...SEC[s])).join("")}</div>`;
 }
 /** 物品一行：状态色条 | 名称、标签、小类 · 位置 · 约够几天 | 🔔 不提醒 | − 数量 单位 + */
 export function itemRow(it) {
@@ -389,7 +405,7 @@ export function itemRow(it) {
     <span class="inv-bar" aria-hidden="true"></span>
     ${sel ? `<input type="checkbox" class="inv-chk" data-sel-id="${it.id}" ${on ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: it.name }))}">` : ""}
     <div class="inv-main"><div class="inv-name">${sel ? `<span class="inv-link">${nm}</span>` : `<a href="${esc(href("item", it.id))}" class="inv-link">${nm}</a>`}${badges}</div><div class="inv-meta">${meta}</div></div>
-    <button type="button" class="inv-mute" data-action="item-mute" data-id="${it.id}" aria-pressed="${m}" aria-label="${esc(m ? t("{name}：恢复提醒", { name: it.name }) : t("{name}：不提醒", { name: it.name }))}" title="${esc(m ? t("已设为不提醒，点一下恢复") : t("点一下设为不提醒"))}"><span aria-hidden="true">${m ? "🔕" : "🔔"}</span></button>
+    ${isGear(it) ? `<span class="inv-mute inv-mute-ph" aria-hidden="true"></span>` : `<button type="button" class="inv-mute" data-action="item-mute" data-id="${it.id}" aria-pressed="${m}" aria-label="${esc(m ? t("{name}：恢复提醒", { name: it.name }) : t("{name}：不提醒", { name: it.name }))}" title="${esc(m ? t("已设为不提醒，点一下恢复") : t("点一下设为不提醒"))}"><span aria-hidden="true">${m ? "🔕" : "🔔"}</span></button>`}
     <div class="inv-qty" role="group" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
       <button type="button" data-action="consume" data-id="${it.id}" aria-label="${esc(t("{name} 用掉 {q} {u}", { name: it.name, q: step, u: t(it.du) }))}">−</button>
       <input type="number" inputmode="decimal" min="0" step="any" value="${fmt(it.dqty)}" data-inv-qty="${it.id}" data-keep="invq:${it.id}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
@@ -402,7 +418,7 @@ export function itemRow(it) {
 }
 
 export function viewInventory(space = "pantry") {
-  if (space !== "gear" && invView() === "rows") return viewInvRows(space);
+  if (invView() === "rows") return viewInvRows(space);
   if (state.filter.space !== space) Object.assign(state.filter, { space, cat: "all", q: "", status: state.filter.status, loc: "all" });
   const f = state.filter;
   const house = space === "house", gear = space === "gear";
@@ -428,10 +444,11 @@ export function viewInventory(space = "pantry") {
       <div class="section-head"><p>${cur ? t("{n} 件", { n: mine.filter((x) => x.category === cur.id).length }) : t("{n} 件", { n: mine.length })}</p>
         <div class="head-acts">${house && !phone ? `<a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>` : ""}
         ${cur && !cf ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-edit" data-cat="${cur.id}">${t("编辑分类")}</button>` : ""}
-        ${gear ? "" : viewSeg("cats")}</div></div>
-      ${gear || !state.houseEnabled ? "" : `<div class="chips" role="group" aria-label="${t("库存范围")}">
-        <button type="button" class="chip" data-action="inv-space" data-space="pantry" aria-pressed="${!house}">🥫 ${t("日常储备")}</button>
-        <button type="button" class="chip" data-action="inv-space" data-space="house" aria-pressed="${house}">🧰 ${t("房屋耗材")}</button></div>`}
+        ${viewSeg("cats")}</div></div>
+      ${!state.houseEnabled && !state.gearEnabled ? "" : `<div class="chips" role="group" aria-label="${t("库存范围")}">
+        <button type="button" class="chip" data-action="inv-space" data-space="pantry" aria-pressed="${!house && !gear}">🥫 ${t("日常储备")}</button>
+        ${state.houseEnabled ? `<button type="button" class="chip" data-action="inv-space" data-space="house" aria-pressed="${house}">🧰 ${t("房屋耗材")}</button>` : ""}
+        ${state.gearEnabled ? `<button type="button" class="chip" data-action="inv-space" data-space="gear" aria-pressed="${gear}">🧳 ${t("装备")}</button>` : ""}</div>`}
       ${house && !phone ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">${t("滤网、电池、融雪盐这类要消耗、要补货的房屋用品；设备页的“相关耗材”会指到这里。")}</p>` : ""}
       ${gear && !phone ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">${t("床品、电器、自行车、千斤顶、工具这类耐用品：只记有几件、放在哪，不算消耗、不提醒补货。")}</p>` : ""}
       ${shelf ? `<div class="shelf" style="margin-bottom:14px">${shelf}</div>` : ""}
@@ -565,7 +582,7 @@ function shopQty(s) {
     <button type="button" data-action="shop-qty" data-id="${s.id}" data-dir="1" aria-label="${esc(t("{name} 增加 {q} {u}", { name: s.name, q: step, u: t(d) }))}">+</button>
   </span>`;
 }
-const SHOP_SORTS = [["old", "加入最久的在前"], ["new", "最近加入的在前"], ["name", "名称 A → Z"], ["cat", "按分类"]];
+const SHOP_SORTS = [["new", "最近加入的在前"], ["old", "加入最久的在前"], ["name", "名称 A → Z"], ["cat", "按分类"]];
 const shopCat = (s) => state.items.find((i) => i.id === s.item_id)?.category || s.category || "other";
 /* 采购（2026-11-13 重新设计）：#/shopping 是看板首页（几个数字 + 录入入口 + 待买预览），
  * #/shopping/list 是完整清单（搜索 + 状态 / 分类 / 排序下拉，默认加入最久的在前），#/shopping/add 是「加入清单」页（手动 / 拍照）。

@@ -2388,6 +2388,7 @@ export const EN = {
   "{n} 尚未认领": "{n} unclaimed", "{n} 已认领": "{n} claimed", "{n} 件设为不提醒": "{n} items muted", "{name} 不再提醒": "{name}: no more reminders",
   "已加入采购清单：{name} {q} {u}": "Added to the shopping list: {name} {q} {u}",
   "加入 {name}": "Add {name}", "加入采购清单（{n} 项）": "Add to shopping list ({n})", "确认要买多少；不要的取消勾选": "Confirm how much to buy; untick what you don't need", "确认要买多少": "Confirm how much to buy", "加入 {n} 项": "Add {n}", "{name} 的数量要大于 0。": "{name}: quantity must be more than 0.", "已经在采购清单里了": "Already on the shopping list",
+  "全部分类": "All categories", "清除分类：{c}": "Clear category: {c}", "{n} 件要补货": "{n} need restocking",
   "全部物品": "All items", "{n} 种，都充足": "{n} kinds, all stocked",
   "这张小票可能已经录过：{who}{d} 记了 {n} 项，合计 {m}（这次 {m2}）": "This receipt may already be logged: {who}{d} logged {n} items, total {m} (this one {m2})",
   "这张小票怎么处理": "What to do with this receipt",

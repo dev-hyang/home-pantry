@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-14.19", title: { zh: "储藏概览更简洁；装备并进库存", en: "Simpler Pantry overview; Gear joins Inventory" }, items: [
+    { k: "better", zh: "概览把「该补货了」放在最前；日常储备、房屋耗材只显示缺货 / 少货统计和分类卡片，多了一张「全部分类」", en: "The overview puts \"Time to restock\" first; Everyday stock and Home supplies just show the out / low counts and category cards, plus an \"All categories\" card" },
+    { k: "new", zh: "库存的物品视图里，每一块都有「全部加入采购清单」，把这一块要补货的一起加进去（加之前确认数量）", en: "In the Inventory item view, each block has \"Add all to shopping list\" for the items that need restocking (you confirm quantities first)" },
+    { k: "better", zh: "装备并进了库存，作为第三块，同样默认物品视图；点概览的分类卡片，库存按那个分类筛好", en: "Gear is now the third block in Inventory, with the item view by default; tapping a category card on the overview opens Inventory filtered to it" },
+    { k: "better", zh: "采购清单默认最近加入的在前，刚加的一眼能看到", en: "The shopping list now shows the most recently added first, so you can see what you just added" }
+  ] },
   { v: "2026-11-14.18", title: { zh: "加入采购清单前确认数量和单位", en: "Confirm quantity and unit before adding to the shopping list" }, items: [
     { k: "better", zh: "点任何「加入采购清单」（行上的按钮、右滑、全部加入、多选）都会先弹出一个框，确认每件买多少、什么单位；多件在同一个框里，不要的取消勾选", en: "Every \"Add to shopping list\" (row button, swipe, add all, multi-select) first opens a box to confirm how much and which unit; several items share one box, untick what you don't need" }
   ] },

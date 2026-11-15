@@ -69,7 +69,7 @@ import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsen
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
 import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
-import { moveCat, pantryNav, renderInvList, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
+import { moveCat, pantryNav, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { famMembers, familyHref, meId, profileErr, readMemberForm, reloadMembers } from "./settings/members.js";
 import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
@@ -376,9 +376,9 @@ function renderBody(r) {
   if (r.sub === "menu") { $("#main").innerHTML = r.section === "house" ? viewPropertyList() : viewMenu(r.section); return; }   // 页签目录页；房屋先列房产
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
-  $("#main").innerHTML = crumb(r) + (r.section === "pantry" ? pantryNav(r.sub) : "") + view();   // 储藏的每个页面顶上都有页面导航卡片
+  $("#main").innerHTML = crumb(r) + (r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : "") + view();   // 储藏的每个页面顶上都有页面导航卡片
   if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies")) renderInvList();
-  const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : null;   // 从概览「房屋耗材」点进来：展开并滚到房屋耗材那一块
+  const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : r.section === "pantry" && r.sub === "gear" ? $("#invSec-gear") : null;   // 从概览「房屋耗材」或旧的装备链接进来：展开并滚到那一块
   if (hs && !state.scrolledHouse) { hs.open = true; state.scrolledHouse = true; requestAnimationFrame(() => hs.scrollIntoView({ block: "start" })); }
   if (!hs) state.scrolledHouse = false;
 }
@@ -433,7 +433,7 @@ function onRoute() {
     next.q.delete("status"); history.replaceState(null, "", `${href(next.section, next.sub)}${next.q.toString() ? `?${next.q}` : ""}`);
   }
   if (next.section === "scan" && prev.section !== "scan") resetScan();
-  if (!(next.section === "pantry" && next.sub === "inventory")) state.invSel = null;   // 离开库存：多选结束
+  if (!(next.section === "pantry" && (next.sub === "inventory" || next.sub === "gear"))) state.invSel = null;   // 离开库存：多选结束
   // 换了页面 / 页签 / 钻取参数：所有列表回到一页（从表单页返回原列表时保留，滚动位置才对得上）
   if ((routeKey(prev) !== routeKey(next) || prev.q?.toString() !== next.q.toString()) && !isFormSection(prev)) resetListPages();
   // 从图表 / 名称钻取来的：套上筛选，再把地址里的筛选参数去掉（刷新或再次进入不会重复套用）
@@ -486,7 +486,7 @@ function resetSectionFilters(section) {
   switch (section) {
     case "today": setTodayPref({ source: null }); break;
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
-    case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { st: "open", cat: "all", q: "", sort: "old" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
+    case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { st: "open", cat: "all", q: "", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
     case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null, sort: "new" }); state.spendEdit = null; state.spendSel = null; break;
     case "me": Object.assign(state.stats, { month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.locForm = null; break;
@@ -1080,7 +1080,7 @@ main.addEventListener("click", async (e) => {
       case "quick-reset": await saveQuick(DEFAULT_QUICK()); toast(t("已恢复默认快捷操作")); return render();
       case "quick-run": if (el.dataset.id === "action:print") go(`${href("me", "settings")}?sec=print`); return;   // 打印：进入 设置 → 打印
       case "print-run": return printSheet(el.dataset.kind, el.dataset.kind === "spend" ? { months: +($("#printRange")?.value || +state.stats.months || 6), useFilter: !!el.dataset.filtered } : $("#printProp")?.value || "all");
-      case "inv-space": return go(el.dataset.space === "house" ? `${href("pantry", "inventory")}?space=house` : href("pantry", "inventory"));
+      case "inv-space": return go(el.dataset.space === "house" ? `${href("pantry", "inventory")}?space=house` : el.dataset.space === "gear" ? href("pantry", "gear") : href("pantry", "inventory"));
       case "unit-add": { const host = $("#unitRows"); if (host) { host.insertAdjacentHTML("beforeend", unitRow()); host.lastElementChild.querySelector("select")?.focus(); } return; }   // 固定装置：再加一处位置
       case "unit-del": { const row = el.closest(".unit-row"), host = row?.parentElement; if (row && host) { row.remove(); if (!host.children.length) host.insertAdjacentHTML("beforeend", unitRow()); } return; }
       case "supply-add": {   // 设备页“相关耗材”：一键把推荐耗材加进库存
@@ -1179,6 +1179,7 @@ main.addEventListener("click", async (e) => {
         return refresh();
       }
       case "inv-view": setInvView(el.dataset.view); state.invSel = null; return render();
+      case "inv-sec-shop": return addAlertsToShopping(secNeed(el.dataset.space));   // 物品视图每个容器的「全部加入采购清单」
       case "inv-select": state.invSel = state.invSel ? null : new Set(); return render();
       case "inv-sel-all": { const ids = visibleItemIds(), all = ids.every((x) => state.invSel?.has(x)); state.invSel = new Set(all ? [] : ids); return render(); }
       case "inv-sel-shop": { const list = [...(state.invSel || [])].map((x) => state.enriched.find((i) => i.id === x)).filter(Boolean); state.invSel = null; return addAlertsToShopping(list); }

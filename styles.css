@@ -3368,3 +3368,10 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
   .ask-item:not(:has(.ask-inc)) { grid-template-columns: minmax(0, 1fr) 68px 88px; }
   .ask-acts .ask-ok { flex: 1; }
 }
+/* 物品视图：每个容器顶上「n 件要补货 · 全部加入采购清单」；装备行没有 🔔，占位保持对齐 */
+.inv-sec-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 4px 4px 10px; }
+.inv-sec-bar .btn { min-height: 40px; }
+.inv-row .inv-mute-ph { border: 0; background: transparent; box-shadow: none; pointer-events: none; }
+.inv-catchip { margin: 0 0 10px; }
+.inv-catchip .chip { min-height: 40px; }
+.shelf-all { background: color-mix(in srgb, var(--pine) 6%, var(--surface)); }
