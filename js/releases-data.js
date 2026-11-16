@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-15.14", title: { zh: "采购首页去掉重复的待买列表", en: "Shopping home drops the repeated to-buy list" }, items: [
+    { k: "better", zh: "采购首页不再重复列出待买的东西：点「待购买」卡片进购物车，认领、买到、滑动、多选都在那里", en: "The Shopping home no longer repeats the to-buy list: tap the To buy card to open the cart, where claim, bought, swipe and multi-select all live" }
+  ] },
   { v: "2026-11-15.13", title: { zh: "购物车按钮直达购物车；手势说明", en: "Cart button goes straight to the cart; gesture tips" }, items: [
     { k: "better", zh: "储藏概览的「购物车」按钮直接打开购物车；购物车顶上一行说明：左滑删除、右滑标成已买到", en: "The overview's Cart button opens the cart directly; the cart has a one-line tip: swipe left to delete, right to mark bought" }
   ] },

@@ -707,17 +707,6 @@ function shopStats() {
 const tile = (to, icon, label, big, sub) => `<a class="panel sd-tile" href="${to}">
   <span class="sd-top"><span class="sd-ico" aria-hidden="true">${icon}</span><span class="sd-lbl">${label}</span><span class="mch" aria-hidden="true">›</span></span>
   <span class="sd-big">${big}</span><span class="sd-sub">${sub}</span></a>`;
-/** 首页的「待买」预览：没人认领的在前，最多 6 项；点「我来买 / 已买到」就地处理，要填价格、商店去完整清单 */
-function shopPreview() {
-  const open = state.shopping.filter((s) => s.status !== "bought")
-    .sort((a, b) => (a.status === "todo" ? 0 : 1) - (b.status === "todo" ? 0 : 1) || String(a.created_at || "").localeCompare(String(b.created_at || "")));
-  if (!open.length) return `<div class="panel sd-empty"><b>${t("没有待买的东西")}</b><span class="muted">${t("缺什么随手加进来，家人能看到、能认领。")}</span></div>`;
-  return `<div class="panel sd-preview"><div class="section-head"><h3>${t("待购买")}</h3><a class="btn btn-sm btn-ghost" href="${listHref("open")}">${t("查看全部 {n}", { n: open.length })} ›</a></div>
-    <ul>${open.slice(0, 6).map((s) => `<li class="sp-row">
-      <span class="sp-txt"><b>${esc(s.name)}</b> <small class="muted">${showQty(num(s.quantity, 1), shopUnit(s))}${s.status === "claimed" ? ` · 🛍 ${esc(whoName(s))}` : ""}</small>${shopDealLine(s)}</span>
-      <span class="sp-acts">${s.status === "todo" ? `<button type="button" class="btn btn-sm btn-dark" data-action="shop-claim" data-id="${s.id}">${t("我来买")}</button>` : ""}<button type="button" class="btn btn-sm btn-primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button></span>
-    </li>`).join("")}</ul></div>`;
-}
 function viewShopHome() {
   const st = shopStats(), sh = shopsStats();
   const who = [...st.byWho].map(([w, n]) => `${esc(w)} ${n}`).join(" · ");
@@ -741,7 +730,6 @@ function viewShopHome() {
       ${tile(listHref("bought"), "✅", t("近 30 天买到"), `${st.recent}<small>${t("项")}</small>`, st.priced ? t("花费 {m}", { m: money(st.spent) }) : t("买到后自动加回库存。"))}
     </div>
     ${shopForecastHtml()}
-    ${shopPreview()}
   </section>`;
 }
 function viewShopList() {
