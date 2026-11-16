@@ -3,7 +3,7 @@ import { autofillBar } from "../core/autofill.js";
 /* 房屋维护 · 第一期：房屋资料（房型、材料、设施）、责任归属、材料保养建议、按模板批量加入汽车房屋消耗品 */
 import { alertsOf } from "../core/logic.js";
 import { state } from "../core/state.js";
-import { href } from "../core/router.js";
+import { go, href } from "../core/router.js";
 import { askInline, ctx as askCtx } from "../core/ask.js";
 import { daysUntil, esc, fmtDate, inSpace, money, num } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
@@ -426,7 +426,6 @@ function houseFacts(p, { ext, roof, floors, featNames }) {
 /* ── 房屋概览 ── */
 export function viewHouse() {
   const p = state.houseProfile;
-  const alerts = alertsOf(state.enriched.filter(inSpace("house")));
   const shelf = shelfGrid("house");
   if (!p) {
     return `${houseBar()}${statusLine()}<section class="section house-intro">
@@ -456,14 +455,14 @@ export function viewHouse() {
 
   const facts = houseFacts(p, { ext, roof, floors, featNames });
   const factRows = (list) => list.map((f) => `<div class="fact ${f.wide ? "wide" : ""}"><dt>${f.k}</dt><dd>${f.v}${f.sub ? `<small>${f.sub}</small>` : ""}</dd></div>`).join("");
-  const hoa = hoaBlock(p);
   const emN = emergencyFilled(p), em = emergencyOf(p);
-  const emBlock = refSection("house-emergency", {
+  const emDef = {
     title: `🚨 ${t("应急信息与关键位置")}`,
     hint: emN ? EMERGENCY_FIELDS.filter((f) => em[f.id]).slice(0, 4).map((f) => t(f.name)).join(" · ") : t("还没填：总水阀、燃气阀、配电箱在哪、怎么关"),
     body: emN ? `<dl class="fact-grid one">${EMERGENCY_FIELDS.filter((f) => em[f.id]).map((f) => `<div class="fact wide"><dt>${f.icon} ${t(f.name)}</dt><dd><span class="pre">${esc(em[f.id])}</span></dd></div>`).join("")}</dl>
         <p style="margin:10px 0 0"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}?sec=emergency">${t("修改")}</a></p>`
-      : `${t("爆水管、跳闸、闻到燃气味时，家人打开手机就能看到总阀、配电箱、各表在哪、怎么关。")}<p style="margin:10px 0 0"><a class="btn btn-primary btn-sm" href="${href("house", "profile")}?sec=emergency">${t("现在填")}</a></p>` });
+      : `${t("爆水管、跳闸、闻到燃气味时，家人打开手机就能看到总阀、配电箱、各表在哪、怎么关。")}<p style="margin:10px 0 0"><a class="btn btn-primary btn-sm" href="${href("house", "profile")}?sec=emergency">${t("现在填")}</a></p>` };
+  const emBlock = `<div class="em-fold"><h3>${emDef.title}</h3><p class="muted" style="margin:0 0 8px;font-size:13px">${emDef.hint}</p>${emDef.body}</div>`;
   // 布局：先是这套房的身份卡（地址、保险、HOA 一眼可查），然后是“要做的事”（交易清单 → 本月季节任务 → 设备提醒 → 耗材提醒），
   // 最后是不常变的参考资料（归谁维护 / HOA 详情 / 材料保养），默认折叠
   return `
@@ -480,34 +479,36 @@ export function viewHouse() {
         ${statusLine(true)}
         <p class="muted house-sub">${esc(t(H().REGIONS[p.region]?.name || ""))}${p.year_built ? t("，{y} 年建成（约 {age} 年房龄）", { y: p.year_built, age }) : ""}</p>
         <dl class="fact-grid one">${factRows(facts.main)}</dl>
-        <details class="facts-more"><summary>${t("材料与设施")}<small>${facts.count ? t("{n} 项", { n: facts.count }) : t("未填")}</small></summary><dl class="fact-grid one">${factRows(facts.more)}</dl></details>
+        <details class="facts-more"><summary>${t("材料设施应急")}<small>${[facts.count ? t("{n} 项", { n: facts.count }) : t("材料设施未填"), emN ? t("应急已填") : t("应急未填")].join(" · ")}</small></summary><dl class="fact-grid one">${factRows(facts.more)}</dl>${emBlock}</details>
       </div>
     </section>
     ${houseNavTiles()}
-    ${emBlock}
-
-    ${dealPanel()}
-    ${tasksPanel()}
-    ${assetsPanel()}
-
-    <section class="section">
-      <div class="section-head"><h2>${t("汽车房屋消耗品提醒")}</h2>
-        <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-sm btn-add-all" data-action="shop-add-alerts" data-space="house">＋ ${t("全部加入购物车")}</button>` : ""}
-          <a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a></div></div>
-      ${alerts.length ? rsHint() : ""}
-      <div class="panel">${alerts.length ? restockPanel(alerts) : shelf ? `<div class="empty"><strong>${t("汽车房屋消耗品都充足")}</strong></div>`
-        : `<div class="empty"><strong>${t("还没有汽车房屋消耗品")}</strong>${t("按你家的设施一次加好滤网、电池、融雪盐等。")}<p><a class="btn btn-primary" href="${href("house", "template")}">${t("查看推荐清单")}</a></p></div>`}</div>
-      ${shelf ? `<div class="shelf" style="margin-top:10px">${shelf}</div>` : ""}
-    </section>
+    ${suppliesRow()}
 
     <div class="section-head ref-head"><h2>${t("参考")}</h2><p>${t("按房型和材料整理，不常变；点开查看")}</p></div>
     ${refSection("house-owners", { title: t("哪些部位归谁维护"), hint: esc(t(ht?.desc || "")),
       body: `<div class="ch-scroll"><table class="owner-table"><tbody>${ownerRows}</tbody></table></div><p class="disclaimer">${t("这是该房型的常见情况，具体以 HOA 章程、物业服务合同或租约为准。")}</p>` })}
-    ${hoa ? refSection("house-hoa", hoa) : ""}
-    ${ownershipBlock(p)}
     ${ext.length || roof.length || floors.length ? refSection("house-care", { title: t("材料保养建议"), hint: [...ext, ...roof, ...floors].map((m) => t(m.name)).join("、"),
       body: `<div class="care-grid">${careBlock(t("外墙"), ext)}${careBlock(t("屋面"), roof)}${careBlock(t("地面"), floors)}</div><p class="disclaimer">${t("周期与寿命为常见经验值，实际以产品说明书和专业人士检查为准。")}</p>` })
       : refSection("house-care", { title: t("材料保养建议"), hint: t("还没填材料"), body: `${t("补充外墙、屋面和地面材料后，这里会给出对应的保养建议。")}<p><a class="btn btn-ghost btn-sm" href="${href("house", "profile")}">${t("补充材料")}</a></p>` })}`;
+}
+
+/** 概览里的「汽车房屋消耗品」一行：点进消耗品页（有物品时那页直接转到库存） */
+function suppliesRow() {
+  const mine = state.enriched.filter(inSpace("house")), n = alertsOf(mine).length;
+  const stat = n ? t("{n} 项要补货", { n }) : mine.length ? t("{n} 种", { n: mine.length }) : t("还没有记录");
+  return `<section class="section"><a class="hv-card hn-tile" href="${href("house", "supplies")}"><span class="hv-ico" aria-hidden="true">🧰</span>
+    <span class="hv-txt"><b>${t("汽车房屋消耗品")}</b><small class="hn-stat">${esc(stat)}</small><small>${t("滤网、电池、融雪盐等")}</small></span>${n ? `<span class="badge b-soon mcount">${n}</span>` : ""}</a></section>`;
+}
+
+/** 房屋 / 消耗品页：已有物品 → 直接转到库存（汽车房屋消耗品）；空白 → 两个按钮（手动添加 / 按房屋设备资料推荐）+ 右下角 ＋ */
+export function viewHouseSupplies() {
+  if (state.enriched.some(inSpace("house"))) { setTimeout(() => go(`${href("pantry", "inventory")}?space=house`, { replace: true })); return ""; }
+  const label = t("添加汽车房屋消耗品");
+  return `${houseBar()}<section class="section"><div class="panel"><div class="empty"><strong>${t("还没有汽车房屋消耗品")}</strong>${t("手动添加，或按你家的房屋和设备资料一次加好滤网、电池、融雪盐等。")}
+    <p class="form-actions" style="justify-content:center"><a class="btn btn-primary" href="${href("item", "new")}?space=house">${t("手动添加")}</a>
+    <a class="btn btn-ghost" href="${href("house", "template")}">${t("按房屋设备资料推荐")}</a></p></div></div></section>
+    <button type="button" class="fab" data-action="supply-add-pick" aria-label="${esc(label)}" title="${esc(label)}"><span aria-hidden="true">＋</span></button>`;
 }
 
 /* ── 概览里的设备与季节任务摘要（第二期） ── */

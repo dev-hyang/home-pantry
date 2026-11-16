@@ -230,7 +230,7 @@ export function crumb(r) {
     return crumbNav(vparts);
   }
   const ssec = r.section === "me" && r.sub === "settings" ? SETTING_SECTIONS.find((s) => s.id === q.get("sec")) : null;
-  const invPage = (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies");
+  const invPage = (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"));
   const cat = invPage && state.filter.cat !== "all" ? window.CATEGORIES.find((c) => c.id === state.filter.cat) : null;
   if (psec) parts.push({ href: subHref, label: curLabel }, { label: t(psec.name), icon: psec.icon });
   else if (hist) { parts.push({ href: subHref, label: curLabel }); if (dsec) parts.push({ href: `${subHref}?deal=${encodeURIComponent(q.get("deal"))}`, label: hist }, { label: dsec }); else parts.push({ label: hist }); }   // 房产 / 交易 / 历史 · 买入 / 子页
