@@ -521,6 +521,8 @@ export const DemoStore = {
   },
   /** 不再提醒 / 暂停提醒：until = 'YYYY-MM-DD'（到这天之前不提醒），'9999-12-31' = 一直不提醒，null = 恢复 */
   async setItemMute(id, until) { const it = this.db.items.find((x) => x.id === id); if (!it) throw new Error("物品不存在"); it.alert_mute_until = until || null; this.persist(); },
+  /** 库存行的提醒小弹框：只改少货线和提前几天（存储单位）；mute = 同时设成「不再提醒」 */
+  async setItemRemind(id, min, lead, mute) { const it = this.db.items.find((x) => x.id === id); if (!it) throw new Error("物品不存在"); it.min_quantity = min; it.lead_days = lead; it.alert_mute_until = mute || null; this.persist(); },
   async listShopping() { return this.db.shopping.map((x) => ({ ...x })); },
   async saveShopping(row) {
     if (row.id) {
@@ -1298,6 +1300,12 @@ export const CloudStore = {
   /** 不再提醒 / 暂停提醒（见本机版说明）；没执行迁移 030 时会提示先执行 */
   async setItemMute(id, until) {
     const r = await this.sb.from("items").update({ alert_mute_until: until || null }).eq("id", id);
+    if (r.error && /alert_mute_until/.test(r.error.message || "")) throw new Error("数据库还没升级：请先执行 migrations/030_item_alert_mute.sql");
+    this.must(r);
+  },
+  /** 库存行的提醒小弹框：只改少货线和提前几天（存储单位）；mute = 同时设成「不再提醒」 */
+  async setItemRemind(id, min, lead, mute) {
+    const r = await this.sb.from("items").update({ min_quantity: min, lead_days: lead, alert_mute_until: mute || null, updated_by: state.user.id }).eq("id", id);
     if (r.error && /alert_mute_until/.test(r.error.message || "")) throw new Error("数据库还没升级：请先执行 migrations/030_item_alert_mute.sql");
     this.must(r);
   },

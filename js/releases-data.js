@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.1", title: { zh: "库存行：提醒设置直接在行上改", en: "Inventory rows: set reminders right on the row" }, items: [
+    { k: "better", zh: "库存里去掉 🔔 按钮：没设提醒的物品显示「不提醒」，点一下弹出小框，只填少货线和提前几天；设了提醒的显示「少货线 · 提前几天」，点一下可以改；少货、缺货时由对应的标签取代", en: "The 🔔 button is gone from Inventory: items without a reminder show \"No reminder\" — tap it for a small box with just the low-stock line and days ahead; items with a reminder show them on the same tag, tap to change; Low / Out tags take its place when stock runs down" },
+    { k: "better", zh: "库存里的「已在清单」改叫「已加入购物车」，颜色和概览一样，只是标签不能点", en: "\"On the list\" in Inventory is now \"In cart\", colored like the overview tag (display only)" },
+    { k: "better", zh: "概览「该补货了」：「未加入 / 已加入」靠右，名字加了下划线表示可点开编辑；说明里写明点标签也能加入 / 移出", en: "Overview \"Time to restock\": the Added / Not added tag sits at the right, names are underlined to show they open for editing, and the tip says tapping the tag also adds or removes" }
+  ] },
   { v: "2026-11-15.14", title: { zh: "采购首页去掉重复的待买列表", en: "Shopping home drops the repeated to-buy list" }, items: [
     { k: "better", zh: "采购首页不再重复列出待买的东西：点「待购买」卡片进购物车，认领、买到、滑动、多选都在那里", en: "The Shopping home no longer repeats the to-buy list: tap the To buy card to open the cart, where claim, bought, swipe and multi-select all live" }
   ] },

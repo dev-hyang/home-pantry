@@ -1,7 +1,7 @@
 /* 加入购物车前确认数量和单位（2026-11-14）：所有「加入购物车」都走这里——单件（行上的按钮、右滑）和多件（全部加入、多选）同一个框。
  * 不是浏览器的 alert / prompt（那些可能被拦截），是页面里自己画的 <dialog>：电脑上居中，手机上贴底部；
  * 每件一行：勾选、名称、数量、单位（下拉，可「其他…」手填）；件数多时框内滚动。Esc / 点外面 / 取消都是不加。 */
-import { esc, fmt } from "../core/util.js";
+import { esc, fmt, spaceOf } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { unitSelect } from "../core/unit-pick.js";
 
@@ -81,5 +81,46 @@ export function askConfirm({ title, body, ok, danger = false }) {
     dlg.addEventListener("click", (e) => { if (e.target === dlg) finish(false); });
     dlg.showModal();
     dlg.querySelector('[data-ask="cancel"]').focus();
+  });
+}
+
+/** 库存行上「不提醒 / 提醒」标签点开的小弹框：只设两个参数——少货线、提前几天。
+ *  it：enrich 过的物品（min_quantity、lead_days 是存储单位；du / 换算按显示单位），noRemind = 现在是不是「不提醒」。
+ *  返回 { min, lead }（存储单位）、{ off: true }（不再提醒），取消返回 null */
+export function askRemind(it) {
+  return new Promise((resolve) => {
+    const f = window.Units.factor(it.unit) || 1, on = !it.noRemind;
+    const defMin = Number(it.min_quantity) > 0 ? Number(it.min_quantity) : 1, defLead = it.lead_days > 0 ? Number(it.lead_days) : spaceOf(it.category) === "house" ? 14 : 3;
+    const dlg = document.createElement("dialog");
+    dlg.className = "ask-dlg ask-remind";
+    dlg.setAttribute("aria-labelledby", "askRemindTitle");
+    dlg.innerHTML = `<form class="ask-form" novalidate>
+      <h3 id="askRemindTitle">🔔 ${esc(t("提醒设置：{name}", { name: it.name }))}</h3>
+      <div class="ask-fields">
+        <label>${esc(t("少货线"))}<span class="ask-unit-line"><input type="number" name="min" inputmode="decimal" min="0" step="any" value="${esc(fmt(Math.round(defMin * f * 100) / 100))}"><b>${esc(t(it.du))}</b></span><small class="muted">${esc(t("数量低于或等于它时提醒“少货”"))}</small></label>
+        <label>${esc(t("提前几天提醒"))}<span class="ask-unit-line"><input type="number" name="lead" inputmode="numeric" min="0" max="60" step="1" value="${esc(defLead)}"><b>${esc(t("天"))}</b></span><small class="muted">${esc(t("预计剩余天数低于它时提醒“即将告罄”"))}</small></label>
+      </div>
+      <p class="form-error ask-err" role="alert"></p>
+      <div class="ask-acts">
+        ${on ? `<button type="button" class="btn btn-ghost" data-ask="off">${esc(t("不再提醒"))}</button>` : ""}<span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-ask="cancel">${esc(t("取消"))}</button>
+        <button type="submit" class="btn btn-primary">${esc(t("保存"))}</button></div>
+    </form>`;
+    document.body.appendChild(dlg);
+    let done = false;
+    const finish = (v) => { if (done) return; done = true; dlg.close(); dlg.remove(); resolve(v); };
+    dlg.querySelector("form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const m = Number(dlg.querySelector('[name="min"]').value || 0), d = Number(dlg.querySelector('[name="lead"]').value || 0), err = dlg.querySelector(".ask-err");
+      if (!(m >= 0) || !(d >= 0)) { err.textContent = t("请填 0 或更大的数。"); return; }
+      if (m === 0 && d === 0) { err.textContent = t("两项都是 0 就等于不提醒；想关掉请点「不再提醒」。"); return; }
+      finish({ min: Math.round((m / f) * 1000) / 1000, lead: Math.min(60, Math.round(d)) });
+    });
+    dlg.querySelector('[data-ask="off"]')?.addEventListener("click", () => finish({ off: true }));
+    dlg.querySelector('[data-ask="cancel"]').addEventListener("click", () => finish(null));
+    dlg.addEventListener("cancel", (e) => { e.preventDefault(); finish(null); });
+    dlg.addEventListener("click", (e) => { if (e.target === dlg) finish(null); });
+    dlg.showModal();
+    const q = dlg.querySelector('[name="min"]'); q.focus({ preventScroll: true }); q.select?.();
   });
 }

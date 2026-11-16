@@ -45,7 +45,7 @@ export function restockPanel(alerts, limit = 8) {
   }).join("")}</ul>`;
 }
 /** 该补货了下面的一行操作说明：手机说滑动，电脑说点标签 */
-export const rsHint = () => `<p class="muted rs-hint"><span class="rs-hint-touch">${t("← 左滑加入购物车 · 右滑移出购物车 →")}</span><span class="rs-hint-mouse">${t("点「未加入」加入购物车，点「已加入」移出")}</span></p>`;
+export const rsHint = () => `<p class="muted rs-hint"><span class="rs-hint-touch">${t("点「未加入」加入购物车，点「已加入」移出；也可 ← 左滑加入 · 右滑移出 →")}</span><span class="rs-hint-mouse">${t("点「未加入」加入购物车，点「已加入」移出")}</span></p>`;
 
 export function shelfGrid(space) {
   const list = state.enriched.filter(inSpace(space));
@@ -409,19 +409,29 @@ function renderInvRows(host) {
   const SEC = { pantry: ["🥫", t("日常消耗品")], house: ["🧰", t("汽车房屋消耗品")], gear: ["🛋️", t("家居耐用品")] };
   host.innerHTML = `<div class="pv-cards">${invSpaces().map((s) => sec(s, ...SEC[s])).join("")}</div>`;
 }
-/** 物品一行：状态色条 | 名称、标签、小类 · 位置 · 约够几天 | 🔔 不提醒 | − 数量 单位 + */
+/** 状态位的标签：充足时显示提醒设置——「🔕 不提醒」或「🔔 少货线 · 提前几天」，点一下弹出小框来改；少货 / 缺货 / 即将告罄时由状态标签取代 */
+const noRemind = (it) => muteOn(it) || (num(it.min_quantity) <= 0 && num(it.lead_days) <= 0);
+function remindChip(it, plain) {
+  if (isGear(it)) return "";
+  const off = noRemind(it), f = Units.factor(it.unit);
+  const parts = off ? [] : [num(it.min_quantity) > 0 && t("少货线 {q} {u}", { q: fmt(num(it.min_quantity) * f), u: esc(t(it.du)) }), num(it.lead_days) > 0 && t("提前 {d} 天", { d: num(it.lead_days) })].filter(Boolean);
+  const text = off ? `🔕 ${t("不提醒")}` : `🔔 ${parts.join(" · ")}`;
+  const tip = off ? t("点一下设置提醒") : t("点一下修改提醒设置");
+  return plain ? `<span class="rem-tag${off ? " is-off" : ""}">${text}</span>`
+    : `<button type="button" class="rem-tag${off ? " is-off" : ""}" data-action="item-remind" data-id="${it.id}" title="${esc(tip)}" aria-label="${esc(`${it.name}：${off ? t("不提醒") : parts.join("，")}，${tip}`)}">${text}</button>`;
+}
+/** 物品一行：状态色条 | 名称、状态 / 提醒标签、小类 · 位置 · 约够几天 | − 数量 单位 + */
 export function itemRow(it) {
-  const st = STATUS[it.status], m = muteOn(it), c = catOf(it.category), inList = openShopFor(it.id);
+  const st = STATUS[it.status], c = catOf(it.category), inList = openShopFor(it.id);
   const meta = [`${c.icon} ${esc(t(it.subcategory || c.name))}`, it.location && `📍${esc(t(it.location))}`,
-    it.daysLeft != null && it.qty > 0 && `${t("约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) })}`, inList && `🛒 ${t("已在清单")}`].filter(Boolean).join(" · ");
-  const badges = `${it.status !== "ok" ? `<span class="badge ${st.cls}">${t(st.label)}</span>` : ""}${m ? `<span class="badge b-muted">🔕 ${t("不提醒")}</span>` : ""}${it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? t("已过期") : t("{d} 天内到期", { d: it.expDays })}</span>` : ""}`;
+    it.daysLeft != null && it.qty > 0 && `${t("约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) })}`].filter(Boolean).join(" · ");
+  const badges = `${it.status !== "ok" ? `<span class="badge ${st.cls}">${t(st.label)}</span>` : remindChip(it, !!state.invSel)}${it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? t("已过期") : t("{d} 天内到期", { d: it.expDays })}</span>` : ""}${inList ? `<span class="rs-tag is-in is-static">✓ ${t("已加入购物车")}</span>` : ""}`;
   const step = Units.step(it.du), nm = esc(it.name), sel = state.invSel, on = sel?.has(it.id);
   const rowAttrs = sel ? `data-row-sel="${it.id}"` : `data-row-open="${esc(href("item", it.id))}" data-swipe-del="item" data-swipe-alt="item" data-swipe-alt-label="${esc(t("加入购物车"))}" data-swipe-alt-go="${esc(t("松手加入"))}"`;
   return `<li class="inv-row st-${it.status}${on ? " is-picked" : ""}" data-id="${it.id}" ${rowAttrs}>
     <span class="inv-bar" aria-hidden="true"></span>
     ${sel ? `<input type="checkbox" class="inv-chk" data-sel-id="${it.id}" ${on ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: it.name }))}">` : ""}
     <div class="inv-main"><div class="inv-name">${sel ? `<span class="inv-link">${nm}</span>` : `<a href="${esc(href("item", it.id))}" class="inv-link">${nm}</a>`}${badges}</div><div class="inv-meta">${meta}</div></div>
-    ${isGear(it) ? `<span class="inv-mute inv-mute-ph" aria-hidden="true"></span>` : `<button type="button" class="inv-mute" data-action="item-mute" data-id="${it.id}" aria-pressed="${m}" aria-label="${esc(m ? t("{name}：恢复提醒", { name: it.name }) : t("{name}：不提醒", { name: it.name }))}" title="${esc(m ? t("已设为不提醒，点一下恢复") : t("点一下设为不提醒"))}"><span aria-hidden="true">${m ? "🔕" : "🔔"}</span></button>`}
     <div class="inv-qty" role="group" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
       <button type="button" data-action="consume" data-id="${it.id}" aria-label="${esc(t("{name} 用掉 {q} {u}", { name: it.name, q: step, u: t(it.du) }))}">−</button>
       <input type="number" inputmode="decimal" min="0" step="any" value="${fmt(it.dqty)}" data-inv-qty="${it.id}" data-keep="invq:${it.id}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">

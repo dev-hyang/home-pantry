@@ -23,7 +23,7 @@ import { mountLangSwitcher } from "../shared/lang-switcher.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
-import { askConfirm, askShopItems } from "./pantry/shop-ask.js";
+import { askConfirm, askRemind, askShopItems } from "./pantry/shop-ask.js";
 import { pickSpace } from "./pantry/space-pick.js";
 import { initBankImport } from "./stats/bank-import.js";
 import { incList, initIncome, viewIncome } from "./income/views.js";
@@ -1216,11 +1216,15 @@ main.addEventListener("click", async (e) => {
         el.disabled = true; for (const x of ids) await Store.deleteItem(x);
         toast(t("已删除 {n} 件物品", { n: ids.length })); state.invSel = null; return refresh();
       }
-      case "item-mute": {   // 物品行上的 🔔：一点就不提醒（下次补货入库自动恢复），再点恢复
-        const it = state.items.find((x) => x.id === id); if (!it) return;
-        const on = !!it.alert_mute_until && String(it.alert_mute_until) > new Date().toISOString().slice(0, 10);
-        el.disabled = true; await Store.setItemMute(id, on ? null : MUTE_FOREVER);
-        toast(on ? t("{name} 恢复提醒", { name: it.name }) : t("{name} 不再提醒", { name: it.name })); return refresh();
+      case "item-remind": {   // 库存行上的「不提醒 / 🔔 …」标签：弹小框只改少货线和提前几天
+        const it = state.enriched.find((x) => x.id === id); if (!it) return;
+        const on = (Number(it.min_quantity) > 0 || Number(it.lead_days) > 0) && !(it.alert_mute_until && String(it.alert_mute_until) > new Date().toISOString().slice(0, 10));
+        const r = await askRemind({ ...it, noRemind: !on }); if (!r) return;
+        try {
+          if (r.off) { await Store.setItemRemind(id, 0, 0, MUTE_FOREVER); toast(t("{name} 不再提醒", { name: it.name })); }
+          else { await Store.setItemRemind(id, r.min, r.lead, null); toast(t("{name} 已设置提醒", { name: it.name })); }
+        } catch (e) { return toast(e.message); }
+        return refresh();
       }
       case "inv-del": { const it = state.items.find((x) => x.id === id); if (!it || !confirmDelete(t("删除「{name}」？", { name: it.name }))) return; await Store.deleteItem(id); toast(t("已删除 {name}", { name: it.name })); return refresh(); }
       case "inv-shop": {   // 右滑加入购物车（先确认数量和单位，见 addAlertsToShopping）

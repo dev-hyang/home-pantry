@@ -4043,4 +4043,8 @@ export const EN = {
   "以前最低 {v}（{s} {d}）": "Earlier low {v} ({s} {d})",
   "以前的价格": "Earlier prices",
   "只列最近 10 次，共 {n} 次": "Showing the latest 10 of {n}",
+  "已加入购物车": "In cart", "点一下设置提醒": "Tap to set a reminder", "点一下修改提醒设置": "Tap to change the reminder",
+  "少货线 {q} {u}": "Low at {q} {u}", "提前 {d} 天": "{d} days ahead", "提醒设置：{name}": "Reminder: {name}", 
+  "请填 0 或更大的数。": "Enter 0 or more.", "两项都是 0 就等于不提醒；想关掉请点「不再提醒」。": "Both at 0 means no reminder; to turn it off tap \"Stop reminding\".",
+  "{name} 已设置提醒": "Reminder set for {name}", "点「未加入」加入购物车，点「已加入」移出；也可 ← 左滑加入 · 右滑移出 →": "Tap \"Not added\" to add to the cart, \"Added\" to remove; or ← swipe left to add · swipe right to remove →",
 };
