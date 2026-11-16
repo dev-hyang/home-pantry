@@ -2418,6 +2418,7 @@ export const EN = {
   "已经不在购物车里了": "Already out of the cart", "等 {n} 件": " and others ({n} in total)",
   "添加要买的东西（默认拍照，可切换手动）": "Add something to buy (photo by default, or switch to manual)", "添加要买的东西": "Add something to buy",
   "记一笔花费（可选）": "Log the cost (optional)",
+  "← 左滑删除 · 右滑标成已买到 →": "← Swipe left to delete · swipe right to mark bought →", "在一项上往左拖删除，往右拖标成已买到；也可以点下面的按钮": "Drag an item left to delete it, right to mark it bought, or use its buttons",
   "全部物品": "All items", "{n} 种，都充足": "{n} kinds, all stocked",
   "这张小票可能已经录过：{who}{d} 记了 {n} 项，合计 {m}（这次 {m2}）": "This receipt may already be logged: {who}{d} logged {n} items, total {m} (this one {m2})",
   "这张小票怎么处理": "What to do with this receipt",

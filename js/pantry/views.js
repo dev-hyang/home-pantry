@@ -133,7 +133,7 @@ const discardBtn = (it) => `<button type="button" class="btn btn-sm btn-ghost di
 /** 购物篮：去购物车，带待买 + 家人正在买的数 */
 function cartBtn() {
   const n = state.shopping.filter((s) => s.status !== "bought").length;
-  return `<a class="btn btn-sm cart-btn" href="${href("shopping")}" aria-label="${esc(t("购物车，{n} 项", { n }))}"><span aria-hidden="true">🛒</span> ${t("购物车")}${n ? ` <b class="num">${n}</b>` : ""}</a>`;
+  return `<a class="btn btn-sm cart-btn" href="${href("shopping", "list")}" aria-label="${esc(t("购物车，{n} 项", { n }))}"><span aria-hidden="true">🛒</span> ${t("购物车")}${n ? ` <b class="num">${n}</b>` : ""}</a>`;
 }
 export function viewDashboard() {
   const withHouse = state.houseEnabled;   // 汽车房屋消耗品也算储藏：缺货、少货、补货提醒一起看
@@ -751,6 +751,7 @@ function viewShopList() {
     ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("购物车"), icon: "🛒" }])}
     <div class="section-head"><h2>${t("购物车")} <span class="muted shop-n" id="shopN">${t("{n} 项", { n: shopRows().length })}</span></h2>
       <div class="head-acts"><button type="button" class="btn btn-sm ${state.shopSel ? "btn-primary" : "btn-ghost"}" data-action="shop-select" aria-pressed="${!!state.shopSel}">${state.shopSel ? t("完成") : `☑ ${t("多选")}`}</button></div></div>
+    ${state.shopSel ? "" : `<p class="muted rs-hint shop-hint"><span class="rs-hint-touch">${t("← 左滑删除 · 右滑标成已买到 →")}</span><span class="rs-hint-mouse">${t("在一项上往左拖删除，往右拖标成已买到；也可以点下面的按钮")}</span></p>`}
     ${shopToolbar()}
     ${storeDatalist()}
     <div id="shopListBox">${shopListBody()}</div>

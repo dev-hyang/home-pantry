@@ -3478,3 +3478,4 @@ input[type="date"], input[type="month"] { height: calc(1.6em + 20px); }   /* 和
 .si-bottom .acts { margin-top: 0; }
 .si-qty { margin-left: auto; }
 .shop-item .si-bottom .acts .btn, .shop-item .si-qty .shop-qty button { min-height: 36px; }
+.shop-hint { margin: -4px 0 10px; }
