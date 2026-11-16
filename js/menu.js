@@ -8,9 +8,9 @@ import { SECTIONS, href } from "./core/router.js";
 import { esc, inSpace } from "./core/util.js";
 import { t } from "./core/i18n.js";
 import { alertsOf } from "./core/logic.js";
-import { activeVehicles, assetName, assetsDueCount, myVehicles, vehStatus } from "./house/assets.js";
-import { undoneThisMonth } from "./house/tasks.js";
-import { dealSubLabel, historyLabel, openDeal, routeDeal } from "./house/deals.js";
+import { activeVehicles, assetName, assetsDueCount, myAssets, myVehicles, vehStatus } from "./house/assets.js";
+import { monthTasks, undoneThisMonth } from "./house/tasks.js";
+import { dealSubLabel, dealTasks, historyLabel, openDeal, routeDeal } from "./house/deals.js";
 import { SETTING_SECTIONS } from "./settings/views.js";
 import { familyHref, memberCrumbLabel } from "./settings/members.js";
 import { aiIcon } from "./core/ai.js";
@@ -23,7 +23,7 @@ import { activeTab, firstTab, tabLabel } from "./core/tabs.js";
 import { medBillLabel } from "./bills/medical-views.js";
 import { collectAlerts } from "./core/alerts.js";
 import { houseBar } from "./house/property-form.js";
-import { PROFILE_SECTIONS } from "./house/views.js";
+import { PROFILE_SECTIONS, houseDraft, sectionStatus } from "./house/views.js";
 import { FINANCE_HIDDEN_SUBS, financeOk } from "./core/finance-access.js";
 
 const SECTION_ICON = { pantry: "🗄️", house: "🏠", bills: "💰", me: "👤" };
@@ -87,6 +87,32 @@ export const menuRow = ({ href: url, icon, title, desc, count, countLabel, exter
     ${count ? `<span class="badge b-soon mcount">${count}${countLabel ? ` ${esc(countLabel)}` : ""}</span>` : ""}
     <span class="mch" aria-hidden="true">›</span></a>`;
 
+/** 房屋概览里的导航豆腐块：房屋资料 → 季节任务 → 账单 → 设备保养 → 交易 → 花费（本月）；每块带自己的小统计（完成度、没做 / 总数、待处理 / 总数） */
+export function houseNavTiles() {
+  const M = META.house, label = (k) => t(SECTIONS.house.subs.find(([s]) => s === k)?.[1] || k);
+  const tile = (url, icon, title, stat, desc, pct = null) => `<a class="hv-card hn-tile" href="${esc(url)}"><span class="hv-ico" aria-hidden="true">${icon}</span>
+      <span class="hv-txt"><b>${esc(title)}</b>${stat ? `<small class="hn-stat">${esc(stat)}</small>` : ""}<small>${esc(desc)}</small>${pct != null ? `<span class="mprog"><i style="width:${pct}%"></i></span>` : ""}</span></a>`;
+  const safe = (fn, dflt = null) => { try { return fn(); } catch { return dflt; } };
+  const pid = state.propertyId, d = state.houseProfile ? houseDraft() : null;
+  // 资料完成度：有进度的分区（地址、保险、HOA、应急、材料…）的平均；没填过资料时 0%
+  const pcts = d ? PROFILE_SECTIONS.map((s) => sectionStatus(d, s.id).pct).filter((x) => x != null) : [];
+  const pct = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
+  const now = new Date(), tasks = safe(() => monthTasks(now.getFullYear(), now.getMonth() + 1).filter(Boolean), []), undone = tasks.filter((x) => !x.done).length;
+  const bills = state.billsEnriched.filter((b) => b.property_id === pid), billTodo = safe(() => billAlerts(bills).length, 0);
+  const assets = safe(() => myAssets(), []), due = safe(() => assetsDueCount({ property: pid }), 0);
+  const deal = safe(() => openDeal());
+  const dt = deal ? dealTasks(deal).filter((x) => !x.skipped) : [], dtDone = dt.filter((x) => x.done).length;
+  const month = now.toISOString().slice(0, 7);
+  return `<section class="section" aria-label="${esc(t("这套房产的各个页面"))}"><div class="hv-grid hn-grid">
+    ${tile(href("house", "profile"), "🏡", label("profile"), t("完成度 {p}%", { p: pct }), t(M.profile.desc), pct)}
+    ${tile(href("house", "tasks"), "📅", label("tasks"), state.houseProfile ? t("本月 {u} 项没做 / 共 {n} 项", { u: undone, n: tasks.length }) : t("先填写房屋资料"), t(M.tasks.desc))}
+    ${!M.bills.when || M.bills.when() ? tile(M.bills.href(), "🧾", t("账单"), t("{a} 项待处理 / 共 {n} 张", { a: billTodo, n: bills.length }), t(M.bills.desc)) : ""}
+    ${tile(href("house", "assets"), "⚙️", label("assets"), t("{a} 台待处理 / 共 {n} 台", { a: due, n: assets.length }), t(M.assets.desc))}
+    ${tile(href("house", "deal"), "📝", label("deal"), deal ? t("进行中 {a} / {b}", { a: dtDone, b: dt.length }) : t("没有进行中的交易"), t(M.deal.desc))}
+    ${financeOk() ? tile(`${href("bills", "spend")}?tab=records&prop=${encodeURIComponent(pid)}&month=${month}`, "💸", t("花费"), t("本月明细"), t("这套房产本月的花费记录")) : ""}
+  </div></section>`;
+}
+
 /** 房屋页签的第一层：房产列表（每套一行，带状态和待处理数），下面是家庭级的车辆和添加房产 */
 const KIND_ICON = { sfh: "🏡", townhome: "🏘️", condo: "🏢", apartment: "🔑", other: "🏠" };   // 房产类型图标：列表行和面包屑共用
 export function viewPropertyList() {
@@ -108,13 +134,14 @@ export function viewPropertyList() {
     return card(`href="${esc(href("asset", a.id))}"`, pt?.icon || "🚗", assetName(a), [[a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "), [v.plate, t(window.VEHICLES?.STATUS?.[vehStatus(a)]?.name || "")].filter(Boolean).join(" · ")]);
   };
   return `<section class="section menu-page house-landing">
-    <div class="section-head"><h2>🏠 ${t("房屋")}</h2><p>${t("点一套房产进入它的概览、设备保养、季节任务、交易和资料")}</p></div>
+    <div class="section-head"><h2>🏠 ${t("房屋")}</h2></div>
     ${houseBar()}
+    <section class="hv-sec" aria-label="${esc(t("房屋"))}"><div class="section-head"><h3>${t("房屋")}</h3><p>${t("点一套房产进入它的概览")}</p></div>
     <div class="hv-grid">${props.map(houseCard).join("")}${state.editProperty === "new" ? "" : addCard(`data-action="property-edit" data-id=""`, t("添加房产"), t("自住、出租或租住的房子都可以"))}</div>
-    ${ended.length ? `<details class="asset-ended"><summary>${t("已结束的房产")} <small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small></summary><div class="hv-grid">${ended.map(houseCard).join("")}</div></details>` : ""}
-    <div class="section-head hv-head"><h2>🚗 ${t("汽车")}</h2></div>
+    ${ended.length ? `<details class="asset-ended"><summary>${t("已结束的房产")} <small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small></summary><div class="hv-grid">${ended.map(houseCard).join("")}</div></details>` : ""}</section>
+    <section class="hv-sec" aria-label="${esc(t("汽车"))}"><div class="section-head"><h3>🚗 ${t("汽车")}</h3></div>
     <div class="hv-grid">${vehicles.map(vCard).join("")}${addCard(`href="${esc(href("asset", "new"))}?type=vehicle_gas"`, t("添加车辆"), t("油车、混动、纯电都可以"))}</div>
-    <a class="tmore asset-more" href="${esc(href("house", "vehicles"))}">${pastN ? t("车辆总览、保养时间表（另有 {n} 辆历史车辆）", { n: pastN }) : t("车辆总览、保养时间表、本地须知")} ›</a>
+    <a class="tmore asset-more" href="${esc(href("house", "vehicles"))}">${pastN ? t("车辆总览、保养时间表（另有 {n} 辆历史车辆）", { n: pastN }) : t("车辆总览、保养时间表、本地须知")} ›</a></section>
     ${houseTodoBoard()}
   </section>`;
 }

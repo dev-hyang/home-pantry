@@ -9,6 +9,7 @@ import { daysUntil, esc, fmtDate, inSpace, money, num } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { restockPanel, rsHint, shelfGrid } from "../pantry/views.js";
 import { alertAct, alertBadge, alertText, assetAlerts, assetAsk, assetMenu, assetName, myAssets } from "./assets.js";
+import { houseNavTiles } from "../menu.js";
 import { dotRow } from "../core/alerts.js";
 import { monthName, monthTasks, taskRow } from "./tasks.js";
 import { houseBar } from "./property-form.js";
@@ -482,6 +483,7 @@ export function viewHouse() {
         <details class="facts-more"><summary>${t("材料与设施")}<small>${facts.count ? t("{n} 项", { n: facts.count }) : t("未填")}</small></summary><dl class="fact-grid one">${factRows(facts.more)}</dl></details>
       </div>
     </section>
+    ${houseNavTiles()}
     ${emBlock}
 
     ${dealPanel()}

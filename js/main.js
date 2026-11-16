@@ -1145,9 +1145,9 @@ main.addEventListener("click", async (e) => {
         state.propertyId = id; try { localStorage.setItem("hmh-property", id); } catch { /* 忽略 */ }
         state.houseDraft = null; return refresh();
       }
-      case "house-open": {   // 房产列表 → 这套房产的页面目录
+      case "house-open": {   // 房产列表 → 这套房产的概览
         if (id !== state.propertyId) { state.propertyId = id; try { localStorage.setItem("hmh-property", id); } catch { /* 忽略 */ } state.houseDraft = null; }
-        go(href("house", "pages")); return refresh();
+        go(href("house", "overview")); return refresh();
       }
       case "property-edit": state.editProperty = id || "new"; return render();
       case "property-cancel": state.editProperty = null; return render();

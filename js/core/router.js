@@ -33,6 +33,7 @@ export function parseRoute(hash = location.hash) {
   const query = new URLSearchParams(qs || "");
   if (parts[0] === "bills" && parts[1] === "spend" && query.get("tab") === "import") { parts[1] = "statements"; query.delete("tab"); }   // 银行导入搬到 财务 → 对账单（花费和收入共用）
   if (parts[0] === "bills" && parts[1] === "income" && query.get("tab") === "report") query.set("tab", "compare");   // 收入「报表」改名「收支对比」
+  if (parts[0] === "house" && parts[1] === "pages") parts[1] = "overview";   // 2026-11-16：取消「页面目录」这一层，点房产直接进概览；旧链接照样能用（?prop= 照旧）
   if (parts[0] === "me" && parts[1] === "settings" && query.get("sec") === "income") { parts.splice(0, 2, "bills", "income"); query.delete("sec"); query.set("tab", "plan"); }   // 收入与预算已并入 财务 → 收入 → 预算与计划
   // 账单页重新分层（周期性 / 一次性）：旧链接和已保存的快捷操作仍然有效——清单、记录进周期性账单的标签，医疗与事件改名一次性账单
   if (parts[0] === "bills") {

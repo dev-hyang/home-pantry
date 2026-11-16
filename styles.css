@@ -3649,3 +3649,11 @@ span.rem-tag { cursor: default; }
 .ask-btn { font-size: 15px; line-height: 1; }
 .ask-btn::before, .act-more > summary:has(> .dots3)::before { content: ""; position: absolute; inset: -6px; }
 .act-more > summary:has(> .dots3):hover, .act-more[open] > summary:has(> .dots3) { border-color: var(--pine); color: var(--pine); }
+
+/* 房屋首页：房屋 / 汽车各放进一个带边框的分区容器，一眼分开 */
+.house-landing > .hv-sec { box-sizing: border-box; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px 16px 4px; margin: 0 0 16px; }
+.house-landing > .hv-sec > .section-head { margin: 0 0 10px; }
+.house-landing > .hv-sec .hv-card { background: var(--bg); }
+.house-landing > .hv-sec .hv-add { background: transparent; }
+.hn-tile .hv-txt small.hn-stat { color: var(--ink); font-weight: 600; }
+.hn-tile .mprog { margin-top: 4px; max-width: none; }
