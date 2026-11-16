@@ -1192,7 +1192,7 @@ main.addEventListener("click", async (e) => {
         const p = state.properties.find((x) => x.id === id);
         if (!p) return;
         if (!p.archived && !armed(el, t("再点一次确认归档"))) return;
-        await Store.saveProperty({ ...p, archived: !p.archived }); toast(p.archived ? t("已恢复房产") : t("已归档，账单和房屋资料都保留")); return refresh();
+        await Store.saveProperty({ ...p, archived: !p.archived }); toast(p.archived ? t("已恢复房产") : t("已归档，账单和房屋资料都保留；可在房屋首页「已归档的房产」恢复")); await refresh(); if (!p.archived && state.route?.section === "house") go(href("house")); return;
       }
       case "bills-enable":
         state.billsEnabled = true; try { localStorage.setItem("hmh-bills-off", "0"); } catch { /* 忽略 */ }

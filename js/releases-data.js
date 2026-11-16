@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.25", title: { zh: "房产只归档不删除；房屋首页可看已归档的房产", en: "Properties are archived, not deleted; see them on Home" }, items: [
+    { k: "better", zh: "去掉设置里的「彻底删除」房产，避免账单、设备等数据失去对应房产；不再持有或租住的房产一律归档，数据都保留", en: "The permanent-delete option for properties is gone from Settings, so bills and equipment never lose their property; archive instead and everything is kept" },
+    { k: "new", zh: "房屋首页多一个折叠块「已归档的房产」，点开能看到并一键恢复；房屋概览右上角也有「归档」", en: "Home has a fold, Archived properties, to view and restore them; the overview header also has Archive" }
+  ] },
+
   { v: "2026-11-16.24", title: { zh: "消耗品页不再跳走，推荐功能随时都在", en: "Supplies page stays put; suggestions always available" }, items: [
     { k: "better", zh: "汽车房屋消耗品页：「手动添加」「按房屋设备资料推荐」随时都在，下面是缺货 / 少货和分类方块，「看全部」进库存；有物品后不再自动跳走", en: "The supplies page keeps Add manually and Suggest from profile in view, with low-stock items and category tiles below; See all opens Inventory; it no longer jumps away" }
   ] },

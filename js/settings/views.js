@@ -53,7 +53,6 @@ function propertiesPanel() {
         <button type="button" class="btn btn-sm btn-ghost" data-action="property-edit" data-id="${p.id}">${t("编辑")}</button>
         ${!p.is_default && !p.archived ? `<button type="button" class="btn btn-sm btn-ghost" data-action="property-default" data-id="${p.id}">${t("设为默认")}</button>` : ""}
         ${!p.is_default ? `<button type="button" class="btn btn-sm ${p.archived ? "" : "btn-danger-ghost"}" data-action="property-archive" data-id="${p.id}">${p.archived ? t("恢复") : t("归档")}</button>` : ""}
-        ${p.archived ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="property-delete" data-id="${p.id}">${t("彻底删除")}</button>` : ""}
       </span></li>`).join("");
   return `<div class="panel">
     <div class="kv"><div><b>${t("房产")}</b><div class="muted">${t("房屋资料、设备、季节任务和账单都按房产区分；房东可以加出租房")}</div></div>

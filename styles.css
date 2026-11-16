@@ -3657,3 +3657,9 @@ span.rem-tag { cursor: default; }
 .house-landing > .hv-sec .hv-add { background: transparent; }
 .hn-tile .hv-txt small.hn-stat { color: var(--ink); font-weight: 600; }
 .hn-tile .mprog { margin-top: 4px; max-width: none; }
+
+/* 已归档的房产卡：不进概览，只显示名称 + 恢复 */
+.hv-card.hv-arch { cursor: default; opacity: .85; }
+.hv-card.hv-arch .hv-txt { flex: 1; min-width: 0; }
+.hv-card.hv-arch .btn { flex: none; min-height: 44px; }
+.house-head .head-acts { display: flex; gap: 6px; flex: none; }
