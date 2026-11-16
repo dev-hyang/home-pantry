@@ -19,7 +19,7 @@ export const state = {
   assetFilter: { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" },   // 设备保养页的搜索与筛选
   billsFilter: { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" },
   payFilter: { bill: "all", year: "all", status: "all", sort: "new" },   // 缴费记录的筛选与排序（服务器分页，读到的页在 bills/views.js 的 payList）
-  shopFilter: { st: "open", cat: "all", q: "", sort: "new" },                             // 采购清单的筛选与排序
+  shopFilter: { st: "open", cat: "all", q: "", sort: "new" },                             // 购物车的筛选与排序
   dealFilter: "all", dealStage: "all", dealActFilter: "all",   // 时间线：完成情况 / 阶段（计划、对比）；实际：进展记录 / 勾选完成
   dealSort: (() => { try { return localStorage.getItem("hmh-deal-sort") === "asc" ? "asc" : "desc"; } catch { return "desc"; } })(),   // 时间线排序：desc 由近及远（默认）/ asc 由远及近                                                               // 交易清单：全部 / 未完成 / 逾期 / 必须
   tasksOnlyUndone: false,                                                          // 季节任务：只看未完成
@@ -40,7 +40,7 @@ export const state = {
   incomes: [],                                 // 成员收入：家主是全家，其他人只有自己的一行
   incomePrompt: false,                         // 刚改了收入：问家主要不要重新生成预算
   budget: null,                                // 预算设置：{ income_amount, income_period, savings_pct, cat_budgets }
-  shopAdvice: null,                            // 采购清单：刚加入的带预估金额的项目的预算提示
+  shopAdvice: null,                            // 购物车：刚加入的带预估金额的项目的预算提示
   spendEdit: null,                             // 花费记录：正在就地编辑的那一笔 id
   spendSel: null,                              // 花费记录：多选删除模式下选中的 id 集合（null = 不在多选）
   spendFilter: { q: "", cat: "all", nat: "all", prop: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null, sort: "new" },   // 花费记录的搜索、筛选、排序（服务器分页，读到的页在 stats/views.js 的 spendList）

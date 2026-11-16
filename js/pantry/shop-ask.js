@@ -1,4 +1,4 @@
-/* 加入采购清单前确认数量和单位（2026-11-14）：所有「加入采购清单」都走这里——单件（行上的按钮、右滑）和多件（全部加入、多选）同一个框。
+/* 加入购物车前确认数量和单位（2026-11-14）：所有「加入购物车」都走这里——单件（行上的按钮、右滑）和多件（全部加入、多选）同一个框。
  * 不是浏览器的 alert / prompt（那些可能被拦截），是页面里自己画的 <dialog>：电脑上居中，手机上贴底部；
  * 每件一行：勾选、名称、数量、单位（下拉，可「其他…」手填）；件数多时框内滚动。Esc / 点外面 / 取消都是不加。 */
 import { esc, fmt } from "../core/util.js";
@@ -19,7 +19,7 @@ export function askShopItems(list) {
       ${unitSelect(`data-i="${i}" aria-label="${esc(t("{name} 单位", { name: it.name }))}"`, it.du || it.unit || "个", { cls: "ask-unit" })}
     </li>`;
     dlg.innerHTML = `<form class="ask-form" novalidate>
-      <h3 id="askShopTitle">🛒 ${esc(many ? t("加入采购清单（{n} 项）", { n: list.length }) : t("加入采购清单"))}</h3>
+      <h3 id="askShopTitle">🛒 ${esc(many ? t("加入购物车（{n} 项）", { n: list.length }) : t("加入购物车"))}</h3>
       <p class="muted ask-tip">${esc(many ? t("确认要买多少；不要的取消勾选") : t("确认要买多少"))}</p>
       <ul class="ask-list">${list.map(row).join("")}</ul>
       <p class="form-error ask-err" role="alert"></p>

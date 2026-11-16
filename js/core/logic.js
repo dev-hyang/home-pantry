@@ -66,10 +66,10 @@ export function pantryAlertItems() {
       items.push({ source: sp, severity: it.status === "out" ? 2 : 3, must: false, due: null, daysLeft: it.daysLeft == null ? null : Math.floor(it.daysLeft),
         title: it.name, detail: `${t("剩 {q} {u}", { q: Math.round(it.dqty * 100) / 100, u: t(it.du) })}${it.daysLeft != null && it.qty > 0 ? t("，约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) }) : ""}`,
         href: null, badge: { label: t(STATUS[it.status].label), cls: STATUS[it.status].cls },
-        // 已在采购清单里：按钮换成「已加入采购」标签（点开清单）；从清单删掉后自动变回「加入采购」
+        // 已在购物车里：按钮换成「已加入采购」标签（点开清单）；从清单删掉后自动变回「加入采购」
         actions: [{ type: "button", action: "edit", id: it.id, label: t("编辑"), cls: "btn-ghost" },
           { type: "button", action: "mute-item", id: it.id, label: t("不再提醒"), cls: "btn-ghost" },
-          openShopFor(it.id) ? { type: "tag", href: "#/shopping", label: t("已加入采购"), cls: "b-ok" } : { type: "button", action: "shop-add-item", id: it.id, label: t("加入采购") }] });
+          openShopFor(it.id) ? { type: "tag", href: "#/shopping", label: t("已加入"), cls: "b-ok" } : { type: "button", action: "shop-add-item", id: it.id, label: t("加入购物车") }] });
     }
   }
   for (const it of state.enriched.filter((x) => x.exp && x.qty > 0 && spaceOf(x.category) === "pantry").sort((a, b) => a.expDays - b.expDays)) {

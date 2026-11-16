@@ -94,7 +94,7 @@ function catCheckSection() {
     </section>`;
 }
 
-/** 储藏的页面导航（2026-11-14 重构）：每个储藏页面顶上都有这一块——一排小卡片（概览 / 库存 / 菜单；采购清单在底部导航，家居耐用品并进了库存），
+/** 储藏的页面导航（2026-11-14 重构）：每个储藏页面顶上都有这一块——一排小卡片（概览 / 库存 / 菜单；购物车在底部导航，家居耐用品并进了库存），
  *  当前页背景高亮；库存卡带要补货的件数。宽屏一行排开，手机两到三列网格（不横滑，点按区域 ≥ 44px） */
 export function pantryNav(cur) {
   const need = (state.enriched || []).filter((x) => !isGear(x) && x.status !== "ok").length;
@@ -130,10 +130,10 @@ function spaceCard(space, icon, title, list, shelf, empty) {
 }
 /** 过期扔掉：把剩下的都记成 discard（迁移 065），「家里的数字 → 浪费」统计它；不算进日均用量 */
 const discardBtn = (it) => `<button type="button" class="btn btn-sm btn-ghost discard-btn" data-action="discard" data-id="${it.id}" aria-label="${esc(t("{name} 过期了，扔掉剩下的", { name: it.name }))}">🗑 ${t("扔掉")}</button>`;
-/** 购物篮：去采购清单，带待买 + 家人正在买的数 */
+/** 购物篮：去购物车，带待买 + 家人正在买的数 */
 function cartBtn() {
   const n = state.shopping.filter((s) => s.status !== "bought").length;
-  return `<a class="btn btn-sm cart-btn" href="${href("shopping")}" aria-label="${esc(t("采购清单，{n} 项", { n }))}"><span aria-hidden="true">🛒</span> ${t("购物车")}${n ? ` <b class="num">${n}</b>` : ""}</a>`;
+  return `<a class="btn btn-sm cart-btn" href="${href("shopping")}" aria-label="${esc(t("购物车，{n} 项", { n }))}"><span aria-hidden="true">🛒</span> ${t("购物车")}${n ? ` <b class="num">${n}</b>` : ""}</a>`;
 }
 export function viewDashboard() {
   const withHouse = state.houseEnabled;   // 汽车房屋消耗品也算储藏：缺货、少货、补货提醒一起看
@@ -328,7 +328,7 @@ export function catFormHtml(cf) {
 }
 
 /* ── 库存 · 物品视图（2026-11-14，默认）：日常消耗品、汽车房屋消耗品两个大容器，里面每件物品一行，不按分类分组。
- *   点这一行进编辑；行里能直接改数量 / 单位、点 🔔 设成不提醒；手机上左滑删除、右滑加入采购清单。
+ *   点这一行进编辑；行里能直接改数量 / 单位、点 🔔 设成不提醒；手机上左滑删除、右滑加入购物车。
  *   右上「物品 / 分类」切换到原来的分类视图；选择记在本机。 ── */
 const VIEW_KEY = "hmh-inv-view";
 export function invView() { try { return localStorage.getItem(VIEW_KEY) === "cats" ? "cats" : "rows"; } catch { return "rows"; } }
@@ -364,7 +364,7 @@ function viewInvRows(space) {
       ${state.invSel ? selBar() : fab(addSpace(), t("添加物品"))}
     </section>`;
 }
-/** 多选时底部的操作条：已选几项、全选、加入采购清单、不提醒、删除 */
+/** 多选时底部的操作条：已选几项、全选、加入购物车、不提醒、删除 */
 export function selBarText() { const n = state.invSel?.size || 0; return n ? t("已选 {n} 项", { n }) : t("点行来选"); }
 function selBar() {
   const off = state.invSel.size ? "" : "disabled";
@@ -372,7 +372,7 @@ function selBar() {
     <span class="inv-seln" aria-live="polite">${esc(selBarText())}</span>
     <button type="button" class="btn btn-sm btn-ghost" data-action="inv-sel-all">${t("全选")}</button>
     <span class="spacer"></span>
-    <button type="button" class="btn btn-sm" data-action="inv-sel-shop" ${off}>🛒 ${t("加入采购")}</button>
+    <button type="button" class="btn btn-sm" data-action="inv-sel-shop" ${off}>🛒 ${t("加入购物车")}</button>
     <button type="button" class="btn btn-sm" data-action="inv-sel-mute" ${off}>🔕 ${t("不提醒")}</button>
     <button type="button" class="btn btn-sm btn-danger-ghost" data-action="inv-sel-del" ${off}>🗑 ${t("删除")}</button>
   </div>`;
@@ -381,8 +381,8 @@ function selBar() {
 const invSpaces = () => ["pantry", ...(state.houseEnabled ? ["house"] : []), ...(state.gearEnabled ? ["gear"] : [])];
 /** 物品视图的筛选：分类（从概览货架点进来）+ 搜索 / 状态 / 位置；小类不用 */
 const rowMatch = (it) => matchItem(it, { ...state.filter, sub: "all" });
-/** 某个容器里，按当前筛选要补货、还不在采购清单里的物品（「全部加入采购清单」用） */
-/** 分类视图：某个大类里，按当前筛选要补货、还不在采购清单里的物品 */
+/** 某个容器里，按当前筛选要补货、还不在购物车里的物品（「全部加入购物车」用） */
+/** 分类视图：某个大类里，按当前筛选要补货、还不在购物车里的物品 */
 export function catNeed(cat) { return state.enriched.filter((x) => x.category === cat && matchItem(x, { ...state.filter, cat, sub: "all" }) && x.status !== "ok" && !openShopFor(x.id)).sort(invSorter("default")); }
 export function secNeed(space) { return state.enriched.filter((x) => inSpace(space)(x) && rowMatch(x) && x.status !== "ok" && !openShopFor(x.id)).sort(invSorter("default")); }
 /** 当前筛选下看得见的物品（全选用） */
@@ -404,7 +404,7 @@ function renderInvRows(host) {
         : `<strong>${t("库存还是空的")}</strong>${t("从最常用的几样开始，例如鸡蛋、大米、抽纸。")}`}</div>`;
     return `<details class="pv-card inv-sec" data-fold="${space}" id="invSec-${space}" ${fold[space] !== 0 ? "open" : ""}>
       <summary><span class="pv-ico" aria-hidden="true">${icon}</span><span class="pv-ttl"><b>${esc(title)}</b><small>${list.length === mine.length ? t("{n} 件", { n: mine.length }) : t("{a} / {b} 件符合", { a: list.length, b: mine.length })}</small></span><span class="pv-chev" aria-hidden="true">▾</span></summary>
-      <div class="pv-body">${need.length && !state.invSel ? `<div class="inv-sec-bar"><span class="muted">${t("{n} 件要补货", { n: need.length })}</span><button type="button" class="btn btn-sm" data-action="inv-sec-shop" data-space="${space}">🛒 ${t("全部加入采购清单")}</button></div>` : ""}${body}</div></details>`;
+      <div class="pv-body">${need.length && !state.invSel ? `<div class="inv-sec-bar"><span class="muted">${t("{n} 件要补货", { n: need.length })}</span><button type="button" class="btn btn-sm" data-action="inv-sec-shop" data-space="${space}">🛒 ${t("全部加入购物车")}</button></div>` : ""}${body}</div></details>`;
   };
   const SEC = { pantry: ["🥫", t("日常消耗品")], house: ["🧰", t("汽车房屋消耗品")], gear: ["🛋️", t("家居耐用品")] };
   host.innerHTML = `<div class="pv-cards">${invSpaces().map((s) => sec(s, ...SEC[s])).join("")}</div>`;
@@ -416,7 +416,7 @@ export function itemRow(it) {
     it.daysLeft != null && it.qty > 0 && `${t("约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) })}`, inList && `🛒 ${t("已在清单")}`].filter(Boolean).join(" · ");
   const badges = `${it.status !== "ok" ? `<span class="badge ${st.cls}">${t(st.label)}</span>` : ""}${m ? `<span class="badge b-muted">🔕 ${t("不提醒")}</span>` : ""}${it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? t("已过期") : t("{d} 天内到期", { d: it.expDays })}</span>` : ""}`;
   const step = Units.step(it.du), nm = esc(it.name), sel = state.invSel, on = sel?.has(it.id);
-  const rowAttrs = sel ? `data-row-sel="${it.id}"` : `data-row-open="${esc(href("item", it.id))}" data-swipe-del="item" data-swipe-alt="item" data-swipe-alt-label="${esc(t("加入采购"))}" data-swipe-alt-go="${esc(t("松手加入采购"))}"`;
+  const rowAttrs = sel ? `data-row-sel="${it.id}"` : `data-row-open="${esc(href("item", it.id))}" data-swipe-del="item" data-swipe-alt="item" data-swipe-alt-label="${esc(t("加入购物车"))}" data-swipe-alt-go="${esc(t("松手加入"))}"`;
   return `<li class="inv-row st-${it.status}${on ? " is-picked" : ""}" data-id="${it.id}" ${rowAttrs}>
     <span class="inv-bar" aria-hidden="true"></span>
     ${sel ? `<input type="checkbox" class="inv-chk" data-sel-id="${it.id}" ${on ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: it.name }))}">` : ""}
@@ -429,7 +429,7 @@ export function itemRow(it) {
       <button type="button" data-action="restock" data-id="${it.id}" aria-label="${esc(t("{name} 补充 {q} {u}", { name: it.name, q: step, u: t(it.du) }))}">+</button>
     </div>
     <button type="button" class="swipe-src" data-action="inv-del" data-id="${it.id}">${t("删除 {name}", { name: it.name })}</button>
-    <button type="button" class="swipe-alt-src" data-action="inv-shop" data-id="${it.id}">${t("{name} 加入采购清单", { name: it.name })}</button>
+    <button type="button" class="swipe-alt-src" data-action="inv-shop" data-id="${it.id}">${t("{name} 加入购物车", { name: it.name })}</button>
   </li>`;
 }
 
@@ -531,7 +531,7 @@ export function renderInvList() {
     const head = withHead && g.id !== lastG ? `<h2 class="inv-grp-h">${esc(grpName(g))}</h2>` : ""; lastG = g.id;
     const need = f.space === "gear" ? 0 : inCat.filter((x) => x.status !== "ok" && !openShopFor(x.id)).length;   // 这个大类里要补货、还不在清单里的
     return `${head}<div class="cat-group" style="--cat:${c.color}"><div class="cat-group-h"><h3><span class="dot" aria-hidden="true"></span>${c.icon} ${t(c.name)}<span class="muted">（${inCat.length}）</span></h3>
-      ${need ? `<button type="button" class="btn btn-sm cat-shop" data-action="inv-cat-shop" data-cat="${c.id}" aria-label="${esc(t("{c}：{n} 件要补货，全部加入采购清单", { c: t(c.name), n: need }))}">🛒 ${t("全部加入采购清单")} <b class="num">${need}</b></button>` : ""}</div>
+      ${need ? `<button type="button" class="btn btn-sm cat-shop" data-action="inv-cat-shop" data-cat="${c.id}" aria-label="${esc(t("{c}：{n} 件要补货，全部加入购物车", { c: t(c.name), n: need }))}">🛒 ${t("全部加入购物车")} <b class="num">${need}</b></button>` : ""}</div>
       <div class="items">${part.map(itemCard).join("")}</div></div>`;
   }).join("") + pageMoreBtn("inv", orderedCats(f.space).reduce((n, c) => n + (byCat.get(c.id)?.length || 0), 0), lim);
 }
@@ -586,7 +586,7 @@ export function itemCard(it) {
   </article>`;
 }
 
-/* ── 采购清单 ── */
+/* ── 购物车 ── */
 /** 待买 / 认领中的数量可改：−/+ 按单位步进（kg 0.5、lb 1、个 1…），也能直接在框里输数；按显示单位算，存回时换回原单位 */
 /** 采购条目的单位：自己改过的优先，没有就跟库存里这件东西的单位 */
 export const shopUnit = (s) => s.unit || state.items.find((i) => i.id === s.item_id)?.unit || "";
@@ -627,7 +627,7 @@ function shopToolbar() {
   const cats = [...new Set(state.shopping.map(shopCat))];
   const n = (st) => state.shopping.filter(inState(st)).length;
   return `<div class="toolbar shop-toolbar">
-    <label class="shop-q"><span class="sr-only">${t("搜索采购清单")}</span><input type="search" id="shopQ" value="${esc(f.q || "")}" placeholder="${esc(t("搜索要买的东西"))}" autocomplete="off"></label>
+    <label class="shop-q"><span class="sr-only">${t("搜索购物车")}</span><input type="search" id="shopQ" value="${esc(f.q || "")}" placeholder="${esc(t("搜索要买的东西"))}" autocomplete="off"></label>
     <select id="shopSt" aria-label="${t("按状态筛选")}">${SHOP_STATES.map(([v, l]) => opt(v, `${t(l)}${lang === "en" ? ` (${n(v)})` : `（${n(v)}）`}`, f.st)).join("")}</select>
     <select id="shopCat" data-search aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c, `${(window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).icon || ""} ${t((window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).name)}`.trim(), f.cat)).join("")}</select>
     <select id="shopSort" aria-label="${t("排序")}">${SHOP_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>${clearFiltersBtn("shop", changed(f, FD.shop))}</div>`;
@@ -635,13 +635,15 @@ function shopToolbar() {
 /** 清单本身（搜索框输入时只重画这一块，光标不跳） */
 function shopListBody() {
   const f = state.shopFilter, rows = shopRows(), key = `shop:${f.st}`, lim = pageLimit(key, JSON.stringify(f));
-  const empty = f.q ? t("没找到「{q}」。", { q: f.q }) : { open: t("没有待买的东西。"), todo: t("都有人认领了。"), claimed: t("点“我来买”认领，家人就不会重复买。"), mine: t("你还没有认领要买的东西。"), bought: t("买到后自动加回库存。"), all: t("采购清单是空的。") }[f.st] || "";
+  const empty = f.q ? t("没找到「{q}」。", { q: f.q }) : { open: t("没有待买的东西。"), todo: t("都有人认领了。"), claimed: t("点“我来买”认领，家人就不会重复买。"), mine: t("你还没有认领要买的东西。"), bought: t("买到后自动加回库存。"), all: t("购物车是空的。") }[f.st] || "";
   const bought = f.st === "bought" || f.st === "all" ? state.shopping.some((s) => s.status === "bought") : false;
-  return `<div class="shop-list-meta"><span class="muted">${t("{n} 项", { n: rows.length })}</span>${bought ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shop-clear">${t("清空已买到")}</button>` : ""}</div>
+  return `<div class="shop-list-meta" data-n="${rows.length}">${bought ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shop-clear">${t("清空已买到")}</button>` : ""}</div>
     ${rows.length ? `<ul class="shop-list">${rows.slice(0, lim).map(shopRowHtml).join("")}</ul>${pageMoreBtn(key, rows.length, lim)}` : `<p class="muted shops-empty">${esc(empty)}</p>`}`;
 }
-export function renderShopList() { const box = $("#shopListBox"); if (box) box.innerHTML = shopListBody(); }
-/* 从别的应用带来的采购项（2026-11，牧羊人的饮食模版「加进爱家采购清单」）：#/shopping?add=燕麦|糙米|…&from=DASH 低钠
+export function renderShopList() { const box = $("#shopListBox"); if (box) box.innerHTML = shopListBody(); shopCount(); }
+/** 购物车标题旁的「n 项」：跟着筛选 / 搜索变 */
+function shopCount() { const n = $("#shopListBox .shop-list-meta")?.dataset.n, el = $("#shopN"); if (el && n != null) el.textContent = t("{n} 项", { n }); }
+/* 从别的应用带来的采购项（2026-11，牧羊人的饮食模版「加进爱家购物车」）：#/shopping?add=燕麦|糙米|…&from=DASH 低钠
  * 牧羊人是另一个 Supabase 项目，只能把名字放在网址里带过来；这里列出来勾选确认后才加，已在清单里（待买 / 在买）的默认不勾 */
 export const importNames = () => { const raw = state.route?.q?.get("add"); return raw ? [...new Set(raw.split("|").map((s) => s.trim().slice(0, 60)).filter(Boolean))].slice(0, 40) : []; };
 function shopImportHtml() {
@@ -649,9 +651,9 @@ function shopImportHtml() {
   const open = new Set(state.shopping.filter((s) => s.status !== "bought").map((s) => String(s.name).trim().toLowerCase()));
   const from = state.route.q.get("from") || "";
   return `<div class="panel shop-import" id="shopImport" role="region" aria-label="${esc(t("从别的应用带来的采购项"))}">
-    <b>🐑 ${from ? t("来自牧羊人 · {n}", { n: from }) : t("来自牧羊人")}</b><p class="muted" style="margin:4px 0 8px;font-size:13px">${t("勾选要买的，再点「加进采购清单」。已经在清单里的默认不勾。")}</p>
+    <b>🐑 ${from ? t("来自牧羊人 · {n}", { n: from }) : t("来自牧羊人")}</b><p class="muted" style="margin:4px 0 8px;font-size:13px">${t("勾选要买的，再点「加进购物车」。已经在清单里的默认不勾。")}</p>
     <div class="shop-import-list">${names.map((n) => { const dup = open.has(n.toLowerCase()); return `<label class="check-inline"><input type="checkbox" value="${esc(n)}" ${dup ? "" : "checked"}><span>${esc(n)}${dup ? ` <small class="muted">${t("已在清单里")}</small>` : ""}</span></label>`; }).join("")}</div>
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-primary btn-sm" data-action="shop-import">${t("加进采购清单")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="shop-import-cancel">${t("不用了")}</button></div></div>`;
+    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-primary btn-sm" data-action="shop-import">${t("加进购物车")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="shop-import-cancel">${t("不用了")}</button></div></div>`;
 }
 
 /** 清单页的一行：数量可改、在哪买 / 花费 / 用卡、认领和买到 */
@@ -714,7 +716,7 @@ function viewShopHome() {
     <div class="section-head"><h2>${t("采购")}</h2></div>
     ${shopImportHtml()}
     <div class="sd-acts" role="group" aria-label="${esc(t("录入"))}">
-      <div class="sd-grp"><span class="sd-grp-t">${t("加入采购清单")}</span>
+      <div class="sd-grp"><span class="sd-grp-t">${t("加入购物车")}</span>
         <a class="btn btn-primary" href="${href("shopping", "add")}">＋ ${t("手动添加")}</a>
         <a class="btn btn-primary" href="${href("shopping", "add", "?mode=photo")}">📷 ${t("拍照添加")}</a>
         <button type="button" class="btn" data-action="shop-add-alerts">🔔 ${t("补货提醒")}</button></div>
@@ -737,8 +739,8 @@ function viewShopList() {
   const st = state.route?.q?.get("st");
   if (st && SHOP_STATES.some(([k]) => k === st)) { state.shopFilter.st = st; state.route.q.delete("st"); history.replaceState(null, "", href("shopping", "list")); }
   return `<section class="section shop-list-page">
-    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("采购清单"), icon: "🛒" }])}
-    <div class="section-head"><h2>${t("采购清单")}</h2>
+    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("购物车"), icon: "🛒" }])}
+    <div class="section-head"><h2>${t("购物车")} <span class="muted shop-n" id="shopN">${t("{n} 项", { n: shopRows().length })}</span></h2>
       <div class="head-acts"><a class="btn btn-sm btn-primary" href="${href("shopping", "add")}">＋ ${t("添加")}</a><a class="btn btn-sm" href="${href("shopping", "add", "?mode=photo")}">📷 ${t("拍照添加")}</a></div></div>
     ${shopToolbar()}
     ${storeDatalist()}
@@ -766,9 +768,9 @@ function viewShopAdd() {
     ${photo ? shopScanHtml() : form}
     <datalist id="itemNames">${state.items.map((i) => `<option value="${esc(i.name)}">`).join("")}</datalist>
     ${shopAdviceHtml()}
-    ${recent.length ? `<div class="panel sd-preview"><div class="section-head"><h3>${t("最近加入")}</h3><a class="btn btn-sm btn-ghost" href="${listHref("open")}">${t("采购清单")} ›</a></div>
+    ${recent.length ? `<div class="panel sd-preview"><div class="section-head"><h3>${t("最近加入")}</h3><a class="btn btn-sm btn-ghost" href="${listHref("open")}">${t("购物车")} ›</a></div>
       <ul>${recent.map((s) => `<li class="sp-row"><span class="sp-txt"><b>${esc(s.name)}</b> <small class="muted">${showQty(num(s.quantity, 1), shopUnit(s))}${s.created_at ? ` · ${t("{d} 加入", { d: fmtShort(s.created_at) })}` : ""}</small></span></li>`).join("")}</ul></div>` : ""}
-    <a class="panel shops-entry" href="${href("pantry", "scan")}"><span aria-hidden="true">🧾</span><span><b>${t("买回来了？拍小票或贴网购订单")}</b><small>${t("这是录入库存、记花费，不是加采购清单")}</small></span><span class="mch" aria-hidden="true">›</span></a>
+    <a class="panel shops-entry" href="${href("pantry", "scan")}"><span aria-hidden="true">🧾</span><span><b>${t("买回来了？拍小票或贴网购订单")}</b><small>${t("这是录入库存、记花费，不是加购物车")}</small></span><span class="mch" aria-hidden="true">›</span></a>
   </section>`;
 }
 /** 采购：#/shopping（看板）、#/shopping/list、#/shopping/add；储藏 → 采购（#/pantry/shopping）也是看板 */

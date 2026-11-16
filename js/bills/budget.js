@@ -88,7 +88,7 @@ export function applianceFund() {
 
 /** 物品 / 分类最近几次的买价（数据库 item_purchase_stats，迁移 057）：key = 物品 + 分类 + 币种 */
 const PRICES = cached((cur, items, cats) => Store.itemPurchaseStats(cur, items, cats), { max: 8, fallback: [] });
-/** 补货预估：库存告急的东西 + 采购清单里没买的，按以前买它的花费（最近 3 次的中位数，没有就按同分类最近 10 次）估价（联动 储藏 / 采购）。
+/** 补货预估：库存告急的东西 + 购物车里没买的，按以前买它的花费（最近 3 次的中位数，没有就按同分类最近 10 次）估价（联动 储藏 / 采购）。
  *  买价只查要估的这些物品和分类；还没读回来时 loading = true */
 export function restockForecast() {
   const median = (a) => { const x = [...a].sort((p, q) => p - q); return x.length ? (x.length % 2 ? x[(x.length - 1) / 2] : (x[x.length / 2 - 1] + x[x.length / 2]) / 2) : null; };
@@ -199,7 +199,7 @@ export function incomeBanner() {
 
 /** 预算方案：读家主生成的快照（各类建议金额）+ 用户改过的金额；收入和储蓄只有家主算得出来 */
 export function budgetPlan() {
-  if (!financeOk()) return null;   // 没有财务权限：预算整块看不到（打印、采购清单的预算提示、超预算提醒都跟着消失）
+  if (!financeOk()) return null;   // 没有财务权限：预算整块看不到（打印、购物车的预算提示、超预算提醒都跟着消失）
   const b = state.budget, snap = b?.cat_budgets?._plan;
   if (!snap?.groups) return null;
   const owner = isHouseholdOwner(), income = owner && totalIncomeMonthly() > 0 ? totalIncomeMonthly() : null;
@@ -315,10 +315,10 @@ export function shopAdviceHtml() {
     ${adviceHtml(r)}<a class="btn btn-sm btn-ghost" href="${href("bills", "budget")}">${t("打开预算规划")}</a></div>`;
 }
 export const groupForCategory = (category) => (category ? groupOf(category) : "grocery");   // 没选分类的购物项，多半是吃的
-/** 采购清单 / 告急库存主要落在这两组（买菜 + 日用个护）：预算提示按两组合计 */
+/** 购物车 / 告急库存主要落在这两组（买菜 + 日用个护）：预算提示按两组合计 */
 export const STOCK_GROUPS = ["grocery", "essentials"];
 
-/** 采购清单页顶部：清单 + 告急库存预估要花多少，对比本月预算 */
+/** 购物车页顶部：清单 + 告急库存预估要花多少，对比本月预算 */
 export function shopForecastHtml() {
   const plan = budgetPlan(); if (!plan) return "";
   const fc = restockForecast(), mp = monthProgress(plan), gs = mp.rows.filter((r) => STOCK_GROUPS.includes(r.id));

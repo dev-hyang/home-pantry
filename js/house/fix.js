@@ -2,7 +2,7 @@
  * 三层，越往下越“重”：
  *   ① 常见小毛病：data/care.js QUICK_FIXES 按设备类型写死（离线、零成本）——症状 → 多半是什么 → 自己怎么修 → 要买什么 → 什么情况叫人
  *   ② 问咩咩：描述毛病（文字 + 最多 3 张照片）+ 这台设备的情况 → 结构化 JSON：结论 / 可能原因 / 方案（步骤、工具、配件）/ 什么时候叫人 / 修还是换
- *   ③ 配件：先查家里有没有（库存按名字匹配）→ 没有就一键加采购清单（分类 维修耗材，带估价）→ 常用五金店 / 网店的搜索链接；结论可记成一条「检查：需维修」进待处理
+ *   ③ 配件：先查家里有没有（库存按名字匹配）→ 没有就一键加购物车（分类 维修耗材，带估价）→ 常用五金店 / 网店的搜索链接；结论可记成一条「检查：需维修」进待处理
  * 页面：#/house/fix?asset=<id>（从设备枢纽进来带设备；也可不选设备直接问）。模型不会联网比价：价格是估计区间，链接只是搜索入口。 */
 import { state, STATUS } from "../core/state.js";
 import { Store } from "../core/store.js";
@@ -18,7 +18,7 @@ import { activeVehicles, assetName, isFixture, isVehicle, myAssets, unitsText } 
 
 const C = () => window.CARE, H = () => window.HOUSE;
 const MAX_IMAGES = 3;
-const SHOP_CAT = "house_repair";   // 配件进采购清单的分类：汽车房屋消耗品 → 维修耗材
+const SHOP_CAT = "house_repair";   // 配件进购物车的分类：汽车房屋消耗品 → 维修耗材
 // 常用店的搜索入口（不是比价：模型不联网，价格只是估计；点进去按价格排序自己比）
 const STORES = {
   na: [["Home Depot", "https://www.homedepot.com/s/"], ["Lowe's", "https://www.lowes.com/search?searchTerm="], ["Ace Hardware", "https://www.acehardware.com/search?query="], ["Menards", "https://www.menards.com/main/search.html?search="], ["Amazon", "https://www.amazon.com/s?k="], ["Walmart", "https://www.walmart.com/search?q="]],
@@ -34,7 +34,7 @@ const repaint = () => { const m = $("#main"); if (m && state.route.section === "
 const candidates = () => [...myAssets(), ...activeVehicles()];
 const current = () => candidates().find((a) => a.id === fx().asset) || state.assetsEnriched.find((a) => a.id === fx().asset) || null;
 
-/* ── 配件 ↔ 库存 / 采购清单：按名字匹配，宁可漏不可错（“马桶止水皮”不能对上“马桶纸”）──
+/* ── 配件 ↔ 库存 / 购物车：按名字匹配，宁可漏不可错（“马桶止水皮”不能对上“马桶纸”）──
  * 命中规则：① 一方包含另一方；② 纯英文：配件名末尾的名词整词出现在库存名里（flapper / lubricant），前面的形容词不算；
  * ③ 带数字 / 连字符的型号词整词相同（wd-40、a23、16x25x1）；④ 中文：共享两个及以上双字词（“炉子滤网”对“新风滤网”只共享“滤网”，不算） */
 const norm = (s) => String(s || "").toLowerCase().trim();
@@ -66,8 +66,8 @@ function partRow(p, key) {
   const have = findStock(p.name), label = partLabel(p), open = inShop(label) || (have && state.shopping.find((s) => s.item_id === have.id && s.status !== "bought"));
   const meta = [p.spec ? t(p.spec) : "", p.qty ? `${num(p.qty)} ${t(p.unit || "个")}` : "", p.price ? `≈ ${t(p.price)}` : ""].filter(Boolean).join(" · ");
   const haveLine = have ? `<small class="fix-have">✓ ${t("家里有：{name}", { name: have.name })}${have.location ? ` · 📍${esc(t(have.location))}` : ""} · ${t("剩 {q} {u}", { q: Math.round(have.dqty * 100) / 100, u: t(have.du) })}${have.status !== "ok" ? ` <span class="badge ${STATUS[have.status].cls}">${t(STATUS[have.status].label)}</span>` : ""}</small>` : "";
-  const act = fx().added[key] || open ? `<span class="badge b-ok">${t("已在采购清单")}</span>`
-    : `<button type="button" class="btn btn-sm ${have ? "btn-ghost" : "btn-primary"}" data-action="fix-part-add" data-key="${esc(key)}">${have ? t("还是买一个") : t("加入采购")}</button>`;
+  const act = fx().added[key] || open ? `<span class="badge b-ok">${t("已在购物车")}</span>`
+    : `<button type="button" class="btn btn-sm ${have ? "btn-ghost" : "btn-primary"}" data-action="fix-part-add" data-key="${esc(key)}">${have ? t("还是买一个") : t("加入购物车")}</button>`;
   return `<li class="fix-part"><div class="grow"><b>${esc(t(p.name))}</b>${meta ? `<small>${esc(meta)}</small>` : ""}${haveLine}
       <details class="fix-where"><summary>${t("在哪买")}</summary><div class="chips" style="margin:4px 0 0">${storeLinks(p)}</div></details></div>${act}</li>`;
 }
@@ -77,7 +77,7 @@ export async function addPart(key) {
   if (inShop(label)) { fx().added[key] = true; toast(t("已经在清单里了")); return repaint(); }
   await Store.saveShopping({ item_id: null, name: label, quantity: num(p.qty) > 0 ? num(p.qty) : 1, unit: String(t(p.unit || "个")).slice(0, 10), category: SHOP_CAT, amount: priceNum(p.price) });
   fx().added[key] = true;
-  toast(t("已加入采购清单：{name}", { name: label }));
+  toast(t("已加入购物车：{name}", { name: label }));
 }
 
 /* ── 常见小毛病（第 ① 层）── */

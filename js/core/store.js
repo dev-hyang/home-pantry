@@ -498,7 +498,7 @@ export const DemoStore = {
   },
   /** 「请确认分类」：没错 → 清标记 */
   async clearCatCheck(ids) { const set = new Set(ids); for (const it of this.db.items) if (set.has(it.id)) it.cat_check = false; this.persist(); },
-  /** 「请确认分类」：改成候选分类；连着的花费、采购清单（还是旧分类的）跟着换 */
+  /** 「请确认分类」：改成候选分类；连着的花费、购物车（还是旧分类的）跟着换 */
   async recatItem(id, cat, sub) {
     const it = this.db.items.find((x) => x.id === id); if (!it) throw new Error("物品不存在");
     const old = it.category; Object.assign(it, { category: cat, subcategory: sub, cat_check: false, updated_at: new Date().toISOString() });
@@ -1286,7 +1286,7 @@ export const CloudStore = {
   async deleteItem(id) { this.must(await this.sb.from("items").delete().eq("id", id)); },
   /** 「请确认分类」（迁移 064 的 items.cat_check）：没错 → 清标记 */
   async clearCatCheck(ids) { if (ids.length) this.must(await this.sb.from("items").update({ cat_check: false }).eq("household_id", this.hid).in("id", ids)); },
-  /** 「请确认分类」：改成候选分类；连着的花费、采购清单（还是旧分类的）跟着换 */
+  /** 「请确认分类」：改成候选分类；连着的花费、购物车（还是旧分类的）跟着换 */
   async recatItem(id, cat, sub) {
     const old = state.items.find((x) => x.id === id)?.category;
     this.must(await this.sb.from("items").update({ category: cat, subcategory: sub, cat_check: false, updated_by: state.user.id }).eq("id", id));

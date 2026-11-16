@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-15.9", title: { zh: "「采购清单」改叫「购物车」", en: "\"Shopping list\" is now \"Cart\"" }, items: [
+    { k: "better", zh: "全应用的「采购清单」都改叫「购物车」，用法不变；购物车标题旁边显示有几项，搜索、筛选时跟着变", en: "\"Shopping list\" is called \"Cart\" everywhere and works the same; the Cart title shows how many items, following your search and filters" }
+  ] },
   { v: "2026-11-15.8", title: { zh: "「该补货了」：滑动加入 / 移出购物车", en: "Time to restock: swipe to add or remove" }, items: [
     { k: "better", zh: "每件名字旁边显示「已加入」或「未加入」；手机上左滑加入购物车、右滑移出（移出前先确认），电脑上点这个标签", en: "Each item shows \"Added\" or \"Not added\" by its name; on phones swipe left to add to the cart and right to remove (you confirm first), on a computer tap the tag" },
     { k: "better", zh: "「全部加入采购清单」改叫「全部加入购物车」，换成淡黄色", en: "\"Add all to shopping list\" is now \"Add all to cart\" in light yellow" }

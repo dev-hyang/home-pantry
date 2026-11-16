@@ -164,7 +164,7 @@ export function pickCards(ctx = {}) {
   return state.cards.filter((x) => x.active !== false && !noRewards(x)).map((c) => evalCard(c, ctx))
     .sort((a, b) => (a.excluded ? 1 : 0) - (b.excluded ? 1 : 0) || b.eff - a.eff);
 }
-/** 给花费分类 + 商店直接推荐（采购清单、补记花费用） */
+/** 给花费分类 + 商店直接推荐（购物车、补记花费用） */
 export const pickFor = (category, store, amount) => pickCards({ rewardCat: D().rewardCatOf(category, store), merchant: store, amount });
 
 /* ───────────── 复盘：某个月记到各张卡上的花费，估算返现 vs 用最优卡能返多少 ───────────── */

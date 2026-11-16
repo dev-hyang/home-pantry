@@ -178,7 +178,7 @@
   const RESULTS = { ok: "正常", needs_service: "需保养", needs_repair: "需维修", needs_replace: "需更换" };
 
   /* ── 常见小毛病（按设备类型）：不用问 AI 先看这里；每条 = 症状 → 多半是什么 → 自己怎么修 → 要买什么 → 什么情况叫人
-   * parts 里的 name / spec 直接能变成采购清单的一行；价格是北美五金店常见区间，仅供参考（设计：docs/design-fix.md） */
+   * parts 里的 name / spec 直接能变成购物车的一行；价格是北美五金店常见区间，仅供参考（设计：docs/design-fix.md） */
   const QUICK_FIXES = {
     doors: [
       { s: "开关门吱呀响", why: "合页轴干了或积灰生锈。", diy: ["门半开，往每个合页的轴缝里喷硅基润滑剂或 WD-40（先垫纸，防滴到地板）。", "来回开关十几次让油进去，擦掉多余的。", "还响：把合页销钉往上敲出来，擦净涂一点润滑脂再装回。"], parts: [{ name: "WD-40 / 硅基润滑喷剂", q: "silicone spray lubricant", spec: "硅基 / 白锂基，门窗合页用；家里有 WD-40 也行", qty: 1, unit: "罐", price: "$5–9" }], pro: "门框变形、合页螺丝孔已滑牙拧不紧：找木工，或自己换长螺丝 / 填木塞。", note: "食用油能救急但会发黏、粘灰，几周后更响，不建议长期用。" },

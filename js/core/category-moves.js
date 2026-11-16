@@ -25,7 +25,7 @@ export const CAT_MOVES = [
   ["house_care", "外墙清洁", null, "house_care", "外墙清洗"],
 ];
 
-/** 演示库：物品换分类，连着的花费、采购清单跟着换；自建分类挂在旧二级 food / shopping 下的换成新的。可以重复跑 */
+/** 演示库：物品换分类，连着的花费、购物车跟着换；自建分类挂在旧二级 food / shopping 下的换成新的。可以重复跑 */
 export function migrateLocalCategories(db) {
   const moved = new Map();   // item id → [旧分类, 新分类]
   for (const [oc, os, re, nc, ns] of CAT_MOVES) {
@@ -45,7 +45,7 @@ export function migrateLocalCategories(db) {
 }
 
 /** 「请确认分类」（迁移 064）：063 猜着搬过来的落点 → 另一个候选。键 = "分类/小类"，值 = [候选分类, 候选小类]。
- *  标记了 cat_check 的物品在首页列出来：「没错」清标记；「改成 …」换到候选（连着的花费、采购清单跟着换） */
+ *  标记了 cat_check 的物品在首页列出来：「没错」清标记；「改成 …」换到候选（连着的花费、购物车跟着换） */
 export const CAT_CHECK = {
   "gear_baby/喂养用品": ["baby", "哺乳耗材"],         // 吸奶器、奶瓶 ↔ 储奶袋、防溢乳垫
   "baby/哺乳耗材": ["gear_baby", "喂养用品"],

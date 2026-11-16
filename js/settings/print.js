@@ -1,4 +1,4 @@
-/* 设置 → 打印：采购清单、账单概览。点“打印”时把要印的内容生成到 #printSheet，只在打印时显示（见 styles.css），然后调出浏览器打印。 */
+/* 设置 → 打印：购物车、账单概览。点“打印”时把要印的内容生成到 #printSheet，只在打印时显示（见 styles.css），然后调出浏览器打印。 */
 import { state } from "../core/state.js";
 import { $, esc, fmtDate, fmtShort, money, num, toast, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
@@ -23,7 +23,7 @@ export function viewPrintSettings() {
   const row = (kind, title, desc, extra = "") => `<div class="panel"><div class="kv"><div><b>${title}</b><div class="muted">${desc}</div></div>
       <div class="head-acts">${extra}<button type="button" class="btn btn-sm btn-primary" data-action="print-run" data-kind="${kind}">${t("打印")}</button></div></div></div>`;
   return `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("选一项打印；浏览器的打印窗口里也可以另存为 PDF。")}</p>
-    ${row("shopping", t("采购清单"), t("待购买和家人认领中的项目，带勾选框，逛店时可以直接划"))}
+    ${row("shopping", t("购物车"), t("待购买和家人认领中的项目，带勾选框，逛店时可以直接划"))}
     ${row("spend", t("花费统计"), t("按月合计、按分类占比和花费明细；可选近几个月"), `<select id="printRange" aria-label="${t("时间范围")}">${[3, 6, 12].map((n) => `<option value="${n}" ${n === +state.stats.months ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}<option value="${new Date().getMonth() + 1}">${t("今年以来")}</option></select>`)}
     ${state.billsEnabled && budgetPlan() ? row("budget", t("预算"), t("本月各类预算和实际，以及年度进度")) : ""}
     ${state.billsEnabled ? row("bills", t("账单概览"), t("未来 30 天要交的账单、要处理的账单和每月固定支出"), propPick) : ""}`;
@@ -33,7 +33,7 @@ function shoppingSheet() {
   const open = state.shopping.filter((s) => s.status !== "bought");
   const rows = open.map((s) => `<tr><td class="box">☐</td><td>${esc(s.name)}</td><td>${esc(`${num(s.quantity, 1)} ${s.unit || ""}`.trim())}</td>
       <td>${s.status === "claimed" ? esc(t("{who} 正在买", { who: s.claimed_by_name || t("家人") })) : ""}</td></tr>`).join("");
-  return `<h1>${t("采购清单")}</h1><p class="ps-meta">${esc(stamp())} · ${t("{n} 项待买", { n: open.length })}</p>
+  return `<h1>${t("购物车")}</h1><p class="ps-meta">${esc(stamp())} · ${t("{n} 项待买", { n: open.length })}</p>
     ${open.length ? `<table><thead><tr><th></th><th>${t("名称")}</th><th>${t("数量")}</th><th>${t("备注")}</th></tr></thead><tbody>${rows}</tbody></table>` : `<p>${t("清单是空的")}</p>`}`;
 }
 

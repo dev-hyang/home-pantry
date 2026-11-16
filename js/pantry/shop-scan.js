@@ -1,5 +1,5 @@
-/* 拍照加入采购清单（2026-11-13）：在家里拍快用完的东西、空瓶空袋、手写的清单或聊天截图 → AI 认出要买什么 → 核对后加进采购清单。
- * 和「录入购物」（js/pantry/scan.js，小票 → 入库 + 记花费）分开：这里只加采购清单，不动库存、不记花费。
+/* 拍照加入购物车（2026-11-13）：在家里拍快用完的东西、空瓶空袋、手写的清单或聊天截图 → AI 认出要买什么 → 核对后加进购物车。
+ * 和「录入购物」（js/pantry/scan.js，小票 → 入库 + 记花费）分开：这里只加购物车，不动库存、不记花费。
  * 用设置里的 AI key；照片在手机上压缩后发给所选服务商，不保存原图；一律人工确认后才写入。 */
 import { state } from "../core/state.js";
 import { findItem, normName } from "../core/item-match.js";
@@ -78,7 +78,7 @@ export function shopScanHtml() {
   const ready = aiReady();
   return `<div class="panel shop-scan">
     ${attachHTML(ATT, { t, esc, textLabel: t("也可以粘贴文字（家人发来的清单、聊天记录）"), ph: t("例如：鸡蛋两盒、牛奶、洗洁精"), rows: 2,
-      hint: t("拍快用完的东西、空瓶空袋，或手写的清单、聊天截图都行。只加进采购清单，不动库存。") })}
+      hint: t("拍快用完的东西、空瓶空袋，或手写的清单、聊天截图都行。只加进购物车，不动库存。") })}
     ${ss.error ? `<p class="form-error" role="alert">${esc(ss.error)}</p>` : ""}
     ${ready ? "" : `<p class="muted shop-add-tip">${t("要先在设置里填 AI key 才能认照片。")}</p>`}
     <div class="form-actions"><button type="button" class="btn btn-primary" data-action="shopscan-read" ${ss.busy || !ready ? "disabled" : ""}>${ss.busy ? t("正在认…（几十秒）") : t("认出要买的东西")}</button></div>
@@ -101,7 +101,7 @@ export async function shopScanAction(action, el, { render }) {
     ss.busy = false; return render();
   }
 }
-/** 核对表提交：勾了的逐个加进采购清单（同名已在清单里的跳过） */
+/** 核对表提交：勾了的逐个加进购物车（同名已在清单里的跳过） */
 export async function saveShopScan(refresh) {
   keep();
   const pick = (ss.rows || []).filter((r) => r.include && r.name);
@@ -114,7 +114,7 @@ export async function saveShopScan(refresh) {
     added++;
   }
   ss.rows = null;
-  toast(t("已加入采购清单 {n} 项", { n: added }) + (skipped ? t("；{m} 项已在清单里，跳过", { m: skipped }) : ""));
+  toast(t("已加入购物车 {n} 项", { n: added }) + (skipped ? t("；{m} 项已在清单里，跳过", { m: skipped }) : ""));
   refresh();
 }
 export const keepShopScan = keep;

@@ -46,7 +46,7 @@ export function leaveItem(changed) {
 /** 物品页面包屑：储藏 / 库存（汽车房屋消耗品）或 储藏 / 家居耐用品 */
 const itemBase = (space) => [{ href: href("pantry"), label: t("储藏") },
   space === "gear" ? { href: href("pantry", "gear"), label: t("家居耐用品") } : { href: space === "house" ? `${href("pantry", "inventory")}?space=house` : href("pantry", "inventory"), label: space === "house" ? `${t("库存")} · ${t("汽车房屋消耗品")}` : t("库存") }];
-const SECTION_LABEL = { today: "今日", pantry: "储藏", house: "房屋", gear: "家居耐用品", shopping: "采购清单", me: "我的" };
+const SECTION_LABEL = { today: "今日", pantry: "储藏", house: "房屋", gear: "家居耐用品", shopping: "购物车", me: "我的" };
 const NAME_HINT = { pantry: "例如：鸡蛋、抽纸、大米", house: "例如：炉子滤网、电池、融雪盐", gear: "例如：被罩、千斤顶、儿童自行车" };
 
 /** 汽车房屋消耗品可关联的设备：房屋 → 设备保养里的设备（不含车辆）；多套房产时名字后带房产名 */
@@ -124,7 +124,7 @@ export function viewItemForm() {
             </label>
             <label class="span-2">${t("别名（选填）")}
               <input name="aliases" maxlength="200" autocomplete="off" placeholder="${esc(t("同一样东西的其他叫法，用逗号隔开，例如：milk, 牛乳"))}" value="${esc(it ? aliasesOf(it.id).join(", ") : "")}">
-              <small class="muted">${t("录入购物、采购清单、记花费写成这些叫法，也会对上这件")}</small>
+              <small class="muted">${t("录入购物、购物车、记花费写成这些叫法，也会对上这件")}</small>
             </label>
             ${spacePick(spaceOf(v.category))}
             <label>${t("大类")}

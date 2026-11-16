@@ -333,7 +333,7 @@ function keepUnsaved() {
   // 正在输入的那一格（表单里外都算，比如搜索框）：画完把焦点和光标放回去
   const a = document.activeElement, inMain = a && a !== document.body && a.closest?.("#main");
   const focus = inMain && (a.name || a.id) ? { form: a.form ? formKey(a.form, forms.indexOf(a.form)) : null, name: a.name, id: a.id, s: a.selectionStart, e: a.selectionEnd, value: a.form ? null : a.value } : null;
-  // 表单外、没有 name 的输入框也要留（2026-11-14：采购清单每一行的花费 / 在哪买 / 用卡——选了特价顺手填的商店名，保存后家人同步一重画就没了）：带 data-keep 的都算
+  // 表单外、没有 name 的输入框也要留（2026-11-14：购物车每一行的花费 / 在哪买 / 用卡——选了特价顺手填的商店名，保存后家人同步一重画就没了）：带 data-keep 的都算
   const loose = [...document.querySelectorAll("#main [data-keep]")].map((el) => {
     const def = el.tagName === "SELECT" ? ([...el.options].find((o) => o.defaultSelected)?.value ?? el.options[0]?.value) : el.defaultValue;
     return el.value !== def ? { key: el.dataset.keep, value: el.value } : null;
@@ -581,7 +581,7 @@ function setSharedRange(v) { state.stats.months = normRange(v); state.stats.mont
 main.addEventListener("input", (e) => {
   // 搜索框：筛选条件马上记下，列表停下 ~200ms 再重画（不是每敲一个字都重画整张列表）
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; searchSoon(renderInvList); }
-  if (e.target.id === "shopQ") { state.shopFilter.q = e.target.value; searchSoon(renderShopList); }   // 采购清单搜索：只重画清单那块
+  if (e.target.id === "shopQ") { state.shopFilter.q = e.target.value; searchSoon(renderShopList); }   // 购物车搜索：只重画清单那块
   if (e.target.id === "medSearch") { state.medFilter.q = e.target.value; searchSoon(renderMedList); }
   if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; searchSoon(renderSpendList); }   // 停下 ~200ms 再查数据库
   if (payeeInput(e, searchSoon)) return;   // 收款方：搜索、合并后的名字
@@ -662,7 +662,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.matches("[data-inv-qty]")) return setItemQty(e.target.dataset.invQty, e.target.value);   // 库存物品行：直接改数量
   if (e.target.matches("[data-inv-unit]")) return setItemUnit(e.target.dataset.invUnit, e.target.value);   // 库存物品行：改单位（下拉或「其他…」手填）
   if (e.target.matches("input[data-qty-for]")) return setShopQty(e.target.dataset.qtyFor, e.target.value);
-  if (e.target.matches("input[data-unit-for]")) return setShopUnit(e.target.dataset.unitFor, e.target.value);   // 采购清单：改单位   // 采购清单：直接输入数量
+  if (e.target.matches("input[data-unit-for]")) return setShopUnit(e.target.dataset.unitFor, e.target.value);   // 购物车：改单位   // 购物车：直接输入数量
   if (e.target.id === "invCatSel") { Object.assign(state.filter, { cat: e.target.value, sub: "all" }); state.catSort = false; state.catForm = null; render(); }
   if (e.target.id === "invSubSel") { state.filter.sub = e.target.value; render(); }
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
@@ -953,9 +953,9 @@ main.addEventListener("submit", async (e) => {
       await Store.addPurchase({ item_id: linkItem?.id || null, name, category: cat, quantity: null, unit: null, store,
         amount: Math.round(signed * 100) / 100, currency: Units.region.currency, purchased_at: new Date(`${day}T12:00:00`).toISOString(), ...purchasePayFields(payV),
         ...(nature ? { nature } : {}), ...(property_id ? { property_id } : {}) });
-      const cart = signed > 0 ? matchOpenShopping({ name: item, at: new Date(`${day}T12:00:00`) }) : null;   // 采购清单里有同名的未买项：顺手标成已买到
+      const cart = signed > 0 ? matchOpenShopping({ name: item, at: new Date(`${day}T12:00:00`) }) : null;   // 购物车里有同名的未买项：顺手标成已买到
       if (cart) await Store.saveShopping({ id: cart.id, status: "bought", bought_at: new Date(`${day}T12:00:00`).toISOString(), amount: Math.round(signed * 100) / 100, claimed_by_name: cart.claimed_by_name || state.displayName });
-      toast(t("已记录 {name} {m}", { name, m: money(signed) }) + (cart ? t("；采购清单里的「{n}」已标成已买到", { n: cart.name }) : "")); return refresh();
+      toast(t("已记录 {name} {m}", { name, m: money(signed) }) + (cart ? t("；购物车里的「{n}」已标成已买到", { n: cart.name }) : "")); return refresh();
     }
     if (f.id === "shopScanForm") return saveShopScan(refresh);
     if (f.id === "shopForm") {
@@ -1037,7 +1037,7 @@ main.addEventListener("click", async (e) => {
   try {
     if (action?.startsWith("scan-")) return scanAction(action, el, { go, refresh });
     if (action?.startsWith("shops-")) return shopsAction(action, el, { render, go, refresh });
-    if (action?.startsWith("shopscan-")) return shopScanAction(action, el, { render: () => render(false) });   // 拍照加入采购清单（js/pantry/shop-scan.js）   // 常去的商店与特价（js/shops/views.js）
+    if (action?.startsWith("shopscan-")) return shopScanAction(action, el, { render: () => render(false) });   // 拍照加入购物车（js/pantry/shop-scan.js）   // 常去的商店与特价（js/shops/views.js）
     if (action?.startsWith("fix-")) return fixAction(action, el, { refresh, render, go });   // 出了问题？诊断与配件
     if (action?.startsWith("recall-")) return recallAction(action, el, { refresh, render });   // 设备召回：清除标记 / 重新打开
     if (action?.startsWith("budget-") || action === "shop-advice-close") return budgetAction(action, { refresh, render }, el);
@@ -1171,20 +1171,20 @@ main.addEventListener("click", async (e) => {
         state.gearEnabled = true; try { localStorage.setItem("hmh-gear-off", "0"); } catch { /* 忽略 */ }
         return render();
       case "tpl-all": e.preventDefault(); el.form.querySelectorAll('input[name="tpl"]:not(:disabled)').forEach((x) => { x.checked = el.dataset.on === "1"; }); return;
-      // 耐用品（家居耐用品，如厨房用品）坏了一件：数量减 1，并把换新的一件加进采购清单（买到后自动加回库存）
+      // 耐用品（家居耐用品，如厨房用品）坏了一件：数量减 1，并把换新的一件加进购物车（买到后自动加回库存）
       case "gear-broke": {
         const it = state.enriched.find((x) => x.id === id); if (!it || !isGear(it) || it.qty <= 0) return;
-        if (!confirm(t("“{name}”坏了一件？数量会减 1，并加入采购清单换新（买到后自动加回库存）。", { name: it.name }))) return;
+        if (!confirm(t("“{name}”坏了一件？数量会减 1，并加入购物车换新（买到后自动加回库存）。", { name: it.name }))) return;
         el.disabled = true;
         await Store.adjust(id, -1, "adjust");
         if (!openShopFor(id)) await Store.saveShopping({ item_id: id, name: it.name, quantity: 1, unit: it.unit, category: it.category });
-        toast(t("{name} 少了一件，已加入采购清单换新", { name: it.name }));
+        toast(t("{name} 少了一件，已加入购物车换新", { name: it.name }));
         return refresh();
       }
       case "inv-view": setInvView(el.dataset.view); state.invSel = null; return render();
       case "add-item-pick": { const sp = await pickSpace(); if (sp) go(`${href("item", "new")}?space=${sp}`); return; }   // ＋ 添加物品：先选放在哪一类
-      case "inv-cat-shop": return addAlertsToShopping(catNeed(el.dataset.cat));   // 分类视图每个大类的「全部加入采购清单」
-      case "inv-sec-shop": return addAlertsToShopping(secNeed(el.dataset.space));   // 物品视图每个容器的「全部加入采购清单」
+      case "inv-cat-shop": return addAlertsToShopping(catNeed(el.dataset.cat));   // 分类视图每个大类的「全部加入购物车」
+      case "inv-sec-shop": return addAlertsToShopping(secNeed(el.dataset.space));   // 物品视图每个容器的「全部加入购物车」
       case "inv-select": state.invSel = state.invSel ? null : new Set(); return render();
       case "inv-sel-all": { const ids = visibleItemIds(), all = ids.every((x) => state.invSel?.has(x)); state.invSel = new Set(all ? [] : ids); return render(); }
       case "inv-sel-shop": { const list = [...(state.invSel || [])].map((x) => state.enriched.find((i) => i.id === x)).filter(Boolean); state.invSel = null; return addAlertsToShopping(list); }
@@ -1207,9 +1207,9 @@ main.addEventListener("click", async (e) => {
         toast(on ? t("{name} 恢复提醒", { name: it.name }) : t("{name} 不再提醒", { name: it.name })); return refresh();
       }
       case "inv-del": { const it = state.items.find((x) => x.id === id); if (!it || !confirmDelete(t("删除「{name}」？", { name: it.name }))) return; await Store.deleteItem(id); toast(t("已删除 {name}", { name: it.name })); return refresh(); }
-      case "inv-shop": {   // 右滑加入采购清单（先确认数量和单位，见 addAlertsToShopping）
+      case "inv-shop": {   // 右滑加入购物车（先确认数量和单位，见 addAlertsToShopping）
         const it = state.enriched.find((x) => x.id === id); if (!it) return;
-        if (openShopFor(id)) { toast(t("{name} 已经在采购清单里", { name: it.name })); return; }
+        if (openShopFor(id)) { toast(t("{name} 已经在购物车里", { name: it.name })); return; }
         return addAlertsToShopping([it]);
       }
       case "consume": el.disabled = true; await Store.adjust(id, -storedStep(state.items.find((x) => x.id === id)?.unit), "consume"); return refresh();
@@ -1263,7 +1263,7 @@ main.addEventListener("click", async (e) => {
         if (ids.length > 1) toast(t("已确认 {n} 件", { n: ids.length }));
         return refresh();
       }
-      case "cat-check-alt": {   // 「请确认分类」：改成候选分类，连着的花费、采购清单跟着换
+      case "cat-check-alt": {   // 「请确认分类」：改成候选分类，连着的花费、购物车跟着换
         const it = state.items.find((x) => x.id === id); if (!it) return;
         el.disabled = true;
         try { await Store.recatItem(id, el.dataset.cat, el.dataset.sub); } catch (e) { el.disabled = false; return toast(e.message); }
@@ -1292,7 +1292,7 @@ main.addEventListener("click", async (e) => {
       case "shop-import": {   // 牧羊人带来的采购项（#/shopping?add=…）：勾了的逐个加，按名字对上库存物品就关联
         const names = [...document.querySelectorAll("#shopImport input[type=checkbox]:checked")].map((x) => x.value);
         for (const name of names) { const it = findItem(name); if (state.shopping.some((s) => s.status !== "bought" && (it ? s.item_id === it.id : normName(s.name) === normName(name)))) continue; await Store.saveShopping({ name, quantity: 1, unit: it?.unit || "", item_id: it?.id || null, category: it?.category || "other" }); }
-        toast(names.length ? t("已加进采购清单：{n} 项", { n: names.length }) : t("没有勾选"));
+        toast(names.length ? t("已加进购物车：{n} 项", { n: names.length }) : t("没有勾选"));
         go(href("shopping"), { replace: true }); return refresh();
       }
       case "shop-import-cancel": go(href("shopping"), { replace: true }); return render(true);
@@ -1303,7 +1303,7 @@ main.addEventListener("click", async (e) => {
         return markBought(id);
       }
       case "shop-qty": return stepShopQty(id, +el.dataset.dir);
-      case "shop-del": if (!confirmDelete(t("从采购清单删除这一项？"))) return; await Store.deleteShopping(id); return refresh();
+      case "shop-del": if (!confirmDelete(t("从购物车删除这一项？"))) return; await Store.deleteShopping(id); return refresh();
       case "shop-clear": await Store.clearBought(); return refresh();
       case "diet": state.diet = el.dataset.diet; state.mealShift = 0; localStorage.setItem("hmh-diet", state.diet); return render();
       case "shuffle": state.mealShift++; state.slotShift = {}; return render();
@@ -1520,7 +1520,7 @@ async function saveHouseForm(f, { silent = false } = {}) {
   return true;
 }
 
-/** 采购清单改数量：按显示单位 ±一步（kg 0.5、lb 1、个 1…），最少一步；存回时换回原单位 */
+/** 购物车改数量：按显示单位 ±一步（kg 0.5、lb 1、个 1…），最少一步；存回时换回原单位 */
 export async function stepShopQty(id, dir) {
   const s = state.shopping.find((x) => x.id === id); if (!s) return;
   const unit = shopUnit(s), step = Units.step(du(unit)), f = Units.factor(unit);
@@ -1528,7 +1528,7 @@ export async function stepShopQty(id, dir) {
   await Store.saveShopping({ id, quantity: Math.round((disp / f) * 10000) / 10000 });
   refresh();
 }
-/** 采购清单改单位：数量框里的数字不变，按新单位重新解释（和物品编辑页一样可以输入任何单位）；没改就什么也不做 */
+/** 购物车改单位：数量框里的数字不变，按新单位重新解释（和物品编辑页一样可以输入任何单位）；没改就什么也不做 */
 export async function setShopUnit(id, value) {
   const s = state.shopping.find((x) => x.id === id); if (!s) return;
   const cur = shopUnit(s), typed = Units.normalize(value).slice(0, 10);   // 英文界面填 bottle / lbs 也存成统一写法
@@ -1537,7 +1537,7 @@ export async function setShopUnit(id, value) {
   await Store.saveShopping({ id, unit: typed, quantity: Math.round((disp / Units.factor(typed)) * 10000) / 10000 });
   refresh();
 }
-/** 采购清单直接输入数量（显示单位）；空或 ≤ 0 就回到原值 */
+/** 购物车直接输入数量（显示单位）；空或 ≤ 0 就回到原值 */
 export async function setShopQty(id, value) {
   const s = state.shopping.find((x) => x.id === id); if (!s) return;
   const disp = num(value), f = Units.factor(shopUnit(s));
@@ -1563,7 +1563,7 @@ async function setItemUnit(id, v) {
   try { await Store.saveItem({ ...it, unit: u, quantity: Math.round(q * 100) / 100 }); toast(t("{name} 的单位改成 {u}", { name: it.name, u: t(u) })); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); }
   refresh();
 }
-/** 移出购物车：先确认（页面里的确认框），再删掉采购清单里这些物品还没买到的那几条 */
+/** 移出购物车：先确认（页面里的确认框），再删掉购物车里这些物品还没买到的那几条 */
 export async function removeFromShopping(ids) {
   const items = ids.map((x) => state.items.find((i) => i.id === x)).filter(Boolean);
   const rows = state.shopping.filter((s) => s.status !== "bought" && ids.includes(s.item_id));
@@ -1573,15 +1573,15 @@ export async function removeFromShopping(ids) {
   for (const r of rows) await Store.deleteShopping(r.id);
   toast(t("已移出购物车：{names}", { names: shown })); refresh();
 }
-/** 所有「加入采购清单」按钮（行上的、右滑、全部加入、多选）：已在清单里的跳过，其余先弹框确认每件的数量和单位（js/pantry/shop-ask.js） */
+/** 所有「加入购物车」按钮（行上的、右滑、全部加入、多选）：已在清单里的跳过，其余先弹框确认每件的数量和单位（js/pantry/shop-ask.js） */
 export async function addAlertsToShopping(list) {
   const fresh = list.filter((it) => it && !openShopFor(it.id));
-  if (!fresh.length) { toast(list.length > 1 ? t("这些都已经在清单里了") : t("已经在采购清单里了")); return refresh(); }
+  if (!fresh.length) { toast(list.length > 1 ? t("这些都已经在清单里了") : t("已经在购物车里了")); return refresh(); }
   const picked = await askShopItems(fresh);
   if (!picked) return refresh();
   for (const { it, quantity, unit } of picked) await Store.saveShopping({ item_id: it.id, name: it.name, quantity, unit, category: it.category });
   const one = picked.length === 1 ? picked[0] : null;
-  toast(one ? t("已加入采购清单：{name} {q} {u}", { name: one.it.name, q: fmt(one.quantity), u: t(one.unit) }) : t("已加入采购清单 {n} 项", { n: picked.length }));
+  toast(one ? t("已加入购物车：{name} {q} {u}", { name: one.it.name, q: fmt(one.quantity), u: t(one.unit) }) : t("已加入购物车 {n} 项", { n: picked.length }));
   refresh();
 }
 
@@ -1678,7 +1678,7 @@ function paintHeaderSync() {
 }
 syncState.onChange = paintHeaderSync;
 
-// 采购清单区块折叠 / 展开：记住这次的选择（toggle 事件不冒泡，所以用捕获）
+// 购物车区块折叠 / 展开：记住这次的选择（toggle 事件不冒泡，所以用捕获）
 export function gate(html) { document.body.classList.add("gate"); applyChrome(); $("#hhName").textContent = ""; $("#main").innerHTML = html; }
 
 /* 登录：邮箱魔法链接（默认）；手机号短信验证码（config.js 里 PHONE_LOGIN = true 且 Supabase 已接短信服务商时显示） */

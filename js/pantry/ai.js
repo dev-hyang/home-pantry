@@ -6,7 +6,7 @@ import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
 import { aiIcon, aiQuota, aiReady, aiSettings, askModel, promptText, providerOf, quotaMessage } from "../core/ai.js";
 
-export const QUICK_ASKS = ["低糖高蛋白，六人份", "用掉快过期的食材", "先做掉放得最久的食材", "哺乳期追奶：多汤水、高蛋白", "产后恢复：温补、补铁、易消化", "孩子爱吃、少油少盐", "30 分钟能做完的晚餐", "一周三餐的采购清单"];
+export const QUICK_ASKS = ["低糖高蛋白，六人份", "用掉快过期的食材", "先做掉放得最久的食材", "哺乳期追奶：多汤水、高蛋白", "产后恢复：温补、补铁、易消化", "孩子爱吃、少油少盐", "30 分钟能做完的晚餐", "一周三餐的购物车"];
 // 无 key 模式可直接打开的网页（粘贴提示词）
 const WEB_LLMS = [["豆包", "https://www.doubao.com/"], ["通义千问", "https://www.tongyi.com/"], ["Kimi", "https://www.kimi.com/"], ["ChatGPT", "https://chatgpt.com/"], ["Gemini", "https://gemini.google.com/"]];
 
@@ -44,7 +44,7 @@ function menuResult(m) {
       <small>${d.uses.length ? `<span class="have">${t("用库存：{list}", { list: esc(d.uses.join("、")) })}</span>` : ""}${d.missing.length ? ` <span class="miss">${t("缺：{list}", { list: esc(d.missing.join("、")) })}</span>` : ""}${d.note ? `<br>${esc(d.note)}` : ""}</small></div>`).join("")}</div>`).join("")}</div>
     ${m.tips ? `<p class="muted" style="margin:10px 0 0;font-size:13px">💡 ${esc(m.tips)}</p>` : ""}
     <div class="form-actions" style="margin-top:10px">
-      ${missingAll.length ? `<button type="button" class="btn btn-sm" data-action="ai-add-missing">${t("缺的 {n} 样加入采购清单", { n: missingAll.length })}</button>` : ""}
+      ${missingAll.length ? `<button type="button" class="btn btn-sm" data-action="ai-add-missing">${t("缺的 {n} 样加入购物车", { n: missingAll.length })}</button>` : ""}
       <button type="button" class="btn btn-sm btn-ghost" data-action="ai-again">${t("换一版")}</button>
     </div>
     <p class="disclaimer">${t("由 AI 生成，分量和做法请自行把握；过敏、慢病饮食以医生建议为准。")}</p>
@@ -69,12 +69,12 @@ export async function copyPrompt(form) {
   catch { window.prompt(t("复制下面的提示词"), text); }
 }
 
-/** 把 AI 菜单里缺的食材加入采购清单（去重，跳过清单里已有的） */
+/** 把 AI 菜单里缺的食材加入购物车（去重，跳过清单里已有的） */
 export async function addAiMissing() {
   const m = state.ai?.result; if (!m) return;
   const names = [...new Set(m.meals.flatMap((x) => x.dishes.flatMap((d) => d.missing)))];
   const have = new Set(state.shopping.filter((s) => s.status !== "bought").map((s) => s.name.trim().toLowerCase()));
   let n = 0;
   for (const name of names) { if (have.has(name.toLowerCase())) continue; await Store.saveShopping({ name, quantity: 1, unit: "", item_id: null, category: "fresh" }); n++; }
-  toast(n ? t("已加入 {n} 样到采购清单", { n }) : t("都已经在采购清单里了"));
+  toast(n ? t("已加入 {n} 样到购物车", { n }) : t("都已经在购物车里了"));
 }

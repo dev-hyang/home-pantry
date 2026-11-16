@@ -87,7 +87,7 @@ let rerenderToday = () => {};
 export const initTodayRender = (fn) => { rerenderToday = fn; };
 
 /* ── 待办 · 按模块：每个模块一行（数量 + 最近的一件），点进模块自己的页面 ──
- * 来源全是提醒总线（已经按财务权限去掉了预算 / 收入 / 借贷）+ 内存里的采购清单；链接再过一遍 quickOk，没权限的页面不会出现 */
+ * 来源全是提醒总线（已经按财务权限去掉了预算 / 收入 / 借贷）+ 内存里的购物车；链接再过一遍 quickOk，没权限的页面不会出现 */
 const AREAS = () => [
   { src: ["bill"], icon: "🧾", name: "周期性账单", href: href("bills", "recurring"), on: state.billsEnabled },
   { src: ["medical"], icon: "🏥", name: "一次性账单", href: href("bills", "onetime"), on: state.billsEnabled },
@@ -109,7 +109,7 @@ export function todoRows(all = myAlerts()) {
   const open = state.shopping.filter((s) => s.status === "todo"), claimed = state.shopping.filter((s) => s.status === "claimed");
   if (open.length + claimed.length) {
     const who = joinList([...new Set(claimed.map((c) => c.claimed_by_name || t("家人")))]);
-    rows.push({ name: t("采购清单"), icon: "🛒", href: href("shopping"), n: open.length + claimed.length, worst: 3,
+    rows.push({ name: t("购物车"), icon: "🛒", href: href("shopping"), n: open.length + claimed.length, worst: 3,
       first: open.length ? (claimed.length ? t("{n} 项待买，{m} 项家人正在买", { n: open.length, m: claimed.length }) : t("{n} 项待买", { n: open.length })) : t("{who} 正在买", { who }) });
   }
   for (const a of AREAS()) {
@@ -142,10 +142,10 @@ function todoCard(all, counts) {
   const rows = todoRows(all), n = counts.important || all.length;
   // 标题旁像通知一样一个数（有要紧的：要紧件数、红色；没有：全部件数、灰色）
   const badge = n ? `<span class="tbadge ${counts.important ? "is-hot" : ""}" aria-label="${esc(counts.important ? t("{n} 件要紧", { n }) : t("{n} 件可以留意", { n }))}">${n > 99 ? "99+" : n}</span>` : "";
-  if (!rows.length) return card({ k: "todo", icon: "🗂️", title: t("待办"), href: href("alerts"), body: `<div class="tcard-ok"><span class="tok-ico" aria-hidden="true">✓</span><div><b>${t("各处都没有待办")}</b><small>${t("采购清单是空的，账单、保养和季节任务都不急。")}</small></div></div>` });
+  if (!rows.length) return card({ k: "todo", icon: "🗂️", title: t("待办"), href: href("alerts"), body: `<div class="tcard-ok"><span class="tok-ico" aria-hidden="true">✓</span><div><b>${t("各处都没有待办")}</b><small>${t("购物车是空的，账单、保养和季节任务都不急。")}</small></div></div>` });
   const pills = [0, 1, 2, 3].filter((x) => counts.bySeverity[x]).map((x) => `<span class="pill sev-${x}"><i>${counts.bySeverity[x]}</i>${t(SEVERITY_LABEL[x])}</span>`).join("");
   const cls = (w) => (w <= 2 ? SEVERITY_CLS[w] : "attn-count");
-  // 2026-11-14：每一行自己是链接，直接进那个模块（采购清单、账单、设备保养…）；标题行和底部「全部 N 件」进 #/alerts
+  // 2026-11-14：每一行自己是链接，直接进那个模块（购物车、账单、设备保养…）；标题行和底部「全部 N 件」进 #/alerts
   const list = rows.slice(0, 6).map((r) => `<li><a href="${esc(r.href)}" class="${r.worst <= 1 ? "is-hot" : ""}"><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow"><span class="tr-k1">${esc(r.name)}</span><small class="tr-sub">${esc(r.first || "")}</small></span><span class="badge mcount ${cls(r.worst)}">${r.n}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`).join("");
   const more = rows.length > 6 ? t("还有 {n} 个模块", { n: rows.length - 6 }) : "";
   return card({ k: "todo", icon: counts.important ? "🔔" : "🗂️", title: t("待办"), count: badge, headHref: href("alerts"), cls: counts.important ? "is-hot" : "",
@@ -201,7 +201,7 @@ function homeCard(fin) {
   const shop = state.shopping.filter((s) => s.status === "todo" || s.status === "claimed").length;
   const row = rowLink;
   const rows = [row(href("pantry", "overview"), "🗄️", t("储藏"), short ? t("{n} 件要补货", { n: short }) : t("都够用"), short),
-    row(href("shopping"), "🛒", t("采购清单"), shop ? t("{n} 项", { n: shop }) : t("空的"), false)];
+    row(href("shopping"), "🛒", t("购物车"), shop ? t("{n} 项", { n: shop }) : t("空的"), false)];
   if (state.houseEnabled) {
     const props = liveProperties().filter(propertyActive), live = new Set(props.map((p) => p.id));
     const eq = (state.assetsEnriched || []).filter((a) => !a.retired && live.has(a.property_id)), due = assetsDueCount();   // 和待办「设备保养」、房屋首页同一个口径
@@ -232,7 +232,7 @@ function aiBlock() {
   return `<section class="section"><div class="panel tai"><div class="tai-head"><h3>${aiIcon(20)} ${t("咩咩咩")}</h3><p class="muted">${sub}</p></div>
       <div class="form-actions tai-acts"><a class="btn btn-primary btn-sm" href="${href("ai")}">${t("问咩咩")}</a>
         <a class="btn btn-ghost btn-sm" href="${href("pantry", "meals")}?ai=">🍳 ${t("今天吃什么")}</a>
-        <a class="btn btn-ghost btn-sm" href="${href("shopping", "add")}">📝 ${t("加入采购清单")}</a>
+        <a class="btn btn-ghost btn-sm" href="${href("shopping", "add")}">📝 ${t("加入购物车")}</a>
         <a class="btn btn-ghost btn-sm" href="${href("pantry", "scan")}">🧾 ${t("录入购物")}</a></div></div></section>`;
 }
 
@@ -300,7 +300,7 @@ export function quickList() {
   if (!Array.isArray(list)) return DEFAULT_QUICK();
   const map = LEGACY();
   let out = [...new Set(list.map((id) => map[id] || id))];
-  // 2026-11-14 新加的入口（加入采购清单、常去的商店）：已经自己排过快捷操作的人，也各补一次（排在最前面）；编辑保存后记下版本，删掉的不会再补回来
+  // 2026-11-14 新加的入口（加入购物车、常去的商店）：已经自己排过快捷操作的人，也各补一次（排在最前面）；编辑保存后记下版本，删掉的不会再补回来
   if (quickVer() < QUICK_VER) { const add = [href("shopping", "add"), href("shops", "list")].filter((id) => !out.includes(id) && quickOk(id)); out = [...add, ...out]; }
   return out;   // 旧的“看花费统计”（我的 → 统计）在财务开着时改指向 财务 → 花费，旧的「补记一笔花费」改成直接打开表单；并去掉重复
 }
@@ -324,8 +324,8 @@ export const PRESETS = () => {
   const B = state.billsEnabled, H = state.houseEnabled, G = state.gearEnabled;
   return [
     // 常用动作
-    [href("pantry", "scan"), "🧾", t("录入购物")], B ? [SPEND_ADD(), "✍️", t("记一笔花费")] : null, [href("shopping"), "🛒", t("采购清单")],
-    [href("shopping", "add"), "📝", t("加入采购清单")], [`${href("shopping", "add")}?mode=photo`, "📷", t("拍照加入采购清单")], [href("shops", "list"), "🏪", t("常去的商店")],
+    [href("pantry", "scan"), "🧾", t("录入购物")], B ? [SPEND_ADD(), "✍️", t("记一笔花费")] : null, [href("shopping"), "🛒", t("购物车")],
+    [href("shopping", "add"), "📝", t("加入购物车")], [`${href("shopping", "add")}?mode=photo`, "📷", t("拍照加入购物车")], [href("shops", "list"), "🏪", t("常去的商店")],
     B ? [href("bill", "new"), "➕", t("添加账单")] : null, B ? [INCOME_ADD(), "💵", t("记一笔收入")] : null, B ? [`${href("bills", "onetime")}?bill=new`, "🏥", t("记一张一次性账单")] : null,
     // 储藏
     [href("pantry", "overview"), "🗄️", t("储藏概览")], [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "➕", t("添加储藏物品")],
@@ -363,7 +363,7 @@ export function shiftAlertSource(delta) {
 /** 按模块：每个模块一行（数量 + 最近的一件），点进模块自己的页面（原来今日页的「待办 · 按模块」） */
 function byArea(all) {
   const rows = todoRows(all);
-  if (!rows.length) return `<section class="section"><div class="panel empty"><strong>${t("各处都没有待办 ✓")}</strong>${t("采购清单是空的，账单、保养和季节任务都不急。")}</div></section>`;
+  if (!rows.length) return `<section class="section"><div class="panel empty"><strong>${t("各处都没有待办 ✓")}</strong>${t("购物车是空的，账单、保养和季节任务都不急。")}</div></section>`;
   const row = (r) => `<a class="mrow" href="${esc(r.href)}"><span class="mi" aria-hidden="true">${r.icon}</span>
       <span class="mt"><b>${esc(r.name)}</b><small>${esc(r.first)}</small></span>
       <span class="badge mcount ${r.worst <= 2 ? SEVERITY_CLS[r.worst] : "attn-count"}">${r.n}</span><span class="mch" aria-hidden="true">›</span></a>`;
@@ -396,7 +396,7 @@ export function viewAlerts() {
   const restockHere = src === "pantry" && all.some((x) => x.source === "pantry" && x.actions?.some((a) => a.action === "shop-add-item"));   // 只有选了「储藏」才显示；其他来源（账单、房屋…）和「全部」都不显示
   const tools = canMine || restockHere ? `<div class="chips today-chips">
         ${canMine ? toggle("mine", t("只看我负责的"), !!pref.mine) : ""}
-        ${restockHere ? `<button type="button" class="chip" data-action="shop-add-alerts" data-space="pantry">${t("补货全部加入采购清单")}</button>` : ""}
+        ${restockHere ? `<button type="button" class="chip" data-action="shop-add-alerts" data-space="pantry">${t("补货全部加入购物车")}</button>` : ""}
       </div>` : "";
 
   return `

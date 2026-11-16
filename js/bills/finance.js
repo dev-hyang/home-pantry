@@ -75,19 +75,19 @@ registerSection("bills", 0, ({ plan }) => {
     <div class="form-actions"><a class="btn btn-sm btn-ghost" href="${href("bills", "list")}">${t("看全部账单")}</a></div></div>`);
 });
 
-/* ───────────── 补货预估：联动库存和采购清单 ───────────── */
+/* ───────────── 补货预估：联动库存和购物车 ───────────── */
 registerSection("plan", 0, ({ plan, mp }) => {
   const fc = restockForecast();
-  if (fc.loading) return sec("budRestock", t("补货预估"), t("库存告急和采购清单里的东西，按你以前买它的花费估一下"), `<div class="panel"><p class="muted" role="status">${t("加载中…")}</p></div>`);
+  if (fc.loading) return sec("budRestock", t("补货预估"), t("库存告急和购物车里的东西，按你以前买它的花费估一下"), `<div class="panel"><p class="muted" role="status">${t("加载中…")}</p></div>`);
   const gRemain = (id) => { const r = mp.rows.find((x) => x.id === id); return r ? r.budget - r.spent : 0; };
   const stockRemain = STOCK_GROUPS.reduce((s, id) => s + gRemain(id), 0), stockFc = STOCK_GROUPS.reduce((s, id) => s + (fc.byGroup[id] || 0), 0);
   const rows = fc.rows.slice(0, 8);
-  return sec("budRestock", t("补货预估"), t("库存告急和采购清单里的东西，按你以前买它的花费估一下"), `<div class="panel">
+  return sec("budRestock", t("补货预估"), t("库存告急和购物车里的东西，按你以前买它的花费估一下"), `<div class="panel">
     ${fc.rows.length ? `<p style="margin:0">${t("共 {n} 项，预计 {a}{u}。", { n: fc.rows.length, a: money(fc.total), u: fc.unknown ? t("（另有 {k} 项没有价格记录）", { k: fc.unknown }) : "" })}</p>
       <p class="muted" style="margin:4px 0 8px;font-size:13px">${t("食品杂货和日用个护本月还剩 {a}，预估占 {p}%；维护与服务预估 {b}。", { a: money(stockRemain), p: pct(stockFc, Math.max(0, stockRemain)), b: money(fc.byGroup.home_maint || 0) })}</p>
       <ul class="restock-list">${rows.map((r) => `<li><span class="badge ${r.src === "stock" ? "b-low" : "b-ok"}">${r.src === "stock" ? t("告急") : t("清单")}</span><div class="grow"><span class="name">${esc(r.name)}</span></div><b>${r.est != null ? money(r.est) : `<span class="muted">${t("没价格记录")}</span>`}</b></li>`).join("")}</ul>`
       : `<div class="empty"><strong>${t("现在没有告急的库存，清单也是空的")}</strong></div>`}
-    <div class="form-actions"><a class="btn btn-sm" href="${href("shopping")}">${t("去采购清单")}</a><a class="btn btn-sm btn-ghost" href="${href("pantry", "overview")}">${t("看库存")}</a></div></div>`);
+    <div class="form-actions"><a class="btn btn-sm" href="${href("shopping")}">${t("去购物车")}</a><a class="btn btn-sm btn-ghost" href="${href("pantry", "overview")}">${t("看库存")}</a></div></div>`);
 });
 
 /* ───────────── 大件家电基金：按设备寿命每月预存 ───────────── */

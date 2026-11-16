@@ -1,4 +1,4 @@
-/* 信用卡（用卡）界面：「现在该刷哪张」快速查询、卡列表、卡表单；采购清单 / 补记花费旁的一行建议。逻辑在 cards.js。 */
+/* 信用卡（用卡）界面：「现在该刷哪张」快速查询、卡列表、卡表单；购物车 / 补记花费旁的一行建议。逻辑在 cards.js。 */
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { dupOnce, normName } from "../core/item-match.js";
 import { state } from "../core/state.js";
@@ -305,10 +305,10 @@ export function pickResultHtml() {
       ${x.warns.length ? `<div class="pick-warn">⚠️ ${x.warns.map(esc).join("；")}</div>` : ""}</div>`).join("")}</div>
     ${ex.length ? `<p class="muted" style="margin:6px 0 0;font-size:12.5px">${t("不能用：")}${ex.map((x) => `${esc(x.card.name)}（${esc(x.excluded)}）`).join("、")}</p>` : ""}`;
 }
-/** 采购清单 / 补记花费旁的一行建议：按花费分类 + 商店 */
+/** 购物车 / 补记花费旁的一行建议：按花费分类 + 商店 */
 export function cardHintHtml(category, store, amount) {
   if (!state.billsEnabled || !state.cards.some((c) => c.active !== false)) return "";
-  if (!category || category === "other") category = "grocery_misc";   // 采购清单里没分类的大多是买菜
+  if (!category || category === "other") category = "grocery_misc";   // 购物车里没分类的大多是买菜
   const list = pickFor(category, store, amount).filter((x) => !x.excluded); if (!list.length) return "";
   const x = list[0];
   return `<span class="card-hint" title="${esc(x.reason)}">💳 ${t("建议用 {card}（{r}%）", { card: esc(x.card.name), r: x.eff })}${x.warns.length ? ` ⚠️` : ""}</span>`;

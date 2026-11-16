@@ -291,7 +291,7 @@ export function viewSettings() {
       categories: t("{n} 个分类 · 自建 {m} · 改过 {k}", { n: CATEGORIES.filter((c) => !c.hidden).length, m: CATEGORIES.filter((c) => c.custom).length, k: CATEGORIES.filter((c) => c.overridden).length }),
       locations: t("{n} 个位置 · 自定义 {m}", { n: window.LOCATIONS.length, m: customLocations().length }),
       modules: [state.houseEnabled ? t("房屋 ✓") : t("房屋 ✗"), state.billsEnabled ? t("账单 ✓") : t("账单 ✗"), state.gearEnabled ? t("家居耐用品 ✓") : t("家居耐用品 ✗")].join(" · "),
-      print: state.billsEnabled ? t("采购清单、账单概览") : t("采购清单"),
+      print: state.billsEnabled ? t("购物车、账单概览") : t("购物车"),
       data: notif === "granted" ? t("通知已开启") : t("通知未开启"),
       backup: financeOk() ? backupSummary() : t("需要财务权限"),
       usage: cloud ? t("数据库与文件存储，对照免费额度") : t("本地演示：没有云端空间"),

@@ -1,4 +1,4 @@
-/* 常去的商店 + 特价：数据整理、分类、连锁店预设、按 ZIP 找附近门店（OpenStreetMap）、特价和采购清单对上（迁移 067）
+/* 常去的商店 + 特价：数据整理、分类、连锁店预设、按 ZIP 找附近门店（OpenStreetMap）、特价和购物车对上（迁移 067）
  * 外部服务：ZIP → 经纬度用 zippopotam.us，附近门店用 OpenStreetMap 的 Overpass（几个镜像，最全但常忙）；同时用 Photon（连不上再用 Nominatim）按连锁店名字先找出常见连锁店。都不用 key，只发 ZIP 或坐标，不发别的。 */
 import { state } from "../core/state.js";
 import { normName } from "../core/item-match.js";
@@ -68,7 +68,7 @@ export const FOCUS_SECTIONS = {
   costco: ["Grocery", "Health & Personal Care", "Apparel", "Electronics", "Household (See more)", "Optical (See more)", "Pharmacy (See more)"],
   sams: ["Grocery", "Household", "Baby"],
 };
-/** 家里常补的东西（读特价时优先找这些）：need = 现在告急的 + 采购清单里没买的；regular = 储藏里（不算设备）用得快 / 设了最低库存的，按每天用量排 */
+/** 家里常补的东西（读特价时优先找这些）：need = 现在告急的 + 购物车里没买的；regular = 储藏里（不算设备）用得快 / 设了最低库存的，按每天用量排 */
 export function restockWatch(limit = 40) {
   const pantry = (state.enriched || []).filter((x) => spaceOf(x.category) !== "gear");
   const need = [...new Set([...alertsOf(pantry).map((x) => x.name), ...openShopping().map((s) => s.name)])].slice(0, limit);
@@ -83,7 +83,7 @@ export function myItemNames(limit = 120) {
 }
 /** 录入特价时对上家里的物品：特价的名称 / 通用叫法（aka）里有一个和储藏物品的名字或别名完全一样，就把物品名放到 aka 最前面。
  *  AI 给的 aka 里本来就有中文通用名（「鸡蛋, eggs」），所以英文网站的特价也能对上中文物品；
- *  不同牌子的同一样东西都带上同一个物品名 → 采购清单、以前的价格都按它合并。只认完全一样，不猜（「巧克力牛奶」不会算成「牛奶」）。 */
+ *  不同牌子的同一样东西都带上同一个物品名 → 购物车、以前的价格都按它合并。只认完全一样，不猜（「巧克力牛奶」不会算成「牛奶」）。 */
 export function linkItems(rows) {
   const alias = state.itemAliases || [], idx = new Map();
   for (const it of (state.items || []).filter((x) => spaceOf(x.category) !== "gear")) {
@@ -107,7 +107,7 @@ export const adUrl = (s) => s.ad_url || CHAINS[s.chain]?.ad || flippUrl(s);
 export const mapUrl = (s) => (s.lat != null && s.lon != null ? `https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=16/${s.lat}/${s.lon}`
   : `https://www.google.com/maps/search/${encodeURIComponent([s.name, s.address].filter(Boolean).join(" "))}`);
 
-/* ───────────── 特价：有效期、待更新、对上采购清单 ───────────── */
+/* ───────────── 特价：有效期、待更新、对上购物车 ───────────── */
 /** 还在有效期里的特价（没写结束日期的算有效） */
 export const liveDeals = (shopId) => (state.shopDeals || []).filter((d) => (!shopId || d.shop_id === shopId) && (!d.valid_to || d.valid_to >= todayISO()));
 /** 「每周」更新的商店：最近一个更新日（refresh_dow，默认周三）之后还没更新过 → 待更新 */
@@ -141,7 +141,7 @@ export function replaceable(shop, rows) {
 /** 一条特价的比较键：名称、通用叫法（中英文）、品牌 */
 const dealKeys = (d) => [d.name, ...(String(d.aka || "").split(/[,，、/]/))].map(normName).filter((k) => k.length >= 2);
 const hit = (keys, k) => keys.some((x) => x.includes(k) || (k.length >= 3 && k.includes(x)));
-/** 这条特价对上了采购清单里哪几项（待买 / 正在买）；清单项连着库存物品时，物品的别名也算 */
+/** 这条特价对上了购物车里哪几项（待买 / 正在买）；清单项连着库存物品时，物品的别名也算 */
 export function dealMatches(d, open = openShopping()) {
   const keys = dealKeys(d);
   return open.filter((s) => s.keys.some((k) => hit(keys, k)));
@@ -150,13 +150,13 @@ export function openShopping() {
   const alias = state.itemAliases || [];
   return (state.shopping || []).filter((s) => s.status !== "bought").map((s) => ({ ...s, keys: [s.name, ...alias.filter((a) => a.item_id && a.item_id === s.item_id).map((a) => a.alias)].map(normName).filter((k) => k.length >= 2) }));
 }
-/** 采购清单里某一项现在最便宜的特价（各家都算），没有返回 null */
+/** 购物车里某一项现在最便宜的特价（各家都算），没有返回 null */
 export function bestDealFor(s) {
   const list = dealsFor(s); if (!list.length) return null;
   return { deal: list[0], shop: (state.shops || []).find((x) => x.id === list[0].shop_id), n: list.length };
 }
 const itemKeys = (s) => [s.name, ...(state.itemAliases || []).filter((a) => a.item_id && a.item_id === s.item_id).map((a) => a.alias)].map(normName).filter((k) => k.length >= 2);
-/** 采购清单某一项对得上的全部特价（常去的商店、有效期内），按比价规则排好（第一条 = 默认显示的那条） */
+/** 购物车某一项对得上的全部特价（常去的商店、有效期内），按比价规则排好（第一条 = 默认显示的那条） */
 export function dealsFor(s) {
   const keys = itemKeys(s); if (!keys.length) return [];
   const on = new Set((state.shops || []).filter((x) => !x.archived).map((x) => x.id));
@@ -386,7 +386,7 @@ const RULES = [
   "纯图片的传单就看截图读价格；小字看不清的写 null，不要猜。",
   "price = 单件价：「2 for $5」记 2.50；「$3.99/lb」记 3.99、unit_label 写 /lb；price_text 保留广告原文。",
   "unit_price + unit_label = 统一单价，方便比不同包装：肉、蔬果、散装按 /lb，包装食品按 /oz，饮料和液体按 /fl oz，按个数的按 /ct（鸡蛋、卷纸）。能从规格算就算，算不出写 null。",
-  "aka = 1–3 个通用叫法（逗号分开），要有一个中文，例如「鸡蛋, eggs」，用来和我的采购清单对上。如果这样东西和上面「我家储藏里的物品名」里的某一个是同一种东西（不管牌子、包装大小），把那个名字原样放在 aka 第一个。",
+  "aka = 1–3 个通用叫法（逗号分开），要有一个中文，例如「鸡蛋, eggs」，用来和我的购物车对上。如果这样东西和上面「我家储藏里的物品名」里的某一个是同一种东西（不管牌子、包装大小），把那个名字原样放在 aka 第一个。",
   "有效期：整份广告统一的日期写在商店那一层的 valid_from / valid_to；每样东西有效期不一样的（比如 Costco 会员特价写着「Valid 11/12 – 12/7」），写在那一条特价自己的 valid_from / valid_to。看不到日期就写 null，不要猜——我的应用会按这家商店的换广告日自动补。",
   "deal_type = 折扣类型，按广告上写的，可以多个、逗号分开，只用这些：black_friday, cyber_monday, holiday, weekly, instore, online, rollback, clearance, coupon, member, bogo, multi, limited（Black Friday、Cyber Monday、节日、周广告、只限店内、只限网上、Walmart Rollback、清仓、电子券 / Clip coupon、会员价 / 会员卡价、买一送一、多件优惠如 2 for $5、限时）。没有特别说明的写 null。",
   "category 用：groceries, produce, meat, dairy, bakery, frozen, drinks, snacks, household, personal, baby, pet, pharmacy, optical, apparel, hardware, auto, electronics, home, other。",
@@ -395,10 +395,10 @@ const RULES = [
 export function claudePrompt({ shops = [], zip = "", list = [] } = {}) {
   const names = shops.map((s) => `${s.name}${s.address ? `（${s.address}）` : ""}`).join("；");
   return [
-    list.length ? `帮我比价：下面是我这周的采购清单，请根据我现在打开的几家超市传单标签页，找出每样东西去哪家买最便宜（按单价比），没有特价的就写「没看到」。`
+    list.length ? `帮我比价：下面是我这周的购物车，请根据我现在打开的几家超市传单标签页，找出每样东西去哪家买最便宜（按单价比），没有特价的就写「没看到」。`
       : `帮我把我打开的超市传单标签页里的特价整理出来。`,
     names ? `商店：${names}。${zip ? `ZIP：${zip}。` : ""}` : (zip ? `ZIP：${zip}。` : ""),
-    list.length ? `采购清单：${list.join("、")}` : "",
+    list.length ? `购物车：${list.join("、")}` : "",
     list.length ? "" : (() => { const w = restockWatch(25), all = [...w.need, ...w.regular].slice(0, 40);
       return `重点：只要吃的、日用品（纸巾、洗涤、清洁）、宝宝用品；电视、家电、工具、玩具、衣服这些跳过。${all.length ? `家里常补的东西优先找：${all.join("、")}。` : ""}`; })(),
     myItemNames().length ? `我家储藏里的物品名（录入 aka 用）：${myItemNames().join("、")}。` : "",

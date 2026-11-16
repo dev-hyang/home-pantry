@@ -68,7 +68,7 @@ function viewList() {
   return `<section class="section shops-page">
     ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("常去的商店"), icon: "🏪" }])}
     ${missingPanel()}
-    <div class="section-head"><h2>${t("常去的商店")}</h2><p>${t("每家的本周广告、特价都在这里；采购清单会标出哪家在打折。")}</p>
+    <div class="section-head"><h2>${t("常去的商店")}</h2><p>${t("每家的本周广告、特价都在这里；购物车会标出哪家在打折。")}</p>
       <div class="head-acts"><button type="button" class="btn btn-sm" data-action="shops-claude" aria-expanded="${!!u.claude}">🤖 ${t("用 Claude 整理")}</button><a class="btn btn-sm" href="${href("shops", "find")}">📍 ${t("找附近的商店")}</a><a class="btn btn-sm" href="${href("shops", "deals")}">🏷 ${t("特价一览")}</a><a class="btn btn-sm" href="${href("shops", "log")}">📜 ${t("更新记录")}</a><button type="button" class="btn btn-sm btn-primary" data-action="shops-new" aria-expanded="${u.edit === "new"}" aria-controls="shopEditForm">${u.edit === "new" ? "－" : "＋"} ${t("手动添加")}</button></div></div>
     ${u.edit === "new" && !gridOn ? shopForm(null) : ""}
     ${u.claude ? claudePanel() : ""}
@@ -180,7 +180,7 @@ function claudePanel() {
       <li>${t("把 Claude 最后给的 JSON 贴到下面，点「看看能导入什么」，核对后导入。")}</li>
     </ol>
     <div class="form-actions"><button type="button" class="btn btn-sm" data-action="shops-claude-copy" data-mode="all">📋 ${t("复制「整理特价」指令")}</button>
-      <button type="button" class="btn btn-sm" data-action="shops-claude-copy" data-mode="list">📋 ${t("复制「按采购清单比价」指令")}</button></div>
+      <button type="button" class="btn btn-sm" data-action="shops-claude-copy" data-mode="list">📋 ${t("复制「按购物车比价」指令")}</button></div>
     ${u.copyText ? copyBox() : ""}
     <label class="att-text"><span>${t("Claude 给的 JSON")}</span><textarea id="shopsImportText" data-autosize rows="3" placeholder='{"stores":[{"store":"ALDI","deals":[…]}]}'>${esc(u.impText || "")}</textarea></label>
     ${imp ? (imp.length ? `<ul class="shops-imp">${imp.map((g, i) => `<li><label class="check-inline"><input type="checkbox" data-imp="${i}" ${g.include ? "checked" : ""} ${g.shop ? "" : "disabled"}>
@@ -334,7 +334,7 @@ function dealsHtml(s, du, deals) {
   </div>`;
 }
 
-/* ───────────── 采购清单里用到的小块 ───────────── */
+/* ───────────── 购物车里用到的小块 ───────────── */
 /** 清单某一项现在最便宜的特价：「🏷 ALDI $2.49 · 到 11/18」 */
 export function shopDealLine(s) {
   if (!state.shops?.length) return "";
@@ -342,7 +342,7 @@ export function shopDealLine(s) {
   const d = pickedDeal(s, list) || list[0];
   return `<a class="shop-deal-line" href="${dealsHref(s.id)}">🏷 ${esc(shopName(d.shop_id))} ${d.price != null ? money(d.price) : esc(d.price_text || "")}${d.size ? ` <small>${esc(d.size)}</small>` : ""}${d.valid_to ? ` · ${t("到 {d}", { d: fmtShort(d.valid_to) })}` : ""}${list.length > 1 ? ` · ${t("另有 {n} 家", { n: list.length - 1 })}` : ""}</a>`;
 }
-/* ───────────── 采购清单的特价：选用哪一家（下拉）+ 比一比（特价一览，只看这一项） ───────────── */
+/* ───────────── 购物车的特价：选用哪一家（下拉）+ 比一比（特价一览，只看这一项） ───────────── */
 const dealsHref = (itemId) => `${href("shops", "deals")}${itemId ? `?item=${encodeURIComponent(itemId)}` : ""}`;
 const PICK_KEY = "hp-deal-pick";   // 没执行 069（没有 deal_id 列）时，选的那家先记在这台设备上
 const localPicks = () => { try { return JSON.parse(localStorage.getItem(PICK_KEY) || "{}") || {}; } catch { return {}; } };
@@ -352,7 +352,7 @@ export function pickedDeal(s, list = dealsFor(s)) { const id = s.deal_id || loca
 const priceTxt = (d) => (d.price != null ? money(d.price) : d.price_text || "—");
 const dealLabel = (d) => [shopName(d.shop_id), priceTxt(d), d.unit_price != null ? `${unitMoney(+d.unit_price)}${d.unit_label || ""}` : "", d.size || "", d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""].filter(Boolean).join(" · ");
 const WHY = { unit: "单价最低", brand: "单价差不多，是清单上写的牌子", freq: "单价差不多，你常去这家", near: "单价差不多，离家更近", price: "没有单价，按价格最低", none: "只写了「省多少」，按常去的商店排" };
-/** 采购清单一行里的特价：下拉选一家（默认按比价规则的第一条）+「比一比」进特价一览 */
+/** 购物车一行里的特价：下拉选一家（默认按比价规则的第一条）+「比一比」进特价一览 */
 export function shopDealPicker(s) {
   if (!state.shops?.length || s.status === "bought") return "";
   const list = dealsFor(s); if (!list.length) return "";
@@ -374,7 +374,7 @@ async function pickDeal(itemId, dealId, { rerender = false } = {}) {
   if (rerender) R?.();
 }
 
-/* ───────────── 特价一览：以商品为主（各家的特价放在一起比），列表 / 卡片两种看法；?item= 只看采购清单的某一项 ───────────── */
+/* ───────────── 特价一览：以商品为主（各家的特价放在一起比），列表 / 卡片两种看法；?item= 只看购物车的某一项 ───────────── */
 const DV_SORTS = [["best", "推荐"], ["unit", "按单价"], ["price", "按价格"], ["soon", "快到期的在前"], ["shop", "按商店"]];
 function dvUi() {
   const u = ui();
@@ -456,7 +456,7 @@ function viewDeals() {
   </section>`;
 }
 /** 按商品分组：同一样东西（aka 的第一个叫法——录入时对上家里物品的就是物品名，否则是 AI 给的通用名，如「巧克力」）的各家特价放一组，
- *  组内按比价规则排；对上采购清单的组在前，其余按名称。返回 [{ label, deals, hits }] */
+ *  组内按比价规则排；对上购物车的组在前，其余按名称。返回 [{ label, deals, hits }] */
 function groupDeals(list, hits) {
   const m = new Map();
   for (const d of list) {
@@ -612,7 +612,7 @@ export async function shopsAction(action, el, { render, go, refresh }) {
     case "shops-claude-copy": {
       const one = id ? shopById(id) : null, shops = one ? [one] : (state.shops || []).filter((s) => !s.archived);
       const list = el.dataset.mode === "list" ? openShopping().map((s) => s.name) : [];
-      if (el.dataset.mode === "list" && !list.length) { toast(t("采购清单是空的。")); return; }
+      if (el.dataset.mode === "list" && !list.length) { toast(t("购物车是空的。")); return; }
       const text = claudePrompt({ shops, zip: home()?.zip || "", list });
       try { await navigator.clipboard.writeText(text); u.copyText = ""; toast(t("已复制：在 Chrome 侧边栏里粘贴给 Claude")); }
       catch { u.copyText = text; }
@@ -645,9 +645,9 @@ export async function shopsAction(action, el, { render, go, refresh }) {
     case "shops-tolist": {
       const d = (state.shopDeals || []).find((x) => x.id === el.dataset.deal); if (!d) return;
       const name = (String(d.aka || "").split(/[,，]/).map((x) => x.trim()).find((x) => lang !== "en" ? /[一-鿿]/.test(x) : /^[\x20-\x7e]+$/.test(x)) || d.name).slice(0, 60);
-      if (!window.confirm(t("把「{name}」加入采购清单？", { name }))) return;   // 右滑加入清单也走这里：取消 = 不加
+      if (!window.confirm(t("把「{name}」加入购物车？", { name }))) return;   // 右滑加入清单也走这里：取消 = 不加
       await Store.saveShopping({ name, quantity: 1, unit: Units.guess(name) || Units.guess(d.name) || "", item_id: null, category: "other" });
-      toast(t("已加入采购清单：{name}", { name })); return refresh();
+      toast(t("已加入购物车：{name}", { name })); return refresh();
     }
   }
 }

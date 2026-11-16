@@ -168,7 +168,7 @@ export function ensureFirstYear() {
     .finally(() => { fyBusy = null; }));
 }
 const monthOpt = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
-const noSpend = () => `<div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("在采购清单点“已买到”时填上实际花费，或在“明细”里补记一笔。")}</div>`;
+const noSpend = () => `<div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("在购物车点“已买到”时填上实际花费，或在“明细”里补记一笔。")}</div>`;
 
 /* ── 钻取：图表色块、图例、名称、数字卡片都带 data-drill（查询串），点一下跳到 明细 并套上对应筛选（分类 / 商店 / 月份 / 近 N 个月）；
  * 全局点击处理在 main.js，筛选在 applySpendDrill，明细页顶部用筛选条显示并可逐项去掉。 */
@@ -425,7 +425,7 @@ function spendRecordsTab() {
   const preCat = q?.get("cat") || "", preTrip = q?.get("trip") || "";   // 从「按行程」进来：分类预选旅行、行程预填
   const open = !!state.spendAddOpen || !!q?.get("add");   // 表单默认收着，点「手动记一笔」或从「记一笔花费」按钮进来才展开
   return `<section class="section">
-      <div class="section-head"><h2>${t("记一笔花费")}</h2><p>${t("没走采购清单的，在这里记")}</p></div>
+      <div class="section-head"><h2>${t("记一笔花费")}</h2><p>${t("没走购物车的，在这里记")}</p></div>
       <div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}">
         <button type="button" class="way ${open ? "is-cur" : ""}" data-action="spend-add-toggle" aria-expanded="${open ? "true" : "false"}"><span class="way-ico" aria-hidden="true">✍️</span><span>${t("手动记一笔")}</span></button>
         <a class="way" href="${href("pantry", "scan")}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍小票识别")}</span></a>
@@ -732,7 +732,7 @@ export const spendRowsLoaded = () => spendList.rows.filter((p) => !p.virtual);
 export const fetchSpendRows = (max) => spendList.fetchAll(max);
 function spendRecordsHtml() {
   const f = state.spendFilter, fc = spendList.facets || {};
-  if (fc.years && !fc.years.length) return `<div class="section-head"><h2>${t("花费记录")}</h2></div><div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("采购清单点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;
+  if (fc.years && !fc.years.length) return `<div class="section-head"><h2>${t("花费记录")}</h2></div><div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("购物车点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;
   // 下拉选项：数据库读到的（全部年份）+ 联想里近 400 天的商店，在第一次统计读回来之前也有东西可选
   const y0 = new Date().getFullYear(), first = Math.min(state.stats.firstYear || y0, ...(fc.years || []).map(Number));
   const years = [...new Set([...(fc.years || []), ...Array.from({ length: Math.max(1, y0 - first + 1) }, (_, i) => String(y0 - i))])].sort().reverse();

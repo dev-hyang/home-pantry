@@ -289,7 +289,7 @@ function markDups(box) {
     hint.innerHTML = dupNote(list); hint.hidden = !list.length;
     const cart = r.querySelector(".cart-hint"), tg = g("target"), sh = mode === "replace" ? null : matchOpenShopping({ name: g("name"), item_id: tg.startsWith("__") ? null : tg, at: new Date(`${date}T12:00:00`) }, taken);
     if (sh && r.querySelector('[name="inc"]').checked) taken.add(sh.id);
-    cart.textContent = sh ? "🛒 " + t("采购清单里的「{n}」会标成已买到", { n: sh.name }) : ""; cart.hidden = !sh;
+    cart.textContent = sh ? "🛒 " + t("购物车里的「{n}」会标成已买到", { n: sh.name }) : ""; cart.hidden = !sh;
     if (list.length && r.querySelector('[name="inc"]').checked) n++;
   });
   return n;
@@ -380,7 +380,7 @@ async function run() {
   finally { sc.busy = false; sc.progress = ""; repaint(); updateSum(); }
 }
 
-/** 读表单里的每一行，写库存 + 采购花费；已有物品按单位换算，匹配到的采购清单项顺手标成已买到 */
+/** 读表单里的每一行，写库存 + 采购花费；已有物品按单位换算，匹配到的购物车项顺手标成已买到 */
 async function confirm(ctx) {
   const f = $("#scanForm"); if (!f) return;
   const cur = Units.region.currency, boxes = [...f.querySelectorAll(".scan-rcpt")].filter((b) => b.querySelector('[name="rinc"]')?.checked !== false);
@@ -427,7 +427,7 @@ async function confirm(ctx) {
       }
       const item = x.target.startsWith("__") ? null : state.items.find((i) => i.id === x.target);
       await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay });
-      const cart = matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 采购清单里对应的那一项：不管入不入库，买到了就标成已买到
+      const cart = matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 购物车里对应的那一项：不管入不入库，买到了就标成已买到
       if (cart) { doneShop.add(cart.id); cartDone++; await Store.saveShopping({ id: cart.id, status: "bought", bought_at: x.now, amount: x.amount, claimed_by_name: cart.claimed_by_name || state.displayName }); }
       if (x.target === "__skip") { spendOnly++; continue; }
       if (item && normName(x.name) !== normName(item.name) && !findItem(x.name)) Store.addItemAlias(item.id, x.name.slice(0, 60)).catch(() => {});   // 学会这个叫法
@@ -442,7 +442,7 @@ async function confirm(ctx) {
     if (dropIds.length) await Store.deletePurchases(dropIds);
     if (fixed || dropIds.length) spendChanged();
     for (const s of new Set(rows.map((x) => x.store).filter(Boolean))) rememberStore(s);
-    toast((boxes.length > 1 ? t("已录入 {r} 张小票：", { r: boxes.length }) : t("已录入：")) + t("入库 {a} 项，新建 {b} 项，只记花费 {c} 项", { a: stocked, b: created, c: spendOnly }) + (fixed ? t("；更正了之前录的 {n} 项", { n: fixed }) : "") + (dropIds.length ? t("，删掉 {m} 项", { m: dropIds.length }) : "") + (cartDone ? t("；采购清单 {n} 项已标成已买到", { n: cartDone }) : "") + (convs.length ? t("；已换算单位：{list}", { list: convs.join("、") }) : "") + (warns.length ? t("；{names} 的单位无法换算，按原数字记入了，请核对库存", { names: warns.join("、") }) : ""));
+    toast((boxes.length > 1 ? t("已录入 {r} 张小票：", { r: boxes.length }) : t("已录入：")) + t("入库 {a} 项，新建 {b} 项，只记花费 {c} 项", { a: stocked, b: created, c: spendOnly }) + (fixed ? t("；更正了之前录的 {n} 项", { n: fixed }) : "") + (dropIds.length ? t("，删掉 {m} 项", { m: dropIds.length }) : "") + (cartDone ? t("；购物车 {n} 项已标成已买到", { n: cartDone }) : "") + (convs.length ? t("；已换算单位：{list}", { list: convs.join("、") }) : "") + (warns.length ? t("；{names} 的单位无法换算，按原数字记入了，请核对库存", { names: warns.join("、") }) : ""));
     resetScan(); ctx.go(href("shopping")); ctx.refresh();
   } catch (e) { sc.busy = false; sc.error = t("入库中途失败：{msg}。已写入的部分请回到库存和统计核对，不要直接重复提交。", { msg: e.message }); repaint2(); }
 }
