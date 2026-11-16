@@ -359,7 +359,7 @@ export function viewVehicles() {
           <a class="btn btn-primary" href="${href("asset", "new")}?type=vehicle_gas">${t("添加车辆")}</a></div></div>
       ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.map((a) => { const b = alertBadge(a); return dotRow({ cls: b.cls, nameHtml: `<a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>`,
         badge: { label: a.followUp ? t(C().RESULTS[a.followUp.result]) : a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修"), cls: b.cls }, detail: alertText(a),
-        primary: `<a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a>`, menu: [{ label: t("详情"), href: href("asset", a.id) }], ask: assetAsk(a) }); }).join("")}</ul></div>` : ""}
+        primary: { href: `${href("asset", a.id)}?log=1`, label: t("记保养") }, menu: [{ label: t("详情"), href: href("asset", a.id) }], ask: assetAsk(a) }); }).join("")}</ul></div>` : ""}
     </section>
     ${list.length ? `<section class="section"><div class="asset-grid">${list.map(vehicleCard).join("")}</div></section>`
       : `<section class="section"><div class="panel empty"><strong>${past.length ? t("没有在用的车辆") : t("还没有车辆档案")}</strong>${t("记下年款、车牌、里程和动力类型，按月或按里程提醒机油、轮胎、刹车油、12V 电瓶等；牌照、排放、保险到期也会提醒。油车和电车用不同的保养模板。")}

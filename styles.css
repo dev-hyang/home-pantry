@@ -1000,7 +1000,6 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .dr-title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .dr-title .badge { flex: none; }
 .act-more.v-dots .dots3 { box-shadow: 0 -7px currentColor, 0 7px currentColor; }
-.act-more.v-dots > summary { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 .dot-row .btn.btn-sm { min-height: 44px; display: inline-flex; align-items: center; }
 /* 首页 · 今日（2026-11 重排，docs/design-today.md）：手机一栏；宽屏两栏（左：要做的事，右：看一眼的数字和咩咩），读屏顺序 = 先左栏再右栏 */
 .today-layout { display: grid; gap: 18px; align-items: start; }
@@ -3587,3 +3586,8 @@ span.rem-tag { cursor: default; }
 .form-page .sub-legend small { font-weight: 400; }
 /* 自带样式的小块（组别选择、小票分张、额度、账单模板分组、Escrow、交易类型）不套横栏 */
 .form-page :is(.space-pick, .scan-rcpt, .quota-box, .tpl-group, .dd-escrow, .deal-type-pick) > legend { display: block; min-height: 0; padding: 0 4px; margin: 0 0 6px; border-radius: 0; background: none; color: inherit; font-size: 14px; }
+
+/* 三点菜单按钮（全站同一个大小）：44px 的圆形，和提醒行左边的实心圆点同一种圆；点按区域够大，各页不再忽大忽小 */
+.act-more > summary:has(> .dots3) { box-sizing: border-box; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.act-item.is-first { font-weight: 800; color: var(--pine); }
+.dot-row .alert-acts { gap: 6px; }

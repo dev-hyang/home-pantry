@@ -514,7 +514,7 @@ function assetsPanel() {
     ? `<div class="empty"><strong>${t("还没有设备档案")}</strong>${t("按房屋资料一次生成炉子、热水器、排水泵等设备，记录保修和保养周期。")}<p><a class="btn btn-primary" href="${href("house", "asset-template")}">${t("生成设备清单")}</a></p></div>`
     : alerts.length
       ? `<ul class="restock-list">${alerts.slice(0, 4).map((a) => { const b = alertBadge(a), act = alertAct(a); return dotRow({ cls: b.cls, nameHtml: `<a class="link-name" href="${href("asset", a.id)}">${a.t?.icon || "⚙️"} ${esc(assetName(a))}</a>`,
-          badge: b, detail: alertText(a), primary: `<a class="btn btn-sm" href="${act.href}">${esc(act.label)}</a>`, menu: assetMenu(a), ask: assetAsk(a) }); }).join("")}</ul>`
+          badge: b, detail: alertText(a), primary: { href: act.href, label: act.label }, menu: assetMenu(a), ask: assetAsk(a) }); }).join("")}</ul>`
       : `<div class="empty"><strong>${t("{n} 台设备，保养都在周期内", { n: list.length })}</strong></div>`;
   return `<section class="section">
     <div class="section-head"><h2>${t("设备档案")}</h2><div class="head-acts">

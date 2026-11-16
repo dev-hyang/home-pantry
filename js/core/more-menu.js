@@ -9,7 +9,7 @@ export function moreMenu(items, { up = false, label = "", vertical = false } = {
   const list = items.filter(Boolean);
   if (!list.length) return "";
   const item = (x) => {
-    const cls = `act-item${x.danger ? " is-danger" : ""}`;
+    const cls = `act-item${x.danger ? " is-danger" : ""}${x.first ? " is-first" : ""}`;
     if (x.href) return `<a class="${cls}" href="${esc(x.href)}">${esc(x.label)}</a>`;
     const data = Object.entries(x.data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join("");
     return `<button type="button" class="${cls}" data-action="${esc(x.action)}"${data}>${esc(x.label)}</button>`;
