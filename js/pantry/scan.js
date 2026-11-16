@@ -38,7 +38,8 @@ function scanPrompt(multi = "auto") {
       : "The photos / text may contain ONE OR SEVERAL separate receipts or orders (different stores, dates or times). Return one entry in receipts per separate receipt. Photos that are consecutive parts of one long receipt belong to the same entry. NEVER mix lines from different receipts, and never merge two stores into one entry.",
     `Write product names in short, generic ${names} (e.g. "Whole milk", not store abbreviations). Keep brand only when it matters.`,
     "Each purchased product is one line. Weight-priced items (produce, meat, bulk): qty = weight, unit = lb / kg / oz / g. Everything else: qty = how many packages, unit = the PACKAGE TYPE it is sold in — one of: bottle (milk, juice, oil, sauces, detergent, shampoo), bag (rice, flour, chips, frozen food, bread), box (eggs, cereal, cookies, berries, trash bags), can (soda, beer, canned food, jars), pack (noodles, tissues, wipes, diapers), roll (paper towels, toilet paper, foil), tube (toothpaste), cup (yogurt), pc (single loose items, or when you can't tell). Never put the package size (e.g. 64 fl oz) as qty.",
-    "amount = the final price paid for that line (apply line discounts). Skip tax, tip, bag fees, delivery/service fees, subtotal and payment lines (set skip=true or omit them).",
+    "amount = the final price paid for that line (apply line discounts). Skip subtotal and payment lines (set skip=true or omit them).",
+    "TAX / TIP / FEES ARE NOT PRODUCTS BUT MUST BE KEPT: output each one as its own line with fee = \"tax\" | \"tip\" | \"delivery\" | \"service\" | \"bag\" | \"other\" (sales tax, tip, delivery fee, service fee, bag fee, any other mandatory charge), name = a short label, amount = the positive amount charged (a waived or refunded fee is negative), match = null. If a fee is printed only as a combined line, output that one line, not its parts. If prices already include tax and no tax line is printed, output no tax line. Products have fee = null.",
     "DISCOUNT LINES ARE NOT PRODUCTS: a line with a negative amount (\"3.00-\", \"-3.00\") that is a coupon / instant savings / TPD / member discount belongs to the product it discounts — usually the line right above it or the product named after a slash. Costco example: \"1179 Pomegranates 11.99 E\" then \"000399701 /Pomegranate 3.00- E\" → ONE line: Pomegranates, amount 8.99. Subtract the discount from that product's amount and do NOT output the discount as its own line.",
     "WHOLE-RECEIPT DISCOUNTS are different: a discount for the whole order, not one product (Target Circle Card / RedCard 5% savings, employee or team-member discount, \"order discount\", a percentage off the subtotal) → output ONE line with that negative amount and order_discount=true. Never subtract it from a single product.",
     "QUANTITY LINES: \"2 @ $1.99\" (or \"2 @ 1.99\") printed under a product means qty = 2 and that product's amount = the line total (3.98). It is not a separate line. Weight lines like \"1.32 lb @ $2.49/lb\" give qty and unit for the product above.",
@@ -56,7 +57,7 @@ function scanPrompt(multi = "auto") {
     sc.date ? `The user says the purchase date is ${sc.date}; use it as date for every receipt.` : "",
     sc.text.trim() ? `Pasted text:\n${sc.text.trim().slice(0, 12000)}` : "",
     sc.images.length ? `${multi === "one" ? 1 : sc.images.length} image(s) attached.` : "",
-    'Return exactly: {"receipts":[{"store":"","date":null,"currency":"","total":null,"lines":[{"raw":"original line","name":"","qty":1,"unit":"","amount":null,"match":null,"category":"other","skip":false,"order_discount":false}]}]}',
+    'Return exactly: {"receipts":[{"store":"","date":null,"currency":"","total":null,"lines":[{"raw":"original line","name":"","qty":1,"unit":"","amount":null,"match":null,"category":"other","skip":false,"order_discount":false,"fee":null}]}]}',
   ].filter(Boolean).join("\n");
   return { system, user };
 }
@@ -94,7 +95,11 @@ function unitNote(row) {
 
 function buildReceipt(j) {
   const lines = Array.isArray(j?.lines) ? j.lines : [];
-  const rows = lines.filter((l) => l && !l.skip && String(l.name || "").trim()).map((l) => {
+  const rows = lines.filter((l) => l && !l.skip && (FEE_KINDS[l.fee] || String(l.name || "").trim())).map((l) => {
+    if (FEE_KINDS[l.fee]) {   // 税 / 小费 / 配送费 / 服务费：单独一行，只记花费，不入库
+      const a = l.amount == null || l.amount === "" ? null : num(l.amount, NaN);
+      return { include: true, fee: l.fee, raw: String(l.raw || ""), name: String(l.name || "").trim().slice(0, 60) || t(FEE_KINDS[l.fee]), qty: "", unit: "", amount: Number.isFinite(a) ? Math.round(a * 100) / 100 : null, def: "", match: "skip", category: FEES_CAT, order: false };
+    }
     const m = (Number.isInteger(l.match) ? sc.pool[l.match] : null) || findItem(l.name, { spaces: ["pantry", "house"] });   // AI 没对上：写法一样的已有物品
     const valid = window.CATEGORIES.some((c) => c.id === l.category && c.space !== "gear");
     const amount = l.amount == null || l.amount === "" ? null : num(l.amount, NaN);
@@ -112,6 +117,9 @@ function buildReceipt(j) {
  *  往上找同名（或名字互相包含）的正价行；找不到、而原文是「/商品名」或 TPD / 优惠券写法的，并进紧挨着的上一行正价商品。
  *  例：石榴 11.99 + 石榴 −3.00 → 石榴 8.99（一行）。实在找不到对应商品的负数行留着（多半是退货 / 整单优惠），由用户自己看。 */
 /** 不是花钱的行（11-14 Target）：「You saved」「Total savings」「Circle earnings」这类说明，模型偶尔当成商品——直接丢掉 */
+/** 税费类的行：fee 取值 → 默认名称（AI 没给名字时用） */
+const FEE_KINDS = { tax: "税", tip: "小费", delivery: "配送费", service: "服务费", bag: "袋子费", other: "其他费用" };
+const FEES_CAT = "shop_fees";
 const INFO_LINE = /\byou saved\b|\btotal savings\b|\bsavings total\b|circle (?:earnings|rewards)|rewards earned|\bcircle 360\b|change due|您节省|共节省/i;
 /** 整单折扣（Target Circle Card / RedCard 5%、员工折扣、整单百分比优惠）：模型标了 order_discount，或者原文看得出来 */
 const ORDER_DISC = /red\s*card|circle\s*card|employee|team\s*member|order\s*discount|whole\s*order|整单/i;   // 只有「20% off」不算：Target Circle 单件优惠也这样写，交给模型的 order_discount 判断
@@ -120,7 +128,7 @@ const isOrderDisc = (r) => r.amount < 0 && (r.order || ORDER_DISC.test(r.raw || 
 function spreadOrderDiscounts(rows) {
   for (let i = rows.length - 1; i >= 0; i--) {
     const d = rows[i]; if (!isOrderDisc(d)) continue;
-    const items = rows.filter((r) => r !== d && r.amount > 0 && !isOrderDisc(r)), sum = items.reduce((a, r) => a + r.amount, 0);
+    const items = rows.filter((r) => r !== d && !r.fee && r.amount > 0 && !isOrderDisc(r)), sum = items.reduce((a, r) => a + r.amount, 0);
     if (!items.length || sum <= 0) continue;
     let left = Math.round(d.amount * 100);   // 负数，按分算
     items.forEach((r, k) => {
@@ -134,11 +142,11 @@ function spreadOrderDiscounts(rows) {
 function mergeDiscounts(rows) {
   const DISC = /^\s*[\d\s]*\/|\b(?:tpd|inst(?:ant)?\s*sav|savings?|coupon|disc(?:ount)?|mfr|off)\b|circle\s*(?:offer|deal)|target\s*circle(?!\s*card)|优惠|折扣|折|减/i;
   for (let i = rows.length - 1; i >= 0; i--) {
-    const r = rows[i]; if (!(r.amount < 0) || isOrderDisc(r)) continue;   // 整单折扣另外按比例分（spreadOrderDiscounts）
+    const r = rows[i]; if (r.fee || !(r.amount < 0) || isOrderDisc(r)) continue;   // 整单折扣另外按比例分（spreadOrderDiscounts）
     const k = normName(r.name);
     let j = -1;
-    for (let x = i - 1; x >= 0; x--) { const p = rows[x], pk = normName(p.name); if (p.amount > 0 && pk && k && (pk === k || pk.includes(k) || k.includes(pk))) { j = x; break; } }
-    if (j < 0 && DISC.test(r.raw || "")) for (let x = i - 1; x >= 0; x--) if (rows[x].amount > 0) { j = x; break; }
+    for (let x = i - 1; x >= 0; x--) { const p = rows[x], pk = normName(p.name); if (!p.fee && p.amount > 0 && pk && k && (pk === k || pk.includes(k) || k.includes(pk))) { j = x; break; } }
+    if (j < 0 && DISC.test(r.raw || "")) for (let x = i - 1; x >= 0; x--) if (rows[x].amount > 0 && !rows[x].fee) { j = x; break; }
     if (j < 0) continue;
     const p = rows[j];
     p.amount = Math.round((p.amount + r.amount) * 100) / 100;
@@ -215,6 +223,14 @@ function targetOptions(row) {
     <option value="__new" ${!row.match ? "selected" : ""}>＋ ${t("新建物品")}</option>
     ${grp("pantry", "日常消耗品")}${grp("house", "汽车房屋消耗品")}`;
 }
+function feeRowHtml(x, ri, i, cur) {
+  return `<li class="scan-row scan-fee-row" data-r="${ri}" data-i="${i}">
+    <label class="check-inline scan-inc"><input type="checkbox" name="inc" ${x.include ? "checked" : ""} aria-label="${esc(t("包含这一行"))}"></label>
+    <input name="name" maxlength="60" autocomplete="off" aria-label="${esc(t("名称"))}" value="${esc(x.name)}">
+    <input name="amount" type="number" step="0.01" inputmode="decimal" aria-label="${esc(t("金额"))}（${esc(cur)}）" value="${x.amount ?? ""}">
+    <input type="hidden" name="qty" value=""><input type="hidden" name="unit" value=""><input type="hidden" name="target" value="__skip"><input type="hidden" name="cat" value="${FEES_CAT}">
+    <p class="dup-hint" hidden></p><p class="cart-hint" hidden></p><p class="name-hint" hidden></p><p class="unit-hint" hidden></p></li>`;
+}
 function rowHtml(x, ri, i, cur) {
   return `<li class="scan-row ${x.match ? "" : "is-new"}" data-r="${ri}" data-i="${i}">
         <label class="check-inline scan-inc"><input type="checkbox" name="inc" ${x.include ? "checked" : ""}><span>${x.raw ? `<small class="muted">${esc(x.raw)}</small>` : t("包含这一行")}</span></label>
@@ -238,7 +254,8 @@ function receiptHtml(r, ri, many, cur) {
       </div>
       <div class="rcpt-dup" role="status" hidden></div>
       <p class="muted scan-past" ${r.date < todayISO() ? "" : "hidden"} style="margin:8px 0 0;font-size:13px">📌 ${t("补记以前的购物：默认只记花费，不入库（东西多半已经用掉）。要加库存的行，把“放进库存”改成对应物品。")}</p>
-      <ul class="scan-rows">${r.rows.map((x, i) => rowHtml(x, ri, i, cur)).join("")}</ul>
+      <ul class="scan-rows">${r.rows.map((x, i) => (x.fee ? "" : rowHtml(x, ri, i, cur))).join("")}</ul>
+      ${r.rows.some((x) => x.fee) ? `<div class="scan-fees"><h4>🧾 ${t("税费及其他")}</h4><p class="muted">${t("税、小费、配送费、服务费：记成单独的花费，商品价格不受影响；不要的取消勾选")}</p><ul class="scan-rows">${r.rows.map((x, i) => (x.fee ? feeRowHtml(x, ri, i, cur) : "")).join("")}</ul></div>` : ""}
       ${sc.result?.manual ? `<div class="scan-addrow"><button type="button" class="btn btn-ghost btn-sm" data-action="scan-add-row" data-r="${ri}">＋ ${t("加一条")}</button><small class="muted">${t("要手动录入多样东西，就再加一条")}</small></div>` : ""}
       <p class="muted scan-rsum" style="margin:8px 0 0;font-size:13px"></p></fieldset>`;
 }
@@ -290,7 +307,7 @@ function markDups(box) {
   let n = 0; const taken = new Set();
   box.querySelectorAll(".scan-row").forEach((r) => {
     const g = (k) => r.querySelector(`[name="${k}"]`).value, hint = r.querySelector(".dup-hint");
-    const list = g("amount") === "" || mode ? [] : similarPurchases({ name: g("name"), amount: num(g("amount")), store, at: new Date(`${date}T12:00:00`) });
+    const list = g("amount") === "" || mode || r.classList.contains("scan-fee-row") ? [] : similarPurchases({ name: g("name"), amount: num(g("amount")), store, at: new Date(`${date}T12:00:00`) });
     hint.innerHTML = dupNote(list); hint.hidden = !list.length;
     const cart = r.querySelector(".cart-hint"), tg = g("target"), sh = mode === "replace" ? null : matchOpenShopping({ name: g("name"), item_id: tg.startsWith("__") ? null : tg, at: new Date(`${date}T12:00:00`) }, taken);
     if (sh && r.querySelector('[name="inc"]').checked) taken.add(sh.id);
@@ -328,7 +345,7 @@ document.addEventListener("change", async (e) => {
   if (e.target.name === "date" && e.target.closest?.("#scanForm")) {   // 改了某张小票的购买日期：它没手动选过的行，过去的日期 → 只记花费，今天 → 回到原来的默认
     const past = sc.record === "spend", box = e.target.closest(".scan-rcpt");
     box.querySelectorAll(".scan-row").forEach((r) => {
-      const sel = r.querySelector('[name="target"]'); if (sel.dataset.touched === "1") return;
+      const sel = r.querySelector('[name="target"]'); if (sel.dataset.touched === "1" || r.classList.contains("scan-fee-row")) return;
       sel.value = past ? "__skip" : (sel.dataset.def || "__new"); r.classList.toggle("is-new", sel.value === "__new");
     });
     const note = box.querySelector(".scan-past"); if (note) note.hidden = !(past && e.target.value < todayISO());
@@ -395,7 +412,7 @@ async function confirm(ctx) {
     return [...box.querySelectorAll(".scan-row")].filter((r) => r.querySelector('[name="inc"]').checked).map((r) => {
       const g = (n) => r.querySelector(`[name="${n}"]`).value;
       const nm = g("name").trim(), same = g("target") === "__new" ? findItem(nm, { spaces: ["pantry", "house"] }) : null;   // 「新建」但库存里已有写法一样的：补到那件，不建第二件
-      return { bi, store, now, pay, name: nm, qty: num(g("qty"), 0), unit: Units.normalize(g("unit")) || "个", amount: g("amount") === "" ? null : Math.round(num(g("amount")) * 100) / 100,   /* 负数 = 退货 / 整单优惠（11-14：以前被截成 0） */ target: same ? same.id : g("target"), cat: g("cat") };
+      return { bi, store, now, pay, name: nm, qty: num(g("qty"), 0), unit: Units.normalize(g("unit")) || "个", amount: g("amount") === "" ? null : Math.round(num(g("amount")) * 100) / 100,   /* 负数 = 退货 / 整单优惠（11-14：以前被截成 0） */ target: same ? same.id : g("target"), cat: g("cat"), fee: r.classList.contains("scan-fee-row") };
     });
   });
   if (!rows.length) { sc.error = t("没有勾选任何一行。"); return repaint2(); }
@@ -433,8 +450,8 @@ async function confirm(ctx) {
       }
       if (stockOnly && x.target === "__skip") continue;   // 只入库：选了「只记花费」的行什么都不做
       const item = x.target.startsWith("__") ? null : state.items.find((i) => i.id === x.target);
-      if (!stockOnly) await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay });
-      const cart = matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 购物车里对应的那一项：不管入不入库，买到了就标成已买到
+      if (!stockOnly) await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: x.fee ? FEES_CAT : item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay });
+      const cart = x.fee ? null : matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 购物车里对应的那一项：不管入不入库，买到了就标成已买到
       if (cart) { doneShop.add(cart.id); cartDone++; await Store.saveShopping({ id: cart.id, status: "bought", bought_at: x.now, amount: x.amount, claimed_by_name: cart.claimed_by_name || state.displayName }); }
       if (x.target === "__skip") { spendOnly++; continue; }
       if (item && normName(x.name) !== normName(item.name) && !findItem(x.name)) Store.addItemAlias(item.id, x.name.slice(0, 60)).catch(() => {});   // 学会这个叫法

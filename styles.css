@@ -3537,3 +3537,13 @@ span.rem-tag { cursor: default; }
 .space-dd .space-opts .space-opt input:checked + .space-card { border-color: var(--pine); background: color-mix(in srgb, var(--pine) 16%, var(--surface)); box-shadow: inset 0 0 0 1px var(--pine); }
 .space-dd .space-opts .space-opt input:checked + .space-card small { color: var(--ink); }
 .space-dd .space-opts .space-opt input:checked + .space-card::after { content: "✓"; position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; background: var(--pine); color: #fff; font-size: 13px; font-weight: 700; line-height: 22px; text-align: center; }
+/* 录入购物：税费及其他（2026-11-16）：商品下面单独一块，每行 勾选 + 名称 + 金额 */
+.scan-fees { margin: 12px 0 0; padding-top: 10px; border-top: 1px dashed var(--line); }
+.scan-fees h4 { margin: 0 0 2px; font-size: 14px; }
+.scan-fees > .muted { margin: 0 0 8px; font-size: 12.5px; }
+.scan-fee-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 110px; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line-soft); list-style: none; }
+.scan-fee-row:first-child { border-top: 0; }
+.scan-fee-row > input:not([type="checkbox"]):not([type="hidden"]) { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 16px; }
+.scan-fee-row > input[name="amount"] { text-align: right; }
+.scan-fee-row .scan-inc { margin: 0; }
+.scan-fee-row p[hidden] { display: none; }

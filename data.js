@@ -131,6 +131,7 @@ window.TRIP = {
 };
 
 // 单位列表按地区区分，见 units.js（Units.list()）
+window.FEES_CAT = { id: "shop_fees", name: "税费及服务费", icon: "🧾", color: "#8a6d3b" };   // 一次购物的税、小费、配送费、服务费、袋子费（录入购物时记成单独几行，总额才等于真实扣款）
 window.OTHER_CAT = { id: "other", name: "其他", icon: "🧺", color: "#8a948f" };
 // 存放位置：按房间分组（下拉里用 optgroup，不会一长串）；家庭可在 设置 → 存放位置 里新增、重命名（如“客卧 1 衣柜”改成“Emma 的房间”）
 window.LOCATION_GROUPS = [

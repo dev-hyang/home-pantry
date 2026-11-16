@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.8", title: { zh: "录入购物：税费、小费、配送费也记下来", en: "Log a purchase: tax, tip and delivery fees are recorded too" }, items: [
+    { k: "new", zh: "AI 识别时，税、小费、配送费、服务费、袋子费不再丢掉：确认页商品下面多一块「税费及其他」，每行可改金额、可取消勾选，记花费时一起记上，总额更接近真实扣款", en: "Tax, tip, delivery, service and bag fees are no longer dropped: a \"Tax, fees & other\" block under the items lets you edit or untick each line, and they're logged so the total is closer to what was actually charged" },
+    { k: "new", zh: "新增花费分类「税费及服务费」（生活消费下），这些行归在这里，商品价格不受影响", en: "New spending category \"Tax, fees & service\" (under Living) holds these lines, so item prices stay accurate" }
+  ] },
   { v: "2026-11-16.7", title: { zh: "「组别」选中的更醒目", en: "Selected Group stands out" }, items: [
     { k: "better", zh: "展开「组别」后，选中的那张是深绿边 + 浅绿底 + 右上角 ✓；没选的是白底浅灰边，一眼分得出", en: "In the open Group list the chosen card has a green border, tinted fill and a ✓; the others are plain white with a light border" }
   ] },

@@ -44,6 +44,7 @@ export const L2S = [
   { id: "apparel",      p: "living", name: "服饰鞋包",     icon: "👕", color: "#b8576f", leaves: ["gear_clothes", "life_laundry"] },
   { id: "digital",      p: "living", name: "数码电子",     icon: "💻", color: "#4f7f9f", leaves: ["gear_digital"] },
   { id: "shop_misc",    p: "living", name: "综合购物（待细分）", icon: "🛍️", color: "#7a5c8e", leaves: ["life_shopping"] },   // Costco / Amazon / Target 看不出买了什么的，改了分类就从这里消失
+  { id: "fees_service", p: "living", name: "税费及服务费", icon: "🧾", color: "#8a6d3b", leaves: ["shop_fees"] },   // 购物的税 / 小费 / 配送费 / 服务费：录入购物时单独记成一行，不混进商品价格
   { id: "transport",    p: "living", name: "交通",         icon: "🚗", color: "#3b7fc4", leaves: ["vehicle_fuel", "life_transit", "vehicle_maint", "gear_car", "house_car", "bill_insurance_auto", "bill_vehicle_reg", "bill_parking", "bill_toll", "loan_interest_auto", "capital_vehicle"] },
   { id: "utilities",    p: "living", name: "水电网通讯",   icon: "💡", color: "#1f8a8a", leaves: ["bill_electric", "bill_gas", "bill_water", "bill_internet", "bill_mobile", "bill_cable_tv", "bill_heating_oil", "bill_solar"] },
   { id: "healthcare",   p: "living", name: "医疗健康",     icon: "🩺", color: "#c2475f", leaves: ["medical", "health", "bill_insurance_health"] },
@@ -122,7 +123,7 @@ function leafMap() {
   const key = `${C.length}|${C.filter((c) => c.custom).map((c) => `${c.id}:${c.name}:${c.parent || ""}`).join(",")}`;   // 自定义分类变了就重建
   if (leafCache && leafCacheKey === key) return leafCache;
   const list = [...C, W.MAINT_CAT, W.VEHICLE_CAT, ...(W.BILLS_GROUP?.cats?.() || []), ...(W.TRAVEL_CATS || []), ...(W.LIFE_CATS || []), ...(W.WORK_CATS || []), ...(W.CAPITAL_CATS || []),
-    ...(W.TRANSFER_CATS || []), ...(W.LOAN_CATS || []), W.GROCERY_MISC, W.VEHICLE_FUEL, W.MEDICAL_GROUP, W.PET_CARE_CAT, W.LEGAL_CAT, W.PROJECT_CAT, W.OTHER_CAT].filter(Boolean);
+    ...(W.TRANSFER_CATS || []), ...(W.LOAN_CATS || []), W.GROCERY_MISC, W.FEES_CAT, W.VEHICLE_FUEL, W.MEDICAL_GROUP, W.PET_CARE_CAT, W.LEGAL_CAT, W.PROJECT_CAT, W.OTHER_CAT].filter(Boolean);
   leafCache = new Map(); for (const c of list) if (!leafCache.has(c.id)) leafCache.set(c.id, c);
   leafCacheKey = key; return leafCache;
 }
