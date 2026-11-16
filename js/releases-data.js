@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.4", title: { zh: "录入购物：选「只记花费 / 入库 + 花费 / 只入库」", en: "Log a purchase: choose Spend only / Stock + spend / Stock only" }, items: [
+    { k: "new", zh: "图片下面多了「录入方式」：默认只记花费、不入库；也可以选入库 + 花费，或只入库、不记花费", en: "A new \"How to record\" choice under the photos: spend only by default; or stock + spend, or stock only with no spending logged" },
+    { k: "better", zh: "线上订单的「订单文字」默认折叠，点标题展开再粘贴", en: "The online order's order text is folded by default; tap its title to paste" }
+  ] },
   { v: "2026-11-16.3", title: { zh: "物品编辑页：状态、购物车一眼可见", en: "Item page: stock status and cart at a glance" }, items: [
     { k: "new", zh: "物品编辑页「基本信息」标题右边显示库存状态和 ✓🛒（已加入购物车）；拍照按钮旁边多了一个 🛒 按钮，点一下加入购物车，已加入的点一下移出", en: "The item page's Basics header shows the stock status and ✓🛒 when it's in the cart; next to the photo button there's a 🛒 button to add it to the cart (tap again to remove)" },
     { k: "better", zh: "库存里的 ✓🛒 靠右对齐，和概览一致", en: "✓🛒 in Inventory is right-aligned, like the overview" }

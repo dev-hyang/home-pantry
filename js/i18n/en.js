@@ -4047,4 +4047,5 @@ export const EN = {
   "少货线 {q} {u}": "Low at {q} {u}", "提前 {d} 天": "{d} days ahead", "提醒设置：{name}": "Reminder: {name}", 
   "请填 0 或更大的数。": "Enter 0 or more.", "两项都是 0 就等于不提醒；想关掉请点「不再提醒」。": "Both at 0 means no reminder; to turn it off tap \"Stop reminding\".",
   "{name} 已设置提醒": "Reminder set for {name}", "点「未加入」加入购物车，点「已加入」移出；也可 ← 左滑加入 · 右滑移出 →": "Tap \"Not added\" to add to the cart, \"Added\" to remove; or ← swipe left to add · swipe right to remove →",
+  "录入方式": "How to record", "只记花费": "Spend only", "入库 + 花费": "Stock + spend", "只入库": "Stock only", "不入库，只把花费记下来（默认）": "Don't add to stock, just log the spending (default)", "识别出的东西加进库存，同时记花费": "Add what's read to stock and log the spending", "只加库存，不记花费": "Add to stock only, no spending logged",
 };

@@ -18,8 +18,8 @@ import { guessFor } from "../core/sub-guess.js";
 const subGuess = (name, cat) => { const g = guessFor(name, cat, null); return g && g[0] === cat ? g[1] : null; };
 
 const MAX_IMAGES = 8;   // 一次最多 8 张：可以是几张不同的小票，也可以是一张长小票的几段
-const sc = { kind: "receipt", mode: "auto", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] };
-export function resetScan() { Object.assign(sc, { kind: "receipt", mode: "auto", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] }); }
+const sc = { kind: "receipt", mode: "auto", record: "spend", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] };
+export function resetScan() { Object.assign(sc, { kind: "receipt", mode: "auto", record: "spend", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] }); }
 const repaint = () => { const sec = $("#main .scan-page"); if (sec && state.route.section === "pantry" && state.route.sub === "scan") sec.outerHTML = viewScan(); };   // 只换页面本身，上面的面包屑和储藏页面卡片不动
 
 /* ───────────── 提示词与结果整理 ───────────── */
@@ -104,7 +104,7 @@ function buildReceipt(j) {
   mergeDiscounts(rows); spreadOrderDiscounts(rows);
   const found = /^\d{4}-\d{2}-\d{2}$/.test(j?.date || "") && j.date <= todayISO();
   const date = sc.date || (found ? j.date : todayISO()), dateSrc = sc.date ? "user" : found ? "receipt" : "today";   // 你填的 > 小票 / 文字里读到的 > 今天
-  if (date < todayISO()) for (const r of rows) r.match = "skip";   // 补记以前的购物：东西多半已经用掉，默认只记花费、不加库存（要入库的行再改）
+  if (sc.record === "spend") for (const r of rows) r.match = "skip";   // 补记以前的购物：东西多半已经用掉，默认只记花费、不加库存（要入库的行再改）
   const total = j?.total == null ? null : num(j.total, NaN);
   return { include: true, store: String(j?.store || "").trim().slice(0, 40), date, dateSrc, total: Number.isFinite(total) ? total : null, rows };
 }
@@ -163,6 +163,10 @@ function startManual() {
   sc.result = { manual: true, dropped: 0, receipts: [{ include: true, store: "", date: sc.date || todayISO(), dateSrc: "user", total: null, rows: [blankRow()] }] };
   sc.step = "review";
 }
+/** 录入方式：默认只记花费，不动库存；也可以入库 + 记花费，或只入库、不记花费 */
+const RECORD_OPTS = [["spend", "只记花费", "不入库，只把花费记下来（默认）"], ["both", "入库 + 花费", "识别出的东西加进库存，同时记花费"], ["stock", "只入库", "只加库存，不记花费"]];
+const recordPick = () => `<div class="scan-mode scan-record"><span class="pick-lbl">${t("录入方式")}</span><div class="chips" role="group" aria-label="${t("录入方式")}">${RECORD_OPTS.map(([k, l]) => `<button type="button" class="chip" data-action="scan-record" data-record="${k}" aria-pressed="${sc.record === k}">${t(l)}</button>`).join("")}</div>
+  <p class="muted" style="margin:0;font-size:12.5px">${t(RECORD_OPTS.find((o) => o[0] === sc.record)[2])}</p></div>`;
 const kindChips = () => {
   const kindChip = (k, label) => `<button type="button" class="chip" data-action="scan-kind" data-kind="${k}" aria-pressed="${sc.kind === k}">${label}</button>`;
   return `<div class="chips" role="group" aria-label="${t("来源")}">${kindChip("receipt", `🧾 ${t("实体店小票")}`)}${kindChip("order", `📦 ${t("线上订单")}`)}${kindChip("manual", `✍️ ${t("手动添加")}`)}</div>`;
@@ -193,8 +197,9 @@ function inputHtml() {
       ${canImg ? "" : `<p class="form-error" style="margin:6px 0 0">${t("当前的 {p} 不能读图片：换成 Gemini（设置 → AI 助手），或只粘贴文字。", { p: t(p.name) })}</p>`}
       ${sc.images.length > 1 ? `<div class="scan-mode"><span class="pick-lbl">${t("这几张照片是")}</span><div class="chips" role="group" aria-label="${t("几张照片的关系")}">${[["auto", "自动判断"], ["separate", "每张是一张独立小票"], ["merge", "合起来是同一张小票"]].map(([k, l]) => `<button type="button" class="chip" data-action="scan-mode" data-mode="${k}" aria-pressed="${sc.mode === k}">${t(l)}</button>`).join("")}</div>
         <p class="muted" style="margin:0;font-size:12.5px">${t("补录几张不同商店、不同日期的小票：选“每张是一张独立小票”最稳，每张单独识别，不会混在一起；长小票分段拍选“合起来是同一张”。")}</p></div>` : ""}
-      ${order ? `<label class="scan-text">${t("订单文字（订单确认邮件、网页或 App 订单详情，整段粘贴）")}
-        <textarea id="scanText" data-autosize rows="8" maxlength="12000" placeholder="${t("例如：Instacart / Amazon / 京东 / 盒马 的订单确认内容")}">${esc(sc.text)}</textarea></label>`
+      ${recordPick()}
+      ${order ? `<details class="scan-more" ${sc.text.trim() ? "open" : ""}><summary>${t("订单文字（订单确认邮件、网页或 App 订单详情，整段粘贴）")}</summary>
+        <textarea id="scanText" data-autosize rows="8" maxlength="12000" placeholder="${t("例如：Instacart / Amazon / 京东 / 盒马 的订单确认内容")}">${esc(sc.text)}</textarea></details>`
         : `<details class="scan-more" ${sc.text.trim() ? "open" : ""}><summary>${t("补充文字（可选，例如小票上识别不出的商品）")}</summary>
         <textarea id="scanText" data-autosize rows="3" maxlength="12000" placeholder="">${esc(sc.text)}</textarea></details>`}
       <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("图片和文字会发给你在设置里选的 {p}，不会保存原图。小票上的卡号、姓名建议裁掉或遮住再拍。Gemini 免费档的内容可能被用于改进产品，介意的话用付费 key。", { p: t(p.name) })}</p>
@@ -321,12 +326,12 @@ document.addEventListener("change", async (e) => {
   if (row && e.target.name === "target") { row.classList.toggle("is-new", e.target.value === "__new"); if (e.isTrusted) e.target.dataset.touched = "1"; }
   if (row && (e.target.name === "target" || e.target.name === "unit")) unitNote(row);
   if (e.target.name === "date" && e.target.closest?.("#scanForm")) {   // 改了某张小票的购买日期：它没手动选过的行，过去的日期 → 只记花费，今天 → 回到原来的默认
-    const past = !!e.target.value && e.target.value < todayISO(), box = e.target.closest(".scan-rcpt");
+    const past = sc.record === "spend", box = e.target.closest(".scan-rcpt");
     box.querySelectorAll(".scan-row").forEach((r) => {
       const sel = r.querySelector('[name="target"]'); if (sel.dataset.touched === "1") return;
       sel.value = past ? "__skip" : (sel.dataset.def || "__new"); r.classList.toggle("is-new", sel.value === "__new");
     });
-    const note = box.querySelector(".scan-past"); if (note) note.hidden = !past;
+    const note = box.querySelector(".scan-past"); if (note) note.hidden = !(past && e.target.value < todayISO());
   }
   if (e.target.dataset?.dropId) {   // 那次多出来的行：勾上才删
     const rc = sc.result?.receipts[+e.target.closest(".scan-rcpt").dataset.r]; if (!rc) return;
@@ -397,11 +402,12 @@ async function confirm(ctx) {
   if (rows.some((x) => !x.name)) { sc.error = t("有一行没有名称。"); return repaint2(); }
   if (rows.some((x) => x.target !== "__skip" && !(x.qty > 0))) { sc.error = t("入库的行数量要大于 0。"); return repaint2(); }
   await loadNear(boxes.flatMap(dupCands)).catch(() => {});   // 先把这几张小票的日期 + 金额查完，提醒才是准的
-  const dupRows = boxes.reduce((s, b) => s + markDups(b), 0);   // 疑似重复的行：第一次点只提醒，确认无误再点一次才入库
-  if (boxes.some((b) => b._rcptDup && !sc.result.receipts[+b.dataset.r]?.dupMode)) { sc.error = t("有小票可能已经录过（见小票上方的提醒）：先选「以这次为准，更新那次」还是「不是同一张，两次都留」。"); return repaint2(); }
+  const stockOnly = sc.record === "stock" && !sc.result?.manual;   // 只入库：不写花费，所以也不查「是不是已经记过」
+  const dupRows = stockOnly ? 0 : boxes.reduce((s, b) => s + markDups(b), 0);   // 疑似重复的行：第一次点只提醒，确认无误再点一次才入库
+  if (!stockOnly && boxes.some((b) => b._rcptDup && !sc.result.receipts[+b.dataset.r]?.dupMode)) { sc.error = t("有小票可能已经录过（见小票上方的提醒）：先选「以这次为准，更新那次」还是「不是同一张，两次都留」。"); return repaint2(); }
   // 以这次为准：这张小票的行和那次的配对，配上的改那次的那一笔（不再记新花费、不再加库存），那次多出来的删掉
   const dropIds = [];
-  boxes.forEach((b, bi) => {
+  if (!stockOnly) boxes.forEach((b, bi) => {
     const hit = b._rcptDup; if (!hit || sc.result.receipts[+b.dataset.r]?.dupMode !== "replace") return;
     const mine = rows.filter((x) => x.bi === bi), pairs = pairRows(mine, hit.rows), paired = new Set(pairs.map(([, p]) => p.id));
     for (const [i, p] of pairs) mine[i].replace = p;
@@ -425,8 +431,9 @@ async function confirm(ctx) {
         await Store.updatePurchase(x.replace.id, { name: x.name, quantity: x.qty || null, unit: x.unit || null, amount: x.amount, purchased_at: x.now, ...(x.store ? { store: x.store } : {}), ...x.pay });
         fixed++; continue;
       }
+      if (stockOnly && x.target === "__skip") continue;   // 只入库：选了「只记花费」的行什么都不做
       const item = x.target.startsWith("__") ? null : state.items.find((i) => i.id === x.target);
-      await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay });
+      if (!stockOnly) await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay });
       const cart = matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 购物车里对应的那一项：不管入不入库，买到了就标成已买到
       if (cart) { doneShop.add(cart.id); cartDone++; await Store.saveShopping({ id: cart.id, status: "bought", bought_at: x.now, amount: x.amount, claimed_by_name: cart.claimed_by_name || state.displayName }); }
       if (x.target === "__skip") { spendOnly++; continue; }
@@ -468,6 +475,7 @@ export function scanAction(action, el, ctx) {
     case "scan-kind": if (el.dataset.kind === "manual") { startManual(); return repaint(); } sc.kind = el.dataset.kind; sc.error = ""; if (sc.result?.manual) { sc.step = "input"; sc.result = null; } return repaint();
     case "scan-add-row": { if (!sc.result) return; repaint2(); const rc = sc.result.receipts[+el.dataset.r]; if (rc) rc.rows.push(blankRow()); repaint(); updateSum(); const rows = document.querySelectorAll(`.scan-rcpt[data-r="${el.dataset.r}"] .scan-row`); rows[rows.length - 1]?.querySelector('[name="name"]')?.focus(); return; }
     case "scan-mode": sc.mode = el.dataset.mode; return repaint();
+    case "scan-record": sc.record = el.dataset.record; return repaint();
     case "scan-img-del": sc.images.splice(+el.dataset.i, 1); return repaint();
     case "scan-run": return run();
     case "scan-back": if (sc.result?.manual) { startManual(); return repaint(); } sc.step = "input"; sc.result = null; sc.error = ""; return repaint();

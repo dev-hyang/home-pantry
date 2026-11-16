@@ -3505,3 +3505,6 @@ span.rem-tag { cursor: default; }
 .af-cart.is-in { background: color-mix(in srgb, var(--pine) 14%, var(--surface)); border-color: color-mix(in srgb, var(--pine) 45%, transparent); color: var(--pine); }
 .inv-name .rs-tag { margin-left: auto; flex: none; }   /* 库存行：✓🛒 靠右，和概览的标签一致 */
 .af-cart::before { content: ""; position: absolute; inset: -6px -2px; }   /* 和拍照按钮同高，点按区域仍 ≥ 44px */
+.scan-record { margin: 12px 0 0; }
+.scan-record .chips { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+.scan-record .chip { min-height: 40px; }
