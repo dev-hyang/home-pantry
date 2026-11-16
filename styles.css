@@ -1694,6 +1694,10 @@ a.sd-tile:hover, .sd-main a:hover { border-color: var(--pine); }
 .shop-add-page .shops-entry { margin-bottom: 12px; }
 .shops-note { margin: 0 0 8px; padding: 8px 12px; border-radius: var(--r-md); background: color-mix(in srgb, var(--mustard) 25%, var(--surface)); font-size: 13px; }
 @media (max-width: 900px) { .sd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* 采购看板 5 格：宽屏一排 5 个；中等宽度 3 + 2；手机 2 列，最后一格占满一行，不留空位 */
+@media (min-width: 1180px) { .sd-grid.sd-n5 { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (min-width: 901px) and (max-width: 1179px) { .sd-grid.sd-n5 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .sd-grid.sd-n5 > :last-child { grid-column: 1 / -1; } }
 @media (max-width: 640px) {
   .sd-acts { grid-template-columns: 1fr; gap: 8px; }
   .sd-grp { padding: 8px; }

@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.10", title: { zh: "采购看板整理、从看板进清单筛选重新开始", en: "Shopping board tidy-up; lists start fresh from the board" }, items: [
+    { k: "better", zh: "录入购物的「录入方式」默认「入库 + 花费」，并排在最前面", en: "Log a purchase: \"Stock + spend\" is now the default and listed first" },
+    { k: "better", zh: "采购看板去掉「加入购物车」那一行；「常去的商店与特价」拆成两格：「常去的商店」（几家、哪几家待更新）和「商店特价一览」", en: "The Add-to-cart row is gone from the Shopping board; Stores & deals is split into My stores (count, which need updating) and Store deals" },
+    { k: "fix", zh: "从首页看板点进购物车、设备、账单、花费等清单，筛选回到默认，不再带着上次的筛选（如「家人认领」）", en: "Opening the cart, equipment, bills, spending… from a board tile now starts with default filters, not the last ones (e.g. Claimed)" }
+  ] },
   { v: "2026-11-16.9", title: { zh: "录入购物：总额对得上小票", en: "Log a purchase: totals that match the receipt" }, items: [
     { k: "new", zh: "读到了小票合计、而商品和税费加起来还差一截时，自动补一行「差额（税费等）」，让记下的总额等于真实扣款；可以改金额或取消勾选", en: "When the receipt total is read and items plus fees fall short, a \"Difference (tax, fees…)\" line is added so the recorded total matches the charge; edit or untick it" },
     { k: "better", zh: "「税费及其他」下面多了「＋ 加一行税费」，金额先填成还差的那部分；合计对不上时，提示差多少", en: "\"＋ Add a tax / fee line\" under the fees block, prefilled with what's still missing; when totals differ it says by how much" }

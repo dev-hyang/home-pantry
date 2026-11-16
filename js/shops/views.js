@@ -484,7 +484,7 @@ export function shopsStats() {
   const live = liveDeals().filter((d) => ids.has(d.shop_id)), open = openShopping();
   // 2026-11-14：看板上数的是「清单上有几样东西有特价」（不是特价条数），并列出是哪几样
   const items = open.filter((s) => dealsFor(s).length);
-  return { shops: shops.length, deals: live.length, hits: open.length ? live.filter((d) => dealMatches(d, open).length).length : 0, items: items.length, itemNames: items.map((s) => s.name), due: shops.filter(dealsDue).length };
+  return { shops: shops.length, deals: live.length, hits: open.length ? live.filter((d) => dealMatches(d, open).length).length : 0, items: items.length, itemNames: items.map((s) => s.name), due: shops.filter(dealsDue).length, dueNames: shops.filter(dealsDue).map((x) => x.name) };
 }
 
 /* ───────────── 更新记录（迁移 068）：什么时候、怎么录的、哪几家、加了几条、失败原因 ───────────── */

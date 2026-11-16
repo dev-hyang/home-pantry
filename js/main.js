@@ -431,6 +431,16 @@ function onRoute() {
     if (state.keepFilter) state.keepFilter = false;
     else Object.assign(state.filter, { cat: "all", status: "all", q: "", loc: "all" });
   }
+  // 从首页看板 / 别的页点进其他清单页（购物车、设备、账单、缴费记录、医疗、花费）：筛选回到默认再套上链接里的条件
+  // （从物品 / 设备 / 账单编辑页返回、或同一页内换标签 / 参数不算）；不然上一次留下的筛选（如「家人认领」）会让看板上的数字和清单对不上
+  if (routeKey(prev) !== routeKey(next) && !isFormSection(prev)) {
+    const { section: sec, sub } = next;
+    if (sec === "shopping" && sub === "list") Object.assign(state.shopFilter, FD.shop);
+    else if (sec === "house" && sub === "assets") Object.assign(state.assetFilter, FD.asset);
+    else if (sec === "bills" && sub === "recurring") { const { property, ...rest } = FD.bills; Object.assign(state.billsFilter, rest); Object.assign(state.payFilter, FD.pay); }
+    else if (sec === "bills" && sub === "onetime" && !next.q.get("bill")) Object.assign(state.medFilter, FD.med);
+    else if (sec === "bills" && sub === "spend") Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
+  }
   // 概览卡片里的细项（缺货 / 少货 …）带 ?status= 进库存：套上状态筛选，再把参数去掉（刷新、后退不重复套）
   if (isListRoute(next) && next.q.get("status")) {
     Object.assign(state.filter, { space: next.q.get("space") === "house" ? "house" : next.sub === "gear" ? "gear" : "pantry", cat: "all", q: "", loc: "all", status: next.q.get("status") });

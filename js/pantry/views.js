@@ -728,18 +728,16 @@ function viewShopHome() {
     <div class="section-head"><h2>${t("采购")}</h2></div>
     ${shopImportHtml()}
     <div class="sd-acts" role="group" aria-label="${esc(t("录入"))}">
-      <div class="sd-grp"><span class="sd-grp-t">${t("加入购物车")}</span>
-        <a class="btn btn-primary" href="${href("shopping", "add")}">＋ ${t("手动添加")}</a>
-        <a class="btn btn-primary" href="${href("shopping", "add", "?mode=photo")}">📷 ${t("拍照添加")}</a>
-        <button type="button" class="btn" data-action="shop-add-alerts">🔔 ${t("补货提醒")}</button></div>
       <div class="sd-grp"><span class="sd-grp-t">${t("买回来了，录入库存")}</span>
         <a class="btn" href="${href("pantry", "scan")}">🧾 ${t("拍小票 / 网购订单入库")}</a></div>
     </div>
     ${shopAdviceHtml()}
-    <div class="sd-grid">
+    <div class="sd-grid sd-n5">
       ${tile(listHref("open"), "🛒", t("待购买"), `${st.open}<small>${t("项")}</small>`, `<span class="nw">${t("{n} 尚未认领", { n: st.todo })}</span> · <span class="nw">${t("{n} 已认领", { n: st.claimed })}</span>`)}
       ${tile(listHref("claimed"), "🛍", t("家人认领"), `${st.claimed}<small>${t("项")}</small>`, st.claimed ? who : t("点“我来买”认领，家人就不会重复买。"))}
-      ${tile(sh.items ? `${href("shops", "deals")}?f=list` : href("shops", "list"), "🏪", t("常去的商店与特价"), sh.shops ? `${sh.items}<small>${t("样清单上的有特价")}</small>` : "—",
+      ${tile(href("shops", "list"), "🏪", t("常去的商店"), sh.shops ? `${sh.shops}<small>${t("家")}</small>` : "—",
+        sh.shops ? (sh.due ? `<em>${t("{n} 家待更新", { n: sh.due })}</em><span class="sd-hitnames">${esc(sh.dueNames.slice(0, 4).join("、"))}${sh.due > 4 ? "…" : ""}</span>` : t("特价都是最新的")) : t("放进常去的超市，看本周特价、哪家最便宜"))}
+      ${tile(sh.items ? `${href("shops", "deals")}?f=list` : href("shops", "deals"), "🏷", t("商店特价一览"), sh.shops ? `${sh.items}<small>${t("样清单上的有特价")}</small>` : "—",
         sh.shops ? [sh.items ? `<span class="sd-hitnames">${esc(sh.itemNames.slice(0, 4).join("、"))}${sh.items > 4 ? "…" : ""}</span>` : "", t("{n} 家", { n: sh.shops }), t("特价 {n} 项", { n: sh.deals }), sh.due ? `<em>${t("{n} 家待更新", { n: sh.due })}</em>` : ""].filter(Boolean).map((x) => `<span class="nw">${x}</span>`).join(" · ") : t("放进常去的超市，看本周特价、哪家最便宜"))}
       ${tile(listHref("bought"), "✅", t("近 30 天买到"), `${st.recent}<small>${t("项")}</small>`, st.priced ? t("花费 {m}", { m: money(st.spent) }) : t("买到后自动加回库存。"))}
     </div>

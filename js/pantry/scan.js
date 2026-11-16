@@ -18,8 +18,8 @@ import { guessFor } from "../core/sub-guess.js";
 const subGuess = (name, cat) => { const g = guessFor(name, cat, null); return g && g[0] === cat ? g[1] : null; };
 
 const MAX_IMAGES = 8;   // 一次最多 8 张：可以是几张不同的小票，也可以是一张长小票的几段
-const sc = { kind: "receipt", mode: "auto", record: "spend", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] };
-export function resetScan() { Object.assign(sc, { kind: "receipt", mode: "auto", record: "spend", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] }); }
+const sc = { kind: "receipt", mode: "auto", record: "both", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] };
+export function resetScan() { Object.assign(sc, { kind: "receipt", mode: "auto", record: "both", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] }); }
 const repaint = () => { const sec = $("#main .scan-page"); if (sec && state.route.section === "pantry" && state.route.sub === "scan") sec.outerHTML = viewScan(); };   // 只换页面本身，上面的面包屑和储藏页面卡片不动
 
 /* ───────────── 提示词与结果整理 ───────────── */
@@ -180,8 +180,8 @@ function startManual() {
   sc.result = { manual: true, dropped: 0, receipts: [{ include: true, store: "", date: sc.date || todayISO(), dateSrc: "user", total: null, rows: [blankRow()] }] };
   sc.step = "review";
 }
-/** 录入方式：默认只记花费，不动库存；也可以入库 + 记花费，或只入库、不记花费 */
-const RECORD_OPTS = [["spend", "只记花费", "不入库，只把花费记下来（默认）"], ["both", "入库 + 花费", "识别出的东西加进库存，同时记花费"], ["stock", "只入库", "只加库存，不记花费"]];
+/** 录入方式：默认入库 + 记花费；也可以只记花费、不动库存，或只入库、不记花费 */
+const RECORD_OPTS = [["both", "入库 + 花费", "识别出的东西加进库存，同时记花费（默认）"], ["spend", "只记花费", "不入库，只把花费记下来"], ["stock", "只入库", "只加库存，不记花费"]];
 const recordPick = () => `<div class="scan-mode scan-record"><span class="pick-lbl">${t("录入方式")}</span><div class="chips" role="group" aria-label="${t("录入方式")}">${RECORD_OPTS.map(([k, l]) => `<button type="button" class="chip" data-action="scan-record" data-record="${k}" aria-pressed="${sc.record === k}">${t(l)}</button>`).join("")}</div>
   <p class="muted" style="margin:0;font-size:12.5px">${t(RECORD_OPTS.find((o) => o[0] === sc.record)[2])}</p></div>`;
 const kindChips = () => {
