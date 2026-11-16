@@ -471,7 +471,7 @@ export function viewHouse() {
 
     <section class="section">
       <div class="section-head"><h2>${t("汽车房屋消耗品提醒")}</h2>
-        <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="house">${t("全部加入采购清单")}</button>` : ""}
+        <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-sm" data-action="shop-add-alerts" data-space="house">＋ ${t("全部加入采购清单")}</button>` : ""}
           <a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a></div></div>
       <div class="panel">${alerts.length ? restockPanel(alerts) : shelf ? `<div class="empty"><strong>${t("汽车房屋消耗品都充足")}</strong></div>`
         : `<div class="empty"><strong>${t("还没有汽车房屋消耗品")}</strong>${t("按你家的设施一次加好滤网、电池、融雪盐等。")}<p><a class="btn btn-primary" href="${href("house", "template")}">${t("查看推荐清单")}</a></p></div>`}</div>

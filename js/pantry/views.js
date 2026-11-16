@@ -21,18 +21,21 @@ import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { shopAdviceHtml, shopForecastHtml } from "../bills/budget.js";
 import { unitSelect } from "../core/unit-pick.js";
 
-/* ── 概览（储藏 / 汽车房屋消耗品共用）── */
-export function restockPanel(alerts, limit = 8) {
-  if (!alerts.length) return "";
-  return `<ul class="restock-list">${alerts.slice(0, limit).map((it) => {
-    const inList = openShopFor(it.id);
-    return `<li>
+/* ── 该补货了（储藏概览 / 房屋页共用，2026-11-15）──
+ * 分两块：「待加入购物车」和「已在购物车」，每块一种操作——前者「加入购物车」（先确认数量），后者「移出购物车」（先确认）；
+ * 已在购物车的名字旁边有「已在清单」标签。列表超过 8 行在框里滚动；买到了（库存补上）就自动从这里消失。 */
+const rsRow = (it, inList) => `<li data-id="${it.id}">
       <span class="badge ${STATUS[it.status].cls}">${t(STATUS[it.status].label)}</span>
-      <div class="grow"><button type="button" class="link-name" data-action="edit" data-id="${it.id}">${esc(it.name)}</button>
-        <small>${t("剩 {q} {u}", { q: fmt(it.dqty), u: esc(t(it.du)) })}${it.daysLeft != null && it.qty > 0 ? t("，约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) }) : ""}${t("，建议买 {q} {u}", { q: fmt(it.dsuggest), u: esc(t(it.du)) })}</small></div>
-      ${inList ? `<span class="badge b-ok">${t("已在清单")}</span>` : `<button type="button" class="btn btn-sm" data-action="shop-add-item" data-id="${it.id}">${t("加入采购")}</button>`}
+      <div class="grow"><span class="rs-name"><button type="button" class="link-name" data-action="edit" data-id="${it.id}">${esc(it.name)}</button>${inList ? `<span class="badge b-ok">${t("已在清单")}</span>` : ""}</span>
+        <small>${t("剩 {q} {u}", { q: fmt(it.dqty), u: esc(t(it.du)) })}${it.daysLeft != null && it.qty > 0 ? t("，约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) }) : ""}${inList ? "" : t("，建议买 {q} {u}", { q: fmt(it.dsuggest), u: esc(t(it.du)) })}</small></div>
+      ${inList ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shop-remove-item" data-id="${it.id}">${t("移出购物车")}</button>`
+        : `<button type="button" class="btn btn-sm" data-action="shop-add-item" data-id="${it.id}">${t("加入购物车")}</button>`}
     </li>`;
-  }).join("")}</ul>`;
+export function restockPanel(alerts) {
+  if (!alerts.length) return "";
+  const todo = alerts.filter((it) => !openShopFor(it.id)), done = alerts.filter((it) => openShopFor(it.id));
+  const sec = (cls, title, list, inList) => list.length ? `<div class="rs-sec ${cls}"><h3 class="rs-h">${title} <span class="muted">${list.length}</span></h3><ul class="restock-list">${list.map((it) => rsRow(it, inList)).join("")}</ul></div>` : "";
+  return `<div class="rs-body">${sec("rs-todo", t("待加入购物车"), todo, false)}${sec("rs-done", t("已在购物车"), done, true)}</div>`;
 }
 
 export function shelfGrid(space) {
@@ -134,12 +137,12 @@ export function viewDashboard() {
   const shelf = shelfGrid("pantry"), houseShelf = withHouse ? shelfGrid("house") : "";
 
   return `${catCheckSection()}
-    <section class="section" aria-labelledby="h-restock">
-      <div class="section-head"><h2 id="h-restock">${t("该补货了")}</h2>
-        <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-sm" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">＋ ${t("全部加入采购清单")}</button>` : ""}${cartBtn()}</div></div>
+    <details class="section rs-wrap" data-fold="restock" aria-labelledby="h-restock" ${foldGet().restock !== 0 ? "open" : ""}>
+      <summary class="section-head rs-summary"><h2 id="h-restock">${t("该补货了")}${alerts.length ? ` <span class="muted rs-n">${alerts.length}</span>` : ""}</h2>
+        <div class="head-acts">${alerts.some((x) => !openShopFor(x.id)) ? `<button type="button" class="btn btn-sm" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">＋ ${t("全部加入采购清单")}</button>` : ""}${cartBtn()}</div><span class="pv-chev" aria-hidden="true">▾</span></summary>
       <div class="panel">${alerts.length ? restockPanel(alerts) : `<div class="empty"><strong>${t("库存都很充足")}</strong>${t("用掉东西时在“库存”里点一下 −，提醒会更准。")}</div>`}</div>
       ${alerts.length ? askInline({ id: "restock", title: t("该补货了"), question: t("这些要补的东西怎么安排采购最省钱省时间？哪些可以等？"), context: () => [t("要补：{s}", { s: alerts.slice(0, 15).map((a) => a.name || a.item?.name).filter(Boolean).join("、") }), t("家庭人数 {n}", { n: state.members?.length || 1 })] }) : ""}
-    </section>
+    </details>
 
     <section class="section" aria-labelledby="h-alert">
       <h2 id="h-alert" class="sr-only">${t("储藏概览")}</h2>

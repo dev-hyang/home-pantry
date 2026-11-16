@@ -3435,3 +3435,19 @@ input[type="date"], input[type="month"] { height: calc(1.6em + 20px); }   /* 和
 .scan-more > summary::after { content: "▾"; color: var(--muted); transition: transform .2s; }
 .scan-more:not([open]) > summary::after { transform: rotate(-90deg); }
 .scan-more > textarea { display: block; box-sizing: border-box; width: calc(100% - 24px); margin: 0 12px 12px; }
+.btn-danger { background: var(--out); color: #fff; }
+.ask-confirm .ask-body { margin: 4px 0 0; font-size: 15px; line-height: 1.5; }
+/* 该补货了（2026-11-15）：标题点一下折叠 / 展开；分「待加入购物车」「已在购物车」两块；超过 8 行在框里滚动 */
+.rs-wrap > summary.rs-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; cursor: pointer; list-style: none; }
+.rs-wrap > summary.rs-summary::-webkit-details-marker { display: none; }
+.rs-wrap > summary.rs-summary h2 { flex: 1 1 auto; margin: 0; }
+.rs-wrap > summary .rs-n { font-size: .8em; }
+.rs-wrap > summary .pv-chev { color: var(--muted); transition: transform .2s; }
+.rs-wrap:not([open]) > summary .pv-chev { transform: rotate(-90deg); }
+.rs-body { --rs-row: 56px; max-height: min(75vh, calc(8 * var(--rs-row) + 64px)); overflow-y: auto; overscroll-behavior: contain; }   /* 最多露 8 行，多了在框里滚 */
+@media (max-width: 640px) { .rs-body { --rs-row: 86px; } }
+.rs-sec + .rs-sec { margin-top: 6px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.rs-h { display: flex; align-items: center; gap: 6px; margin: 2px 0 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.rs-name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.rs-done .restock-list li { background: color-mix(in srgb, var(--pine) 4%, transparent); }
+.restock-list .btn-sm { min-height: 40px; white-space: nowrap; }
