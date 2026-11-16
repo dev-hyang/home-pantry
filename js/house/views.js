@@ -596,19 +596,51 @@ export function viewHouseProfile() {
   const sec = state.route?.q?.get("sec");
   if (sec && PROFILE_SECTIONS.some((s) => s.id === sec)) return viewProfileSection(sec);
   const d = houseDraft(), first = !state.houseProfile;
-  const rows = PROFILE_SECTIONS.map((s) => {
-    const st = sectionStatus(d, s.id);
-    return `<a class="mrow" href="${href("house", "profile")}?sec=${s.id}">
-      <span class="mi" aria-hidden="true">${s.icon}</span>
-      <span class="mt"><b>${t(s.name)}</b><small>${esc(st.text)}</small>${st.pct != null ? `<span class="mprog"><i style="width:${st.pct}%"></i></span>` : ""}</span>
-      <span class="mch" aria-hidden="true">›</span></a>`;
+  // 每个分区一个卡片（section container）：标题 + 完成度 + 「编辑」（进这一块自己的编辑页）+ 现在填的内容，整套房子的基本信息在这一页看全
+  const cards = PROFILE_SECTIONS.map((s) => {
+    const st = sectionStatus(d, s.id), edit = `${href("house", "profile")}?sec=${s.id}`;
+    return `<section class="panel prof-card" aria-labelledby="pc-${s.id}">
+      <header class="prof-head"><span class="mi" aria-hidden="true">${s.icon}</span>
+        <div class="prof-t"><h3 id="pc-${s.id}">${t(s.name)}</h3><small>${esc(st.text)}</small></div>
+        <a class="btn btn-sm btn-ghost prof-edit" href="${edit}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${first && s.id === "type" ? t("开始") : t("编辑")}</a></header>
+      ${st.pct != null ? `<span class="mprog"><i style="width:${st.pct}%"></i></span>` : ""}
+      ${first && s.id !== "type" ? `<p class="muted prof-empty">${t("未填")}</p>` : sectionFacts(d, s.id)}
+    </section>`;
   }).join("");
   return `<section class="section menu-page">
-    <p class="muted" style="margin:-6px 0 12px;font-size:13px">${first ? t("先选地区和房型，保存后其余分区随时补") : t("点一项进去改，各自保存")}</p>
-    <div class="panel mlist">${rows}</div>
+    <p class="muted" style="margin:-6px 0 12px;font-size:13px">${first ? t("先选地区和房型，保存后其余分区随时补") : t("每一块各自编辑、各自保存")}</p>
+    <div class="prof-grid">${cards}</div>
     ${first ? `<p class="hint">${t("房型决定推荐什么耗材、生成哪些设备、每月有什么季节任务；其余分区（地址、保险、HOA、材料）可以之后再补。")}</p>` : ""}
     <div class="form-actions" style="margin-top:14px">${state.houseProfile ? `<a class="btn btn-ghost" href="${href("house", "overview")}">${t("返回房屋概览")}</a>` : `<a class="btn btn-primary" href="${href("house", "profile")}?sec=type">${t("开始：选地区和房型")}</a>`}</div>
   </section>`;
+}
+
+/** 资料页每个卡片里的内容：只读摘要（没填的显示「未填」） */
+function sectionFacts(d, id) {
+  const Hh = H(), none = `<span class="muted">${t("未填")}</span>`;
+  const tags = (names, soft) => (names.length ? `<span class="tagline">${names.map((n) => `<span class="tag${soft ? " tag-soft" : ""}">${esc(n)}</span>`).join("")}</span>` : "");
+  const dl = (rows) => { const r = rows.filter(([, v]) => v); return r.length ? `<dl class="fact-grid one">${r.map(([k, v]) => `<div class="fact"><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>` : `<p class="muted prof-empty">${t("未填")}</p>`; };
+  const names = (group, ids) => ids.map((x) => Hh.MATERIALS[group].find((m) => m.id === x)).filter(Boolean).map((m) => t(m.name));
+  switch (id) {
+    case "type": { const ht = Hh.typeOf(d.region, d.house_type); return dl([[t("地区"), esc(t(Hh.REGIONS[d.region]?.name || ""))], [t("房型"), ht ? `${ht.icon} ${esc(t(ht.name))}` : ""]]); }
+    case "address": return dl([[t("地址"), esc(d.address || "")], [t("建成年份"), d.year_built ? `${d.year_built}${t("（约 {age} 年房龄）", { age: new Date().getFullYear() - d.year_built })}` : ""]]);
+    case "insurance": { if (!d.insured) return `<p class="muted prof-empty">${t("未投保")}</p>`; const f = insuranceFact(d); return dl([[t("保单"), f.v], [t("理赔代理"), f.sub || ""]]); }
+    case "hoa": {
+      const h = hoaOf(d), f = hoaFact(d); if (!f) return `<p class="muted prof-empty">${t("无 {label}", { label: t(Hh.assocOf(d.house_type).label) })}</p>`;
+      const contact = [h.phone && esc(h.phone), h.email && esc(h.email), h.url && esc(h.url)].filter(Boolean).join(" · ");
+      return dl([[t("概况"), f.v], [t("联系方式"), contact], [t("出租规则"), h.rent_policy && h.rent_policy !== "unknown" ? labelOf(RENT_POLICIES, h.rent_policy) : ""], [t("须知 / 规章"), h.rules ? `<span class="pre">${esc(h.rules)}</span>` : ""], [t("诉讼"), h.lawsuit ? `${t("有")}${h.lawsuit_note ? ` · ${esc(h.lawsuit_note)}` : ""}` : ""]]);
+    }
+    case "ownership": {
+      const o = ownershipOf(d);
+      const parking = o.parking_type ? [labelOf(PARKING_TYPES, o.parking_type), o.parking_no ? esc(o.parking_no) : "", o.parking_deeded ? t("独立产权") : "", o.parking_pin ? t("缴税号 {n}", { n: esc(o.parking_pin) }) : ""].filter(Boolean).join(" · ") : "";
+      return dl([[t("缴税号"), o.pin ? esc(o.pin) : ""], [t("税务减免"), (o.tax_exemptions || []).length ? `${o.tax_exemptions.map((k) => labelOf(TAX_EXEMPTIONS, k)).join("、")}${o.tax_notes ? ` · ${esc(o.tax_notes)}` : ""}` : ""],
+        [t("车位"), parking], [t("储物间"), o.storage_type ? `${labelOf(STORAGE_TYPES, o.storage_type)}${o.storage_no ? ` · ${esc(o.storage_no)}` : ""}` : ""], [t("屋顶"), o.roof_access ? t("可以上 / 有使用权") : ""]]);
+    }
+    case "emergency": { const em = emergencyOf(d); return dl(EMERGENCY_FIELDS.filter((f) => em[f.id]).map((f) => [`${f.icon} ${t(f.name)}`, `<span class="pre">${esc(em[f.id])}</span>`])); }
+    case "features": { const n = Hh.FEATURES.filter((f) => (d.features || []).includes(f.id)).map((f) => t(f.name)); return n.length ? `<div class="prof-tags">${tags(n, true)}</div>` : `<p class="muted prof-empty">${t("未填")}</p>`; }
+    case "materials": return dl([[t("外墙"), tags(names("exterior", d.exterior || []))], [t("屋面"), tags(d.roof ? names("roof", [d.roof]) : [])], [t("地面"), tags(names("flooring", d.flooring || []))]]);
+    default: return none;
+  }
 }
 
 /** 单个分区的表单页：只渲染这一块的字段，保存后回到分区列表 */

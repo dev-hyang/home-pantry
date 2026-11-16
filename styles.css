@@ -3561,3 +3561,18 @@ span.rem-tag { cursor: default; }
 .scan-fee-row p[hidden] { display: none; }
 .scan-fee-row .scan-gap-note { grid-column: 1 / -1; margin: 0; font-size: 12.5px; }
 .scan-fees > .btn { margin-top: 6px; min-height: 44px; }
+
+/* 房屋资料：每个分区一个卡片（标题 + 完成度 + 编辑按钮 + 内容）；手机单列，笔记本两列 */
+.prof-grid { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
+@media (min-width: 900px) { .prof-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.prof-card { padding: 14px 16px; box-sizing: border-box; min-width: 0; }
+.prof-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.prof-head .mi { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; font-size: 19px; }
+.prof-t { flex: 1; min-width: 0; }
+.prof-t h3 { margin: 0; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.prof-t small { color: var(--muted); font-size: 12.5px; }
+.prof-edit { flex: none; min-height: 44px; min-width: 56px; display: inline-flex; align-items: center; justify-content: center; }
+.prof-card .mprog { display: block; margin: 0 0 6px; }
+.prof-card .fact { grid-template-columns: 6.4em 1fr; }
+.prof-card .prof-empty { margin: 4px 0 2px; font-size: 13px; }
+.prof-tags { padding: 4px 0 2px; }
