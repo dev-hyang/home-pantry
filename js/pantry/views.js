@@ -121,7 +121,7 @@ const discardBtn = (it) => `<button type="button" class="btn btn-sm btn-ghost di
 /** 购物篮：去采购清单，带待买 + 家人正在买的数 */
 function cartBtn() {
   const n = state.shopping.filter((s) => s.status !== "bought").length;
-  return `<a class="btn btn-ghost btn-sm" href="${href("shopping")}" aria-label="${esc(t("采购清单，{n} 项", { n }))}">🛒${n ? ` <b class="num">${n}</b>` : ""}</a>`;
+  return `<a class="btn btn-sm cart-btn" href="${href("shopping")}" aria-label="${esc(t("采购清单，{n} 项", { n }))}"><span aria-hidden="true">🛒</span> ${t("购物车")}${n ? ` <b class="num">${n}</b>` : ""}</a>`;
 }
 export function viewDashboard() {
   const withHouse = state.houseEnabled;   // 汽车房屋消耗品也算储藏：缺货、少货、补货提醒一起看
@@ -136,7 +136,7 @@ export function viewDashboard() {
   return `${catCheckSection()}
     <section class="section" aria-labelledby="h-restock">
       <div class="section-head"><h2 id="h-restock">${t("该补货了")}</h2>
-        <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">${t("全部加入采购清单")}</button>` : ""}${cartBtn()}</div></div>
+        <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-sm" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">＋ ${t("全部加入采购清单")}</button>` : ""}${cartBtn()}</div></div>
       <div class="panel">${alerts.length ? restockPanel(alerts) : `<div class="empty"><strong>${t("库存都很充足")}</strong>${t("用掉东西时在“库存”里点一下 −，提醒会更准。")}</div>`}</div>
       ${alerts.length ? askInline({ id: "restock", title: t("该补货了"), question: t("这些要补的东西怎么安排采购最省钱省时间？哪些可以等？"), context: () => [t("要补：{s}", { s: alerts.slice(0, 15).map((a) => a.name || a.item?.name).filter(Boolean).join("、") }), t("家庭人数 {n}", { n: state.members?.length || 1 })] }) : ""}
     </section>

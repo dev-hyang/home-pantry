@@ -3423,3 +3423,8 @@ button.fab { border: 0; cursor: pointer; padding: 0; font-family: inherit; }
 input[type="date"], input[type="month"] { height: calc(1.6em + 20px); }   /* 和文字输入框一样高（行高 1.6 + 上下内边距 18 + 边框 2）；Chrome 的日期框默认高 2px */
 .scan-page .chips { flex-wrap: wrap; overflow: visible; }   /* 录入购物的来源芯片（实体店小票 / 线上订单 / 手动添加）：手机上换行，不出横向滚动条 */
 .fab-spacer { height: 64px; }   /* 页面最后一块不被右下角的 ＋ 挡住 */
+/* 该补货了：「全部加入采购清单」用普通按钮（和库存里每块的一样），「购物车」绿色描边带字和数——两个分量相当，购物车不再被淹没 */
+.cart-btn { background: var(--surface); color: var(--pine); border-color: var(--pine); font-weight: 600; padding-inline: 14px; }
+.cart-btn .num { min-width: 20px; padding: 0 6px; border-radius: 99px; background: var(--pine); color: var(--surface); font-size: 12px; text-align: center; }
+.cart-btn:hover { background: color-mix(in srgb, var(--pine) 8%, var(--surface)); filter: none; }
+#h-restock + .head-acts .btn, .section-head .head-acts .cart-btn, .section-head .head-acts [data-action="shop-add-alerts"] { min-height: 40px; }
