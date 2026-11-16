@@ -3578,3 +3578,12 @@ span.rem-tag { cursor: default; }
 .prof-tags { padding: 4px 0 2px; }
 .house-top { display: flex; justify-content: flex-end; margin: -4px 0 6px; }
 .house-top .btn { min-height: 44px; display: inline-flex; align-items: center; }
+
+/* 表单分区标题统一（2026-11-16）：所有编辑页的分区标题 = 带底色的粗体横栏（和物品编辑页的分区栏一致），和下面的字段一眼分得开 */
+.form-page fieldset > legend:not(.sr-only) { box-sizing: border-box; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 14px; margin: 0 0 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--pine) 9%, var(--surface-2)); color: var(--pine); font-size: 15px; font-weight: 700; }
+.form-page fieldset + fieldset { border-top: 0; padding-top: 0; }
+.form-page .sub-legend { box-sizing: border-box; margin: 16px 0 8px; padding: 6px 12px; border-radius: 8px; background: var(--surface-2); color: var(--ink); font-size: 14px; font-weight: 700; }
+.form-page .sub-legend small { font-weight: 400; }
+/* 自带样式的小块（组别选择、小票分张、额度、账单模板分组、Escrow、交易类型）不套横栏 */
+.form-page :is(.space-pick, .scan-rcpt, .quota-box, .tpl-group, .dd-escrow, .deal-type-pick) > legend { display: block; min-height: 0; padding: 0 4px; margin: 0 0 6px; border-radius: 0; background: none; color: inherit; font-size: 14px; }
