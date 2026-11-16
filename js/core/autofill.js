@@ -211,12 +211,12 @@ KINDS.vehicle = { ...KINDS.asset, label: "拍里程表 / 行驶证 / 保险卡",
 
 /* ───────────── 页面上的按钮 ───────────── */
 /** 表单上方的“拍照自动填写”条；formSel 是要填的表单的选择器 */
-export function autofillBar(kind, formSel) {
+export function autofillBar(kind, formSel, extra = "") {
   const def = KINDS[kind]; if (!def) return "";
   const s = aiSettings(), p = providerOf(s.provider), ready = aiReady(), canImg = visionCapable(p);
   const off = !ready ? t("先在 设置 → AI 助手 填一个 key（推荐 Gemini，有免费额度）") : !canImg ? t("当前的 {p} 不能读图片，换成 Gemini 才能用", { p: t(p.name) }) : "";
   return `<div class="af-bar" data-af="${kind}">
-    <label class="btn btn-sm af-btn ${off ? "is-off" : ""}"><input type="file" accept="image/*" multiple data-autofill="${kind}" data-form="${esc(formSel)}" ${off ? "disabled" : ""}><span>📷 ${t(def.label)}</span></label>
+    <label class="btn btn-sm af-btn ${off ? "is-off" : ""}"><input type="file" accept="image/*" multiple data-autofill="${kind}" data-form="${esc(formSel)}" ${off ? "disabled" : ""}><span>📷 ${t(def.label)}</span></label>${extra}
     <span class="muted af-hint">${off ? `${esc(off)} · <a href="#/me/settings?sec=ai">${t("去设置")}</a>` : `${esc(t(def.hint))}。${t("图片发给你选的 AI 服务商，不保存；识别结果请核对后再保存。")}`}</span>
     <div class="af-status" role="status" aria-live="polite"></div><div class="af-thumbs"></div></div>`;
 }

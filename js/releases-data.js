@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.3", title: { zh: "物品编辑页：状态、购物车一眼可见", en: "Item page: stock status and cart at a glance" }, items: [
+    { k: "new", zh: "物品编辑页「基本信息」标题右边显示库存状态和 ✓🛒（已加入购物车）；拍照按钮旁边多了一个 🛒 按钮，点一下加入购物车，已加入的点一下移出", en: "The item page's Basics header shows the stock status and ✓🛒 when it's in the cart; next to the photo button there's a 🛒 button to add it to the cart (tap again to remove)" },
+    { k: "better", zh: "库存里的 ✓🛒 靠右对齐，和概览一致", en: "✓🛒 in Inventory is right-aligned, like the overview" }
+  ] },
   { v: "2026-11-16.2", title: { zh: "编辑页分区更清楚；备注框不再超出", en: "Clearer sections on the item page; notes box no longer overflows" }, items: [
     { k: "better", zh: "物品编辑页的几个分区各是一张卡片，标题是带底色的横栏，一眼看出有几块", en: "Each section of the item page is now its own card with a tinted header bar" },
     { k: "fix", zh: "手机上备注输入框不再超出屏幕右边", en: "The notes box no longer sticks out past the right edge on phones" },

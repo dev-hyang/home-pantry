@@ -409,6 +409,8 @@ function renderInvRows(host) {
   const SEC = { pantry: ["🥫", t("日常消耗品")], house: ["🧰", t("汽车房屋消耗品")], gear: ["🛋️", t("家居耐用品")] };
   host.innerHTML = `<div class="pv-cards">${invSpaces().map((s) => sec(s, ...SEC[s])).join("")}</div>`;
 }
+/** 库存状态标签（缺货 / 少货 / 即将告罄 / 充足）：库存行用 badge，物品编辑页标题右边也用 */
+export const statusTag = (it) => `<span class="badge ${STATUS[it.status].cls}">${t(STATUS[it.status].label)}</span>`;
 /** 「已加入购物车」的短标签：✓🛒，只显示不能点（库存行、物品编辑页共用） */
 export const cartTag = () => `<span class="rs-tag is-in is-static" title="${esc(t("已加入购物车"))}" aria-label="${esc(t("已加入购物车"))}" role="img">✓🛒</span>`;
 /** 状态位的标签：充足时显示提醒设置——「🔕 不提醒」或「🔔 少货线 · 提前几天」，点一下弹出小框来改；少货 / 缺货 / 即将告罄时由状态标签取代 */

@@ -3498,3 +3498,10 @@ span.rem-tag { cursor: default; }
 .form-page .fsec > fieldset { margin: 0; padding: 14px; border: 0; min-width: 0; }
 .form-page .fsec > fieldset > .form-grid { margin: 0; }
 #itemForm .fsec[open] { padding-bottom: 0; }
+/* 物品编辑页：标题右边的状态 / 购物车小标签；拍照旁的购物车按钮 */
+.form-page .fsec > summary .fsec-ttl { flex: 1; min-width: 0; }
+.form-page .fsec > summary .fsec-aside { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.af-cart { position: relative; min-width: 44px; min-height: 32px; padding: 0 12px; justify-content: center; font-size: 17px; background: var(--surface); }
+.af-cart.is-in { background: color-mix(in srgb, var(--pine) 14%, var(--surface)); border-color: color-mix(in srgb, var(--pine) 45%, transparent); color: var(--pine); }
+.inv-name .rs-tag { margin-left: auto; flex: none; }   /* 库存行：✓🛒 靠右，和概览的标签一致 */
+.af-cart::before { content: ""; position: absolute; inset: -6px -2px; }   /* 和拍照按钮同高，点按区域仍 ≥ 44px */

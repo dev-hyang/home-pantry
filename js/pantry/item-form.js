@@ -7,9 +7,9 @@ import { Store } from "../core/store.js";
 import { $, MUTE_FOREVER, catOf, catsOf, daysFromTodayISO, du, esc, fmt, listRoute, num, spaceOf, stampText, todayISO, toast } from "../core/util.js";
 import { SECTIONS, go, href } from "../core/router.js";
 import { crumbNav } from "../core/hub.js";
-import { memberName } from "../core/logic.js";
+import { memberName, openShopFor } from "../core/logic.js";
 import { t } from "../core/i18n.js";
-import { categoryOptions } from "./views.js";
+import { cartTag, categoryOptions, statusTag } from "./views.js";
 import { locationField, resolveLocation } from "../core/locations.js";
 import { assetName } from "../house/assets.js";
 import { autofillBar } from "../core/autofill.js";
@@ -59,6 +59,18 @@ export const SPACE_INFO = [
   ["house", "🧰", "汽车房屋消耗品", "滤网、电池、灯泡、融雪盐、机油：房子、院子、车定期要换的"],
   ["gear", "🛋️", "家居耐用品", "家具、电器、厨具、衣物、玩具、工具：长期用，只记几件、放在哪"],
 ];
+/** 基本信息标题右边：库存状态 + 「已加入购物车」小标签（只有已存在的物品才有） */
+function basicsAside(it) {
+  const e = state.enriched.find((x) => x.id === it.id);
+  return `${e && !isGearItem(it) ? statusTag(e) : ""}${openShopFor(it.id) ? cartTag() : ""}`;
+}
+const isGearItem = (it) => spaceOf(it.category) === "gear";
+/** 拍照按钮旁边的「加入购物车」图标按钮：没加入就加入（弹确认数量），已加入就点一下移出 */
+function cartBtn(it) {
+  const inList = !!openShopFor(it.id), e = state.enriched.find((x) => x.id === it.id);
+  const tip = inList ? t("已加入购物车，点一下移出") : t("加入购物车");
+  return `<button type="button" class="btn btn-sm af-cart${inList ? " is-in" : ""}" data-action="${inList ? "shop-remove-item" : "shop-add-item"}" data-id="${it.id}" ${e ? "" : "disabled"} title="${esc(tip)}" aria-label="${esc(`${it.name}：${tip}`)}">${inList ? "✓🛒" : "🛒"}</button>`;
+}
 function spacePick(cur) {
   const list = SPACE_INFO.filter(([s]) => s === cur || (s === "house" ? state.houseEnabled : s === "gear" ? state.gearEnabled : true));
   return `<fieldset class="span-2 space-pick"><legend>${t("放在哪一类")}</legend><div class="space-opts">${list.map(([s, ic, name, desc]) => `<label class="space-opt">
@@ -67,9 +79,9 @@ function spacePick(cur) {
 /* 表单分块（2026-11-14）：每块可以点标题折叠 / 展开；展开状态记在内存里，后台重画时不变 */
 const FOLD = new Map();
 const secKey = (id, k) => `${id || "new"}:${k}`;
-function fsec(id, k, title, body, openDefault, cls = "") {
+function fsec(id, k, title, body, openDefault, cls = "", aside = "") {
   const key = secKey(id, k), open = FOLD.has(key) ? FOLD.get(key) : openDefault;
-  return `<details class="fsec ${cls}" data-fsec="${esc(key)}" ${open ? "open" : ""}><summary><span>${title}</span><span class="fsec-chev" aria-hidden="true">▾</span></summary>
+  return `<details class="fsec ${cls}" data-fsec="${esc(key)}" ${open ? "open" : ""}><summary><span class="fsec-ttl">${title}</span>${aside ? `<span class="fsec-aside">${aside}</span>` : ""}<span class="fsec-chev" aria-hidden="true">▾</span></summary>
     <fieldset><legend class="sr-only">${title}</legend>${body}</fieldset></details>`;
 }
 if (typeof document !== "undefined") document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.fsec[data-fsec]")) FOLD.set(d.dataset.fsec, d.open); }, true);
@@ -111,7 +123,7 @@ export function viewItemForm() {
   return `
     <section class="section form-page">
       ${crumbNav([...itemBase(space), { label: it ? t("编辑：{name}", { name: it.name }) : src ? t("复制：{name}", { name: src.name }) : t("添加物品"), icon: catOf(v.category).icon }])}
-      ${autofillBar("item", "#itemForm")}
+      ${autofillBar("item", "#itemForm", it ? cartBtn(it) : "")}
       <form id="itemForm" class="panel ${gear ? "is-gear" : ""} ${spaceOf(v.category) === "house" ? "is-house" : ""} ${remind ? "is-remind" : ""}" novalidate data-autosave>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">
         <input type="hidden" name="orig_unit" value="${esc(v.unit)}">
@@ -138,7 +150,7 @@ export function viewItemForm() {
               <input name="expiry_date" type="date" value="${esc(v.expiry_date || "")}">
             </label>
             ${assetField(v)}
-          </div>`, true)}
+          </div>`, true, "", it ? basicsAside(it) : "")}
         ${fsec(it?.id, "qty", `<span class="not-gear">${t("数量与提醒")}</span><span class="only-gear">${t("数量")}</span>`, `
           <p class="muted only-gear" style="margin:0 0 10px;font-size:13px">${t("家居耐用品只记数量和位置，不算消耗，也不会提醒补货。需要保养周期或保修的，用下方“升级为设备档案”。")}</p>
           <div class="form-grid">
