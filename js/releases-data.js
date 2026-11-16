@@ -2,15 +2,6 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
-  { v: "2026-11-15.6", title: { zh: "「该补货了」可以批量加入、移出", en: "Time to restock: add or remove several at once" }, items: [
-    { k: "new", zh: "每一行前面有勾选框，每块有「全选」；选好后点「加入购物车 (n)」一起加入，或在「已在购物车」里点「移出购物车 (n)」一起移出（先确认）", en: "Each row has a tick box and each block a Select all; then \"Add to cart (n)\" adds them together, or \"Remove from cart (n)\" in Already in the cart removes them (after you confirm)" },
-    { k: "better", zh: "原来的「全部加入采购清单」由「全选 + 加入购物车」代替", en: "\"Add all to shopping list\" is replaced by Select all + Add to cart" }
-  ] },
-  { v: "2026-11-15.5", title: { zh: "「该补货了」可以加入、也可以移出购物车", en: "Time to restock: add to or remove from the cart" }, items: [
-    { k: "better", zh: "「该补货了」点标题可以折叠；分成「待加入购物车」和「已在购物车」两块，超过 8 行在框里滚动", en: "Tap the Time to restock title to fold it; it's split into Not in the cart yet and Already in the cart, and scrolls inside after 8 rows" },
-    { k: "new", zh: "加入后名字旁边显示「已在清单」，按钮变成「移出购物车」；移出前会先确认，采购清单里的那一项也一起删掉", en: "Once added, the item shows \"On the list\" and the button becomes \"Remove from cart\"; you confirm before it's removed from the shopping list too" },
-    { k: "better", zh: "买到了以后，这里会自动更新", en: "Items drop off here automatically once bought" }
-  ] },
   { v: "2026-11-15.4", title: { zh: "录入购物页更简洁", en: "Simpler Log a purchase page" }, items: [
     { k: "better", zh: "只留下面一个「识别」按钮，拍了照或写了字才能点；小票的补充文字默认折叠，点开再写", en: "Just one \"Read it\" button at the bottom, active once there's a photo or text; the receipt's extra text is folded until you open it" },
     { k: "better", zh: "去掉了这一页的购买日期：识别后的确认页每张小票都可以改日期", en: "The purchase date is gone from this page: you can set it per receipt on the confirm page" }

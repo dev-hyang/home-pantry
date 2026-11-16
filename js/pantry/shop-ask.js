@@ -62,24 +62,3 @@ export function askShopItems(list) {
     if (!many) { const q = dlg.querySelector(".ask-qty"); q.focus({ preventScroll: true }); q.select?.(); }
   });
 }
-
-/** 页面里的确认框（不用浏览器的 confirm，那个可能被拦）：返回 true = 确认，false = 取消 */
-export function askConfirm({ title, body, ok, danger = false }) {
-  return new Promise((resolve) => {
-    const dlg = document.createElement("dialog");
-    dlg.className = "ask-dlg ask-confirm";
-    dlg.setAttribute("aria-labelledby", "askConfirmTitle");
-    dlg.innerHTML = `<form class="ask-form" novalidate><h3 id="askConfirmTitle">${esc(title)}</h3><p class="ask-body">${esc(body)}</p>
-      <div class="ask-acts"><button type="button" class="btn btn-ghost" data-ask="cancel">${esc(t("取消"))}</button>
-        <button type="submit" class="btn ${danger ? "btn-danger" : "btn-primary"}">${esc(ok || t("确认"))}</button></div></form>`;
-    document.body.appendChild(dlg);
-    let done = false;
-    const finish = (v) => { if (done) return; done = true; dlg.close(); dlg.remove(); resolve(v); };
-    dlg.querySelector("form").addEventListener("submit", (e) => { e.preventDefault(); finish(true); });
-    dlg.querySelector('[data-ask="cancel"]').addEventListener("click", () => finish(false));
-    dlg.addEventListener("cancel", (e) => { e.preventDefault(); finish(false); });
-    dlg.addEventListener("click", (e) => { if (e.target === dlg) finish(false); });
-    dlg.showModal();
-    dlg.querySelector('[data-ask="cancel"]').focus();
-  });
-}
