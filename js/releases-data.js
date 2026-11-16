@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-15.1", title: { zh: "录入购物搬进储藏", en: "Log a purchase moves into Pantry" }, items: [
+    { k: "better", zh: "「录入购物」成了储藏顶上的一张页面卡片（菜单旁边），手机上四张卡片排成两行；以前的链接和快捷操作照样能打开", en: "\"Log a purchase\" is now a page card at the top of Pantry, next to Meals; on phones the four cards sit in two rows. Old links and shortcuts still open it" },
+    { k: "fix", zh: "录入购物的来源按钮在手机上换行，不再左右滑", en: "The source buttons on Log a purchase wrap on phones instead of scrolling sideways" }
+  ] },
   { v: "2026-11-14.24", title: { zh: "物品表单的下拉和日期不再越界", en: "Item form dropdowns and dates fit again" }, items: [
     { k: "fix", zh: "手机上大类、小类、存放位置的下拉不再超出边框，和其他输入框一样宽、一样高；日期框也对齐了", en: "On phones, the Category, Subcategory and Location dropdowns no longer spill past the edge and match the other fields in width and height; date fields line up too" }
   ] },

@@ -233,7 +233,7 @@ function aiBlock() {
       <div class="form-actions tai-acts"><a class="btn btn-primary btn-sm" href="${href("ai")}">${t("问咩咩")}</a>
         <a class="btn btn-ghost btn-sm" href="${href("pantry", "meals")}?ai=">🍳 ${t("今天吃什么")}</a>
         <a class="btn btn-ghost btn-sm" href="${href("shopping", "add")}">📝 ${t("加入采购清单")}</a>
-        <a class="btn btn-ghost btn-sm" href="${href("scan")}">🧾 ${t("录入购物")}</a></div></div></section>`;
+        <a class="btn btn-ghost btn-sm" href="${href("pantry", "scan")}">🧾 ${t("录入购物")}</a></div></div></section>`;
 }
 
 /* ── 快捷操作：每位用户自己的一份（云端存在账号上，换设备也在；演示模式存本机）；编辑模式点格子改成别的、长按拖动排序 ── */
@@ -284,8 +284,8 @@ const QUICK_KEY = "hmh-quick";
  *  模块关掉的、没权限的自动跳过，用后面的补足 6 个 */
 export const DEFAULT_QUICK = () => {
   const want = financeOk()
-    ? [href("scan"), href("shopping", "add"), SPEND_ADD(), href("shopping"), href("shops", "list"), href("bill", "new"), INCOME_ADD(), href("bills", "overview"), href("pantry", "overview"), href("house", "assets")]
-    : [href("scan"), href("shopping", "add"), SPEND_ADD(), href("shopping"), href("shops", "list"), href("pantry", "overview"), href("house", "assets"), href("house", "tasks"), href("pantry", "inventory"), href("pantry", "meals")];
+    ? [href("pantry", "scan"), href("shopping", "add"), SPEND_ADD(), href("shopping"), href("shops", "list"), href("bill", "new"), INCOME_ADD(), href("bills", "overview"), href("pantry", "overview"), href("house", "assets")]
+    : [href("pantry", "scan"), href("shopping", "add"), SPEND_ADD(), href("shopping"), href("shops", "list"), href("pantry", "overview"), href("house", "assets"), href("house", "tasks"), href("pantry", "inventory"), href("pantry", "meals")];
   const ok = new Set(PRESETS().map((p) => p[0]));
   return want.filter((id) => ok.has(id)).slice(0, 8);
 };
@@ -324,7 +324,7 @@ export const PRESETS = () => {
   const B = state.billsEnabled, H = state.houseEnabled, G = state.gearEnabled;
   return [
     // 常用动作
-    [href("scan"), "🧾", t("录入购物")], B ? [SPEND_ADD(), "✍️", t("记一笔花费")] : null, [href("shopping"), "🛒", t("采购清单")],
+    [href("pantry", "scan"), "🧾", t("录入购物")], B ? [SPEND_ADD(), "✍️", t("记一笔花费")] : null, [href("shopping"), "🛒", t("采购清单")],
     [href("shopping", "add"), "📝", t("加入采购清单")], [`${href("shopping", "add")}?mode=photo`, "📷", t("拍照加入采购清单")], [href("shops", "list"), "🏪", t("常去的商店")],
     B ? [href("bill", "new"), "➕", t("添加账单")] : null, B ? [INCOME_ADD(), "💵", t("记一笔收入")] : null, B ? [`${href("bills", "onetime")}?bill=new`, "🏥", t("记一张一次性账单")] : null,
     // 储藏

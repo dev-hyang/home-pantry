@@ -237,7 +237,7 @@ const VIEWS = {
   alerts:   () => viewAlerts(),
   quick:    () => viewQuick(),   // #/quick：编辑今日页的快捷操作
   ai:       () => viewAi(),
-  pantry:   { overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
+  pantry:   { scan: () => viewScan(), overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix },
   bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
@@ -293,7 +293,7 @@ export function render(force = true) {
   const r = state.route;
   const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0])
     : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section === "bill" ? (state.prevRoute?.section || "bills")
-    : r.section === "scan" || r.section === "shops" ? "shopping" : r.section === "alerts" || r.section === "ai" || r.section === "quick" ? "today" : r.section;   // 注意事项、咩咩咩都是首页的子页，底栏高亮「今日」
+    : r.section === "shops" ? "shopping" : r.section === "alerts" || r.section === "ai" || r.section === "quick" ? "today" : r.section;   // 注意事项、咩咩咩都是首页的子页，底栏高亮「今日」
   document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
     a.hidden = (a.dataset.section === "house" && !state.houseEnabled) || (a.dataset.section === "bills" && !state.billsEnabled);
     if (a.dataset.section === navSection) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
@@ -305,7 +305,7 @@ export function render(force = true) {
   document.body.classList.toggle("editing", FORM_PAGES(r));
 
   if (!force && FORM_PAGES(r) && $("#main form")) return;
-  if (!force && r.section === "scan" && $("#main .scan-page")) return;   // 录入购物：识别中 / 确认页的改动不被后台同步冲掉（页面还没画出来时，比如直接刷新在这一页，要先画）
+  if (!force && isScanRoute(r) && $("#main .scan-page")) return;   // 录入购物：识别中 / 确认页的改动不被后台同步冲掉（页面还没画出来时，比如直接刷新在这一页，要先画）
   // 数据刷新（后台读完借贷 / 净资产 / 收入、切回标签页、家人改动）会重画整页：先把页面里「每一张」表单还没保存的改动记下来，
   // 画完再填回去，连光标位置一起（11-09：以前只认一份表单名单，新加的表单——比如卡和账户——不在名单里，填到一半 2–3 秒就被冲掉）
   const kept = force || userActing ? null : keepUnsaved();   // 用户自己点的（筛选、清除、展开…）照常按新状态画；只有后台刷新才保留
@@ -384,6 +384,8 @@ function renderBody(r) {
   if (!hs) state.scrolledHouse = false;
 }
 
+/** 录入购物（2026-11-15 起在 储藏 / 录入购物，#/pantry/scan） */
+const isScanRoute = (r) => r?.section === "pantry" && r?.sub === "scan";
 const scrollMem = {};
 const isListRoute = (r) => (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies");
 /* 离开表单页自动保存：物品 / 设备 / 账单 / 房屋资料表单（data-autosave）有没保存的改动，且不是点“取消 / 保存 / 删除”离开的，
@@ -433,7 +435,7 @@ function onRoute() {
     Object.assign(state.filter, { space: next.q.get("space") === "house" ? "house" : next.sub === "gear" ? "gear" : "pantry", cat: "all", q: "", loc: "all", status: next.q.get("status") });
     next.q.delete("status"); history.replaceState(null, "", `${href(next.section, next.sub)}${next.q.toString() ? `?${next.q}` : ""}`);
   }
-  if (next.section === "scan" && prev.section !== "scan") resetScan();
+  if (isScanRoute(next) && !isScanRoute(prev)) resetScan();
   if (!(next.section === "pantry" && (next.sub === "inventory" || next.sub === "gear"))) state.invSel = null;   // 离开库存：多选结束
   // 换了页面 / 页签 / 钻取参数：所有列表回到一页（从表单页返回原列表时保留，滚动位置才对得上）
   if ((routeKey(prev) !== routeKey(next) || prev.q?.toString() !== next.q.toString()) && !isFormSection(prev)) resetListPages();

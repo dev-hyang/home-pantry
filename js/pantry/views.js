@@ -87,7 +87,7 @@ function catCheckSection() {
 export function pantryNav(cur) {
   const need = (state.enriched || []).filter((x) => !isGear(x) && x.status !== "ok").length;
   const list = [["overview", href("pantry"), "📊", t("概览")], ["inventory", href("pantry", "inventory"), "📦", t("库存"), need],
-    ["meals", href("pantry", "meals"), "🍳", t("菜单")]].filter(Boolean);
+    ["meals", href("pantry", "meals"), "🍳", t("菜单")], ["scan", href("pantry", "scan"), "🧾", t("录入购物")]].filter(Boolean);
   return `<nav class="pnav" aria-label="${esc(t("储藏的页面"))}">${list.map(([id, h, ic, l, n]) => `<a class="pnav-card" href="${esc(h)}" ${id === cur ? 'aria-current="page"' : ""}>
     <span class="pnav-ico" aria-hidden="true">${ic}</span><span class="pnav-lbl">${esc(l)}</span>${n ? `<b class="pnav-n" aria-label="${esc(t("{n} 项", { n }))}">${n}</b>` : ""}</a>`).join("")}</nav>`;
 }
@@ -135,7 +135,7 @@ export function viewDashboard() {
 
   return `${catCheckSection()}
     <div class="pv-acts">
-      <a class="btn btn-primary pv-act" href="${href("scan")}" title="${esc(t("拍小票、贴线上订单，或手动添加一件"))}">🧾 ${t("录入购物")}</a>
+      <a class="btn btn-primary pv-act" href="${href("pantry", "scan")}" title="${esc(t("拍小票、贴线上订单，或手动添加一件"))}">🧾 ${t("录入购物")}</a>
       <button type="button" class="btn pv-act" data-action="add-item-pick">＋ ${t("添加物品")}</button>
     </div>
     <section class="section" aria-labelledby="h-restock">
@@ -709,7 +709,7 @@ function viewShopHome() {
         <a class="btn btn-primary" href="${href("shopping", "add", "?mode=photo")}">📷 ${t("拍照添加")}</a>
         <button type="button" class="btn" data-action="shop-add-alerts">🔔 ${t("补货提醒")}</button></div>
       <div class="sd-grp"><span class="sd-grp-t">${t("买回来了，录入库存")}</span>
-        <a class="btn" href="${href("scan")}">🧾 ${t("拍小票 / 网购订单入库")}</a></div>
+        <a class="btn" href="${href("pantry", "scan")}">🧾 ${t("拍小票 / 网购订单入库")}</a></div>
     </div>
     ${shopAdviceHtml()}
     <div class="sd-grid">
@@ -758,7 +758,7 @@ function viewShopAdd() {
     ${shopAdviceHtml()}
     ${recent.length ? `<div class="panel sd-preview"><div class="section-head"><h3>${t("最近加入")}</h3><a class="btn btn-sm btn-ghost" href="${listHref("open")}">${t("采购清单")} ›</a></div>
       <ul>${recent.map((s) => `<li class="sp-row"><span class="sp-txt"><b>${esc(s.name)}</b> <small class="muted">${showQty(num(s.quantity, 1), shopUnit(s))}${s.created_at ? ` · ${t("{d} 加入", { d: fmtShort(s.created_at) })}` : ""}</small></span></li>`).join("")}</ul></div>` : ""}
-    <a class="panel shops-entry" href="${href("scan")}"><span aria-hidden="true">🧾</span><span><b>${t("买回来了？拍小票或贴网购订单")}</b><small>${t("这是录入库存、记花费，不是加采购清单")}</small></span><span class="mch" aria-hidden="true">›</span></a>
+    <a class="panel shops-entry" href="${href("pantry", "scan")}"><span aria-hidden="true">🧾</span><span><b>${t("买回来了？拍小票或贴网购订单")}</b><small>${t("这是录入库存、记花费，不是加采购清单")}</small></span><span class="mch" aria-hidden="true">›</span></a>
   </section>`;
 }
 /** 采购：#/shopping（看板）、#/shopping/list、#/shopping/add；储藏 → 采购（#/pantry/shopping）也是看板 */

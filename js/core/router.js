@@ -5,7 +5,7 @@ export const SECTIONS = {
   alerts:   { name: "待办 | 注意事项", subs: null },
   quick:    { name: "快捷操作", subs: null },   // #/quick：编辑今日页的快捷操作（2026-11-06，今日改回卡片）   // #/alerts：今日格子里“注意事项”点开的清单（带排序）
   ai:       { name: "咩咩咩",  subs: null },   // #/ai：AI 助手整页（菜单在储藏 → 菜单，这里问家里任何事）
-  pantry:   { name: "储藏",   subs: [["overview", "概览"], ["shopping", "采购"], ["inventory", "库存"], ["gear", "家居耐用品"], ["meals", "菜单"]] },   // 家居耐用品：耐用品和工具，只记数量和位置
+  pantry:   { name: "储藏",   subs: [["overview", "概览"], ["shopping", "采购"], ["inventory", "库存"], ["gear", "家居耐用品"], ["meals", "菜单"], ["scan", "录入购物"]] },   // 家居耐用品：耐用品和工具，只记数量和位置
   // 房屋：#/house 是房产列表；#/house/pages 是某套房产的页面目录；车辆挂家庭，从房产列表进
   house:    { name: "房屋",   subs: [["overview", "概览"], ["assets", "设备保养"], ["tasks", "季节任务"], ["deal", "交易"], ["profile", "房屋资料"],
                                      ["supplies", "汽车房屋消耗品", true], ["vehicles", "车辆", true], ["pages", "页面", true], ["template", "推荐耗材", true], ["asset-template", "生成设备", true], ["fix", "出了问题", true]] },  // 第三项 true = 不在目录显示
@@ -28,6 +28,7 @@ export function parseRoute(hash = location.hash) {
   const [path, qs] = raw.split("?");
   const parts = path.split("/").filter(Boolean).map(decodeURIComponent);
   if (parts[0] === "gear") parts.splice(0, 1, "pantry", "gear");
+  if (parts[0] === "scan") parts.splice(0, 1, "pantry", "scan");   // 2026-11-15：录入购物搬到 储藏 / 录入购物；旧链接、已保存的快捷操作照旧能用
   if (parts[0] === "finance") parts[0] = "bills";   // 新名字的网址 #/finance/… = #/bills/…（内部 id 不改，旧链接零迁移）   // 旧链接 #/gear → 储藏 / 家居耐用品
   const query = new URLSearchParams(qs || "");
   if (parts[0] === "bills" && parts[1] === "spend" && query.get("tab") === "import") { parts[1] = "statements"; query.delete("tab"); }   // 银行导入搬到 财务 → 对账单（花费和收入共用）

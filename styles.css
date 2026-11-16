@@ -3210,7 +3210,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .pnav-n { min-width: 22px; padding: 1px 7px; border-radius: 99px; background: var(--out); color: #fff; font-size: 12px; text-align: center; }
 @media (max-width: 640px) {
   .pnav { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; }
-  .pnav-card { flex: 1 1 calc(25% - 6px); min-width: 0; }
+  .pnav-card { flex: 1 1 calc(50% - 6px); min-width: 0; }   /* 手机：四张卡片排成 2 × 2 */
   .pnav-card { flex-direction: column; justify-content: center; gap: 2px; min-height: 58px; padding: 6px 4px; font-size: 13px; text-align: center; }
   .pnav-lbl { flex: none; max-width: 100%; }
   .pnav-n { position: absolute; top: 4px; right: 4px; min-width: 18px; padding: 0 5px; font-size: 11px; }
@@ -3421,3 +3421,4 @@ button.fab { border: 0; cursor: pointer; padding: 0; font-family: inherit; }
   .form-grid input[type="date"] { display: block; line-height: 24px; }
 }
 input[type="date"], input[type="month"] { height: calc(1.6em + 20px); }   /* 和文字输入框一样高（行高 1.6 + 上下内边距 18 + 边框 2）；Chrome 的日期框默认高 2px */
+.scan-page .chips { flex-wrap: wrap; overflow: visible; }   /* 录入购物的来源芯片（实体店小票 / 线上订单 / 手动添加）：手机上换行，不出横向滚动条 */

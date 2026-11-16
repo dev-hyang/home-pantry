@@ -428,7 +428,7 @@ function spendRecordsTab() {
       <div class="section-head"><h2>${t("记一笔花费")}</h2><p>${t("没走采购清单的，在这里记")}</p></div>
       <div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}">
         <button type="button" class="way ${open ? "is-cur" : ""}" data-action="spend-add-toggle" aria-expanded="${open ? "true" : "false"}"><span class="way-ico" aria-hidden="true">✍️</span><span>${t("手动记一笔")}</span></button>
-        <a class="way" href="${href("scan")}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍小票识别")}</span></a>
+        <a class="way" href="${href("pantry", "scan")}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍小票识别")}</span></a>
         ${financeOk() ? `<a class="way" href="${href("bills", "statements")}"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a>` : ""}</div>
       ${storeDatalist()}
       ${open ? "" : "<!-- 表单收着 -->"}

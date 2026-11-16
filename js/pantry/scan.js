@@ -6,7 +6,6 @@ import { Store } from "../core/store.js";
 import { $, catOf, esc, fmt, fmtShort, num, spaceOf, toast, todayISO } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { href } from "../core/router.js";
-import { crumbNav } from "../core/hub.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
 import { cleanStore, rememberStore, storeDatalist } from "../stats/views.js";
 import { categoryOptions } from "./views.js";
@@ -21,7 +20,7 @@ const subGuess = (name, cat) => { const g = guessFor(name, cat, null); return g 
 const MAX_IMAGES = 8;   // 一次最多 8 张：可以是几张不同的小票，也可以是一张长小票的几段
 const sc = { kind: "receipt", mode: "auto", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] };
 export function resetScan() { Object.assign(sc, { kind: "receipt", mode: "auto", step: "input", images: [], text: "", date: "", busy: false, progress: "", error: "", result: null, pool: [] }); }
-const repaint = () => { const m = $("#main"); if (m && state.route.section === "scan") m.innerHTML = viewScan(); };
+const repaint = () => { const sec = $("#main .scan-page"); if (sec && state.route.section === "pantry" && state.route.sub === "scan") sec.outerHTML = viewScan(); };   // 只换页面本身，上面的面包屑和储藏页面卡片不动
 
 /* ───────────── 提示词与结果整理 ───────────── */
 function buildPool() {
@@ -171,8 +170,7 @@ const kindChips = () => {
 
 /* ───────────── 页面 ───────────── */
 export function viewScan() {
-  const back = crumbNav([{ href: href("shopping"), label: t("采购清单") }, { label: t("录入购物"), icon: "🧾" }]);
-  return `<section class="section scan-page">${back}${sc.step === "review" && sc.result ? reviewHtml() : inputHtml()}</section>`;
+  return `<section class="section scan-page">${sc.step === "review" && sc.result ? reviewHtml() : inputHtml()}</section>`;
 }
 
 function inputHtml() {
