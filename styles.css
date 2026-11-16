@@ -708,7 +708,7 @@ button.mrow:last-child { border-bottom: 0; }
 .form-page .sub-legend small { color: var(--muted); font-weight: 400; }
 .check-inline { display: flex; align-items: center; gap: 8px; font-weight: 500; }   /* 全站通用的“勾选 + 说明”一行（表单页、设置页、保养表单） */
 .check-inline input { width: 18px; height: 18px; min-height: 0; flex: 0 0 auto; accent-color: var(--pine); }
-.form-page textarea { width: 100%; }
+.form-page textarea { width: 100%; max-width: 100%; box-sizing: border-box; }   /* 备注框带内边距 + 边框，不用 border-box 手机上会超出右边 */
 /* 房屋页顶部：添加房产芯片 + 内联房产表单（与设置页同一表单） */
 .chip-add { border-style: dashed; }
 .prop-inline .section-head p { margin: 0; }
@@ -3488,3 +3488,13 @@ span.rem-tag { cursor: default; }
 .ask-unit-line { display: flex; align-items: center; gap: 8px; }
 .ask-unit-line input { flex: 1; min-width: 0; box-sizing: border-box; min-height: 44px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 16px; font-weight: 600; }
 .ask-unit-line b { flex: none; min-width: 3em; font-weight: 500; color: var(--muted); }
+
+/* 表单分区（2026-11-16）：每个分区是一张独立的卡片，标题是一条带底色的横栏，一眼看出是几个分区 */
+.form-page .fsec { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); margin: 0 0 14px; }
+.form-page .fsec:first-of-type { border: 1px solid var(--line); }
+.form-page .fsec > summary { min-height: 48px; padding: 0 14px; background: color-mix(in srgb, var(--pine) 9%, var(--surface-2)); border-bottom: 1px solid transparent; font-size: 15.5px; font-weight: 700; color: var(--pine); border-radius: 11px; }
+.form-page .fsec[open] > summary { border-radius: 11px 11px 0 0; }
+.form-page .fsec[open] > summary { border-bottom-color: var(--line); }
+.form-page .fsec > fieldset { margin: 0; padding: 14px; border: 0; min-width: 0; }
+.form-page .fsec > fieldset > .form-grid { margin: 0; }
+#itemForm .fsec[open] { padding-bottom: 0; }
