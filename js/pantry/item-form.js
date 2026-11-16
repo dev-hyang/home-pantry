@@ -71,10 +71,15 @@ function cartBtn(it) {
   const tip = inList ? t("已加入购物车，点一下移出") : t("加入购物车");
   return `<button type="button" class="btn btn-sm af-cart${inList ? " is-in" : ""}" data-action="${inList ? "shop-remove-item" : "shop-add-item"}" data-id="${it.id}" ${e ? "" : "disabled"} title="${esc(tip)}" aria-label="${esc(`${it.name}：${tip}`)}">${inList ? "✓🛒" : "🛒"}</button>`;
 }
-function spacePick(cur) {
+function spacePick(cur, open) {
   const list = SPACE_INFO.filter(([s]) => s === cur || (s === "house" ? state.houseEnabled : s === "gear" ? state.gearEnabled : true));
-  return `<fieldset class="span-2 space-pick"><legend>${t("放在哪一类")}</legend><div class="space-opts">${list.map(([s, ic, name, desc]) => `<label class="space-opt">
-    <input type="radio" name="space" value="${s}" ${s === cur ? "checked" : ""}><span class="space-card"><b>${ic} ${t(name)}</b><small>${t(desc)}</small></span></label>`).join("")}</div></fieldset>`;
+  const card = ([, ic, name, desc]) => `<b>${ic} ${t(name)}</b><small>${t(desc)}</small>`;
+  const now = list.find(([s]) => s === cur) || list[0];
+  /* 卡片式下拉（2026-11-16）：收起时只显示选中的那一类（名称 + 一行说明）；展开是几张带说明的大卡片，选中后自动收起。新物品默认展开，编辑已有物品默认收起 */
+  return `<fieldset class="span-2 space-pick"><legend>${t("放在哪一类")}</legend>
+    <details class="space-dd" ${open ? "open" : ""}><summary class="space-card space-sum" aria-label="${esc(t("放在哪一类"))}"><span class="space-sum-txt">${card(now)}</span><span class="space-chev" aria-hidden="true">▾</span></summary>
+    <div class="space-opts">${list.map((x) => `<label class="space-opt">
+    <input type="radio" name="space" value="${x[0]}" ${x[0] === cur ? "checked" : ""}><span class="space-card">${card(x)}</span></label>`).join("")}</div></details></fieldset>`;
 }
 /* 表单分块（2026-11-14）：每块可以点标题折叠 / 展开；展开状态记在内存里，后台重画时不变 */
 const FOLD = new Map();
@@ -138,7 +143,7 @@ export function viewItemForm() {
               <input name="aliases" maxlength="200" autocomplete="off" placeholder="${esc(t("同一样东西的其他叫法，用逗号隔开，例如：milk, 牛乳"))}" value="${esc(it ? aliasesOf(it.id).join(", ") : "")}">
               <small class="muted">${t("录入购物、购物车、记花费写成这些叫法，也会对上这件")}</small>
             </label>
-            ${spacePick(spaceOf(v.category))}
+            ${spacePick(spaceOf(v.category), !it)}
             <label>${t("大类")}
               <select name="category" required data-search>${categoryOptions(v.category, { withOther: false, only: spaceOf(v.category) })}</select>
             </label>
@@ -331,6 +336,8 @@ document.addEventListener("input", (e) => {
     const sel = e.target.form.elements.category;
     sel.innerHTML = categoryOptions(null, { withOther: false, only: e.target.value });
     sel.selectedIndex = 0; sel.dispatchEvent(new Event("change", { bubbles: true }));
+    const dd = e.target.closest(".space-dd"), pick = e.target.nextElementSibling;   // 选中后：标题行换成这一类，再收起
+    if (dd && pick) { dd.querySelector(".space-sum-txt").innerHTML = pick.innerHTML; dd.open = false; }
     return;
   }
   if (e.target.name === "remind" && e.target.closest?.("#itemForm")) {   // 打开提醒：原来是「不再提醒」的，暂停选项回到「正常提醒」

@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.5", title: { zh: "「放在哪一类」改成卡片下拉", en: "\"Which group\" is now a card dropdown" }, items: [
+    { k: "better", zh: "物品编辑页的「放在哪一类」收起时只占一行，显示选中的那一类和说明；点开是带说明的大卡片，选中后自动收起。新建物品默认展开，编辑已有物品默认收起", en: "\"Which group\" on the item page folds to a single row showing the chosen group and its description; open it to pick from big cards with descriptions. Expanded for new items, folded when editing" }
+  ] },
   { v: "2026-11-16.4", title: { zh: "录入购物：选「只记花费 / 入库 + 花费 / 只入库」", en: "Log a purchase: choose Spend only / Stock + spend / Stock only" }, items: [
     { k: "new", zh: "图片下面多了「录入方式」：默认只记花费、不入库；也可以选入库 + 花费，或只入库、不记花费", en: "A new \"How to record\" choice under the photos: spend only by default; or stock + spend, or stock only with no spending logged" },
     { k: "better", zh: "线上订单的「订单文字」默认折叠，点标题展开再粘贴", en: "The online order's order text is folded by default; tap its title to paste" }

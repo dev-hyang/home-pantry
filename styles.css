@@ -3508,3 +3508,14 @@ span.rem-tag { cursor: default; }
 .scan-record { margin: 12px 0 0; }
 .scan-record .chips { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
 .scan-record .chip { min-height: 40px; }
+/* 「放在哪一类」卡片式下拉 */
+.space-dd > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-color: var(--pine); background: color-mix(in srgb, var(--pine) 8%, var(--surface)); flex-direction: row; }
+.space-dd > summary::-webkit-details-marker { display: none; }
+.space-sum-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.space-chev { flex: none; color: var(--muted); transition: transform .2s; }
+.space-dd:not([open]) .space-chev { transform: rotate(-90deg); }
+.space-dd > summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.space-dd[open] > .space-opts { margin-top: 8px; }
+.space-sum { min-height: 0; }
+.space-sum-txt b, .space-sum-txt small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }   /* 收起时名称 + 说明各一行 */
+.af-cart { border: 1px solid var(--line); }
