@@ -134,10 +134,6 @@ export function viewDashboard() {
   const shelf = shelfGrid("pantry"), houseShelf = withHouse ? shelfGrid("house") : "";
 
   return `${catCheckSection()}
-    <div class="pv-acts">
-      <a class="btn btn-primary pv-act" href="${href("pantry", "scan")}" title="${esc(t("拍小票、贴线上订单，或手动添加一件"))}">🧾 ${t("录入购物")}</a>
-      <button type="button" class="btn pv-act" data-action="add-item-pick">＋ ${t("添加物品")}</button>
-    </div>
     <section class="section" aria-labelledby="h-restock">
       <div class="section-head"><h2 id="h-restock">${t("该补货了")}</h2>
         <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">${t("全部加入采购清单")}</button>` : ""}${cartBtn()}</div></div>
@@ -161,6 +157,7 @@ export function viewDashboard() {
         <div class="grow"><span class="name">${esc(it.name)}</span><small>${esc(t(it.location || ""))} ${t("剩 {q} {u}", { q: fmt(it.dqty), u: esc(t(it.du)) })}</small></div>${it.exp === "expired" && it.qty > 0 ? discardBtn(it) : ""}</li>`).join("")}</ul></div>
     </section>` : ""}
 
+    ${fab("pantry", t("添加物品"))}<div class="fab-spacer" aria-hidden="true"></div>
 `;
 }
 

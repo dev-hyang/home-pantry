@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-15.2", title: { zh: "概览的添加物品改成右下角 ＋", en: "Overview: add items with the ＋ at the bottom right" }, items: [
+    { k: "better", zh: "储藏概览和库存一样，用右下角的圆形 ＋ 添加物品（先选是哪一类）", en: "Like Inventory, the Pantry overview adds items with the round ＋ at the bottom right (pick the group first)" }
+  ] },
   { v: "2026-11-15.1", title: { zh: "录入购物搬进储藏", en: "Log a purchase moves into Pantry" }, items: [
     { k: "better", zh: "「录入购物」成了储藏顶上的一张页面卡片（菜单旁边），手机上四张卡片排成两行；以前的链接和快捷操作照样能打开", en: "\"Log a purchase\" is now a page card at the top of Pantry, next to Meals; on phones the four cards sit in two rows. Old links and shortcuts still open it" },
     { k: "fix", zh: "录入购物的来源按钮在手机上换行，不再左右滑", en: "The source buttons on Log a purchase wrap on phones instead of scrolling sideways" }
