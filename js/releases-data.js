@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-15.12", title: { zh: "购物车卡片更清爽", en: "Cleaner cart cards" }, items: [
+    { k: "better", zh: "名字旁边是「几号加入」，名字下面是「建议用哪张卡」；「我来买」在左下角，数量和单位在右下角", en: "The date added sits next to the name and the suggested card under it; \"I'll buy it\" is at the bottom left, quantity and unit at the bottom right" },
+    { k: "better", zh: "花费、在哪买、付款方式收进「记一笔花费（可选）」，需要时点开；填了照样在买到时记进花费", en: "Cost, store and payment are folded into \"Log the cost (optional)\"; anything you fill in is still recorded when you mark it bought" }
+  ] },
   { v: "2026-11-15.11", title: { zh: "购物车：右下角 ＋ 添加", en: "Cart: add with the ＋ at the bottom right" }, items: [
     { k: "better", zh: "购物车的「添加」和「拍照添加」合成右下角一个圆形 ＋：默认拍照添加，可以切到手动", en: "The Cart's \"Add\" and \"Add from photo\" are now one round ＋ at the bottom right: photo by default, or switch to manual" }
   ] },

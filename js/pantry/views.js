@@ -677,15 +677,20 @@ function shopRowHtml(s) {
   // 左滑删除；没买到的还能右滑「已买到」（先确认）。右滑替下面隐藏的 swipe-alt-src 点一下（带 data-confirm，按钮本身点了不弹框）
   const sel = state.shopSel, picked = sel?.has(s.id);
   const swipe = sel ? ` data-row-sel-shop="${s.id}"` : ` data-swipe-del="shop"${s.status === "bought" ? "" : ` data-swipe-alt="shop" data-swipe-alt-label="${esc(t("已买到"))}" data-swipe-alt-go="${esc(t("松手买到"))}"`}`;   // 多选时不滑动，点行 = 勾选
+  // 2026-11-15 卡片排版：上面 名称 + 「xx-xx 加入」；名称下 💳 建议用哪张卡 / 谁在买 / 特价；花费·在哪买·付款方式折叠成「记一笔花费（可选）」
+  // （字段都还在：点「已买到」时照旧拿来记花费，特价选店也照旧填「在哪买」）；最下面一行 左：我来买 / 已买到，右：数量 − n 单位 +
+  const cat = s.category || state.items.find((i) => i.id === s.item_id)?.category;
+  const spend = s.status === "bought" ? priceBox
+    : `<details class="si-spend"><summary>💰 ${t("记一笔花费（可选）")}</summary>${priceBox}</details>`;
   return `<li class="shop-item ${s.status === "bought" ? "done" : ""}${picked ? " is-picked" : ""}"${swipe}>
-    <div class="row">${sel ? `<input type="checkbox" class="shop-chk" data-id="${s.id}" ${picked ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: s.name }))}">` : ""}<span class="nm"><b>${esc(s.name)}</b> ${s.status === "bought" ? showQty(num(s.quantity, 1), shopUnit(s)) : shopQty(s)}${when ? ` <small class="muted" title="${esc(stampText(s))}">${when}</small>` : ""}</span>
+    <div class="si-top">${sel ? `<input type="checkbox" class="shop-chk" data-id="${s.id}" ${picked ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: s.name }))}">` : ""}<b class="si-name">${esc(s.name)}</b>${when ? `<small class="si-when muted" title="${esc(stampText(s))}">${when}</small>` : ""}
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shop-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button>${s.status === "bought" ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="shop-bought" data-id="${s.id}" data-confirm="1" aria-label="${esc(t("{name} 已买到", { name: s.name }))}">${t("已买到")}</button>`}</div>
+    ${s.status === "bought" ? "" : `<div class="card-hint-slot">${cardHintHtml(cat, "")}</div>`}
     ${s.status === "claimed" ? `<div class="who">🛍 ${t("{who} 正在买", { who: esc(whoName(s)) })}</div>` : ""}
     ${s.status === "bought" ? (s.claimed_by_name ? `<div class="who">✅ ${t("{who} 买到的", { who: esc(s.claimed_by_name) })}</div>` : "") : shopDealPicker(s)}
-    ${s.item_id ? "" : `<div class="muted" style="font-size:12px">${t("未关联库存，买到后需手动入库")}</div>`}
-    ${priceBox}
-    ${s.status === "bought" ? "" : `<div class="card-hint-slot">${cardHintHtml(s.category || state.items.find((i) => i.id === s.item_id)?.category, "")}</div>`}
-    ${acts ? `<div class="acts">${acts}</div>` : ""}
+    ${s.item_id ? "" : `<div class="muted si-note">${t("未关联库存，买到后需手动入库")}</div>`}
+    ${spend}
+    <div class="si-bottom">${acts ? `<div class="acts">${acts}</div>` : "<span></span>"}<div class="si-qty">${s.status === "bought" ? showQty(num(s.quantity, 1), shopUnit(s)) : shopQty(s)}</div></div>
   </li>`;
 }
 

@@ -2417,6 +2417,7 @@ export const EN = {
   "全部加入购物车": "Add all to cart", "{names} 将被移出购物车，请确认": "{names} will be removed from the cart. Continue?", "已移出购物车：{names}": "Removed from the cart: {names}",
   "已经不在购物车里了": "Already out of the cart", "等 {n} 件": " and others ({n} in total)",
   "添加要买的东西（默认拍照，可切换手动）": "Add something to buy (photo by default, or switch to manual)", "添加要买的东西": "Add something to buy",
+  "记一笔花费（可选）": "Log the cost (optional)",
   "全部物品": "All items", "{n} 种，都充足": "{n} kinds, all stocked",
   "这张小票可能已经录过：{who}{d} 记了 {n} 项，合计 {m}（这次 {m2}）": "This receipt may already be logged: {who}{d} logged {n} items, total {m} (this one {m2})",
   "这张小票怎么处理": "What to do with this receipt",
