@@ -62,7 +62,7 @@ import { loadNetWorth, maybeAutoSnapshot } from "./bills/nw-logic.js";   // 净�
 import { initDebts, viewDebts } from "./bills/debts.js";
 import "./bills/finance-alerts.js";   // 财务层面的提醒（余额太久没更新、快照没存上、借贷流水没关联）
 import { initNetWorth, viewNetWorth } from "./bills/net-worth.js";   // 财务 → 分析 → 净资产（迁移 059）   // 财务 → 借贷   // 借贷（迁移 058）：启动时读进内存，也注册借贷提醒
-import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
+import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, maintFilter, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
 import { fixAction, runFix, viewFix } from "./house/fix.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
@@ -512,6 +512,7 @@ function resetSectionFilters(section) {
 const clearAnd = (fn) => () => { fn(); resetListPages(); render(false); };
 onClearFilters("inv", clearAnd(() => { Object.assign(state.filter, FD.inv); clearUrlParams(["cat", "status"]); }), () => changed(state.filter, FD.inv));
 onClearFilters("shop", clearAnd(() => Object.assign(state.shopFilter, FD.shop)), () => changed(state.shopFilter, FD.shop));
+onClearFilters("maint", clearAnd(() => Object.assign(maintFilter, FD.maint)), () => changed(maintFilter, FD.maint));
 onClearFilters("asset", clearAnd(() => Object.assign(state.assetFilter, FD.asset)), () => changed(state.assetFilter, FD.asset));
 onClearFilters("deal", clearAnd(() => { state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; }));   // 排序不动
 onClearFilters("bills", clearAnd(() => { Object.assign(state.billsFilter, FD.bills); clearUrlParams(["prop"]); }), () => changed(state.billsFilter, FD.bills));
@@ -594,6 +595,7 @@ main.addEventListener("input", (e) => {
   // 搜索框：筛选条件马上记下，列表停下 ~200ms 再重画（不是每敲一个字都重画整张列表）
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; searchSoon(renderInvList); }
   if (e.target.id === "shopQ") { state.shopFilter.q = e.target.value; searchSoon(renderShopList); }   // 购物车搜索：只重画清单那块
+  if (e.target.id === "maintSearch") { maintFilter.q = e.target.value; searchSoon(renderMaintLogs); }
   if (e.target.id === "medSearch") { state.medFilter.q = e.target.value; searchSoon(renderMedList); }
   if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; searchSoon(renderSpendList); }   // 停下 ~200ms 再查数据库
   if (payeeInput(e, searchSoon)) return;   // 收款方：搜索、合并后的名字
@@ -689,6 +691,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.matches?.("#medBillForm select[name=patient_id], #medBillForm select[name=guarantor_id]")) return onPersonPick(e);
   if (e.target.id === "medReportYear") { state.medYear = e.target.value; render(); }
   { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; renderPayList(); } }
+  { const k = { maintKind: "kind", maintYear: "year" }[e.target.id]; if (k) { maintFilter[k] = e.target.value; renderMaintLogs(); } }
   { const k = { shopSt: "st", shopCat: "cat", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
   { const k = { assetType: "type", assetService: "service", assetWarranty: "warranty", assetLoc: "loc", assetSort: "sort" }[e.target.id]; if (k) { state.assetFilter[k] = e.target.value; renderAssetList(); } }
   { const k = { giftIssuer: "issuer", giftSort: "sort", giftUsed: "used" }[e.target.id]; if (k) { (state.giftFilter ||= { issuer: "all", sort: "balance", used: false })[k] = k === "used" ? e.target.checked : e.target.value; return render(false); } }   // 礼品卡的筛选 / 排序
@@ -857,8 +860,7 @@ main.addEventListener("submit", async (e) => {
       let ok = false;
       try { ok = await saveMaintForm(f); } finally { btn.disabled = false; }
       if (!ok) return;   // 校验没过（如车辆没选保养项目）：保留已填内容
-      if (f.elements.log_id.value) { await refresh(); return go(`${href("asset", f.elements.asset_id.value)}?log=1`, { replace: true }); }   // 编辑完回到记录列表
-      await refresh(); return render(true);
+      await refresh(); return go(`${href("asset", f.elements.asset_id.value)}?sec=log`, { replace: true });   // 记完 / 改完回到记录列表
     }
     if (f.id === "spendEditForm") {   // 花费记录就地编辑
       const e2 = f.elements, name = e2.name.value.trim(), amount = e2.amount.value === "" ? null : Math.round(num(e2.amount.value) * 100) / 100;   // 负数 = 退款 / 报销，照存

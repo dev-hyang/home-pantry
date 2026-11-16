@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.19", title: { zh: "保养记录页：以记录为主、右下角 ＋ 记保养", en: "Service records page: records first, ＋ button to log service" }, items: [
+    { k: "better", zh: "保养记录页现在先看记录：最近的在前，有搜索（项目、收款方、备注）和类型 / 年份筛选，一次显示一批，点「继续加载」看更早的", en: "The service records page now leads with the records: newest first, with search and type / year filters, loaded in batches" },
+    { k: "new", zh: "右下角一个圆形「＋」，点一下进「记保养」表单；记完或改完自动回到记录列表", en: "A round ＋ button at the bottom right opens the Log service form; saving returns to the list" },
+    { k: "better", zh: "记录整行可点进编辑，行上只留「复制」；左滑仍可删除", en: "Tap anywhere on a record to edit it; only Copy stays on the row, and swipe left still deletes" }
+  ] },
   { v: "2026-11-16.18", title: { zh: "设备保养页：提醒行和设备卡片重新排版", en: "Equipment page: alert rows and equipment cards reworked" }, items: [
     { k: "better", zh: "设备保养页顶部的提醒行和首页一致：实心圆点 + 名字旁的状态标签 + 右边「记保养」", en: "Alert rows on the equipment page match the home page: solid dot, status tag by the name, Log service on the right" },
     { k: "better", zh: "设备卡片整张都能点（进编辑），去掉「详情」按钮；「记保养」放在右边居中", en: "The whole equipment card is tappable (opens edit); the Details button is gone and Log service sits at the right, centered" },

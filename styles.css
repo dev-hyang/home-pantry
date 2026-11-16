@@ -3618,3 +3618,10 @@ span.rem-tag { cursor: default; }
 .asset-row-card.swipe-alt::before { background: #b3261e; }
 .asset-row-card.swipe-row.ready-alt::before { background: #8e1a14; }
 .asset-row-card .swipe-src, .asset-row-card .swipe-alt-src { z-index: 0; }
+
+/* 保养记录页：整行可点（进编辑），行上只留「复制」；右下角 ＋ 记保养 */
+.maint-row { position: relative; }
+.maint-row .log-hit { position: absolute; inset: 0; z-index: 1; border-radius: 8px; }
+.maint-row .log-hit:hover { background: color-mix(in srgb, var(--pine) 4%, transparent); }
+.maint-row .log-hit:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+.maint-row .log-copy { position: relative; z-index: 2; min-height: 44px; display: inline-flex; align-items: center; }

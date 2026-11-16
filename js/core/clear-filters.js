@@ -12,6 +12,7 @@ import { state } from "./state.js";
 export const FD = {
   inv: { cat: "all", sub: "all", q: "", status: "all", loc: "all" },
   shop: { st: "open", cat: "all", q: "", sort: "new" },
+  maint: { q: "", kind: "all", year: "all" },   // 设备 / 车辆的保养记录页
   asset: { q: "", type: "all", service: "all", warranty: "all", loc: "all" },
   bills: { property: "all", cat: "all", autopay: "all", channel: "all", q: "" },
   pay: { bill: "all", year: "all", status: "all" },
