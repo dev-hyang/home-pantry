@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.16", title: { zh: "房产名称也能在房屋资料里改", en: "Rename the property from the house profile" }, items: [
+    { k: "new", zh: "房屋资料的「地区、房型与用途」里可以改房产名称，和设置里的房产是同一份，改一处两边都变", en: "Property name can be edited in the profile's Region, house type & use; it is the same record as in Settings" }
+  ] },
   { v: "2026-11-16.15", title: { zh: "设备 / 车辆提醒：操作多了全收进三点菜单", en: "Equipment / vehicle alerts: many actions go into one menu" }, items: [
     { k: "better", zh: "设备和车辆的提醒行，操作超过 2 个时全部收进竖三点菜单（第一项加粗 = 默认要做的），手机上不再挤；2 个以内还是直接显示按钮", en: "On equipment and vehicle alert rows, more than 2 actions all go into the vertical three-dot menu (first item in bold = the default); 2 or fewer stay as buttons" },
     { k: "better", zh: "三点菜单按钮全站统一成 44px 的圆形，大小不再忽大忽小", en: "The three-dot button is now one 44px circle everywhere" }

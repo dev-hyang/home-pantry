@@ -639,7 +639,7 @@ function sectionFacts(d, id) {
   const dl = (rows) => { const r = rows.filter(([, v]) => v); return r.length ? `<dl class="fact-grid one">${r.map(([k, v]) => `<div class="fact"><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>` : `<p class="muted prof-empty">${t("未填")}</p>`; };
   const names = (group, ids) => ids.map((x) => Hh.MATERIALS[group].find((m) => m.id === x)).filter(Boolean).map((m) => t(m.name));
   switch (id) {
-    case "type": { const ht = Hh.typeOf(d.region, d.house_type); const B = window.BILLS, cp = currentProp(); return dl([[t("地区"), esc(t(Hh.REGIONS[d.region]?.name || ""))], [t("房型"), ht ? `${ht.icon} ${esc(t(ht.name))}` : ""], [t("类型"), cp ? esc(t(B.PROPERTY_KINDS[cp.kind] || "")) : ""], [t("用途"), cp ? esc(t(B.PROPERTY_ROLES[cp.role] || "")) : ""], [t("状态"), cp ? esc(statusText(cp)) : ""]]); }
+    case "type": { const ht = Hh.typeOf(d.region, d.house_type); const B = window.BILLS, cp = currentProp(); return dl([[t("房产名称"), cp ? esc(cp.name) : ""], [t("地区"), esc(t(Hh.REGIONS[d.region]?.name || ""))], [t("房型"), ht ? `${ht.icon} ${esc(t(ht.name))}` : ""], [t("类型"), cp ? esc(t(B.PROPERTY_KINDS[cp.kind] || "")) : ""], [t("用途"), cp ? esc(t(B.PROPERTY_ROLES[cp.role] || "")) : ""], [t("状态"), cp ? esc(statusText(cp)) : ""]]); }
     case "address": return dl([[t("地址"), esc(d.address || "")], [t("建成年份"), d.year_built ? `${d.year_built}${t("（约 {age} 年房龄）", { age: new Date().getFullYear() - d.year_built })}` : ""]]);
     case "insurance": { if (!d.insured) return `<p class="muted prof-empty">${t("未投保")}</p>`; return dl(insuranceRows(d)); }
     case "hoa": {
@@ -663,7 +663,8 @@ function sectionFacts(d, id) {
 /** 房产的类型 / 用途 / 状态三个下拉（原来在「编辑房产」里，现在放进资料的「地区、房型与用途」） */
 function propSelects(p) {
   const B = window.BILLS, opts = (obj, cur) => Object.entries(obj).map(([k, n]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${t(n)}</option>`).join("");
-  return `<label>${t("类型")}<select name="prop_kind">${opts(B.PROPERTY_KINDS, p?.kind || "other")}</select></label>
+  return `<label class="span-2">${t("房产名称")}<input name="prop_name" required maxlength="40" placeholder="${t("例如：芝加哥的家 / 出租房 1")}" value="${esc(p?.name || "")}"></label>
+    <label>${t("类型")}<select name="prop_kind">${opts(B.PROPERTY_KINDS, p?.kind || "other")}</select></label>
     <label>${t("用途")}<select name="prop_role">${opts(B.PROPERTY_ROLES, p?.role || "owner_occupied")}</select></label>
     <label class="span-2">${t("状态")}<select name="prop_status">${opts(window.DEALS.PROPERTY_STATUS, p?.status || "owned")}</select><small>${t("看房或签约阶段可先建房产；买卖和退租在“房屋 → 交易”里走流程")}</small></label>`;
 }
