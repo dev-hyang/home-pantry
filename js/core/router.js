@@ -11,7 +11,7 @@ export const SECTIONS = {
                                      ["supplies", "汽车房屋消耗品", true], ["vehicles", "车辆", true], ["pages", "页面", true], ["template", "推荐耗材", true], ["asset-template", "生成设备", true], ["fix", "出了问题", true]] },  // 第三项 true = 不在目录显示
   // 财务（2026-11，原「账单」改名）：内部 id 仍是 bills，旧的 #/bills/… 网址、书签、快捷操作、提醒链接全部照旧；#/finance/… 是同一处的别名
   bills:    { name: "财务",   subs: [["overview", "概览"], ["recurring", "周期性账单"], ["onetime", "一次性账单"], ["spend", "花费"], ["income", "收入"], ["statements", "对账单"], ["budget", "预算"], ["cards", "卡与账户"], ["assets", "资产"], ["debts", "借贷"], ["networth", "净资产"], ["template", "常用账单", true]] },
-  shopping: { name: "采购",   subs: [["home", "采购"], ["list", "购物车", true], ["add", "加入清单", true]] },   // #/shopping 看板、#/shopping/list?tab=…、#/shopping/add（2026-11-13）
+  shopping: { name: "采购",   subs: [["home", "采购"], ["list", "购物车", true], ["add", "加入购物车", true]] },   // #/shopping 看板、#/shopping/list?tab=…、#/shopping/add（2026-11-13）
   scan:     { name: "录入购物", subs: null },
   shops:    { name: "常去的商店", subs: [["list", "常去的商店"], ["find", "找附近的商店", true], ["shop", "商店", true], ["log", "更新记录", true], ["deals", "特价一览", true]] },   // #/shops/list、#/shops/find、#/shops/shop/<id>（迁移 067；底栏高亮「采购」）   // #/scan：拍小票 / 贴线上订单，AI 读成清单后入库（底栏高亮“采购”）
   me:       { name: "我的",   subs: [["stats", "家里的数字"], ["settings", "设置"], ["about", "介绍"], ["releases", "发布日志"]] },

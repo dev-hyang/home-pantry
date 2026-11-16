@@ -994,6 +994,14 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .act-item:hover, .act-item:focus-visible { background: var(--surface-2); }
 .act-item:focus-visible { outline: 2px solid var(--pine); outline-offset: -2px; }
 @media print { .alert-acts { display: none; } }
+/* 设备 / 车辆提醒行：实心圆点（颜色 = 紧急程度）+ 名称旁的状态标签 + 右边主操作和竖三点菜单 */
+.row-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); align-self: center; }
+.row-dot.b-out { background: var(--out); } .row-dot.b-soon { background: var(--soon); } .row-dot.b-ok { background: var(--ok); }
+.dr-title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.dr-title .badge { flex: none; }
+.act-more.v-dots .dots3 { box-shadow: 0 -7px currentColor, 0 7px currentColor; }
+.act-more.v-dots > summary { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.dot-row .btn.btn-sm { min-height: 44px; display: inline-flex; align-items: center; }
 /* 首页 · 今日（2026-11 重排，docs/design-today.md）：手机一栏；宽屏两栏（左：要做的事，右：看一眼的数字和咩咩），读屏顺序 = 先左栏再右栏 */
 .today-layout { display: grid; gap: 18px; align-items: start; }
 @media (min-width: 900px) { .today-layout { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 22px; } }
@@ -1670,7 +1678,7 @@ a.sd-tile:hover, .sd-main a:hover { border-color: var(--pine); }
 .sp-txt .shop-deal-line { display: block; }
 .sp-acts { display: flex; gap: 6px; flex: none; }
 .sd-empty { display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; padding: 24px 16px; }
-.shop-mode { display: flex; gap: 6px; margin: 0 0 10px; }
+.shop-mode { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
 .shop-mode .chip { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; color: var(--ink); text-decoration: none; }
 .shop-mode .chip[aria-current="page"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .shop-toolbar .shop-q { flex: 1 1 220px; display: flex; min-width: 0; }

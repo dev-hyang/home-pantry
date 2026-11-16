@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.11", title: { zh: "加入购物车页、设备提醒行重新排版", en: "Add-to-cart page; tidier equipment alert rows" }, items: [
+    { k: "better", zh: "「加入清单」页改名「加入购物车」，「补货提醒」按钮放到「拍照」「手动」旁边", en: "\"Add to list\" page is now \"Add to cart\"; the Restock alerts button sits next to Photo and Manual" },
+    { k: "better", zh: "设备和车辆的提醒行：左边是实心圆点（颜色表示紧急程度），状态标签（停止使用、召回、逾期…）紧跟在名字旁边；右边是处理召回 / 记保养，其余操作和「？怎么做」收进竖三点菜单", en: "Equipment and vehicle alert rows: a solid dot shows urgency, the status tag (Stop using, Recall, Overdue…) sits next to the name; the main action stays on the right and the rest, with the ? how-to, move into a vertical three-dot menu" }
+  ] },
   { v: "2026-11-16.10", title: { zh: "采购看板整理、从看板进清单筛选重新开始", en: "Shopping board tidy-up; lists start fresh from the board" }, items: [
     { k: "better", zh: "录入购物的「录入方式」默认「入库 + 花费」，并排在最前面", en: "Log a purchase: \"Stock + spend\" is now the default and listed first" },
     { k: "better", zh: "采购看板去掉「加入购物车」那一行；「常去的商店与特价」拆成两格：「常去的商店」（几家、哪几家待更新）和「商店特价一览」", en: "The Add-to-cart row is gone from the Shopping board; Stores & deals is split into My stores (count, which need updating) and Store deals" },

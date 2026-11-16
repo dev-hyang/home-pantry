@@ -7,6 +7,7 @@ import { state } from "./state.js";
 import { askButton, askPanel } from "./ask.js";
 import { esc } from "./util.js";
 import { t } from "./i18n.js";
+import { moreMenu } from "./more-menu.js";
 import { FINANCE_ALERT_SOURCES, financeOk } from "./finance-access.js";
 
 export const SEVERITY_LABEL = ["紧急", "今天", "尽快", "留意"];
@@ -50,8 +51,25 @@ export function alertCounts(list) {
   return { bySeverity, bySource, total: list.length, important: bySeverity[0] + bySeverity[1] + bySeverity[2] };
 }
 
+
+/** 设备 / 车辆的提醒行（2026-11-16）：左边实心圆点（颜色 = 紧急程度，代替勾选框 / 徽章）→ 名称 + 紧跟的状态标签 + 说明 → 右边主操作（处理召回 / 记保养）
+ *  + 竖三点菜单（详情、其余操作、「？怎么做」）。字段：cls 状态色（b-out / b-soon / b-ok）、nameHtml、badge {label, cls}、detail、primary（HTML）、menu（moreMenu 的项）、ask */
+export function dotRow({ cls = "b-soon", nameHtml, badge = null, detail = "", primary = "", menu = [], ask = null, extraCls = "", tagHtml = "" }) {
+  const items = [...menu, ask && { label: t("怎么做 · 问咩咩"), action: "ask-toggle", data: { ask: ask.id } }];
+  const panel = ask ? askPanel(ask) : "";
+  return `<li class="alert-row dot-row ${extraCls}"><span class="row-dot ${cls}" aria-hidden="true"></span>
+    <div class="grow">${tagHtml}<div class="dr-title">${nameHtml}${badge ? `<span class="badge ${badge.cls}">${esc(badge.label)}</span>` : ""}</div>${detail ? `<small>${esc(detail)}</small>` : ""}</div>
+    <div class="alert-acts">${primary}${moreMenu(items, { vertical: true })}</div>${panel}</li>`;
+}
+
 /** 通用一行：复选框类提醒用勾选框代替徽章 */
 export function alertRow(it) {
+  if (it.dotRow) {
+    const a0 = (it.actions || [])[0];
+    return dotRow({ cls: it.badge?.cls || SEVERITY_CLS[it.severity], tagHtml: `${propertyTag(it.property_id)}${it.must ? `<span class="badge b-out" style="margin-right:4px">${t("必须")}</span>` : ""}`,
+      nameHtml: it.href ? `<a class="link-name" href="${esc(it.href)}">${esc(it.title)}</a>` : `<span class="name">${esc(it.title)}</span>`, badge: it.badge, detail: it.detail,
+      primary: a0 ? `<a class="btn btn-sm" href="${esc(a0.href)}">${esc(a0.label)}</a>` : "", menu: it.menu || [], ask: it.ask });
+  }
   const check = (it.actions || []).find((a) => a.type === "check");
   const lead = check
     ? `<input type="checkbox" ${Object.entries(check.attrs || {}).map(([k, v]) => `${k}="${esc(v)}"`).join(" ")}>`

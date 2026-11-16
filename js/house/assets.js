@@ -23,7 +23,7 @@ import { dealHref, dealTasks, openVehicleDeal } from "./deals.js";
 import { autofillBar } from "../core/autofill.js";
 import { storeDatalist } from "../stats/views.js";
 import { cardSelectHtml, payAcctValue, purchasePayFields } from "../bills/cards-views.js";
-import { propertyName } from "../core/alerts.js";
+import { dotRow, propertyName } from "../core/alerts.js";
 import { activeProperties } from "../core/lifecycle.js";
 import { priceInput, priceOrNull, pricesOk } from "../core/finance-access.js";   // 买价 / 卖价 / 更换估价只给有财务权限的人看（界面闸门）
 import { pageLimit, pageMoreBtn, pageSize } from "../core/pager.js";
@@ -156,6 +156,9 @@ export const alertBadge = (a) => (a.recallSt ? { label: t(RECALL_STATUS[a.recall
   : a.followUp ? { label: t(C().RESULTS[a.followUp.result]), cls: "b-out" } : a.service === "overdue" ? { label: t("逾期"), cls: "b-out" } : a.service === "due" ? { label: t("保养"), cls: "b-soon" } : { label: t("保修"), cls: "b-soon" });
 export const alertAct = (a) => (a.recallSt ? { href: `${href("asset", a.id)}?sec=recall`, label: t("处理召回") } : { href: `${href("asset", a.id)}?log=1`, label: a.followUp ? t("记处理结果") : t("记保养") });
 
+/** 设备提醒行的竖三点菜单：详情；召回时再多一个「记保养」 */
+export const assetMenu = (a) => [{ label: t("详情"), href: href("asset", a.id) }, a.recallSt && { label: t("记保养"), href: `${href("asset", a.id)}?log=1` }];
+
 /** 提醒总线：所有活跃房产的设备 + 家庭的车辆（检查发现问题 = 尽快·必须；保养逾期 = 今天级；到期 / 保修 = 尽快级） */
 export function assetAlertItems() {
   if (!state.houseEnabled || state.pending?.maint) return [];   // 保养记录还在加载：没有记录会被误判成“从没保养过”
@@ -164,8 +167,8 @@ export function assetAlertItems() {
   const out = assetAlerts(state.assetsEnriched.filter((a) => (isVehicle(a) ? V().inService(a) : live.has(a.property_id)))).map((a) => ({
     source: "asset", severity: a.recallSt === "stop_use" ? 0 : a.recallSt ? 2 : a.followUp ? 2 : a.service === "overdue" ? 1 : 2, must: !!(a.recallSt || a.followUp), due: a.recallSt ? null : a.next,
     daysLeft: a.recallSt ? (recallOf(a).found_on ? daysUntil(recallOf(a).found_on) : null) : a.followUp ? -(-daysUntil(a.followUp.done_on)) : a.service === "overdue" || a.service === "due" ? a.dueDays : a.wDays,
-    asset_id: a.id, property_id: a.property_id, title: a.recallSt === "stop_use" ? `⛔ ${t("停止使用：{name}", { name: assetName(a) })}` : `${a.t?.icon || "⚙️"} ${assetName(a)}`, detail: alertText(a), href: href("asset", a.id),
-    badge: alertBadge(a), actions: [{ type: "link", ...alertAct(a) }], ask: assetAsk(a),
+    asset_id: a.id, property_id: a.property_id, title: `${a.recallSt === "stop_use" ? "⛔" : a.t?.icon || "⚙️"} ${assetName(a)}`, detail: alertText(a), href: href("asset", a.id),
+    badge: alertBadge(a), actions: [{ type: "link", ...alertAct(a) }], ask: assetAsk(a), dotRow: true, menu: assetMenu(a),
   }));
   // 车辆证照与保险：牌照 / 排放 / 保险 30 天内到期（尽快·必须，过期 → 今天）；租赁 90 天内（留意）
   for (const a of state.assetsEnriched.filter((x) => isVehicle(x) && V().inService(x))) {
@@ -174,7 +177,7 @@ export function assetAlertItems() {
       if (!d || d.days > within) return;
       out.push({ source: "asset", severity: d.days < 0 ? sevLate : within <= 30 ? 2 : 3, must: mustFlag, due: d.date, daysLeft: d.days, asset_id: a.id, property_id: null,
         title: `${a.t?.icon || "🚗"} ${assetName(a)} · ${label}`, detail: d.days < 0 ? t("已过期 {d} 天", { d: -d.days }) : d.days === 0 ? t("今天到期") : t("{d} 天后到期（{date}）", { d: d.days, date: fmtDate(d.date) }),
-        href: href("asset", a.id), badge: { label: d.days < 0 ? t("已过期") : t("快到期"), cls: d.days < 0 ? "b-out" : "b-soon" }, actions: [{ type: "link", href: href("asset", a.id), label: t("更新") }] });
+        href: href("asset", a.id), badge: { label: d.days < 0 ? t("已过期") : t("快到期"), cls: d.days < 0 ? "b-out" : "b-soon" }, actions: [{ type: "link", href: href("asset", a.id), label: t("更新") }], dotRow: true, menu: [{ label: t("详情"), href: href("asset", a.id) }] });
     };
     push("registration", t("牌照年贴"), D.registration, 30, 1, true);
     push("emissions", t("排放检测"), D.emissions, 30, 1, true);
@@ -354,10 +357,9 @@ export function viewVehicles() {
       <div class="section-head"><p>${list.length ? t("{n} 辆", { n: list.length }) : ""}</p>
         <div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="veh-buy-start">${t("开始买车流程")}</button>
           <a class="btn btn-primary" href="${href("asset", "new")}?type=vehicle_gas">${t("添加车辆")}</a></div></div>
-      ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.map((a) => `<li>
-          <span class="badge ${a.followUp || a.service === "overdue" ? "b-out" : "b-soon"}">${a.followUp ? t(C().RESULTS[a.followUp.result]) : a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修")}</span>
-          <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a><small>${esc(alertText(a))}</small></div>
-          <a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a></li>`).join("")}</ul></div>` : ""}
+      ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.map((a) => { const b = alertBadge(a); return dotRow({ cls: b.cls, nameHtml: `<a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>`,
+        badge: { label: a.followUp ? t(C().RESULTS[a.followUp.result]) : a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修"), cls: b.cls }, detail: alertText(a),
+        primary: `<a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a>`, menu: [{ label: t("详情"), href: href("asset", a.id) }], ask: assetAsk(a) }); }).join("")}</ul></div>` : ""}
     </section>
     ${list.length ? `<section class="section"><div class="asset-grid">${list.map(vehicleCard).join("")}</div></section>`
       : `<section class="section"><div class="panel empty"><strong>${past.length ? t("没有在用的车辆") : t("还没有车辆档案")}</strong>${t("记下年款、车牌、里程和动力类型，按月或按里程提醒机油、轮胎、刹车油、12V 电瓶等；牌照、排放、保险到期也会提醒。油车和电车用不同的保养模板。")}

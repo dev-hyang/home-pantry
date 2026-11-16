@@ -771,14 +771,15 @@ function viewShopAdd() {
       <label>${t("单位")}<input name="unit" list="unitList" placeholder="${t("不填自动选")}" maxlength="10"></label>
       <label>${t("分类")}<select name="category"><option value="">${t("自动分类")}</option>${categoryOptions()}</select></label>
       <label>${t("预估金额")}<input name="estimate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="${t("可不填，用来做预算提示")}"></label>
-      <div class="form-actions full"><button class="btn btn-primary" type="submit">${t("加入清单")}</button><a class="btn btn-ghost" href="${href("shopping")}">${t("完成")}</a></div>
+      <div class="form-actions full"><button class="btn btn-primary" type="submit">${t("加入购物车")}</button><a class="btn btn-ghost" href="${href("shopping")}">${t("完成")}</a></div>
       <p class="muted full shop-add-tip">${t("加完一项可以接着加；库存里有的东西会自动关联，买到后自动入库。")}</p>
     </form>`;
   return `<section class="section shop-add-page">
-    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("加入清单"), icon: "＋" }])}
+    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("加入购物车"), icon: "＋" }])}
     <nav class="shop-mode" aria-label="${esc(t("添加方式"))}">
       <a class="chip" href="${href("shopping", "add", "?mode=photo")}" ${photo ? 'aria-current="page"' : ""}>📷 ${t("拍照")}</a>
       <a class="chip" href="${href("shopping", "add")}" ${photo ? "" : 'aria-current="page"'}>✍️ ${t("手动")}</a>
+      <button type="button" class="chip" data-action="shop-add-alerts">🔔 ${t("补货提醒")}</button>
     </nav>
     ${photo ? shopScanHtml() : form}
     <datalist id="itemNames">${state.items.map((i) => `<option value="${esc(i.name)}">`).join("")}</datalist>
