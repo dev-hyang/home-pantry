@@ -3576,3 +3576,5 @@ span.rem-tag { cursor: default; }
 .prof-card .fact { grid-template-columns: 6.4em 1fr; }
 .prof-card .prof-empty { margin: 4px 0 2px; font-size: 13px; }
 .prof-tags { padding: 4px 0 2px; }
+.house-top { display: flex; justify-content: flex-end; margin: -4px 0 6px; }
+.house-top .btn { min-height: 44px; display: inline-flex; align-items: center; }

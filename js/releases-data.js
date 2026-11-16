@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.13", title: { zh: "房屋保险分行显示；概览去掉「编辑房产」", en: "Insurance shown line by line; Edit property removed from overview" }, items: [
+    { k: "better", zh: "房屋保险分成几行：状态和有效期、保险公司、保单号、保障范围、年保费、理赔代理；资料页和概览页格式一致", en: "Home insurance is split into lines (status and dates, company, policy no., coverage, yearly premium, claims agent), the same on the profile page and the overview" },
+    { k: "better", zh: "概览去掉「编辑房产」；房产的类型、用途、状态挪到资料里的「地区、房型与用途」", en: "Edit property is gone from the overview; type, use and status now live in the profile's Region, house type & use" },
+    { k: "better", zh: "「修改资料」按钮放到卡片上面一行，标题不再被挤得换行", en: "The Edit profile button sits on its own row above, so the title no longer wraps" }
+  ] },
   { v: "2026-11-16.12", title: { zh: "房屋资料：每一块一个卡片", en: "House profile: one card per section" }, items: [
     { k: "better", zh: "房屋资料页把每个分区（房型、地址、保险、HOA、产权、应急、设施、材料）做成一张卡片，直接显示现在填的内容和完成度，一页看全这套房子的基本信息", en: "The house profile page shows each section (type, address, insurance, HOA, ownership, emergency, features, materials) as a card with what is filled in and its progress" },
     { k: "better", zh: "每张卡片右上角有「编辑」，只进这一块自己的编辑页，各自保存", en: "Each card has its own Edit button that opens just that section" }

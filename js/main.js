@@ -1549,6 +1549,7 @@ async function saveHouseForm(f, { silent = false } = {}) {
   await Store.saveHouseProfile(d, state.propertyId);
   const prop = state.properties.find((p) => p.id === state.propertyId);   // 地址存在房产上
   if (prop && (prop.address || "") !== (d.address || "")) await Store.saveProperty({ ...prop, address: d.address || null });
+  if (f.elements.prop_kind && prop) await Store.saveProperty({ ...prop, address: d.address || null, kind: f.elements.prop_kind.value, role: f.elements.prop_role.value, status: f.elements.prop_status.value || prop.status || "owned" });   // 「地区、房型与用途」里的类型 / 用途 / 状态
   state.houseProfile = { ...d }; state.houseDraft = null;
   if (silent) return true;
   state.skipAutosave = true;

@@ -64,7 +64,6 @@ function statusLine() {
     ${tag(t("类型"), t(B.PROPERTY_KINDS[p.kind] || ""))}
     ${tag(t("用途"), t(B.PROPERTY_ROLES[p.role] || ""))}
     ${d ? `<a class="meta-tag b-soon" href="${href("house", "deal")}"><small>${t("交易")}</small>${t("进行中，查看清单")}</a>` : ""}
-    ${state.editProperty === p.id ? "" : `<button type="button" class="link-name" data-action="property-edit" data-id="${p.id}">${t("编辑房产")}</button>`}
   </div>`;
 }
 
@@ -292,7 +291,7 @@ const PROFILE_ASK = { type: "我这种房型通常要自己负责哪些维护？
   hoa: "HOA 月费一般包含什么？特殊评估、出租限制、储备金这些怎么看？", emergency: "总水阀、燃气阀、配电箱一般在哪？怎么关？", features: "家里这些设施各自要做什么日常保养？", materials: "这几种外墙 / 屋面 / 地面材料各要注意什么？",
   ownership: "缴税号（PIN）在哪查？车位是否 deeded、税务减免怎么申请？" };
 export const PROFILE_SECTIONS = [
-  { id: "type", icon: "🏡", name: "地区与房型" },
+  { id: "type", icon: "🏡", name: "地区、房型与用途" },
   { id: "address", icon: "📍", name: "地址与建成年份" },
   { id: "insurance", icon: "🛡️", name: "房屋保险" },
   { id: "hoa", icon: "🏘️", name: "HOA / 物业" },
@@ -360,6 +359,23 @@ export function insuranceFact(p) {
   return { k, v: bits.join(" · "), sub: agentValue(p) };
 }
 
+/** 保险分行显示（资料页卡片和概览用同一份）：[[标签, HTML]]；没有投保 / 没填的行不出现 */
+export function insuranceRows(p) {
+  const s = insuranceStatus(p), [cls, label] = INS_BADGE[s.kind];
+  if (s.kind === "none") return [];
+  const period = p.insurance_from || p.insurance_to ? `${p.insurance_from ? fmtDate(p.insurance_from) : "…"} – ${p.insurance_to ? fmtDate(p.insurance_to) : "…"}` : "";
+  const prem = insurancePremium(state.propertyId, p);   // 年保费：保险账单是唯一来源
+  const agent = agentValue(p).replace(/^[^：:]*[：:]/, "");
+  return [
+    [t("保险状态"), `<span class="badge ${cls}">${t(label)}${s.kind === "expiring" ? ` · ${t("{d} 天", { d: s.days })}` : ""}</span>${period ? ` ${esc(period)}` : ""}`],
+    [t("保险公司"), p.insurance_provider ? `<b>${esc(p.insurance_provider)}</b>` : ""],
+    [t("保单号"), p.insurance_policy ? esc(p.insurance_policy) : ""],
+    [t("保障范围"), p.insurance_coverage ? `<span class="pre">${esc(p.insurance_coverage)}</span>` : ""],
+    [t("年保费"), prem.amount != null ? `${money(prem.amount)}${prem.src === "profile" ? ` <small class="muted">${t("（资料里的旧值）")}</small>` : ""}` : ""],
+    [t("理赔代理"), agent],
+  ].filter(([, v]) => v);
+}
+
 /** 理赔代理：姓名 · 电话（可拨）· 邮箱（可发），都没填返回空串 */
 function agentValue(p) {
   const parts = [];
@@ -397,7 +413,8 @@ function houseFacts(p, { ext, roof, floors, featNames }) {
   const main = [], more = [];
   const addr = currentProp()?.address;
   main.push({ k: `📍 ${t("地址")}`, v: addr ? esc(addr) : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充")}</a>`, wide: true });
-  main.push({ ...insuranceFact(p), wide: true });
+  if (insuranceStatus(p).kind === "none") main.push({ ...insuranceFact(p), wide: true });
+  else for (const [k, v] of insuranceRows(p)) main.push({ k, v, wide: true });
   const hoa = hoaFact(p); if (hoa) main.push({ ...hoa, wide: true });
   const mats = [...ext, ...roof, ...floors];
   more.push({ k: `🧱 ${t("材料")}`, v: mats.length ? `<span class="tagline">${mats.map((m) => `<span class="tag">${esc(t(m.name))}</span>`).join("")}</span>` : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充材料")}</a>`, wide: true });
@@ -452,13 +469,13 @@ export function viewHouse() {
     ${houseBar()}${statusLine()}
     <section class="section">
       <div class="house-card">
+        <div class="house-top"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改资料")}</a></div>
         <div class="house-head">
           <span class="house-ico" aria-hidden="true">${ht?.icon || "🏠"}</span>
           <div class="grow">
             <h2>${esc(ht ? t(ht.name) : t("我的房子"))}${lang === "en" ? "" : `<span class="muted">${esc(ht?.en || "")}</span>`}</h2>
             <p class="muted">${esc(t(H().REGIONS[p.region]?.name || ""))}${p.year_built ? t("，{y} 年建成（约 {age} 年房龄）", { y: p.year_built, age }) : ""}</p>
           </div>
-          <a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改资料")}</a>
         </div>
         <dl class="fact-grid one">${factRows(facts.main)}</dl>
         <details class="facts-more"><summary>${t("材料与设施")}<small>${facts.count ? t("{n} 项", { n: facts.count }) : t("未填")}</small></summary><dl class="fact-grid one">${factRows(facts.more)}</dl></details>
@@ -622,9 +639,9 @@ function sectionFacts(d, id) {
   const dl = (rows) => { const r = rows.filter(([, v]) => v); return r.length ? `<dl class="fact-grid one">${r.map(([k, v]) => `<div class="fact"><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>` : `<p class="muted prof-empty">${t("未填")}</p>`; };
   const names = (group, ids) => ids.map((x) => Hh.MATERIALS[group].find((m) => m.id === x)).filter(Boolean).map((m) => t(m.name));
   switch (id) {
-    case "type": { const ht = Hh.typeOf(d.region, d.house_type); return dl([[t("地区"), esc(t(Hh.REGIONS[d.region]?.name || ""))], [t("房型"), ht ? `${ht.icon} ${esc(t(ht.name))}` : ""]]); }
+    case "type": { const ht = Hh.typeOf(d.region, d.house_type); const B = window.BILLS, cp = currentProp(); return dl([[t("地区"), esc(t(Hh.REGIONS[d.region]?.name || ""))], [t("房型"), ht ? `${ht.icon} ${esc(t(ht.name))}` : ""], [t("类型"), cp ? esc(t(B.PROPERTY_KINDS[cp.kind] || "")) : ""], [t("用途"), cp ? esc(t(B.PROPERTY_ROLES[cp.role] || "")) : ""], [t("状态"), cp ? esc(statusText(cp)) : ""]]); }
     case "address": return dl([[t("地址"), esc(d.address || "")], [t("建成年份"), d.year_built ? `${d.year_built}${t("（约 {age} 年房龄）", { age: new Date().getFullYear() - d.year_built })}` : ""]]);
-    case "insurance": { if (!d.insured) return `<p class="muted prof-empty">${t("未投保")}</p>`; const f = insuranceFact(d); return dl([[t("保单"), f.v], [t("理赔代理"), f.sub || ""]]); }
+    case "insurance": { if (!d.insured) return `<p class="muted prof-empty">${t("未投保")}</p>`; return dl(insuranceRows(d)); }
     case "hoa": {
       const h = hoaOf(d), f = hoaFact(d); if (!f) return `<p class="muted prof-empty">${t("无 {label}", { label: t(Hh.assocOf(d.house_type).label) })}</p>`;
       const contact = [h.phone && esc(h.phone), h.email && esc(h.email), h.url && esc(h.url)].filter(Boolean).join(" · ");
@@ -641,6 +658,14 @@ function sectionFacts(d, id) {
     case "materials": return dl([[t("外墙"), tags(names("exterior", d.exterior || []))], [t("屋面"), tags(d.roof ? names("roof", [d.roof]) : [])], [t("地面"), tags(names("flooring", d.flooring || []))]]);
     default: return none;
   }
+}
+
+/** 房产的类型 / 用途 / 状态三个下拉（原来在「编辑房产」里，现在放进资料的「地区、房型与用途」） */
+function propSelects(p) {
+  const B = window.BILLS, opts = (obj, cur) => Object.entries(obj).map(([k, n]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${t(n)}</option>`).join("");
+  return `<label>${t("类型")}<select name="prop_kind">${opts(B.PROPERTY_KINDS, p?.kind || "other")}</select></label>
+    <label>${t("用途")}<select name="prop_role">${opts(B.PROPERTY_ROLES, p?.role || "owner_occupied")}</select></label>
+    <label class="span-2">${t("状态")}<select name="prop_status">${opts(window.DEALS.PROPERTY_STATUS, p?.status || "owned")}</select><small>${t("看房或签约阶段可先建房产；买卖和退租在“房屋 → 交易”里走流程")}</small></label>`;
 }
 
 /** 单个分区的表单页：只渲染这一块的字段，保存后回到分区列表 */
@@ -662,6 +687,10 @@ function viewProfileSection(sec) {
           <div class="type-grid">${types.map((x) => `<label class="type-card"><input type="radio" name="house_type" value="${x.id}" ${d.house_type === x.id ? "checked" : ""}>
             <span class="type-body"><span class="type-ico" aria-hidden="true">${x.icon}</span><b>${esc(t(x.name))}</b>${lang === "en" ? "" : `<small>${esc(x.en)}</small>`}<em>${esc(t(x.desc))}</em></span></label>`).join("")}</div>
           <p class="hint">${t("切换房型会按该房型重新预选设施，可以再调整。")}</p>
+        </fieldset>
+        <fieldset>
+          <legend>${t("房产类型与用途")}</legend>
+          <div class="form-grid">${propSelects(currentProp())}</div>
         </fieldset>`,
     address: () => `
         <fieldset>
