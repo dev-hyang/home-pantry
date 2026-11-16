@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.21", title: { zh: "「？」和三点菜单按钮同样大小", en: "The ? and three-dot buttons are the same size" }, items: [
+    { k: "fix", zh: "各房产要处理的事等提醒行里，三点菜单按钮和「？」统一成同样大小的圆（点按区域仍不小于 44px）", en: "On alert rows (including each property's to-dos) the three-dot button and the ? are now the same round size, with the tap area still at least 44px" }
+  ] },
   { v: "2026-11-16.20", title: { zh: "房屋首页：房屋、汽车各一个分区，用卡片", en: "House home: Houses and Cars as separate card sections" }, items: [
     { k: "better", zh: "去掉「资产」那一层；房屋和汽车各是一个分区，每套房产、每辆车是一张卡片，只显示名称、状态、地址 / 车牌这些基本信息，不再放统计数字", en: "The Assets wrapper is gone; Houses and Cars are separate sections of cards showing basics only (name, status, address / plate), with no statistics" },
     { k: "new", zh: "每个分区最后一张空白的「＋ 添加」卡：添加房产 / 添加车辆", en: "The last card in each section is a blank + card to add a property or vehicle" }

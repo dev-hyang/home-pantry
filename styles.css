@@ -3643,3 +3643,9 @@ span.rem-tag { cursor: default; }
 .hv-add .hv-ico { background: color-mix(in srgb, var(--pine) 10%, var(--surface)); color: var(--pine); font-size: 26px; font-weight: 600; }
 .hv-add .hv-txt b { color: var(--pine); }
 .hv-head { margin-top: 18px; }
+
+/* 「？」和三点菜单按钮：同一个 32px 圆（边框、底色一样），点按区域用伪元素撑到 44px；各页（含「各房产要处理的事」）大小一致 */
+.ask-btn, .act-more > summary:has(> .dots3) { box-sizing: border-box; position: relative; width: 32px; height: 32px; min-width: 32px; min-height: 32px; padding: 0; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; }
+.ask-btn { font-size: 15px; line-height: 1; }
+.ask-btn::before, .act-more > summary:has(> .dots3)::before { content: ""; position: absolute; inset: -6px; }
+.act-more > summary:has(> .dots3):hover, .act-more[open] > summary:has(> .dots3) { border-color: var(--pine); color: var(--pine); }
