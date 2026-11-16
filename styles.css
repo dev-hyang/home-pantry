@@ -3547,3 +3547,5 @@ span.rem-tag { cursor: default; }
 .scan-fee-row > input[name="amount"] { text-align: right; }
 .scan-fee-row .scan-inc { margin: 0; }
 .scan-fee-row p[hidden] { display: none; }
+.scan-fee-row .scan-gap-note { grid-column: 1 / -1; margin: 0; font-size: 12.5px; }
+.scan-fees > .btn { margin-top: 6px; min-height: 44px; }

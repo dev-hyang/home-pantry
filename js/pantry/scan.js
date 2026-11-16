@@ -111,12 +111,21 @@ function buildReceipt(j) {
   const date = sc.date || (found ? j.date : todayISO()), dateSrc = sc.date ? "user" : found ? "receipt" : "today";   // 你填的 > 小票 / 文字里读到的 > 今天
   if (sc.record === "spend") for (const r of rows) r.match = "skip";   // 补记以前的购物：东西多半已经用掉，默认只记花费、不加库存（要入库的行再改）
   const total = j?.total == null ? null : num(j.total, NaN);
+  addGapRow(rows, Number.isFinite(total) ? total : null);
   return { include: true, store: String(j?.store || "").trim().slice(0, 40), date, dateSrc, total: Number.isFinite(total) ? total : null, rows };
 }
 /** 万一模型还是把折扣单独列成一行（负数金额，Costco「000399701 /Pomegranate 3.00-」这种）：并进它折扣的那件商品——
  *  往上找同名（或名字互相包含）的正价行；找不到、而原文是「/商品名」或 TPD / 优惠券写法的，并进紧挨着的上一行正价商品。
  *  例：石榴 11.99 + 石榴 −3.00 → 石榴 8.99（一行）。实在找不到对应商品的负数行留着（多半是退货 / 整单优惠），由用户自己看。 */
 /** 不是花钱的行（11-14 Target）：「You saved」「Total savings」「Circle earnings」这类说明，模型偶尔当成商品——直接丢掉 */
+/** 小票合计 比 各行加起来多出来的部分：多半是没读到的税费。多出 0.05 以上、又不超过合计的 40% 时，补一行「差额（税费等）」（算好的数，可以改、可以取消勾选）；
+ *  差得太多多半是漏了商品，不自动补，只在确认页提醒 */
+const GAP_MAX = 0.4;
+function addGapRow(rows, total) {
+  if (total == null || !(total > 0)) return;
+  const gap = Math.round((total - rows.reduce((s, r) => s + num(r.amount, 0), 0)) * 100) / 100;
+  if (gap > 0.05 && gap <= total * GAP_MAX) rows.push({ include: true, fee: "other", gap: true, raw: "", name: t("差额（税费等）"), qty: "", unit: "", amount: gap, def: "", match: "skip", category: FEES_CAT, order: false });
+}
 /** 税费类的行：fee 取值 → 默认名称（AI 没给名字时用） */
 const FEE_KINDS = { tax: "税", tip: "小费", delivery: "配送费", service: "服务费", bag: "袋子费", other: "其他费用" };
 const FEES_CAT = "shop_fees";
@@ -229,7 +238,7 @@ function feeRowHtml(x, ri, i, cur) {
     <input name="name" maxlength="60" autocomplete="off" aria-label="${esc(t("名称"))}" value="${esc(x.name)}">
     <input name="amount" type="number" step="0.01" inputmode="decimal" aria-label="${esc(t("金额"))}（${esc(cur)}）" value="${x.amount ?? ""}">
     <input type="hidden" name="qty" value=""><input type="hidden" name="unit" value=""><input type="hidden" name="target" value="__skip"><input type="hidden" name="cat" value="${FEES_CAT}">
-    <p class="dup-hint" hidden></p><p class="cart-hint" hidden></p><p class="name-hint" hidden></p><p class="unit-hint" hidden></p></li>`;
+    <p class="dup-hint" hidden></p><p class="cart-hint" hidden></p><p class="name-hint" hidden></p><p class="unit-hint" hidden></p>${x.gap ? `<p class="muted scan-gap-note">${t("按小票合计算出的差额，多半是税费；对不上就改金额或取消勾选")}</p>` : ""}</li>`;
 }
 function rowHtml(x, ri, i, cur) {
   return `<li class="scan-row ${x.match ? "" : "is-new"}" data-r="${ri}" data-i="${i}">
@@ -255,7 +264,7 @@ function receiptHtml(r, ri, many, cur) {
       <div class="rcpt-dup" role="status" hidden></div>
       <p class="muted scan-past" ${r.date < todayISO() ? "" : "hidden"} style="margin:8px 0 0;font-size:13px">📌 ${t("补记以前的购物：默认只记花费，不入库（东西多半已经用掉）。要加库存的行，把“放进库存”改成对应物品。")}</p>
       <ul class="scan-rows">${r.rows.map((x, i) => (x.fee ? "" : rowHtml(x, ri, i, cur))).join("")}</ul>
-      ${r.rows.some((x) => x.fee) ? `<div class="scan-fees"><h4>🧾 ${t("税费及其他")}</h4><p class="muted">${t("税、小费、配送费、服务费：记成单独的花费，商品价格不受影响；不要的取消勾选")}</p><ul class="scan-rows">${r.rows.map((x, i) => (x.fee ? feeRowHtml(x, ri, i, cur) : "")).join("")}</ul></div>` : ""}
+      ${sc.result?.manual ? "" : `<div class="scan-fees"><h4>🧾 ${t("税费及其他")}</h4><p class="muted">${t("税、小费、配送费、服务费：记成单独的花费，商品价格不受影响；不要的取消勾选")}</p><ul class="scan-rows">${r.rows.map((x, i) => (x.fee ? feeRowHtml(x, ri, i, cur) : "")).join("")}</ul><button type="button" class="btn btn-ghost btn-sm" data-action="scan-add-fee" data-r="${ri}">＋ ${t("加一行税费")}</button></div>`}
       ${sc.result?.manual ? `<div class="scan-addrow"><button type="button" class="btn btn-ghost btn-sm" data-action="scan-add-row" data-r="${ri}">＋ ${t("加一条")}</button><small class="muted">${t("要手动录入多样东西，就再加一条")}</small></div>` : ""}
       <p class="muted scan-rsum" style="margin:8px 0 0;font-size:13px"></p></fieldset>`;
 }
@@ -325,7 +334,7 @@ function updateSum() {
     const sel = [...box.querySelectorAll(".scan-row")].filter((r) => r.querySelector('[name="inc"]').checked);
     const sum = sel.reduce((s, r) => s + num(r.querySelector('[name="amount"]').value), 0), tot = sc.result.receipts[ri]?.total;
     box.querySelector(".scan-rsum").textContent = t("选中 {n} 项，合计 {m}", { n: sel.length, m: Units.money(sum) })
-      + (tot != null ? (Math.abs(tot - sum) > 0.05 ? t("；小票合计 {m}（含税费或有漏项，可对一下）", { m: Units.money(tot) }) : t("；与小票合计一致")) : "");
+      + (tot != null ? (Math.abs(tot - sum) > 0.05 ? t("；小票合计 {m}，和选中的合计相差 {d}（可能漏了商品，或还要加一行税费）", { m: Units.money(tot), d: Units.money(Math.abs(Math.round((tot - sum) * 100) / 100)) }) : t("；与小票合计一致")) : "");
     if (on) { all += sum; rn++; rows += sel.length; }
   });
   el.textContent = sc.result.receipts.length > 1 ? t("共 {r} 张小票、{n} 项，合计 {m}", { r: rn, n: rows, m: Units.money(all) }) : "";
@@ -493,6 +502,12 @@ export function scanAction(action, el, ctx) {
     case "scan-add-row": { if (!sc.result) return; repaint2(); const rc = sc.result.receipts[+el.dataset.r]; if (rc) rc.rows.push(blankRow()); repaint(); updateSum(); const rows = document.querySelectorAll(`.scan-rcpt[data-r="${el.dataset.r}"] .scan-row`); rows[rows.length - 1]?.querySelector('[name="name"]')?.focus(); return; }
     case "scan-mode": sc.mode = el.dataset.mode; return repaint();
     case "scan-record": sc.record = el.dataset.record; return repaint();
+    case "scan-add-fee": {   // 加一行税费：金额先填成「小票合计 − 现在各行合计」（读到了合计才有），可以改
+      repaint2(); const rc = sc.result?.receipts[+el.dataset.r]; if (!rc) return;
+      const have = rc.rows.reduce((s, x) => s + (x.include ? num(x.amount, 0) : 0), 0), gap = rc.total == null ? null : Math.round((rc.total - have) * 100) / 100;
+      rc.rows.push({ include: true, fee: "other", raw: "", name: t("税费"), qty: "", unit: "", amount: gap > 0 ? gap : null, def: "", match: "skip", category: FEES_CAT, order: false });
+      repaint(); updateSum(); const last = [...document.querySelectorAll(`.scan-rcpt[data-r="${+el.dataset.r}"] .scan-fee-row [name="name"]`)].pop(); last?.focus(); return;
+    }
     case "scan-img-del": sc.images.splice(+el.dataset.i, 1); return repaint();
     case "scan-run": return run();
     case "scan-back": if (sc.result?.manual) { startManual(); return repaint(); } sc.step = "input"; sc.result = null; sc.error = ""; return repaint();
