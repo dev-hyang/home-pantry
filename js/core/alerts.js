@@ -60,7 +60,7 @@ export function dotRow({ cls = "b-soon", nameHtml, badge = null, detail = "", pr
   const panel = ask ? askPanel(ask) : "";
   const btn = (x, i) => (x.href ? `<a class="btn btn-sm${i ? " btn-ghost" : ""}" href="${esc(x.href)}">${esc(x.label)}</a>`
     : `<button type="button" class="btn btn-sm btn-ghost" data-action="${esc(x.action)}"${Object.entries(x.data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join("")}>${esc(x.label)}</button>`);
-  const ctl = acts.length > 2 ? moreMenu(acts.map((x, i) => (i ? x : { ...x, first: true })), { vertical: true }) : acts.map(btn).join("");
+  const ctl = acts.length > 2 ? moreMenu(acts.map((x, i) => (i ? x : { ...x, first: true })), { vertical: true }) : [primary, ...menu].filter(Boolean).map(btn).join("") + (ask ? askButton(ask) : "");
   return `<li class="alert-row dot-row ${extraCls}"><span class="row-dot ${cls}" aria-hidden="true"></span>
     <div class="grow">${tagHtml}<div class="dr-title">${nameHtml}${badge ? `<span class="badge ${badge.cls}">${esc(badge.label)}</span>` : ""}</div>${detail ? `<small>${esc(detail)}</small>` : ""}</div>
     <div class="alert-acts">${ctl}</div>${panel}</li>`;

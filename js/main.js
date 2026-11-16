@@ -551,7 +551,7 @@ export const main = $("#main");
 initCompactFilters({ root: main, ui: uiKind });
 miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
 document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.pv-card[data-fold]")) setFold(d.dataset.fold, d.open); }, true);   // 储藏概览大卡片折叠 / 展开：记在本机
-initSwipeRows({ kinds: ["rs", "item", "income", "budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card", "store", "deal"], altKinds: ["card", "deal", "shop", "item", "rs"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });   // 卡行还能右滑停用 / 启用   // 行记录左滑删除（js/swipe-rows.js）
+initSwipeRows({ kinds: ["asset", "rs", "item", "income", "budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card", "store", "deal"], altKinds: ["asset", "card", "deal", "shop", "item", "rs"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });   // 卡行还能右滑停用 / 启用   // 行记录左滑删除（js/swipe-rows.js）
 /* 云端报错翻译：数据库还没升级到某个迁移时，PostgREST 只会说「找不到某列 / 某表」，这里换成告诉你该执行哪个迁移文件 */
 const MIGRATION_HINTS = [[/deal_task_done.*status|status.*deal_task_done|deal_custom_tasks.*skipped|skipped.*deal_custom_tasks/i, "047_deal_skip.sql", "交易清单跳过"], [/deal_events|property_deals.*baseline|baseline.*property_deals/i, "046_deal_progress.sql", "交易进展"], [/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/pay_card_id|bill_payments.*card_id|medical_payments.*card_id|cards_kind_check/i, "036_pay_accounts.sql", "付款账户（银行账户、账单扣款 / 缴费用的卡）"], [/house_profiles.*ownership|ownership.*house_profiles/i, "038_house_ownership.sql", "房屋资料：产权、税务与车位"], [/assets.*\bunits\b|\bunits\b.*assets/i, "039_asset_units.sql", "固定装置的位置与数量"], [/purchases.*\bmethod\b|\bmethod\b.*purchases|cards.*\bbalance\b|\bgift\b/i, "040_purchase_method.sql", "付款方式（现金 / 支票 / 礼品卡）与礼品卡"], [/inactive_since/i, "041_card_inactive_since.sql", "卡的停用日期"], [/income_records|income_repayments|income_access/i, "042_income_records.sql", "收入（进账）记录和查看权限"], [/relation .*\bcards\b|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
 function friendlyErr(msg) {
@@ -1079,6 +1079,11 @@ main.addEventListener("click", async (e) => {
       case "asset-delete":
         if (!confirmDelete(t("删除这台设备和它的保养记录？"))) return;
         await Store.deleteAsset(state.route.id); toast(t("已删除设备及其保养记录")); return leaveAsset(true);
+      case "asset-row-del": {   // 设备列表里右滑删除（先确认；在这里问，取消时手势会把行弹回去）
+        const ar = state.assets.find((x) => x.id === id);
+        if (!window.confirm(t("删除设备「{name}」和它的保养记录？", { name: ar?.name || "" }))) return;
+        await Store.deleteAsset(id); toast(t("已删除设备及其保养记录")); await refresh(); return render(true);
+      }
       case "maint-del":
         if (!confirmDelete(t("删除这条保养记录？"))) return;
         await Store.deleteMaintLog(id); toast(t("已删除这条记录")); await refresh(); return render(true);

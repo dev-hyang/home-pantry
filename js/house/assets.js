@@ -320,10 +320,8 @@ export function viewAssets() {
           <a class="btn btn-primary" href="${href("asset", "new")}">${t("添加设备")}</a></div></div>
       <p class="muted" style="margin:0 0 10px;font-size:12.5px">${t("设备 = 有保养周期或保修的，一台一条（热水器、割草机）；固定装置按类记一条（马桶、门、吊扇、插座），位置和数量写在里面；只记数量和位置的（梯子、床品、节日装饰）放在 储藏 → 家居耐用品；灯泡、电池是耗材，在 储藏 → 库存 → 汽车房屋消耗品。")}</p>
       <p class="muted" style="margin:0 0 10px;font-size:12.5px">🩺 ${t("东西坏了？")}<a href="${href("house", "fix")}">${t("描述毛病（可拍照），先看常见小毛病，再让咩咩分析原因、给方案，配件直接加采购")}</a></p>
-      ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.slice(0, 6).map((a) => { const b = alertBadge(a), act = alertAct(a); return `<li>
-          <span class="badge ${b.cls}">${esc(b.label)}</span>
-          <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a><small>${esc(alertText(a))}</small></div>
-          <a class="btn btn-sm" href="${act.href}">${esc(act.label)}</a></li>`; }).join("")}</ul></div>`
+      ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.slice(0, 6).map((a) => { const b = alertBadge(a), act = alertAct(a); return dotRow({ cls: b.cls, nameHtml: `<a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>`,
+          badge: b, detail: alertText(a), primary: { href: act.href, label: act.label }, ask: assetAsk(a) }); }).join("")}</ul></div>`
         : list.length ? `<p class="muted" style="margin:0;font-size:13px">${t("保养都在周期内，保修也没有快到期的。")}</p>` : ""}
     </section>
     ${list.length ? `<section class="section">${assetToolbar(list)}<div id="assetList">${html}</div></section>` : `<section class="section"><div class="panel empty"><strong>${t("还没有设备档案")}</strong>
@@ -435,19 +433,26 @@ export function assetCard(a) {
     o && t("负责：{who}", { who: t(o.name) }),
   ].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("")
     + ((a.updated_at || a.created_at) ? `<span title="${esc(stampText(a))}">${t("{d} 更新", { d: fmtShort(a.updated_at || a.created_at) })}</span>` : "");
-  return `<article class="asset-card ${a.recallSt === "stop_use" ? "is-recall-stop" : a.recallSt ? "is-recall" : ""}">
-    <div class="asset-head"><span class="asset-ico" aria-hidden="true">${a.t?.icon || "⚙️"}</span>
-      <div class="grow"><a class="asset-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>
-        <div class="item-meta">${meta || `<span>${esc(a.t ? t(a.t.name) : "")}</span>`}</div></div></div>
-    <div class="asset-badges">
-      ${recallBadge(a)}
-      ${a.followUp ? `<span class="badge b-out">${t("检查：{r}", { r: t(C().RESULTS[a.followUp.result]) })}</span>` : ""}
-      ${sb.label ? `<span class="badge ${sb.cls}">${t(sb.label)}${a.next && a.service !== "unknown" ? ` · ${fmtDate(a.next)}` : ""}</span>` : ""}
-      ${wb.label ? `<span class="badge ${wb.cls}">${t(wb.label)}</span>` : ""}
+  const act = a.recallSt ? { href: `${href("asset", a.id)}?sec=recall`, label: t("处理召回") } : { href: `${href("asset", a.id)}?log=1`, label: t("记保养") };
+  // 整张卡都能点（进编辑 / 详情）；右边居中是「记保养」；手机上 ← 左滑记保养 · 右滑删除设备 →
+  return `<article class="asset-card asset-row-card ${a.recallSt === "stop_use" ? "is-recall-stop" : a.recallSt ? "is-recall" : ""}" data-swipe-del="asset" data-swipe-left-label="${esc(act.label)}" data-swipe-left-go="${esc(a.recallSt ? t("松手处理召回") : t("松手记保养"))}" data-swipe-alt="asset" data-swipe-alt-label="${esc(t("删除设备"))}" data-swipe-alt-go="${esc(t("松手删除"))}">
+    <a class="asset-hit" href="${href("asset", a.id)}" aria-label="${esc(t("编辑 {name}", { name: assetName(a) }))}"></a>
+    <div class="asset-main">
+      <div class="asset-head"><span class="asset-ico" aria-hidden="true">${a.t?.icon || "⚙️"}</span>
+        <div class="grow"><span class="asset-name">${esc(assetName(a))}</span>
+          <div class="item-meta">${meta || `<span>${esc(a.t ? t(a.t.name) : "")}</span>`}</div></div></div>
+      <div class="asset-badges">
+        ${recallBadge(a)}
+        ${a.followUp ? `<span class="badge b-out">${t("检查：{r}", { r: t(C().RESULTS[a.followUp.result]) })}</span>` : ""}
+        ${sb.label ? `<span class="badge ${sb.cls}">${t(sb.label)}${a.next && a.service !== "unknown" ? ` · ${fmtDate(a.next)}` : ""}</span>` : ""}
+        ${wb.label ? `<span class="badge ${wb.cls}">${t(wb.label)}</span>` : ""}
+      </div>
+      ${a.ageYears != null || life ? `<div class="life"><div class="life-bar ${lifeCls}"><i style="width:${pct ?? 0}%"></i></div>
+        <small>${a.ageYears != null ? t("已用 {age}", { age: ageText(a) }) : t("安装日期未填")}${life ? t(" · 常见寿命约 {n} 年", { n: fmt(life) }) : ""}${pct != null && pct >= 75 ? t("，已到 {p}%", { p: pct }) : ""}</small></div>` : ""}
     </div>
-    ${a.ageYears != null || life ? `<div class="life"><div class="life-bar ${lifeCls}"><i style="width:${pct ?? 0}%"></i></div>
-      <small>${a.ageYears != null ? t("已用 {age}", { age: ageText(a) }) : t("安装日期未填")}${life ? t(" · 常见寿命约 {n} 年", { n: fmt(life) }) : ""}${pct != null && pct >= 75 ? t("，已到 {p}%", { p: pct }) : ""}</small></div>` : ""}
-    <div class="acts">${a.recallSt ? `<a class="btn btn-sm btn-primary" href="${href("asset", a.id)}?sec=recall">${t("处理召回")}</a>` : `<a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a>`}<a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></div>
+    <div class="asset-side"><a class="btn btn-sm${a.recallSt ? " btn-primary" : ""}" href="${act.href}">${act.label}</a></div>
+    <a class="swipe-src" href="${act.href}" tabindex="-1" aria-hidden="true">${act.label}</a>
+    <button type="button" class="swipe-alt-src" data-action="asset-row-del" data-id="${a.id}" tabindex="-1" aria-hidden="true">${t("删除设备")}</button>
   </article>`;
 }
 

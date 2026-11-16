@@ -3603,3 +3603,18 @@ span.rem-tag { cursor: default; }
 .house-sub { margin: 0 0 6px; font-size: 13px; }
 .house-card .house-head { border-bottom: 0; padding-bottom: 0; }
 .house-card .house-sub { padding-bottom: 12px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+
+/* 设备卡片（2026-11-16）：整张卡可点；右边居中是「记保养」；左滑 = 记保养（绿）、右滑 = 删除设备（红） */
+.asset-row-card { position: relative; display: flex; align-items: center; gap: 12px; }
+.asset-row-card .asset-main { flex: 1 1 auto; min-width: 0; display: grid; gap: 10px; }
+.asset-row-card .asset-side { flex: none; display: flex; align-items: center; position: relative; z-index: 2; }
+.asset-row-card .asset-side .btn { min-height: 44px; display: inline-flex; align-items: center; }
+.asset-row-card .asset-hit { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.asset-row-card .asset-hit:hover { background: color-mix(in srgb, var(--pine) 4%, transparent); }
+.asset-row-card .asset-hit:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+.asset-row-card .asset-name { font-weight: 700; color: var(--ink); }
+.asset-row-card.swipe-row::after { content: attr(data-swipe-left-label); background: var(--pine); }
+.asset-row-card.swipe-row.ready::after { content: attr(data-swipe-left-go); background: #1f5c3f; }
+.asset-row-card.swipe-alt::before { background: #b3261e; }
+.asset-row-card.swipe-row.ready-alt::before { background: #8e1a14; }
+.asset-row-card .swipe-src, .asset-row-card .swipe-alt-src { z-index: 0; }
