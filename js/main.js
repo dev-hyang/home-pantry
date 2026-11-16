@@ -23,7 +23,7 @@ import { mountLangSwitcher } from "../shared/lang-switcher.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
-import { askShopItems } from "./pantry/shop-ask.js";
+import { askConfirm, askShopItems } from "./pantry/shop-ask.js";
 import { pickSpace } from "./pantry/space-pick.js";
 import { initBankImport } from "./stats/bank-import.js";
 import { incList, initIncome, viewIncome } from "./income/views.js";
@@ -539,7 +539,7 @@ export const main = $("#main");
 initCompactFilters({ root: main, ui: uiKind });
 miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
 document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.pv-card[data-fold]")) setFold(d.dataset.fold, d.open); }, true);   // 储藏概览大卡片折叠 / 展开：记在本机
-initSwipeRows({ kinds: ["item", "income", "budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card", "store", "deal"], altKinds: ["card", "deal", "shop", "item"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });   // 卡行还能右滑停用 / 启用   // 行记录左滑删除（js/swipe-rows.js）
+initSwipeRows({ kinds: ["rs", "item", "income", "budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card", "store", "deal"], altKinds: ["card", "deal", "shop", "item", "rs"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });   // 卡行还能右滑停用 / 启用   // 行记录左滑删除（js/swipe-rows.js）
 /* 云端报错翻译：数据库还没升级到某个迁移时，PostgREST 只会说「找不到某列 / 某表」，这里换成告诉你该执行哪个迁移文件 */
 const MIGRATION_HINTS = [[/deal_task_done.*status|status.*deal_task_done|deal_custom_tasks.*skipped|skipped.*deal_custom_tasks/i, "047_deal_skip.sql", "交易清单跳过"], [/deal_events|property_deals.*baseline|baseline.*property_deals/i, "046_deal_progress.sql", "交易进展"], [/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/pay_card_id|bill_payments.*card_id|medical_payments.*card_id|cards_kind_check/i, "036_pay_accounts.sql", "付款账户（银行账户、账单扣款 / 缴费用的卡）"], [/house_profiles.*ownership|ownership.*house_profiles/i, "038_house_ownership.sql", "房屋资料：产权、税务与车位"], [/assets.*\bunits\b|\bunits\b.*assets/i, "039_asset_units.sql", "固定装置的位置与数量"], [/purchases.*\bmethod\b|\bmethod\b.*purchases|cards.*\bbalance\b|\bgift\b/i, "040_purchase_method.sql", "付款方式（现金 / 支票 / 礼品卡）与礼品卡"], [/inactive_since/i, "041_card_inactive_since.sql", "卡的停用日期"], [/income_records|income_repayments|income_access/i, "042_income_records.sql", "收入（进账）记录和查看权限"], [/relation .*\bcards\b|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
 function friendlyErr(msg) {
@@ -1255,6 +1255,7 @@ main.addEventListener("click", async (e) => {
       case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "shop-add-item": return addAlertsToShopping([state.enriched.find((x) => x.id === id)]);
+      case "shop-remove-item": return removeFromShopping([id]);   // 该补货了：移出购物车（先确认）
       case "cat-check-ok": case "cat-check-all": {   // 「请确认分类」：没错 → 清标记（迁移 064）
         const ids = action === "cat-check-all" ? state.items.filter((x) => x.cat_check).map((x) => x.id) : [id];
         el.disabled = true;
@@ -1561,6 +1562,16 @@ async function setItemUnit(id, v) {
   if (u === it.unit && q === num(it.quantity)) return;
   try { await Store.saveItem({ ...it, unit: u, quantity: Math.round(q * 100) / 100 }); toast(t("{name} 的单位改成 {u}", { name: it.name, u: t(u) })); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); }
   refresh();
+}
+/** 移出购物车：先确认（页面里的确认框），再删掉采购清单里这些物品还没买到的那几条 */
+export async function removeFromShopping(ids) {
+  const items = ids.map((x) => state.items.find((i) => i.id === x)).filter(Boolean);
+  const rows = state.shopping.filter((s) => s.status !== "bought" && ids.includes(s.item_id));
+  if (!rows.length) { toast(t("已经不在购物车里了")); return refresh(); }
+  const names = items.map((i) => i.name), shown = names.slice(0, 3).join("、") + (names.length > 3 ? t("等 {n} 件", { n: names.length }) : "");
+  if (!(await askConfirm({ title: t("移出购物车"), body: t("{names} 将被移出购物车，请确认", { names: shown }), ok: t("移出"), danger: true }))) return refresh();
+  for (const r of rows) await Store.deleteShopping(r.id);
+  toast(t("已移出购物车：{names}", { names: shown })); refresh();
 }
 /** 所有「加入采购清单」按钮（行上的、右滑、全部加入、多选）：已在清单里的跳过，其余先弹框确认每件的数量和单位（js/pantry/shop-ask.js） */
 export async function addAlertsToShopping(list) {

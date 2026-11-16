@@ -7,7 +7,7 @@ import { href } from "../core/router.js";
 import { askInline, ctx as askCtx } from "../core/ask.js";
 import { daysUntil, esc, fmtDate, inSpace, money, num } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
-import { restockPanel, shelfGrid } from "../pantry/views.js";
+import { restockPanel, rsHint, shelfGrid } from "../pantry/views.js";
 import { alertAct, alertBadge, alertText, assetAlerts, assetName, myAssets } from "./assets.js";
 import { monthName, monthTasks, taskRow } from "./tasks.js";
 import { houseBar } from "./property-form.js";
@@ -471,8 +471,9 @@ export function viewHouse() {
 
     <section class="section">
       <div class="section-head"><h2>${t("汽车房屋消耗品提醒")}</h2>
-        <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-primary btn-sm" data-action="shop-add-alerts" data-space="house">${t("全部加入采购清单")}</button>` : ""}
+        <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-sm btn-add-all" data-action="shop-add-alerts" data-space="house">＋ ${t("全部加入购物车")}</button>` : ""}
           <a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a></div></div>
+      ${alerts.length ? rsHint() : ""}
       <div class="panel">${alerts.length ? restockPanel(alerts) : shelf ? `<div class="empty"><strong>${t("汽车房屋消耗品都充足")}</strong></div>`
         : `<div class="empty"><strong>${t("还没有汽车房屋消耗品")}</strong>${t("按你家的设施一次加好滤网、电池、融雪盐等。")}<p><a class="btn btn-primary" href="${href("house", "template")}">${t("查看推荐清单")}</a></p></div>`}</div>
       ${shelf ? `<div class="shelf" style="margin-top:10px">${shelf}</div>` : ""}
