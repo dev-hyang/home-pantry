@@ -113,17 +113,25 @@
       var FILES = [
         "styles.css", "config.js", "units.js", "charts.js", "data.js", "data/bills.js",
         "data/cards.js", "data/care.js", "data/deals.js", "data/house.js", "data/vehicles.js", "js/ai-page.js",
-        "js/bills/budget.js", "js/bills/cards-views.js", "js/bills/cards.js", "js/bills/escrow.js", "js/bills/finance.js", "js/bills/kinds.js",
-        "js/bills/logic.js", "js/bills/medical-views.js", "js/bills/medical.js", "js/bills/views.js", "js/core/ai.js", "js/core/alerts.js",
-        "js/core/ask.js", "js/core/autofill.js", "js/core/backup.js", "js/core/budget-bridge.js", "js/core/categories.js", "js/core/cloud-drives.js",
-        "js/core/config-check.js", "js/core/hub.js", "js/core/i18n.js", "js/core/lifecycle.js", "js/core/locations.js", "js/core/logic.js",
-        "js/core/name-check.js", "js/core/net.js", "js/core/router.js", "js/core/state.js", "js/core/store.js", "js/core/tabs.js",
-        "js/core/releases-ui.js", "js/core/usage.js", "js/core/util.js", "js/core/version.js", "js/house/assets.js", "js/house/deal-progress.js", "js/house/deals.js",
-        "js/house/fix.js", "js/house/property-form.js", "js/house/tasks.js", "js/house/views.js", "js/i18n/en.js", "js/income/logic.js",
-        "js/income/scan.js", "js/income/views.js", "js/main.js", "js/menu.js", "js/minibar.js", "js/pantry/ai.js",
-        "js/pantry/item-form.js", "js/pantry/scan.js", "js/pantry/shop-scan.js", "js/pantry/views.js", "js/quick-drag.js", "js/releases-data.js", "js/select-search.js", "js/settings/about.js",
-        "js/shops/logic.js", "js/shops/views.js", "js/settings/backup-views.js", "js/settings/income.js", "js/settings/print.js", "js/settings/views.js", "js/stats/bank-import.js", "js/stats/dup-check.js",
-        "js/stats/statement-readers.js", "js/stats/statements.js", "js/stats/views.js", "js/swipe-rows.js", "js/today.js"];
+        "js/bills/budget.js", "js/bills/cards-views.js", "js/bills/cards.js", "js/bills/debt-logic.js", "js/bills/debt-records.js", "js/bills/debt-stats.js",
+        "js/bills/debts.js", "js/bills/escrow.js", "js/bills/fin-assets.js", "js/bills/finance-alerts.js", "js/bills/finance.js", "js/bills/kinds.js",
+        "js/bills/logic.js", "js/bills/medical-views.js", "js/bills/medical.js", "js/bills/net-worth.js", "js/bills/nw-logic.js", "js/bills/views.js",
+        "js/core/ai.js", "js/core/alerts.js", "js/core/amortization.js", "js/core/ask.js", "js/core/attach.js", "js/core/autofill.js",
+        "js/core/autosize.js", "js/core/backup.js", "js/core/budget-bridge.js", "js/core/carousel.js", "js/core/categories.js", "js/core/category-moves.js",
+        "js/core/clear-filters.js", "js/core/cloud-drives.js", "js/core/config-check.js", "js/core/debt-rules.js", "js/core/finance-access.js", "js/core/finance-rules.js",
+        "js/core/hub.js", "js/core/i18n.js", "js/core/income-taxonomy.js", "js/core/item-match.js", "js/core/lifecycle.js", "js/core/list-query.js",
+        "js/core/locations.js", "js/core/logic.js", "js/core/more-menu.js", "js/core/name-check.js", "js/core/net.js", "js/core/pager.js",
+        "js/core/payee-alias.js", "js/core/privacy.js", "js/core/releases-ui.js", "js/core/router.js", "js/core/server-list.js", "js/core/spend-data.js",
+        "js/core/state.js", "js/core/store.js", "js/core/sub-guess.js", "js/core/tabs.js", "js/core/taxonomy.js", "js/core/time-range.js",
+        "js/core/unit-pick.js", "js/core/usage.js", "js/core/util.js", "js/core/version.js", "js/core/weather.js", "js/house/assets.js",
+        "js/house/deal-progress.js", "js/house/deals.js", "js/house/fix.js", "js/house/property-form.js", "js/house/recall.js", "js/house/tasks.js",
+        "js/house/todo-board.js", "js/house/views.js", "js/i18n/en.js", "js/income/aa-fix.js", "js/income/logic.js", "js/income/scan.js",
+        "js/income/views.js", "js/main.js", "js/menu.js", "js/minibar.js", "js/pantry/ai.js", "js/pantry/item-form.js",
+        "js/pantry/scan.js", "js/pantry/shop-ask.js", "js/pantry/shop-scan.js", "js/pantry/space-pick.js", "js/pantry/views.js", "js/quick-drag.js",
+        "js/releases-data.js", "js/select-search.js", "js/settings/about.js", "js/settings/backup-views.js", "js/settings/income.js", "js/settings/members.js",
+        "js/settings/print.js", "js/settings/views.js", "js/shops/logic.js", "js/shops/views.js", "js/stats/bank-import.js", "js/stats/dup-check.js",
+        "js/stats/home-stats.js", "js/stats/net-worth.js", "js/stats/payees.js", "js/stats/report.js", "js/stats/statement-readers.js", "js/stats/statements.js",
+        "js/stats/views.js", "js/swipe-rows.js", "js/today.js"];
       // 部署更新检测：GitHub Pages 把每个文件缓存 10 分钟，刷新时浏览器会拿到新 index.html 却继续用缓存里的旧模块
       // （例如新导航指向的路由在旧 router.js 里不存在，就会跳回首页）。同一次部署的所有文件 Last-Modified 相同，
       // 所以用 document.lastModified 当作部署版本：和上次记录的不同，就绕过缓存重新拉取全部脚本，再刷新一次。
@@ -133,15 +141,34 @@
         if (!prev || prev === ver) return;
         try { if (sessionStorage.getItem("hmh-reloaded") === ver) return; sessionStorage.setItem("hmh-reloaded", ver); } catch (e) { return; }
         console.log("[hmh] 检测到新部署（" + ver + "），正在更新缓存…");
-        Promise.all(FILES.concat(["index.html"]).map(function (f) { return fetch(f, { cache: "reload" }).catch(function () { return null; }); }))
-          .then(function () { location.reload(); });
+        refreshAll();
       })();
+      // 绕过缓存重新拉取：上面的清单 + 浏览器这次实际加载过的所有同源脚本 / 样式（2026-11-15：新加的文件不在清单里也能刷新到，
+      // 以前清单漏了 js/pantry/shop-ask.js，旧缓存里的模块缺新导出，整个应用起不来）。等页面把模块都拉下来（load）再收集，最多等 5 秒
+      function refreshAll() {
+        var go = function () {
+          var seen = {}, urls = FILES.concat(["index.html"]);
+          try {
+            performance.getEntriesByType("resource").forEach(function (e) {
+              var u = new URL(e.name, location.href);
+              if (u.origin === location.origin && /\.(js|css|json)$/.test(u.pathname)) urls.push(u.pathname + u.search);
+            });
+          } catch (e) { /* 老浏览器：只刷清单里的 */ }
+          urls = urls.filter(function (u) { if (seen[u]) return false; seen[u] = 1; return true; });
+          Promise.all(urls.map(function (f) { return fetch(f, { cache: "reload" }).catch(function () { return null; }); }))
+            .then(function () { location.reload(); });
+        };
+        var fired = false, once = function () { if (!fired) { fired = true; go(); } };
+        if (document.readyState === "complete") once(); else { window.addEventListener("load", once); setTimeout(once, 5000); }
+      }
 
       var errors = [];
       window.addEventListener("error", function (e) { if (e.message) errors.push(e.message + (e.filename ? "（" + e.filename.split("/").slice(-2).join("/") + "）" : "")); });
       window.__hmhModuleFailed = function () { setTimeout(report, 0); };
       function report() {
         if (window.__hmhBooted || document.getElementById("bootCheck")) return;
+        // 起不来：先当作缓存里混了新旧文件，绕过缓存全部重拉、刷新一次（每次打开最多一次）；还不行再显示下面的检查结果
+        try { if (location.protocol !== "file:" && !sessionStorage.getItem("hmh-boot-retry")) { sessionStorage.setItem("hmh-boot-retry", "1"); refreshAll(); return; } } catch (e) { /* 存不了就直接显示检查结果 */ }
         var box = document.createElement("div");
         box.id = "bootCheck"; box.setAttribute("role", "alert");
         box.style.cssText = "max-width:720px;margin:24px auto;padding:16px 20px;border:2px solid #b42318;border-radius:12px;background:#fff;color:#1e3a32;font:14px/1.6 system-ui,sans-serif";

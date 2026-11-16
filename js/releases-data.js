@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-15.7", title: { zh: "发新版后不会再因为旧缓存打不开", en: "No more blank page from an old cache after an update" }, items: [
+    { k: "fix", zh: "发新版时，浏览器缓存里的所有脚本都会重新下载一遍，不会再出现新旧文件混在一起、页面打不开的情况；万一还是打不开，会自动再刷新一次", en: "After an update, every cached script is downloaded again, so old and new files no longer mix and break the page; if it still won't start, it refreshes once more by itself" }
+  ] },
   { v: "2026-11-15.4", title: { zh: "录入购物页更简洁", en: "Simpler Log a purchase page" }, items: [
     { k: "better", zh: "只留下面一个「识别」按钮，拍了照或写了字才能点；小票的补充文字默认折叠，点开再写", en: "Just one \"Read it\" button at the bottom, active once there's a photo or text; the receipt's extra text is folded until you open it" },
     { k: "better", zh: "去掉了这一页的购买日期：识别后的确认页每张小票都可以改日期", en: "The purchase date is gone from this page: you can set it per receipt on the confirm page" }

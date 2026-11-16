@@ -1868,6 +1868,7 @@ function dupNameCheck(v, exceptId) {
 export async function boot() {
   Backup.initProviders(toast);   // 从 Dropbox 授权页跳回来时把 ?code= 换成令牌，再跳到备份页
   window.__hmhBooted = true;   // 告诉 index.html 的启动自检：主脚本已经运行
+  try { sessionStorage.removeItem("hmh-boot-retry"); } catch (e) { /* 忽略 */ }   // 起来了：下次再起不来还可以自动重拉一次
   // 发布日志（js/core/releases-ui.js，四个姊妹应用共用）：记这台设备「新版本」提示出现几次；今日页顶上画提示，我的 → 发布日志 是整页
   initReleases({ version: APP_VERSION, releases: RELEASES, lang: () => lang, accent: "var(--pine)", appId: "home-pantry", open: `href="${href("me", "releases")}"` });
   if (lang === "zh-Hant") await loadOpenCC();   // 繁體：先把转换库拉下来再渲染，避免先简后繁闪一下
