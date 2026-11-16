@@ -68,18 +68,19 @@ const isGearItem = (it) => spaceOf(it.category) === "gear";
 /** 拍照按钮旁边的「加入购物车」图标按钮：没加入就加入（弹确认数量），已加入就点一下移出 */
 function cartBtn(it) {
   const inList = !!openShopFor(it.id), e = state.enriched.find((x) => x.id === it.id);
-  const tip = inList ? t("已加入购物车，点一下移出") : t("加入购物车");
-  return `<button type="button" class="btn btn-sm af-cart${inList ? " is-in" : ""}" data-action="${inList ? "shop-remove-item" : "shop-add-item"}" data-id="${it.id}" ${e ? "" : "disabled"} title="${esc(tip)}" aria-label="${esc(`${it.name}：${tip}`)}">${inList ? "✓🛒" : "🛒"}</button>`;
+  const tip = inList ? t("移出购物车") : t("加入购物车");
+  return `<button type="button" class="btn btn-sm af-cart${inList ? " is-in" : ""}" data-action="${inList ? "shop-remove-item" : "shop-add-item"}" data-id="${it.id}" ${e ? "" : "disabled"} title="${esc(tip)}" aria-label="${esc(`${it.name}：${tip}`)}">${inList ? t("移出购物车") : t("加入购物车")}</button>`;
 }
 function spacePick(cur, open) {
   const list = SPACE_INFO.filter(([s]) => s === cur || (s === "house" ? state.houseEnabled : s === "gear" ? state.gearEnabled : true));
   const card = ([, ic, name, desc]) => `<b>${ic} ${t(name)}</b><small>${t(desc)}</small>`;
   const now = list.find(([s]) => s === cur) || list[0];
   /* 卡片式下拉（2026-11-16）：收起时只显示选中的那一类（名称 + 一行说明）；展开是几张带说明的大卡片，选中后自动收起。新物品默认展开，编辑已有物品默认收起 */
-  return `<fieldset class="span-2 space-pick"><legend>${t("放在哪一类")}</legend>
-    <details class="space-dd" ${open ? "open" : ""}><summary class="space-card space-sum" aria-label="${esc(t("放在哪一类"))}"><span class="space-sum-txt">${card(now)}</span><span class="space-chev" aria-hidden="true">▾</span></summary>
+  return `<fieldset class="span-2 space-pick"><legend>${t("组别")}</legend>
+    <details class="space-dd" ${open ? "open" : ""}><summary class="space-card space-sum" aria-label="${esc(t("组别"))}"><span class="space-sum-txt">${card(now)}</span><span class="space-chev" aria-hidden="true">▾</span></summary>
     <div class="space-opts">${list.map((x) => `<label class="space-opt">
-    <input type="radio" name="space" value="${x[0]}" ${x[0] === cur ? "checked" : ""}><span class="space-card">${card(x)}</span></label>`).join("")}</div></details></fieldset>`;
+    <input type="radio" name="space" value="${x[0]}" ${x[0] === cur ? "checked" : ""}><span class="space-card">${card(x)}</span></label>`).join("")}</div></details>
+    <p class="muted space-rel">${t("组别 › 大类 › 小类：组别决定东西的性质（日常消耗品、汽车房屋消耗品、家居耐用品）；大类是组别下的分类，例如蔬果、清洁；小类是大类下的细分，例如叶菜。")}</p></fieldset>`;
 }
 /* 表单分块（2026-11-14）：每块可以点标题折叠 / 展开；展开状态记在内存里，后台重画时不变 */
 const FOLD = new Map();

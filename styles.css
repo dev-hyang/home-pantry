@@ -3519,3 +3519,14 @@ span.rem-tag { cursor: default; }
 .space-sum { min-height: 0; }
 .space-sum-txt b, .space-sum-txt small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }   /* 收起时名称 + 说明各一行 */
 .af-cart { border: 1px solid var(--line); }
+/* 「组别」下拉（2026-11-16 改）：收起的一行像普通下拉框——只用边框；展开后的几张卡片放在一个浅底色的框里，选中的那张用深一点的底色，不再各自描边 */
+.space-dd > summary { background: var(--surface); border: 1.5px solid var(--line); }
+.space-dd > summary:hover { border-color: var(--pine); }
+.space-dd[open] > summary { border-color: var(--pine); }
+.space-sum-txt b, .space-sum-txt small { display: block; overflow: visible; text-overflow: clip; white-space: normal; }   /* 说明不省略，完整显示 */
+.space-dd[open] > .space-opts { margin-top: 6px; padding: 6px; border-radius: 12px; background: var(--surface-2); }
+.space-dd .space-opts .space-card { border-color: transparent; background: transparent; box-shadow: none; }
+.space-dd .space-opts .space-opt:hover .space-card { background: color-mix(in srgb, var(--pine) 5%, var(--surface-2)); }
+.space-dd .space-opts .space-opt input:checked + .space-card { border-color: transparent; background: color-mix(in srgb, var(--pine) 16%, var(--surface)); box-shadow: none; }
+.space-rel { margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; }
+.af-cart { padding: 0 14px; font-size: 13px; font-weight: 500; white-space: nowrap; }

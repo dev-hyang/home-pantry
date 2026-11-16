@@ -4048,4 +4048,5 @@ export const EN = {
   "请填 0 或更大的数。": "Enter 0 or more.", "两项都是 0 就等于不提醒；想关掉请点「不再提醒」。": "Both at 0 means no reminder; to turn it off tap \"Stop reminding\".",
   "{name} 已设置提醒": "Reminder set for {name}", "点「未加入」加入购物车，点「已加入」移出；也可 ← 左滑加入 · 右滑移出 →": "Tap \"Not added\" to add to the cart, \"Added\" to remove; or ← swipe left to add · swipe right to remove →",
   "录入方式": "How to record", "只记花费": "Spend only", "入库 + 花费": "Stock + spend", "只入库": "Stock only", "不入库，只把花费记下来（默认）": "Don't add to stock, just log the spending (default)", "识别出的东西加进库存，同时记花费": "Add what's read to stock and log the spending", "只加库存，不记花费": "Add to stock only, no spending logged",
+  "组别": "Group", "组别 › 大类 › 小类：组别决定东西的性质（日常消耗品、汽车房屋消耗品、家居耐用品）；大类是组别下的分类，例如蔬果、清洁；小类是大类下的细分，例如叶菜。": "Group › Category › Subcategory: the group sets the kind of thing (everyday consumables, home & car supplies, durable household goods); a category sits under a group, e.g. produce or cleaning; a subcategory sits under a category, e.g. leafy greens.",
 };

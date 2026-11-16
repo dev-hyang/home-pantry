@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.6", title: { zh: "编辑页：「组别」、购物车按钮改文字", en: "Item page: Group, text cart button" }, items: [
+    { k: "better", zh: "「放在哪一类」改叫「组别」，下面一句话说明 组别 › 大类 › 小类 的关系；收起的一行像下拉框，说明完整显示；展开的卡片放在浅底色的框里", en: "\"Which group\" is now \"Group\", with a line explaining Group › Category › Subcategory; the folded row looks like a dropdown, descriptions show in full, and the options sit in a light box" },
+    { k: "better", zh: "拍照旁的购物车按钮改成文字：「加入购物车」，已加入的变成「移出购物车」", en: "The cart button next to the photo button now says \"Add to cart\", or \"Remove from cart\" once it's in" }
+  ] },
   { v: "2026-11-16.5", title: { zh: "「放在哪一类」改成卡片下拉", en: "\"Which group\" is now a card dropdown" }, items: [
     { k: "better", zh: "物品编辑页的「放在哪一类」收起时只占一行，显示选中的那一类和说明；点开是带说明的大卡片，选中后自动收起。新建物品默认展开，编辑已有物品默认收起", en: "\"Which group\" on the item page folds to a single row showing the chosen group and its description; open it to pick from big cards with descriptions. Expanded for new items, folded when editing" }
   ] },
