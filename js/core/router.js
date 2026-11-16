@@ -40,6 +40,7 @@ export function parseRoute(hash = location.hash) {
     const alias = { list: ["recurring", "list"], history: ["recurring", "history"], medical: ["onetime", null], loans: ["debts", null], debt: ["debts", null], lending: ["debts", "personal"], "net-worth": ["networth", null], nw: ["networth", null] }[parts[1]];   // 借贷、净资产的几个顺手的别名
     if (alias) { parts[1] = alias[0]; if (alias[1] && !query.has("tab")) query.set("tab", alias[1]); }
   }
+  if (parts[0] === "house" && parts[1] === "supplies") { parts.splice(0, 2, "pantry", "inventory"); query.set("space", "house"); }   // 汽车房屋消耗品已并入 储藏 / 库存
   let section = SECTIONS[parts[0]] ? parts[0] : "today";
   const def = SECTIONS[section].subs;
   let sub = parts[1] || null, id = null;

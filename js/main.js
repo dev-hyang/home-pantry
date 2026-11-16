@@ -47,7 +47,7 @@ import { completeVehicleDeal, dealAlertItems } from "./house/deals.js";
 import { billAlertItems } from "./bills/logic.js";
 // 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
 [pantryAlertItems, billAlertItems, budgetAlertItems, escrowAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
-import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, updateHoaTotal, viewHouse, viewHouseProfile, viewHouseSupplies, viewHouseTemplate } from "./house/views.js";
+import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, updateHoaTotal, viewHouse, viewHouseProfile, viewHouseTemplate } from "./house/views.js";
 import { printSheet } from "./settings/print.js";
 import { resetScan, scanAction, viewScan } from "./pantry/scan.js";
 import { bindShops, loadShops, shopsAction, viewShops } from "./shops/views.js";
@@ -239,7 +239,7 @@ const VIEWS = {
   quick:    () => viewQuick(),   // #/quick：编辑今日页的快捷操作
   ai:       () => viewAi(),
   pantry:   { scan: () => viewScan(), overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
-  house:    { overview: viewHouse, supplies: viewHouseSupplies, assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
+  house:    { overview: viewHouse, supplies: () => viewInventory("house"), assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix },
   bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
   shopping: () => viewShopping(),
@@ -379,7 +379,7 @@ function renderBody(r) {
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
   $("#main").innerHTML = crumb(r) + (r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : "") + view();   // 储藏的每个页面顶上都有页面导航卡片
-  if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"))) renderInvList();
+  if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies")) renderInvList();
   const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : r.section === "pantry" && r.sub === "gear" ? $("#invSec-gear") : null;   // 从概览「汽车房屋消耗品」或旧的家居耐用品链接进来：展开并滚到那一块
   if (hs && !state.scrolledHouse) { hs.open = true; state.scrolledHouse = true; requestAnimationFrame(() => hs.scrollIntoView({ block: "start" })); }
   if (!hs) state.scrolledHouse = false;
@@ -388,7 +388,7 @@ function renderBody(r) {
 /** 录入购物（2026-11-15 起在 储藏 / 录入购物，#/pantry/scan） */
 const isScanRoute = (r) => r?.section === "pantry" && r?.sub === "scan";
 const scrollMem = {};
-const isListRoute = (r) => (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"));
+const isListRoute = (r) => (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies");
 /* 离开表单页自动保存：物品 / 设备 / 账单 / 房屋资料表单（data-autosave）有没保存的改动，且不是点“取消 / 保存 / 删除”离开的，
  * 就在后台按原来的校验保存一遍（名称没填等校验不过会提示“没有自动保存”）。保存按钮仍然保留，且在底部常驻。 */
 const AUTOSAVE = { itemForm: saveItemForm, assetForm: saveAssetForm, billForm: saveBillForm, houseForm: saveHouseForm };
@@ -1935,7 +1935,7 @@ export async function boot() {
   document.addEventListener("budget-saved", () => render());
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.enriched) refreshSoon(null); });
   // 跨过手机 / 宽屏分界（旋转 iPad、拖窗口）：库存页在方块仪表盘和分类导航之间切换
-  window.matchMedia("(max-width: 640px)").addEventListener("change", () => { const r = state.route; if (state.enriched && ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")))) render(true); });
+  window.matchMedia("(max-width: 640px)").addEventListener("change", () => { const r = state.route; if (state.enriched && ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")) || (r.section === "house" && r.sub === "supplies"))) render(true); });
 
   const cfg = checkConfig();
   state.configIssue = cfg.issue || null;

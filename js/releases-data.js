@@ -2,12 +2,6 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
-  { v: "2026-11-16.23", title: { zh: "概览加消耗品提醒一行；新增消耗品页；参考精简", en: "Supplies row on the overview; new supplies page; slimmer reference" }, items: [
-    { k: "new", zh: "房屋概览的豆腐块下面加一行「汽车房屋消耗品提醒」，点进新的消耗品页", en: "A home & car supplies row under the overview tiles opens the new supplies page" },
-    { k: "new", zh: "消耗品页：有缺货 / 少货就列出来，都充足时不再显示提示；全新的房屋显示「按房屋资料推荐」；「看全部」照旧进库存", en: "Supplies page lists out / low items (no all-stocked notice); a new home shows Suggest from home profile; See all still opens inventory" },
-    { k: "better", zh: "概览的「参考」只留一个折叠块「材料设施应急」，装应急信息与关键位置；归谁维护、HOA、产权、材料保养不再放概览", en: "The overview reference keeps one fold, Materials, systems & emergency; owners, HOA, ownership and material care are gone from it" }
-  ] },
-
   { v: "2026-11-16.22", title: { zh: "点房产直接进概览；概览加导航豆腐块；首页分区加边框", en: "Property opens its overview; nav tiles; bordered sections" }, items: [
     { k: "better", zh: "房屋首页的「房屋」「汽车」各放进一个带边框的分区，一眼分开", en: "Houses and Cars on the house home each sit in a bordered section" },
     { k: "better", zh: "点一套房产直接进概览，取消中间那层页面目录（旧链接照样能用）", en: "Tapping a property opens its overview directly; the page-directory step is gone (old links still work)" },
