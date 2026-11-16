@@ -2413,6 +2413,7 @@ export const EN = {
   "待加入购物车": "Not in the cart yet", "已在购物车": "Already in the cart", "加入购物车": "Add to cart", "移出购物车": "Remove from cart", "移出": "Remove",
   "{names} 将被移出购物车，请确认": "{names} will be removed from the cart. Continue?", "已移出购物车：{names}": "Removed from the cart: {names}", "已经不在采购清单里了": "Already off the shopping list", "等 {n} 件": " and others ({n} in total)",
   "确认": "Confirm",
+  "全选：{s}": "Select all: {s}", "（{n} 件）": " ({n} items)",
   "全部物品": "All items", "{n} 种，都充足": "{n} kinds, all stocked",
   "这张小票可能已经录过：{who}{d} 记了 {n} 项，合计 {m}（这次 {m2}）": "This receipt may already be logged: {who}{d} logged {n} items, total {m} (this one {m2})",
   "这张小票怎么处理": "What to do with this receipt",

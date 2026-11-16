@@ -70,7 +70,7 @@ import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsen
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
 import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
-import { catNeed, moveCat, pantryNav, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
+import { catNeed, moveCat, pantryNav, renderInvList, rsBatchLabel, rsSel, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { famMembers, familyHref, meId, profileErr, readMemberForm, reloadMembers } from "./settings/members.js";
 import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
@@ -1006,6 +1006,20 @@ function pickRow(id, on) {
   document.querySelectorAll('.inv-selbar [data-action^="inv-sel-"]:not([data-action="inv-sel-all"])').forEach((b) => { b.disabled = !state.invSel.size; });
 }
 main.addEventListener("change", (e) => { if (e.target.matches?.(".inv-chk")) pickRow(e.target.dataset.selId, e.target.checked); });
+/* 该补货了：勾选一行 / 全选，只更新这一块的勾和按钮上的数 */
+function rsSync(secEl) {
+  const key = secEl.dataset.sec, boxes = [...secEl.querySelectorAll(".rs-chk")], n = rsSel[key].size;
+  const all = secEl.querySelector(".rs-chk-all"); if (all) { all.checked = n > 0 && n === boxes.length; all.indeterminate = n > 0 && n < boxes.length; }
+  const b = secEl.querySelector(".rs-batch"); if (b) { b.textContent = rsBatchLabel(key, n); b.disabled = !n; }
+}
+main.addEventListener("change", (e) => {
+  const el = e.target, secEl = el.closest?.(".rs-sec"); if (!secEl) return;
+  const key = secEl.dataset.sec;
+  if (el.matches(".rs-chk")) { if (el.checked) rsSel[key].add(el.dataset.id); else rsSel[key].delete(el.dataset.id); }
+  else if (el.matches(".rs-chk-all")) secEl.querySelectorAll(".rs-chk").forEach((c) => { c.checked = el.checked; if (el.checked) rsSel[key].add(c.dataset.id); else rsSel[key].delete(c.dataset.id); });
+  else return;
+  rsSync(secEl);
+});
 main.addEventListener("click", (e) => {
   const row = e.target.closest?.("[data-row-sel]"); if (!row || e.target.closest("a, button, input, select, textarea, label")) return;
   if (e.target.closest(".inv-link")) return;
@@ -1256,6 +1270,8 @@ main.addEventListener("click", async (e) => {
       case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "shop-add-item": return addAlertsToShopping([state.enriched.find((x) => x.id === id)]);
       case "shop-remove-item": return removeFromShopping([id]);   // 该补货了：移出购物车（先确认）
+      case "rs-batch-add": { const list = [...rsSel.todo].map((x) => state.enriched.find((i) => i.id === x)).filter(Boolean); if (!list.length) return; return addAlertsToShopping(list); }   // 取消时勾选保留；加进去的会自动移到「已在购物车」
+      case "rs-batch-remove": { const ids = [...rsSel.done]; if (!ids.length) return; return removeFromShopping(ids); }
       case "cat-check-ok": case "cat-check-all": {   // 「请确认分类」：没错 → 清标记（迁移 064）
         const ids = action === "cat-check-all" ? state.items.filter((x) => x.cat_check).map((x) => x.id) : [id];
         el.disabled = true;
@@ -1568,7 +1584,7 @@ export async function removeFromShopping(ids) {
   const items = ids.map((x) => state.items.find((i) => i.id === x)).filter(Boolean);
   const rows = state.shopping.filter((s) => s.status !== "bought" && ids.includes(s.item_id));
   if (!rows.length) { toast(t("已经不在采购清单里了")); return refresh(); }
-  const names = items.map((i) => i.name), shown = names.slice(0, 3).join("、") + (names.length > 3 ? t("等 {n} 件", { n: names.length }) : "");
+  const names = items.map((i) => i.name), shown = names.slice(0, 3).join("、") + (names.length > 3 ? t("等 {n} 件", { n: names.length }) : names.length > 1 ? t("（{n} 件）", { n: names.length }) : "");
   if (!(await askConfirm({ title: t("移出购物车"), body: t("{names} 将被移出购物车，请确认", { names: shown }), ok: t("移出"), danger: true }))) return;
   for (const r of rows) await Store.deleteShopping(r.id);
   toast(t("已移出购物车：{names}", { names: shown })); refresh();

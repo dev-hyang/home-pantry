@@ -3444,10 +3444,17 @@ input[type="date"], input[type="month"] { height: calc(1.6em + 20px); }   /* 和
 .rs-wrap > summary .rs-n { font-size: .8em; }
 .rs-wrap > summary .pv-chev { color: var(--muted); transition: transform .2s; }
 .rs-wrap:not([open]) > summary .pv-chev { transform: rotate(-90deg); }
-.rs-body { --rs-row: 56px; max-height: min(75vh, calc(8 * var(--rs-row) + 64px)); overflow-y: auto; overscroll-behavior: contain; }   /* 最多露 8 行，多了在框里滚 */
+.rs-body { --rs-row: 72px; max-height: min(75vh, calc(8 * var(--rs-row) + 64px)); overflow-y: auto; overscroll-behavior: contain; }   /* 最多露 8 行，多了在框里滚 */
 @media (max-width: 640px) { .rs-body { --rs-row: 86px; } }
 .rs-sec + .rs-sec { margin-top: 6px; padding-top: 10px; border-top: 1px dashed var(--line); }
 .rs-h { display: flex; align-items: center; gap: 6px; margin: 2px 0 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
 .rs-name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .rs-done .restock-list li { background: color-mix(in srgb, var(--pine) 4%, transparent); }
 .restock-list .btn-sm { min-height: 40px; white-space: nowrap; }
+/* 该补货了 · 批量（2026-11-15）：每块一条「全选 · 标题 · 批量按钮」，每行前面一个勾选框（点按区 44px） */
+.rs-bar { display: flex; align-items: center; gap: 8px; padding: 2px 0 6px; }
+.rs-bar .rs-h { flex: 1 1 auto; margin: 0; }
+.rs-bar .rs-batch { min-height: 40px; white-space: nowrap; }
+.rs-pick { display: inline-flex; align-items: center; justify-content: center; width: 32px; min-height: 44px; flex: 0 0 auto; cursor: pointer; }
+.rs-pick input { width: 20px; height: 20px; accent-color: var(--pine); }
+.restock-list li:has(.rs-chk:checked) { background: color-mix(in srgb, var(--pine) 9%, var(--surface)); }
