@@ -745,10 +745,11 @@ function viewShopList() {
   return `<section class="section shop-list-page">
     ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("购物车"), icon: "🛒" }])}
     <div class="section-head"><h2>${t("购物车")} <span class="muted shop-n" id="shopN">${t("{n} 项", { n: shopRows().length })}</span></h2>
-      <div class="head-acts"><button type="button" class="btn btn-sm ${state.shopSel ? "btn-primary" : "btn-ghost"}" data-action="shop-select" aria-pressed="${!!state.shopSel}">${state.shopSel ? t("完成") : `☑ ${t("多选")}`}</button><a class="btn btn-sm btn-primary" href="${href("shopping", "add")}">＋ ${t("添加")}</a><a class="btn btn-sm" href="${href("shopping", "add", "?mode=photo")}">📷 ${t("拍照添加")}</a></div></div>
+      <div class="head-acts"><button type="button" class="btn btn-sm ${state.shopSel ? "btn-primary" : "btn-ghost"}" data-action="shop-select" aria-pressed="${!!state.shopSel}">${state.shopSel ? t("完成") : `☑ ${t("多选")}`}</button></div></div>
     ${shopToolbar()}
     ${storeDatalist()}
     <div id="shopListBox">${shopListBody()}</div>
+    ${state.shopSel ? "" : `<a class="fab" href="${href("shopping", "add", "?mode=photo")}" aria-label="${esc(t("添加要买的东西（默认拍照，可切换手动）"))}" title="${esc(t("添加要买的东西"))}"><span aria-hidden="true">＋</span></a>`}
     ${state.shopSel ? `<div class="inv-selbar shop-selbar" role="toolbar" aria-label="${esc(t("多选操作"))}">
       <span class="inv-seln" aria-live="polite">${esc(shopSelText())}</span>
       <button type="button" class="btn btn-sm btn-ghost" data-action="shop-sel-all">${t("全选")}</button><span class="spacer"></span>
@@ -770,8 +771,8 @@ function viewShopAdd() {
   return `<section class="section shop-add-page">
     ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("加入清单"), icon: "＋" }])}
     <nav class="shop-mode" aria-label="${esc(t("添加方式"))}">
-      <a class="chip" href="${href("shopping", "add")}" ${photo ? "" : 'aria-current="page"'}>✍️ ${t("手动")}</a>
       <a class="chip" href="${href("shopping", "add", "?mode=photo")}" ${photo ? 'aria-current="page"' : ""}>📷 ${t("拍照")}</a>
+      <a class="chip" href="${href("shopping", "add")}" ${photo ? "" : 'aria-current="page"'}>✍️ ${t("手动")}</a>
     </nav>
     ${photo ? shopScanHtml() : form}
     <datalist id="itemNames">${state.items.map((i) => `<option value="${esc(i.name)}">`).join("")}</datalist>
