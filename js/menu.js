@@ -91,43 +91,30 @@ export const menuRow = ({ href: url, icon, title, desc, count, countLabel, exter
 const KIND_ICON = { sfh: "🏡", townhome: "🏘️", condo: "🏢", apartment: "🔑", other: "🏠" };   // 房产类型图标：列表行和面包屑共用
 export function viewPropertyList() {
   const K = window.BILLS.PROPERTY_KINDS, ST = window.DEALS.PROPERTY_STATUS;
-  const alerts = collectAlerts();
-  const rowOf = (p) => {
-    const n = alerts.filter((a) => a.property_id === p.id && a.severity <= 2).length;
-    const desc = [t(ST[p.status] || "持有"), t(K[p.kind] || ""), p.address].filter(Boolean).join(" · ");
-    return `<button type="button" class="mrow" data-action="house-open" data-id="${p.id}" ${p.id === state.propertyId ? 'aria-current="true"' : ""}>
-      <span class="mi" aria-hidden="true">${KIND_ICON[p.kind] || "🏠"}</span>
-      <span class="mt"><b>${esc(p.name)}</b><small>${esc(desc)}</small></span>
-      ${n ? `<span class="badge b-soon mcount">${n}</span>` : ""}
-      <span class="mch" aria-hidden="true">›</span></button>`;
+  // 卡片（不是行）：图标 + 名称 + 一两行基本信息；最后一张空白卡「＋ 添加…」。不放统计数字
+  const card = (attrs, icon, title, lines, current = false) => {
+    const link = attrs.startsWith("href");
+    return `<${link ? "a" : 'button type="button"'} class="hv-card" ${attrs}${current ? ' aria-current="true"' : ""}>
+      <span class="hv-ico" aria-hidden="true">${icon}</span>
+      <span class="hv-txt"><b>${esc(title)}</b>${lines.filter(Boolean).map((l) => `<small>${esc(l)}</small>`).join("")}</span></${link ? "a" : "button"}>`;
   };
+  const addCard = (attrs, title, desc) => `<${attrs.startsWith("href") ? "a" : 'button type="button"'} class="hv-card hv-add" ${attrs}>
+      <span class="hv-ico" aria-hidden="true">＋</span><span class="hv-txt"><b>${title}</b><small>${desc}</small></span></${attrs.startsWith("href") ? "a" : "button"}>`;
+  const houseCard = (p) => card(`data-action="house-open" data-id="${p.id}"`, KIND_ICON[p.kind] || "🏠", p.name, [[t(ST[p.status] || "持有"), t(K[p.kind] || "")].filter(Boolean).join(" · "), p.address], p.id === state.propertyId);
   const props = activeProperties(), ended = endedProperties();   // 已卖出 / 已退租：收进「已结束」，档案、账单、设备、记录都还在
   const vehicles = activeVehicles(), pastN = myVehicles().length - vehicles.length;
-  const vAlert = (a) => alerts.filter((x) => x.source === "asset" && x.asset_id === a.id && x.severity <= 2).length;
-  const vRow = (a) => {
+  const vCard = (a) => {
     const v = a.vehicle || {}, pt = window.VEHICLES?.POWERTRAINS?.[a.type];
-    const desc = [[a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "), v.plate, t(window.VEHICLES?.STATUS?.[vehStatus(a)]?.name || "")].filter(Boolean).join(" · ");
-    const n = vAlert(a);
-    return `<a class="mrow" href="${esc(href("asset", a.id))}"><span class="mi" aria-hidden="true">${pt?.icon || "🚗"}</span>
-      <span class="mt"><b>${esc(assetName(a))}</b>${desc ? `<small>${esc(desc)}</small>` : ""}</span>${n ? `<span class="badge b-soon mcount">${n}</span>` : ""}<span class="mch" aria-hidden="true">›</span></a>`;
+    return card(`href="${esc(href("asset", a.id))}"`, pt?.icon || "🚗", assetName(a), [[a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "), [v.plate, t(window.VEHICLES?.STATUS?.[vehStatus(a)]?.name || "")].filter(Boolean).join(" · ")]);
   };
-  const addRow = (attrs, title, desc) => `<${attrs.startsWith("href") ? "a" : "button type=\"button\""} class="mrow mrow-add" ${attrs}><span class="mi" aria-hidden="true">＋</span><span class="mt"><b>${title}</b><small>${desc}</small></span></${attrs.startsWith("href") ? "a" : "button"}>`;
-  const sub = (k, icon, title, count, body) => `<details class="asset-sub" data-hfold="${k}" ${houseFolded(k) ? "" : "open"}>
-      <summary><span class="asset-sub-title"><span aria-hidden="true">${icon}</span> ${title}</span><span class="badge attn-count">${count}</span><span class="tchev" aria-hidden="true">›</span></summary>
-      <div class="asset-sub-body">${body}</div></details>`;
-  const houses = sub("houses", "🏠", t("房屋"), props.length, `<div class="mlist">${props.map(rowOf).join("") || `<div class="empty"><strong>${t("还没有房产")}</strong></div>`}
-      ${state.editProperty === "new" ? "" : addRow(`data-action="property-edit" data-id=""`, t("添加房产"), t("自住、出租或租住的房子都可以"))}</div>
-    ${ended.length ? `<details class="asset-ended"><summary>${t("已结束的房产")} <small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small></summary><div class="mlist">${ended.map(rowOf).join("")}</div></details>` : ""}`);
-  const cars = sub("vehicles", "🚗", t("汽车"), vehicles.length, `<div class="mlist">${vehicles.map(vRow).join("")}
-      ${addRow(`href="${esc(href("asset", "new"))}?type=vehicle_gas"`, t("添加车辆"), t("油车、混动、纯电都可以"))}</div>
-    <a class="tmore asset-more" href="${esc(href("house", "vehicles"))}">${pastN ? t("车辆总览、保养时间表（另有 {n} 辆历史车辆）", { n: pastN }) : t("车辆总览、保养时间表、本地须知")} ›</a>`);
   return `<section class="section menu-page house-landing">
     <div class="section-head"><h2>🏠 ${t("房屋")}</h2><p>${t("点一套房产进入它的概览、设备保养、季节任务、交易和资料")}</p></div>
     ${houseBar()}
-    <details class="panel asset-box" data-hfold="assets" ${houseFolded("assets") ? "" : "open"}>
-      <summary><h3><span aria-hidden="true">🗂️</span> ${t("资产")}</h3><small>${t("{a} 套房产 · {b} 辆车", { a: props.length, b: vehicles.length })}</small><span class="tchev" aria-hidden="true">›</span></summary>
-      <div class="asset-box-body">${houses}${cars}</div>
-    </details>
+    <div class="hv-grid">${props.map(houseCard).join("")}${state.editProperty === "new" ? "" : addCard(`data-action="property-edit" data-id=""`, t("添加房产"), t("自住、出租或租住的房子都可以"))}</div>
+    ${ended.length ? `<details class="asset-ended"><summary>${t("已结束的房产")} <small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small></summary><div class="hv-grid">${ended.map(houseCard).join("")}</div></details>` : ""}
+    <div class="section-head hv-head"><h2>🚗 ${t("汽车")}</h2></div>
+    <div class="hv-grid">${vehicles.map(vCard).join("")}${addCard(`href="${esc(href("asset", "new"))}?type=vehicle_gas"`, t("添加车辆"), t("油车、混动、纯电都可以"))}</div>
+    <a class="tmore asset-more" href="${esc(href("house", "vehicles"))}">${pastN ? t("车辆总览、保养时间表（另有 {n} 辆历史车辆）", { n: pastN }) : t("车辆总览、保养时间表、本地须知")} ›</a>
     ${houseTodoBoard()}
   </section>`;
 }

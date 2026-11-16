@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.20", title: { zh: "房屋首页：房屋、汽车各一个分区，用卡片", en: "House home: Houses and Cars as separate card sections" }, items: [
+    { k: "better", zh: "去掉「资产」那一层；房屋和汽车各是一个分区，每套房产、每辆车是一张卡片，只显示名称、状态、地址 / 车牌这些基本信息，不再放统计数字", en: "The Assets wrapper is gone; Houses and Cars are separate sections of cards showing basics only (name, status, address / plate), with no statistics" },
+    { k: "new", zh: "每个分区最后一张空白的「＋ 添加」卡：添加房产 / 添加车辆", en: "The last card in each section is a blank + card to add a property or vehicle" }
+  ] },
   { v: "2026-11-16.19", title: { zh: "保养记录页：以记录为主、右下角 ＋ 记保养", en: "Service records page: records first, ＋ button to log service" }, items: [
     { k: "better", zh: "保养记录页现在先看记录：最近的在前，有搜索（项目、收款方、备注）和类型 / 年份筛选，一次显示一批，点「继续加载」看更早的", en: "The service records page now leads with the records: newest first, with search and type / year filters, loaded in batches" },
     { k: "new", zh: "右下角一个圆形「＋」，点一下进「记保养」表单；记完或改完自动回到记录列表", en: "A round ＋ button at the bottom right opens the Log service form; saving returns to the list" },

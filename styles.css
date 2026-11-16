@@ -3625,3 +3625,21 @@ span.rem-tag { cursor: default; }
 .maint-row .log-hit:hover { background: color-mix(in srgb, var(--pine) 4%, transparent); }
 .maint-row .log-hit:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
 .maint-row .log-copy { position: relative; z-index: 2; min-height: 44px; display: inline-flex; align-items: center; }
+
+/* 房屋首页：房屋 / 汽车各一个分区，每个是一张卡片，最后一张空白「＋ 添加」卡；手机单列、笔记本多列 */
+.hv-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 0 0 14px; }
+@media (min-width: 640px) { .hv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .hv-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.hv-card { box-sizing: border-box; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 84px; padding: 14px 16px; text-align: left; font: inherit; color: var(--ink); text-decoration: none; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.hv-card:hover { border-color: var(--pine); }
+.hv-card:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.hv-card[aria-current="true"] { border-color: var(--pine); }
+.hv-ico { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; }
+.hv-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hv-txt b { font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.hv-txt small { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.hv-add { border-style: dashed; background: transparent; color: var(--pine); }
+.hv-add .hv-ico { background: color-mix(in srgb, var(--pine) 10%, var(--surface)); color: var(--pine); font-size: 26px; font-weight: 600; }
+.hv-add .hv-txt b { color: var(--pine); }
+.hv-head { margin-top: 18px; }
