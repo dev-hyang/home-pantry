@@ -3530,3 +3530,10 @@ span.rem-tag { cursor: default; }
 .space-dd .space-opts .space-opt input:checked + .space-card { border-color: transparent; background: color-mix(in srgb, var(--pine) 16%, var(--surface)); box-shadow: none; }
 .space-rel { margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; }
 .af-cart { padding: 0 14px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+/* 「组别」展开后：选中的那张 = 实心浅绿底 + 深绿边 + 右上角 ✓，字是正常深色；没选的 = 白底、浅灰边、说明文字更淡，一眼分得出 */
+.space-dd .space-opts .space-card { position: relative; padding-right: 36px; border: 1.5px solid var(--line-soft, var(--line)); background: var(--surface); }
+.space-dd .space-opts .space-card small { color: var(--muted); }
+.space-dd .space-opts .space-opt:hover .space-card { border-color: var(--pine); background: var(--surface); }
+.space-dd .space-opts .space-opt input:checked + .space-card { border-color: var(--pine); background: color-mix(in srgb, var(--pine) 16%, var(--surface)); box-shadow: inset 0 0 0 1px var(--pine); }
+.space-dd .space-opts .space-opt input:checked + .space-card small { color: var(--ink); }
+.space-dd .space-opts .space-opt input:checked + .space-card::after { content: "✓"; position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%; background: var(--pine); color: #fff; font-size: 13px; font-weight: 700; line-height: 22px; text-align: center; }
