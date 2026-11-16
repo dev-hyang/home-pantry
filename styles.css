@@ -3428,3 +3428,10 @@ input[type="date"], input[type="month"] { height: calc(1.6em + 20px); }   /* 和
 .cart-btn .num { min-width: 20px; padding: 0 6px; border-radius: 99px; background: var(--pine); color: var(--surface); font-size: 12px; text-align: center; }
 .cart-btn:hover { background: color-mix(in srgb, var(--pine) 8%, var(--surface)); filter: none; }
 #h-restock + .head-acts .btn, .section-head .head-acts .cart-btn, .section-head .head-acts [data-action="shop-add-alerts"] { min-height: 40px; }
+/* 录入购物：小票模式的「补充文字」默认折叠，点开才出现输入框 */
+.scan-more { margin: 10px 0 0; border: 1px solid var(--line-soft); border-radius: 10px; background: var(--surface); }
+.scan-more > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 0 12px; cursor: pointer; list-style: none; font-size: 14px; font-weight: 600; }
+.scan-more > summary::-webkit-details-marker { display: none; }
+.scan-more > summary::after { content: "▾"; color: var(--muted); transition: transform .2s; }
+.scan-more:not([open]) > summary::after { transform: rotate(-90deg); }
+.scan-more > textarea { display: block; box-sizing: border-box; width: calc(100% - 24px); margin: 0 12px 12px; }
