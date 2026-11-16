@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-15.10", title: { zh: "购物车可以批量移出", en: "Remove several items from the cart at once" }, items: [
+    { k: "new", zh: "购物车点「多选」，点行勾选（或「全选」），再点「移出购物车」，确认后一起移出；左滑、右滑照旧", en: "In the Cart, tap \"Select\", tick rows (or Select all), then \"Remove from cart\" and confirm; swiping still works as before" }
+  ] },
   { v: "2026-11-15.9", title: { zh: "「采购清单」改叫「购物车」", en: "\"Shopping list\" is now \"Cart\"" }, items: [
     { k: "better", zh: "全应用的「采购清单」都改叫「购物车」，用法不变；购物车标题旁边显示有几项，搜索、筛选时跟着变", en: "\"Shopping list\" is called \"Cart\" everywhere and works the same; the Cart title shows how many items, following your search and filters" }
   ] },

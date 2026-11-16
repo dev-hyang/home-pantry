@@ -657,6 +657,9 @@ function shopImportHtml() {
 }
 
 /** 清单页的一行：数量可改、在哪买 / 花费 / 用卡、认领和买到 */
+export const shopSelText = () => (state.shopSel?.size ? t("已选 {n} 项", { n: state.shopSel.size }) : t("点行来选"));
+/** 购物车当前筛选下看得见的条目（全选用） */
+export const shopVisibleIds = () => shopRows().map((s) => s.id);
 function shopRowHtml(s) {
   const mine = isMine(s);
   let acts = "";
@@ -672,9 +675,10 @@ function shopRowHtml(s) {
       </div>`;
   const when = s.status === "bought" && s.bought_at ? t("{d} 买到", { d: fmtShort(s.bought_at) }) : s.created_at ? t("{d} 加入", { d: fmtShort(s.created_at) }) : "";
   // 左滑删除；没买到的还能右滑「已买到」（先确认）。右滑替下面隐藏的 swipe-alt-src 点一下（带 data-confirm，按钮本身点了不弹框）
-  const swipe = s.status === "bought" ? "" : ` data-swipe-alt="shop" data-swipe-alt-label="${esc(t("已买到"))}" data-swipe-alt-go="${esc(t("松手买到"))}"`;
-  return `<li class="shop-item ${s.status === "bought" ? "done" : ""}" data-swipe-del="shop"${swipe}>
-    <div class="row"><span class="nm"><b>${esc(s.name)}</b> ${s.status === "bought" ? showQty(num(s.quantity, 1), shopUnit(s)) : shopQty(s)}${when ? ` <small class="muted" title="${esc(stampText(s))}">${when}</small>` : ""}</span>
+  const sel = state.shopSel, picked = sel?.has(s.id);
+  const swipe = sel ? ` data-row-sel-shop="${s.id}"` : ` data-swipe-del="shop"${s.status === "bought" ? "" : ` data-swipe-alt="shop" data-swipe-alt-label="${esc(t("已买到"))}" data-swipe-alt-go="${esc(t("松手买到"))}"`}`;   // 多选时不滑动，点行 = 勾选
+  return `<li class="shop-item ${s.status === "bought" ? "done" : ""}${picked ? " is-picked" : ""}"${swipe}>
+    <div class="row">${sel ? `<input type="checkbox" class="shop-chk" data-id="${s.id}" ${picked ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: s.name }))}">` : ""}<span class="nm"><b>${esc(s.name)}</b> ${s.status === "bought" ? showQty(num(s.quantity, 1), shopUnit(s)) : shopQty(s)}${when ? ` <small class="muted" title="${esc(stampText(s))}">${when}</small>` : ""}</span>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shop-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button>${s.status === "bought" ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="shop-bought" data-id="${s.id}" data-confirm="1" aria-label="${esc(t("{name} 已买到", { name: s.name }))}">${t("已买到")}</button>`}</div>
     ${s.status === "claimed" ? `<div class="who">🛍 ${t("{who} 正在买", { who: esc(whoName(s)) })}</div>` : ""}
     ${s.status === "bought" ? (s.claimed_by_name ? `<div class="who">✅ ${t("{who} 买到的", { who: esc(s.claimed_by_name) })}</div>` : "") : shopDealPicker(s)}
@@ -741,10 +745,14 @@ function viewShopList() {
   return `<section class="section shop-list-page">
     ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("购物车"), icon: "🛒" }])}
     <div class="section-head"><h2>${t("购物车")} <span class="muted shop-n" id="shopN">${t("{n} 项", { n: shopRows().length })}</span></h2>
-      <div class="head-acts"><a class="btn btn-sm btn-primary" href="${href("shopping", "add")}">＋ ${t("添加")}</a><a class="btn btn-sm" href="${href("shopping", "add", "?mode=photo")}">📷 ${t("拍照添加")}</a></div></div>
+      <div class="head-acts"><button type="button" class="btn btn-sm ${state.shopSel ? "btn-primary" : "btn-ghost"}" data-action="shop-select" aria-pressed="${!!state.shopSel}">${state.shopSel ? t("完成") : `☑ ${t("多选")}`}</button><a class="btn btn-sm btn-primary" href="${href("shopping", "add")}">＋ ${t("添加")}</a><a class="btn btn-sm" href="${href("shopping", "add", "?mode=photo")}">📷 ${t("拍照添加")}</a></div></div>
     ${shopToolbar()}
     ${storeDatalist()}
     <div id="shopListBox">${shopListBody()}</div>
+    ${state.shopSel ? `<div class="inv-selbar shop-selbar" role="toolbar" aria-label="${esc(t("多选操作"))}">
+      <span class="inv-seln" aria-live="polite">${esc(shopSelText())}</span>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="shop-sel-all">${t("全选")}</button><span class="spacer"></span>
+      <button type="button" class="btn btn-sm btn-danger-ghost" data-action="shop-sel-remove" ${state.shopSel.size ? "" : "disabled"}>${t("移出购物车")}</button></div>` : ""}
   </section>`;
 }
 function viewShopAdd() {

@@ -70,6 +70,7 @@ import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsen
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
 import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
+import { shopSelText, shopVisibleIds } from "./pantry/views.js";
 import { catNeed, moveCat, pantryNav, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
 import { famMembers, familyHref, meId, profileErr, readMemberForm, reloadMembers } from "./settings/members.js";
@@ -436,7 +437,8 @@ function onRoute() {
     next.q.delete("status"); history.replaceState(null, "", `${href(next.section, next.sub)}${next.q.toString() ? `?${next.q}` : ""}`);
   }
   if (isScanRoute(next) && !isScanRoute(prev)) resetScan();
-  if (!(next.section === "pantry" && (next.sub === "inventory" || next.sub === "gear"))) state.invSel = null;   // 离开库存：多选结束
+  if (!(next.section === "pantry" && (next.sub === "inventory" || next.sub === "gear"))) state.invSel = null;
+  if (!(next.section === "shopping" && next.sub === "list")) state.shopSel = null;   // 离开购物车：多选结束   // 离开库存：多选结束
   // 换了页面 / 页签 / 钻取参数：所有列表回到一页（从表单页返回原列表时保留，滚动位置才对得上）
   if ((routeKey(prev) !== routeKey(next) || prev.q?.toString() !== next.q.toString()) && !isFormSection(prev)) resetListPages();
   // 从图表 / 名称钻取来的：套上筛选，再把地址里的筛选参数去掉（刷新或再次进入不会重复套用）
@@ -996,6 +998,20 @@ function drillTo(qs) {
   if (state.billsEnabled) return go(`${href("bills", "spend")}?tab=records&${qs}`);
   applySpendDrill(new URLSearchParams(qs)); render(); $("#spendRecords")?.scrollIntoView({ block: "start" });   // 账单模块关闭：明细就在统计页下面
 }
+/* 购物车多选：点行或勾选框选中 / 取消，只更新这一行和底部操作条 */
+function pickShop(id, on) {
+  if (!state.shopSel) return;
+  if (on) state.shopSel.add(id); else state.shopSel.delete(id);
+  const row = document.querySelector(`[data-row-sel-shop="${CSS.escape(id)}"]`);
+  if (row) { row.classList.toggle("is-picked", on); const c = row.querySelector(".shop-chk"); if (c) c.checked = on; }
+  const n = document.querySelector(".shop-selbar .inv-seln"); if (n) n.textContent = shopSelText();
+  const b = document.querySelector('[data-action="shop-sel-remove"]'); if (b) b.disabled = !state.shopSel.size;
+}
+main.addEventListener("change", (e) => { if (e.target.matches?.(".shop-chk")) pickShop(e.target.dataset.id, e.target.checked); });
+main.addEventListener("click", (e) => {
+  const row = e.target.closest?.("[data-row-sel-shop]"); if (!row || e.target.closest("a, button, input, select, textarea, label, details")) return;
+  pickShop(row.dataset.rowSelShop, !state.shopSel?.has(row.dataset.rowSelShop));
+});
 /* 库存多选：点行（或勾选框）选中 / 取消，只更新这一行和底部操作条，不重画整页 */
 function pickRow(id, on) {
   if (!state.invSel) return;
@@ -1255,7 +1271,16 @@ main.addEventListener("click", async (e) => {
       case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "shop-add-item": return addAlertsToShopping([state.enriched.find((x) => x.id === id)]);
-      case "shop-remove-item": return removeFromShopping([id]);   // 该补货了：移出购物车（先确认）
+      case "shop-remove-item": return removeFromShopping([id]);
+      case "shop-select": state.shopSel = state.shopSel ? null : new Set(); return render();   // 购物车：多选
+      case "shop-sel-all": { const ids = shopVisibleIds(), all = ids.length && ids.every((x) => state.shopSel?.has(x)); state.shopSel = new Set(all ? [] : ids); return render(); }
+      case "shop-sel-remove": {
+        const rows = state.shopping.filter((s) => state.shopSel?.has(s.id)); if (!rows.length) return;
+        const names = rows.map((s) => s.name), shown = names.slice(0, 3).join("、") + (names.length > 3 ? t("等 {n} 件", { n: names.length }) : "");
+        if (!(await askConfirm({ title: t("移出购物车"), body: t("{names} 将被移出购物车，请确认", { names: shown }), ok: t("移出"), danger: true }))) return;
+        for (const s of rows) await Store.deleteShopping(s.id);
+        state.shopSel = null; toast(t("已移出购物车：{names}", { names: shown })); return refresh();
+      }   // 该补货了：移出购物车（先确认）
       case "cat-check-ok": case "cat-check-all": {   // 「请确认分类」：没错 → 清标记（迁移 064）
         const ids = action === "cat-check-all" ? state.items.filter((x) => x.cat_check).map((x) => x.id) : [id];
         el.disabled = true;

@@ -3456,3 +3456,7 @@ input[type="date"], input[type="month"] { height: calc(1.6em + 20px); }   /* 和
 .ask-confirm .ask-body { margin: 4px 0 0; font-size: 15px; line-height: 1.5; }
 .shop-list-meta:not(:has(*)) { display: none; }   /* 件数挪到标题旁了：没有「清空已买到」时这一行不占位 */
 .shop-n { font-size: .75em; font-weight: 600; margin-left: 4px; }
+/* 购物车多选（2026-11-15）：每行前面一个勾选框，点行就勾；底部和库存多选同一个操作条 */
+.shop-item .shop-chk { flex: none; width: 22px; height: 22px; margin: 0 10px 0 0; accent-color: var(--pine); align-self: center; }
+.shop-item.is-picked { background: color-mix(in srgb, var(--pine) 9%, var(--surface)); }
+[data-row-sel-shop] { cursor: pointer; }
