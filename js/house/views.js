@@ -51,15 +51,15 @@ function amountSource(src, bill, cat, pid, pre) {
 }
 
 /** 房屋概览顶部：房产状态、进行中的交易、编辑房产（同设置页的表单） */
-function statusLine() {
+function statusLine(inCard = false) {
   const p = currentProp(); if (!p) return "";
   const d = openDeal(p.id);
   const B = window.BILLS;
   // 名称 + 一组带标签名的芯片（状态 / 类型 / 用途），避免“值 · 值 · 值”分不清哪个是哪个
   const STATUS_CLS = { looking: "", buying: "b-soon", owned: "b-ok", renting: "b-ok", selling: "b-soon", sold: "", moved_out: "" };
   const tag = (label, value, cls = "") => (value ? `<span class="meta-tag ${cls}"><small>${label}</small>${esc(value)}</span>` : "");
-  return `<div class="status-line">
-    <b class="prop-name">${esc(p.name)}</b>
+  return `<div class="status-line${inCard ? " in-card" : ""}">
+    ${inCard ? "" : `<b class="prop-name">${esc(p.name)}</b>`}
     ${tag(t("状态"), statusText(p), STATUS_CLS[p.status] || "")}
     ${tag(t("类型"), t(B.PROPERTY_KINDS[p.kind] || ""))}
     ${tag(t("用途"), t(B.PROPERTY_ROLES[p.role] || ""))}
@@ -466,17 +466,18 @@ export function viewHouse() {
   // 布局：先是这套房的身份卡（地址、保险、HOA 一眼可查），然后是“要做的事”（交易清单 → 本月季节任务 → 设备提醒 → 耗材提醒），
   // 最后是不常变的参考资料（归谁维护 / HOA 详情 / 材料保养），默认折叠
   return `
-    ${houseBar()}${statusLine()}
+    ${houseBar()}
     <section class="section">
       <div class="house-card">
-        <div class="house-top"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改资料")}</a></div>
         <div class="house-head">
           <span class="house-ico" aria-hidden="true">${ht?.icon || "🏠"}</span>
           <div class="grow">
-            <h2>${esc(ht ? t(ht.name) : t("我的房子"))}${lang === "en" ? "" : `<span class="muted">${esc(ht?.en || "")}</span>`}</h2>
-            <p class="muted">${esc(t(H().REGIONS[p.region]?.name || ""))}${p.year_built ? t("，{y} 年建成（约 {age} 年房龄）", { y: p.year_built, age }) : ""}</p>
+            <h2><a class="house-name" href="${href("house", "profile")}?sec=type" title="${esc(t("点一下改名称、类型、用途"))}">${esc(currentProp()?.name || t(ht?.name || "我的房子"))}</a></h2>
           </div>
+          <a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("编辑")}</a>
         </div>
+        ${statusLine(true)}
+        <p class="muted house-sub">${esc(t(H().REGIONS[p.region]?.name || ""))}${p.year_built ? t("，{y} 年建成（约 {age} 年房龄）", { y: p.year_built, age }) : ""}</p>
         <dl class="fact-grid one">${factRows(facts.main)}</dl>
         <details class="facts-more"><summary>${t("材料与设施")}<small>${facts.count ? t("{n} 项", { n: facts.count }) : t("未填")}</small></summary><dl class="fact-grid one">${factRows(facts.more)}</dl></details>
       </div>

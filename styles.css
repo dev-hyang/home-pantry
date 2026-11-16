@@ -3591,3 +3591,15 @@ span.rem-tag { cursor: default; }
 .act-more > summary:has(> .dots3) { box-sizing: border-box; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
 .act-item.is-first { font-weight: 800; color: var(--pine); }
 .dot-row .alert-acts { gap: 6px; }
+
+/* 房屋概览卡片顶部：图标 + 房产名称（可点）+ 编辑；下面是 状态 / 类型 / 用途 标签行 */
+.house-name { color: var(--ink); text-decoration: none; }
+.house-name:hover { color: var(--pine); text-decoration: underline; }
+.house-head .btn { flex: none; min-height: 44px; display: inline-flex; align-items: center; }
+.status-line.in-card { margin: 10px 0 6px; font-size: 13.5px; }
+.status-line.in-card .meta-tag { padding: 3px 10px 3px 4px; gap: 8px; }
+.status-line.in-card .meta-tag small { padding: 2px 8px; border: 0; border-radius: 999px; background: color-mix(in srgb, var(--pine) 12%, var(--surface)); color: var(--pine); font-size: 11.5px; font-weight: 700; }
+.status-line.in-card .meta-tag { font-weight: 700; }
+.house-sub { margin: 0 0 6px; font-size: 13px; }
+.house-card .house-head { border-bottom: 0; padding-bottom: 0; }
+.house-card .house-sub { padding-bottom: 12px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }

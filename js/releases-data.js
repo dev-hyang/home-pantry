@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.17", title: { zh: "房屋概览：名称、状态放进卡片顶部", en: "House overview: name and status inside the card header" }, items: [
+    { k: "better", zh: "概览卡片顶部是 图标 + 房产名称（点一下就能改名称、类型、用途）+ 靠右的「编辑」；下面一行「状态 / 类型 / 用途」标签更醒目", en: "The card header is icon + property name (tap to edit name, type, use) with Edit on the right; the Status / Type / Use tags below stand out more" },
+    { k: "better", zh: "「修改资料」改名「编辑」；去掉重复的房型名称行（如 独栋别墅）", en: "\"Edit profile\" is now \"Edit\"; the duplicate house-type name line is gone" }
+  ] },
   { v: "2026-11-16.16", title: { zh: "房产名称也能在房屋资料里改", en: "Rename the property from the house profile" }, items: [
     { k: "new", zh: "房屋资料的「地区、房型与用途」里可以改房产名称，和设置里的房产是同一份，改一处两边都变", en: "Property name can be edited in the profile's Region, house type & use; it is the same record as in Settings" }
   ] },

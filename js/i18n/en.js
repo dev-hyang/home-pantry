@@ -3870,6 +3870,7 @@ export const EN = {
   "常去的商店与特价": "Stores & deals",
   "编辑 {name}": "Edit {name}",
   "保险状态": "Status",
+  "点一下改名称、类型、用途": "Tap to edit name, type and use",
   "房产名称": "Property name",
   "房产类型与用途": "Property type and use",
   "地区、房型与用途": "Region, house type & use",
