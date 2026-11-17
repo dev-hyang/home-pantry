@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.16", title: { zh: "手机上所有搜索页：搜索框至少 185px，「清除筛选」换到下一行", en: "On phones every search page keeps the search box at least 185px; Clear filters moves to its own row" }, items: [
+    { k: "fix", zh: "手机上库存、采购、账单、花费等带搜索的页面，搜索框不再被「筛选」和「清除筛选」挤窄；放不下时「清除筛选」单独放在下一行，并带上文字", en: "On phones the search box on inventory, shopping, bills, spending and other pages is no longer squeezed by the Filters and Clear filters buttons; when there is no room, Clear filters sits on its own row with its label" }
+  ] },
+
   { v: "2026-11-17.15", title: { zh: "批量核对自动扣款账单；今日页待缴账单口径统一；去掉导出到日历", en: "Verify autopay bills in one go; Today's unpaid bills match All bills; calendar export removed" }, items: [
     { k: "new", zh: "全部账单里，有自动扣款、过了日子还没核对的账单时，出现「全部标为已核对」：确认后每张记一条已核对的缴费并推到下一期", en: "When autopay bills are past their date and not yet verified, All bills shows Mark all as verified: after you confirm, each gets a verified payment and moves to the next period" },
     { k: "better", zh: "今日页的「未来 30 天账单」改成「待缴账单（含逾期）」，笔数和金额与点进去的全部账单一致（含一次性账单）", en: "Today\u2019s next-30-days bills row is now Unpaid bills (incl. overdue); its count and amount match the All bills list it opens (one-time bills included)" },
