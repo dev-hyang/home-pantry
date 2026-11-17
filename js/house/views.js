@@ -761,7 +761,7 @@ function viewProfileSection(sec) {
         ${isNew ? "" : askInline({ id: `profile-${state.propertyId}-${sec}`, title: t(meta?.name || sec), question: PROFILE_ASK[sec] ? t(PROFILE_ASK[sec]) : t("这一块该填什么、去哪里找？"), context: () => askCtx.property(state.propertyId) })}
         ${body}
         <p id="houseFormError" class="form-error" role="alert"></p>
-        <div class="form-actions sticky-actions">
+        <div class="form-actions sticky-actions${wiz ? " wiz-row" : ""}">
           ${wiz && !isNew && prevSec ? `<a class="btn btn-ghost" href="${prevHref}">‹ ${t("上一步")}</a>` : ""}
           ${wiz && !isNew && nextSec ? `<a class="btn btn-ghost" href="${nextHref}">${t("跳过")}</a>` : ""}
           ${isNew ? `<a class="btn btn-ghost" href="${href("house")}" data-action="house-cancel">${t("取消")}</a>` : ""}
@@ -769,10 +769,7 @@ function viewProfileSection(sec) {
           ${wiz ? "" : `<a class="btn btn-ghost" href="${href("house", "profile")}" data-action="house-cancel">${t("取消")}</a>`}
           ${sec === "hoa" ? `<span class="hoa-mini">${t("每月总计")} <b data-hoa-total-mini>${money(hoaMonthly(hoaOf(d)).total)}</b></span>` : ""}
         </div>
-        ${wiz && !isNew ? `<div class="form-actions wiz-exit">
-          <a class="btn btn-ghost btn-sm" href="${href("house", "overview")}" data-action="house-cancel" title="${esc(t("不保存这一步，其余各步都跳过，回概览"))}">${t("全部跳过")}</a>
-          <a class="btn btn-ghost btn-sm" href="${href("house", "overview")}" title="${esc(t("保存这一步填的内容，其余以后再补，回概览"))}">${t("稍后再填")}</a>
-        </div>` : ""}
+        ${wiz && !isNew ? `<div class="form-actions wiz-exit"><a class="btn btn-ghost" href="${href("house", "overview")}" title="${esc(t("保存这一步填的内容，其余各步以后再补，回概览"))}">${t("全部跳过，稍后再填")}</a></div>` : ""}
       </form>
     </section>`;
 }

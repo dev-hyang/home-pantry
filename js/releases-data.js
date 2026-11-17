@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.32", title: { zh: "向导按钮同一行等宽；第二行合成一个按钮", en: "Wizard buttons on one equal-width row; one button on row two" }, items: [
+    { k: "better", zh: "添加房产向导：上一步、跳过、保存并下一步等宽排在同一行；第一页是取消、下一步一行；第二行合成一个占满整行的「全部跳过，稍后再填」", en: "Add-property wizard: Back, Skip and Save and next share one equal-width row; page one is Cancel and Next; row two is a single full-width Skip all, fill in later" }
+  ] },
+
   { v: "2026-11-16.31", title: { zh: "添加房产向导按钮重新排列", en: "Add-property wizard buttons rearranged" }, items: [
     { k: "better", zh: "向导第一行按钮：上一步、跳过、保存并下一步；第 2 步起第二行是「全部跳过」（不保存这一步直接回概览）和「稍后再填」（保存这一步再回概览）", en: "Wizard row one: Back, Skip, Save and next; from step 2 a second row has Skip all (discard this step, go to the overview) and Fill in later (save this step, go to the overview)" }
   ] },

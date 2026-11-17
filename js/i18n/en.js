@@ -3917,6 +3917,8 @@ export const EN = {
   "全部跳过": "Skip all",
   "不保存这一步，其余各步都跳过，回概览": "Don't save this step, skip the rest and go to the overview",
   "保存这一步填的内容，其余以后再补，回概览": "Save this step, fill in the rest later and go to the overview",
+  "全部跳过，稍后再填": "Skip all, fill in later",
+  "保存这一步填的内容，其余各步以后再补，回概览": "Save this step, fill in the rest later and go to the overview",
   "保险状态": "Status",
   "点一下改名称、类型、用途": "Tap to edit name, type and use",
   "房产名称": "Property name",

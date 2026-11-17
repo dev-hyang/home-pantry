@@ -3676,3 +3676,9 @@ span.rem-tag { cursor: default; }
 .wiz-dots li { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
 .wiz-dots li.is-done { background: var(--pine); }
 .wiz-dots li.is-now { background: var(--mustard); }
+
+/* 添加房产向导：第一行按钮等宽排成一行；第二行「全部跳过，稍后再填」一个按钮占满整行 */
+.form-actions.wiz-row { flex-wrap: nowrap; gap: 8px; }
+.form-actions.wiz-row .btn { flex: 1 1 0; min-width: 0; justify-content: center; text-align: center; padding-inline: 8px; white-space: nowrap; }
+.form-actions.wiz-exit { margin-top: 8px; }
+.form-actions.wiz-exit .btn { width: 100%; justify-content: center; }
