@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.12", title: { zh: "扫描信件 / 账单，自动判断类型并填好表单", en: "Scan a letter or bill: the type is detected and the form is filled in" }, items: [
+    { k: "new", zh: "添加账单的第一页多了「扫描信件 / 账单」：拍一封信或账单，自动判断是周期性还是一次性，进到对应的表单并填好，你核对后再保存", en: "The first Add bill page has Scan a letter or bill: photograph one and it works out whether it is recurring or one-time, opens that form already filled in, and you check and save" },
+    { k: "better", zh: "车险、车贷这类账单，名字里有你的某辆车时，会自动挂到那辆车上", en: "Car insurance or loan bills that mention one of your vehicles are linked to that vehicle automatically" },
+    { k: "better", zh: "医疗、法律类账单（以及还不知道类型的扫描）发给 AI 之前，每次都会先让你确认；图片不保存", en: "Before a medical or legal bill (or a scan of unknown type) is sent to the AI you are asked to confirm each time; images are never stored" }
+  ] },
+
   { v: "2026-11-17.11", title: { zh: "账单表单重排；「全部账单」从目录进来默认只看未缴", en: "Bill form reordered; All bills opens on unpaid bills from the menu" }, items: [
     { k: "better", zh: "周期性账单表单按顺序分成四步：① 这是什么账单 → ② 多少钱、多久一次 → ③ 怎么付 → ④ 提醒与其他；缴费方式、付款链接、账号尾号都归到「怎么付」里", en: "The recurring bill form now follows four steps: what it is, how much and how often, how it is paid, reminders and other; payment method, link and account digits all sit under How it is paid" },
     { k: "better", zh: "从目录直接打开「全部账单」默认只看未缴的；从概览卡片点进来则按卡片的条件", en: "Opening All bills from the menu shows unpaid bills by default; opening it from an overview card follows that card" },

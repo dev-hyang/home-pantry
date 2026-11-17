@@ -245,3 +245,28 @@ test("一次性账单没有任何日期：始终显示、排在未缴最后；�
   const other = run([], [nodate], monthBounds("2030-01")).rows;   // 换一个远处的范围也在
   assert.equal(other.length, 1);
 });
+
+// ── 扫描信件 / 账单：路由与隐私规则 ──
+import { routeScan, needsConsent, SCAN_SHAPE } from "../js/bills/scan-lib.js";
+
+test("扫描路由：一次性按种类进表单；拿不准进周期性；种类不认识当医疗（更保守）", () => {
+  assert.deepEqual(routeScan({ bill_type: "onetime", kind: "project" }), { type: "onetime", kind: "project" });
+  assert.deepEqual(routeScan({ bill_type: "onetime", kind: "乱写" }), { type: "onetime", kind: "medical" });
+  assert.deepEqual(routeScan({ bill_type: "recurring" }), { type: "recurring", kind: null });
+  assert.deepEqual(routeScan({}), { type: "recurring", kind: null });
+  assert.deepEqual(routeScan(null), { type: "recurring", kind: null });
+});
+
+test("发送图片前的确认：未知类型、医疗、法律要确认；其余不要", () => {
+  assert.equal(needsConsent("unknown"), true);
+  assert.equal(needsConsent("onetime", "medical"), true);
+  assert.equal(needsConsent("onetime", "legal"), true);
+  assert.equal(needsConsent("onetime", "project"), false);
+  assert.equal(needsConsent("onetime", "travel"), false);
+  assert.equal(needsConsent("recurring", null), false);
+});
+
+test("扫描 JSON 的形状是两张表单字段的并集，值都是 null", () => {
+  for (const k of ["bill_type", "kind", "name", "category", "amount", "due_date", "provider", "patient", "billed_amount", "patient_amount", "claim_ref"]) assert.ok(k in SCAN_SHAPE, k);
+  assert.ok(Object.values(SCAN_SHAPE).every((v) => v === null));
+});

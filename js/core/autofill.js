@@ -6,8 +6,12 @@ import { t, lang } from "./i18n.js";
 import { aiReady, aiSettings, askText, providerOf, visionCapable } from "./ai.js";
 import { KINDS as medKinds } from "../bills/medical.js";
 import { go, href } from "./router.js";
+import { state } from "./state.js";
+import { PRIVATE_KINDS, SCAN_SHAPE, needsConsent, routeScan } from "../bills/scan-lib.js";
+import { suggestAssetLinks } from "../bills/asset-suggest.js";
 
 const MAX_IMAGES = 3;
+const CONSENT_TEXT = "这张图会发给你在设置里选的 AI 服务商来识别，账单可能含医疗 / 法律等隐私内容，不会保存。要发送吗？";
 const H = () => window.HOUSE;
 const B = () => window.BILLS;
 const MED = () => medKinds;
@@ -97,7 +101,7 @@ const KINDS = {
     prompt() {
       const cats = B().CATEGORIES.map((c) => ({ id: c.id, name: c.name })), freqs = Object.entries(B().FREQUENCIES).map(([id, name]) => ({ id, name }));
       return { system: SYSTEM, user: [
-        "Photos / screenshots of a BILL or statement (utility, internet, insurance, tax, mortgage, subscription, HOA...).",
+        "Photos / screenshots of a BILL, statement or notice LETTER (utility, internet, insurance renewal, tax notice, mortgage, subscription, HOA...).",
         `category = best id from: ${idList(cats)}. frequency = best id from: ${idList(freqs)} (monthly if it is a regular monthly bill).`,
         "name = short bill name like \"Gas bill\". payee = who is paid. account_last4 = last 4 characters of the account number only. amount = amount due (number). due_date = the due date. autopay = true only if it says autopay/auto-pay/will be drafted.",
         "Return exactly: " + JSON.stringify({ name: null, category: null, payee: null, account_last4: null, amount: null, frequency: null, due_date: null, autopay: null, pay_url: null, currency: null, notes: null }) ].join("\n") };
@@ -113,6 +117,9 @@ const KINDS = {
       if (/^https?:\/\//i.test(clean(d.pay_url))) fill("pay_url", clean(d.pay_url), t("缴费链接"));
       if (/^[A-Za-z]{3}$/.test(clean(d.currency))) fill("currency", clean(d.currency).toUpperCase(), t("币种"));
       fill("notes", clean(d.notes).slice(0, 500), t("备注"));
+      // 车险 / 车贷这类：账单名或收款方里恰好有一辆车的名字，就挂到那辆车上（规则同账单清单里的「可能属于某辆车」）
+      const hit = suggestAssetLinks([{ id: "scan", name: clean(d.name), payee: clean(d.payee), category: clean(d.category), active: true }], state.assets)[0];
+      if (hit) fill("asset_id", hit.assetId, t("关联资产"));
     },
   },
 
@@ -221,6 +228,53 @@ export function autofillBar(kind, formSel, extra = "") {
     <div class="af-status" role="status" aria-live="polite"></div><div class="af-thumbs"></div></div>`;
 }
 
+/** 「添加账单」选类型页上的扫描条：拍信件 / 账单，AI 判断是周期性还是一次性，跳到对应的表单并预填（只填空字段，核对后再保存） */
+export function scanNewBillBar() {
+  const s = aiSettings(), p = providerOf(s.provider), ready = aiReady(), canImg = visionCapable(p);
+  const off = !ready ? t("先在 设置 → AI 助手 填一个 key（推荐 Gemini，有免费额度）") : !canImg ? t("当前的 {p} 不能读图片，换成 Gemini 才能用", { p: t(p.name) }) : "";
+  return `<div class="af-bar" data-af="scan">
+    <label class="btn btn-sm af-btn ${off ? "is-off" : ""}"><input type="file" accept="image/*" multiple data-autoscan ${off ? "disabled" : ""}><span>📷 ${t("扫描信件 / 账单，自动判断类型")}</span></label>
+    <span class="muted af-hint">${off ? `${esc(off)} · <a href="#/me/settings?sec=ai">${t("去设置")}</a>` : `${esc(t("拍一封信、一张账单或邮件截图：识别后自动进到周期性或一次性账单表单并填好，你核对后再保存。图片发给你选的 AI 服务商，不保存。"))}`}</span>
+    <div class="af-status" role="status" aria-live="polite"></div></div>`;
+}
+
+async function scanNewBill(input) {
+  const bar = input.closest(".af-bar"), files = [...input.files].slice(0, MAX_IMAGES); input.value = "";
+  if (!bar || !files.length) return;
+  const status = bar.querySelector(".af-status"), say = (msg, err = false) => { status.textContent = msg; status.className = `af-status ${err ? "form-error" : ""}`; };
+  if (needsConsent("unknown") && !window.confirm(t(CONSENT_TEXT))) return;   // 还不知道是什么账单：每次都确认
+  say(t("正在识别…（几十秒）")); bar.classList.add("is-busy");
+  try {
+    const images = []; for (const f of files) images.push(await compressImage(f));
+    const cats = B().CATEGORIES.map((c) => ({ id: c.id, name: c.name })), freqs = Object.entries(B().FREQUENCIES).map(([id, name]) => ({ id, name }));
+    const kinds = Object.entries(MED()).map(([id, k]) => ({ id, name: k.name }));
+    const user = [
+      "Photos / screenshots of a BILL, statement or notice LETTER. Decide whether it is a RECURRING bill or a ONE-TIME bill.",
+      "bill_type = \"recurring\" for bills that come again on a schedule (utilities, internet, mobile, rent, mortgage, insurance premium or renewal, property tax, subscriptions, credit card, HOA); \"onetime\" for a single event with a total that may be paid in parts (medical, vet, legal / tax-preparation, contractor / renovation project, travel booking).",
+      `For onetime: kind = best id from: ${idList(kinds)}.`,
+      `For recurring: category = best id from: ${idList(cats)}. frequency = best id from: ${idList(freqs)}. name = short bill name. payee = who is paid. account_last4 = last 4 characters of the account number only. amount = amount due. due_date = due date. autopay = true only if it says autopay.`,
+      "For onetime: provider = who billed. patient = the person / pet / project name. subkind = unknown ids may be null. bill_ref = invoice / statement number. claim_ref = insurance claim number. service_date / bill_date / due_on = dates. billed_amount = total charges. insurance_paid, adjustment, patient_amount (what is owed now).",
+      "NEVER extract diagnoses, procedure / ICD codes, medications or any clinical details. Fill only what is clearly visible; use null otherwise.",
+      "Return exactly: " + JSON.stringify(SCAN_SHAPE) ].join("\n");
+    const d = parseJson(await askText(SYSTEM, user, { json: true, images, temperature: 0.1, maxTokens: 1800 }));
+    const { type, kind } = routeScan(d);
+    if (type === "onetime" && PRIVATE_KINDS.includes(kind)) say(t("识别为一次性账单（{k}），正在打开表单…", { k: t(MED()[kind].name) })); else say(t("识别完成，正在打开表单…"));
+    go(type === "onetime" ? `${href("bills", "onetime")}?bill=new&kind=${encodeURIComponent(kind)}` : `${href("bill", "new")}?type=recurring`);
+    const sel = type === "onetime" ? "#medBillForm" : "#billForm";
+    for (let i = 0; i < 50; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      const form = $(sel); if (!form || form.dataset.id || form.elements.bill_id?.value) continue;
+      const def = KINDS[type === "onetime" ? "medbill" : "bill"], filled = [];
+      def.apply({ form, d, fill: makeFill(form, filled), isNew: true });
+      form.dataset.afPending = "1";   // 还没核对：离开页面时不自动保存
+      const st = form.closest("section")?.querySelector(".af-status");
+      if (st) st.textContent = filled.length ? t("已填入 {n} 项：{list}。标黄带“？”的是推测，请核对后点保存。", { n: filled.length, list: filled.join("、") }) : t("没有识别到可以填的内容。换一张更清楚的图再试。");
+      return;
+    }
+  } catch (e) { say(e.message || String(e), true); }
+  finally { bar.classList.remove("is-busy"); }
+}
+
 function makeFill(form, filled) {
   return (name, value, label, { force = false, guess = false } = {}) => {
     const el = form.elements[name];
@@ -254,6 +308,8 @@ async function run(input) {
     }
     return;
   }
+  // 医疗 / 法律账单默认私密：图片发给 AI 之前每次都要确认
+  if (kind === "medbill" && needsConsent("onetime", form.elements.kind?.value || "medical") && !window.confirm(t(CONSENT_TEXT))) return;
   const status = bar.querySelector(".af-status"), thumbs = bar.querySelector(".af-thumbs");
   const say = (msg, err = false) => { status.textContent = msg; status.className = `af-status ${err ? "form-error" : ""}`; };
   say(t("正在识别…（几十秒）")); bar.classList.add("is-busy");
@@ -270,5 +326,5 @@ async function run(input) {
   } catch (e) { say(e.message || String(e), true); }
   finally { bar.classList.remove("is-busy"); }
 }
-document.addEventListener("change", (e) => { if (e.target.matches?.("input[data-autofill]")) run(e.target); });
+document.addEventListener("change", (e) => { if (e.target.matches?.("input[data-autofill]")) run(e.target); else if (e.target.matches?.("input[data-autoscan]")) scanNewBill(e.target); });
 document.addEventListener("input", (e) => { if (e.isTrusted) e.target.classList?.remove("af-filled", "af-guess"); });   // 你改过的就不再标记

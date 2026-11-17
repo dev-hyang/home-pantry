@@ -12,7 +12,7 @@ import { memberName } from "../core/logic.js";
 import { download, monthKey } from "../stats/views.js";
 import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
 import { attentionPanel, propertyTag, withProperty } from "../core/alerts.js";
-import { autofillBar } from "../core/autofill.js";
+import { autofillBar, scanNewBillBar } from "../core/autofill.js";
 import { escrowPanelHtml } from "./escrow.js";
 import { assetSelectHtml, assetSuggestHtml } from "./asset-ui.js";
 import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
@@ -94,6 +94,7 @@ function billTypeChooser() {
       ${card(NEW_RECURRING(), "🔁", t("周期性账单"), t("按周期反复出现：系统算下次到期、提前提醒，记缴费后自动推到下一期。"), t("水电气网、房贷房租、保险、订阅、信用卡"))}
       ${card(detailHref("new"), "🧾", t("一次性账单"), t("一次事件产生：有总额、可以分次付、有余额，付清就结束。"), t("医疗、宠物、法律税务、装修工程、旅行"))}
     </div>
+    ${scanNewBillBar()}
     <p class="muted"><a href="${href("bills", "template")}">${t("按常用账单模板一次建好水电气、房贷、保险等")} ›</a></p></section>`;
 }
 
