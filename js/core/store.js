@@ -409,8 +409,9 @@ export const DemoStore = {
       const i = this.db.bills_recurring.findIndex((x) => x.id === b.id);
       if (i < 0) throw new Error("账单不存在");
       this.db.bills_recurring[i] = { ...this.db.bills_recurring[i], ...b, updated_at: now };
-    } else this.db.bills_recurring.push({ ...b, id: uid(), created_at: now, updated_at: now });
+    } else { const id = uid(); this.db.bills_recurring.push({ ...b, id, created_at: now, updated_at: now }); this.persist(); return id; }
     this.persist();
+    return b.id;
   },
   async addBills(list) {
     const now = new Date().toISOString();
@@ -1155,11 +1156,12 @@ export const CloudStore = {
   async saveBill(b) {
     const row = pick(b, BILL_FIELDS, { household_id: this.hid, updated_by: state.user.id });
     row.due_dates ||= []; row.reminder_days ||= [7, 1];
-    const run = async () => (b.id ? this.sb.from("bills_recurring").update(row).eq("id", b.id) : this.sb.from("bills_recurring").insert(row));
+    const run = async () => (b.id ? this.sb.from("bills_recurring").update(row).eq("id", b.id) : this.sb.from("bills_recurring").insert(row).select("id").single());
     let r = await run();
     if (r.error && /pay_card_id/i.test(r.error.message) && !row.pay_card_id) { delete row.pay_card_id; r = await run(); }   // 还没执行迁移 036 且没选付款账户：照旧保存
     if (r.error && /asset_id/i.test(r.error.message) && !row.asset_id) { delete row.asset_id; r = await run(); }   // 还没执行迁移 076 且没挂资产：照旧保存
-    this.must(r);
+    const out = this.must(r);
+    return b.id || out?.id;   // 新建返回新账单的 id（向导 / AI 创建完直接进详情页要用）；更新照旧
   },
   async addBills(list) {
     const rows = list.map((b) => { const r = pick(b, BILL_FIELDS, { household_id: this.hid, updated_by: state.user.id }); r.due_dates ||= []; r.reminder_days ||= [7, 1]; return r; });

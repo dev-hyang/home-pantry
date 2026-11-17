@@ -3848,3 +3848,30 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 /* 账单详情页（分区卡片）：笔记本两列、手机一列；复用房屋资料页的 .prof-grid / .prof-card */
 @media (min-width: 760px) { .bill-detail-grid { grid-template-columns: 1fr 1fr; } }
 .bill-detail-grid .prof-card .restock-list li { padding: 8px 0; }
+
+/* ── 创建周期性账单向导（bills/wizard-views.js）：一屏一个问题；笔记本居中限宽，手机单列、底部操作条固定 ── */
+.wiz { max-width: 680px; margin-inline: auto; }
+.wiz-step { margin: 6px 0 4px; font-weight: 600; }
+.wiz > .mprog { display: block; margin: 0 0 10px; }
+.wiz #wizTitle { font-size: 20px; outline: none; }
+.wz-cats { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 560px) { .wz-cats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.wz-cat input, .wz-opt input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.wz-cat { display: block; position: relative; }
+.wz-cat > span { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); cursor: pointer; overflow-wrap: anywhere; }
+.wz-cat > span b { font-size: 18px; font-weight: 400; }
+.wz-cat input:checked + span, .wz-opt input:checked + span { border-color: var(--pine); box-shadow: 0 0 0 2px var(--pine) inset; background: var(--surface-2); }
+.wz-cat input:focus-visible + span, .wz-opt input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+.wz-more { margin-top: 10px; }
+.wz-more > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--pine); font-weight: 600; }
+.wz-radios { border: 0; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.wz-radios > legend { padding: 0; font-weight: 600; margin-bottom: 6px; }
+.wz-opt { display: block; position: relative; }
+.wz-opt > span { display: block; min-height: 56px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); cursor: pointer; }
+.wz-opt small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* 向导底部操作条：「上一步」靠左、「下一步 / 完成并创建」占满剩下的宽度，一行排下（手机上不再上下叠两个按钮） */
+.wiz .form-actions.sticky-actions { display: flex; flex-wrap: nowrap; gap: 8px; align-items: stretch; }
+.wiz .form-actions.sticky-actions .btn { min-height: 48px; justify-content: center; }
+.wiz .form-actions.sticky-actions .btn-primary { flex: 1 1 auto; }
+.wiz .form-actions.sticky-actions .btn-ghost { flex: 0 0 auto; }

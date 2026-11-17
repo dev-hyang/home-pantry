@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.18", title: { zh: "添加周期性账单变成五步向导，完成后直接看到这张账单", en: "Adding a recurring bill is now a five-step guide that ends on the new bill" }, items: [
+    { k: "new", zh: "添加周期性账单不再是一整页字段：一步一个问题——这是什么账单、多久交一次多少钱、怎么付、挂在哪、确认；选了分类就带出常用的频率和付款方式，名字也帮你起好", en: "Adding a recurring bill is no longer one long page of fields: one question per step (what it is, how often and how much, how it is paid, where it belongs, confirm); the category brings sensible defaults and a suggested name" },
+    { k: "new", zh: "填每月几号，立刻显示「下次到期：…」；每一步都能上一步，已填的内容不会丢；返回键也是上一步", en: "Enter the day of the month and the next due date shows straight away; every step has Back, nothing you typed is lost, and the back gesture goes to the previous step" },
+    { k: "better", zh: "完成后直接进到这张账单的页面，顶上告诉你还有哪几项没填，随时补；想一次填完的，每一步下面都有「整页表单」入口", en: "When finished you land on the new bill with a note of what is still blank; if you prefer one page, every step links to the full form" }
+  ] },
+
   { v: "2026-11-17.17", title: { zh: "账单详情页：往下一滑就能看全，每一块单独编辑", en: "Bill page: scroll to see everything, edit each section on its own" }, items: [
     { k: "better", zh: "点开一张周期性账单，现在是一页卡片：这是什么账单、多少钱多久一次、怎么付、提醒与其他、缴费记录，每块的内容直接看得到，没填的写「未填」", en: "Opening a recurring bill now shows one page of cards: what it is, how much and how often, how it is paid, reminders, and payments, with the content visible and unfilled items marked Not set" },
     { k: "better", zh: "每张卡右上角有「编辑」，只改这一块，保存后回到这一页；记缴费、去缴费、复制、删除都在顶上", en: "Each card has its own Edit button, saving returns to this page; Log payment, Pay online, Copy and Delete are at the top" }

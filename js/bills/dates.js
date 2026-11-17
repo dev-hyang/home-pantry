@@ -32,3 +32,14 @@ export function advanceDue(bill, from) {
   const months = bill.frequency === "custom" ? Math.max(1, num(bill.interval_months, 1)) : MONTHS_OF[bill.frequency] || 1;
   return monthAdd(from, months, bill.due_day || null);
 }
+
+/** 新建账单时的首个到期日（≥ today）：固定日期 / 每月几号能算出来；其余（每周、年付没填日期）返回 null 让用户填 */
+export function initialDueFor(bill, today) {
+  if (bill.due_dates?.length) return nextFixed(bill.due_dates, addDays(today, -1));
+  if ((bill.due_day && MONTHS_OF[bill.frequency] !== undefined) || (bill.frequency === "custom" && bill.due_day)) {
+    const d = parse(today), last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    const thisMonth = ymd(new Date(d.getFullYear(), d.getMonth(), Math.min(bill.due_day, last)));
+    return thisMonth >= today ? thisMonth : monthAdd(thisMonth, 1, bill.due_day);
+  }
+  return null;
+}

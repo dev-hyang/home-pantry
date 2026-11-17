@@ -259,7 +259,7 @@ async function scanNewBill(input) {
     const d = parseJson(await askText(SYSTEM, user, { json: true, images, temperature: 0.1, maxTokens: 1800 }));
     const { type, kind } = routeScan(d);
     if (type === "onetime" && PRIVATE_KINDS.includes(kind)) say(t("识别为一次性账单（{k}），正在打开表单…", { k: t(MED()[kind].name) })); else say(t("识别完成，正在打开表单…"));
-    go(type === "onetime" ? `${href("bills", "onetime")}?bill=new&kind=${encodeURIComponent(kind)}` : `${href("bill", "new")}?type=recurring`);
+    go(type === "onetime" ? `${href("bills", "onetime")}?bill=new&kind=${encodeURIComponent(kind)}` : `${href("bill", "new")}?type=recurring&mode=full`);
     const sel = type === "onetime" ? "#medBillForm" : "#billForm";
     for (let i = 0; i < 50; i++) {
       await new Promise((r) => setTimeout(r, 100));

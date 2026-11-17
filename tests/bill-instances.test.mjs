@@ -270,3 +270,56 @@ test("扫描 JSON 的形状是两张表单字段的并集，值都是 null", () 
   for (const k of ["bill_type", "kind", "name", "category", "amount", "due_date", "provider", "patient", "billed_amount", "patient_amount", "claim_ref"]) assert.ok(k in SCAN_SHAPE, k);
   assert.ok(Object.values(SCAN_SHAPE).every((v) => v === null));
 });
+
+// ── 创建周期性账单向导：默认值、预览、校验、拼账单 ──
+import { newDraft, defaultsFor, nextDuePreview, validateStep, billFromDraft, askDay, suggestName, LAST_STEP } from "../js/bills/wizard.js";
+import { initialDueFor } from "../js/bills/dates.js";
+
+test("向导默认值：按分类给频率 / 金额类型 / 是否自动扣款", () => {
+  assert.deepEqual([defaultsFor("electric").frequency, defaultsFor("electric").amount_type, defaultsFor("electric").pay], ["monthly", "variable", "online"]);
+  assert.equal(defaultsFor("internet").pay, "autopay");
+  assert.equal(defaultsFor("property_tax").frequency, "semiannual");
+  assert.equal(defaultsFor("乱写").frequency, "monthly");
+  assert.equal(suggestName("水费 / 排污 / 垃圾"), "水费");
+  assert.equal(LAST_STEP, 5);
+});
+
+test("下次到期预览：每月几号按今天算；半年 / 年付要自己填日期", () => {
+  assert.equal(initialDueFor({ frequency: "monthly", due_day: 20 }, "2026-11-17"), "2026-11-20");
+  assert.equal(initialDueFor({ frequency: "monthly", due_day: 5 }, "2026-11-17"), "2026-12-05");
+  assert.equal(initialDueFor({ frequency: "monthly", due_day: 31 }, "2026-02-10"), "2026-02-28");
+  const d = newDraft({ category: "electric", name: "电费" });
+  d.due_day = "20"; assert.equal(nextDuePreview(d, "2026-11-17"), "2026-11-20");
+  const y = newDraft({ category: "insurance_home", name: "房屋险" });
+  assert.equal(askDay(y.frequency), false); assert.equal(nextDuePreview(y, "2026-11-17"), null);
+  y.next_due_on = "2027-03-01"; assert.equal(nextDuePreview(y, "2026-11-17"), "2027-03-01");
+});
+
+test("向导校验：每步只拦这一步必须的", () => {
+  const d = newDraft({ category: "electric" });
+  assert.equal(validateStep(1, d, "2026-11-17").ok, false);
+  d.name = "电费"; assert.equal(validateStep(1, d, "2026-11-17").ok, true);
+  assert.deepEqual(Object.keys(validateStep(2, d, "2026-11-17").errors), ["due_day"]);
+  d.due_day = "20"; assert.equal(validateStep(2, d, "2026-11-17").ok, true);
+  d.frequency = "custom"; assert.ok("interval_months" in validateStep(2, d, "2026-11-17").errors);
+  d.interval_months = "2"; assert.equal(validateStep(2, d, "2026-11-17").ok, true);
+  d.pay = "online"; d.pay_url = "ftp://x"; assert.ok("pay_url" in validateStep(3, d, "2026-11-17").errors);
+  d.pay_url = "https://pay.example.com"; assert.equal(validateStep(3, d, "2026-11-17").ok, true);
+});
+
+test("向导拼出的账单：字段缺省值和整页表单一致，自动扣款 / Escrow / 其他方式的缴费方式正确", () => {
+  const ctx = { today: "2026-11-17", currency: "USD", payFields: { pay_card_id: "c1", autopay_method: null } };
+  const d = newDraft({ category: "internet", name: " Xfinity " }); d.due_day = "5"; d.typical_amount = "70"; d.payee = "Xfinity";
+  const b = billFromDraft(d, ctx);
+  assert.equal(b.name, "Xfinity"); assert.equal(b.pay_channel, "autopay"); assert.equal(b.autopay, true); assert.equal(b.pay_card_id, "c1");
+  assert.equal(b.typical_amount, 70); assert.equal(b.next_due_on, "2026-12-05"); assert.equal(b.due_day, 5); assert.deepEqual(b.reminder_days, [7, 1]);
+  assert.equal(b.active, true); assert.equal(b.direction, "payable"); assert.equal(b.statement_channel, "email"); assert.deepEqual(b.due_dates, []);
+  const v = newDraft({ category: "electric", name: "电费" }); v.due_day = "20"; v.typical_amount = "99";   // 变动金额：不存通常金额
+  const bv = billFromDraft(v, ctx); assert.equal(bv.typical_amount, null); assert.equal(bv.pay_channel, "online"); assert.equal(bv.autopay, false); assert.equal(bv.pay_card_id, null);
+  const e = newDraft({ category: "property_tax", name: "房产税" }); e.pay = "escrow"; e.next_due_on = "2027-03-01";
+  const be = billFromDraft(e, ctx); assert.equal(be.pay_channel, "escrow"); assert.equal(be.autopay, false); assert.equal(be.frequency, "semiannual");
+  const o = newDraft({ category: "rent", name: "房租" }); o.pay = "other"; o.pay_other = "phone"; o.due_day = "1";
+  assert.equal(billFromDraft(o, ctx).pay_channel, "phone");
+  const a = newDraft({ category: "membership", name: "Costco" }); a.next_due_on = "2027-01-10";
+  assert.deepEqual(billFromDraft(a, ctx).reminder_days, [30, 7]);   // 年付默认提前 30 天、7 天
+});

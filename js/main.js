@@ -538,6 +538,12 @@ onClearFilters("maint", clearAnd(() => Object.assign(maintFilter, FD.maint)), ()
 onClearFilters("asset", clearAnd(() => Object.assign(state.assetFilter, FD.asset)), () => changed(state.assetFilter, FD.asset));
 onClearFilters("deal", clearAnd(() => { state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; }));   // 排序不动
 onClearFilters("bills", clearAnd(() => { Object.assign(state.billsFilter, FD.bills); clearUrlParams(["prop"]); }), () => changed(state.billsFilter, FD.bills));
+// 新建账单完成（向导 / AI 扫描）：先把数据读回来，再进这张账单的详情页（?new=1 = 显示「已创建」提示条；?ai=1 = 「AI 识别创建」）
+document.addEventListener("bill-created", async (e) => {
+  const { id, via } = e.detail || {}; if (!id) return;
+  state.skipAutosave = true; await refresh(); toast(t("已创建账单"));
+  go(`${href("bill", id)}?${via === "ai" ? "ai" : "new"}=1`, { replace: true });
+});
 onClearFilters("all", clearAnd(() => { Object.assign(state.allFilter, FD.all); clearUrlParams("*"); }), () => changed(state.allFilter, FD.all));
 onClearFilters("pay", clearAnd(() => Object.assign(state.payFilter, FD.pay)), () => changed(state.payFilter, FD.pay));   // 服务器分页：resetListPages 标过期、回第一页
 onClearFilters("spend", () => { clearSpendFilter("all"); resetListPages(); renderSpendRecords(); }, () => changed(state.spendFilter, FD.spend));

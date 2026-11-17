@@ -16,6 +16,7 @@ import { autofillBar, scanNewBillBar } from "../core/autofill.js";
 import { escrowPanelHtml } from "./escrow.js";
 import { assetSelectHtml, assetSuggestHtml } from "./asset-ui.js";
 import { allBillsHref } from "./all-views.js";
+import { fullFormUrl, viewBillWizard } from "./wizard-views.js";
 import { VEHICLE_CATS } from "./instances.js";
 import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
 import { billInUse, endedSuffix, propertyActive, propertyById, propertyOptionsHtml } from "../core/lifecycle.js";
@@ -73,6 +74,7 @@ function billTypeChooser() {
       ${card(detailHref("new"), "🧾", t("一次性账单"), t("一次事件产生：有总额、可以分次付、有余额，付清就结束。"), t("医疗、宠物、法律税务、装修工程、旅行"))}
     </div>
     ${scanNewBillBar()}
+    <p class="muted" style="font-size:13px;margin:0 0 6px"><a href="${fullFormUrl()}">${t("我想一次填完（整页表单）")} ›</a></p>
     <p class="muted"><a href="${href("bills", "template")}">${t("按常用账单模板一次建好水电气、房贷、保险等")} ›</a></p></section>`;
 }
 
@@ -388,6 +390,7 @@ export function viewBillForm() {
   const b = r.id && r.id !== "new" ? state.billsEnriched.find((x) => x.id === r.id) : null;
   if (r.id !== "new" && !b) return `<div class="panel empty"><strong>${t("找不到这条账单")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("bills", "list")}">${t("回到账单")}</a></p></div>`;
   if (!b && r.id === "new" && ![...r.q.keys()].length) return billTypeChooser();   // 没带任何参数：先选周期性还是一次性
+  if (!b && r.id === "new" && r.q.get("mode") !== "full" && !r.q.get("copy")) return viewBillWizard();   // 新建周期性账单：5 步向导；mode=full = 整页表单（老手入口），copy = 复制已有账单
   const qCat = r.q.get("category");
   // 从房屋资料「创建账单」进来（保险年保费、HOA 月费以前记在资料里，2026-11 起账单是唯一来源）：把旧值带过来，不让数据丢
   const qAmt = num(r.q.get("amount"), NaN), qFreq = r.q.get("freq"), qProp = r.q.get("prop");
@@ -553,8 +556,8 @@ const assetColumnVisible = () => (state.assets || []).some((a) => a.kind === "ve
 function billBanner(b, q, base) {
   const isAi = q?.get("ai") === "1", isNew = q?.get("new") === "1";
   if (!isAi && !isNew) return "";
-  const missing = [!b.payee && t("付款方"), b.amount_type === "fixed" && b.typical_amount == null && t("金额"), !b.account_last4 && t("账号尾号"), !b.autopay && !b.pay_url && t("缴费链接"),
-    VEHICLE_CATS.includes(b.category) && !b.asset_id && assetColumnVisible() && t("关联资产")].filter(Boolean).slice(0, 4);
+  const missing = [!b.payee && L("付款方", "Payee"), b.amount_type === "fixed" && b.typical_amount == null && L("金额", "Amount"), !b.account_last4 && L("账号尾号", "Account digits"), !b.autopay && !b.pay_url && L("缴费链接", "Payment link"),
+    VEHICLE_CATS.includes(b.category) && !b.asset_id && assetColumnVisible() && L("关联资产", "Linked asset")].filter(Boolean).slice(0, 4);
   const close = `<a class="btn btn-sm btn-ghost" href="${base}" aria-label="${esc(t("关闭提示"))}">${t("知道了")}</a>`;
   if (isAi) return `<div class="notice" role="status" style="margin-bottom:12px"><b>✨ ${t("AI 识别创建")}</b> ${t("看一眼就行：不对的地方点下面对应分区的“编辑”改；整张读错了就撤销创建。")}${missing.length ? ` ${t("还没读到：{list}。", { list: missing.join("、") })}` : ""}
     <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm btn-ghost" data-action="bill-delete">${t("撤销创建")}</button>${close}</div></div>`;
