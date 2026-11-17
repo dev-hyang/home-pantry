@@ -174,3 +174,43 @@ test("关联资产下拉：只列车辆和设备，车辆在前；已选的旧�
   assert.deepEqual(assetChoices(assets).map((a) => a.id), ["v1", "e1"]);
   assert.deepEqual(assetChoices(assets, "t1").map((a) => a.id), ["v1", "e1", "t1"]);
 });
+
+// ── 全部账单页：时间范围、筛选、排序 ──
+import { rangeBounds, filterRows, sortRows, catKey } from "../js/bills/instances.js";
+
+test("时间范围：本月 / 上月 / 下月 / 未来 30 天 / 近 3 个月 / 今年 / 全部", () => {
+  assert.deepEqual(rangeBounds("m", TODAY), { from: "2026-11-01", to: "2026-11-30" });
+  assert.deepEqual(rangeBounds("pm", TODAY), { from: "2026-10-01", to: "2026-10-31" });
+  assert.deepEqual(rangeBounds("nm", "2026-12-20"), { from: "2027-01-01", to: "2027-01-31" });
+  assert.deepEqual(rangeBounds("30d", TODAY), { from: "2026-11-17", to: "2026-12-17" });
+  assert.deepEqual(rangeBounds("3", TODAY), { from: "2026-09-01", to: "2026-11-30" });
+  assert.deepEqual(rangeBounds("y", TODAY), { from: "2026-01-01", to: "2026-12-31" });
+  assert.equal(rangeBounds("all", TODAY).to, "2027-11-17");
+  assert.deepEqual(rangeBounds("乱写", TODAY), rangeBounds("m", TODAY));
+});
+
+test("筛选：搜索 / 资产 / 类型 / 分类 / 状态 / 付款方式；卡片的状态口径 = 列表", () => {
+  const { rows } = run([bill({ id: "a", name: "电费", property_id: "p1", next_due_on: "2026-11-05" }), bill({ id: "c", name: "车险", category: "insurance_auto", autopay: true, next_due_on: "2026-11-20", payee: "GEICO" }),
+    bill({ id: "e", name: "房产税", pay_channel: "escrow", category: "property_tax" })], [one(), one({ id: "o2", kind: "project", provider: "屋顶", status: "paid", owed: 500, paid: 500, balance: 0, open: false, due_on: "2026-11-02", property_id: "p1" })]);
+  const ids = (f) => filterRows(rows, f).map((r) => r.billId).sort().join(",");
+  assert.equal(ids({ q: "geico" }), "c");
+  assert.equal(ids({ asset: "property:p1" }), "a,o2");
+  assert.equal(ids({ asset: "vehicle" }), "c");
+  assert.equal(ids({ type: "onetime" }), "o1,o2");
+  assert.equal(ids({ cat: "o:project" }), "o2");
+  assert.equal(ids({ cat: "r:insurance_auto" }), "c");
+  assert.equal(ids({ status: "overdue" }), "a");
+  assert.equal(ids({ status: "unpaid" }), "a,c,o1");          // Escrow 不算「未缴」；已缴不算
+  assert.equal(ids({ status: "paid" }), "o2");
+  assert.equal(ids({ pay: "auto" }), "c");
+  assert.equal(ids({ pay: "escrow" }), "e");
+  assert.equal(ids({ status: "乱写" }), "a,c,e,o1,o2");        // 不认识的条件当不限
+  assert.equal(catKey({ kind: "onetime", category: "pet" }), "o:pet");
+});
+
+test("排序：到期日（默认）/ 金额 / 名称", () => {
+  const { rows } = run([bill({ id: "a", name: "B", est: 50, next_due_on: "2026-11-25" }), bill({ id: "b", name: "A", est: 300, next_due_on: "2026-11-28" })]);
+  assert.deepEqual(sortRows(rows).map((r) => r.name), ["B", "A"]);
+  assert.deepEqual(sortRows(rows, "amount").map((r) => r.name), ["A", "B"]);
+  assert.deepEqual(sortRows(rows, "name").map((r) => r.name), ["A", "B"]);
+});

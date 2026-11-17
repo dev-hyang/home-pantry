@@ -94,7 +94,7 @@ export function viewBillsHome() {
   const card = (href_, icon, title, desc, stat, add) => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small></span><span class="kind-stat">${stat}</span><span class="mch" aria-hidden="true">›</span></a>${add}</div>`;
   return `
     <section class="section">
-      <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">${propertyFilter()}</div></div>
+      <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">${propertyFilter()}<a class="btn btn-sm btn-ghost" href="${href("bills", "all")}">${t("全部账单")} ›</a></div></div>
       <p class="muted kinds-note">${t("只看账单：周期性 + 一次性。花费统计在 财务 → 花费。")}</p>
       <div class="kpis">
         <div class="kpi"><span>${t("未来 30 天要交")}</span><b>${money(due30)}</b><small>${t("周期性账单 · {n} 笔", { n: next30.length })}</small></div>

@@ -49,6 +49,7 @@ const META = {
   },
   bills: {
     overview:  { icon: "🧾", title: "账单概览", desc: "周期性 + 一次性账单一览：要处理的、未来 30 天要交、未结余额" },
+    all:       { icon: "📋", desc: "所有账单（周期性 + 一次性）一行一期：搜索、按资产 / 状态 / 时间筛选，到期近的在前" },
     recurring: { icon: "🔁", desc: "水电气网、房贷房租、保险、订阅、信用卡：按周期反复出现，算下次到期并提醒；含清单、缴费记录", count: () => billAlerts(state.billsEnriched).length },
     onetime:   { icon: "🏥", desc: "一次事件产生的账单：医疗、宠物、法律税务、装修工程；有总额、可分次付、有余额", count: () => state.medEnriched.filter((b) => b.open).length },
     income:    { icon: "💵", href: () => `${href("bills", "income")}?tab=records`, desc: "收入明细、类型、付款方：工作 / 投资 / 房产 / 其他；个人赠与 / 借款的还款" },
@@ -73,7 +74,7 @@ const META = {
  * 手机：一列分组列表；宽屏：两栏分组卡片（CSS columns，读屏顺序 = 视觉顺序：先左栏再右栏）。
  * 借贷（P2）：原来是一张不可点的「即将推出」卡，现在是真的页面（只给有财务权限的人看；g.soon 的画法留着给以后的占位用）。 */
 export const FIN_GROUPS = [   // 顺序（2026-11-02）：分析 · 收支 · 借贷 · 预算与计划 · 账户与资产；手机一列、宽屏两栏都按这个读屏顺序
-  { id: "analysis", name: "分析", subs: ["overview", "cashflow", "networth"] },   // 净资产（P3，迁移 059）
+  { id: "analysis", name: "分析", subs: ["overview", "all", "cashflow", "networth"] },   // 净资产（P3，迁移 059）
   { id: "flow", name: "收支", subs: ["spend", "income", "recurring", "onetime", "statements"] },
   { id: "debt", name: "借贷", subs: ["debts"] },   // P2（迁移 058）：原来的「即将推出」占位卡换成真的页面
   { id: "plan", name: "预算与计划", subs: ["budget"] },

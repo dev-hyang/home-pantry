@@ -14,6 +14,7 @@ import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.
 import { resilientFetch } from "./core/net.js";
 import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
 import { FD, changed, clearUrlParams, onClearFilters } from "./core/clear-filters.js";
+import { applyAllQuery, applyAllRoute, renderAllList, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
 import { ensureAdults } from "./bills/medical.js";
@@ -243,7 +244,7 @@ const VIEWS = {
   pantry:   { scan: () => viewScan(), overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: viewHouseSupplies, assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix },
-  bills:    { overview: viewBillsHome, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
+  bills:    { overview: viewBillsHome, all: viewAllBills, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   shops:    () => viewShops(),
@@ -448,8 +449,11 @@ function onRoute() {
     else if (sec === "house" && sub === "assets") Object.assign(state.assetFilter, FD.asset);
     else if (sec === "bills" && sub === "recurring") { const { property, ...rest } = FD.bills; Object.assign(state.billsFilter, rest); Object.assign(state.payFilter, FD.pay); }
     else if (sec === "bills" && sub === "onetime" && !next.q.get("bill")) Object.assign(state.medFilter, FD.med);
+    else if (sec === "bills" && sub === "all") Object.assign(state.allFilter, FD.all, { sort: "due" });
     else if (sec === "bills" && sub === "spend") Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
   }
+  // 全部账单：卡片 / 链接带的条件（?asset= ?status= ?range= ?q= ?type= ?cat= ?pay= ?sort=）每次进来套一次
+  if (next.section === "bills" && next.sub === "all") applyAllQuery(next.q);
   // 房产账单概览 →「全部 n 张」带 ?prop=：一次性账单列表按那套房产筛选
   if (next.section === "bills" && next.sub === "onetime" && next.q.get("prop") && state.properties.some((p) => p.id === next.q.get("prop"))) state.medFilter.property = next.q.get("prop");
   // 房产 / 车辆的消耗品页「看全部」带 ?owner= 进库存：套上归属筛选，再把参数去掉
@@ -519,7 +523,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { st: "open", cat: "all", q: "", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": state.spendAddOpen = false; Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null, sort: "new" }); state.spendEdit = null; state.spendSel = null; break;
+    case "bills": state.spendAddOpen = false; Object.assign(state.allFilter, FD.all, { sort: "due" }); Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null, sort: "new" }); state.spendEdit = null; state.spendSel = null; break;
     case "me": Object.assign(state.stats, { month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.locForm = null; break;
     default: break;
   }
@@ -532,6 +536,7 @@ onClearFilters("maint", clearAnd(() => Object.assign(maintFilter, FD.maint)), ()
 onClearFilters("asset", clearAnd(() => Object.assign(state.assetFilter, FD.asset)), () => changed(state.assetFilter, FD.asset));
 onClearFilters("deal", clearAnd(() => { state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; }));   // 排序不动
 onClearFilters("bills", clearAnd(() => { Object.assign(state.billsFilter, FD.bills); clearUrlParams(["prop"]); }), () => changed(state.billsFilter, FD.bills));
+onClearFilters("all", clearAnd(() => { Object.assign(state.allFilter, FD.all); clearUrlParams("*"); }), () => changed(state.allFilter, FD.all));
 onClearFilters("pay", clearAnd(() => Object.assign(state.payFilter, FD.pay)), () => changed(state.payFilter, FD.pay));   // 服务器分页：resetListPages 标过期、回第一页
 onClearFilters("spend", () => { clearSpendFilter("all"); resetListPages(); renderSpendRecords(); }, () => changed(state.spendFilter, FD.spend));
 onClearFilters("med", clearAnd(() => Object.assign(state.medFilter, FD.med)), () => changed(state.medFilter, FD.med));
@@ -615,6 +620,7 @@ main.addEventListener("input", (e) => {
   if (e.target.id === "medSearch") { state.medFilter.q = e.target.value; searchSoon(renderMedList); }
   if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; searchSoon(renderSpendList); }   // 停下 ~200ms 再查数据库
   if (payeeInput(e, searchSoon)) return;   // 收款方：搜索、合并后的名字
+  if (e.target.id === "allSearch") { state.allFilter.q = e.target.value; searchSoon(renderAllList); }
   if (e.target.id === "billSearch") { state.billsFilter.q = e.target.value; searchSoon(renderBillList); }
   if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; searchSoon(renderAssetList); }
   if (e.target.id === "offQ") {   // 停用的卡搜索：只重画那张列表，输入框不丢焦点
@@ -699,6 +705,8 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "invOwner") { state.filter.owner = e.target.value; renderInvList(); }
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
   if (e.target.id === "invSort") { state.filter.sort = e.target.value; renderInvList(); }
+  { const k = { allRange: "range", allAsset: "asset", allType: "type", allCat: "cat", allStatus: "status", allPay: "pay", allSort: "sort" }[e.target.id];
+    if (k) { state.allFilter[k] = e.target.value; if (k === "range") render(); else renderAllList(); } }
   if (e.target.id === "billProp") { state.billsFilter.property = e.target.value; render(); }
   if (e.target.id === "billCat") { state.billsFilter.cat = e.target.value; renderBillList(); }
   if (e.target.id === "billChannel") { state.billsFilter.channel = e.target.value; renderBillList(); }
@@ -2011,14 +2019,14 @@ export async function boot() {
       if (evt === "SIGNED_OUT") { started = false; if (!state.pendingJoin) renderLogin(); }
     });
     const { data: { session } } = await CloudStore.sb.auth.getSession();
-    state.route = parseRoute();
+    state.route = parseRoute(); applyAllRoute(state.route);   // 直接打开 / 刷新带条件的「全部账单」网址（卡片链接、书签）
     if (session) start(session); else renderLogin();
   } else {
     setStore(DemoStore);
     DemoStore.load();
     state.displayName = DemoStore.members().find((m) => m.user_id === "me")?.display_name || state.displayName;   // 演示：在资料页改过的称呼
     state.household = { name: t("演示家庭（数据仅存于本浏览器）") };
-    state.route = parseRoute();
+    state.route = parseRoute(); applyAllRoute(state.route);
     await refresh();
   }
 }

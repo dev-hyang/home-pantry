@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.8", title: { zh: "新页面「全部账单」：所有账单一行一期，搜索筛选都有", en: "New All bills page: every bill, one row per due date, with search and filters" }, items: [
+    { k: "new", zh: "财务 → 账单概览 → 全部账单：周期性和一次性账单排在一起，到期近的在前，已缴的放最后；每期显示状态、金额、已付和余额", en: "Finance → Bills overview → All bills lists recurring and one-time bills together, soonest due first and paid ones last, with status, amount, paid and balance" },
+    { k: "new", zh: "可以搜索，也可以按时间（本月、下月、未来 30 天…）、资产（房产、车辆、设备、家人、项目）、状态、付款方式筛选；逾期没缴的不受时间限制，一直显示", en: "Search, or filter by time (this month, next month, next 30 days…), asset (property, vehicle, equipment, person, project), status and payment method; unpaid overdue bills always show" },
+    { k: "better", zh: "页面顶上的合计（应付、已付、余额）随筛选变化；金额是估算的会标出来", en: "Totals (due, paid, balance) follow your filters, and estimated amounts are marked" }
+  ] },
+
   { v: "2026-11-17.7", title: { zh: "账单可以挂在某辆车、某件设备上", en: "Bills can be attached to a vehicle or equipment" }, items: [
     { k: "new", zh: "周期性账单和一次性账单的表单里多了「关联资产」：车险、车贷、保养、维修的账单可以挂在对应的车或设备上", en: "Recurring and one-time bill forms have a new Linked asset field, so car insurance, loans, servicing and repairs can be attached to the vehicle or equipment" },
     { k: "new", zh: "账单清单顶上会提示「这几张账单可能属于某辆车」，点「确认」就挂上，不对就「忽略」，不会自动改", en: "The bill list suggests which bills may belong to a vehicle; tap Confirm to attach or Ignore to dismiss. Nothing changes automatically" }

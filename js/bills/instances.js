@@ -160,3 +160,53 @@ export function nextDue(rows, { today, cur } = {}) {
   const open = rows.filter((r) => !DONE_STATUS.includes(r.status) && !r.escrow && r.counted !== false && r.dueOn && r.dueOn >= today && (!cur || (r.currency || cur) === cur));
   return open.length ? sortByDue(open)[0] : null;
 }
+
+/* ── 「全部账单」页的时间范围、筛选、排序（纯函数，页面和测试共用）── */
+/** 账单页自己的时间选项（含未来：下月 / 未来 30 天；不动花费 / 收入共用的 time-range.js） */
+export const BILL_RANGES = [["m", "本月"], ["pm", "上月"], ["nm", "下月"], ["30d", "未来 30 天"], ["3", "近 3 个月"], ["y", "今年"], ["all", "全部"]];
+export const rangeOk = (v) => BILL_RANGES.some(([k]) => k === v);
+const ymOf = (iso) => iso.slice(0, 7);
+const shiftMonth = (m, k) => { const d = new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + k, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
+/** 范围 → { from, to }（含两端的日期）；today = 今天（YYYY-MM-DD） */
+export function rangeBounds(range, today) {
+  const m = ymOf(today);
+  switch (range) {
+    case "pm": return monthBounds(shiftMonth(m, -1));
+    case "nm": return monthBounds(shiftMonth(m, 1));
+    case "30d": return { from: today, to: addDays(today, 30) };
+    case "3": return monthBounds(shiftMonth(m, -2), m);
+    case "y": return { from: `${today.slice(0, 4)}-01-01`, to: `${today.slice(0, 4)}-12-31` };
+    case "all": return { from: "2000-01-01", to: addDays(today, 365) };
+    default: return monthBounds(m);
+  }
+}
+/** 状态筛选的分组（页面的「状态」下拉和卡片链接共用同一份口径） */
+export const STATUS_GROUPS = {
+  unpaid: (r) => !DONE_STATUS.includes(r.status) && !r.escrow,
+  overdue: (r) => r.status === "overdue",
+  soon: (r) => r.status === "due" || r.status === "soon",
+  pending: (r) => r.status === "pending",
+  verify: (r) => r.status === "verify",
+  partial: (r) => r.status === "partial",
+  paid: (r) => r.status === "paid",
+  other: (r) => ["awaiting_insurance", "disputed", "collections"].includes(r.status),
+};
+const PAY_MODES = { auto: (r) => r.autopay, manual: (r) => r.kind === "recurring" && !r.autopay && !r.escrow, escrow: (r) => r.escrow };
+/** 行的分类键：周期性 r:<分类>，一次性 o:<种类>（两边都有叫 pet 的，所以带前缀） */
+export const catKey = (r) => `${r.kind === "onetime" ? "o" : "r"}:${r.category}`;
+/** f = { q, asset, type, cat, status, pay }，"all" / 空 = 不限 */
+export function filterRows(rows, f = {}) {
+  const q = String(f.q || "").trim().toLowerCase();
+  return rows.filter((r) => (!q || `${r.name} ${r.payee} ${r.who || ""}`.toLowerCase().includes(q))
+    && (!f.asset || f.asset === "all" || r.assets.includes(f.asset))
+    && (!f.type || f.type === "all" || r.kind === f.type)
+    && (!f.cat || f.cat === "all" || catKey(r) === f.cat)
+    && (!f.status || f.status === "all" || (STATUS_GROUPS[f.status] || (() => true))(r))
+    && (!f.pay || f.pay === "all" || (PAY_MODES[f.pay] || (() => true))(r)));
+}
+/** 排序：due（默认，没缴的到期近的在前）/ amount（高 → 低）/ name */
+export function sortRows(rows, mode = "due") {
+  if (mode === "amount") return [...rows].sort((a, b) => b.amount - a.amount || String(a.name).localeCompare(String(b.name)));
+  if (mode === "name") return [...rows].sort((a, b) => String(a.name).localeCompare(String(b.name)) || (a.dueOn || "").localeCompare(b.dueOn || ""));
+  return sortByDue(rows);
+}

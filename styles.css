@@ -3735,3 +3735,24 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 
 /* 车辆总览：只有一辆车时这张卡占满一整行（auto-fit 把空的列收掉）；两辆以上照常分列 */
 .asset-grid.veh-grid { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+
+/* ── 财务 → 全部账单（bills/all-views.js）：一行 = 一期账单；沿用 .bill-row 的样式，用 grid-template-areas 排：
+ *    电脑：状态 | 名称与说明 | 金额 | 操作        手机：第一行 状态 + 金额，第二行 名称（整行宽，不被金额挤成窄条），第三行 操作按钮（大点按区） ── */
+.all-row { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "badge grow amt act"; gap: 6px 12px; }
+.all-row > .badge { grid-area: badge; white-space: nowrap; justify-self: start; }
+.all-row > .grow { grid-area: grow; }
+.all-row > .all-amt { grid-area: amt; }
+.all-row > .all-act { grid-area: act; }
+.all-row.is-paid { opacity: .78; }
+.all-amt { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.all-amt small { display: block; color: var(--muted); font-size: 12px; }
+.all-act { min-width: 0; text-align: right; }
+.all-act:empty { display: none; }
+.all-sum { margin: 4px 0 10px; display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; }
+.all-sum small { font-size: 12.5px; }
+@media (max-width: 520px) {
+  .all-row { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "badge amt" "grow grow" "act act"; }
+  .all-row > .all-amt { white-space: normal; justify-self: end; }
+  .all-row > .all-act { text-align: stretch; }
+  .all-row > .all-act .btn { width: 100%; min-height: 44px; justify-content: center; }
+}
