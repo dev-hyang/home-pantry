@@ -234,3 +234,14 @@ test("按月走势：按到期月归；月份区间", () => {
   const s = monthlySeries(rows, seriesMonths(TODAY, 1, 1), { cur: "USD" });
   assert.deepEqual(s.map((x) => [x.m, x.due, x.paid, x.n]), [["2026-10", 90, 90, 1], ["2026-11", 100, 0, 1], ["2026-12", 100, 0, 1]]);
 });
+
+// ── 没有任何日期的一次性账单：不丢，始终显示在未缴的最后 ──
+test("一次性账单没有任何日期：始终显示、排在未缴最后；已付清的不出现", () => {
+  const nodate = one({ id: "nd", due_on: null, bill_date: null, service_date: null, status: "open", paid: 0, balance: 400, open: true });
+  const done = one({ id: "nd2", due_on: null, bill_date: null, service_date: null, status: "paid", paid: 400, balance: 0, open: false });
+  const { rows } = run([bill({ id: "a", next_due_on: "2026-11-28" })], [nodate, done]);
+  assert.deepEqual(sortByDue(rows).map((r) => r.billId), ["a", "nd"]);
+  assert.equal(rows.find((r) => r.billId === "nd").undated, true);
+  const other = run([], [nodate], monthBounds("2030-01")).rows;   // 换一个远处的范围也在
+  assert.equal(other.length, 1);
+});

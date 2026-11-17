@@ -15,7 +15,7 @@ import { resilientFetch } from "./core/net.js";
 import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
 import { FD, changed, clearUrlParams, onClearFilters } from "./core/clear-filters.js";
 import { loadOverviewRange, setOverviewRange, viewBillsHome } from "./bills/overview-views.js";
-import { applyAllQuery, applyAllRoute, renderAllList, viewAllBills } from "./bills/all-views.js";
+import { applyAllQuery, applyAllRoute, defaultAllEntry, renderAllList, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
 import { ensureAdults } from "./bills/medical.js";
@@ -455,7 +455,7 @@ function onRoute() {
     else if (sec === "bills" && sub === "spend") Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
   }
   // 全部账单：卡片 / 链接带的条件（?asset= ?status= ?range= ?q= ?type= ?cat= ?pay= ?sort=）每次进来套一次
-  if (next.section === "bills" && next.sub === "all") applyAllQuery(next.q);
+  if (next.section === "bills" && next.sub === "all") { if (routeKey(prev) !== routeKey(next) && !isFormSection(prev)) defaultAllEntry(next.q); applyAllQuery(next.q); }
   // 房产账单概览 →「全部 n 张」带 ?prop=：一次性账单列表按那套房产筛选
   if (next.section === "bills" && next.sub === "onetime" && next.q.get("prop") && state.properties.some((p) => p.id === next.q.get("prop"))) state.medFilter.property = next.q.get("prop");
   // 房产 / 车辆的消耗品页「看全部」带 ?owner= 进库存：套上归属筛选，再把参数去掉

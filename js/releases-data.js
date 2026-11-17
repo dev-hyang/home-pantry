@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.11", title: { zh: "账单表单重排；「全部账单」从目录进来默认只看未缴", en: "Bill form reordered; All bills opens on unpaid bills from the menu" }, items: [
+    { k: "better", zh: "周期性账单表单按顺序分成四步：① 这是什么账单 → ② 多少钱、多久一次 → ③ 怎么付 → ④ 提醒与其他；缴费方式、付款链接、账号尾号都归到「怎么付」里", en: "The recurring bill form now follows four steps: what it is, how much and how often, how it is paid, reminders and other; payment method, link and account digits all sit under How it is paid" },
+    { k: "better", zh: "从目录直接打开「全部账单」默认只看未缴的；从概览卡片点进来则按卡片的条件", en: "Opening All bills from the menu shows unpaid bills by default; opening it from an overview card follows that card" },
+    { k: "fix", zh: "一次性账单没填任何日期时不再消失，会一直显示在未缴的最后", en: "One-time bills with no dates no longer disappear; they stay at the end of the unpaid list" }
+  ] },
+
   { v: "2026-11-17.10", title: { zh: "添加账单先选类型；记缴费时分清估算和实际金额", en: "Add a bill by choosing its type first; payments tell estimates from actual amounts" }, items: [
     { k: "new", zh: "点「添加账单」先选账单类型：周期性账单（水电气网、房贷、保险、订阅）或一次性账单（医疗、装修工程、法律、旅行），再进对应的表单", en: "Add bill now starts by choosing the type: recurring (utilities, mortgage, insurance, subscriptions) or one-time (medical, renovation, legal, travel)" },
     { k: "better", zh: "记缴费时会写明本期是固定金额还是预估（按最近几次的均值），填上实际金额，这一期就变成真实数字", en: "When logging a payment it now says whether the period uses a fixed amount or an estimate (recent average); enter the actual amount and it becomes a real number" },

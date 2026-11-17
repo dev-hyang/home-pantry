@@ -450,7 +450,7 @@ export function viewBillForm() {
       <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""} ${b && sec ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="bill_id" value="${d(b?.id)}">
         <fieldset data-sec="basic" ${hide("basic")}>
-          <legend>${t("基本信息")}</legend>
+          <legend>${t("① 这是什么账单")}</legend>
           <div class="form-grid">
             <label>${t("名称")}<input name="name" required maxlength="60" placeholder="${t("例如：ComEd 电费")}" value="${d(v.name)}"></label>
             <label>${t("分类")}<select name="category">${B().CATEGORIES.map((c) => `<option value="${c.id}" ${c.id === v.category ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`).join("")}</select></label>
@@ -460,43 +460,43 @@ export function viewBillForm() {
             ${assetSelectHtml(v.asset_id, state.bills)}
             ${landlord || v.direction === "receivable" ? `<label>${t("方向")}<select name="direction"><option value="payable" ${v.direction !== "receivable" ? "selected" : ""}>${t("我付出去（应付）")}</option><option value="receivable" ${v.direction === "receivable" ? "selected" : ""}>${t("别人付给我（应收，如租金）")}</option></select></label>` : `<input type="hidden" name="direction" value="payable">`}
             <label>${t("付款方 / 收款方")}<input name="payee" maxlength="60" placeholder="${t("例如：ComEd")}" value="${d(v.payee)}"></label>
-            <label>${t("账号尾号")}<input name="account_last4" maxlength="8" placeholder="${t("只记后 4 位")}" value="${d(v.account_last4)}"></label>
-            <label>${t("登录提示")}<input name="login_hint" maxlength="80" placeholder="${t("例如：用 Gmail 登录，密码在密码管理器")}" value="${d(v.login_hint)}"></label>
-            <label>${t("缴费链接")}<input name="pay_url" type="url" maxlength="300" placeholder="https://" value="${d(v.pay_url)}"></label>
-            <label>${t("缴费方式")}<select name="pay_channel">${opts(B().CHANNELS, v.pay_channel)}</select><small>${t("房产税 / 保险由贷款方从月供里代缴时选“Escrow 代缴”：不提醒到期、不重复算进每月预算；金额填税单或保单上的年额，房贷填含 Escrow 的总月供。")}</small></label>
-            <label>${t("账单怎么来")}<select name="statement_channel">${opts(B().STATEMENTS, v.statement_channel)}</select></label>
           </div>
         </fieldset>
         <fieldset data-sec="amount" ${hide("amount")}>
-          <legend>${t("金额与周期")}</legend>
+          <legend>${t("② 多少钱、多久一次")}</legend>
           <div class="form-grid">
-            <label>${t("金额类型")}<select name="amount_type"><option value="fixed" ${v.amount_type === "fixed" ? "selected" : ""}>${t("固定")}</option><option value="variable" ${v.amount_type !== "fixed" ? "selected" : ""}>${t("每次不同")}</option></select></label>
-            <label>${t("通常金额")}<input name="typical_amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="${t("每次不同的可留空，按记录平均")}" value="${d(v.typical_amount)}"><small>${t("固定金额填这里。水电燃气这类每次不同的：还没缴的那期先按最近 6 次的均值估（标“估”），记缴费时填实际金额，那一期就变成真实数字。")}</small></label>
-            <label>${t("货币")}<input name="currency" maxlength="3" pattern="[A-Z]{3}" value="${d(v.currency || Units.region.currency)}"></label>
             <label>${t("频率")}<select name="frequency">${opts(B().FREQUENCIES, v.frequency)}</select></label>
             <label>${t("每 N 个月（自定义时）")}<input name="interval_months" type="number" inputmode="numeric" min="1" max="60" value="${d(v.interval_months)}"></label>
             <label>${t("每月几号到期")}<input name="due_day" type="number" inputmode="numeric" min="1" max="31" placeholder="${t("月付类填")}" value="${d(v.due_day)}"></label>
             <label>${t("固定日期（半年 / 年付）")}<input name="due_dates" placeholder="${t("例如 03-01, 08-01")}" value="${d((v.due_dates || []).join(", "))}"><small>${t("填了固定日期就按它循环，忽略“每月几号”")}</small></label>
             <label>${t("下次到期日")}<input name="next_due_on" type="date" value="${d(v.next_due_on)}"><small>${t("留空会按规则自动算；每周 / 年付没填日期的请手动填")}</small></label>
-            <label>${t("宽限天数")}<input name="grace_days" type="number" inputmode="numeric" min="0" max="60" value="${d(v.grace_days ?? 0)}"></label>
-            <label>${t("结束日期（可选）")}<input name="ends_on" type="date" value="${d(v.ends_on)}"><small>${t("晚于它的到期不再提醒，例如卖房后的最后一期")}</small></label>
-            <label>${t("提前提醒（天，逗号分隔）")}<input name="reminder_days" placeholder="7, 1" value="${d((v.reminder_days || [7, 1]).join(", "))}"></label>
-            <label class="span-2">${t("滞纳金说明")}<input name="late_fee_note" maxlength="120" placeholder="${t("例如：逾期 1.5% 或 $25")}" value="${d(v.late_fee_note)}"></label>
+            <label>${t("金额类型")}<select name="amount_type"><option value="fixed" ${v.amount_type === "fixed" ? "selected" : ""}>${t("固定")}</option><option value="variable" ${v.amount_type !== "fixed" ? "selected" : ""}>${t("每次不同")}</option></select></label>
+            <label>${t("通常金额")}<input name="typical_amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="${t("每次不同的可留空，按记录平均")}" value="${d(v.typical_amount)}"><small>${t("固定金额填这里。水电燃气这类每次不同的：还没缴的那期先按最近 6 次的均值估（标“估”），记缴费时填实际金额，那一期就变成真实数字。")}</small></label>
+            <label>${t("货币")}<input name="currency" maxlength="3" pattern="[A-Z]{3}" value="${d(v.currency || Units.region.currency)}"></label>
           </div>
         </fieldset>
         <fieldset data-sec="autopay" ${hide("autopay")}>
-          <legend>${t("付款账户与自动扣款")}</legend>
+          <legend>${t("③ 怎么付")}</legend>
           <div class="form-grid">
+            <label>${t("缴费方式")}<select name="pay_channel">${opts(B().CHANNELS, v.pay_channel)}</select><small>${t("房产税 / 保险由贷款方从月供里代缴时选“Escrow 代缴”：不提醒到期、不重复算进每月预算；金额填税单或保单上的年额，房贷填含 Escrow 的总月供。")}</small></label>
             <label>${t("付款账户 / 卡")}<select name="pay_account" data-pay-acct>${accountOptions(payAcctValue(v.pay_card_id, v.autopay_method), { none: "（未指定）", extra: PAY_EXTRA })}</select><small>${t("自动扣款从它扣；手动缴费时记缴费也默认用它。卡和银行账户在 财务 → 用卡 里添加。")}</small></label>
             <label data-pay-other ${payAcctValue(v.pay_card_id, v.autopay_method) === "other" ? "" : "hidden"}>${t("账户说明")}<input name="autopay_method" maxlength="40" placeholder="${t("例如：公司代扣 / 支票")}" value="${d(v.autopay_method)}"></label>
             <label class="check-inline span-2"><input type="checkbox" name="autopay" ${v.autopay ? "checked" : ""}><span>${t("已设置自动扣款（到期前后提醒核对，而不是提醒缴费）")}</span></label>
             <label data-pay-exp ${payAcct ? "hidden" : ""}>${t("扣款卡有效期")}<input name="autopay_card_expires" type="month" value="${d(v.autopay_card_expires)}"><small>${t("到期前 45 天提醒换卡（选了卡就按卡的到期年月，不用填）")}</small></label>
             <p class="muted" data-pay-exp-note style="margin:0;font-size:12.5px" ${payAcct ? "" : "hidden"}>${esc(payExpNote(payAcct))}</p>
+            <label>${t("缴费链接")}<input name="pay_url" type="url" maxlength="300" placeholder="https://" value="${d(v.pay_url)}"></label>
+            <label>${t("账号尾号")}<input name="account_last4" maxlength="8" placeholder="${t("只记后 4 位")}" value="${d(v.account_last4)}"></label>
+            <label>${t("登录提示")}<input name="login_hint" maxlength="80" placeholder="${t("例如：用 Gmail 登录，密码在密码管理器")}" value="${d(v.login_hint)}"></label>
+            <label>${t("账单怎么来")}<select name="statement_channel">${opts(B().STATEMENTS, v.statement_channel)}</select></label>
           </div>
         </fieldset>
         <fieldset data-sec="other" ${hide("other")}>
-          <legend>${t("其他")}</legend>
+          <legend>${t("④ 提醒与其他")}</legend>
           <div class="form-grid">
+            <label>${t("提前提醒（天，逗号分隔）")}<input name="reminder_days" placeholder="7, 1" value="${d((v.reminder_days || [7, 1]).join(", "))}"></label>
+            <label>${t("宽限天数")}<input name="grace_days" type="number" inputmode="numeric" min="0" max="60" value="${d(v.grace_days ?? 0)}"></label>
+            <label>${t("结束日期（可选）")}<input name="ends_on" type="date" value="${d(v.ends_on)}"><small>${t("晚于它的到期不再提醒，例如卖房后的最后一期")}</small></label>
+            <label class="span-2">${t("滞纳金说明")}<input name="late_fee_note" maxlength="120" placeholder="${t("例如：逾期 1.5% 或 $25")}" value="${d(v.late_fee_note)}"></label>
             ${cloud ? `<label>${t("谁负责")}<select name="assigned_to"><option value="">${t("不指定")}</option>${state.members.map((m) => `<option value="${m.user_id}" ${m.user_id === v.assigned_to ? "selected" : ""}>${esc(m.display_name)}</option>`).join("")}</select></label>` : `<input type="hidden" name="assigned_to" value="">`}
             <label class="check-inline"><input type="checkbox" name="essential" ${v.essential !== false ? "checked" : ""}><span>${t("必要支出（预算里单独统计）")}</span></label>
             <label class="check-inline"><input type="checkbox" name="active" ${v.active !== false ? "checked" : ""}><span>${t("启用（停用后不再提醒，记录保留）")}</span></label>
@@ -514,17 +514,17 @@ export function viewBillForm() {
 }
 
 const BILL_SECTIONS = [
-  { id: "basic", icon: "🧾", name: "基本信息" },
-  { id: "amount", icon: "📅", name: "金额与周期" },
-  { id: "autopay", icon: "🔁", name: "付款账户与自动扣款" },
-  { id: "other", icon: "⋯", name: "其他" },
+  { id: "basic", icon: "🧾", name: "① 这是什么账单" },
+  { id: "amount", icon: "📅", name: "② 多少钱、多久一次" },
+  { id: "autopay", icon: "🔁", name: "③ 怎么付" },
+  { id: "other", icon: "⋯", name: "④ 提醒与其他" },
   { id: "pay", icon: "✅", name: "缴费记录" },
 ];
 /** 账单枢纽页：摘要 + 各块完成度 + 缴费记录入口 + 删除 */
 function billHub(b, root) {
   const base = href("bill", b.id);
   const st = {
-    basic: () => { const n = 2 + filledCount([b.payee, b.account_last4, b.login_hint, b.pay_url]); return { text: [t(billCat(b.category).name), b.payee].filter(Boolean).join(" · "), pct: Math.round((n / 6) * 100), badge: countBadge(n, 6) }; },
+    basic: () => { const n = 2 + filledCount([b.payee, b.property_id || b.asset_id]); return { text: [t(billCat(b.category).name), b.payee].filter(Boolean).join(" · "), pct: Math.round((n / 4) * 100), badge: countBadge(n, 4) }; },
     amount: () => { const n = filledCount([b.est, b.next_due_on, b.due_day || b.due_dates?.length]); return { text: [freqText(b), b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.est != null ? mny(b.est, b.currency) : null].filter(Boolean).join(" · "), pct: Math.round((n / 3) * 100), badge: countBadge(n, 3) }; },
     autopay: () => ({ text: b.autopay ? [t("自动扣款"), billPayLabel(b) || t("未指定账户"), b.cardDays != null ? t("卡 {d} 天后到期", { d: b.cardDays }) : null].filter(Boolean).join(" · ") : [t("手动缴费"), billPayLabel(b) ? t("默认用 {a}", { a: billPayLabel(b) }) : t("未指定账户")].join(" · "), pct: null, badge: b.autopay ? `<span class="badge b-ok mcount">✓</span>` : "" }),
     other: () => ({ text: [b.assigned_to ? memberName(b.assigned_to) : null, b.essential ? t("必要支出") : t("非必要"), b.active ? null : t("已停用"), b.notes ? t("有备注") : null].filter(Boolean).join(" · "), pct: null, badge: "" }),

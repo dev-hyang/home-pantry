@@ -100,11 +100,11 @@ function onetimeRow(b, { from, to, today }) {
     const s = hasDue ? unpaidStatus({ dueOn }, today) : "pending";
     status = s === "pending" ? (status === "partial" ? "partial" : "pending") : s;   // 逾期 / 今天 / 即将 优先于「部分已付」；到期还远的保留「部分已付」
   } else if (status === "open") status = "pending";
-  const overdueNow = status === "overdue";
-  if (!(dueOn && dueOn >= from && dueOn <= to) && !overdueNow) return null;
+  const overdueNow = status === "overdue", undated = !dueOn && !!b.open;   // 一个日期都没有、还没付清的：不属于任何月份，但不能丢，始终显示（排在未缴的最后）
+  if (!(dueOn && dueOn >= from && dueOn <= to) && !overdueNow && !undated) return null;
   const counted = status !== "written_off";
   return { kind: "onetime", billId: b.id, key: `o:${b.id}`, name: b.provider || "", who: b.patient || "", category: b.kind, subkind: b.subkind || null, payee: b.provider || "", property_id: b.property_id || null, asset_id: b.asset_id || null,
-    currency: b.currency || null, autopay: false, escrow: false, assets: assetKeys(b, "onetime"), dueOn, hasDue, status, amount: owed == null ? paid : r2(paid + balance), paid, balance, amountUnknown: owed == null, amountIsEst: false, counted,
+    currency: b.currency || null, autopay: false, escrow: false, assets: assetKeys(b, "onetime"), dueOn, hasDue, undated, status, amount: owed == null ? paid : r2(paid + balance), paid, balance, amountUnknown: owed == null, amountIsEst: false, counted,
     isPrivate: b.visibility === "private", bill: b };
 }
 

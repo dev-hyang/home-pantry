@@ -30,8 +30,11 @@ export function applyAllQuery(q) {
   if (get("sort") && SORT_OPTS.some(([k]) => k === get("sort"))) f.sort = get("sort");
 }
 
+/** 没带任何网址参数 = 从目录 / 底栏直接打开：默认只看「未缴」（带参数的链接，如概览卡片，照参数）；「清除筛选」回到全部状态 */
+export function defaultAllEntry(q) { if (!q || ![...q.keys()].length) state.allFilter.status = "unpaid"; }
+
 /** 直接打开 / 刷新时（没有经过路由切换）套用网址里的条件；不是这一页就不动 */
-export const applyAllRoute = (r) => { if (r?.section === "bills" && r.sub === "all") applyAllQuery(r.q); };
+export const applyAllRoute = (r) => { if (r?.section === "bills" && r.sub === "all") { defaultAllEntry(r.q); applyAllQuery(r.q); } };
 
 /** 「资产」下拉：全部资产 / 房产 / 车辆 / 设备 / 家人 / 项目 / 家庭通用（分组）；当前选的即使没有账单也保留 */
 export function assetOptions(rows, sel) {
