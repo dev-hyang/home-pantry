@@ -43,7 +43,7 @@ const round2 = (v) => Math.round(v * 100) / 100;
 export function spendFeed(db, f = {}) {
   const firstBy = (rows, key) => { const m = new Map(); for (const x of rows) { const k = key(x); if (k != null && !m.has(k)) m.set(k, x); } return m; };
   const pays = firstBy([...(db.bill_payments || [])].sort((a, b) => cmp(String(a.created_at), String(b.created_at))), (x) => x.purchase_id || null);
-  const billByName = firstBy([...(db.bills || [])].sort((a, b) => cmp(String(a.created_at), String(b.created_at))), (x) => x.name);
+  const billByName = firstBy([...(db.bills_recurring || [])].sort((a, b) => cmp(String(a.created_at), String(b.created_at))), (x) => x.name);
   const med = f.med || {}, out = [];
   for (const p of db.purchases || []) {
     const s = String(p.store || "").trim(), bill = String(p.category || "").startsWith("bill_");
@@ -51,7 +51,7 @@ export function spendFeed(db, f = {}) {
     const bp = pays.get(p.id);
     out.push({ ...p, virtual: null, bill_id: null, pay_id: bp?.id || null, pay_bill_id: bp?.bill_id || null, store_txt, nature: p.nature || null, property_id: p.property_id || null, ...localMonth(p.purchased_at) });
   }
-  const mbills = new Map((db.medical_bills || []).map((b) => [b.id, b]));
+  const mbills = new Map((db.bills_one_time || []).map((b) => [b.id, b]));
   for (const mp of db.medical_payments || []) {
     const b = mbills.get(mp.bill_id); if (!b) continue;
     const name = b.kind === "travel" ? (b.patient ? `【${String(b.patient).trim().slice(0, 30)}】${String(b.provider).trim()}`.slice(0, 60) : b.provider) : `${med[b.kind] || med.medical || b.kind} · ${b.provider}`;
@@ -116,7 +116,7 @@ export function spendRollup(db, from, to, store = false) {
 
 /** 账单付款（同 pay_filtered） */
 export function payFiltered(db, f = {}) {
-  const bills = new Map((db.bills || []).map((b) => [b.id, b])), pur = new Map((db.purchases || []).map((p) => [p.id, p]));
+  const bills = new Map((db.bills_recurring || []).map((b) => [b.id, b])), pur = new Map((db.purchases || []).map((p) => [p.id, p]));
   return (db.bill_payments || []).filter((p) => (!f.bill || p.bill_id === f.bill) && (!f.year || String(p.paid_on).startsWith(f.year)) && (!f.status || p.status === f.status))
     .map((p) => ({ ...p, pur_store: p.purchase_id ? pur.get(p.purchase_id)?.store ?? null : null, sort_d: p.paid_on, sort_a: p.amount == null ? 0 : +p.amount, sort_n: String(bills.get(p.bill_id)?.name || "").toLowerCase() }));
 }

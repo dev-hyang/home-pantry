@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.4", title: { zh: "账单数据表统一命名：周期性账单、一次性账单", en: "Bill tables renamed: recurring bills and one-time bills" }, items: [
+    { k: "better", zh: "后台把账单的两张数据表改成更清楚的名字（周期性账单、一次性账单），看到的页面和功能不变", en: "Behind the scenes the two bill tables now have clearer names (recurring bills, one-time bills); what you see and do is unchanged" },
+    { k: "better", zh: "以前导出的备份文件照样能恢复，不用重新导出", en: "Backups exported earlier can still be restored; no need to export again" }
+  ] },
+
   { v: "2026-11-17.3", title: { zh: "房产视角看一次性账单：装修、翻新一目了然", en: "See one-time bills per property: renovations at a glance" }, items: [
     { k: "new", zh: "房屋里点某套房的「账单」，在周期性账单概览下面多了「一次性账单 / 项目」：应付合计、已付、余额，和最近的几张账单，还能直接「记一张」", en: "Open Bills from a property under Home and the recurring overview now ends with One-time bills / projects: total owed, paid, balance and the latest bills, plus a quick Add" },
     { k: "new", zh: "一次性账单列表多了「房产」筛选；财务 → 资产里每套房的「关联账单」也会写上一次性账单的数量和余额", en: "The one-time bills list has a Property filter, and each property under Finance → Assets now shows its one-time bill count and balance" }

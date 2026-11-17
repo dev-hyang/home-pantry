@@ -256,7 +256,7 @@ export async function saveMedBillForm(f) {
     const id = await Store.saveMedicalBill(f.dataset.id ? { ...row, id: f.dataset.id } : row);
     await reloadMedical(); toast(f.dataset.id ? t("已保存修改") : t("已记下这张账单，接着可以记付款"));
     go(detailHref(id), { replace: true }); return true;
-  } catch (e) { err.textContent = /medical_bills_kind_check/i.test(e.message) ? t("还没执行数据库迁移 031（一次性账单加“旅行”种类），先在 Supabase 里执行 supabase/migrations/031_travel_bills.sql") : /medical_bills|does not exist|schema cache/i.test(e.message) ? t("还没执行数据库迁移 027（医疗账单表），先在 Supabase 里执行 supabase/migrations/027_medical_bills.sql") : t("保存失败：{msg}", { msg: e.message }); return false; }
+  } catch (e) { err.textContent = /(medical_bills|bills_one_time)_kind_check/i.test(e.message) ? t("还没执行数据库迁移 031（一次性账单加“旅行”种类），先在 Supabase 里执行 supabase/migrations/031_travel_bills.sql") : /medical_bills|does not exist|schema cache/i.test(e.message) ? t("还没执行数据库迁移 027（医疗账单表），先在 Supabase 里执行 supabase/migrations/027_medical_bills.sql") : t("保存失败：{msg}", { msg: e.message }); return false; }
 }
 export async function saveMedPayForm(f) {
   const fe = f.elements, err = $("#medPayError"), amount = amt(fe.amount);

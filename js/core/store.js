@@ -19,8 +19,10 @@ export const DemoStore = {
     try { this.db = JSON.parse(localStorage.getItem(this.key)); } catch { this.db = null; }
     if (!this.db || !Array.isArray(this.db.items)) this.db = Object.assign(seedDemo(), { _cat063: true, _cat064: true });   // 新演示库已经是新分类，不用迁移、不用确认
     const db = this.db;
+    // 2026-11 表改名（迁移 074）：旧演示库 / 旧演示备份里的 bills、medical_bills 换成新键 bills_recurring、bills_one_time
+    for (const [from, to] of [["bills", "bills_recurring"], ["medical_bills", "bills_one_time"]]) if (db[from] && !db[to]) { db[to] = db[from]; delete db[from]; }
     db.purchases ||= []; db.assets ||= []; db.maint_logs ||= []; db.seasonal ||= [];
-    db.bills ||= []; db.bill_payments ||= []; db.medical_bills ||= []; db.medical_payments ||= []; db.people ||= []; db.income_records ||= []; db.income_repayments ||= [];
+    db.bills_recurring ||= []; db.bill_payments ||= []; db.bills_one_time ||= []; db.medical_payments ||= []; db.people ||= []; db.income_records ||= []; db.income_repayments ||= [];
     // 多房产：没有房产的旧演示库补一条默认房产，并把房屋资料 / 设备 / 季节任务挂上去
     if (!Array.isArray(db.properties) || !db.properties.length) {
       db.properties = [{ id: uid(), name: t("我的家"), kind: "other", role: "owner_occupied", status: "owned", address: null, is_default: true, archived: false, notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
@@ -211,7 +213,7 @@ export const DemoStore = {
   async setDefaultProperty(id) { this.db.properties.forEach((p) => { p.is_default = p.id === id; }); this.persist(); },
   async deleteProperty(id) {
     const db = this.db;
-    for (const k of ["bills", "purchases", "debt_accounts"]) (db[k] || []).forEach((r) => { if (r.property_id === id) r.property_id = null; });   // 账单 / 花费 / 借贷只是不再关联房产，记录保留
+    for (const k of ["bills_recurring", "bills_one_time", "purchases", "debt_accounts"]) (db[k] || []).forEach((r) => { if (r.property_id === id) r.property_id = null; });   // 账单 / 花费 / 借贷只是不再关联房产，记录保留
     const assetIds = new Set(db.assets.filter((a) => a.property_id === id).map((a) => a.id));
     db.assets = db.assets.filter((a) => !assetIds.has(a.id));
     db.maint_logs = db.maint_logs.filter((l) => !assetIds.has(l.asset_id));
@@ -228,7 +230,7 @@ export const DemoStore = {
     this.persist();
   },
   async endBills(entries) {
-    for (const { id, ends_on } of entries) { const b = this.db.bills.find((x) => x.id === id); if (b) { b.ends_on = ends_on; b.updated_at = new Date().toISOString(); } }
+    for (const { id, ends_on } of entries) { const b = this.db.bills_recurring.find((x) => x.id === id); if (b) { b.ends_on = ends_on; b.updated_at = new Date().toISOString(); } }
     this.persist();
   },
   async listPendingMembers() { return []; },
@@ -351,24 +353,24 @@ export const DemoStore = {
     if (p.id) { const i = this.db.people.findIndex((x) => x.id === p.id); if (i >= 0) this.db.people[i] = { ...this.db.people[i], ...p }; this.persist(); return p.id; }
     const id = uid(); this.db.people.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id;
   },
-  async deletePerson(id) { this.db.people = this.db.people.filter((x) => x.id !== id); for (const b of this.db.medical_bills) { if (b.patient_id === id) b.patient_id = null; if (b.guarantor_id === id) b.guarantor_id = null; } this.persist(); },
+  async deletePerson(id) { this.db.people = this.db.people.filter((x) => x.id !== id); for (const b of this.db.bills_one_time) { if (b.patient_id === id) b.patient_id = null; if (b.guarantor_id === id) b.guarantor_id = null; } this.persist(); },
   async mergePeople(fromId, toId) {
-    for (const b of this.db.medical_bills) { if (b.patient_id === fromId) b.patient_id = toId; if (b.guarantor_id === fromId) b.guarantor_id = toId; }
+    for (const b of this.db.bills_one_time) { if (b.patient_id === fromId) b.patient_id = toId; if (b.guarantor_id === fromId) b.guarantor_id = toId; }
     this.db.people = this.db.people.filter((x) => x.id !== fromId); this.persist();
   },
 
   /* 医疗账单（事件型账单）：账单 + 付款；演示模式没有“私密”之分，全是自己的 */
-  async listMedicalBills() { return this.db.medical_bills.map((x) => ({ ...x })); },
+  async listMedicalBills() { return this.db.bills_one_time.map((x) => ({ ...x })); },
   async saveMedicalBill(b) {
     const now = new Date().toISOString();
     if (b.id) {
-      const i = this.db.medical_bills.findIndex((x) => x.id === b.id); if (i < 0) throw new Error("账单不存在");
-      this.db.medical_bills[i] = { ...this.db.medical_bills[i], ...b, updated_at: now }; this.persist(); return b.id;
+      const i = this.db.bills_one_time.findIndex((x) => x.id === b.id); if (i < 0) throw new Error("账单不存在");
+      this.db.bills_one_time[i] = { ...this.db.bills_one_time[i], ...b, updated_at: now }; this.persist(); return b.id;
     }
-    const id = uid(); this.db.medical_bills.push({ ...b, id, created_at: now, updated_at: now }); this.persist(); return id;
+    const id = uid(); this.db.bills_one_time.push({ ...b, id, created_at: now, updated_at: now }); this.persist(); return id;
   },
   async deleteMedicalBill(id) {
-    this.db.medical_bills = this.db.medical_bills.filter((x) => x.id !== id);
+    this.db.bills_one_time = this.db.bills_one_time.filter((x) => x.id !== id);
     this.db.medical_payments = this.db.medical_payments.filter((p) => p.bill_id !== id); this.persist();
   },
   async listMedicalPayments() { return this.db.medical_payments.map((x) => ({ ...x })); },
@@ -400,23 +402,23 @@ export const DemoStore = {
   async deleteCard(id) { this.db.cards = (this.db.cards || []).filter((x) => x.id !== id); this.db.account_balances = (this.db.account_balances || []).filter((x) => x.card_id !== id); this.persist(); },
 
   /* 账单 */
-  async listBills() { return this.db.bills.map((x) => ({ ...x })); },
+  async listBills() { return this.db.bills_recurring.map((x) => ({ ...x })); },
   async saveBill(b) {
     const now = new Date().toISOString();
     if (b.id) {
-      const i = this.db.bills.findIndex((x) => x.id === b.id);
+      const i = this.db.bills_recurring.findIndex((x) => x.id === b.id);
       if (i < 0) throw new Error("账单不存在");
-      this.db.bills[i] = { ...this.db.bills[i], ...b, updated_at: now };
-    } else this.db.bills.push({ ...b, id: uid(), created_at: now, updated_at: now });
+      this.db.bills_recurring[i] = { ...this.db.bills_recurring[i], ...b, updated_at: now };
+    } else this.db.bills_recurring.push({ ...b, id: uid(), created_at: now, updated_at: now });
     this.persist();
   },
   async addBills(list) {
     const now = new Date().toISOString();
-    for (const b of list) this.db.bills.push({ ...b, id: uid(), created_at: now, updated_at: now });
+    for (const b of list) this.db.bills_recurring.push({ ...b, id: uid(), created_at: now, updated_at: now });
     this.persist();
   },
   async deleteBill(id) {
-    this.db.bills = this.db.bills.filter((x) => x.id !== id);
+    this.db.bills_recurring = this.db.bills_recurring.filter((x) => x.id !== id);
     this.db.bill_payments = this.db.bill_payments.filter((p) => p.bill_id !== id);
     this.persist();
   },
@@ -442,7 +444,7 @@ export const DemoStore = {
     const db = this.db;
     db.debt_accounts = (db.debt_accounts || []).filter((x) => x.id !== id);
     db.debt_transactions = (db.debt_transactions || []).filter((x) => x.debt_id !== id);
-    for (const b of db.bills) if (b.debt_id === id) b.debt_id = null;
+    for (const b of db.bills_recurring) if (b.debt_id === id) b.debt_id = null;
     this.persist();
   },
   async listDebtTxns() { return (this.db.debt_transactions || []).map((x) => ({ ...x })); },
@@ -456,7 +458,7 @@ export const DemoStore = {
     this.persist(); return ids;
   },
   async deleteDebtTxns(ids) { const set = new Set(ids); this.db.debt_transactions = (this.db.debt_transactions || []).filter((x) => !set.has(x.id)); this.persist(); },
-  async linkBillDebt(billId, debtId) { const b = this.db.bills.find((x) => x.id === billId); if (b) { b.debt_id = debtId || null; this.persist(); } },
+  async linkBillDebt(billId, debtId) { const b = this.db.bills_recurring.find((x) => x.id === billId); if (b) { b.debt_id = debtId || null; this.persist(); } },
   /* 净资产（迁移 059）：余额历史、估值历史、每月快照 */
   async listBalances() { return (this.db.account_balances || []).map((x) => ({ ...x })); },
   async saveBalance(r) { const row = balanceRow(r); return demoSave(this, "account_balances", row, r.id, (x) => x.card_id === row.card_id && x.as_of === row.as_of); },
@@ -570,7 +572,7 @@ export function seedDemo() {
         const bt = tm - 3 * 3600 * 1000;
         logs.push({ id: uid(), item_id: id, delta: buy, reason: "restock", created_at: new Date(bt).toISOString() });
         purchases.push({ id: uid(), item_id: id, name, category, quantity: buy, unit, amount: r2(buy * price * priceFactor * (0.9 + ((d * 31) % 20) / 100)), currency: cur, purchased_at: new Date(bt).toISOString(),
-          store: STORES[category][((d / 3) | 0) % STORES[category].length] });
+          store: (STORES[category] || STORES.daily)[((d / 3) | 0) % (STORES[category] || STORES.daily).length] });   // 分类改名后 STORES 没跟着改：找不到就用通用商店，免得新演示库生成失败
         level = Math.max(0, level - buy);
       }
     }
@@ -934,7 +936,7 @@ export const CloudStore = {
   },
   /** 批量给账单写结束日期（退出向导） */
   async endBills(entries) {
-    for (const { id, ends_on } of entries) this.must(await this.sb.from("bills").update({ ends_on, updated_by: state.user.id }).eq("id", id));
+    for (const { id, ends_on } of entries) this.must(await this.sb.from("bills_recurring").update({ ends_on, updated_by: state.user.id }).eq("id", id));
   },
 
   /* 房产 / 车辆交易（同一张 property_deals 表：property_id 或 asset_id 二选一） */
@@ -1098,19 +1100,19 @@ export const CloudStore = {
   },
   async deletePerson(id) { this.must(await this.sb.from("household_people").delete().eq("id", id)); },   // 账单里的 patient_id 自动置空，名字文字仍保留
   async mergePeople(fromId, toId) {
-    this.must(await this.sb.from("medical_bills").update({ patient_id: toId }).eq("patient_id", fromId));
-    this.must(await this.sb.from("medical_bills").update({ guarantor_id: toId }).eq("guarantor_id", fromId));
+    this.must(await this.sb.from("bills_one_time").update({ patient_id: toId }).eq("patient_id", fromId));
+    this.must(await this.sb.from("bills_one_time").update({ guarantor_id: toId }).eq("guarantor_id", fromId));
     this.must(await this.sb.from("household_people").delete().eq("id", fromId));
   },
 
   /* 医疗账单：RLS 按 visibility 过滤（私密的只有创建人和家主读得到）；还没执行迁移 027 时表不存在，由调用方当作空 */
-  async listMedicalBills() { return this.pageAll(() => this.sb.from("medical_bills").select("*").eq("household_id", this.hid).order("service_date", { ascending: false, nullsFirst: false }).order("id")); },   // 分页读，超过 1000 张也不丢
+  async listMedicalBills() { return this.pageAll(() => this.sb.from("bills_one_time").select("*").eq("household_id", this.hid).order("service_date", { ascending: false, nullsFirst: false }).order("id")); },   // 分页读，超过 1000 张也不丢
   async saveMedicalBill(b) {
     const row = pick(b, MED_FIELDS, { household_id: this.hid });
-    if (b.id) { this.must(await this.sb.from("medical_bills").update(row).eq("id", b.id)); return b.id; }
-    return this.must(await this.sb.from("medical_bills").insert(row).select("id").single()).id;
+    if (b.id) { this.must(await this.sb.from("bills_one_time").update(row).eq("id", b.id)); return b.id; }
+    return this.must(await this.sb.from("bills_one_time").insert(row).select("id").single()).id;
   },
-  async deleteMedicalBill(id) { this.must(await this.sb.from("medical_bills").delete().eq("id", id)); },   // 付款级联删除
+  async deleteMedicalBill(id) { this.must(await this.sb.from("bills_one_time").delete().eq("id", id)); },   // 付款级联删除
   async listMedicalPayments() { return this.pageAll(() => this.sb.from("medical_payments").select("*").eq("household_id", this.hid).order("paid_on", { ascending: false }).order("id")); },
   async addMedicalPayment(p) { return this.must(await this.sb.from("medical_payments").insert({ ...p, household_id: this.hid, paid_by: state.user.id }).select("id").single()).id; },
   async updateMedicalPayment(id, patch) { this.must(await this.sb.from("medical_payments").update(patch).eq("id", id)); },
@@ -1146,20 +1148,20 @@ export const CloudStore = {
   async deleteCard(id) { this.must(await this.sb.from("cards").delete().eq("id", id)); },
 
   /* 账单 */
-  async listBills() { return this.must(await this.sb.from("bills").select("*").eq("household_id", this.hid).order("next_due_on")); },
+  async listBills() { return this.must(await this.sb.from("bills_recurring").select("*").eq("household_id", this.hid).order("next_due_on")); },
   async saveBill(b) {
     const row = pick(b, BILL_FIELDS, { household_id: this.hid, updated_by: state.user.id });
     row.due_dates ||= []; row.reminder_days ||= [7, 1];
-    const run = async () => (b.id ? this.sb.from("bills").update(row).eq("id", b.id) : this.sb.from("bills").insert(row));
+    const run = async () => (b.id ? this.sb.from("bills_recurring").update(row).eq("id", b.id) : this.sb.from("bills_recurring").insert(row));
     let r = await run();
     if (r.error && /pay_card_id/i.test(r.error.message) && !row.pay_card_id) { delete row.pay_card_id; r = await run(); }   // 还没执行迁移 036 且没选付款账户：照旧保存
     this.must(r);
   },
   async addBills(list) {
     const rows = list.map((b) => { const r = pick(b, BILL_FIELDS, { household_id: this.hid, updated_by: state.user.id }); r.due_dates ||= []; r.reminder_days ||= [7, 1]; return r; });
-    this.must(await this.sb.from("bills").insert(rows));
+    this.must(await this.sb.from("bills_recurring").insert(rows));
   },
-  async deleteBill(id) { this.must(await this.sb.from("bills").delete().eq("id", id)); },   // 缴费记录级联删除；关联的 purchases 保留
+  async deleteBill(id) { this.must(await this.sb.from("bills_recurring").delete().eq("id", id)); },   // 缴费记录级联删除；关联的 purchases 保留
   async listBillPayments() {
     const since = new Date(Date.now() - 400 * DAY).toISOString().slice(0, 10);
     return this.pageAll(() => this.sb.from("bill_payments").select("*").eq("household_id", this.hid).gte("paid_on", since).order("paid_on", { ascending: false }).order("id"));   // 分页：近 400 天超过 1000 笔时最早的不会被截掉
@@ -1196,7 +1198,7 @@ export const CloudStore = {
     return out.map((r) => r.id);
   },
   async deleteDebtTxns(ids) { for (let i = 0; i < ids.length; i += 100) this.must(await this.sb.from("debt_transactions").delete().in("id", ids.slice(i, i + 100))); },
-  async linkBillDebt(billId, debtId) { this.must(await this.sb.from("bills").update({ debt_id: debtId || null }).eq("id", billId)); },
+  async linkBillDebt(billId, debtId) { this.must(await this.sb.from("bills_recurring").update({ debt_id: debtId || null }).eq("id", billId)); },
   /* 净资产（迁移 059）：三张小表（每个账户每次更新一行、每处资产每次估值一行、每月一行快照），只有财务权限读得到，启动时整表读进内存 */
   async listBalances() { return this.pageAll(() => this.sb.from("account_balances").select("*").eq("household_id", this.hid).order("as_of", { ascending: false }).order("id")); },
   async saveBalance(r) {
@@ -1356,7 +1358,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "account_balances", "asset_valuations", "net_worth_snapshots", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms", "shops", "shop_deals", "shop_deal_runs"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills_recurring", "bill_payments", "bills_one_time", "medical_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "account_balances", "asset_valuations", "net_worth_snapshots", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms", "shops", "shop_deals", "shop_deal_runs"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();

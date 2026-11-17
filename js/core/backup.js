@@ -19,8 +19,11 @@ export const PROVIDERS = [
 ];
 /** 恢复时的写入顺序：被引用的表在前（assets → items/property_deals，cards → purchases/bills，purchases → maintenance_logs/bill_payments，household_people → medical_bills）。
  *  cards.bill_id 和 bills.pay_card_id 互相引用：cards 先不带 bill_id 写入，bills 写完再补。 */
+/** 2026-11 表改名（迁移 074）：改名之前导出的备份里表名是旧的，恢复 / 查看时对应到新表 */
+const OLD_NAME = { bills_recurring: "bills", bills_one_time: "medical_bills" };
+const tableRows = (data, tb) => data.tables?.[tb] || data.tables?.[OLD_NAME[tb]] || [];
 export const TABLES = ["properties", "house_profiles", "custom_categories", "custom_locations", "custom_terms", "custom_seasonal_tasks", "seasonal_tasks", "assets", "items", "item_aliases", "stock_logs", "shopping_list",
-  "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "household_people", "cards", "purchases", "maintenance_logs", "bills", "bill_payments", "medical_bills", "medical_payments", "income_records", "income_repayments",
+  "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "household_people", "cards", "purchases", "maintenance_logs", "bills_recurring", "bill_payments", "bills_one_time", "medical_payments", "income_records", "income_repayments",
   "member_incomes", "household_budgets",
   // 迁移 058：价格旁表（只有财务权限能读；备份本来就只给有财务权限的人）、借贷。bills.debt_id 引用 debt_accounts：bills 先不带 debt_id 写，借贷写完再补
   "property_financials", "deal_financials", "asset_financials", "debt_accounts", "debt_transactions",
@@ -208,7 +211,7 @@ export function inspect(data) {
   if (!data || data.app !== APP) return { ok: false, why: t("这不是爱家小助手的备份文件") };
   if (!(data.tables || data.db)) return { ok: false, why: t("文件里没有数据") };
   if ((data.mode || "cloud") !== Store.mode) return { ok: false, why: Store.mode === "demo" ? t("这是云端家庭的备份，要先登录到云端家庭再恢复") : t("这是本地演示数据的备份，只能恢复到演示模式") };
-  const counts = data.tables ? Object.fromEntries(TABLES.map((tb) => [tb, (data.tables[tb] || []).length]).filter(([, n]) => n)) : Object.fromEntries(Object.entries(data.db).filter(([, v]) => Array.isArray(v) && v.length).map(([k, v]) => [k, v.length]));
+  const counts = data.tables ? Object.fromEntries(TABLES.map((tb) => [tb, tableRows(data, tb).length]).filter(([, n]) => n)) : Object.fromEntries(Object.entries(data.db).filter(([, v]) => Array.isArray(v) && v.length).map(([k, v]) => [k, v.length]));
   return { ok: true, app: data.app, exported_at: data.exported_at, household: data.household?.name || "", mode: data.mode || "cloud", counts, rows: rowCount(data), sameHousehold: !data.household?.id || data.household.id === CloudStore.hid };
 }
 const chunks = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
@@ -220,7 +223,7 @@ export async function restore(data, onProgress = () => {}) {
   const uid = (v) => (v && v === exporter ? me : v);   // 导出者 → 现在登录的人；别的家人 id 原样留着（没有外键的列只是查不到名字）
   const done = {}, skipped = {}, errors = [], cardBills = [], billDebts = [];
   for (const tb of TABLES) {
-    let rows = (data.tables?.[tb] || []).map((r) => ({ ...r, household_id: hid }));
+    let rows = tableRows(data, tb).map((r) => ({ ...r, household_id: hid }));
     if (!rows.length) continue;
     onProgress(tb);
     if (tb === "member_incomes") { const keep = rows.filter((r) => members.has(uid(r.user_id))); skipped[tb] = rows.length - keep.length; rows = keep.map((r) => ({ ...r, user_id: uid(r.user_id) })); }   // 收入按人存，人不在这个家庭里的导不进（外键）
@@ -229,7 +232,7 @@ export async function restore(data, onProgress = () => {}) {
     if (tb === "items") rows = rows.map(({ name_key, ...r }) => r);   // items.name_key 也是算出来的（迁移 066）
     if (tb === "item_aliases") rows = rows.map(({ alias_key, ...r }) => r);
     if (tb === "cards") rows = rows.map((r) => { if (r.bill_id) cardBills.push([r.id, r.bill_id]); return { ...r, bill_id: null }; });
-    if (tb === "bills") rows = rows.map(({ debt_id, ...r }) => { if (debt_id) billDebts.push([r.id, debt_id]); return r; });   // 借贷表在后面才写   // 和 bills 互相引用：先不带 bill_id
+    if (tb === "bills_recurring") rows = rows.map(({ debt_id, ...r }) => { if (debt_id) billDebts.push([r.id, debt_id]); return r; });   // 借贷表在后面才写   // 和 bills 互相引用：先不带 bill_id
     if (tb === "stock_logs") {   // id 是自增、不能指定：去掉 id，按 (item_id, created_at) 跳过已有的
       const have = await CloudStore.pageAll(() => sb.from("stock_logs").select("item_id,created_at").eq("household_id", hid).order("created_at").order("id"))   // 分页读全：.limit(10000) 实际只回 1000 行，超过的会被当成“没有”而重复写入
         .catch((e) => { console.warn("[restore stock_logs]", e.message); return []; });
@@ -247,6 +250,6 @@ export async function restore(data, onProgress = () => {}) {
     done[tb] = n;
   }
   for (const [id, bill_id] of cardBills) await sb.from("cards").update({ bill_id }).eq("id", id).then(() => {}, () => {});
-  for (const [id, debt_id] of billDebts) await sb.from("bills").update({ debt_id }).eq("id", id).then(() => {}, () => {});
+  for (const [id, debt_id] of billDebts) await sb.from("bills_recurring").update({ debt_id }).eq("id", id).then(() => {}, () => {});
   return { done, skipped, errors };
 }

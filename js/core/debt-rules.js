@@ -79,7 +79,7 @@ export function migrateLegacyDebts(db, { uid, today, vehicleName = (a) => a.name
     const fin = vehicles.filter((a) => a.vehicle?.status === "financed");
     return fin.length === 1 ? fin[0].id : null;
   };
-  for (const b of db.bills || []) {
+  for (const b of db.bills_recurring || []) {
     const cat = debtCatOfBill(b.category); if (!cat || b.direction === "receivable") continue;
     const key = `bill:${b.id}`;
     if (!have.has(key)) {
