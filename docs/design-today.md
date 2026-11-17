@@ -73,7 +73,7 @@
 
 - 提醒：`collectAlerts()`（各模块注册的提供者，全在内存里算）。
 - 采购、储藏、设备、账单：`state.shopping`、`state.enriched`、`state.assetsEnriched`、`state.billsEnriched`（启动时已读）；未来 30 天账单用 `bills/logic.js` 的 `upcoming()`。
-- 本月日常 / 含住房 / 现金流出：`stats/views.js` 的 `spendAgg(lastMonths(6), 6)`，和 财务 → 概览 的「花费速览」是同一份 `spend_rollup` 缓存（读近 12 个月的聚合一次，花费变了标过期后台重读，读完 `spend-data-loaded` 重画）。
+- 本月日常 / 含住房 / 现金流出：`stats/views.js` 的 `spendAgg(lastMonths(6), 6)`，和 财务 → 花费 是同一份（账单概览里的「花费速览」已于 2026-11-17 删除） `spend_rollup` 缓存（读近 12 个月的聚合一次，花费变了标过期后台重读，读完 `spend-data-loaded` 重画）。
 - 本月收入：`income/views.js` 的 `incRollupFor([上月, 本月])`（`inc_rollup` 聚合，按参数缓存）+ `stats/report.js` 的 `incAggregate`。
 - 净资产：`bills/nw-logic.js` 的 `liveNetWorth()`（内存里的余额、估值、贷款）+ `trendPoints` / `monthChange`（内存里的月度快照）；没执行迁移 059 或没权限时 `state.nwOk = false`，这张卡不出现。
 - 还在读时数字位置显示「…」，读完自动重画。

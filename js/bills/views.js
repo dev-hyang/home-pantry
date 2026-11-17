@@ -9,7 +9,7 @@ import { $, esc, fmtDate, fmtShort, money, num, stampText, todayISO, toast } fro
 import { SECTIONS, go, href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
-import { download, monthKey, spendGlance } from "../stats/views.js";
+import { download, monthKey } from "../stats/views.js";
 import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
 import { attentionPanel, propertyTag, withProperty } from "../core/alerts.js";
 import { autofillBar } from "../core/autofill.js";
@@ -93,7 +93,8 @@ export function viewBillsHome() {
   const card = (href_, icon, title, desc, stat, add) => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small></span><span class="kind-stat">${stat}</span><span class="mch" aria-hidden="true">›</span></a>${add}</div>`;
   return `
     <section class="section">
-      <div class="section-head"><h2>${t("账单")}</h2><div class="head-acts">${propertyFilter()}</div></div>
+      <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">${propertyFilter()}</div></div>
+      <p class="muted kinds-note">${t("只看账单：周期性 + 一次性。花费统计在 财务 → 花费。")}</p>
       <div class="kpis">
         <div class="kpi"><span>${t("未来 30 天要交")}</span><b>${money(due30)}</b><small>${t("周期性账单 · {n} 笔", { n: next30.length })}</small></div>
         <div class="kpi"><span>${t("每月固定支出")}</span><b>${money(monthlyTotal)}</b><small>${t("周期性账单")}</small></div>
@@ -111,8 +112,7 @@ export function viewBillsHome() {
     ${monthBillsHtml(list)}
     ${open.length ? `<section class="section"><div class="section-head"><h2>${t("未结的一次性账单")}</h2><p>${t("按到期日排序")}</p></div>
       <div class="panel"><ul class="restock-list">${[...open].sort((a, b) => (a.due_on || "9999").localeCompare(b.due_on || "9999")).slice(0, 6).map(medRow).join("")}</ul></div></section>` : ""}
-    ${!attn && !open.length ? `<section class="section"><div class="panel empty"><strong>${t("财务这边最近没有要处理的事 ✓")}</strong></div></section>` : ""}
-    ${spendGlance()}`;
+    ${!attn && !open.length ? `<section class="section"><div class="panel empty"><strong>${t("财务这边最近没有要处理的事 ✓")}</strong></div></section>` : ""}`;
 }
 
 /* ── 周期性账单：概览 / 清单 / 记录三个标签（窄屏概览下面是入口行） ── */
@@ -145,7 +145,6 @@ export function viewBillsOverview() {
     <section class="section">
       <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">${propertyFilter()}
         <button type="button" class="btn btn-sm btn-ghost" data-action="bills-ics">${t("导出到日历")}</button>
-        <a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}">${t("看花费")}</a>
         <a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a>
         <a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
       ${hiddenEndedHint(all)}
@@ -161,7 +160,6 @@ export function viewBillsOverview() {
       : `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单")}</strong></div></section>`}
     ${monthBillsHtml(list)}
     ${state.billsFilter.property !== "all" && state.properties.some((p) => p.id === state.billsFilter.property) ? propertyOneTimeHtml(state.billsFilter.property) : ""}
-    ${spendGlance()}
     ${escrowPanelHtml()}
     ${cards.length ? `<section class="section"><div class="panel cta-panel"><div><b>${t("自动扣款的卡快过期了")}</b><p class="muted">${joinList(cards.map((b) => `${esc(b.name)}（${esc(b.autopay_method || "")} ${esc(b.autopay_card_expires)}）`))}</p></div></div></section>` : ""}
     <section class="section">

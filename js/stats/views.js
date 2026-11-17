@@ -263,19 +263,6 @@ function overviewKpis() {
     ${kpi({ label: t("资本性支出"), value: money(cap), small: t("买房、买车、装修等，不算日常"), drill: { nat: "capital", ...plan.a.drill } })}
   </div>`;
 }
-/** 账单概览里的花费速览：本月日常 / 含住房、近 6 个月月均（中位数）、本月现金流出；详细的在 财务 → 花费 */
-export function spendGlance() {
-  const ms = lastMonths(6), A = spendAgg(ms, 6), head = `<div class="section-head"><h2>${t("花费速览")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}">${t("看花费")}</a></div></div>`;
-  if (!A) return `<section class="section">${head}${LOADING()}</section>`;
-  if (!(sum(outflowSeries(A)) > 0)) return "";
-  const cm = ms.at(-1), full = fullMonths(ms, cm), L = livingSeries(A), H = withHousingSeries(A), pick = (arr) => full.map((m) => arr[ms.indexOf(m)]);
-  return `<section class="section">${head}<div class="kpis">
-    ${kpi({ label: t("本月日常生活"), value: livHou(L.at(-1), H.at(-1)), drill: { cat: "living", nat: "operating", month: cm } })}
-    ${kpi({ label: t("近 {n} 个月月均（不含本月）", { n: full.length }), value: livHou(avg(pick(L)), avg(pick(H))), small: t("中位数 {a} / {b}", { a: money(median(pick(L))), b: money(median(pick(H))) }), drill: { cat: "living", nat: "operating", mlist: full.join(",") } })}
-    ${kpi({ label: t("本月现金流出"), value: money(outflowSeries(A).at(-1)), small: t("含房贷、税、投资等，不含转账"), drill: { month: cm } })}
-  </div></section>`;
-}
-
 /* 花费页分为 5 个标签（概览 / 明细 / 分类 / 商店 / 导出打印），一次只画一块；旅行不再单独一个标签：分类 → 生活消费 → 旅行 里可以按行程看。
  * 统计页（账单模块关闭时）仍用 "all"：全部连在一起 */
 const spendHref = (id) => `${href("bills", "spend")}${id === "overview" ? "" : `?tab=${id}`}`;

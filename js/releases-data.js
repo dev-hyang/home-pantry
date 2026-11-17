@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.5", title: { zh: "账单概览只讲账单", en: "Bills overview is about bills only" }, items: [
+    { k: "better", zh: "财务里的「概览」改名「账单概览」，页面上去掉了「花费速览」，只留账单；花费请到 财务 → 花费 看", en: "Finance → Overview is now “Bills overview” and no longer shows the spending summary; find spending under Finance → Spending" }
+  ] },
+
   { v: "2026-11-17.4", title: { zh: "账单数据表统一命名：周期性账单、一次性账单", en: "Bill tables renamed: recurring bills and one-time bills" }, items: [
     { k: "better", zh: "后台把账单的两张数据表改成更清楚的名字（周期性账单、一次性账单），看到的页面和功能不变", en: "Behind the scenes the two bill tables now have clearer names (recurring bills, one-time bills); what you see and do is unchanged" },
     { k: "better", zh: "以前导出的备份文件照样能恢复，不用重新导出", en: "Backups exported earlier can still be restored; no need to export again" }
