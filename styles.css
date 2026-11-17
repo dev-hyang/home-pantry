@@ -3720,3 +3720,15 @@ span.rem-tag { cursor: default; }
 /* ? 展开的说明：算上内边距不超出所在的行 / 卡片（之前宽度 100% + 内边距会越界） */
 .ask-panel { box-sizing: border-box; max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
 .veh-due li .ask-panel { flex: 1 1 100%; width: 100%; }
+
+/* ? 展开后卡片不被撑宽：问题文字允许换行；卡片里的单列不随内容撑开（实测：nowrap 的问题文字把卡片内的列撑到比卡片还宽，行和 ⋯ 都越界） */
+.ask-panel .ask-q, .ask-panel small { white-space: normal; overflow-wrap: anywhere; }
+.asset-card { grid-template-columns: minmax(0, 1fr); }
+.asset-card > * { min-width: 0; }
+.veh-due, .veh-due li { min-width: 0; }
+
+/* 「更多」圆钮：不再用 CSS 画三个点，直接用竖排三点字符 ⋮（和 ? 圆钮同一字体、同一粗细，大小协调；以前自己画的点太小、间距不匀） */
+.dots3, .act-more.v-dots .dots3 { display: block; width: auto; height: auto; border-radius: 0; background: none; box-shadow: none; font-size: 20px; font-weight: 700; line-height: 1; color: inherit; }
+.dots3::before { content: "\22EE"; }
+/* 「更多」圆钮在任何行里都是 32 × 32 的正圆（实测：提醒行里被 .btn 的 44px 最小高度拉成椭圆） */
+details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.btn:has(> .dots3) { width: 32px; height: 32px; min-width: 32px; min-height: 32px; aspect-ratio: 1; padding: 0; align-self: center; }

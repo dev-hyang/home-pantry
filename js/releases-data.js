@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.40", title: { zh: "? 展开不再撑宽卡片；「更多」圆钮改用 ⋮ 字符并统一成正圆", en: "The ? panel no longer widens the card; More buttons use the ⋮ glyph, always a true circle" }, items: [
+    { k: "fix", zh: "车辆卡片里点 ? 展开后，说明里的问题文字不换行，把卡片撑宽、⋯ 圆钮和日期被挤出卡片；现在文字换行，卡片宽度不变（电脑和手机都在浏览器里实测过）", en: "On vehicle cards the unwrapped question text widened the card and pushed the menu and dates out when a ? opened; it now wraps and the card keeps its width (checked in the browser on laptop and phone widths)" },
+    { k: "fix", zh: "全站「更多」圆钮不再用 CSS 画三个点，改用 ⋮ 字符，和 ? 圆钮同一字体、同一大小；提醒行里被拉成椭圆的圆钮也改回 32px 正圆", en: "Every More button now uses the ⋮ character instead of CSS-drawn dots, matching the ? circle; the ones stretched into ovals inside alert rows are true 32px circles again" }
+  ] },
+
   { v: "2026-11-16.39", title: { zh: "修复 ? 一点全部展开、说明框越界", en: "Fix ? opening every row and the panel overflowing" }, items: [
     { k: "fix", zh: "车辆 / 设备卡片里「接下来的保养」每一行的 ? 现在各管各的：点一个只展开这一项（以前中文项目名都被当成同一个编号，一点全部展开）", en: "On vehicle and equipment cards each ? now opens only its own row (Chinese item names used to share one id, so one tap opened them all)" },
     { k: "fix", zh: "? 展开的说明框不再超出卡片边界", en: "The ? explanation panel no longer overflows the card" }
