@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.10", title: { zh: "添加账单先选类型；记缴费时分清估算和实际金额", en: "Add a bill by choosing its type first; payments tell estimates from actual amounts" }, items: [
+    { k: "new", zh: "点「添加账单」先选账单类型：周期性账单（水电气网、房贷、保险、订阅）或一次性账单（医疗、装修工程、法律、旅行），再进对应的表单", en: "Add bill now starts by choosing the type: recurring (utilities, mortgage, insurance, subscriptions) or one-time (medical, renovation, legal, travel)" },
+    { k: "better", zh: "记缴费时会写明本期是固定金额还是预估（按最近几次的均值），填上实际金额，这一期就变成真实数字", en: "When logging a payment it now says whether the period uses a fixed amount or an estimate (recent average); enter the actual amount and it becomes a real number" },
+    { k: "new", zh: "固定金额的账单涨价了：记缴费时可以勾选「用这次的金额更新通常金额」，下次就按新金额算", en: "If a fixed bill goes up, tick \u201cupdate the usual amount\u201d when logging a payment and later periods use the new amount" }
+  ] },
+
   { v: "2026-11-17.9", title: { zh: "账单概览重做：六张卡片，点哪张就看哪些账单", en: "Bills overview rebuilt: six cards, tap one to see exactly those bills" }, items: [
     { k: "new", zh: "账单概览顶上是六张卡片：全部账单、逾期、已缴、下一笔到期、即将到期、剩余待缴；每张都能点，点进去就是对应的账单列表，笔数和金额对得上", en: "The overview opens with six cards: all bills, overdue, paid, next due, due soon and remaining balance; each opens the matching bill list with the same count and total" },
     { k: "new", zh: "可以选时间范围（默认本月）和资产（默认全部）；逾期没缴的不受时间限制，一直计入；下面有要处理的账单、按资产汇总和按月走势", en: "Pick a time range (this month by default) and an asset (all by default); unpaid overdue bills always count. Below: bills needing attention, a by-asset summary and a month-by-month chart" },

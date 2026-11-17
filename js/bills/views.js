@@ -17,7 +17,8 @@ import { escrowPanelHtml } from "./escrow.js";
 import { assetSelectHtml, assetSuggestHtml } from "./asset-ui.js";
 import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
 import { billInUse, endedSuffix, propertyActive, propertyById, propertyOptionsHtml } from "../core/lifecycle.js";
-import { kindsNote, ONETIME, RECURRING } from "./kinds.js";
+import { kindsNote, NEW_RECURRING, ONETIME, RECURRING } from "./kinds.js";
+import { detailHref } from "./medical.js";
 import { medRow, propertyOneTimeHtml } from "./medical-views.js";
 import { RECURRING_TABS, activeTab } from "../core/tabs.js";
 import { tabBar, tabHub } from "../core/hub.js";
@@ -84,11 +85,23 @@ function monthBillsHtml(list) {
     <div class="panel"><ul class="restock-list">${rows.map(li).join("")}</ul></div></section>`;
 }
 
+/** 添加账单的第一步：选账单类型。周期性 → 现有的账单表单；一次性 → 一次性账单表单（医疗、装修工程、法律、旅行…） */
+function billTypeChooser() {
+  const card = (href_, icon, title, desc, eg) => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small><small>${eg}</small></span><span class="mch" aria-hidden="true">›</span></a></div>`;
+  return `<section class="section form-page">${crumbNav([billRoot(), { label: t("添加账单") }])}
+    <div class="section-head"><h2>${t("添加账单")}</h2><p>${t("先选账单类型")}</p></div>
+    <div class="panel kind-cards">
+      ${card(NEW_RECURRING(), "🔁", t("周期性账单"), t("按周期反复出现：系统算下次到期、提前提醒，记缴费后自动推到下一期。"), t("水电气网、房贷房租、保险、订阅、信用卡"))}
+      ${card(detailHref("new"), "🧾", t("一次性账单"), t("一次事件产生：有总额、可以分次付、有余额，付清就结束。"), t("医疗、宠物、法律税务、装修工程、旅行"))}
+    </div>
+    <p class="muted"><a href="${href("bills", "template")}">${t("按常用账单模板一次建好水电气、房贷、保险等")} ›</a></p></section>`;
+}
+
 /* ── 周期性账单：概览 / 清单 / 记录三个标签（窄屏概览下面是入口行） ── */
 export function viewRecurring() {
   const tab = activeTab(state.route) || "overview", body = { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory }[tab];
   const hrefOf = (id) => `${RECURRING()}${id === "overview" ? "" : `?tab=${id}`}`;
-  return `<section class="section"><div class="section-head"><h2>🔁 ${t("周期性账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
+  return `<section class="section"><div class="section-head"><h2>🔁 ${t("周期性账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${NEW_RECURRING()}">${t("添加账单")}</a></div></div>
     ${kindsNote("recurring")}${tabBar(RECURRING_TABS, tab, hrefOf, t("周期性账单内容"))}${tab === "overview" ? tabHub(RECURRING_TABS, hrefOf, t("更多")) : ""}</section>${body()}`;
 }
 
@@ -108,14 +121,14 @@ export function viewBillsOverview() {
   const subs = subscriptionSummary(list);
   if (!state.bills.length) {
     return `<section class="section"><div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}
-      <p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${href("bill", "new")}">${t("手动添加一条")}</a></p></div></section>`;
+      <p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${NEW_RECURRING()}">${t("手动添加一条")}</a></p></div></section>`;
   }
   return `
     <section class="section">
       <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">${propertyFilter()}
         <button type="button" class="btn btn-sm btn-ghost" data-action="bills-ics">${t("导出到日历")}</button>
         <a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a>
-        <a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
+        <a class="btn btn-primary btn-sm" href="${NEW_RECURRING()}">${t("添加账单")}</a></div></div>
       ${hiddenEndedHint(all)}
       <div class="kpis">
         <div class="kpi"><span>${t("未来 30 天要交")}</span><b>${money(due30)}</b><small>${t("{n} 笔", { n: next30.length })}</small></div>
@@ -206,7 +219,7 @@ export function viewBillsList() {
   const used = new Set(state.billsEnriched.map((b) => b.category));
   return `
     <section class="section">
-      <div class="section-head"><h2>${t("账单清单")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
+      <div class="section-head"><h2>${t("账单清单")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a><a class="btn btn-primary btn-sm" href="${NEW_RECURRING()}">${t("添加账单")}</a></div></div>
       <div class="toolbar">
         <input type="search" id="billSearch" placeholder="${t("搜索名称、收款方、账号")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">
         ${propertyFilter()}
@@ -403,6 +416,7 @@ export function viewBillForm() {
   const r = state.route;
   const b = r.id && r.id !== "new" ? state.billsEnriched.find((x) => x.id === r.id) : null;
   if (r.id !== "new" && !b) return `<div class="panel empty"><strong>${t("找不到这条账单")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("bills", "list")}">${t("回到账单")}</a></p></div>`;
+  if (!b && r.id === "new" && ![...r.q.keys()].length) return billTypeChooser();   // 没带任何参数：先选周期性还是一次性
   const qCat = r.q.get("category");
   // 从房屋资料「创建账单」进来（保险年保费、HOA 月费以前记在资料里，2026-11 起账单是唯一来源）：把旧值带过来，不让数据丢
   const qAmt = num(r.q.get("amount"), NaN), qFreq = r.q.get("freq"), qProp = r.q.get("prop");
@@ -457,7 +471,7 @@ export function viewBillForm() {
           <legend>${t("金额与周期")}</legend>
           <div class="form-grid">
             <label>${t("金额类型")}<select name="amount_type"><option value="fixed" ${v.amount_type === "fixed" ? "selected" : ""}>${t("固定")}</option><option value="variable" ${v.amount_type !== "fixed" ? "selected" : ""}>${t("每次不同")}</option></select></label>
-            <label>${t("通常金额")}<input name="typical_amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="${t("每次不同的可留空，按记录平均")}" value="${d(v.typical_amount)}"></label>
+            <label>${t("通常金额")}<input name="typical_amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="${t("每次不同的可留空，按记录平均")}" value="${d(v.typical_amount)}"><small>${t("固定金额填这里。水电燃气这类每次不同的：还没缴的那期先按最近 6 次的均值估（标“估”），记缴费时填实际金额，那一期就变成真实数字。")}</small></label>
             <label>${t("货币")}<input name="currency" maxlength="3" pattern="[A-Z]{3}" value="${d(v.currency || Units.region.currency)}"></label>
             <label>${t("频率")}<select name="frequency">${opts(B().FREQUENCIES, v.frequency)}</select></label>
             <label>${t("每 N 个月（自定义时）")}<input name="interval_months" type="number" inputmode="numeric" min="1" max="60" value="${d(v.interval_months)}"></label>
@@ -564,6 +578,8 @@ function paySection(b, focus, edit = null) {
         <label>${t("缴费日期")}<input name="paid_on" type="date" required value="${esc(edit ? edit.paid_on || "" : todayISO())}" max="${todayISO()}"></label>
         <label>${t("对应到期日")}<input name="due_on" type="date" value="${esc(edit ? edit.due_on || "" : b.next_due_on || "")}"></label>
         <label>${t("金额（{cur}）", { cur: b.currency || Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? (edit.amount != null ? num(edit.amount).toFixed(2) : "") : b.est != null ? num(b.est).toFixed(2) : ""}"></label>
+        ${edit ? "" : `<p class="muted span-2" style="margin:0;font-size:13px">${b.amount_type === "fixed" && b.typical_amount != null ? t("本期按固定金额 {a}；实际不一样就改上面的金额。", { a: mny(b.typical_amount, b.currency) }) : b.est != null ? t("本期预估 {a}（最近几次的均值）；填实际金额，这一期就变成真实数字。", { a: mny(b.est, b.currency) }) : t("还没有历史金额可估：填这次的实际金额。")}</p>
+        ${b.amount_type === "fixed" ? `<label class="check-inline span-2"><input type="checkbox" name="update_typical" checked><span>${t("实际金额和通常金额不同时，用这次的金额更新通常金额")}</span></label>` : ""}`}
         <label>${t("状态")}<select name="status"><option value="paid" ${edit?.status === "paid" ? "selected" : ""}>${t("已缴费")}</option><option value="verified" ${edit ? (edit.status === "verified" ? "selected" : "") : b.autopay ? "selected" : ""}>${t("已核对（自动扣款）")}</option><option value="skipped" ${edit?.status === "skipped" ? "selected" : ""}>${t("跳过这期")}</option></select></label>
         <label>${t("用哪张卡 / 账户")}<select name="pay_account" data-pay-acct>${accountOptions(payVal, { none: "（未指定）", extra: PAY_EXTRA })}</select></label>
         <label data-pay-other ${payVal === "other" ? "" : "hidden"}>${t("方式说明")}<input name="method" maxlength="40" placeholder="${t("例如：网银 / 支票 #1023 / 自动扣款")}" value="${esc(edit ? edit.method || "" : b.autopay_method || "")}"></label>
@@ -722,6 +738,9 @@ export async function saveBillPayForm(f) {
   if (!bill) return toast(t("账单不存在"));
   if (fe.pay_id?.value) return updatePayment(bill, fe);
   const pay = resolvePayAccount(fe.pay_account?.value, fe.method.value);
+  // 固定金额的账单涨价了：勾着「更新通常金额」就把这次的金额带进账单（recordPayment 存账单时一起存，不会被旧值盖回去）
+  const paidAmt = fe.amount.value === "" ? null : Math.round(num(fe.amount.value) * 100) / 100;
+  if (fe.update_typical?.checked && fe.status.value !== "skipped" && paidAmt != null && paidAmt > 0 && paidAmt !== num(bill.typical_amount, NaN)) bill.typical_amount = paidAmt;
   const r = await recordPayment(bill, { paid_on: fe.paid_on.value || todayISO(), due_on: fe.due_on.value || null, amount: fe.amount.value === "" ? null : fe.amount.value, status: fe.status.value,
     method: pay.method, card_id: pay.card_id, confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, notes: fe.notes.value.trim(), store: fe.store?.value });
   const nextTxt = fmtDate(r.next || "") || t("无");

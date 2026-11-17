@@ -6,7 +6,7 @@ import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { addDays } from "./dates.js";
-import { ONETIME, RECURRING } from "./kinds.js";
+import { NEW_RECURRING, ONETIME, RECURRING } from "./kinds.js";
 import { detailHref } from "./medical.js";
 import { BILL_RANGES, STATUS_GROUPS, assetBreakdown, billInstances, filterRows, monthBounds, monthlySeries, nextDue, rangeBounds, seriesMonths, sortRows, summarize } from "./instances.js";
 import { allBillsHref, assetKeyLabel, assetOptions, rowHtml } from "./all-views.js";
@@ -91,7 +91,7 @@ function trendHtml(C) {
 
 function fabHtml() {
   return `<details class="bill-fab"><summary aria-label="${t("添加账单")}" title="${t("添加账单")}"><span aria-hidden="true">＋</span></summary>
-    <div class="bill-fab-menu" role="menu"><a role="menuitem" href="${href("bill", "new")}">🔁 ${t("周期性账单")}<small>${t("水电气网、房贷、保险、订阅…")}</small></a><a role="menuitem" href="${detailHref("new")}">🧾 ${t("一次性账单")}<small>${t("医疗、装修工程、法律、旅行…")}</small></a></div></details>`;
+    <div class="bill-fab-menu" role="menu"><a role="menuitem" href="${NEW_RECURRING()}">🔁 ${t("周期性账单")}<small>${t("水电气网、房贷、保险、订阅…")}</small></a><a role="menuitem" href="${detailHref("new")}">🧾 ${t("一次性账单")}<small>${t("医疗、装修工程、法律、旅行…")}</small></a></div></details>`;
 }
 
 export function viewBillsHome() {

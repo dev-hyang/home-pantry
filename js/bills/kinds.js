@@ -6,6 +6,8 @@ import { href } from "../core/router.js";
 
 export const RECURRING = () => href("bills", "recurring");
 export const ONETIME = () => href("bills", "onetime");
+/** 新建周期性账单：带 type=recurring 直接进表单；不带任何参数的 #/bill/new 是「先选账单类型」那一步 */
+export const NEW_RECURRING = () => `${href("bill", "new")}?type=recurring`;
 
 /** 一行说明 + 去另一种的入口；kind = "recurring" | "onetime" */
 export function kindsNote(kind) {
