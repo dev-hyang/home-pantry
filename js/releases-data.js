@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.9", title: { zh: "账单概览重做：六张卡片，点哪张就看哪些账单", en: "Bills overview rebuilt: six cards, tap one to see exactly those bills" }, items: [
+    { k: "new", zh: "账单概览顶上是六张卡片：全部账单、逾期、已缴、下一笔到期、即将到期、剩余待缴；每张都能点，点进去就是对应的账单列表，笔数和金额对得上", en: "The overview opens with six cards: all bills, overdue, paid, next due, due soon and remaining balance; each opens the matching bill list with the same count and total" },
+    { k: "new", zh: "可以选时间范围（默认本月）和资产（默认全部）；逾期没缴的不受时间限制，一直计入；下面有要处理的账单、按资产汇总和按月走势", en: "Pick a time range (this month by default) and an asset (all by default); unpaid overdue bills always count. Below: bills needing attention, a by-asset summary and a month-by-month chart" },
+    { k: "better", zh: "添加账单改成右下角的圆形「＋」，点开选周期性账单或一次性账单；「花费速览」和「导出到日历」不再放在概览里", en: "Adding a bill is now a round + button at the bottom right (recurring or one-time); the spending summary and calendar export are no longer on the overview" }
+  ] },
+
   { v: "2026-11-17.8", title: { zh: "新页面「全部账单」：所有账单一行一期，搜索筛选都有", en: "New All bills page: every bill, one row per due date, with search and filters" }, items: [
     { k: "new", zh: "财务 → 账单概览 → 全部账单：周期性和一次性账单排在一起，到期近的在前，已缴的放最后；每期显示状态、金额、已付和余额", en: "Finance → Bills overview → All bills lists recurring and one-time bills together, soonest due first and paid ones last, with status, amount, paid and balance" },
     { k: "new", zh: "可以搜索，也可以按时间（本月、下月、未来 30 天…）、资产（房产、车辆、设备、家人、项目）、状态、付款方式筛选；逾期没缴的不受时间限制，一直显示", en: "Search, or filter by time (this month, next month, next 30 days…), asset (property, vehicle, equipment, person, project), status and payment method; unpaid overdue bills always show" },

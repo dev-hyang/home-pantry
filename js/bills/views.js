@@ -84,38 +84,6 @@ function monthBillsHtml(list) {
     <div class="panel"><ul class="restock-list">${rows.map(li).join("")}</ul></div></section>`;
 }
 
-/* ── 账单总览：周期性 + 一次性 ── */
-export function viewBillsHome() {
-  const all = state.billsEnriched.filter((b) => b.active), list = filterByProperty(all), alerts = billAlerts(list), cur = Units.region.currency;
-  const inCur = list.filter((b) => (b.currency || cur) === cur), monthlyTotal = inCur.reduce((s, b) => s + b.monthly, 0);
-  const next30 = upcoming(list, 30), due30 = next30.filter((x) => (x.bill.currency || cur) === cur).reduce((s, x) => s + num(x.bill.est), 0);
-  const open = state.medEnriched.filter((b) => b.open), owe = open.reduce((s, b) => s + (b.balance || 0), 0);
-  const attn = attentionPanel(["bill", "medical", "card", "budget", "debt", "income", "finance"], { title: t("要处理"), sub: t("账单、卡、预算、借贷、收入和账户余额，最要紧的在前"), max: 8 });   // 整个财务的待办（各模块页顶上各自也有一份）
-  const card = (href_, icon, title, desc, stat, add) => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small></span><span class="kind-stat">${stat}</span><span class="mch" aria-hidden="true">›</span></a>${add}</div>`;
-  return `
-    <section class="section">
-      <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">${propertyFilter()}<a class="btn btn-sm btn-ghost" href="${href("bills", "all")}">${t("全部账单")} ›</a></div></div>
-      <p class="muted kinds-note">${t("只看账单：周期性 + 一次性。花费统计在 财务 → 花费。")}</p>
-      <div class="kpis">
-        <div class="kpi"><span>${t("未来 30 天要交")}</span><b>${money(due30)}</b><small>${t("周期性账单 · {n} 笔", { n: next30.length })}</small></div>
-        <div class="kpi"><span>${t("每月固定支出")}</span><b>${money(monthlyTotal)}</b><small>${t("周期性账单")}</small></div>
-        <div class="kpi"><span>${t("一次性账单未结")}</span><b>${money(owe)}</b><small>${t("{n} 张待处理", { n: open.length })}</small></div>
-      </div>
-      <div class="panel kind-cards">
-        ${card(RECURRING(), "🔁", t("周期性账单"), t("水电气网、房贷房租、保险、订阅、信用卡：按周期反复出现，算下次到期并提醒"), alerts.length ? t("{n} 条要处理", { n: alerts.length }) : t("{n} 条", { n: list.length }),
-          `<a class="btn btn-sm btn-ghost" href="${href("bill", "new")}">${t("添加周期性账单")}</a>`)}
-        ${card(ONETIME(), "🏥", t("一次性账单"), t("一次事件产生的账单：医疗、宠物、法律税务、装修工程；有总额、可分次付、有余额"), open.length ? t("{n} 张未结", { n: open.length }) : t("{n} 张", { n: state.medEnriched.length }),
-          `<a class="btn btn-sm btn-ghost" href="${ONETIME()}?bill=new">${t("记一张一次性账单")}</a>`)}
-      </div>
-      <p class="muted kinds-note">${t("区别：周期性账单每隔一段时间自己再来一张，系统帮你算下次到期；一次性账单是一次事件产生的，付清就结束，可以分几次付。")}</p>
-    </section>
-    ${attn}
-    ${monthBillsHtml(list)}
-    ${open.length ? `<section class="section"><div class="section-head"><h2>${t("未结的一次性账单")}</h2><p>${t("按到期日排序")}</p></div>
-      <div class="panel"><ul class="restock-list">${[...open].sort((a, b) => (a.due_on || "9999").localeCompare(b.due_on || "9999")).slice(0, 6).map(medRow).join("")}</ul></div></section>` : ""}
-    ${!attn && !open.length ? `<section class="section"><div class="panel empty"><strong>${t("财务这边最近没有要处理的事 ✓")}</strong></div></section>` : ""}`;
-}
-
 /* ── 周期性账单：概览 / 清单 / 记录三个标签（窄屏概览下面是入口行） ── */
 export function viewRecurring() {
   const tab = activeTab(state.route) || "overview", body = { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory }[tab];

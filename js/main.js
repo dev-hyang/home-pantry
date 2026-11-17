@@ -14,6 +14,7 @@ import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.
 import { resilientFetch } from "./core/net.js";
 import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
 import { FD, changed, clearUrlParams, onClearFilters } from "./core/clear-filters.js";
+import { loadOverviewRange, setOverviewRange, viewBillsHome } from "./bills/overview-views.js";
 import { applyAllQuery, applyAllRoute, renderAllList, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
@@ -71,7 +72,7 @@ import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggl
 import { enrichBills } from "./bills/logic.js";
 import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
-import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewBillsHome, viewRecurring } from "./bills/views.js";
+import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { shopSelText, shopVisibleIds } from "./pantry/views.js";
 import { catNeed, moveCat, pantryNav, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
@@ -450,6 +451,7 @@ function onRoute() {
     else if (sec === "bills" && sub === "recurring") { const { property, ...rest } = FD.bills; Object.assign(state.billsFilter, rest); Object.assign(state.payFilter, FD.pay); }
     else if (sec === "bills" && sub === "onetime" && !next.q.get("bill")) Object.assign(state.medFilter, FD.med);
     else if (sec === "bills" && sub === "all") Object.assign(state.allFilter, FD.all, { sort: "due" });
+    else if (sec === "bills" && sub === "overview") state.ovFilter.asset = "all";   // 账单概览：每次进来都是全部资产
     else if (sec === "bills" && sub === "spend") Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
   }
   // 全部账单：卡片 / 链接带的条件（?asset= ?status= ?range= ?q= ?type= ?cat= ?pay= ?sort=）每次进来套一次
@@ -523,7 +525,7 @@ function resetSectionFilters(section) {
     case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
     case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { st: "open", cat: "all", q: "", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
     case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": state.spendAddOpen = false; Object.assign(state.allFilter, FD.all, { sort: "due" }); Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null, sort: "new" }); state.spendEdit = null; state.spendSel = null; break;
+    case "bills": state.spendAddOpen = false; state.ovFilter.asset = "all"; Object.assign(state.allFilter, FD.all, { sort: "due" }); Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null, sort: "new" }); state.spendEdit = null; state.spendSel = null; break;
     case "me": Object.assign(state.stats, { month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.locForm = null; break;
     default: break;
   }
@@ -608,6 +610,7 @@ main.addEventListener("touchend", (e) => {
   shiftTasksMonth(dx < 0 ? 1 : -1); render();
 }, { passive: true });
 const searchSoon = debounce((fn) => fn());
+document.addEventListener("click", (e) => { const d = document.querySelector("details.bill-fab[open]"); if (d && !d.contains(e.target)) d.open = false; });   // 账单概览右下角「＋」：点别处收起
 /** 改共享的时间范围：花费（state.stats.months）和收入页一起变，存在本机 */
 /** 排除资本性 / 排除投资：和时间范围一样存在本机，下次打开照旧（默认都排除） */
 function saveStatToggles() { try { localStorage.setItem("hmh-fin-excap", state.stats.exCap ? "1" : "0"); localStorage.setItem("hmh-fin-exinv", state.stats.exInv ? "1" : "0"); } catch { /* 忽略 */ } }
@@ -705,6 +708,8 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "invOwner") { state.filter.owner = e.target.value; renderInvList(); }
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
   if (e.target.id === "invSort") { state.filter.sort = e.target.value; renderInvList(); }
+  if (e.target.id === "ovRange") { setOverviewRange(e.target.value); render(); }
+  if (e.target.id === "ovAsset") { state.ovFilter.asset = e.target.value; render(); }
   { const k = { allRange: "range", allAsset: "asset", allType: "type", allCat: "cat", allStatus: "status", allPay: "pay", allSort: "sort" }[e.target.id];
     if (k) { state.allFilter[k] = e.target.value; if (k === "range") render(); else renderAllList(); } }
   if (e.target.id === "billProp") { state.billsFilter.property = e.target.value; render(); }
@@ -2019,14 +2024,14 @@ export async function boot() {
       if (evt === "SIGNED_OUT") { started = false; if (!state.pendingJoin) renderLogin(); }
     });
     const { data: { session } } = await CloudStore.sb.auth.getSession();
-    state.route = parseRoute(); applyAllRoute(state.route);   // 直接打开 / 刷新带条件的「全部账单」网址（卡片链接、书签）
+    state.route = parseRoute(); loadOverviewRange(); applyAllRoute(state.route);   // 直接打开 / 刷新带条件的「全部账单」网址（卡片链接、书签）
     if (session) start(session); else renderLogin();
   } else {
     setStore(DemoStore);
     DemoStore.load();
     state.displayName = DemoStore.members().find((m) => m.user_id === "me")?.display_name || state.displayName;   // 演示：在资料页改过的称呼
     state.household = { name: t("演示家庭（数据仅存于本浏览器）") };
-    state.route = parseRoute(); applyAllRoute(state.route);
+    state.route = parseRoute(); loadOverviewRange(); applyAllRoute(state.route);
     await refresh();
   }
 }

@@ -164,12 +164,13 @@ export function nextDue(rows, { today, cur } = {}) {
 /* ── 「全部账单」页的时间范围、筛选、排序（纯函数，页面和测试共用）── */
 /** 账单页自己的时间选项（含未来：下月 / 未来 30 天；不动花费 / 收入共用的 time-range.js） */
 export const BILL_RANGES = [["m", "本月"], ["pm", "上月"], ["nm", "下月"], ["30d", "未来 30 天"], ["3", "近 3 个月"], ["y", "今年"], ["all", "全部"]];
-export const rangeOk = (v) => BILL_RANGES.some(([k]) => k === v);
+export const rangeOk = (v) => BILL_RANGES.some(([k]) => k === v) || /^\d{4}-(0[1-9]|1[0-2])$/.test(String(v));   // 也认某一个月（YYYY-MM，概览走势图的柱子链进来）
 const ymOf = (iso) => iso.slice(0, 7);
 const shiftMonth = (m, k) => { const d = new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + k, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
 /** 范围 → { from, to }（含两端的日期）；today = 今天（YYYY-MM-DD） */
 export function rangeBounds(range, today) {
   const m = ymOf(today);
+  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(String(range))) return monthBounds(range);
   switch (range) {
     case "pm": return monthBounds(shiftMonth(m, -1));
     case "nm": return monthBounds(shiftMonth(m, 1));
@@ -209,4 +210,33 @@ export function sortRows(rows, mode = "due") {
   if (mode === "amount") return [...rows].sort((a, b) => b.amount - a.amount || String(a.name).localeCompare(String(b.name)));
   if (mode === "name") return [...rows].sort((a, b) => String(a.name).localeCompare(String(b.name)) || (a.dueOn || "").localeCompare(b.dueOn || ""));
   return sortByDue(rows);
+}
+
+/* ── 账单概览（dashboard）用：按资产汇总、按月走势 ── */
+/** 按「主资产」汇总：每行取它的第一个资产键（房产 > 具体资产 > 医疗 / 项目 > 车辆 > 通用，见 assetKeys）；返回 [{ key, n, total, paid, remaining }]，应付大的在前。
+ *  只算计入合计的行（和六张卡同一口径：不含 Escrow、跳过、非当前币种）。 */
+export function assetBreakdown(rows, { cur } = {}) {
+  const m = new Map();
+  for (const r of rows) {
+    if (r.status === "skipped" || r.escrow || r.counted === false || (cur && (r.currency || cur) !== cur)) continue;
+    const key = r.assets[0] || "general", g = m.get(key) || { key, n: 0, total: 0, paid: 0, remaining: 0 };
+    g.n++; g.total = r2(g.total + r.amount); g.paid = r2(g.paid + r.paid); g.remaining = r2(g.remaining + r.balance); m.set(key, g);
+  }
+  return [...m.values()].sort((a, b) => b.total - a.total || a.key.localeCompare(b.key));
+}
+/** 按月走势：months = ["2026-06", …]；每月 { m, due（应付）, paid（已付）, n }。只算计入合计的行，按到期月归。 */
+export function monthlySeries(rows, months, { cur } = {}) {
+  const out = months.map((m) => ({ m, due: 0, paid: 0, n: 0 })), at = new Map(out.map((o) => [o.m, o]));
+  for (const r of rows) {
+    if (r.status === "skipped" || r.escrow || r.counted === false || !r.dueOn || (cur && (r.currency || cur) !== cur)) continue;
+    const o = at.get(r.dueOn.slice(0, 7)); if (!o) continue;
+    o.n++; o.due = r2(o.due + r.amount); o.paid = r2(o.paid + r.paid);
+  }
+  return out;
+}
+/** 走势图要看的月份：前 back 个月到后 fwd 个月（含本月） */
+export function seriesMonths(today, back = 5, fwd = 2) {
+  const m = today.slice(0, 7), out = [];
+  for (let k = -back; k <= fwd; k++) out.push(shiftMonth(m, k));
+  return out;
 }

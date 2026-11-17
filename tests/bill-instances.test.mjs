@@ -214,3 +214,23 @@ test("排序：到期日（默认）/ 金额 / 名称", () => {
   assert.deepEqual(sortRows(rows, "amount").map((r) => r.name), ["A", "B"]);
   assert.deepEqual(sortRows(rows, "name").map((r) => r.name), ["A", "B"]);
 });
+
+// ── 账单概览：按资产汇总、按月走势 ──
+import { assetBreakdown, monthlySeries, seriesMonths } from "../js/bills/instances.js";
+
+test("按资产汇总：主资产归组，口径和六张卡一致（不含 Escrow / 跳过）", () => {
+  const { rows } = run([bill({ id: "a", property_id: "p1", next_due_on: "2026-11-05", est: 100 }), bill({ id: "c", category: "insurance_auto", next_due_on: "2026-11-20", est: 200 }), bill({ id: "e", pay_channel: "escrow", property_id: "p1" }), bill({ id: "g", category: "mobile", next_due_on: "2026-11-21", est: 50 })],
+    [one({ kind: "project", property_id: "p1", owed: 500, paid: 100, balance: 400, status: "partial" })]);
+  const g = assetBreakdown(rows, { cur: "USD" });
+  assert.deepEqual(g.map((x) => [x.key, x.n, x.total, x.paid, x.remaining]), [["property:p1", 2, 600, 100, 500], ["vehicle", 1, 200, 0, 200], ["general", 1, 50, 0, 50]]);
+  const S = summarize(rows, { cur: "USD", today: TODAY });
+  assert.equal(g.reduce((s, x) => s + x.total, 0), S.total.amount);
+});
+
+test("按月走势：按到期月归；月份区间", () => {
+  assert.deepEqual(seriesMonths("2026-11-17", 1, 1), ["2026-10", "2026-11", "2026-12"]);
+  assert.deepEqual(seriesMonths("2026-01-05", 1, 0), ["2025-12", "2026-01"]);
+  const { rows } = run([bill({ next_due_on: "2026-11-22", est: 100, pays: [pay({ due_on: "2026-10-22", amount: 90 })] })], [], monthBounds("2026-10", "2026-12"));
+  const s = monthlySeries(rows, seriesMonths(TODAY, 1, 1), { cur: "USD" });
+  assert.deepEqual(s.map((x) => [x.m, x.due, x.paid, x.n]), [["2026-10", 90, 90, 1], ["2026-11", 100, 0, 1], ["2026-12", 100, 0, 1]]);
+});

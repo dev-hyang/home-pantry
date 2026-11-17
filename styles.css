@@ -3756,3 +3756,81 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
   .all-row > .all-act { text-align: stretch; }
   .all-row > .all-act .btn { width: 100%; min-height: 44px; justify-content: center; }
 }
+
+/* ── 财务 → 账单概览（bills/overview-views.js）──
+ * 卡片配色是单独的一组 --bill-* 变量（浅色 / 深色各一套），以后全站配色重构时只改这一组；文字都是深色配浅底（深色模式反过来），对比度 ≥ 4.5:1。 */
+:root {
+  --bill-total-bg: #eef7ee;  --bill-total-fg: #14532d;  --bill-total-line: #2f8f4e;
+  --bill-overdue-bg: #fdf1dc; --bill-overdue-fg: #8a4b00;
+  --bill-paid-bg: #e7f4ea;   --bill-paid-fg: #17653a;
+  --bill-next-bg: #efeafc;   --bill-next-fg: #4b3a96;
+  --bill-soon-bg: #fdebdc;   --bill-soon-fg: #9a3f0b;
+  --bill-remain-bg: #e6f0fb; --bill-remain-fg: #1d4f91;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bill-total-bg: #17301f;  --bill-total-fg: #9be0b2;  --bill-total-line: #4fb572;
+    --bill-overdue-bg: #3a2a12; --bill-overdue-fg: #f6c27a;
+    --bill-paid-bg: #17301f;   --bill-paid-fg: #8fd7a8;
+    --bill-next-bg: #272140;   --bill-next-fg: #c3b6f5;
+    --bill-soon-bg: #3a2414;   --bill-soon-fg: #f5b98b;
+    --bill-remain-bg: #15283d; --bill-remain-fg: #9cc4f2;
+  }
+}
+/* 时间范围 + 资产：两个下拉一直可见（不走手机的「筛选」折叠：范围是这页最重要的口径），手机各占一半 */
+.ov-filters { display: flex; gap: 8px; margin-bottom: 8px; }
+.ov-filters select { flex: 1 1 0; min-width: 0; }
+@media (min-width: 761px) { .ov-filters select { flex: 0 1 260px; } }
+.bill-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 8px; }
+.bill-card { position: relative; display: flex; flex-direction: column; gap: 2px; min-height: 96px; padding: 14px 36px 12px 14px; border-radius: var(--r-md); border: 1px solid transparent; background: var(--bc-bg); color: var(--bc-fg); text-decoration: none; }
+.bill-card:hover { filter: brightness(.98); }
+.bill-card .bc-head { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.bill-card .bc-ico { font-size: 18px; line-height: 1; }
+.bill-card .bc-val { font-size: 24px; line-height: 1.25; color: var(--ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bill-card .bc-sub { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.bill-card .bc-go { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 22px; opacity: .6; }
+.bc-total { --bc-bg: var(--bill-total-bg); --bc-fg: var(--bill-total-fg); border-color: var(--bill-total-line); border-width: 2px; }
+.bc-overdue { --bc-bg: var(--bill-overdue-bg); --bc-fg: var(--bill-overdue-fg); }
+.bc-paid { --bc-bg: var(--bill-paid-bg); --bc-fg: var(--bill-paid-fg); }
+.bc-next { --bc-bg: var(--bill-next-bg); --bc-fg: var(--bill-next-fg); }
+.bc-soon { --bc-bg: var(--bill-soon-bg); --bc-fg: var(--bill-soon-fg); }
+.bc-remain { --bc-bg: var(--bill-remain-bg); --bc-fg: var(--bill-remain-fg); }
+.bill-notes { font-size: 12.5px; margin: 4px 0 0; }
+@media (max-width: 760px) { .bill-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bill-card.bc-wide, .bill-card.bc-wide-m { grid-column: 1 / -1; } }
+@media (max-width: 380px) { .bill-card .bc-val { font-size: 21px; } }
+/* 按资产 */
+.bill-assets { list-style: none; margin: 0; padding: 0; }
+.bill-assets li { border-bottom: 1px dashed var(--line); }
+.bill-assets li:last-child { border-bottom: 0; }
+.ba-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "name amt go" "bar bar bar"; gap: 4px 10px; align-items: center; padding: 10px 0; min-height: 44px; color: inherit; text-decoration: none; }
+.ba-name { grid-area: name; overflow-wrap: anywhere; }
+.ba-amt { grid-area: amt; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ba-amt small { display: block; font-size: 12px; color: var(--muted); }
+.ba-row .mch { grid-area: go; }
+.ba-bar { grid-area: bar; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.ba-bar i { display: block; height: 100%; background: var(--pine); border-radius: 3px; }
+/* 按月走势：竖条（应付浅色、已付深色）；未来的月份描边表示还没发生 */
+.bill-trend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.bt-col { display: flex; flex-direction: column; align-items: center; gap: 4px; color: inherit; text-decoration: none; min-height: 44px; }
+.bt-bars { position: relative; width: 100%; max-width: 40px; height: 110px; display: block; }
+.bt-bars i { position: absolute; bottom: 0; border-radius: 4px 4px 0 0; }
+.bt-due { left: 0; right: 0; background: var(--surface-2); border: 1px solid var(--line); }
+.bt-paid { left: 18%; right: 18%; background: var(--pine); }
+.bt-col.is-future .bt-due { border-style: dashed; background: transparent; }
+.bt-m { font-size: 12px; color: var(--muted); }
+.bt-col.is-now .bt-m { color: var(--ink); font-weight: 700; }
+.bt-key { margin: 8px 0 0; font-size: 12.5px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.bt-k { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-left: 6px; }
+.bt-k.due { background: var(--surface-2); border: 1px solid var(--line); }
+.bt-k.paid { background: var(--pine); }
+.kind-links { display: flex; flex-wrap: wrap; gap: 10px; }
+/* 右下角圆形「＋」：点开选 周期性 / 一次性账单；固定在底栏上方；宽屏放在内容列的右边外侧（不盖住金额），手机在右下角 */
+.bill-fab { position: fixed; z-index: 25; right: max(16px, calc(50vw - 420px)); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+.bill-fab > summary { list-style: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--mustard); color: var(--mustard-ink); font-size: 30px; line-height: 1; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); user-select: none; }
+.bill-fab > summary::-webkit-details-marker { display: none; }
+.bill-fab[open] > summary { transform: rotate(45deg); }
+.bill-fab-menu { position: absolute; right: 0; bottom: 68px; min-width: 230px; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: 0 6px 20px rgba(0, 0, 0, .22); overflow: hidden; }
+.bill-fab-menu a { display: block; padding: 12px 16px; min-height: 44px; color: var(--ink); text-decoration: none; font-weight: 600; }
+.bill-fab-menu a + a { border-top: 1px solid var(--line); }
+.bill-fab-menu a:hover, .bill-fab-menu a:focus-visible { background: var(--surface-2); }
+.bill-fab-menu small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }

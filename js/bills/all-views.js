@@ -34,7 +34,7 @@ export function applyAllQuery(q) {
 export const applyAllRoute = (r) => { if (r?.section === "bills" && r.sub === "all") applyAllQuery(r.q); };
 
 /** 「资产」下拉：全部资产 / 房产 / 车辆 / 设备 / 家人 / 项目 / 家庭通用（分组）；当前选的即使没有账单也保留 */
-function assetOptions(rows, sel) {
+export function assetOptions(rows, sel) {
   const opt = (v, label) => `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(label)}</option>`;
   const grp = (label, items) => (items.length ? `<optgroup label="${esc(label)}">${items.join("")}</optgroup>` : "");
   const props = state.properties.filter((p) => !p.archived || `property:${p.id}` === sel).map((p) => opt(`property:${p.id}`, `🏠 ${p.name}`));
@@ -62,6 +62,17 @@ function assetChip(r) {
   return VEHICLE_CATS.includes(r.category) ? `<span class="space-tag">🚗 ${t("车辆")}</span>` : "";
 }
 
+/** 资产键 → 显示名（概览「按资产」用）：property:ID / asset:ID / vehicle / person:ID / medical / pet / project / legal / travel / general */
+export function assetKeyLabel(key) {
+  const [type, id] = key.split(":");
+  if (type === "property") return `🏠 ${propertyName(id) || t("房产")}`;
+  if (type === "asset") { const a = state.assets.find((x) => x.id === id); return a ? `${a.kind === "vehicle" ? "🚗" : "🔧"} ${a.name}` : t("资产"); }
+  if (type === "vehicle") return `🚗 ${t("车辆")}`;
+  if (type === "person") return `🏥 ${state.medEnriched.find((b) => b.patient_id === id)?.patient || t("家人")}`;
+  if (KINDS[type]) return `${KINDS[type].icon} ${t(KINDS[type].name)}`;
+  return `🧾 ${t("家庭通用")}`;
+}
+
 const nameLink = (r) => {
   if (r.kind === "onetime") { const k = KINDS[r.category]; return `${r.isPrivate ? "🔒 " : ""}<a class="link-name" href="${detailHref(r.billId)}">${k?.icon || "🧾"} ${esc(r.name)}</a>`; }
   return `<a class="link-name" href="${href("bill", r.billId)}">${billCat(r.category).icon} ${esc(r.name)}</a>`;
@@ -72,7 +83,7 @@ const action = (r) => {
   if (r.autopay) return r.status === "verify" ? `<button type="button" class="btn btn-sm" data-action="bill-verify" data-id="${r.billId}">${t("已核对")}</button>` : "";
   return `<a class="btn btn-sm" href="${href("bill", r.billId)}?pay=1">${t("记缴费")}</a>`;
 };
-function rowHtml(r) {
+export function rowHtml(r) {
   const c = r.currency || cur(), done = ["paid", "skipped", "written_off"].includes(r.status);
   const due = r.dueOn ? t("到期 {d}", { d: fmtDate(r.dueOn) }) : t("没填到期日");
   const meta = [due, r.kind === "onetime" ? t("一次性") : t("周期性"), r.payee, r.autopay ? t("自动扣款") : "", r.amountIsEst && !done ? t("金额为估算") : ""].filter(Boolean).join(" · ");
@@ -115,11 +126,11 @@ export function renderAllList() {
 
 export function viewAllBills() {
   const f = state.allFilter, C = compute(), sel = (id, opts, v) => `<select id="${id}" aria-label="${esc(t(opts.label))}">${opts.list.map(([k, l]) => `<option value="${k}" ${v === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>`;
-  const range = BILL_RANGES.map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");
+  const range = (BILL_RANGES.some(([k]) => k === f.range) ? "" : `<option value="${esc(f.range)}" selected>${esc(f.range)}</option>`) + BILL_RANGES.map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");
   const scope = `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
   return `<section class="section">
     <div class="section-head"><h2>🧾 ${t("全部账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
-    <p class="muted kinds-note">${t("周期性 + 一次性账单，一行 = 一期账单。时间范围：{r}（{s}）；逾期没缴的不受范围限制，一直显示。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || ""), s: scope })}</p>
+    <p class="muted kinds-note">${t("周期性 + 一次性账单，一行 = 一期账单。时间范围：{r}（{s}）；逾期没缴的不受范围限制，一直显示。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope })}</p>
     <div class="toolbar">
       <input type="search" id="allSearch" placeholder="${t("搜索名称、付款方、患者")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">
       <select id="allRange" aria-label="${t("时间范围")}">${range}</select>
