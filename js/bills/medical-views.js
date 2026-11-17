@@ -47,7 +47,7 @@ export function medRow(b) {
 function filtered() {
   const f = state.medFilter, q = f.q.trim().toLowerCase();
   return state.medEnriched.filter((b) => (f.kind === "all" || b.kind === f.kind) && (f.patient === "all" || (b.patient || "") === f.patient) && (f.provider === "all" || b.provider === f.provider)
-    && (f.status === "all" || (f.status === "open" ? b.open : b.status === f.status)) && (f.year === "all" || String(b.service_date || b.bill_date || b.created_at || "").startsWith(f.year))
+    && (f.property === "all" || (f.property === "none" ? !b.property_id : b.property_id === f.property)) && (f.status === "all" || (f.status === "open" ? b.open : b.status === f.status)) && (f.year === "all" || String(b.service_date || b.bill_date || b.created_at || "").startsWith(f.year))
     && (!q || `${b.provider}${b.patient || ""}${b.bill_ref || ""}${b.claim_ref || ""}${b.insurer || ""}`.toLowerCase().includes(q)))
     .sort((x, y) => String(y.service_date || y.bill_date || y.created_at).localeCompare(String(x.service_date || x.bill_date || x.created_at)));
 }
@@ -60,6 +60,24 @@ function listInner() {
   return `<p class="muted" style="margin:0 0 6px;font-size:13px">${t("{n} 张", { n: all.length })} · ${t("余额 {a}", { a: mny(owe) })}</p><ul class="restock-list">${all.slice(0, lim).map(medRow).join("")}</ul>${pageMoreBtn("med", all.length, lim)}`;
 }
 export function renderMedList() { const h = $("#medList"); if (h) h.innerHTML = listInner(); }
+/** 房产视角：挂在这套房产上的一次性账单（装修、翻新、屋顶等工程，也含医疗 / 法律等），在周期性账单概览里按所选房产显示 */
+export function propertyOneTimeHtml(pid) {
+  const list = state.medEnriched.filter((b) => b.property_id === pid);
+  const newHref = `${detailHref("new")}&kind=project&prop=${encodeURIComponent(pid)}`;
+  const head = (extra = "") => `<div class="section-head"><h2>🔨 ${t("一次性账单 / 项目")}</h2><div class="head-acts">${extra}<a class="btn btn-sm btn-ghost" href="${esc(newHref)}">${t("记一张")}</a></div></div>`;
+  if (!list.length) return `<section class="section">${head()}<div class="panel empty"><strong>${t("这套房产还没有一次性账单")}</strong>${t("装修、翻新、屋顶等工程，可以记在一次性账单里并选这套房产。")}</div></section>`;
+  const c = cur(), inCur = list.filter((b) => (b.currency || c) === c);
+  const owed = inCur.reduce((s, b) => s + (b.owed || 0), 0), paid = inCur.reduce((s, b) => s + (b.paid || 0), 0), bal = inCur.reduce((s, b) => s + (b.balance || 0), 0), open = list.filter((b) => b.open).length;
+  const sorted = [...list].sort((a, b) => (b.open - a.open) || String(b.service_date || b.bill_date || b.created_at || "").localeCompare(String(a.service_date || a.bill_date || a.created_at || "")));
+  const MAX = 6;
+  return `<section class="section">${head(`<a class="btn btn-sm btn-ghost" href="${href("bills", "onetime")}?tab=list&prop=${encodeURIComponent(pid)}">${t("全部 {n} 张", { n: list.length })}</a>`)}
+    <div class="kpis">
+      <div class="kpi"><span>${t("应付合计")}</span><b>${mny(owed, c)}</b><small>${t("{n} 张账单", { n: list.length })}</small></div>
+      <div class="kpi"><span>${t("已付")}</span><b>${mny(paid, c)}</b></div>
+      <div class="kpi"><span>${t("余额")}</span><b>${mny(bal, c)}</b><small>${t("{n} 张未结清", { n: open })}</small></div>
+    </div>
+    <div class="panel"><ul class="restock-list">${sorted.slice(0, MAX).map(medRow).join("")}</ul>${list.length > MAX ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("还有 {n} 张，点上面的「全部」查看。", { n: list.length - MAX })}</p>` : ""}</div></section>`;
+}
 const emptyHtml = () => `<div class="empty"><strong>${t("还没有医疗账单")}</strong>${t("就诊后收到的账单、保险说明（EOB）都记在这里：总额、保险已付、自付金额、分次付款。默认只有你自己和家主看得到。")}
   <p><a class="btn btn-primary" href="${detailHref("new")}">${t("记一张医疗账单")}</a></p></div>`;
 
@@ -95,6 +113,7 @@ function listTab() {
       <select id="medKind" aria-label="${t("按种类筛选")}">${opt("all", t("全部种类"), f.kind)}${Object.entries(KINDS).map(([k, K]) => opt(k, `${K.icon} ${t(K.name)}`, f.kind)).join("")}</select>
       <select id="medPatient" aria-label="${t("按患者筛选")}">${opt("all", t("全部患者 / 对象"), f.patient)}${uniq("patient").map((x) => opt(x, x, f.patient)).join("")}</select>
       <select id="medProvider" aria-label="${t("按商家筛选")}">${opt("all", t("全部医院 / 商家"), f.provider)}${uniq("provider").map((x) => opt(x, x, f.provider)).join("")}</select>
+      ${state.properties.length && (state.properties.length > 1 || state.medEnriched.some((b) => b.property_id)) ? `<select id="medProperty" aria-label="${t("按房产筛选")}">${opt("all", t("全部房产"), f.property)}${opt("none", t("与房产无关"), f.property)}${propertyOptionsHtml(f.property, { esc })}</select>` : ""}
       <select id="medStatus" aria-label="${t("按状态筛选")}">${opt("all", t("全部状态"), f.status)}${opt("open", t("待处理（未结清）"), f.status)}${Object.entries(STATUS).map(([k, n]) => opt(k, t(n), f.status)).join("")}</select>
       <select id="medYear" aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
       ${clearFiltersBtn("med", changed(f, FD.med))}
@@ -146,6 +165,7 @@ function viewDetail(id, payId) {
   // 从别的应用带来的预填（牧羊人的就诊「去爱家记医疗账单」：不同数据库，只能把机构、日期、就诊人放在网址里）：?bill=new&provider=…&date=…&patient=…&note=…
   const pq = state.route.q, pre = isNew ? { provider: (pq.get("provider") || "").slice(0, 60), service_date: /^\d{4}-\d{2}-\d{2}$/.test(pq.get("date") || "") ? pq.get("date") : "",
     patient_text: (pq.get("patient") || "").slice(0, 40), notes: (pq.get("note") || "").slice(0, 500) } : {};
+  if (isNew && pq.get("prop") && state.properties.some((x) => x.id === pq.get("prop"))) pre.property_id = pq.get("prop");
   if (isNew && pre.patient_text) { const hit = (state.people || []).find((p) => String(p.name).trim() === pre.patient_text.trim()); if (hit) pre.patient_id = hit.id; else pre.notes = [t("就诊人：{n}", { n: pre.patient_text }), pre.notes].filter(Boolean).join(" · "); delete pre.patient_text; }   // 名字和家庭成员对得上就直接选那个人，对不上写进备注（不当成「旧记录」）
   // 复制：同一家机构 / 同一位就诊人 / 同类，日期清空、已付和保险清零，状态回到未结
   const msrc = isNew && pq.get("copy") ? copyOf((state.medBills || []).find((x) => x.id === pq.get("copy")), ["service_date", "insurance_paid", "adjustment", "closed_on"]) : null;

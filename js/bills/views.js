@@ -17,7 +17,7 @@ import { escrowPanelHtml } from "./escrow.js";
 import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
 import { billInUse, endedSuffix, propertyActive, propertyById, propertyOptionsHtml } from "../core/lifecycle.js";
 import { kindsNote, ONETIME, RECURRING } from "./kinds.js";
-import { medRow } from "./medical-views.js";
+import { medRow, propertyOneTimeHtml } from "./medical-views.js";
 import { RECURRING_TABS, activeTab } from "../core/tabs.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
@@ -160,6 +160,7 @@ export function viewBillsOverview() {
       <div class="panel"><ul class="restock-list">${alerts.map((b) => billRow(b)).join("")}</ul></div></section>`
       : `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单")}</strong></div></section>`}
     ${monthBillsHtml(list)}
+    ${state.billsFilter.property !== "all" && state.properties.some((p) => p.id === state.billsFilter.property) ? propertyOneTimeHtml(state.billsFilter.property) : ""}
     ${spendGlance()}
     ${escrowPanelHtml()}
     ${cards.length ? `<section class="section"><div class="panel cta-panel"><div><b>${t("自动扣款的卡快过期了")}</b><p class="muted">${joinList(cards.map((b) => `${esc(b.name)}（${esc(b.autopay_method || "")} ${esc(b.autopay_card_expires)}）`))}</p></div></div></section>` : ""}

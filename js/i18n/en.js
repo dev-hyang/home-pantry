@@ -4126,4 +4126,11 @@ export const EN = {
   "组别": "Group", "组别 › 大类 › 小类：组别决定东西的性质（日常消耗品、汽车房屋消耗品、家居耐用品）；大类是组别下的分类，例如蔬果、清洁；小类是大类下的细分，例如叶菜。": "Group › Category › Subcategory: the group sets the kind of thing (everyday consumables, home & car supplies, durable household goods); a category sits under a group, e.g. produce or cleaning; a subcategory sits under a category, e.g. leafy greens.",
   "税费及服务费": "Tax, fees & service", "税费及其他": "Tax, fees & other", "税、小费、配送费、服务费：记成单独的花费，商品价格不受影响；不要的取消勾选": "Tax, tip, delivery and service fees are logged as separate spending lines; item prices are not affected. Untick any you do not want.", "税": "Tax", "小费": "Tip", "配送费": "Delivery fee", "服务费": "Service fee", "袋子费": "Bag fee", "其他费用": "Other fee",
   "差额（税费等）": "Difference (tax, fees…)", "税费": "Tax & fees", "加一行税费": "Add a tax / fee line", "按小票合计算出的差额，多半是税费；对不上就改金额或取消勾选": "Worked out from the receipt total; usually tax or fees. Edit the amount or untick it if it looks off.", "；小票合计 {m}，和选中的合计相差 {d}（可能漏了商品，或还要加一行税费）": "; receipt total {m}, {d} away from the selected total (a product may be missing, or add a tax / fee line)",
+  // ── 房产视角的一次性账单（2026-11-17.3） ──
+  "房产": "Property", "与房产无关": "Not tied to a property",
+  "一次性账单 / 项目": "One-time bills / projects", "记一张": "Add one", "全部 {n} 张": "All {n}", "这套房产还没有一次性账单": "No one-time bills for this property yet",
+  "装修、翻新、屋顶等工程，可以记在一次性账单里并选这套房产。": "Renovation, remodeling or roof work can be recorded as a one-time bill linked to this property.",
+  "应付合计": "Total owed", "已付": "Paid", "余额": "Balance", "{n} 张账单": "{n} bills", "{n} 张未结清": "{n} unsettled", "还有 {n} 张，点上面的「全部」查看。": "{n} more; tap “All” above to see them.",
+  "{n} 个一次性账单": "{n} one-time bills", "余额 {a}": "balance {a}", "查看": "View",
+  "这套房产的水电气网、HOA、房产税、房贷、保险，以及装修等一次性账单": "This property's utilities, HOA, property tax, mortgage, insurance and one-time bills such as renovations",
 };

@@ -449,6 +449,8 @@ function onRoute() {
     else if (sec === "bills" && sub === "onetime" && !next.q.get("bill")) Object.assign(state.medFilter, FD.med);
     else if (sec === "bills" && sub === "spend") Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
   }
+  // 房产账单概览 →「全部 n 张」带 ?prop=：一次性账单列表按那套房产筛选
+  if (next.section === "bills" && next.sub === "onetime" && next.q.get("prop") && state.properties.some((p) => p.id === next.q.get("prop"))) state.medFilter.property = next.q.get("prop");
   // 房产 / 车辆的消耗品页「看全部」带 ?owner= 进库存：套上归属筛选，再把参数去掉
   if (isListRoute(next) && next.q.get("owner")) {
     Object.assign(state.filter, { owner: next.q.get("owner"), space: next.q.get("space") === "house" ? "house" : state.filter.space });
@@ -700,7 +702,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "billCat") { state.billsFilter.cat = e.target.value; renderBillList(); }
   if (e.target.id === "billChannel") { state.billsFilter.channel = e.target.value; renderBillList(); }
   if (e.target.id === "billSort") { state.billsFilter.sort = e.target.value; renderBillList(); }
-  { const k = { medKind: "kind", medPatient: "patient", medProvider: "provider", medStatus: "status", medYear: "year" }[e.target.id]; if (k) { state.medFilter[k] = e.target.value; renderMedList(); } }
+  { const k = { medKind: "kind", medPatient: "patient", medProvider: "provider", medStatus: "status", medYear: "year", medProperty: "property" }[e.target.id]; if (k) { state.medFilter[k] = e.target.value; renderMedList(); } }
   if (e.target.name === "kindPick") return onKindPick(e);
   if (e.target.matches?.("#medBillForm select[name=patient_id], #medBillForm select[name=guarantor_id]")) return onPersonPick(e);
   if (e.target.id === "medReportYear") { state.medYear = e.target.value; render(); }

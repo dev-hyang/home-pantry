@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.3", title: { zh: "房产视角看一次性账单：装修、翻新一目了然", en: "See one-time bills per property: renovations at a glance" }, items: [
+    { k: "new", zh: "房屋里点某套房的「账单」，在周期性账单概览下面多了「一次性账单 / 项目」：应付合计、已付、余额，和最近的几张账单，还能直接「记一张」", en: "Open Bills from a property under Home and the recurring overview now ends with One-time bills / projects: total owed, paid, balance and the latest bills, plus a quick Add" },
+    { k: "new", zh: "一次性账单列表多了「房产」筛选；财务 → 资产里每套房的「关联账单」也会写上一次性账单的数量和余额", en: "The one-time bills list has a Property filter, and each property under Finance → Assets now shows its one-time bill count and balance" }
+  ] },
+
   { v: "2026-11-17.2", title: { zh: "一次性账单可以挂在某套房子上", en: "One-time bills can be linked to a property" }, items: [
     { k: "new", zh: "记一次性账单（装修、医疗、宠物等）时多了「房产」一栏，装修 / 项目账单默认选当前这套房，其他种类默认「与房产无关」，都可以改", en: "One-time bills (renovation, medical, pet…) now have a Property field; renovation / project bills default to the current property, other kinds to none, and you can change either" },
     { k: "better", zh: "已有的账单不受影响，需要的话打开账单补选房产即可", en: "Existing bills are unchanged; open one and pick a property if you want to link it" }

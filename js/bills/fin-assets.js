@@ -57,7 +57,10 @@ function propertyRow(p, spend, loans = [], eq = null) {
   const ST = window.DEALS.PROPERTY_STATUS, K = window.BILLS.PROPERTY_KINDS;
   const bills = propertyBills(p.id), y = new Date().getFullYear();
   const spent = spend == null ? `<span class="muted">${t("读取中…")}</span>` : money(spend[p.id] || 0);
-  const billTxt = bills.n ? `${money(bills.monthly)}${t("/月")}${bills.escrow ? ` <small class="muted">${t("+ Escrow {a}", { a: money(bills.escrow) })}</small>` : ""} · <a href="${href("bills", "recurring")}?tab=list&prop=${encodeURIComponent(p.id)}">${t("{n} 条账单", { n: bills.n })}</a>` : `<span class="muted">${t("没有挂账单")}</span>`;
+  const one = (state.medEnriched || []).filter((b) => b.property_id === p.id), oneBal = one.filter((b) => (b.currency || cur()) === cur()).reduce((s, b) => s + (b.balance || 0), 0);
+  const oneTxt = one.length ? `${t("{n} 个一次性账单", { n: one.length })}${oneBal > 0 ? ` · ${t("余额 {a}", { a: money(oneBal) })}` : ""} · <a href="${href("bills", "onetime")}?tab=list&prop=${encodeURIComponent(p.id)}">${t("查看")}</a>` : "";
+  const recTxt = bills.n ? `${money(bills.monthly)}${t("/月")}${bills.escrow ? ` <small class="muted">${t("+ Escrow {a}", { a: money(bills.escrow) })}</small>` : ""} · <a href="${href("bills", "recurring")}?tab=list&prop=${encodeURIComponent(p.id)}">${t("{n} 条账单", { n: bills.n })}</a>` : "";
+  const billTxt = [recTxt, oneTxt].filter(Boolean).join("<br>") || `<span class="muted">${t("没有挂账单")}</span>`;
   return `<li class="fa-row">
     <div class="fa-head"><b>${esc(p.name)}</b><span class="badge">${esc(t(ST[p.status] || "持有"))}</span><small class="muted">${esc(t(K[p.kind] || ""))}${p.archived ? ` · ${t("已归档")}` : ""}</small>
       <a class="btn btn-sm btn-ghost fa-edit" href="${href("house", "overview")}?prop=${encodeURIComponent(p.id)}" aria-label="${esc(t("在房屋里打开 {name}", { name: p.name }))}">${t("在房屋里打开")} ›</a></div>
