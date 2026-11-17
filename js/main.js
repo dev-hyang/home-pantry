@@ -73,7 +73,7 @@ import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./p
 import { shopSelText, shopVisibleIds } from "./pantry/views.js";
 import { catNeed, moveCat, pantryNav, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
-import { famMembers, familyHref, meId, profileErr, readMemberForm, reloadMembers } from "./settings/members.js";
+import { canManageHome, famMembers, familyHref, meId, profileErr, readMemberForm, reloadMembers } from "./settings/members.js";
 import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
 import * as Backup from "./core/backup.js";
 import * as Ask from "./core/ask.js";
@@ -388,6 +388,13 @@ function renderBody(r) {
 /** 录入购物（2026-11-15 起在 储藏 / 录入购物，#/pantry/scan） */
 const isScanRoute = (r) => r?.section === "pantry" && r?.sub === "scan";
 const scrollMem = {};
+/** 归档 / 删除默认房产前：先把默认换成另一套在用的房产；没有别的就不让做（至少留一套） */
+async function freeDefault(p) {
+  if (!p.is_default) return true;
+  const other = state.properties.find((x) => x.id !== p.id && !x.archived);
+  if (!other) { toast(t("至少要保留一套房产")); return false; }
+  await Store.setDefaultProperty(other.id); return true;
+}
 const isListRoute = (r) => (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"));
 /* 离开表单页自动保存：物品 / 设备 / 账单 / 房屋资料表单（data-autosave）有没保存的改动，且不是点“取消 / 保存 / 删除”离开的，
  * 就在后台按原来的校验保存一遍（名称没填等校验不过会提示“没有自动保存”）。保存按钮仍然保留，且在底部常驻。 */
@@ -1149,10 +1156,16 @@ main.addEventListener("click", async (e) => {
         if (id !== state.propertyId) { state.propertyId = id; try { localStorage.setItem("hmh-property", id); } catch { /* 忽略 */ } state.houseDraft = null; }
         go(href("house", "overview")); return refresh();
       }
-      case "property-edit": state.editProperty = id || "new"; return render();
+      case "property-edit": if (!id && !canManageHome()) return toast(t("只有家主可以新增房产")); state.editProperty = id || "new"; return render();
       case "property-cancel": state.editProperty = null; return render();
-      case "property-delete": state.deleteProperty = id; render(); $("#propertyDeleteForm input[name=confirm_name]")?.focus(); return;
-      case "property-delete-cancel": state.deleteProperty = null; return render();
+      case "property-delete": {   // 删除房产（家主）：先弹确认，说清楚哪些记录保留（只是不再关联房产）、哪些随房产一起删
+        if (!canManageHome()) return toast(t("只有家主可以删除房产"));
+        const p = state.properties.find((x) => x.id === id); if (!p) return;
+        if (!(await freeDefault(p))) return;
+        if (!window.confirm(t("删除“{name}”？\n\n账单、花费记录和借贷会保留，只是不再关联这套房产（房产 ID 变成空）。\n房屋资料、设备与保养记录、季节任务、交易、估值会跟着房产一起删除，不能恢复。\n\n只是不再持有或租住的话，建议用“归档”：所有数据都保留，可随时恢复。", { name: p.name }))) return;
+        await Store.deleteProperty(p.id); toast(t("已删除“{name}”", { name: p.name }));
+        await refresh(); if (state.route?.section === "house") go(href("house")); return;
+      }
       case "deal-start": await startDeal(el.dataset.kind, el.dataset.asset || null); return refresh();
       case "deal-cancel": if (!armed(el, t("再点一次确认取消"))) return; await cancelDeal(el.dataset.deal || null); return refresh();
       case "deal-closeout": {
@@ -1191,7 +1204,9 @@ main.addEventListener("click", async (e) => {
       case "property-archive": {
         const p = state.properties.find((x) => x.id === id);
         if (!p) return;
-        if (!p.archived && !armed(el, t("再点一次确认归档"))) return;
+        if (!canManageHome()) return toast(t("只有家主可以归档或恢复房产"));
+        if (!p.archived && !el.closest(".act-menu") && !armed(el, t("再点一次确认归档"))) return;
+        if (!p.archived && !(await freeDefault(p))) return;
         await Store.saveProperty({ ...p, archived: !p.archived }); toast(p.archived ? t("已恢复房产") : t("已归档，账单和房屋资料都保留；可在房屋首页「已归档的房产」恢复")); await refresh(); if (!p.archived && state.route?.section === "house") go(href("house")); return;
       }
       case "bills-enable":

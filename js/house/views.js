@@ -1,4 +1,5 @@
 import { activeProperties } from "../core/lifecycle.js";
+import { canManageHome } from "../settings/members.js";
 import { autofillBar } from "../core/autofill.js";
 /* 房屋维护 · 第一期：房屋资料（房型、材料、设施）、责任归属、材料保养建议、按模板批量加入汽车房屋消耗品 */
 import { alertsOf } from "../core/logic.js";
@@ -474,7 +475,7 @@ export function viewHouse() {
           <div class="grow">
             <h2><a class="house-name" href="${href("house", "profile")}?sec=type" title="${esc(t("点一下改名称、类型、用途"))}">${esc(currentProp()?.name || t(ht?.name || "我的房子"))}</a></h2>
           </div>
-          <span class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("编辑")}</a>${currentProp() && !currentProp().is_default ? `<button type="button" class="btn btn-sm btn-ghost" data-action="property-archive" data-id="${currentProp().id}" title="${esc(t("不再持有或租住：从房屋首页收起，数据都保留，可在房屋首页「已归档的房产」恢复"))}">${t("归档")}</button>` : ""}</span>
+          <span class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("编辑")}</a>${currentProp() && canManageHome() ? moreMenu([{ label: t("归档"), action: "property-archive", data: { id: currentProp().id } }, { label: t("删除"), action: "property-delete", data: { id: currentProp().id }, danger: true }]) : ""}</span>
         </div>
         ${statusLine(true)}
         <p class="muted house-sub">${esc(t(H().REGIONS[p.region]?.name || ""))}${p.year_built ? t("，{y} 年建成（约 {age} 年房龄）", { y: p.year_built, age }) : ""}</p>

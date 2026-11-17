@@ -14,6 +14,8 @@ const demo = () => Store.mode === "demo";
 export const famMembers = () => (demo() ? DemoStore.members() : state.members || []);
 export const meId = () => (demo() ? "me" : state.user?.id);
 export const amOwner = () => famMembers().some((m) => m.user_id === meId() && m.role === "owner");
+/** 房产的新增 / 归档 / 恢复 / 删除：只有家主（演示模式总是可以） */
+export const canManageHome = () => demo() || amOwner();
 /** 改动之后重读成员（云端）；演示模式直接读本机库，不用重读 */
 export async function reloadMembers() { if (!demo()) state.members = await CloudStore.listMembers(); }
 /** 没执行迁移 052：资料字段灰掉（演示模式总是可用） */

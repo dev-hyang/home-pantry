@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.26", title: { zh: "房产的归档 / 删除放进概览 ⋮；只有家主能管理；房产卡加用途标志", en: "Archive / delete in the overview ⋮; owner only; role flag on property cards" }, items: [
+    { k: "better", zh: "房屋概览「编辑」旁多了 ⋮：归档、删除（默认房产也可以，会先换一套默认）；删除前会说明账单、花费、借贷保留但不再关联房产，资料、设备、任务、交易随房产一起删除", en: "The overview has a ⋮ next to Edit with Archive and Delete (the default property too; a new default is set first); the confirmation says bills, spending and loans are kept but unlinked, while profile, equipment, tasks and deals go with it" },
+    { k: "better", zh: "设置里的「房产」去掉，房产只在房屋页管理；只有家主能新增、归档、恢复、删除", en: "Properties are gone from Settings and managed on the Home tab; only the owner can add, archive, restore or delete" },
+    { k: "new", zh: "房屋首页每张房产卡上方有用途标志（自住 / 出租 / 租住，默认自住），默认房产带 ★", en: "Each property card on Home shows a role flag (Owner-occupied by default, Rented out, Renting) and a star for the default" }
+  ] },
+
   { v: "2026-11-16.25", title: { zh: "房产只归档不删除；房屋首页可看已归档的房产", en: "Properties are archived, not deleted; see them on Home" }, items: [
     { k: "better", zh: "去掉设置里的「彻底删除」房产，避免账单、设备等数据失去对应房产；不再持有或租住的房产一律归档，数据都保留", en: "The permanent-delete option for properties is gone from Settings, so bills and equipment never lose their property; archive instead and everything is kept" },
     { k: "new", zh: "房屋首页多一个折叠块「已归档的房产」，点开能看到并一键恢复；房屋概览右上角也有「归档」", en: "Home has a fold, Archived properties, to view and restore them; the overview header also has Archive" }

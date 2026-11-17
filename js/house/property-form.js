@@ -30,6 +30,6 @@ export function houseBar() {
   const editing = state.editProperty && state.editProperty !== "new" ? state.properties.find((p) => p.id === state.editProperty) : null;
   return adding || editing ? `<section class="section"><div class="panel prop-inline">
       <div class="section-head" style="margin-bottom:8px"><h3 style="font-size:16px">${adding ? t("添加房产") : t("编辑房产：{name}", { name: esc(editing.name) })}</h3>
-        <p>${t("和设置页里的房产是同一份；归档、设默认、彻底删除在设置页")}</p></div>
+        <p>${t("房产的归档、删除在房屋概览右上角的 ⋮ 里；只有家主能新增、归档、删除")}</p></div>
       ${propertyForm(editing)}</div></section>` : "";
 }

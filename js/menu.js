@@ -12,6 +12,7 @@ import { activeVehicles, assetName, assetsDueCount, myAssets, myVehicles, vehSta
 import { monthTasks, undoneThisMonth } from "./house/tasks.js";
 import { dealSubLabel, dealTasks, historyLabel, openDeal, routeDeal } from "./house/deals.js";
 import { SETTING_SECTIONS } from "./settings/views.js";
+import { canManageHome } from "./settings/members.js";
 import { familyHref, memberCrumbLabel } from "./settings/members.js";
 import { aiIcon } from "./core/ai.js";
 import { APP_VERSION } from "./core/version.js";
@@ -118,16 +119,16 @@ const KIND_ICON = { sfh: "🏡", townhome: "🏘️", condo: "🏢", apartment: 
 export function viewPropertyList() {
   const K = window.BILLS.PROPERTY_KINDS, ST = window.DEALS.PROPERTY_STATUS;
   // 卡片（不是行）：图标 + 名称 + 一两行基本信息；最后一张空白卡「＋ 添加…」。不放统计数字
-  const card = (attrs, icon, title, lines, current = false) => {
+  const card = (attrs, icon, title, lines, current = false, flag = "") => {
     const link = attrs.startsWith("href");
     return `<${link ? "a" : 'button type="button"'} class="hv-card" ${attrs}${current ? ' aria-current="true"' : ""}>
       <span class="hv-ico" aria-hidden="true">${icon}</span>
-      <span class="hv-txt"><b>${esc(title)}</b>${lines.filter(Boolean).map((l) => `<small>${esc(l)}</small>`).join("")}</span></${link ? "a" : "button"}>`;
+      <span class="hv-txt">${flag || ""}<b>${esc(title)}</b>${lines.filter(Boolean).map((l) => `<small>${esc(l)}</small>`).join("")}</span></${link ? "a" : "button"}>`;
   };
   const addCard = (attrs, title, desc) => `<${attrs.startsWith("href") ? "a" : 'button type="button"'} class="hv-card hv-add" ${attrs}>
       <span class="hv-ico" aria-hidden="true">＋</span><span class="hv-txt"><b>${title}</b><small>${desc}</small></span></${attrs.startsWith("href") ? "a" : "button"}>`;
-  const houseCard = (p) => card(`data-action="house-open" data-id="${p.id}"`, KIND_ICON[p.kind] || "🏠", p.name, [[t(ST[p.status] || "持有"), t(K[p.kind] || "")].filter(Boolean).join(" · "), p.address], p.id === state.propertyId);
-  const archivedCard = (p) => `<div class="hv-card hv-arch"><span class="hv-ico" aria-hidden="true">${KIND_ICON[p.kind] || "🏠"}</span><span class="hv-txt"><b>${esc(p.name)}</b>${p.address ? `<small>${esc(p.address)}</small>` : ""}</span><button type="button" class="btn btn-sm" data-action="property-archive" data-id="${p.id}">${t("恢复")}</button></div>`;
+  const houseCard = (p) => card(`data-action="house-open" data-id="${p.id}"`, KIND_ICON[p.kind] || "🏠", p.name, [[t(ST[p.status] || "持有"), t(K[p.kind] || "")].filter(Boolean).join(" · "), p.address], p.id === state.propertyId, `<span class="hv-flags"><span class="hv-flag" title="${esc(t("用途"))}">⚑ ${t(window.BILLS.PROPERTY_ROLES[p.role || "owner_occupied"] || "自住")}</span>${p.is_default ? `<span class="hv-flag is-def">★ ${t("默认")}</span>` : ""}</span>`);
+  const archivedCard = (p) => `<div class="hv-card hv-arch"><span class="hv-ico" aria-hidden="true">${KIND_ICON[p.kind] || "🏠"}</span><span class="hv-txt"><b>${esc(p.name)}</b>${p.address ? `<small>${esc(p.address)}</small>` : ""}</span>${canManageHome() ? `<button type="button" class="btn btn-sm" data-action="property-archive" data-id="${p.id}">${t("恢复")}</button>` : ""}</div>`;
   const props = activeProperties(), ended = endedProperties(), archived = state.properties.filter((p) => p.archived);   // 已卖出 / 已退租：收进「已结束」，档案、账单、设备、记录都还在
   const vehicles = activeVehicles(), pastN = myVehicles().length - vehicles.length;
   const vCard = (a) => {
@@ -138,7 +139,7 @@ export function viewPropertyList() {
     <div class="section-head"><h2>🏠 ${t("房屋")}</h2></div>
     ${houseBar()}
     <section class="hv-sec" aria-label="${esc(t("房屋"))}"><div class="section-head"><h3>${t("房屋")}</h3><p>${t("点一套房产进入它的概览")}</p></div>
-    <div class="hv-grid">${props.map(houseCard).join("")}${state.editProperty === "new" ? "" : addCard(`data-action="property-edit" data-id=""`, t("添加房产"), t("自住、出租或租住的房子都可以"))}</div>
+    <div class="hv-grid">${props.map(houseCard).join("")}${state.editProperty === "new" || !canManageHome() ? "" : addCard(`data-action="property-edit" data-id=""`, t("添加房产"), t("自住、出租或租住的房子都可以"))}</div>
     ${ended.length ? `<details class="asset-ended"><summary>${t("已结束的房产")} <small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small></summary><div class="hv-grid">${ended.map(houseCard).join("")}</div></details>` : ""}
     ${archived.length ? `<details class="asset-ended"><summary>${t("已归档的房产")} <small>${t("{n} 套，不再持有或租住；资料、账单、设备都保留，可随时恢复", { n: archived.length })}</small></summary><div class="hv-grid">${archived.map(archivedCard).join("")}</div></details>` : ""}</section>
     <section class="hv-sec" aria-label="${esc(t("汽车"))}"><div class="section-head"><h3>🚗 ${t("汽车")}</h3></div>

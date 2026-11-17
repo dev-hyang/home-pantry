@@ -3663,3 +3663,8 @@ span.rem-tag { cursor: default; }
 .hv-card.hv-arch .hv-txt { flex: 1; min-width: 0; }
 .hv-card.hv-arch .btn { flex: none; min-height: 44px; }
 .house-head .head-acts { display: flex; gap: 6px; flex: none; }
+
+/* 房屋首页房产卡上方的用途标志 + 默认星标 */
+.hv-flags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 2px; }
+.hv-flag { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink); font-size: 12px; font-weight: 600; line-height: 1.6; }
+.hv-flag.is-def { background: color-mix(in srgb, var(--mustard) 25%, var(--surface)); }

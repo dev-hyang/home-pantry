@@ -211,9 +211,7 @@ export const DemoStore = {
   async setDefaultProperty(id) { this.db.properties.forEach((p) => { p.is_default = p.id === id; }); this.persist(); },
   async deleteProperty(id) {
     const db = this.db;
-    const billIds = new Set(db.bills.filter((b) => b.property_id === id).map((b) => b.id));
-    db.bills = db.bills.filter((b) => !billIds.has(b.id));
-    db.bill_payments = db.bill_payments.filter((p) => !billIds.has(p.bill_id));
+    for (const k of ["bills", "purchases", "debt_accounts"]) (db[k] || []).forEach((r) => { if (r.property_id === id) r.property_id = null; });   // 账单 / 花费 / 借贷只是不再关联房产，记录保留
     const assetIds = new Set(db.assets.filter((a) => a.property_id === id).map((a) => a.id));
     db.assets = db.assets.filter((a) => !assetIds.has(a.id));
     db.maint_logs = db.maint_logs.filter((l) => !assetIds.has(l.asset_id));
@@ -930,9 +928,8 @@ export const CloudStore = {
     this.must(await this.sb.from("properties").update({ is_default: false }).eq("household_id", this.hid).eq("is_default", true));
     this.must(await this.sb.from("properties").update({ is_default: true }).eq("id", id));
   },
-  /** 彻底删除：先删挂着的账单（缴费记录级联），再删房产（资料 / 设备 / 季节任务 / 交易级联）；purchases 保留 */
+  /** 删除房产：账单 / 花费 / 借贷的 property_id 由数据库置空（记录保留）；资料 / 设备 / 季节任务 / 交易级联删除 */
   async deleteProperty(id) {
-    this.must(await this.sb.from("bills").delete().eq("household_id", this.hid).eq("property_id", id));
     this.must(await this.sb.from("properties").delete().eq("id", id));
   },
   /** 批量给账单写结束日期（退出向导） */
