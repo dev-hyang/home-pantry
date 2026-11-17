@@ -3682,3 +3682,10 @@ span.rem-tag { cursor: default; }
 .form-actions.wiz-row .btn { flex: 1 1 0; min-width: 0; justify-content: center; text-align: center; padding-inline: 8px; white-space: nowrap; }
 .form-actions.wiz-exit { margin-top: 8px; }
 .form-actions.wiz-exit .btn { width: 100%; justify-content: center; }
+
+/* 向导：整块（每月总计 / 按钮行 / 全部跳过）一起粘在底部；每月总计在最上面靠右 */
+.sticky-actions.wiz-bar .form-actions { position: static; border: 0; padding: 0; background: none; margin: 0; }
+.sticky-actions.wiz-bar .form-actions.wiz-exit { margin-top: 8px; }
+.sticky-actions.wiz-bar .hoa-line { display: flex; justify-content: flex-end; margin: 0 0 6px; }
+.sticky-actions.wiz-bar .hoa-mini { margin-left: auto; }
+.form-actions > .contents, div.contents { display: contents; }

@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.33", title: { zh: "向导的按钮和每月总计一起固定在底部", en: "Wizard buttons and monthly total stick together" }, items: [
+    { k: "better", zh: "添加房产向导：每月总计（HOA 步骤）靠右排在最上，下面是按钮行和「全部跳过，稍后再填」，整块一起固定在页面底部", en: "Add-property wizard: the monthly total (HOA step) sits top-right, then the button row and Skip all, fill in later, all stuck to the bottom" }
+  ] },
+
   { v: "2026-11-16.32", title: { zh: "向导按钮同一行等宽；第二行合成一个按钮", en: "Wizard buttons on one equal-width row; one button on row two" }, items: [
     { k: "better", zh: "添加房产向导：上一步、跳过、保存并下一步等宽排在同一行；第一页是取消、下一步一行；第二行合成一个占满整行的「全部跳过，稍后再填」", en: "Add-property wizard: Back, Skip and Save and next share one equal-width row; page one is Cancel and Next; row two is a single full-width Skip all, fill in later" }
   ] },
