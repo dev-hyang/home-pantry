@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.2", title: { zh: "一次性账单可以挂在某套房子上", en: "One-time bills can be linked to a property" }, items: [
+    { k: "new", zh: "记一次性账单（装修、医疗、宠物等）时多了「房产」一栏，装修 / 项目账单默认选当前这套房，其他种类默认「与房产无关」，都可以改", en: "One-time bills (renovation, medical, pet…) now have a Property field; renovation / project bills default to the current property, other kinds to none, and you can change either" },
+    { k: "better", zh: "已有的账单不受影响，需要的话打开账单补选房产即可", en: "Existing bills are unchanged; open one and pick a property if you want to link it" }
+  ] },
+
   { v: "2026-11-17.1", title: { zh: "为「房产账单」打好数据基础", en: "Groundwork for per-property bills" }, items: [
     { k: "better", zh: "数据库新增「一次性账单挂房产」的字段（装修、翻新、屋顶等工程之后可以归到某套房子）；这一版界面没有变化，已有账单也不受影响", en: "The database can now link one-time bills (renovations, roof work…) to a property; nothing changes on screen yet and existing bills are untouched" }
   ] },

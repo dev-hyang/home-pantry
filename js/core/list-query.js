@@ -58,7 +58,7 @@ export function spendFeed(db, f = {}) {
     const category = b.kind === "pet" ? "pet_care" : b.kind === "travel" ? `travel_${b.subkind || "other"}` : b.kind || "medical";
     out.push({ id: mp.id, virtual: "medical", bill_id: b.id, pay_id: null, pay_bill_id: null, item_id: null, name, category, store: b.provider, store_txt: String(b.provider || "").trim(),
       quantity: null, unit: null, amount: mp.amount, method: null, currency: mp.currency || b.currency, purchased_at: new Date(`${mp.paid_on}T12:00:00`).toISOString(),
-      lm: String(mp.paid_on).slice(0, 7), dd: +String(mp.paid_on).slice(8, 10), created_by: mp.paid_by, created_at: mp.created_at, card_id: mp.card_id || null, import_batch: null, nature: null, property_id: null });
+      lm: String(mp.paid_on).slice(0, 7), dd: +String(mp.paid_on).slice(8, 10), created_by: mp.paid_by, created_at: mp.created_at, card_id: mp.card_id || null, import_batch: null, nature: null, property_id: b.property_id || null });
   }
   return out;
 }

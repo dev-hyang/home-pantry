@@ -12,6 +12,7 @@ import { MEDICAL_TABS, activeTab } from "../core/tabs.js";
 import { dq, download, lastMonths, monthLabel, toCsv } from "../stats/views.js";
 import { autofillBar } from "../core/autofill.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
+import { propertyOptionsHtml } from "../core/lifecycle.js";
 import { kindsNote } from "./kinds.js";
 import { accountOptions, acctById, paymentPayLabel } from "./cards-views.js";
 import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, enrichMedical, findPerson, kindOf, mergeMedical, peopleFor, subIcon, subName } from "./medical.js";
@@ -149,7 +150,8 @@ function viewDetail(id, payId) {
   // 复制：同一家机构 / 同一位就诊人 / 同类，日期清空、已付和保险清零，状态回到未结
   const msrc = isNew && pq.get("copy") ? copyOf((state.medBills || []).find((x) => x.id === pq.get("copy")), ["service_date", "insurance_paid", "adjustment", "closed_on"]) : null;
   if (msrc) Object.assign(msrc, { status: "open", service_date: "", insurance_paid: 0, adjustment: 0 });
-  const v = b || msrc || { kind: newKind, status: "open", visibility: KINDS[newKind].visibility, currency: cur(), insurance_paid: 0, adjustment: 0, service_date: "", hsa_eligible: false, ...pre }, K = kindOf(v);
+  // 新建装修 / 项目账单默认挂当前房产（其他种类留空，要挂自己选）
+  const v = b || msrc || { kind: newKind, status: "open", visibility: KINDS[newKind].visibility, currency: cur(), insurance_paid: 0, adjustment: 0, service_date: "", hsa_eligible: false, property_id: newKind === "project" && state.properties.some((p) => p.id === state.propertyId) ? state.propertyId : null, ...pre }, K = kindOf(v);
   const subs = K.subs.map(([k, n, ic]) => `<option value="${k}" ${v.subkind === k ? "selected" : ""}>${ic} ${t(n)}</option>`).join("");
   const num0 = (x) => (x == null || x === "" ? "" : num(x).toFixed(2));
   const pay = payId && b ? b.pays.find((p) => p.id === payId) : null;
@@ -164,6 +166,7 @@ function viewDetail(id, payId) {
         <label>${t("小类")}<select name="subkind"><option value="">${t("未指定")}</option>${subs}</select></label>
         ${peopleFor(v.kind) ? `<label>${t(K.who)}<select name="patient_id" data-last="${d(v.patient_id || (v.patient_text ? "__text" : ""))}">${peopleOptions(peopleFor(v.kind), v.patient_id, v.patient_text)}</select><small>${t("从家庭成员里选，同一个人只建一次，家人各自录入也不会变成两个人。")} <a href="${href("bills", "onetime")}?people=1">${t("管理家庭成员")}</a></small></label>`
           : `<label>${t(K.who)}<input name="patient" maxlength="40" value="${d(v.patient)}"></label>`}
+        ${state.properties.length ? `<label>${t("房产")}<select name="property_id"><option value="">${t("与房产无关")}</option>${propertyOptionsHtml(v.property_id, { esc })}</select></label>` : ""}
         ${K.guarantor ? `<label>${t("担保人 Guarantor")}<select name="guarantor_id" data-last="${d(v.guarantor_id || (v.guarantor_text ?? v.guarantor ? "__text" : ""))}">${peopleOptions(["adult"], v.guarantor_id, v.guarantor_id ? "" : v.guarantor)}</select><small>${t("负责付款的人，例如孩子的家长")}</small></label>` : ""}
         <label>${t("账单号 Bill #")}<input name="bill_ref" maxlength="60" value="${d(v.bill_ref)}"></label>
         ${K.insurance ? `<label>${t("保险公司")}<input name="insurer" maxlength="60" value="${d(v.insurer)}"></label>
@@ -224,7 +227,7 @@ export async function saveMedBillForm(f) {
   if (!provider) { err.textContent = t("请填写商家 / 机构名称。"); fe.provider.focus(); return false; }
   const pid = fe.patient_id ? (fe.patient_id.value && fe.patient_id.value !== "__text" ? fe.patient_id.value : null) : null, gid = fe.guarantor_id ? (fe.guarantor_id.value && fe.guarantor_id.value !== "__text" ? fe.guarantor_id.value : null) : null;
   const optText = (sel) => (sel && sel.value === "__text" ? sel.selectedOptions[0].textContent.replace(/（[^）]*）\s*$/, "").trim() : null);   // 旧记录里手填的名字，未关联名册
-  const row = { kind: fe.kind.value || "medical", subkind: fe.subkind.value || null, provider, patient: fe.patient_id ? (pid ? state.people.find((x) => x.id === pid)?.name || null : optText(fe.patient_id)) : val(fe.patient), patient_id: pid,
+  const row = { property_id: fe.property_id?.value || null, kind: fe.kind.value || "medical", subkind: fe.subkind.value || null, provider, patient: fe.patient_id ? (pid ? state.people.find((x) => x.id === pid)?.name || null : optText(fe.patient_id)) : val(fe.patient), patient_id: pid,
     guarantor: fe.guarantor_id ? (gid ? state.people.find((x) => x.id === gid)?.name || null : optText(fe.guarantor_id)) : val(fe.guarantor), guarantor_id: gid, bill_ref: val(fe.bill_ref), claim_ref: val(fe.claim_ref), insurer: val(fe.insurer),
     service_date: fe.service_date.value || null, bill_date: fe.bill_date.value || null, due_on: fe.due_on.value || null, billed_amount: amt(fe.billed_amount), insurance_paid: amt(fe.insurance_paid) ?? 0,
     adjustment: amt(fe.adjustment) ?? 0, patient_amount: amt(fe.patient_amount), currency: cur(), status: fe.status.value, hsa_eligible: !!fe.hsa_eligible?.checked, visibility: fe.visibility.value, notes: val(fe.notes) };
