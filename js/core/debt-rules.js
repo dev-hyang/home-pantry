@@ -83,7 +83,7 @@ export function migrateLegacyDebts(db, { uid, today, vehicleName = (a) => a.name
     const cat = debtCatOfBill(b.category); if (!cat || b.direction === "receivable") continue;
     const key = `bill:${b.id}`;
     if (!have.has(key)) {
-      const pays = (db.bill_payments || []).filter((p) => p.bill_id === b.id).map((p) => p.paid_on).filter(Boolean).sort();
+      const pays = (db.bills_recurring_payments || []).filter((p) => p.bill_id === b.id).map((p) => p.paid_on).filter(Boolean).sort();
       const prop = (db.properties || []).find((p) => p.id === b.property_id);
       const onProp = ["mortgage", "heloc", "home_equity"].includes(cat);
       const asset = cat === "auto_loan" ? proposeVehicle(b) : null;
