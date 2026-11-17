@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.1", title: { zh: "为「房产账单」打好数据基础", en: "Groundwork for per-property bills" }, items: [
+    { k: "better", zh: "数据库新增「一次性账单挂房产」的字段（装修、翻新、屋顶等工程之后可以归到某套房子）；这一版界面没有变化，已有账单也不受影响", en: "The database can now link one-time bills (renovations, roof work…) to a property; nothing changes on screen yet and existing bills are untouched" }
+  ] },
+
   { v: "2026-11-16.41", title: { zh: "车辆总览只有一辆车时卡片占满一行", en: "A single vehicle card fills the whole row" }, items: [
     { k: "better", zh: "车辆总览里只有一辆车时，这张卡占满一整行；两辆以上照常分两列，手机始终单列", en: "With a single vehicle the card fills the row; two or more still sit in columns, and phones stay single-column" }
   ] },
