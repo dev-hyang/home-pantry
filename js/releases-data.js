@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.17", title: { zh: "账单详情页：往下一滑就能看全，每一块单独编辑", en: "Bill page: scroll to see everything, edit each section on its own" }, items: [
+    { k: "better", zh: "点开一张周期性账单，现在是一页卡片：这是什么账单、多少钱多久一次、怎么付、提醒与其他、缴费记录，每块的内容直接看得到，没填的写「未填」", en: "Opening a recurring bill now shows one page of cards: what it is, how much and how often, how it is paid, reminders, and payments, with the content visible and unfilled items marked Not set" },
+    { k: "better", zh: "每张卡右上角有「编辑」，只改这一块，保存后回到这一页；记缴费、去缴费、复制、删除都在顶上", en: "Each card has its own Edit button, saving returns to this page; Log payment, Pay online, Copy and Delete are at the top" }
+  ] },
+
   { v: "2026-11-17.16", title: { zh: "手机上所有搜索页：搜索框至少 185px，「清除筛选」换到下一行", en: "On phones every search page keeps the search box at least 185px; Clear filters moves to its own row" }, items: [
     { k: "fix", zh: "手机上库存、采购、账单、花费等带搜索的页面，搜索框不再被「筛选」和「清除筛选」挤窄；放不下时「清除筛选」单独放在下一行，并带上文字", en: "On phones the search box on inventory, shopping, bills, spending and other pages is no longer squeezed by the Filters and Clear filters buttons; when there is no room, Clear filters sits on its own row with its label" }
   ] },

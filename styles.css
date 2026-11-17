@@ -3844,3 +3844,7 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 }
 
 .all-verify { margin: -4px 0 10px; }
+
+/* 账单详情页（分区卡片）：笔记本两列、手机一列；复用房屋资料页的 .prof-grid / .prof-card */
+@media (min-width: 760px) { .bill-detail-grid { grid-template-columns: 1fr 1fr; } }
+.bill-detail-grid .prof-card .restock-list li { padding: 8px 0; }

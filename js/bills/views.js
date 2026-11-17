@@ -7,7 +7,7 @@ import { fillFromPurchase, purchaseById } from "../core/spend-data.js";
 import { Store } from "../core/store.js";
 import { $, esc, fmtDate, fmtShort, money, num, stampText, todayISO, toast } from "../core/util.js";
 import { SECTIONS, go, href } from "../core/router.js";
-import { compare, joinList, t } from "../core/i18n.js";
+import { compare, joinList, lang, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { download, monthKey } from "../stats/views.js";
 import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
@@ -16,6 +16,7 @@ import { autofillBar, scanNewBillBar } from "../core/autofill.js";
 import { escrowPanelHtml } from "./escrow.js";
 import { assetSelectHtml, assetSuggestHtml } from "./asset-ui.js";
 import { allBillsHref } from "./all-views.js";
+import { VEHICLE_CATS } from "./instances.js";
 import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
 import { billInUse, endedSuffix, propertyActive, propertyById, propertyOptionsHtml } from "../core/lifecycle.js";
 import { kindsNote, NEW_RECURRING, ONETIME, RECURRING } from "./kinds.js";
@@ -500,18 +501,65 @@ function billHub(b, root) {
     other: () => ({ text: [b.assigned_to ? memberName(b.assigned_to) : null, b.essential ? t("必要支出") : t("非必要"), b.active ? null : t("已停用"), b.notes ? t("有备注") : null].filter(Boolean).join(" · "), pct: null, badge: "" }),
     pay: () => ({ text: b.pays.length ? t("{n} 条，最近 {d}", { n: b.pays.length, d: fmtDate(b.pays[0].paid_on) }) : t("还没有记录"), pct: null, badge: b.pays.length ? countBadge(b.pays.length, "", "") .replace("/", "") : "" }),
   };
-  const rows = BILL_SECTIONS.map((s) => { const x = st[s.id](); return hubRow({ href: `${base}?sec=${s.id}`, icon: s.icon, title: t(s.name), desc: esc(x.text), pct: x.pct, badge: x.badge }); });
+  const none = `<span class="muted">${t("未填")}</span>`;
+  const cards = BILL_SECTIONS.filter((x) => x.id !== "pay").map((sec) => {
+    const x = st[sec.id](), facts = billFacts(b, sec.id, none);
+    return `<section class="panel prof-card" aria-labelledby="bc-${sec.id}">
+      <header class="prof-head"><span class="mi" aria-hidden="true">${sec.icon}</span>
+        <div class="prof-t"><h3 id="bc-${sec.id}">${t(sec.name)}</h3>${x.badge ? `<small>${x.badge}</small>` : ""}</div>
+        <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=${sec.id}" aria-label="${esc(t("编辑 {name}", { name: t(sec.name) }))}">${t("编辑")}</a></header>
+      ${x.pct != null ? `<span class="mprog"><i style="width:${x.pct}%"></i></span>` : ""}${facts}</section>`;
+  }).join("");
+  const recent = b.pays.slice(0, 3).map((p) => `<li><span class="badge ${p.status === "skipped" ? "" : "b-ok"}" ${p.status === "skipped" ? 'style="background:var(--surface-2)"' : ""}>${t(B().PAYMENT_STATUS[p.status] || p.status)}</span>
+      <div class="grow">${esc(fmtDate(p.paid_on))}<small>${[p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p)].filter(Boolean).map(esc).join(" · ")}</small></div><b>${p.amount != null ? mny(p.amount, p.currency) : ""}</b></li>`).join("");
+  const payCard = `<section class="panel prof-card" aria-labelledby="bc-pay">
+      <header class="prof-head"><span class="mi" aria-hidden="true">✅</span><div class="prof-t"><h3 id="bc-pay">${t("缴费记录")}</h3><small>${b.pays.length ? t("{n} 条，最近 {d}", { n: b.pays.length, d: fmtDate(b.pays[0].paid_on) }) : t("还没有记录")}</small></div>
+        <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=pay" aria-label="${esc(t("编辑 {name}", { name: t("缴费记录") }))}">${b.pays.length ? t("全部") : t("记一笔")}</a></header>
+      ${recent ? `<ul class="restock-list">${recent}</ul>` : `<p class="muted prof-empty">${t("还没有记录")}</p>`}</section>`;
+  const q = state.route?.q, banner = billBanner(b, q, base);
   return `<section class="section">
     ${crumbNav([...billTrail(b, root, href("bill", b.id)).slice(0, -1), { label: b.name, icon: billCat(b.category).icon }])}
     ${billSummary(b)}
-    ${askInline(billAsk(b))}
-    ${hubList(rows)}
-    <div class="form-actions" style="margin-top:14px">
-      ${b.pay_url && !b.autopay ? `<a class="btn btn-ghost" href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${t("去缴费")}</a>` : ""}
+    <div class="form-actions" style="margin:0 0 12px">
       <a class="btn btn-primary" href="${base}?pay=1">${b.autopay ? t("记核对") : t("记缴费")}</a>
+      ${b.pay_url && !b.autopay ? `<a class="btn btn-ghost" href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${t("去缴费")}</a>` : ""}
       <span class="spacer"></span>${moreMenu([{ label: t("复制为新账单"), href: `${href("bill", "new")}?copy=${encodeURIComponent(b.id)}` }, { label: t("删除账单"), action: "bill-delete", danger: true }])}
     </div>
+    ${banner}
+    <div class="prof-grid bill-detail-grid">${cards}${payCard}</div>
+    ${askInline(billAsk(b))}
   </section>`;
+}
+
+/** 详情页分区卡片里的只读内容：没填的写「未填」 */
+const L = (zh, en) => (lang === "en" ? en : zh);   // 详情页的字段标签：中英文直接写在这里（这些词在别处的英文含义不同，不走词条）
+function billFacts(b, id, none) {
+  const dl = (rows) => `<dl class="fact-grid one">${rows.map(([k, val]) => `<div class="fact"><dt>${k}</dt><dd>${val || none}</dd></div>`).join("")}</dl>`;
+  const cat = billCat(b.category), asset = b.asset_id ? state.assets.find((a) => a.id === b.asset_id) : null;
+  if (id === "basic") return dl([[L("分类", "Category"), `${cat.icon} ${esc(t(cat.name))}`], [L("付款方", "Payee"), esc(b.payee || "")], [L("房产", "Property"), b.property_id && propertyName(b.property_id) ? esc(propertyName(b.property_id)) : t("与房产无关")],
+    ...(assetColumnVisible() ? [[L("关联资产", "Linked asset"), asset ? esc(asset.name) : ""]] : []), ...(b.direction === "receivable" ? [[L("方向", "Direction"), t("别人付给我（应收，如租金）")]] : []),
+    ...(B().isSubCat(b.category) ? [[L("订阅种类", "Subscription type"), b.sub_kind ? esc(t(B().SUB_KINDS[b.sub_kind] || b.sub_kind)) : ""], [L("免费试用到期", "Free trial ends"), b.trial_ends_on ? esc(fmtDate(b.trial_ends_on)) : ""]] : [])]);
+  if (id === "amount") return dl([[L("频率", "Frequency"), esc(freqText(b))], [L("到期日", "Due day"), b.due_dates?.length ? esc(b.due_dates.join(", ")) : b.due_day ? t("每月 {d} 号", { d: b.due_day }) : ""], [L("下次到期", "Next due"), b.next_due_on ? esc(fmtDate(b.next_due_on)) : ""],
+    [L("金额", "Amount"), b.amount_type === "fixed" ? (b.typical_amount != null ? `${mny(b.typical_amount, b.currency)} · ${t("固定")}` : "") : (b.est != null ? `${t("约")} ${mny(b.est, b.currency)} · ${t("每次不同，按最近均值估")}` : t("每次不同（记缴费后按均值估）"))],
+    ...(b.monthly ? [[L("折合每月", "Per month"), money(b.monthly)]] : [])]);
+  if (id === "autopay") return dl([[L("缴费方式", "Payment method"), esc(t(B().CHANNELS[b.pay_channel] || ""))], [L("付款账户", "Account"), billPayLabel(b) ? esc(billPayLabel(b)) : ""], [L("自动扣款", "Autopay"), b.autopay ? `${t("是")}${b.cardDays != null ? ` · ${t("卡 {d} 天后到期", { d: b.cardDays })}` : ""}` : t("否，手动缴费")],
+    [L("缴费链接", "Payment link"), b.pay_url ? `<a href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${esc(b.pay_url.replace(/^https?:\/\//, "").slice(0, 40))}</a>` : ""], [L("账号尾号", "Account digits"), esc(b.account_last4 || "")], [L("登录提示", "Login hint"), esc(b.login_hint || "")], [L("账单怎么来", "Statement via"), esc(t(B().STATEMENTS[b.statement_channel] || ""))]]);
+  return dl([[L("提前提醒", "Reminders"), (b.reminder_days || [7, 1]).map((d) => L(`${d} 天`, `${d}d`)).join(L("、", ", "))], [L("宽限天数", "Grace days"), b.grace_days ? String(b.grace_days) : ""], [L("结束日期", "Ends on"), b.ends_on ? esc(fmtDate(b.ends_on)) : ""], [L("滞纳金说明", "Late fee note"), esc(b.late_fee_note || "")],
+    ...(state.members?.length > 1 ? [[L("谁负责", "Owner"), b.assigned_to ? esc(memberName(b.assigned_to) || "") : ""]] : []), [L("必要支出", "Essential"), b.essential ? t("是") : t("否")], [L("状态", "Status"), b.active ? t("启用") : t("已停用")], [L("备注", "Notes"), b.notes ? `<span class="pre">${esc(b.notes)}</span>` : ""]]);
+}
+const assetColumnVisible = () => (state.assets || []).some((a) => a.kind === "vehicle" || a.kind === "equipment");
+
+/** 刚新建完（?new=1）或 AI 扫描创建（?ai=1）进来：详情页顶上的一次性提示条，列出还没填的项；关闭 = 去掉网址参数 */
+function billBanner(b, q, base) {
+  const isAi = q?.get("ai") === "1", isNew = q?.get("new") === "1";
+  if (!isAi && !isNew) return "";
+  const missing = [!b.payee && t("付款方"), b.amount_type === "fixed" && b.typical_amount == null && t("金额"), !b.account_last4 && t("账号尾号"), !b.autopay && !b.pay_url && t("缴费链接"),
+    VEHICLE_CATS.includes(b.category) && !b.asset_id && assetColumnVisible() && t("关联资产")].filter(Boolean).slice(0, 4);
+  const close = `<a class="btn btn-sm btn-ghost" href="${base}" aria-label="${esc(t("关闭提示"))}">${t("知道了")}</a>`;
+  if (isAi) return `<div class="notice" role="status" style="margin-bottom:12px"><b>✨ ${t("AI 识别创建")}</b> ${t("看一眼就行：不对的地方点下面对应分区的“编辑”改；整张读错了就撤销创建。")}${missing.length ? ` ${t("还没读到：{list}。", { list: missing.join("、") })}` : ""}
+    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm btn-ghost" data-action="bill-delete">${t("撤销创建")}</button>${close}</div></div>`;
+  return `<div class="notice" role="status" style="margin-bottom:12px"><b>✅ ${t("已创建")}</b>${missing.length ? ` ${t("这几项还没填：{list}，随时在下面补。", { list: missing.join("、") })}` : ` ${t("信息都齐了。")}`}
+    <div class="form-actions" style="margin-top:8px">${close}</div></div>`;
 }
 
 function billSummary(b) {
