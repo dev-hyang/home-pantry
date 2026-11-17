@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.7", title: { zh: "账单可以挂在某辆车、某件设备上", en: "Bills can be attached to a vehicle or equipment" }, items: [
+    { k: "new", zh: "周期性账单和一次性账单的表单里多了「关联资产」：车险、车贷、保养、维修的账单可以挂在对应的车或设备上", en: "Recurring and one-time bill forms have a new Linked asset field, so car insurance, loans, servicing and repairs can be attached to the vehicle or equipment" },
+    { k: "new", zh: "账单清单顶上会提示「这几张账单可能属于某辆车」，点「确认」就挂上，不对就「忽略」，不会自动改", en: "The bill list suggests which bills may belong to a vehicle; tap Confirm to attach or Ignore to dismiss. Nothing changes automatically" }
+  ] },
+
   { v: "2026-11-17.6", title: { zh: "账单概览重构的第一块地基（页面不变）", en: "Groundwork for the bills overview rebuild (no visible change)" }, items: [
     { k: "better", zh: "后台新增「账单按期计算」：周期性账单按需算出每一期的状态和金额，为接下来的「全部账单」页和新的账单概览做准备；现在看到的页面和功能不变", en: "Behind the scenes, bills are now worked out period by period (status and amount per due date), ready for the upcoming All bills page and new Bills overview; nothing you see changes yet" }
   ] },

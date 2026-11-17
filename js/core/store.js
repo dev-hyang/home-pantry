@@ -632,11 +632,11 @@ export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", 
 export const PROPERTY_FIELDS = ["name", "kind", "role", "address", "status", "acquired_on", "purchase_price", "sold_on", "sale_price", "archived", "notes"];
 export const INSURANCE_FIELDS = ["insured", "insurance_provider", "insurance_policy", "insurance_from", "insurance_to", "insurance_coverage", "insurance_premium", "insurance_agent", "insurance_phone", "insurance_email", "hoa"];
 export const INCOME_FIELDS = ["received_on", "amount", "currency", "orig_amount", "orig_currency", "fee", "source_name", "kind", "channel", "person_id", "account", "import_batch", "repay_required", "repay_due_on", "repay_amount", "notes", "income_amount", "account_id"];
-export const MED_FIELDS = ["kind", "subkind", "property_id", "provider", "patient", "patient_id", "guarantor", "guarantor_id", "bill_ref", "claim_ref", "insurer", "service_date", "bill_date", "due_on", "billed_amount", "insurance_paid", "adjustment", "patient_amount", "currency", "status", "hsa_eligible", "visibility", "notes"];
+export const MED_FIELDS = ["kind", "subkind", "property_id", "provider", "patient", "patient_id", "guarantor", "guarantor_id", "bill_ref", "claim_ref", "insurer", "service_date", "bill_date", "due_on", "billed_amount", "insurance_paid", "adjustment", "patient_amount", "currency", "status", "hsa_eligible", "visibility", "notes", "asset_id"];
 export const CARD_FIELDS = ["name", "issuer", "network", "last4", "holder_user_id", "kind", "expires_on", "opened_on", "annual_fee", "fee_month", "credit_limit", "statement_day", "due_day", "autopay", "bill_id", "catalog_id", "rewards", "bonus", "credits", "rules_as_of", "active", "notes", "balance", "inactive_since"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "currency",
   "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "pay_card_id", "statement_channel",
-  "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes"];
+  "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes", "asset_id"];
 export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", "subs", "hidden", "sort"];
 export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
 export const TERM_FIELDS = ["term", "zh", "en", "hant"];
@@ -1109,8 +1109,11 @@ export const CloudStore = {
   async listMedicalBills() { return this.pageAll(() => this.sb.from("bills_one_time").select("*").eq("household_id", this.hid).order("service_date", { ascending: false, nullsFirst: false }).order("id")); },   // 分页读，超过 1000 张也不丢
   async saveMedicalBill(b) {
     const row = pick(b, MED_FIELDS, { household_id: this.hid });
-    if (b.id) { this.must(await this.sb.from("bills_one_time").update(row).eq("id", b.id)); return b.id; }
-    return this.must(await this.sb.from("bills_one_time").insert(row).select("id").single()).id;
+    const run = () => (b.id ? this.sb.from("bills_one_time").update(row).eq("id", b.id) : this.sb.from("bills_one_time").insert(row).select("id").single());
+    let r = await run();
+    if (r.error && /asset_id/i.test(r.error.message) && !row.asset_id) { delete row.asset_id; r = await run(); }   // 还没执行迁移 077 且没挂资产：照旧保存
+    const out = this.must(r);
+    return b.id || out.id;
   },
   async deleteMedicalBill(id) { this.must(await this.sb.from("bills_one_time").delete().eq("id", id)); },   // 付款级联删除
   async listMedicalPayments() { return this.pageAll(() => this.sb.from("bills_one_time_payments").select("*").eq("household_id", this.hid).order("paid_on", { ascending: false }).order("id")); },
@@ -1155,6 +1158,7 @@ export const CloudStore = {
     const run = async () => (b.id ? this.sb.from("bills_recurring").update(row).eq("id", b.id) : this.sb.from("bills_recurring").insert(row));
     let r = await run();
     if (r.error && /pay_card_id/i.test(r.error.message) && !row.pay_card_id) { delete row.pay_card_id; r = await run(); }   // 还没执行迁移 036 且没选付款账户：照旧保存
+    if (r.error && /asset_id/i.test(r.error.message) && !row.asset_id) { delete row.asset_id; r = await run(); }   // 还没执行迁移 076 且没挂资产：照旧保存
     this.must(r);
   },
   async addBills(list) {

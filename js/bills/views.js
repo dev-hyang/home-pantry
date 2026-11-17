@@ -14,6 +14,7 @@ import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAle
 import { attentionPanel, propertyTag, withProperty } from "../core/alerts.js";
 import { autofillBar } from "../core/autofill.js";
 import { escrowPanelHtml } from "./escrow.js";
+import { assetSelectHtml, assetSuggestHtml } from "./asset-ui.js";
 import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
 import { billInUse, endedSuffix, propertyActive, propertyById, propertyOptionsHtml } from "../core/lifecycle.js";
 import { kindsNote, ONETIME, RECURRING } from "./kinds.js";
@@ -247,6 +248,7 @@ export function viewBillsList() {
         ${clearFiltersBtn("bills", changed(f, FD.bills))}
       </div>
       ${hiddenEndedHint(state.billsEnriched)}
+      ${assetSuggestHtml()}
       <div id="billList">${billInner()}</div>
     </section>`;
 }
@@ -473,6 +475,7 @@ export function viewBillForm() {
             <label class="sub-only">${t("订阅种类")}<select name="sub_kind"><option value="">${t("未指定")}</option>${opts(B().SUB_KINDS, v.sub_kind)}</select><small>${t("只用于分组和汇总；流媒体、云存储、AI 工具、软件等")}</small></label>
             <label class="sub-only">${t("免费试用到期日")}<input name="trial_ends_on" type="date" value="${d(v.trial_ends_on)}"><small>${t("到期前 3 天提醒“不续就取消”")}</small></label>
             <label>${t("房产")}<select name="property_id"><option value="">${t("与房产无关")}</option>${state.properties.filter((p) => propertyActive(p) || p.id === v.property_id).map((p) => `<option value="${p.id}" ${p.id === v.property_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
+            ${assetSelectHtml(v.asset_id, state.bills)}
             ${landlord || v.direction === "receivable" ? `<label>${t("方向")}<select name="direction"><option value="payable" ${v.direction !== "receivable" ? "selected" : ""}>${t("我付出去（应付）")}</option><option value="receivable" ${v.direction === "receivable" ? "selected" : ""}>${t("别人付给我（应收，如租金）")}</option></select></label>` : `<input type="hidden" name="direction" value="payable">`}
             <label>${t("付款方 / 收款方")}<input name="payee" maxlength="60" placeholder="${t("例如：ComEd")}" value="${d(v.payee)}"></label>
             <label>${t("账号尾号")}<input name="account_last4" maxlength="8" placeholder="${t("只记后 4 位")}" value="${d(v.account_last4)}"></label>
@@ -642,7 +645,7 @@ export async function saveBillForm(f, { silent = false } = {}) {
     if (dupOnce(f, hit?.id)) return fail(t("已经有在用的账单「{name}」（同名或同一收款方、同一分类）。确认是另一条，再点一次保存。", { name: hit.name }), fe.name);
   }
   const b = {
-    id: fe.bill_id.value || undefined, name, category: fe.category.value, property_id: fe.property_id.value || null, direction: fe.direction.value || "payable",
+    id: fe.bill_id.value || undefined, name, category: fe.category.value, property_id: fe.property_id.value || null, asset_id: fe.asset_id?.value || null, direction: fe.direction.value || "payable",
     payee: fe.payee.value.trim() || null, account_last4: fe.account_last4.value.trim() || null, login_hint: fe.login_hint.value.trim() || null, pay_url: payUrl || null,
     pay_channel: fe.pay_channel.value, statement_channel: fe.statement_channel.value, amount_type: fe.amount_type.value, typical_amount: numOrNull(fe.typical_amount),
     currency: (fe.currency.value.trim().toUpperCase() || Units.region.currency).slice(0, 3), frequency: fe.frequency.value, interval_months: numOrNull(fe.interval_months, true),

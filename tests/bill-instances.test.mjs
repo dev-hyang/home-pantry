@@ -149,3 +149,28 @@ test("资产键：房产 / 车辆 / 资产 / 医疗 / 项目 / 通用", () => {
   assert.deepEqual(assetKeys({ kind: "medical", patient_id: "m1" }, "onetime"), ["medical", "person:m1"]);
   assert.deepEqual(assetKeys({ category: "subscription" }, "recurring"), ["general"]);
 });
+
+// ── 账单 ↔ 资产挂靠建议 ──
+import { suggestAssetLinks, assetChoices } from "../js/bills/asset-suggest.js";
+const car = (id, name) => ({ id, name, kind: "vehicle" });
+
+test("挂靠建议：账单名里恰好含一辆车的名字才建议；多辆 / 零辆 / 已挂的不建议", () => {
+  const assets = [car("v1", "Honda Odyssey"), car("v2", "Tesla"), { id: "e1", name: "Furnace", kind: "equipment" }, car("v3", "X")];
+  const bills = [
+    bill({ id: "1", name: "Honda Odyssey 车险", category: "insurance_auto" }),
+    bill({ id: "2", name: "车贷", payee: "Tesla Finance", category: "car_loan" }),
+    bill({ id: "3", name: "Honda Odyssey + Tesla 合并保单", category: "insurance_auto" }),
+    bill({ id: "4", name: "车险", category: "insurance_auto" }),
+    bill({ id: "5", name: "Honda Odyssey 车险", category: "insurance_auto", asset_id: "v1" }),
+    bill({ id: "6", name: "Honda Odyssey 车险（停用）", category: "insurance_auto", active: false }),
+    bill({ id: "7", name: "Honda Odyssey 订阅", category: "subscription" }),
+    bill({ id: "8", name: "X 车险", category: "insurance_auto" }),   // 车名只有 1 个字：不猜
+  ];
+  assert.deepEqual(suggestAssetLinks(bills, assets).map((s) => [s.billId, s.assetId]), [["1", "v1"], ["2", "v2"]]);
+});
+
+test("关联资产下拉：只列车辆和设备，车辆在前；已选的旧值保留", () => {
+  const assets = [{ id: "e1", name: "Furnace", kind: "equipment" }, { id: "t1", name: "Drill", kind: "tool" }, car("v1", "Car")];
+  assert.deepEqual(assetChoices(assets).map((a) => a.id), ["v1", "e1"]);
+  assert.deepEqual(assetChoices(assets, "t1").map((a) => a.id), ["v1", "e1", "t1"]);
+});

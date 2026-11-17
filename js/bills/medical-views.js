@@ -1,6 +1,7 @@
 /* 财务 → 医疗：概览 / 账单 / 年度报表三个标签（窄屏概览下面是入口行），账单详情页（?bill=<id|new>）里有金额、保险、付款记录。
  * 隐私：默认“仅自己和家主可见”（visibility = private），可改成全家可见；列表里私密的带 🔒。 */
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
+import { assetSelectHtml } from "./asset-ui.js";
 import { copyOf } from "../core/more-menu.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
@@ -187,6 +188,7 @@ function viewDetail(id, payId) {
         ${peopleFor(v.kind) ? `<label>${t(K.who)}<select name="patient_id" data-last="${d(v.patient_id || (v.patient_text ? "__text" : ""))}">${peopleOptions(peopleFor(v.kind), v.patient_id, v.patient_text)}</select><small>${t("从家庭成员里选，同一个人只建一次，家人各自录入也不会变成两个人。")} <a href="${href("bills", "onetime")}?people=1">${t("管理家庭成员")}</a></small></label>`
           : `<label>${t(K.who)}<input name="patient" maxlength="40" value="${d(v.patient)}"></label>`}
         ${state.properties.length ? `<label>${t("房产")}<select name="property_id"><option value="">${t("与房产无关")}</option>${propertyOptionsHtml(v.property_id, { esc })}</select></label>` : ""}
+        ${assetSelectHtml(v.asset_id, state.medEnriched)}
         ${K.guarantor ? `<label>${t("担保人 Guarantor")}<select name="guarantor_id" data-last="${d(v.guarantor_id || (v.guarantor_text ?? v.guarantor ? "__text" : ""))}">${peopleOptions(["adult"], v.guarantor_id, v.guarantor_id ? "" : v.guarantor)}</select><small>${t("负责付款的人，例如孩子的家长")}</small></label>` : ""}
         <label>${t("账单号 Bill #")}<input name="bill_ref" maxlength="60" value="${d(v.bill_ref)}"></label>
         ${K.insurance ? `<label>${t("保险公司")}<input name="insurer" maxlength="60" value="${d(v.insurer)}"></label>
@@ -247,7 +249,7 @@ export async function saveMedBillForm(f) {
   if (!provider) { err.textContent = t("请填写商家 / 机构名称。"); fe.provider.focus(); return false; }
   const pid = fe.patient_id ? (fe.patient_id.value && fe.patient_id.value !== "__text" ? fe.patient_id.value : null) : null, gid = fe.guarantor_id ? (fe.guarantor_id.value && fe.guarantor_id.value !== "__text" ? fe.guarantor_id.value : null) : null;
   const optText = (sel) => (sel && sel.value === "__text" ? sel.selectedOptions[0].textContent.replace(/（[^）]*）\s*$/, "").trim() : null);   // 旧记录里手填的名字，未关联名册
-  const row = { property_id: fe.property_id?.value || null, kind: fe.kind.value || "medical", subkind: fe.subkind.value || null, provider, patient: fe.patient_id ? (pid ? state.people.find((x) => x.id === pid)?.name || null : optText(fe.patient_id)) : val(fe.patient), patient_id: pid,
+  const row = { property_id: fe.property_id?.value || null, asset_id: fe.asset_id?.value || null, kind: fe.kind.value || "medical", subkind: fe.subkind.value || null, provider, patient: fe.patient_id ? (pid ? state.people.find((x) => x.id === pid)?.name || null : optText(fe.patient_id)) : val(fe.patient), patient_id: pid,
     guarantor: fe.guarantor_id ? (gid ? state.people.find((x) => x.id === gid)?.name || null : optText(fe.guarantor_id)) : val(fe.guarantor), guarantor_id: gid, bill_ref: val(fe.bill_ref), claim_ref: val(fe.claim_ref), insurer: val(fe.insurer),
     service_date: fe.service_date.value || null, bill_date: fe.bill_date.value || null, due_on: fe.due_on.value || null, billed_amount: amt(fe.billed_amount), insurance_paid: amt(fe.insurance_paid) ?? 0,
     adjustment: amt(fe.adjustment) ?? 0, patient_amount: amt(fe.patient_amount), currency: cur(), status: fe.status.value, hsa_eligible: !!fe.hsa_eligible?.checked, visibility: fe.visibility.value, notes: val(fe.notes) };
