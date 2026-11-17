@@ -35,7 +35,7 @@ export const onClearFilters = (key, fn, isChanged = null) => { handlers.set(key,
 /** 当前筛选和默认值是否不同（只比 keys 里的键；默认比 def 的全部键；数组 / 对象按 JSON 比） */
 export const changed = (cur, def, keys = Object.keys(def)) => keys.some((k) => JSON.stringify(cur?.[k] === undefined ? def[k] ?? null : cur[k] ?? null) !== JSON.stringify(def[k] ?? null));   // 没设过（undefined）= 默认
 /** 按钮：没改过筛选时带 hidden（登记了 isChanged 的页面边输入边显示） */
-export const clearFiltersBtn = (key, show) => `<button type="button" class="btn btn-sm btn-ghost clear-filters" data-clear-filters="${key}"${show ? "" : " hidden"}><span aria-hidden="true">✕ </span>${t("清除筛选")}</button>`;
+export const clearFiltersBtn = (key, show) => `<button type="button" class="btn btn-sm btn-ghost clear-filters" data-clear-filters="${key}"${show ? "" : " hidden"} aria-label="${t("清除筛选")}" title="${t("清除筛选")}"><span aria-hidden="true">✕</span><span class="cf-text"> ${t("清除筛选")}</span></button>`;
 /** 按登记的 isChanged 更新页面上按钮的显隐 */
 export function syncClearButtons() {
   for (const b of document.querySelectorAll("[data-clear-filters]")) { const f = checks.get(b.dataset.clearFilters); if (f) { try { b.hidden = !f(); } catch { /* 页面状态还没准备好：不动 */ } } }

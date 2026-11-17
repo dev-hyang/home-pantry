@@ -15,7 +15,7 @@ import { resilientFetch } from "./core/net.js";
 import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
 import { FD, changed, clearUrlParams, onClearFilters } from "./core/clear-filters.js";
 import { loadOverviewRange, setOverviewRange, viewBillsHome } from "./bills/overview-views.js";
-import { applyAllQuery, applyAllRoute, defaultAllEntry, renderAllList, viewAllBills } from "./bills/all-views.js";
+import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
 import { ensureAdults } from "./bills/medical.js";
@@ -1169,6 +1169,7 @@ main.addEventListener("click", async (e) => {
       case "bill-link-ignore": ignoreSuggestion(id); return render(true);
       case "billpay-backfill": el.disabled = true; try { await backfillPayments(el.dataset.id); } catch (err) { toast(t("补标失败：{msg}", { msg: friendlyErr(err.message) })); } return refresh();
       case "bills-ics": return exportIcs();
+      case "all-csv": { const n = exportAllCsv(); return toast(t("已导出 {n} 期账单", { n })); }
       case "bills-csv": return exportBillsCsv();
       case "bills-filter": state.billsFilter[el.dataset.key] = el.dataset.val; return render();
       case "bills-prop": state.billsFilter.property = id; return render();

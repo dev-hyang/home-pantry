@@ -5,7 +5,7 @@ import { state } from "../core/state.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
-import { t } from "../core/i18n.js";
+import { lang, t } from "../core/i18n.js";
 import { propertyTag, propertyName } from "../core/alerts.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { billCat } from "./logic.js";
@@ -132,7 +132,7 @@ export function viewAllBills() {
   const range = (BILL_RANGES.some(([k]) => k === f.range) ? "" : `<option value="${esc(f.range)}" selected>${esc(f.range)}</option>`) + BILL_RANGES.map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");
   const scope = `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
   return `<section class="section">
-    <div class="section-head"><h2>🧾 ${t("全部账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
+    <div class="section-head"><h2>🧾 ${t("全部账单")}</h2><div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="all-csv">${t("导出 CSV")}</button><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
     <p class="muted kinds-note">${t("周期性 + 一次性账单，一行 = 一期账单。时间范围：{r}（{s}）；逾期没缴的不受范围限制，一直显示。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope })}</p>
     <div class="toolbar">
       <input type="search" id="allSearch" placeholder="${t("搜索名称、付款方、患者")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">
@@ -148,6 +148,18 @@ export function viewAllBills() {
     <div id="allSum">${summaryHtml(C)}</div>
     <div id="allList">${listHtml(C)}</div>
   </section>`;
+}
+
+/** 导出当前筛选下的全部账单（一行一期）：CSV，Excel 能直接打开；以 = + - @ 开头的文本前面加 ' 防公式注入 */
+export function exportAllCsv() {
+  const C = compute(), st = (r) => t(LABEL[r.status] || r.status);
+  const en = lang === "en", head = en ? ["Due date", "Bill", "Type", "Category", "Asset", "Status", "Total due", "Paid", "Balance", "Currency", "Payee", "Payment method"] : ["到期日", "账单", "类型", "分类", "资产", "状态", "应付", "已付", "余额", "货币", "付款方", "付款方式"];   // 表头直接按界面语言写（不走词条：这几个词在别处的英文是另一个意思）
+  const rows = [head, ...C.rows.map((r) => [r.dueOn || "", r.name, r.kind === "onetime" ? t("一次性") : t("周期性"), r.kind === "onetime" ? t(KINDS[r.category]?.name || r.category) : t(billCat(r.category).name),
+    assetKeyLabel(r.assets[0] || "general").replace(/^\S+\s/, ""), st(r), r.amountUnknown ? "" : r.amount, r.paid, r.balance, r.currency || cur(), r.payee || "", r.escrow ? "Escrow" : r.autopay ? (en ? "Autopay" : "自动扣款") : r.kind === "recurring" ? (en ? "Manual" : "手动缴费") : ""])];
+  const csv = "\ufeff" + rows.map((x) => x.map((v) => { const s = String(v ?? ""); const y = /^[=+\-@]/.test(s) ? `'${s}` : s; return /[",\r\n]/.test(y) ? `"${y.replace(/"/g, '""')}"` : y; }).join(",")).join("\r\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })), el = document.createElement("a");
+  el.href = url; el.download = `${t("全部账单")}-${todayISO()}.csv`; document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return rows.length - 1;
 }
 
 /** 给卡片 / 链接用：生成「全部账单」的网址（只带不是默认值的条件） */

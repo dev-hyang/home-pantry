@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.14", title: { zh: "全部账单可以导出 CSV；手机上搜索框不再被挤窄", en: "Export All bills to CSV; the search box no longer gets squeezed on phones" }, items: [
+    { k: "new", zh: "全部账单页右上角多了「导出 CSV」：按当前的筛选，一行一期，Excel 能直接打开", en: "All bills has an Export CSV button: it follows your current filters, one row per due date, and opens in Excel" },
+    { k: "fix", zh: "手机上列表页的「清除筛选」只显示一个 ✕，把宽度让给搜索框，不再把搜索框挤成一条缝（各页都一样）", en: "On phones the Clear filters button on list pages shows just a cross, so the search box is no longer squeezed to a sliver (all pages)" }
+  ] },
+
   { v: "2026-11-17.13", title: { zh: "周期性账单概览瘦身：重复的列表交给「全部账单」", en: "Recurring bills overview slimmed down: lists moved to All bills" }, items: [
     { k: "better", zh: "周期性账单的概览只留周期性专属的内容（每月固定支出、自动扣款、订阅、卡快过期、Escrow、导出到日历）；「要处理 / 本月账单 / 未来 30 天」那几块改成一个入口，点进「全部账单」看", en: "The recurring bills overview keeps only recurring-specific items (monthly total, autopay, subscriptions, expiring cards, escrow, calendar export); the needs-attention, this-month and next-30-days lists are replaced by a link to All bills" }
   ] },

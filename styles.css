@@ -3834,3 +3834,9 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .bill-fab-menu a + a { border-top: 1px solid var(--line); }
 .bill-fab-menu a:hover, .bill-fab-menu a:focus-visible { background: var(--surface-2); }
 .bill-fab-menu small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+
+/* 手机的紧凑筛选条里：「清除筛选」只留 ✕（文字仍在，读屏照读；aria-label / title 同文），把宽度让给搜索框 */
+@media (max-width: 440px) {
+  .toolbar.tb-on .clear-filters { min-width: 44px; padding: 0 12px; justify-content: center; }
+  .toolbar.tb-on .clear-filters .cf-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
