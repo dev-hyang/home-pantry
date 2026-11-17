@@ -10,7 +10,7 @@ import { state } from "./state.js";
 
 /** 各页筛选的默认值（不含排序：排序不是筛选，清除筛选不动它）；页面判断显隐、main.js 恢复默认都用这一份 */
 export const FD = {
-  inv: { cat: "all", sub: "all", q: "", status: "all", loc: "all" },
+  inv: { cat: "all", sub: "all", q: "", status: "all", loc: "all", owner: "all" },
   shop: { st: "open", cat: "all", q: "", sort: "new" },
   maint: { q: "", kind: "all", year: "all" },   // 设备 / 车辆的保养记录页
   asset: { q: "", type: "all", service: "all", warranty: "all", loc: "all" },

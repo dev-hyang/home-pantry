@@ -1,6 +1,7 @@
 import { activeProperties } from "../core/lifecycle.js";
 import { canManageHome } from "../settings/members.js";
 import { moreMenu } from "../core/more-menu.js";
+import { ownerIcon, ownerMatch, ownerName, showOwner } from "../pantry/owner.js";
 import { autofillBar } from "../core/autofill.js";
 /* 房屋维护 · 第一期：房屋资料（房型、材料、设施）、责任归属、材料保养建议、按模板批量加入汽车房屋消耗品 */
 import { alertsOf } from "../core/logic.js";
@@ -495,27 +496,33 @@ export function viewHouse() {
       : refSection("house-care", { title: t("材料保养建议"), hint: t("还没填材料"), body: `${t("补充外墙、屋面和地面材料后，这里会给出对应的保养建议。")}<p><a class="btn btn-ghost btn-sm" href="${href("house", "profile")}">${t("补充材料")}</a></p>` })}`;
 }
 
-/** 概览里的「汽车房屋消耗品」一行：点进消耗品页（有物品时那页直接转到库存） */
+/** 消耗品范围：多套房产 / 有车时，每个入口只看自己的（加全家共用）；?veh= 指定某辆车，否则是当前房产。只有一套房产又没车时不分，返回 "" */
+const supplyScope = () => (showOwner() ? (state.route?.q?.get("veh") ? `a:${state.route.q.get("veh")}` : `p:${state.propertyId}`) : "");
+const scopedHouseItems = (scope) => state.enriched.filter(inSpace("house")).filter((x) => !scope || ownerMatch(x, scope, true));
+
+/** 概览里的「汽车房屋消耗品」一行：点进这套房产的消耗品页 */
 function suppliesRow() {
-  const mine = state.enriched.filter(inSpace("house")), n = alertsOf(mine).length;
+  const mine = scopedHouseItems(supplyScope()), n = alertsOf(mine).length;
   const stat = n ? t("{n} 项要补货", { n }) : mine.length ? t("{n} 种", { n: mine.length }) : t("还没有记录");
   return `<section class="section"><a class="hv-card hn-tile" href="${href("house", "supplies")}"><span class="hv-ico" aria-hidden="true">🧰</span>
     <span class="hv-txt"><b>${t("汽车房屋消耗品")}</b><small class="hn-stat">${esc(stat)}</small><small>${t("滤网、电池、融雪盐等")}</small></span>${n ? `<span class="badge b-soon mcount">${n}</span>` : ""}</a></section>`;
 }
 
-/** 房屋 / 消耗品页（始终是一页，不再跳走）：顶上「手动添加」「按房屋设备资料推荐」两个按钮，下面缺货 / 少货清单和分类方块，「看全部」进库存；空白时只有两个按钮；右下角 ＋ 也能选 */
+/** 房屋 / 消耗品页：始终是一页。多套房产 / 有车时只显示这一处自己的（含全家共用）；顶上「手动添加」「按房屋设备资料推荐」随时都在，右下角 ＋ 也能选 */
 export function viewHouseSupplies() {
-  const mine = state.enriched.filter(inSpace("house")), alerts = alertsOf(mine), label = t("添加汽车房屋消耗品");
-  const buttons = `<a class="btn btn-sm ${mine.length ? "btn-ghost" : "btn-primary"}" href="${href("item", "new")}?space=house">${t("手动添加")}</a>
+  const scope = supplyScope(), mine = scopedHouseItems(scope), alerts = alertsOf(mine), label = t("添加汽车房屋消耗品");
+  const who = scope ? `${ownerIcon(scope)} ${ownerName(scope)}` : "";
+  const q = scope.startsWith("a:") ? `&veh=${scope.slice(2)}` : scope ? `&prop=${scope.slice(2)}` : "";
+  const buttons = `<a class="btn btn-sm ${mine.length ? "btn-ghost" : "btn-primary"}" href="${href("item", "new")}?space=house${q}">${t("手动添加")}</a>
     <a class="btn btn-sm ${mine.length ? "btn-ghost" : "btn-primary"}" href="${href("house", "template")}">${t("按房屋设备资料推荐")}</a>`;
   const body = !mine.length
     ? `<div class="panel"><div class="empty"><strong>${t("还没有汽车房屋消耗品")}</strong>${t("手动添加，或按你家的房屋和设备资料一次加好滤网、电池、融雪盐等。")}<p class="form-actions" style="justify-content:center">${buttons}</p></div></div>`
-    : `<div class="section-head"><p>${t("{n} 种", { n: mine.length })}</p><div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-sm btn-add-all" data-action="shop-add-alerts" data-space="house">＋ ${t("全部加入购物车")}</button>` : ""}${buttons}</div></div>
+    : `<div class="section-head"><p>${who ? `${esc(who)} · ` : ""}${t("{n} 种", { n: mine.length })}</p><div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-sm btn-add-all" data-action="shop-add-alerts" data-space="house" data-owner="${esc(scope)}">＋ ${t("全部加入购物车")}</button>` : ""}${buttons}</div></div>
       ${alerts.length ? `${rsHint()}<div class="panel">${restockPanel(alerts)}</div>` : ""}
-      <div class="shelf" style="margin-top:10px">${shelfGrid("house")}</div>
-      <p style="margin-top:10px"><a class="btn btn-sm btn-ghost" href="${href("pantry", "inventory")}?space=house">${t("看全部汽车房屋消耗品")} ›</a></p>`;
+      <div class="shelf" style="margin-top:10px">${shelfGrid("house", scope)}</div>
+      <p style="margin-top:10px"><a class="btn btn-sm btn-ghost" href="${href("pantry", "inventory")}?space=house${scope ? `&owner=${encodeURIComponent(scope)}` : ""}">${t("看全部汽车房屋消耗品")} ›</a></p>`;
   return `${houseBar()}<section class="section">${body}</section>
-    <button type="button" class="fab" data-action="supply-add-pick" aria-label="${esc(label)}" title="${esc(label)}"><span aria-hidden="true">＋</span></button>`;
+    <button type="button" class="fab" data-action="supply-add-pick" data-scope="${esc(q)}" aria-label="${esc(label)}" title="${esc(label)}"><span aria-hidden="true">＋</span></button>`;
 }
 
 /* ── 概览里的设备与季节任务摘要（第二期） ── */

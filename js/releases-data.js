@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.28", title: { zh: "消耗品可以属于某套房产或某辆车", en: "Supplies can belong to a property or a car" }, items: [
+    { k: "new", zh: "汽车房屋消耗品多了「属于」：全家共用（默认）、某套房产或某辆车；添加 / 编辑物品时选，按房屋资料推荐加入的会归当前这套房产", en: "Home & car supplies now have Belongs to: shared (default), a property or a car; set it when adding or editing, and suggested supplies go to the current property" },
+    { k: "new", zh: "有多套房产或车辆时，库存行上显示属于谁的小标签，筛选条多一个「属于」下拉", en: "With several properties or cars, inventory rows show who a supply belongs to and the filter bar has a Belongs to dropdown" },
+    { k: "better", zh: "房屋概览的消耗品一行和消耗品页只看这套房产的（含全家共用）；车辆页也有自己的消耗品入口；「看全部」进库存时带上筛选", en: "The overview supplies row and page show only this property (plus shared); vehicles get their own entry; See all opens Inventory with the filter applied" }
+  ] },
+
   { v: "2026-11-16.27", title: { zh: "修复房屋概览打不开", en: "Fix the house overview not opening" }, items: [
     { k: "fix", zh: "修复房屋概览页打不开（⋮ 菜单缺少引用）", en: "Fixed the house overview failing to open (missing menu import)" }
   ] },

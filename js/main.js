@@ -24,6 +24,7 @@ import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { askConfirm, askRemind, askShopItems } from "./pantry/shop-ask.js";
+import { ownerMatch } from "./pantry/owner.js";
 import { pickSpace, pickSupplyAdd } from "./pantry/space-pick.js";
 import { initBankImport } from "./stats/bank-import.js";
 import { incList, initIncome, viewIncome } from "./income/views.js";
@@ -436,7 +437,7 @@ function onRoute() {
   // 从目录或别的页进库存类清单：默认回到全部分类（从物品编辑页返回、或概览方块指定了分类时保留）
   if (isListRoute(next) && routeKey(prev) !== routeKey(next) && !isFormSection(prev)) {
     if (state.keepFilter) state.keepFilter = false;
-    else Object.assign(state.filter, { cat: "all", status: "all", q: "", loc: "all" });
+    else Object.assign(state.filter, { cat: "all", status: "all", q: "", loc: "all", owner: "all" });
   }
   // 从首页看板 / 别的页点进其他清单页（购物车、设备、账单、缴费记录、医疗、花费）：筛选回到默认再套上链接里的条件
   // （从物品 / 设备 / 账单编辑页返回、或同一页内换标签 / 参数不算）；不然上一次留下的筛选（如「家人认领」）会让看板上的数字和清单对不上
@@ -447,6 +448,11 @@ function onRoute() {
     else if (sec === "bills" && sub === "recurring") { const { property, ...rest } = FD.bills; Object.assign(state.billsFilter, rest); Object.assign(state.payFilter, FD.pay); }
     else if (sec === "bills" && sub === "onetime" && !next.q.get("bill")) Object.assign(state.medFilter, FD.med);
     else if (sec === "bills" && sub === "spend") Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
+  }
+  // 房产 / 车辆的消耗品页「看全部」带 ?owner= 进库存：套上归属筛选，再把参数去掉
+  if (isListRoute(next) && next.q.get("owner")) {
+    Object.assign(state.filter, { owner: next.q.get("owner"), space: next.q.get("space") === "house" ? "house" : state.filter.space });
+    next.q.delete("owner"); history.replaceState(null, "", `${href(next.section, next.sub)}${next.q.toString() ? `?${next.q}` : ""}`);
   }
   // 概览卡片里的细项（缺货 / 少货 …）带 ?status= 进库存：套上状态筛选，再把参数去掉（刷新、后退不重复套）
   if (isListRoute(next) && next.q.get("status")) {
@@ -687,6 +693,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "invCatSel") { Object.assign(state.filter, { cat: e.target.value, sub: "all" }); state.catSort = false; state.catForm = null; render(); }
   if (e.target.id === "invSubSel") { state.filter.sub = e.target.value; render(); }
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
+  if (e.target.id === "invOwner") { state.filter.owner = e.target.value; renderInvList(); }
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
   if (e.target.id === "invSort") { state.filter.sort = e.target.value; renderInvList(); }
   if (e.target.id === "billProp") { state.billsFilter.property = e.target.value; render(); }
@@ -945,7 +952,7 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "templateForm") {
       const keys = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
       if (!keys.length) return toast(t("还没有勾选耗材"));
-      const all = templateItems(keys), list = all.filter((x) => !findItem(x.name));   // 已有同名（忽略大小写、空格、全角半角）的跳过，重复点不会建第二件
+      const all = templateItems(keys).map((x) => ({ ...x, property_id: state.propertyId || null })), list = all.filter((x) => !findItem(x.name));   // 推荐的消耗品归属当前这套房产   // 已有同名（忽略大小写、空格、全角半角）的跳过，重复点不会建第二件
       if (list.length) await Store.addItems(list);
       toast(t("已添加 {n} 项汽车房屋消耗品", { n: list.length }) + (all.length > list.length ? t("；{m} 项库存里已有，跳过", { m: all.length - list.length }) : ""));
       Object.assign(state.filter, { space: "house", cat: "all", q: "", status: "all" });
@@ -1230,7 +1237,7 @@ main.addEventListener("click", async (e) => {
         return refresh();
       }
       case "inv-view": setInvView(el.dataset.view); state.invSel = null; return render();
-      case "supply-add-pick": { const c = await pickSupplyAdd(); if (c) go(c === "manual" ? `${href("item", "new")}?space=house` : href("house", "template")); return; }   // 消耗品空白页的 ＋：手动添加 / 按房屋设备资料推荐
+      case "supply-add-pick": { const c = await pickSupplyAdd(); if (c) go(c === "manual" ? `${href("item", "new")}?space=house${el.dataset.scope || ""}` : href("house", "template")); return; }   // 消耗品空白页的 ＋：手动添加 / 按房屋设备资料推荐
       case "add-item-pick": { const sp = await pickSpace(); if (sp) go(`${href("item", "new")}?space=${sp}`); return; }   // ＋ 添加物品：先选放在哪一类
       case "inv-cat-shop": return addAlertsToShopping(catNeed(el.dataset.cat));   // 分类视图每个大类的「全部加入购物车」
       case "inv-sec-shop": return addAlertsToShopping(secNeed(el.dataset.space));   // 物品视图每个容器的「全部加入购物车」
@@ -1286,7 +1293,7 @@ main.addEventListener("click", async (e) => {
         else await Store.saveCategory({ id: c.dbId, key: c.id, space: c.space, name: changed ? c.name : null, icon: changed ? c.icon : null, color: changed ? c.color : null, loc: null, subs: changed ? c.subs : [], hidden: on, sort: 0 });
         state.catForm = null; if (on && state.filter.cat === c.id) state.filter.cat = "all"; toast(on ? t("已隐藏分类") : t("已重新显示")); return refresh();
       }
-      case "inv-clear": Object.assign(state.filter, { q: "", status: "all", loc: "all" }); return render();
+      case "inv-clear": Object.assign(state.filter, { q: "", status: "all", loc: "all", owner: "all" }); return render();
       // 设置 → 存放位置：新建 / 重命名 / 删除
       case "loc-new": state.locForm = { name: "", grp: el.dataset.grp || "custom" }; render(); $("#locForm input[name=name]")?.focus(); return;
       case "loc-edit": {
@@ -1305,7 +1312,7 @@ main.addEventListener("click", async (e) => {
       }
       case "cat-sort": state.catSort = !state.catSort; return render();   // 手机仪表盘：调整方块顺序
       case "cat-move": moveCat(state.filter.space, el.dataset.cat, +el.dataset.dir); return render();
-      case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
+      case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "", owner: el.dataset.owner || "all" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "shop-add-item": return addAlertsToShopping([state.enriched.find((x) => x.id === id)]);
       case "shop-remove-item": return removeFromShopping([id]);
@@ -1348,7 +1355,7 @@ main.addEventListener("click", async (e) => {
       case "shop-add-alerts": {
         const sp = el.dataset.space || "pantry";
         const pool = sp === "all" ? state.enriched.filter((x) => state.houseEnabled || inSpace("pantry")(x)) : state.enriched.filter(inSpace(sp));
-        return addAlertsToShopping(alertsOf(pool));
+        return addAlertsToShopping(alertsOf(el.dataset.owner ? pool.filter((x) => ownerMatch(x, el.dataset.owner, true)) : pool));
       }
       case "property-of-bill": return;
       case "shop-import": {   // 牧羊人带来的采购项（#/shopping?add=…）：勾了的逐个加，按名字对上库存物品就关联

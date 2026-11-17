@@ -1,4 +1,5 @@
 import { alertsOf, hasStock, memberName, openShopFor } from "../core/logic.js";
+import { ownerFilter, ownerMatch, ownerTag } from "./owner.js";
 import { STATUS, state } from "../core/state.js";
 import { aiPanel } from "./ai.js";
 import { COLORS, ICONS } from "../core/categories.js";
@@ -47,8 +48,8 @@ export function restockPanel(alerts, limit = 8) {
 /** 该补货了下面的一行操作说明：手机说滑动，电脑说点标签 */
 export const rsHint = () => `<p class="muted rs-hint"><span class="rs-hint-touch">${t("点「未加入」加入购物车，点「已加入」移出；也可 ← 左滑加入 · 右滑移出 →")}</span><span class="rs-hint-mouse">${t("点「未加入」加入购物车，点「已加入」移出")}</span></p>`;
 
-export function shelfGrid(space) {
-  const list = state.enriched.filter(inSpace(space));
+export function shelfGrid(space, owner = "") {
+  const list = state.enriched.filter(inSpace(space)).filter((x) => !owner || ownerMatch(x, owner, true));   // owner：某套房产 / 某辆车自己的消耗品页只数它的（含全家共用）
   return catsOf(space).map((c) => {
     const inCat = list.filter((x) => x.category === c.id);
     if (!inCat.length) return "";
@@ -63,7 +64,7 @@ export function shelfGrid(space) {
     const cnt = (s) => inCat.filter((x) => x.status === s).length;
     const seg = (s, color) => cnt(s) ? `<i style="width:${(cnt(s) / inCat.length) * 100}%;background:${color}"></i>` : "";
     const bad = inCat.length - cnt("ok");
-    return `<button type="button" class="shelf-cell" style="--cat:${c.color}" data-action="goto-cat" data-space="${space}" data-cat="${c.id}">
+    return `<button type="button" class="shelf-cell" style="--cat:${c.color}" data-action="goto-cat" data-space="${space}" data-cat="${c.id}"${owner ? ` data-owner="${esc(owner)}"` : ""}>
       <span class="ico" aria-hidden="true">${c.icon}</span><h3>${t(c.name)}</h3>
       <p>${t("{n} 种", { n: inCat.length })}${bad ? t("，{n} 种需补", { n: bad }) : t("，都充足")}</p>
       <div class="mix" aria-hidden="true">${seg("out", "var(--out)")}${seg("low", "var(--low)")}${seg("soon", "var(--mustard)")}${seg("ok", "var(--pine)")}</div>
@@ -233,6 +234,7 @@ export function matchItem(it, f, { withCat = true } = {}) {
   if (withCat && f.cat !== "all" && f.sub && f.sub !== "all" && it.subcategory !== f.sub) return false;   // 打开某个分类后再按小类缩小（生鲜 → 水果）
   if (q && !(`${it.name}${it.subcategory || ""}${t(it.subcategory || "")}${it.notes || ""}${it.location || ""}${t(it.location || "")}`).toLowerCase().includes(q)) return false;
   if ((f.loc || "all") !== "all" && it.location !== f.loc) return false;
+  if (!ownerMatch(it, f.owner)) return false;
   if (f.status === "alert") return it.status !== "ok";
   if (f.status === "exp") return !!it.exp;
   if (f.status !== "all") return it.status === f.status;
@@ -356,6 +358,7 @@ function viewInvRows(space) {
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
         </select>
         ${locationFilter(all, f)}
+        ${ownerFilter(f)}
         <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
         ${clearFiltersBtn("inv", changed(f, FD.inv))}
       </div>
@@ -427,7 +430,7 @@ function remindChip(it, plain) {
 /** 物品一行：状态色条 | 名称、状态 / 提醒标签、小类 · 位置 · 约够几天 | − 数量 单位 + */
 export function itemRow(it) {
   const st = STATUS[it.status], c = catOf(it.category), inList = openShopFor(it.id);
-  const meta = [`${c.icon} ${esc(t(it.subcategory || c.name))}`, it.location && `📍${esc(t(it.location))}`,
+  const meta = [`${c.icon} ${esc(t(it.subcategory || c.name))}`, ownerTag(it) && `<span class="own-tag">${esc(ownerTag(it))}</span>`, it.location && `📍${esc(t(it.location))}`,
     it.daysLeft != null && it.qty > 0 && `${t("约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) })}`].filter(Boolean).join(" · ");
   const badges = `${it.status !== "ok" ? `<span class="badge ${st.cls}">${t(st.label)}</span>` : remindChip(it, !!state.invSel)}${it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? t("已过期") : t("{d} 天内到期", { d: it.expDays })}</span>` : ""}${inList ? cartTag() : ""}`;
   const step = Units.step(it.du), nm = esc(it.name), sel = state.invSel, on = sel?.has(it.id);
@@ -489,6 +492,7 @@ export function viewInventory(space = "pantry") {
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
         </select>`}
         ${locationFilter(mine, f)}
+        ${house ? ownerFilter(f) : ""}
         <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.filter(([v]) => !(gear && v === "exp")).map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
         ${clearFiltersBtn("inv", changed(f, FD.inv))}
       </div>

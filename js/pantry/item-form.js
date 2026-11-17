@@ -1,4 +1,5 @@
 import { state } from "../core/state.js";
+import { ownerField } from "./owner.js";
 import { aliasesOf, findItem, normName, similarItems } from "../core/item-match.js";
 import { cleanStore, lastStore, rememberStore, storeDatalist } from "../stats/views.js";
 import { cardSelectHtml, purchasePayFields } from "../bills/cards-views.js";
@@ -155,6 +156,7 @@ export function viewItemForm() {
             <label class="not-gear">${t("保质期至")}
               <input name="expiry_date" type="date" value="${esc(v.expiry_date || "")}">
             </label>
+            ${ownerField(v, r.q.get("prop") ? `p:${r.q.get("prop")}` : r.q.get("veh") ? `a:${r.q.get("veh")}` : "")}
             ${assetField(v)}
           </div>`, true, "", it ? basicsAside(it) : "")}
         ${fsec(it?.id, "qty", `<span class="not-gear">${t("数量与提醒")}</span><span class="only-gear">${t("数量")}</span>`, `
@@ -270,6 +272,9 @@ export async function saveItemForm(f, { silent = false } = {}) {
     const ids = [...f.querySelectorAll('input[name="asset_ids"]:checked')].map((x) => x.value);
     if (ids.length || raw.asset_ids?.length) it.asset_ids = ids;
   } else if (raw.asset_ids?.length) it.asset_ids = [];
+  // 属于：只有汽车房屋消耗品存；其余永远为空
+  const ow = spaceOf(it.category) === "house" ? (fe.owner?.value || "") : "";
+  it.property_id = ow.startsWith("p:") ? ow.slice(2) : null; it.owner_asset_id = ow.startsWith("a:") ? ow.slice(2) : null;
   const btn = f.querySelector('button[type="submit"]');
   btn.disabled = true;
   try {

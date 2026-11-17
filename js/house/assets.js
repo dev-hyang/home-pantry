@@ -814,6 +814,8 @@ function assetHub(a, root) {
     hubRow({ href: `${base}?sec=log`, icon: "🛠️", title: t("保养记录"), desc: a.logs.length ? t("{n} 条，最近 {d}", { n: a.logs.length, d: fmtDate(a.logs[0].done_on) }) : t("还没有记录"), badge: a.followUp ? `<span class="badge b-out mcount">${t(C().RESULTS[a.followUp.result])}</span>` : a.service === "overdue" || a.service === "due" ? `<span class="badge b-soon mcount">${t(SERVICE_BADGE[a.service].label)}</span>` : "" }),
     veh ? hubRow({ href: `${base}?sec=schedule`, icon: "📋", title: t("保养时间表"), desc: a.vSoonest ? t("下一项：{name} {d}", { name: t(a.vSoonest.name), d: fmtDate(a.vSoonest.next) }) : t("记一次保养后开始算") }) : "",
     veh ? vehDealRow(a) : "",
+    veh ? (() => { const mine = state.enriched.filter(inSpace("house")).filter((x) => x.owner_asset_id === a.id), low = mine.filter((x) => x.status !== "ok").length;
+      return hubRow({ href: `${href("house", "supplies")}?veh=${a.id}`, icon: "🧰", title: t("汽车房屋消耗品"), desc: mine.length ? t("{n} 种", { n: mine.length }) : t("还没有记录"), badge: low ? `<span class="badge b-soon mcount">${t("{n} 项要补", { n: low })}</span>` : "" }); })() : "",
     !veh && supplyRows(a).length ? (() => { const rs = supplyRows(a), have = rs.filter((r) => r.item), low = have.filter((r) => r.item.status !== "ok").length;
       return hubRow({ href: `${base}?sec=supplies`, icon: "🧰", title: t("相关耗材"), desc: t("{n} / {m} 项已在库存", { n: have.length, m: rs.length }), badge: low ? `<span class="badge b-soon mcount">${t("{n} 项要补", { n: low })}</span>` : "" }); })() : "",
     !veh && C().cardOf(a.type) ? hubRow({ href: `${base}?sec=care`, icon: "🔍", title: t("检查卡"), desc: t("怎么查、什么时候叫人") }) : "",
