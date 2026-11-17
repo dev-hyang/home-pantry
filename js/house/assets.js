@@ -610,15 +610,21 @@ function vehicleSchedule(a) {
   const base = href("asset", a.id);
   // “下次”的依据写清楚：没记过的按购车日期起算；按里程推算的注明现在约多少里程，免得误以为没更新
   const why = (s) => (s.fromPurchase ? t("还没记过这项，按购车 / 安装日期起算") : s.basis === "miles" ? t("按里程推算，现在约 {n} {u}", { n: fmt(a.nowMiles), u: distUnit() }) : "");
-  const row = (s) => `<tr class="${s.days == null ? "" : s.days < 0 ? "late" : s.days <= 30 ? "soon" : ""}">
-      <th scope="row">${esc(t(s.name))}${s.note ? `<small>${esc(t(s.note))}</small>` : ""}</th>
-      <td>${[s.months ? t("{n} 个月", { n: s.months }) : "", s.miles ? `${fmt(s.miles)} ${distUnit()}` : ""].filter(Boolean).join(" / ") || "—"}</td>
-      <td>${s.last ? `${fmtDate(s.last.done_on)}${s.last.odometer != null ? `<small>${fmt(s.last.odometer)} ${distUnit()}</small>` : ""}` : `<span class="muted">—</span>`}</td>
-      <td>${s.next ? `<b>${fmtDate(s.next)}</b>${s.nextMiles != null ? `<small>${fmt(s.nextMiles)} ${distUnit()}</small>` : ""}${s.days != null ? `<small>${s.days < 0 ? t("逾期 {d} 天", { d: -s.days }) : t("{d} 天后", { d: s.days })}</small>` : ""}${why(s) ? `<small class="muted">${why(s)}</small>` : ""}` : `<span class="muted">${t("记一次后开始算")}</span>`}</td>
-      <td><a class="btn btn-sm btn-ghost" href="${base}?log=1&item=${s.key}">${t("记一次")}</a></td>
-    </tr>`;
+  const cycle = (s) => [s.months ? t("{n} 个月", { n: s.months }) : "", s.miles ? `${fmt(s.miles)} ${distUnit()}` : ""].filter(Boolean).join(" / ") || "—";
+  const row = (s) => {
+    const cls = s.days == null ? "" : s.days < 0 ? "late" : s.days <= 30 ? "soon" : "";
+    const badge = s.days == null ? "" : `<span class="badge ${cls === "late" ? "b-out" : cls === "soon" ? "b-soon" : "b-ok"}">${s.days < 0 ? t("逾期 {d} 天", { d: -s.days }) : t("{d} 天后", { d: s.days })}</span>`;
+    const last = s.last ? `${fmtDate(s.last.done_on)}${s.last.odometer != null ? ` · ${fmt(s.last.odometer)} ${distUnit()}` : ""}` : "—";
+    const next = s.next ? `<b>${fmtDate(s.next)}</b>${s.nextMiles != null ? ` · ${fmt(s.nextMiles)} ${distUnit()}` : ""}` : `<span class="muted">${t("记一次后开始算")}</span>`;
+    return `<li class="sched-row ${cls}">
+      <div class="sched-top"><div class="sched-name"><b>${esc(t(s.name))}</b>${s.note ? `<small>${esc(t(s.note))}</small>` : ""}</div>${badge}</div>
+      <dl class="sched-meta"><div><dt>${t("周期")}</dt><dd>${cycle(s)}</dd></div><div><dt>${t("上次")}</dt><dd>${last}</dd></div><div><dt>${t("下次")}</dt><dd>${next}</dd></div></dl>
+      ${why(s) ? `<small class="muted sched-why">${why(s)}</small>` : ""}
+      <a class="btn btn-sm btn-ghost sched-log" href="${base}?log=1&item=${s.key}">${t("记一次")}</a>
+    </li>`;
+  };
   return `<div class="section-head"><p>${t("按月和按里程取先到的；里程按年均里程推算。记保养时要选对“保养项目”，那一项的下次日期才会更新")}</p></div>
-    <div class="panel"><div class="ch-scroll"><table class="owner-table veh-table"><thead><tr><th>${t("项目")}</th><th>${t("周期")}</th><th>${t("上次")}</th><th>${t("下次")}</th><th></th></tr></thead><tbody>${items.map(row).join("")}</tbody></table></div></div>`;
+    <div class="panel"><ul class="sched-list">${items.map(row).join("")}</ul></div>`;
 }
 
 /** 从家居耐用品升级时按名称猜类型（季节电器 / 小家电最常见）；猜不到用“其他设备” */
@@ -858,7 +864,7 @@ function vehicleOverview(a, root) {
     ${crumbNav([...assetTrail(a, root, base).slice(0, -1), { label: assetName(a), icon: pt?.icon || "🚗" }])}
     <div class="house-card">
       <div class="house-head"><span class="house-ico" aria-hidden="true">${pt?.icon || "🚗"}</span><div class="grow"><h2 class="house-name">${esc(assetName(a))}</h2></div>
-        <span class="head-acts"><a class="btn btn-sm btn-ghost" href="${base}?sec=basic">${t("编辑")}</a>${moreMenu([{ label: t("删除车辆"), action: "asset-delete", danger: true }])}</span></div>
+        <span class="head-acts"><a class="btn btn-sm btn-ghost" href="${base}?sec=basic">${t("编辑")}</a>${moreMenu([{ label: t("记保养"), href: `${base}?log=1`, first: true }, { label: t("删除车辆"), action: "asset-delete", danger: true }])}</span></div>
       ${assetSummary(a)}
       <p class="muted house-sub">${esc([a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "))}</p>
       ${facts ? `<dl class="fact-grid one">${facts}</dl>` : ""}
@@ -871,7 +877,6 @@ function vehicleOverview(a, root) {
       ${tile(`${href("house", "supplies")}?veh=${a.id}`, "🧰", t("汽车房屋消耗品"), low ? t("{n} 项要补货", { n: low }) : mine.length ? t("{n} 种", { n: mine.length }) : t("还没有记录"), t("这辆车用的机油、雨刮、冰铲等"))}
       ${tile(`${href("house", "fix")}?asset=${a.id}`, "🩺", t("出了问题？"), nFix ? t("{n} 个常见小毛病", { n: nFix }) : "", t("先看常见小毛病，或让咩咩分析"))}
     </div>
-    <div class="form-actions" style="margin-top:14px"><a class="btn btn-primary" href="${base}?log=1">${t("记保养")}</a></div>
   </section>`;
 }
 /** 车辆资料：每个分区一张卡（完成度 + 摘要 + 编辑），和房屋资料同一种样式 */

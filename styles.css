@@ -3689,3 +3689,21 @@ span.rem-tag { cursor: default; }
 .sticky-actions.wiz-bar .hoa-line { display: flex; justify-content: flex-end; margin: 0 0 6px; }
 .sticky-actions.wiz-bar .hoa-mini { margin-left: auto; }
 .form-actions > .contents, div.contents { display: contents; }
+
+/* 房屋 / 车辆概览标题：不是链接，不要下划线 */
+.house-name, .house-name:hover { text-decoration: none; }
+/* 车辆保养时间表：一项一张小卡，不再是五列大表（手机上不用左右滑） */
+.sched-list { list-style: none; margin: 0; padding: 0; }
+.sched-row { position: relative; padding: 12px 0; border-bottom: 1px dashed var(--line); display: grid; gap: 6px; }
+.sched-row:last-child { border-bottom: 0; }
+.sched-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.sched-name b { font-size: 15px; }
+.sched-name small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+.sched-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; margin: 0; font-size: 13px; }
+.sched-meta dt { color: var(--muted); font-size: 12px; }
+.sched-meta dd { margin: 0; overflow-wrap: anywhere; }
+.sched-row.soon .sched-meta b { color: var(--low); }
+.sched-row.late .sched-meta b { color: var(--out); }
+.sched-why { display: block; }
+.sched-log { justify-self: start; min-height: 44px; display: inline-flex; align-items: center; }
+@media (max-width: 640px) { .sched-meta { grid-template-columns: 1fr; gap: 4px; } .sched-meta > div { display: flex; gap: 8px; } .sched-meta dt { min-width: 3em; } }

@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.35", title: { zh: "概览标题去下划线；车辆记保养进菜单；保养时间表改成卡片", en: "No underline on overview titles; Log service in the menu; schedule as cards" }, items: [
+    { k: "better", zh: "房屋 / 车辆概览标题不再有下划线；车辆概览的「记保养」按钮放进名称旁 ⋮ 菜单（第一项）", en: "House and vehicle overview titles lose the underline; the vehicle overview Log service button moves into the menu next to the name (first item)" },
+    { k: "fix", zh: "车辆保养时间表：原来的五列表格在手机上又挤又要左右滑，改成一项一张卡（周期 / 上次 / 下次 + 逾期或几天后标签 + 记一次）", en: "Vehicle service schedule: the cramped five-column table is now one card per item (cycle / last / next, an overdue or days-left badge, and Log)" }
+  ] },
+
   { v: "2026-11-16.34", title: { zh: "车辆概览参考房屋概览重构", en: "Vehicle overview rebuilt like the house overview" }, items: [
     { k: "better", zh: "车辆概览：第一块是基本信息卡（名称、状态标签、车牌、里程、牌照、车险，右上「编辑」和 ⋮ 删除车辆），下面是导航豆腐块：车辆资料（完成度）、保养记录、保养时间表、买卖 / 归还、汽车房屋消耗品、出了问题", en: "Vehicle overview: a basics card (name, status tags, plate, mileage, registration, insurance, Edit and a menu with Delete) followed by nav tiles with stats: Vehicle profile, Service log, Schedule, Buy/sell/return, Supplies, Something wrong" },
     { k: "new", zh: "新的「车辆资料」页：每个分区一张卡，带完成度和各自的「编辑」，和房屋资料一样", en: "A new Vehicle profile page: one card per section with its own progress and Edit, like the home profile" }
