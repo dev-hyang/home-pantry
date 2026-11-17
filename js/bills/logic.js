@@ -1,41 +1,13 @@
 /* 账单 B1 · 计算：到期日推算、状态、每月等值、提醒、日历导出 */
 import { state } from "../core/state.js";
-import { DAY, daysUntil, num, todayISO } from "../core/util.js";
+import { daysUntil, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { withProperty } from "../core/alerts.js";
 
 const B = () => window.BILLS;
-const pad = (n) => String(n).padStart(2, "0");
-const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const parse = (iso) => new Date(`${iso}T12:00:00`);
-export const addDays = (iso, n) => ymd(new Date(parse(iso).getTime() + n * DAY));
-/** 加 n 个月，日期按 dueDay（没有则按原日）并在月末截断 */
-export function monthAdd(iso, n, dueDay) {
-  const d = parse(iso), day = dueDay || d.getDate();
-  const first = new Date(d.getFullYear(), d.getMonth() + n, 1);
-  const last = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
-  return ymd(new Date(first.getFullYear(), first.getMonth(), Math.min(day, last)));
-}
-const MONTHS_OF = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12 };
-
-/** 固定日期列表（MM-DD）里严格晚于 from 的下一个日期 */
-function nextFixed(dates, from) {
-  const y = parse(from).getFullYear();
-  const all = [y, y + 1].flatMap((yy) => dates.map((md) => `${yy}-${md}`)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
-  return all.find((d) => d > from) || null;
-}
-
-/** 下一次到期：严格晚于 from */
-export function advanceDue(bill, from) {
-  if (!from) return null;
-  if (bill.frequency === "one_time") return null;
-  if (bill.due_dates?.length) return nextFixed(bill.due_dates, from);
-  if (bill.frequency === "weekly") return addDays(from, 7);
-  if (bill.frequency === "biweekly") return addDays(from, 14);
-  const months = bill.frequency === "custom" ? Math.max(1, num(bill.interval_months, 1)) : MONTHS_OF[bill.frequency] || 1;
-  return monthAdd(from, months, bill.due_day || null);
-}
+import { addDays, monthAdd, advanceDue, nextFixed, MONTHS_OF, pad, ymd, parse } from "./dates.js";   // 日期推算在 dates.js（纯函数，可测试）；这里再导出，别处的引用不变
+export { addDays, monthAdd, advanceDue };
 
 /** 新建账单时的首个到期日（≥ 今天）：固定日期 / 每月几号能算出来；其余（每周、年付没填日期）返回 null 让用户填 */
 export function initialDue(bill) {

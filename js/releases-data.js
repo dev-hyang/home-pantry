@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.6", title: { zh: "账单概览重构的第一块地基（页面不变）", en: "Groundwork for the bills overview rebuild (no visible change)" }, items: [
+    { k: "better", zh: "后台新增「账单按期计算」：周期性账单按需算出每一期的状态和金额，为接下来的「全部账单」页和新的账单概览做准备；现在看到的页面和功能不变", en: "Behind the scenes, bills are now worked out period by period (status and amount per due date), ready for the upcoming All bills page and new Bills overview; nothing you see changes yet" }
+  ] },
+
   { v: "2026-11-17.5", title: { zh: "账单概览只讲账单", en: "Bills overview is about bills only" }, items: [
     { k: "better", zh: "财务里的「概览」改名「账单概览」，页面上去掉了「花费速览」，只留账单；花费请到 财务 → 花费 看", en: "Finance → Overview is now “Bills overview” and no longer shows the spending summary; find spending under Finance → Spending" }
   ] },
