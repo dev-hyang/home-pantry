@@ -1,5 +1,6 @@
 import { activeProperties } from "../core/lifecycle.js";
 import { canManageHome } from "../settings/members.js";
+import { moreMenu } from "../core/more-menu.js";
 import { autofillBar } from "../core/autofill.js";
 /* 房屋维护 · 第一期：房屋资料（房型、材料、设施）、责任归属、材料保养建议、按模板批量加入汽车房屋消耗品 */
 import { alertsOf } from "../core/logic.js";
