@@ -763,11 +763,16 @@ function viewProfileSection(sec) {
         <p id="houseFormError" class="form-error" role="alert"></p>
         <div class="form-actions sticky-actions">
           ${wiz && !isNew && prevSec ? `<a class="btn btn-ghost" href="${prevHref}">‹ ${t("上一步")}</a>` : ""}
-          <button type="submit" class="btn btn-primary">${isNew ? t("下一步") : wiz ? (nextSec ? t("保存并下一步") : t("完成")) : t("保存")}</button>
           ${wiz && !isNew && nextSec ? `<a class="btn btn-ghost" href="${nextHref}">${t("跳过")}</a>` : ""}
-          <a class="btn btn-ghost" href="${isNew ? href("house") : wiz ? href("house", "overview") : href("house", "profile")}" ${wiz && !isNew ? "" : 'data-action="house-cancel"'}>${isNew ? t("取消") : wiz ? t("稍后再填") : t("取消")}</a>
+          ${isNew ? `<a class="btn btn-ghost" href="${href("house")}" data-action="house-cancel">${t("取消")}</a>` : ""}
+          <button type="submit" class="btn btn-primary">${isNew ? t("下一步") : wiz ? (nextSec ? t("保存并下一步") : t("完成")) : t("保存")}</button>
+          ${wiz ? "" : `<a class="btn btn-ghost" href="${href("house", "profile")}" data-action="house-cancel">${t("取消")}</a>`}
           ${sec === "hoa" ? `<span class="hoa-mini">${t("每月总计")} <b data-hoa-total-mini>${money(hoaMonthly(hoaOf(d)).total)}</b></span>` : ""}
         </div>
+        ${wiz && !isNew ? `<div class="form-actions wiz-exit">
+          <a class="btn btn-ghost btn-sm" href="${href("house", "overview")}" data-action="house-cancel" title="${esc(t("不保存这一步，其余各步都跳过，回概览"))}">${t("全部跳过")}</a>
+          <a class="btn btn-ghost btn-sm" href="${href("house", "overview")}" title="${esc(t("保存这一步填的内容，其余以后再补，回概览"))}">${t("稍后再填")}</a>
+        </div>` : ""}
       </form>
     </section>`;
 }
