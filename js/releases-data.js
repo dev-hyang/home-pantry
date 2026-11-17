@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.29", title: { zh: "添加房产改为分步向导；概览路径去掉「概览」", en: "Add property is now a step-by-step wizard; overview path drops Overview" }, items: [
+    { k: "new", zh: "房屋首页「添加房产」不再弹表单，直接进分步向导：先选地区、房型和用途（建房产），再依次填地址与建成年份、保险、HOA、产权、应急、设施、材料，每步可「跳过」或「稍后再填」", en: "Add property no longer pops a form: a step-by-step wizard starts with region, home type and use, then address, insurance, HOA, ownership, emergency, systems and materials; each step can be skipped or left for later" },
+    { k: "better", zh: "房屋概览顶部路径只显示「房屋 / 房产名」，不再多一级「概览」；各处指向房产的链接都直接进概览", en: "The overview path shows Home / property name without an extra Overview level; links to a property open its overview directly" },
+    { k: "better", zh: "概览里房产名不再是编辑链接，编辑请用旁边的「编辑」", en: "The property name on the overview is no longer an edit link; use the Edit button" }
+  ] },
+
   { v: "2026-11-16.28", title: { zh: "消耗品可以属于某套房产或某辆车", en: "Supplies can belong to a property or a car" }, items: [
     { k: "new", zh: "汽车房屋消耗品多了「属于」：全家共用（默认）、某套房产或某辆车；添加 / 编辑物品时选，按房屋资料推荐加入的会归当前这套房产", en: "Home & car supplies now have Belongs to: shared (default), a property or a car; set it when adding or editing, and suggested supplies go to the current property" },
     { k: "new", zh: "有多套房产或车辆时，库存行上显示属于谁的小标签，筛选条多一个「属于」下拉", en: "With several properties or cars, inventory rows show who a supply belongs to and the filter bar has a Belongs to dropdown" },

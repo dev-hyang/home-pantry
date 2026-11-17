@@ -60,7 +60,7 @@ function propertyRow(p, spend, loans = [], eq = null) {
   const billTxt = bills.n ? `${money(bills.monthly)}${t("/月")}${bills.escrow ? ` <small class="muted">${t("+ Escrow {a}", { a: money(bills.escrow) })}</small>` : ""} · <a href="${href("bills", "recurring")}?tab=list&prop=${encodeURIComponent(p.id)}">${t("{n} 条账单", { n: bills.n })}</a>` : `<span class="muted">${t("没有挂账单")}</span>`;
   return `<li class="fa-row">
     <div class="fa-head"><b>${esc(p.name)}</b><span class="badge">${esc(t(ST[p.status] || "持有"))}</span><small class="muted">${esc(t(K[p.kind] || ""))}${p.archived ? ` · ${t("已归档")}` : ""}</small>
-      <a class="btn btn-sm btn-ghost fa-edit" href="${href("house", "pages")}?prop=${encodeURIComponent(p.id)}" aria-label="${esc(t("在房屋里打开 {name}", { name: p.name }))}">${t("在房屋里打开")} ›</a></div>
+      <a class="btn btn-sm btn-ghost fa-edit" href="${href("house", "overview")}?prop=${encodeURIComponent(p.id)}" aria-label="${esc(t("在房屋里打开 {name}", { name: p.name }))}">${t("在房屋里打开")} ›</a></div>
     <div class="fa-facts">
       ${fact(t("买入"), priceDate(p.purchase_price, p.acquired_on) || `<span class="muted">${t("未记录")}</span>`)}
       ${p.sold_on || p.sale_price != null ? fact(t("卖出"), priceDate(p.sale_price, p.sold_on)) : ""}

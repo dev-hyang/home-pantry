@@ -3668,3 +3668,11 @@ span.rem-tag { cursor: default; }
 .hv-flags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 2px; }
 .hv-flag { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink); font-size: 12px; font-weight: 600; line-height: 1.6; }
 .hv-flag.is-def { background: color-mix(in srgb, var(--mustard) 25%, var(--surface)); }
+
+/* 添加房产向导：步骤条 */
+.wiz-steps { margin: 0 0 12px; }
+.wiz-now { margin: 0 0 6px; font-size: 14px; }
+.wiz-dots { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; }
+.wiz-dots li { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+.wiz-dots li.is-done { background: var(--pine); }
+.wiz-dots li.is-now { background: var(--mustard); }

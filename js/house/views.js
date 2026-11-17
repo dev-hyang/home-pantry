@@ -218,7 +218,8 @@ export const defaultRegion = () => (Units.region.system === "us" ? "na" : "cn");
 /** 编辑中的房屋资料草稿（切换地区、房型时重新渲染表单，草稿保证已填内容不丢）；地址来自房产，保险字段来自资料 */
 export function houseDraft() {
   if (!state.houseDraft) {
-    const p = state.houseProfile, prop = currentProp();
+    const newProp = state.route?.q?.get("newprop") === "1";
+    const p = newProp ? null : state.houseProfile, prop = newProp ? null : currentProp();
     if (p) state.houseDraft = { ...p, features: [...(p.features || [])], exterior: [...(p.exterior || [])], flooring: [...(p.flooring || [])] };
     else {
       const region = defaultRegion(), ht = H().HOUSE_TYPES[region][0];
@@ -475,7 +476,7 @@ export function viewHouse() {
         <div class="house-head">
           <span class="house-ico" aria-hidden="true">${ht?.icon || "🏠"}</span>
           <div class="grow">
-            <h2><a class="house-name" href="${href("house", "profile")}?sec=type" title="${esc(t("点一下改名称、类型、用途"))}">${esc(currentProp()?.name || t(ht?.name || "我的房子"))}</a></h2>
+            <h2 class="house-name">${esc(currentProp()?.name || t(ht?.name || "我的房子"))}</h2>
           </div>
           <span class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("编辑")}</a>${currentProp() && canManageHome() ? moreMenu([{ label: t("归档"), action: "property-archive", data: { id: currentProp().id } }, { label: t("删除"), action: "property-delete", data: { id: currentProp().id }, danger: true }]) : ""}</span>
         </div>
@@ -694,6 +695,12 @@ function viewProfileSection(sec) {
   const check = (name, list, sel) => list.map((x) => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${sel.includes(x.id) ? "checked" : ""}><span>${esc(t(x.name))}</span></label>`).join("");
   const thisYear = new Date().getFullYear();
   const meta = PROFILE_SECTIONS.find((s) => s.id === sec);
+  const isNew = state.route?.q?.get("newprop") === "1", wiz = isNew || state.route?.q?.get("wiz") === "1";   // 添加房产向导：newprop = 第 1 步（还没建房产），wiz = 之后各步
+  if (isNew && !canManageHome()) return `<div class="panel empty"><strong>${t("只有家主可以新增房产")}</strong></div>`;
+  const stepIdx = PROFILE_SECTIONS.findIndex((s) => s.id === sec), nextSec = PROFILE_SECTIONS[stepIdx + 1];
+  const nextHref = nextSec ? `${href("house", "profile")}?sec=${nextSec.id}&wiz=1` : href("house", "overview");
+  const steps = wiz ? `<div class="wiz-steps" aria-label="${esc(t("第 {n} 步，共 {m} 步", { n: stepIdx + 1, m: PROFILE_SECTIONS.length }))}"><p class="wiz-now"><b>${t("第 {n} 步，共 {m} 步", { n: stepIdx + 1, m: PROFILE_SECTIONS.length })}</b> · ${esc(t(meta?.name || sec))}</p>
+    <ol class="wiz-dots" aria-hidden="true">${PROFILE_SECTIONS.map((s, i) => `<li class="${i < stepIdx ? "is-done" : i === stepIdx ? "is-now" : ""}"></li>`).join("")}</ol></div>` : "";
   const body = {
     type: () => `
         <fieldset>
@@ -709,7 +716,7 @@ function viewProfileSection(sec) {
         </fieldset>
         <fieldset>
           <legend>${t("房产类型与用途")}</legend>
-          <div class="form-grid">${propSelects(currentProp())}</div>
+          <div class="form-grid">${propSelects(state.route?.q?.get("newprop") === "1" ? null : currentProp())}</div>
         </fieldset>`,
     address: () => `
         <fieldset>
@@ -748,13 +755,15 @@ function viewProfileSection(sec) {
   return `
     <section class="section form-page house-form">
       ${sec === "insurance" ? autofillBar("insurance", "#houseForm") : ""}
-      <form id="houseForm" class="panel" data-sec="${sec}" novalidate data-autosave>
-        ${askInline({ id: `profile-${state.propertyId}-${sec}`, title: t(meta?.name || sec), question: PROFILE_ASK[sec] ? t(PROFILE_ASK[sec]) : t("这一块该填什么、去哪里找？"), context: () => askCtx.property(state.propertyId) })}
+      ${steps}
+      <form id="houseForm" class="panel" data-sec="${sec}" ${isNew ? `data-new="1"` : wiz ? `data-wiz="1" data-next="${esc(nextHref)}" data-autosave` : "data-autosave"} novalidate>
+        ${isNew ? "" : askInline({ id: `profile-${state.propertyId}-${sec}`, title: t(meta?.name || sec), question: PROFILE_ASK[sec] ? t(PROFILE_ASK[sec]) : t("这一块该填什么、去哪里找？"), context: () => askCtx.property(state.propertyId) })}
         ${body}
         <p id="houseFormError" class="form-error" role="alert"></p>
         <div class="form-actions sticky-actions">
-          <button type="submit" class="btn btn-primary">${t("保存")}</button>
-          <a class="btn btn-ghost" href="${href("house", "profile")}" data-action="house-cancel">${t("取消")}</a>
+          <button type="submit" class="btn btn-primary">${isNew ? t("下一步") : wiz ? (nextSec ? t("保存并下一步") : t("完成")) : t("保存")}</button>
+          ${wiz && !isNew && nextSec ? `<a class="btn btn-ghost" href="${nextHref}">${t("跳过")}</a>` : ""}
+          <a class="btn btn-ghost" href="${isNew ? href("house") : wiz ? href("house", "overview") : href("house", "profile")}" ${wiz && !isNew ? "" : 'data-action="house-cancel"'}>${isNew ? t("取消") : wiz ? t("稍后再填") : t("取消")}</a>
           ${sec === "hoa" ? `<span class="hoa-mini">${t("每月总计")} <b data-hoa-total-mini>${money(hoaMonthly(hoaOf(d)).total)}</b></span>` : ""}
         </div>
       </form>

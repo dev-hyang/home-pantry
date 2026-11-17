@@ -103,7 +103,7 @@ export function viewFix() {
   const a = current(), ready = aiReady(), p = providerOf(aiSettings().provider);
   const q = ready ? aiQuota() : null, blocked = !!q && !q.ok, canImg = ready && visionCapable(p);
   const pid = a?.property_id || state.propertyId, pn = pid ? propertyName(pid) : "";
-  const crumb = crumbNav([{ href: href("house"), label: t("房屋") }, ...(pn && !isVehicle(a) ? [{ href: `${href("house", "pages")}?prop=${pid}`, label: pn, icon: "🏠" }] : []),
+  const crumb = crumbNav([{ href: href("house"), label: t("房屋") }, ...(pn && !isVehicle(a) ? [{ href: `${href("house", "overview")}?prop=${pid}`, label: pn, icon: "🏠" }] : []),
     { href: isVehicle(a) ? href("house", "vehicles") : `${href("house", "assets")}${pid ? `?prop=${pid}` : ""}`, label: isVehicle(a) ? t("车辆") : t("设备保养") }, ...(a ? [{ href: href("asset", a.id), label: assetName(a), icon: a.t?.icon || "⚙️" }] : []), { label: t("出了问题？"), icon: "🩺" }]);
   const opt = (x) => `<option value="${esc(x.id)}" ${x.id === f.asset ? "selected" : ""}>${x.t?.icon || "⚙️"} ${esc(assetName(x))}${isFixture(x) && unitsText(x) ? `（${esc(unitsText(x, 2))}）` : x.location ? `（${esc(t(x.location))}）` : ""}</option>`;
   const list = candidates();

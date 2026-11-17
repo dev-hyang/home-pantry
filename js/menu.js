@@ -139,7 +139,7 @@ export function viewPropertyList() {
     <div class="section-head"><h2>🏠 ${t("房屋")}</h2></div>
     ${houseBar()}
     <section class="hv-sec" aria-label="${esc(t("房屋"))}"><div class="section-head"><h3>${t("房屋")}</h3><p>${t("点一套房产进入它的概览")}</p></div>
-    <div class="hv-grid">${props.map(houseCard).join("")}${state.editProperty === "new" || !canManageHome() ? "" : addCard(`data-action="property-edit" data-id=""`, t("添加房产"), t("自住、出租或租住的房子都可以"))}</div>
+    <div class="hv-grid">${props.map(houseCard).join("")}${state.editProperty === "new" || !canManageHome() ? "" : addCard(`href="${esc(href("house", "profile"))}?sec=type&newprop=1"`, t("添加房产"), t("自住、出租或租住的房子都可以"))}</div>
     ${ended.length ? `<details class="asset-ended"><summary>${t("已结束的房产")} <small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small></summary><div class="hv-grid">${ended.map(houseCard).join("")}</div></details>` : ""}
     ${archived.length ? `<details class="asset-ended"><summary>${t("已归档的房产")} <small>${t("{n} 套，不再持有或租住；资料、账单、设备都保留，可随时恢复", { n: archived.length })}</small></summary><div class="hv-grid">${archived.map(archivedCard).join("")}</div></details>` : ""}</section>
     <section class="hv-sec" aria-label="${esc(t("汽车"))}"><div class="section-head"><h3>🚗 ${t("汽车")}</h3></div>
@@ -212,7 +212,8 @@ export function crumb(r) {
   const cur = sec.subs.find(([k]) => k === r.sub) || sec.subs.find(([k]) => k === parent[r.sub]);
   const prop = r.section === "house" && r.sub !== "vehicles" ? state.properties.find((p) => p.id === state.propertyId) : null;
   // 房屋下的子页：房屋 / 房产 / 页面（之前只剩房产名，“房屋”这一级消失了）
-  const parts = prop ? [{ href: href("house"), label: t(sec.name) }, { href: href("house", "pages"), label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }] : [{ href: href(r.section), label: t(sec.name) }];
+  const parts = prop ? [{ href: href("house"), label: t(sec.name) }, { href: href("house", "overview"), label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }] : [{ href: href(r.section), label: t(sec.name) }];
+  if (prop && r.sub === "overview") return crumbNav([parts[0], { label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }]);   // 房屋 / 房产名（概览就是房产本身，不再多一级「概览」）
   const curLabel = cur ? t(cur[1]) : "", subHref = href(r.section, cur?.[0] || r.sub);
   // 二级页（常用账单 / 推荐耗材 / 生成设备）：要显示 上级 / 当前页 两层，之前只显示当前页，看起来像少了一层
   const par = parent[r.sub] ? sec.subs.find(([k]) => k === parent[r.sub]) : null;

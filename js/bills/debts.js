@@ -36,7 +36,7 @@ const statusBadge = (e) => `<span class="badge ${STATUSES[e.status]?.cls || ""}"
 const catBadge = (e) => `<span class="badge" style="background:var(--surface-2)">${debtCat(e.category).icon} ${esc(t(debtCat(e.category).name))}</span>`;
 const vehicles = () => state.assets.filter(isVehicle);
 const assetLabel = (a) => (a ? (isVehicle(a) ? `🚗 ${assetName(a)}` : `⚙️ ${assetName(a)}`) : "");
-const assetHref = (e) => (e.asset ? href("asset", e.asset.id) : e.property ? `${href("house", "pages")}?prop=${encodeURIComponent(e.property.id)}` : null);
+const assetHref = (e) => (e.asset ? href("asset", e.asset.id) : e.property ? `${href("house", "overview")}?prop=${encodeURIComponent(e.property.id)}` : null);
 const linkedText = (e) => {
   const lbl = e.asset ? assetLabel(e.asset) : e.property ? `🏠 ${e.property.name}` : null; if (!lbl) return "";
   const h = assetHref(e);

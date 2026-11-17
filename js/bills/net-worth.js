@@ -29,7 +29,7 @@ export const BUCKET_NAMES = { cash: "现金与储蓄", investments: "投资账�
 const BUCKET_COLORS = { cash: "#2c6a57", investments: "#3b7fc4", retirement: "#24897d", hsa: "#5b8c3a", properties: "#8a6d3b", vehicles: "#64748b", other_assets: "#7c6fb0", receivables: "#3a9bb5",
   mortgage: "#d4694c", auto_loans: "#c2410c", other_loans: "#b45309", credit_cards: "#be123c", other_liabilities: "#9f1239" };
 const RANGES = [["12", "近 12 个月"], ["24", "近 24 个月"], ["all", "全部"]];
-const propHref = (id) => `${href("house", "pages")}?prop=${encodeURIComponent(id)}`;
+const propHref = (id) => `${href("house", "overview")}?prop=${encodeURIComponent(id)}`;
 const itemHref = (e) => (e.kind === "property" ? propHref(e.item.id) : href("asset", e.item.id));
 const itemName = (e) => (e.kind === "property" ? e.item.name : assetName(e.item));
 const signed = (v) => (v == null ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${mny(Math.abs(v))}`);

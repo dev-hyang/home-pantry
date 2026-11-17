@@ -240,7 +240,7 @@ export function careCard(key, { open = false, ask = null } = {}) {
 const assetBase = (a, veh) => {
   const pid = a?.property_id || state.propertyId, pn = pid ? propertyName(pid) : "";
   return veh ? [{ href: href("house"), label: t("房屋") }, { href: href("house", "vehicles"), label: t("车辆"), icon: "🚗" }]
-    : [{ href: href("house"), label: t("房屋") }, ...(pn ? [{ href: `${href("house", "pages")}?prop=${pid}`, label: pn, icon: "🏠" }] : []), { href: `${href("house", "assets")}${pid ? `?prop=${pid}` : ""}`, label: t("设备保养") }];
+    : [{ href: href("house"), label: t("房屋") }, ...(pn ? [{ href: `${href("house", "overview")}?prop=${pid}`, label: pn, icon: "🏠" }] : []), { href: `${href("house", "assets")}${pid ? `?prop=${pid}` : ""}`, label: t("设备保养") }];
 };
 const assetTrail = (a, _root, hubHref) => [...assetBase(a, isVehicle(a)), { href: hubHref, label: assetName(a), icon: a.t?.icon || "⚙️" }];
 const assetCrumb = (a, root, hubHref, cur) => crumbNav([...assetTrail(a, root, hubHref), { label: cur }]);

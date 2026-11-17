@@ -1303,7 +1303,7 @@ main.addEventListener("click", async (e) => {
       }
       case "loc-cancel": state.locForm = null; return render();
       case "loc-del": { const c = customLocations().find((x) => x.id === id); if (!c || !confirmDelete(t("删除这个位置？"))) return; await deleteLocation(state, c); state.locForm = null; return refresh(); }
-      case "house-cancel": state.skipAutosave = true; return;   // 链接本身会跳回分区列表；明确取消就不自动保存
+      case "house-cancel": state.skipAutosave = true; state.houseDraft = null; return;   // 链接本身会跳回分区列表；明确取消就不自动保存
       case "cat-delete": {
         const c = CATEGORIES.find((x) => x.id === el.dataset.cat); if (!c?.custom) return;
         if (state.items.some((i) => i.category === c.id)) return toast(t("这个分类下还有物品，先把它们改到别的分类"));
@@ -1570,6 +1570,17 @@ main.addEventListener("click", async (e) => {
 /** 房屋资料分区表单：保存后第一次填房型去推荐耗材，其余回分区列表；silent=true 为离开页面时自动保存（不跳转） */
 async function saveHouseForm(f, { silent = false } = {}) {
   const d = readHouseForm(f), y = d.year_built, thisYear = new Date().getFullYear();
+  if (f.dataset.new === "1") {   // 添加房产向导第 1 步：建房产 + 存地区 / 房型，再进第 2 步（地址与建成年份）
+    if (!canManageHome()) return toast(t("只有家主可以新增房产"));
+    const name = f.elements.prop_name.value.trim();
+    if (!name) { f.querySelector("#houseFormError").textContent = t("请填写房产名称。"); f.elements.prop_name.focus(); return false; }
+    const saved = await Store.saveProperty({ name, kind: f.elements.prop_kind.value, role: f.elements.prop_role.value, status: f.elements.prop_status.value || "owned", address: null });
+    state.propertyId = saved.id; try { localStorage.setItem("hmh-property", saved.id); } catch { /* 忽略 */ }
+    await Store.saveHouseProfile(d, saved.id);
+    state.houseDraft = null; state.skipAutosave = true;
+    toast(t("房产已添加，接着填地址与建成年份"));
+    go(`${href("house", "profile")}?sec=address&wiz=1`, { replace: true }); await refresh(); return true;
+  }
   if (y != null && (y < 1850 || y > thisYear)) {
     const msg = t("建成年份需要在 1850 到 {y} 之间。", { y: thisYear });
     if (silent) toast(t("没有自动保存：{msg}", { msg })); else f.querySelector("#houseFormError").textContent = msg;
@@ -1583,6 +1594,7 @@ async function saveHouseForm(f, { silent = false } = {}) {
   state.houseProfile = { ...d }; state.houseDraft = null;
   if (silent) return true;
   state.skipAutosave = true;
+  if (f.dataset.wiz === "1") { toast(t("已保存")); go(f.dataset.next || href("house", "overview")); refresh(); return true; }   // 添加房产向导：存完进下一步
   toast(t("房屋资料已保存"));
   const hasHouseItems = state.items.some(inSpace("house"));
   go(first && f.dataset.sec === "type" && !hasHouseItems ? href("house", "template") : href("house", "profile"));
