@@ -18,6 +18,7 @@ import { locationField, locationOptions, resolveLocation } from "../core/locatio
 import { SECTIONS, go, href } from "../core/router.js";
 import { compare, joinList, sameTerm, t } from "../core/i18n.js";
 import { houseBar } from "./property-form.js";
+import { moreMenu } from "../core/more-menu.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 import { dealHref, dealTasks, openVehicleDeal } from "./deals.js";
 import { autofillBar } from "../core/autofill.js";
@@ -650,7 +651,8 @@ export function viewAssetForm() {
   // 已有记录：先看枢纽（各块完成度、保养记录、时间表、检查卡），点进去只改一块；新建仍是整页
   const sec = r.q.get("log") === "1" ? "log" : r.q.get("sec") || "";
   const hubHref = href("asset", a?.id || "new");
-  if (a && !sec) return assetHub(a, root);
+  if (a && !sec) return isVehicle(a) ? vehicleOverview(a, root) : assetHub(a, root);
+  if (a && sec === "profile" && isVehicle(a)) return vehicleProfile(a, root);
   if (a && sec === "log") return `<section class="section${r.q.get("log") === "1" ? " form-page" : ""}">${assetCrumb(a, root, hubHref, t("保养记录"))}${maintSection(a, r.q.get("log") === "1")}</section>`;
   if (a && sec === "schedule") return `<section class="section">${assetCrumb(a, root, hubHref, t("保养时间表"))}${vehicleSchedule(a)}</section>`;
   if (a && sec === "supplies") return `<section class="section">${assetCrumb(a, root, hubHref, t("相关耗材"))}${suppliesSection(a)}</section>`;
@@ -793,11 +795,10 @@ const ASSET_SECTIONS = [
   { id: "notes", icon: "📝", name: "备注" },
 ];
 /** 设备 / 车辆枢纽页：摘要 + 各块完成度 + 保养记录 / 时间表 / 检查卡入口 + 删除 */
-function assetHub(a, root) {
+function assetStatMap(a) {
   const veh = isVehicle(a), v = a.vehicle || {}, ins = v.insurance || {};
-  const base = href("asset", a.id);
   const pct = (n, m) => ({ pct: Math.round((n / m) * 100), badge: countBadge(n, m) });
-  const st = {
+  return {
     basic: () => { const n = 1 + filledCount([a.location, a.brand, a.model, a.serial]); return { text: [a.t ? t(a.t.name) : null, a.brand, a.model].filter(Boolean).join(" · "), ...pct(n, 5) }; },
     plate: () => { const n = filledCount([v.plate, v.odometer, v.annual_miles]); return { text: [v.plate, a.nowMiles != null ? t("约 {n} {u}", { n: fmt(a.nowMiles), u: distUnit() }) : null].filter(Boolean).join(" · ") || t("未填"), ...pct(n, 3) }; },
     docs: () => { const n = filledCount([v.registration_due, v.emissions_due]); return { text: [t(V().STATUS[vehStatus(a)].name), v.registration_due ? t("牌照 {d}", { d: fmtDate(v.registration_due) }) : null, v.emissions_due ? t("排放 {d}", { d: fmtDate(v.emissions_due) }) : null, v.lease_end ? t("租赁 {d}", { d: fmtDate(v.lease_end) }) : null, v.disposed_on ? fmtDate(v.disposed_on) : null].filter(Boolean).join(" · "), ...pct(n, 2) }; },
@@ -808,6 +809,11 @@ function assetHub(a, root) {
     notes: () => ({ text: a.notes ? a.notes.slice(0, 60) : t("无"), pct: null, badge: "" }),
     units: () => { const u = unitsOf(a); return { text: u.length ? unitsText(a, 6) : t("还没写：有几处、各在哪"), pct: null, badge: u.length ? `<span class="badge mcount" style="background:var(--surface-2)">${unitsCount(a)}</span>` : "" }; },
   };
+}
+function assetHub(a, root) {
+  const veh = isVehicle(a), v = a.vehicle || {}, ins = v.insurance || {};
+  const base = href("asset", a.id);
+  const st = assetStatMap(a);
   // 车辆的「费用」块只有购车价：没财务权限整块不出现
   const rows = ASSET_SECTIONS.filter((s) => (veh ? !s.eq : !s.veh) && (!s.fx || isFixture(a)) && !(veh && s.id === "cost" && !pricesOk())).map((s) => { const x = st[s.id](); return hubRow({ href: `${base}?sec=${s.id}`, icon: s.icon, title: t(s.name), desc: esc(x.text), pct: x.pct, badge: x.badge }); });
   const more = [
@@ -833,6 +839,50 @@ function assetHub(a, root) {
     <div class="form-actions" style="margin-top:14px"><a class="btn btn-primary" href="${base}?log=1">${t("记保养")}</a>
       <span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="asset-delete">${veh ? t("删除车辆") : t("删除设备")}</button></div>
   </section>`;
+}
+
+/** 车辆概览（参考房屋概览）：基本信息卡 → 导航豆腐块（各带小统计）→ 记保养。删除车辆放在名称旁 ⋮ 里 */
+const vehSections = () => ASSET_SECTIONS.filter((s) => !s.eq && !s.fx && !(s.id === "cost" && !pricesOk()));
+function vehicleOverview(a, root) {
+  const v = a.vehicle || {}, ins = v.insurance || {}, base = href("asset", a.id), pt = V().POWERTRAINS[a.type], st = assetStatMap(a);
+  const pcts = vehSections().map((s) => st[s.id]().pct).filter((x) => x != null), pct = pcts.length ? Math.round(pcts.reduce((x, y) => x + y, 0) / pcts.length) : 0;
+  const tile = (url, icon, title, stat, desc, bar = null) => `<a class="hv-card hn-tile" href="${esc(url)}"><span class="hv-ico" aria-hidden="true">${icon}</span>
+      <span class="hv-txt"><b>${esc(title)}</b>${stat ? `<small class="hn-stat">${esc(stat)}</small>` : ""}<small>${esc(desc)}</small>${bar != null ? `<span class="mprog"><i style="width:${bar}%"></i></span>` : ""}</span></a>`;
+  const fact = (k, val) => (val ? `<div class="fact wide"><dt>${k}</dt><dd>${val}</dd></div>` : "");
+  const facts = [fact(t("车牌"), v.plate ? esc(v.plate) : ""), fact(t("里程"), a.nowMiles != null ? t("约 {n} {u}", { n: fmt(a.nowMiles), u: distUnit() }) : ""),
+    fact(t("牌照到期"), v.registration_due ? fmtDate(v.registration_due) : ""), fact(t("车险"), ins.provider ? esc([ins.provider, ins.to ? t("到期 {d}", { d: fmtDate(ins.to) }) : ""].filter(Boolean).join(" · ")) : "")].join("");
+  const mine = state.enriched.filter(inSpace("house")).filter((x) => x.owner_asset_id === a.id), low = mine.filter((x) => x.status !== "ok").length;
+  const d = openVehicleDeal(a.id), dts = d ? dealTasks(d).filter((x) => !x.skipped) : [];
+  const nFix = C().fixesOf(a.type).length;
+  return `<section class="section">
+    ${crumbNav([...assetTrail(a, root, base).slice(0, -1), { label: assetName(a), icon: pt?.icon || "🚗" }])}
+    <div class="house-card">
+      <div class="house-head"><span class="house-ico" aria-hidden="true">${pt?.icon || "🚗"}</span><div class="grow"><h2 class="house-name">${esc(assetName(a))}</h2></div>
+        <span class="head-acts"><a class="btn btn-sm btn-ghost" href="${base}?sec=basic">${t("编辑")}</a>${moreMenu([{ label: t("删除车辆"), action: "asset-delete", danger: true }])}</span></div>
+      ${assetSummary(a)}
+      <p class="muted house-sub">${esc([a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "))}</p>
+      ${facts ? `<dl class="fact-grid one">${facts}</dl>` : ""}
+    </div>
+    <div class="hv-grid hn-grid" style="margin-top:14px">
+      ${tile(`${base}?sec=profile`, "🚘", t("车辆资料"), t("完成度 {p}%", { p: pct }), t("基本信息、车牌与里程、证照、车险、年份、备注"), pct)}
+      ${tile(`${base}?sec=log`, "🛠️", t("保养记录"), a.logs.length ? t("{n} 条，最近 {d}", { n: a.logs.length, d: fmtDate(a.logs[0].done_on) }) : t("还没有记录"), t("检查、保养、维修、更换"))}
+      ${tile(`${base}?sec=schedule`, "📋", t("保养时间表"), a.vSoonest ? t("下一项：{name} {d}", { name: t(a.vSoonest.name), d: fmtDate(a.vSoonest.next) }) : t("记一次保养后开始算"), t("按里程和时间提醒"))}
+      ${tile(`${href("house", "deal")}?asset=${a.id}`, "🤝", t("买卖 / 归还"), d ? t("进行中 {a} / {b}", { a: dts.filter((x) => x.done).length, b: dts.length }) : t(V().STATUS[vehStatus(a)].name), t("买车、卖车、租赁归还的流程清单"))}
+      ${tile(`${href("house", "supplies")}?veh=${a.id}`, "🧰", t("汽车房屋消耗品"), low ? t("{n} 项要补货", { n: low }) : mine.length ? t("{n} 种", { n: mine.length }) : t("还没有记录"), t("这辆车用的机油、雨刮、冰铲等"))}
+      ${tile(`${href("house", "fix")}?asset=${a.id}`, "🩺", t("出了问题？"), nFix ? t("{n} 个常见小毛病", { n: nFix }) : "", t("先看常见小毛病，或让咩咩分析"))}
+    </div>
+    <div class="form-actions" style="margin-top:14px"><a class="btn btn-primary" href="${base}?log=1">${t("记保养")}</a></div>
+  </section>`;
+}
+/** 车辆资料：每个分区一张卡（完成度 + 摘要 + 编辑），和房屋资料同一种样式 */
+function vehicleProfile(a, root) {
+  const st = assetStatMap(a), base = href("asset", a.id);
+  const cards = vehSections().map((s) => { const x = st[s.id]();
+    return `<section class="panel prof-card" aria-labelledby="vp-${s.id}"><header class="prof-head"><span class="mi" aria-hidden="true">${s.icon}</span>
+      <div class="prof-t"><h3 id="vp-${s.id}">${t(s.name)}</h3><small>${x.text || ""}</small></div>
+      <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=${s.id}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${t("编辑")}</a></header>
+      ${x.pct != null ? `<span class="mprog"><i style="width:${x.pct}%"></i></span>` : ""}</section>`; }).join("");
+  return `<section class="section menu-page">${assetCrumb(a, root, base, t("车辆资料"))}<div class="prof-grid">${cards}</div></section>`;
 }
 
 /** 枢纽里的“交易”入口：进行中显示进度，否则按状态提示能走哪个流程 */

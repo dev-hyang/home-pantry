@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.34", title: { zh: "车辆概览参考房屋概览重构", en: "Vehicle overview rebuilt like the house overview" }, items: [
+    { k: "better", zh: "车辆概览：第一块是基本信息卡（名称、状态标签、车牌、里程、牌照、车险，右上「编辑」和 ⋮ 删除车辆），下面是导航豆腐块：车辆资料（完成度）、保养记录、保养时间表、买卖 / 归还、汽车房屋消耗品、出了问题", en: "Vehicle overview: a basics card (name, status tags, plate, mileage, registration, insurance, Edit and a menu with Delete) followed by nav tiles with stats: Vehicle profile, Service log, Schedule, Buy/sell/return, Supplies, Something wrong" },
+    { k: "new", zh: "新的「车辆资料」页：每个分区一张卡，带完成度和各自的「编辑」，和房屋资料一样", en: "A new Vehicle profile page: one card per section with its own progress and Edit, like the home profile" }
+  ] },
+
   { v: "2026-11-16.33", title: { zh: "向导的按钮和每月总计一起固定在底部", en: "Wizard buttons and monthly total stick together" }, items: [
     { k: "better", zh: "添加房产向导：每月总计（HOA 步骤）靠右排在最上，下面是按钮行和「全部跳过，稍后再填」，整块一起固定在页面底部", en: "Add-property wizard: the monthly total (HOA step) sits top-right, then the button row and Skip all, fill in later, all stuck to the bottom" }
   ] },
