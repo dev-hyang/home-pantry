@@ -3732,3 +3732,6 @@ span.rem-tag { cursor: default; }
 .dots3::before { content: "\22EE"; }
 /* 「更多」圆钮在任何行里都是 32 × 32 的正圆（实测：提醒行里被 .btn 的 44px 最小高度拉成椭圆） */
 details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.btn:has(> .dots3) { width: 32px; height: 32px; min-width: 32px; min-height: 32px; aspect-ratio: 1; padding: 0; align-self: center; }
+
+/* 车辆总览：只有一辆车时这张卡占满一整行（auto-fit 把空的列收掉）；两辆以上照常分列 */
+.asset-grid.veh-grid { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
