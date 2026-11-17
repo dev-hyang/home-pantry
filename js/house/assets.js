@@ -219,7 +219,7 @@ export function alertText(a) {
 
 /* ── 检查卡：看什么、正常是什么样、自己做什么、什么时候叫人、红线、费用、时段 ── */
 /** 设备 / 车辆保养项的「问咩咩」：问题替用户写好，带这一项的情况 */
-export const assetAsk = (a, careName = "") => ({ id: `asset-${a.id}${careName ? "-" + careName.replace(/\W+/g, "_") : ""}`, title: `${assetName(a)}${careName ? ` · ${careName}` : ""}`,
+export const assetAsk = (a, careName = "") => ({ id: `asset-${a.id}${careName ? "-" + careName.replace(/[^\p{L}\p{N}]+/gu, "_") : ""}`, title: `${assetName(a)}${careName ? ` · ${careName}` : ""}`,
   question: careName ? t("「{c}」这项保养怎么做？自己做还是叫人？大概多少钱？", { c: careName }) : t("这台设备现在该做什么保养？什么情况要叫人？"), context: () => (isVehicle(a) ? askCtx.vehicle(a) : askCtx.asset(a)) });
 export function careCard(key, { open = false, ask = null } = {}) {
   const c = C().cardOf(key); if (!c) return "";   // 没检查卡的项不在这里画「问咩咩」：由行末的小问号负责，默认收着

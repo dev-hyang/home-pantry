@@ -3716,3 +3716,7 @@ span.rem-tag { cursor: default; }
 
 /* 车辆卡片右上角的 ⋯ 菜单：和标题同一行、靠右、不被名称挤掉 */
 .asset-card .asset-head > .act-more { flex: none; margin-left: auto; align-self: flex-start; }
+
+/* ? 展开的说明：算上内边距不超出所在的行 / 卡片（之前宽度 100% + 内边距会越界） */
+.ask-panel { box-sizing: border-box; max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+.veh-due li .ask-panel { flex: 1 1 100%; width: 100%; }
