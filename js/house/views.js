@@ -698,6 +698,7 @@ function viewProfileSection(sec) {
   const isNew = state.route?.q?.get("newprop") === "1", wiz = isNew || state.route?.q?.get("wiz") === "1";   // 添加房产向导：newprop = 第 1 步（还没建房产），wiz = 之后各步
   if (isNew && !canManageHome()) return `<div class="panel empty"><strong>${t("只有家主可以新增房产")}</strong></div>`;
   const stepIdx = PROFILE_SECTIONS.findIndex((s) => s.id === sec), nextSec = PROFILE_SECTIONS[stepIdx + 1];
+  const prevSec = stepIdx > 0 ? PROFILE_SECTIONS[stepIdx - 1] : null, prevHref = prevSec ? `${href("house", "profile")}?sec=${prevSec.id}&wiz=1` : "";
   const nextHref = nextSec ? `${href("house", "profile")}?sec=${nextSec.id}&wiz=1` : href("house", "overview");
   const steps = wiz ? `<div class="wiz-steps" aria-label="${esc(t("第 {n} 步，共 {m} 步", { n: stepIdx + 1, m: PROFILE_SECTIONS.length }))}"><p class="wiz-now"><b>${t("第 {n} 步，共 {m} 步", { n: stepIdx + 1, m: PROFILE_SECTIONS.length })}</b> · ${esc(t(meta?.name || sec))}</p>
     <ol class="wiz-dots" aria-hidden="true">${PROFILE_SECTIONS.map((s, i) => `<li class="${i < stepIdx ? "is-done" : i === stepIdx ? "is-now" : ""}"></li>`).join("")}</ol></div>` : "";
@@ -761,6 +762,7 @@ function viewProfileSection(sec) {
         ${body}
         <p id="houseFormError" class="form-error" role="alert"></p>
         <div class="form-actions sticky-actions">
+          ${wiz && !isNew && prevSec ? `<a class="btn btn-ghost" href="${prevHref}">‹ ${t("上一步")}</a>` : ""}
           <button type="submit" class="btn btn-primary">${isNew ? t("下一步") : wiz ? (nextSec ? t("保存并下一步") : t("完成")) : t("保存")}</button>
           ${wiz && !isNew && nextSec ? `<a class="btn btn-ghost" href="${nextHref}">${t("跳过")}</a>` : ""}
           <a class="btn btn-ghost" href="${isNew ? href("house") : wiz ? href("house", "overview") : href("house", "profile")}" ${wiz && !isNew ? "" : 'data-action="house-cancel"'}>${isNew ? t("取消") : wiz ? t("稍后再填") : t("取消")}</a>

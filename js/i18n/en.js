@@ -3913,6 +3913,7 @@ export const EN = {
   "稍后再填": "Fill in later",
   "请填写房产名称。": "Enter a property name.",
   "房产已添加，接着填地址与建成年份": "Property added; now the address and year built",
+  "上一步": "Back",
   "保险状态": "Status",
   "点一下改名称、类型、用途": "Tap to edit name, type and use",
   "房产名称": "Property name",

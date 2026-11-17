@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.30", title: { zh: "添加房产向导可以返回上一步", en: "The add-property wizard has a Back button" }, items: [
+    { k: "better", zh: "添加房产向导从第 2 步起多了「上一步」，已填的内容会保存，回去还能改", en: "The add-property wizard has Back from step 2; what you entered is saved and you can edit it" }
+  ] },
+
   { v: "2026-11-16.29", title: { zh: "添加房产改为分步向导；概览路径去掉「概览」", en: "Add property is now a step-by-step wizard; overview path drops Overview" }, items: [
     { k: "new", zh: "房屋首页「添加房产」不再弹表单，直接进分步向导：先选地区、房型和用途（建房产），再依次填地址与建成年份、保险、HOA、产权、应急、设施、材料，每步可「跳过」或「稍后再填」", en: "Add property no longer pops a form: a step-by-step wizard starts with region, home type and use, then address, insurance, HOA, ownership, emergency, systems and materials; each step can be skipped or left for later" },
     { k: "better", zh: "房屋概览顶部路径只显示「房屋 / 房产名」，不再多一级「概览」；各处指向房产的链接都直接进概览", en: "The overview path shows Home / property name without an extra Overview level; links to a property open its overview directly" },
