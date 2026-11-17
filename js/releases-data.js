@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.13", title: { zh: "周期性账单概览瘦身：重复的列表交给「全部账单」", en: "Recurring bills overview slimmed down: lists moved to All bills" }, items: [
+    { k: "better", zh: "周期性账单的概览只留周期性专属的内容（每月固定支出、自动扣款、订阅、卡快过期、Escrow、导出到日历）；「要处理 / 本月账单 / 未来 30 天」那几块改成一个入口，点进「全部账单」看", en: "The recurring bills overview keeps only recurring-specific items (monthly total, autopay, subscriptions, expiring cards, escrow, calendar export); the needs-attention, this-month and next-30-days lists are replaced by a link to All bills" }
+  ] },
+
   { v: "2026-11-17.12", title: { zh: "扫描信件 / 账单，自动判断类型并填好表单", en: "Scan a letter or bill: the type is detected and the form is filled in" }, items: [
     { k: "new", zh: "添加账单的第一页多了「扫描信件 / 账单」：拍一封信或账单，自动判断是周期性还是一次性，进到对应的表单并填好，你核对后再保存", en: "The first Add bill page has Scan a letter or bill: photograph one and it works out whether it is recurring or one-time, opens that form already filled in, and you check and save" },
     { k: "better", zh: "车险、车贷这类账单，名字里有你的某辆车时，会自动挂到那辆车上", en: "Car insurance or loan bills that mention one of your vehicles are linked to that vehicle automatically" },

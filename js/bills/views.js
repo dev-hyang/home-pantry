@@ -15,6 +15,7 @@ import { attentionPanel, propertyTag, withProperty } from "../core/alerts.js";
 import { autofillBar, scanNewBillBar } from "../core/autofill.js";
 import { escrowPanelHtml } from "./escrow.js";
 import { assetSelectHtml, assetSuggestHtml } from "./asset-ui.js";
+import { allBillsHref } from "./all-views.js";
 import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
 import { billInUse, endedSuffix, propertyActive, propertyById, propertyOptionsHtml } from "../core/lifecycle.js";
 import { kindsNote, NEW_RECURRING, ONETIME, RECURRING } from "./kinds.js";
@@ -61,30 +62,6 @@ const billRow = (b) => `<li>
       : `<a class="btn btn-sm" href="${href("bill", b.id)}?pay=1">${t("记缴费")}</a>`}
   </li>`;
 
-/** 本月账单：本月到期或已缴过的账单，已缴的显示“已缴”（缴费日和金额），没缴的显示待缴 / 今天到期 / 逾期——缴完状态马上变 */
-function monthBillsHtml(list) {
-  const now = new Date(), m = monthKey(now), today = now.toISOString().slice(0, 10), cur = Units.region.currency;
-  const rows = [];
-  for (const b of list) {
-    if (!b.active || b.ended || b.escrow || b.direction === "receivable") continue;
-    const paid = b.pays.find((p) => p.status !== "skipped" && ((p.paid_on || "").startsWith(m) || (p.due_on || "").startsWith(m)));
-    const dueNow = b.next_due_on && (b.next_due_on.startsWith(m) || b.next_due_on < today);
-    if (!paid && !dueNow) continue;
-    rows.push({ b, paid, due: b.next_due_on });
-  }
-  if (!rows.length) return "";
-  rows.sort((x, y) => (x.paid ? 1 : 0) - (y.paid ? 1 : 0) || (x.paid ? (y.paid.paid_on || "").localeCompare(x.paid.paid_on || "") : (x.due || "").localeCompare(y.due || "")));
-  const done = rows.filter((r) => r.paid).length, left = rows.filter((r) => !r.paid && (r.b.currency || cur) === cur).reduce((s, r) => s + num(r.b.est), 0);
-  const li = ({ b, paid }) => {
-    const late = !paid && b.next_due_on < today, dueToday = !paid && b.next_due_on === today;
-    const badge = paid ? `<span class="badge b-ok">✓ ${t("已缴")}</span>` : late ? `<span class="badge b-out">${t("逾期")}</span>` : dueToday ? `<span class="badge b-low">${t("今天到期")}</span>` : `<span class="badge b-soon">${t("待缴")}</span>`;
-    const meta = paid ? t("{d} 缴费", { d: fmtDate(paid.paid_on) }) + (paid.status === "verified" ? ` · ${t("已核对")}` : "") : t("到期 {d}", { d: fmtDate(b.next_due_on) });
-    return `<li class="${paid ? "is-paid" : ""}">${badge}<div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a><small>${esc(meta)}</small></div><b>${paid && paid.amount != null ? mny(paid.amount, paid.currency) : mny(b.est, b.currency)}</b></li>`;
-  };
-  return `<section class="section"><div class="section-head"><h2>${t("本月账单")}</h2><p>${t("已缴 {a} / {b} 笔", { a: done, b: rows.length })}${left > 0 ? ` · ${t("还要交 {m}", { m: money(left) })}` : ""}</p></div>
-    <div class="panel"><ul class="restock-list">${rows.map(li).join("")}</ul></div></section>`;
-}
-
 /** 添加账单的第一步：选账单类型。周期性 → 现有的账单表单；一次性 → 一次性账单表单（医疗、装修工程、法律、旅行…） */
 function billTypeChooser() {
   const card = (href_, icon, title, desc, eg) => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small><small>${eg}</small></span><span class="mch" aria-hidden="true">›</span></a></div>`;
@@ -104,6 +81,15 @@ export function viewRecurring() {
   const hrefOf = (id) => `${RECURRING()}${id === "overview" ? "" : `?tab=${id}`}`;
   return `<section class="section"><div class="section-head"><h2>🔁 ${t("周期性账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${NEW_RECURRING()}">${t("添加账单")}</a></div></div>
     ${kindsNote("recurring")}${tabBar(RECURRING_TABS, tab, hrefOf, t("周期性账单内容"))}${tab === "overview" ? tabHub(RECURRING_TABS, hrefOf, t("更多")) : ""}</section>${body()}`;
+}
+
+/** 周期性账单的「概览」只留周期性专属的内容（每月固定支出、自动扣款、订阅、卡到期、Escrow、日历导出）；
+ *  「要处理 / 本月账单 / 未来 30 天」都在 财务 → 账单概览 和 全部账单 里，这里放入口 */
+function toAllBillsPanel(alertN, next30N) {
+  const link = (label, params) => `<a class="btn btn-sm btn-ghost" href="${allBillsHref({ type: "recurring", ...params })}">${label} ›</a>`;
+  return `<section class="section"><div class="panel cta-panel" style="display:block"><b>${alertN ? t("{n} 条账单要处理", { n: alertN }) : t("最近没有要处理的账单 ✓")}</b>
+    <p class="muted" style="margin:4px 0 8px">${t("每期的状态、金额和到期日，在“全部账单”里一行一期地看：未来 30 天有 {n} 期到期。", { n: next30N })}</p>
+    <div class="kind-links">${link(t("未缴的账单"), { status: "unpaid", range: "30d" })}${alertN ? link(t("逾期的账单"), { status: "overdue" }) : ""}${link(t("全部账单"), {})}</div></div></section>`;
 }
 
 /* ── 概览 ── */
@@ -126,32 +112,23 @@ export function viewBillsOverview() {
   }
   return `
     <section class="section">
-      <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">${propertyFilter()}
+      <div class="section-head"><h2>${t("周期性账单概览")}</h2><div class="head-acts">${propertyFilter()}
         <button type="button" class="btn btn-sm btn-ghost" data-action="bills-ics">${t("导出到日历")}</button>
         <a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a>
         <a class="btn btn-primary btn-sm" href="${NEW_RECURRING()}">${t("添加账单")}</a></div></div>
       ${hiddenEndedHint(all)}
       <div class="kpis">
-        <div class="kpi"><span>${t("未来 30 天要交")}</span><b>${money(due30)}</b><small>${t("{n} 笔", { n: next30.length })}</small></div>
+        <div class="kpi"><span>${t("未来 30 天要交")}</span><b>${money(due30)}</b><small>${t("共 {n} 笔账单", { n: next30.length })}</small></div>
         <div class="kpi"><span>${t("每月固定支出")}</span><b>${money(monthlyTotal)}</b><small>${t("必要 {m}", { m: money(essential) })}</small></div>
         <div class="kpi"><span>${t("自动扣款")}</span><b>${autopayN} / ${list.length}</b><small>${t("{n} 条需手动缴", { n: list.length - autopayN })}</small></div>
         ${subs.count ? `<div class="kpi"><span>${t("订阅与会员")}</span><b>${money(subs.monthly)}<small>/${t("月")}</small></b><small>${t("{n} 项，{a} 项年付", { n: subs.count, a: subs.annualPaid })}</small></div>` : ""}
       </div>
     </section>
-    ${alerts.length ? `<section class="section attn-sec is-hot"><div class="section-head"><h2>${t("要处理的账单")}<span class="badge attn-count b-out">${alerts.length}</span></h2><p>${t("逾期、到期、即将到期和待核对的自动扣款")}</p></div>
-      <div class="panel"><ul class="restock-list">${alerts.map((b) => billRow(b)).join("")}</ul></div></section>`
-      : `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单")}</strong></div></section>`}
-    ${monthBillsHtml(list)}
+    ${toAllBillsPanel(alerts.length, next30.length)}
     ${state.billsFilter.property !== "all" && state.properties.some((p) => p.id === state.billsFilter.property) ? propertyOneTimeHtml(state.billsFilter.property) : ""}
     ${escrowPanelHtml()}
     ${cards.length ? `<section class="section"><div class="panel cta-panel"><div><b>${t("自动扣款的卡快过期了")}</b><p class="muted">${joinList(cards.map((b) => `${esc(b.name)}（${esc(b.autopay_method || "")} ${esc(b.autopay_card_expires)}）`))}</p></div></div></section>` : ""}
-    <section class="section">
-      <div class="section-head"><h2>${t("未来 30 天")}</h2><p>${t("按到期日排列")}</p></div>
-      <div class="panel">${next30.length ? `<ul class="restock-list">${next30.map(({ bill: b, due }) => `<li>
-        <span class="badge" style="background:var(--surface-2)">${esc(fmtShort(`${due}T12:00:00`))}</span>
-        <div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a><small>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${b.autopay ? t("自动扣款") : t(B().CHANNELS[b.pay_channel] || "")}${billPayLabel(b) ? ` · ${esc(billPayLabel(b))}` : ""}${b.assigned_to ? ` · ${esc(memberName(b.assigned_to) || "")}` : ""}</small></div>
-        <b>${mny(b.est, b.currency)}</b></li>`).join("")}</ul>` : `<div class="empty"><strong>${t("30 天内没有到期的账单")}</strong></div>`}</div>
-    </section>`;
+  `;
 }
 
 function filterByProperty(list) {
