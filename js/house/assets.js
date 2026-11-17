@@ -400,7 +400,8 @@ function vehicleCard(a) {
   ].filter(Boolean).map((x) => `<span>${esc(x)}</span>`).join("");
   return `<article class="asset-card">
     <div class="asset-head"><span class="asset-ico" aria-hidden="true">${pt?.icon || "🚗"}</span>
-      <div class="grow"><a class="asset-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a><div class="item-meta">${meta}<span class="badge" style="background:var(--surface-2)">${t(pt?.name || "")}</span></div></div></div>
+      <div class="grow"><a class="asset-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a><div class="item-meta">${meta}<span class="badge" style="background:var(--surface-2)">${t(pt?.name || "")}</span></div></div>
+      ${moreMenu([{ label: t("记保养"), href: `${href("asset", a.id)}?log=1`, first: true }, { label: t("详情"), href: href("asset", a.id) }])}</div>
     <div class="asset-badges">
       ${vehStatus(a) === "owned" ? "" : vehStatusBadge(a)}
       ${a.followUp ? `<span class="badge b-out">${t(C().RESULTS[a.followUp.result])}</span>` : ""}
@@ -411,7 +412,6 @@ function vehicleCard(a) {
     ${vehStatus(a) === "looking" ? `<small class="muted">${t("选购中：提车后把名称、车牌、里程补上。")}</small>`
       : upcoming.length ? `<ul class="veh-due">${upcoming.map((s) => `<li class="${s.days < 0 ? "late" : s.days <= 30 ? "soon" : ""}"><span class="vd-name">${esc(t(s.name))}</span><small>${fmtDate(s.next)}${s.nextMiles != null ? ` · ${fmt(s.nextMiles)} ${distUnit()}` : ""}</small>${askButton(assetAsk(a, t(s.name)))}${askPanel(assetAsk(a, t(s.name)))}</li>`).join("")}</ul>`
       : `<small class="muted">${t("填购车日期或记第一次保养后，这里会列出下一步该做的保养。")}</small>`}
-    <div class="acts"><a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></div>
   </article>`;
 }
 /** 卡片 / 枢纽里的一行：进行中的交易进度 */

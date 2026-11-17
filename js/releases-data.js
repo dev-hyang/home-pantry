@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.38", title: { zh: "车辆卡片的操作收进右上角 ⋯；全站「更多」按钮统一样式", en: "Vehicle card actions move into the top-right menu; one style for every More button" }, items: [
+    { k: "better", zh: "车辆总览的车辆卡片：记保养、详情合并进右上角的 ⋯ 菜单（第一项是记保养）", en: "On the vehicles page each card now has Log service and Details in a top-right menu (Log service first)" },
+    { k: "better", zh: "全站所有「更多操作」按钮统一成房屋概览那种：32px 圆形、横排三点；原来有些地方是竖排三点", en: "Every More-actions button now looks like the one on the house overview: a 32px circle with horizontal dots (some places used vertical dots)" }
+  ] },
+
   { v: "2026-11-16.37", title: { zh: "修复车辆卡片里 ? 圆钮的排版", en: "Fix the ? button layout on vehicle cards" }, items: [
     { k: "fix", zh: "车辆总览的车辆卡片：「接下来的保养」每行的 ? 圆钮错位、大小不一，现在是 名称 | 日期 | ? 同一行垂直居中，大小和其他圆钮一致；点开的说明另起一整行", en: "Vehicle cards: the ? button in each upcoming-service row was misplaced and mis-sized; it now sits on the same row as name and date, centered and sized like the other circles, with its explanation on its own line" }
   ] },

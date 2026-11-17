@@ -3713,3 +3713,6 @@ span.rem-tag { cursor: default; }
 .veh-due li .vd-name { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
 .veh-due li .ask-btn { flex: none; align-self: center; }
 .veh-due li > :not(.vd-name):not(small):not(.ask-btn) { flex: 1 1 100%; }
+
+/* 车辆卡片右上角的 ⋯ 菜单：和标题同一行、靠右、不被名称挤掉 */
+.asset-card .asset-head > .act-more { flex: none; margin-left: auto; align-self: flex-start; }

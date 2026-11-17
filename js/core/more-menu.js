@@ -14,7 +14,7 @@ export function moreMenu(items, { up = false, label = "", vertical = false } = {
     const data = Object.entries(x.data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join("");
     return `<button type="button" class="${cls}" data-action="${esc(x.action)}"${data}>${esc(x.label)}</button>`;
   };
-  return `<details class="act-more${up ? " act-up" : ""}${vertical ? " v-dots" : ""}"><summary class="btn btn-ghost btn-sm" aria-label="${esc(label || t("更多操作"))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">${list.map(item).join("")}</div></details>`;
+  return `<details class="act-more${up ? " act-up" : ""}"><summary class="btn btn-ghost btn-sm" aria-label="${esc(label || t("更多操作"))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">${list.map(item).join("")}</div></details>`;
 }
 
 /** 复制一条记录：去掉 id、时间戳、操作人这些不该带过去的字段（extra 里再列这类记录自己的） */
