@@ -26,10 +26,22 @@ import { incRollupFor } from "./income/views.js";
 import { liveNetWorth, thisMonth } from "./bills/nw-logic.js";
 import { monthChange, trendPoints } from "./stats/net-worth.js";
 import { upcoming } from "./bills/logic.js";
+import { billInstances, rangeBounds, summarize } from "./bills/instances.js";
+import { allBillsHref } from "./bills/all-views.js";
+import { todayISO } from "./core/util.js";
 import { clearFiltersBtn } from "./core/clear-filters.js";
 import { assetsDueCount } from "./house/assets.js";
 
 const PREF_KEY = "hmh-today";
+/** 今日页的「待缴账单」：未来 30 天范围内没缴清的账单期（含逾期、含一次性），数字和点进去的「全部账单」列表对得上 */
+const UNPAID30_HREF = allBillsHref({ range: "30d", status: "unpaid" });
+function unpaid30() {
+  const today = todayISO(), { from, to } = rangeBounds("30d", today), cur = Units.region.currency;
+  const { rows } = billInstances({ recurring: state.billsEnriched, onetime: state.medEnriched }, { from, to, today });
+  const S = summarize(rows.filter((r) => !["paid", "skipped", "written_off"].includes(r.status) && !r.escrow), { cur, today });
+  return { n: S.remaining.n, amount: S.remaining.amount };
+}
+
 export function setTodayPref(patch) {
   Object.assign(state.today, patch);
   try { localStorage.setItem(PREF_KEY, JSON.stringify(state.today)); } catch { /* 忽略 */ }
@@ -162,7 +174,7 @@ function moneyCard() {
   const L = A ? livingSeries(A) : null, H = A ? withHousingSeries(A) : null, O = A ? outflowSeries(A) : null;
   const incRows = incRollupFor([pm, cm]), I = incRows ? incAggregate(incRows, [pm, cm], { cur }) : null;   // 两个月的收入聚合，读一次缓存
   const bills = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable");
-  const next30 = upcoming(bills, 30), due30 = next30.filter((x) => (x.bill.currency || cur) === cur).reduce((s, x) => s + num(x.bill.est), 0);
+  const next30 = unpaid30(), due30 = next30.amount;   // 和「全部账单」同一口径（未来 30 天范围内没缴清的，含逾期、含一次性）
   const inc = I ? num(I.income[cm]) : null, out = A ? num(O.at(-1)) : null, bal = inc != null && out != null ? inc - out : null;
   const amt = (v, cls = "") => `<b class="num ${cls}">${String(v).includes("…") ? v : mask(v)}</b>`, small = (x) => `<small>${x}</small>`;
   // 2026-11-14：每一行进对应的明细页（遮挡时点金额只露 10 秒、不跳转；点名称才跳转——js/core/privacy.js）
@@ -172,7 +184,7 @@ function moneyCard() {
     [t("现金流出"), A ? amt(money(out)) : amt(LOADING()), OV],
     [t("收入"), I ? amt(money(inc)) : amt(LOADING()), `${href("bills", "income")}?tab=records`],
     [t("结余"), bal != null ? amt(`${bal < 0 ? "−" : ""}${money(Math.abs(bal))}`, bal < 0 ? "down" : "up") : amt(LOADING()), OV],
-    [t("未来 30 天账单"), `${small(t("{n} 笔", { n: next30.length }))}${amt(money(due30))}`, href("bills", "recurring")],
+    [t("待缴账单（含逾期）"), `${small(t("共 {n} 笔账单", { n: next30.n }))}${amt(money(due30))}`, UNPAID30_HREF],
   ];
   if (state.nwOk) {
     const r = liveNetWorth(), m = thisMonth(), mom = monthChange(trendPoints(state.nwSnapshots, cur, { live: r, month: m }), m);
@@ -217,8 +229,8 @@ function homeCard(fin) {
     rows.push(row(`${href("house")}?todo=season`, "📅", t("季节任务")), row(href("house", "fix"), "🩺", t("东西坏了")), row(href("house", "profile"), "📋", t("房屋资料")), row(href("house", "supplies"), "🧰", t("汽车房屋消耗品")));
   }
   if (!fin && state.billsEnabled) {   // 账单全家可见：这里只给笔数，不给金额
-    const n = upcoming(state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable"), 30).length;
-    rows.splice(2, 0, row(href("bills", "recurring"), "🧾", t("未来 30 天账单"), t("{n} 笔账单", { n }), false));
+    const n = unpaid30().n;
+    rows.splice(2, 0, row(UNPAID30_HREF, "🧾", t("待缴账单（含逾期）"), t("{n} 笔账单", { n }), false));
   }
   const two = !document.documentElement.classList.contains("force-phone") && window.matchMedia?.("(min-width: 720px)").matches;   // 宽屏卡里两列：放 8 行刚好排满；手机一列放 7 行
   const MAX = two ? 8 : 7, more = rows.length - MAX;   // 多出来的和待办卡一样，底部一行链接到房屋首页

@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.15", title: { zh: "批量核对自动扣款账单；今日页待缴账单口径统一；去掉导出到日历", en: "Verify autopay bills in one go; Today's unpaid bills match All bills; calendar export removed" }, items: [
+    { k: "new", zh: "全部账单里，有自动扣款、过了日子还没核对的账单时，出现「全部标为已核对」：确认后每张记一条已核对的缴费并推到下一期", en: "When autopay bills are past their date and not yet verified, All bills shows Mark all as verified: after you confirm, each gets a verified payment and moves to the next period" },
+    { k: "better", zh: "今日页的「未来 30 天账单」改成「待缴账单（含逾期）」，笔数和金额与点进去的全部账单一致（含一次性账单）", en: "Today\u2019s next-30-days bills row is now Unpaid bills (incl. overdue); its count and amount match the All bills list it opens (one-time bills included)" },
+    { k: "better", zh: "去掉了「导出到日历」，账单的提醒请用今日页和待办", en: "Export to calendar is gone; use Today and the to-do list for bill reminders" }
+  ] },
+
   { v: "2026-11-17.14", title: { zh: "全部账单可以导出 CSV；手机上搜索框不再被挤窄", en: "Export All bills to CSV; the search box no longer gets squeezed on phones" }, items: [
     { k: "new", zh: "全部账单页右上角多了「导出 CSV」：按当前的筛选，一行一期，Excel 能直接打开", en: "All bills has an Export CSV button: it follows your current filters, one row per due date, and opens in Excel" },
     { k: "fix", zh: "手机上列表页的「清除筛选」只显示一个 ✕，把宽度让给搜索框，不再把搜索框挤成一条缝（各页都一样）", en: "On phones the Clear filters button on list pages shows just a cross, so the search box is no longer squeezed to a sliver (all pages)" }

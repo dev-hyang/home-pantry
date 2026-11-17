@@ -150,29 +150,6 @@ export function upcoming(list, days = 30) {
   return out.sort((x, y) => x.due.localeCompare(y.due));
 }
 
-/* ── 日历导出（.ics）：每条活跃账单未来 12 个月的到期日，带提前提醒 ── */
-export function icsFor(list) {
-  const esc = (s) => String(s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
-  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//home-pantry//bills//EN", "CALSCALE:GREGORIAN", `X-WR-CALNAME:${esc(t("家庭账单"))}`];
-  const today = todayISO(), end = addDays(today, 365);
-  for (const b of list) {
-    if (!b.active || b.ended || !b.next_due_on) continue;
-    let d = b.next_due_on, n = 0;
-    while (d && d <= end && n < 60 && (!b.ends_on || d <= b.ends_on)) {
-      const title = `${b.autopay ? t("核对扣款：") : t("缴费：")}${withProperty(b.property_id, b.name)}`;
-      const desc = [b.payee, b.est != null ? Units.money(b.est, b.currency || Units.region.currency) : null, b.pay_url, b.notes].filter(Boolean).join("\\n");
-      lines.push("BEGIN:VEVENT", `UID:${b.id}-${d}@home-pantry`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${d.replace(/-/g, "")}`, `SUMMARY:${esc(title)}`, `DESCRIPTION:${esc(desc)}`);
-      if (b.pay_url) lines.push(`URL:${b.pay_url}`);
-      for (const r of (b.reminder_days || [7, 1])) lines.push("BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${esc(title)}`, `TRIGGER:-P${r}D`, "END:VALARM");
-      lines.push("END:VEVENT");
-      d = advanceDue(b, d); n++;
-    }
-  }
-  lines.push("END:VCALENDAR");
-  return lines.join("\r\n");
-}
-
 /** 当前房产对象 */
 export const currentProperty = () => state.properties.find((p) => p.id === state.propertyId) || null;
 export const propertyName = (id) => state.properties.find((p) => p.id === id)?.name || "";

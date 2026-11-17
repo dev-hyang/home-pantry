@@ -15,7 +15,7 @@ import { resilientFetch } from "./core/net.js";
 import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
 import { FD, changed, clearUrlParams, onClearFilters } from "./core/clear-filters.js";
 import { loadOverviewRange, setOverviewRange, viewBillsHome } from "./bills/overview-views.js";
-import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, viewAllBills } from "./bills/all-views.js";
+import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, verifyBillIds, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
 import { ensureAdults } from "./bills/medical.js";
@@ -72,7 +72,7 @@ import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggl
 import { enrichBills } from "./bills/logic.js";
 import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
-import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, exportIcs, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewRecurring } from "./bills/views.js";
+import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { shopSelText, shopVisibleIds } from "./pantry/views.js";
 import { catNeed, moveCat, pantryNav, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
@@ -1168,7 +1168,14 @@ main.addEventListener("click", async (e) => {
       case "bill-link-asset": el.disabled = true; try { await linkBillAsset(id, el.dataset.asset); toast(t("已挂到这辆车上")); } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); } return refresh();
       case "bill-link-ignore": ignoreSuggestion(id); return render(true);
       case "billpay-backfill": el.disabled = true; try { await backfillPayments(el.dataset.id); } catch (err) { toast(t("补标失败：{msg}", { msg: friendlyErr(err.message) })); } return refresh();
-      case "bills-ics": return exportIcs();
+      case "all-verify": {   // 批量「已核对」：只对自动扣款、过了日子还没记录的账单；每张记一条「已核对」缴费，可在账单的缴费记录里单独删
+        const ids = verifyBillIds(); if (!ids.length) return;
+        if (!window.confirm(t("把这 {n} 张自动扣款账单标为已核对？每张记一条“已核对”缴费（金额按通常金额 / 最近均值），记错了可以在账单的缴费记录里单独删除。", { n: ids.length }))) return;
+        el.disabled = true; let done = 0;
+        try { for (const bid of ids) { await quickVerify(bid); done++; } } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
+        if (done) toast(t("已核对 {n} 张账单", { n: done }));
+        return refresh();
+      }
       case "all-csv": { const n = exportAllCsv(); return toast(t("已导出 {n} 期账单", { n })); }
       case "bills-csv": return exportBillsCsv();
       case "bills-filter": state.billsFilter[el.dataset.key] = el.dataset.val; return render();

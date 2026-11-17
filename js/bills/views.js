@@ -10,7 +10,7 @@ import { SECTIONS, go, href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { memberName } from "../core/logic.js";
 import { download, monthKey } from "../stats/views.js";
-import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, icsFor, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
+import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
 import { attentionPanel, propertyTag, withProperty } from "../core/alerts.js";
 import { autofillBar, scanNewBillBar } from "../core/autofill.js";
 import { escrowPanelHtml } from "./escrow.js";
@@ -113,7 +113,6 @@ export function viewBillsOverview() {
   return `
     <section class="section">
       <div class="section-head"><h2>${t("周期性账单概览")}</h2><div class="head-acts">${propertyFilter()}
-        <button type="button" class="btn btn-sm btn-ghost" data-action="bills-ics">${t("导出到日历")}</button>
         <a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a>
         <a class="btn btn-primary btn-sm" href="${NEW_RECURRING()}">${t("添加账单")}</a></div></div>
       ${hiddenEndedHint(all)}
@@ -304,13 +303,6 @@ export function exportBillsCsv() {
   const csv = "﻿" + rows.map((r) => r.map((v) => { const s = String(v ?? ""); const x = /^[=+\-@]/.test(s) ? `'${s}` : s; return /[",\r\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; }).join(",")).join("\r\n");
   download(`${t("账单")}-${year}.csv`, csv);
   toast(t("已导出 {n} 笔缴费记录", { n: rows.length - 1 }));
-}
-
-export function exportIcs() {
-  const list = filterByProperty(state.billsEnriched.filter((b) => b.active));
-  if (!list.length) return toast(t("没有可导出的账单"));
-  download(`${t("家庭账单")}.ics`, icsFor(list), "text/calendar;charset=utf-8");
-  toast(t("已导出日历文件，在手机上打开即可加入日历"));
 }
 
 /* ── 常用账单模板 ── */

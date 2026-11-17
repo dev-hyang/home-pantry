@@ -3840,3 +3840,5 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
   .toolbar.tb-on .clear-filters { min-width: 44px; padding: 0 12px; justify-content: center; }
   .toolbar.tb-on .clear-filters .cf-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
+
+.all-verify { margin: -4px 0 10px; }

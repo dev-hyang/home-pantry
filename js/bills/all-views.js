@@ -107,11 +107,16 @@ function compute() {
   return { rows, base: base.rows, truncated: base.truncated, from, to, today, S: summarize(rows, { cur: cur(), today }) };
 }
 
-function summaryHtml({ S, truncated }) {
+/** 当前筛选结果里待核对的自动扣款账单（每张账单一个 id）：「全部标为已核对」用 */
+export const verifyBillIds = () => [...new Set(compute().rows.filter((r) => r.kind === "recurring" && r.status === "verify").map((r) => r.billId))];
+
+function summaryHtml({ S, truncated, rows }) {
   const bits = [t("共 {n} 笔账单", { n: S.total.n }), `${t("应付")} ${mny(S.total.amount)}`, `${t("已付")} ${mny(S.paid.amount)}`, `${t("余额")} ${mny(S.remaining.amount)}`];
   const notes = [S.estimatedN ? t("含估算 {n} 笔", { n: S.estimatedN }) : "", S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "", S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "",
     S.otherCurrency ? t("另有 {n} 笔非 {c} 账单未计入", { n: S.otherCurrency, c: cur() }) : "", truncated ? t("另有 {n} 期太久远或太远没有展开", { n: truncated }) : ""].filter(Boolean);
-  return `<p class="all-sum" role="status"><b>${bits.join(" · ")}</b>${notes.length ? `<small class="muted">${esc(notes.join(" · "))}</small>` : ""}</p>`;
+  const nv = new Set((rows || []).filter((r) => r.kind === "recurring" && r.status === "verify").map((r) => r.billId)).size;
+  return `<p class="all-sum" role="status"><b>${bits.join(" · ")}</b>${notes.length ? `<small class="muted">${esc(notes.join(" · "))}</small>` : ""}</p>
+    ${nv ? `<p class="all-verify"><button type="button" class="btn btn-sm" data-action="all-verify">${t("全部标为已核对（{n} 张自动扣款账单）", { n: nv })}</button></p>` : ""}`;
 }
 
 function listHtml(C) {
