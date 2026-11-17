@@ -3927,6 +3927,7 @@ export const EN = {
   "这辆车用的机油、雨刮、冰铲等": "Oil, wipers, ice scrapers and more for this car",
   "先看常见小毛病，或让咩咩分析": "See common problems first, or ask Baa to look",
   "{n} 个常见小毛病": "{n} common problems",
+  "已添加 {name}，接着填车牌与里程": "Added {name}; now plate and mileage",
   "保险状态": "Status",
   "点一下改名称、类型、用途": "Tap to edit name, type and use",
   "房产名称": "Property name",

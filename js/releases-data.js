@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.36", title: { zh: "添加车辆改为分步向导", en: "Add vehicle is now a step-by-step wizard" }, items: [
+    { k: "new", zh: "添加车辆和添加房产一样改成分步向导：先填基本信息（动力类型、名称、品牌型号），点「下一步」才建车；再依次填车牌与里程、拥有状态与证照、车险、年份与保修、费用、备注", en: "Add vehicle works like Add property: basics first (type, name, brand and model), the car is created on Next, then plate and mileage, ownership and papers, insurance, years and warranty, cost and notes" },
+    { k: "better", zh: "每步底部固定：上一步 / 跳过 / 保存并下一步在同一行，下面一行「全部跳过，稍后再填」", en: "Each step keeps a sticky bar: Back / Skip / Save and next on one row and Skip all, fill in later below" }
+  ] },
+
   { v: "2026-11-16.35", title: { zh: "概览标题去下划线；车辆记保养进菜单；保养时间表改成卡片", en: "No underline on overview titles; Log service in the menu; schedule as cards" }, items: [
     { k: "better", zh: "房屋 / 车辆概览标题不再有下划线；车辆概览的「记保养」按钮放进名称旁 ⋮ 菜单（第一项）", en: "House and vehicle overview titles lose the underline; the vehicle overview Log service button moves into the menu next to the name (first item)" },
     { k: "fix", zh: "车辆保养时间表：原来的五列表格在手机上又挤又要左右滑，改成一项一张卡（周期 / 上次 / 下次 + 逾期或几天后标签 + 记一次）", en: "Vehicle service schedule: the cramped five-column table is now one card per item (cycle / last / next, an overdue or days-left badge, and Log)" }

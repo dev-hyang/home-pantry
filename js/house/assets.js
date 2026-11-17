@@ -355,14 +355,14 @@ export function viewVehicles() {
     <section class="section">
       <div class="section-head"><p>${list.length ? t("{n} 辆", { n: list.length }) : ""}</p>
         <div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="veh-buy-start">${t("开始买车流程")}</button>
-          <a class="btn btn-primary" href="${href("asset", "new")}?type=vehicle_gas">${t("添加车辆")}</a></div></div>
+          <a class="btn btn-primary" href="${href("asset", "new")}?type=vehicle_gas&wiz=1">${t("添加车辆")}</a></div></div>
       ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.map((a) => { const b = alertBadge(a); return dotRow({ cls: b.cls, nameHtml: `<a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>`,
         badge: { label: a.followUp ? t(C().RESULTS[a.followUp.result]) : a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修"), cls: b.cls }, detail: alertText(a),
         primary: { href: `${href("asset", a.id)}?log=1`, label: t("记保养") }, menu: [{ label: t("详情"), href: href("asset", a.id) }], ask: assetAsk(a) }); }).join("")}</ul></div>` : ""}
     </section>
     ${list.length ? `<section class="section"><div class="asset-grid">${list.map(vehicleCard).join("")}</div></section>`
       : `<section class="section"><div class="panel empty"><strong>${past.length ? t("没有在用的车辆") : t("还没有车辆档案")}</strong>${t("记下年款、车牌、里程和动力类型，按月或按里程提醒机油、轮胎、刹车油、12V 电瓶等；牌照、排放、保险到期也会提醒。油车和电车用不同的保养模板。")}
-        <p><a class="btn btn-primary" href="${href("asset", "new")}?type=vehicle_gas">${t("添加油车 / 混动")}</a> <a class="btn btn-ghost" href="${href("asset", "new")}?type=vehicle_ev">${t("添加纯电 / 插混")}</a></p></div></section>`}
+        <p><a class="btn btn-primary" href="${href("asset", "new")}?type=vehicle_gas&wiz=1">${t("添加油车 / 混动")}</a> <a class="btn btn-ghost" href="${href("asset", "new")}?type=vehicle_ev&wiz=1">${t("添加纯电 / 插混")}</a></p></div></section>`}
     ${pastVehiclesSection(past)}
     ${notes.length ? `<section class="section"><div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("本地须知")}</h3><ul class="tips">${notes.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></div></section>` : ""}`;
 }
@@ -664,19 +664,27 @@ export function viewAssetForm() {
   if (a && sec === "supplies") return `<section class="section">${assetCrumb(a, root, hubHref, t("相关耗材"))}${suppliesSection(a)}</section>`;
   if (a && sec === "recall") return `<section class="section form-page">${assetCrumb(a, root, hubHref, t("产品召回"))}${recallSection(a)}</section>`;
   if (a && sec === "care") return `<section class="section">${assetCrumb(a, root, hubHref, t("检查卡"))}${careCard(a.type, { open: true, ask: assetAsk(a) })}</section>`;
-  const hide = (k) => (a && sec && sec !== k ? "hidden" : "");
+  // 添加车辆向导：新建的第 1 步只显示「基本信息」（wiz=1，还没有这辆车）；建好后各步是 asset/<id>?sec=…&wiz=1
+  const wizNew = !a && veh && r.q.get("wiz") === "1", wiz = wizNew || (!!a && veh && r.q.get("wiz") === "1" && !!sec);
+  const steps = vehSteps(), curSec = wizNew ? "basic" : sec, stepIdx = steps.findIndex((s) => s.id === curSec);
+  const prevSec = stepIdx > 0 ? steps[stepIdx - 1] : null, nextSec = steps[stepIdx + 1] || null;
+  const stepHref = (s) => `${href("asset", a?.id || "new")}?sec=${s.id}&wiz=1`;
+  const hide = (k) => (wizNew ? (k === "basic" ? "" : "hidden") : a && sec && sec !== k ? "hidden" : "");
+  const wizBar = wiz ? `<div class="wiz-steps"><p class="wiz-now"><b>${t("第 {n} 步，共 {m} 步", { n: stepIdx + 1, m: steps.length })}</b> · ${esc(t(steps[stepIdx]?.name || ""))}</p>
+    <ol class="wiz-dots" aria-hidden="true">${steps.map((s, i) => `<li class="${i < stepIdx ? "is-done" : i === stepIdx ? "is-now" : ""}"></li>`).join("")}</ol></div>` : "";
   return `
     <section class="section form-page">
       ${a ? assetCrumb(a, root, hubHref, t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([...assetBase(null, veh), { label: veh ? t("添加车辆") : t("添加设备") }])}
+      ${wizBar}
       ${a && sec === "notes" ? "" : autofillBar(veh ? "vehicle" : "asset", "#assetForm")}
-      <form id="assetForm" class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${H().isFixtureType(v.type) ? "is-fixture" : ""} ${a && sec ? "one-sec" : ""}" novalidate data-autosave>
+      <form id="assetForm" ${wizNew ? `data-wiz-new="1"` : wiz ? `data-wiz="1" data-next="${esc(nextSec ? stepHref(nextSec) : hubHref)}"` : ""} class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${H().isFixtureType(v.type) ? "is-fixture" : ""} ${(a && sec) || wizNew ? "one-sec" : ""}" novalidate ${wizNew ? "" : "data-autosave"}>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
         ${fromItem ? `<input type="hidden" name="from_item" value="${esc(fromItem.id)}"><p class="hint" style="margin-top:0">${t("由家居耐用品“{name}”升级：补上品牌、安装日期、保修和保养周期后保存。", { name: esc(fromItem.name) })}</p>
           <label class="check-inline" style="margin-bottom:10px"><input type="checkbox" name="drop_item"><span>${t("建好后从家居耐用品里移除这件物品")}</span></label>` : ""}
         ${rep ? `<input type="hidden" name="replaces" value="${esc(rep.from.id)}"><p class="hint" style="margin-top:0">🔁 ${t("替换被召回的“{name}”：填上新机的型号、序列号、购买日期和保修；保存后旧机标成“已更换”，不再提醒。", { name: esc(assetName(rep.from)) })}</p>` : ""}
         <fieldset data-sec="basic" ${hide("basic")}>
           <legend>${t("基本信息")}</legend>
-          <div class="seg-radio" style="margin-bottom:10px">${kindPill("equipment")}${kindPill("tool")}${kindPill("vehicle")}</div>
+          <div class="seg-radio" style="margin-bottom:10px" ${wizNew ? "hidden" : ""}>${kindPill("equipment")}${kindPill("tool")}${kindPill("vehicle")}</div>
           <div class="form-grid">
             <label><span class="veh-hide">${t("类型")}</span><span class="veh-show">${t("动力类型")}</span>
               <select name="type" required>${typeOptions(v.type, v.kind)}</select>
@@ -749,10 +757,18 @@ export function viewAssetForm() {
           <textarea id="assetNotes" name="notes" rows="3" maxlength="500" placeholder="${t("滤网尺寸、维修商电话、借给了谁…")}">${d(v.notes)}</textarea>
         </fieldset>
         <p id="assetFormError" class="form-error" role="alert"></p>
-        <div class="form-actions sticky-actions">
+        ${wiz ? `<div class="sticky-actions wiz-bar">
+          <div class="form-actions wiz-row">
+            ${prevSec && !wizNew ? `<a class="btn btn-ghost" href="${stepHref(prevSec)}">‹ ${t("上一步")}</a>` : ""}
+            ${nextSec && !wizNew ? `<a class="btn btn-ghost" href="${stepHref(nextSec)}">${t("跳过")}</a>` : ""}
+            ${wizNew ? `<button type="button" class="btn btn-ghost" data-action="asset-cancel">${t("取消")}</button>` : ""}
+            <button type="submit" class="btn btn-primary">${wizNew ? t("下一步") : nextSec ? t("保存并下一步") : t("完成")}</button>
+          </div>
+          ${wizNew ? "" : `<div class="form-actions wiz-exit"><a class="btn btn-ghost" href="${hubHref}" title="${esc(t("保存这一步填的内容，其余各步以后再补，回概览"))}">${t("全部跳过，稍后再填")}</a></div>`}
+        </div>` : `<div class="form-actions sticky-actions">
           <button type="submit" class="btn btn-primary">${a ? t("保存修改") : veh ? t("添加车辆") : t("添加设备")}</button>
           <button type="button" class="btn btn-ghost" data-action="asset-cancel">${t("取消")}</button>
-        </div>
+        </div>`}
       </form>
       ${a ? "" : `<p class="muted" style="margin-top:12px;font-size:13px">${veh ? t("保存后可以在这辆车下记录每次保养、维修，按项目算下次到期。") : t("保存后可以在这台设备下记录每次检查、保养和维修。")}</p>`}
     </section>`;
@@ -848,6 +864,8 @@ function assetHub(a, root) {
 }
 
 /** 车辆概览（参考房屋概览）：基本信息卡 → 导航豆腐块（各带小统计）→ 记保养。删除车辆放在名称旁 ⋮ 里 */
+/** 添加车辆向导的步骤：车辆资料的各个分区（没有财务权限就没有「费用」那一步） */
+const vehSteps = () => ASSET_SECTIONS.filter((s) => !s.eq && !s.fx && !(s.id === "cost" && !pricesOk()));
 const vehSections = () => ASSET_SECTIONS.filter((s) => !s.eq && !s.fx && !(s.id === "cost" && !pricesOk()));
 function vehicleOverview(a, root) {
   const v = a.vehicle || {}, ins = v.insurance || {}, base = href("asset", a.id), pt = V().POWERTRAINS[a.type], st = assetStatMap(a);
@@ -1094,6 +1112,12 @@ export async function saveAssetForm(f, { silent = false } = {}) {
     const savedId = await Store.saveAsset(a);
     if (fe.replaces?.value) await finishReplace(fe.replaces.value, a.id || savedId);   // 召回换新：旧机标成已更换、退役
     if (silent) return true;
+    if (f.dataset.wizNew === "1" && (a.id || savedId)) {   // 添加车辆向导第 1 步：车建好了，进第 2 步
+      state.skipAutosave = true; state.needsRefresh = true;
+      toast(t("已添加 {name}，接着填车牌与里程", { name }));
+      go(`${href("asset", a.id || savedId)}?sec=plate&wiz=1`, { replace: true }); return true;
+    }
+    if (f.dataset.wiz === "1") { state.skipAutosave = true; state.needsRefresh = true; toast(t("已保存")); go(f.dataset.next, { replace: true }); return true; }   // 向导中间步：存完进下一步（最后一步回概览）
     toast(a.id ? t("已保存修改") : t("已添加 {name}", { name }));
     if (fe.from_item?.value && fe.drop_item?.checked) { await Store.deleteItem(fe.from_item.value); state.prevRoute = null; }   // 升级后移除原家居耐用品：别再退回那条已删除的物品页
     leaveAsset(true);
