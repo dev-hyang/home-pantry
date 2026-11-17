@@ -409,7 +409,7 @@ function vehicleCard(a) {
     </div>
     ${vehDealLine(a)}
     ${vehStatus(a) === "looking" ? `<small class="muted">${t("选购中：提车后把名称、车牌、里程补上。")}</small>`
-      : upcoming.length ? `<ul class="veh-due">${upcoming.map((s) => `<li class="${s.days < 0 ? "late" : s.days <= 30 ? "soon" : ""}"><span>${esc(t(s.name))}</span>${askButton(assetAsk(a, t(s.name)))}<small>${fmtDate(s.next)}${s.nextMiles != null ? ` · ${fmt(s.nextMiles)} ${distUnit()}` : ""}</small>${askPanel(assetAsk(a, t(s.name)))}</li>`).join("")}</ul>`
+      : upcoming.length ? `<ul class="veh-due">${upcoming.map((s) => `<li class="${s.days < 0 ? "late" : s.days <= 30 ? "soon" : ""}"><span class="vd-name">${esc(t(s.name))}</span><small>${fmtDate(s.next)}${s.nextMiles != null ? ` · ${fmt(s.nextMiles)} ${distUnit()}` : ""}</small>${askButton(assetAsk(a, t(s.name)))}${askPanel(assetAsk(a, t(s.name)))}</li>`).join("")}</ul>`
       : `<small class="muted">${t("填购车日期或记第一次保养后，这里会列出下一步该做的保养。")}</small>`}
     <div class="acts"><a class="btn btn-sm" href="${href("asset", a.id)}?log=1">${t("记保养")}</a><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></div>
   </article>`;

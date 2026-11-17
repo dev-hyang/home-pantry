@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-16.37", title: { zh: "修复车辆卡片里 ? 圆钮的排版", en: "Fix the ? button layout on vehicle cards" }, items: [
+    { k: "fix", zh: "车辆总览的车辆卡片：「接下来的保养」每行的 ? 圆钮错位、大小不一，现在是 名称 | 日期 | ? 同一行垂直居中，大小和其他圆钮一致；点开的说明另起一整行", en: "Vehicle cards: the ? button in each upcoming-service row was misplaced and mis-sized; it now sits on the same row as name and date, centered and sized like the other circles, with its explanation on its own line" }
+  ] },
+
   { v: "2026-11-16.36", title: { zh: "添加车辆改为分步向导", en: "Add vehicle is now a step-by-step wizard" }, items: [
     { k: "new", zh: "添加车辆和添加房产一样改成分步向导：先填基本信息（动力类型、名称、品牌型号），点「下一步」才建车；再依次填车牌与里程、拥有状态与证照、车险、年份与保修、费用、备注", en: "Add vehicle works like Add property: basics first (type, name, brand and model), the car is created on Next, then plate and mileage, ownership and papers, insurance, years and warranty, cost and notes" },
     { k: "better", zh: "每步底部固定：上一步 / 跳过 / 保存并下一步在同一行，下面一行「全部跳过，稍后再填」", en: "Each step keeps a sticky bar: Back / Skip / Save and next on one row and Skip all, fill in later below" }

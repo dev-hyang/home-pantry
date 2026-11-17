@@ -3707,3 +3707,9 @@ span.rem-tag { cursor: default; }
 .sched-why { display: block; }
 .sched-log { justify-self: start; min-height: 44px; display: inline-flex; align-items: center; }
 @media (max-width: 640px) { .sched-meta { grid-template-columns: 1fr; gap: 4px; } .sched-meta > div { display: flex; gap: 8px; } .sched-meta dt { min-width: 3em; } }
+
+/* 车辆卡片里的「接下来的保养」行：名称（占满）| 日期 | ? 圆钮同一行垂直居中，? 展开的说明另起一整行 */
+.veh-due li { flex-wrap: wrap; align-items: center; column-gap: 8px; padding: 4px 8px; }
+.veh-due li .vd-name { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+.veh-due li .ask-btn { flex: none; align-self: center; }
+.veh-due li > :not(.vd-name):not(small):not(.ask-btn) { flex: 1 1 100%; }
