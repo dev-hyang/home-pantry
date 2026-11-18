@@ -8,6 +8,7 @@ import { SECTIONS, href } from "./core/router.js";
 import { esc, inSpace } from "./core/util.js";
 import { t } from "./core/i18n.js";
 import { alertsOf } from "./core/logic.js";
+import { planEntryCards } from "./house/plan.js";
 import { activeVehicles, assetName, assetsDueCount, myAssets, myVehicles, pastVehicles, pastVehiclesSection, vehStatus } from "./house/assets.js";
 import { monthTasks, undoneThisMonth } from "./house/tasks.js";
 import { dealSubLabel, dealTasks, historyLabel, openDeal, routeDeal } from "./house/deals.js";
@@ -144,8 +145,10 @@ export function viewPropertyList() {
     ${ended.length ? `<details class="asset-ended"><summary>${t("已结束的房产")} <small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small></summary><div class="hv-grid">${ended.map(houseCard).join("")}</div></details>` : ""}
     ${archived.length ? `<details class="asset-ended"><summary>${t("已归档的房产")} <small>${t("{n} 套，不再持有或租住；资料、账单、设备都保留，可随时恢复", { n: archived.length })}</small></summary><div class="hv-grid">${archived.map(archivedCard).join("")}</div></details>` : ""}</section>
     <section class="hv-sec" aria-label="${esc(t("汽车"))}"><div class="section-head"><h3>🚗 ${t("汽车")}</h3></div>
-    <div class="hv-grid">${vehicles.map(vCard).join("")}${addCard(`href="${esc(href("asset", "new"))}?type=vehicle_gas&wiz=1"`, t("添加车辆"), t("记下你已经有的车：油车、混动、纯电都可以"))}${addCard('data-action="veh-buy-start"', t("开始买车流程"), t("还在选车、准备买：跟着清单一步步走"))}</div>
+    <div class="hv-grid">${vehicles.map(vCard).join("")}${addCard(`href="${esc(href("asset", "new"))}?type=vehicle_gas&wiz=1"`, t("添加车辆"), t("记下你已经有的车：油车、混动、纯电都可以"))}</div>
     ${pastVehiclesSection(pastVehicles())}</section>
+    <section class="hv-sec" aria-label="${esc(t("买卖计划"))}"><div class="section-head"><h3>🧭 ${t("买卖计划")}</h3><p>${t("还没买 / 卖：先看指南、列清单；不会创建房产或车辆")}</p></div>
+    <div class="hv-grid">${planEntryCards()}</div></section>
     ${houseTodoBoard()}
   </section>`;
 }

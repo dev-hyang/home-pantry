@@ -358,14 +358,6 @@ export function pastVehiclesSection(past) {
       <span class="hist-act"><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></span></li>`; }).join("")}</ul></details></section>`;
 }
 
-/** “开始买车流程”：先建一辆“选购中”的占位车，再在它名下开交易；提车后改名、补车牌 */
-export async function startVehiclePurchase() {
-  const id = await Store.saveAsset({ kind: "vehicle", type: "vehicle_gas", name: t("新车（选购中）"), location: null, brand: null, model: null, serial: null,
-    installed_on: null, manufacture_year: null, warranty_until: null, labor_warranty_until: null, expected_life_years: 15, service_interval_months: null,
-    purchase_price: null, replacement_cost_estimate: null, owner: null, notes: null, property_id: null, vehicle: { status: "looking" } });
-  return id;
-}
-
 function vehicleCard(a) {
   const v = a.vehicle || {}, pt = V().POWERTRAINS[a.type];
   const sb = SERVICE_BADGE[a.service];

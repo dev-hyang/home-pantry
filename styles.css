@@ -3934,3 +3934,23 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .bill-row.all-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "l1 amt" "l2 l2" "pays pays" "act act"; align-items: start; }
 .bill-row.all-row .all-amt { white-space: nowrap; }
 .bill-row.all-row .all-l2 { display: block; }
+
+/* ── 买卖计划（house/plan.js）── */
+.plan-page .plan-back { margin: 0 0 4px; }
+.plan-note { font-size: 12.5px; }
+.plan-stage { margin-bottom: 10px; padding: 0; }
+.plan-stage > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; min-height: 48px; }
+.plan-stage > summary::-webkit-details-marker { display: none; }
+.plan-stage[open] > summary .mch { transform: rotate(90deg); }
+.plan-body { padding: 0 14px 14px; }
+.plan-body .tips { margin-bottom: 10px; }
+.plan-dec { border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 8px; }
+.plan-opts { display: grid; gap: 8px; margin: 8px 0; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.plan-opt { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.plan-opt small { color: var(--muted); line-height: 1.5; }
+.plan-chk { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin: 10px 0; min-width: 0; }
+.plan-chk legend { padding: 0 6px; }
+.plan-chk-row { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 8px 0; border-top: 1px solid var(--border); cursor: pointer; }
+.plan-chk legend + .plan-chk-row { border-top: 0; }
+.plan-chk-row input { width: 22px; height: 22px; flex: none; margin-top: 1px; }
+.plan-tip { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }

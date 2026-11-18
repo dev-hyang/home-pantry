@@ -44,7 +44,7 @@ import { enableWeather, setTempUnit } from "./core/weather.js";
 import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
-import { assetAlertItems, startVehiclePurchase } from "./house/assets.js";
+import { assetAlertItems } from "./house/assets.js";
 import { recallAction, saveRecallForm } from "./house/recall.js";
 import { seasonAlertItems } from "./house/tasks.js";
 import { completeVehicleDeal, dealAlertItems } from "./house/deals.js";
@@ -68,6 +68,7 @@ import "./bills/finance-alerts.js";   // 财务层面的提醒（余额太久没
 import { initNetWorth, viewNetWorth } from "./bills/net-worth.js";   // 财务 → 分析 → 净资产（迁移 059）   // 财务 → 借贷   // 借贷（迁移 058）：启动时读进内存，也注册借贷提醒
 import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, maintFilter, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
 import { fixAction, runFix, viewFix } from "./house/fix.js";
+import { togglePlanCheck, viewPlan } from "./house/plan.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
@@ -244,7 +245,7 @@ const VIEWS = {
   ai:       () => viewAi(),
   pantry:   { scan: () => viewScan(), overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: viewHouseSupplies, assets: viewAssets, tasks: viewTasks, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
-              template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix },
+              template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix, plan: viewPlan },
   bills:    { overview: viewBillsHome, all: viewAllBills, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
@@ -1234,12 +1235,10 @@ main.addEventListener("click", async (e) => {
         if (d.kind === "buy") { if (!armed(el, t("再点一次确认已交割"))) return; await completeBuy(); return refresh(); }
         state.closeout = true; return go(`${href("house", "deal")}?sec=closeout`);
       }
-      case "veh-buy-start": {   // 先建一辆“选购中”的车，再进它的交易页开始买车流程
-        el.disabled = true;
-        const aid = await startVehiclePurchase();
-        await startDeal("veh_buy", aid);
-        await refresh();
-        return go(`${href("house", "deal")}?asset=${aid}`);
+      case "plan-check": return togglePlanCheck(el.dataset.kind, el.dataset.stage, Number(el.dataset.idx), el.checked);   // 看房 / 看车清单：只存这台设备
+      case "plan-open-property": {   // 买卖计划 → 卖房：先切到这套房产，再进它的交易页
+        if (id !== state.propertyId) { state.propertyId = id; try { localStorage.setItem("hmh-property", id); } catch { /* 忽略 */ } state.houseDraft = null; }
+        go(href("house", "deal")); return refresh();
       }
       case "deal-task-skip": await toggleDealSkip(el.dataset.deal, el.dataset.key, el.dataset.skip === "1"); state.dealTaskEdit = null; return refresh();
       case "deal-task-edit": state.dealTaskEdit = { deal: el.dataset.deal, key: el.dataset.key }; render(); $("#dealTaskForm input[name=due_on]")?.focus(); return;

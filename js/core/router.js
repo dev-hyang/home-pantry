@@ -8,7 +8,7 @@ export const SECTIONS = {
   pantry:   { name: "储藏",   subs: [["overview", "概览"], ["shopping", "采购"], ["inventory", "库存"], ["gear", "家居耐用品"], ["meals", "菜单"], ["scan", "录入购物"]] },   // 家居耐用品：耐用品和工具，只记数量和位置
   // 房屋：#/house 是房产列表；#/house/pages 是某套房产的页面目录；车辆挂家庭，从房产列表进
   house:    { name: "房屋",   subs: [["overview", "概览"], ["assets", "设备保养"], ["tasks", "季节任务"], ["deal", "交易"], ["profile", "房屋资料"],
-                                     ["supplies", "汽车房屋消耗品", true], ["vehicles", "车辆", true], ["pages", "页面", true], ["template", "推荐耗材", true], ["asset-template", "生成设备", true], ["fix", "出了问题", true]] },  // 第三项 true = 不在目录显示
+                                     ["supplies", "汽车房屋消耗品", true], ["vehicles", "车辆", true], ["pages", "页面", true], ["template", "推荐耗材", true], ["asset-template", "生成设备", true], ["fix", "出了问题", true], ["plan", "买卖计划", true]] },  // 第三项 true = 不在目录显示
   // 财务（2026-11，原「账单」改名）：内部 id 仍是 bills，旧的 #/bills/… 网址、书签、快捷操作、提醒链接全部照旧；#/finance/… 是同一处的别名
   bills:    { name: "财务",   subs: [["overview", "账单概览"], ["all", "全部账单"], ["recurring", "周期性账单"], ["onetime", "一次性账单"], ["spend", "花费"], ["income", "收入"], ["statements", "对账单"], ["budget", "预算"], ["cards", "卡与账户"], ["assets", "资产"], ["debts", "借贷"], ["networth", "净资产"], ["template", "常用账单", true]] },
   shopping: { name: "采购",   subs: [["home", "采购"], ["list", "购物车", true], ["add", "加入购物车", true]] },   // #/shopping 看板、#/shopping/list?tab=…、#/shopping/add（2026-11-13）

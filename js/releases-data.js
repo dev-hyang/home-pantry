@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.29", title: { zh: "新增「买卖计划」：买房 / 买车 / 卖房 / 卖车的分步指南，不再先建「选购中」的占位车", en: "New Buy / sell plans: step-by-step guides for buying or selling a home or car; no more placeholder \u201cShopping\u201d car" }, items: [
+    { k: "new", zh: "房屋首页多了「买卖计划」：我想买房 / 买车 / 卖房 / 卖车。每个都是分阶段的指南（准备、找、比较、出价、合同期、交割…），写清为什么、怎么做、常见的坑和要做的决定", en: "The Home page has Buy / sell plans: buy a home, buy a car, sell a home, sell a car. Each is a staged guide (prepare, search, compare, offer, under contract, closing…) with why, how, common pitfalls and the decisions you need to make" },
+    { k: "new", zh: "看房清单、试驾 / 看车清单可以逐项勾选（只保存在这台设备上）；内容以美国通用原则为主，并标出伊利诺伊的做法，仅供参考", en: "Viewing and test-drive checklists can be ticked off item by item (saved on this device only); content follows general US practice with Illinois specifics marked, for reference only" },
+    { k: "better", zh: "「添加房产 / 添加车辆」只用来记录你已经有的；还没买的，用「买卖计划」，不会再生成一辆「选购中」的占位车", en: "Add property / Add vehicle are only for what you already own; for things you have not bought yet use Buy / sell plans, which no longer create a placeholder car" },
+    { k: "new", zh: "卖房 / 卖车指南里可以直接选一套房产或一辆车，进入它的交易页开始卖出清单", en: "In the sell guides you can pick a property or car and go straight to its deal page to start the sell checklist" }
+  ] },
+
   { v: "2026-11-17.28", title: { zh: "取消「房屋 / 车辆」列表页：车辆都在房屋首页的「汽车」区", en: "The Home / Vehicles list page is gone: vehicles live in the Cars section on the Home page" }, items: [
     { k: "better", zh: "不再有单独的车辆列表页：房屋首页的「汽车」区就是入口，旧链接、书签会自动回到房屋首页", en: "There is no separate vehicles list page any more: the Cars section on the Home page is the entry, and old links and bookmarks land on Home" },
     { k: "better", zh: "「添加车辆」和「开始买车流程」两个入口并排放在「汽车」区；已卖出 / 已归还的车折叠在「历史车辆」里", en: "Add vehicle and Start buying a car sit side by side in the Cars section; sold or returned vehicles are folded under Past vehicles" },
