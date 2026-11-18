@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.17", title: { zh: "清理：删除账单「谁负责」和信用卡「持卡人」的旧设备字段", en: "Cleanup: removed the old device fields behind a bill's owner and a card's holder" }, items: [
+    { k: "better", zh: "账单的「谁负责」、信用卡的「持卡人」现在只关联家庭成员，旧的设备字段已删除（数据早已迁到家庭成员）；旧备份文件恢复时会自动忽略这两个旧字段", en: "A bill's owner and a card's holder now link only to family members and the old device fields are gone (the data was already migrated); restoring an old backup ignores those two fields" }
+  ] },
+
   { v: "2026-11-18.16", title: { zh: "清理：去掉账单路径整理后不再使用的旧页面代码", en: "Cleanup: removed old page code left over from the bills path change" }, items: [
     { k: "better", zh: "去掉旧的周期性账单清单、缴费记录列表、一次性账单目录和年度报表、旧的家庭成员页对应的代码；每次刷新不再多向服务器要一次缴费记录列表，页面行为不变", en: "Removed code for the old recurring bill list, payment list, one-time directory and annual report, and the old family page; refreshes no longer make an extra server request for the payment list, and pages behave the same" }
   ] },

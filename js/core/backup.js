@@ -241,7 +241,9 @@ export async function restore(data, onProgress = () => {}) {
       const seen = new Set((have || []).map((x) => `${x.item_id}|${x.created_at}`)), before = rows.length;
       rows = rows.filter((r) => !seen.has(`${r.item_id}|${r.created_at}`)).map(({ id, ...r }) => r); skipped[tb] = before - rows.length;
     }
-    for (const k of ["created_by", "updated_by", "paid_by", "done_by", "claimed_by", "assigned_to", "holder_user_id", "owner"]) rows = rows.map((r) => (k in r ? { ...r, [k]: uid(r[k]) } : r));
+    if (tb === "bills_recurring") rows = rows.map(({ assigned_to, ...r }) => r);   // 旧备份里的「谁负责（设备）」：这一列已删（迁移 090），改用 assigned_person_id
+    if (tb === "cards") rows = rows.map(({ holder_user_id, ...r }) => r);   // 同上：持卡人改成 holder_person_id
+    for (const k of ["created_by", "updated_by", "paid_by", "done_by", "claimed_by", "owner"]) rows = rows.map((r) => (k in r ? { ...r, [k]: uid(r[k]) } : r));
     let n = 0;
     for (const part of chunks(rows, 200)) {
       const q = tb === "stock_logs" ? sb.from(tb).insert(part) : sb.from(tb).upsert(part, { ignoreDuplicates: true });   // 只补缺的：已有同 id 的行不动
