@@ -1,6 +1,7 @@
 /* 创建周期性账单的向导（#/bill/new?type=recurring&step=n）：一屏一个问题，5 步，完成后进新账单的详情页。
  * 逻辑（默认值、预览、校验、拼账单）在 wizard.js；这里只管画面和事件。设计见 docs/design-bills-overview.md §16。
  * 草稿放在 state.billDraft（内存，不入库；创建成功或换一次新的进入就清掉）；步骤在网址里（返回键 = 上一步）。 */
+import { adultPeople } from "../settings/family-people.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, esc, fmtDate, todayISO } from "../core/util.js";
@@ -82,7 +83,7 @@ function stepWhere(d) {
   const parts = [];
   if (props.length) parts.push(`<label>${t("房产")}<select name="property_id"><option value="">${t("与房产无关")}</option>${props.map((p) => `<option value="${p.id}" ${p.id === d.property_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`);
   if (assets.length) parts.push(`<label>${t("关联资产（车辆 / 设备）")}<select name="asset_id"><option value="">${t("不关联")}</option>${assets.map((a) => `<option value="${a.id}" ${a.id === d.asset_id ? "selected" : ""}>${a.kind === "vehicle" ? "🚗" : "🔧"} ${esc(a.name)}</option>`).join("")}</select></label>`);
-  if (Store.mode === "cloud" && state.members?.length > 1) parts.push(`<label>${t("谁负责")}<select name="assigned_to"><option value="">${t("不指定")}</option>${state.members.map((m) => `<option value="${m.user_id}" ${m.user_id === d.assigned_to ? "selected" : ""}>${esc(m.display_name || "")}</option>`).join("")}</select></label>`);
+  if (adultPeople().length > 1) parts.push(`<label>${t("谁负责")}<select name="assigned_person_id"><option value="">${t("不指定")}</option>${adultPeople().map((p) => `<option value="${p.id}" ${p.id === d.assigned_person_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`);
   return parts.length ? `<div class="form-grid">${parts.join("")}</div><p class="muted" style="font-size:13px">${t("都是可选的，直接点“下一步”跳过也行。")}</p>` : `<p class="muted">${t("没有需要选的，直接点“下一步”。")}</p>`;
 }
 function stepConfirm(d, today) {

@@ -14,6 +14,7 @@ import { currentWeather, enableWeather, wxLoc } from "./core/weather.js";
 import { aiIcon, aiQuota, aiReady } from "./core/ai.js";
 import { Store } from "./core/store.js";
 import { href } from "./core/router.js";
+import { deviceLinkPrompt, myPersonOf } from "./settings/family-people.js";
 import { releaseBadgeHTML } from "./core/releases-ui.js";
 import { esc, money, num, spaceOf } from "./core/util.js";
 import { joinList, locale, t } from "./core/i18n.js";
@@ -50,8 +51,8 @@ export function setTodayPref(patch) {
 /** 首页提醒按偏好过滤（只看我负责的） */
 function myAlerts() {
   let all = collectAlerts();
-  const me = state.user?.id;
-  if (state.today.mine && me) all = all.filter((x) => !x.assigned_to || x.assigned_to === me);
+  const me = myPersonOf();   // 「只看我负责的」：按家庭成员（人）算，不是按设备
+  if (state.today.mine && me) all = all.filter((x) => !x.assigned_person_id || x.assigned_person_id === me);
   return all;
 }
 
@@ -75,6 +76,7 @@ export function viewToday() {
   const cards = [todoCard(all, counts), homeCard(fin), fin && state.billsEnabled ? moneyCard() : "", quickCard()].filter(Boolean);
   return `
     ${headHtml()}
+    ${Store.mode === "cloud" ? deviceLinkPrompt() : ""}
     ${releaseBadgeHTML() ? `<section class="section today-rl">${releaseBadgeHTML()}</section>` : ""}
     ${aiBlock()}
     ${noProfile ? `<section class="section"><div class="panel cta-panel">
@@ -392,7 +394,7 @@ export function viewAlerts() {
       <section class="section today-head">${seg}</section>${byArea(myAlerts())}`;
   }
   const all = myAlerts(), counts = alertCounts(all);
-  const canMine = Store.mode === "cloud" && collectAlerts().some((x) => x.assigned_to);
+  const canMine = Store.mode === "cloud" && collectAlerts().some((x) => x.assigned_person_id);
   const tabs = alertSourceTabs(counts);
   const src = pref.source && counts.bySource[pref.source] ? pref.source : null;
   const idx = tabs.indexOf(src || "all");

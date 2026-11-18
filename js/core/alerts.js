@@ -1,5 +1,5 @@
 /* 提醒总线：各模块把自己的提醒翻译成统一形状并注册，首页、网页标题、浏览器通知（以后还有邮件摘要）都从这里取同一份数据。
- * 提醒项：{ source, severity, must, due, daysLeft, title, detail, property_id, assigned_to, href, badge?, actions }
+ * 提醒项：{ source, severity, must, due, daysLeft, title, detail, property_id, assigned_person_id, href, badge?, actions }
  *   severity：0 紧急（逾期）/ 1 今天 / 2 尽快（一周内、待核对、缺货）/ 3 留意（少货、临期、季节任务）
  *   actions：{ type: "link", href, label, cls?, external? } | { type: "button", action, id, label, cls? } | { type: "check", attrs } | { type: "tag", label, cls?, href? }（状态标签，如“已加入采购”）
  * 房产归属：多于一套活跃房产时统一加房产芯片（propertyTag），单套不显示。 */

@@ -50,7 +50,7 @@ export const setIncMerge = (on) => { inc().merge = !!on; try { localStorage.setI
 export const isOwnerNow = () => financeOk();
 /** 能不能看全家的收入 */
 export const canSeeAll = () => financeOk();
-export const myPersonId = () => state.people.find((p) => p.member_user_id === state.user?.id)?.id || null;
+export const myPersonId = () => state.members?.find((m) => m.user_id === state.user?.id)?.person_id || null;   // 这台设备属于哪位家庭成员（迁移 084）
 export const adults = () => state.people.filter((p) => (p.kind || "adult") === "adult");
 export const personName = (id) => state.people.find((p) => p.id === id)?.name || "";
 export const memberLabel = (userId) => state.members.find((m) => m.user_id === userId)?.display_name || "";

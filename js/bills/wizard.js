@@ -37,7 +37,7 @@ export function newDraft(init = {}) {
   const category = init.category || "electric", d = defaultsFor(category);
   return { category, name: init.name || "", payee: init.payee || "", trial_ends_on: "", frequency: init.frequency || d.frequency, interval_months: "", due_day: "", next_due_on: "",
     amount_type: init.amount_type || d.amount_type, typical_amount: init.typical_amount ?? "", pay: d.pay, pay_account: "", pay_other: "mail", pay_url: "",
-    property_id: init.property_id || "", asset_id: "", assigned_to: "", reminder_days: "", touched: {}, ...init.extra };
+    property_id: init.property_id || "", asset_id: "", assigned_person_id: "", reminder_days: "", touched: {}, ...init.extra };
 }
 
 const intOrNull = (v) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : null; };
@@ -80,7 +80,7 @@ export function billFromDraft(d, { today, currency, essential = true, payFields 
     next_due_on: nextDuePreview(d, today), grace_days: 0, ends_on: null, sub_kind: null, trial_ends_on: d.trial_ends_on || null,
     reminder_days: reminder.length ? [...new Set(reminder)].sort((a, c) => c - a).slice(0, 5) : (d.frequency === "annual" ? [30, 7] : [7, 1]), late_fee_note: null,
     autopay: channel === "autopay", ...(autopay ? payFields : { pay_card_id: null, autopay_method: null }), autopay_card_expires: null,
-    assigned_to: d.assigned_to || null, essential, active: true, notes: null,
+    assigned_person_id: d.assigned_person_id || null, essential, active: true, notes: null,
   };
   if (autopay && !payFields.pay_card_id && !payFields.autopay_method) { b.pay_card_id = null; b.autopay_method = null; }
   return b;

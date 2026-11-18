@@ -1,4 +1,5 @@
 import { state } from "../core/state.js";
+import { deviceLinkPrompt, peoplePanel, visibleDevices } from "./family-people.js";
 import { moneyHidden } from "../core/privacy.js";
 import { tempUnitPref } from "../core/weather.js";
 import { Store } from "../core/store.js";
@@ -309,11 +310,13 @@ export function viewSettings() {
         ${cloud ? `<a class="btn btn-sm btn-ghost" href="${href("me", "settings")}?sec=backup">${t("同步与备份")} ›</a>` : ""}</div>
       ${cloud && state.households.length > 1 ? `<label style="display:grid;gap:4px;margin-top:12px">${t("切换家庭")}<select id="hhSwitch">${state.households.map((h) => `<option value="${h.id}" ${h.id === state.household.id ? "selected" : ""}>${esc(h.name)}</option>`).join("")}</select></label>` : ""}
     </div>
+    ${cloud ? deviceLinkPrompt() : ""}
     ${cloud ? pendingList() : ""}
+    ${peoplePanel()}
     <div class="panel">
-      <h3 class="mem-h">${t("家庭成员（{n}）", { n: famMembers().length })}</h3>
+      <h3 class="mem-h">${t("登录设备（{n}）", { n: visibleDevices().length })}</h3>
       ${membersList()}
-      <p class="muted mem-note">${amOwner() ? t("点一位家人查看和修改资料、财务权限、家主角色，或移出家庭。") : t("点自己可以改称呼和联系方式；家人的资料只能查看。")}</p>
+      <p class="muted mem-note">${amOwner() ? t("每台登录的设备一行，点进去改称呼、联系方式、属于哪位家庭成员，设财务权限、家主角色，或移出家庭。") : t("这里只有你自己的设备；点一行可以改称呼和联系方式。")}</p>
     </div>
     ${cloud ? `
     <div class="panel">

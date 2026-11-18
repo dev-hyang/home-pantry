@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.9", title: { zh: "家庭成员和登录设备分开：一个人可以有多台设备，账单「谁负责」关联的是人", en: "Family members and login devices are separate: one person can have several devices, and a bill's owner is a person" }, items: [
+    { k: "new", zh: "设置 → 家庭与成员 分成两块：「家庭成员」（人：大人、孩子、宠物，家主新建 / 改名 / 合并 / 删除）和「登录设备」；一位成员可以有多台设备，设备资料页里选它属于谁", en: "Settings → Family & members now has Family members (people: adults, kids, pets; the owner adds, renames, merges, deletes) and Login devices; a person can have several devices and each device page says whose it is" },
+    { k: "new", zh: "第一次用一台新设备登录会问「这台设备是谁？」：选已有的人，或新建；以后换设备选同一个人就不会多出一个人", en: "A new device asks Who uses this device?: pick an existing person or create one; on the next device pick the same person and no duplicate appears" },
+    { k: "better", zh: "账单「谁负责」、今日页「只看我负责的」都按家庭成员算；除家主外，每个人只能看到自己和自己的设备；已有数据已迁移（妈妈的两台设备合并成一个人）", en: "A bill's owner and Today's Only mine now follow family members; apart from the owner, each person sees only themselves and their own devices; existing data was migrated (Mom's two devices became one person)" }
+  ] },
+
   { v: "2026-11-18.8", title: { zh: "账单路径整理：财务 / 账单概览 / 资产 / 账单；取消周期性、一次性账单目录页", en: "Bills path tidied: Finance / Bills overview / asset / bill; the recurring and one-time directory pages are gone" }, items: [
     { k: "better", zh: "账单详情页的路径统一成「财务 / 账单概览 / 房产（车辆、设备、患者）/ 账单名」；第二级回概览（默认筛选），第三级回概览并按这个资产筛选", en: "Bill pages now show Finance / Bills overview / property (vehicle, equipment, patient) / bill; the second level returns to the overview with default filters, the third filters it by that asset" },
     { k: "new", zh: "账单概览的资产筛选写进网址（#/bills/overview/资产），可以直接分享、刷新；资产下拉能输入文字搜索，选项很多也好找", en: "The overview's asset filter is part of the address (#/bills/overview/asset), so it can be shared and survives a refresh; the asset list is searchable" },

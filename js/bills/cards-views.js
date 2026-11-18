@@ -444,7 +444,7 @@ export async function saveCardForm(f) {
     if (bill_id === "__new") {   // 新建一条「信用卡」类周期账单：到期 / 核对提醒、缴费记录都走账单模块
       const b = { property_id: null, name: t("{name} 还款", { name }), category: "credit_card", direction: "payable", payee: card.issuer || name, account_last4: card.last4, login_hint: null, pay_url: null,
         pay_channel: card.autopay ? "autopay" : "online", amount_type: "variable", typical_amount: null, currency: cur(), frequency: "monthly", interval_months: null, due_day: card.due_day || 1, due_dates: [], next_due_on: null, grace_days: 0, late_fee_note: null,
-        autopay: card.autopay, autopay_method: null, autopay_card_expires: card.expires_on, pay_card_id: payFrom, statement_channel: "email", reminder_days: [7, 1], ends_on: null, sub_kind: null, trial_ends_on: null, assigned_to: null, essential: true, active: true, notes: null };
+        autopay: card.autopay, autopay_method: null, autopay_card_expires: card.expires_on, pay_card_id: payFrom, statement_channel: "email", reminder_days: [7, 1], ends_on: null, sub_kind: null, trial_ends_on: null, assigned_person_id: null, essential: true, active: true, notes: null };
       b.next_due_on = initialDue(b);
       await Store.saveBill(b);
       state.bills = await Store.listBills(); state.billsEnriched = enrichBills(state.bills, state.billPayments);

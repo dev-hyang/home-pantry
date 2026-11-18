@@ -20,7 +20,7 @@ import { applyOverviewQuery, applyOverviewRoute, loadOverviewRange, setOverviewR
 import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, verifyBillIds, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { viewOtBill, applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm } from "./bills/medical-views.js";
-import { ensureAdults } from "./bills/medical.js";
+import { deviceLinkDo, deviceLinkNew, setDevicePerson } from "./settings/family-people.js";
 import { spendChanged } from "./core/spend-data.js";
 import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-check.js";
 import { mountAppSwitcher } from "../shared/app-switcher.js";
@@ -172,7 +172,6 @@ export async function refresh() {
       Promise.all([loadDebts(), loadNetWorth()]).then(() => { if (state.route?.section === "bills" || state.route?.section === "today") render(false); });
       loadPending();
       loadShops().then(() => { if (["shops", "shopping", "pantry"].includes(state.route?.section)) render(false); });   // 常去的商店与特价（迁移 067）：不挡首屏
-      ensureAdults().then((added) => { if (added) { applyMedical(state.medBills, state.medPayments); render(false); } }).catch(() => {});
       ensureFirstYear().then((fresh) => { if (fresh && state.route?.section === "bills") render(false); });   // 「全部历史」的起始年：数据读好了再查（刷新页面时路由先到，那时查不到）
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
       if (!pendingAny()) notifyIfNeeded();
@@ -739,6 +738,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
   if (e.target.id === "invSort") { state.filter.sort = e.target.value; renderInvList(); }
   if (e.target.id === "ovRange") { setOverviewRange(e.target.value); render(); }
+  if (e.target.dataset?.linkPerson) { try { await setDevicePerson(e.target.dataset.linkPerson, e.target.value || null); toast(t("已保存")); } catch (err) { toast(t("保存失败：{msg}", { msg: err.message })); } render(true); return; }   // 设备资料页：属于哪位家庭成员
   if (e.target.id === "ovAsset") { state.ovFilter.keepRange = true; go(overviewHref(e.target.value)); }   // 换资产 = 换路径（#/bills/overview/<资产键>），时间范围保持
   { const k = { allRange: "range", allAsset: "asset", allType: "type", allCat: "cat", allStatus: "status", allPay: "pay", allSort: "sort" }[e.target.id];
     if (k) { state.allFilter[k] = e.target.value; if (k === "range") render(); else renderAllList(); } }
@@ -1192,6 +1192,8 @@ main.addEventListener("click", async (e) => {
       }
       case "alerts-prev": shiftAlertSource(-1); return render();
       case "alerts-next": shiftAlertSource(1); return render();
+      case "device-link": await deviceLinkDo(); return render(true);   // 这台设备是谁？→ 选已有的人
+      case "device-link-new": await deviceLinkNew(); return render(true);   // …或新建一个人
       case "bill-cancel": return leaveBill(false);
       case "assess-cancel": return go(`${href("bill", state.route.id)}?sec=assess`, { replace: true });
       case "assess-del": {

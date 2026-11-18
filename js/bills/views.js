@@ -8,7 +8,7 @@ import { Store } from "../core/store.js";
 import { $, esc, fmtDate, fmtShort, money, num, stampText, todayISO, toast } from "../core/util.js";
 import { SECTIONS, go, href } from "../core/router.js";
 import { compare, joinList, lang, t } from "../core/i18n.js";
-import { memberName } from "../core/logic.js";
+import { adultPeople, personNameOf } from "../settings/family-people.js";
 import { download, monthKey } from "../stats/views.js";
 import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
 import { attentionPanel, propertyTag, withProperty } from "../core/alerts.js";
@@ -256,7 +256,7 @@ export function billTemplateItems(indexes) {
       frequency: r.frequency, interval_months: r.interval_months || null, due_day: r.due_day || null, due_dates: r.due_dates || [],
       next_due_on: null, grace_days: r.grace_days || 0, late_fee_note: null,
       autopay: !!r.autopay, autopay_method: null, autopay_card_expires: null, statement_channel: r.statement || "email",
-      reminder_days: r.reminder_days || [7, 1], assigned_to: null, essential: r.essential !== false && billCat(r.category).essential, active: true,
+      reminder_days: r.reminder_days || [7, 1], assigned_person_id: null, essential: r.essential !== false && billCat(r.category).essential, active: true,
       notes: r.note ? t(r.note) : null,
     };
     b.next_due_on = initialDue(b);
@@ -376,7 +376,7 @@ export function viewBillForm() {
             <label>${t("宽限天数")}<input name="grace_days" type="number" inputmode="numeric" min="0" max="60" value="${d(v.grace_days ?? 0)}"></label>
             <label>${t("结束日期（可选）")}<input name="ends_on" type="date" value="${d(v.ends_on)}"><small>${t("晚于它的到期不再提醒，例如卖房后的最后一期")}</small></label>
             <label class="span-2">${t("滞纳金说明")}<input name="late_fee_note" maxlength="120" placeholder="${t("例如：逾期 1.5% 或 $25")}" value="${d(v.late_fee_note)}"></label>
-            ${cloud ? `<label>${t("谁负责")}<select name="assigned_to"><option value="">${t("不指定")}</option>${state.members.map((m) => `<option value="${m.user_id}" ${m.user_id === v.assigned_to ? "selected" : ""}>${esc(m.display_name)}</option>`).join("")}</select></label>` : `<input type="hidden" name="assigned_to" value="">`}
+            ${adultPeople().length ? `<label>${t("谁负责")}<select name="assigned_person_id"><option value="">${t("不指定")}</option>${adultPeople().map((p) => `<option value="${p.id}" ${p.id === v.assigned_person_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select><small>${t("关联家庭成员（不是登录设备），在 设置 → 家庭与成员 里管理。")}</small></label>` : `<input type="hidden" name="assigned_person_id" value="">`}
             <label class="check-inline"><input type="checkbox" name="essential" ${v.essential !== false ? "checked" : ""}><span>${t("必要支出（预算里单独统计）")}</span></label>
             <label class="check-inline"><input type="checkbox" name="active" ${v.active !== false ? "checked" : ""}><span>${t("启用（停用后不再提醒，记录保留）")}</span></label>
             <label class="span-2">${t("备注")}<textarea name="notes" rows="2" maxlength="500" placeholder="${t("合同到期、促销价截止、客服电话…")}">${d(v.notes)}</textarea></label>
@@ -579,7 +579,7 @@ export async function saveBillForm(f, { silent = false } = {}) {
     sub_kind: B().isSubCat(fe.category.value) ? fe.sub_kind.value || null : null, trial_ends_on: B().isSubCat(fe.category.value) ? fe.trial_ends_on.value || null : null,
     reminder_days: reminders.length ? reminders : [7, 1], late_fee_note: fe.late_fee_note.value.trim() || null,
     autopay: fe.autopay.checked, ...payFields(fe.pay_account?.value, fe.autopay_method.value), autopay_card_expires: fe.autopay_card_expires.value || null,
-    assigned_to: fe.assigned_to.value || null, essential: fe.essential.checked, active: fe.active.checked, notes: fe.notes.value.trim() || null,
+    assigned_person_id: fe.assigned_person_id.value || null, essential: fe.essential.checked, active: fe.active.checked, notes: fe.notes.value.trim() || null,
   };
   if (b.pay_channel === "escrow") b.autopay = false;   // 代缴就不是自动扣款
   if (b.autopay && b.pay_channel !== "autopay") b.pay_channel = "autopay";

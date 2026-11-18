@@ -872,7 +872,9 @@ function compareHtml() {
   // 实际月均：认定收入（借款 / 需要还的赠与、资本流入不算；卖出只算已实现收益）
   const rows = I.rec.filter((r) => r.received_on >= w.from && r.received_on <= w.to);
   const actualOf = (pid) => R2(incSumOf(rows.filter((r) => (pid === "" ? !r.person_id : r.person_id === pid))) / n);
-  const lines = state.members.map((m) => { const p = state.people.find((x) => x.member_user_id === m.user_id), plan = state.incomes.find((i) => i.user_id === m.user_id); return { name: m.display_name || t("家人"), plan: plan ? R2(monthlyOf(plan)) : null, act: p ? actualOf(p.id) : null }; })
+  const byPerson = new Map();   // 一位家庭成员可以有多台设备：收入计划按人合计
+  for (const m of state.members) { const k = m.person_id || `dev:${m.user_id}`; if (!byPerson.has(k)) byPerson.set(k, []); byPerson.get(k).push(m); }
+  const lines = [...byPerson.entries()].map(([k, ms]) => { const p = k.startsWith("dev:") ? null : state.people.find((x) => x.id === k), plans = ms.map((m) => state.incomes.find((i) => i.user_id === m.user_id)).filter(Boolean); return { name: p?.name || ms[0].display_name || t("家人"), plan: plans.length ? R2(plans.reduce((a, i) => a + monthlyOf(i), 0)) : null, act: p ? actualOf(p.id) : null }; })
     .filter((l) => l.plan != null || l.act != null);
   const un = actualOf(""), planned = R2(totalIncomeMonthly()), actual = R2(incSumOf(rows) / n);
   const diff = (p, a) => (p > 0 ? `<span class="${a < p ? "down" : ""}">${a >= p ? "+" : ""}${Math.round(((a - p) / p) * 100)}%</span>` : "—");

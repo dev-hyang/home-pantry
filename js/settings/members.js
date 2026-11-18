@@ -8,6 +8,7 @@ import { CloudStore, DemoStore, Store } from "../core/store.js";
 import { esc, fmtShort } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
+import { devicePersonField, personNameOf, visibleDevices } from "./family-people.js";
 
 const demo = () => Store.mode === "demo";
 /** 当前家庭的正式成员（演示模式读本机演示库，不动 state.members） */
@@ -42,13 +43,13 @@ function badges(m) {
 
 /** 成员列表：一人一行，点进去是资料页；按钮都在资料页里 */
 export function membersList() {
-  const list = famMembers();
-  if (!list.length) return `<p class="muted">${t("还没有成员")}</p>`;
+  const list = visibleDevices();
+  if (!list.length) return `<p class="muted">${t("还没有登录设备")}</p>`;
   return `<div class="mlist mem-list">${list.map((m) => {
     const edit = canEdit(m), label = edit ? t("编辑") : t("查看");
     return `<a class="mrow mem-row" href="${memberHref(m.user_id)}" aria-label="${esc(`${m.display_name} · ${label}`)}">
       ${avatar(m)}
-      <span class="mt"><b>${esc(m.display_name)}</b><span class="mem-badges">${badges(m)}${m.joined_at ? `<small>${t("{d} 加入", { d: fmtShort(m.joined_at) })}</small>` : ""}</span></span>
+      <span class="mt"><b>${esc(m.display_name)}</b>${m.person_id ? `<small class="muted"> → ${esc(personNameOf(m.person_id))}</small>` : `<small class="muted"> · ${t("还没链接家庭成员")}</small>`}<span class="mem-badges">${badges(m)}${m.joined_at ? `<small>${t("{d} 加入", { d: fmtShort(m.joined_at) })}</small>` : ""}</span></span>
       <span class="mem-go">${label}<span class="mch" aria-hidden="true">›</span></span></a>`;
   }).join("")}</div>`;
 }
@@ -114,7 +115,7 @@ export function viewMemberProfile(id) {
         <button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-remove" data-id="${esc(m.user_id)}">${t("移出家庭")}</button></div></div>` : "";
 
   const selfNote = self && !owner ? `<p class="muted mem-note">${t("角色和财务权限由家主设置。")}</p>` : "";
-  return `<div class="mem-profile">${head}${info}${perms}${danger}${selfNote}</div>`;
+  return `<div class="mem-profile">${head}${devicePersonField(m)}${info}${perms}${danger}${selfNote}</div>`;
 }
 
 /** 读资料表单（去掉首尾空格；空的存 null） */

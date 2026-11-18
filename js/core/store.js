@@ -673,7 +673,7 @@ export const MED_FIELDS = ["kind", "subkind", "property_id", "provider", "patien
 export const CARD_FIELDS = ["name", "issuer", "network", "last4", "holder_user_id", "kind", "expires_on", "opened_on", "annual_fee", "fee_month", "credit_limit", "statement_day", "due_day", "autopay", "bill_id", "catalog_id", "rewards", "bonus", "credits", "rules_as_of", "active", "notes", "balance", "inactive_since"];
 export const BILL_FIELDS = ["property_id", "name", "category", "direction", "payee", "account_last4", "login_hint", "pay_url", "pay_channel", "amount_type", "typical_amount", "typical_fee", "typical_tax", "currency",
   "frequency", "interval_months", "due_day", "due_dates", "next_due_on", "grace_days", "late_fee_note", "autopay", "autopay_method", "autopay_card_expires", "pay_card_id", "statement_channel",
-  "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_to", "essential", "active", "notes", "asset_id"];
+  "reminder_days", "ends_on", "sub_kind", "trial_ends_on", "assigned_person_id", "essential", "active", "notes", "asset_id"];
 export const CATEGORY_FIELDS = ["space", "key", "name", "icon", "color", "loc", "subs", "hidden", "sort"];
 export const LOCATION_FIELDS = ["name", "grp", "replaces", "sort"];
 export const TERM_FIELDS = ["term", "zh", "en", "hant"];
@@ -1424,6 +1424,7 @@ export const CloudStore = {
   /* 家主管理（security definer RPC，见 migrations/004、005） */
   async setMemberRole(userId, role) { this.must(await this.sb.rpc("set_member_role", { p_household: this.hid, p_user: userId, p_role: role })); },
   async removeMember(userId) { this.must(await this.sb.rpc("remove_member", { p_household: this.hid, p_user: userId })); },
+  async setMemberPerson(userId, personId) { this.must(await this.sb.rpc("set_member_person", { p_household: this.hid, p_user: userId, p_person: personId })); },   // 设备 ↔ 家庭成员（迁移 084）
   async setMemberName(userId, name) { this.must(await this.sb.rpc("set_member_name", { p_household: this.hid, p_user: userId, p_name: name })); },
   /** 改成员资料（称呼 + 电话 / 邮箱 / 地址）：本人改自己的、家主改任何人的，数据库函数里校验（迁移 052）。没执行 052 时只改称呼（迁移 005 的 set_member_name） */
   async setMemberProfile(userId, p) {

@@ -120,7 +120,7 @@ export function billAlertItems() {
     const actions = [];
     if (b.pay_url && !b.autopay) actions.push({ type: "link", href: b.pay_url, label: t("去缴费"), cls: "btn-ghost", external: true });
     actions.push(b.autopay ? { type: "button", action: "bill-verify", id: b.id, label: t("已核对") } : { type: "link", href: `${href("bill", b.id)}?pay=1`, label: t("记缴费") });
-    return { source: "bill", severity: sev, must: b.status === "overdue" || !!b.trialSoon, due: b.trialSoon ? b.trial_ends_on : b.next_due_on, daysLeft: b.trialSoon ? b.trialDays : b.daysLeft, property_id: b.property_id, assigned_to: b.assigned_to,
+    return { source: "bill", severity: sev, must: b.status === "overdue" || !!b.trialSoon, due: b.trialSoon ? b.trial_ends_on : b.next_due_on, daysLeft: b.trialSoon ? b.trialDays : b.daysLeft, property_id: b.property_id, assigned_person_id: b.assigned_person_id,
       title: `${B.catOf(b.category).icon} ${b.name}`, detail: [acctText(b), alertText(b), amount].filter(Boolean).join(" · "), href: href("bill", b.id),
       badge: { label, cls: sev === 0 ? "b-out" : sev === 1 ? "b-low" : "b-soon" }, actions, ask: billAsk(b) };
   });

@@ -2,7 +2,7 @@
 import { state } from "../core/state.js";
 import { $, esc, fmtDate, fmtShort, money, num, toast, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
-import { memberName } from "../core/logic.js";
+import { personNameOf } from "./family-people.js";
 import { budgetPlan, monthProgress } from "../bills/budget.js";
 import { fetchSpendPages, fetchSpendRows, lastMonths, monthLabel, spendAggAsync, spendBase, storeOf } from "../stats/views.js";
 import { l2List, leafLabel } from "../core/taxonomy.js";
@@ -54,7 +54,7 @@ function billsSheet(prop) {
     <h2>${t("要处理的账单")}</h2>
     ${alerts.length ? `<table><thead><tr><th>${t("账单")}</th><th>${t("状态")}</th><th>${t("金额")}</th></tr></thead><tbody>${alerts.map((b) => `<tr><td>${where(b)}${billCat(b.category).icon} ${esc(b.name)}</td><td>${esc(alertText(b))}</td><td>${mny(b.est, b.currency)}</td></tr>`).join("")}</tbody></table>` : `<p>${t("最近没有要处理的账单")}</p>`}
     <h2>${t("未来 30 天")}</h2>
-    ${next30.length ? `<table><thead><tr><th>${t("到期日")}</th><th>${t("账单")}</th><th>${t("缴费方式")}</th><th>${t("金额")}</th></tr></thead><tbody>${next30.map(({ bill: b, due }) => `<tr><td>${esc(fmtShort(`${due}T12:00:00`))}</td><td>${where(b)}${billCat(b.category).icon} ${esc(b.name)}${b.assigned_to ? ` · ${esc(memberName(b.assigned_to) || "")}` : ""}</td><td>${b.autopay ? t("自动扣款") : esc(t(window.BILLS.CHANNELS[b.pay_channel] || ""))}</td><td>${mny(b.est, b.currency)}</td></tr>`).join("")}</tbody></table>` : `<p>${t("30 天内没有到期的账单")}</p>`}`;
+    ${next30.length ? `<table><thead><tr><th>${t("到期日")}</th><th>${t("账单")}</th><th>${t("缴费方式")}</th><th>${t("金额")}</th></tr></thead><tbody>${next30.map(({ bill: b, due }) => `<tr><td>${esc(fmtShort(`${due}T12:00:00`))}</td><td>${where(b)}${billCat(b.category).icon} ${esc(b.name)}${b.assigned_to ? ` · ${esc(personNameOf(b.assigned_person_id) || "")}` : ""}</td><td>${b.autopay ? t("自动扣款") : esc(t(window.BILLS.CHANNELS[b.pay_channel] || ""))}</td><td>${mny(b.est, b.currency)}</td></tr>`).join("")}</tbody></table>` : `<p>${t("30 天内没有到期的账单")}</p>`}`;
 }
 
 /** recs = 从数据库读出来的明细（printSheet 先读好，最多 300 笔）：useFilter = 「明细」里的筛选（筛的是哪一年就打哪一年），否则 = 打印的这几个月，新 → 旧；
