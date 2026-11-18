@@ -4,13 +4,13 @@
 import { esc } from "./util.js";
 import { t } from "./i18n.js";
 
-/** items: [{ label, href } | { label, action, data: { id: "…" } }]，danger = 删除这类（红字），falsy 的项跳过 */
+/** items: [{ label, href, external? } | { label, action, data: { id: "…" } }]，danger = 删除这类（红字），falsy 的项跳过 */
 export function moreMenu(items, { up = false, label = "", vertical = false } = {}) {
   const list = items.filter(Boolean);
   if (!list.length) return "";
   const item = (x) => {
     const cls = `act-item${x.danger ? " is-danger" : ""}${x.first ? " is-first" : ""}`;
-    if (x.href) return `<a class="${cls}" href="${esc(x.href)}">${esc(x.label)}</a>`;
+    if (x.href) return `<a class="${cls}" href="${esc(x.href)}"${x.external ? ' target="_blank" rel="noopener noreferrer"' : ""}>${esc(x.label)}</a>`;
     const data = Object.entries(x.data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join("");
     return `<button type="button" class="${cls}" data-action="${esc(x.action)}"${data}>${esc(x.label)}</button>`;
   };

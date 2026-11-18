@@ -1,6 +1,7 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "下次到期 {d}": "Next due {d}", "账单概要": "Bill summary", "编辑账单": "Edit bill", "查看缴费记录": "View payment history", "去服务商缴费": "Pay at provider",
   // ── 通用 / 导航 ──
   "爱家小助手": "Loving Home Helper",
   "返回": "Back",

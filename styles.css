@@ -3847,7 +3847,21 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 
 /* 账单详情页（分区卡片）：笔记本两列、手机一列；复用房屋资料页的 .prof-grid / .prof-card */
 @media (min-width: 760px) { .bill-detail-grid { grid-template-columns: 1fr 1fr; } }
+.bill-detail-grid.one-col { grid-template-columns: 1fr; }
 .bill-detail-grid .prof-card .restock-list li { padding: 8px 0; }
+/* 账单详情页顶上的汇总卡：底色比分区卡深（松绿渐变），圆角 / 内边距和 .prof-card 一致 */
+.bill-head { padding: 14px 16px; box-sizing: border-box; margin-bottom: 14px; min-width: 0; background: linear-gradient(135deg, color-mix(in srgb, var(--pine) 18%, var(--surface)), color-mix(in srgb, var(--pine) 6%, var(--surface))); border: 1px solid color-mix(in srgb, var(--pine) 28%, var(--line)); }
+.bh-top { display: flex; align-items: center; gap: 12px; }
+.bh-top .mi { flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--surface); display: inline-flex; align-items: center; justify-content: center; font-size: 21px; }
+.bh-t { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.bh-t h2 { margin: 0; font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+.bh-t .badge { flex: none; }
+.bh-top .act-more > summary { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.bh-facts { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 10px 0 0; font-size: 14px; }
+.bh-facts > span:not(:last-child)::after { content: "·"; margin: 0 8px; color: var(--muted); }
+.bh-facts .badge { margin-left: 8px; }
+.bh-stamp { margin: 6px 0 0; }
+.bh-pay { display: flex; width: 100%; min-height: 44px; margin-top: 12px; box-sizing: border-box; align-items: center; justify-content: center; }
 
 /* ── 创建周期性账单向导（bills/wizard-views.js）：一屏一个问题；笔记本居中限宽，手机单列、底部操作条固定 ── */
 .wiz { max-width: 680px; margin-inline: auto; }

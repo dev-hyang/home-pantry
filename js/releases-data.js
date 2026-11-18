@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.1", title: { zh: "周期性账单详情页：顶部改成汇总卡片，菜单里能编辑整张表单", en: "Recurring bill page: a summary card on top, and a menu that edits the whole form" }, items: [
+    { k: "better", zh: "顶部卡片集中显示名称、下次到期、账号、付费方式、每次金额、折合每月和添加 / 更新时间，「记缴费」独占一行", en: "The top card shows name, next due date, account, payment method, amount per payment, monthly equivalent and added / updated times, with Record payment on its own row" },
+    { k: "new", zh: "卡片右上角的「⋯」菜单：编辑、记缴费、查看缴费记录、去服务商缴费、复制、删除", en: "The ⋯ menu on the card: Edit, Record payment, View payment history, Pay at provider, Copy, Delete" },
+    { k: "new", zh: "详情页只留顶部汇总卡片和缴费记录，不再重复列各项资料；要改资料，点菜单里的「编辑」一次打开整张表单", en: "The page keeps just the summary card and payment history, with no repeated detail cards; to change details use Edit in the menu, which opens the whole form at once" }
+  ] },
+
   { v: "2026-11-17.32", title: { zh: "买卖计划：问咩咩帮你比较候选、想出价思路、补充看房 / 看车清单", en: "Buy / sell plans: ask the assistant to compare candidates, think through an offer and add to your checklist" }, items: [
     { k: "new", zh: "计划页底部有三个「问咩咩」：比较候选的取舍、出价 / 谈价思路、补充看房 / 看车要查的地方；没填 AI 密钥时变成「复制提示词」", en: "The bottom of a plan has three Ask buttons: compare the candidates, offer or negotiation strategy, and extra things to check; without an AI key they become Copy prompt" },
     { k: "better", zh: "只有你点按钮才会发出内容；发出的只有计划里的候选名称、价格、打分、对比字段、优缺点和出价，不含地址和链接", en: "Nothing is sent unless you tap a button; only candidate names, prices, scores, comparison fields, pros, cons and offers are included, never addresses or links" }
