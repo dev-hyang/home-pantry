@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.20", title: { zh: "一次性账单也是五步向导；账单页一次滑动看全，每块单独编辑", en: "One-time bills get the five-step guide too; the bill page shows everything and each section edits on its own" }, items: [
+    { k: "new", zh: "添加一次性账单（医疗、宠物、法律税务、装修工程、旅行）改成五步：哪一类 → 谁收的、关于谁 → 多少钱、什么时候 → 挂在哪、谁能看 → 确认；完成后直接进这张账单的页面", en: "Adding a one-time bill (medical, pet, legal and tax, renovation, travel) is now five steps: which kind, who billed, how much and when, where it belongs and who sees it, confirm; it then opens the new bill" },
+    { k: "better", zh: "一次性账单的页面也像房屋资料页：「这是什么账单」「金额与日期」「挂靠与其他」三张卡一次看全，每张有自己的「编辑」，下面是付款记录", en: "The one-time bill page now works like the house profile: three cards (what it is, amount and dates, attachments and other) with their own Edit buttons, and payments below" },
+    { k: "better", zh: "扫描创建的一次性账单会在页面顶上提示「由扫描创建」，并可撤销创建", en: "A one-time bill created from a scan shows a note at the top and can be undone" },
+    { k: "fix", zh: "修复手机上向导页面偶尔出现横向滚动条的问题", en: "Fixed a horizontal scrollbar that could appear on the guide pages on phones" }
+  ] },
+
   { v: "2026-11-17.19", title: { zh: "扫描信件 / 账单：直接建好，打开这张账单给你核对", en: "Scan a letter or bill: the bill is created and opened for you to check" }, items: [
     { k: "new", zh: "扫描信件或账单后不再停在一张表单里：读到的内容直接建成账单，并打开这张账单的页面；顶上写明「由扫描创建」，不对的地方点对应那一块的「编辑」，整张读错了点「撤销创建」", en: "After scanning a letter or bill you no longer land on a form: what was read becomes a bill and its page opens; a note says it came from a scan, each section has Edit for fixes, and Undo creation removes it if it was misread" },
     { k: "better", zh: "读不出到期日时不乱建，会打开向导，已读到的名字、金额、付款方都带上，从缺的那一步开始问；已经有类似的账单时先问你是仍然新建还是打开已有的", en: "If the due date cannot be read nothing is guessed: the guide opens with what was read and asks from the missing step; if a similar bill already exists you are asked whether to create another or open the existing one" }

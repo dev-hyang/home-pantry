@@ -353,3 +353,26 @@ test("扫描 → 一次性：要有机构名和至少一个金额；日期 / 币
   assert.equal(onetimeFromScan({ provider: "X" }, { kind: "project", currency: "USD", visibility: "family" }), null);                       // 一个金额都没有
   assert.equal(onetimeFromScan({ provider: "X", billed_amount: 5, subkind: "nope" }, { kind: "project", subIds: ["contractor"], currency: "USD", visibility: "family" }).subkind, null);
 });
+
+// ── 一次性账单向导 ──
+import { newOtDraft, validateOtStep, otRowFromDraft } from "../js/bills/ot-wizard.js";
+
+test("一次性向导：第 2 步要机构名，第 3 步至少一个金额且是数字", () => {
+  const d = newOtDraft({ kind: "medical" });
+  assert.equal(validateOtStep(1, d).ok, true);
+  assert.ok("provider" in validateOtStep(2, d).errors); d.provider = "Northwestern"; assert.equal(validateOtStep(2, d).ok, true);
+  assert.ok("billed_amount" in validateOtStep(3, d).errors);   // 一个金额都没填
+  d.billed_amount = "abc"; assert.ok("billed_amount" in validateOtStep(3, d).errors);
+  d.billed_amount = ""; d.patient_amount = "400"; assert.equal(validateOtStep(3, d).ok, true);
+  assert.equal(newOtDraft({ kind: "乱写" }).kind, "medical");
+});
+
+test("一次性向导拼出的行：保险只对有保险的种类、可见范围默认按种类、日期不合格的丢掉、按名字找到的家庭成员 id", () => {
+  const d = newOtDraft({ kind: "medical" }); d.provider = " Northwestern "; d.patient = "Amy"; d.billed_amount = "900"; d.insurance_paid = "500"; d.patient_amount = "400"; d.due_on = "2026-12-10"; d.bill_date = "乱写";
+  const r = otRowFromDraft(d, { currency: "USD", K: { insurance: true, visibility: "private" }, patientId: "p1" });
+  assert.equal(r.provider, "Northwestern"); assert.equal(r.patient_id, "p1"); assert.equal(r.insurance_paid, 500); assert.equal(r.visibility, "private"); assert.equal(r.bill_date, null); assert.equal(r.due_on, "2026-12-10"); assert.equal(r.status, "open");
+  const p = newOtDraft({ kind: "project" }); p.provider = "ABC Roofing"; p.billed_amount = "8000"; p.insurance_paid = "100";
+  const rp = otRowFromDraft(p, { currency: "USD", K: { insurance: false, visibility: "family" } });
+  assert.equal(rp.insurance_paid, 0); assert.equal(rp.visibility, "family"); assert.equal(rp.patient_amount, null); assert.equal(rp.patient_id, null);
+  p.visibility = "private"; assert.equal(otRowFromDraft(p, { currency: "USD", K: { insurance: false, visibility: "family" } }).visibility, "private");   // 用户选的优先
+});

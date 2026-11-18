@@ -542,7 +542,7 @@ onClearFilters("bills", clearAnd(() => { Object.assign(state.billsFilter, FD.bil
 document.addEventListener("bill-created", async (e) => {
   const { id, via, kind } = e.detail || {}; if (!id) return;
   state.skipAutosave = true; await refresh(); toast(via === "ai" ? t("已根据扫描创建账单，请核对") : t("已创建账单"));
-  if (kind === "onetime") go(`${href("bills", "onetime")}?bill=${id}`, { replace: true });   // 一次性账单：进它自己的详情页（⑩d 会补「AI 识别创建」提示条）
+  if (kind === "onetime") go(`${href("bills", "onetime")}?bill=${id}&${via === "ai" ? "ai" : "new"}=1`, { replace: true });   // 一次性账单：进它自己的详情页（?new=1 已创建 / ?ai=1 由扫描创建）
   else go(`${href("bill", id)}?${via === "ai" ? "ai" : "new"}=1`, { replace: true });
 });
 onClearFilters("all", clearAnd(() => { Object.assign(state.allFilter, FD.all); clearUrlParams("*"); }), () => changed(state.allFilter, FD.all));

@@ -3875,3 +3875,5 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .wiz .form-actions.sticky-actions .btn { min-height: 48px; justify-content: center; }
 .wiz .form-actions.sticky-actions .btn-primary { flex: 1 1 auto; }
 .wiz .form-actions.sticky-actions .btn-ghost { flex: 0 0 auto; }
+/* 向导里给读屏用的 <legend>：真正缩成 1px（fieldset 里的 legend 不吃普通 .sr-only 的宽度，会撑出横向滚动条） */
+.wz-radios > legend.sr-only, fieldset > legend.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; float: none; }

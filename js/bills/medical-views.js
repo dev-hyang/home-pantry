@@ -6,12 +6,14 @@ import { copyOf } from "../core/more-menu.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, esc, fmtDate, money, num, toast, todayISO } from "../core/util.js";
-import { t } from "../core/i18n.js";
+import { lang, t } from "../core/i18n.js";
 import { go, href } from "../core/router.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { MEDICAL_TABS, activeTab } from "../core/tabs.js";
 import { dq, download, lastMonths, monthLabel, toCsv } from "../stats/views.js";
 import { autofillBar } from "../core/autofill.js";
+import { crumbNav } from "../core/hub.js";
+import { viewOneTimeWizard } from "./ot-wizard-views.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { propertyOptionsHtml } from "../core/lifecycle.js";
 import { kindsNote } from "./kinds.js";
@@ -163,6 +165,11 @@ function viewDetail(id, payId) {
   const isNew = id === "new", b = isNew ? null : state.medEnriched.find((x) => x.id === id);
   if (!isNew && !b) return `<section class="section"><div class="panel empty"><strong>${t("找不到这张账单")}</strong>${t("可能已被删除，或它是别人的私密账单。")}<p><a class="btn" href="${medHref("list")}">${t("回账单列表")}</a></p></div></section>`;
   const newKind = KINDS[state.route.q.get("kind")] ? state.route.q.get("kind") : "medical";
+  {   // 新建：默认走 5 步向导；mode=full / copy / 别的应用带来的预填（provider、date、patient、note）→ 原整页表单
+    const q0 = state.route.q;
+    if (isNew && q0.get("mode") !== "full" && !q0.get("copy") && !q0.get("provider") && !q0.get("date") && !q0.get("patient") && !q0.get("note")) return viewOneTimeWizard();
+    if (b && !q0.get("sec")) return medCardsPage(b, payId ? b.pays.find((p) => p.id === payId) : null);
+  }
   // 从别的应用带来的预填（牧羊人的就诊「去爱家记医疗账单」：不同数据库，只能把机构、日期、就诊人放在网址里）：?bill=new&provider=…&date=…&patient=…&note=…
   const pq = state.route.q, pre = isNew ? { provider: (pq.get("provider") || "").slice(0, 60), service_date: /^\d{4}-\d{2}-\d{2}$/.test(pq.get("date") || "") ? pq.get("date") : "",
     patient_text: (pq.get("patient") || "").slice(0, 40), notes: (pq.get("note") || "").slice(0, 500) } : {};
@@ -175,24 +182,30 @@ function viewDetail(id, payId) {
   const v = b || msrc || { kind: newKind, status: "open", visibility: KINDS[newKind].visibility, currency: cur(), insurance_paid: 0, adjustment: 0, service_date: "", hsa_eligible: false, property_id: newKind === "project" && state.properties.some((p) => p.id === state.propertyId) ? state.propertyId : null, ...pre }, K = kindOf(v);
   const subs = K.subs.map(([k, n, ic]) => `<option value="${k}" ${v.subkind === k ? "selected" : ""}>${ic} ${t(n)}</option>`).join("");
   const num0 = (x) => (x == null || x === "" ? "" : num(x).toFixed(2));
+  const secQ = b ? pq.get("sec") : "", hide = (k2) => (secQ && secQ !== k2 ? "hidden" : "");   // 已保存的账单：?sec=basic|amount|other 只显示那一块（其余字段仍在表单里一起保存）
   const pay = payId && b ? b.pays.find((p) => p.id === payId) : null;
   const owedNow = b ? b.owed : null;
   return `<section class="section form-page">
-    ${autofillBar("medbill", "#medBillForm")}${b ? `<p class="muted" style="margin:-4px 0 8px;font-size:12.5px">${t("这张账单已保存。再拍一张会新建一张账单，不会改动这张。")}</p>` : ""}
+    ${secQ ? "" : autofillBar("medbill", "#medBillForm")}${b && !secQ ? `<p class="muted" style="margin:-4px 0 8px;font-size:12.5px">${t("这张账单已保存。再拍一张会新建一张账单，不会改动这张。")}</p>` : ""}
     <form id="medBillForm" class="panel" novalidate data-id="${d(b?.id)}">
       <input type="hidden" name="kind" value="${d(v.kind)}">
       ${isNew ? `<div class="seg-radio" role="radiogroup" aria-label="${t("账单种类")}" style="margin-bottom:10px">${Object.entries(KINDS).map(([k, X]) => `<label class="radio-pill"><input type="radio" name="kindPick" value="${k}" ${v.kind === k ? "checked" : ""}><span>${X.icon} ${t(X.name)}</span></label>`).join("")}</div>` : `<p class="muted" style="margin:0 0 8px">${K.icon} ${t(K.name)}</p>`}
-      <div class="form-grid">
+      <fieldset data-sec="basic" ${hide("basic")}>
+        <legend class="sr-only">${t("这是什么账单")}</legend>
+        <div class="form-grid">
         <label class="span-2">${t(K.provider)}<input name="provider" required maxlength="60" list="medProviders" value="${d(v.provider)}"></label>
         <label>${t("小类")}<select name="subkind"><option value="">${t("未指定")}</option>${subs}</select></label>
         ${peopleFor(v.kind) ? `<label>${t(K.who)}<select name="patient_id" data-last="${d(v.patient_id || (v.patient_text ? "__text" : ""))}">${peopleOptions(peopleFor(v.kind), v.patient_id, v.patient_text)}</select><small>${t("从家庭成员里选，同一个人只建一次，家人各自录入也不会变成两个人。")} <a href="${href("bills", "onetime")}?people=1">${t("管理家庭成员")}</a></small></label>`
           : `<label>${t(K.who)}<input name="patient" maxlength="40" value="${d(v.patient)}"></label>`}
-        ${state.properties.length ? `<label>${t("房产")}<select name="property_id"><option value="">${t("与房产无关")}</option>${propertyOptionsHtml(v.property_id, { esc })}</select></label>` : ""}
-        ${assetSelectHtml(v.asset_id, state.medEnriched)}
         ${K.guarantor ? `<label>${t("担保人 Guarantor")}<select name="guarantor_id" data-last="${d(v.guarantor_id || (v.guarantor_text ?? v.guarantor ? "__text" : ""))}">${peopleOptions(["adult"], v.guarantor_id, v.guarantor_id ? "" : v.guarantor)}</select><small>${t("负责付款的人，例如孩子的家长")}</small></label>` : ""}
         <label>${t("账单号 Bill #")}<input name="bill_ref" maxlength="60" value="${d(v.bill_ref)}"></label>
         ${K.insurance ? `<label>${t("保险公司")}<input name="insurer" maxlength="60" value="${d(v.insurer)}"></label>
         <label>${t("理赔号 Claim #")}<input name="claim_ref" maxlength="60" value="${d(v.claim_ref)}"></label>` : ""}
+        </div>
+      </fieldset>
+      <fieldset data-sec="amount" ${hide("amount")}>
+        <legend class="sr-only">${t("金额与日期")}</legend>
+        <div class="form-grid">
         <label>${t(v.kind === "medical" || v.kind === "pet" ? "就诊日期" : v.kind === "travel" ? "出发日期" : "服务日期")}<input name="service_date" type="date" value="${d(v.service_date)}"></label>
         <label>${t("账单日期 Bill date")}<input name="bill_date" type="date" value="${d(v.bill_date)}"></label>
         <label>${t("到期日")}<input name="due_on" type="date" value="${d(v.due_on)}"></label>
@@ -201,19 +214,70 @@ function viewDetail(id, payId) {
         <label>${t("折扣 / 冲减")}<input name="adjustment" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.adjustment)}"></label>
         <label>${t(K.owed)}<input name="patient_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.patient_amount)}"><small>${t(K.insurance ? "留空 = 总额 − 保险已付 − 折扣；以保险说明（EOB）上的为准" : "留空 = 总额 − 折扣")}</small></label>
         <label>${t("状态")}<select name="status">${["awaiting_insurance", "open", "disputed", "collections", "written_off"].map((k) => `<option value="${k}" ${v.status === k ? "selected" : ""}>${t(STATUS[k])}</option>`).join("")}</select><small>${t("已结清 / 部分已付由付款记录自动算")}</small></label>
-        <label>${t("谁能看到")}<select name="visibility"><option value="private" ${v.visibility === "private" ? "selected" : ""}>🔒 ${t("仅自己和家主可见")}</option><option value="family" ${v.visibility === "family" ? "selected" : ""}>${t("全家可见")}</option></select></label>
         ${v.kind === "medical" ? `<label class="span-2 check-inline"><input type="checkbox" name="hsa_eligible" ${v.hsa_eligible ? "checked" : ""}><span>${t("可用 HSA / FSA 报销")}</span></label>` : ""}
+        </div>
+      </fieldset>
+      <fieldset data-sec="other" ${hide("other")}>
+        <legend class="sr-only">${t("挂靠与其他")}</legend>
+        <div class="form-grid">
+        ${state.properties.length ? `<label>${t("房产")}<select name="property_id"><option value="">${t("与房产无关")}</option>${propertyOptionsHtml(v.property_id, { esc })}</select></label>` : ""}
+        ${assetSelectHtml(v.asset_id, state.medEnriched)}
+        <label>${t("谁能看到")}<select name="visibility"><option value="private" ${v.visibility === "private" ? "selected" : ""}>🔒 ${t("仅自己和家主可见")}</option><option value="family" ${v.visibility === "family" ? "selected" : ""}>${t("全家可见")}</option></select></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(v.notes)}" placeholder="${t(v.kind === "medical" ? "不要记诊断、保单号全文或身份证号" : "合同要点、联系人…")}"></label>
-      </div>
-      ${peopleFor(v.kind) ? personAddPanel(v.kind) : ""}
+        </div>
+      </fieldset>
+      ${peopleFor(v.kind) && (!secQ || secQ === "basic") ? personAddPanel(v.kind) : ""}
       <datalist id="medProviders">${[...new Set(state.medBills.map((x) => x.provider))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
       <p id="medBillError" class="form-error" role="alert"></p>
       <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>${b ? `<a class="btn btn-ghost" href="${esc(detailHref("new"))}&copy=${encodeURIComponent(b.id)}">${t("复制为新账单")}</a>` : ""}</div>
     </form>
-    ${b ? paymentsHtml(b, pay, owedNow) : `<p class="muted">${t("先保存账单，再记付款。")}</p>`}
-    ${b ? `<div class="danger-zone"><button type="button" class="btn btn-danger-ghost" data-action="med-del" data-id="${b.id}">${t("删除这张账单")}</button><small class="muted">${t("连同这张账单的付款记录一起删除，点两次确认。")}</small></div>` : ""}
+    ${b && secQ ? "" : b ? paymentsHtml(b, pay, owedNow) : `<p class="muted">${t("先保存账单，再记付款。")}</p>`}
+    ${b && !secQ ? `<div class="danger-zone"><button type="button" class="btn btn-danger-ghost" data-action="med-del" data-id="${b.id}">${t("删除这张账单")}</button><small class="muted">${t("连同这张账单的付款记录一起删除，点两次确认。")}</small></div>` : ""}
   </section>`;
 }
+/* ───────────── 一次性账单详情页：分区卡片（一次滑动看全）+ 付款记录；每块单独「编辑」（?sec=） ───────────── */
+const OTL = (zh, en) => (lang === "en" ? en : zh);   // 字段标签：中英文直接写（这些词在别处的英文含义不同）
+function medFacts(b, id) {
+  const K = kindOf(b), none = `<span class="muted">${t("未填")}</span>`, c = b.currency;
+  const dl = (rows) => `<dl class="fact-grid one">${rows.filter(Boolean).map(([k, val]) => `<div class="fact"><dt>${k}</dt><dd>${val || none}</dd></div>`).join("")}</dl>`;
+  const prop = b.property_id ? state.properties.find((p) => p.id === b.property_id) : null, asset = b.asset_id ? state.assets.find((a) => a.id === b.asset_id) : null;
+  if (id === "basic") return dl([[t(K.provider), esc(b.provider || "")], [OTL("小类", "Type"), subName(b) ? `${subIcon(b)} ${esc(t(subName(b)))}` : ""], [t(K.who), esc(b.patient || "")], K.guarantor ? [OTL("担保人", "Guarantor"), esc(b.guarantor || "")] : null,
+    [OTL("账单号", "Bill #"), esc(b.bill_ref || "")], K.insurance ? [OTL("保险公司", "Insurer"), esc(b.insurer || "")] : null, K.insurance ? [OTL("理赔号", "Claim #"), esc(b.claim_ref || "")] : null]);
+  if (id === "amount") return dl([[OTL(b.kind === "medical" || b.kind === "pet" ? "就诊日期" : b.kind === "travel" ? "出发日期" : "服务日期", "Service date"), b.service_date ? esc(fmtDate(b.service_date)) : ""], [OTL("账单日期", "Bill date"), b.bill_date ? esc(fmtDate(b.bill_date)) : ""],
+    [OTL("到期日", "Due date"), b.due_on ? esc(fmtDate(b.due_on)) : ""], [t(K.billed), b.billed_amount != null ? mny(b.billed_amount, c) : ""], K.insurance ? [OTL("保险已付", "Insurance paid"), mny(b.insurance_paid || 0, c)] : null,
+    num(b.adjustment) ? [OTL("折扣 / 冲减", "Adjustment"), mny(b.adjustment, c)] : null, [t(K.owed), b.owed != null ? mny(b.owed, c) : ""], [OTL("已付", "Paid"), mny(b.paid || 0, c)], [OTL("余额", "Balance"), b.balance != null ? mny(b.balance, c) : ""],
+    [OTL("状态", "Status"), `<span class="badge ${STATUS_CLS[b.status] || ""}">${esc(t(STATUS[b.status] || b.status))}</span>`]]);
+  return dl([[OTL("房产", "Property"), prop ? esc(prop.name) : t("与房产无关")], (state.assets || []).some((a) => a.kind === "vehicle" || a.kind === "equipment") ? [OTL("关联资产", "Linked asset"), asset ? esc(asset.name) : ""] : null,
+    [OTL("谁能看到", "Visible to"), b.visibility === "private" ? `🔒 ${t("仅自己和家主可见")}` : `👪 ${t("全家可见")}`], b.kind === "medical" ? [OTL("HSA / FSA", "HSA / FSA"), b.hsa_eligible ? t("可报销") : t("否")] : null, [OTL("备注", "Notes"), b.notes ? esc(b.notes) : ""]]);
+}
+const MED_SECS = [{ id: "basic", icon: "🧾", name: "这是什么账单" }, { id: "amount", icon: "💲", name: "金额与日期" }, { id: "other", icon: "📎", name: "挂靠与其他" }];
+function medBanner(b, q) {
+  const isAi = q.get("ai") === "1", isNew = q.get("new") === "1"; if (!isAi && !isNew) return "";
+  const K = kindOf(b), base = detailHref(b.id), missing = [!b.patient && OTL(K.who.split(" ")[0], "Who"), !b.due_on && OTL("到期日", "Due date"), !b.bill_ref && OTL("账单号", "Bill #")].filter(Boolean).slice(0, 3);
+  const close = `<a class="btn btn-sm btn-ghost" href="${base}">${t("知道了")}</a>`;
+  if (isAi) return `<div class="notice" role="status" style="margin-bottom:12px"><b>✨ ${t("AI 识别创建")}</b> ${t("看一眼就行：不对的地方点下面对应分区的“编辑”改；整张读错了就撤销创建。")}${missing.length ? ` ${t("还没读到：{list}。", { list: missing.join("、") })}` : ""}
+    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm btn-ghost" data-action="med-del" data-id="${b.id}">${t("撤销创建")}</button>${close}</div></div>`;
+  return `<div class="notice" role="status" style="margin-bottom:12px"><b>✅ ${t("已创建")}</b> ${missing.length ? t("这几项还没填：{list}，随时在下面补。", { list: missing.join("、") }) : t("信息都齐了。")}${b.owed != null ? ` ${t("接着可以在下面记付款。")}` : ""}<div class="form-actions" style="margin-top:8px">${close}</div></div>`;
+}
+function medCardsPage(b, payEdit) {
+  const K = kindOf(b), base = detailHref(b.id), c = b.currency;
+  const badges = [`<span class="badge ${STATUS_CLS[b.status] || ""}">${esc(t(STATUS[b.status] || b.status))}</span>`, b.due_on ? `<span class="badge" style="background:var(--surface-2)">${esc(t("到期 {d}", { d: fmtDate(b.due_on) }))}</span>` : "",
+    b.owed != null ? `<span class="badge" style="background:var(--surface-2)">${t("余额 {a}", { a: mny(b.balance || 0, c) })}</span>` : "", b.visibility === "private" ? `<span class="badge" style="background:var(--surface-2)">🔒 ${t("仅自己和家主可见")}</span>` : ""].filter(Boolean).join("");
+  const cards = MED_SECS.map((sec) => `<section class="panel prof-card" aria-labelledby="mc-${sec.id}">
+      <header class="prof-head"><span class="mi" aria-hidden="true">${sec.icon}</span><div class="prof-t"><h3 id="mc-${sec.id}">${t(sec.name)}</h3></div>
+        <a class="btn btn-sm btn-ghost prof-edit" href="${base}&sec=${sec.id}" aria-label="${esc(t("编辑 {name}", { name: t(sec.name) }))}">${t("编辑")}</a></header>${medFacts(b, sec.id)}</section>`).join("");
+  return `<section class="section">
+    <h2 style="margin:0 0 8px">${subIcon(b)} ${esc(b.provider)}</h2>
+    <div class="asset-badges" style="margin-bottom:12px">${badges}</div>
+    <div class="form-actions" style="margin:0 0 12px"><a class="btn btn-primary" href="#medPayments">${t("记一笔付款")}</a><span class="spacer"></span>
+      <a class="btn btn-sm btn-ghost" href="${esc(detailHref("new"))}&copy=${encodeURIComponent(b.id)}">${t("复制为新账单")}</a></div>
+    ${medBanner(b, state.route.q)}
+    <div class="prof-grid bill-detail-grid">${cards}</div>
+    <div id="medPayments" style="scroll-margin-top:80px">${paymentsHtml(b, payEdit, b.owed)}</div>
+    <div class="danger-zone"><button type="button" class="btn btn-danger-ghost" data-action="med-del" data-id="${b.id}">${t("删除这张账单")}</button><small class="muted">${t("连同这张账单的付款记录一起删除，删了找不回来。")}</small></div>
+  </section>`;
+}
+
 /** 常用的付款方式（存中文标准词，显示时翻译；具体是哪张卡、哪个账户写在备注里）；旧记录里手填的方式保留成一个选项 */
 const METHODS = ["信用卡", "借记卡", "HSA 卡", "FSA 卡", "支票", "银行转账（ACH）", "网上支付", "电话支付", "现金", "其他"];
 /** 付款方式下拉：先列我的卡 / 账户（选了就记到那张卡上，和花费记录一样），再列通用方式 */

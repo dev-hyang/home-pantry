@@ -26,7 +26,8 @@ function initFromQuery(q) {
 }
 function ensureDraft(q) {
   const n = q.get("n") || "";
-  if (!state.billDraft || state.billDraft.__n !== n) { state.billDraft = newDraft(initFromQuery(q)); state.billDraft.__n = n; state.billDraft.__sug = ""; }
+  if (!state.billDraft || state.billDraft.__n !== n || (!n && !q.get("step"))) {   // 没带 n 又不是某一步（模板 / 房屋资料的链接）：总是新草稿
+    state.billDraft = newDraft(initFromQuery(q)); state.billDraft.__n = n; state.billDraft.__sug = ""; }
   return state.billDraft;
 }
 
