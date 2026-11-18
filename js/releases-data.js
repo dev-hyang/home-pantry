@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.18", title: { zh: "修复：打印页里账单的负责人名字又显示出来了", en: "Fix: a bill's owner name shows again in the print view" }, items: [
+    { k: "fix", zh: "打印账单时，没有显示「谁负责」的名字（旧字段删除后漏改了一处），现在修好", en: "Printing bills did not show the owner's name after the old field was removed; fixed" }
+  ] },
+
   { v: "2026-11-18.17", title: { zh: "清理：删除账单「谁负责」和信用卡「持卡人」的旧设备字段", en: "Cleanup: removed the old device fields behind a bill's owner and a card's holder" }, items: [
     { k: "better", zh: "账单的「谁负责」、信用卡的「持卡人」现在只关联家庭成员，旧的设备字段已删除（数据早已迁到家庭成员）；旧备份文件恢复时会自动忽略这两个旧字段", en: "A bill's owner and a card's holder now link only to family members and the old device fields are gone (the data was already migrated); restoring an old backup ignores those two fields" }
   ] },
