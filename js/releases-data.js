@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.10", title: { zh: "登录记录和陌生登录提醒：看谁、用什么设备、什么时候登录", en: "Sign-in history and unfamiliar sign-in alerts: who signed in, on what device, and when" }, items: [
+    { k: "new", zh: "设置 → 家庭与成员 多了「登录记录」：每次登录的时间、设备（iPhone、Android、Windows / Mac 电脑…）、浏览器、IP；默认最近 6 天，可以「加载更多」再往前 6 天；家主看全家，其他人只看自己", en: "Settings → Family & members has Sign-in history: time, device (iPhone, Android, Windows / Mac computer…), browser and IP of each sign-in; the last 6 days by default with Load more for 6 earlier days; the owner sees everyone, others only themselves" },
+    { k: "new", zh: "出现没见过的设备或网络登录，会在「注意事项」里提醒，并告诉你可能账号被盗时怎么办（换邀请码、移出设备、检查邮箱 / 手机）；确认是家里人后提醒消失", en: "A device or network not seen before raises an alert in Alerts with what to do if the account may be compromised (new invite code, remove the device, check email / phone); confirming it is family clears the alert" }
+  ] },
+
   { v: "2026-11-18.9", title: { zh: "家庭成员和登录设备分开：一个人可以有多台设备，账单「谁负责」关联的是人", en: "Family members and login devices are separate: one person can have several devices, and a bill's owner is a person" }, items: [
     { k: "new", zh: "设置 → 家庭与成员 分成两块：「家庭成员」（人：大人、孩子、宠物，家主新建 / 改名 / 合并 / 删除）和「登录设备」；一位成员可以有多台设备，设备资料页里选它属于谁", en: "Settings → Family & members now has Family members (people: adults, kids, pets; the owner adds, renames, merges, deletes) and Login devices; a person can have several devices and each device page says whose it is" },
     { k: "new", zh: "第一次用一台新设备登录会问「这台设备是谁？」：选已有的人，或新建；以后换设备选同一个人就不会多出一个人", en: "A new device asks Who uses this device?: pick an existing person or create one; on the next device pick the same person and no duplicate appears" },

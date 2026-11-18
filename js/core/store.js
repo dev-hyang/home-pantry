@@ -1424,6 +1424,11 @@ export const CloudStore = {
   /* 家主管理（security definer RPC，见 migrations/004、005） */
   async setMemberRole(userId, role) { this.must(await this.sb.rpc("set_member_role", { p_household: this.hid, p_user: userId, p_role: role })); },
   async removeMember(userId) { this.must(await this.sb.rpc("remove_member", { p_household: this.hid, p_user: userId })); },
+  /* 登录记录（迁移 086）：只有云端有；没执行迁移时读不到，按没有记录处理 */
+  async recordLogin({ device, os, browser, ua }) { return this.must(await this.sb.rpc("record_login", { p_household: this.hid, p_device: device, p_os: os, p_browser: browser, p_ua: ua })); },
+  async listLogins(sinceIso) { const r = await this.sb.from("login_events").select("*").eq("household_id", this.hid).gte("at", sinceIso).order("at", { ascending: false }).limit(500); if (r.error) throw new Error(r.error.message); return r.data; },
+  async listSuspiciousLogins() { const since = new Date(Date.now() - 30 * 864e5).toISOString(); const r = await this.sb.from("login_events").select("*").eq("household_id", this.hid).is("acked_at", null).or("new_device.eq.true,new_ip.eq.true").gte("at", since).order("at", { ascending: false }).limit(50); if (r.error) throw new Error(r.error.message); return r.data; },
+  async ackLogin(id) { this.must(await this.sb.rpc("ack_login", { p_event: id })); },
   async setMemberPerson(userId, personId) { this.must(await this.sb.rpc("set_member_person", { p_household: this.hid, p_user: userId, p_person: personId })); },   // 设备 ↔ 家庭成员（迁移 084）
   async setMemberName(userId, name) { this.must(await this.sb.rpc("set_member_name", { p_household: this.hid, p_user: userId, p_name: name })); },
   /** 改成员资料（称呼 + 电话 / 邮箱 / 地址）：本人改自己的、家主改任何人的，数据库函数里校验（迁移 052）。没执行 052 时只改称呼（迁移 005 的 set_member_name） */

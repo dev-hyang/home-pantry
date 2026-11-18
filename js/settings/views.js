@@ -1,5 +1,6 @@
 import { state } from "../core/state.js";
 import { deviceLinkPrompt, peoplePanel, visibleDevices } from "./family-people.js";
+import { loginsPanel } from "./logins.js";
 import { moneyHidden } from "../core/privacy.js";
 import { tempUnitPref } from "../core/weather.js";
 import { Store } from "../core/store.js";
@@ -318,6 +319,7 @@ export function viewSettings() {
       ${membersList()}
       <p class="muted mem-note">${amOwner() ? t("每台登录的设备一行，点进去改称呼、联系方式、属于哪位家庭成员，设财务权限、家主角色，或移出家庭。") : t("这里只有你自己的设备；点一行可以改称呼和联系方式。")}</p>
     </div>
+    ${cloud ? loginsPanel() : ""}
     ${cloud ? `
     <div class="panel">
       <div class="kv"><div><div class="muted">${t("邀请家人：把这个邀请码发给他们")}</div><div class="code">${esc(state.household.invite_code)}</div><div class="muted small">${inviteLine()}</div></div>

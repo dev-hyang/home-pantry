@@ -422,3 +422,11 @@ test("摊派一期算已缴：关联了缴费，或标了「已缴（无缴费�
   assert.deepEqual([assessmentsOf("b", as, items)[0].paid, assessmentsOf("b", as, items)[0].remaining], [10, 10]);
   assert.deepEqual(unpaidItems("b", as, items).map((x) => x.id), ["2"]);
 });
+
+import { deviceInfo } from "../js/core/device-info.js";
+test("deviceInfo：从 User-Agent 认出设备、系统、浏览器", () => {
+  assert.deepEqual(deviceInfo("Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1"), { device: "iPhone", os: "iOS 17", browser: "Safari 17" });
+  assert.deepEqual(deviceInfo("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36"), { device: "Android phone", os: "Android 14", browser: "Chrome 126" });
+  assert.deepEqual(deviceInfo("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0"), { device: "Windows computer", os: "Windows", browser: "Edge 126" });
+  assert.equal(deviceInfo("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15").device, "Mac computer");
+});

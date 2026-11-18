@@ -21,6 +21,7 @@ import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllL
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { viewOtBill, applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm } from "./bills/medical-views.js";
 import { deviceLinkDo, deviceLinkNew, setDevicePerson } from "./settings/family-people.js";
+import { ackLoginDo, loadLoginAlerts, loginAlertItems, loginsMore, recordLoginOnce } from "./settings/logins.js";
 import { spendChanged } from "./core/spend-data.js";
 import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-check.js";
 import { mountAppSwitcher } from "../shared/app-switcher.js";
@@ -171,6 +172,7 @@ export async function refresh() {
       // 借贷（迁移 058）、净资产（迁移 059）：只有财务权限读得到；表不存在时借贷页 / 净资产页给提示。两样都读完再画（净资产要用贷款余额）
       Promise.all([loadDebts(), loadNetWorth()]).then(() => { if (state.route?.section === "bills" || state.route?.section === "today") render(false); });
       loadPending();
+      recordLoginOnce().then(loadLoginAlerts).then(() => render(false)).catch(() => {});   // 登录记录（迁移 086）：记这台设备，再读待确认的可疑登录
       loadShops().then(() => { if (["shops", "shopping", "pantry"].includes(state.route?.section)) render(false); });   // 常去的商店与特价（迁移 067）：不挡首屏
       ensureFirstYear().then((fresh) => { if (fresh && state.route?.section === "bills") render(false); });   // 「全部历史」的起始年：数据读好了再查（刷新页面时路由先到，那时查不到）
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
@@ -1192,6 +1194,8 @@ main.addEventListener("click", async (e) => {
       }
       case "alerts-prev": shiftAlertSource(-1); return render();
       case "alerts-next": shiftAlertSource(1); return render();
+      case "login-ack": await ackLoginDo(id); return render(true);   // 登录记录：是我们家人
+      case "logins-more": await loginsMore(); return;   // 登录记录：再往前 6 天
       case "device-link": await deviceLinkDo(); return render(true);   // 这台设备是谁？→ 选已有的人
       case "device-link-new": await deviceLinkNew(); return render(true);   // …或新建一个人
       case "bill-cancel": return leaveBill(false);
@@ -2013,6 +2017,7 @@ async function loadPending() {
   const changed = p.length !== (state.pendingMembers || []).length; state.pendingMembers = p;
   if (changed) render(false);
 }
+registerAlerts(loginAlertItems);   // 陌生设备 / 新网络登录（迁移 086）
 registerAlerts(() => {
   const p = state.pendingMembers || []; if (!p.length) return [];
   const link = `${href("me", "settings")}?sec=family`;
