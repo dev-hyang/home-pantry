@@ -36,7 +36,7 @@ function syncEyes() {
 }
 
 /** 财务页画完以后：给看板上的大数字标 data-money，并在每组看板右上角放一只眼睛（今日的钱卡在自己的标记里已经有了） */
-const BOARD_NUMS = ".kpi > b, .sum-main b, .stat .v, .nw-card-bal, [data-money-auto] b";
+const BOARD_NUMS = ".kpi > b, .sum-main b, .stat .v, .nw-card-bal, [data-money-auto] b, .bill-card .bc-val";
 /* 表格和图表（11-07）：只遮「直接是钱」的格子——文字里有货币符号的（$ ¥ € £、USD / CAD / CNY…）；笔数、次数、百分比、月份不遮。
  * 每个表格 / 图表是一块（data-money-block）：遮挡时点一下，整块露 10 秒（第一下只露、不触发行里的链接或钻取，再点才是原来的动作）。 */
 const CUR = /[$¥€£₩]|\b(?:USD|CAD|CNY|RMB|EUR|GBP)\b/;
@@ -86,7 +86,7 @@ export function decoratePrivacy(route) {
   markCells(main);
   main.querySelectorAll(BOARD_NUMS).forEach((el) => el.setAttribute("data-money", ""));
   markLoose(main);   // 看板、表格之外，句子 / 按钮里的金额
-  main.querySelectorAll(".kpis, .sum-main").forEach((box) => {   // 每组看板：右上角一只眼睛（同一个容器只放一次）
+  main.querySelectorAll(".kpis, .sum-main, .bill-cards").forEach((box) => {   // 每组看板：右上角一只眼睛（同一个容器只放一次）
     if (box.previousElementSibling?.classList?.contains("money-eye-row") || !box.querySelector("[data-money]") && !box.matches("[data-money], .sum-main")) return;
     box.insertAdjacentHTML("beforebegin", `<div class="money-eye-row">${moneyEye()}</div>`);
   });

@@ -816,6 +816,13 @@ const ASSET_SECTIONS = [
   { id: "cost", icon: "💵", name: "费用与负责方" },
   { id: "notes", icon: "📝", name: "备注" },
 ];
+/** 车辆页「账单」入口上的一句话：挂在这辆车上的账单有几张、几张要处理（逾期 / 待核对 / 7 天内到期） */
+function vehBillsStat(a) {
+  const rec = (state.billsEnriched || []).filter((b) => b.asset_id === a.id && b.active && !b.ended), one = (state.medEnriched || []).filter((b) => b.asset_id === a.id);
+  const n = rec.length + one.length; if (!n) return t("还没有账单");
+  const hot = rec.filter((b) => ["overdue", "due", "soon", "verify"].includes(b.status)).length + one.filter((b) => b.open && b.daysLeft != null && b.daysLeft <= 7).length;
+  return hot ? t("{n} 张账单，{h} 张要处理", { n, h: hot }) : t("{n} 张账单", { n });
+}
 /** 设备 / 车辆枢纽页：摘要 + 各块完成度 + 保养记录 / 时间表 / 检查卡入口 + 删除 */
 function assetStatMap(a) {
   const veh = isVehicle(a), v = a.vehicle || {}, ins = v.insurance || {};
@@ -889,6 +896,7 @@ function vehicleOverview(a, root) {
     </div>
     <div class="hv-grid hn-grid" style="margin-top:14px">
       ${tile(`${base}?sec=profile`, "🚘", t("车辆资料"), t("完成度 {p}%", { p: pct }), t("基本信息、车牌与里程、证照、车险、年份、备注"), pct)}
+      ${tile(`${href("bills", "overview")}?asset=asset:${a.id}&range=m`, "🧾", t("账单"), vehBillsStat(a), t("这辆车的车险、车贷、牌照、维修等账单：本月概览，可切时间范围"))}
       ${tile(`${base}?sec=log`, "🛠️", t("保养记录"), a.logs.length ? t("{n} 条，最近 {d}", { n: a.logs.length, d: fmtDate(a.logs[0].done_on) }) : t("还没有记录"), t("检查、保养、维修、更换"))}
       ${tile(`${base}?sec=schedule`, "📋", t("保养时间表"), a.vSoonest ? t("下一项：{name} {d}", { name: t(a.vSoonest.name), d: fmtDate(a.vSoonest.next) }) : t("记一次保养后开始算"), t("按里程和时间提醒"))}
       ${tile(`${href("house", "deal")}?asset=${a.id}`, "🤝", t("买卖 / 归还"), d ? t("进行中 {a} / {b}", { a: dts.filter((x) => x.done).length, b: dts.length }) : t(V().STATUS[vehStatus(a)].name), t("买车、卖车、租赁归还的流程清单"))}

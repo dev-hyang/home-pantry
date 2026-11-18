@@ -19,6 +19,14 @@ const RANGE_KEY = "hmh-bills-range";
 export function loadOverviewRange() {
   try { const v = localStorage.getItem(RANGE_KEY); if (v && BILL_RANGES.some(([k]) => k === v)) state.ovFilter.range = v; } catch { /* 忽略 */ }
 }
+/** 网址带 ?asset=…（房屋 / 车辆页的「账单」入口）→ 选好那个资产，时间默认本月（可用 ?range= 改）；没带参数 = 全部资产 + 上次选的范围 */
+export function applyOverviewQuery(q) {
+  const a = q?.get("asset"), r = q?.get("range");
+  if (a && /^(property:|asset:|person:)[\w-]+$|^(vehicle|medical|pet|project|legal|travel|general)$/.test(a)) {
+    state.ovFilter.asset = a; state.ovFilter.range = r && BILL_RANGES.some(([k]) => k === r) ? r : "m";
+  } else { state.ovFilter.asset = "all"; loadOverviewRange(); if (r && BILL_RANGES.some(([k]) => k === r)) state.ovFilter.range = r; }
+}
+export const applyOverviewRoute = (r) => { if (r?.section === "bills" && r.sub === "overview") applyOverviewQuery(r.q); };
 export function setOverviewRange(v) { state.ovFilter.range = v; try { localStorage.setItem(RANGE_KEY, v); } catch { /* 忽略 */ } }
 
 /** 要处理：逾期、今天 / 7 天内到期（soon 已含今天）、待核对的自动扣款 */
@@ -36,7 +44,7 @@ function compute() {
   const months = seriesMonths(today, 5, 2), mb = { from: monthBounds(months[0]).from, to: monthBounds(months.at(-1)).to };
   const series = monthlySeries(filterRows(billInstances(data, { ...mb, today }).rows, { asset: f.asset }), months, { cur: cur() });
   const urgentAll = rows.filter(isUrgent), urgent = sortRows(urgentAll, "due").slice(0, 6);
-  return { today, from, to, base, rows, S, next, series, urgent, urgentN: urgentAll.length, byAsset: assetBreakdown(base.rows, { cur: cur() }) };
+  return { today, from, to, base, rows, S, next, series, urgent, urgentN: urgentAll.length, byAsset: assetBreakdown(rows, { cur: cur() }) };   // 按资产：跟着上面选的资产走（选了某个资产就只剩它）
 }
 
 /** 一张卡：整张是一个链接；颜色类 bc-<种类>（--bill-* 变量，浅色 / 深色各一套） */
@@ -95,7 +103,7 @@ function fabHtml() {
 }
 
 export function viewBillsHome() {
-  const f = state.ovFilter, C = compute(), scope = `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
+  const f = state.ovFilter, C = compute(), scope = f.range === "all" ? t("不限时间") : `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
   const range = BILL_RANGES.map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");   // 概览只用固定几个范围；链接带的某个月只在全部账单里显示
   const assetLabel = f.asset === "all" ? t("全部资产") : assetKeyLabel(f.asset);
   const empty = !state.billsEnriched.length && !state.medEnriched.length;

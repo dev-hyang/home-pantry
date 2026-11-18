@@ -7,13 +7,14 @@ import { go, href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { propertyActive } from "../core/lifecycle.js";
 import { assetChoices } from "./asset-suggest.js";
-import { KINDS } from "./medical.js";
+import { KINDS, PEOPLE_KINDS, peopleFor } from "./medical.js";
 import { OT_KINDS, OT_LAST, OT_STEPS, newOtDraft, otRowFromDraft, validateOtStep } from "./ot-wizard.js";
 
 const base = () => `${href("bills", "onetime")}?bill=new`;
 const stepUrl = (n) => `${base()}&n=${encodeURIComponent(state.otDraft?.__n || "")}&step=${n}`;
 export const otFullFormUrl = (kind) => `${base()}&mode=full${kind ? `&kind=${encodeURIComponent(kind)}` : ""}`;
 const Kof = (d) => KINDS[d.kind] || KINDS.medical;
+const whoName = (d) => (d.patient_id ? (state.people || []).find((p) => p.id === d.patient_id)?.name || "" : d.patient.trim());
 
 function ensureDraft(q) {
   const n = q.get("n") || "";
@@ -37,12 +38,17 @@ function stepKind(d) {
 }
 function stepWho(d) {
   const K = Kof(d), subs = K.subs.map(([k, n, ic]) => `<option value="${k}" ${d.subkind === k ? "selected" : ""}>${ic} ${esc(t(n))}</option>`).join("");
-  const people = [...new Set((state.people || []).map((p) => p.name))].map((n) => `<option value="${esc(n)}">`).join("");
+  const kinds = peopleFor(d.kind), ICON = { adult: "🧑", child: "🧒", pet: "🐾" };
+  // 医疗 / 宠物：从家庭成员里选（大人、孩子 / 宠物）；其余种类是「事项 / 项目名」，自己写
+  const who = kinds
+    ? `<label>${t(K.who)}<select name="patient_id"><option value="">${t("（未选）")}</option>${(state.people || []).filter((p) => kinds.includes(p.kind)).map((p) => `<option value="${esc(p.id)}" ${p.id === d.patient_id ? "selected" : ""}>${ICON[p.kind] || ""} ${esc(p.name)}</option>`).join("")}</select>
+        <small>${(state.people || []).some((p) => kinds.includes(p.kind)) ? t("家庭成员里没有他 / 她？创建后在账单页的“这是什么账单 → 编辑”里添加。") : t("还没有家庭成员：创建后在账单页的“这是什么账单 → 编辑”里添加，或先到 {link}。", { link: `<a href="${href("bills", "onetime")}?people=1">${t("管理家庭成员")}</a>` })}</small></label>`
+    : `<label>${t(K.who)}<input name="patient" maxlength="40" value="${esc(d.patient)}"></label>`;
   return `<div class="form-grid">
     <label class="span-2">${t(K.provider)}<input name="provider" required maxlength="60" value="${esc(d.provider)}" list="otProviders"></label>
     <label>${t("小类（可选）")}<select name="subkind"><option value="">${t("未指定")}</option>${subs}</select></label>
-    <label>${t(K.who)}<input name="patient" maxlength="40" value="${esc(d.patient)}" list="otPeople"></label>
-    </div><datalist id="otProviders">${[...new Set((state.medBills || []).map((x) => x.provider))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist><datalist id="otPeople">${people}</datalist>`;
+    ${who}
+    </div><datalist id="otProviders">${[...new Set((state.medBills || []).map((x) => x.provider))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>`;
 }
 function stepMoney(d) {
   const K = Kof(d), cur = Units.region.currency;
@@ -69,7 +75,7 @@ function stepConfirm(d) {
   const prop = state.properties.find((p) => p.id === d.property_id), asset = state.assets.find((a) => a.id === d.asset_id), vis = d.visibility || K.visibility;
   return `<dl class="fact-grid one">
       ${row(t("种类"), `${K.icon} ${esc(t(K.name))}`, 1)}
-      ${row(t(K.provider), [esc(d.provider), d.patient && esc(d.patient)].filter(Boolean).join(" · "), 2)}
+      ${row(t(K.provider), [esc(d.provider), whoName(d) && esc(whoName(d))].filter(Boolean).join(" · "), 2)}
       ${row(t("金额"), [d.billed_amount !== "" && `${t(K.billed)} ${m(d.billed_amount)}`, K.insurance && d.insurance_paid !== "" && `${t("保险已付")} ${m(d.insurance_paid)}`, d.patient_amount !== "" && `${t(K.owed)} ${m(d.patient_amount)}`].filter(Boolean).join(" · "), 3)}
       ${row(t("到期日"), esc(d.due_on || ""), 3)}
       ${row(t("挂在哪"), [prop && esc(prop.name), asset && esc(asset.name)].filter(Boolean).join(" · "), 4)}
@@ -105,7 +111,7 @@ function onChange(e) {
   const f = e.target.closest?.("#otWizForm"); if (!f || !state.otDraft) return;
   const d = state.otDraft, el = e.target; if (!el.name || (el.type === "radio" && !el.checked)) return;
   d[el.name] = el.value;
-  if (el.name === "kind") { d.visibility = ""; d.subkind = ""; if (d.kind === "project" && !d.property_id) d.property_id = state.propertyId || ""; }
+  if (el.name === "kind") { d.visibility = ""; d.subkind = ""; d.patient_id = ""; d.patient = ""; if (d.kind === "project" && !d.property_id) d.property_id = state.propertyId || ""; }
   say("");
 }
 const onInput = (e) => { const f = e.target.closest?.("#otWizForm"); if (f && state.otDraft && e.target.name && e.target.type !== "radio") state.otDraft[e.target.name] = e.target.value; };
@@ -113,12 +119,12 @@ const onInput = (e) => { const f = e.target.closest?.("#otWizForm"); if (f && st
 async function finish() {
   const d = state.otDraft; if (!d) return;
   for (const s of [2, 3]) { const v = validateOtStep(s, d); if (!v.ok) { const [field, msg] = Object.entries(v.errors)[0]; go(stepUrl(s)); setTimeout(() => say(msg, field), 150); return; } }
-  const K = Kof(d), pid = d.patient.trim() ? ((state.people || []).find((p) => String(p.name).trim() === d.patient.trim())?.id || null) : null;
+  const K = Kof(d), pid = d.patient_id ? d.patient_id : (d.patient.trim() ? ((state.people || []).find((p) => String(p.name).trim() === d.patient.trim())?.id || null) : null);
   const dup = (state.medBills || []).find((x) => x.provider.trim().toLowerCase() === d.provider.trim().toLowerCase() && (x.bill_date || x.service_date || "") === (d.bill_date || d.service_date || "") && Number(x.patient_amount ?? x.billed_amount ?? -1) === Number(d.patient_amount || d.billed_amount || -2));
   if (dup && !d.__dupAck) { d.__dupAck = true; return say(t("已经有一张很像的账单（同一机构、同一天、同一金额）。确认是另一张，再点一次“完成并创建”。")); }
   const btn = document.querySelector('[data-otw="finish"]'); if (btn) btn.disabled = true;
   try {
-    const id = await Store.saveMedicalBill(otRowFromDraft(d, { currency: Units.region.currency, K, patientId: pid }));
+    const id = await Store.saveMedicalBill(otRowFromDraft(d, { currency: Units.region.currency, K, patientId: pid, patientName: whoName(d) || null }));
     state.otDraft = null;
     document.dispatchEvent(new CustomEvent("bill-created", { detail: { id, via: "wizard", kind: "onetime" } }));
   } catch (err) { if (btn) btn.disabled = false; say(t("保存失败：{msg}", { msg: err.message })); }

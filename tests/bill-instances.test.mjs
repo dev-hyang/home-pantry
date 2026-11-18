@@ -376,3 +376,12 @@ test("一次性向导拼出的行：保险只对有保险的种类、可见范�
   assert.equal(rp.insurance_paid, 0); assert.equal(rp.visibility, "family"); assert.equal(rp.patient_amount, null); assert.equal(rp.patient_id, null);
   p.visibility = "private"; assert.equal(otRowFromDraft(p, { currency: "USD", K: { insurance: false, visibility: "family" } }).visibility, "private");   // 用户选的优先
 });
+
+test("一次性向导：选了家庭成员存 id + 名字；没选存文字（事项 / 项目名）", () => {
+  const d = newOtDraft({ kind: "medical" }); d.provider = "Clinic"; d.billed_amount = "10"; d.patient_id = "p9";
+  const r = otRowFromDraft(d, { currency: "USD", K: { insurance: true, visibility: "private" }, patientName: "Amy" });
+  assert.equal(r.patient_id, "p9"); assert.equal(r.patient, "Amy");
+  const p = newOtDraft({ kind: "project" }); p.provider = "ABC"; p.billed_amount = "10"; p.patient = "厨房翻新";
+  const rp = otRowFromDraft(p, { currency: "USD", K: { insurance: false, visibility: "family" } });
+  assert.equal(rp.patient_id, null); assert.equal(rp.patient, "厨房翻新");
+});

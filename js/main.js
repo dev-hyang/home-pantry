@@ -14,7 +14,7 @@ import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.
 import { resilientFetch } from "./core/net.js";
 import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
 import { FD, changed, clearUrlParams, onClearFilters } from "./core/clear-filters.js";
-import { loadOverviewRange, setOverviewRange, viewBillsHome } from "./bills/overview-views.js";
+import { applyOverviewQuery, applyOverviewRoute, loadOverviewRange, setOverviewRange, viewBillsHome } from "./bills/overview-views.js";
 import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, verifyBillIds, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
@@ -451,9 +451,10 @@ function onRoute() {
     else if (sec === "bills" && sub === "recurring") { const { property, ...rest } = FD.bills; Object.assign(state.billsFilter, rest); Object.assign(state.payFilter, FD.pay); }
     else if (sec === "bills" && sub === "onetime" && !next.q.get("bill")) Object.assign(state.medFilter, FD.med);
     else if (sec === "bills" && sub === "all") Object.assign(state.allFilter, FD.all, { sort: "due" });
-    else if (sec === "bills" && sub === "overview") state.ovFilter.asset = "all";   // 账单概览：每次进来都是全部资产
     else if (sec === "bills" && sub === "spend") Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
   }
+  // 账单概览：每次进来（含同一页上换了网址参数）都按网址套一次：带 ?asset= → 那个资产 + 本月；不带 → 全部资产 + 上次选的范围
+  if (next.section === "bills" && next.sub === "overview") applyOverviewQuery(next.q);
   // 全部账单：卡片 / 链接带的条件（?asset= ?status= ?range= ?q= ?type= ?cat= ?pay= ?sort=）每次进来套一次
   if (next.section === "bills" && next.sub === "all") { if (routeKey(prev) !== routeKey(next) && !isFormSection(prev)) defaultAllEntry(next.q); applyAllQuery(next.q); }
   // 房产账单概览 →「全部 n 张」带 ?prop=：一次性账单列表按那套房产筛选
@@ -2039,14 +2040,14 @@ export async function boot() {
       if (evt === "SIGNED_OUT") { started = false; if (!state.pendingJoin) renderLogin(); }
     });
     const { data: { session } } = await CloudStore.sb.auth.getSession();
-    state.route = parseRoute(); loadOverviewRange(); applyAllRoute(state.route);   // 直接打开 / 刷新带条件的「全部账单」网址（卡片链接、书签）
+    state.route = parseRoute(); loadOverviewRange(); applyOverviewRoute(state.route); applyAllRoute(state.route);   // 直接打开 / 刷新带条件的「全部账单」网址（卡片链接、书签）
     if (session) start(session); else renderLogin();
   } else {
     setStore(DemoStore);
     DemoStore.load();
     state.displayName = DemoStore.members().find((m) => m.user_id === "me")?.display_name || state.displayName;   // 演示：在资料页改过的称呼
     state.household = { name: t("演示家庭（数据仅存于本浏览器）") };
-    state.route = parseRoute(); loadOverviewRange(); applyAllRoute(state.route);
+    state.route = parseRoute(); loadOverviewRange(); applyOverviewRoute(state.route); applyAllRoute(state.route);
     await refresh();
   }
 }

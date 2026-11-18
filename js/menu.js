@@ -45,7 +45,7 @@ const META = {
     deal:      { icon: "📝", desc: "买入 / 卖出 / 退租流程清单", count: () => (openDeal() ? 1 : 0), countLabel: "进行中" },
     profile:   { icon: "🏡", desc: "房型、设施、材料、地址、保险、HOA" },
     // 这套房产的账单：跳到账单清单并按房产筛选（账单页签保留全家视图、日历导出和与房产无关的账单）
-    bills:     { icon: "🧾", desc: "这套房产的水电气网、HOA、房产税、房贷、保险，以及装修等一次性账单", href: () => `${href("bills", "recurring")}?prop=${state.propertyId}`, count: () => billAlerts(state.billsEnriched.filter((b) => b.property_id === state.propertyId)).length, when: () => state.billsEnabled },
+    bills:     { icon: "🧾", desc: "这套房产的水电气网、HOA、房产税、房贷、保险，以及装修等一次性账单", href: () => `${href("bills", "overview")}?asset=property:${state.propertyId}&range=m`, count: () => billAlerts(state.billsEnriched.filter((b) => b.property_id === state.propertyId)).length, when: () => state.billsEnabled },
   },
   bills: {
     overview:  { icon: "🧾", title: "账单概览", desc: "周期性 + 一次性账单一览：要处理的、未来 30 天要交、未结余额" },

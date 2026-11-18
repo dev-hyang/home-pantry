@@ -15,7 +15,7 @@ export const FD = {
   maint: { q: "", kind: "all", year: "all" },   // 设备 / 车辆的保养记录页
   asset: { q: "", type: "all", service: "all", warranty: "all", loc: "all" },
   bills: { property: "all", cat: "all", autopay: "all", channel: "all", q: "" },
-  all: { q: "", range: "m", asset: "all", type: "all", cat: "all", status: "all", pay: "all" },   // 财务 → 全部账单（时间默认本月）
+  all: { q: "", range: "all", asset: "all", type: "all", cat: "all", status: "all", pay: "all" },   // 财务 → 全部账单（时间默认本月）
   pay: { bill: "all", year: "all", status: "all" },
   spend: { q: "", cat: "all", nat: "all", prop: "all", store: "all", stores: null, grp: null, range: "all", year: "all", mon: "all", months: null, dmax: null, batch: null },
   med: { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all", property: "all" },

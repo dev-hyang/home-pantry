@@ -1,6 +1,6 @@
 /* 财务 → 账单概览 → 全部账单（#/bills/all）：所有账单（周期性 + 一次性）的行记录页，一行 = 一期账单。
  * 概览上每张卡片都落到这里：卡片的口径 = 这里的筛选（js/bills/instances.js 同一份逻辑）。设计见 docs/design-bills-overview.md §3、§7.3。
- * 默认：本月 + 逾期（逾期不受范围限制）、全部资产、到期日近的在前；已缴的排在最后。 */
+ * 默认（不带参数）：时间「全部」、状态「全部」、全部资产、到期日近的在前；已缴的排在最后。从概览卡片点进来会带着那张卡的范围 / 资产 / 状态。 */
 import { state } from "../core/state.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { esc, fmtDate, num, todayISO } from "../core/util.js";
@@ -30,8 +30,8 @@ export function applyAllQuery(q) {
   if (get("sort") && SORT_OPTS.some(([k]) => k === get("sort"))) f.sort = get("sort");
 }
 
-/** 没带任何网址参数 = 从目录 / 底栏直接打开：默认只看「未缴」（带参数的链接，如概览卡片，照参数）；「清除筛选」回到全部状态 */
-export function defaultAllEntry(q) { if (!q || ![...q.keys()].length) state.allFilter.status = "unpaid"; }
+/** （已取消）以前这里给「不带参数」设默认「未缴」；现在不带参数 = 时间「全部」、状态「全部」，带参数（概览卡片带来的「本月」等）照参数。保留空函数，免得别处引用出错 */
+export function defaultAllEntry() {}
 
 /** 直接打开 / 刷新时（没有经过路由切换）套用网址里的条件；不是这一页就不动 */
 export const applyAllRoute = (r) => { if (r?.section === "bills" && r.sub === "all") { defaultAllEntry(r.q); applyAllQuery(r.q); } };
@@ -135,7 +135,7 @@ export function renderAllList() {
 export function viewAllBills() {
   const f = state.allFilter, C = compute(), sel = (id, opts, v) => `<select id="${id}" aria-label="${esc(t(opts.label))}">${opts.list.map(([k, l]) => `<option value="${k}" ${v === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>`;
   const range = (BILL_RANGES.some(([k]) => k === f.range) ? "" : `<option value="${esc(f.range)}" selected>${esc(f.range)}</option>`) + BILL_RANGES.map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");
-  const scope = `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
+  const scope = f.range === "all" ? t("不限时间") : `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
   return `<section class="section">
     <div class="section-head"><h2>🧾 ${t("全部账单")}</h2><div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="all-csv">${t("导出 CSV")}</button><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
     <p class="muted kinds-note">${t("周期性 + 一次性账单，一行 = 一期账单。时间范围：{r}（{s}）；逾期没缴的不受范围限制，一直显示。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope })}</p>

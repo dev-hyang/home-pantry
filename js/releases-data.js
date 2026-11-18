@@ -2,6 +2,14 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.21", title: { zh: "账单概览：金额遮挡一致、按资产跟着筛选；房屋 / 车辆页直达账单", en: "Bills overview: masked amounts, by-asset follows the filter; Home and Vehicle pages open their bills" }, items: [
+    { k: "fix", zh: "账单概览的大数字现在和别的财务页一样会被遮挡（点眼睛显示 / 隐藏）", en: "The big numbers on the Bills overview are now masked like the other finance pages (tap the eye to show or hide)" },
+    { k: "fix", zh: "在账单概览里选了某个资产，下面的「按资产」也只剩这个资产，不再显示全部", en: "When you pick an asset on the Bills overview, the By asset section now shows only that asset instead of everything" },
+    { k: "better", zh: "「全部账单」从目录直接打开：时间是「全部」、状态也是「全部」；从概览卡片点进来则带着卡片的本月 / 资产 / 状态", en: "Opening All bills from the menu now shows all time and all statuses; opening it from an overview card keeps that card\u2019s month, asset and status" },
+    { k: "new", zh: "房屋里的「账单」和车辆页新增的「账单」都直接进账单概览，选好那套房产 / 那辆车，时间默认本月；车辆页的「账单」在「车辆资料」下面、「保养记录」上面", en: "Bills on a property and the new Bills tile on a vehicle open the Bills overview with that property or vehicle selected and this month as the time range; the vehicle tile sits between Vehicle profile and Service log" },
+    { k: "better", zh: "添加一次性账单时，医疗和宠物的「患者」改成从家庭成员里选（医疗：大人和孩子，宠物：宠物）", en: "When adding a one-time bill, the patient for medical and pet bills is now chosen from your family members (adults and children for medical, pets for pet)" }
+  ] },
+
   { v: "2026-11-17.20", title: { zh: "一次性账单也是五步向导；账单页一次滑动看全，每块单独编辑", en: "One-time bills get the five-step guide too; the bill page shows everything and each section edits on its own" }, items: [
     { k: "new", zh: "添加一次性账单（医疗、宠物、法律税务、装修工程、旅行）改成五步：哪一类 → 谁收的、关于谁 → 多少钱、什么时候 → 挂在哪、谁能看 → 确认；完成后直接进这张账单的页面", en: "Adding a one-time bill (medical, pet, legal and tax, renovation, travel) is now five steps: which kind, who billed, how much and when, where it belongs and who sees it, confirm; it then opens the new bill" },
     { k: "better", zh: "一次性账单的页面也像房屋资料页：「这是什么账单」「金额与日期」「挂靠与其他」三张卡一次看全，每张有自己的「编辑」，下面是付款记录", en: "The one-time bill page now works like the house profile: three cards (what it is, amount and dates, attachments and other) with their own Edit buttons, and payments below" },
