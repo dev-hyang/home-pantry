@@ -1,6 +1,17 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "HOA 小计": "HOA subtotal",
+  "单元费 + 车位费": "unit + parking",
+  "本期金额": "Amount this time",
+  "单元费": "Unit assessment",
+  "车位费": "Parking assessment",
+  "总金额": "Total",
+  "这次不交摊派": "No assessment this time",
+  "{n} 期 · {m}": "{n} rows · {m}",
+  "单元费 Unit assessment": "Unit assessment",
+  "车位费 Parking assessment": "Parking assessment",
+  "HOA 月费分成单元费和车位费；填了，“通常金额”自动 = 两者之和。": "Split the HOA dues into unit and parking; once filled, the usual amount becomes their sum automatically.",
   "{n} 笔账单": "{n} bills",
   "账单分组": "Bill groups",
   "按周期": "By cycle",

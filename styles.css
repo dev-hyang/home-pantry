@@ -4132,3 +4132,22 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 /* 账单分组：切换标签 + 按周期里的细分行（缩进、小一点） */
 .grp-tabs { margin: 0 0 8px; padding-bottom: 0; }
 .bill-assets li.ba-sub .ba-row { padding-left: 22px; } .bill-assets li.ba-sub .ba-name { font-size: 13.5px; color: var(--muted); }
+
+/* 缴费表单的「金额」一组：每行 左边项目、右边金额；最后一行总金额加粗；摊派是下拉 */
+.amt-group { border: 1px solid var(--line-soft); border-radius: var(--r-md); padding: 8px 12px 12px; margin: 0; min-width: 0; display: grid; gap: 8px; }
+.amt-group legend { font-size: 13px; font-weight: 700; padding: 0 4px; }
+.amt-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 10.5em); align-items: center; gap: 10px; margin: 0; }
+.amt-l { font-size: 14px; } .amt-l small { color: var(--muted); font-size: 11.5px; }
+.amt-row input[type="number"] { box-sizing: border-box; width: 100%; min-height: 40px; text-align: right; }
+.amt-as .amt-pick { margin: 0; min-width: 0; } .amt-as .pick > summary { min-height: 40px; box-sizing: border-box; } .amt-as .pick-panel { left: auto; right: 0; width: min(100%, 22em); min-width: 16em; }
+.amt-as .pick-val { text-align: right; }
+.amt-total { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 2px; }
+.amt-total span { font-weight: 700; } .amt-total b { font-size: 22px; color: var(--pine); font-variant-numeric: tabular-nums; }
+.amt-hint { margin: 0; font-size: 13px; } .amt-upd { margin: 0; }
+.pay-row .pay-total { font-variant-numeric: tabular-nums; }
+form:not(.is-hoa) .hoa-only { display: none; }
+
+.amt-sub { border-top: 1px dotted var(--line); padding-top: 6px; } .amt-sub b { text-align: right; font-variant-numeric: tabular-nums; }
+.amt-pick .pick-row { display: flex; align-items: center; gap: 10px; } .amt-pick .pick-row > span { min-width: 0; }
+.amt-l { font-weight: 600; } .amt-sub .amt-l { font-weight: 500; }
+.amt-as { grid-template-columns: minmax(0, 1fr) minmax(0, 15em); }

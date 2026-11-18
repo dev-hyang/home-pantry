@@ -79,7 +79,7 @@ import { enrichBills } from "./bills/logic.js";
 import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
 import { saveAssessForm } from "./bills/assessments-views.js";
-import { deleteBillPay, billTemplateItems, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate } from "./bills/views.js";
+import { recalcPayTotal, deleteBillPay, billTemplateItems, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { shopSelText, shopVisibleIds } from "./pantry/views.js";
 import { catNeed, moveCat, pantryNav, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
@@ -342,6 +342,7 @@ export function render(force = true) {
   try { renderBody(r); } finally { if (kept) restoreUnsaved(kept); }
   restoreCarousels();   // 左右滑动的卡片（今日）：放回刚才看的那张
   enhanceSelects($("#main"));   // 长下拉（data-ss）可以搜索
+  { const pf = $("#billPayForm"); if (pf) recalcPayTotal(pf); }   // 缴费表单：先算一次总金额
   normalizeFormActions($("#main"));   // 所有表单：取消靠左、保存靠右，同一行
   decoratePrivacy(r);   // 财务看板的大数字：遮挡模式下模糊（js/core/privacy.js）
 }
@@ -774,7 +775,8 @@ main.addEventListener("change", async (e) => {
   if (e.target.closest("#assetForm") && (e.target.name === "kind" || e.target.name === "type")) return onAssetFormChange(e);
   if (e.target.closest("#maintForm") && e.target.name === "kind") return onMaintFormChange(e);
   if (e.target.closest("#seasonForm") && e.target.name === "mode") { e.target.form.classList.toggle("is-once", e.target.value === "once"); return; }
-  if (e.target.closest("#billForm") && e.target.name === "category") { e.target.form.classList.toggle("is-sub", window.BILLS.isSubCat(e.target.value)); return; }   // 订阅 / 会员才显示种类与试用到期
+  if (e.target.closest("#billForm") && (e.target.name === "unit_amount" || e.target.name === "parking_amount")) { const f = e.target.form; f.elements.typical_amount.value = (Math.round((num(f.elements.unit_amount.value) + num(f.elements.parking_amount.value)) * 100) / 100).toFixed(2); f.elements.amount_type.value = "fixed"; return; }   // HOA：通常金额 = 单元费 + 车位费
+  if (e.target.closest("#billForm") && e.target.name === "category") { e.target.form.classList.toggle("is-sub", window.BILLS.isSubCat(e.target.value)); e.target.form.classList.toggle("is-hoa", e.target.value === "hoa"); return; }   // 订阅 / 会员才显示种类与试用到期
   if (e.target.matches("input[data-task]")) {
     try { await toggleTask(e.target); } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
     return refresh();

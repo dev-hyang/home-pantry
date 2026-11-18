@@ -24,7 +24,7 @@ const rowsOf = (b) => {
   const have = new Set(b.pays.map((p) => p.id));
   return [...b.pays, ...(older.billId === b.id ? older.rows.filter((p) => !have.has(p.id)) : [])];
 };
-const haystack = (p) => [p.paid_on, p.due_on, fmtDate(p.paid_on), p.amount != null ? String(num(p.amount).toFixed(2)) : "", paymentPayLabel(p), p.confirmation_ref, p.notes, t(B().PAYMENT_STATUS[p.status] || p.status)].filter(Boolean).join(" ").toLowerCase();
+const haystack = (p) => [p.paid_on, p.due_on, fmtDate(p.paid_on), p.amount != null ? String(num(p.amount).toFixed(2)) : "", p.amount != null ? String(payTotal(p).toFixed(2)) : "", paymentPayLabel(p), p.confirmation_ref, p.notes, t(B().PAYMENT_STATUS[p.status] || p.status)].filter(Boolean).join(" ").toLowerCase();
 function visible(b) {
   const q = filter.q.trim().toLowerCase();
   const list = rowsOf(b).filter((p) => (filter.status === "all" || p.status === filter.status) && (filter.year === "all" || (p.paid_on || "").startsWith(filter.year)) && (!q || haystack(p).includes(q)));
@@ -34,13 +34,13 @@ function visible(b) {
 
 function rowHtml(b, p) {
   const skipped = p.status === "skipped", edit = `${href("bill", b.id)}?sec=pay&edit=${encodeURIComponent(p.id)}`;
-  const sub = [p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null,
+  const sub = [p.unit_amount != null ? `${t("单元费")} ${mny(p.unit_amount, p.currency)} · ${t("车位费")} ${mny(p.parking_amount, p.currency)}` : null, p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null,
     num(p.assessment_amount) ? t("摊派 {m}", { m: mny(p.assessment_amount, p.currency) }) : null, num(p.fee_amount) ? t("手续费 {m}", { m: mny(p.fee_amount, p.currency) }) : null, num(p.tax_amount) ? t("税 {m}", { m: mny(p.tax_amount, p.currency) }) : null,
     num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ");
   return `<li class="pay-row" data-swipe-del="bill-pay">
     <span class="badge ${skipped ? "" : "b-ok"}" ${skipped ? 'style="background:var(--surface-2)"' : ""}>${esc(t(B().PAYMENT_STATUS[p.status] || p.status))}</span>
     <a class="grow pay-hit" href="${edit}" title="${esc(t("点一下编辑"))}"><b>${esc(fmtDate(p.paid_on))}</b>${sub ? `<small>${sub}</small>` : ""}</a>
-    <b>${p.amount != null ? mny(p.amount, p.currency) : ""}</b>
+    <b class="pay-total" title="${esc(t("总金额"))}">${p.amount != null && !skipped ? mny(payTotal(p), p.currency) : ""}</b>
     <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="billpay-del" data-id="${p.id}" aria-label="${esc(t("删除这条记录"))}">${t("删除")}</button></li>`;
 }
 

@@ -219,7 +219,7 @@ function assetField(v) {
 }
 // 关联设备下拉：勾选后更新标题；点外面或按 Esc 收起；设备多时可搜索
 document.addEventListener("change", (e) => {
-  const dd = e.target.closest?.("details.pick"); if (!dd) return;
+  const dd = e.target.closest?.("details.pick"); if (!dd || !dd.querySelector("input[name=asset_ids]")) return;   // 只管「关联设备」这个下拉；别的下拉（账单摊派等）自己更新标题
   const labels = [...dd.querySelectorAll("input[name=asset_ids]:checked")].map((x) => x.dataset.label);
   const val = dd.querySelector(".pick-val"), n = dd.querySelector(".pick-n");
   val.textContent = labels.length ? pickText(labels) : t("不关联设备"); val.classList.toggle("is-empty", !labels.length);

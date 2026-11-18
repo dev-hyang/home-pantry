@@ -213,7 +213,7 @@ export function viewBillForm() {
     <section class="section form-page">
       ${b ? billCrumb(b, root, hubHref, full ? t("编辑账单") : t(BILL_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([billRoot(), { label: t("添加账单") }])}
       ${autofillBar("bill", "#billForm")}
-      <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""} ${b && sec && !full ? "one-sec" : ""}" novalidate data-autosave>
+      <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""} ${v.category === "hoa" ? "is-hoa" : ""} ${b && sec && !full ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="bill_id" value="${d(b?.id)}">
         <fieldset data-sec="basic" ${hide("basic")}>
           <legend>${t("① 这是什么账单")}</legend>
@@ -238,6 +238,8 @@ export function viewBillForm() {
             <label>${t("下次到期日")}<input name="next_due_on" type="date" value="${d(v.next_due_on)}"><small>${t("留空会按规则自动算；每周 / 年付没填日期的请手动填")}</small></label>
             <label>${t("金额类型")}<select name="amount_type"><option value="fixed" ${v.amount_type === "fixed" ? "selected" : ""}>${t("固定")}</option><option value="variable" ${v.amount_type !== "fixed" ? "selected" : ""}>${t("每次不同")}</option></select></label>
             <label>${t("通常金额")}<input name="typical_amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="${t("每次不同的可留空，按记录平均")}" value="${d(v.typical_amount)}"><small>${t("固定金额填这里。水电燃气这类每次不同的：还没缴的那期先按最近 6 次的均值估（标“估”），记缴费时填实际金额，那一期就变成真实数字。")}</small></label>
+            <label class="hoa-only">${t("单元费 Unit assessment")}<input name="unit_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.unit_amount)}"><small>${t("HOA 月费分成单元费和车位费；填了，“通常金额”自动 = 两者之和。")}</small></label>
+            <label class="hoa-only">${t("车位费 Parking assessment")}<input name="parking_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.parking_amount)}"></label>
             <label>${t("通常手续费（估算）")}<input name="typical_fee" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.typical_fee)}"><small>${t("有服务费 / 刷卡费的填；没缴之前用它估“费用总额”，记缴费时当默认值，实际金额不同就改。")}</small></label>
             <label>${t("通常税（估算）")}<input name="typical_tax" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.typical_tax)}"><small>${t("税额每次可能不一样；这里填大概值，记缴费时填实际的。")}</small></label>
             <label>${t("货币")}<input name="currency" maxlength="3" pattern="[A-Z]{3}" value="${d(v.currency || Units.region.currency)}"></label>
@@ -292,7 +294,7 @@ const BILL_SECTIONS = [
 function billHub(b, root) {
   const base = href("bill", b.id);
   const recent = b.pays.slice(0, 6).map((p) => `<li><span class="badge ${p.status === "skipped" ? "" : "b-ok"}" ${p.status === "skipped" ? 'style="background:var(--surface-2)"' : ""}>${t(B().PAYMENT_STATUS[p.status] || p.status)}</span>
-      <div class="grow">${esc(fmtDate(p.paid_on))}<small>${[p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p)].filter(Boolean).map(esc).join(" · ")}</small></div><b>${p.amount != null ? mny(p.amount, p.currency) : ""}</b></li>`).join("");
+      <div class="grow">${esc(fmtDate(p.paid_on))}<small>${[p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p)].filter(Boolean).map(esc).join(" · ")}</small></div><b>${p.amount != null && p.status !== "skipped" ? mny(payTotal(p), p.currency) : ""}</b></li>`).join("");
   const payCard = `<section class="panel prof-card" aria-labelledby="bc-pay">
       <header class="prof-head"><span class="mi" aria-hidden="true">✅</span><div class="prof-t"><h3 id="bc-pay">${t("缴费记录")}</h3><small>${b.pays.length ? t("{n} 条，最近 {d}", { n: b.pays.length, d: fmtDate(b.pays[0].paid_on) }) : t("还没有记录")}</small></div>
         <a class="btn btn-sm btn-ghost prof-edit" href="${b.pays.length ? `${base}?sec=pay` : `${base}?pay=1`}" aria-label="${esc(t("缴费记录"))}">${b.pays.length ? t("全部") : t("记一笔")}</a></header>
@@ -331,7 +333,7 @@ function billBanner(b, q, base) {
 /** 费用拆解（头部卡「费用」一行）：固定金额（没有就用估算）+ 以后接入的 特别摊派 / 手续费 / 税；返回 { total, parts:[{ k, amount }], per } */
 export function billCostParts(b) {
   const base = b.amount_type === "fixed" && b.typical_amount != null ? { k: t("固定"), amount: num(b.typical_amount) } : b.est != null ? { k: t("估算"), amount: num(b.est) } : null;
-  const parts = base ? [base] : [];
+  const parts = base ? (b.amount_type === "fixed" && b.unit_amount != null ? [{ k: `HOA：${t("单元费")} ${mny(b.unit_amount, b.currency)} + ${t("车位费")} ${mny(b.parking_amount, b.currency)}`, amount: num(b.unit_amount) + num(b.parking_amount) }] : [base]) : [];
   const as = assessmentParts(b.id, state.assess, state.assessItems, b.next_due_on);   // 本期要交的特别摊派（到期日所在月底之前、还没缴的）
   if (as.installment > 0) parts.push({ k: t("分期摊派"), amount: as.installment });
   if (as.payoff > 0) parts.push({ k: t("一次性摊派"), amount: as.payoff });
@@ -388,23 +390,17 @@ function payFormPage(b, edit = null) {
   if (edit?.purchase_id && !linked) fillFromPurchase(edit.purchase_id, '#billPayForm [name="store"]', (p) => p.store);   // 还没读回来：读到后填进收款方（没改过的话）
   return `
     <div class="section-head"><h2>${edit ? t("编辑缴费记录") : b.autopay ? t("记核对") : t("记缴费")}</h2><p>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${edit ? t("改这条记录；不会动下次到期日") : t("记一笔后下次到期日自动推到下一期")}</p></div>
-    <form id="billPayForm" class="panel" data-focus="1">
+    <form id="billPayForm" class="panel" data-focus="1" data-cur="${esc(b.currency || "")}">
       <input type="hidden" name="bill_id" value="${esc(b.id)}"><input type="hidden" name="pay_id" value="${esc(edit?.id || "")}">
       <div class="form-grid maint-grid">
         <label>${t("缴费日期")}<input name="paid_on" type="date" required value="${esc(edit ? edit.paid_on || "" : todayISO())}" max="${todayISO()}"></label>
         <label>${t("对应到期日")}<input name="due_on" type="date" value="${esc(edit ? edit.due_on || "" : b.next_due_on || "")}"></label>
-        <label>${t("金额（{cur}）", { cur: b.currency || Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? (edit.amount != null ? num(edit.amount).toFixed(2) : "") : b.est != null ? num(b.est).toFixed(2) : ""}"></label>
-        ${edit ? "" : `<p class="muted span-2" style="margin:0;font-size:13px">${b.amount_type === "fixed" && b.typical_amount != null ? t("本期按固定金额 {a}；实际不一样就改上面的金额。", { a: mny(b.typical_amount, b.currency) }) : b.est != null ? t("本期预估 {a}（最近几次的均值）；填实际金额，这一期就变成真实数字。", { a: mny(b.est, b.currency) }) : t("还没有历史金额可估：填这次的实际金额。")}</p>
-        ${b.amount_type === "fixed" ? `<label class="check-inline span-2"><input type="checkbox" name="update_typical" checked><span>${t("实际金额和通常金额不同时，用这次的金额更新通常金额")}</span></label>` : ""}`}
+        ${amountGroup(b, edit)}
         <label>${t("状态")}<select name="status"><option value="paid" ${edit?.status === "paid" ? "selected" : ""}>${t("已缴费")}</option><option value="verified" ${edit ? (edit.status === "verified" ? "selected" : "") : b.autopay ? "selected" : ""}>${t("已核对（自动扣款）")}</option><option value="skipped" ${edit?.status === "skipped" ? "selected" : ""}>${t("跳过这期")}</option></select></label>
         <label>${t("用哪张卡 / 账户")}<select name="pay_account" data-pay-acct>${accountOptions(payVal, { none: "（未指定）", extra: PAY_EXTRA })}</select></label>
         <label data-pay-other ${payVal === "other" ? "" : "hidden"}>${t("方式说明")}<input name="method" maxlength="40" placeholder="${t("例如：网银 / 支票 #1023 / 自动扣款")}" value="${esc(edit ? edit.method || "" : b.autopay_method || "")}"></label>
         <label>${t("收款方")}<input name="store" maxlength="40" value="${esc(edit ? (linked?.store || b.payee || b.name || "") : b.payee || b.name || "")}" placeholder="${esc(b.payee || b.name)}"><small>${edit ? t("只改这一条；中途换了收款方，旧记录保留当时的名字。") : t("没填就用账单的收款方。")}</small></label>
         <label>${t("确认号")}<input name="confirmation_ref" maxlength="60" value="${esc(edit?.confirmation_ref || "")}"></label>
-        <label>${t("滞纳金")}<input name="late_fee" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? num(edit.late_fee).toFixed(2) : "0"}"></label>
-        <label>${t("手续费")}<input name="fee_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? num(edit.fee_amount).toFixed(2) : b.typical_fee != null ? num(b.typical_fee).toFixed(2) : "0"}"><small>${t("服务费 / 刷卡费等，每次可能不同，填实际收的。")}</small></label>
-        ${assessPicker(b, edit)}
-        <label>${t("税")}<input name="tax_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? num(edit.tax_amount).toFixed(2) : b.typical_tax != null ? num(b.typical_tax).toFixed(2) : "0"}"></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(edit?.notes || "")}"></label>
       </div>
       <p class="muted" style="margin:10px 0 0;font-size:13px">${edit ? t("金额改了，花费统计里对应的那笔也会跟着改。") : t("有金额的记录会同时记入花费统计的“账单”组。")}</p>
@@ -415,14 +411,52 @@ function payFormPage(b, edit = null) {
 }
 /** 缴费表单里勾选的摊派期：{ ids, sum } */
 const checkedItems = (fe) => { const all = fe.as_item ? (fe.as_item.length === undefined ? [fe.as_item] : [...fe.as_item]) : []; const on = all.filter((x) => x.checked); return { ids: on.map((x) => x.value), sum: Math.round(on.reduce((s, x) => s + num(x.dataset.amt), 0) * 100) / 100 }; };
-/** 缴费表单里的「这次交的特别摊派」：本期之前到期的没缴期默认勾上，其余不勾；编辑时本笔已交的勾着 */
-function assessPicker(b, edit) {
+/** 摊派下拉（多选）：本期之前到期的没缴期默认勾上，其余不勾；编辑时本笔已交的勾着。没有可选的期就不出现 */
+function assessDropdown(b, edit) {
   const upto = monthEnd(edit?.due_on || b.next_due_on || todayISO()), own = edit ? state.assessItems.filter((x) => x.payment_id === edit.id) : [];
   const open = unpaidItems(b.id, state.assess, state.assessItems), name = (x) => state.assess.find((a) => a.id === x.assessment_id)?.name || "";
   const rows = [...own.map((x) => [x, true]), ...open.map((x) => [x, !edit && (x.due_on || "") <= upto])].sort((p, q) => (p[0].due_on || "").localeCompare(q[0].due_on || ""));
   if (!rows.length) return "";
-  return `<fieldset class="span-2 as-pick"><legend>${t("这次交的特别摊派")}</legend>${rows.map(([x, on]) => `<label class="check-inline"><input type="checkbox" name="as_item" value="${esc(x.id)}" data-amt="${num(x.amount)}" ${on ? "checked" : ""}><span>${esc(fmtDate(x.due_on))} · ${esc(name(x))} · ${esc(t(x.kind === "payoff" ? "一次性结清" : "分期"))} · <b>${mny(x.amount, b.currency)}</b></span></label>`).join("")}<small class="muted">${t("勾上的金额记在这笔缴费的“摊派”里，不算进上面的金额；没勾的期留在摊派计划里等下次。")}</small></fieldset>`;
+  const on = rows.filter(([, c]) => c), sum = Math.round(on.reduce((s, [x]) => s + num(x.amount), 0) * 100) / 100;
+  return `<div class="amt-row amt-as"><span class="amt-l">${t("特别摊派")}</span>
+    <details class="pick amt-pick"><summary><span class="pick-val ${on.length ? "" : "is-empty"}" id="asSummary">${asSummaryText(on.length, sum, b.currency)}</span></summary>
+      <div class="pick-panel" role="group" aria-label="${esc(t("这次交的特别摊派"))}">${rows.map(([x, c]) => `<label class="pick-row check-inline"><input type="checkbox" name="as_item" value="${esc(x.id)}" data-amt="${num(x.amount)}" ${c ? "checked" : ""}><span>${esc(fmtDate(x.due_on))} · ${esc(name(x))} · ${esc(t(x.kind === "payoff" ? "一次性结清" : "分期"))} · <b>${mny(x.amount, b.currency)}</b></span></label>`).join("")}</div></details></div>`;
 }
+const asSummaryText = (n, sum, cur) => (n ? t("{n} 期 · {m}", { n, m: mny(sum, cur) }) : t("这次不交摊派"));
+/** 缴费表单的「金额」一组：本期金额（HOA 拆成单元费 + 车位费）+ 滞纳金 + 手续费 + 税 + 特别摊派 = 总金额（实时加好） */
+function amountGroup(b, edit) {
+  const cur = b.currency || Units.region.currency, n2 = (x) => num(x).toFixed(2);
+  const split = edit ? edit.unit_amount != null || edit.parking_amount != null : b.unit_amount != null || b.parking_amount != null;   // 老记录没拆过就保持一个金额
+  const base = edit ? (edit.amount != null ? n2(edit.amount) : "") : b.est != null ? n2(b.est) : "";
+  const inp = (name, val, hint = "") => `<input name="${name}" type="number" inputmode="decimal" min="0" step="0.01" value="${val}" data-amt-in aria-label="${esc(hint)}">`;
+  const row = (label, input) => `<label class="amt-row"><span class="amt-l">${label}</span>${input}</label>`;
+  const baseRows = split
+    ? row(`${t("单元费")}${lang === "en" ? "" : " <small>Unit</small>"}`, inp("unit_amount", edit ? n2(edit.unit_amount) : n2(b.unit_amount), t("单元费"))) + row(`${t("车位费")}${lang === "en" ? "" : " <small>Parking</small>"}`, inp("parking_amount", edit ? n2(edit.parking_amount) : n2(b.parking_amount), t("车位费"))) + `<div class="amt-row amt-sub"><span class="amt-l">${t("HOA 小计")} <small>${t("单元费 + 车位费")}</small></span><b id="paySub">${mny(edit ? num(edit.unit_amount) + num(edit.parking_amount) : num(b.unit_amount) + num(b.parking_amount), cur)}</b></div><input type="hidden" name="amount" value="${edit ? n2(edit.amount) : n2(num(b.unit_amount) + num(b.parking_amount))}">`
+    : row(b.amount_type === "fixed" ? t("固定金额") : t("本期金额"), inp("amount", base, t("本期金额")));
+  const hint = edit ? "" : `<p class="muted amt-hint">${b.amount_type === "fixed" && b.typical_amount != null ? t("本期按固定金额 {a}；实际不一样就改上面的金额。", { a: mny(b.typical_amount, b.currency) }) : b.est != null ? t("本期预估 {a}（最近几次的均值）；填实际金额，这一期就变成真实数字。", { a: mny(b.est, b.currency) }) : t("还没有历史金额可估：填这次的实际金额。")}</p>
+      ${b.amount_type === "fixed" ? `<label class="check-inline amt-upd"><input type="checkbox" name="update_typical" checked><span>${t("实际金额和通常金额不同时，用这次的金额更新通常金额")}</span></label>` : ""}`;
+  return `<fieldset class="span-2 amt-group" data-split="${split ? 1 : 0}"><legend>${t("金额（{cur}）", { cur })}</legend>
+    ${baseRows}
+    ${row(t("滞纳金"), inp("late_fee", edit ? n2(edit.late_fee) : "0", t("滞纳金")))}
+    ${row(t("手续费"), inp("fee_amount", edit ? n2(edit.fee_amount) : b.typical_fee != null ? n2(b.typical_fee) : "0", t("手续费")))}
+    ${row(t("税"), inp("tax_amount", edit ? n2(edit.tax_amount) : b.typical_tax != null ? n2(b.typical_tax) : "0", t("税")))}
+    ${assessDropdown(b, edit)}
+    <div class="amt-total" role="status"><span>${t("总金额")}</span><b id="payTotal">${mny(0, cur)}</b></div>
+    ${hint}</fieldset>`;
+}
+/** 表单里改了任何一项：重算总金额（HOA 拆分时本期金额 = 单元费 + 车位费），并更新摊派下拉上的摘要 */
+export function recalcPayTotal(form) {   // 第一次由 main.js 在页面画好后调用一次
+  const el = (n) => form.elements[n], v = (n) => (el(n) && el(n).type !== "checkbox" ? num(el(n).value) : 0), split = form.querySelector(".amt-group")?.dataset.split === "1";
+  const base = split ? Math.round((v("unit_amount") + v("parking_amount")) * 100) / 100 : v("amount");
+  if (split && el("amount")) el("amount").value = base.toFixed(2);
+  const sub = form.querySelector("#paySub"); if (sub) sub.textContent = Units.money(base, form.dataset.cur || undefined);   // HOA 小计 = 单元费 + 车位费
+  const as = checkedItems(form.elements), status = el("status")?.value, total = status === "skipped" ? 0 : Math.round((base + v("late_fee") + v("fee_amount") + v("tax_amount") + as.sum) * 100) / 100;
+  const out = form.querySelector("#payTotal"); if (out) out.textContent = Units.money(total, form.dataset.cur || undefined);
+  const sm = form.querySelector("#asSummary"); if (sm) { sm.textContent = asSummaryText(as.ids.length, as.sum, form.dataset.cur || undefined); sm.classList.toggle("is-empty", !as.ids.length); }
+}
+document.addEventListener("input", (e) => { const f = e.target.closest?.("#billPayForm"); if (f) recalcPayTotal(f); });
+document.addEventListener("change", (e) => { const f = e.target.closest?.("#billPayForm"); if (f) recalcPayTotal(f); });
+
 /** 旧缴费记录没记账户时，列表页顶上的「一次性补上」提示 */
 const staleNotice = (b) => { const stale = backfillable(b); return stale.length ? `<div class="notice" role="status" style="margin-top:10px"><b>${t("有 {n} 条旧缴费记录没记账户。", { n: stale.length })}</b> ${t("按现在的付款账户 {a} 一次性补上？花费统计里对应的那几笔也会记到这张卡。现金 / 支票的不动。", { a: billPayLabel(b) })} <button type="button" class="btn btn-sm" data-action="billpay-backfill" data-id="${b.id}">${t("补上")}</button></div>` : ""; };
 /** 没记账户、也不是现金 / 支票的旧缴费记录（账单选了付款账户后可以一次性补上） */
@@ -462,7 +496,7 @@ export async function saveBillForm(f, { silent = false } = {}) {
   const b = {
     id: fe.bill_id.value || undefined, name, category: fe.category.value, property_id: fe.property_id.value || null, asset_id: fe.asset_id?.value || null, direction: fe.direction.value || "payable",
     payee: fe.payee.value.trim() || null, account_last4: fe.account_last4.value.trim() || null, login_hint: fe.login_hint.value.trim() || null, pay_url: payUrl || null,
-    pay_channel: fe.pay_channel.value, statement_channel: fe.statement_channel.value, amount_type: fe.amount_type.value, typical_amount: numOrNull(fe.typical_amount), typical_fee: numOrNull(fe.typical_fee), typical_tax: numOrNull(fe.typical_tax),
+    pay_channel: fe.pay_channel.value, statement_channel: fe.statement_channel.value, amount_type: fe.amount_type.value, typical_amount: numOrNull(fe.typical_amount), unit_amount: fe.category.value === "hoa" ? numOrNull(fe.unit_amount) : null, parking_amount: fe.category.value === "hoa" ? numOrNull(fe.parking_amount) : null, typical_fee: numOrNull(fe.typical_fee), typical_tax: numOrNull(fe.typical_tax),
     currency: (fe.currency.value.trim().toUpperCase() || Units.region.currency).slice(0, 3), frequency: fe.frequency.value, interval_months: numOrNull(fe.interval_months, true),
     due_day: numOrNull(fe.due_day, true), due_dates: dueDates, next_due_on: fe.next_due_on.value || null, grace_days: numOrNull(fe.grace_days, true) || 0, ends_on: fe.ends_on.value || null,
     sub_kind: B().isSubCat(fe.category.value) ? fe.sub_kind.value || null : null, trial_ends_on: B().isSubCat(fe.category.value) ? fe.trial_ends_on.value || null : null,
@@ -470,6 +504,7 @@ export async function saveBillForm(f, { silent = false } = {}) {
     autopay: fe.autopay.checked, ...payFields(fe.pay_account?.value, fe.autopay_method.value), autopay_card_expires: fe.autopay_card_expires.value || null,
     assigned_person_id: fe.assigned_person_id.value || null, essential: fe.essential.checked, active: fe.active.checked, notes: fe.notes.value.trim() || null,
   };
+  if (b.category === "hoa" && (b.unit_amount != null || b.parking_amount != null)) { b.typical_amount = Math.round((num(b.unit_amount) + num(b.parking_amount)) * 100) / 100; b.amount_type = "fixed"; }   // HOA 拆分：标准金额 = 单元费 + 车位费
   if (b.pay_channel === "escrow") b.autopay = false;   // 代缴就不是自动扣款
   if (b.autopay && b.pay_channel !== "autopay") b.pay_channel = "autopay";
   if (!b.autopay && b.pay_channel === "autopay") b.pay_channel = "online";
@@ -492,7 +527,7 @@ export const payExpNote = (c) => (!c ? "" : isBankAcct(c) ? t("银行账户没�
 /** 账单的付款账户字段：下拉选卡 → pay_card_id；现金 / 其他 → autopay_method 文字 */
 const payFields = (value, text) => { const r = resolvePayAccount(value, text); return { pay_card_id: r.card_id, autopay_method: r.method }; };
 /** 记一笔缴费 / 核对 / 跳过：写 purchases（有金额且为应付，带上用的卡）、写记录、把账单推到下一期 */
-export async function recordPayment(bill, { paid_on, due_on, amount, status, method, card_id, confirmation_ref, late_fee, fee_amount, tax_amount, assessment_amount, assessment_ids, notes, store }) {
+export async function recordPayment(bill, { paid_on, due_on, amount, status, method, card_id, confirmation_ref, late_fee, fee_amount, tax_amount, assessment_amount, assessment_ids, unit_amount, parking_amount, notes, store }) {
   const currency = bill.currency || Units.region.currency;
   let purchase_id = null;
   const total = status === "skipped" ? 0 : num(amount) + num(late_fee) + num(fee_amount) + num(tax_amount) + num(assessment_amount);
@@ -501,7 +536,7 @@ export async function recordPayment(bill, { paid_on, due_on, amount, status, met
       amount: Math.round(total * 100) / 100, currency, purchased_at: new Date(`${paid_on}T12:00:00`).toISOString(), ...(card_id ? { card_id } : {}), ...(bill.property_id ? { property_id: bill.property_id } : {}) });   // 关联账单的房产（迁移 055）
   }
   const payRow = { bill_id: bill.id, due_on: due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),
-    currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, fee_amount: Math.round(num(fee_amount) * 100) / 100, tax_amount: Math.round(num(tax_amount) * 100) / 100, assessment_amount: Math.round(num(assessment_amount) * 100) / 100, status, notes: notes || null, purchase_id, ...(card_id ? { card_id } : {}) };
+    currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, fee_amount: Math.round(num(fee_amount) * 100) / 100, tax_amount: Math.round(num(tax_amount) * 100) / 100, assessment_amount: Math.round(num(assessment_amount) * 100) / 100, unit_amount: unit_amount == null ? null : Math.round(num(unit_amount) * 100) / 100, parking_amount: parking_amount == null ? null : Math.round(num(parking_amount) * 100) / 100, status, notes: notes || null, purchase_id, ...(card_id ? { card_id } : {}) };
   const payId = await Store.addBillPayment(payRow);
   if (assessment_ids?.length) await Store.setItemsPayment(assessment_ids, payId);   // 这次交的摊派期：记上是哪次缴费交的
   resetPayHistory();
@@ -560,7 +595,7 @@ async function updatePayment(bill, fe) {
   else if (purchase_id) { await Store.deletePurchase(purchase_id); purchase_id = null; }
   else if (total > 0 && bill.direction !== "receivable") purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: payee, amount: total, currency, purchased_at: at, ...cardPatch, ...(bill.property_id ? { property_id: bill.property_id } : {}) });
   if (!purchase_id) await beforeDeletePayment(old.id).catch(() => {});   // 不再记花费了：贷款拆分的本金行和流水也去掉
-  const patch = { paid_on, due_on: fe.due_on.value || null, amount, currency, method: pay.method, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, fee_amount: fee, tax_amount: tax, assessment_amount: asum, status, notes: fe.notes.value.trim() || null, purchase_id, ...cardPatch };
+  const patch = { paid_on, due_on: fe.due_on.value || null, amount, currency, method: pay.method, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, fee_amount: fee, tax_amount: tax, assessment_amount: asum, ...(fe.unit_amount ? { unit_amount: r2(fe.unit_amount.value), parking_amount: r2(fe.parking_amount?.value) } : {}), status, notes: fe.notes.value.trim() || null, purchase_id, ...cardPatch };
   await Store.updateBillPayment(old.id, patch);
   const had = state.assessItems.filter((x) => x.payment_id === old.id).map((x) => x.id);
   const keepIds = status === "skipped" ? [] : picked.ids;
@@ -580,9 +615,10 @@ export async function saveBillPayForm(f) {
   const pay = resolvePayAccount(fe.pay_account?.value, fe.method.value);
   // 固定金额的账单涨价了：勾着「更新通常金额」就把这次的金额带进账单（recordPayment 存账单时一起存，不会被旧值盖回去）
   const paidAmt = fe.amount.value === "" ? null : Math.round(num(fe.amount.value) * 100) / 100;
-  if (fe.update_typical?.checked && fe.status.value !== "skipped" && paidAmt != null && paidAmt > 0 && paidAmt !== num(bill.typical_amount, NaN)) bill.typical_amount = paidAmt;
+  const unit = fe.unit_amount ? Math.round(num(fe.unit_amount.value) * 100) / 100 : null, parking = fe.parking_amount ? Math.round(num(fe.parking_amount.value) * 100) / 100 : null;   // HOA：单元费 + 车位费
+  if (fe.update_typical?.checked && fe.status.value !== "skipped" && paidAmt != null && paidAmt > 0 && paidAmt !== num(bill.typical_amount, NaN)) { bill.typical_amount = paidAmt; if (unit != null) { bill.unit_amount = unit; bill.parking_amount = parking; } }
   const r = await recordPayment(bill, { paid_on: fe.paid_on.value || todayISO(), due_on: fe.due_on.value || null, amount: fe.amount.value === "" ? null : fe.amount.value, status: fe.status.value,
-    method: pay.method, card_id: pay.card_id, confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, fee_amount: fe.fee_amount?.value, tax_amount: fe.tax_amount?.value, ...(fe.status.value === "skipped" ? {} : { assessment_amount: checkedItems(fe).sum, assessment_ids: checkedItems(fe).ids }), notes: fe.notes.value.trim(), store: fe.store?.value });
+    method: pay.method, card_id: pay.card_id, confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, unit_amount: unit, parking_amount: parking, fee_amount: fe.fee_amount?.value, tax_amount: fe.tax_amount?.value, ...(fe.status.value === "skipped" ? {} : { assessment_amount: checkedItems(fe).sum, assessment_ids: checkedItems(fe).ids }), notes: fe.notes.value.trim(), store: fe.store?.value });
   const nextTxt = fmtDate(r.next || "") || t("无");
   toast(fe.status.value === "skipped" ? t("已跳过这期，下次到期 {d}", { d: nextTxt }) : r.catchUp ? t("已补记 {due} 那期；下次到期仍是 {d}", { due: fmtDate(fe.due_on.value), d: nextTxt }) : t("已记录，下次到期 {d}", { d: nextTxt }));
 }

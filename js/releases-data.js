@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.20", title: { zh: "记缴费的金额合成一组并加好总金额；摊派改成下拉；HOA 金额拆成单元费 + 车位费；缴费记录行显示总金额", en: "Payment amounts grouped with a live total; assessments as a dropdown; HOA dues split into unit and parking; payment rows show the total" }, items: [
+    { k: "better", zh: "记缴费 / 编辑缴费的金额放进一个「金额」组：本期金额（或 HOA 的单元费 + 车位费）、滞纳金、手续费、税、特别摊派，最后一行是加好的「总金额」，改任何一项都实时更新；所有周期性账单都一样", en: "Log / edit payment now has one Amount group: amount (or HOA unit + parking), late fee, service fee, tax and special assessment, ending in a live Total; the same for every recurring bill" },
+    { k: "better", zh: "「这次交的特别摊派」改成下拉（可多选），显示「几期 · 金额」；缴费记录列表和账单页里每一行显示的是总金额，明细写在下面一行小字里", en: "The assessment picker is now a multi-select dropdown showing rows · amount; payment rows in the history and on the bill page show the total, with the breakdown on the line below" },
+    { k: "new", zh: "HOA 的单元费和车位费下面有一行「HOA 小计」（两者之和，实时更新）；顶部卡片的算式也写成「HOA：单元费 + 车位费」", en: "Under the HOA unit and parking fees there is an HOA subtotal row (their sum, updated live); the top card formula shows it as HOA: unit + parking" },
+    { k: "new", zh: "HOA 账单可以把金额细分成单元费（Unit assessment）和车位费（Parking assessment）：在账单编辑里设置，通常金额自动 = 两者之和，记缴费时默认带入，也可以逐次修改；现有 HOA 账单已按房屋资料里的 347.36 + 15.84 迁好", en: "An HOA bill can split its amount into Unit assessment and Parking assessment: set in the bill's edit page, the usual amount becomes their sum, payments pre-fill them and each can be changed; the existing HOA bill was migrated from 347.36 + 15.84 in the property profile" }
+  ] },
+
   { v: "2026-11-18.19", title: { zh: "今日页问候用家庭成员的名字；账单概览「按资产」改名「账单分组」，可切换按资产 / 按周期", en: "Today greets the family member by name; Bills overview By asset is now Bill groups with a By asset / By cycle switch" }, items: [
     { k: "fix", zh: "今日页「中午好，…」显示家庭成员的名字，不再是设备的名字（这台设备还没链接家庭成员时才用设备的称呼）", en: "The Today greeting shows the family member's name instead of the device's name (the device name is only used when the device is not linked to a family member)" },
     { k: "new", zh: "财务 → 账单概览的「按资产」改名「账单分组」，默认还是按资产；多了「按周期」视图：周期性（再按每月、每季度、每年细分）和一次性各一行，有金额才显示", en: "Finance → Bills overview: By asset is renamed Bill groups and still defaults to assets; a new By cycle view shows Recurring (split by monthly, quarterly, yearly…) and One-time, each only when it has an amount" }
