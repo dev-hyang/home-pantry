@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.25", title: { zh: "车辆页可以直接问咩咩：常见车辆问题点一下就问", en: "Ask Baa from the vehicle page: tap a common car problem to ask right away" }, items: [
+    { k: "new", zh: "车辆页右上角「⋯」菜单新增「问咩咩」，进到和「出了问题？」一样的页面，但这次默认就是这辆车，不用再选设备", en: "The vehicle page\u2019s ... menu has a new Ask Baa entry that opens the same page as Something wrong, already set to this vehicle with no device to pick" },
+    { k: "new", zh: "页面上有一排常见车辆问题按钮（发动机故障灯、胎压灯、刹车异响、方向盘抖动、打不着火、空调不制冷…，电动车还有充电和续航），点一下就直接问咩咩，不用打字", en: "A row of common car problem buttons (check engine light, tire pressure, brake noise, steering shake, won\u2019t start, A/C, and for EVs charging and range): tap one to ask right away without typing" },
+    { k: "better", zh: "咩咩会按这辆车的年款、品牌、动力类型和里程来回答，涉及刹车、转向、过热等会先提醒你停车找人；买配件的链接换成汽配店", en: "Baa answers for this car\u2019s year, make, powertrain and mileage, tells you to stop and get help for brakes, steering or overheating, and parts links go to auto-parts stores" }
+  ] },
+
   { v: "2026-11-17.24", title: { zh: "历史交易可以删除：手机左滑，笔记本点「删除」", en: "Past deals can be deleted: swipe left on a phone, tap Delete on a laptop" }, items: [
     { k: "new", zh: "交易页的「历史交易」每一行可以删除：手机上向左滑，笔记本上点行里的「删除」；删之前会问你", en: "Each row under Past deals can now be deleted: swipe left on a phone, or tap Delete on a laptop; you are asked first" },
     { k: "better", zh: "只删这条交易记录和它的清单、时间线；房产 / 车辆现在的状态不会变，已经记进花费的款项也不会删", en: "Only the deal record and its checklist and timeline are deleted; the property or vehicle status does not change and payments already in spending are kept" }

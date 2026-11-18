@@ -24,6 +24,27 @@ const STORES = {
   na: [["Home Depot", "https://www.homedepot.com/s/"], ["Lowe's", "https://www.lowes.com/search?searchTerm="], ["Ace Hardware", "https://www.acehardware.com/search?query="], ["Menards", "https://www.menards.com/main/search.html?search="], ["Amazon", "https://www.amazon.com/s?k="], ["Walmart", "https://www.walmart.com/search?q="]],
   cn: [["京东", "https://search.jd.com/Search?keyword="], ["淘宝", "https://s.taobao.com/search?q="], ["拼多多", "https://mobile.yangkeduo.com/search_result.html?search_key="]],
 };
+/** 车辆页的「问咩咩」：常用问题按钮（点一下就把这句话发给咩咩）。label 是按钮上的短句，q 是真正问的话；ev / ice 限定动力类型（没写 = 都有） */
+const VEH_QUICK = [
+  { label: "发动机故障灯亮了", q: "仪表盘上的发动机故障灯（Check Engine）亮了，车还能开吗？最可能是什么原因，我该先查什么？", ice: true },
+  { label: "胎压灯亮了", q: "胎压警告灯亮了。该怎么处理？要补多少气、怎么判断是不是漏气或需要换胎？" },
+  { label: "刹车有异响", q: "刹车时有异响（吱吱声 / 摩擦声 / 咔咔声），或者刹车踏板变软。可能是什么问题，要多久处理？" },
+  { label: "方向盘抖动", q: "开到一定速度时方向盘或车身抖动。可能是什么原因（动平衡、四轮定位、刹车盘…），怎么排查？" },
+  { label: "打不着火 / 没电", q: "车打不着火或者启动无力，点火时咔哒咔哒响。是 12V 电瓶没电吗？怎么搭电、怎么判断要不要换电瓶？" },
+  { label: "空调不制冷", q: "空调不制冷或者出风不够凉。可能是什么原因（缺冷媒、压缩机、空调滤芯、冷凝器…），哪些我能自己查？" },
+  { label: "油耗变高了", q: "最近油耗突然变高。可能是什么原因，哪些我能自己先排查？", ice: true },
+  { label: "机油灯亮了", q: "机油压力灯或机油更换提示灯亮了。能不能继续开？该怎么检查机油、什么时候必须停车？", ice: true },
+  { label: "水温高 / 开锅", q: "水温表偏高或者提示发动机过热。现在该怎么处理？可能是什么原因，什么情况必须停车叫拖车？", ice: true },
+  { label: "怠速抖动", q: "怠速时车身抖动或转速不稳。可能是什么原因（火花塞、点火线圈、积碳、进气…），怎么排查？", ice: true },
+  { label: "充电变慢 / 充不进", q: "电动车充电变慢，或者充不进电 / 充到一半停了。可能是充电桩、充电线、电池还是车的问题，怎么排查？", ev: true },
+  { label: "续航突然变短", q: "电动车续航突然比平时短很多。可能是什么原因（低温、胎压、驾驶习惯、电池健康…），怎么判断电池有没有问题？", ev: true },
+];
+const vehQuick = (a) => { const pt = window.VEHICLES?.POWERTRAINS?.[a?.type] || {}; return VEH_QUICK.filter((x) => (!x.ice || pt.ice !== false) && (!x.ev || pt.ev)); };
+// 汽配店的搜索入口（车辆页的配件用；同样不是比价）
+const VEH_STORES = {
+  na: [["AutoZone", "https://www.autozone.com/searchresult?searchText="], ["O'Reilly", "https://www.oreillyauto.com/search?q="], ["Advance Auto", "https://shop.advanceautoparts.com/web/SearchResults?searchTerm="], ["RockAuto", "https://www.rockauto.com/en/partsearch/?partnum="], ["Amazon", "https://www.amazon.com/s?k="]],
+  cn: [["京东", "https://search.jd.com/Search?keyword="], ["淘宝", "https://s.taobao.com/search?q="], ["途虎养车", "https://www.tuhu.cn/search?keyword="]],
+};
 const region = () => state.houseProfile?.region || (window.Units?.region?.system === "us" ? "na" : "cn");
 
 const fx = () => (state.fix ||= { asset: "", text: "", images: [], busy: false, error: "", result: null, raw: "", added: {}, logged: false });
@@ -58,7 +79,7 @@ const partLabel = (p) => `${t(p.name)}${p.spec ? ` · ${t(p.spec)}`.slice(0, 60 
 const priceNum = (s) => { const m = String(s || "").replace(/,/g, "").match(/\d+(?:\.\d+)?/); return m ? Math.round(parseFloat(m[0]) * 100) / 100 : null; };
 const storeLinks = (p) => {
   const q = encodeURIComponent(region() === "cn" ? t(p.name) : p.q || (lang === "en" ? p.name : `${p.name}`));
-  return (STORES[region()] || STORES.na).map(([n, u]) => `<a class="chip" href="${u}${q}" target="_blank" rel="noopener noreferrer">${esc(n)}</a>`).join("");
+  return ((isVehicle(current()) ? VEH_STORES : STORES)[region()] || (isVehicle(current()) ? VEH_STORES : STORES).na).map(([n, u]) => `<a class="chip" href="${u}${q}" target="_blank" rel="noopener noreferrer">${esc(n)}</a>`).join("");
 };
 /** 一个配件：家里有 → 显示在哪、剩多少；已在采购 → 标记；否则「加入采购」+ 在哪买 */
 function partRow(p, key) {
@@ -102,6 +123,7 @@ export function viewFix() {
   PARTS.clear();
   const a = current(), ready = aiReady(), p = providerOf(aiSettings().provider);
   const q = ready ? aiQuota() : null, blocked = !!q && !q.ok, canImg = ready && visionCapable(p);
+  const veh = isVehicle(a);
   const pid = a?.property_id || state.propertyId, pn = pid ? propertyName(pid) : "";
   const crumb = crumbNav([{ href: href("house"), label: t("房屋") }, ...(pn && !isVehicle(a) ? [{ href: `${href("house", "overview")}?prop=${pid}`, label: pn, icon: "🏠" }] : []),
     { href: isVehicle(a) ? href("house", "vehicles") : `${href("house", "assets")}${pid ? `?prop=${pid}` : ""}`, label: isVehicle(a) ? t("车辆") : t("设备保养") }, ...(a ? [{ href: href("asset", a.id), label: assetName(a), icon: a.t?.icon || "⚙️" }] : []), { label: t("出了问题？"), icon: "🩺" }]);
@@ -114,12 +136,13 @@ export function viewFix() {
     <form id="fixForm" class="panel" novalidate>
       <p class="muted" style="margin:0 0 10px;font-size:13px">${!ready ? t("描述毛病，先看下面的常见小毛病；没填 key 时「复制提示词」拿去任一 AI 问。") : blocked ? esc(quotaMessage(q)) : t("描述哪里不对（声音、现象、从什么时候开始、试过什么）；能拍照更准。咩咩会给原因、方案和要买的配件——涉及燃气、电、结构一定找人。")}</p>
       <div class="form-grid">
-        <label>${t("哪台设备 / 哪里")}
+        ${veh ? `<input type="hidden" name="asset" id="fixAsset" value="${esc(a.id)}"><p class="span-2 fix-veh-line"><b>🚗 ${esc(assetName(a))}</b>${info ? `<small>${esc(info)}</small>` : ""}</p>
+        <div class="span-2"><span class="fix-quick-title">${t("常见问题，点一下直接问")}</span><div class="chips fix-quick-chips">${vehQuick(a).map((x, i) => `<button type="button" class="chip" data-action="fix-quick" data-i="${i}" ${f.busy ? "disabled" : ""}>${esc(t(x.label))}</button>`).join("")}</div></div>` : `<label>${t("哪台设备 / 哪里")}
           <select name="asset" id="fixAsset"><option value="">${t("不是具体设备 / 不确定")}</option>${list.map(opt).join("")}</select>
           ${info ? `<small>${esc(info)}</small>` : ""}
-        </label>
+        </label>`}
         <label class="span-2">${t("怎么了？")}
-          <textarea name="text" id="fixText" data-autosize rows="3" maxlength="800" placeholder="${t("例如：主卫马桶冲完一直有细细的水声，隔十几分钟会自己补一下水；把手正常")}">${esc(f.text)}</textarea>
+          <textarea name="text" id="fixText" data-autosize rows="3" maxlength="800" placeholder="${veh ? t("例如：冷车启动后发动机故障灯亮了，怠速有点抖；开出去一段路后灯还亮着") : t("例如：主卫马桶冲完一直有细细的水声，隔十几分钟会自己补一下水；把手正常")}">${esc(f.text)}</textarea>
         </label>
       </div>
       <div class="scan-thumbs" style="margin-top:8px">
@@ -143,14 +166,18 @@ export function viewFix() {
 function fixPrompt() {
   const f = fx(), a = current(), en = lang === "en";
   const base = generalPrompt("", { withContext: false });
-  const system = `${base.system}\n${en
+  const veh = isVehicle(a);
+  const system = veh ? `${base.system}\n${en
+    ? "Task: diagnose a problem with the user's CAR from the description (and photos if attached). Use the vehicle's year, make, model, powertrain and mileage. Prefer repairing or replacing the failed PART over bigger jobs. Name parts generically so they can be searched at an auto-parts store. Give price ranges only as rough estimates. SAFETY FIRST: for brakes, steering, overheating, fuel or burning smells, warning lights that mean stop-now, or anything uncertain, say clearly to stop driving and call roadside assistance or a mechanic, and put it in \"urgent\". Reply in English."
+    : "这次的任务：根据描述（和照片）诊断用户这辆车的毛病。要结合这辆车的年款、品牌、型号、动力类型和里程。优先修或换坏的那个零件，不要一上来就大修。配件名用通用、能在汽配店搜到的叫法；价格只给大致区间。安全第一：涉及刹车、转向、过热、漏油 / 烧焦味、必须马上停车的警告灯，或者拿不准的情况，要明确说“先停车，叫拖车 / 找修理厂”，并写进 urgent。用简体中文回答。"}`
+    : `${base.system}\n${en
     ? "Task: diagnose a household / appliance / vehicle problem from the description (and photos if attached). Prefer repairing or replacing the failed PART over replacing the whole unit. Be concrete: name the part generically and searchably (e.g. \"toilet flapper 3 inch\"), with the spec needed to buy the right one, and a typical price range for the region. Say clearly when gas, electrical, structural or safety issues mean calling a professional. Return ONLY JSON, no markdown."
     : "这次的任务：根据描述（和照片）诊断家里设备 / 装置 / 车辆的毛病。优先修或换坏的那个零件，而不是换整台。要具体：配件名用通用、能搜到的叫法（如“马桶止水皮 3 英寸”），写清买对的规格和当地常见价格区间。涉及燃气、电、结构、安全的情况要明确说叫人。只返回 JSON，不要 markdown。"}`;
   const ctxLines = a ? (isVehicle(a) ? askCtx.vehicle(a) : askCtx.asset(a)) : [];
   const units = a && isFixture(a) ? unitsText(a, 8) : "";
   const shape = '{"summary":"","urgent":"","replace":"","causes":[{"cause":"","likelihood":"high|medium|low","check":""}],"fixes":[{"title":"","diy":true,"difficulty":"easy|medium|hard","mins":30,"steps":[""],"tools":[""],"parts":[{"name":"","q":"english search keywords","spec":"","qty":1,"unit":"","price":"","where":"hardware|online|appliance|auto|dealer"}],"cost":"","note":""}],"pro":{"when":"","who":"","cost":""}}';
   const user = [
-    a ? `${en ? "Item" : "设备"}：${assetName(a)}${ctxLines.length ? `（${ctxLines.join(en ? "; " : "；")}）` : ""}` : (en ? "Item: not a specific registered device" : "设备：没有指定（家里某处）"),
+    a ? `${veh ? (en ? "Vehicle" : "车辆") : (en ? "Item" : "设备")}：${assetName(a)}${ctxLines.length ? `（${ctxLines.join(en ? "; " : "；")}）` : ""}` : (en ? "Item: not a specific registered device" : "设备：没有指定（家里某处）"),
     units ? `${en ? "Locations" : "位置与数量"}：${units}` : "",
     `${en ? "Region" : "地区"}：${region() === "cn" ? (en ? "China" : "中国") : (en ? "North America" : "北美")}`,
     `${en ? "Problem" : "问题描述"}：${f.text.trim() || (en ? "(see photos)" : "（见照片）")}`,
@@ -241,6 +268,14 @@ async function logFix() {
 export async function fixAction(action, el, { refresh, render, go }) {
   const f = fx();
   switch (action) {
+    case "fix-quick": {
+      const a = current(), item = a ? vehQuick(a)[+el.dataset.i] : null; if (!item) return;
+      f.text = t(item.q); f.error = ""; f.result = null; f.added = {}; f.logged = false;
+      const q = aiReady() ? aiQuota() : null;
+      if (!aiReady() || (q && !q.ok)) { repaint(); return toast(aiReady() ? t("今天的免费额度用完了：问题已填好，可以点“复制提示词”去别的 AI 问") : t("还没填 API key：问题已填好，点“复制提示词”拿去任一 AI 问")); }
+      repaint();   // 先把问题写进输入框（runFix 从输入框里读），再问
+      const p = runFix(); repaint(); await p; return repaint();
+    }
     case "fix-img-del": f.images.splice(+el.dataset.i, 1); return repaint();
     case "fix-reset": Object.assign(f, { text: "", images: [], result: null, raw: "", error: "", added: {}, logged: false }); return repaint();
     case "fix-copy": {

@@ -889,7 +889,7 @@ function vehicleOverview(a, root) {
     ${crumbNav([...assetTrail(a, root, base).slice(0, -1), { label: assetName(a), icon: pt?.icon || "🚗" }])}
     <div class="house-card">
       <div class="house-head"><span class="house-ico" aria-hidden="true">${pt?.icon || "🚗"}</span><div class="grow"><h2 class="house-name">${esc(assetName(a))}</h2></div>
-        <span class="head-acts"><a class="btn btn-sm btn-ghost" href="${base}?sec=basic">${t("编辑")}</a>${moreMenu([{ label: t("记保养"), href: `${base}?log=1`, first: true }, { label: t("删除车辆"), action: "asset-delete", danger: true }])}</span></div>
+        <span class="head-acts"><a class="btn btn-sm btn-ghost" href="${base}?sec=basic">${t("编辑")}</a>${moreMenu([{ label: t("记保养"), href: `${base}?log=1`, first: true }, { label: t("问咩咩"), href: `${href("house", "fix")}?asset=${a.id}` }, { label: t("删除车辆"), action: "asset-delete", danger: true }])}</span></div>
       ${assetSummary(a)}
       <p class="muted house-sub">${esc([a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "))}</p>
       ${facts ? `<dl class="fact-grid one">${facts}</dl>` : ""}

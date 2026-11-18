@@ -3880,3 +3880,9 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 
 /* 历史交易行：手机靠左滑删除（按钮视觉隐藏、Tab 到才显示）；笔记本上常显一个「删除」按钮 */
 @media (min-width: 641px) { .hist-list .swipe-src { position: static !important; width: auto; height: auto; margin: 0; padding: revert; border: revert; overflow: visible; clip: auto; } .hist-list .hist-act { display: inline-flex; gap: 6px; align-items: center; } }
+
+/* 车辆的「问咩咩」：常见问题按钮（一排可换行的 chip，点一下直接问） */
+.fix-veh-line { margin: 0; display: flex; flex-direction: column; gap: 2px; } .fix-veh-line small { color: var(--muted); font-size: 12.5px; }
+.fix-quick-title { display: block; font-weight: 600; margin: 4px 0 6px; }
+.fix-quick-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.fix-quick-chips .chip { min-height: 44px; padding: 8px 14px; cursor: pointer; }
