@@ -195,8 +195,4 @@ export function exportAllCsv() {
   return rows.length - 1;
 }
 
-/** 给卡片 / 链接用：生成「全部账单」的网址（只带不是默认值的条件） */
-export function allBillsHref(params = {}) {
-  const p = new URLSearchParams(); for (const [k, v] of Object.entries(params)) if (v != null && v !== "" && v !== "all") p.set(k, v);
-  const s = p.toString(); return `${href("bills", "all")}${s ? `?${s}` : ""}`;
-}
+export { allBillsHref } from "./all-href.js";   // 网址生成在 all-href.js（首页等只要拼链接的地方不必加载整个页面）

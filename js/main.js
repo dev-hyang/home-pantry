@@ -44,7 +44,7 @@ import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, payAcctValue, 
 import "./bills/cards.js";   // 注册信用卡提醒
 import { LANGS, glossaryOf, joinList, lang, loadEN, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
-import { DEFAULT_QUICK, initTodayRender, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewQuick, viewToday } from "./today.js";
+import { DEFAULT_QUICK, initTodayRender, quickList, saveQuick, setTodayPref, viewQuick, viewToday } from "./today.js";
 import { enableWeather, setTempUnit } from "./core/weather.js";
 
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
@@ -122,6 +122,9 @@ LZ.assessViews = lazyModule(() => import("./bills/assessments-views.js"));
 LZ.billViews = lazyModule(() => Promise.all([LZ.assessViews.load()]).then(() => import("./bills/views.js")));
 LZ.about = lazyModule(() => import("./settings/about.js"));
 LZ.aiPage = lazyModule(() => import("./ai-page.js"));
+LZ.alertsPage = lazyModule(() => import("./alerts-page.js"));   // 全部待办和提醒（#/alerts）：首页不再读提醒总线，这页点开才下载
+const viewAlerts = lazyFn(LZ.alertsPage, "viewAlerts");
+const shiftAlertSource = lazyFn(LZ.alertsPage, "shiftAlertSource");
 const viewStatements = lazyFn(LZ.statements, "viewStatements");
 const viewDebts = lazyFn(LZ.debts, "viewDebts");
 const viewFinAssets = lazyFn(LZ.finAssets, "viewFinAssets");

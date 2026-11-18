@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.34", title: { zh: "今日页更轻：只放能立刻看到的几件事", en: "Lighter Today page: only what can be shown right away" }, items: [
+    { k: "better", zh: "今日页的「待办」只放购物车、储藏补货、待缴账单；设备保养、季节任务、预算等各模块的提醒，点「全部待办和提醒」再看", en: "Today's To-do card now shows only the cart, pantry restocks and unpaid bills; alerts from other areas (maintenance, seasonal tasks, budget…) are under All to-dos and alerts" },
+    { k: "better", zh: "今日页的「钱 · 本月」只读最近两个月的统计，不再带净资产（去 财务 → 净资产 看）", en: "Today's Money card reads only the last two months and no longer shows net worth (see Finance → Net worth)" },
+    { k: "better", zh: "「全部待办和提醒」这一页点进去才下载，打开应用时不再带上", en: "The All to-dos and alerts page now downloads only when you open it" }
+  ] },
+
   { v: "2026-11-18.33", title: { zh: "首次打开更快：有些页面点进去才下载", en: "Faster first open: some pages now download only when you open them" }, items: [
     { k: "better", zh: "录入购物、对账单、借贷、财务资产、出了问题、物品表单、咩咩咩、介绍这些页面，第一次点进去才下载，打开应用时不再带上", en: "Receipt entry, statements, debts, financial assets, Fix, the item form, Ask AI and About now download only the first time you open them, not at launch" },
     { k: "better", zh: "网络不好时，页面没下载下来会提示并给一个「重试」按钮", en: "If a page can't be downloaded on a weak connection, you now see a message with a Retry button" }

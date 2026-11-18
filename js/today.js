@@ -4,7 +4,8 @@
  * 每个模块自己的页面顶上（看板数字下面）列这个模块要处理的事（见 core/alerts.js 的 attentionPanel）。
  * 宽屏两栏（左：咩咩和要做的事；右：看一眼的数字和快捷操作），手机一栏；每块都能折叠，折叠状态记在这台设备上（hmh-today 的 fold）。
  * 角色：没有财务权限的家人看不到「钱 · 本月」整块（不是 CSS 隐藏，是根本不画），待办里没有预算 / 收入 / 借贷，快捷操作里没有财务专属的页面。
- * 数字全部来自内存里的小表和现有的聚合缓存（spend_rollup 经 stats/views.js、inc_rollup 经 income/views.js、净资产在内存里算），首页不新增逐条查询。
+ * 数字：购物车、储藏补货、待缴账单来自内存里的小表；本月花费 / 收入只读最近 2 个月的聚合（core/home-money.js）。首页不读提醒总线、不放净资产，
+ *   不依赖统计页 / 收入页 / 设备页（这些页面点进去才加载）；全部模块的提醒在「全部待办和提醒」（alerts-page.js，点开才加载）。
  * 「注意事项」点开是 #/alerts：从提醒总线取全部提醒，排序下拉（按轻重 / 按房产 / 按来源 / 按到期）。各模块只把自己的提醒注册进总线，首页不认识任何模块。
  * 设计说明见 docs/design-today.md。 */
 import { state } from "./core/state.js";
@@ -19,19 +20,11 @@ import { releaseBadgeHTML } from "./core/releases-ui.js";
 import { esc, money, num, spaceOf } from "./core/util.js";
 import { joinList, locale, t } from "./core/i18n.js";
 import { propertyActive } from "./core/lifecycle.js";
-import { SEVERITY_CLS, SEVERITY_LABEL, SOURCE_ICON, SOURCE_LABEL, alertCounts, alertRow, collectAlerts, liveProperties, multiProperty, propertyName, propertyTag, withProperty } from "./core/alerts.js";
 import { financeOk, quickOk } from "./core/finance-access.js";
-import { lastMonths, monthLabel, spendAgg } from "./stats/views.js";
-import { incAggregate, livingSeries, outflowSeries, withHousingSeries } from "./stats/report.js";
-import { incRollupFor } from "./income/views.js";
-import { liveNetWorth, thisMonth } from "./bills/nw-logic.js";
-import { monthChange, trendPoints } from "./stats/net-worth.js";
-import { upcoming } from "./bills/logic.js";
+import { homeMoney, lastMonths, monthLabel } from "./core/home-money.js";
 import { billInstances, rangeBounds, summarize } from "./bills/instances.js";
-import { allBillsHref } from "./bills/all-views.js";
+import { allBillsHref } from "./bills/all-href.js";
 import { todayISO } from "./core/util.js";
-import { clearFiltersBtn } from "./core/clear-filters.js";
-import { assetsDueCount } from "./house/assets.js";
 
 const PREF_KEY = "hmh-today";
 /** 今日页的「待缴账单」：未来 30 天范围内没缴清的账单期（含逾期、含一次性），数字和点进去的「全部账单」列表对得上 */
@@ -46,14 +39,6 @@ function unpaid30() {
 export function setTodayPref(patch) {
   Object.assign(state.today, patch);
   try { localStorage.setItem(PREF_KEY, JSON.stringify(state.today)); } catch { /* 忽略 */ }
-}
-
-/** 首页提醒按偏好过滤（只看我负责的） */
-function myAlerts() {
-  let all = collectAlerts();
-  const me = myPersonOf();   // 「只看我负责的」：按家庭成员（人）算，不是按设备
-  if (state.today.mine && me) all = all.filter((x) => !x.assigned_person_id || x.assigned_person_id === me);
-  return all;
 }
 
 /* ── 卡片（2026-11-06 改回卡片：轻便、一眼看完；点卡片进对应页面）── */
@@ -71,9 +56,9 @@ const rowLink = (h, icon, label, value = "", hot = false, attrs = "") => `<li><a
 /* ───────────── 今日 ───────────── */
 export function viewToday() {
   state.quickEdit = false; state.quickAdd = false; state.quickSwap = null;   // 编辑快捷操作在自己的页面（#/quick）
-  const all = myAlerts(), counts = alertCounts(all), fin = financeOk();
+  const fin = financeOk();
   const noProfile = state.houseEnabled && state.propertyId && !state.houseProfiles[state.propertyId];
-  const cards = [todoCard(all, counts), homeCard(fin), fin && state.billsEnabled ? moneyCard() : "", quickCard()].filter(Boolean);
+  const cards = [todoCard(), homeCard(fin), fin && state.billsEnabled ? moneyCard() : "", quickCard()].filter(Boolean);
   return `
     ${headHtml()}
     ${Store.mode === "cloud" ? deviceLinkPrompt() : ""}
@@ -101,71 +86,23 @@ function headHtml() {
 let rerenderToday = () => {};
 export const initTodayRender = (fn) => { rerenderToday = fn; };
 
-/* ── 待办 · 按模块：每个模块一行（数量 + 最近的一件），点进模块自己的页面 ──
- * 来源全是提醒总线（已经按财务权限去掉了预算 / 收入 / 借贷）+ 内存里的购物车；链接再过一遍 quickOk，没权限的页面不会出现 */
-const AREAS = () => [
-  { src: ["bill"], icon: "🧾", name: "周期性账单", href: allBillsHref({ type: "recurring" }), on: state.billsEnabled },
-  { src: ["medical"], icon: "🏥", name: "一次性账单", href: allBillsHref({ type: "onetime" }), on: state.billsEnabled },
-  { src: ["debt"], icon: "🏦", name: "借贷还款", href: href("bills", "debts"), on: state.billsEnabled },
-  { src: ["card"], icon: "💳", name: "卡与账户", href: href("bills", "cards"), on: state.billsEnabled },
-  { src: ["budget"], icon: "💰", name: "预算", href: href("bills", "budget"), on: state.billsEnabled },
-  { src: ["income"], icon: "🤝", name: "收入还款", href: `${href("bills", "income")}?tab=records`, on: state.billsEnabled },
-  { src: ["asset"], icon: "⚙️", name: "设备保养", href: href("house", "assets"), on: state.houseEnabled },
-  { src: ["season"], icon: "📅", name: "季节任务", href: `${href("house")}?todo=season`, on: state.houseEnabled },   // 季节任务、交易可能分属几套房产：先到房屋首页的「各房产要处理的事」看全部
-  { src: ["deal"], icon: "📝", name: "交易", href: `${href("house")}?todo=deal`, on: state.houseEnabled },
-  { src: ["pantry"], icon: "🥫", name: "储藏补货", href: href("pantry", "overview"), on: true },
-  { src: ["house"], icon: "🧰", name: "汽车房屋消耗品 · HOA · 保险", href: `${href("house")}?todo=house`, on: state.houseEnabled },
-  { src: ["finance"], icon: "📈", name: "财务", href: href("bills", "overview"), on: state.billsEnabled },
-  { src: ["join"], icon: "👥", name: "加入申请", href: `${href("me", "settings")}?sec=family`, on: true },
-];
-/** 待办的行（导出给测试用）：[{ name, icon, href, n, worst, first }] */
-export function todoRows(all = myAlerts()) {
-  const rows = [];
+/** 储藏里缺货 / 快用完的件数（只看储藏空间；耐用品、暂停提醒的 enrich 已经排除） */
+const restockCount = () => (state.enriched || []).filter((x) => spaceOf(x.category) === "pantry" && (x.status === "out" || x.status === "low")).length;
+/** 待办：首页只放能立刻数出来的几件事（购物车、储藏补货、待缴账单）；设备保养、季节任务、预算等各模块的提醒进「全部待办和提醒」（#/alerts，点开才加载） */
+function todoCard() {
   const open = state.shopping.filter((s) => s.status === "todo"), claimed = state.shopping.filter((s) => s.status === "claimed");
-  if (open.length + claimed.length) {
-    const who = joinList([...new Set(claimed.map((c) => c.claimed_by_name || t("家人")))]);
-    rows.push({ name: t("购物车"), icon: "🛒", href: href("shopping"), n: open.length + claimed.length, worst: 3,
-      first: open.length ? (claimed.length ? t("{n} 项待买，{m} 项家人正在买", { n: open.length, m: claimed.length }) : t("{n} 项待买", { n: open.length })) : t("{who} 正在买", { who }) });
-  }
-  for (const a of AREAS()) {
-    if (!a.on || !quickOk(a.href)) continue;
-    const items = all.filter((x) => a.src.includes(x.source));
-    if (!items.length) continue;
-    const top = items[0];   // 总线已经按轻重 → 必须 → 到期排好
-    const spread = multiBucket(items);   // 分属几套房产 / 车辆：首行写分布（例如「自住 2 台 · 车辆 1 台」），免得和某一套房产页上的数字对不上
-    rows.push({ name: t(a.name), icon: a.icon, href: spread && a.src[0] === "asset" ? `${href("house")}?todo=asset` : a.href, src: a.src,   // 设备分属几处：去房屋页签的「各房产要处理的事」，不进某一套房产的设备页
-      n: a.src[0] === "asset" ? assetsDueCount() || items.length : items.length,   // 设备按台数（一辆车两条提醒算 1 台），和房屋首页、设备页同一个口径
-      worst: Math.min(...items.map((x) => x.severity)),
-      first: spread || `${withProperty(top.property_id, top.title)}${top.detail ? ` · ${top.detail}` : ""}` });
-  }
-  return rows.sort((x, y) => x.worst - y.worst);
-}
-/** 一组提醒分属不止一处（几套房产、车辆、与房产无关）时的分布文字；只有一处返回 ""。设备按台数去重 */
-function multiBucket(items) {
-  const isAsset = items[0]?.source === "asset", m = new Map();
-  for (const x of items) {
-    const veh = isAsset && !x.property_id, k = veh ? "veh" : x.property_id || "none";
-    if (!m.has(k)) m.set(k, new Set());
-    m.get(k).add(isAsset ? x.asset_id || x.title : `${x.title}|${x.due || ""}|${m.get(k).size}`);
-  }
-  if (m.size < 2) return "";
-  const name = (k) => (k === "veh" ? t("车辆") : k === "none" ? t("其他") : propertyName(k) || t("其他"));
-  return [...m].map(([k, set]) => `${name(k)} ${isAsset ? t("{n} 台", { n: set.size }) : t("{n} 件", { n: set.size })}`).join(" · ");
-}
-/** 待办 | 注意事项：一个数（要紧的，没有就全部）+ 轻重计数 + 最急的三个模块；点进 #/alerts（按模块 / 按优先级两种视图） */
-function todoCard(all, counts) {
-  const rows = todoRows(all), n = counts.important || all.length;
-  // 标题旁像通知一样一个数（有要紧的：要紧件数、红色；没有：全部件数、灰色）
-  const badge = n ? `<span class="tbadge ${counts.important ? "is-hot" : ""}" aria-label="${esc(counts.important ? t("{n} 件要紧", { n }) : t("{n} 件可以留意", { n }))}">${n > 99 ? "99+" : n}</span>` : "";
-  if (!rows.length) return card({ k: "todo", icon: "🗂️", title: t("待办"), href: href("alerts"), body: `<div class="tcard-ok"><span class="tok-ico" aria-hidden="true">✓</span><div><b>${t("各处都没有待办")}</b><small>${t("购物车是空的，账单、保养和季节任务都不急。")}</small></div></div>` });
-  const pills = [0, 1, 2, 3].filter((x) => counts.bySeverity[x]).map((x) => `<span class="pill sev-${x}"><i>${counts.bySeverity[x]}</i>${t(SEVERITY_LABEL[x])}</span>`).join("");
-  const cls = (w) => (w <= 2 ? SEVERITY_CLS[w] : "attn-count");
-  // 2026-11-14：每一行自己是链接，直接进那个模块（购物车、账单、设备保养…）；标题行和底部「全部 N 件」进 #/alerts
-  const list = rows.slice(0, 6).map((r) => `<li><a href="${esc(r.href)}" class="${r.worst <= 1 ? "is-hot" : ""}"><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow"><span class="tr-k1">${esc(r.name)}</span><small class="tr-sub">${esc(r.first || "")}</small></span><span class="badge mcount ${cls(r.worst)}">${r.n}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`).join("");
-  const more = rows.length > 6 ? t("还有 {n} 个模块", { n: rows.length - 6 }) : "";
-  return card({ k: "todo", icon: counts.important ? "🔔" : "🗂️", title: t("待办"), count: badge, headHref: href("alerts"), cls: counts.important ? "is-hot" : "",
-    body: `${pills ? `<div class="pills ttodo-pills">${pills}</div>` : ""}<ul class="tcard-list ttodo-list">${list}</ul>
-      <p class="tcard-foot"><span>${more}</span><a class="tcard-more" href="${href("alerts")}">${t("全部 {n} 件", { n: all.length })} ›</a></p>` });
+  const short = restockCount(), rows = [];
+  if (open.length + claimed.length) rows.push({ icon: "🛒", name: t("购物车"), href: href("shopping"), n: open.length + claimed.length,
+    first: open.length ? (claimed.length ? t("{n} 项待买，{m} 项家人正在买", { n: open.length, m: claimed.length }) : t("{n} 项待买", { n: open.length })) : t("{who} 正在买", { who: joinList([...new Set(claimed.map((c) => c.claimed_by_name || t("家人")))]) }) });
+  if (short) rows.push({ icon: "🥫", name: t("储藏补货"), href: href("pantry", "overview"), n: short, first: t("{n} 件缺货或快用完", { n: short }) });
+  if (state.billsEnabled) { const b = unpaid30(); if (b.n) rows.push({ icon: "🧾", name: t("待缴账单（含逾期）"), href: UNPAID30_HREF, n: b.n, first: t("{n} 笔账单", { n: b.n }) }); }
+  const n = rows.reduce((sum, r) => sum + r.n, 0);
+  const badge = n ? `<span class="tbadge" aria-label="${esc(t("{n} 件可以留意", { n }))}">${n > 99 ? "99+" : n}</span>` : "";
+  const foot = `<p class="tcard-foot"><span></span><a class="tcard-more" href="${href("alerts")}">${t("全部待办和提醒")} ›</a></p>`;
+  if (!rows.length) return card({ k: "todo", icon: "🗂️", title: t("待办"), headHref: href("alerts"),
+    body: `<div class="tcard-ok"><span class="tok-ico" aria-hidden="true">✓</span><div><b>${t("各处都没有待办")}</b><small>${t("购物车、储藏和账单都没有要处理的。")}</small></div></div>${foot}` });
+  const list = rows.map((r) => `<li><a href="${esc(r.href)}"><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow"><span class="tr-k1">${esc(r.name)}</span><small class="tr-sub">${esc(r.first || "")}</small></span><span class="badge mcount attn-count">${r.n}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`).join("");
+  return card({ k: "todo", icon: "🗂️", title: t("待办"), count: badge, headHref: href("alerts"), body: `<ul class="tcard-list ttodo-list">${list}</ul>${foot}` });
 }
 
 /* ── 钱 · 本月（只给家主和有财务权限的人；调用前已判断）：数字来自 spend_rollup / inc_rollup 的缓存和内存里的账单、净资产 ── */
@@ -173,10 +110,8 @@ const LOADING = () => `<span class="muted" aria-label="${esc(t("加载中…"))}
 /* 金额遮挡：全局一套（js/core/privacy.js）。钱卡的金额带 data-money，遮挡模式下模糊、点一个露 10 秒；标题旁是同一只眼睛 */
 const mask = (html) => `<span data-money>${html}</span>`;
 function moneyCard() {
-  const ms = lastMonths(6), A = spendAgg(ms, 6), cm = ms.at(-1), pm = ms.at(-2), cur = Units.region.currency;   // 和 财务 → 概览 的「花费速览」同一份缓存（6 个月 → 读近 12 个月的聚合）
-  const L = A ? livingSeries(A) : null, H = A ? withHousingSeries(A) : null, O = A ? outflowSeries(A) : null;
-  const incRows = incRollupFor([pm, cm]), I = incRows ? incAggregate(incRows, [pm, cm], { cur }) : null;   // 两个月的收入聚合，读一次缓存
-  const bills = state.billsEnriched.filter((b) => b.active && !b.ended && b.direction !== "receivable");
+  const M = homeMoney(() => rerenderToday()), A = !!M, [pm, cm] = M?.months || lastMonths(2);   // 只读最近 2 个月的聚合（core/home-money.js），不再借用统计页的缓存
+  const L = M?.living, H = M?.housing, O = M?.outflow, I = M?.income ? { income: M.income } : null;
   const next30 = unpaid30(), due30 = next30.amount;   // 和「全部账单」同一口径（未来 30 天范围内没缴清的，含逾期、含一次性）
   const inc = I ? num(I.income[cm]) : null, out = A ? num(O.at(-1)) : null, bal = inc != null && out != null ? inc - out : null;
   const amt = (v, cls = "") => `<b class="num ${cls}">${String(v).includes("…") ? v : mask(v)}</b>`, small = (x) => `<small>${x}</small>`;
@@ -189,10 +124,6 @@ function moneyCard() {
     [t("结余"), bal != null ? amt(`${bal < 0 ? "−" : ""}${money(Math.abs(bal))}`, bal < 0 ? "down" : "up") : amt(LOADING()), OV],
     [t("待缴账单（含逾期）"), `${small(t("共 {n} 笔账单", { n: next30.n }))}${amt(money(due30))}`, UNPAID30_HREF],
   ];
-  if (state.nwOk) {
-    const r = liveNetWorth(), m = thisMonth(), mom = monthChange(trendPoints(state.nwSnapshots, cur, { live: r, month: m }), m);
-    rowsKv.push([t("净资产"), `${mom == null ? "" : small(mask(`${mom > 0 ? "+" : mom < 0 ? "−" : ""}${money(Math.abs(mom))}`))}${amt(money(r.netWorth), r.netWorth < 0 ? "down" : "")}`, href("bills", "networth")]);
-  }
   // 卡片：本月日常消费大字，后面跟着「日常消费 · 上个月 $…」一行；下面明细两列（宽屏）；整张点进 财务 → 收支总览（本月）
   // 第一行：「$本月 日常消费 · 上月 $上月 ▲ 10%」——本月金额和下面各行一样大；上月小一号；花得比上月多是红 ▲、少是绿 ▼
   const curL = A ? num(L.at(-1)) : null, prevL = A ? num(L.at(-2)) : null, pct = prevL > 0 ? Math.round(((curL - prevL) / prevL) * 100) : null;
@@ -212,21 +143,17 @@ function moneyLinks() {
 /* ── 家里 · 一览：库存、采购、设备；没有财务权限的家人还看到本月账单的笔数（不显示金额） ── */
 function homeCard(fin) {
   const items = state.enriched || [], inSpace = (sp) => items.filter((x) => spaceOf(x.category) === sp);
-  const pantry = inSpace("pantry"), short = pantry.filter((x) => x.status === "out" || x.status === "low").length;
+  const pantry = inSpace("pantry"), short = restockCount();
   const shop = state.shopping.filter((s) => s.status === "todo" || s.status === "claimed").length;
   const row = rowLink;
   const rows = [row(href("pantry", "overview"), "🗄️", t("储藏"), short ? t("{n} 件要补货", { n: short }) : t("都够用"), short),
     row(href("shopping"), "🛒", t("购物车"), shop ? t("{n} 项", { n: shop }) : t("空的"), false)];
   if (state.houseEnabled) {
-    const props = liveProperties().filter(propertyActive), live = new Set(props.map((p) => p.id));
-    const eq = (state.assetsEnriched || []).filter((a) => !a.retired && live.has(a.property_id)), due = assetsDueCount();   // 和待办「设备保养」、房屋首页同一个口径
-    if (eq.length || due) rows.push(row(`${href("house")}?todo=asset`, "⚙️", t("设备与车辆"), due ? t("{n} 台该保养", { n: due }) : t("都正常"), due));   // 房屋概览的「各房产要处理的事 · 设备与车辆」
+    const props = state.properties.filter((p) => !p.archived).filter(propertyActive), live = new Set(props.map((p) => p.id));
+    const eq = (state.assetsEnriched || []).filter((a) => !a.retired && live.has(a.property_id));
+    if (eq.length) rows.push(row(`${href("house")}?todo=asset`, "⚙️", t("设备与车辆"), t("{n} 台", { n: eq.length }), false));   // 哪几台该保养，进设备页看（首页不再逐台算）
     // 2026-11-12：每套房产一行，直接进那套房产的概览（?prop= 先切到那一套）；后面是几个常用的房屋入口，卡片排满了就在底部「更多 › 房屋」
-    const alerts = myAlerts();
-    for (const pr of props) {
-      const n = alerts.filter((x) => x.property_id === pr.id).length;
-      rows.push(row(`${href("house", "overview")}?prop=${encodeURIComponent(pr.id)}`, "🏠", esc(pr.name || t("房产")), n ? t("{n} 件要处理", { n }) : t("概览"), n > 0));
-    }
+    for (const pr of props) rows.push(row(`${href("house", "overview")}?prop=${encodeURIComponent(pr.id)}`, "🏠", esc(pr.name || t("房产")), t("概览"), false));
     const vehicles = (state.assetsEnriched || []).filter((a) => !a.retired && !a.property_id).length;
     if (vehicles) rows.push(row(href("house"), "🚗", t("车辆"), t("{n} 辆", { n: vehicles }), false));
     rows.push(row(`${href("house")}?todo=season`, "📅", t("季节任务")), row(href("house", "fix"), "🩺", t("东西坏了")), row(href("house", "profile"), "📋", t("房屋资料")), row(href("house", "supplies"), "🧰", t("汽车房屋消耗品")));
@@ -362,94 +289,3 @@ export const PRESETS = () => {
 };
 
 
-/* ───────────── 注意事项：清单 + 排序下拉；“全部 / 某来源”一页一页左右滑（桌面点 ‹ ›），每次进来都回到“全部” ───────────── */
-const SORTS = [["severity", "按轻重"], ["due", "按到期"], ["source", "按来源"], ["property", "按房产"]];
-/** 来源页的顺序：全部，然后按提醒总线的来源顺序只列有提醒的 */
-export function alertSourceTabs(counts = alertCounts(myAlerts())) {
-  return ["all", ...Object.keys(SOURCE_LABEL).filter((k) => counts.bySource[k])];
-}
-/** 左右滑动 / ‹ ›：换到上一个或下一个来源页（到头不循环） */
-export function shiftAlertSource(delta) {
-  const tabs = alertSourceTabs();
-  const cur = state.today.source && tabs.includes(state.today.source) ? state.today.source : "all";
-  const i = Math.min(tabs.length - 1, Math.max(0, tabs.indexOf(cur) + delta));
-  setTodayPref({ source: tabs[i] === "all" ? null : tabs[i] });
-}
-/** 按模块：每个模块一行（数量 + 最近的一件），点进模块自己的页面（原来今日页的「待办 · 按模块」） */
-function byArea(all) {
-  const rows = todoRows(all);
-  if (!rows.length) return `<section class="section"><div class="panel empty"><strong>${t("各处都没有待办 ✓")}</strong>${t("购物车是空的，账单、保养和季节任务都不急。")}</div></section>`;
-  const row = (r) => `<a class="mrow" href="${esc(r.href)}"><span class="mi" aria-hidden="true">${r.icon}</span>
-      <span class="mt"><b>${esc(r.name)}</b><small>${esc(r.first)}</small></span>
-      <span class="badge mcount ${r.worst <= 2 ? SEVERITY_CLS[r.worst] : "attn-count"}">${r.n}</span><span class="mch" aria-hidden="true">›</span></a>`;
-  return `<section class="section"><div class="panel mlist">${rows.map(row).join("")}</div></section>`;
-}
-export function viewAlerts() {
-  const pref = state.today;
-  const view = pref.view === "priority" ? "priority" : "area";   // 两种视图：按模块（默认）/ 按优先级；记在这台设备上
-  const seg = `<div class="seg alerts-view" role="group" aria-label="${t("视图")}">
-      <button type="button" data-action="today-view" data-v="area" aria-pressed="${view === "area"}">${t("按模块")}</button>
-      <button type="button" data-action="today-view" data-v="priority" aria-pressed="${view === "priority"}">${t("按优先级")}</button></div>`;
-  if (view === "area") {
-    return `<nav class="crumb" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("待办 | 注意事项")}</b></nav>
-      <section class="section today-head">${seg}</section>${byArea(myAlerts())}`;
-  }
-  const all = myAlerts(), counts = alertCounts(all);
-  const canMine = Store.mode === "cloud" && collectAlerts().some((x) => x.assigned_person_id);
-  const tabs = alertSourceTabs(counts);
-  const src = pref.source && counts.bySource[pref.source] ? pref.source : null;
-  const idx = tabs.indexOf(src || "all");
-  const shown = src ? all.filter((x) => x.source === src) : all;
-  const mode = SORTS.some(([k]) => k === pref.mode) ? pref.mode : "severity";
-  const sorts = SORTS.filter(([k]) => k !== "property" || multiProperty()).map(([k, n]) => `<option value="${k}" ${k === mode ? "selected" : ""}>${t(n)}</option>`).join("");
-  const toggle = (key, label, on) => `<button type="button" class="chip" data-action="today-pref" data-key="${key}" aria-pressed="${on ? "true" : "false"}">${label}</button>`;
-  const body = mode === "property" && multiProperty() ? byProperty(shown) : mode === "source" && !src ? bySource(shown) : mode === "due" ? byDue(shown) : bySeverity(shown);
-  const tabName = (k) => (k === "all" ? t("全部") : `${SOURCE_ICON[k] || ""} ${t(SOURCE_LABEL[k] || k)}`);
-  const tabCount = (k) => (k === "all" ? all.length : counts.bySource[k] || 0);
-  // 来源筛选：下拉列表（全部 / 各来源 + 数量），换来源不用左右翻页
-  const pager = tabs.length > 1 ? `<label class="src-dd"><span class="sr-only">${t("提醒来源")}</span><select id="alertSource" aria-label="${t("提醒来源")}">${tabs.map((k) => `<option value="${k}" ${k === tabs[idx] ? "selected" : ""}>${tabName(k)} (${tabCount(k)})</option>`).join("")}</select></label>` : "";
-  const restockHere = src === "pantry" && all.some((x) => x.source === "pantry" && x.actions?.some((a) => a.action === "shop-add-item"));   // 只有选了「储藏」才显示；其他来源（账单、房屋…）和「全部」都不显示
-  const tools = canMine || restockHere ? `<div class="chips today-chips">
-        ${canMine ? toggle("mine", t("只看我负责的"), !!pref.mine) : ""}
-        ${restockHere ? `<button type="button" class="chip" data-action="shop-add-alerts" data-space="pantry">${t("补货全部加入购物车")}</button>` : ""}
-      </div>` : "";
-
-  return `
-    <nav class="crumb crumb-tools" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("待办 | 注意事项")}</b>
-      <label class="sort-dd"><span class="sr-only">${t("排序")}</span><select id="alertSort" aria-label="${t("排序")}">${sorts}</select></label></nav>
-    <section class="section today-head">${seg}${pager}${tools}${clearFiltersBtn("alerts", !!src || !!pref.mine)}</section>
-    <div>${body}</div>`;
-}
-
-const section = (title, sub, items) => (items.length ? `<section class="section">
-    <div class="section-head"><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ""}</div>
-    <div class="panel"><ul class="restock-list alert-list">${items.map(alertRow).join("")}</ul></div>
-  </section>` : "");
-const EMPTY = () => `<section class="section"><div class="panel empty"><strong>${t("今天没有需要处理的事")}</strong></div></section>`;
-
-function bySeverity(list) {
-  const SUB = [t("已经过期，先处理"), t("今天到期或今天要做"), t("一周内到期、待核对的自动扣款、缺货"), t("少货、临期、本月季节任务")];
-  return [0, 1, 2, 3].map((s) => section(t(SEVERITY_LABEL[s]), SUB[s], list.filter((x) => x.severity === s))).join("") || EMPTY();
-}
-
-function byProperty(list) {
-  const groups = liveProperties().filter((p) => propertyActive(p) || list.some((x) => x.property_id === p.id)).map((p) => ({ title: `🏠 ${esc(p.name)}`, sub: t(window.DEALS.PROPERTY_STATUS[p.status] || "持有"), items: list.filter((x) => x.property_id === p.id) }));
-  groups.push({ title: t("与房产无关"), sub: t("手机、车险、订阅等"), items: list.filter((x) => !x.property_id && x.source !== "pantry" && x.source !== "house") });
-  groups.push({ title: t("家里的储藏"), sub: t("补货与临期"), items: list.filter((x) => !x.property_id && (x.source === "pantry" || x.source === "house")) });
-  return groups.map((g) => section(g.title, g.sub, g.items)).join("") || EMPTY();
-}
-
-function bySource(list) {
-  const order = Object.keys(SOURCE_LABEL);
-  const srcs = [...new Set(list.map((x) => x.source))].sort((a, b) => order.indexOf(a) - order.indexOf(b));
-  return srcs.map((s) => { const items = list.filter((x) => x.source === s); return section(`${SOURCE_ICON[s] || ""} ${t(SOURCE_LABEL[s] || s)}`, t("{n} 件", { n: items.length }), items); }).join("") || EMPTY();
-}
-
-/** 按到期：有日期的先到先列，没日期的（缺货、少货等）排最后 */
-function byDue(list) {
-  const dated = list.filter((x) => x.daysLeft != null).sort((a, b) => a.daysLeft - b.daysLeft || a.severity - b.severity);
-  const undated = list.filter((x) => x.daysLeft == null);
-  return (section(t("按到期先后"), t("逾期的在最前"), dated) + section(t("没有日期"), t("缺货、少货等"), undated)) || EMPTY();
-}
-
-export { propertyName };
