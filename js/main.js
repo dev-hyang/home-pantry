@@ -15,12 +15,13 @@ import { resilientFetch } from "./core/net.js";
 import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
 import { FD, changed, clearUrlParams, onClearFilters } from "./core/clear-filters.js";
 import { enhanceSelects } from "./core/search-select.js";
+import { normalizeFormActions } from "./core/form-actions.js";
 import { overviewHref } from "./bills/trail.js";
 import { applyOverviewQuery, applyOverviewRoute, loadOverviewRange, setOverviewRange, viewBillsHome } from "./bills/overview-views.js";
 import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, verifyBillIds, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { viewOtBill, applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm } from "./bills/medical-views.js";
-import { deviceLinkDo, deviceLinkNew, resetFamilyUi, savePersonForm, setDevicePerson } from "./settings/family-people.js";
+import { deviceLinkDo, deviceLinkNew, removePerson, resetFamilyUi, savePersonForm, setDevicePerson } from "./settings/family-people.js";
 import { ackLoginDo, loadLoginAlerts, loginAlertItems, loginsMore, recordLoginOnce } from "./settings/logins.js";
 import { spendChanged } from "./core/spend-data.js";
 import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-check.js";
@@ -342,6 +343,7 @@ export function render(force = true) {
   try { renderBody(r); } finally { if (kept) restoreUnsaved(kept); }
   restoreCarousels();   // 左右滑动的卡片（今日）：放回刚才看的那张
   enhanceSelects($("#main"));   // 长下拉（data-ss）可以搜索
+  normalizeFormActions($("#main"));   // 所有表单：取消靠左、保存靠右，同一行
   decoratePrivacy(r);   // 财务看板的大数字：遮挡模式下模糊（js/core/privacy.js）
 }
 /** 表单里与渲染默认值不同的字段（用户正在填的）；没有改动返回 null */
@@ -952,7 +954,7 @@ main.addEventListener("submit", async (e) => {
       await refresh();
       return go(`${href("bill", billId)}?sec=pay`, { replace: true });   // 记完 / 改完都回到全部缴费记录
     }
-    if (f.id === "personForm") { if (await savePersonForm(f)) { await refresh(); render(true); } return; }   // 家庭成员详情页：保存基本资料
+    if (f.id === "personForm") { const isNew = !f.dataset.id; if (await savePersonForm(f)) { await refresh(); if (isNew) return go(familyHref(), { replace: true }); render(true); } return; }   // 家庭成员详情页：保存基本资料
     if (f.id === "assessForm") {
       const billId = f.dataset.bill; if (!(await saveAssessForm(f))) return;
       await refresh(); return go(`${href("bill", billId)}?sec=assess`, { replace: true });
@@ -1202,6 +1204,8 @@ main.addEventListener("click", async (e) => {
         if (!confirmDelete(t("删除这位家庭成员？相关账单里的名字会保留，但不再关联到这个人。"))) return;
         await Store.deletePerson(id); state.people = await Store.listPeople(); toast(t("已删除")); return go(familyHref(), { replace: true });
       }
+      case "person-remove": await removePerson(id); await refresh(); return render(true);
+      case "person-new-cancel": return go(familyHref(), { replace: true });
       case "device-link": await deviceLinkDo(); return render(true);   // 这台设备是谁？→ 选已有的人
       case "device-link-new": await deviceLinkNew(); return render(true);   // …或新建一个人
       case "bill-cancel": return leaveBill(false);

@@ -4089,9 +4089,6 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .fam-main { flex: 1; min-width: 0; display: grid; gap: 3px; } .fam-main small { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; } .fam-name { font-size: 16px; }
 .fam-act { flex: none; margin-left: auto; } .fam-act .act-more > summary { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 .fam-card .person-merge { margin-top: 10px; }
-.fam-sec { padding: 0; } .fam-sec > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; cursor: pointer; min-height: 44px; } .fam-sec > summary::-webkit-details-marker { display: none; }
-.fam-sec > summary .mem-h { margin: 0; } .fam-sec > :not(summary) { margin-left: 16px; margin-right: 16px; } .fam-sec[open] > :last-child { margin-bottom: 14px; }
-.fam-edit { min-height: 44px; min-width: 64px; flex: none; }
 .fam-sub { margin: 14px 0 6px; font-size: 14px; }
 .dev-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .dev-card { border: 1px solid var(--line-soft); border-radius: var(--r-md); padding: 10px 12px; min-width: 0; }
@@ -4099,6 +4096,15 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .dev-acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex: none; } .dev-acts .btn { min-height: 44px; }
 .dev-link { display: grid; gap: 4px; margin-top: 10px; font-size: 13px; color: var(--muted); } .dev-link select { min-height: 44px; box-sizing: border-box; width: 100%; }
 .dev-card .login-list { margin-top: 8px; }
-.fam-scope { margin: 0 0 10px; }
 .login-flag { color: var(--out); font-weight: 700; font-size: 13px; white-space: nowrap; } .login-ok { font-size: 12.5px; }
 .login-tags { flex-direction: column; align-items: flex-end; }
+
+/* 家庭成员详情页的块：和房屋资料 / 账单详情的分区卡同一套（.prof-card / .prof-head / .prof-edit），可折叠，右上角是编辑 + 箭头 */
+.fam-sec > summary { list-style: none; cursor: pointer; margin-bottom: 0; } .fam-sec > summary::-webkit-details-marker { display: none; }
+.fam-sec[open] > summary { margin-bottom: 8px; }
+.fam-sec > summary .mch { flex: none; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
+.fam-sec[open] > summary .mch { transform: rotate(90deg); }
+.fam-sec > summary h3 { margin: 0; }
+.fam-scope { margin-bottom: 8px; padding-bottom: 0; }
+.fam-card[data-href] { cursor: pointer; } .fam-card[data-href]:hover { border-color: var(--pine); }
+.dev-acts .btn, .login-tags .btn { box-sizing: border-box; min-height: 40px; padding: 4px 12px; display: inline-flex; align-items: center; }

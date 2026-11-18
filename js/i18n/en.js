@@ -1,6 +1,17 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "添加": "Add",
+  "移出": "Remove",
+  "已移出 {name}": "Removed {name}",
+  "{n} 台": "{n} devices",
+  "只有家主能添加家庭成员": "Only the owner can add family members",
+  "家主可以点上面的“＋ 添加”。": "The owner can tap + Add above.",
+  "还没有登录记录（这台设备打开新版本后才开始记）": "No sign-ins recorded yet (recording starts when a device opens the new version)",
+  "已添加 {name}": "Added {name}",
+  "把「{n}」移出家庭？{d}相关账单里的名字会保留，但不再关联到这个人。": "Remove \"{n}\" from the household? {d}Names on related bills are kept but no longer linked to this person.",
+  "名下 {c} 台设备会被移出，下次打开要重新登录。": "Its {c} devices will be removed and must sign in again. ",
+  "操作失败：{msg}": "Failed: {msg}",
   "退出": "Sign out",
   "基本资料": "Basic info",
   "登录设备": "Login device",

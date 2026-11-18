@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.12", title: { zh: "家庭成员页优化：＋添加改成表单页、卡片可点、家主可移出；成员详情页控件和其他页面统一；所有表单取消靠左、保存靠右", en: "Family page polish: + Add is a form page, cards are tappable, the owner can remove people; member page controls match the rest of the app; every form has Cancel on the left and Save on the right" }, items: [
+    { k: "better", zh: "「添加家庭成员」改成「＋ 添加」，打开一个新建家庭成员的表单页；点整张成员卡片直接进详情页；卡片 ⋯ 里家主多了「移出」（把名下设备移出家庭并删除这个人）", en: "Add family members is now + Add and opens a form page; tapping a member card opens its page; the owner gets Remove in the card's ⋯ menu (removes the person's devices and deletes the person)" },
+    { k: "better", zh: "成员详情页的块、编辑按钮、「只看某人 / 全家」切换改成和别的页面一样的样式和大小，折叠有右上角箭头", en: "The member page's blocks, Edit buttons and Only / Everyone toggle now look and size like the rest of the app, and collapsing has an arrow at the top right" },
+    { k: "better", zh: "所有表单的底部按钮统一：取消靠左、保存靠右，同一行", en: "Every form's bottom bar is unified: Cancel on the left, Save on the right, on one row" },
+    { k: "fix", zh: "还没有登录记录的成员（对方还没打开过新版本）改成提示「还没有登录记录」，不再说「最近 60 天没有」", en: "Members with no recorded sign-ins yet (they have not opened the new version) now say No sign-ins recorded yet instead of none in 60 days" }
+  ] },
+
   { v: "2026-11-18.11", title: { zh: "家庭与成员页重做：成员卡片 + 成员详情页（资料 / 登录设备 / 登录记录）；修好设备关联选了又切回的问题", en: "Family & members page redone: member cards and a member detail page (profile / devices / sign-ins); fixed device linking snapping back" }, items: [
     { k: "fix", zh: "修好「属于哪位家庭成员」选了又自动切回「还没链接」：关联其实已经保存，只是读设备列表时没读回来；这台设备的「这台设备是谁？」提示也不会再反复出现", en: "Fixed Belongs to family member snapping back to not linked: the link was saved but not read back when listing devices; the Who uses this device? prompt no longer keeps returning" },
     { k: "better", zh: "家庭与成员页：邀请码紧跟在同步与备份下面；「这台设备是谁？」可折叠，链接过就不再显示；家庭成员是一张张卡片（男 / 女 / 孩子 / 宠物图标、联系方式、最近登录的时间 · 设备 · 国家 · IP），右边 ⋯ 里有详情、合并、退出", en: "Family & members: the invite code sits right under Sync & backup; Who uses this device? can be collapsed and disappears once linked; members are cards (gender / child / pet icon, contact, last sign-in time · device · country · IP) with Details, Merge and Sign out under ⋯" },

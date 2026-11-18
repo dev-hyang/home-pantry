@@ -68,10 +68,10 @@ const badgesOf = (p) => {
 function cardHtml(p) {
   const owner = amOwner(), devs = devicesOf(p.id), last = devs.length ? lastLoginOf(devs.map((d) => d.user_id)) : null, me = p.id === myPersonOf();
   const contact = [p.phone ? `📞 <a href="tel:${esc(p.phone.replace(/[^\d+]/g, ""))}">${esc(p.phone)}</a>` : "", p.email ? `✉️ <a href="mailto:${esc(p.email)}">${esc(p.email)}</a>` : ""].filter(Boolean).join(" · ");
-  const lastTxt = devs.length ? (last ? `🕘 ${esc(fmtDateTime(last.at))} · ${DEVICE_ICON[last.device] || "💻"} ${esc(deviceText(last.device))}${last.location ? ` · 🌐 ${esc(last.location)}` : ""}${last.ip ? ` · IP ${esc(last.ip)}` : ""}` : `<span class="muted">${t("最近 60 天没有登录记录")}</span>`) : "";
+  const lastTxt = devs.length ? (last ? `🕘 ${esc(fmtDateTime(last.at))} · ${DEVICE_ICON[last.device] || "💻"} ${esc(deviceText(last.device))}${last.location ? ` · 🌐 ${esc(last.location)}` : ""}${last.ip ? ` · IP ${esc(last.ip)}` : ""}` : `<span class="muted">${t("还没有登录记录（这台设备打开新版本后才开始记）")}</span>`) : "";
   const merging = state.personMerge === p.id;
-  const menu = moreMenu([{ label: t("详情"), href: personHref(p.id), first: true }, owner && state.people.length > 1 ? { label: t("合并"), action: "person-merge-open", data: { id: p.id } } : null, me && !demo() ? { label: t("退出"), action: "logout" } : null], { label: `${p.name} · ${t("更多操作")}` });
-  return `<li class="fam-card">
+  const menu = moreMenu([{ label: t("详情"), href: personHref(p.id), first: true }, owner && state.people.length > 1 ? { label: t("合并"), action: "person-merge-open", data: { id: p.id } } : null, owner && !me ? { label: t("移出"), action: "person-remove", data: { id: p.id }, danger: true } : null, me && !demo() ? { label: t("退出"), action: "logout" } : null], { label: `${p.name} · ${t("更多操作")}` });
+  return `<li class="fam-card" data-href="${esc(personHref(p.id))}">
     <div class="fam-row"><span class="fam-av" aria-hidden="true">${avatarOf(p)}</span>
       <div class="fam-main"><b class="fam-name">${esc(p.name)}</b><span class="mem-badges">${badgesOf(p)}</span>
         ${contact ? `<small>${contact}</small>` : ""}${lastTxt ? `<small class="fam-last">${lastTxt}</small>` : ""}</div>
@@ -84,19 +84,16 @@ function cardHtml(p) {
 export function peoplePanel() {
   ensureLogins();
   const owner = amOwner(), list = visiblePeople();
-  const add = owner ? `<details class="people-add"><summary class="btn btn-sm btn-ghost">＋ ${t("添加家庭成员")}</summary>
-      <div class="form-grid"><label class="span-2">${t("名字（每行一个）")}<textarea id="peopleBulkNames" rows="2" maxlength="600"></textarea></label>
-        <label>${t("类别")}<select id="peopleBulkKind">${Object.entries(PEOPLE_KINDS).map(([k, n]) => `<option value="${k}" ${k === "adult" ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label></div>
-      <div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="people-bulk">${t("添加")}</button></div></details>` : "";
+  const add = owner ? `<a class="btn btn-primary btn-sm" href="${personHref("new")}">＋ ${t("添加")}</a>` : "";
   return `<div class="panel"><div class="fam-head"><h3 class="mem-h">${t("家庭成员（{n}）", { n: list.length })}</h3>${add}</div>
-      ${list.length ? `<ul class="fam-list">${list.map(cardHtml).join("")}</ul>` : `<div class="empty"><strong>${t("还没有家庭成员")}</strong>${t("家主可以在上面添加。")}</div>`}
+      ${list.length ? `<ul class="fam-list">${list.map(cardHtml).join("")}</ul>` : `<div class="empty"><strong>${t("还没有家庭成员")}</strong>${t("家主可以点上面的“＋ 添加”。")}</div>`}
       <p class="muted mem-note">${owner ? t("点右边的 ⋯ 看详情（资料、登录设备、登录记录）。账单的“谁负责”、一次性账单的患者、收入都关联到这里的人。") : t("你只能看到自己；家主管理全部家庭成员。")}</p></div>`;
 }
 
 /* ── 成员详情页 ── */
 /** 一个可折叠的块：标题 + 右上角编辑；编辑按钮在 <summary> 里，点它不折叠（见底部的点击处理） */
-const sec = (id, title, body, { edit = false, open = true, count = "" } = {}) => `<details class="panel fam-sec" data-fam-sec="${id}" ${open ? "open" : ""}>
-    <summary><h3 class="mem-h">${title}${count ? ` <small class="muted">${count}</small>` : ""}</h3>${edit ? `<button type="button" class="btn btn-sm btn-ghost fam-edit" data-fam-edit="${id}" aria-pressed="${F.edit === id}">${F.edit === id ? t("完成") : t("编辑")}</button>` : ""}</summary>${body}</details>`;
+const sec = (id, icon, title, body, { edit = false, open = true, count = "" } = {}) => `<details class="panel prof-card fam-sec" data-fam-sec="${id}" ${open ? "open" : ""}>
+    <summary class="prof-head"><span class="mi" aria-hidden="true">${icon}</span><div class="prof-t"><h3>${title}</h3>${count ? `<small>${count}</small>` : ""}</div>${edit ? `<button type="button" class="btn btn-sm btn-ghost prof-edit" data-fam-edit="${id}" aria-pressed="${F.edit === id}">${F.edit === id ? t("完成") : t("编辑")}</button>` : ""}<span class="mch" aria-hidden="true">›</span></summary>${body}</details>`;
 const fact = (k, v) => `<div class="fact"><dt>${k}</dt><dd>${v || `<span class="muted">${t("没填")}</span>`}</dd></div>`;
 
 function basicBody(p) {
@@ -127,7 +124,7 @@ function deviceRow(m, p, editing) {
   const hist = open ? `<ul class="restock-list login-list">${(L.rows.filter((e) => e.user_id === m.user_id).slice(0, 20).map((e) => loginRowHtml(e, personNameOf)).join("")) || `<li class="muted">${t("没有登录记录")}</li>`}</ul>` : "";
   return `<li class="dev-card"><div class="dev-row"><span class="login-ico" aria-hidden="true">${DEVICE_ICON[last?.device] || "📱"}</span>
       <div class="grow"><b>${esc(m.display_name)}</b>${mine ? ` <span class="badge b-ok">📍 ${t("这是你的设备")}</span>` : ""}${m.role === "owner" ? ` <span class="badge mem-b">${t("家主")}</span>` : ""}
-        <small class="login-meta">${last ? `${esc(fmtDateTime(last.at))} · ${esc(deviceText(last.device))} · ${esc(last.browser || "")}${last.location ? ` · 🌐 ${esc(last.location)}` : ""}${last.ip ? ` · IP ${esc(last.ip)}` : ""}` : t("最近 60 天没有登录记录")}</small></div>
+        <small class="login-meta">${last ? `${esc(fmtDateTime(last.at))} · ${esc(deviceText(last.device))} · ${esc(last.browser || "")}${last.location ? ` · 🌐 ${esc(last.location)}` : ""}${last.ip ? ` · IP ${esc(last.ip)}` : ""}` : t("还没有登录记录（这台设备打开新版本后才开始记）")}</small></div>
       <div class="dev-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="dev-detail" data-id="${esc(m.user_id)}" aria-expanded="${open}">${t("详情")}</button>
         ${editing && canRemove ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-remove" data-id="${esc(m.user_id)}">${t("移除")}</button>` : ""}
         ${editing && mine && !demo() ? `<button type="button" class="btn btn-sm btn-ghost" data-action="logout">${t("退出")}</button>` : ""}</div></div>
@@ -144,7 +141,7 @@ function devicesBody(p) {
 function logsBody(p) {
   ensureLogins();
   const devs = devicesOf(p.id).map((d) => d.user_id), all = amOwner() && F.scopeAll, rows = loginWindow(all ? null : devs), more = loginHasMore(all ? null : devs);
-  const scope = amOwner() ? `<div class="seg-radio fam-scope" role="radiogroup" aria-label="${esc(t("范围"))}"><button type="button" class="radio-pill ${all ? "" : "is-on"}" data-action="logs-scope" data-all="0">${t("只看 {n}", { n: esc(p.name) })}</button><button type="button" class="radio-pill ${all ? "is-on" : ""}" data-action="logs-scope" data-all="1">${t("全家")}</button></div>` : "";
+  const scope = amOwner() ? `<div class="chips fam-scope" role="group" aria-label="${esc(t("范围"))}"><button type="button" class="chip" aria-pressed="${!all}" data-action="logs-scope" data-all="0">${t("只看 {n}", { n: esc(p.name) })}</button><button type="button" class="chip" aria-pressed="${all}" data-action="logs-scope" data-all="1">${t("全家")}</button></div>` : "";
   return `${scope}<p class="muted mem-note" style="margin-top:0">${t("最近 {d} 天；出现没见过的设备或网络会标“可疑”，并在“注意事项”里提醒。", { d: L.days })}</p>
     ${!L.loaded ? `<p class="muted" role="status">${t("加载中…")}</p>` : rows.length ? `<ul class="restock-list login-list">${rows.map((e) => loginRowHtml(e, personNameOf)).join("")}</ul>` : `<div class="empty"><strong>${t("这段时间没有登录记录")}</strong></div>`}
     ${more ? `<div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="logins-more">${t("加载更多（再往前 6 天）")}</button></div>` : ""}
@@ -152,6 +149,7 @@ function logsBody(p) {
 }
 
 export function personPage(id) {
+  if (id === "new") return amOwner() ? newPersonPage() : `<div class="panel empty"><strong>${t("只有家主能添加家庭成员")}</strong><p><a class="btn" href="${familyHref()}">${t("回家庭与成员")}</a></p></div>`;
   const p = state.people.find((x) => x.id === id);
   if (!p || !personOk(p)) return `<div class="panel empty"><strong>${t("没有找到这位家庭成员")}</strong><p><a class="btn" href="${familyHref()}">${t("回家庭与成员")}</a></p></div>`;
   const owner = amOwner(), hasDev = devicesOf(p.id).length > 0 || (owner && famMembers().some((m) => !m.person_id));
@@ -159,14 +157,32 @@ export function personPage(id) {
   const danger = owner && p.id !== myPersonOf() && !devicesOf(p.id).length ? `<div class="panel mem-danger"><h3 class="mem-h">${t("危险操作")}</h3><div class="mem-perm"><div class="grow"><b>${t("删除这位家庭成员")}</b><div class="muted">${t("相关账单里的名字会保留，但不再关联到这个人。")}</div></div>
       <button type="button" class="btn btn-sm btn-danger-ghost" data-action="person-del-page" data-id="${esc(p.id)}">${t("删除")}</button></div></div>` : "";
   return `<div class="mem-profile">${head}
-    ${sec("basic", t("基本资料"), basicBody(p), { edit: true })}
-    ${p.kind !== "pet" && hasDev ? sec("devices", t("登录设备"), devicesBody(p), { edit: true, count: `(${devicesOf(p.id).length})` }) : ""}
-    ${p.kind !== "pet" && hasDev ? sec("logs", t("登录记录"), logsBody(p)) : ""}${danger}</div>`;
+    ${sec("basic", "🪪", t("基本资料"), basicBody(p), { edit: true })}
+    ${p.kind !== "pet" && hasDev ? sec("devices", "📱", t("登录设备"), devicesBody(p), { edit: true, count: t("{n} 台", { n: devicesOf(p.id).length }) }) : ""}
+    ${p.kind !== "pet" && hasDev ? sec("logs", "🕘", t("登录记录"), logsBody(p)) : ""}${danger}</div>`;
+}
+
+/** 新建家庭成员：基本资料表单页（取消在左、保存在右） */
+function newPersonPage() {
+  const sel = (name, opts) => `<select name="${name}">${opts.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("")}</select>`;
+  return `<div class="mem-profile"><section class="panel prof-card"><div class="prof-head"><span class="mi" aria-hidden="true">🪪</span><div class="prof-t"><h3>${t("添加家庭成员")}</h3></div></div>
+    <form id="personForm" data-id="" novalidate><div class="form-grid">
+      <label>${t("名字")}<input name="name" required maxlength="40" autocomplete="off"></label>
+      <label>${t("类别")}${sel("kind", Object.entries(PEOPLE_KINDS).map(([k, n]) => [k, t(n)]))}</label>
+      <label>${t("性别")}${sel("gender", [["", t("不填")], ["male", t("男")], ["female", t("女")]])}</label>
+      <label>${t("生日")}<input name="birth" type="date"></label>
+      <label>${t("电话")}<input name="phone" type="tel" inputmode="tel" maxlength="40"></label>
+      <label>${t("邮箱")}<input name="email" type="email" maxlength="120"></label>
+      <label class="span-2">${t("地址")}<textarea name="address" rows="2" maxlength="300"></textarea></label>
+    </div><p id="personErr" class="form-error" role="alert"></p>
+    <div class="form-actions form-actions-split"><button type="button" class="btn btn-ghost" data-action="person-new-cancel">${t("取消")}</button><button type="submit" class="btn btn-primary">${t("保存")}</button></div></form></section></div>`;
 }
 
 /* ── 事件：块的编辑 / 折叠 / 设备详情 / 范围 / 保存 ── */
 const rerender = () => window.dispatchEvent(new HashChangeEvent("hashchange"));
 document.addEventListener("click", async (e) => {
+  const card = e.target.closest(".fam-card[data-href]");
+  if (card && !e.target.closest("a, button, select, input, .act-more, .person-merge")) { location.hash = card.dataset.href; return; }
   const ed = e.target.closest("[data-fam-edit]");
   if (ed) { e.preventDefault(); const id = ed.dataset.famEdit; F.edit = F.edit === id ? null : id; rerender(); return; }
   const a = e.target.closest("[data-action]")?.dataset; if (!a) return;
@@ -180,7 +196,7 @@ const val = (f, n) => (f.elements[n] ? f.elements[n].value.trim() : "");
 /** 保存基本资料：人的资料 + （家主）角色和财务权限施加到这位成员名下的每台设备 */
 export async function savePersonForm(f) {
   const err = $("#personErr"), fail = (m) => { if (err) err.textContent = m; return false; };
-  const p = state.people.find((x) => x.id === f.dataset.id); if (!p) return false;
+  const p = f.dataset.id ? state.people.find((x) => x.id === f.dataset.id) : {}; if (!p) return false;
   const row = { ...p, name: val(f, "name"), kind: val(f, "kind") || "adult", gender: val(f, "gender") || null, birth: val(f, "birth") || null, phone: val(f, "phone") || null, email: val(f, "email") || null, address: val(f, "address") || null };
   if (!row.name) return fail(t("请填名字。"));
   if (row.phone && !/^[0-9+() .#*/xX-]{1,40}$/.test(row.phone)) return fail(t("电话只能有数字、空格和 + - ( ) 等符号"));
@@ -188,6 +204,7 @@ export async function savePersonForm(f) {
   const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
   try {
     await Store.savePerson(row);
+    if (!f.dataset.id) { state.people = await Store.listPeople(); toast(t("已添加 {name}", { name: row.name })); return true; }
     if (amOwner() && f.elements.role) {
       const role = f.elements.role.value, fin = f.elements.finance.value === "1";
       for (const d of devicesOf(p.id)) {
@@ -198,4 +215,16 @@ export async function savePersonForm(f) {
     state.people = await Store.listPeople(); await reloadMembers(); F.edit = null; toast(t("已保存"));
     return true;
   } catch (e) { btn.disabled = false; return fail(t("保存失败：{msg}", { msg: e.message })); }
+}
+
+/** 把一个人移出家庭：移出名下所有设备（等于从那些设备登出），再删掉这个人（账单里的名字保留，只是不再关联）；最后一位家主的设备移不掉，会提示 */
+export async function removePerson(id) {
+  const p = state.people.find((x) => x.id === id); if (!p) return;
+  const devs = devicesOf(id);
+  if (!window.confirm(t("把「{n}」移出家庭？{d}相关账单里的名字会保留，但不再关联到这个人。", { n: p.name, d: devs.length ? t("名下 {c} 台设备会被移出，下次打开要重新登录。", { c: devs.length }) : "" }))) return;
+  try {
+    for (const d of devs) await Store.removeMember(d.user_id);
+    await Store.deletePerson(id);
+    state.people = await Store.listPeople(); await reloadMembers(); toast(t("已移出 {name}", { name: p.name }));
+  } catch (e) { await reloadMembers(); state.people = await Store.listPeople(); toast(t("操作失败：{msg}", { msg: e.message })); }
 }
