@@ -1,7 +1,16 @@
 /* 多语言：简体（源码即键）/ 繁體（OpenCC 运行时转换）/ English（字典 js/i18n/en.js）
  * 用法：t("添加物品")；带参数 t("今天有 {n} 件事要留意", { n })；字典里没有的英文回落到简体。
  * 语言：自动按浏览器语言判断（zh-TW / zh-HK → 繁體，其余 zh → 简体，其它 → English），设置页可手动改。 */
-import { EN } from "../i18n/en.js";
+// 英文字典 700KB+，只有界面是 English 时才需要：用到时再加载（loadEN），简体 / 繁體用户不下载
+let EN = {}, enLoaded = false, enLoading = null;
+/** 加载英文字典；已加载直接返回。加载完发出 "i18n-loaded"，界面据此重画一次 */
+export function loadEN() {
+  if (enLoaded) return Promise.resolve();
+  return (enLoading ||= import("../i18n/en.js").then((m) => {
+    EN = m.EN; enLoaded = true;
+    document.dispatchEvent(new Event("i18n-loaded"));
+  }).catch(() => { enLoading = null; }));   // 失败：英文回落到简体，下次再试
+}
 
 export const LANGS = { zh: "简体中文", "zh-Hant": "繁體中文", en: "English" };
 const KEY = "hmh-lang";
@@ -24,6 +33,7 @@ export async function setLang(code) {
   lang = override || detectLang();
   applyLang();
   if (lang === "zh-Hant") await loadOpenCC();
+  if (lang === "en") await loadEN();
 }
 
 export const locale = () => (lang === "en" ? "en-US" : lang === "zh-Hant" ? "zh-TW" : "zh-CN");
@@ -75,6 +85,8 @@ export function t(zh, params) {
 export function sameTerm(stored, zh, ...aliases) {
   if (!stored || !zh) return false;
   const s = String(stored).trim();
+  // 简体 / 繁體界面里碰到「看起来是英文」的名字（别的家人用英文界面建的）：才去加载字典，加载完会重画
+  if (!enLoaded && lang !== "en" && /^[A-Za-z]/.test(s)) loadEN();
   if (s === zh || s === EN[zh]) return true;
   if (aliases.some((a) => a && s === a)) return true;
   return !!convert && s === toHant(zh);

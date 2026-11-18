@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.32", title: { zh: "首次打开更快：不再提前下载用不到的东西", en: "Faster first open: no more downloading things you don't use" }, items: [
+    { k: "better", zh: "第一次打开时，英文界面的词库只有选了 English 才会下载，中文用户少下载约一半的数据", en: "The English word list is now downloaded only when the app is set to English, so Chinese users skip a large chunk of data on first open" },
+    { k: "better", zh: "发布日志的内容改成点开发布日志页或有新版本提示时才加载，不再每次打开都带上", en: "Release notes now load only when you open the Release notes page or a new-version banner is due, not on every launch" }
+  ] },
+
   { v: "2026-11-18.31", title: { zh: "拍小票 / AI 录入：退货会扣库存，不再当成又买了一份", en: "Receipt / AI entry: returns now take stock off instead of adding it" }, items: [
     { k: "fix", zh: "小票里的退货 / 退款，数量记成负数：库存里有这件东西就扣掉（扣到 0 为止），花费记负数；以前会当成又买了一份，库存反而多加", en: "A returned or refunded product is now a negative quantity: it takes stock off the matching item (down to 0) and records a negative spend; before, it was added to stock as if bought again" },
     { k: "fix", zh: "同一张小票里买了又整件退掉的同名商品，不再被当成折扣合并成一行（以前金额抵消了、库存却照加）；只退一部分钱的优惠仍然合并", en: "A product bought and fully returned on the same receipt is no longer merged as a discount (the amount cancelled but stock still went up); partial price cuts are still merged" },

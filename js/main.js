@@ -42,7 +42,7 @@ import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
 import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, payAcctValue, pickResultHtml, purchasePayFields, rememberCard, resolvePayAccount, runCleanup, saveCardForm, setCardActive, viewCards } from "./bills/cards-views.js";
 import "./bills/cards.js";   // 注册信用卡提醒
-import { LANGS, glossaryOf, joinList, lang, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
+import { LANGS, glossaryOf, joinList, lang, loadEN, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
 import { APP_VERSION } from "./core/version.js";
 import { DEFAULT_QUICK, initTodayRender, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewQuick, viewToday } from "./today.js";
 import { enableWeather, setTempUnit } from "./core/weather.js";
@@ -91,7 +91,6 @@ import * as Backup from "./core/backup.js";
 import * as Ask from "./core/ask.js";
 import { viewAbout } from "./settings/about.js";
 import { initReleases, releasePageHTML } from "./core/releases-ui.js";
-import { RELEASES } from "./releases-data.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
 import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, newCatKey } from "./core/categories.js";
@@ -252,6 +251,23 @@ export const refreshSoon = (payload) => {
 /* ───────────── 页面与路由 ───────────── */
 /** 库存页当前范围：?space=house 看汽车房屋消耗品（房屋模块关闭时只有厨房储藏） */
 const invSpace = () => (state.houseEnabled && state.route.q.get("space") === "house" ? "house" : "pantry");
+/* 发布日志的数据 200KB+，只有「新版本提示」和发布日志页要用：不挡启动，空闲时再加载；加载完重画一次（今日页的提示、发布日志页） */
+let releasesReady = false, releasesLoading = null;
+function loadReleases() {
+  return (releasesLoading ||= import("./releases-data.js").then(({ RELEASES }) => {
+    initReleases({ version: APP_VERSION, releases: RELEASES, lang: () => lang, accent: "var(--pine)", appId: "home-pantry", open: `href="${href("me", "releases")}"` });
+    releasesReady = true;
+    if (state.enriched && (state.route?.section === "today" || (state.route?.section === "me" && state.route.sub === "releases"))) render(false);
+  }).catch(() => { releasesLoading = null; }));
+}
+/** 「新版本」提示这台设备还会不会出现（读 releases-ui.js 记的 seen / shows）：不会了就不必为它去下载发布日志数据 */
+function releaseBadgePossible() {
+  try {
+    if (localStorage.getItem("home-pantry.rl.seen") === APP_VERSION) return false;
+    const o = JSON.parse(localStorage.getItem("home-pantry.rl.shows") || "{}");
+    return !(o.v === APP_VERSION && +o.n >= 5);
+  } catch { return true; }
+}
 const VIEWS = {
   today:    () => viewToday(),
   alerts:   () => viewAlerts(),
@@ -264,7 +280,7 @@ const VIEWS = {
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   shops:    () => viewShops(),
-  me:       { stats: viewStats, settings: viewSettings, about: viewAbout, releases: releasePageHTML },
+  me:       { stats: viewStats, settings: viewSettings, about: viewAbout, releases: () => releasesReady ? releasePageHTML() : (loadReleases(), `<div class="panel empty">${t("加载中…")}</div>`) },
 };
 // 手机上隐藏底部导航的页面：只有「真正在编辑的表单」才隐藏（专注填写）；车辆 / 设备 / 账单的概览、详情、保养记录列表、时间表这类只读页保留导航。
 // （FORM_PAGES 另管「后台同步不重画」，范围更宽，不动）
@@ -2041,7 +2057,9 @@ export async function boot() {
   window.__hmhBooted = true;   // 告诉 index.html 的启动自检：主脚本已经运行
   try { sessionStorage.removeItem("hmh-boot-retry"); } catch (e) { /* 忽略 */ }   // 起来了：下次再起不来还可以自动重拉一次
   // 发布日志（js/core/releases-ui.js，四个姊妹应用共用）：记这台设备「新版本」提示出现几次；今日页顶上画提示，我的 → 发布日志 是整页
-  initReleases({ version: APP_VERSION, releases: RELEASES, lang: () => lang, accent: "var(--pine)", appId: "home-pantry", open: `href="${href("me", "releases")}"` });
+  if (releaseBadgePossible()) (window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(() => loadReleases(), { timeout: 4000 });   // 提示不会再出现就不加载；发布日志页自己按需加载
+  if (lang === "en") await loadEN();   // 英文字典按需加载：先拉下来再渲染，避免先中文后英文闪一下
+  document.addEventListener("i18n-loaded", () => { if (state.enriched && lang !== "en") render(false); });   // 简体 / 繁體界面碰到英文名字时才加载字典，加载完重画
   if (lang === "zh-Hant") await loadOpenCC();   // 繁體：先把转换库拉下来再渲染，避免先简后繁闪一下
   applyChrome();
   fillUnitList();
