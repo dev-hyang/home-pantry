@@ -12,8 +12,9 @@ import { daysUntil, esc, fmtDate, inSpace, money, num } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { restockPanel, rsHint, shelfGrid } from "../pantry/views.js";
 import { alertAct, alertBadge, alertText, assetAlerts, assetAsk, assetMenu, assetName, myAssets } from "./assets.js";
-import { houseNavTiles } from "../menu.js";
-import { dotRow } from "../core/alerts.js";
+import { houseNavTiles } from "./house-menu.js";
+import { houseHooks } from "./hooks.js";
+import { dotRow, registerAlerts } from "../core/alerts.js";
 import { monthName, monthTasks, taskRow } from "./tasks.js";
 import { houseBar } from "./property-form.js";
 import { currentProp, dealTasks, openDeal, propertyLive, statusText, taskRow as dealTaskRow } from "./deals.js";
@@ -900,3 +901,7 @@ export function templateItems(keys) {
     location: r.loc || null, expiry_date: null, lead_days: 14, avg_daily_use: r.avg_daily_use, notes: r.note ? t(r.note) : null,
   }));
 }
+
+houseHooks.PROFILE_SECTIONS = PROFILE_SECTIONS;   // 给 menu.js 的面包屑用
+
+registerAlerts(hoaAlertItems); registerAlerts(insuranceAlertItems);   // 提醒由模块自己注册

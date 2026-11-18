@@ -18,7 +18,7 @@ import { STALE_DAYS, balancesOf, deleteBalance, deleteSnapshot, liveNetWorth, re
 import { debtHref } from "./debt-logic.js";
 import { summaryHref } from "./debt-stats.js";
 import { cardHref } from "./cards.js";
-import { assetName } from "../house/assets.js";
+import { assetName } from "../house/assets-logic.js";
 
 const cur = () => Units.region.currency;
 const mny = (v, c) => (v == null ? "—" : Units.money(v, c || cur()));

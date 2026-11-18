@@ -12,21 +12,13 @@ import { t } from "../core/i18n.js";
 import { categoryOptions } from "../pantry/views.js";
 import { cardSelectHtml, purchasePayFields } from "../bills/cards-views.js";
 import { assetName } from "./assets.js";
+import { RECALL_STATUS, isRetired, recallActive, recallOf } from "./assets-logic.js";
+export { RECALL_STATUS, isRetired, recallActive, recallOf };   // 判断逻辑在 assets-logic.js（不碰界面）
 import { priceOrNull } from "../core/finance-access.js";   // 退款默认填买价：没财务权限时不预填（买价对他不可见）
 
 const H = () => window.HOUSE;
-export const RECALL_STATUS = {
-  stop_use: { name: "召回 · 停止使用", short: "停止使用", cls: "b-out" },
-  open:     { name: "召回待处理",     short: "召回",     cls: "b-soon" },
-  resolved: { name: "召回已处理",     short: "已处理",   cls: "b-ok" },
-};
 export const RECALL_REMEDY = { repair: "厂家维修", replace: "换新", refund: "退款" };
 
-export const recallOf = (a) => (a?.recall && typeof a.recall === "object" && RECALL_STATUS[a.recall.status] ? a.recall : null);
-/** 还没处理完的召回：stop_use / open；没有或已处理 → null */
-export const recallActive = (a) => { const r = recallOf(a); return r && r.status !== "resolved" ? r.status : null; };
-/** 换新或退款处理完的旧设备：退出列表、提醒和换季任务 */
-export const isRetired = (a) => { const r = recallOf(a); return !!r && r.status === "resolved" && (r.remedy === "replace" || r.remedy === "refund"); };
 /** 这台新设备替换了哪台被召回的旧设备 */
 export const replacedFrom = (a) => (a?.id ? state.assets.find((x) => recallOf(x)?.replaced_by === a.id) || null : null);
 

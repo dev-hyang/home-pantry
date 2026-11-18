@@ -7,6 +7,7 @@
  * - 小家电 / 季节电器（类型上 portable: true：风扇、取暖器、除湿机…）：一台一条，列表单独分组；不设保养周期，换季提醒走季节任务
  * - 产品召回：assets.recall（迁移 051），登记、提醒和修 / 换 / 退三个出口在 js/house/recall.js；换新、退款处理完的旧设备“退役”，不进列表和提醒 */
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
+import { houseHooks } from "./hooks.js";
 import { dupOnce, normName } from "../core/item-match.js";
 import { STATUS, state } from "../core/state.js";
 import { fetchPurchase, fillFromPurchase, purchaseById } from "../core/spend-data.js";
@@ -24,7 +25,7 @@ import { dealHref, dealTasks, openVehicleDeal } from "./deals.js";
 import { autofillBar } from "../core/autofill.js";
 import { storeDatalist } from "../stats/views.js";
 import { cardSelectHtml, payAcctValue, purchasePayFields } from "../bills/cards-views.js";
-import { dotRow, propertyName } from "../core/alerts.js";
+import { dotRow, propertyName, registerAlerts } from "../core/alerts.js";
 import { activeProperties } from "../core/lifecycle.js";
 import { priceInput, priceOrNull, pricesOk } from "../core/finance-access.js";   // 买价 / 卖价 / 更换估价只给有财务权限的人看（界面闸门）
 import { pageLimit, pageMoreBtn, pageSize } from "../core/pager.js";
@@ -39,12 +40,13 @@ function vehicleLoanNote(a) {
   return list.length ? `<small>${t("车贷已还清")}</small>` : `<small><a href="${esc(debtHref(null, `new=1&cat=auto_loan&asset=${encodeURIComponent(a.id)}`))}">${t("添加车贷")}</a></small>`;
 }
 import { RECALL_STATUS, finishReplace, isRetired, recallActive, recallAlertText, recallBadge, recallBanner, recallHubRow, recallOf, recallSection, replaceDefaults } from "./recall.js";
+import { activeVehicles, assetName, enrichAssets, isVehicle, maintFilter, myVehicles, rank } from "./assets-logic.js";
+export { activeVehicles, assetName, enrichAssets, isVehicle, maintFilter, myVehicles } from "./assets-logic.js";   // 纯逻辑在 assets-logic.js
 
 const H = () => window.HOUSE;
 const V = () => window.VEHICLES;
 const C = () => window.CARE;
 const OWNER_OPTS = ["self", "hoa", "landlord", "property", "varies"];
-export const isVehicle = (a) => a?.kind === "vehicle";
 /** 固定装置：一类一条（马桶 ×3 是一条），位置和数量在 units：[{ loc, qty, note }] */
 export const isFixture = (a) => !!(a?.t?.fixture || H().isFixtureType?.(a?.type));
 /** 小家电 / 季节电器：一台一条，只是列表里单独一组 */
@@ -60,11 +62,8 @@ export const unitsText = (a, max = 4) => {
 /** 车辆拥有状态（选购中 / 持有 / 贷款中 / 租赁 / 已卖出 / 已归还）与徽章 */
 export const vehStatus = (a) => V().statusOf(a);
 export const vehStatusBadge = (a) => { const st = V().STATUS[vehStatus(a)]; return `<span class="badge ${st.cls}" ${st.cls ? "" : 'style="background:var(--surface-2)"'}>${t(st.name)}</span>`; };
-/** 显示用名称：生成时按当时语言写入的内置名（如“热水器” / “Water heater”）切语言后跟着翻译；自己改过的名字原样显示（家庭词表里有翻译则用词表） */
-export const assetName = (a) => (a?.t && sameTerm(a.name, a.t.name, a.t.en) ? t(a.t.name) : t(a?.name));
 /** 里程单位：美制英里，其余公里（模板里的数字按用户单位理解） */
 export const distUnit = () => (Units.region.system === "us" ? t("英里") : t("公里"));
-const plusDays = (iso, n) => { const d = new Date(`${iso}T12:00:00`); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
 export const SERVICE_BADGE = {
   overdue: { cls: "b-out",  label: "保养逾期" },
   due:     { cls: "b-soon", label: "该保养了" },
@@ -79,68 +78,7 @@ export const WARRANTY_BADGE = {
   none:     { cls: "",       label: "" },
 };
 
-/* ── 计算：房龄、寿命占比、下次保养、保修 ── */
-export function enrichAssets(assets, logs) {
-  const today = new Date(`${todayISO()}T12:00:00`).getTime();
-  const byAsset = new Map();   // 先按设备分好组（一次遍历），每台设备不再扫全部保养记录
-  for (const l of logs) { const arr = byAsset.get(l.asset_id); if (arr) arr.push(l); else byAsset.set(l.asset_id, [l]); }
-  return assets.map((a) => {
-    const at = H().assetType(a.type);
-    const mine = (byAsset.get(a.id) || []).slice().sort((x, y) => (y.done_on || "").localeCompare(x.done_on || ""));
-    // 检查 / 保养 / 更换都算“做过保养”；维修不重置周期
-    const lastService = mine.find((l) => l.kind !== "repair")?.done_on || null;
-    const interval = num(a.service_interval_months);
-    const base = lastService || a.installed_on || null;
-    const next = interval > 0 && base ? addMonths(base, interval) : null;
-    const dueDays = next ? daysUntil(next) : null;
-    const service = !(interval > 0) ? "none" : !base ? "unknown" : dueDays < 0 ? "overdue" : dueDays <= 30 ? "due" : "ok";
-    const start = a.installed_on || (a.manufacture_year ? `${a.manufacture_year}-07-01` : null);
-    const ageYears = start ? Math.max(0, (today - new Date(`${start}T12:00:00`).getTime()) / (365.25 * DAY)) : null;
-    const life = num(a.expected_life_years);
-    const lifePct = ageYears != null && life > 0 ? ageYears / life : null;
-    const wList = [a.warranty_until, a.labor_warranty_until].filter(Boolean).map(daysUntil);
-    const wDays = wList.length ? Math.max(...wList) : null;   // 任一保修仍有效就算保修中
-    const warranty = wDays == null ? "none" : wDays < 0 ? "expired" : wDays <= 30 ? "expiring" : "active";
-    const totalCost = mine.reduce((s, l) => s + (l.currency && l.currency !== Units.region.currency ? 0 : num(l.cost)), 0);
-    // 检查结论为“需保养 / 维修 / 更换”，且之后没有对应记录 → 待处理（首页提醒，直到记一条保养 / 维修 / 更换）
-    const lastInspect = mine.find((l) => l.kind === "inspect" && l.result && l.result !== "ok");
-    const fixedAfter = lastInspect && mine.some((l) => l.kind !== "inspect" && (l.done_on || "") >= (lastInspect.done_on || "") && l.id !== lastInspect.id);
-    const followUp = lastInspect && !fixedAfter ? lastInspect : null;
-    // 召回：recallSt = stop_use / open（没处理完）；retired = 换新或退款处理完的旧设备
-    const out = { ...a, t: at, logs: mine, lastService, next, dueDays, service, ageYears, lifePct, wDays, warranty, totalCost, followUp, recallSt: recallActive(a), retired: isRetired(a) };
-    if (a.kind === "vehicle") Object.assign(out, vehicleStatus(out, mine));
-    return out;
-  });
-}
-
-/** 车辆：按保养项算下次到期（按月 / 按里程取先到的），再汇总成 service 状态；牌照、排放、保险、租赁到期 */
-function vehicleStatus(a, logs) {
-  const v = a.vehicle || {};
-  const today = todayISO();
-  const annual = num(v.annual_miles) || 12000, perDay = annual / 365;
-  const odo = num(v.odometer) || null;
-  const nowMiles = odo != null ? Math.round(odo + (v.odometer_on ? Math.max(0, -daysUntil(v.odometer_on)) * perDay : 0)) : null;   // 按年均里程推到今天
-  const items = V().itemsFor(a.type).filter((s) => s.key !== "other").map((s) => {
-    const last = logs.find((l) => l.service_item === s.key && l.kind !== "repair") || null;
-    const baseDate = last?.done_on || a.installed_on || null;
-    const byDate = s.months && baseDate ? addMonths(baseDate, s.months) : null;
-    const nextMiles = s.miles && last?.odometer != null ? last.odometer + s.miles : null;   // 没记过里程就只按日期
-    const byMiles = nextMiles != null && nowMiles != null ? plusDays(today, Math.round((nextMiles - nowMiles) / perDay)) : null;
-    const next = [byDate, byMiles].filter(Boolean).sort()[0] || null;
-    // basis：下次日期是按里程推算还是按月份；fromPurchase：还没记过这项，按购车 / 安装日期起算
-    const basis = !next ? null : byMiles && next === byMiles && byMiles !== byDate ? "miles" : "date";
-    return { ...s, last, next, nextMiles, days: next ? daysUntil(next) : null, basis, fromPurchase: !last && !!a.installed_on };
-  }).sort((x, y) => (x.days ?? 9999) - (y.days ?? 9999));
-  const soonest = items.find((s) => s.days != null) || null;
-  const service = !soonest ? "unknown" : soonest.days < 0 ? "overdue" : soonest.days <= 30 ? "due" : "ok";
-  const doc = (iso) => (iso ? { date: iso, days: daysUntil(iso) } : null);
-  const docs = { registration: doc(v.registration_due), emissions: doc(v.emissions_due), insurance: doc(v.insurance?.to), lease: doc(v.lease_end) };
-  return { vItems: items, vSoonest: soonest, service, next: soonest?.next || null, dueDays: soonest?.days ?? null, nowMiles, vDocs: docs };
-}
-
 /** 车辆列表（不分房产）：全部 / 还在用的（含选购中）/ 已卖出、已归还的 */
-export const myVehicles = () => state.assetsEnriched.filter(isVehicle).sort((x, y) => rank(x) - rank(y) || compare(x.name, y.name));
-export const activeVehicles = () => myVehicles().filter((a) => V().isActive(a));
 export const pastVehicles = () => myVehicles().filter((a) => !V().isActive(a)).sort((x, y) => (y.vehicle?.disposed_on || "").localeCompare(x.vehicle?.disposed_on || ""));
 
 /** 当前房产的设备（不含车辆，车辆挂在家庭上） */
@@ -151,7 +89,6 @@ export const retiredAssets = () => state.assetsEnriched.filter((a) => a.property
 export const assetAlerts = (list) => list
   .filter((a) => !a.retired && (a.recallSt || a.followUp || a.service === "overdue" || a.service === "due" || a.warranty === "expiring"))
   .sort((x, y) => rank(x) - rank(y) || (x.dueDays ?? 999) - (y.dueDays ?? 999));
-const rank = (a) => (a.recallSt === "stop_use" ? -2 : a.recallSt ? -1 : a.followUp ? 0 : a.service === "overdue" ? 1 : a.service === "due" ? 2 : 3);
 /** 列表 / 提醒里的徽章和主操作：召回 → 处理召回；其余 → 记保养 */
 export const alertBadge = (a) => (a.recallSt ? { label: t(RECALL_STATUS[a.recallSt].short), cls: RECALL_STATUS[a.recallSt].cls }
   : a.followUp ? { label: t(C().RESULTS[a.followUp.result]), cls: "b-out" } : a.service === "overdue" ? { label: t("逾期"), cls: "b-out" } : a.service === "due" ? { label: t("保养"), cls: "b-soon" } : { label: t("保修"), cls: "b-soon" });
@@ -920,8 +857,6 @@ function assetSummary(a) {
   return `<div class="asset-badges" style="margin-bottom:12px">${bits}</div>${stampText(a) ? `<p class="record-meta" style="margin:-6px 0 12px">${esc(stampText(a))}</p>` : ""}`;
 }
 
-/** 保养记录页的搜索 / 筛选（换了设备就回到默认） */
-export const maintFilter = { id: "", q: "", kind: "all", year: "all" };
 const maintFilterFor = (a) => { if (maintFilter.id !== a.id) Object.assign(maintFilter, { id: a.id, q: "", kind: "all", year: "all" }); return maintFilter; };
 const maintMatch = (l, f) => {
   if (f.kind !== "all" && l.kind !== f.kind) return false;
@@ -1146,3 +1081,7 @@ export async function saveMaintForm(f) {
   else toast(kind === "replace" ? t("已记录更换，记得把安装日期改成新设备的日期") : t("已记录{kind}", { kind: itemName }));
   return true;
 }
+
+houseHooks.assetsDueCount = assetsDueCount;   // 给 menu.js 的目录计数用
+
+registerAlerts(assetAlertItems);   // 提醒由模块自己注册（模块加载后才有；「全部待办和提醒」页会把它们都加载进来）

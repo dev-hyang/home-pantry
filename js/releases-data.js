@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.35", title: { zh: "房屋相关页面点进去才下载，打开应用更快", en: "House pages now download only when you open them" }, items: [
+    { k: "better", zh: "设备、保养记录、季节任务、交易、买卖计划、房屋资料这些房屋页面，第一次点进房屋页签才下载，打开应用和看今日页、储藏、账单时不再带上", en: "House pages (assets, maintenance, seasonal tasks, deals, buy/sell plans, house profile) now download the first time you open the House tab, not when the app starts" },
+    { k: "better", zh: "标签页标题和浏览器通知里的提醒数，现在只统计储藏补货和周期账单；设备、季节任务、交易的提醒在「全部待办和提醒」里看", en: "The tab-title and notification count now covers pantry restocks and recurring bills only; maintenance, seasonal and deal alerts are under All to-dos and alerts" }
+  ] },
+
   { v: "2026-11-18.34", title: { zh: "今日页更轻：只放能立刻看到的几件事", en: "Lighter Today page: only what can be shown right away" }, items: [
     { k: "better", zh: "今日页的「待办」只放购物车、储藏补货、待缴账单；设备保养、季节任务、预算等各模块的提醒，点「全部待办和提醒」再看", en: "Today's To-do card now shows only the cart, pantry restocks and unpaid bills; alerts from other areas (maintenance, seasonal tasks, budget…) are under All to-dos and alerts" },
     { k: "better", zh: "今日页的「钱 · 本月」只读最近两个月的统计，不再带净资产（去 财务 → 净资产 看）", en: "Today's Money card reads only the last two months and no longer shows net worth (see Finance → Net worth)" },

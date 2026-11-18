@@ -1,6 +1,8 @@
 /* 房产 / 车辆生命周期：状态、买入 / 卖出 / 退租（房产）与买车 / 卖车 / 租赁归还（车辆）交易、清单任务（模板在 data/deals.js）、退出向导、首页提醒
  * 一笔交易挂在房产（property_id）或车辆（asset_id）上；页面 #/house/deal，车辆交易带 ?asset=<id>，看历史交易带 ?deal=<id> */
 import { myName } from "../settings/family-people.js";
+import { houseHooks } from "./hooks.js";
+import { registerAlerts } from "../core/alerts.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { propertyActive } from "../core/lifecycle.js";
 import { state } from "../core/state.js";
@@ -612,3 +614,7 @@ export async function applyCloseout(f) {
   const autopays = state.bills.filter((b) => b.property_id === p.id && b.active && b.autopay).map((b) => b.name);
   toast(autopays.length ? t("已记录。记得去取消自动扣款：{list}", { list: joinList(autopays) }) : t("已记录，相关账单到结束日期后不再提醒"));
 }
+
+Object.assign(houseHooks, { openDeal, routeDeal, dealSubLabel, historyLabel });   // 给 menu.js 的面包屑 / 目录用
+
+registerAlerts(dealAlertItems);   // 提醒由模块自己注册

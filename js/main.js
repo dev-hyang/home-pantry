@@ -49,14 +49,9 @@ import { enableWeather, setTempUnit } from "./core/weather.js";
 
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
-import { assetAlertItems } from "./house/assets.js";
-import { recallAction, saveRecallForm } from "./house/recall.js";
-import { seasonAlertItems } from "./house/tasks.js";
-import { completeVehicleDeal, dealAlertItems } from "./house/deals.js";
 import { billAlertItems } from "./bills/logic.js";
 // 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
-[pantryAlertItems, billAlertItems, budgetAlertItems, escrowAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
-import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, updateHoaTotal, viewHouse, viewHouseProfile, viewHouseSupplies, viewHouseTemplate } from "./house/views.js";
+[pantryAlertItems, billAlertItems, budgetAlertItems, escrowAlertItems].forEach(registerAlerts);
 import { printSheet } from "./settings/print.js";
 
 import { bindShops, loadShops, shopsAction, viewShops } from "./shops/views.js";
@@ -71,14 +66,8 @@ import { loadNetWorth, maybeAutoSnapshot } from "./bills/nw-logic.js";   // 净�
 
 import "./bills/finance-alerts.js";   // 财务层面的提醒（余额太久没更新、快照没存上、借贷流水没关联）
 import { initNetWorth, viewNetWorth } from "./bills/net-worth.js";   // 财务 → 分析 → 净资产（迁移 059）   // 财务 → 借贷   // 借贷（迁移 058）：启动时读进内存，也注册借贷提醒
-import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, maintFilter, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
 
-import { togglePlanCheck, viewPlan } from "./house/plan.js";
-import { planAction, saveCandForm, saveOfferForm, savePlanForm } from "./house/plan-board.js";
-import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
-import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
-import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
 
 
 
@@ -91,7 +80,9 @@ import * as Backup from "./core/backup.js";
 import * as Ask from "./core/ask.js";
 
 import { initReleases, releasePageHTML } from "./core/releases-ui.js";
-import { crumb, viewMenu, viewPropertyList } from "./menu.js";
+import { crumb, viewMenu } from "./menu.js";
+import { enrichAssets, isRetired, maintFilter } from "./house/assets-logic.js";   // 设备的纯逻辑（启动读数据要用）
+import { seasonalSince } from "./house/tasks-logic.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
 import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, newCatKey } from "./core/categories.js";
 import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
@@ -102,7 +93,6 @@ import { customChanged, normRange, setFinRange, setFinUnit } from "./core/time-r
 import { payeeAction, payeeChange, payeeInput } from "./stats/payees.js";
 import { matchOpenShopping, showPurchaseDup } from "./stats/dup-check.js";
 import { initHomeStats } from "./stats/home-stats.js";
-import { isRetired } from "./house/recall.js";
 import { lazyFn, lazyModule } from "./core/lazy.js";
 /* ── 按需加载的页面模块（js/core/lazy.js）：第一次访问那个页面才下载；2a 先挑不被首页依赖的几组 ── */
 const LZ = {};
@@ -125,6 +115,68 @@ LZ.aiPage = lazyModule(() => import("./ai-page.js"));
 LZ.alertsPage = lazyModule(() => import("./alerts-page.js"));   // 全部待办和提醒（#/alerts）：首页不再读提醒总线，这页点开才下载
 const viewAlerts = lazyFn(LZ.alertsPage, "viewAlerts");
 const shiftAlertSource = lazyFn(LZ.alertsPage, "shiftAlertSource");
+LZ.houseMenu = lazyModule(() => import("./house/house-menu.js"));   // 房屋页签的目录页（房产列表 / 车辆 / 买卖计划）
+const viewPropertyList = lazyFn(LZ.houseMenu, "viewPropertyList");
+LZ.houseAssets = lazyModule(() => import("./house/assets.js"));
+LZ.recall = lazyModule(() => import("./house/recall.js"));
+LZ.tasks = lazyModule(() => import("./house/tasks.js"));
+LZ.deals = lazyModule(() => import("./house/deals.js"));
+LZ.houseViews = lazyModule(() => import("./house/views.js"));
+LZ.plan = lazyModule(() => import("./house/plan.js"));
+LZ.planBoard = lazyModule(() => import("./house/plan-board.js"));
+LZ.dealProgress = lazyModule(() => import("./house/deal-progress.js"));
+const assetTemplateItems = lazyFn(LZ.houseAssets, "assetTemplateItems");
+const leaveAsset = lazyFn(LZ.houseAssets, "leaveAsset");
+const renderAssetList = lazyFn(LZ.houseAssets, "renderAssetList");
+const renderMaintLogs = lazyFn(LZ.houseAssets, "renderMaintLogs");
+const supplyItem = lazyFn(LZ.houseAssets, "supplyItem");
+const onAssetFormChange = lazyFn(LZ.houseAssets, "onAssetFormChange");
+const onMaintFormChange = lazyFn(LZ.houseAssets, "onMaintFormChange");
+const saveAssetForm = lazyFn(LZ.houseAssets, "saveAssetForm");
+const saveMaintForm = lazyFn(LZ.houseAssets, "saveMaintForm");
+const unitRow = lazyFn(LZ.houseAssets, "unitRow");
+const viewAssetForm = lazyFn(LZ.houseAssets, "viewAssetForm");
+const viewAssetTemplate = lazyFn(LZ.houseAssets, "viewAssetTemplate");
+const viewAssets = lazyFn(LZ.houseAssets, "viewAssets");
+const recallAction = lazyFn(LZ.recall, "recallAction");
+const saveRecallForm = lazyFn(LZ.recall, "saveRecallForm");
+const deleteSeasonTask = lazyFn(LZ.tasks, "deleteSeasonTask");
+const saveSeasonForm = lazyFn(LZ.tasks, "saveSeasonForm");
+const shiftTasksMonth = lazyFn(LZ.tasks, "shiftTasksMonth");
+const toggleTask = lazyFn(LZ.tasks, "toggleTask");
+const viewTasks = lazyFn(LZ.tasks, "viewTasks");
+const completeVehicleDeal = lazyFn(LZ.deals, "completeVehicleDeal");
+const applyCloseout = lazyFn(LZ.deals, "applyCloseout");
+const cancelDeal = lazyFn(LZ.deals, "cancelDeal");
+const completeBuy = lazyFn(LZ.deals, "completeBuy");
+const dealTasks = lazyFn(LZ.deals, "dealTasks");
+const deleteCustomTask = lazyFn(LZ.deals, "deleteCustomTask");
+const openDeal = lazyFn(LZ.deals, "openDeal");
+const saveDealForm = lazyFn(LZ.deals, "saveDealForm");
+const saveDealTaskForm = lazyFn(LZ.deals, "saveDealTaskForm");
+const startDeal = lazyFn(LZ.deals, "startDeal");
+const toggleDealSkip = lazyFn(LZ.deals, "toggleDealSkip");
+const toggleDealTask = lazyFn(LZ.deals, "toggleDealTask");
+const viewDeal = lazyFn(LZ.deals, "viewDeal");
+const applyTypeDefaults = lazyFn(LZ.houseViews, "applyTypeDefaults");
+const readHouseForm = lazyFn(LZ.houseViews, "readHouseForm");
+const templateItems = lazyFn(LZ.houseViews, "templateItems");
+const updateHoaTotal = lazyFn(LZ.houseViews, "updateHoaTotal");
+const viewHouse = lazyFn(LZ.houseViews, "viewHouse");
+const viewHouseProfile = lazyFn(LZ.houseViews, "viewHouseProfile");
+const viewHouseSupplies = lazyFn(LZ.houseViews, "viewHouseSupplies");
+const viewHouseTemplate = lazyFn(LZ.houseViews, "viewHouseTemplate");
+const togglePlanCheck = lazyFn(LZ.plan, "togglePlanCheck");
+const viewPlan = lazyFn(LZ.plan, "viewPlan");
+const planAction = lazyFn(LZ.planBoard, "planAction");
+const saveCandForm = lazyFn(LZ.planBoard, "saveCandForm");
+const saveOfferForm = lazyFn(LZ.planBoard, "saveOfferForm");
+const savePlanForm = lazyFn(LZ.planBoard, "savePlanForm");
+const analyze = lazyFn(LZ.dealProgress, "analyze");
+const deleteDealEvent = lazyFn(LZ.dealProgress, "deleteDealEvent");
+const runDealAi = lazyFn(LZ.dealProgress, "runDealAi");
+const saveDealEventForm = lazyFn(LZ.dealProgress, "saveDealEventForm");
+const setDealAiConsent = lazyFn(LZ.dealProgress, "setDealAiConsent");
 const viewStatements = lazyFn(LZ.statements, "viewStatements");
 const viewDebts = lazyFn(LZ.debts, "viewDebts");
 const viewFinAssets = lazyFn(LZ.finAssets, "viewFinAssets");
@@ -489,7 +541,7 @@ function mountView(pre, out) {
 }
 function renderBody(r) {
   if (r.section === "item") { mountView("", viewItemForm()); return; }
-  if (r.section === "asset") { $("#main").innerHTML = viewAssetForm(); return; }
+  if (r.section === "asset") { mountView("", viewAssetForm()); return; }
   if (r.section === "bill") { mountView("", viewBillForm()); return; }
   if (r.section === "otbill") { $("#main").innerHTML = viewOtBill(); return; }
   if (r.section === "house" && !state.houseEnabled) { $("#main").innerHTML = offPanel(t("房屋维护模块已关闭"), "house-enable", t("打开房屋维护")); return; }
@@ -497,7 +549,7 @@ function renderBody(r) {
   if (routeBlocked(r)) { $("#main").innerHTML = ""; toast(t("家主还没给你开财务权限")); go(financeFallback(r), { replace: true }); return; }   // 对账单 / 收入 / 预算 / 添加卡：没有财务权限时直接打开网址也跳走
   if (r.section === "bills") maybeAutoSnapshot().then((w) => { if (w && state.route?.section === "bills" && state.route?.sub === "networth") render(false); });   // 本月还没有快照 / 自动快照的数字变了：后台写一行（不挡画面）
   if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = crumb(r) + offPanel(t("家居耐用品模块已关闭"), "gear-enable", t("打开家居耐用品")); return; }
-  if (r.sub === "menu") { $("#main").innerHTML = r.section === "house" ? viewPropertyList() : viewMenu(r.section); return; }   // 页签目录页；房屋先列房产
+  if (r.sub === "menu") { mountView("", r.section === "house" ? viewPropertyList() : viewMenu(r.section)); return; }   // 页签目录页；房屋先列房产
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
   if (!mountView(crumb(r) + (r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : ""), view())) return;   // 储藏的每个页面顶上都有页面导航卡片
@@ -1079,7 +1131,7 @@ main.addEventListener("submit", async (e) => {
       const ids = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
       if (!ids.length) return toast(t("还没有勾选设备"));
       const have = new Set((state.assets || []).filter((a) => a.property_id === state.propertyId && !isRetired(a)).map((a) => normName(a.name)));
-      const all = assetTemplateItems(ids), list = all.filter((x) => !have.has(normName(x.name)));   // 这套房产已有同名的跳过
+      const all = await assetTemplateItems(ids), list = all.filter((x) => !have.has(normName(x.name)));   // 这套房产已有同名的跳过
       if (list.length) await Store.addAssets(list, state.propertyId);
       toast(t("已生成 {n} 台设备档案", { n: list.length }) + (all.length > list.length ? t("；{m} 台已经有了，跳过", { m: all.length - list.length }) : ""));
       go(href("house", "assets"));
@@ -1089,7 +1141,7 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "templateForm") {
       const keys = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => x.value);
       if (!keys.length) return toast(t("还没有勾选耗材"));
-      const all = templateItems(keys).map((x) => ({ ...x, property_id: state.propertyId || null })), list = all.filter((x) => !findItem(x.name));   // 推荐的消耗品归属当前这套房产   // 已有同名（忽略大小写、空格、全角半角）的跳过，重复点不会建第二件
+      const all = (await templateItems(keys)).map((x) => ({ ...x, property_id: state.propertyId || null })), list = all.filter((x) => !findItem(x.name));   // 推荐的消耗品归属当前这套房产   // 已有同名（忽略大小写、空格、全角半角）的跳过，重复点不会建第二件
       if (list.length) await Store.addItems(list);
       toast(t("已添加 {n} 项汽车房屋消耗品", { n: list.length }) + (all.length > list.length ? t("；{m} 项库存里已有，跳过", { m: all.length - list.length }) : ""));
       Object.assign(state.filter, { space: "house", cat: "all", q: "", status: "all" });
@@ -1271,7 +1323,7 @@ main.addEventListener("click", async (e) => {
       case "unit-add": { const host = $("#unitRows"); if (host) { host.insertAdjacentHTML("beforeend", unitRow()); host.lastElementChild.querySelector("select")?.focus(); } return; }   // 固定装置：再加一处位置
       case "unit-del": { const row = el.closest(".unit-row"), host = row?.parentElement; if (row && host) { row.remove(); if (!host.children.length) host.insertAdjacentHTML("beforeend", unitRow()); } return; }
       case "supply-add": {   // 设备页“相关耗材”：一键把推荐耗材加进库存
-        const it = supplyItem(el.dataset.name); if (!it) return;
+        const it = await supplyItem(el.dataset.name); if (!it) return;
         const have = findItem(it.name); if (have) { toast(t("库存里已有「{name}」", { name: have.name })); return go(href("item", have.id)); }
         await Store.addItems([it]); toast(t("已添加到库存：{name}", { name: it.name })); return refresh();
       }
@@ -1344,7 +1396,7 @@ main.addEventListener("click", async (e) => {
       }
       case "deal-cancel": if (!armed(el, t("再点一次确认取消"))) return; await cancelDeal(el.dataset.deal || null); return refresh();
       case "deal-closeout": {
-        const d = el.dataset.deal ? state.deals.find((x) => x.id === el.dataset.deal) : openDeal();
+        const d = el.dataset.deal ? state.deals.find((x) => x.id === el.dataset.deal) : await openDeal();
         if (!d) return;
         if (d.asset_id) { if (!armed(el, t("再点一次确认完成"))) return; await completeVehicleDeal(d); return refresh(); }
         if (d.kind === "buy") { if (!armed(el, t("再点一次确认已交割"))) return; await completeBuy(); return refresh(); }
@@ -1369,7 +1421,7 @@ main.addEventListener("click", async (e) => {
       case "deal-event-edit": { const ev = state.dealEvents.find((x) => x.id === el.dataset.id); if (!ev) return; state.dealEventEdit = { deal: ev.deal_id, id: ev.id, key: "" }; render(); { const f = $("#dealEventForm"); f?.scrollIntoView({ block: "center" }); f?.elements.title?.focus(); } return; }
       case "deal-event-cancel": state.dealEventEdit = null; return render();
       case "deal-event-delete": if (!confirmDelete(t("删除这条进展记录？"))) return; await deleteDealEvent(el.dataset.id); state.dealEventEdit = null; toast(t("已删除")); return refresh();
-      case "deal-ai-run": { const d = state.deals.find((x) => x.id === el.dataset.deal); if (!d) return; const p = runDealAi(d, analyze(d, dealTasks(d))); render(); await p; return render(); }
+      case "deal-ai-run": { const d = state.deals.find((x) => x.id === el.dataset.deal); if (!d) return; const p = runDealAi(d, await analyze(d, await dealTasks(d))); render(); await p; return render(); }
       case "deal-view":
         state.dealView = ["plan", "actual", "compare"].includes(el.dataset.view) ? el.dataset.view : "list";
         try { localStorage.setItem("hmh-deal-view", state.dealView); } catch { /* 忽略 */ }
@@ -1731,7 +1783,7 @@ main.addEventListener("click", async (e) => {
 
 /** 房屋资料分区表单：保存后第一次填房型去推荐耗材，其余回分区列表；silent=true 为离开页面时自动保存（不跳转） */
 async function saveHouseForm(f, { silent = false } = {}) {
-  const d = readHouseForm(f), y = d.year_built, thisYear = new Date().getFullYear();
+  const d = await readHouseForm(f), y = d.year_built, thisYear = new Date().getFullYear();
   if (f.dataset.new === "1") {   // 添加房产向导第 1 步：建房产 + 存地区 / 房型，再进第 2 步（地址与建成年份）
     if (!canManageHome()) return toast(t("只有家主可以新增房产"));
     const name = f.elements.prop_name.value.trim();

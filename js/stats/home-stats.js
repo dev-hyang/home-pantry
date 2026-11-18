@@ -11,7 +11,7 @@ import { memberName } from "../core/logic.js";
 import { href } from "../core/router.js";
 import { liveProperties } from "../core/alerts.js";
 import { propertyActive } from "../core/lifecycle.js";
-import { monthTasks } from "../house/tasks.js";
+import { monthTasks } from "../house/tasks-logic.js";
 import { consumptionData, itemSeries } from "./views.js";
 
 const HS = (state.homeStats ||= { logs: [], key: "", at: 0, loading: false, err: "" });

@@ -4,7 +4,7 @@ import { esc, spaceOf } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { state } from "../core/state.js";
 import { activeProperties } from "../core/lifecycle.js";
-import { activeVehicles, assetName } from "../house/assets.js";
+import { activeVehicles, assetName } from "../house/assets-logic.js";
 
 export const ownerKey = (it) => (it?.property_id ? `p:${it.property_id}` : it?.owner_asset_id ? `a:${it.owner_asset_id}` : "");
 /** 有多套房产、或有车，才需要区分；只有一套房产又没有车时，标签和筛选都不显示 */

@@ -10,6 +10,9 @@ import { SEVERITY_CLS, SEVERITY_LABEL, SOURCE_ICON, SOURCE_LABEL, alertCounts, a
 import { quickOk } from "./core/finance-access.js";
 import { allBillsHref } from "./bills/all-href.js";
 import { assetsDueCount } from "./house/assets.js";
+import "./house/tasks.js";   // 以下三个只为加载：它们加载时把自己的提醒注册进总线
+import "./house/deals.js";
+import "./house/views.js";
 import { clearFiltersBtn } from "./core/clear-filters.js";
 import { myPersonOf } from "./settings/family-people.js";
 import { setTodayPref } from "./today.js";

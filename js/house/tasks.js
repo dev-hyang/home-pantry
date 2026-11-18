@@ -11,61 +11,18 @@ import { esc, fmtDate, todayISO, toast } from "../core/util.js";
 import { href } from "../core/router.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { houseBar } from "./property-form.js";
+import { registerAlerts } from "../core/alerts.js";
 import { careCard } from "./assets.js";
 import { isRetired } from "./recall.js";
+import { customKey, monthTasks, periodOf, seasonalSince, undoneThisMonth, windowPeriods } from "./tasks-logic.js";
+export { customKey, monthTasks, periodOf, seasonalSince, undoneThisMonth, windowPeriods };   // 纯逻辑在 tasks-logic.js
 import { askButton, askPanel, ctx as askCtx } from "../core/ask.js";
 
 const H = () => window.HOUSE;
 export const MONTHS = ["1 月", "2 月", "3 月", "4 月", "5 月", "6 月", "7 月", "8 月", "9 月", "10 月", "11 月", "12 月"];
 export const monthName = (m) => t(MONTHS[m - 1]);
-export const periodOf = (y, m) => `${y}-${String(m).padStart(2, "0")}`;
 export const seasonOf = (m) => (m >= 3 && m <= 5 ? "春" : m >= 6 && m <= 8 ? "夏" : m >= 9 && m <= 11 ? "秋" : "冬");
-/** 加载完成记录的起点：去年 1 月起，足够覆盖跨年的窗口 */
-export const seasonalSince = () => `${new Date().getFullYear() - 1}-01`;
 
-/** 任务在 (year, month) 所在窗口覆盖的 period 列表 */
-export function windowPeriods(task, year, month) {
-  const ms = task.months;
-  if (ms.length >= 12) return [periodOf(year, month)];
-  const has = (m) => ms.includes(((m - 1 + 12) % 12) + 1);
-  const out = [[year, month]];
-  let y = year, m = month;
-  for (let i = 0; i < 11 && has(m - 1); i++) { m -= 1; if (m === 0) { m = 12; y -= 1; } out.unshift([y, m]); }
-  y = year; m = month;
-  for (let i = 0; i < 11 && has(m + 1); i++) { m += 1; if (m === 13) { m = 1; y += 1; } out.push([y, m]); }
-  return out.map(([yy, mm]) => periodOf(yy, mm));
-}
-
-/** 自定义重复任务在 seasonal_tasks 里的 key（表里只允许 [a-z0-9_]，去掉 uuid 的横线） */
-export const customKey = (c) => `c_${String(c.id).replace(/-/g, "")}`;
-
-/** 某个月适用的任务及完成状态（模板 + 该房产的自定义；默认当前房产，提醒总线会逐套房产调用）
- *  没有房屋资料时模板为空，只剩自定义任务 */
-export function monthTasks(year, month, profile = state.houseProfile, pid = state.propertyId) {
-  const period = periodOf(year, month);
-  const doneOf = (key, periods) => state.seasonalDone.find((d) => d.task_key === key && d.property_id === pid && periods.includes(d.period)) || null;
-  // 这套房产已有的设备类型（不含召回后退役的）：小家电的换季任务按“有这台设备”出现（a:<类型>）
-  const have = [...new Set(state.assets.filter((a) => a.property_id === pid && !isRetired(a)).map((a) => a.type))];
-  const tpl = H().seasonalTasksFor(profile, have)
-    .filter((x) => x.months.includes(month))
-    .map((task) => { const periods = windowPeriods(task, year, month); return { task, periods, done: doneOf(task.key, periods), pid }; });
-  const custom = (state.customSeasonal || []).filter((c) => c.property_id === pid).flatMap((c) => {
-    if (c.months?.length) {   // 每年重复
-      if (!c.months.includes(month)) return [];
-      const task = { key: customKey(c), name: c.name, note: c.note, months: c.months, custom: true, rec: c };
-      const periods = windowPeriods(task, year, month);
-      return [{ task, periods, done: doneOf(task.key, periods), pid }];
-    }
-    if (c.due_on && c.due_on.slice(0, 7) === period) {   // 一次性：出现在到期那个月
-      const task = { key: `once_${c.id}`, name: c.name, note: c.note, months: [month], custom: true, once: true, rec: c };
-      return [{ task, periods: [period], done: c.done_on ? { done_on: c.done_on, done_by_name: c.done_by_name } : null, pid }];
-    }
-    return [];
-  });
-  return [...tpl, ...custom].sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || compare(t(a.task.name), t(b.task.name)));
-}
-
-export const undoneThisMonth = () => { const d = new Date(); return monthTasks(d.getFullYear(), d.getMonth() + 1).filter((x) => !x.done); };
 
 export const taskAttrs = ({ task, done, pid }, year, month) => ({ "data-task": task.key, "data-period": periodOf(year, month), "data-undo": done?.period || "", "data-prop": pid || state.propertyId || "", "data-once": task.once ? task.rec.id : "" });
 
@@ -220,3 +177,5 @@ export async function toggleTask(input) {
   if (input.checked) await Store.setSeasonal(key, period, true, myName(), pid);
   else await Store.setSeasonal(key, undo || period, false, null, pid);
 }
+
+registerAlerts(seasonAlertItems);   // 提醒由模块自己注册
