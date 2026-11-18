@@ -3748,8 +3748,20 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .all-amt small { display: block; color: var(--muted); font-size: 12px; }
 .all-act { min-width: 0; text-align: right; }
 .all-act:empty { display: none; }
-.all-sum { margin: 4px 0 10px; display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; }
-.all-sum small { font-size: 12.5px; }
+/* 合计：三张小卡（应付 / 已付 / 余额）放在搜索框上面，手机上也并排三列；说明（估算、Escrow…）是卡片下面一行小字 */
+.all-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
+.all-kpis .kpi { padding: 10px 12px; }
+.all-kpis .kpi b { font-size: 19px; word-break: normal; overflow-wrap: anywhere; }
+.all-sum-note { margin: 0 0 10px; font-size: 12.5px; }
+.all-verify { margin: 0 0 10px; }
+.all-verify:empty { display: none; }
+@media (max-width: 560px) {
+  .all-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .all-kpis .kpi:last-child { grid-column: auto; }
+  .all-kpis .kpi { padding: 8px 9px; }
+  .all-kpis .kpi b { font-size: 15px; }
+  .all-kpis .kpi span, .all-kpis .kpi small { font-size: 11.5px; }
+}
 @media (max-width: 520px) {
   .all-row { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "badge amt" "grow grow" "act act"; }
   .all-row > .all-amt { white-space: normal; justify-self: end; }

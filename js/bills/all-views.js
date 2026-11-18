@@ -129,12 +129,17 @@ function compute() {
 export const verifyBillIds = () => [...new Set(compute().rows.filter((r) => r.kind === "recurring" && r.status === "verify").map((r) => r.billId))];
 
 function summaryHtml({ S, truncated, rows }) {
-  const bits = [t("共 {n} 笔账单", { n: S.total.n }), `${t("应付")} ${mny(S.total.amount)}`, `${t("已付")} ${mny(S.paid.amount)}`, `${t("余额")} ${mny(S.remaining.amount)}`];
+  const card = (label, amount, sub) => `<div class="kpi"><span>${label}</span><b>${mny(amount)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</div>`;
+  const cards = card(t("应付"), S.total.amount, t("共 {n} 笔账单", { n: S.total.n })) + card(t("已付"), S.paid.amount, "") + card(t("余额"), S.remaining.amount, "");
   const notes = [S.estimatedN ? t("含估算 {n} 笔", { n: S.estimatedN }) : "", S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "", S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "",
     S.otherCurrency ? t("另有 {n} 笔非 {c} 账单未计入", { n: S.otherCurrency, c: cur() }) : "", truncated ? t("另有 {n} 期太久远或太远没有展开", { n: truncated }) : ""].filter(Boolean);
+  return `<div class="kpis all-kpis" role="status">${cards}</div>${notes.length ? `<p class="all-sum-note muted">${esc(notes.join(" · "))}</p>` : ""}`;
+}
+
+/** 「全部标为已核对」按钮放在工具条下面（不夹在合计卡和搜索框之间） */
+function verifyHtml(rows) {
   const nv = new Set((rows || []).filter((r) => r.kind === "recurring" && r.status === "verify").map((r) => r.billId)).size;
-  return `<p class="all-sum" role="status"><b>${bits.join(" · ")}</b>${notes.length ? `<small class="muted">${esc(notes.join(" · "))}</small>` : ""}</p>
-    ${nv ? `<p class="all-verify"><button type="button" class="btn btn-sm" data-action="all-verify">${t("全部标为已核对（{n} 张自动扣款账单）", { n: nv })}</button></p>` : ""}`;
+  return nv ? `<p class="all-verify"><button type="button" class="btn btn-sm" data-action="all-verify">${t("全部标为已核对（{n} 张自动扣款账单）", { n: nv })}</button></p>` : "";
 }
 
 function listHtml(C) {
@@ -148,6 +153,7 @@ export function renderAllList() {
   const h = document.getElementById("allList"); if (!h) return;
   const C = compute(); h.innerHTML = listHtml(C);
   const s = document.getElementById("allSum"); if (s) s.innerHTML = summaryHtml(C);
+  const v = document.getElementById("allVerify"); if (v) v.innerHTML = verifyHtml(C.rows);
 }
 
 export function viewAllBills() {
@@ -160,6 +166,7 @@ export function viewAllBills() {
   return `<section class="section">
     <div class="section-head"><h2>🧾 ${t("全部账单")}</h2><div class="head-acts">${moneyEye()}<button type="button" class="btn btn-sm btn-ghost" data-action="all-csv">${t("导出 CSV")}</button><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
     <p class="muted kinds-note">${t("周期性 + 一次性账单，一行 = 一期账单。时间范围：{r}（{s}）；逾期没缴的不受范围限制，一直显示。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope })}</p>
+    <div id="allSum">${summaryHtml(C)}</div>
     <div class="toolbar">
       <input type="search" id="allSearch" placeholder="${t("搜索名称、付款方、患者")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">
       <select id="allRange" aria-label="${t("时间范围")}">${range}</select>
@@ -171,7 +178,7 @@ export function viewAllBills() {
       ${sel("allSort", { label: "排序", list: SORT_OPTS }, f.sort)}
       ${clearFiltersBtn("all", changed(f, FD.all))}
     </div>
-    <div id="allSum">${summaryHtml(C)}</div>
+    <div id="allVerify">${verifyHtml(C.rows)}</div>
     <div id="allList">${listHtml(C)}</div>
   </section>`;
 }

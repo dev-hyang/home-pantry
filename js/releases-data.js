@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.29", title: { zh: "全部账单：合计改成三张小卡，放在搜索框上面", en: "All bills: the totals are now three small cards above the search box" }, items: [
+    { k: "better", zh: "「共 N 笔、应付、已付、余额」不再是搜索框下面的一行粗体字，改成应付 / 已付 / 余额三张小卡，放在搜索框上面；手机上也是并排三张", en: "The count, total due, paid and balance are now three small cards above the search box instead of a bold line below it; they stay side by side on phones" },
+    { k: "better", zh: "「全部标为已核对」按钮挪到筛选条下面，不再夹在合计和搜索框中间", en: "The mark-all-verified button moved below the filters so it no longer sits between the totals and the search box" }
+  ] },
+
   { v: "2026-11-18.28", title: { zh: "共同花费分摊改成按家庭成员算", en: "Shared-expense split now works per family member" }, items: [
     { k: "better", zh: "「家庭分摊」按家庭成员（人）算：一个人有几台设备，记的账合在一起；占比也按家庭成员设置（原来按设备设的占比会自动带过来）；还没链接家庭成员的设备各算一个参与者", en: "The family split works per family member: a person's devices are combined; shares are set per family member (shares previously set per device carry over); a device not linked to a family member counts as its own participant" }
   ] },
