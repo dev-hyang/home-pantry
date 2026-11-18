@@ -1,6 +1,7 @@
 /* 收入（进账）：类型（规则在 js/core/income-taxonomy.js）、查看权限、还款余额、周期分桶。纯逻辑，不画界面。
  * 收入存在 income_records（迁移 042），不和花费（purchases）混在一起：purchases 里的负数已经表示退款 / 报销，全家成员都读得到。
  * 一笔入账只会进其中一张表：商家退款 = 负花费（留在花费里），工资 / 电汇 / 个人转入 = 收入；自己账户之间的转账两边都不算。 */
+import { memberName } from "../core/logic.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { meta } from "../bills/budget.js";
@@ -53,7 +54,7 @@ export const canSeeAll = () => financeOk();
 export const myPersonId = () => state.members?.find((m) => m.user_id === state.user?.id)?.person_id || null;   // 这台设备属于哪位家庭成员（迁移 084）
 export const adults = () => state.people.filter((p) => (p.kind || "adult") === "adult");
 export const personName = (id) => state.people.find((p) => p.id === id)?.name || "";
-export const memberLabel = (userId) => state.members.find((m) => m.user_id === userId)?.display_name || "";
+export const memberLabel = (userId) => memberName(userId) || "";
 
 /** 读收入、还款；表还没建（迁移 042 没执行）时记下错误，界面提示 */
 export async function loadIncome() {

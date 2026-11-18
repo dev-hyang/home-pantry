@@ -22,7 +22,7 @@ import { applyOverviewQuery, applyOverviewRoute, loadOverviewRange, setOverviewR
 import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, verifyBillIds, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { viewOtBill, applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personMerge, personMergeCancel, personMergeOpen, personUse, onPersonPick, deleteMedPay, onKindPick, saveMedBillForm, saveMedPayForm } from "./bills/medical-views.js";
-import { myPersonOf, personNameOf, deviceLinkDo, deviceLinkNew, removePerson, resetFamilyUi, savePersonForm, setDevicePerson } from "./settings/family-people.js";
+import { myName, myPersonOf, personNameOf, deviceLinkDo, deviceLinkNew, removePerson, resetFamilyUi, savePersonForm, setDevicePerson } from "./settings/family-people.js";
 import { ackLoginDo, loadLoginAlerts, loginAlertItems, loginsMore, recordLoginOnce } from "./settings/logins.js";
 import { spendChanged } from "./core/spend-data.js";
 import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-check.js";
@@ -980,7 +980,10 @@ main.addEventListener("submit", async (e) => {
       await Store.deleteProperty(p.id);
       state.deleteProperty = null; toast(t("已彻底删除“{name}”及其账单、设备和资料；花费记录保留", { name: p.name })); return refresh();
     }
-    if (f.id === "dealForm") { await saveDealForm(f); f.dataset.saved = "1"; return refresh(); }   // 已保存：刷新时不再当作未保存改动
+    if (f.id === "dealForm") {   // 交易信息保存后回交易首页（清单）；保留 ?asset= / ?deal=
+      await saveDealForm(f); f.dataset.saved = "1"; state.dealView = "list"; await refresh();
+      const q = new URLSearchParams(state.route.q); q.delete("sec"); return go(`${href("house", "deal")}${q.toString() ? `?${q}` : ""}`, { replace: true });
+    }   // 已保存：刷新时不再当作未保存改动
     if (f.id === "planForm") { const pid = await savePlanForm(f); state.planEdit = null; await refresh(); if (!f.elements.rec_id.value) go(`${href("house", "plan")}?p=${pid}`); return; }
     if (f.id === "candForm") { await saveCandForm(f); state.planEdit = null; return refresh(); }
     if (f.id === "offerForm") { await saveOfferForm(f); state.planEdit = null; return refresh(); }
@@ -1446,7 +1449,7 @@ main.addEventListener("click", async (e) => {
         go(href("shopping"), { replace: true }); return refresh();
       }
       case "shop-import-cancel": go(href("shopping"), { replace: true }); return render(true);
-      case "shop-claim": await Store.saveShopping({ id, status: "claimed", claimed_by: state.user?.id || null, claimed_by_name: personNameOf(myPersonOf()) || state.displayName }); toast(t("已认领，家人会看到你在买")); return refresh();
+      case "shop-claim": await Store.saveShopping({ id, status: "claimed", claimed_by: state.user?.id || null, claimed_by_name: myName() }); toast(t("已认领，家人会看到你在买")); return refresh();
       case "shop-unclaim": await Store.saveShopping({ id, status: "todo", claimed_by: null, claimed_by_name: null }); return refresh();
       case "shop-bought": {   // 右滑「已买到」先确认（替身按钮带 data-confirm）；直接点「已买到」按钮不弹框
         if (el.dataset.confirm) { const s = state.shopping.find((x) => x.id === id); if (!window.confirm(t("「{name}」已经买到了？", { name: s?.name || "" }))) return; }
@@ -1766,7 +1769,7 @@ export async function markBought(id) {
   if (store) rememberStore(store);
   const item = state.items.find((i) => i.id === s.item_id);
   const qty = num(s.quantity, 1), now = new Date().toISOString();
-  await Store.saveShopping({ id, status: "bought", bought_at: now, amount, claimed_by_name: s.claimed_by_name || personNameOf(myPersonOf()) || state.displayName });
+  await Store.saveShopping({ id, status: "bought", bought_at: now, amount, claimed_by_name: s.claimed_by_name || myName() });
   const paySel = document.querySelector(`[data-card-for="${CSS.escape(id)}"]`), payV = paySel?.value || ""; if (paySel) rememberCard(payV);
   await Store.addPurchase({
     item_id: item?.id || null, name: s.name, category: item?.category || s.category || "other",

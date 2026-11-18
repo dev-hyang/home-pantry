@@ -2,6 +2,7 @@
  * 多半是家人各记了一遍，或自己忘了已经记过。只提醒，不拦着（同一天买两份一样的东西也是有的）。
  * 已有花费不在浏览器里：要查的那几天（前后各多 4 天）一次读进内存（listPurchasesRange，分页读全），之后每一笔都在内存里比；
  * 记一笔 / 一张小票是一两天，对账单是一个月左右——范围小、数据少，不值得每行问一次数据库。读过的日期段记下来，花费变了清空。 */
+import { memberName } from "../core/logic.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { localDay } from "../core/spend-data.js";
@@ -21,7 +22,7 @@ function nameClose(a, b) {
 function whoOf(p) {
   if (!p.created_by) return "";
   if (p.created_by === state.user?.id) return t("你");
-  return state.members?.find((m) => m.user_id === p.created_by)?.display_name || t("家里别人");
+  return memberName(p.created_by) || t("家里别人");
 }
 
 /* ── 查重用的花费池：读过的日期段（本地日期，含头含尾）+ 这些天的花费，都在内存里 ── */

@@ -23,6 +23,8 @@ export const myMember = () => famMembers().find((m) => m.user_id === meId()) || 
 export const myPersonOf = () => myMember()?.person_id || null;
 export const devicesOf = (personId) => famMembers().filter((m) => m.person_id === personId);
 export const personNameOf = (id) => state.people.find((p) => p.id === id)?.name || "";
+/** 我在全应用里「署名」用的名字：家庭成员的名字；这台设备还没链接家庭成员才用设备的称呼。所有写进记录里的「谁做的」文字（完成人、认领人、进展记录人…）都用它 */
+export const myName = () => personNameOf(myPersonOf()) || state.displayName;
 export const adultPeople = () => state.people.filter((p) => (p.kind || "adult") === "adult");
 export const visiblePeople = () => (amOwner() ? state.people : state.people.filter((p) => p.id === myPersonOf()));
 const personOk = (p) => amOwner() || p.id === myPersonOf();

@@ -3,6 +3,7 @@
  * · 实际：清单勾选的完成日期 + 「进展记录」（deal_events：和卖方律师改合同、联系 ComEd 停服务……可以关联清单事项，也可以不关联）。
  * · 偏差由这里直接算（实际 − 基线）；预计（forecast）只顺延依赖它的后续步骤（data/deals.js 的 DEPS），不相干的步骤不动。
  * · AI 只在点「帮我分析」时读已经算好的偏差（日期和天数），给风险和下一步；要先勾选同意，自定义事项和进展内容不发送。 */
+import { myName } from "../settings/family-people.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { DAY, esc, fmtDate, fmtShort, todayISO, toast } from "../core/util.js";
@@ -258,10 +259,10 @@ export async function saveDealEventForm(f) {
   const title = fe.title.value.trim(), on = fe.happened_on.value || todayISO(), key = fe.task_key.value;
   if (!title) throw new Error(t("请填写做了什么"));
   const prev = fe.event_id.value ? (state.dealEvents || []).find((x) => x.id === fe.event_id.value) : null;
-  await Store.saveDealEvent({ id: prev?.id, deal_id: deal.id, happened_on: on, title, note: fe.note.value.trim() || null, contact: fe.contact.value.trim() || null, task_keys: key ? [key] : [], created_by_name: prev?.created_by_name || state.displayName || null });
+  await Store.saveDealEvent({ id: prev?.id, deal_id: deal.id, happened_on: on, title, note: fe.note.value.trim() || null, contact: fe.contact.value.trim() || null, task_keys: key ? [key] : [], created_by_name: prev?.created_by_name || myName() || null });
   if (key && fe.mark_done.checked) {
-    if (key.startsWith("c:")) { const c = state.dealCustom.find((x) => x.id === key.slice(2)); if (c && !c.done_on) await Store.saveDealCustom({ ...c, done_on: on, done_by_name: state.displayName }); }
-    else if (!state.dealDone.some((d) => d.deal_id === deal.id && d.task_key === key)) await Store.setDealDone(deal.id, key, true, state.displayName, on);
+    if (key.startsWith("c:")) { const c = state.dealCustom.find((x) => x.id === key.slice(2)); if (c && !c.done_on) await Store.saveDealCustom({ ...c, done_on: on, done_by_name: myName() }); }
+    else if (!state.dealDone.some((d) => d.deal_id === deal.id && d.task_key === key)) await Store.setDealDone(deal.id, key, true, myName(), on);
   }
   toast(t("已记录"));
 }

@@ -1,5 +1,6 @@
 /* 录入购物：实体店小票（拍照）和线上订单（截图 / 粘贴订单文字）→ AI 读成商品清单 → 逐行确认 → 入库 + 记花费。
  * 用设置里已有的 AI key（推荐 Gemini 免费档）；图片只在手机上压缩后发给所选服务商，不保存原图；一律人工确认后才写入。 */
+import { myName } from "../settings/family-people.js";
 import { state } from "../core/state.js";
 import { findItem, itemNameOptions, normName, similarItems } from "../core/item-match.js";
 import { Store } from "../core/store.js";
@@ -461,7 +462,7 @@ async function confirm(ctx) {
       const item = x.target.startsWith("__") ? null : state.items.find((i) => i.id === x.target);
       if (!stockOnly) await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: x.fee ? FEES_CAT : item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay });
       const cart = x.fee ? null : matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 购物车里对应的那一项：不管入不入库，买到了就标成已买到
-      if (cart) { doneShop.add(cart.id); cartDone++; await Store.saveShopping({ id: cart.id, status: "bought", bought_at: x.now, amount: x.amount, claimed_by_name: cart.claimed_by_name || state.displayName }); }
+      if (cart) { doneShop.add(cart.id); cartDone++; await Store.saveShopping({ id: cart.id, status: "bought", bought_at: x.now, amount: x.amount, claimed_by_name: cart.claimed_by_name || myName() }); }
       if (x.target === "__skip") { spendOnly++; continue; }
       if (item && normName(x.name) !== normName(item.name) && !findItem(x.name)) Store.addItemAlias(item.id, x.name.slice(0, 60)).catch(() => {});   // 学会这个叫法
       if (item) {

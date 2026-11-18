@@ -3,6 +3,7 @@
  * 连续的月份算同一个窗口（例如 9–10 月的炉子检修），窗口内任何一个月勾了就算完成；12 个月都有的是每月任务。
  * 自定义任务（custom_seasonal_tasks，按房产）：每年重复的（months）完成记录同样走 seasonal_tasks，key = c_<id>；
  * 一次性的（due_on）出现在到期那个月，完成日期记在它自己那一行。 */
+import { myName } from "../settings/family-people.js";
 import { activeProperties } from "../core/lifecycle.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
@@ -213,9 +214,9 @@ export async function toggleTask(input) {
   input.disabled = true;
   if (input.dataset.once) {
     const c = (state.customSeasonal || []).find((x) => x.id === input.dataset.once);
-    if (c) await Store.saveCustomSeasonal({ ...c, done_on: input.checked ? todayISO() : null, done_by_name: input.checked ? state.displayName : null });
+    if (c) await Store.saveCustomSeasonal({ ...c, done_on: input.checked ? todayISO() : null, done_by_name: input.checked ? myName() : null });
     return;
   }
-  if (input.checked) await Store.setSeasonal(key, period, true, state.displayName, pid);
+  if (input.checked) await Store.setSeasonal(key, period, true, myName(), pid);
   else await Store.setSeasonal(key, undo || period, false, null, pid);
 }

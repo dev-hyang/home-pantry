@@ -1,5 +1,6 @@
 /* 房产 / 车辆生命周期：状态、买入 / 卖出 / 退租（房产）与买车 / 卖车 / 租赁归还（车辆）交易、清单任务（模板在 data/deals.js）、退出向导、首页提醒
  * 一笔交易挂在房产（property_id）或车辆（asset_id）上；页面 #/house/deal，车辆交易带 ?asset=<id>，看历史交易带 ?deal=<id> */
+import { myName } from "../settings/family-people.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { propertyActive } from "../core/lifecycle.js";
 import { state } from "../core/state.js";
@@ -537,18 +538,18 @@ export async function toggleDealTask(input) {
   const key = input.dataset.dealTask;
   if (key.startsWith("c:")) {   // 自定义事项：完成状态存在它自己那一行
     const c = state.dealCustom.find((x) => x.id === key.slice(2));
-    if (c) await Store.saveDealCustom({ ...c, done_on: input.checked ? todayISO() : null, done_by_name: input.checked ? state.displayName : null, skipped: false });
+    if (c) await Store.saveDealCustom({ ...c, done_on: input.checked ? todayISO() : null, done_by_name: input.checked ? myName() : null, skipped: false });
     return;
   }
-  await Store.setDealDone(input.dataset.deal, key, input.checked, state.displayName);
+  await Store.setDealDone(input.dataset.deal, key, input.checked, myName());
 }
 
 /** 跳过 / 恢复一个事项：这笔交易用不上的步骤（不算完成，也不算延误，不再提醒） */
 export async function toggleDealSkip(dealId, key, skip) {
   if (key.startsWith("c:")) {
     const c = state.dealCustom.find((x) => x.id === key.slice(2));
-    if (c) await Store.saveDealCustom({ ...c, skipped: !!skip, done_on: null, done_by_name: skip ? state.displayName : null });
-  } else await Store.setDealSkip(dealId, key, !!skip, state.displayName);
+    if (c) await Store.saveDealCustom({ ...c, skipped: !!skip, done_on: null, done_by_name: skip ? myName() : null });
+  } else await Store.setDealSkip(dealId, key, !!skip, myName());
   toast(skip ? t("已跳过这一步") : t("已恢复这一步"));
 }
 
@@ -562,15 +563,15 @@ export async function saveDealTaskForm(f) {
     if (!name) throw new Error(t("请填事项名称"));
     const cur = key ? state.dealCustom.find((c) => c.id === key.slice(2)) : null;
     await Store.saveDealCustom({ id: cur?.id, deal_id: deal.id, name, stage: fe.stage.value, priority: fe.priority.value, due_on: due, note, done_on: doneOn,
-      done_by_name: doneOn ? (cur?.done_on ? cur.done_by_name : state.displayName) : null });
+      done_by_name: doneOn ? (cur?.done_on ? cur.done_by_name : myName()) : null });
     toast(cur ? t("已保存") : t("已添加自定义事项"));
     return;
   }
   const task = dealTasks(deal).find((x) => x.key === key);
   if (!task) return;
   await Store.saveDealOverride(deal.id, key, due && due !== task.plan ? due : null, note);   // 和推荐日期一样 = 不留调整
-  if (doneOn) await Store.setDealDone(deal.id, key, true, state.displayName, doneOn);
-  else if (task.done) await Store.setDealDone(deal.id, key, false, state.displayName);
+  if (doneOn) await Store.setDealDone(deal.id, key, true, myName(), doneOn);
+  else if (task.done) await Store.setDealDone(deal.id, key, false, myName());
   toast(t("已保存"));
 }
 export const deleteCustomTask = (id) => Store.deleteDealCustom(id);

@@ -1,6 +1,7 @@
 /* 我的 → 账单 → 收入 → 预算与计划：每个人可以有多份收入（主业、兼职…），一行一张卡片，只能看到和编辑自己的；
  * 家主还能看到、编辑每个人的收入和全家合计，调整储蓄比例、重新生成预算。
  * 收入存在 member_incomes（迁移 023 / 024，行级安全：本人或家主可读写）；预算本身（各类金额）是全家共用的。 */
+import { memberName } from "../core/logic.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, money, num, toast, confirmDelete } from "../core/util.js";
@@ -39,7 +40,7 @@ export function incomePanel() {
   const others = state.members.filter((m) => m.user_id !== me), total = totalIncomeMonthly(), b = state.budget || {};
   return `${incomeBanner()}${own}
     <div class="panel"><div class="kv"><div><b>${t("全家收入（仅家主可见）")}</b><div class="muted">${t("每个人的收入只有本人和家主能看到；其他家人看不到。")}</div></div></div>
-      ${others.map((m) => { const inc = state.incomes.find((i) => i.user_id === m.user_id); return `<div class="inc-member"><h4>${esc(m.display_name)} <small class="muted">${inc ? `${t("折合每月")} ${money(monthlyOf(inc))}` : t("未填")}</small></h4>${incomeForm(m.user_id, inc)}</div>`; }).join("") || `<p class="muted" style="margin:0">${t("还没有其他成员。")}</p>`}
+      ${others.map((m) => { const inc = state.incomes.find((i) => i.user_id === m.user_id); return `<div class="inc-member"><h4>${esc(memberName(m.user_id) || m.display_name)} <small class="muted">${inc ? `${t("折合每月")} ${money(monthlyOf(inc))}` : t("未填")}</small></h4>${incomeForm(m.user_id, inc)}</div>`; }).join("") || `<p class="muted" style="margin:0">${t("还没有其他成员。")}</p>`}
       <p class="inc-total"><b>${t("合计")}</b> ${money(total)} / ${t("月")} <small class="muted">${t("年 {a}", { a: money(total * 12) })}</small></p></div>
     <div class="panel"><div class="kv"><div><b>${t("预算生成比例")}</b><div class="muted">${t("预算 = 全家收入 − 固定账单 − 储蓄；剩下的按过去的花费比例分给各类。只有家主能改。")}</div></div></div>
       <form id="ratioForm" class="bud-inline"><label class="inc-field">${t("计划储蓄占收入")}（%）<input name="savings_pct" type="number" min="0" max="90" step="1" inputmode="numeric" value="${esc(b.savings_pct ?? 20)}" style="width:90px"></label>
