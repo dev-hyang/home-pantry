@@ -92,8 +92,8 @@ export function peoplePanel() {
 
 /* ── 成员详情页 ── */
 /** 一个可折叠的块：标题 + 右上角编辑；编辑按钮在 <summary> 里，点它不折叠（见底部的点击处理） */
-const sec = (id, icon, title, body, { edit = false, open = true, count = "" } = {}) => `<details class="panel prof-card fam-sec" data-fam-sec="${id}" ${open ? "open" : ""}>
-    <summary class="prof-head"><span class="mi" aria-hidden="true">${icon}</span><div class="prof-t"><h3>${title}</h3>${count ? `<small>${count}</small>` : ""}</div>${edit ? `<button type="button" class="btn btn-sm btn-ghost prof-edit" data-fam-edit="${id}" aria-pressed="${F.edit === id}">${F.edit === id ? t("完成") : t("编辑")}</button>` : ""}<span class="mch" aria-hidden="true">›</span></summary>${body}</details>`;
+const sec = (id, icon, title, body, { edit = false, count = "" } = {}) => `<section class="panel prof-card fam-sec" data-fam-sec="${id}">
+    <header class="prof-head"><span class="mi" aria-hidden="true">${icon}</span><div class="prof-t"><h3>${title}</h3>${count ? `<small>${count}</small>` : ""}</div>${edit ? `<button type="button" class="btn btn-sm btn-ghost prof-edit" data-fam-edit="${id}" aria-pressed="${F.edit === id}">${F.edit === id ? t("完成") : t("编辑")}</button>` : ""}</header>${body}</section>`;
 const fact = (k, v) => `<div class="fact"><dt>${k}</dt><dd>${v || `<span class="muted">${t("没填")}</span>`}</dd></div>`;
 
 function basicBody(p) {
@@ -117,35 +117,32 @@ function basicBody(p) {
     <div class="form-actions form-actions-split"><button type="button" class="btn btn-ghost" data-fam-edit="basic">${t("取消")}</button><button type="submit" class="btn btn-primary">${t("保存")}</button></div></form>`;
 }
 
-function deviceRow(m, p, editing) {
-  const mine = m.user_id === meId(), last = lastLoginOf([m.user_id]), canRemove = !mine && (amOwner() || (p && p.id === myPersonOf()));
+/** 这台设备我能不能移出：不是当前这台；家主任意，普通成员只能移出同一个人名下的 */
+const canRemoveDevice = (userId) => { const m = famMembers().find((x) => x.user_id === userId); return !!m && userId !== meId() && (amOwner() || (!!m.person_id && m.person_id === myPersonOf())); };
+function deviceRow(m) {
+  const mine = m.user_id === meId(), last = lastLoginOf([m.user_id]), canLink = amOwner() || mine || (m.person_id && m.person_id === myPersonOf());
   const opts = adultPeople().map((x) => `<option value="${esc(x.id)}" ${x.id === m.person_id ? "selected" : ""}>${esc(x.name)}</option>`).join("");
-  const open = F.devOpen === m.user_id;
-  const hist = open ? `<ul class="restock-list login-list">${(L.rows.filter((e) => e.user_id === m.user_id).slice(0, 20).map((e) => loginRowHtml(e, personNameOf)).join("")) || `<li class="muted">${t("没有登录记录")}</li>`}</ul>` : "";
   return `<li class="dev-card"><div class="dev-row"><span class="login-ico" aria-hidden="true">${DEVICE_ICON[last?.device] || "📱"}</span>
       <div class="grow"><b>${esc(m.display_name)}</b>${mine ? ` <span class="badge b-ok">📍 ${t("这是你的设备")}</span>` : ""}${m.role === "owner" ? ` <span class="badge mem-b">${t("家主")}</span>` : ""}
         <small class="login-meta">${last ? `${esc(fmtDateTime(last.at))} · ${esc(deviceText(last.device))} · ${esc(last.browser || "")}${last.location ? ` · 🌐 ${esc(last.location)}` : ""}${last.ip ? ` · IP ${esc(last.ip)}` : ""}` : t("还没有登录记录（这台设备打开新版本后才开始记）")}</small></div>
-      <div class="dev-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="dev-detail" data-id="${esc(m.user_id)}" aria-expanded="${open}">${t("详情")}</button>
-        ${editing && canRemove ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-remove" data-id="${esc(m.user_id)}">${t("移除")}</button>` : ""}
-        ${editing && mine && !demo() ? `<button type="button" class="btn btn-sm btn-ghost" data-action="logout">${t("退出")}</button>` : ""}</div></div>
-    ${editing && (amOwner() || mine || (p && p.id === myPersonOf())) ? `<label class="dev-link">${t("属于哪位家庭成员")}<select data-link-person="${esc(m.user_id)}"><option value="">${t("（还没链接）")}</option>${opts}</select></label>` : ""}${hist}</li>`;
+      ${canRemoveDevice(m.user_id) ? `<div class="dev-acts"><button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-remove" data-id="${esc(m.user_id)}">${t("移除")}</button></div>` : ""}</div>
+    ${canLink ? `<label class="dev-link">${t("属于哪位家庭成员")}<select data-link-person="${esc(m.user_id)}"><option value="">${t("（还没链接）")}</option>${opts}</select></label>` : ""}</li>`;
 }
 function devicesBody(p) {
-  const editing = F.edit === "devices", own = devicesOf(p.id), unlinked = amOwner() ? famMembers().filter((m) => !m.person_id) : [];
-  const shown = own.slice(0, F.devShow);
-  return `${own.length ? `<ul class="dev-list">${shown.map((m) => deviceRow(m, p, editing)).join("")}</ul>` : `<p class="muted">${t("这位家庭成员还没有链接任何登录设备。")}</p>`}
+  const own = devicesOf(p.id), unlinked = amOwner() ? famMembers().filter((m) => !m.person_id) : [];
+  return `${own.length ? `<ul class="dev-list">${own.slice(0, F.devShow).map(deviceRow).join("")}</ul>` : `<p class="muted">${t("这位家庭成员还没有链接任何登录设备。")}</p>`}
     ${own.length > F.devShow ? `<div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="dev-more">${t("加载更多")}</button></div>` : ""}
-    ${unlinked.length ? `<h4 class="fam-sub">${t("还没链接家庭成员的设备")}</h4><ul class="dev-list">${unlinked.map((m) => deviceRow(m, null, true)).join("")}</ul>` : ""}
-    <p class="muted mem-note">${editing ? t("“移除”= 把那台设备从家庭里移出，等于从它上面登出；它下次打开要重新用邮箱或邀请码登录。") : amOwner() ? t("家主能管理全部设备；点“编辑”可以改设备属于谁、移除可疑设备。") : t("这里是你名下的设备；点“编辑”可以移除不用的设备。")}</p>`;
+    ${unlinked.length ? `<h4 class="fam-sub">${t("还没链接家庭成员的设备")}</h4><ul class="dev-list">${unlinked.map(deviceRow).join("")}</ul>` : ""}
+    <p class="muted mem-note">${t("“移除”= 把那台设备从家庭里移出，等于从它上面登出；它下次打开要重新用邮箱或邀请码登录。")}</p>`;
 }
 function logsBody(p) {
   ensureLogins();
   const devs = devicesOf(p.id).map((d) => d.user_id), all = amOwner() && F.scopeAll, rows = loginWindow(all ? null : devs), more = loginHasMore(all ? null : devs);
   const scope = amOwner() ? `<div class="chips fam-scope" role="group" aria-label="${esc(t("范围"))}"><button type="button" class="chip" aria-pressed="${!all}" data-action="logs-scope" data-all="0">${t("只看 {n}", { n: esc(p.name) })}</button><button type="button" class="chip" aria-pressed="${all}" data-action="logs-scope" data-all="1">${t("全家")}</button></div>` : "";
   return `${scope}<p class="muted mem-note" style="margin-top:0">${t("最近 {d} 天；出现没见过的设备或网络会标“可疑”，并在“注意事项”里提醒。", { d: L.days })}</p>
-    ${!L.loaded ? `<p class="muted" role="status">${t("加载中…")}</p>` : rows.length ? `<ul class="restock-list login-list">${rows.map((e) => loginRowHtml(e, personNameOf)).join("")}</ul>` : `<div class="empty"><strong>${t("这段时间没有登录记录")}</strong></div>`}
+    ${!L.loaded ? `<p class="muted" role="status">${t("加载中…")}</p>` : rows.length ? `<ul class="restock-list login-list">${rows.map((e) => loginRowHtml(e, personNameOf, canRemoveDevice)).join("")}</ul>` : `<div class="empty"><strong>${t("这段时间没有登录记录")}</strong></div>`}
     ${more ? `<div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="logins-more">${t("加载更多（再往前 6 天）")}</button></div>` : ""}
-    ${amOwner() && L.bad.length ? `<details class="login-help" open><summary>${t("不是我们家人登录的？怎么办")}</summary><ol class="muted"><li>${t("在上面“登录设备”里点“编辑”，把可疑的设备“移除”")}</li><li>${t("回到家庭与成员页，点“重新生成”换一个邀请码，旧邀请码立刻作废")}</li><li>${t("检查登录用的邮箱 / 手机号有没有被别人动过，必要时改密码或开启两步验证")}</li></ol></details>` : ""}`;
+    ${amOwner() && L.bad.length ? `<details class="login-help" open><summary>${t("不是我们家人登录的？怎么办")}</summary><ol class="muted"><li>${t("在可疑记录右边的 ⋯ 里选“移出设备”，或到上面“登录设备”里点“移除”")}</li><li>${t("回到家庭与成员页，点“重新生成”换一个邀请码，旧邀请码立刻作废")}</li><li>${t("检查登录用的邮箱 / 手机号有没有被别人动过，必要时改密码或开启两步验证")}</li></ol></details>` : ""}`;
 }
 
 export function personPage(id) {
@@ -158,7 +155,7 @@ export function personPage(id) {
       <button type="button" class="btn btn-sm btn-danger-ghost" data-action="person-del-page" data-id="${esc(p.id)}">${t("删除")}</button></div></div>` : "";
   return `<div class="mem-profile">${head}
     ${sec("basic", "🪪", t("基本资料"), basicBody(p), { edit: true })}
-    ${p.kind !== "pet" && hasDev ? sec("devices", "📱", t("登录设备"), devicesBody(p), { edit: true, count: t("{n} 台", { n: devicesOf(p.id).length }) }) : ""}
+    ${p.kind !== "pet" && hasDev ? sec("devices", "📱", t("登录设备"), devicesBody(p), { count: t("{n} 台", { n: devicesOf(p.id).length }) }) : ""}
     ${p.kind !== "pet" && hasDev ? sec("logs", "🕘", t("登录记录"), logsBody(p)) : ""}${danger}</div>`;
 }
 
@@ -179,16 +176,16 @@ function newPersonPage() {
 }
 
 /* ── 事件：块的编辑 / 折叠 / 设备详情 / 范围 / 保存 ── */
-const rerender = () => window.dispatchEvent(new HashChangeEvent("hashchange"));
+/** 重画当前页；keep = 留在原来的位置（登录记录里切范围 / 加载更多，不回到页面顶端） */
+const rerender = (keep = false) => { const y = window.scrollY; window.dispatchEvent(new HashChangeEvent("hashchange")); if (keep) { requestAnimationFrame(() => window.scrollTo(0, y)); setTimeout(() => window.scrollTo(0, y), 60); } };
 document.addEventListener("click", async (e) => {
   const card = e.target.closest(".fam-card[data-href]");
   if (card && !e.target.closest("a, button, select, input, .act-more, .person-merge")) { location.hash = card.dataset.href; return; }
   const ed = e.target.closest("[data-fam-edit]");
-  if (ed) { e.preventDefault(); const id = ed.dataset.famEdit; F.edit = F.edit === id ? null : id; rerender(); return; }
+  if (ed) { e.preventDefault(); const id = ed.dataset.famEdit; F.edit = F.edit === id ? null : id; rerender(true); return; }
   const a = e.target.closest("[data-action]")?.dataset; if (!a) return;
-  if (a.action === "dev-detail") { F.devOpen = F.devOpen === a.id ? null : a.id; rerender(); }
-  else if (a.action === "dev-more") { F.devShow += 6; rerender(); }
-  else if (a.action === "logs-scope") { F.scopeAll = a.all === "1"; rerender(); }
+  if (a.action === "dev-more") { F.devShow += 6; rerender(true); }
+  else if (a.action === "logs-scope") { F.scopeAll = a.all === "1"; rerender(true); }
 });
 export const resetFamilyUi = () => { F.edit = null; F.devShow = 6; F.devOpen = null; F.scopeAll = false; };
 

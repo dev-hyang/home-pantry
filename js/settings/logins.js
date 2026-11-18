@@ -7,6 +7,7 @@
 import { state } from "../core/state.js";
 import { CloudStore, Store } from "../core/store.js";
 import { esc, fmtDateTime, toast } from "../core/util.js";
+import { moreMenu } from "../core/more-menu.js";
 import { t } from "../core/i18n.js";
 import { DEVICE_ICON, deviceInfo } from "../core/device-info.js";
 import { amOwner, famMembers, familyHref, meId } from "./members.js";
@@ -41,7 +42,7 @@ export async function loadLogins() {
   L.loaded = true; L.busy = false; window.dispatchEvent(new HashChangeEvent("hashchange"));
 }
 export const ensureLogins = () => { if (cloud() && !L.loaded && !L.busy) loadLogins(); };
-export const loginsMore = () => { L.days = Math.min(FETCH_DAYS, L.days + LOGIN_STEP); window.dispatchEvent(new HashChangeEvent("hashchange")); };
+export const loginsMore = () => { const y = window.scrollY; L.days = Math.min(FETCH_DAYS, L.days + LOGIN_STEP); window.dispatchEvent(new HashChangeEvent("hashchange")); requestAnimationFrame(() => window.scrollTo(0, y)); setTimeout(() => window.scrollTo(0, y), 60); };   // 留在原来的位置，不回到页面顶端
 export async function ackLoginDo(id) {
   try { await CloudStore.ackLogin(id); toast(t("已确认")); } catch (e) { toast(t("操作失败：{msg}", { msg: e.message })); }
   await loadLoginAlerts(); L.loaded = false; L.busy = false; ensureLogins();
@@ -57,14 +58,15 @@ export function loginWindow(userIds = null) {
 export const loginHasMore = (userIds = null) => { const set = userIds ? new Set(userIds) : null; return L.days < FETCH_DAYS && L.rows.some((e) => (amOwner() || e.user_id === meId() || set?.has(e.user_id)) && (!set || set.has(e.user_id)) && new Date(e.at).getTime() < Date.now() - L.days * 864e5); };
 
 /** 一行登录记录：设备图标、设备 + 浏览器、时间 · 地点 · IP、哪台设备 / 哪位家庭成员；可疑的标红「可疑」 */
-export function loginRowHtml(e, personNameOf) {
+export function loginRowHtml(e, personNameOf, canRemove = () => false) {
   const bad = isSuspicious(e), dev = deviceName(e.user_id), who = personNameOf(personOfDevice(e.user_id));
   return `<li class="login-row ${bad ? "is-bad" : ""}">
       <span class="login-ico" aria-hidden="true">${DEVICE_ICON[e.device] || "💻"}</span>
       <div class="grow"><b>${esc(deviceText(e.device))}</b> <small class="muted">${esc([e.os, e.browser].filter(Boolean).join(" · "))}</small>
         <small class="login-meta">${esc(fmtDateTime(e.at))}${e.location ? ` · 🌐 ${esc(e.location)}` : ""}${e.ip ? ` · IP ${esc(e.ip)}` : ""}</small>
-        <small class="login-meta">${t("登录设备")}：${esc(dev)}${who ? ` · ${t("家庭成员")}：${esc(who)}` : ""}</small></div>
-      <div class="login-tags">${bad ? `<span class="login-flag" role="status">● ${t("可疑")}${e.new_device ? ` · ${t("新设备")}` : ` · ${t("新网络")}`}</span><button type="button" class="btn btn-sm" data-action="login-ack" data-id="${esc(e.id)}">${t("是我们家人")}</button>`
+        <small class="login-meta">${t("登录设备")}：${esc(dev)}${who ? ` · ${t("家庭成员")}：${esc(who)}` : ""}</small>
+        ${bad ? `<small class="login-flag" role="status"><i class="login-dot" aria-hidden="true"></i>${t("可疑")}${e.new_device ? ` · ${t("新设备")}` : ` · ${t("新网络")}`}</small>` : ""}</div>
+      <div class="login-tags">${bad ? moreMenu([{ label: t("确认是家人"), action: "login-ack", data: { id: e.id }, first: true }, canRemove(e.user_id) ? { label: t("移出设备"), action: "member-remove", data: { id: e.user_id }, danger: true } : null], { label: t("更多操作") })
         : (e.new_device || e.new_ip) ? `<span class="muted login-ok">✓ ${t("已确认")}</span>` : ""}</div></li>`;
 }
 

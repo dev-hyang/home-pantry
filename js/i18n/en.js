@@ -1,6 +1,9 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "确认是家人": "Confirm it's family",
+  "移出设备": "Remove device",
+  "在可疑记录右边的 ⋯ 里选“移出设备”，或到上面“登录设备”里点“移除”": "Use ⋯ on the suspicious entry and pick Remove device, or tap Remove under Login devices above",
   "添加": "Add",
   "移出": "Remove",
   "已移出 {name}": "Removed {name}",

@@ -4107,4 +4107,13 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .fam-sec > summary h3 { margin: 0; }
 .fam-scope { margin-bottom: 8px; padding-bottom: 0; }
 .fam-card[data-href] { cursor: pointer; } .fam-card[data-href]:hover { border-color: var(--pine); }
-.dev-acts .btn, .login-tags .btn { box-sizing: border-box; min-height: 40px; padding: 4px 12px; display: inline-flex; align-items: center; }
+
+/* 家庭成员页新控件：按钮用和别处一样的盒子（<button> 默认是 content-box，会比 <a class="btn"> 大一圈），设备行只有一个移除按钮 */
+.fam-sec .btn, .fam-card .btn, .fam-head .btn, .dev-card .btn, .login-row .btn, .person-merge .btn, .dev-card select { box-sizing: border-box; }
+.fam-sec .prof-edit { min-height: 44px; min-width: 56px; }
+.dev-acts .btn { min-height: 44px; }
+.login-flag { display: inline-flex; align-items: center; gap: 6px; }
+.login-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--out); flex: none; }
+.login-tags { flex-direction: row; align-items: center; justify-content: flex-end; }
+.login-row .act-more > summary { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.login-flag { display: flex; margin-top: 2px; } .login-row .grow { flex: 1 1 0; }

@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.13", title: { zh: "家庭成员详情页：块不再折叠、编辑按钮和房屋资料一样大、设备只留「移除」、登录记录切范围不回顶部、可疑记录有菜单", en: "Member page: blocks no longer collapse, Edit is the same size as in Home profile, devices keep only Remove, switching sign-in scope stays put, suspicious sign-ins have a menu" }, items: [
+    { k: "better", zh: "三个块不再能折叠；编辑按钮和房屋资料里的一样大（之前大了一圈）；登录设备块不再有编辑和详情按钮，每行只有「移除」，「属于哪位家庭成员」直接在行里选", en: "The three blocks no longer collapse; Edit is the same size as in Home profile (it was oversized); Login devices has no Edit or Details button, each row only has Remove and the family-member selector sits in the row" },
+    { k: "better", zh: "登录记录里点「只看某人 / 全家」或「加载更多」，停留在原来的位置，不再跳回页面顶端", en: "Tapping Only / Everyone or Load more in the sign-in history stays where you are instead of jumping to the top" },
+    { k: "new", zh: "可疑的登录记录显示红点 +「可疑」标签，右边有 ⋯ 菜单：确认是家人、移出设备", en: "A suspicious sign-in shows a red dot and a Suspicious label, with a ⋯ menu: Confirm it's family or Remove device" }
+  ] },
+
   { v: "2026-11-18.12", title: { zh: "家庭成员页优化：＋添加改成表单页、卡片可点、家主可移出；成员详情页控件和其他页面统一；所有表单取消靠左、保存靠右", en: "Family page polish: + Add is a form page, cards are tappable, the owner can remove people; member page controls match the rest of the app; every form has Cancel on the left and Save on the right" }, items: [
     { k: "better", zh: "「添加家庭成员」改成「＋ 添加」，打开一个新建家庭成员的表单页；点整张成员卡片直接进详情页；卡片 ⋯ 里家主多了「移出」（把名下设备移出家庭并删除这个人）", en: "Add family members is now + Add and opens a form page; tapping a member card opens its page; the owner gets Remove in the card's ⋯ menu (removes the person's devices and deletes the person)" },
     { k: "better", zh: "成员详情页的块、编辑按钮、「只看某人 / 全家」切换改成和别的页面一样的样式和大小，折叠有右上角箭头", en: "The member page's blocks, Edit buttons and Only / Everyone toggle now look and size like the rest of the app, and collapsing has an arrow at the top right" },
