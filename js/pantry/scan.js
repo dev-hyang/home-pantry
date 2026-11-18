@@ -43,7 +43,8 @@ function scanPrompt(multi = "auto") {
     "TAX / TIP / FEES ARE NOT PRODUCTS BUT MUST BE KEPT: output each one as its own line with fee = \"tax\" | \"tip\" | \"delivery\" | \"service\" | \"bag\" | \"other\" (sales tax, tip, delivery fee, service fee, bag fee, any other mandatory charge), name = a short label, amount = the positive amount charged (a waived or refunded fee is negative), match = null. If a fee is printed only as a combined line, output that one line, not its parts. If prices already include tax and no tax line is printed, output no tax line. Products have fee = null.",
     "DISCOUNT LINES ARE NOT PRODUCTS: a line with a negative amount (\"3.00-\", \"-3.00\") that is a coupon / instant savings / TPD / member discount belongs to the product it discounts — usually the line right above it or the product named after a slash. Costco example: \"1179 Pomegranates 11.99 E\" then \"000399701 /Pomegranate 3.00- E\" → ONE line: Pomegranates, amount 8.99. Subtract the discount from that product's amount and do NOT output the discount as its own line.",
     "WHOLE-RECEIPT DISCOUNTS are different: a discount for the whole order, not one product (Target Circle Card / RedCard 5% savings, employee or team-member discount, \"order discount\", a percentage off the subtotal) → output ONE line with that negative amount and order_discount=true. Never subtract it from a single product.",
-    "QUANTITY LINES: \"2 @ $1.99\" (or \"2 @ 1.99\") printed under a product means qty = 2 and that product's amount = the line total (3.98). It is not a separate line. Weight lines like \"1.32 lb @ $2.49/lb\" give qty and unit for the product above.",
+    "RETURNS / REFUNDS: a returned product (a line marked RETURN / REFUND, or a product with a negative amount that is NOT a coupon or discount) is its own line: qty NEGATIVE (e.g. -1) and amount NEGATIVE. Never merge it into the purchase of the same product, and never output it as a positive qty.",
+    "QUANTITY LINES:\"2 @ $1.99\" (or \"2 @ 1.99\") printed under a product means qty = 2 and that product's amount = the line total (3.98). It is not a separate line. Weight lines like \"1.32 lb @ $2.49/lb\" give qty and unit for the product above.",
     "NOT PURCHASES — never output these as lines: department / section headers (GROCERY, HOME, HEALTH AND BEAUTY, ELECTRONICS, BABY…), lines that are only an item code, tax letters (T, N, NF, F, E), \"You saved\", \"Total savings\", \"Target Circle earnings / rewards\", \"Circle 360\", gift-card or payment lines, change due.",
     "TARGET receipts: product lines look like \"071010236 GG 2% MILK $3.49 NF\" — the 9-digit number (DPCI) and the trailing tax letters are not part of the name (GG = Good & Gather, UP = up&up, MP = Market Pantry are store brands). \"Circle Offer\" / \"Target Circle\" / \"Circle Deal\" -$1.00 right below a product is that product's discount; \"Target Circle Card 5%\" / \"RedCard 5%\" near the total is a whole-receipt discount.",
     "match = the index of the best matching existing inventory item from the list I give you, or null if none is a clear match.",
@@ -83,6 +84,7 @@ function noteFor(rawUnit, qty, id) {
   const item = id && !String(id).startsWith("__") && id !== "skip" ? sc.pool.find((i) => i.id === id) || state.items.find((i) => i.id === id) : null;
   if (!item) return { text: "", warn: false };
   const unit = Units.normalize(rawUnit), f = Units.fit(unit, item.unit);
+  if (qty < 0 && f.kind !== "mismatch") return { text: t("退货：库存会减掉 {q} {u}。只想记花费、不动库存，就把「放进库存」改成「只记花费，不入库」", { q: fmt(Math.round(-qty * (f.factor || 1) * 100) / 100), u: t(Units.normalize(item.unit) || item.unit) }), warn: false };
   if (f.kind === "same") return { text: "", warn: false };
   const iu = t(Units.normalize(item.unit) || item.unit);
   if (f.kind === "convert") return { text: t("库存按 {u} 记，入库时换算成 {q} {u}", { u: iu, q: fmt(Math.round(qty * f.factor * 100) / 100) }), warn: false };
@@ -104,10 +106,11 @@ function buildReceipt(j) {
     const m = (Number.isInteger(l.match) ? sc.pool[l.match] : null) || findItem(l.name, { spaces: ["pantry", "house"] });   // AI 没对上：写法一样的已有物品
     const valid = window.CATEGORIES.some((c) => c.id === l.category && c.space !== "gear");
     const amount = l.amount == null || l.amount === "" ? null : num(l.amount, NaN);
-    return { include: true, raw: String(l.raw || ""), name: String(l.name).trim().slice(0, 60), qty: num(l.qty, 1) > 0 ? num(l.qty, 1) : 1, unit: pickUnit(l.unit, l.name, m),
+    const q0 = num(l.qty, 1), refund = q0 < 0 || REFUND.test(`${l.raw || ""} ${l.name || ""}`);   // 退货：数量为负（见 finishRefunds）
+    return { include: true, raw: String(l.raw || ""), name: String(l.name).trim().slice(0, 60), qty: Math.abs(q0) > 0 ? Math.abs(q0) : 1, refund, unit: pickUnit(l.unit, l.name, m),
       amount: Number.isFinite(amount) ? Math.round(amount * 100) / 100 : null, def: m?.id || "", match: m?.id || "", category: valid ? l.category : m?.category || "other", order: !!l.order_discount };
   }).filter((r) => !INFO_LINE.test(r.raw) && !INFO_LINE.test(r.name));
-  mergeDiscounts(rows); spreadOrderDiscounts(rows);
+  mergeDiscounts(rows); spreadOrderDiscounts(rows); finishRefunds(rows);
   const found = /^\d{4}-\d{2}-\d{2}$/.test(j?.date || "") && j.date <= todayISO();
   const date = sc.date || (found ? j.date : todayISO()), dateSrc = sc.date ? "user" : found ? "receipt" : "today";   // 你填的 > 小票 / 文字里读到的 > 今天
   if (sc.record === "spend") for (const r of rows) r.match = "skip";   // 补记以前的购物：东西多半已经用掉，默认只记花费、不加库存（要入库的行再改）
@@ -149,14 +152,27 @@ function spreadOrderDiscounts(rows) {
   }
   return rows;
 }
+/** 退货 / 退款的行（数量记负数）：库存要减掉、花费记负数，所以不能当折扣并进买入那一行。
+ *  AI 标了负数量，或原文有 RETURN / REFUND / 退款 / 退货，或是金额负数又对不上任何商品的行，都算；找得到库存里的物品就默认扣库存，找不到的只记花费 */
+const REFUND = /\b(?:refund(?:ed)?|return(?:ed)?)\b|退款|退货/i;
+function finishRefunds(rows) {
+  for (const r of rows) {
+    if (r.fee || isOrderDisc(r) || !(r.amount < 0 || r.refund)) continue;
+    r.refund = true; r.qty = -Math.abs(r.qty || 1);
+    if (r.amount > 0) r.amount = -r.amount;   // 标了退货但金额写成正数：退的钱记成负数
+    if (!r.match) r.match = "skip";   // 库存里没有这件：没法扣，只记花费
+  }
+  return rows;
+}
 function mergeDiscounts(rows) {
   const DISC = /^\s*[\d\s]*\/|\b(?:tpd|inst(?:ant)?\s*sav|savings?|coupon|disc(?:ount)?|mfr|off)\b|circle\s*(?:offer|deal)|target\s*circle(?!\s*card)|优惠|折扣|折|减/i;
   for (let i = rows.length - 1; i >= 0; i--) {
-    const r = rows[i]; if (r.fee || !(r.amount < 0) || isOrderDisc(r)) continue;   // 整单折扣另外按比例分（spreadOrderDiscounts）
-    const k = normName(r.name);
+    const r = rows[i]; if (r.fee || !(r.amount < 0) || r.refund || isOrderDisc(r)) continue;   // 整单折扣另外按比例分（spreadOrderDiscounts）；退货不并
+    const k = normName(r.name), disc = DISC.test(r.raw || "");
     let j = -1;
-    for (let x = i - 1; x >= 0; x--) { const p = rows[x], pk = normName(p.name); if (!p.fee && p.amount > 0 && pk && k && (pk === k || pk.includes(k) || k.includes(pk))) { j = x; break; } }
-    if (j < 0 && DISC.test(r.raw || "")) for (let x = i - 1; x >= 0; x--) if (rows[x].amount > 0 && !rows[x].fee) { j = x; break; }
+    // 同名的负数行：原文像折扣、或金额比正价行小（只减掉一部分）才并进去；金额 ≥ 正价行又不像折扣 = 整件退掉，是退货
+    for (let x = i - 1; x >= 0; x--) { const p = rows[x], pk = normName(p.name); if (!p.fee && p.amount > 0 && pk && k && (pk === k || pk.includes(k) || k.includes(pk)) && (disc || -r.amount < p.amount)) { j = x; break; } }
+    if (j < 0 && DISC.test(r.raw || ""))for (let x = i - 1; x >= 0; x--) if (rows[x].amount > 0 && !rows[x].fee) { j = x; break; }
     if (j < 0) continue;
     const p = rows[j];
     p.amount = Math.round((p.amount + r.amount) * 100) / 100;
@@ -246,7 +262,7 @@ function rowHtml(x, ri, i, cur) {
         <label class="check-inline scan-inc"><input type="checkbox" name="inc" ${x.include ? "checked" : ""}><span>${x.raw ? `<small class="muted">${esc(x.raw)}</small>` : t("包含这一行")}</span></label>
         <div class="form-grid">
           <label class="span-2">${t("名称")}<input name="name" maxlength="60" list="scanItemNames" autocomplete="off" value="${esc(x.name)}"></label>
-          <label>${t("数量")}<input name="qty" type="number" min="0" step="any" inputmode="decimal" value="${esc(fmt(x.qty))}"></label>
+          <label>${t("数量")}<input name="qty" type="number" step="any" inputmode="decimal" value="${esc(fmt(x.qty))}"></label>
           <label>${t("单位")}<input name="unit" list="unitList" maxlength="10" value="${esc(t(x.unit))}"></label>
           <label>${t("金额")}（${esc(cur)}）<input name="amount" type="number" step="0.01" inputmode="decimal" value="${x.amount ?? ""}"></label>
           <label class="span-2">${t("放进库存")}<select name="target" data-def="${esc(x.def || "")}">${targetOptions(x)}</select></label>
@@ -427,7 +443,8 @@ async function confirm(ctx) {
   });
   if (!rows.length) { sc.error = t("没有勾选任何一行。"); return repaint2(); }
   if (rows.some((x) => !x.name)) { sc.error = t("有一行没有名称。"); return repaint2(); }
-  if (rows.some((x) => x.target !== "__skip" && !(x.qty > 0))) { sc.error = t("入库的行数量要大于 0。"); return repaint2(); }
+  if (rows.some((x) => x.target !== "__skip" && !x.qty)) { sc.error = t("入库的行数量不能是 0。"); return repaint2(); }
+  if (rows.some((x) => x.target !== "__skip" && x.qty < 0 && x.target === "__new")) { sc.error = t("退货（数量为负）要选一件已有的物品来扣库存；没有对应的物品就选「只记花费，不入库」。"); return repaint2(); }
   await loadNear(boxes.flatMap(dupCands)).catch(() => {});   // 先把这几张小票的日期 + 金额查完，提醒才是准的
   const stockOnly = sc.record === "stock" && !sc.result?.manual;   // 只入库：不写花费，所以也不查「是不是已经记过」
   const dupRows = stockOnly ? 0 : boxes.reduce((s, b) => s + markDups(b), 0);   // 疑似重复的行：第一次点只提醒，确认无误再点一次才入库
@@ -461,7 +478,7 @@ async function confirm(ctx) {
       if (stockOnly && x.target === "__skip") continue;   // 只入库：选了「只记花费」的行什么都不做
       const item = x.target.startsWith("__") ? null : state.items.find((i) => i.id === x.target);
       if (!stockOnly) await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: x.fee ? FEES_CAT : item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay });
-      const cart = x.fee ? null : matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 购物车里对应的那一项：不管入不入库，买到了就标成已买到
+      const cart = x.fee || x.qty < 0 ? null : matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 购物车里对应的那一项：不管入不入库，买到了就标成已买到
       if (cart) { doneShop.add(cart.id); cartDone++; await Store.saveShopping({ id: cart.id, status: "bought", bought_at: x.now, amount: x.amount, claimed_by_name: cart.claimed_by_name || myName() }); }
       if (x.target === "__skip") { spendOnly++; continue; }
       if (item && normName(x.name) !== normName(item.name) && !findItem(x.name)) Store.addItemAlias(item.id, x.name.slice(0, 60)).catch(() => {});   // 学会这个叫法
@@ -469,7 +486,7 @@ async function confirm(ctx) {
         const fit = Units.fit(x.unit, item.unit), add = fit.kind === "mismatch" ? x.qty : x.qty * fit.factor;   // 能换算的换成库存单位；计数单位之间 1:1
         if (fit.kind === "mismatch") warns.push(x.name);
         else if (fit.kind === "convert") convs.push(t("{name} {q1} {u1} → {q2} {u2}", { name: item.name, q1: fmt(x.qty), u1: t(x.unit), q2: fmt(Math.round(add * 100) / 100), u2: t(item.unit) }));
-        await Store.adjust(item.id, Math.round(add * 100) / 100, "restock");
+        await Store.adjust(item.id, Math.round(add * 100) / 100, add < 0 ? "adjust" : "restock");   // 退货扣库存（记成「调整」，不算补货）
         stocked++;
       }
     }

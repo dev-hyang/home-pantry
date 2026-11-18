@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.31", title: { zh: "拍小票 / AI 录入：退货会扣库存，不再当成又买了一份", en: "Receipt / AI entry: returns now take stock off instead of adding it" }, items: [
+    { k: "fix", zh: "小票里的退货 / 退款，数量记成负数：库存里有这件东西就扣掉（扣到 0 为止），花费记负数；以前会当成又买了一份，库存反而多加", en: "A returned or refunded product is now a negative quantity: it takes stock off the matching item (down to 0) and records a negative spend; before, it was added to stock as if bought again" },
+    { k: "fix", zh: "同一张小票里买了又整件退掉的同名商品，不再被当成折扣合并成一行（以前金额抵消了、库存却照加）；只退一部分钱的优惠仍然合并", en: "A product bought and fully returned on the same receipt is no longer merged as a discount (the amount cancelled but stock still went up); partial price cuts are still merged" },
+    { k: "better", zh: "退货行下面会提示「库存会减掉几件」；只想记花费、不动库存，把「放进库存」改成「只记花费，不入库」；库存里没有的退货默认只记花费，也不会把购物车里的项目标成已买到", en: "Return lines say how many will come off stock; choose Spend only to leave stock alone; returns with no matching item default to spend-only and no longer tick off a shopping-list item" }
+  ] },
+
   { v: "2026-11-18.30", title: { zh: "全部账单：合计卡片上面不再多出一只眼睛", en: "All bills: no duplicate eye icon above the totals" }, items: [
     { k: "fix", zh: "全部账单的三张合计小卡上面多了一只「隐藏金额」的眼睛，和页面右上角那只重复，已去掉（右上角那只照常管这页的金额）", en: "Removed the duplicate hide-amounts eye that appeared above the three totals cards; the one at the top right still controls this page" }
   ] },
