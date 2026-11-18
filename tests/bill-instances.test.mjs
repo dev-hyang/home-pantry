@@ -445,3 +445,18 @@ test("cycleBreakdown：周期性按频率细分、一次性单独一组，没有
   assert.equal(c.onetime, null);
   assert.equal(cycleBreakdown([{ kind: "onetime", amount: 40, paid: 10, balance: 30, status: "pending", assets: [] }]).recurring, null);
 });
+
+import { splitParts, splitSettle, splitWeight } from "../js/bills/split-lib.js";
+test("家庭分摊：按家庭成员合并设备、旧的按设备占比继续认、没链接的设备各算一个", () => {
+  const people = [{ id: "A", name: "妈妈", kind: "adult" }, { id: "B", name: "爷爷", kind: "adult" }, { id: "K", name: "Leo", kind: "child" }];
+  const members = [{ user_id: "d1", display_name: "妈妈", person_id: "A" }, { user_id: "d2", display_name: "妈妈-设备2", person_id: "A" }, { user_id: "d3", display_name: "爷爷", person_id: "B" }, { user_id: "d9", display_name: "新设备", person_id: null }];
+  const parts = splitParts(people, members);
+  assert.deepEqual(parts.map((p) => [p.key, p.name, p.userIds.join()]), [["A", "妈妈", "d1,d2"], ["B", "爷爷", "d3"], ["dev:d9", "新设备", "d9"]]);   // 孩子不参与；一人两台设备合成一行
+  assert.equal(splitWeight({ d2: 50 }, parts[0], 3), 50);   // 旧的设备键
+  assert.equal(splitWeight({ A: 20, d1: 99 }, parts[0], 3), 20);   // 家庭成员键优先
+  assert.equal(splitWeight({}, parts[1], 4), 25);   // 没设过 = 平分
+  const r = splitSettle(parts.slice(0, 2), { A: 50, B: 50 }, [{ created_by: "d1", sum: 60 }, { created_by: "d2", sum: 40 }, { created_by: "d3", sum: 20 }, { created_by: "zzz", sum: 500 }]);
+  assert.equal(r.total, 120);   // 不在参与者里的 zzz 不算
+  assert.deepEqual(r.net.map((x) => [x.part.name, x.paid, x.share, x.net]), [["妈妈", 100, 60, 40], ["爷爷", 20, 60, -40]]);
+  assert.deepEqual(r.moves, [{ from: "爷爷", to: "妈妈", a: 40 }]);
+});

@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.28", title: { zh: "共同花费分摊改成按家庭成员算", en: "Shared-expense split now works per family member" }, items: [
+    { k: "better", zh: "「家庭分摊」按家庭成员（人）算：一个人有几台设备，记的账合在一起；占比也按家庭成员设置（原来按设备设的占比会自动带过来）；还没链接家庭成员的设备各算一个参与者", en: "The family split works per family member: a person's devices are combined; shares are set per family member (shares previously set per device carry over); a device not linked to a family member counts as its own participant" }
+  ] },
+
   { v: "2026-11-18.27", title: { zh: "交易信息保存后回交易首页（清单）；全应用「谁做的」统一显示家庭成员的名字", en: "Saving deal info returns to the deal home (checklist); who-did-it names are now the family member everywhere" }, items: [
     { k: "fix", zh: "房屋 → 交易：在「交易信息」里保存后，回到交易首页，并默认进「清单」，不再停在编辑页", en: "Home → Deals: saving the Deal info page returns to the deal home on the Checklist tab instead of staying on the edit page" },
     { k: "better", zh: "全应用统一：显示「谁做的」（交易进展、清单完成人、购物认领、季节任务、今日问候…）都用家庭成员的名字，设备没链接家庭成员才用设备名；以后记下来的名字也都是家庭成员的名字，原来记成设备名的几条（比如「Hang IPhone 13」「妈妈-设备2」）已改成家庭成员的名字", en: "One rule everywhere: who-did-it names (deal progress, checklist completion, shopping claims, seasonal tasks, the Today greeting…) use the family member's name, falling back to the device name only if the device is not linked; names saved from now on are family-member names too, and the few saved as device names (such as Hang IPhone 13 and Mom device 2) were corrected" }

@@ -1,6 +1,7 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "家里有两位以上家庭成员时，这里会算谁多付了、谁该补多少": "With two or more family members this works out who paid more and who owes what",
   "打开摊派：{n}": "Open assessment: {n}",
   "没有待缴的期了": "Nothing left to pay",
   "已缴 {n} 期 · {m}": "{n} paid · {m}",

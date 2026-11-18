@@ -6,6 +6,7 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}${Mat
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { memberName } from "../core/logic.js";
+import { splitParts, splitSettle, splitWeight } from "./split-lib.js";
 import { withProperty } from "../core/alerts.js";
 import { STOCK_GROUPS, actualByMonth, billsThisMonth, applianceFund, meta, registerAction, registerSection, restockForecast, saveMeta } from "./budget.js";
 import { escrowMonthlyFor, freqText, upcoming } from "./logic.js";
@@ -156,27 +157,26 @@ registerSection("bills", 10, ({ plan }) => {
     ${other.length ? `<h3 style="font-size:14px;margin:12px 0 4px">${t("其他固定账单 年成本前 5")}</h3><ul class="restock-list">${other.map((x) => li(x, false)).join("")}</ul>` : ""}</div>`);
 });
 
-/* ───────────── 家庭分摊（按“谁记的账”算付款人，默认平分） ───────────── */
+/* ───────────── 家庭分摊（按“谁记的账”算付款人，默认平分） ─────────────
+ * 参与分摊的是「家庭成员」（人）：一个人有几台设备，记的账合在一起算；还没链接家庭成员的设备，各算一个参与者（用设备名）。
+ * 占比存在 meta._split 里，键 = 家庭成员 id；旧的键是设备 id（按设备存的）：读的时候还认，保存时换成家庭成员 id。 */
+const splitPartsNow = () => splitParts(state.people || [], state.members || []);
 registerSection("goals", 10, () => {
   if (meta("_split_on", false) !== true) return "";
-  const members = state.members, which = state.budgetSplitMonth || "this", months = lastMonths(2), m = which === "last" ? months[0] : months[1];
+  const members = splitPartsNow(), which = state.budgetSplitMonth || "this", months = lastMonths(2), m = which === "last" ? months[0] : months[1];
   const chips = [["this", t("本月")], ["last", t("上月")]].map(([k, l]) => `<button type="button" class="chip" data-action="budget-split-month" data-m="${k}" aria-pressed="${which === k}">${l}</button>`).join("");
-  if (members.length < 2) return sec("budSplit", t("家庭分摊"), "", `<div class="panel empty"><strong>${t("家里有两位以上成员时，这里会算谁多付了、谁该补多少")}</strong>${t("按“谁记的账”当作付款人；邀请家人加入后就能用（设置 → 家庭与成员）。")}</div>`);
-  const w = meta("_split", {}), weight = (u) => (w[u] != null && w[u] !== "" ? num(w[u]) : 100 / members.length), wsum = members.reduce((s, x) => s + weight(x.user_id), 0) || 1;
+  if (members.length < 2) return sec("budSplit", t("家庭分摊"), "", `<div class="panel empty"><strong>${t("家里有两位以上家庭成员时，这里会算谁多付了、谁该补多少")}</strong>${t("按“谁记的账”当作付款人；邀请家人加入后就能用（设置 → 家庭与成员）。")}</div>`);
+  const w = meta("_split", {}), weight = (part) => splitWeight(w, part, members.length), wsum = members.reduce((s, x) => s + weight(x), 0) || 1;
   const agg = BY_MEMBER.get(m, m);   // 这个月按记账人聚合的正数花费（本币；含医疗等事件型账单的付款，付款人算记账人）
   if (!agg) return sec("budSplit", t("家庭分摊"), t("{m}，按“谁记的账”当作付款人", { m: monthLabel(m) }), `<div class="panel"><p class="muted" role="status">${t("加载中…")}</p></div>`);
-  const ps = agg.filter((r) => !r.currency || r.currency === cur()), isMember = (u) => u && members.some((x) => x.user_id === u);
-  const rec = ps.filter((r) => isMember(r.created_by)), unrec = ps.reduce((s, r) => s + r.n, 0) - rec.reduce((s, r) => s + r.n, 0), total = rec.reduce((s, r) => s + num(r.sum), 0);
-  const paid = Object.fromEntries(members.map((x) => [x.user_id, rec.filter((r) => r.created_by === x.user_id).reduce((s, r) => s + num(r.sum), 0)]));
-  const net = members.map((x) => ({ x, paid: paid[x.user_id], share: (total * weight(x.user_id)) / wsum })).map((r) => ({ ...r, net: Math.round((r.paid - r.share) * 100) / 100 }));
-  const cred = net.filter((r) => r.net > 0.5).map((r) => ({ ...r })), debt = net.filter((r) => r.net < -0.5).map((r) => ({ ...r })), moves = [];
-  for (const d of debt) for (const c of cred) { const a = Math.min(-d.net, c.net); if (a > 0.5) { moves.push({ from: d.x.display_name, to: c.x.display_name, a }); d.net += a; c.net -= a; } }
+  const ps = agg.filter((r) => !r.currency || r.currency === cur()), { net, moves } = splitSettle(members, w, ps);
+  const unrec = ps.reduce((s, r) => s + r.n, 0) - ps.filter((r) => members.some((x) => x.userIds.includes(r.created_by))).reduce((s, r) => s + r.n, 0);
   return sec("budSplit", t("家庭分摊"), t("{m}，按“谁记的账”当作付款人", { m: monthLabel(m) }), `<div class="panel"><div class="chips">${chips}</div>
     <table class="owner-table"><thead><tr><th>${t("成员")}</th><th>${t("付了")}</th><th>${t("应摊")}</th><th>${t("差额")}</th></tr></thead><tbody>
-      ${net.map((r) => `<tr><th scope="row">${esc(r.x.display_name)}</th><td>${money(r.paid)}</td><td>${money(r.share)} <small class="muted">${Math.round((weight(r.x.user_id) / wsum) * 100)}%</small></td><td class="${r.net >= 0 ? "" : "down"}">${r.net >= 0 ? "+" : ""}${money(r.net)}</td></tr>`).join("")}</tbody></table>
+      ${net.map((r) => `<tr><th scope="row">${esc(r.part.name)}</th><td>${money(r.paid)}</td><td>${money(r.share)} <small class="muted">${Math.round((weight(r.part) / wsum) * 100)}%</small></td><td class="${r.net >= 0 ? "" : "down"}">${r.net >= 0 ? "+" : ""}${money(r.net)}</td></tr>`).join("")}</tbody></table>
     ${moves.length ? `<ul class="tips bud-advice">${moves.map((x) => `<li>💸 ${t("{a} 付给 {b}：{m}", { a: esc(x.from), b: esc(x.to), m: money(x.a) })}</li>`).join("")}</ul>` : `<p class="muted" style="margin:8px 0 0">${t("这个月基本平了。")}</p>`}
     ${unrec ? `<p class="muted" style="margin:6px 0 0;font-size:13px">${t("另有 {n} 笔没有记账人（旧记录），不参与分摊。", { n: unrec })}</p>` : ""}
-    <form id="splitForm" class="form-grid" style="margin-top:10px">${members.map((x) => `<label>${esc(x.display_name)} ${t("占比 %")}<input name="w_${x.user_id}" type="number" min="0" max="100" step="1" inputmode="numeric" value="${w[x.user_id] ?? Math.round(100 / members.length)}"></label>`).join("")}
+    <form id="splitForm" class="form-grid" style="margin-top:10px">${members.map((x) => `<label>${esc(x.name)} ${t("占比 %")}<input name="w_${x.key}" type="number" min="0" max="100" step="1" inputmode="numeric" value="${Math.round(weight(x))}"></label>`).join("")}
       <div class="form-actions" style="align-self:end"><button class="btn btn-sm" type="submit">${t("保存占比")}</button></div></form></div>`);
 });
 registerAction("budget-split-month", (el, ctx) => { state.budgetSplitMonth = el.dataset.m; ctx.render(); });
@@ -197,7 +197,7 @@ document.addEventListener("submit", async (e) => {
   try {
     if (f.id === "goalForm") { e.preventDefault(); await saveMeta({ _goals: [...goals(), { id: uid(), name: f.elements.name.value.trim().slice(0, 40), target: num(f.elements.target.value), date: f.elements.date.value, saved: 0 }] }); toast(t("已添加目标")); }
     else if (f.id === "incomeDayForm") { e.preventDefault(); const d = Math.round(num(f.elements.day.value, 0)); await saveMeta({ _income_day: d >= 1 && d <= 31 ? d : null }); toast(t("已保存")); }
-    else if (f.id === "splitForm") { e.preventDefault(); const w = {}; for (const x of state.members) w[x.user_id] = Math.max(0, num(f.elements[`w_${x.user_id}`].value, 0)); await saveMeta({ _split: w }); toast(t("已保存")); }
+    else if (f.id === "splitForm") { e.preventDefault(); const w = {}; for (const x of splitPartsNow()) w[x.key] = Math.max(0, num(f.elements[`w_${x.key}`].value, 0)); await saveMeta({ _split: w }); toast(t("已保存")); }
     else if (f.id === "reviewMoveForm") {
       e.preventDefault(); const a = num(f.elements.amount.value, 0); if (a <= 0) return;
       await saveMeta({ _goals: goals().map((g) => (g.id === f.elements.goal.value ? { ...g, saved: num(g.saved) + a } : g)) }); toast(t("已存入 {a}", { a: money(a) }));
