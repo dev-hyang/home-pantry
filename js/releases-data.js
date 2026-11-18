@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.23", title: { zh: "摊派下拉每个选项一行：勾选框 + 第几期 · 日期 · 金额；修正 HOA 10 / 11 月两笔缴费的重复计算", en: "Assessment dropdown: one line per option (checkbox + No. n · date · amount); fixed the double count on HOA's October and November payments" }, items: [
+    { k: "better", zh: "「特别摊派」下拉里每个选项一行：勾选框、「第 N 期 · 日期 · 金额」，不再把勾选框和文字拆成两行；有多笔摊派时前面加摊派名", en: "Each option in the Special assessment dropdown is one line: checkbox plus No. n · date · amount; with several assessments the name is added in front" },
+    { k: "fix", zh: "HOA 月费 10 月、11 月两笔缴费的「金额」里已经含了摊派（和 11 月的手续费），总金额被多算；已改成本期金额 363.20（单元费 347.36 + 车位费 15.84），摊派、手续费另列，花费统计里对应的两笔也改成 430.89 和 433.88", en: "HOA's October and November payments had the assessment (and November's fee) already inside the amount, so the total was counted twice; the amount is now 363.20 (unit 347.36 + parking 15.84) with the assessment and fee listed separately, and the matching spending entries are now 430.89 and 433.88" }
+  ] },
+
   { v: "2026-11-18.22", title: { zh: "修复：有缴费记录的账单点开没反应；一次性账单保存报错", en: "Fix: bills with payments did not open; saving a one-time bill failed" }, items: [
     { k: "fix", zh: "点开有缴费记录的账单（比如 HOA 月费）没反应，是上个版本漏了一处引用造成的，现在修好", en: "Opening a bill that has payments (for example the HOA fee) did nothing because a reference was missing in the previous version; fixed" },
     { k: "fix", zh: "一次性账单的保存、记付款、新增就诊人也受同类遗漏影响，已一并修好", en: "Saving a one-time bill, logging a payment and adding a patient were hit by the same kind of omission and are fixed too" }

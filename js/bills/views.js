@@ -415,13 +415,16 @@ const checkedItems = (fe) => { const all = fe.as_item ? (fe.as_item.length === u
 /** 摊派下拉（多选）：本期之前到期的没缴期默认勾上，其余不勾；编辑时本笔已交的勾着。没有可选的期就不出现 */
 function assessDropdown(b, edit) {
   const own = edit ? state.assessItems.filter((x) => x.payment_id === edit.id) : [];
-  const open = unpaidItems(b.id, state.assess, state.assessItems), name = (x) => state.assess.find((a) => a.id === x.assessment_id)?.name || "";
+  const open = unpaidItems(b.id, state.assess, state.assessItems);
+  const multi = state.assess.filter((a) => a.bill_id === b.id).length > 1, byA = new Map(assessmentsOf(b.id, state.assess, state.assessItems).map((a) => [a.id, a]));
+  // 每个选项一行：「第 N 期 · 日期 · 金额」（一次性结清写「一次性结清」）；有多笔摊派时前面加摊派名
+  const asLabel = (x) => { const a = byA.get(x.assessment_id), nth = a ? a.rows.findIndex((r) => r.id === x.id) + 1 : 0; return [multi && a ? a.name : null, x.kind === "payoff" ? t("一次性结清") : t("第 {n} 期", { n: nth }), fmtDate(x.due_on), mny(x.amount, b.currency)].filter(Boolean).join(" · "); };
   const rows = [...own.map((x) => [x, true]), ...open.map((x) => [x, false])].sort((p, q) => (p[0].due_on || "").localeCompare(q[0].due_on || ""));
   if (!rows.length) return "";
   const on = rows.filter(([, c]) => c), sum = Math.round(on.reduce((s, [x]) => s + num(x.amount), 0) * 100) / 100;
   return `<div class="amt-row amt-as"><span class="amt-l">${t("特别摊派")}</span>
     <details class="pick amt-pick"><summary><span class="pick-val ${on.length ? "" : "is-empty"}" id="asSummary">${asSummaryText(on.length, sum, b.currency)}</span></summary>
-      <div class="pick-panel" role="group" aria-label="${esc(t("这次交的特别摊派"))}"><button type="button" class="pick-row as-none" data-as-none>${t("未勾选")} <small class="muted">${t("这次不交摊派")}</small></button>${rows.map(([x, c]) => `<label class="pick-row check-inline"><input type="checkbox" name="as_item" value="${esc(x.id)}" data-amt="${num(x.amount)}" ${c ? "checked" : ""}><span>${esc(fmtDate(x.due_on))} · ${esc(name(x))} · ${esc(t(x.kind === "payoff" ? "一次性结清" : "分期"))} · <b>${mny(x.amount, b.currency)}</b></span></label>`).join("")}</div></details></div>`;
+      <div class="pick-panel" role="group" aria-label="${esc(t("这次交的特别摊派"))}"><button type="button" class="pick-row as-none" data-as-none>${t("未勾选")} <small class="muted">${t("这次不交摊派")}</small></button>${rows.map(([x, c]) => `<label class="pick-row check-inline"><input type="checkbox" name="as_item" value="${esc(x.id)}" data-amt="${num(x.amount)}" ${c ? "checked" : ""}><span class="as-opt">${esc(asLabel(x))}</span></label>`).join("")}</div></details></div>`;
 }
 const asSummaryText = (n, sum, cur) => (n ? t("{n} 期 · {m}", { n, m: mny(sum, cur) }) : t("未勾选"));
 /** 点开下拉：有勾选的，列表滚到第一个勾选的那一期；没勾选的，从第一期往下 */

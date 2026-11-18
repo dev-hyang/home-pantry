@@ -1,6 +1,7 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "第 {n} 期": "No. {n}",
   "未勾选": "None selected",
   "HOA 小计": "HOA subtotal",
   "单元费 + 车位费": "unit + parking",
