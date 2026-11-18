@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.23", title: { zh: "车辆、设备、账单页不再藏起底部导航；全部账单的合计也会遮挡", en: "Vehicle, equipment and bill pages keep the bottom tabs; the All bills totals are masked too" }, items: [
+    { k: "fix", zh: "手机上，车辆页、设备页、账单详情页的底部导航不再消失：只有真正在编辑的表单页（新建、编辑某一块、记缴费、向导）才隐藏导航", en: "On phones the bottom tabs no longer disappear on vehicle, equipment and bill pages; only real edit forms (new, edit a section, log a payment, the guides) hide them" },
+    { k: "fix", zh: "「全部账单」顶上的合计（笔数、应付、已付、余额）和账单概览卡片下面的小字里的金额，也会和别处一样被遮挡，点一下露出来", en: "The totals line at the top of All bills and the small lines under the overview cards now mask their amounts like everywhere else; tap to reveal" }
+  ] },
+
   { v: "2026-11-17.22", title: { zh: "全部账单：默认的时间「全部」不再算成筛选", en: "All bills: the default time \u201cAll\u201d no longer counts as a filter" }, items: [
     { k: "fix", zh: "「全部账单」的时间默认是「全部」，手机上「筛选」旁边的数字和「清除筛选」不再把它当成一个筛选；选了本月、下月等才算", en: "In All bills the default time is All, and on phones the number next to Filters and the Clear filters button no longer count it as a filter; only picking this month, next month and so on does" }
   ] },

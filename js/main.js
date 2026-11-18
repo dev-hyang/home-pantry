@@ -251,6 +251,17 @@ const VIEWS = {
   shops:    () => viewShops(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout, releases: releasePageHTML },
 };
+// 手机上隐藏底部导航的页面：只有「真正在编辑的表单」才隐藏（专注填写）；车辆 / 设备 / 账单的概览、详情、保养记录列表、时间表这类只读页保留导航。
+// （FORM_PAGES 另管「后台同步不重画」，范围更宽，不动）
+const EDIT_SECS = new Set(["basic", "units", "plate", "docs", "insurance", "years", "life", "cost", "notes", "recall"]);   // 设备 / 车辆的编辑分区；profile、log（列表）、schedule、supplies、care 是只读页
+const TABS_HIDDEN = (r) => {
+  if (!FORM_PAGES(r)) return false;
+  const q = r.q;
+  if (r.section === "asset") return r.id === "new" || EDIT_SECS.has(q.get("sec")) || q.get("log") === "1" || !!q.get("wiz");
+  if (r.section === "bill") return r.id === "new" ? [...q.keys()].length > 0 : !!q.get("sec") || q.get("pay") === "1";   // #/bill/new 不带参数 = 选类型页（保留导航）；向导 / 整页表单 / 分区编辑 / 记缴费 = 隐藏；账单详情页保留
+  if (r.section === "bills" && r.sub === "onetime" && q.get("bill")) return q.get("bill") === "new" || !!q.get("sec");   // 一次性账单：详情页保留，新建 / 分区编辑隐藏
+  return true;
+};
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
 /* 现在是不是正处在用户自己的操作里（点击、改下拉、输入、按键的处理过程中，含紧跟着的同一轮任务）：这时的 render(false) 是用户要的，不填回旧值 */
 let userActing = false;
@@ -307,7 +318,7 @@ export function render(force = true) {
   const sc = $("#shopCount"); sc.hidden = !openShop; sc.textContent = openShop;
   const alertN = alertCounts(collectAlerts()).important;   // 紧急 / 今天 / 尽快三档计入标题
   document.title = alertN ? `(${alertN}) ${t(APP_NAME)}` : t(APP_NAME);
-  document.body.classList.toggle("editing", FORM_PAGES(r));
+  document.body.classList.toggle("editing", TABS_HIDDEN(r));
 
   if (!force && FORM_PAGES(r) && $("#main form")) return;
   if (!force && isScanRoute(r) && $("#main .scan-page")) return;   // 录入购物：识别中 / 确认页的改动不被后台同步冲掉（页面还没画出来时，比如直接刷新在这一页，要先画）

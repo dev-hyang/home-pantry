@@ -42,7 +42,7 @@ const BOARD_NUMS = ".kpi > b, .sum-main b, .stat .v, .nw-card-bal, [data-money-a
 const CUR = /[$¥€£₩]|\b(?:USD|CAD|CNY|RMB|EUR|GBP)\b/;
 const isMoneyText = (s) => CUR.test(s) && /\d/.test(s);
 const CELL_SEL = "td, b, strong, small, .num, .badge, .hb-val, .ch-val, svg text";   // 叶子元素里带货币符号的才算
-const BLOCK_OF = (el) => el.closest("table, svg, .hb-list, .chart, .ch-table, .restock-list, .mlist, ul, .panel");
+const BLOCK_OF = (el) => el.closest("table, svg, .hb-list, .chart, .ch-table, .restock-list, .mlist, ul, .panel, .bill-card, .all-sum");   // .bill-card = 账单概览的卡片，.all-sum = 全部账单顶上的合计行：它们不在表格 / 列表 / 面板里，也要有自己的「块」，遮挡才生效
 function markCells(main) {
   main.querySelectorAll(CELL_SEL).forEach((el) => {
     if (el.closest("[data-money], [data-money-cell], [data-money-off], form, .kpi, .sum-main, .tcard, .crumb, nav, button, select, label") || el.hasAttribute("data-money-cell")) return;   // 看板大数字、表单、按钮、导航不在这里遮   // 看板大数字、表单、今日卡片另有处理
