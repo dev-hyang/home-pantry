@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.30", title: { zh: "全部账单：合计卡片上面不再多出一只眼睛", en: "All bills: no duplicate eye icon above the totals" }, items: [
+    { k: "fix", zh: "全部账单的三张合计小卡上面多了一只「隐藏金额」的眼睛，和页面右上角那只重复，已去掉（右上角那只照常管这页的金额）", en: "Removed the duplicate hide-amounts eye that appeared above the three totals cards; the one at the top right still controls this page" }
+  ] },
+
   { v: "2026-11-18.29", title: { zh: "全部账单：合计改成三张小卡，放在搜索框上面", en: "All bills: the totals are now three small cards above the search box" }, items: [
     { k: "better", zh: "「共 N 笔、应付、已付、余额」不再是搜索框下面的一行粗体字，改成应付 / 已付 / 余额三张小卡，放在搜索框上面；手机上也是并排三张", en: "The count, total due, paid and balance are now three small cards above the search box instead of a bold line below it; they stay side by side on phones" },
     { k: "better", zh: "「全部标为已核对」按钮挪到筛选条下面，不再夹在合计和搜索框中间", en: "The mark-all-verified button moved below the filters so it no longer sits between the totals and the search box" }
