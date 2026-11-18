@@ -7,7 +7,8 @@ import { aiReady, aiSettings, askText, providerOf, visionCapable } from "./ai.js
 import { KINDS as medKinds } from "../bills/medical.js";
 import { go, href } from "./router.js";
 import { state } from "./state.js";
-import { PRIVATE_KINDS, SCAN_SHAPE, needsConsent, routeScan } from "../bills/scan-lib.js";
+import { PRIVATE_KINDS, SCAN_SHAPE, needsConsent, onetimeFromScan, recurringFromScan, routeScan } from "../bills/scan-lib.js";
+import { Store } from "./store.js";
 import { suggestAssetLinks } from "../bills/asset-suggest.js";
 
 const MAX_IMAGES = 3;
@@ -238,6 +239,36 @@ export function scanNewBillBar() {
     <div class="af-status" role="status" aria-live="polite"></div></div>`;
 }
 
+const norm = (x) => String(x || "").trim().toLowerCase();
+/** 周期性：够了就直接建（疑似重复先问），成功 → 进详情页（?ai=1）；缺到期日 → 草稿交给向导（从第 2 步问）。返回 true = 已建好 / 已转交 */
+async function createRecurringFromScan(d, say) {
+  const B_ = B(), today = todayISO();
+  const { bill, draft } = recurringFromScan(d, { catIds: B_.CATEGORIES.map((c) => c.id), catName: (id) => String(t(B_.catOf(id).name)).split(" / ")[0], essential: (id) => B_.catOf(id).essential !== false, currency: Units.region.currency, today });
+  if (!bill) {   // 读不出下次到期日：把读到的放进向导草稿，从第 2 步（多久交一次）开始问
+    const n = String(Date.now()); draft.__n = n; draft.__sug = ""; draft.property_id = state.propertyId || ""; state.billDraft = draft;
+    say(t("到期日没读出来，打开向导补上这一项。")); go(`${href("bill", "new")}?type=recurring&n=${n}&step=2`); return true;
+  }
+  const hit = (state.bills || []).find((x) => x.active !== false && !x.ended_on && (norm(x.name) === norm(bill.name) || (bill.payee && norm(x.payee) === norm(bill.payee) && x.category === bill.category)));
+  if (hit && !window.confirm(t("已经有类似的账单「{name}」。确定 = 仍然新建一张；取消 = 打开已有的那张。", { name: hit.name }))) { go(href("bill", hit.id)); return true; }
+  const asset = suggestAssetLinks([{ id: "scan", name: bill.name, payee: bill.payee, category: bill.category, active: true }], state.assets)[0];
+  if (asset) bill.asset_id = asset.assetId;
+  if (state.propertyId && state.properties.length === 1) bill.property_id = state.propertyId;
+  const id = await Store.saveBill(bill);
+  document.dispatchEvent(new CustomEvent("bill-created", { detail: { id, via: "ai", kind: "recurring" } }));
+  return true;
+}
+/** 一次性：有机构名 + 至少一个金额就直接建（疑似重复先问），成功 → 进它的详情页；否则返回 false 退回一次性账单表单 */
+async function createOnetimeFromScan(d, kind, say) {
+  const K = MED()[kind] || MED().medical;
+  const row = onetimeFromScan(d, { kind, subIds: K.subs.map(([id]) => id), currency: Units.region.currency, visibility: K.visibility });
+  if (!row) { say(t("没读到机构名或金额，打开表单补上。")); return false; }
+  const hit = (state.medBills || []).find((x) => norm(x.provider) === norm(row.provider) && ((row.bill_ref && x.bill_ref === row.bill_ref) || (!row.bill_ref && (x.bill_date || x.service_date) === (row.bill_date || row.service_date) && num(x.patient_amount) === num(row.patient_amount))));
+  if (hit && !window.confirm(t("已经有类似的账单「{name}」。确定 = 仍然新建一张；取消 = 打开已有的那张。", { name: hit.provider }))) { go(`${href("bills", "onetime")}?bill=${hit.id}`); return true; }
+  const id = await Store.saveMedicalBill(row);
+  document.dispatchEvent(new CustomEvent("bill-created", { detail: { id, via: "ai", kind: "onetime" } }));
+  return true;
+}
+
 async function scanNewBill(input) {
   const bar = input.closest(".af-bar"), files = [...input.files].slice(0, MAX_IMAGES); input.value = "";
   if (!bar || !files.length) return;
@@ -258,15 +289,15 @@ async function scanNewBill(input) {
       "Return exactly: " + JSON.stringify(SCAN_SHAPE) ].join("\n");
     const d = parseJson(await askText(SYSTEM, user, { json: true, images, temperature: 0.1, maxTokens: 1800 }));
     const { type, kind } = routeScan(d);
-    if (type === "onetime" && PRIVATE_KINDS.includes(kind)) say(t("识别为一次性账单（{k}），正在打开表单…", { k: t(MED()[kind].name) })); else say(t("识别完成，正在打开表单…"));
-    go(type === "onetime" ? `${href("bills", "onetime")}?bill=new&kind=${encodeURIComponent(kind)}` : `${href("bill", "new")}?type=recurring&mode=full`);
-    const sel = type === "onetime" ? "#medBillForm" : "#billForm";
+    say(t("识别完成，正在创建账单…"));
+    if (type === "recurring" ? await createRecurringFromScan(d, say) : await createOnetimeFromScan(d, kind, say)) return;
+    // 缺必填项：不硬建，退回对应的表单 / 向导，把读到的填进去（周期性：向导从缺的那一步开始）
+    if (type === "recurring") return;   // createRecurringFromScan 已经把草稿放好并跳到向导
+    go(`${href("bills", "onetime")}?bill=new&kind=${encodeURIComponent(kind)}`);
     for (let i = 0; i < 50; i++) {
       await new Promise((r) => setTimeout(r, 100));
-      const form = $(sel); if (!form || form.dataset.id || form.elements.bill_id?.value) continue;
-      const def = KINDS[type === "onetime" ? "medbill" : "bill"], filled = [];
-      def.apply({ form, d, fill: makeFill(form, filled), isNew: true });
-      form.dataset.afPending = "1";   // 还没核对：离开页面时不自动保存
+      const form = $("#medBillForm"); if (!form || form.dataset.id) continue;
+      const filled = []; KINDS.medbill.apply({ form, d, fill: makeFill(form, filled), isNew: true }); form.dataset.afPending = "1";
       const st = form.closest("section")?.querySelector(".af-status");
       if (st) st.textContent = filled.length ? t("已填入 {n} 项：{list}。标黄带“？”的是推测，请核对后点保存。", { n: filled.length, list: filled.join("、") }) : t("没有识别到可以填的内容。换一张更清楚的图再试。");
       return;

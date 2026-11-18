@@ -323,3 +323,33 @@ test("向导拼出的账单：字段缺省值和整页表单一致，自动扣�
   const a = newDraft({ category: "membership", name: "Costco" }); a.next_due_on = "2027-01-10";
   assert.deepEqual(billFromDraft(a, ctx).reminder_days, [30, 7]);   // 年付默认提前 30 天、7 天
 });
+
+// ── 扫描结果 → 直接建账单 ──
+import { recurringFromScan, onetimeFromScan } from "../js/bills/scan-lib.js";
+const SCAN_OPTS = { catIds: ["electric", "insurance_auto", "other", "internet"], catName: (id) => ({ electric: "电费", insurance_auto: "车险", other: "其他账单", internet: "网络" }[id] || id), essential: () => true, currency: "USD", today: "2026-11-17" };
+
+test("扫描 → 周期性：有到期日就能直接建；金额 / 尾号 / 自动扣款 / 备注都带上", () => {
+  const { bill, missing } = recurringFromScan({ category: "insurance_auto", name: "Honda 车险", payee: "GEICO", amount: "215.50", frequency: "semiannual", due_date: "2027-01-15", account_last4: "x-9876", autopay: true, pay_url: "https://geico.example/pay", notes: "续保通知" }, SCAN_OPTS);
+  assert.deepEqual(missing, []);
+  assert.equal(bill.name, "Honda 车险"); assert.equal(bill.next_due_on, "2027-01-15"); assert.equal(bill.typical_amount, 215.5); assert.equal(bill.account_last4, "9876");
+  assert.equal(bill.autopay, true); assert.equal(bill.pay_channel, "autopay"); assert.equal(bill.pay_url, "https://geico.example/pay"); assert.equal(bill.notes, "续保通知"); assert.equal(bill.frequency, "semiannual");
+});
+
+test("扫描 → 周期性：变动金额的账单也留下信上的金额；月付从到期日取每月几号；名称缺用付款方", () => {
+  const { bill } = recurringFromScan({ category: "electric", payee: "ComEd", amount: 142.1, due_date: "2026-12-05" }, SCAN_OPTS);
+  assert.equal(bill.name, "ComEd"); assert.equal(bill.amount_type, "variable"); assert.equal(bill.typical_amount, 142.1); assert.equal(bill.due_day, 5); assert.equal(bill.frequency, "monthly");
+  assert.equal(bill.pay_channel, "online");
+});
+
+test("扫描 → 周期性：读不出到期日就不硬建，草稿交给向导；分类不认识当其他", () => {
+  const r = recurringFromScan({ category: "乱写", name: "神秘账单", amount: 10 }, SCAN_OPTS);
+  assert.equal(r.bill, null); assert.deepEqual(r.missing, ["due_date"]); assert.equal(r.draft.category, "other"); assert.equal(r.draft.name, "神秘账单"); assert.equal(r.draft.typical_amount, 10);
+});
+
+test("扫描 → 一次性：要有机构名和至少一个金额；日期 / 币种 / 小类不合格的丢掉；可见范围用传入的默认", () => {
+  const ok = onetimeFromScan({ provider: "Northwestern", patient: "Amy", billed_amount: 900, insurance_paid: 500, patient_amount: "400", due_on: "2026-12-10", bill_date: "乱写", subkind: "hospital", claim_ref: "C1" }, { kind: "medical", subIds: ["hospital", "lab"], currency: "USD", visibility: "private" });
+  assert.equal(ok.provider, "Northwestern"); assert.equal(ok.patient_amount, 400); assert.equal(ok.insurance_paid, 500); assert.equal(ok.bill_date, null); assert.equal(ok.due_on, "2026-12-10"); assert.equal(ok.visibility, "private"); assert.equal(ok.status, "open"); assert.equal(ok.subkind, "hospital");
+  assert.equal(onetimeFromScan({ patient: "Amy", billed_amount: 5 }, { kind: "medical", currency: "USD", visibility: "private" }), null);   // 没有机构名
+  assert.equal(onetimeFromScan({ provider: "X" }, { kind: "project", currency: "USD", visibility: "family" }), null);                       // 一个金额都没有
+  assert.equal(onetimeFromScan({ provider: "X", billed_amount: 5, subkind: "nope" }, { kind: "project", subIds: ["contractor"], currency: "USD", visibility: "family" }).subkind, null);
+});

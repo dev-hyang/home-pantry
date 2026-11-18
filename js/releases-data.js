@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.19", title: { zh: "扫描信件 / 账单：直接建好，打开这张账单给你核对", en: "Scan a letter or bill: the bill is created and opened for you to check" }, items: [
+    { k: "new", zh: "扫描信件或账单后不再停在一张表单里：读到的内容直接建成账单，并打开这张账单的页面；顶上写明「由扫描创建」，不对的地方点对应那一块的「编辑」，整张读错了点「撤销创建」", en: "After scanning a letter or bill you no longer land on a form: what was read becomes a bill and its page opens; a note says it came from a scan, each section has Edit for fixes, and Undo creation removes it if it was misread" },
+    { k: "better", zh: "读不出到期日时不乱建，会打开向导，已读到的名字、金额、付款方都带上，从缺的那一步开始问；已经有类似的账单时先问你是仍然新建还是打开已有的", en: "If the due date cannot be read nothing is guessed: the guide opens with what was read and asks from the missing step; if a similar bill already exists you are asked whether to create another or open the existing one" }
+  ] },
+
   { v: "2026-11-17.18", title: { zh: "添加周期性账单变成五步向导，完成后直接看到这张账单", en: "Adding a recurring bill is now a five-step guide that ends on the new bill" }, items: [
     { k: "new", zh: "添加周期性账单不再是一整页字段：一步一个问题——这是什么账单、多久交一次多少钱、怎么付、挂在哪、确认；选了分类就带出常用的频率和付款方式，名字也帮你起好", en: "Adding a recurring bill is no longer one long page of fields: one question per step (what it is, how often and how much, how it is paid, where it belongs, confirm); the category brings sensible defaults and a suggested name" },
     { k: "new", zh: "填每月几号，立刻显示「下次到期：…」；每一步都能上一步，已填的内容不会丢；返回键也是上一步", en: "Enter the day of the month and the next due date shows straight away; every step has Back, nothing you typed is lost, and the back gesture goes to the previous step" },

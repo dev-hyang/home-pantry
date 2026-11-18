@@ -540,9 +540,10 @@ onClearFilters("deal", clearAnd(() => { state.dealFilter = "all"; state.dealStag
 onClearFilters("bills", clearAnd(() => { Object.assign(state.billsFilter, FD.bills); clearUrlParams(["prop"]); }), () => changed(state.billsFilter, FD.bills));
 // 新建账单完成（向导 / AI 扫描）：先把数据读回来，再进这张账单的详情页（?new=1 = 显示「已创建」提示条；?ai=1 = 「AI 识别创建」）
 document.addEventListener("bill-created", async (e) => {
-  const { id, via } = e.detail || {}; if (!id) return;
-  state.skipAutosave = true; await refresh(); toast(t("已创建账单"));
-  go(`${href("bill", id)}?${via === "ai" ? "ai" : "new"}=1`, { replace: true });
+  const { id, via, kind } = e.detail || {}; if (!id) return;
+  state.skipAutosave = true; await refresh(); toast(via === "ai" ? t("已根据扫描创建账单，请核对") : t("已创建账单"));
+  if (kind === "onetime") go(`${href("bills", "onetime")}?bill=${id}`, { replace: true });   // 一次性账单：进它自己的详情页（⑩d 会补「AI 识别创建」提示条）
+  else go(`${href("bill", id)}?${via === "ai" ? "ai" : "new"}=1`, { replace: true });
 });
 onClearFilters("all", clearAnd(() => { Object.assign(state.allFilter, FD.all); clearUrlParams("*"); }), () => changed(state.allFilter, FD.all));
 onClearFilters("pay", clearAnd(() => Object.assign(state.payFilter, FD.pay)), () => changed(state.payFilter, FD.pay));   // 服务器分页：resetListPages 标过期、回第一页
