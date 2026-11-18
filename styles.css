@@ -4150,4 +4150,10 @@ form:not(.is-hoa) .hoa-only { display: none; }
 .amt-sub { border-top: 1px dotted var(--line); padding-top: 6px; } .amt-sub b { text-align: right; font-variant-numeric: tabular-nums; }
 .amt-pick .pick-row { display: flex; align-items: center; gap: 10px; } .amt-pick .pick-row > span { min-width: 0; }
 .amt-l { font-weight: 600; } .amt-sub .amt-l { font-weight: 500; }
-.amt-as { grid-template-columns: minmax(0, 1fr) minmax(0, 15em); }
+
+/* 特别摊派：下拉独占一整行（标题在上，下拉铺满，不越出表单） */
+.amt-as { display: block; } .amt-as .amt-l { display: block; margin-bottom: 4px; }
+.amt-as .amt-pick { width: 100%; } .amt-as .pick > summary { width: 100%; }
+.amt-as .pick-val { text-align: left; }
+.amt-as .pick-panel { left: 0; right: 0; width: auto; min-width: 0; max-width: 100%; }
+.amt-pick .as-none { width: 100%; box-sizing: border-box; text-align: left; background: none; border: 0; font: inherit; cursor: pointer; }

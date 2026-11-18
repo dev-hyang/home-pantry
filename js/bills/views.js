@@ -1,4 +1,5 @@
 /* 账单 B1 · 页面：概览、清单、记录、常用账单模板、账单整页表单（含缴费记录） */
+import { payTotal } from "./pay-total.js";
 import { changed } from "../core/clear-filters.js";
 import { dupOnce, normName } from "../core/item-match.js";
 import { copyOf, moreMenu } from "../core/more-menu.js";
@@ -413,16 +414,19 @@ function payFormPage(b, edit = null) {
 const checkedItems = (fe) => { const all = fe.as_item ? (fe.as_item.length === undefined ? [fe.as_item] : [...fe.as_item]) : []; const on = all.filter((x) => x.checked); return { ids: on.map((x) => x.value), sum: Math.round(on.reduce((s, x) => s + num(x.dataset.amt), 0) * 100) / 100 }; };
 /** 摊派下拉（多选）：本期之前到期的没缴期默认勾上，其余不勾；编辑时本笔已交的勾着。没有可选的期就不出现 */
 function assessDropdown(b, edit) {
-  const upto = monthEnd(edit?.due_on || b.next_due_on || todayISO()), own = edit ? state.assessItems.filter((x) => x.payment_id === edit.id) : [];
+  const own = edit ? state.assessItems.filter((x) => x.payment_id === edit.id) : [];
   const open = unpaidItems(b.id, state.assess, state.assessItems), name = (x) => state.assess.find((a) => a.id === x.assessment_id)?.name || "";
-  const rows = [...own.map((x) => [x, true]), ...open.map((x) => [x, !edit && (x.due_on || "") <= upto])].sort((p, q) => (p[0].due_on || "").localeCompare(q[0].due_on || ""));
+  const rows = [...own.map((x) => [x, true]), ...open.map((x) => [x, false])].sort((p, q) => (p[0].due_on || "").localeCompare(q[0].due_on || ""));
   if (!rows.length) return "";
   const on = rows.filter(([, c]) => c), sum = Math.round(on.reduce((s, [x]) => s + num(x.amount), 0) * 100) / 100;
   return `<div class="amt-row amt-as"><span class="amt-l">${t("特别摊派")}</span>
     <details class="pick amt-pick"><summary><span class="pick-val ${on.length ? "" : "is-empty"}" id="asSummary">${asSummaryText(on.length, sum, b.currency)}</span></summary>
-      <div class="pick-panel" role="group" aria-label="${esc(t("这次交的特别摊派"))}">${rows.map(([x, c]) => `<label class="pick-row check-inline"><input type="checkbox" name="as_item" value="${esc(x.id)}" data-amt="${num(x.amount)}" ${c ? "checked" : ""}><span>${esc(fmtDate(x.due_on))} · ${esc(name(x))} · ${esc(t(x.kind === "payoff" ? "一次性结清" : "分期"))} · <b>${mny(x.amount, b.currency)}</b></span></label>`).join("")}</div></details></div>`;
+      <div class="pick-panel" role="group" aria-label="${esc(t("这次交的特别摊派"))}"><button type="button" class="pick-row as-none" data-as-none>${t("未勾选")} <small class="muted">${t("这次不交摊派")}</small></button>${rows.map(([x, c]) => `<label class="pick-row check-inline"><input type="checkbox" name="as_item" value="${esc(x.id)}" data-amt="${num(x.amount)}" ${c ? "checked" : ""}><span>${esc(fmtDate(x.due_on))} · ${esc(name(x))} · ${esc(t(x.kind === "payoff" ? "一次性结清" : "分期"))} · <b>${mny(x.amount, b.currency)}</b></span></label>`).join("")}</div></details></div>`;
 }
-const asSummaryText = (n, sum, cur) => (n ? t("{n} 期 · {m}", { n, m: mny(sum, cur) }) : t("这次不交摊派"));
+const asSummaryText = (n, sum, cur) => (n ? t("{n} 期 · {m}", { n, m: mny(sum, cur) }) : t("未勾选"));
+/** 点开下拉：有勾选的，列表滚到第一个勾选的那一期；没勾选的，从第一期往下 */
+document.addEventListener("toggle", (e) => { const d = e.target; if (!d.matches?.("details.amt-pick") || !d.open) return; const panel = d.querySelector(".pick-panel"), first = panel.querySelector("input[name=as_item]:checked")?.closest(".pick-row"); panel.scrollTop = first ? Math.max(0, first.offsetTop - panel.offsetTop - 4) : 0; }, true);
+document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-as-none]"); if (!b) return; const f = b.closest("form"); f.querySelectorAll("input[name=as_item]").forEach((x) => { x.checked = false; }); recalcPayTotal(f); });
 /** 缴费表单的「金额」一组：本期金额（HOA 拆成单元费 + 车位费）+ 滞纳金 + 手续费 + 税 + 特别摊派 = 总金额（实时加好） */
 function amountGroup(b, edit) {
   const cur = b.currency || Units.region.currency, n2 = (x) => num(x).toFixed(2);

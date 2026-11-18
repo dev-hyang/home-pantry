@@ -2,6 +2,16 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.22", title: { zh: "修复：有缴费记录的账单点开没反应；一次性账单保存报错", en: "Fix: bills with payments did not open; saving a one-time bill failed" }, items: [
+    { k: "fix", zh: "点开有缴费记录的账单（比如 HOA 月费）没反应，是上个版本漏了一处引用造成的，现在修好", en: "Opening a bill that has payments (for example the HOA fee) did nothing because a reference was missing in the previous version; fixed" },
+    { k: "fix", zh: "一次性账单的保存、记付款、新增就诊人也受同类遗漏影响，已一并修好", en: "Saving a one-time bill, logging a payment and adding a patient were hit by the same kind of omission and are fixed too" }
+  ] },
+
+  { v: "2026-11-18.21", title: { zh: "记缴费的特别摊派下拉：独占一行、默认不勾选、点开定位到第一个勾选的期", en: "Payment form assessment dropdown: full row, nothing ticked by default, opens at the first ticked row" }, items: [
+    { k: "better", zh: "「特别摊派」下拉独占一整行，不会越出表单；默认「未勾选」（以前会自动勾上本期到期的），列表第一项是「未勾选 · 这次不交摊派」，点它就清空", en: "The Special assessment dropdown takes a full row and stays inside the form; it defaults to None selected (it used to tick what was due) and the first entry clears the selection" },
+    { k: "better", zh: "点开下拉：有勾选的，列表停在第一个勾选的那一期；没勾选的，从第一期往下看", en: "Opening the dropdown: if some rows are ticked it lands on the first ticked one, otherwise it starts from the first row" }
+  ] },
+
   { v: "2026-11-18.20", title: { zh: "记缴费的金额合成一组并加好总金额；摊派改成下拉；HOA 金额拆成单元费 + 车位费；缴费记录行显示总金额", en: "Payment amounts grouped with a live total; assessments as a dropdown; HOA dues split into unit and parking; payment rows show the total" }, items: [
     { k: "better", zh: "记缴费 / 编辑缴费的金额放进一个「金额」组：本期金额（或 HOA 的单元费 + 车位费）、滞纳金、手续费、税、特别摊派，最后一行是加好的「总金额」，改任何一项都实时更新；所有周期性账单都一样", en: "Log / edit payment now has one Amount group: amount (or HOA unit + parking), late fee, service fee, tax and special assessment, ending in a live Total; the same for every recurring bill" },
     { k: "better", zh: "「这次交的特别摊派」改成下拉（可多选），显示「几期 · 金额」；缴费记录列表和账单页里每一行显示的是总金额，明细写在下面一行小字里", en: "The assessment picker is now a multi-select dropdown showing rows · amount; payment rows in the history and on the bill page show the total, with the breakdown on the line below" },

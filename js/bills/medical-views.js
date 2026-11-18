@@ -5,7 +5,7 @@ import { assetSelectHtml } from "./asset-ui.js";
 import { copyOf } from "../core/more-menu.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { esc, fmtDate, money, num, toast, todayISO } from "../core/util.js";
+import { $, esc, fmtDate, money, num, toast, todayISO } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { go, href } from "../core/router.js";
 
