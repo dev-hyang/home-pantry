@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.32", title: { zh: "买卖计划：问咩咩帮你比较候选、想出价思路、补充看房 / 看车清单", en: "Buy / sell plans: ask the assistant to compare candidates, think through an offer and add to your checklist" }, items: [
+    { k: "new", zh: "计划页底部有三个「问咩咩」：比较候选的取舍、出价 / 谈价思路、补充看房 / 看车要查的地方；没填 AI 密钥时变成「复制提示词」", en: "The bottom of a plan has three Ask buttons: compare the candidates, offer or negotiation strategy, and extra things to check; without an AI key they become Copy prompt" },
+    { k: "better", zh: "只有你点按钮才会发出内容；发出的只有计划里的候选名称、价格、打分、对比字段、优缺点和出价，不含地址和链接", en: "Nothing is sent unless you tap a button; only candidate names, prices, scores, comparison fields, pros, cons and offers are included, never addresses or links" }
+  ] },
+
   { v: "2026-11-17.31", title: { zh: "买卖计划：选定一个候选，一键建好房产 / 车辆并开始买入清单", en: "Buy / sell plans: pick a candidate and create the property or car with its buying checklist in one tap" }, items: [
     { k: "new", zh: "候选卡片上的「就买这套 / 就买这辆」：新建房产（交易中 · 买入）或车辆（选购中），带上名称、地址、年款、价格，并开始对应的买入清单", en: "The Buy this one button on a candidate creates the property (Buying) or car (Shopping) with its name, address, year and price, and starts the matching checklist" },
     { k: "better", zh: "选定后计划和候选自动标成「已买到 / 拿下了」；点按钮要再点一次确认，避免误建", en: "The plan and candidate are then marked Bought / Won; the button asks for a second tap so nothing is created by accident" }

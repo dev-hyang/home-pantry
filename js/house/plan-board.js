@@ -8,6 +8,7 @@ import { $, armed, confirmDelete, esc, fmtDate, money, num, todayISO, toast } fr
 import { lang, t } from "../core/i18n.js";
 import { pricesOk, priceInput } from "../core/finance-access.js";
 import { openDeal, openVehicleDeal, startDeal } from "./deals.js";
+import { askInline } from "../core/ask.js";
 const L = (zh, en) => (lang === "en" ? en : zh);
 
 export const PLAN_STATUS = { active: ["进行中", "In progress"], won: ["已买到", "Bought"], dropped: ["放弃了", "Dropped"] };
@@ -109,6 +110,33 @@ function compareTable(plan, cands) {
     ${row(t("优点"), (c) => esc(c.pros || "—"))}${row(t("缺点 / 担心的"), (c) => esc(c.cons || "—"))}</tbody></table></div></section>`;
 }
 
+/** 给咩咩的上下文：计划预算 + 每个候选的名称、价格、打分、对比字段、优缺点、出价（不带地址 / 链接 / 备注） */
+export function planContext(plan, cands) {
+  const fields = DETAIL_FIELDS[plan.kind], region = L("美国伊利诺伊州", "Illinois, USA");
+  const lines = [L("地区：{r}", "Region: {r}").replace("{r}", region), `${lab({ k: plan.kind === "buy_home" ? ["买房", "Buying a home"] : ["买车", "Buying a car"] }, "k")}`];
+  if (plan.budget != null && pricesOk()) lines.push(L(`预算上限 ${money(num(plan.budget))}`, `Budget cap ${money(num(plan.budget))}`));
+  cands.forEach((c, i) => {
+    const d = c.details || {}, facts = fields.filter(([k]) => d[k] != null && d[k] !== "").map(([k, nm]) => `${lab({ x: nm }, "x")} ${d[k]}`);
+    const offers = offersOf(c.id).map((o) => `${o.offered_on} ${pricesOk() ? money(num(o.amount)) : ""}${o.counter_amount != null && pricesOk() ? ` → ${money(num(o.counter_amount))}` : ""} (${lab(OFFER_OUTCOME, o.outcome)})`);
+    lines.push([`${L("候选", "Candidate")} ${i + 1}: ${c.name}`, lab(CAND_STATUS, c.status), c.price != null && pricesOk() ? money(num(c.price)) : "", c.score ? `${c.score}/5` : "", ...facts,
+      c.pros ? `${L("优点", "Pros")}: ${c.pros}` : "", c.cons ? `${L("缺点", "Cons")}: ${c.cons}` : "", offers.length ? `${L("出价", "Offers")}: ${offers.join("; ")}` : ""].filter(Boolean).join(" | "));
+  });
+  return lines;
+}
+/** AI 帮手（沿用「问咩咩」通道：没填 key 时是复制提示词；要不要发出去由用户点按钮决定） */
+function aiHelpers(plan, cands) {
+  const isHome = plan.kind === "buy_home", ctx = () => planContext(plan, candsOf(plan.id));
+  const asks = [];
+  if (cands.length >= 2) asks.push({ id: `plan-cmp-${plan.id}`, title: t("比较候选"), context: ctx,
+    question: isHome ? t("帮我比较这几套房：各自的取舍、适合什么情况，看房时还该问卖家 / 经纪人什么？") : t("帮我比较这几辆车：各自的取舍、适合什么情况，看车时还该问卖家 / 经销商什么？") });
+  if (cands.length >= 1) asks.push({ id: `plan-offer-${plan.id}`, title: t("出价思路"), context: ctx,
+    question: isHome ? t("按这个计划，我该怎么想出价：价格区间、定金、要保留哪些条件、什么时候该放手？") : t("按这个计划，我该怎么谈价：先报多少、怎么还价、该看哪些总价（含税费）、什么时候该放手？") });
+  asks.push({ id: `plan-view-${plan.id}`, title: t("补充看房 / 看车清单"), context: ctx,
+    question: isHome ? t("按我的预算和候选，在指南的看房清单之外，我还该特别检查哪些地方？") : t("按我的候选，在指南的看车清单之外，我还该特别检查哪些地方？") });
+  return `<section class="section plan-ai"><div class="section-head"><h3>🤖 ${t("问咩咩")}</h3><p>${t("基于这个计划里的候选（不含地址和链接）；仅供参考，不是法律或财务建议")}</p></div>
+    ${asks.map((a) => `<div class="panel plan-ai-item"><b>${esc(a.title)}</b>${askInline(a)}</div>`).join("")}</section>`;
+}
+
 export function planPageHtml(id) {
   const plan = (state.plans || []).find((p) => p.id === id);
   if (!plan) return `<section class="section"><div class="panel empty"><strong>${t("找不到这个计划")}</strong><p><a class="btn btn-primary" href="${esc(href("house", "plan"))}">${t("回到买卖计划")}</a></p></div></section>`;
@@ -127,6 +155,7 @@ export function planPageHtml(id) {
     ${cands.length ? "" : `<div class="panel empty"><strong>${t("还没有候选")}</strong>${t("看到不错的就加进来，打分、写优缺点；两个以上就能并排对比。")}</div>`}
     ${compareTable(plan, cands)}
     <div class="plan-cands">${cands.map((c) => (state.planEdit?.type === "cand" && state.planEdit.id === c.id ? candFormHtml(plan) : candCard(plan, c))).join("")}</div>
+    ${aiHelpers(plan, cands)}
   </section>`;
 }
 

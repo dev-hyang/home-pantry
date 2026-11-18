@@ -3986,3 +3986,6 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
   .plan-table thead th { border-top: 0; }
   .plan-table tbody th { font-weight: 600; color: var(--muted); min-width: 110px; }
 }
+
+.plan-ai-item { margin-bottom: 10px; }
+.plan-ai-item .ask-inline { margin-top: 6px; }
