@@ -66,7 +66,7 @@ import { loadNetWorth, maybeAutoSnapshot } from "./bills/nw-logic.js";   // 净�
 import { initDebts, viewDebts } from "./bills/debts.js";
 import "./bills/finance-alerts.js";   // 财务层面的提醒（余额太久没更新、快照没存上、借贷流水没关联）
 import { initNetWorth, viewNetWorth } from "./bills/net-worth.js";   // 财务 → 分析 → 净资产（迁移 059）   // 财务 → 借贷   // 借贷（迁移 058）：启动时读进内存，也注册借贷提醒
-import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, maintFilter, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets, viewVehicles } from "./house/assets.js";
+import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, maintFilter, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
 import { fixAction, runFix, viewFix } from "./house/fix.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
@@ -243,7 +243,7 @@ const VIEWS = {
   quick:    () => viewQuick(),   // #/quick：编辑今日页的快捷操作
   ai:       () => viewAi(),
   pantry:   { scan: () => viewScan(), overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
-  house:    { overview: viewHouse, supplies: viewHouseSupplies, assets: viewAssets, tasks: viewTasks, vehicles: viewVehicles, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
+  house:    { overview: viewHouse, supplies: viewHouseSupplies, assets: viewAssets, tasks: viewTasks, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix },
   bills:    { overview: viewBillsHome, all: viewAllBills, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
   shopping: () => viewShopping(),

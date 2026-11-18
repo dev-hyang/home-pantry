@@ -126,7 +126,7 @@ export function viewFix() {
   const veh = isVehicle(a);
   const pid = a?.property_id || state.propertyId, pn = pid ? propertyName(pid) : "";
   const crumb = crumbNav([{ href: href("house"), label: t("房屋") }, ...(pn && !isVehicle(a) ? [{ href: `${href("house", "overview")}?prop=${pid}`, label: pn, icon: "🏠" }] : []),
-    { href: isVehicle(a) ? href("house", "vehicles") : `${href("house", "assets")}${pid ? `?prop=${pid}` : ""}`, label: isVehicle(a) ? t("车辆") : t("设备保养") }, ...(a ? [{ href: href("asset", a.id), label: assetName(a), icon: a.t?.icon || "⚙️" }] : []), { label: t("出了问题？"), icon: "🩺" }]);
+    ...(isVehicle(a) ? [] : [{ href: `${href("house", "assets")}${pid ? `?prop=${pid}` : ""}`, label: t("设备保养") }]), ...(a ? [{ href: href("asset", a.id), label: assetName(a), icon: a.t?.icon || "⚙️" }] : []), { label: t("出了问题？"), icon: "🩺" }]);
   const opt = (x) => `<option value="${esc(x.id)}" ${x.id === f.asset ? "selected" : ""}>${x.t?.icon || "⚙️"} ${esc(assetName(x))}${isFixture(x) && unitsText(x) ? `（${esc(unitsText(x, 2))}）` : x.location ? `（${esc(t(x.location))}）` : ""}</option>`;
   const list = candidates();
   const info = a ? [a.t ? t(a.t.name) : "", [a.brand, a.model].filter(Boolean).join(" "), a.ageYears != null ? t("已用 {n} 年", { n: Math.floor(a.ageYears) }) : "", a.lastService ? t("上次保养 {d}", { d: String(a.lastService).slice(0, 10) }) : "", isFixture(a) ? unitsText(a) : ""].filter(Boolean).join(" · ") : "";

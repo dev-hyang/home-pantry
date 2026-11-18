@@ -8,7 +8,7 @@ import { SECTIONS, href } from "./core/router.js";
 import { esc, inSpace } from "./core/util.js";
 import { t } from "./core/i18n.js";
 import { alertsOf } from "./core/logic.js";
-import { activeVehicles, assetName, assetsDueCount, myAssets, myVehicles, vehStatus } from "./house/assets.js";
+import { activeVehicles, assetName, assetsDueCount, myAssets, myVehicles, pastVehicles, pastVehiclesSection, vehStatus } from "./house/assets.js";
 import { monthTasks, undoneThisMonth } from "./house/tasks.js";
 import { dealSubLabel, dealTasks, historyLabel, openDeal, routeDeal } from "./house/deals.js";
 import { SETTING_SECTIONS } from "./settings/views.js";
@@ -144,8 +144,8 @@ export function viewPropertyList() {
     ${ended.length ? `<details class="asset-ended"><summary>${t("已结束的房产")} <small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small></summary><div class="hv-grid">${ended.map(houseCard).join("")}</div></details>` : ""}
     ${archived.length ? `<details class="asset-ended"><summary>${t("已归档的房产")} <small>${t("{n} 套，不再持有或租住；资料、账单、设备都保留，可随时恢复", { n: archived.length })}</small></summary><div class="hv-grid">${archived.map(archivedCard).join("")}</div></details>` : ""}</section>
     <section class="hv-sec" aria-label="${esc(t("汽车"))}"><div class="section-head"><h3>🚗 ${t("汽车")}</h3></div>
-    <div class="hv-grid">${vehicles.map(vCard).join("")}${addCard(`href="${esc(href("asset", "new"))}?type=vehicle_gas&wiz=1"`, t("添加车辆"), t("油车、混动、纯电都可以"))}</div>
-    <a class="tmore asset-more" href="${esc(href("house", "vehicles"))}">${pastN ? t("车辆总览、保养时间表（另有 {n} 辆历史车辆）", { n: pastN }) : t("车辆总览、保养时间表、本地须知")} ›</a></section>
+    <div class="hv-grid">${vehicles.map(vCard).join("")}${addCard(`href="${esc(href("asset", "new"))}?type=vehicle_gas&wiz=1"`, t("添加车辆"), t("记下你已经有的车：油车、混动、纯电都可以"))}${addCard('data-action="veh-buy-start"', t("开始买车流程"), t("还在选车、准备买：跟着清单一步步走"))}</div>
+    ${pastVehiclesSection(pastVehicles())}</section>
     ${houseTodoBoard()}
   </section>`;
 }
@@ -228,7 +228,7 @@ export function crumb(r) {
   const vehDeal = r.section === "house" && r.sub === "deal" && q.get("asset") ? state.assetsEnriched.find((a) => a.id === q.get("asset")) : null;
   if (vehDeal) {
     const dealHref_ = `${subHref}?asset=${encodeURIComponent(vehDeal.id)}${q.get("deal") ? `&deal=${encodeURIComponent(q.get("deal"))}` : ""}`;
-    const vparts = [{ href: href("house"), label: t(sec.name) }, { href: href("house", "vehicles"), label: t("车辆"), icon: "🚗" }, { href: href("asset", vehDeal.id), label: assetName(vehDeal) }];
+    const vparts = [{ href: href("house"), label: t(sec.name) }, { href: href("asset", vehDeal.id), label: assetName(vehDeal) }];
     const dealRoot = `${subHref}?asset=${encodeURIComponent(vehDeal.id)}`;
     if (hist) { vparts.push({ href: dealRoot, label: curLabel }); if (dsec) vparts.push({ href: dealHref_, label: hist }, { label: dsec }); else vparts.push({ label: hist }); }
     else if (dsec) vparts.push({ href: dealHref_, label: curLabel }, { label: dsec }); else vparts.push({ label: curLabel });

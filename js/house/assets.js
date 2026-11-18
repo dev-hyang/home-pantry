@@ -240,7 +240,7 @@ export function careCard(key, { open = false, ask = null } = {}) {
 /** 设备：房屋 / 房产 / 设备保养 / 设备名；车辆：房屋 / 车辆 / 车名（固定层级，不随“从哪个页面进来”变） */
 const assetBase = (a, veh) => {
   const pid = a?.property_id || state.propertyId, pn = pid ? propertyName(pid) : "";
-  return veh ? [{ href: href("house"), label: t("房屋") }, { href: href("house", "vehicles"), label: t("车辆"), icon: "🚗" }]
+  return veh ? [{ href: href("house"), label: t("房屋") }]
     : [{ href: href("house"), label: t("房屋") }, ...(pn ? [{ href: `${href("house", "overview")}?prop=${pid}`, label: pn, icon: "🏠" }] : []), { href: `${href("house", "assets")}${pid ? `?prop=${pid}` : ""}`, label: t("设备保养") }];
 };
 const assetTrail = (a, _root, hubHref) => [...assetBase(a, isVehicle(a)), { href: hubHref, label: assetName(a), icon: a.t?.icon || "⚙️" }];
@@ -346,29 +346,8 @@ function retiredSection(list) {
 }
 
 /* ── 车辆页：家庭的所有车（不分房产），每辆的保养到期、证照与保险 ── */
-export function viewVehicles() {
-  const list = activeVehicles(), past = pastVehicles();
-  const alerts = assetAlerts(list.filter((a) => V().inService(a)));
-  const region = state.houseProfile?.region || (Units.region.system === "us" ? "na" : "cn");
-  const notes = V().REGION_NOTES[region] || [];
-  return `
-    <section class="section">
-      <div class="section-head"><p>${list.length ? t("{n} 辆", { n: list.length }) : ""}</p>
-        <div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="veh-buy-start">${t("开始买车流程")}</button>
-          <a class="btn btn-primary" href="${href("asset", "new")}?type=vehicle_gas&wiz=1">${t("添加车辆")}</a></div></div>
-      ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.map((a) => { const b = alertBadge(a); return dotRow({ cls: b.cls, nameHtml: `<a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>`,
-        badge: { label: a.followUp ? t(C().RESULTS[a.followUp.result]) : a.service === "overdue" ? t("逾期") : a.service === "due" ? t("保养") : t("保修"), cls: b.cls }, detail: alertText(a),
-        primary: { href: `${href("asset", a.id)}?log=1`, label: t("记保养") }, menu: [{ label: t("详情"), href: href("asset", a.id) }], ask: assetAsk(a) }); }).join("")}</ul></div>` : ""}
-    </section>
-    ${list.length ? `<section class="section"><div class="asset-grid veh-grid">${list.map(vehicleCard).join("")}</div></section>`
-      : `<section class="section"><div class="panel empty"><strong>${past.length ? t("没有在用的车辆") : t("还没有车辆档案")}</strong>${t("记下年款、车牌、里程和动力类型，按月或按里程提醒机油、轮胎、刹车油、12V 电瓶等；牌照、排放、保险到期也会提醒。油车和电车用不同的保养模板。")}
-        <p><a class="btn btn-primary" href="${href("asset", "new")}?type=vehicle_gas&wiz=1">${t("添加油车 / 混动")}</a> <a class="btn btn-ghost" href="${href("asset", "new")}?type=vehicle_ev&wiz=1">${t("添加纯电 / 插混")}</a></p></div></section>`}
-    ${pastVehiclesSection(past)}
-    ${notes.length ? `<section class="section"><div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("本地须知")}</h3><ul class="tips">${notes.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></div></section>` : ""}`;
-}
-
 /** 已卖出 / 已归还的车：一行一辆，点开还能看档案、保养记录和当时的交易清单 */
-function pastVehiclesSection(past) {
+export function pastVehiclesSection(past) {
   if (!past.length) return "";
   return `<section class="section"><details class="panel ref-panel"><summary><b>${t("历史车辆")}</b><small>${t("{n} 辆，已卖出或已归还；档案和保养记录保留", { n: past.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
     <ul class="restock-list hist-list ref-body">${past.map((a) => { const v = a.vehicle || {}; return `<li>
@@ -523,7 +502,7 @@ export function leaveAsset(changed) {
   const q = state.route?.q, inSection = !!(q && (q.get("sec") || q.get("log") === "1"));
   if (inSection && state.prevRoute) history.back();
   else if (state.prevHash && state.prevRoute) go(state.prevHash);
-  else go(href("house", state.route?.id && isVehicle(state.assets.find((x) => x.id === state.route.id)) ? "vehicles" : "assets"), { replace: true });
+  else go(state.route?.id && isVehicle(state.assets.find((x) => x.id === state.route.id)) ? href("house") : href("house", "assets"), { replace: true });
 }
 
 function typeOptions(selected, kind) {
@@ -649,7 +628,7 @@ export function viewAssetForm() {
   };
   const tool = v.kind === "tool", veh = v.kind === "vehicle";
   // 面包屑根：进来之前的页面（注意事项 / 房屋…），没有就回设备档案或车辆列表
-  const root = { href: state.prevRoute && state.prevHash ? state.prevHash : href("house", veh ? "vehicles" : "assets"), label: state.prevRoute ? t(SECTIONS[state.prevRoute.section]?.name || "上一页") : veh ? t("车辆") : t("设备档案") };
+  const root = { href: state.prevRoute && state.prevHash ? state.prevHash : veh ? href("house") : href("house", "assets"), label: state.prevRoute ? t(SECTIONS[state.prevRoute.section]?.name || "上一页") : veh ? t("房屋") : t("设备档案") };
   const d = (x) => esc(x ?? "");
   const thisYear = new Date().getFullYear();
   const cur = Units.region.currency;
@@ -903,7 +882,14 @@ function vehicleOverview(a, root) {
       ${tile(`${href("house", "supplies")}?veh=${a.id}`, "🧰", t("汽车房屋消耗品"), low ? t("{n} 项要补货", { n: low }) : mine.length ? t("{n} 种", { n: mine.length }) : t("还没有记录"), t("这辆车用的机油、雨刮、冰铲等"))}
       ${tile(`${href("house", "fix")}?asset=${a.id}`, "🩺", t("出了问题？"), nFix ? t("{n} 个常见小毛病", { n: nFix }) : "", t("先看常见小毛病，或让咩咩分析"))}
     </div>
+    ${vehNotesHtml()}
   </section>`;
+}
+/** 本地须知（按地区）：原来在「房屋 / 车辆」列表页底部，现在放进每辆车概览页的最底部（折叠，不占版面） */
+function vehNotesHtml() {
+  const region = state.houseProfile?.region || (Units.region.system === "us" ? "na" : "cn"), notes = V().REGION_NOTES[region] || [];
+  return notes.length ? `<section class="section"><details class="panel ref-panel veh-notes"><summary><b>${t("本地须知")}</b><small>${t("牌照、年检、保险等当地规定")}</small><span class="mch" aria-hidden="true">›</span></summary>
+    <ul class="tips ref-body">${notes.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></details></section>` : "";
 }
 /** 车辆资料：每个分区一张卡（完成度 + 摘要 + 编辑），和房屋资料同一种样式 */
 function vehicleProfile(a, root) {

@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.28", title: { zh: "取消「房屋 / 车辆」列表页：车辆都在房屋首页的「汽车」区", en: "The Home / Vehicles list page is gone: vehicles live in the Cars section on the Home page" }, items: [
+    { k: "better", zh: "不再有单独的车辆列表页：房屋首页的「汽车」区就是入口，旧链接、书签会自动回到房屋首页", en: "There is no separate vehicles list page any more: the Cars section on the Home page is the entry, and old links and bookmarks land on Home" },
+    { k: "better", zh: "「添加车辆」和「开始买车流程」两个入口并排放在「汽车」区；已卖出 / 已归还的车折叠在「历史车辆」里", en: "Add vehicle and Start buying a car sit side by side in the Cars section; sold or returned vehicles are folded under Past vehicles" },
+    { k: "better", zh: "本地须知（牌照、年检、保险等当地规定）移到每辆车页面的最底部；车辆的保养提醒只留在房屋首页的待办里", en: "Local notes (plates, inspections, insurance rules) moved to the bottom of each vehicle page; vehicle service reminders now live only in the Home page to-do list" }
+  ] },
+
   { v: "2026-11-17.27", title: { zh: "账单行再优化：估算写在金额旁、信息不拆行、标志放名称后；所有账单列表一致", en: "Bill rows polished: estimate beside the amount, details never split, flags after the name; same in every bill list" }, items: [
     { k: "better", zh: "估算的金额写成「（估算）$123.22」，在金额左边同一行，不再放到金额下面", en: "Estimated amounts read \u201c(est.) $123.22\u201d on the same line, to the left of the amount, instead of underneath" },
     { k: "better", zh: "所属资产 / 患者后面直接接到期日；这一行的每一项都不会被拆成两行，放不下时只在「·」后面换到下一行", en: "The asset or patient is followed straight by the due date; no item on that line is split across two lines, and when space runs out it wraps only after a dot" },

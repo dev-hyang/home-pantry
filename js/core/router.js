@@ -29,6 +29,7 @@ export function parseRoute(hash = location.hash) {
   const parts = path.split("/").filter(Boolean).map(decodeURIComponent);
   if (parts[0] === "gear") parts.splice(0, 1, "pantry", "gear");
   if (parts[0] === "scan") parts.splice(0, 1, "pantry", "scan");   // 2026-11-15：录入购物搬到 储藏 / 录入购物；旧链接、已保存的快捷操作照旧能用
+  if (parts[0] === "house" && parts[1] === "vehicles") parts.splice(1, 1);   // 「房屋 / 车辆」列表页已取消（车辆在房屋首页的「汽车」区）：旧链接、书签、快捷操作都回房屋首页
   if (parts[0] === "finance") parts[0] = "bills";   // 新名字的网址 #/finance/… = #/bills/…（内部 id 不改，旧链接零迁移）   // 旧链接 #/gear → 储藏 / 家居耐用品
   const query = new URLSearchParams(qs || "");
   if (parts[0] === "bills" && parts[1] === "spend" && query.get("tab") === "import") { parts[1] = "statements"; query.delete("tab"); }   // 银行导入搬到 财务 → 对账单（花费和收入共用）

@@ -225,7 +225,7 @@ function homeCard(fin) {
       rows.push(row(`${href("house", "overview")}?prop=${encodeURIComponent(pr.id)}`, "🏠", esc(pr.name || t("房产")), n ? t("{n} 件要处理", { n }) : t("概览"), n > 0));
     }
     const vehicles = (state.assetsEnriched || []).filter((a) => !a.retired && !a.property_id).length;
-    if (vehicles) rows.push(row(href("house", "vehicles"), "🚗", t("车辆"), t("{n} 辆", { n: vehicles }), false));
+    if (vehicles) rows.push(row(href("house"), "🚗", t("车辆"), t("{n} 辆", { n: vehicles }), false));
     rows.push(row(`${href("house")}?todo=season`, "📅", t("季节任务")), row(href("house", "fix"), "🩺", t("东西坏了")), row(href("house", "profile"), "📋", t("房屋资料")), row(href("house", "supplies"), "🧰", t("汽车房屋消耗品")));
   }
   if (!fin && state.billsEnabled) {   // 账单全家可见：这里只给笔数，不给金额
@@ -344,7 +344,7 @@ export const PRESETS = () => {
     G ? [href("pantry", "gear"), "🧳", t("家居耐用品")] : null, G ? [`${href("item", "new")}?space=gear`, "🧳", t("添加家居耐用品")] : null,
     // 房屋（日常运营）
     H ? [href("house"), "🏠", t("房屋")] : null, H ? [href("house", "assets"), "⚙️", t("设备保养")] : null, H ? [href("asset", "new"), "🛠️", t("添加设备")] : null, H ? [href("house", "tasks"), "📅", t("季节任务")] : null,
-    H ? [href("house", "deal"), "📝", t("交易")] : null, H ? [href("house", "vehicles"), "🚗", t("车辆")] : null, H ? [href("house", "profile"), "📋", t("房屋资料")] : null,
+    H ? [href("house", "deal"), "📝", t("交易")] : null, H ? [href("house"), "🚗", t("车辆")] : null, H ? [href("house", "profile"), "📋", t("房屋资料")] : null,
     H ? [`${href("pantry", "inventory")}?space=house`, "🧰", t("汽车房屋消耗品")] : null, H ? [`${href("item", "new")}?space=house`, "➕", t("添加汽车房屋消耗品")] : null,
     // 财务（收支 · 账户与资产 · 借贷 · 预算与计划 · 分析）；没有财务权限的那几页由 quickOk 去掉
     B ? [href("bills"), "💰", t("财务")] : null, B ? [href("bills", "overview"), "📊", t("财务概览")] : null,

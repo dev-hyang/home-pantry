@@ -240,7 +240,7 @@ export function viewDeal() {
   const q = state.route?.q;
   const assetId = q?.get("asset") || null;
   const veh = assetId ? state.assetsEnriched.find((a) => a.id === assetId && isVehicle(a)) || null : null;
-  if (assetId && !veh) return `<section class="section"><div class="panel empty"><strong>${t("找不到这辆车")}</strong><p><a class="btn btn-primary" href="${href("house", "vehicles")}">${t("回到车辆")}</a></p></div></section>`;
+  if (assetId && !veh) return `<section class="section"><div class="panel empty"><strong>${t("找不到这辆车")}</strong><p><a class="btn btn-primary" href="${href("house")}">${t("回到房屋")}</a></p></div></section>`;
   const p = veh ? null : currentProp();
   if (!veh && !p) return `<section class="section"><div class="panel empty"><strong>${t("还没有房产")}</strong></div></section>`;
   const mine = (d) => (veh ? d.asset_id === veh.id : d.property_id === p.id);
