@@ -9,6 +9,7 @@
  * - 金额恒等：每行 amount = paid + balance，所以 合计 = 已缴 + 剩余。
  * - Escrow 代缴、应收（receivable）、停用且没有记录的账单：Escrow 行带 escrow:true 不计入合计；应收直接不出行。 */
 import { addDays, advanceDue } from "./dates.js";
+import { payTotal } from "./pay-total.js";
 
 export const MAX_PERIODS = 36;       // 每张账单在一个范围里最多展开多少期
 export const OVERDUE_CAP = 3;        // 每张账单最多展开多少期逾期（再多的是陈年没记录，不凭空造一串）
@@ -62,7 +63,7 @@ function recurringRows(b, { from, to, today }) {
     if (dueOn) taken.add(dueOn);
     if (!inRange(dueOn)) continue;
     if (p.status === "skipped") { rows.push(mk({ paymentId: p.id, dueOn, status: "skipped", amount: 0, paid: 0, balance: 0, counted: false, payment: p })); continue; }
-    const paid = r2(num(p.amount) + num(p.late_fee));
+    const paid = payTotal(p);
     rows.push(mk({ paymentId: p.id, dueOn, paidOn: p.paid_on || null, status: "paid", amount: paid, paid, balance: 0, counted: !escrow, payment: p, lateFee: num(p.late_fee) }));
   }
 

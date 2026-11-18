@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.4", title: { zh: "账单可以记手续费和税：每次缴费填实际值，账单上填估算值", en: "Bills can record service fees and tax: actual values per payment, an estimate on the bill" }, items: [
+    { k: "new", zh: "记缴费时多了「手续费」和「税」两栏（和滞纳金分开），每次可以不一样；编辑缴费记录也能改", en: "Logging a payment now has Service fee and Tax fields (separate from late fees), different each time and editable afterwards" },
+    { k: "new", zh: "账单里可以填「通常手续费」「通常税」的估算值：没缴之前用它们估费用总额，记缴费时当默认值", en: "A bill can hold a typical fee and typical tax estimate: used for the total before paying and as the default when logging a payment" },
+    { k: "better", zh: "顶部卡片的「费用总额」把固定金额、手续费、税加起来并写出算式；缴费记录的合计、花费统计里的那一笔也包含它们", en: "The Total on the top card adds the fixed amount, fee and tax with the formula shown; payment totals and the spending entry include them too" }
+  ] },
+
   { v: "2026-11-18.3", title: { zh: "账单详情页顶部卡片：标题带账号尾号，加「HOA / 服务商」和「付费」两块小表", en: "Bill page summary card: account digits in the title, plus HOA / Provider and Payment mini tables" }, items: [
     { k: "better", zh: "标题写成「HOA 月费（**9406）」；下面分两块：HOA（公司、联系方式、官网 / 缴费网站，读房屋资料里填过的）和付费（付费方式、费用总额）", en: "The title reads HOA fee (**9406); below are two blocks: HOA (company, contact, website, read from the property profile) and Payment (method, total)" },
     { k: "better", zh: "其他账单的第一块是「服务商」：收款方、缴费网站、登录提示；每行左边是项目、右边是内容，不再是一长串文字", en: "Other bills show a Provider block with payee, payment website and login hint; each row has the label on the left and the value on the right" }

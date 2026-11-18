@@ -7,6 +7,7 @@ import { esc, fmtDate, num } from "../core/util.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { paymentPayLabel } from "./cards-views.js";
+import { payTotal } from "./pay-total.js";
 
 const B = () => window.BILLS;
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
@@ -34,6 +35,7 @@ function visible(b) {
 function rowHtml(b, p) {
   const skipped = p.status === "skipped", edit = `${href("bill", b.id)}?sec=pay&edit=${encodeURIComponent(p.id)}`;
   const sub = [p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null,
+    num(p.fee_amount) ? t("手续费 {m}", { m: mny(p.fee_amount, p.currency) }) : null, num(p.tax_amount) ? t("税 {m}", { m: mny(p.tax_amount, p.currency) }) : null,
     num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ");
   return `<li class="pay-row" data-swipe-del="bill-pay">
     <span class="badge ${skipped ? "" : "b-ok"}" ${skipped ? 'style="background:var(--surface-2)"' : ""}>${esc(t(B().PAYMENT_STATUS[p.status] || p.status))}</span>
@@ -47,7 +49,7 @@ function listHtml(b) {
   const all = rowsOf(b), rows = visible(b);
   if (!all.length) return `<div class="empty"><strong>${t("还没有记录")}</strong>${t("点右下角的 ＋ 记第一笔。")}</div>`;
   if (!rows.length) return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个关键词，或点“清除筛选”。")}</div>`;
-  const paid = rows.filter((p) => p.status !== "skipped" && p.amount != null).reduce((s, p) => s + num(p.amount) + num(p.late_fee), 0);
+  const paid = rows.filter((p) => p.status !== "skipped" && p.amount != null).reduce((s, p) => s + payTotal(p), 0);
   return `<p class="muted pay-sum">${t("共 {n} 条", { n: rows.length })}${rows.length !== all.length ? ` / ${all.length}` : ""} · ${t("合计 {m}", { m: mny(paid, b.currency) })}</p>
     <ul class="restock-list pay-list">${rows.map((p) => rowHtml(b, p)).join("")}</ul>${older.busy ? `<p class="muted" role="status">${t("正在读取更早的记录…")}</p>` : ""}`;
 }

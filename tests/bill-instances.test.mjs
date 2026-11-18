@@ -385,3 +385,8 @@ test("一次性向导：选了家庭成员存 id + 名字；没选存文字（�
   const rp = otRowFromDraft(p, { currency: "USD", K: { insurance: false, visibility: "family" } });
   assert.equal(rp.patient_id, null); assert.equal(rp.patient, "厨房翻新");
 });
+
+test("缴费实际花费 = 本期金额 + 手续费 + 税 + 滞纳金（+ 特别摊派）", () => {
+  const r = run([bill({ pays: [pay({ amount: 450, fee_amount: 10, tax_amount: 0.2, late_fee: 25, assessment_amount: 30 })] })], [], { from: "2026-10-01", to: "2026-10-31" });
+  assert.equal(r.rows.find((x) => x.paymentId)?.paid, 515.2);
+});

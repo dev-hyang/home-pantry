@@ -1,6 +1,9 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "通常手续费（估算）": "Typical fee (estimate)", "有服务费 / 刷卡费的填；没缴之前用它估“费用总额”，记缴费时当默认值，实际金额不同就改。": "For service or card fees; used to estimate the total before paying, and as the default when logging a payment. Change it if the real amount differs.",
+  "通常税（估算）": "Typical tax (estimate)", "税额每次可能不一样；这里填大概值，记缴费时填实际的。": "Tax can differ each time; enter a rough value here and the actual one when logging a payment.",
+  "手续费": "Service fee", "税": "Tax", "税（估算）": "Tax (est.)", "手续费 {m}": "Fee {m}", "税 {m}": "Tax {m}", "服务费 / 刷卡费等，每次可能不同，填实际收的。": "Service or card fees; can differ each time, enter what was actually charged.",
   "服务商": "Provider", "付费": "Payment", "按最近均值": "recent average",
   "搜索缴费记录": "Search payments", "搜索日期、金额、账户、确认号、备注": "Search date, amount, account, confirmation #, notes", "最新在前": "Newest first", "最早在前": "Oldest first", "金额从高到低": "Amount high to low", "金额从低到高": "Amount low to high",
   "清除筛选": "Clear filters", "没有符合条件的记录": "No matching records", "换个关键词，或点“清除筛选”。": "Try another keyword, or tap Clear filters.", "点右下角的 ＋ 记第一笔。": "Tap + at the bottom right to log the first one.",
