@@ -134,7 +134,10 @@ export function renderAllList() {
 
 export function viewAllBills() {
   const f = state.allFilter, C = compute(), sel = (id, opts, v) => `<select id="${id}" aria-label="${esc(t(opts.label))}">${opts.list.map(([k, l]) => `<option value="${k}" ${v === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>`;
-  const range = (BILL_RANGES.some(([k]) => k === f.range) ? "" : `<option value="${esc(f.range)}" selected>${esc(f.range)}</option>`) + BILL_RANGES.map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");
+  // 「全部」放第一项 = 默认值：手机上「筛选 (n)」只数「选了第一项以外的下拉」，所以默认的「全部」不算筛选，选了本月 / 下月… 才算；从概览链接带来的某个月（YYYY-MM）排在「全部」后面
+  const rangeOpts = [BILL_RANGES.find(([k]) => k === "all"), ...BILL_RANGES.filter(([k]) => k !== "all")];
+  const range = rangeOpts.slice(0, 1).map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("") + (BILL_RANGES.some(([k]) => k === f.range) ? "" : `<option value="${esc(f.range)}" selected>${esc(f.range)}</option>`)
+    + rangeOpts.slice(1).map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");
   const scope = f.range === "all" ? t("不限时间") : `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
   return `<section class="section">
     <div class="section-head"><h2>🧾 ${t("全部账单")}</h2><div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="all-csv">${t("导出 CSV")}</button><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>

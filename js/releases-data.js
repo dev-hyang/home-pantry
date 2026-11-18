@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.22", title: { zh: "全部账单：默认的时间「全部」不再算成筛选", en: "All bills: the default time \u201cAll\u201d no longer counts as a filter" }, items: [
+    { k: "fix", zh: "「全部账单」的时间默认是「全部」，手机上「筛选」旁边的数字和「清除筛选」不再把它当成一个筛选；选了本月、下月等才算", en: "In All bills the default time is All, and on phones the number next to Filters and the Clear filters button no longer count it as a filter; only picking this month, next month and so on does" }
+  ] },
+
   { v: "2026-11-17.21", title: { zh: "账单概览：金额遮挡一致、按资产跟着筛选；房屋 / 车辆页直达账单", en: "Bills overview: masked amounts, by-asset follows the filter; Home and Vehicle pages open their bills" }, items: [
     { k: "fix", zh: "账单概览的大数字现在和别的财务页一样会被遮挡（点眼睛显示 / 隐藏）", en: "The big numbers on the Bills overview are now masked like the other finance pages (tap the eye to show or hide)" },
     { k: "fix", zh: "在账单概览里选了某个资产，下面的「按资产」也只剩这个资产，不再显示全部", en: "When you pick an asset on the Bills overview, the By asset section now shows only that asset instead of everything" },
