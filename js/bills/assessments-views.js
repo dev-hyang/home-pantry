@@ -6,7 +6,7 @@ import { Store } from "../core/store.js";
 import { esc, fmtDate, num, todayISO, toast } from "../core/util.js";
 import { go, href } from "../core/router.js";
 import { t } from "../core/i18n.js";
-import { assessmentsOf, genInstallments } from "./assessments-lib.js";
+import { assessmentsOf, genInstallments, isPaid } from "./assessments-lib.js";
 
 const mny = (v, cur) => Units.money(num(v), cur || Units.region.currency);
 const KINDS = [["installment", "分期"], ["payoff", "一次性结清"]];
@@ -21,8 +21,8 @@ export function assessListPage(b, crumb) {
         <div class="prof-t"><h3>${esc(a.name)}</h3><small>${a.done ? `<span class="badge b-ok">${t("已缴清")}</span> ` : a.status === "closed" ? `<span class="badge">${t("已关闭")}</span> ` : ""}${t("共 {total} · 已缴 {paid} · 剩余 {left}", { total: mny(a.total, cur), paid: mny(a.paid, cur), left: mny(a.remaining, cur) })}</small></div>
         <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=assess&edit=${a.id}">${t("编辑")}</a></header>
       ${a.notes ? `<p class="muted" style="margin:0 0 6px;font-size:13px">${esc(a.notes)}</p>` : ""}
-      <ul class="restock-list as-items">${a.rows.map((x) => `<li><span class="badge ${x.payment_id ? "b-ok" : ""}">${x.payment_id ? t("已缴") : t("待缴")}</span>
-        <div class="grow">${esc(fmtDate(x.due_on))}<small>${[kindName(x.kind), x.payment_id ? t("{d} 缴", { d: payDate(x.payment_id) || "—" }) : null].filter(Boolean).map(esc).join(" · ")}</small></div><b>${mny(x.amount, cur)}</b></li>`).join("")}</ul>
+      <ul class="restock-list as-items">${a.rows.map((x) => `<li><span class="badge ${isPaid(x) ? "b-ok" : ""}">${isPaid(x) ? t("已缴") : t("待缴")}</span>
+        <div class="grow">${esc(fmtDate(x.due_on))}<small>${[kindName(x.kind), x.payment_id ? t("{d} 缴", { d: payDate(x.payment_id) || "—" }) : x.settled_on ? t("已缴（无缴费记录）") : null].filter(Boolean).map(esc).join(" · ")}</small></div><b>${mny(x.amount, cur)}</b></li>`).join("")}</ul>
     </section>`).join("");
   return `<section class="section">${crumb}
     <div class="section-head"><h2>${t("特别摊派")}</h2><p>${esc(b.name)}</p></div>
@@ -35,7 +35,7 @@ const rowHtml = (x = {}, paid = false) => `<li class="as-row${paid ? " is-paid" 
     <input type="date" name="as_due" required value="${esc(x.due_on || "")}" ${paid ? "disabled" : ""} aria-label="${esc(t("到期日"))}">
     <input type="number" name="as_amt" inputmode="decimal" min="0.01" step="0.01" required value="${x.amount != null ? num(x.amount).toFixed(2) : ""}" ${paid ? "disabled" : ""} aria-label="${esc(t("金额"))}">
     <select name="as_kind" ${paid ? "disabled" : ""} aria-label="${esc(t("类型"))}">${KINDS.map(([k, n]) => `<option value="${k}" ${x.kind === k ? "selected" : ""}>${esc(t(n))}</option>`).join("")}</select>
-    ${paid ? `<span class="badge b-ok">${t("已缴")}</span>` : `<button type="button" class="btn btn-sm btn-ghost" data-as-del aria-label="${esc(t("删除这一期"))}">✕</button>`}</li>`;
+    ${paid ? `<span class="badge b-ok">${t("已缴")}</span>` : `<label class="check-inline as-settled"><input type="checkbox" name="as_settled" ${x.settled_on ? "checked" : ""}><span>${t("已缴（无缴费记录）")}</span></label><button type="button" class="btn btn-sm btn-ghost" data-as-del aria-label="${esc(t("删除这一期"))}">✕</button>`}</li>`;
 
 /** 新增 / 编辑页：名称、备注、状态 + 付款计划（一期一行） */
 export function assessFormPage(b, a, crumb) {
@@ -95,7 +95,7 @@ export async function saveAssessForm(f) {
   const fe = f.elements, err = document.getElementById("assessError"), billId = f.dataset.bill, id = f.dataset.id || null;
   const fail = (m) => { err.textContent = m; return false; };
   const name = fe.name.value.trim(); if (!name) return fail(t("请填名称。"));
-  const rows = [...f.querySelectorAll(".as-row")].map((r) => ({ id: r.dataset.id || null, paid: r.classList.contains("is-paid"), due_on: r.querySelector('[name="as_due"]').value, amount: Math.round(num(r.querySelector('[name="as_amt"]').value) * 100) / 100, kind: r.querySelector('[name="as_kind"]').value }));
+  const rows = [...f.querySelectorAll(".as-row")].map((r) => ({ id: r.dataset.id || null, paid: r.classList.contains("is-paid"), due_on: r.querySelector('[name="as_due"]').value, amount: Math.round(num(r.querySelector('[name="as_amt"]').value) * 100) / 100, kind: r.querySelector('[name="as_kind"]').value, settled: !!r.querySelector('[name="as_settled"]')?.checked }));
   if (!rows.length) return fail(t("至少要有一期。"));
   if (rows.some((r) => !r.paid && (!r.due_on || !(r.amount > 0)))) return fail(t("每一期都要填到期日和大于 0 的金额。"));
   const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
@@ -103,7 +103,7 @@ export async function saveAssessForm(f) {
     const aid = await Store.saveAssess({ id, bill_id: billId, name, status: fe.status.value, notes: fe.notes.value.trim() || null });
     const keep = new Set(rows.filter((r) => r.id).map((r) => r.id));
     for (const old of state.assessItems.filter((x) => x.assessment_id === aid && !x.payment_id && !keep.has(x.id))) await Store.deleteAssessItem(old.id);   // 表单里删掉的没缴期
-    for (const r of rows) { if (r.paid) continue; await Store.saveAssessItem({ id: r.id, assessment_id: aid, due_on: r.due_on, amount: r.amount, kind: r.kind, payment_id: null }); }
+    for (const r of rows) { if (r.paid) continue; await Store.saveAssessItem({ id: r.id, assessment_id: aid, due_on: r.due_on, amount: r.amount, kind: r.kind, payment_id: null, settled_on: r.settled ? (state.assessItems.find((x) => x.id === r.id)?.settled_on || r.due_on) : null }); }
     toast(id ? t("已保存修改") : t("已添加 {name}", { name }));
     return true;
   } catch (e) { btn.disabled = false; return fail(t("保存失败：{msg}", { msg: e.message })); }

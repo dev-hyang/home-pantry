@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.6", title: { zh: "特殊评估从房屋资料搬进 HOA 账单的「特别摊派」", en: "Special assessments moved from the property profile into the HOA bill" }, items: [
+    { k: "better", zh: "房屋资料里不再填特殊评估；原来的那一笔（Garage support panel 维修，30 期 × $67.69）已搬进 HOA 月费账单的「特别摊派」，金额和历史都在账单里", en: "The property profile no longer holds special assessments; the existing one (Garage support panel, 30 x $67.69) is now in the HOA bill's Special assessment, with amounts and history" },
+    { k: "new", zh: "摊派的每一期可以标「已缴（无缴费记录）」，用于开始记账前就交过的期", en: "Each assessment row can be marked Paid (no payment record) for rows settled before tracking began" },
+    { k: "better", zh: "房屋页的 HOA 面板、每月总计和提醒改读账单里的摊派：每月分期跟账单自己的提醒走，一次性结清和逾期的期才会单独提醒", en: "The Home page HOA panel, monthly total and alerts now read the bill's assessments: monthly installments follow the bill's own reminders, only payoffs and overdue rows alert separately" }
+  ] },
+
   { v: "2026-11-18.5", title: { zh: "账单新增「特别摊派」：分期、一次性结清、或前几期分期最后一次结清，每笔都有迹可寻", en: "Bills now track special assessments: installments, a one-time payoff, or installments then a final payoff, fully traceable" }, items: [
     { k: "new", zh: "账单详情页菜单里的「特别摊派」：新建一笔摊派，付款计划一期一行（日期、金额、分期或一次性结清），可以「快速生成分期」，也可以最后加一笔一次性结清", en: "Special assessment in the bill menu: create one with a payment schedule, one row per payment (date, amount, installment or payoff); generate installments quickly and add a final payoff" },
     { k: "new", zh: "记缴费时会列出还没交的摊派期，本期到期的默认勾上；勾上的金额记在这笔缴费里，回头能查每一期是哪次交的", en: "Logging a payment lists unpaid assessment rows, with the ones due this period ticked; ticked amounts are saved on that payment so every row shows which payment settled it" },

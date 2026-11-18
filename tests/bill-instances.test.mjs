@@ -411,3 +411,14 @@ test("genInstallments：总额按期数分，零头放最后一期，月末日�
   assert.deepEqual(g.map((x) => x.due_on), ["2026-01-31", "2026-02-28", "2026-03-31"]);
   assert.equal(genInstallments({ count: 4, each: 30, start: "2026-05-10" }).reduce((s, x) => s + x.amount, 0), 120);
 });
+
+import { isPaid } from "../js/bills/assessments-lib.js";
+test("摊派一期算已缴：关联了缴费，或标了「已缴（无缴费记录）」", () => {
+  assert.equal(isPaid({ payment_id: "p1" }), true);
+  assert.equal(isPaid({ settled_on: "2026-01-01" }), true);
+  assert.equal(isPaid({ payment_id: null, settled_on: null }), false);
+  const as = [{ id: "a", bill_id: "b", status: "active" }];
+  const items = [{ id: "1", assessment_id: "a", due_on: "2026-01-01", amount: 10, kind: "installment", settled_on: "2026-01-01" }, { id: "2", assessment_id: "a", due_on: "2026-02-01", amount: 10, kind: "installment" }];
+  assert.deepEqual([assessmentsOf("b", as, items)[0].paid, assessmentsOf("b", as, items)[0].remaining], [10, 10]);
+  assert.deepEqual(unpaidItems("b", as, items).map((x) => x.id), ["2"]);
+});

@@ -18,6 +18,7 @@ import { monthName, monthTasks, taskRow } from "./tasks.js";
 import { houseBar } from "./property-form.js";
 import { currentProp, dealTasks, openDeal, propertyLive, statusText, taskRow as dealTaskRow } from "./deals.js";
 import { freqText, monthlyEquivalent } from "../bills/logic.js";
+import { assessmentParts, assessmentsOf, isPaid, unpaidItems } from "../bills/assessments-lib.js";
 
 const H = () => window.HOUSE;
 
@@ -86,27 +87,25 @@ export function hoaOf(p) {
   return { enabled: a.on, dues_period: "monthly", ...(p.hoa || {}) };
 }
 
-/** 每月要交多少：常规月费（单元 + 车位 + 其他）+ 进行中的特殊评估分期；sa 只在没缴清、还在有效期内时算 */
+/** 每月要交多少：常规月费（账单）+ 本期要交的特别摊派（HOA 账单里没缴的分期 / 一次性结清，到期日在本期月底之前） */
 export function hoaMonthly(h, pid = state.propertyId) {
   const unit = num(h.dues_unit) || 0, parking = num(h.dues_parking) || 0, other = num(h.dues_other) || 0;
   const reg = hoaRegular(pid, h), regular = reg.monthly || 0;   // 常规月费：账单优先（单元 / 车位 / 其他只是资料里的旧拆分，留作参考）
-  const today = new Date().toISOString().slice(0, 10);
-  const saActive = num(h.sa_each) > 0 && !h.sa_paid && (!h.sa_to || h.sa_to >= today) && (!h.sa_from || h.sa_from <= today);
-  const sa = saActive ? num(h.sa_each) : 0;
-  return { unit, parking, other, regular, sa, saActive, total: Math.round((regular + sa) * 100) / 100 };
+  const ap = reg.bill ? assessmentParts(reg.bill.id, state.assess, state.assessItems, reg.bill.next_due_on) : { installment: 0, payoff: 0 };
+  const sa = Math.round((ap.installment + ap.payoff) * 100) / 100;
+  return { unit, parking, other, regular, sa, saActive: sa > 0, total: Math.round((regular + sa) * 100) / 100 };
 }
-/** 资料表单里的「每月总计」卡：输入时实时更新（main.js 调 updateHoaTotal） */
+/** 资料表单里的「每月总计」卡：只在打开页面时算（特别摊派在 HOA 账单里管理，这里只读） */
 export function hoaTotalHtml(h) {
   const m = hoaMonthly(h);
-  const parts = [m.regular ? t("月费 {a}", { a: money(m.regular) }) : "", m.sa ? t("评估分期 {a}", { a: money(m.sa) }) : ""].filter(Boolean);
-  const note = num(h.sa_each) > 0 && !m.saActive ? ` <small>${h.sa_paid ? t("（评估已缴清，不计）") : t("（评估已过有效期，不计）")}</small>` : "";
-  return `<span class="ht-label">${t("每月总计")}</span><b>${money(m.total)}</b><small>${parts.length ? "= " + parts.join(" + ") : t("月费来自 HOA 账单，评估分期在下面填")}</small>${note}`;
+  const parts = [m.regular ? t("月费 {a}", { a: money(m.regular) }) : "", m.sa ? t("特别摊派 {a}", { a: money(m.sa) }) : ""].filter(Boolean);
+  return `<span class="ht-label">${t("每月总计")}</span><b>${money(m.total)}</b><small>${parts.length ? "= " + parts.join(" + ") : t("月费和特别摊派都来自 HOA 账单")}</small>`;
 }
-/** 表单里改了任一金额 / 评估字段 → 重算总计卡（不等保存） */
+/** 表单里改了任一金额 → 重算总计卡（金额本身已是只读，只剩旧值拆分会触发） */
 export function updateHoaTotal(form) {
   const box = form.querySelector("[data-hoa-total]"); if (!box) return;
   const fe = form.elements, v = (n) => fe[n]?.value ?? "";
-  const h = { dues: v("hoa_dues"), dues_unit: v("hoa_dues_unit"), dues_parking: v("hoa_dues_parking"), dues_other: v("hoa_dues_other"), dues_other_label: v("hoa_dues_other_label"), sa_each: v("hoa_sa_each"), sa_paid: !!fe.hoa_sa_paid?.checked, sa_from: v("hoa_sa_from") || null, sa_to: v("hoa_sa_to") || null };
+  const h = { dues: v("hoa_dues"), dues_unit: v("hoa_dues_unit"), dues_parking: v("hoa_dues_parking"), dues_other: v("hoa_dues_other"), dues_other_label: v("hoa_dues_other_label") };
   box.innerHTML = hoaTotalHtml(h);
   const mini = form.querySelector("[data-hoa-total-mini]"); if (mini) mini.textContent = money(hoaMonthly(h).total);
 }
@@ -116,11 +115,16 @@ export function noteArea(name, value, placeholder, max = 1000) {
   return `<textarea class="grow" name="${name}" rows="${rows}" maxlength="${max}" data-grow placeholder="${esc(placeholder || "")}">${esc(v)}</textarea><small class="grow-count" ${v.length >= max * 0.8 ? "" : "hidden"}>${v.length}/${max}</small>`;
 }
 
-/** 特殊评估 / 大额摊派的状态：none / due（days）/ paid */
-export function assessmentStatus(hoa) {
-  if (!hoa?.enabled || !(hoa.sa_amount > 0 || hoa.sa_each > 0)) return { kind: "none" };
-  if (hoa.sa_paid) return { kind: "paid" };
-  return { kind: "due", days: hoa.sa_due ? daysUntil(hoa.sa_due) : null };
+/** 特别摊派的状态（数据在 HOA 账单的「特别摊派」里）：none / due（days = 下一期没缴的离今天几天）/ paid；还带 bill、list（各笔摊派）、remaining、next */
+export function assessmentStatus(hoa, pid = state.propertyId) {
+  const b = hoa?.enabled ? linkedBill(pid, "hoa") : null;
+  if (!b) return { kind: "none" };
+  const list = assessmentsOf(b.id, state.assess, state.assessItems).filter((a) => a.status !== "closed");
+  if (!list.length) return { kind: "none", bill: b };
+  const open = unpaidItems(b.id, state.assess, state.assessItems);
+  if (!open.length) return { kind: "paid", bill: b, list };
+  return { kind: "due", bill: b, list, next: open[0], days: open[0].due_on ? daysUntil(open[0].due_on) : null, remaining: Math.round(list.reduce((s, a) => s + a.remaining, 0) * 100) / 100,
+    names: list.filter((a) => !a.done).map((a) => a.name).join(" · ") };
 }
 
 /** 房屋卡片里的 HOA 事实行：{ k: 标签, v: 值 }；没有 HOA 返回 null */
@@ -132,8 +136,8 @@ function hoaFact(p) {
   if (hoa.mgmt) bits.push(esc(hoa.mgmt));
   const reg = hoaRegular(p.property_id || state.propertyId, hoa);
   if (reg.src) bits.push(`${reg.text}${reg.src === "profile" ? ` <small class="muted">${t("（资料里的旧值）")}</small>` : ""}`);
-  const sa = assessmentStatus(hoa);
-  if (sa.kind === "due") bits.push(`<span class="badge ${sa.days != null && sa.days <= 14 ? "b-out" : "b-soon"}">${t("特殊评估")} ${money(hoa.sa_amount)} ${t("待缴")}</span>`);
+  const sa = assessmentStatus(hoa, p.property_id || state.propertyId);
+  if (sa.kind === "due") bits.push(`<span class="badge ${sa.days != null && sa.days <= 14 ? "b-out" : "b-soon"}">${t("特别摊派")} ${money(sa.remaining)} ${t("待缴")}</span>`);
   return { k: `🏘️ ${esc(t(a.label))}`, v: bits.length ? bits.join(" · ") : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充")}</a>` };
 }
 
@@ -154,24 +158,22 @@ function hoaBlock(p) {
     ...emails.map((e) => `<a href="mailto:${esc(e)}">✉️ ${esc(e)}</a>`),
     hoa.url ? `<a href="${esc(hoa.url)}" target="_blank" rel="noopener noreferrer">🔗 ${t("业主门户")}</a>` : "",
   ].filter(Boolean).join(" · ");
-  const sa = assessmentStatus(hoa);
-  const saPeriod = hoa.sa_from || hoa.sa_to ? ` · ${t("有效期 {a} → {b}", { a: hoa.sa_from ? fmtDate(hoa.sa_from) : "?", b: hoa.sa_to ? fmtDate(hoa.sa_to) : "?" })}` : "";
-  const saEach = hoa.sa_each > 0 && hoa.sa_amount > 0 ? ` · ${t("每期 {a}", { a: money(hoa.sa_each) })}` : "";
+  const sa = assessmentStatus(hoa, state.propertyId);
   const breakdown = hoa.dues_unit || hoa.dues_parking || hoa.dues_other ? ` <small class="muted">(${[hoa.dues_unit ? t("单元 {a}", { a: money(hoa.dues_unit) }) : "", hoa.dues_parking ? t("车位 {a}", { a: money(hoa.dues_parking) }) : "", hoa.dues_other ? `${esc(hoa.dues_other_label || t("其他"))} ${money(hoa.dues_other)}` : ""].filter(Boolean).join(" + ")})</small>` : "";
-  const saText = sa.kind === "none" ? t("没有进行中的特殊评估")
-    : sa.kind === "paid" ? `${money(hoa.sa_amount || hoa.sa_each)}${hoa.sa_purpose ? ` · ${esc(hoa.sa_purpose)}` : ""} <span class="badge b-ok">${t("已缴")}</span>`
-    : `<b>${hoa.sa_amount > 0 ? money(hoa.sa_amount) : t("每期 {a}", { a: money(hoa.sa_each) })}</b>${hoa.sa_purpose ? ` · ${esc(hoa.sa_purpose)}` : ""}${hoa.sa_due ? ` · ${t("截止 {d}", { d: fmtDate(hoa.sa_due) })}` : ""}${saPeriod}${saEach} <span class="badge ${sa.days != null && sa.days < 0 ? "b-out" : "b-soon"}">${sa.days == null ? t("待缴") : sa.days < 0 ? t("已逾期 {d} 天", { d: -sa.days }) : t("{d} 天后到期", { d: sa.days })}</span>`;
+  const asLink = sa.bill ? `${href("bill", sa.bill.id)}?sec=assess` : null;
+  const saText = sa.kind === "none" ? `${t("没有进行中的特别摊派")}${sa.bill ? ` <a href="${asLink}&edit=new">${t("添加")}</a>` : ""}`
+    : `${sa.list.map((a) => `<div><b>${esc(a.name)}</b> · ${t("剩余 {m}", { m: money(a.remaining) })} · ${a.paidN}/${a.rows.length}${a.done ? ` <span class="badge b-ok">${t("已缴清")}</span>` : ""}</div>`).join("")}${sa.kind === "due" ? `<span class="badge ${sa.days != null && sa.days < 0 ? "b-out" : "b-soon"}">${sa.days == null ? t("待缴") : sa.days < 0 ? t("已逾期 {d} 天", { d: -sa.days }) : t("下一期 {d} 天后", { d: sa.days })}</span> ` : ""}<a href="${asLink}">${t("在账单里查看 / 管理")}</a>`;
   const reg = hoaRegular(state.propertyId, hoa);   // 常规费用：HOA 账单（唯一来源）；以前的 bills.archived 判断是个不存在的字段，现在按 active / 已结束挑
   // 标签 / 值的事实行（与房屋卡片同款）：值可换行，手机上不会把内容挤到屏幕外；表格 + 横向滚动会让长邮箱、备注把值列推出视野
   const row = (k, v) => (v ? `<div class="fact wide"><dt>${k}</dt><dd>${v}</dd></div>` : "");
-  const hint = [reg.src ? reg.text : null, sa.kind !== "none" && sa.kind !== "paid" ? t("特殊评估待缴") : null, hoa.mgmt].filter(Boolean).join(" · ");
+  const hint = [reg.src ? reg.text : null, sa.kind === "due" ? t("特别摊派待缴") : null, hoa.mgmt].filter(Boolean).join(" · ");
   return { title: `${esc(t(a.label))}${hoa.name ? ` · ${esc(hoa.name)}` : ""}`, hint, open: sa.kind !== "none" && sa.kind !== "paid",
     body: `<p style="margin:0 0 6px;text-align:right"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改")}</a></p>
       <dl class="fact-grid one">
         ${row(t("管理公司 / 联系人"), hoa.mgmt ? esc(hoa.mgmt) : "")}
         ${row(t("联系方式"), contact)}
         ${row(t("费用"), `${reg.src ? `${reg.text}${reg.src === "profile" ? breakdown : ""} · ` : ""}${amountSource(reg.src, reg.bill, "hoa", state.propertyId, { amount: reg.legacy, freq: reg.freq, name: hoa.name ? `HOA · ${hoa.name}`.slice(0, 60) : t("HOA 月费"), payee: hoa.name || hoa.mgmt || "" })}`)}
-        ${row(t("特殊评估 / 摊派"), saText)}
+        ${row(t("特别摊派"), saText)}
         ${(() => { const m = hoaMonthly(hoa); return m.sa ? row(t("每月总计"), `<b>${money(m.total)}</b> <small class="muted">= ${t("月费 {a}", { a: money(m.regular) })} + ${t("评估分期 {a}", { a: money(m.sa) })}</small>`) : ""; })()}
         ${row(t("出租规则"), hoa.rent_policy && hoa.rent_policy !== "unknown" ? [labelOf(RENT_POLICIES, hoa.rent_policy), hoa.rent_cap_pct ? t("上限 {p}%", { p: hoa.rent_cap_pct }) : "", hoa.rent_min_months ? t("最短 {n} 个月", { n: hoa.rent_min_months }) : "", hoa.rent_notes ? esc(hoa.rent_notes) : ""].filter(Boolean).join(" · ") : "")}
         ${row(t("诉讼与纠纷"), hoa.lawsuit ? `<span class="badge b-low">${t("有")}</span> ${esc(hoa.lawsuit_note || "")}` : "")}
@@ -188,27 +190,20 @@ function refSection(id, { title, hint, body, open = false }) {
     <div class="ref-body">${body}</div></details></section>`;
 }
 
-/** 特殊评估的「下次缴款截止日」是房屋资料里手填的，和账单里的缴费记录原来互不相通：账单（HOA 类、同一房产或没挂房产）里已经有
- *  这一期的缴费记录（到期日就是这一天，或缴费日在这一天前后一周内、状态不是跳过），这一期就算处理了，不再提醒 */
-export function saHandledByBill(prop, hoa) {
-  if (!hoa?.sa_due) return false;
-  const day = new Date(hoa.sa_due + "T12:00:00").getTime(), near = (d) => d && Math.abs(new Date(d + "T12:00:00").getTime() - day) <= 7 * 864e5;
-  const ids = new Set((state.bills || []).filter((b) => b.category === "hoa" && (!b.property_id || b.property_id === prop.id)).map((b) => b.id));
-  return (state.billPayments || []).some((p) => ids.has(p.bill_id) && p.status !== "skipped" && (p.due_on === hoa.sa_due || near(p.paid_on)));
-}
-
-/** 提醒总线：特殊评估未缴且 45 天内到期或已逾期（必须） */
+/** 提醒总线：特别摊派里「一次性结清」45 天内到期，或任何一期已逾期（必须）。每月的分期跟着 HOA 账单自己的提醒走，这里不重复提醒 */
 export function hoaAlertItems() {
   if (!state.houseEnabled) return [];
   return state.properties.filter(propertyLive).flatMap((prop) => {
-    const p = state.houseProfiles[prop.id]; const hoa = hoaOf(p); const sa = assessmentStatus(hoa);
-    if (sa.kind !== "due" || sa.days == null || sa.days > 45 || saHandledByBill(prop, hoa)) return [];
-    const severity = sa.days < 0 ? 0 : sa.days <= 3 ? 1 : sa.days <= 14 ? 2 : 3;
-    const a = H().assocOf(p.house_type);
-    return [{ source: "house", severity, must: true, due: hoa.sa_due, daysLeft: sa.days, property_id: prop.id,
-      title: `🏘️ ${t(a.label)} ${t("特殊评估")} ${money(hoa.sa_amount)}${hoa.sa_purpose ? ` · ${hoa.sa_purpose}` : ""}`,
-      detail: sa.days < 0 ? t("已逾期 {d} 天，逾期有滞纳金并可能留置", { d: -sa.days }) : t("{d} 天后截止（{date}）", { d: sa.days, date: fmtDate(hoa.sa_due) }),
-      href: `${href("house", "overview")}`, actions: [{ type: "link", href: `${href("house", "profile")}`, label: t("标为已缴") }] }];
+    const p = state.houseProfiles[prop.id]; const hoa = hoaOf(p), sa = assessmentStatus(hoa, prop.id);
+    if (sa.kind !== "due") return [];
+    const urgent = unpaidItems(sa.bill.id, state.assess, state.assessItems).filter((x) => x.due_on && (daysUntil(x.due_on) < 0 || (x.kind === "payoff" && daysUntil(x.due_on) <= 45))).sort((x, y) => x.due_on.localeCompare(y.due_on))[0];
+    if (!urgent) return [];
+    const days = daysUntil(urgent.due_on), severity = days < 0 ? 0 : days <= 3 ? 1 : days <= 14 ? 2 : 3;
+    const a = H().assocOf(p.house_type), name = state.assess.find((x) => x.id === urgent.assessment_id)?.name || "";
+    return [{ source: "house", severity, must: true, due: urgent.due_on, daysLeft: days, property_id: prop.id,
+      title: `🏘️ ${t(a.label)} ${t("特别摊派")} ${money(urgent.amount)}${name ? ` · ${name}` : ""}`,
+      detail: days < 0 ? t("已逾期 {d} 天，逾期有滞纳金并可能留置", { d: -days }) : t("{d} 天后截止（{date}）", { d: days, date: fmtDate(urgent.due_on) }),
+      href: `${href("bill", sa.bill.id)}?sec=assess`, actions: [{ type: "link", href: `${href("bill", sa.bill.id)}?pay=1`, label: t("记缴费") }] }];
   });
 }
 
@@ -262,7 +257,6 @@ export function readHouseForm(form) {
     const parts = (unit || 0) + (parking || 0) + (other || 0);   // 月费 = 单元 + 车位 + 其他；都没填就用原来的总额
     d.hoa = { enabled: fe.hoa_enabled.checked, name: str("hoa_name"), mgmt: str("hoa_mgmt"), phone: str("hoa_phone"), email: str("hoa_email"), url: str("hoa_url"),
       dues: parts > 0 ? Math.round(parts * 100) / 100 : num(fe.hoa_dues.value), dues_unit: unit, dues_parking: parking, dues_other: other, dues_other_label: str("hoa_dues_other_label"), dues_period: fe.hoa_dues_period.value || "monthly",
-      sa_amount: num(fe.hoa_sa_amount.value), sa_purpose: str("hoa_sa_purpose"), sa_due: fe.hoa_sa_due.value || null, sa_from: fe.hoa_sa_from.value || null, sa_to: fe.hoa_sa_to.value || null, sa_each: num(fe.hoa_sa_each.value), sa_paid: fe.hoa_sa_paid.checked,
       rent_policy: fe.hoa_rent_policy.value || "unknown", rent_cap_pct: num(fe.hoa_rent_cap.value), rent_min_months: num(fe.hoa_rent_min.value), rent_notes: str("hoa_rent_notes"),
       lawsuit: fe.hoa_lawsuit.checked, lawsuit_note: str("hoa_lawsuit_note"),
       rules: str("hoa_rules"), notes: str("hoa_notes") };
@@ -320,7 +314,7 @@ export function sectionStatus(d, id) {
     case "hoa": {
       const h = hoaOf(d); if (!h.enabled) return { text: t("无 {label}", { label: t(Hh.assocOf(d.house_type).label) }), pct: null };
       const n = filled([h.name, h.mgmt, h.phone || h.email || h.url, hoaRegular(state.propertyId, h).src === "bill", h.rules, h.rent_policy && h.rent_policy !== "unknown"]);
-      return { text: `${n} / 6${h.sa_amount > 0 && !h.sa_paid ? ` · ${t("特殊评估待缴")}` : ""}${h.lawsuit ? ` · ${t("有诉讼")}` : ""}`, pct: Math.round(n / 6 * 100) };
+      return { text: `${n} / 6${assessmentStatus(h, state.propertyId).kind === "due" ? ` · ${t("特别摊派待缴")}` : ""}${h.lawsuit ? ` · ${t("有诉讼")}` : ""}`, pct: Math.round(n / 6 * 100) };
     }
     case "ownership": {
       const o = ownershipOf(d), n = filled([o.pin, o.parking_type, o.parking_type && o.parking_type !== "none" && (o.parking_pin || o.parking_no || o.parking_deeded), o.storage_type, (o.tax_exemptions || []).length]);
@@ -598,17 +592,7 @@ function hoaFieldset(d) {
       <label class="span-2">${t("业主门户 / 缴费网址")}<input name="hoa_url" type="url" maxlength="200" placeholder="https://" value="${esc(hoa.url || "")}"></label>
       ${hoaDuesReadonly(d, hoa)}
       <div class="span-2 hoa-total" data-hoa-total>${hoaTotalHtml(hoa)}</div>
-      <p class="hint span-2" style="margin:0">${t("评估分期只在有效期内、没缴清时计入每月总计")}</p>
-    </div>
-    <h4 class="sub-legend">${t("特殊评估 / 大额摊派")}<small>${t("储备金不够大修时按份额摊的款项；截止前 45 天开始提醒，逾期置顶")}</small></h4>
-    <div class="form-grid">
-      <label>${t("金额")}<input name="hoa_sa_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.sa_amount ?? ""}"></label>
-      <label>${t("下次缴款截止日")}<input name="hoa_sa_due" type="date" value="${esc(hoa.sa_due || "")}"></label>
-      <label>${t("有效期：从")}<input name="hoa_sa_from" type="date" value="${esc(hoa.sa_from || "")}"></label>
-      <label>${t("有效期：到")}<input name="hoa_sa_to" type="date" value="${esc(hoa.sa_to || "")}"><small>${t("分期摊派都有期限；没期限的应该算进常规月费")}</small></label>
-      <label>${t("每期金额（分期才填）")}<input name="hoa_sa_each" type="number" inputmode="decimal" min="0" step="0.01" value="${hoa.sa_each ?? ""}"></label>
-      <label class="span-2">${t("用途")}<input name="hoa_sa_purpose" maxlength="300" placeholder="${t("例如：屋顶更换、电梯大修、外墙维修")}" value="${esc(hoa.sa_purpose || "")}"></label>
-      <label class="check-inline span-2"><input type="checkbox" name="hoa_sa_paid" ${hoa.sa_paid ? "checked" : ""}><span>${t("已缴清")}</span></label>
+      <p class="hint span-2" style="margin:0">${t("特别摊派（屋顶、电梯这类大额摊款）已搬到 HOA 账单里管理：分期、一次性结清、每一期是哪次缴费交的都在那里。")} ${(() => { const b = hoaRegular(state.propertyId, hoa).bill; return b ? `<a href="${href("bill", b.id)}?sec=assess">${t("去 HOA 账单的特别摊派")}</a>` : ""; })()}</p>
     </div>
     <h4 class="sub-legend">${t("出租规则")}<small>${t("公寓常见：出租比例上限、最短租期、要不要 HOA 审批；买前、想出租前都要看")}</small></h4>
     <div class="form-grid">

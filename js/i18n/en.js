@@ -1,6 +1,16 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "已缴（无缴费记录）": "Paid (no payment record)",
+  "特别摊派 {a}": "Special assessment {a}",
+  "剩余 {m}": "{m} left",
+  "没有进行中的特别摊派": "No active special assessments",
+  "在账单里查看 / 管理": "View / manage in the bill",
+  "下一期 {d} 天后": "next in {d} days",
+  "特别摊派待缴": "special assessment due",
+  "月费和特别摊派都来自 HOA 账单": "Dues and special assessments both come from the HOA bill",
+  "特别摊派（屋顶、电梯这类大额摊款）已搬到 HOA 账单里管理：分期、一次性结清、每一期是哪次缴费交的都在那里。": "Special assessments (roof, elevator and other large charges) are now managed in the HOA bill: installments, one-time payoff and which payment settled each row.",
+  "去 HOA 账单的特别摊派": "Open the HOA bill's special assessments",
   "特别摊派": "Special assessment",
   "分期": "Installment",
   "一次性结清": "One-time payoff",
