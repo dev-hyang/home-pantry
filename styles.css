@@ -3857,9 +3857,6 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .bh-t h2 { margin: 0; font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
 .bh-t .badge { flex: none; }
 .bh-top .act-more > summary { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-.bh-facts { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 10px 0 0; font-size: 14px; }
-.bh-facts > span:not(:last-child)::after { content: "·"; margin: 0 8px; color: var(--muted); }
-.bh-facts .badge { margin-left: 8px; }
 .bh-stamp { margin: 6px 0 0; }
 .bh-pay { display: flex; width: 100%; min-height: 44px; margin-top: 12px; box-sizing: border-box; align-items: center; justify-content: center; }
 
@@ -4016,3 +4013,16 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .form-actions.form-actions-split { display: flex; flex-wrap: nowrap; justify-content: space-between; align-items: center; gap: 12px; }
 .form-actions.form-actions-split .btn-primary { flex: 0 1 auto; }   /* 盖掉手机上「主按钮占满一行」的规则：取消在左、保存在右同一行 */
 .form-actions-split .btn { min-height: 44px; min-width: 96px; }
+
+/* 头部卡里的小表：标题 + 左标签右内容，各块之间一条细线 */
+.bh-acct { font-weight: 500; color: var(--muted); font-size: 15px; white-space: nowrap; }
+.bh-sec { margin-top: 12px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--pine) 22%, var(--line)); }
+.bh-sec h3 { margin: 0 0 6px; font-size: 12.5px; font-weight: 700; letter-spacing: .04em; color: var(--pine); text-transform: uppercase; }
+.bh-table { margin: 0; display: grid; gap: 6px; }
+.bh-table > div { display: grid; grid-template-columns: 7.2em minmax(0, 1fr); gap: 4px 12px; align-items: baseline; }
+.bh-table dt { color: var(--muted); font-size: 13.5px; }
+.bh-table dd { margin: 0; font-size: 14.5px; overflow-wrap: anywhere; min-width: 0; }
+.bh-table dd a { color: var(--pine); }
+.bh-total { font-size: 20px; font-weight: 700; }
+.bh-total span { font-size: 13px; font-weight: 500; color: var(--muted); }
+.bh-formula { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; overflow-wrap: anywhere; }

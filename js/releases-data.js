@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.3", title: { zh: "账单详情页顶部卡片：标题带账号尾号，加「HOA / 服务商」和「付费」两块小表", en: "Bill page summary card: account digits in the title, plus HOA / Provider and Payment mini tables" }, items: [
+    { k: "better", zh: "标题写成「HOA 月费（**9406）」；下面分两块：HOA（公司、联系方式、官网 / 缴费网站，读房屋资料里填过的）和付费（付费方式、费用总额）", en: "The title reads HOA fee (**9406); below are two blocks: HOA (company, contact, website, read from the property profile) and Payment (method, total)" },
+    { k: "better", zh: "其他账单的第一块是「服务商」：收款方、缴费网站、登录提示；每行左边是项目、右边是内容，不再是一长串文字", en: "Other bills show a Provider block with payee, payment website and login hint; each row has the label on the left and the value on the right" }
+  ] },
+
   { v: "2026-11-18.2", title: { zh: "账单缴费记录：独立的全部记录页（搜索 / 筛选），新建和编辑也各有独立页面", en: "Bill payment history: a full records page with search and filters, and separate pages to add and edit" }, items: [
     { k: "new", zh: "账单详情页的「全部」和菜单里的「查看缴费记录」进同一个页面：能按关键词搜索，按状态、年份筛选，按日期或金额排序，并显示合计；右下角圆形「＋」新建一笔", en: "All and View payment history open the same page: search by keyword, filter by status and year, sort by date or amount, with a total; the round + button adds a payment" },
     { k: "better", zh: "点一条记录直接进入编辑页，不再在列表上方弹出表格；取消在左、保存在右，保存或取消后都回到全部记录", en: "Tapping a record opens its own edit page instead of a form above the list; Cancel is on the left, Save on the right, and both return to the records page" },
