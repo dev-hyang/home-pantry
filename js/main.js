@@ -344,6 +344,7 @@ export function render(force = true) {
   restoreCarousels();   // 左右滑动的卡片（今日）：放回刚才看的那张
   enhanceSelects($("#main"));   // 长下拉（data-ss）可以搜索
   { const pf = $("#billPayForm"); if (pf) recalcPayTotal(pf); }   // 缴费表单：先算一次总金额
+  { const af = $("#main [data-as-focus]"); if (af) requestAnimationFrame(() => af.scrollIntoView({ block: "start" })); }   // 从账单页点某笔摊派进来：滚到那一笔
   normalizeFormActions($("#main"));   // 所有表单：取消靠左、保存靠右，同一行
   decoratePrivacy(r);   // 财务看板的大数字：遮挡模式下模糊（js/core/privacy.js）
 }

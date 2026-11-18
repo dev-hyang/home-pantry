@@ -4172,3 +4172,8 @@ form:not(.is-hoa) .hoa-only { display: none; }
 .as-paid { margin-top: 8px; border-top: 1px dashed var(--line); }
 .as-paid > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; font-size: 14px; font-weight: 600; color: var(--muted); } .as-paid > summary::-webkit-details-marker { display: none; }
 .as-paid .as-items li { padding: 8px 0; }
+
+/* 账单页摊派块：每行整行可点，进到那笔摊派 */
+.restock-list li.as-link { padding: 0; } .as-hit { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 0; color: inherit; text-decoration: none; min-width: 0; width: 100%; }
+.as-hit .grow { min-width: 0; overflow-wrap: anywhere; } .as-hit .mch { flex: none; color: var(--muted); font-size: 20px; line-height: 1; }
+.as-hit:hover .grow { text-decoration: underline; }

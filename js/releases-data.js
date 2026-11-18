@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.26", title: { zh: "账单页的摊派块：每一行可以点，直接打开那笔摊派", en: "The assessments block on a bill page: each row opens that assessment" }, items: [
+    { k: "better", zh: "HOA 账单页里「特别摊派」那块，每一行（名称、进度、剩余金额）整行可点，进入摊派页并自动展开、滚到那一笔，其余摊派收起", en: "On the HOA bill page every row of the Special assessment block (name, progress, remaining) opens the assessment page at that assessment, expanded and scrolled into view, with the others collapsed" }
+  ] },
+
   { v: "2026-11-18.25", title: { zh: "特别摊派列表：每笔摊派一张可折叠的卡片，已缴的各期单独折叠", en: "Special assessment list: one collapsible card per assessment, paid rows in their own fold" }, items: [
     { k: "better", zh: "HOA 的特别摊派做成列表：每笔摊派是一张可折叠展开的卡片，头部一直显示名称、进度、描述和编辑按钮；展开后先是还没缴的各期，已缴的各期收在下面一个单独的折叠里（默认收起，标题写着已缴几期、多少钱）", en: "HOA special assessments are a list: each is a collapsible card whose header always shows the name, progress, description and Edit; unpaid rows come first and the paid rows sit in a separate fold below (collapsed by default, titled with how many were paid and the amount)" }
   ] },

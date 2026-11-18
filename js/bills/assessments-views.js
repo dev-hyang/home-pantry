@@ -15,13 +15,14 @@ const kindName = (k) => t((KINDS.find(([id]) => id === k) || KINDS[0])[1]);
 /** 摊派列表页（crumb = 面包屑 HTML） */
 /** 摊派列表：一笔摊派一张可折叠的卡片。头部（名称、进度、描述、编辑）一直看得到；展开后先是还没缴的各期，已缴的各期收在下面一个单独的折叠里（默认收起） */
 export function assessListPage(b, crumb) {
+  const focus = state.route?.q?.get("focus") || null;   // 从账单页点某一笔摊派进来：只展开它，并滚到它
   const base = href("bill", b.id), list = assessmentsOf(b.id, state.assess, state.assessItems), cur = b.currency;
   const payDate = (id) => { const p = b.pays.find((x) => x.id === id); return p ? fmtDate(p.paid_on) : ""; };
   const rowLi = (x) => `<li><span class="badge ${isPaid(x) ? "b-ok" : ""}">${isPaid(x) ? t("已缴") : t("待缴")}</span>
         <div class="grow">${esc(fmtDate(x.due_on))}<small>${[kindName(x.kind), x.payment_id ? t("{d} 缴", { d: payDate(x.payment_id) || "—" }) : x.settled_on ? t("已缴（无缴费记录）") : null].filter(Boolean).map(esc).join(" · ")}</small></div><b>${mny(x.amount, cur)}</b></li>`;
   const cards = list.map((a, i) => {
     const todo = a.rows.filter((x) => !isPaid(x)), paid = a.rows.filter(isPaid), paidSum = paid.reduce((s, x) => s + num(x.amount), 0);
-    return `<details class="panel prof-card as-card" ${i === 0 || !a.done ? "open" : ""}>
+    return `<details class="panel prof-card as-card" id="as-${esc(a.id)}" ${focus ? (a.id === focus ? "open data-as-focus" : "") : i === 0 || !a.done ? "open" : ""}>
       <summary class="prof-head"><span class="mi" aria-hidden="true">📣</span>
         <div class="prof-t"><h3>${esc(a.name)}</h3><small>${a.done ? `<span class="badge b-ok">${t("已缴清")}</span> ` : a.status === "closed" ? `<span class="badge">${t("已关闭")}</span> ` : ""}${t("共 {total} · 已缴 {paid} · 剩余 {left}", { total: mny(a.total, cur), paid: mny(a.paid, cur), left: mny(a.remaining, cur) })}</small>
           ${a.notes ? `<small class="as-desc">${esc(a.notes)}</small>` : ""}</div>
