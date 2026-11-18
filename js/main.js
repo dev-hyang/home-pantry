@@ -1219,6 +1219,13 @@ main.addEventListener("click", async (e) => {
         await refresh(); if (state.route?.section === "house") go(href("house")); return;
       }
       case "deal-start": await startDeal(el.dataset.kind, el.dataset.asset || null); return refresh();
+      case "deal-delete": {   // 历史交易行：删除这条交易记录（左滑 / 行内按钮）
+        if (!confirmDelete(t("删除这条历史交易？只删除这条交易记录和它的清单、时间线；不会改动房产 / 车辆现在的状态，也不会删除已记入花费的款项。"))) return;
+        const id = el.dataset.deal; try { await Store.deleteDeal(id); } catch (err) { return toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
+        toast(t("已删除这条历史交易"));
+        if (state.route?.q?.get("deal") === id) { const q = new URLSearchParams(state.route.q); q.delete("deal"); q.delete("sec"); go(`${href("house", "deal")}${q.toString() ? `?${q}` : ""}`, { replace: true }); }
+        return refresh();
+      }
       case "deal-cancel": if (!armed(el, t("再点一次确认取消"))) return; await cancelDeal(el.dataset.deal || null); return refresh();
       case "deal-closeout": {
         const d = el.dataset.deal ? state.deals.find((x) => x.id === el.dataset.deal) : openDeal();

@@ -271,6 +271,12 @@ export const DemoStore = {
     this.persist();
   },
   async deleteDealEvent(id) { this.db.deal_events = (this.db.deal_events || []).filter((x) => x.id !== id); this.persist(); },
+  /** 删除一条交易记录（历史交易行的删除）：连同它的清单、时间线、自定义项；不动房产 / 车辆现在的状态，也不动已记入花费的款项 */
+  async deleteDeal(id) {
+    this.db.deals = (this.db.deals || []).filter((x) => x.id !== id);
+    for (const k of ["deal_done", "deal_overrides", "deal_custom", "deal_events"]) this.db[k] = (this.db[k] || []).filter((x) => x.deal_id !== id);
+    this.persist();
+  },
   async saveDealOverride(deal_id, task_key, due_on, note) {
     const now = new Date().toISOString();
     this.db.deal_overrides = (this.db.deal_overrides || []).filter((x) => !(x.deal_id === deal_id && x.task_key === task_key));
@@ -1003,6 +1009,7 @@ export const CloudStore = {
     else this.must(await this.sb.from("deal_events").insert({ ...row, created_by: state.user.id }));
   },
   async deleteDealEvent(id) { this.must(await this.sb.from("deal_events").delete().eq("id", id)); },
+  async deleteDeal(id) { this.must(await this.sb.from("property_deals").delete().eq("id", id)); },   // 子表（清单 / 覆盖 / 自定义 / 时间线 / 成交价旁表）都是 on delete cascade
 
   /* 房屋资料 / 设备 / 季节任务（按房产） */
   async getHouseProfile(pid) {
