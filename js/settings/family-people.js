@@ -16,7 +16,7 @@ import { deviceText, ensureLogins, L, lastLoginOf, loginHasMore, loginRowHtml, l
 
 const demo = () => Store.mode === "demo";
 export const personHref = (id) => `${familyHref()}&person=${encodeURIComponent(id)}`;
-const F = { edit: null, devShow: 6, devOpen: null, scopeAll: false };   // 当前正在编辑的块、设备显示几行、哪台设备展开了详情、登录记录是否看全家
+const F = { edit: null, devShow: 6, devOpen: null, scopeAll: false, renameDev: null, linkDev: null };   // renameDev = 正在改名的设备；linkDev = 正在选「属于哪位家庭成员」的设备（底部弹出）   // 当前正在编辑的块、设备显示几行、哪台设备展开了详情、登录记录是否看全家
 
 /* ── 数据小工具 ── */
 export const myMember = () => famMembers().find((m) => m.user_id === meId()) || null;
@@ -120,20 +120,31 @@ function basicBody(p) {
 /** 这台设备我能不能移出：不是当前这台；家主任意，普通成员只能移出同一个人名下的 */
 const canRemoveDevice = (userId) => { const m = famMembers().find((x) => x.user_id === userId); return !!m && userId !== meId() && (amOwner() || (!!m.person_id && m.person_id === myPersonOf())); };
 function deviceRow(m) {
-  const mine = m.user_id === meId(), last = lastLoginOf([m.user_id]), canLink = amOwner() || mine || (m.person_id && m.person_id === myPersonOf());
-  const opts = adultPeople().map((x) => `<option value="${esc(x.id)}" ${x.id === m.person_id ? "selected" : ""}>${esc(x.name)}</option>`).join("");
+  const mine = m.user_id === meId(), last = lastLoginOf([m.user_id]), owner = amOwner(), sameP = !!m.person_id && m.person_id === myPersonOf();
+  const items = [owner || mine ? { label: t("重命名"), action: "dev-rename", data: { id: m.user_id }, first: true } : null,
+    owner || mine || sameP ? { label: t("关联"), action: "dev-link-open", data: { id: m.user_id } } : null,
+    mine ? (demo() ? null : { label: t("登出"), action: "logout", danger: true }) : canRemoveDevice(m.user_id) ? { label: t("登出"), action: "member-remove", data: { id: m.user_id }, danger: true } : null];
+  const name = F.renameDev === m.user_id ? `<input class="dev-name-in" data-dev-name="${esc(m.user_id)}" maxlength="20" value="${esc(m.display_name)}" aria-label="${esc(t("设备名称"))}">` : `<b>${esc(m.display_name)}</b>`;
   return `<li class="dev-card"><div class="dev-row"><span class="login-ico" aria-hidden="true">${DEVICE_ICON[last?.device] || "📱"}</span>
-      <div class="grow"><b>${esc(m.display_name)}</b>${mine ? ` <span class="badge b-ok">📍 ${t("这是你的设备")}</span>` : ""}${m.role === "owner" ? ` <span class="badge mem-b">${t("家主")}</span>` : ""}
+      <div class="grow">${name}${mine ? ` <span class="badge b-ok">📍 ${t("这是你的设备")}</span>` : ""}${m.role === "owner" ? ` <span class="badge mem-b">${t("家主")}</span>` : ""}
         <small class="login-meta">${last ? `${esc(fmtDateTime(last.at))} · ${esc(deviceText(last.device))} · ${esc(last.browser || "")}${last.location ? ` · 🌐 ${esc(last.location)}` : ""}${last.ip ? ` · IP ${esc(last.ip)}` : ""}` : t("还没有登录记录（这台设备打开新版本后才开始记）")}</small></div>
-      ${canRemoveDevice(m.user_id) ? `<div class="dev-acts"><button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-remove" data-id="${esc(m.user_id)}">${t("移除")}</button></div>` : ""}</div>
-    ${canLink ? `<label class="dev-link">${t("属于哪位家庭成员")}<select data-link-person="${esc(m.user_id)}"><option value="">${t("（还没链接）")}</option>${opts}</select></label>` : ""}</li>`;
+      ${items.some(Boolean) ? `<div class="dev-acts">${moreMenu(items, { label: `${m.display_name} · ${t("更多操作")}` })}</div>` : ""}</div></li>`;
+}
+/** 底部弹出的「属于哪位家庭成员」：点一位就自动保存并关闭；底部一个占整行的取消按钮 */
+function linkSheet() {
+  const m = F.linkDev && famMembers().find((x) => x.user_id === F.linkDev); if (!m) return "";
+  const rows = [["", t("（不链接任何人）")], ...adultPeople().map((x) => [x.id, x.name])];
+  return `<div class="fam-sheet-back" data-action="dev-link-cancel"></div><div class="fam-sheet" role="dialog" aria-modal="true" aria-label="${esc(t("属于哪位家庭成员"))}">
+    <h3>${t("「{n}」属于哪位家庭成员？", { n: esc(m.display_name) })}</h3>
+    <div class="fam-sheet-list">${rows.map(([id, name]) => `<button type="button" class="fam-sheet-row ${id === (m.person_id || "") ? "is-cur" : ""}" data-action="dev-link-pick" data-id="${esc(m.user_id)}" data-person="${esc(id)}">${esc(name)}${id === (m.person_id || "") ? " ✓" : ""}</button>`).join("")}</div>
+    <button type="button" class="btn btn-ghost fam-sheet-cancel" data-action="dev-link-cancel">${t("取消")}</button></div>`;
 }
 function devicesBody(p) {
   const own = devicesOf(p.id), unlinked = amOwner() ? famMembers().filter((m) => !m.person_id) : [];
   return `${own.length ? `<ul class="dev-list">${own.slice(0, F.devShow).map(deviceRow).join("")}</ul>` : `<p class="muted">${t("这位家庭成员还没有链接任何登录设备。")}</p>`}
     ${own.length > F.devShow ? `<div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="dev-more">${t("加载更多")}</button></div>` : ""}
     ${unlinked.length ? `<h4 class="fam-sub">${t("还没链接家庭成员的设备")}</h4><ul class="dev-list">${unlinked.map(deviceRow).join("")}</ul>` : ""}
-    <p class="muted mem-note">${t("“移除”= 把那台设备从家庭里移出，等于从它上面登出；它下次打开要重新用邮箱或邀请码登录。")}</p>`;
+    <p class="muted mem-note">${t("点右边的 ⋯：重命名、关联到哪位家庭成员、登出。登出别的设备 = 把它从家庭里移出，它下次打开要重新用邮箱或邀请码登录。")}</p>`;
 }
 function logsBody(p) {
   ensureLogins();
@@ -156,7 +167,7 @@ export function personPage(id) {
   return `<div class="mem-profile">${head}
     ${sec("basic", "🪪", t("基本资料"), basicBody(p), { edit: true })}
     ${p.kind !== "pet" && hasDev ? sec("devices", "📱", t("登录设备"), devicesBody(p), { count: t("{n} 台", { n: devicesOf(p.id).length }) }) : ""}
-    ${p.kind !== "pet" && hasDev ? sec("logs", "🕘", t("登录记录"), logsBody(p)) : ""}${danger}</div>`;
+    ${p.kind !== "pet" && hasDev ? sec("logs", "🕘", t("登录记录"), logsBody(p)) : ""}${danger}${linkSheet()}</div>`;
 }
 
 /** 新建家庭成员：基本资料表单页（取消在左、保存在右） */
@@ -184,7 +195,11 @@ document.addEventListener("click", async (e) => {
   const ed = e.target.closest("[data-fam-edit]");
   if (ed) { e.preventDefault(); const id = ed.dataset.famEdit; F.edit = F.edit === id ? null : id; rerender(true); return; }
   const a = e.target.closest("[data-action]")?.dataset; if (!a) return;
-  if (a.action === "dev-more") { F.devShow += 6; rerender(true); }
+  if (a.action === "dev-rename") { F.renameDev = a.id; rerender(true); setTimeout(() => { const i = document.querySelector("[data-dev-name]"); i?.focus(); i?.select(); }, 80); }
+  else if (a.action === "dev-link-open") { F.linkDev = a.id; rerender(true); }
+  else if (a.action === "dev-link-cancel") { F.linkDev = null; rerender(true); }
+  else if (a.action === "dev-link-pick") { F.linkDev = null; try { await setDevicePerson(a.id, a.person || null); toast(t("已保存")); } catch (err) { toast(t("保存失败：{msg}", { msg: err.message })); } rerender(true); }
+  else if (a.action === "dev-more") { F.devShow += 6; rerender(true); }
   else if (a.action === "logs-scope") { F.scopeAll = a.all === "1"; rerender(true); }
 });
 export const resetFamilyUi = () => { F.edit = null; F.devShow = 6; F.devOpen = null; F.scopeAll = false; };
@@ -225,3 +240,18 @@ export async function removePerson(id) {
     state.people = await Store.listPeople(); await reloadMembers(); toast(t("已移出 {name}", { name: p.name }));
   } catch (e) { await reloadMembers(); state.people = await Store.listPeople(); toast(t("操作失败：{msg}", { msg: e.message })); }
 }
+
+/* 设备改名：在行里直接改，回车保存，点页面别处（或按 Esc）取消 */
+async function saveDeviceName(input) {
+  const id = input.dataset.devName, name = input.value.trim(), cur = famMembers().find((x) => x.user_id === id);
+  if (!cur || !name || name === cur.display_name) { F.renameDev = null; rerender(true); return; }
+  if (name.length > 20) return toast(t("称呼要 1–20 个字"));
+  try { if (demo()) { DemoStore.demoMember(id).display_name = name; DemoStore.persist(); } else await Store.setMemberName(id, name); await reloadMembers(); toast(t("已保存")); }
+  catch (err) { toast(t("保存失败：{msg}", { msg: err.message })); }
+  F.renameDev = null; rerender(true);
+}
+document.addEventListener("keydown", (e) => {
+  const i = e.target.closest?.("[data-dev-name]"); if (!i) return;
+  if (e.key === "Enter") { e.preventDefault(); saveDeviceName(i); } else if (e.key === "Escape") { F.renameDev = null; rerender(true); }
+});
+document.addEventListener("pointerdown", (e) => { if (F.renameDev && !e.target.closest("[data-dev-name]")) { F.renameDev = null; rerender(true); } }, true);

@@ -1,6 +1,11 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "登出": "Sign out",
+  "设备名称": "Device name",
+  "（不链接任何人）": "(link to nobody)",
+  "「{n}」属于哪位家庭成员？": "Which family member does \"{n}\" belong to?",
+  "点右边的 ⋯：重命名、关联到哪位家庭成员、登出。登出别的设备 = 把它从家庭里移出，它下次打开要重新用邮箱或邀请码登录。": "Use ⋯ on the right: rename, link to a family member, sign out. Signing out another device removes it from the household; it must sign in again with email or an invite code.",
   "确认是家人": "Confirm it's family",
   "移出设备": "Remove device",
   "在可疑记录右边的 ⋯ 里选“移出设备”，或到上面“登录设备”里点“移除”": "Use ⋯ on the suspicious entry and pick Remove device, or tap Remove under Login devices above",

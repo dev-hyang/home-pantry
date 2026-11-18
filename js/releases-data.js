@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.14", title: { zh: "登录设备行加 ⋯ 菜单：重命名、关联、登出", en: "Login device rows get a ⋯ menu: Rename, Link, Sign out" }, items: [
+    { k: "new", zh: "每台登录设备右边有 ⋯：重命名（直接在名字上改，回车保存，点别处取消）、关联（底部弹出「属于哪位家庭成员」，点一位就自动保存，底部取消按钮占整行）、登出（自己这台 = 退出登录；别的设备 = 从家庭里移出，下次要重新登录）", en: "Each login device has a ⋯ menu: Rename (edit the name in place, Enter saves, tapping elsewhere cancels), Link (a bottom sheet for which family member; tapping one saves it, with a full-width Cancel) and Sign out (this device = sign out; another device = removed from the household and must sign in again)" },
+    { k: "better", zh: "设备行不再有常驻的「移除」按钮和选择框，更清爽", en: "Device rows no longer carry a standing Remove button and selector" }
+  ] },
+
   { v: "2026-11-18.13", title: { zh: "家庭成员详情页：块不再折叠、编辑按钮和房屋资料一样大、设备只留「移除」、登录记录切范围不回顶部、可疑记录有菜单", en: "Member page: blocks no longer collapse, Edit is the same size as in Home profile, devices keep only Remove, switching sign-in scope stays put, suspicious sign-ins have a menu" }, items: [
     { k: "better", zh: "三个块不再能折叠；编辑按钮和房屋资料里的一样大（之前大了一圈）；登录设备块不再有编辑和详情按钮，每行只有「移除」，「属于哪位家庭成员」直接在行里选", en: "The three blocks no longer collapse; Edit is the same size as in Home profile (it was oversized); Login devices has no Edit or Details button, each row only has Remove and the family-member selector sits in the row" },
     { k: "better", zh: "登录记录里点「只看某人 / 全家」或「加载更多」，停留在原来的位置，不再跳回页面顶端", en: "Tapping Only / Everyone or Load more in the sign-in history stays where you are instead of jumping to the top" },
