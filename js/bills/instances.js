@@ -54,7 +54,7 @@ function recurringRows(b, { from, to, today }) {
   if (b.direction === "receivable") return { rows: [], truncated: 0 };   // 应收（房东租金）不是支出
   const rows = [], cur = b.currency || null, escrow = b.pay_channel === "escrow";
   const mk = (extra) => ({ kind: "recurring", billId: b.id, key: `r:${b.id}:${extra.dueOn || extra.paymentId}`, name: b.name, category: b.category, payee: b.payee || "", property_id: b.property_id || null, asset_id: b.asset_id || null,
-    currency: cur, autopay: !!b.autopay, escrow, assets: assetKeys(b, "recurring"), ...extra });
+    currency: cur, frequency: b.frequency || null, autopay: !!b.autopay, escrow, assets: assetKeys(b, "recurring"), ...extra });
   const inRange = (d) => !!d && d >= from && d <= to;
   const taken = new Set();   // 已被缴费记录占用的到期日（含 skipped）
 
@@ -224,6 +224,18 @@ export function assetBreakdown(rows, { cur } = {}) {
     g.n++; g.total = r2(g.total + r.amount); g.paid = r2(g.paid + r.paid); g.remaining = r2(g.remaining + r.balance); m.set(key, g);
   }
   return [...m.values()].sort((a, b) => b.total - a.total || a.key.localeCompare(b.key));
+}
+/** 按周期分组：周期性（再按每月 / 每季度 / 每年… 细分）和一次性各一组；没有的组不出现。口径同 assetBreakdown（不算跳过、Escrow、不计入合计的、其他币种） */
+export function cycleBreakdown(rows, { cur } = {}) {
+  const mkg = () => ({ n: 0, total: 0, paid: 0, remaining: 0 }), add = (g, r) => { g.n++; g.total = r2(g.total + r.amount); g.paid = r2(g.paid + r.paid); g.remaining = r2(g.remaining + r.balance); };
+  const rec = { ...mkg(), byFreq: new Map() }, one = mkg();
+  for (const r of rows) {
+    if (r.status === "skipped" || r.escrow || r.counted === false || (cur && (r.currency || cur) !== cur)) continue;
+    if (r.kind === "onetime") { add(one, r); continue; }
+    add(rec, r); const k = r.frequency || "custom", g = rec.byFreq.get(k) || { freq: k, ...mkg() }; add(g, r); rec.byFreq.set(k, g);
+  }
+  const ORDER = ["weekly", "biweekly", "monthly", "quarterly", "semiannual", "annual", "custom", "one_time"];
+  return { recurring: rec.n ? { ...rec, byFreq: [...rec.byFreq.values()].sort((a, b) => ORDER.indexOf(a.freq) - ORDER.indexOf(b.freq)) } : null, onetime: one.n ? one : null };
 }
 /** 按月走势：months = ["2026-06", …]；每月 { m, due（应付）, paid（已付）, n }。只算计入合计的行，按到期月归。 */
 export function monthlySeries(rows, months, { cur } = {}) {

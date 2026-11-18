@@ -1186,6 +1186,7 @@ main.addEventListener("click", async (e) => {
       }
       case "alerts-prev": shiftAlertSource(-1); return render();
       case "alerts-next": shiftAlertSource(1); return render();
+      case "ov-group": state.ovFilter.group = el.dataset.group === "cycle" ? "cycle" : "asset"; return render();   // 账单概览：账单分组切换（按资产 / 按周期）
       case "login-ack": await ackLoginDo(id); return render(true);   // 登录记录：是我们家人
       case "logins-more": await loginsMore(); return;   // 登录记录：再往前 6 天
       case "person-del-page": {   // 家庭成员详情页的「删除」：名下没有设备时才有这个按钮

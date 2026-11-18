@@ -4128,3 +4128,7 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .fam-sheet-row:hover { border-color: var(--pine); } .fam-sheet-row.is-cur { background: var(--ok-bg); border-color: var(--pine); font-weight: 600; }
 .fam-sheet-cancel { box-sizing: border-box; width: 100%; min-height: 44px; justify-content: center; }
 .dev-acts .act-more > summary { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* 账单分组：切换标签 + 按周期里的细分行（缩进、小一点） */
+.grp-tabs { margin: 0 0 8px; padding-bottom: 0; }
+.bill-assets li.ba-sub .ba-row { padding-left: 22px; } .bill-assets li.ba-sub .ba-name { font-size: 13.5px; color: var(--muted); }

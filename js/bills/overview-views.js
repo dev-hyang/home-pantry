@@ -9,7 +9,7 @@ import { addDays } from "./dates.js";
 import { NEW_RECURRING } from "./kinds.js";
 import { billTrendSection } from "./views.js";
 import { detailHref } from "./medical.js";
-import { BILL_RANGES, STATUS_GROUPS, assetBreakdown, billInstances, filterRows, monthBounds, monthlySeries, nextDue, rangeBounds, seriesMonths, sortRows, summarize } from "./instances.js";
+import { BILL_RANGES, STATUS_GROUPS, assetBreakdown, billInstances, cycleBreakdown, filterRows, monthBounds, monthlySeries, nextDue, rangeBounds, seriesMonths, sortRows, summarize } from "./instances.js";
 import { allBillsHref, assetKeyLabel, assetOptions, rowHtml } from "./all-views.js";
 
 const cur = () => Units.region.currency;
@@ -45,7 +45,7 @@ function compute() {
   const months = seriesMonths(today, 5, 2), mb = { from: monthBounds(months[0]).from, to: monthBounds(months.at(-1)).to };
   const series = monthlySeries(filterRows(billInstances(data, { ...mb, today }).rows, { asset: f.asset }), months, { cur: cur() });
   const urgentAll = rows.filter(isUrgent), urgent = sortRows(urgentAll, "due").slice(0, 6);
-  return { today, from, to, base, rows, S, next, series, urgent, urgentN: urgentAll.length, byAsset: assetBreakdown(rows, { cur: cur() }) };   // 按资产：跟着上面选的资产走（选了某个资产就只剩它）
+  return { today, from, to, base, rows, S, next, series, urgent, urgentN: urgentAll.length, byAsset: assetBreakdown(rows, { cur: cur() }), byCycle: cycleBreakdown(rows, { cur: cur() }) };   // 按资产：跟着上面选的资产走（选了某个资产就只剩它）
 }
 
 /** 一张卡：整张是一个链接；颜色类 bc-<种类>（--bill-* 变量，浅色 / 深色各一套） */
@@ -82,11 +82,25 @@ function urgentHtml(C) {
     <div class="panel"><ul class="bill-list">${C.urgent.map(rowHtml).join("")}</ul></div></section>`;
 }
 
-function assetHtml(C) {
-  if (!C.byAsset.length) return "";
-  const f = state.ovFilter, max = Math.max(...C.byAsset.map((g) => g.total), 1);
-  return `<section class="section"><div class="section-head"><h2>${t("按资产")}</h2><p>${t("点一行看这个资产的账单")}</p></div><div class="panel"><ul class="bill-assets">${C.byAsset.map((g) => `<li><a class="ba-row" href="${allBillsHref({ range: f.range, asset: g.key })}">
-      <span class="ba-name">${esc(assetKeyLabel(g.key))}</span><span class="ba-amt"><b>${mny(g.total)}</b><small>${g.remaining > 0 ? t("余 {a}", { a: mny(g.remaining) }) : t("已结清")}</small></span><span class="ba-bar" aria-hidden="true"><i style="width:${Math.max(3, Math.round((g.total / max) * 100))}%"></i></span><span class="mch" aria-hidden="true">›</span></a></li>`).join("")}</ul></div></section>`;
+/** 账单分组：默认按资产；切到「按周期」= 周期性（再按每月 / 每季度 / 每年细分）和一次性各一组，有金额才出现 */
+function groupHtml(C) {
+  const f = state.ovFilter, byCycle = f.group === "cycle", cyc = C.byCycle;
+  if (!C.byAsset.length && !cyc.recurring && !cyc.onetime) return "";
+  const amt = (g) => `<span class="ba-amt"><b>${mny(g.total)}</b><small>${g.remaining > 0 ? t("余 {a}", { a: mny(g.remaining) }) : t("已结清")}</small></span>`;
+  const bar = (g, max) => `<span class="ba-bar" aria-hidden="true"><i style="width:${Math.max(3, Math.round((g.total / max) * 100))}%"></i></span>`;
+  const row = (href_, name, g, max, sub = false) => `<li ${sub ? 'class="ba-sub"' : ""}><a class="ba-row" href="${href_}"><span class="ba-name">${name}${g.n ? ` <small class="muted">${t("{n} 笔账单", { n: g.n })}</small>` : ""}</span>${amt(g)}${bar(g, max)}<span class="mch" aria-hidden="true">›</span></a></li>`;
+  let list = "";
+  if (byCycle) {
+    const max = Math.max(cyc.recurring?.total || 0, cyc.onetime?.total || 0, 1), q = { range: f.range, asset: f.asset };
+    if (cyc.recurring) list += row(allBillsHref({ ...q, type: "recurring" }), `🔁 ${t("周期性")}`, cyc.recurring, max) + cyc.recurring.byFreq.map((g) => row(allBillsHref({ ...q, type: "recurring" }), esc(t(window.BILLS.FREQUENCIES[g.freq] || g.freq)), g, max, true)).join("");
+    if (cyc.onetime) list += row(allBillsHref({ ...q, type: "onetime" }), `🧾 ${t("一次性")}`, cyc.onetime, max);
+  } else {
+    const max = Math.max(...C.byAsset.map((g) => g.total), 1);
+    list = C.byAsset.map((g) => row(allBillsHref({ range: f.range, asset: g.key }), esc(assetKeyLabel(g.key)), g, max)).join("");
+  }
+  return `<section class="section"><div class="section-head"><h2>${t("账单分组")}</h2><p>${byCycle ? t("点一行看这类账单") : t("点一行看这个资产的账单")}</p></div>
+    <div class="chips grp-tabs" role="group" aria-label="${esc(t("分组方式"))}"><button type="button" class="chip" aria-pressed="${!byCycle}" data-action="ov-group" data-group="asset">${t("按资产")}</button><button type="button" class="chip" aria-pressed="${byCycle}" data-action="ov-group" data-group="cycle">${t("按周期")}</button></div>
+    <div class="panel"><ul class="bill-assets">${list}</ul></div></section>`;
 }
 
 function trendHtml(C) {
@@ -117,6 +131,6 @@ export function viewBillsHome() {
       <p class="muted kinds-note" role="status">${t("统计范围：{r}（{s}）· {a}。逾期没缴的一直计入，不受范围限制。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope, a: assetLabel })}</p>
       ${empty ? `<div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}<p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${href("bill", "new")}">${t("手动添加一条")}</a></p></div>` : `${cardsHtml(C)}${notesHtml(C)}`}
     </section>
-    ${empty ? "" : `${urgentHtml(C)}${assetHtml(C)}${trendHtml(C)}${billTrendSection()}
+    ${empty ? "" : `${urgentHtml(C)}${groupHtml(C)}${trendHtml(C)}${billTrendSection()}
     ${fabHtml()}`}`;
 }

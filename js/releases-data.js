@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.19", title: { zh: "今日页问候用家庭成员的名字；账单概览「按资产」改名「账单分组」，可切换按资产 / 按周期", en: "Today greets the family member by name; Bills overview By asset is now Bill groups with a By asset / By cycle switch" }, items: [
+    { k: "fix", zh: "今日页「中午好，…」显示家庭成员的名字，不再是设备的名字（这台设备还没链接家庭成员时才用设备的称呼）", en: "The Today greeting shows the family member's name instead of the device's name (the device name is only used when the device is not linked to a family member)" },
+    { k: "new", zh: "财务 → 账单概览的「按资产」改名「账单分组」，默认还是按资产；多了「按周期」视图：周期性（再按每月、每季度、每年细分）和一次性各一行，有金额才显示", en: "Finance → Bills overview: By asset is renamed Bill groups and still defaults to assets; a new By cycle view shows Recurring (split by monthly, quarterly, yearly…) and One-time, each only when it has an amount" }
+  ] },
+
   { v: "2026-11-18.18", title: { zh: "修复：打印页里账单的负责人名字又显示出来了", en: "Fix: a bill's owner name shows again in the print view" }, items: [
     { k: "fix", zh: "打印账单时，没有显示「谁负责」的名字（旧字段删除后漏改了一处），现在修好", en: "Printing bills did not show the owner's name after the old field was removed; fixed" }
   ] },

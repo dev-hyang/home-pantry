@@ -430,3 +430,18 @@ test("deviceInfo：从 User-Agent 认出设备、系统、浏览器", () => {
   assert.deepEqual(deviceInfo("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0"), { device: "Windows computer", os: "Windows", browser: "Edge 126" });
   assert.equal(deviceInfo("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15").device, "Mac computer");
 });
+
+import { cycleBreakdown } from "../js/bills/instances.js";
+test("cycleBreakdown：周期性按频率细分、一次性单独一组，没有的组不出现", () => {
+  const rows = [
+    { kind: "recurring", frequency: "monthly", amount: 100, paid: 100, balance: 0, status: "paid", assets: [] },
+    { kind: "recurring", frequency: "monthly", amount: 50, paid: 0, balance: 50, status: "pending", assets: [] },
+    { kind: "recurring", frequency: "annual", amount: 300, paid: 0, balance: 300, status: "pending", assets: [] },
+    { kind: "recurring", frequency: "monthly", amount: 999, paid: 0, balance: 999, status: "skipped", assets: [] },
+  ];
+  const c = cycleBreakdown(rows);
+  assert.deepEqual([c.recurring.n, c.recurring.total, c.recurring.remaining], [3, 450, 350]);
+  assert.deepEqual(c.recurring.byFreq.map((g) => [g.freq, g.total]), [["monthly", 150], ["annual", 300]]);
+  assert.equal(c.onetime, null);
+  assert.equal(cycleBreakdown([{ kind: "onetime", amount: 40, paid: 10, balance: 30, status: "pending", assets: [] }]).recurring, null);
+});

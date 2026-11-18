@@ -14,7 +14,7 @@ import { currentWeather, enableWeather, wxLoc } from "./core/weather.js";
 import { aiIcon, aiQuota, aiReady } from "./core/ai.js";
 import { Store } from "./core/store.js";
 import { href } from "./core/router.js";
-import { deviceLinkPrompt, myPersonOf } from "./settings/family-people.js";
+import { deviceLinkPrompt, myPersonOf, personNameOf } from "./settings/family-people.js";
 import { releaseBadgeHTML } from "./core/releases-ui.js";
 import { esc, money, num, spaceOf } from "./core/util.js";
 import { joinList, locale, t } from "./core/i18n.js";
@@ -89,7 +89,8 @@ export function viewToday() {
 function headHtml() {
   const h = new Date().getHours(), hi = h < 5 ? t("夜深了") : h < 11 ? t("早上好") : h < 13 ? t("中午好") : h < 18 ? t("下午好") : t("晚上好");
   const dateText = new Date().toLocaleDateString(locale(), { month: "long", day: "numeric", weekday: "long" });
-  const name = state.displayName && state.displayName !== "我" && state.displayName !== t("我") ? state.displayName : "";
+  const who = personNameOf(myPersonOf()) || state.displayName;   // 问候用家庭成员的名字；这台设备还没链接家庭成员时才用设备的称呼
+  const name = who && who !== "我" && who !== t("我") ? who : "";
   const wx = currentWeather(() => { if (state.route?.section === "today") rerenderToday(); });
   const wxHtml = wx ? `<span class="today-wx" title="${esc(wx.label)}"><span aria-hidden="true">${wx.icon}</span><span class="sr-only">${esc(wx.label)}</span> ${wx.temp}${esc(wx.unit)}</span>`
     : wxLoc() ? "" : `<button type="button" class="today-wx-on" data-action="wx-enable" title="${esc(t("允许定位后显示当地天气（位置只存在这台设备上）"))}">🌤️ ${t("显示天气")}</button>`;

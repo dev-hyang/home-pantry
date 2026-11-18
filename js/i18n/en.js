@@ -1,6 +1,11 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "{n} 笔账单": "{n} bills",
+  "账单分组": "Bill groups",
+  "按周期": "By cycle",
+  "分组方式": "Group by",
+  "点一行看这类账单": "Tap a row to see these bills",
   "登出": "Sign out",
   "设备名称": "Device name",
   "（不链接任何人）": "(link to nobody)",
