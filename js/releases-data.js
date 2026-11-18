@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.27", title: { zh: "账单行再优化：估算写在金额旁、信息不拆行、标志放名称后；所有账单列表一致", en: "Bill rows polished: estimate beside the amount, details never split, flags after the name; same in every bill list" }, items: [
+    { k: "better", zh: "估算的金额写成「（估算）$123.22」，在金额左边同一行，不再放到金额下面", en: "Estimated amounts read \u201c(est.) $123.22\u201d on the same line, to the left of the amount, instead of underneath" },
+    { k: "better", zh: "所属资产 / 患者后面直接接到期日；这一行的每一项都不会被拆成两行，放不下时只在「·」后面换到下一行", en: "The asset or patient is followed straight by the due date; no item on that line is split across two lines, and when space runs out it wraps only after a dot" },
+    { k: "better", zh: "🔒 等小标志放在名称后面；名称的下划线只在文字下面，图标下面没有下划线", en: "The lock and other small flags sit after the name; the underline is only under the name text, not under the icon" },
+    { k: "better", zh: "新格式也用在周期性账单清单、一次性账单清单、缴费记录，各页账单行一致", en: "The same format is used in the recurring bills list, the one-time bills list and the payment history" }
+  ] },
+
   { v: "2026-11-17.26", title: { zh: "全部账单的行重新排版：分期一笔一行；有眼睛；「清除筛选」靠右", en: "All bills rows re-laid out: one line per installment, an eye button, and Clear filters on the right" }, items: [
     { k: "better", zh: "每行第一行是类别图标、名称和状态（逾期 / 待缴 / Escrow 代缴 / 已缴…），金额靠右；金额是估算的，在金额下面用小字写「估算金额」", en: "Each row now starts with the category icon, name and status (overdue, unpaid, paid via escrow, paid\u2026) with the amount on the right; estimated amounts say Estimated amount in small print underneath" },
     { k: "better", zh: "第二行写所属资产或患者、到期日、周期性 / 一次性、收款方；已缴的这行改写缴费日期", en: "The second line shows the asset or patient, due date, recurring or one-time, and payee; for paid bills it shows the payment date instead" },

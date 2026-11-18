@@ -14,6 +14,7 @@ import { dq, download, lastMonths, monthLabel, toCsv } from "../stats/views.js";
 import { autofillBar } from "../core/autofill.js";
 import { crumbNav } from "../core/hub.js";
 import { viewOneTimeWizard } from "./ot-wizard-views.js";
+import { lockFlag, metaLine, nameLine } from "./row-fmt.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { propertyOptionsHtml } from "../core/lifecycle.js";
 import { kindsNote } from "./kinds.js";
@@ -40,11 +41,10 @@ export function applyMedical(bills, pays) {
 
 /* ───────────── 行 / 筛选 ───────────── */
 export function medRow(b) {
-  const who = [b.kind !== "medical" ? t(kindOf(b).name) : null, b.patient, b.service_date ? fmtDate(b.service_date) : null, b.bill_ref ? `#${b.bill_ref}` : null].filter(Boolean).map(esc).join(" · ");
   const amt = b.status === "paid" ? mny(b.paid, b.currency) : b.balance != null ? mny(b.balance, b.currency) : mny(b.billed_amount, b.currency);
-  const due = b.open && b.due_on ? ` · ${b.overdue ? `<b class="down">${t("逾期")}</b> ` : ""}${t("到期 {d}", { d: fmtDate(b.due_on) })}` : "";
-  return `<li class="med-li"><span class="badge ${STATUS_CLS[b.status] || ""}">${t(STATUS[b.status] || b.status)}</span>
-    <div class="grow">${lock(b)}<a class="link-name" href="${detailHref(b.id)}">${subIcon(b)} ${esc(b.provider)}</a><small>${who}${due}</small></div>
+  const due = b.open && b.due_on ? (b.overdue ? `${t("逾期")} · ` : "") + t("到期 {d}", { d: fmtDate(b.due_on) }) : "";
+  const meta = metaLine([b.kind !== "medical" ? t(kindOf(b).name) : null, b.patient, b.service_date ? fmtDate(b.service_date) : null, b.bill_ref ? `#${b.bill_ref}` : null, due]);
+  return `<li class="med-li"><div class="grow">${nameLine({ ico: subIcon(b), name: b.provider, href: detailHref(b.id), flags: [b.visibility === "private" && lockFlag()], badge: `<span class="badge ${STATUS_CLS[b.status] || ""}">${t(STATUS[b.status] || b.status)}</span>` })}${meta}</div>
     <b title="${esc(b.status === "paid" ? t("已付") : t("余额"))}">${amt}</b></li>`;
 }
 function filtered() {

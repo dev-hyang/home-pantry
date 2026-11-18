@@ -3917,3 +3917,20 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .clear-filters[hidden] { display: none !important; }
 /* 工具条里「清除筛选」排到最后一个，再 margin-left:auto 才真的在最右边（它在 DOM 里夹在搜索框和下拉框中间） */
 .toolbar > .clear-filters, .toolbar.tb-on > .clear-filters { order: 99; }
+
+/* ── 账单行的统一排版（bills/row-fmt.js）──
+ * 名称：图标在链接外面（没有下划线），下划线只在名称文字下面；🔒 等小标志写在名称后面（也在链接外面）；
+ * 信息行：每一项是不拆开的一段，段与段之间的「·」写在前一段末尾，放不下就在点后面换行；金额「（估算）$123.22」同一行、靠右。 */
+.rf-name { display: block; min-width: 0; overflow-wrap: anywhere; line-height: 1.5; }
+.rf-name .link-name { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; display: inline; }
+.rf-ico, .rf-flag { text-decoration: none; display: inline-block; }
+.rf-meta { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.7; min-width: 0; }
+.rf-seg { display: inline-block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.rf-seg.rf-chip { margin-right: 2px; }
+.rf-est { color: var(--muted); font-size: 12.5px; font-weight: 400; white-space: nowrap; }
+.med-li { display: flex; align-items: flex-start; gap: 12px; }
+.med-li > b { white-space: nowrap; font-variant-numeric: tabular-nums; margin-left: auto; }
+/* 全部账单的行：不再有单独的「估算」格 */
+.bill-row.all-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "l1 amt" "l2 l2" "pays pays" "act act"; align-items: start; }
+.bill-row.all-row .all-amt { white-space: nowrap; }
+.bill-row.all-row .all-l2 { display: block; }

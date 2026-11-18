@@ -16,6 +16,7 @@ import { autofillBar, scanNewBillBar } from "../core/autofill.js";
 import { escrowPanelHtml } from "./escrow.js";
 import { assetSelectHtml, assetSuggestHtml } from "./asset-ui.js";
 import { allBillsHref } from "./all-views.js";
+import { estAmount, metaLine, nameLine } from "./row-fmt.js";
 import { fullFormUrl, viewBillWizard } from "./wizard-views.js";
 import { VEHICLE_CATS } from "./instances.js";
 import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
@@ -170,12 +171,17 @@ export function viewBillsList() {
   // 订阅 / 会员按种类排在一起，其余按状态
   const kindOrder = Object.keys(B().SUB_KINDS);
   const kindTag = (b) => (B().isSubCat(b.category) && b.sub_kind ? `<span class="badge sub-kind">${t(B().SUB_KINDS[b.sub_kind] || b.sub_kind)}</span>` : "");
-  const row = (b, flat = false) => `<li class="bill-row ${b.active && !b.ended ? "" : "inactive"}">
-      <div class="grow">${propertyTag(b.property_id)}${kindTag(b)}${flat ? `<span class="badge" style="background:var(--surface-2)">${billCat(b.category).icon}</span> ` : ""}<a class="link-name" href="${href("bill", b.id)}">${esc(b.name)}</a>${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}${b.trialSoon ? ` <span class="badge b-out">${t("试用快到期")}</span>` : ""}
-        <small>${[acctText(b), b.escrow ? t("Escrow 代缴，含在房贷月供里") : null, b.category === "mortgage" && escrowMonthlyFor(b.property_id) > 0 ? t("含 Escrow 约 {a}/月", { a: mny(escrowMonthlyFor(b.property_id)) }) : null, b.payee, freqText(b), b.ended && b.ends_on ? t("结束于 {d}", { d: fmtDate(b.ends_on) }) : b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), b.assigned_to ? memberName(b.assigned_to) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
-      <b class="bill-amt">${mny(b.est, b.currency)}</b>
+  const row = (b, flat = false) => {
+    const badges = `${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}${b.trialSoon ? ` <span class="badge b-out">${t("试用快到期")}</span>` : ""}`;
+    const chip = `${propertyTag(b.property_id)}${kindTag(b)}`.trim();
+    const est = b.est != null && (b.amount_type !== "fixed" || b.typical_amount == null);   // 变动金额（按最近均值估）写成（估算）
+    return `<li class="bill-row ${b.active && !b.ended ? "" : "inactive"}">
+      <div class="grow">${nameLine({ ico: flat ? billCat(b.category).icon : "", name: b.name, href: href("bill", b.id), badge: badges.trim() })}
+        ${metaLine([chip && { html: chip, chip: true }, b.ended && b.ends_on ? t("结束于 {d}", { d: fmtDate(b.ends_on) }) : b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), freqText(b), b.payee, acctText(b), b.escrow ? t("Escrow 代缴，含在房贷月供里") : null, b.category === "mortgage" && escrowMonthlyFor(b.property_id) > 0 ? t("含 Escrow 约 {a}/月", { a: mny(escrowMonthlyFor(b.property_id)) }) : null, b.assigned_to ? memberName(b.assigned_to) : null])}</div>
+      <b class="bill-amt">${estAmount(mny(b.est, b.currency), est)}</b>
       ${payModeSelect(b)}
     </li>`;
+  };
   billInner = () => {
     let list = filterByProperty(state.billsEnriched);
     if (f.channel && f.channel !== "all") list = list.filter((b) => b.pay_channel === f.channel);
@@ -246,7 +252,7 @@ function payListInner() {
     const b = byBill[p.bill_id], payee = (p.purchase_id ? p.pur_store : "") || b?.payee || "";   // 收款方：缴费当时记在花费上的（数据库顺带带回），没有就用账单的收款方
     return `<li data-swipe-del="bill-pay"><${b ? `a href="${href("bill", b.id)}?sec=pay&edit=${p.id}" title="${t("点一下编辑")}"` : "span"} class="badge pay-date" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</${b ? "a" : "span"}>
       <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(billLabel(b))}</a>` : t("（已删除的账单）")}</span>
-        <small>${[b ? acctText(b) : null, payee ? t("收款方：{who}", { who: payee }) : null, t(B().PAYMENT_STATUS[p.status] || p.status), paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+        ${metaLine([b ? acctText(b) : null, payee ? t("收款方：{who}", { who: payee }) : null, t(B().PAYMENT_STATUS[p.status] || p.status), paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes])}</div>
       <b>${p.amount != null ? mny(p.amount, p.currency) : `<span class="muted">${t("未填金额")}</span>`}</b>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="billpay-del" data-id="${p.id}">${t("删除")}</button></li>`;
   }).join("")}</ul>${L.busy ? `<p class="muted" role="status" style="text-align:center">${t("加载中…")}</p>` : moreBtn(L.hasMore, 'data-action="pay-more"')}`;

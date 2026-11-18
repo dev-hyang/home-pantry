@@ -7,6 +7,7 @@ import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
 import { moneyEye } from "../core/privacy.js";
+import { estAmount, lockFlag, metaLine, nameLine } from "./row-fmt.js";
 import { propertyTag, propertyName } from "../core/alerts.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { billCat } from "./logic.js";
@@ -77,10 +78,6 @@ export function assetKeyLabel(key) {
   return `🧾 ${t("家庭通用")}`;
 }
 
-const nameLink = (r) => {
-  if (r.kind === "onetime") { const k = KINDS[r.category]; return `${r.isPrivate ? "🔒 " : ""}<a class="link-name" href="${detailHref(r.billId)}">${k?.icon || "🧾"} ${esc(r.name)}</a>`; }
-  return `<a class="link-name" href="${href("bill", r.billId)}">${billCat(r.category).icon} ${esc(r.name)}</a>`;
-};
 const action = (r) => {
   if (r.status === "paid" || r.status === "skipped" || r.status === "written_off" || r.escrow) return "";
   if (r.kind === "onetime") return `<a class="btn btn-sm" href="${detailHref(r.billId)}">${t("记付款")}</a>`;
@@ -102,18 +99,20 @@ function payInfo(r) {
 const L = (zh, en) => (lang === "en" ? en : zh);
 export function rowHtml(r) {
   const c = r.currency || cur(), done = ["paid", "skipped", "written_off"].includes(r.status), info = payInfo(r);
-  const single = !info.split && info.lines.length ? info.lines.at(-1) : null;
-  // 第二行：所属资产 / 患者 · 到期日（已缴一次付清的写缴费日期）· 周期性 / 一次性 · 收款方 · 自动扣款
-  const bits = [single ? t("缴费日期 {d}", { d: fmtDate(single.date) }) : r.dueOn ? t("到期 {d}", { d: fmtDate(r.dueOn) }) : t("没填到期日"), r.kind === "onetime" ? t("一次性") : t("周期性"), r.kind === "recurring" ? r.payee : "", r.autopay ? t("自动扣款") : ""].filter(Boolean);
-  const amt = r.amountUnknown && !done ? "—" : mny(r.amount, c);
-  const est = r.amountIsEst && !done ? `<small class="all-est">${t("估算金额")}</small>` : "";
+  const single = !info.split && info.lines.length ? info.lines.at(-1) : null, isOne = r.kind === "onetime";
+  // 名称行：类别图标 + 名称 + 名称后面的标志（🔒…）+ 状态徽章
+  const name = nameLine({ ico: isOne ? (KINDS[r.category]?.icon || "🧾") : billCat(r.category).icon, name: r.name, href: isOne ? detailHref(r.billId) : href("bill", r.billId), flags: [r.isPrivate && lockFlag()],
+    badge: `<span class="badge ${BADGE[r.status] || ""}">${r.status === "paid" ? "✓ " : ""}${t(LABEL[r.status] || r.status)}</span>` });
+  // 信息行：所属资产 / 患者 直接接到期日（已缴一次付清的写缴费日期）· 周期性 / 一次性 · 收款方 · 自动扣款
+  const chip = assetChip(r);
+  const meta = metaLine([chip && { html: chip, chip: true }, single ? t("缴费日期 {d}", { d: fmtDate(single.date) }) : r.dueOn ? t("到期 {d}", { d: fmtDate(r.dueOn) }) : t("没填到期日"), isOne ? t("一次性") : t("周期性"), r.kind === "recurring" ? r.payee : "", r.autopay ? t("自动扣款") : ""]);
+  const amt = estAmount(r.amountUnknown && !done ? "—" : `<b>${mny(r.amount, c)}</b>`, r.amountIsEst && !done);
   const pays = info.split ? `<ul class="all-pays" aria-label="${esc(t("分期付款"))}">${info.lines.map((p, k) => `<li><span class="ap-no">${esc(L(`分期 #${k + 1}`, `Split #${k + 1}`))}</span><span class="ap-date">${esc(fmtDate(p.date))}</span><b class="ap-amt">${mny(p.amount, c)}</b>${p.balance != null ? `<small class="ap-bal">${esc(t("余额 {a}", { a: mny(p.balance, c) }))}</small>` : ""}</li>`).join("")}</ul>` : "";
   const act = action(r);
   return `<li class="bill-row all-row ${done ? "is-paid" : ""}">
-    <div class="all-l1">${nameLink(r)}<span class="badge ${BADGE[r.status] || ""}">${r.status === "paid" ? "✓ " : ""}${t(LABEL[r.status] || r.status)}</span></div>
-    <div class="all-amt"><b>${amt}</b></div>
-    <div class="all-l2">${assetChip(r)}<small>${esc(bits.join(" · "))}</small></div>
-    <div class="all-est-cell">${est}</div>
+    <div class="all-l1">${name}</div>
+    <div class="all-amt">${amt}</div>
+    <div class="all-l2">${meta}</div>
     ${pays}
     ${act ? `<div class="all-act">${act}</div>` : ""}
   </li>`;
