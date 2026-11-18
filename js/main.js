@@ -20,7 +20,7 @@ import { overviewHref } from "./bills/trail.js";
 import { applyOverviewQuery, applyOverviewRoute, loadOverviewRange, setOverviewRange, viewBillsHome } from "./bills/overview-views.js";
 import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, verifyBillIds, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
-import { viewOtBill, applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm } from "./bills/medical-views.js";
+import { viewOtBill, applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personMerge, personMergeCancel, personMergeOpen, personUse, onPersonPick, deleteMedPay, onKindPick, saveMedBillForm, saveMedPayForm } from "./bills/medical-views.js";
 import { myPersonOf, personNameOf, deviceLinkDo, deviceLinkNew, removePerson, resetFamilyUi, savePersonForm, setDevicePerson } from "./settings/family-people.js";
 import { ackLoginDo, loadLoginAlerts, loginAlertItems, loginsMore, recordLoginOnce } from "./settings/logins.js";
 import { spendChanged } from "./core/spend-data.js";
@@ -79,7 +79,7 @@ import { enrichBills } from "./bills/logic.js";
 import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
 import { saveAssessForm } from "./bills/assessments-views.js";
-import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate } from "./bills/views.js";
+import { deleteBillPay, billTemplateItems, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { shopSelText, shopVisibleIds } from "./pantry/views.js";
 import { catNeed, moveCat, pantryNav, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
@@ -136,7 +136,7 @@ export async function refresh() {
         soft("maint", Store.listMaintLogs(), state.maintLogs || [], (r) => { state.maintLogs = r; state.assetsEnriched = enrichAssets(state.assets, r); }),
         soft("seasonal", Store.listSeasonal(seasonalSince()), state.seasonalDone || [], (r) => { state.seasonalDone = r; }),
         Store.listBills(),
-        soft("payments", Store.listBillPayments(), state.billPayments || [], (r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); reloadPayList(); }),
+        soft("payments", Store.listBillPayments(), state.billPayments || [], (r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); }),
         Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations(), Store.listDealExtras(),
         Store.listCustomSeasonal().catch((e) => { console.warn("[custom seasonal]", e.message); return []; }),   // 迁移还没执行时读不到：不影响其他功能
         Store.listTerms().catch((e) => { console.warn("[terms]", e.message); return null; }),
@@ -179,7 +179,6 @@ export async function refresh() {
       setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
       if (!pendingAny()) notifyIfNeeded();
       render(false);
-      reloadPayList();   // 缴费记录列表是服务器分页：统计 + 第一页重读（不在页面上只标记过期）
       spendChanged();   // 花费不再整表读进来（迁移 057）：统计聚合、明细、联想、卡的用量等标过期，画到的时候按需重读
       maybeAutoGenerate();   // 家主有收入但还没预算：自动生成第一版
       if (financeOk()) Backup.runScheduled().then((r) => { if (!r) return; if (r.ok.length) toast(t("已自动备份（{to}）", { to: r.ok.map(backupTargetName).join("、") })); if (r.needGesture) toast(t("定时备份要写进文件夹，去 设置 → 备份与恢复 点一下「继续备份」")); refreshBackupUi(); if (state.route?.section === "me") render(false); });   // 定时备份到期了就在后台做一次
@@ -193,11 +192,11 @@ export async function refresh() {
 
 
 /* 列表分批显示（js/core/pager.js）：「继续加载」后只重画这些列表；没列在这里的整页重画 */
-const PAGE_RENDER = { inv: () => renderInvList(), bills: () => renderBillList(), assets: () => renderAssetList(), med: () => renderMedList(), maint: () => renderMaintLogs() };
+const PAGE_RENDER = { inv: () => renderInvList(), assets: () => renderAssetList(), maint: () => renderMaintLogs() };
 /** 所有列表回到一页（换页面、改了每页条数）：新列表的计数清掉，自带 limit 的几个列表也改回一页；服务器分页的三张列表下次画时重读第一页 */
 function resetListPages() {
   resetPages();
-  const n = pageSize(); spendList.stale(); payList.stale(); incList.stale();
+  const n = pageSize(); spendList.stale(); incList.stale();
   if (state.inc) state.inc.slimit = null;
   if (state.stmt) state.stmt.limit = n;
 }
@@ -216,7 +215,7 @@ const TABLE_RELOAD = {
   seasonal_tasks: () => Store.listSeasonal(seasonalSince()).then((r) => { state.seasonalDone = r; }),
   custom_seasonal_tasks: () => Store.listCustomSeasonal().then((r) => { state.customSeasonal = r; }),
   bills_recurring: () => Store.listBills().then((r) => { state.bills = r; state.billsEnriched = enrichBills(r, state.billPayments); }),
-  bills_recurring_payments: () => Store.listBillPayments().then((r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); reloadPayList(); }),
+  bills_recurring_payments: () => Store.listBillPayments().then((r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); }),
   bills_one_time: () => reloadMedical(), bills_one_time_payments: () => reloadMedical(),
   income_records: () => loadIncome(), income_repayments: () => loadIncome(),
   debt_accounts: () => loadDebts(), debt_transactions: () => loadDebts(),
@@ -564,7 +563,6 @@ onClearFilters("shop", clearAnd(() => Object.assign(state.shopFilter, FD.shop)),
 onClearFilters("maint", clearAnd(() => Object.assign(maintFilter, FD.maint)), () => changed(maintFilter, FD.maint));
 onClearFilters("asset", clearAnd(() => Object.assign(state.assetFilter, FD.asset)), () => changed(state.assetFilter, FD.asset));
 onClearFilters("deal", clearAnd(() => { state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; }));   // 排序不动
-onClearFilters("bills", clearAnd(() => { Object.assign(state.billsFilter, FD.bills); clearUrlParams(["prop"]); }), () => changed(state.billsFilter, FD.bills));
 // 新建账单完成（向导 / AI 扫描）：先把数据读回来，再进这张账单的详情页（?new=1 = 显示「已创建」提示条；?ai=1 = 「AI 识别创建」）
 document.addEventListener("bill-created", async (e) => {
   const { id, via, kind } = e.detail || {}; if (!id) return;
@@ -573,9 +571,7 @@ document.addEventListener("bill-created", async (e) => {
   else go(`${href("bill", id)}?${via === "ai" ? "ai" : "new"}=1`, { replace: true });
 });
 onClearFilters("all", clearAnd(() => { Object.assign(state.allFilter, FD.all); clearUrlParams("*"); }), () => changed(state.allFilter, FD.all));
-onClearFilters("pay", clearAnd(() => Object.assign(state.payFilter, FD.pay)), () => changed(state.payFilter, FD.pay));   // 服务器分页：resetListPages 标过期、回第一页
 onClearFilters("spend", () => { clearSpendFilter("all"); resetListPages(); renderSpendRecords(); }, () => changed(state.spendFilter, FD.spend));
-onClearFilters("med", clearAnd(() => Object.assign(state.medFilter, FD.med)), () => changed(state.medFilter, FD.med));
 onClearFilters("stats", clearAnd(() => { Object.assign(state.stats, FD.stats); setFinRange(state.stats.months); setFinUnit("auto"); saveStatToggles(); clearUrlParams(["node", "month", "cat", "item"]); }));
 onClearFilters("gift", clearAnd(() => Object.assign((state.giftFilter ||= { sort: "balance" }), FD.gift)));
 onClearFilters("off", clearAnd(() => Object.assign((state.offFilter ||= { sort: "since" }), FD.off)), () => changed(state.offFilter, FD.off));
@@ -654,11 +650,9 @@ main.addEventListener("input", (e) => {
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; searchSoon(renderInvList); }
   if (e.target.id === "shopQ") { state.shopFilter.q = e.target.value; searchSoon(renderShopList); }   // 购物车搜索：只重画清单那块
   if (e.target.id === "maintSearch") { maintFilter.q = e.target.value; searchSoon(renderMaintLogs); }
-  if (e.target.id === "medSearch") { state.medFilter.q = e.target.value; searchSoon(renderMedList); }
   if (e.target.id === "spendSearch") { state.spendFilter.q = e.target.value; searchSoon(renderSpendList); }   // 停下 ~200ms 再查数据库
   if (payeeInput(e, searchSoon)) return;   // 收款方：搜索、合并后的名字
   if (e.target.id === "allSearch") { state.allFilter.q = e.target.value; searchSoon(renderAllList); }
-  if (e.target.id === "billSearch") { state.billsFilter.q = e.target.value; searchSoon(renderBillList); }
   if (e.target.id === "assetSearch") { state.assetFilter.q = e.target.value; searchSoon(renderAssetList); }
   if (e.target.id === "offQ") {   // 停用的卡搜索：只重画那张列表，输入框不丢焦点
     (state.offFilter ||= { q: "", kind: "all", sort: "since" }).q = e.target.value;
@@ -747,15 +741,9 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "ovAsset") { state.ovFilter.keepRange = true; go(overviewHref(e.target.value)); }   // 换资产 = 换路径（#/bills/overview/<资产键>），时间范围保持
   { const k = { allRange: "range", allAsset: "asset", allType: "type", allCat: "cat", allStatus: "status", allPay: "pay", allSort: "sort" }[e.target.id];
     if (k) { state.allFilter[k] = e.target.value; if (k === "range") render(); else renderAllList(); } }
-  if (e.target.id === "billProp") { state.billsFilter.property = e.target.value; render(); }
-  if (e.target.id === "billCat") { state.billsFilter.cat = e.target.value; renderBillList(); }
-  if (e.target.id === "billChannel") { state.billsFilter.channel = e.target.value; renderBillList(); }
-  if (e.target.id === "billSort") { state.billsFilter.sort = e.target.value; renderBillList(); }
-  { const k = { medKind: "kind", medPatient: "patient", medProvider: "provider", medStatus: "status", medYear: "year", medProperty: "property" }[e.target.id]; if (k) { state.medFilter[k] = e.target.value; renderMedList(); } }
   if (e.target.name === "kindPick") return onKindPick(e);
   if (e.target.matches?.("#medBillForm select[name=patient_id], #medBillForm select[name=guarantor_id]")) return onPersonPick(e);
   if (e.target.id === "medReportYear") { state.medYear = e.target.value; render(); }
-  { const k = { payBill: "bill", payYear: "year", payStatus: "status", paySort: "sort" }[e.target.id]; if (k) { state.payFilter[k] = e.target.value; renderPayList(); } }
   { const k = { maintKind: "kind", maintYear: "year" }[e.target.id]; if (k) { maintFilter[k] = e.target.value; renderMaintLogs(); } }
   { const k = { shopSt: "st", shopCat: "cat", shopSort: "sort" }[e.target.id]; if (k) { state.shopFilter[k] = e.target.value; render(); } }
   { const k = { assetType: "type", assetService: "service", assetWarranty: "warranty", assetLoc: "loc", assetSort: "sort" }[e.target.id]; if (k) { state.assetFilter[k] = e.target.value; renderAssetList(); } }
@@ -1235,9 +1223,6 @@ main.addEventListener("click", async (e) => {
         return refresh();
       }
       case "all-csv": { const n = exportAllCsv(); return toast(t("已导出 {n} 期账单", { n })); }
-      case "bills-csv": return exportBillsCsv();
-      case "bills-filter": state.billsFilter[el.dataset.key] = el.dataset.val; return render();
-      case "bills-prop": state.billsFilter.property = id; return render();
       case "property": {   // 切换当前房产：房屋资料、设备、季节任务随之切换
         if (id === state.propertyId) return;
         state.propertyId = id; try { localStorage.setItem("hmh-property", id); } catch { /* 忽略 */ }
@@ -1513,7 +1498,6 @@ main.addEventListener("click", async (e) => {
       }
       case "spend-open": { state.spendOpen = state.spendOpen === id ? null : id; return renderSpendList(); }   // 花费明细一行的 ▾：编辑 / 复制 / 删除
       case "spend-edit-cancel": { if (state.spendDrafts && state.spendEdit) delete state.spendDrafts[state.spendEdit]; state.spendEdit = null; return renderSpendList(); }
-      case "pay-more": return payList.more();   // 「继续加载」：向数据库要下一页
       case "page-more": { const k = el.dataset.page; pageMore(k); const fn = PAGE_RENDER[k.split(":")[0]]; return fn ? fn() : render(false); }   // 「继续加载」：能只重画列表的就只重画列表
       case "deal-filter": state.dealFilter = el.dataset.val; return render();
       case "tasks-undone": state.tasksOnlyUndone = !state.tasksOnlyUndone; return render();
@@ -1530,18 +1514,12 @@ main.addEventListener("click", async (e) => {
       case "card-deact": el.disabled = true; await setCardActive(el.dataset.id, false); return refresh();
       case "card-react": el.disabled = true; await setCardActive(el.dataset.id, true); return refresh();
       case "med-pay-del": if (!confirmDelete(t("删除这条付款记录？"))) return; return deleteMedPay(el.dataset.id);
-      case "med-csv": return exportMedicalCsv();
       case "person-add-do": return personAddDo();
       case "person-add-cancel": return personAddCancel();
       case "person-use": return personUse(el.dataset.id);
-      case "person-edit": return personEditStart(el.dataset.id);
-      case "person-edit-save": return personEditSave(el.dataset.id);
-      case "person-edit-cancel": return personEditCancel();
       case "person-merge-open": return personMergeOpen(el.dataset.id);
       case "person-merge-cancel": return personMergeCancel();
       case "person-merge": return personMerge(el.dataset.id);
-      case "person-del": if (!confirmDelete(t("删除这位家人的资料？"))) return; return personDelete(el.dataset.id);
-      case "people-bulk": return peopleBulk();
       case "spend-more": return spendList.more();   // 「继续加载」：向数据库要下一页
       case "spend-csv": return exportSpendList();
       case "spend-sel-toggle": state.spendSel = state.spendSel ? null : new Set(); state.spendEdit = null; return render();

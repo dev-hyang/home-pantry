@@ -1,39 +1,35 @@
 /* 账单 B1 · 页面：概览、清单、记录、常用账单模板、账单整页表单（含缴费记录） */
-import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
+import { changed } from "../core/clear-filters.js";
 import { dupOnce, normName } from "../core/item-match.js";
 import { copyOf, moreMenu } from "../core/more-menu.js";
 import { state } from "../core/state.js";
 import { fillFromPurchase, purchaseById } from "../core/spend-data.js";
 import { Store } from "../core/store.js";
-import { $, esc, fmtDate, fmtShort, money, num, stampText, todayISO, toast } from "../core/util.js";
+import { esc, fmtDate, fmtShort, money, num, stampText, todayISO, toast } from "../core/util.js";
 import { SECTIONS, go, href } from "../core/router.js";
-import { compare, joinList, lang, t } from "../core/i18n.js";
-import { adultPeople, personNameOf } from "../settings/family-people.js";
-import { download, monthKey } from "../stats/views.js";
-import { STATUS_RANK, acctText, escrowMonthlyFor, advanceDue, alertText, billAlerts, billCat, currentProperty, freqText, initialDue, propertyName, subscriptionSummary, upcoming } from "./logic.js";
-import { attentionPanel, propertyTag, withProperty } from "../core/alerts.js";
+import { joinList, lang, t } from "../core/i18n.js";
+import { adultPeople } from "../settings/family-people.js";
+
+import { acctText, advanceDue, billCat, currentProperty, initialDue } from "./logic.js";
+import { withProperty } from "../core/alerts.js";
 import { autofillBar, scanNewBillBar } from "../core/autofill.js";
-import { escrowPanelHtml } from "./escrow.js";
-import { assetSelectHtml, assetSuggestHtml } from "./asset-ui.js";
-import { allBillsHref } from "./all-views.js";
-import { estAmount, metaLine, nameLine } from "./row-fmt.js";
+
+import { assetSelectHtml } from "./asset-ui.js";
+
 import { fullFormUrl, viewBillWizard } from "./wizard-views.js";
 import { VEHICLE_CATS } from "./instances.js";
 import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
-import { billInUse, endedSuffix, propertyActive, propertyById, propertyOptionsHtml } from "../core/lifecycle.js";
+import { billInUse, endedSuffix, propertyActive, propertyById } from "../core/lifecycle.js";
 import { NEW_RECURRING } from "./kinds.js";
 import { billScopeParts } from "./trail.js";
 import { detailHref } from "./medical.js";
-import { medRow, propertyOneTimeHtml } from "./medical-views.js";
-import { tabBar, tabHub } from "../core/hub.js";
-import { crumbNav, hubList, hubRow, sectionCrumb } from "../core/hub.js";
-import { PAY_EXTRA, acctById, acctLabel, accountOptions, billPayLabel, isBankAcct, payAcctValue, paymentPayLabel, resolvePayAccount } from "./cards-views.js";
+
+import { crumbNav } from "../core/hub.js";
+import { PAY_EXTRA, acctById, accountOptions, billPayLabel, isBankAcct, payAcctValue, paymentPayLabel, resolvePayAccount } from "./cards-views.js";
 import { askInline } from "../core/ask.js";
-import { moreBtn, pageLimit, pageMoreBtn } from "../core/pager.js";
-import { serverList } from "../core/server-list.js";
-import { compact } from "../core/list-query.js";
+
 import { billAsk } from "./logic.js";
-import { payTotal } from "./pay-total.js";
+
 import { assessFormPage, assessListPage } from "./assessments-views.js";
 import { assessmentParts, assessmentsOf, monthEnd, unpaidItems } from "./assessments-lib.js";
 import { olderPayment, payHistoryPage, resetPayHistory } from "./pay-history.js";
@@ -52,23 +48,6 @@ export function propertyBar({ all = false } = {}) {
   return `<div class="chips prop-bar" role="group" aria-label="${t("选择房产")}">${all ? chip("all", t("全部房产")) : ""}${list.map((p) => chip(p.id, `🏠 ${esc(p.name)}`)).join("")}</div>`;
 }
 
-/** 房产筛选：账单概览 / 清单里的一个下拉（默认“全部房产”），代替原来占一行的芯片导航；只有一套房产时不显示 */
-export function propertyFilter() {
-  if (state.properties.filter((p) => !p.archived).length < 2) return "";
-  const cur = state.billsFilter.property;
-  // “全部房产”只含在用的房产和与房产无关的账单；已卖出 / 已退租的放在下拉最后一组，选它才看得到它的账单
-  return `<select id="billProp" class="prop-filter" aria-label="${t("选择房产")}"><option value="all">${t("全部房产")}</option>${propertyOptionsHtml(cur, { esc })}</select>`;
-}
-
-const billRow = (b) => `<li>
-    <span class="badge ${b.trialSoon ? "b-out" : BADGE[b.status]}">${b.trialSoon ? t("试用") : t(STATUS_LABEL[b.status])}</span>
-    <div class="grow">${propertyTag(b.property_id)}<a class="link-name" href="${href("bill", b.id)}">${billCat(b.category).icon} ${esc(b.name)}</a>
-      <small>${esc([acctText(b), alertText(b)].filter(Boolean).join(" · "))}${b.est != null ? ` · ${mny(b.est, b.currency)}` : ""}</small></div>
-    ${b.pay_url && !b.autopay ? `<a class="btn btn-sm btn-ghost" href="${esc(b.pay_url)}" target="_blank" rel="noopener noreferrer">${t("去缴费")}</a>` : ""}
-    ${b.autopay ? `<button type="button" class="btn btn-sm" data-action="bill-verify" data-id="${b.id}">${t("已核对")}</button>`
-      : `<a class="btn btn-sm" href="${href("bill", b.id)}?pay=1">${t("记缴费")}</a>`}
-  </li>`;
-
 /** 添加账单的第一步：选账单类型。周期性 → 现有的账单表单；一次性 → 一次性账单表单（医疗、装修工程、法律、旅行…） */
 function billTypeChooser() {
   const card = (href_, icon, title, desc, eg) => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small><small>${eg}</small></span><span class="mch" aria-hidden="true">›</span></a></div>`;
@@ -83,93 +62,17 @@ function billTypeChooser() {
     <p class="muted"><a href="${href("bills", "template")}">${t("按常用账单模板一次建好水电气、房贷、保险等")} ›</a></p></section>`;
 }
 
-function filterByProperty(list) {
-  const f = state.billsFilter.property;
-  if (f === "all") return list.filter(billInUse);
-  return list.filter((b) => b.property_id === f);
-}
-/** “全部房产”下被收起的账单数：提示在哪里能找到 */
-const hiddenEndedHint = (all) => {
-  const n = state.billsFilter.property === "all" ? all.filter((b) => !billInUse(b)).length : 0;
-  return n ? `<p class="muted" style="font-size:13px;margin:8px 0 0">${t("另有 {n} 条账单属于已卖出 / 已退租的房产，在上方房产筛选的“已结束”里查看。", { n })}</p>` : "";
-};
-
 /** 账单页面包屑：账单 / 房产 / 账单名 / 当前块 —— 有房产的账单带上房产（点它回到这套房产的账单清单），免得多套房产时分不清是哪套的 */
 const billRoot = () => ({ href: href("bills", "overview"), label: t("财务") });   // 添加账单页等「还没有具体账单」的面包屑第一级
 /** 账单详情页路径：财务 / 账单概览 / 资产 / 账单名（后面接分区时再追加一级） */
 const billTrail = (b, _root, hubHref) => [...billScopeParts(b, "recurring"), { href: hubHref, label: b.name, icon: billCat(b.category).icon }];
 const billCrumb = (b, root, hubHref, cur) => crumbNav([...billTrail(b, root, hubHref), { label: cur }]);
 
-/* ── 清单 ── */
-const BILL_SORTS = [["category", "按分类分组"], ["due", "到期日：近 → 远"], ["amount", "金额：高 → 低"], ["name", "名称 A → Z"], ["updated", "最近更新"]];
-let billInner = null;   // 当前清单页的“列表本体”渲染函数：搜索 / 筛选只重画它
-export function renderBillList() { const h = $("#billList"); if (h && billInner) h.innerHTML = billInner(); }
-/** 清单里每条账单的「怎么付」：自动扣款 · 某张卡 / 账户，或手动缴费（可选默认用哪张卡、现金）。值 = auto|manual:卡id|cash|other|空 */
-function payModeSelect(b) {
-  const cur = `${b.autopay ? "auto" : "manual"}:${payAcctValue(b.pay_card_id, b.autopay_method)}`;
-  const accts = state.cards.filter((c) => c.active !== false || c.id === b.pay_card_id);
-  const o = (v, l) => `<option value="${v}" ${v === cur ? "selected" : ""}>${esc(l)}</option>`;
-  const legacy = b.autopay_method && !b.pay_card_id && payAcctValue(null, b.autopay_method) === "other" ? o(`${b.autopay ? "auto" : "manual"}:other`, `${b.autopay ? t("自动扣款") : t("手动")} · ${b.autopay_method}`) : "";
-  return `<select class="bill-pay-sel" data-bill-pay="${b.id}" aria-label="${esc(t("怎么付"))}" title="${esc(t("自动扣款从哪张卡 / 账户扣；手动缴费时记缴费默认用它"))}">
-    <optgroup label="${esc(t("手动缴费"))}">${o("manual:", t("手动 · 未指定账户"))}${o("manual:cash", t("手动 · 现金"))}${o("manual:check", t("手动 · 纸质支票"))}${o("manual:giftcard", t("手动 · 礼品卡"))}${accts.map((c) => o(`manual:${c.id}`, `${t("手动")} · ${acctLabel(c)}`)).join("")}</optgroup>
-    ${accts.length ? `<optgroup label="${esc(t("自动扣款"))}">${accts.map((c) => o(`auto:${c.id}`, `${t("自动")} · ${acctLabel(c)}`)).join("")}</optgroup>` : `<optgroup label="${esc(t("自动扣款"))}">${o("auto:", t("自动 · 未指定账户"))}</optgroup>`}${legacy}${b.autopay && !b.pay_card_id && !legacy && !b.autopay_method ? o("auto:", t("自动 · 未指定账户")) : ""}</select>`;
-}
-/* ── 记录：筛选（账单 / 年份 / 状态）+ 排序；服务器分页（迁移 054 的 pay_page / pay_stats）：任何一年都能看，合计和「今年已缴」由数据库算 ── */
-const PAY_SORTS = [["new", "日期：新 → 旧"], ["old", "日期：旧 → 新"], ["high", "金额：高 → 低"], ["low", "金额：低 → 高"], ["bill", "账单名 A → Z"]];
-/** 当前筛选 → 数据库的筛选对象（只带生效的项）；「账单名 A → Z」对应通用排序里的 name */
-const payParams = () => {
-  const f = state.payFilter;
-  return compact({ bill: f.bill !== "all" ? f.bill : null, year: f.year !== "all" ? f.year : null, status: f.status !== "all" ? f.status : null,
-    sort: f.sort === "bill" ? "name" : f.sort || "new", cur: Units.region.currency, kpi_year: String(new Date().getFullYear()) });
-};
-/** 缴费记录列表：读到的几页 + 当前筛选的统计；筛选框的选项（有记录的账单、年份）第一次读到 / 变了时连筛选条一起重画 */
-export const payList = serverList("pay", {
-  host: "#payList",
-  draw: (facetsChanged) => { const tb = $("#payToolbar"); if (facetsChanged && tb) tb.outerHTML = payToolbar(); renderPayList(); },
-});
-/** 缴费记录变了（实时同步、整轮刷新、自己记 / 删）：统计 + 第一页重读 */
-export const reloadPayList = () => payList.reload();
 /** 多套房产时账单名带房产前缀（“房 1 · 电费”），单套房产不变 */
 const billLabel = (b) => (b ? withProperty(b.property_id, b.name) : "");
 /** 下拉里用：已卖出 / 已退租房产的账单带上状态，在用的排前面 */
 const billOption = (b) => `${billLabel(b)}${endedSuffix(propertyById(b.property_id))}`;
 const byInUse = (x, y) => (billInUse(y) ? 1 : 0) - (billInUse(x) ? 1 : 0);
-function payListInner() {
-  const L = payList.sync(payParams()), st = L.stats || {}, byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b]));
-  if (!L.rows.length) {
-    if (L.busy) return `<p class="muted" role="status">${t("加载中…")}</p>`;
-    if (L.err) return `<div class="empty"><strong>${t("没读到缴费记录")}</strong>${esc(L.err)}</div>`;
-    if (L.facets && !L.facets.bills?.length) return `<div class="empty"><strong>${t("还没有缴费记录")}</strong>${t("在账单页记一笔，或在概览里点“已核对”。")}</div>`;
-    return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个筛选试试。")}</div>`;
-  }
-  return `<p class="muted" style="margin:0 0 6px;font-size:13px">${t("{n} 笔", { n: st.n ?? "…" })} · ${money(num(st.sum))}</p><ul class="restock-list">${L.rows.map((p) => {
-    const b = byBill[p.bill_id], payee = (p.purchase_id ? p.pur_store : "") || b?.payee || "";   // 收款方：缴费当时记在花费上的（数据库顺带带回），没有就用账单的收款方
-    return `<li data-swipe-del="bill-pay"><${b ? `a href="${href("bill", b.id)}?sec=pay&edit=${p.id}" title="${t("点一下编辑")}"` : "span"} class="badge pay-date" style="background:var(--surface-2)">${esc(fmtShort(`${p.paid_on}T12:00:00`))}</${b ? "a" : "span"}>
-      <div class="grow"><span class="name">${b ? `<a class="link-name" href="${href("bill", b.id)}">${esc(billLabel(b))}</a>` : t("（已删除的账单）")}</span>
-        ${metaLine([b ? acctText(b) : null, payee ? t("收款方：{who}", { who: payee }) : null, t(B().PAYMENT_STATUS[p.status] || p.status), paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes])}</div>
-      <b>${p.amount != null ? mny(p.amount, p.currency) : `<span class="muted">${t("未填金额")}</span>`}</b>
-      <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="billpay-del" data-id="${p.id}">${t("删除")}</button></li>`;
-  }).join("")}</ul>${L.busy ? `<p class="muted" role="status" style="text-align:center">${t("加载中…")}</p>` : moreBtn(L.hasMore, 'data-action="pay-more"')}`;
-}
-/** 「YYYY 年已缴 / 滞纳金」：那一年全部缴费（不随筛选），数据库算好随统计一起带回 */
-function payKpisHtml() {
-  const k = payList.stats?.kpi, year = new Date().getFullYear(), late = num(k?.late);
-  return `<div class="kpi"><span>${t("{y} 年已缴", { y: year })}</span><b>${k ? money(num(k.sum)) : "…"}</b><small>${k ? t("{n} 笔", { n: k.n }) : ""}</small></div>
-    <div class="kpi"><span>${t("滞纳金")}</span><b>${k ? money(late) : "…"}</b><small>${!k ? "" : late ? t("按时缴费就能省下") : t("没有滞纳金")}</small></div>`;
-}
-export function renderPayList() { const h = $("#payList"); if (h) h.innerHTML = payListInner(); const k = $("#payKpis"); if (k) k.innerHTML = payKpisHtml(); }
-function payToolbar() {
-  const f = state.payFilter, byBill = Object.fromEntries(state.billsEnriched.map((b) => [b.id, b])), fc = payList.facets || {}, opt = (v, l, c) => `<option value="${esc(v)}" ${c === v ? "selected" : ""}>${esc(l)}</option>`;
-  // 选项：数据库里有记录的账单 / 年份（全部年份）+ 内存里近 400 天的，统计还没读回来时也有东西可选
-  const ids = [...new Set([...(fc.bills || []), ...state.billPayments.map((p) => p.bill_id)])];
-  const years = [...new Set([...(fc.years || []), ...state.billPayments.map((p) => (p.paid_on || "").slice(0, 4)).filter(Boolean)])].sort().reverse();
-  if (!ids.length) return `<div id="payToolbar"></div>`;
-  return `<div class="toolbar" id="payToolbar" style="margin-top:10px">
-    <select id="payBill" aria-label="${t("按账单筛选")}">${opt("all", t("全部账单"), f.bill)}${ids.map((id) => opt(id, byBill[id] ? billOption(byBill[id]) : t("（已删除的账单）"), f.bill)).sort().join("")}</select>
-    <select id="payYear" aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
-    <select id="payStatus" aria-label="${t("按状态筛选")}">${opt("all", t("全部状态"), f.status)}${Object.entries(B().PAYMENT_STATUS).map(([k, n]) => opt(k, t(n), f.status)).join("")}</select>
-    <select id="paySort" aria-label="${t("排序")}">${PAY_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>${clearFiltersBtn("pay", changed(f, FD.pay))}</div>`;
-}
 
 /* ── 记录 ── */
 /** 缴费趋势（并进账单概览）：选一条有 ≥ 2 笔缴费的周期性账单，看每次缴费金额的走势（近 400 天内存里的缴费） */
@@ -184,20 +87,6 @@ export function billTrendSection() {
     <div class="panel chart-panel"><div class="chart-head"><h3>${t("单账单金额趋势")}</h3>
     <select id="billTrend" aria-label="${t("选择账单")}">${candidates.map((b) => `<option value="${b.id}" ${b.id === sel.id ? "selected" : ""}>${esc(billOption(b))}</option>`).join("")}</select></div>${chart}</div></section>`;
 }
-export function exportBillsCsv() {
-  const year = new Date().getFullYear();
-  const byBill = Object.fromEntries(state.bills.map((b) => [b.id, b]));
-  const rows = [[t("日期"), t("账单"), t("分类"), t("房产"), t("金额"), t("货币"), t("状态"), t("方式"), t("确认号"), t("手续费"), t("税"), t("滞纳金"), t("备注")]];
-  for (const p of [...state.billPayments].sort((x, y) => (x.paid_on || "").localeCompare(y.paid_on || ""))) {
-    if (!(p.paid_on || "").startsWith(String(year))) continue;
-    const b = byBill[p.bill_id];
-    rows.push([p.paid_on, b?.name || "", b ? t(billCat(b.category).name) : "", b?.property_id ? propertyName(b.property_id) : "", p.amount ?? "", p.currency || "", t(B().PAYMENT_STATUS[p.status] || p.status), paymentPayLabel(p) || "", p.confirmation_ref || "", num(p.fee_amount) || "", num(p.tax_amount) || "", num(p.late_fee) || "", p.notes || ""]);
-  }
-  const csv = "﻿" + rows.map((r) => r.map((v) => { const s = String(v ?? ""); const x = /^[=+\-@]/.test(s) ? `'${s}` : s; return /[",\r\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; }).join(",")).join("\r\n");
-  download(`${t("账单")}-${year}.csv`, csv);
-  toast(t("已导出 {n} 笔缴费记录", { n: rows.length - 1 }));
-}
-
 /* ── 常用账单模板 ── */
 function templateRegion() {
   return state.houseProfile?.region || (Units.region.system === "us" ? "na" : "cn");

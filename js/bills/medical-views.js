@@ -1,23 +1,20 @@
 /* 财务 → 医疗：概览 / 账单 / 年度报表三个标签（窄屏概览下面是入口行），账单详情页（?bill=<id|new>）里有金额、保险、付款记录。
  * 隐私：默认“仅自己和家主可见”（visibility = private），可改成全家可见；列表里私密的带 🔒。 */
-import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
+
 import { assetSelectHtml } from "./asset-ui.js";
 import { copyOf } from "../core/more-menu.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, esc, fmtDate, money, num, toast, todayISO } from "../core/util.js";
+import { esc, fmtDate, money, num, toast, todayISO } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { go, href } from "../core/router.js";
-import { tabBar, tabHub } from "../core/hub.js";
-import { MEDICAL_TABS, activeTab } from "../core/tabs.js";
-import { dq, download, lastMonths, monthLabel, toCsv } from "../stats/views.js";
+
 import { autofillBar } from "../core/autofill.js";
 import { crumbNav } from "../core/hub.js";
 import { allBillsHref } from "./all-views.js";
 import { billScopeParts, overviewHref } from "./trail.js";
 import { viewOneTimeWizard } from "./ot-wizard-views.js";
-import { lockFlag, metaLine, nameLine } from "./row-fmt.js";
-import { pageLimit, pageMoreBtn } from "../core/pager.js";
+
 import { propertyOptionsHtml } from "../core/lifecycle.js";
 import { accountOptions, acctById, paymentPayLabel } from "./cards-views.js";
 import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, enrichMedical, findPerson, kindOf, mergeMedical, peopleFor, subIcon, subName } from "./medical.js";
@@ -38,111 +35,6 @@ export async function reloadMedical() {
 }
 export function applyMedical(bills, pays) {
   state.medBills = bills; state.medPayments = pays; state.medEnriched = enrichMedical(bills, pays); mergeMedical();
-}
-
-/* ───────────── 行 / 筛选 ───────────── */
-export function medRow(b) {
-  const amt = b.status === "paid" ? mny(b.paid, b.currency) : b.balance != null ? mny(b.balance, b.currency) : mny(b.billed_amount, b.currency);
-  const due = b.open && b.due_on ? (b.overdue ? `${t("逾期")} · ` : "") + t("到期 {d}", { d: fmtDate(b.due_on) }) : "";
-  const meta = metaLine([b.kind !== "medical" ? t(kindOf(b).name) : null, b.patient, b.service_date ? fmtDate(b.service_date) : null, b.bill_ref ? `#${b.bill_ref}` : null, due]);
-  return `<li class="med-li"><div class="grow">${nameLine({ ico: subIcon(b), name: b.provider, href: detailHref(b.id), flags: [b.visibility === "private" && lockFlag()], badge: `<span class="badge ${STATUS_CLS[b.status] || ""}">${t(STATUS[b.status] || b.status)}</span>` })}${meta}</div>
-    <b title="${esc(b.status === "paid" ? t("已付") : t("余额"))}">${amt}</b></li>`;
-}
-function filtered() {
-  const f = state.medFilter, q = f.q.trim().toLowerCase();
-  return state.medEnriched.filter((b) => (f.kind === "all" || b.kind === f.kind) && (f.patient === "all" || (b.patient || "") === f.patient) && (f.provider === "all" || b.provider === f.provider)
-    && (f.property === "all" || (f.property === "none" ? !b.property_id : b.property_id === f.property)) && (f.status === "all" || (f.status === "open" ? b.open : b.status === f.status)) && (f.year === "all" || String(b.service_date || b.bill_date || b.created_at || "").startsWith(f.year))
-    && (!q || `${b.provider}${b.patient || ""}${b.bill_ref || ""}${b.claim_ref || ""}${b.insurer || ""}`.toLowerCase().includes(q)))
-    .sort((x, y) => String(y.service_date || y.bill_date || y.created_at).localeCompare(String(x.service_date || x.bill_date || x.created_at)));
-}
-function listInner() {
-  const all = filtered();
-  if (!state.medEnriched.length) return emptyHtml();
-  if (!all.length) return `<div class="empty"><strong>${t("没有符合条件的账单")}</strong>${t("换个筛选试试。")}</div>`;
-  const owe = all.reduce((s, b) => s + (b.open && b.balance ? b.balance : 0), 0);
-  const lim = pageLimit("med", JSON.stringify(state.medFilter));   // 分批显示（原来硬性只画前 200 张、没有按钮）
-  return `<p class="muted" style="margin:0 0 6px;font-size:13px">${t("{n} 张", { n: all.length })} · ${t("余额 {a}", { a: mny(owe) })}</p><ul class="restock-list">${all.slice(0, lim).map(medRow).join("")}</ul>${pageMoreBtn("med", all.length, lim)}`;
-}
-export function renderMedList() { const h = $("#medList"); if (h) h.innerHTML = listInner(); }
-/** 房产视角：挂在这套房产上的一次性账单（装修、翻新、屋顶等工程，也含医疗 / 法律等），在周期性账单概览里按所选房产显示 */
-export function propertyOneTimeHtml(pid) {
-  const list = state.medEnriched.filter((b) => b.property_id === pid);
-  const newHref = `${detailHref("new")}?kind=project&prop=${encodeURIComponent(pid)}`;
-  const head = (extra = "") => `<div class="section-head"><h2>🔨 ${t("一次性账单 / 项目")}</h2><div class="head-acts">${extra}<a class="btn btn-sm btn-ghost" href="${esc(newHref)}">${t("记一张")}</a></div></div>`;
-  if (!list.length) return `<section class="section">${head()}<div class="panel empty"><strong>${t("这套房产还没有一次性账单")}</strong>${t("装修、翻新、屋顶等工程，可以记在一次性账单里并选这套房产。")}</div></section>`;
-  const c = cur(), inCur = list.filter((b) => (b.currency || c) === c);
-  const owed = inCur.reduce((s, b) => s + (b.owed || 0), 0), paid = inCur.reduce((s, b) => s + (b.paid || 0), 0), bal = inCur.reduce((s, b) => s + (b.balance || 0), 0), open = list.filter((b) => b.open).length;
-  const sorted = [...list].sort((a, b) => (b.open - a.open) || String(b.service_date || b.bill_date || b.created_at || "").localeCompare(String(a.service_date || a.bill_date || a.created_at || "")));
-  const MAX = 6;
-  return `<section class="section">${head(`<a class="btn btn-sm btn-ghost" href="${allBillsHref({ type: "onetime", asset: `property:${pid}` })}">${t("全部 {n} 张", { n: list.length })}</a>`)}
-    <div class="kpis">
-      <div class="kpi"><span>${t("应付合计")}</span><b>${mny(owed, c)}</b><small>${t("{n} 张账单", { n: list.length })}</small></div>
-      <div class="kpi"><span>${t("已付")}</span><b>${mny(paid, c)}</b></div>
-      <div class="kpi"><span>${t("余额")}</span><b>${mny(bal, c)}</b><small>${t("{n} 张未结清", { n: open })}</small></div>
-    </div>
-    <div class="panel"><ul class="restock-list">${sorted.slice(0, MAX).map(medRow).join("")}</ul>${list.length > MAX ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("还有 {n} 张，点上面的「全部」查看。", { n: list.length - MAX })}</p>` : ""}</div></section>`;
-}
-const emptyHtml = () => `<div class="empty"><strong>${t("还没有医疗账单")}</strong>${t("就诊后收到的账单、保险说明（EOB）都记在这里：总额、保险已付、自付金额、分次付款。默认只有你自己和家主看得到。")}
-  <p><a class="btn btn-primary" href="${detailHref("new")}">${t("记一张医疗账单")}</a></p></div>`;
-
-/* ───────────── 三个标签 ───────────── */
-function overviewTab() {
-  const list = state.medEnriched, open = list.filter((b) => b.open), owe = open.reduce((s, b) => s + (b.balance || 0), 0);
-  const wait = list.filter((b) => b.status === "awaiting_insurance").length, y = String(new Date().getFullYear());
-  const billIds = new Set(state.medBills.map((b) => b.id));   // 建一次，付款逐条判断不再线性查找
-  const paidYear = state.medPayments.filter((p) => String(p.paid_on).startsWith(y) && billIds.has(p.bill_id)).reduce((s, p) => s + num(p.amount), 0);
-  const months = lastMonths(12), byM = Object.fromEntries(months.map((m) => [m, 0]));
-  for (const p of state.medPayments) { const m = String(p.paid_on).slice(0, 7); if (m in byM && billIds.has(p.bill_id)) byM[m] += num(p.amount); }
-  const chart = list.length && Object.values(byM).some((v) => v > 0) ? Charts.bars({ title: t("每月医疗付款"), labels: months.map(monthLabel), fmt: money,
-    series: [{ name: t("已付"), color: window.MEDICAL_GROUP.color, values: months.map((m) => byM[m]) }], drill: (_, i) => dq({ cat: "medical", month: months[i] }) }) : "";
-  const kpi = (label, val, sub, drill) => `<div class="kpi"><span>${label}</span><b>${val}</b><small>${sub}</small></div>`;
-  return `<div class="kpis">
-      ${kpi(t("未结余额"), mny(owe), t("{n} 张待处理", { n: open.length }))}
-      ${kpi(t("等保险理赔"), wait, wait ? t("超过 45 天会提醒") : t("没有"))}
-      ${kpi(t("{y} 年已付", { y }), mny(paidYear), t("自付，不含保险已付"))}
-    </div>
-    ${tabHub(MEDICAL_TABS, medHref, t("更多"))}
-    ${list.length ? `<section class="section"><div class="section-head"><h2>${t("待处理")}</h2></div><div class="panel">${open.length ? `<ul class="restock-list">${open.sort((a, b) => (a.due_on || "9999").localeCompare(b.due_on || "9999")).slice(0, 8).map(medRow).join("")}</ul>` : `<div class="empty"><strong>${t("没有待处理的账单")}</strong></div>`}</div></section>` : `<div class="panel">${emptyHtml()}</div>`}
-    ${chart ? `<div class="panel chart-panel"><h3>${t("每月医疗付款")}</h3>${chart}<p class="muted drill-hint">${t("点柱子，可以查看对应的付款明细。")}</p></div>` : ""}
-    <p class="muted" style="font-size:12.5px">${t("医疗付款会自动并入 财务 → 花费 的“医疗”分类，商店 / 收款方是医院或化验所。")}</p>`;
-}
-function listTab() {
-  const f = state.medFilter, opt = (v, l, c) => `<option value="${esc(v)}" ${c === v ? "selected" : ""}>${esc(l)}</option>`;
-  const uniq = (key) => [...new Set(state.medEnriched.map((b) => b[key]).filter(Boolean))].sort();
-  const years = [...new Set(state.medEnriched.map((b) => String(b.service_date || b.bill_date || b.created_at || "").slice(0, 4)).filter(Boolean))].sort().reverse();
-  if (!state.medEnriched.length) return `<div class="panel">${emptyHtml()}</div>`;
-  return `<div class="panel">
-    <div class="toolbar">
-      <input type="search" id="medSearch" placeholder="${t("搜索商家、患者、账单号")}" value="${esc(f.q)}" aria-label="${t("搜索账单")}">
-      <select id="medKind" aria-label="${t("按种类筛选")}">${opt("all", t("全部种类"), f.kind)}${Object.entries(KINDS).map(([k, K]) => opt(k, `${K.icon} ${t(K.name)}`, f.kind)).join("")}</select>
-      <select id="medPatient" aria-label="${t("按患者筛选")}">${opt("all", t("全部患者 / 对象"), f.patient)}${uniq("patient").map((x) => opt(x, x, f.patient)).join("")}</select>
-      <select id="medProvider" aria-label="${t("按商家筛选")}">${opt("all", t("全部医院 / 商家"), f.provider)}${uniq("provider").map((x) => opt(x, x, f.provider)).join("")}</select>
-      ${state.properties.length && (state.properties.length > 1 || state.medEnriched.some((b) => b.property_id)) ? `<select id="medProperty" aria-label="${t("按房产筛选")}">${opt("all", t("全部房产"), f.property)}${opt("none", t("与房产无关"), f.property)}${propertyOptionsHtml(f.property, { esc })}</select>` : ""}
-      <select id="medStatus" aria-label="${t("按状态筛选")}">${opt("all", t("全部状态"), f.status)}${opt("open", t("待处理（未结清）"), f.status)}${Object.entries(STATUS).map(([k, n]) => opt(k, t(n), f.status)).join("")}</select>
-      <select id="medYear" aria-label="${t("按年份筛选")}">${opt("all", t("全部年份"), f.year)}${years.map((y) => opt(y, y, f.year)).join("")}</select>
-      ${clearFiltersBtn("med", changed(f, FD.med))}
-    </div>
-    <div id="medList">${listInner()}</div></div>`;
-}
-function reportTab() {
-  const y = state.medYear || String(new Date().getFullYear()), years = [...new Set([String(new Date().getFullYear()), ...state.medEnriched.map((b) => String(b.service_date || b.bill_date || "").slice(0, 4)).filter(Boolean)])].sort().reverse();
-  const inYear = state.medEnriched.filter((b) => String(b.service_date || b.bill_date || b.created_at || "").startsWith(y));
-  const billById = new Map(state.medBills.map((b) => [b.id, b]).reverse());
-  const payYear = state.medPayments.filter((p) => String(p.paid_on).startsWith(y) && billById.has(p.bill_id));
-  const sum = (arr, f) => arr.reduce((s, x) => s + f(x), 0);
-  const group = (key) => { const m = new Map(); for (const b of inYear) { const k = b[key] || t("（未填）"); const g = m.get(k) || { name: k, n: 0, billed: 0, ins: 0, adj: 0, owed: 0, paid: 0 }; g.n++; g.billed += num(b.billed_amount); g.ins += num(b.insurance_paid); g.adj += num(b.adjustment); g.owed += b.owed || 0; g.paid += b.paid; m.set(k, g); } return [...m.values()].sort((a, b) => b.owed - a.owed); };
-  const table = (title, rows) => `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${title}</h3><div class="ch-scroll"><table class="store-table med-tbl"><thead><tr><th scope="col">${t("名称")}</th><th scope="col">${t("张数")}</th><th scope="col">${t("账单总额")}</th><th scope="col">${t("保险已付")}</th><th scope="col">${t("自付金额")}</th><th scope="col">${t("已付")}</th></tr></thead>
-    <tbody>${rows.map((g) => `<tr><th scope="row">${esc(g.name)}</th><td data-label="${esc(t("张数"))}">${g.n}</td><td data-label="${esc(t("账单总额"))}">${esc(mny(g.billed))}</td><td data-label="${esc(t("保险已付"))}">${esc(mny(g.ins))}</td><td data-label="${esc(t("自付金额"))}">${esc(mny(g.owed))}</td><td data-label="${esc(t("已付"))}">${esc(mny(g.paid))}</td></tr>`).join("")}</tbody></table></div></div>`;
-  const hsa = sum(payYear.filter((p) => billById.get(p.bill_id)?.hsa_eligible), (p) => num(p.amount));
-  return `<div class="range-row"><label class="field-label" for="medReportYear" style="margin:0">${t("年份")}</label>
-      <select id="medReportYear">${years.map((v) => `<option value="${v}" ${v === y ? "selected" : ""}>${t("{y} 年", { y: v })}</option>`).join("")}</select>
-      <button type="button" class="btn btn-sm btn-primary" data-action="med-csv">${t("导出 CSV")}</button>
-      <button type="button" class="btn btn-sm btn-ghost" onclick="window.print()">${t("打印")}</button></div>
-    <div class="kpis"><div class="kpi"><span>${t("账单总额")}</span><b>${mny(sum(inYear, (b) => num(b.billed_amount)))}</b><small>${t("{n} 张", { n: inYear.length })}</small></div>
-      <div class="kpi"><span>${t("自付已付")}</span><b>${mny(sum(payYear, (p) => num(p.amount)))}</b><small>${t("{n} 笔付款", { n: payYear.length })}</small></div>
-      <div class="kpi"><span>${t("HSA / FSA 可报")}</span><b>${mny(hsa)}</b><small>${t("已付，标了“可用 HSA / FSA”的账单")}</small></div></div>
-    ${inYear.length ? (new Set(inYear.map((b) => b.kind)).size > 1 ? table(t("按种类"), group("kind").map((g) => ({ ...g, name: t(KINDS[g.name]?.name || g.name) }))) : "") + table(t("按患者 / 对象"), group("patient")) + table(t("按医院 / 商家"), group("provider")) : `<div class="panel empty"><strong>${t("这一年没有医疗账单")}</strong></div>`}
-    <p class="muted" style="font-size:12.5px">${t("报税抵扣、HSA / FSA 报销以保险公司和税务机构的规定为准，这里只帮你把金额理清楚；导出的是已付的每一笔。")}</p>`;
 }
 
 /** 一次性账单详情 / 新建页（#/otbill/<id|new>） */
@@ -334,16 +226,6 @@ export async function saveMedPayForm(f) {
 }
 export async function deleteMedBill(id) { await Store.deleteMedicalBill(id); await reloadMedical(); toast(t("已删除这张账单")); go(allBillsHref({ type: "onetime" })); }
 export async function deleteMedPay(id) { await Store.deleteMedicalPayment(id); await reloadMedical(); toast(t("已删除这笔付款")); }
-export function exportMedicalCsv() {
-  const y = state.medYear || String(new Date().getFullYear());
-  const rows = [[t("付款日期"), t("种类"), t("患者"), t("担保人"), t("医院 / 化验所"), t("小类"), t("账单号"), t("理赔号"), t("确认号"), t("付款方式"), t("金额"), t("货币"), t("可用 HSA/FSA"), t("就诊日期"), t("账单日期")]];
-  for (const p of [...state.medPayments].sort((a, b) => String(a.paid_on).localeCompare(String(b.paid_on)))) {
-    const b = state.medEnriched.find((x) => x.id === p.bill_id); if (!b || !String(p.paid_on).startsWith(y)) continue;
-    rows.push([p.paid_on, t(kindOf(b).name), b.patient || "", b.guarantor || "", b.provider, subName(b) ? t(subName(b)) : "", b.bill_ref || "", b.claim_ref || "", p.confirmation_ref || "", p.method || "", num(p.amount), p.currency || b.currency, b.hsa_eligible ? t("是") : t("否"), b.service_date || "", b.bill_date || ""]);
-  }
-  if (rows.length < 2) return toast(t("{y} 年没有医疗付款", { y }));
-  download(`${t("医疗付款")}-${y}.csv`, toCsv(rows)); toast(t("已导出 {n} 笔付款", { n: rows.length - 1 }));
-}
 /** 新建账单时换种类：整页按新种类重画（标签、小类、保险项不同） */
 export function onKindPick(e) {
   if (e.target.name !== "kindPick") return;
@@ -398,61 +280,10 @@ export async function personAddDo() {
   } catch (e) { msg.textContent = e.message; }
 }
 
-/* ── 管理页：#/bills/onetime?people=1 ── */
-export function viewPeople() {
-  const used = (id) => state.medBills.filter((b) => b.patient_id === id || b.guarantor_id === id).length;
-  const edit = state.personEdit;
-  const merging = state.personMerge;
-  const row = (p) => `<li class="person-row" data-swipe-del="person">
-      <span class="badge" style="background:var(--surface-2)">${KIND_ICON[p.kind] || ""} ${t(PEOPLE_KINDS[p.kind] || p.kind)}</span>
-      <div class="person-main">${edit === p.id ? `<input id="personEditName" maxlength="40" value="${esc(p.name)}" aria-label="${t("姓名")}">` : `<span class="name">${esc(p.name)}</span><small>${[used(p.id) ? t("{n} 张账单用了", { n: used(p.id) }) : t("还没有账单")].filter(Boolean).join(" · ")}</small>`}</div>
-      <div class="person-actions">${edit === p.id ? `<button type="button" class="btn btn-sm btn-primary" data-action="person-edit-save" data-id="${p.id}">${t("保存")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-edit-cancel">${t("取消")}</button>`
-        : `<button type="button" class="btn btn-sm btn-ghost" data-action="person-edit" data-id="${p.id}">${t("改名")}</button>
-           ${state.people.length > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="person-merge-open" data-id="${p.id}" aria-expanded="${merging === p.id}">${t("合并")}</button>` : ""}
-           <button type="button" class="btn btn-sm btn-danger-ghost swipe-src" data-action="person-del" data-id="${p.id}">${t("删除")}</button>`}</div>
-      ${merging === p.id && edit !== p.id ? `<div class="person-merge"><span class="muted">${t("把“{n}”合并到：", { n: esc(p.name) })}</span>
-        <select data-merge-for="${p.id}" aria-label="${t("合并到")}"><option value="">${t("选一个人…")}</option>${state.people.filter((x) => x.id !== p.id).map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select>
-        <button type="button" class="btn btn-sm btn-primary" data-action="person-merge" data-id="${p.id}">${t("确认合并")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-merge-cancel">${t("取消")}</button>
-        <small class="muted">${t("它的账单会全部归到所选的人名下，然后这一条被删除。")}</small></div>` : ""}</li>`;
-  return `<section class="section">
-    <div class="section-head"><h2>👪 ${t("家庭成员 / 孩子 / 宠物")}</h2></div>
-    <p class="muted kinds-note" style="margin-bottom:6px">${t("一次性账单里的患者、担保人从这里选；同一个人只建一次。")}</p>
-    <details class="people-help"><summary>${t("怎么避免重复？")}</summary><p class="muted" style="margin:6px 0 0;font-size:13px">${t("家人各自录入“Alice Y”和“Alice”不会变成两个人：名字忽略大小写和空格，近似的新增时会先问你是不是同一个人。改名后所有账单跟着变；建重了可以“合并”。")}</p></details>
-    <div class="panel">${state.people.length ? `<ul class="restock-list">${state.people.map(row).join("")}</ul>` : `<div class="empty"><strong>${t("名册还是空的")}</strong>${t("大人会自动加入；孩子和宠物在下面添加。")}</div>`}</div>
-    <div class="panel" style="margin-top:10px"><h3 style="font-size:15px;margin:0 0 6px">${t("批量添加")}</h3>
-      <p class="muted" style="margin:0 0 6px;font-size:13px">${t("每行一个名字。小月亮的孩子在另一个账号体系里，这里读不到，把名字抄过来一次就行。")}</p>
-      <div class="form-grid"><label class="span-2">${t("名字（每行一个）")}<textarea id="peopleBulkNames" rows="3" maxlength="600"></textarea></label>
-        <label>${t("类别")}<select id="peopleBulkKind">${Object.entries(PEOPLE_KINDS).map(([k, n]) => `<option value="${k}" ${k === "child" ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label></div>
-      <div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="people-bulk">${t("添加")}</button><a class="btn btn-sm btn-ghost" href="${href("bills", "onetime")}">${t("回一次性账单")}</a></div></div>
-  </section>`;
-}
-export function personEditStart(id) { state.personEdit = id; state.personMerge = null; rerender(); }
 export function personMergeOpen(id) { state.personMerge = state.personMerge === id ? null : id; state.personEdit = null; rerender(); }
 export function personMergeCancel() { state.personMerge = null; rerender(); }
-export function personEditCancel() { state.personEdit = null; rerender(); }
-export async function personEditSave(id) {
-  const name = $("#personEditName")?.value.trim(); if (!name) return toast(t("请填写姓名。"));
-  const p = state.people.find((x) => x.id === id), dup = findPerson(name).exact;
-  if (dup && dup.id !== id) return toast(t("名册里已经有“{n}”了，建重了的话用“合并”", { n: dup.name }));
-  try { await Store.savePerson({ ...p, name }); state.people = await Store.listPeople(); applyMedical(state.medBills, state.medPayments); state.personEdit = null; toast(t("已保存修改")); rerender(); } catch (e) { toast(e.message); }
-}
 export async function personMerge(id) {
   const to = document.querySelector(`[data-merge-for="${id}"]`)?.value; if (!to) return toast(t("先选要合并到谁"));
   const from = state.people.find((x) => x.id === id), dest = state.people.find((x) => x.id === to);
   try { await Store.mergePeople(id, to); await reloadMedical(); state.people = await Store.listPeople(); applyMedical(state.medBills, state.medPayments); state.personMerge = null; toast(t("已把“{a}”合并到“{b}”", { a: from.name, b: dest.name })); rerender(); } catch (e) { toast(e.message); }
-}
-export async function personDelete(id) {
-  try { await Store.deletePerson(id); state.people = await Store.listPeople(); applyMedical(state.medBills, state.medPayments); toast(t("已删除")); rerender(); } catch (e) { toast(e.message); }
-}
-export async function peopleBulk() {
-  const names = ($("#peopleBulkNames")?.value || "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean), kind = $("#peopleBulkKind").value;
-  if (!names.length) return toast(t("请填写名字。"));
-  let added = 0; const skipped = [], similar = [];
-  for (const n of names) {
-    const { exact, similar: sim } = findPerson(n); if (exact) { skipped.push(n); continue; }
-    try { await Store.savePerson({ name: n, kind }); state.people = await Store.listPeople(); added++; if (sim.length) similar.push(`${n}≈${sim[0].name}`); } catch (e) { skipped.push(n); }
-  }
-  applyMedical(state.medBills, state.medPayments);
-  toast(t("已添加 {n} 个", { n: added }) + (skipped.length ? t("；已有 / 失败：{l}", { l: skipped.join("、") }) : "") + (similar.length ? t("；注意名字相近，是否重复：{l}", { l: similar.join("、") }) : ""));
-  rerender();
 }

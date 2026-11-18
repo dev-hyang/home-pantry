@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.16", title: { zh: "清理：去掉账单路径整理后不再使用的旧页面代码", en: "Cleanup: removed old page code left over from the bills path change" }, items: [
+    { k: "better", zh: "去掉旧的周期性账单清单、缴费记录列表、一次性账单目录和年度报表、旧的家庭成员页对应的代码；每次刷新不再多向服务器要一次缴费记录列表，页面行为不变", en: "Removed code for the old recurring bill list, payment list, one-time directory and annual report, and the old family page; refreshes no longer make an extra server request for the payment list, and pages behave the same" }
+  ] },
+
   { v: "2026-11-18.15", title: { zh: "信用卡持卡人和「谁在买」改成显示家庭成员；更多长下拉可以搜索", en: "Card holders and Who is buying now show family members; more long lists are searchable" }, items: [
     { k: "better", zh: "信用卡的「持卡人 / 户主」关联家庭成员，不再是登录设备；购物车「我来买」、「最后修改」这些地方显示的名字，链接了家庭成员的设备就显示家庭成员的名字", en: "A credit card's holder is now a family member, not a login device; names shown for Who is buying and Last edited use the family member when the device is linked" },
     { k: "new", zh: "账单表单里的房产和关联资产下拉也可以输入文字搜索", en: "The property and linked-asset lists in the bill form are searchable too" }
