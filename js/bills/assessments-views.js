@@ -5,7 +5,7 @@ import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, fmtDate, num, todayISO, toast } from "../core/util.js";
 import { go, href } from "../core/router.js";
-import { t } from "../core/i18n.js";
+import { lang, t } from "../core/i18n.js";
 import { assessmentsOf, genInstallments, isPaid } from "./assessments-lib.js";
 
 const mny = (v, cur) => Units.money(num(v), cur || Units.region.currency);
@@ -31,11 +31,18 @@ export function assessListPage(b, crumb) {
   </section>`;
 }
 
-const rowHtml = (x = {}, paid = false) => `<li class="as-row${paid ? " is-paid" : ""}" data-id="${esc(x.id || "")}">
-    <input type="date" name="as_due" required value="${esc(x.due_on || "")}" ${paid ? "disabled" : ""} aria-label="${esc(t("到期日"))}">
-    <input type="number" name="as_amt" inputmode="decimal" min="0.01" step="0.01" required value="${x.amount != null ? num(x.amount).toFixed(2) : ""}" ${paid ? "disabled" : ""} aria-label="${esc(t("金额"))}">
-    <select name="as_kind" ${paid ? "disabled" : ""} aria-label="${esc(t("类型"))}">${KINDS.map(([k, n]) => `<option value="${k}" ${x.kind === k ? "selected" : ""}>${esc(t(n))}</option>`).join("")}</select>
-    ${paid ? `<span class="badge b-ok">${t("已缴")}</span>` : `<label class="check-inline as-settled"><input type="checkbox" name="as_settled" ${x.settled_on ? "checked" : ""}><span>${t("已缴（无缴费记录）")}</span></label><button type="button" class="btn btn-sm btn-ghost" data-as-del aria-label="${esc(t("删除这一期"))}">✕</button>`}</li>`;
+const rowHtml = (x = {}, paid = false) => {
+  if (paid) return `<li class="as-row is-paid" data-id="${esc(x.id || "")}">   <!-- 已关联缴费：锁定，只读显示；隐藏域让保存时仍能读到这一期 -->
+    <input type="hidden" name="as_due" value="${esc(x.due_on || "")}"><input type="hidden" name="as_amt" value="${num(x.amount).toFixed(2)}"><input type="hidden" name="as_kind" value="${esc(x.kind || "installment")}">
+    <div class="as-line"><b class="as-date">${esc(fmtDate(x.due_on))}</b><span class="as-kindtxt">${esc(kindName(x.kind))}</span><b class="as-money">${mny(x.amount)}</b><span class="badge b-ok">${t("已缴")}</span></div></li>`;
+  return `<li class="as-row" data-id="${esc(x.id || "")}">
+    <div class="as-line"><select name="as_kind" aria-label="${esc(t("类型"))}">${KINDS.map(([k, n]) => `<option value="${k}" ${x.kind === k ? "selected" : ""}>${esc(t(n))}</option>`).join("")}</select>
+      <button type="button" class="btn btn-ghost as-del" data-as-del aria-label="${esc(t("删除这一期"))}" title="${esc(t("删除这一期"))}">✕</button></div>
+    <div class="as-fields">
+      <label>${lang === "en" ? "Due date" : "到期日"}<input type="date" name="as_due" required value="${esc(x.due_on || "")}"></label>
+      <label>${lang === "en" ? "Amount" : "金额"}<input type="number" name="as_amt" inputmode="decimal" min="0.01" step="0.01" required value="${x.amount != null ? num(x.amount).toFixed(2) : ""}"></label></div>
+    <label class="as-settled"><input type="checkbox" name="as_settled" ${x.settled_on ? "checked" : ""}><span>${t("已缴（无缴费记录）")}</span></label></li>`;
+};
 
 /** 新增 / 编辑页：名称、备注、状态 + 付款计划（一期一行） */
 export function assessFormPage(b, a, crumb) {

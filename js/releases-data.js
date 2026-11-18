@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.7", title: { zh: "特别摊派的编辑页排版整理：每一期一张整齐的小卡片", en: "Special assessment edit page tidied up: one neat card per row" }, items: [
+    { k: "better", zh: "每一期是一张卡片：上面选类型和删除，下面到期日、金额并排，再下面是「已缴（无缴费记录）」；已关联缴费的期收成一行只读", en: "Each row is a card: type and delete on top, due date and amount side by side, then Paid (no payment record); rows tied to a payment collapse to one read-only line" },
+    { k: "fix", zh: "修好勾选框变成大方块、说明文字竖着折行、日期被截断的问题；宽屏两列排开", en: "Fixed the oversized checkbox, the vertically wrapped label and the truncated dates; wide screens show two columns" }
+  ] },
+
   { v: "2026-11-18.6", title: { zh: "特殊评估从房屋资料搬进 HOA 账单的「特别摊派」", en: "Special assessments moved from the property profile into the HOA bill" }, items: [
     { k: "better", zh: "房屋资料里不再填特殊评估；原来的那一笔（Garage support panel 维修，30 期 × $67.69）已搬进 HOA 月费账单的「特别摊派」，金额和历史都在账单里", en: "The property profile no longer holds special assessments; the existing one (Garage support panel, 30 x $67.69) is now in the HOA bill's Special assessment, with amounts and history" },
     { k: "new", zh: "摊派的每一期可以标「已缴（无缴费记录）」，用于开始记账前就交过的期", en: "Each assessment row can be marked Paid (no payment record) for rows settled before tracking began" },
