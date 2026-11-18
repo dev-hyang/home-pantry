@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.2", title: { zh: "账单缴费记录：独立的全部记录页（搜索 / 筛选），新建和编辑也各有独立页面", en: "Bill payment history: a full records page with search and filters, and separate pages to add and edit" }, items: [
+    { k: "new", zh: "账单详情页的「全部」和菜单里的「查看缴费记录」进同一个页面：能按关键词搜索，按状态、年份筛选，按日期或金额排序，并显示合计；右下角圆形「＋」新建一笔", en: "All and View payment history open the same page: search by keyword, filter by status and year, sort by date or amount, with a total; the round + button adds a payment" },
+    { k: "better", zh: "点一条记录直接进入编辑页，不再在列表上方弹出表格；取消在左、保存在右，保存或取消后都回到全部记录", en: "Tapping a record opens its own edit page instead of a form above the list; Cancel is on the left, Save on the right, and both return to the records page" },
+    { k: "better", zh: "比 400 天更早的缴费记录也能在这一页看到和编辑", en: "Payments older than 400 days can now be seen and edited on this page too" }
+  ] },
+
   { v: "2026-11-18.1", title: { zh: "周期性账单详情页：顶部改成汇总卡片，菜单里能编辑整张表单", en: "Recurring bill page: a summary card on top, and a menu that edits the whole form" }, items: [
     { k: "better", zh: "顶部卡片集中显示名称、下次到期、账号、付费方式、每次金额、折合每月和添加 / 更新时间，「记缴费」独占一行", en: "The top card shows name, next due date, account, payment method, amount per payment, monthly equivalent and added / updated times, with Record payment on its own row" },
     { k: "new", zh: "卡片右上角的「⋯」菜单：编辑、记缴费、查看缴费记录、去服务商缴费、复制、删除", en: "The ⋯ menu on the card: Edit, Record payment, View payment history, Pay at provider, Copy, Delete" },

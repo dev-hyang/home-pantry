@@ -1,6 +1,9 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "搜索缴费记录": "Search payments", "搜索日期、金额、账户、确认号、备注": "Search date, amount, account, confirmation #, notes", "最新在前": "Newest first", "最早在前": "Oldest first", "金额从高到低": "Amount high to low", "金额从低到高": "Amount low to high",
+  "清除筛选": "Clear filters", "没有符合条件的记录": "No matching records", "换个关键词，或点“清除筛选”。": "Try another keyword, or tap Clear filters.", "点右下角的 ＋ 记第一笔。": "Tap + at the bottom right to log the first one.",
+  "共 {n} 条": "{n} records", "合计 {m}": "Total {m}", "正在读取更早的记录…": "Loading older records…", "记一笔缴费": "Log a payment", "编辑缴费记录": "Edit payment", "按状态筛选": "Filter by status", "按年份筛选": "Filter by year", "搜索": "Search",
   "下次到期 {d}": "Next due {d}", "账单概要": "Bill summary", "编辑账单": "Edit bill", "查看缴费记录": "View payment history", "去服务商缴费": "Pay at provider",
   // ── 通用 / 导航 ──
   "爱家小助手": "Loving Home Helper",

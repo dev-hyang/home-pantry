@@ -33,6 +33,7 @@ import { moreBtn, pageLimit, pageMoreBtn } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
 import { compact } from "../core/list-query.js";
 import { billAsk } from "./logic.js";
+import { olderPayment, payHistoryPage, resetPayHistory } from "./pay-history.js";
 
 const B = () => window.BILLS;
 const BADGE = { overdue: "b-out", due: "b-low", verify: "b-soon", soon: "b-soon", ok: "b-ok", escrow: "b-ok", none: "", ended: "", inactive: "" };
@@ -421,7 +422,14 @@ export function viewBillForm() {
   const sec = r.q.get("pay") === "1" ? "pay" : r.q.get("sec") || "";
   const hubHref = href("bill", b?.id || "new");
   if (b && !sec) return billHub(b, root);
-  if (b && sec === "pay") return `<section class="section form-page">${billCrumb(b, root, hubHref, t("缴费记录"))}${paySection(b, r.q.get("pay") === "1", b.pays.find((x) => x.id === r.q.get("edit")) || null)}</section>`;
+  if (b && sec === "pay") {   // 缴费记录：?sec=pay = 全部记录（搜索 / 筛选）；?sec=pay&edit=id 或 ?pay=1 = 独立的编辑 / 新建页
+    const editId = r.q.get("edit"), listHref = `${hubHref}?sec=pay`;
+    if (editId || r.q.get("pay") === "1") {
+      const edit = editId ? b.pays.find((x) => x.id === editId) || olderPayment(editId) : null;
+      return `<section class="section form-page">${crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("缴费记录") }, { label: edit ? t("编辑缴费记录") : b.autopay ? t("记核对") : t("记缴费") }])}${payFormPage(b, edit)}</section>`;
+    }
+    return payHistoryPage(b, billCrumb(b, root, hubHref, t("缴费记录")), staleNotice(b));
+  }
   const full = sec === "all";   // 整张表单（编辑菜单进来）：四块都显示
   const hide = (k) => (b && sec && !full && sec !== k ? "hidden" : "");
   return `
@@ -508,7 +516,7 @@ function billHub(b, root) {
       <div class="grow">${esc(fmtDate(p.paid_on))}<small>${[p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p)].filter(Boolean).map(esc).join(" · ")}</small></div><b>${p.amount != null ? mny(p.amount, p.currency) : ""}</b></li>`).join("");
   const payCard = `<section class="panel prof-card" aria-labelledby="bc-pay">
       <header class="prof-head"><span class="mi" aria-hidden="true">✅</span><div class="prof-t"><h3 id="bc-pay">${t("缴费记录")}</h3><small>${b.pays.length ? t("{n} 条，最近 {d}", { n: b.pays.length, d: fmtDate(b.pays[0].paid_on) }) : t("还没有记录")}</small></div>
-        <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=pay" aria-label="${esc(t("编辑 {name}", { name: t("缴费记录") }))}">${b.pays.length ? t("全部") : t("记一笔")}</a></header>
+        <a class="btn btn-sm btn-ghost prof-edit" href="${b.pays.length ? `${base}?sec=pay` : `${base}?pay=1`}" aria-label="${esc(t("缴费记录"))}">${b.pays.length ? t("全部") : t("记一笔")}</a></header>
       ${recent ? `<ul class="restock-list">${recent}</ul>` : `<p class="muted prof-empty">${t("还没有记录")}</p>`}</section>`;
   const q = state.route?.q, banner = billBanner(b, q, base);
   return `<section class="section">
@@ -561,23 +569,15 @@ function billHeadCard(b, base) {
   </section>`;
 }
 
-function paySection(b, focus, edit = null) {
+function payFormPage(b, edit = null) {
   const v = edit || {};   // 编辑某条记录时表单带入它的值
   // 账户下拉的当前值：编辑时按这条记录（卡 / 现金 / 支票 / 手填）；新记一笔按账单的付款账户
   const payVal = edit ? (edit.card_id ? edit.card_id : edit.method === "支票" ? "check" : payAcctValue(null, edit.method)) : (b.pay_card_id ? b.pay_card_id : payAcctValue(null, b.autopay_method));
-  const stale = backfillable(b);
   const linked = edit?.purchase_id ? purchaseById(edit.purchase_id) : null;   // 这条缴费记的花费：收款方存在它上面（按 id 读这一笔）
   if (edit?.purchase_id && !linked) fillFromPurchase(edit.purchase_id, '#billPayForm [name="store"]', (p) => p.store);   // 还没读回来：读到后填进收款方（没改过的话）
-  const rows = b.pays.map((p) => `<li class="pay-row ${edit?.id === p.id ? "is-editing" : ""}" data-swipe-del="bill-pay">
-      <span class="badge ${p.status === "skipped" ? "" : "b-ok"}" style="${p.status === "skipped" ? "background:var(--surface-2)" : ""}">${t(B().PAYMENT_STATUS[p.status] || p.status)}</span>
-      <div class="grow"><a class="link-name" href="${href("bill", b.id)}?sec=pay&edit=${p.id}" title="${t("点一下编辑")}">${esc(fmtDate(p.paid_on))}</a>
-        <small>${[p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.paid_by && Store.mode === "cloud" ? memberName(p.paid_by) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
-      <b>${p.amount != null ? mny(p.amount, p.currency) : ""}</b>
-      <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="billpay-del" data-id="${p.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>
-    </li>`).join("");
   return `
-    <div class="section-head" style="margin-top:28px"><h2>${edit ? t("编辑缴费记录") : t("缴费记录")}</h2><p>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${edit ? t("改这条记录；不会动下次到期日") : t("记一笔后下次到期日自动推到下一期")}</p></div>
-    <form id="billPayForm" class="panel" ${focus ? 'data-focus="1"' : ""}>
+    <div class="section-head"><h2>${edit ? t("编辑缴费记录") : b.autopay ? t("记核对") : t("记缴费")}</h2><p>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${edit ? t("改这条记录；不会动下次到期日") : t("记一笔后下次到期日自动推到下一期")}</p></div>
+    <form id="billPayForm" class="panel" data-focus="1">
       <input type="hidden" name="bill_id" value="${esc(b.id)}"><input type="hidden" name="pay_id" value="${esc(edit?.id || "")}">
       <div class="form-grid maint-grid">
         <label>${t("缴费日期")}<input name="paid_on" type="date" required value="${esc(edit ? edit.paid_on || "" : todayISO())}" max="${todayISO()}"></label>
@@ -593,12 +593,14 @@ function paySection(b, focus, edit = null) {
         <label>${t("滞纳金")}<input name="late_fee" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? num(edit.late_fee).toFixed(2) : "0"}"></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(edit?.notes || "")}"></label>
       </div>
-      <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${edit ? t("保存修改") : t("记一笔")}</button>${edit ? `<a class="btn btn-sm btn-ghost" href="${href("bill", b.id)}?sec=pay">${t("取消")}</a>` : ""}
-        <small class="muted">${edit ? t("金额改了，花费统计里对应的那笔也会跟着改。") : t("有金额的记录会同时记入花费统计的“账单”组。")}</small></div>
-    </form>
-    ${stale.length ? `<div class="notice" role="status" style="margin-top:10px"><b>${t("有 {n} 条旧缴费记录没记账户。", { n: stale.length })}</b> ${t("按现在的付款账户 {a} 一次性补上？花费统计里对应的那几笔也会记到这张卡。现金 / 支票的不动。", { a: billPayLabel(b) })} <button type="button" class="btn btn-sm" data-action="billpay-backfill" data-id="${b.id}">${t("补上")}</button></div>` : ""}
-    <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有记录")}</strong></div>`}</div>`;
+      <p class="muted" style="margin:10px 0 0;font-size:13px">${edit ? t("金额改了，花费统计里对应的那笔也会跟着改。") : t("有金额的记录会同时记入花费统计的“账单”组。")}</p>
+      <div class="form-actions form-actions-split sticky-actions">
+        <button type="button" class="btn btn-ghost" data-action="billpay-cancel">${t("取消")}</button>
+        <button type="submit" class="btn btn-primary">${edit ? t("保存修改") : t("记一笔")}</button></div>
+    </form>`;
 }
+/** 旧缴费记录没记账户时，列表页顶上的「一次性补上」提示 */
+const staleNotice = (b) => { const stale = backfillable(b); return stale.length ? `<div class="notice" role="status" style="margin-top:10px"><b>${t("有 {n} 条旧缴费记录没记账户。", { n: stale.length })}</b> ${t("按现在的付款账户 {a} 一次性补上？花费统计里对应的那几笔也会记到这张卡。现金 / 支票的不动。", { a: billPayLabel(b) })} <button type="button" class="btn btn-sm" data-action="billpay-backfill" data-id="${b.id}">${t("补上")}</button></div>` : ""; };
 /** 没记账户、也不是现金 / 支票的旧缴费记录（账单选了付款账户后可以一次性补上） */
 const backfillable = (b) => (b.pay_card_id && acctById(b.pay_card_id) ? b.pays.filter((p) => !p.card_id && p.status !== "skipped" && !/^(现金|支票|cash|check)/i.test(p.method || "")) : []);
 export async function backfillPayments(id) {
@@ -677,6 +679,7 @@ export async function recordPayment(bill, { paid_on, due_on, amount, status, met
   const payRow = { bill_id: bill.id, due_on: due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),
     currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, status, notes: notes || null, purchase_id, ...(card_id ? { card_id } : {}) };
   const payId = await Store.addBillPayment(payRow);
+  resetPayHistory();
   if (bill.debt_id && purchase_id) await splitBillPayment(bill, { ...payRow, id: payId }).catch((e) => console.warn("[debt split]", e.message));   // 贷款：本金单独一行（性质 = 融资），主行只剩利息 + Escrow
   // 推到下一期：以这次对应的到期日为基准，保证不会漏期。补记更早一期（到期日早于当前下次到期）不往回推，下次到期不动
   const base = due_on || bill.next_due_on || paid_on;
@@ -706,6 +709,7 @@ export async function deleteBillPay(id) {
   const bill = p && state.billsEnriched.find((b) => b.id === p.bill_id);
   await beforeDeletePayment(id).catch(() => {});   // 贷款拆分的本金行（流水随缴费记录级联删除）
   await Store.deleteBillPayment(id);
+  resetPayHistory();
   if (!bill || !p.due_on) return null;
   const sameDue = state.billPayments.some((x) => x.id !== id && x.bill_id === bill.id && x.due_on === p.due_on);
   const pushedIt = bill.next_due_on === advanceDue(bill, p.due_on) || (bill.frequency === "one_time" && !bill.next_due_on);
@@ -719,7 +723,7 @@ export async function deleteBillPay(id) {
 
 /** 改一条已有的缴费记录：不动账单的下次到期日；记过花费的，花费也跟着改（金额变 0 / 跳过就删掉那笔花费，之前没记的有金额就补一笔） */
 async function updatePayment(bill, fe) {
-  const old = state.billPayments.find((x) => x.id === fe.pay_id.value);
+  const old = state.billPayments.find((x) => x.id === fe.pay_id.value) || olderPayment(fe.pay_id.value);
   if (!old) return toast(t("找不到这条记录"));
   const r2 = (v) => Math.round(num(v) * 100) / 100, status = fe.status.value, paid_on = fe.paid_on.value || old.paid_on || todayISO();
   const amount = status === "skipped" || fe.amount.value === "" ? null : r2(fe.amount.value), late = r2(fe.late_fee.value), total = status === "skipped" ? 0 : r2((amount || 0) + late);
@@ -733,6 +737,7 @@ async function updatePayment(bill, fe) {
   if (!purchase_id) await beforeDeletePayment(old.id).catch(() => {});   // 不再记花费了：贷款拆分的本金行和流水也去掉
   const patch = { paid_on, due_on: fe.due_on.value || null, amount, currency, method: pay.method, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, status, notes: fe.notes.value.trim() || null, purchase_id, ...cardPatch };
   await Store.updateBillPayment(old.id, patch);
+  resetPayHistory();
   if (bill.debt_id && purchase_id) await splitBillPayment(bill, { ...old, ...patch, id: old.id }).catch((e) => console.warn("[debt split]", e.message));
   const moved = fe.due_on.value !== (old.due_on || "") ? await resyncDue(bill, old, fe.due_on.value || null) : null;   // 到期日改了：账单的下次到期跟着对
   toast(moved ? t("已保存修改，下次到期 {d}", { d: fmtDate(moved) }) : t("已保存修改"));

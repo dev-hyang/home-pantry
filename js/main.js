@@ -939,11 +939,10 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "medPayForm") return saveMedPayForm(f);
     if (f.id === "billPayForm") {
       const btn = f.querySelector('button[type="submit"]'); btn.disabled = true;
-      const editing = f.elements.pay_id?.value, billId = f.elements.bill_id.value;
+      const billId = f.elements.bill_id.value;
       try { await saveBillPayForm(f); } finally { btn.disabled = false; }
       await refresh();
-      if (editing) return go(`${href("bill", billId)}?sec=pay`, { replace: true });   // 改完回到缴费记录列表
-      return render(true);
+      return go(`${href("bill", billId)}?sec=pay`, { replace: true });   // 记完 / 改完都回到全部缴费记录
     }
     if (f.id === "billTemplateForm") {
       const idx = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => +x.value);
@@ -1185,6 +1184,7 @@ main.addEventListener("click", async (e) => {
       case "alerts-prev": shiftAlertSource(-1); return render();
       case "alerts-next": shiftAlertSource(1); return render();
       case "bill-cancel": return leaveBill(false);
+      case "billpay-cancel": return go(`${href("bill", state.route.id)}?sec=pay`, { replace: true });   // 缴费表单取消：回全部缴费记录
       case "bill-delete":
         if (!confirmDelete(t("删除这个账单和它的缴费记录？"))) return;
         await Store.deleteBill(state.route.id); toast(t("已删除账单及其缴费记录")); return leaveBill(true);

@@ -4003,3 +4003,16 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 
 .plan-ai-item { margin-bottom: 10px; }
 .plan-ai-item .ask-inline { margin-top: 6px; }
+
+/* 缴费记录页：搜索 + 筛选一行排开（手机折行），列表行整行可点；表单页保存栏 取消靠左 / 保存靠右 */
+.pay-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pay-bar .pay-q { flex: 1 1 100%; min-width: 0; box-sizing: border-box; min-height: 44px; }
+.pay-bar select { flex: 1 1 140px; min-width: 0; box-sizing: border-box; min-height: 44px; }
+@media (min-width: 760px) { .pay-bar .pay-q { flex: 2 1 260px; } .pay-bar select { flex: 0 1 170px; } }
+.pay-sum { margin: 0 0 6px; font-size: 13px; }
+.pay-row .pay-hit { display: block; min-height: 44px; color: inherit; text-decoration: none; min-width: 0; }
+.pay-row .pay-hit b { display: block; }
+.pay-row .pay-hit small { display: block; color: var(--muted); overflow-wrap: anywhere; }
+.form-actions.form-actions-split { display: flex; flex-wrap: nowrap; justify-content: space-between; align-items: center; gap: 12px; }
+.form-actions.form-actions-split .btn-primary { flex: 0 1 auto; }   /* 盖掉手机上「主按钮占满一行」的规则：取消在左、保存在右同一行 */
+.form-actions-split .btn { min-height: 44px; min-width: 96px; }
