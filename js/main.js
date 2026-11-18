@@ -1243,7 +1243,7 @@ main.addEventListener("click", async (e) => {
         if (d.kind === "buy") { if (!armed(el, t("再点一次确认已交割"))) return; await completeBuy(); return refresh(); }
         state.closeout = true; return go(`${href("house", "deal")}?sec=closeout`);
       }
-      case "plan-new": case "plan-edit": case "plan-cancel": case "plan-status": case "plan-delete": case "cand-new": case "cand-edit": case "cand-delete": case "offer-new": case "offer-edit": case "offer-delete":
+      case "plan-new": case "plan-edit": case "plan-cancel": case "plan-status": case "plan-delete": case "cand-new": case "cand-edit": case "cand-delete": case "cand-win": case "offer-new": case "offer-edit": case "offer-delete":
         return planAction(action, el, { render, refresh, go });   // 买卖计划（迁移 078）
       case "plan-check": return togglePlanCheck(el.dataset.kind, el.dataset.stage, Number(el.dataset.idx), el.checked);   // 看房 / 看车清单：只存这台设备
       case "plan-open-property": {   // 买卖计划 → 卖房：先切到这套房产，再进它的交易页

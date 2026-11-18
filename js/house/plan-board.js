@@ -7,6 +7,7 @@ import { href } from "../core/router.js";
 import { $, armed, confirmDelete, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { pricesOk, priceInput } from "../core/finance-access.js";
+import { openDeal, openVehicleDeal, startDeal } from "./deals.js";
 const L = (zh, en) => (lang === "en" ? en : zh);
 
 export const PLAN_STATUS = { active: ["进行中", "In progress"], won: ["已买到", "Bought"], dropped: ["放弃了", "Dropped"] };
@@ -91,7 +92,7 @@ function candCard(plan, c) {
     ${offers.length ? `<ul class="plan-offers" aria-label="${esc(t("出价记录"))}">${offers.map((o) => `<li><span>${esc(fmtDate(o.offered_on))}</span><b>${mny(o.amount)}</b>${o.counter_amount != null ? `<span class="muted">→ ${mny(o.counter_amount)}</span>` : ""}<span class="badge">${esc(lab(OFFER_OUTCOME, o.outcome))}</span>
       <span class="plan-mini"><button type="button" class="btn btn-sm btn-ghost" data-action="offer-edit" data-id="${o.id}">${t("编辑")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="offer-delete" data-id="${o.id}">${t("删除")}</button></span>${o.conditions ? `<small class="muted plan-cond">${esc(o.conditions)}</small>` : ""}</li>`).join("")}</ul>` : ""}
     ${offerFormHtml(c)}
-    <div class="plan-acts"><button type="button" class="btn btn-sm" data-action="offer-new" data-cand="${c.id}">＋ ${t("记一次出价")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="cand-edit" data-id="${c.id}">${t("编辑")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="cand-delete" data-id="${c.id}">${t("删除")}</button></div>
+    <div class="plan-acts">${plan.status === "active" && !["won", "rejected"].includes(c.status) ? `<button type="button" class="btn btn-sm btn-primary" data-action="cand-win" data-id="${c.id}">${plan.kind === "buy_home" ? t("就买这套：开始买入流程") : t("就买这辆：开始买车流程")}</button>` : ""}<button type="button" class="btn btn-sm" data-action="offer-new" data-cand="${c.id}">＋ ${t("记一次出价")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="cand-edit" data-id="${c.id}">${t("编辑")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="cand-delete" data-id="${c.id}">${t("删除")}</button></div>
   </article>`;
 }
 
@@ -158,6 +159,35 @@ export async function saveOfferForm(f) {
   toast(t("已保存"));
 }
 
+/** 候选拿下了：建房产（交易中 · 买入）/ 车辆（选购中），带上名称、地址、价格，开始买入清单，计划和候选都标成「已买到」 */
+async function winCandidate(c, { refresh, go }) {
+  const plan = state.plans.find((p) => p.id === c.plan_id), d = c.details || {};
+  let dealHref;
+  if (plan.kind === "buy_home") {
+    const np = await Store.saveProperty({ name: c.name, kind: "sfh", role: "owner_occupied", address: c.address || null, status: "buying", notes: c.notes || null });
+    const pid = np?.id || np;
+    state.propertyId = pid; try { localStorage.setItem("hmh-property", pid); } catch { /* 忽略 */ }
+    await refresh();
+    await startDeal("buy");
+    await refresh();
+    const deal = openDeal(pid); if (deal && c.price != null && pricesOk()) await Store.saveDeal({ ...deal, price: c.price });
+    dealHref = href("house", "deal");
+  } else {
+    const aid = await Store.saveAsset({ kind: "vehicle", type: "vehicle_gas", name: c.name, location: null, brand: null, model: d.trim || null, serial: null, installed_on: null, manufacture_year: d.year != null ? Number(d.year) : null,
+      warranty_until: null, labor_warranty_until: null, expected_life_years: 15, service_interval_months: null, purchase_price: null, replacement_cost_estimate: null, owner: null, notes: c.notes || null, property_id: null, vehicle: { status: "looking" } });
+    await refresh();
+    await startDeal("veh_buy", aid);
+    await refresh();
+    const deal = openVehicleDeal(aid); if (deal && c.price != null && pricesOk()) await Store.saveDeal({ ...deal, price: c.price });
+    dealHref = `${href("house", "deal")}?asset=${aid}`;
+  }
+  await Store.savePlanCand({ ...c, status: "won" });
+  await Store.savePlan({ ...plan, status: "won" });
+  await refresh();
+  toast(t("已建好，接着按清单走"));
+  go(dealHref);
+}
+
 /** 买卖计划的按钮；返回 Promise（要刷新）或 undefined（不是我的动作 / 只需重画） */
 export async function planAction(act, el, { render, refresh, go }) {
   const d = el.dataset;
@@ -172,6 +202,11 @@ export async function planAction(act, el, { render, refresh, go }) {
     }
     case "cand-new": state.planEdit = { type: "cand", plan: d.plan, id: "" }; render(); $("#cdName")?.focus(); return;
     case "cand-edit": state.planEdit = { type: "cand", plan: state.planCands.find((c) => c.id === d.id)?.plan_id, id: d.id }; return render();
+    case "cand-win": {
+      if (!armed(el, t("再点一次确认：会新建房产 / 车辆"))) return;
+      const c = state.planCands.find((x) => x.id === d.id); if (!c) return;
+      el.disabled = true; return winCandidate(c, { refresh, go });
+    }
     case "cand-delete": if (!armed(el, t("再点一次确认删除"))) return; await Store.deletePlanCand(d.id); return refresh();
     case "offer-new": state.planEdit = { type: "offer", cand: d.cand, id: "" }; render(); $("#ofAmt")?.focus(); return;
     case "offer-edit": state.planEdit = { type: "offer", cand: state.planOffers.find((o) => o.id === d.id)?.candidate_id, id: d.id }; return render();

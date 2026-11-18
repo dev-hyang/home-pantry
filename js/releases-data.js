@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.31", title: { zh: "买卖计划：选定一个候选，一键建好房产 / 车辆并开始买入清单", en: "Buy / sell plans: pick a candidate and create the property or car with its buying checklist in one tap" }, items: [
+    { k: "new", zh: "候选卡片上的「就买这套 / 就买这辆」：新建房产（交易中 · 买入）或车辆（选购中），带上名称、地址、年款、价格，并开始对应的买入清单", en: "The Buy this one button on a candidate creates the property (Buying) or car (Shopping) with its name, address, year and price, and starts the matching checklist" },
+    { k: "better", zh: "选定后计划和候选自动标成「已买到 / 拿下了」；点按钮要再点一次确认，避免误建", en: "The plan and candidate are then marked Bought / Won; the button asks for a second tap so nothing is created by accident" }
+  ] },
+
   { v: "2026-11-17.30", title: { zh: "买卖计划：记下候选的房子 / 车，打分、并排对比、记录出价，全家共享", en: "Buy / sell plans: keep candidate homes and cars, score and compare them side by side, log offers; shared by the family" }, items: [
     { k: "new", zh: "买房 / 买车指南页有「我的计划」：新建一个计划（预算、备注），里面加候选的房子或车——名称、地址、链接、报价、打分、优缺点、面积 / 年款 / 里程等", en: "The buy guides have My plans: create a plan (budget, notes) and add candidate homes or cars with name, address, link, price, score, pros and cons, size, year, mileage and more" },
     { k: "new", zh: "两个以上候选时，宽屏显示并排对比表（标出最低价）；手机上用卡片，信息一样", en: "With two or more candidates a side-by-side table appears on wide screens (lowest price marked); on phones the cards show the same details" },
