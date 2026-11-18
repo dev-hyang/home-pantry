@@ -31,12 +31,12 @@ import { mountLangSwitcher } from "../shared/lang-switcher.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl, updateMiniBar } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
-import { askConfirm, askRemind, askShopItems } from "./pantry/shop-ask.js";
+
 import { ownerMatch } from "./pantry/owner.js";
-import { pickSpace, pickSupplyAdd } from "./pantry/space-pick.js";
-import { initBankImport } from "./stats/bank-import.js";
+
+
 import { incList, initIncome, viewIncome } from "./income/views.js";
-import { initStatements, viewStatements } from "./stats/statements.js";
+
 import { inc, loadIncome } from "./income/logic.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
@@ -46,7 +46,7 @@ import { LANGS, glossaryOf, joinList, lang, loadEN, loadOpenCC, locale, setGloss
 import { APP_VERSION } from "./core/version.js";
 import { DEFAULT_QUICK, initTodayRender, quickList, saveQuick, setTodayPref, shiftAlertSource, viewAlerts, viewQuick, viewToday } from "./today.js";
 import { enableWeather, setTempUnit } from "./core/weather.js";
-import { copyAnswer, copyGeneralPrompt, pickTopic, runAiPage, viewAi } from "./ai-page.js";
+
 import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
 import { assetAlertItems } from "./house/assets.js";
@@ -58,30 +58,30 @@ import { billAlertItems } from "./bills/logic.js";
 [pantryAlertItems, billAlertItems, budgetAlertItems, escrowAlertItems, dealAlertItems, assetAlertItems, insuranceAlertItems, hoaAlertItems, seasonAlertItems].forEach(registerAlerts);
 import { applyTypeDefaults, hoaAlertItems, houseDraft, insuranceAlertItems, readHouseForm, templateItems, updateHoaTotal, viewHouse, viewHouseProfile, viewHouseSupplies, viewHouseTemplate } from "./house/views.js";
 import { printSheet } from "./settings/print.js";
-import { resetScan, scanAction, viewScan } from "./pantry/scan.js";
+
 import { bindShops, loadShops, shopsAction, viewShops } from "./shops/views.js";
 import { bigThreshold, budgetAction, budgetAlertItems, groupForCategory, maybeAutoGenerate, viewBudget } from "./bills/budget.js";
 import { effNature, l1IdOf, l2IdOf, natureOptions } from "./core/taxonomy.js";
 import "./settings/income.js";
 import { escrowAlertItems } from "./bills/escrow.js";
 import "./bills/finance.js";
-import { viewFinAssets } from "./bills/fin-assets.js";   // 财务 → 资产
+   // 财务 → 资产
 import { loadDebts } from "./bills/debt-logic.js";
 import { loadNetWorth, maybeAutoSnapshot } from "./bills/nw-logic.js";   // 净资产（迁移 059）：余额 / 估值 / 快照，打开财务时自动存本月快照
-import { initDebts, viewDebts } from "./bills/debts.js";
+
 import "./bills/finance-alerts.js";   // 财务层面的提醒（余额太久没更新、快照没存上、借贷流水没关联）
 import { initNetWorth, viewNetWorth } from "./bills/net-worth.js";   // 财务 → 分析 → 净资产（迁移 059）   // 财务 → 借贷   // 借贷（迁移 058）：启动时读进内存，也注册借贷提醒
 import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, maintFilter, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
-import { fixAction, runFix, viewFix } from "./house/fix.js";
+
 import { togglePlanCheck, viewPlan } from "./house/plan.js";
 import { planAction, saveCandForm, saveOfferForm, savePlanForm } from "./house/plan-board.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
-import { saveAssessForm } from "./bills/assessments-views.js";
-import { recalcPayTotal, deleteBillPay, billTemplateItems, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate } from "./bills/views.js";
-import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
+
+
+
 import { shopSelText, shopVisibleIds } from "./pantry/views.js";
 import { catNeed, moveCat, pantryNav, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
 import { viewSettings } from "./settings/views.js";
@@ -89,7 +89,7 @@ import { canManageHome, famMembers, familyHref, meId, profileErr, readMemberForm
 import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
 import * as Backup from "./core/backup.js";
 import * as Ask from "./core/ask.js";
-import { viewAbout } from "./settings/about.js";
+
 import { initReleases, releasePageHTML } from "./core/releases-ui.js";
 import { crumb, viewMenu, viewPropertyList } from "./menu.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
@@ -103,6 +103,63 @@ import { payeeAction, payeeChange, payeeInput } from "./stats/payees.js";
 import { matchOpenShopping, showPurchaseDup } from "./stats/dup-check.js";
 import { initHomeStats } from "./stats/home-stats.js";
 import { isRetired } from "./house/recall.js";
+import { lazyFn, lazyModule } from "./core/lazy.js";
+/* ── 按需加载的页面模块（js/core/lazy.js）：第一次访问那个页面才下载；2a 先挑不被首页依赖的几组 ── */
+const LZ = {};
+LZ.bankImport = lazyModule(() => import("./stats/bank-import.js"));
+LZ.bankImport.onLoad((m) => m.initBankImport({ refresh }));
+LZ.statements = lazyModule(() => Promise.all([LZ.bankImport.load()]).then(() => import("./stats/statements.js")));
+LZ.statements.onLoad((m) => m.initStatements({ render }));
+LZ.debts = lazyModule(() => import("./bills/debts.js"));
+LZ.debts.onLoad((m) => m.initDebts({ render, refresh }));
+LZ.finAssets = lazyModule(() => Promise.all([LZ.debts.load()]).then(() => import("./bills/fin-assets.js")));
+LZ.fix = lazyModule(() => import("./house/fix.js"));
+LZ.scan = lazyModule(() => import("./pantry/scan.js"));
+LZ.itemForm = lazyModule(() => import("./pantry/item-form.js"));
+LZ.spacePick = lazyModule(() => Promise.all([LZ.itemForm.load()]).then(() => import("./pantry/space-pick.js")));
+LZ.shopAsk = lazyModule(() => import("./pantry/shop-ask.js"));
+LZ.assessViews = lazyModule(() => import("./bills/assessments-views.js"));
+LZ.billViews = lazyModule(() => Promise.all([LZ.assessViews.load()]).then(() => import("./bills/views.js")));
+LZ.about = lazyModule(() => import("./settings/about.js"));
+LZ.aiPage = lazyModule(() => import("./ai-page.js"));
+const viewStatements = lazyFn(LZ.statements, "viewStatements");
+const viewDebts = lazyFn(LZ.debts, "viewDebts");
+const viewFinAssets = lazyFn(LZ.finAssets, "viewFinAssets");
+const fixAction = lazyFn(LZ.fix, "fixAction");
+const runFix = lazyFn(LZ.fix, "runFix");
+const viewFix = lazyFn(LZ.fix, "viewFix");
+const resetScan = lazyFn(LZ.scan, "resetScan");
+const scanAction = lazyFn(LZ.scan, "scanAction");
+const viewScan = lazyFn(LZ.scan, "viewScan");
+const leaveItem = lazyFn(LZ.itemForm, "leaveItem");
+const openItem = lazyFn(LZ.itemForm, "openItem");
+const saveItemForm = lazyFn(LZ.itemForm, "saveItemForm");
+const subOptions = lazyFn(LZ.itemForm, "subOptions");
+const viewItemForm = lazyFn(LZ.itemForm, "viewItemForm");
+const pickSpace = lazyFn(LZ.spacePick, "pickSpace");
+const pickSupplyAdd = lazyFn(LZ.spacePick, "pickSupplyAdd");
+const askConfirm = lazyFn(LZ.shopAsk, "askConfirm");
+const askRemind = lazyFn(LZ.shopAsk, "askRemind");
+const askShopItems = lazyFn(LZ.shopAsk, "askShopItems");
+const saveAssessForm = lazyFn(LZ.assessViews, "saveAssessForm");
+const recalcPayTotal = lazyFn(LZ.billViews, "recalcPayTotal");
+const deleteBillPay = lazyFn(LZ.billViews, "deleteBillPay");
+const billTemplateItems = lazyFn(LZ.billViews, "billTemplateItems");
+const leaveBill = lazyFn(LZ.billViews, "leaveBill");
+const backfillPayments = lazyFn(LZ.billViews, "backfillPayments");
+const payExpNote = lazyFn(LZ.billViews, "payExpNote");
+const quickVerify = lazyFn(LZ.billViews, "quickVerify");
+const saveBillForm = lazyFn(LZ.billViews, "saveBillForm");
+const saveBillPayForm = lazyFn(LZ.billViews, "saveBillPayForm");
+const viewBillForm = lazyFn(LZ.billViews, "viewBillForm");
+const viewBillTemplate = lazyFn(LZ.billViews, "viewBillTemplate");
+const viewAbout = lazyFn(LZ.about, "viewAbout");
+const copyAnswer = lazyFn(LZ.aiPage, "copyAnswer");
+const copyGeneralPrompt = lazyFn(LZ.aiPage, "copyGeneralPrompt");
+const pickTopic = lazyFn(LZ.aiPage, "pickTopic");
+const runAiPage = lazyFn(LZ.aiPage, "runAiPage");
+const viewAi = lazyFn(LZ.aiPage, "viewAi");
+
 
 const APP_NAME = "爱家小助手";
 
@@ -416,10 +473,21 @@ function markDirty(f, on) {
   f.classList.toggle("is-dirty", on);
   const note = f.querySelector(".dirty-note"); if (note) note.hidden = !on;
 }
+/** 页面函数返回 Promise = 这个页面的代码还没下载（js/core/lazy.js）：先放 面包屑 + 「加载中…」，下载完（还停在这个页面）再重画。返回 true = 已经画好 */
+function mountView(pre, out) {
+  if (!out || typeof out.then !== "function") { $("#main").innerHTML = pre + out; return true; }
+  const key = location.hash;
+  $("#main").innerHTML = pre + `<div class="panel empty" role="status">${t("加载中…")}</div>`;
+  out.then(() => { if (location.hash === key && state.enriched) render(true); }, (e) => {
+    if (location.hash !== key) return;
+    $("#main").innerHTML = pre + `<div class="panel empty" role="alert"><strong>${t("页面加载失败")}</strong><p>${t("网络不太稳定，没能下载这个页面。检查网络后点「重试」。")}</p><p><button type="button" class="btn btn-primary" data-action="reload-page">${t("重试")}</button></p></div>`;
+  });
+  return false;
+}
 function renderBody(r) {
-  if (r.section === "item") { $("#main").innerHTML = viewItemForm(); return; }
+  if (r.section === "item") { mountView("", viewItemForm()); return; }
   if (r.section === "asset") { $("#main").innerHTML = viewAssetForm(); return; }
-  if (r.section === "bill") { $("#main").innerHTML = viewBillForm(); return; }
+  if (r.section === "bill") { mountView("", viewBillForm()); return; }
   if (r.section === "otbill") { $("#main").innerHTML = viewOtBill(); return; }
   if (r.section === "house" && !state.houseEnabled) { $("#main").innerHTML = offPanel(t("房屋维护模块已关闭"), "house-enable", t("打开房屋维护")); return; }
   if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("财务模块已关闭"), "bills-enable", t("打开财务")); return; }
@@ -429,7 +497,7 @@ function renderBody(r) {
   if (r.sub === "menu") { $("#main").innerHTML = r.section === "house" ? viewPropertyList() : viewMenu(r.section); return; }   // 页签目录页；房屋先列房产
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
-  $("#main").innerHTML = crumb(r) + (r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : "") + view();   // 储藏的每个页面顶上都有页面导航卡片
+  if (!mountView(crumb(r) + (r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : ""), view())) return;   // 储藏的每个页面顶上都有页面导航卡片
   if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"))) renderInvList();
   const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : r.section === "pantry" && r.sub === "gear" ? $("#invSec-gear") : null;   // 从概览「汽车房屋消耗品」或旧的家居耐用品链接进来：展开并滚到那一块
   if (hs && !state.scrolledHouse) { hs.open = true; state.scrolledHouse = true; requestAnimationFrame(() => hs.scrollIntoView({ block: "start" })); }
@@ -632,11 +700,8 @@ function friendlyErr(msg) {
   for (const [re, file, what] of MIGRATION_HINTS) if (re.test(m)) return t("还没执行数据库迁移 {file}（{what}）：先在 Supabase → SQL Editor 里执行 supabase/migrations/{file}，再试一次。", { file, what });
   return m;
 }
-initBankImport({ refresh });
 initIncome({ render, refresh });
-initDebts({ render, refresh });
 initNetWorth({ render });
-initStatements({ render });
 initHomeStats(render);
 initTodayRender(() => render());   // 今日天气取回来后重画
 initPrivacy({ toast }); setPrivacyRoute(() => state.route);   // 金额遮挡：外出 / 在家两种模式；表格 / 图表局部重画时按当前页面再标   // 我的 → 家里的数字：近一年日志读完后重画
@@ -1598,6 +1663,7 @@ main.addEventListener("click", async (e) => {
       case "csv-summary": return exportAnnual("summary");
       case "csv-detail": return exportAnnual("detail");
       case "reload": return refresh();
+      case "reload-page": return location.reload();   // 页面代码没下载下来（断网）：重试
       case "reset-demo": if (armed(el, t("再点一次确认恢复"))) { DemoStore.reset(); toast(t("已恢复演示数据")); refresh(); } return;
       case "logout": await CloudStore.sb.auth.signOut(); localStorage.removeItem("hmh-hid"); return location.reload();
       case "login-mode": state.loginMode = el.dataset.mode; state.phonePending = null; return renderLogin();

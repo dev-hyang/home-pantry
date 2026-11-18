@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.33", title: { zh: "首次打开更快：有些页面点进去才下载", en: "Faster first open: some pages now download only when you open them" }, items: [
+    { k: "better", zh: "录入购物、对账单、借贷、财务资产、出了问题、物品表单、咩咩咩、介绍这些页面，第一次点进去才下载，打开应用时不再带上", en: "Receipt entry, statements, debts, financial assets, Fix, the item form, Ask AI and About now download only the first time you open them, not at launch" },
+    { k: "better", zh: "网络不好时，页面没下载下来会提示并给一个「重试」按钮", en: "If a page can't be downloaded on a weak connection, you now see a message with a Retry button" }
+  ] },
+
   { v: "2026-11-18.32", title: { zh: "首次打开更快：不再提前下载用不到的东西", en: "Faster first open: no more downloading things you don't use" }, items: [
     { k: "better", zh: "第一次打开时，英文界面的词库只有选了 English 才会下载，中文用户少下载约一半的数据", en: "The English word list is now downloaded only when the app is set to English, so Chinese users skip a large chunk of data on first open" },
     { k: "better", zh: "发布日志的内容改成点开发布日志页或有新版本提示时才加载，不再每次打开都带上", en: "Release notes now load only when you open the Release notes page or a new-version banner is due, not on every launch" }

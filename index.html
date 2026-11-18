@@ -13,7 +13,6 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="styles.css">
   <!-- 模块依赖是一层套一层的，浏览器逐层发现会串行等待；这里一次性预取，首屏少好几轮往返 -->
-  <link rel="modulepreload" href="js/ai-page.js">
   <link rel="modulepreload" href="js/bills/budget.js">
   <link rel="modulepreload" href="js/bills/escrow.js">
   <link rel="modulepreload" href="js/bills/finance.js">
@@ -40,10 +39,7 @@
   <link rel="modulepreload" href="js/main.js">
   <link rel="modulepreload" href="js/menu.js">
   <link rel="modulepreload" href="js/pantry/ai.js">
-  <link rel="modulepreload" href="js/pantry/item-form.js">
-  <link rel="modulepreload" href="js/pantry/scan.js">
   <link rel="modulepreload" href="js/pantry/views.js">
-  <link rel="modulepreload" href="js/settings/about.js">
   <link rel="modulepreload" href="js/settings/print.js">
   <link rel="modulepreload" href="js/settings/income.js">
   <link rel="modulepreload" href="js/settings/views.js">
@@ -121,7 +117,7 @@
         "js/bills/wizard.js", "js/core/ai.js", "js/core/alerts.js", "js/core/amortization.js", "js/core/ask.js", "js/core/attach.js",
         "js/core/autofill.js", "js/core/autosize.js", "js/core/backup.js", "js/core/budget-bridge.js", "js/core/carousel.js", "js/core/categories.js",
         "js/core/category-moves.js", "js/core/clear-filters.js", "js/core/cloud-drives.js", "js/core/config-check.js", "js/core/debt-rules.js", "js/core/finance-access.js",
-        "js/core/finance-rules.js", "js/core/hub.js", "js/core/i18n.js", "js/core/income-taxonomy.js", "js/core/item-match.js", "js/core/lifecycle.js",
+        "js/core/finance-rules.js", "js/core/hub.js", "js/core/i18n.js", "js/core/income-taxonomy.js", "js/core/item-match.js", "js/core/lazy.js", "js/core/lifecycle.js",
         "js/core/list-query.js", "js/core/locations.js", "js/core/logic.js", "js/core/more-menu.js", "js/core/name-check.js", "js/core/net.js",
         "js/core/pager.js", "js/core/payee-alias.js", "js/core/privacy.js", "js/core/releases-ui.js", "js/core/router.js", "js/core/server-list.js",
         "js/core/spend-data.js", "js/core/state.js", "js/core/store.js", "js/core/sub-guess.js", "js/core/tabs.js", "js/core/taxonomy.js",

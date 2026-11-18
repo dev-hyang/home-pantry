@@ -2860,6 +2860,8 @@ export const EN = {
   "还没执行迁移 {n}（用量查询），先在 Supabase 里执行 supabase/migrations/{n}": "Migration {n} (usage query) hasn't been run; run supabase/migrations/{n} in Supabase first",
   "查询失败：{msg}": "Couldn't load usage: {msg}",
   "重试": "Retry",
+  "页面加载失败": "Couldn't load this page",
+  "网络不太稳定，没能下载这个页面。检查网络后点「重试」。": "The connection seems unstable and this page couldn't be downloaded. Check it and tap Retry.",
   "正在查看用量…": "Checking usage…",
   "其中：": "Of which: ",
   "数据库": "Database",
