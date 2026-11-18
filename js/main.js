@@ -21,7 +21,7 @@ import { applyOverviewQuery, applyOverviewRoute, loadOverviewRange, setOverviewR
 import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, verifyBillIds, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { viewOtBill, applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm } from "./bills/medical-views.js";
-import { deviceLinkDo, deviceLinkNew, removePerson, resetFamilyUi, savePersonForm, setDevicePerson } from "./settings/family-people.js";
+import { myPersonOf, personNameOf, deviceLinkDo, deviceLinkNew, removePerson, resetFamilyUi, savePersonForm, setDevicePerson } from "./settings/family-people.js";
 import { ackLoginDo, loadLoginAlerts, loginAlertItems, loginsMore, recordLoginOnce } from "./settings/logins.js";
 import { spendChanged } from "./core/spend-data.js";
 import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-check.js";
@@ -1456,7 +1456,7 @@ main.addEventListener("click", async (e) => {
         go(href("shopping"), { replace: true }); return refresh();
       }
       case "shop-import-cancel": go(href("shopping"), { replace: true }); return render(true);
-      case "shop-claim": await Store.saveShopping({ id, status: "claimed", claimed_by: state.user?.id || null, claimed_by_name: state.displayName }); toast(t("已认领，家人会看到你在买")); return refresh();
+      case "shop-claim": await Store.saveShopping({ id, status: "claimed", claimed_by: state.user?.id || null, claimed_by_name: personNameOf(myPersonOf()) || state.displayName }); toast(t("已认领，家人会看到你在买")); return refresh();
       case "shop-unclaim": await Store.saveShopping({ id, status: "todo", claimed_by: null, claimed_by_name: null }); return refresh();
       case "shop-bought": {   // 右滑「已买到」先确认（替身按钮带 data-confirm）；直接点「已买到」按钮不弹框
         if (el.dataset.confirm) { const s = state.shopping.find((x) => x.id === id); if (!window.confirm(t("「{name}」已经买到了？", { name: s?.name || "" }))) return; }
@@ -1783,7 +1783,7 @@ export async function markBought(id) {
   if (store) rememberStore(store);
   const item = state.items.find((i) => i.id === s.item_id);
   const qty = num(s.quantity, 1), now = new Date().toISOString();
-  await Store.saveShopping({ id, status: "bought", bought_at: now, amount, claimed_by_name: s.claimed_by_name || state.displayName });
+  await Store.saveShopping({ id, status: "bought", bought_at: now, amount, claimed_by_name: s.claimed_by_name || personNameOf(myPersonOf()) || state.displayName });
   const paySel = document.querySelector(`[data-card-for="${CSS.escape(id)}"]`), payV = paySel?.value || ""; if (paySel) rememberCard(payV);
   await Store.addPurchase({
     item_id: item?.id || null, name: s.name, category: item?.category || s.category || "other",

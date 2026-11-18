@@ -8,7 +8,7 @@ import { daysUntil, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { registerAlerts } from "../core/alerts.js";
-import { memberName } from "../core/logic.js";
+import { personNameOf } from "../settings/family-people.js";
 import { TZ, cached } from "../core/spend-data.js";
 
 const D = () => window.CARDS;
@@ -39,7 +39,7 @@ export const giftBalance = (c) => (c?.kind === "gift" && c.balance != null ? r2(
 export const CARDS_HREF = () => href("bills", "cards");
 export const cardHref = (id) => `${CARDS_HREF()}?card=${id || "new"}`;
 const r2 = (v) => Math.round(v * 100) / 100;
-export const holderName = (c) => (c.holder_user_id ? memberName(c.holder_user_id) || t("家人") : t("共用"));
+export const holderName = (c) => (c.holder_person_id ? personNameOf(c.holder_person_id) || t("家人") : t("共用"));   // 持卡人是家庭成员（人），不是设备
 export const networkName = (n) => D().NETWORKS[n] || n || "";
 export const rewardCatName = (id) => { const x = D().REWARD_CATS.find((r) => r[0] === id); return x ? t(x[1]) : id; };
 export const rewardCatIcon = (id) => (D().REWARD_CATS.find((r) => r[0] === id) || [])[2] || "";

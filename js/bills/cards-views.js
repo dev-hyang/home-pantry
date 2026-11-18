@@ -1,4 +1,5 @@
 /* 信用卡（用卡）界面：「现在该刷哪张」快速查询、卡列表、卡表单；购物车 / 补记花费旁的一行建议。逻辑在 cards.js。 */
+import { adultPeople } from "../settings/family-people.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { dupOnce, normName } from "../core/item-match.js";
 import { state } from "../core/state.js";
@@ -331,7 +332,6 @@ function cardForm(id, ro = false) {
   const linkedBill = v.bill_id ? state.bills.find((x) => x.id === v.bill_id) : null;
   const rw = v.rewards || {}, q = quarterOf(), rot = (rw.rotating || []).find((x) => x.from === q.from) || { from: q.from, to: q.to, cats: [], rate: 5, activated: false };
   const bills = state.billsEnriched.filter((b) => b.category === "credit_card");
-  const members = state.members || [];
   const opt = (val, label, on) => `<option value="${esc(val)}" ${on ? "selected" : ""}>${esc(label)}</option>`;
   const aiBtn = `<div class="span-2" ${only("credit")}><button type="button" class="btn btn-sm btn-ghost" data-action="card-ai">✨ ${t("用 AI 按卡名起草返现规则")}</button> <small class="muted">${t("只把卡的名字发给你设置的模型；按模型记忆起草，可能过时，逐项核对后再保存。")}</small></div>`;
   const catalogSel = isNew ? `<label class="span-2" ${only("credit")}>${t("从内置目录选（可选）")}<select name="catalog"><option value="">${t("— 不用目录，手填 —")}</option>${D().CATALOG.map((k) => opt(k.id, `${t(k.name)}${k.issuer ? ` · ${k.issuer}` : ""}`, v.catalog_id === k.id)).join("")}</select><small>${t("选了会把返现规则、年费、网络填好；末四位、到期、持卡人还要你填。目录更新于 {d}。", { d: D().AS_OF })}</small></label>` : "";
@@ -355,7 +355,7 @@ function cardForm(id, ro = false) {
         <label ${only("credit debit")}>${t("网络")}<select name="network">${Object.entries(D().NETWORKS).map(([k, n]) => opt(k, t(n), (v.network || "visa") === k)).join("")}</select><small>${t("Costco 这类只收某个网络的商家，推荐时会用到")}</small></label>
         <label>${t("末四位")}<input name="last4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" value="${d(v.last4)}" placeholder="1234"><small>${t("只记后 4 位，银行导入时靠它认账户")}</small></label>
         <label ${only("gift")}>${t("面值 / 充值总额（{cur}）", { cur: cur() })}<input name="balance" type="number" min="0" step="0.01" inputmode="decimal" value="${NUMF(v.balance)}"><small>${t("余额 = 它减去记在这张卡上的花费；用完了把「在用」取消")}</small></label>
-        <label>${t("持卡人 / 户主")}<select name="holder_user_id">${opt("", t("共用"), !v.holder_user_id)}${members.map((m) => opt(m.user_id, m.display_name || t("家人"), v.holder_user_id === m.user_id)).join("")}</select></label>
+        <label>${t("持卡人 / 户主")}<select name="holder_person_id">${opt("", t("共用"), !v.holder_person_id)}${adultPeople().map((p) => opt(p.id, p.name, v.holder_person_id === p.id)).join("")}</select></label>
         <label ${only("credit debit gift")}><span ${only("gift")}>${t("有效期至（可选）")}</span><span ${only("credit debit")}>${t("到期年月")}</span><input name="expires_on" type="month" value="${d((v.expires_on || "").slice(0, 7))}"></label>
         <label>${t("开卡 / 开户日期")}<input name="opened_on" type="date" max="${todayISO()}" value="${d(v.opened_on)}"></label>
         <label ${only("credit")}>${t("年费（{cur}）", { cur: cur() })}<input name="annual_fee" type="number" min="0" step="0.01" inputmode="decimal" value="${NUMF(v.annual_fee)}"></label>
@@ -435,7 +435,7 @@ export async function saveCardForm(f) {
   const credits = fe.credits.value.split(/\r?\n/).map((l) => l.split("|").map((x) => x.trim())).filter((p) => p[0] && p[1]).map((p) => ({ name: p[0].slice(0, 40), amount: num(p[1]), period: ["year", "quarter", "month"].includes(p[2]) ? p[2] : "year", resets_on: /^\d{4}-\d{2}-\d{2}$/.test(p[3] || "") ? p[3] : null, used: num(p[4], 0) }));
   let bill_id = fe.bill_id.value || null;
   const payFrom = fe.pay_from?.value || null;   // 信用卡从哪个账户还款：写到关联的还款账单上
-  const card = { id: old?.id, name, issuer: fe.issuer.value.trim() || null, network: fe.network.value, kind: fe.kind.value, last4: /^\d{4}$/.test(fe.last4.value.trim()) ? fe.last4.value.trim() : null, holder_user_id: fe.holder_user_id.value || null,
+  const card = { id: old?.id, name, issuer: fe.issuer.value.trim() || null, network: fe.network.value, kind: fe.kind.value, last4: /^\d{4}$/.test(fe.last4.value.trim()) ? fe.last4.value.trim() : null, holder_person_id: fe.holder_person_id.value || null,
     expires_on: fe.expires_on.value ? `${fe.expires_on.value}-01` : null, opened_on: fe.opened_on.value || null, annual_fee: n("annual_fee") ?? 0, balance: fe.kind.value === "gift" ? n("balance") : null, fee_month: n("fee_month"), credit_limit: n("credit_limit"), statement_day: n("statement_day"), due_day: n("due_day"), autopay: fe.autopay.checked,
     bill_id: bill_id === "__new" ? null : bill_id, catalog_id: fe.catalog_id.value || null, rewards, bonus, credits, rules_as_of: fe.rules_as_of.value || (old?.rules_as_of ?? todayISO()), active: fe.active.checked, notes: fe.notes.value.trim() || null,
     inactive_since: fe.active.checked ? null : (old?.active === false ? old.inactive_since || null : todayISO()) };   // 刚取消「在用」：记今天为停用日期

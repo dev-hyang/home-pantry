@@ -14,7 +14,7 @@ export const hasAssetColumn = (list) => Store.mode === "demo" || !list.length ||
 export function assetSelectHtml(selected, list) {
   const choices = assetChoices(state.assets, selected);
   if (!hasAssetColumn(list) || !choices.length) return "";
-  return `<label>${t("关联资产（车辆 / 设备）")}<select name="asset_id"><option value="">${t("不关联")}</option>${choices.map((a) => `<option value="${a.id}" ${a.id === selected ? "selected" : ""}>${ICON[a.kind] || ""} ${esc(a.name)}</option>`).join("")}</select>
+  return `<label>${t("关联资产（车辆 / 设备）")}<select name="asset_id" data-ss="1"><option value="">${t("不关联")}</option>${choices.map((a) => `<option value="${a.id}" ${a.id === selected ? "selected" : ""}>${ICON[a.kind] || ""} ${esc(a.name)}</option>`).join("")}</select>
     <small>${t("车险、车贷、保养、维修等账单挂在对应的车或设备上，账单里就能按资产筛选。")}</small></label>`;
 }
 

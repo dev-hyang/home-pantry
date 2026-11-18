@@ -4,6 +4,7 @@
 import { esc } from "./util.js";
 import { t } from "./i18n.js";
 
+const links = new WeakMap();   // 搜索框 → 它对应的 <select>（有的页面会把 select 挪到别处，不能靠相邻位置找）
 const label = (sel) => sel.selectedOptions[0]?.textContent.trim() || "";
 function panelHtml(sel) {
   const row = (o) => `<button type="button" class="pick-row ss-row" role="option" data-v="${esc(o.value)}" aria-selected="${o.selected}">${esc(o.textContent.trim())}</button>`;
@@ -22,13 +23,13 @@ export function enhanceSelects(root = document) {
     box.className = "pick ss";
     box.innerHTML = `<summary aria-label="${esc(sel.getAttribute("aria-label") || "")}"><span class="pick-val">${esc(label(sel))}</span></summary>
       <div class="pick-panel" role="listbox"><input type="search" class="pick-q" placeholder="${esc(t("搜索"))}" aria-label="${esc(t("搜索"))}" autocomplete="off"><div class="ss-list">${panelHtml(sel)}</div></div>`;
-    sel.hidden = true; sel.after(box);
+    links.set(box, sel); sel.hidden = true; sel.after(box);
   });
 }
 document.addEventListener("click", (e) => {
   const row = e.target.closest(".ss .ss-row");
   if (row) {
-    const box = row.closest(".ss"), sel = box.previousElementSibling;
+    const box = row.closest(".ss"), sel = links.get(box);
     if (sel?.tagName === "SELECT") { sel.value = row.dataset.v; box.open = false; sel.dispatchEvent(new Event("change", { bubbles: true })); box.querySelector(".pick-val").textContent = label(sel); box.querySelectorAll(".ss-row").forEach((r) => r.setAttribute("aria-selected", String(r === row))); }
     return;
   }

@@ -80,7 +80,8 @@ export function pantryAlertItems() {
   }
   return items;
 }
-export const memberName = (userId) => state.members.find((m) => m.user_id === userId)?.display_name;
+/** 一台设备（登录的人）显示成谁：链接了家庭成员就用家庭成员的名字，没链接用设备自己的称呼 */
+export const memberName = (userId) => { const m = state.members.find((x) => x.user_id === userId); return (m?.person_id && state.people?.find((p) => p.id === m.person_id)?.name) || m?.display_name; };
 export const openShopFor = (itemId) => state.shopping.find((s) => s.item_id === itemId && s.status !== "bought");
 // 菜单推荐只看日常消耗品（食材）里的东西；关键词中英文都有，英文不区分大小写
 export const nameHas = (name, kw) => { const n = String(name).toLowerCase(); return kw.some((k) => n.includes(k.toLowerCase())); };

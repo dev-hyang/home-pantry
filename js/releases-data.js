@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.15", title: { zh: "信用卡持卡人和「谁在买」改成显示家庭成员；更多长下拉可以搜索", en: "Card holders and Who is buying now show family members; more long lists are searchable" }, items: [
+    { k: "better", zh: "信用卡的「持卡人 / 户主」关联家庭成员，不再是登录设备；购物车「我来买」、「最后修改」这些地方显示的名字，链接了家庭成员的设备就显示家庭成员的名字", en: "A credit card's holder is now a family member, not a login device; names shown for Who is buying and Last edited use the family member when the device is linked" },
+    { k: "new", zh: "账单表单里的房产和关联资产下拉也可以输入文字搜索", en: "The property and linked-asset lists in the bill form are searchable too" }
+  ] },
+
   { v: "2026-11-18.14", title: { zh: "登录设备行加 ⋯ 菜单：重命名、关联、登出", en: "Login device rows get a ⋯ menu: Rename, Link, Sign out" }, items: [
     { k: "new", zh: "每台登录设备右边有 ⋯：重命名（直接在名字上改，回车保存，点别处取消）、关联（底部弹出「属于哪位家庭成员」，点一位就自动保存，底部取消按钮占整行）、登出（自己这台 = 退出登录；别的设备 = 从家庭里移出，下次要重新登录）", en: "Each login device has a ⋯ menu: Rename (edit the name in place, Enter saves, tapping elsewhere cancels), Link (a bottom sheet for which family member; tapping one saves it, with a full-width Cancel) and Sign out (this device = sign out; another device = removed from the household and must sign in again)" },
     { k: "better", zh: "设备行不再有常驻的「移除」按钮和选择框，更清爽", en: "Device rows no longer carry a standing Remove button and selector" }
