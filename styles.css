@@ -4026,3 +4026,20 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .bh-total { font-size: 20px; font-weight: 700; }
 .bh-total span { font-size: 13px; font-weight: 500; color: var(--muted); }
 .bh-formula { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; overflow-wrap: anywhere; }
+
+/* 特别摊派：付款计划一期一行（日期 / 金额 / 类型 / 删除），手机上折成两行；缴费表单里的勾选区 */
+.as-h { margin: 16px 0 6px; font-size: 15px; }
+.as-gen { margin: 0 0 10px; } .as-gen > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; color: var(--pine); }
+.as-gen-go { display: flex; align-items: end; } .as-gen-go .btn { min-height: 44px; }
+.as-gen2 { display: grid; grid-template-columns: minmax(0, 1fr) 6.5em; gap: 8px; }
+.as-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.as-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.as-row [name="as_kind"] { grid-column: 1 / 3; }
+.as-row .btn, .as-row .badge { justify-self: end; min-height: 44px; display: inline-flex; align-items: center; }
+@media (min-width: 760px) { .as-row { grid-template-columns: 11em 9em 1fr auto; } .as-row [name="as_kind"] { grid-column: auto; } }
+.as-row input, .as-row select { box-sizing: border-box; min-height: 44px; min-width: 0; width: 100%; }
+.as-total { margin: 8px 0; font-size: 13px; }
+.as-card .as-items li { padding: 8px 0; }
+.as-pick { border: 1px solid var(--line-soft); border-radius: var(--r-md); padding: 8px 12px 10px; margin: 0; min-width: 0; }
+.as-pick legend { font-size: 13px; font-weight: 600; padding: 0 4px; }
+.as-pick .check-inline { min-height: 44px; display: flex; align-items: center; gap: 10px; }

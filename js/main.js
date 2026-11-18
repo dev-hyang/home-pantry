@@ -74,6 +74,7 @@ import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggl
 import { enrichBills } from "./bills/logic.js";
 import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
+import { saveAssessForm } from "./bills/assessments-views.js";
 import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewRecurring } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { shopSelText, shopVisibleIds } from "./pantry/views.js";
@@ -123,7 +124,7 @@ export async function refresh() {
       // 所有表一次并行读完（云端一轮往返），再在内存里定当前房产；采购花费只有统计和导出用，不挡首屏，渲染后后台再读
       const members = state.membersReady; state.membersReady = null;   // 登录后与这一轮并行去读家庭成员
       Store.listItemAliases().then((r) => { state.itemAliases = r || []; }).catch(() => { state.itemAliases = state.itemAliases || []; });   // 物品别名（迁移 066）：不挡首屏
-      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes, people, medBills, medPays, , cards, planData] = await Promise.all([
+      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes, people, medBills, medPays, , cards, planData, assessData] = await Promise.all([
         Store.listProperties(), Store.listItems(),
         soft("logs", Store.listLogs(), state.logs || [], (r) => { state.logs = r; state.enriched = enrich(state.items, r); }),
         Store.listShopping(), Store.listHouseProfiles(),
@@ -142,9 +143,11 @@ export async function refresh() {
         Store.listMedicalPayments().catch(() => []),
         members,
         Store.listCards().catch((e) => { console.warn("[cards]", e.message); return []; }),
-        Store.listPlans().catch((e) => { console.warn("[plans]", e.message); return { plans: [], cands: [], offers: [] }; })]);   // 迁移 078 没执行时读不到：计划页显示空   // 迁移 032 没执行时读不到：不影响其他功能
+        Store.listPlans().catch((e) => { console.warn("[plans]", e.message); return { plans: [], cands: [], offers: [] }; }),
+        Store.listAssess().catch(() => ({ as: [], items: [] }))]);   // 迁移 078 没执行时读不到：计划页显示空   // 迁移 032 没执行时读不到：不影响其他功能
       state.budget = budget; state.incomes = incomes;
       state.plans = planData.plans; state.planCands = planData.cands; state.planOffers = planData.offers;
+      state.assess = assessData.as; state.assessItems = assessData.items;
       state.customSeasonal = customSeasonal;
       if (terms) setGlossary(terms);   // 自定义名称的翻译
       state.properties = properties;
@@ -196,6 +199,7 @@ function resetListPages() {
 }
 /* ── 实时同步按表重读：家人改了哪张表，就只重读那张表（和由它推出来的 enrich），不再整轮读 24 张表。
  * 下面没列的表（房产、房屋资料、自定义分类 / 位置 / 翻译——会影响当前房产和全局分类表）照旧整轮 refresh。 */
+const reloadAssess = () => Store.listAssess().then((x) => { state.assess = x.as; state.assessItems = x.items; });
 const reloadPlans = () => Store.listPlans().then((x) => { state.plans = x.plans; state.planCands = x.cands; state.planOffers = x.offers; });
 const reloadDealExtras = () => Store.listDealExtras().then((x) => { state.dealOverrides = x.overrides; state.dealCustom = x.custom; state.dealEvents = x.events || []; });
 const TABLE_RELOAD = {
@@ -215,6 +219,7 @@ const TABLE_RELOAD = {
   account_balances: () => loadNetWorth(), asset_valuations: () => loadNetWorth(), net_worth_snapshots: () => loadNetWorth(),
   property_deals: () => Store.listDeals().then((r) => { state.deals = r; }),
   deal_task_done: () => Store.listDealDone().then((r) => { state.dealDone = r; }),
+  bills_recurring_assessments: reloadAssess, bills_recurring_assessment_items: reloadAssess,
   deal_plans: reloadPlans, plan_candidates: reloadPlans, plan_offers: reloadPlans,
   deal_task_overrides: reloadDealExtras, deal_custom_tasks: reloadDealExtras, deal_events: reloadDealExtras,
 };
@@ -944,6 +949,10 @@ main.addEventListener("submit", async (e) => {
       await refresh();
       return go(`${href("bill", billId)}?sec=pay`, { replace: true });   // 记完 / 改完都回到全部缴费记录
     }
+    if (f.id === "assessForm") {
+      const billId = f.dataset.bill; if (!(await saveAssessForm(f))) return;
+      await refresh(); return go(`${href("bill", billId)}?sec=assess`, { replace: true });
+    }
     if (f.id === "billTemplateForm") {
       const idx = [...f.querySelectorAll('input[name="tpl"]:checked')].map((x) => +x.value);
       if (!idx.length) return toast(t("还没有勾选账单"));
@@ -1184,6 +1193,11 @@ main.addEventListener("click", async (e) => {
       case "alerts-prev": shiftAlertSource(-1); return render();
       case "alerts-next": shiftAlertSource(1); return render();
       case "bill-cancel": return leaveBill(false);
+      case "assess-cancel": return go(`${href("bill", state.route.id)}?sec=assess`, { replace: true });
+      case "assess-del": {
+        if (!confirmDelete(t("删除这笔摊派和它的付款计划？已缴的缴费记录保留。"))) return;
+        await Store.deleteAssess(id); toast(t("已删除")); await refresh(); return go(`${href("bill", state.route.id)}?sec=assess`, { replace: true });
+      }
       case "billpay-cancel": return go(`${href("bill", state.route.id)}?sec=pay`, { replace: true });   // 缴费表单取消：回全部缴费记录
       case "bill-delete":
         if (!confirmDelete(t("删除这个账单和它的缴费记录？"))) return;

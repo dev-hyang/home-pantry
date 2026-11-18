@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.5", title: { zh: "账单新增「特别摊派」：分期、一次性结清、或前几期分期最后一次结清，每笔都有迹可寻", en: "Bills now track special assessments: installments, a one-time payoff, or installments then a final payoff, fully traceable" }, items: [
+    { k: "new", zh: "账单详情页菜单里的「特别摊派」：新建一笔摊派，付款计划一期一行（日期、金额、分期或一次性结清），可以「快速生成分期」，也可以最后加一笔一次性结清", en: "Special assessment in the bill menu: create one with a payment schedule, one row per payment (date, amount, installment or payoff); generate installments quickly and add a final payoff" },
+    { k: "new", zh: "记缴费时会列出还没交的摊派期，本期到期的默认勾上；勾上的金额记在这笔缴费里，回头能查每一期是哪次交的", en: "Logging a payment lists unpaid assessment rows, with the ones due this period ticked; ticked amounts are saved on that payment so every row shows which payment settled it" },
+    { k: "better", zh: "顶部卡片的「费用总额」把本期的摊派（分期、一次性分开写）加进算式；缴费记录、花费统计也包含它", en: "The total on the top card adds this period's assessment (installment and payoff shown separately); payment history and spending include it too" }
+  ] },
+
   { v: "2026-11-18.4", title: { zh: "账单可以记手续费和税：每次缴费填实际值，账单上填估算值", en: "Bills can record service fees and tax: actual values per payment, an estimate on the bill" }, items: [
     { k: "new", zh: "记缴费时多了「手续费」和「税」两栏（和滞纳金分开），每次可以不一样；编辑缴费记录也能改", en: "Logging a payment now has Service fee and Tax fields (separate from late fees), different each time and editable afterwards" },
     { k: "new", zh: "账单里可以填「通常手续费」「通常税」的估算值：没缴之前用它们估费用总额，记缴费时当默认值", en: "A bill can hold a typical fee and typical tax estimate: used for the total before paying and as the default when logging a payment" },

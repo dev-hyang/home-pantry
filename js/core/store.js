@@ -28,7 +28,7 @@ export const DemoStore = {
       db.properties = [{ id: uid(), name: t("我的家"), kind: "other", role: "owner_occupied", status: "owned", address: null, is_default: true, archived: false, notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
     }
     for (const p of db.properties) p.status ||= (p.role === "tenant" ? "renting" : "owned");
-    db.deals ||= []; db.deal_done ||= []; db.deal_overrides ||= []; db.deal_custom ||= []; db.deal_events ||= []; db.deal_plans ||= []; db.plan_candidates ||= []; db.plan_offers ||= []; db.categories ||= []; db.custom_seasonal ||= [];
+    db.deals ||= []; db.deal_done ||= []; db.deal_overrides ||= []; db.deal_custom ||= []; db.deal_events ||= []; db.deal_plans ||= []; db.plan_candidates ||= []; db.plan_offers ||= []; db.bills_recurring_assessments ||= []; db.bills_recurring_assessment_items ||= []; db.categories ||= []; db.custom_seasonal ||= [];
     const def = db.properties.find((p) => p.is_default) || db.properties[0];
     db.house_profiles ||= {};
     if (db.house_profile) { db.house_profiles[def.id] ||= db.house_profile; delete db.house_profile; }
@@ -270,6 +270,13 @@ export const DemoStore = {
     else this.db.deal_events.push({ ...e, id: uid(), created_at: now, updated_at: now });
     this.persist();
   },
+  /* 特别摊派（迁移 080）：摊派 → 付款计划（一期一行）；删账单 / 摊派连带删下一级，删缴费记录只是把对应期放回「没缴」 */
+  async listAssess() { const c = (k) => (this.db[k] || []).map((x) => ({ ...x })); return { as: c("bills_recurring_assessments"), items: c("bills_recurring_assessment_items") }; },
+  saveAssess(a) { return this.savePlanRow("bills_recurring_assessments", ASSESS_FIELDS, a); },
+  saveAssessItem(i) { return this.savePlanRow("bills_recurring_assessment_items", ASSESS_ITEM_FIELDS, i); },
+  async deleteAssess(id) { this.db.bills_recurring_assessment_items = (this.db.bills_recurring_assessment_items || []).filter((x) => x.assessment_id !== id); this.db.bills_recurring_assessments = (this.db.bills_recurring_assessments || []).filter((x) => x.id !== id); this.persist(); },
+  async deleteAssessItem(id) { this.db.bills_recurring_assessment_items = (this.db.bills_recurring_assessment_items || []).filter((x) => x.id !== id); this.persist(); },
+  async setItemsPayment(ids, paymentId) { for (const x of this.db.bills_recurring_assessment_items || []) if (ids.includes(x.id)) x.payment_id = paymentId; this.persist(); },
   /* 买卖计划（迁移 078）：计划 → 候选 → 出价记录；删上一级时连带删下一级 */
   async listPlans() { const c = (k) => (this.db[k] || []).map((x) => ({ ...x })); return { plans: c("deal_plans"), cands: c("plan_candidates"), offers: c("plan_offers") }; },
   async savePlanRow(table, fields, r) {
@@ -446,6 +453,9 @@ export const DemoStore = {
   async deleteBill(id) {
     this.db.bills_recurring = this.db.bills_recurring.filter((x) => x.id !== id);
     this.db.bills_recurring_payments = this.db.bills_recurring_payments.filter((p) => p.bill_id !== id);
+    const gone = new Set((this.db.bills_recurring_assessments || []).filter((a) => a.bill_id === id).map((a) => a.id));
+    this.db.bills_recurring_assessments = (this.db.bills_recurring_assessments || []).filter((a) => a.bill_id !== id);
+    this.db.bills_recurring_assessment_items = (this.db.bills_recurring_assessment_items || []).filter((x) => !gone.has(x.assessment_id));
     this.persist();
   },
   async listBillPayments() { return this.db.bills_recurring_payments.map((x) => ({ ...x })); },
@@ -457,6 +467,7 @@ export const DemoStore = {
     if (p?.purchase_id) this.db.purchases = this.db.purchases.filter((x) => x.id !== p.purchase_id);
     this.db.bills_recurring_payments = this.db.bills_recurring_payments.filter((x) => x.id !== id);
     this.db.debt_transactions = (this.db.debt_transactions || []).filter((x) => x.bill_payment_id !== id);   // 和数据库的级联删除一致
+    for (const x of this.db.bills_recurring_assessment_items || []) if (x.payment_id === id) x.payment_id = null;   // 摊派里对应的期放回「没缴」（on delete set null）
     this.persist();
   },
   /* 借贷（迁移 058） */
@@ -744,6 +755,8 @@ const canFinance = () => financeAllowed({ mode: "cloud", userId: state.user?.id,
 export const DEAL_FIELDS = ["property_id", "asset_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at", "baseline"];
 export const PLAN_FIELDS = ["kind", "title", "status", "budget", "notes"];   // 买卖计划（迁移 078）
 export const PLAN_CAND_FIELDS = ["plan_id", "name", "address", "url", "price", "status", "score", "pros", "cons", "details", "notes"];
+export const ASSESS_FIELDS = ["bill_id", "name", "status", "notes"];
+export const ASSESS_ITEM_FIELDS = ["assessment_id", "due_on", "amount", "kind", "payment_id"];
 export const PLAN_OFFER_FIELDS = ["candidate_id", "offered_on", "amount", "counter_amount", "conditions", "outcome"];
 export const DEAL_EVENT_FIELDS = ["deal_id", "happened_on", "title", "note", "contact", "task_keys", "created_by_name"];
 export const DEAL_CUSTOM_FIELDS = ["deal_id", "name", "stage", "priority", "due_on", "note", "done_on", "done_by_name", "skipped"];
@@ -1030,6 +1043,18 @@ export const CloudStore = {
     if (e.id) this.must(await this.sb.from("deal_events").update(row).eq("id", e.id));
     else this.must(await this.sb.from("deal_events").insert({ ...row, created_by: state.user.id }));
   },
+  /* 特别摊派（迁移 080）：还没执行迁移时读不到，按没有摊派处理 */
+  async listAssess() {
+    const q = (t) => this.sb.from(t).select("*").eq("household_id", this.hid).order("created_at");
+    const [a, i] = await Promise.all([q("bills_recurring_assessments"), q("bills_recurring_assessment_items")]);
+    if (a.error || i.error) { console.warn("[assess]", (a.error || i.error).message); return { as: [], items: [] }; }
+    return { as: a.data, items: i.data };
+  },
+  saveAssess(a) { return this.savePlanRow("bills_recurring_assessments", ASSESS_FIELDS, a); },
+  saveAssessItem(i) { return this.savePlanRow("bills_recurring_assessment_items", ASSESS_ITEM_FIELDS, i); },
+  async deleteAssess(id) { this.must(await this.sb.from("bills_recurring_assessments").delete().eq("id", id)); },
+  async deleteAssessItem(id) { this.must(await this.sb.from("bills_recurring_assessment_items").delete().eq("id", id)); },
+  async setItemsPayment(ids, paymentId) { if (ids.length) this.must(await this.sb.from("bills_recurring_assessment_items").update({ payment_id: paymentId }).in("id", ids)); },
   /* 买卖计划（迁移 078）：计划 → 候选 → 出价记录（删上一级由数据库级联删下一级）；还没执行迁移时读不到，计划页显示空 */
   async listPlans() {
     const q = (t) => this.sb.from(t).select("*").eq("household_id", this.hid).order("created_at");
@@ -1411,7 +1436,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills_recurring", "bills_recurring_payments", "bills_one_time", "bills_one_time_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "account_balances", "asset_valuations", "net_worth_snapshots", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "deal_plans", "plan_candidates", "plan_offers", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms", "shops", "shop_deals", "shop_deal_runs"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills_recurring", "bills_recurring_payments", "bills_recurring_assessments", "bills_recurring_assessment_items", "bills_one_time", "bills_one_time_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "account_balances", "asset_valuations", "net_worth_snapshots", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "deal_plans", "plan_candidates", "plan_offers", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms", "shops", "shop_deals", "shop_deal_runs"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();

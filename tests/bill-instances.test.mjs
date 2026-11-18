@@ -390,3 +390,24 @@ test("缴费实际花费 = 本期金额 + 手续费 + 税 + 滞纳金（+ 特别
   const r = run([bill({ pays: [pay({ amount: 450, fee_amount: 10, tax_amount: 0.2, late_fee: 25, assessment_amount: 30 })] })], [], { from: "2026-10-01", to: "2026-10-31" });
   assert.equal(r.rows.find((x) => x.paymentId)?.paid, 515.2);
 });
+
+import { assessmentsOf, assessmentParts, genInstallments, unpaidItems } from "../js/bills/assessments-lib.js";
+test("特别摊派：前几期分期 + 最后一次性结清，进度和本期应交", () => {
+  const as = [{ id: "a1", bill_id: "b1", name: "屋顶", status: "active" }];
+  const items = [
+    { id: "i1", assessment_id: "a1", due_on: "2026-11-01", amount: 30, kind: "installment", payment_id: "p9" },
+    { id: "i2", assessment_id: "a1", due_on: "2026-12-01", amount: 30, kind: "installment", payment_id: null },
+    { id: "i3", assessment_id: "a1", due_on: "2026-12-15", amount: 500, kind: "payoff", payment_id: null },
+  ];
+  const [a] = assessmentsOf("b1", as, items);
+  assert.deepEqual([a.total, a.paid, a.remaining, a.paidN, a.done], [560, 30, 530, 1, false]);
+  assert.deepEqual(assessmentParts("b1", as, items, "2026-12-01"), { installment: 30, payoff: 500, ids: ["i2", "i3"] });   // 12 月底之前的都算本期
+  assert.deepEqual(assessmentParts("b1", as, items, "2026-11-20").ids, []);   // 11 月那期已缴，12 月的还没到本期
+  assert.equal(unpaidItems("b1", [{ ...as[0], status: "closed" }], items).length, 0);   // 关闭的摊派不再计入
+});
+test("genInstallments：总额按期数分，零头放最后一期，月末日期不溢出", () => {
+  const g = genInstallments({ count: 3, total: 100, start: "2026-01-31" });
+  assert.deepEqual(g.map((x) => x.amount), [33.33, 33.33, 33.34]);
+  assert.deepEqual(g.map((x) => x.due_on), ["2026-01-31", "2026-02-28", "2026-03-31"]);
+  assert.equal(genInstallments({ count: 4, each: 30, start: "2026-05-10" }).reduce((s, x) => s + x.amount, 0), 120);
+});

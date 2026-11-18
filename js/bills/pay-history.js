@@ -35,7 +35,7 @@ function visible(b) {
 function rowHtml(b, p) {
   const skipped = p.status === "skipped", edit = `${href("bill", b.id)}?sec=pay&edit=${encodeURIComponent(p.id)}`;
   const sub = [p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null,
-    num(p.fee_amount) ? t("手续费 {m}", { m: mny(p.fee_amount, p.currency) }) : null, num(p.tax_amount) ? t("税 {m}", { m: mny(p.tax_amount, p.currency) }) : null,
+    num(p.assessment_amount) ? t("摊派 {m}", { m: mny(p.assessment_amount, p.currency) }) : null, num(p.fee_amount) ? t("手续费 {m}", { m: mny(p.fee_amount, p.currency) }) : null, num(p.tax_amount) ? t("税 {m}", { m: mny(p.tax_amount, p.currency) }) : null,
     num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ");
   return `<li class="pay-row" data-swipe-del="bill-pay">
     <span class="badge ${skipped ? "" : "b-ok"}" ${skipped ? 'style="background:var(--surface-2)"' : ""}>${esc(t(B().PAYMENT_STATUS[p.status] || p.status))}</span>

@@ -34,6 +34,8 @@ import { serverList } from "../core/server-list.js";
 import { compact } from "../core/list-query.js";
 import { billAsk } from "./logic.js";
 import { payTotal } from "./pay-total.js";
+import { assessFormPage, assessListPage } from "./assessments-views.js";
+import { assessmentParts, assessmentsOf, monthEnd, unpaidItems } from "./assessments-lib.js";
 import { olderPayment, payHistoryPage, resetPayHistory } from "./pay-history.js";
 
 const B = () => window.BILLS;
@@ -423,6 +425,11 @@ export function viewBillForm() {
   const sec = r.q.get("pay") === "1" ? "pay" : r.q.get("sec") || "";
   const hubHref = href("bill", b?.id || "new");
   if (b && !sec) return billHub(b, root);
+  if (b && sec === "assess") {   // 特别摊派：?sec=assess = 列表；?sec=assess&edit=id|new = 新增 / 编辑页
+    const editId = r.q.get("edit"), listHref = `${hubHref}?sec=assess`;
+    if (editId) { const a = editId === "new" ? null : state.assess.find((x) => x.id === editId && x.bill_id === b.id); if (editId === "new" || a) return assessFormPage(b, a, crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("特别摊派") }, { label: a ? t("编辑摊派") : t("新增摊派") }])); }
+    return assessListPage(b, billCrumb(b, root, hubHref, t("特别摊派")));
+  }
   if (b && sec === "pay") {   // 缴费记录：?sec=pay = 全部记录（搜索 / 筛选）；?sec=pay&edit=id 或 ?pay=1 = 独立的编辑 / 新建页
     const editId = r.q.get("edit"), listHref = `${hubHref}?sec=pay`;
     if (editId || r.q.get("pay") === "1") {
@@ -521,12 +528,17 @@ function billHub(b, root) {
       <header class="prof-head"><span class="mi" aria-hidden="true">✅</span><div class="prof-t"><h3 id="bc-pay">${t("缴费记录")}</h3><small>${b.pays.length ? t("{n} 条，最近 {d}", { n: b.pays.length, d: fmtDate(b.pays[0].paid_on) }) : t("还没有记录")}</small></div>
         <a class="btn btn-sm btn-ghost prof-edit" href="${b.pays.length ? `${base}?sec=pay` : `${base}?pay=1`}" aria-label="${esc(t("缴费记录"))}">${b.pays.length ? t("全部") : t("记一笔")}</a></header>
       ${recent ? `<ul class="restock-list">${recent}</ul>` : `<p class="muted prof-empty">${t("还没有记录")}</p>`}</section>`;
+  const asList = assessmentsOf(b.id, state.assess, state.assessItems), cur = b.currency;
+  const assessCard = asList.length || b.category === "hoa" ? `<section class="panel prof-card" aria-labelledby="bc-as">
+      <header class="prof-head"><span class="mi" aria-hidden="true">📣</span><div class="prof-t"><h3 id="bc-as">${t("特别摊派")}</h3><small>${asList.length ? t("{n} 笔，剩余 {m}", { n: asList.length, m: mny(asList.reduce((s, x) => s + x.remaining, 0), cur) }) : t("没有")}</small></div>
+        <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=assess${asList.length ? "" : "&edit=new"}">${asList.length ? t("全部") : t("添加")}</a></header>
+      ${asList.length ? `<ul class="restock-list">${asList.slice(0, 3).map((x) => `<li><span class="badge ${x.done ? "b-ok" : ""}">${x.done ? t("已缴清") : x.status === "closed" ? t("已关闭") : `${x.paidN}/${x.rows.length}`}</span><div class="grow">${esc(x.name)}</div><b>${mny(x.remaining, cur)}</b></li>`).join("")}</ul>` : `<p class="muted prof-empty">${t("HOA 临时收的大额费用记在这里。")}</p>`}</section>` : "";
   const q = state.route?.q, banner = billBanner(b, q, base);
   return `<section class="section">
     ${crumbNav([...billTrail(b, root, href("bill", b.id)).slice(0, -1), { label: b.name, icon: billCat(b.category).icon }])}
     ${billHeadCard(b, base)}
     ${banner}
-    <div class="prof-grid bill-detail-grid one-col">${payCard}</div>
+    <div class="prof-grid bill-detail-grid one-col">${assessCard}${payCard}</div>
     ${askInline(billAsk(b))}
   </section>`;
 }
@@ -551,6 +563,9 @@ function billBanner(b, q, base) {
 export function billCostParts(b) {
   const base = b.amount_type === "fixed" && b.typical_amount != null ? { k: t("固定"), amount: num(b.typical_amount) } : b.est != null ? { k: t("估算"), amount: num(b.est) } : null;
   const parts = base ? [base] : [];
+  const as = assessmentParts(b.id, state.assess, state.assessItems, b.next_due_on);   // 本期要交的特别摊派（到期日所在月底之前、还没缴的）
+  if (as.installment > 0) parts.push({ k: t("分期摊派"), amount: as.installment });
+  if (as.payoff > 0) parts.push({ k: t("一次性摊派"), amount: as.payoff });
   if (num(b.typical_fee) > 0) parts.push({ k: t("手续费"), amount: num(b.typical_fee) });
   if (num(b.typical_tax) > 0) parts.push({ k: t("税"), amount: num(b.typical_tax) });
   const total = Math.round(parts.reduce((s, x) => s + x.amount, 0) * 100) / 100;
@@ -570,6 +585,7 @@ function billHeadCard(b, base) {
     { label: t("编辑"), href: `${base}?sec=all`, first: true },
     { label: b.autopay ? t("记核对") : t("记缴费"), href: `${base}?pay=1` },
     { label: t("查看缴费记录"), href: `${base}?sec=pay` },
+    { label: t("特别摊派"), href: `${base}?sec=assess` },
     b.pay_url ? { label: t("去服务商缴费"), href: b.pay_url, external: true } : null,
     { label: t("复制为新账单"), href: `${href("bill", "new")}?copy=${encodeURIComponent(b.id)}` },
     { label: t("删除账单"), action: "bill-delete", danger: true },
@@ -618,6 +634,7 @@ function payFormPage(b, edit = null) {
         <label>${t("确认号")}<input name="confirmation_ref" maxlength="60" value="${esc(edit?.confirmation_ref || "")}"></label>
         <label>${t("滞纳金")}<input name="late_fee" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? num(edit.late_fee).toFixed(2) : "0"}"></label>
         <label>${t("手续费")}<input name="fee_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? num(edit.fee_amount).toFixed(2) : b.typical_fee != null ? num(b.typical_fee).toFixed(2) : "0"}"><small>${t("服务费 / 刷卡费等，每次可能不同，填实际收的。")}</small></label>
+        ${assessPicker(b, edit)}
         <label>${t("税")}<input name="tax_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${edit ? num(edit.tax_amount).toFixed(2) : b.typical_tax != null ? num(b.typical_tax).toFixed(2) : "0"}"></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(edit?.notes || "")}"></label>
       </div>
@@ -626,6 +643,16 @@ function payFormPage(b, edit = null) {
         <button type="button" class="btn btn-ghost" data-action="billpay-cancel">${t("取消")}</button>
         <button type="submit" class="btn btn-primary">${edit ? t("保存修改") : t("记一笔")}</button></div>
     </form>`;
+}
+/** 缴费表单里勾选的摊派期：{ ids, sum } */
+const checkedItems = (fe) => { const all = fe.as_item ? (fe.as_item.length === undefined ? [fe.as_item] : [...fe.as_item]) : []; const on = all.filter((x) => x.checked); return { ids: on.map((x) => x.value), sum: Math.round(on.reduce((s, x) => s + num(x.dataset.amt), 0) * 100) / 100 }; };
+/** 缴费表单里的「这次交的特别摊派」：本期之前到期的没缴期默认勾上，其余不勾；编辑时本笔已交的勾着 */
+function assessPicker(b, edit) {
+  const upto = monthEnd(edit?.due_on || b.next_due_on || todayISO()), own = edit ? state.assessItems.filter((x) => x.payment_id === edit.id) : [];
+  const open = unpaidItems(b.id, state.assess, state.assessItems), name = (x) => state.assess.find((a) => a.id === x.assessment_id)?.name || "";
+  const rows = [...own.map((x) => [x, true]), ...open.map((x) => [x, !edit && (x.due_on || "") <= upto])].sort((p, q) => (p[0].due_on || "").localeCompare(q[0].due_on || ""));
+  if (!rows.length) return "";
+  return `<fieldset class="span-2 as-pick"><legend>${t("这次交的特别摊派")}</legend>${rows.map(([x, on]) => `<label class="check-inline"><input type="checkbox" name="as_item" value="${esc(x.id)}" data-amt="${num(x.amount)}" ${on ? "checked" : ""}><span>${esc(fmtDate(x.due_on))} · ${esc(name(x))} · ${esc(t(x.kind === "payoff" ? "一次性结清" : "分期"))} · <b>${mny(x.amount, b.currency)}</b></span></label>`).join("")}<small class="muted">${t("勾上的金额记在这笔缴费的“摊派”里，不算进上面的金额；没勾的期留在摊派计划里等下次。")}</small></fieldset>`;
 }
 /** 旧缴费记录没记账户时，列表页顶上的「一次性补上」提示 */
 const staleNotice = (b) => { const stale = backfillable(b); return stale.length ? `<div class="notice" role="status" style="margin-top:10px"><b>${t("有 {n} 条旧缴费记录没记账户。", { n: stale.length })}</b> ${t("按现在的付款账户 {a} 一次性补上？花费统计里对应的那几笔也会记到这张卡。现金 / 支票的不动。", { a: billPayLabel(b) })} <button type="button" class="btn btn-sm" data-action="billpay-backfill" data-id="${b.id}">${t("补上")}</button></div>` : ""; };
@@ -696,17 +723,18 @@ export const payExpNote = (c) => (!c ? "" : isBankAcct(c) ? t("银行账户没�
 /** 账单的付款账户字段：下拉选卡 → pay_card_id；现金 / 其他 → autopay_method 文字 */
 const payFields = (value, text) => { const r = resolvePayAccount(value, text); return { pay_card_id: r.card_id, autopay_method: r.method }; };
 /** 记一笔缴费 / 核对 / 跳过：写 purchases（有金额且为应付，带上用的卡）、写记录、把账单推到下一期 */
-export async function recordPayment(bill, { paid_on, due_on, amount, status, method, card_id, confirmation_ref, late_fee, fee_amount, tax_amount, notes, store }) {
+export async function recordPayment(bill, { paid_on, due_on, amount, status, method, card_id, confirmation_ref, late_fee, fee_amount, tax_amount, assessment_amount, assessment_ids, notes, store }) {
   const currency = bill.currency || Units.region.currency;
   let purchase_id = null;
-  const total = status === "skipped" ? 0 : num(amount) + num(late_fee) + num(fee_amount) + num(tax_amount);
+  const total = status === "skipped" ? 0 : num(amount) + num(late_fee) + num(fee_amount) + num(tax_amount) + num(assessment_amount);
   if (total > 0 && bill.direction !== "receivable") {
     purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: (store || "").trim().slice(0, 40) || bill.payee || bill.name || null,
       amount: Math.round(total * 100) / 100, currency, purchased_at: new Date(`${paid_on}T12:00:00`).toISOString(), ...(card_id ? { card_id } : {}), ...(bill.property_id ? { property_id: bill.property_id } : {}) });   // 关联账单的房产（迁移 055）
   }
   const payRow = { bill_id: bill.id, due_on: due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),
-    currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, fee_amount: Math.round(num(fee_amount) * 100) / 100, tax_amount: Math.round(num(tax_amount) * 100) / 100, status, notes: notes || null, purchase_id, ...(card_id ? { card_id } : {}) };
+    currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, fee_amount: Math.round(num(fee_amount) * 100) / 100, tax_amount: Math.round(num(tax_amount) * 100) / 100, assessment_amount: Math.round(num(assessment_amount) * 100) / 100, status, notes: notes || null, purchase_id, ...(card_id ? { card_id } : {}) };
   const payId = await Store.addBillPayment(payRow);
+  if (assessment_ids?.length) await Store.setItemsPayment(assessment_ids, payId);   // 这次交的摊派期：记上是哪次缴费交的
   resetPayHistory();
   if (bill.debt_id && purchase_id) await splitBillPayment(bill, { ...payRow, id: payId }).catch((e) => console.warn("[debt split]", e.message));   // 贷款：本金单独一行（性质 = 融资），主行只剩利息 + Escrow
   // 推到下一期：以这次对应的到期日为基准，保证不会漏期。补记更早一期（到期日早于当前下次到期）不往回推，下次到期不动
@@ -754,7 +782,7 @@ async function updatePayment(bill, fe) {
   const old = state.billPayments.find((x) => x.id === fe.pay_id.value) || olderPayment(fe.pay_id.value);
   if (!old) return toast(t("找不到这条记录"));
   const r2 = (v) => Math.round(num(v) * 100) / 100, status = fe.status.value, paid_on = fe.paid_on.value || old.paid_on || todayISO();
-  const amount = status === "skipped" || fe.amount.value === "" ? null : r2(fe.amount.value), late = r2(fe.late_fee.value), fee = r2(fe.fee_amount?.value), tax = r2(fe.tax_amount?.value), total = status === "skipped" ? 0 : r2((amount || 0) + late + fee + tax + num(old.assessment_amount));
+  const amount = status === "skipped" || fe.amount.value === "" ? null : r2(fe.amount.value), late = r2(fe.late_fee.value), fee = r2(fe.fee_amount?.value), tax = r2(fe.tax_amount?.value), picked = checkedItems(fe), asum = status === "skipped" ? 0 : picked.sum, total = status === "skipped" ? 0 : r2((amount || 0) + late + fee + tax + asum);
   const currency = old.currency || bill.currency || Units.region.currency, at = new Date(`${paid_on}T12:00:00`).toISOString();
   const payee = (fe.store?.value || "").trim().slice(0, 40) || bill.payee || bill.name || null;
   const pay = resolvePayAccount(fe.pay_account?.value, fe.method.value), cardPatch = pay.card_id || old.card_id ? { card_id: pay.card_id } : {};   // 没选过卡就不带这个字段（没执行迁移 036 也能存）
@@ -763,8 +791,13 @@ async function updatePayment(bill, fe) {
   else if (purchase_id) { await Store.deletePurchase(purchase_id); purchase_id = null; }
   else if (total > 0 && bill.direction !== "receivable") purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: payee, amount: total, currency, purchased_at: at, ...cardPatch, ...(bill.property_id ? { property_id: bill.property_id } : {}) });
   if (!purchase_id) await beforeDeletePayment(old.id).catch(() => {});   // 不再记花费了：贷款拆分的本金行和流水也去掉
-  const patch = { paid_on, due_on: fe.due_on.value || null, amount, currency, method: pay.method, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, fee_amount: fee, tax_amount: tax, status, notes: fe.notes.value.trim() || null, purchase_id, ...cardPatch };
+  const patch = { paid_on, due_on: fe.due_on.value || null, amount, currency, method: pay.method, confirmation_ref: fe.confirmation_ref.value.trim() || null, late_fee: late, fee_amount: fee, tax_amount: tax, assessment_amount: asum, status, notes: fe.notes.value.trim() || null, purchase_id, ...cardPatch };
   await Store.updateBillPayment(old.id, patch);
+  const had = state.assessItems.filter((x) => x.payment_id === old.id).map((x) => x.id);
+  const keepIds = status === "skipped" ? [] : picked.ids;
+  const toFree = had.filter((x) => !keepIds.includes(x)), toTake = keepIds.filter((x) => !had.includes(x));
+  if (toFree.length) await Store.setItemsPayment(toFree, null);
+  if (toTake.length) await Store.setItemsPayment(toTake, old.id);
   resetPayHistory();
   if (bill.debt_id && purchase_id) await splitBillPayment(bill, { ...old, ...patch, id: old.id }).catch((e) => console.warn("[debt split]", e.message));
   const moved = fe.due_on.value !== (old.due_on || "") ? await resyncDue(bill, old, fe.due_on.value || null) : null;   // 到期日改了：账单的下次到期跟着对
@@ -780,7 +813,7 @@ export async function saveBillPayForm(f) {
   const paidAmt = fe.amount.value === "" ? null : Math.round(num(fe.amount.value) * 100) / 100;
   if (fe.update_typical?.checked && fe.status.value !== "skipped" && paidAmt != null && paidAmt > 0 && paidAmt !== num(bill.typical_amount, NaN)) bill.typical_amount = paidAmt;
   const r = await recordPayment(bill, { paid_on: fe.paid_on.value || todayISO(), due_on: fe.due_on.value || null, amount: fe.amount.value === "" ? null : fe.amount.value, status: fe.status.value,
-    method: pay.method, card_id: pay.card_id, confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, fee_amount: fe.fee_amount?.value, tax_amount: fe.tax_amount?.value, notes: fe.notes.value.trim(), store: fe.store?.value });
+    method: pay.method, card_id: pay.card_id, confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, fee_amount: fe.fee_amount?.value, tax_amount: fe.tax_amount?.value, ...(fe.status.value === "skipped" ? {} : { assessment_amount: checkedItems(fe).sum, assessment_ids: checkedItems(fe).ids }), notes: fe.notes.value.trim(), store: fe.store?.value });
   const nextTxt = fmtDate(r.next || "") || t("无");
   toast(fe.status.value === "skipped" ? t("已跳过这期，下次到期 {d}", { d: nextTxt }) : r.catchUp ? t("已补记 {due} 那期；下次到期仍是 {d}", { due: fmtDate(fe.due_on.value), d: nextTxt }) : t("已记录，下次到期 {d}", { d: nextTxt }));
 }
