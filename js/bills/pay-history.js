@@ -13,7 +13,8 @@ const B = () => window.BILLS;
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
 const SORTS = [["new", "最新在前"], ["old", "最早在前"], ["high", "金额从高到低"], ["low", "金额从低到高"]];
 const FILTER0 = { q: "", status: "all", year: "all", sort: "new" };
-let filter = { ...FILTER0 }, older = { billId: null, rows: [], busy: false };
+const PAGE = 20;   // 全部缴费记录：一次显示 20 条，「加载更多」再加 20 条
+let filter = { ...FILTER0 }, older = { billId: null, rows: [], busy: false }, shown = PAGE;
 
 /** 缴费记录变了（记 / 改 / 删）：更早的那部分下次进页面重新读 */
 export const resetPayHistory = () => { older = { billId: null, rows: [], busy: false }; };
@@ -49,9 +50,9 @@ function listHtml(b) {
   const all = rowsOf(b), rows = visible(b);
   if (!all.length) return `<div class="empty"><strong>${t("还没有记录")}</strong>${t("点右下角的 ＋ 记第一笔。")}</div>`;
   if (!rows.length) return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个关键词，或点“清除筛选”。")}</div>`;
-  const paid = rows.filter((p) => p.status !== "skipped" && p.amount != null).reduce((s, p) => s + payTotal(p), 0);
+  const paid = rows.filter((p) => p.status !== "skipped" && p.amount != null).reduce((s, p) => s + payTotal(p), 0), page = rows.slice(0, shown), rest = rows.length - page.length;
   return `<p class="muted pay-sum">${t("共 {n} 条", { n: rows.length })}${rows.length !== all.length ? ` / ${all.length}` : ""} · ${t("合计 {m}", { m: mny(paid, b.currency) })}</p>
-    <ul class="restock-list pay-list">${rows.map((p) => rowHtml(b, p)).join("")}</ul>${older.busy ? `<p class="muted" role="status">${t("正在读取更早的记录…")}</p>` : ""}`;
+    <ul class="restock-list pay-list">${page.map((p) => rowHtml(b, p)).join("")}</ul>${rest > 0 ? `<div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="pay-hist-more">${t("加载更多（还有 {n} 条）", { n: rest })}</button></div>` : ""}${older.busy ? `<p class="muted" role="status">${t("正在读取更早的记录…")}</p>` : ""}`;
 }
 const clearHtml = () => (JSON.stringify(filter) !== JSON.stringify(FILTER0) ? `<button type="button" class="btn btn-sm btn-ghost" id="bphClear">${t("清除筛选")}</button>` : "");
 function toolbarHtml(b) {
@@ -69,7 +70,7 @@ function toolbarHtml(b) {
 export function payHistoryPage(b, crumb, notice = "") {
   const base = href("bill", b.id);
   if (older.billId !== b.id) {   // 进页面：读这条账单更早的记录，读回来后只重画列表（正在看别的页面就不动）
-    older = { billId: b.id, rows: [], busy: true };
+    older = { billId: b.id, rows: [], busy: true }; shown = PAGE;
     const id = b.id;
     Store.listPaymentsOfBill(id).then((rows) => { if (older.billId === id) older = { billId: id, rows, busy: false }; }).catch(() => { if (older.billId === id) older.busy = false; })
       .finally(() => redraw(id));
@@ -90,7 +91,7 @@ function redraw(billId) {
   if (bar && !bar.contains(document.activeElement)) bar.outerHTML = toolbarHtml(b);   // 年份选项可能多了；正在输入搜索词时不动工具栏
 }
 function apply(patch, rebuildBar = false) {
-  Object.assign(filter, patch);
+  Object.assign(filter, patch); shown = PAGE;   // 换了搜索 / 筛选：回到第一页
   const b = current(); if (!b) return;
   const list = document.getElementById("bphList"); if (list) list.innerHTML = listHtml(b);
   const bar = document.getElementById("bphBar");
@@ -100,3 +101,8 @@ function apply(patch, rebuildBar = false) {
 document.addEventListener("input", (e) => { if (e.target.id === "bphQ") apply({ q: e.target.value }); });
 document.addEventListener("change", (e) => { const k = { bphStatus: "status", bphYear: "year", bphSort: "sort" }[e.target.id]; if (k) apply({ [k]: e.target.value }); });
 document.addEventListener("click", (e) => { if (e.target.closest("#bphClear")) { apply({ ...FILTER0 }, true); } });
+document.addEventListener("click", (e) => {   // 加载更多：只重画列表，留在原位
+  if (!e.target.closest("[data-action=pay-hist-more]")) return;
+  shown += PAGE; const b = current(); if (!b) return;
+  const list = document.getElementById("bphList"), y = window.scrollY; if (list) list.innerHTML = listHtml(b); window.scrollTo(0, y);
+});

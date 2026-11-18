@@ -15,6 +15,7 @@ import { resilientFetch } from "./core/net.js";
 import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
 import { FD, changed, clearUrlParams, onClearFilters } from "./core/clear-filters.js";
 import { enhanceSelects } from "./core/search-select.js";
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});   // 脚本 / 样式每次核对新版本（见 sw.js）
 import { normalizeFormActions } from "./core/form-actions.js";
 import { overviewHref } from "./bills/trail.js";
 import { applyOverviewQuery, applyOverviewRoute, loadOverviewRange, setOverviewRange, viewBillsHome } from "./bills/overview-views.js";

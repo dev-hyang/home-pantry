@@ -13,20 +13,26 @@ const KINDS = [["installment", "分期"], ["payoff", "一次性结清"]];
 const kindName = (k) => t((KINDS.find(([id]) => id === k) || KINDS[0])[1]);
 
 /** 摊派列表页（crumb = 面包屑 HTML） */
+/** 摊派列表：一笔摊派一张可折叠的卡片。头部（名称、进度、描述、编辑）一直看得到；展开后先是还没缴的各期，已缴的各期收在下面一个单独的折叠里（默认收起） */
 export function assessListPage(b, crumb) {
   const base = href("bill", b.id), list = assessmentsOf(b.id, state.assess, state.assessItems), cur = b.currency;
   const payDate = (id) => { const p = b.pays.find((x) => x.id === id); return p ? fmtDate(p.paid_on) : ""; };
-  const cards = list.map((a) => `<section class="panel prof-card as-card">
-      <header class="prof-head"><span class="mi" aria-hidden="true">📣</span>
-        <div class="prof-t"><h3>${esc(a.name)}</h3><small>${a.done ? `<span class="badge b-ok">${t("已缴清")}</span> ` : a.status === "closed" ? `<span class="badge">${t("已关闭")}</span> ` : ""}${t("共 {total} · 已缴 {paid} · 剩余 {left}", { total: mny(a.total, cur), paid: mny(a.paid, cur), left: mny(a.remaining, cur) })}</small></div>
-        <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=assess&edit=${a.id}">${t("编辑")}</a></header>
-      ${a.notes ? `<p class="muted" style="margin:0 0 6px;font-size:13px">${esc(a.notes)}</p>` : ""}
-      <ul class="restock-list as-items">${a.rows.map((x) => `<li><span class="badge ${isPaid(x) ? "b-ok" : ""}">${isPaid(x) ? t("已缴") : t("待缴")}</span>
-        <div class="grow">${esc(fmtDate(x.due_on))}<small>${[kindName(x.kind), x.payment_id ? t("{d} 缴", { d: payDate(x.payment_id) || "—" }) : x.settled_on ? t("已缴（无缴费记录）") : null].filter(Boolean).map(esc).join(" · ")}</small></div><b>${mny(x.amount, cur)}</b></li>`).join("")}</ul>
-    </section>`).join("");
+  const rowLi = (x) => `<li><span class="badge ${isPaid(x) ? "b-ok" : ""}">${isPaid(x) ? t("已缴") : t("待缴")}</span>
+        <div class="grow">${esc(fmtDate(x.due_on))}<small>${[kindName(x.kind), x.payment_id ? t("{d} 缴", { d: payDate(x.payment_id) || "—" }) : x.settled_on ? t("已缴（无缴费记录）") : null].filter(Boolean).map(esc).join(" · ")}</small></div><b>${mny(x.amount, cur)}</b></li>`;
+  const cards = list.map((a, i) => {
+    const todo = a.rows.filter((x) => !isPaid(x)), paid = a.rows.filter(isPaid), paidSum = paid.reduce((s, x) => s + num(x.amount), 0);
+    return `<details class="panel prof-card as-card" ${i === 0 || !a.done ? "open" : ""}>
+      <summary class="prof-head"><span class="mi" aria-hidden="true">📣</span>
+        <div class="prof-t"><h3>${esc(a.name)}</h3><small>${a.done ? `<span class="badge b-ok">${t("已缴清")}</span> ` : a.status === "closed" ? `<span class="badge">${t("已关闭")}</span> ` : ""}${t("共 {total} · 已缴 {paid} · 剩余 {left}", { total: mny(a.total, cur), paid: mny(a.paid, cur), left: mny(a.remaining, cur) })}</small>
+          ${a.notes ? `<small class="as-desc">${esc(a.notes)}</small>` : ""}</div>
+        <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=assess&edit=${a.id}">${t("编辑")}</a><span class="mch" aria-hidden="true">›</span></summary>
+      ${todo.length ? `<ul class="restock-list as-items">${todo.map(rowLi).join("")}</ul>` : `<p class="muted as-none">${t("没有待缴的期了")}</p>`}
+      ${paid.length ? `<details class="as-paid"><summary>${t("已缴 {n} 期 · {m}", { n: paid.length, m: mny(paidSum, cur) })}<span class="mch" aria-hidden="true">›</span></summary><ul class="restock-list as-items">${paid.map(rowLi).join("")}</ul></details>` : ""}
+    </details>`;
+  }).join("");
   return `<section class="section">${crumb}
     <div class="section-head"><h2>${t("特别摊派")}</h2><p>${esc(b.name)}</p></div>
-    ${cards ? `<div class="prof-grid bill-detail-grid one-col">${cards}</div>` : `<div class="panel empty"><strong>${t("还没有特别摊派")}</strong>${t("HOA 临时收的大额费用（屋顶、电梯、停车场…）可以记在这里：分期、一次性结清，或前几期分期、最后一次结清。")}</div>`}
+    ${cards ? `<div class="prof-grid bill-detail-grid one-col as-list">${cards}</div>` : `<div class="panel empty"><strong>${t("还没有特别摊派")}</strong>${t("HOA 临时收的大额费用（屋顶、电梯、停车场…）可以记在这里：分期、一次性结清，或前几期分期、最后一次结清。")}</div>`}
     <a class="fab" href="${base}?sec=assess&edit=new" aria-label="${esc(t("新增摊派"))}" title="${esc(t("新增摊派"))}">＋</a>
   </section>`;
 }

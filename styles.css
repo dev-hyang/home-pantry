@@ -4160,3 +4160,15 @@ form:not(.is-hoa) .hoa-only { display: none; }
 
 .amt-pick .pick-row { flex-wrap: nowrap; } .amt-pick .pick-row input[type="checkbox"] { flex: none; }
 .amt-pick .as-opt { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+
+/* 摊派列表：可折叠的卡片（头部一直可见：名称 / 进度 / 描述 / 编辑 / 箭头），已缴的各期单独折叠 */
+.as-card > summary { list-style: none; cursor: pointer; align-items: flex-start; } .as-card > summary::-webkit-details-marker { display: none; }
+.as-card[open] > summary { margin-bottom: 4px; }
+.as-card > summary .prof-edit { align-self: flex-start; }
+.as-card > summary .mch, .as-paid > summary .mch { flex: none; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; align-self: center; }
+.as-card[open] > summary .mch, .as-paid[open] > summary .mch { transform: rotate(90deg); }
+.as-desc { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.as-none { margin: 4px 0 6px; font-size: 13px; }
+.as-paid { margin-top: 8px; border-top: 1px dashed var(--line); }
+.as-paid > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; font-size: 14px; font-weight: 600; color: var(--muted); } .as-paid > summary::-webkit-details-marker { display: none; }
+.as-paid .as-items li { padding: 8px 0; }

@@ -2,6 +2,16 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.25", title: { zh: "特别摊派列表：每笔摊派一张可折叠的卡片，已缴的各期单独折叠", en: "Special assessment list: one collapsible card per assessment, paid rows in their own fold" }, items: [
+    { k: "better", zh: "HOA 的特别摊派做成列表：每笔摊派是一张可折叠展开的卡片，头部一直显示名称、进度、描述和编辑按钮；展开后先是还没缴的各期，已缴的各期收在下面一个单独的折叠里（默认收起，标题写着已缴几期、多少钱）", en: "HOA special assessments are a list: each is a collapsible card whose header always shows the name, progress, description and Edit; unpaid rows come first and the paid rows sit in a separate fold below (collapsed by default, titled with how many were paid and the amount)" }
+  ] },
+
+  { v: "2026-11-18.24", title: { zh: "全部缴费记录「加载更多」；推送后不再看到旧版本；补录 HOA 2024–2025 缴费记录", en: "All payments: Load more; no more stale versions after a release; HOA 2024–2025 payments backfilled" }, items: [
+    { k: "better", zh: "账单的「全部缴费记录」页一次显示 20 条，「加载更多」再加 20 条；搜索 / 筛选后回到第一页，合计仍是全部符合条件的", en: "A bill's All payments page shows 20 at a time with Load more for 20 more; searching or filtering goes back to the first page and the total still covers everything that matches" },
+    { k: "fix", zh: "推送新版本后，浏览器有时还在用 10 分钟内缓存的旧脚本，出现「改动没生效」；现在每次打开都会核对脚本和样式有没有更新（没变时几乎不花流量）", en: "After a release the browser sometimes kept using scripts cached for up to 10 minutes, so changes seemed not to apply; every load now checks scripts and styles for updates (almost no traffic when unchanged)" },
+    { k: "new", zh: "补录 HOA 月费 2024 年 1–11 月、2025 年 1–7 月的缴费记录（参照已有记录复制、改日期），并关联到银行已导入的同月花费，不重复计入花费统计", en: "Backfilled HOA payments for Jan–Nov 2024 and Jan–Jul 2025 (copied from the existing ones with dates changed) and linked them to the matching bank-imported spending so spending is not counted twice" }
+  ] },
+
   { v: "2026-11-18.23", title: { zh: "摊派下拉每个选项一行：勾选框 + 第几期 · 日期 · 金额；修正 HOA 10 / 11 月两笔缴费的重复计算", en: "Assessment dropdown: one line per option (checkbox + No. n · date · amount); fixed the double count on HOA's October and November payments" }, items: [
     { k: "better", zh: "「特别摊派」下拉里每个选项一行：勾选框、「第 N 期 · 日期 · 金额」，不再把勾选框和文字拆成两行；有多笔摊派时前面加摊派名", en: "Each option in the Special assessment dropdown is one line: checkbox plus No. n · date · amount; with several assessments the name is added in front" },
     { k: "fix", zh: "HOA 月费 10 月、11 月两笔缴费的「金额」里已经含了摊派（和 11 月的手续费），总金额被多算；已改成本期金额 363.20（单元费 347.36 + 车位费 15.84），摊派、手续费另列，花费统计里对应的两笔也改成 430.89 和 433.88", en: "HOA's October and November payments had the assessment (and November's fee) already inside the amount, so the total was counted twice; the amount is now 363.20 (unit 347.36 + parking 15.84) with the assessment and fee listed separately, and the matching spending entries are now 430.89 and 433.88" }
