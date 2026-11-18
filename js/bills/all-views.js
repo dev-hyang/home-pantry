@@ -6,6 +6,7 @@ import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
+import { moneyEye } from "../core/privacy.js";
 import { propertyTag, propertyName } from "../core/alerts.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { billCat } from "./logic.js";
@@ -86,17 +87,35 @@ const action = (r) => {
   if (r.autopay) return r.status === "verify" ? `<button type="button" class="btn btn-sm" data-action="bill-verify" data-id="${r.billId}">${t("已核对")}</button>` : "";
   return `<a class="btn btn-sm" href="${href("bill", r.billId)}?pay=1">${t("记缴费")}</a>`;
 };
+const r2 = (n) => Math.round(n * 100) / 100;
+/** 这一期已经付过的款：{ lines: [{ date, amount, balance }], split } ——一次付清 → split=false（只显示缴费日期）；分期（≥ 2 笔，或付了一部分还有余额）→ split=true，一笔一行：日期、金额、付完这笔后的余额。
+ *  周期性账单一期一条缴费；一次性账单可以有多笔（退款是负数）。 */
+function payInfo(r) {
+  if (r.kind === "recurring") return r.status === "paid" && (r.paidOn || r.payment?.paid_on) ? { lines: [{ date: r.paidOn || r.payment.paid_on, amount: r.paid, balance: 0 }], split: false } : { lines: [], split: false };
+  const pays = [...(r.bill?.pays || [])].sort((x, y) => String(x.paid_on || "").localeCompare(String(y.paid_on || "")) || String(x.id).localeCompare(String(y.id)));
+  if (!pays.length) return { lines: [], split: false };
+  const owed = r.bill?.owed == null ? null : num(r.bill.owed); let cum = 0;
+  const lines = pays.map((p) => { cum += num(p.amount); return { date: p.paid_on, amount: num(p.amount), balance: owed == null ? null : Math.max(0, r2(owed - cum)) }; });
+  const last = lines.at(-1);
+  return { lines, split: lines.length > 1 || (last.balance != null && last.balance > 0) };
+}
+const L = (zh, en) => (lang === "en" ? en : zh);
 export function rowHtml(r) {
-  const c = r.currency || cur(), done = ["paid", "skipped", "written_off"].includes(r.status);
-  const due = r.dueOn ? t("到期 {d}", { d: fmtDate(r.dueOn) }) : t("没填到期日");
-  const meta = [due, r.kind === "onetime" ? t("一次性") : t("周期性"), r.payee, r.autopay ? t("自动扣款") : "", r.amountIsEst && !done ? t("金额为估算") : ""].filter(Boolean).join(" · ");
+  const c = r.currency || cur(), done = ["paid", "skipped", "written_off"].includes(r.status), info = payInfo(r);
+  const single = !info.split && info.lines.length ? info.lines.at(-1) : null;
+  // 第二行：所属资产 / 患者 · 到期日（已缴一次付清的写缴费日期）· 周期性 / 一次性 · 收款方 · 自动扣款
+  const bits = [single ? t("缴费日期 {d}", { d: fmtDate(single.date) }) : r.dueOn ? t("到期 {d}", { d: fmtDate(r.dueOn) }) : t("没填到期日"), r.kind === "onetime" ? t("一次性") : t("周期性"), r.kind === "recurring" ? r.payee : "", r.autopay ? t("自动扣款") : ""].filter(Boolean);
   const amt = r.amountUnknown && !done ? "—" : mny(r.amount, c);
-  const sub = r.status === "partial" || (r.paid > 0 && r.balance > 0) ? t("已付 {a} · 余 {b}", { a: mny(r.paid, c), b: mny(r.balance, c) }) : r.status === "paid" && r.paidOn ? t("{d} 缴", { d: fmtDate(r.paidOn) }) : "";
+  const est = r.amountIsEst && !done ? `<small class="all-est">${t("估算金额")}</small>` : "";
+  const pays = info.split ? `<ul class="all-pays" aria-label="${esc(t("分期付款"))}">${info.lines.map((p, k) => `<li><span class="ap-no">${esc(L(`分期 #${k + 1}`, `Split #${k + 1}`))}</span><span class="ap-date">${esc(fmtDate(p.date))}</span><b class="ap-amt">${mny(p.amount, c)}</b>${p.balance != null ? `<small class="ap-bal">${esc(t("余额 {a}", { a: mny(p.balance, c) }))}</small>` : ""}</li>`).join("")}</ul>` : "";
+  const act = action(r);
   return `<li class="bill-row all-row ${done ? "is-paid" : ""}">
-    <span class="badge ${BADGE[r.status] || ""}">${r.status === "paid" ? "✓ " : ""}${t(LABEL[r.status] || r.status)}</span>
-    <div class="grow">${assetChip(r)} ${nameLink(r)}<small>${esc(meta)}</small></div>
-    <div class="all-amt"><b>${amt}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</div>
-    <div class="all-act">${action(r)}</div>
+    <div class="all-l1">${nameLink(r)}<span class="badge ${BADGE[r.status] || ""}">${r.status === "paid" ? "✓ " : ""}${t(LABEL[r.status] || r.status)}</span></div>
+    <div class="all-amt"><b>${amt}</b></div>
+    <div class="all-l2">${assetChip(r)}<small>${esc(bits.join(" · "))}</small></div>
+    <div class="all-est-cell">${est}</div>
+    ${pays}
+    ${act ? `<div class="all-act">${act}</div>` : ""}
   </li>`;
 }
 
@@ -140,7 +159,7 @@ export function viewAllBills() {
     + rangeOpts.slice(1).map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");
   const scope = f.range === "all" ? t("不限时间") : `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
   return `<section class="section">
-    <div class="section-head"><h2>🧾 ${t("全部账单")}</h2><div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="all-csv">${t("导出 CSV")}</button><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
+    <div class="section-head"><h2>🧾 ${t("全部账单")}</h2><div class="head-acts">${moneyEye()}<button type="button" class="btn btn-sm btn-ghost" data-action="all-csv">${t("导出 CSV")}</button><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
     <p class="muted kinds-note">${t("周期性 + 一次性账单，一行 = 一期账单。时间范围：{r}（{s}）；逾期没缴的不受范围限制，一直显示。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope })}</p>
     <div class="toolbar">
       <input type="search" id="allSearch" placeholder="${t("搜索名称、付款方、患者")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">

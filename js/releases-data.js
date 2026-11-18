@@ -2,6 +2,14 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.26", title: { zh: "全部账单的行重新排版：分期一笔一行；有眼睛；「清除筛选」靠右", en: "All bills rows re-laid out: one line per installment, an eye button, and Clear filters on the right" }, items: [
+    { k: "better", zh: "每行第一行是类别图标、名称和状态（逾期 / 待缴 / Escrow 代缴 / 已缴…），金额靠右；金额是估算的，在金额下面用小字写「估算金额」", en: "Each row now starts with the category icon, name and status (overdue, unpaid, paid via escrow, paid\u2026) with the amount on the right; estimated amounts say Estimated amount in small print underneath" },
+    { k: "better", zh: "第二行写所属资产或患者、到期日、周期性 / 一次性、收款方；已缴的这行改写缴费日期", en: "The second line shows the asset or patient, due date, recurring or one-time, and payee; for paid bills it shows the payment date instead" },
+    { k: "new", zh: "分期付款的账单每一笔占一行：分期 #1 日期 金额 余额，分期 #2 日期 金额 余额……", en: "A bill paid in installments shows one line per payment: Split #1 date amount balance, Split #2 date amount balance\u2026" },
+    { k: "new", zh: "全部账单顶上有眼睛：点一下全部显示 10 秒，双击或长按切换常显示 / 遮挡，不用一个个点金额", en: "All bills has the eye button: tap to show every amount for 10 seconds, double-tap or long-press to switch between always shown and masked, no need to tap each amount" },
+    { k: "better", zh: "所有页面的「清除筛选」按钮都靠右对齐", en: "The Clear filters button is right-aligned on every page" }
+  ] },
+
   { v: "2026-11-17.25", title: { zh: "车辆页可以直接问咩咩：常见车辆问题点一下就问", en: "Ask Baa from the vehicle page: tap a common car problem to ask right away" }, items: [
     { k: "new", zh: "车辆页右上角「⋯」菜单新增「问咩咩」，进到和「出了问题？」一样的页面，但这次默认就是这辆车，不用再选设备", en: "The vehicle page\u2019s ... menu has a new Ask Baa entry that opens the same page as Something wrong, already set to this vehicle with no device to pick" },
     { k: "new", zh: "页面上有一排常见车辆问题按钮（发动机故障灯、胎压灯、刹车异响、方向盘抖动、打不着火、空调不制冷…，电动车还有充电和续航），点一下就直接问咩咩，不用打字", en: "A row of common car problem buttons (check engine light, tire pressure, brake noise, steering shake, won\u2019t start, A/C, and for EVs charging and range): tap one to ask right away without typing" },
