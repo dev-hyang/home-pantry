@@ -28,7 +28,7 @@ export const DemoStore = {
       db.properties = [{ id: uid(), name: t("我的家"), kind: "other", role: "owner_occupied", status: "owned", address: null, is_default: true, archived: false, notes: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }];
     }
     for (const p of db.properties) p.status ||= (p.role === "tenant" ? "renting" : "owned");
-    db.deals ||= []; db.deal_done ||= []; db.deal_overrides ||= []; db.deal_custom ||= []; db.deal_events ||= []; db.categories ||= []; db.custom_seasonal ||= [];
+    db.deals ||= []; db.deal_done ||= []; db.deal_overrides ||= []; db.deal_custom ||= []; db.deal_events ||= []; db.deal_plans ||= []; db.plan_candidates ||= []; db.plan_offers ||= []; db.categories ||= []; db.custom_seasonal ||= [];
     const def = db.properties.find((p) => p.is_default) || db.properties[0];
     db.house_profiles ||= {};
     if (db.house_profile) { db.house_profiles[def.id] ||= db.house_profile; delete db.house_profile; }
@@ -270,6 +270,25 @@ export const DemoStore = {
     else this.db.deal_events.push({ ...e, id: uid(), created_at: now, updated_at: now });
     this.persist();
   },
+  /* 买卖计划（迁移 078）：计划 → 候选 → 出价记录；删上一级时连带删下一级 */
+  async listPlans() { const c = (k) => (this.db[k] || []).map((x) => ({ ...x })); return { plans: c("deal_plans"), cands: c("plan_candidates"), offers: c("plan_offers") }; },
+  async savePlanRow(table, fields, r) {
+    const now = new Date().toISOString(); this.db[table] ||= [];
+    const row = {}; fields.forEach((k) => { row[k] = r[k] ?? null; });
+    if (r.id) { const i = this.db[table].findIndex((x) => x.id === r.id); if (i < 0) throw new Error("记录不存在"); this.db[table][i] = { ...this.db[table][i], ...row, updated_at: now }; this.persist(); return r.id; }
+    const id = uid(); this.db[table].push({ ...row, id, created_at: now, updated_at: now }); this.persist(); return id;
+  },
+  savePlan(p) { return this.savePlanRow("deal_plans", PLAN_FIELDS, p); },
+  savePlanCand(c) { return this.savePlanRow("plan_candidates", PLAN_CAND_FIELDS, c); },
+  savePlanOffer(o) { return this.savePlanRow("plan_offers", PLAN_OFFER_FIELDS, o); },
+  async deletePlan(id) {
+    const cs = new Set((this.db.plan_candidates || []).filter((x) => x.plan_id === id).map((x) => x.id));
+    this.db.plan_offers = (this.db.plan_offers || []).filter((x) => !cs.has(x.candidate_id));
+    this.db.plan_candidates = (this.db.plan_candidates || []).filter((x) => x.plan_id !== id);
+    this.db.deal_plans = (this.db.deal_plans || []).filter((x) => x.id !== id); this.persist();
+  },
+  async deletePlanCand(id) { this.db.plan_offers = (this.db.plan_offers || []).filter((x) => x.candidate_id !== id); this.db.plan_candidates = (this.db.plan_candidates || []).filter((x) => x.id !== id); this.persist(); },
+  async deletePlanOffer(id) { this.db.plan_offers = (this.db.plan_offers || []).filter((x) => x.id !== id); this.persist(); },
   async deleteDealEvent(id) { this.db.deal_events = (this.db.deal_events || []).filter((x) => x.id !== id); this.persist(); },
   /** 删除一条交易记录（历史交易行的删除）：连同它的清单、时间线、自定义项；不动房产 / 车辆现在的状态，也不动已记入花费的款项 */
   async deleteDeal(id) {
@@ -723,6 +742,9 @@ const FIN = {
 };
 const canFinance = () => financeAllowed({ mode: "cloud", userId: state.user?.id, members: state.members });
 export const DEAL_FIELDS = ["property_id", "asset_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at", "baseline"];
+export const PLAN_FIELDS = ["kind", "title", "status", "budget", "notes"];   // 买卖计划（迁移 078）
+export const PLAN_CAND_FIELDS = ["plan_id", "name", "address", "url", "price", "status", "score", "pros", "cons", "details", "notes"];
+export const PLAN_OFFER_FIELDS = ["candidate_id", "offered_on", "amount", "counter_amount", "conditions", "outcome"];
 export const DEAL_EVENT_FIELDS = ["deal_id", "happened_on", "title", "note", "contact", "task_keys", "created_by_name"];
 export const DEAL_CUSTOM_FIELDS = ["deal_id", "name", "stage", "priority", "due_on", "note", "done_on", "done_by_name", "skipped"];
 export const CUSTOM_SEASONAL_FIELDS = ["property_id", "name", "note", "months", "due_on", "done_on", "done_by_name"];
@@ -1008,6 +1030,24 @@ export const CloudStore = {
     if (e.id) this.must(await this.sb.from("deal_events").update(row).eq("id", e.id));
     else this.must(await this.sb.from("deal_events").insert({ ...row, created_by: state.user.id }));
   },
+  /* 买卖计划（迁移 078）：计划 → 候选 → 出价记录（删上一级由数据库级联删下一级）；还没执行迁移时读不到，计划页显示空 */
+  async listPlans() {
+    const q = (t) => this.sb.from(t).select("*").eq("household_id", this.hid).order("created_at");
+    const [p, c, o] = await Promise.all([q("deal_plans"), q("plan_candidates"), q("plan_offers")]);
+    if (p.error || c.error || o.error) { console.warn("[plans]", (p.error || c.error || o.error).message); return { plans: [], cands: [], offers: [] }; }
+    return { plans: p.data, cands: c.data, offers: o.data };
+  },
+  async savePlanRow(table, fields, r) {
+    const row = pick(r, fields, { household_id: this.hid });
+    if (r.id) { this.must(await this.sb.from(table).update(row).eq("id", r.id)); return r.id; }
+    return this.must(await this.sb.from(table).insert({ ...row, created_by: state.user.id }).select("id").single()).id;
+  },
+  savePlan(p) { return this.savePlanRow("deal_plans", PLAN_FIELDS, p); },
+  savePlanCand(c) { return this.savePlanRow("plan_candidates", PLAN_CAND_FIELDS, c); },
+  savePlanOffer(o) { return this.savePlanRow("plan_offers", PLAN_OFFER_FIELDS, o); },
+  async deletePlan(id) { this.must(await this.sb.from("deal_plans").delete().eq("id", id)); },
+  async deletePlanCand(id) { this.must(await this.sb.from("plan_candidates").delete().eq("id", id)); },
+  async deletePlanOffer(id) { this.must(await this.sb.from("plan_offers").delete().eq("id", id)); },
   async deleteDealEvent(id) { this.must(await this.sb.from("deal_events").delete().eq("id", id)); },
   async deleteDeal(id) { this.must(await this.sb.from("property_deals").delete().eq("id", id)); },   // 子表（清单 / 覆盖 / 自定义 / 时间线 / 成交价旁表）都是 on delete cascade
 
@@ -1371,7 +1411,7 @@ export const CloudStore = {
     if (this.channel) this.sb.removeChannel(this.channel);
     const f = { schema: "public", filter: `household_id=eq.${this.hid}` };
     let ch = this.sb.channel(`hh-${this.hid}`);
-    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills_recurring", "bills_recurring_payments", "bills_one_time", "bills_one_time_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "account_balances", "asset_valuations", "net_worth_snapshots", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms", "shops", "shop_deals", "shop_deal_runs"]) {
+    for (const table of ["items", "shopping_list", "purchases", "house_profiles", "assets", "maintenance_logs", "seasonal_tasks", "properties", "bills_recurring", "bills_recurring_payments", "bills_one_time", "bills_one_time_payments", "income_records", "income_repayments", "income_access", "debt_accounts", "debt_transactions", "account_balances", "asset_valuations", "net_worth_snapshots", "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "deal_plans", "plan_candidates", "plan_offers", "custom_seasonal_tasks", "custom_categories", "custom_locations", "custom_terms", "shops", "shop_deals", "shop_deal_runs"]) {
       ch = ch.on("postgres_changes", { event: "*", table, ...f }, onChange);
     }
     this.channel = ch.subscribe();

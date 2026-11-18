@@ -8,6 +8,7 @@ import { lang, t } from "../core/i18n.js";
 const L = (zh, en) => (lang === "en" ? en : zh);
 import { activeProperties } from "../core/lifecycle.js";
 import { activeVehicles, assetName } from "./assets.js";
+import { planFormHtml, planListHtml, planPageHtml } from "./plan-board.js";
 
 const G = () => window.GUIDES || { KINDS: [], GUIDES: {}, REGION: { note: ["", ""] } };
 const tx = (p) => (Array.isArray(p) ? L(p[0], p[1]) : String(p ?? ""));
@@ -35,11 +36,14 @@ export function planEntryCards() {
 
 export function viewPlan() {
   const gs = G(), kind = state.route?.q?.get("k");
+  const pid = state.route?.q?.get("p");
+  if (pid) return planPageHtml(pid);
   if (kind && gs.GUIDES[kind]) return guidePage(kind);
   return `<section class="section menu-page house-landing">
     <div class="section-head"><h2>🧭 ${t("买卖计划")}</h2></div>
     <p class="muted">${t("还在想、还没买 / 卖：先看指南。指南不会创建房产或车辆；买到手以后，再在房屋首页「添加」。")}</p>
     <div class="hv-grid">${planEntryCards()}</div>
+    ${(state.plans || []).length ? `<div class="section-head"><h3>${t("我的计划")}</h3></div>${planListHtml()}` : ""}
     <p class="muted plan-note">${esc(tx(gs.REGION.note))}</p>
   </section>`;
 }
@@ -76,6 +80,14 @@ function stageHtml(kind, s, open) {
     ${s.tip ? `<p class="plan-tip">💡 ${esc(tx(s.tip))}</p>` : ""}</div></details>`;
 }
 
+/** 买房 / 买车指南页顶部：我的计划（全家共享）+ 新建入口 */
+function myPlans(kind) {
+  const editing = state.planEdit?.type === "plan" && !state.planEdit.id;
+  return `<section class="section"><div class="section-head"><h3>${t("我的计划")}</h3><p>${t("把候选、对比和出价记在这里，全家一起看")}</p></div>
+    ${planListHtml(kind)}
+    ${editing ? planFormHtml(kind) : `<p><button type="button" class="btn btn-primary" data-action="plan-new" data-kind="${kind}">＋ ${t("新建计划")}</button></p>`}</section>`;
+}
+
 function guidePage(kind) {
   const g = G().GUIDES[kind];
   return `<section class="section menu-page plan-page">
@@ -83,7 +95,7 @@ function guidePage(kind) {
     <div class="section-head"><h2>${g.icon} ${esc(tx(g.name))}</h2></div>
     <p class="muted">${esc(tx(g.intro))}</p>
     <p class="muted plan-note">${esc(tx(G().REGION.note))} ${t("仅供参考，不是法律或财务建议。")}</p>
-    ${kind.startsWith("sell") ? sellStart(kind) : ""}
+    ${kind.startsWith("sell") ? sellStart(kind) : myPlans(kind)}
     ${g.stages.map((s, i) => stageHtml(kind, s, i === 0)).join("")}
   </section>`;
 }

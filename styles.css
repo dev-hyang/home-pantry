@@ -3954,3 +3954,35 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .plan-chk legend + .plan-chk-row { border-top: 0; }
 .plan-chk-row input { width: 22px; height: 22px; flex: none; margin-top: 1px; }
 .plan-tip { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+
+/* ── 买卖计划：计划 / 候选 / 对比 / 出价（house/plan-board.js）── */
+.plan-rows { display: grid; gap: 8px; margin-bottom: 12px; }
+.plan-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 56px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; color: inherit; text-decoration: none; }
+.plan-row-t { display: flex; flex-direction: column; min-width: 0; }
+.plan-row-t small { color: var(--muted); }
+.plan-form { display: grid; gap: 10px; margin: 8px 0 12px; }
+.plan-grid2 { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.plan-grid2 .field { min-width: 0; }
+.plan-form input, .plan-form select, .plan-form textarea { width: 100%; box-sizing: border-box; min-height: 44px; }
+.plan-acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.plan-cands { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); margin-top: 12px; }
+.plan-cand { margin: 0; min-width: 0; }
+.plan-cand.is-passed { opacity: .65; }
+.plan-cand-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.plan-cand-h small { display: block; overflow-wrap: anywhere; }
+.plan-score { color: #d9a400; letter-spacing: 1px; font-size: 13px; }
+.plan-cand-p { margin: 4px 0; font-size: 17px; }
+.plan-pc { margin: 4px 0; font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.plan-offers { list-style: none; margin: 8px 0; padding: 8px 0 0; border-top: 1px dashed var(--border); display: grid; gap: 8px; }
+.plan-offers li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13.5px; }
+.plan-mini { margin-left: auto; display: inline-flex; gap: 4px; }
+.plan-cond { flex-basis: 100%; }
+.plan-cmp { display: none; }
+@media (min-width: 720px) {
+  .plan-cmp { display: block; margin: 12px 0; }
+  .plan-cmp-scroll { overflow-x: auto; }
+  .plan-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  .plan-table th, .plan-table td { text-align: left; vertical-align: top; padding: 8px 10px; border-top: 1px solid var(--border); min-width: 120px; overflow-wrap: anywhere; }
+  .plan-table thead th { border-top: 0; }
+  .plan-table tbody th { font-weight: 600; color: var(--muted); min-width: 110px; }
+}

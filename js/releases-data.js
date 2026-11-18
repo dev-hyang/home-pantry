@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-17.30", title: { zh: "买卖计划：记下候选的房子 / 车，打分、并排对比、记录出价，全家共享", en: "Buy / sell plans: keep candidate homes and cars, score and compare them side by side, log offers; shared by the family" }, items: [
+    { k: "new", zh: "买房 / 买车指南页有「我的计划」：新建一个计划（预算、备注），里面加候选的房子或车——名称、地址、链接、报价、打分、优缺点、面积 / 年款 / 里程等", en: "The buy guides have My plans: create a plan (budget, notes) and add candidate homes or cars with name, address, link, price, score, pros and cons, size, year, mileage and more" },
+    { k: "new", zh: "两个以上候选时，宽屏显示并排对比表（标出最低价）；手机上用卡片，信息一样", en: "With two or more candidates a side-by-side table appears on wide screens (lowest price marked); on phones the cards show the same details" },
+    { k: "new", zh: "每个候选可以记出价：日期、我的出价、对方还价、条件、结果；记了出价，候选自动标成「已出价」", en: "Each candidate has an offer log: date, my offer, counter-offer, conditions and result; logging an offer marks the candidate as Offer made" },
+    { k: "better", zh: "价格只给有财务权限的人看和填；计划、候选、出价都已加入备份和恢复", en: "Prices are visible and editable only with finance access; plans, candidates and offers are included in backup and restore" }
+  ] },
+
   { v: "2026-11-17.29", title: { zh: "新增「买卖计划」：买房 / 买车 / 卖房 / 卖车的分步指南，不再先建「选购中」的占位车", en: "New Buy / sell plans: step-by-step guides for buying or selling a home or car; no more placeholder \u201cShopping\u201d car" }, items: [
     { k: "new", zh: "房屋首页多了「买卖计划」：我想买房 / 买车 / 卖房 / 卖车。每个都是分阶段的指南（准备、找、比较、出价、合同期、交割…），写清为什么、怎么做、常见的坑和要做的决定", en: "The Home page has Buy / sell plans: buy a home, buy a car, sell a home, sell a car. Each is a staged guide (prepare, search, compare, offer, under contract, closing…) with why, how, common pitfalls and the decisions you need to make" },
     { k: "new", zh: "看房清单、试驾 / 看车清单可以逐项勾选（只保存在这台设备上）；内容以美国通用原则为主，并标出伊利诺伊的做法，仅供参考", en: "Viewing and test-drive checklists can be ticked off item by item (saved on this device only); content follows general US practice with Illinois specifics marked, for reference only" },

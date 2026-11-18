@@ -69,6 +69,7 @@ import { initNetWorth, viewNetWorth } from "./bills/net-worth.js";   // 财务 �
 import { assetTemplateItems, enrichAssets, leaveAsset, renderAssetList, renderMaintLogs, maintFilter, supplyItem, onAssetFormChange, onMaintFormChange, saveAssetForm, saveMaintForm, unitRow, viewAssetForm, viewAssetTemplate, viewAssets } from "./house/assets.js";
 import { fixAction, runFix, viewFix } from "./house/fix.js";
 import { togglePlanCheck, viewPlan } from "./house/plan.js";
+import { planAction, saveCandForm, saveOfferForm, savePlanForm } from "./house/plan-board.js";
 import { deleteSeasonTask, saveSeasonForm, seasonalSince, shiftTasksMonth, toggleTask, viewTasks } from "./house/tasks.js";
 import { enrichBills } from "./bills/logic.js";
 import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
@@ -122,7 +123,7 @@ export async function refresh() {
       // 所有表一次并行读完（云端一轮往返），再在内存里定当前房产；采购花费只有统计和导出用，不挡首屏，渲染后后台再读
       const members = state.membersReady; state.membersReady = null;   // 登录后与这一轮并行去读家庭成员
       Store.listItemAliases().then((r) => { state.itemAliases = r || []; }).catch(() => { state.itemAliases = state.itemAliases || []; });   // 物品别名（迁移 066）：不挡首屏
-      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes, people, medBills, medPays, , cards] = await Promise.all([
+      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes, people, medBills, medPays, , cards, planData] = await Promise.all([
         Store.listProperties(), Store.listItems(),
         soft("logs", Store.listLogs(), state.logs || [], (r) => { state.logs = r; state.enriched = enrich(state.items, r); }),
         Store.listShopping(), Store.listHouseProfiles(),
@@ -140,8 +141,10 @@ export async function refresh() {
         Store.listMedicalBills().catch((e) => { console.warn("[medical]", e.message); return []; }),   // 还没执行迁移 027 时读不到：不影响其他功能
         Store.listMedicalPayments().catch(() => []),
         members,
-        Store.listCards().catch((e) => { console.warn("[cards]", e.message); return []; })]);   // 迁移 032 没执行时读不到：不影响其他功能
+        Store.listCards().catch((e) => { console.warn("[cards]", e.message); return []; }),
+        Store.listPlans().catch((e) => { console.warn("[plans]", e.message); return { plans: [], cands: [], offers: [] }; })]);   // 迁移 078 没执行时读不到：计划页显示空   // 迁移 032 没执行时读不到：不影响其他功能
       state.budget = budget; state.incomes = incomes;
+      state.plans = planData.plans; state.planCands = planData.cands; state.planOffers = planData.offers;
       state.customSeasonal = customSeasonal;
       if (terms) setGlossary(terms);   // 自定义名称的翻译
       state.properties = properties;
@@ -193,6 +196,7 @@ function resetListPages() {
 }
 /* ── 实时同步按表重读：家人改了哪张表，就只重读那张表（和由它推出来的 enrich），不再整轮读 24 张表。
  * 下面没列的表（房产、房屋资料、自定义分类 / 位置 / 翻译——会影响当前房产和全局分类表）照旧整轮 refresh。 */
+const reloadPlans = () => Store.listPlans().then((x) => { state.plans = x.plans; state.planCands = x.cands; state.planOffers = x.offers; });
 const reloadDealExtras = () => Store.listDealExtras().then((x) => { state.dealOverrides = x.overrides; state.dealCustom = x.custom; state.dealEvents = x.events || []; });
 const TABLE_RELOAD = {
   items: () => Promise.all([Store.listItems(), Store.listLogs()]).then(([items, logs]) => { state.items = items; state.logs = logs; state.enriched = enrich(items, logs); }),   // 加减库存同时写 stock_logs（没订阅），一起重读
@@ -211,6 +215,7 @@ const TABLE_RELOAD = {
   account_balances: () => loadNetWorth(), asset_valuations: () => loadNetWorth(), net_worth_snapshots: () => loadNetWorth(),
   property_deals: () => Store.listDeals().then((r) => { state.deals = r; }),
   deal_task_done: () => Store.listDealDone().then((r) => { state.dealDone = r; }),
+  deal_plans: reloadPlans, plan_candidates: reloadPlans, plan_offers: reloadPlans,
   deal_task_overrides: reloadDealExtras, deal_custom_tasks: reloadDealExtras, deal_events: reloadDealExtras,
 };
 const changedTables = new Set();
@@ -267,7 +272,7 @@ const TABS_HIDDEN = (r) => {
 /* 现在是不是正处在用户自己的操作里（点击、改下拉、输入、按键的处理过程中，含紧跟着的同一轮任务）：这时的 render(false) 是用户要的，不填回旧值 */
 let userActing = false;
 for (const ev of ["click", "change", "input", "keydown", "submit", "pointerup"]) document.addEventListener(ev, () => { userActing = true; setTimeout(() => { userActing = false; }, 0); }, true);
-const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "onetime" && !!r.q.get("bill")) || (r.section === "bills" && r.sub === "cards" && !!r.q.get("card")) || (r.section === "bills" && r.sub === "income" && !!state.inc?.form) || (r.section === "me" && r.sub === "settings" && !!r.q.get("member"));   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
+const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "plan" && !!state.planEdit) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "onetime" && !!r.q.get("bill")) || (r.section === "bills" && r.sub === "cards" && !!r.q.get("card")) || (r.section === "bills" && r.sub === "income" && !!state.inc?.form) || (r.section === "me" && r.sub === "settings" && !!r.q.get("member"));   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
 // 二级页顶部的面包屑和每个页签的目录页在 js/menu.js（参考家庭学堂“我的”页：一栏一行，点进去）
 const offPanel = (title, action, btn) => `<div class="panel empty"><strong>${title}</strong>${t("在“我的 → 设置”里可以重新打开。")}<p><button type="button" class="btn btn-primary" data-action="${action}">${btn}</button></p></div>`;
 
@@ -651,7 +656,7 @@ main.addEventListener("input", (e) => {
     const panel = e.target.closest("details");
     searchSoon(() => { const ul = panel?.querySelector("ul.card-list"); if (!ul) return; const tmp = document.createElement("div"); tmp.innerHTML = viewCards(); const fresh = tmp.querySelector("details.ref-panel ul.card-list"); if (fresh) ul.replaceWith(fresh); });   // 整页 viewCards() 较重：停下再算
   }
-  const df = e.target.closest("#dealForm, #dealTaskForm, #dealEventForm, #closeoutForm, #propertyForm"); if (df) markDirty(df, true);   // 提示还没保存
+  const df = e.target.closest("#dealForm, #dealTaskForm, #dealEventForm, #closeoutForm, #propertyForm, #planForm, #candForm, #offerForm"); if (df) markDirty(df, true);   // 提示还没保存
   if (e.target.matches("textarea[data-grow]")) autoGrow(e.target);
   const hf = e.target.closest("#houseForm"); if (hf && /^hoa_(dues|sa_)/.test(e.target.name || "")) updateHoaTotal(hf);   // HOA 金额 / 评估字段一改，每月总计卡马上重算
 });
@@ -970,6 +975,9 @@ main.addEventListener("submit", async (e) => {
       state.deleteProperty = null; toast(t("已彻底删除“{name}”及其账单、设备和资料；花费记录保留", { name: p.name })); return refresh();
     }
     if (f.id === "dealForm") { await saveDealForm(f); f.dataset.saved = "1"; return refresh(); }   // 已保存：刷新时不再当作未保存改动
+    if (f.id === "planForm") { const pid = await savePlanForm(f); state.planEdit = null; await refresh(); if (!f.elements.rec_id.value) go(`${href("house", "plan")}?p=${pid}`); return; }
+    if (f.id === "candForm") { await saveCandForm(f); state.planEdit = null; return refresh(); }
+    if (f.id === "offerForm") { await saveOfferForm(f); state.planEdit = null; return refresh(); }
     if (f.id === "dealEventForm") { await saveDealEventForm(f); state.dealEventEdit = null; return refresh(); }
     if (f.id === "dealTaskForm") { await saveDealTaskForm(f); state.dealTaskEdit = null; return refresh(); }
     if (f.id === "seasonForm") { if (await saveSeasonForm(f)) { state.seasonForm = null; return refresh(); } return; }
@@ -1235,6 +1243,8 @@ main.addEventListener("click", async (e) => {
         if (d.kind === "buy") { if (!armed(el, t("再点一次确认已交割"))) return; await completeBuy(); return refresh(); }
         state.closeout = true; return go(`${href("house", "deal")}?sec=closeout`);
       }
+      case "plan-new": case "plan-edit": case "plan-cancel": case "plan-status": case "plan-delete": case "cand-new": case "cand-edit": case "cand-delete": case "offer-new": case "offer-edit": case "offer-delete":
+        return planAction(action, el, { render, refresh, go });   // 买卖计划（迁移 078）
       case "plan-check": return togglePlanCheck(el.dataset.kind, el.dataset.stage, Number(el.dataset.idx), el.checked);   // 看房 / 看车清单：只存这台设备
       case "plan-open-property": {   // 买卖计划 → 卖房：先切到这套房产，再进它的交易页
         if (id !== state.propertyId) { state.propertyId = id; try { localStorage.setItem("hmh-property", id); } catch { /* 忽略 */ } state.houseDraft = null; }

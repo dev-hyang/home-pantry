@@ -28,6 +28,7 @@ export const state = {
   editProperty: null,                          // 设置页：正在编辑的房产 id（"new" = 新建）
   deleteProperty: null,                        // 设置页：正在确认彻底删除的已归档房产 id
   deals: [], dealDone: [],                     // 房产交易（买入 / 卖出 / 退租）与清单完成记录
+  plans: [], planCands: [], planOffers: [], planEdit: null,   // 买卖计划（迁移 078）
   dealOverrides: [], dealCustom: [], dealEvents: [],   // 交易清单：模板任务的应完成日期调整、自定义事项、实际发生的事（进展记录）
   pendingMembers: [],                          // 家主看到的加入申请（等批准）
   dealEventEdit: null, dealAi: {}, dealAiBusy: false,   // 进展记录：正在编辑的 { deal, id, key }；AI 对照分析的结果

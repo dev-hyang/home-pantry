@@ -687,3 +687,10 @@ assetOf(row):
   - **卖房 / 卖车**：指南页上列出名下在用的房产 / 车辆，点一下进入它的交易页（卖出清单仍由已有的 `startDeal` 生成）。
   - 实测：1280px 与 390px（iframe）下四个指南页和入口页无横向溢出、无元素超出屏幕；勾选后写入 localStorage；房屋首页有三个区（房屋 / 汽车 / 买卖计划），不再有 veh-buy-start 按钮。移动端真实触屏手势没测（桌面浏览器）。
   - 下一步：C（`deal_plans` / `plan_candidates` / `plan_offers` 三张表 + 比较表 + 出价记录）。
+- **2026-11-17.30 §17 版本 C：计划 + 候选 + 对比表 + 出价记录（入库、全家共享）**：
+  - **数据库（迁移 `078_deal_plans.sql`，只新增、不改不删已有数据）**：`deal_plans`（kind buy_home / buy_vehicle、title、status active / won / dropped、budget、notes）→ `plan_candidates`（plan_id、name、address、url、price、status、score 1–5、pros、cons、details jsonb、notes）→ `plan_offers`（candidate_id、offered_on、amount、counter_amount、conditions、outcome）。三张表都有 RLS（家庭成员）、updated_at 触发器、子表同家庭校验触发器、级联删除、实时订阅。已在线上库（home-pantry 项目）直接执行，用只读查询确认三张表的策略都在。价格沿用「界面闸门」（有财务权限才显示 / 填写）。
+  - **同步**：合并进 `supabase/schema.sql`；`backup.js` TABLES 末尾加三张表（父在前）；实时订阅加三张表；演示库（localStorage）和云端 Store 同一套方法（`listPlans` / `savePlan` / `savePlanCand` / `savePlanOffer` / 删除）；`state.plans / planCands / planOffers`，随整轮读取一并加载，旧库没执行迁移时读不到就当空。
+  - **界面**：买房 / 买车指南顶部「我的计划」+「新建计划」；`#/house/plan?p=<id>` 计划页：编辑 / 放弃 / 删除计划、候选卡片（打分、优缺点、面积 / 年款 / 里程…）、≥720px 并排对比表（标最低价）、每个候选的出价记录；出价后候选自动变「已出价」。表单在后台刷新时不被冲掉（`FORM_PAGES` 加了编辑中的计划页）。
+  - **踩的坑**：表单里隐藏输入框叫 `id` 会盖住 `form.id`，提交时匹配不到 → 改名 `rec_id`（以后表单里别用 `id` / `name` 当字段名）。
+  - 实测：演示库里建计划→加 2 个候选→记出价全流程；1280px 对比表 11 行；390px 对比表隐藏、表单控件同高 46px、不超出、无横向溢出。云端实际读写没法在这里登录测，靠表结构和字段一一对应保证；上线后第一次用请留意。
+  - 下一步：D（候选「拿下了」→ 一键建房产 / 车辆 + 交易；补全买入清单前半段和 contingency 倒计时）。
