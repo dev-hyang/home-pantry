@@ -1,6 +1,5 @@
 import { state } from "../core/state.js";
-import { deviceLinkPrompt, peoplePanel, visibleDevices } from "./family-people.js";
-import { loginsPanel } from "./logins.js";
+import { deviceLinkPrompt, peoplePanel, personPage } from "./family-people.js";
 import { moneyHidden } from "../core/privacy.js";
 import { tempUnitPref } from "../core/weather.js";
 import { Store } from "../core/store.js";
@@ -18,7 +17,7 @@ import { usageHTML } from "../core/usage.js";
 import { budgetPlan, isHouseholdOwner, myId } from "../bills/budget.js";
 import { financeOk } from "../core/finance-access.js";
 import { PAGE_SIZES, pageSize } from "../core/pager.js";
-import { amOwner, famMembers, membersList, viewMemberProfile } from "./members.js";
+import { amOwner, famMembers, viewMemberProfile } from "./members.js";
 
 /** 当前用户是否家主（household_members.role = owner） */
 export const isOwner = () => amOwner();
@@ -305,21 +304,16 @@ export function viewSettings() {
   const sw = (id, on, title, desc) => `<div class="panel"><div class="kv"><div><b>${title}</b><div class="muted">${desc}</div></div>
       <label class="switch"><input type="checkbox" id="${id}" ${on ? "checked" : ""}><span>${on ? t("已打开") : t("已关闭")}</span></label></div></div>`;
   const blocks = {
-    family: () => (state.route.q.get("member") ? viewMemberProfile(state.route.q.get("member")) : `
+    family: () => {
+      const q = state.route.q;
+      if (q.get("person")) return personPage(q.get("person"));
+      if (q.get("member")) { const m = famMembers().find((x) => x.user_id === q.get("member")); return m?.person_id ? personPage(m.person_id) : viewMemberProfile(q.get("member")); }   // 旧的设备资料链接：转到这台设备所属的家庭成员
+      return `
     <div class="panel">
       <div class="kv"><div><b>${esc(state.household?.name || "")}</b><div class="muted">${cloud ? t("云端协同：家人修改会实时同步") : t("本地演示：数据只保存在这个浏览器里")}</div></div>
         ${cloud ? `<a class="btn btn-sm btn-ghost" href="${href("me", "settings")}?sec=backup">${t("同步与备份")} ›</a>` : ""}</div>
       ${cloud && state.households.length > 1 ? `<label style="display:grid;gap:4px;margin-top:12px">${t("切换家庭")}<select id="hhSwitch">${state.households.map((h) => `<option value="${h.id}" ${h.id === state.household.id ? "selected" : ""}>${esc(h.name)}</option>`).join("")}</select></label>` : ""}
     </div>
-    ${cloud ? deviceLinkPrompt() : ""}
-    ${cloud ? pendingList() : ""}
-    ${peoplePanel()}
-    <div class="panel">
-      <h3 class="mem-h">${t("登录设备（{n}）", { n: visibleDevices().length })}</h3>
-      ${membersList()}
-      <p class="muted mem-note">${amOwner() ? t("每台登录的设备一行，点进去改称呼、联系方式、属于哪位家庭成员，设财务权限、家主角色，或移出家庭。") : t("这里只有你自己的设备；点一行可以改称呼和联系方式。")}</p>
-    </div>
-    ${cloud ? loginsPanel() : ""}
     ${cloud ? `
     <div class="panel">
       <div class="kv"><div><div class="muted">${t("邀请家人：把这个邀请码发给他们")}</div><div class="code">${esc(state.household.invite_code)}</div><div class="muted small">${inviteLine()}</div></div>
@@ -327,12 +321,16 @@ export function viewSettings() {
           ${isOwner() ? `<button type="button" class="btn btn-sm btn-ghost" data-action="rotate-invite">${t("重新生成")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="close-invite">${t("关闭邀请")}</button>` : ""}</div></div>
       <p class="muted" style="font-size:12px;margin:8px 0 0">${t("家人用邀请码申请加入（不用收邮件），邀请码 7 天有效；申请后要家主在这里批准才能进来。邀请码泄露了或家人都加好了，请家主点「重新生成」或「关闭邀请」，旧码立即失效，已加入的家人不受影响。")}</p>
       ${state.user?.is_anonymous ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("你是通过邀请码直接进入的，身份保存在本设备浏览器里；清除浏览器数据或换手机后需要重新用邀请码进入。")}</p>` : ""}
-    </div>` : `
-    <div class="panel config-diag">
+    </div>` : ""}
+    ${cloud ? deviceLinkPrompt() : ""}
+    ${cloud ? pendingList() : ""}
+    ${peoplePanel()}
+    ${cloud ? "" : `    <div class="panel config-diag">
       <b>${t("为什么还是本地演示模式")}</b>
       <p>${esc(t(state.configIssue || "没有检测到 Supabase 配置。"))}</p>
       <p class="muted" style="margin:0">${t("自查：在浏览器打开 {link}，确认看到的是你填好的地址和 key；改完后等 1–2 分钟，再按 Ctrl+F5（Mac：Cmd+Shift+R）强制刷新。", { link: `<a href="config.js" target="_blank" rel="noopener">${t("本站的 config.js")}</a>` })}</p>
-    </div>`}`),
+    </div>`}`;
+    },
     prefs: () => `
     <div class="panel">
       <label class="field-label" for="langSel">${t("语言")}</label>

@@ -1167,7 +1167,7 @@ export const CloudStore = {
   /* 家庭成员 / 孩子 / 宠物名册（迁移 029）：同一个家庭里“看起来一样”的名字由数据库唯一索引拦住 */
   async listPeople() { return this.must(await this.sb.from("household_people").select("*").eq("household_id", this.hid).order("created_at")); },
   async savePerson(p) {
-    const row = { name: String(p.name).trim().slice(0, 40), kind: p.kind || "adult", birth: p.birth || null, member_user_id: p.member_user_id || null, household_id: this.hid };
+    const row = { name: String(p.name).trim().slice(0, 40), kind: p.kind || "adult", birth: p.birth || null, gender: p.gender || null, phone: p.phone || null, email: p.email || null, address: p.address || null, member_user_id: p.member_user_id || null, household_id: this.hid };
     if (p.id) { const { error } = await this.sb.from("household_people").update(row).eq("id", p.id); if (error) throw new Error(personError(error)); return p.id; }
     const { data, error } = await this.sb.from("household_people").insert(row).select("id").single(); if (error) throw new Error(personError(error)); return data.id;
   },
@@ -1399,9 +1399,10 @@ export const CloudStore = {
   async deleteShopping(id) { this.must(await this.sb.from("shopping_list").delete().eq("id", id)); },
   async clearBought() { this.must(await this.sb.from("shopping_list").delete().eq("household_id", this.hid).eq("status", "bought")); },
   async listMembers() {   // 只列正式成员（迁移 049 起新加入的人先是「待批准」）；没执行 049 时没有 status 列，退回原来的读法
-    const base = "user_id,display_name,role,joined_at";
+    const base = "user_id,display_name,role,joined_at,person_id";   // person_id：这台设备属于哪位家庭成员（迁移 084）；没读回来界面就会一直显示「还没链接」
     const q = (cols, active) => { let b = this.sb.from("household_members").select(cols).eq("household_id", this.hid); if (active) b = b.eq("status", "active"); return b.order("joined_at"); };
-    let r = await q(`${base},can_finance,${PROFILE_COLS}`, true);   // 电话 / 邮箱 / 地址：成员资料（迁移 052）
+    let r = await q(`${base},can_finance,${PROFILE_COLS}`, true);
+    if (r.error && /person_id/i.test(r.error.message)) { const b0 = base.replace(",person_id", ""); r = await q(`${b0},can_finance,${PROFILE_COLS}`, true); }   // 还没执行迁移 084   // 电话 / 邮箱 / 地址：成员资料（迁移 052）
     state.noProfileCols = !!(r.error && /phone|email|address|can_finance|status|does not exist|schema cache/i.test(r.error.message));
     if (state.noProfileCols) r = await q(`${base},can_finance`, true);   // 没执行 052：资料字段在界面上灰掉，提示先执行迁移
     if (r.error && /can_finance/i.test(r.error.message)) r = await q(base, true);   // can_finance：财务权限（迁移 050）；没执行 050：普通成员按「没有财务权限」处理

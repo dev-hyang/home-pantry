@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.11", title: { zh: "家庭与成员页重做：成员卡片 + 成员详情页（资料 / 登录设备 / 登录记录）；修好设备关联选了又切回的问题", en: "Family & members page redone: member cards and a member detail page (profile / devices / sign-ins); fixed device linking snapping back" }, items: [
+    { k: "fix", zh: "修好「属于哪位家庭成员」选了又自动切回「还没链接」：关联其实已经保存，只是读设备列表时没读回来；这台设备的「这台设备是谁？」提示也不会再反复出现", en: "Fixed Belongs to family member snapping back to not linked: the link was saved but not read back when listing devices; the Who uses this device? prompt no longer keeps returning" },
+    { k: "better", zh: "家庭与成员页：邀请码紧跟在同步与备份下面；「这台设备是谁？」可折叠，链接过就不再显示；家庭成员是一张张卡片（男 / 女 / 孩子 / 宠物图标、联系方式、最近登录的时间 · 设备 · 国家 · IP），右边 ⋯ 里有详情、合并、退出", en: "Family & members: the invite code sits right under Sync & backup; Who uses this device? can be collapsed and disappears once linked; members are cards (gender / child / pet icon, contact, last sign-in time · device · country · IP) with Details, Merge and Sign out under ⋯" },
+    { k: "new", zh: "成员详情页分三块（都能折叠，右上角各有编辑）：基本资料（名字、性别、联系方式、角色）、登录设备（每页 6 台、加载更多，标出自己的设备，能改属于谁、看这台的登录详情、移除可疑设备）、登录记录（可疑的标红，家主看全家）", en: "The member page has three collapsible blocks, each with Edit: Basic info (name, gender, contact, role), Login devices (6 per page, your own device marked, change whose it is, see its sign-ins, remove a suspicious one) and Sign-in history (suspicious ones in red; the owner sees everyone)" },
+    { k: "better", zh: "原来单独的「登录设备」和「登录记录」两块并进了成员页；「地点」只能显示国家（服务器拿不到城市）", en: "The separate Login devices and Sign-in history blocks moved into the member page; Location shows the country only (the server cannot see the city)" }
+  ] },
+
   { v: "2026-11-18.10", title: { zh: "登录记录和陌生登录提醒：看谁、用什么设备、什么时候登录", en: "Sign-in history and unfamiliar sign-in alerts: who signed in, on what device, and when" }, items: [
     { k: "new", zh: "设置 → 家庭与成员 多了「登录记录」：每次登录的时间、设备（iPhone、Android、Windows / Mac 电脑…）、浏览器、IP；默认最近 6 天，可以「加载更多」再往前 6 天；家主看全家，其他人只看自己", en: "Settings → Family & members has Sign-in history: time, device (iPhone, Android, Windows / Mac computer…), browser and IP of each sign-in; the last 6 days by default with Load more for 6 earlier days; the owner sees everyone, others only themselves" },
     { k: "new", zh: "出现没见过的设备或网络登录，会在「注意事项」里提醒，并告诉你可能账号被盗时怎么办（换邀请码、移出设备、检查邮箱 / 手机）；确认是家里人后提醒消失", en: "A device or network not seen before raises an alert in Alerts with what to do if the account may be compromised (new invite code, remove the device, check email / phone); confirming it is family clears the alert" }

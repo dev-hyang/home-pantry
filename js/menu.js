@@ -15,6 +15,7 @@ import { dealSubLabel, dealTasks, historyLabel, openDeal, routeDeal } from "./ho
 import { SETTING_SECTIONS } from "./settings/views.js";
 import { canManageHome } from "./settings/members.js";
 import { familyHref, memberCrumbLabel } from "./settings/members.js";
+import { personNameOf } from "./settings/family-people.js";
 import { aiIcon } from "./core/ai.js";
 import { APP_VERSION } from "./core/version.js";
 import { crumbNav } from "./core/hub.js";
@@ -243,6 +244,7 @@ export function crumb(r) {
   if (psec) parts.push({ href: subHref, label: curLabel }, { label: t(psec.name), icon: psec.icon });
   else if (hist) { parts.push({ href: subHref, label: curLabel }); if (dsec) parts.push({ href: `${subHref}?deal=${encodeURIComponent(q.get("deal"))}`, label: hist }, { label: dsec }); else parts.push({ label: hist }); }   // 房产 / 交易 / 历史 · 买入 / 子页
   else if (dsec) parts.push({ href: subHref, label: curLabel }, { label: dsec });
+  else if (ssec && ssec.id === "family" && q.get("person")) parts.push({ href: subHref, label: curLabel }, { href: familyHref(), label: t(ssec.name), icon: ssec.icon }, { label: personNameOf(q.get("person")) || t("家庭成员") });
   else if (ssec && ssec.id === "family" && q.get("member")) parts.push({ href: subHref, label: curLabel }, { href: familyHref(), label: t(ssec.name), icon: ssec.icon }, { label: memberCrumbLabel(q.get("member")) });   // 设置 / 家庭与成员 / 某位成员
   else if (ssec) parts.push({ href: subHref, label: curLabel }, { label: t(ssec.name), icon: ssec.icon === "__AI__" ? aiIcon(18) : ssec.icon });
   else if (cat) parts.push({ action: "cat", attrs: 'data-cat="all"', label: curLabel }, { label: t(cat.name), icon: cat.icon });   // “库存”可点回全部分类

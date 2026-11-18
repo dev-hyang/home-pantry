@@ -20,7 +20,7 @@ import { applyOverviewQuery, applyOverviewRoute, loadOverviewRange, setOverviewR
 import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, verifyBillIds, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
 import { viewOtBill, applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm } from "./bills/medical-views.js";
-import { deviceLinkDo, deviceLinkNew, setDevicePerson } from "./settings/family-people.js";
+import { deviceLinkDo, deviceLinkNew, resetFamilyUi, savePersonForm, setDevicePerson } from "./settings/family-people.js";
 import { ackLoginDo, loadLoginAlerts, loginAlertItems, loginsMore, recordLoginOnce } from "./settings/logins.js";
 import { spendChanged } from "./core/spend-data.js";
 import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-check.js";
@@ -479,6 +479,7 @@ function onRoute() {
     else if (sec === "bills" && sub === "spend") Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
   }
   // 账单概览：每次进来（含同一页上换了网址参数）都按网址套一次：带 ?asset= → 那个资产 + 本月；不带 → 全部资产 + 上次选的范围
+  if (next.section === "me" && next.sub === "settings" && prev.section === "me" && prev.sub === "settings" && prev.q.get("person") !== next.q.get("person")) resetFamilyUi();
   if (next.section === "bills" && next.sub === "overview") applyOverviewQuery(next.q, next.id);
   // 全部账单：卡片 / 链接带的条件（?asset= ?status= ?range= ?q= ?type= ?cat= ?pay= ?sort=）每次进来套一次
   if (next.section === "bills" && next.sub === "all") { if (routeKey(prev) !== routeKey(next) && !isFormSection(prev)) defaultAllEntry(next.q); applyAllQuery(next.q); }
@@ -951,6 +952,7 @@ main.addEventListener("submit", async (e) => {
       await refresh();
       return go(`${href("bill", billId)}?sec=pay`, { replace: true });   // 记完 / 改完都回到全部缴费记录
     }
+    if (f.id === "personForm") { if (await savePersonForm(f)) { await refresh(); render(true); } return; }   // 家庭成员详情页：保存基本资料
     if (f.id === "assessForm") {
       const billId = f.dataset.bill; if (!(await saveAssessForm(f))) return;
       await refresh(); return go(`${href("bill", billId)}?sec=assess`, { replace: true });
@@ -1196,6 +1198,10 @@ main.addEventListener("click", async (e) => {
       case "alerts-next": shiftAlertSource(1); return render();
       case "login-ack": await ackLoginDo(id); return render(true);   // 登录记录：是我们家人
       case "logins-more": await loginsMore(); return;   // 登录记录：再往前 6 天
+      case "person-del-page": {   // 家庭成员详情页的「删除」：名下没有设备时才有这个按钮
+        if (!confirmDelete(t("删除这位家庭成员？相关账单里的名字会保留，但不再关联到这个人。"))) return;
+        await Store.deletePerson(id); state.people = await Store.listPeople(); toast(t("已删除")); return go(familyHref(), { replace: true });
+      }
       case "device-link": await deviceLinkDo(); return render(true);   // 这台设备是谁？→ 选已有的人
       case "device-link-new": await deviceLinkNew(); return render(true);   // …或新建一个人
       case "bill-cancel": return leaveBill(false);
@@ -1613,7 +1619,7 @@ main.addEventListener("click", async (e) => {
         if (!armed(el, t("再点一次确认移出"))) return;
         await Store.removeMember(id);
         await reloadMembers();
-        toast(t("{name} 已移出家庭", { name: m.display_name })); return go(familyHref(), { replace: true });
+        toast(t("{name} 已移出家庭", { name: m.display_name })); return render(true);
       }
       case "rotate-invite": {
         if (!armed(el, t("再点一次确认重置"))) return;
