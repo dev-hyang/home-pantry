@@ -10,9 +10,9 @@ import { assetChoices } from "./asset-suggest.js";
 import { KINDS, PEOPLE_KINDS, peopleFor } from "./medical.js";
 import { OT_KINDS, OT_LAST, OT_STEPS, newOtDraft, otRowFromDraft, validateOtStep } from "./ot-wizard.js";
 
-const base = () => `${href("bills", "onetime")}?bill=new`;
-const stepUrl = (n) => `${base()}&n=${encodeURIComponent(state.otDraft?.__n || "")}&step=${n}`;
-export const otFullFormUrl = (kind) => `${base()}&mode=full${kind ? `&kind=${encodeURIComponent(kind)}` : ""}`;
+const base = () => href("otbill", "new");
+const stepUrl = (n) => `${base()}?n=${encodeURIComponent(state.otDraft?.__n || "")}&step=${n}`;
+export const otFullFormUrl = (kind) => `${base()}?mode=full${kind ? `&kind=${encodeURIComponent(kind)}` : ""}`;
 const Kof = (d) => KINDS[d.kind] || KINDS.medical;
 const whoName = (d) => (d.patient_id ? (state.people || []).find((p) => p.id === d.patient_id)?.name || "" : d.patient.trim());
 

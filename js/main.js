@@ -14,10 +14,12 @@ import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.
 import { resilientFetch } from "./core/net.js";
 import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
 import { FD, changed, clearUrlParams, onClearFilters } from "./core/clear-filters.js";
+import { enhanceSelects } from "./core/search-select.js";
+import { overviewHref } from "./bills/trail.js";
 import { applyOverviewQuery, applyOverviewRoute, loadOverviewRange, setOverviewRange, viewBillsHome } from "./bills/overview-views.js";
 import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, verifyBillIds, viewAllBills } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
-import { applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm, viewMedical } from "./bills/medical-views.js";
+import { viewOtBill, applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personDelete, personEditCancel, personEditSave, personEditStart, personMerge, personMergeCancel, personMergeOpen, personUse, peopleBulk, onPersonPick, deleteMedPay, exportMedicalCsv, onKindPick, renderMedList, saveMedBillForm, saveMedPayForm } from "./bills/medical-views.js";
 import { ensureAdults } from "./bills/medical.js";
 import { spendChanged } from "./core/spend-data.js";
 import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-check.js";
@@ -75,7 +77,7 @@ import { enrichBills } from "./bills/logic.js";
 import { analyze, deleteDealEvent, runDealAi, saveDealEventForm, setDealAiConsent } from "./house/deal-progress.js";
 import { applyCloseout, cancelDeal, completeBuy, dealTasks, deleteCustomTask, openDeal, saveDealForm, saveDealTaskForm, startDeal, toggleDealSkip, toggleDealTask, viewDeal } from "./house/deals.js";
 import { saveAssessForm } from "./bills/assessments-views.js";
-import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate, viewBillsHistory, viewBillsList, viewRecurring } from "./bills/views.js";
+import { deleteBillPay, payList, reloadPayList, renderBillList, renderPayList, billTemplateItems, exportBillsCsv, leaveBill, backfillPayments, payExpNote, quickVerify, saveBillForm, saveBillPayForm, viewBillForm, viewBillTemplate } from "./bills/views.js";
 import { leaveItem, openItem, saveItemForm, subOptions, viewItemForm } from "./pantry/item-form.js";
 import { shopSelText, shopVisibleIds } from "./pantry/views.js";
 import { catNeed, moveCat, pantryNav, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
@@ -256,7 +258,7 @@ const VIEWS = {
   pantry:   { scan: () => viewScan(), overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: viewHouseSupplies, assets: viewAssets, tasks: viewTasks, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix, plan: viewPlan },
-  bills:    { overview: viewBillsHome, all: viewAllBills, recurring: viewRecurring, onetime: viewMedical, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
+  bills:    { overview: viewBillsHome, all: viewAllBills, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   shops:    () => viewShops(),
@@ -270,14 +272,14 @@ const TABS_HIDDEN = (r) => {
   const q = r.q;
   if (r.section === "asset") return r.id === "new" || EDIT_SECS.has(q.get("sec")) || q.get("log") === "1" || !!q.get("wiz");
   if (r.section === "bill") return r.id === "new" ? [...q.keys()].length > 0 : !!q.get("sec") || q.get("pay") === "1";   // #/bill/new 不带参数 = 选类型页（保留导航）；向导 / 整页表单 / 分区编辑 / 记缴费 = 隐藏；账单详情页保留
-  if (r.section === "bills" && r.sub === "onetime" && q.get("bill")) return q.get("bill") === "new" || !!q.get("sec");   // 一次性账单：详情页保留，新建 / 分区编辑隐藏
+  if (r.section === "otbill") return r.id === "new" || !!q.get("sec");   // 一次性账单：详情页保留导航，新建 / 分区编辑隐藏
   return true;
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
 /* 现在是不是正处在用户自己的操作里（点击、改下拉、输入、按键的处理过程中，含紧跟着的同一轮任务）：这时的 render(false) 是用户要的，不填回旧值 */
 let userActing = false;
 for (const ev of ["click", "change", "input", "keydown", "submit", "pointerup"]) document.addEventListener(ev, () => { userActing = true; setTimeout(() => { userActing = false; }, 0); }, true);
-const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "plan" && !!state.planEdit) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "onetime" && !!r.q.get("bill")) || (r.section === "bills" && r.sub === "cards" && !!r.q.get("card")) || (r.section === "bills" && r.sub === "income" && !!state.inc?.form) || (r.section === "me" && r.sub === "settings" && !!r.q.get("member"));   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
+const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "plan" && !!state.planEdit) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "cards" && !!r.q.get("card")) || (r.section === "bills" && r.sub === "income" && !!state.inc?.form) || (r.section === "me" && r.sub === "settings" && !!r.q.get("member"));   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
 // 二级页顶部的面包屑和每个页签的目录页在 js/menu.js（参考家庭学堂“我的”页：一栏一行，点进去）
 const offPanel = (title, action, btn) => `<div class="panel empty"><strong>${title}</strong>${t("在“我的 → 设置”里可以重新打开。")}<p><button type="button" class="btn btn-primary" data-action="${action}">${btn}</button></p></div>`;
 
@@ -319,7 +321,7 @@ export function render(force = true) {
   $("#hhName").textContent = state.household?.name || "";
   const r = state.route;
   const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0])
-    : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section === "bill" ? (state.prevRoute?.section || "bills")
+    : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section === "bill" || r.section === "otbill" ? (state.prevRoute?.section || "bills")
     : r.section === "shops" ? "shopping" : r.section === "alerts" || r.section === "ai" || r.section === "quick" ? "today" : r.section;   // 注意事项、咩咩咩都是首页的子页，底栏高亮「今日」
   document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
     a.hidden = (a.dataset.section === "house" && !state.houseEnabled) || (a.dataset.section === "bills" && !state.billsEnabled);
@@ -338,6 +340,7 @@ export function render(force = true) {
   const kept = force || userActing ? null : keepUnsaved();   // 用户自己点的（筛选、清除、展开…）照常按新状态画；只有后台刷新才保留
   try { renderBody(r); } finally { if (kept) restoreUnsaved(kept); }
   restoreCarousels();   // 左右滑动的卡片（今日）：放回刚才看的那张
+  enhanceSelects($("#main"));   // 长下拉（data-ss）可以搜索
   decoratePrivacy(r);   // 财务看板的大数字：遮挡模式下模糊（js/core/privacy.js）
 }
 /** 表单里与渲染默认值不同的字段（用户正在填的）；没有改动返回 null */
@@ -396,6 +399,7 @@ function renderBody(r) {
   if (r.section === "item") { $("#main").innerHTML = viewItemForm(); return; }
   if (r.section === "asset") { $("#main").innerHTML = viewAssetForm(); return; }
   if (r.section === "bill") { $("#main").innerHTML = viewBillForm(); return; }
+  if (r.section === "otbill") { $("#main").innerHTML = viewOtBill(); return; }
   if (r.section === "house" && !state.houseEnabled) { $("#main").innerHTML = offPanel(t("房屋维护模块已关闭"), "house-enable", t("打开房屋维护")); return; }
   if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("财务模块已关闭"), "bills-enable", t("打开财务")); return; }
   if (routeBlocked(r)) { $("#main").innerHTML = ""; toast(t("家主还没给你开财务权限")); go(financeFallback(r), { replace: true }); return; }   // 对账单 / 收入 / 预算 / 添加卡：没有财务权限时直接打开网址也跳走
@@ -470,17 +474,13 @@ function onRoute() {
     const { section: sec, sub } = next;
     if (sec === "shopping" && sub === "list") Object.assign(state.shopFilter, FD.shop);
     else if (sec === "house" && sub === "assets") Object.assign(state.assetFilter, FD.asset);
-    else if (sec === "bills" && sub === "recurring") { const { property, ...rest } = FD.bills; Object.assign(state.billsFilter, rest); Object.assign(state.payFilter, FD.pay); }
-    else if (sec === "bills" && sub === "onetime" && !next.q.get("bill")) Object.assign(state.medFilter, FD.med);
     else if (sec === "bills" && sub === "all") Object.assign(state.allFilter, FD.all, { sort: "due" });
     else if (sec === "bills" && sub === "spend") Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
   }
   // 账单概览：每次进来（含同一页上换了网址参数）都按网址套一次：带 ?asset= → 那个资产 + 本月；不带 → 全部资产 + 上次选的范围
-  if (next.section === "bills" && next.sub === "overview") applyOverviewQuery(next.q);
+  if (next.section === "bills" && next.sub === "overview") applyOverviewQuery(next.q, next.id);
   // 全部账单：卡片 / 链接带的条件（?asset= ?status= ?range= ?q= ?type= ?cat= ?pay= ?sort=）每次进来套一次
   if (next.section === "bills" && next.sub === "all") { if (routeKey(prev) !== routeKey(next) && !isFormSection(prev)) defaultAllEntry(next.q); applyAllQuery(next.q); }
-  // 房产账单概览 →「全部 n 张」带 ?prop=：一次性账单列表按那套房产筛选
-  if (next.section === "bills" && next.sub === "onetime" && next.q.get("prop") && state.properties.some((p) => p.id === next.q.get("prop"))) state.medFilter.property = next.q.get("prop");
   // 房产 / 车辆的消耗品页「看全部」带 ?owner= 进库存：套上归属筛选，再把参数去掉
   if (isListRoute(next) && next.q.get("owner")) {
     Object.assign(state.filter, { owner: next.q.get("owner"), space: next.q.get("space") === "house" ? "house" : state.filter.space });
@@ -565,7 +565,7 @@ onClearFilters("bills", clearAnd(() => { Object.assign(state.billsFilter, FD.bil
 document.addEventListener("bill-created", async (e) => {
   const { id, via, kind } = e.detail || {}; if (!id) return;
   state.skipAutosave = true; await refresh(); toast(via === "ai" ? t("已根据扫描创建账单，请核对") : t("已创建账单"));
-  if (kind === "onetime") go(`${href("bills", "onetime")}?bill=${id}&${via === "ai" ? "ai" : "new"}=1`, { replace: true });   // 一次性账单：进它自己的详情页（?new=1 已创建 / ?ai=1 由扫描创建）
+  if (kind === "onetime") go(`${href("otbill", id)}?${via === "ai" ? "ai" : "new"}=1`, { replace: true });   // 一次性账单：进它自己的详情页（?new=1 已创建 / ?ai=1 由扫描创建）
   else go(`${href("bill", id)}?${via === "ai" ? "ai" : "new"}=1`, { replace: true });
 });
 onClearFilters("all", clearAnd(() => { Object.assign(state.allFilter, FD.all); clearUrlParams("*"); }), () => changed(state.allFilter, FD.all));
@@ -739,7 +739,7 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
   if (e.target.id === "invSort") { state.filter.sort = e.target.value; renderInvList(); }
   if (e.target.id === "ovRange") { setOverviewRange(e.target.value); render(); }
-  if (e.target.id === "ovAsset") { state.ovFilter.asset = e.target.value; render(); }
+  if (e.target.id === "ovAsset") { state.ovFilter.keepRange = true; go(overviewHref(e.target.value)); }   // 换资产 = 换路径（#/bills/overview/<资产键>），时间范围保持
   { const k = { allRange: "range", allAsset: "asset", allType: "type", allCat: "cat", allStatus: "status", allPay: "pay", allSort: "sort" }[e.target.id];
     if (k) { state.allFilter[k] = e.target.value; if (k === "range") render(); else renderAllList(); } }
   if (e.target.id === "billProp") { state.billsFilter.property = e.target.value; render(); }
@@ -959,7 +959,7 @@ main.addEventListener("submit", async (e) => {
       const list = billTemplateItems(idx);
       await Store.addBills(list);
       toast(t("已建立 {n} 条账单，记得补金额和到期日", { n: list.length }));
-      go(href("bills", "list"));
+      go(href("bills", "all"));
       return refresh();
     }
     if (f.id === "propertyForm") {

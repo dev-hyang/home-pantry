@@ -72,7 +72,7 @@ registerSection("bills", 0, ({ plan }) => {
     ${escrow > 0 ? `<p class="muted" style="margin:6px 0 0;font-size:13px">🏦 ${t("含在房贷月供里的房产税、保险约 {a}/月，已包含在房贷里，不重复计入。", { a: money(escrow) })}</p>` : ""}
     ${up.length ? `<p class="down" style="margin:6px 0 0">📈 ${t("涨价了：{l}", { l: up.map((b) => esc(withProperty(b.property_id, b.name))).join("、") })}</p>` : ""}
     <div class="bud-rank">${topFixed.map((b) => `<div class="bud-row"><div class="bud-head"><a class="link-name" href="${href("bill", b.id)}">${B().catOf(b.category).icon} ${esc(withProperty(b.property_id, b.name))}</a><span>${money(b.monthly)} / ${t("月")}</span></div>${barHtml(b.monthly, plan.billsM)}</div>`).join("")}</div>
-    <div class="form-actions"><a class="btn btn-sm btn-ghost" href="${href("bills", "list")}">${t("看全部账单")}</a></div></div>`);
+    <div class="form-actions"><a class="btn btn-sm btn-ghost" href="${href("bills", "all")}">${t("看全部账单")}</a></div></div>`);
 });
 
 /* ───────────── 补货预估：联动库存和购物车 ───────────── */

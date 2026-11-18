@@ -27,7 +27,8 @@ export const subName = (b) => (kindOf(b).subs.find(([k]) => k === b?.subkind) ||
 export const subIcon = (b) => (kindOf(b).subs.find(([k]) => k === b?.subkind) || [])[2] || kindOf(b).icon;
 export const STATUS = { awaiting_insurance: "等保险理赔", open: "待付", disputed: "争议中", collections: "催收中", written_off: "已冲销", partial: "部分已付", paid: "已结清" };
 export const STATUS_CLS = { awaiting_insurance: "b-soon", open: "b-low", disputed: "b-out", collections: "b-out", written_off: "", partial: "b-soon", paid: "b-ok" };
-export const detailHref = (id) => `${href("bills", "onetime")}?bill=${id || "new"}`;
+/** 一次性账单详情页 / 新建页：#/otbill/<id|new>（2026-11 路由整理，不再挂在「一次性账单」目录页下面） */
+export const detailHref = (id) => `${href("otbill", id || "new")}`;
 
 const r2 = (v) => Math.round(v * 100) / 100;
 

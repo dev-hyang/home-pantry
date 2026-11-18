@@ -10,7 +10,7 @@ export const SECTIONS = {
   house:    { name: "房屋",   subs: [["overview", "概览"], ["assets", "设备保养"], ["tasks", "季节任务"], ["deal", "交易"], ["profile", "房屋资料"],
                                      ["supplies", "汽车房屋消耗品", true], ["vehicles", "车辆", true], ["pages", "页面", true], ["template", "推荐耗材", true], ["asset-template", "生成设备", true], ["fix", "出了问题", true], ["plan", "买卖计划", true]] },  // 第三项 true = 不在目录显示
   // 财务（2026-11，原「账单」改名）：内部 id 仍是 bills，旧的 #/bills/… 网址、书签、快捷操作、提醒链接全部照旧；#/finance/… 是同一处的别名
-  bills:    { name: "财务",   subs: [["overview", "账单概览"], ["all", "全部账单"], ["recurring", "周期性账单"], ["onetime", "一次性账单"], ["spend", "花费"], ["income", "收入"], ["statements", "对账单"], ["budget", "预算"], ["cards", "卡与账户"], ["assets", "资产"], ["debts", "借贷"], ["networth", "净资产"], ["template", "常用账单", true]] },
+  bills:    { name: "财务",   subs: [["overview", "账单概览"], ["all", "全部账单"], ["spend", "花费"], ["income", "收入"], ["statements", "对账单"], ["budget", "预算"], ["cards", "卡与账户"], ["assets", "资产"], ["debts", "借贷"], ["networth", "净资产"], ["template", "常用账单", true]] },
   shopping: { name: "采购",   subs: [["home", "采购"], ["list", "购物车", true], ["add", "加入购物车", true]] },   // #/shopping 看板、#/shopping/list?tab=…、#/shopping/add（2026-11-13）
   scan:     { name: "录入购物", subs: null },
   shops:    { name: "常去的商店", subs: [["list", "常去的商店"], ["find", "找附近的商店", true], ["shop", "商店", true], ["log", "更新记录", true], ["deals", "特价一览", true]] },   // #/shops/list、#/shops/find、#/shops/shop/<id>（迁移 067；底栏高亮「采购」）   // #/scan：拍小票 / 贴线上订单，AI 读成清单后入库（底栏高亮“采购”）
@@ -18,9 +18,10 @@ export const SECTIONS = {
   item:     { name: "物品",   subs: null },   // #/item/new?cat=xx 或 #/item/<id>
   asset:    { name: "设备",   subs: null },   // #/asset/new?type=xx 或 #/asset/<id>（含保养记录）
   bill:     { name: "账单",   subs: null },   // #/bill/new?category=xx 或 #/bill/<id>（含缴费记录）
+  otbill:   { name: "账单",   subs: null },   // 一次性账单：#/otbill/new 或 #/otbill/<id>（2026-11 起不再挂在「一次性账单」目录页下面）
 };
 // 独立整页表单（物品、设备、账单）：进入时记住来源页，离开时恢复滚动位置
-const FORM_SECTIONS = new Set(["item", "asset", "bill"]);
+const FORM_SECTIONS = new Set(["item", "asset", "bill", "otbill"]);
 export const isFormSection = (r) => FORM_SECTIONS.has(r?.section);
 
 export function parseRoute(hash = location.hash) {
@@ -36,9 +37,20 @@ export function parseRoute(hash = location.hash) {
   if (parts[0] === "bills" && parts[1] === "income" && query.get("tab") === "report") query.set("tab", "compare");   // 收入「报表」改名「收支对比」
   if (parts[0] === "house" && parts[1] === "pages") parts[1] = "overview";   // 2026-11-16：取消「页面目录」这一层，点房产直接进概览；旧链接照样能用（?prop= 照旧）
   if (parts[0] === "me" && parts[1] === "settings" && query.get("sec") === "income") { parts.splice(0, 2, "bills", "income"); query.delete("sec"); query.set("tab", "plan"); }   // 收入与预算已并入 财务 → 收入 → 预算与计划
-  // 账单页重新分层（周期性 / 一次性）：旧链接和已保存的快捷操作仍然有效——清单、记录进周期性账单的标签，医疗与事件改名一次性账单
+  // 账单页路径整理（2026-11）：「周期性账单」「一次性账单」目录页取消。旧网址、已保存的快捷操作照样能用，自动跳到新位置：
+  //   #/bills/recurring、list、history → 全部账单（只看周期性）/ 概览；#/bills/onetime、medical → 全部账单（只看一次性）；
+  //   #/bills/onetime?bill=ID → #/otbill/ID；?people=1 → 设置 / 家庭成员；#/bills/overview?asset=KEY → #/bills/overview/KEY
   if (parts[0] === "bills") {
-    const alias = { list: ["recurring", "list"], history: ["recurring", "history"], medical: ["onetime", null], loans: ["debts", null], debt: ["debts", null], lending: ["debts", "personal"], "net-worth": ["networth", null], nw: ["networth", null] }[parts[1]];   // 借贷、净资产的几个顺手的别名
+    const sub = parts[1], toAll = (type) => { parts[1] = "all"; parts.length = 2; query.set("type", type); query.delete("tab"); const pr = query.get("prop"); if (pr) { query.delete("prop"); if (!query.get("asset")) query.set("asset", `property:${pr}`); } };
+    if (sub === "recurring" || sub === "list") { if (query.get("tab") === "history") { parts[1] = "overview"; parts.length = 2; query.delete("tab"); } else toAll("recurring"); }
+    else if (sub === "history") { parts[1] = "overview"; parts.length = 2; }
+    else if (sub === "onetime" || sub === "medical") {
+      const bill = query.get("bill");
+      if (bill) { query.delete("bill"); parts.splice(0, 2, "otbill", bill); }
+      else if (query.get("people")) { query.delete("people"); query.set("sec", "family"); parts.splice(0, 2, "me", "settings"); }
+      else toAll("onetime");
+    } else if (sub === "overview" && query.get("asset") && !parts[2]) { parts[2] = query.get("asset"); query.delete("asset"); }
+    const alias = { loans: ["debts", null], debt: ["debts", null], lending: ["debts", "personal"], "net-worth": ["networth", null], nw: ["networth", null] }[parts[1]];
     if (alias) { parts[1] = alias[0]; if (alias[1] && !query.has("tab")) query.set("tab", alias[1]); }
   }
   let section = SECTIONS[parts[0]] ? parts[0] : "today";

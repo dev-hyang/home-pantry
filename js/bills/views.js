@@ -21,10 +21,10 @@ import { fullFormUrl, viewBillWizard } from "./wizard-views.js";
 import { VEHICLE_CATS } from "./instances.js";
 import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";   // 贷款账单的缴费按摊还表拆 本金 / 利息（迁移 058）
 import { billInUse, endedSuffix, propertyActive, propertyById, propertyOptionsHtml } from "../core/lifecycle.js";
-import { kindsNote, NEW_RECURRING, ONETIME, RECURRING } from "./kinds.js";
+import { NEW_RECURRING } from "./kinds.js";
+import { billScopeParts } from "./trail.js";
 import { detailHref } from "./medical.js";
 import { medRow, propertyOneTimeHtml } from "./medical-views.js";
-import { RECURRING_TABS, activeTab } from "../core/tabs.js";
 import { tabBar, tabHub } from "../core/hub.js";
 import { crumbNav, hubList, hubRow, sectionCrumb } from "../core/hub.js";
 import { PAY_EXTRA, acctById, acctLabel, accountOptions, billPayLabel, isBankAcct, payAcctValue, paymentPayLabel, resolvePayAccount } from "./cards-views.js";
@@ -83,61 +83,6 @@ function billTypeChooser() {
     <p class="muted"><a href="${href("bills", "template")}">${t("按常用账单模板一次建好水电气、房贷、保险等")} ›</a></p></section>`;
 }
 
-/* ── 周期性账单：概览 / 清单 / 记录三个标签（窄屏概览下面是入口行） ── */
-export function viewRecurring() {
-  const tab = activeTab(state.route) || "overview", body = { overview: viewBillsOverview, list: viewBillsList, history: viewBillsHistory }[tab];
-  const hrefOf = (id) => `${RECURRING()}${id === "overview" ? "" : `?tab=${id}`}`;
-  return `<section class="section"><div class="section-head"><h2>🔁 ${t("周期性账单")}</h2><div class="head-acts"><a class="btn btn-primary btn-sm" href="${NEW_RECURRING()}">${t("添加账单")}</a></div></div>
-    ${kindsNote("recurring")}${tabBar(RECURRING_TABS, tab, hrefOf, t("周期性账单内容"))}${tab === "overview" ? tabHub(RECURRING_TABS, hrefOf, t("更多")) : ""}</section>${body()}`;
-}
-
-/** 周期性账单的「概览」只留周期性专属的内容（每月固定支出、自动扣款、订阅、卡到期、Escrow、日历导出）；
- *  「要处理 / 本月账单 / 未来 30 天」都在 财务 → 账单概览 和 全部账单 里，这里放入口 */
-function toAllBillsPanel(alertN, next30N) {
-  const link = (label, params) => `<a class="btn btn-sm btn-ghost" href="${allBillsHref({ type: "recurring", ...params })}">${label} ›</a>`;
-  return `<section class="section"><div class="panel cta-panel" style="display:block"><b>${alertN ? t("{n} 条账单要处理", { n: alertN }) : t("最近没有要处理的账单 ✓")}</b>
-    <p class="muted" style="margin:4px 0 8px">${t("每期的状态、金额和到期日，在“全部账单”里一行一期地看：未来 30 天有 {n} 期到期。", { n: next30N })}</p>
-    <div class="kind-links">${link(t("未缴的账单"), { status: "unpaid", range: "30d" })}${alertN ? link(t("逾期的账单"), { status: "overdue" }) : ""}${link(t("全部账单"), {})}</div></div></section>`;
-}
-
-/* ── 概览 ── */
-export function viewBillsOverview() {
-  const all = state.billsEnriched.filter((b) => b.active);
-  const list = filterByProperty(all);
-  const alerts = billAlerts(list);
-  const cur = Units.region.currency;
-  const inCur = list.filter((b) => (b.currency || cur) === cur);
-  const monthlyTotal = inCur.reduce((s, b) => s + b.monthly, 0);
-  const essential = inCur.filter((b) => b.essential).reduce((s, b) => s + b.monthly, 0);
-  const next30 = upcoming(list, 30);
-  const due30 = next30.filter((x) => (x.bill.currency || cur) === cur).reduce((s, x) => s + num(x.bill.est), 0);
-  const autopayN = list.filter((b) => b.autopay).length;
-  const cards = list.filter((b) => b.active && b.cardExpiring);
-  const subs = subscriptionSummary(list);
-  if (!state.bills.length) {
-    return `<section class="section"><div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}
-      <p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${NEW_RECURRING()}">${t("手动添加一条")}</a></p></div></section>`;
-  }
-  return `
-    <section class="section">
-      <div class="section-head"><h2>${t("周期性账单概览")}</h2><div class="head-acts">${propertyFilter()}
-        <a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a>
-        <a class="btn btn-primary btn-sm" href="${NEW_RECURRING()}">${t("添加账单")}</a></div></div>
-      ${hiddenEndedHint(all)}
-      <div class="kpis">
-        <div class="kpi"><span>${t("未来 30 天要交")}</span><b>${money(due30)}</b><small>${t("共 {n} 笔账单", { n: next30.length })}</small></div>
-        <div class="kpi"><span>${t("每月固定支出")}</span><b>${money(monthlyTotal)}</b><small>${t("必要 {m}", { m: money(essential) })}</small></div>
-        <div class="kpi"><span>${t("自动扣款")}</span><b>${autopayN} / ${list.length}</b><small>${t("{n} 条需手动缴", { n: list.length - autopayN })}</small></div>
-        ${subs.count ? `<div class="kpi"><span>${t("订阅与会员")}</span><b>${money(subs.monthly)}<small>/${t("月")}</small></b><small>${t("{n} 项，{a} 项年付", { n: subs.count, a: subs.annualPaid })}</small></div>` : ""}
-      </div>
-    </section>
-    ${toAllBillsPanel(alerts.length, next30.length)}
-    ${state.billsFilter.property !== "all" && state.properties.some((p) => p.id === state.billsFilter.property) ? propertyOneTimeHtml(state.billsFilter.property) : ""}
-    ${escrowPanelHtml()}
-    ${cards.length ? `<section class="section"><div class="panel cta-panel"><div><b>${t("自动扣款的卡快过期了")}</b><p class="muted">${joinList(cards.map((b) => `${esc(b.name)}（${esc(b.autopay_method || "")} ${esc(b.autopay_card_expires)}）`))}</p></div></div></section>` : ""}
-  `;
-}
-
 function filterByProperty(list) {
   const f = state.billsFilter.property;
   if (f === "all") return list.filter(billInUse);
@@ -150,9 +95,9 @@ const hiddenEndedHint = (all) => {
 };
 
 /** 账单页面包屑：账单 / 房产 / 账单名 / 当前块 —— 有房产的账单带上房产（点它回到这套房产的账单清单），免得多套房产时分不清是哪套的 */
-const billRoot = () => ({ href: href("bills", "list"), label: t("账单") });   // 固定的第一级（之前随“从哪个页面进来”变，会变成 今日 / xx房 / 电费）
-const billTrail = (b, _root, hubHref) => [billRoot(), ...(b.property_id && propertyName(b.property_id) ? [{ href: `${href("bills", "list")}?prop=${b.property_id}`, label: propertyName(b.property_id), icon: "🏠" }] : []),
-  { href: hubHref, label: b.name, icon: billCat(b.category).icon }];
+const billRoot = () => ({ href: href("bills", "overview"), label: t("财务") });   // 添加账单页等「还没有具体账单」的面包屑第一级
+/** 账单详情页路径：财务 / 账单概览 / 资产 / 账单名（后面接分区时再追加一级） */
+const billTrail = (b, _root, hubHref) => [...billScopeParts(b, "recurring"), { href: hubHref, label: b.name, icon: billCat(b.category).icon }];
 const billCrumb = (b, root, hubHref, cur) => crumbNav([...billTrail(b, root, hubHref), { label: cur }]);
 
 /* ── 清单 ── */
@@ -169,61 +114,6 @@ function payModeSelect(b) {
     <optgroup label="${esc(t("手动缴费"))}">${o("manual:", t("手动 · 未指定账户"))}${o("manual:cash", t("手动 · 现金"))}${o("manual:check", t("手动 · 纸质支票"))}${o("manual:giftcard", t("手动 · 礼品卡"))}${accts.map((c) => o(`manual:${c.id}`, `${t("手动")} · ${acctLabel(c)}`)).join("")}</optgroup>
     ${accts.length ? `<optgroup label="${esc(t("自动扣款"))}">${accts.map((c) => o(`auto:${c.id}`, `${t("自动")} · ${acctLabel(c)}`)).join("")}</optgroup>` : `<optgroup label="${esc(t("自动扣款"))}">${o("auto:", t("自动 · 未指定账户"))}</optgroup>`}${legacy}${b.autopay && !b.pay_card_id && !legacy && !b.autopay_method ? o("auto:", t("自动 · 未指定账户")) : ""}</select>`;
 }
-export function viewBillsList() {
-  const f = state.billsFilter;   // ?prop= 只在进入页面时套用一次（main.js onRoute），之后点房产芯片可以随意切换
-  const chip = (k, v, label) => `<button type="button" class="chip" data-action="bills-filter" data-key="${k}" data-val="${v}" aria-pressed="${f[k] === v}">${label}</button>`;
-  // 订阅 / 会员按种类排在一起，其余按状态
-  const kindOrder = Object.keys(B().SUB_KINDS);
-  const kindTag = (b) => (B().isSubCat(b.category) && b.sub_kind ? `<span class="badge sub-kind">${t(B().SUB_KINDS[b.sub_kind] || b.sub_kind)}</span>` : "");
-  const row = (b, flat = false) => {
-    const badges = `${b.ended ? ` <span class="badge" style="background:var(--surface-2)">${t("已结束")}</span>` : ""}${b.priceUp ? ` <span class="badge b-low">${t("涨价了")}</span>` : ""}${b.cardExpiring ? ` <span class="badge b-soon">${t("卡快过期")}</span>` : ""}${b.trialSoon ? ` <span class="badge b-out">${t("试用快到期")}</span>` : ""}`;
-    const chip = `${propertyTag(b.property_id)}${kindTag(b)}`.trim();
-    const est = b.est != null && (b.amount_type !== "fixed" || b.typical_amount == null);   // 变动金额（按最近均值估）写成（估算）
-    return `<li class="bill-row ${b.active && !b.ended ? "" : "inactive"}">
-      <div class="grow">${nameLine({ ico: flat ? billCat(b.category).icon : "", name: b.name, href: href("bill", b.id), badge: badges.trim() })}
-        ${metaLine([chip && { html: chip, chip: true }, b.ended && b.ends_on ? t("结束于 {d}", { d: fmtDate(b.ends_on) }) : b.next_due_on ? t("下次 {d}", { d: fmtDate(b.next_due_on) }) : t("未填到期日"), freqText(b), b.payee, acctText(b), b.escrow ? t("Escrow 代缴，含在房贷月供里") : null, b.category === "mortgage" && escrowMonthlyFor(b.property_id) > 0 ? t("含 Escrow 约 {a}/月", { a: mny(escrowMonthlyFor(b.property_id)) }) : null, b.assigned_to ? memberName(b.assigned_to) : null])}</div>
-      <b class="bill-amt">${estAmount(mny(b.est, b.currency), est)}</b>
-      ${payModeSelect(b)}
-    </li>`;
-  };
-  billInner = () => {
-    let list = filterByProperty(state.billsEnriched);
-    if (f.channel && f.channel !== "all") list = list.filter((b) => b.pay_channel === f.channel);
-    if (f.cat && f.cat !== "all") list = list.filter((b) => b.category === f.cat);
-    const q = (f.q || "").trim().toLowerCase();
-    if (q) list = list.filter((b) => `${b.name}${b.payee || ""}${b.account_last4 || ""}`.toLowerCase().includes(q));
-    const mode = f.sort || "category", lim = pageLimit("bills", JSON.stringify([f.property, f.channel, f.cat, q, mode]));   // 分批显示：筛选 / 搜索 / 排序变了回到一页
-    if (mode !== "category") {   // 换了排序就不分组，跨分类按一条线排
-      const sorter = { due: (x, y) => (x.next_due_on || "9999").localeCompare(y.next_due_on || "9999") || compare(x.name, y.name), amount: (x, y) => num(y.est) - num(x.est), name: (x, y) => compare(x.name, y.name),
-        updated: (x, y) => String(y.updated_at || "").localeCompare(String(x.updated_at || "")) }[mode];
-      return list.length ? `<div class="panel"><ul class="bill-list">${[...list].sort(sorter).slice(0, lim).map((b) => row(b, true)).join("")}</ul></div>${pageMoreBtn("bills", list.length, lim)}` : `<div class="panel empty"><strong>${t("没有符合条件的账单")}</strong></div>`;
-    }
-    const groups = B().CATEGORIES.map((c) => ({ c, rows: list.filter((b) => b.category === c.id).sort((x, y) => (B().isSubCat(c.id) ? kindOrder.indexOf(x.sub_kind || "other") - kindOrder.indexOf(y.sub_kind || "other") : 0) || STATUS_RANK[x.status] - STATUS_RANK[y.status] || compare(x.name, y.name)) })).filter((g) => g.rows.length);
-    let left = lim;   // 跨分组一共只画前 lim 条；分组标题的条数仍按完整结果
-    const html = groups.map(({ c, rows }) => { if (left <= 0) return ""; const part = rows.slice(0, left); left -= part.length;
-      return `<div class="cat-group" style="--cat:var(--pine)"><h3>${c.icon} ${t(c.name)}<span class="muted">（${rows.length}）</span></h3>
-        <div class="panel"><ul class="bill-list">${part.map((b) => row(b)).join("")}</ul></div></div>`; }).join("");
-    return groups.length ? html + pageMoreBtn("bills", list.length, lim)
-      : `<div class="panel empty"><strong>${t("没有符合条件的账单")}</strong></div>`;
-  };
-  const used = new Set(state.billsEnriched.map((b) => b.category));
-  return `
-    <section class="section">
-      <div class="section-head"><h2>${t("账单清单")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("bills", "template")}">${t("常用账单")}</a><a class="btn btn-primary btn-sm" href="${NEW_RECURRING()}">${t("添加账单")}</a></div></div>
-      <div class="toolbar">
-        <input type="search" id="billSearch" placeholder="${t("搜索名称、收款方、账号")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">
-        ${propertyFilter()}
-        <select id="billCat" data-search aria-label="${t("按分类筛选")}"><option value="all">${t("全部分类")}</option>${B().CATEGORIES.filter((c) => used.has(c.id)).map((c) => `<option value="${c.id}" ${f.cat === c.id ? "selected" : ""}>${c.icon} ${t(c.name)}</option>`).join("")}</select>
-        <select id="billChannel" aria-label="${t("按缴费方式筛选")}"><option value="all">${t("全部缴费方式")}</option>${Object.entries(B().CHANNELS).map(([k, n]) => `<option value="${k}" ${f.channel === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select>
-        <select id="billSort" aria-label="${t("排序")}">${BILL_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "category") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
-        ${clearFiltersBtn("bills", changed(f, FD.bills))}
-      </div>
-      ${hiddenEndedHint(state.billsEnriched)}
-      ${assetSuggestHtml()}
-      <div id="billList">${billInner()}</div>
-    </section>`;
-}
-
 /* ── 记录：筛选（账单 / 年份 / 状态）+ 排序；服务器分页（迁移 054 的 pay_page / pay_stats）：任何一年都能看，合计和「今年已缴」由数据库算 ── */
 const PAY_SORTS = [["new", "日期：新 → 旧"], ["old", "日期：旧 → 新"], ["high", "金额：高 → 低"], ["low", "金额：低 → 高"], ["bill", "账单名 A → Z"]];
 /** 当前筛选 → 数据库的筛选对象（只带生效的项）；「账单名 A → Z」对应通用排序里的 name */
@@ -282,28 +172,18 @@ function payToolbar() {
 }
 
 /* ── 记录 ── */
-export function viewBillsHistory() {
-  // 单账单趋势：选一条有 ≥ 2 笔记录的账单（近 400 天的缴费，在内存里）
+/** 缴费趋势（并进账单概览）：选一条有 ≥ 2 笔缴费的周期性账单，看每次缴费金额的走势（近 400 天内存里的缴费） */
+export function billTrendSection() {
   const candidates = state.billsEnriched.filter((b) => b.pays.filter((p) => p.amount != null).length >= 2).sort(byInUse);   // 在用的排前面，已卖出房产的账单在后面但仍能选
+  if (!candidates.length) return "";
   const sel = candidates.find((b) => b.id === state.billsFilter.trend) || candidates[0];
-  let chart = "";
-  if (sel) {
-    const series = [...sel.pays].filter((p) => p.amount != null).reverse().slice(-12);
-    chart = Charts.line({ title: t("{name}缴费金额", { name: billLabel(sel) }), labels: series.map((p) => fmtShort(`${p.paid_on}T12:00:00`)), fmt: (v) => money(v),
-      series: [{ name: billLabel(sel), color: "var(--pine)", values: series.map((p) => num(p.amount)) }] });
-  }
-  const list = payListInner();   // 先同步筛选（第一次会发请求），下面的数字卡片和列表用同一份统计
-  return `
-    <section class="section">
-      <div class="section-head"><h2>${t("缴费记录")}</h2><div class="head-acts"><button type="button" class="btn btn-sm" data-action="bills-csv">${t("导出今年 CSV")}</button></div></div>
-      <div class="kpis" id="payKpis">${payKpisHtml()}</div>
-      ${sel ? `<div class="panel chart-panel"><div class="chart-head"><h3>${t("单账单金额趋势")}</h3>
-        <select id="billTrend" aria-label="${t("选择账单")}">${candidates.map((b) => `<option value="${b.id}" ${b.id === sel.id ? "selected" : ""}>${esc(billOption(b))}</option>`).join("")}</select></div>${chart}</div>` : ""}
-      ${payToolbar()}
-      <div class="panel" id="payList" style="margin-top:10px">${list}</div>
-    </section>`;
+  const series = [...sel.pays].filter((p) => p.amount != null).reverse().slice(-12);
+  const chart = Charts.line({ title: t("{name}缴费金额", { name: billLabel(sel) }), labels: series.map((p) => fmtShort(`${p.paid_on}T12:00:00`)), fmt: (v) => money(v),
+    series: [{ name: billLabel(sel), color: "var(--pine)", values: series.map((p) => num(p.amount)) }] });
+  return `<section class="section"><div class="section-head"><h2>${t("缴费趋势")}</h2><p>${t("每次缴费金额的走势，选一条账单看")}</p></div>
+    <div class="panel chart-panel"><div class="chart-head"><h3>${t("单账单金额趋势")}</h3>
+    <select id="billTrend" aria-label="${t("选择账单")}">${candidates.map((b) => `<option value="${b.id}" ${b.id === sel.id ? "selected" : ""}>${esc(billOption(b))}</option>`).join("")}</select></div>${chart}</div></section>`;
 }
-
 export function exportBillsCsv() {
   const year = new Date().getFullYear();
   const byBill = Object.fromEntries(state.bills.map((b) => [b.id, b]));
@@ -358,7 +238,7 @@ export function viewBillTemplate() {
         })()}
         <div class="form-actions" style="margin-top:12px">
           <button type="submit" class="btn btn-primary">${t("建立选中的账单")}</button>
-          <a class="btn btn-ghost" href="${href("bills", "list")}">${t("稍后再说")}</a>
+          <a class="btn btn-ghost" href="${href("bills", "all")}">${t("稍后再说")}</a>
         </div>
       </form>
     </section>`;
@@ -392,13 +272,13 @@ export function leaveBill(changed) {
   const q = state.route?.q, inSection = !!(q && (q.get("sec") || q.get("pay") === "1"));
   if (inSection && state.prevRoute) history.back();
   else if (state.prevHash && state.prevRoute) go(state.prevHash);
-  else go(href("bills", "list"), { replace: true });
+  else go(href("bills", "all"), { replace: true });
 }
 
 export function viewBillForm() {
   const r = state.route;
   const b = r.id && r.id !== "new" ? state.billsEnriched.find((x) => x.id === r.id) : null;
-  if (r.id !== "new" && !b) return `<div class="panel empty"><strong>${t("找不到这条账单")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("bills", "list")}">${t("回到账单")}</a></p></div>`;
+  if (r.id !== "new" && !b) return `<div class="panel empty"><strong>${t("找不到这条账单")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("bills", "all")}">${t("回到账单")}</a></p></div>`;
   if (!b && r.id === "new" && ![...r.q.keys()].length) return billTypeChooser();   // 没带任何参数：先选周期性还是一次性
   if (!b && r.id === "new" && r.q.get("mode") !== "full" && !r.q.get("copy")) return viewBillWizard();   // 新建周期性账单：5 步向导；mode=full = 整页表单（老手入口），copy = 复制已有账单
   const qCat = r.q.get("category");
@@ -419,7 +299,7 @@ export function viewBillForm() {
   const cloud = Store.mode === "cloud";
   const opts = (map, sel) => Object.entries(map).map(([k, n]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${t(n)}</option>`).join("");
   // 面包屑根：进来之前的页面（注意事项 / 账单 / 房屋…），没有就回账单清单
-  const root = { href: state.prevRoute && state.prevHash ? state.prevHash : href("bills", "list"), label: state.prevRoute ? t(SECTIONS[state.prevRoute.section]?.name || "上一页") : t("账单") };
+  const root = { href: state.prevRoute && state.prevHash ? state.prevHash : href("bills", "all"), label: state.prevRoute ? t(SECTIONS[state.prevRoute.section]?.name || "上一页") : t("账单") };
   const landlord = state.properties.some((p) => p.role === "landlord");
   // 已有账单：先看枢纽（各块完成度），点进去只改一块；新建仍是整页
   const sec = r.q.get("pay") === "1" ? "pay" : r.q.get("sec") || "";

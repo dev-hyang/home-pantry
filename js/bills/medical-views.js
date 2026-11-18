@@ -13,17 +13,18 @@ import { MEDICAL_TABS, activeTab } from "../core/tabs.js";
 import { dq, download, lastMonths, monthLabel, toCsv } from "../stats/views.js";
 import { autofillBar } from "../core/autofill.js";
 import { crumbNav } from "../core/hub.js";
+import { allBillsHref } from "./all-views.js";
+import { billScopeParts, overviewHref } from "./trail.js";
 import { viewOneTimeWizard } from "./ot-wizard-views.js";
 import { lockFlag, metaLine, nameLine } from "./row-fmt.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { propertyOptionsHtml } from "../core/lifecycle.js";
-import { kindsNote } from "./kinds.js";
 import { accountOptions, acctById, paymentPayLabel } from "./cards-views.js";
 import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, enrichMedical, findPerson, kindOf, mergeMedical, peopleFor, subIcon, subName } from "./medical.js";
 
 const cur = () => Units.region.currency;
 const mny = (v, c) => (v == null ? "—" : Units.money(num(v), c || cur()));
-const medHref = (id) => `${href("bills", "onetime")}${id === "overview" ? "" : `?tab=${id}`}`;
+const medHref = (id) => (id === "overview" ? href("bills", "overview") : allBillsHref({ type: "onetime" }));   // 一次性账单没有自己的目录页了：列表 = 全部账单（只看一次性）
 const lock = (b) => (b.visibility === "private" ? `<span title="${esc(t("仅自己和家主可见"))}" aria-label="${esc(t("仅自己和家主可见"))}">🔒</span> ` : "");
 
 /** 重读医疗账单和付款（保存 / 删除后用，不用整个 refresh）；表还没建（没执行迁移 027）时当作空 */
@@ -66,14 +67,14 @@ export function renderMedList() { const h = $("#medList"); if (h) h.innerHTML = 
 /** 房产视角：挂在这套房产上的一次性账单（装修、翻新、屋顶等工程，也含医疗 / 法律等），在周期性账单概览里按所选房产显示 */
 export function propertyOneTimeHtml(pid) {
   const list = state.medEnriched.filter((b) => b.property_id === pid);
-  const newHref = `${detailHref("new")}&kind=project&prop=${encodeURIComponent(pid)}`;
+  const newHref = `${detailHref("new")}?kind=project&prop=${encodeURIComponent(pid)}`;
   const head = (extra = "") => `<div class="section-head"><h2>🔨 ${t("一次性账单 / 项目")}</h2><div class="head-acts">${extra}<a class="btn btn-sm btn-ghost" href="${esc(newHref)}">${t("记一张")}</a></div></div>`;
   if (!list.length) return `<section class="section">${head()}<div class="panel empty"><strong>${t("这套房产还没有一次性账单")}</strong>${t("装修、翻新、屋顶等工程，可以记在一次性账单里并选这套房产。")}</div></section>`;
   const c = cur(), inCur = list.filter((b) => (b.currency || c) === c);
   const owed = inCur.reduce((s, b) => s + (b.owed || 0), 0), paid = inCur.reduce((s, b) => s + (b.paid || 0), 0), bal = inCur.reduce((s, b) => s + (b.balance || 0), 0), open = list.filter((b) => b.open).length;
   const sorted = [...list].sort((a, b) => (b.open - a.open) || String(b.service_date || b.bill_date || b.created_at || "").localeCompare(String(a.service_date || a.bill_date || a.created_at || "")));
   const MAX = 6;
-  return `<section class="section">${head(`<a class="btn btn-sm btn-ghost" href="${href("bills", "onetime")}?tab=list&prop=${encodeURIComponent(pid)}">${t("全部 {n} 张", { n: list.length })}</a>`)}
+  return `<section class="section">${head(`<a class="btn btn-sm btn-ghost" href="${allBillsHref({ type: "onetime", asset: `property:${pid}` })}">${t("全部 {n} 张", { n: list.length })}</a>`)}
     <div class="kpis">
       <div class="kpi"><span>${t("应付合计")}</span><b>${mny(owed, c)}</b><small>${t("{n} 张账单", { n: list.length })}</small></div>
       <div class="kpi"><span>${t("已付")}</span><b>${mny(paid, c)}</b></div>
@@ -144,18 +145,10 @@ function reportTab() {
     <p class="muted" style="font-size:12.5px">${t("报税抵扣、HSA / FSA 报销以保险公司和税务机构的规定为准，这里只帮你把金额理清楚；导出的是已付的每一笔。")}</p>`;
 }
 
-export function viewMedical() {
-  const r = state.route, billId = r.q.get("bill");
-  if (r.q.get("people")) return viewPeople();
-  if (billId) return viewDetail(billId, r.q.get("pay"));
-  const tab = activeTab(r) || "overview";
-  const body = { overview: overviewTab, list: listTab, report: reportTab }[tab]();
-  return `<section class="section">
-    <div class="section-head"><h2>🧾 ${t("一次性账单")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("bills", "onetime")}?people=1">${t("家庭成员")}</a><a class="btn btn-primary btn-sm" href="${detailHref("new")}">${t("记一张账单")}</a></div></div>
-    ${kindsNote("onetime")}
-    <p class="muted" style="margin:0 0 10px;font-size:13px">${Object.values(KINDS).map((K) => `${K.icon} ${t(K.name)}`).join(" · ")}</p>
-    ${tabBar(MEDICAL_TABS, tab, medHref, t("医疗内容"))}
-    ${body}</section>`;
+/** 一次性账单详情 / 新建页（#/otbill/<id|new>） */
+export function viewOtBill() {
+  const r = state.route;
+  return viewDetail(r.id || "new", r.q.get("pay"));
 }
 
 /* ───────────── 账单详情：基本信息 + 金额 + 付款 ───────────── */
@@ -186,6 +179,7 @@ function viewDetail(id, payId) {
   const pay = payId && b ? b.pays.find((p) => p.id === payId) : null;
   const owedNow = b ? b.owed : null;
   return `<section class="section form-page">
+    ${b ? crumbNav([...billScopeParts(b, "onetime"), { href: detailHref(b.id), label: b.provider, icon: subIcon(b) }, { label: t("编辑") }]) : crumbNav([{ href: overviewHref(), label: t("财务") }, { href: overviewHref(), label: t("账单概览") }, { label: t("添加一次性账单") }])}
     ${secQ ? "" : autofillBar("medbill", "#medBillForm")}${b && !secQ ? `<p class="muted" style="margin:-4px 0 8px;font-size:12.5px">${t("这张账单已保存。再拍一张会新建一张账单，不会改动这张。")}</p>` : ""}
     <form id="medBillForm" class="panel" novalidate data-id="${d(b?.id)}">
       <input type="hidden" name="kind" value="${d(v.kind)}">
@@ -229,7 +223,7 @@ function viewDetail(id, payId) {
       ${peopleFor(v.kind) && (!secQ || secQ === "basic") ? personAddPanel(v.kind) : ""}
       <datalist id="medProviders">${[...new Set(state.medBills.map((x) => x.provider))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
       <p id="medBillError" class="form-error" role="alert"></p>
-      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>${b ? `<a class="btn btn-ghost" href="${esc(detailHref("new"))}&copy=${encodeURIComponent(b.id)}">${t("复制为新账单")}</a>` : ""}</div>
+      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>${b ? `<a class="btn btn-ghost" href="${esc(detailHref("new"))}?copy=${encodeURIComponent(b.id)}">${t("复制为新账单")}</a>` : ""}</div>
     </form>
     ${b && secQ ? "" : b ? paymentsHtml(b, pay, owedNow) : `<p class="muted">${t("先保存账单，再记付款。")}</p>`}
     ${b && !secQ ? `<div class="danger-zone"><button type="button" class="btn btn-danger-ghost" data-action="med-del" data-id="${b.id}">${t("删除这张账单")}</button><small class="muted">${t("连同这张账单的付款记录一起删除，点两次确认。")}</small></div>` : ""}
@@ -265,12 +259,13 @@ function medCardsPage(b, payEdit) {
     b.owed != null ? `<span class="badge" style="background:var(--surface-2)">${t("余额 {a}", { a: mny(b.balance || 0, c) })}</span>` : "", b.visibility === "private" ? `<span class="badge" style="background:var(--surface-2)">🔒 ${t("仅自己和家主可见")}</span>` : ""].filter(Boolean).join("");
   const cards = MED_SECS.map((sec) => `<section class="panel prof-card" aria-labelledby="mc-${sec.id}">
       <header class="prof-head"><span class="mi" aria-hidden="true">${sec.icon}</span><div class="prof-t"><h3 id="mc-${sec.id}">${t(sec.name)}</h3></div>
-        <a class="btn btn-sm btn-ghost prof-edit" href="${base}&sec=${sec.id}" aria-label="${esc(t("编辑 {name}", { name: t(sec.name) }))}">${t("编辑")}</a></header>${medFacts(b, sec.id)}</section>`).join("");
+        <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=${sec.id}" aria-label="${esc(t("编辑 {name}", { name: t(sec.name) }))}">${t("编辑")}</a></header>${medFacts(b, sec.id)}</section>`).join("");
   return `<section class="section">
+    ${crumbNav([...billScopeParts(b, "onetime"), { label: b.provider, icon: subIcon(b) }])}
     <h2 style="margin:0 0 8px">${subIcon(b)} ${esc(b.provider)}</h2>
     <div class="asset-badges" style="margin-bottom:12px">${badges}</div>
     <div class="form-actions" style="margin:0 0 12px"><a class="btn btn-primary" href="#medPayments">${t("记一笔付款")}</a><span class="spacer"></span>
-      <a class="btn btn-sm btn-ghost" href="${esc(detailHref("new"))}&copy=${encodeURIComponent(b.id)}">${t("复制为新账单")}</a></div>
+      <a class="btn btn-sm btn-ghost" href="${esc(detailHref("new"))}?copy=${encodeURIComponent(b.id)}">${t("复制为新账单")}</a></div>
     ${medBanner(b, state.route.q)}
     <div class="prof-grid bill-detail-grid">${cards}</div>
     <div id="medPayments" style="scroll-margin-top:80px">${paymentsHtml(b, payEdit, b.owed)}</div>
@@ -283,8 +278,8 @@ const METHODS = ["信用卡", "借记卡", "HSA 卡", "FSA 卡", "支票", "银�
 /** 付款方式下拉：先列我的卡 / 账户（选了就记到那张卡上，和花费记录一样），再列通用方式 */
 const methodOptions = (edit) => { const cur = edit?.card_id && acctById(edit.card_id) ? edit.card_id : edit?.method || ""; return `${accountOptions(cur, { none: "（未选）", extra: METHODS.map((m) => [m, m]) })}${cur && !METHODS.includes(cur) && !acctById(cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}`; };
 function paymentsHtml(b, edit, owed) {
-  const rows = b.pays.map((p) => `<li class="med-pay${edit?.id === p.id ? " is-editing" : ""}" data-swipe-del="med-pay"><a class="badge pay-date" style="background:var(--surface-2)" href="${detailHref(b.id)}&pay=${p.id}" title="${esc(t("点一下编辑"))}">${esc(fmtDate(p.paid_on))}</a>
-      <div class="grow"><a class="link-name name" href="${detailHref(b.id)}&pay=${p.id}" title="${esc(t("点一下编辑"))}">${mny(p.amount, p.currency || b.currency)}</a><small>${[paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+  const rows = b.pays.map((p) => `<li class="med-pay${edit?.id === p.id ? " is-editing" : ""}" data-swipe-del="med-pay"><a class="badge pay-date" style="background:var(--surface-2)" href="${detailHref(b.id)}?pay=${p.id}" title="${esc(t("点一下编辑"))}">${esc(fmtDate(p.paid_on))}</a>
+      <div class="grow"><a class="link-name name" href="${detailHref(b.id)}?pay=${p.id}" title="${esc(t("点一下编辑"))}">${mny(p.amount, p.currency || b.currency)}</a><small>${[paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="med-pay-del" data-id="${p.id}">${t("删除")}</button></li>`).join("");
   const sumLine = owed == null ? t("还没填自付金额或总额，余额未知") : t("自付 {o} · 已付 {p} · 余额 {b}", { o: mny(owed, b.currency), p: mny(b.paid, b.currency), b: mny(b.balance, b.currency) });
   return `<div class="section-head"><h2>${t("付款记录")}</h2><p>${esc(sumLine)}</p></div>
@@ -337,7 +332,7 @@ export async function saveMedPayForm(f) {
     go(detailHref(b.id), { replace: true }); return true;
   } catch (e) { err.textContent = t("保存失败：{msg}", { msg: e.message }); return false; }
 }
-export async function deleteMedBill(id) { await Store.deleteMedicalBill(id); await reloadMedical(); toast(t("已删除这张账单")); go(medHref("list")); }
+export async function deleteMedBill(id) { await Store.deleteMedicalBill(id); await reloadMedical(); toast(t("已删除这张账单")); go(allBillsHref({ type: "onetime" })); }
 export async function deleteMedPay(id) { await Store.deleteMedicalPayment(id); await reloadMedical(); toast(t("已删除这笔付款")); }
 export function exportMedicalCsv() {
   const y = state.medYear || String(new Date().getFullYear());
@@ -352,7 +347,7 @@ export function exportMedicalCsv() {
 /** 新建账单时换种类：整页按新种类重画（标签、小类、保险项不同） */
 export function onKindPick(e) {
   if (e.target.name !== "kindPick") return;
-  go(`${detailHref("new")}&kind=${e.target.value}`, { replace: true });
+  go(`${detailHref("new")}?kind=${e.target.value}`, { replace: true });
 }
 export const medBillLabel = (id) => { const b = state.medEnriched.find((x) => x.id === id); return b ? `${b.provider}${b.patient ? ` · ${b.patient}` : ""}` : t("新账单"); };
 

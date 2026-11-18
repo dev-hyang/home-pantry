@@ -1,6 +1,9 @@
 /* English 字典：键 = 源码里的简体文案（含 {占位符}），值 = 英文。
  * 没有收录的键在 English 模式下显示简体。生成 / 校验缺失键：见 README「多语言」。 */
 export const EN = {
+  "缴费趋势": "Payment trend",
+  "每次缴费金额的走势，选一条账单看": "How each payment amount changes; pick a bill",
+  "添加一次性账单": "Add one-time bill",
   "已缴（无缴费记录）": "Paid (no payment record)",
   "特别摊派 {a}": "Special assessment {a}",
   "剩余 {m}": "{m} left",

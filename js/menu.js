@@ -46,7 +46,7 @@ const META = {
     deal:      { icon: "📝", desc: "买入 / 卖出 / 退租流程清单", count: () => (openDeal() ? 1 : 0), countLabel: "进行中" },
     profile:   { icon: "🏡", desc: "房型、设施、材料、地址、保险、HOA" },
     // 这套房产的账单：跳到账单清单并按房产筛选（账单页签保留全家视图、日历导出和与房产无关的账单）
-    bills:     { icon: "🧾", desc: "这套房产的水电气网、HOA、房产税、房贷、保险，以及装修等一次性账单", href: () => `${href("bills", "overview")}?asset=property:${state.propertyId}&range=m`, count: () => billAlerts(state.billsEnriched.filter((b) => b.property_id === state.propertyId)).length, when: () => state.billsEnabled },
+    bills:     { icon: "🧾", desc: "这套房产的水电气网、HOA、房产税、房贷、保险，以及装修等一次性账单", href: () => `${href("bills", "overview", `/${encodeURIComponent(`property:${state.propertyId}`)}`)}?range=m`, count: () => billAlerts(state.billsEnriched.filter((b) => b.property_id === state.propertyId)).length, when: () => state.billsEnabled },
   },
   bills: {
     overview:  { icon: "🧾", title: "账单概览", desc: "周期性 + 一次性账单一览：要处理的、未来 30 天要交、未结余额" },
@@ -76,7 +76,7 @@ const META = {
  * 借贷（P2）：原来是一张不可点的「即将推出」卡，现在是真的页面（只给有财务权限的人看；g.soon 的画法留着给以后的占位用）。 */
 export const FIN_GROUPS = [   // 顺序（2026-11-02）：分析 · 收支 · 借贷 · 预算与计划 · 账户与资产；手机一列、宽屏两栏都按这个读屏顺序
   { id: "analysis", name: "分析", subs: ["overview", "all", "cashflow", "networth"] },   // 净资产（P3，迁移 059）
-  { id: "flow", name: "收支", subs: ["spend", "income", "recurring", "onetime", "statements"] },
+  { id: "flow", name: "收支", subs: ["spend", "income", "statements"] },
   { id: "debt", name: "借贷", subs: ["debts"] },   // P2（迁移 058）：原来的「即将推出」占位卡换成真的页面
   { id: "plan", name: "预算与计划", subs: ["budget"] },
   { id: "accounts", name: "账户与资产", subs: ["cards", "assets"] },
@@ -252,8 +252,6 @@ export function crumb(r) {
     if (d && q.get("edit")) parts.push({ href: subHref, label: curLabel }, { href: `${subHref}?id=${encodeURIComponent(d.id)}`, label: d.name }, { label: t("编辑") });
     else parts.push({ href: subHref, label: curLabel }, { label: d ? d.name : q.get("new") ? t("添加") : t("找不到") });
   }
-  else if (r.section === "bills" && r.sub === "onetime" && q.get("people")) parts.push({ href: subHref, label: curLabel }, { label: t("家庭成员") });
-  else if (r.section === "bills" && r.sub === "onetime" && q.get("bill")) parts.push({ href: subHref, label: curLabel }, { label: medBillLabel(q.get("bill")) });   // 账单 / 医疗 / 医院 · 患者
   else if (r.section === "bills" && activeTab(r) && activeTab(r) !== SPLIT_FIRST(r)) parts.push({ href: subHref, label: curLabel }, { label: t(tabLabel(r)) });   // 花费 / 预算的页内标签：账单 / 花费 / 明细
   else if (par) parts.push({ href: href(r.section, par[0]), label: t(par[1]) }, { label: curLabel });   // 常用账单 → 账单 / 清单 / 常用账单；生成设备 → 房屋 / 房产 / 设备保养 / 生成设备
   else parts.push({ label: curLabel });

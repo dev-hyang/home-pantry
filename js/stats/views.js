@@ -608,7 +608,7 @@ function spendRow(p, L = spendLookups()) {
   const prop = p.property_id && !p.pay_id && state.properties.length > 1 ? state.properties.find((x) => x.id === p.property_id)?.name : "";
   // 账单缴费记的花费（数据库顺带带回关联的缴费记录 pay_id）：名称链接到那条缴费记录的编辑页（改那里，花费会同步）；其余的在这一行里就地编辑
   const bill = p.pay_id ? L.bills.get(p.pay_bill_id) : null;
-  const title = p.virtual === "medical" ? `<a class="link-name" href="${href("bills", "onetime")}?bill=${p.bill_id}" title="${esc(t("到医疗账单里看 / 改"))}">${esc(p.name)}</a>`
+  const title = p.virtual === "medical" ? `<a class="link-name" href="${href("otbill", p.bill_id)}" title="${esc(t("到医疗账单里看 / 改"))}">${esc(p.name)}</a>`
     : bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
     : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>${state.spendDrafts?.[p.id] ? ` <span class="badge b-soon">${t("草稿")}</span>` : ""}`;
   const sel = state.spendSel && !p.virtual ? `<input type="checkbox" class="sel" data-sel="${p.id}" aria-label="${esc(t("选中 {name}", { name: p.name }))}" ${state.spendSel.has(p.id) ? "checked" : ""}>` : "";

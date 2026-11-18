@@ -7,6 +7,7 @@
  * 还没建贷款的贷款账单、没关联车辆的车贷列在区块底下，提示去关联。
  * 数据量：房产、车辆、账单、卡、贷款都是启动时整表读进内存的小表，直接在内存里算；只有「今年这套房的花费」要扫花费明细，
  * 用现成的 spend_rollup 聚合（按月 × 分类 × 房产，和统计页共用缓存），不新增按行的查询。 */
+import { allBillsHref } from "./all-views.js";
 import { state } from "../core/state.js";
 import { href } from "../core/router.js";
 import { esc, fmtDate, money, num } from "../core/util.js";
@@ -58,8 +59,8 @@ function propertyRow(p, spend, loans = [], eq = null) {
   const bills = propertyBills(p.id), y = new Date().getFullYear();
   const spent = spend == null ? `<span class="muted">${t("读取中…")}</span>` : money(spend[p.id] || 0);
   const one = (state.medEnriched || []).filter((b) => b.property_id === p.id), oneBal = one.filter((b) => (b.currency || cur()) === cur()).reduce((s, b) => s + (b.balance || 0), 0);
-  const oneTxt = one.length ? `${t("{n} 个一次性账单", { n: one.length })}${oneBal > 0 ? ` · ${t("余额 {a}", { a: money(oneBal) })}` : ""} · <a href="${href("bills", "onetime")}?tab=list&prop=${encodeURIComponent(p.id)}">${t("查看")}</a>` : "";
-  const recTxt = bills.n ? `${money(bills.monthly)}${t("/月")}${bills.escrow ? ` <small class="muted">${t("+ Escrow {a}", { a: money(bills.escrow) })}</small>` : ""} · <a href="${href("bills", "recurring")}?tab=list&prop=${encodeURIComponent(p.id)}">${t("{n} 条账单", { n: bills.n })}</a>` : "";
+  const oneTxt = one.length ? `${t("{n} 个一次性账单", { n: one.length })}${oneBal > 0 ? ` · ${t("余额 {a}", { a: money(oneBal) })}` : ""} · <a href="${allBillsHref({ type: "onetime", asset: `property:${p.id}` })}">${t("查看")}</a>` : "";
+  const recTxt = bills.n ? `${money(bills.monthly)}${t("/月")}${bills.escrow ? ` <small class="muted">${t("+ Escrow {a}", { a: money(bills.escrow) })}</small>` : ""} · <a href="${allBillsHref({ type: "recurring", asset: `property:${p.id}` })}">${t("{n} 条账单", { n: bills.n })}</a>` : "";
   const billTxt = [recTxt, oneTxt].filter(Boolean).join("<br>") || `<span class="muted">${t("没有挂账单")}</span>`;
   return `<li class="fa-row">
     <div class="fa-head"><b>${esc(p.name)}</b><span class="badge">${esc(t(ST[p.status] || "持有"))}</span><small class="muted">${esc(t(K[p.kind] || ""))}${p.archived ? ` · ${t("已归档")}` : ""}</small>

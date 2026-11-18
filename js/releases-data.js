@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.8", title: { zh: "账单路径整理：财务 / 账单概览 / 资产 / 账单；取消周期性、一次性账单目录页", en: "Bills path tidied: Finance / Bills overview / asset / bill; the recurring and one-time directory pages are gone" }, items: [
+    { k: "better", zh: "账单详情页的路径统一成「财务 / 账单概览 / 房产（车辆、设备、患者）/ 账单名」；第二级回概览（默认筛选），第三级回概览并按这个资产筛选", en: "Bill pages now show Finance / Bills overview / property (vehicle, equipment, patient) / bill; the second level returns to the overview with default filters, the third filters it by that asset" },
+    { k: "new", zh: "账单概览的资产筛选写进网址（#/bills/overview/资产），可以直接分享、刷新；资产下拉能输入文字搜索，选项很多也好找", en: "The overview's asset filter is part of the address (#/bills/overview/asset), so it can be shared and survives a refresh; the asset list is searchable" },
+    { k: "better", zh: "「周期性账单」「一次性账单」两个目录页取消：列表用「全部账单」按类型筛选，缴费趋势放进账单概览；旧链接自动跳转；一次性账单详情页的网址改成 #/otbill/…", en: "The Recurring and One-time directory pages are removed: use All bills filtered by type, and the payment trend now lives in the overview; old links redirect; one-time bill pages moved to #/otbill/…" }
+  ] },
+
   { v: "2026-11-18.7", title: { zh: "特别摊派的编辑页排版整理：每一期一张整齐的小卡片", en: "Special assessment edit page tidied up: one neat card per row" }, items: [
     { k: "better", zh: "每一期是一张卡片：上面选类型和删除，下面到期日、金额并排，再下面是「已缴（无缴费记录）」；已关联缴费的期收成一行只读", en: "Each row is a card: type and delete on top, due date and amount side by side, then Paid (no payment record); rows tied to a payment collapse to one read-only line" },
     { k: "fix", zh: "修好勾选框变成大方块、说明文字竖着折行、日期被截断的问题；宽屏两列排开", en: "Fixed the oversized checkbox, the vertically wrapped label and the truncated dates; wide screens show two columns" }

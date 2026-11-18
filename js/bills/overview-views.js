@@ -6,7 +6,8 @@ import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { addDays } from "./dates.js";
-import { NEW_RECURRING, ONETIME, RECURRING } from "./kinds.js";
+import { NEW_RECURRING } from "./kinds.js";
+import { billTrendSection } from "./views.js";
 import { detailHref } from "./medical.js";
 import { BILL_RANGES, STATUS_GROUPS, assetBreakdown, billInstances, filterRows, monthBounds, monthlySeries, nextDue, rangeBounds, seriesMonths, sortRows, summarize } from "./instances.js";
 import { allBillsHref, assetKeyLabel, assetOptions, rowHtml } from "./all-views.js";
@@ -19,14 +20,14 @@ const RANGE_KEY = "hmh-bills-range";
 export function loadOverviewRange() {
   try { const v = localStorage.getItem(RANGE_KEY); if (v && BILL_RANGES.some(([k]) => k === v)) state.ovFilter.range = v; } catch { /* 忽略 */ }
 }
-/** 网址带 ?asset=…（房屋 / 车辆页的「账单」入口）→ 选好那个资产，时间默认本月（可用 ?range= 改）；没带参数 = 全部资产 + 上次选的范围 */
-export function applyOverviewQuery(q) {
-  const a = q?.get("asset"), r = q?.get("range");
+/** 网址是 #/bills/overview/<资产键>（房屋 / 车辆页的「账单」入口、面包屑第三级、下拉里选一个）→ 按那个资产筛，时间默认本月（可用 ?range= 改；在页面里换资产保持当前范围）；没带资产 = 全部资产 + 上次选的范围。旧的 ?asset=… 也认 */
+export function applyOverviewQuery(q, id = null) {
+  const a = id || q?.get("asset"), r = q?.get("range");
   if (a && /^(property:|asset:|person:)[\w-]+$|^(vehicle|medical|pet|project|legal|travel|general)$/.test(a)) {
-    state.ovFilter.asset = a; state.ovFilter.range = r && BILL_RANGES.some(([k]) => k === r) ? r : "m";
+    state.ovFilter.asset = a; state.ovFilter.range = r && BILL_RANGES.some(([k]) => k === r) ? r : state.ovFilter.keepRange ? state.ovFilter.range : "m"; state.ovFilter.keepRange = false;
   } else { state.ovFilter.asset = "all"; loadOverviewRange(); if (r && BILL_RANGES.some(([k]) => k === r)) state.ovFilter.range = r; }
 }
-export const applyOverviewRoute = (r) => { if (r?.section === "bills" && r.sub === "overview") applyOverviewQuery(r.q); };
+export const applyOverviewRoute = (r) => { if (r?.section === "bills" && r.sub === "overview") applyOverviewQuery(r.q, r.id); };
 export function setOverviewRange(v) { state.ovFilter.range = v; try { localStorage.setItem(RANGE_KEY, v); } catch { /* 忽略 */ } }
 
 /** 要处理：逾期、今天 / 7 天内到期（soon 已含今天）、待核对的自动扣款 */
@@ -111,12 +112,11 @@ export function viewBillsHome() {
       <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${allBillsHref({ range: f.range, asset: f.asset })}">${t("全部账单")} ›</a></div></div>
       <div class="ov-filters">
         <select id="ovRange" aria-label="${t("时间范围")}">${range}</select>
-        <select id="ovAsset" aria-label="${t("按资产筛选")}">${assetOptions(C.base.rows, f.asset)}</select>
+        <select id="ovAsset" data-ss="1" aria-label="${t("按资产筛选")}">${assetOptions(C.base.rows, f.asset)}</select>
       </div>
       <p class="muted kinds-note" role="status">${t("统计范围：{r}（{s}）· {a}。逾期没缴的一直计入，不受范围限制。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope, a: assetLabel })}</p>
       ${empty ? `<div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}<p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${href("bill", "new")}">${t("手动添加一条")}</a></p></div>` : `${cardsHtml(C)}${notesHtml(C)}`}
     </section>
-    ${empty ? "" : `${urgentHtml(C)}${assetHtml(C)}${trendHtml(C)}
-    <section class="section"><div class="kind-links"><a class="btn btn-ghost" href="${RECURRING()}">🔁 ${t("周期性账单")} ›</a><a class="btn btn-ghost" href="${ONETIME()}">🧾 ${t("一次性账单")} ›</a></div></section>`}
-    ${fabHtml()}`;
+    ${empty ? "" : `${urgentHtml(C)}${assetHtml(C)}${trendHtml(C)}${billTrendSection()}
+    ${fabHtml()}`}`;
 }

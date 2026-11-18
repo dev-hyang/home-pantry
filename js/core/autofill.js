@@ -293,7 +293,7 @@ async function scanNewBill(input) {
     if (type === "recurring" ? await createRecurringFromScan(d, say) : await createOnetimeFromScan(d, kind, say)) return;
     // 缺必填项：不硬建，退回对应的表单 / 向导，把读到的填进去（周期性：向导从缺的那一步开始）
     if (type === "recurring") return;   // createRecurringFromScan 已经把草稿放好并跳到向导
-    go(`${href("bills", "onetime")}?bill=new&mode=full&kind=${encodeURIComponent(kind)}`);
+    go(`${href("otbill", "new")}?mode=full&kind=${encodeURIComponent(kind)}`);
     for (let i = 0; i < 50; i++) {
       await new Promise((r) => setTimeout(r, 100));
       const form = $("#medBillForm"); if (!form || form.dataset.id) continue;
@@ -331,7 +331,7 @@ async function run(input) {
   // 一次性账单：已经保存过的这张账单页上再拍 = 要录下一张新账单，别把识别结果填进这张已存的（会改掉它）。
   // 先去一张空白的同类新账单表单，再把照片交给那里的识别
   if (kind === "medbill" && form.dataset.id) {
-    go(`${href("bills", "onetime")}?bill=new&mode=full&kind=${encodeURIComponent(form.elements.kind?.value || "medical")}`);
+    go(`${href("otbill", "new")}?mode=full&kind=${encodeURIComponent(form.elements.kind?.value || "medical")}`);
     for (let i = 0; i < 40; i++) {
       await new Promise((r) => setTimeout(r, 100));
       const nf = $(input.dataset.form), ni = nf && !nf.dataset.id ? nf.closest("section")?.querySelector("input[data-autofill]") : null;

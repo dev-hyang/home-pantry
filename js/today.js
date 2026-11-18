@@ -101,8 +101,8 @@ export const initTodayRender = (fn) => { rerenderToday = fn; };
 /* ── 待办 · 按模块：每个模块一行（数量 + 最近的一件），点进模块自己的页面 ──
  * 来源全是提醒总线（已经按财务权限去掉了预算 / 收入 / 借贷）+ 内存里的购物车；链接再过一遍 quickOk，没权限的页面不会出现 */
 const AREAS = () => [
-  { src: ["bill"], icon: "🧾", name: "周期性账单", href: href("bills", "recurring"), on: state.billsEnabled },
-  { src: ["medical"], icon: "🏥", name: "一次性账单", href: href("bills", "onetime"), on: state.billsEnabled },
+  { src: ["bill"], icon: "🧾", name: "周期性账单", href: allBillsHref({ type: "recurring" }), on: state.billsEnabled },
+  { src: ["medical"], icon: "🏥", name: "一次性账单", href: allBillsHref({ type: "onetime" }), on: state.billsEnabled },
   { src: ["debt"], icon: "🏦", name: "借贷还款", href: href("bills", "debts"), on: state.billsEnabled },
   { src: ["card"], icon: "💳", name: "卡与账户", href: href("bills", "cards"), on: state.billsEnabled },
   { src: ["budget"], icon: "💰", name: "预算", href: href("bills", "budget"), on: state.billsEnabled },
@@ -338,7 +338,7 @@ export const PRESETS = () => {
     // 常用动作
     [href("pantry", "scan"), "🧾", t("录入购物")], B ? [SPEND_ADD(), "✍️", t("记一笔花费")] : null, [href("shopping"), "🛒", t("购物车")],
     [href("shopping", "add"), "📝", t("加入购物车")], [`${href("shopping", "add")}?mode=photo`, "📷", t("拍照加入购物车")], [href("shops", "list"), "🏪", t("常去的商店")],
-    B ? [href("bill", "new"), "➕", t("添加账单")] : null, B ? [INCOME_ADD(), "💵", t("记一笔收入")] : null, B ? [`${href("bills", "onetime")}?bill=new`, "🏥", t("记一张一次性账单")] : null,
+    B ? [href("bill", "new"), "➕", t("添加账单")] : null, B ? [INCOME_ADD(), "💵", t("记一笔收入")] : null, B ? [href("otbill", "new"), "🏥", t("记一张一次性账单")] : null,
     // 储藏
     [href("pantry", "overview"), "🗄️", t("储藏概览")], [href("pantry", "inventory"), "📦", t("库存")], [href("pantry", "meals"), "🍳", t("今天吃什么")], [`${href("item", "new")}?space=pantry`, "➕", t("添加储藏物品")],
     G ? [href("pantry", "gear"), "🧳", t("家居耐用品")] : null, G ? [`${href("item", "new")}?space=gear`, "🧳", t("添加家居耐用品")] : null,
@@ -348,8 +348,8 @@ export const PRESETS = () => {
     H ? [`${href("pantry", "inventory")}?space=house`, "🧰", t("汽车房屋消耗品")] : null, H ? [`${href("item", "new")}?space=house`, "➕", t("添加汽车房屋消耗品")] : null,
     // 财务（收支 · 账户与资产 · 借贷 · 预算与计划 · 分析）；没有财务权限的那几页由 quickOk 去掉
     B ? [href("bills"), "💰", t("财务")] : null, B ? [href("bills", "overview"), "📊", t("财务概览")] : null,
-    B ? [href("bills", "spend"), "📊", t("花费")] : null, B ? [href("bills", "income"), "💵", t("收入")] : null, B ? [href("bills", "recurring"), "🔁", t("周期性账单")] : null, B ? [href("bills", "onetime"), "🏥", t("一次性账单")] : null,
-    B ? [href("bills", "list"), "📋", t("账单清单")] : null, B ? [href("bills", "history"), "🕘", t("缴费记录")] : null, B ? [href("bills", "template"), "🧾", t("按模板建账单")] : null, B ? [href("bills", "statements"), "🏦", t("对账单")] : null,
+    B ? [href("bills", "spend"), "📊", t("花费")] : null, B ? [href("bills", "income"), "💵", t("收入")] : null, B ? [allBillsHref({ type: "recurring" }), "🔁", t("周期性账单")] : null, B ? [allBillsHref({ type: "onetime" }), "🏥", t("一次性账单")] : null,
+    B ? [href("bills", "all"), "📋", t("全部账单")] : null, B ? [href("bills", "template"), "🧾", t("按模板建账单")] : null, B ? [href("bills", "statements"), "🏦", t("对账单")] : null,
     B ? [href("bills", "cards"), "💳", t("用卡：该刷哪张")] : null, B ? [`${href("bills", "cards")}?card=new`, "💳", t("添加信用卡")] : null, B ? [href("bills", "assets"), "🏛️", t("资产")] : null,
     B ? [href("bills", "debts"), "🏦", t("借贷")] : null, B ? [href("bills", "budget"), "💰", t("预算")] : null, B ? [href("bills", "networth"), "📈", t("净资产")] : null,
     // 其他
