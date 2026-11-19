@@ -1,8 +1,3 @@
-/* 采购 → 常去的商店（迁移 067）
- *   #/shops/list         商店列表：搜索、分类筛选、常去 / 不去了、排序；手动添加、编辑、不去了（可加回来）、删除
- *   #/shops/find         按 ZIP 或当前位置找附近的门店（5 / 10 / 15 / 20 英里），一键加入
- *   #/shops/shop/<id>    单个商店：本周广告链接、更新特价（拍广告 / 贴文字 → AI 读；贴 Claude 整理的 JSON 直接导入）、特价列表
- * 布局：电脑上商店卡片多列、特价是表格；手机上单列卡片、特价一条一张卡，按钮在卡片底部。 */
 import { state } from "../core/state.js";
 import { normName } from "../core/item-match.js";
 import { Store } from "../core/store.js";
@@ -12,8 +7,9 @@ import { href } from "../core/router.js";
 import { crumbNav } from "../core/hub.js";
 import { aiReady, askText } from "../core/ai.js";
 import { attachHTML, attachPayload, attachReset } from "../core/attach.js";
-import { DEAL_TYPES, FOCUS_SECTIONS, claudePrompt, dealsFor, rankDeals, histSince, linkItems, myItemNames, priceHistory, replaceable, dealCatName, dealTypeName, importGroups, weekWindow } from "./logic.js";
-import { CHAINS, MAX_MI, SHOP_CATS, STARTER, adUrl, bestDealFor, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, nearestChains, openShopping, parseLooseJson, rememberPoint, restockWatch, savedZip, searchNearby, shopCat, zipToPoint } from "./logic.js";
+import { DEAL_TYPES, FOCUS_SECTIONS, claudePrompt, dealsFor, rankDeals, linkItems, myItemNames, priceHistory, replaceable, dealCatName, dealTypeName, importGroups, weekWindow } from "./logic.js";
+import { CHAINS, MAX_MI, SHOP_CATS, adUrl, chainOf, cleanDeals, dealMatches, dealPrompt, dealsDue, flippUrl, liveDeals, mapUrl, miles, openShopping, parseLooseJson, rememberPoint, restockWatch, savedZip, shopCat, zipToPoint } from "./logic.js";
+import { PICK_KEY, WHY, loadShops, localPicks, pickedDeal, priceTxt, shopName, unitMoney } from "./lite.js";
 
 const DOW = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 const ui = () => (state.shopUi ||= { q: "", cat: "", status: "active", sort: "name", edit: null, find: { zip: savedZip()?.zip || "", radius: 10, cats: ["groceries", "warehouse", "department"], results: null, busy: false, error: "", pt: savedZip() }, deal: {} });
@@ -21,27 +17,6 @@ const dealUi = (id) => (ui().deal[id] ||= { busy: false, error: "", rows: null, 
 const home = () => ui().find.pt || savedZip();
 const distOf = (s) => miles(home(), s);
 const shopHref = (s) => `${href("shops", "shop")}/${encodeURIComponent(s.id)}`;
-
-/** 过期超过 6 个月的特价：每台设备一天最多删一次（后台进行，失败不影响页面） */
-function purgeOld(before) {
-  const key = "hp-deal-purge", today = new Date().toISOString().slice(0, 10);
-  try { if (localStorage.getItem(key) === today) return; localStorage.setItem(key, today); } catch { return; }
-  Store.purgeShopDeals?.(before).catch((e) => console.warn("[shops] purge", e.message));
-}
-/* ───────────── 数据：和其他表一起刷新，读不到（还没执行 067）时给提示 ───────────── */
-export async function loadShops() {
-  try {
-    const since = histSince();   // 过期 6 个月内的也读：特价旁边显示「以前的价格」
-    purgeOld(since);
-    const [shops, deals] = await Promise.all([Store.listShops(), Store.listShopDeals(since)]);
-    state.shops = shops || []; state.shopDeals = deals || []; state.shopsMissing = false;
-    try { state.dealRuns = await Store.listDealRuns(); state.runsMissing = false; } catch { state.dealRuns = []; state.runsMissing = true; }
-  } catch (e) {
-    if (/shops|shop_deals|does not exist|schema cache/i.test(e.message || "")) { state.shopsMissing = true; state.shops = []; state.shopDeals = []; }
-    else console.warn("[shops]", e.message);
-  }
-}
-
 export function viewShops() {
   const r = state.route;
   if (r.sub === "find") return viewFind();
@@ -51,7 +26,6 @@ export function viewShops() {
   return viewList();
 }
 const missingPanel = () => (state.shopsMissing ? `<div class="panel cta-panel"><div><b>${t("数据库还没升级")}</b><p class="muted">${t("请在 Supabase 的 SQL Editor 执行 migrations/067_shops_deals.sql，商店和特价才能保存。")}</p></div></div>` : "");
-
 /* ───────────── 列表 ───────────── */
 function viewList() {
   const u = ui(), all = state.shops || [];
@@ -136,7 +110,6 @@ function shopForm(s) {
       ${s ? `${s.archived ? "" : `<button type="button" class="btn btn-ghost" data-action="shops-archive" data-id="${s.id}">${t("不去了")}</button>`}<button type="button" class="btn btn-ghost btn-danger" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>` : ""}</div>
   </form>`;
 }
-
 /* ───────────── 找附近的商店 ───────────── */
 function viewFind() {
   const f = ui().find, have = new Map((state.shops || []).filter((s) => s.osm_id).map((s) => [s.osm_id, s]));
@@ -168,7 +141,6 @@ function viewFind() {
     }).join("")}</ul>` : `<p class="muted shops-empty">${t("这个范围里没找到。放大范围或多选几个分类再试。")}</p>`) : ""}
   </section>`;
 }
-
 /* ───────────── 用 Claude 整理（Chrome 侧边栏）：复制指令 → 贴回 JSON → 按商店导入 ───────────── */
 function claudePanel() {
   const u = ui(), imp = u.imp;
@@ -193,7 +165,6 @@ function claudePanel() {
   </div>`;
 }
 const copyBox = () => `<details class="shops-copy" open><summary>${t("没能自动复制，请手动全选复制")}</summary><textarea readonly rows="6">${esc(ui().copyText)}</textarea></details>`;
-
 /* ───────────── 单个商店 ───────────── */
 function viewShop(id) {
   const s = (state.shops || []).find((x) => x.id === id);
@@ -255,15 +226,11 @@ function reviewHtml(s, du) {
       <button type="button" class="btn btn-ghost" data-action="shops-discard" data-id="${s.id}">${t("放弃")}</button></div>
   </form>`;
 }
-/** 单价常常不到一毛（$0.023 /fl oz）：小于 1 时多留一位小数，不然都显示成 $0.02 */
-const unitMoney = (v) => (v >= 1 ? money(v) : money(0).replace(/0([.,])00/, `0$1${v.toFixed(3).slice(2)}`));
 /** 折扣类型的小标签（Black Friday、店内、网上、Rollback…） */
 const typeTags = (v) => String(v || "").split(",").filter(Boolean).map((k) => `<span class="tag deal-type dt-${esc(k)}">${esc(t(dealTypeName(k)))}</span>`).join("");
 const COLS = { name: "名称", size: "规格", price: "价格", price_text: "广告原文", unit_price: "单价", unit_label: "单位", valid_to: "到期" };
-
 /** 以前的价格：一行小结（点开看明细）。现在是 6 个月最低 → 绿色；比以前最低贵 → 写出以前最低是多少、哪家、哪天 */
 const histVal = (h, x) => (h.by === "unit" ? `${unitMoney(+x.unit_price)}${esc(x.unit_label || "")}` : money(+x.price));
-const shopName = (id) => (state.shops || []).find((x) => x.id === id)?.name || "?";
 function histBtn(d, du) {
   const h = priceHistory(d); if (!h) return "";
   const open = du.hist === d.id;
@@ -278,7 +245,6 @@ function histList(d) {
     <span class="dh-nm">${esc(x.name)}${x.size ? ` <small>${esc(x.size)}</small>` : ""}</span><b class="dh-v">${histVal(h, x)}</b></li>`).join("")}</ul>
     ${h.list.length > 10 ? `<p class="muted dh-more">${t("只列最近 10 次，共 {n} 次", { n: h.list.length })}</p>` : ""}`;
 }
-
 /** 折扣类型：下拉多选（关着时像普通下拉，显示已选的；点开是一列勾选框）。可以选几个，比如 Black Friday + 网上 */
 const dtSummary = (keys) => (keys.length ? keys.map((k) => t(dealTypeName(k))).join("、") : t("没有特别类型"));
 function dealTypeDrop(value, labelId) {
@@ -286,7 +252,6 @@ function dealTypeDrop(value, labelId) {
   return `<details class="dt-drop"><summary aria-labelledby="${labelId}" aria-describedby="${labelId}-v"><span class="dt-val" id="${labelId}-v">${esc(dtSummary(on))}</span></summary>
     <div class="dt-menu" role="group" aria-labelledby="${labelId}">${DEAL_TYPES.map(([k, l]) => `<label class="dt-opt"><input type="checkbox" name="deal_type" value="${k}" ${on.includes(k) ? "checked" : ""}><span>${esc(t(l))}</span></label>`).join("")}</div></details>`;
 }
-
 function dealsHtml(s, du, deals) {
   const open = openShopping(), q = du.q.trim().toLowerCase(), soon = (d) => d.valid_to && daysUntil(d.valid_to) <= 2;
   const cats = [...new Set(deals.map((d) => d.category).filter(Boolean))].sort();
@@ -333,34 +298,7 @@ function dealsHtml(s, du, deals) {
     ${list.length ? `<ul class="deal-list">${list.map(row).join("")}</ul>` : `<p class="muted">${t("没有符合条件的特价。")}</p>`}` : `<p class="muted">${t("更新一次特价，这里就会列出本周在打折的东西。")}</p>`}
   </div>`;
 }
-
-/* ───────────── 购物车里用到的小块 ───────────── */
-/** 清单某一项现在最便宜的特价：「🏷 ALDI $2.49 · 到 11/18」 */
-export function shopDealLine(s) {
-  if (!state.shops?.length) return "";
-  const list = dealsFor(s); if (!list.length) return "";
-  const d = pickedDeal(s, list) || list[0];
-  return `<a class="shop-deal-line" href="${dealsHref(s.id)}">🏷 ${esc(shopName(d.shop_id))} ${d.price != null ? money(d.price) : esc(d.price_text || "")}${d.size ? ` <small>${esc(d.size)}</small>` : ""}${d.valid_to ? ` · ${t("到 {d}", { d: fmtShort(d.valid_to) })}` : ""}${list.length > 1 ? ` · ${t("另有 {n} 家", { n: list.length - 1 })}` : ""}</a>`;
-}
-/* ───────────── 购物车的特价：选用哪一家（下拉）+ 比一比（特价一览，只看这一项） ───────────── */
-const dealsHref = (itemId) => `${href("shops", "deals")}${itemId ? `?item=${encodeURIComponent(itemId)}` : ""}`;
-const PICK_KEY = "hp-deal-pick";   // 没执行 069（没有 deal_id 列）时，选的那家先记在这台设备上
-const localPicks = () => { try { return JSON.parse(localStorage.getItem(PICK_KEY) || "{}") || {}; } catch { return {}; } };
 function setLocalPick(itemId, dealId) { try { const m = localPicks(); if (dealId) m[itemId] = dealId; else delete m[itemId]; localStorage.setItem(PICK_KEY, JSON.stringify(m)); } catch { /* 忽略 */ } }
-/** 这一项选用的那条特价（还在有效期、还对得上才算）；没选返回 null */
-export function pickedDeal(s, list = dealsFor(s)) { const id = s.deal_id || localPicks()[s.id]; return (id && list.find((d) => d.id === id)) || null; }
-const priceTxt = (d) => (d.price != null ? money(d.price) : d.price_text || "—");
-const dealLabel = (d) => [shopName(d.shop_id), priceTxt(d), d.unit_price != null ? `${unitMoney(+d.unit_price)}${d.unit_label || ""}` : "", d.size || "", d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""].filter(Boolean).join(" · ");
-const WHY = { unit: "单价最低", brand: "单价差不多，是清单上写的牌子", freq: "单价差不多，你常去这家", near: "单价差不多，离家更近", price: "没有单价，按价格最低", none: "只写了「省多少」，按常去的商店排" };
-/** 购物车一行里的特价：下拉选一家（默认按比价规则的第一条）+「比一比」进特价一览 */
-export function shopDealPicker(s) {
-  if (!state.shops?.length || s.status === "bought") return "";
-  const list = dealsFor(s); if (!list.length) return "";
-  const pick = pickedDeal(s, list), cur = pick || list[0];
-  return `<div class="deal-pick"><span class="deal-pick-ico" aria-hidden="true">🏷</span>
-    <select data-deal-pick="${s.id}" data-nosearch aria-label="${esc(t("{name} 的特价：选一家", { name: s.name }))}" title="${esc(pick ? t("你选的这家") : t("默认：{why}", { why: t(WHY[list.why] || WHY.unit) }))}">${list.map((d, i) => `<option value="${d.id}" ${d.id === cur.id ? "selected" : ""}>${esc(dealLabel(d))}${i === 0 ? " ★" : ""}</option>`).join("")}</select>
-    <a class="deal-pick-all" href="${dealsHref(s.id)}">${t("比一比 {n}", { n: list.length })} ›</a></div>`;
-}
 /** 选用一条特价：存到这一项上（069 的 deal_id，全家看得到）；没执行 069 时先记在这台设备。「在哪买」还空着就顺手填上商店名 */
 async function pickDeal(itemId, dealId, { rerender = false } = {}) {
   const s = (state.shopping || []).find((x) => x.id === itemId); if (!s) return;
@@ -373,7 +311,6 @@ async function pickDeal(itemId, dealId, { rerender = false } = {}) {
   if (d && st && !st.value.trim()) st.value = shopName(d.shop_id);
   if (rerender) R?.();
 }
-
 /* ───────────── 特价一览：以商品为主（各家的特价放在一起比），列表 / 卡片两种看法；?item= 只看购物车的某一项 ───────────── */
 const DV_SORTS = [["best", "推荐"], ["unit", "按单价"], ["price", "按价格"], ["soon", "快到期的在前"], ["shop", "按商店"]];
 function dvUi() {
@@ -478,15 +415,6 @@ function groupByItem(list, hits) {
   for (const d of list) if (!seen.has(d.id)) out.push(d);
   return out;
 }
-/** 采购看板上「常去的商店与特价」那一格的数字：几家常去、几条在有效期的特价、几条对上清单、几家待更新 */
-export function shopsStats() {
-  const shops = (state.shops || []).filter((s) => !s.archived), ids = new Set(shops.map((s) => s.id));
-  const live = liveDeals().filter((d) => ids.has(d.shop_id)), open = openShopping();
-  // 2026-11-14：看板上数的是「清单上有几样东西有特价」（不是特价条数），并列出是哪几样
-  const items = open.filter((s) => dealsFor(s).length);
-  return { shops: shops.length, deals: live.length, hits: open.length ? live.filter((d) => dealMatches(d, open).length).length : 0, items: items.length, itemNames: items.map((s) => s.name), due: shops.filter(dealsDue).length, dueNames: shops.filter(dealsDue).map((x) => x.name) };
-}
-
 /* ───────────── 更新记录（迁移 068）：什么时候、怎么录的、哪几家、加了几条、失败原因 ───────────── */
 const RUN_SRC = { auto: ["🤖", "每周自动更新"], claude: ["🧩", "Claude 整理导入"], photo: ["📷", "拍广告 / 截图"], paste: ["📋", "粘贴文字"], manual: ["✍️", "手动"] };
 const RUN_ST = { ok: ["tag-ok", "成功"], partial: ["tag-warn", "部分失败"], failed: ["tag-hot", "失败"] };
@@ -518,7 +446,6 @@ function viewRuns() {
   </section>`;
 }
 const fmtWhen = (iso) => { try { return new Date(iso).toLocaleString(lang === "en" ? "en-US" : "zh-CN", { month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); } catch { return iso; } };
-
 /* ───────────── 给每周定时任务（Claude Code 的 /pantry-deals auto）用的入口 ─────────────
  * 定时任务在已登录的爱家小助手标签页里调用：
  *   await hmhDeals.autoShops()          → 打开了自动更新、而且到了换广告日还没更新的商店（dealsDue；定时任务每天跑，周日换广告的周日更新）
@@ -559,7 +486,6 @@ function installAutoHook() {
     },
   };
 }
-
 /* ───────────── 操作 ───────────── */
 const shopById = (id) => (state.shops || []).find((s) => s.id === id);
 function upsertLocal(row) { const i = state.shops.findIndex((x) => x.id === row.id); if (i >= 0) state.shops[i] = row; else state.shops.push(row); }
@@ -570,7 +496,6 @@ function formRow(f) {
   return { name, chain, category: g("category") || "groceries", zip: g("zip"), address: g("address"), ad_url: g("ad_url"), phone: g("phone"), refresh: g("refresh") || "weekly", refresh_dow: +(g("refresh_dow") ?? 3), notes: g("notes"),
     ...(state.runsMissing ? {} : { auto_update: !!f.elements.auto_update?.checked && (g("refresh") || "weekly") === "weekly" }) };   // 没执行 068 时不送这一列
 }
-
 export async function shopsAction(action, el, { render, go, refresh }) {
   const u = ui(), id = el.dataset.id;
   switch (action) {
@@ -719,7 +644,6 @@ async function saveDealEdit(f, render) {
     deal_type: [...f.querySelectorAll('[name="deal_type"]:checked')].map((x) => x.value).slice(0, 4).join(",") || null };
   await Store.saveShopDeal(row); Object.assign(d, row); dealUi(d.shop_id).edit = null; toast(t("已保存")); render();
 }
-
 /* 表单提交、输入：在 document 上监听（和录入购物一样），render 由 main.js 注入 */
 let R = () => {};
 export function bindShops(render) {

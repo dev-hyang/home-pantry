@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.40", title: { zh: "打开更快：收入页和常去的商店页点进去才下载", en: "Faster to open: Income and Favorite stores pages download only when you open them" }, items: [
+    { k: "better", zh: "收入（明细、类型、付款方）和常去的商店这两大块程序，第一次点进去才下载，打开应用、看今日页、储藏、账单时不再带上；页面和操作和以前一样", en: "The Income pages and the Favorite stores pages now download the first time you open them, not at launch; pages and actions work as before" }
+  ] },
+
   { v: "2026-11-18.39", title: { zh: "内部整理：主程序再拆小，用法不变", en: "Under the hood: main program split further, nothing changes for you" }, items: [
     { k: "better", zh: "把处理点击、表单提交、下拉选择的大段程序按领域（储藏、房屋、财务、家庭设置、今日页）拆成小文件，主程序文件从两千多行缩到一百多行；页面和操作和以前一样", en: "Click, form-submit and select handling is now split by area (pantry, house, finance, family settings, Today) into small files, and the main program file shrank from 2,000+ lines to about 150; pages and actions work as before" }
   ] },

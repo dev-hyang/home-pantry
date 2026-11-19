@@ -1,0 +1,25 @@
+{
+  "source": "js/shops/views.js",
+  "files": [
+    {
+      "path": "js/shops/lite.js",
+      "doc": "常去的商店里「启动时就要用」的几个小函数：读商店和特价（刷新数据时）、储藏页里每件物品旁边的特价提示和选择器、商店统计。商店页本身（shops/views.js）点开才加载。",
+      "names": [
+        "loadShops",
+        "shopDealLine",
+        "shopDealPicker",
+        "shopsStats",
+        "purgeOld",
+        "shopName",
+        "dealsHref",
+        "pickedDeal",
+        "dealLabel",
+        "WHY",
+        "localPicks",
+        "priceTxt",
+        "unitMoney",
+        "PICK_KEY"
+      ]
+    }
+  ]
+}

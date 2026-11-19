@@ -1,0 +1,37 @@
+{
+  "source": "js/income/views.js",
+  "files": [
+    {
+      "path": "js/income/rollup.js",
+      "doc": "收入 / 花费 / 收支流水的聚合数据（inc_rollup、spend_rollup、ledger_rollup，迁移 055 / 056）：按参数缓存，数据变了标过期，下次画的时候后台重读。净资产页和收入页都用，所以从收入页里抽出来（收入页点开才加载）。",
+      "names": [
+        "hooks",
+        "rerender",
+        "iso",
+        "TZ",
+        "nextMonth",
+        "addDay",
+        "monthsBetween",
+        "spanOfMonths",
+        "ROLL",
+        "rollErrShown",
+        "roll",
+        "incRollupFor"
+      ]
+    },
+    {
+      "path": "js/income/list.js",
+      "doc": "收入明细的服务端分页列表：刷新数据时要把它标过期，所以放在启动就有的小文件里；画列表的函数由收入页加载后挂上来（incDraw）。",
+      "names": [
+        "incDraw",
+        "incList"
+      ],
+      "lines": [
+        [
+          419,
+          419
+        ]
+      ]
+    }
+  ]
+}

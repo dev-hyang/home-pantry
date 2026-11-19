@@ -13,7 +13,7 @@ import { ASSET_BUCKETS, BALANCE_KINDS, LIAB_BUCKETS, growthRows, isLiabilityKind
 import { aggregate, incAggregate } from "../stats/report.js";
 import { monthLabel, spendRollupFor, trendHead, trendPeriods } from "../stats/views.js";
 import { monthsBetween, unitSelectHtml } from "../core/time-range.js";
-import { incRollupFor } from "../income/views.js";
+import { incRollupFor } from "../income/rollup.js";
 import { STALE_DAYS, balancesOf, deleteBalance, deleteSnapshot, liveNetWorth, rebuildSnapshot, saveBalance, saveMonthSnapshot, saveValuation, thisMonth, valuationsOf, deleteValuation } from "./nw-logic.js";
 import { debtHref } from "./debt-logic.js";
 import { summaryHref } from "./debt-stats.js";

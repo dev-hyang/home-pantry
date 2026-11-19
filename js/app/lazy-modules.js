@@ -120,3 +120,8 @@ export const copyGeneralPrompt = lazyFn(LZ.aiPage, "copyGeneralPrompt");
 export const pickTopic = lazyFn(LZ.aiPage, "pickTopic");
 export const runAiPage = lazyFn(LZ.aiPage, "runAiPage");
 export const viewAi = lazyFn(LZ.aiPage, "viewAi");
+LZ.incomeViews = lazyModule(() => import("../income/views.js"));
+export const viewIncome = lazyFn(LZ.incomeViews, "viewIncome");
+LZ.shopsViews = lazyModule(() => import("../shops/views.js"));
+export const shopsAction = lazyFn(LZ.shopsViews, "shopsAction");
+export const viewShops = lazyFn(LZ.shopsViews, "viewShops");

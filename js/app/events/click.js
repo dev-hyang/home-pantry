@@ -12,9 +12,9 @@ import { payeeAction } from "../../stats/payees.js";
 import { refresh } from "../data.js";
 import { render } from "../render.js";
 import { shopScanAction } from "../../pantry/shop-scan.js";
-import { shopsAction } from "../../shops/views.js";
 import { t } from "../../core/i18n.js";
 import { toast } from "../../core/util.js";
+import { shopsAction } from "../lazy-modules.js";
 
 const CLICK_GROUPS = [[PANTRY_ACTIONS, clickPantry], [HOUSE_ACTIONS, clickHouse], [MONEY_ACTIONS, clickMoney], [FAMILY_ACTIONS, clickFamily], [TODAY_ACTIONS, clickToday]];
 /** data-action → 处理它的那一组（每个动作只属于一组） */

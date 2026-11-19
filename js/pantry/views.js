@@ -6,7 +6,7 @@ import { COLORS, ICONS } from "../core/categories.js";
 import { L1S, l2List, l2Of, spendOptions } from "../core/taxonomy.js";
 import { locationGroups } from "../core/locations.js";
 import { Store } from "../core/store.js";
-import { shopDealLine, shopDealPicker, shopsStats } from "../shops/views.js";
+import { shopDealLine, shopDealPicker, shopsStats } from "../shops/lite.js";
 import { crumbNav } from "../core/hub.js";
 import { shopScanHtml } from "./shop-scan.js";
 import { normName } from "../core/item-match.js";

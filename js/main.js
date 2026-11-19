@@ -7,7 +7,6 @@ import { renderAllList } from "./bills/all-views.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
-import { initIncome } from "./income/views.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
 import { viewCards } from "./bills/cards-views.js";
@@ -17,7 +16,6 @@ import { initTodayRender, saveQuick } from "./today.js";
 import { registerAlerts } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
 import { billAlertItems } from "./bills/logic.js";
-import { bindShops } from "./shops/views.js";
 import { budgetAlertItems } from "./bills/budget.js";
 import "./settings/income.js";
 import { escrowAlertItems } from "./bills/escrow.js";
@@ -59,7 +57,6 @@ miniBarEl();
 document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.pv-card[data-fold]")) setFold(d.dataset.fold, d.open); }, true);
    // 储藏概览大卡片折叠 / 展开：记在本机
 initSwipeRows({ kinds: ["asset", "rs", "item", "income", "budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card", "store", "deal"], altKinds: ["asset", "card", "deal", "shop", "item", "rs"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });
-initIncome({ render, refresh });
 initNetWorth({ render });
 initHomeStats(render);
 initTodayRender(() => render());
@@ -154,4 +151,4 @@ main.addEventListener("click", (e) => { const d = e.target.closest?.("[data-dril
 main.addEventListener("keydown", (e) => { if (e.key !== "Enter" && e.key !== " ") return; const d = e.target.closest?.("[data-drill]"); if (d && !(d instanceof HTMLButtonElement)) { e.preventDefault(); drillTo(d.dataset.drill); } });
 main.addEventListener("click", onMainClick);
 boot();
-bindShops((force) => render(force !== false));
+

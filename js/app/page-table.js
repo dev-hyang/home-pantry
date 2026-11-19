@@ -10,13 +10,13 @@ import { viewBillsHome } from "../bills/overview-views.js";
 import { viewBudget } from "../bills/budget.js";
 import { viewCards } from "../bills/cards-views.js";
 import { viewDashboard, viewInventory, viewMeals, viewShopping } from "../pantry/views.js";
-import { viewIncome } from "../income/views.js";
 import { viewMenu } from "../menu.js";
 import { viewNetWorth } from "../bills/net-worth.js";
 import { viewQuick, viewToday } from "../today.js";
 import { viewSettings } from "../settings/views.js";
-import { viewShops } from "../shops/views.js";
 import { viewSpend, viewStats } from "../stats/views.js";
+import { viewIncome } from "./lazy-modules.js";
+import { viewShops } from "./lazy-modules.js";
 
 /* ───────────── 页面与路由 ───────────── */
 /** 库存页当前范围：?space=house 看汽车房屋消耗品（房屋模块关闭时只有厨房储藏） */

@@ -1,0 +1,1 @@
+{ "modules": [ { "module": "income/views.js", "key": "incomeViews", "skip": ["incList", "incRollupFor", "iso", "incDraw"] } ] }

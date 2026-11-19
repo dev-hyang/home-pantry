@@ -1,7 +1,3 @@
-/* 财务 → 收入：收支总览、明细、类型（一级 → 叶子）、付款方历史、收支对比（双周 / 月 / 季 / 年，AI 分析）、导出、预算与计划。
- * 数据在 income_records（迁移 042 / 056），收入规则在 js/core/income-taxonomy.js（认定收入 vs 资本流入），花费规则在 js/core/taxonomy.js。
- * 统计不把花费读进浏览器：收支总览 / 类型读数据库按月聚合的 inc_rollup + spend_rollup，收支对比的花费一侧读 ledger_rollup（按月或双周），
- * 在 js/stats/report.js 汇总。明细是服务器分页（inc_page / inc_stats）。付款方、最近到账、还款、表单查重仍用整张收入表（I.rec）。 */
 import { FD, changed, clearFiltersBtn, clearUrlParams, onClearFilters } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
@@ -14,65 +10,35 @@ import { printHtml, printStamp } from "../settings/print.js";
 import { INCOME_TABS, activeTab } from "../core/tabs.js";
 import { debtHref, ensureBorrowDebt } from "../bills/debt-logic.js";
 import { initIncomeScan, scanHtml } from "./scan.js";
-import { aaFixHtml, initAaFix } from "./aa-fix.js";   // 把记成收入的 Zelle 转入 / 报销 逐个付款方整理成支出退回
+import { aaFixHtml, initAaFix } from "./aa-fix.js";
 import { meta, monthlyOf, saveMeta, totalIncomeMonthly } from "../bills/budget.js";
 import { incomePanel } from "../settings/income.js";
 import { acctById, acctLabel } from "../bills/cards-views.js";
 import { ACCT_KINDS, CARDS_HREF } from "../bills/cards.js";
 import { aiReady, askText } from "../core/ai.js";
 import { debounce, moreBtn, pageLimit, pageMoreBtn, pageSize } from "../core/pager.js";
-import { serverList } from "../core/server-list.js";
 import { compact } from "../core/list-query.js";
 import { STAT_CATS, download, dq, hitAttrs, monthLabel, toCsv, trendHead, trendPeriods } from "../stats/views.js";
 import { autoUnit, chartUnit, finUnit, unitNote, unitSelectHtml } from "../core/time-range.js";
-/** 分组柱（收入 / 消费…并排）超过 12 期就太挤：改画折线（2026-11 统一规则） */
-const GROUPED_MAX = 12;
 import { BUCKETS, bucketOf, l2IdOf } from "../core/taxonomy.js";
 import { INC_L1S, incL1, incLeaf, incLeavesOf, splitRecord } from "../core/income-taxonomy.js";
-import { OWN_XFER, aggregate, householdFlow, incAggregate, incNodeSum, normIncRow, normRow } from "../stats/report.js";
+import { OWN_XFER, aggregate, householdFlow, incAggregate, incNodeSum } from "../stats/report.js";
 import { sameAmountNear } from "../stats/dup-check.js";
-import { CHANNELS, GAIN_KINDS, RANGES, UNITS, adults, biweekAnchor, bucketKey, canSeeAll, capitalKinds, customKinds, groupList, groupOf, groupSum, inc, incSumOf, incomeIn, isIncomeKind, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, knownSenders, loadIncome, memberLabel, myPersonId, normKindSel, openRepayments, periodKeys, personOk,
-  periodLabel, personName, recognized, repayState, repaidOf, setIncMerge, similarIncome, skey, sharedRangeHtml, spanLabel, spanOk, spanOptionsHtml, spanPrev, spanWindow, statKinds, sumOf, windowOf } from "./logic.js";
-import { liveNetWorth, thisMonth } from "../bills/nw-logic.js";   // 净资产（迁移 059）：收支总览上的小卡片
+import { CHANNELS, GAIN_KINDS, UNITS, adults, bucketKey, canSeeAll, capitalKinds, customKinds, groupList, groupOf, groupSum, inc, incSumOf, incomeIn, isIncomeKind, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, knownSenders, loadIncome, memberLabel, myPersonId, normKindSel, openRepayments, periodKeys, personOk, periodLabel, personName, recognized, repayState, repaidOf, setIncMerge, similarIncome, skey, sharedRangeHtml, spanLabel, spanOk, spanPrev, spanWindow, statKinds, sumOf } from "./logic.js";
+import { liveNetWorth, thisMonth } from "../bills/nw-logic.js";
 import { monthChange, trendPoints } from "../stats/net-worth.js";
+import { ROLL, addDay, hooks, iso, monthsBetween, rerender, roll, spanOfMonths } from "./rollup.js";
+import { incDraw, incList } from "./list.js";
+import "./list.js";
 
+/** 分组柱（收入 / 消费…并排）超过 12 期就太挤：改画折线（2026-11 统一规则） */
+const GROUPED_MAX = 12;
 const incomeHref = (id) => `${href("bills", "income")}${id === "overview" ? "" : `?tab=${id}`}`;
 const GREEN = "#2c6a57", RED = "#d4694c", BLUE = "#3b7fc4", TEAL = "#24897d", SLATE = "#64748b";
 const R2 = (v) => Math.round(v * 100) / 100;
-let hooks = { render: () => {}, refresh: async () => {} };
-const rerender = () => hooks.render(false);
 /** 用户自己点的操作（展开 / 编辑 / 取消 / 删除…）要立刻重画：main.js 的 render(false) 只给后台刷新用，页面上只要有任何 <form>（明细页底部的「类型管理」就有一个）它就直接跳过，点行编辑就「没反应也没报错」 */
 const redraw = () => hooks.render(true);
 const cur = () => Units.region.currency;
-
-/* ───────────── 聚合数据：inc_rollup / spend_rollup / ledger_rollup（迁移 055 / 056），按参数缓存；数据变了标过期，下次画的时候后台重读 ───────────── */
-const TZ = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; } };
-const nextMonth = (m) => { const [y, mo] = m.split("-").map(Number); return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, "0")}`; };
-const addDay = (s, n) => { const d = new Date(`${s}T12:00:00`); d.setDate(d.getDate() + n); return iso(d); };
-/** from..to（日期，含）覆盖的月份 */
-const monthsBetween = (from, to) => { const out = []; for (let m = from.slice(0, 7); m <= to.slice(0, 7); m = nextMonth(m)) out.push(m); return out; };
-/** 一组月份 → [from, to)（月初，不含 to） */
-const spanOfMonths = (ms) => { const s = [...ms].sort(); return { from: `${s[0]}-01`, to: `${nextMonth(s.at(-1))}-01` }; };
-const ROLL = new Map();   // key → { rows, busy, stale, err, p }
-let rollErrShown = false;
-function roll(kind, from, to, unit = "month") {
-  const key = `${kind}|${from}|${to}|${unit}`;
-  let e = ROLL.get(key);
-  if (!e || (e.stale && !e.busy)) {
-    if (!e) { if (ROLL.size > 30) ROLL.delete(ROLL.keys().next().value); e = { rows: null }; ROLL.set(key, e); }
-    e.busy = true; e.stale = false;
-    const req = kind === "inc" ? Store.incRollup(from, to, TZ()) : kind === "spend" ? Store.spendRollup(from, to, TZ()) : Store.ledgerRollup(from, to, TZ(), unit, unit === "biweek" ? biweekAnchor() : null);
-    e.p = req.then((rows) => { e.rows = (rows || []).map(kind === "inc" ? normIncRow : kind === "spend" ? normRow : (x) => x); e.err = ""; })
-      .catch((err) => {
-        e.err = err?.message || String(err); e.rows = e.rows || [];
-        if (!rollErrShown) { rollErrShown = true; toast(/could not find the function|schema cache|does not exist/i.test(e.err) ? t("收支统计读不出来：数据库还没升级，请先执行 supabase/migrations/056_income_ledger.sql") : t("收支统计读取失败：{msg}", { msg: e.err })); }
-      })
-      .finally(() => { e.busy = false; rerender(); });
-  }
-  return e.rows;
-}
-/** 覆盖这些月份的收入聚合行（净资产页「财富增长 vs 消费」用，和收支总览共用缓存）；还在读返回 null */
-export const incRollupFor = (months) => { const sp = spanOfMonths(months); return roll("inc", sp.from, sp.to); };
 /** 收支总览上的净资产小卡片：现在的净资产 + 比上月，点进 财务 → 净资产（只给有财务权限的人；没执行 059 不显示） */
 function netWorthCard() {
   if (!state.nwOk || !canSeeAll()) return "";
@@ -85,7 +51,6 @@ const rollAsync = async (kind, from, to, unit = "month") => { roll(kind, from, t
 const staleAll = (kinds) => { for (const [k, e] of ROLL) if (kinds.includes(k.split("|")[0])) e.stale = true; };
 window.addEventListener("income-data-changed", () => staleAll(["inc", "ledger"]));
 window.addEventListener("spend-rows-changed", () => staleAll(["spend", "ledger"]));
-
 /* ───────────── 收支对比用的现金流：收入（认定，逐笔，任意周期）+ 消费 / 投资（ledger_rollup 的花费一侧，按月或双周） ─────────────
  * 消费 = 日常 + 住房（和花费页「含住房」同一口径，js/core/taxonomy.js 的 bucketOf）；投资 = 性质是投资的现金流出；其他流出 = 财务及其他 + 资本性支出。
  * 花费不分人，只在选「全家」时有。 */
@@ -123,7 +88,6 @@ function cashflow({ range, from, to, unit, person, win = null }) {
   const noSpend = lines.filter((l) => l.noSpend).map((l) => l.label);   // 有收入、却一笔花费都没有：多半是那段对账单还没导入，净现金流会偏高
   return { w, keys, lines, tot, byKind, rows, hasSpend, hasRepaid, spendCats, unit, person, noSpend, loading: person === "all" && !list };
 }
-
 /* ───────────── 页面外壳 ───────────── */
 const shell = (tab, body) => `<section class="section" id="incomePage">
   <div class="section-head"><h2>💰 ${t("收入")}</h2><div class="head-acts"><button type="button" class="btn btn-primary btn-sm" data-inc="add">＋ ${t("记一笔收入")}</button></div></div>
@@ -149,7 +113,6 @@ export function viewIncome() {
   const body = { overview: overviewTab, records: recordsTab, category: categoryTab, senders: sendersTab, compare: reportTab, import: importTab, export: exportTab, plan: planTab }[tab]();
   return shell(tab, I.ok || tab === "plan" ? body : "");
 }
-
 /* ───────────── 公共小件 ───────────── */
 const kindBadge = (id) => { const k = kindOf(id); return `<span class="ix-kind" style="--k:${k.color}">${k.icon} ${esc(kindLabel(id))}</span>`; };
 /* ── 钻取：图表色块、图例、数字卡片、表格行点一下 → 「明细」并套上对应筛选（类型 / 日期段 / 成员 / 账户）。
@@ -181,10 +144,10 @@ const empty = () => `<div class="panel empty"><strong>${t("还没有收入记录
 const kpi = (label, val, sub = "") => `<div class="kpi"><span>${esc(label)}</span><b>${val}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
 const rate = (n, i) => (i > 0 && n != null ? `${Math.round((n / i) * 100)}%` : "—");
 const pctOf = (r) => (r == null ? "—" : `${Math.round(r * 100)}%`);
-const fmtMoney = (v, short) => (short ? money(v, true) : moneyExact(v));   // 不带 short：记录和合计都显示到分；short 只给图表中心、月均这类紧凑处
+const fmtMoney = (v, short) => (short ? money(v, true) : moneyExact(v));
+   // 不带 short：记录和合计都显示到分；short 只给图表中心、月均这类紧凑处
 /** 记录上的入账账户：登记过的账户（account_id）显示「图标 名称 ••尾号」，否则显示原来的文字 */
 const acctShow = (r) => { const c = r.account_id && acctById(r.account_id); return c ? acctLabel(c) : r.account || ""; };
-
 /** 收入 / 消费分组柱 + 差额（结余 / 超支）柱 + 趋势线（收支对比用） */
 function flowCharts(cf, title) {
   if (!window.Charts || !cf.lines.length) return "";
@@ -220,7 +183,6 @@ const lineTable = (cf) => `<div class="panel"><div class="ch-scroll"><table clas
   ${cf.lines.map((l) => `<tr><th scope="row">${esc(l.label)}</th><td>${fmtMoney(l.income)}</td><td>${l.capIn ? fmtMoney(l.capIn) : "—"}</td>${cf.hasSpend ? `<td>${fmtMoney(l.spend)}</td><td>${fmtMoney(l.other)}</td><td>${fmtMoney(l.invest)}</td>` : ""}${cf.hasRepaid ? `<td>${fmtMoney(l.repaid)}</td>` : ""}${cf.hasSpend ? `<td class="${l.incNet < 0 ? "down" : ""}">${fmtMoney(l.incNet)}</td><td class="${l.net < 0 ? "down" : ""}"><b>${fmtMoney(l.net)}</b>${l.noSpend ? ` <span class="bank-dup" title="${esc(t("这段一笔花费都没有，可能对账单还没导入"))}">⚠</span>` : ""}</td><td>${rate(l.saved, l.income)}</td>` : ""}</tr>`).join("")}
   <tr><th scope="row"><b>${t("合计")}</b></th><td><b>${fmtMoney(cf.tot.income)}</b></td><td><b>${cf.tot.capIn ? fmtMoney(cf.tot.capIn) : "—"}</b></td>${cf.hasSpend ? `<td><b>${fmtMoney(cf.tot.spend)}</b></td><td><b>${fmtMoney(cf.tot.other)}</b></td><td><b>${fmtMoney(cf.tot.invest)}</b></td>` : ""}${cf.hasRepaid ? `<td><b>${fmtMoney(cf.tot.repaid)}</b></td>` : ""}${cf.hasSpend ? `<td><b>${fmtMoney(cf.tot.incNet)}</b></td><td><b>${fmtMoney(cf.tot.net)}</b></td><td><b>${rate(cf.tot.saved, cf.tot.income)}</b></td>` : ""}</tr></tbody></table></div>
   <p class="muted" style="font-size:12.5px;margin:6px 0 0">${t("收入 = 认定收入；资本流入 = 卖房卖股的本金、借款、本金返还、从投资账户转回等，不算收入；消费 = 日常 + 住房；其他流出 = 税、保险、利息、奉献、资本性支出。收入结余 = 收入 − 全部流出；净现金流（账面）= 全部流入 − 全部流出 = 收入结余 + 资本流入；储蓄率 =（收入 − 消费 − 其他流出）÷ 收入，只看收入。")}${cf.tot.capOwn ? ` ${t("从储蓄账户转入的 {a} 没算进净现金流：那是自己账户之间挪钱，转出去时也没算支出。", { a: fmtMoney(cf.tot.capOwn) })}` : ""}${cf.hasRepaid ? ` ${t("其中「还款」= 还给个人赠与 / 借款的钱，已经算在花费里，这一列只是告诉你其中有多少。")}` : ""}</p></div>`;
-
 /* ───────────── 收支总览（原「概览」）：时间条 → 五个指标 → 现金流瀑布 → 12 个月收支走势 → 收入按一级 → 付款方 / 成员 / 最近到账 ─────────────
  * 收入 = 认定收入（js/core/income-taxonomy.js）；消费 = 日常 / 含住房（和花费页同一口径）；净现金流 = 收入 − 消费（投资之前）；
  * 储蓄率 = 净现金流 ÷ 收入；投资率 = 投资（性质 = 投资的现金流出）÷ 收入；资本流入单列，不算收入。花费不分人：选了某个成员时只看收入。 */
@@ -314,7 +276,6 @@ function overviewTab() {
     ${breakdown}<div class="ix-two">${rank}${members}</div>${recentHtml}${repayPanel()}
     ${tabHub(INCOME_TABS, incomeHref, t("其他功能"))}`;
 }
-
 /* ───────────── 类型：一级 → 叶子逐层点进去（面包屑回上层），子类排行（带占比）+ 选中节点的月度柱状图（和花费的「分类」页一样，没有饼图） ─────────────
  * 节点：""（全部）/ 一级 id / "一级|叶子"（资本流入下是 capital|叶子；卖股票这类的收益记在 investment|stock_sale）。 */
 const nodeL1 = (node) => String(node).split("|")[0];
@@ -374,7 +335,6 @@ function categoryTab() {
       <div class="form-actions"><button type="button" class="btn btn-sm" data-drill="${esc(incDrill({ kind: nodeKindSel(node), ...win, person: O.person, ex: node ? "" : 1 }))}">${t("查看明细")} ›</button></div></div>
     <div class="panel chart-panel">${trendHead(TP.title, TP)}${chart}${DRILL_HINT()}</div>`;
 }
-
 /* ───────────── 银行导入：对账单里的入账补入收入（和「花费 → 银行导入」是同一个入口） ───────────── */
 function importTab() {
   // 「最近导入的收入」：笔数 / 合计按现在还带着这批标记的收入算（收入已整表在内存里），和点「查看收入」看到的一致；导入时的数字不一样就注一句
@@ -388,13 +348,11 @@ function importTab() {
     <div class="form-actions"><a class="btn btn-primary btn-sm" href="${href("bills", "statements")}">${t("去导入对账单")}</a><a class="btn btn-sm" href="${incomeHref("records")}">${t("或者拍照 / 手动记一笔")}</a></div></div>
   <div class="panel"><h3 style="margin:0 0 6px">${t("最近导入的收入")}</h3>${batches.length ? `<ul class="restock-list">${batches.map((b) => `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}` : esc(b.file || t("银行导入"))}</span><small>${t("收入 {n} 笔", { n: nums(b).n })} · ${fmtMoney(nums(b).sum)} · ${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${nums(b).n !== (b.inN || 0) ? ` <span class="bank-dup">${nums(b).n ? t("（导入时 {n} 笔，之后改过）", { n: b.inN || 0 }) : t("（导入的都已删除）")}</span>` : ""}</small></div>${nums(b).n ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "income")}?tab=records&batch=${esc(b.id)}">${t("查看收入")}</a>` : ""}</li>`).join("")}</ul><p class="muted bank-batch-count">${t("显示 {a} / 共 {b} 批", { a: batches.length, b: allB.length })}</p>${pageMoreBtn("inc-batches", allB.length, batches.length)}` : `<p class="muted small" style="margin:0">${t("还没有从对账单导入过收入。")}</p>`}</div>`;
 }
-
 function repayPanel() {
   const list = openRepayments(); if (!list.length) return "";
   return `<div class="panel"><h3 style="margin:0 0 8px">🤝 ${t("还没还清的（个人赠与 / 借款）")}</h3><ul class="restock-list">${list.map(({ r, s }) => `<li><div class="grow"><span class="name">${esc(r.source_name)} · ${fmtMoney(s.total)}</span><small>${t("已还 {a}，还差 {b}", { a: fmtMoney(s.paid), b: fmtMoney(s.left) })}${r.repay_due_on ? ` · ${s.overdue ? `<b class="bank-dup">${t("已逾期")}</b> ` : ""}${t("到期日 {d}", { d: r.repay_due_on })}` : ""}</small></div>
     <button type="button" class="btn btn-sm btn-ghost" data-inc="open" data-id="${r.id}">${t("去还款")}</button></li>`).join("")}</ul></div>`;
 }
-
 /* ───────────── 明细 ───────────── */
 /** 图表钻取的查询串 → 明细筛选：类型（叶子 / g:一级，旧的 g:work 这类自动换算）、日期段 from–to、成员、账户、搜索、ex = 不含资本流入 */
 function applyIncomeDrill(q) {
@@ -403,7 +361,8 @@ function applyIncomeDrill(q) {
 }
 /* 明细是服务器分页（迁移 054 / 056 的 inc_page / inc_stats）：每次「继续加载」向数据库要下一页，筛选、排序、合计都在 SQL 里做；
  * 类型（叶子 / 一级）、搜索里的类型名称、「默认不算收入的类型」这类只有前端认识的规则，先在这里展开成类型表。 */
-const SORT_KEY = { big: "high", small: "low", kind: "name" };   // 界面的排序 → 通用排序（按类型 = 按类型序号排）
+const SORT_KEY = { big: "high", small: "low", kind: "name" };
+   // 界面的排序 → 通用排序（按类型 = 按类型序号排）
 function incParams() {
   const I = inc(), q = skey(I.q), ks = kindList().map((k) => k.id), sort = SORT_KEY[I.sort] || I.sort || "new", byKind = !!I.kind && I.kind !== "all";
   const label = (id) => skey(`${kindLabel(id)} ${kindOf(id).name} ${groupOf(id).name}`);   // 和原来搜索时拼的类型文字一样
@@ -412,9 +371,7 @@ function incParams() {
     from: I.from || null, to: I.to || null, ex: I.ex ? capitalKinds() : null, capk: capitalKinds(), q: q || null, qkinds: q ? ks.filter((k) => label(k).includes(q)) : null,
     krank: sort === "name" ? Object.fromEntries(ks.map((k, i) => [k, i])) : null, sort });   // 按类型：一级 → 叶子的顺序，同类里新的在前
 }
-/** 明细列表：读到的几页 + 当前筛选的笔数、合计 */
-export const incList = serverList("inc", { host: "#incList", map: (r) => ({ ...r, amount: num(r.amount), income_amount: r.income_amount == null ? null : num(r.income_amount) }), draw: () => renderIncList() });
-window.addEventListener("income-rows-changed", () => incList.reload());   // loadIncome 读完（实时同步、自己改了）：统计 + 第一页重读
+   // loadIncome 读完（实时同步、自己改了）：统计 + 第一页重读
 /** 明细顶部「当前筛选」：图表点进来的日期段、不含资本流入，可逐个去掉（和花费明细的筛选条一样） */
 function drillChips() {
   const I = inc(), out = [];
@@ -504,7 +461,6 @@ function kindManager() {
     <ul class="plain small">${cs.map((k) => `<li>${esc(k.icon || "🏷️")} ${esc(kindLabel(k.id))} ${l1Select(`data-inc-kparent="${esc(k.id)}" aria-label="${esc(t("一级分类"))}"`, k.parent)} <button type="button" class="btn btn-sm btn-ghost" data-inc="kind-del" data-id="${esc(k.id)}">${t("删除")}</button></li>`).join("") || `<li class="muted">${t("还没有自定义类型")}</li>`}</ul>
     <form data-inc-form="kind" class="form-grid"><label>${t("一级分类")}${l1Select('name="parent"', "other_income")}</label><label>${t("图标")}<input name="icon" maxlength="4" value="🏷️" style="width:4em"></label><label>${t("名称")}<input name="name" maxlength="20" required placeholder="${esc(t("例如：稿费、副业"))}"></label><div class="form-actions"><button class="btn btn-sm">${t("添加类型")}</button></div></form></div></details>`;
 }
-
 /* ── 入账账户：「卡与账户」里登记的账户（支票 / 储蓄 / 券商 / 退休 / HSA / 借记卡 / 钱包 / 现金…），可设默认 ──
  * 记录上存 account_id（迁移 056）和一份文字 account（「名称 ••尾号」，显示兜底；没登记的现金存「现金」，其他手填）。
  * 默认账户按人存在预算设置 _income_cfg.defAcct[用户 id]（登记账户的 id 或 cash）。 */
@@ -552,7 +508,6 @@ async function saveDefaults(fd) {
 async function saveDefaultAcct(value) {
   const cfg = incCfg(); await saveMeta({ _income_cfg: { ...cfg, defAcct: { ...(cfg.defAcct || {}), [state.user?.id || "me"]: value } } });
 }
-
 /* ── 表单 ── */
 /** 类型下面的一句说明：资本流入不算收入；卖出类可以填「其中已实现收益」 */
 const kindHint = (kind) => (kind === "zelle" || kind === "reimburse" ? t("朋友 AA 还你、替人垫付后还回、报销：是你自己的钱回来了，不算收入——请在 花费 里记一笔负数（勾「退款 / 报销」，选当初那笔的分类）。这里只记真正的收入：赠与、副业收款等。")
@@ -617,10 +572,10 @@ async function saveRecord(form) {
     I.form = null; await loadIncome(); toast(t("已保存")); rerender(); }
   catch (e) { fail(/income_amount|account_id/i.test(e.message || "") ? t("数据库还没升级：请先执行 supabase/migrations/056_income_ledger.sql") : t("保存失败：{msg}", { msg: e.message })); }
 }
-
 /* ───────────── 付款方历史：搜索 + 类型筛选 + 点表头排序，每次显示 20 个，「加载更多」（多取一个判断还有没有，不算总数） ─────────────
  * 合计 = 认定收入；资本流入（卖股卖房的本金、借款、转入）单独显示，不算进合计和占比。 */
-const S_PAGE = () => pageSize();   // 付款方每次显示几个：跟全站的每页条数设置
+const S_PAGE = () => pageSize();
+   // 付款方每次显示几个：跟全站的每页条数设置
 const S_COLS = [["name", "付款方"], ["kind", "类型"], ["n", "收到次数"], ["total", "收入"], ["share", "占比"], ["last", "最近一次"]];
 const sNameOf = (x) => x.rows.find((r) => r.source_name)?.source_name || x.key;
 const sMainKind = (x) => { const m = new Map(); for (const r of x.rows) m.set(r.kind, (m.get(r.kind) || 0) + r.amount); return [...m].sort((a, b) => b[1] - a[1])[0]?.[0] || "other"; };
@@ -720,7 +675,6 @@ async function rememberSenders(keys, to) {
   for (const k of keys) if (k && k !== skey(to) && a[k] !== to) { a[k] = to; changed = true; }
   if (changed) await saveMeta({ _sender_alias: a });
 }
-
 /** 收支对比 / 导出的设置。时间范围、周期都是共享的（js/core/time-range.js，周期这里多一个双周）。
  *  r.unit = 实际用的周期：收支对比按统一规则（太密退回自动，r.cu.fell）；导出 exp = true 不限（按月导 5 年也行） */
 const R = ({ exp = false } = {}) => {
@@ -800,10 +754,8 @@ async function printIncome(mode) {
 }
 const cfAnchor = () => (state.budget?.cat_budgets?._income_cfg?.anchor) || "2024-01-01";
 const kpiRow = (cf) => `${noSpendNote(cf.noSpend)}<div class="kpis">${kpi(t("收入（认定）"), fmtMoney(cf.tot.income), `${cf.w.from} → ${cf.w.to}`)}${cf.hasSpend ? kpi(t("消费（含住房）"), fmtMoney(cf.tot.spend)) : ""}${cf.hasSpend ? kpi(t("其他流出"), fmtMoney(cf.tot.other), t("税、保险、利息、奉献、资本性支出")) : ""}${cf.hasSpend ? kpi(t("净现金流（账面）"), `<span class="${cf.tot.net < 0 ? "down" : ""}">${fmtMoney(cf.tot.net)}</span>`, t("全部流入 − 全部流出 · 收入结余 {a} · 储蓄率 {r}", { a: fmtMoney(cf.tot.incNet, true), r: rate(cf.tot.saved, cf.tot.income) })) : ""}${cf.hasSpend ? kpi(t("投资率"), rate(cf.tot.invest, cf.tot.income), t("投资 {a}", { a: fmtMoney(cf.tot.invest, true) })) : ""}${cf.tot.capIn ? kpi(t("资本流入"), fmtMoney(cf.tot.capIn), t("不计收入，算进账面净现金流")) : ""}</div>`;
-
 /** 有收入、却一笔花费都没有的周期：提醒净现金流会偏高（近 3 年 / 5 年常见：早年的对账单没导入） */
 const noSpendNote = (list) => (list?.length ? `<div class="notice" role="status" style="margin-bottom:8px"><b>${t("有 {n} 个周期只有收入、没有任何花费记录，那几段的净现金流会偏高：", { n: list.length })}</b> ${esc(list.slice(0, 8).join("、"))}${list.length > 8 ? "…" : ""}<br><small>${t("多半是那段时间的对账单还没导入。去 财务 → 对账单 补上，或把时间范围缩到已经补齐的那段。")}</small></div>` : "");
-
 /* ── 导出 ── */
 async function exportReport() {
   const r = R({ exp: true }), cf = await cashflowReady(r), hh = (state.household?.name || t("家庭")).replace(/[\\/:*?"<>|\s]/g, ""), base = `${hh}-${t("现金流")}-${cf.w.from}_${cf.w.to}`, unitName = t((UNITS.find((u) => u[0] === r.unit) || [])[1]);
@@ -830,7 +782,6 @@ function detailRows(list) {
     ...list.map((r) => { const s = splitRecord(r); return [r.received_on, r.source_name, t(groupOf(r.kind).name), kindLabel(r.kind), r.amount, s.income, s.cap, r.currency || "", (CHANNELS.find((c) => c[0] === r.channel) || [])[1] ? t(CHANNELS.find((c) => c[0] === r.channel)[1]) : "", personName(r.person_id), acctShow(r), r.orig_amount ?? "", r.orig_currency || "", r.fee ?? "", rs(r), r.notes || ""]; })];
 }
 const fileHead = () => `${(state.household?.name || t("家庭")).replace(/[\\/:*?"<>|\s]/g, "")}-${t("收入")}`;
-
 /* ── AI 分析：只发汇总（周期合计、类型合计、前 10 个付款方），付款方 / 成员默认打码；每次发送前要勾选同意 ── */
 const aiConsent = () => { try { return localStorage.getItem("hmh-income-ai-ok") === "1"; } catch { return false; } };
 function aiPanel(cf) {
@@ -861,10 +812,6 @@ async function runAi() {
   catch (e) { toast(e.message || String(e)); }
   I.aiBusy = false; rerender();
 }
-
-/* ───────────── 预算与计划：预期收入（member_incomes，用来生成预算）+ 对比实际认定收入 ─────────────
- * 收入只在这里设置：原来在 设置 → 收入与预算 的预期收入、储蓄比例、生成预算、医疗计入、家庭分摊都挪到了这一页，设置里不再有第二份。 */
-const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 /** 最近 n 个整月（不含本月）的窗口 */
 const lastMonthsWin = (n) => { const d = new Date(); return { from: iso(new Date(d.getFullYear(), d.getMonth() - n, 1)), to: iso(new Date(d.getFullYear(), d.getMonth(), 0)) }; };
 function compareHtml() {
@@ -887,7 +834,6 @@ function compareHtml() {
     <p class="muted small" style="margin:8px 0 0">${t("计划收入填的是税后固定收入，用来生成预算；实际是认定收入（含奖金、利息、租金等，不含借款 / 需要还的赠与、卖房卖股的本金、自己账户转入），所以两者不会完全一样。想让预算更贴近实际，参考这里的实际月均去改计划。")}</p>` : `<p class="muted small">${t("收入记录还没读到（迁移 042 没执行？），先填下面的计划收入也可以。")}</p>`}</div>`;
 }
 function planTab() { return `${compareHtml()}${incomePanel()}`; }
-
 /* ───────────── 事件 ───────────── */
 function armed(el, msg) { if (el.dataset.armed) return true; el.dataset.armed = "1"; const old = el.textContent; el.textContent = msg; setTimeout(() => { delete el.dataset.armed; el.textContent = old; }, 4000); return false; }
 const guard = async (fn) => { try { await fn(); } catch (e) { toast(t("操作失败：{msg}", { msg: e.message })); } };
@@ -895,9 +841,8 @@ const reload = async () => { await loadIncome(); redraw(); };
 const goTab = (id) => { location.hash = incomeHref(id); };
 /** 去「明细」前清掉所有筛选（含图表钻取带来的日期段 / 不含资本流入） */
 const NO_FILTER = () => ({ q: "", kind: "all", acct: "all", year: "all", month: "all", person: "all", batch: null, from: "", to: "", ex: false, limit: pageSize() });
-
 export function initIncome({ render, refresh }) {
-  hooks = { render, refresh }; initIncomeScan({ render }); initAaFix({ redraw: () => hooks.render(true) });
+  Object.assign(hooks, { render, refresh }); initIncomeScan({ render }); initAaFix({ redraw: () => hooks.render(true) });
   // 清除筛选：收入记录（搜索、下拉、下钻日期段、导入批次，网址参数一起去掉）/ 付款方汇总
   onClearFilters("incRec", () => { Object.assign(inc(), FD.incRec, { limit: pageSize() }); clearUrlParams("*"); redraw(); }, () => changed(inc(), FD.incRec));
   onClearFilters("incSend", () => { Object.assign(inc(), FD.incSend, { slimit: null }); redraw(); }, () => changed(inc(), FD.incSend));
@@ -1040,6 +985,6 @@ export function incomeAlertItems() {
 }
 registerAlerts(incomeAlertItems);
 export { openRepayments, repaidOf };
-
 // 付款方多选合并：输入的「合并为」名字记下来，勾选别的付款方重画时不丢
 if (typeof document !== "undefined") document.addEventListener("input", (e) => { if (e.target?.id === "incMergeTo") inc().smergeTo = e.target.value; });
+incDraw.fn = () => renderIncList();
