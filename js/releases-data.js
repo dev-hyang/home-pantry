@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.24", title: { zh: "房屋首页：买卖计划可折叠；各房产要处理的事改成 4 张小卡片", en: "House home: Buy / sell plans collapse; things to handle are four small cards" }, items: [
+    { k: "better", zh: "买卖计划默认折叠，点一下展开（展开或收起会记在这台设备上）", en: "Buy / sell plans are collapsed by default; tap to expand (remembered on this device)" },
+    { k: "better", zh: "“各房产要处理的事”不再用下拉，改成 4 张小卡片（设备与车辆、季节任务、交易、耗材 · HOA · 保险），每张显示件数，点一张只看这一类，再点一次回到全部", en: "Things to handle no longer uses a dropdown: four small cards (assets & vehicles, seasonal tasks, deals, supplies · HOA · insurance) with counts; tap one to filter, tap again to see all" }
+  ] },
+
   { v: "2026-11-19.23", title: { zh: "往上滑时，底部中央出现「回到顶部」", en: "A Back to top button appears at the bottom center while you scroll up" }, items: [
     { k: "new", zh: "页面滚下去一段后，手势持续往上滑，底部中央会冒出一个圆形的「回到顶部」按钮，点一下平滑回到顶部；往下滑、停下几秒或已经在顶部附近就自动收起", en: "After scrolling down, keep scrolling up and a round Back to top button appears at the bottom center; tap it to glide to the top. It hides when you scroll down, pause for a few seconds, or are near the top" }
   ] },

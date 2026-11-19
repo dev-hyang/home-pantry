@@ -9,7 +9,6 @@ import { esc } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { SEVERITY_CLS, SEVERITY_LABEL, alertRow, collectAlerts, propertyName } from "../core/alerts.js";
 import { activeProperties } from "../core/lifecycle.js";
-import { tabBar } from "../core/hub.js";
 
 const KINDS = [["asset", "⚙️", "设备与车辆"], ["season", "📅", "季节任务"], ["deal", "📝", "交易"], ["house", "🧰", "耗材 · HOA · 保险"]];
 const GROUP_MAX = 6;
@@ -24,9 +23,13 @@ export function houseTodoBoard() {
   if (!all.length) return `<section class="section house-todo" id="house-todo"><div class="panel empty tempty"><strong>${t("各房产都没有要处理的事 ✓")}</strong>${t("设备保养、季节任务、交易清单、耗材和 HOA / 保险有动静时会出现在这里。")}</div></section>`;
   const list = sel ? all.filter((x) => x.source === sel) : all;
   const n = (k) => all.filter((x) => x.source === k).length;
-  // 切换类别：和其他页面同一套（宽屏标签条、手机整宽下拉框，core/hub.js 的 tabBar），名字后面带件数
-  const tabs = [["all", `${t("全部")} · ${all.length}`, "🗂️"], ...KINDS.filter(([k]) => n(k)).map(([k, ic, nm]) => [k, `${t(nm)} · ${n(k)}`, ic])];
-  const chips = tabs.length > 2 ? `<div class="house-todo-tabs">${tabBar(tabs, sel || "all", (k) => (k === "all" ? href("house") : `${href("house")}?todo=${k}`), t("按类别看"))}</div>` : "";
+  // 切换类别：4 张小卡片（设备与车辆 / 季节任务 / 交易 / 耗材·HOA·保险），每张一个件数；点一张只看这一类，再点一次（或点已选中的）回到全部。手机 2 × 2，宽屏一排 4 张
+  const tone = (k) => { const w = Math.min(...all.filter((x) => x.source === k).map((x) => x.severity)); return w <= 2 ? w : null; };
+  const chips = `<div class="ht-cards" role="group" aria-label="${esc(t("按类别看"))}">${KINDS.map(([k, ic, nm]) => {
+    const c = n(k), on = sel === k, w = c ? tone(k) : null;
+    return `<a class="ht-card${on ? " is-on" : ""}${c ? "" : " is-zero"}" href="${on ? href("house") : `${href("house")}?todo=${k}`}" ${on ? 'aria-current="true"' : ""} aria-label="${esc(`${t(nm)}，${t("{n} 件", { n: c })}`)}">
+      <span class="ht-top"><span class="ht-ico" aria-hidden="true">${ic}</span><b class="ht-n">${c}</b></span><small>${esc(t(nm))}</small>${w ? `<span class="ui-badge" data-tone="${w === 1 ? "danger" : "warn"}" data-size="sm">${esc(t(SEVERITY_LABEL[w]))}</span>` : ""}</a>`;
+  }).join("")}</div>`;
   // 分组：在用的房产（当前房产在前）→ 车辆 → 不分房产的（家里的耗材补货）
   const props = activeProperties().slice().sort((a, b) => (b.id === state.propertyId) - (a.id === state.propertyId));
   const groups = props.map((p) => ({ key: p.id, title: `🏠 ${propertyName(p.id) || p.name}`, cur: p.id === state.propertyId, items: list.filter((x) => x.property_id === p.id) }));

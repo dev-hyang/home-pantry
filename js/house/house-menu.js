@@ -74,8 +74,8 @@ export function viewPropertyList() {
     <section class="hv-sec" aria-label="${esc(t("汽车"))}"><div class="section-head"><h3>🚗 ${t("汽车")}</h3></div>
     <div class="hv-grid">${vehicles.map(vCard).join("")}${addCard(`href="${esc(href("asset", "new"))}?type=vehicle_gas&wiz=1"`, t("添加车辆"), t("记下你已经有的车：油车、混动、纯电都可以"))}</div>
     ${pastVehiclesSection(pastVehicles())}</section>
-    <section class="hv-sec" aria-label="${esc(t("买卖计划"))}"><div class="section-head"><h3>🧭 ${t("买卖计划")}</h3><p>${t("还没买 / 卖：先看指南、列清单；不会创建房产或车辆")}</p></div>
-    <div class="hv-grid">${planEntryCards()}</div></section>
+    <details class="hv-sec hv-plan" data-hfold="plan" ${houseFold().plan === false ? "open" : ""}><summary><h3>🧭 ${t("买卖计划")}</h3><small>${t("还没买 / 卖：先看指南、列清单；不会创建房产或车辆")}</small><span class="mch" aria-hidden="true">›</span></summary>
+    <div class="hv-grid">${planEntryCards()}</div></details>
     ${houseTodoBoard()}
   </section>`;
 }

@@ -4203,3 +4203,17 @@ form:not(.is-hoa) .hoa-only { display: none; }
 body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 @media (prefers-reduced-motion: reduce) { .to-top, .to-top.is-on { transition: none; } }
 @media print { .to-top { display: none !important; } }
+
+/* 房屋首页：买卖计划可折叠（默认收起，记在这台设备上）；各房产要处理的事用 4 张小卡片切换类别 */
+.hv-plan > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 1fr auto; column-gap: 12px; align-items: center; min-height: 44px; padding-bottom: 10px; } .hv-plan > summary::-webkit-details-marker { display: none; }
+.hv-plan > summary h3 { grid-column: 1; margin: 0; font-size: 18px; font-weight: 600; } .hv-plan > summary small { grid-column: 1; color: var(--muted); font-size: 13px; } .hv-plan > summary .mch { grid-column: 2; grid-row: 1 / span 2; }
+.hv-plan > summary .mch { color: var(--muted); font-size: 22px; line-height: 1; transition: transform .15s; } .hv-plan[open] > summary .mch { transform: rotate(90deg); }
+.house-landing > .hv-plan:not([open]) { padding-bottom: 4px; } .house-landing > .hv-plan:not([open]) > summary { padding-bottom: 6px; }
+.ht-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0 0 12px; }
+@media (min-width: 640px) { .ht-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.ht-card { box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; min-height: 76px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--ink); text-decoration: none; }
+.ht-card:hover { border-color: var(--pine); } .ht-card:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.ht-card.is-on { border-color: var(--pine); background: color-mix(in srgb, var(--pine) 8%, var(--surface)); box-shadow: inset 0 0 0 1px var(--pine); }
+.ht-card.is-zero { opacity: .65; }
+.ht-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .ht-ico { font-size: 20px; line-height: 1; } .ht-n { font-size: 24px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.ht-card small { color: var(--muted); font-size: 13px; line-height: 1.3; } .ht-card .ui-badge { align-self: flex-start; }
