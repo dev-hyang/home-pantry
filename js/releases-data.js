@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.46", title: { zh: "内部整理：数据读写层的大程序文件拆小", en: "Under the hood: the data-layer program split into smaller files" }, items: [
+    { k: "better", zh: "把一千四百多行的数据读写程序，按储藏、商店、花费、房产、账单、财务、成员分成十几个小文件；页面和操作和以前一样", en: "The 1,400-line data-layer program is split by area (pantry, shops, spending, house, bills, finance, members) into small files; pages and actions work as before" }
+  ] },
+
   { v: "2026-11-18.45", title: { zh: "内部整理：咩咩咩、录入购物、设置、借贷等十个程序文件拆小", en: "Under the hood: Ask AI, Receipt entry, Settings, Debts and six more programs split into smaller files" }, items: [
     { k: "better", zh: "把咩咩咩、录入购物、设置、借贷、自动填表、出了问题、收款方、商店逻辑等十个三四百到五百多行的程序文件，按功能拆成一百多行的小文件；页面和操作和以前一样", en: "Ten programs of 300–560 lines (Ask AI, Receipt entry, Settings, Debts, autofill, Fix, Payees, Stores logic…) are split by function into files of about a hundred lines; pages and actions work as before" }
   ] },

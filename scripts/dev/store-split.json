@@ -1,0 +1,103 @@
+{
+  "source": "js/core/store.js",
+  "files": [
+    {
+      "path": "js/core/store/demo-pantry.js",
+      "doc": "演示模式（数据存在浏览器里）的数据读写：库存、分类、位置、购物车、自定义名称翻译。",
+      "names": [
+        "demoPantry"
+      ]
+    },
+    {
+      "path": "js/core/store/demo-shops.js",
+      "doc": "演示模式（数据存在浏览器里）的数据读写：常去的商店和特价。",
+      "names": [
+        "demoShops"
+      ]
+    },
+    {
+      "path": "js/core/store/demo-spend.js",
+      "doc": "演示模式（数据存在浏览器里）的数据读写：花费、收入 / 花费聚合、收款方、卡用量。",
+      "names": [
+        "demoSpend"
+      ]
+    },
+    {
+      "path": "js/core/store/demo-house.js",
+      "doc": "演示模式（数据存在浏览器里）的数据读写：房产、设备、保养、季节任务、交易、买卖计划、房屋资料。",
+      "names": [
+        "demoHouse"
+      ]
+    },
+    {
+      "path": "js/core/store/demo-bills.js",
+      "doc": "演示模式（数据存在浏览器里）的数据读写：账单、缴费、医疗账单、特别摊派、卡。",
+      "names": [
+        "demoBills"
+      ]
+    },
+    {
+      "path": "js/core/store/demo-finance.js",
+      "doc": "演示模式（数据存在浏览器里）的数据读写：收入记录、预算、借贷、账户余额、净资产。",
+      "names": [
+        "demoFinance"
+      ]
+    },
+    {
+      "path": "js/core/store/demo-people.js",
+      "doc": "演示模式（数据存在浏览器里）的数据读写：家庭成员、名册、邀请、登录记录。",
+      "names": [
+        "demoPeople"
+      ]
+    },
+    {
+      "path": "js/core/store/cloud-pantry.js",
+      "doc": "云端模式（Supabase）的数据读写：库存、分类、位置、购物车、自定义名称翻译。",
+      "names": [
+        "cloudPantry"
+      ]
+    },
+    {
+      "path": "js/core/store/cloud-shops.js",
+      "doc": "云端模式（Supabase）的数据读写：常去的商店和特价。",
+      "names": [
+        "cloudShops"
+      ]
+    },
+    {
+      "path": "js/core/store/cloud-spend.js",
+      "doc": "云端模式（Supabase）的数据读写：花费、收入 / 花费聚合、收款方、卡用量。",
+      "names": [
+        "cloudSpend"
+      ]
+    },
+    {
+      "path": "js/core/store/cloud-house.js",
+      "doc": "云端模式（Supabase）的数据读写：房产、设备、保养、季节任务、交易、买卖计划、房屋资料。",
+      "names": [
+        "cloudHouse"
+      ]
+    },
+    {
+      "path": "js/core/store/cloud-bills.js",
+      "doc": "云端模式（Supabase）的数据读写：账单、缴费、医疗账单、特别摊派、卡。",
+      "names": [
+        "cloudBills"
+      ]
+    },
+    {
+      "path": "js/core/store/cloud-finance.js",
+      "doc": "云端模式（Supabase）的数据读写：收入记录、预算、借贷、账户余额、净资产。",
+      "names": [
+        "cloudFinance"
+      ]
+    },
+    {
+      "path": "js/core/store/cloud-people.js",
+      "doc": "云端模式（Supabase）的数据读写：家庭成员、名册、邀请、登录记录。",
+      "names": [
+        "cloudPeople"
+      ]
+    }
+  ]
+}

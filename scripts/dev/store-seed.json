@@ -1,0 +1,1 @@
+{ "source": "js/core/store.js", "files": [ { "path": "js/core/store/seed-demo.js", "doc": "演示模式的示例数据（第一次打开时种进浏览器）。", "names": ["seedDemo"] } ] }
