@@ -2,7 +2,6 @@
 import { SECTIONS, go, href } from "../core/router.js";
 import { Store } from "../core/store.js";
 import { VEHICLE_CATS } from "./instances.js";
-import { adultPeople } from "../settings/family-people.js";
 import { askInline } from "../core/ask.js";
 import { assessFormPage, assessListPage } from "./assessments-views.js";
 import { assessmentParts, assessmentsOf } from "./assessments-lib.js";
@@ -22,6 +21,7 @@ import { state } from "../core/state.js";
 import { viewBillWizard } from "./wizard-views.js";
 import { B, billCrumb, billRoot, billTrail, billTypeChooser, mny } from "./bill-common.js";
 import { PAY_EXTRA, accountOptions, acctById, payAcctValue, paymentPayLabel } from "./card-picker.js";
+import { adultPeople } from "../settings/family-lite.js";
 
 /* ── 账单表单（整页；编辑时下方带缴费记录） ── */
 /** 分区页（?sec= / ?pay=1）：后退一步回枢纽；枢纽页：直接跳回进来之前的页面（不能 history.back，会掉回刚看过的分区） */

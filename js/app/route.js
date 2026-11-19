@@ -7,18 +7,18 @@ import { applySpendDrill, ensureFirstYear } from "../stats/views.js";
 import { dirtyFields } from "./unsaved.js";
 import { financeOk } from "../core/finance-access.js";
 import { href, isFormSection, parseRoute, routeKey } from "../core/router.js";
-import { hydrateModelSelect } from "../settings/views.js";
 import { inc } from "../income/logic.js";
 import { normRange, setFinRange } from "../core/time-range.js";
 import { refresh, resetListPages } from "./data.js";
 import { render } from "./render.js";
-import { resetFamilyUi } from "../settings/family-people.js";
 import { resetScan, saveAssetForm, saveBillForm, saveItemForm } from "./lazy-modules.js";
 import { resetSectionFilters } from "./page-events.js";
 import { saveHouseForm } from "./actions/house-form.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { applyOverviewQuery } from "../bills/overview-state.js";
+import { resetFamilyUi } from "../settings/family-lite.js";
+import { hydrateModelSelect } from "./lazy-modules.js";
 
 /** 录入购物（2026-11-15 起在 储藏 / 录入购物，#/pantry/scan） */
 export const isScanRoute = (r) => r?.section === "pantry" && r?.sub === "scan";

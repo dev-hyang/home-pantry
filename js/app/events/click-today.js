@@ -7,12 +7,13 @@ import { aiReady, clearModelMarks, dismissAiChanges, resetUsage, testModel } fro
 import { copyAnswer, copyGeneralPrompt, pickTopic, shiftAlertSource } from "../lazy-modules.js";
 import { enableWeather } from "../../core/weather.js";
 import { go, goBack, href } from "../../core/router.js";
-import { hydrateModelSelect, saveAiForm } from "../../settings/views.js";
 import { refresh } from "../data.js";
 import { render } from "../render.js";
 import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 import { aiSettings } from "../../core/ai-common.js";
+import { saveAiForm } from "../../settings/settings-menu.js";
+import { hydrateModelSelect } from "../lazy-modules.js";
 
 /** 点击动作（今日页、咩咩咩、快捷操作、提醒页翻页、重新加载）：这一组处理的 data-action */
 export const TODAY_ACTIONS = new Set(["wx-enable","today-view","today-pref","today-source","quick-edit","quick-open","quick-swap","quick-swap-do","quick-add","quick-del","quick-reset","quick-run","alerts-prev","alerts-next","nav-back","ai-ask","ai-copy","ai-again","ai-add-missing","ai-topic","ai-copy-general","ai-copy-answer","ai-notice-dismiss","ai-models-refresh","ai-marks-clear","ai-usage-reset","ai-clear-adv","ai-test","ask-toggle","ask-run","ask-copy","ask-copy-answer","reload","reload-page"]);

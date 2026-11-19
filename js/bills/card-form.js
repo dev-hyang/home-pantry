@@ -3,7 +3,6 @@ import { $, esc, fmtDate, num, toast, todayISO } from "../core/util.js";
 import { ACCT_KINDS, CARDS_HREF, cardById, cardHref, fromCatalog, kindName, noRewards, quarterOf, reloadCards } from "./cards.js";
 import { Store } from "../core/store.js";
 import { accountOptions, acctLabel } from "./card-picker.js";
-import { adultPeople } from "../settings/family-people.js";
 import { aiReady, askText } from "../core/ai.js";
 import { backBtn } from "../core/hub.js";
 import { dupOnce, normName } from "../core/item-match.js";
@@ -15,6 +14,7 @@ import { t } from "../core/i18n.js";
 import { D, cur, d, roStop } from "./card-common.js";
 import { aiSettings, providerOf } from "../core/ai-common.js";
 import { balancePanel } from "./net-worth-panel.js";
+import { adultPeople } from "../settings/family-lite.js";
 
 /* ───────────── 表单 ───────────── */
 const NUMF = (v) => (v == null || v === "" ? "" : num(v));

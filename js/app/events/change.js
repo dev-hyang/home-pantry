@@ -8,19 +8,16 @@ import { customChanged, setFinUnit } from "../../core/time-range.js";
 import { enrich } from "../../core/logic.js";
 import { friendlyErr } from "../errors.js";
 import { go } from "../../core/router.js";
-import { hydrateModelSelect, onModelPick, saveAiForm } from "../../settings/views.js";
 import { maintFilter } from "../../house/assets-logic.js";
 import { natureOptions } from "../../core/taxonomy.js";
 import { overviewHref } from "../../bills/trail.js";
 import { pageSize, setPageSize } from "../../core/pager.js";
 import { payeeChange } from "../../stats/payees.js";
 import { refresh, resetListPages } from "../data.js";
-import { refreshBackupUi } from "../../settings/backup-views.js";
 import { render } from "../render.js";
 import { renderAllList } from "../../bills/all-views.js";
 import { renderSpendList, renderSpendRecords, spendRowsLoaded } from "../../stats/views.js";
 import { saveStatToggles, setSharedRange } from "../actions/stats-prefs.js";
-import { setDevicePerson } from "../../settings/family-people.js";
 import { setItemQty, setItemUnit, setShopQty, setShopUnit } from "../actions/shopping.js";
 import { setMoneyHidden } from "../../core/privacy.js";
 import { setTempUnit } from "../../core/weather.js";
@@ -33,6 +30,9 @@ import { renderInvList } from "../lazy-modules.js";
 import { resolvePayAccount } from "../../bills/card-picker.js";
 import { cardHintHtml, pickResultHtml } from "../../bills/cards-review.js";
 import { applyCatalogPick } from "../lazy-modules.js";
+import { refreshBackupUi } from "../../settings/backup-ui.js";
+import { saveAiForm } from "../../settings/settings-menu.js";
+import { hydrateModelSelect, onModelPick, setDevicePerson } from "../lazy-modules.js";
 
 export async function onMainChange(e) {
   if (e.target.dataset?.dealSel) {   // 交易时间线：完成情况 / 阶段 / 显示 / 排序（下拉框）

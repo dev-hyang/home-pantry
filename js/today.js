@@ -15,7 +15,6 @@ import { currentWeather, enableWeather, wxLoc } from "./core/weather.js";
 import { aiIcon, aiQuota, aiReady } from "./core/ai.js";
 import { Store } from "./core/store.js";
 import { href } from "./core/router.js";
-import { deviceLinkPrompt, myPersonOf, personNameOf } from "./settings/family-people.js";
 import { releaseBadgeHTML } from "./core/releases-ui.js";
 import { esc, money, num, spaceOf } from "./core/util.js";
 import { joinList, locale, t } from "./core/i18n.js";
@@ -25,6 +24,7 @@ import { homeMoney, lastMonths, monthLabel } from "./core/home-money.js";
 import { billInstances, rangeBounds, summarize } from "./bills/instances.js";
 import { allBillsHref } from "./bills/all-href.js";
 import { todayISO } from "./core/util.js";
+import { deviceLinkPrompt, myPersonOf, personNameOf } from "./settings/family-lite.js";
 
 const PREF_KEY = "hmh-today";
 /** 今日页的「待缴账单」：未来 30 天范围内没缴清的账单期（含逾期、含一次性），数字和点进去的「全部账单」列表对得上 */

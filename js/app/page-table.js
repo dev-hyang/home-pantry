@@ -9,7 +9,6 @@ import { viewAllBills } from "../bills/all-views.js";
 import { viewBudget } from "../bills/budget.js";
 import { viewMenu } from "../menu.js";
 import { viewQuick, viewToday } from "../today.js";
-import { viewSettings } from "../settings/views.js";
 import { viewSpend, viewStats } from "../stats/views.js";
 import { viewIncome } from "./lazy-modules.js";
 import { viewShops } from "./lazy-modules.js";
@@ -17,6 +16,7 @@ import { viewBillsHome } from "./lazy-modules.js";
 import { viewNetWorth } from "./lazy-modules.js";
 import { viewDashboard, viewInventory, viewMeals, viewShopping } from "./lazy-modules.js";
 import { viewCards } from "./lazy-modules.js";
+import { viewSettings } from "./lazy-modules.js";
 
 /* ───────────── 页面与路由 ───────────── */
 /** 库存页当前范围：?space=house 看汽车房屋消耗品（房屋模块关闭时只有厨房储藏） */

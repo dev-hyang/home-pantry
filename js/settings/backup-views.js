@@ -1,4 +1,3 @@
-/* 我的 → 设置 → 备份与恢复：同步状态、定时备份（周 / 月 / 自定义）、备份到哪（云盘同步文件夹 / 应用云端 / 下载）、SQL 文件提醒与一键拷贝、云端备份列表、从文件恢复、重建指引。逻辑在 core/backup.js */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, fmtDate, syncState } from "../core/util.js";
@@ -15,13 +14,10 @@ export function ensureBackupUi() {
   Promise.all([folderStatus().catch(() => ({ supported: false, perm: "none", name: "" })), sqlStatus().catch(() => ({ name: "" })), ...srcs.map((k) => SOURCES[k].list().then((r) => ({ r }), (e) => ({ e })))]).then(([folder, sql, ...ls]) => { const lists = { ...(state.backupUi.lists || {}) }, errs = {}; srcs.forEach((k, i) => { if (ls[i].e) errs[k] = bkErr(ls[i].e); else lists[k] = ls[i].r; }); /* 读失败（多半是 Google 令牌过期）：保留上次的列表，不要清空 */ state.backupUi = { ...state.backupUi, folder, sql, lists, errs, loading: false, stale: false }; rerender(); });
   return state.backupUi;
 }
-export const refreshBackupUi = () => { if (state.backupUi) state.backupUi.stale = true; };
 const when = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "");
 const kb = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
-
 /** 一张可勾选的「目标卡」：整张卡都能点，勾选框在左，右边标题 + 说明 + 这张卡自己的设置 */
 const card = (k, on, icon, title, desc, body = "", off = false) => `<label class="bk-card ${on && !off ? "on" : ""} ${off ? "off" : ""}"><input type="checkbox" name="target" value="${k}" ${on ? "checked" : ""} ${off ? "disabled" : ""}><span class="bk-ic" aria-hidden="true">${icon}</span><span class="bk-body"><b>${title}</b><small>${desc}</small>${body ? `<span class="bk-sub">${body}</span>` : ""}</span></label>`;
-
 export function backupPanel() {
   const s = settings(), ui = ensureBackupUi(), cloud = Store.mode === "cloud";
   const folder = ui.folder || { supported: folderSupported(), perm: "none", name: "" }, sql = ui.sql || { name: "" };
@@ -94,3 +90,4 @@ export function backupPanel() {
 }
 export const backupSummary = () => { const s = settings(); return `${!intervalDays(s) ? t("没开定时") : s.every === "week" ? t("每周") : s.every === "month" ? t("每月") : t("每 {n} 天", { n: s.days })} · ${s.last ? t("上次 {d}", { d: fmtDate(s.last.slice(0, 10)) }) : t("还没备份过")}`; };
 export { inspect };
+export { refreshBackupUi } from "./backup-ui.js";

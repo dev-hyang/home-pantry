@@ -8,9 +8,9 @@ import { DEVICE_ICON } from "../core/device-info.js";
 import { amOwner, famMembers, familyHref, meId, reloadMembers } from "./members.js";
 import { deviceText, ensureLogins, L, lastLoginOf, loginHasMore, loginRowHtml, loginWindow } from "./logins.js";
 import { adultPeople, devicesOf, myPersonOf, personHref, personNameOf, visiblePeople } from "./family-lite.js";
+import { F, demo } from "./family-common.js";
+export { adultPeople, deviceLinkPrompt, devicesOf, myMember, myName, myPersonOf, personHref, personNameOf, resetFamilyUi, visiblePeople } from "./family-lite.js";
 
-export const demo = () => Store.mode === "demo";
-export const F = { edit: null, devShow: 6, devOpen: null, scopeAll: false, renameDev: null, linkDev: null };
 const personOk = (p) => amOwner() || p.id === myPersonOf();
 const roleOf = (p) => (devicesOf(p.id).some((d) => d.role === "owner") ? "owner" : devicesOf(p.id).length ? "member" : null);
 const avatarOf = (p) => (p.kind === "pet" ? "🐾" : p.kind === "child" ? (p.gender === "female" ? "👧" : p.gender === "male" ? "👦" : "🧒") : p.gender === "female" ? "👩" : p.gender === "male" ? "👨" : "🧑");

@@ -1,0 +1,12 @@
+{
+ "modules": [
+  {
+   "module": "settings/settings-models.js",
+   "key": "settingsModels"
+  },
+  {
+   "module": "settings/family-people.js",
+   "key": "familyPeople"
+  }
+ ]
+}

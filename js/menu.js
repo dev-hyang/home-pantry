@@ -10,10 +10,8 @@ import { alertsOf } from "./core/logic.js";
 import { assetName } from "./house/assets-logic.js";
 import { undoneThisMonth } from "./house/tasks-logic.js";
 import { houseHooks } from "./house/hooks.js";   // 房屋页面模块加载后挂进来的函数（assetsDueCount、openDeal、routeDeal…）
-import { SETTING_SECTIONS } from "./settings/views.js";
 import { canManageHome } from "./settings/members.js";
 import { familyHref, memberCrumbLabel } from "./settings/members.js";
-import { personNameOf } from "./settings/family-people.js";
 import { aiIcon } from "./core/ai.js";
 import { APP_VERSION } from "./core/version.js";
 import { crumbNav } from "./core/hub.js";
@@ -25,6 +23,8 @@ import { houseBar } from "./house/property-form.js";
 import { FINANCE_HIDDEN_SUBS, financeOk } from "./core/finance-access.js";
 import { debtsEnriched } from "./bills/debt-logic-common.js";
 import { medBillLabel } from "./bills/medical-data.js";
+import { personNameOf } from "./settings/family-lite.js";
+import { SETTING_SECTIONS } from "./settings/settings-menu.js";
 
 const SECTION_ICON = { pantry: "🗄️", house: "🏠", bills: "💰", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”

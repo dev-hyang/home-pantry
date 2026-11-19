@@ -1,0 +1,13 @@
+{
+  "source": "js/settings/family-people.js",
+  "files": [
+    {
+      "path": "js/settings/family-common.js",
+      "doc": "成员页面和同步小件共用的小件。",
+      "names": [
+        "F",
+        "demo"
+      ]
+    }
+  ]
+}

@@ -2,7 +2,6 @@
 import { state } from "../core/state.js";
 import { $, esc, fmtDate, fmtShort, money, num, toast, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
-import { personNameOf } from "./family-people.js";
 import { budgetPlan, monthProgress } from "../bills/budget.js";
 import { fetchSpendPages, fetchSpendRows, lastMonths, monthLabel, spendAggAsync, spendBase, storeOf } from "../stats/views.js";
 import { l2List, leafLabel } from "../core/taxonomy.js";
@@ -10,6 +9,7 @@ import { livingSeries, outflowSeries, sum, withHousingSeries } from "../stats/re
 import { Store } from "../core/store.js";
 import { billInUse, propertyOptionsHtml } from "../core/lifecycle.js";
 import { alertText, billAlerts, billCat, propertyName, subscriptionSummary, upcoming } from "../bills/logic.js";
+import { personNameOf } from "./family-lite.js";
 
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
 const stamp = () => t("打印于 {d}", { d: fmtDate(todayISO()) });

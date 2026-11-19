@@ -8,13 +8,13 @@ import { cleanStore, rememberStore } from "../stats/views.js";
 import { findItem, normName, similarItems } from "../core/item-match.js";
 import { href } from "../core/router.js";
 import { loadNear, matchOpenShopping, pairRows } from "../stats/dup-check.js";
-import { myName } from "../settings/family-people.js";
 import { spendChanged } from "../core/spend-data.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { MAX_IMAGES, repaint, resetScan, sc, subGuess } from "./scan-common.js";
 import { compressImage as compress } from "../core/autofill-common.js";
 import { purchasePayFields } from "../bills/card-picker.js";
+import { myName } from "../settings/family-lite.js";
 
 /* ───────────── 交互：文件、文字、行内联动 ───────────── */
 document.addEventListener("change", async (e) => {

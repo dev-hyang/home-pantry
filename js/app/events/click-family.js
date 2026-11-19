@@ -5,18 +5,18 @@ import { CloudStore, DemoStore, Store } from "../../core/store.js";
 import { ackLoginDo, loginsMore } from "../../settings/logins.js";
 import { afterLogin, waitTimer } from "../auth/household.js";
 import { changeLang } from "../page-events.js";
-import { deviceLinkDo, deviceLinkNew, removePerson } from "../../settings/family-people.js";
 import { doBackup, doRestore } from "../actions/backup.js";
 import { exportJson } from "../actions/export-notify.js";
 import { famMembers, familyHref, reloadMembers } from "../../settings/members.js";
 import { go } from "../../core/router.js";
 import { refresh } from "../data.js";
-import { refreshBackupUi } from "../../settings/backup-views.js";
 import { render } from "../render.js";
 import { renderLogin } from "../auth/login.js";
 import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 import { personAddCancel, personAddDo, personMerge, personMergeCancel, personMergeOpen, personUse } from "../lazy-modules.js";
+import { refreshBackupUi } from "../../settings/backup-ui.js";
+import { deviceLinkDo, deviceLinkNew, removePerson } from "../lazy-modules.js";
 
 /** 点击动作（家庭与设置：成员、家人名册、邀请、加入、登录、备份）：这一组处理的 data-action */
 export const FAMILY_ACTIONS = new Set(["login-ack","logins-more","person-del-page","person-remove","person-new-cancel","device-link","device-link-new","discard","person-add-do","person-add-cancel","person-use","person-merge-open","person-merge-cancel","person-merge","copy-invite","notif","export","backup-now","backup-continue","backup-download","backup-pick-folder","backup-forget-folder","backup-pick-sql","backup-forget-sql","backup-grant","backup-relist","backup-src","backup-dl","backup-use","backup-rm","backup-gd-on","backup-gd-pick","backup-gd-clear","backup-gd-off","backup-dbx-on","backup-dbx-off","backup-restore-cancel","backup-restore-confirm","reset-demo","logout","login-mode","otp-back","lang","member-role","member-finance","member-remove","rotate-invite","close-invite","member-approve","member-reject","join-recheck","join-cancel"]);

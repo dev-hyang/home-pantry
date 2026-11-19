@@ -2,10 +2,10 @@
 import * as Backup from "../../core/backup.js";
 import { friendlyErr } from "../errors.js";
 import { refresh } from "../data.js";
-import { refreshBackupUi } from "../../settings/backup-views.js";
 import { render } from "../render.js";
 import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
+import { refreshBackupUi } from "../../settings/backup-ui.js";
 
 /** 备份：手动 / 定时到期后点「继续」 */
 export const backupTargetName = (k) => ({ download: t("下载"), folder: t("文件夹"), cloud: t("云端"), gdrive: "Google Drive", dropbox: "Dropbox" }[k] || k);

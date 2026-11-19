@@ -3,13 +3,13 @@
  * · 实际：清单勾选的完成日期 + 「进展记录」（deal_events：和卖方律师改合同、联系 ComEd 停服务……可以关联清单事项，也可以不关联）。
  * · 偏差由这里直接算（实际 − 基线）；预计（forecast）只顺延依赖它的后续步骤（data/deals.js 的 DEPS），不相干的步骤不动。
  * · AI 只在点「帮我分析」时读已经算好的偏差（日期和天数），给风险和下一步；要先勾选同意，自定义事项和进展内容不发送。 */
-import { myName } from "../settings/family-people.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { DAY, esc, fmtDate, fmtShort, todayISO, toast } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { addDays } from "../bills/logic.js";
 import { aiReady, askText } from "../core/ai.js";
+import { myName } from "../settings/family-lite.js";
 
 const D = () => window.DEALS;
 const PRIO_CLS = { must: "b-out", should: "b-soon", optional: "" };

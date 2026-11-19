@@ -14,8 +14,8 @@ import "./house/tasks.js";   // 以下三个只为加载：它们加载时把自
 import "./house/deals.js";
 import "./house/views.js";
 import { clearFiltersBtn } from "./core/clear-filters.js";
-import { myPersonOf } from "./settings/family-people.js";
 import { setTodayPref } from "./today.js";
+import { myPersonOf } from "./settings/family-lite.js";
 
 /** 首页提醒按偏好过滤（只看我负责的） */
 function myAlerts() {

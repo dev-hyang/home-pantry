@@ -4,10 +4,10 @@ import { Store } from "../core/store.js";
 import { addDays } from "../bills/logic.js";
 import { freezeBaseline } from "./deal-progress.js";
 import { joinList, t } from "../core/i18n.js";
-import { myName } from "../settings/family-people.js";
 import { num, toast, todayISO } from "../core/util.js";
 import { payOffForAsset } from "../bills/debt-logic.js";
 import { state } from "../core/state.js";
+import { myName } from "../settings/family-lite.js";
 
 /* ── 动作 ── */
 const EMPTY_DEAL = { contract_on: null, review_deadline: null, financing_deadline: null, closing_on: null, price: null, earnest_money: null,

@@ -1,9 +1,9 @@
 /* 家庭成员的同步小件：我是谁、成员名字、成年人名单、设备链接提示（别处拼页面时要立刻用到）。 */
-import { F, demo } from "./family-people.js";
 import { amOwner, famMembers, familyHref, meId } from "./members.js";
 import { esc } from "../core/util.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
+import { F, demo } from "./family-common.js";
 
 export const personHref = (id) => `${familyHref()}&person=${encodeURIComponent(id)}`;
    // renameDev = 正在改名的设备；linkDev = 正在选「属于哪位家庭成员」的设备（底部弹出）   // 当前正在编辑的块、设备显示几行、哪台设备展开了详情、登录记录是否看全家

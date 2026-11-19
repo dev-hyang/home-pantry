@@ -1,7 +1,6 @@
 /* 创建周期性账单的向导（#/bill/new?type=recurring&step=n）：一屏一个问题，5 步，完成后进新账单的详情页。
  * 逻辑（默认值、预览、校验、拼账单）在 wizard.js；这里只管画面和事件。设计见 docs/design-bills-overview.md §16。
  * 草稿放在 state.billDraft（内存，不入库；创建成功或换一次新的进入就清掉）；步骤在网址里（返回键 = 上一步）。 */
-import { adultPeople } from "../settings/family-people.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, esc, fmtDate, todayISO } from "../core/util.js";
@@ -12,6 +11,7 @@ import { propertyActive } from "../core/lifecycle.js";
 import { assetChoices } from "./asset-suggest.js";
 import { COMMON_CATEGORIES, LAST_STEP, PAY_MODES, STEPS, WIZARD_FREQS, askDay, billFromDraft, defaultsFor, newDraft, nextDuePreview, suggestName, validateStep } from "./wizard.js";
 import { PAY_EXTRA, accountOptions, payAcctValue, resolvePayAccount } from "./card-picker.js";
+import { adultPeople } from "../settings/family-lite.js";
 
 const B = () => window.BILLS;
 const catOf = (id) => B().catOf(id);

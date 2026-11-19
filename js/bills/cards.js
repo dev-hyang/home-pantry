@@ -8,8 +8,8 @@ import { daysUntil, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { registerAlerts } from "../core/alerts.js";
-import { personNameOf } from "../settings/family-people.js";
 import { TZ, cached } from "../core/spend-data.js";
+import { personNameOf } from "../settings/family-lite.js";
 
 const D = () => window.CARDS;
 /* 卡与账户的种类：信用卡 / 借记卡 / 电子钱包 / 礼品卡是「卡」；支票 / 储蓄（迁移 036）、券商 / 退休（401K / IRA）/ HSA / 贷款（负债）/ 现金（迁移 056）是「账户」。

@@ -9,7 +9,7 @@ import { Store } from "../core/store.js";
 import { backupPanel, backupSummary } from "./backup-views.js";
 import { categoriesPanel, locationsPanel, termsPanel } from "./settings-names.js";
 import { customLocations } from "../core/locations.js";
-import { deviceLinkPrompt, peoplePanel, personPage } from "./family-people.js";
+import { peoplePanel, personPage } from "./family-people.js";
 import { famMembers, viewMemberProfile } from "./members.js";
 import { financeOk } from "../core/finance-access.js";
 import { href } from "../core/router.js";
@@ -19,6 +19,7 @@ import { tempUnitPref } from "../core/weather.js";
 import { usageHTML } from "../core/usage.js";
 import { viewPrintSettings } from "./print.js";
 import { inviteLine, isOwner, pendingList, sisterAppsPanel } from "./settings-common.js";
+import { deviceLinkPrompt } from "./family-lite.js";
 
 /* ── 模型下拉：常用免费模型目录（带上限）+ 这个 key 实际能用的列表（画出来后后台查，缓存一天）；没有目录的服务商仍是手填 ── */
 const modelOption = (pid, m, cur) => {
