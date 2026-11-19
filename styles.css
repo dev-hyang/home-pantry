@@ -3803,6 +3803,9 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .bc-soon { --bc-bg: var(--bill-soon-bg); --bc-fg: var(--bill-soon-fg); }
 .bc-remain { --bc-bg: var(--bill-remain-bg); --bc-fg: var(--bill-remain-fg); }
 .bill-notes { font-size: 12.5px; margin: 4px 0 0; }
+.bc-wrap { position: relative; display: flex; min-width: 0; } .bc-wrap > .bill-card { flex: 1; min-width: 0; }
+.bc-tip { position: absolute; top: 8px; right: 8px; z-index: 2; }
+@media (max-width: 760px) { .bc-wrap.bc-wide, .bc-wrap.bc-wide-m { grid-column: 1 / -1; } }
 @media (max-width: 760px) { .bill-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bill-card.bc-wide, .bill-card.bc-wide-m { grid-column: 1 / -1; } }
 @media (max-width: 380px) { .bill-card .bc-val { font-size: 21px; } }
 /* 按资产 */

@@ -3,6 +3,7 @@ import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { addDays } from "./dates.js";
+import { infoTip } from "../core/info-tip.js";
 import { fabHtml } from "./bill-fab.js";
 import { moneyEye } from "../core/privacy.js";
 import { billTrendSection } from "./views.js";
@@ -29,13 +30,15 @@ function compute() {
   return { today, from, to, base, rows, S, next, series, urgent, urgentN: urgentAll.length, byAsset: assetBreakdown(rows, { cur: cur() }), byCycle: cycleBreakdown(rows, { cur: cur() }) };   // 按资产：跟着上面选的资产走（选了某个资产就只剩它）
 }
 /** 一张卡：整张是一个链接；颜色类 bc-<种类>（--bill-* 变量，浅色 / 深色各一套） */
-function card(kind, icon, label, value, sub, link, aria, extra = "") {
-  return `<a class="bill-card bc-${kind} ${extra}" href="${esc(link)}" aria-label="${esc(aria)}"><span class="bc-head"><span class="bc-ico" aria-hidden="true">${icon}</span><span class="bc-label">${label}</span></span><b class="bc-val">${value}</b><small class="bc-sub">${sub}</small><span class="bc-go" aria-hidden="true">›</span></a>`;
+function card(kind, icon, label, value, sub, link, aria, extra = "", tip = "") {
+  const a = `<a class="bill-card bc-${kind} ${extra}" href="${esc(link)}" aria-label="${esc(aria)}"><span class="bc-head"><span class="bc-ico" aria-hidden="true">${icon}</span><span class="bc-label">${label}</span></span><b class="bc-val">${value}</b><small class="bc-sub">${sub}</small><span class="bc-go" aria-hidden="true">›</span></a>`;
+  // ⓘ 不能放进 <a> 里（点它会跳转）：和卡片并排放进一个外框，用绝对定位叠在右上角
+  return tip ? `<div class="bc-wrap ${extra}">${a}<span class="bc-tip">${tip}</span></div>` : a;
 }
 function cardsHtml(C) {
   const { S, next } = C, f = state.ovFilter, q = { range: f.range, asset: f.asset }, link = (extra = {}) => allBillsHref({ ...q, ...extra });
   const cnt = (k) => `${k} ${t("笔账单")}`;
-  const total = card("total", "💲", t("全部账单"), mny(S.total.amount), `${cnt(S.total.n)}${S.estimatedN ? ` · ${t("含估算 {n} 笔", { n: S.estimatedN })}` : ""}`, link(), `${t("全部账单")}，${cnt(S.total.n)}，${mny(S.total.amount)}`, "bc-wide");
+  const total = card("total", "💲", t("全部账单"), mny(S.total.amount), cnt(S.total.n), link(), `${t("全部账单")}，${cnt(S.total.n)}，${mny(S.total.amount)}`, "bc-wide", infoTip(totalNotes(C), { align: "end", pos: "bottom" }));
   const overdue = card("overdue", "⚠️", t("逾期"), mny(S.overdue.amount), S.overdue.n ? cnt(S.overdue.n) : t("没有逾期 ✓"), allBillsHref({ asset: f.asset, status: "overdue" }), `${t("逾期")}，${cnt(S.overdue.n)}，${mny(S.overdue.amount)}`);
   const paid = card("paid", "✅", t("已缴"), mny(S.paid.amount), `${cnt(S.paid.n)}${S.partial.n ? ` · ${t("另有 {n} 笔部分已付", { n: S.partial.n })}` : ""}`, link({ status: "paid" }), `${t("已缴")}，${cnt(S.paid.n)}，${mny(S.paid.amount)}`);
   const days = next ? Math.round((new Date(`${next.dueOn}T12:00:00`) - new Date(`${C.today}T12:00:00`)) / 86400000) : null;
@@ -43,15 +46,13 @@ function cardsHtml(C) {
     ? card("next", "📅", t("下一笔到期"), esc(fmtDate(next.dueOn)), `${esc(next.name)} · ${days === 0 ? t("今天") : t("{d} 天后", { d: days })} · ${mny(next.amount)}`, next.kind === "onetime" ? detailHref(next.billId) : href("bill", next.billId), `${t("下一笔到期")}，${fmtDate(next.dueOn)}，${next.name}`)
     : card("next", "📅", t("下一笔到期"), "—", t("接下来没有待缴的账单"), link({ status: "unpaid" }), t("下一笔到期：没有"));
   const soon = card("soon", "⏳", t("即将到期"), mny(S.soon.amount), `${S.soon.n ? cnt(S.soon.n) : t("7 天内没有")} · ${t("7 天内")}`, link({ status: "soon" }), `${t("即将到期")}，${cnt(S.soon.n)}，${mny(S.soon.amount)}`);
-  const remain = card("remain", "📊", t("剩余待缴"), mny(S.remaining.amount), `${cnt(S.remaining.n)} · ${t("应付 − 已缴")}`, link({ status: "unpaid" }), `${t("剩余待缴")}，${cnt(S.remaining.n)}，${mny(S.remaining.amount)}`, "bc-wide-m");
+  const remain = card("remain", "📊", t("剩余待缴"), mny(S.remaining.amount), `${cnt(S.remaining.n)} · ${t("应付 − 已缴")}`, link({ status: "unpaid" }), `${t("剩余待缴")}，${cnt(S.remaining.n)}，${mny(S.remaining.amount)}`, "bc-wide-m", infoTip(estNote(S), { align: "end", pos: "bottom" }));
   return `<div class="bill-cards">${total}${overdue}${paid}${nextCard}${soon}${remain}</div>`;
 }
-function notesHtml(C) {
-  const { S } = C, notes = [S.estimatedN ? t("含估算 {n} 笔（水电燃气按最近均值估，记缴费时填实际金额就会更新）", { n: S.estimatedN }) : "", S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "",
-    S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入上面的数字", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "", S.otherCurrency ? t("另有 {n} 笔非 {c} 账单未计入", { n: S.otherCurrency, c: cur() }) : "",
-    C.base.truncated ? t("另有 {n} 期太久远或太远没有展开", { n: C.base.truncated }) : ""].filter(Boolean);
-  return notes.length ? `<p class="muted bill-notes">${esc(notes.join(" · "))}</p>` : "";
-}
+const estNote = (S) => (S.estimatedN ? t("含估算 {n} 笔（水电燃气按最近均值估，记缴费时填实际金额就会更新）", { n: S.estimatedN }) : "");
+/** 「全部账单」卡 ⓘ 里的口径说明：估算 / 金额未知 / Escrow / 其他币种 / 没展开的期 */
+const totalNotes = (C) => { const { S } = C; return [estNote(S), S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "", S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入上面的数字", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "",
+  S.otherCurrency ? t("另有 {n} 笔非 {c} 账单未计入", { n: S.otherCurrency, c: cur() }) : "", C.base.truncated ? t("另有 {n} 期太久远或太远没有展开", { n: C.base.truncated }) : ""]; };
 function urgentHtml(C) {
   if (!C.urgent.length) return `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单 ✓")}</strong></div></section>`;
   const f = state.ovFilter, more = C.urgentN;
@@ -98,7 +99,7 @@ export function viewBillsHome() {
         <select id="ovAsset" data-search aria-label="${t("按资产筛选")}">${assetOptions(C.base.rows, f.asset)}</select>
       </div>
       <p class="muted kinds-note" role="status">${t("统计范围：{r}（{s}）· {a}。逾期没缴的一直计入，不受范围限制。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope, a: assetLabel })}</p>
-      ${empty ? `<div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}<p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${href("bill", "new")}">${t("手动添加一条")}</a></p></div>` : `${cardsHtml(C)}${notesHtml(C)}`}
+      ${empty ? `<div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}<p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${href("bill", "new")}">${t("手动添加一条")}</a></p></div>` : `${cardsHtml(C)}`}
     </section>
     ${empty ? "" : `${urgentHtml(C)}${groupHtml(C)}${trendHtml(C)}${billTrendSection()}
     ${fabHtml()}`}`;
