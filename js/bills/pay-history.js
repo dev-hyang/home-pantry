@@ -8,6 +8,8 @@ import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { payTotal } from "./pay-total.js";
 import { paymentPayLabel } from "./card-picker.js";
+import { moreMenu } from "../core/more-menu.js";
+import { lpAttr } from "../core/long-press.js";
 
 const B = () => window.BILLS;
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
@@ -38,10 +40,13 @@ function rowHtml(b, p) {
   const sub = [p.unit_amount != null ? `${t("单元费")} ${mny(p.unit_amount, p.currency)} · ${t("车位费")} ${mny(p.parking_amount, p.currency)}` : null, p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null,
     num(p.assessment_amount) ? t("摊派 {m}", { m: mny(p.assessment_amount, p.currency) }) : null, num(p.fee_amount) ? t("手续费 {m}", { m: mny(p.fee_amount, p.currency) }) : null, num(p.tax_amount) ? t("税 {m}", { m: mny(p.tax_amount, p.currency) }) : null,
     num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ");
-  return `<li class="pay-row" data-swipe-del="bill-pay">
+  // 这一笔的更多操作：⋯（电脑）和长按（手机）同一份
+  const items = [{ label: t("编辑"), href: edit, first: true }, { label: t("复制为新一笔"), href: `${href("bill", b.id)}?sec=pay&copy=${encodeURIComponent(p.id)}` }, { label: t("删除"), action: "billpay-del", data: { id: p.id }, danger: true }];
+  return `<li class="pay-row" data-swipe-del="bill-pay" ${lpAttr(items, fmtDate(p.paid_on))}>
     <span class="badge ${skipped ? "" : "b-ok"}" ${skipped ? 'style="background:var(--surface-2)"' : ""}>${esc(t(B().PAYMENT_STATUS[p.status] || p.status))}</span>
     <a class="grow pay-hit" href="${edit}" title="${esc(t("点一下编辑"))}"><b>${esc(fmtDate(p.paid_on))}</b>${sub ? `<small>${sub}</small>` : ""}</a>
     <b class="pay-total" title="${esc(t("总金额"))}">${p.amount != null && !skipped ? mny(payTotal(p), p.currency) : ""}</b>
+    ${moreMenu(items, { label: t("更多操作") })}
     <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="billpay-del" data-id="${p.id}" aria-label="${esc(t("删除这条记录"))}">${t("删除")}</button></li>`;
 }
 
@@ -83,7 +88,7 @@ export function payHistoryPage(b, crumb, notice = "") {
   </section>`;
 }
 
-const current = () => { const id = state.route?.id, q = state.route?.q; return state.route?.section === "bill" && q?.get("sec") === "pay" && !q.get("edit") ? state.billsEnriched.find((x) => x.id === id) : null; };
+const current = () => { const id = state.route?.id, q = state.route?.q; return state.route?.section === "bill" && q?.get("sec") === "pay" && !q.get("edit") && !q.get("copy") ? state.billsEnriched.find((x) => x.id === id) : null; };
 function redraw(billId) {
   const b = current(); if (!b || b.id !== billId) return;
   const list = document.getElementById("bphList"), bar = document.getElementById("bphBar");

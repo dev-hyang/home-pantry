@@ -6,6 +6,7 @@ import { debounce } from "./core/pager.js";
 import { renderAllList } from "./bills/all-views.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl } from "./minibar.js";
+import "./core/long-press.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";

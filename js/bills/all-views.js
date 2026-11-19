@@ -9,6 +9,7 @@ import { lang, t } from "../core/i18n.js";
 import { moneyEye } from "../core/privacy.js";
 import { infoTip } from "../core/info-tip.js";
 import { moreMenu } from "../core/more-menu.js";
+import { lpAttr } from "../core/long-press.js";
 import { fabHtml } from "./bill-fab.js";
 import { estAmount, lockFlag, metaLine, nameLine } from "./row-fmt.js";
 import { propertyTag, propertyName } from "../core/alerts.js";
@@ -87,6 +88,13 @@ const action = (r) => {
   if (r.autopay) return r.status === "verify" ? `<button type="button" class="btn btn-sm" data-action="bill-verify" data-id="${r.billId}">${t("已核对")}</button>` : "";
   return `<a class="btn btn-sm" href="${href("bill", r.billId)}?pay=1">${t("记缴费")}</a>`;
 };
+/** 长按这一行的菜单：周期性 = 详情 / 记缴费（自动扣款是记核对）/ 缴费记录 / 编辑账单；一次性 = 详情（付款在详情里记） */
+function rowItems(r) {
+  if (r.kind === "onetime") return [{ label: t("详情"), href: detailHref(r.billId), first: true }, ["paid", "skipped", "written_off"].includes(r.status) ? null : { label: t("记付款"), href: detailHref(r.billId) }];
+  const base = href("bill", r.billId), open = !["paid", "skipped", "written_off"].includes(r.status) && !r.escrow;
+  return [{ label: t("详情"), href: base, first: true }, open ? (r.autopay ? (r.status === "verify" ? { label: t("已核对"), action: "bill-verify", data: { id: r.billId } } : null) : { label: t("记缴费"), href: `${base}?pay=1` }) : null,
+    { label: t("缴费记录"), href: `${base}?sec=pay` }, { label: t("编辑账单"), href: `${base}?sec=all` }];
+}
 const r2 = (n) => Math.round(n * 100) / 100;
 /** 这一期已经付过的款：{ lines: [{ date, amount, balance }], split } ——一次付清 → split=false（只显示缴费日期）；分期（≥ 2 笔，或付了一部分还有余额）→ split=true，一笔一行：日期、金额、付完这笔后的余额。
  *  周期性账单一期一条缴费；一次性账单可以有多笔（退款是负数）。 */
@@ -112,7 +120,7 @@ export function rowHtml(r) {
   const amt = estAmount(r.amountUnknown && !done ? "—" : `<b>${mny(r.amount, c)}</b>`, r.amountIsEst && !done);
   const pays = info.split ? `<ul class="all-pays" aria-label="${esc(t("分期付款"))}">${info.lines.map((p, k) => `<li><span class="ap-no">${esc(L(`分期 #${k + 1}`, `Split #${k + 1}`))}</span><span class="ap-date">${esc(fmtDate(p.date))}</span><b class="ap-amt">${mny(p.amount, c)}</b>${p.balance != null ? `<small class="ap-bal">${esc(t("余额 {a}", { a: mny(p.balance, c) }))}</small>` : ""}</li>`).join("")}</ul>` : "";
   const act = action(r);
-  return `<li class="bill-row all-row ${done ? "is-paid" : ""}">
+  return `<li class="bill-row all-row ${done ? "is-paid" : ""}" ${lpAttr(rowItems(r), r.name)}>
     <div class="all-l1">${name}</div>
     <div class="all-amt">${amt}</div>
     <div class="all-l2">${meta}</div>

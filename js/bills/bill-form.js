@@ -11,7 +11,7 @@ import { billAsk, billCat } from "./logic.js";
 import { billHeadCard, payFormPage, staleNotice } from "./bill-pay.js";
 import { copyOf } from "../core/more-menu.js";
 import { crumbNav } from "../core/hub.js";
-import { esc, fmtDate, num } from "../core/util.js";
+import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { olderPayment, payHistoryPage } from "./pay-history.js";
 import { payExpNote } from "./bill-save.js";
@@ -69,10 +69,13 @@ export function viewBillForm() {
     return assessListPage(b, billCrumb(b, root, hubHref, t("特别摊派")));
   }
   if (b && sec === "pay") {   // 缴费记录：?sec=pay = 全部记录（搜索 / 筛选）；?sec=pay&edit=id 或 ?pay=1 = 独立的编辑 / 新建页
-    const editId = r.q.get("edit"), listHref = `${hubHref}?sec=pay`;
-    if (editId || r.q.get("pay") === "1") {
-      const edit = editId ? b.pays.find((x) => x.id === editId) || olderPayment(editId) : null;
-      return `<section class="section form-page">${crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("缴费记录") }, { label: edit ? t("编辑缴费记录") : b.autopay ? t("记核对") : t("记缴费") }])}${payFormPage(b, edit)}</section>`;
+    const editId = r.q.get("edit"), copyId = r.q.get("copy"), listHref = `${hubHref}?sec=pay`;
+    if (editId || copyId || r.q.get("pay") === "1") {
+      const src = editId || copyId ? b.pays.find((x) => x.id === (editId || copyId)) || olderPayment(editId || copyId) : null;
+      const edit = editId ? src : null;
+      // 复制：带入这笔的金额、方式、收款方等，缴费日期改成今天、对应到期日用账单当前的下次到期；不带花费关联和确认号
+      const copy = copyId && src ? { ...copyOf(src, ["purchase_id", "confirmation_ref"]), paid_on: todayISO(), due_on: b.next_due_on || "" } : null;
+      return `<section class="section form-page">${crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("缴费记录") }, { label: edit ? t("编辑缴费记录") : b.autopay ? t("记核对") : t("记缴费") }])}${payFormPage(b, edit || copy, !!copy)}</section>`;
     }
     return payHistoryPage(b, billCrumb(b, root, hubHref, t("缴费记录")), staleNotice(b));
   }

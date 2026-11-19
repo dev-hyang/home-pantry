@@ -47,14 +47,14 @@ export function billHeadCard(b, base) {
     <a class="btn btn-primary bh-pay" href="${base}?pay=1">${b.autopay ? t("记核对") : t("记缴费")}</a>
   </section>`;
 }
-export function payFormPage(b, edit = null) {
+export function payFormPage(b, edit = null, isCopy = false) {   // isCopy：edit 是「复制」带入的值（没有 id），标题和说明按新记一笔写
   const v = edit || {};   // 编辑某条记录时表单带入它的值
   // 账户下拉的当前值：编辑时按这条记录（卡 / 现金 / 支票 / 手填）；新记一笔按账单的付款账户
   const payVal = edit ? (edit.card_id ? edit.card_id : edit.method === "支票" ? "check" : payAcctValue(null, edit.method)) : (b.pay_card_id ? b.pay_card_id : payAcctValue(null, b.autopay_method));
   const linked = edit?.purchase_id ? purchaseById(edit.purchase_id) : null;   // 这条缴费记的花费：收款方存在它上面（按 id 读这一笔）
   if (edit?.purchase_id && !linked) fillFromPurchase(edit.purchase_id, '#billPayForm [name="store"]', (p) => p.store);   // 还没读回来：读到后填进收款方（没改过的话）
   return `
-    <div class="section-head"><h2>${edit ? t("编辑缴费记录") : b.autopay ? t("记核对") : t("记缴费")}</h2><p>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${edit ? t("改这条记录；不会动下次到期日") : t("记一笔后下次到期日自动推到下一期")}</p></div>
+    <div class="section-head"><h2>${edit && !isCopy ? t("编辑缴费记录") : b.autopay ? t("记核对") : t("记缴费")}</h2><p>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${edit && !isCopy ? t("改这条记录；不会动下次到期日") : t("记一笔后下次到期日自动推到下一期")}</p></div>
     <form id="billPayForm" class="panel" data-focus="1" data-cur="${esc(b.currency || "")}">
       <input type="hidden" name="bill_id" value="${esc(b.id)}"><input type="hidden" name="pay_id" value="${esc(edit?.id || "")}">
       <div class="form-grid maint-grid">
@@ -68,7 +68,7 @@ export function payFormPage(b, edit = null) {
         <label>${t("确认号")}<input name="confirmation_ref" maxlength="60" value="${esc(edit?.confirmation_ref || "")}"></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(edit?.notes || "")}"></label>
       </div>
-      <p class="muted" style="margin:10px 0 0;font-size:13px">${edit ? t("金额改了，花费统计里对应的那笔也会跟着改。") : t("有金额的记录会同时记入花费统计的“账单”组。")}</p>
+      <p class="muted" style="margin:10px 0 0;font-size:13px">${edit && !isCopy ? t("金额改了，花费统计里对应的那笔也会跟着改。") : t("有金额的记录会同时记入花费统计的“账单”组。")}</p>
       <div class="form-actions form-actions-split sticky-actions">
         <button type="button" class="btn btn-ghost" data-action="billpay-cancel">${t("取消")}</button>
         <button type="submit" class="btn btn-primary">${edit ? t("保存修改") : t("记一笔")}</button></div>

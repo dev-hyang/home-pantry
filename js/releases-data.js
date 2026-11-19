@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.15", title: { zh: "手机上长按一行，弹出这一行的更多操作", en: "Long-press a row on your phone for its more actions" }, items: [
+    { k: "new", zh: "缴费记录、全部账单、家庭成员的登录设备：在手机上长按一行，底部弹出这一行能做的事（编辑、复制、删除、记缴费、查看详情等）；电脑上用每行右边的 ⋯", en: "Payment records, All bills and Family devices: long-press a row on a phone for a bottom sheet of actions (edit, copy, delete, log payment, details…); on desktop use the ⋯ on each row" },
+    { k: "new", zh: "缴费记录新增「复制为新一笔」：带入这笔的金额和方式，日期改成今天，再改一改就能记新的一笔", en: "Payment records get Copy as new payment: it brings in the amount and method with today's date, ready to adjust and save" },
+    { k: "better", zh: "缴费记录每一行右边多了 ⋯ 菜单（编辑 / 复制 / 删除），电脑上也能删了", en: "Each payment record now has a ⋯ menu (edit / copy / delete), so you can delete on desktop too" }
+  ] },
+
   { v: "2026-11-19.14", title: { zh: "手机上的筛选更整齐：「清除筛选」收进筛选面板", en: "Tidier filters on phones: Clear filters now lives inside the filter panel" }, items: [
     { k: "better", zh: "手机上点开「筛选」，面板第一行是「筛选」字样，右边是「清除筛选」（没改过筛选时不显示），不再单独占一行把搜索框和下拉隔开", en: "On phones, opening Filters shows a header row with the title and Clear filters on the right (hidden until a filter is set), instead of a separate row between the search box and the dropdowns" },
     { k: "better", zh: "点「清除筛选」后面板保持打开，马上能看到已恢复默认", en: "The panel stays open after Clear filters so you can see everything back at default" }

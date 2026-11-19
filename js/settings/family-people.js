@@ -95,7 +95,7 @@ function deviceRow(m) {
     owner || mine || sameP ? { label: t("关联"), action: "dev-link-open", data: { id: m.user_id } } : null,
     mine ? (demo() ? null : { label: t("登出"), action: "logout", danger: true }) : canRemoveDevice(m.user_id) ? { label: t("登出"), action: "member-remove", data: { id: m.user_id }, danger: true } : null];
   const name = F.renameDev === m.user_id ? `<input class="dev-name-in" data-dev-name="${esc(m.user_id)}" maxlength="20" value="${esc(m.display_name)}" aria-label="${esc(t("设备名称"))}">` : `<b>${esc(m.display_name)}</b>`;
-  return `<li class="dev-card"><div class="dev-row"><span class="login-ico" aria-hidden="true">${DEVICE_ICON[last?.device] || "📱"}</span>
+  return `<li class="dev-card" data-lp><div class="dev-row"><span class="login-ico" aria-hidden="true">${DEVICE_ICON[last?.device] || "📱"}</span>
       <div class="grow">${name}${mine ? ` <span class="badge b-ok">📍 ${t("这是你的设备")}</span>` : ""}${m.role === "owner" ? ` <span class="badge mem-b">${t("家主")}</span>` : ""}
         <small class="login-meta">${last ? `${esc(fmtDateTime(last.at))} · ${esc(deviceText(last.device))} · ${esc(last.browser || "")}${last.location ? ` · 🌐 ${esc(last.location)}` : ""}${last.ip ? ` · IP ${esc(last.ip)}` : ""}` : t("还没有登录记录（这台设备打开新版本后才开始记）")}</small></div>
       ${items.some(Boolean) ? `<div class="dev-acts">${moreMenu(items, { label: `${m.display_name} · ${t("更多操作")}` })}</div>` : ""}</div></li>`;
