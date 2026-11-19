@@ -13,6 +13,8 @@ const TEXT = { zh: "筛选", tw: "篩選", en: "Filters" };
 const CSS = `
 .toolbar.tb-on .tb-toggle { display: none; }
 .toolbar.tb-on .tb-panel { display: contents; }
+.toolbar.tb-on .tb-head { display: contents; }
+.toolbar.tb-on .tb-head-t { display: none; }
 @media (max-width: 440px) {
   .toolbar.tb-on { position: sticky; top: calc(var(--eco-stick, 0px) + env(safe-area-inset-top, 0px)); z-index: 14; flex-wrap: nowrap; align-items: center; gap: 8px; margin: 0 0 8px; padding: 8px 0; background: var(--eco-tb-bg, var(--bg, #fff)); }
   .panel > .toolbar.tb-on, .panel .toolbar.tb-on { background: var(--eco-tb-bg, var(--surface, #fff)); }
@@ -25,6 +27,10 @@ const CSS = `
   .toolbar.tb-on .tb-panel { display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 15; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; background: var(--surface, #fff); border: 1px solid var(--line, #cfdcd2); border-radius: 12px; box-shadow: 0 12px 28px rgba(0, 0, 0, .16); }
   .toolbar.tb-on .tb-panel.open { display: grid; }
   .toolbar.tb-on .tb-panel select { width: 100%; min-width: 0; flex: none; }
+  /* 面板第一行：左边「筛选」字样，右边清除筛选（没改过筛选时按钮是 hidden，只剩字样） */
+  .toolbar.tb-on .tb-head { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 0 2px 6px; border-bottom: 1px solid var(--line, #cfdcd2); }
+  .toolbar.tb-on .tb-head-t { display: block; font-size: 15px; font-weight: 700; }
+  .toolbar.tb-on .tb-head .clear-filters { margin-left: auto; }
 }
 @media print { .tb-toggle { display: none !important; } .toolbar.tb-on { position: static !important; } .toolbar.tb-on .tb-panel { display: contents !important; position: static; } }
 `;
@@ -43,12 +49,16 @@ export function initCompactFilters({ root = document.body, ui = () => "zh", sele
     const n = activeCount(panel), c = btn.querySelector(".tb-count");
     c.textContent = n; c.hidden = !n;
     btn.firstChild.textContent = label();
+    const ht = tb.querySelector(".tb-head-t"); if (ht) ht.textContent = label();
   };
   const setup = (tb) => {
     if (tb.classList.contains("tb-on") || tb.querySelectorAll(":scope > select").length < 2) return;
     const selects = [...tb.querySelectorAll(":scope > select")];
     const panel = document.createElement("div"); panel.className = "tb-panel"; panel.id = `tbp${++seq}`;
     selects.forEach((s) => panel.appendChild(s));
+    // 「清除筛选」按钮（页面放在工具条里的 .clear-filters）收进面板第一行，不再单独占一行把搜索框和下拉隔开；宽屏 .tb-head 是 display: contents，按钮仍在原来的位置
+    const clr = tb.querySelector(":scope > .clear-filters");
+    if (clr) { const head = document.createElement("div"); head.className = "tb-head"; head.innerHTML = `<b class="tb-head-t">${label()}</b>`; head.appendChild(clr); panel.prepend(head); }
     const btn = document.createElement("button");
     btn.type = "button"; btn.className = "tb-toggle"; btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-controls", panel.id);
     btn.innerHTML = `${label()}<span class="tb-count" hidden>0</span>`;
@@ -61,6 +71,7 @@ export function initCompactFilters({ root = document.body, ui = () => "zh", sele
   new MutationObserver(() => scan()).observe(root, { childList: true, subtree: true });
   scan();
   root.addEventListener("click", (e) => {
+    if (e.target.closest?.(".tb-head .clear-filters")) keepOpen = Date.now();   // 点清除：页面重画后面板保持打开，能马上看到已恢复默认
     const btn = e.target.closest?.(".tb-toggle");
     if (btn) { const panel = document.getElementById(btn.getAttribute("aria-controls")); const open = !panel.classList.contains("open"); panel.classList.toggle("open", open); btn.setAttribute("aria-expanded", String(open)); return; }
     // 点面板外：收起

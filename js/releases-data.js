@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.14", title: { zh: "手机上的筛选更整齐：「清除筛选」收进筛选面板", en: "Tidier filters on phones: Clear filters now lives inside the filter panel" }, items: [
+    { k: "better", zh: "手机上点开「筛选」，面板第一行是「筛选」字样，右边是「清除筛选」（没改过筛选时不显示），不再单独占一行把搜索框和下拉隔开", en: "On phones, opening Filters shows a header row with the title and Clear filters on the right (hidden until a filter is set), instead of a separate row between the search box and the dropdowns" },
+    { k: "better", zh: "点「清除筛选」后面板保持打开，马上能看到已恢复默认", en: "The panel stays open after Clear filters so you can see everything back at default" }
+  ] },
+
   { v: "2026-11-19.13", title: { zh: "修复：深色主题下「已选 n 个」这类浅底数字角标的字看不清", en: "Fix: soft count badges unreadable in the dark theme" }, items: [
     { k: "fix", zh: "手动选深色主题时，「已选 n 个」这类浅底数字角标变成深字配深底、几乎看不见，现在恢复清楚", en: "With the dark theme picked manually, soft count badges (like '3 selected') showed dark text on a dark fill; they are readable again" }
   ] },

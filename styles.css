@@ -3936,7 +3936,7 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .clear-filters { display: block; width: fit-content; margin-left: auto; }
 .clear-filters[hidden] { display: none !important; }
 /* 工具条里「清除筛选」排到最后一个，再 margin-left:auto 才真的在最右边（它在 DOM 里夹在搜索框和下拉框中间） */
-.toolbar > .clear-filters, .toolbar.tb-on > .clear-filters { order: 99; }
+.toolbar .clear-filters { order: 99; }
 
 /* ── 账单行的统一排版（bills/row-fmt.js）──
  * 名称：图标在链接外面（没有下划线），下划线只在名称文字下面；🔒 等小标志写在名称后面（也在链接外面）；
