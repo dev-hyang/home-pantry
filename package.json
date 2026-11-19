@@ -1,0 +1,14 @@
+{
+  "name": "home-pantry",
+  "private": true,
+  "description": "爱家小助手：源码在 js/，发布前用 esbuild 打包成 dist/（GitHub Pages 从 main 根目录发布，dist/ 要一起提交）",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:dev": "node scripts/build.mjs --dev",
+    "check:dist": "node scripts/build.mjs --check"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

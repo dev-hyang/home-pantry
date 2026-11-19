@@ -6,3 +6,6 @@ docs/ai-integration.md
 
 # Local cross-repo context for Claude Code: not committed
 .code-context
+
+# 构建依赖（npm install 装在项目文件夹里）
+node_modules/

@@ -13,53 +13,24 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="styles.css">
   <!-- 模块依赖是一层套一层的，浏览器逐层发现会串行等待；这里一次性预取，首屏少好几轮往返 -->
-  <link rel="modulepreload" href="js/bills/budget.js">
-  <link rel="modulepreload" href="js/bills/escrow.js">
-  <link rel="modulepreload" href="js/bills/finance.js">
-  <link rel="modulepreload" href="js/bills/logic.js">
-  <link rel="modulepreload" href="js/bills/views.js">
-  <link rel="modulepreload" href="js/core/ai.js">
-  <link rel="modulepreload" href="js/core/autofill.js">
-  <link rel="modulepreload" href="js/core/alerts.js">
-  <link rel="modulepreload" href="js/core/categories.js">
-  <link rel="modulepreload" href="js/core/config-check.js">
-  <link rel="modulepreload" href="js/core/hub.js">
-  <link rel="modulepreload" href="js/core/i18n.js">
-  <link rel="modulepreload" href="js/core/locations.js">
-  <link rel="modulepreload" href="js/core/logic.js">
-  <link rel="modulepreload" href="js/core/router.js">
-  <link rel="modulepreload" href="js/core/state.js">
-  <link rel="modulepreload" href="js/core/store.js">
-  <link rel="modulepreload" href="js/core/util.js">
-  <link rel="modulepreload" href="js/house/property-form.js">
-  <link rel="modulepreload" href="js/main.js">
-  <link rel="modulepreload" href="js/app/actions/backup.js">
-  <link rel="modulepreload" href="js/app/actions/export-notify.js">
-  <link rel="modulepreload" href="js/app/actions/house-form.js">
-  <link rel="modulepreload" href="js/app/actions/shopping.js">
-  <link rel="modulepreload" href="js/app/actions/stats-prefs.js">
-  <link rel="modulepreload" href="js/app/auth/household.js">
-  <link rel="modulepreload" href="js/app/auth/login.js">
-  <link rel="modulepreload" href="js/app/boot.js">
-  <link rel="modulepreload" href="js/app/chrome.js">
-  <link rel="modulepreload" href="js/app/data.js">
-  <link rel="modulepreload" href="js/app/errors.js">
-  <link rel="modulepreload" href="js/app/lazy-init.js">
-  <link rel="modulepreload" href="js/app/lazy-modules.js">
-  <link rel="modulepreload" href="js/app/page-events.js">
-  <link rel="modulepreload" href="js/app/page-table.js">
-  <link rel="modulepreload" href="js/app/releases.js">
-  <link rel="modulepreload" href="js/app/render.js">
-  <link rel="modulepreload" href="js/app/route.js">
-  <link rel="modulepreload" href="js/app/unsaved.js">
-  <link rel="modulepreload" href="js/menu.js">
-  <link rel="modulepreload" href="js/pantry/ai.js">
-  <link rel="modulepreload" href="js/pantry/views.js">
-  <link rel="modulepreload" href="js/settings/print.js">
-  <link rel="modulepreload" href="js/settings/income.js">
-  <link rel="modulepreload" href="js/settings/views.js">
-  <link rel="modulepreload" href="js/stats/views.js">
-  <link rel="modulepreload" href="js/today.js">
+  <!-- build:preload（npm run build 自动生成：启动时要用的打包文件，让浏览器并行下载） -->
+  <link rel="modulepreload" href="dist/chunks/chunk-55QT3SAT.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-6K3HQIFH.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-7MFRLEF5.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-7X7GUUD6.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-IKY7Z33I.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-IV6OIXW6.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-K4JO6D2R.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-ME7YTUOC.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-OQ6CCYW6.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-PUU4H4EW.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-RALLAHJR.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-RI76AXJJ.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-TEBJ3VRR.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-UVTSSMY7.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-VHWQVX7M.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-WK4QF4YM.js">
+  <!-- /build:preload -->
 </head>
 <body>
   <a class="skip" href="#main">跳到主要内容</a>
@@ -124,28 +95,7 @@
       var FILES = [
         "styles.css", "config.js", "units.js", "charts.js", "data.js", "data/bills.js",
         "data/cards.js", "data/care.js", "data/deals.js", "data/guides.js", "data/house.js", "data/vehicles.js",
-        "js/app/actions/backup.js", "js/app/actions/export-notify.js", "js/app/actions/house-form.js", "js/app/actions/shopping.js", "js/app/actions/stats-prefs.js", "js/app/auth/household.js", "js/app/auth/login.js", "js/app/boot.js", "js/app/chrome.js", "js/app/data.js", "js/app/errors.js", "js/app/lazy-init.js", "js/app/lazy-modules.js", "js/app/page-events.js", "js/app/page-table.js", "js/app/releases.js", "js/app/render.js", "js/app/route.js", "js/app/unsaved.js", "js/ai-page.js", "js/alerts-page.js", "js/bills/all-views.js", "js/bills/asset-suggest.js", "js/bills/all-href.js", "js/bills/asset-ui.js", "js/bills/budget.js", "js/bills/cards-views.js",
-        "js/bills/cards.js", "js/bills/dates.js", "js/bills/debt-logic.js", "js/bills/debt-records.js", "js/bills/debt-stats.js", "js/bills/debts.js",
-        "js/bills/escrow.js", "js/bills/fin-assets.js", "js/bills/finance-alerts.js", "js/bills/finance.js", "js/bills/instances.js", "js/bills/kinds.js",
-        "js/bills/logic.js", "js/bills/medical-views.js", "js/bills/medical.js", "js/bills/net-worth.js", "js/bills/nw-logic.js", "js/bills/ot-wizard-views.js",
-        "js/bills/ot-wizard.js", "js/bills/overview-views.js", "js/bills/row-fmt.js", "js/bills/scan-lib.js", "js/bills/views.js", "js/bills/wizard-views.js",
-        "js/bills/wizard.js", "js/core/ai.js", "js/core/alerts.js", "js/core/amortization.js", "js/core/ask.js", "js/core/attach.js",
-        "js/core/autofill.js", "js/core/autosize.js", "js/core/backup.js", "js/core/budget-bridge.js", "js/core/carousel.js", "js/core/categories.js",
-        "js/core/category-moves.js", "js/core/clear-filters.js", "js/core/cloud-drives.js", "js/core/config-check.js", "js/core/debt-rules.js", "js/core/finance-access.js",
-        "js/core/finance-rules.js", "js/core/home-money.js", "js/core/hub.js", "js/core/i18n.js", "js/core/income-taxonomy.js", "js/core/item-match.js", "js/core/lazy.js", "js/core/lifecycle.js",
-        "js/core/list-query.js", "js/core/locations.js", "js/core/logic.js", "js/core/more-menu.js", "js/core/name-check.js", "js/core/net.js",
-        "js/core/pager.js", "js/core/payee-alias.js", "js/core/privacy.js", "js/core/releases-ui.js", "js/core/router.js", "js/core/server-list.js",
-        "js/core/spend-data.js", "js/core/state.js", "js/core/store.js", "js/core/sub-guess.js", "js/core/tabs.js", "js/core/taxonomy.js",
-        "js/core/time-range.js", "js/core/unit-pick.js", "js/core/usage.js", "js/core/util.js", "js/core/version.js", "js/core/weather.js",
-        "js/house/assets-logic.js", "js/house/assets.js", "js/house/deal-progress.js", "js/house/deals.js", "js/house/fix.js", "js/house/hooks.js", "js/house/house-menu.js", "js/house/plan-board.js", "js/house/plan.js",
-        "js/house/property-form.js", "js/house/recall.js", "js/house/tasks-logic.js", "js/house/tasks.js", "js/house/todo-board.js", "js/house/views.js", "js/i18n/en.js",
-        "js/income/aa-fix.js", "js/income/logic.js", "js/income/scan.js", "js/income/views.js", "js/main.js", "js/menu.js",
-        "js/minibar.js", "js/pantry/ai.js", "js/pantry/item-form.js", "js/pantry/owner.js", "js/pantry/scan.js", "js/pantry/shop-ask.js",
-        "js/pantry/shop-scan.js", "js/pantry/space-pick.js", "js/pantry/views.js", "js/quick-drag.js", "js/releases-data.js", "js/select-search.js",
-        "js/settings/about.js", "js/settings/backup-views.js", "js/settings/income.js", "js/settings/members.js", "js/settings/print.js", "js/settings/views.js",
-        "js/shops/logic.js", "js/shops/views.js", "js/stats/bank-import.js", "js/stats/dup-check.js", "js/stats/home-stats.js", "js/stats/net-worth.js",
-        "js/stats/payees.js", "js/stats/report.js", "js/stats/statement-readers.js", "js/stats/statements.js", "js/stats/views.js", "js/swipe-rows.js",
-        "js/today.js"];
+        "dist/main.js"];
       // 部署更新检测：GitHub Pages 把每个文件缓存 10 分钟，刷新时浏览器会拿到新 index.html 却继续用缓存里的旧模块
       // （例如新导航指向的路由在旧 router.js 里不存在，就会跳回首页）。同一次部署的所有文件 Last-Modified 相同，
       // 所以用 document.lastModified 当作部署版本：和上次记录的不同，就绕过缓存重新拉取全部脚本，再刷新一次。
@@ -205,6 +155,6 @@
       setTimeout(report, 6000);
     })();
   </script>
-  <script type="module" src="js/main.js" onerror="window.__hmhModuleFailed && window.__hmhModuleFailed()"></script>
+  <script type="module" src="dist/main.js" onerror="window.__hmhModuleFailed && window.__hmhModuleFailed()"></script>
 </body>
 </html>
