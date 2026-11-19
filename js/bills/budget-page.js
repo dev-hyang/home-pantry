@@ -3,13 +3,15 @@ import { BILLS_GROUP, DRILL_HINT, MEDICAL_BUDGET_GROUP, actualByMonth, bigThresh
 import { BUDGET_TABS, activeTab } from "../core/tabs.js";
 import { attentionPanel } from "../core/alerts.js";
 import { budgetPlan, incomeBanner, isHouseholdOwner, monthProgress, myId, totalIncomeMonthly } from "./budget-income.js";
-import { dq, hitAttrs, perWord, rangeMonths, timeBarHtml, trendHead, trendPeriods } from "../stats/views.js";
 import { esc, money } from "../core/util.js";
 import { fmtDate, saleEvents, sitesHtml } from "./budget-shopping.js";
 import { href } from "../core/router.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { tabBar, tabHub } from "../core/hub.js";
+import { perWord, rangeMonths, trendHead, trendPeriods } from "../stats/spend-roll.js";
+import { dq, hitAttrs } from "../stats/spend-drill.js";
+import { timeBarHtml } from "../stats/add-lite.js";
 
 /* ───────────── 页面 ───────────── */
 const bar = (spent, budget, pace) => {

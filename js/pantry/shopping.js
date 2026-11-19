@@ -8,12 +8,12 @@ import { shopAdviceHtml, shopForecastHtml } from "../bills/budget.js";
 import { shopDealPicker, shopsStats } from "../shops/lite.js";
 import { shopScanHtml } from "./shop-scan.js";
 import { state } from "../core/state.js";
-import { storeDatalist } from "../stats/views.js";
 import { shopSelText, shopUnit } from "./shop-sync.js";
 import { inState, isMine, shopRows } from "./shop-sync-common.js";
 import { categoryOptions } from "./meals-sync.js";
 import { cardSelectHtml } from "../bills/card-picker.js";
 import { cardHintHtml } from "../bills/cards-review.js";
+import { storeDatalist } from "../stats/store-lite.js";
 
 function shopQty(s) {
   const unit = shopUnit(s), d = du(unit), step = Units.step(d);

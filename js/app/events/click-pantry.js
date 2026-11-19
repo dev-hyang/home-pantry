@@ -12,7 +12,6 @@ import { go, href } from "../../core/router.js";
 import { ownerMatch } from "../../pantry/owner.js";
 import { pageMore } from "../../core/pager.js";
 import { render } from "../render.js";
-import { renderSpendList, spendList } from "../../stats/views.js";
 import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 import { toList } from "../page-events.js";
@@ -20,6 +19,8 @@ import { catNeed, secNeed, setInvView, visibleItemIds } from "../../pantry/inv-s
 import { shopVisibleIds } from "../../pantry/shop-sync.js";
 import { moveCat } from "../../pantry/inventory-sync.js";
 import { myName } from "../../settings/family-lite.js";
+import { spendListNow } from "../lazy-modules.js";
+import { renderSpendList } from "../lazy-modules.js";
 
 /** 点击动作（储藏：库存、购物车、物品、分类、位置、耐用品）：这一组处理的 data-action */
 export const PANTRY_ACTIONS = new Set(["add-item","edit","item-cancel","item-delete","inv-space","supply-add","gear-enable","gear-broke","inv-view","supply-add-pick","add-item-pick","inv-cat-shop","inv-sec-shop","inv-select","inv-sel-all","inv-sel-shop","inv-sel-mute","inv-sel-del","item-remind","inv-del","inv-shop","consume","restock","inv-sub","cat","cat-new","cat-edit","cat-cancel","cat-restore","cat-hide","inv-clear","loc-new","loc-edit","loc-cancel","loc-del","cat-delete","cat-sort","cat-move","goto-cat","goto-status","shop-add-item","shop-remove-item","shop-select","shop-sel-all","shop-sel-remove","cat-check-ok","cat-check-all","cat-check-alt","mute-item","shop-add-alerts","shop-import","shop-import-cancel","shop-claim","shop-unclaim","shop-bought","shop-qty","shop-del","shop-clear","diet","shuffle","slot-swap","page-more","purchase-del","recipe-missing"]);
@@ -186,7 +187,7 @@ export async function clickPantry(action, el, id, e) {
       case "purchase-del":   // 以前是「点两次」：左滑只替它点一次，所以滑了删不掉；现在用确认框
         if (!confirmDelete(t("删除这笔花费？"))) return;
         await Store.deletePurchase(id);
-        spendList.rows = spendList.rows.filter((p) => p.id !== id); renderSpendList();   // 先从已读到的列表里拿掉（和多选删除一样），随后的重读再对一遍
+        const sl = spendListNow(); if (sl) sl.rows = sl.rows.filter((p) => p.id !== id); renderSpendList();   // 先从已读到的列表里拿掉（和多选删除一样），随后的重读再对一遍
         toast(t("已删除这笔记录")); return refresh();
       case "recipe-missing": return addRecipeMissing(el.dataset.name);
   }

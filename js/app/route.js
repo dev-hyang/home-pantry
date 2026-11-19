@@ -3,7 +3,6 @@ import { $, toast } from "../core/util.js";
 import { FD } from "../core/clear-filters.js";
 import { Store } from "../core/store.js";
 import { applyAllQuery, defaultAllEntry } from "../bills/all-views.js";
-import { applySpendDrill, ensureFirstYear } from "../stats/views.js";
 import { dirtyFields } from "./unsaved.js";
 import { financeOk } from "../core/finance-access.js";
 import { href, isFormSection, parseRoute, routeKey } from "../core/router.js";
@@ -19,6 +18,8 @@ import { t } from "../core/i18n.js";
 import { applyOverviewQuery } from "../bills/overview-state.js";
 import { resetFamilyUi } from "../settings/family-lite.js";
 import { hydrateModelSelect } from "./lazy-modules.js";
+import { ensureFirstYear } from "../stats/spend-roll.js";
+import { applySpendDrill } from "../stats/spend-drill.js";
 
 /** 录入购物（2026-11-15 起在 储藏 / 录入购物，#/pantry/scan） */
 export const isScanRoute = (r) => r?.section === "pantry" && r?.sub === "scan";

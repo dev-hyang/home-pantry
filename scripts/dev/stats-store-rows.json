@@ -1,0 +1,1 @@
+{ "source": "js/stats/spend-stores.js", "files": [ { "path": "js/stats/store-rows.js", "doc": "花费明细导出成表格的行（导出 CSV 时同步用到）。", "names": ["spendDetailRows"] } ] }

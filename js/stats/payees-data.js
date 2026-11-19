@@ -1,7 +1,6 @@
 /* 花费 → 收款方：全历史名单、列表数据、钻取、页面。 */
 import { $, esc, fmtDay, money } from "../core/util.js";
 import { L1S, l1IdOf, nodeOf } from "../core/taxonomy.js";
-import { STORE_NONE, STORE_REST, dq, hitAttrs, monthLabel, rangeLabel, statKit, storeDatalist } from "./views.js";
 import { Store } from "../core/store.js";
 import { compare, t } from "../core/i18n.js";
 import { detailHtml, tidyHtml, undoLog } from "./payees-actions.js";
@@ -9,6 +8,10 @@ import { moreBtn, pageSize } from "../core/pager.js";
 import { state } from "../core/state.js";
 import { storeAgg } from "./report.js";
 import { P, TZ } from "./payees-common.js";
+import { monthLabel } from "./spend-roll.js";
+import { dq, hitAttrs } from "./spend-drill.js";
+import { STORE_NONE, STORE_REST, statKit, storeDatalist } from "./store-lite.js";
+import { rangeLabel } from "./add-lite.js";
 
 /* ── 全历史名单（最近一次、整理预览）：读一次缓存，花费变了重读 ── */
 export const NAMES = { rows: null, busy: false, missing: false };

@@ -11,7 +11,6 @@ import { activeTab } from "../core/tabs.js";
 import { canEdit, inlineEditId, renderIncList } from "./records-tab.js";
 import { debounce, pageSize } from "../core/pager.js";
 import { detailRows, exportReport, fileHead, printIncome, runAi } from "./export-ai.js";
-import { download, toCsv } from "../stats/views.js";
 import { hooks, rerender } from "./rollup.js";
 import { href } from "../core/router.js";
 import { incDraw, incList } from "./list.js";
@@ -23,6 +22,7 @@ import { saveMeta } from "../bills/budget.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { cur, incomeHref, rate, redraw, staleAll } from "./shared.js";
+import { download, toCsv } from "../stats/store-lite.js";
 
 /* ───────────── 事件 ───────────── */
 function armed(el, msg) { if (el.dataset.armed) return true; el.dataset.armed = "1"; const old = el.textContent; el.textContent = msg; setTimeout(() => { delete el.dataset.armed; el.textContent = old; }, 4000); return false; }

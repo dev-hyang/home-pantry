@@ -2,7 +2,6 @@
 import { $, applyDraft, confirmDelete, fmtDate, formDraft, money, num, toast } from "../../core/util.js";
 import { Store } from "../../core/store.js";
 import { backfillPayments, deleteBillPay, leaveBill, quickVerify } from "../lazy-modules.js";
-import { clearSpendFilter, exportAnnual, exportSpendList, renderSpendList, renderSpendRecords, spendList, spendRowsLoaded } from "../../stats/views.js";
 import { exportAllCsv, verifyBillIds } from "../../bills/all-views.js";
 import { friendlyErr } from "../errors.js";
 import { go, href } from "../../core/router.js";
@@ -16,6 +15,9 @@ import { t } from "../../core/i18n.js";
 import { deleteMedBill, deleteMedPay } from "../lazy-modules.js";
 import { payAcctValue } from "../../bills/card-picker.js";
 import { aiDraftCard, deleteCard, runCleanup, setCardActive } from "../lazy-modules.js";
+import { exportAnnual } from "../../stats/spend-stores.js";
+import { spendListNow } from "../lazy-modules.js";
+import { clearSpendFilter, exportSpendList, renderSpendList, renderSpendRecords, spendRowsLoaded } from "../lazy-modules.js";
 
 /** 点击动作（财务：账单、缴费、卡、花费、统计、导出）：这一组处理的 data-action */
 export const MONEY_ACTIONS = new Set(["print-run","ov-group","bill-cancel","assess-cancel","assess-del","billpay-cancel","bill-delete","billpay-del","bill-verify","bill-link-asset","bill-link-ignore","billpay-backfill","all-verify","all-csv","bills-enable","tpl-all","spend-edit","spend-edit-collapse","trip-reclass","spend-copy","spend-open","spend-edit-cancel","spend-chip-clear","med-del","card-ai","card-del","card-del-keep","card-del-all","card-del-cancel","card-cleanup-open","card-cleanup-cancel","card-cleanup-run","card-deact","card-react","med-pay-del","spend-more","spend-csv","spend-sel-toggle","spend-sel-all","spend-sel-none","spend-sel-del","stats-months","spend-add-toggle","stats-node","stats-trips","csv-summary","csv-detail"]);
@@ -62,7 +64,7 @@ export async function clickMoney(action, el, id, e) {
         toast(t("已归类")); render(); return refresh();
       }
       case "spend-copy": {   // 花费「复制一笔」：收起编辑，展开「记一笔」并填好这笔的内容（日期今天、不是退款）
-        const p = spendList.rows.find((x) => x.id === id); if (!p) return;
+        const p = spendListNow()?.rows.find((x) => x.id === id); if (!p) return;
         state.spendEdit = null; state.spendAddOpen = true; render();
         requestAnimationFrame(() => {
           const f = $("#purchaseForm"); if (!f) return;
@@ -89,7 +91,7 @@ export async function clickMoney(action, el, id, e) {
       case "card-deact": el.disabled = true; await setCardActive(el.dataset.id, false); return refresh();
       case "card-react": el.disabled = true; await setCardActive(el.dataset.id, true); return refresh();
       case "med-pay-del": if (!confirmDelete(t("删除这条付款记录？"))) return; return deleteMedPay(el.dataset.id);
-      case "spend-more": return spendList.more();   // 「继续加载」：向数据库要下一页
+      case "spend-more": return spendListNow()?.more();   // 「继续加载」：向数据库要下一页
       case "spend-csv": return exportSpendList();
       case "spend-sel-toggle": state.spendSel = state.spendSel ? null : new Set(); state.spendEdit = null; return render();
       case "spend-sel-all": { const S = state.spendSel || (state.spendSel = new Set()); spendRowsLoaded().forEach((p) => S.add(p.id)); return renderSpendList(); }   // 已经读到的（要更多先「继续加载」）
@@ -100,7 +102,7 @@ export async function clickMoney(action, el, id, e) {
         if (!list.length || !confirm(t("删除选中的 {n} 笔花费（合计 {m}）？删了就找不回来，建议先备份。", { n: list.length, m: money(sum) }))) return;
         el.disabled = true; let fail = 0;
         for (let i = 0; i < list.length; i += 6) await Promise.all(list.slice(i, i + 6).map((p) => Store.deletePurchase(p.id).catch(() => { fail++; })));
-        const gone = new Set(list.map((p) => p.id)); spendList.rows = spendList.rows.filter((p) => !gone.has(p.id)); state.spendSel = null;
+        const gone = new Set(list.map((p) => p.id)); const sl = spendListNow(); if (sl) sl.rows = sl.rows.filter((p) => !gone.has(p.id)); state.spendSel = null;
         toast(fail ? t("删了 {n} 笔，{k} 笔失败", { n: list.length - fail, k: fail }) : t("已删除 {n} 笔", { n: list.length })); render(); return refresh();
       }
       case "stats-months": setSharedRange(String(el.dataset.months)); return render();

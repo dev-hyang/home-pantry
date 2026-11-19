@@ -1,0 +1,1 @@
+{ "modules": [ { "module": "stats/spend-records.js", "key": "spendRecords" } ] }

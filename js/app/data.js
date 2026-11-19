@@ -7,7 +7,6 @@ import { backupTargetName } from "./actions/backup.js";
 import { enrich } from "../core/logic.js";
 import { enrichAssets } from "../house/assets-logic.js";
 import { enrichBills } from "../bills/logic.js";
-import { ensureFirstYear, spendList } from "../stats/views.js";
 import { financeOk } from "../core/finance-access.js";
 import { incList } from "../income/list.js";
 import { loadIncome } from "../income/logic.js";
@@ -30,6 +29,8 @@ import { loadDebts } from "../bills/debt-logic-common.js";
 import { applyMedical, reloadMedical } from "../bills/medical-data.js";
 import { renderInvList } from "./lazy-modules.js";
 import { refreshBackupUi } from "../settings/backup-ui.js";
+import { spendListNow } from "./lazy-modules.js";
+import { ensureFirstYear } from "../stats/spend-roll.js";
 
 /* ───────────── 刷新与渲染 ───────────── */
 /** 次要的表（保养记录、季节任务、缴费记录、库存流水）读得慢时，不让整个页面一起空白：超过 SOFT_MS 就先用旧数据 / 空数据画出来，
@@ -119,7 +120,7 @@ export const PAGE_RENDER = { inv: () => renderInvList(), assets: () => renderAss
 /** 所有列表回到一页（换页面、改了每页条数）：新列表的计数清掉，自带 limit 的几个列表也改回一页；服务器分页的三张列表下次画时重读第一页 */
 export function resetListPages() {
   resetPages();
-  const n = pageSize(); spendList.stale(); incList.stale();
+  const n = pageSize(); spendListNow()?.stale(); incList.stale();
   if (state.inc) state.inc.slimit = null;
   if (state.stmt) state.stmt.limit = n;
 }

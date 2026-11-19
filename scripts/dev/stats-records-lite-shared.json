@@ -1,0 +1,12 @@
+{
+  "source": "js/stats/spend-records.js",
+  "files": [
+    {
+      "path": "js/stats/records-lite-common.js",
+      "doc": "花费列表同步小件共用。",
+      "names": [
+        "medNames"
+      ]
+    }
+  ]
+}

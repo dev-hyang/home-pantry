@@ -1,16 +1,13 @@
-/* 花费统计：记一笔（分类按一级 · 二级分组、经济性质、房产）。 */
-import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { LOADING } from "./spend-drill.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
 import { catOf, esc, fmt } from "../core/util.js";
-import { consumptionData, customBar, ensureFirstYear, itemSeries, monthOpt, noSpend, rangeChipsHtml, rangeMonths, statOpts, unitSel } from "./spend-roll.js";
+import { consumptionData, ensureFirstYear, itemSeries, noSpend, rangeMonths } from "./spend-roll.js";
 import { financeOk } from "../core/finance-access.js";
 import { href } from "../core/router.js";
-import { lastStore, storeDatalist, viewAnnualExport, viewStoreStats } from "./spend-stores.js";
+import { viewAnnualExport, viewStoreStats } from "./spend-stores.js";
 import { natureOptions } from "../core/taxonomy.js";
-import { normRange, rangeLabelOf } from "../core/time-range.js";
+import { normRange } from "../core/time-range.js";
 import { spendCategoryTab, spendHref, spendOverviewTab } from "./spend-overview.js";
-import { spendRecordsHtml } from "./spend-records.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { tabBar } from "../core/hub.js";
@@ -19,11 +16,13 @@ import { viewHomeStats } from "./home-stats.js";
 import { categoryOptions } from "../pantry/meals-sync.js";
 import { cardSelectHtml } from "../bills/card-picker.js";
 import { cardHintHtml } from "../bills/cards-review.js";
+import { propertyOptions, spendExportTab, timeBarHtml } from "./add-lite.js";
+import { activeProps } from "./add-lite-common.js";
+import { spendRecordsHtml } from "./spend-records.js";
+import { lastStore, storeDatalist } from "./store-lite.js";
+export { activeProps } from "./add-lite-common.js";
+export { propertyOptions, rangeLabel, spendExportTab, timeBarHtml } from "./add-lite.js";
 
-/* ── 记一笔：分类按 一级 · 二级 分组；经济性质（默认按分类）；有房产时可以选关联哪套房 ── */
-export const activeProps = () => (state.properties || []).filter((p) => !p.archived);
-/** 房产下拉的选项；空 = 不关联 */
-export const propertyOptions = (sel) => `<option value="" ${!sel ? "selected" : ""}>${t("不关联房产")}</option>${activeProps().map((p) => `<option value="${esc(p.id)}" ${p.id === sel ? "selected" : ""}>${esc(p.name)}</option>`).join("")}`;
 function spendRecordsTab() {
   const today = new Date().toISOString().slice(0, 10), q = state.route?.q;
   const preCat = q?.get("cat") || "", preTrip = q?.get("trip") || "";   // 从「按行程」进来：分类预选旅行、行程预填
@@ -55,33 +54,6 @@ function spendRecordsTab() {
     </section>
     <section class="section" id="spendRecords">${spendRecordsHtml()}</section>`;
 }
-export function spendExportTab() {
-  return `${viewAnnualExport()}
-    <section class="section">
-      <div class="section-head"><h2>${t("打印")}</h2><p>${t("浏览器的打印窗口里也可以另存为 PDF")}</p></div>
-      <div class="panel export-grid">
-        <label class="export-pick"><span>${t("时间范围")}</span><select id="printRange" data-nosearch>${[3, 6, 12].map((n) => `<option value="${n}" ${n === +state.stats.months ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}</select></label>
-        <div class="export-btns"><button type="button" class="btn btn-primary btn-sm" data-action="print-run" data-kind="spend">${t("打印花费统计")}</button></div>
-      </div>
-      <p class="muted" style="margin:6px 0 0;font-size:13px">${t("要打印筛选后的明细，到“明细”标签里点“打印”。")}</p>
-    </section>`;
-}
-/** 时间条：时间范围 + 月份（分类 / 商店页才有；默认「整段」= 和时间范围一致）+ 排除资本性 / 投资 的开关，放在标签下面、内容上面，一眼能看到。
- *  tab 为空 = 只有时间范围（预算趋势页用，同一个范围值） */
-export function timeBarHtml(tab, { unitMonths = null } = {}) {
-  const clr = clearFiltersBtn("stats", changed(state.stats, FD.stats));
-  if (!tab) return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${customBar()}${unitMonths ? unitSel(unitMonths) : ""}${clr}</div>`;
-  const ms = rangeMonths(), withMonth = tab === "category" || tab === "stores" || tab === "all";
-  const m = state.stats.month && ms.includes(state.stats.month) ? state.stats.month : "";
-  const monthSel = withMonth && ms.length > 1 ? `<label class="tb-field"><span>${t("月份")}</span><select id="statsMonth" aria-label="${t("选择月份")}" data-nosearch><option value="" ${m ? "" : "selected"}>${t("整段（{r}）", { r: rangeLabel() })}</option>${[...ms].reverse().map((x) => `<option value="${x}" ${x === m ? "selected" : ""}>${monthOpt(x)}</option>`).join("")}</select></label>` : "";
-  const o = statOpts(), tg = (act, on, label, tip) => `<label class="check-inline" title="${esc(tip)}"><input type="checkbox" data-action="${act}" ${on ? "checked" : ""}><span>${label}</span></label>`;
-  const withUnit = tab === "overview" || tab === "category" || tab === "all";
-  return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${customBar()}${withUnit ? unitSel() : ""}${monthSel}
-    ${tg("stats-excap", o.exCap, t("排除资本性"), t("买房卖房、买车整付、装修：几年一次、金额巨大，默认不画进图里；去掉勾可以一起看"))}
-    ${tg("stats-exinv", o.exInv, t("排除投资"), t("转入投资账户、买基金股票：钱还是家里的，默认不画进图里；去掉勾可以一起看"))}${clr}</div>`;
-}
-/** 当前时间范围的叫法：近 6 个月 / 今年 / 2025 年 */
-export const rangeLabel = (n = state.stats.months) => rangeLabelOf(n);
 export function viewSpend() {
   const r = state.route, onSpendPage = r?.section === "bills" && r?.sub === "spend";
   let tab = onSpendPage ? activeTab(r) : "all";

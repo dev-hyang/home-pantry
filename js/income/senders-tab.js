@@ -1,7 +1,6 @@
 /* 收入 → 付款方：搜索、类型筛选、点表头排序、加载更多。 */
 import { $, esc } from "../core/util.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
-import { STAT_CATS, hitAttrs, monthLabel } from "../stats/views.js";
 import { autoUnit, chartUnit, finUnit, unitNote, unitSelectHtml } from "../core/time-range.js";
 import { canEdit } from "./records-tab.js";
 import { cfAnchor } from "./export-ai.js";
@@ -12,6 +11,8 @@ import { splitRecord } from "../core/income-taxonomy.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { R2, empty, fmtMoney, incDrill, kindBadge, personOptions, rate, togglesHtml } from "./shared.js";
+import { STAT_CATS, monthLabel } from "../stats/spend-roll.js";
+import { hitAttrs } from "../stats/spend-drill.js";
 
 /* ───────────── 付款方历史：搜索 + 类型筛选 + 点表头排序，每次显示 20 个，「加载更多」（多取一个判断还有没有，不算总数） ─────────────
  * 合计 = 认定收入；资本流入（卖股卖房的本金、借款、转入）单独显示，不算进合计和占比。 */

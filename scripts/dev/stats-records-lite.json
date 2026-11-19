@@ -1,0 +1,1 @@
+{ "source": "js/stats/spend-records.js", "files": [ { "path": "js/stats/records-lite.js", "doc": "花费列表的同步小件：基础查询条件、筛选默认值。", "names": ["spendBase","NO_SPEND_FILTER"] } ] }

@@ -5,9 +5,9 @@ import { cursorOf } from "../core/list-query.js";
 import { esc, money, num } from "../core/util.js";
 import { href } from "../core/router.js";
 import { isTransfer, knownLeafIds, leafInfo, leafLabel } from "../core/taxonomy.js";
-import { spendBase } from "./spend-records.js";
 import { spendSuggestions } from "../core/spend-data.js";
 import { t } from "../core/i18n.js";
+import { spendBase } from "./records-lite.js";
 
 /* ── 旅行按行程：花费名称「【行程】项目」按行程汇总（旅途中的吃饭、加油、门票只要带了行程名也算进这趟）。
  * 数据库按名称搜「【」读出带行程的花费（不读整表）；以前记成“其他”、看着像旅行的给出归类建议。 */

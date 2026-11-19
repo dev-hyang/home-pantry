@@ -8,11 +8,11 @@ import { avg, fullMonths, livingSeries, median, nodeSum, normalizedMonthly, outf
 import { billExpenseMonthly } from "../bills/debt-logic.js";
 import { esc, money } from "../core/util.js";
 import { href } from "../core/router.js";
-import { rangeLabel } from "./spend-add.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { tabHub } from "../core/hub.js";
 import { tripsPanel } from "./spend-trips.js";
+import { rangeLabel } from "./add-lite.js";
 
 /* ── 概览的数字卡片：日常 / 含住房（月均、中位数、均摊）、现金流出（对比前一段）、投资、资本性 ──
  *   日常 = 生活消费里性质是日常消费的；含住房 = 再加上房产住房里日常消费的（房贷、房产税、保险、HOA、维护）；

@@ -3,10 +3,10 @@ import { Store } from "../core/store.js";
 import { actualByMonth, clamp, cur, groupsNow, mapLegacy, pct } from "./budget-groups.js";
 import { financeOk } from "../core/finance-access.js";
 import { href } from "../core/router.js";
-import { lastMonths, monthKey } from "../stats/views.js";
 import { money, num } from "../core/util.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
+import { lastMonths, monthKey } from "../stats/spend-roll.js";
 
 /* ───────────── 收入与预算生成（收入按人私有；预算方案由家主生成并存成快照，全家共用） ───────────── */
 export const myId = () => state.user?.id || "me";

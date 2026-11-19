@@ -4,7 +4,6 @@ import { INCOME_TABS } from "../core/tabs.js";
 import { INC_L1S } from "../core/income-taxonomy.js";
 import { adults, groupSum, inc, incSumOf, incomeIn, periodLabel, personName, personOk, sharedRangeHtml, skey, spanLabel, spanOk, spanPrev, spanWindow } from "./logic.js";
 import { aggregate, householdFlow, incAggregate, incNodeSum } from "../stats/report.js";
-import { dq, hitAttrs, trendHead, trendPeriods } from "../stats/views.js";
 import { esc, todayISO } from "../core/util.js";
 import { iso, monthsBetween, roll, spanOfMonths } from "./rollup.js";
 import { recordRow, repayPanel } from "./records-tab.js";
@@ -13,6 +12,8 @@ import { t } from "../core/i18n.js";
 import { tabHub } from "../core/hub.js";
 import { unitSelectHtml } from "../core/time-range.js";
 import { BLUE, DRILL_HINT, GREEN, GROUPED_MAX, R2, RED, SLATE, TEAL, cur, empty, fmtMoney, incDrill, incomeHref, netWorthCard, pctOf, personOptions, rate } from "./shared.js";
+import { trendHead, trendPeriods } from "../stats/spend-roll.js";
+import { dq, hitAttrs } from "../stats/spend-drill.js";
 
 /* ───────────── 收支总览（原「概览」）：时间条 → 五个指标 → 现金流瀑布 → 12 个月收支走势 → 收入按一级 → 付款方 / 成员 / 最近到账 ─────────────
  * 收入 = 认定收入（js/core/income-taxonomy.js）；消费 = 日常 / 含住房（和花费页同一口径）；净现金流 = 收入 − 消费（投资之前）；

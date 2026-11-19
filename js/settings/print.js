@@ -3,13 +3,17 @@ import { state } from "../core/state.js";
 import { $, esc, fmtDate, fmtShort, money, num, toast, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { budgetPlan, monthProgress } from "../bills/budget.js";
-import { fetchSpendPages, fetchSpendRows, lastMonths, monthLabel, spendAggAsync, spendBase, storeOf } from "../stats/views.js";
 import { l2List, leafLabel } from "../core/taxonomy.js";
 import { livingSeries, outflowSeries, sum, withHousingSeries } from "../stats/report.js";
 import { Store } from "../core/store.js";
 import { billInUse, propertyOptionsHtml } from "../core/lifecycle.js";
 import { alertText, billAlerts, billCat, propertyName, subscriptionSummary, upcoming } from "../bills/logic.js";
 import { personNameOf } from "./family-lite.js";
+import { lastMonths, monthLabel, spendAggAsync } from "../stats/spend-roll.js";
+import { fetchSpendPages } from "../stats/spend-trips.js";
+import { storeOf } from "../stats/store-lite.js";
+import { spendBase } from "../stats/records-lite.js";
+import { fetchSpendRows } from "../app/lazy-modules.js";
 
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
 const stamp = () => t("打印于 {d}", { d: fmtDate(todayISO()) });

@@ -5,9 +5,9 @@ import { esc, todayISO } from "../core/util.js";
 import { inc, isIncomeKind, spanLabel } from "./logic.js";
 import { incAggregate, incNodeSum } from "../stats/report.js";
 import { iso, monthsBetween, roll, spanOfMonths } from "./rollup.js";
-import { monthLabel, trendHead, trendPeriods } from "../stats/views.js";
 import { t } from "../core/i18n.js";
 import { DRILL_HINT, R2, cur, empty, fmtMoney, incDrill, periodWin } from "./shared.js";
+import { monthLabel, trendHead, trendPeriods } from "../stats/spend-roll.js";
 
 /* ───────────── 类型：一级 → 叶子逐层点进去（面包屑回上层），子类排行（带占比）+ 选中节点的月度柱状图（和花费的「分类」页一样，没有饼图） ─────────────
  * 节点：""（全部）/ 一级 id / "一级|叶子"（资本流入下是 capital|叶子；卖股票这类的收益记在 investment|stock_sale）。 */

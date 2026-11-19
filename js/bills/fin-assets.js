@@ -14,7 +14,6 @@ import { esc, fmtDate, money, num } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { isVehicle, myVehicles, assetName } from "../house/assets.js";
 import { ACCOUNT_KINDS, cardHref, kindIcon, kindName } from "./cards.js";
-import { spendRollupFor } from "../stats/views.js";
 import { debtHref } from "./debt-logic.js";
 import { isClosedStatus } from "../core/debt-rules.js";
 import { looseBillsHtml } from "./debts.js";
@@ -22,6 +21,7 @@ import { valuationPanel } from "./net-worth.js";
 import { liveNetWorth } from "./nw-logic.js";
 import { debtsEnriched } from "./debt-logic-common.js";
 import { balancePanel } from "./net-worth-panel.js";
+import { spendRollupFor } from "../stats/spend-roll.js";
 
 const cur = () => Units.region.currency;
 /** 今年 1 月到本月 */

@@ -1,12 +1,12 @@
 /* 花费统计：图表钻取（点一下跳到明细并套上筛选）和时间范围的「这一段 vs 前一段」。 */
 import { LEGACY_STAT, NATURES } from "../core/taxonomy.js";
-import { NO_SPEND_FILTER } from "./spend-records.js";
 import { aggregate } from "./report.js";
 import { esc, money } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { lastMonths, monthLabel, rangeMonths, rollup, spendAgg, statOpts, thisYear } from "./spend-roll.js";
 import { normRange, prevMonthsOf, rangeLabelOf } from "../core/time-range.js";
 import { state } from "../core/state.js";
+import { NO_SPEND_FILTER } from "./records-lite.js";
 
 /* ── 钻取：图表色块、图例、名称、数字卡片都带 data-drill（查询串），点一下跳到 明细 并套上对应筛选（分类 / 商店 / 月份 / 近 N 个月）；
  * 全局点击处理在 main.js，筛选在 applySpendDrill，明细页顶部用筛选条显示并可逐项去掉。 */

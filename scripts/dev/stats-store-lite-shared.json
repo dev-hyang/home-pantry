@@ -1,0 +1,14 @@
+{
+  "source": "js/stats/spend-stores.js",
+  "files": [
+    {
+      "path": "js/stats/store-lite-common.js",
+      "doc": "店名和导出的同步小件：店名清洗 / 记住、下拉选项、CSV 与下载。",
+      "names": [
+        "csvCell",
+        "knownStores",
+        "storeKey"
+      ]
+    }
+  ]
+}

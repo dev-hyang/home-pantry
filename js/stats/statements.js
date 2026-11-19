@@ -12,13 +12,16 @@ import { tabBar } from "../core/hub.js";
 import { debounce, moreBtn, pageSize } from "../core/pager.js";
 import { STATEMENT_TABS, activeTab } from "../core/tabs.js";
 import { bankImportTab } from "./bank-import.js";
-import { STAT_CATS, download, spendExportTab, statCat, toCsv, ymd } from "./views.js";
 import { isTransfer } from "../core/taxonomy.js";
 import { Store } from "../core/store.js";
 import { splitRecord } from "../core/income-taxonomy.js";
 import { canSeeAll, firstIncomeYear, inc, kindLabel, kindOf, personName, skey } from "../income/logic.js";
 import { customChanged, customHtml, normRange, rangeOptionsHtml, rangeWindow } from "../core/time-range.js";
 import { incomeExportHtml } from "../income/export-ai.js";
+import { STAT_CATS, statCat } from "./spend-roll.js";
+import { download, toCsv } from "./store-lite.js";
+import { spendExportTab } from "./add-lite.js";
+import { ymd } from "./store-rows-common.js";
 
 const hrefOf = (id) => `${href("bills", "statements")}${id === "import" ? "" : `?tab=${id}`}`;
 const R2 = (v) => Math.round(v * 100) / 100;

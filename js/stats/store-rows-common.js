@@ -1,0 +1,4 @@
+/* 导出行共用小件。 */
+
+
+export const ymd = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };

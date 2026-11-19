@@ -1,0 +1,12 @@
+{
+  "source": "js/stats/spend-stores.js",
+  "files": [
+    {
+      "path": "js/stats/store-rows-common.js",
+      "doc": "导出行共用小件。",
+      "names": [
+        "ymd"
+      ]
+    }
+  ]
+}

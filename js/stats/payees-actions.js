@@ -3,7 +3,6 @@ import { $, esc, money, toast } from "../core/util.js";
 import { CTX, LAST, NAMES, filtered, loadNames, nodeText, payeeDrill, renderPayeeList, sorted } from "./payees-data.js";
 import { Store } from "../core/store.js";
 import { builtinPayee, userPayeeAliases } from "../core/payee-alias.js";
-import { download, dq, monthLabel, statKit, toCsv } from "./views.js";
 import { href } from "../core/router.js";
 import { nodeOf } from "../core/taxonomy.js";
 import { pageSize } from "../core/pager.js";
@@ -14,6 +13,9 @@ import { state } from "../core/state.js";
 import { storeAgg } from "./report.js";
 import { t } from "../core/i18n.js";
 import { P } from "./payees-common.js";
+import { monthLabel } from "./spend-roll.js";
+import { dq } from "./spend-drill.js";
+import { download, statKit, toCsv } from "./store-lite.js";
 
 /* ── 展开一行：这家近 12 个月每月花了多少 + 主要买什么（和时间范围无关，看得出是不是越花越多） ── */
 export function detailHtml(x) {

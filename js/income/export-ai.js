@@ -1,7 +1,6 @@
 /* 收入的导出（CSV：收入 / 花费 / 合并）、打印，和 AI 分析（只发汇总，付款方 / 成员默认打码）。 */
 import { CHANNELS, UNITS, bucketKey, groupOf, groupSum, inc, incSumOf, kindLabel, loadIncome, openRepayments, personName, recognized, repayState, skey, spanWindow, statKinds, sumOf } from "./logic.js";
 import { R, controlsHtml, sMainKind } from "./senders-tab.js";
-import { STAT_CATS, download, toCsv } from "../stats/views.js";
 import { addDay, iso, rerender } from "./rollup.js";
 import { aiReady, askText } from "../core/ai.js";
 import { cashflow } from "./compare-tab.js";
@@ -15,6 +14,8 @@ import { senderLabel } from "./overview-tab.js";
 import { splitRecord } from "../core/income-taxonomy.js";
 import { state } from "../core/state.js";
 import { R2, acctShow, cur, empty, fmtMoney, kpi, rate, rollAsync, selOpts } from "./shared.js";
+import { STAT_CATS } from "../stats/spend-roll.js";
+import { download, toCsv } from "../stats/store-lite.js";
 
 /* ───────────── 导出打印：CSV（收入 / 花费 / 合并）+ 打印 ───────────── */
 export function exportTab() {

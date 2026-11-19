@@ -10,9 +10,9 @@ import { joinList, t } from "../core/i18n.js";
 import { logsDesc, maintFilterFor, maintMatch } from "./asset-hub.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { state } from "../core/state.js";
-import { storeDatalist } from "../stats/views.js";
 import { C, H, V, distUnit } from "./asset-common.js";
 import { cardSelectHtml, payAcctValue, purchasePayFields } from "../bills/card-picker.js";
+import { storeDatalist } from "../stats/store-lite.js";
 
    // 由近及远
 function maintToolbar(a) {

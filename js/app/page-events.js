@@ -1,7 +1,6 @@
 /* 页面级的小事件：切页签清筛选、各页「清除筛选」按钮、新账单创建后的跳转、切语言。 */
 import { $, fillUnitList, listRoute, toast } from "../core/util.js";
 import { FD, changed, clearUrlParams, onClearFilters } from "../core/clear-filters.js";
-import { clearSpendFilter, renderSpendRecords } from "../stats/views.js";
 import { go, href } from "../core/router.js";
 import { maintFilter } from "../house/assets-logic.js";
 import { refresh, resetListPages } from "./data.js";
@@ -12,6 +11,7 @@ import { setFinRange, setFinUnit } from "../core/time-range.js";
 import { setLang, t } from "../core/i18n.js";
 import { setTodayPref } from "../today.js";
 import { state } from "../core/state.js";
+import { clearSpendFilter, renderSpendRecords } from "./lazy-modules.js";
 
    // 异步读完（备份页的文件夹 / 云端列表）后重画一次   // 对比用的前一段花费从云端读回来了
 

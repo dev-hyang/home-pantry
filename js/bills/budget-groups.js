@@ -4,10 +4,10 @@ import { Store } from "../core/store.js";
 import { alertsOf } from "../core/logic.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { cached } from "../core/spend-data.js";
-import { lastMonths, monthKey, rangeMonths, spendRollupFor } from "../stats/views.js";
 import { num, spaceOf } from "../core/util.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
+import { lastMonths, monthKey, rangeMonths, spendRollupFor } from "../stats/spend-roll.js";
 
 /* ───────────── 预算分组 ───────────── */
 // 固定账单单独算一组（从账单项目的每月折算得来）；其余花费按 二级分类 分组（js/core/taxonomy.js 的 budgetL2s：食品杂货、餐饮、交通、日用个护、维护与服务…），

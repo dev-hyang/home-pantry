@@ -174,3 +174,17 @@ export const deviceLinkNew = lazyFn(LZ.familyPeople, "deviceLinkNew");
 export const removePerson = lazyFn(LZ.familyPeople, "removePerson");
 export const savePersonForm = lazyFn(LZ.familyPeople, "savePersonForm");
 export const setDevicePerson = lazyFn(LZ.familyPeople, "setDevicePerson");
+LZ.spendAdd = lazyModule(() => import("../stats/spend-add.js"));
+export const viewSpend = lazyFn(LZ.spendAdd, "viewSpend");
+export const viewStats = lazyFn(LZ.spendAdd, "viewStats");
+LZ.spendRecords = lazyModule(() => import("../stats/spend-records.js"));
+export const clearSpendFilter = lazyFn(LZ.spendRecords, "clearSpendFilter");
+export const exportSpendList = lazyFn(LZ.spendRecords, "exportSpendList");
+export const fetchSpendRows = lazyFn(LZ.spendRecords, "fetchSpendRows");
+export const patchSpendRow = lazyFn(LZ.spendRecords, "patchSpendRow");
+export const renderSpendList = lazyFn(LZ.spendRecords, "renderSpendList");
+export const renderSpendRecords = lazyFn(LZ.spendRecords, "renderSpendRecords");
+export const spendRowsLoaded = lazyFn(LZ.spendRecords, "spendRowsLoaded");
+
+/** 花费明细的列表对象：花费页还没打开过就是 undefined（没有东西要更新 / 读） */
+export const spendListNow = () => LZ.spendRecords.ns?.spendList;

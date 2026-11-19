@@ -1,11 +1,7 @@
-/* 花费记录：搜索 + 分类树 / 性质 / 房产 / 商店 / 年份 / 月份筛选 + 排序，按月分组。 */
 import { $, esc, fmtDay, money, num, showQty, toast } from "../core/util.js";
 import { ALL_CATS, MONTH_EN, TZ, isBill, monthKey, rangeMonths } from "./spend-roll.js";
 import { BUCKETS, NATURES, bucketOf, coversUnknown, defaultNature, isTransfer, knownLeafIds, leafInfo, leafLabel, leavesOf, natureName, natureOptions, natureParams, treeOptions } from "../core/taxonomy.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
-import { KINDS as MED_KINDS } from "../bills/medical.js";
-import { STORE_NONE, download, knownStores, spendDetailRows, storeKey, storeOf, toCsv } from "./spend-stores.js";
-import { activeProps, propertyOptions } from "./spend-add.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { compact } from "../core/list-query.js";
 import { compare, lang, t } from "../core/i18n.js";
@@ -18,6 +14,13 @@ import { state } from "../core/state.js";
 import { withProperty } from "../core/alerts.js";
 import { categoryOptions } from "../pantry/meals-sync.js";
 import { cardOptions, payAcctValue, paymentPayLabel } from "../bills/card-picker.js";
+import { STORE_NONE, download, storeOf, toCsv } from "./store-lite.js";
+import { knownStores, storeKey } from "./store-lite-common.js";
+import { propertyOptions } from "./add-lite.js";
+import { activeProps } from "./add-lite-common.js";
+import { spendDetailRows } from "./store-rows.js";
+import { NO_SPEND_FILTER } from "./records-lite.js";
+import { medNames } from "./records-lite-common.js";
 
 /* ── 花费记录：搜索 + 分类树 / 性质 / 房产 / 商店 / 年份 / 月份筛选 + 排序，按月分组带小计；服务器分页（迁移 054 / 055），任何一年、全部年份都能看 ──
  * 筛选、排序、合计、月小计都在数据库里做（spend_page / spend_stats），这里只把界面上的筛选翻译成筛选对象（spendParams）；
@@ -26,10 +29,6 @@ import { cardOptions, payAcctValue, paymentPayLabel } from "../bills/card-picker
 export const SPEND_SORTS = [["new", "时间：新 → 旧"], ["old", "时间：旧 → 新"], ["high", "金额：高 → 低"], ["low", "金额：低 → 高"], ["name", "名称 A → Z"]];
 /** 银行导入的一批：{ 批次记录, 旧批次的花费 id 集合 }（记录在预算设置里） */
 const batchOf = (id) => { const b = (state.budget?.cat_budgets?._bank_batches || []).find((x) => x.id === id); return b ? { b, ids: new Set(b.ids || []) } : null; };
-/** 事件型账单（医疗 / 宠物 / 法律 / 项目 / 旅行）的显示名：数据库拼虚拟花费名称用（spend_feed） */
-const medNames = () => Object.fromEntries(Object.entries(MED_KINDS).map(([k, v]) => [k, t(v.name)]));
-/** 花费流水查询的基本参数（时区、本币、事件型账单的名称、分类的默认性质 / 转账）：别的模块按需读花费时在它上面加筛选 */
-export const spendBase = (sort = "new") => ({ tz: TZ(), cur: Units.region.currency, med: medNames(), sort, ...natureParams() });
 /** 分类节点 / 叶子是否包含这个叶子（"bills" = 全部账单、"billfam_*" = 账单的一个大类：旧钻取链接） */
 function catHas(sel, id) {
   if (sel === "bills") return isBill(id);
@@ -144,7 +143,6 @@ function spendChipsHtml() {
   const chips = activeFilterChips(); if (!chips.length) return "";
   return `<div class="filter-chips" role="group" aria-label="${t("当前筛选")}"><span class="muted">${t("当前筛选")}</span>${chips.map(([k, label]) => `<button type="button" class="chip fchip" data-action="spend-chip-clear" data-k="${k}" aria-label="${esc(t("去掉筛选：{x}", { x: label }))}">${esc(label)} <span aria-hidden="true">✕</span></button>`).join("")}</div>`;   // 全部清除：工具条上统一的「清除筛选」
 }
-export const NO_SPEND_FILTER = () => ({ q: "", cat: "all", grp: null, nat: "all", prop: "all", store: "all", stores: null, range: "all", year: "all", mon: "all", months: null, dmax: null, batch: null });
 export function clearSpendFilter(k) {
   const f = state.spendFilter;
   if (k === "all") Object.assign(f, NO_SPEND_FILTER());
@@ -202,6 +200,7 @@ export function renderSpendList() {
 export const spendRowsLoaded = () => spendList.rows.filter((p) => !p.virtual);
 /** 导出 / 打印：按当前筛选把结果读出来（不只是已显示的几页） */
 export const fetchSpendRows = (max) => spendList.fetchAll(max);
+export { NO_SPEND_FILTER, spendBase } from "./records-lite.js";
 export function spendRecordsHtml() {
   const f = state.spendFilter, fc = spendList.facets || {};
   if (fc.years && !fc.years.length) return `<div class="section-head"><h2>${t("花费记录")}</h2></div><div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("购物车点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;

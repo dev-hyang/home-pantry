@@ -1,0 +1,12 @@
+{
+  "source": "js/stats/spend-add.js",
+  "files": [
+    {
+      "path": "js/stats/add-lite-common.js",
+      "doc": "花费页的同步小件：时间栏、范围文字、房产下拉、导出标签。",
+      "names": [
+        "activeProps"
+      ]
+    }
+  ]
+}

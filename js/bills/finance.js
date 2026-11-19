@@ -10,9 +10,10 @@ import { splitParts, splitSettle, splitWeight } from "./split-lib.js";
 import { withProperty } from "../core/alerts.js";
 import { STOCK_GROUPS, actualByMonth, billsThisMonth, applianceFund, meta, registerAction, registerSection, restockForecast, saveMeta } from "./budget.js";
 import { escrowMonthlyFor, freqText, upcoming } from "./logic.js";
-import { lastMonths, monthLabel, spendBase } from "../stats/views.js";
 import { Store } from "../core/store.js";
 import { cached } from "../core/spend-data.js";
+import { lastMonths, monthLabel } from "../stats/spend-roll.js";
+import { spendBase } from "../stats/records-lite.js";
 
 /* 复盘、分摊要的花费都按需向数据库要（迁移 057），不读整表：
  *   上个月最大的几笔 = 花费流水按金额排的前 3 行（spend_page，sort = high）；家庭分摊 = 当月花费读进内存按记账人汇总（一个月的量，不值得单独聚合） */

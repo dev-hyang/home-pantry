@@ -4,7 +4,6 @@ import { Store } from "../../core/store.js";
 import { applyCloseout, assetTemplateItems, billTemplateItems, runAiPage, runFix, saveAssessForm, saveAssetForm, saveBillForm, saveBillPayForm, saveCandForm, saveDealEventForm, saveDealForm, saveDealTaskForm, saveItemForm, saveMaintForm, saveOfferForm, savePlanForm, saveRecallForm, saveSeasonForm, templateItems } from "../lazy-modules.js";
 import { bigThreshold, groupForCategory } from "../../bills/budget.js";
 import { canonName, canonSubs, newCatKey } from "../../core/categories.js";
-import { cleanStore, patchSpendRow, rememberStore, spendList } from "../../stats/views.js";
 import { doCreateHousehold, doJoinHousehold, dupNameCheck } from "../auth/household.js";
 import { doLogin, doPhoneLogin, doQuickJoin, doVerifyOtp } from "../auth/login.js";
 import { effNature, l1IdOf, l2IdOf } from "../../core/taxonomy.js";
@@ -27,6 +26,9 @@ import { purchasePayFields, rememberCard } from "../../bills/card-picker.js";
 import { saveCardForm } from "../lazy-modules.js";
 import { saveAiForm } from "../../settings/settings-menu.js";
 import { hydrateModelSelect, savePersonForm } from "../lazy-modules.js";
+import { spendListNow } from "../lazy-modules.js";
+import { cleanStore, rememberStore } from "../../stats/store-lite.js";
+import { patchSpendRow } from "../lazy-modules.js";
 
 export async function onMainSubmit(e) {
   e.preventDefault();
@@ -87,12 +89,12 @@ export async function onMainSubmit(e) {
       const e2 = f.elements, name = e2.name.value.trim(), amount = e2.amount.value === "" ? null : Math.round(num(e2.amount.value) * 100) / 100;   // 负数 = 退款 / 报销，照存
       if (!name) return toast(t("请填写名称"));
       const store = cleanStore(e2.store.value), day = e2.date.value, patch = { name, category: e2.category.value, amount, store };
-      if (e2.card_id) Object.assign(patch, purchasePayFields(e2.card_id.value, spendList.rows.find((x) => x.id === f.dataset.id)));   // 原来的付款方式：用明细读到的那一行   // 卡 → card_id；现金 / 支票 / 礼品卡 / 其他 → method
+      if (e2.card_id) Object.assign(patch, purchasePayFields(e2.card_id.value, spendListNow()?.rows.find((x) => x.id === f.dataset.id)));   // 原来的付款方式：用明细读到的那一行   // 卡 → card_id；现金 / 支票 / 礼品卡 / 其他 → method
       if (day) patch.purchased_at = new Date(`${day}T12:00:00`).toISOString();
       if (e2.nature) patch.nature = e2.nature.value || null;   // 经济性质：空 = 按分类默认（迁移 055）
       if (e2.property_id) patch.property_id = e2.property_id.value || null;
       await Store.updatePurchase(f.dataset.id, patch);
-      const row = spendList.rows.find((x) => x.id === f.dataset.id), bp = e2.card_id && (state.billPayments.find((x) => x.purchase_id === f.dataset.id) || (row?.pay_id ? { id: row.pay_id, card_id: undefined } : null));   // 这笔是账单缴费记的花费：改了卡，缴费记录同步
+      const row = spendListNow()?.rows.find((x) => x.id === f.dataset.id), bp = e2.card_id && (state.billPayments.find((x) => x.purchase_id === f.dataset.id) || (row?.pay_id ? { id: row.pay_id, card_id: undefined } : null));   // 这笔是账单缴费记的花费：改了卡，缴费记录同步
       if (bp && (bp.card_id || null) !== (patch.card_id || null)) await Store.updateBillPayment(bp.id, { card_id: patch.card_id || null }).catch(() => {});
       if (store) rememberStore(store);
       patchSpendRow(f.dataset.id, patch);   // 先改明细里读到的那一行，页面立刻是新的

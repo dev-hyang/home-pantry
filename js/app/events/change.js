@@ -16,7 +16,6 @@ import { payeeChange } from "../../stats/payees.js";
 import { refresh, resetListPages } from "../data.js";
 import { render } from "../render.js";
 import { renderAllList } from "../../bills/all-views.js";
-import { renderSpendList, renderSpendRecords, spendRowsLoaded } from "../../stats/views.js";
 import { saveStatToggles, setSharedRange } from "../actions/stats-prefs.js";
 import { setItemQty, setItemUnit, setShopQty, setShopUnit } from "../actions/shopping.js";
 import { setMoneyHidden } from "../../core/privacy.js";
@@ -33,6 +32,7 @@ import { applyCatalogPick } from "../lazy-modules.js";
 import { refreshBackupUi } from "../../settings/backup-ui.js";
 import { saveAiForm } from "../../settings/settings-menu.js";
 import { hydrateModelSelect, onModelPick, setDevicePerson } from "../lazy-modules.js";
+import { renderSpendList, renderSpendRecords, spendRowsLoaded } from "../lazy-modules.js";
 
 export async function onMainChange(e) {
   if (e.target.dataset?.dealSel) {   // 交易时间线：完成情况 / 阶段 / 显示 / 排序（下拉框）

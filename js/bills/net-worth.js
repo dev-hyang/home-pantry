@@ -6,7 +6,6 @@ import { href } from "../core/router.js";
 import { financeOk } from "../core/finance-access.js";
 import { ASSET_BUCKETS, LIAB_BUCKETS, growthRows, monthChange, trendPoints } from "../stats/net-worth.js";
 import { aggregate, incAggregate } from "../stats/report.js";
-import { monthLabel, spendRollupFor, trendHead, trendPeriods } from "../stats/views.js";
 import { monthsBetween, unitSelectHtml } from "../core/time-range.js";
 import { incRollupFor } from "../income/rollup.js";
 import { STALE_DAYS, deleteBalance, deleteSnapshot, liveNetWorth, rebuildSnapshot, saveBalance, saveMonthSnapshot, saveValuation, thisMonth, valuationsOf, deleteValuation } from "./nw-logic.js";
@@ -15,6 +14,7 @@ import { summaryHref } from "./debt-stats.js";
 import { cardHref } from "./cards.js";
 import { assetName } from "../house/assets-logic.js";
 import { SHOW, cur, detailsOpen, histList, mny, ui } from "./net-worth-common.js";
+import { monthLabel, spendRollupFor, trendHead, trendPeriods } from "../stats/spend-roll.js";
 
    // 折叠开合、历史显示几条
 export const NW_HREF = () => href("bills", "networth");

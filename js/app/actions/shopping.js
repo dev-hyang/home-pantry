@@ -1,7 +1,6 @@
 /* 购物车 / 库存数量的操作：加减、改单位、移出、买到了入库。 */
 import { Store } from "../../core/store.js";
 import { askConfirm, askShopItems } from "../lazy-modules.js";
-import { cleanStore, rememberStore } from "../../stats/views.js";
 import { du, fmt, money, num, showQty, toDisp, toast } from "../../core/util.js";
 import { nameHas, openShopFor } from "../../core/logic.js";
 import { refresh } from "../data.js";
@@ -12,6 +11,7 @@ import { shopUnit } from "../../pantry/shop-sync.js";
 import { scoreRecipes } from "../../pantry/meals-sync.js";
 import { purchasePayFields, rememberCard } from "../../bills/card-picker.js";
 import { myName } from "../../settings/family-lite.js";
+import { cleanStore, rememberStore } from "../../stats/store-lite.js";
 
 /** 购物车改数量：按显示单位 ±一步（kg 0.5、lb 1、个 1…），最少一步；存回时换回原单位 */
 export async function stepShopQty(id, dir) {
