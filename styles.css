@@ -3789,14 +3789,14 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .ov-filters select { flex: 1 1 0; min-width: 0; }
 @media (min-width: 761px) { .ov-filters select { flex: 0 1 260px; } }
 .bill-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 8px; }
-.bill-card { position: relative; display: flex; flex-direction: column; gap: 2px; min-height: 96px; padding: 14px 36px 12px 14px; border-radius: var(--r-md); border: 1px solid transparent; background: var(--bc-bg); color: var(--bc-fg); text-decoration: none; }
-.bill-card:hover { filter: brightness(.98); }
+.bill-card { position: relative; display: flex; flex-direction: column; gap: 4px; min-height: 96px; padding: 12px 14px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface); color: var(--bc-fg); text-decoration: none; }   /* 白底卡片 + 线框，和别的页面的卡片一致；颜色只给图标底和标题字 */
+.bill-card:hover { border-color: var(--bc-fg); }
+.bill-card:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .bill-card .bc-head { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
-.bill-card .bc-ico { font-size: 18px; line-height: 1; }
+.bill-card .bc-ico { flex: none; width: 32px; height: 32px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--bc-bg); font-size: 17px; line-height: 1; }
 .bill-card .bc-val { font-size: 24px; line-height: 1.25; color: var(--ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .bill-card .bc-sub { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
-.bill-card .bc-go { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 22px; opacity: .6; }
-.bc-total { --bc-bg: var(--bill-total-bg); --bc-fg: var(--bill-total-fg); border-color: var(--bill-total-line); border-width: 2px; }
+.bc-total { --bc-bg: var(--bill-total-bg); --bc-fg: var(--bill-total-fg); border-color: var(--bill-total-line); box-shadow: inset 0 0 0 1px var(--bill-total-line); }
 .bc-overdue { --bc-bg: var(--bill-overdue-bg); --bc-fg: var(--bill-overdue-fg); }
 .bc-paid { --bc-bg: var(--bill-paid-bg); --bc-fg: var(--bill-paid-fg); }
 .bc-next { --bc-bg: var(--bill-next-bg); --bc-fg: var(--bill-next-fg); }
@@ -3805,6 +3805,7 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .bill-notes { font-size: 12.5px; margin: 4px 0 0; }
 .bc-wrap { position: relative; display: flex; min-width: 0; } .bc-wrap > .bill-card { flex: 1; min-width: 0; }
 .bc-tip { position: absolute; top: 8px; right: 8px; z-index: 2; }
+.bc-wrap > .bill-card .bc-head { padding-right: 28px; }   /* 右上角有 ⓘ 的卡：标题不要压到它 */
 @media (max-width: 760px) { .bc-wrap.bc-wide, .bc-wrap.bc-wide-m { grid-column: 1 / -1; } }
 @media (max-width: 760px) { .bill-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bill-card.bc-wide, .bill-card.bc-wide-m { grid-column: 1 / -1; } }
 @media (max-width: 380px) { .bill-card .bc-val { font-size: 21px; } }

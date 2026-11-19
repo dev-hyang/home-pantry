@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.31", title: { zh: "账单概览卡片更清爽；全部账单的合计不再随筛选变；净资产说明收进 ⓘ", en: "Cleaner overview cards; All bills totals no longer shrink with filters; Net worth note in an ⓘ" }, items: [
+    { k: "better", zh: "账单概览的卡片改成白底线框、彩色小图标，和别的页面的卡片一致，也和页面底色拉开了对比；去掉了右边的箭头", en: "Bills overview cards are now white with a border and a colored icon like cards on other pages, stand out from the page background, and no longer have a right arrow" },
+    { k: "fix", zh: "全部账单：选了搜索 / 资产 / 类型 / 状态等筛选后，上面「应付 / 已付 / 余额」三张合计卡不再跟着变小，始终是所选时间范围的总数；筛选出来的笔数和小计显示在列表上方", en: "All bills: the Due / Paid / Balance cards no longer shrink when you filter; they always show the totals for the chosen time range, and the filtered count and subtotals appear above the list" },
+    { k: "better", zh: "净资产页顶上那段说明文字收进「净资产」卡片上的 ⓘ，点一下或悬停查看", en: "The note at the top of Net worth moved into an ⓘ on the Net worth card (tap or hover)" }
+  ] },
+
   { v: "2026-11-19.30", title: { zh: "一次性账单的编辑页：保存 + 取消，复制和删除都在 ⋯ 里", en: "One-time bill edit pages: Save + Cancel; copy and delete live in the ⋯ menu" }, items: [
     { k: "better", zh: "点某一块的「编辑」进入的页面，底部是「保存」和「取消」（取消回到详情页）；复制为新账单、删除这张账单只在详情页右上角 ⋯ 里，不再重复出现", en: "The page from a block's Edit ends with Save and Cancel (Cancel returns to the details); Copy as new and Delete now live only in the ⋯ menu" }
   ] },

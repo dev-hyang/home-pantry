@@ -31,7 +31,7 @@ function compute() {
 }
 /** 一张卡：整张是一个链接；颜色类 bc-<种类>（--bill-* 变量，浅色 / 深色各一套） */
 function card(kind, icon, label, value, sub, link, aria, extra = "", tip = "") {
-  const a = `<a class="bill-card bc-${kind} ${extra}" href="${esc(link)}" aria-label="${esc(aria)}"><span class="bc-head"><span class="bc-ico" aria-hidden="true">${icon}</span><span class="bc-label">${label}</span></span><b class="bc-val">${value}</b><small class="bc-sub">${sub}</small><span class="bc-go" aria-hidden="true">›</span></a>`;
+  const a = `<a class="bill-card bc-${kind} ${extra}" href="${esc(link)}" aria-label="${esc(aria)}"><span class="bc-head"><span class="bc-ico" aria-hidden="true">${icon}</span><span class="bc-label">${label}</span></span><b class="bc-val">${value}</b><small class="bc-sub">${sub}</small></a>`;
   // ⓘ 不能放进 <a> 里（点它会跳转）：和卡片并排放进一个外框，用绝对定位叠在右上角
   return tip ? `<div class="bc-wrap ${extra}">${a}<span class="bc-tip">${tip}</span></div>` : a;
 }

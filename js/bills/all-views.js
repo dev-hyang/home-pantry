@@ -133,14 +133,15 @@ function compute() {
   const f = state.allFilter, today = todayISO(), { from, to } = rangeBounds(f.range, today);
   const base = billInstances({ recurring: state.billsEnriched, onetime: state.medEnriched }, { from, to, today });
   const rows = sortRows(filterRows(base.rows, f), f.sort);
-  return { rows, base: base.rows, truncated: base.truncated, from, to, today, S: summarize(rows, { cur: cur(), today }) };
+  // 合计卡（应付 / 已付 / 余额）只跟「时间范围」走，不随搜索 / 资产 / 类型 / 状态…这些筛选变；筛选出来的小计单独放在列表上方一行（S）
+  return { rows, base: base.rows, truncated: base.truncated, from, to, today, S: summarize(rows, { cur: cur(), today }), SK: summarize(base.rows, { cur: cur(), today }) };
 }
 
 /** 当前筛选结果里待核对的自动扣款账单（每张账单一个 id）：「全部标为已核对」用 */
 export const verifyBillIds = () => [...new Set(compute().rows.filter((r) => r.kind === "recurring" && r.status === "verify").map((r) => r.billId))];
 
 /** 三张合计卡：口径说明收进各卡标题旁的 ⓘ（估算 / 未知金额 / Escrow / 其他币种 / 没展开的期都影响「应付」，估算也影响「余额」） */
-function summaryHtml({ S, truncated }) {
+function summaryHtml({ SK: S, truncated }) {
   const card = (label, amount, sub, tip = "") => `<div class="kpi"><span>${label}${tip ? ` ${tip}` : ""}</span><b>${mny(amount)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</div>`;
   const est = S.estimatedN ? t("含估算 {n} 笔（水电燃气按最近均值估，记缴费时填实际金额就会更新）", { n: S.estimatedN }) : "";
   const totalTip = infoTip([est, S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "", S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "",
@@ -164,7 +165,8 @@ function headActsHtml(rows) {
 function listHtml(C) {
   const f = state.allFilter, lim = pageLimit("allbills", JSON.stringify(f));
   if (!C.rows.length) return `<div class="panel empty"><strong>${t("没有符合条件的账单")}</strong>${changed(f, FD.all) ? t("试试清除筛选，或换一个时间范围。") : t("这个时间范围里没有到期的账单；逾期的会一直显示。")}</div>`;
-  return `<div class="panel"><ul class="bill-list">${C.rows.slice(0, lim).map(rowHtml).join("")}</ul></div>${pageMoreBtn("allbills", C.rows.length, lim)}`;
+  const sub = changed(f, FD.all, ["q", "asset", "type", "cat", "status", "pay"]) ? `<p class="muted pay-sum" role="status">${t("筛选结果：{n} 笔 · 应付 {a} · 余额 {b}", { n: C.rows.length, a: mny(C.S.total.amount), b: mny(C.S.remaining.amount) })}</p>` : "";   // 合计卡不随筛选变，筛选出的小计在这里
+  return `${sub}<div class="panel"><ul class="bill-list">${C.rows.slice(0, lim).map(rowHtml).join("")}</ul></div>${pageMoreBtn("allbills", C.rows.length, lim)}`;
 }
 
 /** 搜索 / 筛选只重画列表和合计，不重画工具条（输入框焦点、已输入的字不丢） */
