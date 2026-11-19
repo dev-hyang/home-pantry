@@ -26,11 +26,11 @@ import { saveStatToggles, setSharedRange } from "../actions/stats-prefs.js";
 import { setDevicePerson } from "../../settings/family-people.js";
 import { setItemQty, setItemUnit, setShopQty, setShopUnit } from "../actions/shopping.js";
 import { setMoneyHidden } from "../../core/privacy.js";
-import { setOverviewRange } from "../../bills/overview-views.js";
 import { setTempUnit } from "../../core/weather.js";
 import { setTodayPref } from "../../today.js";
 import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
+import { setOverviewRange } from "../../bills/overview-state.js";
 
 export async function onMainChange(e) {
   if (e.target.dataset?.dealSel) {   // 交易时间线：完成情况 / 阶段 / 显示 / 排序（下拉框）

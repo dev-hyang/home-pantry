@@ -1,0 +1,16 @@
+{
+  "source": "js/bills/overview-views.js",
+  "files": [
+    {
+      "path": "js/bills/overview-state.js",
+      "doc": "财务 → 账单概览的「当前范围」状态：从网址 / 本机记忆读出时间范围和筛选、改范围。启动时就要用（路由解析、刷新），概览页本身（overview-views.js）点开才加载。",
+      "names": [
+        "applyOverviewQuery",
+        "applyOverviewRoute",
+        "loadOverviewRange",
+        "setOverviewRange",
+        "RANGE_KEY"
+      ]
+    }
+  ]
+}

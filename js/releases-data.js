@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.41", title: { zh: "打开更快：财务的账单概览页点进去才下载", en: "Faster to open: the Finance bills overview downloads only when you open it" }, items: [
+    { k: "better", zh: "财务里的账单概览页，以及它带进来的账单表单、向导等程序，第一次点进去才下载，打开应用和看今日页、储藏时不再带上；页面和操作和以前一样", en: "The Finance bills overview, along with the bill forms and wizards it pulls in, now downloads the first time you open it, not at launch; pages and actions work as before" }
+  ] },
+
   { v: "2026-11-18.40", title: { zh: "打开更快：收入页和常去的商店页点进去才下载", en: "Faster to open: Income and Favorite stores pages download only when you open them" }, items: [
     { k: "better", zh: "收入（明细、类型、付款方）和常去的商店这两大块程序，第一次点进去才下载，打开应用、看今日页、储藏、账单时不再带上；页面和操作和以前一样", en: "The Income pages and the Favorite stores pages now download the first time you open them, not at launch; pages and actions work as before" }
   ] },

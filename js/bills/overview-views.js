@@ -1,6 +1,3 @@
-/* 财务 → 账单概览（#/bills/overview）：只讲账单。六张卡片（全部账单 / 逾期 / 已缴 / 下一笔到期 / 即将到期 / 剩余待缴），每张都链到「全部账单」，
- * 链接带的条件 = 这里的口径（范围 + 资产 + 状态），点进去的列表合计 = 卡片数字。口径和计数规则见 bills/instances.js、docs/design-bills-overview.md §4–§5。
- * 默认：本月 + 全部资产；逾期永远计入（不受范围限制）。右下角圆形「＋」添加账单（周期性 / 一次性）。 */
 import { state } from "../core/state.js";
 import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
@@ -14,25 +11,8 @@ import { allBillsHref, assetKeyLabel, assetOptions, rowHtml } from "./all-views.
 
 const cur = () => Units.region.currency;
 const mny = (v) => Units.money(num(v), cur());
-const RANGE_KEY = "hmh-bills-range";
-
-/** 范围记在本机（独立于花费 / 收入共用的时间条）；资产不记，每次进来都是全部资产 */
-export function loadOverviewRange() {
-  try { const v = localStorage.getItem(RANGE_KEY); if (v && BILL_RANGES.some(([k]) => k === v)) state.ovFilter.range = v; } catch { /* 忽略 */ }
-}
-/** 网址是 #/bills/overview/<资产键>（房屋 / 车辆页的「账单」入口、面包屑第三级、下拉里选一个）→ 按那个资产筛，时间默认本月（可用 ?range= 改；在页面里换资产保持当前范围）；没带资产 = 全部资产 + 上次选的范围。旧的 ?asset=… 也认 */
-export function applyOverviewQuery(q, id = null) {
-  const a = id || q?.get("asset"), r = q?.get("range");
-  if (a && /^(property:|asset:|person:)[\w-]+$|^(vehicle|medical|pet|project|legal|travel|general)$/.test(a)) {
-    state.ovFilter.asset = a; state.ovFilter.range = r && BILL_RANGES.some(([k]) => k === r) ? r : state.ovFilter.keepRange ? state.ovFilter.range : "m"; state.ovFilter.keepRange = false;
-  } else { state.ovFilter.asset = "all"; loadOverviewRange(); if (r && BILL_RANGES.some(([k]) => k === r)) state.ovFilter.range = r; }
-}
-export const applyOverviewRoute = (r) => { if (r?.section === "bills" && r.sub === "overview") applyOverviewQuery(r.q, r.id); };
-export function setOverviewRange(v) { state.ovFilter.range = v; try { localStorage.setItem(RANGE_KEY, v); } catch { /* 忽略 */ } }
-
 /** 要处理：逾期、今天 / 7 天内到期（soon 已含今天）、待核对的自动扣款 */
 const isUrgent = (r) => ["overdue", "soon", "verify"].some((k) => STATUS_GROUPS[k](r));
-
 function compute() {
   const f = state.ovFilter, today = todayISO(), { from, to } = rangeBounds(f.range, today), data = { recurring: state.billsEnriched, onetime: state.medEnriched };
   const base = billInstances(data, { from, to, today });
@@ -47,12 +27,10 @@ function compute() {
   const urgentAll = rows.filter(isUrgent), urgent = sortRows(urgentAll, "due").slice(0, 6);
   return { today, from, to, base, rows, S, next, series, urgent, urgentN: urgentAll.length, byAsset: assetBreakdown(rows, { cur: cur() }), byCycle: cycleBreakdown(rows, { cur: cur() }) };   // 按资产：跟着上面选的资产走（选了某个资产就只剩它）
 }
-
 /** 一张卡：整张是一个链接；颜色类 bc-<种类>（--bill-* 变量，浅色 / 深色各一套） */
 function card(kind, icon, label, value, sub, link, aria, extra = "") {
   return `<a class="bill-card bc-${kind} ${extra}" href="${esc(link)}" aria-label="${esc(aria)}"><span class="bc-head"><span class="bc-ico" aria-hidden="true">${icon}</span><span class="bc-label">${label}</span></span><b class="bc-val">${value}</b><small class="bc-sub">${sub}</small><span class="bc-go" aria-hidden="true">›</span></a>`;
 }
-
 function cardsHtml(C) {
   const { S, next } = C, f = state.ovFilter, q = { range: f.range, asset: f.asset }, link = (extra = {}) => allBillsHref({ ...q, ...extra });
   const cnt = (k) => `${k} ${t("笔账单")}`;
@@ -67,21 +45,18 @@ function cardsHtml(C) {
   const remain = card("remain", "📊", t("剩余待缴"), mny(S.remaining.amount), `${cnt(S.remaining.n)} · ${t("应付 − 已缴")}`, link({ status: "unpaid" }), `${t("剩余待缴")}，${cnt(S.remaining.n)}，${mny(S.remaining.amount)}`, "bc-wide-m");
   return `<div class="bill-cards">${total}${overdue}${paid}${nextCard}${soon}${remain}</div>`;
 }
-
 function notesHtml(C) {
   const { S } = C, notes = [S.estimatedN ? t("含估算 {n} 笔（水电燃气按最近均值估，记缴费时填实际金额就会更新）", { n: S.estimatedN }) : "", S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "",
     S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入上面的数字", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "", S.otherCurrency ? t("另有 {n} 笔非 {c} 账单未计入", { n: S.otherCurrency, c: cur() }) : "",
     C.base.truncated ? t("另有 {n} 期太久远或太远没有展开", { n: C.base.truncated }) : ""].filter(Boolean);
   return notes.length ? `<p class="muted bill-notes">${esc(notes.join(" · "))}</p>` : "";
 }
-
 function urgentHtml(C) {
   if (!C.urgent.length) return `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单 ✓")}</strong></div></section>`;
   const f = state.ovFilter, more = C.urgentN;
   return `<section class="section attn-sec ${C.urgent.some((r) => r.status === "overdue") ? "is-hot" : ""}"><div class="section-head"><h2>${t("要处理的账单")}<span class="badge attn-count b-out">${more}</span></h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${allBillsHref({ range: f.range, asset: f.asset, status: "unpaid" })}">${t("看全部待缴")} ›</a></div></div>
     <div class="panel"><ul class="bill-list">${C.urgent.map(rowHtml).join("")}</ul></div></section>`;
 }
-
 /** 账单分组：默认按资产；切到「按周期」= 周期性（再按每月 / 每季度 / 每年细分）和一次性各一组，有金额才出现 */
 function groupHtml(C) {
   const f = state.ovFilter, byCycle = f.group === "cycle", cyc = C.byCycle;
@@ -102,7 +77,6 @@ function groupHtml(C) {
     <div class="chips grp-tabs" role="group" aria-label="${esc(t("分组方式"))}"><button type="button" class="chip" aria-pressed="${!byCycle}" data-action="ov-group" data-group="asset">${t("按资产")}</button><button type="button" class="chip" aria-pressed="${byCycle}" data-action="ov-group" data-group="cycle">${t("按周期")}</button></div>
     <div class="panel"><ul class="bill-assets">${list}</ul></div></section>`;
 }
-
 function trendHtml(C) {
   const max = Math.max(...C.series.map((s) => s.due), 1), thisM = C.today.slice(0, 7), f = state.ovFilter;
   return `<section class="section"><div class="section-head"><h2>${t("按月走势")}</h2><p>${t("应付 vs 已付：前 5 个月、本月和后 2 个月")}</p></div><div class="panel"><ol class="bill-trend">${C.series.map((s) => {
@@ -111,12 +85,10 @@ function trendHtml(C) {
       <span class="bt-bars" aria-hidden="true"><i class="bt-due" style="height:${Math.round((s.due / max) * 100)}%"></i><i class="bt-paid" style="height:${Math.round((s.paid / max) * 100)}%"></i></span><span class="bt-m">${mm}</span></a></li>`;
   }).join("")}</ol><p class="muted bt-key"><span class="bt-k due"></span>${t("应付")} <span class="bt-k paid"></span>${t("已付")}</p></div></section>`;
 }
-
 function fabHtml() {
   return `<details class="bill-fab"><summary aria-label="${t("添加账单")}" title="${t("添加账单")}"><span aria-hidden="true">＋</span></summary>
     <div class="bill-fab-menu" role="menu"><a role="menuitem" href="${NEW_RECURRING()}">🔁 ${t("周期性账单")}<small>${t("水电气网、房贷、保险、订阅…")}</small></a><a role="menuitem" href="${detailHref("new")}">🧾 ${t("一次性账单")}<small>${t("医疗、装修工程、法律、旅行…")}</small></a></div></details>`;
 }
-
 export function viewBillsHome() {
   const f = state.ovFilter, C = compute(), scope = f.range === "all" ? t("不限时间") : `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
   const range = BILL_RANGES.map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");   // 概览只用固定几个范围；链接带的某个月只在全部账单里显示

@@ -6,7 +6,6 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { viewAbout, viewAi, viewAlerts, viewAssetTemplate, viewAssets, viewBillTemplate, viewDeal, viewDebts, viewFinAssets, viewFix, viewHouse, viewHouseProfile, viewHouseSupplies, viewHouseTemplate, viewPlan, viewScan, viewStatements, viewTasks } from "./lazy-modules.js";
 import { viewAllBills } from "../bills/all-views.js";
-import { viewBillsHome } from "../bills/overview-views.js";
 import { viewBudget } from "../bills/budget.js";
 import { viewCards } from "../bills/cards-views.js";
 import { viewDashboard, viewInventory, viewMeals, viewShopping } from "../pantry/views.js";
@@ -17,6 +16,7 @@ import { viewSettings } from "../settings/views.js";
 import { viewSpend, viewStats } from "../stats/views.js";
 import { viewIncome } from "./lazy-modules.js";
 import { viewShops } from "./lazy-modules.js";
+import { viewBillsHome } from "./lazy-modules.js";
 
 /* ───────────── 页面与路由 ───────────── */
 /** 库存页当前范围：?space=house 看汽车房屋消耗品（房屋模块关闭时只有厨房储藏） */

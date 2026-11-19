@@ -125,3 +125,5 @@ export const viewIncome = lazyFn(LZ.incomeViews, "viewIncome");
 LZ.shopsViews = lazyModule(() => import("../shops/views.js"));
 export const shopsAction = lazyFn(LZ.shopsViews, "shopsAction");
 export const viewShops = lazyFn(LZ.shopsViews, "viewShops");
+LZ.billsOverview = lazyModule(() => import("../bills/overview-views.js"));
+export const viewBillsHome = lazyFn(LZ.billsOverview, "viewBillsHome");

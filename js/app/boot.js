@@ -5,7 +5,6 @@ import { CloudStore, DemoStore, setStore } from "../core/store.js";
 import { JOIN_MSG, afterLogin, joinOutcome } from "./auth/household.js";
 import { applyAllRoute } from "../bills/all-views.js";
 import { applyChrome } from "./chrome.js";
-import { applyOverviewRoute, loadOverviewRange } from "../bills/overview-views.js";
 import { checkConfig } from "../core/config-check.js";
 import { lang, loadEN, loadOpenCC, t } from "../core/i18n.js";
 import { loadReleases, releaseBadgePossible } from "./releases.js";
@@ -15,6 +14,7 @@ import { render } from "./render.js";
 import { renderLogin } from "./auth/login.js";
 import { resilientFetch } from "../core/net.js";
 import { state } from "../core/state.js";
+import { applyOverviewRoute, loadOverviewRange } from "../bills/overview-state.js";
 
 /* ───────────── 启动 ───────────── */
 export async function boot() {
