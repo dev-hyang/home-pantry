@@ -4,7 +4,7 @@ import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { autoUnit, chartUnit, finUnit, unitNote, unitSelectHtml } from "../core/time-range.js";
 import { canEdit } from "./records-tab.js";
 import { cfAnchor } from "./export-ai.js";
-import { groupList, groupOf, groupSum, inc, incSumOf, kindLabel, kindMatch, kindOptionsHtml, knownSenders, personOk, recognized, sharedRangeHtml, skey, spanWindow, sumOf } from "./logic.js";
+import { filterToolbar, groupList, groupOf, groupSum, inc, incSumOf, kindLabel, kindMatch, kindOptionsHtml, knownSenders, personOk, recognized, sharedRangeHtml, skey, spanWindow, sumOf } from "./logic.js";
 import { meta, saveMeta } from "../bills/budget.js";
 import { moreBtn, pageSize } from "../core/pager.js";
 import { splitRecord } from "../core/income-taxonomy.js";
@@ -101,8 +101,8 @@ export const renderSenders = () => { const el = $("#incSendersList"); if (el) el
 export function sendersTab() {
   const I = inc();
   if (!I.rec.length) return empty();
-  return `<div class="time-bar">${sharedRangeHtml()}
-    <label class="tb-field"><span>${t("谁的")}</span><select data-inc-f="person" data-nosearch>${personOptions(I.person, { all: true })}</select></label></div>
+  return `${filterToolbar(`${sharedRangeHtml()}
+    <label class="tb-field"><span>${t("谁的")}</span><select data-inc-f="person" data-nosearch>${personOptions(I.person, { all: true })}</select></label>`)}
     ${sendersDashHtml()}
     <div class="panel"><div class="toolbar ix-stoolbar">
       <input type="search" data-inc-sq value="${esc(I.sq || "")}" placeholder="${esc(t("搜索付款方 / 类型"))}" aria-label="${esc(t("搜索付款方"))}">
@@ -127,9 +127,9 @@ export const R = ({ exp = false } = {}) => {
 };
 /** 周期 / 时间范围 / 谁的（收支对比页和导出页共用，同一份设置） */
 export const controlsHtml = (r, cf = null) => {
-  return `<div class="time-bar">${unitSelectHtml(r.ms, { biweek: true, nocap: r.exp })}${sharedRangeHtml()}
+  return `${filterToolbar(`${unitSelectHtml(r.ms, { biweek: true, nocap: r.exp })}${sharedRangeHtml()}
     <label class="tb-field"><span>${t("谁的")}</span><select data-inc-r="person" data-nosearch>${personOptions(r.person, { all: true })}</select></label>
-    ${cf ? togglesHtml(cf) : ""}</div>${r.cu.fell ? `<p class="muted small trend-note" role="status">${esc(unitNote(r.cu))}</p>` : ""}
+    ${cf ? togglesHtml(cf) : ""}`)}${r.cu.fell ? `<p class="muted small trend-note" role="status">${esc(unitNote(r.cu))}</p>` : ""}
     ${r.unit === "biweek" ? `<p class="muted small" style="margin:-4px 0 8px">${t("双周起点（每 14 天一个周期，对上你的发薪日）：")}<input type="date" data-inc-anchor value="${esc(cfAnchor())}" aria-label="${esc(t("双周起点"))}"></p>` : ""}`;
 };
 export const spendDonut = (cf) => {

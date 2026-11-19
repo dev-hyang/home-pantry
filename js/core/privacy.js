@@ -86,8 +86,13 @@ export function decoratePrivacy(route) {
   markCells(main);
   main.querySelectorAll(BOARD_NUMS).forEach((el) => el.setAttribute("data-money", ""));
   markLoose(main);   // 看板、表格之外，句子 / 按钮里的金额
-  main.querySelectorAll(".kpis, .sum-main, .bill-cards").forEach((box) => {   // 每组看板：右上角一只眼睛（同一个容器只放一次）
-    if (box.classList.contains("all-kpis") || (box.classList.contains("bill-cards") && main.querySelector(".section-head [data-moneyeye]")) || box.previousElementSibling?.classList?.contains("money-eye-row") ||!box.querySelector("[data-money]") && !box.matches("[data-money], .sum-main")) return;
+  // 眼睛放在页面标题旁边（每页一只）：页面自己在标题里放了就不再加；没有标题行的页面才退回「看板上方一行」
+  const headEye = !!main.querySelector(".section-head [data-moneyeye], .sh-title [data-moneyeye]");
+  main.querySelectorAll(".kpis, .sum-main, .bill-cards").forEach((box) => {
+    if (box.classList.contains("all-kpis") || box.previousElementSibling?.classList?.contains("money-eye-row") || !box.querySelector("[data-money]") && !box.matches("[data-money], .sum-main")) return;
+    if (headEye) return;
+    const h2 = main.querySelector(".section-head h2");
+    if (h2) { if (!h2.nextElementSibling?.matches("[data-moneyeye]")) h2.insertAdjacentHTML("afterend", moneyEye("money-eye-h")); return; }
     box.insertAdjacentHTML("beforebegin", `<div class="money-eye-row">${moneyEye()}</div>`);
   });
 }

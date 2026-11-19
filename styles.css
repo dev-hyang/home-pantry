@@ -4240,3 +4240,15 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .ot-stats > div { min-width: 0; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface); } .ot-stats small { display: block; color: var(--muted); font-size: 12.5px; } .ot-stats b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .ot-prog { max-width: none; height: 6px; margin-top: 10px; } .ot-note { display: block; margin: 8px 0 0; font-size: 12.5px; }
 .link-name.ot-neg { color: var(--out); }
+
+/* 页头标题 + 紧跟的眼睛；标题旁的眼睛把右边的操作推到最右 */
+.section-head .sh-title { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; } .section-head .sh-title h2 { min-width: 0; overflow-wrap: anywhere; }
+.section-head > .money-eye-h { margin-right: auto; align-self: center; }
+.section-head > .head-acts { margin-left: auto; align-self: center; }
+/* 收入页的导航小卡片组：6 个主页签，手机 3 × 2；宽屏一排 */
+.pnav-tabs { margin-bottom: 14px; }
+@media (max-width: 640px) { .pnav-tabs .pnav-card { flex: 1 1 calc(33.333% - 6px); } .pnav-tabs .pnav-lbl { white-space: normal; line-height: 1.15; overflow: visible; text-overflow: clip; } }
+/* 收入页的时间范围 / 周期 / 谁的：统一的筛选条（手机收成「筛选」按钮），里面没有搜索框 */
+.ix-timebar { margin: 0 0 12px; }
+.section-head:has(> .sh-title) { flex-wrap: nowrap; align-items: center; } .section-head > .sh-title { flex: 1 1 0; }   /* 标题 + 眼睛占不满一行时 ⋯ 也留在同一行；标题自己换行 */
+.section-head > .head-acts { flex: none; }

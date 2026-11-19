@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.32", title: { zh: "收入页重新整理：导航小卡片、眼睛挪到标题旁、右下角 ＋ 记一笔收入", en: "Income page reorganized: navigation cards, the eye next to the title, a + button to log income" }, items: [
+    { k: "better", zh: "页头是「收入 · 当前页签」，眼睛紧跟在标题后面；右上角 ⋯ 里放导出打印、预算与计划，明细页里的多选删除、打印、导出 CSV 也收进这里", en: "The header reads Income · current tab with the eye right after it; the ⋯ menu holds Export & print, Budget & plan, and on Details the multi-select delete, print and CSV export" },
+    { k: "better", zh: "原来的页签下拉改成导航小卡片（和储藏页一样），手机上 3 × 2；记一笔收入改成右下角圆形 ＋", en: "The tab dropdown became navigation cards like the Pantry page (3 × 2 on phones); Log income is now a round + button at the bottom right" },
+    { k: "better", zh: "时间范围 / 周期 / 谁的 那一排改成统一的筛选条，手机上收成「筛选」按钮", en: "The time range / interval / whose row became the standard filter bar; on phones it collapses into a Filters button" },
+    { k: "better", zh: "所有有金额的页面，眼睛都放到页面标题旁边", en: "On every page with amounts, the eye now sits next to the page title" }
+  ] },
+
   { v: "2026-11-19.31", title: { zh: "账单概览卡片更清爽；全部账单的合计不再随筛选变；净资产说明收进 ⓘ", en: "Cleaner overview cards; All bills totals no longer shrink with filters; Net worth note in an ⓘ" }, items: [
     { k: "better", zh: "账单概览的卡片改成白底线框、彩色小图标，和别的页面的卡片一致，也和页面底色拉开了对比；去掉了右边的箭头", en: "Bills overview cards are now white with a border and a colored icon like cards on other pages, stand out from the page background, and no longer have a right arrow" },
     { k: "fix", zh: "全部账单：选了搜索 / 资产 / 类型 / 状态等筛选后，上面「应付 / 已付 / 余额」三张合计卡不再跟着变小，始终是所选时间范围的总数；筛选出来的笔数和小计显示在列表上方", en: "All bills: the Due / Paid / Balance cards no longer shrink when you filter; they always show the totals for the chosen time range, and the filtered count and subtotals appear above the list" },

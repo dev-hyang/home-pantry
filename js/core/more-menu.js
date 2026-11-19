@@ -12,7 +12,7 @@ export function moreMenu(items, { up = false, label = "", vertical = false } = {
     const cls = `act-item${x.danger ? " is-danger" : ""}${x.first ? " is-first" : ""}`;
     if (x.href) return `<a class="${cls}" href="${esc(x.href)}"${x.external ? ' target="_blank" rel="noopener noreferrer"' : ""}>${esc(x.label)}</a>`;
     const data = Object.entries(x.data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join("");
-    return `<button type="button" class="${cls}" data-action="${esc(x.action)}"${data}>${esc(x.label)}</button>`;
+    return `<button type="button" class="${cls}"${x.action ? ` data-action="${esc(x.action)}"` : ""}${data}>${esc(x.label)}</button>`;
   };
   return `<details class="act-more${up ? " act-up" : ""}"><summary class="btn btn-ghost btn-sm" aria-label="${esc(label || t("更多操作"))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">${list.map(item).join("")}</div></details>`;
 }

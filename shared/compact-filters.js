@@ -36,8 +36,8 @@ const CSS = `
 `;
 let styled = false;
 
-/** 已改动的筛选个数：下拉框不是第一项（“全部”）；排序下拉不算筛选 */
-const activeCount = (panel) => [...panel.querySelectorAll("select")].filter((s) => !/sort|order/i.test(s.id || s.name || "") && s.selectedIndex > 0).length;
+/** 已改动的筛选个数：下拉框不是第一项（“全部”）；排序下拉不算筛选；带 data-nocount 的（默认值不是第一项的，如时间范围）也不算 */
+const activeCount = (panel) => [...panel.querySelectorAll("select")].filter((s) => !/sort|order/i.test(s.id || s.name || "") && !s.hasAttribute("data-nocount") && s.selectedIndex > 0).length;
 
 export function initCompactFilters({ root = document.body, ui = () => "zh", selector = ".toolbar" } = {}) {
   if (!styled) { const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st); styled = true; }

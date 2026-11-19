@@ -198,3 +198,10 @@ export function similarIncome(row, ignoreId = null) {
   return inc().rec.find((r) => r.id !== ignoreId && Math.abs(r.amount - row.amount) < 0.005 && Math.abs(new Date(`${r.received_on}T12:00:00`).getTime() - t0) <= 3.5 * 864e5
     && (!k || !skey(r.source_name) || skey(r.source_name).includes(k) || k.includes(skey(r.source_name)))) || null;
 }
+
+/** 时间范围 / 周期 / 谁的 / 月份这一排：把「标签 + 下拉」摊平成统一的筛选条（.toolbar：宽屏一排下拉，手机收成「筛选」按钮），原来的标签文字挪到下拉的 aria-label */
+export function filterToolbar(inner, cls = "") {
+  const flat = String(inner).replace(/<label class="tb-field"><span>([^<]*)<\/span>(<select\b[^>]*>)([\s\S]*?<\/select>)<\/label>/g, (m, lab, open, rest) => (/aria-label=/.test(open) ? open : open.replace("<select", `<select aria-label="${lab}"`)) + rest);
+  const counted = flat.replace(/<select id="(statsRange|finUnit)"/g, '<select data-nocount id="$1"');   // 时间范围 / 周期的默认值不是第一项：不计入「筛选 (n)」
+  return `<div class="toolbar ix-timebar ${cls}">${counted}</div>`;
+}

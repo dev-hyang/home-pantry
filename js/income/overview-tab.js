@@ -2,7 +2,7 @@
 import { BUCKETS } from "../core/taxonomy.js";
 import { INCOME_TABS } from "../core/tabs.js";
 import { INC_L1S } from "../core/income-taxonomy.js";
-import { adults, groupSum, inc, incSumOf, incomeIn, periodLabel, personName, personOk, sharedRangeHtml, skey, spanLabel, spanOk, spanPrev, spanWindow } from "./logic.js";
+import { filterToolbar, adults, groupSum, inc, incSumOf, incomeIn, periodLabel, personName, personOk, sharedRangeHtml, skey, spanLabel, spanOk, spanPrev, spanWindow } from "./logic.js";
 import { aggregate, householdFlow, incAggregate, incNodeSum } from "../stats/report.js";
 import { esc, todayISO } from "../core/util.js";
 import { iso, monthsBetween, roll, spanOfMonths } from "./rollup.js";
@@ -28,9 +28,9 @@ export const OV = () => {
 const kpiS = (label, val, small = "", drill = "") => `<div class="kpi${drill ? " ch-hit-row" : ""}"${hitAttrs(drill, label)}><span>${esc(label)}</span><b>${val}</b>${small}</div>`;
 const changeHtml = (now, before) => (before > 0 ? `<small class="${now >= before ? "gain" : "loss"}">${now >= before ? t("比上期多 {p}%", { p: Math.round(((now - before) / before) * 100) }) : t("比上期少 {p}%", { p: Math.round(((before - now) / before) * 100) })}</small>` : `<small>${t("上期没有收入")}</small>`);
 export const senderLabel = (x) => x.rows.find((r) => r.source_name)?.source_name || x.key;
-export const ovBar = (O, { keys = null, unit = null } = {}) => `<div class="time-bar">${sharedRangeHtml()}${unit ? unitSelectHtml(unit) : ""}
+export const ovBar = (O, { keys = null, unit = null } = {}) => filterToolbar(`${sharedRangeHtml()}${unit ? unitSelectHtml(unit) : ""}
   <label class="tb-field"><span>${t("谁的")}</span><select data-inc-ov="person" data-nosearch>${personOptions(O.person, { all: true })}</select></label>
-  ${keys ? `<label class="tb-field"><span>${t("月份")}</span><select data-inc-ov="month" data-nosearch><option value="">${t("整段（{r}）", { r: spanLabel(O.range) })}</option>${[...keys].reverse().map((k) => `<option value="${k}" ${k === O.month ? "selected" : ""}>${esc(periodLabel(k, "month"))}</option>`).join("")}</select></label>` : ""}</div>`;
+  ${keys ? `<label class="tb-field"><span>${t("月份")}</span><select data-inc-ov="month" data-nosearch><option value="">${t("整段（{r}）", { r: spanLabel(O.range) })}</option>${[...keys].reverse().map((k) => `<option value="${k}" ${k === O.month ? "selected" : ""}>${esc(periodLabel(k, "month"))}</option>`).join("")}</select></label>` : ""}`);
 /** 付款方排行：名字 + 金额 + 占比条 */
 const rankHtml = (list, total, w, person) => `<ul class="ix-rank">${list.map((x) => `<li><div class="rk-top"><button type="button" class="link-name" data-drill="${esc(incDrill({ q: senderLabel(x), ...w, person }))}">${esc(senderLabel(x))}</button><b>${fmtMoney(x.total)}</b></div>
   <div class="rk-bar" aria-hidden="true"><i style="width:${total > 0 ? Math.max(2, Math.round((x.total / total) * 100)) : 0}%"></i></div><small class="muted">${t("{n} 次", { n: x.n })} · ${rate(x.total, total)}${x.cap ? ` · ${t("另有资本流入 {a}", { a: fmtMoney(x.cap) })}` : ""}</small></li>`).join("")}</ul>`;

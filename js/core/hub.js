@@ -34,6 +34,8 @@ export const countBadge = (n, m, cls = "") => `<span class="badge mcount ${cls}"
 export const filledCount = (vals) => vals.filter((v) => v != null && v !== "" && v !== false && !(Array.isArray(v) && !v.length)).length;
 
 /** 页内标签条（三级导航）：链接形式，地址带 ?tab=，后退键、分享、刷新都保持在同一标签；手机上可横向滑动 */
+/** 导航小卡片组（和储藏页顶上那一排同一个样子）：只列主要标签，次要标签（tabs 里第 5 项为 true）由页面放进右上角 ⋯；当前页深色高亮。切换只换下面的内容，卡片组留在原位 */
+export const tabCards = (tabs, active, hrefOf, label) => `<nav class="pnav pnav-tabs" aria-label="${esc(label)}">${tabs.filter((x) => !x[4]).map(([id, name, icon]) => `<a class="pnav-card" href="${esc(hrefOf(id))}" ${id === active ? 'aria-current="page"' : ""}><span class="pnav-ico" aria-hidden="true">${icon}</span><span class="pnav-lbl">${esc(t(name))}</span></a>`).join("")}</nav>`;
 export const tabBar = (tabs, active, hrefOf, label) => `${tabPick(tabs, active, hrefOf, label)}${tabStrip(tabs, active, hrefOf, label)}`;
 /** 手机（≤ 640px）用的下拉切换：横滑标签条在手机上难点，换成一个整宽的下拉框（和标签条用同一份 tabs，权限隐藏的标签这里也不会出现） */
 const tabPick = (tabs, active, hrefOf, label) => `<label class="subtab-pick"><span class="sr-only">${esc(label)}</span><select data-subtab-nav data-nosearch aria-label="${esc(label)}">${tabs.map(([id, name, icon]) => `<option value="${esc(hrefOf(id))}" ${id === active ? "selected" : ""}>${icon} ${esc(t(name))}</option>`).join("")}</select></label>`;

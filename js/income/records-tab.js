@@ -131,7 +131,6 @@ export function recordsTab() {
     <select id="incSort" data-inc-f="sort" data-nosearch aria-label="${esc(t("排序"))}">${selOpts([["new", "最近的在前"], ["old", "最早的在前"], ["big", "金额从大到小"], ["small", "金额从小到大"], ["kind", "按类型（一级 · 具体类型）"]], I.sort || "new")}</select></div>
     ${drillChips()}
     ${I.batch ? `<div class="muted small" style="margin-top:8px">${t("只看一次银行导入的入账")} <button type="button" class="btn btn-sm btn-ghost" data-inc="batch-clear">${t("看全部收入")}</button></div>` : ""}
-    <div class="ix-tools"><button type="button" class="btn btn-sm btn-ghost" data-inc="sel-toggle">${I.selMode ? t("退出多选") : t("多选删除")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="print-list">${t("打印")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="csv-detail">${t("导出当前列表 CSV")}</button></div>
     <div id="incList" style="margin-top:8px">${listHtml()}</div>
   </div>${kindManager()}`;
 }
