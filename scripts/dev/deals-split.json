@@ -1,0 +1,5 @@
+{ "source": "js/house/deals.js", "files": [
+  { "path": "js/house/deal-tasks.js", "doc": "交易清单的数据与计算：任务模板、进度、提醒（dealAlertItems）、标题与日期文字。", "lines": [[1, 222]] },
+  { "path": "js/house/deal-page.js", "doc": "交易页：任务行、编辑表单、交易详情、新建 / 编辑交易的表单、交割面板。", "lines": [[223, 473]] },
+  { "path": "js/house/deal-actions.js", "doc": "交易的操作：开始 / 取消 / 完成交易、勾选任务、自定义任务、交割后的处理。", "lines": [[474, 616]] }
+] }

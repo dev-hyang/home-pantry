@@ -1,0 +1,6 @@
+{ "source": "js/bills/views.js", "files": [
+  { "path": "js/bills/bill-records.js", "doc": "账单：缴费记录、常用账单模板。", "lines": [[78, 156]] },
+  { "path": "js/bills/bill-form.js", "doc": "账单表单（整页；编辑时下方带缴费记录）：类型、金额、周期、枢纽页。", "lines": [[157, 351]] },
+  { "path": "js/bills/bill-pay.js", "doc": "账单详情的头部卡、记一笔缴费的整页表单、特别摊派下拉、金额分组、补记缴费。", "lines": [[352, 483]] },
+  { "path": "js/bills/bill-save.js", "doc": "账单的保存：保存账单、保存缴费、删除、核对、关联设备。", "lines": [[484, 641]] }
+] }

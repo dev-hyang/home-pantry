@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.43", title: { zh: "内部整理：银行导入、借贷、账单表单、交易几个大程序文件拆小", en: "Under the hood: bank import, debts, bill forms and deals programs split into smaller files" }, items: [
+    { k: "better", zh: "把银行对账单导入、借贷、账单表单、房屋交易这几个六七百行的程序文件，按功能拆成一两百行的小文件；页面和操作和以前一样", en: "Bank statement import, Debts, Bill forms and House deals, each 600–800 lines, are split by function into files of one to two hundred lines; pages and actions work as before" }
+  ] },
+
   { v: "2026-11-18.42", title: { zh: "内部整理：收入、设备、房屋资料、商店几个大程序文件拆小", en: "Under the hood: large Income, Assets, House profile and Stores files split into smaller ones" }, items: [
     { k: "better", zh: "把收入页、设备页、房屋资料页、常去的商店页这几个一千行上下的程序文件，按功能（总览、明细、表单、导出、保存…）拆成一两百行的小文件，以后改动更不容易出错；页面和操作和以前一样", en: "The Income, Assets, House profile and Favorite stores programs, each around a thousand lines, are now split by function (overview, records, forms, export, saving…) into files of one to two hundred lines; pages and actions work as before" }
   ] },

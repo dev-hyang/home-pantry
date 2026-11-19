@@ -1,0 +1,13 @@
+{
+  "source": "js/stats/bank-import.js",
+  "files": [
+    {
+      "path": "js/stats/bank-common.js",
+      "doc": "银行对账单导入各部分共用的小件。从 bank-import.js 抽出来，各部分依赖这里。",
+      "names": [
+        "incomeOk",
+        "refreshFn"
+      ]
+    }
+  ]
+}

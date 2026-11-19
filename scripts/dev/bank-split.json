@@ -1,0 +1,9 @@
+{ "source": "js/stats/bank-import.js", "files": [
+  { "path": "js/stats/bank-csv.js", "doc": "银行对账单导入：CSV 解析、认列、商家合并和归类规则。", "lines": [[31, 135]] },
+  { "path": "js/stats/bank-transfers.js", "doc": "银行对账单导入：Zelle / Venmo 这类个人转账的识别和处理。", "lines": [[136, 227]] },
+  { "path": "js/stats/bank-rows.js", "doc": "银行对账单导入：把表格变成交易行，导入页的状态 S。", "lines": [[228, 339]] },
+  { "path": "js/stats/bank-accounts-ai.js", "doc": "银行对账单导入：账户（哪张卡 / 账户）标签，和 AI 解析（PDF / 截图 / 扫描件 / 粘贴的文字）。", "lines": [[340, 439]] },
+  { "path": "js/stats/bank-ui.js", "doc": "银行对账单导入：界面和「最近导入」的统计。", "lines": [[440, 629]] },
+  { "path": "js/stats/bank-run.js", "doc": "银行对账单导入：真正导入、撤销、批次。", "lines": [[630, 753]] },
+  { "path": "js/stats/bank-events.js", "doc": "银行对账单导入：#bankImport 里面的点击和输入事件。", "lines": [[754, 795]] }
+] }

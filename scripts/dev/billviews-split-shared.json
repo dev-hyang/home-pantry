@@ -1,0 +1,23 @@
+{
+  "source": "js/bills/views.js",
+  "files": [
+    {
+      "path": "js/bills/bill-common.js",
+      "doc": "账单各页面共用的小件。从 views.js 抽出来，各页面依赖这里。",
+      "names": [
+        "B",
+        "billLabel",
+        "billOption",
+        "byInUse",
+        "propertyBar",
+        "billCrumb",
+        "billRoot",
+        "billTrail",
+        "billTypeChooser",
+        "mny",
+        "BADGE",
+        "STATUS_LABEL"
+      ]
+    }
+  ]
+}

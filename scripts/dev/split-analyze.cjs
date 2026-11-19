@@ -77,8 +77,10 @@ function checkFiles(files) {
         if (d.type === "FunctionDeclaration" || d.type === "ClassDeclaration") top.add(d.id.name);
         else if (d.type === "VariableDeclaration") d.declarations.forEach((x) => patternNames(x.id).forEach((y) => top.add(y))); }
     }
-    const unknown = new Set();
-    for (const n of ast.body) { if (n.type === "ImportDeclaration") continue; for (const nm of analyze(n).free) if (!top.has(nm) && !globals.has(nm)) unknown.add(nm); }
+    const imported = new Set(); for (const n of ast.body) if (n.type === "ImportDeclaration") n.specifiers.forEach((x) => imported.add(x.local.name));
+    const unknown = new Set(), assignedImport = new Set();
+    for (const n of ast.body) { if (n.type === "ImportDeclaration") continue; const r = analyze(n); for (const nm of r.free) if (!top.has(nm) && !globals.has(nm)) unknown.add(nm); for (const nm of r.assigned) if (imported.has(nm)) assignedImport.add(nm); }
+    if (assignedImport.size) { console.log(`!! ${f}  给导入的变量赋值（打包会报错，要改成对象属性或 setter）：${[...assignedImport].join(", ")}`); bad++; }
     console.log(`${unknown.size ? "??" : "ok"} ${f}${unknown.size ? "  未解析：" + [...unknown].join(", ") : ""}`);
     if (unknown.size) bad++;
   }

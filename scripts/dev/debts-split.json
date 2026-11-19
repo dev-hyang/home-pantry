@@ -1,0 +1,8 @@
+{ "source": "js/bills/debts.js", "files": [
+  { "path": "js/bills/debts-list.js", "doc": "借贷 → 列表：每笔借贷一行（余额、下次还款、利率）。", "lines": [[47, 96]] },
+  { "path": "js/bills/debts-tabs.js", "doc": "借贷 → 标签页：借出 / 借入、总览、还款日历等各个页签。", "lines": [[97, 195]] },
+  { "path": "js/bills/debt-detail-tables.js", "doc": "借贷详情里的表：摊还表、余额拆分、条款、还款流水表、关联与覆盖表单。", "lines": [[196, 323]] },
+  { "path": "js/bills/debt-detail.js", "doc": "借贷详情页：校准、记一笔、关联面板、头部、个人借贷详情和详情本体。", "lines": [[324, 482]] },
+  { "path": "js/bills/debt-form.js", "doc": "借贷：新建 / 编辑表单。", "lines": [[483, 556]] },
+  { "path": "js/bills/debt-actions.js", "doc": "借贷的操作：initDebts 在页面加载后注册点击和表单处理（保存、还款、关联、结清…）。", "lines": [[557, 709]] }
+] }

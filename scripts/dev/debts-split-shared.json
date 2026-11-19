@@ -1,0 +1,25 @@
+{
+  "source": "js/bills/debts.js",
+  "files": [
+    {
+      "path": "js/bills/debt-common.js",
+      "doc": "借贷各页面共用的小件。从 debts.js 抽出来，各页面依赖这里。",
+      "names": [
+        "catBadge",
+        "fact",
+        "linkedText",
+        "mny",
+        "pct",
+        "periodPay",
+        "statusBadge",
+        "tabHref",
+        "ui",
+        "hooks",
+        "vehicles",
+        "cur",
+        "assetHref",
+        "assetLabel"
+      ]
+    }
+  ]
+}
