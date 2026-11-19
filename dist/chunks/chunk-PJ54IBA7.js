@@ -70,7 +70,7 @@ import{a as Et,b as St}from"./chunk-LJIV5DJY.js";import{b as de,c as wt,d as kt}
             <label>${t("分类")}<select name="category">${S().CATEGORIES.map(f=>`<option value="${f.id}" ${f.id===p.category?"selected":""}>${f.icon} ${t(f.name)}</option>`).join("")}</select></label>
             <label class="sub-only">${t("订阅种类")}<select name="sub_kind"><option value="">${t("未指定")}</option>${h(S().SUB_KINDS,p.sub_kind)}</select><small>${t("只用于分组和汇总；流媒体、云存储、AI 工具、软件等")}</small></label>
             <label class="sub-only">${t("免费试用到期日")}<input name="trial_ends_on" type="date" value="${y(p.trial_ends_on)}"><small>${t("到期前 3 天提醒“不续就取消”")}</small></label>
-            <label>${t("房产")}<select name="property_id" data-search><option value="">${t("与房产无关")}</option>${c.properties.filter(f=>J(f)||f.id===p.property_id).map(f=>`<option value="${f.id}" ${f.id===p.property_id?"selected":""}>${r(f.name)}</option>`).join("")}</select></label>
+            <label>${t("房产")}<select name="property_id"><option value="">${t("与房产无关")}</option>${c.properties.filter(f=>J(f)||f.id===p.property_id).map(f=>`<option value="${f.id}" ${f.id===p.property_id?"selected":""}>${r(f.name)}</option>`).join("")}</select></label>
             ${Pt(p.asset_id,c.bills)}
             ${k||p.direction==="receivable"?`<label>${t("方向")}<select name="direction"><option value="payable" ${p.direction!=="receivable"?"selected":""}>${t("我付出去（应付）")}</option><option value="receivable" ${p.direction==="receivable"?"selected":""}>${t("别人付给我（应收，如租金）")}</option></select></label>`:'<input type="hidden" name="direction" value="payable">'}
             <label>${t("付款方 / 收款方")}<input name="payee" maxlength="60" placeholder="${t("例如：ComEd")}" value="${y(p.payee)}"></label>

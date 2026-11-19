@@ -2,16 +2,18 @@
  * 看起来和普通下拉一样（显示当前选项 + 右边小箭头），点进去直接在原位打字筛选，下面列出匹配的选项，点一项选中。没有单独的搜索框。
  * 做法：原来的 <select> 留在表单里（提交、现有的 change 处理都照旧），视觉上藏起来；
  * 列表每次打开时按 select 当前的选项重建（选项是动态生成的也没问题），选一项 = 改 select 的值并派发 change。
- * 哪些 select 会变：带 data-search 的，或者选项数 ≥ 20 且没有 data-nosearch 的（页面重画后由 MutationObserver 自动接上）。
+ * 哪些 select 会变：带 data-search 的，或者选项数超过 8 个（≥ 9，含「全部 / 请选择」那一项）且没有 data-nosearch 的（页面重画后由 MutationObserver 自动接上）。
+ * 按需调整：data-search = 不管几个选项都要搜索；data-nosearch = 不要搜索；data-search-min="N" = 这一个 select 改成 N 个及以上才搜索（默认 AUTO_MIN）。
  * 键盘：↑↓ 移动、Enter 选中、Esc 还原并关闭；读屏：输入框是 combobox，列表是 listbox / option。 */
 import { t } from "./core/i18n.js";
 
-const MIN = 20;
+const AUTO_MIN = 9;   // 默认：选项数 ≥ 9（超过 8 个）才自动变成可搜索；少于这个数，直接点选比打字更快
+const minOf = (sel) => { const n = parseInt(sel.dataset.searchMin, 10); return n > 0 ? n : AUTO_MIN; };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 /* 触屏（手机 / 平板）不替换：原生下拉在手机上本来就好用（系统滚轮 / 列表）；自制列表在弹键盘、页面滚动的时候，
    手指落下的位置可能已经换成了别的选项（选「通行费」结果填成「餐饮」）。有鼠标的宽屏才换成可搜索的下拉 */
 const touch = () => { try { return matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches; } catch (e) { return false; } };
-const want = (sel) => sel.matches("select") && !touch() && !sel.dataset.nosearch && !sel.dataset.sselReady && !sel.multiple && (sel.dataset.search !== undefined || sel.options.length >= MIN);
+const want = (sel) => sel.matches("select") && !touch() && sel.dataset.nosearch === undefined && !sel.dataset.sselReady && !sel.multiple && (sel.dataset.search !== undefined || sel.options.length >= minOf(sel));
 /* 触屏上带 data-search 的长下拉（物品表单的大类 / 小类 / 存放位置）：点了从底部弹出一个面板——上面一个搜索框、下面整张清单，
    打字只筛选面板里的清单，页面本身不动，所以不会出现上面说的「手指落下时选项换了」。没打字也能直接滑着点。（2026-11-14） */
 const wantSheet = (sel) => sel.matches("select") && touch() && sel.dataset.search !== undefined && !sel.dataset.sselReady && !sel.multiple;
