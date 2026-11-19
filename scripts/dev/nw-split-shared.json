@@ -1,0 +1,18 @@
+{
+  "source": "js/bills/net-worth.js",
+  "files": [
+    {
+      "path": "js/bills/net-worth-common.js",
+      "doc": "净资产页面和余额面板共用的小件。",
+      "names": [
+        "cur",
+        "detailsOpen",
+        "histList",
+        "mny",
+        "monthsAgoDay",
+        "SHOW",
+        "ui"
+      ]
+    }
+  ]
+}

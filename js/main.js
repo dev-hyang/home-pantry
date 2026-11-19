@@ -21,7 +21,6 @@ import "./settings/income.js";
 import { escrowAlertItems } from "./bills/escrow.js";
 import "./bills/finance.js";
 import "./bills/finance-alerts.js";
-import { initNetWorth } from "./bills/net-worth.js";
 import { renderInvList, setFold, renderShopList } from "./pantry/views.js";
 import { maintFilter } from "./house/assets-logic.js";
 import { renderSpendList } from "./stats/views.js";
@@ -57,7 +56,6 @@ miniBarEl();
 document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.pv-card[data-fold]")) setFold(d.dataset.fold, d.open); }, true);
    // 储藏概览大卡片折叠 / 展开：记在本机
 initSwipeRows({ kinds: ["asset", "rs", "item", "income", "budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card", "store", "deal"], altKinds: ["asset", "card", "deal", "shop", "item", "rs"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });
-initNetWorth({ render });
 initHomeStats(render);
 initTodayRender(() => render());
    // 今日天气取回来后重画

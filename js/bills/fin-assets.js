@@ -18,9 +18,10 @@ import { spendRollupFor } from "../stats/views.js";
 import { debtHref } from "./debt-logic.js";
 import { isClosedStatus } from "../core/debt-rules.js";
 import { looseBillsHtml } from "./debts.js";
-import { balancePanel, valuationPanel } from "./net-worth.js";
+import { valuationPanel } from "./net-worth.js";
 import { liveNetWorth } from "./nw-logic.js";
 import { debtsEnriched } from "./debt-logic-common.js";
+import { balancePanel } from "./net-worth-panel.js";
 
 const cur = () => Units.region.currency;
 /** 今年 1 月到本月 */

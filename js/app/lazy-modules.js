@@ -141,3 +141,6 @@ export const personUse = lazyFn(LZ.medViews, "personUse");
 export const saveMedBillForm = lazyFn(LZ.medViews, "saveMedBillForm");
 export const saveMedPayForm = lazyFn(LZ.medViews, "saveMedPayForm");
 export const viewOtBill = lazyFn(LZ.medViews, "viewOtBill");
+LZ.netWorth = lazyModule(() => import("../bills/net-worth.js"));
+export const initNetWorth = lazyFn(LZ.netWorth, "initNetWorth");
+export const viewNetWorth = lazyFn(LZ.netWorth, "viewNetWorth");

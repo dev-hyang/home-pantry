@@ -1,29 +1,24 @@
-/* 财务 → 分析 → 净资产（财务 P3，迁移 059）：KPI、资产 / 负债构成（排行条，不用饼图）、净资产走势（快照）、
- * 财富增长 vs 消费、每处资产的净值、数据新鲜度提示、快照管理。只给有财务权限的人（路由、目录、数据库三层都挡）。
- * 还有两块给别的页面复用：账户的「更新余额」+ 余额历史（资产页、卡与账户）、房产 / 车辆的「更新估值」+ 估值历史（资产页）。
- * 数据全在内存（nw-logic.js），计算在 js/stats/net-worth.js；消费 / 收入用收支总览同一份聚合（spend_rollup / inc_rollup，按月缓存）。
- * 设计见 docs/design-net-worth.md。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, fmtDate, num, toast, todayISO, confirmDelete } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { financeOk } from "../core/finance-access.js";
-import { ASSET_BUCKETS, BALANCE_KINDS, LIAB_BUCKETS, growthRows, isLiabilityKind, monthChange, trendPoints } from "../stats/net-worth.js";
+import { ASSET_BUCKETS, LIAB_BUCKETS, growthRows, monthChange, trendPoints } from "../stats/net-worth.js";
 import { aggregate, incAggregate } from "../stats/report.js";
 import { monthLabel, spendRollupFor, trendHead, trendPeriods } from "../stats/views.js";
 import { monthsBetween, unitSelectHtml } from "../core/time-range.js";
 import { incRollupFor } from "../income/rollup.js";
-import { STALE_DAYS, balancesOf, deleteBalance, deleteSnapshot, liveNetWorth, rebuildSnapshot, saveBalance, saveMonthSnapshot, saveValuation, thisMonth, valuationsOf, deleteValuation } from "./nw-logic.js";
+import { STALE_DAYS, deleteBalance, deleteSnapshot, liveNetWorth, rebuildSnapshot, saveBalance, saveMonthSnapshot, saveValuation, thisMonth, valuationsOf, deleteValuation } from "./nw-logic.js";
 import { debtHref } from "./debt-logic.js";
 import { summaryHref } from "./debt-stats.js";
 import { cardHref } from "./cards.js";
 import { assetName } from "../house/assets-logic.js";
+import { SHOW, cur, detailsOpen, histList, mny, ui } from "./net-worth-common.js";
 
-const cur = () => Units.region.currency;
-const mny = (v, c) => (v == null ? "—" : Units.money(v, c || cur()));
-const ui = () => { const u = (state.nwUi ||= {}); u.open ||= {}; u.more ||= {}; return u; };   // 折叠开合、历史显示几条
+   // 折叠开合、历史显示几条
 export const NW_HREF = () => href("bills", "networth");
+export { balancePanel } from "./net-worth-panel.js";
 export const BUCKET_NAMES = { cash: "现金与储蓄", investments: "投资账户", retirement: "退休账户", hsa: "HSA", properties: "房产", vehicles: "车辆", other_assets: "其他资产", receivables: "应收（借出未收）",
   mortgage: "房贷（含 HELOC）", auto_loans: "车贷", other_loans: "其他贷款", credit_cards: "信用卡欠款", other_liabilities: "其他负债（亲友借款、透支）" };
 const BUCKET_COLORS = { cash: "#2c6a57", investments: "#3b7fc4", retirement: "#24897d", hsa: "#5b8c3a", properties: "#8a6d3b", vehicles: "#64748b", other_assets: "#7c6fb0", receivables: "#3a9bb5",
@@ -34,39 +29,8 @@ const itemHref = (e) => (e.kind === "property" ? propHref(e.item.id) : href("ass
 const itemName = (e) => (e.kind === "property" ? e.item.name : assetName(e.item));
 const signed = (v) => (v == null ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${mny(Math.abs(v))}`);
 const monthsAgo = (m, k) => { let [y, mo] = m.split("-").map(Number); mo -= k; while (mo < 1) { mo += 12; y--; } return `${y}-${String(mo).padStart(2, "0")}`; };
-
 /** 不能用的时候：没执行 059 / 读失败 */
 const unavailable = () => `<section class="section"><div class="panel empty"><strong>${t("净资产还不能用")}</strong>${Store.mode === "cloud" ? t("数据库还没升级：请先执行 supabase/migrations/059_net_worth.sql") : esc(state.nwErr || "")}</div></section>`;
-
-/* ───────────── 余额 / 估值：内联表单 + 历史（资产页、卡与账户共用） ───────────── */
-const SHOW = 5;
-function histList(key, rows, line) {
-  const more = ui().more[key] || SHOW, shown = rows.slice(0, more);
-  if (!rows.length) return `<p class="muted nw-none">${t("还没有记录")}</p>`;
-  return `<ul class="nw-hist-list">${shown.map(line).join("")}</ul>
-    ${rows.length > shown.length ? `<button type="button" class="btn btn-sm btn-ghost" data-nw="more" data-key="${esc(key)}">${t("再显示 {n} 条（共 {total} 条）", { n: Math.min(SHOW * 4, rows.length - shown.length), total: rows.length })}</button>` : ""}`;
-}
-const detailsOpen = (key, dft = false) => (ui().open[key] ?? dft ? "open" : "");
-/** 账户的余额：最新余额 + 「更新余额」表单 + 历史（新 → 旧，5 条一页）。信用卡 / 贷款的余额 = 欠款 */
-export function balancePanel(c, { open = false } = {}) {
-  if (!state.nwOk || !financeOk() || !BALANCE_KINDS.includes(c.kind)) return "";
-  const key = `b:${c.id}`, rows = balancesOf(c.id), last = rows[0], liab = isLiabilityKind(c.kind);
-  const stale = last && last.as_of < monthsAgoDay(STALE_DAYS);
-  const line = (b) => `<li><span>${esc(fmtDate(b.as_of))}</span><b>${mny(b.balance, b.currency)}</b>${b.notes ? `<small class="muted">${esc(b.notes)}</small>` : ""}
-      <button type="button" class="btn btn-sm btn-ghost" data-nw="bal-del" data-id="${esc(b.id)}" aria-label="${esc(t("删除 {d} 的余额", { d: fmtDate(b.as_of) }))}">${t("删除")}</button></li>`;
-  return `<details class="nw-hist panel" data-nw-key="${esc(key)}" ${detailsOpen(key, open)}>
-    <summary><span>${liab ? t("欠款") : t("余额")}：<b>${last ? mny(last.balance, last.currency) : t("未记录")}</b>${last ? ` <small class="muted">${t("截至 {d}", { d: fmtDate(last.as_of) })}</small>` : ""}${stale ? ` <span class="badge b-soon">${t("需要更新")}</span>` : ""}</span><span class="nw-sum-act">${t("更新余额")}</span></summary>
-    <form class="nw-form" data-nw-form="bal" data-id="${esc(c.id)}">
-      <label>${t("日期")}<input type="date" name="as_of" required value="${todayISO()}" max="${todayISO()}"></label>
-      <label>${liab ? t("欠款（{cur}）", { cur: cur() }) : t("余额（{cur}）", { cur: cur() })}<input type="number" name="balance" step="0.01" inputmode="decimal" required ${liab ? 'min="0"' : ""} value="${last ? esc(last.balance) : ""}"></label>
-      <label class="nw-note">${t("备注（可选）")}<input name="notes" maxlength="300"></label>
-      <button type="submit" class="btn btn-primary btn-sm">${t("保存余额")}</button>
-    </form>
-    <p class="hint">${liab ? t("信用卡 / 贷款记欠款（正数），算负债。同一天再记一次 = 改那一天。") : t("按对账单或网银填当天余额；同一天再记一次 = 改那一天。透支记负数。")}</p>
-    ${histList(key, rows, line)}
-  </details>`;
-}
-const monthsAgoDay = (days) => { const d = new Date(`${todayISO()}T12:00:00`); d.setDate(d.getDate() - days); return d.toISOString().slice(0, 10); };
 /** 房产 / 车辆的估值：最新估值（没有时按购入价 / 未估值）+ 「更新估值」表单 + 历史 */
 export function valuationPanel(kind, item, { fallback = null } = {}) {
   if (!state.nwOk || !financeOk()) return "";
@@ -87,7 +51,6 @@ export function valuationPanel(kind, item, { fallback = null } = {}) {
     ${histList(key, rows, line)}
   </details>`;
 }
-
 /* ───────────── 净资产页 ───────────── */
 function freshness(r) {
   const out = [];
