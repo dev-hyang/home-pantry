@@ -65,7 +65,7 @@ export function viewBillForm() {
   if (b && !sec) return billHub(b, root);
   if (b && sec === "assess") {   // 特别摊派：?sec=assess = 列表；?sec=assess&edit=id|new = 新增 / 编辑页
     const editId = r.q.get("edit"), listHref = `${hubHref}?sec=assess`;
-    if (editId) { const a = editId === "new" ? null : state.assess.find((x) => x.id === editId && x.bill_id === b.id); if (editId === "new" || a) return assessFormPage(b, a, crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("特别摊派") }, { label: a ? t("编辑摊派") : t("新增摊派") }])); }
+    if (editId) { const a = editId === "new" ? null : state.assess.find((x) => x.id === editId && x.bill_id === b.id); const copyId = r.q.get("copy"), copyFrom = editId === "new" && copyId ? state.assess.find((x) => x.id === copyId && x.bill_id === b.id) || null : null; if (editId === "new" || a) return assessFormPage(b, a, crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("特别摊派") }, { label: a ? t("编辑摊派") : t("新增摊派") }]), copyFrom); }
     return assessListPage(b, billCrumb(b, root, hubHref, t("特别摊派")));
   }
   if (b && sec === "pay") {   // 缴费记录：?sec=pay = 全部记录（搜索 / 筛选）；?sec=pay&edit=id 或 ?pay=1 = 独立的编辑 / 新建页

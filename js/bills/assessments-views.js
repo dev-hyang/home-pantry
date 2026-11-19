@@ -7,29 +7,39 @@ import { esc, fmtDate, num, todayISO, toast } from "../core/util.js";
 import { go, href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
 import { assessmentsOf, genInstallments, isPaid } from "./assessments-lib.js";
+import { infoTip } from "../core/info-tip.js";
+import { moreMenu } from "../core/more-menu.js";
+import { lpAttr } from "../core/long-press.js";
 
 const mny = (v, cur) => Units.money(num(v), cur || Units.region.currency);
 const KINDS = [["installment", "分期"], ["payoff", "一次性结清"]];
 const kindName = (k) => t((KINDS.find(([id]) => id === k) || KINDS[0])[1]);
 
-/** 摊派列表页（crumb = 面包屑 HTML） */
-/** 摊派列表：一笔摊派一张可折叠的卡片。头部（名称、进度、描述、编辑）一直看得到；展开后先是还没缴的各期，已缴的各期收在下面一个单独的折叠里（默认收起） */
+/** 摊派列表：一笔摊派一张卡。头部：名称（备注收在名称旁的 ⓘ）+ 两行摘要 + 右上角 ⋯ 菜单；下面是「待缴」「已缴」两个小节（各自带箭头，默认收起）。
+ *  摘要：未缴 $x（n 笔按分期计划）· 已缴 $x（n 笔）；换行：最近一次缴费、即将到期（最近一期没缴的） */
 export function assessListPage(b, crumb) {
-  const focus = state.route?.q?.get("focus") || null;   // 从账单页点某一笔摊派进来：只展开它，并滚到它
+  const focus = state.route?.q?.get("focus") || null;   // 从账单页点某一笔摊派进来：展开它的「待缴」，并滚到它
   const base = href("bill", b.id), list = assessmentsOf(b.id, state.assess, state.assessItems), cur = b.currency;
-  const payDate = (id) => { const p = b.pays.find((x) => x.id === id); return p ? fmtDate(p.paid_on) : ""; };
+  const payDate = (x) => { const p = x.payment_id && b.pays.find((y) => y.id === x.payment_id); return p?.paid_on || x.settled_on || ""; };
   const rowLi = (x) => `<li><span class="badge ${isPaid(x) ? "b-ok" : ""}">${isPaid(x) ? t("已缴") : t("待缴")}</span>
-        <div class="grow">${esc(fmtDate(x.due_on))}<small>${[kindName(x.kind), x.payment_id ? t("{d} 缴", { d: payDate(x.payment_id) || "—" }) : x.settled_on ? t("已缴（无缴费记录）") : null].filter(Boolean).map(esc).join(" · ")}</small></div><b>${mny(x.amount, cur)}</b></li>`;
-  const cards = list.map((a, i) => {
-    const todo = a.rows.filter((x) => !isPaid(x)), paid = a.rows.filter(isPaid), paidSum = paid.reduce((s, x) => s + num(x.amount), 0);
-    return `<details class="panel prof-card as-card" id="as-${esc(a.id)}" ${focus ? (a.id === focus ? "open data-as-focus" : "") : i === 0 || !a.done ? "open" : ""}>
-      <summary class="prof-head"><span class="mi" aria-hidden="true">📣</span>
-        <div class="prof-t"><h3>${esc(a.name)}</h3><small>${a.done ? `<span class="badge b-ok">${t("已缴清")}</span> ` : a.status === "closed" ? `<span class="badge">${t("已关闭")}</span> ` : ""}${t("共 {total} · 已缴 {paid} · 剩余 {left}", { total: mny(a.total, cur), paid: mny(a.paid, cur), left: mny(a.remaining, cur) })}</small>
-          ${a.notes ? `<small class="as-desc">${esc(a.notes)}</small>` : ""}</div>
-        <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=assess&edit=${a.id}">${t("编辑")}</a><span class="mch" aria-hidden="true">›</span></summary>
-      ${todo.length ? `<ul class="restock-list as-items">${todo.map(rowLi).join("")}</ul>` : `<p class="muted as-none">${t("没有待缴的期了")}</p>`}
-      ${paid.length ? `<details class="as-paid"><summary>${t("已缴 {n} 期 · {m}", { n: paid.length, m: mny(paidSum, cur) })}<span class="mch" aria-hidden="true">›</span></summary><ul class="restock-list as-items">${paid.map(rowLi).join("")}</ul></details>` : ""}
-    </details>`;
+        <div class="grow">${esc(fmtDate(x.due_on))}<small>${[kindName(x.kind), x.payment_id ? t("{d} 缴", { d: fmtDate(payDate(x)) || "—" }) : x.settled_on ? t("已缴（无缴费记录）") : null].filter(Boolean).map(esc).join(" · ")}</small></div><b>${mny(x.amount, cur)}</b></li>`;
+  const sec = (cls, title, rows, open) => `<details class="as-sec ${cls}" ${open ? "open" : ""}><summary>${title}<span class="mch" aria-hidden="true">›</span></summary><ul class="restock-list as-items">${rows.map(rowLi).join("")}</ul></details>`;
+  const cards = list.map((a) => {
+    const todo = a.rows.filter((x) => !isPaid(x)), paid = a.rows.filter(isPaid), isFocus = a.id === focus;
+    const planN = todo.filter((x) => x.kind === "installment").length, last = [...paid].sort((x, y) => String(payDate(y)).localeCompare(String(payDate(x))))[0], next = todo[0];
+    const cnt = (n) => (lang === "en" ? `${n} ${n === 1 ? "payment" : "payments"}` : t("{n} 笔", { n })), plan = planN ? t("，其中 {n} 笔按分期计划", { n: planN }) : "";
+    const lines = [t("未缴 {a}（{c}{p}）", { a: mny(a.remaining, cur), c: cnt(todo.length), p: plan }), t("已缴 {a}（{c}）", { a: mny(a.paid, cur), c: cnt(paid.length) }),
+      last ? t("最近一次缴费：{d}，{a}", { d: fmtDate(payDate(last)) || "—", a: mny(last.amount, cur) }) : null, next ? t("即将到期：{d}，{a}", { d: fmtDate(next.due_on), a: mny(next.amount, cur) }) : null].filter(Boolean);
+    const items = menuItems(a, base);
+    return `<section class="panel prof-card as-card" id="as-${esc(a.id)}" ${isFocus ? "data-as-focus" : ""} ${lpAttr(items, a.name)}>
+      <header class="prof-head"><span class="mi" aria-hidden="true">📣</span>
+        <div class="prof-t"><h3>${esc(a.name)}${a.notes ? ` ${infoTip(a.notes)}` : ""}</h3>
+          <small>${a.done ? `<span class="badge b-ok">${t("已缴清")}</span> ` : a.status === "closed" ? `<span class="badge">${t("已关闭")}</span> ` : ""}${esc(t("共 {total}", { total: mny(a.total, cur) }))}</small>
+          ${lines.map((x) => `<small class="as-desc">${esc(x)}</small>`).join("")}</div>
+        ${moreMenu(items, { label: `${a.name} · ${t("更多操作")}` })}</header>
+      ${todo.length ? sec("as-todo", t("待缴 {n} 期 · {m}", { n: todo.length, m: mny(a.remaining, cur) }), todo, isFocus) : `<p class="muted as-none">${t("没有待缴的期了")}</p>`}
+      ${paid.length ? sec("as-paid", t("已缴 {n} 期 · {m}", { n: paid.length, m: mny(a.paid, cur) }), paid, false) : ""}
+    </section>`;
   }).join("");
   return `<section class="section">${crumb}
     <div class="section-head"><h2>${t("特别摊派")}</h2><p>${esc(b.name)}</p></div>
@@ -37,6 +47,8 @@ export function assessListPage(b, crumb) {
     <a class="fab" href="${base}?sec=assess&edit=new" aria-label="${esc(t("新增摊派"))}" title="${esc(t("新增摊派"))}">＋</a>
   </section>`;
 }
+/** 一笔摊派的更多操作（⋯ 和长按共用）：编辑 / 复制 / 删除；缴费记录、加一期分期、一次性结清随后的版本加 */
+const menuItems = (a, base) => [{ label: t("编辑"), href: `${base}?sec=assess&edit=${a.id}`, first: true }, { label: t("复制为新摊派"), href: `${base}?sec=assess&edit=new&copy=${encodeURIComponent(a.id)}` }, { label: t("删除这笔摊派"), action: "assess-del", data: { id: a.id }, danger: true }];
 
 const rowHtml = (x = {}, paid = false) => {
   if (paid) return `<li class="as-row is-paid" data-id="${esc(x.id || "")}">   <!-- 已关联缴费：锁定，只读显示；隐藏域让保存时仍能读到这一期 -->
@@ -52,18 +64,18 @@ const rowHtml = (x = {}, paid = false) => {
 };
 
 /** 新增 / 编辑页：名称、备注、状态 + 付款计划（一期一行） */
-export function assessFormPage(b, a, crumb) {
-  const base = href("bill", b.id), rows = a ? assessmentsOf(b.id, state.assess, state.assessItems).find((x) => x.id === a.id)?.rows || [] : [];
+export function assessFormPage(b, a, crumb, copyFrom = null) {
+  const base = href("bill", b.id), src = a || copyFrom, rows = src ? (assessmentsOf(b.id, state.assess, state.assessItems).find((x) => x.id === src.id)?.rows || []).map((x) => (copyFrom ? { due_on: x.due_on, amount: x.amount, kind: x.kind } : x)) : [];   // 复制：每一期都当成没缴的新行，不带 id / 缴费关联
   return `<section class="section form-page">${crumb}
     <div class="section-head"><h2>${a ? t("编辑摊派") : t("新增摊派")}</h2><p>${esc(b.name)}</p></div>
     <form id="assessForm" class="panel" novalidate data-bill="${esc(b.id)}" data-id="${esc(a?.id || "")}">
       <div class="form-grid">
-        <label class="span-2">${t("名称")}<input name="name" required maxlength="80" placeholder="${esc(t("例如：2026 屋顶更换"))}" value="${esc(a?.name || "")}"></label>
+        <label class="span-2">${t("名称")}<input name="name" required maxlength="80" placeholder="${esc(t("例如：2026 屋顶更换"))}" value="${esc(a ? a.name : copyFrom ? t("{n}（副本）", { n: copyFrom.name }) : "")}"></label>
         <label>${t("状态")}<select name="status"><option value="active" ${a?.status !== "closed" ? "selected" : ""}>${t("进行中")}</option><option value="closed" ${a?.status === "closed" ? "selected" : ""}>${t("已关闭（不再计入费用）")}</option></select></label>
-        <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" placeholder="${esc(t("通知函编号、原因、和 HOA 的约定…"))}" value="${esc(a?.notes || "")}"></label>
+        <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" placeholder="${esc(t("通知函编号、原因、和 HOA 的约定…"))}" value="${esc(src?.notes || "")}"></label>
       </div>
       <h3 class="as-h">${t("付款计划")}</h3>
-      <details class="as-gen" ${a ? "" : "open"}><summary>${t("快速生成分期")}</summary>
+      <details class="as-gen" ${src ? "" : "open"}><summary>${t("快速生成分期")}</summary>
         <div class="form-grid">
           <label>${t("期数")}<input name="g_count" type="number" inputmode="numeric" min="1" max="120" placeholder="3"></label>
           <label>${t("每期金额 / 总额")}<span class="as-gen2"><input name="g_amt" type="number" inputmode="decimal" min="0.01" step="0.01" aria-label="${esc(t("金额"))}"><select name="g_mode" aria-label="${esc(t("金额含义"))}"><option value="each">${t("每期")}</option><option value="total">${t("总额")}</option></select></span></label>

@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.17", title: { zh: "特别摊派卡片更清爽：待缴 / 已缴分开折叠，操作收进 ⋯", en: "Cleaner special assessment cards: Unpaid / Paid sections, actions in ⋯" }, items: [
+    { k: "better", zh: "每笔摊派的卡片去掉了整张折叠的箭头，改成「待缴」「已缴」两个小节，各自折叠（默认收起）", en: "Each assessment card no longer collapses as a whole; it now has Unpaid and Paid sections that collapse separately (closed by default)" },
+    { k: "better", zh: "卡片上直接看到：未缴多少（几笔、几笔按分期）、已缴多少、最近一次缴费、即将到期的一期；备注收进名称旁的 ⓘ", en: "The card shows unpaid and paid totals, the last payment and the next due; notes moved into an ⓘ next to the name" },
+    { k: "better", zh: "右上角的「编辑」换成 ⋯ 菜单（编辑、复制为新摊派、删除），手机上长按整张卡也能打开", en: "The Edit button became a ⋯ menu (Edit, Copy as new, Delete); long-press the card on a phone to open it too" }
+  ] },
+
   { v: "2026-11-19.16", title: { zh: "长按一行弹出操作，其他页面也能用了", en: "Long-press row actions now work on the other pages too" }, items: [
     { k: "new", zh: "手机上长按一行，底部弹出这一行能做的事：库存、补货、购物清单、花费记录、收入记录、保养记录、设备和车辆、卡与账户、医疗付款、储蓄目标、商店和特价、历史交易", en: "On a phone, long-press a row for its actions: Inventory, Restock, Shopping, Spending and Income records, Maintenance logs, Assets and vehicles, Cards and accounts, Medical payments, Savings goals, Shops and deals, Deal history" },
     { k: "better", zh: "每页的菜单按各自的业务来：购物清单有「我来买 / 已买到」，库存有「加入购物车」，卡有「停用 / 启用」，商店有「本周广告 / 更新特价」等", en: "Each page has its own actions: Shopping has I'll buy / Bought, Inventory has Add to cart, Cards have Deactivate / Activate, Shops have This week's ad / Update deals" }

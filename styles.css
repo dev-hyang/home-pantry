@@ -4163,17 +4163,19 @@ form:not(.is-hoa) .hoa-only { display: none; }
 .amt-pick .pick-row { flex-wrap: nowrap; } .amt-pick .pick-row input[type="checkbox"] { flex: none; }
 .amt-pick .as-opt { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 
-/* 摊派列表：可折叠的卡片（头部一直可见：名称 / 进度 / 描述 / 编辑 / 箭头），已缴的各期单独折叠 */
-.as-card > summary { list-style: none; cursor: pointer; align-items: flex-start; } .as-card > summary::-webkit-details-marker { display: none; }
-.as-card[open] > summary { margin-bottom: 4px; }
-.as-card > summary .prof-edit { align-self: flex-start; }
-.as-card > summary .mch, .as-paid > summary .mch { flex: none; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; align-self: center; }
-.as-card[open] > summary .mch, .as-paid[open] > summary .mch { transform: rotate(90deg); }
+/* 摊派列表：一笔一张卡；头部（名称 + ⓘ + 摘要 + 右上角 ⋯）一直可见，「待缴」「已缴」两个小节各自折叠（默认收起） */
+.as-card > .prof-head { align-items: flex-start; }
+.as-card > .prof-head .act-more { flex: none; margin-left: auto; }
+.as-card .prof-t h3 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.as-card .prof-t small { display: block; }
 .as-desc { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .as-none { margin: 4px 0 6px; font-size: 13px; }
-.as-paid { margin-top: 8px; border-top: 1px dashed var(--line); }
-.as-paid > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; font-size: 14px; font-weight: 600; color: var(--muted); } .as-paid > summary::-webkit-details-marker { display: none; }
-.as-paid .as-items li { padding: 8px 0; }
+.as-sec { margin-top: 8px; border-top: 1px dashed var(--line); }
+.as-sec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; font-size: 14px; font-weight: 600; } .as-sec > summary::-webkit-details-marker { display: none; }
+.as-sec.as-paid > summary { color: var(--muted); }
+.as-sec > summary .mch { flex: none; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
+.as-sec[open] > summary .mch { transform: rotate(90deg); }
+.as-sec .as-items li { padding: 8px 0; }
 
 /* 账单页摊派块：每行整行可点，进到那笔摊派 */
 .restock-list li.as-link { padding: 0; } .as-hit { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 0; color: inherit; text-decoration: none; min-width: 0; width: 100%; }
@@ -4187,3 +4189,5 @@ form:not(.is-hoa) .hoa-only { display: none; }
 .lp-row { display: flex; align-items: center; text-decoration: none; color: var(--ink); font-weight: 600; }
 .lp-row.is-danger { color: var(--out); }
 .lp-sheet .fam-sheet:focus { outline: none; }
+/* 提示 ⓘ 的气泡（.ui-hint::after）隐藏时也占位，靠近右边缘会把页面撑出几像素的横向滚动：横向裁掉（clip 不影响吸顶，纵向照常） */
+#main { overflow-x: clip; }
