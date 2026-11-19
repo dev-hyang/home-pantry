@@ -62,7 +62,7 @@ export function initCompactFilters({ root = document.body, ui = () => "zh", sele
     const btn = document.createElement("button");
     btn.type = "button"; btn.className = "tb-toggle"; btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-controls", panel.id);
     btn.innerHTML = `${label()}<span class="tb-count" hidden>0</span>`;
-    const search = tb.querySelector(":scope > input"); (search ? search.after(btn) : tb.prepend(btn));
+    const search = tb.querySelector(":scope > input") || tb.querySelector(":scope > label:has(> input[type=search])"); (search ? search.after(btn) : tb.prepend(btn));   // 搜索框可能包在 label 里（商店页）：按钮放它后面
     tb.appendChild(panel); tb.classList.add("tb-on");
     if (Date.now() - keepOpen < 2000) { panel.classList.add("open"); btn.setAttribute("aria-expanded", "true"); }
     refresh(tb);

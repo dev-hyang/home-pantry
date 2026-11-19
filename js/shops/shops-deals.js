@@ -9,6 +9,7 @@ import { normName } from "../core/item-match.js";
 import { state } from "../core/state.js";
 import { typeTags } from "./shop-detail.js";
 import { shopHref, ui } from "./shops-common.js";
+import { clearActionBtn } from "../core/clear-filters.js";
 
 /* ───────────── 特价一览：以商品为主（各家的特价放在一起比），列表 / 卡片两种看法；?item= 只看购物车的某一项 ───────────── */
 const DV_SORTS = [["best", "推荐"], ["unit", "按单价"], ["price", "按价格"], ["soon", "快到期的在前"], ["shop", "按商店"]];
@@ -83,7 +84,7 @@ export function viewDeals() {
       ${cats.length > 1 ? `<select data-dv-cat data-nosearch aria-label="${esc(t("分类"))}"><option value="">${t("全部分类")}</option>${cats.map((c) => `<option value="${esc(c)}" ${v.cat === c ? "selected" : ""}>${esc(t(dealCatName(c)))}</option>`).join("")}</select>` : ""}
       ${types.length ? `<select data-dv-type data-nosearch aria-label="${esc(t("折扣类型"))}"><option value="">${t("全部折扣类型")}</option>${types.map((k) => `<option value="${k}" ${v.type === k ? "selected" : ""}>${esc(t(dealTypeName(k)))}</option>`).join("")}</select>` : ""}
       <select data-dv-sort data-nosearch aria-label="${esc(t("排序"))}">${DV_SORTS.map(([k, l]) => `<option value="${k}" ${v.sort === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
-      ${filtered ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-dv-reset">${t("清除筛选")}</button>` : ""}
+      ${filtered ? `${clearActionBtn("shops-dv-reset")}` : ""}
     </div>
     <p class="muted dv-count">${groups ? t("{g} 样商品 · {n} 条特价", { g: groups.length, n: list.length }) : t("{n} 条", { n: list.length })}</p>
     ${!list.length ? `<p class="muted">${t("没有符合条件的特价。")}</p>` : groups ? `<div class="dv-groups">${groups.map(gCard).join("")}</div>` : mode === "cards" ? `<div class="dv-cards">${list.map(card).join("")}</div>`

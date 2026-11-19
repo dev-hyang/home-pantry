@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.21", title: { zh: "筛选条统一：缴费记录页、商店页的清除筛选也收进手机的筛选面板", en: "Filters unified: Clear filters on the payment records and Shops pages now live inside the phone filter panel" }, items: [
+    { k: "better", zh: "账单的缴费记录页、常去的商店、商店特价、特价一览：手机上点开「筛选」，第一行是「筛选」字样和右边的「清除筛选」，和其他页面一样", en: "Bill payment records, Shops, Shop deals and Deals overview: on a phone, Filters now opens with a title row and Clear filters on the right, like the other pages" },
+    { k: "fix", zh: "商店页的「筛选」按钮原来跑到搜索框前面，现在在搜索框后面", en: "On the Shops pages the Filters button used to sit before the search box; it now comes after it" }
+  ] },
+
   { v: "2026-11-19.20", title: { zh: "只交特别摊派的缴费，不再把本期到期日往后推", en: "Payments that only cover a special assessment no longer move the due date forward" }, items: [
     { k: "fix", zh: "记缴费时只勾了特别摊派的期、本期金额留空（或填 0）：这笔缴费不再算作交了本期，下次到期日不变，也不再把本期标成已缴", en: "When a payment only ticks special assessment installments and the period amount is empty or 0, it no longer counts as paying this period: the next due date stays and the period is not marked paid" }
   ] },

@@ -8,6 +8,7 @@ import { lang, t } from "../core/i18n.js";
 import { state } from "../core/state.js";
 import { DOW, distOf, missingPanel, shopHref, ui } from "./shops-common.js";
 import { lpAttr } from "../core/long-press.js";
+import { clearActionBtn } from "../core/clear-filters.js";
 
 /* ───────────── 列表 ───────────── */
 export function viewList() {
@@ -35,7 +36,7 @@ export function viewList() {
       <select data-shops-status data-nosearch aria-label="${esc(t("显示哪些商店"))}">${[["active", t("常去"), all.filter((s) => !s.archived).length], ["archived", t("不去了"), all.filter((s) => s.archived).length]].map(([k, l, n]) => `<option value="${k}" ${u.status === k ? "selected" : ""}>${esc(l)}${lang === "en" ? ` (${n})` : `（${n}）`}</option>`).join("")}</select>
       <select data-shops-cat data-nosearch aria-label="${esc(t("按分类筛选"))}">${chips.map(([c, l, i, n]) => `<option value="${c}" ${u.cat === c ? "selected" : ""}>${i ? `${i} ` : ""}${esc(c ? l : t("全部分类"))}${lang === "en" ? ` (${n})` : `（${n}）`}</option>`).join("")}</select>
       <select data-shops-sort data-nosearch aria-label="${esc(t("排序"))}">${[["name", "按名称"], ["dist", "按距离"], ["deals", "按特价多少"], ["updated", "按最近更新"]].map(([k, l]) => `<option value="${k}" ${u.sort === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
-      ${u.q || u.cat || u.status !== "active" || u.sort !== "name" ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-reset">${t("清除筛选")}</button>` : ""}
+      ${u.q || u.cat || u.status !== "active" || u.sort !== "name" ? `${clearActionBtn("shops-reset")}` : ""}
     </div>` : ""}
     ${gridOn ? `<div class="shop-grid">${list.map(shopCard).join("")}${u.edit === "new" ? `<div class="shop-new-slot">${shopForm(null)}</div>` : newCard()}</div>${list.length ? "" : `<p class="muted shops-empty">${t("没有符合条件的商店。")}</p>`}`
       : all.length ? `<p class="muted shops-empty">${u.status === "archived" ? t("没有收起来的商店。") : t("没有符合条件的商店。")}</p>` : starterPanel()}

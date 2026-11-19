@@ -36,6 +36,8 @@ export const onClearFilters = (key, fn, isChanged = null) => { handlers.set(key,
 export const changed = (cur, def, keys = Object.keys(def)) => keys.some((k) => JSON.stringify(cur?.[k] === undefined ? def[k] ?? null : cur[k] ?? null) !== JSON.stringify(def[k] ?? null));   // 没设过（undefined）= 默认
 /** 按钮：没改过筛选时带 hidden（登记了 isChanged 的页面边输入边显示） */
 export const clearFiltersBtn = (key, show) => `<button type="button" class="btn btn-sm btn-ghost clear-filters" data-clear-filters="${key}"${show ? "" : " hidden"} aria-label="${t("清除筛选")}" title="${t("清除筛选")}"><span aria-hidden="true">✕</span><span class="cf-text"> ${t("清除筛选")}</span></button>`;
+/** 带自己 data-action 的清除按钮（页面自己处理点击，不走 FD / onClearFilters 登记；有筛选时才渲染）：外观、位置和 clearFiltersBtn 一样，手机上同样收进筛选面板的第一行 */
+export const clearActionBtn = (action, attrs = "") => `<button type="button" class="btn btn-sm btn-ghost clear-filters" data-action="${action}" ${attrs} aria-label="${t("清除筛选")}" title="${t("清除筛选")}"><span aria-hidden="true">✕</span><span class="cf-text"> ${t("清除筛选")}</span></button>`;
 /** 按登记的 isChanged 更新页面上按钮的显隐 */
 export function syncClearButtons() {
   for (const b of document.querySelectorAll("[data-clear-filters]")) { const f = checks.get(b.dataset.clearFilters); if (f) { try { b.hidden = !f(); } catch { /* 页面状态还没准备好：不动 */ } } }

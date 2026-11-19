@@ -10,6 +10,7 @@ import { payTotal } from "./pay-total.js";
 import { paymentPayLabel } from "./card-picker.js";
 import { moreMenu } from "../core/more-menu.js";
 import { lpAttr } from "../core/long-press.js";
+import { changed, clearFiltersBtn, onClearFilters } from "../core/clear-filters.js";
 
 const B = () => window.BILLS;
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
@@ -59,7 +60,7 @@ function listHtml(b) {
   return `<p class="muted pay-sum">${t("共 {n} 条", { n: rows.length })}${rows.length !== all.length ? ` / ${all.length}` : ""} · ${t("合计 {m}", { m: mny(paid, b.currency) })}</p>
     <ul class="restock-list pay-list">${page.map((p) => rowHtml(b, p)).join("")}</ul>${rest > 0 ? `<div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="pay-hist-more">${t("加载更多（还有 {n} 条）", { n: rest })}</button></div>` : ""}${older.busy ? `<p class="muted" role="status">${t("正在读取更早的记录…")}</p>` : ""}`;
 }
-const clearHtml = () => (JSON.stringify(filter) !== JSON.stringify(FILTER0) ? `<button type="button" class="btn btn-sm btn-ghost" id="bphClear">${t("清除筛选")}</button>` : "");
+const filtered = () => changed(filter, FILTER0);   // 清除筛选用全站统一的按钮（手机上收进筛选面板第一行）；排序不算筛选，但这页原来把它算进去，保持：排序变了也显示清除
 function toolbarHtml(b) {
   const years = [...new Set(rowsOf(b).map((p) => (p.paid_on || "").slice(0, 4)).filter(Boolean))].sort().reverse();
   const opt = (v, l, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(l)}</option>`;
@@ -68,7 +69,7 @@ function toolbarHtml(b) {
     <select id="bphStatus" aria-label="${esc(t("按状态筛选"))}">${opt("all", t("全部状态"), filter.status)}${Object.entries(B().PAYMENT_STATUS).map(([k, n]) => opt(k, t(n), filter.status)).join("")}</select>
     <select id="bphYear" aria-label="${esc(t("按年份筛选"))}">${opt("all", t("全部年份"), filter.year)}${years.map((y) => opt(y, y, filter.year)).join("")}</select>
     <select id="bphSort" aria-label="${esc(t("排序"))}">${SORTS.map(([v, l]) => opt(v, t(l), filter.sort)).join("")}</select>
-    <span id="bphClearBox">${clearHtml()}</span></div>`;
+    ${clearFiltersBtn("bph", filtered())}</div>`;
 }
 
 /** 页面：crumb = 面包屑 HTML（views.js 里的 billCrumb 不好导出，由它传进来） */
@@ -101,11 +102,11 @@ function apply(patch, rebuildBar = false) {
   const list = document.getElementById("bphList"); if (list) list.innerHTML = listHtml(b);
   const bar = document.getElementById("bphBar");
   if (bar && rebuildBar) bar.outerHTML = toolbarHtml(b);
-  else { const box = document.getElementById("bphClearBox"); if (box) box.innerHTML = clearHtml(); }   // 只换“清除筛选”按钮：输入搜索词时不能重建输入框
+  else { const c = bar?.querySelector("[data-clear-filters]"); if (c) c.hidden = !filtered(); }   // 只更新“清除筛选”按钮的显隐：输入搜索词时不能重建输入框
 }
 document.addEventListener("input", (e) => { if (e.target.id === "bphQ") apply({ q: e.target.value }); });
 document.addEventListener("change", (e) => { const k = { bphStatus: "status", bphYear: "year", bphSort: "sort" }[e.target.id]; if (k) apply({ [k]: e.target.value }); });
-document.addEventListener("click", (e) => { if (e.target.closest("#bphClear")) { apply({ ...FILTER0 }, true); } });
+onClearFilters("bph", () => apply({ ...FILTER0 }, true), filtered);
 document.addEventListener("click", (e) => {   // 加载更多：只重画列表，留在原位
   if (!e.target.closest("[data-action=pay-hist-more]")) return;
   shown += PAGE; const b = current(); if (!b) return;

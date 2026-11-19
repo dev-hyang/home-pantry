@@ -14,6 +14,7 @@ import { shopForm } from "./shops-list.js";
 import { state } from "../core/state.js";
 import { DOW, dealUi, distOf, missingPanel, ui } from "./shops-common.js";
 import { lpAttr } from "../core/long-press.js";
+import { clearActionBtn } from "../core/clear-filters.js";
 
 /* ───────────── 单个商店 ───────────── */
 export function viewShop(id) {
@@ -142,7 +143,7 @@ function dealsHtml(s, du, deals) {
       ${types.length ? `<select data-deal-type="${s.id}" data-nosearch aria-label="${esc(t("折扣类型"))}"><option value="">${t("全部折扣类型")}</option>${types.map((k) => `<option value="${k}" ${du.type === k ? "selected" : ""}>${esc(t(dealTypeName(k)))}${lang === "en" ? ` (${deals.filter((d) => typeOf(d).includes(k)).length})` : `（${deals.filter((d) => typeOf(d).includes(k)).length}）`}</option>`).join("")}</select>` : ""}
       ${cats.length > 1 ? `<select data-deal-cat="${s.id}" data-nosearch aria-label="${esc(t("分类"))}"><option value="">${t("全部分类")}</option>${cats.map((c) => `<option value="${esc(c)}" ${du.cat === c ? "selected" : ""}>${esc(t(dealCatName(c)))}</option>`).join("")}</select>` : ""}
       <select data-deal-sort="${s.id}" data-nosearch aria-label="${esc(t("排序"))}">${[["unit", "按单价"], ["price", "按价格"], ["name", "按名称"]].map(([k, l]) => `<option value="${k}" ${du.sort === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
-      ${du.q || du.cat || du.type || (du.filter && du.filter !== "all") ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-dreset" data-id="${s.id}">${t("清除筛选")}</button>` : ""}
+      ${du.q || du.cat || du.type || (du.filter && du.filter !== "all") ? `${clearActionBtn("shops-dreset", `data-id="${s.id}"`)}` : ""}
     </div>
     <div class="deal-th" aria-hidden="true"><span>${t("商品")}</span><span>${t("价格")}</span><span>${t("单价")}</span><span>${t("有效期")}</span><span></span></div>
     ${list.length ? `<ul class="deal-list">${list.map(row).join("")}</ul>` : `<p class="muted">${t("没有符合条件的特价。")}</p>`}` : `<p class="muted">${t("更新一次特价，这里就会列出本周在打折的东西。")}</p>`}
