@@ -10,6 +10,7 @@ import { priceOrNull } from "../core/finance-access.js";
 import { recallBadge } from "./recall.js";
 import { t } from "../core/i18n.js";
 import { C, H, SERVICE_BADGE, V, WARRANTY_BADGE, distUnit, isFixture, unitsText, vehStatus, vehStatusBadge } from "./asset-common.js";
+import { lpAttr } from "../core/long-press.js";
 
 /* ── 车辆页：家庭的所有车（不分房产），每辆的保养到期、证照与保险 ── */
 /** 已卖出 / 已归还的车：一行一辆，点开还能看档案、保养记录和当时的交易清单 */
@@ -71,7 +72,7 @@ export function assetCard(a) {
     + ((a.updated_at || a.created_at) ? `<span title="${esc(stampText(a))}">${t("{d} 更新", { d: fmtShort(a.updated_at || a.created_at) })}</span>` : "");
   const act = a.recallSt ? { href: `${href("asset", a.id)}?sec=recall`, label: t("处理召回") } : { href: `${href("asset", a.id)}?log=1`, label: t("记保养") };
   // 整张卡都能点（进编辑 / 详情）；右边居中是「记保养」；手机上 ← 左滑记保养 · 右滑删除设备 →
-  return `<article class="asset-card asset-row-card ${a.recallSt === "stop_use" ? "is-recall-stop" : a.recallSt ? "is-recall" : ""}" data-swipe-del="asset" data-swipe-left-label="${esc(act.label)}" data-swipe-left-go="${esc(a.recallSt ? t("松手处理召回") : t("松手记保养"))}" data-swipe-alt="asset" data-swipe-alt-label="${esc(t("删除设备"))}" data-swipe-alt-go="${esc(t("松手删除"))}">
+  return `<article class="asset-card asset-row-card ${a.recallSt === "stop_use" ? "is-recall-stop" : a.recallSt ? "is-recall" : ""}" data-swipe-del="asset" ${lpAttr([{ label: act.label, href: act.href, first: true }, { label: t("详情 / 编辑"), href: href("asset", a.id) }, { label: t("删除设备"), action: "asset-row-del", data: { id: a.id }, danger: true }], assetName(a))} data-swipe-left-label="${esc(act.label)}" data-swipe-left-go="${esc(a.recallSt ? t("松手处理召回") : t("松手记保养"))}" data-swipe-alt="asset" data-swipe-alt-label="${esc(t("删除设备"))}" data-swipe-alt-go="${esc(t("松手删除"))}">
     <a class="asset-hit" href="${href("asset", a.id)}" aria-label="${esc(t("编辑 {name}", { name: assetName(a) }))}"></a>
     <div class="asset-main">
       <div class="asset-head"><span class="asset-ico" aria-hidden="true">${a.t?.icon || "⚙️"}</span>

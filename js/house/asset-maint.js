@@ -13,6 +13,7 @@ import { state } from "../core/state.js";
 import { C, H, V, distUnit } from "./asset-common.js";
 import { cardSelectHtml, payAcctValue, purchasePayFields } from "../bills/card-picker.js";
 import { storeDatalist } from "../stats/store-lite.js";
+import { lpAttr } from "../core/long-press.js";
 
    // 由近及远
 function maintToolbar(a) {
@@ -56,7 +57,7 @@ export function maintSection(a, focusLog) {
 /** 保养记录列表（分批显示）：「继续加载」只重画这一块，上面没保存的保养表单不会被冲掉 */
 function maintLogsHtml(a) {
   const K = H().MAINT_KINDS, R = C().RESULTS, f = maintFilterFor(a), all = logsDesc(a).filter((l) => maintMatch(l, f)), lim = pageLimit(`maint:${a.id}`, JSON.stringify(f));
-  return all.length ? `<ul class="restock-list maint-list">${all.slice(0, lim).map((l) => `<li class="maint-row" data-swipe-del="maint">
+  return all.length ? `<ul class="restock-list maint-list">${all.slice(0, lim).map((l) => `<li class="maint-row" data-swipe-del="maint" ${lpAttr([{ label: t("编辑"), href: `${href("asset", a.id)}?log=1&edit=${l.id}`, first: true }, { label: t("复制"), href: `${href("asset", a.id)}?log=1&copy=${l.id}` }, { label: t("删除"), action: "maint-del", data: { id: l.id }, danger: true }], fmtDate(l.done_on))}>
       <a class="log-hit" href="${href("asset", a.id)}?log=1&edit=${l.id}" aria-label="${t("编辑这条记录")}"></a>
       <span class="badge ${l.kind === "repair" ? "b-low" : l.kind === "replace" ? "b-exp" : l.result && l.result !== "ok" ? "b-out" : "b-ok"}">${t(K[l.kind] || l.kind)}${l.result ? ` · ${t(R[l.result] || l.result)}` : ""}</span>
       <div class="grow"><span class="name">${esc(fmtDate(l.done_on))}${l.service_item ? ` · ${esc(t(V().serviceItem(l.service_item)?.name || l.service_item))}` : ""}</span>

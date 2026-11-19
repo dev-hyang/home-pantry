@@ -21,6 +21,7 @@ import { activeProps } from "./add-lite-common.js";
 import { spendDetailRows } from "./store-rows.js";
 import { NO_SPEND_FILTER } from "./records-lite.js";
 import { medNames } from "./records-lite-common.js";
+import { lpAttr } from "../core/long-press.js";
 
 /* ── 花费记录：搜索 + 分类树 / 性质 / 房产 / 商店 / 年份 / 月份筛选 + 排序，按月分组带小计；服务器分页（迁移 054 / 055），任何一年、全部年份都能看 ──
  * 筛选、排序、合计、月小计都在数据库里做（spend_page / spend_stats），这里只把界面上的筛选翻译成筛选对象（spendParams）；
@@ -98,7 +99,7 @@ function spendRow(p, L = spendLookups()) {
     : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>${state.spendDrafts?.[p.id] ? ` <span class="badge b-soon">${t("草稿")}</span>` : ""}`;
   const sel = state.spendSel && !p.virtual ? `<input type="checkbox" class="sel" data-sel="${p.id}" aria-label="${esc(t("选中 {name}", { name: p.name }))}" ${state.spendSel.has(p.id) ? "checked" : ""}>` : "";
   const open = !p.virtual && state.spendOpen === p.id;
-  return `<li data-swipe-del="purchase" class="${open ? "is-open" : ""}">${sel}
+  return `<li data-swipe-del="purchase" class="${open ? "is-open" : ""}"${p.virtual ? "" : ` ${lpAttr([bill ? { label: t("编辑"), href: `${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}`, first: true } : { label: t("编辑"), action: "spend-edit", data: { id: p.id }, first: true }, { label: t("复制"), action: "spend-copy", data: { id: p.id } }, { label: t("删除"), action: "purchase-del", data: { id: p.id }, danger: true }], p.name)}`}>${sel}
     <span class="badge rec-date">${esc(fmtDay(p.purchased_at))}</span>
     <div class="grow"><span class="name">${title}${tags}</span><small>${esc(leafLabel(p.category))}${prop ? `，🏠 ${esc(prop)}` : ""}${storeOf(p) ? `，${esc(storeOf(p))}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${paymentPayLabel(p) ? `，${esc(paymentPayLabel(p))}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
     <b>${p.amount != null && num(p.amount) < 0 ? `<span class="badge b-ok">${t("退款")}</span> ` : ""}${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>

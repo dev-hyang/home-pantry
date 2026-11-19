@@ -14,6 +14,7 @@ import { Store } from "../core/store.js";
 import { cached } from "../core/spend-data.js";
 import { lastMonths, monthLabel } from "../stats/spend-roll.js";
 import { spendBase } from "../stats/records-lite.js";
+import { lpAttr } from "../core/long-press.js";
 
 /* 复盘、分摊要的花费都按需向数据库要（迁移 057），不读整表：
  *   上个月最大的几笔 = 花费流水按金额排的前 3 行（spend_page，sort = high）；家庭分摊 = 当月花费读进内存按记账人汇总（一个月的量，不值得单独聚合） */
@@ -133,7 +134,7 @@ registerSection("goals", 0, ({ plan }) => {
   const rows = goals.map((g) => { const left = Math.max(0, num(g.target) - num(g.saved)), m = monthsLeft(g.date), need = Math.ceil(left / m); return { g, left, m, need, done: left <= 0 }; });
   const needTotal = rows.filter((r) => !r.done).reduce((s, r) => s + r.need, 0);
   return sec("budGoals", t("储蓄目标"), t("给大件或旅行设个目标，每月该存多少算给你"), `<div class="panel">
-    ${rows.length ? rows.map(({ g, left, m, need, done }) => `<div class="bud-row" data-swipe-del="budget-goal"><div class="bud-head"><b>🎯 ${esc(g.name)}</b><span>${money(g.saved || 0)} / ${money(g.target)} · ${pct(g.saved || 0, g.target)}%</span></div>${barHtml(g.saved || 0, g.target)}
+    ${rows.length ? rows.map(({ g, left, m, need, done }) => `<div class="bud-row" data-swipe-del="budget-goal" ${lpAttr([{ label: t("删除"), action: "budget-goal-del", data: { id: g.id }, danger: true }], g.name)}><div class="bud-head"><b>🎯 ${esc(g.name)}</b><span>${money(g.saved || 0)} / ${money(g.target)} · ${pct(g.saved || 0, g.target)}%</span></div>${barHtml(g.saved || 0, g.target)}
       <small class="muted">${done ? `✅ ${t("已攒够")}` : t("{d} 前还差 {a}，每月存 {b}（约 {m} 个月）", { d: esc(g.date), a: money(left), b: money(need), m })}</small>
       <div class="bud-inline"><input type="number" min="1" step="1" inputmode="decimal" data-goal-amt="${g.id}" placeholder="${t("存入金额")}" aria-label="${t("存入金额")}"><button type="button" class="btn btn-sm" data-action="budget-goal-save" data-id="${g.id}">${t("存入")}</button>
         <button type="button" class="btn btn-sm btn-danger-ghost swipe-src" data-action="budget-goal-del" data-id="${g.id}">${t("删除")}</button></div></div>`).join("")

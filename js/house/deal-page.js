@@ -13,6 +13,7 @@ import { priceInput, priceOrNull, pricesOk } from "../core/finance-access.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { debts as allDebts } from "../bills/debt-logic-common.js";
+import { lpAttr } from "../core/long-press.js";
 
 /* ── 交易页：主体是当前房产，或 ?asset=<id> 指定的车辆 ── */
 const DEAL_VIEWS = [["list", "☰", "清单"], ["plan", "📋", "计划"], ["actual", "✅", "实际"], ["compare", "⚖️", "对比"]];
@@ -234,7 +235,7 @@ function dealHistory(list, current, linkOf) {
   if (!list.length) return "";
   const K = D().KINDS, lim = pageLimit("deals");   // 分批显示；换页面回到一页
   // 一行：种类徽章 + 日期 / 摘要；“查看清单”固定在右上角（手机上摘要换行也不会和按钮叠在一起）
-  return `<section class="section"><div class="section-head"><h2>${t("历史交易")}</h2></div><div class="panel"><ul class="restock-list hist-list">${list.slice(0, lim).map((d) => `<li data-swipe-del="deal" ${d.id === current ? 'aria-current="true"' : ""}>
+  return `<section class="section"><div class="section-head"><h2>${t("历史交易")}</h2></div><div class="panel"><ul class="restock-list hist-list">${list.slice(0, lim).map((d) => `<li data-swipe-del="deal" ${lpAttr([d.id === current ? null : { label: t("查看清单"), href: linkOf(d), first: true }, { label: t("删除"), action: "deal-delete", data: { deal: d.id }, danger: true }])} ${d.id === current ? 'aria-current="true"' : ""}>
     <span class="badge" style="background:var(--surface-2)">${t(K[d.kind])}</span>
     <div class="grow"><a class="link-name" href="${linkOf(d)}">${d.closing_on ? fmtDate(d.closing_on) : fmtDate((d.closed_at || d.updated_at || "").slice(0, 10))}</a>
       <small>${[d.outcome === "cancelled" ? t("已取消") : isVehDeal(d) ? t("已完成") : t("已交割"), priceOrNull(d.price) ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>

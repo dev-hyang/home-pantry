@@ -7,6 +7,7 @@ import { compare, joinList, t } from "../core/i18n.js";
 import { fab } from "./inventory-items.js";
 import { href } from "../core/router.js";
 import { ownerMatch } from "./owner.js";
+import { lpAttr } from "../core/long-press.js";
 
 /* ── 该补货了（储藏概览 / 房屋页共用）──
  * 2026-11-15：名字旁边一个小标签——「已加入」（在购物车里）/「未加入」；点标签或滑动来加入 / 移出：
@@ -22,7 +23,7 @@ export function restockPanel(alerts, limit = 8) {
     const swipe = inList
       ? `data-swipe-del="rs" data-swipe-alt="rs" data-swipe-alt-label="${esc(t("移出购物车"))}" data-swipe-alt-go="${esc(t("松手移出"))}"`
       : `data-swipe-del="rs" data-swipe-left-label="${esc(t("加入购物车"))}" data-swipe-left-go="${esc(t("松手加入"))}"`;
-    return `<li class="rs-row ${inList ? "rs-in" : ""}" ${swipe}>
+    return `<li class="rs-row ${inList ? "rs-in" : ""}" ${swipe} ${lpAttr([{ label: t("编辑"), action: "edit", data: { id: it.id }, first: true }, inList ? { label: t("移出购物车"), action: "shop-remove-item", data: { id: it.id } } : { label: t("加入购物车"), action: "shop-add-item", data: { id: it.id } }], it.name)}>
       <span class="badge ${STATUS[it.status].cls}">${t(STATUS[it.status].label)}</span>
       <div class="grow"><span class="rs-name"><button type="button" class="link-name" data-action="edit" data-id="${it.id}">${esc(it.name)}</button>${rsTag(it, inList)}</span>
         <small>${t("剩 {q} {u}", { q: fmt(it.dqty), u: esc(t(it.du)) })}${it.daysLeft != null && it.qty > 0 ? t("，约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) }) : ""}${inList ? "" : t("，建议买 {q} {u}", { q: fmt(it.dsuggest), u: esc(t(it.du)) })}</small></div>

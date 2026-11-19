@@ -14,6 +14,7 @@ import { categoryOptions } from "./meals-sync.js";
 import { cardSelectHtml } from "../bills/card-picker.js";
 import { cardHintHtml } from "../bills/cards-review.js";
 import { storeDatalist } from "../stats/store-lite.js";
+import { lpAttr } from "../core/long-press.js";
 
 function shopQty(s) {
   const unit = shopUnit(s), d = du(unit), step = Units.step(d);
@@ -89,7 +90,7 @@ function shopRowHtml(s) {
   const cat = s.category || state.items.find((i) => i.id === s.item_id)?.category;
   const spend = s.status === "bought" ? priceBox
     : `<details class="si-spend"><summary>💰 ${t("记一笔花费（可选）")}</summary>${priceBox}</details>`;
-  return `<li class="shop-item ${s.status === "bought" ? "done" : ""}${picked ? " is-picked" : ""}"${swipe}>
+  return `<li class="shop-item ${s.status === "bought" ? "done" : ""}${picked ? " is-picked" : ""}"${swipe}${sel ? "" : ` ${lpAttr([s.status === "todo" ? { label: t("我来买"), action: "shop-claim", data: { id: s.id }, first: true } : null, s.status === "claimed" && mine ? { label: t("取消认领"), action: "shop-unclaim", data: { id: s.id }, first: true } : null, s.status === "bought" ? null : { label: t("已买到"), action: "shop-bought", data: { id: s.id } }, { label: t("删除"), action: "shop-del", data: { id: s.id }, danger: true }], s.name)}`}>
     <div class="si-top">${sel ? `<input type="checkbox" class="shop-chk" data-id="${s.id}" ${picked ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: s.name }))}">` : ""}<b class="si-name">${esc(s.name)}</b>${when ? `<small class="si-when muted" title="${esc(stampText(s))}">${when}</small>` : ""}
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shop-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button>${s.status === "bought" ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="shop-bought" data-id="${s.id}" data-confirm="1" aria-label="${esc(t("{name} 已买到", { name: s.name }))}">${t("已买到")}</button>`}</div>
     ${s.status === "bought" ? "" : `<div class="card-hint-slot">${cardHintHtml(cat, "")}</div>`}

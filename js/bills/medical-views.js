@@ -14,6 +14,7 @@ import { propertyOptionsHtml } from "../core/lifecycle.js";
 import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, findPerson, kindOf, peopleFor, subIcon, subName } from "./medical.js";
 import { applyMedical, reloadMedical } from "./medical-data.js";
 import { accountOptions, acctById, paymentPayLabel } from "./card-picker.js";
+import { lpAttr } from "../core/long-press.js";
 export { applyMedical, medBillLabel, reloadMedical } from "./medical-data.js";
 
 const cur = () => Units.region.currency;
@@ -153,7 +154,7 @@ const METHODS = ["信用卡", "借记卡", "HSA 卡", "FSA 卡", "支票", "银�
 /** 付款方式下拉：先列我的卡 / 账户（选了就记到那张卡上，和花费记录一样），再列通用方式 */
 const methodOptions = (edit) => { const cur = edit?.card_id && acctById(edit.card_id) ? edit.card_id : edit?.method || ""; return `${accountOptions(cur, { none: "（未选）", extra: METHODS.map((m) => [m, m]) })}${cur && !METHODS.includes(cur) && !acctById(cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}`; };
 function paymentsHtml(b, edit, owed) {
-  const rows = b.pays.map((p) => `<li class="med-pay${edit?.id === p.id ? " is-editing" : ""}" data-swipe-del="med-pay"><a class="badge pay-date" style="background:var(--surface-2)" href="${detailHref(b.id)}?pay=${p.id}" title="${esc(t("点一下编辑"))}">${esc(fmtDate(p.paid_on))}</a>
+  const rows = b.pays.map((p) => `<li class="med-pay${edit?.id === p.id ? " is-editing" : ""}" data-swipe-del="med-pay" ${lpAttr([{ label: t("编辑"), href: `${detailHref(b.id)}?pay=${p.id}`, first: true }, { label: t("删除"), action: "med-pay-del", data: { id: p.id }, danger: true }], fmtDate(p.paid_on))}><a class="badge pay-date" style="background:var(--surface-2)" href="${detailHref(b.id)}?pay=${p.id}" title="${esc(t("点一下编辑"))}">${esc(fmtDate(p.paid_on))}</a>
       <div class="grow"><a class="link-name name" href="${detailHref(b.id)}?pay=${p.id}" title="${esc(t("点一下编辑"))}">${mny(p.amount, p.currency || b.currency)}</a><small>${[paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="med-pay-del" data-id="${p.id}">${t("删除")}</button></li>`).join("");
   const sumLine = owed == null ? t("还没填自付金额或总额，余额未知") : t("自付 {o} · 已付 {p} · 余额 {b}", { o: mny(owed, b.currency), p: mny(b.paid, b.currency), b: mny(b.balance, b.currency) });

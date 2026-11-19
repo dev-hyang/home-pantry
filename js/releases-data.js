@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.16", title: { zh: "长按一行弹出操作，其他页面也能用了", en: "Long-press row actions now work on the other pages too" }, items: [
+    { k: "new", zh: "手机上长按一行，底部弹出这一行能做的事：库存、补货、购物清单、花费记录、收入记录、保养记录、设备和车辆、卡与账户、医疗付款、储蓄目标、商店和特价、历史交易", en: "On a phone, long-press a row for its actions: Inventory, Restock, Shopping, Spending and Income records, Maintenance logs, Assets and vehicles, Cards and accounts, Medical payments, Savings goals, Shops and deals, Deal history" },
+    { k: "better", zh: "每页的菜单按各自的业务来：购物清单有「我来买 / 已买到」，库存有「加入购物车」，卡有「停用 / 启用」，商店有「本周广告 / 更新特价」等", en: "Each page has its own actions: Shopping has I'll buy / Bought, Inventory has Add to cart, Cards have Deactivate / Activate, Shops have This week's ad / Update deals" }
+  ] },
+
   { v: "2026-11-19.15", title: { zh: "手机上长按一行，弹出这一行的更多操作", en: "Long-press a row on your phone for its more actions" }, items: [
     { k: "new", zh: "缴费记录、全部账单、家庭成员的登录设备：在手机上长按一行，底部弹出这一行能做的事（编辑、复制、删除、记缴费、查看详情等）；电脑上用每行右边的 ⋯", en: "Payment records, All bills and Family devices: long-press a row on a phone for a bottom sheet of actions (edit, copy, delete, log payment, details…); on desktop use the ⋯ on each row" },
     { k: "new", zh: "缴费记录新增「复制为新一笔」：带入这笔的金额和方式，日期改成今天，再改一改就能记新的一笔", en: "Payment records get Copy as new payment: it brings in the amount and method with today's date, ready to adjust and save" },
