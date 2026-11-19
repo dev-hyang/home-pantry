@@ -1,36 +1,19 @@
-/* 设置 → 家庭与成员：家庭成员（人）卡片列表 + 成员详情页（基本资料 / 登录设备 / 登录记录，三块都能折叠，右上角各有编辑）。
- *   · 一个人可以有多台登录设备（household_members.person_id）；账单「谁负责」、一次性账单的患者、收入都关联「人」，不是设备。
- *   · 家主：看到全部人、全部设备、全部登录记录；普通成员：只看到自己和自己名下的设备 / 记录。
- *   · 第一次用一台新设备登录会问「这台设备是谁？」（链接过就不再出现，可折叠）。
- * 数据：名册 household_people（state.people），设备 household_members（state.members），登录记录见 logins.js。迁移 084 / 085 / 087 / 088。 */
 import { state } from "../core/state.js";
 import { CloudStore, DemoStore, Store } from "../core/store.js";
 import { $, esc, fmtDate, fmtDateTime, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
-import { href } from "../core/router.js";
 import { moreMenu } from "../core/more-menu.js";
 import { PEOPLE_KINDS } from "../bills/medical.js";
 import { DEVICE_ICON } from "../core/device-info.js";
 import { amOwner, famMembers, familyHref, meId, reloadMembers } from "./members.js";
 import { deviceText, ensureLogins, L, lastLoginOf, loginHasMore, loginRowHtml, loginWindow } from "./logins.js";
+import { adultPeople, devicesOf, myPersonOf, personHref, personNameOf, visiblePeople } from "./family-lite.js";
 
-const demo = () => Store.mode === "demo";
-export const personHref = (id) => `${familyHref()}&person=${encodeURIComponent(id)}`;
-const F = { edit: null, devShow: 6, devOpen: null, scopeAll: false, renameDev: null, linkDev: null };   // renameDev = 正在改名的设备；linkDev = 正在选「属于哪位家庭成员」的设备（底部弹出）   // 当前正在编辑的块、设备显示几行、哪台设备展开了详情、登录记录是否看全家
-
-/* ── 数据小工具 ── */
-export const myMember = () => famMembers().find((m) => m.user_id === meId()) || null;
-export const myPersonOf = () => myMember()?.person_id || null;
-export const devicesOf = (personId) => famMembers().filter((m) => m.person_id === personId);
-export const personNameOf = (id) => state.people.find((p) => p.id === id)?.name || "";
-/** 我在全应用里「署名」用的名字：家庭成员的名字；这台设备还没链接家庭成员才用设备的称呼。所有写进记录里的「谁做的」文字（完成人、认领人、进展记录人…）都用它 */
-export const myName = () => personNameOf(myPersonOf()) || state.displayName;
-export const adultPeople = () => state.people.filter((p) => (p.kind || "adult") === "adult");
-export const visiblePeople = () => (amOwner() ? state.people : state.people.filter((p) => p.id === myPersonOf()));
+export const demo = () => Store.mode === "demo";
+export const F = { edit: null, devShow: 6, devOpen: null, scopeAll: false, renameDev: null, linkDev: null };
 const personOk = (p) => amOwner() || p.id === myPersonOf();
 const roleOf = (p) => (devicesOf(p.id).some((d) => d.role === "owner") ? "owner" : devicesOf(p.id).length ? "member" : null);
 const avatarOf = (p) => (p.kind === "pet" ? "🐾" : p.kind === "child" ? (p.gender === "female" ? "👧" : p.gender === "male" ? "👦" : "🧒") : p.gender === "female" ? "👩" : p.gender === "male" ? "👨" : "🧑");
-
 /** 把设备链接到某个人（空 = 取消链接）；设备自己、或家主可以 */
 export async function setDevicePerson(userId, personId) {
   if (demo()) { DemoStore.demoMember(userId).person_id = personId || null; DemoStore.persist(); }
@@ -42,17 +25,6 @@ export async function createPerson(name, kind = "adult") {
   state.people = await Store.listPeople();
   return id || state.people.find((p) => p.name === String(name).trim())?.id;
 }
-
-/* ── 这台设备是谁？（可折叠；已经链接就不显示） ── */
-export function deviceLinkPrompt() {
-  if (demo()) return "";
-  const m = myMember(); if (!m || m.person_id) return "";
-  const opts = adultPeople().map((p) => `<option value="${esc(p.id)}">${esc(p.name)}${devicesOf(p.id).length ? ` · ${t("{n} 台设备", { n: devicesOf(p.id).length })}` : ""}</option>`).join("");
-  return `<details class="panel device-link" open><summary><b>📱 ${t("这台设备是谁？")}</b></summary>
-    <p class="muted">${t("选你自己，账单的“谁负责”、收入和医疗账单才会记在同一个人名下；换了新设备再登录，选同一个人就行，不会多出一个人。")}</p>
-    ${opts ? `<div class="dl-row"><select id="devLinkPick" aria-label="${esc(t("选择家庭成员"))}"><option value="">${t("选择家庭成员…")}</option>${opts}</select><button type="button" class="btn btn-primary" data-action="device-link">${t("就是我")}</button></div>` : ""}
-    <div class="dl-row"><input id="devLinkNew" maxlength="40" placeholder="${esc(t("我是新成员，名字："))}" value="${esc(opts ? "" : m.display_name || "")}" aria-label="${esc(t("新成员的名字"))}"><button type="button" class="btn ${opts ? "btn-ghost" : "btn-primary"}" data-action="device-link-new">${t("新建并链接")}</button></div></details>`;
-}
 export async function deviceLinkDo() { const id = $("#devLinkPick")?.value; if (!id) return toast(t("先选一位家庭成员。")); await setDevicePerson(meId(), id); toast(t("已链接")); }
 export async function deviceLinkNew() {
   const name = $("#devLinkNew")?.value.trim(); if (!name) return toast(t("请填名字。"));
@@ -60,7 +32,6 @@ export async function deviceLinkNew() {
   if (hit && !window.confirm(t("名册里已经有「{n}」。确定 = 就是这位，链接过去；取消 = 返回。", { n: hit.name }))) return;
   await setDevicePerson(meId(), hit ? hit.id : await createPerson(name, "adult")); toast(t("已链接"));
 }
-
 /* ── 家庭成员卡片列表 ── */
 const badgesOf = (p) => {
   const role = roleOf(p);
@@ -91,13 +62,11 @@ export function peoplePanel() {
       ${list.length ? `<ul class="fam-list">${list.map(cardHtml).join("")}</ul>` : `<div class="empty"><strong>${t("还没有家庭成员")}</strong>${t("家主可以点上面的“＋ 添加”。")}</div>`}
       <p class="muted mem-note">${owner ? t("点右边的 ⋯ 看详情（资料、登录设备、登录记录）。账单的“谁负责”、一次性账单的患者、收入都关联到这里的人。") : t("你只能看到自己；家主管理全部家庭成员。")}</p></div>`;
 }
-
 /* ── 成员详情页 ── */
 /** 一个可折叠的块：标题 + 右上角编辑；编辑按钮在 <summary> 里，点它不折叠（见底部的点击处理） */
 const sec = (id, icon, title, body, { edit = false, count = "" } = {}) => `<section class="panel prof-card fam-sec" data-fam-sec="${id}">
     <header class="prof-head"><span class="mi" aria-hidden="true">${icon}</span><div class="prof-t"><h3>${title}</h3>${count ? `<small>${count}</small>` : ""}</div>${edit ? `<button type="button" class="btn btn-sm btn-ghost prof-edit" data-fam-edit="${id}" aria-pressed="${F.edit === id}">${F.edit === id ? t("完成") : t("编辑")}</button>` : ""}</header>${body}</section>`;
 const fact = (k, v) => `<div class="fact"><dt>${k}</dt><dd>${v || `<span class="muted">${t("没填")}</span>`}</dd></div>`;
-
 function basicBody(p) {
   const owner = amOwner(), devs = devicesOf(p.id), role = roleOf(p), fin = devs.some((d) => d.role === "owner" || d.can_finance === true);
   if (F.edit !== "basic") return `<dl class="fact-grid one">${fact(t("名字"), esc(p.name))}${fact(t("类别"), esc(t(PEOPLE_KINDS[p.kind] || p.kind)))}${p.kind !== "pet" ? fact(t("性别"), p.gender ? t(p.gender === "male" ? "男" : "女") : "") : ""}${fact(t("生日"), p.birth ? esc(fmtDate(p.birth)) : "")}
@@ -118,7 +87,6 @@ function basicBody(p) {
     </div><p id="personErr" class="form-error" role="alert"></p>
     <div class="form-actions form-actions-split"><button type="button" class="btn btn-ghost" data-fam-edit="basic">${t("取消")}</button><button type="submit" class="btn btn-primary">${t("保存")}</button></div></form>`;
 }
-
 /** 这台设备我能不能移出：不是当前这台；家主任意，普通成员只能移出同一个人名下的 */
 const canRemoveDevice = (userId) => { const m = famMembers().find((x) => x.user_id === userId); return !!m && userId !== meId() && (amOwner() || (!!m.person_id && m.person_id === myPersonOf())); };
 function deviceRow(m) {
@@ -157,7 +125,6 @@ function logsBody(p) {
     ${more ? `<div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="logins-more">${t("加载更多（再往前 6 天）")}</button></div>` : ""}
     ${amOwner() && L.bad.length ? `<details class="login-help" open><summary>${t("不是我们家人登录的？怎么办")}</summary><ol class="muted"><li>${t("在可疑记录右边的 ⋯ 里选“移出设备”，或到上面“登录设备”里点“移除”")}</li><li>${t("回到家庭与成员页，点“重新生成”换一个邀请码，旧邀请码立刻作废")}</li><li>${t("检查登录用的邮箱 / 手机号有没有被别人动过，必要时改密码或开启两步验证")}</li></ol></details>` : ""}`;
 }
-
 export function personPage(id) {
   if (id === "new") return amOwner() ? newPersonPage() : `<div class="panel empty"><strong>${t("只有家主能添加家庭成员")}</strong><p><a class="btn" href="${familyHref()}">${t("回家庭与成员")}</a></p></div>`;
   const p = state.people.find((x) => x.id === id);
@@ -171,7 +138,6 @@ export function personPage(id) {
     ${p.kind !== "pet" && hasDev ? sec("devices", "📱", t("登录设备"), devicesBody(p), { count: t("{n} 台", { n: devicesOf(p.id).length }) }) : ""}
     ${p.kind !== "pet" && hasDev ? sec("logs", "🕘", t("登录记录"), logsBody(p)) : ""}${danger}${linkSheet()}</div>`;
 }
-
 /** 新建家庭成员：基本资料表单页（取消在左、保存在右） */
 function newPersonPage() {
   const sel = (name, opts) => `<select name="${name}">${opts.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("")}</select>`;
@@ -187,7 +153,6 @@ function newPersonPage() {
     </div><p id="personErr" class="form-error" role="alert"></p>
     <div class="form-actions form-actions-split"><button type="button" class="btn btn-ghost" data-action="person-new-cancel">${t("取消")}</button><button type="submit" class="btn btn-primary">${t("保存")}</button></div></form></section></div>`;
 }
-
 /* ── 事件：块的编辑 / 折叠 / 设备详情 / 范围 / 保存 ── */
 /** 重画当前页；keep = 留在原来的位置（登录记录里切范围 / 加载更多，不回到页面顶端） */
 const rerender = (keep = false) => { const y = window.scrollY; window.dispatchEvent(new HashChangeEvent("hashchange")); if (keep) { requestAnimationFrame(() => window.scrollTo(0, y)); setTimeout(() => window.scrollTo(0, y), 60); } };
@@ -204,8 +169,6 @@ document.addEventListener("click", async (e) => {
   else if (a.action === "dev-more") { F.devShow += 6; rerender(true); }
   else if (a.action === "logs-scope") { F.scopeAll = a.all === "1"; rerender(true); }
 });
-export const resetFamilyUi = () => { F.edit = null; F.devShow = 6; F.devOpen = null; F.scopeAll = false; };
-
 const val = (f, n) => (f.elements[n] ? f.elements[n].value.trim() : "");
 /** 保存基本资料：人的资料 + （家主）角色和财务权限施加到这位成员名下的每台设备 */
 export async function savePersonForm(f) {
@@ -230,7 +193,6 @@ export async function savePersonForm(f) {
     return true;
   } catch (e) { btn.disabled = false; return fail(t("保存失败：{msg}", { msg: e.message })); }
 }
-
 /** 把一个人移出家庭：移出名下所有设备（等于从那些设备登出），再删掉这个人（账单里的名字保留，只是不再关联）；最后一位家主的设备移不掉，会提示 */
 export async function removePerson(id) {
   const p = state.people.find((x) => x.id === id); if (!p) return;
@@ -242,7 +204,6 @@ export async function removePerson(id) {
     state.people = await Store.listPeople(); await reloadMembers(); toast(t("已移出 {name}", { name: p.name }));
   } catch (e) { await reloadMembers(); state.people = await Store.listPeople(); toast(t("操作失败：{msg}", { msg: e.message })); }
 }
-
 /* 设备改名：在行里直接改，回车保存，点页面别处（或按 Esc）取消 */
 async function saveDeviceName(input) {
   const id = input.dataset.devName, name = input.value.trim(), cur = famMembers().find((x) => x.user_id === id);
