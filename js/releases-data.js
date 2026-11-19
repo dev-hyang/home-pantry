@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.23", title: { zh: "往上滑时，底部中央出现「回到顶部」", en: "A Back to top button appears at the bottom center while you scroll up" }, items: [
+    { k: "new", zh: "页面滚下去一段后，手势持续往上滑，底部中央会冒出一个圆形的「回到顶部」按钮，点一下平滑回到顶部；往下滑、停下几秒或已经在顶部附近就自动收起", en: "After scrolling down, keep scrolling up and a round Back to top button appears at the bottom center; tap it to glide to the top. It hides when you scroll down, pause for a few seconds, or are near the top" }
+  ] },
+
   { v: "2026-11-19.22", title: { zh: "底部导航只在有“取消 / 保存”栏的表单里才隐藏", en: "The bottom tab bar is hidden only on forms that have a Cancel / Save bar" }, items: [
     { k: "fix", zh: "房屋资料页、账单的缴费记录页和特别摊派列表页，以前底部导航被藏起来了，现在保留；只有底部带“取消 / 保存”栏的表单才隐藏导航，让保存栏贴底", en: "House profile, bill payment records and the special assessment list used to hide the bottom tabs; they now keep them. Only forms with a bottom Cancel / Save bar hide the tabs so the bar sits at the bottom" }
   ] },

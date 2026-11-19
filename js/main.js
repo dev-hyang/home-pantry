@@ -7,6 +7,7 @@ import { renderAllList } from "./bills/all-views.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl } from "./minibar.js";
 import "./core/long-press.js";
+import "./core/back-to-top.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
