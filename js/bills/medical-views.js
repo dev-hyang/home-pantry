@@ -1,48 +1,31 @@
-/* 财务 → 医疗：概览 / 账单 / 年度报表三个标签（窄屏概览下面是入口行），账单详情页（?bill=<id|new>）里有金额、保险、付款记录。
- * 隐私：默认“仅自己和家主可见”（visibility = private），可改成全家可见；列表里私密的带 🔒。 */
-
 import { assetSelectHtml } from "./asset-ui.js";
 import { copyOf } from "../core/more-menu.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { $, esc, fmtDate, money, num, toast, todayISO } from "../core/util.js";
+import { $, esc, fmtDate, num, toast, todayISO } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { go, href } from "../core/router.js";
-
 import { autofillBar } from "../core/autofill.js";
 import { crumbNav } from "../core/hub.js";
 import { allBillsHref } from "./all-views.js";
 import { billScopeParts, overviewHref } from "./trail.js";
 import { viewOneTimeWizard } from "./ot-wizard-views.js";
-
 import { propertyOptionsHtml } from "../core/lifecycle.js";
 import { accountOptions, acctById, paymentPayLabel } from "./cards-views.js";
-import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, enrichMedical, findPerson, kindOf, mergeMedical, peopleFor, subIcon, subName } from "./medical.js";
+import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, findPerson, kindOf, peopleFor, subIcon, subName } from "./medical.js";
+import { applyMedical, reloadMedical } from "./medical-data.js";
+export { applyMedical, medBillLabel, reloadMedical } from "./medical-data.js";
 
 const cur = () => Units.region.currency;
 const mny = (v, c) => (v == null ? "—" : Units.money(num(v), c || cur()));
-const medHref = (id) => (id === "overview" ? href("bills", "overview") : allBillsHref({ type: "onetime" }));   // 一次性账单没有自己的目录页了：列表 = 全部账单（只看一次性）
+const medHref = (id) => (id === "overview" ? href("bills", "overview") : allBillsHref({ type: "onetime" }));
+   // 一次性账单没有自己的目录页了：列表 = 全部账单（只看一次性）
 const lock = (b) => (b.visibility === "private" ? `<span title="${esc(t("仅自己和家主可见"))}" aria-label="${esc(t("仅自己和家主可见"))}">🔒</span> ` : "");
-
-/** 重读医疗账单和付款（保存 / 删除后用，不用整个 refresh）；表还没建（没执行迁移 027）时当作空 */
-export async function reloadMedical() {
-  try {
-    const [bills, pays] = await Promise.all([Store.listMedicalBills(), Store.listMedicalPayments()]);
-    state.medBills = bills; state.medPayments = pays;
-  } catch (e) { console.warn("[medical]", e.message); state.medBills = state.medBills || []; state.medPayments = state.medPayments || []; }
-  state.medEnriched = enrichMedical(state.medBills, state.medPayments);
-  mergeMedical();
-}
-export function applyMedical(bills, pays) {
-  state.medBills = bills; state.medPayments = pays; state.medEnriched = enrichMedical(bills, pays); mergeMedical();
-}
-
 /** 一次性账单详情 / 新建页（#/otbill/<id|new>） */
 export function viewOtBill() {
   const r = state.route;
   return viewDetail(r.id || "new", r.q.get("pay"));
 }
-
 /* ───────────── 账单详情：基本信息 + 金额 + 付款 ───────────── */
 const d = (x) => esc(x ?? "");
 const people = () => [...new Set([...state.members.map((m) => m.display_name), ...state.medBills.flatMap((b) => [b.patient, b.guarantor])].filter(Boolean))];
@@ -122,7 +105,8 @@ function viewDetail(id, payId) {
   </section>`;
 }
 /* ───────────── 一次性账单详情页：分区卡片（一次滑动看全）+ 付款记录；每块单独「编辑」（?sec=） ───────────── */
-const OTL = (zh, en) => (lang === "en" ? en : zh);   // 字段标签：中英文直接写（这些词在别处的英文含义不同）
+const OTL = (zh, en) => (lang === "en" ? en : zh);
+   // 字段标签：中英文直接写（这些词在别处的英文含义不同）
 function medFacts(b, id) {
   const K = kindOf(b), none = `<span class="muted">${t("未填")}</span>`, c = b.currency;
   const dl = (rows) => `<dl class="fact-grid one">${rows.filter(Boolean).map(([k, val]) => `<div class="fact"><dt>${k}</dt><dd>${val || none}</dd></div>`).join("")}</dl>`;
@@ -164,7 +148,6 @@ function medCardsPage(b, payEdit) {
     <div class="danger-zone"><button type="button" class="btn btn-danger-ghost" data-action="med-del" data-id="${b.id}">${t("删除这张账单")}</button><small class="muted">${t("连同这张账单的付款记录一起删除，删了找不回来。")}</small></div>
   </section>`;
 }
-
 /** 常用的付款方式（存中文标准词，显示时翻译；具体是哪张卡、哪个账户写在备注里）；旧记录里手填的方式保留成一个选项 */
 const METHODS = ["信用卡", "借记卡", "HSA 卡", "FSA 卡", "支票", "银行转账（ACH）", "网上支付", "电话支付", "现金", "其他"];
 /** 付款方式下拉：先列我的卡 / 账户（选了就记到那张卡上，和花费记录一样），再列通用方式 */
@@ -191,7 +174,6 @@ function paymentsHtml(b, edit, owed) {
     </form></details>
     <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有付款")}</strong></div>`}</div>`;
 }
-
 /* ───────────── 保存 / 删除 / 导出 ───────────── */
 const val = (el) => (el?.value || "").trim() || null;
 const amt = (el) => (el && el.value !== "" ? Math.round(Math.max(0, num(el.value)) * 100) / 100 : null);
@@ -231,8 +213,6 @@ export function onKindPick(e) {
   if (e.target.name !== "kindPick") return;
   go(`${detailHref("new")}?kind=${e.target.value}`, { replace: true });
 }
-export const medBillLabel = (id) => { const b = state.medEnriched.find((x) => x.id === id); return b ? `${b.provider}${b.patient ? ` · ${b.patient}` : ""}` : t("新账单"); };
-
 /* ───────────── 家庭成员 / 孩子 / 宠物名册：选人、新增（查重）、管理 ───────────── */
 const rerender = () => window.dispatchEvent(new HashChangeEvent("hashchange"));
 const KIND_ICON = { adult: "🧑", child: "👶", pet: "🐾" };
@@ -243,7 +223,6 @@ const personAddPanel = (kind) => `<div id="personAdd" class="panel" hidden style
     <p id="personAddMsg" class="muted" role="status" style="margin:6px 0 0;font-size:13px"></p>
     <div class="form-actions"><button type="button" class="btn btn-sm btn-primary" data-action="person-add-do">${t("添加")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-add-cancel">${t("取消")}</button></div></div>`;
 const personSelects = () => [...document.querySelectorAll("#medBillForm select[name=patient_id], #medBillForm select[name=guarantor_id]")];
-
 /** 下拉里选了“＋ 新增…”：不真的选它，展开新增面板（记下是给哪个下拉加的） */
 export function onPersonPick(e) {
   const sel = e.target;
@@ -279,7 +258,6 @@ export async function personAddDo() {
     applyMedical(state.medBills, state.medPayments); selectPerson(id); toast(t("已加入家庭成员：{n}", { n: name }));
   } catch (e) { msg.textContent = e.message; }
 }
-
 export function personMergeOpen(id) { state.personMerge = state.personMerge === id ? null : id; state.personEdit = null; rerender(); }
 export function personMergeCancel() { state.personMerge = null; rerender(); }
 export async function personMerge(id) {

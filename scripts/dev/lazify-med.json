@@ -1,0 +1,1 @@
+{ "modules": [ { "module": "bills/medical-views.js", "key": "medViews", "skip": ["reloadMedical", "applyMedical", "medBillLabel"] } ] }

@@ -20,11 +20,11 @@ import { crumbNav } from "./core/hub.js";
 import { billAlerts } from "./bills/logic.js";
 import { activeProperties, endedProperties } from "./core/lifecycle.js";
 import { activeTab, firstTab, tabLabel } from "./core/tabs.js";
-import { medBillLabel } from "./bills/medical-views.js";
 import { collectAlerts } from "./core/alerts.js";
 import { houseBar } from "./house/property-form.js";
 import { FINANCE_HIDDEN_SUBS, financeOk } from "./core/finance-access.js";
 import { debtsEnriched } from "./bills/debt-logic-common.js";
+import { medBillLabel } from "./bills/medical-data.js";
 
 const SECTION_ICON = { pantry: "🗄️", house: "🏠", bills: "💰", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”

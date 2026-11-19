@@ -3,7 +3,6 @@ import * as Backup from "../core/backup.js";
 import { Store } from "../core/store.js";
 import { applyCustomCategories } from "../core/categories.js";
 import { applyCustomLocations } from "../core/locations.js";
-import { applyMedical, reloadMedical } from "../bills/medical-views.js";
 import { backupTargetName } from "./actions/backup.js";
 import { enrich } from "../core/logic.js";
 import { enrichAssets } from "../house/assets-logic.js";
@@ -30,6 +29,7 @@ import { setSync, toast } from "../core/util.js";
 import { spendChanged } from "../core/spend-data.js";
 import { state } from "../core/state.js";
 import { loadDebts } from "../bills/debt-logic-common.js";
+import { applyMedical, reloadMedical } from "../bills/medical-data.js";
 
 /* ───────────── 刷新与渲染 ───────────── */
 /** 次要的表（保养记录、季节任务、缴费记录、库存流水）读得慢时，不让整个页面一起空白：超过 SOFT_MS 就先用旧数据 / 空数据画出来，

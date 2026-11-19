@@ -2,6 +2,14 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.48", title: { zh: "启动更快：医疗 / 一次性账单页面改成用到时才加载", en: "Faster start: the one-time (medical) bills pages now load only when opened" }, items: [
+    { k: "better", zh: "一次性（医疗）账单页面的程序不再在打开应用时下载，进到这类页面才加载，首页启动少下载约 70KB；功能和以前一样", en: "The one-time (medical) bill pages are no longer downloaded when the app opens, only when you visit them (about 70KB less at start); features are unchanged" }
+  ] },
+
+  { v: "2026-11-18.47", title: { zh: "内部整理：物品表单的程序文件拆小", en: "Under the hood: the item form program split into smaller files" }, items: [
+    { k: "better", zh: "把物品表单的程序文件按保存、独立字段拆成几个小文件；页面和操作和以前一样", en: "The item form program is split into save and field files; pages and actions work as before" }
+  ] },
+
   { v: "2026-11-18.46", title: { zh: "内部整理：数据读写层的大程序文件拆小", en: "Under the hood: the data-layer program split into smaller files" }, items: [
     { k: "better", zh: "把一千四百多行的数据读写程序，按储藏、商店、花费、房产、账单、财务、成员分成十几个小文件；页面和操作和以前一样", en: "The 1,400-line data-layer program is split by area (pantry, shops, spending, house, bills, finance, members) into small files; pages and actions work as before" }
   ] },

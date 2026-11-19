@@ -12,11 +12,11 @@ import { memberName, openShopFor } from "../core/logic.js";
 import { t } from "../core/i18n.js";
 import { cartTag, categoryOptions, statusTag } from "./views.js";
 import { locationField } from "../core/locations.js";
-import { assetName } from "../house/assets.js";
 import { autofillBar } from "../core/autofill.js";
 import { unitSelect } from "../core/unit-pick.js";
-import { propertyName } from "../bills/logic.js";
 import { assetField, guessCategory, muteField, pickText } from "./item-form-fields.js";
+export { leaveItem } from "./item-form-common.js";
+export { saveItemForm } from "./item-form-save.js";
 
 /* ───────────── 物品编辑：独立整页（路由 #/item/<id> 或 #/item/new） ─────────────
  * 用网址表示编辑页：手机返回手势、浏览器后退都能退出；返回时由 main.js 恢复来源页的滚动位置。 */
@@ -34,21 +34,11 @@ export function openItem(id, { space, cat } = {}) {
   if (cat) qs.set("cat", cat);
   go(`${href("item", id || "new")}${qs.toString() ? `?${qs}` : ""}`);
 }
-// 保存、取消、删除后：从应用内进入的就后退一步（恢复来源页），否则回到对应空间的列表
-export function leaveItem(changed) {
-  if (changed) state.needsRefresh = true;
-  state.skipAutosave = true;   // 已保存 / 取消 / 删除：离开时不再自动保存
-  if (state.prevRoute) history.back();
-  else go(href(...listRoute(spaceOf(state.editingCat || "fresh"))), { replace: true });
-}
 /** 物品页面包屑：储藏 / 库存（汽车房屋消耗品）或 储藏 / 家居耐用品 */
 const itemBase = (space) => [{ href: href("pantry"), label: t("储藏") },
   space === "gear" ? { href: href("pantry", "gear"), label: t("家居耐用品") } : { href: space === "house" ? `${href("pantry", "inventory")}?space=house` : href("pantry", "inventory"), label: space === "house" ? `${t("库存")} · ${t("汽车房屋消耗品")}` : t("库存") }];
 const SECTION_LABEL = { today: "今日", pantry: "储藏", house: "房屋", gear: "家居耐用品", shopping: "购物车", me: "我的" };
 const NAME_HINT = { pantry: "例如：鸡蛋、抽纸、大米", house: "例如：炉子滤网、电池、融雪盐", gear: "例如：被罩、千斤顶、儿童自行车" };
-/** 汽车房屋消耗品可关联的设备：房屋 → 设备保养里的设备（不含车辆）；多套房产时名字后带房产名 */
-export const linkableAssets = () => state.assetsEnriched.filter((a) => a.kind !== "vehicle");
-export const assetLabel = (a) => `${assetName(a)}${state.properties.length > 1 && a.property_id ? ` · ${propertyName(a.property_id)}` : ""}`;
 /* 放在哪一类（2026-11-14）：大类前面先选空间——会用完的日常消耗品 / 汽车房屋消耗品 / 长期用的家居耐用品，大类下拉只列这一类的 */
 export const SPACE_INFO = [
   ["pantry", "🥫", "日常消耗品", "吃的喝的、纸巾洗护、药品、宠物粮：用了会少，要补货"],

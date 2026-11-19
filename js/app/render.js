@@ -17,7 +17,7 @@ import { recalcPayTotal, viewAssetForm, viewBillForm, viewItemForm, viewProperty
 import { restoreCarousels } from "../core/carousel.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
-import { viewOtBill } from "../bills/medical-views.js";
+import { viewOtBill } from "./lazy-modules.js";
 
 /** force=true：路由变化，整页重画；false：数据刷新，表单页保持不动 */
 export function render(force = true) {
@@ -67,7 +67,7 @@ function renderBody(r) {
   if (r.section === "item") { mountView("", viewItemForm()); return; }
   if (r.section === "asset") { mountView("", viewAssetForm()); return; }
   if (r.section === "bill") { mountView("", viewBillForm()); return; }
-  if (r.section === "otbill") { $("#main").innerHTML = viewOtBill(); return; }
+  if (r.section === "otbill") { mountView("", viewOtBill()); return; }
   if (r.section === "house" && !state.houseEnabled) { $("#main").innerHTML = offPanel(t("房屋维护模块已关闭"), "house-enable", t("打开房屋维护")); return; }
   if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("财务模块已关闭"), "bills-enable", t("打开财务")); return; }
   if (routeBlocked(r)) { $("#main").innerHTML = ""; toast(t("家主还没给你开财务权限")); go(financeFallback(r), { replace: true }); return; }   // 对账单 / 收入 / 预算 / 添加卡：没有财务权限时直接打开网址也跳走

@@ -12,7 +12,6 @@ import { go } from "../../core/router.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "../../settings/views.js";
 import { maintFilter } from "../../house/assets-logic.js";
 import { natureOptions } from "../../core/taxonomy.js";
-import { onKindPick, onPersonPick } from "../../bills/medical-views.js";
 import { overviewHref } from "../../bills/trail.js";
 import { pageSize, setPageSize } from "../../core/pager.js";
 import { payeeChange } from "../../stats/payees.js";
@@ -31,6 +30,7 @@ import { setTodayPref } from "../../today.js";
 import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 import { setOverviewRange } from "../../bills/overview-state.js";
+import { onKindPick, onPersonPick } from "../lazy-modules.js";
 
 export async function onMainChange(e) {
   if (e.target.dataset?.dealSel) {   // 交易时间线：完成情况 / 阶段 / 显示 / 排序（下拉框）

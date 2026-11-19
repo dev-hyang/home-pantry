@@ -1,0 +1,14 @@
+{
+  "source": "js/pantry/item-form.js",
+  "files": [
+    {
+      "path": "js/pantry/item-form-common.js",
+      "doc": "物品表单各部分共用的小件。",
+      "names": [
+        "leaveItem",
+        "assetLabel",
+        "linkableAssets"
+      ]
+    }
+  ]
+}

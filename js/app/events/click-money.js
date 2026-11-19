@@ -4,7 +4,6 @@ import { Store } from "../../core/store.js";
 import { aiDraftCard, deleteCard, payAcctValue, runCleanup, setCardActive } from "../../bills/cards-views.js";
 import { backfillPayments, deleteBillPay, leaveBill, quickVerify } from "../lazy-modules.js";
 import { clearSpendFilter, exportAnnual, exportSpendList, renderSpendList, renderSpendRecords, spendList, spendRowsLoaded } from "../../stats/views.js";
-import { deleteMedBill, deleteMedPay } from "../../bills/medical-views.js";
 import { exportAllCsv, verifyBillIds } from "../../bills/all-views.js";
 import { friendlyErr } from "../errors.js";
 import { go, href } from "../../core/router.js";
@@ -15,6 +14,7 @@ import { render } from "../render.js";
 import { setSharedRange } from "../actions/stats-prefs.js";
 import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
+import { deleteMedBill, deleteMedPay } from "../lazy-modules.js";
 
 /** 点击动作（财务：账单、缴费、卡、花费、统计、导出）：这一组处理的 data-action */
 export const MONEY_ACTIONS = new Set(["print-run","ov-group","bill-cancel","assess-cancel","assess-del","billpay-cancel","bill-delete","billpay-del","bill-verify","bill-link-asset","bill-link-ignore","billpay-backfill","all-verify","all-csv","bills-enable","tpl-all","spend-edit","spend-edit-collapse","trip-reclass","spend-copy","spend-open","spend-edit-cancel","spend-chip-clear","med-del","card-ai","card-del","card-del-keep","card-del-all","card-del-cancel","card-cleanup-open","card-cleanup-cancel","card-cleanup-run","card-deact","card-react","med-pay-del","spend-more","spend-csv","spend-sel-toggle","spend-sel-all","spend-sel-none","spend-sel-del","stats-months","spend-add-toggle","stats-node","stats-trips","csv-summary","csv-detail"]);

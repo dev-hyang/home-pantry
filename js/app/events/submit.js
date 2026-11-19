@@ -22,10 +22,10 @@ import { render } from "../render.js";
 import { runAi } from "../../pantry/ai.js";
 import { saveHouseForm } from "../actions/house-form.js";
 import { saveLocationForm } from "../../core/locations.js";
-import { saveMedBillForm, saveMedPayForm } from "../../bills/medical-views.js";
 import { savePersonForm } from "../../settings/family-people.js";
 import { saveShopScan } from "../../pantry/shop-scan.js";
 import { state } from "../../core/state.js";
+import { saveMedBillForm, saveMedPayForm } from "../lazy-modules.js";
 
 export async function onMainSubmit(e) {
   e.preventDefault();

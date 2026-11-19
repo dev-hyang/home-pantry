@@ -1,0 +1,1 @@
+{ "source": "js/bills/medical-views.js", "files": [ { "path": "js/bills/medical-data.js", "doc": "医疗账单的数据读取与标签（启动时就要用，不放进按需加载的页面模块里）。", "names": ["reloadMedical", "applyMedical", "medBillLabel"] } ] }

@@ -1,8 +1,8 @@
 /* 物品表单里的几个独立字段：关联设备、不再提醒、分类猜测。 */
 import { MUTE_FOREVER, daysFromTodayISO, esc, spaceOf, todayISO } from "../core/util.js";
-import { assetLabel, linkableAssets } from "./item-form.js";
 import { guessNew } from "../core/sub-guess.js";
 import { t } from "../core/i18n.js";
+import { assetLabel, linkableAssets } from "./item-form-common.js";
 
 /** 关联设备：多选下拉，只有汽车房屋消耗品显示；选项就是 房屋 → 设备保养 里的设备 */
 export const pickText = (labels) => labels.join("、");
