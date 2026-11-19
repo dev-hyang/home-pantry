@@ -1,0 +1,4 @@
+{ "source": "js/pantry/item-form.js", "files": [
+ { "path": "js/pantry/item-form-save.js", "doc": "物品表单的保存：校验、写入、新建后跳转。", "names": ["saveItemForm"] },
+ { "path": "js/pantry/item-form-fields.js", "doc": "物品表单里的几个独立字段：关联设备、不再提醒、分类猜测。", "names": ["pickText", "assetField", "muteActive", "muteField", "muteChoice", "guessCategory"] }
+] }
