@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.12", title: { zh: "补上财务首页「全部账单」的英文说明", en: "Added the English description for All bills on the Finance home" }, items: [
+    { k: "fix", zh: "英文界面下，财务首页「全部账单」那一行的说明不再显示中文", en: "In English, the All bills description on the Finance home is no longer shown in Chinese" }
+  ] },
+
   { v: "2026-11-19.11", title: { zh: "深色主题下数字角标的字看得清了", en: "Count badges readable in the dark theme" }, items: [
     { k: "fix", zh: "手动选了深色主题时，数字角标里的字几乎看不清，现在清楚了", en: "With the dark theme picked manually, the numbers inside count badges were nearly unreadable; they are clear now" }
   ] },
