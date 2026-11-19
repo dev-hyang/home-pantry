@@ -1,0 +1,7 @@
+{ "source": "js/bills/budget.js", "files": [
+  { "path": "js/bills/budget-groups.js", "doc": "预算：预算分组，和预算设置里的杂项（存在 cat_budgets 里以下划线开头的行）。", "lines": [[19, 141]] },
+  { "path": "js/bills/budget-income.js", "doc": "预算：收入与预算生成（收入按人私有，预算方案由家主生成），和接入「注意事项」的提醒。", "lines": [[142, 243]] },
+  { "path": "js/bills/budget-shopping.js", "doc": "预算：促销日与省钱渠道，和大额购物规划（一次付清 / 分期 / 预存）。", "lines": [[244, 329]] },
+  { "path": "js/bills/budget-page.js", "doc": "预算页面。", "lines": [[330, 460]] },
+  { "path": "js/bills/budget-actions.js", "doc": "预算页的交互：提交、点击处理。", "lines": [[461, 491]] }
+] }

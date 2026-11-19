@@ -1,0 +1,7 @@
+{ "source": "js/pantry/views.js", "files": [
+  { "path": "js/pantry/restock.js", "doc": "该补货了：储藏概览和房屋页共用的补货卡、临期、缺货列表。", "lines": [[25, 177]] },
+  { "path": "js/pantry/inventory.js", "doc": "库存页：分类导航、筛选、方块仪表盘（手机）/ 分类列表（宽屏）。", "lines": [[178, 331]] },
+  { "path": "js/pantry/inventory-items.js", "doc": "库存的物品视图（默认）：日常消耗品、汽车房屋消耗品两个大容器，一行一件物品，加减数量。", "lines": [[332, 606]] },
+  { "path": "js/pantry/shopping.js", "doc": "购物车页：待买、家人正在买、买到了入库、记花费。", "lines": [[607, 802]] },
+  { "path": "js/pantry/meals.js", "doc": "菜单推荐：按现有食材推荐三餐（含孕期、妊娠糖尿病、产后、哺乳模式）。", "lines": [[803, 886]] }
+] }

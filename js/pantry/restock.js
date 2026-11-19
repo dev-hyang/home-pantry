@@ -1,0 +1,160 @@
+/* 该补货了：储藏概览和房屋页共用的补货卡、临期、缺货列表。 */
+import { STATUS, state } from "../core/state.js";
+import { alertsOf, openShopFor } from "../core/logic.js";
+import { askInline } from "../core/ask.js";
+import { catCheckAlt } from "../core/category-moves.js";
+import { catOf, catsOf, esc, fmt, inSpace, isGear } from "../core/util.js";
+import { compare, joinList, t } from "../core/i18n.js";
+import { fab } from "./inventory-items.js";
+import { href } from "../core/router.js";
+import { ownerMatch } from "./owner.js";
+
+/* ── 该补货了（储藏概览 / 房屋页共用）──
+ * 2026-11-15：名字旁边一个小标签——「已加入」（在购物车里）/「未加入」；点标签或滑动来加入 / 移出：
+ *   手机上 左滑 = 加入购物车（先确认数量），右滑 = 移出购物车（先确认）；电脑上点标签。滑动借用 js/swipe-rows.js（不改这份共用文件）：
+ *   左滑区的文字和颜色由行上的 data-swipe-left-* 和样式表覆盖；已加入的行只能右滑（左边区域隐藏，左滑弹回）。 */
+const rsTag = (it, inList) => inList
+  ? `<button type="button" class="rs-tag is-in" data-action="shop-remove-item" data-id="${it.id}" title="${esc(t("点一下移出购物车"))}" aria-label="${esc(t("{name}：已加入购物车，点一下移出", { name: it.name }))}">✓ ${t("已加入")}</button>`
+  : `<button type="button" class="rs-tag" data-action="shop-add-item" data-id="${it.id}" title="${esc(t("点一下加入购物车"))}" aria-label="${esc(t("{name}：未加入购物车，点一下加入", { name: it.name }))}">${t("未加入")}</button>`;
+export function restockPanel(alerts, limit = 8) {
+  if (!alerts.length) return "";
+  return `<ul class="restock-list rs-list">${alerts.slice(0, limit).map((it) => {
+    const inList = !!openShopFor(it.id);
+    const swipe = inList
+      ? `data-swipe-del="rs" data-swipe-alt="rs" data-swipe-alt-label="${esc(t("移出购物车"))}" data-swipe-alt-go="${esc(t("松手移出"))}"`
+      : `data-swipe-del="rs" data-swipe-left-label="${esc(t("加入购物车"))}" data-swipe-left-go="${esc(t("松手加入"))}"`;
+    return `<li class="rs-row ${inList ? "rs-in" : ""}" ${swipe}>
+      <span class="badge ${STATUS[it.status].cls}">${t(STATUS[it.status].label)}</span>
+      <div class="grow"><span class="rs-name"><button type="button" class="link-name" data-action="edit" data-id="${it.id}">${esc(it.name)}</button>${rsTag(it, inList)}</span>
+        <small>${t("剩 {q} {u}", { q: fmt(it.dqty), u: esc(t(it.du)) })}${it.daysLeft != null && it.qty > 0 ? t("，约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) }) : ""}${inList ? "" : t("，建议买 {q} {u}", { q: fmt(it.dsuggest), u: esc(t(it.du)) })}</small></div>
+      ${inList ? `<button type="button" class="swipe-alt-src" data-action="shop-remove-item" data-id="${it.id}">${t("移出购物车")}</button>`
+        : `<button type="button" class="swipe-src" data-action="shop-add-item" data-id="${it.id}">${t("加入购物车")}</button>`}
+    </li>`;
+  }).join("")}</ul>`;
+}
+/** 该补货了下面的一行操作说明：手机说滑动，电脑说点标签 */
+export const rsHint = () => `<p class="muted rs-hint"><span class="rs-hint-touch">${t("点「未加入」加入购物车，点「已加入」移出；也可 ← 左滑加入 · 右滑移出 →")}</span><span class="rs-hint-mouse">${t("点「未加入」加入购物车，点「已加入」移出")}</span></p>`;
+export function shelfGrid(space, owner = "") {
+  const list = state.enriched.filter(inSpace(space)).filter((x) => !owner || ownerMatch(x, owner, true));   // owner：某套房产 / 某辆车自己的消耗品页只数它的（含全家共用）
+  return catsOf(space).map((c) => {
+    const inCat = list.filter((x) => x.category === c.id);
+    if (!inCat.length) return "";
+    // 家居耐用品没有库存状态：只显示件数和位置
+    if (space === "gear") {
+      const locs = [...new Set(inCat.map((x) => x.location).filter(Boolean))];
+      return `<button type="button" class="shelf-cell" style="--cat:${c.color}" data-action="goto-cat" data-space="${space}" data-cat="${c.id}">
+        <span class="ico" aria-hidden="true">${c.icon}</span><h3>${t(c.name)}</h3>
+        <p>${t("{n} 种", { n: inCat.length })}${locs.length ? t("，在{locs}{etc}", { locs: esc(joinList(locs.slice(0, 2).map((l) => t(l)))), etc: locs.length > 2 ? t("等") : "" }) : ""}</p>
+      </button>`;
+    }
+    const cnt = (s) => inCat.filter((x) => x.status === s).length;
+    const seg = (s, color) => cnt(s) ? `<i style="width:${(cnt(s) / inCat.length) * 100}%;background:${color}"></i>` : "";
+    const bad = inCat.length - cnt("ok");
+    return `<button type="button" class="shelf-cell" style="--cat:${c.color}" data-action="goto-cat" data-space="${space}" data-cat="${c.id}"${owner ? ` data-owner="${esc(owner)}"` : ""}>
+      <span class="ico" aria-hidden="true">${c.icon}</span><h3>${t(c.name)}</h3>
+      <p>${t("{n} 种", { n: inCat.length })}${bad ? t("，{n} 种需补", { n: bad }) : t("，都充足")}</p>
+      <div class="mix" aria-hidden="true">${seg("out", "var(--out)")}${seg("low", "var(--low)")}${seg("soon", "var(--mustard)")}${seg("ok", "var(--pine)")}</div>
+    </button>`;
+  }).join("");
+}
+/** 「请确认分类」（迁移 064）：063 分类重整时按小类 + 名称猜着搬的物品，一件件确认。没有就不显示 */
+const SPACE_NAME = { pantry: "日常消耗品", house: "汽车房屋消耗品", gear: "家居耐用品" };
+function catCheckSection() {
+  const list = state.items.filter((it) => it.cat_check).sort((a, b) => compare(a.name, b.name));
+  if (!list.length) return "";
+  const where = (cat, sub) => { const c = catOf(cat); return `${c.icon} ${esc(t(c.name))}${sub ? ` · ${esc(t(sub))}` : ""}`; };
+  return `<section class="section" aria-labelledby="h-catcheck">
+      <div class="section-head"><h2 id="h-catcheck">${t("请确认分类")} <span class="muted">${list.length}</span></h2>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="cat-check-all">${t("全部没错")}</button></div>
+      <p class="muted cat-check-tip">${t("分类细化时，这些物品是按名称猜着搬的。放对了点「没错」；放错了点「改回…」或「改成…」，连着的花费也跟着换。")}</p>
+      <div class="panel"><ul class="restock-list cat-check">${list.slice(0, 30).map((it) => {
+        const alt = catCheckAlt(it), sp = (c) => t(SPACE_NAME[catOf(c).space] || "");
+        return `<li>
+        <div class="grow"><button type="button" class="link-name" data-action="edit" data-id="${it.id}">${esc(it.name)}</button>
+          <small>${t("现在：")}${where(it.category, it.subcategory)}<span class="muted">（${sp(it.category)}）</span></small></div>
+        <div class="cat-check-acts">
+          <button type="button" class="btn btn-sm" data-action="cat-check-ok" data-id="${it.id}">${t("没错")}</button>
+          ${alt ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-check-alt" data-id="${it.id}" data-cat="${alt[0]}" data-sub="${esc(alt[1])}" title="${esc(t(SPACE_NAME[catOf(alt[0]).space] || ""))}">${it.cat_prev ? t("改回") : t("改成")} ${where(alt[0], alt[1])}</button>` : ""}
+        </div></li>`;
+      }).join("")}</ul>${list.length > 30 ? `<p class="muted cat-check-more">${t("还有 {n} 件，确认完这些再显示", { n: list.length - 30 })}</p>` : ""}</div>
+    </section>`;
+}
+/** 储藏的页面导航（2026-11-14 重构）：每个储藏页面顶上都有这一块——一排小卡片（概览 / 库存 / 菜单；购物车在底部导航，家居耐用品并进了库存），
+ *  当前页背景高亮；库存卡带要补货的件数。宽屏一行排开，手机两到三列网格（不横滑，点按区域 ≥ 44px） */
+export function pantryNav(cur) {
+  const need = (state.enriched || []).filter((x) => !isGear(x) && x.status !== "ok").length;
+  const list = [["overview", href("pantry"), "📊", t("概览")], ["inventory", href("pantry", "inventory"), "📦", t("库存"), need],
+    ["meals", href("pantry", "meals"), "🍳", t("菜单")], ["scan", href("pantry", "scan"), "🧾", t("录入购物")]].filter(Boolean);
+  return `<nav class="pnav" aria-label="${esc(t("储藏的页面"))}">${list.map(([id, h, ic, l, n]) => `<a class="pnav-card" href="${esc(h)}" ${id === cur ? 'aria-current="page"' : ""}>
+    <span class="pnav-ico" aria-hidden="true">${ic}</span><span class="pnav-lbl">${esc(l)}</span>${n ? `<b class="pnav-n" aria-label="${esc(t("{n} 项", { n }))}">${n}</b>` : ""}</a>`).join("")}</nav>`;
+}
+/** 概览的两个大卡片（日常消耗品 / 汽车房屋消耗品）：点标题折叠 / 展开（记在本机），里面是 缺货 / 少货 / 即将告罄 / 临期 细项（点进库存的物品行视图）和分类货架 */
+const FOLD_KEY = "hmh-pv-fold";
+const foldGet = () => { try { return JSON.parse(localStorage.getItem(FOLD_KEY) || "{}"); } catch { return {}; } };
+export function setFold(id, open) { const m = foldGet(); m[id] = open ? 1 : 0; try { localStorage.setItem(FOLD_KEY, JSON.stringify(m)); } catch { /* 忽略 */ } }
+/** 货架第一格「全部分类」：和分类格子一样的样子，点进库存看这个空间的全部物品 */
+function allCell(space, list) {
+  if (space === "gear") return `<button type="button" class="shelf-cell shelf-all" style="--cat:var(--pine)" data-action="goto-cat" data-space="gear" data-cat="all"><span class="ico" aria-hidden="true">🗂️</span><h3>${t("全部分类")}</h3><p>${t("{n} 种", { n: list.length })}</p></button>`;
+  const cnt = (s) => list.filter((x) => x.status === s).length, bad = list.length - cnt("ok");
+  const seg = (s, color) => cnt(s) ? `<i style="width:${(cnt(s) / list.length) * 100}%;background:${color}"></i>` : "";
+  return `<button type="button" class="shelf-cell shelf-all" style="--cat:var(--pine)" data-action="goto-cat" data-space="${space}" data-cat="all">
+    <span class="ico" aria-hidden="true">🗂️</span><h3>${t("全部分类")}</h3>
+    <p>${t("{n} 种", { n: list.length })}${bad ? t("，{n} 种需补", { n: bad }) : t("，都充足")}</p>
+    <div class="mix" aria-hidden="true">${seg("out", "var(--out)")}${seg("low", "var(--low)")}${seg("soon", "var(--mustard)")}${seg("ok", "var(--pine)")}</div></button>`;
+}
+function spaceCard(space, icon, title, list, shelf, empty) {
+  const n = (s) => list.filter((x) => x.status === s).length, expN = list.filter((x) => x.exp).length;
+  const rows = [["out", t("缺货"), n("out")], ["low", t("少货"), n("low")], ["soon", t("即将告罄"), n("soon")], ...(space === "pantry" ? [["exp", t("临期或过期"), expN]] : [])];
+  const bad = rows.reduce((a, r) => a + r[2], 0), open = foldGet()[space] !== 0;
+  const sumTxt = space === "gear" ? t("{n} 种，长期用的东西，只记数量和位置", { n: list.length }) : !list.length ? t("还没有物品") : bad ? rows.filter((r) => r[2]).map((r) => `${r[1]} ${r[2]}`).join(" · ") : t("{n} 种，都充足", { n: list.length });
+  return `<details class="pv-card" data-fold="${space}" ${open ? "open" : ""}>
+    <summary><span class="pv-ico" aria-hidden="true">${icon}</span><span class="pv-ttl"><b>${esc(title)}</b><small class="${bad ? "pv-bad" : ""}">${esc(sumTxt)}</small></span><span class="pv-chev" aria-hidden="true">▾</span></summary>
+    <div class="pv-body">
+      ${shelf ? `<div class="shelf">${allCell(space, list)}${shelf}</div>` : empty}
+    </div></details>`;
+}
+/** 过期扔掉：把剩下的都记成 discard（迁移 065），「家里的数字 → 浪费」统计它；不算进日均用量 */
+export const discardBtn = (it) => `<button type="button" class="btn btn-sm btn-ghost discard-btn" data-action="discard" data-id="${it.id}" aria-label="${esc(t("{name} 过期了，扔掉剩下的", { name: it.name }))}">🗑 ${t("扔掉")}</button>`;
+/** 购物篮：去购物车，带待买 + 家人正在买的数 */
+function cartBtn() {
+  const n = state.shopping.filter((s) => s.status !== "bought").length;
+  return `<a class="btn btn-sm cart-btn" href="${href("shopping", "list")}" aria-label="${esc(t("购物车，{n} 项", { n }))}"><span aria-hidden="true">🛒</span> ${t("购物车")}${n ? ` <b class="num">${n}</b>` : ""}</a>`;
+}
+export function viewDashboard() {
+  const withHouse = state.houseEnabled;   // 汽车房屋消耗品也算储藏：缺货、少货、补货提醒一起看
+  const pantry = state.enriched.filter(inSpace("pantry")), house = withHouse ? state.enriched.filter(inSpace("house")) : [];
+  const list = [...pantry, ...house];
+  const n = (arr, s) => arr.filter((x) => x.status === s).length;
+  const alerts = alertsOf(list);
+  const expiring = pantry.filter((x) => x.exp).sort((a, b) => a.expDays - b.expDays);
+
+  const shelf = shelfGrid("pantry"), houseShelf = withHouse ? shelfGrid("house") : "";
+
+  return `${catCheckSection()}
+    <section class="section" aria-labelledby="h-restock">
+      <div class="section-head"><h2 id="h-restock">${t("该补货了")}</h2>
+        <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-sm btn-add-all" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">＋ ${t("全部加入购物车")}</button>` : ""}${cartBtn()}</div></div>
+      ${alerts.length ? rsHint() : ""}
+      <div class="panel">${alerts.length ? restockPanel(alerts) : `<div class="empty"><strong>${t("库存都很充足")}</strong>${t("用掉东西时在“库存”里点一下 −，提醒会更准。")}</div>`}</div>
+      ${alerts.length ? askInline({ id: "restock", title: t("该补货了"), question: t("这些要补的东西怎么安排采购最省钱省时间？哪些可以等？"), context: () => [t("要补：{s}", { s: alerts.slice(0, 15).map((a) => a.name || a.item?.name).filter(Boolean).join("、") }), t("家庭人数 {n}", { n: state.members?.length || 1 })] }) : ""}
+    </section>
+
+    <section class="section" aria-labelledby="h-alert">
+      <h2 id="h-alert" class="sr-only">${t("储藏概览")}</h2>
+      <div class="pv-cards">
+        ${spaceCard("pantry", "🥫", t("日常消耗品"), pantry, shelf, `<div class="empty"><strong>${t("还没有物品")}</strong><a class="btn btn-primary" href="${href("item", "new")}?space=pantry">${t("添加第一件物品")}</a></div>`)}
+        ${withHouse ? spaceCard("house", "🧰", t("汽车房屋消耗品"), house, houseShelf, `<div class="empty"><strong>${t("还没有汽车房屋消耗品")}</strong><a class="btn btn-primary" href="${href("house", "template")}">${t("按房屋资料推荐")}</a></div>`) : ""}
+        ${state.gearEnabled ? spaceCard("gear", "🛋️", t("家居耐用品"), state.enriched.filter(inSpace("gear")), shelfGrid("gear"), `<div class="empty"><strong>${t("还没有家居耐用品")}</strong><a class="btn btn-primary" href="${href("item", "new")}?space=gear">${t("添加第一件家居耐用品")}</a></div>`) : ""}
+      </div>
+    </section>
+
+    ${expiring.length ? `<section class="section" aria-labelledby="h-exp">
+      <div class="section-head"><h2 id="h-exp">${t("先吃这些")}</h2><p>${t("菜单推荐会优先用到它们")}</p></div>
+      <div class="panel"><ul class="restock-list">${expiring.slice(0, 6).map((it) => `<li>
+        <span class="badge b-exp">${it.exp === "expired" ? t("已过期") : it.expDays === 0 ? t("今天到期") : t("{d} 天后到期", { d: it.expDays })}</span>
+        <div class="grow"><span class="name">${esc(it.name)}</span><small>${esc(t(it.location || ""))} ${t("剩 {q} {u}", { q: fmt(it.dqty), u: esc(t(it.du)) })}</small></div>${it.exp === "expired" && it.qty > 0 ? discardBtn(it) : ""}</li>`).join("")}</ul></div>
+    </section>` : ""}
+
+    ${fab("pantry", t("添加物品"))}<div class="fab-spacer" aria-hidden="true"></div>
+`;
+}

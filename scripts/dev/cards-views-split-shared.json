@@ -1,0 +1,16 @@
+{
+  "source": "js/bills/cards-views.js",
+  "files": [
+    {
+      "path": "js/bills/card-common.js",
+      "doc": "卡与账户各部分共用的小件。从 cards-views.js 抽出来，各部分依赖这里。",
+      "names": [
+        "D",
+        "catalogAge",
+        "d",
+        "roStop",
+        "cur"
+      ]
+    }
+  ]
+}

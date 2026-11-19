@@ -1,0 +1,6 @@
+{ "source": "js/bills/cards-views.js", "files": [
+  { "path": "js/bills/card-picker.js", "doc": "记花费时选哪张卡（补记 / 编辑 / 采购已买到 / 银行导入）：下拉、提示、付款账户。", "lines": [[32, 88]] },
+  { "path": "js/bills/cards-page.js", "doc": "卡与账户页面：卡片列表、礼品卡（余额 = 面值 − 花费）、停用的卡。", "lines": [[89, 266]] },
+  { "path": "js/bills/cards-review.js", "doc": "用卡复盘（各卡花了多少、返现估算）和「现在该刷哪张」。", "lines": [[267, 317]] },
+  { "path": "js/bills/card-form.js", "doc": "卡的表单，和 AI 起草返现规则（只发卡名，结果填进表单由人确认）。", "lines": [[318, 507]] }
+] }

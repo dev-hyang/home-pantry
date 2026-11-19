@@ -1,0 +1,9 @@
+{ "source": "js/stats/views.js", "files": [
+  { "path": "js/stats/spend-roll.js", "doc": "花费统计的数据：分类树、聚合数据的缓存（spend_rollup 按日期段读一次，花费变了标过期）。", "lines": [[29, 172]] },
+  { "path": "js/stats/spend-drill.js", "doc": "花费统计：图表钻取（点一下跳到明细并套上筛选）和时间范围的「这一段 vs 前一段」。", "lines": [[173, 239]] },
+  { "path": "js/stats/spend-overview.js", "doc": "花费统计：概览的数字卡片，和分类一级 → 二级 → 叶子逐层点进去。", "lines": [[240, 348]] },
+  { "path": "js/stats/spend-trips.js", "doc": "花费统计：旅行按行程汇总（「【行程】项目」）。", "lines": [[349, 405]] },
+  { "path": "js/stats/spend-add.js", "doc": "花费统计：记一笔（分类按一级 · 二级分组、经济性质、房产）。", "lines": [[406, 535]] },
+  { "path": "js/stats/spend-records.js", "doc": "花费记录：搜索 + 分类树 / 性质 / 房产 / 商店 / 年份 / 月份筛选 + 排序，按月分组。", "lines": [[536, 757]] },
+  { "path": "js/stats/spend-stores.js", "doc": "商店统计与年度报表。", "lines": [[758, 885]] }
+] }
