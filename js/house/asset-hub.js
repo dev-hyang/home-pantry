@@ -1,5 +1,6 @@
 /* 设备详情的枢纽页和车辆概览：分区、统计、交易行、摘要。 */
 import { ASSET_SECTIONS, supplyRows, vehBillsStat } from "./asset-supplies.js";
+import { vehicleFacts } from "./asset-facts.js";
 import { ageText, assetCrumb, assetTrail } from "./asset-list.js";
 import { assetName, isVehicle, maintFilter } from "./assets-logic.js";
 import { countBadge, crumbNav, filledCount, hubList, hubRow } from "../core/hub.js";
@@ -79,7 +80,7 @@ export function vehicleOverview(a, root) {
     ${crumbNav([...assetTrail(a, root, base).slice(0, -1), { label: assetName(a), icon: pt?.icon || "🚗" }])}
     <div class="house-card">
       <div class="house-head"><span class="house-ico" aria-hidden="true">${pt?.icon || "🚗"}</span><div class="grow"><h2 class="house-name">${esc(assetName(a))}</h2></div>
-        <span class="head-acts"><a class="btn btn-sm btn-ghost" href="${base}?sec=basic">${t("编辑")}</a>${moreMenu([{ label: t("记保养"), href: `${base}?log=1`, first: true }, { label: t("问咩咩"), href: `${href("house", "fix")}?asset=${a.id}` }, { label: t("删除车辆"), action: "asset-delete", danger: true }])}</span></div>
+        <span class="head-acts">${moreMenu([{ label: t("详情"), href: `${base}?sec=profile`, first: true }, { label: t("记保养"), href: `${base}?log=1` }, { label: t("问咩咩"), href: `${href("house", "fix")}?asset=${a.id}` }, { label: t("删除车辆"), action: "asset-delete", danger: true }])}</span></div>
       ${assetSummary(a)}
       <p class="muted house-sub">${esc([a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "))}</p>
       ${facts ? `<dl class="fact-grid one">${facts}</dl>` : ""}
@@ -107,10 +108,10 @@ export function vehicleProfile(a, root) {
   const st = assetStatMap(a), base = href("asset", a.id);
   const cards = vehSections().map((s) => { const x = st[s.id]();
     return `<section class="panel prof-card" aria-labelledby="vp-${s.id}"><header class="prof-head"><span class="mi" aria-hidden="true">${s.icon}</span>
-      <div class="prof-t"><h3 id="vp-${s.id}">${t(s.name)}</h3><small>${x.text || ""}</small></div>
+      <div class="prof-t"><h3 id="vp-${s.id}">${t(s.name)}</h3></div>
       <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=${s.id}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${t("编辑")}</a></header>
-      ${x.pct != null ? `<span class="mprog"><i style="width:${x.pct}%"></i></span>` : ""}</section>`; }).join("");
-  return `<section class="section menu-page">${assetCrumb(a, root, base, t("车辆资料"))}<div class="prof-grid">${cards}</div></section>`;
+      ${x.pct != null ? `<span class="mprog"><i style="width:${x.pct}%"></i></span>` : ""}${vehicleFacts(a, s.id)}</section>`; }).join("");
+  return `<section class="section menu-page">${assetCrumb(a, root, base, t("车辆资料"))}<p class="muted" style="margin:-6px 0 12px;font-size:13px">${t("每一块各自编辑、各自保存")}</p><div class="prof-grid">${cards}</div></section>`;
 }
 /** 枢纽里的“交易”入口：进行中显示进度，否则按状态提示能走哪个流程 */
 function vehDealRow(a) {

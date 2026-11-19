@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.25", title: { zh: "房屋 / 车辆概览：表头的「编辑」换成 ⋯ 里的「详情」；车辆资料页展开成完整信息", en: "House / vehicle overview: the header Edit became Details in the ⋯ menu; the vehicle profile shows full details" }, items: [
+    { k: "better", zh: "房屋概览和车辆概览表头不再有「编辑」按钮：右上角 ⋯ 的第一项是「详情」，进去就是基本资料页，每一块各自带「编辑」，只改这一块", en: "The house and vehicle overviews no longer have an Edit button in the header: the first item in the ⋯ menu is Details, which opens the profile page where each block has its own Edit" },
+    { k: "better", zh: "车辆资料页每一块都展开显示填过的全部信息（车牌与里程、证照、车险、年款与保修…），和房屋资料页一样", en: "Each block of the vehicle profile now lists everything you filled in (plate & mileage, documents, insurance, year & warranty…), like the house profile" }
+  ] },
+
   { v: "2026-11-19.24", title: { zh: "房屋首页：买卖计划可折叠；各房产要处理的事改成 4 张小卡片", en: "House home: Buy / sell plans collapse; things to handle are four small cards" }, items: [
     { k: "better", zh: "买卖计划默认折叠，点一下展开（展开或收起会记在这台设备上）", en: "Buy / sell plans are collapsed by default; tap to expand (remembered on this device)" },
     { k: "better", zh: "“各房产要处理的事”不再用下拉，改成 4 张小卡片（设备与车辆、季节任务、交易、耗材 · HOA · 保险），每张显示件数，点一张只看这一类，再点一次回到全部", en: "Things to handle no longer uses a dropdown: four small cards (assets & vehicles, seasonal tasks, deals, supplies · HOA · insurance) with counts; tap one to filter, tap again to see all" }

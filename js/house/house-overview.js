@@ -71,7 +71,7 @@ export function viewHouse() {
           <div class="grow">
             <h2 class="house-name">${esc(currentProp()?.name || t(ht?.name || "我的房子"))}</h2>
           </div>
-          <span class="head-acts"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("编辑")}</a>${currentProp() && canManageHome() ? moreMenu([{ label: t("归档"), action: "property-archive", data: { id: currentProp().id } }, { label: t("删除"), action: "property-delete", data: { id: currentProp().id }, danger: true }]) : ""}</span>
+          <span class="head-acts">${moreMenu([{ label: t("详情"), href: href("house", "profile"), first: true }, ...(currentProp() && canManageHome() ? [{ label: t("归档"), action: "property-archive", data: { id: currentProp().id } }, { label: t("删除"), action: "property-delete", data: { id: currentProp().id }, danger: true }] : [])], { label: t("更多操作") })}</span>
         </div>
         ${statusLine(true)}
         <p class="muted house-sub">${esc(t(H().REGIONS[p.region]?.name || ""))}${p.year_built ? t("，{y} 年建成（约 {age} 年房龄）", { y: p.year_built, age }) : ""}</p>
