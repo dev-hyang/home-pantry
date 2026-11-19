@@ -35,15 +35,19 @@ export const VIEWS = {
   shops:    () => viewShops(),
   me:       { stats: viewStats, settings: viewSettings, about: viewAbout, releases: () => releasesReady ? releasePageHTML() : (loadReleases(), `<div class="panel empty">${t("加载中…")}</div>`) },
 };
-// 手机上隐藏底部导航的页面：只有「真正在编辑的表单」才隐藏（专注填写）；车辆 / 设备 / 账单的概览、详情、保养记录列表、时间表这类只读页保留导航。
+// 手机上隐藏底部导航的页面（这里只是渲染前的预判，最终以页面里有没有底部保存栏为准：render.js 的 syncEditing）：只有「真正在编辑的表单」才隐藏（专注填写）；车辆 / 设备 / 账单的概览、详情、保养记录列表、时间表这类只读页保留导航。
 // （FORM_PAGES 另管「后台同步不重画」，范围更宽，不动）
 const EDIT_SECS = new Set(["basic", "units", "plate", "docs", "insurance", "years", "life", "cost", "notes", "recall"]);
    // 设备 / 车辆的编辑分区；profile、log（列表）、schedule、supplies、care 是只读页
 export const TABS_HIDDEN = (r) => {
   if (!FORM_PAGES(r)) return false;
   const q = r.q;
+  if (r.section === "house" && r.sub === "profile") return false;   // 房屋资料：读的页面，分块编辑时才有保存栏（见 render.js 的 syncEditing）
   if (r.section === "asset") return r.id === "new" || EDIT_SECS.has(q.get("sec")) || q.get("log") === "1" || !!q.get("wiz");
-  if (r.section === "bill") return r.id === "new" ? [...q.keys()].length > 0 : !!q.get("sec") || q.get("pay") === "1";   // #/bill/new 不带参数 = 选类型页（保留导航）；向导 / 整页表单 / 分区编辑 / 记缴费 = 隐藏；账单详情页保留
+  if (r.section === "bill") {
+    const list = ["pay", "assess"].includes(q.get("sec")) && !q.get("edit") && !q.get("copy");   // 缴费记录 / 特别摊派的列表页（含摊派缴费记录）：保留导航
+    return r.id === "new" ? [...q.keys()].length > 0 : (!!q.get("sec") && !list) || q.get("pay") === "1";
+  }   // #/bill/new 不带参数 = 选类型页（保留导航）；向导 / 整页表单 / 分区编辑 / 记缴费 = 隐藏；账单详情页保留
   if (r.section === "otbill") return r.id === "new" || !!q.get("sec");   // 一次性账单：详情页保留导航，新建 / 分区编辑隐藏
   return true;
 };

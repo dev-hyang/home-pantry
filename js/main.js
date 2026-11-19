@@ -28,7 +28,7 @@ import { refresh } from "./app/data.js";
 import { renderAssetList, renderMaintLogs, shiftAlertSource, shiftTasksMonth, updateHoaTotal } from "./app/lazy-modules.js";
 import { boot } from "./app/boot.js";
 import { markDirty } from "./app/unsaved.js";
-import { render } from "./app/render.js";
+import { render, syncEditing } from "./app/render.js";
 import { uiKind } from "./app/chrome.js";
 import "./app/lazy-modules.js";
 import "./app/lazy-init.js";
@@ -50,6 +50,9 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) naviga
 [pantryAlertItems, billAlertItems, budgetAlertItems, escrowAlertItems].forEach(registerAlerts);
 /* ───────────── 交互（事件委托） ───────────── */
 export const main = $("#main");
+// 页面局部重画（行内表单打开 / 关闭、保存栏出现 / 消失）时，底部导航跟着保存栏走：有保存栏才隐藏
+let editingQueued = false;
+new MutationObserver(() => { if (editingQueued) return; editingQueued = true; requestAnimationFrame(() => { editingQueued = false; syncEditing(); }); }).observe(main, { childList: true, subtree: true });
 // 手机：列表页的“搜索 + 一排下拉框”收成一行（搜索框 + 筛选按钮），滑动时固定在顶栏 / 路径下面；路径条（面包屑）也固定
 initCompactFilters({ root: main, ui: uiKind });
 miniBarEl();

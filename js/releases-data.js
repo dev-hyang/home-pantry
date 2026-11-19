@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.22", title: { zh: "底部导航只在有“取消 / 保存”栏的表单里才隐藏", en: "The bottom tab bar is hidden only on forms that have a Cancel / Save bar" }, items: [
+    { k: "fix", zh: "房屋资料页、账单的缴费记录页和特别摊派列表页，以前底部导航被藏起来了，现在保留；只有底部带“取消 / 保存”栏的表单才隐藏导航，让保存栏贴底", en: "House profile, bill payment records and the special assessment list used to hide the bottom tabs; they now keep them. Only forms with a bottom Cancel / Save bar hide the tabs so the bar sits at the bottom" }
+  ] },
+
   { v: "2026-11-19.21", title: { zh: "筛选条统一：缴费记录页、商店页的清除筛选也收进手机的筛选面板", en: "Filters unified: Clear filters on the payment records and Shops pages now live inside the phone filter panel" }, items: [
     { k: "better", zh: "账单的缴费记录页、常去的商店、商店特价、特价一览：手机上点开「筛选」，第一行是「筛选」字样和右边的「清除筛选」，和其他页面一样", en: "Bill payment records, Shops, Shop deals and Deals overview: on a phone, Filters now opens with a title row and Clear filters on the right, like the other pages" },
     { k: "fix", zh: "商店页的「筛选」按钮原来跑到搜索框前面，现在在搜索框后面", en: "On the Shops pages the Filters button used to sit before the search box; it now comes after it" }
