@@ -15,7 +15,7 @@ import { lpAttr } from "../core/long-press.js";
 /* ───────────── 页面 ───────────── */
 export function viewCards() {
   const id = state.route.q.get("card"), ro = cardsRO();
-  if (id && !(ro && id === "new")) return cardForm(id, ro);   // 只读：能打开看，不能新建
+  if (id && !(ro && id === "new")) return cardForm(id, ro, { deleteHtml: state.cardDelete && !ro ? deleteConfirmHtml(state.cardDelete) : "" });   // 只读：能打开看，不能新建
   const live = state.cards.filter((c) => c.active !== false), cards = live.filter((c) => !noRewards(c)), banks = live.filter(isBankAcct), gifts = live.filter((c) => c.kind === "gift");
   // 停用的：最近停用的在前（没有停用日期的老记录按最后修改时间）
   const off = state.cards.filter((c) => c.active === false).sort((a, b) => String(b.inactive_since || "").localeCompare(String(a.inactive_since || "")) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
@@ -174,11 +174,11 @@ function cardRow(c) {
     ${rowActs(c)}</li>`;
 }
 /** 长按这一行的菜单（js/core/long-press.js）：编辑 / 停用·启用 / 删除 */
-const lpCard = (c) => (cardsRO() ? "" : lpAttr([{ label: t("编辑"), href: cardHref(c.id), first: true }, { label: c.active === false ? t("启用") : t("停用"), action: c.active === false ? "card-react" : "card-deact", data: { id: c.id } }, { label: t("删除"), action: "card-del", data: { id: c.id }, danger: true }], c.name));
+const lpCard = (c) => (cardsRO() ? "" : lpAttr([{ label: t("详情"), href: cardHref(c.id), first: true }, { label: c.active === false ? t("启用") : t("停用"), action: c.active === false ? "card-react" : "card-deact", data: { id: c.id } }, { label: t("删除"), action: "card-del", data: { id: c.id }, danger: true }], c.name));
 /** 行的手势属性：右滑 停用 / 启用，左滑 删除（js/swipe-rows.js） */
 const swipeAttrs = (c) => cardsRO() ? "" : `data-swipe-del="card" data-swipe-alt="card" data-swipe-alt-label="${esc(c.active === false ? t("启用") : t("停用"))}" data-swipe-alt-go="${esc(c.active === false ? t("松手启用") : t("松手停用"))}"`;
 /** 行右侧：编辑 + （手势 / 悬停才出现的）停用 / 启用、删除 */
-const rowActs = (c) => cardsRO() ? "" : `<span class="row-acts"><a class="btn btn-sm btn-ghost" href="${cardHref(c.id)}">${t("编辑")}</a>
+const rowActs = (c) => cardsRO() ? "" : `<span class="row-acts"><a class="btn btn-sm btn-ghost" href="${cardHref(c.id)}">${t("详情")}</a>
     <button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="${c.active === false ? "card-react" : "card-deact"}" data-id="${esc(c.id)}">${c.active === false ? t("启用") : t("停用")}</button>
     <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="card-del" data-id="${esc(c.id)}" aria-label="${esc(t("删除 {name}", { name: c.name }))}">${t("删除")}</button></span>`;
 /** 停用 / 启用：记停用日期，「停用的卡」按它排 */

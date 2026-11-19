@@ -15,10 +15,12 @@ import { D, cur, d, roStop } from "./card-common.js";
 import { aiSettings, providerOf } from "../core/ai-common.js";
 import { balancePanel } from "./net-worth-panel.js";
 import { adultPeople } from "../settings/family-lite.js";
+import { copyOf } from "../core/more-menu.js";
+import { cardDetailPage } from "./card-detail.js";
 
 /* ───────────── 表单 ───────────── */
 const NUMF = (v) => (v == null || v === "" ? "" : num(v));
-export function cardForm(id, ro = false) {
+export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：详情页上「删除前的确认」面板（卡片列表页生成）
   const isNew = id === "new", c = isNew ? null : cardById(id);
   const preset = state.route.q.get("preset");
   if (isNew && preset && !state.cardDraft) {   // 链接预填：#/bills/cards?card=new&preset=<目录 id>&last4=1234&due=24
@@ -27,6 +29,13 @@ export function cardForm(id, ro = false) {
   const qKind = state.route.q.get("kind");   // 快速添加：#/bills/cards?card=new&kind=checking
   if (isNew && qKind && ACCT_KINDS[qKind] && !state.cardDraft) state.cardDraft = { name: "", issuer: "", network: qKind === "credit" || qKind === "debit" ? "visa" : "other", kind: qKind, annual_fee: 0, active: true, rewards: { base: 0, cats: {}, caps: {}, merchants: {}, point_value: 1, foreign_fee: 0, has_rotating: false, rotating: [] }, credits: [] };
   if (!isNew && !c) return `<section class="section"><div class="panel empty"><strong>${t("找不到这张卡")}</strong><p><a class="btn" href="${CARDS_HREF()}">${t("回用卡")}</a></p></div></section>`;
+  // 已有的卡：先看详情页；点某一块的「编辑」（?edit=basic|repay|rewards|bonus|credits|notes）才进表单（只显示那一块）；只读一律看详情
+  const secQ = !isNew ? state.route.q.get("edit") : null;
+  if (!isNew && (ro || !secQ)) return cardDetailPage(c, ro, extra.deleteHtml || "");
+  const sec = ["basic", "repay", "rewards", "bonus", "credits", "notes"].includes(secQ) ? secQ : null;
+  const W = (sid) => `<div class="cf-sec" data-csec="${sid}"${sec && sec !== sid ? " hidden" : ""}>`;   // 每个分区一个外框：只改一块时其余块藏起来（字段还在表单里，一起保存）
+  const cp = state.route.q.get("copy");   // 复制为新卡：规则、网络、年费、持卡人等带过去；末四位、到期、账单日、还款日、奖励、报销额度不带
+  if (isNew && cp && !state.cardDraft) { const src = cardById(cp); if (src) state.cardDraft = { ...copyOf(src, ["last4", "expires_on", "opened_on", "balance", "bonus", "credits", "bill_id", "statement_day", "due_day", "inactive_since", "created_at", "updated_at"]), name: `${src.name}（2）`.slice(0, 60), active: true }; }
   const v = c || state.cardDraft || { name: "", issuer: "", network: "visa", kind: "credit", annual_fee: 0, active: true, rewards: { base: 1, cats: {}, caps: {}, merchants: {}, point_value: 1, foreign_fee: 0, has_rotating: false, rotating: [] }, credits: [] };
   const kind = v.kind || "credit", bank = noRewards({ kind });   // 银行账户 / 礼品卡：精简表单
   const only = (ks) => `data-kind="${ks}" ${ks.split(" ").includes(kind) ? "" : "hidden"}`;   // 只有这些种类才显示的字段 / 分区（换种类时 main.js 按 data-kind 切换）
@@ -42,10 +51,10 @@ export function cardForm(id, ro = false) {
   const credits = (v.credits || []).map((x) => `${x.name} | ${num(x.amount)} | ${x.period || "year"} | ${x.resets_on || ""} | ${num(x.used, 0)}`).join("\n");
   const b = v.bonus || {};
   return `<section class="section form-page">
-    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(CARDS_HREF())}<a href="${CARDS_HREF()}">${t("卡与账户")}</a><span class="sep">/</span><b>${isNew ? (bank ? t("添加账户") : t("添加卡")) : d(v.name)}</b></nav>
+    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(CARDS_HREF())}<a href="${CARDS_HREF()}">${t("卡与账户")}</a><span class="sep">/</span>${isNew ? `<b>${bank ? t("添加账户") : t("添加卡")}</b>` : `<a href="${cardHref(c.id)}">${d(v.name)}</a><span class="sep">/</span><b>${t("编辑")}</b>`}</nav>
     <form id="cardForm" class="panel" novalidate data-id="${d(c?.id)}" ${ro ? 'data-readonly="1"' : ""}>
       ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("只读：家主开放财务权限后才能修改")}</p><fieldset disabled style="border:0;padding:0;margin:0;min-width:0">` : ""}
-      <fieldset><legend>${bank ? t("这个账户") : t("这张卡")}</legend><div class="form-grid">
+      ${W("basic")}<fieldset><legend>${bank ? t("这个账户") : t("这张卡")}</legend><div class="form-grid">
         <label>${t("类型")}<select name="kind">${Object.entries(ACCT_KINDS).map(([k, [n, icon]]) => opt(k, `${icon} ${t(n)}`, kind === k)).join("")}</select><small>${t("支票 / 储蓄账户没有返现，不参与推荐；用来记账单从哪扣款、缴费用的哪个账户")}</small></label>
         ${catalogSel}
         ${aiBtn}
@@ -63,15 +72,15 @@ export function cardForm(id, ro = false) {
         <label ${only("credit")}>${t("年费哪个月收")}<select name="fee_month">${opt("", t("按开卡月"), !v.fee_month)}${Array.from({ length: 12 }, (_, i) => opt(i + 1, t("{m} 月", { m: i + 1 }), v.fee_month === i + 1)).join("")}</select></label>
         <label ${only("credit")}>${t("额度（可空）")}<input name="credit_limit" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(v.credit_limit)}"></label>
         <label class="check-inline"><input type="checkbox" name="active" ${v.active !== false ? "checked" : ""}><span>${bank ? t("在用（停用的不出现在下拉里）") : t("在用（停用的不参与推荐）")}</span></label>
-      </div></fieldset>
-      <fieldset ${only("credit")}><legend>${t("还款")}</legend><div class="form-grid">
+      </div></fieldset></div>
+      ${W("repay")}<fieldset ${only("credit")}><legend>${t("还款")}</legend><div class="form-grid">
         <label>${t("账单日（每月几号）")}<input name="statement_day" type="number" min="1" max="31" inputmode="numeric" value="${NUMF(v.statement_day)}"></label>
         <label>${t("还款日（每月几号）")}<input name="due_day" type="number" min="1" max="31" inputmode="numeric" value="${NUMF(v.due_day)}"></label>
         <label class="check-inline"><input type="checkbox" name="autopay" ${v.autopay ? "checked" : ""}><span>${t("自动还款")}</span></label>
         <label>${t("从哪个账户还款")}<select name="pay_from">${accountOptions(linkedBill?.pay_card_id || "", { none: "（未指定）", exclude: c?.id || "", kinds: ["checking", "savings", "debit"] })}</select><small>${t("写到关联的还款账单上（它的付款账户）；账户在上面的「添加卡 / 账户」里加")}</small></label>
         <label>${t("还款提醒走哪条账单")}<select name="bill_id">${opt("", t("（不提醒）"), !v.bill_id)}${bills.map((x) => opt(x.id, `${x.name}${x.next_due_on ? ` · ${fmtDate(x.next_due_on)}` : ""}`, v.bill_id === x.id)).join("")}${opt("__new", t("新建一条「信用卡」还款账单"), false)}</select><small>${t("到期 / 核对提醒和缴费记录都在账单模块里，这里只是关联")}</small></label>
-      </div></fieldset>
-      <fieldset ${only("credit debit wallet")}><legend>${t("返现规则")}</legend>
+      </div></fieldset></div>
+      ${W("rewards")}<fieldset ${only("credit debit wallet")}><legend>${t("返现规则")}</legend>
         <p class="muted" style="margin:0 0 8px;font-size:13px">${t("全部按「% 返现」填；积分卡先定每点值多少美分，各类别写折算后的 %。没填的类别按「其他消费」。")}</p>
         <div class="form-grid">
           <label>${t("其他消费 %")}<input name="base" type="number" min="0" step="0.25" inputmode="decimal" value="${NUMF(rw.base) || 0}"></label>
@@ -82,7 +91,7 @@ export function cardForm(id, ro = false) {
         <div class="form-grid" style="margin-top:8px">
           <label class="span-2">${t("特定商家（商家=%，逗号隔开）")}<input name="merchants" maxlength="300" value="${d(merchants)}" placeholder="amazon=5, whole foods=5"></label>
         </div>
-        <details class="adv" ${rw.has_rotating ? "open" : ""}><summary>${t("季度轮换 5% 类别（Chase Freedom、Discover it 这类）")}</summary>
+        <details class="adv" ${rw.has_rotating || sec === "rewards" ? "open" : ""}><summary>${t("季度轮换 5% 类别（Chase Freedom、Discover it 这类）")}</summary>
           <div class="form-grid" style="margin-top:8px">
             <label class="check-inline span-2"><input type="checkbox" name="has_rotating" ${rw.has_rotating ? "checked" : ""}><span>${t("这张卡有季度轮换类别")}</span></label>
             <div class="span-2"><div class="lab" style="font-size:13px;font-weight:700;margin-bottom:4px">${t("本季（{q}）的类别", { q: q.label })}</div><div class="seg-radio">${rotCats}</div></div>
@@ -91,24 +100,22 @@ export function cardForm(id, ro = false) {
             <p class="muted span-2" style="margin:0;font-size:12.5px">${t("每季类别以发卡行为准（链接可能变）：")} <a href="https://www.discover.com/credit-cards/cash-back/cashback-calendar.html" target="_blank" rel="noopener noreferrer">Discover it</a> · <a href="https://www.chase.com/personal/credit-cards/freedom/5percent" target="_blank" rel="noopener noreferrer">Chase Freedom</a></p>
             <label class="check-inline span-2"><input type="checkbox" name="rot_activated" ${rot.activated ? "checked" : ""}><span>${t("本季已激活")}</span></label>
           </div></details>
-      </fieldset>
-      <fieldset ${only("credit")}><legend>${t("开卡奖励（可选）")}</legend><div class="form-grid">
+      </fieldset></div>
+      ${W("bonus")}<fieldset ${only("credit")}><legend>${t("开卡奖励（可选）")}</legend><div class="form-grid">
         <label>${t("要刷满（{cur}）", { cur: cur() })}<input name="bonus_spend" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(b.spend)}"></label>
         <label>${t("截止日期")}<input name="bonus_by" type="date" value="${d(b.by)}"></label>
         <label>${t("奖励值多少（{cur}）", { cur: cur() })}<input name="bonus_value" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(b.reward_value)}"></label>
         <label>${t("奖励说明")}<input name="bonus_label" maxlength="60" value="${d(b.label)}" placeholder="${esc(t("例如 60,000 点 ≈ $750"))}"></label>
         <label>${t("已刷了多少（不填 = 按记到这张卡的花费自动累计）")}<input name="bonus_spent" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(b.spent_manual)}"></label>
         <label class="check-inline"><input type="checkbox" name="bonus_done" ${b.done ? "checked" : ""}><span>${t("已拿到奖励")}</span></label>
-      </div></fieldset>
-      <fieldset ${only("credit")}><legend>${t("报销额度（可选）")}</legend>
+      </div></fieldset></div>
+      ${W("credits")}<fieldset ${only("credit")}><legend>${t("报销额度（可选）")}</legend>
         <label>${t("每行一条：名称 | 金额 | year 或 quarter 或 month | 清零日期 | 已用")}<textarea name="credits" rows="3" placeholder="${esc(t("旅行报销 | 300 | year | 2027-01-01 | 120"))}">${d(credits)}</textarea></label>
-      </fieldset>
-      <label>${t("备注")}<input name="notes" maxlength="500" value="${d(v.notes)}"></label>
+      </fieldset></div>
+      ${W("notes")}<label>${t("备注")}<input name="notes" maxlength="500" value="${d(v.notes)}"></label></div>
       ${ro ? `</fieldset><div class="form-actions"><a class="btn btn-ghost" href="${CARDS_HREF()}">${t("返回")}</a></div>` : `<p id="cardError" class="form-error" role="alert"></p>
-      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button><a class="btn btn-ghost" href="${CARDS_HREF()}">${t("取消")}</a>
-        ${c ? `<span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="card-del" data-id="${c.id}">${bank ? t("删除这个账户") : t("删除这张卡")}</button>` : ""}</div>`}
+      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button><a class="btn btn-ghost" href="${c ? cardHref(c.id) : CARDS_HREF()}">${t("取消")}</a></div>`}
     </form>
-    ${c && !ro ? `<div class="nw-card-bal">${balancePanel(c, { open: true })}</div>` : ""}
   </section>`;
 }
 /** 表单里选了目录：用目录内容重画（草稿放 state.cardDraft） */
@@ -159,7 +166,10 @@ export async function saveCardForm(f) {
     }
     state.cardDraft = null; await reloadCards();
     toast(old ? t("已保存") : t("已添加 {name}", { name }));
-    go(CARDS_HREF()); return id;
+    if (!old) go(CARDS_HREF());
+    else if (state.prevRoute?.section === "bills" && state.prevRoute.q?.get("card") === old.id && !state.prevRoute.q.get("edit")) history.back();   // 从详情页点「编辑」进来的：保存后退回详情页
+    else go(cardHref(old.id), { replace: true });
+    return id;
   } catch (e) {
     err.textContent = /relation .*cards|does not exist|schema cache/i.test(e.message) ? t("还没执行数据库迁移 032（信用卡表），先在 Supabase 里执行 supabase/migrations/032_cards.sql") : t("保存失败：{msg}", { msg: e.message });
     btn.disabled = false; return false;

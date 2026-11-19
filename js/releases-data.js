@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.28", title: { zh: "卡与账户：先看详情，每一块各自编辑", en: "Cards & accounts: details first, each block edited on its own" }, items: [
+    { k: "better", zh: "点一张卡或账户，先进详情页；右上角 ⋯ 有停用 / 启用、复制为新卡、删除；原来表单底部的删除按钮搬到这里", en: "Tapping a card or account opens a details page first; the ⋯ menu has Deactivate / Activate, Copy as new and Delete (the Delete button moved here from the bottom of the form)" },
+    { k: "better", zh: "这张卡 / 还款 / 返现规则 / 开卡奖励 / 报销额度 / 备注，每块带自己的「编辑」，点进去只改这一块，保存后回到详情页", en: "The card, Repayment, Rewards, Sign-up bonus, Credits and Notes blocks each have their own Edit that changes only that block and returns to the details" },
+    { k: "new", zh: "新增「复制为新卡」：把返现规则、网络、年费、持卡人带过去，末四位、到期、账单日、奖励不带", en: "New Copy as new card: it carries over rewards, network, annual fee and holder, but not the last four digits, expiry, due days or bonus" }
+  ] },
+
   { v: "2026-11-19.27", title: { zh: "物品详情页名称排版更整齐；单块编辑页不再折叠", en: "Tidier item name layout; single-block edit pages no longer fold" }, items: [
     { k: "better", zh: "物品详情页：图标和名称连在一起，只有名称太长才换行；缺货等标志跟在名称后面，整组不拆开（一行放不下就整组换到第二行）；⋯ 固定在右边、上下居中", en: "Item details: the icon stays with the name (the name wraps only when it is too long); stock flags follow it as one group (the whole group drops to line two if it does not fit); the ⋯ button stays at the right, centered" },
     { k: "better", zh: "点某一块的「编辑」进入的页面，这一块直接平铺显示，不再有折叠箭头，基本信息上也不再显示缺货等标志", en: "The page you get from a block's Edit shows that block flat, with no fold arrow and no stock flags on Basics" }
