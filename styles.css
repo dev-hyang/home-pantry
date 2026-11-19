@@ -20,6 +20,8 @@
   --r-lg: 14px;
   --r-md: 10px;
   --r-sm: 8px;
+  --control-h: 44px;     /* 表单控件（输入框、下拉、日期）的最小高度；手机上字号随 --control-fs 变 16px，高度自然撑到约 46px */
+  --control-fs: 15px;    /* 表单控件的字号；手机（≤640px）改 16px，iOS 小于 16px 聚焦会被放大 */
   --line-soft: color-mix(in srgb, var(--line) 70%, transparent);   /* 面板边框：比分隔线再淡一点（2026-11 轻量化） */
   --font: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
   color-scheme: light;
@@ -131,7 +133,8 @@ main:focus, main:focus-visible, #main:focus-visible { outline: none !important; 
   .topbar-inner, main { padding-left: 14px; padding-right: 14px; }
   .tabs { grid-auto-columns: 1fr; }
   /* iOS：输入框字号小于 16px 时聚焦会把页面放大，统一用 16px */
-  input, select, textarea { font-size: 16px; }
+  :root { --control-fs: 16px; }
+  input, select, textarea { font-size: var(--control-fs); }
   .topbar-inner { padding-top: 10px; padding-bottom: 8px; }
   .brand { gap: 10px; min-width: 0; }
   .brand-mark { width: 26px; height: 32px; }
@@ -3416,9 +3419,10 @@ button.fab { border: 0; cursor: pointer; padding: 0; font-family: inherit; }
 .cat-group-h > h3 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cat); }
 .cat-shop { min-height: 40px; white-space: nowrap; }
 .cat-shop .num { margin-left: 2px; padding: 0 6px; border-radius: 99px; background: var(--out); color: #fff; font-size: 12px; }
-/* 触屏：表单里的输入框、下拉、日期、可搜索下拉按钮一样高（≥ 44px）；iOS 上空的日期框不会缩成一条 */
-@media (pointer: coarse) {
-  .form-grid input:not([type="checkbox"]):not([type="radio"]), .form-grid select, .form-grid .ssel-btn, .form-grid textarea { min-height: 44px; }
+/* 表单里的输入框、下拉、日期、可搜索下拉按钮：同一套尺寸（令牌 --control-h / --control-fs）。
+   以前这里的字号继承了标签的 13px 小字（桌面比页面里的输入框小一号），高度也只有触屏才到 44px */
+.form-grid input:not([type="checkbox"]):not([type="radio"]), .form-grid select, .form-grid .ssel-btn, .form-grid textarea { min-height: var(--control-h); font-size: var(--control-fs); }
+@media (pointer: coarse) {   /* iOS 上空的日期框不会缩成一条 */
   .form-grid input[type="date"] { display: block; line-height: 24px; }
 }
 input[type="date"], input[type="month"] { height: calc(1.6em + 20px); }   /* 和文字输入框一样高（行高 1.6 + 上下内边距 18 + 边框 2）；Chrome 的日期框默认高 2px */

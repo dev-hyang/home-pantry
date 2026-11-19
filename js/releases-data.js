@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.2", title: { zh: "表单里的输入框、下拉、日期大小统一", en: "Form fields now share one size" }, items: [
+    { k: "better", zh: "添加 / 编辑物品、设备等表单里的输入框、下拉和日期，字号和高度和其他页面一致（以前电脑上表单里的字偏小）", en: "Inputs, dropdowns and dates in the add / edit forms now match the rest of the app in text size and height (they were slightly smaller on desktop)" }
+  ] },
+
   { v: "2026-11-19.1", title: { zh: "启动更快：花费明细和统计页面改成用到时才加载", en: "Faster start: the Spending records and Stats pages now load only when opened" }, items: [
     { k: "better", zh: "花费明细、花费统计这几个页面的程序不再在打开应用时下载，进到对应页面才加载；功能和以前一样", en: "The Spending records and Stats pages are no longer downloaded when the app opens, only when you visit them; features are unchanged" }
   ] },
