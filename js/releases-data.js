@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.7", title: { zh: "库存卡片的状态标签和其他标签统一样式", en: "Inventory card status tags now match other tags" }, items: [
+    { k: "better", zh: "库存页每个分类卡片上的「缺货 / 少货 / 充足 / 空」标签，字号和圆角和其他页面的标签一致", en: "The Out / Low / OK / Empty tags on the Inventory category cards now match the tags used on other pages in size and shape" }
+  ] },
+
   { v: "2026-11-19.6", title: { zh: "电脑上选项多的下拉，可以直接打字筛选", en: "Longer dropdowns can be filtered by typing on desktop" }, items: [
     { k: "better", zh: "电脑上，选项超过 8 个的下拉（资产、位置、付款账户等）现在可以直接打字筛选；选项少的仍然点一下就选。手机不变", en: "On desktop, dropdowns with more than 8 options (assets, locations, payment accounts, etc.) can now be filtered by typing; short ones still work with a click. Phones are unchanged" },
     { k: "fix", zh: "月份、人员、账户等本来就不需要搜索的下拉，保持原来点选的样子", en: "Month, person, account and similar dropdowns that never needed searching keep their plain click-to-select behavior" }

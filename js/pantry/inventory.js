@@ -29,12 +29,12 @@ export function catStatus(items) {
   const warn = items.filter((x) => x.status === "low" || x.status === "soon" || x.exp).length;
   return { out, warn, kind: !items.length ? "none" : out ? "out" : warn ? "warn" : "ok" };
 }
-/** 状态小药丸：红「! 1 缺货」、琥珀「! 3 少货」、绿「✓ 充足」、灰「空」 */
+/** 状态徽标：红「! 1 缺货」、琥珀「! 3 少货」、绿「✓ 充足」、灰「空」（徽标 .badge + 语气 b-* + 左侧小圆图标 .b-ic） */
 const stPill = (s, items) => {
-  if (!items.length) return `<span class="pill pill-none">${t("空")}</span>`;
-  if (s.kind === "out") return `<span class="pill pill-out"><i>!</i>${t("{n} 缺货", { n: s.out })}${s.warn ? ` · ${t("{n} 少货", { n: s.warn })}` : ""}</span>`;
-  if (s.kind === "warn") return `<span class="pill pill-warn"><i>!</i>${t("{n} 少货 / 临期", { n: s.warn })}</span>`;
-  return `<span class="pill pill-ok"><i>✓</i>${t("充足")}</span>`;
+  if (!items.length) return `<span class="badge b-none">${t("空")}</span>`;
+  if (s.kind === "out") return `<span class="badge b-out"><i class="b-ic" data-g="!" aria-hidden="true"></i>${t("{n} 缺货", { n: s.out })}${s.warn ? ` · ${t("{n} 少货", { n: s.warn })}` : ""}</span>`;
+  if (s.kind === "warn") return `<span class="badge b-low"><i class="b-ic" data-g="!" aria-hidden="true"></i>${t("{n} 少货 / 临期", { n: s.warn })}</span>`;
+  return `<span class="badge b-ok"><i class="b-ic" data-g="✓" aria-hidden="true"></i>${t("充足")}</span>`;
 };
 /** 搜索 / 状态 / 位置筛选是否生效（分类另算） */
 const filterActive = (f) => !!f.q.trim() || f.status !== "all" || (f.loc || "all") !== "all";
@@ -60,7 +60,7 @@ export function catDashboard(space, all0) {
     const tiles = cats.map((c) => {
       const items = mine.filter((x) => x.category === c.id), s = gear ? { kind: items.length ? "ok" : "none", out: 0, warn: 0 } : catStatus(items);
       const body = `<span class="tile-top"><span class="tile-ico" style="--cat:${c.color}" aria-hidden="true">${c.icon}</span><b class="tile-count">${items.length}</b></span>
-        <span class="tile-name">${esc(t(c.name))}</span>${items.length ? `<span class="pill pill-none">${esc(items.slice(0, 3).map((x) => x.name).join(" · "))}${items.length > 3 ? " …" : ""}</span>` : `<span class="pill pill-none">${t("无")}</span>`}`;
+        <span class="tile-name">${esc(t(c.name))}</span>${items.length ? `<span class="badge b-none">${esc(items.slice(0, 3).map((x) => x.name).join(" · "))}${items.length > 3 ? " …" : ""}</span>` : `<span class="badge b-none">${t("无")}</span>`}`;
       return `<button type="button" class="tile st-${s.kind} ${items.length ? "is-hit" : "is-dim"}" data-action="cat" data-cat="${c.id}" ${items.length ? "" : "disabled"}>${body}</button>`;
     }).join("");
     return `<div class="dash-sum"><div class="sum-main"><b>${mine.length}</b><span>${t("件符合")}</span><small>${mine.length ? t("点格子进入分类，筛选条件会保留") : t("换个关键词或筛选试试")}</small></div>
@@ -81,7 +81,7 @@ export function catDashboard(space, all0) {
     // 排序模式下卡片里有 ‹ › 按钮，按钮不能嵌套按钮，所以这时卡片用 div
     const body = `<span class="tile-top"><span class="tile-ico" style="--cat:${c.color}" aria-hidden="true">${c.icon}</span><b class="tile-count">${count}</b></span>
       <span class="tile-name">${esc(t(c.name))}</span>
-      ${gear ? (items.length ? `<span class="pill pill-none">${t("{n} 种", { n: items.length })}</span>` : `<span class="pill pill-none">${t("空")}</span>`) : stPill(s, items)}${arrows}`;
+      ${gear ? (items.length ? `<span class="badge b-none">${t("{n} 种", { n: items.length })}</span>` : `<span class="badge b-none">${t("空")}</span>`) : stPill(s, items)}${arrows}`;
     const cls = `tile st-${s.kind} ${items.length ? "" : "is-empty"}`;
     return sorting ? `<div class="${cls} is-sorting">${body}</div>` : `<button type="button" class="${cls}" data-action="cat" data-cat="${c.id}">${body}</button>`;
   };
@@ -89,7 +89,7 @@ export function catDashboard(space, all0) {
   const grps = sorting ? [] : groupedCats(space, cats);
   const tiles = sorting || grps.length < 2 ? cats.map(tile).join("")
     : grps.map((e) => `<h4 class="cat-grp-h">${esc(grpName(e.g))}</h4>${e.cats.map((c) => tile(c, cats.indexOf(c))).join("")}`).join("");
-  const addTile = sorting ? "" : `<button type="button" class="tile tile-add" data-action="cat-new" data-space="${space}"><span class="tile-top"><span class="tile-ico" style="--cat:#8a948f" aria-hidden="true">＋</span></span><span class="tile-name">${t("新分类")}</span><span class="pill pill-none">${t("自定义")}</span></button>`;
+  const addTile = sorting ? "" : `<button type="button" class="tile tile-add" data-action="cat-new" data-space="${space}"><span class="tile-top"><span class="tile-ico" style="--cat:#8a948f" aria-hidden="true">＋</span></span><span class="tile-name">${t("新分类")}</span><span class="badge b-none">${t("自定义")}</span></button>`;
   return `${summary}<div class="cat-dash" id="catDash">${tiles}${addTile}</div>
     <p class="muted dash-foot"><button type="button" class="link-name" data-action="cat-sort">${sorting ? t("完成排序") : t("调整顺序")}</button></p>`;
 }
