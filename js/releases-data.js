@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.8", title: { zh: "数字小圆标统一样式；库存里的「全部加入购物车」在手机上更好点", en: "Count badges share one style; Add all to cart is easier to tap on phones" }, items: [
+    { k: "better", zh: "库存「全部加入购物车」按钮上的红色数字、物品表单里「关联设备」已选个数，改用统一的数字小圆标", en: "The red number on Add all to cart and the selected count on Linked devices now use the shared count badge" },
+    { k: "fix", zh: "库存「全部加入购物车」按钮在手机上加高到 44px，更容易点", en: "The Add all to cart button on Inventory is now 44px tall on phones" }
+  ] },
+
   { v: "2026-11-19.7", title: { zh: "库存卡片的状态标签和其他标签统一样式", en: "Inventory card status tags now match other tags" }, items: [
     { k: "better", zh: "库存页每个分类卡片上的「缺货 / 少货 / 充足 / 空」标签，字号和圆角和其他页面的标签一致", en: "The Out / Low / OK / Empty tags on the Inventory category cards now match the tags used on other pages in size and shape" }
   ] },

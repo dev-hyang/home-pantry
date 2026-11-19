@@ -210,7 +210,7 @@ export function renderInvList() {
     const head = withHead && g.id !== lastG ? `<h2 class="inv-grp-h">${esc(grpName(g))}</h2>` : ""; lastG = g.id;
     const need = f.space === "gear" ? 0 : inCat.filter((x) => x.status !== "ok" && !openShopFor(x.id)).length;   // 这个大类里要补货、还不在清单里的
     return `${head}<div class="cat-group" style="--cat:${c.color}"><div class="cat-group-h"><h3><span class="dot" aria-hidden="true"></span>${c.icon} ${t(c.name)}<span class="muted">（${inCat.length}）</span></h3>
-      ${need ? `<button type="button" class="btn btn-sm cat-shop" data-action="inv-cat-shop" data-cat="${c.id}" aria-label="${esc(t("{c}：{n} 件要补货，全部加入购物车", { c: t(c.name), n: need }))}">🛒 ${t("全部加入购物车")} <b class="num">${need}</b></button>` : ""}</div>
+      ${need ? `<button type="button" class="btn btn-sm cat-shop" data-action="inv-cat-shop" data-cat="${c.id}" aria-label="${esc(t("{c}：{n} 件要补货，全部加入购物车", { c: t(c.name), n: need }))}">🛒 ${t("全部加入购物车")} <b class="ui-badge" data-shape="count">${need}</b></button>` : ""}</div>
       <div class="items">${part.map(itemCard).join("")}</div></div>`;
   }).join("") + pageMoreBtn("inv", orderedCats(f.space).reduce((n, c) => n + (byCat.get(c.id)?.length || 0), 0), lim);
 }

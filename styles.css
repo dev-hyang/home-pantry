@@ -356,7 +356,7 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .pick[open] > summary::after { transform: rotate(-135deg); margin-bottom: -3px; }
 .pick-val { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; }
 .pick-val.is-empty { color: var(--muted); }
-.pick-n { flex: 0 0 auto; min-width: 22px; padding: 0 7px; border-radius: 99px; background: var(--surface-2); font-size: 12px; font-weight: 700; text-align: center; line-height: 22px; }
+.pick-n { flex: 0 0 auto; }   /* 已选个数：外观是 ui-badge 的数字形态，这个类只留给 JS 找到它 */
 .pick-panel { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 6; max-height: min(264px, 48vh); overflow-y: auto; overflow-x: hidden; padding: 4px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); box-shadow: 0 8px 24px rgba(0, 0, 0, .14); }
 .pick-q { margin-bottom: 4px; min-height: 36px; padding: 6px 10px; font-size: 14px; box-sizing: border-box; }
 .pick-panel .pick-row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: 8px; font-size: 14px; font-weight: 400; cursor: pointer; }
@@ -3411,7 +3411,8 @@ button.fab { border: 0; cursor: pointer; padding: 0; font-family: inherit; }
 .cat-group-h > h3 { display: flex; align-items: center; gap: 8px; font-size: 16px; margin: 0; }
 .cat-group-h > h3 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cat); }
 .cat-shop { min-height: 40px; white-space: nowrap; }
-.cat-shop .num { margin-left: 2px; padding: 0 6px; border-radius: 99px; background: var(--out); color: #fff; font-size: 12px; }
+@media (max-width: 640px), (pointer: coarse) { .cat-shop { min-height: 44px; } }   /* 手机 / 触屏：和其他小按钮一样不小于 44px */
+.cat-shop > .ui-badge { margin-left: 2px; }
 /* 表单里的输入框、下拉、日期、可搜索下拉按钮：同一套尺寸（令牌 --control-h / --control-fs）。
    以前这里的字号继承了标签的 13px 小字（桌面比页面里的输入框小一号），高度也只有触屏才到 44px */
 .form-grid input:not([type="checkbox"]):not([type="radio"]), .form-grid select, .form-grid .ssel-btn, .form-grid textarea { min-height: var(--control-h); font-size: var(--control-fs); }

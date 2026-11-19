@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="shared/ui.css">
   <link rel="stylesheet" href="styles.css">
   <!-- 模块依赖是一层套一层的，浏览器逐层发现会串行等待；这里一次性预取，首屏少好几轮往返 -->
   <!-- build:preload（npm run build 自动生成：启动时要用的打包文件，让浏览器并行下载） -->
@@ -27,10 +28,9 @@
   <link rel="modulepreload" href="dist/chunks/chunk-DOFNU4OM.js">
   <link rel="modulepreload" href="dist/chunks/chunk-EFC6AQI3.js">
   <link rel="modulepreload" href="dist/chunks/chunk-EWBHRO6D.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-FMHYXK4C.js">
   <link rel="modulepreload" href="dist/chunks/chunk-GNUSTC6T.js">
-  <link rel="modulepreload" href="dist/chunks/chunk-HNHKEM4Y.js">
   <link rel="modulepreload" href="dist/chunks/chunk-HQXLQED6.js">
-  <link rel="modulepreload" href="dist/chunks/chunk-HW24SIHW.js">
   <link rel="modulepreload" href="dist/chunks/chunk-HZULSWOG.js">
   <link rel="modulepreload" href="dist/chunks/chunk-IOHR6ZZY.js">
   <link rel="modulepreload" href="dist/chunks/chunk-JM3XSSV2.js">
@@ -49,6 +49,7 @@
   <link rel="modulepreload" href="dist/chunks/chunk-OFBVTLIA.js">
   <link rel="modulepreload" href="dist/chunks/chunk-OVNNDK2A.js">
   <link rel="modulepreload" href="dist/chunks/chunk-OYNXIBIT.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-OZAKHIP6.js">
   <link rel="modulepreload" href="dist/chunks/chunk-PIGHHX4K.js">
   <link rel="modulepreload" href="dist/chunks/chunk-QCD4HGDF.js">
   <link rel="modulepreload" href="dist/chunks/chunk-RITHL5GT.js">
@@ -133,7 +134,7 @@
   <script>
     (function () {
       var FILES = [
-        "styles.css", "config.js", "units.js", "charts.js", "data.js", "data/bills.js",
+        "styles.css", "shared/ui.css", "config.js", "units.js", "charts.js", "data.js", "data/bills.js",
         "data/cards.js", "data/care.js", "data/deals.js", "data/guides.js", "data/house.js", "data/vehicles.js",
         "dist/main.js"];
       // 部署更新检测：GitHub Pages 把每个文件缓存 10 分钟，刷新时浏览器会拿到新 index.html 却继续用缓存里的旧模块

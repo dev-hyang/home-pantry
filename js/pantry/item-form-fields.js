@@ -11,7 +11,7 @@ export function assetField(v) {
   const labels = all.filter((a) => picked.has(a.id)).map(assetLabel);
   return `<div class="span-2 only-house pick-field"><span class="pick-lbl" id="assetLinkLbl">${t("关联设备")}</span>
     ${all.length ? `<details class="pick">
-      <summary aria-labelledby="assetLinkLbl"><span class="pick-val ${labels.length ? "" : "is-empty"}">${esc(labels.length ? pickText(labels) : t("不关联设备"))}</span><b class="pick-n" ${labels.length ? "" : "hidden"}>${labels.length}</b></summary>
+      <summary aria-labelledby="assetLinkLbl"><span class="pick-val ${labels.length ? "" : "is-empty"}">${esc(labels.length ? pickText(labels) : t("不关联设备"))}</span><b class="pick-n ui-badge" data-shape="count" data-size="lg" data-tone="neutral" data-soft ${labels.length ? "" : "hidden"}>${labels.length}</b></summary>
       <div class="pick-panel" role="group" aria-labelledby="assetLinkLbl">
         ${all.length > 8 ? `<input type="search" class="pick-q" placeholder="${t("搜索设备")}" aria-label="${t("搜索设备")}">` : ""}
         ${all.map((a) => `<label class="pick-row check-inline"><input type="checkbox" name="asset_ids" value="${esc(a.id)}" data-label="${esc(assetLabel(a))}" ${picked.has(a.id) ? "checked" : ""}><span>${a.t?.icon || "⚙️"} ${esc(assetLabel(a))}</span></label>`).join("")}
