@@ -93,8 +93,10 @@ export async function clickFamily(action, el, id, e) {
       case "member-remove": {
         const m = famMembers().find((x) => x.user_id === id);
         if (!m) return;
-        if (!armed(el, t("再点一次确认移出"))) return;
-        await Store.removeMember(id);
+        // 在 ⋯ 菜单里点会立刻收起菜单，看不到「再点一次」的提示，所以菜单里的用系统确认框；独立按钮仍用两次点击
+        if (el.closest(".act-menu")) { if (!window.confirm(t("把「{n}」这台设备登出（移出家庭）？它下次打开要重新用邮箱或邀请码登录。", { n: m.display_name }))) return; }
+        else if (!armed(el, t("再点一次确认移出"))) return;
+        try { await Store.removeMember(id); } catch (err) { toast(t("操作失败：{msg}", { msg: err.message })); return; }
         await reloadMembers();
         toast(t("{name} 已移出家庭", { name: m.display_name })); return render(true);
       }
