@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.10", title: { zh: "全部账单页更简洁：操作收进 ⋯，说明收进 ⓘ，右下角加号加账单", en: "Cleaner All bills page: actions in ⋯, notes in ⓘ, + button to add" }, items: [
+    { k: "better", zh: "全部账单：第一行只留眼睛和 ⋯（添加账单、批量标记已核对、导出 CSV）；原来的“全部标为已核对”按钮去掉，右下角加了圆形 ＋ 添加账单", en: "All bills: the top row keeps just the eye and ⋯ (Add bill, Mark checked in bulk, Export CSV); the Mark all checked button is gone and a round + button adds a bill" },
+    { k: "better", zh: "页面上长长的说明文字改成 ⓘ：标题旁是时间范围说明，“含估算 / Escrow”等说明放在对应的“应付”“余额”卡片旁，悬停或点一下查看", en: "Long notes became ⓘ tips: the time-range note sits beside the title, and estimate / Escrow notes sit on the Total due and Balance cards (hover or tap)" },
+    { k: "better", zh: "账单概览：眼睛挪到第一行，在“全部账单”链接左边", en: "Bills overview: the eye moved to the first row, left of the All bills link" }
+  ] },
+
   { v: "2026-11-19.9", title: { zh: "修复：家庭成员里「登出」别的设备没反应", en: "Fix: Log out on another device in Family members did nothing" }, items: [
     { k: "fix", zh: "我的 → 家庭成员 → 登录设备里，点 ⋯ → 登出别的设备，现在会弹出确认，确认后设备马上从列表里消失", en: "In Me → Family members → Devices, ⋯ → Log out on another device now asks for confirmation and the device disappears from the list right away" }
   ] },

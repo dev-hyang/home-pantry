@@ -1,0 +1,44 @@
+import{a as h,e as v}from"./chunk-QPS2BYDQ.js";import{la as I}from"./chunk-F6LQPZ3R.js";import{b as C}from"./chunk-2G6B66KZ.js";import{b as A}from"./chunk-SAASUBYG.js";import{P as M,n as Y}from"./chunk-KX527J7P.js";import{a as D,b as O,i as T}from"./chunk-ATB2W7C7.js";import{Ja as p}from"./chunk-J3PGAR3S.js";import{a as d,f as S}from"./chunk-UVTSSMY7.js";import{$ as b,O as $,V as x,k as e,m as F,t as c}from"./chunk-PJGIJ7XR.js";var H=()=>window.HOUSE,j=["1 月","2 月","3 月","4 月","5 月","6 月","7 月","8 月","9 月","10 月","11 月","12 月"],g=t=>e(j[t-1]),U=t=>t>=3&&t<=5?"春":t>=6&&t<=8?"夏":t>=9&&t<=11?"秋":"冬",E=({task:t,done:a,pid:o},n,s)=>({"data-task":t.key,"data-period":h(n,s),"data-undo":a?.period||"","data-prop":o||d.propertyId||"","data-once":t.once?t.rec.id:""}),N=t=>{let a=t.rec.due_on,o=$(),n=Math.round((new Date(`${a}T12:00:00`)-new Date(`${o}T12:00:00`))/864e5);return`${x(a)} · ${n<0?e("逾期 {d} 天",{d:-n}):n===0?e("今天"):e("{d} 天后",{d:n})}`};function z(t,a,o){let{task:n,done:s}=t,i=`task-${n.key}-${a}-${o}`,l=s?e("{date} {who}已完成",{date:x(s.done_on),who:s.done_by_name?`${c(s.done_by_name)} `:""}):n.once?`${N(n)}${n.note?` · ${c(e(n.note))}`:""}`:n.note?c(e(n.note)):n.months.length>=12?e("每月一次"):F(n.months.map(g)),r=Object.entries(E(t,a,o)).map(([_,m])=>`${_}="${c(m)}"`).join(" "),u=P(n,t.pid||t.property_id||d.propertyId,o),w=n.custom?"":I(n.card||n.key,{ask:u}),y=n.custom?` <span class="badge" style="background:var(--surface-2)">${n.once?e("一次性"):e("自定义")}</span>`:"",f=n.once&&!s&&n.rec.due_on<$(),k=n.custom&&d.seasonForm?.id===n.rec.id;return`<li class="task-row ${s?"done":""} ${f?"overdue":""} ${k?"editing":""}">
+    <input type="checkbox" id="${i}" ${r} ${s?"checked":""}>
+    <div class="grow"><label for="${i}"><b>${c(n.custom?n.name:e(n.name))}${y}</b><small>${l}</small></label>${w}</div>
+    ${n.custom?`<button type="button" class="task-edit" data-action="season-edit" data-id="${c(n.rec.id)}" aria-label="${c(e("编辑：{name}",{name:n.name}))}" title="${c(e("编辑"))}">✎</button>`:""}
+    ${n.custom||!(n.card||n.key)||!window.CARE?.cardOf?.(n.card||n.key)?D(u):""}
+    ${k?q(n.rec,a,o):""}
+    ${O(u)}
+  </li>`}var P=(t,a,o)=>({id:`season-${t.custom?t.rec?.id:t.key}`,title:t.custom?t.name:e(t.name),question:e("{m}月的「{name}」具体怎么查？发现什么情况要叫人？",{m:o,name:t.custom?t.name:e(t.name)}),guide:t.note&&!window.CARE?.cardOf?.(t.card||t.key)?{why:t.note}:null,context:()=>T.property(a)});function B(){if(!d.houseEnabled||d.pending?.seasonal)return[];let t=new Date,a=t.getFullYear(),o=t.getMonth()+1,n=$();return A().flatMap(s=>{let i=d.houseProfiles[s.id]||null;return v(a,o,i,s.id).filter(l=>!l.done).map(l=>({source:"season",severity:l.task.once&&l.task.rec.due_on<n?1:3,must:!1,due:l.task.once?l.task.rec.due_on:null,daysLeft:null,property_id:s.id,title:l.task.custom?l.task.name:e(l.task.name),detail:l.task.once?N(l.task):l.task.note?e(l.task.note):e("{month}季节任务",{month:g(o)}),href:S("house","tasks"),actions:[{type:"check",attrs:E(l,a,o)}],ask:P(l.task,s.id,o)}))})}function R(){let t=new Date,[a,o]=(d.tasksYM||h(t.getFullYear(),t.getMonth()+1)).split("-").map(Number);return{y:a,m:o}}function ct(t){let{y:a,m:o}=R(),n=new Date(a,o-1+t,1);d.tasksYM=h(n.getFullYear(),n.getMonth()+1),d.seasonForm=null}function mt(){let t=d.houseProfile,a=new Date,o=a.getFullYear(),n=a.getMonth()+1,{y:s,m:i}=R(),l=s===o&&i===n,r=v(s,i),u=i===12?1:i+1,w=i===12?s+1:s,y=v(w,u).filter(m=>!m.done),f=r.filter(m=>!m.done).length,k=d.tasksOnlyUndone?r.filter(m=>!m.done):r,_=d.seasonForm&&!d.seasonForm.id?`<div class="panel" style="margin-bottom:12px">${q(null,s,i)}</div>`:"";return`
+    ${C()}
+    <section class="section">
+      ${t?`<p class="muted" style="margin:-6px 0 12px;font-size:13px">${e("{region}模板，按你家的设施筛选；也可以添加自己的任务",{region:c(e(H().REGIONS[t.region]?.name||""))})}</p>`:`<p class="muted" style="margin:-6px 0 12px;font-size:13px">${e("还没填房屋资料，只显示自己添加的任务。")} <a href="${S("house","profile")}">${e("填写房屋资料")}</a> ${e("后会按地区和设施生成模板任务。")}</p>`}
+      <div class="month-nav tasks-swipe" role="group" aria-label="${e("选择月份")}">
+        <button type="button" class="month-btn" data-action="tasks-prev" aria-label="${e("上个月")}">‹</button>
+        <div class="month-cur"><b>${g(i)}</b><small>${s} · ${e("{season}季",{season:e(U(i))})}${l?` · ${e("本月")}`:""}</small></div>
+        <button type="button" class="month-btn" data-action="tasks-next" aria-label="${e("下个月")}">›</button>
+      </div>
+      <div class="section-head" style="margin-top:10px"><p>${r.length?`${f?e("还有 {n} 项没做",{n:f}):e("都做完了")}${e("，共 {n} 项",{n:r.length})}`:e("这个月没有任务")}</p>
+        <div class="head-acts"><button type="button" class="chip" data-action="tasks-undone" aria-pressed="${!!d.tasksOnlyUndone}">${e("只看未完成")}</button>${l?"":`<button type="button" class="btn btn-sm btn-ghost" data-action="tasks-today">${e("回到本月")}</button>`}
+          <button type="button" class="btn btn-sm btn-primary" data-action="season-new">＋ ${e("添加任务")}</button></div></div>
+      ${_}
+      <div class="panel tasks-swipe">${r.length?`<ul class="task-list">${k.map(m=>z(m,s,i)).join("")||`<li class="muted" style="padding:10px 0">${e("这个月的任务都做完了")}</li>`}</ul>`:`<div class="empty"><strong>${e("这个月没有季节任务")}</strong>${e("左右滑动或点 ‹ › 看前后月份；也可以添加自己的任务。")}</div>`}</div>
+      <p class="disclaimer">${e("任务清单为常见做法，频次以设备说明书和当地气候为准；涉及燃气、电、屋顶作业请找专业人员。")} ${e("手机上左右滑动可切换月份。")}</p>
+    </section>
+    ${y.length?`<section class="section"><div class="section-head"><h2>${e("{month}预告",{month:g(u)})}</h2><p>${e("提前安排师傅或采购")}</p></div>
+      <div class="panel"><ul class="tips">${y.slice(0,8).map(m=>`<li>${c(m.task.custom?m.task.name:e(m.task.name))}</li>`).join("")}</ul></div></section>`:""}`}function q(t,a,o){let n=t?!t.months?.length:!1,s=t?.months?.length?t.months:[o],i=t?.due_on||h(a,o)+"-"+String(Math.min(new Date().getDate(),28)).padStart(2,"0");return`<form id="seasonForm" class="task-edit-form ${n?"is-once":""}" novalidate>
+    <input type="hidden" name="task_id" value="${c(t?.id||"")}">   <!-- 不能叫 id：会盖掉 form.id，submit 分发认不出这个表单 -->
+    <div class="form-grid">
+      <label class="span-2">${e("任务名称")}<input name="name" required maxlength="120" value="${c(t?.name||"")}" placeholder="${c(e("如：清洗露台家具、换净水器滤芯、修栅栏"))}"></label>
+      <div class="span-2 seg-radio">
+        <label class="radio-pill"><input type="radio" name="mode" value="recurring" ${n?"":"checked"}><span>🔁 ${e("每年重复")}</span></label>
+        <label class="radio-pill"><input type="radio" name="mode" value="once" ${n?"checked":""}><span>📌 ${e("一次性")}</span></label>
+      </div>
+      <div class="span-2 months-pick only-recurring" role="group" aria-label="${e("哪些月份")}">
+        ${j.map((l,r)=>`<label class="chip-check"><input type="checkbox" name="months" value="${r+1}" ${s.includes(r+1)?"checked":""}><span>${e(l)}</span></label>`).join("")}
+        <small class="muted span-all">${e("连续的月份算一个窗口，窗口内勾一次就算完成；12 个月都选 = 每月任务")}</small>
+      </div>
+      <label class="only-once">${e("日期")}<input name="due_on" type="date" value="${c(i)}"><small>${e("出现在那个月的任务里；逾期会在首页提醒")}</small></label>
+      <label class="span-2">${e("备注")}<input name="note" maxlength="500" value="${c(t?.note||"")}" placeholder="${c(e("怎么做、找谁、注意什么…"))}"></label>
+    </div>
+    <div class="form-actions" style="margin-top:10px"><button class="btn btn-primary btn-sm" type="submit">${e("保存")}</button>
+      <button class="btn btn-ghost btn-sm" type="button" data-action="season-cancel">${e("取消")}</button>
+      ${t?`<button class="btn btn-ghost btn-sm" type="button" data-action="season-delete" data-id="${c(t.id)}">${e("删除这条任务")}</button>`:""}
+      <span class="dirty-note" hidden>● ${e("有未保存的修改")}</span></div>
+  </form>`}async function ut(t){let a=t.elements,o=a.name.value.trim();if(!o)return b(e("请填任务名称")),a.name.focus(),!1;let n=a.mode.value==="once",s=n?[]:[...t.querySelectorAll('input[name="months"]:checked')].map(r=>+r.value).sort((r,u)=>r-u);if(!n&&!s.length)return b(e("至少选一个月份")),!1;let i=n&&a.due_on.value||null;if(n&&!i)return b(e("请选日期")),a.due_on.focus(),!1;let l=a.task_id.value?(d.customSeasonal||[]).find(r=>r.id===a.task_id.value):null;return await p.saveCustomSeasonal({id:l?.id,property_id:l?.property_id||d.propertyId,name:o,note:a.note.value.trim()||null,months:s,due_on:i,done_on:n&&l?.done_on||null,done_by_name:n&&l?.done_by_name||null}),b(l?e("已保存"):e("已添加任务")),!0}var pt=t=>p.deleteCustomSeasonal(t);async function $t(t){let a=t.dataset.task,o=t.dataset.period,n=t.dataset.undo,s=t.dataset.prop||d.propertyId;if(t.disabled=!0,t.dataset.once){let i=(d.customSeasonal||[]).find(l=>l.id===t.dataset.once);i&&await p.saveCustomSeasonal({...i,done_on:t.checked?$():null,done_by_name:t.checked?M():null});return}t.checked?await p.setSeasonal(a,o,!0,M(),s):await p.setSeasonal(a,n||o,!1,null,s)}Y(B);export{j as a,g as b,U as c,E as d,z as e,P as f,B as g,R as h,ct as i,mt as j,ut as k,pt as l,$t as m};

@@ -3,7 +3,8 @@ import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { addDays } from "./dates.js";
-import { NEW_RECURRING } from "./kinds.js";
+import { fabHtml } from "./bill-fab.js";
+import { moneyEye } from "../core/privacy.js";
 import { billTrendSection } from "./views.js";
 import { detailHref } from "./medical.js";
 import { BILL_RANGES, STATUS_GROUPS, assetBreakdown, billInstances, cycleBreakdown, filterRows, monthBounds, monthlySeries, nextDue, rangeBounds, seriesMonths, sortRows, summarize } from "./instances.js";
@@ -85,17 +86,13 @@ function trendHtml(C) {
       <span class="bt-bars" aria-hidden="true"><i class="bt-due" style="height:${Math.round((s.due / max) * 100)}%"></i><i class="bt-paid" style="height:${Math.round((s.paid / max) * 100)}%"></i></span><span class="bt-m">${mm}</span></a></li>`;
   }).join("")}</ol><p class="muted bt-key"><span class="bt-k due"></span>${t("应付")} <span class="bt-k paid"></span>${t("已付")}</p></div></section>`;
 }
-function fabHtml() {
-  return `<details class="bill-fab"><summary aria-label="${t("添加账单")}" title="${t("添加账单")}"><span aria-hidden="true">＋</span></summary>
-    <div class="bill-fab-menu" role="menu"><a role="menuitem" href="${NEW_RECURRING()}">🔁 ${t("周期性账单")}<small>${t("水电气网、房贷、保险、订阅…")}</small></a><a role="menuitem" href="${detailHref("new")}">🧾 ${t("一次性账单")}<small>${t("医疗、装修工程、法律、旅行…")}</small></a></div></details>`;
-}
 export function viewBillsHome() {
   const f = state.ovFilter, C = compute(), scope = f.range === "all" ? t("不限时间") : `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
   const range = BILL_RANGES.map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");   // 概览只用固定几个范围；链接带的某个月只在全部账单里显示
   const assetLabel = f.asset === "all" ? t("全部资产") : assetKeyLabel(f.asset);
   const empty = !state.billsEnriched.length && !state.medEnriched.length;
   return `<section class="section">
-      <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${allBillsHref({ range: f.range, asset: f.asset })}">${t("全部账单")} ›</a></div></div>
+      <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">${moneyEye()}<a class="btn btn-sm btn-ghost" href="${allBillsHref({ range: f.range, asset: f.asset })}">${t("全部账单")} ›</a></div></div>
       <div class="ov-filters">
         <select id="ovRange" aria-label="${t("时间范围")}">${range}</select>
         <select id="ovAsset" data-search aria-label="${t("按资产筛选")}">${assetOptions(C.base.rows, f.asset)}</select>

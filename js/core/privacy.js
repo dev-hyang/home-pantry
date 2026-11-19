@@ -87,7 +87,7 @@ export function decoratePrivacy(route) {
   main.querySelectorAll(BOARD_NUMS).forEach((el) => el.setAttribute("data-money", ""));
   markLoose(main);   // 看板、表格之外，句子 / 按钮里的金额
   main.querySelectorAll(".kpis, .sum-main, .bill-cards").forEach((box) => {   // 每组看板：右上角一只眼睛（同一个容器只放一次）
-    if (box.classList.contains("all-kpis") || box.previousElementSibling?.classList?.contains("money-eye-row") ||!box.querySelector("[data-money]") && !box.matches("[data-money], .sum-main")) return;
+    if (box.classList.contains("all-kpis") || (box.classList.contains("bill-cards") && main.querySelector(".section-head [data-moneyeye]")) || box.previousElementSibling?.classList?.contains("money-eye-row") ||!box.querySelector("[data-money]") && !box.matches("[data-money], .sum-main")) return;
     box.insertAdjacentHTML("beforebegin", `<div class="money-eye-row">${moneyEye()}</div>`);
   });
 }

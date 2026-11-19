@@ -7,6 +7,9 @@ import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
 import { moneyEye } from "../core/privacy.js";
+import { infoTip } from "../core/info-tip.js";
+import { moreMenu } from "../core/more-menu.js";
+import { fabHtml } from "./bill-fab.js";
 import { estAmount, lockFlag, metaLine, nameLine } from "./row-fmt.js";
 import { propertyTag, propertyName } from "../core/alerts.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
@@ -128,18 +131,26 @@ function compute() {
 /** 当前筛选结果里待核对的自动扣款账单（每张账单一个 id）：「全部标为已核对」用 */
 export const verifyBillIds = () => [...new Set(compute().rows.filter((r) => r.kind === "recurring" && r.status === "verify").map((r) => r.billId))];
 
-function summaryHtml({ S, truncated, rows }) {
-  const card = (label, amount, sub) => `<div class="kpi"><span>${label}</span><b>${mny(amount)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</div>`;
-  const cards = card(t("应付"), S.total.amount, t("共 {n} 笔账单", { n: S.total.n })) + card(t("已付"), S.paid.amount, "") + card(t("余额"), S.remaining.amount, "");
-  const notes = [S.estimatedN ? t("含估算 {n} 笔", { n: S.estimatedN }) : "", S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "", S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "",
-    S.otherCurrency ? t("另有 {n} 笔非 {c} 账单未计入", { n: S.otherCurrency, c: cur() }) : "", truncated ? t("另有 {n} 期太久远或太远没有展开", { n: truncated }) : ""].filter(Boolean);
-  return `<div class="kpis all-kpis" role="status">${cards}</div>${notes.length ? `<p class="all-sum-note muted">${esc(notes.join(" · "))}</p>` : ""}`;
+/** 三张合计卡：口径说明收进各卡标题旁的 ⓘ（估算 / 未知金额 / Escrow / 其他币种 / 没展开的期都影响「应付」，估算也影响「余额」） */
+function summaryHtml({ S, truncated }) {
+  const card = (label, amount, sub, tip = "") => `<div class="kpi"><span>${label}${tip ? ` ${tip}` : ""}</span><b>${mny(amount)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</div>`;
+  const est = S.estimatedN ? t("含估算 {n} 笔（水电燃气按最近均值估，记缴费时填实际金额就会更新）", { n: S.estimatedN }) : "";
+  const totalTip = infoTip([est, S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "", S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "",
+    S.otherCurrency ? t("另有 {n} 笔非 {c} 账单未计入", { n: S.otherCurrency, c: cur() }) : "", truncated ? t("另有 {n} 期太久远或太远没有展开", { n: truncated }) : ""], { align: "start" });
+  const cards = card(t("应付"), S.total.amount, t("共 {n} 笔账单", { n: S.total.n }), totalTip) + card(t("已付"), S.paid.amount, "") + card(t("余额"), S.remaining.amount, "", infoTip(est, { align: "end" }));
+  return `<div class="kpis all-kpis" role="status">${cards}</div>`;
 }
 
-/** 「全部标为已核对」按钮放在工具条下面（不夹在合计卡和搜索框之间） */
-function verifyHtml(rows) {
+/** 标题旁 ⓘ 的说明：一行 = 一期账单 + 当前时间范围（筛选一变就要重画，所以单独成块） */
+function titleTip(f, C) {
+  const scope = f.range === "all" ? t("不限时间") : `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
+  return infoTip(t("周期性 + 一次性账单，一行 = 一期账单。时间范围：{r}（{s}）；逾期没缴的不受范围限制，一直显示。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope }), { align: "start" });
+}
+
+/** 右上角：眼睛 + ⋯（添加账单 / 批量标记核对 / 导出 CSV）；批量标记只在当前筛选里有待核对账单时出现，所以随筛选重画 */
+function headActsHtml(rows) {
   const nv = new Set((rows || []).filter((r) => r.kind === "recurring" && r.status === "verify").map((r) => r.billId)).size;
-  return nv ? `<p class="all-verify"><button type="button" class="btn btn-sm" data-action="all-verify">${t("全部标为已核对（{n} 张自动扣款账单）", { n: nv })}</button></p>` : "";
+  return `${moneyEye()}${moreMenu([{ label: t("添加账单"), href: href("bill", "new"), first: true }, nv ? { label: t("批量标记已核对（{n} 张）", { n: nv }), action: "all-verify" } : null, { label: t("导出 CSV"), action: "all-csv" }], { label: t("更多操作") })}`;
 }
 
 function listHtml(C) {
@@ -153,7 +164,8 @@ export function renderAllList() {
   const h = document.getElementById("allList"); if (!h) return;
   const C = compute(); h.innerHTML = listHtml(C);
   const s = document.getElementById("allSum"); if (s) s.innerHTML = summaryHtml(C);
-  const v = document.getElementById("allVerify"); if (v) v.innerHTML = verifyHtml(C.rows);
+  const a = document.getElementById("allActs"); if (a && !a.querySelector("details[open]")) a.innerHTML = headActsHtml(C.rows);
+  const tt = document.getElementById("allTitleTip"); if (tt) tt.innerHTML = titleTip(state.allFilter, C);
 }
 
 export function viewAllBills() {
@@ -162,10 +174,8 @@ export function viewAllBills() {
   const rangeOpts = [BILL_RANGES.find(([k]) => k === "all"), ...BILL_RANGES.filter(([k]) => k !== "all")];
   const range = rangeOpts.slice(0, 1).map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("") + (BILL_RANGES.some(([k]) => k === f.range) ? "" : `<option value="${esc(f.range)}" selected>${esc(f.range)}</option>`)
     + rangeOpts.slice(1).map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");
-  const scope = f.range === "all" ? t("不限时间") : `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
   return `<section class="section">
-    <div class="section-head"><h2>🧾 ${t("全部账单")}</h2><div class="head-acts">${moneyEye()}<button type="button" class="btn btn-sm btn-ghost" data-action="all-csv">${t("导出 CSV")}</button><a class="btn btn-primary btn-sm" href="${href("bill", "new")}">${t("添加账单")}</a></div></div>
-    <p class="muted kinds-note">${t("周期性 + 一次性账单，一行 = 一期账单。时间范围：{r}（{s}）；逾期没缴的不受范围限制，一直显示。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope })}</p>
+    <div class="section-head"><h2>🧾 ${t("全部账单")} <span id="allTitleTip" class="title-tip">${titleTip(f, C)}</span></h2><div class="head-acts" id="allActs">${headActsHtml(C.rows)}</div></div>
     <div id="allSum">${summaryHtml(C)}</div>
     <div class="toolbar">
       <input type="search" id="allSearch" placeholder="${t("搜索名称、付款方、患者")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">
@@ -178,9 +188,8 @@ export function viewAllBills() {
       ${sel("allSort", { label: "排序", list: SORT_OPTS }, f.sort)}
       ${clearFiltersBtn("all", changed(f, FD.all))}
     </div>
-    <div id="allVerify">${verifyHtml(C.rows)}</div>
     <div id="allList">${listHtml(C)}</div>
-  </section>`;
+  </section>${fabHtml()}`;
 }
 
 /** 导出当前筛选下的全部账单（一行一期）：CSV，Excel 能直接打开；以 = + - @ 开头的文本前面加 ' 防公式注入 */

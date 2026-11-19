@@ -72,7 +72,7 @@
 .ui-hint[data-tip]::after {
   content: attr(data-tip); position: absolute; z-index: 30; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
   width: max-content; max-width: min(240px, 70vw); padding: 6px 10px; border-radius: 8px; box-sizing: border-box;
-  background: var(--ink, #1e3a32); color: var(--bg, #eef3ee); font-size: 13px; font-weight: 400; line-height: 1.5; text-align: left;
+  background: var(--ink, #1e3a32); color: var(--bg, #eef3ee); font-size: 13px; font-weight: 400; line-height: 1.5; text-align: left; white-space: pre-line;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .18); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .12s;
 }
 .ui-hint:hover::after, .ui-hint:focus::after, .ui-hint:focus-visible::after { opacity: 1; visibility: visible; }
