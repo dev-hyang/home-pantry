@@ -35,8 +35,8 @@
 .ui-badge[data-shape="count"]:not([data-tone]) { --b-fg: var(--out, #b42318); }
 .ui-badge[data-shape="count"][data-size="lg"] { min-width: 22px; height: 22px; font-size: 12px; line-height: 22px; }
 .ui-badge[data-shape="count"][data-size="sm"] { min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; line-height: 16px; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ui-badge[data-shape="count"] { color: var(--surface, #1b2521); } }
-:root[data-theme="dark"] .ui-badge[data-shape="count"] { color: var(--surface, #1b2521); }   /* 深色模式下各色变浅，数字改深色才看得清 */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ui-badge[data-shape="count"]:not([data-soft]) { color: var(--surface, #1b2521); } }
+:root[data-theme="dark"] .ui-badge[data-shape="count"]:not([data-soft]) { color: var(--surface, #1b2521); }   /* 深色模式下各色变浅，数字改深色才看得清 */
 /* 浅色底数字（data-soft）：「已选 3 个」这类中性计数，不抢眼；颜色用语气的浅底 + 深字 */
 .ui-badge[data-shape="count"][data-soft] { color: var(--b-fg); background: var(--b-bg); }
 .ui-badge[hidden] { display: none; }   /* display: inline-flex 会盖掉 hidden 属性，这里补回来 */

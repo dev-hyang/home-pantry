@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.13", title: { zh: "修复：深色主题下「已选 n 个」这类浅底数字角标的字看不清", en: "Fix: soft count badges unreadable in the dark theme" }, items: [
+    { k: "fix", zh: "手动选深色主题时，「已选 n 个」这类浅底数字角标变成深字配深底、几乎看不见，现在恢复清楚", en: "With the dark theme picked manually, soft count badges (like '3 selected') showed dark text on a dark fill; they are readable again" }
+  ] },
   { v: "2026-11-19.12", title: { zh: "补上财务首页「全部账单」的英文说明", en: "Added the English description for All bills on the Finance home" }, items: [
     { k: "fix", zh: "英文界面下，财务首页「全部账单」那一行的说明不再显示中文", en: "In English, the All bills description on the Finance home is no longer shown in Chinese" }
   ] },
