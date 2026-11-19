@@ -2864,7 +2864,7 @@ export const EN = {
   "{n} 件缺货或快用完": "{n} out or running low",
   "全部待办和提醒": "All to-dos and alerts",
   "购物车、储藏和账单都没有要处理的。": "Nothing to do in the cart, pantry or bills.",
-  "网络不太稳定，没能下载这个页面。检查网络后点「重试」。": "The connection seems unstable and this page couldn't be downloaded. Check it and tap Retry.",
+  "可能是网络不稳，或者页面有了新版本，没能下载这个页面。点「重试」刷新一下。": "The connection may be unstable, or the app has a new version, so this page couldn't be downloaded. Tap Retry to refresh.",
   "正在查看用量…": "Checking usage…",
   "其中：": "Of which: ",
   "数据库": "Database",

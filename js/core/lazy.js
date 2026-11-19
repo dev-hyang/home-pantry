@@ -5,12 +5,24 @@
  * 已加载：包装函数直接同步调用原函数，返回值不变。
  * 还没加载：先去加载，再调用，返回 Promise。画页面的函数（viewX）因此会先返回 Promise，
  * 由 renderBody 显示「加载中…」，加载完重画；点按钮的动作（awaited / return）直接等它就行。 */
+/** 发新版后，旧页面记着的带哈希文件名已经不存在（404）。在线时自动整页刷新一次拿到新版；
+ * 1 分钟内已经刷新过、或者离线，就不再刷新，交给「页面加载失败」提示 + 重试。 */
+function reloadForNewVersion() {
+  try {
+    const KEY = "hmh.lazy.reloaded", last = +sessionStorage.getItem(KEY) || 0;
+    if (navigator.onLine === false || Date.now() - last < 60000) return false;
+    sessionStorage.setItem(KEY, String(Date.now()));
+  } catch { return false; }
+  location.reload();
+  return true;
+}
+
 export function lazyModule(loader) {
   const m = {
     ns: null, p: null, hooks: [],
     load() {
       return (m.p ||= loader().then((ns) => { m.ns = ns; for (const h of m.hooks.splice(0)) h(ns); return ns; })
-        .catch((e) => { m.p = null; throw e; }));   // 失败（断网）：下次再试
+        .catch((e) => { m.p = null; if (reloadForNewVersion()) return new Promise(() => {}); throw e; }));   // 失败：先试着刷新拿新版；再失败（断网）：下次再试
     },
     onLoad(fn) { if (m.ns) fn(m.ns); else m.hooks.push(fn); },
   };
