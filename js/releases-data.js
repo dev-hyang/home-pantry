@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.26", title: { zh: "库存物品：先看详情，每一块各自编辑", en: "Inventory items: details first, each block edited on its own" }, items: [
+    { k: "better", zh: "点库存里的物品，现在先进详情页，不再直接进编辑表单；第一块是名称（靠左）和缺货 / 少货等标志，右上角 ⋯ 里有拍包装录入、加入购物车、复制为新物品、删除", en: "Tapping an inventory item now opens a details page instead of the edit form; the first block shows the name with its stock flags and a ⋯ menu (scan packaging, add to cart, copy as new, delete)" },
+    { k: "better", zh: "基本信息、数量与提醒、备注三块各带自己的「编辑」，点进去只改这一块；详情页底部导航不再被遮挡", en: "Basics, Quantity & reminders and Notes each have their own Edit that changes only that block; the details page keeps the bottom tabs" }
+  ] },
+
   { v: "2026-11-19.25", title: { zh: "房屋 / 车辆概览：表头的「编辑」换成 ⋯ 里的「详情」；车辆资料页展开成完整信息", en: "House / vehicle overview: the header Edit became Details in the ⋯ menu; the vehicle profile shows full details" }, items: [
     { k: "better", zh: "房屋概览和车辆概览表头不再有「编辑」按钮：右上角 ⋯ 的第一项是「详情」，进去就是基本资料页，每一块各自带「编辑」，只改这一块", en: "The house and vehicle overviews no longer have an Edit button in the header: the first item in the ⋯ menu is Details, which opens the profile page where each block has its own Edit" },
     { k: "better", zh: "车辆资料页每一块都展开显示填过的全部信息（车牌与里程、证照、车险、年款与保修…），和房屋资料页一样", en: "Each block of the vehicle profile now lists everything you filled in (plate & mileage, documents, insurance, year & warranty…), like the house profile" }

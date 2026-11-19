@@ -42,7 +42,8 @@ const EDIT_SECS = new Set(["basic", "units", "plate", "docs", "insurance", "year
 export const TABS_HIDDEN = (r) => {
   if (!FORM_PAGES(r)) return false;
   const q = r.q;
-  if (r.section === "house" && r.sub === "profile") return false;   // 房屋资料：读的页面，分块编辑时才有保存栏（见 render.js 的 syncEditing）
+  if (r.section === "house" && r.sub === "profile") return false;
+  if (r.section === "item") return r.id === "new" || !!q.get("edit");   // 物品详情页保留底部导航；新建 / 某一块的编辑才隐藏（最终以有没有保存栏为准）   // 房屋资料：读的页面，分块编辑时才有保存栏（见 render.js 的 syncEditing）
   if (r.section === "asset") return r.id === "new" || EDIT_SECS.has(q.get("sec")) || q.get("log") === "1" || !!q.get("wiz");
   if (r.section === "bill") {
     const list = ["pay", "assess"].includes(q.get("sec")) && !q.get("edit") && !q.get("copy");   // 缴费记录 / 特别摊派的列表页（含摊派缴费记录）：保留导航

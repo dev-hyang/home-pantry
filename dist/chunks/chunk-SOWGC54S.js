@@ -1,2 +1,0 @@
-import{t as o}from"./chunk-PDDFGH65.js";function e(t,{align:i="",pos:r=""}={}){let n=Array.isArray(t)?t.filter(Boolean).join(`
-`):String(t||"");return n?`<button type="button" class="ui-hint" data-tip="${o(n)}" aria-label="${o(n)}"${i?` data-tip-align="${i}"`:""}${r?` data-tip-pos="${r}"`:""}>i</button>`:""}window.__infoTipBound||(window.__infoTipBound=!0,document.addEventListener("click",t=>{let i=t.target.closest?.(".ui-hint");i&&(t.preventDefault(),t.stopPropagation(),i.focus())},!0));export{e as a};

@@ -1,7 +1,8 @@
 import { state } from "../core/state.js";
 import { ownerField } from "./owner.js";
 import { aliasesOf, findItem, similarItems } from "../core/item-match.js";
-import { copyOf, moreMenu } from "../core/more-menu.js";
+import { copyOf } from "../core/more-menu.js";
+import { viewItemDetail } from "./item-detail.js";
 import { Store } from "../core/store.js";
 import { MUTE_FOREVER, catOf, catsOf, du, esc, fmt, listRoute, num, spaceOf, stampText, todayISO } from "../core/util.js";
 import { SECTIONS, go, href } from "../core/router.js";
@@ -52,12 +53,6 @@ function basicsAside(it) {
   return `${e && !isGearItem(it) ? statusTag(e) : ""}${openShopFor(it.id) ? cartTag() : ""}`;
 }
 const isGearItem = (it) => spaceOf(it.category) === "gear";
-/** 拍照按钮旁边的「加入购物车」图标按钮：没加入就加入（弹确认数量），已加入就点一下移出 */
-function cartBtn(it) {
-  const inList = !!openShopFor(it.id), e = state.enriched.find((x) => x.id === it.id);
-  const tip = inList ? t("移出购物车") : t("加入购物车");
-  return `<button type="button" class="btn btn-sm af-cart${inList ? " is-in" : ""}" data-action="${inList ? "shop-remove-item" : "shop-add-item"}" data-id="${it.id}" ${e ? "" : "disabled"} title="${esc(tip)}" aria-label="${esc(`${it.name}：${tip}`)}">${inList ? t("移出购物车") : t("加入购物车")}</button>`;
-}
 function spacePick(cur, open) {
   const list = SPACE_INFO.filter(([s]) => s === cur || (s === "house" ? state.houseEnabled : s === "gear" ? state.gearEnabled : true));
   const card = ([, ic, name, desc]) => `<b>${ic} ${t(name)}</b><small>${t(desc)}</small>`;
@@ -71,10 +66,11 @@ function spacePick(cur, open) {
 }
 /* 表单分块（2026-11-14）：每块可以点标题折叠 / 展开；展开状态记在内存里，后台重画时不变 */
 const FOLD = new Map();
+let ACTIVE_SEC = null;   // 从详情页点某一块的「编辑」进来（?edit=basic|qty|notes）：只显示这一块，其余块藏起来（字段还在表单里，一起保存）
 const secKey = (id, k) => `${id || "new"}:${k}`;
 function fsec(id, k, title, body, openDefault, cls = "", aside = "") {
-  const key = secKey(id, k), open = FOLD.has(key) ? FOLD.get(key) : openDefault;
-  return `<details class="fsec ${cls}" data-fsec="${esc(key)}" ${open ? "open" : ""}><summary><span class="fsec-ttl">${title}</span>${aside ? `<span class="fsec-aside">${aside}</span>` : ""}<span class="fsec-chev" aria-hidden="true">▾</span></summary>
+  const key = secKey(id, k), open = ACTIVE_SEC ? k === ACTIVE_SEC : FOLD.has(key) ? FOLD.get(key) : openDefault, hid = ACTIVE_SEC && k !== ACTIVE_SEC ? " hidden" : "";
+  return `<details class="fsec ${cls}" data-fsec="${esc(key)}" ${open ? "open" : ""}${hid}><summary><span class="fsec-ttl">${title}</span>${aside ? `<span class="fsec-aside">${aside}</span>` : ""}<span class="fsec-chev" aria-hidden="true">▾</span></summary>
     <fieldset><legend class="sr-only">${title}</legend>${body}</fieldset></details>`;
 }
 if (typeof document !== "undefined") document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.fsec[data-fsec]")) FOLD.set(d.dataset.fsec, d.open); }, true);
@@ -97,6 +93,10 @@ export function viewItemForm() {
     return `<div class="panel empty"><strong>${t("找不到这件物品")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("pantry", "inventory")}">${t("回到库存")}</a></p></div>`;
   }
   const space = r.q.get("space") || (state.filter.space || "pantry");
+  // 已有的物品：先看详情页；点某一块的「编辑」（?edit=basic|qty|notes）才进表单（只显示那一块）
+  ACTIVE_SEC = null;
+  if (it && !r.q.get("edit")) return viewItemDetail(it, { crumbBase: itemBase(spaceOf(it.category)), spaceInfo: SPACE_INFO });
+  if (it) ACTIVE_SEC = ["basic", "qty", "notes"].includes(r.q.get("edit")) ? r.q.get("edit") : null;
   const qCat = r.q.get("cat");
   const defCat = qCat && CATEGORIES.some((c) => c.id === qCat) ? qCat
     : state.filter.space === space && state.filter.cat !== "all" ? state.filter.cat : catsOf(space)[0].id;
@@ -114,8 +114,8 @@ export function viewItemForm() {
   const dv = (x) => (x == null || x === "" ? "" : fmt(num(x) * f));
   return `
     <section class="section form-page">
-      ${crumbNav([...itemBase(space), { label: it ? t("编辑：{name}", { name: it.name }) : src ? t("复制：{name}", { name: src.name }) : t("添加物品"), icon: catOf(v.category).icon }])}
-      ${autofillBar("item", "#itemForm", it ? cartBtn(it) : "")}
+      ${it ? crumbNav([...itemBase(spaceOf(it.category)), { href: href("item", it.id), label: it.name, icon: catOf(v.category).icon }, { label: t("编辑") }]) : crumbNav([...itemBase(space), { label: src ? t("复制：{name}", { name: src.name }) : t("添加物品"), icon: catOf(v.category).icon }])}
+      ${!it || ACTIVE_SEC === "basic" ? autofillBar("item", "#itemForm") : ""}
       <form id="itemForm" class="panel ${gear ? "is-gear" : ""} ${spaceOf(v.category) === "house" ? "is-house" : ""} ${remind ? "is-remind" : ""}" novalidate data-autosave>
         <input type="hidden" name="item_id" value="${esc(it?.id || "")}">
         <input type="hidden" name="orig_unit" value="${esc(v.unit)}">
@@ -177,13 +177,8 @@ export function viewItemForm() {
         <div class="form-actions sticky-actions">
           <button type="submit" class="btn btn-primary">${it ? t("保存修改") : t("添加物品")}</button>
           <button type="button" class="btn btn-ghost" data-action="item-cancel">${t("取消")}</button>
-          ${it ? `<span class="spacer"></span>${moreMenu([
-            { label: gear ? t("复制为新家居耐用品") : t("复制为新物品"), href: `${href("item", "new")}?copy=${encodeURIComponent(it.id)}&space=${spaceOf(it.category)}` },
-            gear && { label: t("升级为设备档案"), href: `#/asset/new?from_item=${encodeURIComponent(it.id)}` },
-            { label: t("删除物品"), action: "item-delete", danger: true }], { up: true })}` : ""}
         </div>
       </form>
-      ${it && stampText(it) ? `<p class="record-meta">${esc(stampText(it))}${Store.mode === "cloud" && memberName(it.updated_by) ? `（${esc(memberName(it.updated_by))}）` : ""}</p>` : ""}
     </section>`;
 }
 // 关联设备下拉：勾选后更新标题；点外面或按 Esc 收起；设备多时可搜索
