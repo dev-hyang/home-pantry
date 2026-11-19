@@ -1,23 +1,22 @@
-/* 库存的物品视图（默认）：日常消耗品、汽车房屋消耗品两个大容器，一行一件物品，加减数量。 */
 import { $, catOf, esc, fmt, fmtShort, inSpace, isGear, num, spaceOf, stampText, todayISO } from "../core/util.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { STATUS, state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { catDashboard, catFormHtml, catSelOpts, chipGroups, groupedCats, grpName, isPhone, locationFilter, matchItem, orderedCats } from "./inventory.js";
-import { compare, t } from "../core/i18n.js";
+import { catDashboard, catSelOpts, chipGroups, grpName, isPhone, locationFilter } from "./inventory.js";
+import { t } from "../core/i18n.js";
 import { discardBtn, shelfGrid } from "./restock.js";
 import { href } from "../core/router.js";
 import { memberName, openShopFor } from "../core/logic.js";
 import { ownerFilter, ownerTag } from "./owner.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { unitSelect } from "../core/unit-pick.js";
+import { secNeed, selBarText } from "./inv-sync.js";
+import { VIEW_KEY, invSorter, invSpaces, rowMatch } from "./inv-sync-common.js";
+import { orderedCats } from "./inventory-sync-common.js";
+import { catFormHtml } from "./inventory-sync.js";
+import { groupedCats, matchItem } from "./inventory-match.js";
 
-/* ── 库存 · 物品视图（2026-11-14，默认）：日常消耗品、汽车房屋消耗品两个大容器，里面每件物品一行，不按分类分组。
- *   点这一行进编辑；行里能直接改数量 / 单位、点 🔔 设成不提醒；手机上左滑删除、右滑加入购物车。
- *   右上「物品 / 分类」切换到原来的分类视图；选择记在本机。 ── */
-const VIEW_KEY = "hmh-inv-view";
 export function invView() { try { return localStorage.getItem(VIEW_KEY) === "cats" ? "cats" : "rows"; } catch { return "rows"; } }
-export function setInvView(v) { try { localStorage.setItem(VIEW_KEY, v === "cats" ? "cats" : "rows"); } catch { /* 忽略 */ } }
 const viewSeg = (cur) => `<div class="seg inv-seg" role="group" aria-label="${esc(t("怎么看"))}">${[["rows", "☰", "物品"], ["cats", "▦", "分类"]].map(([v, ic, l]) => `<button type="button" class="seg-btn" data-action="inv-view" data-view="${v}" aria-pressed="${cur === v}"><span aria-hidden="true">${ic}</span> ${t(l)}</button>`).join("")}</div>`;
 const muteOn = (it) => !!it.alert_mute_until && String(it.alert_mute_until) > todayISO();
 /** 新物品的空间：开着汽车房屋消耗品时跟着筛选的空间，否则日常消耗品 */
@@ -51,8 +50,6 @@ function viewInvRows(space) {
       ${state.invSel ? selBar() : fab(addSpace(), t("添加物品"))}
     </section>`;
 }
-/** 多选时底部的操作条：已选几项、全选、加入购物车、不提醒、删除 */
-export function selBarText() { const n = state.invSel?.size || 0; return n ? t("已选 {n} 项", { n }) : t("点行来选"); }
 function selBar() {
   const off = state.invSel.size ? "" : "disabled";
   return `<div class="inv-selbar" role="toolbar" aria-label="${esc(t("多选操作"))}">
@@ -63,18 +60,6 @@ function selBar() {
     <button type="button" class="btn btn-sm" data-action="inv-sel-mute" ${off}>🔕 ${t("不提醒")}</button>
     <button type="button" class="btn btn-sm btn-danger-ghost" data-action="inv-sel-del" ${off}>🗑 ${t("删除")}</button>
   </div>`;
-}
-/** 物品视图里的几个容器：日常消耗品，开着的话再加汽车房屋消耗品、家居耐用品 */
-const invSpaces = () => ["pantry", ...(state.houseEnabled ? ["house"] : []), ...(state.gearEnabled ? ["gear"] : [])];
-/** 物品视图的筛选：分类（从概览货架点进来）+ 搜索 / 状态 / 位置；小类不用 */
-const rowMatch = (it) => matchItem(it, { ...state.filter, sub: "all" });
-/** 某个容器里，按当前筛选要补货、还不在购物车里的物品（「全部加入购物车」用） */
-/** 分类视图：某个大类里，按当前筛选要补货、还不在购物车里的物品 */
-export function catNeed(cat) { return state.enriched.filter((x) => x.category === cat && matchItem(x, { ...state.filter, cat, sub: "all" }) && x.status !== "ok" && !openShopFor(x.id)).sort(invSorter("default")); }
-export function secNeed(space) { return state.enriched.filter((x) => inSpace(space)(x) && rowMatch(x) && x.status !== "ok" && !openShopFor(x.id)).sort(invSorter("default")); }
-/** 当前筛选下看得见的物品（全选用） */
-export function visibleItemIds() {
-  return state.enriched.filter((x) => invSpaces().some((s) => inSpace(s)(x)) && rowMatch(x)).map((x) => x.id);
 }
 /** 物品视图的两个容器（折叠状态和概览大卡片共用一份本机记录） */
 function renderInvRows(host) {
@@ -100,6 +85,7 @@ function renderInvRows(host) {
 export const statusTag = (it) => `<span class="badge ${STATUS[it.status].cls}">${t(STATUS[it.status].label)}</span>`;
 /** 「已加入购物车」的短标签：✓🛒，只显示不能点（库存行、物品编辑页共用） */
 export const cartTag = () => `<span class="rs-tag is-in is-static" title="${esc(t("已加入购物车"))}" aria-label="${esc(t("已加入购物车"))}" role="img">✓🛒</span>`;
+export { catNeed, secNeed, selBarText, setInvView, visibleItemIds } from "./inv-sync.js";
 /** 状态位的标签：充足时显示提醒设置——「🔕 不提醒」或「🔔 少货线 · 提前几天」，点一下弹出小框来改；少货 / 缺货 / 即将告罄时由状态标签取代 */
 const noRemind = (it) => muteOn(it) || (num(it.min_quantity) <= 0 && num(it.lead_days) <= 0);
 function remindChip(it, plain) {
@@ -191,13 +177,6 @@ export function viewInventory(space = "pantry") {
     </section>`;
 }
 const INV_SORTS = [["default", "按状态（缺货优先）"], ["name", "名称 A → Z"], ["qty", "数量：少 → 多"], ["exp", "保质期：近 → 远"], ["updated", "最近更新"]];
-/** 同一分类内的排序：默认缺货 / 少货在前；其余按名称、数量、保质期、更新时间 */
-const invSorter = (mode) => ({
-  name: (a, b) => compare(a.name, b.name),
-  qty: (a, b) => num(a.qty) - num(b.qty) || compare(a.name, b.name),
-  exp: (a, b) => (a.expiry_date || "9999").localeCompare(b.expiry_date || "9999") || compare(a.name, b.name),
-  updated: (a, b) => String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || "")),
-}[mode] || ((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || compare(a.name, b.name)));
 export function renderInvList() {
   const rowsHost = $("#invRows");
   if (rowsHost) return renderInvRows(rowsHost);

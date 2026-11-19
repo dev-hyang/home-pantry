@@ -1,9 +1,8 @@
-/* 该补货了：储藏概览和房屋页共用的补货卡、临期、缺货列表。 */
 import { STATUS, state } from "../core/state.js";
 import { alertsOf, openShopFor } from "../core/logic.js";
 import { askInline } from "../core/ask.js";
 import { catCheckAlt } from "../core/category-moves.js";
-import { catOf, catsOf, esc, fmt, inSpace, isGear } from "../core/util.js";
+import { catOf, catsOf, esc, fmt, inSpace } from "../core/util.js";
 import { compare, joinList, t } from "../core/i18n.js";
 import { fab } from "./inventory-items.js";
 import { href } from "../core/router.js";
@@ -79,15 +78,6 @@ function catCheckSection() {
       }).join("")}</ul>${list.length > 30 ? `<p class="muted cat-check-more">${t("还有 {n} 件，确认完这些再显示", { n: list.length - 30 })}</p>` : ""}</div>
     </section>`;
 }
-/** 储藏的页面导航（2026-11-14 重构）：每个储藏页面顶上都有这一块——一排小卡片（概览 / 库存 / 菜单；购物车在底部导航，家居耐用品并进了库存），
- *  当前页背景高亮；库存卡带要补货的件数。宽屏一行排开，手机两到三列网格（不横滑，点按区域 ≥ 44px） */
-export function pantryNav(cur) {
-  const need = (state.enriched || []).filter((x) => !isGear(x) && x.status !== "ok").length;
-  const list = [["overview", href("pantry"), "📊", t("概览")], ["inventory", href("pantry", "inventory"), "📦", t("库存"), need],
-    ["meals", href("pantry", "meals"), "🍳", t("菜单")], ["scan", href("pantry", "scan"), "🧾", t("录入购物")]].filter(Boolean);
-  return `<nav class="pnav" aria-label="${esc(t("储藏的页面"))}">${list.map(([id, h, ic, l, n]) => `<a class="pnav-card" href="${esc(h)}" ${id === cur ? 'aria-current="page"' : ""}>
-    <span class="pnav-ico" aria-hidden="true">${ic}</span><span class="pnav-lbl">${esc(l)}</span>${n ? `<b class="pnav-n" aria-label="${esc(t("{n} 项", { n }))}">${n}</b>` : ""}</a>`).join("")}</nav>`;
-}
 /** 概览的两个大卡片（日常消耗品 / 汽车房屋消耗品）：点标题折叠 / 展开（记在本机），里面是 缺货 / 少货 / 即将告罄 / 临期 细项（点进库存的物品行视图）和分类货架 */
 const FOLD_KEY = "hmh-pv-fold";
 const foldGet = () => { try { return JSON.parse(localStorage.getItem(FOLD_KEY) || "{}"); } catch { return {}; } };
@@ -115,6 +105,7 @@ function spaceCard(space, icon, title, list, shelf, empty) {
 }
 /** 过期扔掉：把剩下的都记成 discard（迁移 065），「家里的数字 → 浪费」统计它；不算进日均用量 */
 export const discardBtn = (it) => `<button type="button" class="btn btn-sm btn-ghost discard-btn" data-action="discard" data-id="${it.id}" aria-label="${esc(t("{name} 过期了，扔掉剩下的", { name: it.name }))}">🗑 ${t("扔掉")}</button>`;
+export { pantryNav } from "./restock-sync.js";
 /** 购物篮：去购物车，带待买 + 家人正在买的数 */
 function cartBtn() {
   const n = state.shopping.filter((s) => s.status !== "bought").length;

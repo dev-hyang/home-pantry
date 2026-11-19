@@ -10,11 +10,12 @@ import { SECTIONS, go, href } from "../core/router.js";
 import { crumbNav } from "../core/hub.js";
 import { memberName, openShopFor } from "../core/logic.js";
 import { t } from "../core/i18n.js";
-import { cartTag, categoryOptions, statusTag } from "./views.js";
 import { locationField } from "../core/locations.js";
 import { autofillBar } from "../core/autofill.js";
 import { unitSelect } from "../core/unit-pick.js";
 import { assetField, guessCategory, muteField, pickText } from "./item-form-fields.js";
+import { cartTag, statusTag } from "./inventory-items.js";
+import { categoryOptions } from "./meals-sync.js";
 export { leaveItem } from "./item-form-common.js";
 export { saveItemForm } from "./item-form-save.js";
 

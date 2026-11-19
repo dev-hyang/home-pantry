@@ -1,0 +1,1 @@
+{ "source": "js/pantry/meals.js", "files": [ { "path": "js/pantry/meals-sync.js", "doc": "菜单页的同步小件：分类下拉选项、菜谱打分。", "names": ["categoryOptions","scoreRecipes"] } ] }

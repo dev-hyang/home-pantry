@@ -1,0 +1,39 @@
+{
+ "modules": [
+  {
+   "module": "pantry/restock.js",
+   "key": "pRestock",
+   "skip": [
+    "pantryNav"
+   ]
+  },
+  {
+   "module": "pantry/inventory-items.js",
+   "key": "pInvItems",
+   "skip": [
+    "catNeed",
+    "secNeed",
+    "selBarText",
+    "visibleItemIds",
+    "setInvView"
+   ]
+  },
+  {
+   "module": "pantry/shopping.js",
+   "key": "pShopping",
+   "skip": [
+    "shopSelText",
+    "shopUnit",
+    "shopVisibleIds"
+   ]
+  },
+  {
+   "module": "pantry/meals.js",
+   "key": "pMeals",
+   "skip": [
+    "categoryOptions",
+    "scoreRecipes"
+   ]
+  }
+ ]
+}

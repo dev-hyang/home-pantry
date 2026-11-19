@@ -1,0 +1,15 @@
+{
+  "source": "js/pantry/inventory.js",
+  "files": [
+    {
+      "path": "js/pantry/inventory-sync-common.js",
+      "doc": "库存页的同步小件：分类表单、移动分类。",
+      "names": [
+        "ORDER_KEY",
+        "orderedCats",
+        "parentSelect",
+        "loadOrder"
+      ]
+    }
+  ]
+}

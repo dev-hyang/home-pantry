@@ -1,0 +1,14 @@
+{
+  "source": "js/pantry/shopping.js",
+  "files": [
+    {
+      "path": "js/pantry/shop-sync-common.js",
+      "doc": "购物车的同步小件：选中文字、单位、可见条目。",
+      "names": [
+        "shopRows",
+        "inState",
+        "isMine"
+      ]
+    }
+  ]
+}

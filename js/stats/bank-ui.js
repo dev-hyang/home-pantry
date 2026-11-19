@@ -5,7 +5,6 @@ import { NO_ACCT, accountHtml, coverageHtml, reconcileHtml } from "./bank-accoun
 import { Store } from "../core/store.js";
 import { adults, kindOptionsHtml, myPersonId } from "../income/logic.js";
 import { aiReady } from "../core/ai.js";
-import { categoryOptions } from "../pantry/views.js";
 import { esc, money, toast } from "../core/util.js";
 import { href } from "../core/router.js";
 import { isIncomeKind } from "../core/income-taxonomy.js";
@@ -14,6 +13,7 @@ import { pageLimit } from "../core/pager.js";
 import { t } from "../core/i18n.js";
 import { tidyHintHtml } from "./payees.js";
 import { bankHooks } from "./bank-common.js";
+import { categoryOptions } from "../pantry/meals-sync.js";
 
 /* ───────────── 界面 ───────────── */
 const rangeOf = (rows) => { const d = rows.map((r) => r.date).sort(); return d.length ? `${d[0]} → ${d.at(-1)}` : ""; };

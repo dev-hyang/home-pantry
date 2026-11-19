@@ -3,8 +3,9 @@ import { $ } from "../../core/util.js";
 import { applySpendDrill } from "../../stats/views.js";
 import { go, href } from "../../core/router.js";
 import { render } from "../render.js";
-import { selBarText, shopSelText } from "../../pantry/views.js";
 import { state } from "../../core/state.js";
+import { selBarText } from "../../pantry/inv-sync.js";
+import { shopSelText } from "../../pantry/shop-sync.js";
 
 /* 图表色块、图例、名称、数字卡片：点一下（或 Enter / 空格）看对应的花费明细 */
 export function drillTo(qs) {

@@ -4,13 +4,13 @@ import { FEES_CAT, buildPool, noteFor } from "./scan-parse.js";
 import { aiReady, visionCapable } from "../core/ai.js";
 import { aiSettings, providerOf } from "../core/ai-common.js";
 import { cardSelectHtml } from "../bills/cards-views.js";
-import { categoryOptions } from "./views.js";
 import { dupNote, loadNear, matchOpenShopping, sameReceipt, similarPurchases } from "../stats/dup-check.js";
 import { href } from "../core/router.js";
 import { itemNameOptions } from "../core/item-match.js";
 import { storeDatalist } from "../stats/views.js";
 import { t } from "../core/i18n.js";
 import { MAX_IMAGES, sc } from "./scan-common.js";
+import { categoryOptions } from "./meals-sync.js";
 
 /* ───────────── 手动添加（11-07：和拍照识别同一张确认表，不再跳到单件物品表单）───────────── */
 export const blankRow = () => ({ include: true, raw: "", name: "", qty: 1, unit: t("个"), amount: null, def: "", match: "", category: "fresh" });

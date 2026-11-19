@@ -1,0 +1,1 @@
+{ "source": "js/pantry/shopping.js", "files": [ { "path": "js/pantry/shop-sync.js", "doc": "购物车的同步小件：选中文字、单位、可见条目。", "names": ["shopSelText","shopUnit","shopVisibleIds"] } ] }

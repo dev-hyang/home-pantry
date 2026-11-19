@@ -6,7 +6,6 @@ import { addAlertsToShopping, addRecipeMissing, markBought, removeFromShopping, 
 import { alertsOf, openShopFor } from "../../core/logic.js";
 import { askConfirm, askRemind, leaveItem, openItem, pickSpace, pickSupplyAdd, supplyItem } from "../lazy-modules.js";
 import { catFormOf } from "../../core/categories.js";
-import { catNeed, moveCat, secNeed, setInvView, shopVisibleIds, visibleItemIds } from "../../pantry/views.js";
 import { customLocations, deleteLocation, groupOf } from "../../core/locations.js";
 import { findItem, normName } from "../../core/item-match.js";
 import { go, href } from "../../core/router.js";
@@ -18,6 +17,9 @@ import { renderSpendList, spendList } from "../../stats/views.js";
 import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 import { toList } from "../page-events.js";
+import { catNeed, secNeed, setInvView, visibleItemIds } from "../../pantry/inv-sync.js";
+import { shopVisibleIds } from "../../pantry/shop-sync.js";
+import { moveCat } from "../../pantry/inventory-sync.js";
 
 /** 点击动作（储藏：库存、购物车、物品、分类、位置、耐用品）：这一组处理的 data-action */
 export const PANTRY_ACTIONS = new Set(["add-item","edit","item-cancel","item-delete","inv-space","supply-add","gear-enable","gear-broke","inv-view","supply-add-pick","add-item-pick","inv-cat-shop","inv-sec-shop","inv-select","inv-sel-all","inv-sel-shop","inv-sel-mute","inv-sel-del","item-remind","inv-del","inv-shop","consume","restock","inv-sub","cat","cat-new","cat-edit","cat-cancel","cat-restore","cat-hide","inv-clear","loc-new","loc-edit","loc-cancel","loc-del","cat-delete","cat-sort","cat-move","goto-cat","goto-status","shop-add-item","shop-remove-item","shop-select","shop-sel-all","shop-sel-remove","cat-check-ok","cat-check-all","cat-check-alt","mute-item","shop-add-alerts","shop-import","shop-import-cancel","shop-claim","shop-unclaim","shop-bought","shop-qty","shop-del","shop-clear","diet","shuffle","slot-swap","page-more","purchase-del","recipe-missing"]);

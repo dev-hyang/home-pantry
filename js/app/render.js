@@ -12,12 +12,13 @@ import { isScanRoute } from "./route.js";
 import { keepUnsaved, restoreUnsaved } from "./unsaved.js";
 import { maybeAutoSnapshot } from "../bills/nw-logic.js";
 import { normalizeFormActions } from "../core/form-actions.js";
-import { pantryNav, renderInvList } from "../pantry/views.js";
 import { recalcPayTotal, viewAssetForm, viewBillForm, viewItemForm, viewPropertyList } from "./lazy-modules.js";
 import { restoreCarousels } from "../core/carousel.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { viewOtBill } from "./lazy-modules.js";
+import { pantryNav } from "../pantry/restock-sync.js";
+import { renderInvList } from "./lazy-modules.js";
 
 /** force=true：路由变化，整页重画；false：数据刷新，表单页保持不动 */
 export function render(force = true) {

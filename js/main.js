@@ -21,7 +21,6 @@ import "./settings/income.js";
 import { escrowAlertItems } from "./bills/escrow.js";
 import "./bills/finance.js";
 import "./bills/finance-alerts.js";
-import { renderInvList, setFold, renderShopList } from "./pantry/views.js";
 import { maintFilter } from "./house/assets-logic.js";
 import { renderSpendList } from "./stats/views.js";
 import { payeeInput } from "./stats/payees.js";
@@ -43,6 +42,7 @@ import { drillTo, pickRow, pickShop } from "./app/events/selection.js";
 import { onMainChange } from "./app/events/change.js";
 import { onMainClick } from "./app/events/click.js";
 import { onMainSubmit } from "./app/events/submit.js";
+import { renderInvList, renderShopList, setFold } from "./app/lazy-modules.js";
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
 // 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）

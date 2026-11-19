@@ -1,0 +1,1 @@
+{ "source": "js/pantry/restock.js", "files": [ { "path": "js/pantry/restock-sync.js", "doc": "储藏页面导航（每个储藏页顶上都要同步用到）。", "names": ["pantryNav"] } ] }

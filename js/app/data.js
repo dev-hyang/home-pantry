@@ -23,13 +23,13 @@ import { propertyActive } from "../core/lifecycle.js";
 import { refreshBackupUi } from "../settings/backup-views.js";
 import { render } from "./render.js";
 import { renderAssetList, renderMaintLogs } from "./lazy-modules.js";
-import { renderInvList } from "../pantry/views.js";
 import { seasonalSince } from "../house/tasks-logic.js";
 import { setSync, toast } from "../core/util.js";
 import { spendChanged } from "../core/spend-data.js";
 import { state } from "../core/state.js";
 import { loadDebts } from "../bills/debt-logic-common.js";
 import { applyMedical, reloadMedical } from "../bills/medical-data.js";
+import { renderInvList } from "./lazy-modules.js";
 
 /* ───────────── 刷新与渲染 ───────────── */
 /** 次要的表（保养记录、季节任务、缴费记录、库存流水）读得慢时，不让整个页面一起空白：超过 SOFT_MS 就先用旧数据 / 空数据画出来，

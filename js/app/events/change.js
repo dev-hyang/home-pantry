@@ -19,7 +19,6 @@ import { refresh, resetListPages } from "../data.js";
 import { refreshBackupUi } from "../../settings/backup-views.js";
 import { render } from "../render.js";
 import { renderAllList } from "../../bills/all-views.js";
-import { renderInvList } from "../../pantry/views.js";
 import { renderSpendList, renderSpendRecords, spendRowsLoaded } from "../../stats/views.js";
 import { saveStatToggles, setSharedRange } from "../actions/stats-prefs.js";
 import { setDevicePerson } from "../../settings/family-people.js";
@@ -31,6 +30,7 @@ import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 import { setOverviewRange } from "../../bills/overview-state.js";
 import { onKindPick, onPersonPick } from "../lazy-modules.js";
+import { renderInvList } from "../lazy-modules.js";
 
 export async function onMainChange(e) {
   if (e.target.dataset?.dealSel) {   // 交易时间线：完成情况 / 阶段 / 显示 / 排序（下拉框）

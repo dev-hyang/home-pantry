@@ -1,0 +1,15 @@
+{
+  "source": "js/pantry/inventory-items.js",
+  "files": [
+    {
+      "path": "js/pantry/inv-sync-common.js",
+      "doc": "库存页的同步小件：分类 / 区块需要补货的数、选中条文字、可见物品、视图切换（别处的点击处理要立刻用到返回值）。",
+      "names": [
+        "VIEW_KEY",
+        "invSorter",
+        "invSpaces",
+        "rowMatch"
+      ]
+    }
+  ]
+}

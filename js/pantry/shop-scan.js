@@ -8,7 +8,7 @@ import { $, esc, num, spaceOf, toast } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { aiReady, askText } from "../core/ai.js";
 import { attachHTML, attachPayload, attachReset } from "../core/attach.js";
-import { categoryOptions } from "./views.js";
+import { categoryOptions } from "./meals-sync.js";
 
 const ATT = "shopPhoto";
 const ss = { busy: false, error: "", rows: null };   // rows：AI 认出来、等核对的 [{ include, name, quantity, unit, category, item_id }]

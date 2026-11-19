@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.50", title: { zh: "启动更快：库存、购物车、菜单、补货页面改成用到时才加载", en: "Faster start: Inventory, Shopping, Meals and Restock pages now load only when opened" }, items: [
+    { k: "better", zh: "库存、购物车、菜单、补货这几个页面的程序不再在打开应用时下载，进到对应页面才加载，启动少下载约 50KB；功能和以前一样", en: "The programs for the Inventory, Shopping, Meals and Restock pages are no longer downloaded when the app opens, only when you visit them (about 50KB less at start); features are unchanged" }
+  ] },
+
   { v: "2026-11-18.49", title: { zh: "启动更快：净资产页面改成用到时才加载", en: "Faster start: the Net worth page now loads only when opened" }, items: [
     { k: "better", zh: "净资产页面的程序不再在打开应用时下载，进到净资产页才加载；卡里的余额面板照常显示", en: "The Net worth page is no longer downloaded when the app opens, only when you visit it; the balance panel on cards works as before" }
   ] },

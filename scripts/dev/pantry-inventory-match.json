@@ -1,0 +1,1 @@
+{ "source": "js/pantry/inventory.js", "files": [ { "path": "js/pantry/inventory-match.js", "doc": "库存的分组与筛选匹配（同步小件，别处要立刻用到结果）。", "names": ["groupedCats","matchItem"] } ] }

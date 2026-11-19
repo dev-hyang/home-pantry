@@ -1,10 +1,10 @@
 /* 设置：自定义名称的翻译、分类与小类、存放位置。 */
 import { CUSTOM_GROUP, customLocations, locationGroups, locationUsage } from "../core/locations.js";
 import { blockedModels, deadModels } from "../core/ai.js";
-import { catFormHtml } from "../pantry/views.js";
 import { catsOf, esc } from "../core/util.js";
 import { glossaryOf, t } from "../core/i18n.js";
 import { state } from "../core/state.js";
+import { catFormHtml } from "../pantry/inventory-sync.js";
 
 /* ── 自定义名称的翻译：收集家庭自己起的名字（自定义位置、自建 / 改过的分类名、自加的小类），每条填简体 / English / 繁體 ── */
 /** 被跳过的模型（对这个 key 已下线 / 这个模型的额度用完了）：列出来，免得以为是本地计数的问题；可一键清除重新试 */

@@ -15,10 +15,10 @@ import { href } from "../core/router.js";
 import { monthName, monthTasks, taskRow } from "./tasks.js";
 import { moreMenu } from "../core/more-menu.js";
 import { ownerIcon, ownerMatch, ownerName, showOwner } from "../pantry/owner.js";
-import { restockPanel, rsHint, shelfGrid } from "../pantry/views.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { H } from "./asset-common.js";
+import { restockPanel, rsHint, shelfGrid } from "../pantry/restock.js";
 
 /* ── 房屋概览 ── */
 export function viewHouse() {

@@ -1,24 +1,19 @@
-/* 购物车页：待买、家人正在买、买到了入库、记花费。 */
 import { $, du, esc, fmt, fmtShort, money, num, showQty, stampText, toDisp } from "../core/util.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
-import { Store } from "../core/store.js";
 import { cardHintHtml, cardSelectHtml } from "../bills/cards-views.js";
-import { categoryOptions } from "./meals.js";
-import { compare, lang, t } from "../core/i18n.js";
+import { lang, t } from "../core/i18n.js";
 import { crumbNav } from "../core/hub.js";
 import { href } from "../core/router.js";
-import { normName } from "../core/item-match.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { shopAdviceHtml, shopForecastHtml } from "../bills/budget.js";
 import { shopDealPicker, shopsStats } from "../shops/lite.js";
 import { shopScanHtml } from "./shop-scan.js";
 import { state } from "../core/state.js";
 import { storeDatalist } from "../stats/views.js";
+import { shopSelText, shopUnit } from "./shop-sync.js";
+import { inState, isMine, shopRows } from "./shop-sync-common.js";
+import { categoryOptions } from "./meals-sync.js";
 
-/* ── 购物车 ── */
-/** 待买 / 认领中的数量可改：−/+ 按单位步进（kg 0.5、lb 1、个 1…），也能直接在框里输数；按显示单位算，存回时换回原单位 */
-/** 采购条目的单位：自己改过的优先，没有就跟库存里这件东西的单位 */
-export const shopUnit = (s) => s.unit || state.items.find((i) => i.id === s.item_id)?.unit || "";
 function shopQty(s) {
   const unit = shopUnit(s), d = du(unit), step = Units.step(d);
   const disp = fmt(toDisp(num(s.quantity, 1), unit));
@@ -35,22 +30,8 @@ const shopCat = (s) => state.items.find((i) => i.id === s.item_id)?.category || 
  * #/shopping/list 是完整清单（搜索 + 状态 / 分类 / 排序下拉，默认加入最久的在前），#/shopping/add 是「加入清单」页（手动 / 拍照）。
  * 看板上的格子带 ?st=… 进清单页：进来时设好状态筛选，再把参数去掉（之后由下拉框说了算） */
 const SHOP_STATES = [["open", "全部未买"], ["todo", "尚未认领"], ["claimed", "已认领"], ["mine", "我认领的"], ["bought", "已买到"], ["all", "全部（含已买到）"]];
-const isMine = (s) => Store.mode === "demo" || s.claimed_by === state.user?.id;
 const whoName = (s) => s.claimed_by_name || (isMine(s) ? t("我") : t("家人"));
-const inState = (st) => (s) => (st === "all" ? true : st === "bought" ? s.status === "bought"
-  : s.status !== "bought" && (st === "open" || (st === "todo" ? s.status === "todo" : s.status === "claimed" && (st === "claimed" || isMine(s)))));
 const listHref = (st) => href("shopping", "list", st && st !== "open" ? `?st=${st}` : "");
-/** 清单页的采购项：状态、分类、搜索（名称、谁认领的）筛选后排序；已买到按买到时间 */
-function shopRows() {
-  const f = state.shopFilter, q = normName(f.q || "");
-  const cats = new Map(state.items.map((i) => [i.id, i.category]).reverse());   // 建一次，筛选 / 排序时不再逐条查库存
-  const catOfRow = (s) => cats.get(s.item_id) || s.category || "other";
-  const rows = state.shopping.filter((s) => inState(f.st)(s) && (f.cat === "all" || catOfRow(s) === f.cat)
-    && (!q || normName(`${s.name} ${s.claimed_by_name || ""}`).includes(q)));
-  const date = (s) => String((s.status === "bought" && s.bought_at) || s.created_at || "");
-  const sorter = { new: (a, b) => date(b).localeCompare(date(a)), old: (a, b) => date(a).localeCompare(date(b)), name: (a, b) => compare(a.name, b.name), cat: (a, b) => catOfRow(a).localeCompare(catOfRow(b)) || compare(a.name, b.name) }[f.sort] || (() => 0);
-  return rows.sort(sorter);
-}
 function shopToolbar() {
   const f = state.shopFilter, opt = (v, l, c) => `<option value="${esc(v)}" ${c === v ? "selected" : ""}>${esc(l)}</option>`;
   const cats = [...new Set(state.shopping.map(shopCat))];
@@ -75,6 +56,7 @@ function shopCount() { const n = $("#shopListBox .shop-list-meta")?.dataset.n, e
 /* 从别的应用带来的采购项（2026-11，牧羊人的饮食模版「加进爱家购物车」）：#/shopping?add=燕麦|糙米|…&from=DASH 低钠
  * 牧羊人是另一个 Supabase 项目，只能把名字放在网址里带过来；这里列出来勾选确认后才加，已在清单里（待买 / 在买）的默认不勾 */
 export const importNames = () => { const raw = state.route?.q?.get("add"); return raw ? [...new Set(raw.split("|").map((s) => s.trim().slice(0, 60)).filter(Boolean))].slice(0, 40) : []; };
+export { shopSelText, shopUnit, shopVisibleIds } from "./shop-sync.js";
 function shopImportHtml() {
   const names = importNames(); if (!names.length) return "";
   const open = new Set(state.shopping.filter((s) => s.status !== "bought").map((s) => String(s.name).trim().toLowerCase()));
@@ -84,10 +66,6 @@ function shopImportHtml() {
     <div class="shop-import-list">${names.map((n) => { const dup = open.has(n.toLowerCase()); return `<label class="check-inline"><input type="checkbox" value="${esc(n)}" ${dup ? "" : "checked"}><span>${esc(n)}${dup ? ` <small class="muted">${t("已在清单里")}</small>` : ""}</span></label>`; }).join("")}</div>
     <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-primary btn-sm" data-action="shop-import">${t("加进购物车")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="shop-import-cancel">${t("不用了")}</button></div></div>`;
 }
-/** 清单页的一行：数量可改、在哪买 / 花费 / 用卡、认领和买到 */
-export const shopSelText = () => (state.shopSel?.size ? t("已选 {n} 项", { n: state.shopSel.size }) : t("点行来选"));
-/** 购物车当前筛选下看得见的条目（全选用） */
-export const shopVisibleIds = () => shopRows().map((s) => s.id);
 function shopRowHtml(s) {
   const mine = isMine(s);
   let acts = "";

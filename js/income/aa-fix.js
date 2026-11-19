@@ -12,10 +12,10 @@ import { Store } from "../core/store.js";
 import { esc, money, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { spendChanged } from "../core/spend-data.js";
-import { categoryOptions } from "../pantry/views.js";
 import { meta, saveMeta } from "../bills/budget.js";
 import { loadNear, nearRows } from "../stats/dup-check.js";
 import { inc, incomeRules, isOwnerNow, kindLabel, kindOptionsHtml, loadIncome, skey } from "./logic.js";
+import { categoryOptions } from "../pantry/meals-sync.js";
 
 const FIX_KINDS = ["zelle", "reimburse"];
 const MODES = [["skip", "先不动"], ["aa", "支出退回（AA / 垫付还回）→ 负数花费"], ["income", "是收入（赠与、副业收款…）"], ["sale", "转让二手 → 出售所得（不算收入）"], ["loanback", "朋友还我借的钱 → 本金返还（不算收入）"]];
