@@ -3,7 +3,6 @@ import { $, esc, fmt, fmtDate, fmtShort, num, toast, todayISO } from "../core/ut
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { Store } from "../core/store.js";
 import { autofillBar } from "../core/autofill.js";
-import { cardSelectHtml, payAcctValue, purchasePayFields } from "../bills/cards-views.js";
 import { fetchPurchase, fillFromPurchase, purchaseById } from "../core/spend-data.js";
 import { href } from "../core/router.js";
 import { isVehicle } from "./assets-logic.js";
@@ -13,6 +12,7 @@ import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { state } from "../core/state.js";
 import { storeDatalist } from "../stats/views.js";
 import { C, H, V, distUnit } from "./asset-common.js";
+import { cardSelectHtml, payAcctValue, purchasePayFields } from "../bills/card-picker.js";
 
    // 由近及远
 function maintToolbar(a) {

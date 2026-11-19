@@ -2,7 +2,6 @@ import { state } from "../core/state.js";
 import { ownerField } from "./owner.js";
 import { aliasesOf, findItem, similarItems } from "../core/item-match.js";
 import { lastStore, storeDatalist } from "../stats/views.js";
-import { cardSelectHtml } from "../bills/cards-views.js";
 import { copyOf, moreMenu } from "../core/more-menu.js";
 import { Store } from "../core/store.js";
 import { MUTE_FOREVER, catOf, catsOf, du, esc, fmt, listRoute, num, spaceOf, stampText, todayISO } from "../core/util.js";
@@ -16,6 +15,7 @@ import { unitSelect } from "../core/unit-pick.js";
 import { assetField, guessCategory, muteField, pickText } from "./item-form-fields.js";
 import { cartTag, statusTag } from "./inventory-items.js";
 import { categoryOptions } from "./meals-sync.js";
+import { cardSelectHtml } from "../bills/card-picker.js";
 export { leaveItem } from "./item-form-common.js";
 export { saveItemForm } from "./item-form-save.js";
 

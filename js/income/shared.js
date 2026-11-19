@@ -1,6 +1,5 @@
 /* 收入各页签共用的小件：颜色、金额 / 比例格式、空状态、下拉选项、钻取链接、KPI 卡、图表小件。从 views.js 抽出来，各页签依赖这里而不是互相依赖。 */
 import { ROLL, addDay, hooks, iso, roll } from "./rollup.js";
-import { acctById, acctLabel } from "../bills/cards-views.js";
 import { adults, canSeeAll, groupList, groupOf, inc, kindLabel, kindOf, statKinds } from "./logic.js";
 import { dq } from "../stats/views.js";
 import { esc, money, moneyExact } from "../core/util.js";
@@ -9,6 +8,7 @@ import { liveNetWorth, thisMonth } from "../bills/nw-logic.js";
 import { monthChange, trendPoints } from "../stats/net-worth.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
+import { acctById, acctLabel } from "../bills/card-picker.js";
 
 /** 分组柱（收入 / 消费…并排）超过 12 期就太挤：改画折线（2026-11 统一规则） */
 export const GROUPED_MAX = 12;

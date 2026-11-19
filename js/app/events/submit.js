@@ -16,7 +16,6 @@ import { go, href } from "../../core/router.js";
 import { hydrateModelSelect, saveAiForm } from "../../settings/views.js";
 import { isRetired } from "../../house/assets-logic.js";
 import { matchOpenShopping, showPurchaseDup } from "../../stats/dup-check.js";
-import { purchasePayFields, rememberCard, saveCardForm } from "../../bills/cards-views.js";
 import { refresh } from "../data.js";
 import { render } from "../render.js";
 import { runAi } from "../../pantry/ai.js";
@@ -26,6 +25,8 @@ import { savePersonForm } from "../../settings/family-people.js";
 import { saveShopScan } from "../../pantry/shop-scan.js";
 import { state } from "../../core/state.js";
 import { saveMedBillForm, saveMedPayForm } from "../lazy-modules.js";
+import { purchasePayFields, rememberCard } from "../../bills/card-picker.js";
+import { saveCardForm } from "../lazy-modules.js";
 
 export async function onMainSubmit(e) {
   e.preventDefault();

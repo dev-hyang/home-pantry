@@ -2,7 +2,6 @@
 import { $, catOf, fillUnitList, fmtDay, num, setDateFormat, spaceOf, toast } from "../../core/util.js";
 import * as Backup from "../../core/backup.js";
 import { Store } from "../../core/store.js";
-import { applyCatalogPick, cardHintHtml, pickResultHtml, resolvePayAccount } from "../../bills/cards-views.js";
 import { applyTypeDefaults, onAssetFormChange, onMaintFormChange, payExpNote, readHouseForm, renderAssetList, renderMaintLogs, setDealAiConsent, subOptions, toggleDealTask, toggleTask } from "../lazy-modules.js";
 import { changeLang } from "../page-events.js";
 import { customChanged, setFinUnit } from "../../core/time-range.js";
@@ -31,6 +30,9 @@ import { t } from "../../core/i18n.js";
 import { setOverviewRange } from "../../bills/overview-state.js";
 import { onKindPick, onPersonPick } from "../lazy-modules.js";
 import { renderInvList } from "../lazy-modules.js";
+import { resolvePayAccount } from "../../bills/card-picker.js";
+import { cardHintHtml, pickResultHtml } from "../../bills/cards-review.js";
+import { applyCatalogPick } from "../lazy-modules.js";
 
 export async function onMainChange(e) {
   if (e.target.dataset?.dealSel) {   // 交易时间线：完成情况 / 阶段 / 显示 / 排序（下拉框）

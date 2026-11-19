@@ -5,11 +5,11 @@ import { LOADING, winDrill } from "./spend-drill.js";
 import { STAT_CATS, rollup, spanOfMonths, statCat, statOpts } from "./spend-roll.js";
 import { compare, locale, t } from "../core/i18n.js";
 import { fetchSpendPages } from "./spend-trips.js";
-import { paymentPayLabel } from "../bills/cards-views.js";
 import { spendBase } from "./spend-records.js";
 import { spendSuggestions } from "../core/spend-data.js";
 import { state } from "../core/state.js";
 import { viewPayees } from "./payees.js";
+import { paymentPayLabel } from "../bills/card-picker.js";
 
 /* ── 商店统计与年度报表 ── */
 export const STORE_COLORS = ["#2c6a57", "#d4694c", "#3b7fc4", "#b07a1a", "#7563c0", "#c75a85"];

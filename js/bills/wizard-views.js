@@ -9,9 +9,9 @@ import { go, href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { crumbNav } from "../core/hub.js";
 import { propertyActive } from "../core/lifecycle.js";
-import { PAY_EXTRA, accountOptions, payAcctValue, resolvePayAccount } from "./cards-views.js";
 import { assetChoices } from "./asset-suggest.js";
 import { COMMON_CATEGORIES, LAST_STEP, PAY_MODES, STEPS, WIZARD_FREQS, askDay, billFromDraft, defaultsFor, newDraft, nextDuePreview, suggestName, validateStep } from "./wizard.js";
+import { PAY_EXTRA, accountOptions, payAcctValue, resolvePayAccount } from "./card-picker.js";
 
 const B = () => window.BILLS;
 const catOf = (id) => B().catOf(id);

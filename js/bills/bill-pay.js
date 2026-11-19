@@ -1,6 +1,5 @@
 /* 账单详情的头部卡、记一笔缴费的整页表单、特别摊派下拉、金额分组、补记缴费。 */
 import { L, billCostParts, headSec, linkOf } from "./bill-form.js";
-import { PAY_EXTRA, accountOptions, acctById, billPayLabel, payAcctValue, resolvePayAccount } from "./cards-views.js";
 import { Store } from "../core/store.js";
 import { acctText, billCat } from "./logic.js";
 import { assessmentsOf, unpaidItems } from "./assessments-lib.js";
@@ -11,6 +10,7 @@ import { lang, t } from "../core/i18n.js";
 import { moreMenu } from "../core/more-menu.js";
 import { state } from "../core/state.js";
 import { BADGE, STATUS_LABEL, mny } from "./bill-common.js";
+import { PAY_EXTRA, accountOptions, acctById, billPayLabel, payAcctValue, resolvePayAccount } from "./card-picker.js";
 
 /** 详情页顶上的汇总卡：名称（账号尾号）+ 下次到期 + 竖三点菜单；HOA / 服务商小表；付费小表（付费方式、费用总额）；添加 / 更新时间；记缴费大按钮。
  *  底色比下面的分区卡深一点（和 .prof-card 同一套圆角和内边距） */

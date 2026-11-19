@@ -9,12 +9,12 @@ import { Store } from "../core/store.js";
 import { $, armed, catOf, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
-import { cardSelectHtml, purchasePayFields } from "../bills/cards-views.js";
 import { assetName } from "./assets.js";
 import { RECALL_STATUS, isRetired, recallActive, recallOf } from "./assets-logic.js";
 export { RECALL_STATUS, isRetired, recallActive, recallOf };   // 判断逻辑在 assets-logic.js（不碰界面）
 import { priceOrNull } from "../core/finance-access.js";   // 退款默认填买价：没财务权限时不预填（买价对他不可见）
 import { categoryOptions } from "../pantry/meals-sync.js";
+import { cardSelectHtml, purchasePayFields } from "../bills/card-picker.js";
 
 const H = () => window.HOUSE;
 export const RECALL_REMEDY = { repair: "厂家维修", replace: "换新", refund: "退款" };

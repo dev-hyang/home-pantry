@@ -3,13 +3,13 @@ import { $, esc, num, toast, todayISO } from "../core/util.js";
 import { ACCT_KINDS, CARDS_HREF } from "../bills/cards.js";
 import { CHANNELS, GAIN_KINDS, inc, isIncomeKind, isOwnerNow, kindList, kindOptionsHtml, knownSenders, loadIncome, myPersonId, personName, similarIncome, skey } from "./logic.js";
 import { Store } from "../core/store.js";
-import { acctById } from "../bills/cards-views.js";
 import { ensureBorrowDebt } from "../bills/debt-logic.js";
 import { meta, saveMeta } from "../bills/budget.js";
 import { rerender } from "./rollup.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { cur, fmtMoney, personOptions, selOpts } from "./shared.js";
+import { acctById } from "../bills/card-picker.js";
 
 /* ── 入账账户：「卡与账户」里登记的账户（支票 / 储蓄 / 券商 / 退休 / HSA / 借记卡 / 钱包 / 现金…），可设默认 ──
  * 记录上存 account_id（迁移 056）和一份文字 account（「名称 ••尾号」，显示兜底；没登记的现金存「现金」，其他手填）。

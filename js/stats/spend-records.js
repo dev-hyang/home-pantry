@@ -7,7 +7,6 @@ import { KINDS as MED_KINDS } from "../bills/medical.js";
 import { STORE_NONE, download, knownStores, spendDetailRows, storeKey, storeOf, toCsv } from "./spend-stores.js";
 import { activeProps, propertyOptions } from "./spend-add.js";
 import { budgetBridge } from "../core/budget-bridge.js";
-import { cardOptions, payAcctValue, paymentPayLabel } from "../bills/cards-views.js";
 import { compact } from "../core/list-query.js";
 import { compare, lang, t } from "../core/i18n.js";
 import { customHtml, rangeOptionsHtml } from "../core/time-range.js";
@@ -18,6 +17,7 @@ import { serverList } from "../core/server-list.js";
 import { state } from "../core/state.js";
 import { withProperty } from "../core/alerts.js";
 import { categoryOptions } from "../pantry/meals-sync.js";
+import { cardOptions, payAcctValue, paymentPayLabel } from "../bills/card-picker.js";
 
 /* ── 花费记录：搜索 + 分类树 / 性质 / 房产 / 商店 / 年份 / 月份筛选 + 排序，按月分组带小计；服务器分页（迁移 054 / 055），任何一年、全部年份都能看 ──
  * 筛选、排序、合计、月小计都在数据库里做（spend_page / spend_stats），这里只把界面上的筛选翻译成筛选对象（spendParams）；

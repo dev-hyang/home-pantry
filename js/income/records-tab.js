@@ -4,7 +4,6 @@ import { CHANNELS, capitalKinds, customKinds, groupOf, inc, isOwnerNow, kindLabe
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { INC_L1S, incLeaf, incLeavesOf, splitRecord } from "../core/income-taxonomy.js";
 import { aaFixHtml } from "./aa-fix.js";
-import { acctLabel } from "../bills/cards-views.js";
 import { activeTab } from "../core/tabs.js";
 import { compact } from "../core/list-query.js";
 import { debtHref } from "../bills/debt-logic.js";
@@ -17,6 +16,7 @@ import { scanHtml } from "./scan.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { acctShow, empty, fmtMoney, incomeHref, personOptions, selOpts, yearsOf } from "./shared.js";
+import { acctLabel } from "../bills/card-picker.js";
 
 /* ───────────── 银行导入：对账单里的入账补入收入（和「花费 → 银行导入」是同一个入口） ───────────── */
 export function importTab() {

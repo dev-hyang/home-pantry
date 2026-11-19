@@ -9,7 +9,6 @@ import { miniBarEl } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
-import { viewCards } from "./bills/cards-views.js";
 import "./bills/cards.js";
 import { t } from "./core/i18n.js";
 import { initTodayRender, saveQuick } from "./today.js";
@@ -43,6 +42,7 @@ import { onMainChange } from "./app/events/change.js";
 import { onMainClick } from "./app/events/click.js";
 import { onMainSubmit } from "./app/events/submit.js";
 import { renderInvList, renderShopList, setFold } from "./app/lazy-modules.js";
+import { viewCards } from "./app/lazy-modules.js";
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
 // 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）

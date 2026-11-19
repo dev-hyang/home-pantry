@@ -6,8 +6,8 @@ import { Store } from "../core/store.js";
 import { esc, fmtDate, num } from "../core/util.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
-import { paymentPayLabel } from "./cards-views.js";
 import { payTotal } from "./pay-total.js";
+import { paymentPayLabel } from "./card-picker.js";
 
 const B = () => window.BILLS;
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));

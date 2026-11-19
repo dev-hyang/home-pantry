@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.52", title: { zh: "启动更快：信用卡页面改成用到时才加载", en: "Faster start: the Cards pages now load only when opened" }, items: [
+    { k: "better", zh: "信用卡页面和卡表单的程序不再在打开应用时下载，进到卡页面才加载，启动少下载约 40KB；功能和以前一样", en: "The Cards page and card form are no longer downloaded when the app opens, only when you visit them (about 40KB less at start); features are unchanged" }
+  ] },
+
   { v: "2026-11-18.51", title: { zh: "修复：发新版后旧页面点进新页面提示 404", en: "Fix: an already-open page showed a 404 error after a new release" }, items: [
     { k: "fix", zh: "应用更新后，之前就开着的页面点进房屋等页面会提示加载失败；现在会自动刷新一次换成新版，不用手动刷新", en: "After an update, a page that was already open could show a load error when opening House and other pages; it now refreshes itself once to get the new version" }
   ] },

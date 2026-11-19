@@ -11,9 +11,9 @@ import { allBillsHref } from "./all-views.js";
 import { billScopeParts, overviewHref } from "./trail.js";
 import { viewOneTimeWizard } from "./ot-wizard-views.js";
 import { propertyOptionsHtml } from "../core/lifecycle.js";
-import { accountOptions, acctById, paymentPayLabel } from "./cards-views.js";
 import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, findPerson, kindOf, peopleFor, subIcon, subName } from "./medical.js";
 import { applyMedical, reloadMedical } from "./medical-data.js";
+import { accountOptions, acctById, paymentPayLabel } from "./card-picker.js";
 export { applyMedical, medBillLabel, reloadMedical } from "./medical-data.js";
 
 const cur = () => Units.region.currency;

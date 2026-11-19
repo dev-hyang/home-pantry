@@ -1,6 +1,5 @@
 import { $, du, esc, fmt, fmtShort, money, num, showQty, stampText, toDisp } from "../core/util.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
-import { cardHintHtml, cardSelectHtml } from "../bills/cards-views.js";
 import { lang, t } from "../core/i18n.js";
 import { crumbNav } from "../core/hub.js";
 import { href } from "../core/router.js";
@@ -13,6 +12,8 @@ import { storeDatalist } from "../stats/views.js";
 import { shopSelText, shopUnit } from "./shop-sync.js";
 import { inState, isMine, shopRows } from "./shop-sync-common.js";
 import { categoryOptions } from "./meals-sync.js";
+import { cardSelectHtml } from "../bills/card-picker.js";
+import { cardHintHtml } from "../bills/cards-review.js";
 
 function shopQty(s) {
   const unit = shopUnit(s), d = du(unit), step = Units.step(d);

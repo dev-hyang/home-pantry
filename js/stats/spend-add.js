@@ -2,7 +2,6 @@
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { LOADING } from "./spend-drill.js";
 import { SPEND_TABS, activeTab } from "../core/tabs.js";
-import { cardHintHtml, cardSelectHtml } from "../bills/cards-views.js";
 import { catOf, esc, fmt } from "../core/util.js";
 import { consumptionData, customBar, ensureFirstYear, itemSeries, monthOpt, noSpend, rangeChipsHtml, rangeMonths, statOpts, unitSel } from "./spend-roll.js";
 import { financeOk } from "../core/finance-access.js";
@@ -18,6 +17,8 @@ import { tabBar } from "../core/hub.js";
 import { tripDatalist } from "./spend-trips.js";
 import { viewHomeStats } from "./home-stats.js";
 import { categoryOptions } from "../pantry/meals-sync.js";
+import { cardSelectHtml } from "../bills/card-picker.js";
+import { cardHintHtml } from "../bills/cards-review.js";
 
 /* ── 记一笔：分类按 一级 · 二级 分组；经济性质（默认按分类）；有房产时可以选关联哪套房 ── */
 export const activeProps = () => (state.properties || []).filter((p) => !p.archived);

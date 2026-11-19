@@ -4,11 +4,11 @@ import { Store } from "../core/store.js";
 import { aliasesOf, findItem, normName } from "../core/item-match.js";
 import { cleanStore, rememberStore } from "../stats/views.js";
 import { muteChoice } from "./item-form-fields.js";
-import { purchasePayFields } from "../bills/cards-views.js";
 import { resolveLocation } from "../core/locations.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { leaveItem } from "./item-form-common.js";
+import { purchasePayFields } from "../bills/card-picker.js";
 
 /** silent=true：离开页面时自动保存（不跳转、不聚焦；校验不过就提示“没有自动保存”）。返回是否保存成功 */
 export async function saveItemForm(f, { silent = false } = {}) {

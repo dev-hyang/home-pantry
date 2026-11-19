@@ -5,13 +5,14 @@ import { beforeDeletePayment, splitBillPayment } from "./debt-logic.js";
 import { checkedItems } from "./bill-pay.js";
 import { dupOnce, normName } from "../core/item-match.js";
 import { fmtDate, num, toast, todayISO } from "../core/util.js";
-import { isBankAcct, resolvePayAccount } from "./cards-views.js";
 import { leaveBill } from "./bill-form.js";
 import { olderPayment, resetPayHistory } from "./pay-history.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { withProperty } from "../core/alerts.js";
 import { B } from "./bill-common.js";
+import { isBankAcct } from "./cards.js";
+import { resolvePayAccount } from "./card-picker.js";
 
 /* ── 保存 ── */
 const parseList = (s, { int = true } = {}) => String(s || "").split(/[,，\s]+/).map((x) => x.trim()).filter(Boolean).map((x) => (int ? parseInt(x, 10) : x)).filter((x) => (int ? Number.isFinite(x) : true));
