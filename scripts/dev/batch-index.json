@@ -1,0 +1,38 @@
+{
+  "ai": [
+    "ai-common.js",
+    "咩咩咩 / AI 各部分共用的小件。从 ai.js 抽出来，各部分依赖这里。"
+  ],
+  "scan": [
+    "scan-common.js",
+    "录入购物各部分共用的小件。从 scan.js 抽出来，各部分依赖这里。"
+  ],
+  "shopslogic": [
+    "logic-common.js",
+    "商店逻辑各部分共用的小件。从 logic.js 抽出来，各部分依赖这里。"
+  ],
+  "settings": [
+    "settings-common.js",
+    "设置各部分共用的小件。从 views.js 抽出来，各部分依赖这里。"
+  ],
+  "debtlogic": [
+    "debt-logic-common.js",
+    "借贷逻辑各部分共用的小件。从 debt-logic.js 抽出来，各部分依赖这里。"
+  ],
+  "autofill": [
+    "autofill-common.js",
+    "自动填表各部分共用的小件。从 autofill.js 抽出来，各部分依赖这里。"
+  ],
+  "fix": [
+    "fix-common.js",
+    "「出了问题」各部分共用的小件。从 fix.js 抽出来，各部分依赖这里。"
+  ],
+  "debtrec": [
+    "debt-rec-common.js",
+    "借贷流水各部分共用的小件。从 debt-records.js 抽出来，各部分依赖这里。"
+  ],
+  "payees": [
+    "payees-common.js",
+    "收款方各部分共用的小件。从 payees.js 抽出来，各部分依赖这里。"
+  ]
+}

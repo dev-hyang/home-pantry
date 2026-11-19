@@ -3,12 +3,13 @@ import { LIVE, batchAcctKey, redraw } from "./bank-ui.js";
 import { S, askFn, readPart, rebuild, resetPicks } from "./bank-rows.js";
 import { aiCatalog } from "../core/taxonomy.js";
 import { aiExtract, chunkLines, pdfImages, redactLines } from "./statement-readers.js";
-import { aiReady, aiSettings, providerOf, visionCapable } from "../core/ai.js";
-import { compressImage } from "../core/autofill.js";
+import { aiReady, visionCapable } from "../core/ai.js";
 import { esc, fmtDate, money, toast } from "../core/util.js";
 import { meta } from "../bills/budget.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
+import { aiSettings, providerOf } from "../core/ai-common.js";
+import { compressImage } from "../core/autofill-common.js";
 
 /* ───────────── 账户（哪张卡 / 哪个账户）：每批导入记一个标签，用来看“哪个账户哪几个月已经补过” ─────────────
  * 账户列表 = 以前导入时建的（预算设置 _bank_accounts）+ 账单里有账号尾号 / 信用卡类的账单。不改数据库、不记到每一笔上。 */

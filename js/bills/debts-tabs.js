@@ -5,7 +5,7 @@ import { TXN_TYPES, debtCat, debtGroup, isClosedStatus } from "../core/debt-rule
 import { assetName } from "../house/assets.js";
 import { attentionPanel } from "../core/alerts.js";
 import { debtDashboard, debtFigures } from "./debt-stats.js";
-import { debtHref, debtTxns } from "./debt-logic.js";
+import { debtHref } from "./debt-logic.js";
 import { esc, fmtDate } from "../core/util.js";
 import { loanCard, looseBillsHtml, personCard } from "./debts-list.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
@@ -13,6 +13,7 @@ import { recordsList } from "./debt-records.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { mny, tabHref, ui } from "./debt-common.js";
+import { debtTxns } from "./debt-logic-common.js";
 
 /* ───────────── 标签页 ───────────── */
 const fsel = (attr, f, key, label, list) => `<label class="tb-field"><span>${t(label)}</span><select ${attr}="${key}" data-nosearch aria-label="${esc(t(label))}">${list.map(([k, l]) => `<option value="${k}"${k === f[key] ? " selected" : ""}>${esc(t(l))}</option>`).join("")}</select></label>`;

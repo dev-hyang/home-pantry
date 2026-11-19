@@ -1,0 +1,35 @@
+{
+  "source": "js/pantry/scan.js",
+  "files": [
+    {
+      "path": "js/pantry/scan-parse.js",
+      "doc": "录入购物：提示词与结果整理（AI 读小票 / 文字 → 物品行）。",
+      "lines": [
+        [
+          26,
+          191
+        ]
+      ]
+    },
+    {
+      "path": "js/pantry/scan-page.js",
+      "doc": "录入购物：手动添加（和拍照识别同一张确认表）和页面。",
+      "lines": [
+        [
+          192,
+          359
+        ]
+      ]
+    },
+    {
+      "path": "js/pantry/scan-events.js",
+      "doc": "录入购物：交互（文件、文字、行内联动）。",
+      "lines": [
+        [
+          360,
+          537
+        ]
+      ]
+    }
+  ]
+}

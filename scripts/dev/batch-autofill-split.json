@@ -1,0 +1,25 @@
+{
+  "source": "js/core/autofill.js",
+  "files": [
+    {
+      "path": "js/core/autofill-forms.js",
+      "doc": "自动填表：每种表单要问什么、怎么填。",
+      "lines": [
+        [
+          51,
+          219
+        ]
+      ]
+    },
+    {
+      "path": "js/core/autofill-ui.js",
+      "doc": "自动填表：页面上的按钮和交互。",
+      "lines": [
+        [
+          220,
+          362
+        ]
+      ]
+    }
+  ]
+}

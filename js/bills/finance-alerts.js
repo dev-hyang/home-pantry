@@ -10,8 +10,8 @@ import { href } from "../core/router.js";
 import { registerAlerts } from "../core/alerts.js";
 import { financeOk } from "../core/finance-access.js";
 import { STALE_DAYS, autoSnapshotFailed, liveNetWorth, snapshotOf, thisMonth } from "./nw-logic.js";
-import { debtTxns } from "./debt-logic.js";
 import { flowOf } from "./debt-records.js";
+import { debtTxns } from "./debt-logic-common.js";
 
 const daysAgo = (n) => { const d = new Date(`${todayISO()}T12:00:00`); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
 

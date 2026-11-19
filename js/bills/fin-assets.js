@@ -15,11 +15,12 @@ import { t } from "../core/i18n.js";
 import { isVehicle, myVehicles, assetName } from "../house/assets.js";
 import { ACCOUNT_KINDS, cardHref, kindIcon, kindName } from "./cards.js";
 import { spendRollupFor } from "../stats/views.js";
-import { debtHref, debtsEnriched } from "./debt-logic.js";
+import { debtHref } from "./debt-logic.js";
 import { isClosedStatus } from "../core/debt-rules.js";
 import { looseBillsHtml } from "./debts.js";
 import { balancePanel, valuationPanel } from "./net-worth.js";
 import { liveNetWorth } from "./nw-logic.js";
+import { debtsEnriched } from "./debt-logic-common.js";
 
 const cur = () => Units.region.currency;
 /** 今年 1 月到本月 */

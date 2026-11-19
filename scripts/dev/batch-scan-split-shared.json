@@ -1,0 +1,16 @@
+{
+  "source": "js/pantry/scan.js",
+  "files": [
+    {
+      "path": "js/pantry/scan-common.js",
+      "doc": "录入购物各部分共用的小件。从 scan.js 抽出来，各部分依赖这里。",
+      "names": [
+        "sc",
+        "MAX_IMAGES",
+        "repaint",
+        "resetScan",
+        "subGuess"
+      ]
+    }
+  ]
+}

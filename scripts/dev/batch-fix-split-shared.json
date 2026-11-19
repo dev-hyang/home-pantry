@@ -1,0 +1,22 @@
+{
+  "source": "js/house/fix.js",
+  "files": [
+    {
+      "path": "js/house/fix-common.js",
+      "doc": "「出了问题」各部分共用的小件。从 fix.js 抽出来，各部分依赖这里。",
+      "names": [
+        "C",
+        "PARTS",
+        "SHOP_CAT",
+        "STORES",
+        "VEH_STORES",
+        "fx",
+        "region",
+        "repaint",
+        "MAX_IMAGES",
+        "vehQuick",
+        "VEH_QUICK"
+      ]
+    }
+  ]
+}

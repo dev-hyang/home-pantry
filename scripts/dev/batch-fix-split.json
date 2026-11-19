@@ -1,0 +1,35 @@
+{
+  "source": "js/house/fix.js",
+  "files": [
+    {
+      "path": "js/house/fix-parts.js",
+      "doc": "出了问题：设备候选、配件 ↔ 库存 / 购物车匹配、常见小毛病。",
+      "lines": [
+        [
+          55,
+          118
+        ]
+      ]
+    },
+    {
+      "path": "js/house/fix-page.js",
+      "doc": "出了问题：页面、第 ② 层问咩咩、结果。",
+      "lines": [
+        [
+          119,
+          267
+        ]
+      ]
+    },
+    {
+      "path": "js/house/fix-events.js",
+      "doc": "出了问题：事件（文件和下拉由这里自己监听）。",
+      "lines": [
+        [
+          268,
+          323
+        ]
+      ]
+    }
+  ]
+}

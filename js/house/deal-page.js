@@ -1,7 +1,7 @@
 /* 交易页：任务行、编辑表单、交易详情、新建 / 编辑交易的表单、交割面板。 */
 import { D, END_LAG, V, addTaskRow, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, openDeal, openVehicleDeal, propertyLive, skipBtn, statusText, taskEditForm, taskRow } from "./deal-tasks.js";
 import { addDays } from "../bills/logic.js";
-import { debts as allDebts, debtHref } from "../bills/debt-logic.js";
+import { debtHref } from "../bills/debt-logic.js";
 import { analyze, briefHtml, eventFormPanel, freezeBaseline, lanesHtml, needsFreeze } from "./deal-progress.js";
 import { assetName, isVehicle } from "./assets.js";
 import { clearFiltersBtn } from "../core/clear-filters.js";
@@ -12,6 +12,7 @@ import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { priceInput, priceOrNull, pricesOk } from "../core/finance-access.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
+import { debts as allDebts } from "../bills/debt-logic-common.js";
 
 /* ── 交易页：主体是当前房产，或 ?asset=<id> 指定的车辆 ── */
 const DEAL_VIEWS = [["list", "☰", "清单"], ["plan", "📋", "计划"], ["actual", "✅", "实际"], ["compare", "⚖️", "对比"]];

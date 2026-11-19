@@ -1,7 +1,6 @@
 /* 每个底部页签的“目录页”（参考家庭学堂“我的”页）：二级页不再用横向滑动的标签，而是一栏一栏的行，点进去；
  * 子页顶部一条面包屑「‹ 房屋」回目录。目录行带简短说明和当前要处理的数量。 */
 import { state } from "./core/state.js";
-import { debtsEnriched } from "./bills/debt-logic.js";
 import { liveNetWorth } from "./bills/nw-logic.js";
 import { isClosedStatus } from "./core/debt-rules.js";
 import { SECTIONS, href } from "./core/router.js";
@@ -25,6 +24,7 @@ import { medBillLabel } from "./bills/medical-views.js";
 import { collectAlerts } from "./core/alerts.js";
 import { houseBar } from "./house/property-form.js";
 import { FINANCE_HIDDEN_SUBS, financeOk } from "./core/finance-access.js";
+import { debtsEnriched } from "./bills/debt-logic-common.js";
 
 const SECTION_ICON = { pantry: "🗄️", house: "🏠", bills: "💰", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”

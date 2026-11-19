@@ -1,0 +1,15 @@
+{
+  "source": "js/settings/views.js",
+  "files": [
+    {
+      "path": "js/settings/settings-common.js",
+      "doc": "设置各部分共用的小件。从 views.js 抽出来，各部分依赖这里。",
+      "names": [
+        "inviteLine",
+        "isOwner",
+        "pendingList",
+        "sisterAppsPanel"
+      ]
+    }
+  ]
+}

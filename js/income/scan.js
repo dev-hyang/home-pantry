@@ -5,10 +5,11 @@ import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, num, todayISO, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
-import { aiReady, aiSettings, askText, providerOf, visionCapable } from "../core/ai.js";
-import { compressImage } from "../core/autofill.js";
+import { aiReady, askText, visionCapable } from "../core/ai.js";
 import { incAiCatalog } from "../core/income-taxonomy.js";
 import { CHANNELS, adults, guessChannel, guessKind, inc, kindList, kindOptionsHtml, loadIncome, myPersonId, similarIncome } from "./logic.js";
+import { aiSettings, providerOf } from "../core/ai-common.js";
+import { compressImage } from "../core/autofill-common.js";
 
 const MAX_IMAGES = 4, CONSENT = "hmh-income-scan-ok";
 const sc = { images: [], text: "", busy: false, error: "", items: null, who: null };

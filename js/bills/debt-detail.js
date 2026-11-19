@@ -3,7 +3,7 @@ import * as A from "../core/amortization.js";
 import { DIRECTIONS, debtCat, isClosedStatus, isLoanBillCat, isPersonalDebt } from "../core/debt-rules.js";
 import { amortHtml, breakdownHtml, daysText, kpi, payTableHtml, termsHtml } from "./debt-detail-tables.js";
 import { assetName } from "../house/assets.js";
-import { debt060, debtById, debtHref, enrichDebt, paymentTable } from "./debt-logic.js";
+import { debt060, debtHref, paymentTable } from "./debt-logic.js";
 import { debtForm } from "./debt-form.js";
 import { esc, fmtDate, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
@@ -12,6 +12,7 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { txnRow, txnsOf0 } from "./debts-tabs.js";
 import { catBadge, hooks, linkedText, mny, pct, periodPay, statusBadge, ui, vehicles } from "./debt-common.js";
+import { debtById, enrichDebt } from "./debt-logic-common.js";
 
 /** 改一期（按对账单）：本金 / 额外本金 / 利息 / Escrow */
 export function overrideForm(e, r) {

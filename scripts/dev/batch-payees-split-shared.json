@@ -1,0 +1,13 @@
+{
+  "source": "js/stats/payees.js",
+  "files": [
+    {
+      "path": "js/stats/payees-common.js",
+      "doc": "收款方各部分共用的小件。从 payees.js 抽出来，各部分依赖这里。",
+      "names": [
+        "P",
+        "TZ"
+      ]
+    }
+  ]
+}

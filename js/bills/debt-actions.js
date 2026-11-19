@@ -1,7 +1,7 @@
 /* 借贷的操作：initDebts 在页面加载后注册点击和表单处理（保存、还款、关联、结清…）。 */
 import { Store } from "../core/store.js";
 import { af, pf } from "./debts-tabs.js";
-import { billOfDebt, calibrateDebt, canSplit, clearOverride, debt060, debtById, debtHref, deleteDebtTxn, loadDebts, overrideSplit, recordDebtTxn, relinkPaymentPurchase, resplitDebt, setExtraPrincipal, syncDebtStatus, syncVehicle, unsplitDebt, updateDebtTxn } from "./debt-logic.js";
+import { calibrateDebt, clearOverride, debt060, debtHref, deleteDebtTxn, overrideSplit, recordDebtTxn, relinkPaymentPurchase, resplitDebt, setExtraPrincipal, syncDebtStatus, syncVehicle, unsplitDebt, updateDebtTxn } from "./debt-logic.js";
 import { confirmDelete, fmtDate, num, toast, todayISO } from "../core/util.js";
 import { debtCat } from "../core/debt-rules.js";
 import { deleteBillPay } from "./views.js";
@@ -13,6 +13,7 @@ import { onClearFilters } from "../core/clear-filters.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { cur, hooks, ui } from "./debt-common.js";
+import { billOfDebt, canSplit, debtById, loadDebts } from "./debt-logic-common.js";
 
 /* ───────────── 动作 ───────────── */
 const guard = async (fn) => { try { await fn(); } catch (e) { toast(t("操作失败：{msg}", { msg: e.message })); } };

@@ -1,0 +1,55 @@
+{
+  "source": "js/core/ai.js",
+  "files": [
+    {
+      "path": "js/core/ai-limits.js",
+      "doc": "AI：免费额度计数、Gemini 模型名自动选择、临时错误自动重试。",
+      "lines": [
+        [
+          47,
+          164
+        ]
+      ]
+    },
+    {
+      "path": "js/core/ai-request.js",
+      "doc": "AI：模型黑名单（404 / 429 的记一段时间）和实际发请求。",
+      "lines": [
+        [
+          165,
+          298
+        ]
+      ]
+    },
+    {
+      "path": "js/core/ai-prompts.js",
+      "doc": "AI：库存上下文（只传食材名、数量、单位、天数）、提示词、调用。",
+      "lines": [
+        [
+          299,
+          351
+        ]
+      ]
+    },
+    {
+      "path": "js/core/ai-models.js",
+      "doc": "AI：免费档常用模型目录（设置里下拉选）和目录与现实对不上时的提醒。",
+      "lines": [
+        [
+          352,
+          490
+        ]
+      ]
+    },
+    {
+      "path": "js/core/ai-ask.js",
+      "doc": "咩咩咩：家里任何事（房屋保养、账单、买卖房、清洁收纳…）的上下文和提问。",
+      "lines": [
+        [
+          491,
+          567
+        ]
+      ]
+    }
+  ]
+}

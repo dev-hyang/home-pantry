@@ -1,0 +1,16 @@
+{
+  "source": "js/core/ai.js",
+  "files": [
+    {
+      "path": "js/core/ai-common.js",
+      "doc": "咩咩咩 / AI 各部分共用的小件。从 ai.js 抽出来，各部分依赖这里。",
+      "names": [
+        "USAGE_KEY",
+        "aiSettings",
+        "providerOf",
+        "KEY",
+        "PROVIDERS"
+      ]
+    }
+  ]
+}

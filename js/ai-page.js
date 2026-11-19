@@ -6,9 +6,10 @@ import { esc, toast } from "./core/util.js";
 import { href } from "./core/router.js";
 import { backBtn } from "./core/hub.js";
 import { lang, t } from "./core/i18n.js";
-import { aiIcon, aiQuota, aiReady, aiSettings, askText, generalPrompt, generalPromptText, providerOf, quotaMessage } from "./core/ai.js";
+import { aiIcon, aiQuota, aiReady, askText, generalPrompt, generalPromptText, quotaMessage } from "./core/ai.js";
 import { askHandoff } from "./core/ask.js";
 import { attachHTML, attachPayload } from "./core/attach.js";
+import { aiSettings, providerOf } from "./core/ai-common.js";
 
 export const TOPICS = [
   { id: "menu", icon: "🍳", name: "今天吃什么", q: null, link: () => `${href("pantry", "meals")}?ai=` },

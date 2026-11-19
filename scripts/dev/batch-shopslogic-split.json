@@ -1,0 +1,35 @@
+{
+  "source": "js/shops/logic.js",
+  "files": [
+    {
+      "path": "js/shops/deals-logic.js",
+      "doc": "商店：特价的有效期、待更新、对上购物车。",
+      "lines": [
+        [
+          110,
+          196
+        ]
+      ]
+    },
+    {
+      "path": "js/shops/location-logic.js",
+      "doc": "商店：位置（ZIP → 经纬度，按距离找门店）。",
+      "lines": [
+        [
+          197,
+          335
+        ]
+      ]
+    },
+    {
+      "path": "js/shops/ads-logic.js",
+      "doc": "商店：AI 读广告 → 特价、给 Claude 用的入口、以前的价格（近 6 个月已过期的特价）。",
+      "lines": [
+        [
+          336,
+          448
+        ]
+      ]
+    }
+  ]
+}

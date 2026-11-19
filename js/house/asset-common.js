@@ -1,6 +1,6 @@
 /* 设备各页面共用的小件：保养 / 保修状态徽章、固定装置与小家电的判断、位置数量文字、设备提醒文字、车辆状态。从 assets.js 抽出来，各页面依赖这里。 */
 import { RECALL_STATUS, recallAlertText } from "./recall.js";
-import { debts as allDebts, debtHref, enrichDebt } from "../bills/debt-logic.js";
+import { debtHref } from "../bills/debt-logic.js";
 import { esc, fmtDate, money, num } from "../core/util.js";
 import { href } from "../core/router.js";
 import { isClosedStatus } from "../core/debt-rules.js";
@@ -8,6 +8,7 @@ import { isVehicle, rank } from "./assets-logic.js";
 import { pricesOk } from "../core/finance-access.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
+import { debts as allDebts, enrichDebt } from "../bills/debt-logic-common.js";
 
 /** 车辆的车贷（按 id 关联，迁移 058）：有财务权限才显示，链到 财务 → 借贷；没有车贷时给「添加车贷」 */
 export function vehicleLoanNote(a) {

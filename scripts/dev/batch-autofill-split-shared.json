@@ -1,0 +1,24 @@
+{
+  "source": "js/core/autofill.js",
+  "files": [
+    {
+      "path": "js/core/autofill-common.js",
+      "doc": "自动填表各部分共用的小件。从 autofill.js 抽出来，各部分依赖这里。",
+      "names": [
+        "B",
+        "H",
+        "MED",
+        "SYSTEM",
+        "clean",
+        "idList",
+        "isDate",
+        "last4",
+        "numOr",
+        "CONSENT_TEXT",
+        "MAX_IMAGES",
+        "compressImage",
+        "parseJson"
+      ]
+    }
+  ]
+}

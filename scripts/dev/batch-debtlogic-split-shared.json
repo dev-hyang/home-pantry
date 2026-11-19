@@ -1,0 +1,31 @@
+{
+  "source": "js/bills/debt-logic.js",
+  "files": [
+    {
+      "path": "js/bills/debt-logic-common.js",
+      "doc": "借贷逻辑各部分共用的小件。从 debt-logic.js 抽出来，各部分依赖这里。",
+      "names": [
+        "bankEscrowAt",
+        "billOfDebt",
+        "canSplit",
+        "debtById",
+        "debtOfBill",
+        "debtTxns",
+        "normTxn",
+        "piOf",
+        "r2",
+        "txnsOf",
+        "debtOfIncome",
+        "debts",
+        "debtsEnriched",
+        "enrichDebt",
+        "loadDebts",
+        "engineFromTxns",
+        "escrowFor",
+        "freqOf",
+        "normDebt",
+        "nOrNull"
+      ]
+    }
+  ]
+}

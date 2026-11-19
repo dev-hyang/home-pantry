@@ -1,0 +1,14 @@
+{
+  "source": "js/bills/debt-records.js",
+  "files": [
+    {
+      "path": "js/bills/debt-rec-common.js",
+      "doc": "借贷流水各部分共用的小件。从 debt-records.js 抽出来，各部分依赖这里。",
+      "names": [
+        "mny",
+        "r2",
+        "ui"
+      ]
+    }
+  ]
+}

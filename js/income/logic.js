@@ -10,9 +10,9 @@ import { esc, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { financeOk } from "../core/finance-access.js";
 import { pageSize } from "../core/pager.js";
-import { debtOfIncome, enrichDebt } from "../bills/debt-logic.js";
 import { isClosedStatus } from "../core/debt-rules.js";
 import { INC_L1S, customIncomeKinds, incKindOptions, incL1Of, incLeaf, incLeafLabel, incLeaves, normParent, recognized as recognizedOf } from "../core/income-taxonomy.js";
+import { debtOfIncome, enrichDebt } from "../bills/debt-logic-common.js";
 
 /* ───────────── 收入类型：一级 → 叶子（规则全在 js/core/income-taxonomy.js，这里只是给界面用的薄包装） ─────────────
  * 记录上存的还是叶子 id（income_records.kind，不改写）；一级（工作收入 / 投资收益 / 房产收入 / 其他收入 / 资本与资产流入）由分类表推出来。

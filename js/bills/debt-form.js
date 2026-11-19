@@ -5,7 +5,7 @@ import { SEGS } from "./debt-stats.js";
 import { Store } from "../core/store.js";
 import { af, pf, tabPage } from "./debts-tabs.js";
 import { assetName } from "../house/assets.js";
-import { debt060, debtHref, debtsEnriched } from "./debt-logic.js";
+import { debt060, debtHref } from "./debt-logic.js";
 import { detail } from "./debt-detail.js";
 import { esc, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
@@ -14,6 +14,7 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { tabBar } from "../core/hub.js";
 import { tabHref, ui, vehicles } from "./debt-common.js";
+import { debtsEnriched } from "./debt-logic-common.js";
 
 /* ───────────── 新建 / 编辑 ───────────── */
 /** 银行的 Escrow 计划：每行 从哪个月起 + 每期金额（已有的几行 + 两行空的） */

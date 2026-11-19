@@ -1,0 +1,17 @@
+{
+  "source": "js/shops/logic.js",
+  "files": [
+    {
+      "path": "js/shops/logic-common.js",
+      "doc": "商店逻辑各部分共用的小件。从 logic.js 抽出来，各部分依赖这里。",
+      "names": [
+        "chainOf",
+        "CHAINS",
+        "myItemNames",
+        "normDealType",
+        "restockWatch",
+        "DEAL_TYPES"
+      ]
+    }
+  ]
+}

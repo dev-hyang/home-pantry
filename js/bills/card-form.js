@@ -4,7 +4,7 @@ import { ACCT_KINDS, CARDS_HREF, cardById, cardHref, fromCatalog, kindName, noRe
 import { Store } from "../core/store.js";
 import { accountOptions, acctLabel } from "./card-picker.js";
 import { adultPeople } from "../settings/family-people.js";
-import { aiReady, aiSettings, askText, providerOf } from "../core/ai.js";
+import { aiReady, askText } from "../core/ai.js";
 import { backBtn } from "../core/hub.js";
 import { balancePanel } from "./net-worth.js";
 import { dupOnce, normName } from "../core/item-match.js";
@@ -14,6 +14,7 @@ import { spendChanged } from "../core/spend-data.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { D, cur, d, roStop } from "./card-common.js";
+import { aiSettings, providerOf } from "../core/ai-common.js";
 
 /* ───────────── 表单 ───────────── */
 const NUMF = (v) => (v == null || v === "" ? "" : num(v));

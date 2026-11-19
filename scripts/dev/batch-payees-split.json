@@ -1,0 +1,25 @@
+{
+  "source": "js/stats/payees.js",
+  "files": [
+    {
+      "path": "js/stats/payees-data.js",
+      "doc": "花费 → 收款方：全历史名单、列表数据、钻取、页面。",
+      "lines": [
+        [
+          24,
+          163
+        ]
+      ]
+    },
+    {
+      "path": "js/stats/payees-actions.js",
+      "doc": "花费 → 收款方：展开一行、整理收款方（按内置规则 / 别名归组）、改名 / 合并 / 撤销。",
+      "lines": [
+        [
+          164,
+          309
+        ]
+      ]
+    }
+  ]
+}

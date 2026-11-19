@@ -1,0 +1,35 @@
+{
+  "source": "js/bills/debt-records.js",
+  "files": [
+    {
+      "path": "js/bills/debt-rec-filter.js",
+      "doc": "借贷流水：方向和筛选。",
+      "lines": [
+        [
+          25,
+          119
+        ]
+      ]
+    },
+    {
+      "path": "js/bills/debt-rec-row.js",
+      "doc": "借贷流水：一行怎么读、编辑一行。",
+      "lines": [
+        [
+          120,
+          214
+        ]
+      ]
+    },
+    {
+      "path": "js/bills/debt-rec-link.js",
+      "doc": "借贷流水：关联候选（前后 7 天的花费 + 收入，金额相近）和事件。",
+      "lines": [
+        [
+          215,
+          319
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "source": "js/bills/debt-logic.js",
+  "files": [
+    {
+      "path": "js/bills/debt-split-logic.js",
+      "doc": "借贷：账单缴费 ↔ 本金 / 利息拆分。",
+      "lines": [
+        [
+          121,
+          258
+        ]
+      ]
+    },
+    {
+      "path": "js/bills/debt-personal-logic.js",
+      "doc": "借贷：亲友借贷（不挂账单的还款）、还清 ↔ 车辆「贷款中」状态同步、提醒。",
+      "lines": [
+        [
+          259,
+          391
+        ]
+      ]
+    }
+  ]
+}

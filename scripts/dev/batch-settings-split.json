@@ -1,0 +1,35 @@
+{
+  "source": "js/settings/views.js",
+  "files": [
+    {
+      "path": "js/settings/settings-names.js",
+      "doc": "设置：自定义名称的翻译、分类与小类、存放位置。",
+      "lines": [
+        [
+          77,
+          154
+        ]
+      ]
+    },
+    {
+      "path": "js/settings/settings-menu.js",
+      "doc": "设置：目录页（每块一行，带当前状态）→ 点进去只看那一块。",
+      "lines": [
+        [
+          155,
+          192
+        ]
+      ]
+    },
+    {
+      "path": "js/settings/settings-models.js",
+      "doc": "设置：AI 模型下拉（常用免费模型目录 + 这个 key 实际能用的列表）和 AI 设置。",
+      "lines": [
+        [
+          193,
+          404
+        ]
+      ]
+    }
+  ]
+}
