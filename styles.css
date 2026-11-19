@@ -4218,10 +4218,18 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .ht-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .ht-ico { font-size: 20px; line-height: 1; } .ht-n { font-size: 24px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 .ht-card small { color: var(--muted); font-size: 13px; line-height: 1.3; } .ht-card .ui-badge { align-self: flex-start; }
 
-/* 物品详情页的第一块：名称（靠左）+ 状态标志跟在后面 + 右上角 ⋯ */
+/* 物品详情页的第一块：图标 + 名称连在一起（名称太长才在名称里换行），状态标志跟在名称后面、整组不拆开（一行放不下整组换到第二行）；⋯ 固定在右边、上下居中 */
 .item-head { padding: 12px 14px; margin-bottom: 12px; }
-.ih-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.ih-top .mi { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; font-size: 19px; }
+.ih-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.ih-main { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.ih-id { display: inline-flex; align-items: center; gap: 10px; max-width: 100%; min-width: 0; }
+.ih-id .mi { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; font-size: 19px; }
 .ih-name { margin: 0; font-size: 20px; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.ih-flags { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.ih-top > .act-more { margin-left: auto; flex: none; }
+.ih-flags { display: inline-flex; align-items: center; gap: 6px; flex-wrap: nowrap; white-space: nowrap; }
+.ih-top > .act-more { flex: none; align-self: center; }
+/* 只改某一块的编辑页：这一块平铺显示（不折叠），标题条和折叠块的标题条同一个样式 */
+.form-page .fsec-flat { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); margin: 0 0 14px; }
+.form-page .fsec-flat > .fsec-flat-h { display: flex; align-items: center; min-height: 48px; padding: 0 14px; border-radius: 11px 11px 0 0; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--pine) 9%, var(--surface-2)); font-size: 15.5px; font-weight: 600; }
+.form-page .fsec-flat > fieldset { margin: 0; padding: 14px; border: 0; min-width: 0; }
+.form-page .fsec-flat > fieldset > legend.sr-only { float: none; width: 1px; }
+.form-page .fsec-flat[hidden] { display: none; }

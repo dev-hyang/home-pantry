@@ -69,7 +69,11 @@ const FOLD = new Map();
 let ACTIVE_SEC = null;   // 从详情页点某一块的「编辑」进来（?edit=basic|qty|notes）：只显示这一块，其余块藏起来（字段还在表单里，一起保存）
 const secKey = (id, k) => `${id || "new"}:${k}`;
 function fsec(id, k, title, body, openDefault, cls = "", aside = "") {
-  const key = secKey(id, k), open = ACTIVE_SEC ? k === ACTIVE_SEC : FOLD.has(key) ? FOLD.get(key) : openDefault, hid = ACTIVE_SEC && k !== ACTIVE_SEC ? " hidden" : "";
+  const key = secKey(id, k);
+  if (ACTIVE_SEC) {   // 只改某一块（从详情页点这一块的「编辑」进来）：这一块平铺显示，不折叠、不带状态标志；其余块藏起来（字段还在表单里，一起保存）
+    return `<div class="fsec fsec-flat ${cls}" data-fsec="${esc(key)}"${k === ACTIVE_SEC ? "" : " hidden"}><div class="fsec-flat-h">${title}</div><fieldset><legend class="sr-only">${title}</legend>${body}</fieldset></div>`;
+  }
+  const open = FOLD.has(key) ? FOLD.get(key) : openDefault, hid = "";
   return `<details class="fsec ${cls}" data-fsec="${esc(key)}" ${open ? "open" : ""}${hid}><summary><span class="fsec-ttl">${title}</span>${aside ? `<span class="fsec-aside">${aside}</span>` : ""}<span class="fsec-chev" aria-hidden="true">▾</span></summary>
     <fieldset><legend class="sr-only">${title}</legend>${body}</fieldset></details>`;
 }

@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.27", title: { zh: "物品详情页名称排版更整齐；单块编辑页不再折叠", en: "Tidier item name layout; single-block edit pages no longer fold" }, items: [
+    { k: "better", zh: "物品详情页：图标和名称连在一起，只有名称太长才换行；缺货等标志跟在名称后面，整组不拆开（一行放不下就整组换到第二行）；⋯ 固定在右边、上下居中", en: "Item details: the icon stays with the name (the name wraps only when it is too long); stock flags follow it as one group (the whole group drops to line two if it does not fit); the ⋯ button stays at the right, centered" },
+    { k: "better", zh: "点某一块的「编辑」进入的页面，这一块直接平铺显示，不再有折叠箭头，基本信息上也不再显示缺货等标志", en: "The page you get from a block's Edit shows that block flat, with no fold arrow and no stock flags on Basics" }
+  ] },
+
   { v: "2026-11-19.26", title: { zh: "库存物品：先看详情，每一块各自编辑", en: "Inventory items: details first, each block edited on its own" }, items: [
     { k: "better", zh: "点库存里的物品，现在先进详情页，不再直接进编辑表单；第一块是名称（靠左）和缺货 / 少货等标志，右上角 ⋯ 里有拍包装录入、加入购物车、复制为新物品、删除", en: "Tapping an inventory item now opens a details page instead of the edit form; the first block shows the name with its stock flags and a ⋯ menu (scan packaging, add to cart, copy as new, delete)" },
     { k: "better", zh: "基本信息、数量与提醒、备注三块各带自己的「编辑」，点进去只改这一块；详情页底部导航不再被遮挡", en: "Basics, Quantity & reminders and Notes each have their own Edit that changes only that block; the details page keeps the bottom tabs" }

@@ -52,7 +52,7 @@ export function viewItemDetail(it, ctx) {
       <a class="btn btn-sm btn-ghost prof-edit" href="${base}?edit=${s.id}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${t("编辑")}</a></header>${s.body}</section>`).join("");
   return `<section class="section">
     ${crumbNav([...ctx.crumbBase, { label: it.name, icon: c.icon }])}
-    <div class="panel item-head"><div class="ih-top"><span class="mi" aria-hidden="true">${c.icon || "📦"}</span><h2 class="ih-name">${esc(it.name)}</h2><span class="ih-flags">${flags}</span>${menu}</div></div>
+    <div class="panel item-head"><div class="ih-top"><div class="ih-main"><div class="ih-id"><span class="mi" aria-hidden="true">${c.icon || "📦"}</span><h2 class="ih-name">${esc(it.name)}</h2></div>${flags ? `<span class="ih-flags">${flags}</span>` : ""}</div>${menu}</div></div>
     <div class="prof-grid bill-detail-grid">${cards}</div>
     ${stampText(it) ? `<p class="record-meta">${esc(stampText(it))}${Store.mode === "cloud" && memberName(it.updated_by) ? `（${esc(memberName(it.updated_by))}）` : ""}</p>` : ""}
   </section>`;
