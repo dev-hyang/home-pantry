@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.29", title: { zh: "一次性账单：页头汇总卡、⋯ 菜单，保险理赔单独成块", en: "One-time bills: summary header, ⋯ menu, insurance in its own block" }, items: [
+    { k: "better", zh: "一次性账单详情页顶部是汇总卡：提供方、状态 / 到期徽章，右上角 ⋯（记缴费、复制为新账单、删除），下面一排「应付 / 已付 / 余额」加进度条和算式", en: "The one-time bill page now opens with a summary card: provider, status / due badges, a ⋯ menu (log payment, copy as new, delete) and a Due / Paid / Balance row with a progress bar" },
+    { k: "better", zh: "保险公司、理赔号、保险已付单独成一块「保险理赔」（医疗、宠物），各块仍各带自己的「编辑」", en: "Insurer, claim # and insurance paid are now their own Insurance & claim block (medical, pets); every block keeps its own Edit" },
+    { k: "better", zh: "「付款记录」统一叫「缴费记录」；退款显示红色负数并带「退款」标签", en: "Payment records are consistently called Payments; refunds show as red negatives with a Refund tag" }
+  ] },
+
   { v: "2026-11-19.28", title: { zh: "卡与账户：先看详情，每一块各自编辑", en: "Cards & accounts: details first, each block edited on its own" }, items: [
     { k: "better", zh: "点一张卡或账户，先进详情页；右上角 ⋯ 有停用 / 启用、复制为新卡、删除；原来表单底部的删除按钮搬到这里", en: "Tapping a card or account opens a details page first; the ⋯ menu has Deactivate / Activate, Copy as new and Delete (the Delete button moved here from the bottom of the form)" },
     { k: "better", zh: "这张卡 / 还款 / 返现规则 / 开卡奖励 / 报销额度 / 备注，每块带自己的「编辑」，点进去只改这一块，保存后回到详情页", en: "The card, Repayment, Rewards, Sign-up bonus, Credits and Notes blocks each have their own Edit that changes only that block and returns to the details" },

@@ -97,7 +97,7 @@ export async function clickMoney(action, el, id, e) {
       case "card-cleanup-run": el.disabled = true; await runCleanup(); return refresh();
       case "card-deact": el.disabled = true; await setCardActive(el.dataset.id, false); return refresh();
       case "card-react": el.disabled = true; await setCardActive(el.dataset.id, true); return refresh();
-      case "med-pay-del": if (!confirmDelete(t("删除这条付款记录？"))) return; return deleteMedPay(el.dataset.id);
+      case "med-pay-del": if (!confirmDelete(t("删除这条缴费记录？"))) return; return deleteMedPay(el.dataset.id);
       case "spend-more": return spendListNow()?.more();   // 「继续加载」：向数据库要下一页
       case "spend-csv": return exportSpendList();
       case "spend-sel-toggle": state.spendSel = state.spendSel ? null : new Set(); state.spendEdit = null; return render();

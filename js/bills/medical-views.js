@@ -15,6 +15,7 @@ import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, findPerson, kindOf
 import { applyMedical, reloadMedical } from "./medical-data.js";
 import { accountOptions, acctById, paymentPayLabel } from "./card-picker.js";
 import { lpAttr } from "../core/long-press.js";
+import { medHeadCard } from "./medical-head.js";
 export { applyMedical, medBillLabel, reloadMedical } from "./medical-data.js";
 
 const cur = () => Units.region.currency;
@@ -69,10 +70,16 @@ function viewDetail(id, payId) {
           : `<label>${t(K.who)}<input name="patient" maxlength="40" value="${d(v.patient)}"></label>`}
         ${K.guarantor ? `<label>${t("担保人 Guarantor")}<select name="guarantor_id" data-last="${d(v.guarantor_id || (v.guarantor_text ?? v.guarantor ? "__text" : ""))}">${peopleOptions(["adult"], v.guarantor_id, v.guarantor_id ? "" : v.guarantor)}</select><small>${t("负责付款的人，例如孩子的家长")}</small></label>` : ""}
         <label>${t("账单号 Bill #")}<input name="bill_ref" maxlength="60" value="${d(v.bill_ref)}"></label>
-        ${K.insurance ? `<label>${t("保险公司")}<input name="insurer" maxlength="60" value="${d(v.insurer)}"></label>
-        <label>${t("理赔号 Claim #")}<input name="claim_ref" maxlength="60" value="${d(v.claim_ref)}"></label>` : ""}
         </div>
       </fieldset>
+      ${K.insurance ? `<fieldset data-sec="insurance" ${hide("insurance")}>
+        <legend class="sr-only">${t("保险理赔")}</legend>
+        <div class="form-grid">
+        <label>${t("保险公司")}<input name="insurer" maxlength="60" value="${d(v.insurer)}"></label>
+        <label>${t("理赔号 Claim #")}<input name="claim_ref" maxlength="60" value="${d(v.claim_ref)}"></label>
+        <label>${t("保险已付")}<input name="insurance_paid" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.insurance_paid)}"></label>
+        </div>
+      </fieldset>` : ""}
       <fieldset data-sec="amount" ${hide("amount")}>
         <legend class="sr-only">${t("金额与日期")}</legend>
         <div class="form-grid">
@@ -80,7 +87,6 @@ function viewDetail(id, payId) {
         <label>${t("账单日期 Bill date")}<input name="bill_date" type="date" value="${d(v.bill_date)}"></label>
         <label>${t("到期日")}<input name="due_on" type="date" value="${d(v.due_on)}"></label>
         <label>${t(K.billed)}（${esc(v.currency)}）<input name="billed_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.billed_amount)}"></label>
-        ${K.insurance ? `<label>${t("保险已付")}<input name="insurance_paid" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.insurance_paid)}"></label>` : ""}
         <label>${t("折扣 / 冲减")}<input name="adjustment" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.adjustment)}"></label>
         <label>${t(K.owed)}<input name="patient_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.patient_amount)}"><small>${t(K.insurance ? "留空 = 总额 − 保险已付 − 折扣；以保险说明（EOB）上的为准" : "留空 = 总额 − 折扣")}</small></label>
         <label>${t("状态")}<select name="status">${["awaiting_insurance", "open", "disputed", "collections", "written_off"].map((k) => `<option value="${k}" ${v.status === k ? "selected" : ""}>${t(STATUS[k])}</option>`).join("")}</select><small>${t("已结清 / 部分已付由付款记录自动算")}</small></label>
@@ -113,15 +119,16 @@ function medFacts(b, id) {
   const dl = (rows) => `<dl class="fact-grid one">${rows.filter(Boolean).map(([k, val]) => `<div class="fact"><dt>${k}</dt><dd>${val || none}</dd></div>`).join("")}</dl>`;
   const prop = b.property_id ? state.properties.find((p) => p.id === b.property_id) : null, asset = b.asset_id ? state.assets.find((a) => a.id === b.asset_id) : null;
   if (id === "basic") return dl([[t(K.provider), esc(b.provider || "")], [OTL("小类", "Type"), subName(b) ? `${subIcon(b)} ${esc(t(subName(b)))}` : ""], [t(K.who), esc(b.patient || "")], K.guarantor ? [OTL("担保人", "Guarantor"), esc(b.guarantor || "")] : null,
-    [OTL("账单号", "Bill #"), esc(b.bill_ref || "")], K.insurance ? [OTL("保险公司", "Insurer"), esc(b.insurer || "")] : null, K.insurance ? [OTL("理赔号", "Claim #"), esc(b.claim_ref || "")] : null]);
+    [OTL("账单号", "Bill #"), esc(b.bill_ref || "")]]);
+  if (id === "insurance") return dl([[OTL("保险公司", "Insurer"), esc(b.insurer || "")], [OTL("理赔号", "Claim #"), esc(b.claim_ref || "")], [OTL("保险已付", "Insurance paid"), b.insurance_paid ? mny(b.insurance_paid, c) : ""]]);
   if (id === "amount") return dl([[OTL(b.kind === "medical" || b.kind === "pet" ? "就诊日期" : b.kind === "travel" ? "出发日期" : "服务日期", "Service date"), b.service_date ? esc(fmtDate(b.service_date)) : ""], [OTL("账单日期", "Bill date"), b.bill_date ? esc(fmtDate(b.bill_date)) : ""],
-    [OTL("到期日", "Due date"), b.due_on ? esc(fmtDate(b.due_on)) : ""], [t(K.billed), b.billed_amount != null ? mny(b.billed_amount, c) : ""], K.insurance ? [OTL("保险已付", "Insurance paid"), mny(b.insurance_paid || 0, c)] : null,
+    [OTL("到期日", "Due date"), b.due_on ? esc(fmtDate(b.due_on)) : ""], [t(K.billed), b.billed_amount != null ? mny(b.billed_amount, c) : ""],
     num(b.adjustment) ? [OTL("折扣 / 冲减", "Adjustment"), mny(b.adjustment, c)] : null, [t(K.owed), b.owed != null ? mny(b.owed, c) : ""], [OTL("已付", "Paid"), mny(b.paid || 0, c)], [OTL("余额", "Balance"), b.balance != null ? mny(b.balance, c) : ""],
     [OTL("状态", "Status"), `<span class="badge ${STATUS_CLS[b.status] || ""}">${esc(t(STATUS[b.status] || b.status))}</span>`]]);
   return dl([[OTL("房产", "Property"), prop ? esc(prop.name) : t("与房产无关")], (state.assets || []).some((a) => a.kind === "vehicle" || a.kind === "equipment") ? [OTL("关联资产", "Linked asset"), asset ? esc(asset.name) : ""] : null,
     [OTL("谁能看到", "Visible to"), b.visibility === "private" ? `🔒 ${t("仅自己和家主可见")}` : `👪 ${t("全家可见")}`], b.kind === "medical" ? [OTL("HSA / FSA", "HSA / FSA"), b.hsa_eligible ? t("可报销") : t("否")] : null, [OTL("备注", "Notes"), b.notes ? esc(b.notes) : ""]]);
 }
-const MED_SECS = [{ id: "basic", icon: "🧾", name: "这是什么账单" }, { id: "amount", icon: "💲", name: "金额与日期" }, { id: "other", icon: "📎", name: "挂靠与其他" }];
+const MED_SECS = [{ id: "basic", icon: "🧾", name: "这是什么账单" }, { id: "insurance", icon: "🛡️", name: "保险理赔", only: "insurance" }, { id: "amount", icon: "💲", name: "金额与日期" }, { id: "other", icon: "📎", name: "挂靠与其他" }];
 function medBanner(b, q) {
   const isAi = q.get("ai") === "1", isNew = q.get("new") === "1"; if (!isAi && !isNew) return "";
   const K = kindOf(b), base = detailHref(b.id), missing = [!b.patient && OTL(K.who.split(" ")[0], "Who"), !b.due_on && OTL("到期日", "Due date"), !b.bill_ref && OTL("账单号", "Bill #")].filter(Boolean).slice(0, 3);
@@ -131,22 +138,16 @@ function medBanner(b, q) {
   return `<div class="notice" role="status" style="margin-bottom:12px"><b>✅ ${t("已创建")}</b> ${missing.length ? t("这几项还没填：{list}，随时在下面补。", { list: missing.join("、") }) : t("信息都齐了。")}${b.owed != null ? ` ${t("接着可以在下面记付款。")}` : ""}<div class="form-actions" style="margin-top:8px">${close}</div></div>`;
 }
 function medCardsPage(b, payEdit) {
-  const K = kindOf(b), base = detailHref(b.id), c = b.currency;
-  const badges = [`<span class="badge ${STATUS_CLS[b.status] || ""}">${esc(t(STATUS[b.status] || b.status))}</span>`, b.due_on ? `<span class="badge" style="background:var(--surface-2)">${esc(t("到期 {d}", { d: fmtDate(b.due_on) }))}</span>` : "",
-    b.owed != null ? `<span class="badge" style="background:var(--surface-2)">${t("余额 {a}", { a: mny(b.balance || 0, c) })}</span>` : "", b.visibility === "private" ? `<span class="badge" style="background:var(--surface-2)">🔒 ${t("仅自己和家主可见")}</span>` : ""].filter(Boolean).join("");
-  const cards = MED_SECS.map((sec) => `<section class="panel prof-card" aria-labelledby="mc-${sec.id}">
+  const K = kindOf(b), base = detailHref(b.id);
+  const cards = MED_SECS.filter((sec) => !sec.only || K[sec.only]).map((sec) => `<section class="panel prof-card" aria-labelledby="mc-${sec.id}">
       <header class="prof-head"><span class="mi" aria-hidden="true">${sec.icon}</span><div class="prof-t"><h3 id="mc-${sec.id}">${t(sec.name)}</h3></div>
         <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=${sec.id}" aria-label="${esc(t("编辑 {name}", { name: t(sec.name) }))}">${t("编辑")}</a></header>${medFacts(b, sec.id)}</section>`).join("");
   return `<section class="section">
     ${crumbNav([...billScopeParts(b, "onetime"), { label: b.provider, icon: subIcon(b) }])}
-    <h2 style="margin:0 0 8px">${subIcon(b)} ${esc(b.provider)}</h2>
-    <div class="asset-badges" style="margin-bottom:12px">${badges}</div>
-    <div class="form-actions" style="margin:0 0 12px"><a class="btn btn-primary" href="#medPayments">${t("记一笔付款")}</a><span class="spacer"></span>
-      <a class="btn btn-sm btn-ghost" href="${esc(detailHref("new"))}?copy=${encodeURIComponent(b.id)}">${t("复制为新账单")}</a></div>
+    ${medHeadCard(b)}
     ${medBanner(b, state.route.q)}
     <div class="prof-grid bill-detail-grid">${cards}</div>
     <div id="medPayments" style="scroll-margin-top:80px">${paymentsHtml(b, payEdit, b.owed)}</div>
-    <div class="danger-zone"><button type="button" class="btn btn-danger-ghost" data-action="med-del" data-id="${b.id}">${t("删除这张账单")}</button><small class="muted">${t("连同这张账单的付款记录一起删除，删了找不回来。")}</small></div>
   </section>`;
 }
 /** 常用的付款方式（存中文标准词，显示时翻译；具体是哪张卡、哪个账户写在备注里）；旧记录里手填的方式保留成一个选项 */
@@ -155,14 +156,14 @@ const METHODS = ["信用卡", "借记卡", "HSA 卡", "FSA 卡", "支票", "银�
 const methodOptions = (edit) => { const cur = edit?.card_id && acctById(edit.card_id) ? edit.card_id : edit?.method || ""; return `${accountOptions(cur, { none: "（未选）", extra: METHODS.map((m) => [m, m]) })}${cur && !METHODS.includes(cur) && !acctById(cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}`; };
 function paymentsHtml(b, edit, owed) {
   const rows = b.pays.map((p) => `<li class="med-pay${edit?.id === p.id ? " is-editing" : ""}" data-swipe-del="med-pay" ${lpAttr([{ label: t("编辑"), href: `${detailHref(b.id)}?pay=${p.id}`, first: true }, { label: t("删除"), action: "med-pay-del", data: { id: p.id }, danger: true }], fmtDate(p.paid_on))}><a class="badge pay-date" style="background:var(--surface-2)" href="${detailHref(b.id)}?pay=${p.id}" title="${esc(t("点一下编辑"))}">${esc(fmtDate(p.paid_on))}</a>
-      <div class="grow"><a class="link-name name" href="${detailHref(b.id)}?pay=${p.id}" title="${esc(t("点一下编辑"))}">${mny(p.amount, p.currency || b.currency)}</a><small>${[paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
+      <div class="grow"><a class="link-name name${num(p.amount) < 0 ? " ot-neg" : ""}" href="${detailHref(b.id)}?pay=${p.id}" title="${esc(t("点一下编辑"))}">${mny(p.amount, p.currency || b.currency)}</a>${num(p.amount) < 0 ? ` <span class="ui-badge" data-tone="danger" data-size="sm">${t("退款")}</span>` : ""}<small>${[paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="med-pay-del" data-id="${p.id}">${t("删除")}</button></li>`).join("");
   const sumLine = owed == null ? t("还没填自付金额或总额，余额未知") : t("自付 {o} · 已付 {p} · 余额 {b}", { o: mny(owed, b.currency), p: mny(b.paid, b.currency), b: mny(b.balance, b.currency) });
-  return `<div class="section-head"><h2>${t("付款记录")}</h2><p>${esc(sumLine)}</p></div>
-    <details class="pay-fold" ${edit ? "open" : ""}><summary class="btn btn-primary pay-add"><span class="when-closed">${edit ? `✎ ${t("编辑这笔付款")}` : `＋ ${t("记一笔付款")}`}</span><span class="when-open">${edit ? t("编辑这笔付款") : t("收起")}</span></summary>
+  return `<div class="section-head"><h2>${t("缴费记录")}</h2><p>${esc(sumLine)}</p></div>
+    <details class="pay-fold" ${edit ? "open" : ""}><summary class="btn btn-primary pay-add"><span class="when-closed">${edit ? `✎ ${t("编辑这笔缴费")}` : `＋ ${t("记一笔缴费")}`}</span><span class="when-open">${edit ? t("编辑这笔缴费") : t("收起")}</span></summary>
     <form id="medPayForm" class="panel" novalidate data-bill="${b.id}" data-id="${d(edit?.id)}">
       <div class="form-grid">
-        <label>${t("付款日期 Payment date")}<input name="paid_on" type="date" required value="${d(edit?.paid_on || todayISO())}" max="${todayISO()}"></label>
+        <label>${t("缴费日期 Payment date")}<input name="paid_on" type="date" required value="${d(edit?.paid_on || todayISO())}" max="${todayISO()}"></label>
         <label>${t("金额（{cur}）", { cur: b.currency })}<input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required value="${edit ? Math.abs(num(edit.amount)).toFixed(2) : b.balance ? b.balance.toFixed(2) : ""}"></label>
         <label>${t("付款方式 / 账户")}<select name="method">${methodOptions(edit)}</select></label>
         <label>${t("确认号 Confirmation #")}<input name="confirmation_ref" maxlength="60" value="${d(edit?.confirmation_ref)}"></label>
@@ -170,10 +171,10 @@ function paymentsHtml(b, edit, owed) {
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(edit?.notes)}" placeholder="${t("例如：网上缴费，Chase 信用卡尾号 1234 / 支票 #1022 / HSA（Fidelity）。卡只写后四位")}"></label>
       </div>
       <p id="medPayError" class="form-error" role="alert"></p>
-      <div class="form-actions pay-actions"><button type="submit" class="btn btn-primary">${edit ? t("保存修改") : t("保存这笔付款")}</button>${edit ? `<a class="btn btn-ghost" href="${detailHref(b.id)}">${t("取消")}</a>` : ""}
+      <div class="form-actions pay-actions"><button type="submit" class="btn btn-primary">${edit ? t("保存修改") : t("保存这笔缴费")}</button>${edit ? `<a class="btn btn-ghost" href="${detailHref(b.id)}">${t("取消")}</a>` : ""}
         <small class="muted">${t(b.kind === "travel" ? "付款会自动并入 花费 的“旅行出行”分类（按小类拆：机票、住宿…）。" : "付款会自动并入 花费 的“医疗”分类。")}</small></div>
     </form></details>
-    <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有付款")}</strong></div>`}</div>`;
+    <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有缴费记录")}</strong></div>`}</div>`;
 }
 /* ───────────── 保存 / 删除 / 导出 ───────────── */
 const val = (el) => (el?.value || "").trim() || null;
@@ -203,12 +204,12 @@ export async function saveMedPayForm(f) {
     ...(acct || old?.card_id ? { card_id: acct ? acct.id : null } : {}) };
   try {
     if (f.dataset.id) await Store.updateMedicalPayment(f.dataset.id, row); else await Store.addMedicalPayment({ ...row, bill_id: b.id });
-    await reloadMedical(); toast(f.dataset.id ? t("已保存修改") : t("已记一笔付款"));
+    await reloadMedical(); toast(f.dataset.id ? t("已保存修改") : t("已记一笔缴费"));
     go(detailHref(b.id), { replace: true }); return true;
   } catch (e) { err.textContent = t("保存失败：{msg}", { msg: e.message }); return false; }
 }
 export async function deleteMedBill(id) { await Store.deleteMedicalBill(id); await reloadMedical(); toast(t("已删除这张账单")); go(allBillsHref({ type: "onetime" })); }
-export async function deleteMedPay(id) { await Store.deleteMedicalPayment(id); await reloadMedical(); toast(t("已删除这笔付款")); }
+export async function deleteMedPay(id) { await Store.deleteMedicalPayment(id); await reloadMedical(); toast(t("已删除这笔缴费")); }
 /** 新建账单时换种类：整页按新种类重画（标签、小类、保险项不同） */
 export function onKindPick(e) {
   if (e.target.name !== "kindPick") return;

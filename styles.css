@@ -4233,3 +4233,9 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .form-page .fsec-flat > fieldset { margin: 0; padding: 14px; border: 0; min-width: 0; }
 .form-page .fsec-flat > fieldset > legend.sr-only { float: none; width: 1px; }
 .form-page .fsec-flat[hidden] { display: none; }
+
+/* 一次性账单页头汇总卡下面的「应付 / 已付 / 余额」一排 + 进度条 + 算式 */
+.ot-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.ot-stats > div { min-width: 0; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface); } .ot-stats small { display: block; color: var(--muted); font-size: 12.5px; } .ot-stats b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ot-prog { max-width: none; height: 6px; margin-top: 10px; } .ot-note { display: block; margin: 8px 0 0; font-size: 12.5px; }
+.link-name.ot-neg { color: var(--out); }
