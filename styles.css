@@ -166,6 +166,7 @@ main:focus, main:focus-visible, #main:focus-visible { outline: none !important; 
 .btn-ghost { background: transparent; border-color: var(--line); }
 .btn-danger-ghost { background: transparent; color: var(--out); border-color: currentColor; }
 .btn-sm { min-height: 32px; padding: 4px 12px; font-size: 13px; font-weight: 500; }
+@media (max-width: 640px), (pointer: coarse) { .btn-sm { min-height: 44px; } }   /* 手机 / 触屏：小按钮的点按区域不小于 44px；电脑保持 32px（鼠标点得准，列表更紧凑） */
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .spacer { flex: 1; }
 
@@ -3130,13 +3131,13 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 }
 @media (max-width: 640px) {
   .shop-grid { grid-template-columns: 1fr; }
-  .shop-acts .btn { min-height: 40px; }
+  .shop-acts .btn { min-height: 44px; }
   .shops-bar > label:not(.shops-q) { flex: 1 1 auto; }
   .shops-bar select { width: 100%; }
   .shops-find-row input { width: 100%; }
   .shops-find-row label { flex: 1 1 100%; }
   .shops-find-row .btn { flex: 1 1 auto; min-height: 44px; }
-  .shop-head-acts .btn { flex: 1 1 auto; min-height: 40px; justify-content: center; }
+  .shop-head-acts .btn { flex: 1 1 auto; min-height: 44px; justify-content: center; }
   /* 特价：一条一张卡（名称一行；价格 / 单价 / 到期一行；按钮在下面） */
   .deal-th { display: none; }
   .deal-row { grid-template-columns: 1fr 1fr auto; grid-template-areas: "nm nm nm" "pr un to"; gap: 4px 10px; padding: 10px 6px; }

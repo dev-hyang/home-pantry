@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.4", title: { zh: "手机上的小按钮更好点", en: "Small buttons are easier to tap on phones" }, items: [
+    { k: "better", zh: "手机上各页面的小按钮（如商店的「更新特价」、账单的「已核对」）加高到更容易点按；电脑上保持原样", en: "Small buttons on phones (e.g. Update deals in Shops, Mark checked in Bills) are taller and easier to tap; desktop is unchanged" }
+  ] },
+
   { v: "2026-11-19.3", title: { zh: "整理：新增统一的徽标、铃铛、提示样式和控件图鉴页", en: "Housekeeping: shared badge, bell and hint styles, plus a controls gallery page" }, items: [
     { k: "better", zh: "新增一套统一的徽标、提醒铃铛（带数字 / 红点角标）和问号提示的样式，还有一个展示它们的图鉴页（styleguide.html）；现在的页面还没用上，外观不变", en: "Added shared badge, notification bell (with count / dot) and hint styles, and a gallery page (styleguide.html) that shows them; existing pages don't use them yet, so nothing looks different" }
   ] },
