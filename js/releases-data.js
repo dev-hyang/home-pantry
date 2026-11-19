@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.20", title: { zh: "只交特别摊派的缴费，不再把本期到期日往后推", en: "Payments that only cover a special assessment no longer move the due date forward" }, items: [
+    { k: "fix", zh: "记缴费时只勾了特别摊派的期、本期金额留空（或填 0）：这笔缴费不再算作交了本期，下次到期日不变，也不再把本期标成已缴", en: "When a payment only ticks special assessment installments and the period amount is empty or 0, it no longer counts as paying this period: the next due date stays and the period is not marked paid" }
+  ] },
+
   { v: "2026-11-19.19", title: { zh: "特别摊派：一次性结清、加一期分期、撤销，重新生成只换没缴的", en: "Special assessments: pay off, add an installment, undo; regenerate only replaces unpaid ones" }, items: [
     { k: "new", zh: "摊派卡片的 ⋯ 新增「一次性结清」：打开记缴费表单，已勾上这笔摊派所有没缴的期、合计就是剩余余额；提交后这些期合并成一行“一次性结清”，缴费记录里看到的是已缴的分期 + 结清", en: "New Pay off in the assessment ⋯ menu: the payment form opens with all unpaid installments ticked (the total is what is left); on submit they merge into one Payoff row" },
     { k: "new", zh: "新增「加一期分期」：打开编辑页，末尾预置一行新的分期（日期是最后一期往后一个月，金额同上一期）", en: "New Add an installment: opens the edit page with a new row at the end (a month after the last one, same amount)" },
