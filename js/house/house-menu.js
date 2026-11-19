@@ -11,11 +11,12 @@ import { canManageHome } from "../settings/members.js";
 import { activeProperties, endedProperties } from "../core/lifecycle.js";
 import { houseBar } from "./property-form.js";
 import { planEntryCards } from "./plan.js";
-import { activeVehicles, assetName, assetsDueCount, myAssets, myVehicles, pastVehicles, pastVehiclesSection, vehStatus } from "./assets.js";
+import { activeVehicles, assetName, assetsDueCount, myVehicles, pastVehicles, pastVehiclesSection } from "./assets.js";
 import { monthTasks } from "./tasks-logic.js";
 import { dealTasks, openDeal } from "./deals.js";
 import { houseTodoBoard } from "./todo-board.js";
 import { PROFILE_SECTIONS, houseDraft, sectionStatus } from "./views.js";
+import { myAssets, vehStatus } from "./asset-common.js";
 
 /** 房屋概览里的导航豆腐块：房屋资料 → 季节任务 → 账单 → 设备保养 → 交易 → 花费（本月）；每块带自己的小统计（完成度、没做 / 总数、待处理 / 总数） */
 export function houseNavTiles() {

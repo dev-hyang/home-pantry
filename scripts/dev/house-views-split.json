@@ -1,0 +1,7 @@
+{ "source": "js/house/views.js", "files": [
+  { "path": "js/house/house-fees.js", "doc": "房屋资料里的保险年保费、HOA / 物业费用（账单是唯一来源）、产权与税务的只读展示，以及它们的提醒。", "lines": [[26, 209]] },
+  { "path": "js/house/house-draft.js", "doc": "房屋资料表单的草稿：读表单、应急联系人字段。", "lines": [[210, 287]] },
+  { "path": "js/house/house-sections.js", "doc": "房屋资料的分区清单（地址、保险、HOA、应急、材料…）和每个分区的完成度、保险事实。", "lines": [[288, 424]] },
+  { "path": "js/house/house-overview.js", "doc": "房屋概览：房屋卡片、耗材提醒、设备 / 季节任务 / 交易的摘要面板。", "lines": [[425, 614]] },
+  { "path": "js/house/house-profile.js", "doc": "房屋资料：分区列表（带完成度）→ 点进去只改一块，各分区的表单字段。", "lines": [[615, 855]] }
+] }

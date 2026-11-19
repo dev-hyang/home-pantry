@@ -1,0 +1,10 @@
+{ "source": "js/house/assets.js", "files": [
+  { "path": "js/house/asset-list.js", "doc": "设备页：检查卡（看什么、正常是什么样、什么时候叫人、红线）和设备列表（搜索 + 类型 / 保养 / 保修 / 位置筛选）。", "lines": [[157, 284]] },
+  { "path": "js/house/vehicles-page.js", "doc": "车辆页：家庭的所有车（不分房产），每辆的保养到期、证照与保险。", "lines": [[285, 367]] },
+  { "path": "js/house/asset-templates.js", "doc": "按房屋资料一键生成设备。", "lines": [[368, 421]] },
+  { "path": "js/house/asset-form.js", "doc": "设备表单（整页；编辑时下方带保养记录）：类型、车辆字段、位置与数量、保养计划。", "lines": [[422, 684]] },
+  { "path": "js/house/asset-supplies.js", "doc": "设备 ↔ 耗材：这类设备用到的耗材，对应 储藏 → 库存 → 汽车房屋消耗品 里的物品。", "lines": [[685, 734]] },
+  { "path": "js/house/asset-hub.js", "doc": "设备详情的枢纽页和车辆概览：分区、统计、交易行、摘要。", "lines": [[735, 868]] },
+  { "path": "js/house/asset-maint.js", "doc": "保养记录：列表、筛选、分区，和保存一条保养记录。", "lines": [[869, 953], [1050, 1083]] },
+  { "path": "js/house/asset-save.js", "doc": "设备表单的联动（改类型）和保存设备。", "lines": [[954, 1049]] }
+] }

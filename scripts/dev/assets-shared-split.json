@@ -1,0 +1,32 @@
+{
+  "source": "js/house/assets.js",
+  "files": [
+    {
+      "path": "js/house/asset-common.js",
+      "doc": "设备各页面共用的小件：保养 / 保修状态徽章、固定装置与小家电的判断、位置数量文字、设备提醒文字、车辆状态。从 assets.js 抽出来，各页面依赖这里。",
+      "names": [
+        "alertAct",
+        "alertBadge",
+        "alertText",
+        "assetAlerts",
+        "C",
+        "distUnit",
+        "H",
+        "isFixture",
+        "isPortable",
+        "myAssets",
+        "OWNER_OPTS",
+        "retiredAssets",
+        "SERVICE_BADGE",
+        "unitsCount",
+        "unitsOf",
+        "unitsText",
+        "V",
+        "vehicleLoanNote",
+        "vehStatus",
+        "vehStatusBadge",
+        "WARRANTY_BADGE"
+      ]
+    }
+  ]
+}

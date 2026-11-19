@@ -14,7 +14,8 @@ import { ctx as askCtx } from "../core/ask.js";
 import { compressImage } from "../core/autofill.js";
 import { crumbNav } from "../core/hub.js";
 import { propertyName } from "../core/alerts.js";
-import { activeVehicles, assetName, isFixture, isVehicle, myAssets, unitsText } from "./assets.js";
+import { activeVehicles, assetName, isVehicle } from "./assets.js";
+import { isFixture, myAssets, unitsText } from "./asset-common.js";
 
 const C = () => window.CARE, H = () => window.HOUSE;
 const MAX_IMAGES = 3;

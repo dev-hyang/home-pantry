@@ -16,9 +16,9 @@ import { STAT_CATS, download, spendExportTab, statCat, toCsv, ymd } from "./view
 import { isTransfer } from "../core/taxonomy.js";
 import { Store } from "../core/store.js";
 import { splitRecord } from "../core/income-taxonomy.js";
-import { incomeExportHtml } from "../income/views.js";
 import { canSeeAll, firstIncomeYear, inc, kindLabel, kindOf, personName, skey } from "../income/logic.js";
 import { customChanged, customHtml, normRange, rangeOptionsHtml, rangeWindow } from "../core/time-range.js";
+import { incomeExportHtml } from "../income/export-ai.js";
 
 const hrefOf = (id) => `${href("bills", "statements")}${id === "import" ? "" : `?tab=${id}`}`;
 const R2 = (v) => Math.round(v * 100) / 100;

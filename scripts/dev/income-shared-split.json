@@ -1,0 +1,43 @@
+{
+  "source": "js/income/views.js",
+  "files": [
+    {
+      "path": "js/income/shared.js",
+      "doc": "收入各页签共用的小件：颜色、金额 / 比例格式、空状态、下拉选项、钻取链接、KPI 卡、图表小件。从 views.js 抽出来，各页签依赖这里而不是互相依赖。",
+      "names": [
+        "acctShow",
+        "BLUE",
+        "cur",
+        "DRILL_HINT",
+        "empty",
+        "flowCharts",
+        "fmtMoney",
+        "GREEN",
+        "GROUPED_MAX",
+        "incDrill",
+        "incomeHref",
+        "kindBadge",
+        "kindDonut",
+        "kpi",
+        "lineTable",
+        "netWorthCard",
+        "pctOf",
+        "periodWin",
+        "personOptions",
+        "R2",
+        "rate",
+        "RED",
+        "redraw",
+        "rollAsync",
+        "selOpts",
+        "SLATE",
+        "staleAll",
+        "TEAL",
+        "togglesHtml",
+        "yearsOf",
+        "monthEnd",
+        "spendDrillOf"
+      ]
+    }
+  ]
+}

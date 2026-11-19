@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.42", title: { zh: "内部整理：收入、设备、房屋资料、商店几个大程序文件拆小", en: "Under the hood: large Income, Assets, House profile and Stores files split into smaller ones" }, items: [
+    { k: "better", zh: "把收入页、设备页、房屋资料页、常去的商店页这几个一千行上下的程序文件，按功能（总览、明细、表单、导出、保存…）拆成一两百行的小文件，以后改动更不容易出错；页面和操作和以前一样", en: "The Income, Assets, House profile and Favorite stores programs, each around a thousand lines, are now split by function (overview, records, forms, export, saving…) into files of one to two hundred lines; pages and actions work as before" }
+  ] },
+
   { v: "2026-11-18.41", title: { zh: "打开更快：财务的账单概览页点进去才下载", en: "Faster to open: the Finance bills overview downloads only when you open it" }, items: [
     { k: "better", zh: "财务里的账单概览页，以及它带进来的账单表单、向导等程序，第一次点进去才下载，打开应用和看今日页、储藏时不再带上；页面和操作和以前一样", en: "The Finance bills overview, along with the bill forms and wizards it pulls in, now downloads the first time you open it, not at launch; pages and actions work as before" }
   ] },

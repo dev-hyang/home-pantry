@@ -1,0 +1,18 @@
+{
+  "source": "js/shops/views.js",
+  "files": [
+    {
+      "path": "js/shops/shops-common.js",
+      "doc": "常去的商店各页面共用的小件：页面状态（ui / dealUi）、星期、距离、商店链接、「迁移没执行」提示。从 views.js 抽出来，各页面依赖这里。",
+      "names": [
+        "dealUi",
+        "distOf",
+        "DOW",
+        "home",
+        "missingPanel",
+        "shopHref",
+        "ui"
+      ]
+    }
+  ]
+}

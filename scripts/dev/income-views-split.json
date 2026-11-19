@@ -1,0 +1,10 @@
+{ "source": "js/income/views.js", "files": [
+  { "path": "js/income/overview-tab.js", "doc": "收入 → 收支总览：时间条、五个指标、现金流瀑布、12 个月走势、收入按一级、付款方 / 成员 / 最近到账。", "lines": [[186, 278]] },
+  { "path": "js/income/types-tab.js", "doc": "收入 → 类型：一级到叶子逐层点进去，子类排行和选中节点的月度柱状图。", "lines": [[279, 337]] },
+  { "path": "js/income/records-tab.js", "doc": "收入 → 明细（带银行导入入口）：筛选条、分页列表、合计。", "lines": [[338, 463]] },
+  { "path": "js/income/record-form.js", "doc": "记一笔收入的表单：入账账户、其他默认值（付款方 / 类型 / 收款方式）、表单本体。", "lines": [[464, 574]] },
+  { "path": "js/income/senders-tab.js", "doc": "收入 → 付款方：搜索、类型筛选、点表头排序、加载更多。", "lines": [[575, 696]] },
+  { "path": "js/income/compare-tab.js", "doc": "收入 → 收支对比：收入 vs 消费 vs 净现金流 / 储蓄率的组合图（双周 / 月 / 季 / 年）和它用的现金流数据。", "lines": [[54, 90], [697, 705]] },
+  { "path": "js/income/export-ai.js", "doc": "收入的导出（CSV：收入 / 花费 / 合并）、打印，和 AI 分析（只发汇总，付款方 / 成员默认打码）。", "lines": [[706, 836]] },
+  { "path": "js/income/events.js", "doc": "收入页的事件：initIncome 在页面加载后注册点击、清除筛选、hashchange 等处理。", "lines": [[837, 991]] }
+] }

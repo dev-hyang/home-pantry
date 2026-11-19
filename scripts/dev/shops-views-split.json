@@ -1,0 +1,8 @@
+{ "source": "js/shops/views.js", "files": [
+  { "path": "js/shops/shops-list.js", "doc": "常去的商店：列表页（商店卡片、起步清单、新建 / 编辑表单）。", "lines": [[29, 112]] },
+  { "path": "js/shops/shops-find.js", "doc": "常去的商店：找附近的商店、用 Claude 整理（复制指令 → 贴回 JSON → 按商店导入）。", "lines": [[113, 167]] },
+  { "path": "js/shops/shop-detail.js", "doc": "单个商店：详情页、更新 / 核对区、这家的特价列表。", "lines": [[168, 313]] },
+  { "path": "js/shops/shops-deals.js", "doc": "特价一览：以商品为主（各家的特价放在一起比），列表 / 卡片两种看法。", "lines": [[314, 417]] },
+  { "path": "js/shops/shops-runs.js", "doc": "更新记录（什么时候、怎么录的、哪几家、加了几条、失败原因）和给每周定时任务用的入口。", "lines": [[418, 488]] },
+  { "path": "js/shops/shops-actions.js", "doc": "常去的商店的操作：点击动作、导入特价、核对保存，以及页面加载后绑定表单提交 / 搜索 / 筛选。", "lines": [[489, 707]] }
+] }
