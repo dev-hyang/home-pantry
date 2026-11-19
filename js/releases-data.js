@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.36", title: { zh: "内部整理：主程序拆成更小的文件，用法不变", en: "Under the hood: main program split into smaller files, nothing changes for you" }, items: [
+    { k: "better", zh: "把最大的一个程序文件拆成按职责分开的小文件（读数据、渲染、路由、登录、购物车操作等），以后改东西更不容易出错；页面和操作和以前一样", en: "The largest program file is now split into small files by job (data loading, rendering, routing, sign-in, cart actions…) so future changes are safer; pages and actions work as before" }
+  ] },
+
   { v: "2026-11-18.35", title: { zh: "房屋相关页面点进去才下载，打开应用更快", en: "House pages now download only when you open them" }, items: [
     { k: "better", zh: "设备、保养记录、季节任务、交易、买卖计划、房屋资料这些房屋页面，第一次点进房屋页签才下载，打开应用和看今日页、储藏、账单时不再带上", en: "House pages (assets, maintenance, seasonal tasks, deals, buy/sell plans, house profile) now download the first time you open the House tab, not when the app starts" },
     { k: "better", zh: "标签页标题和浏览器通知里的提醒数，现在只统计储藏补货和周期账单；设备、季节任务、交易的提醒在「全部待办和提醒」里看", en: "The tab-title and notification count now covers pantry restocks and recurring bills only; maintenance, seasonal and deal alerts are under All to-dos and alerts" }

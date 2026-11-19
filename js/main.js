@@ -1,767 +1,109 @@
-import "./core/autosize.js";   // AI 输入框会自己长高（姊妹应用同一套）
-import { checkConfig } from "./core/config-check.js";
-import { decoratePrivacy, initPrivacy, setMoneyHidden, setPrivacyRoute } from "./core/privacy.js";
-import { restoreCarousels } from "./core/carousel.js";
+import "./core/autosize.js";
+import { initPrivacy, setMoneyHidden, setPrivacyRoute } from "./core/privacy.js";
 import { findItem, normName } from "./core/item-match.js";
 import { saveShopScan, shopScanAction } from "./pantry/shop-scan.js";
-import { alertsOf, enrich, nameHas, openShopFor } from "./core/logic.js";
+import { alertsOf, enrich, openShopFor } from "./core/logic.js";
 import { state } from "./core/state.js";
-import { CloudStore, DemoStore, Store, setStore } from "./core/store.js";
-import { $, MUTE_FOREVER, applyDraft, armed, catOf, du, esc, fillUnitList, fmt, fmtDate, fmtDay, formDraft, setDateFormat, inSpace, isGear, listRoute, money, num, setSync, syncState, showQty, toDisp, spaceOf, storedStep, toast, confirmDelete } from "./core/util.js";
-import { propertyActive } from "./core/lifecycle.js";
-import { SECTIONS, go, goBack, href, isFormSection, parseRoute, routeKey } from "./core/router.js";
-import { financeFallback, financeOk, routeBlocked } from "./core/finance-access.js";
-import { resilientFetch } from "./core/net.js";
-import { debounce, pageMore, pageSize, resetPages, setPageSize } from "./core/pager.js";
-import { FD, changed, clearUrlParams, onClearFilters } from "./core/clear-filters.js";
-import { enhanceSelects } from "./core/search-select.js";
-if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});   // 脚本 / 样式每次核对新版本（见 sw.js）
-import { normalizeFormActions } from "./core/form-actions.js";
+import { CloudStore, DemoStore, Store } from "./core/store.js";
+import { $, MUTE_FOREVER, applyDraft, armed, catOf, fillUnitList, fmtDate, fmtDay, formDraft, setDateFormat, inSpace, isGear, money, num, spaceOf, storedStep, toast, confirmDelete } from "./core/util.js";
+import { go, goBack, href } from "./core/router.js";
+import { debounce, pageMore, pageSize, setPageSize } from "./core/pager.js";
 import { overviewHref } from "./bills/trail.js";
-import { applyOverviewQuery, applyOverviewRoute, loadOverviewRange, setOverviewRange, viewBillsHome } from "./bills/overview-views.js";
-import { applyAllQuery, applyAllRoute, defaultAllEntry, exportAllCsv, renderAllList, verifyBillIds, viewAllBills } from "./bills/all-views.js";
+import { setOverviewRange } from "./bills/overview-views.js";
+import { exportAllCsv, renderAllList, verifyBillIds } from "./bills/all-views.js";
 import { ignoreSuggestion, linkBillAsset } from "./bills/asset-ui.js";
-import { viewOtBill, applyMedical, reloadMedical, deleteMedBill, personAddCancel, personAddDo, personMerge, personMergeCancel, personMergeOpen, personUse, onPersonPick, deleteMedPay, onKindPick, saveMedBillForm, saveMedPayForm } from "./bills/medical-views.js";
-import { myName, myPersonOf, personNameOf, deviceLinkDo, deviceLinkNew, removePerson, resetFamilyUi, savePersonForm, setDevicePerson } from "./settings/family-people.js";
-import { ackLoginDo, loadLoginAlerts, loginAlertItems, loginsMore, recordLoginOnce } from "./settings/logins.js";
-import { spendChanged } from "./core/spend-data.js";
-import { promptDuplicateName, sameNameMember, suggestNames } from "./core/name-check.js";
-import { mountAppSwitcher } from "../shared/app-switcher.js";
-import { mountLangSwitcher } from "../shared/lang-switcher.js";
+import { deleteMedBill, personAddCancel, personAddDo, personMerge, personMergeCancel, personMergeOpen, personUse, onPersonPick, deleteMedPay, onKindPick, saveMedBillForm, saveMedPayForm } from "./bills/medical-views.js";
+import { myName, deviceLinkDo, deviceLinkNew, removePerson, savePersonForm, setDevicePerson } from "./settings/family-people.js";
+import { ackLoginDo, loginsMore } from "./settings/logins.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
-import { miniBarEl, updateMiniBar } from "./minibar.js";
+import { miniBarEl } from "./minibar.js";
 import { initSwipeRows } from "./swipe-rows.js";
-
 import { ownerMatch } from "./pantry/owner.js";
-
-
-import { incList, initIncome, viewIncome } from "./income/views.js";
-
-import { inc, loadIncome } from "./income/logic.js";
+import { initIncome } from "./income/views.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
 import { aiDraftCard, applyCatalogPick, cardHintHtml, deleteCard, payAcctValue, pickResultHtml, purchasePayFields, rememberCard, resolvePayAccount, runCleanup, saveCardForm, setCardActive, viewCards } from "./bills/cards-views.js";
-import "./bills/cards.js";   // 注册信用卡提醒
-import { LANGS, glossaryOf, joinList, lang, loadEN, loadOpenCC, locale, setGlossary, setLang, t } from "./core/i18n.js";
-import { APP_VERSION } from "./core/version.js";
-import { DEFAULT_QUICK, initTodayRender, quickList, saveQuick, setTodayPref, viewQuick, viewToday } from "./today.js";
+import "./bills/cards.js";
+import { glossaryOf, t } from "./core/i18n.js";
+import { DEFAULT_QUICK, initTodayRender, quickList, saveQuick, setTodayPref } from "./today.js";
 import { enableWeather, setTempUnit } from "./core/weather.js";
-
-import { alertCounts, collectAlerts, registerAlerts, withProperty } from "./core/alerts.js";
+import { registerAlerts } from "./core/alerts.js";
 import { pantryAlertItems } from "./core/logic.js";
 import { billAlertItems } from "./bills/logic.js";
-// 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
-[pantryAlertItems, billAlertItems, budgetAlertItems, escrowAlertItems].forEach(registerAlerts);
 import { printSheet } from "./settings/print.js";
-
-import { bindShops, loadShops, shopsAction, viewShops } from "./shops/views.js";
-import { bigThreshold, budgetAction, budgetAlertItems, groupForCategory, maybeAutoGenerate, viewBudget } from "./bills/budget.js";
+import { bindShops, shopsAction } from "./shops/views.js";
+import { bigThreshold, budgetAction, budgetAlertItems, groupForCategory } from "./bills/budget.js";
 import { effNature, l1IdOf, l2IdOf, natureOptions } from "./core/taxonomy.js";
 import "./settings/income.js";
 import { escrowAlertItems } from "./bills/escrow.js";
 import "./bills/finance.js";
-   // 财务 → 资产
-import { loadDebts } from "./bills/debt-logic.js";
-import { loadNetWorth, maybeAutoSnapshot } from "./bills/nw-logic.js";   // 净资产（迁移 059）：余额 / 估值 / 快照，打开财务时自动存本月快照
-
-import "./bills/finance-alerts.js";   // 财务层面的提醒（余额太久没更新、快照没存上、借贷流水没关联）
-import { initNetWorth, viewNetWorth } from "./bills/net-worth.js";   // 财务 → 分析 → 净资产（迁移 059）   // 财务 → 借贷   // 借贷（迁移 058）：启动时读进内存，也注册借贷提醒
-
-import { enrichBills } from "./bills/logic.js";
-
-
-
+import "./bills/finance-alerts.js";
+import { initNetWorth } from "./bills/net-worth.js";
 import { shopSelText, shopVisibleIds } from "./pantry/views.js";
-import { catNeed, moveCat, pantryNav, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList, scoreRecipes, shopUnit, viewDashboard, viewInventory, viewMeals, viewShopping } from "./pantry/views.js";
-import { viewSettings } from "./settings/views.js";
+import { catNeed, moveCat, renderInvList, secNeed, selBarText, setFold, setInvView, visibleItemIds, renderShopList } from "./pantry/views.js";
 import { canManageHome, famMembers, familyHref, meId, profileErr, readMemberForm, reloadMembers } from "./settings/members.js";
-import { ensureBackupUi, refreshBackupUi } from "./settings/backup-views.js";
+import { refreshBackupUi } from "./settings/backup-views.js";
 import * as Backup from "./core/backup.js";
 import * as Ask from "./core/ask.js";
-
-import { initReleases, releasePageHTML } from "./core/releases-ui.js";
-import { crumb, viewMenu } from "./menu.js";
-import { enrichAssets, isRetired, maintFilter } from "./house/assets-logic.js";   // 设备的纯逻辑（启动读数据要用）
-import { seasonalSince } from "./house/tasks-logic.js";
+import { isRetired, maintFilter } from "./house/assets-logic.js";
 import { addAiMissing, copyPrompt, runAi } from "./pantry/ai.js";
-import { applyCustomCategories, canonName, canonSubs, catFormOf, isCustomCat, newCatKey } from "./core/categories.js";
-import { applyCustomLocations, customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
+import { canonName, canonSubs, catFormOf, newCatKey } from "./core/categories.js";
+import { customLocations, deleteLocation, groupOf, saveLocationForm } from "./core/locations.js";
 import { aiReady, aiSettings, clearModelMarks, dismissAiChanges, resetUsage, testModel } from "./core/ai.js";
 import { hydrateModelSelect, onModelPick, saveAiForm } from "./settings/views.js";
-import { applySpendDrill, cleanStore, clearSpendFilter, download, ensureFirstYear, exportAnnual, exportSpendList, patchSpendRow, rememberStore, renderSpendList, renderSpendRecords, spendList, spendRowsLoaded, viewSpend, viewStats } from "./stats/views.js";
-import { customChanged, normRange, setFinRange, setFinUnit } from "./core/time-range.js";
+import { applySpendDrill, cleanStore, clearSpendFilter, exportAnnual, exportSpendList, patchSpendRow, rememberStore, renderSpendList, renderSpendRecords, spendList, spendRowsLoaded } from "./stats/views.js";
+import { customChanged, setFinUnit } from "./core/time-range.js";
 import { payeeAction, payeeChange, payeeInput } from "./stats/payees.js";
 import { matchOpenShopping, showPurchaseDup } from "./stats/dup-check.js";
 import { initHomeStats } from "./stats/home-stats.js";
-import { lazyFn, lazyModule } from "./core/lazy.js";
-/* ── 按需加载的页面模块（js/core/lazy.js）：第一次访问那个页面才下载；2a 先挑不被首页依赖的几组 ── */
-const LZ = {};
-LZ.bankImport = lazyModule(() => import("./stats/bank-import.js"));
-LZ.bankImport.onLoad((m) => m.initBankImport({ refresh }));
-LZ.statements = lazyModule(() => Promise.all([LZ.bankImport.load()]).then(() => import("./stats/statements.js")));
-LZ.statements.onLoad((m) => m.initStatements({ render }));
-LZ.debts = lazyModule(() => import("./bills/debts.js"));
-LZ.debts.onLoad((m) => m.initDebts({ render, refresh }));
-LZ.finAssets = lazyModule(() => Promise.all([LZ.debts.load()]).then(() => import("./bills/fin-assets.js")));
-LZ.fix = lazyModule(() => import("./house/fix.js"));
-LZ.scan = lazyModule(() => import("./pantry/scan.js"));
-LZ.itemForm = lazyModule(() => import("./pantry/item-form.js"));
-LZ.spacePick = lazyModule(() => Promise.all([LZ.itemForm.load()]).then(() => import("./pantry/space-pick.js")));
-LZ.shopAsk = lazyModule(() => import("./pantry/shop-ask.js"));
-LZ.assessViews = lazyModule(() => import("./bills/assessments-views.js"));
-LZ.billViews = lazyModule(() => Promise.all([LZ.assessViews.load()]).then(() => import("./bills/views.js")));
-LZ.about = lazyModule(() => import("./settings/about.js"));
-LZ.aiPage = lazyModule(() => import("./ai-page.js"));
-LZ.alertsPage = lazyModule(() => import("./alerts-page.js"));   // 全部待办和提醒（#/alerts）：首页不再读提醒总线，这页点开才下载
-const viewAlerts = lazyFn(LZ.alertsPage, "viewAlerts");
-const shiftAlertSource = lazyFn(LZ.alertsPage, "shiftAlertSource");
-LZ.houseMenu = lazyModule(() => import("./house/house-menu.js"));   // 房屋页签的目录页（房产列表 / 车辆 / 买卖计划）
-const viewPropertyList = lazyFn(LZ.houseMenu, "viewPropertyList");
-LZ.houseAssets = lazyModule(() => import("./house/assets.js"));
-LZ.recall = lazyModule(() => import("./house/recall.js"));
-LZ.tasks = lazyModule(() => import("./house/tasks.js"));
-LZ.deals = lazyModule(() => import("./house/deals.js"));
-LZ.houseViews = lazyModule(() => import("./house/views.js"));
-LZ.plan = lazyModule(() => import("./house/plan.js"));
-LZ.planBoard = lazyModule(() => import("./house/plan-board.js"));
-LZ.dealProgress = lazyModule(() => import("./house/deal-progress.js"));
-const assetTemplateItems = lazyFn(LZ.houseAssets, "assetTemplateItems");
-const leaveAsset = lazyFn(LZ.houseAssets, "leaveAsset");
-const renderAssetList = lazyFn(LZ.houseAssets, "renderAssetList");
-const renderMaintLogs = lazyFn(LZ.houseAssets, "renderMaintLogs");
-const supplyItem = lazyFn(LZ.houseAssets, "supplyItem");
-const onAssetFormChange = lazyFn(LZ.houseAssets, "onAssetFormChange");
-const onMaintFormChange = lazyFn(LZ.houseAssets, "onMaintFormChange");
-const saveAssetForm = lazyFn(LZ.houseAssets, "saveAssetForm");
-const saveMaintForm = lazyFn(LZ.houseAssets, "saveMaintForm");
-const unitRow = lazyFn(LZ.houseAssets, "unitRow");
-const viewAssetForm = lazyFn(LZ.houseAssets, "viewAssetForm");
-const viewAssetTemplate = lazyFn(LZ.houseAssets, "viewAssetTemplate");
-const viewAssets = lazyFn(LZ.houseAssets, "viewAssets");
-const recallAction = lazyFn(LZ.recall, "recallAction");
-const saveRecallForm = lazyFn(LZ.recall, "saveRecallForm");
-const deleteSeasonTask = lazyFn(LZ.tasks, "deleteSeasonTask");
-const saveSeasonForm = lazyFn(LZ.tasks, "saveSeasonForm");
-const shiftTasksMonth = lazyFn(LZ.tasks, "shiftTasksMonth");
-const toggleTask = lazyFn(LZ.tasks, "toggleTask");
-const viewTasks = lazyFn(LZ.tasks, "viewTasks");
-const completeVehicleDeal = lazyFn(LZ.deals, "completeVehicleDeal");
-const applyCloseout = lazyFn(LZ.deals, "applyCloseout");
-const cancelDeal = lazyFn(LZ.deals, "cancelDeal");
-const completeBuy = lazyFn(LZ.deals, "completeBuy");
-const dealTasks = lazyFn(LZ.deals, "dealTasks");
-const deleteCustomTask = lazyFn(LZ.deals, "deleteCustomTask");
-const openDeal = lazyFn(LZ.deals, "openDeal");
-const saveDealForm = lazyFn(LZ.deals, "saveDealForm");
-const saveDealTaskForm = lazyFn(LZ.deals, "saveDealTaskForm");
-const startDeal = lazyFn(LZ.deals, "startDeal");
-const toggleDealSkip = lazyFn(LZ.deals, "toggleDealSkip");
-const toggleDealTask = lazyFn(LZ.deals, "toggleDealTask");
-const viewDeal = lazyFn(LZ.deals, "viewDeal");
-const applyTypeDefaults = lazyFn(LZ.houseViews, "applyTypeDefaults");
-const readHouseForm = lazyFn(LZ.houseViews, "readHouseForm");
-const templateItems = lazyFn(LZ.houseViews, "templateItems");
-const updateHoaTotal = lazyFn(LZ.houseViews, "updateHoaTotal");
-const viewHouse = lazyFn(LZ.houseViews, "viewHouse");
-const viewHouseProfile = lazyFn(LZ.houseViews, "viewHouseProfile");
-const viewHouseSupplies = lazyFn(LZ.houseViews, "viewHouseSupplies");
-const viewHouseTemplate = lazyFn(LZ.houseViews, "viewHouseTemplate");
-const togglePlanCheck = lazyFn(LZ.plan, "togglePlanCheck");
-const viewPlan = lazyFn(LZ.plan, "viewPlan");
-const planAction = lazyFn(LZ.planBoard, "planAction");
-const saveCandForm = lazyFn(LZ.planBoard, "saveCandForm");
-const saveOfferForm = lazyFn(LZ.planBoard, "saveOfferForm");
-const savePlanForm = lazyFn(LZ.planBoard, "savePlanForm");
-const analyze = lazyFn(LZ.dealProgress, "analyze");
-const deleteDealEvent = lazyFn(LZ.dealProgress, "deleteDealEvent");
-const runDealAi = lazyFn(LZ.dealProgress, "runDealAi");
-const saveDealEventForm = lazyFn(LZ.dealProgress, "saveDealEventForm");
-const setDealAiConsent = lazyFn(LZ.dealProgress, "setDealAiConsent");
-const viewStatements = lazyFn(LZ.statements, "viewStatements");
-const viewDebts = lazyFn(LZ.debts, "viewDebts");
-const viewFinAssets = lazyFn(LZ.finAssets, "viewFinAssets");
-const fixAction = lazyFn(LZ.fix, "fixAction");
-const runFix = lazyFn(LZ.fix, "runFix");
-const viewFix = lazyFn(LZ.fix, "viewFix");
-const resetScan = lazyFn(LZ.scan, "resetScan");
-const scanAction = lazyFn(LZ.scan, "scanAction");
-const viewScan = lazyFn(LZ.scan, "viewScan");
-const leaveItem = lazyFn(LZ.itemForm, "leaveItem");
-const openItem = lazyFn(LZ.itemForm, "openItem");
-const saveItemForm = lazyFn(LZ.itemForm, "saveItemForm");
-const subOptions = lazyFn(LZ.itemForm, "subOptions");
-const viewItemForm = lazyFn(LZ.itemForm, "viewItemForm");
-const pickSpace = lazyFn(LZ.spacePick, "pickSpace");
-const pickSupplyAdd = lazyFn(LZ.spacePick, "pickSupplyAdd");
-const askConfirm = lazyFn(LZ.shopAsk, "askConfirm");
-const askRemind = lazyFn(LZ.shopAsk, "askRemind");
-const askShopItems = lazyFn(LZ.shopAsk, "askShopItems");
-const saveAssessForm = lazyFn(LZ.assessViews, "saveAssessForm");
-const recalcPayTotal = lazyFn(LZ.billViews, "recalcPayTotal");
-const deleteBillPay = lazyFn(LZ.billViews, "deleteBillPay");
-const billTemplateItems = lazyFn(LZ.billViews, "billTemplateItems");
-const leaveBill = lazyFn(LZ.billViews, "leaveBill");
-const backfillPayments = lazyFn(LZ.billViews, "backfillPayments");
-const payExpNote = lazyFn(LZ.billViews, "payExpNote");
-const quickVerify = lazyFn(LZ.billViews, "quickVerify");
-const saveBillForm = lazyFn(LZ.billViews, "saveBillForm");
-const saveBillPayForm = lazyFn(LZ.billViews, "saveBillPayForm");
-const viewBillForm = lazyFn(LZ.billViews, "viewBillForm");
-const viewBillTemplate = lazyFn(LZ.billViews, "viewBillTemplate");
-const viewAbout = lazyFn(LZ.about, "viewAbout");
-const copyAnswer = lazyFn(LZ.aiPage, "copyAnswer");
-const copyGeneralPrompt = lazyFn(LZ.aiPage, "copyGeneralPrompt");
-const pickTopic = lazyFn(LZ.aiPage, "pickTopic");
-const runAiPage = lazyFn(LZ.aiPage, "runAiPage");
-const viewAi = lazyFn(LZ.aiPage, "viewAi");
+import { PAGE_RENDER, refresh, resetListPages } from "./app/data.js";
+import { addAlertsToShopping, addRecipeMissing, markBought, removeFromShopping, setItemQty, setItemUnit, setShopQty, setShopUnit, stepShopQty } from "./app/actions/shopping.js";
+import { afterLogin, doCreateHousehold, doJoinHousehold, dupNameCheck, waitTimer } from "./app/auth/household.js";
+import { analyze, applyCloseout, applyTypeDefaults, askConfirm, askRemind, assetTemplateItems, backfillPayments, billTemplateItems, cancelDeal, completeBuy, completeVehicleDeal, copyAnswer, copyGeneralPrompt, dealTasks, deleteBillPay, deleteCustomTask, deleteDealEvent, deleteSeasonTask, fixAction, leaveAsset, leaveBill, leaveItem, onAssetFormChange, onMaintFormChange, openDeal, openItem, payExpNote, pickSpace, pickSupplyAdd, pickTopic, planAction, quickVerify, readHouseForm, recallAction, renderAssetList, renderMaintLogs, runAiPage, runDealAi, runFix, saveAssessForm, saveAssetForm, saveBillForm, saveBillPayForm, saveCandForm, saveDealEventForm, saveDealForm, saveDealTaskForm, saveItemForm, saveMaintForm, saveOfferForm, savePlanForm, saveRecallForm, saveSeasonForm, scanAction, setDealAiConsent, shiftAlertSource, shiftTasksMonth, startDeal, subOptions, supplyItem, templateItems, toggleDealSkip, toggleDealTask, togglePlanCheck, toggleTask, unitRow, updateHoaTotal } from "./app/lazy-modules.js";
+import { boot } from "./app/boot.js";
+import { changeLang, toList } from "./app/page-events.js";
+import { doBackup, doRestore } from "./app/actions/backup.js";
+import { doLogin, doPhoneLogin, doQuickJoin, doVerifyOtp, renderLogin } from "./app/auth/login.js";
+import { exportJson } from "./app/actions/export-notify.js";
+import { freeDefault } from "./app/route.js";
+import { friendlyErr } from "./app/errors.js";
+import { markDirty } from "./app/unsaved.js";
+import { render } from "./app/render.js";
+import { saveHouseForm } from "./app/actions/house-form.js";
+import { saveStatToggles, setSharedRange } from "./app/actions/stats-prefs.js";
+import { uiKind } from "./app/chrome.js";
+import "./app/lazy-modules.js";
+import "./app/lazy-init.js";
+import "./app/page-table.js";
+import "./app/route.js";
+import "./app/page-events.js";
+import "./app/auth/login.js";
+import "./app/auth/household.js";
 
-
-const APP_NAME = "爱家小助手";
-
-/* ───────────── 刷新与渲染 ───────────── */
-/** 次要的表（保养记录、季节任务、缴费记录、库存流水）读得慢时，不让整个页面一起空白：超过 SOFT_MS 就先用旧数据 / 空数据画出来，
- * 读完后在后台补上并重画。这期间由它们推出来的提醒（设备保养、季节任务）先不显示，免得“记录还没到”被当成“从没保养过”而误报。 */
-const SOFT_MS = 3000, SOFT = Symbol("soft");
-const pendingAny = () => Object.values(state.pending).some(Boolean);
-function soft(key, p, fallback, apply) {
-  return Promise.race([p, new Promise((r) => setTimeout(() => r(SOFT), SOFT_MS))]).then((v) => {
-    if (v !== SOFT) return v;
-    state.pending[key] = true; setSync(t("部分数据还在加载…"), false);
-    p.then((r) => { apply(r); state.pending[key] = false; if (!pendingAny()) { setSync(t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, true); notifyIfNeeded(); } render(false); })
-      .catch((e) => { state.pending[key] = false; console.warn("[late]", key, e.message); });
-    return fallback;
-  });
-}
-export let refreshing = null;
-export async function refresh() {
-  if (refreshing) return refreshing;
-  refreshing = (async () => {
-    try {
-      // 所有表一次并行读完（云端一轮往返），再在内存里定当前房产；采购花费只有统计和导出用，不挡首屏，渲染后后台再读
-      const members = state.membersReady; state.membersReady = null;   // 登录后与这一轮并行去读家庭成员
-      Store.listItemAliases().then((r) => { state.itemAliases = r || []; }).catch(() => { state.itemAliases = state.itemAliases || []; });   // 物品别名（迁移 066）：不挡首屏
-      const [properties, items, logs, shopping, profiles, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, customCats, customLocs, dealExtras, customSeasonal, terms, budget, incomes, people, medBills, medPays, , cards, planData, assessData] = await Promise.all([
-        Store.listProperties(), Store.listItems(),
-        soft("logs", Store.listLogs(), state.logs || [], (r) => { state.logs = r; state.enriched = enrich(state.items, r); }),
-        Store.listShopping(), Store.listHouseProfiles(),
-        Store.listAssets(),
-        soft("maint", Store.listMaintLogs(), state.maintLogs || [], (r) => { state.maintLogs = r; state.assetsEnriched = enrichAssets(state.assets, r); }),
-        soft("seasonal", Store.listSeasonal(seasonalSince()), state.seasonalDone || [], (r) => { state.seasonalDone = r; }),
-        Store.listBills(),
-        soft("payments", Store.listBillPayments(), state.billPayments || [], (r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); }),
-        Store.listDeals(), Store.listDealDone(), Store.listCategories(), Store.listLocations(), Store.listDealExtras(),
-        Store.listCustomSeasonal().catch((e) => { console.warn("[custom seasonal]", e.message); return []; }),   // 迁移还没执行时读不到：不影响其他功能
-        Store.listTerms().catch((e) => { console.warn("[terms]", e.message); return null; }),
-        Store.getBudget().catch(() => null),
-        Store.listIncomes().catch((e) => { console.warn("[incomes]", e.message); return []; }),
-        Store.listPeople().catch(() => []),   // 家庭成员名册（迁移 029）；没建表时是空的
-        Store.listMedicalBills().catch((e) => { console.warn("[medical]", e.message); return []; }),   // 还没执行迁移 027 时读不到：不影响其他功能
-        Store.listMedicalPayments().catch(() => []),
-        members,
-        Store.listCards().catch((e) => { console.warn("[cards]", e.message); return []; }),
-        Store.listPlans().catch((e) => { console.warn("[plans]", e.message); return { plans: [], cands: [], offers: [] }; }),
-        Store.listAssess().catch(() => ({ as: [], items: [] }))]);   // 迁移 078 没执行时读不到：计划页显示空   // 迁移 032 没执行时读不到：不影响其他功能
-      state.budget = budget; state.incomes = incomes;
-      state.plans = planData.plans; state.planCands = planData.cands; state.planOffers = planData.offers;
-      state.assess = assessData.as; state.assessItems = assessData.items;
-      state.customSeasonal = customSeasonal;
-      if (terms) setGlossary(terms);   // 自定义名称的翻译
-      state.properties = properties;
-      const live = properties.filter((p) => !p.archived), inUse = properties.filter(propertyActive);
-      let saved = null; try { saved = localStorage.getItem("hmh-property"); } catch { /* 忽略 */ }
-      // 正在看的房产（含已卖出的历史房产）保留；否则优先选在用的：上次选的 → 默认 → 第一套
-      if (!live.some((p) => p.id === state.propertyId)) state.propertyId = (inUse.find((p) => p.id === saved) || inUse.find((p) => p.is_default) || inUse[0] || live.find((p) => p.id === saved) || live[0] || properties[0])?.id || null;
-      const pid = state.propertyId;
-      applyCustomCategories(customCats);   // 自定义分类并入全局分类表，后面的 enrich / 视图都能用
-      applyCustomLocations(customLocs);    // 自定义 / 重命名的存放位置并入分组列表
-      const houseProfiles = Object.fromEntries(profiles.map((p) => [p.property_id, p]));
-      Object.assign(state, { items, logs, shopping, houseProfiles, houseProfile: pid ? houseProfiles[pid] || null : null, assets, maintLogs, seasonalDone, bills, billPayments, deals, dealDone, dealOverrides: dealExtras.overrides, dealCustom: dealExtras.custom, dealEvents: dealExtras.events || [] });
-      state.enriched = enrich(items, logs);
-      state.assetsEnriched = enrichAssets(assets, maintLogs);
-      state.billsEnriched = enrichBills(bills, billPayments);
-      state.people = people; applyMedical(medBills, medPays);
-      loadIncome().then(() => { if (state.route?.section === "bills" && ["income", "statements"].includes(state.route?.sub)) render(false); });   // 收入（迁移 042）单独读：行级安全只给家主 / 已允许的人全家的；读不到不影响别的功能
-      state.cards = cards || [];
-      // 借贷（迁移 058）、净资产（迁移 059）：只有财务权限读得到；表不存在时借贷页 / 净资产页给提示。两样都读完再画（净资产要用贷款余额）
-      Promise.all([loadDebts(), loadNetWorth()]).then(() => { if (state.route?.section === "bills" || state.route?.section === "today") render(false); });
-      loadPending();
-      recordLoginOnce().then(loadLoginAlerts).then(() => render(false)).catch(() => {});   // 登录记录（迁移 086）：记这台设备，再读待确认的可疑登录
-      loadShops().then(() => { if (["shops", "shopping", "pantry"].includes(state.route?.section)) render(false); });   // 常去的商店与特价（迁移 067）：不挡首屏
-      ensureFirstYear().then((fresh) => { if (fresh && state.route?.section === "bills") render(false); });   // 「全部历史」的起始年：数据读好了再查（刷新页面时路由先到，那时查不到）
-      setSync(Store.mode === "demo" ? t("本地演示数据") : t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, Store.mode !== "demo");
-      if (!pendingAny()) notifyIfNeeded();
-      render(false);
-      spendChanged();   // 花费不再整表读进来（迁移 057）：统计聚合、明细、联想、卡的用量等标过期，画到的时候按需重读
-      maybeAutoGenerate();   // 家主有收入但还没预算：自动生成第一版
-      if (financeOk()) Backup.runScheduled().then((r) => { if (!r) return; if (r.ok.length) toast(t("已自动备份（{to}）", { to: r.ok.map(backupTargetName).join("、") })); if (r.needGesture) toast(t("定时备份要写进文件夹，去 设置 → 备份与恢复 点一下「继续备份」")); refreshBackupUi(); if (state.route?.section === "me") render(false); });   // 定时备份到期了就在后台做一次
-    } catch (e) {
-      setSync(t("同步失败，点设置页重试"), true);
-      toast(t("读取数据失败：{msg}", { msg: e.message }));
-    } finally { refreshing = null; }
-  })();
-  return refreshing;
-}
-
-
-/* 列表分批显示（js/core/pager.js）：「继续加载」后只重画这些列表；没列在这里的整页重画 */
-const PAGE_RENDER = { inv: () => renderInvList(), assets: () => renderAssetList(), maint: () => renderMaintLogs() };
-/** 所有列表回到一页（换页面、改了每页条数）：新列表的计数清掉，自带 limit 的几个列表也改回一页；服务器分页的三张列表下次画时重读第一页 */
-function resetListPages() {
-  resetPages();
-  const n = pageSize(); spendList.stale(); incList.stale();
-  if (state.inc) state.inc.slimit = null;
-  if (state.stmt) state.stmt.limit = n;
-}
-/* ── 实时同步按表重读：家人改了哪张表，就只重读那张表（和由它推出来的 enrich），不再整轮读 24 张表。
- * 下面没列的表（房产、房屋资料、自定义分类 / 位置 / 翻译——会影响当前房产和全局分类表）照旧整轮 refresh。 */
-const reloadAssess = () => Store.listAssess().then((x) => { state.assess = x.as; state.assessItems = x.items; });
-const reloadPlans = () => Store.listPlans().then((x) => { state.plans = x.plans; state.planCands = x.cands; state.planOffers = x.offers; });
-const reloadDealExtras = () => Store.listDealExtras().then((x) => { state.dealOverrides = x.overrides; state.dealCustom = x.custom; state.dealEvents = x.events || []; });
-const TABLE_RELOAD = {
-  items: () => Promise.all([Store.listItems(), Store.listLogs()]).then(([items, logs]) => { state.items = items; state.logs = logs; state.enriched = enrich(items, logs); }),   // 加减库存同时写 stock_logs（没订阅），一起重读
-  shopping_list: () => Store.listShopping().then((r) => { state.shopping = r; }),
-  item_aliases: () => Store.listItemAliases().then((r) => { state.itemAliases = r || []; }),
-  purchases: () => { spendChanged(); },   // 只把花费相关的缓存标过期（统计聚合、明细、联想、卡的用量…），重画时按需重读，不再整表重读
-  assets: () => Store.listAssets().then((r) => { state.assets = r; state.assetsEnriched = enrichAssets(r, state.maintLogs); }),
-  maintenance_logs: () => Store.listMaintLogs().then((r) => { state.maintLogs = r; state.assetsEnriched = enrichAssets(state.assets, r); }),
-  seasonal_tasks: () => Store.listSeasonal(seasonalSince()).then((r) => { state.seasonalDone = r; }),
-  custom_seasonal_tasks: () => Store.listCustomSeasonal().then((r) => { state.customSeasonal = r; }),
-  bills_recurring: () => Store.listBills().then((r) => { state.bills = r; state.billsEnriched = enrichBills(r, state.billPayments); }),
-  bills_recurring_payments: () => Store.listBillPayments().then((r) => { state.billPayments = r; state.billsEnriched = enrichBills(state.bills, r); }),
-  bills_one_time: () => reloadMedical(), bills_one_time_payments: () => reloadMedical(),
-  income_records: () => loadIncome(), income_repayments: () => loadIncome(),
-  debt_accounts: () => loadDebts(), debt_transactions: () => loadDebts(),
-  account_balances: () => loadNetWorth(), asset_valuations: () => loadNetWorth(), net_worth_snapshots: () => loadNetWorth(),
-  property_deals: () => Store.listDeals().then((r) => { state.deals = r; }),
-  deal_task_done: () => Store.listDealDone().then((r) => { state.dealDone = r; }),
-  bills_recurring_assessments: reloadAssess, bills_recurring_assessment_items: reloadAssess,
-  deal_plans: reloadPlans, plan_candidates: reloadPlans, plan_offers: reloadPlans,
-  deal_task_overrides: reloadDealExtras, deal_custom_tasks: reloadDealExtras, deal_events: reloadDealExtras,
-};
-const changedTables = new Set();
-let fullPending = false;
-async function refreshTables() {
-  const tables = [...changedTables], full = fullPending; changedTables.clear(); fullPending = false;
-  if (full || tables.some((x) => !TABLE_RELOAD[x])) return refresh();
-  if (refreshing) await refreshing.catch(() => {});   // 整轮读还在进行：等它完，再补读这几张表
-  const jobs = [...new Set(tables.map((x) => TABLE_RELOAD[x]))];   // 同一个重读函数（例如交易的三张附表）只跑一次
-  try {
-    await Promise.all(jobs.map((f) => f()));
-    setSync(t("已同步 {time}", { time: new Date().toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" }) }), false, true);
-    if (!pendingAny()) notifyIfNeeded();
-    render(false);
-  } catch (e) { console.warn("[realtime]", tables.join(","), e.message); return refresh(); }   // 按表读失败：退回整轮刷新
-}
-export let debounceT;
-/** payload = 实时同步的变更（带 table）：只重读那张表；不带（切回前台等）= 整轮刷新。仍然 400ms 防抖，连着几条变更合成一次 */
-export const refreshSoon = (payload) => {
-  if (payload?.table) changedTables.add(payload.table); else fullPending = true;
-  clearTimeout(debounceT); debounceT = setTimeout(refreshTables, 400);
-};
-
-
-/* ───────────── 页面与路由 ───────────── */
-/** 库存页当前范围：?space=house 看汽车房屋消耗品（房屋模块关闭时只有厨房储藏） */
-const invSpace = () => (state.houseEnabled && state.route.q.get("space") === "house" ? "house" : "pantry");
-/* 发布日志的数据 200KB+，只有「新版本提示」和发布日志页要用：不挡启动，空闲时再加载；加载完重画一次（今日页的提示、发布日志页） */
-let releasesReady = false, releasesLoading = null;
-function loadReleases() {
-  return (releasesLoading ||= import("./releases-data.js").then(({ RELEASES }) => {
-    initReleases({ version: APP_VERSION, releases: RELEASES, lang: () => lang, accent: "var(--pine)", appId: "home-pantry", open: `href="${href("me", "releases")}"` });
-    releasesReady = true;
-    if (state.enriched && (state.route?.section === "today" || (state.route?.section === "me" && state.route.sub === "releases"))) render(false);
-  }).catch(() => { releasesLoading = null; }));
-}
-/** 「新版本」提示这台设备还会不会出现（读 releases-ui.js 记的 seen / shows）：不会了就不必为它去下载发布日志数据 */
-function releaseBadgePossible() {
-  try {
-    if (localStorage.getItem("home-pantry.rl.seen") === APP_VERSION) return false;
-    const o = JSON.parse(localStorage.getItem("home-pantry.rl.shows") || "{}");
-    return !(o.v === APP_VERSION && +o.n >= 5);
-  } catch { return true; }
-}
-const VIEWS = {
-  today:    () => viewToday(),
-  alerts:   () => viewAlerts(),
-  quick:    () => viewQuick(),   // #/quick：编辑今日页的快捷操作
-  ai:       () => viewAi(),
-  pantry:   { scan: () => viewScan(), overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
-  house:    { overview: viewHouse, supplies: viewHouseSupplies, assets: viewAssets, tasks: viewTasks, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
-              template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix, plan: viewPlan },
-  bills:    { overview: viewBillsHome, all: viewAllBills, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
-  shopping: () => viewShopping(),
-  scan:     () => viewScan(),
-  shops:    () => viewShops(),
-  me:       { stats: viewStats, settings: viewSettings, about: viewAbout, releases: () => releasesReady ? releasePageHTML() : (loadReleases(), `<div class="panel empty">${t("加载中…")}</div>`) },
-};
-// 手机上隐藏底部导航的页面：只有「真正在编辑的表单」才隐藏（专注填写）；车辆 / 设备 / 账单的概览、详情、保养记录列表、时间表这类只读页保留导航。
-// （FORM_PAGES 另管「后台同步不重画」，范围更宽，不动）
-const EDIT_SECS = new Set(["basic", "units", "plate", "docs", "insurance", "years", "life", "cost", "notes", "recall"]);   // 设备 / 车辆的编辑分区；profile、log（列表）、schedule、supplies、care 是只读页
-const TABS_HIDDEN = (r) => {
-  if (!FORM_PAGES(r)) return false;
-  const q = r.q;
-  if (r.section === "asset") return r.id === "new" || EDIT_SECS.has(q.get("sec")) || q.get("log") === "1" || !!q.get("wiz");
-  if (r.section === "bill") return r.id === "new" ? [...q.keys()].length > 0 : !!q.get("sec") || q.get("pay") === "1";   // #/bill/new 不带参数 = 选类型页（保留导航）；向导 / 整页表单 / 分区编辑 / 记缴费 = 隐藏；账单详情页保留
-  if (r.section === "otbill") return r.id === "new" || !!q.get("sec");   // 一次性账单：详情页保留导航，新建 / 分区编辑隐藏
-  return true;
-};
-// 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容
-/* 现在是不是正处在用户自己的操作里（点击、改下拉、输入、按键的处理过程中，含紧跟着的同一轮任务）：这时的 render(false) 是用户要的，不填回旧值 */
-let userActing = false;
-for (const ev of ["click", "change", "input", "keydown", "submit", "pointerup"]) document.addEventListener(ev, () => { userActing = true; setTimeout(() => { userActing = false; }, 0); }, true);
-const FORM_PAGES = (r) => isFormSection(r) || (r.section === "house" && r.sub === "plan" && !!state.planEdit) || (r.section === "house" && r.sub === "profile") || (r.section === "bills" && r.sub === "cards" && !!r.q.get("card")) || (r.section === "bills" && r.sub === "income" && !!state.inc?.form) || (r.section === "me" && r.sub === "settings" && !!r.q.get("member"));   // 一次性账单的编辑页：后台同步（家人改动、花费刷新）不重画，免得填到一半的内容被刷掉
-// 二级页顶部的面包屑和每个页签的目录页在 js/menu.js（参考家庭学堂“我的”页：一栏一行，点进去）
-const offPanel = (title, action, btn) => `<div class="panel empty"><strong>${title}</strong>${t("在“我的 → 设置”里可以重新打开。")}<p><button type="button" class="btn btn-primary" data-action="${action}">${btn}</button></p></div>`;
-
-/** 顶部导航、站名按当前语言写入（index.html 里是简体默认值） */
-function applyChrome() {
-  document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
-    const textNode = [...a.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
-    if (textNode) textNode.textContent = t(SECTIONS[a.dataset.section]?.name || textNode.textContent.trim());
-  });
-  const title = $("#appTitle"); if (title) title.textContent = t(APP_NAME);
-  if (title) updateMiniBar(title.textContent, t("回到顶部"));
-  $("#tabs").setAttribute("aria-label", t("主导航"));
-  renderAppSwitch();
-  renderLangSwitch();
-}
-
-/* 顶栏右上角的语言切换（登录页也显示）：一个按钮，点开是列表（宽屏浮层 / 手机底部抽屉），以后加语言只要在 LANGS 里加一项；和 设置 → 语言 存同一个值 */
-const uiKind = () => (lang === "en" ? "en" : lang === "zh-Hant" ? "tw" : "zh");
-function renderLangSwitch() {
-  const ver = $("#appVer"); if (ver) { ver.textContent = "v" + APP_VERSION; ver.setAttribute("aria-label", `${t("发布日志")} · v${APP_VERSION}`); ver.title = t("发布日志"); }   // 版本号放在顶栏，点一下进 我的 → 发布日志
-  mountLangSwitcher({ host: $("#langSwitch"), languages: Object.entries(LANGS).map(([code, name]) => ({ code, name })), current: lang, ui: uiKind(), onSelect: (code) => changeLang(code) });
-}
-
-/* ───────────── 应用切换：顶栏右侧九宫格按钮，宽屏浮层 / 窄屏底部抽屉；名单在 shared/apps.json（四个站点共用） ───────────── */
-const APP_ID = "home-pantry";
-export const sisterApps = () => window.SISTER_APPS || [];
-function renderAppSwitch() {
-  const box = $("#apps"); if (!box) return;
-  mountAppSwitcher({ host: box, current: APP_ID, lang, onApps: (fresh) => { window.SISTER_APPS = fresh.map(toSister); } });
-}
-// 共享名单的格式 → 设置页、介绍页、“我的”目录用的旧格式（name / short / sub 按当前语言取）
-const toSister = (a) => ({ id: a.id, icon: a.icon, url: a.url, name: a.name?.zh || a.name, short: a.short?.zh || a.name?.zh || a.name, sub: a.sub?.zh || a.sub || "" });
-
-/** force=true：路由变化，整页重画；false：数据刷新，表单页保持不动 */
-export function render(force = true) {
-  if (!state.enriched) return;
-  document.body.classList.remove("gate");
-  applyChrome();
-  $("#hhName").textContent = state.household?.name || "";
-  const r = state.route;
-  const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0])
-    : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section === "bill" || r.section === "otbill" ? (state.prevRoute?.section || "bills")
-    : r.section === "shops" ? "shopping" : r.section === "alerts" || r.section === "ai" || r.section === "quick" ? "today" : r.section;   // 注意事项、咩咩咩都是首页的子页，底栏高亮「今日」
-  document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
-    a.hidden = (a.dataset.section === "house" && !state.houseEnabled) || (a.dataset.section === "bills" && !state.billsEnabled);
-    if (a.dataset.section === navSection) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
-  });
-  const openShop = state.shopping.filter((s) => s.status !== "bought").length;
-  const sc = $("#shopCount"); sc.hidden = !openShop; sc.textContent = openShop;
-  const alertN = alertCounts(collectAlerts()).important;   // 紧急 / 今天 / 尽快三档计入标题
-  document.title = alertN ? `(${alertN}) ${t(APP_NAME)}` : t(APP_NAME);
-  document.body.classList.toggle("editing", TABS_HIDDEN(r));
-
-  if (!force && FORM_PAGES(r) && $("#main form")) return;
-  if (!force && isScanRoute(r) && $("#main .scan-page")) return;   // 录入购物：识别中 / 确认页的改动不被后台同步冲掉（页面还没画出来时，比如直接刷新在这一页，要先画）
-  // 数据刷新（后台读完借贷 / 净资产 / 收入、切回标签页、家人改动）会重画整页：先把页面里「每一张」表单还没保存的改动记下来，
-  // 画完再填回去，连光标位置一起（11-09：以前只认一份表单名单，新加的表单——比如卡和账户——不在名单里，填到一半 2–3 秒就被冲掉）
-  const kept = force || userActing ? null : keepUnsaved();   // 用户自己点的（筛选、清除、展开…）照常按新状态画；只有后台刷新才保留
-  try { renderBody(r); } finally { if (kept) restoreUnsaved(kept); }
-  restoreCarousels();   // 左右滑动的卡片（今日）：放回刚才看的那张
-  enhanceSelects($("#main"));   // 长下拉（data-ss）可以搜索
-  { const pf = $("#billPayForm"); if (pf) recalcPayTotal(pf); }   // 缴费表单：先算一次总金额
-  { const af = $("#main [data-as-focus]"); if (af) requestAnimationFrame(() => af.scrollIntoView({ block: "start" })); }   // 从账单页点某笔摊派进来：滚到那一笔
-  normalizeFormActions($("#main"));   // 所有表单：取消靠左、保存靠右，同一行
-  decoratePrivacy(r);   // 财务看板的大数字：遮挡模式下模糊（js/core/privacy.js）
-}
-/** 表单里与渲染默认值不同的字段（用户正在填的）；没有改动返回 null */
-function dirtyFields(f) {
-  const vals = {};
-  for (const el of f.elements) {
-    if (!el.name) continue;
-    if (el.type === "radio") { if (el.checked && !el.defaultChecked) vals[el.name] = { radio: el.value }; }   // 单选：记选中的那个值
-    else if (el.type === "checkbox") { if (el.checked !== el.defaultChecked) vals[el.name] = { checked: el.checked }; }
-    else if (el.tagName === "SELECT") { const def = [...el.options].find((o) => o.defaultSelected)?.value ?? el.options[0]?.value; if (el.value !== def) vals[el.name] = { value: el.value }; }
-    else if (el.value !== el.defaultValue) vals[el.name] = { value: el.value };
-  }
-  return Object.keys(vals).length ? vals : null;
-}
-/** 一张表单的「身份」：有 id 用 id（再带上 data-id，换了编辑对象就不算同一张），没有就按它在 #main 里是第几张表单 */
-const formKey = (f, i) => (f.id ? `#${f.id}|${f.dataset.id || ""}` : `@${i}|${f.dataset.id || ""}`);
-function keepUnsaved() {
-  const forms = [...document.querySelectorAll("#main form")];
-  const list = forms.map((f, i) => { if (f.dataset.saved) return null; const vals = dirtyFields(f); return vals ? { key: formKey(f, i), vals } : null; }).filter(Boolean);
-  // 正在输入的那一格（表单里外都算，比如搜索框）：画完把焦点和光标放回去
-  const a = document.activeElement, inMain = a && a !== document.body && a.closest?.("#main");
-  const focus = inMain && (a.name || a.id) ? { form: a.form ? formKey(a.form, forms.indexOf(a.form)) : null, name: a.name, id: a.id, s: a.selectionStart, e: a.selectionEnd, value: a.form ? null : a.value } : null;
-  // 表单外、没有 name 的输入框也要留（2026-11-14：购物车每一行的花费 / 在哪买 / 用卡——选了特价顺手填的商店名，保存后家人同步一重画就没了）：带 data-keep 的都算
-  const loose = [...document.querySelectorAll("#main [data-keep]")].map((el) => {
-    const def = el.tagName === "SELECT" ? ([...el.options].find((o) => o.defaultSelected)?.value ?? el.options[0]?.value) : el.defaultValue;
-    return el.value !== def ? { key: el.dataset.keep, value: el.value } : null;
-  }).filter(Boolean);
-  return { list, focus, loose };
-}
-function restoreUnsaved({ list, focus, loose = [] }) {
-  for (const k of loose) { const el = document.querySelector(`#main [data-keep="${CSS.escape(k.key)}"]`); if (el && el.value !== k.value) el.value = k.value; }
-  const forms = [...document.querySelectorAll("#main form")], byKey = new Map(forms.map((f, i) => [formKey(f, i), f]));
-  for (const k of list) {
-    const f = byKey.get(k.key); if (!f) continue;
-    for (const [n, v] of Object.entries(k.vals)) {
-      const el = f.elements[n]; if (!el) continue;
-      if ("radio" in v) { if (el instanceof RadioNodeList) el.value = v.radio; else el.checked = el.value === v.radio; continue; }
-      if ("checked" in v) el.checked = v.checked; else el.value = v.value;
-    }
-    markDirty(f, true);
-  }
-  if (!focus) return;
-  const f = focus.form ? byKey.get(focus.form) : null;
-  const el = f ? f.elements[focus.name] : (focus.id ? document.getElementById(focus.id) : document.querySelector(`#main [name="${CSS.escape(focus.name)}"]`));
-  if (!el || el instanceof RadioNodeList || typeof el.focus !== "function") return;
-  if (focus.value != null && el.value !== focus.value) el.value = focus.value;   // 表单外的输入框（搜索）
-  el.focus({ preventScroll: true });
-  try { if (focus.s != null) el.setSelectionRange(focus.s, focus.e); } catch { /* 日期、数字框不支持光标位置 */ }
-}
-/** 表单有未保存改动：显示“有未保存的修改”，保存按钮加粗提示 */
-function markDirty(f, on) {
-  f.classList.toggle("is-dirty", on);
-  const note = f.querySelector(".dirty-note"); if (note) note.hidden = !on;
-}
-/** 页面函数返回 Promise = 这个页面的代码还没下载（js/core/lazy.js）：先放 面包屑 + 「加载中…」，下载完（还停在这个页面）再重画。返回 true = 已经画好 */
-function mountView(pre, out) {
-  if (!out || typeof out.then !== "function") { $("#main").innerHTML = pre + out; return true; }
-  const key = location.hash;
-  $("#main").innerHTML = pre + `<div class="panel empty" role="status">${t("加载中…")}</div>`;
-  out.then(() => { if (location.hash === key && state.enriched) render(true); }, (e) => {
-    if (location.hash !== key) return;
-    $("#main").innerHTML = pre + `<div class="panel empty" role="alert"><strong>${t("页面加载失败")}</strong><p>${t("网络不太稳定，没能下载这个页面。检查网络后点「重试」。")}</p><p><button type="button" class="btn btn-primary" data-action="reload-page">${t("重试")}</button></p></div>`;
-  });
-  return false;
-}
-function renderBody(r) {
-  if (r.section === "item") { mountView("", viewItemForm()); return; }
-  if (r.section === "asset") { mountView("", viewAssetForm()); return; }
-  if (r.section === "bill") { mountView("", viewBillForm()); return; }
-  if (r.section === "otbill") { $("#main").innerHTML = viewOtBill(); return; }
-  if (r.section === "house" && !state.houseEnabled) { $("#main").innerHTML = offPanel(t("房屋维护模块已关闭"), "house-enable", t("打开房屋维护")); return; }
-  if (r.section === "bills" && !state.billsEnabled) { $("#main").innerHTML = offPanel(t("财务模块已关闭"), "bills-enable", t("打开财务")); return; }
-  if (routeBlocked(r)) { $("#main").innerHTML = ""; toast(t("家主还没给你开财务权限")); go(financeFallback(r), { replace: true }); return; }   // 对账单 / 收入 / 预算 / 添加卡：没有财务权限时直接打开网址也跳走
-  if (r.section === "bills") maybeAutoSnapshot().then((w) => { if (w && state.route?.section === "bills" && state.route?.sub === "networth") render(false); });   // 本月还没有快照 / 自动快照的数字变了：后台写一行（不挡画面）
-  if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = crumb(r) + offPanel(t("家居耐用品模块已关闭"), "gear-enable", t("打开家居耐用品")); return; }
-  if (r.sub === "menu") { mountView("", r.section === "house" ? viewPropertyList() : viewMenu(r.section)); return; }   // 页签目录页；房屋先列房产
-  const v = VIEWS[r.section];
-  const view = typeof v === "function" ? v : v[r.sub];
-  if (!mountView(crumb(r) + (r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : ""), view())) return;   // 储藏的每个页面顶上都有页面导航卡片
-  if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"))) renderInvList();
-  const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : r.section === "pantry" && r.sub === "gear" ? $("#invSec-gear") : null;   // 从概览「汽车房屋消耗品」或旧的家居耐用品链接进来：展开并滚到那一块
-  if (hs && !state.scrolledHouse) { hs.open = true; state.scrolledHouse = true; requestAnimationFrame(() => hs.scrollIntoView({ block: "start" })); }
-  if (!hs) state.scrolledHouse = false;
-}
-
-/** 录入购物（2026-11-15 起在 储藏 / 录入购物，#/pantry/scan） */
-const isScanRoute = (r) => r?.section === "pantry" && r?.sub === "scan";
-const scrollMem = {};
-/** 归档 / 删除默认房产前：先把默认换成另一套在用的房产；没有别的就不让做（至少留一套） */
-async function freeDefault(p) {
-  if (!p.is_default) return true;
-  const other = state.properties.find((x) => x.id !== p.id && !x.archived);
-  if (!other) { toast(t("至少要保留一套房产")); return false; }
-  await Store.setDefaultProperty(other.id); return true;
-}
-const isListRoute = (r) => (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"));
-/* 离开表单页自动保存：物品 / 设备 / 账单 / 房屋资料表单（data-autosave）有没保存的改动，且不是点“取消 / 保存 / 删除”离开的，
- * 就在后台按原来的校验保存一遍（名称没填等校验不过会提示“没有自动保存”）。保存按钮仍然保留，且在底部常驻。 */
-const AUTOSAVE = { itemForm: saveItemForm, assetForm: saveAssetForm, billForm: saveBillForm, houseForm: saveHouseForm };
-let lastHash = location.hash;
-function pendingAutosave() {
-  const f = $("#main form[data-autosave]");
-  const want = f && AUTOSAVE[f.id] && !f.dataset.afPending && !state.skipAutosave && lastHash !== location.hash && dirtyFields(f);
-  state.skipAutosave = false; lastHash = location.hash;
-  return want ? f : null;
-}
-async function autoSave(f) {
-  try { if (await AUTOSAVE[f.id](f, { silent: true })) { toast(t("已自动保存")); refresh(); } }
-  catch (e) { toast(t("自动保存失败：{msg}", { msg: e.message })); }
-}
-function onRoute() {
-  const prev = state.route, next = parseRoute();
-  const fromHash = lastHash;   // 进表单页之前的网址：枢纽页“返回账单 / 返回设备”直接跳回去（history.back 会掉进刚看过的分区页）
-  const pend = pendingAutosave();
-  if (pend) autoSave(pend);   // 后台保存；表单元素脱离页面后仍能读值
-  scrollMem[routeKey(prev)] = window.scrollY;
-  const enteringItem = isFormSection(next) && !isFormSection(prev);
-  const leavingItem = isFormSection(prev) && !isFormSection(next);
-  if (enteringItem) { state.prevRoute = prev; state.prevHash = fromHash; }
-  if (next.section === "house" && next.sub === "profile" && !(prev.section === "house" && prev.sub === "profile")) state.houseDraft = null;
-  // 房产页面目录 → 账单清单带 ?prop=：进入时按那套房产筛选一次（只在这里套用，之后芯片可以切换）
-  // ?prop=all：首页快捷操作进来，每次都回到“全部房产”
-  if (next.section === "bills" && next.q.get("prop") && (next.q.get("prop") === "all" || state.properties.some((p) => p.id === next.q.get("prop")))) state.billsFilter.property = next.q.get("prop");
-  // 首页提醒带 ?prop=：切到那套房产再进页面
-  const wantProp = next.section === "house" ? next.q.get("prop") : null;
-  if (wantProp && wantProp !== state.propertyId && state.properties.some((p) => p.id === wantProp)) {
-    state.propertyId = wantProp; try { localStorage.setItem("hmh-property", wantProp); } catch { /* 忽略 */ }
-    state.houseDraft = null; state.route = next; refresh(); return;
-  }
-  // 手动点了底部页签：恢复该页签的默认筛选（浏览器后退不会设这个标记，筛选照旧）
-  if (state.tabReset) { if (next.section === state.tabReset) resetSectionFilters(next.section); state.tabReset = null; }
-  // 注意事项：每次进来都回到“全部”来源和默认排序（从首页格子、链接或后退进来都一样）
-  if (next.section === "alerts" && prev.section !== "alerts") resetSectionFilters("alerts");
-  // 从目录或别的页进库存类清单：默认回到全部分类（从物品编辑页返回、或概览方块指定了分类时保留）
-  if (isListRoute(next) && routeKey(prev) !== routeKey(next) && !isFormSection(prev)) {
-    if (state.keepFilter) state.keepFilter = false;
-    else Object.assign(state.filter, { cat: "all", status: "all", q: "", loc: "all", owner: "all" });
-  }
-  // 从首页看板 / 别的页点进其他清单页（购物车、设备、账单、缴费记录、医疗、花费）：筛选回到默认再套上链接里的条件
-  // （从物品 / 设备 / 账单编辑页返回、或同一页内换标签 / 参数不算）；不然上一次留下的筛选（如「家人认领」）会让看板上的数字和清单对不上
-  if (routeKey(prev) !== routeKey(next) && !isFormSection(prev)) {
-    const { section: sec, sub } = next;
-    if (sec === "shopping" && sub === "list") Object.assign(state.shopFilter, FD.shop);
-    else if (sec === "house" && sub === "assets") Object.assign(state.assetFilter, FD.asset);
-    else if (sec === "bills" && sub === "all") Object.assign(state.allFilter, FD.all, { sort: "due" });
-    else if (sec === "bills" && sub === "spend") Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null });
-  }
-  // 账单概览：每次进来（含同一页上换了网址参数）都按网址套一次：带 ?asset= → 那个资产 + 本月；不带 → 全部资产 + 上次选的范围
-  if (next.section === "me" && next.sub === "settings" && prev.section === "me" && prev.sub === "settings" && prev.q.get("person") !== next.q.get("person")) resetFamilyUi();
-  if (next.section === "bills" && next.sub === "overview") applyOverviewQuery(next.q, next.id);
-  // 全部账单：卡片 / 链接带的条件（?asset= ?status= ?range= ?q= ?type= ?cat= ?pay= ?sort=）每次进来套一次
-  if (next.section === "bills" && next.sub === "all") { if (routeKey(prev) !== routeKey(next) && !isFormSection(prev)) defaultAllEntry(next.q); applyAllQuery(next.q); }
-  // 房产 / 车辆的消耗品页「看全部」带 ?owner= 进库存：套上归属筛选，再把参数去掉
-  if (isListRoute(next) && next.q.get("owner")) {
-    Object.assign(state.filter, { owner: next.q.get("owner"), space: next.q.get("space") === "house" ? "house" : state.filter.space });
-    next.q.delete("owner"); history.replaceState(null, "", `${href(next.section, next.sub)}${next.q.toString() ? `?${next.q}` : ""}`);
-  }
-  // 概览卡片里的细项（缺货 / 少货 …）带 ?status= 进库存：套上状态筛选，再把参数去掉（刷新、后退不重复套）
-  if (isListRoute(next) && next.q.get("status")) {
-    Object.assign(state.filter, { space: next.q.get("space") === "house" ? "house" : next.sub === "gear" ? "gear" : "pantry", cat: "all", q: "", loc: "all", status: next.q.get("status") });
-    next.q.delete("status"); history.replaceState(null, "", `${href(next.section, next.sub)}${next.q.toString() ? `?${next.q}` : ""}`);
-  }
-  if (isScanRoute(next) && !isScanRoute(prev)) resetScan();
-  if (!(next.section === "pantry" && (next.sub === "inventory" || next.sub === "gear"))) state.invSel = null;
-  if (!(next.section === "shopping" && next.sub === "list")) state.shopSel = null;   // 离开购物车：多选结束   // 离开库存：多选结束
-  // 换了页面 / 页签 / 钻取参数：所有列表回到一页（从表单页返回原列表时保留，滚动位置才对得上）
-  if ((routeKey(prev) !== routeKey(next) || prev.q?.toString() !== next.q.toString()) && !isFormSection(prev)) resetListPages();
-  // 从图表 / 名称钻取来的：套上筛选，再把地址里的筛选参数去掉（刷新或再次进入不会重复套用）
-  if (next.section === "bills" && next.sub === "spend" && next.q.get("tab") === "records" && applySpendDrill(next.q)) history.replaceState(null, "", `${href("bills", "spend")}?tab=records`);   // 明细按筛选直接查数据库（批次、往年都在），不用先把记录读进内存
-  // 首页快捷操作「记一笔收入」：#/bills/income?tab=records&add=1 → 直接展开记收入表单，再把参数去掉（没有财务权限时 render 里的路由守卫照样挡住）
-  if (next.section === "bills" && next.sub === "income" && next.q.get("add") && financeOk()) {
-    Object.assign(inc(), { form: { rec: null }, scanOpen: false, _keep: true });
-    next.q.delete("add"); next.q.delete("prop"); next.q.set("tab", "records");
-    history.replaceState(null, "", `${href("bills", "income")}?tab=records`);
-  }
-  // 带 ?range= 进财务页（今日「钱 · 本月」→ 收支总览本月）：套用一次共享的时间范围
-  if (next.section === "bills" && next.q.get("range") && routeKey(prev) !== routeKey(next)) { const v = normRange(next.q.get("range")); if (v === next.q.get("range")) { state.stats.months = v; setFinRange(v); } }
-  state.route = next;
-  render(true);
-  if (next.section === "house" && next.q.get("todo")) requestAnimationFrame(() => $("#house-todo")?.scrollIntoView({ block: "start" }));   // 今日「家里一览 · 设备与车辆」：直接到「各房产要处理的事」
-  if (next.section === "me" && next.sub === "settings" && next.q.get("sec") === "ai") hydrateModelSelect();   // AI 设置：后台查这个 key 实际能用的模型，填进下拉
-  if (next.section === "bills" && (next.sub === "spend" || next.sub === "budget")) ensureFirstYear().then((fresh) => { if (fresh) render(false); });   // 时间范围下拉的往年选项：查一次最早年份
-  if (next.section === "bills" && next.sub === "spend" && next.q.get("add")) {   // 花费页右上角“记一笔花费”：展开补记表单、滚过去并聚焦名称，再把参数去掉
-    state.spendAddOpen = true;
-    requestAnimationFrame(() => { const pf = $("#purchaseForm"); if (pf) { pf.scrollIntoView({ block: "center" }); pf.elements.name.focus({ preventScroll: true }); } });   // 等页面把焦点放好之后再聚焦
-    history.replaceState(null, "", `${href("bills", "spend")}?tab=records`);
-  }
-  const back = leavingItem && state.prevRoute && routeKey(state.prevRoute) === routeKey(next);
-  if (leavingItem) state.prevRoute = null;
-  if (back) requestAnimationFrame(() => window.scrollTo(0, scrollMem[routeKey(next)] || 0));
-  else { window.scrollTo(0, 0); if (!enteringItem) $("#main").focus({ preventScroll: true }); }
-  if (next.section === "item") $("#itemForm")?.elements.name.focus({ preventScroll: true });
-  if (next.section === "asset") {
-    const mf = $("#maintForm[data-focus]");   // 从“记保养”进来：滚到保养记录表单
-    if (mf) { mf.scrollIntoView({ block: "start" }); mf.elements.kind.focus({ preventScroll: true }); }
-    else if (next.id === "new") $("#assetForm")?.elements.name.focus({ preventScroll: true });
-  }
-  if (next.section === "bill") {
-    const pf = $("#billPayForm[data-focus]");   // 从“记缴费”进来：滚到缴费表单
-    if (pf) { pf.scrollIntoView({ block: "start" }); pf.elements.amount.focus({ preventScroll: true }); }
-    else if (next.id === "new") $("#billForm")?.elements.name.focus({ preventScroll: true });
-  }
-  // 表单页保存后回到枢纽（仍在同一 section）也要刷新，枢纽上的完成度才是新的
-  if (state.needsRefresh) { state.needsRefresh = false; refresh(); }
-}
-// 滚动位置由我们自己记忆和恢复，关闭浏览器的自动恢复以免互相干扰
-if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-window.addEventListener("hashchange", onRoute);
-window.addEventListener("spend-data-loaded", () => render(false));
-window.addEventListener("hmh-rerender", () => render(false));   // 异步读完（备份页的文件夹 / 云端列表）后重画一次   // 对比用的前一段花费从云端读回来了
-
-/* ── 底部页签：点别的页签 = 进入该页签首页并恢复默认筛选（多套房产时账单回“全部房产”）；浏览器后退不走这里，筛选照旧。
- * 当前页签：点一下就回该页签首页并恢复默认筛选、回到顶部。 */
-function resetSectionFilters(section) {
-  switch (section) {
-    case "today": setTodayPref({ source: null }); break;
-    case "alerts": setTodayPref({ source: null, mine: false, focus: false, mode: "severity" }); break;
-    case "pantry": Object.assign(state.filter, { space: "pantry", cat: "all", q: "", status: "all", loc: "all", sort: "default" }); Object.assign(state.shopFilter, { st: "open", cat: "all", q: "", sort: "new" }); state.catSort = false; state.catForm = null; state.mealShift = 0; state.slotShift = null; break;
-    case "house": Object.assign(state.filter, { cat: "all", q: "", status: "all", loc: "all" }); Object.assign(state.assetFilter, { q: "", type: "all", service: "all", warranty: "all", loc: "all", sort: "alert" }); state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; state.tasksOnlyUndone = false; state.catSort = false; state.catForm = null; state.tasksYM = null; state.seasonForm = null; state.closeout = null; state.editProperty = null; state.deleteProperty = null; break;
-    case "bills": state.spendAddOpen = false; state.ovFilter.asset = "all"; Object.assign(state.allFilter, FD.all, { sort: "due" }); Object.assign(state.billsFilter, { property: "all", cat: "all", autopay: "all", channel: "all", q: "", sort: "category" }); Object.assign(state.medFilter, { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all" }); Object.assign(state.payFilter, { bill: "all", year: "all", status: "all", sort: "new" }); Object.assign(state.spendFilter, { q: "", cat: "all", store: "all", stores: null, grp: null, year: "all", mon: "all", months: null, dmax: null, batch: null, sort: "new" }); state.spendEdit = null; state.spendSel = null; break;
-    case "me": Object.assign(state.stats, { month: null, cat: null, itemId: null }); state.editProperty = null; state.deleteProperty = null; state.locForm = null; break;
-    default: break;
-  }
-}
-/* ── 清除筛选（各页工具条上同一个按钮，js/core/clear-filters.js）：恢复这一页的默认筛选（排序不动）、分页回到第一页、网址里的筛选参数去掉 ── */
-const clearAnd = (fn) => () => { fn(); resetListPages(); render(false); };
-onClearFilters("inv", clearAnd(() => { Object.assign(state.filter, FD.inv); clearUrlParams(["cat", "status"]); }), () => changed(state.filter, FD.inv));
-onClearFilters("shop", clearAnd(() => Object.assign(state.shopFilter, FD.shop)), () => changed(state.shopFilter, FD.shop));
-onClearFilters("maint", clearAnd(() => Object.assign(maintFilter, FD.maint)), () => changed(maintFilter, FD.maint));
-onClearFilters("asset", clearAnd(() => Object.assign(state.assetFilter, FD.asset)), () => changed(state.assetFilter, FD.asset));
-onClearFilters("deal", clearAnd(() => { state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; }));   // 排序不动
-// 新建账单完成（向导 / AI 扫描）：先把数据读回来，再进这张账单的详情页（?new=1 = 显示「已创建」提示条；?ai=1 = 「AI 识别创建」）
-document.addEventListener("bill-created", async (e) => {
-  const { id, via, kind } = e.detail || {}; if (!id) return;
-  state.skipAutosave = true; await refresh(); toast(via === "ai" ? t("已根据扫描创建账单，请核对") : t("已创建账单"));
-  if (kind === "onetime") go(`${href("otbill", id)}?${via === "ai" ? "ai" : "new"}=1`, { replace: true });   // 一次性账单：进它自己的详情页（?new=1 已创建 / ?ai=1 由扫描创建）
-  else go(`${href("bill", id)}?${via === "ai" ? "ai" : "new"}=1`, { replace: true });
-});
-onClearFilters("all", clearAnd(() => { Object.assign(state.allFilter, FD.all); clearUrlParams("*"); }), () => changed(state.allFilter, FD.all));
-onClearFilters("spend", () => { clearSpendFilter("all"); resetListPages(); renderSpendRecords(); }, () => changed(state.spendFilter, FD.spend));
-onClearFilters("stats", clearAnd(() => { Object.assign(state.stats, FD.stats); setFinRange(state.stats.months); setFinUnit("auto"); saveStatToggles(); clearUrlParams(["node", "month", "cat", "item"]); }));
-onClearFilters("gift", clearAnd(() => Object.assign((state.giftFilter ||= { sort: "balance" }), FD.gift)));
-onClearFilters("off", clearAnd(() => Object.assign((state.offFilter ||= { sort: "since" }), FD.off)), () => changed(state.offFilter, FD.off));
-onClearFilters("alerts", clearAnd(() => setTodayPref({ source: null, mine: false })));
-
-$("#tabs").addEventListener("click", (e) => {
-  const a = e.target.closest("a[data-section]"); if (!a) return;
-  const sec = a.dataset.section, root = a.getAttribute("href");
-  if (a.getAttribute("aria-current") === "page") {   // 当前页签：点一下就回该页签首页，并恢复默认筛选、回到顶部
-    e.preventDefault();
-    resetSectionFilters(sec);
-    if (location.hash === root) { render(true); window.scrollTo(0, 0); } else go(root);
-    return;
-  }
-  state.tabReset = sec;   // 进入后在 onRoute 里恢复默认筛选
-});
-
-const toList = (space) => href(...listRoute(space));
-
-/** 切换语言后整页重画（登录页也要） */
-async function changeLang(code) {
-  await setLang(code);
-  fillUnitList();
-  if (state.enriched) render(true);
-  else if (document.body.classList.contains("gate")) renderLogin();
-}
-
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(() => {});
+// 提醒总线：各模块的适配器（新增提醒来源只需在这里注册一个函数）
+[pantryAlertItems, billAlertItems, budgetAlertItems, escrowAlertItems].forEach(registerAlerts);
 /* ───────────── 交互（事件委托） ───────────── */
 export const main = $("#main");
 // 手机：列表页的“搜索 + 一排下拉框”收成一行（搜索框 + 筛选按钮），滑动时固定在顶栏 / 路径下面；路径条（面包屑）也固定
 initCompactFilters({ root: main, ui: uiKind });
-miniBarEl();   // 手机上滚动后固定的站名窄条（js/minibar.js）
-document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.pv-card[data-fold]")) setFold(d.dataset.fold, d.open); }, true);   // 储藏概览大卡片折叠 / 展开：记在本机
-initSwipeRows({ kinds: ["asset", "rs", "item", "income", "budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card", "store", "deal"], altKinds: ["asset", "card", "deal", "shop", "item", "rs"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });   // 卡行还能右滑停用 / 启用   // 行记录左滑删除（js/swipe-rows.js）
-/* 云端报错翻译：数据库还没升级到某个迁移时，PostgREST 只会说「找不到某列 / 某表」，这里换成告诉你该执行哪个迁移文件 */
-const MIGRATION_HINTS = [[/deal_task_done.*status|status.*deal_task_done|deal_custom_tasks.*skipped|skipped.*deal_custom_tasks/i, "047_deal_skip.sql", "交易清单跳过"], [/deal_events|property_deals.*baseline|baseline.*property_deals/i, "046_deal_progress.sql", "交易进展"], [/card_id.*purchases|purchases.*card_id/i, "033_purchase_card.sql", "花费记到哪张卡"], [/import_batch/i, "034_purchase_import_batch.sql", "银行导入批次"], [/pay_card_id|bill_payments.*card_id|medical_payments.*card_id|cards_kind_check/i, "036_pay_accounts.sql", "付款账户（银行账户、账单扣款 / 缴费用的卡）"], [/house_profiles.*ownership|ownership.*house_profiles/i, "038_house_ownership.sql", "房屋资料：产权、税务与车位"], [/assets.*\bunits\b|\bunits\b.*assets/i, "039_asset_units.sql", "固定装置的位置与数量"], [/purchases.*\bmethod\b|\bmethod\b.*purchases|cards.*\bbalance\b|\bgift\b/i, "040_purchase_method.sql", "付款方式（现金 / 支票 / 礼品卡）与礼品卡"], [/inactive_since/i, "041_card_inactive_since.sql", "卡的停用日期"], [/income_records|income_repayments|income_access/i, "042_income_records.sql", "收入（进账）记录和查看权限"], [/relation .*\bcards\b|'cards'/i, "032_cards.sql", "信用卡表"], [/alert_mute_until/i, "030_item_alert_mute.sql", "物品不再提醒"]];
-function friendlyErr(msg) {
-  const m = String(msg || "");
-  for (const [re, file, what] of MIGRATION_HINTS) if (re.test(m)) return t("还没执行数据库迁移 {file}（{what}）：先在 Supabase → SQL Editor 里执行 supabase/migrations/{file}，再试一次。", { file, what });
-  return m;
-}
+miniBarEl();
+   // 手机上滚动后固定的站名窄条（js/minibar.js）
+document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.pv-card[data-fold]")) setFold(d.dataset.fold, d.open); }, true);
+   // 储藏概览大卡片折叠 / 展开：记在本机
+initSwipeRows({ kinds: ["asset", "rs", "item", "income", "budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card", "store", "deal"], altKinds: ["asset", "card", "deal", "shop", "item", "rs"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });
 initIncome({ render, refresh });
 initNetWorth({ render });
 initHomeStats(render);
-initTodayRender(() => render());   // 今日天气取回来后重画
-initPrivacy({ toast }); setPrivacyRoute(() => state.route);   // 金额遮挡：外出 / 在家两种模式；表格 / 图表局部重画时按当前页面再标   // 我的 → 家里的数字：近一年日志读完后重画
-initSelectSearch();   // 选项很多的下拉（分类等）变成可搜索的（js/select-search.js）
-initQuickDrag({ isEditing: () => !!state.quickEdit, enter: () => { state.quickEdit = true; state.quickAdd = false; render(); }, save: async (ids) => { try { await saveQuick(ids); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } render(); } });   // 今日页快捷操作：长按进入编辑并拖动排序   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
+initTodayRender(() => render());
+   // 今日天气取回来后重画
+initPrivacy({ toast });
+ setPrivacyRoute(() => state.route);
+   // 金额遮挡：外出 / 在家两种模式；表格 / 图表局部重画时按当前页面再标   // 我的 → 家里的数字：近一年日志读完后重画
+initSelectSearch();
+   // 选项很多的下拉（分类等）变成可搜索的（js/select-search.js）
+initQuickDrag({ isEditing: () => !!state.quickEdit, enter: () => { state.quickEdit = true; state.quickAdd = false; render(); }, save: async (ids) => { try { await saveQuick(ids); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } render(); } });
+   // 今日页快捷操作：长按进入编辑并拖动排序   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）
 // 「⋯」更多操作菜单：点别处或点菜单里的某项就收起（原生 details 不会自己收）
 document.addEventListener("click", (e) => { document.querySelectorAll("details.act-more[open]").forEach((d) => { if (!d.contains(e.target) || e.target.closest(".act-item")) d.open = false; }); }, true);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll("details.act-more[open]").forEach((d) => { d.open = false; d.querySelector("summary")?.focus(); }); });
@@ -779,11 +121,7 @@ main.addEventListener("touchend", (e) => {
   shiftTasksMonth(dx < 0 ? 1 : -1); render();
 }, { passive: true });
 const searchSoon = debounce((fn) => fn());
-document.addEventListener("click", (e) => { const d = document.querySelector("details.bill-fab[open]"); if (d && !d.contains(e.target)) d.open = false; });   // 账单概览右下角「＋」：点别处收起
-/** 改共享的时间范围：花费（state.stats.months）和收入页一起变，存在本机 */
-/** 排除资本性 / 排除投资：和时间范围一样存在本机，下次打开照旧（默认都排除） */
-function saveStatToggles() { try { localStorage.setItem("hmh-fin-excap", state.stats.exCap ? "1" : "0"); localStorage.setItem("hmh-fin-exinv", state.stats.exInv ? "1" : "0"); } catch { /* 忽略 */ } }
-function setSharedRange(v) { state.stats.months = normRange(v); state.stats.month = null; setFinRange(state.stats.months); }
+document.addEventListener("click", (e) => { const d = document.querySelector("details.bill-fab[open]"); if (d && !d.contains(e.target)) d.open = false; });
 main.addEventListener("input", (e) => {
   // 搜索框：筛选条件马上记下，列表停下 ~200ms 再重画（不是每敲一个字都重画整张列表）
   if (e.target.id === "invSearch") { state.filter.q = e.target.value; searchSoon(renderInvList); }
@@ -806,33 +144,6 @@ main.addEventListener("input", (e) => {
 function autoGrow(el) {
   el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`;
   const c = el.nextElementSibling; if (c?.classList.contains("grow-count")) { const max = +el.maxLength || 0; c.hidden = !(max && el.value.length >= max * 0.8); c.textContent = `${el.value.length}/${max}`; }
-}
-/** 备份：手动 / 定时到期后点「继续」 */
-const backupTargetName = (k) => ({ download: t("下载"), folder: t("文件夹"), cloud: t("云端"), gdrive: "Google Drive", dropbox: "Dropbox" }[k] || k);
-async function doBackup(targets, el) {
-  if (el) el.disabled = true;
-  try {
-    const r = await Backup.runBackup(targets, { gesture: true });
-    state.backupPending = r.needGesture;
-    const sqlNote = r.sqlN ? t("已顺带拷贝 {n} 个 SQL 文件。", { n: r.sqlN }) : t("提醒：数据库脚本（supabase/*.sql）不在备份里，请手动把它拷到云盘或别的位置。");
-    state.backupResult = r.ok.length ? { title: t("已备份到 {to}：{name}（{n} 行）", { to: r.ok.map(backupTargetName).join("、"), name: r.name, n: r.rows }), detail: [sqlNote, ...r.failed.map(([k, why]) => `${backupTargetName(k)}：${why}`)].join("；") }
-      : { ok: false, title: t("备份没成功"), detail: r.failed.map(([k, why]) => `${backupTargetName(k)}：${why}`).join("；") };
-  } catch (err) { state.backupResult = { title: t("备份没成功"), detail: friendlyErr(err.message) }; }
-  if (el) el.disabled = false;
-  refreshBackupUi(); render(false);
-}
-async function doRestore(el) {
-  const pv = state.backupPreview; if (!pv?.ok || !pv.data) return;
-  if (!confirm(t("把备份（{d}，{n} 行）导回当前家庭「{h}」？只补缺的，已有的不动、不删。", { d: String(pv.exported_at).slice(0, 16).replace("T", " "), n: pv.rows, h: state.household?.name || t("演示家庭") }))) return;
-  el.disabled = true; el.textContent = t("恢复中…");
-  try {
-    const r = await Backup.restore(pv.data, (tb) => { el.textContent = t("恢复中… {t}", { t: tb }); });
-    const n = Object.values(r.done).reduce((a, b) => a + b, 0), sk = Object.entries(r.skipped).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join("、");
-    state.backupResult = { title: r.errors.length ? t("恢复了 {n} 行，但有表出错", { n }) : t("已恢复 {n} 行", { n }), detail: [sk ? t("跳过：{s}", { s: sk }) : "", ...r.errors.map(([tb, why]) => `${tb}：${friendlyErr(why)}`)].filter(Boolean).join("；") };
-    state.backupPreview = null;
-    await refresh();
-  } catch (err) { state.backupResult = { title: t("恢复失败"), detail: friendlyErr(err.message) }; }
-  render(false);
 }
 main.addEventListener("change", async (e) => {
   if (e.target.dataset?.dealSel) {   // 交易时间线：完成情况 / 阶段 / 显示 / 排序（下拉框）
@@ -990,7 +301,6 @@ main.addEventListener("change", async (e) => {
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
   if (e.target.id === "hhSwitch") { localStorage.setItem("hmh-hid", e.target.value); location.reload(); }
 });
-
 // 记录性质的日期框带 max（不能晚于今天）：选择器里已经灰掉；表单多是 novalidate，手动输入的未来日期在这里统一拦住。
 // 到期日、预约、计划这些能选未来的日期框不带 max，不受影响。
 document.addEventListener("submit", (e) => {
@@ -999,7 +309,6 @@ document.addEventListener("submit", (e) => {
   e.preventDefault(); e.stopImmediatePropagation();
   toast(t("日期不能晚于 {d}", { d: late.max })); late.focus();
 }, true);
-
 main.addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = e.target;
@@ -1206,7 +515,6 @@ main.addEventListener("submit", async (e) => {
     if (f.id === "joinHhForm") return doJoinHousehold(f);
   } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
 });
-
 /* 图表色块、图例、名称、数字卡片：点一下（或 Enter / 空格）看对应的花费明细 */
 function drillTo(qs) {
   if (qs.startsWith("inc=1")) return go(`${href("bills", "income")}?tab=records&${qs}`);   // 收入图表（带 inc=1）：到 收入 → 明细，筛选由 income/views.js 的 applyIncomeDrill 套上
@@ -1780,459 +1088,5 @@ main.addEventListener("click", async (e) => {
     }
   } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); refresh(); }
 });
-
-/** 房屋资料分区表单：保存后第一次填房型去推荐耗材，其余回分区列表；silent=true 为离开页面时自动保存（不跳转） */
-async function saveHouseForm(f, { silent = false } = {}) {
-  const d = await readHouseForm(f), y = d.year_built, thisYear = new Date().getFullYear();
-  if (f.dataset.new === "1") {   // 添加房产向导第 1 步：建房产 + 存地区 / 房型，再进第 2 步（地址与建成年份）
-    if (!canManageHome()) return toast(t("只有家主可以新增房产"));
-    const name = f.elements.prop_name.value.trim();
-    if (!name) { f.querySelector("#houseFormError").textContent = t("请填写房产名称。"); f.elements.prop_name.focus(); return false; }
-    const saved = await Store.saveProperty({ name, kind: f.elements.prop_kind.value, role: f.elements.prop_role.value, status: f.elements.prop_status.value || "owned", address: null });
-    state.propertyId = saved.id; try { localStorage.setItem("hmh-property", saved.id); } catch { /* 忽略 */ }
-    await Store.saveHouseProfile(d, saved.id);
-    state.houseDraft = null; state.skipAutosave = true;
-    toast(t("房产已添加，接着填地址与建成年份"));
-    go(`${href("house", "profile")}?sec=address&wiz=1`, { replace: true }); await refresh(); return true;
-  }
-  if (y != null && (y < 1850 || y > thisYear)) {
-    const msg = t("建成年份需要在 1850 到 {y} 之间。", { y: thisYear });
-    if (silent) toast(t("没有自动保存：{msg}", { msg })); else f.querySelector("#houseFormError").textContent = msg;
-    return false;
-  }
-  const first = !state.houseProfile;
-  await Store.saveHouseProfile(d, state.propertyId);
-  const prop = state.properties.find((p) => p.id === state.propertyId);   // 地址存在房产上
-  if (prop && (prop.address || "") !== (d.address || "")) await Store.saveProperty({ ...prop, address: d.address || null });
-  if (f.elements.prop_kind && prop) await Store.saveProperty({ ...prop, name: f.elements.prop_name.value.trim() || prop.name, address: d.address || null, kind: f.elements.prop_kind.value, role: f.elements.prop_role.value, status: f.elements.prop_status.value || prop.status || "owned" });   // 「地区、房型与用途」里的类型 / 用途 / 状态
-  state.houseProfile = { ...d }; state.houseDraft = null;
-  if (silent) return true;
-  state.skipAutosave = true;
-  if (f.dataset.wiz === "1") { toast(t("已保存")); go(f.dataset.next || href("house", "overview")); refresh(); return true; }   // 添加房产向导：存完进下一步
-  toast(t("房屋资料已保存"));
-  const hasHouseItems = state.items.some(inSpace("house"));
-  go(first && f.dataset.sec === "type" && !hasHouseItems ? href("house", "template") : href("house", "profile"));
-  refresh();
-  return true;
-}
-
-/** 购物车改数量：按显示单位 ±一步（kg 0.5、lb 1、个 1…），最少一步；存回时换回原单位 */
-export async function stepShopQty(id, dir) {
-  const s = state.shopping.find((x) => x.id === id); if (!s) return;
-  const unit = shopUnit(s), step = Units.step(du(unit)), f = Units.factor(unit);
-  const disp = Math.max(step, Math.round((num(s.quantity, 1) * f + dir * step) * 100) / 100);
-  await Store.saveShopping({ id, quantity: Math.round((disp / f) * 10000) / 10000 });
-  refresh();
-}
-/** 购物车改单位：数量框里的数字不变，按新单位重新解释（和物品编辑页一样可以输入任何单位）；没改就什么也不做 */
-export async function setShopUnit(id, value) {
-  const s = state.shopping.find((x) => x.id === id); if (!s) return;
-  const cur = shopUnit(s), typed = Units.normalize(value).slice(0, 10);   // 英文界面填 bottle / lbs 也存成统一写法
-  if (!typed || typed === Units.normalize(du(cur))) return;
-  const disp = toDisp(num(s.quantity, 1), cur);
-  await Store.saveShopping({ id, unit: typed, quantity: Math.round((disp / Units.factor(typed)) * 10000) / 10000 });
-  refresh();
-}
-/** 购物车直接输入数量（显示单位）；空或 ≤ 0 就回到原值 */
-export async function setShopQty(id, value) {
-  const s = state.shopping.find((x) => x.id === id); if (!s) return;
-  const disp = num(value), f = Units.factor(shopUnit(s));
-  if (!(disp > 0)) return render();
-  await Store.saveShopping({ id, quantity: Math.round((disp / f) * 10000) / 10000 });
-  refresh();
-}
-
-/** 库存物品行：直接改数量（按显示单位填，存回原单位；差额记一条调整记录） */
-async function setItemQty(id, v) {
-  const it = state.items.find((x) => x.id === id), n = num(v, NaN); if (!it) return;
-  if (!Number.isFinite(n) || n < 0) { toast(t("数量需要是 0 或正数。")); return render(); }
-  const stored = Math.round((n / (Units.factor(it.unit) || 1)) * 100) / 100, d = Math.round((stored - num(it.quantity)) * 100) / 100;
-  if (!d) return;
-  try { await Store.adjust(id, d, "adjust"); toast(t("{name} 改成 {q}", { name: it.name, q: fmt(n) })); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); }
-  refresh();
-}
-/** 库存物品行：改单位（只换单位名称，数量按现在显示的数字存，不做换算） */
-async function setItemUnit(id, v) {
-  const it = state.items.find((x) => x.id === id), u = Units.normalize(v) || String(v || "").trim().slice(0, 10); if (!it || !u || u === "__other") return render();
-  const row = document.querySelector(`.inv-row[data-id="${CSS.escape(id)}"] [data-inv-qty]`), q = row ? num(row.value, num(it.quantity)) : num(it.quantity);
-  if (u === it.unit && q === num(it.quantity)) return;
-  try { await Store.saveItem({ ...it, unit: u, quantity: Math.round(q * 100) / 100 }); toast(t("{name} 的单位改成 {u}", { name: it.name, u: t(u) })); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); }
-  refresh();
-}
-/** 移出购物车：先确认（页面里的确认框），再删掉购物车里这些物品还没买到的那几条 */
-export async function removeFromShopping(ids) {
-  const items = ids.map((x) => state.items.find((i) => i.id === x)).filter(Boolean);
-  const rows = state.shopping.filter((s) => s.status !== "bought" && ids.includes(s.item_id));
-  if (!rows.length) { toast(t("已经不在购物车里了")); return refresh(); }
-  const names = items.map((i) => i.name), shown = names.slice(0, 3).join("、") + (names.length > 3 ? t("等 {n} 件", { n: names.length }) : "");
-  if (!(await askConfirm({ title: t("移出购物车"), body: t("{names} 将被移出购物车，请确认", { names: shown }), ok: t("移出"), danger: true }))) return refresh();
-  for (const r of rows) await Store.deleteShopping(r.id);
-  toast(t("已移出购物车：{names}", { names: shown })); refresh();
-}
-/** 所有「加入购物车」按钮（行上的、右滑、全部加入、多选）：已在清单里的跳过，其余先弹框确认每件的数量和单位（js/pantry/shop-ask.js） */
-export async function addAlertsToShopping(list) {
-  const fresh = list.filter((it) => it && !openShopFor(it.id));
-  if (!fresh.length) { toast(list.length > 1 ? t("这些都已经在清单里了") : t("已经在购物车里了")); return refresh(); }
-  const picked = await askShopItems(fresh);
-  if (!picked) return refresh();
-  for (const { it, quantity, unit } of picked) await Store.saveShopping({ item_id: it.id, name: it.name, quantity, unit, category: it.category });
-  const one = picked.length === 1 ? picked[0] : null;
-  toast(one ? t("已加入购物车：{name} {q} {u}", { name: one.it.name, q: fmt(one.quantity), u: t(one.unit) }) : t("已加入购物车 {n} 项", { n: picked.length }));
-  refresh();
-}
-
-export async function addRecipeMissing(recipeName) {
-  const r = scoreRecipes().find((x) => x.name === recipeName);
-  if (!r) return;
-  const openNames = new Set(state.shopping.filter((s) => s.status !== "bought").map((s) => s.name));
-  let added = 0;
-  for (const p of r.parts.filter((x) => !x.item)) {
-    const existing = state.items.find((i) => nameHas(i.name, p.kw));
-    const name = existing?.name || t(p.kw[0]);
-    if (openNames.has(name) || (existing && openShopFor(existing.id))) continue;
-    await Store.saveShopping({ name, quantity: 1, unit: existing?.unit || "", item_id: existing?.id || null, category: existing?.category || "fresh" });
-    added++;
-  }
-  toast(added ? t("“{recipe}”缺的 {n} 样已加入清单", { recipe: t(recipeName), n: added }) : t("缺的食材已经在清单里了"));
-  refresh();
-}
-
-export async function markBought(id) {
-  const s = state.shopping.find((x) => x.id === id);
-  if (!s) return;
-  const priceEl = document.querySelector(`[data-price-for="${CSS.escape(id)}"]`);
-  const amount = priceEl && priceEl.value !== "" ? Math.round(Math.max(0, num(priceEl.value)) * 100) / 100 : null;
-  const store = cleanStore(document.querySelector(`[data-store-for="${CSS.escape(id)}"]`)?.value);
-  if (store) rememberStore(store);
-  const item = state.items.find((i) => i.id === s.item_id);
-  const qty = num(s.quantity, 1), now = new Date().toISOString();
-  await Store.saveShopping({ id, status: "bought", bought_at: now, amount, claimed_by_name: s.claimed_by_name || myName() });
-  const paySel = document.querySelector(`[data-card-for="${CSS.escape(id)}"]`), payV = paySel?.value || ""; if (paySel) rememberCard(payV);
-  await Store.addPurchase({
-    item_id: item?.id || null, name: s.name, category: item?.category || s.category || "other",
-    quantity: qty, unit: s.unit || item?.unit || null, amount, currency: Units.region.currency, purchased_at: now, store, ...purchasePayFields(payV),
-  });
-  const fit = item && s.unit ? Units.fit(s.unit, item.unit) : { kind: "same", factor: 1 };
-  if (item) {
-    if (fit.kind === "same") {
-      await Store.adjust(item.id, Math.round(qty * 100) / 100, "restock");
-      toast(t("{name} 已入库 +{q}，记得更新保质期", { name: s.name, q: showQty(qty, item.unit) }));
-    } else if (fit.kind === "convert" || fit.kind === "count") {
-      // 2026-11-12：能换算的（lb → kg）换成库存的单位再补；计数单位之间（个 → 瓶）按 1:1 补。库存单位不动，提示一下换算了什么
-      const add = Math.round(qty * fit.factor * 100) / 100;
-      await Store.adjust(item.id, add, "restock");
-      toast(t("{name} 已入库 +{q}（{q1} {u1} 按库存单位记成 {q}），记得更新保质期", { name: s.name, q: showQty(add, item.unit), q1: fmt(toDisp(qty, s.unit)), u1: t(du(s.unit)) }));
-    } else {
-      // 采购时改了单位：库存的单位跟着改成新单位。能换算的（kg ↔ lb 等）把原有库存、最低库存、日均用量一起换成新单位；换算不了的（个 → 包）数字照旧，只换单位
-      const r = Units.convert(1, item.unit, s.unit), k = r == null ? 1 : r, r2 = (v) => Math.round(v * 100) / 100;
-      const scale = (v) => (v == null || v === "" ? v : r2(num(v) * k));
-      await Store.saveItem({ ...item, unit: s.unit, quantity: scale(item.quantity), min_quantity: scale(item.min_quantity), avg_daily_use: scale(item.avg_daily_use) });
-      await Store.adjust(item.id, r2(qty), "restock");
-      toast(t("{name} 已入库 +{q}，库存单位由 {u1} 改为 {u2}{note}，记得更新保质期", { name: s.name, q: showQty(qty, s.unit), u1: t(item.unit), u2: t(s.unit), note: r == null ? t("（单位无法换算，原库存数字没变）") : "" }));
-    }
-  } else toast(t("{name} 已买到", { name: s.name }) + (amount != null ? t("，花费 {m}", { m: money(amount) }) : ""));
-  refresh();
-}
-
-/** 导出里的房产 / 设备 / 交易：没财务权限时去掉价格（买入 / 卖出价、成交价、定金、设备买价 / 更换估价、车辆卖出价），和界面一致 */
-function pricedExport() {
-  if (financeOk()) return { properties: state.properties, assets: state.assets, property_deals: state.deals };
-  const drop = (o, keys) => { const x = { ...o }; for (const k of keys) delete x[k]; return x; };
-  return { properties: state.properties.map((p) => drop(p, ["purchase_price", "sale_price"])),
-    assets: state.assets.map((a) => ({ ...drop(a, ["purchase_price", "replacement_cost_estimate"]), ...(a.vehicle ? { vehicle: drop(a.vehicle, ["sale_price"]) } : {}) })),
-    property_deals: state.deals.map((d) => drop(d, ["price", "earnest_money"])) };
-}
-export async function exportJson() {
-  let purchases = []; try { purchases = await Store.listPurchases(); } catch { /* 读不到就不导出花费 */ }   // 花费不在内存里：导出时按需读全部（迁移 057）
-  const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), household: state.household?.name, items: state.items, shopping: state.shopping, purchases, medical_bills: state.medBills, medical_payments: state.medPayments,
-    ...pricedExport(), house_profile: state.houseProfile, maintenance_logs: state.maintLogs, seasonal_tasks: state.seasonalDone,
-    bills: state.bills, bill_payments: state.billPayments, deal_task_done: state.dealDone, deal_task_overrides: state.dealOverrides, deal_custom_tasks: state.dealCustom }, null, 2)], { type: "application/json" });
-  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `pantry-${new Date().toISOString().slice(0, 10)}.json` });
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-
-export function notifyIfNeeded() {
-  // 浏览器通知：紧急和今天两档有新增时弹一次，内容带房产名
-  const urgent = collectAlerts().filter((x) => x.severity <= 1);
-  const prev = state.lastAlertCount;
-  state.lastAlertCount = urgent.length;
-  if (prev === null ? urgent.length === 0 : urgent.length <= prev) return;
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-  try { new Notification(t(APP_NAME), { body: t("{n} 件事要马上处理：{list}", { n: urgent.length, list: joinList(urgent.slice(0, 4).map((x) => withProperty(x.property_id, x.title))) }) }); } catch { /* 部分移动浏览器只允许 Service Worker 通知 */ }
-}
-
-/* ───────────── 云端：登录与家庭 ───────────── */
-
-/* 顶栏同步状态（和小月亮 / 家庭学堂 / 牧羊人一致）：同步好了显示“家庭同步 · N 人”，其余显示当时的状态文字；
-   鼠标放上去是完整的状态（含同步时间）。成员数是登录后并行读的，读到了再刷新一次。 */
-function paintHeaderSync() {
-  const h = $("#hdrSync"); if (!h) return;
-  const s = syncState, ready = s.ok && !s.err && Store.mode !== "demo", n = state.members?.length || 0;
-  const label = ready && n ? t("家庭同步 · {n} 人", { n }) : s.text;
-  h.innerHTML = `<span class="dot${ready ? " ok" : ""}"></span>${esc(label)}`;
-  h.title = s.text; h.classList.toggle("err", !!s.err);
-}
-syncState.onChange = paintHeaderSync;
-
-// 购物车区块折叠 / 展开：记住这次的选择（toggle 事件不冒泡，所以用捕获）
-export function gate(html) { document.body.classList.add("gate"); applyChrome(); $("#hhName").textContent = ""; $("#main").innerHTML = html; }
-
-/* 登录：邮箱魔法链接（默认）；手机号短信验证码（config.js 里 PHONE_LOGIN = true 且 Supabase 已接短信服务商时显示） */
-const COUNTRY_CODES = [["+1", "美国 / 加拿大 +1"], ["+86", "中国大陆 +86"], ["+852", "香港 +852"], ["+886", "台湾 +886"], ["+65", "新加坡 +65"], ["+61", "澳大利亚 +61"], ["+44", "英国 +44"], ["+81", "日本 +81"]];
-const phoneLoginOn = () => !!window.APP_CONFIG?.PHONE_LOGIN;
-const quickJoinOn = () => window.APP_CONFIG?.QUICK_JOIN !== false;
-
-export function renderLogin(msg = "") {
-  const modes = [["email", "邮箱"], phoneLoginOn() && ["phone", "手机号"], quickJoinOn() && ["quick", "邀请码直接进入"]].filter(Boolean);
-  const mode = modes.some(([m]) => m === state.loginMode) ? state.loginMode : "email";
-  const tabs = modes.length > 1 ? `<div class="seg" role="group" aria-label="${t("登录方式")}">${modes.map(([m, l]) =>
-    `<button type="button" class="chip" data-action="login-mode" data-mode="${m}" aria-pressed="${mode === m}">${t(l)}</button>`).join("")}</div>` : "";
-  let body;
-  if (mode === "quick") {
-    body = `<p class="muted">${t("家人已经建好家庭的话，填邀请码直接进入，不用收邮件或短信。手机号只用来标识是谁，不会发送验证码。")}</p>
-      <form id="quickForm">
-        <input type="tel" name="phone" required inputmode="tel" autocomplete="tel" placeholder="${t("手机号")}" aria-label="${t("手机号")}">
-        <input name="display_name" maxlength="20" placeholder="${t("我的称呼（可不填），例如：爸爸")}" aria-label="${t("我的称呼")}">
-        <input name="code" required maxlength="12" placeholder="${t("邀请码")}" autocapitalize="characters" aria-label="${t("邀请码")}">
-        <button class="btn btn-primary" type="submit">${t("进入家庭")}</button></form>
-      <p class="muted" style="font-size:12px">${t("这种方式的身份保存在本设备浏览器里，清除浏览器数据或换手机后需要重新用邀请码进入。创建家庭请用邮箱登录。")}</p>`;
-  } else if (mode === "phone" && state.phonePending) {
-    body = `<p class="muted">${t("验证码已发送到 {phone}，请输入短信里的 6 位数字。", { phone: esc(state.phonePending) })}</p>
-      <form id="otpForm"><input name="token" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,8}" maxlength="8" placeholder="${t("验证码")}" aria-label="${t("验证码")}">
-        <button class="btn btn-primary" type="submit">${t("登录")}</button>
-        <button class="btn btn-ghost" type="button" data-action="otp-back">${t("换个号码 / 重新发送")}</button></form>`;
-  } else if (mode === "phone") {
-    const def = Units.region.system === "us" ? "+1" : "+86";
-    body = `<p class="muted">${t("输入手机号，我们会发一条短信验证码，无需密码。")}</p>
-      <form id="phoneForm" class="phone-form">
-        <select name="cc" aria-label="${t("国家或地区代码")}">${COUNTRY_CODES.map(([c, l]) => `<option value="${c}" ${c === def ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
-        <input type="tel" name="phone" required inputmode="tel" autocomplete="tel-national" placeholder="${t("手机号")}" aria-label="${t("手机号")}">
-        <button class="btn btn-primary" type="submit">${t("发送验证码")}</button></form>`;
-  } else {
-    body = `<p class="muted">${t("输入邮箱，我们会发一封登录链接，点开即可登录，无需密码。")}</p>
-      <form id="loginForm"><input type="email" name="email" required autocomplete="email" placeholder="you@example.com" aria-label="${t("邮箱")}">
-        <button class="btn btn-primary" type="submit">${t("发送登录链接")}</button></form>`;
-  }
-  gate(`<div class="panel gate-card"><h2>${t("登录")}</h2>${tabs}${body}<p class="muted" role="status">${esc(msg)}</p></div>`);
-  setSync(t("未登录"));
-}
-
-export async function doLogin(f) {
-  const email = f.elements.email.value.trim();
-  if (!email) return;
-  f.querySelector("button").disabled = true;
-  const { error } = await CloudStore.sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split("#")[0] } });
-  if (error) { f.querySelector("button").disabled = false; return toast(t("发送失败：{msg}", { msg: error.message })); }
-  renderLogin(t("登录链接已发送到 {email}，请在本设备打开邮件。", { email }));
-}
-
-/** 手机号：拼成 E.164（+国家码+数字）后发短信验证码 */
-export async function doPhoneLogin(f) {
-  const digits = f.elements.phone.value.replace(/\D/g, "");
-  if (digits.length < 6 || digits.length > 15) return toast(t("请输入正确的手机号"));
-  const phone = `${f.elements.cc.value}${digits}`;
-  f.querySelector("button").disabled = true;
-  const { error } = await CloudStore.sb.auth.signInWithOtp({ phone });
-  if (error) {
-    f.querySelector("button").disabled = false;
-    const m = /provider|not enabled|unsupported/i.test(error.message) ? t("Supabase 还没开启手机号登录或没有接入短信服务商，请先按 README 配置，或改用邮箱登录。") : t("发送失败：{msg}", { msg: error.message });
-    return toast(m);
-  }
-  state.phonePending = phone;
-  renderLogin();
-}
-
-/** 邀请码直接进入：匿名登录后用邀请码加入家庭（加入动作在 boot 的 start() 里完成，避免和 SIGNED_IN 事件打架） */
-export async function doQuickJoin(f) {
-  const digits = f.elements.phone.value.replace(/\D/g, "");
-  const code = f.elements.code.value.trim();
-  if (digits.length < 6 || digits.length > 15) return toast(t("请输入正确的手机号"));
-  if (!code) return toast(t("请输入邀请码"));
-  const name = f.elements.display_name.value.trim() || t("尾号{d}", { d: digits.slice(-4) });
-  f.querySelector("button").disabled = true;
-  state.pendingJoin = { code, name };
-  const { error } = await CloudStore.sb.auth.signInAnonymously({ options: { data: { phone_label: digits, display_name: name } } });
-  if (error) {
-    state.pendingJoin = null; f.querySelector("button").disabled = false;
-    return toast(/anonymous/i.test(error.message) ? t("Supabase 还没开启匿名登录（Allow anonymous sign-ins），请先按 README 开启，或改用邮箱登录。") : t("进入失败：{msg}", { msg: error.message }));
-  }
-}
-
-export async function doVerifyOtp(f) {
-  const token = f.elements.token.value.trim();
-  if (!token || !state.phonePending) return;
-  f.querySelector("button").disabled = true;
-  const { error } = await CloudStore.sb.auth.verifyOtp({ phone: state.phonePending, token, type: "sms" });
-  if (error) { f.querySelector("button").disabled = false; return toast(/expired|invalid/i.test(error.message) ? t("验证码不对或已过期，请重新发送") : t("登录失败：{msg}", { msg: error.message })); }
-  state.phonePending = null;   // 成功后 onAuthStateChange 会收到 SIGNED_IN
-}
-
-export function renderOnboarding() {
-  const anon = !!state.user?.is_anonymous;   // 邀请码直接进入的匿名账号：只能加入，不能创建家庭
-  gate(`<div class="panel gate-card"><h2>${t("加入你的家庭")}</h2>
-    <p class="muted">${anon ? t("用家人给的邀请码加入。") : t("第一次使用请创建家庭；家人已经创建过的话，用邀请码加入。")}</p>
-    <form id="joinHhForm"><input name="code" required maxlength="12" placeholder="${t("邀请码")}" autocapitalize="characters" aria-label="${t("邀请码")}">
-      <input name="display_name" required maxlength="20" placeholder="${t("我的称呼，例如：爸爸")}" aria-label="${t("我的称呼")}" value="${esc(state.user?.user_metadata?.display_name || "")}">
-      <button class="btn btn-dark" type="submit">${t("用邀请码加入")}</button></form>
-    <hr>
-    ${anon ? `<p class="muted">${t("创建新家庭需要用邮箱登录，这样家庭有一个能找回的主人。")}<button type="button" class="btn btn-sm btn-ghost" data-action="logout">${t("改用邮箱登录")}</button></p>`
-      : `<form id="createHhForm"><input name="name" required maxlength="50" placeholder="${t("家庭名称，例如：小月亮的家")}" aria-label="${t("家庭名称")}">
-      <input name="display_name" required maxlength="20" placeholder="${t("我的称呼，例如：妈妈")}" aria-label="${t("我的称呼")}">
-      <button class="btn btn-primary" type="submit">${t("创建家庭")}</button></form>`}</div>`);
-  setSync(t("已登录"));
-}
-
-export async function doCreateHousehold(f) {
-  if (state.user?.is_anonymous) return toast(t("创建家庭请先用邮箱登录"));
-  const { data, error } = await CloudStore.sb.rpc("create_household", { p_name: f.elements.name.value.trim(), p_display_name: f.elements.display_name.value.trim() });
-  if (error) return toast(t("创建失败：{msg}", { msg: error.message }));
-  localStorage.setItem("hmh-hid", data); afterLogin();
-}
-
-/** join_household 的结果：旧库（没执行迁移 049）返回家庭 id 字符串 = 直接加入；新库返回 { status, household_id }：invalid / expired / throttled / full / pending / active */
-function joinOutcome(data) {
-  if (typeof data === "string") return { status: "active", hid: data };
-  return { status: data?.status || "invalid", hid: data?.household_id || null };
-}
-const JOIN_MSG = { invalid: "邀请码不正确，请向家主确认", expired: "邀请码已过期，请向家主要一个新的", throttled: "试得太多次了，请 15 分钟后再试", full: "等家主批准的申请太多了，请联系家主先处理" };
-export async function doJoinHousehold(f) {
-  const { data, error } = await CloudStore.sb.rpc("join_household", { p_code: f.elements.code.value.trim(), p_display_name: f.elements.display_name.value.trim() });
-  if (error) return toast(error.message.includes("invalid") ? t("邀请码不正确，请向家主确认") : t("加入失败：{msg}", { msg: error.message }));
-  const o = joinOutcome(data);
-  if (JOIN_MSG[o.status]) return toast(t(JOIN_MSG[o.status]));
-  if (o.hid) localStorage.setItem("hmh-hid", o.hid);
-  afterLogin();   // pending → 「等家主批准」页；active → 直接进入
-}
-
-export async function afterLogin() {
-  const sb = CloudStore.sb;
-  let { data, error } = await sb.from("household_members")
-    .select("household_id, display_name, status, households(id, name, invite_code, invite_expires_at, created_by)").eq("user_id", state.user.id);
-  if (error && /status|invite_expires_at/i.test(error.message)) ({ data, error } = await sb.from("household_members").select("household_id, display_name, households(id, name, invite_code, created_by)").eq("user_id", state.user.id));   // 迁移 049 还没执行
-  if (error) return toast(t("读取家庭失败：{msg}", { msg: error.message }));
-  const pend = data.filter((d) => d.status === "pending");
-  data = data.filter((d) => (d.status || "active") === "active" && d.households);
-  if (!data.length) return pend.length ? renderPending(pend[0]) : renderOnboarding();
-  clearInterval(waitTimer);
-  state.households = data.map((d) => d.households).filter(Boolean);
-  const saved = localStorage.getItem("hmh-hid");
-  const mine = data.find((d) => d.household_id === saved) || data[0];
-  state.household = mine.households;
-  state.displayName = mine.display_name;
-  CloudStore.hid = mine.household_id;
-  localStorage.setItem("hmh-hid", CloudStore.hid);
-  const membersP = CloudStore.listMembers().then((m) => { state.members = m; paintHeaderSync(); return m; });   // 和 refresh 的数据读取并行
-  state.membersReady = membersP;
-  CloudStore.subscribe(refreshSoon);
-  await refresh();
-  // 同一个人开了多个浏览器 / 设备会变成多位“爸爸”：发现和别人同名，推荐加序列号或日期
-  membersP.then(() => promptDuplicateName({ save: saveMyName }))   // refresh 读完会把 state.membersReady 清空，所以用局部变量.then((v) => { if (v) render(false); }).catch(() => {});
-}
-
-/** 申请已提交、等家主批准：每 20 秒自动再查一次，批准了就直接进去 */
-let waitTimer = null;
-function renderPending(row) {
-  gate(`<div class="panel gate-card"><h2>${t("申请已发出，等家主批准")}</h2>
-    <p class="muted">${t("你用邀请码申请加入了这个家庭。家主在「设置 → 家庭」里点「批准」之后，你就能进来；在那之前这里看不到任何家里的数据。")}</p>
-    <p class="muted small">${t("这个页面会自动检查，也可以手动再查一次。")}</p>
-    <div class="form-actions"><button type="button" class="btn btn-primary" data-action="join-recheck">${t("再查一次")}</button>
-      <button type="button" class="btn btn-ghost" data-action="join-cancel" data-hid="${esc(row.household_id)}">${t("取消申请")}</button>
-      <button type="button" class="btn btn-ghost" data-action="logout">${t("退出登录")}</button></div></div>`);
-  setSync(t("等待家主批准"));
-  clearInterval(waitTimer); waitTimer = setInterval(() => { if (!document.body.classList.contains("gate")) return clearInterval(waitTimer); afterLogin(); }, 20000);
-}
-
-/** 家主：有没有等批准的加入申请（读完人数变了就重画）；顺带给提醒总线用 */
-async function loadPending() {
-  const owner = state.members?.some((m) => m.user_id === state.user?.id && m.role === "owner");
-  if (Store.mode === "demo" || !owner) { if (state.pendingMembers?.length) state.pendingMembers = []; return; }
-  const p = await CloudStore.listPendingMembers().catch(() => []);
-  const changed = p.length !== (state.pendingMembers || []).length; state.pendingMembers = p;
-  if (changed) render(false);
-}
-registerAlerts(loginAlertItems);   // 陌生设备 / 新网络登录（迁移 086）
-registerAlerts(() => {
-  const p = state.pendingMembers || []; if (!p.length) return [];
-  const link = `${href("me", "settings")}?sec=family`;
-  return [{ source: "join", severity: 1, must: true, title: t("{n} 人申请加入家庭", { n: p.length }), detail: p.map((m) => m.display_name).join("、"), href: link, actions: [{ type: "link", href: link, label: t("去批准"), cls: "btn-primary" }] }];
-});
-
-/** 保存我自己的称呼（家庭成员表），并刷新成员列表 */
-async function saveMyName(v) {
-  const { error } = await CloudStore.sb.from("household_members").update({ display_name: v }).eq("household_id", CloudStore.hid).eq("user_id", state.user.id);
-  if (error) throw new Error(error.message);
-  state.displayName = v; state.members = await CloudStore.listMembers();
-}
-/** 改称呼前检查：和别的成员同名就拦住，并给出推荐（exceptId = 正在被改名的那位） */
-function dupNameCheck(v, exceptId) {
-  const list = famMembers();
-  if (!sameNameMember(v, list, exceptId)) return;
-  throw new Error(t("已有成员叫“{n}”，建议改成：{s}", { n: v, s: suggestNames(v, list, exceptId).join(" / ") }));
-}
-
-
-
-/* ───────────── 启动 ───────────── */
-export async function boot() {
-  Backup.initProviders(toast);   // 从 Dropbox 授权页跳回来时把 ?code= 换成令牌，再跳到备份页
-  window.__hmhBooted = true;   // 告诉 index.html 的启动自检：主脚本已经运行
-  try { sessionStorage.removeItem("hmh-boot-retry"); } catch (e) { /* 忽略 */ }   // 起来了：下次再起不来还可以自动重拉一次
-  // 发布日志（js/core/releases-ui.js，四个姊妹应用共用）：记这台设备「新版本」提示出现几次；今日页顶上画提示，我的 → 发布日志 是整页
-  if (releaseBadgePossible()) (window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(() => loadReleases(), { timeout: 4000 });   // 提示不会再出现就不加载；发布日志页自己按需加载
-  if (lang === "en") await loadEN();   // 英文字典按需加载：先拉下来再渲染，避免先中文后英文闪一下
-  document.addEventListener("i18n-loaded", () => { if (state.enriched && lang !== "en") render(false); });   // 简体 / 繁體界面碰到英文名字时才加载字典，加载完重画
-  if (lang === "zh-Hant") await loadOpenCC();   // 繁體：先把转换库拉下来再渲染，避免先简后繁闪一下
-  applyChrome();
-  fillUnitList();
-  document.addEventListener("budget-saved", () => render());
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && state.enriched) refreshSoon(null); });
-  // 跨过手机 / 宽屏分界（旋转 iPad、拖窗口）：库存页在方块仪表盘和分类导航之间切换
-  window.matchMedia("(max-width: 640px)").addEventListener("change", () => { const r = state.route; if (state.enriched && ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear")))) render(true); });
-
-  const cfg = checkConfig();
-  state.configIssue = cfg.issue || null;
-  if (cfg.mode === "blocked") {
-    setSync(t("配置有安全问题"), true);
-    $("#main").innerHTML = `<div class="panel" role="alert" style="border:2px solid var(--out)"><b>${t("已停止连接云端")}</b><p>${esc(t(cfg.issue))}</p></div>`;
-    return;
-  }
-  if (cfg.mode === "cloud") {
-    if (!window.supabase) { setSync(t("云端库加载失败"), true); return toast(t("无法加载 Supabase SDK，请检查网络后刷新")); }
-    setStore(CloudStore);
-    CloudStore.sb = window.supabase.createClient(cfg.url, cfg.key, { global: { fetch: resilientFetch } });   // 读取 15 秒不回应就重发，不再无限转圈
-    let started = false;
-    const start = async (session) => {
-      if (started || !session) return;
-      started = true; state.user = session.user;
-      // 邀请码直接进入：匿名登录成功后先加入家庭，再走正常流程
-      if (state.pendingJoin) {
-        const { code, name } = state.pendingJoin; state.pendingJoin = null;
-        const { data, error } = await CloudStore.sb.rpc("join_household", { p_code: code, p_display_name: name });
-        const o = error ? null : joinOutcome(data);
-        if (error || JOIN_MSG[o.status]) {
-          started = false;
-          await CloudStore.sb.auth.signOut();   // 加入失败就不保留这个匿名身份
-          return renderLogin(error ? (error.message.includes("invalid") ? t("邀请码不正确，请向家主确认。") : t("加入失败：{msg}", { msg: error.message })) : t(JOIN_MSG[o.status]));
-        }
-        if (o.hid) localStorage.setItem("hmh-hid", o.hid);
-      }
-      afterLogin();
-    };
-    CloudStore.sb.auth.onAuthStateChange((evt, session) => {
-      if (evt === "SIGNED_IN") start(session);
-      if (evt === "SIGNED_OUT") { started = false; if (!state.pendingJoin) renderLogin(); }
-    });
-    const { data: { session } } = await CloudStore.sb.auth.getSession();
-    state.route = parseRoute(); loadOverviewRange(); applyOverviewRoute(state.route); applyAllRoute(state.route);   // 直接打开 / 刷新带条件的「全部账单」网址（卡片链接、书签）
-    if (session) start(session); else renderLogin();
-  } else {
-    setStore(DemoStore);
-    DemoStore.load();
-    state.displayName = DemoStore.members().find((m) => m.user_id === "me")?.display_name || state.displayName;   // 演示：在资料页改过的称呼
-    state.household = { name: t("演示家庭（数据仅存于本浏览器）") };
-    state.route = parseRoute(); loadOverviewRange(); applyOverviewRoute(state.route); applyAllRoute(state.route);
-    await refresh();
-  }
-}
 boot();
-bindShops((force) => render(force !== false));   // 常去的商店：表单提交、搜索框、筛选（js/shops/views.js）
+bindShops((force) => render(force !== false));

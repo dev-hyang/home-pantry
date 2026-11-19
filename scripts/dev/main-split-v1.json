@@ -1,0 +1,227 @@
+{
+  "source": "js/main.js",
+  "files": [
+    {
+      "path": "js/app/lazy-modules.js",
+      "doc": "按需加载的页面模块的登记表：LZ.xxx 是模块，下面的函数是它们的包装（js/core/lazy.js）。只依赖 core/lazy.js，所以总是最先就绪。",
+      "lines": [
+        [
+          98,
+          99
+        ],
+        [
+          101,
+          101
+        ],
+        [
+          103,
+          103
+        ],
+        [
+          105,
+          216
+        ]
+      ]
+    },
+    {
+      "path": "js/app/lazy-init.js",
+      "doc": "懒加载模块加载完后要执行一次的启动调用（需要 render / refresh，所以不放进 lazy-modules.js，免得循环引用）。",
+      "lines": [
+        [
+          100,
+          100
+        ],
+        [
+          102,
+          102
+        ],
+        [
+          104,
+          104
+        ]
+      ]
+    },
+    {
+      "path": "js/app/data.js",
+      "doc": "读数据：refresh()（所有表一次并行读完）、按表重读（实时同步）、防抖。",
+      "lines": [
+        [
+          224,
+          362
+        ]
+      ]
+    },
+    {
+      "path": "js/app/releases.js",
+      "doc": "发布日志数据（200KB+）：只有「新版本提示」和发布日志页要用，空闲时或进发布日志页才加载。",
+      "lines": [
+        [
+          367,
+          382
+        ]
+      ]
+    },
+    {
+      "path": "js/app/page-table.js",
+      "doc": "页面表（路由 → 画页面的函数）、哪些页是表单页、手机上哪些页隐藏底部页签、用户自己的操作标记。",
+      "lines": [
+        [
+          365,
+          366
+        ],
+        [
+          383,
+          414
+        ]
+      ]
+    },
+    {
+      "path": "js/app/chrome.js",
+      "doc": "页面外框：顶栏站名 / 导航文字、语言切换、应用切换。",
+      "lines": [
+        [
+          219,
+          219
+        ],
+        [
+          417,
+          444
+        ]
+      ]
+    },
+    {
+      "path": "js/app/render.js",
+      "doc": "渲染：render()、mountView()（页面函数返回 Promise 时先放「加载中…」）、renderBody()。",
+      "lines": [
+        [
+          447,
+          478
+        ],
+        [
+          532,
+          562
+        ]
+      ]
+    },
+    {
+      "path": "js/app/unsaved.js",
+      "doc": "后台刷新不能冲掉表单里还没保存的输入：重画前记下、重画后填回。",
+      "lines": [
+        [
+          480,
+          531
+        ]
+      ]
+    },
+    {
+      "path": "js/app/route.js",
+      "doc": "路由：hashchange 处理、离开表单页自动保存、滚动位置。",
+      "lines": [
+        [
+          563,
+          686
+        ]
+      ]
+    },
+    {
+      "path": "js/app/page-events.js",
+      "doc": "页面级的小事件：切页签清筛选、各页「清除筛选」按钮、新账单创建后的跳转、切语言。",
+      "lines": [
+        [
+          690,
+          743
+        ]
+      ]
+    },
+    {
+      "path": "js/app/actions/house-form.js",
+      "doc": "房屋资料分区表单的保存。",
+      "lines": [
+        [
+          1785,
+          1819
+        ]
+      ]
+    },
+    {
+      "path": "js/app/actions/shopping.js",
+      "doc": "购物车 / 库存数量的操作：加减、改单位、移出、买到了入库。",
+      "lines": [
+        [
+          1820,
+          1937
+        ]
+      ]
+    },
+    {
+      "path": "js/app/actions/export-notify.js",
+      "doc": "导出 JSON、浏览器通知。",
+      "lines": [
+        [
+          1938,
+          1963
+        ]
+      ]
+    },
+    {
+      "path": "js/app/auth/login.js",
+      "doc": "云端登录：登录页、邮箱 / 手机 / 邀请码登录。",
+      "lines": [
+        [
+          1968,
+          2069
+        ]
+      ]
+    },
+    {
+      "path": "js/app/auth/household.js",
+      "doc": "家庭：建家 / 加入、登录后读家庭、等批准、改称呼。",
+      "lines": [
+        [
+          2070,
+          2174
+        ]
+      ]
+    },
+    {
+      "path": "js/app/boot.js",
+      "doc": "启动：按配置选云端 / 演示模式，读完数据后第一次渲染。",
+      "lines": [
+        [
+          2176,
+          2236
+        ]
+      ]
+    },
+    {
+      "path": "js/app/actions/backup.js",
+      "doc": "备份与恢复：导出到云盘 / 文件夹、从文件恢复。",
+      "lines": [
+        [
+          811,
+          836
+        ]
+      ]
+    },
+    {
+      "path": "js/app/actions/stats-prefs.js",
+      "doc": "统计页的偏好：排除资本性 / 投资、各页共用的时间范围。",
+      "lines": [
+        [
+          785,
+          786
+        ]
+      ]
+    },
+    {
+      "path": "js/app/errors.js",
+      "doc": "把数据库 / 网络的原始报错翻成家里人看得懂的话。",
+      "lines": [
+        [
+          752,
+          753
+        ]
+      ]
+    }
+  ]
+}
