@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.18", title: { zh: "特别摊派有了自己的缴费记录页，能搜索和筛选", en: "Special assessments get their own payment records page with search and filters" }, items: [
+    { k: "new", zh: "摊派卡片的 ⋯ 菜单（或「已缴」小节下面）新增「缴费记录」：已缴的每一期一行，能按日期、金额、摊派名称搜索，按类型（分期 / 一次性结清）、年份筛选，也能换排序", en: "New Payment records page from the ⋯ menu (or under the Paid section): one row per paid installment, searchable, filterable by type and year, sortable" },
+    { k: "better", zh: "有缴费记录的行可以点进那笔缴费；同一账单有多笔摊派时，可以在页面上切换看哪一笔或全部", en: "Rows with a payment record open that payment; with several assessments on one bill you can switch between them or see all" }
+  ] },
+
   { v: "2026-11-19.17", title: { zh: "特别摊派卡片更清爽：待缴 / 已缴分开折叠，操作收进 ⋯", en: "Cleaner special assessment cards: Unpaid / Paid sections, actions in ⋯" }, items: [
     { k: "better", zh: "每笔摊派的卡片去掉了整张折叠的箭头，改成「待缴」「已缴」两个小节，各自折叠（默认收起）", en: "Each assessment card no longer collapses as a whole; it now has Unpaid and Paid sections that collapse separately (closed by default)" },
     { k: "better", zh: "卡片上直接看到：未缴多少（几笔、几笔按分期）、已缴多少、最近一次缴费、即将到期的一期；备注收进名称旁的 ⓘ", en: "The card shows unpaid and paid totals, the last payment and the next due; notes moved into an ⓘ next to the name" },

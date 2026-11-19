@@ -4,6 +4,7 @@ import { Store } from "../core/store.js";
 import { VEHICLE_CATS } from "./instances.js";
 import { askInline } from "../core/ask.js";
 import { assessFormPage, assessListPage } from "./assessments-views.js";
+import { assessPaysPage } from "./assessments-pays.js";
 import { assessmentParts, assessmentsOf } from "./assessments-lib.js";
 import { assetSelectHtml } from "./asset-ui.js";
 import { autofillBar } from "../core/autofill.js";
@@ -66,6 +67,8 @@ export function viewBillForm() {
   if (b && sec === "assess") {   // 特别摊派：?sec=assess = 列表；?sec=assess&edit=id|new = 新增 / 编辑页
     const editId = r.q.get("edit"), listHref = `${hubHref}?sec=assess`;
     if (editId) { const a = editId === "new" ? null : state.assess.find((x) => x.id === editId && x.bill_id === b.id); const copyId = r.q.get("copy"), copyFrom = editId === "new" && copyId ? state.assess.find((x) => x.id === copyId && x.bill_id === b.id) || null : null; if (editId === "new" || a) return assessFormPage(b, a, crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("特别摊派") }, { label: a ? t("编辑摊派") : t("新增摊派") }]), copyFrom); }
+    const paysOf = r.q.get("pays");   // 摊派的缴费记录页：?sec=assess&pays=摊派id（all = 全部摊派）
+    if (paysOf) return assessPaysPage(b, crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("特别摊派") }, { label: t("缴费记录") }]), paysOf);
     return assessListPage(b, billCrumb(b, root, hubHref, t("特别摊派")));
   }
   if (b && sec === "pay") {   // 缴费记录：?sec=pay = 全部记录（搜索 / 筛选）；?sec=pay&edit=id 或 ?pay=1 = 独立的编辑 / 新建页

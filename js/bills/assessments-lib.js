@@ -3,6 +3,8 @@
  * 「前几期分期、最后一次性结清」就是几行 installment + 一行 payoff；缴了的期记着是哪次缴费交的（payment_id），回头能查。 */
 const r2 = (v) => Math.round((Number.isFinite(+v) ? +v : 0) * 100) / 100;
 export const isPaid = (x) => !!(x && (x.payment_id || x.settled_on));
+/** 这一期是哪天缴的：有缴费记录就用那笔的缴费日期（pays = 这条账单的缴费），否则用标「已缴」时记的日期；都没有返回 "" */
+export const paidOn = (x, pays = []) => (x?.payment_id && pays.find((p) => p.id === x.payment_id)?.paid_on) || x?.settled_on || "";
 export const monthEnd = (iso) => { const [y, m] = String(iso).slice(0, 7).split("-").map(Number); return `${y}-${String(m).padStart(2, "0")}-${String(new Date(y, m, 0).getDate()).padStart(2, "0")}`; };
 const addMonths = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); const t = new Date(y, m - 1 + n, 1), last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(Math.min(d, last)).padStart(2, "0")}`; };
 

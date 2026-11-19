@@ -4191,3 +4191,6 @@ form:not(.is-hoa) .hoa-only { display: none; }
 .lp-sheet .fam-sheet:focus { outline: none; }
 /* 提示 ⓘ 的气泡（.ui-hint::after）隐藏时也占位，靠近右边缘会把页面撑出几像素的横向滚动：横向裁掉（clip 不影响吸顶，纵向照常） */
 #main { overflow-x: clip; }
+.as-more { margin: 4px 0 8px; font-size: 14px; } .as-more a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+.pay-row .pay-hit b { white-space: nowrap; }
+#aspList .pay-row > .badge { min-width: 88px; justify-content: center; text-align: center; }   /* 摊派缴费记录：分期 / 结清角标等宽，日期列才对得齐 */
