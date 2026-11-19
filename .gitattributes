@@ -1,0 +1,2 @@
+# 打包产物不做换行符转换（Windows 的 autocrlf 会让 npm run check:dist 误报不一致）
+dist/** -text

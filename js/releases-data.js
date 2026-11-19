@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.38", title: { zh: "内部整理：发布用的程序文件处理方式调整，用法不变", en: "Under the hood: release file handling tweaked, nothing changes for you" }, items: [
+    { k: "better", zh: "发布时程序文件的换行符不再被系统自动改写，避免检查「是不是最新版」时误报；页面和操作和以前一样", en: "Line endings of the released program files are no longer rewritten automatically, which avoids false \"out of date\" warnings; pages and actions work as before" }
+  ] },
+
   { v: "2026-11-18.37", title: { zh: "打开应用明显更快：程序文件打包发布", en: "Much faster to open: app files are now bundled" }, items: [
     { k: "better", zh: "第一次打开时要下载的文件从一百多个合并成十几个，下载量也少了三分之一以上；慢网络下打开快了一半左右", en: "The first open now downloads a handful of files instead of 150+, with over a third less data; on slow connections it opens about twice as fast" },
     { k: "better", zh: "页面和操作和以前一样；没访问过的页面仍然点进去才下载", en: "Pages and actions work as before; pages you haven't visited still download only when you open them" }
