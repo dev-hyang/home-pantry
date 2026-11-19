@@ -6,7 +6,7 @@ export const isPaid = (x) => !!(x && (x.payment_id || x.settled_on));
 /** 这一期是哪天缴的：有缴费记录就用那笔的缴费日期（pays = 这条账单的缴费），否则用标「已缴」时记的日期；都没有返回 "" */
 export const paidOn = (x, pays = []) => (x?.payment_id && pays.find((p) => p.id === x.payment_id)?.paid_on) || x?.settled_on || "";
 export const monthEnd = (iso) => { const [y, m] = String(iso).slice(0, 7).split("-").map(Number); return `${y}-${String(m).padStart(2, "0")}-${String(new Date(y, m, 0).getDate()).padStart(2, "0")}`; };
-const addMonths = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); const t = new Date(y, m - 1 + n, 1), last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(Math.min(d, last)).padStart(2, "0")}`; };
+export const addMonths = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); const t = new Date(y, m - 1 + n, 1), last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(Math.min(d, last)).padStart(2, "0")}`; };
 
 /** 这条账单的摊派，带上排好序的各期和进度 */
 export function assessmentsOf(billId, assess = [], items = []) {
@@ -32,4 +32,17 @@ export function genInstallments({ count, total = null, each = null, start }) {
   const n = Math.max(1, Math.min(120, Math.floor(+count) || 0)); if (!start || !n) return [];
   const sum = total != null ? r2(total) : r2(+each * n), per = Math.floor((sum / n) * 100) / 100;
   return Array.from({ length: n }, (_, i) => ({ due_on: addMonths(start, i), amount: i === n - 1 ? r2(sum - per * (n - 1)) : per, kind: "installment" }));
+}
+/** 一次性结清：这笔摊派所有没缴的期（open）都被同一次缴费交掉时，把它们合并成一行「一次性结清」（金额 = 它们的合计，关联这次缴费）。
+ *  返回 { removeIds, payoff }：removeIds = 要删掉的没缴期，payoff = 要新增的结清行；没有全选、没有没缴的期、或本来就只剩一行结清，返回 null（照常关联就行）。 */
+export function settleMerge(items, assessmentId, checkedIds, { paidOn, paymentId }) {
+  const open = items.filter((x) => x.assessment_id === assessmentId && !isPaid(x));
+  if (!open.length || open.length !== checkedIds.length || !open.every((x) => checkedIds.includes(x.id))) return null;
+  if (open.length === 1 && open[0].kind === "payoff") return null;
+  return { removeIds: open.map((x) => x.id), payoff: { assessment_id: assessmentId, due_on: paidOn, amount: r2(open.reduce((s, x) => s + +x.amount, 0)), kind: "payoff", payment_id: paymentId, settled_on: null } };
+}
+/** 「加一期分期」的默认值：日期 = 最后一期往后一个月，金额 = 最近一期分期的金额（没有就空） */
+export function nextInstallment(rows) {
+  const last = rows.length ? rows[rows.length - 1].due_on : null, inst = [...rows].reverse().find((x) => x.kind === "installment");
+  return { due_on: last ? addMonths(last, 1) : null, amount: inst ? r2(inst.amount) : null, kind: "installment" };
 }

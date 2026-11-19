@@ -13,6 +13,7 @@ import { withProperty } from "../core/alerts.js";
 import { B } from "./bill-common.js";
 import { isBankAcct } from "./cards.js";
 import { resolvePayAccount } from "./card-picker.js";
+import { settleMerge } from "./assessments-lib.js";
 
 /* ── 保存 ── */
 const parseList = (s, { int = true } = {}) => String(s || "").split(/[,，\s]+/).map((x) => x.trim()).filter(Boolean).map((x) => (int ? parseInt(x, 10) : x)).filter((x) => (int ? Number.isFinite(x) : true));
@@ -65,7 +66,7 @@ export const payExpNote = (c) => (!c ? "" : isBankAcct(c) ? t("银行账户没�
 /** 账单的付款账户字段：下拉选卡 → pay_card_id；现金 / 其他 → autopay_method 文字 */
 const payFields = (value, text) => { const r = resolvePayAccount(value, text); return { pay_card_id: r.card_id, autopay_method: r.method }; };
 /** 记一笔缴费 / 核对 / 跳过：写 purchases（有金额且为应付，带上用的卡）、写记录、把账单推到下一期 */
-export async function recordPayment(bill, { paid_on, due_on, amount, status, method, card_id, confirmation_ref, late_fee, fee_amount, tax_amount, assessment_amount, assessment_ids, unit_amount, parking_amount, notes, store }) {
+export async function recordPayment(bill, { paid_on, due_on, amount, status, method, card_id, confirmation_ref, late_fee, fee_amount, tax_amount, assessment_amount, assessment_ids, settle_assessment, unit_amount, parking_amount, notes, store }) {
   const currency = bill.currency || Units.region.currency;
   let purchase_id = null;
   const total = status === "skipped" ? 0 : num(amount) + num(late_fee) + num(fee_amount) + num(tax_amount) + num(assessment_amount);
@@ -73,12 +74,17 @@ export async function recordPayment(bill, { paid_on, due_on, amount, status, met
     purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: (store || "").trim().slice(0, 40) || bill.payee || bill.name || null,
       amount: Math.round(total * 100) / 100, currency, purchased_at: new Date(`${paid_on}T12:00:00`).toISOString(), ...(card_id ? { card_id } : {}), ...(bill.property_id ? { property_id: bill.property_id } : {}) });   // 关联账单的房产（迁移 055）
   }
-  const payRow = { bill_id: bill.id, due_on: due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),
+  const assessOnly = !!settle_assessment && !(num(amount) > 0) && !(num(late_fee) > 0) && !(num(fee_amount) > 0) && !(num(tax_amount) > 0);   // 一次性结清只交摊派：不算交了本期（不关联到期日、不推进下次到期）
+  const payRow = { bill_id: bill.id, due_on: assessOnly ? null : due_on || bill.next_due_on || null, paid_on, amount: status === "skipped" ? null : (amount == null ? null : Math.round(num(amount) * 100) / 100),
     currency, method: method || null, confirmation_ref: confirmation_ref || null, late_fee: Math.round(num(late_fee) * 100) / 100, fee_amount: Math.round(num(fee_amount) * 100) / 100, tax_amount: Math.round(num(tax_amount) * 100) / 100, assessment_amount: Math.round(num(assessment_amount) * 100) / 100, unit_amount: unit_amount == null ? null : Math.round(num(unit_amount) * 100) / 100, parking_amount: parking_amount == null ? null : Math.round(num(parking_amount) * 100) / 100, status, notes: notes || null, purchase_id, ...(card_id ? { card_id } : {}) };
   const payId = await Store.addBillPayment(payRow);
-  if (assessment_ids?.length) await Store.setItemsPayment(assessment_ids, payId);   // 这次交的摊派期：记上是哪次缴费交的
+  // 一次性结清：这笔摊派所有没缴的期都被这次交掉 → 删掉它们，换成一行「一次性结清」（金额 = 合计，关联这次缴费）；否则照常记上是哪次缴费交的
+  const merge = settle_assessment ? settleMerge(state.assessItems, settle_assessment, assessment_ids || [], { paidOn: paid_on, paymentId: payId }) : null;
+  if (merge) { for (const id of merge.removeIds) await Store.deleteAssessItem(id); await Store.saveAssessItem(merge.payoff); }
+  else if (assessment_ids?.length) await Store.setItemsPayment(assessment_ids, payId);
   resetPayHistory();
   if (bill.debt_id && purchase_id) await splitBillPayment(bill, { ...payRow, id: payId }).catch((e) => console.warn("[debt split]", e.message));   // 贷款：本金单独一行（性质 = 融资），主行只剩利息 + Escrow
+  if (assessOnly) return { next: bill.next_due_on, catchUp: false };
   // 推到下一期：以这次对应的到期日为基准，保证不会漏期。补记更早一期（到期日早于当前下次到期）不往回推，下次到期不动
   const base = due_on || bill.next_due_on || paid_on;
   const catchUp = !!(bill.next_due_on && base < bill.next_due_on && bill.frequency !== "one_time");
@@ -154,7 +160,7 @@ export async function saveBillPayForm(f) {
   const unit = fe.unit_amount ? Math.round(num(fe.unit_amount.value) * 100) / 100 : null, parking = fe.parking_amount ? Math.round(num(fe.parking_amount.value) * 100) / 100 : null;   // HOA：单元费 + 车位费
   if (fe.update_typical?.checked && fe.status.value !== "skipped" && paidAmt != null && paidAmt > 0 && paidAmt !== num(bill.typical_amount, NaN)) { bill.typical_amount = paidAmt; if (unit != null) { bill.unit_amount = unit; bill.parking_amount = parking; } }
   const r = await recordPayment(bill, { paid_on: fe.paid_on.value || todayISO(), due_on: fe.due_on.value || null, amount: fe.amount.value === "" ? null : fe.amount.value, status: fe.status.value,
-    method: pay.method, card_id: pay.card_id, confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, unit_amount: unit, parking_amount: parking, fee_amount: fe.fee_amount?.value, tax_amount: fe.tax_amount?.value, ...(fe.status.value === "skipped" ? {} : { assessment_amount: checkedItems(fe).sum, assessment_ids: checkedItems(fe).ids }), notes: fe.notes.value.trim(), store: fe.store?.value });
+    method: pay.method, card_id: pay.card_id, confirmation_ref: fe.confirmation_ref.value.trim(), late_fee: fe.late_fee.value, unit_amount: unit, parking_amount: parking, fee_amount: fe.fee_amount?.value, tax_amount: fe.tax_amount?.value, ...(fe.status.value === "skipped" ? {} : { assessment_amount: checkedItems(fe).sum, assessment_ids: checkedItems(fe).ids, settle_assessment: fe.settle_assessment?.value || null }), notes: fe.notes.value.trim(), store: fe.store?.value });
   const nextTxt = fmtDate(r.next || "") || t("无");
   toast(fe.status.value === "skipped" ? t("已跳过这期，下次到期 {d}", { d: nextTxt }) : r.catchUp ? t("已补记 {due} 那期；下次到期仍是 {d}", { due: fmtDate(fe.due_on.value), d: nextTxt }) : t("已记录，下次到期 {d}", { d: nextTxt }));
 }

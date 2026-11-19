@@ -6,7 +6,7 @@ import { Store } from "../core/store.js";
 import { esc, fmtDate, num, todayISO, toast } from "../core/util.js";
 import { go, href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
-import { assessmentsOf, genInstallments, isPaid, paidOn } from "./assessments-lib.js";
+import { assessmentsOf, genInstallments, isPaid, nextInstallment, paidOn } from "./assessments-lib.js";
 import { infoTip } from "../core/info-tip.js";
 import { moreMenu } from "../core/more-menu.js";
 import { lpAttr } from "../core/long-press.js";
@@ -22,7 +22,7 @@ export function assessListPage(b, crumb) {
   const base = href("bill", b.id), list = assessmentsOf(b.id, state.assess, state.assessItems), cur = b.currency;
   const payDate = (x) => paidOn(x, b.pays);
   const rowLi = (x) => `<li><span class="badge ${isPaid(x) ? "b-ok" : ""}">${isPaid(x) ? t("已缴") : t("待缴")}</span>
-        <div class="grow">${esc(fmtDate(x.due_on))}<small>${[kindName(x.kind), x.payment_id ? t("{d} 缴", { d: fmtDate(payDate(x)) || "—" }) : x.settled_on ? t("已缴（无缴费记录）") : null].filter(Boolean).map(esc).join(" · ")}</small></div><b>${mny(x.amount, cur)}</b></li>`;
+        <div class="grow">${esc(fmtDate(x.due_on))}<small>${[kindName(x.kind), x.payment_id ? t("{d} 缴", { d: fmtDate(payDate(x)) || "—" }) : x.settled_on ? t("已缴（无缴费记录）") : null].filter(Boolean).map(esc).join(" · ")}</small></div><b>${mny(x.amount, cur)}</b>${isPaid(x) ? moreMenu(paidRowItems(b, x), { label: t("更多操作") }) : ""}</li>`;
   const sec = (cls, title, rows, open, more = "") => `<details class="as-sec ${cls}" ${open ? "open" : ""}><summary>${title}<span class="mch" aria-hidden="true">›</span></summary><ul class="restock-list as-items">${rows.map(rowLi).join("")}</ul>${more}</details>`;
   const cards = list.map((a) => {
     const todo = a.rows.filter((x) => !isPaid(x)), paid = a.rows.filter(isPaid), isFocus = a.id === focus;
@@ -47,8 +47,17 @@ export function assessListPage(b, crumb) {
     <a class="fab" href="${base}?sec=assess&edit=new" aria-label="${esc(t("新增摊派"))}" title="${esc(t("新增摊派"))}">＋</a>
   </section>`;
 }
-/** 一笔摊派的更多操作（⋯ 和长按共用）：编辑 / 缴费记录 / 复制 / 删除；加一期分期、一次性结清随后的版本加 */
-const menuItems = (a, base) => [{ label: t("编辑"), href: `${base}?sec=assess&edit=${a.id}`, first: true }, { label: t("缴费记录"), href: `${base}?sec=assess&pays=${encodeURIComponent(a.id)}` }, { label: t("复制为新摊派"), href: `${base}?sec=assess&edit=new&copy=${encodeURIComponent(a.id)}` }, { label: t("删除这笔摊派"), action: "assess-del", data: { id: a.id }, danger: true }];
+/** 已缴的一期的更多操作（⋯）：查看那笔缴费 / 撤销。撤销：只标了「已缴（无缴费记录）」的直接撤销；交在某笔缴费里的，要到那笔缴费里取消勾选（金额、花费统计跟着那笔缴费走，不在这里单独改） */
+export const paidRowItems = (b, x) => {
+  const pay = x.payment_id ? `${href("bill", b.id)}?sec=pay&edit=${encodeURIComponent(x.payment_id)}` : null;
+  return [pay ? { label: t("查看这笔缴费"), href: pay, first: true } : null,
+    pay ? { label: t("撤销：到缴费里取消勾选"), href: pay } : { label: t("撤销（改回待缴）"), action: "assess-undo", data: { id: x.id }, danger: true, first: true }].filter(Boolean);
+};
+/** 一笔摊派的更多操作（⋯ 和长按共用）：编辑 / 加一期分期 / 一次性结清（还有没缴的期时）/ 缴费记录 / 复制 / 删除 */
+const menuItems = (a, base) => [{ label: t("编辑"), href: `${base}?sec=assess&edit=${a.id}`, first: true },
+  a.status === "closed" ? null : { label: t("加一期分期"), href: `${base}?sec=assess&edit=${a.id}&add=installment` },
+  a.status === "closed" || !a.rows.some((x) => !isPaid(x)) ? null : { label: t("一次性结清"), href: `${base}?pay=1&settle=${encodeURIComponent(a.id)}` },
+  { label: t("缴费记录"), href: `${base}?sec=assess&pays=${encodeURIComponent(a.id)}` }, { label: t("复制为新摊派"), href: `${base}?sec=assess&edit=new&copy=${encodeURIComponent(a.id)}` }, { label: t("删除这笔摊派"), action: "assess-del", data: { id: a.id }, danger: true }];
 
 const rowHtml = (x = {}, paid = false) => {
   if (paid) return `<li class="as-row is-paid" data-id="${esc(x.id || "")}">   <!-- 已关联缴费：锁定，只读显示；隐藏域让保存时仍能读到这一期 -->
@@ -64,8 +73,11 @@ const rowHtml = (x = {}, paid = false) => {
 };
 
 /** 新增 / 编辑页：名称、备注、状态 + 付款计划（一期一行） */
-export function assessFormPage(b, a, crumb, copyFrom = null) {
+export function assessFormPage(b, a, crumb, copyFrom = null, addKind = null) {
   const base = href("bill", b.id), src = a || copyFrom, rows = src ? (assessmentsOf(b.id, state.assess, state.assessItems).find((x) => x.id === src.id)?.rows || []).map((x) => (copyFrom ? { due_on: x.due_on, amount: x.amount, kind: x.kind } : x)) : [];   // 复制：每一期都当成没缴的新行，不带 id / 缴费关联
+  const live = rows.filter((x) => !x.payment_id && !x.settled_on), left = Math.round(live.filter((x) => x.kind === "installment").reduce((s, x) => s + num(x.amount), 0) * 100) / 100;   // 编辑时：「快速生成」默认按没缴的分期合计重新分（结清行不动，不算进去）
+  const instN = live.filter((x) => x.kind === "installment").length, startDefault = (live[0]?.due_on) || todayISO();
+  if (a && addKind === "installment") rows.push({ ...nextInstallment(rows), id: null });   // 「加一期分期」进来：末尾预置一行新的
   return `<section class="section form-page">${crumb}
     <div class="section-head"><h2>${a ? t("编辑摊派") : t("新增摊派")}</h2><p>${esc(b.name)}</p></div>
     <form id="assessForm" class="panel" novalidate data-bill="${esc(b.id)}" data-id="${esc(a?.id || "")}">
@@ -75,14 +87,14 @@ export function assessFormPage(b, a, crumb, copyFrom = null) {
         <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" placeholder="${esc(t("通知函编号、原因、和 HOA 的约定…"))}" value="${esc(src?.notes || "")}"></label>
       </div>
       <h3 class="as-h">${t("付款计划")}</h3>
-      <details class="as-gen" ${src ? "" : "open"}><summary>${t("快速生成分期")}</summary>
+      <details class="as-gen" ${src ? "" : "open"}><summary>${a ? t("重新生成未缴的分期") : t("快速生成分期")}</summary>
         <div class="form-grid">
-          <label>${t("期数")}<input name="g_count" type="number" inputmode="numeric" min="1" max="120" placeholder="3"></label>
-          <label>${t("每期金额 / 总额")}<span class="as-gen2"><input name="g_amt" type="number" inputmode="decimal" min="0.01" step="0.01" aria-label="${esc(t("金额"))}"><select name="g_mode" aria-label="${esc(t("金额含义"))}"><option value="each">${t("每期")}</option><option value="total">${t("总额")}</option></select></span></label>
-          <label>${t("第一期到期日")}<input name="g_start" type="date" value="${todayISO()}"></label>
+          <label>${t("期数")}<input name="g_count" type="number" inputmode="numeric" min="1" max="120" placeholder="3" ${a && instN ? `value="${instN}"` : ""}></label>
+          <label>${t("每期金额 / 总额")}<span class="as-gen2"><input name="g_amt" type="number" inputmode="decimal" min="0.01" step="0.01" aria-label="${esc(t("金额"))}" ${a && left > 0 ? `value="${left.toFixed(2)}"` : ""}><select name="g_mode" aria-label="${esc(t("金额含义"))}"><option value="each" ${a && left > 0 ? "" : "selected"}>${t("每期")}</option><option value="total" ${a && left > 0 ? "selected" : ""}>${t("总额")}</option></select></span></label>
+          <label>${t("第一期到期日")}<input name="g_start" type="date" value="${esc(startDefault)}"></label>
           <div class="as-gen-go"><button type="button" class="btn btn-sm" data-as-gen>${t("生成分期")}</button></div>
         </div>
-        <small class="muted">${t("每月一期；总额除不尽的零头放在最后一期。生成后每一期都能改日期和金额。")}</small></details>
+        <small class="muted">${a ? t("只替换还没缴的分期（已缴的期和一次性结清行不动）；总额默认是现在没缴的分期合计。") : t("每月一期；总额除不尽的零头放在最后一期。生成后每一期都能改日期和金额。")}</small></details>
       <ul class="as-rows" id="asRows">${rows.map((x) => rowHtml(x, !!x.payment_id)).join("")}</ul>
       <p class="as-total muted" id="asTotal" role="status">${esc(totalText(rows.length, rows.reduce((s, x) => s + num(x.amount), 0)))}</p>
       <div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-as-add="installment">＋ ${t("加一期分期")}</button><button type="button" class="btn btn-sm btn-ghost" data-as-add="payoff">＋ ${t("加一次性结清")}</button></div>
@@ -112,7 +124,10 @@ document.addEventListener("click", (e) => {
     const fe = f.elements, total = fe.g_mode.value === "total";
     const list = genInstallments({ count: fe.g_count.value, total: total ? fe.g_amt.value : null, each: total ? null : fe.g_amt.value, start: fe.g_start.value });
     if (!list.length || !(num(fe.g_amt.value) > 0)) { document.getElementById("assessError").textContent = t("填上期数、金额和第一期到期日再生成。"); return; }
-    document.getElementById("assessError").textContent = ""; addRows(list);
+    document.getElementById("assessError").textContent = "";
+    const old = [...f.querySelectorAll(".as-row:not(.is-paid)")].filter((r) => r.querySelector('[name="as_kind"]')?.value === "installment");   // 编辑时：生成 = 替换没缴的分期（已缴的、结清行不动）
+    if (f.dataset.id && old.length) { if (!window.confirm(t("用新生成的 {n} 期替换现有 {m} 期没缴的分期？", { n: list.length, m: old.length }))) return; old.forEach((r) => r.remove()); }
+    addRows(list);
   }
 });
 document.addEventListener("input", (e) => { if (e.target.closest("#assessForm") && e.target.name === "as_amt") recalc(); });

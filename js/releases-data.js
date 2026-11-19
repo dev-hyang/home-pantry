@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.19", title: { zh: "特别摊派：一次性结清、加一期分期、撤销，重新生成只换没缴的", en: "Special assessments: pay off, add an installment, undo; regenerate only replaces unpaid ones" }, items: [
+    { k: "new", zh: "摊派卡片的 ⋯ 新增「一次性结清」：打开记缴费表单，已勾上这笔摊派所有没缴的期、合计就是剩余余额；提交后这些期合并成一行“一次性结清”，缴费记录里看到的是已缴的分期 + 结清", en: "New Pay off in the assessment ⋯ menu: the payment form opens with all unpaid installments ticked (the total is what is left); on submit they merge into one Payoff row" },
+    { k: "new", zh: "新增「加一期分期」：打开编辑页，末尾预置一行新的分期（日期是最后一期往后一个月，金额同上一期）", en: "New Add an installment: opens the edit page with a new row at the end (a month after the last one, same amount)" },
+    { k: "new", zh: "已缴的一期有 ⋯：只标了“已缴（无缴费记录）”的可以直接撤销改回待缴；交在某笔缴费里的，跳到那笔缴费取消勾选", en: "Paid installments have a ⋯ menu: ones marked paid without a payment can be undone directly; ones paid by a payment jump to that payment to untick" },
+    { k: "better", zh: "编辑页的「重新生成」只替换没缴的分期（已缴的和结清行不动），总额默认是剩余未缴，替换前会确认；删除摊派时会说明有几笔缴费会保留", en: "Regenerate on the edit page only replaces unpaid installments (total defaults to what is left, with a confirmation); deleting an assessment says how many payments are kept" }
+  ] },
+
   { v: "2026-11-19.18", title: { zh: "特别摊派有了自己的缴费记录页，能搜索和筛选", en: "Special assessments get their own payment records page with search and filters" }, items: [
     { k: "new", zh: "摊派卡片的 ⋯ 菜单（或「已缴」小节下面）新增「缴费记录」：已缴的每一期一行，能按日期、金额、摊派名称搜索，按类型（分期 / 一次性结清）、年份筛选，也能换排序", en: "New Payment records page from the ⋯ menu (or under the Paid section): one row per paid installment, searchable, filterable by type and year, sortable" },
     { k: "better", zh: "有缴费记录的行可以点进那笔缴费；同一账单有多笔摊派时，可以在页面上切换看哪一笔或全部", en: "Rows with a payment record open that payment; with several assessments on one bill you can switch between them or see all" }

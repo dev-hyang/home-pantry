@@ -9,6 +9,7 @@ import { FD, changed, clearFiltersBtn, onClearFilters } from "../core/clear-filt
 import { moreMenu } from "../core/more-menu.js";
 import { lpAttr } from "../core/long-press.js";
 import { assessmentsOf, isPaid, paidOn } from "./assessments-lib.js";
+import { paidRowItems } from "./assessments-views.js";
 
 const mny = (v, cur) => Units.money(num(v), cur || Units.region.currency);
 const SORTS = [["new", "最新在前"], ["old", "最早在前"], ["high", "金额从高到低"], ["low", "金额从低到高"]];
@@ -30,7 +31,7 @@ function visible(b, which) {
 }
 function rowHtml(b, r, multi) {
   const edit = r.pay ? `${href("bill", b.id)}?sec=pay&edit=${encodeURIComponent(r.pay.id)}` : null;
-  const items = [edit ? { label: t("查看这笔缴费"), href: edit, first: true } : null, { label: t("查看这笔摊派"), href: `${href("bill", b.id)}?sec=assess&focus=${encodeURIComponent(r.assessment_id)}`, first: !edit }].filter(Boolean);
+  const items = [...paidRowItems(b, r), { label: t("查看这笔摊派"), href: `${href("bill", b.id)}?sec=assess&focus=${encodeURIComponent(r.assessment_id)}` }];
   const sub = [multi ? r.aName : null, r.due_on ? t("应缴日 {d}", { d: fmtDate(r.due_on) }) : null, r.payment_id ? null : t("已缴（无缴费记录）"), r.pay?.confirmation_ref ? t("确认号 {ref}", { ref: r.pay.confirmation_ref }) : null].filter(Boolean).map(esc).join(" · ");
   return `<li class="pay-row" ${lpAttr(items, fmtDate(r.date))}>
     <span class="badge ${r.kind === "payoff" ? "b-soon" : "b-ok"}">${esc(kindText(r.kind))}</span>

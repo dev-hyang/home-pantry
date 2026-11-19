@@ -2,7 +2,7 @@
 import { L, billCostParts, headSec, linkOf } from "./bill-form.js";
 import { Store } from "../core/store.js";
 import { acctText, billCat } from "./logic.js";
-import { assessmentsOf, unpaidItems } from "./assessments-lib.js";
+import { assessmentsOf, isPaid, unpaidItems } from "./assessments-lib.js";
 import { esc, fmtDate, money, num, stampText, toast, todayISO } from "../core/util.js";
 import { fillFromPurchase, purchaseById } from "../core/spend-data.js";
 import { href } from "../core/router.js";
@@ -47,20 +47,23 @@ export function billHeadCard(b, base) {
     <a class="btn btn-primary bh-pay" href="${base}?pay=1">${b.autopay ? t("记核对") : t("记缴费")}</a>
   </section>`;
 }
-export function payFormPage(b, edit = null, isCopy = false) {   // isCopy：edit 是「复制」带入的值（没有 id），标题和说明按新记一笔写
+export function payFormPage(b, edit = null, isCopy = false, settleId = null) {   // settleId：一次性结清某笔摊派（预先勾上它所有没缴的期）   // isCopy：edit 是「复制」带入的值（没有 id），标题和说明按新记一笔写
   const v = edit || {};   // 编辑某条记录时表单带入它的值
   // 账户下拉的当前值：编辑时按这条记录（卡 / 现金 / 支票 / 手填）；新记一笔按账单的付款账户
   const payVal = edit ? (edit.card_id ? edit.card_id : edit.method === "支票" ? "check" : payAcctValue(null, edit.method)) : (b.pay_card_id ? b.pay_card_id : payAcctValue(null, b.autopay_method));
   const linked = edit?.purchase_id ? purchaseById(edit.purchase_id) : null;   // 这条缴费记的花费：收款方存在它上面（按 id 读这一笔）
   if (edit?.purchase_id && !linked) fillFromPurchase(edit.purchase_id, '#billPayForm [name="store"]', (p) => p.store);   // 还没读回来：读到后填进收款方（没改过的话）
+  const settleA = !edit && settleId ? assessmentsOf(b.id, state.assess, state.assessItems).find((x) => x.id === settleId) : null, settleLeft = settleA ? settleA.rows.filter((x) => !isPaid(x)) : [];
   return `
-    <div class="section-head"><h2>${edit && !isCopy ? t("编辑缴费记录") : b.autopay ? t("记核对") : t("记缴费")}</h2><p>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${edit && !isCopy ? t("改这条记录；不会动下次到期日") : t("记一笔后下次到期日自动推到下一期")}</p></div>
+    <div class="section-head"><h2>${edit && !isCopy ? t("编辑缴费记录") : settleA ? t("一次性结清") : b.autopay ? t("记核对") : t("记缴费")}</h2><p>${acctText(b) ? `${esc(acctText(b))} · ` : ""}${edit && !isCopy ? t("改这条记录；不会动下次到期日") : t("记一笔后下次到期日自动推到下一期")}</p></div>
+    ${settleA && settleLeft.length ? `<p class="panel muted" role="status">${t("一次性结清「{n}」：已勾上它所有没缴的 {c} 期，合计 {m}（金额不能改）。提交后这些期合并成一行“一次性结清”。本期金额已填 0（只交摊派）；要一起交本期，改成实际金额。", { n: esc(settleA.name), c: settleLeft.length, m: mny(settleA.remaining, b.currency) })}</p>` : ""}
     <form id="billPayForm" class="panel" data-focus="1" data-cur="${esc(b.currency || "")}">
+      ${settleA && settleLeft.length ? `<input type="hidden" name="settle_assessment" value="${esc(settleA.id)}">` : ""}
       <input type="hidden" name="bill_id" value="${esc(b.id)}"><input type="hidden" name="pay_id" value="${esc(edit?.id || "")}">
       <div class="form-grid maint-grid">
         <label>${t("缴费日期")}<input name="paid_on" type="date" required value="${esc(edit ? edit.paid_on || "" : todayISO())}" max="${todayISO()}"></label>
         <label>${t("对应到期日")}<input name="due_on" type="date" value="${esc(edit ? edit.due_on || "" : b.next_due_on || "")}"></label>
-        ${amountGroup(b, edit)}
+        ${amountGroup(b, edit, settleId)}
         <label>${t("状态")}<select name="status"><option value="paid" ${edit?.status === "paid" ? "selected" : ""}>${t("已缴费")}</option><option value="verified" ${edit ? (edit.status === "verified" ? "selected" : "") : b.autopay ? "selected" : ""}>${t("已核对（自动扣款）")}</option><option value="skipped" ${edit?.status === "skipped" ? "selected" : ""}>${t("跳过这期")}</option></select></label>
         <label>${t("用哪张卡 / 账户")}<select name="pay_account" data-pay-acct>${accountOptions(payVal, { none: "（未指定）", extra: PAY_EXTRA })}</select></label>
         <label data-pay-other ${payVal === "other" ? "" : "hidden"}>${t("方式说明")}<input name="method" maxlength="40" placeholder="${t("例如：网银 / 支票 #1023 / 自动扣款")}" value="${esc(edit ? edit.method || "" : b.autopay_method || "")}"></label>
@@ -77,13 +80,13 @@ export function payFormPage(b, edit = null, isCopy = false) {   // isCopy：edit
 /** 缴费表单里勾选的摊派期：{ ids, sum } */
 export const checkedItems = (fe) => { const all = fe.as_item ? (fe.as_item.length === undefined ? [fe.as_item] : [...fe.as_item]) : []; const on = all.filter((x) => x.checked); return { ids: on.map((x) => x.value), sum: Math.round(on.reduce((s, x) => s + num(x.dataset.amt), 0) * 100) / 100 }; };
 /** 摊派下拉（多选）：本期之前到期的没缴期默认勾上，其余不勾；编辑时本笔已交的勾着。没有可选的期就不出现 */
-function assessDropdown(b, edit) {
+function assessDropdown(b, edit, settleId = null) {
   const own = edit ? state.assessItems.filter((x) => x.payment_id === edit.id) : [];
   const open = unpaidItems(b.id, state.assess, state.assessItems);
   const multi = state.assess.filter((a) => a.bill_id === b.id).length > 1, byA = new Map(assessmentsOf(b.id, state.assess, state.assessItems).map((a) => [a.id, a]));
   // 每个选项一行：「第 N 期 · 日期 · 金额」（一次性结清写「一次性结清」）；有多笔摊派时前面加摊派名
   const asLabel = (x) => { const a = byA.get(x.assessment_id), nth = a ? a.rows.findIndex((r) => r.id === x.id) + 1 : 0; return [multi && a ? a.name : null, x.kind === "payoff" ? t("一次性结清") : t("第 {n} 期", { n: nth }), fmtDate(x.due_on), mny(x.amount, b.currency)].filter(Boolean).join(" · "); };
-  const rows = [...own.map((x) => [x, true]), ...open.map((x) => [x, false])].sort((p, q) => (p[0].due_on || "").localeCompare(q[0].due_on || ""));
+  const rows = [...own.map((x) => [x, true]), ...open.map((x) => [x, !!settleId && x.assessment_id === settleId])].sort((p, q) => (p[0].due_on || "").localeCompare(q[0].due_on || ""));
   if (!rows.length) return "";
   const on = rows.filter(([, c]) => c), sum = Math.round(on.reduce((s, [x]) => s + num(x.amount), 0) * 100) / 100;
   return `<div class="amt-row amt-as"><span class="amt-l">${t("特别摊派")}</span>
@@ -95,10 +98,10 @@ const asSummaryText = (n, sum, cur) => (n ? t("{n} 期 · {m}", { n, m: mny(sum,
 document.addEventListener("toggle", (e) => { const d = e.target; if (!d.matches?.("details.amt-pick") || !d.open) return; const panel = d.querySelector(".pick-panel"), first = panel.querySelector("input[name=as_item]:checked")?.closest(".pick-row"); panel.scrollTop = first ? Math.max(0, first.offsetTop - panel.offsetTop - 4) : 0; }, true);
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-as-none]"); if (!b) return; const f = b.closest("form"); f.querySelectorAll("input[name=as_item]").forEach((x) => { x.checked = false; }); recalcPayTotal(f); });
 /** 缴费表单的「金额」一组：本期金额（HOA 拆成单元费 + 车位费）+ 滞纳金 + 手续费 + 税 + 特别摊派 = 总金额（实时加好） */
-function amountGroup(b, edit) {
+function amountGroup(b, edit, settleId = null) {
   const cur = b.currency || Units.region.currency, n2 = (x) => num(x).toFixed(2);
   const split = edit ? edit.unit_amount != null || edit.parking_amount != null : b.unit_amount != null || b.parking_amount != null;   // 老记录没拆过就保持一个金额
-  const base = edit ? (edit.amount != null ? n2(edit.amount) : "") : b.est != null ? n2(b.est) : "";
+  const base = edit ? (edit.amount != null ? n2(edit.amount) : "") : settleId ? "0.00" : b.est != null ? n2(b.est) : "";   // 一次性结清：本期金额默认 0（只交摊派）
   const inp = (name, val, hint = "") => `<input name="${name}" type="number" inputmode="decimal" min="0" step="0.01" value="${val}" data-amt-in aria-label="${esc(hint)}">`;
   const row = (label, input) => `<label class="amt-row"><span class="amt-l">${label}</span>${input}</label>`;
   const baseRows = split
@@ -111,7 +114,7 @@ function amountGroup(b, edit) {
     ${row(t("滞纳金"), inp("late_fee", edit ? n2(edit.late_fee) : "0", t("滞纳金")))}
     ${row(t("手续费"), inp("fee_amount", edit ? n2(edit.fee_amount) : b.typical_fee != null ? n2(b.typical_fee) : "0", t("手续费")))}
     ${row(t("税"), inp("tax_amount", edit ? n2(edit.tax_amount) : b.typical_tax != null ? n2(b.typical_tax) : "0", t("税")))}
-    ${assessDropdown(b, edit)}
+    ${assessDropdown(b, edit, settleId)}
     <div class="amt-total" role="status"><span>${t("总金额")}</span><b id="payTotal">${mny(0, cur)}</b></div>
     ${hint}</fieldset>`;
 }

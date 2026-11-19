@@ -20,7 +20,7 @@ import { spendListNow } from "../lazy-modules.js";
 import { clearSpendFilter, exportSpendList, renderSpendList, renderSpendRecords, spendRowsLoaded } from "../lazy-modules.js";
 
 /** 点击动作（财务：账单、缴费、卡、花费、统计、导出）：这一组处理的 data-action */
-export const MONEY_ACTIONS = new Set(["print-run","ov-group","bill-cancel","assess-cancel","assess-del","billpay-cancel","bill-delete","billpay-del","bill-verify","bill-link-asset","bill-link-ignore","billpay-backfill","all-verify","all-csv","bills-enable","tpl-all","spend-edit","spend-edit-collapse","trip-reclass","spend-copy","spend-open","spend-edit-cancel","spend-chip-clear","med-del","card-ai","card-del","card-del-keep","card-del-all","card-del-cancel","card-cleanup-open","card-cleanup-cancel","card-cleanup-run","card-deact","card-react","med-pay-del","spend-more","spend-csv","spend-sel-toggle","spend-sel-all","spend-sel-none","spend-sel-del","stats-months","spend-add-toggle","stats-node","stats-trips","csv-summary","csv-detail"]);
+export const MONEY_ACTIONS = new Set(["print-run","ov-group","bill-cancel","assess-cancel","assess-del","assess-undo","billpay-cancel","bill-delete","billpay-del","bill-verify","bill-link-asset","bill-link-ignore","billpay-backfill","all-verify","all-csv","bills-enable","tpl-all","spend-edit","spend-edit-collapse","trip-reclass","spend-copy","spend-open","spend-edit-cancel","spend-chip-clear","med-del","card-ai","card-del","card-del-keep","card-del-all","card-del-cancel","card-cleanup-open","card-cleanup-cancel","card-cleanup-run","card-deact","card-react","med-pay-del","spend-more","spend-csv","spend-sel-toggle","spend-sel-all","spend-sel-none","spend-sel-del","stats-months","spend-add-toggle","stats-node","stats-trips","csv-summary","csv-detail"]);
 /** 点击动作（财务：账单、缴费、卡、花费、统计、导出）：按 data-action 分支；el 是被点的元素，id 是它的 data-id，e 是点击事件 */
 export async function clickMoney(action, el, id, e) {
   switch (action) {
@@ -28,8 +28,15 @@ export async function clickMoney(action, el, id, e) {
       case "ov-group": state.ovFilter.group = el.dataset.group === "cycle" ? "cycle" : "asset"; return render();   // 账单概览：账单分组切换（按资产 / 按周期）
       case "bill-cancel": return leaveBill(false);
       case "assess-cancel": return go(`${href("bill", state.route.id)}?sec=assess`, { replace: true });
+      case "assess-undo": {   // 撤销一期「已缴（无缴费记录）」：改回待缴（交在某笔缴费里的，要到那笔缴费里取消勾选）
+        const x = state.assessItems.find((y) => y.id === id); if (!x || x.payment_id) return;
+        if (!confirmDelete(t("把这一期改回待缴？"))) return;
+        await Store.saveAssessItem({ id: x.id, assessment_id: x.assessment_id, due_on: x.due_on, amount: x.amount, kind: x.kind, payment_id: null, settled_on: null });
+        toast(t("已改回待缴")); return refresh();
+      }
       case "assess-del": {
-        if (!confirmDelete(t("删除这笔摊派和它的付款计划？已缴的缴费记录保留。"))) return;
+        { const n = state.assessItems.filter((x) => x.assessment_id === id && x.payment_id).length;
+          if (!confirmDelete(n ? t("删除这笔摊派和它的付款计划？已缴的 {n} 期对应的缴费记录会保留，只是不再关联。", { n }) : t("删除这笔摊派和它的付款计划？已缴的缴费记录保留。"))) return; }
         await Store.deleteAssess(id); toast(t("已删除")); await refresh(); return go(`${href("bill", state.route.id)}?sec=assess`, { replace: true });
       }
       case "billpay-cancel": return go(`${href("bill", state.route.id)}?sec=pay`, { replace: true });   // 缴费表单取消：回全部缴费记录

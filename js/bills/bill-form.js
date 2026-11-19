@@ -66,7 +66,7 @@ export function viewBillForm() {
   if (b && !sec) return billHub(b, root);
   if (b && sec === "assess") {   // 特别摊派：?sec=assess = 列表；?sec=assess&edit=id|new = 新增 / 编辑页
     const editId = r.q.get("edit"), listHref = `${hubHref}?sec=assess`;
-    if (editId) { const a = editId === "new" ? null : state.assess.find((x) => x.id === editId && x.bill_id === b.id); const copyId = r.q.get("copy"), copyFrom = editId === "new" && copyId ? state.assess.find((x) => x.id === copyId && x.bill_id === b.id) || null : null; if (editId === "new" || a) return assessFormPage(b, a, crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("特别摊派") }, { label: a ? t("编辑摊派") : t("新增摊派") }]), copyFrom); }
+    if (editId) { const a = editId === "new" ? null : state.assess.find((x) => x.id === editId && x.bill_id === b.id); const copyId = r.q.get("copy"), copyFrom = editId === "new" && copyId ? state.assess.find((x) => x.id === copyId && x.bill_id === b.id) || null : null; if (editId === "new" || a) return assessFormPage(b, a, crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("特别摊派") }, { label: a ? t("编辑摊派") : t("新增摊派") }]), copyFrom, r.q.get("add")); }
     const paysOf = r.q.get("pays");   // 摊派的缴费记录页：?sec=assess&pays=摊派id（all = 全部摊派）
     if (paysOf) return assessPaysPage(b, crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("特别摊派") }, { label: t("缴费记录") }]), paysOf);
     return assessListPage(b, billCrumb(b, root, hubHref, t("特别摊派")));
@@ -78,7 +78,7 @@ export function viewBillForm() {
       const edit = editId ? src : null;
       // 复制：带入这笔的金额、方式、收款方等，缴费日期改成今天、对应到期日用账单当前的下次到期；不带花费关联和确认号
       const copy = copyId && src ? { ...copyOf(src, ["purchase_id", "confirmation_ref"]), paid_on: todayISO(), due_on: b.next_due_on || "" } : null;
-      return `<section class="section form-page">${crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("缴费记录") }, { label: edit ? t("编辑缴费记录") : b.autopay ? t("记核对") : t("记缴费") }])}${payFormPage(b, edit || copy, !!copy)}</section>`;
+      return `<section class="section form-page">${crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("缴费记录") }, { label: edit ? t("编辑缴费记录") : r.q.get("settle") ? t("一次性结清") : b.autopay ? t("记核对") : t("记缴费") }])}${payFormPage(b, edit || copy, !!copy, r.q.get("settle") || null)}</section>`;
     }
     return payHistoryPage(b, billCrumb(b, root, hubHref, t("缴费记录")), staleNotice(b));
   }
