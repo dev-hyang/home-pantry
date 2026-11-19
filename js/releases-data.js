@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.30", title: { zh: "一次性账单的编辑页：保存 + 取消，复制和删除都在 ⋯ 里", en: "One-time bill edit pages: Save + Cancel; copy and delete live in the ⋯ menu" }, items: [
+    { k: "better", zh: "点某一块的「编辑」进入的页面，底部是「保存」和「取消」（取消回到详情页）；复制为新账单、删除这张账单只在详情页右上角 ⋯ 里，不再重复出现", en: "The page from a block's Edit ends with Save and Cancel (Cancel returns to the details); Copy as new and Delete now live only in the ⋯ menu" }
+  ] },
+
   { v: "2026-11-19.29", title: { zh: "一次性账单：页头汇总卡、⋯ 菜单，保险理赔单独成块", en: "One-time bills: summary header, ⋯ menu, insurance in its own block" }, items: [
     { k: "better", zh: "一次性账单详情页顶部是汇总卡：提供方、状态 / 到期徽章，右上角 ⋯（记缴费、复制为新账单、删除），下面一排「应付 / 已付 / 余额」加进度条和算式", en: "The one-time bill page now opens with a summary card: provider, status / due badges, a ⋯ menu (log payment, copy as new, delete) and a Due / Paid / Balance row with a progress bar" },
     { k: "better", zh: "保险公司、理赔号、保险已付单独成一块「保险理赔」（医疗、宠物），各块仍各带自己的「编辑」", en: "Insurer, claim # and insurance paid are now their own Insurance & claim block (medical, pets); every block keeps its own Edit" },

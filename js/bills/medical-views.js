@@ -105,10 +105,9 @@ function viewDetail(id, payId) {
       ${peopleFor(v.kind) && (!secQ || secQ === "basic") ? personAddPanel(v.kind) : ""}
       <datalist id="medProviders">${[...new Set(state.medBills.map((x) => x.provider))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
       <p id="medBillError" class="form-error" role="alert"></p>
-      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>${b ? `<a class="btn btn-ghost" href="${esc(detailHref("new"))}?copy=${encodeURIComponent(b.id)}">${t("复制为新账单")}</a>` : ""}</div>
+      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>${b ? `<a class="btn btn-ghost" href="${esc(detailHref(b.id))}">${t("取消")}</a>` : ""}</div>
     </form>
-    ${b && secQ ? "" : b ? paymentsHtml(b, pay, owedNow) : `<p class="muted">${t("先保存账单，再记付款。")}</p>`}
-    ${b && !secQ ? `<div class="danger-zone"><button type="button" class="btn btn-danger-ghost" data-action="med-del" data-id="${b.id}">${t("删除这张账单")}</button><small class="muted">${t("连同这张账单的付款记录一起删除，点两次确认。")}</small></div>` : ""}
+    ${b && secQ ? "" : b ? paymentsHtml(b, pay, owedNow) : `<p class="muted">${t("先保存账单，再记缴费。")}</p>`}
   </section>`;
 }
 /* ───────────── 一次性账单详情页：分区卡片（一次滑动看全）+ 付款记录；每块单独「编辑」（?sec=） ───────────── */
