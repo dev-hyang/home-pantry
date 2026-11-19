@@ -1,0 +1,77 @@
+{
+  "source": "js/main.js",
+  "files": [
+    {
+      "path": "js/app/events/change.js",
+      "doc": "表单控件的 change 事件：下拉、勾选、日期、文件选择等（一个页面一个分支）。",
+      "names": [
+        "onMainChange"
+      ]
+    },
+    {
+      "path": "js/app/events/submit.js",
+      "doc": "表单提交：保存物品 / 设备 / 账单 / 房屋资料等各个表单。",
+      "names": [
+        "onMainSubmit"
+      ]
+    },
+    {
+      "path": "js/app/events/click-pantry.js",
+      "doc": "点击动作：储藏：库存、购物车、物品、分类、位置、耐用品。",
+      "names": [
+        "clickPantry",
+        "PANTRY_ACTIONS"
+      ]
+    },
+    {
+      "path": "js/app/events/click-house.js",
+      "doc": "点击动作：房屋：设备、保养、季节任务、交易、房产、买卖计划。",
+      "names": [
+        "clickHouse",
+        "HOUSE_ACTIONS"
+      ]
+    },
+    {
+      "path": "js/app/events/click-money.js",
+      "doc": "点击动作：财务：账单、缴费、卡、花费、统计、导出。",
+      "names": [
+        "clickMoney",
+        "MONEY_ACTIONS"
+      ]
+    },
+    {
+      "path": "js/app/events/click-family.js",
+      "doc": "点击动作：家庭与设置：成员、家人名册、邀请、加入、登录、备份。",
+      "names": [
+        "clickFamily",
+        "FAMILY_ACTIONS"
+      ]
+    },
+    {
+      "path": "js/app/events/click-today.js",
+      "doc": "点击动作：今日页、咩咩咩、快捷操作、提醒页翻页、重新加载。",
+      "names": [
+        "clickToday",
+        "TODAY_ACTIONS"
+      ]
+    },
+    {
+      "path": "js/app/events/click.js",
+      "doc": "点击事件的派发：带前缀的动作交给各页面模块，其余按 data-action 查表交给 click-*.js 的某一组；出错统一提示。",
+      "names": [
+        "onMainClick",
+        "CLICK_ROUTES",
+        "CLICK_GROUPS"
+      ]
+    },
+    {
+      "path": "js/app/events/selection.js",
+      "doc": "列表里的多选：勾选购物车 / 库存的行、点行钻取。",
+      "names": [
+        "drillTo",
+        "pickShop",
+        "pickRow"
+      ]
+    }
+  ]
+}

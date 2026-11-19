@@ -2,7 +2,7 @@
  * 自动补 import / export，并做「未定义标识符」静态检查。解析器用 Node 自带的 acorn，所以要加 --expose-internals：
  *   node --expose-internals scripts/dev/split-module.cjs <spec.json> [--dry]
  *   node --expose-internals scripts/dev/split-module.cjs --check <file.js> ...      只做静态检查
- * spec.json：{ "source": "js/main.js", "files": [ { "path": "js/app/x.js", "doc": "一句话说明", "lines": [[97, 220], [300, 310]] } ] }
+ * spec.json：{ "source": "js/main.js", "files": [ { "path": "js/app/x.js", "doc": "一句话说明", "lines": [[97, 220]], "names": ["fnName"] } ] }（lines 和 names 都可以只给一种）
  * 顶层节点按「第一行」落在哪个范围分给哪个文件，没分到的留在原文件；节点前面的注释跟着节点走。 */
 const fs = require("fs"), path = require("path");
 const acorn = require("internal/deps/acorn/acorn/dist/acorn");
@@ -32,8 +32,9 @@ function main() {
   if (specPath === "--check") return require("./split-analyze.cjs").checkFiles(process.argv.slice(3));
   const spec = JSON.parse(fs.readFileSync(specPath, "utf8")), srcPath = spec.source, raw = fs.readFileSync(srcPath, "utf8"), crlf = raw.includes("\r\n");
   const src = norm(raw), { nodes, imports } = topLevel(src);
-  const fileOf = (line) => spec.files.find((f) => f.lines.some(([a, b]) => line >= a && line <= b));
-  for (const x of nodes) x.file = fileOf(x.line) || null;
+  // 节点分给哪个文件：先按名字（names: ["onMainClick", …]），再按第一行落在哪个行范围（lines: [[a, b], …]）
+  const fileOf = (x) => spec.files.find((f) => (f.names || []).some((nm) => x.names.includes(nm)) || (f.lines || []).some(([a, b]) => x.line >= a && x.line <= b));
+  for (const x of nodes) x.file = fileOf(x) || null;
   // 名字表：原文件 import 进来的 / 原文件顶层声明的
   const imported = new Map(); // local -> { src, imported }
   for (const im of imports) for (const s of im.specifiers) imported.set(s.local.name, { src: im.source.value, imp: s.type === "ImportSpecifier" ? s.imported.name : s.type === "ImportDefaultSpecifier" ? "default" : "*" });

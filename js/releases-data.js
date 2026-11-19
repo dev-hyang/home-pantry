@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-18.39", title: { zh: "内部整理：主程序再拆小，用法不变", en: "Under the hood: main program split further, nothing changes for you" }, items: [
+    { k: "better", zh: "把处理点击、表单提交、下拉选择的大段程序按领域（储藏、房屋、财务、家庭设置、今日页）拆成小文件，主程序文件从两千多行缩到一百多行；页面和操作和以前一样", en: "Click, form-submit and select handling is now split by area (pantry, house, finance, family settings, Today) into small files, and the main program file shrank from 2,000+ lines to about 150; pages and actions work as before" }
+  ] },
+
   { v: "2026-11-18.38", title: { zh: "内部整理：发布用的程序文件处理方式调整，用法不变", en: "Under the hood: release file handling tweaked, nothing changes for you" }, items: [
     { k: "better", zh: "发布时程序文件的换行符不再被系统自动改写，避免检查「是不是最新版」时误报；页面和操作和以前一样", en: "Line endings of the released program files are no longer rewritten automatically, which avoids false \"out of date\" warnings; pages and actions work as before" }
   ] },
