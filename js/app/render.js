@@ -5,7 +5,6 @@ import { FORM_PAGES, TABS_HIDDEN, VIEWS, offPanel, userActing } from "./page-tab
 import { alertCounts, collectAlerts } from "../core/alerts.js";
 import { crumb, viewMenu } from "../menu.js";
 import { decoratePrivacy } from "../core/privacy.js";
-import { enhanceSelects } from "../core/search-select.js";
 import { financeFallback, routeBlocked } from "../core/finance-access.js";
 import { go } from "../core/router.js";
 import { isScanRoute } from "./route.js";
@@ -47,7 +46,6 @@ export function render(force = true) {
   const kept = force || userActing ? null : keepUnsaved();   // 用户自己点的（筛选、清除、展开…）照常按新状态画；只有后台刷新才保留
   try { renderBody(r); } finally { if (kept) restoreUnsaved(kept); }
   restoreCarousels();   // 左右滑动的卡片（今日）：放回刚才看的那张
-  enhanceSelects($("#main"));   // 长下拉（data-ss）可以搜索
   { const pf = $("#billPayForm"); if (pf) recalcPayTotal(pf); }   // 缴费表单：先算一次总金额
   { const af = $("#main [data-as-focus]"); if (af) requestAnimationFrame(() => af.scrollIntoView({ block: "start" })); }   // 从账单页点某笔摊派进来：滚到那一笔
   normalizeFormActions($("#main"));   // 所有表单：取消靠左、保存靠右，同一行

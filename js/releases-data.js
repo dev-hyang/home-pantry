@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.5", title: { zh: "关联资产、房产的下拉改用统一的可搜索下拉", en: "Asset and property dropdowns now use the shared searchable dropdown" }, items: [
+    { k: "better", zh: "账单里的「关联资产」「房产」和概览的「按资产筛选」，现在和物品里的大类下拉一样：电脑上直接打字筛选，手机上点开是底部弹层", en: "The Linked asset, Property and Filter by asset dropdowns now behave like the category dropdown: type to filter on desktop, a bottom sheet on phones" },
+    { k: "fix", zh: "下拉里打字筛选、没有匹配项时，不再残留上一个分组的标题", en: "When a dropdown filter finds no match, a leftover group heading is no longer shown" }
+  ] },
+
   { v: "2026-11-19.4", title: { zh: "手机上的小按钮更好点", en: "Small buttons are easier to tap on phones" }, items: [
     { k: "better", zh: "手机上各页面的小按钮（如商店的「更新特价」、账单的「已核对」）加高到更容易点按；电脑上保持原样", en: "Small buttons on phones (e.g. Update deals in Shops, Mark checked in Bills) are taller and easier to tap; desktop is unchanged" }
   ] },

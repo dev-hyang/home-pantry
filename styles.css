@@ -4072,18 +4072,11 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 
 
 
-/* 可搜索的单选下拉（js/core/search-select.js）：和 .pick 同一套；选项是整行按钮，分组有小标题 */
-.pick.ss { margin: 0; min-width: 0; flex: 1 1 200px; }
-.pick.ss > summary { min-height: 44px; box-sizing: border-box; }
-.ss-list { display: block; }
-.ss-row { width: 100%; box-sizing: border-box; text-align: left; background: none; border: 0; font: inherit; color: inherit; cursor: pointer; }
-.ss-row[aria-selected="true"] { background: var(--ok-bg); font-weight: 600; }
-.ss-h { font-size: 12px; font-weight: 700; color: var(--muted); padding: 8px 10px 2px; }
 .pick-panel .pick-q { width: 100%; }
-/* 概览筛选行：时间范围固定宽度，资产（可搜索）占剩下的 */
+/* 概览筛选行：时间范围固定宽度，资产（可搜索：电脑是 .ssel，手机是 .ssel-btn）占剩下的 */
 .ov-filters #ovRange { flex: 0 0 8.5em; }
-.ov-filters .pick.ss { flex: 1 1 0; }
-@media (min-width: 761px) { .ov-filters #ovRange { flex: 0 0 200px; } .ov-filters .pick.ss { flex: 0 1 320px; } }
+.ov-filters .ssel, .ov-filters .ssel-btn { flex: 1 1 0; min-width: 0; }
+@media (min-width: 761px) { .ov-filters #ovRange { flex: 0 0 200px; } .ov-filters .ssel, .ov-filters .ssel-btn { flex: 0 1 320px; } }
 
 /* 登录记录：一行一次登录（设备图标 / 设备 + 浏览器 / 时间 IP / 新设备·新网络标签）；可疑且没确认的左边一条红线 */
 .login-list .login-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; min-width: 0; }

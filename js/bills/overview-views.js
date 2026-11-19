@@ -98,7 +98,7 @@ export function viewBillsHome() {
       <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${allBillsHref({ range: f.range, asset: f.asset })}">${t("全部账单")} ›</a></div></div>
       <div class="ov-filters">
         <select id="ovRange" aria-label="${t("时间范围")}">${range}</select>
-        <select id="ovAsset" data-ss="1" aria-label="${t("按资产筛选")}">${assetOptions(C.base.rows, f.asset)}</select>
+        <select id="ovAsset" data-search aria-label="${t("按资产筛选")}">${assetOptions(C.base.rows, f.asset)}</select>
       </div>
       <p class="muted kinds-note" role="status">${t("统计范围：{r}（{s}）· {a}。逾期没缴的一直计入，不受范围限制。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope, a: assetLabel })}</p>
       ${empty ? `<div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}<p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${href("bill", "new")}">${t("手动添加一条")}</a></p></div>` : `${cardsHtml(C)}${notesHtml(C)}`}

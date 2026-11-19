@@ -63,10 +63,10 @@ function build(box) {
 function filter(box) {
   const q = box.dataset.typed ? box.querySelector(".ssel-in").value.trim().toLowerCase() : "", list = box.querySelector(".ssel-list");
   let any = false;
+  list.querySelector(".ssel-empty")?.remove();   // 先清掉上一次的「没有匹配」提示：留着的话，最后一个分组会把它当成自己的可见选项而不收起
   list.querySelectorAll(".ssel-opt").forEach((r) => { const hit = !q || r.dataset.t.includes(q); r.hidden = !hit; any = any || hit; });
   list.querySelectorAll(".ssel-grp").forEach((g) => { let n = g.nextElementSibling, shown = false; while (n && !n.hasAttribute("data-grp")) { if (!n.hidden) shown = true; n = n.nextElementSibling; } g.hidden = !shown; });
   list.querySelectorAll(".is-hl").forEach((r) => r.classList.remove("is-hl"));
-  list.querySelector(".ssel-empty")?.remove();
   if (!any) list.insertAdjacentHTML("beforeend", `<div class="ssel-empty muted">${esc(t("没有匹配的选项"))}</div>`);
   if (q) { const first = list.querySelector(".ssel-opt:not([hidden]):not(.is-off)"); if (first) first.classList.add("is-hl"); }
 }
