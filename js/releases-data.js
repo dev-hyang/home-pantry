@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.3", title: { zh: "整理：新增统一的徽标、铃铛、提示样式和控件图鉴页", en: "Housekeeping: shared badge, bell and hint styles, plus a controls gallery page" }, items: [
+    { k: "better", zh: "新增一套统一的徽标、提醒铃铛（带数字 / 红点角标）和问号提示的样式，还有一个展示它们的图鉴页（styleguide.html）；现在的页面还没用上，外观不变", en: "Added shared badge, notification bell (with count / dot) and hint styles, and a gallery page (styleguide.html) that shows them; existing pages don't use them yet, so nothing looks different" }
+  ] },
+
   { v: "2026-11-19.2", title: { zh: "表单里的输入框、下拉、日期大小统一", en: "Form fields now share one size" }, items: [
     { k: "better", zh: "添加 / 编辑物品、设备等表单里的输入框、下拉和日期，字号和高度和其他页面一致（以前电脑上表单里的字偏小）", en: "Inputs, dropdowns and dates in the add / edit forms now match the rest of the app in text size and height (they were slightly smaller on desktop)" }
   ] },
