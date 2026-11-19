@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.11", title: { zh: "深色主题下数字角标的字看得清了", en: "Count badges readable in the dark theme" }, items: [
+    { k: "fix", zh: "手动选了深色主题时，数字角标里的字几乎看不清，现在清楚了", en: "With the dark theme picked manually, the numbers inside count badges were nearly unreadable; they are clear now" }
+  ] },
   { v: "2026-11-19.10", title: { zh: "全部账单页更简洁：操作收进 ⋯，说明收进 ⓘ，右下角加号加账单", en: "Cleaner All bills page: actions in ⋯, notes in ⓘ, + button to add" }, items: [
     { k: "better", zh: "全部账单：第一行只留眼睛和 ⋯（添加账单、批量标记已核对、导出 CSV）；原来的“全部标为已核对”按钮去掉，右下角加了圆形 ＋ 添加账单", en: "All bills: the top row keeps just the eye and ⋯ (Add bill, Mark checked in bulk, Export CSV); the Mark all checked button is gone and a round + button adds a bill" },
     { k: "better", zh: "页面上长长的说明文字改成 ⓘ：标题旁是时间范围说明，“含估算 / Escrow”等说明放在对应的“应付”“余额”卡片旁，悬停或点一下查看", en: "Long notes became ⓘ tips: the time-range note sits beside the title, and estimate / Escrow notes sit on the Total due and Balance cards (hover or tap)" },
