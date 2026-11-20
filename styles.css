@@ -4305,6 +4305,7 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 
 /* 花费明细行：「日期 名称」一行 + 下面一行描述（用 · 隔开，整条换行），金额靠右；没有 ⋯ / ▾ */
 .rec-list li.rec-row { align-items: flex-start; }
+[data-row-open], [data-row-chk] { cursor: pointer; }   /* 点行空白处就能进去 / 勾选 */
 .rec-list .rec-day { display: inline-block; margin-right: 8px; color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
 .rec-list .rec-row .grow small { display: flex; margin-top: 2px; color: var(--muted); line-height: 1.45; }
 .rec-list .rec-amt { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; }

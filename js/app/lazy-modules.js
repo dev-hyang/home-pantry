@@ -179,7 +179,6 @@ export const viewSpend = lazyFn(LZ.spendAdd, "viewSpend");
 export const viewStats = lazyFn(LZ.spendAdd, "viewStats");
 LZ.spendRecords = lazyModule(() => import("../stats/spend-records.js"));
 export const clearSpendFilter = lazyFn(LZ.spendRecords, "clearSpendFilter");
-export const exportSpendList = lazyFn(LZ.spendRecords, "exportSpendList");
 export const fetchSpendRows = lazyFn(LZ.spendRecords, "fetchSpendRows");
 export const patchSpendRow = lazyFn(LZ.spendRecords, "patchSpendRow");
 export const renderSpendList = lazyFn(LZ.spendRecords, "renderSpendList");

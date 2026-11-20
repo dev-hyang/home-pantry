@@ -94,6 +94,7 @@ export function initIncome({ render, refresh }) {
     if (act === "print-report") return guard(() => printIncome("report"));
     if (act === "print-list") return printIncome("list");
     if (act === "kind-open") { Object.assign(I, NO_FILTER(), { kind: id, person: OV().person }); goTab("records"); return; }
+    if (act === "sel-start") { I.selMode = true; I.sel = new Set([id]); I.open = null; return redraw(); }   // 长按菜单「多选删除」：进入多选，这一行先勾上
     if (act === "sel-toggle") { I.selMode = !I.selMode; I.sel = new Set(); return redraw(); }
     if (act === "sel-all") { I.sel = new Set(incList.rows.filter(canEdit).map((r) => r.id)); return renderIncList(); }
     if (act === "sel-del") { const ids = [...(I.sel || [])]; if (!ids.length) return toast(t("先勾选要删的收入")); if (!confirmDelete(t("删除选中的 {n} 笔收入？", { n: ids.length }))) return; return guard(async () => { for (const x of ids) await Store.deleteIncomeRecord(x); I.sel = new Set(); I.selMode = false; I.open = null; toast(t("已删除 {n} 笔", { n: ids.length })); await reload(); }); }

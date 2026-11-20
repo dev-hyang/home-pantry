@@ -2074,7 +2074,7 @@ export const EN = {
   "找不到这笔记录": "Couldn't find this record",
   "回到花费记录": "Back to spending records",
   "退款 / 报销勾下面的选项": "For a refund / reimbursement, tick the box below",
-  "编辑 / 复制 / 删除：手机长按那一行（删除也可以向左滑），电脑右键点那一行。要删很多笔用「多选删除」。": "Edit / copy / delete: long-press the row on a phone (or swipe left to delete), or right-click it on a computer. To delete many, use Select to delete.",
+  "点一行进编辑；手机长按那一行（电脑右键点那一行）可以编辑 / 复制 / 删除 / 多选删除，删除也可以向左滑。": "Tap a row to edit it; long-press it on a phone (or right-click on a computer) for Edit / Copy / Delete / Select & delete, or swipe left to delete.",
   "删除选中的 {n} 笔花费（合计 {m}）？删了就找不回来，建议先备份。": "Delete the {n} selected records ({m} in total)? This cannot be undone; back up first.",
   "删了 {n} 笔，{k} 笔失败": "Deleted {n}, {k} failed",
   "已删除 {n} 笔": "Deleted {n}",

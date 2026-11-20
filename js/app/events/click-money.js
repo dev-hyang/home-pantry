@@ -17,10 +17,10 @@ import { payAcctValue } from "../../bills/card-picker.js";
 import { aiDraftCard, deleteCard, runCleanup, setCardActive } from "../lazy-modules.js";
 import { exportAnnual } from "../../stats/spend-stores.js";
 import { spendListNow } from "../lazy-modules.js";
-import { clearSpendFilter, exportSpendList, renderSpendList, renderSpendRecords, spendRowsLoaded } from "../lazy-modules.js";
+import { clearSpendFilter, renderSpendList, renderSpendRecords, spendRowsLoaded } from "../lazy-modules.js";
 
 /** 点击动作（财务：账单、缴费、卡、花费、统计、导出）：这一组处理的 data-action */
-export const MONEY_ACTIONS = new Set(["print-run","ov-group","bill-cancel","assess-cancel","assess-del","assess-undo","billpay-cancel","bill-delete","billpay-del","bill-verify","bill-link-asset","bill-link-ignore","billpay-backfill","all-verify","all-csv","bills-enable","tpl-all","spend-edit","spend-edit-collapse","trip-reclass","spend-copy","spend-open","spend-edit-cancel","spend-chip-clear","med-del","card-ai","card-del","card-del-keep","card-del-all","card-del-cancel","card-cleanup-open","card-cleanup-cancel","card-cleanup-run","card-deact","card-react","med-pay-del","spend-more","spend-csv","spend-sel-toggle","spend-sel-all","spend-sel-none","spend-sel-del","stats-months","spend-add-toggle","stats-node","stats-trips","csv-summary","csv-detail"]);
+export const MONEY_ACTIONS = new Set(["print-run","ov-group","bill-cancel","assess-cancel","assess-del","assess-undo","billpay-cancel","bill-delete","billpay-del","bill-verify","bill-link-asset","bill-link-ignore","billpay-backfill","all-verify","all-csv","bills-enable","tpl-all","spend-edit","spend-edit-collapse","trip-reclass","spend-copy","spend-open","spend-edit-cancel","spend-chip-clear","med-del","card-ai","card-del","card-del-keep","card-del-all","card-del-cancel","card-cleanup-open","card-cleanup-cancel","card-cleanup-run","card-deact","card-react","med-pay-del","spend-more","spend-sel-start","spend-sel-toggle","spend-sel-all","spend-sel-none","spend-sel-del","stats-months","spend-add-toggle","stats-node","stats-trips","csv-summary","csv-detail"]);
 /** 点击动作（财务：账单、缴费、卡、花费、统计、导出）：按 data-action 分支；el 是被点的元素，id 是它的 data-id，e 是点击事件 */
 export async function clickMoney(action, el, id, e) {
   switch (action) {
@@ -87,7 +87,7 @@ export async function clickMoney(action, el, id, e) {
       case "card-react": el.disabled = true; await setCardActive(el.dataset.id, true); return refresh();
       case "med-pay-del": if (!confirmDelete(t("删除这条缴费记录？"))) return; return deleteMedPay(el.dataset.id);
       case "spend-more": return spendListNow()?.more();   // 「继续加载」：向数据库要下一页
-      case "spend-csv": return exportSpendList();
+      case "spend-sel-start": state.spendSel = new Set([id]); state.spendEdit = null; return render();   // 长按菜单「多选删除」：进入多选，这一行先勾上
       case "spend-sel-toggle": state.spendSel = state.spendSel ? null : new Set(); state.spendEdit = null; return render();
       case "spend-sel-all": { const S = state.spendSel || (state.spendSel = new Set()); spendRowsLoaded().forEach((p) => S.add(p.id)); return renderSpendList(); }   // 已经读到的（要更多先「继续加载」）
       case "spend-sel-none": state.spendSel = new Set(); return renderSpendList();

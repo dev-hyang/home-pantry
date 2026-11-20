@@ -135,6 +135,12 @@ main.addEventListener("click", (e) => {
   if (e.target.closest(".inv-link")) return;
   pickRow(row.dataset.rowSel, !state.invSel?.has(row.dataset.rowSel));
 });
+/* 多选删除中的行（花费 / 收入明细）：点行任何空白处 = 点它的勾选框（勾选框的 change 处理照旧更新计数） */
+main.addEventListener("click", (e) => {
+  const row = e.target.closest?.("[data-row-chk]"); if (!row || e.target.closest("a, button, input, select, textarea, label, summary")) return;
+  if (window.getSelection?.().toString()) return;
+  row.querySelector("input[type=checkbox]:not(:disabled)")?.click();
+});
 /* 点行进编辑（2026-11-14）：带 data-row-open 的行，点到行里任何不是按钮 / 链接 / 输入框的地方，就打开它的编辑页 */
 main.addEventListener("click", (e) => {
   const row = e.target.closest?.("[data-row-open]"); if (!row || e.defaultPrevented) return;

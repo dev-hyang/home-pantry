@@ -19,6 +19,7 @@ import { t } from "../core/i18n.js";
 import { viewOtBill } from "./lazy-modules.js";
 import { pantryNav } from "../pantry/restock-sync.js";
 import { renderInvList } from "./lazy-modules.js";
+import { focusEntry } from "./entry-focus.js";
 
 /** force=true：路由变化，整页重画；false：数据刷新，表单页保持不动 */
 export function render(force = true) {
@@ -61,7 +62,7 @@ function mountView(pre, out) {
   if (!out || typeof out.then !== "function") { $("#main").innerHTML = pre + out; return true; }
   const key = location.hash;
   $("#main").innerHTML = pre + `<div class="panel empty" role="status">${t("加载中…")}</div>`;
-  out.then(() => { if (location.hash === key && state.enriched) render(true); }, (e) => {
+  out.then(() => { if (location.hash === key && state.enriched) { render(true); focusEntry(state.route); } }, (e) => {   // 懒加载完才有表单：这时才能把光标放进去
     if (location.hash !== key) return;
     $("#main").innerHTML = pre + `<div class="panel empty" role="alert"><strong>${t("页面加载失败")}</strong><p>${t("可能是网络不稳，或者页面有了新版本，没能下载这个页面。点「重试」刷新一下。")}</p><p><button type="button" class="btn btn-primary" data-action="reload-page">${t("重试")}</button></p></div>`;
   });

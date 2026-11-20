@@ -1,0 +1,19 @@
+/* 进入表单页后，把光标放到第一个要填的格子。
+ * 页面是按需加载的：路由刚切过来时画的可能还是「加载中…」，表单还不存在；所以路由切换后调一次，页面加载完重画后再调一次（render.js 的 mountView）。 */
+import { $ } from "../core/util.js";
+
+/** 缴费 / 保养表单：滚到表单、光标放在金额（缴费）或类型（保养）；新建账单 / 资产 / 物品放在名称上 */
+export function focusEntry(route) {
+  if (!route) return;
+  if (route.section === "item") $("#itemForm")?.elements.name?.focus({ preventScroll: true });
+  if (route.section === "asset") {
+    const mf = $("#maintForm[data-focus]");
+    if (mf) { mf.scrollIntoView({ block: "start" }); mf.elements.kind?.focus({ preventScroll: true }); }
+    else if (route.id === "new") $("#assetForm")?.elements.name?.focus({ preventScroll: true });
+  }
+  if (route.section === "bill") {
+    const pf = $("#billPayForm[data-focus]");
+    if (pf) { pf.scrollIntoView({ block: "start" }); pf.elements.amount?.focus({ preventScroll: true }); }
+    else if (route.id === "new") $("#billForm")?.elements.name?.focus({ preventScroll: true });
+  }
+}

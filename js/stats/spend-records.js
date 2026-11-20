@@ -1,4 +1,4 @@
-import { $, esc, fmtDay, money, num, showQty, toast } from "../core/util.js";
+import { $, esc, fmtDay, money, num, showQty } from "../core/util.js";
 import { ALL_CATS, MONTH_EN, TZ, isBill, monthKey, rangeMonths } from "./spend-roll.js";
 import { BUCKETS, NATURES, bucketOf, coversUnknown, defaultNature, isTransfer, knownLeafIds, leafLabel, leavesOf, natureName, natureParams, treeOptions } from "../core/taxonomy.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
@@ -13,10 +13,9 @@ import { serverList } from "../core/server-list.js";
 import { state } from "../core/state.js";
 import { withProperty } from "../core/alerts.js";
 import { paymentPayLabel } from "../bills/card-picker.js";
-import { STORE_NONE, download, storeOf, toCsv } from "./store-lite.js";
+import { STORE_NONE, storeOf } from "./store-lite.js";
 import { knownStores, storeKey } from "./store-lite-common.js";
 import { activeProps } from "./add-lite-common.js";
-import { spendDetailRows } from "./store-rows.js";
 import { NO_SPEND_FILTER } from "./records-lite.js";
 import { medNames } from "./records-lite-common.js";
 import { lpAttr } from "../core/long-press.js";
@@ -92,14 +91,17 @@ function spendRow(p, L = spendLookups()) {
   const prop = p.property_id && !p.pay_id && state.properties.length > 1 ? state.properties.find((x) => x.id === p.property_id)?.name : "";
   // 账单缴费记的花费（数据库顺带带回关联的缴费记录 pay_id）：名称链接到那条缴费记录的编辑页（改那里，花费会同步）；其余的在这一行里就地编辑
   const bill = p.pay_id ? L.bills.get(p.pay_bill_id) : null;
-  const title = p.virtual === "medical" ? `<a class="link-name" href="${href("otbill", p.bill_id)}" title="${esc(t("到医疗账单里看 / 改"))}">${esc(p.name)}</a>`
+  const picking = !!state.spendSel && !p.virtual;   // 多选删除中：点行 = 勾 / 取消勾，名字不再是链接
+  const rowGo = p.virtual === "medical" ? href("otbill", p.bill_id) : bill ? `${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}` : `${href("bills", "spend")}?form=${encodeURIComponent(p.id)}`;   // 点行任何空白处 = 点名字（main.js 的 data-row-open）
+  const title = picking ? `<span class="link-name">${esc(p.name)}</span>` : p.virtual === "medical" ? `<a class="link-name" href="${href("otbill", p.bill_id)}" title="${esc(t("到医疗账单里看 / 改"))}">${esc(p.name)}</a>`
     : bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
     : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>${state.spendDrafts?.[p.id] ? ` <span class="badge b-soon">${t("草稿")}</span>` : ""}`;
   const sel = state.spendSel && !p.virtual ? `<input type="checkbox" class="sel" data-sel="${p.id}" aria-label="${esc(t("选中 {name}", { name: p.name }))}" ${state.spendSel.has(p.id) ? "checked" : ""}>` : "";
   const desc = [leafLabel(p.category), prop ? `🏠 ${prop}` : "", storeOf(p), p.quantity ? showQty(p.quantity, p.unit || "") : "", paymentPayLabel(p), p.created_by && state.members.length > 1 ? memberName(p.created_by) || "" : ""].filter(Boolean).map(esc);
   const amount = p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`;
   // 没有 ⋯ / ▾：电脑右键、手机长按弹菜单（编辑 / 复制 / 删除）；删除一笔另有手机左滑
-  return `<li data-swipe-del="purchase" class="rec-row"${p.virtual ? "" : ` ${lpAttr([bill ? { label: t("编辑"), href: `${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}`, first: true } : { label: t("编辑"), action: "spend-edit", data: { id: p.id }, first: true }, { label: t("复制"), action: "spend-copy", data: { id: p.id } }, { label: t("删除"), action: "purchase-del", data: { id: p.id }, danger: true }], p.name)}`}>${sel}
+  const menu = p.virtual || picking ? "" : ` ${lpAttr([bill ? { label: t("编辑"), href: rowGo, first: true } : { label: t("编辑"), action: "spend-edit", data: { id: p.id }, first: true }, { label: t("复制"), action: "spend-copy", data: { id: p.id } }, { label: t("删除"), action: "purchase-del", data: { id: p.id }, danger: true }, { label: t("多选删除"), action: "spend-sel-start", data: { id: p.id } }], p.name)}`;
+  return `<li${picking ? "" : ` data-swipe-del="purchase"`} class="rec-row${picking ? " is-pick" : ""}" ${picking ? "data-row-chk" : `data-row-open="${esc(rowGo)}"`}${menu}>${sel}
     <div class="grow"><span class="name"><span class="rec-day">${esc(fmtDay(p.purchased_at))}</span>${title}${tags}</span>${desc.length ? `<small class="dots">${dots(desc)}</small>` : ""}</div>
     <b class="rec-amt">${p.amount != null && num(p.amount) < 0 ? `<span class="badge b-ok">${t("退款")}</span> ` : ""}${amount}</b>
     ${p.virtual ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button>`}</li>`;
@@ -205,17 +207,7 @@ export function spendRecordsHtml() {
         ${clearFiltersBtn("spend", changed(f, FD.spend))}
       </div>
       <div id="spendChips">${spendChipsHtml()}</div>
-      <div class="ix-tools"><button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${state.spendSel ? t("退出多选") : t("多选删除")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="spend" data-filtered="1">${t("打印")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-csv">${t("导出当前列表 CSV")}</button></div>
       <div id="spendList" style="margin-top:8px">${spendListHtml()}</div>
-      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("编辑 / 复制 / 删除：手机长按那一行（删除也可以向左滑），电脑右键点那一行。要删很多笔用「多选删除」。")}</p>
+      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("点一行进编辑；手机长按那一行（电脑右键点那一行）可以编辑 / 复制 / 删除 / 多选删除，删除也可以向左滑。")}</p>
     </div>`;
-}
-/** 导出当前列表（按筛选，不只是已显示的几页）：列和年度报表的明细一样 */
-export async function exportSpendList() {
-  let list;
-  try { list = await fetchSpendRows(20000); } catch (e) { return toast(t("读取列表失败：{msg}", { msg: e.message })); }
-  if (!list.length) return toast(t("没有可导出的记录"));
-  const hh = (state.household?.name || t("家庭")).replace(/[\\/:*?"<>|（）()\s]/g, "");
-  download(`${hh}-${t("花费明细")}.csv`, toCsv(spendDetailRows(list)));
-  toast(t("已导出 {n} 笔明细", { n: list.length }));
 }

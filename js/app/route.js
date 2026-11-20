@@ -10,6 +10,7 @@ import { inc } from "../income/logic.js";
 import { normRange, setFinRange } from "../core/time-range.js";
 import { refresh, resetListPages } from "./data.js";
 import { render } from "./render.js";
+import { focusEntry } from "./entry-focus.js";
 import { resetScan, saveAssetForm, saveBillForm, saveItemForm } from "./lazy-modules.js";
 import { resetSectionFilters } from "./page-events.js";
 import { saveHouseForm } from "./actions/house-form.js";
@@ -122,17 +123,7 @@ function onRoute() {
   if (leavingItem) state.prevRoute = null;
   if (back) requestAnimationFrame(() => window.scrollTo(0, scrollMem[routeKey(next)] || 0));
   else { window.scrollTo(0, 0); if (!enteringItem) $("#main").focus({ preventScroll: true }); }
-  if (next.section === "item") $("#itemForm")?.elements.name.focus({ preventScroll: true });
-  if (next.section === "asset") {
-    const mf = $("#maintForm[data-focus]");   // 从“记保养”进来：滚到保养记录表单
-    if (mf) { mf.scrollIntoView({ block: "start" }); mf.elements.kind.focus({ preventScroll: true }); }
-    else if (next.id === "new") $("#assetForm")?.elements.name.focus({ preventScroll: true });
-  }
-  if (next.section === "bill") {
-    const pf = $("#billPayForm[data-focus]");   // 从“记缴费”进来：滚到缴费表单
-    if (pf) { pf.scrollIntoView({ block: "start" }); pf.elements.amount.focus({ preventScroll: true }); }
-    else if (next.id === "new") $("#billForm")?.elements.name.focus({ preventScroll: true });
-  }
+  focusEntry(next);   // 表单页：光标放到第一个要填的格子（页面是懒加载的，加载完 render.js 会再调一次）
   // 表单页保存后回到枢纽（仍在同一 section）也要刷新，枢纽上的完成度才是新的
   if (state.needsRefresh) { state.needsRefresh = false; refresh(); }
 }
