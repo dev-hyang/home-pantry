@@ -45,21 +45,19 @@ export function initIncome({ render, refresh }) {
   main.addEventListener("click", (e) => {
     const b = e.target.closest?.("[data-inc]"); if (!b) return;
     const I = inc(), id = b.dataset.id, act = b.dataset.inc;
-    if (act === "add") { I.form = { rec: null }; I.scanOpen = false; I._keep = true; if (activeTab(state.route) !== "records" || state.route.sub !== "income") goTab("records"); else redraw(); return; }
+    if (act === "add") { I.form = { rec: null }; I.scanOpen = false; location.hash = incFormHref("new"); return; }   // 记一笔：单独的表单页
     if (act === "scan") { I.scanOpen = true; I.form = null; I._keep = true; if (activeTab(state.route) !== "records" || state.route.sub !== "income") goTab("records"); else redraw(); return; }   // 圆形 ＋ 菜单：拍照识别（不在明细页就先去明细）
     if (act === "way-manual") { I.form = I.form && !I.form.rec?.id ? null : { rec: null }; I.scanOpen = false; return redraw(); }
     if (act === "batch-clear") { I.batch = null; history.replaceState(null, "", `${href("bills", "income")}?tab=records`); return redraw(); }
     if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return redraw(); }
-    if (act === "cancel") { const rid = I.form?.rec?.id; if (I.drafts && rid) delete I.drafts[rid]; I.form = null; if (rid && inFormPage()) return go(incViewHref(rid), { replace: true }); return redraw(); }
+    if (act === "cancel") { const rid = I.form?.rec?.id; if (I.drafts && rid) delete I.drafts[rid]; I.form = null; if (inFormPage()) return go(rid ? incViewHref(rid) : incomeHref("records"), { replace: true }); return redraw(); }
     if (act === "open") { location.hash = incViewHref(id); return; }
     if (act === "more") return incList.more();   // 「继续加载」：向数据库要下一页
     if (act === "node") { OV().node = b.dataset.node || ""; return redraw(); }   // 类型页：逐层点进去 / 面包屑回上层
     if (act === "copy") {   // 复制：新记一笔，带上这笔的内容（日期回到今天，不带 id、导入批次、还款记录）
       const src = I.rec.find((r) => r.id === id) || incList.rows.find((r) => r.id === id); if (!src) return;
       const rec = { ...src }; for (const k of ["id", "household_id", "created_at", "updated_at", "created_by", "updated_by", "import_batch", "received_on", "purchase_id"]) delete rec[k];
-      I.form = { rec }; I.scanOpen = false;
-      if (activeTab(state.route) !== "records" || inSubPage()) { Object.assign(I, NO_FILTER()); I._keep = true; goTab("records"); return; }
-      redraw(); setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
+      I.form = { rec }; I.scanOpen = false; location.hash = incFormHref("new"); return;   // 复制：同一个表单页，带上这笔的内容
     }
     if (act === "edit") { location.hash = incFormHref(id); return; }   // 编辑：独立的表单页（detail-page.js）
     if (act === "del-swipe") { if (!confirmDelete(t("删除这笔收入？"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }   // 左滑删除：用确认框（滑动代码按它判断用户有没有取消）

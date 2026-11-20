@@ -8,9 +8,9 @@ let seq = 0;
 export function pinTopActions(root, on) {
   root.querySelectorAll(".top-actions").forEach((n) => n.remove());
   if (!on) return;
-  const bar = [...root.querySelectorAll("form .form-actions, form .sticky-actions")].find((b) => b.querySelector('button[type="submit"]') && !b.closest("[hidden], dialog, details:not([open])"));
+  const bar = [...root.querySelectorAll("form .form-actions, form .sticky-actions")].find((b) => b.querySelector('button[type="submit"], button:not([type])') && !b.closest("[hidden], dialog, details:not([open])"));
   if (!bar) return;
-  const form = bar.closest("form"), submit = bar.querySelector('button[type="submit"]');
+  const form = bar.closest("form"), submit = [...bar.querySelectorAll('button[type="submit"], button:not([type])')].find((b) => !isCancel(b));
   const cancel = [...bar.querySelectorAll("button, a.btn")].find((b) => b !== submit && isCancel(b));
   if (!form.id) form.id = `pinForm${++seq}`;
   const clone = (el) => { const c = el.cloneNode(true); c.removeAttribute("id"); c.classList.remove("swipe-src"); return c; };
@@ -18,8 +18,8 @@ export function pinTopActions(root, on) {
   const wrap = document.createElement("div"); wrap.className = "top-actions"; wrap.setAttribute("role", "toolbar"); wrap.setAttribute("aria-label", "保存 / 取消");
   if (cancel) { const c = clone(cancel); c.classList.add("ta-cancel"); wrap.append(c); }
   wrap.append(s);
-  const tb = document.querySelector(".topbar"), stuck = tb && getComputedStyle(tb).position === "sticky";
-  wrap.style.setProperty("--pin-top", `${stuck ? tb.offsetHeight : 0}px`);
   const host = form.closest(".section, main") || root, crumb = host.querySelector(":scope > nav.crumb");
+  const tb = document.querySelector(".topbar"), stuck = (el) => el && getComputedStyle(el).position === "sticky";   // 顶栏、面包屑都是粘性的：置顶条贴在它们下面
+  wrap.style.setProperty("--pin-top", `${(stuck(tb) ? tb.offsetHeight : 0) + (stuck(crumb) ? crumb.offsetHeight : 0)}px`);
   if (crumb) crumb.after(wrap); else host.prepend(wrap);
 }

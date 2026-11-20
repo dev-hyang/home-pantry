@@ -1497,7 +1497,7 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 @media print { .drill-hint, .filter-chips { display: none !important; } }
 
 /* 路径（面包屑）固定：子页往下滑时，“‹ 账单 / 花费 / 明细”一直在顶栏下面，随时能回上一层；--eco-h 是顶栏高度（shared/compact-filters.js 的 watchStick 量出来） */
-.crumb { position: sticky; top: calc(var(--eco-h, 0px) + env(safe-area-inset-top, 0px)); z-index: 16; margin: -6px -20px 12px; padding: 6px 20px; background: color-mix(in srgb, var(--bg) 94%, transparent); border-bottom: 1px solid var(--line); }
+.crumb { position: sticky; top: calc(var(--eco-h, 0px) + env(safe-area-inset-top, 0px)); z-index: 16; margin: -6px -20px 12px; padding: 6px 20px; background: var(--bg); border-bottom: 1px solid var(--line); }
 .crumb > :first-child { margin-left: -5px; }
 @media (max-width: 640px) { .crumb { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; } }
 @media print { .crumb { position: static; } }
@@ -4341,7 +4341,7 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .shop-chk { display: flex; align-items: center; min-height: 44px; padding: 0 4px; } .shop-chk .sel { width: 20px; height: 20px; accent-color: var(--pine); }
 .is-pick { cursor: pointer; }
 /* 编辑页顶部的「取消 / 保存」（core/top-actions.js）：粘在顶栏下面，取消靠左、保存靠右 */
-.top-actions { position: sticky; top: var(--pin-top, 0px); z-index: 12; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 10px; padding: 8px 0; background: color-mix(in srgb, var(--bg) 94%, transparent); border-bottom: 1px solid var(--line); }
+.top-actions { position: sticky; top: var(--pin-top, 0px); z-index: 12; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 10px; padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--line); }
 .top-actions .btn { min-height: 44px; min-width: 88px; justify-content: center; }
 .top-actions .ta-save { margin-left: auto; }
 /* 今日 · 咩咩咩：三个入口做成一行小卡片（图标在上、文字在下，手机上也是一行三个） */

@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.23", title: { zh: "记一笔收入也是单独的表单页", en: "Logging income is its own form page too" }, items: [
+    { k: "better", zh: "记一笔收入 / 复制一笔：打开单独的表单页，顶部有置顶的取消 / 保存，保存后回到收入明细", en: "Log income / Copy now open a dedicated form page with pinned Cancel / Save and return to the income list after saving" },
+  ] },
+
   { v: "2026-11-20.22", title: { zh: "商店：录入特价是单独的新增页", en: "Shops: entering deals is its own page" }, items: [
     { k: "fix", zh: "商店详情右下角 ＋ 的「录入特价」「手动加一条特价」现在会跳到单独的新增页（取消 / 保存后回到商店），不再停在原页面", en: "The shop page's ＋ menu now opens a dedicated page for entering deals (Cancel / Save return to the shop) instead of staying on the same page" },
     { k: "better", zh: "商店特价行、特价一览的每一条：名称不再带下划线，整行可点进详情", en: "Deal rows in a shop and in the weekly deals list: no underlined names, the whole row opens the detail" },

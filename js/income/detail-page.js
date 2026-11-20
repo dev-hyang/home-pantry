@@ -45,9 +45,15 @@ export function incomeDetailPage(id) {
 
 /** 编辑页：只有一张表单；找不到（被删了 / 没权限）给提示 */
 export function incomeFormPage(id) {
-  const r = find(id), I = inc();
+  const I = inc();
+  if (id === "new") {   // 记一笔 / 复制：form 已经由点击处设好（复制带内容）；直接打开网址时是空白的新一笔
+    if (!I.form || I.form.rec?.id) I.form = { rec: null };
+    I._formPage = true;
+    return `<section class="section form-page">${crumb(I.form.rec ? t("复制收入") : t("记一笔收入"))}${formHtml()}</section>`;
+  }
+  const r = find(id);
   if (!r || !canEdit(r)) return missing();
   if (I.form?.rec?.id !== id) I.form = { rec: r };
   I._formPage = true;
-  return `<section class="section">${crumb(t("编辑收入"))}${formHtml()}</section>`;
+  return `<section class="section form-page">${crumb(t("编辑收入"))}${formHtml()}</section>`;
 }

@@ -120,6 +120,6 @@ export async function saveRecord(form) {
     const next = want && accSel && accSel !== "other" ? accSel : !want && accSel && accSel === was ? "" : was;
     if (next !== was) await saveDefaultAcct(next).catch(() => toast(t("默认账户没存上，下次再试")));
     if (I.drafts && f.rec?.id) delete I.drafts[f.rec.id];
-    const back = state.route?.q?.get("form") && f.rec?.id; I.form = null; await loadIncome(); toast(t("已保存")); if (back) return go(`${incomeHref("records")}&view=${encodeURIComponent(back)}`, { replace: true }); rerender(); }
+    const onPage = !!state.route?.q?.get("form"), back = onPage && f.rec?.id; I.form = null; await loadIncome(); toast(t("已保存")); if (back) return go(`${incomeHref("records")}&view=${encodeURIComponent(back)}`, { replace: true }); if (onPage) return go(incomeHref("records"), { replace: true }); rerender(); }
   catch (e) { fail(/income_amount|account_id/i.test(e.message || "") ? t("数据库还没升级：请先执行 supabase/migrations/056_income_ledger.sql") : t("保存失败：{msg}", { msg: e.message })); }
 }
