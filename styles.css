@@ -3756,8 +3756,8 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 @media (max-width: 560px) {
   .all-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .all-kpis .kpi:last-child { grid-column: auto; }
-  .all-kpis .kpi { padding: 8px 9px; }
-  .all-kpis .kpi b { font-size: 15px; }
+  .all-kpis .kpi { padding: 8px 7px; }
+  .all-kpis .kpi b { font-size: 16px; letter-spacing: -.2px; }   /* 三张卡一直是同一个字号（以前是 15px，比别的页面的 18px 小一截，看起来像“筛选后变小”）；放不下的特别长的数才折行 */
   .all-kpis .kpi span, .all-kpis .kpi small { font-size: 11.5px; }
 }
 @media (max-width: 520px) {

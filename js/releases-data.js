@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.37", title: { zh: "全部账单的合计卡：手机上金额字号调大一档", en: "All bills totals: slightly larger amounts on phones" }, items: [
+    { k: "fix", zh: "手机上「应付 / 已付 / 余额」三张卡的金额字号从 15px 调到 16px，和其他页面更接近，不再显得偏小", en: "On phones the Due / Paid / Balance amounts go from 15px to 16px, closer to other pages and no longer looking small" }
+  ] },
+
   { v: "2026-11-19.36", title: { zh: "各页标题下面的说明文字，统一收进标题后面的 ⓘ", en: "Descriptions under page titles now live in an ⓘ after the title" }, items: [
     { k: "better", zh: "各页各块标题下面那句说明（比如「竖线是本月已过去的进度…」「可用 Excel 打开」）改成标题后面的小 ⓘ，电脑悬停、手机点一下看；页面更紧凑", en: "The explanatory line under each section title is now a small ⓘ after the title (hover on laptop, tap on phone), so pages are more compact" },
     { k: "better", zh: "带数字或链接的统计 / 状态行（如「3 张在用」）仍然直接显示", en: "Lines with numbers or links (like “3 in use”) are still shown inline" }
