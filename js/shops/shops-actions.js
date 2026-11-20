@@ -92,7 +92,9 @@ export async function shopsAction(action, el, { render, go, refresh }) {
     case "shops-deal-del": {
       const d = (state.shopDeals || []).find((x) => x.id === el.dataset.deal); if (!d) return;
       if (!confirmDelete(t("删除特价「{name}」？", { name: d.name }))) return;
-      await Store.deleteShopDeals([d.id]); state.shopDeals = state.shopDeals.filter((x) => x.id !== d.id); render(); return;
+      await Store.deleteShopDeals([d.id]); state.shopDeals = state.shopDeals.filter((x) => x.id !== d.id);
+      if (state.route?.q?.get("deal")) return go(`${href("shops", "shop")}/${encodeURIComponent(d.shop_id)}`, { replace: true });   // 在详情页删：回商店
+      render(); return;
     }
     case "shops-tolist": {
       const d = (state.shopDeals || []).find((x) => x.id === el.dataset.deal); if (!d) return;
@@ -169,7 +171,9 @@ async function saveDealEdit(f, render) {
   const row = { ...d, name: g("name").slice(0, 80) || d.name, size: g("size") || null, price: g("price") === "" ? null : Math.round(+g("price") * 100) / 100, price_text: g("price_text") || null,
     unit_price: g("unit_price") === "" ? null : +g("unit_price"), unit_label: g("unit_label") || null, valid_to: g("valid_to") || null, aka: g("aka") || null,
     deal_type: [...f.querySelectorAll('[name="deal_type"]:checked')].map((x) => x.value).slice(0, 4).join(",") || null };
-  await Store.saveShopDeal(row); Object.assign(d, row); dealUi(d.shop_id).edit = null; toast(t("已保存")); render();
+  await Store.saveShopDeal(row); Object.assign(d, row); dealUi(d.shop_id).edit = null; toast(t("已保存"));
+  if (state.route?.q?.get("edit")) return go(`${href("shops", "shop")}/${encodeURIComponent(d.shop_id)}?deal=${encodeURIComponent(d.id)}`, { replace: true });   // 编辑页保存后回详情
+  render();
 }
 /* 表单提交、输入：在 document 上监听（和录入购物一样），render 由 main.js 注入 */
 export let R = () => {};

@@ -15,17 +15,20 @@ import { state } from "../core/state.js";
 import { DOW, dealUi, distOf, missingPanel, shopHref, ui } from "./shops-common.js";
 import { lpAttr } from "../core/long-press.js";
 import { dtBlock, dtRow } from "../core/detail-ui.js";
+import { viewShopDeal } from "./shop-deal-page.js";
 import { fabMenu } from "../core/fab-menu.js";
 import { moreMenu } from "../core/more-menu.js";
 import { bulkBar, bulkCheck, bulkMenuItem, bulkOn, bulkRegister } from "../core/bulk-select.js";
 import { clearActionBtn } from "../core/clear-filters.js";
 
 /* ───────────── 单个商店 ───────────── */
+export const dealHref = (s, d) => `${shopHref(s)}?deal=${encodeURIComponent(d.id)}`;
 export function viewShop(id) {
   const s = (state.shops || []).find((x) => x.id === id);
   const base = [{ href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }];
   if (!s) return `<section class="section shops-page">${crumbNav([...base, { label: t("商店") }])}<p class="muted">${state.shops ? t("这家商店不在了。") : t("加载中…")}</p></section>`;
   const [, cn, icon] = shopCat(s.category), d = distOf(s), du = dealUi(s.id), deals = liveDeals(s.id), q = state.route.q;
+  if (q.get("deal")) return viewShopDeal(s, q.get("deal"), q.get("edit") === "1");   // 一条特价的详情 / 编辑页（shop-deal-page.js）
   if (q.get("edit") === "1") return `<section class="section shops-page shop-page form-page">${crumbNav([...base, { href: shopHref(s), label: s.name, icon }, { label: t("编辑商店") }])}${shopForm(s, { page: true })}</section>`;   // 编辑：单独的表单页（取消 / 保存置顶）
   const openUpd = du.rows || du.busy || q.get("update") === "1" || !deals.length;
   const edit = (sec) => `${shopHref(s)}?edit=1&sec=${sec}`;
@@ -94,7 +97,7 @@ function histBtn(d, du) {
     : `<span>${t("以前最低 {v}（{s} {d}）", { v: histVal(h, h.low), s: esc(shopName(h.low.shop_id)), d: fmtShort(h.low.valid_to) })}</span>${h.pct > 0 ? ` <b class="warn-txt">+${h.pct}%</b>` : ""}`;
   return `<button type="button" class="deal-hist-btn" data-action="shops-hist" data-deal="${d.id}" aria-expanded="${open}">📈 ${txt} <span aria-hidden="true">${open ? "▴" : "▾"}</span></button>`;
 }
-function histList(d) {
+export function histList(d) {
   const h = priceHistory(d); if (!h) return "";
   return `<ul class="deal-hist" aria-label="${esc(t("以前的价格"))}">${h.list.slice(0, 10).map((x) => `<li class="${x.id === h.low.id ? "is-low" : ""}">
     <span class="dh-when">${x.valid_from ? `${fmtShort(x.valid_from)}–` : ""}${fmtShort(x.valid_to)}</span><span class="dh-shop">${esc(shopName(x.shop_id))}</span>
@@ -107,6 +110,16 @@ function dealTypeDrop(value, labelId) {
   const on = String(value || "").split(",").filter(Boolean);
   return `<details class="dt-drop"><summary aria-labelledby="${labelId}" aria-describedby="${labelId}-v"><span class="dt-val" id="${labelId}-v">${esc(dtSummary(on))}</span></summary>
     <div class="dt-menu" role="group" aria-labelledby="${labelId}">${DEAL_TYPES.map(([k, l]) => `<label class="dt-opt"><input type="checkbox" name="deal_type" value="${k}" ${on.includes(k) ? "checked" : ""}><span>${esc(t(l))}</span></label>`).join("")}</div></details>`;
+}
+/** 编辑一条特价的表单（单独的编辑页用，pantry shops/shop-deal-page.js）；page 时取消是回详情的链接 */
+export function dealEditFormHtml(d, s) {
+  return `<form class="panel deal-edit" id="dealEditForm" data-id="${d.id}">
+      <div class="form-grid"><label class="span-2">${t("名称")}<input name="name" maxlength="80" required value="${esc(d.name)}"></label><label>${t("规格")}<input name="size" maxlength="40" value="${esc(d.size || "")}"></label>
+      <label>${t("价格")}<input name="price" type="number" min="0" step="0.01" value="${d.price ?? ""}"></label><label>${t("广告原文")}<input name="price_text" maxlength="40" value="${esc(d.price_text || "")}"></label>
+      <label>${t("单价")}<input name="unit_price" type="number" min="0" step="0.0001" value="${d.unit_price ?? ""}"></label><label>${t("单位")}<input name="unit_label" maxlength="12" value="${esc(d.unit_label || "")}"></label>
+      <label>${t("到期")}<input name="valid_to" type="date" value="${esc(d.valid_to || "")}"></label><label class="span-2">${t("通用叫法")}<input name="aka" maxlength="120" value="${esc(d.aka || "")}" placeholder="${esc(t("鸡蛋, eggs"))}"></label>
+      ${state.runsMissing ? "" : `<div class="span-2 dt-field"><span class="dt-lbl" id="dtLbl-${d.id}">${t("折扣类型")}</span>${dealTypeDrop(d.deal_type, `dtLbl-${d.id}`)}</div>`}</div>
+      <div class="form-actions"><a class="btn btn-ghost" href="${shopHref(s)}?deal=${encodeURIComponent(d.id)}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button></div></form>`;
 }
 function dealsHtml(s, du, deals) {
   const open = openShopping(), q = du.q.trim().toLowerCase(), soon = (d) => d.valid_to && daysUntil(d.valid_to) <= 2;
@@ -121,25 +134,16 @@ function dealsHtml(s, du, deals) {
   const pick = !!bulkOn("shopdeal");
   bulkRegister("shopdeal", { ids: () => list.map((d) => d.id), del: async (id) => { await Store.deleteShopDeals([id]); state.shopDeals = (state.shopDeals || []).filter((x) => x.id !== id); } });
   const row = (d) => {
-    const m = dealMatches(d, open), ed = du.edit === d.id;
-    if (ed) return `<li class="deal-row editing"><form class="deal-edit" id="dealEditForm" data-id="${d.id}">
-      <div class="form-grid"><label class="span-2">${t("名称")}<input name="name" maxlength="80" required value="${esc(d.name)}"></label><label>${t("规格")}<input name="size" maxlength="40" value="${esc(d.size || "")}"></label>
-      <label>${t("价格")}<input name="price" type="number" min="0" step="0.01" value="${d.price ?? ""}"></label><label>${t("广告原文")}<input name="price_text" maxlength="40" value="${esc(d.price_text || "")}"></label>
-      <label>${t("单价")}<input name="unit_price" type="number" min="0" step="0.0001" value="${d.unit_price ?? ""}"></label><label>${t("单位")}<input name="unit_label" maxlength="12" value="${esc(d.unit_label || "")}"></label>
-      <label>${t("到期")}<input name="valid_to" type="date" value="${esc(d.valid_to || "")}"></label><label class="span-2">${t("通用叫法")}<input name="aka" maxlength="120" value="${esc(d.aka || "")}" placeholder="${esc(t("鸡蛋, eggs"))}"></label>
-      ${state.runsMissing ? "" : `<div class="span-2 dt-field"><span class="dt-lbl" id="dtLbl-${d.id}">${t("折扣类型")}</span>${dealTypeDrop(d.deal_type, `dtLbl-${d.id}`)}</div>`}</div>
-      <div class="form-actions"><button class="btn btn-primary btn-sm" type="submit">${t("保存")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="shops-deal-cancel" data-id="${s.id}">${t("取消")}</button></div></form></li>`;
+    const m = dealMatches(d, open);
     // 手机：没有按钮，向左滑删除、向右滑加入清单（都先确认），点名称修改；电脑：按钮照旧（悬停 / Tab 也能用），点名称同样修改
     const swipe = `data-swipe-del="deal"${m.length ? "" : ` data-swipe-alt="deal" data-swipe-alt-label="${esc(t("加入清单"))}" data-swipe-alt-go="${esc(t("松手加入清单"))}"`}`;
-    return `<li class="deal-row ${m.length ? "is-hit" : ""}${pick ? " is-pick" : ""}" ${pick ? "data-row-chk" : `${swipe} ${lpAttr([{ label: t("修改"), action: "shops-deal-edit", data: { deal: d.id, id: s.id }, first: true }, m.length ? null : { label: t("加入清单"), action: "shops-tolist", data: { deal: d.id } }, { label: t("删除"), action: "shops-deal-del", data: { deal: d.id }, danger: true }, bulkMenuItem("shopdeal", d.id)], d.name)}`}>
-      <span class="deal-nm">${pick ? bulkCheck("shopdeal", d.id) : ""}<button type="button" class="deal-nm-btn" data-action="shops-deal-edit" data-deal="${d.id}" data-id="${s.id}" title="${esc(t("点一下修改"))}"><b>${esc(d.name)}</b></button>${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}<small>${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")}${m.length ? ` <span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : ""}</small>${histBtn(d, du)}</span>
+    return `<li class="deal-row ${m.length ? "is-hit" : ""}${pick ? " is-pick" : ""}" ${pick ? "data-row-chk" : `${swipe} ${lpAttr([{ label: t("详情"), href: dealHref(s, d), first: true }, { label: t("编辑"), href: `${dealHref(s, d)}&edit=1` }, m.length ? null : { label: t("加入清单"), action: "shops-tolist", data: { deal: d.id } }, { label: t("删除"), action: "shops-deal-del", data: { deal: d.id }, danger: true }, bulkMenuItem("shopdeal", d.id)], d.name)}`}>
+      <span class="deal-nm">${pick ? bulkCheck("shopdeal", d.id) : ""}${pick ? `<b>${esc(d.name)}</b>` : `<a class="deal-nm-btn" href="${dealHref(s, d)}"><b>${esc(d.name)}</b></a>`}${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}<small>${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")}${m.length ? ` <span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : ""}</small></span>
       <span class="deal-pr"><b>${d.price != null ? money(d.price) : esc(d.price_text || "—")}</b>${d.price_text && d.price != null && d.price_text.replace(/\s/g, "") !== money(d.price).replace(/\s/g, "") ? `<small>${esc(d.price_text)}</small>` : ""}${d.regular_price ? `<small class="muted"><s>${money(d.regular_price)}</s></small>` : ""}</span>
       <span class="deal-unit">${d.unit_price != null ? `${unitMoney(d.unit_price)}<small>${esc(d.unit_label || "")}</small>` : `<small class="muted">—</small>`}</span>
       <span class="deal-to ${soon(d) ? "warn-txt" : "muted"}">${d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""}</span>
       <span class="deal-acts">${m.length ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="shops-tolist" data-deal="${d.id}">＋ ${t("清单")}</button>`}
-        <button type="button" class="btn btn-sm btn-ghost" data-action="shops-deal-edit" data-deal="${d.id}" data-id="${s.id}" aria-label="${esc(t("修改 {name}", { name: d.name }))}">${t("改")}</button>
         <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shops-deal-del" data-deal="${d.id}" aria-label="${esc(t("删除 {name}", { name: d.name }))}">×</button></span>
-      ${du.hist === d.id ? histList(d) : ""}
     </li>`;
   };
   return `<div class="panel deal-list-panel">
