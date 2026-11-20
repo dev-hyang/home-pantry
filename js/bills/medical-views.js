@@ -11,11 +11,12 @@ import { allBillsHref } from "./all-views.js";
 import { billScopeParts, overviewHref } from "./trail.js";
 import { viewOneTimeWizard } from "./ot-wizard-views.js";
 import { propertyOptionsHtml } from "../core/lifecycle.js";
-import { KINDS, PEOPLE_KINDS, STATUS, STATUS_CLS, detailHref, findPerson, kindOf, peopleFor, subIcon, subName } from "./medical.js";
+import { KINDS, PEOPLE_KINDS, PLAN_TYPES, STATUS, STATUS_CLS, detailHref, findPerson, kindOf, peopleFor, subIcon, subName } from "./medical.js";
 import { applyMedical, reloadMedical } from "./medical-data.js";
 import { accountOptions, acctById, paymentPayLabel } from "./card-picker.js";
 import { lpAttr } from "../core/long-press.js";
 import { medHeadCard } from "./medical-head.js";
+import { medPayPage, paymentsSection } from "./medical-pays.js";
 export { applyMedical, medBillLabel, reloadMedical } from "./medical-data.js";
 
 const cur = () => Units.region.currency;
@@ -38,7 +39,9 @@ function viewDetail(id, payId) {
   {   // 新建：默认走 5 步向导；mode=full / copy / 别的应用带来的预填（provider、date、patient、note）→ 原整页表单
     const q0 = state.route.q;
     if (isNew && q0.get("mode") !== "full" && !q0.get("copy") && !q0.get("provider") && !q0.get("date") && !q0.get("patient") && !q0.get("note")) return viewOneTimeWizard();
-    if (b && !q0.get("sec")) return medCardsPage(b, payId ? b.pays.find((p) => p.id === payId) : null);
+    if (b && payId) return medPayPage(b, payId === "new" ? null : b.pays.find((p) => p.id === payId) || null, q0.get("copy") ? b.pays.find((p) => p.id === q0.get("copy")) || null : null);   // ?pay=new | <缴费 id>（&copy=<缴费 id>）：缴费的独立页
+    if (b && q0.get("sec") === "detail") return medDetailPage(b);
+    if (b && !q0.get("sec")) return medCardsPage(b);
   }
   // 从别的应用带来的预填（牧羊人的就诊「去爱家记医疗账单」：不同数据库，只能把机构、日期、就诊人放在网址里）：?bill=new&provider=…&date=…&patient=…&note=…
   const pq = state.route.q, pre = isNew ? { provider: (pq.get("provider") || "").slice(0, 60), service_date: /^\d{4}-\d{2}-\d{2}$/.test(pq.get("date") || "") ? pq.get("date") : "",
@@ -76,6 +79,7 @@ function viewDetail(id, payId) {
         <legend class="sr-only">${t("保险理赔")}</legend>
         <div class="form-grid">
         <label>${t("保险公司")}<input name="insurer" maxlength="60" value="${d(v.insurer)}"></label>
+        <label>${t("计划类型")}<select name="plan_type"><option value="">${t("未指定")}</option>${Object.entries(PLAN_TYPES).map(([k, n]) => `<option value="${k}" ${v.plan_type === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
         <label>${t("理赔号 Claim #")}<input name="claim_ref" maxlength="60" value="${d(v.claim_ref)}"></label>
         <label>${t("保险已付")}<input name="insurance_paid" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.insurance_paid)}"></label>
         </div>
@@ -107,7 +111,7 @@ function viewDetail(id, payId) {
       <p id="medBillError" class="form-error" role="alert"></p>
       <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>${b ? `<a class="btn btn-ghost" href="${esc(detailHref(b.id))}">${t("取消")}</a>` : ""}</div>
     </form>
-    ${b && secQ ? "" : b ? paymentsHtml(b, pay, owedNow) : `<p class="muted">${t("先保存账单，再记缴费。")}</p>`}
+    ${b ? "" : `<p class="muted">${t("先保存账单，再记缴费。")}</p>`}
   </section>`;
 }
 /* ───────────── 一次性账单详情页：分区卡片（一次滑动看全）+ 付款记录；每块单独「编辑」（?sec=） ───────────── */
@@ -119,7 +123,7 @@ function medFacts(b, id) {
   const prop = b.property_id ? state.properties.find((p) => p.id === b.property_id) : null, asset = b.asset_id ? state.assets.find((a) => a.id === b.asset_id) : null;
   if (id === "basic") return dl([[t(K.provider), esc(b.provider || "")], [OTL("小类", "Type"), subName(b) ? `${subIcon(b)} ${esc(t(subName(b)))}` : ""], [t(K.who), esc(b.patient || "")], K.guarantor ? [OTL("担保人", "Guarantor"), esc(b.guarantor || "")] : null,
     [OTL("账单号", "Bill #"), esc(b.bill_ref || "")]]);
-  if (id === "insurance") return dl([[OTL("保险公司", "Insurer"), esc(b.insurer || "")], [OTL("理赔号", "Claim #"), esc(b.claim_ref || "")], [OTL("保险已付", "Insurance paid"), b.insurance_paid ? mny(b.insurance_paid, c) : ""]]);
+  if (id === "insurance") return dl([[OTL("保险公司", "Insurer"), esc(b.insurer || "")], [OTL("计划类型", "Plan type"), b.plan_type ? esc(PLAN_TYPES[b.plan_type] ? t(PLAN_TYPES[b.plan_type]) : b.plan_type) : ""], [OTL("理赔号", "Claim #"), esc(b.claim_ref || "")], [OTL("保险已付", "Insurance paid"), b.insurance_paid ? mny(b.insurance_paid, c) : ""]]);
   if (id === "amount") return dl([[OTL(b.kind === "medical" || b.kind === "pet" ? "就诊日期" : b.kind === "travel" ? "出发日期" : "服务日期", "Service date"), b.service_date ? esc(fmtDate(b.service_date)) : ""], [OTL("账单日期", "Bill date"), b.bill_date ? esc(fmtDate(b.bill_date)) : ""],
     [OTL("到期日", "Due date"), b.due_on ? esc(fmtDate(b.due_on)) : ""], [t(K.billed), b.billed_amount != null ? mny(b.billed_amount, c) : ""],
     num(b.adjustment) ? [OTL("折扣 / 冲减", "Adjustment"), mny(b.adjustment, c)] : null, [t(K.owed), b.owed != null ? mny(b.owed, c) : ""], [OTL("已付", "Paid"), mny(b.paid || 0, c)], [OTL("余额", "Balance"), b.balance != null ? mny(b.balance, c) : ""],
@@ -136,44 +140,26 @@ function medBanner(b, q) {
     <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm btn-ghost" data-action="med-del" data-id="${b.id}">${t("撤销创建")}</button>${close}</div></div>`;
   return `<div class="notice" role="status" style="margin-bottom:12px"><b>✅ ${t("已创建")}</b> ${missing.length ? t("这几项还没填：{list}，随时在下面补。", { list: missing.join("、") }) : t("信息都齐了。")}${b.owed != null ? ` ${t("接着可以在下面记付款。")}` : ""}<div class="form-actions" style="margin-top:8px">${close}</div></div>`;
 }
-function medCardsPage(b, payEdit) {
+/** 首页：综合信息卡 + 缴费记录（缴费行点一下编辑，⋯ / 长按有 编辑、复制、删除） */
+function medCardsPage(b) {
+  return `<section class="section">
+    ${crumbNav([...billScopeParts(b, "onetime"), { label: b.provider, icon: subIcon(b) }])}
+    ${medHeadCard(b)}
+    ${medBanner(b, state.route.q)}
+    ${paymentsSection(b)}
+  </section>`;
+}
+/** 详情页（卡片 ⋯ → 详情）：每个信息块一张卡，各自「编辑」（?sec=basic|insurance|amount|other） */
+function medDetailPage(b) {
   const K = kindOf(b), base = detailHref(b.id);
   const cards = MED_SECS.filter((sec) => !sec.only || K[sec.only]).map((sec) => `<section class="panel prof-card" aria-labelledby="mc-${sec.id}">
       <header class="prof-head"><span class="mi" aria-hidden="true">${sec.icon}</span><div class="prof-t"><h3 id="mc-${sec.id}">${t(sec.name)}</h3></div>
         <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=${sec.id}" aria-label="${esc(t("编辑 {name}", { name: t(sec.name) }))}">${t("编辑")}</a></header>${medFacts(b, sec.id)}</section>`).join("");
   return `<section class="section">
-    ${crumbNav([...billScopeParts(b, "onetime"), { label: b.provider, icon: subIcon(b) }])}
-    ${medHeadCard(b)}
-    ${medBanner(b, state.route.q)}
-    <div class="prof-grid bill-detail-grid">${cards}</div>
-    <div id="medPayments" style="scroll-margin-top:80px">${paymentsHtml(b, payEdit, b.owed)}</div>
+    ${crumbNav([...billScopeParts(b, "onetime"), { href: base, label: b.provider, icon: subIcon(b) }, { label: t("详情") }])}
+    <div class="section-head"><h2>${subIcon(b)} ${esc(b.provider)}</h2></div>
+    <div class="prof-grid bill-detail-grid one-col">${cards}</div>
   </section>`;
-}
-/** 常用的付款方式（存中文标准词，显示时翻译；具体是哪张卡、哪个账户写在备注里）；旧记录里手填的方式保留成一个选项 */
-const METHODS = ["信用卡", "借记卡", "HSA 卡", "FSA 卡", "支票", "银行转账（ACH）", "网上支付", "电话支付", "现金", "其他"];
-/** 付款方式下拉：先列我的卡 / 账户（选了就记到那张卡上，和花费记录一样），再列通用方式 */
-const methodOptions = (edit) => { const cur = edit?.card_id && acctById(edit.card_id) ? edit.card_id : edit?.method || ""; return `${accountOptions(cur, { none: "（未选）", extra: METHODS.map((m) => [m, m]) })}${cur && !METHODS.includes(cur) && !acctById(cur) ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : ""}`; };
-function paymentsHtml(b, edit, owed) {
-  const rows = b.pays.map((p) => `<li class="med-pay${edit?.id === p.id ? " is-editing" : ""}" data-swipe-del="med-pay" ${lpAttr([{ label: t("编辑"), href: `${detailHref(b.id)}?pay=${p.id}`, first: true }, { label: t("删除"), action: "med-pay-del", data: { id: p.id }, danger: true }], fmtDate(p.paid_on))}><a class="badge pay-date" style="background:var(--surface-2)" href="${detailHref(b.id)}?pay=${p.id}" title="${esc(t("点一下编辑"))}">${esc(fmtDate(p.paid_on))}</a>
-      <div class="grow"><a class="link-name name${num(p.amount) < 0 ? " ot-neg" : ""}" href="${detailHref(b.id)}?pay=${p.id}" title="${esc(t("点一下编辑"))}">${mny(p.amount, p.currency || b.currency)}</a>${num(p.amount) < 0 ? ` <span class="ui-badge" data-tone="danger" data-size="sm">${t("退款")}</span>` : ""}<small>${[paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
-      <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="med-pay-del" data-id="${p.id}">${t("删除")}</button></li>`).join("");
-  const sumLine = owed == null ? t("还没填自付金额或总额，余额未知") : t("自付 {o} · 已付 {p} · 余额 {b}", { o: mny(owed, b.currency), p: mny(b.paid, b.currency), b: mny(b.balance, b.currency) });
-  return `<div class="section-head"><h2>${t("缴费记录")}</h2><p>${esc(sumLine)}</p></div>
-    <details class="pay-fold" ${edit ? "open" : ""}><summary class="btn btn-primary pay-add"><span class="when-closed">${edit ? `✎ ${t("编辑这笔缴费")}` : `＋ ${t("记一笔缴费")}`}</span><span class="when-open">${edit ? t("编辑这笔缴费") : t("收起")}</span></summary>
-    <form id="medPayForm" class="panel" novalidate data-bill="${b.id}" data-id="${d(edit?.id)}">
-      <div class="form-grid">
-        <label>${t("缴费日期 Payment date")}<input name="paid_on" type="date" required value="${d(edit?.paid_on || todayISO())}" max="${todayISO()}"></label>
-        <label>${t("金额（{cur}）", { cur: b.currency })}<input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required value="${edit ? Math.abs(num(edit.amount)).toFixed(2) : b.balance ? b.balance.toFixed(2) : ""}"></label>
-        <label>${t("付款方式 / 账户")}<select name="method">${methodOptions(edit)}</select></label>
-        <label>${t("确认号 Confirmation #")}<input name="confirmation_ref" maxlength="60" value="${d(edit?.confirmation_ref)}"></label>
-        <label class="check-inline span-2"><input type="checkbox" name="refund" ${edit && num(edit.amount) < 0 ? "checked" : ""}><span>${t("这是退款 / 保险事后理赔")}</span></label>
-        <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${d(edit?.notes)}" placeholder="${t("例如：网上缴费，Chase 信用卡尾号 1234 / 支票 #1022 / HSA（Fidelity）。卡只写后四位")}"></label>
-      </div>
-      <p id="medPayError" class="form-error" role="alert"></p>
-      <div class="form-actions pay-actions"><button type="submit" class="btn btn-primary">${edit ? t("保存修改") : t("保存这笔缴费")}</button>${edit ? `<a class="btn btn-ghost" href="${detailHref(b.id)}">${t("取消")}</a>` : ""}
-        <small class="muted">${t(b.kind === "travel" ? "付款会自动并入 花费 的“旅行出行”分类（按小类拆：机票、住宿…）。" : "付款会自动并入 花费 的“医疗”分类。")}</small></div>
-    </form></details>
-    <div class="panel" style="margin-top:10px">${rows ? `<ul class="restock-list">${rows}</ul>` : `<div class="empty"><strong>${t("还没有缴费记录")}</strong></div>`}</div>`;
 }
 /* ───────────── 保存 / 删除 / 导出 ───────────── */
 const val = (el) => (el?.value || "").trim() || null;
@@ -184,7 +170,7 @@ export async function saveMedBillForm(f) {
   const pid = fe.patient_id ? (fe.patient_id.value && fe.patient_id.value !== "__text" ? fe.patient_id.value : null) : null, gid = fe.guarantor_id ? (fe.guarantor_id.value && fe.guarantor_id.value !== "__text" ? fe.guarantor_id.value : null) : null;
   const optText = (sel) => (sel && sel.value === "__text" ? sel.selectedOptions[0].textContent.replace(/（[^）]*）\s*$/, "").trim() : null);   // 旧记录里手填的名字，未关联名册
   const row = { property_id: fe.property_id?.value || null, asset_id: fe.asset_id?.value || null, kind: fe.kind.value || "medical", subkind: fe.subkind.value || null, provider, patient: fe.patient_id ? (pid ? state.people.find((x) => x.id === pid)?.name || null : optText(fe.patient_id)) : val(fe.patient), patient_id: pid,
-    guarantor: fe.guarantor_id ? (gid ? state.people.find((x) => x.id === gid)?.name || null : optText(fe.guarantor_id)) : val(fe.guarantor), guarantor_id: gid, bill_ref: val(fe.bill_ref), claim_ref: val(fe.claim_ref), insurer: val(fe.insurer),
+    guarantor: fe.guarantor_id ? (gid ? state.people.find((x) => x.id === gid)?.name || null : optText(fe.guarantor_id)) : val(fe.guarantor), guarantor_id: gid, bill_ref: val(fe.bill_ref), claim_ref: val(fe.claim_ref), insurer: val(fe.insurer), plan_type: fe.plan_type?.value || null,
     service_date: fe.service_date.value || null, bill_date: fe.bill_date.value || null, due_on: fe.due_on.value || null, billed_amount: amt(fe.billed_amount), insurance_paid: amt(fe.insurance_paid) ?? 0,
     adjustment: amt(fe.adjustment) ?? 0, patient_amount: amt(fe.patient_amount), currency: cur(), status: fe.status.value, hsa_eligible: !!fe.hsa_eligible?.checked, visibility: fe.visibility.value, notes: val(fe.notes) };
   if (f.dataset.id) { const old = state.medBills.find((x) => x.id === f.dataset.id); if (old?.currency) row.currency = old.currency; }

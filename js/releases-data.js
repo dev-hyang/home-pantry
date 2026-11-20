@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.41", title: { zh: "一次性账单重构：综合信息卡 + 缴费记录，缴费各有独立页", en: "One-time bills redesigned: summary card plus payment records, each payment on its own page" }, items: [
+    { k: "better", zh: "首页只有两块：综合信息卡（账单、日期、保险、应付 / 已付 / 余额）和缴费记录；卡片 ⋯ 里是 详情、缴费、复制、删除；原来的分块信息搬到「详情」，每块各自编辑", en: "The home page is now a summary card (bill, dates, insurance, due / paid / balance) and the payment records; the card menu has Details, Pay, Copy, Delete; the block-by-block info moved to Details, each block editable on its own" },
+    { k: "better", zh: "缴费记录的行和周期性账单一样：点一下进独立的编辑页，⋯ / 长按有 编辑、复制、删除；没有记录时区里有「记一笔缴费」，其他地方的这个按钮去掉了", en: "Payment rows match recurring bills: tap to edit on a separate page, Edit / Copy / Delete in ⋯ or long-press; the Log payment button only appears in the empty section" },
+    { k: "new", zh: "保险信息记在每张账单上：保险公司、计划类型（PPO / HMO 等）、理赔号、是否已理赔；新建账单时按同一位患者最近一张账单带入保险公司和计划类型", en: "Insurance is stored per bill: insurer, plan type (PPO / HMO …), claim number and claim status; a new bill prefills insurer and plan type from the patient's latest bill" }
+  ] },
+
   { v: "2026-11-19.40", title: { zh: "周期性账单首页的缴费记录，行和「全部缴费记录」一样", en: "Payment records on a recurring bill's home page use the same rows as the full list" }, items: [
     { k: "better", zh: "账单首页缴费记录里的每一行：点一下进编辑页，⋯ / 长按有编辑、复制、删除，样子和「全部缴费记录」里的行一致", en: "Each row in the payment records section now opens its edit page on tap, with Edit / Copy / Delete in ⋯ or long-press, matching the full list" }
   ] },

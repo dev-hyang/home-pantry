@@ -49,7 +49,7 @@ export const TABS_HIDDEN = (r) => {
     const list = ["pay", "assess", "detail"].includes(q.get("sec")) && !q.get("edit") && !q.get("copy");   // 缴费记录 / 特别摊派的列表页（含摊派缴费记录）：保留导航
     return r.id === "new" ? [...q.keys()].length > 0 : (!!q.get("sec") && !list) || q.get("pay") === "1";
   }   // #/bill/new 不带参数 = 选类型页（保留导航）；向导 / 整页表单 / 分区编辑 / 记缴费 = 隐藏；账单详情页保留
-  if (r.section === "otbill") return r.id === "new" || !!q.get("sec");   // 一次性账单：详情页保留导航，新建 / 分区编辑隐藏
+  if (r.section === "otbill") return r.id === "new" || (!!q.get("sec") && q.get("sec") !== "detail") || !!q.get("pay");   // 一次性账单：详情页保留导航，新建 / 分区编辑隐藏
   return true;
 };
 // 正在填写的表单页：实时同步触发的刷新不重画，避免冲掉没保存的内容

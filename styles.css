@@ -4281,3 +4281,10 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .kind-sec { margin: 14px 0 6px; }
 .kind-static { cursor: default; }
 .kind-ai > .af-bar { margin: 0 8px 6px; }
+
+/* 一次性账单首页的综合信息卡：账单 / 日期 / 保险三行，左边灰色标签、右边内容 */
+.oh-lines { margin: 6px 0 4px; }
+.oh-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 6px 0; border-top: 1px dashed var(--line); font-size: 13px; }
+.oh-line > span:first-child { flex: 0 0 auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.oh-val { min-width: 0; text-align: right; overflow-wrap: anywhere; }
+.oh-val .badge { margin-left: 4px; }

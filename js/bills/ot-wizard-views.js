@@ -12,6 +12,8 @@ import { OT_KINDS, OT_LAST, OT_STEPS, newOtDraft, otRowFromDraft, validateOtStep
 
 const base = () => href("otbill", "new");
 const stepUrl = (n) => `${base()}?n=${encodeURIComponent(state.otDraft?.__n || "")}&step=${n}`;
+/** 同一位患者最近一张有保险公司的账单（新建时带入保险公司、计划类型） */
+const priorBill = (d, pid) => { const id = d.patient_id || pid; return id ? [...(state.medBills || [])].filter((x) => x.patient_id === id && x.insurer).sort((a, b) => String(b.service_date || b.created_at || "").localeCompare(String(a.service_date || a.created_at || "")))[0] || null : null; };
 export const otFullFormUrl = (kind) => `${base()}?mode=full${kind ? `&kind=${encodeURIComponent(kind)}` : ""}`;
 const Kof = (d) => KINDS[d.kind] || KINDS.medical;
 const whoName = (d) => (d.patient_id ? (state.people || []).find((p) => p.id === d.patient_id)?.name || "" : d.patient.trim());
@@ -124,7 +126,7 @@ async function finish() {
   if (dup && !d.__dupAck) { d.__dupAck = true; return say(t("已经有一张很像的账单（同一机构、同一天、同一金额）。确认是另一张，再点一次“完成并创建”。")); }
   const btn = document.querySelector('[data-otw="finish"]'); if (btn) btn.disabled = true;
   try {
-    const id = await Store.saveMedicalBill(otRowFromDraft(d, { currency: Units.region.currency, K, patientId: pid, patientName: whoName(d) || null }));
+    const id = await Store.saveMedicalBill(otRowFromDraft(d, { currency: Units.region.currency, K, patientId: pid, patientName: whoName(d) || null, prior: priorBill(d, pid) }));
     state.otDraft = null;
     document.dispatchEvent(new CustomEvent("bill-created", { detail: { id, via: "wizard", kind: "onetime" } }));
   } catch (err) { if (btn) btn.disabled = false; say(t("保存失败：{msg}", { msg: err.message })); }

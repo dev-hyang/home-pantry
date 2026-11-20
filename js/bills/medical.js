@@ -25,6 +25,7 @@ export const KINDS = {
 export const kindOf = (b) => KINDS[b?.kind] || KINDS.medical;
 export const subName = (b) => (kindOf(b).subs.find(([k]) => k === b?.subkind) || [])[1] || "";
 export const subIcon = (b) => (kindOf(b).subs.find(([k]) => k === b?.subkind) || [])[2] || kindOf(b).icon;
+export const PLAN_TYPES = { ppo: "PPO", hmo: "HMO", epo: "EPO", pos: "POS", hdhp: "HDHP", gov: "Medicare / Medicaid", other: "其他" };   // 保险计划类型（每张账单自己填，bills_one_time.plan_type）
 export const STATUS = { awaiting_insurance: "等保险理赔", open: "待付", disputed: "争议中", collections: "催收中", written_off: "已冲销", partial: "部分已付", paid: "已结清" };
 export const STATUS_CLS = { awaiting_insurance: "b-soon", open: "b-low", disputed: "b-out", collections: "b-out", written_off: "", partial: "b-soon", paid: "b-ok" };
 /** 一次性账单详情页 / 新建页：#/otbill/<id|new>（2026-11 路由整理，不再挂在「一次性账单」目录页下面） */
