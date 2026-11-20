@@ -8,6 +8,8 @@ import { lang, t } from "../core/i18n.js";
 import { state } from "../core/state.js";
 import { DOW, distOf, missingPanel, shopHref, ui } from "./shops-common.js";
 import { lpAttr } from "../core/long-press.js";
+import { Store } from "../core/store.js";
+import { bulkBar, bulkCheck, bulkMenuItem, bulkOn, bulkRegister } from "../core/bulk-select.js";
 import { clearActionBtn } from "../core/clear-filters.js";
 
 /* ───────────── 列表 ───────────── */
@@ -38,7 +40,7 @@ export function viewList() {
       <select data-shops-sort data-nosearch aria-label="${esc(t("排序"))}">${[["name", "按名称"], ["dist", "按距离"], ["deals", "按特价多少"], ["updated", "按最近更新"]].map(([k, l]) => `<option value="${k}" ${u.sort === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
       ${u.q || u.cat || u.status !== "active" || u.sort !== "name" ? `${clearActionBtn("shops-reset")}` : ""}
     </div>` : ""}
-    ${gridOn ? `<div class="shop-grid">${list.map(shopCard).join("")}${u.edit === "new" ? `<div class="shop-new-slot">${shopForm(null)}</div>` : newCard()}</div>${list.length ? "" : `<p class="muted shops-empty">${t("没有符合条件的商店。")}</p>`}`
+    ${gridOn ? `${(bulkRegister("shops", { ids: () => list.map((x) => x.id), del: async (id) => { await Store.deleteShop(id); state.shops = state.shops.filter((x) => x.id !== id); state.shopDeals = (state.shopDeals || []).filter((d) => d.shop_id !== id); } }), bulkBar("shops"))}<div class="shop-grid">${list.map(shopCard).join("")}${u.edit === "new" ? `<div class="shop-new-slot">${shopForm(null)}</div>` : newCard()}</div>${list.length ? "" : `<p class="muted shops-empty">${t("没有符合条件的商店。")}</p>`}`
       : all.length ? `<p class="muted shops-empty">${u.status === "archived" ? t("没有收起来的商店。") : t("没有符合条件的商店。")}</p>` : starterPanel()}
   </section>`;
 }
@@ -56,9 +58,10 @@ function shopCard(s) {
   const [, cn, icon] = shopCat(s.category), deals = liveDeals(s.id), open = openShopping();
   const hits = deals.filter((d) => dealMatches(d, open).length).length, d = distOf(s), due = dealsDue(s);
   const upd = s.deals_at ? t("{d} 更新", { d: fmtShort(s.deals_at) }) : t("还没有特价");
-  return `<article class="shop-card ${s.archived ? "is-off" : ""}" data-swipe-del="store" ${lpAttr([{ label: t("打开"), href: shopHref(s), first: true }, s.archived ? { label: t("加回常去"), action: "shops-unarchive", data: { id: s.id } } : { label: t("本周广告"), href: adUrl(s), external: true }, s.archived ? null : { label: t("更新特价"), href: `${shopHref(s)}?update=1` }, { label: t("删除"), action: "shops-del", data: { id: s.id }, danger: true }], s.name)}>
-    <a class="shop-main" href="${shopHref(s)}"><span class="shop-ico" aria-hidden="true">${icon}</span>
-      <span class="shop-txt"><b>${esc(s.name)}</b><small>${d != null ? `${t("{n} 英里", { n: d.toFixed(1) })} · ` : ""}${esc(s.address || t("没填地址"))}</small></span><span class="mch" aria-hidden="true">›</span></a>
+  const pick = !!bulkOn("shops");
+  return `<article class="shop-card ${s.archived ? "is-off" : ""}${pick ? " is-pick" : ""}" ${pick ? "data-row-chk" : `data-swipe-del="store" ${lpAttr([{ label: t("打开"), href: shopHref(s), first: true }, s.archived ? { label: t("加回常去"), action: "shops-unarchive", data: { id: s.id } } : { label: t("本周广告"), href: adUrl(s), external: true }, s.archived ? null : { label: t("更新特价"), href: `${shopHref(s)}?update=1` }, { label: t("删除"), action: "shops-del", data: { id: s.id }, danger: true }, bulkMenuItem("shops", s.id)], s.name)}`}>${pick ? `<label class="shop-chk">${bulkCheck("shops", s.id)}</label>` : ""}
+    <${pick ? "span" : "a"} class="shop-main"${pick ? "" : ` href="${shopHref(s)}"`}><span class="shop-ico" aria-hidden="true">${icon}</span>
+      <span class="shop-txt"><b>${esc(s.name)}</b><small>${d != null ? `${t("{n} 英里", { n: d.toFixed(1) })} · ` : ""}${esc(s.address || t("没填地址"))}</small></span><span class="mch" aria-hidden="true">›</span></${pick ? "span" : "a"}>
     <div class="shop-meta"><span class="tag">${esc(t(cn))}</span>${s.refresh === "weekly"
         ? `<span class="tag"${s.auto_update ? ` title="${esc(t("换广告那天由 Claude 定时任务自动更新"))}"` : ""}>${s.auto_update ? `🤖 ` : ""}${t("每{d}换广告", { d: t(DOW[s.refresh_dow ?? 3]) })}</span>`
         : ""}
