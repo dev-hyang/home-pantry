@@ -3,7 +3,8 @@
 import { esc, fmtDay, todayISO } from "../core/util.js";
 import { CHANNELS, inc, kindLabel, kindOf, memberLabel, personName, repayState } from "./logic.js";
 import { splitRecord } from "../core/income-taxonomy.js";
-import { crumbNav } from "../core/hub.js";
+import { recCrumb } from "../core/rec-crumb.js";
+import { moreMenu } from "../core/more-menu.js";
 import { dtBlock, dtRow } from "../core/detail-ui.js";
 import { debtHref } from "../bills/debt-logic.js";
 import { formHtml } from "./record-form.js";
@@ -12,7 +13,7 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { canEdit } from "./records-tab.js";
 
-const crumb = (label) => crumbNav([{ href: incomeHref("records"), label: t("收入明细") }, { label }]);
+const crumb = (label) => recCrumb("income", incomeHref("records"), label);
 const find = (id) => inc().rec.find((r) => r.id === id);
 const missing = () => `<section class="section">${crumb(t("详情"))}<div class="panel empty"><strong>${t("找不到这笔收入")}</strong><p><a class="btn btn-sm" href="${incomeHref("records")}">${t("回到收入明细")}</a></p></div></section>`;
 
@@ -38,8 +39,8 @@ export function incomeDetailPage(id) {
   const repay = s ? dtBlock(t("借款 / 还款"), ed("repay"), repayRows(r, s)) : "";
   const by = r.created_by && r.created_by !== state.user?.id && memberLabel(r.created_by) ? t("{n} 记的", { n: memberLabel(r.created_by) }) : "";
   const note = dtBlock(t("备注与来源"), ed("notes"), [dtRow(t("备注"), esc(r.notes || "")), r.import_batch ? dtRow(t("来源"), esc(t("银行导入"))) : "", by ? dtRow(t("记录人"), esc(by)) : ""]);
-  const tools = canEdit(r) ? `<div class="form-actions"><button type="button" class="btn btn-sm" data-inc="copy" data-id="${r.id}">${t("复制")}</button><button type="button" class="btn btn-sm btn-danger-ghost" data-inc="del" data-id="${r.id}">${t("删除")}</button></div>` : "";
-  return `<section class="section">${crumb(r.source_name)}<div class="section-head"><h2>${k.icon} ${esc(r.source_name)}</h2><p>${esc(fmtDay(r.received_on))}</p></div>${basic}${owner}${fx}${repay}${note}${tools}</section>`;
+  const menu = canEdit(r) ? `<div class="head-acts">${moreMenu([{ label: t("复制"), data: { inc: "copy", id: r.id }, first: true }, { label: t("删除"), data: { inc: "del", id: r.id }, danger: true }])}</div>` : "";
+  return `<section class="section">${crumb(r.source_name)}<div class="section-head"><div class="sh-title"><h2>${k.icon} ${esc(r.source_name)}</h2><p>${esc(fmtDay(r.received_on))}</p></div>${menu}</div>${basic}${owner}${fx}${repay}${note}</section>`;
 }
 
 /** 编辑页：只有一张表单；找不到（被删了 / 没权限）给提示 */

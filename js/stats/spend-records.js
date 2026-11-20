@@ -92,16 +92,17 @@ function spendRow(p, L = spendLookups()) {
   // 账单缴费记的花费（数据库顺带带回关联的缴费记录 pay_id）：名称链接到那条缴费记录的编辑页（改那里，花费会同步）；其余的在这一行里就地编辑
   const bill = p.pay_id ? L.bills.get(p.pay_bill_id) : null;
   const picking = !!state.spendSel && !p.virtual;   // 多选删除中：点行 = 勾 / 取消勾，名字不再是链接
-  const rowGo = p.virtual === "medical" ? href("otbill", p.bill_id) : bill ? `${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}` : `${href("bills", "spend")}?form=${encodeURIComponent(p.id)}`;   // 点行任何空白处 = 点名字（main.js 的 data-row-open）
+  const editGo = bill ? `${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}` : `${href("bills", "spend")}?form=${encodeURIComponent(p.id)}`;
+  const rowGo = p.virtual === "medical" ? href("otbill", p.bill_id) : `${href("bills", "spend")}?view=${encodeURIComponent(p.id)}`;   // 点行任何空白处 = 进详情（main.js 的 data-row-open）；编辑在详情页每块的「编辑」和长按菜单里
   const title = picking ? `<span class="link-name">${esc(p.name)}</span>` : p.virtual === "medical" ? `<a class="link-name" href="${href("otbill", p.bill_id)}" title="${esc(t("到医疗账单里看 / 改"))}">${esc(p.name)}</a>`
-    : bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
-    : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>${state.spendDrafts?.[p.id] ? ` <span class="badge b-soon">${t("草稿")}</span>` : ""}`;
+    : bill ? `<a class="link-name" href="${esc(rowGo)}">${esc(withProperty(bill.property_id, p.name))}</a>`
+    : `<a class="link-name" href="${esc(rowGo)}">${esc(p.name)}</a>${state.spendDrafts?.[p.id] ? ` <span class="badge b-soon">${t("草稿")}</span>` : ""}`;
   const sel = state.spendSel && !p.virtual ? `<input type="checkbox" class="sel" data-sel="${p.id}" aria-label="${esc(t("选中 {name}", { name: p.name }))}" ${state.spendSel.has(p.id) ? "checked" : ""}>` : "";
   const desc = [leafLabel(p.category), prop ? `🏠 ${prop}` : "", storeOf(p), p.quantity ? showQty(p.quantity, p.unit || "") : "", paymentPayLabel(p), p.created_by && state.members.length > 1 ? memberName(p.created_by) || "" : ""].filter(Boolean).map(esc);
   const amount = p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`;
   // 没有 ⋯ / ▾：电脑右键、手机长按弹菜单（编辑 / 复制 / 删除）；删除一笔另有手机左滑
   const detail = { label: t("详情"), href: `${href("bills", "spend")}?view=${encodeURIComponent(p.id)}`, first: true };
-  const menu = p.virtual && p.virtual !== "medical" || picking ? "" : p.virtual ? ` ${lpAttr([detail], p.name)}` : ` ${lpAttr([detail, bill ? { label: t("编辑"), href: rowGo } : { label: t("编辑"), action: "spend-edit", data: { id: p.id } }, { label: t("复制"), action: "spend-copy", data: { id: p.id } }, { label: t("删除"), action: "purchase-del", data: { id: p.id }, danger: true }, { label: t("多选删除"), action: "spend-sel-start", data: { id: p.id } }], p.name)}`;
+  const menu = p.virtual && p.virtual !== "medical" || picking ? "" : p.virtual ? ` ${lpAttr([detail], p.name)}` : ` ${lpAttr([detail, bill ? { label: t("编辑"), href: editGo } : { label: t("编辑"), action: "spend-edit", data: { id: p.id } }, { label: t("复制"), action: "spend-copy", data: { id: p.id } }, { label: t("删除"), action: "purchase-del", data: { id: p.id }, danger: true }, { label: t("多选删除"), action: "spend-sel-start", data: { id: p.id } }], p.name)}`;
   return `<li${picking ? "" : ` data-swipe-del="purchase"`} class="rec-row${picking ? " is-pick" : ""}" ${picking ? "data-row-chk" : `data-row-open="${esc(rowGo)}"`}${menu}>${sel}
     <div class="grow"><span class="name"><span class="rec-day">${esc(fmtDay(p.purchased_at))}</span>${title}${tags}</span>${desc.length ? `<small class="dots">${dots(desc)}</small>` : ""}</div>
     <b class="rec-amt">${p.amount != null && num(p.amount) < 0 ? `<span class="badge b-ok">${t("退款")}</span> ` : ""}${amount}</b>

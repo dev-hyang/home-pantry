@@ -188,7 +188,7 @@ export async function clickPantry(action, el, id, e) {
         if (!confirmDelete(t("删除这笔花费？"))) return;
         await Store.deletePurchase(id);
         const sl = spendListNow(); if (sl) sl.rows = sl.rows.filter((p) => p.id !== id); renderSpendList();   // 先从已读到的列表里拿掉（和多选删除一样），随后的重读再对一遍
-        toast(t("已删除这笔记录")); return refresh();
+        toast(t("已删除这笔记录")); if (state.route?.q?.get("view")) go(`${href("bills", "spend")}?tab=records`, { replace: true }); return refresh();
       case "recipe-missing": return addRecipeMissing(el.dataset.name);
   }
 }

@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.9", title: { zh: "详情页的 ⋯ 菜单，面包屑合成一行", en: "Detail-page ⋯ menu, single-line breadcrumb" }, items: [
+    { k: "new", zh: "花费详情、收入详情的标题右边有 ⋯：复制、删除（收入底部原来的按钮挪到这里）", en: "Spend and income detail pages have a ⋯ menu (Copy, Delete) next to the title; the old bottom buttons moved there" },
+    { k: "better", zh: "花费 / 收入的详情页和编辑页，面包屑合成一行「财务 / 花费 / 明细 / 这条」，不再叠两层", en: "Spend and income detail and edit pages show one breadcrumb line instead of two stacked ones" },
+    { k: "better", zh: "花费明细点一行进详情（编辑在详情每块的「编辑」里）", en: "Tapping a spend row now opens its detail page; editing is in each block's Edit button" },
+  ] },
+
   { v: "2026-11-20.8", title: { zh: "周期挪到图表上", en: "Chart interval moved onto the charts" }, items: [
     { k: "better", zh: "花费、收入、净资产的走势图：「自动 / 月 / 季 / 年」切换现在在图的标题行右边，筛选条里不再有「周期」", en: "Spending, income and net-worth trend charts now have an Auto / Month / Quarter / Year switch in their title row; the filter bar no longer has Interval" },
     { k: "better", zh: "筛选数字和「清除筛选」只算真正过滤数据的条件；预算页固定按月", en: "The filter count and Clear filters only count real filters; the budget page is always monthly" },

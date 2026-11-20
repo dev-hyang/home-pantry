@@ -4,7 +4,8 @@ import { esc, fmtDay, num, showQty } from "../core/util.js";
 import { state } from "../core/state.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
-import { crumbNav } from "../core/hub.js";
+import { recCrumb } from "../core/rec-crumb.js";
+import { moreMenu } from "../core/more-menu.js";
 import { dtBlock, dtRow } from "../core/detail-ui.js";
 import { defaultNature, isTransfer, leafLabel, natureName } from "../core/taxonomy.js";
 import { memberName } from "../core/logic.js";
@@ -18,7 +19,7 @@ const row = dtRow, block = dtBlock;
 export const spendViewParams = (q) => (q?.get("view") ? { id: q.get("view") } : null);
 
 export function spendDetailPage({ id }) {
-  const crumb = (label) => crumbNav([{ href: spendRecordsHref(), label: t("花费记录") }, { label }]);
+  const crumb = (label) => recCrumb("spend", spendRecordsHref(), label);
   const p = findRow(id);
   if (p === undefined) return `<section class="section">${crumb(t("详情"))}<div class="panel empty"><strong>${t("加载中…")}</strong></div></section>`;
   if (!p) return `<section class="section">${crumb(t("详情"))}<div class="panel empty"><strong>${t("找不到这笔记录")}</strong><p><a class="btn btn-sm" href="${spendRecordsHref()}">${t("回到花费记录")}</a></p></div></section>`;
@@ -32,5 +33,5 @@ export function spendDetailPage({ id }) {
   const kind = block(t("统计口径"), edit("kind"), [row(t("经济性质"), esc(t(natureName(nat))) + (xfer ? ` <span class="badge xfer-badge">${t("转账 · 不算花费")}</span>` : "")), state.properties.length > 1 || prop ? row(t("关联房产"), esc(prop || "")) : ""].filter(Boolean));
   const link = bill ? block(t("关联的账单缴费"), edit("link"), [row(t("账单"), `<a href="${href("bill", bill.id)}">${esc(bill.name)}</a>`), row(t("缴费记录"), `<a href="${href("bill", bill.id)}?sec=pay&edit=${encodeURIComponent(p.pay_id)}">${t("打开这条缴费记录")}</a>`)])
     : p.virtual === "medical" ? block(t("关联的医疗账单"), "", [row(t("医疗账单"), `<a href="${href("otbill", p.bill_id)}">${t("到医疗账单里看 / 改")}</a>`)]) : "";
-  return `<section class="section">${crumb(p.name)}<div class="section-head"><h2>${esc(p.name)}</h2><p>${esc(fmtDay(p.purchased_at))}</p></div>${basic}${pay}${kind}${link}</section>`;
+  return `<section class="section">${crumb(p.name)}<div class="section-head"><div class="sh-title"><h2>${esc(p.name)}</h2><p>${esc(fmtDay(p.purchased_at))}</p></div>${p.virtual ? "" : `<div class="head-acts">${moreMenu([{ label: t("复制"), action: "spend-copy", data: { id: p.id }, first: true }, { label: t("删除"), action: "purchase-del", data: { id: p.id }, danger: true }])}</div>`}</div>${basic}${pay}${kind}${link}</section>`;
 }

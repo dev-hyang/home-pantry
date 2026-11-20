@@ -2,12 +2,12 @@
  * 不再在明细列表上方展开表单，也不在行里插表单：右下角圆形 ＋ → 手动记一笔，明细行的右键 / 长按菜单 → 编辑 / 复制，都来这一页。
  * 新记 / 复制用 id="purchaseForm"、编辑用 id="spendEditForm"：保存、重复提醒、分类联动的处理（app/events/submit.js、change.js、stats/dup-check.js）沿用原来的；
  * 表单带 data-page，保存成功后回到明细。 */
+import { recCrumb } from "../core/rec-crumb.js";
 import { esc, fmtDay, num } from "../core/util.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
-import { crumbNav } from "../core/hub.js";
 import { natureOptions } from "../core/taxonomy.js";
 import { categoryOptions } from "../pantry/meals-sync.js";
 import { cardHintHtml } from "../bills/cards-review.js";
@@ -47,7 +47,7 @@ export function spendFormPage(P) {
   const q = state.route?.q, today = new Date().toISOString().slice(0, 10);
   const src = P.id ? findRow(P.id) : null, isEdit = P.mode === "edit";
   const title = isEdit ? t("编辑花费") : P.mode === "copy" ? t("复制花费") : t("记一笔花费");
-  const crumb = crumbNav([{ href: spendRecordsHref(), label: t("花费记录") }, { label: title }]);
+  const crumb = recCrumb("spend", spendRecordsHref(), title);
   if (P.id && src === undefined) return `<section class="section form-page">${crumb}<div class="panel empty"><strong>${t("加载中…")}</strong></div></section>`;
   if (P.id && !src) return `<section class="section form-page">${crumb}<div class="panel empty"><strong>${t("找不到这笔记录")}</strong><p><a class="btn btn-sm" href="${spendRecordsHref()}">${t("回到花费记录")}</a></p></div></section>`;
   const v = (k) => esc(src?.[k] ?? "");
