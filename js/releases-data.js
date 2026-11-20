@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.17", title: { zh: "录入购物页面整理", en: "Log shopping page tidy-up" }, items: [
+    { k: "better", zh: "实体店小票 / 线上订单 / 手动添加 换成标题行右边的「来源」小控件，不再单占一行", en: "Receipt / Online order / Manual is now a Source switch on the title row instead of its own row" },
+    { k: "better", zh: "手动添加的每一行：先选「放进库存」（可输入搜索），名称、单位、分类自动跟着选中的物品；新物品的分类在名称下面", en: "Manual rows: pick the stock item first (searchable); name, unit and category follow it; the new-item category sits under the name" },
+    { k: "better", zh: "底部按钮：取消 + 确认入库 同一行；手动添加点取消回到库存页", en: "Cancel and Confirm sit on one row; Cancel in manual mode returns to Inventory" },
+  ] },
+
   { v: "2026-11-20.16", title: { zh: "加入购物车页面重构", en: "Add-to-cart page redesigned" }, items: [
     { k: "better", zh: "加入购物车首页：标题右上 ⋯（扫描 / 补货提醒 / 买好了录入库存）；一个块里「已有物品 / 新物品」两个入口，点开选扫描或手动；下面是最近加入的 8 条", en: "Add to cart: ⋯ menu (Scan / Restock alerts / Bought — log into stock); Existing item / New item entries that open Scan or Manual; the latest 8 added below" },
     { k: "new", zh: "手动加入是单独的表单页（取消 / 保存）。已有物品从库存下拉里选（按分类分组，可输入搜索），单位和分类自动跟着库存；新物品保存时发现库存里有相同或相近的，会问是否改成加已有物品", en: "Manual add is its own form page. Existing items are picked from a searchable, grouped stock list with unit and category filled in; new items that match stock prompt you to add the existing item instead" },

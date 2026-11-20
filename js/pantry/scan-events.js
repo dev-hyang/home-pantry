@@ -26,6 +26,10 @@ document.addEventListener("change", async (e) => {
   }
   const row = e.target.closest?.(".scan-row");
   if (row && e.target.name === "target") { row.classList.toggle("is-new", e.target.value === "__new"); if (e.isTrusted) e.target.dataset.touched = "1"; }
+  if (row && e.target.name === "target" && sc.result?.manual) {   // 手动添加：选了库存里的物品，名称、单位、分类跟着填；选「新建物品」不动，自己写
+    const it = state.items.find((i) => i.id === e.target.value);
+    if (it) { row.querySelector('[name="name"]').value = it.name; row.querySelector('[name="unit"]').value = t(it.unit || ""); const c = row.querySelector('[name="cat"]'); if (c && it.category) c.value = it.category; }
+  }
   if (row && (e.target.name === "target" || e.target.name === "unit")) unitNote(row);
   if (e.target.name === "date" && e.target.closest?.("#scanForm")) {   // 改了某张小票的购买日期：它没手动选过的行，过去的日期 → 只记花费，今天 → 回到原来的默认
     const past = sc.record === "spend", box = e.target.closest(".scan-rcpt");
