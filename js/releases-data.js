@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.36", title: { zh: "各页标题下面的说明文字，统一收进标题后面的 ⓘ", en: "Descriptions under page titles now live in an ⓘ after the title" }, items: [
+    { k: "better", zh: "各页各块标题下面那句说明（比如「竖线是本月已过去的进度…」「可用 Excel 打开」）改成标题后面的小 ⓘ，电脑悬停、手机点一下看；页面更紧凑", en: "The explanatory line under each section title is now a small ⓘ after the title (hover on laptop, tap on phone), so pages are more compact" },
+    { k: "better", zh: "带数字或链接的统计 / 状态行（如「3 张在用」）仍然直接显示", en: "Lines with numbers or links (like “3 in use”) are still shown inline" }
+  ] },
+
   { v: "2026-11-19.35", title: { zh: "收入、花费的时间条改成靠右的「筛选」按钮", en: "Income and Spending time bars are now a right-aligned Filters button" }, items: [
     { k: "better", zh: "收入和花费页的时间范围、周期、月份、「排除资本性 / 投资」开关，都收进靠右的「筛选」按钮；点开面板第一行是「筛选」字样和清除筛选，开关也在里面", en: "Time range, interval, month and the exclude capital / investments switches now live in a right-aligned Filters button; the panel starts with a Filters title and a clear button" },
     { k: "better", zh: "改了筛选后面板保持打开，按钮上显示改动了几项；电脑和手机一个样子", en: "The panel stays open after you change a filter, the button shows how many are set, and it looks the same on laptop and phone" }

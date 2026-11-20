@@ -14,3 +14,14 @@ if (!window.__infoTipBound) {
   window.__infoTipBound = true;
   document.addEventListener("click", (e) => { const h = e.target.closest?.(".ui-hint"); if (h) { e.preventDefault(); e.stopPropagation(); h.focus(); } }, true);
 }
+
+/* 提示浮层不被屏幕左右边切掉：显示前量一下浮层宽度，按它的对齐方式算出要平移多少（--tip-dx，样式在 styles.css 的 .ui-hint::after） */
+function fitTip(h) {
+  h.style.removeProperty("--tip-dx");
+  const w = parseFloat(getComputedStyle(h, "::after").width); if (!w) return;
+  const r = h.getBoundingClientRect(), al = h.dataset.tipAlign, vw = document.documentElement.clientWidth, m = 8;
+  const x0 = al === "start" ? r.left : al === "end" ? r.right - w : r.left + r.width / 2 - w / 2;
+  const dx = Math.max(m - x0, Math.min(0, vw - m - (x0 + w)));
+  if (dx) h.style.setProperty("--tip-dx", `${Math.round(dx)}px`);
+}
+for (const ev of ["mouseover", "focusin"]) document.addEventListener(ev, (e) => { const h = e.target.closest?.(".ui-hint[data-tip]"); if (h) fitTip(h); });

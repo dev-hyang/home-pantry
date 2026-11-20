@@ -5,6 +5,7 @@ import { FORM_PAGES, TABS_HIDDEN, VIEWS, offPanel, userActing } from "./page-tab
 import { alertCounts, collectAlerts } from "../core/alerts.js";
 import { crumb, viewMenu } from "../menu.js";
 import { decoratePrivacy } from "../core/privacy.js";
+import { foldHeadNotes } from "../core/head-notes.js";
 import { financeFallback, routeBlocked } from "../core/finance-access.js";
 import { go } from "../core/router.js";
 import { isScanRoute } from "./route.js";
@@ -50,6 +51,7 @@ export function render(force = true) {
   { const af = $("#main [data-as-focus]"); if (af) requestAnimationFrame(() => af.scrollIntoView({ block: "start" })); }   // 从账单页点某笔摊派进来：滚到那一笔
   normalizeFormActions($("#main"));   // 所有表单：取消靠左、保存靠右，同一行
   syncEditing();
+  foldHeadNotes();   // 各块标题下的说明 → 标题后的 ⓘ（js/core/head-notes.js）
   decoratePrivacy(r);   // 财务看板的大数字：遮挡模式下模糊（js/core/privacy.js）
 }
 /** 底部导航隐不隐藏的最终判断：页面里有底部保存栏（.sticky-actions：取消 / 保存）才隐藏，让保存栏贴底；其余页面（列表、详情、没有保存栏的表单）一律保留导航 */

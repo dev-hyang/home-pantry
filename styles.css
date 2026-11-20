@@ -4274,3 +4274,4 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .fpop-fields .tb-field select, .fpop-fields select.range-sel { width: 60%; flex: 0 1 60%; min-height: 44px; }
 .fpop-fields .check-inline { min-height: 44px; }
 @media print { .fpop { display: none; } }
+.ui-hint[data-tip]::after { translate: var(--tip-dx, 0) 0; }   /* 提示浮层贴边时往里挪（js/core/info-tip.js fitTip） */
