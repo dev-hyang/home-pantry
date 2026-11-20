@@ -10,6 +10,7 @@ import { state } from "../core/state.js";
 import { typeTags } from "./shop-detail.js";
 import { shopHref, ui } from "./shops-common.js";
 import { clearActionBtn } from "../core/clear-filters.js";
+import { shopsFab, shopsMore, shopsTabs } from "./shops-nav.js";
 
 /* ───────────── 特价一览：以商品为主（各家的特价放在一起比），列表 / 卡片两种看法；?item= 只看购物车的某一项 ───────────── */
 const DV_SORTS = [["best", "推荐"], ["unit", "按单价"], ["price", "按价格"], ["soon", "快到期的在前"], ["shop", "按商店"]];
@@ -75,7 +76,8 @@ export function viewDeals() {
   return `<section class="section shops-page dv-page">
     ${crumbNav(crumbs)}
     <div class="section-head"><h2>${item ? t("「{name}」的特价", { name: esc(item.name) }) : t("特价一览")}</h2>
-      <p>${item ? (base.length ? `${t("{n} 家有特价。", { n: new Set(base.map((d) => d.shop_id)).size })}${picked ? t("卡片上显示的是你选的这家。") : t("卡片上默认显示 ★ 那条（{why}）；点「用这家」换成你选的。", { why: t(WHY[base.why] || WHY.unit) })}` : t("现在没有对得上的特价。")) : t("各家有效期内的特价放在一起比；单价相同单位才好比。")}</p></div>
+      <p>${item ? (base.length ? `${t("{n} 家有特价。", { n: new Set(base.map((d) => d.shop_id)).size })}${picked ? t("卡片上显示的是你选的这家。") : t("卡片上默认显示 ★ 那条（{why}）；点「用这家」换成你选的。", { why: t(WHY[base.why] || WHY.unit) })}` : t("现在没有对得上的特价。")) : t("各家有效期内的特价放在一起比；单价相同单位才好比。")}</p>${item ? "" : `<div class="head-acts">${shopsMore()}</div>`}</div>
+    ${item ? "" : shopsTabs("deals")}
     ${base.length ? `<div class="dv-modebar"><div class="dv-mode" role="group" aria-label="${esc(t("显示方式"))}">${item ? "" : `<button type="button" class="btn btn-sm ${mode === "group" ? "btn-dark" : "btn-ghost"}" data-action="shops-dv-mode" data-v="group" aria-pressed="${mode === "group"}">🧺 ${t("按商品")}</button>`}<button type="button" class="btn btn-sm ${mode === "list" ? "btn-dark" : "btn-ghost"}" data-action="shops-dv-mode" data-v="list" aria-pressed="${mode === "list"}">☰ ${t("列表")}</button><button type="button" class="btn btn-sm ${mode === "cards" ? "btn-dark" : "btn-ghost"}" data-action="shops-dv-mode" data-v="cards" aria-pressed="${mode === "cards"}">▦ ${t("卡片")}</button></div></div>
     <div class="toolbar shops-toolbar dv-toolbar">
       <label class="shops-q"><span class="sr-only">${t("搜索特价")}</span><input type="search" data-dv-q value="${esc(v.q)}" placeholder="${esc(t("搜索商品、牌子、商店"))}" autocomplete="off"></label>
@@ -90,6 +92,7 @@ export function viewDeals() {
     ${!list.length ? `<p class="muted">${t("没有符合条件的特价。")}</p>` : groups ? `<div class="dv-groups">${groups.map(gCard).join("")}</div>` : mode === "cards" ? `<div class="dv-cards">${list.map(card).join("")}</div>`
       : `<div class="panel dv-panel"><div class="dv-th" aria-hidden="true"><span>${t("商品")}</span><span>${t("商店")}</span><span>${t("价格")}</span><span>${t("单价")}</span><span>${t("有效期")}</span><span></span></div><ul class="dv-list">${list.map(row).join("")}</ul></div>`}`
       : `<div class="panel"><p class="muted" style="margin:0">${item ? t("这一项现在没有对得上的特价。") : t("还没有特价。到商店页更新一次特价就会出现在这里。")}</p></div>`}
+    ${item ? "" : shopsFab("deals")}
   </section>`;
 }
 /** 按商品分组：同一样东西（aka 的第一个叫法——录入时对上家里物品的就是物品名，否则是 AI 给的通用名，如「巧克力」）的各家特价放一组，

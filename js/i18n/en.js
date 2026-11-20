@@ -4363,4 +4363,5 @@ export const EN = {
  "收入明细": "Income records", "找不到这笔收入": "Can't find this income record", "回到收入明细": "Back to income records", "账户与归属": "Account & owner", "这是谁的收入": "Whose income", "入到哪个账户": "Deposited to", "借款 / 还款": "Loan / repayment", "备注与来源": "Notes & source", "还款记录": "Repayments", "来源": "Source", "国际电汇 / 外币": "Wire / foreign currency", "已转为借款": "Converted to a loan",
  "图表周期（按月 / 季 / 年）": "Chart interval (month / quarter / year)",
  "找不到这条记录": "Can't find this record", "回到保养记录": "Back to service records", "花费与收款方": "Cost & payee", "自己动手": "Did it myself", "打开这笔花费": "Open this spend record", "记录时间": "Logged at", "是": "Yes",
+ "商店内容": "Shops", "商店列表": "Shop list", "手动添加商店": "Add a shop manually", "录入特价": "Enter deals",
 };

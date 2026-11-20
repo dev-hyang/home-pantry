@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.13", title: { zh: "常去的商店：整理首页", en: "Shops: tidier home page" }, items: [
+    { k: "better", zh: "常去的商店首页：标题下是两张导航卡（商店列表 / 特价一览），不再有一排挤在一起的按钮；更新记录收进右上 ⋯", en: "Shops home: two navigation cards (Shop list / Weekly deals) replace the crowded button row; Update log moved into the ⋯ menu" },
+    { k: "new", zh: "右下角圆形 ＋：手动添加商店、找附近的商店、录入特价、用 Claude 整理", en: "Round ＋ button: add a shop, find nearby shops, enter deals, tidy with Claude" },
+  ] },
+
   { v: "2026-11-20.12", title: { zh: "编辑页的取消 / 保存置顶", en: "Cancel / Save pinned to the top of edit pages" }, items: [
     { k: "better", zh: "所有编辑页：页面顶部（面包屑下面）有一条粘住的「取消 / 保存」，不用再滑到最底部，也不会被底部导航挡住", en: "Every edit page has a sticky Cancel / Save bar at the top, so you no longer scroll to the bottom or get blocked by the bottom tabs" },
     { k: "fix", zh: "保养记录的编辑页：取消回到保养记录列表（以前回到一张空白表单）；新记一笔也有取消", en: "Service-record edit page: Cancel now returns to the record list (it used to open a blank form); new records have Cancel too" },

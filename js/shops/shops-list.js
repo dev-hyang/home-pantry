@@ -11,6 +11,7 @@ import { lpAttr } from "../core/long-press.js";
 import { Store } from "../core/store.js";
 import { bulkBar, bulkCheck, bulkMenuItem, bulkOn, bulkRegister } from "../core/bulk-select.js";
 import { clearActionBtn } from "../core/clear-filters.js";
+import { shopsFab, shopsMore, shopsTabs } from "./shops-nav.js";
 
 /* ───────────── 列表 ───────────── */
 export function viewList() {
@@ -29,7 +30,8 @@ export function viewList() {
     ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("常去的商店"), icon: "🏪" }])}
     ${missingPanel()}
     <div class="section-head"><h2>${t("常去的商店")}</h2><p>${t("每家的本周广告、特价都在这里；购物车会标出哪家在打折。")}</p>
-      <div class="head-acts"><button type="button" class="btn btn-sm" data-action="shops-claude" aria-expanded="${!!u.claude}">🤖 ${t("用 Claude 整理")}</button><a class="btn btn-sm" href="${href("shops", "find")}">📍 ${t("找附近的商店")}</a><a class="btn btn-sm" href="${href("shops", "deals")}">🏷 ${t("特价一览")}</a><a class="btn btn-sm" href="${href("shops", "log")}">📜 ${t("更新记录")}</a><button type="button" class="btn btn-sm btn-primary" data-action="shops-new" aria-expanded="${u.edit === "new"}" aria-controls="shopEditForm">${u.edit === "new" ? "－" : "＋"} ${t("手动添加")}</button></div></div>
+      <div class="head-acts">${shopsMore()}</div></div>
+    ${shopsTabs("list")}
     ${u.edit === "new" && !gridOn ? shopForm(null) : ""}
     ${u.claude ? claudePanel() : ""}
     ${due.length && u.status === "active" ? `<div class="panel shops-due" role="status">🗓️ ${t("{n} 家本周的特价还没更新：{names}", { n: due.length, names: due.map((s) => esc(s.name)).join("、") })}</div>` : ""}
@@ -42,6 +44,7 @@ export function viewList() {
     </div>` : ""}
     ${gridOn ? `${(bulkRegister("shops", { ids: () => list.map((x) => x.id), del: async (id) => { await Store.deleteShop(id); state.shops = state.shops.filter((x) => x.id !== id); state.shopDeals = (state.shopDeals || []).filter((d) => d.shop_id !== id); } }), bulkBar("shops"))}<div class="shop-grid">${list.map(shopCard).join("")}${u.edit === "new" ? `<div class="shop-new-slot">${shopForm(null)}</div>` : newCard()}</div>${list.length ? "" : `<p class="muted shops-empty">${t("没有符合条件的商店。")}</p>`}`
       : all.length ? `<p class="muted shops-empty">${u.status === "archived" ? t("没有收起来的商店。") : t("没有符合条件的商店。")}</p>` : starterPanel()}
+    ${shopsFab()}
   </section>`;
 }
 function starterPanel() {
