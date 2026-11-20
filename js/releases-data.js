@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.20", title: { zh: "历史交易：整行点开", en: "Deal history: tap the row" }, items: [
+    { k: "better", zh: "历史交易整行可点，进入那笔交易的清单、时间线和交易信息；长按菜单第一项是「详情」", en: "Deal history rows are fully tappable and open that deal's checklist, timeline and info; Details is first in the long-press menu" },
+  ] },
+
   { v: "2026-11-20.19", title: { zh: "商店特价详情页", en: "Shop deal detail page" }, items: [
     { k: "new", zh: "商店里的每条特价点一下进详情：商品信息 / 价格 / 有效期与类型 三块各有「编辑」，下面是以前的价格；右上 ⋯ 有加入清单、删除", en: "Each shop deal opens a detail page: Item, Price and Validity & type blocks each have Edit, with past prices below; the ⋯ menu adds it to the list or deletes it" },
     { k: "better", zh: "特价行不再就地展开表单，编辑改成单独一页（取消 / 保存置顶）；行上去掉了「改」按钮和展开的历史价", en: "Deal rows no longer expand an inline form; editing is its own page, and the Edit button and inline price history are gone from rows" },
