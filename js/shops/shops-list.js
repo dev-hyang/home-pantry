@@ -80,7 +80,7 @@ function shopCard(s) {
 function newCard() {
   return `<button type="button" class="shop-card shop-new" data-action="shops-new" aria-expanded="false" aria-controls="shopEditForm"><span class="shop-new-plus" aria-hidden="true">＋</span><b>${t("添加商店")}</b><small>${t("名称、地址、每周几换广告")}</small></button>`;
 }
-export function shopForm(s) {
+export function shopForm(s, { page = false } = {}) {
   const v = s || { category: "groceries", refresh: "weekly", refresh_dow: 3 };
   return `<form class="panel shop-form" id="shopEditForm" data-id="${esc(s?.id || "")}" aria-label="${esc(s ? t("编辑商店") : t("添加商店"))}">
     <div class="form-grid">
@@ -96,7 +96,7 @@ export function shopForm(s) {
       <label class="span-2">${t("备注")}<input name="notes" maxlength="300" value="${esc(v.notes || "")}" placeholder="${esc(t("会员卡、营业时间、哪个门口好停车…"))}"></label>
     </div>
     <datalist id="shopChains">${Object.values(CHAINS).map((c) => `<option value="${esc(c.name)}">`).join("")}</datalist>
-    <div class="form-actions"><button class="btn btn-primary" type="submit">${t("保存")}</button><button type="button" class="btn btn-ghost" data-action="shops-edit-cancel">${t("取消")}</button>
-      ${s ? `${s.archived ? "" : `<button type="button" class="btn btn-ghost" data-action="shops-archive" data-id="${s.id}">${t("不去了")}</button>`}<button type="button" class="btn btn-ghost btn-danger" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>` : ""}</div>
+    <div class="form-actions">${page ? `<a class="btn btn-ghost" href="${shopHref(s)}">${t("取消")}</a>` : `<button type="button" class="btn btn-ghost" data-action="shops-edit-cancel">${t("取消")}</button>`}<button class="btn btn-primary" type="submit">${t("保存")}</button>
+      ${s && !page ? `${s.archived ? "" : `<button type="button" class="btn btn-ghost" data-action="shops-archive" data-id="${s.id}">${t("不去了")}</button>`}<button type="button" class="btn btn-ghost btn-danger" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>` : ""}</div>
   </form>`;
 }

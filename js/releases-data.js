@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.18", title: { zh: "商店详情页重构", en: "Shop detail page reworked" }, items: [
+    { k: "better", zh: "商店详情：标题右上 ⋯（本周广告、Flipp、用脚本更新、不去了 / 加回常去、删除）；分成「基本信息」「特价更新」两块，每块有自己的「编辑」", en: "Shop detail: a ⋯ menu (weekly ad, Flipp, script update, archive, delete) and two blocks, Basic info and Deal updates, each with its own Edit" },
+    { k: "new", zh: "编辑商店是单独的表单页（取消 / 保存置顶），保存后回到详情；右下角圆形 ＋：录入特价、手动加一条特价", en: "Editing a shop is its own page (Cancel / Save pinned) that returns to the detail; a round ＋ adds deals (scan/paste or one by hand)" },
+  ] },
+
   { v: "2026-11-20.17", title: { zh: "录入购物页面整理", en: "Log shopping page tidy-up" }, items: [
     { k: "better", zh: "实体店小票 / 线上订单 / 手动添加 换成标题行右边的「来源」小控件，不再单占一行", en: "Receipt / Online order / Manual is now a Source switch on the title row instead of its own row" },
     { k: "better", zh: "手动添加的每一行：先选「放进库存」（可输入搜索），名称、单位、分类自动跟着选中的物品；新物品的分类在名称下面", en: "Manual rows: pick the stock item first (searchable); name, unit and category follow it; the new-item category sits under the name" },

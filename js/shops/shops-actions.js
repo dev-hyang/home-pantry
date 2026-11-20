@@ -6,7 +6,7 @@ import { aiReady, askText } from "../core/ai.js";
 import { attachPayload, attachReset } from "../core/attach.js";
 import { dtSummary, pickDeal } from "./shop-detail.js";
 import { dvUi } from "./shops-deals.js";
-import { href } from "../core/router.js";
+import { go, href } from "../core/router.js";
 import { installAutoHook } from "./shops-runs.js";
 import { lang, t } from "../core/i18n.js";
 import { pickedDeal } from "./lite.js";
@@ -198,7 +198,9 @@ export function bindShops(render) {
       const row = formRow(f); if (!row.name) return;
       const id = f.dataset.id, old = id ? shopById(id) : null;
       const saved = await Store.saveShop(old ? { ...old, ...row } : row); upsertLocal(saved); ui().edit = null;
-      toast(old ? t("已保存") : t("已加入 {name}", { name: saved.name })); R();
+      toast(old ? t("已保存") : t("已加入 {name}", { name: saved.name }));
+      if (old && state.route?.q?.get("edit")) return go(`${href("shops", "shop")}/${encodeURIComponent(saved.id)}`, { replace: true });   // 编辑页保存后回到商店详情
+      R();
     } catch (err) { toast(t("保存失败：{msg}", { msg: err.message })); }
   });
   document.addEventListener("input", (e) => {

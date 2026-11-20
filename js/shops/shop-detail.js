@@ -12,8 +12,11 @@ import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
 import { shopForm } from "./shops-list.js";
 import { state } from "../core/state.js";
-import { DOW, dealUi, distOf, missingPanel, ui } from "./shops-common.js";
+import { DOW, dealUi, distOf, missingPanel, shopHref, ui } from "./shops-common.js";
 import { lpAttr } from "../core/long-press.js";
+import { dtBlock, dtRow } from "../core/detail-ui.js";
+import { fabMenu } from "../core/fab-menu.js";
+import { moreMenu } from "../core/more-menu.js";
 import { bulkBar, bulkCheck, bulkMenuItem, bulkOn, bulkRegister } from "../core/bulk-select.js";
 import { clearActionBtn } from "../core/clear-filters.js";
 
@@ -22,28 +25,29 @@ export function viewShop(id) {
   const s = (state.shops || []).find((x) => x.id === id);
   const base = [{ href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }];
   if (!s) return `<section class="section shops-page">${crumbNav([...base, { label: t("商店") }])}<p class="muted">${state.shops ? t("这家商店不在了。") : t("加载中…")}</p></section>`;
-  const [, cn, icon] = shopCat(s.category), d = distOf(s), du = dealUi(s.id), deals = liveDeals(s.id);
-  const openUpd = du.rows || du.busy || state.route.q.get("update") === "1" || !deals.length;
-  const refreshTxt = (s.refresh === "weekly" ? t("每{d}换广告", { d: t(DOW[s.refresh_dow ?? 3]) }) : t("需要时手动更新")) + (s.auto_update && s.refresh === "weekly" ? ` · 🤖 ${t("{d}自动更新", { d: t(DOW[s.refresh_dow ?? 3]) })}` : "");
+  const [, cn, icon] = shopCat(s.category), d = distOf(s), du = dealUi(s.id), deals = liveDeals(s.id), q = state.route.q;
+  if (q.get("edit") === "1") return `<section class="section shops-page shop-page form-page">${crumbNav([...base, { href: shopHref(s), label: s.name, icon }, { label: t("编辑商店") }])}${shopForm(s, { page: true })}</section>`;   // 编辑：单独的表单页（取消 / 保存置顶）
+  const openUpd = du.rows || du.busy || q.get("update") === "1" || !deals.length;
+  const edit = (sec) => `${shopHref(s)}?edit=1&sec=${sec}`;
+  const refreshTxt = s.refresh === "weekly" ? t("每{d}换广告", { d: t(DOW[s.refresh_dow ?? 3]) }) : t("需要时手动更新");
+  const tags = `${s.archived ? `<span class="tag">${t("不去了")}</span> ` : ""}${dealsDue(s) ? `<b class="warn-txt">${t("本周待更新")}</b>` : ""}`;
+  const tools = state.runsMissing || Store.mode === "demo" ? null : { label: `🤖 ${t("用脚本更新")}`, href: `pantrydeals://run?shop=${encodeURIComponent(s.id)}` };
+  const menu = moreMenu([{ label: `${t("本周广告")} ↗`, href: adUrl(s), external: true, first: true }, { label: "Flipp ↗", href: flippUrl(s), external: true }, tools,
+    s.archived ? { label: t("加回常去"), action: "shops-unarchive", data: { id: s.id } } : { label: t("不去了"), action: "shops-archive", data: { id: s.id } }, { label: t("删除"), action: "shops-del", data: { id: s.id }, danger: true }]);
+  const basic = dtBlock(t("基本信息"), edit("basic"), [dtRow(t("分类"), `${icon} ${esc(t(cn))}`), dtRow(t("地址"), s.address ? `<a href="${esc(mapUrl(s))}" target="_blank" rel="noopener">${esc(s.address)}</a>${d != null ? ` · ${t("{n} 英里", { n: d.toFixed(1) })}` : ""}` : ""),
+    dtRow(t("电话"), s.phone ? `<a href="tel:${esc(s.phone)}">${esc(s.phone)}</a>` : ""), dtRow(t("备注"), esc(s.notes || ""))]);
+  const upd = dtBlock(t("特价更新"), edit("update"), [dtRow(t("更新频率"), esc(refreshTxt)), dtRow(t("自动更新"), s.auto_update && s.refresh === "weekly" ? `🤖 ${t("{d}自动更新", { d: t(DOW[s.refresh_dow ?? 3]) })}` : ""), dtRow(t("上次更新"), s.deals_at ? esc(fmtShort(s.deals_at)) : ""), dtRow(t("广告链接"), s.ad_url ? `<a href="${esc(s.ad_url)}" target="_blank" rel="noopener">${t("本周广告")} ↗</a>` : "")]);
+  const fab = fabMenu([{ label: t("录入特价"), icon: "🏷", desc: t("拍广告、截图或粘贴文字"), href: `${shopHref(s)}?update=1` }, { label: t("手动加一条特价"), icon: "✍️", data: { action: "shops-manual", id: s.id } }], { label: t("添加") });
   return `<section class="section shops-page shop-page">
     ${crumbNav([...base, { label: s.name, icon }])}
     ${missingPanel()}
-    ${ui().edit === s.id ? shopForm(s) : `<div class="panel shop-head">
-      <div class="shop-head-main"><span class="shop-ico big" aria-hidden="true">${icon}</span><div>
-        <b class="shop-title">${esc(s.name)}</b>${s.archived ? ` <span class="tag">${t("不去了")}</span>` : ""}
-        <p class="muted">${esc(t(cn))}${s.address ? ` · <a href="${esc(mapUrl(s))}" target="_blank" rel="noopener">${esc(s.address)}</a>` : ""}${d != null ? ` · ${t("{n} 英里", { n: d.toFixed(1) })}` : ""}${s.phone ? ` · <a href="tel:${esc(s.phone)}">${esc(s.phone)}</a>` : ""}</p>
-        <p class="muted">${refreshTxt}${s.deals_at ? ` · ${t("上次更新 {d}", { d: fmtShort(s.deals_at) })}` : ""}${dealsDue(s) ? ` · <b class="warn-txt">${t("本周待更新")}</b>` : ""}${s.notes ? ` · ${esc(s.notes)}` : ""}</p></div></div>
-      <div class="shop-head-acts"><a class="btn btn-sm btn-primary" href="${esc(adUrl(s))}" target="_blank" rel="noopener">${t("本周广告")} ↗</a>
-        <a class="btn btn-sm" href="${esc(flippUrl(s))}" target="_blank" rel="noopener">Flipp ↗</a>
-        ${state.runsMissing || Store.mode === "demo" ? "" : `<a class="btn btn-sm" href="pantrydeals://run?shop=${encodeURIComponent(s.id)}" data-autorun title="${esc(t("只能在装了 pantry-deals 脚本的笔记本上用"))}">🤖 ${t("用脚本更新")}</a>`}
-        <button type="button" class="btn btn-sm btn-ghost" data-action="shops-edit" data-id="${s.id}">${t("编辑")}</button>
-        ${s.archived ? `<button type="button" class="btn btn-sm" data-action="shops-unarchive" data-id="${s.id}">${t("加回常去")}</button>` : ""}</div>
-      ${state.runsMissing || Store.mode === "demo" ? "" : `<p class="muted autorun-hint">💻 ${t("「用脚本更新」只能在装了 pantry-deals 脚本的笔记本上用：Chrome 会先问要不要打开 PantryDeals，点「打开」后笔记本上会弹出一个窗口，读这家的广告并录入（几分钟）。完成后看 📜 更新记录。手机上点了没有反应。")}</p>`}
-    </div>`}
-    <details class="panel deal-upd" ${openUpd ? "open" : ""}><summary><b>${t("更新特价")}</b> <span class="muted">${t("拍广告、截图或粘贴文字，AI 读成特价清单；确认后保存")}</span></summary>
+    <div class="section-head"><div class="sh-title"><h2>${icon} ${esc(s.name)}</h2><p>${tags}</p></div><div class="head-acts">${menu}</div></div>
+    ${basic}${upd}
+    <details class="panel deal-upd" ${openUpd ? "open" : ""}><summary><b>${t("录入特价")}</b> <span class="muted">${t("拍广告、截图或粘贴文字，AI 读成特价清单；确认后保存")}</span></summary>
       ${du.rows ? reviewHtml(s, du) : updateHtml(s, du)}
     </details>
     ${dealsHtml(s, du, deals)}
+    ${fab}
   </section>`;
 }
 function updateHtml(s, du) {
