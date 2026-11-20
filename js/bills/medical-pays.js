@@ -24,7 +24,7 @@ function payRow(b, p) {
   const edit = `${detailHref(b.id)}?pay=${encodeURIComponent(p.id)}`, refund = num(p.amount) < 0;
   const items = [{ label: t("详情"), href: `${detailHref(b.id)}?payview=${encodeURIComponent(p.id)}`, first: true }, { label: t("编辑"), href: edit }, { label: t("复制"), href: `${detailHref(b.id)}?pay=new&copy=${encodeURIComponent(p.id)}` }, { label: t("删除"), action: "med-pay-del", data: { id: p.id }, danger: true }, bulkMenuItem("medpay", p.id)];
   const badge = `<span class="badge ${refund ? "b-low" : "b-ok"}">${esc(t(refund ? "退款" : "已缴费"))}</span>`;
-  return payRowHtml({ pick: bulkOn("medpay") ? bulkCheck("medpay", p.id) : "", edit, hitTitle: t("点一下编辑"), body: payBody({ date: fmtDate(p.paid_on), badge, meta: [paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null].filter(Boolean).map(esc), note: p.notes ? esc(p.notes) : "" }),
+  return payRowHtml({ pick: bulkOn("medpay") ? bulkCheck("medpay", p.id) : "", edit: `${detailHref(b.id)}?payview=${encodeURIComponent(p.id)}`, hitTitle: t("详情"), body: payBody({ date: fmtDate(p.paid_on), badge, meta: [paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null].filter(Boolean).map(esc), note: p.notes ? esc(p.notes) : "" }),
     total: `<b class="pay-total${refund ? " ot-neg" : ""}" title="${esc(t("金额"))}">${mny(p.amount, p.currency || b.currency)}</b>`, items, lpTitle: fmtDate(p.paid_on), swipe: "med-pay", del: { action: "med-pay-del", id: p.id, label: t("删除") }, delLabel: t("删除这条记录") });
 }
 

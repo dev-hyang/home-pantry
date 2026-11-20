@@ -208,6 +208,6 @@ export function spendRecordsHtml() {
       </div>
       <div id="spendChips">${spendChipsHtml()}</div>
       <div id="spendList" style="margin-top:8px">${spendListHtml()}</div>
-      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("点一行进编辑；手机长按那一行（电脑右键点那一行）可以编辑 / 复制 / 删除 / 多选删除，删除也可以向左滑。")}</p>
+      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("点一行看详情；手机长按那一行（电脑右键点那一行）可以看详情 / 编辑 / 复制 / 删除 / 多选删除，删除也可以向左滑。")}</p>
     </div>`;
 }

@@ -46,7 +46,7 @@ export function rowHtml(b, p) {
   const badge = `<span class="badge ${skipped ? "" : "b-ok"}" ${skipped ? 'style="background:var(--surface-2)"' : ""}>${esc(t(B().PAYMENT_STATUS[p.status] || p.status))}</span>`;
   // 这一笔的更多操作：电脑右键 / 手机长按（同一份菜单）
   const items = [{ label: t("详情"), href: `${href("bill", b.id)}?sec=pay&view=${encodeURIComponent(p.id)}`, first: true }, { label: t("编辑"), href: edit }, { label: t("复制"), href: `${href("bill", b.id)}?sec=pay&copy=${encodeURIComponent(p.id)}` }, { label: t("删除"), action: "billpay-del", data: { id: p.id }, danger: true }, bulkMenuItem("billpay", p.id)];
-  return payRowHtml({ pick: bulkOn("billpay") ? bulkCheck("billpay", p.id) : "", edit, hitTitle: t("点一下编辑"), body: payBody({ date: fmtDate(p.paid_on), badge, meta, amounts, note: p.notes ? esc(p.notes) : "" }),
+  return payRowHtml({ pick: bulkOn("billpay") ? bulkCheck("billpay", p.id) : "", edit: `${href("bill", b.id)}?sec=pay&view=${encodeURIComponent(p.id)}`, hitTitle: t("详情"), body: payBody({ date: fmtDate(p.paid_on), badge, meta, amounts, note: p.notes ? esc(p.notes) : "" }),
     total: `<b class="pay-total" title="${esc(t("总金额"))}">${p.amount != null && !skipped ? mny(payTotal(p), c) : ""}</b>`, items, lpTitle: fmtDate(p.paid_on), swipe: "bill-pay", del: { action: "billpay-del", id: p.id, label: t("删除") }, delLabel: t("删除这条记录") });
 }
 

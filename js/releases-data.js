@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.24", title: { zh: "缴费记录点一行进详情", en: "Payment rows open their detail" }, items: [
+    { k: "better", zh: "缴费记录、一次性账单的缴费：点一行进详情（和花费、收入一致）；花费明细底部的提示文字同步更新", en: "Payment records and one-time-bill payments now open their detail on tap, like spending and income; the hint under the spending list is updated" },
+  ] },
+
   { v: "2026-11-20.23", title: { zh: "记一笔收入也是单独的表单页", en: "Logging income is its own form page too" }, items: [
     { k: "better", zh: "记一笔收入 / 复制一笔：打开单独的表单页，顶部有置顶的取消 / 保存，保存后回到收入明细", en: "Log income / Copy now open a dedicated form page with pinned Cancel / Save and return to the income list after saving" },
   ] },
