@@ -19,13 +19,13 @@ export function billHeadCard(b, base) {
   const due = b.status !== "ok" && b.status !== "none" ? `<span class="badge ${BADGE[b.status]}">${t(STATUS_LABEL[b.status])}${b.next_due_on ? ` · ${fmtDate(b.next_due_on)}` : ""}</span>`
     : b.next_due_on ? `<span class="badge b-ok">${t("下次到期 {d}", { d: fmtDate(b.next_due_on) })}</span>` : "";
   const menu = moreMenu([
-    { label: t("编辑"), href: `${base}?sec=all`, first: true },
-    { label: b.autopay ? t("记核对") : t("记缴费"), href: `${base}?pay=1` },
+    { label: t("详情"), href: `${base}?sec=detail`, first: true },
+    { label: b.autopay ? t("核对") : t("缴费"), href: `${base}?pay=1` },
     { label: t("查看缴费记录"), href: `${base}?sec=pay` },
     { label: t("特别摊派"), href: `${base}?sec=assess` },
     b.pay_url ? { label: t("去服务商缴费"), href: b.pay_url, external: true } : null,
-    { label: t("复制为新账单"), href: `${href("bill", "new")}?copy=${encodeURIComponent(b.id)}` },
-    { label: t("删除账单"), action: "bill-delete", danger: true },
+    { label: t("复制"), href: `${href("bill", "new")}?copy=${encodeURIComponent(b.id)}` },
+    { label: t("删除"), action: "bill-delete", danger: true },
   ]);
   // HOA 账单：公司 / 联系方式 / 网站读房屋资料里的 HOA（只存一份）；其他账单：收款方 + 缴费网站 + 登录提示
   const emails = (hoa?.email || "").split(/[;,，；]/).map((x) => x.trim()).filter(Boolean);

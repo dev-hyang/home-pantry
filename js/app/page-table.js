@@ -46,7 +46,7 @@ export const TABS_HIDDEN = (r) => {
   if (r.section === "item") return r.id === "new" || !!q.get("edit");   // 物品详情页保留底部导航；新建 / 某一块的编辑才隐藏（最终以有没有保存栏为准）   // 房屋资料：读的页面，分块编辑时才有保存栏（见 render.js 的 syncEditing）
   if (r.section === "asset") return r.id === "new" || EDIT_SECS.has(q.get("sec")) || q.get("log") === "1" || !!q.get("wiz");
   if (r.section === "bill") {
-    const list = ["pay", "assess"].includes(q.get("sec")) && !q.get("edit") && !q.get("copy");   // 缴费记录 / 特别摊派的列表页（含摊派缴费记录）：保留导航
+    const list = ["pay", "assess", "detail"].includes(q.get("sec")) && !q.get("edit") && !q.get("copy");   // 缴费记录 / 特别摊派的列表页（含摊派缴费记录）：保留导航
     return r.id === "new" ? [...q.keys()].length > 0 : (!!q.get("sec") && !list) || q.get("pay") === "1";
   }   // #/bill/new 不带参数 = 选类型页（保留导航）；向导 / 整页表单 / 分区编辑 / 记缴费 = 隐藏；账单详情页保留
   if (r.section === "otbill") return r.id === "new" || !!q.get("sec");   // 一次性账单：详情页保留导航，新建 / 分区编辑隐藏

@@ -54,8 +54,8 @@ export function cardDetailPage(c, ro, deleteHtml = "") {
   const active = c.active !== false;
   const menu = ro ? "" : moreMenu([
     { label: active ? t("停用") : t("启用"), action: active ? "card-deact" : "card-react", data: { id: c.id }, first: true },
-    { label: bank ? t("复制为新账户") : t("复制为新卡"), href: `${cardHref("new")}&copy=${encodeURIComponent(c.id)}` },
-    { label: bank ? t("删除这个账户") : t("删除这张卡"), action: "card-del", data: { id: c.id }, danger: true }], { label: `${c.name} · ${t("更多操作")}` });
+    { label: t("复制"), href: `${cardHref("new")}&copy=${encodeURIComponent(c.id)}` },
+    { label: t("删除"), action: "card-del", data: { id: c.id }, danger: true }], { label: `${c.name} · ${t("更多操作")}` });
   const cards = CARD_SECS.filter((s) => !s.kinds || s.kinds.includes(c.kind)).map((s) => `<section class="panel prof-card" aria-labelledby="cdc-${s.id}"><header class="prof-head"><span class="mi" aria-hidden="true">${s.icon}</span><div class="prof-t"><h3 id="cdc-${s.id}">${t(s.name(bank))}</h3></div>
       ${ro ? "" : `<a class="btn btn-sm btn-ghost prof-edit" href="${base}&edit=${s.id}" aria-label="${esc(t("编辑 {name}", { name: t(s.name(bank)) }))}">${t("编辑")}</a>`}</header>${body(c, s.id)}</section>`).join("");
   return `<section class="section">

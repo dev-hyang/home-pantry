@@ -43,9 +43,9 @@ export function viewItemDetail(it, ctx) {
   const menu = moreMenu([
     { label: t("拍包装录入"), href: `${base}?edit=basic`, first: true },
     e ? { label: inList ? t("移出购物车") : t("加入购物车"), action: inList ? "shop-remove-item" : "shop-add-item", data: { id: it.id } } : null,
-    { label: gear ? t("复制为新家居耐用品") : t("复制为新物品"), href: `${href("item", "new")}?copy=${encodeURIComponent(it.id)}&space=${spaceOf(it.category)}` },
+    { label: t("复制"), href: `${href("item", "new")}?copy=${encodeURIComponent(it.id)}&space=${spaceOf(it.category)}` },
     gear ? { label: t("升级为设备档案"), href: `#/asset/new?from_item=${encodeURIComponent(it.id)}` } : null,
-    { label: t("删除物品"), action: "item-delete", danger: true }], { label: `${it.name} · ${t("更多操作")}` });
+    { label: t("删除"), action: "item-delete", danger: true }], { label: `${it.name} · ${t("更多操作")}` });
   const SECS = [{ id: "basic", icon: "🏷️", name: "基本信息", body: basicFacts(it, ctx.spaceInfo) }, { id: "qty", icon: "📦", name: gear ? "数量" : "数量与提醒", body: qtyFacts(it) },
     { id: "notes", icon: "📝", name: "备注", body: it.notes ? `<p class="pre" style="margin:0">${esc(it.notes)}</p>` : `<p class="muted prof-empty">${t("未填")}</p>` }];
   const cards = SECS.map((s) => `<section class="panel prof-card" aria-labelledby="idc-${s.id}"><header class="prof-head"><span class="mi" aria-hidden="true">${s.icon}</span><div class="prof-t"><h3 id="idc-${s.id}">${t(s.name)}</h3></div>

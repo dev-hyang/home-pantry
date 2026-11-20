@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.38", title: { zh: "账单菜单更简洁；账单有了详情页，每块单独编辑；账号尾号可填 100 位", en: "Simpler menus; bills get a details page with per-block editing; account digits up to 100" }, items: [
+    { k: "better", zh: "所有「⋯」菜单里的名字简化：记一笔缴费 → 缴费，复制为新 xx → 复制，删除 xx → 删除", en: "Menu labels are simpler everywhere: Log payment → Pay, Copy as new … → Copy, Delete … → Delete" },
+    { k: "new", zh: "周期性账单菜单的第一项「编辑」改为「详情」：打开详情页，按「这是什么账单 / 多少钱、多久一次 / 怎么付 / 提醒与其他」分块显示，每块有自己的「编辑」，只改这一块", en: "The first item in a recurring bill's menu is now Details: it lists the bill in blocks (What it is / Amount and schedule / How it is paid / Reminders & other), each with its own Edit" },
+    { k: "better", zh: "账单的账号尾号最多可填 100 个字符（需要先在数据库执行 098 迁移）", en: "A bill's account digits can now be up to 100 characters (run migration 098 on the database first)" }
+  ] },
+
   { v: "2026-11-19.37", title: { zh: "全部账单的合计卡：手机上金额字号调大一档", en: "All bills totals: slightly larger amounts on phones" }, items: [
     { k: "fix", zh: "手机上「应付 / 已付 / 余额」三张卡的金额字号从 15px 调到 16px，和其他页面更接近，不再显得偏小", en: "On phones the Due / Paid / Balance amounts go from 15px to 16px, closer to other pages and no longer looking small" }
   ] },

@@ -90,10 +90,10 @@ const action = (r) => {
 };
 /** 长按这一行的菜单：周期性 = 详情 / 记缴费（自动扣款是记核对）/ 缴费记录 / 编辑账单；一次性 = 详情（付款在详情里记） */
 function rowItems(r) {
-  if (r.kind === "onetime") return [{ label: t("详情"), href: detailHref(r.billId), first: true }, ["paid", "skipped", "written_off"].includes(r.status) ? null : { label: t("记付款"), href: detailHref(r.billId) }];
+  if (r.kind === "onetime") return [{ label: t("详情"), href: detailHref(r.billId), first: true }, ["paid", "skipped", "written_off"].includes(r.status) ? null : { label: t("缴费"), href: detailHref(r.billId) }];
   const base = href("bill", r.billId), open = !["paid", "skipped", "written_off"].includes(r.status) && !r.escrow;
-  return [{ label: t("详情"), href: base, first: true }, open ? (r.autopay ? (r.status === "verify" ? { label: t("已核对"), action: "bill-verify", data: { id: r.billId } } : null) : { label: t("记缴费"), href: `${base}?pay=1` }) : null,
-    { label: t("缴费记录"), href: `${base}?sec=pay` }, { label: t("编辑账单"), href: `${base}?sec=all` }];
+  return [{ label: t("详情"), href: base, first: true }, open ? (r.autopay ? (r.status === "verify" ? { label: t("已核对"), action: "bill-verify", data: { id: r.billId } } : null) : { label: t("缴费"), href: `${base}?pay=1` }) : null,
+    { label: t("缴费记录"), href: `${base}?sec=pay` }, { label: t("编辑"), href: `${base}?sec=detail` }];
 }
 const r2 = (n) => Math.round(n * 100) / 100;
 /** 这一期已经付过的款：{ lines: [{ date, amount, balance }], split } ——一次付清 → split=false（只显示缴费日期）；分期（≥ 2 笔，或付了一部分还有余额）→ split=true，一笔一行：日期、金额、付完这笔后的余额。

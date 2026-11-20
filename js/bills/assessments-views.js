@@ -57,7 +57,7 @@ export const paidRowItems = (b, x) => {
 const menuItems = (a, base) => [{ label: t("编辑"), href: `${base}?sec=assess&edit=${a.id}`, first: true },
   a.status === "closed" ? null : { label: t("加一期分期"), href: `${base}?sec=assess&edit=${a.id}&add=installment` },
   a.status === "closed" || !a.rows.some((x) => !isPaid(x)) ? null : { label: t("一次性结清"), href: `${base}?pay=1&settle=${encodeURIComponent(a.id)}` },
-  { label: t("缴费记录"), href: `${base}?sec=assess&pays=${encodeURIComponent(a.id)}` }, { label: t("复制为新摊派"), href: `${base}?sec=assess&edit=new&copy=${encodeURIComponent(a.id)}` }, { label: t("删除这笔摊派"), action: "assess-del", data: { id: a.id }, danger: true }];
+  { label: t("缴费记录"), href: `${base}?sec=assess&pays=${encodeURIComponent(a.id)}` }, { label: t("复制"), href: `${base}?sec=assess&edit=new&copy=${encodeURIComponent(a.id)}` }, { label: t("删除"), action: "assess-del", data: { id: a.id }, danger: true }];
 
 const rowHtml = (x = {}, paid = false) => {
   if (paid) return `<li class="as-row is-paid" data-id="${esc(x.id || "")}">   <!-- 已关联缴费：锁定，只读显示；隐藏域让保存时仍能读到这一期 -->

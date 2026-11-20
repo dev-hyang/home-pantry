@@ -9,6 +9,7 @@ import { assessmentParts, assessmentsOf } from "./assessments-lib.js";
 import { assetSelectHtml } from "./asset-ui.js";
 import { autofillBar } from "../core/autofill.js";
 import { billAsk, billCat } from "./logic.js";
+import { billDetailPage } from "./bill-detail.js";
 import { billHeadCard, payFormPage, staleNotice } from "./bill-pay.js";
 import { copyOf } from "../core/more-menu.js";
 import { crumbNav } from "../core/hub.js";
@@ -64,6 +65,7 @@ export function viewBillForm() {
   const sec = r.q.get("pay") === "1" ? "pay" : r.q.get("sec") || "";
   const hubHref = href("bill", b?.id || "new");
   if (b && !sec) return billHub(b, root);
+  if (b && sec === "detail") return billDetailPage(b, root, hubHref);   // 详情：各块只读 + 各自的「编辑」（?sec=basic|amount|autopay|other）
   if (b && sec === "assess") {   // 特别摊派：?sec=assess = 列表；?sec=assess&edit=id|new = 新增 / 编辑页
     const editId = r.q.get("edit"), listHref = `${hubHref}?sec=assess`;
     if (editId) { const a = editId === "new" ? null : state.assess.find((x) => x.id === editId && x.bill_id === b.id); const copyId = r.q.get("copy"), copyFrom = editId === "new" && copyId ? state.assess.find((x) => x.id === copyId && x.bill_id === b.id) || null : null; if (editId === "new" || a) return assessFormPage(b, a, crumbNav([...billTrail(b, root, hubHref), { href: listHref, label: t("特别摊派") }, { label: a ? t("编辑摊派") : t("新增摊派") }]), copyFrom, r.q.get("add")); }
@@ -82,7 +84,7 @@ export function viewBillForm() {
     }
     return payHistoryPage(b, billCrumb(b, root, hubHref, t("缴费记录")), staleNotice(b));
   }
-  const full = sec === "all";   // 整张表单（编辑菜单进来）：四块都显示
+  const full = !b || sec === "all";   // 旧地址 ?sec=all 仍能打开整张表单；账单菜单现在进详情页
   const hide = (k) => (b && sec && !full && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">
@@ -130,7 +132,7 @@ export function viewBillForm() {
             <label data-pay-exp ${payAcct ? "hidden" : ""}>${t("扣款卡有效期")}<input name="autopay_card_expires" type="month" value="${d(v.autopay_card_expires)}"><small>${t("到期前 45 天提醒换卡（选了卡就按卡的到期年月，不用填）")}</small></label>
             <p class="muted" data-pay-exp-note style="margin:0;font-size:12.5px" ${payAcct ? "" : "hidden"}>${esc(payExpNote(payAcct))}</p>
             <label>${t("缴费链接")}<input name="pay_url" type="url" maxlength="300" placeholder="https://" value="${d(v.pay_url)}"></label>
-            <label>${t("账号尾号")}<input name="account_last4" maxlength="8" placeholder="${t("只记后 4 位")}" value="${d(v.account_last4)}"></label>
+            <label>${t("账号尾号")}<input name="account_last4" maxlength="100" placeholder="${t("账号尾号（最多 100 位）")}" value="${d(v.account_last4)}"></label>
             <label>${t("登录提示")}<input name="login_hint" maxlength="80" placeholder="${t("例如：用 Gmail 登录，密码在密码管理器")}" value="${d(v.login_hint)}"></label>
             <label>${t("账单怎么来")}<select name="statement_channel">${opts(B().STATEMENTS, v.statement_channel)}</select></label>
           </div>

@@ -42,7 +42,7 @@ function rowHtml(b, p) {
     num(p.assessment_amount) ? t("摊派 {m}", { m: mny(p.assessment_amount, p.currency) }) : null, num(p.fee_amount) ? t("手续费 {m}", { m: mny(p.fee_amount, p.currency) }) : null, num(p.tax_amount) ? t("税 {m}", { m: mny(p.tax_amount, p.currency) }) : null,
     num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc).join(" · ");
   // 这一笔的更多操作：⋯（电脑）和长按（手机）同一份
-  const items = [{ label: t("编辑"), href: edit, first: true }, { label: t("复制为新一笔"), href: `${href("bill", b.id)}?sec=pay&copy=${encodeURIComponent(p.id)}` }, { label: t("删除"), action: "billpay-del", data: { id: p.id }, danger: true }];
+  const items = [{ label: t("编辑"), href: edit, first: true }, { label: t("复制"), href: `${href("bill", b.id)}?sec=pay&copy=${encodeURIComponent(p.id)}` }, { label: t("删除"), action: "billpay-del", data: { id: p.id }, danger: true }];
   return `<li class="pay-row" data-swipe-del="bill-pay" ${lpAttr(items, fmtDate(p.paid_on))}>
     <span class="badge ${skipped ? "" : "b-ok"}" ${skipped ? 'style="background:var(--surface-2)"' : ""}>${esc(t(B().PAYMENT_STATUS[p.status] || p.status))}</span>
     <a class="grow pay-hit" href="${edit}" title="${esc(t("点一下编辑"))}"><b>${esc(fmtDate(p.paid_on))}</b>${sub ? `<small>${sub}</small>` : ""}</a>
