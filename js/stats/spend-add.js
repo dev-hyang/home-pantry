@@ -17,6 +17,7 @@ import { spendRecordsHtml } from "./spend-records.js";
 import { pageHead } from "../core/page-head.js";
 import { fabMenu } from "../core/fab-menu.js";
 import { spendFormPage, spendFormParams } from "./spend-form-page.js";
+import { spendDetailPage, spendViewParams } from "./spend-detail-page.js";
 export { activeProps } from "./add-lite-common.js";
 export { propertyOptions, rangeLabel, spendExportTab, timeBarHtml } from "./add-lite.js";
 
@@ -28,6 +29,8 @@ const spendFab = () => fabMenu([{ label: t("手动记一笔"), href: `${href("bi
   financeOk() ? { label: t("导入对账单"), href: href("bills", "statements"), icon: "🏦" } : null], { label: t("记一笔花费") });
 export function viewSpend() {
   const r = state.route, formP = r?.section === "bills" && r?.sub === "spend" ? spendFormParams(r.q) : null;
+  const viewP = r?.section === "bills" && r?.sub === "spend" && !formP ? spendViewParams(r.q) : null;
+  if (viewP) return spendDetailPage(viewP);   // 详情：只读，分块，每块有自己的编辑
   if (formP) return spendFormPage(formP);   // 记一笔 / 编辑 / 复制：独立的表单页
   const onSpendPage = r?.section === "bills" && r?.sub === "spend";
   let tab = onSpendPage ? activeTab(r) : "all";

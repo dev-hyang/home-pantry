@@ -4305,7 +4305,17 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 
 /* 花费明细行：「日期 名称」一行 + 下面一行描述（用 · 隔开，整条换行），金额靠右；没有 ⋯ / ▾ */
 .rec-list li.rec-row { align-items: flex-start; }
-[data-row-open], [data-row-chk] { cursor: pointer; }   /* 点行空白处就能进去 / 勾选 */
+[data-row-open], [data-row-chk] { cursor: pointer; }
+/* 详情页：分块的只读信息（花费详情等），每块右上角一个编辑 */
+.dt-block { margin-top: 10px; }
+.dt-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.dt-head h3 { margin: 0; font-size: 15px; }
+.dt-head .btn { min-height: 44px; display: inline-flex; align-items: center; }
+.dt-list { margin: 0; }
+.dt-row { display: flex; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line, rgba(0,0,0,.08)); }
+.dt-row dt { flex: 0 0 7em; color: var(--muted); font-size: 13.5px; }
+.dt-row dd { margin: 0; flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .dt-row { flex-direction: column; gap: 2px; } .dt-row dt { flex: none; } }   /* 点行空白处就能进去 / 勾选 */
 .rec-list .rec-day { display: inline-block; margin-right: 8px; color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
 .rec-list .rec-row .grow small { display: flex; margin-top: 2px; color: var(--muted); line-height: 1.45; }
 .rec-list .rec-amt { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; }

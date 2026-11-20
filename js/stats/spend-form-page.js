@@ -30,7 +30,7 @@ export function spendFormParams(q) {
   return f === "new" || add ? { mode: "new", id: null } : null;
 }
 
-function findRow(id) {
+export function findRow(id) {
   const r = spendList.rows.find((x) => x.id === id) || loaded.get(id);
   if (r || loaded.has(id)) return r || null;
   loaded.set(id, undefined);

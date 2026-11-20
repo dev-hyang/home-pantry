@@ -4358,4 +4358,5 @@ export const EN = {
   "应付合计": "Total owed", "已付": "Paid", "余额": "Balance", "{n} 张账单": "{n} bills", "{n} 张未结清": "{n} unsettled", "还有 {n} 张，点上面的「全部」查看。": "{n} more; tap “All” above to see them.",
   "{n} 个一次性账单": "{n} one-time bills", "余额 {a}": "balance {a}", "查看": "View",
   "这套房产的水电气网、HOA、房产税、房贷、保险，以及装修等一次性账单": "This property's utilities, HOA, property tax, mortgage, insurance and one-time bills such as renovations",
+  "付款与收款方": "Payment & payee", "统计口径": "How it is counted", "关联的账单缴费": "Linked bill payment", "关联的医疗账单": "Linked medical bill", "记录人": "Recorded by", "打开这条缴费记录": "Open this payment record",
 };
