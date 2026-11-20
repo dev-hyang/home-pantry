@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.10", title: { zh: "保养记录：详情页和多选删除", en: "Service records: detail page and multi-select delete" }, items: [
+    { k: "new", zh: "保养记录点一行进详情页，分块显示（基本信息 / 花费与收款方 / 备注），每块有自己的「编辑」；右上 ⋯ 有复制、删除", en: "Tapping a service record opens a detail page with its own Edit button per block; the ⋯ menu has Copy and Delete" },
+    { k: "new", zh: "长按菜单：详情、编辑、复制、删除、多选删除；行上单独的「复制」按钮去掉了", en: "Long-press menu: Details, Edit, Copy, Delete, Select & delete; the separate Copy button on rows is gone" },
+  ] },
+
   { v: "2026-11-20.9", title: { zh: "详情页的 ⋯ 菜单，面包屑合成一行", en: "Detail-page ⋯ menu, single-line breadcrumb" }, items: [
     { k: "new", zh: "花费详情、收入详情的标题右边有 ⋯：复制、删除（收入底部原来的按钮挪到这里）", en: "Spend and income detail pages have a ⋯ menu (Copy, Delete) next to the title; the old bottom buttons moved there" },
     { k: "better", zh: "花费 / 收入的详情页和编辑页，面包屑合成一行「财务 / 花费 / 明细 / 这条」，不再叠两层", en: "Spend and income detail and edit pages show one breadcrumb line instead of two stacked ones" },

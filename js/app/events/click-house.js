@@ -28,7 +28,7 @@ export async function clickHouse(action, el, id, e) {
       }
       case "maint-del":
         if (!confirmDelete(t("删除这条保养记录？"))) return;
-        await Store.deleteMaintLog(id); toast(t("已删除这条记录")); await refresh(); return render(true);
+        await Store.deleteMaintLog(id); toast(t("已删除这条记录")); if (state.route?.q?.get("view")) go(`${href("asset", state.route.id)}?sec=log`, { replace: true }); await refresh(); return render(true);
       case "tasks-prev": shiftTasksMonth(-1); return render();
       case "tasks-next": shiftTasksMonth(1); return render();
       case "tasks-today": state.tasksYM = null; state.seasonForm = null; return render();

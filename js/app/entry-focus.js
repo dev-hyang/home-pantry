@@ -3,6 +3,7 @@
 import { $ } from "../core/util.js";
 
 /** 花费详情里某一块的「编辑」带 &sec=：光标放到那一块的第一个格子 */
+const MAINT_SEC_FIELD = { basic: "kind", cost: "cost", notes: "notes" };   // 保养记录详情某一块的「编辑」
 const SPEND_SEC_FIELD = { basic: "name", pay: "store", kind: "nature" };
 
 /** 收入详情的某一块的「编辑」带 &sec=：光标放到那一块的第一个格子（默认金额） */
@@ -17,7 +18,7 @@ export function focusEntry(route) {
   if (route.section === "item") $("#itemForm")?.elements.name?.focus({ preventScroll: true });
   if (route.section === "asset") {
     const mf = $("#maintForm[data-focus]");
-    if (mf) { mf.scrollIntoView({ block: "start" }); mf.elements.kind?.focus({ preventScroll: true }); }
+    if (mf) { mf.scrollIntoView({ block: "start" }); mf.elements[MAINT_SEC_FIELD[route.q?.get("sec")] || "kind"]?.focus({ preventScroll: true }); }
     else if (route.id === "new") $("#assetForm")?.elements.name?.focus({ preventScroll: true });
   }
   if (route.section === "bill") {

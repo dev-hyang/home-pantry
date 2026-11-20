@@ -14,6 +14,8 @@ import { C, H, V, distUnit } from "./asset-common.js";
 import { cardSelectHtml, payAcctValue, purchasePayFields } from "../bills/card-picker.js";
 import { storeDatalist } from "../stats/store-lite.js";
 import { lpAttr } from "../core/long-press.js";
+import { bulkBar, bulkCheck, bulkMenuItem, bulkOn, bulkRegister } from "../core/bulk-select.js";
+import { maintDetail, maintEditHref, maintViewHref } from "./maint-detail.js";
 
    // 由近及远
 function maintToolbar(a) {
@@ -42,6 +44,8 @@ const maintEmpty = (a) => (a.logs.length ? `<div class="empty"><strong>${t("没�
   : `<div class="empty"><strong>${t("还没有记录")}</strong>${t("点右下角 ＋ 记第一次检查或保养，之后会按周期提醒。")}</div>`);
 const maintCountText = (a) => { const n = a.logs.filter((l) => maintMatch(l, maintFilterFor(a))).length; return n === a.logs.length ? t("{n} 条记录", { n }) : t("{m} / {n} 条记录", { m: n, n: a.logs.length }); };
 export function maintSection(a, focusLog) {
+  const vid = state.route?.q?.get("view");
+  if (!focusLog && vid) return maintDetail(a, vid);   // 详情页（maint-detail.js）
   if (!focusLog && !state.route?.q?.get("edit") && !state.route?.q?.get("copy")) return maintListPage(a);
   const K = H().MAINT_KINDS, R = C().RESULTS, veh = isVehicle(a);
   const editLog = a.logs.find((l) => l.id === state.route?.q?.get("edit")) || null;   // 编辑某条记录：表单带入原值
@@ -57,15 +61,18 @@ export function maintSection(a, focusLog) {
 /** 保养记录列表（分批显示）：「继续加载」只重画这一块，上面没保存的保养表单不会被冲掉 */
 function maintLogsHtml(a) {
   const K = H().MAINT_KINDS, R = C().RESULTS, f = maintFilterFor(a), all = logsDesc(a).filter((l) => maintMatch(l, f)), lim = pageLimit(`maint:${a.id}`, JSON.stringify(f));
-  return all.length ? `<ul class="restock-list maint-list">${all.slice(0, lim).map((l) => `<li class="maint-row" data-swipe-del="maint" ${lpAttr([{ label: t("编辑"), href: `${href("asset", a.id)}?log=1&edit=${l.id}`, first: true }, { label: t("复制"), href: `${href("asset", a.id)}?log=1&copy=${l.id}` }, { label: t("删除"), action: "maint-del", data: { id: l.id }, danger: true }], fmtDate(l.done_on))}>
-      <a class="log-hit" href="${href("asset", a.id)}?log=1&edit=${l.id}" aria-label="${t("编辑这条记录")}"></a>
+  bulkRegister("maint", { ids: () => logsDesc(a).filter((l) => maintMatch(l, maintFilterFor(a))).map((l) => l.id), del: (id) => Store.deleteMaintLog(id) });
+  const pick = !!bulkOn("maint"), base = href("asset", a.id);
+  const menu = (l) => [{ label: t("详情"), href: maintViewHref(a, l.id), first: true }, { label: t("编辑"), href: maintEditHref(a, l.id) }, { label: t("复制"), href: `${base}?log=1&copy=${l.id}` }, { label: t("删除"), action: "maint-del", data: { id: l.id }, danger: true }, bulkMenuItem("maint", l.id)];
+  const row = (l) => `<li class="maint-row${pick ? " is-pick" : ""}" ${pick ? "data-row-chk" : `data-swipe-del="maint" ${lpAttr(menu(l), fmtDate(l.done_on))}`}>
+      ${pick ? bulkCheck("maint", l.id) : `<a class="log-hit" href="${maintViewHref(a, l.id)}" aria-label="${t("详情")}"></a>`}
       <span class="badge ${l.kind === "repair" ? "b-low" : l.kind === "replace" ? "b-exp" : l.result && l.result !== "ok" ? "b-out" : "b-ok"}">${t(K[l.kind] || l.kind)}${l.result ? ` · ${t(R[l.result] || l.result)}` : ""}</span>
       <div class="grow"><span class="name">${esc(fmtDate(l.done_on))}${l.service_item ? ` · ${esc(t(V().serviceItem(l.service_item)?.name || l.service_item))}` : ""}</span>
         <small>${joinList([l.odometer != null ? `${fmt(l.odometer)} ${distUnit()}` : null, l.vendor ? t("收款方：{who}", { who: l.vendor }) : null, l.diy ? t("自己做的") : null, l.cost != null ? t("花费 {m}", { m: Units.money(num(l.cost), l.currency || Units.region.currency) }) : null, l.notes,
           l.created_at && t("{d} 记录", { d: fmtShort(l.created_at) })].filter(Boolean).map(esc))}</small></div>
-      <a class="btn btn-sm btn-ghost log-copy" href="${href("asset", a.id)}?log=1&copy=${l.id}" aria-label="${t("复制这条记录")}" title="${t("复制这条记录")}">${t("复制")}</a>
-      <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="maint-del" data-id="${l.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>
-    </li>`).join("")}</ul>${pageMoreBtn(`maint:${a.id}`, all.length, lim)}` : "";
+      ${pick ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="maint-del" data-id="${l.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>`}
+    </li>`;
+  return all.length ? `${bulkBar("maint")}<ul class="restock-list maint-list">${all.slice(0, lim).map(row).join("")}</ul>${pageMoreBtn(`maint:${a.id}`, all.length, lim)}` : "";
 }
 export function renderMaintLogs() {
   const host = $("#maintLogs"), a = host && state.assetsEnriched.find((x) => x.id === host.dataset.asset); if (!a) return;
