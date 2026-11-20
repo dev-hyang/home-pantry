@@ -64,25 +64,13 @@ export async function clickMoney(action, el, id, e) {
         state.billsEnabled = true; try { localStorage.setItem("hmh-bills-off", "0"); } catch { /* 忽略 */ }
         return render();
       case "tpl-all": e.preventDefault(); el.form.querySelectorAll('input[name="tpl"]:not(:disabled)').forEach((x) => { x.checked = el.dataset.on === "1"; }); return;
-      case "spend-edit": { state.spendEdit = id; renderSpendList(); const dr = state.spendDrafts?.[id], f = $("#spendEditForm"); if (dr && f) applyDraft(f, dr); return; }   // 之前收起时留的草稿填回去
+      case "spend-edit": return go(`${href("bills", "spend")}?form=${encodeURIComponent(id)}`);   // 编辑：独立的表单页（stats/spend-form-page.js）
       case "spend-edit-collapse": { const f = $("#spendEditForm"); if (f) (state.spendDrafts = state.spendDrafts || {})[f.dataset.id] = formDraft(f); state.spendEdit = null; return renderSpendList(); }   // 收起但留着草稿
       case "trip-reclass": {   // 旅行页的归类建议：把以前记成“其他”的花费归到某个旅行类型
         await Store.updatePurchase(id, { category: el.dataset.cat });
         toast(t("已归类")); render(); return refresh();
       }
-      case "spend-copy": {   // 花费「复制一笔」：收起编辑，展开「记一笔」并填好这笔的内容（日期今天、不是退款）
-        const p = spendListNow()?.rows.find((x) => x.id === id); if (!p) return;
-        state.spendEdit = null; state.spendAddOpen = true; render();
-        requestAnimationFrame(() => {
-          const f = $("#purchaseForm"); if (!f) return;
-          const set = (k, v) => { const el = f.elements[k]; if (el && v != null && v !== "") { el.value = v; el.dispatchEvent(new Event("change", { bubbles: true })); } };
-          set("name", p.name); set("category", p.category); set("trip", p.trip); set("amount", p.amount != null ? Math.abs(num(p.amount)).toFixed(2) : ""); set("store", p.store);
-          set("card_id", payAcctValue(p.card_id, p.method)); set("nature", p.nature || ""); set("property_id", p.property_id || "");
-          f.scrollIntoView({ block: "center", behavior: "smooth" }); f.elements.amount?.focus({ preventScroll: true });
-          toast(t("已带上「{name}」，改一下金额或日期再记", { name: p.name }));
-        });
-        return;
-      }
+      case "spend-copy": return go(`${href("bills", "spend")}?form=new&copy=${encodeURIComponent(id)}`);   // 复制：同一个表单页，带上这笔的内容，日期今天
       case "spend-open": { state.spendOpen = state.spendOpen === id ? null : id; return renderSpendList(); }   // 花费明细一行的 ▾：编辑 / 复制 / 删除
       case "spend-edit-cancel": { if (state.spendDrafts && state.spendEdit) delete state.spendDrafts[state.spendEdit]; state.spendEdit = null; return renderSpendList(); }
       case "spend-chip-clear": clearSpendFilter(el.dataset.k); return renderSpendRecords();

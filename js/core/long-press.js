@@ -1,4 +1,4 @@
-/* 行记录长按（手机 / 平板触屏）：长按一行，底部弹出这一行的「更多操作」面板；电脑用鼠标不触发（电脑用行上的 ⋯ 或点进详情）。
+/* 行记录长按（手机 / 平板触屏）：长按一行，底部弹出这一行的「更多操作」面板；电脑用鼠标右键点一行弹出同一份菜单（也可以点进详情）。
  * 用法：给行加 data-lp —— 两种写法：
  *   ① data-lp='[{"label":"编辑","href":"#/…"},{"label":"删除","action":"xx-del","data":{"id":"…"},"danger":true}]'（用 lpAttr(items) 生成）：弹底部面板；
  *      各页按自己的业务定制菜单项（归档、入库、一次性结清……）；action 走页面原有的 data-action 点击处理，href 直接跳转。
@@ -62,7 +62,15 @@ document.addEventListener("pointerdown", (e) => {
 document.addEventListener("pointermove", (e) => { if (st && Math.hypot(e.clientX - st.x, e.clientY - st.y) > SLOP) cancel(); }, true);
 for (const ev of ["pointerup", "pointercancel"]) document.addEventListener(ev, cancel, true);
 window.addEventListener("scroll", cancel, true);
-document.addEventListener("contextmenu", (e) => { if (lastType !== "mouse" && e.target.closest?.("[data-lp]")) e.preventDefault(); });   // 长按时系统自己的菜单（复制链接等）不要出来
+document.addEventListener("contextmenu", (e) => {
+  const row = e.target.closest?.("[data-lp]"); if (!row) return;
+  if (lastType !== "mouse") return e.preventDefault();   // 长按时系统自己的菜单（复制链接等）不要出来
+  // 电脑：右键点一行 = 弹出这一行的菜单（行上不再有 ⋯）；只对写了菜单项的行生效，输入框 / 按钮上仍是系统菜单
+  if (e.target.closest("button, input, select, textarea, summary, label, .act-menu")) return;
+  let items = null; try { items = JSON.parse(row.dataset.lp || "null"); } catch { /* 忽略 */ }
+  if (!items?.length) return;
+  e.preventDefault(); openSheet(row, items); row.classList.add("lp-hot");
+});
 // 必须排在 main.js 里「点别处收起 ⋯ 菜单」那一条之前：否则松手那一下点击会立刻把刚打开的菜单关掉
 document.addEventListener("click", (e) => {
   if (Date.now() < swallowUntil && !e.target.closest(".lp-sheet") && !e.target.dataset?.lpProxy) { e.preventDefault(); e.stopImmediatePropagation(); }

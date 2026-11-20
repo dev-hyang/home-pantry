@@ -36,8 +36,10 @@ const CSS = `
 `;
 let styled = false;
 
-/** 已改动的筛选个数：下拉框不是第一项（“全部”）；排序下拉不算筛选；带 data-nocount 的（默认值不是第一项的，如时间范围）也不算 */
-const activeCount = (panel) => [...panel.querySelectorAll("select")].filter((s) => !/sort|order/i.test(s.id || s.name || "") && !s.hasAttribute("data-nocount") && s.selectedIndex > 0).length;
+/** 已改动的筛选个数：下拉框不是第一项（“全部”）；排序下拉不算筛选；带 data-nocount 的（周期、单位这类显示方式）也不算；
+ *  带 data-default="值" 的（默认值不是第一项的，如明细的时间范围默认「全部历史」）：和那个值不一样才算 */
+const isChanged = (s) => (s.hasAttribute("data-default") ? s.value !== s.dataset.default : s.selectedIndex > 0);
+const activeCount = (panel) => [...panel.querySelectorAll("select")].filter((s) => !/sort|order/i.test(s.id || s.name || "") && !s.hasAttribute("data-nocount") && isChanged(s)).length;
 
 export function initCompactFilters({ root = document.body, ui = () => "zh", selector = ".toolbar" } = {}) {
   if (!styled) { const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st); styled = true; }

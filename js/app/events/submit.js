@@ -99,7 +99,8 @@ export async function onMainSubmit(e) {
       if (store) rememberStore(store);
       patchSpendRow(f.dataset.id, patch);   // 先改明细里读到的那一行，页面立刻是新的
       if (state.spendDrafts) delete state.spendDrafts[f.dataset.id];
-      state.spendEdit = null; toast(t("已保存修改")); render(); return refresh();
+      state.spendEdit = null; toast(t("已保存修改")); if (f.dataset.page) { go(`${href("bills", "spend")}?tab=records`, { replace: true }); return refresh(); }   // 表单页：保存后回到明细
+      render(); return refresh();
     }
     if (f.id === "billForm") return saveBillForm(f);
     if (f.id === "medBillForm") return saveMedBillForm(f);
@@ -202,7 +203,9 @@ export async function onMainSubmit(e) {
         ...(nature ? { nature } : {}), ...(property_id ? { property_id } : {}) });
       const cart = signed > 0 ? matchOpenShopping({ name: item, at: new Date(`${day}T12:00:00`) }) : null;   // 购物车里有同名的未买项：顺手标成已买到
       if (cart) await Store.saveShopping({ id: cart.id, status: "bought", bought_at: new Date(`${day}T12:00:00`).toISOString(), amount: Math.round(signed * 100) / 100, claimed_by_name: cart.claimed_by_name || state.displayName });
-      toast(t("已记录 {name} {m}", { name, m: money(signed) }) + (cart ? t("；购物车里的「{n}」已标成已买到", { n: cart.name }) : "")); return refresh();
+      toast(t("已记录 {name} {m}", { name, m: money(signed) }) + (cart ? t("；购物车里的「{n}」已标成已买到", { n: cart.name }) : ""));
+      if (f.dataset.page) go(`${href("bills", "spend")}?tab=records`, { replace: true });   // 表单页：记完回到明细
+      return refresh();
     }
     if (f.id === "shopScanForm") return saveShopScan(refresh);
     if (f.id === "shopForm") {

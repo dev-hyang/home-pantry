@@ -7,6 +7,7 @@ import { t } from "../core/i18n.js";
 import { tabCards } from "../core/hub.js";
 import { moneyEye } from "../core/privacy.js";
 import { moreMenu } from "../core/more-menu.js";
+import { fabMenu } from "../core/fab-menu.js";
 import { incomeHref as hrefOfTab } from "./shared.js";
 import { INCOME_TABS, activeTab } from "../core/tabs.js";
 import { pageSize } from "../core/pager.js";
@@ -25,20 +26,19 @@ import { incomeHref, staleAll } from "./shared.js";
 window.addEventListener("income-data-changed", () => staleAll(["inc", "ledger"]));
 window.addEventListener("spend-rows-changed", () => staleAll(["spend", "ledger"]));
 /* ───────────── 页面外壳 ───────────── */
-/** 页头：「💰 收入 · 当前页签」+ 紧跟着的眼睛；右上角 ⋯ 放次要页签（导出打印、预算与计划）和当前页签的多余操作（明细：多选删除、打印、导出 CSV）；记一笔收入是右下角的圆形 ＋ */
-const headMenu = (tab) => {
-  const I = inc(), more = INCOME_TABS.filter((x) => x[4]);
-  const mine = tab === "records" && I.rec?.length ? [{ label: I.selMode ? t("退出多选") : t("多选删除"), data: { inc: "sel-toggle" } }, { label: t("打印"), data: { inc: "print-list" } }, { label: t("导出当前列表 CSV"), data: { inc: "csv-detail" } }] : [];
-  const items = [...mine, ...more.map(([id, name, icon]) => ({ label: `${icon} ${t(name)}`, href: hrefOfTab(id) }))];
+/** 页头：「💰 收入 · 当前页签」+ 紧跟着的眼睛；右上角 ⋯ 放次要页签（导出打印）；记一笔收入 / 拍照识别 / 银行导入是右下角圆形 ＋ 的菜单 */
+const headMenu = () => {
+  const items = INCOME_TABS.filter((x) => x[4] && x[0] !== "import").map(([id, name, icon]) => ({ label: `${icon} ${t(name)}`, href: hrefOfTab(id) }));
   if (items.length) items[0].first = true;
   return moreMenu(items, { label: t("更多操作") });
 };
+const incomeFab = () => fabMenu([{ label: t("手动记一笔"), data: { inc: "add" }, icon: "✍️" }, { label: t("拍照识别"), data: { inc: "scan" }, icon: "📷" }, { label: t("银行导入"), href: hrefOfTab("import"), icon: "🏦" }], { label: t("记一笔收入") });
 const shell = (tab, body) => {
   const cur = INCOME_TABS.find(([id]) => id === tab);
   return `<section class="section" id="incomePage">
-  <div class="section-head"><div class="sh-title"><h2>💰 ${t("收入")} · ${esc(t(cur?.[1] || ""))}</h2></div><div class="head-acts">${moneyEye()}${headMenu(tab)}</div></div>
+  <div class="section-head"><div class="sh-title"><h2>💰 ${t("收入")} · ${esc(t(cur?.[1] || ""))}</h2></div><div class="head-acts">${moneyEye()}${headMenu()}</div></div>
   ${tabCards(INCOME_TABS, tab, incomeHref, t("收入内容"))}${noticeHtml()}${tab === "overview" || tab === "records" ? attentionPanel(["income"], { title: t("要处理"), sub: t("该收的还款") }) : ""}${body}
-  <button type="button" class="fab" data-inc="add" aria-label="${esc(t("记一笔收入"))}" title="${esc(t("记一笔收入"))}">＋</button></section>`;
+  ${incomeFab()}</section>`;
 };
 function noticeHtml() {
   const I = inc();

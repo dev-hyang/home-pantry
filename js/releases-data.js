@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.1", title: { zh: "行记录去掉 ⋯，记一笔花费改成独立表单页，收入页的入口收进圆形 ＋", en: "Rows lose the ⋯ menu, spending gets its own form page, and income actions move into the round ＋" }, items: [
+    { k: "better", zh: "缴费记录、一次性账单缴费、摊派缴费、花费明细的每一行去掉了 ⋯ 和 ▾：手机长按、电脑右键点那一行，弹出 编辑 / 复制 / 删除；缴费记录第一行是日期 + 状态，下面按组排，金额不会被拆开", en: "Payment and spending rows no longer have ⋯ or ▾: long-press on a phone or right-click on a computer for Edit / Copy / Delete. A payment row starts with date and status, then grouped details; amounts are never split" },
+    { k: "better", zh: "花费：右下角 ＋ 的菜单里选「手动记一笔 / 拍小票识别 / 导入对账单」；记一笔、编辑、复制都打开同一个独立的表单页，不再在明细里插表单；收入页的 ＋ 菜单是「手动记一笔 / 拍照识别 / 银行导入」，导航卡片里的「银行导入」换成「预算与计划」，导入对账单入口去掉，收入明细右上角只留导出打印", en: "Spending: the round ＋ now offers Add by hand / Scan receipt / Import statement, and adding, editing and copying all open one separate form page. Income: ＋ offers Add by hand / Scan / Bank import; the nav card “Bank import” became “Budget & plan”, and the statement-import entry is gone" },
+    { k: "fix", zh: "花费概览卡片里的金额不再每个都单独占一行；「A · B · C」这类信息放不下时，整段落到下一行，不再从中间拆开（全站统一）", en: "Amounts inside the spending overview cards no longer each take a full line, and “A · B · C” lines now wrap only at the dots (everywhere)" },
+    { k: "fix", zh: "「筛选 (n)」的数字不再把默认值算进去（花费概览默认「本月」，明细默认「全部历史」，清除筛选后回到 0）；银行卡尾号写成「Chase Checking **0934」", en: "The Filter (n) counter no longer counts default values (overview defaults to This month, records to All time), and card endings read “Chase Checking **0934”" }
+  ] },
+
   { v: "2026-11-19.44", title: { zh: "「A · B · C」信息排不下时，只在「·」处换行", en: "When “A · B · C” lines do not fit, they now wrap only at the dots" }, items: [
     { k: "better", zh: "一次性账单综合信息卡里的日期、保险、算式，以及缴费记录行下面的小字：一行放不下时，整条信息（比如「到期 2026-11-30」）落到下一行，不再从中间拆开；卡片里的信息靠右对齐", en: "In the one-time bill summary card (dates, insurance, formula) and the small text under payment rows, an item that does not fit moves whole to the next line instead of breaking in the middle; the card's values are right-aligned" }
   ] },

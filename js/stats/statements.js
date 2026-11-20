@@ -76,7 +76,7 @@ function build() {
   return { rows, w, loading: list == null, inc: inc$, cap: cap$, spend: spend$, net: R2(inc$ - spend$) };
 }
 /** 账本行的账户：登记过的卡 / 账户 */
-const acctOf = (x) => { const c = x.account_id && (state.cards || []).find((y) => y.id === x.account_id); return c ? `${c.name}${c.last4 ? ` ••${c.last4}` : ""}` : ""; };
+const acctOf = (x) => { const c = x.account_id && (state.cards || []).find((y) => y.id === x.account_id); return c ? `${c.name}${c.last4 ? ` **${c.last4}` : ""}` : ""; };
 function listHtml() {
   const o = SS(), b = build(), head = b.rows.slice(0, o.limit);
   let last = "";

@@ -26,7 +26,7 @@ export const FD = {
   stmt: { range: "3", dir: "all", q: "" },   // 全部流水
   gift: { issuer: "all", used: false },   // 卡与账户：礼品卡
   off: { q: "", kind: "all" },             // 卡与账户：停用的卡
-  stats: { months: "12", month: null, exCap: true, exInv: true, node: null, byTrip: false, storeL1: "all" },   // 花费统计 / 预算趋势：时间范围、月份、分类树下钻、开关
+  stats: { months: "m", month: null, exCap: true, exInv: true, node: null, byTrip: false, storeL1: "all" },   // 花费统计 / 预算趋势：时间范围、月份、分类树下钻、开关
 };
 const handlers = new Map();
 const checks = new Map();

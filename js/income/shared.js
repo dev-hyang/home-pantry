@@ -61,8 +61,8 @@ export const rate = (n, i) => (i > 0 && n != null ? `${Math.round((n / i) * 100)
 export const pctOf = (r) => (r == null ? "—" : `${Math.round(r * 100)}%`);
 export const fmtMoney = (v, short) => (short ? money(v, true) : moneyExact(v));
    // 不带 short：记录和合计都显示到分；short 只给图表中心、月均这类紧凑处
-/** 记录上的入账账户：登记过的账户（account_id）显示「图标 名称 ••尾号」，否则显示原来的文字 */
-export const acctShow = (r) => { const c = r.account_id && acctById(r.account_id); return c ? acctLabel(c) : r.account || ""; };
+/** 记录上的入账账户：登记过的账户（account_id）显示「图标 名称 **尾号」，否则显示原来的文字 */
+export const acctShow = (r) => { const c = r.account_id && acctById(r.account_id); return c ? acctLabel(c) : String(r.account || "").replace(/•+/g, "**"); };
 /** 收入 / 消费分组柱 + 差额（结余 / 超支）柱 + 趋势线（收支对比用） */
 export function flowCharts(cf, title) {
   if (!window.Charts || !cf.lines.length) return "";

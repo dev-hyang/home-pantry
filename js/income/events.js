@@ -42,6 +42,7 @@ export function initIncome({ render, refresh }) {
     const b = e.target.closest?.("[data-inc]"); if (!b) return;
     const I = inc(), id = b.dataset.id, act = b.dataset.inc;
     if (act === "add") { I.form = { rec: null }; I.scanOpen = false; I._keep = true; if (activeTab(state.route) !== "records" || state.route.sub !== "income") goTab("records"); else redraw(); return; }
+    if (act === "scan") { I.scanOpen = true; I.form = null; I._keep = true; if (activeTab(state.route) !== "records" || state.route.sub !== "income") goTab("records"); else redraw(); return; }   // 圆形 ＋ 菜单：拍照识别（不在明细页就先去明细）
     if (act === "way-manual") { I.form = I.form && !I.form.rec?.id ? null : { rec: null }; I.scanOpen = false; return redraw(); }
     if (act === "batch-clear") { I.batch = null; history.replaceState(null, "", `${href("bills", "income")}?tab=records`); return redraw(); }
     if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return redraw(); }

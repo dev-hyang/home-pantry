@@ -54,7 +54,7 @@ export async function doImport() {
   // 选的是「卡与账户」里登记的账户：同时记 account_id（迁移 056），收入页能按账户筛；文字 account 照旧留着显示
   let inN = 0, incFailed = false; const learnedInc = {};
   if (incomeOk()) {
-    const acctLabel = acct ? `${String(acct.name).replace(/^[^\p{L}\p{N}]+/u, "")}${acct.last4 && !String(acct.name).includes(acct.last4) ? ` ••${acct.last4}` : ""}` : null,   // 去掉名字前的图标；和「收入 → 入到哪个账户」里的「名称 ••尾号」同一个写法，编辑时对得上登记过的账户
+    const acctLabel = acct ? `${String(acct.name).replace(/^[^\p{L}\p{N}]+/u, "")}${acct.last4 && !String(acct.name).includes(acct.last4) ? ` **${acct.last4}` : ""}` : null,   // 去掉名字前的图标；和「收入 → 入到哪个账户」里的「名称 **尾号」同一个写法，编辑时对得上登记过的账户
       who = incWho() === "none" ? null : incWho(), rowsIn = [];
     for (const g of S.groups) {
       if (!g.inc || !S.include[g.id] || S.ikind[g.id] === AA_BACK) continue;

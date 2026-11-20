@@ -5,58 +5,31 @@ import { consumptionData, ensureFirstYear, itemSeries, noSpend, rangeMonths } fr
 import { financeOk } from "../core/finance-access.js";
 import { href } from "../core/router.js";
 import { viewAnnualExport, viewStoreStats } from "./spend-stores.js";
-import { natureOptions } from "../core/taxonomy.js";
 import { normRange } from "../core/time-range.js";
 import { spendCategoryTab, spendHref, spendOverviewTab } from "./spend-overview.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { tabBar } from "../core/hub.js";
-import { tripDatalist } from "./spend-trips.js";
 import { viewHomeStats } from "./home-stats.js";
-import { categoryOptions } from "../pantry/meals-sync.js";
-import { cardSelectHtml } from "../bills/card-picker.js";
-import { cardHintHtml } from "../bills/cards-review.js";
 import { propertyOptions, spendExportTab, timeBarHtml } from "./add-lite.js";
 import { activeProps } from "./add-lite-common.js";
 import { spendRecordsHtml } from "./spend-records.js";
-import { lastStore, storeDatalist } from "./store-lite.js";
 import { pageHead } from "../core/page-head.js";
+import { fabMenu } from "../core/fab-menu.js";
+import { spendFormPage, spendFormParams } from "./spend-form-page.js";
 export { activeProps } from "./add-lite-common.js";
 export { propertyOptions, rangeLabel, spendExportTab, timeBarHtml } from "./add-lite.js";
 
 function spendRecordsTab() {
-  const today = new Date().toISOString().slice(0, 10), q = state.route?.q;
-  const preCat = q?.get("cat") || "", preTrip = q?.get("trip") || "";   // 从「按行程」进来：分类预选旅行、行程预填
-  const open = !!state.spendAddOpen || !!q?.get("add");   // 表单默认收着，点「手动记一笔」或从「记一笔花费」按钮进来才展开
-  return `<section class="section">
-      <div class="section-head"><h2>${t("记一笔花费")}</h2><p>${t("没走购物车的，在这里记")}</p></div>
-      <div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}">
-        <button type="button" class="way ${open ? "is-cur" : ""}" data-action="spend-add-toggle" aria-expanded="${open ? "true" : "false"}"><span class="way-ico" aria-hidden="true">✍️</span><span>${t("手动记一笔")}</span></button>
-        <a class="way" href="${href("pantry", "scan")}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍小票识别")}</span></a>
-        ${financeOk() ? `<a class="way" href="${href("bills", "statements")}"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a>` : ""}</div>
-      ${storeDatalist()}
-      ${open ? "" : "<!-- 表单收着 -->"}
-      <form id="purchaseForm" class="panel add-row purchase-row" ${open ? "" : "hidden"}>
-        <input class="pr-name" name="name" required maxlength="60" placeholder="${t("买了什么，例如：超市采购")}" aria-label="${t("名称")}">
-        <select class="pr-cat" name="category" aria-label="${t("分类")}">${categoryOptions(preCat || undefined, { spend: true })}</select>
-        <input class="pr-trip" name="trip" maxlength="30" list="tripList" value="${esc(preTrip)}" placeholder="${t("行程（旅行）")}" aria-label="${t("所属行程")}">${tripDatalist()}
-        <input class="pr-amt" name="amount" type="number" min="0" step="0.01" inputmode="decimal" required placeholder="${t("金额（{cur}）", { cur: Units.region.currency })}" aria-label="${t("金额")}">
-        <input class="pr-store" name="store" maxlength="40" list="storeList" value="${esc(lastStore())}" placeholder="${t("商店（可不填）")}" aria-label="${t("商店")}">
-        <input class="pr-date" name="date" type="date" value="${today}" max="${today}" aria-label="${t("日期")}">
-        ${cardSelectHtml("card_id", undefined, 'class="pr-card"')}
-        <select class="pr-nat" name="nature" data-nosearch aria-label="${t("经济性质")}" title="${esc(t("日常消费 / 资本性 / 投资 / 融资 / 转账：决定算进哪些统计；一般按分类默认就行"))}">${natureOptions("", { leaf: preCat || "fresh" })}</select>
-        ${activeProps().length ? `<select class="pr-prop" name="property_id" data-nosearch aria-label="${t("关联房产")}">${propertyOptions("")}</select>` : ""}
-        <label class="check-inline pr-refund" title="${esc(t("退货退款、报销收回：记成负数，统计里按净额算"))}"><input type="checkbox" name="refund"><span>${t("退款 / 报销")}</span></label>
-        <button class="btn btn-primary pr-go" type="submit">${t("记一笔")}</button>
-      </form>
-      <p id="purchaseDupHint" class="dup-hint" role="status" hidden></p>
-      <p id="purchaseCardHint" class="card-hint-line">${cardHintHtml("fresh", lastStore(), null)}</p>
-      <p class="muted cat-hint">${t("分类怎么选：先找一级（生活消费 / 房产住房 / 投资理财 / 财务及其他 / 转账），再找二级。买房买车、装修这类几年一次的大额，性质选「资本性支出」；信用卡还款、自己账户之间转账选「转账」，不算花费。")}</p>
-    </section>
-    <section class="section" id="spendRecords">${spendRecordsHtml()}</section>`;
+  return `<section class="section" id="spendRecords">${spendRecordsHtml()}</section>`;   // 记一笔 / 拍小票 / 导入对账单 都在右下角圆形 ＋ 的菜单里（记一笔是独立的表单页：spend-form-page.js）
 }
+/** 右下角圆形 ＋：点开菜单——手动记一笔（表单页）/ 拍小票识别 / 导入对账单 */
+const spendFab = () => fabMenu([{ label: t("手动记一笔"), href: `${href("bills", "spend")}?form=new`, icon: "✍️" }, { label: t("拍小票识别"), href: href("pantry", "scan"), icon: "📷" },
+  financeOk() ? { label: t("导入对账单"), href: href("bills", "statements"), icon: "🏦" } : null], { label: t("记一笔花费") });
 export function viewSpend() {
-  const r = state.route, onSpendPage = r?.section === "bills" && r?.sub === "spend";
+  const r = state.route, formP = r?.section === "bills" && r?.sub === "spend" ? spendFormParams(r.q) : null;
+  if (formP) return spendFormPage(formP);   // 记一笔 / 编辑 / 复制：独立的表单页
+  const onSpendPage = r?.section === "bills" && r?.sub === "spend";
   let tab = onSpendPage ? activeTab(r) : "all";
   if (onSpendPage && r.q?.get("tab") === "trips") {   // 以前的「旅行」标签（书签 / 旧链接）：改到 分类 → 旅行 → 按行程
     Object.assign(state.stats, { node: "travel", byTrip: true }); tab = "category";
@@ -76,7 +49,7 @@ export function viewSpend() {
       ${onSpendPage ? pageHead({ title: t("花费"), tabs: SPEND_TABS, tab, hrefOf: spendHref, label: t("花费内容") }) : `<div class="section-head"><h2>${t("花费")}</h2></div>`}
       ${ranged ? timeBarHtml(tab) : ""}
       ${body}
-      ${onSpendPage ? `<a class="fab" href="${href("bills", "spend")}?tab=records&add=1" aria-label="${esc(t("记一笔花费"))}" title="${esc(t("记一笔花费"))}">＋</a>` : ""}
+      ${onSpendPage ? spendFab() : ""}
     </section>`;
 }
 export function viewUsage() {

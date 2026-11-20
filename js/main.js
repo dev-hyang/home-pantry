@@ -7,6 +7,7 @@ import { renderAllList } from "./bills/all-views.js";
 import { initCompactFilters, watchStick } from "../shared/compact-filters.js";
 import { miniBarEl } from "./minibar.js";
 import "./core/long-press.js";
+import { initDotsAuto } from "./core/dots-auto.js";
 import "./core/back-to-top.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initQuickDrag } from "./quick-drag.js";
@@ -60,6 +61,7 @@ miniBarEl();
    // 手机上滚动后固定的站名窄条（js/minibar.js）
 document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.pv-card[data-fold]")) setFold(d.dataset.fold, d.open); }, true);
    // 储藏概览大卡片折叠 / 展开：记在本机
+initDotsAuto();
 initSwipeRows({ kinds: ["asset", "rs", "item", "income", "budget-goal", "med-pay", "person", "bill-pay", "maint", "shop", "purchase", "card", "store", "deal"], altKinds: ["asset", "card", "deal", "shop", "item", "rs"], del: () => t("删除"), release: () => t("松手删除"), alt: () => t("停用"), altRelease: () => t("松手停用") });
 initHomeStats(render);
 initTodayRender(() => render());

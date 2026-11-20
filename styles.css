@@ -432,7 +432,7 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 /* ── 统计图表（SVG 按 viewBox 等比缩放，不依赖窗口尺寸计算） ── */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; }
-.kpi span { display: block; font-size: 13px; color: var(--muted); } .kpi b span { display: inline; font-size: inherit; color: inherit; } .kpi b span.down { color: var(--out); }   /* 数值里包的 span（如超支标红）不能吃到标签的小字号 */
+.kpi > span { display: block; font-size: 13px; color: var(--muted); } .kpi b span { display: inline; font-size: inherit; color: inherit; } .kpi b span.down { color: var(--out); }   /* 数值里包的 span（如超支标红）不能吃到标签的小字号 */
 .kpi b { display: block; font-size: 20px; font-weight: 600; margin: 2px 0; word-break: break-all; }
 .kpi small { font-size: 12px; color: var(--muted); }
 .kpi small.up { color: var(--low); } .kpi small.down { color: var(--ok); }
@@ -4021,7 +4021,6 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 @media (min-width: 760px) { .pay-bar .pay-q { flex: 2 1 260px; } .pay-bar select { flex: 0 1 170px; } }
 .pay-sum { margin: 0 0 6px; font-size: 13px; }
 .pay-row .pay-hit { display: block; min-height: 44px; color: inherit; text-decoration: none; min-width: 0; }
-.pay-row .pay-hit b { display: block; }
 .pay-row .pay-hit small { display: block; color: var(--muted); overflow-wrap: anywhere; }
 .form-actions.form-actions-split { display: flex; flex-wrap: nowrap; justify-content: space-between; align-items: center; gap: 12px; }
 .form-actions.form-actions-split .btn-primary { flex: 0 1 auto; }   /* 盖掉手机上「主按钮占满一行」的规则：取消在左、保存在右同一行 */
@@ -4196,8 +4195,6 @@ form:not(.is-hoa) .hoa-only { display: none; }
 /* 提示 ⓘ 的气泡（.ui-hint::after）隐藏时也占位，靠近右边缘会把页面撑出几像素的横向滚动：横向裁掉（clip 不影响吸顶，纵向照常） */
 #main { overflow-x: clip; }
 .as-more { margin: 4px 0 8px; font-size: 14px; } .as-more a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
-.pay-row .pay-hit b { white-space: nowrap; }
-#aspList .pay-row > .badge { min-width: 88px; justify-content: center; text-align: center; }   /* 摊派缴费记录：分期 / 结清角标等宽，日期列才对得齐 */
 
 /* 回到顶部（js/core/back-to-top.js）：手势持续往上滑才出现；底部中央，在导航 / 保存栏上方，右下角的 ＋ 在另一边 */
 .to-top { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 28; box-sizing: border-box; width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--ink); box-shadow: 0 4px 14px rgba(0, 0, 0, .2); cursor: pointer; opacity: 0; visibility: hidden; transform: translate(-50%, 10px); transition: opacity .18s, transform .18s, visibility 0s .18s; }
@@ -4295,3 +4292,27 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .dots > .dt { white-space: nowrap; }
 .dots > .dt:not(:last-child)::after { content: " ·"; margin-right: .35em; }
 .dots.r { justify-content: flex-end; text-align: right; }
+
+/* 缴费记录行（js/bills/pay-row-fmt.js）：第一行 日期 + 角标，下面各组信息；没有 ⋯，右键 / 长按弹菜单 */
+.pay-row { align-items: flex-start; }
+.pay-row .pay-hit { padding: 2px 0; }
+.pay-row .pr-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.pay-row .pr-head b { white-space: nowrap; }
+.pay-row .pr-head .badge { flex: none; }
+.pay-row .pay-hit small { margin-top: 2px; line-height: 1.45; }
+.pay-row .pay-total { flex: none; align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap; }
+.pay-row .pr-note { overflow-wrap: anywhere; }
+
+/* 花费明细行：「日期 名称」一行 + 下面一行描述（用 · 隔开，整条换行），金额靠右；没有 ⋯ / ▾ */
+.rec-list li.rec-row { align-items: flex-start; }
+.rec-list .rec-day { display: inline-block; margin-right: 8px; color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.rec-list .rec-row .grow small { display: flex; margin-top: 2px; color: var(--muted); line-height: 1.45; }
+.rec-list .rec-amt { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* 「A · B · C」自动分段（js/core/dots-auto.js）：每段整段换行，不从中间拆开；太长的段（备注）照常换行 */
+.dt-s { white-space: nowrap; }
+.dt-s.dt-long { white-space: normal; }
+.bill-fab-menu button { display: block; width: 100%; text-align: left; padding: 12px 16px; min-height: 44px; border: 0; background: none; font: inherit; color: var(--ink); font-weight: 600; cursor: pointer; }
+.bill-fab-menu button + a, .bill-fab-menu a + button, .bill-fab-menu button + button { border-top: 1px solid var(--line); }
+.bill-fab-menu button:hover, .bill-fab-menu button:focus-visible { background: var(--surface-2); }
+.form-page .panel > .form-actions, .form-page form > .form-actions { margin-top: 14px; }   /* 表单页：控件和底下的按钮留出距离（记一笔 / 编辑花费页的「退款」勾选框紧挨按钮） */

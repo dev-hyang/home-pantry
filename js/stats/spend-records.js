@@ -1,6 +1,6 @@
 import { $, esc, fmtDay, money, num, showQty, toast } from "../core/util.js";
 import { ALL_CATS, MONTH_EN, TZ, isBill, monthKey, rangeMonths } from "./spend-roll.js";
-import { BUCKETS, NATURES, bucketOf, coversUnknown, defaultNature, isTransfer, knownLeafIds, leafInfo, leafLabel, leavesOf, natureName, natureOptions, natureParams, treeOptions } from "../core/taxonomy.js";
+import { BUCKETS, NATURES, bucketOf, coversUnknown, defaultNature, isTransfer, knownLeafIds, leafLabel, leavesOf, natureName, natureParams, treeOptions } from "../core/taxonomy.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { budgetBridge } from "../core/budget-bridge.js";
 import { compact } from "../core/list-query.js";
@@ -12,16 +12,15 @@ import { moreBtn } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
 import { state } from "../core/state.js";
 import { withProperty } from "../core/alerts.js";
-import { categoryOptions } from "../pantry/meals-sync.js";
-import { cardOptions, payAcctValue, paymentPayLabel } from "../bills/card-picker.js";
+import { paymentPayLabel } from "../bills/card-picker.js";
 import { STORE_NONE, download, storeOf, toCsv } from "./store-lite.js";
 import { knownStores, storeKey } from "./store-lite-common.js";
-import { propertyOptions } from "./add-lite.js";
 import { activeProps } from "./add-lite-common.js";
 import { spendDetailRows } from "./store-rows.js";
 import { NO_SPEND_FILTER } from "./records-lite.js";
 import { medNames } from "./records-lite-common.js";
 import { lpAttr } from "../core/long-press.js";
+import { dots } from "../core/dots.js";
 
 /* ── 花费记录：搜索 + 分类树 / 性质 / 房产 / 商店 / 年份 / 月份筛选 + 排序，按月分组带小计；服务器分页（迁移 054 / 055），任何一年、全部年份都能看 ──
  * 筛选、排序、合计、月小计都在数据库里做（spend_page / spend_stats），这里只把界面上的筛选翻译成筛选对象（spendParams）；
@@ -87,7 +86,6 @@ function spendLookups() {
   return { cats: first(ALL_CATS(), (c) => c.id), bills: first(state.bills, (b) => b.id) };
 }
 function spendRow(p, L = spendLookups()) {
-  if (state.spendEdit === p.id) return spendEditRow(p);
   // 转账：数据库已判断（is_xfer）；性质和分类默认不一样时标出来；关联了房产（多套房时）也写出来
   const xfer = p.is_xfer ?? isTransfer(p.category, p.nature), nat = p.nature && p.nature !== defaultNature(p.category) ? p.nature : null;
   const tags = (xfer ? ` <span class="badge xfer-badge">${t("转账 · 不算花费")}</span>` : "") + (nat && !xfer ? ` <span class="badge" style="background:var(--surface-2)">${esc(t(natureName(nat)))}</span>` : "");
@@ -98,31 +96,13 @@ function spendRow(p, L = spendLookups()) {
     : bill ? `<a class="link-name" href="${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}" title="${esc(t("点一下编辑"))}">${esc(withProperty(bill.property_id, p.name))}</a>`
     : `<button type="button" class="link-name linkbtn" data-action="spend-edit" data-id="${p.id}" title="${esc(t("点一下编辑"))}">${esc(p.name)}</button>${state.spendDrafts?.[p.id] ? ` <span class="badge b-soon">${t("草稿")}</span>` : ""}`;
   const sel = state.spendSel && !p.virtual ? `<input type="checkbox" class="sel" data-sel="${p.id}" aria-label="${esc(t("选中 {name}", { name: p.name }))}" ${state.spendSel.has(p.id) ? "checked" : ""}>` : "";
-  const open = !p.virtual && state.spendOpen === p.id;
-  return `<li data-swipe-del="purchase" class="${open ? "is-open" : ""}"${p.virtual ? "" : ` ${lpAttr([bill ? { label: t("编辑"), href: `${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}`, first: true } : { label: t("编辑"), action: "spend-edit", data: { id: p.id }, first: true }, { label: t("复制"), action: "spend-copy", data: { id: p.id } }, { label: t("删除"), action: "purchase-del", data: { id: p.id }, danger: true }], p.name)}`}>${sel}
-    <span class="badge rec-date">${esc(fmtDay(p.purchased_at))}</span>
-    <div class="grow"><span class="name">${title}${tags}</span><small>${esc(leafLabel(p.category))}${prop ? `，🏠 ${esc(prop)}` : ""}${storeOf(p) ? `，${esc(storeOf(p))}` : ""}${p.quantity ? `，${showQty(p.quantity, p.unit || "")}` : ""}${paymentPayLabel(p) ? `，${esc(paymentPayLabel(p))}` : ""}${p.created_by && state.members.length > 1 ? `，${esc(memberName(p.created_by) || "")}` : ""}</small></div>
-    <b>${p.amount != null && num(p.amount) < 0 ? `<span class="badge b-ok">${t("退款")}</span> ` : ""}${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`}</b>
-    ${p.virtual ? "" : `<button type="button" class="ix-more" data-action="spend-open" data-id="${p.id}" aria-expanded="${open}" aria-label="${esc(t("更多操作"))}" title="${esc(t("更多操作"))}">${open ? "▴" : "▾"}</button>
-    <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button>`}
-    ${open ? `<div class="sp-acts">${bill ? `<a class="btn btn-sm" href="${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}">${t("编辑")}</a>` : `<button type="button" class="btn btn-sm" data-action="spend-edit" data-id="${p.id}">${t("编辑")}</button>`}<button type="button" class="btn btn-sm btn-ghost" data-action="spend-copy" data-id="${p.id}">${t("复制")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="purchase-del" data-id="${p.id}">${t("删除")}</button></div>` : ""}</li>`;
-}
-/** 就地编辑：名称、分类、经济性质、关联房产、金额、商店、日期（数量和单位不动） */
-function spendEditRow(p) {
-  const day = String(p.purchased_at).slice(0, 10), opts = categoryOptions(p.category, { withOther: true, spend: true });   // 当前分类已在选项里时会自动选中
-  const hasCat = opts.includes(`value="${p.category}"`);
-  // 顶上保留这一行的摘要，再点它就收起（不保存）
-  const head = `<button type="button" class="ix-main spend-head" data-action="spend-edit-collapse" aria-expanded="true" title="${esc(t("再点一下收起"))}"><span class="grow"><span class="name">${esc(p.name)}</span><small>${esc(`${fmtDay(p.purchased_at)} · ${leafLabel(p.category)}`.trim())}</small></span><b>${p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : ""}</b><span aria-hidden="true">▴</span></button>`;
-  return `<li class="spend-edit">${head}<form id="spendEditForm" data-id="${p.id}" class="form-grid" novalidate>
-    <label class="span-2">${t("名称")}<input name="name" required maxlength="60" value="${esc(p.name)}"></label>
-    <label>${t("分类")}<select name="category">${hasCat ? "" : `<option value="${esc(p.category)}" selected>${esc(t(leafInfo(p.category).name))}</option>`}${opts}</select></label>
-    <label>${t("经济性质")}<select name="nature" data-nosearch>${natureOptions(p.nature || "", { leaf: p.category })}</select><small>${t("决定算进哪些统计；一般按分类默认")}</small></label>
-    ${activeProps().length ? `<label>${t("关联房产")}<select name="property_id" data-nosearch>${propertyOptions(p.property_id || "")}</select></label>` : ""}
-    <label>${t("金额（{cur}）", { cur: p.currency || Units.region.currency })}<input name="amount" type="number" step="0.01" inputmode="decimal" value="${p.amount != null ? num(p.amount).toFixed(2) : ""}"><small>${t("退款 / 报销填负数")}</small></label>
-    <label>${t("商店 / 收款方")}<input name="store" maxlength="40" list="storeList" value="${esc(p.store || "")}"></label>
-    <label>${t("日期")}<input name="date" type="date" max="${new Date().toISOString().slice(0, 10)}" value="${esc(day)}"></label>
-    ${state.billsEnabled ? `<label>${t("怎么付的")}<select name="card_id">${cardOptions(payAcctValue(p.card_id, p.method))}</select></label>` : ""}
-    <div class="form-actions span-2"><button type="submit" class="btn btn-primary btn-sm">${t("保存修改")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-edit-cancel">${t("取消")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-copy" data-id="${esc(p.id)}" title="${esc(t("用这笔的名称、分类、金额、商店、付款方式新记一笔，日期是今天"))}">${t("复制一笔")}</button></div></form></li>`;
+  const desc = [leafLabel(p.category), prop ? `🏠 ${prop}` : "", storeOf(p), p.quantity ? showQty(p.quantity, p.unit || "") : "", paymentPayLabel(p), p.created_by && state.members.length > 1 ? memberName(p.created_by) || "" : ""].filter(Boolean).map(esc);
+  const amount = p.amount != null ? esc(Units.money(num(p.amount), p.currency || Units.region.currency)) : `<span class="muted">${t("未填金额")}</span>`;
+  // 没有 ⋯ / ▾：电脑右键、手机长按弹菜单（编辑 / 复制 / 删除）；删除一笔另有手机左滑
+  return `<li data-swipe-del="purchase" class="rec-row"${p.virtual ? "" : ` ${lpAttr([bill ? { label: t("编辑"), href: `${href("bill", bill.id)}?sec=pay&edit=${p.pay_id}`, first: true } : { label: t("编辑"), action: "spend-edit", data: { id: p.id }, first: true }, { label: t("复制"), action: "spend-copy", data: { id: p.id } }, { label: t("删除"), action: "purchase-del", data: { id: p.id }, danger: true }], p.name)}`}>${sel}
+    <div class="grow"><span class="name"><span class="rec-day">${esc(fmtDay(p.purchased_at))}</span>${title}${tags}</span>${desc.length ? `<small class="dots">${dots(desc)}</small>` : ""}</div>
+    <b class="rec-amt">${p.amount != null && num(p.amount) < 0 ? `<span class="badge b-ok">${t("退款")}</span> ` : ""}${amount}</b>
+    ${p.virtual ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button>`}</li>`;
 }
 const monthName = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
 /** 筛选条下面的标签：下拉里看不到的条件（图表钻取带来的预算分组、一组商店、一段月份、导入批次）一项一个，点标签去掉那一项。
@@ -219,7 +199,7 @@ export function spendRecordsHtml() {
         <select id="spendNat" data-nosearch aria-label="${t("按经济性质筛选")}">${opt("all", t("全部性质"), f.nat || "all")}${NATURES.map((n) => opt(n.id, t(n.name), f.nat)).join("")}</select>
         ${activeProps().length > 1 || (f.prop && f.prop !== "all") ? `<select id="spendProp" data-nosearch aria-label="${t("按房产筛选")}">${opt("all", t("全部房产"), f.prop || "all")}${activeProps().map((p) => opt(p.id, p.name, f.prop)).join("")}${opt("none", t("没关联房产"), f.prop)}</select>` : ""}
         <select id="spendStore" data-search aria-label="${t("按收款方筛选")}">${opt("all", t("全部收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${opt("__none__", t("未填写收款方"), f.store)}</select>
-        <select id="spendRange" class="range-sel" data-nosearch aria-label="${t("时间范围")}">${rangeOptionsHtml(f.range || "all", { first })}</select>
+        <select id="spendRange" class="range-sel" data-default="all" data-nosearch aria-label="${t("时间范围")}">${rangeOptionsHtml(f.range || "all", { first })}</select>
         ${customHtml(f.range || "all", { first, attr: "data-spend-c" })}
         <select id="spendSort" data-nosearch aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
         ${clearFiltersBtn("spend", changed(f, FD.spend))}
@@ -227,7 +207,7 @@ export function spendRecordsHtml() {
       <div id="spendChips">${spendChipsHtml()}</div>
       <div class="ix-tools"><button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${state.spendSel ? t("退出多选") : t("多选删除")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="spend" data-filtered="1">${t("打印")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="spend-csv">${t("导出当前列表 CSV")}</button></div>
       <div id="spendList" style="margin-top:8px">${spendListHtml()}</div>
-      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("删一笔：手机上把那一行向左滑；电脑上鼠标移到行上，右边出现「删除」。要删很多笔用「多选删除」。")}</p>
+      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("编辑 / 复制 / 删除：手机长按那一行（删除也可以向左滑），电脑右键点那一行。要删很多笔用「多选删除」。")}</p>
     </div>`;
 }
 /** 导出当前列表（按筛选，不只是已显示的几页）：列和年度报表的明细一样 */

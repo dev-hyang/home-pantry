@@ -145,4 +145,4 @@ export function unitOptionsHtml(cur, months, { biweek = false, nocap = false, ca
   }).join("");
 }
 /** 周期下拉（id=finUnit，main.js 统一处理：存本机、重画）；months = 这页走势图的月份 */
-export const unitSelectHtml = (months, opts = {}) => `<label class="tb-field"><span>${t("周期")}</span><select id="finUnit" data-nosearch aria-label="${esc(t("周期"))}">${unitOptionsHtml(finUnit({ biweek: !!opts.biweek }), months, opts)}</select></label>`;
+export const unitSelectHtml = (months, opts = {}) => `<label class="tb-field"><span>${t("周期")}</span><select id="finUnit" data-nocount data-nosearch aria-label="${esc(t("周期"))}">${unitOptionsHtml(finUnit({ biweek: !!opts.biweek }), months, opts)}</select></label>`;

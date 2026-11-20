@@ -104,11 +104,6 @@ const listHtml = () => {
     ${L.busy && L.rows.length ? `<p class="muted" role="status" style="text-align:center">${t("加载中…")}</p>` : moreBtn(L.hasMore, 'data-inc="more"')}`;
 };
 export const renderIncList = () => { const el = $("#incList"); if (el) el.innerHTML = listHtml(); };
-/** 三种记法（和「记一笔花费」一样）：手动 / 拍照识别 / 导入对账单 */
-const waysHtml = () => { const I = inc(), newOpen = !!I.form && !I.form.rec?.id; return `<div class="entry-ways" role="group" aria-label="${esc(t("三种记法"))}">
-  <button type="button" class="way ${newOpen ? "is-cur" : ""}" data-inc="way-manual" aria-pressed="${newOpen ? "true" : "false"}"><span class="way-ico" aria-hidden="true">✍️</span><span>${t("手动记一笔")}</span></button>
-  <button type="button" class="way ${I.scanOpen ? "is-cur" : ""}" data-inc="way-scan" aria-pressed="${I.scanOpen ? "true" : "false"}"><span class="way-ico" aria-hidden="true">📷</span><span>${t("拍照识别")}</span></button>
-  <a class="way" href="${href("bills", "statements")}"><span class="way-ico" aria-hidden="true">🏦</span><span>${t("导入对账单")}</span></a></div>`; };
 /** 账户筛选：用过的登记账户 + 「没关联登记账户的」 */
 function acctFilterOptions(sel) {
   const used = new Set(inc().rec.map((r) => r.account_id).filter(Boolean)), list = (state.cards || []).filter((c) => used.has(c.id) || c.id === sel);
@@ -116,7 +111,7 @@ function acctFilterOptions(sel) {
   return `${opt("all", t("全部账户"))}${list.map((c) => opt(c.id, acctLabel(c))).join("")}${opt("none", t("没关联登记账户的"))}`;
 }
 export function recordsTab() {
-  const I = inc(), top = `${aaFixHtml()}${waysHtml()}${I.scanOpen ? scanHtml() : ""}${I.form && !inlineEditId() ? formHtml() : ""}`;
+  const I = inc(), top = `${aaFixHtml()}${I.scanOpen ? scanHtml() : ""}${I.form && !inlineEditId() ? formHtml() : ""}`;
   if (!I.rec.length && !I.form) return top + empty() + kindManager();
   // 和花费明细同一套 .toolbar：宽屏一行（搜索 + 下拉）；手机收成「搜索框 + 筛选」按钮，点开才出下拉（shared/compact-filters.js）
   const opt = (v, l, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(l)}</option>`;

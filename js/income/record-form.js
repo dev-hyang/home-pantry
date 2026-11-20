@@ -12,11 +12,11 @@ import { cur, fmtMoney, personOptions, selOpts } from "./shared.js";
 import { acctById } from "../bills/card-picker.js";
 
 /* ── 入账账户：「卡与账户」里登记的账户（支票 / 储蓄 / 券商 / 退休 / HSA / 借记卡 / 钱包 / 现金…），可设默认 ──
- * 记录上存 account_id（迁移 056）和一份文字 account（「名称 ••尾号」，显示兜底；没登记的现金存「现金」，其他手填）。
+ * 记录上存 account_id（迁移 056）和一份文字 account（「名称 **尾号」，显示兜底；没登记的现金存「现金」，其他手填）。
  * 默认账户按人存在预算设置 _income_cfg.defAcct[用户 id]（登记账户的 id 或 cash）。 */
 const INCOME_ACCT_KINDS = ["checking", "savings", "brokerage", "retirement", "hsa", "cash", "debit", "wallet", "loan"];
 const INCOME_ACCT_EXTRA = [["cash", "现金（没登记的）"], ["other", "其他（手填）"]];
-const acctText = (c) => `${c.name}${c.last4 ? ` ••${c.last4}` : ""}`;
+const acctText = (c) => `${c.name}${c.last4 ? ` **${c.last4}` : ""}`;
 const incomeAccts = () => (state.cards || []).filter((c) => INCOME_ACCT_KINDS.includes(c.kind || "credit"));
 const hasBankAcct = () => incomeAccts().some((c) => c.active !== false);
 export const incCfg = () => meta("_income_cfg", {}) || {};

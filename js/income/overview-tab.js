@@ -21,7 +21,7 @@ import { dq, hitAttrs } from "../stats/spend-drill.js";
 /** 概览 / 类型页共用的时间范围、成员、节点（切标签不丢）；时间范围和花费页同一套：本月 / 近 3·6·9·12 个月 / 今年 / 往年 */
 export const OV = () => {
   const o = (inc().ov ||= { range: "12", person: "all", month: "", node: "" });
-  if (o.range !== state.stats.months) { o.range = spanOk(state.stats.months) ? state.stats.months : "12"; o.month = ""; }   // 共享的时间范围（js/core/time-range.js）：花费页改了这里也跟着变
+  if (o.range !== state.stats.months) { o.range = spanOk(state.stats.months) ? state.stats.months : "m"; o.month = ""; }   // 共享的时间范围（js/core/time-range.js）：花费页改了这里也跟着变
   if (!(o.person === "all" || o.person === "none" || adults().some((p) => p.id === o.person))) o.person = "all";
   return o;
 };

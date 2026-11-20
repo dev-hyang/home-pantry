@@ -43,7 +43,7 @@ export function pickResultHtml() {
   if (!list.length) return "";
   const top = list.filter((x) => !x.excluded).slice(0, 3), ex = list.filter((x) => x.excluded);
   return `<div class="pick-cards">${top.map((x, i) => `<div class="pick-card ${i === 0 ? "best" : ""}"><div class="pick-rate">${x.eff}%${x.cash != null ? `<small>≈ ${money(x.cash)}</small>` : ""}</div>
-      <b>${d(x.card.name)}</b>${x.card.last4 ? ` <span class="muted">••${d(x.card.last4)}</span>` : ""}<small>${esc(x.reason)}</small>
+      <b>${d(x.card.name)}</b>${x.card.last4 ? ` <span class="muted">**${d(x.card.last4)}</span>` : ""}<small>${esc(x.reason)}</small>
       ${x.warns.length ? `<div class="pick-warn">⚠️ ${x.warns.map(esc).join("；")}</div>` : ""}</div>`).join("")}</div>
     ${ex.length ? `<p class="muted" style="margin:6px 0 0;font-size:12.5px">${t("不能用：")}${ex.map((x) => `${esc(x.card.name)}（${esc(x.excluded)}）`).join("、")}</p>` : ""}`;
 }

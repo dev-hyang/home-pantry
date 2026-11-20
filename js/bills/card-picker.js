@@ -9,14 +9,14 @@ const LAST_CARD = "hmh-last-card";
 export const lastCard = () => { try { return localStorage.getItem(LAST_CARD) || ""; } catch { return ""; } };
 export const rememberCard = (id) => { try { localStorage.setItem(LAST_CARD, id || ""); } catch { /* 忽略 */ } };
 export const acctById = (id) => (id ? state.cards.find((c) => c.id === id) : null);
-/** 「💳 Chase Freedom ••0934」/「🏦 Chase Checking ••1234」 */
-export const acctLabel = (c) => `${kindIcon(c.kind)} ${c.name}${c.last4 ? ` ••${c.last4}` : ""}`;
+/** 「💳 Chase Freedom **0934」/「🏦 Chase Checking **1234」 */
+export const acctLabel = (c) => `${kindIcon(c.kind)} ${c.name}${c.last4 ? ` **${c.last4}` : ""}`;
 /** 付款账户下拉（账单扣款 / 缴费记录 / 一次性账单付款 / 记花费共用）：卡和账户按种类分组；extra = 现金、其他这类额外选项 [[value, label]]；exclude = 不列这张卡 */
 export function accountOptions(selected, { none = "（未指定）", extra = [], exclude = "", kinds = null } = {}) {
   const sel = selected || "";
   const list = state.cards.filter((c) => (c.active !== false || c.id === sel) && c.id !== exclude && (!kinds || kinds.includes(c.kind || "credit")));
   const opt = (v, label) => `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(label)}</option>`;
-  const groups = Object.entries(ACCT_KINDS).map(([k, [name]]) => { const cs = list.filter((c) => (c.kind || "credit") === k); return cs.length ? `<optgroup label="${esc(t(name))}">${cs.map((c) => opt(c.id, `${c.name}${c.last4 ? ` ••${c.last4}` : ""}`)).join("")}</optgroup>` : ""; }).join("");
+  const groups = Object.entries(ACCT_KINDS).map(([k, [name]]) => { const cs = list.filter((c) => (c.kind || "credit") === k); return cs.length ? `<optgroup label="${esc(t(name))}">${cs.map((c) => opt(c.id, `${c.name}${c.last4 ? ` **${c.last4}` : ""}`)).join("")}</optgroup>` : ""; }).join("");
   return `${none != null ? opt("", t(none)) : ""}${groups}${extra.map(([v, l]) => opt(v, t(l))).join("")}`;
 }
 /* 付款方式（迁移 040 起全站统一）：登记过的卡 / 账户 / 礼品卡存 id（card_id / pay_card_id），其余存文字（method / autopay_method）：
@@ -43,7 +43,7 @@ export function resolvePayAccount(value, text) {
   if (value === "check") return { card_id: null, method: CHECK };
   if (value === "giftcard") return { card_id: null, method: GIFT };
   if (value === "other" || !value) return { card_id: null, method: (text || "").trim().slice(0, 40) || (value === "other" ? OTHER : null) };
-  const c = acctById(value); return c ? { card_id: c.id, method: `${c.name}${c.last4 ? ` ••${c.last4}` : ""}`.slice(0, 40) } : { card_id: null, method: (text || "").trim().slice(0, 40) || null };
+  const c = acctById(value); return c ? { card_id: c.id, method: `${c.name}${c.last4 ? ` **${c.last4}` : ""}`.slice(0, 40) } : { card_id: null, method: (text || "").trim().slice(0, 40) || null };
 }
 /** 花费（purchases）上的付款字段：刷卡记 card_id、method 留空（显示时按卡现在的名字）；其余记 method。
  * 旧库没执行迁移 033 / 040 时，没选过就不带这个字段，照样能存；old = 正在编辑的那笔（它原来有的字段要清掉） */
@@ -55,7 +55,7 @@ export function purchasePayFields(value, old = null) {
   return out;
 }
 /** 账单 / 缴费记录上显示的付款账户：有卡就按卡现在的名字，否则按文字 */
-export const payAcctLabel = (cardId, text) => { const c = acctById(cardId); return c ? acctLabel(c) : text ? t(text) : ""; };
+export const payAcctLabel = (cardId, text) => { const c = acctById(cardId); return c ? acctLabel(c) : text ? t(text).replace(/•+/g, "**") : ""; };   // 以前存的文字里尾号前是两个圆点，显示时统一成 **
 export const billPayLabel = (b) => payAcctLabel(b.pay_card_id, b.autopay_method);
 export const paymentPayLabel = (p) => payAcctLabel(p.card_id, p.method);
 /** 付款账户下拉里「其他（手填）」对应的说明框：选了其他才显示 */

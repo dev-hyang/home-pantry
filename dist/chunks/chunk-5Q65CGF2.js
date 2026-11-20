@@ -1,0 +1,1 @@
+import{f as e}from"./chunk-YUPDMQBX.js";function f(n={}){let r=new URLSearchParams;for(let[o,l]of Object.entries(n))l!=null&&l!==""&&l!=="all"&&r.set(o,l);let t=r.toString();return`${e("bills","all")}${t?`?${t}`:""}`}export{f as a};

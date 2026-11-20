@@ -118,11 +118,6 @@ function onRoute() {
   if (next.section === "house" && next.q.get("todo")) requestAnimationFrame(() => $("#house-todo")?.scrollIntoView({ block: "start" }));   // 今日「家里一览 · 设备与车辆」：直接到「各房产要处理的事」
   if (next.section === "me" && next.sub === "settings" && next.q.get("sec") === "ai") hydrateModelSelect();   // AI 设置：后台查这个 key 实际能用的模型，填进下拉
   if (next.section === "bills" && (next.sub === "spend" || next.sub === "budget")) ensureFirstYear().then((fresh) => { if (fresh) render(false); });   // 时间范围下拉的往年选项：查一次最早年份
-  if (next.section === "bills" && next.sub === "spend" && next.q.get("add")) {   // 花费页右上角“记一笔花费”：展开补记表单、滚过去并聚焦名称，再把参数去掉
-    state.spendAddOpen = true;
-    requestAnimationFrame(() => { const pf = $("#purchaseForm"); if (pf) { pf.scrollIntoView({ block: "center" }); pf.elements.name.focus({ preventScroll: true }); } });   // 等页面把焦点放好之后再聚焦
-    history.replaceState(null, "", `${href("bills", "spend")}?tab=records`);
-  }
   const back = leavingItem && state.prevRoute && routeKey(state.prevRoute) === routeKey(next);
   if (leavingItem) state.prevRoute = null;
   if (back) requestAnimationFrame(() => window.scrollTo(0, scrollMem[routeKey(next)] || 0));

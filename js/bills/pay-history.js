@@ -3,14 +3,12 @@
  *  更早的合并进来，搜索 / 筛选 / 排序都在内存里做。点一行进独立的编辑页（?sec=pay&edit=id），不在列表上方弹表单。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { dots } from "../core/dots.js";
+import { payBody, payRowHtml } from "./pay-row-fmt.js";
 import { esc, fmtDate, num } from "../core/util.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { payTotal } from "./pay-total.js";
 import { paymentPayLabel } from "./card-picker.js";
-import { moreMenu } from "../core/more-menu.js";
-import { lpAttr } from "../core/long-press.js";
 import { changed, clearFiltersBtn, onClearFilters } from "../core/clear-filters.js";
 
 const B = () => window.BILLS;
@@ -38,19 +36,16 @@ function visible(b) {
 }
 
 export function rowHtml(b, p) {
-  const skipped = p.status === "skipped", edit = `${href("bill", b.id)}?sec=pay&edit=${encodeURIComponent(p.id)}`;
-  const subItems = [p.unit_amount != null ? `${t("单元费")} ${mny(p.unit_amount, p.currency)} · ${t("车位费")} ${mny(p.parking_amount, p.currency)}` : null, p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null,
-    num(p.assessment_amount) ? t("摊派 {m}", { m: mny(p.assessment_amount, p.currency) }) : null, num(p.fee_amount) ? t("手续费 {m}", { m: mny(p.fee_amount, p.currency) }) : null, num(p.tax_amount) ? t("税 {m}", { m: mny(p.tax_amount, p.currency) }) : null,
-    num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, p.currency) }) : null, p.notes].filter(Boolean).map(esc);
-  const sub = dots(subItems);
-  // 这一笔的更多操作：⋯（电脑）和长按（手机）同一份
+  const skipped = p.status === "skipped", edit = `${href("bill", b.id)}?sec=pay&edit=${encodeURIComponent(p.id)}`, c = p.currency;
+  const meta = [p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null].filter(Boolean).map(esc);
+  const amounts = [p.unit_amount != null ? `${t("单元费")} ${mny(p.unit_amount, c)}` : null, p.unit_amount != null ? `${t("车位费")} ${mny(p.parking_amount, c)}` : null,
+    num(p.assessment_amount) ? t("摊派 {m}", { m: mny(p.assessment_amount, c) }) : null, num(p.fee_amount) ? t("手续费 {m}", { m: mny(p.fee_amount, c) }) : null, num(p.tax_amount) ? t("税 {m}", { m: mny(p.tax_amount, c) }) : null,
+    num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, c) }) : null].filter(Boolean).map(esc);
+  const badge = `<span class="badge ${skipped ? "" : "b-ok"}" ${skipped ? 'style="background:var(--surface-2)"' : ""}>${esc(t(B().PAYMENT_STATUS[p.status] || p.status))}</span>`;
+  // 这一笔的更多操作：电脑右键 / 手机长按（同一份菜单）
   const items = [{ label: t("编辑"), href: edit, first: true }, { label: t("复制"), href: `${href("bill", b.id)}?sec=pay&copy=${encodeURIComponent(p.id)}` }, { label: t("删除"), action: "billpay-del", data: { id: p.id }, danger: true }];
-  return `<li class="pay-row" data-swipe-del="bill-pay" ${lpAttr(items, fmtDate(p.paid_on))}>
-    <span class="badge ${skipped ? "" : "b-ok"}" ${skipped ? 'style="background:var(--surface-2)"' : ""}>${esc(t(B().PAYMENT_STATUS[p.status] || p.status))}</span>
-    <a class="grow pay-hit" href="${edit}" title="${esc(t("点一下编辑"))}"><b>${esc(fmtDate(p.paid_on))}</b>${sub ? `<small class="dots">${sub}</small>` : ""}</a>
-    <b class="pay-total" title="${esc(t("总金额"))}">${p.amount != null && !skipped ? mny(payTotal(p), p.currency) : ""}</b>
-    ${moreMenu(items, { label: t("更多操作") })}
-    <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="billpay-del" data-id="${p.id}" aria-label="${esc(t("删除这条记录"))}">${t("删除")}</button></li>`;
+  return payRowHtml({ edit, hitTitle: t("点一下编辑"), body: payBody({ date: fmtDate(p.paid_on), badge, meta, amounts, note: p.notes ? esc(p.notes) : "" }),
+    total: `<b class="pay-total" title="${esc(t("总金额"))}">${p.amount != null && !skipped ? mny(payTotal(p), c) : ""}</b>`, items, lpTitle: fmtDate(p.paid_on), swipe: "bill-pay", del: { action: "billpay-del", id: p.id, label: t("删除") }, delLabel: t("删除这条记录") });
 }
 
 /** 列表区（筛选结果 + 合计）：搜索 / 筛选变了只重画这一块 */

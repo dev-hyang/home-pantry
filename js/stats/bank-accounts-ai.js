@@ -30,7 +30,7 @@ export function suggestAccount() {
   S.account = hit ? { mode: "id", id: hit.id, name: hit.name, last4: hit.last4 } : NO_ACCT();
 }
 /** 新账户的预填名字：文件里认出的发卡行 + 末四位 */
-export const guessAcctName = () => { const hints = S.parts.map((x) => x.acct).filter(Boolean), last4 = hints.map((h) => h.last4).find(Boolean) || "", issuer = hints.map((h) => h.issuer).find(Boolean) || ""; return last4 || issuer ? `${issuer || t("银行卡")}${last4 ? ` ••${last4}` : ""}` : ""; };
+export const guessAcctName = () => { const hints = S.parts.map((x) => x.acct).filter(Boolean), last4 = hints.map((h) => h.last4).find(Boolean) || "", issuer = hints.map((h) => h.issuer).find(Boolean) || ""; return last4 || issuer ? `${issuer || t("银行卡")}${last4 ? ` **${last4}` : ""}` : ""; };
 /** 「这批是哪个账户的」：放在「记住我选的归类」下面、导入按钮上面。选项顺序：不选择 → 新账户… → 已有账户（用卡里的卡 / 以前导入建的 / 账单里带尾号的） */
 export function accountHtml() {
   const list = accounts(), a = S.account, cur = a.mode === "id" ? list.find((x) => x.id === a.id) : null;
@@ -38,8 +38,8 @@ export function accountHtml() {
   const hint = cur?.src === "own" ? `<button type="button" class="btn btn-sm btn-ghost" data-bank-act="acct-del" data-id="${esc(cur.id)}">${t("从列表删掉这个账户")}</button>`
     : cur?.src === "card" ? `<small class="muted">${t("这是「用卡」里登记的卡：不用了就到 用卡 里停用，这里就不再列出。")}</small>`
     : cur?.src === "bill" ? `<small class="muted">${t("这个账户来自账单里的尾号：到对应账单里清掉尾号或删掉账单，这里就不再列出。")}</small>` : "";
-  return `<div class="bank-acct"><label>${t("这批是哪个账户的")}<select data-bank-acct>${opt("none", t("不选择（不记账户）"), a.mode === "none")}${opt("new", t("新账户…"), a.mode === "new")}${list.length ? `<optgroup label="${esc(t("已有账户"))}">${list.map((x) => opt(x.id, `${x.name}${x.last4 && !x.name.includes(x.last4) ? ` ••${x.last4}` : ""}`, a.mode === "id" && a.id === x.id)).join("")}</optgroup>` : ""}</select></label>
-    ${a.mode === "new" ? `<label>${t("账户名")}<input data-bank-acct-name maxlength="40" value="${esc(a.name)}" placeholder="${esc(t("例如 Chase Freedom ••1234"))}"></label>` : ""}
+  return `<div class="bank-acct"><label>${t("这批是哪个账户的")}<select data-bank-acct>${opt("none", t("不选择（不记账户）"), a.mode === "none")}${opt("new", t("新账户…"), a.mode === "new")}${list.length ? `<optgroup label="${esc(t("已有账户"))}">${list.map((x) => opt(x.id, `${x.name}${x.last4 && !x.name.includes(x.last4) ? ` **${x.last4}` : ""}`, a.mode === "id" && a.id === x.id)).join("")}</optgroup>` : ""}</select></label>
+    ${a.mode === "new" ? `<label>${t("账户名")}<input data-bank-acct-name maxlength="40" value="${esc(a.name)}" placeholder="${esc(t("例如 Chase Freedom **1234"))}"></label>` : ""}
     ${hint ? `<div class="bank-acct-tools">${hint}</div>` : ""}
     <small class="muted">${t("记在这批导入上（不记到每一笔花费上），用来看哪个账户哪几个月已经补过。")}</small></div>`;
 }
