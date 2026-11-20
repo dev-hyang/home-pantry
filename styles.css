@@ -4275,3 +4275,9 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .fpop-fields .check-inline { min-height: 44px; }
 @media print { .fpop { display: none; } }
 .ui-hint[data-tip]::after { translate: var(--tip-dx, 0) 0; }   /* 提示浮层贴边时往里挪（js/core/info-tip.js fitTip） */
+
+/* 添加账单页：自动创建 / 手工创建两块，每个入口一整行 */
+.kind-cards.one { grid-template-columns: 1fr; }
+.kind-sec { margin: 14px 0 6px; }
+.kind-static { cursor: default; }
+.kind-ai > .af-bar { margin: 0 8px 6px; }

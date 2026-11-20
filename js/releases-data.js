@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.39", title: { zh: "添加账单页分成「自动创建」和「手工创建」两块", en: "Add bill page split into Create automatically and Create manually" }, items: [
+    { k: "better", zh: "自动创建在前：AI 扫描（带按钮和介绍）、常用账单模板；手工创建在后：周期性账单（分步）、一次性账单（分步）、一次填完（整页）；每个入口一整行卡片", en: "Create automatically comes first (AI scan with its button and intro, common bill templates), then Create manually (recurring step by step, one-time step by step, one page); each option is a full-width row card" }
+  ] },
+
   { v: "2026-11-19.38", title: { zh: "账单菜单更简洁；账单有了详情页，每块单独编辑；账号尾号可填 100 位", en: "Simpler menus; bills get a details page with per-block editing; account digits up to 100" }, items: [
     { k: "better", zh: "所有「⋯」菜单里的名字简化：记一笔缴费 → 缴费，复制为新 xx → 复制，删除 xx → 删除", en: "Menu labels are simpler everywhere: Log payment → Pay, Copy as new … → Copy, Delete … → Delete" },
     { k: "new", zh: "周期性账单菜单的第一项「编辑」改为「详情」：打开详情页，按「这是什么账单 / 多少钱、多久一次 / 怎么付 / 提醒与其他」分块显示，每块有自己的「编辑」，只改这一块", en: "The first item in a recurring bill's menu is now Details: it lists the bill in blocks (What it is / Amount and schedule / How it is paid / Reminders & other), each with its own Edit" },
