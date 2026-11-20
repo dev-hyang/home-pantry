@@ -13,7 +13,6 @@ import { lastMonths, monthLabel, spendAggAsync } from "../stats/spend-roll.js";
 import { fetchSpendPages } from "../stats/spend-trips.js";
 import { storeOf } from "../stats/store-lite.js";
 import { spendBase } from "../stats/records-lite.js";
-import { fetchSpendRows } from "../app/lazy-modules.js";
 
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
 const stamp = () => t("打印于 {d}", { d: fmtDate(todayISO()) });
@@ -61,21 +60,20 @@ function billsSheet(prop) {
     ${next30.length ? `<table><thead><tr><th>${t("到期日")}</th><th>${t("账单")}</th><th>${t("缴费方式")}</th><th>${t("金额")}</th></tr></thead><tbody>${next30.map(({ bill: b, due }) => `<tr><td>${esc(fmtShort(`${due}T12:00:00`))}</td><td>${where(b)}${billCat(b.category).icon} ${esc(b.name)}${b.assigned_person_id ? ` · ${esc(personNameOf(b.assigned_person_id) || "")}` : ""}</td><td>${b.autopay ? t("自动扣款") : esc(t(window.BILLS.CHANNELS[b.pay_channel] || ""))}</td><td>${mny(b.est, b.currency)}</td></tr>`).join("")}</tbody></table>` : `<p>${t("30 天内没有到期的账单")}</p>`}`;
 }
 
-/** recs = 从数据库读出来的明细（printSheet 先读好，最多 300 笔）：useFilter = 「明细」里的筛选（筛的是哪一年就打哪一年），否则 = 打印的这几个月，新 → 旧；
+/** recs = 从数据库读出来的明细（printSheet 先读好，最多 300 笔）：打印的这几个月，新 → 旧；
  *  allN = 这几个月一共多少笔（数据库统计） */
 /** agg = 数据库按月聚合后的汇总（printSheet 先读好，口径同花费页：转账不算，资本性 / 投资跟「排除」开关） */
-function spendSheet({ useFilter = false, recs: picked = [], allN = 0, agg } = {}) {
+function spendSheet({ recs: picked = [], allN = 0, agg } = {}) {
   const out = outflowSeries(agg), liv = livingSeries(agg), hou = withHousingSeries(agg), total = sum(out), count = agg.months.reduce((a, m) => a + agg.n[m], 0);
   const sd = { months: agg.months, totals: out, counts: agg.n };
   const byCat = l2List().map((c) => ({ c, v: agg.months.reduce((s, m) => s + (agg.l2[m][c.id] || 0), 0) })).filter((x) => x.v > 0).sort((a, b) => b.v - a.v);
   const recs = picked.slice(0, 300);
-  const f = state.spendFilter, filterNote = useFilter && (f.q || f.cat !== "all" || f.store !== "all" || f.stores?.length || f.grp || (f.range && f.range !== "all") || f.year !== "all" || f.mon !== "all" || f.months?.length || f.batch) ? ` · ${t("已按筛选条件")}` : "";
   const kpi = (label, val) => `<div><span>${label}</span><b>${val}</b></div>`;
-  return `<h1>${t("花费统计")} · ${t("近 {n} 个月", { n: sd.months.length })}</h1><p class="ps-meta">${esc(stamp())}${esc(filterNote)}</p>
+  return `<h1>${t("花费统计")} · ${t("近 {n} 个月", { n: sd.months.length })}</h1><p class="ps-meta">${esc(stamp())}</p>
     <div class="ps-kpis">${kpi(t("现金流出合计"), money(total))}${kpi(t("日常生活月均"), `${money(sum(liv) / (sd.months.length || 1))} / ${t("含住房")} ${money(sum(hou) / (sd.months.length || 1))}`)}${kpi(t("笔数"), count)}</div>
     <h2>${t("按月")}</h2><table><thead><tr><th>${t("月份")}</th><th>${t("笔数")}</th><th>${t("日常")}</th><th>${t("含住房")}</th><th>${t("现金流出")}</th></tr></thead><tbody>${sd.months.map((m, i) => `<tr><td>${esc(monthLabel(m))}</td><td>${sd.counts[m]}</td><td>${money(liv[i])}</td><td>${money(hou[i])}</td><td>${money(sd.totals[i])}</td></tr>`).join("")}</tbody></table>
     <h2>${t("按分类")}</h2><table><thead><tr><th>${t("分类")}</th><th>${t("占比")}</th><th>${t("合计")}</th></tr></thead><tbody>${byCat.map((x) => `<tr><td>${x.c.icon} ${esc(t(x.c.name))}</td><td>${total ? Math.round((x.v / total) * 100) : 0}%</td><td>${money(x.v)}</td></tr>`).join("")}</tbody></table>
-    <h2>${t("花费明细")}（${recs.length}${allN > recs.length && !useFilter ? ` / ${allN}` : ""}）</h2>
+    <h2>${t("花费明细")}（${recs.length}${allN > recs.length ? ` / ${allN}` : ""}）</h2>
     <table><thead><tr><th>${t("日期")}</th><th>${t("名称")}</th><th>${t("分类")}</th><th>${t("商店 / 收款方")}</th><th>${t("金额")}</th></tr></thead><tbody>${recs.map((p) => `<tr><td>${esc(fmtDate(String(p.purchased_at).slice(0, 10)))}</td><td>${esc(p.name)}</td><td>${esc(leafLabel(p.category))}</td><td>${esc(storeOf(p))}</td><td>${p.amount != null ? mny(p.amount, p.currency) : ""}</td></tr>`).join("")}</tbody></table>`;
 }
 
@@ -95,8 +93,7 @@ export async function printSheet(kind, arg = "all") {
   if (kind === "spend") {
     try {
       const months = lastMonths(+arg?.months || 6), agg = await spendAggAsync(months);   // 统计用数据库的按月聚合（迁移 055）
-      if (arg?.useFilter) arg = { ...arg, agg, recs: await fetchSpendRows(300) };   // 明细是服务器分页：按筛选读前 300 笔来打
-      else {   // 这几个月的明细：新 → 旧读前 300 笔（索引快路，迁移 057），笔数用数据库统计；不读整表
+      {   // 这几个月的明细：新 → 旧读前 300 笔（索引快路，迁移 057），笔数用数据库统计；不读整表
         const f = { ...spendBase("new"), months };
         const [recs, st] = await Promise.all([fetchSpendPages(f, 300), Store.listStats("spend", f, false)]);
         arg = { ...arg, agg, recs: recs.map((r) => ({ ...r, category: canonCat(r.category) })), allN: +st?.n || recs.length };

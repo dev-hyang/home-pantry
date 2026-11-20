@@ -25,7 +25,7 @@ export function medHeadCard(b) {
   const pct = owed ? Math.max(0, Math.min(100, Math.round((num(b.paid) / owed) * 100))) : 0;
   const badges = [`<span class="badge ${STATUS_CLS[b.status] || ""}">${esc(t(STATUS[b.status] || b.status))}</span>`,
     b.visibility === "private" ? `<span class="badge" style="background:var(--surface-2)" title="${esc(t("仅自己和家主可见"))}" aria-label="${esc(t("仅自己和家主可见"))}">🔒 ${t("私密")}</span>` : ""].filter(Boolean).join("");
-  const menu = moreMenu([{ label: t("详情"), href: `${base}?sec=detail`, first: true }, { label: t("缴费"), href: `${base}?pay=new` }, { label: t("复制"), href: `${detailHref("new")}?copy=${encodeURIComponent(b.id)}` },
+  const menu = moreMenu([{ label: t("详情"), href: `${base}?sec=detail`, first: true }, { label: t("记缴费"), href: `${base}?pay=new` }, { label: t("复制"), href: `${detailHref("new")}?copy=${encodeURIComponent(b.id)}` },
     { label: t("删除"), action: "med-del", data: { id: b.id }, danger: true }], { label: `${b.provider} · ${t("更多操作")}` });
   const dates = [b.service_date ? `${L("就诊", "Visit")} ${fmtDate(b.service_date)}` : "", b.bill_date ? `${L("账单", "Billed")} ${fmtDate(b.bill_date)}` : "", b.due_on ? `${L("到期", "Due")} ${fmtDate(b.due_on)}` : ""].filter(Boolean).map(esc);
   const who = [b.patient, b.bill_ref ? `#${b.bill_ref}` : ""].filter(Boolean).map(esc);

@@ -181,8 +181,6 @@ export function renderSpendList() {
 }
 /** 多选删除用：已经读到的（不含虚拟的医疗付款） */
 export const spendRowsLoaded = () => spendList.rows.filter((p) => !p.virtual);
-/** 导出 / 打印：按当前筛选把结果读出来（不只是已显示的几页） */
-export const fetchSpendRows = (max) => spendList.fetchAll(max);
 export { NO_SPEND_FILTER, spendBase } from "./records-lite.js";
 export function spendRecordsHtml() {
   const f = state.spendFilter, fc = spendList.facets || {};

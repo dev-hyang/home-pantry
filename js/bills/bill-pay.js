@@ -20,8 +20,8 @@ export function billHeadCard(b, base) {
     : b.next_due_on ? `<span class="badge b-ok">${t("下次到期 {d}", { d: fmtDate(b.next_due_on) })}</span>` : "";
   const menu = moreMenu([
     { label: t("详情"), href: `${base}?sec=detail`, first: true },
-    { label: b.autopay ? t("核对") : t("缴费"), href: `${base}?pay=1` },
-    { label: t("查看缴费记录"), href: `${base}?sec=pay` },
+    { label: b.autopay ? t("记核对") : t("记缴费"), href: `${base}?pay=1` },
+    { label: t("缴费记录"), href: `${base}?sec=pay` },
     { label: t("特别摊派"), href: `${base}?sec=assess` },
     b.pay_url ? { label: t("去服务商缴费"), href: b.pay_url, external: true } : null,
     { label: t("复制"), href: `${href("bill", "new")}?copy=${encodeURIComponent(b.id)}` },

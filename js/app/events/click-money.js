@@ -24,7 +24,7 @@ export const MONEY_ACTIONS = new Set(["print-run","ov-group","bill-cancel","asse
 /** 点击动作（财务：账单、缴费、卡、花费、统计、导出）：按 data-action 分支；el 是被点的元素，id 是它的 data-id，e 是点击事件 */
 export async function clickMoney(action, el, id, e) {
   switch (action) {
-      case "print-run": return printSheet(el.dataset.kind, el.dataset.kind === "spend" ? { months: +($("#printRange")?.value || +state.stats.months || 6), useFilter: !!el.dataset.filtered } : $("#printProp")?.value || "all");
+      case "print-run": return printSheet(el.dataset.kind, el.dataset.kind === "spend" ? { months: +($("#printRange")?.value || +state.stats.months || 6) } : $("#printProp")?.value || "all");
       case "ov-group": state.ovFilter.group = el.dataset.group === "cycle" ? "cycle" : "asset"; return render();   // 账单概览：账单分组切换（按资产 / 按周期）
       case "bill-cancel": return leaveBill(false);
       case "assess-cancel": return go(`${href("bill", state.route.id)}?sec=assess`, { replace: true });
