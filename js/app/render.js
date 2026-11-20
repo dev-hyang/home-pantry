@@ -12,6 +12,7 @@ import { isScanRoute } from "./route.js";
 import { keepUnsaved, restoreUnsaved } from "./unsaved.js";
 import { maybeAutoSnapshot } from "../bills/nw-logic.js";
 import { normalizeFormActions } from "../core/form-actions.js";
+import { pinTopActions } from "../core/top-actions.js";
 import { recalcPayTotal, viewAssetForm, viewBillForm, viewItemForm, viewPropertyList } from "./lazy-modules.js";
 import { restoreCarousels } from "../core/carousel.js";
 import { state } from "../core/state.js";
@@ -52,6 +53,7 @@ export function render(force = true) {
   { const af = $("#main [data-as-focus]"); if (af) requestAnimationFrame(() => af.scrollIntoView({ block: "start" })); }   // 从账单页点某笔摊派进来：滚到那一笔
   normalizeFormActions($("#main"));   // 所有表单：取消靠左、保存靠右，同一行
   syncEditing();
+  pinTopActions($("#main"), TABS_HIDDEN(r) || !!$("#main .form-page") || (r.section === "bills" && r.sub === "income" && !!r.q?.get("form")));   // 编辑页：取消 / 保存置顶（js/core/top-actions.js）
   foldHeadNotes();   // 各块标题下的说明 → 标题后的 ⓘ（js/core/head-notes.js）
   decoratePrivacy(r);   // 财务看板的大数字：遮挡模式下模糊（js/core/privacy.js）
 }

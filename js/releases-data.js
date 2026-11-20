@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.12", title: { zh: "编辑页的取消 / 保存置顶", en: "Cancel / Save pinned to the top of edit pages" }, items: [
+    { k: "better", zh: "所有编辑页：页面顶部（面包屑下面）有一条粘住的「取消 / 保存」，不用再滑到最底部，也不会被底部导航挡住", en: "Every edit page has a sticky Cancel / Save bar at the top, so you no longer scroll to the bottom or get blocked by the bottom tabs" },
+    { k: "fix", zh: "保养记录的编辑页：取消回到保养记录列表（以前回到一张空白表单）；新记一笔也有取消", en: "Service-record edit page: Cancel now returns to the record list (it used to open a blank form); new records have Cancel too" },
+  ] },
+
   { v: "2026-11-20.11", title: { zh: "历史交易、商店、本周特价：多选删除", en: "Deal history, shops and weekly deals: multi-select delete" }, items: [
     { k: "new", zh: "历史交易、常去的商店、商店里的本周特价：长按菜单里「删除」后面有「多选删除」，进入后点行就是勾选", en: "Deal history, shops and a shop's weekly deals get \"Select & delete\" after Delete in the long-press menu" },
   ] },

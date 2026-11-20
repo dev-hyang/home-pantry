@@ -4340,3 +4340,7 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .deal-nm .sel, .hist-list > li > .sel, .maint-row > .sel { width: 20px; height: 20px; flex: none; margin-right: 8px; accent-color: var(--pine); }
 .shop-chk { display: flex; align-items: center; min-height: 44px; padding: 0 4px; } .shop-chk .sel { width: 20px; height: 20px; accent-color: var(--pine); }
 .is-pick { cursor: pointer; }
+/* 编辑页顶部的「取消 / 保存」（core/top-actions.js）：粘在顶栏下面，取消靠左、保存靠右 */
+.top-actions { position: sticky; top: var(--pin-top, 0px); z-index: 12; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 10px; padding: 8px 0; background: color-mix(in srgb, var(--bg) 94%, transparent); border-bottom: 1px solid var(--line); }
+.top-actions .btn { min-height: 44px; min-width: 88px; justify-content: center; }
+.top-actions .ta-save { margin-left: auto; }

@@ -100,7 +100,7 @@ function maintSectionHtml(a, focusLog, { K, R, veh, editLog, e, isInspect, preIt
         <label class="span-2 check-inline"><input type="checkbox" name="diy" ${e.diy ? "checked" : ""}><span>${t("自己动手")}</span></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(e.notes || "")}" placeholder="${t("换了什么、师傅怎么说…")}"></label>
       </div>
-      <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${editLog ? t("保存修改") : t("记一笔")}</button>${editLog ? `<a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?log=1">${t("取消")}</a>` : ""}
+      <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${editLog ? t("保存修改") : t("记一笔")}</button><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?sec=log">${t("取消")}</a>
         <small class="muted">${veh ? t("填了花费会同时记入“车辆”花费统计。") : t("填了花费会同时记入“房屋维护”花费统计。")}</small></div>
     </form>
     <p style="margin-top:10px"><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?sec=log">${t("查看全部记录")} ›</a></p>`;
