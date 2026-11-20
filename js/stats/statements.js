@@ -22,6 +22,8 @@ import { STAT_CATS, statCat } from "./spend-roll.js";
 import { download, toCsv } from "./store-lite.js";
 import { spendExportTab } from "./add-lite.js";
 import { ymd } from "./store-rows-common.js";
+import { pageHead } from "../core/page-head.js";
+import { infoTip } from "../core/info-tip.js";
 
 const hrefOf = (id) => `${href("bills", "statements")}${id === "import" ? "" : `?tab=${id}`}`;
 const R2 = (v) => Math.round(v * 100) / 100;
@@ -107,9 +109,7 @@ function exportBody() {
 
 export function viewStatements() {
   const tab = activeTab(state.route) || "import";
-  return `<section class="section"><div class="section-head"><h2>🏦 ${t("对账单")}</h2></div>
-      <p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("导入银行 / 信用卡对账单（花费和收入一次导入），对账时看花费和收入的全部流水，导出花费、收入和收支差额的报表。")}</p>
-      ${tabBar(STATEMENT_TABS, tab, hrefOf, t("对账单内容"))}</section>
+  return `<section class="section">${pageHead({ icon: "🏦", title: t("对账单"), tabs: STATEMENT_TABS, tab, hrefOf, label: t("对账单内容"), note: infoTip(t("导入银行 / 信用卡对账单（花费和收入一次导入），对账时看花费和收入的全部流水，导出花费、收入和收支差额的报表。"), { align: "start" }) })}</section>
     ${tab === "export" ? exportBody() : tab === "all" ? `<section class="section" id="stmtAll">${allTab()}</section>` : bankImportTab()}`;
 }
 

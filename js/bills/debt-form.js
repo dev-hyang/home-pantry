@@ -15,6 +15,7 @@ import { t } from "../core/i18n.js";
 import { tabBar } from "../core/hub.js";
 import { tabHref, ui, vehicles } from "./debt-common.js";
 import { debtsEnriched } from "./debt-logic-common.js";
+import { pageHead } from "../core/page-head.js";
 
 /* ───────────── 新建 / 编辑 ───────────── */
 /** 银行的 Escrow 计划：每行 从哪个月起 + 每期金额（已有的几行 + 两行空的） */
@@ -84,7 +85,7 @@ export function viewDebts() {
     if (q.get("at") === "rec") requestAnimationFrame(() => { const el = document.getElementById("debt-recs"); if (el) { el.scrollIntoView({ block: "start" }); el.focus({ preventScroll: true }); } });
   }
   return `<section class="section debt-page">
-    ${tabBar(DEBT_TABS, tab, tabHref, t("借贷内容"))}
+    ${pageHead({ title: t("借贷"), tabs: DEBT_TABS, tab, hrefOf: tabHref, label: t("借贷内容") })}
     ${tabPage(tab, all)}
   </section>`;
 }

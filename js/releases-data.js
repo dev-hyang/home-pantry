@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.33", title: { zh: "花费、预算、借贷、对账单：页头和导航卡片和收入页统一", en: "Spending, Budget, Loans and Statements: same header and navigation cards as Income" }, items: [
+    { k: "better", zh: "这四页的页头统一成「标题 · 当前页签」+ 眼睛 + 右上角 ⋯，页签改成导航小卡片（和储藏页、收入页一样），次要页签和页面自己的操作（预算的打印）收进 ⋯", en: "These four pages now share one header: Title · current tab, the eye, and a ⋯ menu; tabs are navigation cards like Pantry and Income, and secondary tabs and page actions (Budget print) live in ⋯" },
+    { k: "better", zh: "花费的「记一笔花费」改成右下角圆形 ＋；对账单页顶上那段说明收进标题旁的 ⓘ", en: "Log spending is now a round + button at the bottom right; the Statements description moved into an ⓘ next to the title" }
+  ] },
+
   { v: "2026-11-19.32", title: { zh: "收入页重新整理：导航小卡片、眼睛挪到标题旁、右下角 ＋ 记一笔收入", en: "Income page reorganized: navigation cards, the eye next to the title, a + button to log income" }, items: [
     { k: "better", zh: "页头是「收入 · 当前页签」，眼睛紧跟在标题后面；右上角 ⋯ 里放导出打印、预算与计划，明细页里的多选删除、打印、导出 CSV 也收进这里", en: "The header reads Income · current tab with the eye right after it; the ⋯ menu holds Export & print, Budget & plan, and on Details the multi-select delete, print and CSV export" },
     { k: "better", zh: "原来的页签下拉改成导航小卡片（和储藏页一样），手机上 3 × 2；记一笔收入改成右下角圆形 ＋", en: "The tab dropdown became navigation cards like the Pantry page (3 × 2 on phones); Log income is now a round + button at the bottom right" },

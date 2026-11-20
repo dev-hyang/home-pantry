@@ -12,6 +12,7 @@ import { tabBar, tabHub } from "../core/hub.js";
 import { perWord, rangeMonths, trendHead, trendPeriods } from "../stats/spend-roll.js";
 import { dq, hitAttrs } from "../stats/spend-drill.js";
 import { timeBarHtml } from "../stats/add-lite.js";
+import { pageHead } from "../core/page-head.js";
 
 /* ───────────── 页面 ───────────── */
 const bar = (spent, budget, pace) => {
@@ -137,8 +138,7 @@ export function viewBudget() {
   };
   return `
     <section class="section">
-      <div class="section-head"><h2>${t("预算")}</h2><div class="head-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="print-run" data-kind="budget">${t("打印")}</button></div></div>
-      ${tabBar(BUDGET_TABS, tab, budgetHref, t("预算内容"))}
+      ${pageHead({ title: t("预算"), tabs: BUDGET_TABS, tab, hrefOf: budgetHref, label: t("预算内容"), menu: [{ label: t("打印"), action: "print-run", data: { kind: "budget" } }] })}
     </section>
     ${tabs[tab]()}`;
 }

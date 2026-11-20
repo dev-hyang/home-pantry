@@ -20,6 +20,7 @@ import { propertyOptions, spendExportTab, timeBarHtml } from "./add-lite.js";
 import { activeProps } from "./add-lite-common.js";
 import { spendRecordsHtml } from "./spend-records.js";
 import { lastStore, storeDatalist } from "./store-lite.js";
+import { pageHead } from "../core/page-head.js";
 export { activeProps } from "./add-lite-common.js";
 export { propertyOptions, rangeLabel, spendExportTab, timeBarHtml } from "./add-lite.js";
 
@@ -72,10 +73,10 @@ export function viewSpend() {
   }[tab]();
   return `
     <section class="section">
-      <div class="section-head"><h2>${t("花费")}</h2><div class="head-acts">${onSpendPage ? `<a class="btn btn-primary btn-sm" href="${href("bills", "spend")}?tab=records&add=1">${t("记一笔花费")}</a>` : ""}</div></div>
-      ${onSpendPage ? tabBar(SPEND_TABS, tab, spendHref, t("花费内容")) : ""}
+      ${onSpendPage ? pageHead({ title: t("花费"), tabs: SPEND_TABS, tab, hrefOf: spendHref, label: t("花费内容") }) : `<div class="section-head"><h2>${t("花费")}</h2></div>`}
       ${ranged ? timeBarHtml(tab) : ""}
       ${body}
+      ${onSpendPage ? `<a class="fab" href="${href("bills", "spend")}?tab=records&add=1" aria-label="${esc(t("记一笔花费"))}" title="${esc(t("记一笔花费"))}">＋</a>` : ""}
     </section>`;
 }
 export function viewUsage() {

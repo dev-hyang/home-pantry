@@ -4252,3 +4252,4 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .ix-timebar { margin: 0 0 12px; }
 .section-head:has(> .sh-title) { flex-wrap: nowrap; align-items: center; } .section-head > .sh-title { flex: 1 1 0; }   /* 标题 + 眼睛占不满一行时 ⋯ 也留在同一行；标题自己换行 */
 .section-head > .head-acts { flex: none; }
+@media (max-width: 640px) { .pnav-tabs[data-n="4"] .pnav-card { flex-basis: calc(50% - 6px); } }   /* 4 张：手机 2 × 2；3 张 / 5 张 / 6 张：每行 3 张 */
