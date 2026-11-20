@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.26", title: { zh: "视图切换配色", en: "View switch colour" }, items: [
+    { k: "better", zh: "视图切换按钮改成和页面导航卡片同一个主题绿色，不再是黑白", en: "The view switch now uses the same theme green as the page navigation cards instead of black and white" },
+  ] },
+
   { v: "2026-11-20.25", title: { zh: "视图切换换成深色按钮", en: "Dark pill view switch" }, items: [
     { k: "better", zh: "所有「视图」切换：深色圆角按钮「[切换图标] 视图名」，只显示名称，不再带各视图自己的小图标；点开选择，选完收起", en: "All view switches are now a dark rounded button with a switch icon and the view name only; tap to open, pick, and it collapses" },
   ] },
