@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.40", title: { zh: "周期性账单首页的缴费记录，行和「全部缴费记录」一样", en: "Payment records on a recurring bill's home page use the same rows as the full list" }, items: [
+    { k: "better", zh: "账单首页缴费记录里的每一行：点一下进编辑页，⋯ / 长按有编辑、复制、删除，样子和「全部缴费记录」里的行一致", en: "Each row in the payment records section now opens its edit page on tap, with Edit / Copy / Delete in ⋯ or long-press, matching the full list" }
+  ] },
+
   { v: "2026-11-19.39", title: { zh: "添加账单页分成「自动创建」和「手工创建」两块", en: "Add bill page split into Create automatically and Create manually" }, items: [
     { k: "better", zh: "自动创建在前：AI 扫描（带按钮和介绍）、常用账单模板；手工创建在后：周期性账单（分步）、一次性账单（分步）、一次填完（整页）；每个入口一整行卡片", en: "Create automatically comes first (AI scan with its button and intro, common bill templates), then Create manually (recurring step by step, one-time step by step, one page); each option is a full-width row card" }
   ] },

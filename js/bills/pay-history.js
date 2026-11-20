@@ -36,7 +36,7 @@ function visible(b) {
   return list.sort(by);
 }
 
-function rowHtml(b, p) {
+export function rowHtml(b, p) {
   const skipped = p.status === "skipped", edit = `${href("bill", b.id)}?sec=pay&edit=${encodeURIComponent(p.id)}`;
   const sub = [p.unit_amount != null ? `${t("单元费")} ${mny(p.unit_amount, p.currency)} · ${t("车位费")} ${mny(p.parking_amount, p.currency)}` : null, p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null,
     num(p.assessment_amount) ? t("摊派 {m}", { m: mny(p.assessment_amount, p.currency) }) : null, num(p.fee_amount) ? t("手续费 {m}", { m: mny(p.fee_amount, p.currency) }) : null, num(p.tax_amount) ? t("税 {m}", { m: mny(p.tax_amount, p.currency) }) : null,

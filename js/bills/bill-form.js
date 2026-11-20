@@ -15,7 +15,7 @@ import { copyOf } from "../core/more-menu.js";
 import { crumbNav } from "../core/hub.js";
 import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
-import { olderPayment, payHistoryPage } from "./pay-history.js";
+import { olderPayment, payHistoryPage, rowHtml as payRow } from "./pay-history.js";
 import { payExpNote } from "./bill-save.js";
 import { payTotal } from "./pay-total.js";
 import { propertyActive } from "../core/lifecycle.js";
@@ -169,12 +169,11 @@ const BILL_SECTIONS = [
 /** 账单枢纽页：摘要 + 各块完成度 + 缴费记录入口 + 删除 */
 function billHub(b, root) {
   const base = href("bill", b.id);
-  const recent = b.pays.slice(0, 6).map((p) => `<li><span class="badge ${p.status === "skipped" ? "" : "b-ok"}" ${p.status === "skipped" ? 'style="background:var(--surface-2)"' : ""}>${t(B().PAYMENT_STATUS[p.status] || p.status)}</span>
-      <div class="grow">${esc(fmtDate(p.paid_on))}<small>${[p.due_on && p.due_on !== p.paid_on ? t("到期 {d}", { d: fmtDate(p.due_on) }) : null, paymentPayLabel(p)].filter(Boolean).map(esc).join(" · ")}</small></div><b>${p.amount != null && p.status !== "skipped" ? mny(payTotal(p), p.currency) : ""}</b></li>`).join("");
+  const recent = b.pays.slice(0, 6).map((p) => payRow(b, p)).join("");   // 和「全部缴费记录」同一种行：点一下编辑，⋯ / 长按有 编辑、复制、删除
   const payCard = `<section class="panel prof-card" aria-labelledby="bc-pay">
       <header class="prof-head"><span class="mi" aria-hidden="true">✅</span><div class="prof-t"><h3 id="bc-pay">${t("缴费记录")}</h3><small>${b.pays.length ? t("{n} 条，最近 {d}", { n: b.pays.length, d: fmtDate(b.pays[0].paid_on) }) : t("还没有记录")}</small></div>
         <a class="btn btn-sm btn-ghost prof-edit" href="${b.pays.length ? `${base}?sec=pay` : `${base}?pay=1`}" aria-label="${esc(t("缴费记录"))}">${b.pays.length ? t("全部") : t("记一笔")}</a></header>
-      ${recent ? `<ul class="restock-list">${recent}</ul>` : `<p class="muted prof-empty">${t("还没有记录")}</p>`}</section>`;
+      ${recent ? `<ul class="restock-list pay-list">${recent}</ul>` : `<p class="muted prof-empty">${t("还没有记录")}</p>`}</section>`;
   const asList = assessmentsOf(b.id, state.assess, state.assessItems), cur = b.currency;
   const assessCard = asList.length || b.category === "hoa" ? `<section class="panel prof-card" aria-labelledby="bc-as">
       <header class="prof-head"><span class="mi" aria-hidden="true">📣</span><div class="prof-t"><h3 id="bc-as">${t("特别摊派")}</h3><small>${asList.length ? t("{n} 笔，剩余 {m}", { n: asList.length, m: mny(asList.reduce((s, x) => s + x.remaining, 0), cur) }) : t("没有")}</small></div>
