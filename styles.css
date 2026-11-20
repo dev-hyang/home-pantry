@@ -2326,8 +2326,8 @@ a.kpi { color: inherit; text-decoration: none; display: block; }
 .dd-calib-res .form-actions { flex-wrap: wrap; }
 .dd-calib-res .btn { min-height: 44px; }
 @media (max-width: 640px) {
-  .dd-head { grid-template-columns: minmax(0, 1fr); }
-  .dd-edit-btn { grid-column: 1; grid-row: auto; justify-self: start; }
+  .dd-head { grid-template-columns: minmax(0, 1fr) auto; }
+  .dd-edit-btn { grid-column: 2; grid-row: 1 / span 2; }
   .dd-title h2 { font-size: 20px; }
   /* 逐期表：一期一张卡片（标签在数值上面），不横向滚动 */
   .dd-pay-wrap { overflow: visible; }
@@ -4288,3 +4288,4 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .oh-line > span:first-child { flex: 0 0 auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
 .oh-val { min-width: 0; text-align: right; overflow-wrap: anywhere; }
 .oh-val .badge { margin-left: 4px; }
+.dd-edit-btn { min-height: 0; }   /* 借贷详情页头：编辑 / 记一笔还款 / 删除收进 ⋯ */

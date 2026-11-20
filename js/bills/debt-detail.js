@@ -7,6 +7,7 @@ import { debt060, debtHref, paymentTable } from "./debt-logic.js";
 import { debtForm } from "./debt-form.js";
 import { esc, fmtDate, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
+import { moreMenu } from "../core/more-menu.js";
 import { recordsList } from "./debt-records.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
@@ -110,7 +111,8 @@ function headHtml(e) {
   return `<header class="dd-head">
     <div class="dd-title"><h2>${esc(who)}</h2><span class="dd-badges">${personal ? "" : catBadge(e)}${statusBadge(e)}</span></div>
     <p class="dd-sub">${sub.filter(Boolean).join(`<span aria-hidden="true"> · </span>`)}</p>
-    <a class="btn btn-sm btn-ghost dd-edit-btn" href="${esc(debtHref(e.id, "&edit=1"))}">${t("编辑")}<span class="sr-only"> ${esc(who)}</span></a>
+    <div class="dd-edit-btn">${moreMenu([{ label: t("编辑"), href: debtHref(e.id, "&edit=1"), first: true }, personal ? { label: t("记一笔还款"), data: { debt: "rec-open", id: e.id } } : null,
+      { label: t("删除"), data: { debt: "delete", id: e.id }, danger: true }].filter(Boolean), { label: `${who} · ${t("更多操作")}` })}</div>
   </header>`;
 }
 function personalDetail(e) {
@@ -125,10 +127,9 @@ function personalDetail(e) {
     </div>
     ${e.notes ? `<p class="muted dd-notes">${esc(e.notes)}</p>` : ""}
     <div class="section-head dd-sec"><h2>${t("还款记录")}</h2><div class="head-acts"><small class="muted">${t("{n} 条", { n })}</small>
-      <button type="button" class="btn btn-sm ${open ? "btn-ghost" : "btn-primary"}" data-debt="rec-open" data-id="${esc(e.id)}" aria-expanded="${open}" aria-controls="dd-rec-form">${open ? t("收起") : `＋ ${t("记一笔还款")}`}</button></div></div>
+      ${open || !n ? `<button type="button" class="btn btn-sm ${open ? "btn-ghost" : "btn-primary"}" data-debt="rec-open" data-id="${esc(e.id)}" aria-expanded="${open}" aria-controls="dd-rec-form">${open ? t("收起") : `＋ ${t("记一笔还款")}`}</button>` : ""}</div></div>
     ${open ? `<div class="panel dd-rec-form" id="dd-rec-form">${recordForm(e)}</div>` : ""}
     <div class="panel">${recordsList(`p-${e.id}`, { txns: () => e.txns, empty: t("还没有记录") })}</div>
-    <p class="dd-foot"><button type="button" class="btn btn-sm btn-ghost" data-debt="delete" data-id="${esc(e.id)}">${t("删除这笔借贷")}</button></p>
   </section>`;
 }
 export function detail(id) {
@@ -159,7 +160,6 @@ export function detail(id) {
     ${fold(t("用对账单校准"), t("核对第几期、本金和利息是否逐分一致"), calibrateHtml(e), { open: ui().calib?.id === e.id })}
     ${fold(t("额外还本金"), t("不和月供一起付的"), recordForm(e))}
     ${fold(t("关联账单和资产"), "", linkPanel(e), { open: !e.bill })}
-    <p class="dd-foot"><button type="button" class="btn btn-sm btn-ghost" data-debt="delete" data-id="${esc(e.id)}">${t("删除这笔借贷")}</button></p>
   </section>`;
 }
 /** 不挂缴费的流水（额外还本、放款、调整） */
