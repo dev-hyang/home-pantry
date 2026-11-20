@@ -18,6 +18,7 @@ import { lang, t } from "../core/i18n.js";
 import { olderPayment, payHistoryPage, rowHtml as payRow } from "./pay-history.js";
 import { payExpNote } from "./bill-save.js";
 import { payTotal } from "./pay-total.js";
+import { payDetailPage } from "./pay-detail-page.js";
 import { propertyActive } from "../core/lifecycle.js";
 import { state } from "../core/state.js";
 import { viewBillWizard } from "./wizard-views.js";
@@ -75,6 +76,7 @@ export function viewBillForm() {
   }
   if (b && sec === "pay") {   // 缴费记录：?sec=pay = 全部记录（搜索 / 筛选）；?sec=pay&edit=id 或 ?pay=1 = 独立的编辑 / 新建页
     const editId = r.q.get("edit"), copyId = r.q.get("copy"), listHref = `${hubHref}?sec=pay`;
+    if (r.q.get("view")) { const vid = r.q.get("view"); return payDetailPage(b, b.pays.find((x) => x.id === vid) || olderPayment(vid), billTrail(b, root, hubHref), listHref); }   // 缴费记录详情（只读，分块）
     if (editId || copyId || r.q.get("pay") === "1") {
       const src = editId || copyId ? b.pays.find((x) => x.id === (editId || copyId)) || olderPayment(editId || copyId) : null;
       const edit = editId ? src : null;

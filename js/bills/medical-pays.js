@@ -7,6 +7,9 @@ import { t } from "../core/i18n.js";
 import { billScopeParts } from "./trail.js";
 import { detailHref, subIcon } from "./medical.js";
 import { accountOptions, acctById, paymentPayLabel } from "./card-picker.js";
+import { bulkBar, bulkCheck, bulkMenuItem, bulkOn, bulkRegister } from "../core/bulk-select.js";
+import { dtBlock, dtRow } from "../core/detail-ui.js";
+import { deleteMedPay } from "../app/lazy-modules.js";
 
 const mny = (v, c) => (v == null ? "—" : Units.money(num(v), c || Units.region.currency));
 const d = (x) => esc(x ?? "");
@@ -19,16 +22,31 @@ const methodOptions = (edit) => { const cur = edit?.card_id && acctById(edit.car
 /** 一行缴费：日期（点一下编辑）+ 方式 / 确认号 / 备注 + 金额；电脑右键、手机长按有 编辑、复制、删除 */
 function payRow(b, p) {
   const edit = `${detailHref(b.id)}?pay=${encodeURIComponent(p.id)}`, refund = num(p.amount) < 0;
-  const items = [{ label: t("编辑"), href: edit, first: true }, { label: t("复制"), href: `${detailHref(b.id)}?pay=new&copy=${encodeURIComponent(p.id)}` }, { label: t("删除"), action: "med-pay-del", data: { id: p.id }, danger: true }];
+  const items = [{ label: t("详情"), href: `${detailHref(b.id)}?payview=${encodeURIComponent(p.id)}`, first: true }, { label: t("编辑"), href: edit }, { label: t("复制"), href: `${detailHref(b.id)}?pay=new&copy=${encodeURIComponent(p.id)}` }, { label: t("删除"), action: "med-pay-del", data: { id: p.id }, danger: true }, bulkMenuItem("medpay", p.id)];
   const badge = `<span class="badge ${refund ? "b-low" : "b-ok"}">${esc(t(refund ? "退款" : "已缴费"))}</span>`;
-  return payRowHtml({ edit, hitTitle: t("点一下编辑"), body: payBody({ date: fmtDate(p.paid_on), badge, meta: [paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null].filter(Boolean).map(esc), note: p.notes ? esc(p.notes) : "" }),
+  return payRowHtml({ pick: bulkOn("medpay") ? bulkCheck("medpay", p.id) : "", edit, hitTitle: t("点一下编辑"), body: payBody({ date: fmtDate(p.paid_on), badge, meta: [paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null].filter(Boolean).map(esc), note: p.notes ? esc(p.notes) : "" }),
     total: `<b class="pay-total${refund ? " ot-neg" : ""}" title="${esc(t("金额"))}">${mny(p.amount, p.currency || b.currency)}</b>`, items, lpTitle: fmtDate(p.paid_on), swipe: "med-pay", del: { action: "med-pay-del", id: p.id, label: t("删除") }, delLabel: t("删除这条记录") });
+}
+
+let lastBill = null;   // 多选删除要知道当前账单有哪些缴费
+bulkRegister("medpay", { ids: () => (lastBill?.pays || []).map((p) => p.id), del: (id) => deleteMedPay(id) });
+
+/** 缴费详情页（?payview=<id>）：只读，分块，每块右上角「编辑」 */
+export function medPayDetail(b, p) {
+  const crumb = (label) => crumbNav([...billScopeParts(b, "onetime"), { href: detailHref(b.id), label: b.provider, icon: subIcon(b) }, { label }]);
+  if (!p) return `<section class="section">${crumb(t("详情"))}<div class="panel empty"><strong>${t("找不到这笔记录")}</strong><p><a class="btn btn-sm" href="${esc(detailHref(b.id))}">${t("回到账单")}</a></p></div></section>`;
+  const edit = `${detailHref(b.id)}?pay=${encodeURIComponent(p.id)}`, refund = num(p.amount) < 0;
+  return `<section class="section">${crumb(fmtDate(p.paid_on))}<div class="section-head"><h2>${esc(fmtDate(p.paid_on))}</h2><p>${esc(b.provider)}</p></div>
+    ${dtBlock(t("缴费"), edit, [dtRow(t("缴费日期"), esc(fmtDate(p.paid_on))), dtRow(t("金额"), `${refund ? `<span class="badge b-low">${t("退款")}</span> ` : ""}${esc(mny(p.amount, p.currency || b.currency))}`)])}
+    ${dtBlock(t("付款"), edit, [dtRow(t("付款方式 / 账户"), esc(paymentPayLabel(p) || "")), dtRow(t("确认号"), esc(p.confirmation_ref || ""))])}
+    ${dtBlock(t("备注"), edit, [dtRow(t("备注"), esc(p.notes || ""))])}</section>`;
 }
 
 /** 首页的缴费记录区：有记录 = 列表；没有 = 提示 + 「记一笔缴费」按钮（页面上唯一的这个按钮；有记录后从卡片 ⋯ → 缴费进） */
 export function paymentsSection(b) {
   const sum = b.owed == null ? t("还没填自付金额或总额，余额未知") : t("自付 {o} · 已付 {p} · 余额 {b}", { o: mny(b.owed, b.currency), p: mny(b.paid, b.currency), b: mny(b.balance, b.currency) });
-  const body = b.pays.length ? `<ul class="restock-list pay-list">${b.pays.map((p) => payRow(b, p)).join("")}</ul>`
+  lastBill = b;
+  const body = b.pays.length ? `${bulkBar("medpay")}<ul class="restock-list pay-list">${b.pays.map((p) => payRow(b, p)).join("")}</ul>`
     : `<div class="empty"><strong>${t("还没有缴费记录")}</strong><p><a class="btn btn-primary" href="${detailHref(b.id)}?pay=new">${t("记一笔缴费")}</a></p></div>`;
   return `<div class="section-head"><h2>${t("缴费记录")}</h2><p>${esc(sum)}</p></div>
     <div class="panel">${body}</div>`;

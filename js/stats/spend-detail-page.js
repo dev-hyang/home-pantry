@@ -5,15 +5,14 @@ import { state } from "../core/state.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { crumbNav } from "../core/hub.js";
+import { dtBlock, dtRow } from "../core/detail-ui.js";
 import { defaultNature, isTransfer, leafLabel, natureName } from "../core/taxonomy.js";
 import { memberName } from "../core/logic.js";
 import { paymentPayLabel } from "../bills/card-picker.js";
 import { storeOf } from "./store-lite.js";
 import { findRow, spendRecordsHref } from "./spend-form-page.js";
 
-const dash = '<span class="muted">—</span>';
-const row = (label, val) => `<div class="dt-row"><dt>${esc(label)}</dt><dd>${val || dash}</dd></div>`;
-const block = (title, editHref, rows) => `<section class="panel dt-block"><div class="dt-head"><h3>${esc(title)}</h3>${editHref ? `<a class="btn btn-sm btn-ghost" href="${esc(editHref)}">${t("编辑")}</a>` : ""}</div><dl class="dt-list">${rows.join("")}</dl></section>`;
+const row = dtRow, block = dtBlock;
 
 /** 路由参数：?view=<id> → { id }，否则 null */
 export const spendViewParams = (q) => (q?.get("view") ? { id: q.get("view") } : null);

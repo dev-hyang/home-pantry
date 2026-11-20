@@ -10,6 +10,8 @@ import { t } from "../core/i18n.js";
 import { payTotal } from "./pay-total.js";
 import { paymentPayLabel } from "./card-picker.js";
 import { changed, clearFiltersBtn, onClearFilters } from "../core/clear-filters.js";
+import { bulkBar, bulkCheck, bulkMenuItem, bulkOn, bulkRegister } from "../core/bulk-select.js";
+import { deleteBillPay } from "../app/lazy-modules.js";
 
 const B = () => window.BILLS;
 const mny = (v, cur) => (v == null ? "—" : Units.money(num(v), cur || Units.region.currency));
@@ -43,18 +45,19 @@ export function rowHtml(b, p) {
     num(p.late_fee) ? t("滞纳金 {m}", { m: mny(p.late_fee, c) }) : null].filter(Boolean).map(esc);
   const badge = `<span class="badge ${skipped ? "" : "b-ok"}" ${skipped ? 'style="background:var(--surface-2)"' : ""}>${esc(t(B().PAYMENT_STATUS[p.status] || p.status))}</span>`;
   // 这一笔的更多操作：电脑右键 / 手机长按（同一份菜单）
-  const items = [{ label: t("编辑"), href: edit, first: true }, { label: t("复制"), href: `${href("bill", b.id)}?sec=pay&copy=${encodeURIComponent(p.id)}` }, { label: t("删除"), action: "billpay-del", data: { id: p.id }, danger: true }];
-  return payRowHtml({ edit, hitTitle: t("点一下编辑"), body: payBody({ date: fmtDate(p.paid_on), badge, meta, amounts, note: p.notes ? esc(p.notes) : "" }),
+  const items = [{ label: t("详情"), href: `${href("bill", b.id)}?sec=pay&view=${encodeURIComponent(p.id)}`, first: true }, { label: t("编辑"), href: edit }, { label: t("复制"), href: `${href("bill", b.id)}?sec=pay&copy=${encodeURIComponent(p.id)}` }, { label: t("删除"), action: "billpay-del", data: { id: p.id }, danger: true }, bulkMenuItem("billpay", p.id)];
+  return payRowHtml({ pick: bulkOn("billpay") ? bulkCheck("billpay", p.id) : "", edit, hitTitle: t("点一下编辑"), body: payBody({ date: fmtDate(p.paid_on), badge, meta, amounts, note: p.notes ? esc(p.notes) : "" }),
     total: `<b class="pay-total" title="${esc(t("总金额"))}">${p.amount != null && !skipped ? mny(payTotal(p), c) : ""}</b>`, items, lpTitle: fmtDate(p.paid_on), swipe: "bill-pay", del: { action: "billpay-del", id: p.id, label: t("删除") }, delLabel: t("删除这条记录") });
 }
 
 /** 列表区（筛选结果 + 合计）：搜索 / 筛选变了只重画这一块 */
 function listHtml(b) {
+  lastBill = b;
   const all = rowsOf(b), rows = visible(b);
   if (!all.length) return `<div class="empty"><strong>${t("还没有记录")}</strong>${t("点右下角的 ＋ 记第一笔。")}</div>`;
   if (!rows.length) return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个关键词，或点“清除筛选”。")}</div>`;
   const paid = rows.filter((p) => p.status !== "skipped" && p.amount != null).reduce((s, p) => s + payTotal(p), 0), page = rows.slice(0, shown), rest = rows.length - page.length;
-  return `<p class="muted pay-sum">${t("共 {n} 条", { n: rows.length })}${rows.length !== all.length ? ` / ${all.length}` : ""} · ${t("合计 {m}", { m: mny(paid, b.currency) })}</p>
+  return `${bulkBar("billpay")}<p class="muted pay-sum">${t("共 {n} 条", { n: rows.length })}${rows.length !== all.length ? ` / ${all.length}` : ""} · ${t("合计 {m}", { m: mny(paid, b.currency) })}</p>
     <ul class="restock-list pay-list">${page.map((p) => rowHtml(b, p)).join("")}</ul>${rest > 0 ? `<div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="pay-hist-more">${t("加载更多（还有 {n} 条）", { n: rest })}</button></div>` : ""}${older.busy ? `<p class="muted" role="status">${t("正在读取更早的记录…")}</p>` : ""}`;
 }
 const filtered = () => changed(filter, FILTER0);   // 清除筛选用全站统一的按钮（手机上收进筛选面板第一行）；排序不算筛选，但这页原来把它算进去，保持：排序变了也显示清除
@@ -86,6 +89,8 @@ export function payHistoryPage(b, crumb, notice = "") {
   </section>`;
 }
 
+let lastBill = null;   // 多选删除要知道当前账单有哪些记录
+bulkRegister("billpay", { ids: () => (lastBill ? visible(lastBill).map((p) => p.id) : []), del: (id) => deleteBillPay(id) });
 const current = () => { const id = state.route?.id, q = state.route?.q; return state.route?.section === "bill" && q?.get("sec") === "pay" && !q.get("edit") && !q.get("copy") ? state.billsEnriched.find((x) => x.id === id) : null; };
 function redraw(billId) {
   const b = current(); if (!b || b.id !== billId) return;

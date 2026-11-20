@@ -16,7 +16,7 @@ import { applyMedical, reloadMedical } from "./medical-data.js";
 import { accountOptions, acctById, paymentPayLabel } from "./card-picker.js";
 import { lpAttr } from "../core/long-press.js";
 import { medHeadCard } from "./medical-head.js";
-import { medPayPage, paymentsSection } from "./medical-pays.js";
+import { medPayDetail, medPayPage, paymentsSection } from "./medical-pays.js";
 export { applyMedical, medBillLabel, reloadMedical } from "./medical-data.js";
 
 const cur = () => Units.region.currency;
@@ -39,6 +39,7 @@ function viewDetail(id, payId) {
   {   // 新建：默认走 5 步向导；mode=full / copy / 别的应用带来的预填（provider、date、patient、note）→ 原整页表单
     const q0 = state.route.q;
     if (isNew && q0.get("mode") !== "full" && !q0.get("copy") && !q0.get("provider") && !q0.get("date") && !q0.get("patient") && !q0.get("note")) return viewOneTimeWizard();
+    if (b && q0.get("payview")) return medPayDetail(b, b.pays.find((p) => p.id === q0.get("payview")) || null);   // ?payview=<缴费 id>：缴费详情（只读，分块）
     if (b && payId) return medPayPage(b, payId === "new" ? null : b.pays.find((p) => p.id === payId) || null, q0.get("copy") ? b.pays.find((p) => p.id === q0.get("copy")) || null : null);   // ?pay=new | <缴费 id>（&copy=<缴费 id>）：缴费的独立页
     if (b && q0.get("sec") === "detail") return medDetailPage(b);
     if (b && !q0.get("sec")) return medCardsPage(b);
