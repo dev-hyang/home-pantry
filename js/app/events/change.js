@@ -185,7 +185,7 @@ export async function onMainChange(e) {
   if (e.target.id === "statsRange") { setSharedRange(e.target.value); render(); }   // 财务统一的时间范围（js/core/time-range.js）：花费、预算趋势、收入共用
   if (e.target.dataset?.spendC) { const f = state.spendFilter; f.range = customChanged(f.range, e.target.dataset.spendC, e.target.value); f.months = null; f.dmax = null; renderSpendRecords(); renderSpendList(); }   // 明细的自定义起止月份
   if (e.target.dataset?.finC) { setSharedRange(customChanged(state.stats.months, e.target.dataset.finC, e.target.value)); render(); }   // 自定义的起止月份
-  if (e.target.id === "finUnit") { setFinUnit(e.target.value); render(); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（数据库按月聚合，往年也一样）
+  if (e.target.id === "finUnit" || e.target.dataset?.finUnit !== undefined) { setFinUnit(e.target.value); render(); }   // 花费 / 预算趋势的时间范围：近 N 个月 / 某一年（数据库按月聚合，往年也一样）
   if (e.target.id === "statsMonth") { state.stats.month = e.target.value; render(); }
   if (e.target.id === "statsItem") { state.stats.itemId = e.target.value; render(); }
   if (e.target.id === "hhSwitch") { localStorage.setItem("hmh-hid", e.target.value); location.reload(); }

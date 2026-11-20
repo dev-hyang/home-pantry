@@ -10,7 +10,6 @@ import { recordRow, repayPanel } from "./records-tab.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { tabHub } from "../core/hub.js";
-import { unitSelectHtml } from "../core/time-range.js";
 import { BLUE, DRILL_HINT, GREEN, GROUPED_MAX, R2, RED, SLATE, TEAL, cur, empty, fmtMoney, incDrill, incomeHref, netWorthCard, pctOf, personOptions, rate } from "./shared.js";
 import { trendHead, trendPeriods } from "../stats/spend-roll.js";
 import { dq, hitAttrs } from "../stats/spend-drill.js";
@@ -28,7 +27,7 @@ export const OV = () => {
 const kpiS = (label, val, small = "", drill = "") => `<div class="kpi${drill ? " ch-hit-row" : ""}"${hitAttrs(drill, label)}><span>${esc(label)}</span><b>${val}</b>${small}</div>`;
 const changeHtml = (now, before) => (before > 0 ? `<small class="${now >= before ? "gain" : "loss"}">${now >= before ? t("比上期多 {p}%", { p: Math.round(((now - before) / before) * 100) }) : t("比上期少 {p}%", { p: Math.round(((before - now) / before) * 100) })}</small>` : `<small>${t("上期没有收入")}</small>`);
 export const senderLabel = (x) => x.rows.find((r) => r.source_name)?.source_name || x.key;
-export const ovBar = (O, { keys = null, unit = null } = {}) => filterToolbar(`${sharedRangeHtml()}${unit ? unitSelectHtml(unit) : ""}
+export const ovBar = (O, { keys = null } = {}) => filterToolbar(`${sharedRangeHtml()}
   <label class="tb-field"><span>${t("谁的")}</span><select data-inc-ov="person" data-nosearch>${personOptions(O.person, { all: true })}</select></label>
   ${keys ? `<label class="tb-field"><span>${t("月份")}</span><select data-inc-ov="month" data-nosearch><option value="">${t("整段（{r}）", { r: spanLabel(O.range) })}</option>${[...keys].reverse().map((k) => `<option value="${k}" ${k === O.month ? "selected" : ""}>${esc(periodLabel(k, "month"))}</option>`).join("")}</select></label>` : ""}`);
 /** 付款方排行：名字 + 金额 + 占比条 */
@@ -66,7 +65,7 @@ export function overviewTab() {
   if (!I.rec.length) return empty();
   const { w, months, trend, span } = ovMonths(O), all = O.person === "all";
   const ir = roll("inc", span.from, span.to), sr = all ? roll("spend", span.from, span.to) : [];
-  if (!ir || !sr) return `${ovBar(O, { unit: trend })}<p class="muted" role="status">${t("加载中…")}</p>`;
+  if (!ir || !sr) return `${ovBar(O)}<p class="muted" role="status">${t("加载中…")}</p>`;
   const IA = incAggregate(ir, months, { cur: cur(), person: O.person }), SA = all ? aggregate(sr, months, { cur: cur() }) : null, F = householdFlow(IA, SA, months);
   const pw = spanPrev(O.range), before = pw ? incSumOf(incomeIn(pw.from, pw.to, O.person)) : 0, allDrill = incDrill({ ...w, person: O.person, ex: 1 });
   const spW = String(O.range).startsWith("y:") ? { year: String(O.range).slice(2) } : months.length === 1 ? { month: months[0] } : O.range === "all" ? {} : { mlist: months.join(",") };
@@ -103,7 +102,7 @@ export function overviewTab() {
     <tr><th scope="row"><b>${t("全家合计")}</b></th><td><b>${byP.reduce((a, x) => a + x.n, 0)}</b></td><td><b>${fmtMoney(total)}</b></td><td>100%</td></tr></tbody></table></div></div>` : "";
   const recent = I.rec.filter((r) => personOk(r, O.person)).slice().sort((a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5);
   const recentHtml = recent.length ? `<div class="panel"><div class="chart-head"><h3>${t("最近到账")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("records")}">${t("全部明细")} ›</a></div><ul class="restock-list ix-list">${recent.map(recordRow).join("")}</ul></div>` : "";
-  return `${ovBar(O, { unit: trend })}${kpis}${netWorthCard()}${all ? waterfallHtml(F, spW, esc(incDrill({ kind: "g:capital", ...w, person: O.person }))) : ""}
+  return `${ovBar(O)}${kpis}${netWorthCard()}${all ? waterfallHtml(F, spW, esc(incDrill({ kind: "g:capital", ...w, person: O.person }))) : ""}
     <div class="panel chart-panel">${trendHead(`${t("收入 vs 消费（{r}）", { r: trend.length === months.length ? spanLabel(O.range) : t("近 12 个月") })} · ${TP.title}`, TP)}${trendChart}<p class="muted drill-hint">${asLine ? t("折线 = 认定收入、消费（日常 + 住房）和投资转入。点一个点看对应的明细。") : t("柱子 = 认定收入和消费（日常 + 住房），虚线 = 投资转入。点一下看对应的明细。")}</p></div>
     ${breakdown}<div class="ix-two">${rank}${members}</div>${recentHtml}${repayPanel()}
     ${tabHub(INCOME_TABS, incomeHref, t("其他功能"))}`;

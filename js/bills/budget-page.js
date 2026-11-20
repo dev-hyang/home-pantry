@@ -41,7 +41,7 @@ export function viewBudget() {
   const ser = [BILLS_GROUP, ...budgetGroups(), ...(medInPool() ? [] : [MEDICAL_BUDGET_GROUP])];   // 实际花费：医疗不管计不计入预算都算在里面
   const totals = months.map((m) => ser.reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0));
   // 统一的周期（js/core/time-range.js）：范围长了按季 / 按年；预算、收入按月 × 这一期的月数
-  const TP = trendPeriods(months), per = (v) => TP.agg(months.map(() => v));
+  const TP = trendPeriods(months, { u: "auto" }), per = (v) => TP.agg(months.map(() => v));
   const stacked = Charts.bars({ title: `${t("花费构成（账单 vs 其他）")} · ${TP.title}`, labels: TP.labels, fmt: money, partial: TP.partial,
     series: [{ name: t("账单"), color: BILLS_GROUP.color, values: TP.agg(months.map((m) => abm[m]?.bills || 0)) },
       { name: t("其他花费"), color: "#d4694c", values: TP.agg(months.map((m) => ser.slice(1).reduce((s, g) => s + (abm[m]?.[g.id] || 0), 0))) }],
@@ -121,8 +121,8 @@ export function viewBudget() {
     trend: () => `
     <section class="section">
       <div class="section-head"><h2>${t("预算 vs 实际")}</h2></div>
-      ${timeBarHtml(null, { unitMonths: months })}   <!-- 和花费页同一个时间条、同一个范围值、同一个周期 -->
-      <div class="panel chart-panel">${trendHead(t("账单和实际花费的关系"), TP)}<p class="muted" style="margin:0 0 6px;font-size:13px">${t("按缴费日记账；年付账单缴费的那个月会特别高，看年度更准。")}</p>${stacked}</div>
+      ${timeBarHtml(null)}   <!-- 和花费页同一个时间条、同一个范围值 -->
+      <div class="panel chart-panel">${trendHead(t("账单和实际花费的关系"), TP, { unit: false })}<p class="muted" style="margin:0 0 6px;font-size:13px">${t("按缴费日记账；年付账单缴费的那个月会特别高，看年度更准。")}</p>${stacked}</div>
       <div class="panel chart-panel"><h3>${TP.unit === "month" ? t("每月：实际 vs 预算 vs 收入") : t("{p}：实际 vs 预算 vs 收入", { p: perWord(TP.unit) })}</h3>${vs}</div>
     </section>
     <section class="section">

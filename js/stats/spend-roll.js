@@ -3,7 +3,7 @@ import { DAY, du, esc, num, toast } from "../core/util.js";
 import { Store } from "../core/store.js";
 import { aggregate, normRow } from "./report.js";
 import { allLeaves, l2IdOf, l2List } from "../core/taxonomy.js";
-import { chartUnit, customHtml, lastByPeriods, periodsOf, rangeMonthsOf, rangeOptionsHtml, sumByPeriods, trendTitle, unitNote, unitSelectHtml } from "../core/time-range.js";
+import { chartUnit, customHtml, lastByPeriods, periodsOf, rangeMonthsOf, rangeOptionsHtml, sumByPeriods, trendTitle, unitNote, unitToggleHtml } from "../core/time-range.js";
 import { comparePlan } from "./spend-drill.js";
 import { lang, t } from "../core/i18n.js";
 import { state } from "../core/state.js";
@@ -74,10 +74,10 @@ export function trendPeriods(months, { u } = {}) {
     agg: (vals) => (unit === "month" ? vals : sumByPeriods(ps, months, vals)), last: (vals) => (unit === "month" ? vals : lastByPeriods(ps, months, vals)),
     when: (i) => (ps[i].months.length === 1 ? { month: ps[i].months[0] } : { mlist: ps[i].months.join(",") }),
     win: (i) => ({ from: `${ps[i].months[0]}-01`, to: endOf(ps[i].months.at(-1)) }),
-    title: trendTitle(unit), note: unitNote(cu) };
+    title: trendTitle(unit), note: unitNote(cu), months };
 }
-/** 走势图面板的标题行：标题 + 退回自动时的一行小字 */
-export const trendHead = (title, TP) => `<h3>${esc(title)}</h3>${TP.note ? `<p class="muted small trend-note" role="status">${esc(TP.note)}</p>` : ""}`;
+/** 走势图面板的标题行：标题 + 右边周期小切换（unit:false 不放，预算页按月）+ 退回自动时的一行小字 */
+export const trendHead = (title, TP, { unit = true } = {}) => `<div class="chart-head"><h3>${esc(title)}</h3>${unit ? unitToggleHtml(TP.months) : ""}</div>${TP.note ? `<p class="muted small trend-note" role="status">${esc(TP.note)}</p>` : ""}`;
 export const PER_TITLE = { month: "每月花了多少", quarter: "每季度花了多少", year: "每年花了多少" };
 export const perWord = (unit) => t({ month: "每月", quarter: "每季度", year: "每年", biweek: "每双周" }[unit] || "每月");
 /** 概览 / 分类 / 速览要用到的全部月份（时间范围 + 对比的前一段 + 趋势），合成一段一次读 */
@@ -130,8 +130,6 @@ export const rangeMonths = (n = state.stats.months) => rangeMonthsOf(n, { first:
 export const rangeChipsHtml = () => `<select id="statsRange" class="range-sel" aria-label="${t("时间范围")}" data-nosearch>${rangeOptionsHtml(state.stats.months, { first: state.stats.firstYear || thisYear() })}</select>`;
 /** 自定义范围的起止月份（选了「自定义…」才有） */
 export const customBar = () => customHtml(state.stats.months, { first: state.stats.firstYear || thisYear(), attr: "data-fin-c" });
-/** 周期下拉（有走势图的页面才有）：自动 / 月 / 季 / 年 */
-export const unitSel = (months = trendMonths()) => unitSelectHtml(months);
 /** 最早有记录的年份：「全部历史」从这一年算起，下拉里的往年选项也到这一年为止。
  *  刷新页面时路由先到、登录 / 家庭还没就绪，这时查询会失败或查不到——以前当成「今年」记住了，全部历史就只剩今年。
  *  现在：没就绪、出错都不记，下次画花费页再查；查到了才记（没有任何花费也记成今年）。 */

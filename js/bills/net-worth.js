@@ -6,7 +6,7 @@ import { href } from "../core/router.js";
 import { financeOk } from "../core/finance-access.js";
 import { ASSET_BUCKETS, LIAB_BUCKETS, growthRows, monthChange, trendPoints } from "../stats/net-worth.js";
 import { aggregate, incAggregate } from "../stats/report.js";
-import { monthsBetween, unitSelectHtml } from "../core/time-range.js";
+import { monthsBetween } from "../core/time-range.js";
 import { incRollupFor } from "../income/rollup.js";
 import { STALE_DAYS, deleteBalance, deleteSnapshot, liveNetWorth, rebuildSnapshot, saveBalance, saveMonthSnapshot, saveValuation, thisMonth, valuationsOf, deleteValuation } from "./nw-logic.js";
 import { debtHref } from "./debt-logic.js";
@@ -82,7 +82,7 @@ function trend(points, range) {
   const chart = pick.length > 1 && window.Charts ? window.Charts.line({ title: `${t("净资产走势")} · ${TP.title}`, labels: TP.labels, fmt: (v) => Units.money(v, cur(), true), partial: TP.partial,   // 纵轴用短格式（$520K），长数字会被截掉
     series: [{ name: t("净资产"), color: "#2c6a57", values: col("nw") }, { name: t("资产"), color: "#3b7fc4", values: col("assets") }, { name: t("负债"), color: "#d4694c", values: col("liabilities") }] })
     : `<p class="muted">${t("每月一个快照：再过一个月就能看到走势。也可以在下面「重建过去某月」补上以前的月份。")}</p>`;
-  return `<div class="panel chart-panel"><div class="chart-head">${trendHead(t("净资产走势"), TP)}<div class="nw-trend-ctl">${chips}${months.length > 1 ? unitSelectHtml(months) : ""}</div></div>${chart}
+  return `<div class="panel chart-panel">${trendHead(t("净资产走势"), TP)}<div class="nw-trend-ctl" style="margin-bottom:8px">${chips}</div>${chart}
     ${TP.unit !== "month" && pick.length > 1 ? `<p class="muted small">${t("按季 / 按年时，每一期取最后一个月的快照（余额不相加）。")}</p>` : ""}
     ${pick.some((p) => p.nw < 0) ? `<p class="muted small">${t("有的月份净资产是负数，图上画在 0 以下；准确数字见图下的表。")}</p>` : ""}</div>`;
 }

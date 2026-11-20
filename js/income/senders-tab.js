@@ -129,7 +129,7 @@ export const R = ({ exp = false } = {}) => {
 export const controlsHtml = (r, cf = null) => {
   return `${filterToolbar(`${unitSelectHtml(r.ms, { biweek: true, nocap: r.exp })}${sharedRangeHtml()}
     <label class="tb-field"><span>${t("谁的")}</span><select data-inc-r="person" data-nosearch>${personOptions(r.person, { all: true })}</select></label>
-    ${cf ? togglesHtml(cf) : ""}`)}${r.cu.fell ? `<p class="muted small trend-note" role="status">${esc(unitNote(r.cu))}</p>` : ""}
+    ${cf ? togglesHtml(cf) : ""}`, "", { withUnit: true })}${r.cu.fell ? `<p class="muted small trend-note" role="status">${esc(unitNote(r.cu))}</p>` : ""}
     ${r.unit === "biweek" ? `<p class="muted small" style="margin:-4px 0 8px">${t("双周起点（每 14 天一个周期，对上你的发薪日）：")}<input type="date" data-inc-anchor value="${esc(cfAnchor())}" aria-label="${esc(t("双周起点"))}"></p>` : ""}`;
 };
 export const spendDonut = (cf) => {

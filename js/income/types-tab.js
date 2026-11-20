@@ -37,7 +37,7 @@ export function categoryTab() {
   const { w, months, span } = ovMonths(O);
   if (O.month && !months.includes(O.month)) O.month = "";
   const cm = months.length > 1 ? months : monthsBetween(iso(new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1)), todayISO());
-  const node = O.node && (INC_L1S.some((g) => g.id === nodeL1(O.node))) ? O.node : "", bar = ovBar(O, { keys: months, unit: cm });
+  const node = O.node && (INC_L1S.some((g) => g.id === nodeL1(O.node))) ? O.node : "", bar = ovBar(O, { keys: months });
   const cspan = spanOfMonths([...months, ...cm]);
   const rows = roll("inc", cspan.from, cspan.to);
   if (!rows) return `${bar}${nodeCrumb(node)}<p class="muted" role="status">${t("加载中…")}</p>`;

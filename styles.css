@@ -4333,3 +4333,6 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .ix-main .name .ix-date { flex: none; color: var(--muted); font-size: 12.5px; font-weight: 400; font-variant-numeric: tabular-nums; }
 .ix-main .name .ix-ico { width: 24px; height: 24px; font-size: 13px; }
 @media (max-width: 640px) { .ix-main .name .ix-ico { width: 22px; height: 22px; font-size: 12px; } }
+/* 图标题行里的周期小切换（和标题同一行，靠右；只管这张图的柱子粗细） */
+.chart-head .unit-tog { width: auto; min-width: 7.5em; max-width: 100%; min-height: 36px; }
+@media (pointer: coarse) { .chart-head .unit-tog { min-height: 44px; } }

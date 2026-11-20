@@ -203,7 +203,7 @@ export function similarIncome(row, ignoreId = null) {
 }
 
 /** 时间范围 / 周期 / 谁的 / 月份这一排：靠右的「筛选」按钮，点开是面板（第一行「筛选」+ 清除筛选，下面是各个下拉）；和花费页的时间条同一个样子 */
-export function filterToolbar(inner, cls = "") {
-  const n = (changed(state.stats, FD.stats, ["months"]) ? 1 : 0) + (finUnit() !== "auto" ? 1 : 0);
+export function filterToolbar(inner, cls = "", { withUnit = false } = {}) {   // withUnit：这一排里有周期下拉（只有收支对比 / 导出页）
+  const n = (changed(state.stats, FD.stats, ["months"]) ? 1 : 0) + (withUnit && finUnit() !== "auto" ? 1 : 0);
   return filterPop(`<div class="fpop-fields">${inner}</div>`, { id: "inc", count: n, clear: clearFiltersBtn("stats", n > 0), cls: `ix-timebar ${cls}` });
 }

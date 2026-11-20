@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.8", title: { zh: "周期挪到图表上", en: "Chart interval moved onto the charts" }, items: [
+    { k: "better", zh: "花费、收入、净资产的走势图：「自动 / 月 / 季 / 年」切换现在在图的标题行右边，筛选条里不再有「周期」", en: "Spending, income and net-worth trend charts now have an Auto / Month / Quarter / Year switch in their title row; the filter bar no longer has Interval" },
+    { k: "better", zh: "筛选数字和「清除筛选」只算真正过滤数据的条件；预算页固定按月", en: "The filter count and Clear filters only count real filters; the budget page is always monthly" },
+  ] },
+
   { v: "2026-11-20.7", title: { zh: "收入明细：点一行进详情", en: "Income records: tap a row for details" }, items: [
     { k: "better", zh: "收入明细每一行：第一行是「日期 图标 名字」，点一行直接进详情，不再在当前页展开表单", en: "Income rows now read \"date, icon, name\"; tapping a row opens its detail page instead of an inline form" },
     { k: "new", zh: "收入详情页：分块显示，每块有自己的「编辑」；借款的还款也在详情里记", en: "Income detail page with its own Edit button per section; loan repayments are recorded there too" },

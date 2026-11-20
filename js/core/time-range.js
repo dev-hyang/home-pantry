@@ -2,7 +2,7 @@
  * 花费（概览 / 分类 / 收款方 / 预算趋势）和收入（收支总览 / 类型 / 付款方 / 收支对比 / 导出）共用一个时间范围，存在本机，切页面不丢。
  * 口径一律按日历月（含本月）。值：
  *   m 本月 · pm 上月 · 3 / 6 / 12 近 N 个月 · y:YYYY 某一年（今年到本月为止）· 3y / 5y 近 3 / 5 年 · all 全部历史 · c:YYYY-MM:YYYY-MM 自定义（按月）
- * 周期（有走势图的页面，2026-11 统一）：auto / month / quarter / year（收支对比另有 biweek 双周），存在本机、各页共用。
+ * 周期（有走势图的页面，2026-11 统一；2026-11-20 起从筛选条挪到每张图的标题行，收支对比页除外）：auto / month / quarter / year（收支对比另有 biweek 双周），存在本机、各页共用。
  *   规则：一张图最多 24 格（SLOT_CAP）。自动 = 放得下的最细周期（24 个月以内按月，6 年以内按季，再长按年）；
  *   手动选的太密：下拉里那一项灰掉并写明原因，已存的选择这时退回自动，图上提示「按月太密，已改按季」（chartUnit）。
  *   流量（花费、收入、现金流）按周期求和；余额（净资产）取周期里最后一个月（lastByPeriods）。
@@ -146,3 +146,5 @@ export function unitOptionsHtml(cur, months, { biweek = false, nocap = false, ca
 }
 /** 周期下拉（id=finUnit，main.js 统一处理：存本机、重画）；months = 这页走势图的月份 */
 export const unitSelectHtml = (months, opts = {}) => `<label class="tb-field"><span>${t("周期")}</span><select id="finUnit" data-nocount data-nosearch aria-label="${esc(t("周期"))}">${unitOptionsHtml(finUnit({ biweek: !!opts.biweek }), months, opts)}</select></label>`;
+/** 图标题行里的周期小切换（自动 / 月 / 季 / 年）：只管这张图的柱子粗细，不是筛选条件。仍读写同一个本机值（各页的图共用），main 的 change 处理按 data-fin-unit 认它 */
+export const unitToggleHtml = (months, opts = {}) => (months.length > 1 ? `<select class="unit-tog" data-fin-unit data-nocount data-nosearch aria-label="${esc(t("图表周期（按月 / 季 / 年）"))}">${unitOptionsHtml(finUnit(), months, opts)}</select>` : "");
