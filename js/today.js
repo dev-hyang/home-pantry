@@ -172,10 +172,8 @@ function homeCard(fin) {
 function aiBlock() {
   const sub = aiReady() ? (aiQuota().ok ? t("直接问：保养、账单、买卖房、收纳、带娃") : t("免费额度用完了，先用复制提示词")) : t("问家里任何事，复制提示词到任一 AI");
   return `<section class="section"><div class="panel tai"><div class="tai-head"><h3>${aiIcon(20)} ${t("咩咩咩")}</h3><p class="muted">${sub}</p></div>
-      <div class="form-actions tai-acts"><a class="btn btn-primary btn-sm" href="${href("ai")}">${t("问咩咩")}</a>
-        <a class="btn btn-ghost btn-sm" href="${href("pantry", "meals")}?ai=">🍳 ${t("今天吃什么")}</a>
-        <a class="btn btn-ghost btn-sm" href="${href("shopping", "add")}">📝 ${t("加入购物车")}</a>
-        <a class="btn btn-ghost btn-sm" href="${href("pantry", "scan")}">🧾 ${t("录入购物")}</a></div></div></section>`;
+      <div class="form-actions tai-acts"><a class="btn btn-primary btn-sm" href="${href("ai")}">${t("问咩咩")}</a></div>
+      <div class="tai-cards">${[[href("pantry", "meals") + "?ai=", "🍳", t("今天吃什么")], [href("shopping", "add"), "📝", t("加入购物车")], [href("pantry", "scan"), "🧾", t("录入购物")]].map(([h, ic, nm]) => `<a class="tai-card" href="${h}"><span aria-hidden="true">${ic}</span><b>${nm}</b></a>`).join("")}</div></div></div></section>`;
 }
 
 /* ── 快捷操作：每位用户自己的一份（云端存在账号上，换设备也在；演示模式存本机）；编辑模式点格子改成别的、长按拖动排序 ── */

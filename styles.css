@@ -4354,3 +4354,10 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .view-sw .dots3 { margin: 0 9px; }
 .view-sw .act-item[aria-checked="true"] { color: var(--pine); background: var(--surface-2); }
 .head-acts .view-sw > summary { box-sizing: border-box; }
+/* 今日 · 咩咩咩：三个入口做成一行小卡片（图标在上、文字在下，手机上也是一行三个） */
+.tai-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.tai-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 68px; padding: 8px 4px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); color: var(--ink); text-decoration: none; text-align: center; }
+.tai-card span { font-size: 22px; line-height: 1; }
+.tai-card b { font-size: 13px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.tai-card:hover { border-color: var(--pine); }
+.tai-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

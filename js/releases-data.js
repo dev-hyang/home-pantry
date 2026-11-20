@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.15", title: { zh: "今日页：咩咩咩的三个入口", en: "Today: three quick entries under the assistant" }, items: [
+    { k: "better", zh: "今日页「咩咩咩」下面的今天吃什么、加入购物车、录入购物，做成一行三张小卡片（手机上也是一行）", en: "Today page: What to eat, Add to cart and Log shopping are now three small cards in one row, also on phones" },
+  ] },
+
   { v: "2026-11-20.14", title: { zh: "统一的「视图」切换", en: "One shared View switch" }, items: [
     { k: "better", zh: "特价一览、今日待办、历史交易、库存：原来各页并排的一组视图按钮，换成统一的靠右小控件「视图 | 当前 ⋮」，点开选择，选完收起", en: "Weekly deals, Today to-dos, deal history and inventory now share one right-aligned View control: tap to open, pick, and it collapses to the current view" },
   ] },
