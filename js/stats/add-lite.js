@@ -7,6 +7,8 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { viewAnnualExport } from "./spend-stores.js";
 import { activeProps } from "./add-lite-common.js";
+import { filterPop } from "../core/filter-pop.js";
+import { finUnit } from "../core/time-range.js";
 
 /** 房产下拉的选项；空 = 不关联 */
 export const propertyOptions = (sel) => `<option value="" ${!sel ? "selected" : ""}>${t("不关联房产")}</option>${activeProps().map((p) => `<option value="${esc(p.id)}" ${p.id === sel ? "selected" : ""}>${esc(p.name)}</option>`).join("")}`;
@@ -24,16 +26,18 @@ export function spendExportTab() {
 /** 时间条：时间范围 + 月份（分类 / 商店页才有；默认「整段」= 和时间范围一致）+ 排除资本性 / 投资 的开关，放在标签下面、内容上面，一眼能看到。
  *  tab 为空 = 只有时间范围（预算趋势页用，同一个范围值） */
 export function timeBarHtml(tab, { unitMonths = null } = {}) {
-  const clr = clearFiltersBtn("stats", changed(state.stats, FD.stats));
-  if (!tab) return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${customBar()}${unitMonths ? unitSel(unitMonths) : ""}${clr}</div>`;
+  const clr = clearFiltersBtn("stats", changed(state.stats, FD.stats) || finUnit() !== "auto");
+  const n = ["months", "month", "exCap", "exInv"].filter((k) => changed(state.stats, FD.stats, [k])).length + (finUnit() !== "auto" ? 1 : 0);
+  const pop = (inner) => filterPop(`<div class="fpop-fields">${inner}</div>`, { id: "stats", count: n, clear: clr });
+  if (!tab) return pop(`<label class="tb-field"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${customBar()}${unitMonths ? unitSel(unitMonths) : ""}`);
   const ms = rangeMonths(), withMonth = tab === "category" || tab === "stores" || tab === "all";
   const m = state.stats.month && ms.includes(state.stats.month) ? state.stats.month : "";
   const monthSel = withMonth && ms.length > 1 ? `<label class="tb-field"><span>${t("月份")}</span><select id="statsMonth" aria-label="${t("选择月份")}" data-nosearch><option value="" ${m ? "" : "selected"}>${t("整段（{r}）", { r: rangeLabel() })}</option>${[...ms].reverse().map((x) => `<option value="${x}" ${x === m ? "selected" : ""}>${monthOpt(x)}</option>`).join("")}</select></label>` : "";
   const o = statOpts(), tg = (act, on, label, tip) => `<label class="check-inline" title="${esc(tip)}"><input type="checkbox" data-action="${act}" ${on ? "checked" : ""}><span>${label}</span></label>`;
   const withUnit = tab === "overview" || tab === "category" || tab === "all";
-  return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${customBar()}${withUnit ? unitSel() : ""}${monthSel}
+  return pop(`<label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${customBar()}${withUnit ? unitSel() : ""}${monthSel}
     ${tg("stats-excap", o.exCap, t("排除资本性"), t("买房卖房、买车整付、装修：几年一次、金额巨大，默认不画进图里；去掉勾可以一起看"))}
-    ${tg("stats-exinv", o.exInv, t("排除投资"), t("转入投资账户、买基金股票：钱还是家里的，默认不画进图里；去掉勾可以一起看"))}${clr}</div>`;
+    ${tg("stats-exinv", o.exInv, t("排除投资"), t("转入投资账户、买基金股票：钱还是家里的，默认不画进图里；去掉勾可以一起看"))}`);
 }
 /** 当前时间范围的叫法：近 6 个月 / 今年 / 2025 年 */
 export const rangeLabel = (n = state.stats.months) => rangeLabelOf(n);

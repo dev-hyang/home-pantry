@@ -4256,3 +4256,21 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .section-head:has(> .sh-title) { flex-wrap: nowrap; align-items: center; } .section-head > .sh-title { flex: 1 1 0; }   /* 标题 + 眼睛占不满一行时 ⋯ 也留在同一行；标题自己换行 */
 .section-head > .head-acts { flex: none; }
 @media (max-width: 640px) { .pnav-tabs[data-n="4"] .pnav-card { flex-basis: calc(50% - 6px); } }   /* 4 张：手机 2 × 2；3 张 / 5 张 / 6 张：每行 3 张 */
+
+/* 靠右的「筛选」按钮 + 面板（收入、花费的时间条，宽屏和手机一样；js/core/filter-pop.js） */
+.fpop { position: relative; display: flex; justify-content: flex-end; margin: 0 0 12px; }
+.fpop-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: inherit; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; box-sizing: border-box; }
+.fpop-btn[aria-expanded="true"] { background: var(--surface-2, var(--bg)); }
+.fpop-btn:focus-visible { outline: 3px solid var(--focus, #1f6feb); outline-offset: 2px; }
+.fpop .tb-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--ink); color: var(--bg, #fff); font-size: 12px; font-weight: 700; }
+.fpop .tb-count[hidden] { display: none; }
+.fpop-panel { position: absolute; right: 0; top: calc(100% + 4px); z-index: 15; width: min(420px, calc(100vw - 32px)); box-sizing: border-box; padding: 10px 12px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 28px rgba(0, 0, 0, .16); }
+.fpop-panel[hidden] { display: none; }
+.fpop-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 0 2px 6px; border-bottom: 1px solid var(--line); }
+.fpop-head b { font-size: 15px; }
+.fpop-head .clear-filters { margin-left: auto; }
+.fpop-fields { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
+.fpop-fields .tb-field { display: flex; justify-content: space-between; gap: 10px; }
+.fpop-fields .tb-field select, .fpop-fields select.range-sel { width: 60%; flex: 0 1 60%; min-height: 44px; }
+.fpop-fields .check-inline { min-height: 44px; }
+@media print { .fpop { display: none; } }

@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.35", title: { zh: "收入、花费的时间条改成靠右的「筛选」按钮", en: "Income and Spending time bars are now a right-aligned Filters button" }, items: [
+    { k: "better", zh: "收入和花费页的时间范围、周期、月份、「排除资本性 / 投资」开关，都收进靠右的「筛选」按钮；点开面板第一行是「筛选」字样和清除筛选，开关也在里面", en: "Time range, interval, month and the exclude capital / investments switches now live in a right-aligned Filters button; the panel starts with a Filters title and a clear button" },
+    { k: "better", zh: "改了筛选后面板保持打开，按钮上显示改动了几项；电脑和手机一个样子", en: "The panel stays open after you change a filter, the button shows how many are set, and it looks the same on laptop and phone" }
+  ] },
+
   { v: "2026-11-19.34", title: { zh: "财务首页以「资产」开头；资产 / 净资产合成一处；眼睛统一放到页头最右", en: "Finance home starts with Assets; Assets and Net worth live together; the eye sits at the right of every header" }, items: [
     { k: "better", zh: "财务首页的目录第一项是「资产」；资产页和净资产页顶上有「资产概览 / 净资产」两张导航小卡片，净资产不再单列", en: "The first entry on the Finance home is Assets; the Assets and Net worth pages share two navigation cards (Assets overview / Net worth), and Net worth is no longer listed separately" },
     { k: "better", zh: "资产页、净资产页第一行是页面名 + 说明 ⓘ；顶部的统计数字只显示，不再跳转", en: "The first row of Assets and Net worth is the page name plus an ⓘ for the description; the figures at the top are display-only (no links)" },

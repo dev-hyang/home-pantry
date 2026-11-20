@@ -12,6 +12,9 @@ import { financeOk } from "../core/finance-access.js";
 import { pageSize } from "../core/pager.js";
 import { isClosedStatus } from "../core/debt-rules.js";
 import { INC_L1S, customIncomeKinds, incKindOptions, incL1Of, incLeaf, incLeafLabel, incLeaves, normParent, recognized as recognizedOf } from "../core/income-taxonomy.js";
+import { filterPop } from "../core/filter-pop.js";
+import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
+import { finUnit } from "../core/time-range.js";
 import { debtOfIncome, enrichDebt } from "../bills/debt-logic-common.js";
 
 /* ───────────── 收入类型：一级 → 叶子（规则全在 js/core/income-taxonomy.js，这里只是给界面用的薄包装） ─────────────
@@ -199,9 +202,8 @@ export function similarIncome(row, ignoreId = null) {
     && (!k || !skey(r.source_name) || skey(r.source_name).includes(k) || k.includes(skey(r.source_name)))) || null;
 }
 
-/** 时间范围 / 周期 / 谁的 / 月份这一排：把「标签 + 下拉」摊平成统一的筛选条（.toolbar：宽屏一排下拉，手机收成「筛选」按钮），原来的标签文字挪到下拉的 aria-label */
+/** 时间范围 / 周期 / 谁的 / 月份这一排：靠右的「筛选」按钮，点开是面板（第一行「筛选」+ 清除筛选，下面是各个下拉）；和花费页的时间条同一个样子 */
 export function filterToolbar(inner, cls = "") {
-  const flat = String(inner).replace(/<label class="tb-field"><span>([^<]*)<\/span>(<select\b[^>]*>)([\s\S]*?<\/select>)<\/label>/g, (m, lab, open, rest) => (/aria-label=/.test(open) ? open : open.replace("<select", `<select aria-label="${lab}"`)) + rest);
-  const counted = flat.replace(/<select id="(statsRange|finUnit)"/g, '<select data-nocount id="$1"');   // 时间范围 / 周期的默认值不是第一项：不计入「筛选 (n)」
-  return `<div class="toolbar ix-timebar ${cls}">${counted}</div>`;
+  const n = (changed(state.stats, FD.stats, ["months"]) ? 1 : 0) + (finUnit() !== "auto" ? 1 : 0);
+  return filterPop(`<div class="fpop-fields">${inner}</div>`, { id: "inc", count: n, clear: clearFiltersBtn("stats", n > 0), cls: `ix-timebar ${cls}` });
 }
