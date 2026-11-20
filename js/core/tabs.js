@@ -16,6 +16,7 @@ export const INCOME_TABS = [["overview", "收支总览", "📊"], ["records", "�
 export const STATEMENT_TABS = [["import", "导入", "📥", "选对账单或粘贴文字：花费和收入一次导入，可撤销"], ["all", "全部流水", "🧮", "花费和收入按时间排在一起，只读：点一行去对应的页面修改"], ["export", "导出打印", "🖨️", "花费、收入、收支差额的 CSV 和打印"]];
 // 借贷（财务 P2，迁移 058；2026-11 原「借贷总览」做进入页）：全部借贷 · 资产融资（房贷 / 车贷 / HELOC / 学生贷款 / 分期）· 个人借贷（亲友之间）· 还款记录
 export const DEBT_TABS = [["all", "全部借贷", "📊"], ["asset", "资产融资", "🏦", "房贷、车贷、HELOC、学生贷款、分期"], ["personal", "个人借贷", "🤝", "借给亲友、向亲友借的钱：余额、到期、部分还款"], ["txns", "还款记录", "🧾", "放款、还本、利息、Escrow 的全部流水"]];
+export const ASSET_TABS = [["assets", "资产概览", "🏛️"], ["networth", "净资产", "📈"]];   // 资产页和净资产页之间的导航小卡片（两个独立路由，不走 ?tab=）
 const DEFS = { debts: DEBT_TABS, statements: STATEMENT_TABS, income: INCOME_TABS, spend: SPEND_TABS, budget: BUDGET_TABS };
 export const firstTab = (r) => (DEFS[r?.sub] || [])[0]?.[0] || null;
 

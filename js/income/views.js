@@ -36,7 +36,7 @@ const headMenu = (tab) => {
 const shell = (tab, body) => {
   const cur = INCOME_TABS.find(([id]) => id === tab);
   return `<section class="section" id="incomePage">
-  <div class="section-head"><div class="sh-title"><h2>💰 ${t("收入")} · ${esc(t(cur?.[1] || ""))}</h2>${moneyEye()}</div><div class="head-acts">${headMenu(tab)}</div></div>
+  <div class="section-head"><div class="sh-title"><h2>💰 ${t("收入")} · ${esc(t(cur?.[1] || ""))}</h2></div><div class="head-acts">${moneyEye()}${headMenu(tab)}</div></div>
   ${tabCards(INCOME_TABS, tab, incomeHref, t("收入内容"))}${noticeHtml()}${tab === "overview" || tab === "records" ? attentionPanel(["income"], { title: t("要处理"), sub: t("该收的还款") }) : ""}${body}
   <button type="button" class="fab" data-inc="add" aria-label="${esc(t("记一笔收入"))}" title="${esc(t("记一笔收入"))}">＋</button></section>`;
 };

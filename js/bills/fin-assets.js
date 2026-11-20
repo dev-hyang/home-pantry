@@ -22,6 +22,9 @@ import { liveNetWorth } from "./nw-logic.js";
 import { debtsEnriched } from "./debt-logic-common.js";
 import { balancePanel } from "./net-worth-panel.js";
 import { spendRollupFor } from "../stats/spend-roll.js";
+import { pageHead } from "../core/page-head.js";
+import { infoTip } from "../core/info-tip.js";
+import { ASSET_TABS } from "../core/tabs.js";
 
 const cur = () => Units.region.currency;
 /** 今年 1 月到本月 */
@@ -46,16 +49,26 @@ const liveDebts = () => (state.debtsOk ? debtsEnriched().filter((e) => e.directi
 /** 贷款一行：名称（链到借贷详情）· 未还本金 · 每期；迁移猜的车辆标「待确认」 */
 const debtLine = (e) => `<a href="${esc(debtHref(e.id))}">${esc(e.name)}</a> ${e.balance != null ? `${t("未还 {a}", { a: money(e.balance) })}` : ""}${e.bill ? ` · ${money(e.bill.monthly)}${t("/月")}` : ""}${e.link_confirmed === false ? ` <span class="badge b-soon">${t("待确认")}</span>` : ""}`;
 
-const fact = (label, value) => (value ? `<span class="fa-fact"><small>${esc(label)}</small>${value}</span>` : "");
+/** 一行一项：左边灰色标签，右边内容靠右（和周期性账单的行一个样子，不再用自动折行的多列格子） */
+const fact = (label, value) => (value ? `<div class="fa-line"><span>${esc(label)}</span><span class="fa-val">${value}</span></div>` : "");
 const priceDate = (price, date) => [price != null && price !== "" ? money(num(price)) : "", date ? esc(fmtDate(date)) : ""].filter(Boolean).join(" · ");
 
-/** 估值 + 净值两格（净资产页同一份计算）；没执行 059 时只写「—」 */
-function valueFacts(eq) {
-  if (!state.nwOk) return fact(t("估值"), `<span class="muted">—</span>`);
+/** 右上角的大数字：市值，下面一行净值（没执行 059 / 没估值时给占位） */
+function valueHead(eq) {
+  if (!state.nwOk) return `<span class="fa-amt"><b class="muted">—</b></span>`;
   if (!eq) return "";
-  const v = eq.value == null ? `<span class="muted">${t("未估值")}</span>` : `${money(eq.value)}${eq.source === "purchase" ? ` <small class="muted">${t("按购入价")}</small>` : ""}`;
-  return fact(t("市值"), v) + (eq.equity != null ? fact(t("净值"), `<b class="${eq.equity < 0 ? "down" : ""}">${money(eq.equity)}</b>${eq.loanBalance ? ` <small class="muted">${t("贷款 {a}", { a: money(eq.loanBalance) })}</small>` : ""}`) : "");
+  const v = eq.value == null ? `<b class="muted">${t("未估值")}</b>` : `<b>${money(eq.value)}</b>`;
+  const sub = eq.equity != null ? `${t("净值")} <span class="${eq.equity < 0 ? "down" : ""}">${money(eq.equity)}</span>` : (eq.source === "purchase" ? t("按购入价") : "");
+  return `<span class="fa-amt">${v}${sub ? `<small>${sub}</small>` : ""}</span>`;
 }
+/** 行的外壳：第一行 名称 + 状态徽标 | 市值；第二行 灰色一句话；下面一行一项；最后是「打开」链接 */
+const faRow = ({ name, badge, meta, eq, lines, openHref, openLabel, panel }) => `<li class="fa-row">
+    <div class="fa-top"><div class="fa-name"><b>${esc(name)}</b>${badge}</div>${valueHead(eq)}</div>
+    ${meta ? `<div class="fa-meta">${meta}</div>` : ""}
+    <div class="fa-lines">${lines}</div>
+    <a class="fa-open" href="${openHref}">${esc(openLabel)} ›</a>
+    ${panel}</li>`;
+
 function propertyRow(p, spend, loans = [], eq = null) {
   const ST = window.DEALS.PROPERTY_STATUS, K = window.BILLS.PROPERTY_KINDS;
   const bills = propertyBills(p.id), y = new Date().getFullYear();
@@ -63,35 +76,35 @@ function propertyRow(p, spend, loans = [], eq = null) {
   const one = (state.medEnriched || []).filter((b) => b.property_id === p.id), oneBal = one.filter((b) => (b.currency || cur()) === cur()).reduce((s, b) => s + (b.balance || 0), 0);
   const oneTxt = one.length ? `${t("{n} 个一次性账单", { n: one.length })}${oneBal > 0 ? ` · ${t("余额 {a}", { a: money(oneBal) })}` : ""} · <a href="${allBillsHref({ type: "onetime", asset: `property:${p.id}` })}">${t("查看")}</a>` : "";
   const recTxt = bills.n ? `${money(bills.monthly)}${t("/月")}${bills.escrow ? ` <small class="muted">${t("+ Escrow {a}", { a: money(bills.escrow) })}</small>` : ""} · <a href="${allBillsHref({ type: "recurring", asset: `property:${p.id}` })}">${t("{n} 条账单", { n: bills.n })}</a>` : "";
-  const billTxt = [recTxt, oneTxt].filter(Boolean).join("<br>") || `<span class="muted">${t("没有挂账单")}</span>`;
-  return `<li class="fa-row">
-    <div class="fa-head"><b>${esc(p.name)}</b><span class="badge">${esc(t(ST[p.status] || "持有"))}</span><small class="muted">${esc(t(K[p.kind] || ""))}${p.archived ? ` · ${t("已归档")}` : ""}</small>
-      <a class="btn btn-sm btn-ghost fa-edit" href="${href("house", "overview")}?prop=${encodeURIComponent(p.id)}" aria-label="${esc(t("在房屋里打开 {name}", { name: p.name }))}">${t("在房屋里打开")} ›</a></div>
-    <div class="fa-facts">
-      ${fact(t("买入"), priceDate(p.purchase_price, p.acquired_on) || `<span class="muted">${t("未记录")}</span>`)}
-      ${p.sold_on || p.sale_price != null ? fact(t("卖出"), priceDate(p.sale_price, p.sold_on)) : ""}
-      ${fact(t("关联账单"), billTxt)}
-      ${loans.length ? fact(t("贷款"), loans.map(debtLine).join("<br>")) : ""}
-      ${fact(t("{y} 年花费", { y }), `${spent} · <a href="${href("bills", "spend")}?tab=records&prop=${encodeURIComponent(p.id)}&year=${y}">${t("明细")}</a>`)}
-      ${valueFacts(eq)}
-    </div>
-    ${eq ? valuationPanel("property", p, { fallback: eq.source === "purchase" ? eq.value : null }) : ""}</li>`;
+  const meta = [t(K[p.kind] || ""), p.archived ? t("已归档") : ""].filter(Boolean).map(esc).join(" · ");
+  return faRow({
+    name: p.name, badge: `<span class="badge">${esc(t(ST[p.status] || "持有"))}</span>`, meta, eq,
+    lines: [
+      fact(t("买入"), priceDate(p.purchase_price, p.acquired_on) || `<span class="muted">${t("未记录")}</span>`),
+      p.sold_on || p.sale_price != null ? fact(t("卖出"), priceDate(p.sale_price, p.sold_on)) : "",
+      fact(t("账单"), recTxt || `<span class="muted">${t("没有挂账单")}</span>`),
+      fact(t("一次性"), oneTxt),
+      ...loans.map((e) => fact(t("贷款"), debtLine(e))),
+      fact(t("{y} 年花费", { y }), `${spent} · <a href="${href("bills", "spend")}?tab=records&prop=${encodeURIComponent(p.id)}&year=${y}">${t("明细")}</a>`),
+    ].join(""),
+    openHref: `${href("house", "overview")}?prop=${encodeURIComponent(p.id)}`, openLabel: t("在房屋里打开"),
+    panel: eq ? valuationPanel("property", p, { fallback: eq.source === "purchase" ? eq.value : null }) : "",
+  });
 }
 
 function vehicleRow(a, loans, eq = null) {
   const V = window.VEHICLES, v = a.vehicle || {}, st = V.statusOf(a);
-  const loanTxt = loans.length ? loans.map(debtLine).join("<br>") : "";
-  return `<li class="fa-row">
-    <div class="fa-head"><b>${esc(assetName(a))}</b><span class="badge ${V.STATUS[st]?.cls || ""}">${esc(t(V.STATUS[st]?.name || st))}</span>
-      <a class="btn btn-sm btn-ghost fa-edit" href="${href("asset", a.id)}" aria-label="${esc(t("打开车辆 {name}", { name: assetName(a) }))}">${t("打开车辆")} ›</a></div>
-    <div class="fa-facts">
-      ${fact(t("买入"), priceDate(a.purchase_price, a.installed_on) || `<span class="muted">${t("未记录")}</span>`)}
-      ${v.disposed_on || v.sale_price != null ? fact(st === "returned" ? t("归还") : t("卖出"), priceDate(v.sale_price, v.disposed_on)) : ""}
-      ${st === "financed" || st === "leased" || v.loan_end ? fact(st === "leased" ? t("租约到期") : t("贷款到期"), v.loan_end ? esc(fmtDate(v.loan_end)) : `<span class="muted">${t("未填")}</span>`) : ""}
-      ${fact(t("车贷"), loanTxt)}
-      ${valueFacts(eq)}
-    </div>
-    ${eq ? valuationPanel("vehicle", a) : ""}</li>`;
+  return faRow({
+    name: assetName(a), badge: `<span class="badge ${V.STATUS[st]?.cls || ""}">${esc(t(V.STATUS[st]?.name || st))}</span>`, meta: "", eq,
+    lines: [
+      fact(t("买入"), priceDate(a.purchase_price, a.installed_on) || `<span class="muted">${t("未记录")}</span>`),
+      v.disposed_on || v.sale_price != null ? fact(st === "returned" ? t("归还") : t("卖出"), priceDate(v.sale_price, v.disposed_on)) : "",
+      st === "financed" || st === "leased" || v.loan_end ? fact(st === "leased" ? t("租约到期") : t("贷款到期"), v.loan_end ? esc(fmtDate(v.loan_end)) : `<span class="muted">${t("未填")}</span>`) : "",
+      ...loans.map((e) => fact(t("车贷"), debtLine(e))),
+    ].join(""),
+    openHref: href("asset", a.id), openLabel: t("打开车辆"),
+    panel: eq ? valuationPanel("vehicle", a) : "",
+  });
 }
 
 export function viewFinAssets() {
@@ -122,12 +135,12 @@ export function viewFinAssets() {
       <span class="mch" aria-hidden="true">›</span></a>${acctOf(c.id)?.viaDebt ? "" : balancePanel(c)}</li>`));
   const cashLike = nw ? nw.assets.cash + nw.assets.investments + nw.assets.retirement + nw.assets.hsa : null;
   return `<section class="section fin-assets">
-    <p class="muted" style="margin:-6px 0 12px;font-size:13px">${t("房产、车辆和账户的钱的那一面；改资料回到原来的地方（房屋 / 车辆 / 卡与账户），这里只读")}</p>
+    ${pageHead({ icon: "🏛️", title: t("资产"), tabs: ASSET_TABS, tab: "assets", hrefOf: (id) => href("bills", id), label: t("资产内容"), plain: true, note: infoTip(t("房产、车辆和账户的钱的那一面；改资料回到原来的地方（房屋 / 车辆 / 卡与账户），这里只读"), { align: "start" }) })}
     <div class="kpis">
-      ${state.houseEnabled ? `<a class="kpi" href="${href("house")}">` : `<div class="kpi">`}<span>${t("持有的房产")}</span><b>${held}</b><small>${t("共 {n} 套有记录", { n: props.length })}${state.houseEnabled ? " ›" : ""}</small>${state.houseEnabled ? "</a>" : "</div>"}
-      <a class="kpi" href="${href("house")}"><span>${t("在用的车辆")}</span><b>${liveVeh}</b><small>${t("共 {n} 辆有记录", { n: vehicles.length })} ›</small></a>
-      <a class="kpi" href="${href("bills", "cards")}"><span>${t("账户")}</span><b>${accts.length}</b><small>${cashLike == null ? t("余额：执行 059 后可记") : t("余额合计 {a}", { a: money(cashLike) })} ›</small></a>
-      ${nw ? `<a class="kpi" href="${href("bills", "networth")}"><span>${t("净资产")}</span><b class="${nw.netWorth < 0 ? "down" : ""}">${money(nw.netWorth)}</b><small>${t("资产 − 负债")} ›</small></a>` : ""}
+      <div class="kpi"><span>${t("持有的房产")}</span><b>${held}</b><small>${t("共 {n} 套有记录", { n: props.length })}</small></div>
+      <div class="kpi"><span>${t("在用的车辆")}</span><b>${liveVeh}</b><small>${t("共 {n} 辆有记录", { n: vehicles.length })}</small></div>
+      <div class="kpi"><span>${t("账户")}</span><b>${accts.length}</b><small>${cashLike == null ? t("余额：执行 059 后可记") : t("余额合计 {a}", { a: money(cashLike) })}</small></div>
+      ${nw ? `<div class="kpi"><span>${t("净资产")}</span><b class="${nw.netWorth < 0 ? "down" : ""}">${money(nw.netWorth)}</b><small>${t("资产 − 负债")}</small></div>` : ""}
       <div class="kpi"><span>${t("房产账单每月")}</span><b>${money(housing)}</b><small>${t("自己交的部分，不含 Escrow 代缴")}</small></div>
     </div>
     <div class="section-head"><h2>🏠 ${t("房产")}</h2>${state.houseEnabled ? `<a class="btn btn-sm btn-ghost" href="${href("house")}">${t("房产列表")}</a>` : ""}</div>

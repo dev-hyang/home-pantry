@@ -587,14 +587,17 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 .fa-list { list-style: none; margin: 0; padding: 0; }
 .fa-row { padding: 12px 6px; border-bottom: 1px solid var(--line); }
 .fa-row:last-child { border-bottom: 0; }
-.fa-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
-.fa-head b { font-size: 16px; }
-.fa-head .fa-edit { margin-left: auto; min-height: 44px; display: inline-flex; align-items: center; }
-.fa-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px 16px; margin-top: 8px; }
-.fa-fact { display: flex; flex-direction: column; font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.fa-fact small { font-size: 12px; color: var(--muted); }
-.fa-fact a { min-height: 24px; }
-@media (max-width: 480px) { .fa-facts { grid-template-columns: 1fr 1fr; } .fa-head .fa-edit { margin-left: 0; width: 100%; justify-content: center; } }
+.fa-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px 12px; }
+.fa-name { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; flex: 1 1 auto; }
+.fa-name b { font-size: 16px; overflow-wrap: anywhere; }
+.fa-amt { display: flex; flex-direction: column; align-items: flex-end; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fa-amt b { font-size: 16px; } .fa-amt small { font-size: 12px; color: var(--muted); }
+.fa-meta { margin-top: 2px; font-size: 12px; color: var(--muted); }
+.fa-lines { margin-top: 6px; }
+.fa-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 6px 0; border-top: 1px dashed var(--line); font-size: 13px; font-variant-numeric: tabular-nums; }
+.fa-line > span:first-child { color: var(--muted); font-size: 12px; flex: 0 0 auto; white-space: nowrap; }
+.fa-val { text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.fa-open { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; color: var(--pine); }
 /* 财务 → 借贷（P2）：摊还表横向可滚（键盘可聚焦），每期拆分一行一个可展开的 summary，点击区不小于 44px */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
 .table-scroll:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

@@ -25,6 +25,7 @@ import { debtsEnriched } from "./bills/debt-logic-common.js";
 import { medBillLabel } from "./bills/medical-data.js";
 import { personNameOf } from "./settings/family-lite.js";
 import { SETTING_SECTIONS } from "./settings/settings-menu.js";
+import { infoTip } from "./core/info-tip.js";
 
 const SECTION_ICON = { pantry: "🗄️", house: "🏠", bills: "💰", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”
@@ -58,7 +59,7 @@ export const META = {
     budget:    { icon: "💰", desc: "收入、固定账单、储蓄 → 月度 / 年度预算，对比实际花费，超预算提醒，大额购物规划" },
     spend:     { icon: "📊", desc: "所有花费：每月花了多少、分类占比、商店、年度报表，可搜索筛选排序" },
     cards:     { icon: "💳", desc: "信用卡：该刷哪张（按场景比返现）、到期 / 年费 / 轮换类别 / 开卡奖励提醒；银行、券商、退休、HSA、贷款账户也记在这里", count: () => state.cards.filter((c) => c.active !== false).length },
-    assets:    { icon: "🏛️", desc: "房产、车辆、账户的钱的一面：买入 / 卖出价、关联账单、今年花费、贷款、估值和余额；资料仍在房屋里改" },
+    assets:    { icon: "🏛️", desc: "资产概览和净资产：房产、车辆、账户的钱的一面（买入 / 卖出价、估值、余额、贷款），以及资产 − 负债、每月快照和走势" },
     debts:     { icon: "🏦", desc: "房贷、车贷、学生贷款、亲友借款：余额、还款计划、本金 / 利息拆分、Escrow", count: () => debtsEnriched().filter((e) => e.overdue || (e.asset_id && e.link_confirmed === false && !isClosedStatus(e.status))).length },
     networth:  { icon: "📈", desc: "资产 − 负债：账户余额、房产 / 车辆估值、贷款余额；每月快照看走势，财富增长 vs 消费，每处资产的净值", count: () => (state.nwOk ? liveNetWorth().stale.length : 0), countLabel: "需要更新" },
   },
@@ -73,11 +74,11 @@ export const META = {
  * 手机：一列分组列表；宽屏：两栏分组卡片（CSS columns，读屏顺序 = 视觉顺序：先左栏再右栏）。
  * 借贷（P2）：原来是一张不可点的「即将推出」卡，现在是真的页面（只给有财务权限的人看；g.soon 的画法留着给以后的占位用）。 */
 export const FIN_GROUPS = [   // 顺序（2026-11-02）：分析 · 收支 · 借贷 · 预算与计划 · 账户与资产；手机一列、宽屏两栏都按这个读屏顺序
-  { id: "analysis", name: "分析", subs: ["overview", "all", "cashflow", "networth"] },   // 净资产（P3，迁移 059）
+  { id: "analysis", name: "分析", subs: ["assets", "overview", "all", "cashflow"] },   // 资产放第一个：资产页里有「资产概览 / 净资产」两张导航卡，净资产不再单列
   { id: "flow", name: "收支", subs: ["spend", "income", "statements"] },
   { id: "debt", name: "借贷", subs: ["debts"] },   // P2（迁移 058）：原来的「即将推出」占位卡换成真的页面
   { id: "plan", name: "预算与计划", subs: ["budget"] },
-  { id: "accounts", name: "账户与资产", subs: ["cards", "assets"] },
+  { id: "accounts", name: "账户", subs: ["cards"] },
 ];
 const HIDDEN = (section, k) => (section === "pantry" && k === "gear" && !state.gearEnabled)
   || (section === "bills" && FINANCE_HIDDEN_SUBS.includes(META.bills[k]?.sub || k) && !financeOk());   // 没有财务权限：对账单 / 收入 / 预算不进目录
@@ -105,7 +106,7 @@ function viewFinanceMenu() {
     return body ? `<section class="fin-group" aria-labelledby="fg-${g.id}"><h3 class="fin-group-h" id="fg-${g.id}">${esc(t(g.name))}</h3><div class="panel mlist">${body}</div></section>` : "";
   }).join("");
   return `<section class="section menu-page">
-    <div class="section-head"><h2>${SECTION_ICON.bills} ${t(sec.name)}</h2><p>${t("和钱有关的都在这里；房子、车的日常维护在「房屋」")}</p></div>
+    <div class="section-head"><div class="sh-title"><h2>${SECTION_ICON.bills} ${t(sec.name)}</h2>${infoTip(t("和钱有关的都在这里；房子、车的日常维护在「房屋」"), { align: "start" })}</div></div>
     <div class="fin-groups">${groups}</div>
   </section>`;
 }

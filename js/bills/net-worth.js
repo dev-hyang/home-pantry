@@ -16,6 +16,8 @@ import { assetName } from "../house/assets-logic.js";
 import { SHOW, cur, detailsOpen, histList, mny, ui } from "./net-worth-common.js";
 import { monthLabel, spendRollupFor, trendHead, trendPeriods } from "../stats/spend-roll.js";
 import { infoTip } from "../core/info-tip.js";
+import { pageHead } from "../core/page-head.js";
+import { ASSET_TABS } from "../core/tabs.js";
 
    // 折叠开合、历史显示几条
 export const NW_HREF = () => href("bills", "networth");
@@ -131,13 +133,14 @@ export function viewNetWorth() {
   const range = ["12", "24", "all"].includes(state.route.q.get("range")) ? state.route.q.get("range") : "12";
   const r = liveNetWorth(), m = thisMonth(), points = trendPoints(state.nwSnapshots, cur(), { live: r, month: m }), mom = monthChange(points, m);
   // 能跳转的卡片是链接（整张卡可点，键盘 Tab 可达）：总资产 → 资产页，总负债 → 借贷总览，比上月 → 下面的快照
-  const kpi = (label, val, small = "", neg = false, to = null, tip = "") => (to ? `<a class="kpi" href="${esc(to)}"><span>${esc(label)}</span><b class="${neg ? "down" : ""}">${val}</b>${small}</a>` : `<div class="kpi"><span>${esc(label)}${tip ? ` ${tip}` : ""}</span><b class="${neg ? "down" : ""}">${val}</b>${small}</div>`);
+  const kpi = (label, val, small = "", neg = false) => `<div class="kpi"><span>${esc(label)}</span><b class="${neg ? "down" : ""}">${val}</b>${small}</div>`;   // 统计卡只显示，不跳转（页面之间用上面的导航卡片切）
   const other = r.otherCur.length ? `<div class="panel"><h3>${t("其他币种（不算进净资产）")}</h3><ul class="nw-other">${r.otherCur.map((x) => `<li>${esc(x.name)}：${x.side === "l" ? "−" : ""}${mny(x.amount, x.currency)}</li>`).join("")}</ul></div>` : "";
   return `<section class="section nw-page">
+    ${pageHead({ icon: "📈", title: t("净资产"), tabs: ASSET_TABS, tab: "networth", hrefOf: (id) => href("bills", id), label: t("资产内容"), plain: true, note: infoTip(t("净资产 = 资产 − 负债。账户余额、房产 / 车辆估值在资产页和卡与账户里更新；贷款余额来自借贷（按摊还表）。只算 {cur}。", { cur: cur() }), { align: "start" }) })}
     <div class="kpis">
-      ${kpi(t("净资产"), mny(r.netWorth), `<small>${t("截至今天")}</small>`, r.netWorth < 0, null, infoTip(t("净资产 = 资产 − 负债。账户余额、房产 / 车辆估值在资产页和卡与账户里更新；贷款余额来自借贷（按摊还表）。只算 {cur}。", { cur: cur() }), { align: "start" }))}
-      ${kpi(t("总资产"), mny(r.assetsTotal), `<small>${t("房产、车辆、账户")} ›</small>`, false, href("bills", "assets"))}
-      ${kpi(t("总负债"), mny(r.liabilitiesTotal), `<small>${t("贷款、借款、信用卡")} ›</small>`, false, summaryHref())}
+      ${kpi(t("净资产"), mny(r.netWorth), `<small>${t("截至今天")}</small>`, r.netWorth < 0)}
+      ${kpi(t("总资产"), mny(r.assetsTotal), `<small>${t("房产、车辆、账户")}</small>`)}
+      ${kpi(t("总负债"), mny(r.liabilitiesTotal), `<small>${t("贷款、借款、信用卡")}</small>`)}
       ${kpi(t("比上月"), signed(mom), `<small>${mom == null ? t("上个月没有快照") : t("和上月快照比")}</small>`, mom != null && mom < 0)}
     </div>
     ${freshness(r)}

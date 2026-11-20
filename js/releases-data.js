@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.34", title: { zh: "财务首页以「资产」开头；资产 / 净资产合成一处；眼睛统一放到页头最右", en: "Finance home starts with Assets; Assets and Net worth live together; the eye sits at the right of every header" }, items: [
+    { k: "better", zh: "财务首页的目录第一项是「资产」；资产页和净资产页顶上有「资产概览 / 净资产」两张导航小卡片，净资产不再单列", en: "The first entry on the Finance home is Assets; the Assets and Net worth pages share two navigation cards (Assets overview / Net worth), and Net worth is no longer listed separately" },
+    { k: "better", zh: "资产页、净资产页第一行是页面名 + 说明 ⓘ；顶部的统计数字只显示，不再跳转", en: "The first row of Assets and Net worth is the page name plus an ⓘ for the description; the figures at the top are display-only (no links)" },
+    { k: "better", zh: "所有有金额的页面，眼睛都在页头第一行最右边；有 ⋯ 的页面，眼睛在 ⋯ 的左边", en: "On every page with amounts the eye is at the far right of the first header row, to the left of ⋯ when there is one" },
+    { k: "better", zh: "资产页的房产、车辆卡片重新排版，像周期性账单那样：名称 + 状态在左、市值和净值在右，下面一行一项（买入、账单、贷款、花费），不再乱折行", en: "Property and vehicle cards on Assets now look like recurring-bill rows: name and status on the left, value and equity on the right, then one line per item" }
+  ] },
+
   { v: "2026-11-19.33", title: { zh: "花费、预算、借贷、对账单：页头和导航卡片和收入页统一", en: "Spending, Budget, Loans and Statements: same header and navigation cards as Income" }, items: [
     { k: "better", zh: "这四页的页头统一成「标题 · 当前页签」+ 眼睛 + 右上角 ⋯，页签改成导航小卡片（和储藏页、收入页一样），次要页签和页面自己的操作（预算的打印）收进 ⋯", en: "These four pages now share one header: Title · current tab, the eye, and a ⋯ menu; tabs are navigation cards like Pantry and Income, and secondary tabs and page actions (Budget print) live in ⋯" },
     { k: "better", zh: "花费的「记一笔花费」改成右下角圆形 ＋；对账单页顶上那段说明收进标题旁的 ⓘ", en: "Log spending is now a round + button at the bottom right; the Statements description moved into an ⓘ next to the title" }

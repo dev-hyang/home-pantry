@@ -87,12 +87,16 @@ export function decoratePrivacy(route) {
   main.querySelectorAll(BOARD_NUMS).forEach((el) => el.setAttribute("data-money", ""));
   markLoose(main);   // 看板、表格之外，句子 / 按钮里的金额
   // 眼睛放在页面标题旁边（每页一只）：页面自己在标题里放了就不再加；没有标题行的页面才退回「看板上方一行」
-  const headEye = !!main.querySelector(".section-head [data-moneyeye], .sh-title [data-moneyeye]");
+  const headEye = !!main.querySelector(".section-head [data-moneyeye]");
   main.querySelectorAll(".kpis, .sum-main, .bill-cards").forEach((box) => {
     if (box.classList.contains("all-kpis") || box.previousElementSibling?.classList?.contains("money-eye-row") || !box.querySelector("[data-money]") && !box.matches("[data-money], .sum-main")) return;
     if (headEye) return;
-    const h2 = main.querySelector(".section-head h2");
-    if (h2) { if (!h2.nextElementSibling?.matches("[data-moneyeye]")) h2.insertAdjacentHTML("afterend", moneyEye("money-eye-h")); return; }
+    const head = main.querySelector(".section-head");
+    if (head) {   // 眼睛放在页头第一行最右（有 ⋯ 就在 ⋯ 的左边）：页头里已有操作区就放进去最前面，没有就补一个
+      let acts = head.querySelector(".head-acts");
+      if (!acts) { head.insertAdjacentHTML("beforeend", '<div class="head-acts"></div>'); acts = head.querySelector(".head-acts"); }
+      acts.insertAdjacentHTML("afterbegin", moneyEye()); return;
+    }
     box.insertAdjacentHTML("beforebegin", `<div class="money-eye-row">${moneyEye()}</div>`);
   });
 }
