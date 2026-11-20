@@ -1,5 +1,6 @@
 /* 一次性账单的缴费：首页的「缴费记录」区（行格式和周期性账单一样：点一下编辑，⋯ / 长按有 编辑、复制、删除；空的时候区里有「记一笔缴费」）
  * 和缴费的独立页（?pay=new | <缴费 id>，&copy=<缴费 id> 是复制）。保存逻辑在 medical-views.js 的 saveMedPayForm。 */
+import { dots } from "../core/dots.js";
 import { crumbNav } from "../core/hub.js";
 import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { t } from "../core/i18n.js";
@@ -20,11 +21,11 @@ const methodOptions = (edit) => { const cur = edit?.card_id && acctById(edit.car
 /** 一行缴费：日期（点一下编辑）+ 方式 / 确认号 / 备注 + 金额 + ⋯（电脑）和长按（手机）同一份菜单 */
 function payRow(b, p) {
   const edit = `${detailHref(b.id)}?pay=${encodeURIComponent(p.id)}`, refund = num(p.amount) < 0;
-  const sub = [paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc).join(" · ");
+  const sub = dots([paymentPayLabel(p), p.confirmation_ref ? t("确认号 {ref}", { ref: p.confirmation_ref }) : null, p.notes].filter(Boolean).map(esc));
   const items = [{ label: t("编辑"), href: edit, first: true }, { label: t("复制"), href: `${detailHref(b.id)}?pay=new&copy=${encodeURIComponent(p.id)}` }, { label: t("删除"), action: "med-pay-del", data: { id: p.id }, danger: true }];
   return `<li class="pay-row" data-swipe-del="med-pay" ${lpAttr(items, fmtDate(p.paid_on))}>
     <span class="badge ${refund ? "b-low" : "b-ok"}">${esc(t(refund ? "退款" : "已缴费"))}</span>
-    <a class="grow pay-hit" href="${edit}" title="${esc(t("点一下编辑"))}"><b>${esc(fmtDate(p.paid_on))}</b>${sub ? `<small>${sub}</small>` : ""}</a>
+    <a class="grow pay-hit" href="${edit}" title="${esc(t("点一下编辑"))}"><b>${esc(fmtDate(p.paid_on))}</b>${sub ? `<small class="dots">${sub}</small>` : ""}</a>
     <b class="pay-total${refund ? " ot-neg" : ""}" title="${esc(t("金额"))}">${mny(p.amount, p.currency || b.currency)}</b>
     ${moreMenu(items, { label: t("更多操作") })}
     <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="med-pay-del" data-id="${p.id}" aria-label="${esc(t("删除这条记录"))}">${t("删除")}</button></li>`;

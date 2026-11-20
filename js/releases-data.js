@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.44", title: { zh: "「A · B · C」信息排不下时，只在「·」处换行", en: "When “A · B · C” lines do not fit, they now wrap only at the dots" }, items: [
+    { k: "better", zh: "一次性账单综合信息卡里的日期、保险、算式，以及缴费记录行下面的小字：一行放不下时，整条信息（比如「到期 2026-11-30」）落到下一行，不再从中间拆开；卡片里的信息靠右对齐", en: "In the one-time bill summary card (dates, insurance, formula) and the small text under payment rows, an item that does not fit moves whole to the next line instead of breaking in the middle; the card's values are right-aligned" }
+  ] },
+
   { v: "2026-11-19.43", title: { zh: "借贷详情页：编辑、记一笔还款、删除收进右上角 ⋯", en: "Loan details: Edit, Log repayment and Delete moved into the ⋯ menu" }, items: [
     { k: "better", zh: "借贷详情页右上角的「编辑」改成 ⋯ 菜单（编辑、记一笔还款、删除）；页面底部的「删除这笔借贷」去掉；个人借贷的「记一笔还款」按钮只在还没有记录时显示", en: "The Edit button on a loan's page is now a ⋯ menu (Edit, Log repayment, Delete); the Delete button at the bottom is gone; Log repayment on personal loans only shows as a button while there are no records" }
   ] },

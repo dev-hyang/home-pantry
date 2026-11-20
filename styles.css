@@ -4289,3 +4289,9 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .oh-val { min-width: 0; text-align: right; overflow-wrap: anywhere; }
 .oh-val .badge { margin-left: 4px; }
 .dd-edit-btn { min-height: 0; }   /* 借贷详情页头：编辑 / 记一笔还款 / 删除收进 ⋯ */
+
+/* 「A · B · C」换行只在「·」处断开：每条信息整条换行，不拆开（js/core/dots.js）；.r = 靠右对齐 */
+.dots { display: flex; flex-wrap: wrap; }
+.dots > .dt { white-space: nowrap; }
+.dots > .dt:not(:last-child)::after { content: " ·"; margin-right: .35em; }
+.dots.r { justify-content: flex-end; text-align: right; }
