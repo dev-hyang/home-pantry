@@ -13,6 +13,7 @@ import { priceOrNull, pricesOk } from "../core/finance-access.js";
 import { recallBanner, recallHubRow } from "./recall.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
+import { assetBillsHref } from "../bills/all-href.js";
 import { C, H, SERVICE_BADGE, V, WARRANTY_BADGE, distUnit, isFixture, unitsCount, unitsOf, unitsText, vehStatus, vehStatusBadge } from "./asset-common.js";
 
 /** 设备 / 车辆枢纽页：摘要 + 各块完成度 + 保养记录 / 时间表 / 检查卡入口 + 删除 */
@@ -87,7 +88,7 @@ export function vehicleOverview(a, root) {
     </div>
     <div class="hv-grid hn-grid" style="margin-top:14px">
       ${tile(`${base}?sec=profile`, "🚘", t("车辆资料"), t("完成度 {p}%", { p: pct }), t("基本信息、车牌与里程、证照、车险、年份、备注"), pct)}
-      ${tile(`${href("bills", "overview", `/${encodeURIComponent(`asset:${a.id}`)}`)}?range=m`, "🧾", t("账单"), vehBillsStat(a), t("这辆车的车险、车贷、牌照、维修等账单：本月概览，可切时间范围"))}
+      ${tile(assetBillsHref(`asset:${a.id}`), "🧾", t("账单"), vehBillsStat(a), t("这辆车的车险、车贷、牌照、维修等账单：本月概览，可切时间范围"))}
       ${tile(`${base}?sec=log`, "🛠️", t("保养记录"), a.logs.length ? t("{n} 条，最近 {d}", { n: a.logs.length, d: fmtDate(a.logs[0].done_on) }) : t("还没有记录"), t("检查、保养、维修、更换"))}
       ${tile(`${base}?sec=schedule`, "📋", t("保养时间表"), a.vSoonest ? t("下一项：{name} {d}", { name: t(a.vSoonest.name), d: fmtDate(a.vSoonest.next) }) : t("记一次保养后开始算"), t("按里程和时间提醒"))}
       ${tile(`${href("house", "deal")}?asset=${a.id}`, "🤝", t("买卖 / 归还"), d ? t("进行中 {a} / {b}", { a: dts.filter((x) => x.done).length, b: dts.length }) : t(V().STATUS[vehStatus(a)].name), t("买车、卖车、租赁归还的流程清单"))}

@@ -26,6 +26,7 @@ import { medBillLabel } from "./bills/medical-data.js";
 import { personNameOf } from "./settings/family-lite.js";
 import { SETTING_SECTIONS } from "./settings/settings-menu.js";
 import { infoTip } from "./core/info-tip.js";
+import { assetBillsHref } from "./bills/all-href.js";
 
 const SECTION_ICON = { pantry: "🗄️", house: "🏠", bills: "💰", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”
@@ -45,7 +46,7 @@ export const META = {
     deal:      { icon: "📝", desc: "买入 / 卖出 / 退租流程清单", count: () => (houseHooks.openDeal?.() ? 1 : 0), countLabel: "进行中" },
     profile:   { icon: "🏡", desc: "房型、设施、材料、地址、保险、HOA" },
     // 这套房产的账单：跳到账单清单并按房产筛选（账单页签保留全家视图、日历导出和与房产无关的账单）
-    bills:     { icon: "🧾", desc: "这套房产的水电气网、HOA、房产税、房贷、保险，以及装修等一次性账单", href: () => `${href("bills", "overview", `/${encodeURIComponent(`property:${state.propertyId}`)}`)}?range=m`, count: () => billAlerts(state.billsEnriched.filter((b) => b.property_id === state.propertyId)).length, when: () => state.billsEnabled },
+    bills:     { icon: "🧾", desc: "这套房产的水电气网、HOA、房产税、房贷、保险，以及装修等一次性账单", href: () => assetBillsHref(`property:${state.propertyId}`), count: () => billAlerts(state.billsEnriched.filter((b) => b.property_id === state.propertyId)).length, when: () => state.billsEnabled },
   },
   bills: {
     overview:  { icon: "🧾", title: "账单概览", desc: "周期性 + 一次性账单一览：要处理的、未来 30 天要交、未结余额" },
@@ -139,7 +140,7 @@ export function viewMenu(section) {
 /** 子页顶部的面包屑：‹ 回目录 · 当前页名（房屋子页回到该房产的目录，车辆回到房产列表） */
 const SPLIT_FIRST = (r) => firstTab(r);   // 第一个标签就是页面本身，面包屑不再多一层
 export function crumb(r) {
-  const sec = SECTIONS[r.section]; if (!sec?.subs || r.section === "shops" || r.section === "shopping" || r.sub === "menu" || r.sub === "pages" || (r.section === "house" && r.sub === "fix")) return "";   // 出了问题？页自己画带设备名的面包屑
+  const sec = SECTIONS[r.section]; if (!sec?.subs || r.section === "shops" || r.section === "shopping" || r.sub === "menu" || r.sub === "pages" || (r.section === "house" && r.sub === "fix") || (r.section === "bills" && r.sub === "assetbills") || (r.section === "bills" && r.sub === "spend" && (r.q?.get("form") || r.q?.get("copy") || r.q?.get("add")))) return "";   // 这几页自己画带名字的面包屑（资产账单、花费表单页）   // 出了问题？页自己画带设备名的面包屑
   const parent = r.section === "bills" ? { template: "recurring" } : { template: "supplies", "asset-template": "assets" };
   const cur = sec.subs.find(([k]) => k === r.sub) || sec.subs.find(([k]) => k === parent[r.sub]);
   const prop = r.section === "house" && r.sub !== "vehicles" ? state.properties.find((p) => p.id === state.propertyId) : null;

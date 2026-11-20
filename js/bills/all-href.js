@@ -6,3 +6,6 @@ export function allBillsHref(params = {}) {
   const p = new URLSearchParams(); for (const [k, v] of Object.entries(params)) if (v != null && v !== "" && v !== "all") p.set(k, v);
   const s = p.toString(); return `${href("bills", "all")}${s ? `?${s}` : ""}`;
 }
+
+/** 房屋 / 车辆 → 账单页（asset-bills.js）的网址：key = property:ID / asset:ID；默认本月，range 不是 "m" 时带上 */
+export const assetBillsHref = (key, range = "m") => `${href("bills", "assetbills", `/${encodeURIComponent(key)}`)}${range && range !== "m" ? `?range=${encodeURIComponent(range)}` : ""}`;

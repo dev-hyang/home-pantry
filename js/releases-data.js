@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.2", title: { zh: "房屋 / 车辆里的「账单」：这个资产自己的账单清单页", en: "Bills inside a property or vehicle: a bills list page for that asset" }, items: [
+    { k: "new", zh: "房屋 → 账单、车辆 → 账单，现在进入这个资产自己的账单页：周期性和一次性账单都在里面，默认看本月，顶上有 应付 / 已付 / 余额 三张小卡片，可以按时间、类型、状态筛选", en: "Property → Bills and Vehicle → Bills now open a page for that asset only: recurring and one-time bills together, this month by default, with Due / Paid / Balance cards on top and filters for time, type and status" }
+  ] },
+
   { v: "2026-11-20.1", title: { zh: "行记录去掉 ⋯，记一笔花费改成独立表单页，收入页的入口收进圆形 ＋", en: "Rows lose the ⋯ menu, spending gets its own form page, and income actions move into the round ＋" }, items: [
     { k: "better", zh: "缴费记录、一次性账单缴费、摊派缴费、花费明细的每一行去掉了 ⋯ 和 ▾：手机长按、电脑右键点那一行，弹出 编辑 / 复制 / 删除；缴费记录第一行是日期 + 状态，下面按组排，金额不会被拆开", en: "Payment and spending rows no longer have ⋯ or ▾: long-press on a phone or right-click on a computer for Edit / Copy / Delete. A payment row starts with date and status, then grouped details; amounts are never split" },
     { k: "better", zh: "花费：右下角 ＋ 的菜单里选「手动记一笔 / 拍小票识别 / 导入对账单」；记一笔、编辑、复制都打开同一个独立的表单页，不再在明细里插表单；收入页的 ＋ 菜单是「手动记一笔 / 拍照识别 / 银行导入」，导航卡片里的「银行导入」换成「预算与计划」，导入对账单入口去掉，收入明细右上角只留导出打印", en: "Spending: the round ＋ now offers Add by hand / Scan receipt / Import statement, and adding, editing and copying all open one separate form page. Income: ＋ offers Add by hand / Scan / Bank import; the nav card “Bank import” became “Budget & plan”, and the statement-import entry is gone" },

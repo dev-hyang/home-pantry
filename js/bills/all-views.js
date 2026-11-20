@@ -129,8 +129,8 @@ export function rowHtml(r) {
   </li>`;
 }
 
-function compute() {
-  const f = state.allFilter, today = todayISO(), { from, to } = rangeBounds(f.range, today);
+function compute(f = state.allFilter) {
+  const today = todayISO(), { from, to } = rangeBounds(f.range, today);
   const base = billInstances({ recurring: state.billsEnriched, onetime: state.medEnriched }, { from, to, today });
   const rows = sortRows(filterRows(base.rows, f), f.sort);
   // 合计卡（应付 / 已付 / 余额）只跟「时间范围」走，不随搜索 / 资产 / 类型 / 状态…这些筛选变；筛选出来的小计单独放在列表上方一行（S）
@@ -141,7 +141,7 @@ function compute() {
 export const verifyBillIds = () => [...new Set(compute().rows.filter((r) => r.kind === "recurring" && r.status === "verify").map((r) => r.billId))];
 
 /** 三张合计卡：口径说明收进各卡标题旁的 ⓘ（估算 / 未知金额 / Escrow / 其他币种 / 没展开的期都影响「应付」，估算也影响「余额」） */
-function summaryHtml({ SK: S, truncated }) {
+export function summaryHtml({ SK: S, truncated }) {
   const card = (label, amount, sub, tip = "") => `<div class="kpi"><span>${label}${tip ? ` ${tip}` : ""}</span><b>${mny(amount)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</div>`;
   const est = S.estimatedN ? t("含估算 {n} 笔（水电燃气按最近均值估，记缴费时填实际金额就会更新）", { n: S.estimatedN }) : "";
   const totalTip = infoTip([est, S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "", S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "",
@@ -214,4 +214,5 @@ export function exportAllCsv() {
   return rows.length - 1;
 }
 
+export { compute as allCompute };   // 资产账单页（asset-bills.js）用同一份口径
 export { allBillsHref } from "./all-href.js";   // 网址生成在 all-href.js（首页等只要拼链接的地方不必加载整个页面）

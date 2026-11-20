@@ -6,6 +6,7 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { viewAbout, viewAi, viewAlerts, viewAssetTemplate, viewAssets, viewBillTemplate, viewDeal, viewDebts, viewFinAssets, viewFix, viewHouse, viewHouseProfile, viewHouseSupplies, viewHouseTemplate, viewPlan, viewScan, viewStatements, viewTasks } from "./lazy-modules.js";
 import { viewAllBills } from "../bills/all-views.js";
+import { viewAssetBills } from "../bills/asset-bills.js";
 import { viewBudget } from "../bills/budget.js";
 import { viewMenu } from "../menu.js";
 import { viewQuick, viewToday } from "../today.js";
@@ -29,7 +30,7 @@ export const VIEWS = {
   pantry:   { scan: () => viewScan(), overview: viewDashboard, shopping: () => viewShopping(), inventory: () => viewInventory(invSpace()), gear: () => viewInventory("gear"), meals: viewMeals },
   house:    { overview: viewHouse, supplies: viewHouseSupplies, assets: viewAssets, tasks: viewTasks, deal: viewDeal, profile: viewHouseProfile, pages: () => viewMenu("house"),
               template: viewHouseTemplate, "asset-template": viewAssetTemplate, fix: viewFix, plan: viewPlan },
-  bills:    { overview: viewBillsHome, all: viewAllBills, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
+  bills:    { overview: viewBillsHome, all: viewAllBills, assetbills: viewAssetBills, spend: viewSpend, income: viewIncome, statements: viewStatements, budget: viewBudget, cards: viewCards, assets: viewFinAssets, debts: viewDebts, networth: viewNetWorth, template: viewBillTemplate },
   shopping: () => viewShopping(),
   scan:     () => viewScan(),
   shops:    () => viewShops(),
