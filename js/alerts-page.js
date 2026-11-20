@@ -1,3 +1,4 @@
+import { viewSwitch } from "./core/view-switch.js";
 /* 注意事项页（#/alerts）：全部模块的提醒，按模块 / 按优先级两种视图（原来和首页在同一个文件里）。
  * 首页不再读提醒总线，这个页面第一次打开才下载；提醒由各模块自己注册进总线（core/alerts.js）。 */
 import { state } from "./core/state.js";
@@ -103,9 +104,7 @@ function byArea(all) {
 export function viewAlerts() {
   const pref = state.today;
   const view = pref.view === "priority" ? "priority" : "area";   // 两种视图：按模块（默认）/ 按优先级；记在这台设备上
-  const seg = `<div class="seg alerts-view" role="group" aria-label="${t("视图")}">
-      <button type="button" data-action="today-view" data-v="area" aria-pressed="${view === "area"}">${t("按模块")}</button>
-      <button type="button" data-action="today-view" data-v="priority" aria-pressed="${view === "priority"}">${t("按优先级")}</button></div>`;
+  const seg = `<div class="view-bar">${viewSwitch([["area", "按模块"], ["priority", "按优先级"]], view, { action: "today-view" })}</div>`;
   if (view === "area") {
     return `<nav class="crumb" aria-label="${t("当前位置")}"><a href="${href("today")}">‹ ${t("今日")}</a><span class="sep">/</span><b>${t("待办 | 注意事项")}</b></nav>
       <section class="section today-head">${seg}</section>${byArea(myAlerts())}`;

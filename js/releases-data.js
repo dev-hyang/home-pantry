@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.14", title: { zh: "统一的「视图」切换", en: "One shared View switch" }, items: [
+    { k: "better", zh: "特价一览、今日待办、历史交易、库存：原来各页并排的一组视图按钮，换成统一的靠右小控件「视图 | 当前 ⋮」，点开选择，选完收起", en: "Weekly deals, Today to-dos, deal history and inventory now share one right-aligned View control: tap to open, pick, and it collapses to the current view" },
+  ] },
+
   { v: "2026-11-20.13", title: { zh: "常去的商店：整理首页", en: "Shops: tidier home page" }, items: [
     { k: "better", zh: "常去的商店首页：标题下是两张导航卡（商店列表 / 特价一览），不再有一排挤在一起的按钮；更新记录收进右上 ⋯", en: "Shops home: two navigation cards (Shop list / Weekly deals) replace the crowded button row; Update log moved into the ⋯ menu" },
     { k: "new", zh: "右下角圆形 ＋：手动添加商店、找附近的商店、录入特价、用 Claude 整理", en: "Round ＋ button: add a shop, find nearby shops, enter deals, tidy with Claude" },

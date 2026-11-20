@@ -1,3 +1,4 @@
+import { viewSwitch } from "../core/view-switch.js";
 import { $, catOf, esc, fmt, fmtShort, inSpace, isGear, num, spaceOf, stampText, todayISO } from "../core/util.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { STATUS, state } from "../core/state.js";
@@ -18,7 +19,7 @@ import { groupedCats, matchItem } from "./inventory-match.js";
 import { lpAttr } from "../core/long-press.js";
 
 export function invView() { try { return localStorage.getItem(VIEW_KEY) === "cats" ? "cats" : "rows"; } catch { return "rows"; } }
-const viewSeg = (cur) => `<div class="seg inv-seg" role="group" aria-label="${esc(t("怎么看"))}">${[["rows", "☰", "物品"], ["cats", "▦", "分类"]].map(([v, ic, l]) => `<button type="button" class="seg-btn" data-action="inv-view" data-view="${v}" aria-pressed="${cur === v}"><span aria-hidden="true">${ic}</span> ${t(l)}</button>`).join("")}</div>`;
+const viewSeg = (cur) => `<div class="view-bar">${viewSwitch([["rows", "物品", "☰"], ["cats", "分类", "▦"]], cur, { action: "inv-view", attr: "view" })}</div>`;
 const muteOn = (it) => !!it.alert_mute_until && String(it.alert_mute_until) > todayISO();
 /** 新物品的空间：开着汽车房屋消耗品时跟着筛选的空间，否则日常消耗品 */
 const addSpace = () => (state.filter.space === "house" && state.houseEnabled ? "house" : state.filter.space === "gear" ? "gear" : "pantry");

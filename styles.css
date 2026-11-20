@@ -4344,3 +4344,13 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .top-actions { position: sticky; top: var(--pin-top, 0px); z-index: 12; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 10px; padding: 8px 0; background: color-mix(in srgb, var(--bg) 94%, transparent); border-bottom: 1px solid var(--line); }
 .top-actions .btn { min-height: 44px; min-width: 88px; justify-content: center; }
 .top-actions .ta-save { margin-left: auto; }
+/* 视图切换（core/view-switch.js）：靠右的「视图 | 当前 ⋮」，点开选，选完收起 */
+.view-bar { display: flex; justify-content: flex-end; margin: 0 0 10px; }
+.view-sw { margin-left: auto; }
+.view-sw > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 8px 4px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+@media (pointer: coarse) { .view-sw > summary { min-height: 44px; } }
+.view-sw .vs-lbl { color: var(--muted); font-size: 13px; font-weight: 500; }
+.view-sw .vs-cur { font-size: 14px; padding-left: 8px; border-left: 1px solid var(--line); white-space: nowrap; }
+.view-sw .dots3 { margin: 0 9px; }
+.view-sw .act-item[aria-checked="true"] { color: var(--pine); background: var(--surface-2); }
+.head-acts .view-sw > summary { box-sizing: border-box; }

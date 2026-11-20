@@ -1,3 +1,4 @@
+import { viewSwitch } from "../core/view-switch.js";
 /* 交易页：任务行、编辑表单、交易详情、新建 / 编辑交易的表单、交割面板。 */
 import { D, END_LAG, V, addTaskRow, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, openDeal, openVehicleDeal, propertyLive, skipBtn, statusText, taskEditForm, taskRow } from "./deal-tasks.js";
 import { addDays } from "../bills/logic.js";
@@ -140,7 +141,7 @@ export function viewDeal() {
     </section>
     ${newTaskPanel(deal)}
     <section class="section">
-      <div class="seg deal-view" role="group" aria-label="${esc(t("视图"))}">${DEAL_VIEWS.map(([v, ico, name]) => `<button type="button" class="chip" data-action="deal-view" data-view="${v}" aria-pressed="${view === v}">${ico} ${t(name)}</button>`).join("")}</div>
+      <div class="view-bar">${viewSwitch(DEAL_VIEWS.map(([v, ico, name]) => [v, name, ico]), view, { action: "deal-view", attr: "view" })}</div>
       ${view === "list" ? `<div class="panel mlist">${infoRow}${stageRows}${addRow}${closeRow}${loanRow}</div>` : `<div class="panel mlist">${infoRow}</div>
         ${view !== "plan" ? briefHtml(deal, an, laneH) : ""}
         <div class="dl-bar">${view !== "plan" ? `<button type="button" class="btn btn-primary btn-sm" data-action="deal-event-new" data-deal="${deal.id}">＋ ${t("记一笔进展")}</button>` : ""}</div>
