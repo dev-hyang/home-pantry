@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="家庭库存与采购清单：记录存量、按消耗速度提醒补货，家人共享不重复购买。">
   <title>爱家小助手</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40'%3E%3Crect x='4' y='1' width='24' height='7' rx='2' fill='%231e3a32'/%3E%3Crect x='3' y='8' width='26' height='30' rx='6' fill='white' stroke='%231e3a32' stroke-width='3'/%3E%3Crect x='6' y='22' width='20' height='13' rx='3' fill='%23e9b949'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%231fb5ad'/%3E%3Crect x='26.5' y='8.5' width='4' height='7.5' rx='1' fill='white'/%3E%3Cpath d='M20 7.5 L34.5 21 H31.5 V32 a2 2 0 0 1 -2 2 H10.5 a2 2 0 0 1 -2 -2 V21 H5.5 Z' fill='white'/%3E%3Cpath d='M20 30.2 C15 26.6 12.4 24 12.4 21.4 C12.4 19.5 13.9 18.2 15.7 18.2 C17.5 18.2 19 19.2 20 20.7 C21 19.2 22.5 18.2 24.3 18.2 C26.1 18.2 27.6 19.5 27.6 21.4 C27.6 24 25 26.6 20 30.2 Z' fill='%231fb5ad'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <!-- Noto Sans SC 400/500/600：各平台同一套字重，标题用 600 不至于发黑（2026-11 轻量化）；加载不到时退回系统字体 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,20 +38,19 @@
   <link rel="modulepreload" href="dist/chunks/chunk-IO3ZLQYH.js">
   <link rel="modulepreload" href="dist/chunks/chunk-IXNCHOMB.js">
   <link rel="modulepreload" href="dist/chunks/chunk-JAP4WSUC.js">
-  <link rel="modulepreload" href="dist/chunks/chunk-JKNTJ24K.js">
   <link rel="modulepreload" href="dist/chunks/chunk-JS4TCEKM.js">
   <link rel="modulepreload" href="dist/chunks/chunk-KR3YC26M.js">
   <link rel="modulepreload" href="dist/chunks/chunk-KZ52OJ4E.js">
   <link rel="modulepreload" href="dist/chunks/chunk-LO7NPGXA.js">
   <link rel="modulepreload" href="dist/chunks/chunk-LSDILCN6.js">
   <link rel="modulepreload" href="dist/chunks/chunk-MITDCDED.js">
-  <link rel="modulepreload" href="dist/chunks/chunk-OIVHHMM3.js">
   <link rel="modulepreload" href="dist/chunks/chunk-P5J5GQ5W.js">
   <link rel="modulepreload" href="dist/chunks/chunk-PGQSQ3CZ.js">
   <link rel="modulepreload" href="dist/chunks/chunk-PRQIDFY5.js">
   <link rel="modulepreload" href="dist/chunks/chunk-PW5COOPS.js">
   <link rel="modulepreload" href="dist/chunks/chunk-QEMYDZKX.js">
   <link rel="modulepreload" href="dist/chunks/chunk-QEZC5YDL.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-RFA4RVX5.js">
   <link rel="modulepreload" href="dist/chunks/chunk-RITHL5GT.js">
   <link rel="modulepreload" href="dist/chunks/chunk-RT2YA36K.js">
   <link rel="modulepreload" href="dist/chunks/chunk-RU4FZY45.js">
@@ -73,6 +72,7 @@
   <link rel="modulepreload" href="dist/chunks/chunk-YBFMYQNV.js">
   <link rel="modulepreload" href="dist/chunks/chunk-YIC2WQIH.js">
   <link rel="modulepreload" href="dist/chunks/chunk-YKBHFD7F.js">
+  <link rel="modulepreload" href="dist/chunks/chunk-ZBKPIXYP.js">
   <link rel="modulepreload" href="dist/chunks/chunk-ZOGKRBZC.js">
   <!-- /build:preload -->
 </head>
@@ -82,10 +82,11 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <svg class="brand-mark" viewBox="0 0 32 40" width="30" height="38" aria-hidden="true">
-          <rect x="4" y="1" width="24" height="7" rx="2" fill="currentColor"/>
-          <rect x="3" y="8" width="26" height="30" rx="6" fill="none" stroke="currentColor" stroke-width="2.5"/>
-          <rect x="6" y="22" width="20" height="13" rx="3" fill="var(--mustard)"/>
+        <svg class="brand-mark" viewBox="0 0 40 40" width="34" height="34" aria-hidden="true">
+          <rect width="40" height="40" rx="9" fill="#1fb5ad"/>
+          <rect x="26.5" y="8.5" width="4" height="7.5" rx="1" fill="#fff"/>
+          <path d="M20 7.5 L34.5 21 H31.5 V32 a2 2 0 0 1 -2 2 H10.5 a2 2 0 0 1 -2 -2 V21 H5.5 Z" fill="#fff"/>
+          <path d="M20 30.2 C15 26.6 12.4 24 12.4 21.4 C12.4 19.5 13.9 18.2 15.7 18.2 C17.5 18.2 19 19.2 20 20.7 C21 19.2 22.5 18.2 24.3 18.2 C26.1 18.2 27.6 19.5 27.6 21.4 C27.6 24 25 26.6 20 30.2 Z" fill="#1fb5ad"/>
         </svg>
         <div>
           <div class="brand-row">

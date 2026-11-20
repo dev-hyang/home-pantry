@@ -137,7 +137,7 @@ main:focus, main:focus-visible, #main:focus-visible { outline: none !important; 
   input, select, textarea { font-size: var(--control-fs); }
   .topbar-inner { padding-top: 10px; padding-bottom: 8px; }
   .brand { gap: 10px; min-width: 0; }
-  .brand-mark { width: 26px; height: 32px; }
+  .brand-mark { width: 30px; height: 30px; }
   .brand h1 { white-space: nowrap; }
   .brand-row { flex-wrap: wrap; row-gap: 2px; }   /* 站名 + 姐妹站点胶囊 + 右侧语言切换挤不下时，胶囊换行，不把页面撑宽 */
   .lang-switch button { font-size: 11px; padding: 2px 7px; }

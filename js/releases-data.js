@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-19.42", title: { zh: "新图标：青绿底的房子 + 爱心", en: "New icon: a teal tile with a house and a heart" }, items: [
+    { k: "better", zh: "爱家小助手的图标从罐子换成青绿色圆角方块里的白色房子 + 爱心（页面左上角和浏览器标签页图标都换了）", en: "The app icon changes from a jar to a white house with a heart on a teal rounded tile (top-left of the page and the browser tab icon)" }
+  ] },
+
   { v: "2026-11-19.41", title: { zh: "一次性账单重构：综合信息卡 + 缴费记录，缴费各有独立页", en: "One-time bills redesigned: summary card plus payment records, each payment on its own page" }, items: [
     { k: "better", zh: "首页只有两块：综合信息卡（账单、日期、保险、应付 / 已付 / 余额）和缴费记录；卡片 ⋯ 里是 详情、缴费、复制、删除；原来的分块信息搬到「详情」，每块各自编辑", en: "The home page is now a summary card (bill, dates, insurance, due / paid / balance) and the payment records; the card menu has Details, Pay, Copy, Delete; the block-by-block info moved to Details, each block editable on its own" },
     { k: "better", zh: "缴费记录的行和周期性账单一样：点一下进独立的编辑页，⋯ / 长按有 编辑、复制、删除；没有记录时区里有「记一笔缴费」，其他地方的这个按钮去掉了", en: "Payment rows match recurring bills: tap to edit on a separate page, Edit / Copy / Delete in ⋯ or long-press; the Log payment button only appears in the empty section" },
