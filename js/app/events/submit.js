@@ -208,6 +208,22 @@ export async function onMainSubmit(e) {
       return refresh();
     }
     if (f.id === "shopScanForm") return saveShopScan(refresh);
+    if (f.id === "restockForm") {   // 补货清单页：勾选的逐个加进购物车（pantry/shop-add-page.js）
+      const rows = [...f.querySelectorAll(".rs-pick-row")].filter((r) => r.querySelector('[name="inc"]').checked);
+      if (!rows.length) return toast(t("先勾选要加的物品"));
+      const out = [];
+      for (const r of rows) {
+        const it = state.items.find((x) => x.id === r.dataset.id), n = num(r.querySelector('[name="qty"]').value, 0), raw = String(r.querySelector('[name="unit"]')?.value || "").trim();
+        if (!it) continue;
+        if (!(n > 0)) return toast(t("{name} 的数量要大于 0。", { name: it.name }));
+        out.push({ it, quantity: Math.round(n * 100) / 100, unit: raw && raw !== "__other" ? (Units.normalize(raw) || raw).slice(0, 10) : it.unit || "个" });
+      }
+      for (const { it, quantity, unit } of out) if (!state.shopping.some((s) => s.status !== "bought" && s.item_id === it.id)) await Store.saveShopping({ item_id: it.id, name: it.name, quantity, unit, category: it.category });
+      state.shopPick = null;
+      toast(out.length === 1 ? t("已加入购物车：{name} {q} {u}", { name: out[0].it.name, q: out[0].quantity, u: t(out[0].unit) }) : t("已加入购物车 {n} 项", { n: out.length }));
+      go(href("shopping", "list"), { replace: true });
+      return refresh();
+    }
     if (f.id === "shopForm") {   // 加入购物车的手动表单页（pantry/shop-add-page.js）：已有物品 = 下拉选库存；新物品 = 写名字，库存里有相同 / 相近的先问
       const existing = f.dataset.kind === "existing";
       let linked = existing ? state.items.find((i) => i.id === f.elements.item_id.value) : null, name = existing ? linked?.name : f.elements.name.value.trim();

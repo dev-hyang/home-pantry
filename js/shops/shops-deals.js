@@ -8,7 +8,7 @@ import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
 import { normName } from "../core/item-match.js";
 import { state } from "../core/state.js";
-import { typeTags } from "./shop-detail.js";
+import { dealHref, typeTags } from "./shop-detail.js";
 import { shopHref, ui } from "./shops-common.js";
 import { clearActionBtn } from "../core/clear-filters.js";
 import { shopsFab, shopsMore, shopsTabs } from "./shops-nav.js";
@@ -51,14 +51,14 @@ export function viewDeals() {
   const badge = (d) => (item && !picked && top && d.id === top.id ? `<span class="tag tag-ok" title="${esc(t(WHY[base.why] || WHY.unit))}">★ ${t("默认")}</span>` : priceHistory(d)?.isLow ? `<span class="tag tag-ok">${t("6 个月最低")}</span>` : "");
   const unitTxt = (d) => (d.unit_price != null ? `${unitMoney(+d.unit_price)}<small>${esc(d.unit_label || "")}</small>` : `<small class="muted">—</small>`);
   const isOn = (d) => (picked ? picked.id === d.id : item && top && d.id === top.id);
-  const row = (d) => `<li class="dv-row ${isOn(d) ? "is-pick" : ""}">
+  const row = (d) => `<li class="dv-row ${isOn(d) ? "is-pick" : ""}" data-row-open="${esc(dealHref(on.get(d.shop_id) || { id: d.shop_id }, d))}">
       <span class="dv-nm"><b>${esc(d.name)}</b>${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}<small>${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")} ${badge(d)}</small></span>
       <a class="dv-shop" href="${shopHref(on.get(d.shop_id) || { id: d.shop_id })}">${esc(shopName(d.shop_id))}</a>
       <span class="dv-pr"><b>${esc(priceTxt(d))}</b>${d.price != null && d.price_text && d.price_text.replace(/\s/g, "") !== money(d.price).replace(/\s/g, "") ? `<small>${esc(d.price_text)}</small>` : ""}</span>
       <span class="dv-unit">${unitTxt(d)}</span>
       <span class="dv-to muted">${d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""}</span>
       <span class="dv-act">${act(d)}</span></li>`;
-  const card = (d) => `<article class="dv-card ${isOn(d) ? "is-pick" : ""}">
+  const card = (d) => `<article class="dv-card ${isOn(d) ? "is-pick" : ""}" data-row-open="${esc(dealHref(on.get(d.shop_id) || { id: d.shop_id }, d))}">
       <div class="dv-c-top"><a class="dv-shop" href="${shopHref(on.get(d.shop_id) || { id: d.shop_id })}">${esc(shopName(d.shop_id))}</a><span class="dv-to muted">${d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""}</span></div>
       <b class="dv-c-nm">${esc(d.name)}</b><small class="muted">${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")}</small>
       ${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}
@@ -67,7 +67,7 @@ export function viewDeals() {
   const filtered = v.q || v.shop || v.cat || v.type || (!item && v.f === "list");
   const mode = item && v.mode === "group" ? "list" : v.mode;   // 单个商品的页面本来就是一组：按商品分组没意义，用列表
   const groups = mode === "group" ? groupDeals(list, hits) : null;
-  const gRow = (d) => `<li class="${isOn(d) ? "is-pick" : ""}"><a class="dv-shop" href="${shopHref(on.get(d.shop_id) || { id: d.shop_id })}">${esc(shopName(d.shop_id))}</a>
+  const gRow = (d) => `<li class="${isOn(d) ? "is-pick" : ""}" data-row-open="${esc(dealHref(on.get(d.shop_id) || { id: d.shop_id }, d))}"><a class="dv-shop" href="${shopHref(on.get(d.shop_id) || { id: d.shop_id })}">${esc(shopName(d.shop_id))}</a>
       <span class="dv-g-nm">${esc(d.name)}${d.size ? ` <small>${esc(d.size)}</small>` : ""}</span>
       <b class="dv-g-pr">${esc(priceTxt(d))}</b><span class="dv-unit">${unitTxt(d)}</span><span class="dv-to muted">${d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""}</span></li>`;
   const gCard = (g) => { const m = g.hits; const first = g.deals[0];

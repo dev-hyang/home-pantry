@@ -5,6 +5,7 @@ import { du, fmt, money, num, showQty, toDisp, toast } from "../../core/util.js"
 import { nameHas, openShopFor } from "../../core/logic.js";
 import { refresh } from "../data.js";
 import { render } from "../render.js";
+import { go, href } from "../../core/router.js";
 import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 import { shopUnit } from "../../pantry/shop-sync.js";
@@ -69,6 +70,7 @@ export async function removeFromShopping(ids) {
 export async function addAlertsToShopping(list) {
   const fresh = list.filter((it) => it && !openShopFor(it.id));
   if (!fresh.length) { toast(list.length > 1 ? t("这些都已经在清单里了") : t("已经在购物车里了")); return refresh(); }
+  if (fresh.length > 1) { state.shopPick = fresh.map((i) => i.id); return go(`${href("shopping", "add")}?form=restock`); }   // 多件：整页确认（补货清单页），不再从底部弹框
   const picked = await askShopItems(fresh);
   if (!picked) return refresh();
   for (const { it, quantity, unit } of picked) await Store.saveShopping({ item_id: it.id, name: it.name, quantity, unit, category: it.category });

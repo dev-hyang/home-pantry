@@ -78,9 +78,9 @@ export async function shopsAction(action, el, { render, go, refresh }) {
     case "shops-import-cancel": u.imp = null; u.impText = ""; u.impError = ""; render(); return;
     case "shops-import-save": return importSave(render);
     case "shops-read": return readDeals(id, render);
-    case "shops-manual": { const du = dealUi(id); du.rows = [{ include: true, name: "", size: null, price: null, price_text: null, unit_price: null, unit_label: null, valid_from: weekWindow(shopById(id)).valid_from || null, valid_to: weekWindow(shopById(id)).valid_to || null, aka: null, category: null }]; du.manual = true; du.replace = false; render(); return; }
+    case "shops-manual": { const du = dealUi(id); du.rows = [{ include: true, name: "", size: null, price: null, price_text: null, unit_price: null, unit_label: null, valid_from: weekWindow(shopById(id)).valid_from || null, valid_to: weekWindow(shopById(id)).valid_to || null, aka: null, category: null }]; du.manual = true; du.replace = false; if (!state.route?.q?.get("add")) return go(`${href("shops", "shop")}/${encodeURIComponent(id)}?add=1`); render(); return; }   // 手动加一条：去单独的新增页
     case "shops-addrow": { const du = dealUi(id); keepReview(du); du.rows.push({ include: true, name: "" }); render(); return; }
-    case "shops-discard": { const du = dealUi(id); du.rows = null; du.error = ""; render(); return; }
+    case "shops-discard": { const du = dealUi(id); du.rows = null; du.manual = false; du.error = ""; if (state.route?.q?.get("add")) return go(`${href("shops", "shop")}/${encodeURIComponent(id)}`, { replace: true }); render(); return; }
     case "shops-dfilter": dealUi(id).filter = el.dataset.v; render(); return;
     case "shops-dreset": Object.assign(dealUi(id), { q: "", cat: "", type: "", filter: "all" }); render(); return;
     case "shops-deal-edit": dealUi(id).edit = el.dataset.deal; render(); return;
@@ -163,7 +163,9 @@ async function saveReview(f, render) {
   const r = await applyDeals(s, rows, { source: src, replace: !!du.replace });
   await logRun(src, [{ shop_id: s.id, name: s.name, ...r }]);
   du.rows = null; du.manual = false; attachReset(`shopdeal-${id}`);
-  toast(t("已保存 {n} 条特价", { n: r.added }) + (r.replaced ? t("，替换了旧的 {m} 条", { m: r.replaced }) : "")); render();
+  toast(t("已保存 {n} 条特价", { n: r.added }) + (r.replaced ? t("，替换了旧的 {m} 条", { m: r.replaced }) : ""));
+  if (state.route?.q?.get("add")) return go(`${href("shops", "shop")}/${encodeURIComponent(id)}`, { replace: true });   // 新增页保存后回商店
+  render();
 }
 async function saveDealEdit(f, render) {
   const d = (state.shopDeals || []).find((x) => x.id === f.dataset.id); if (!d) return;

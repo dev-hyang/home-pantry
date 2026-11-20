@@ -2,7 +2,7 @@
  * 做法：每次整页重画后，在编辑页（底部导航已隐藏的页面、.form-page、收入编辑页）里找到主表单底部的按钮条，
  * 在页面顶部（面包屑下面）贴一条粘性的副本：取消靠左、保存靠右。保存是 form="表单 id" 的提交按钮，走表单原来的提交处理；
  * 底部原来的按钮条不动（页面里别的代码还在用它），所以这里不搬 DOM，只复制。 */
-const isCancel = (el) => /^(取消|Cancel)$/i.test(el.textContent.trim()) || /cancel$/i.test(el.dataset?.action || "");
+const isCancel = (el) => /^(取消|放弃|Cancel|Discard)$/i.test(el.textContent.trim()) || /cancel$/i.test(el.dataset?.action || "");
 let seq = 0;
 
 export function pinTopActions(root, on) {

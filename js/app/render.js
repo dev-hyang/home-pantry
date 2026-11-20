@@ -52,13 +52,13 @@ export function render(force = true) {
   { const pf = $("#billPayForm"); if (pf) recalcPayTotal(pf); }   // 缴费表单：先算一次总金额
   { const af = $("#main [data-as-focus]"); if (af) requestAnimationFrame(() => af.scrollIntoView({ block: "start" })); }   // 从账单页点某笔摊派进来：滚到那一笔
   normalizeFormActions($("#main"));   // 所有表单：取消靠左、保存靠右，同一行
-  syncEditing();
   pinTopActions($("#main"), TABS_HIDDEN(r) || !!$("#main .form-page") || (r.section === "bills" && r.sub === "income" && !!r.q?.get("form")));   // 编辑页：取消 / 保存置顶（js/core/top-actions.js）
+  syncEditing();
   foldHeadNotes();   // 各块标题下的说明 → 标题后的 ⓘ（js/core/head-notes.js）
   decoratePrivacy(r);   // 财务看板的大数字：遮挡模式下模糊（js/core/privacy.js）
 }
 /** 底部导航隐不隐藏的最终判断：页面里有底部保存栏（.sticky-actions：取消 / 保存）才隐藏，让保存栏贴底；其余页面（列表、详情、没有保存栏的表单）一律保留导航 */
-export function syncEditing() { document.body.classList.toggle("editing", !!document.querySelector("#main .sticky-actions")); }
+export function syncEditing() { document.body.classList.toggle("editing", !!document.querySelector("#main .sticky-actions, #main .top-actions")); }
 /** 页面函数返回 Promise = 这个页面的代码还没下载（js/core/lazy.js）：先放 面包屑 + 「加载中…」，下载完（还停在这个页面）再重画。返回 true = 已经画好 */
 function mountView(pre, out) {
   if (!out || typeof out.then !== "function") { $("#main").innerHTML = pre + out; return true; }

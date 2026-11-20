@@ -29,8 +29,9 @@ export function viewShop(id) {
   if (!s) return `<section class="section shops-page">${crumbNav([...base, { label: t("商店") }])}<p class="muted">${state.shops ? t("这家商店不在了。") : t("加载中…")}</p></section>`;
   const [, cn, icon] = shopCat(s.category), d = distOf(s), du = dealUi(s.id), deals = liveDeals(s.id), q = state.route.q;
   if (q.get("deal")) return viewShopDeal(s, q.get("deal"), q.get("edit") === "1");   // 一条特价的详情 / 编辑页（shop-deal-page.js）
+  if (q.get("add") === "1" || q.get("update") === "1") return `<section class="section shops-page shop-page form-page">${crumbNav([...base, { href: shopHref(s), label: s.name, icon }, { label: du.manual ? t("手动加一条特价") : t("录入特价") }])}
+    <div class="panel deal-upd">${du.rows ? reviewHtml(s, du) : updateHtml(s, du)}</div></section>`;   // 新增页：拍广告 / 粘贴 / 手动，保存后回商店
   if (q.get("edit") === "1") return `<section class="section shops-page shop-page form-page">${crumbNav([...base, { href: shopHref(s), label: s.name, icon }, { label: t("编辑商店") }])}${shopForm(s, { page: true })}</section>`;   // 编辑：单独的表单页（取消 / 保存置顶）
-  const openUpd = du.rows || du.busy || q.get("update") === "1" || !deals.length;
   const edit = (sec) => `${shopHref(s)}?edit=1&sec=${sec}`;
   const refreshTxt = s.refresh === "weekly" ? t("每{d}换广告", { d: t(DOW[s.refresh_dow ?? 3]) }) : t("需要时手动更新");
   const tags = `${s.archived ? `<span class="tag">${t("不去了")}</span> ` : ""}${dealsDue(s) ? `<b class="warn-txt">${t("本周待更新")}</b>` : ""}`;
@@ -40,15 +41,12 @@ export function viewShop(id) {
   const basic = dtBlock(t("基本信息"), edit("basic"), [dtRow(t("分类"), `${icon} ${esc(t(cn))}`), dtRow(t("地址"), s.address ? `<a href="${esc(mapUrl(s))}" target="_blank" rel="noopener">${esc(s.address)}</a>${d != null ? ` · ${t("{n} 英里", { n: d.toFixed(1) })}` : ""}` : ""),
     dtRow(t("电话"), s.phone ? `<a href="tel:${esc(s.phone)}">${esc(s.phone)}</a>` : ""), dtRow(t("备注"), esc(s.notes || ""))]);
   const upd = dtBlock(t("特价更新"), edit("update"), [dtRow(t("更新频率"), esc(refreshTxt)), dtRow(t("自动更新"), s.auto_update && s.refresh === "weekly" ? `🤖 ${t("{d}自动更新", { d: t(DOW[s.refresh_dow ?? 3]) })}` : ""), dtRow(t("上次更新"), s.deals_at ? esc(fmtShort(s.deals_at)) : ""), dtRow(t("广告链接"), s.ad_url ? `<a href="${esc(s.ad_url)}" target="_blank" rel="noopener">${t("本周广告")} ↗</a>` : "")]);
-  const fab = fabMenu([{ label: t("录入特价"), icon: "🏷", desc: t("拍广告、截图或粘贴文字"), href: `${shopHref(s)}?update=1` }, { label: t("手动加一条特价"), icon: "✍️", data: { action: "shops-manual", id: s.id } }], { label: t("添加") });
+  const fab = fabMenu([{ label: t("录入特价"), icon: "🏷", desc: t("拍广告、截图或粘贴文字"), href: `${shopHref(s)}?add=1` }, { label: t("手动加一条特价"), icon: "✍️", data: { action: "shops-manual", id: s.id } }], { label: t("添加") });
   return `<section class="section shops-page shop-page">
     ${crumbNav([...base, { label: s.name, icon }])}
     ${missingPanel()}
     <div class="section-head"><div class="sh-title"><h2>${icon} ${esc(s.name)}</h2><p>${tags}</p></div><div class="head-acts">${menu}</div></div>
     ${basic}${upd}
-    <details class="panel deal-upd" ${openUpd ? "open" : ""}><summary><b>${t("录入特价")}</b> <span class="muted">${t("拍广告、截图或粘贴文字，AI 读成特价清单；确认后保存")}</span></summary>
-      ${du.rows ? reviewHtml(s, du) : updateHtml(s, du)}
-    </details>
     ${dealsHtml(s, du, deals)}
     ${fab}
   </section>`;
@@ -60,7 +58,7 @@ function updateHtml(s, du) {
       hint: `${t("小技巧：先自己在页面上搜出要的东西（鸡蛋、牛奶…），再截图让 AI 读，最快也最省额度。")}${ready ? "" : ` ${t("没填 AI key 时，只能导入 Claude 整理好的 JSON。")}`}` })}
     <div class="form-actions"><button type="button" class="btn btn-primary" data-action="shops-read" data-id="${s.id}" ${du.busy ? "disabled" : ""}>${du.busy ? t("正在读…（几十秒）") : t("读出特价")}</button>
       <button type="button" class="btn btn-ghost" data-action="shops-claude-copy" data-id="${s.id}">📋 ${t("复制给 Claude 的指令")}</button>
-      <button type="button" class="btn btn-ghost" data-action="shops-manual" data-id="${s.id}">＋ ${t("手动加一条")}</button></div>
+      <button type="button" class="btn btn-ghost" data-action="shops-manual" data-id="${s.id}">＋ ${t("手动加一条")}</button><a class="btn btn-ghost" href="${shopHref(s)}">${t("取消")}</a></div>
     ${ui().copyText ? copyBox() : ""}
     ${du.error ? `<p class="form-error" role="alert">${esc(du.error)}</p>` : ""}
   </div>`;
@@ -137,7 +135,7 @@ function dealsHtml(s, du, deals) {
     const m = dealMatches(d, open);
     // 手机：没有按钮，向左滑删除、向右滑加入清单（都先确认），点名称修改；电脑：按钮照旧（悬停 / Tab 也能用），点名称同样修改
     const swipe = `data-swipe-del="deal"${m.length ? "" : ` data-swipe-alt="deal" data-swipe-alt-label="${esc(t("加入清单"))}" data-swipe-alt-go="${esc(t("松手加入清单"))}"`}`;
-    return `<li class="deal-row ${m.length ? "is-hit" : ""}${pick ? " is-pick" : ""}" ${pick ? "data-row-chk" : `${swipe} ${lpAttr([{ label: t("详情"), href: dealHref(s, d), first: true }, { label: t("编辑"), href: `${dealHref(s, d)}&edit=1` }, m.length ? null : { label: t("加入清单"), action: "shops-tolist", data: { deal: d.id } }, { label: t("删除"), action: "shops-deal-del", data: { deal: d.id }, danger: true }, bulkMenuItem("shopdeal", d.id)], d.name)}`}>
+    return `<li class="deal-row ${m.length ? "is-hit" : ""}${pick ? " is-pick" : ""}" ${pick ? "data-row-chk" : `${swipe} data-row-open="${esc(dealHref(s, d))}" ${lpAttr([{ label: t("详情"), href: dealHref(s, d), first: true }, { label: t("编辑"), href: `${dealHref(s, d)}&edit=1` }, m.length ? null : { label: t("加入清单"), action: "shops-tolist", data: { deal: d.id } }, { label: t("删除"), action: "shops-deal-del", data: { deal: d.id }, danger: true }, bulkMenuItem("shopdeal", d.id)], d.name)}`}>
       <span class="deal-nm">${pick ? bulkCheck("shopdeal", d.id) : ""}${pick ? `<b>${esc(d.name)}</b>` : `<a class="deal-nm-btn" href="${dealHref(s, d)}"><b>${esc(d.name)}</b></a>`}${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}<small>${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")}${m.length ? ` <span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : ""}</small></span>
       <span class="deal-pr"><b>${d.price != null ? money(d.price) : esc(d.price_text || "—")}</b>${d.price_text && d.price != null && d.price_text.replace(/\s/g, "") !== money(d.price).replace(/\s/g, "") ? `<small>${esc(d.price_text)}</small>` : ""}${d.regular_price ? `<small class="muted"><s>${money(d.regular_price)}</s></small>` : ""}</span>
       <span class="deal-unit">${d.unit_price != null ? `${unitMoney(d.unit_price)}<small>${esc(d.unit_label || "")}</small>` : `<small class="muted">—</small>`}</span>

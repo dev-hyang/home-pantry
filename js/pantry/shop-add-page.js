@@ -12,6 +12,9 @@ import { state } from "../core/state.js";
 import { shopUnit } from "./shop-sync.js";
 import { t } from "../core/i18n.js";
 import { categoryOptions } from "./meals-sync.js";
+import { alertsOf, openShopFor } from "../core/logic.js";
+import { fmt, inSpace } from "../core/util.js";
+import { unitSelect } from "../core/unit-pick.js";
 
 const addHref = (q = "") => `${href("shopping", "add")}${q}`;
 const listHref = () => href("shopping", "list");
@@ -27,7 +30,7 @@ export function itemPickOptions() {
   return `<option value="">${t("请选择库存里的物品…")}</option>${known.join("")}${rest.length ? `<optgroup label="${esc(t("其他"))}">${rest.map(opt).join("")}</optgroup>` : ""}`;
 }
 
-const menu = () => moreMenu([{ label: `📷 ${t("扫描")}`, href: addHref("?mode=photo"), first: true }, { label: `🔔 ${t("补货提醒")}`, action: "shop-add-alerts", data: { space: "pantry" } }, { label: `🧾 ${t("买好了，录入库存")}`, href: href("pantry", "scan") }], { label: t("更多操作") });
+const menu = () => moreMenu([{ label: `📷 ${t("扫描")}`, href: addHref("?mode=photo"), first: true }, { label: `🔔 ${t("补货提醒")}`, href: addHref("?form=restock") }, { label: `🧾 ${t("买好了，录入库存")}`, href: href("pantry", "scan") }], { label: t("更多操作") });
 
 /** 一个选择块：点开弹出几个入口 */
 const choice = (icon, title, desc, opts) => `<details class="act-more add-choice"><summary><span class="ac-ico" aria-hidden="true">${icon}</span><span class="ac-txt"><b>${title}</b><small>${desc}</small></span><span class="mch" aria-hidden="true">›</span></summary>
@@ -49,6 +52,25 @@ function formPage(kind) {
     </form></section>`;
 }
 
+/** 补货清单页：state.shopPick（别处点「全部加入购物车」带来的）或默认的补货提醒；已经在购物车里的不列 */
+export function restockCandidates() {
+  const ids = state.shopPick, pool = ids ? state.enriched.filter((x) => ids.includes(x.id)) : alertsOf(state.enriched.filter(inSpace("pantry")));
+  return pool.filter((it) => it && !openShopFor(it.id));
+}
+function restockPage() {
+  const list = restockCandidates();
+  const row = (it) => `<li class="rs-pick-row" data-id="${esc(it.id)}"><label class="check-inline"><input type="checkbox" name="inc" checked aria-label="${esc(t("加入 {name}", { name: it.name }))}"><span class="rp-name">${esc(it.name)}</span></label>
+      <input type="number" name="qty" inputmode="decimal" min="0" step="any" value="${esc(fmt(Math.max(1, Math.round(Number(it.dsuggest) || 1))))}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
+      ${unitSelect(`name="unit" aria-label="${esc(t("{name} 单位", { name: it.name }))}"`, it.du || it.unit || "个")}</li>`;
+  return `<section class="section shop-add-page form-page">${crumb(t("从补货清单加入"))}
+    <form class="panel restock-form" id="restockForm" aria-label="${esc(t("从补货清单加入"))}">
+      <h3 style="margin:0 0 4px">${t("从补货清单加入购物车")}</h3>
+      <p class="muted">${list.length ? t("确认每样要买多少、单位；不要的取消勾选。") : t("现在没有需要补货的东西，或都已经在购物车里了。")}</p>
+      <ul class="rs-pick-list">${list.map(row).join("")}</ul>
+      <div class="form-actions"><a class="btn btn-ghost" href="${addHref()}">${t("取消")}</a><button class="btn btn-primary" type="submit" ${list.length ? "" : "disabled"}>${t("加入购物车")}</button></div>
+    </form></section>`;
+}
+
 function scanPage(kind) {
   const label = kind === "new" ? t("扫描 · 新物品") : kind === "existing" ? t("扫描 · 已有物品") : t("扫描");
   return `<section class="section shop-add-page">${crumb(label)}${shopScanHtml()}<datalist id="itemNames">${state.items.map((i) => `<option value="${esc(i.name)}">`).join("")}</datalist></section>`;
@@ -57,13 +79,14 @@ function scanPage(kind) {
 export function viewShopAdd() {
   const q = state.route?.q, form = q?.get("form");
   if (form === "existing" || form === "new") return formPage(form);
+  if (form === "restock") return restockPage();
   if (q?.get("mode") === "photo") return scanPage(q.get("kind"));
   const recent = state.shopping.filter((s) => s.status !== "bought").sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))).slice(0, 8);
   return `<section class="section shop-add-page">
     ${crumb()}
     <div class="section-head"><h2>${t("加入购物车")}</h2><div class="head-acts">${menu()}</div></div>
     <div class="panel add-choices">
-      ${choice("📦", t("已有物品"), t("库存里有的，快用完了补一份"), [[`📷 ${t("扫描加入")}`, addHref("?mode=photo&kind=existing")], [`✍️ ${t("手动加入")}`, addHref("?form=existing")], [`🔔 ${t("从补货清单加入")}`, href("pantry", "overview")]])}
+      ${choice("📦", t("已有物品"), t("库存里有的，快用完了补一份"), [[`📷 ${t("扫描加入")}`, addHref("?mode=photo&kind=existing")], [`✍️ ${t("手动加入")}`, addHref("?form=existing")], [`🔔 ${t("从补货清单加入")}`, addHref("?form=restock")]])}
       ${choice("✨", t("新物品"), t("库存里还没有；买到后会新建物品"), [[`📷 ${t("扫描")}`, addHref("?mode=photo&kind=new")], [`✍️ ${t("手动")}`, addHref("?form=new")]])}
     </div>
     ${shopAdviceHtml()}

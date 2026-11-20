@@ -18,7 +18,7 @@ export function shopsFab(page = "list") {
   return fabMenu([
     page === "list" ? { label: t("手动添加商店"), icon: "🏪", data: { action: "shops-new" } } : null,
     { label: t("找附近的商店"), icon: "📍", href: href("shops", "find") },
-    target ? { label: t("录入特价"), icon: "🏷", desc: target.name, href: `${shopHref(target)}?update=1` } : null,
+    target ? { label: t("录入特价"), icon: "🏷", desc: target.name, href: `${shopHref(target)}?add=1` } : null,
     page === "list" ? { label: t("用 Claude 整理"), icon: "🤖", data: { action: "shops-claude" } } : null,
   ], { label: t("添加") });
 }

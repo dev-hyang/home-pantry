@@ -2,6 +2,18 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.22", title: { zh: "商店：录入特价是单独的新增页", en: "Shops: entering deals is its own page" }, items: [
+    { k: "fix", zh: "商店详情右下角 ＋ 的「录入特价」「手动加一条特价」现在会跳到单独的新增页（取消 / 保存后回到商店），不再停在原页面", en: "The shop page's ＋ menu now opens a dedicated page for entering deals (Cancel / Save return to the shop) instead of staying on the same page" },
+    { k: "better", zh: "商店特价行、特价一览的每一条：名称不再带下划线，整行可点进详情", en: "Deal rows in a shop and in the weekly deals list: no underlined names, the whole row opens the detail" },
+    { k: "fix", zh: "补上几处没有英文的新文字", en: "Added missing English text for recent screens" },
+  ] },
+
+  { v: "2026-11-20.21", title: { zh: "视图切换换成条状小控件，补货清单改成整页", en: "Slimmer view switch; restock list is now a page" }, items: [
+    { k: "better", zh: "「视图」切换去掉文字和三点，改成一条小的条状控件「图标 当前视图 ⌄」，点开选择、选完收起；字更小，图标放进去", en: "The view switch drops the label and dots: a slim bar showing the icon and current view; tap to open, pick, and it collapses" },
+    { k: "new", zh: "从补货清单加入购物车改成单独一页（可改每样的数量和单位、勾选），不再从底部弹出", en: "Adding from the restock list is now a full page (edit quantity and unit, tick items) instead of a bottom sheet" },
+    { k: "fix", zh: "编辑 / 创建页：取消和保存同一行，底部导航不再遮住；花费明细的名称不再有下划线；交易清单里过长的文字会换行不越界", en: "Edit/create pages keep Cancel and Save on one row without the bottom tabs covering them; spend names have no underline; long deal-checklist text wraps" },
+  ] },
+
   { v: "2026-11-20.20", title: { zh: "历史交易：整行点开", en: "Deal history: tap the row" }, items: [
     { k: "better", zh: "历史交易整行可点，进入那笔交易的清单、时间线和交易信息；长按菜单第一项是「详情」", en: "Deal history rows are fully tappable and open that deal's checklist, timeline and info; Details is first in the long-press menu" },
   ] },
