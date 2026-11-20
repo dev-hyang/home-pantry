@@ -111,6 +111,11 @@ export async function onMainChange(e) {
     e.target.form.classList.toggle("is-house", spaceOf(e.target.value) === "house");
   }
   if (e.target.closest("#assetForm") && (e.target.name === "kind" || e.target.name === "type")) return onAssetFormChange(e);
+  if (e.target.closest("#shopForm") && e.target.name === "item_id") {   // 加入已有物品：单位、分类跟着库存里选中的物品
+    const o = e.target.selectedOptions[0], f = e.target.form;
+    if (f) { f.elements.unit.value = o?.dataset.unit || ""; f.elements.category.value = o?.dataset.cat || ""; }
+    return;
+  }
   if (e.target.closest("#maintForm") && e.target.name === "kind") return onMaintFormChange(e);
   if (e.target.closest("#seasonForm") && e.target.name === "mode") { e.target.form.classList.toggle("is-once", e.target.value === "once"); return; }
   if (e.target.closest("#billForm") && (e.target.name === "unit_amount" || e.target.name === "parking_amount")) { const f = e.target.form; f.elements.typical_amount.value = (Math.round((num(f.elements.unit_amount.value) + num(f.elements.parking_amount.value)) * 100) / 100).toFixed(2); f.elements.amount_type.value = "fixed"; return; }   // HOA：通常金额 = 单元费 + 车位费

@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.16", title: { zh: "加入购物车页面重构", en: "Add-to-cart page redesigned" }, items: [
+    { k: "better", zh: "加入购物车首页：标题右上 ⋯（扫描 / 补货提醒 / 买好了录入库存）；一个块里「已有物品 / 新物品」两个入口，点开选扫描或手动；下面是最近加入的 8 条", en: "Add to cart: ⋯ menu (Scan / Restock alerts / Bought — log into stock); Existing item / New item entries that open Scan or Manual; the latest 8 added below" },
+    { k: "new", zh: "手动加入是单独的表单页（取消 / 保存）。已有物品从库存下拉里选（按分类分组，可输入搜索），单位和分类自动跟着库存；新物品保存时发现库存里有相同或相近的，会问是否改成加已有物品", en: "Manual add is its own form page. Existing items are picked from a searchable, grouped stock list with unit and category filled in; new items that match stock prompt you to add the existing item instead" },
+  ] },
+
   { v: "2026-11-20.15", title: { zh: "今日页：咩咩咩的三个入口", en: "Today: three quick entries under the assistant" }, items: [
     { k: "better", zh: "今日页「咩咩咩」下面的今天吃什么、加入购物车、录入购物，做成一行三张小卡片（手机上也是一行）", en: "Today page: What to eat, Add to cart and Log shopping are now three small cards in one row, also on phones" },
   ] },

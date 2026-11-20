@@ -4361,3 +4361,12 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .tai-card b { font-size: 13px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
 .tai-card:hover { border-color: var(--pine); }
 .tai-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* 加入购物车首页：「已有物品 / 新物品」两个大按钮，点开弹出几个入口 */
+.add-choices { display: grid; gap: 10px; }
+.add-choice > summary { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); cursor: pointer; list-style: none; }
+.add-choice > summary::-webkit-details-marker { display: none; }
+.add-choice[open] > summary { border-color: var(--pine); }
+.add-choice .ac-ico { font-size: 24px; flex: none; }
+.add-choice .ac-txt { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.add-choice .ac-txt small { color: var(--muted); font-size: 12.5px; }
+.add-choice .act-menu { left: 0; right: 0; top: calc(100% + 6px); }

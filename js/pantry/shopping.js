@@ -15,6 +15,7 @@ import { cardSelectHtml } from "../bills/card-picker.js";
 import { cardHintHtml } from "../bills/cards-review.js";
 import { storeDatalist } from "../stats/store-lite.js";
 import { lpAttr } from "../core/long-press.js";
+import { viewShopAdd } from "./shop-add-page.js";
 
 function shopQty(s) {
   const unit = shopUnit(s), d = du(unit), step = Units.step(d);
@@ -148,38 +149,11 @@ function viewShopList() {
     ${shopToolbar()}
     ${storeDatalist()}
     <div id="shopListBox">${shopListBody()}</div>
-    ${state.shopSel ? "" : `<a class="fab" href="${href("shopping", "add", "?mode=photo")}" aria-label="${esc(t("添加要买的东西（默认拍照，可切换手动）"))}" title="${esc(t("添加要买的东西"))}"><span aria-hidden="true">＋</span></a>`}
+    ${state.shopSel ? "" : `<a class="fab" href="${href("shopping", "add")}" aria-label="${esc(t("添加要买的东西"))}" title="${esc(t("添加要买的东西"))}"><span aria-hidden="true">＋</span></a>`}
     ${state.shopSel ? `<div class="inv-selbar shop-selbar" role="toolbar" aria-label="${esc(t("多选操作"))}">
       <span class="inv-seln" aria-live="polite">${esc(shopSelText())}</span>
       <button type="button" class="btn btn-sm btn-ghost" data-action="shop-sel-all">${t("全选")}</button><span class="spacer"></span>
       <button type="button" class="btn btn-sm btn-danger-ghost" data-action="shop-sel-remove" ${state.shopSel.size ? "" : "disabled"}>${t("移出购物车")}</button></div>` : ""}
-  </section>`;
-}
-function viewShopAdd() {
-  const photo = state.route?.q?.get("mode") === "photo";
-  const recent = state.shopping.filter((s) => s.status !== "bought").sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))).slice(0, 5);
-  const form = `<form class="panel shop-add-form" id="shopForm" aria-label="${t("手动添加采购项")}">
-      <label class="full">${t("要买什么")}<input name="name" required maxlength="60" placeholder="${t("例如：鸡蛋、牛奶、洗洁精")}" list="itemNames" autocomplete="off"></label>
-      <label>${t("数量")}<input name="quantity" type="number" min="0.1" step="0.1" value="1" inputmode="decimal"></label>
-      <label>${t("单位")}<input name="unit" list="unitList" placeholder="${t("不填自动选")}" maxlength="10"></label>
-      <label>${t("分类")}<select name="category"><option value="">${t("自动分类")}</option>${categoryOptions()}</select></label>
-      <label>${t("预估金额")}<input name="estimate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="${t("可不填，用来做预算提示")}"></label>
-      <div class="form-actions full"><button class="btn btn-primary" type="submit">${t("加入购物车")}</button><a class="btn btn-ghost" href="${href("shopping")}">${t("完成")}</a></div>
-      <p class="muted full shop-add-tip">${t("加完一项可以接着加；库存里有的东西会自动关联，买到后自动入库。")}</p>
-    </form>`;
-  return `<section class="section shop-add-page">
-    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("加入购物车"), icon: "＋" }])}
-    <nav class="shop-mode" aria-label="${esc(t("添加方式"))}">
-      <a class="chip" href="${href("shopping", "add", "?mode=photo")}" ${photo ? 'aria-current="page"' : ""}>📷 ${t("拍照")}</a>
-      <a class="chip" href="${href("shopping", "add")}" ${photo ? "" : 'aria-current="page"'}>✍️ ${t("手动")}</a>
-      <button type="button" class="chip" data-action="shop-add-alerts">🔔 ${t("补货提醒")}</button>
-    </nav>
-    ${photo ? shopScanHtml() : form}
-    <datalist id="itemNames">${state.items.map((i) => `<option value="${esc(i.name)}">`).join("")}</datalist>
-    ${shopAdviceHtml()}
-    ${recent.length ? `<div class="panel sd-preview"><div class="section-head"><h3>${t("最近加入")}</h3><a class="btn btn-sm btn-ghost" href="${listHref("open")}">${t("购物车")} ›</a></div>
-      <ul>${recent.map((s) => `<li class="sp-row"><span class="sp-txt"><b>${esc(s.name)}</b> <small class="muted">${showQty(num(s.quantity, 1), shopUnit(s))}${s.created_at ? ` · ${t("{d} 加入", { d: fmtShort(s.created_at) })}` : ""}</small></span></li>`).join("")}</ul></div>` : ""}
-    <a class="panel shops-entry" href="${href("pantry", "scan")}"><span aria-hidden="true">🧾</span><span><b>${t("买回来了？拍小票或贴网购订单")}</b><small>${t("这是录入库存、记花费，不是加购物车")}</small></span><span class="mch" aria-hidden="true">›</span></a>
   </section>`;
 }
 /** 采购：#/shopping（看板）、#/shopping/list、#/shopping/add；储藏 → 采购（#/pantry/shopping）也是看板 */

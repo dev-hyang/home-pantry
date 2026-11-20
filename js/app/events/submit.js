@@ -8,7 +8,7 @@ import { doCreateHousehold, doJoinHousehold, dupNameCheck } from "../auth/househ
 import { doLogin, doPhoneLogin, doQuickJoin, doVerifyOtp } from "../auth/login.js";
 import { effNature, l1IdOf, l2IdOf } from "../../core/taxonomy.js";
 import { familyHref, meId, profileErr, readMemberForm, reloadMembers } from "../../settings/members.js";
-import { findItem, normName } from "../../core/item-match.js";
+import { findItem, normName, similarItems } from "../../core/item-match.js";
 import { friendlyErr } from "../errors.js";
 import { glossaryOf, t } from "../../core/i18n.js";
 import { go, href } from "../../core/router.js";
@@ -208,16 +208,21 @@ export async function onMainSubmit(e) {
       return refresh();
     }
     if (f.id === "shopScanForm") return saveShopScan(refresh);
-    if (f.id === "shopForm") {
-      const name = f.elements.name.value.trim();
-      if (!name) return;
-      const linked = findItem(name);   // 写法一样就算同一件（以前要一字不差）
+    if (f.id === "shopForm") {   // 加入购物车的手动表单页（pantry/shop-add-page.js）：已有物品 = 下拉选库存；新物品 = 写名字，库存里有相同 / 相近的先问
+      const existing = f.dataset.kind === "existing";
+      let linked = existing ? state.items.find((i) => i.id === f.elements.item_id.value) : null, name = existing ? linked?.name : f.elements.name.value.trim();
+      if (!name) return toast(existing ? t("先选一件库存里的物品") : t("请填写要买什么"));
+      if (!existing) {
+        const same = findItem(name), near = same ? null : similarItems(name)[0], hit = same || near;
+        if (hit && window.confirm(same ? t("库存里已有「{n}」。改成把已有的「{n}」加入购物车吗？（取消 = 仍按新物品加）", { n: hit.name }) : t("库存里有相近的「{n}」，是同一样吗？是的话改成加入已有物品（取消 = 仍按新物品加）。", { n: hit.name }))) { linked = hit; name = hit.name; }
+      }
       const openSame = state.shopping.find((s) => s.status !== "bought" && (linked ? s.item_id === linked.id : normName(s.name) === normName(name)));
       if (openSame) return toast(t("{name} 已经在清单里了", { name: openSame.name }));
-      await Store.saveShopping({ name, quantity: Math.max(0.1, num(f.elements.quantity.value, 1)), unit: Units.normalize(f.elements.unit.value) || linked?.unit || Units.guess(name) || "", item_id: linked?.id || null, category: f.elements.category.value || linked?.category || "other" });   // 没填单位：已有物品用它的，新的按名字猜（牛奶 → 瓶）
-      { const est = num(f.elements.estimate?.value, NaN); state.shopAdvice = Number.isFinite(est) && est > 0 ? { name, estimate: est, group: groupForCategory(linked?.category || f.elements.category.value, est) } : null; }
+      const cat = existing ? linked.category : f.elements.category.value || "other";
+      await Store.saveShopping({ name, quantity: Math.max(0.1, num(f.elements.quantity.value, 1)), unit: existing ? linked.unit || "" : Units.normalize(f.elements.unit.value) || linked?.unit || Units.guess(name) || "", item_id: linked?.id || null, category: cat });
+      { const est = num(f.elements.estimate?.value, NaN); state.shopAdvice = Number.isFinite(est) && est > 0 ? { name, estimate: est, group: groupForCategory(linked?.category || cat, est) } : null; }
       toast(t("已加入：{name}", { name }));
-      if (state.route.sub === "add") { f.reset(); f.elements.name.focus(); }   // 加入清单页：清空表单接着加
+      go(href("shopping", "add"), { replace: true });   // 保存后回到「加入购物车」首页，下面的「最近加入」就能看到
       refresh();
     }
     if (f.id === "memberForm") {   // 成员资料：本人改自己的，家主改任何人的（数据库函数同样校验，迁移 052）
