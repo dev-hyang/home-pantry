@@ -1,12 +1,11 @@
 /* 收入 → 明细（带银行导入入口）：筛选条、分页列表、合计。 */
-import { $, esc, fmtDate, num, todayISO } from "../core/util.js";
-import { CHANNELS, capitalKinds, customKinds, groupOf, inc, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, memberLabel, normKindSel, openRepayments, personName, repayState, skey } from "./logic.js";
+import { $, esc, fmtDate, num } from "../core/util.js";
+import { CHANNELS, capitalKinds, customKinds, groupOf, inc, isOwnerNow, kindLabel, kindList, kindMatch, kindOf, kindOptionsHtml, normKindSel, openRepayments, personName, repayState, skey } from "./logic.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { INC_L1S, incLeaf, incLeavesOf, splitRecord } from "../core/income-taxonomy.js";
 import { aaFixHtml } from "./aa-fix.js";
 import { activeTab } from "../core/tabs.js";
 import { compact } from "../core/list-query.js";
-import { debtHref } from "../bills/debt-logic.js";
 import { formHtml } from "./record-form.js";
 import { href } from "../core/router.js";
 import { incList } from "./list.js";
@@ -15,7 +14,7 @@ import { moreBtn, pageLimit, pageMoreBtn, pageSize } from "../core/pager.js";
 import { scanHtml } from "./scan.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
-import { acctShow, empty, fmtMoney, incomeHref, personOptions, selOpts, yearsOf } from "./shared.js";
+import { acctShow, empty, fmtMoney, incFormHref, incViewHref, incomeHref, personOptions, selOpts, yearsOf } from "./shared.js";
 import { acctLabel } from "../bills/card-picker.js";
 import { lpAttr } from "../core/long-press.js";
 
@@ -35,13 +34,13 @@ export function importTab() {
 export function repayPanel() {
   const list = openRepayments(); if (!list.length) return "";
   return `<div class="panel"><h3 style="margin:0 0 8px">🤝 ${t("还没还清的（个人赠与 / 借款）")}</h3><ul class="restock-list">${list.map(({ r, s }) => `<li><div class="grow"><span class="name">${esc(r.source_name)} · ${fmtMoney(s.total)}</span><small>${t("已还 {a}，还差 {b}", { a: fmtMoney(s.paid), b: fmtMoney(s.left) })}${r.repay_due_on ? ` · ${s.overdue ? `<b class="bank-dup">${t("已逾期")}</b> ` : ""}${t("到期日 {d}", { d: r.repay_due_on })}` : ""}</small></div>
-    <button type="button" class="btn btn-sm btn-ghost" data-inc="open" data-id="${r.id}">${t("去还款")}</button></li>`).join("")}</ul></div>`;
+    <a class="btn btn-sm btn-ghost" href="${incViewHref(r.id)}">${t("去还款")}</a></li>`).join("")}</ul></div>`;
 }
 /* ───────────── 明细 ───────────── */
 /** 图表钻取的查询串 → 明细筛选：类型（叶子 / g:一级，旧的 g:work 这类自动换算）、日期段 from–to、成员、账户、搜索、ex = 不含资本流入 */
 export function applyIncomeDrill(q) {
   const I = inc(), d = (k) => (/^\d{4}-\d{2}-\d{2}$/.test(q.get(k) || "") ? q.get(k) : "");
-  Object.assign(I, { q: q.get("q") || "", kind: normKindSel(q.get("kind") || "all"), acct: q.get("acct") || "all", person: q.get("person") || "all", year: "all", month: "all", batch: null, from: d("from"), to: d("to"), ex: q.get("ex") === "1", limit: pageSize(), open: null, selMode: false });
+  Object.assign(I, { q: q.get("q") || "", kind: normKindSel(q.get("kind") || "all"), acct: q.get("acct") || "all", person: q.get("person") || "all", year: "all", month: "all", batch: null, from: d("from"), to: d("to"), ex: q.get("ex") === "1", limit: pageSize(), selMode: false });
 }
 /* 明细是服务器分页（迁移 054 / 056 的 inc_page / inc_stats）：每次「继续加载」向数据库要下一页，筛选、排序、合计都在 SQL 里做；
  * 类型（叶子 / 一级）、搜索里的类型名称、「默认不算收入的类型」这类只有前端认识的规则，先在这里展开成类型表。 */
@@ -65,8 +64,6 @@ function drillChips() {
   return `<div class="filter-chips" role="group" aria-label="${esc(t("当前筛选"))}"><span class="muted">${t("当前筛选")}</span>${out.map(([k, label]) => `<button type="button" class="chip fchip" data-inc="drill-clear" data-k="${k}" aria-label="${esc(t("去掉筛选：{x}", { x: label }))}">${esc(label)} <span aria-hidden="true">✕</span></button>`).join("")}</div>`;
 }
 export const canEdit = (r) => isOwnerNow() || r.created_by === state.user?.id;
-/** 正在改哪一条：它就在已显示的列表里时，表单在那一行下面展开；否则（被筛掉 / 还没翻到）表单放顶部 */
-export const inlineEditId = () => { const I = inc(), id = I.form?.rec?.id; return id && activeTab(state.route) === "records" && incList.rows.some((x) => x.id === id) ? id : null; };
 /** 行上的「收入 / 资本流入」小标：整笔都算收入时不标 */
 function recBadge(r) {
   const s = splitRecord(r);
@@ -74,25 +71,13 @@ function recBadge(r) {
   return s.income ? `<span class="badge b-ok">${t("收入 {a}", { a: fmtMoney(s.income) })}</span>` : `<span class="badge" style="background:var(--surface-2)">${r.repay_required ? t("借款") : t("资本流入")}</span>`;
 }
 export function recordRow(r) {
-  const I = inc(), s = repayState(r), pick = !!I.selMode && activeTab(state.route) === "records", editing = !pick && inlineEditId() === r.id, open = I.open === r.id && !editing;
-  const who = r.person_id ? personName(r.person_id) : "", acct = acctShow(r), sub = [esc(fmtDate(r.received_on)), esc(kindLabel(r.kind)), who && esc(who), acct && esc(acct), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
+  const I = inc(), s = repayState(r), pick = !!I.selMode && activeTab(state.route) === "records", k = kindOf(r.kind);
+  const who = r.person_id ? personName(r.person_id) : "", acct = acctShow(r), sub = [esc(kindLabel(r.kind)), who && esc(who), acct && esc(acct), r.channel && esc(t((CHANNELS.find((c) => c[0] === r.channel) || [])[1] || ""))].filter(Boolean).join(" · ");
   const rb = s ? `<span class="badge ${s.status === "paid" ? "b-ok" : s.overdue ? "b-out" : "b-soon"}">${s.status === "paid" ? t("已还清") : s.overdue ? t("逾期") : t("待还 {a}", { a: fmtMoney(s.left) })}</span>` : "";
-  return `<li class="ix-li${open || editing ? " is-open" : ""}" data-id="${r.id}"${pick ? " data-row-chk" : ""}${canEdit(r) && !pick && !editing ? ' data-swipe-del="income"' : ""}${pick || editing ? "" : ` ${lpAttr(canEdit(r) ? [{ label: t("详情"), data: { inc: "open", id: r.id }, first: true }, { label: t("编辑"), data: { inc: "edit", id: r.id } }, { label: t("复制"), data: { inc: "copy", id: r.id } }, { label: t("删除"), data: { inc: "del", id: r.id }, danger: true }, { label: t("多选删除"), data: { inc: "sel-start", id: r.id } }] : [{ label: t("展开详情"), data: { inc: "open", id: r.id }, first: true }], r.source_name)}`}>${pick ? `<label class="ix-main"><input type="checkbox" class="ix-chk" data-inc-sel="${r.id}" ${I.sel?.has(r.id) ? "checked" : ""} ${canEdit(r) ? "" : "disabled"} aria-label="${esc(t("选择"))}">` : `<button type="button" class="ix-main" data-inc="${canEdit(r) ? "edit" : "open"}" data-id="${r.id}" ${canEdit(r) ? `title="${esc(editing ? t("再点一下收起") : t("点一下编辑"))}" aria-expanded="${editing}"` : `aria-expanded="${open}"`}>`}
-    <span class="ix-ico" style="--k:${kindOf(r.kind).color}" aria-hidden="true">${kindOf(r.kind).icon}</span><span class="grow"><b class="name">${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt" data-money>+${fmtMoney(r.amount)}</b>${recBadge(r)}${I.drafts?.[r.id] ? `<span class="badge b-soon">${t("草稿")}</span>` : ""}${rb}</span>${pick ? "</label>" : "</button>" + rowTools(r, open)}${editing ? `<div class="ix-edit">${formHtml()}</div>` : ""}${open && !pick ? recordDetail(r, s) : ""}</li>`;
-}
-/** 行右边：▾ 展开 / 收起详情（还款、备注、原币种…）；隐藏的「删除」给左滑用（js/swipe-rows.js），键盘 Tab 到它也能删 */
-const rowTools = (r, open) => `<button type="button" class="ix-more" data-inc="open" data-id="${r.id}" aria-expanded="${open}" aria-label="${esc(t("展开详情"))}" title="${esc(t("展开详情"))}">${open ? "▴" : "▾"}</button>${canEdit(r) ? `<button type="button" class="swipe-src" data-inc="del-swipe" data-id="${r.id}">${t("删除")}</button>` : ""}`;
-function recordDetail(r, s) {
-  const sp = splitRecord(r);
-  const extra = [sp.cap && t("认定收入 {a}，资本流入 {b}", { a: fmtMoney(sp.income), b: fmtMoney(sp.cap) }), r.orig_amount && `${t("原币种")} ${r.orig_amount} ${r.orig_currency || ""}`, r.fee != null && `${t("手续费")} ${fmtMoney(r.fee)}`, r.import_batch && t("银行导入"), r.created_by && r.created_by !== state.user?.id && memberLabel(r.created_by) && t("{n} 记的", { n: memberLabel(r.created_by) })].filter(Boolean);
-  const reps = inc().rep.filter((p) => p.record_id === r.id).sort((a, b) => b.paid_on.localeCompare(a.paid_on));
-  const repay = s?.debt ? `<div class="ix-repay"><b>🤝 ${t("已转为借款")}</b> · ${t("总额 {a}，已还 {b}，还差 {c}", { a: fmtMoney(s.total), b: fmtMoney(s.paid), c: fmtMoney(s.left) })}
-      <p style="margin:6px 0 0"><a class="btn btn-sm" href="${esc(debtHref(s.debt))}">${t("去借贷里记还款")} ›</a></p></div>`   // 迁移 058：还款走借贷（余额、到期、提醒都在那里）
-    : s ? `<div class="ix-repay"><b>🤝 ${t("还款（还给对方）")}</b> · ${t("总额 {a}，已还 {b}，还差 {c}", { a: fmtMoney(s.total), b: fmtMoney(s.paid), c: fmtMoney(s.left) })}${r.repay_due_on ? ` · ${t("到期日 {d}", { d: r.repay_due_on })}` : ""}
-    <ul class="ix-reps">${reps.map((p) => `<li><span>${p.paid_on} · <b>${fmtMoney(p.amount)}</b>${p.method ? ` · ${esc(p.method)}` : ""}${p.purchase_id ? ` · <span class="muted">${t("已计入花费")}</span>` : ""}</span><button type="button" class="btn btn-sm btn-ghost" data-inc="rep-del" data-id="${p.id}">${t("删除")}</button></li>`).join("") || `<li class="muted">${t("还没有还款记录")}</li>`}</ul>
-    ${s.left > 0 ? `<form data-inc-form="repay" data-id="${r.id}" class="form-grid" style="margin-top:6px"><label>${t("还款日期")}<input type="date" name="paid_on" value="${todayISO()}" max="${todayISO()}" required></label><label>${t("金额")}<input type="number" name="amount" step="0.01" min="0.01" value="${s.left}" required></label><label>${t("方式")}<input name="method" maxlength="40" placeholder="Zelle / ${esc(t("现金"))}"></label><label class="check-inline" style="grid-column:1/-1"><input type="checkbox" name="as_spend" checked><span>${t("同时记为一笔花费（钱从账户里出去了）")}</span></label><small class="muted" style="grid-column:1/-1">${t("如果这笔转账已经从银行对账单导入成花费了，系统会发现并不再重复记；也可以取消勾选。")}</small><div class="form-actions"><button class="btn btn-sm btn-primary">${t("记一笔还款")}</button></div></form>` : ""}</div>` : "";
-  return `<div class="ix-detail">${extra.length ? `<p class="muted small" style="margin:0 0 6px">${extra.map(esc).join(" · ")}</p>` : ""}${r.notes ? `<p style="margin:0 0 6px">${esc(r.notes)}</p>` : ""}${repay}
-    ${canEdit(r) ? `<div class="form-actions"><button type="button" class="btn btn-sm" data-inc="edit" data-id="${r.id}">${t("编辑")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="copy" data-id="${r.id}">${t("复制")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="del" data-id="${r.id}">${t("删除")}</button></div>` : ""}</div>`;
+  const menu = canEdit(r) ? [{ label: t("详情"), href: incViewHref(r.id), first: true }, { label: t("编辑"), href: incFormHref(r.id) }, { label: t("复制"), data: { inc: "copy", id: r.id } }, { label: t("删除"), data: { inc: "del", id: r.id }, danger: true }, { label: t("多选删除"), data: { inc: "sel-start", id: r.id } }] : [{ label: t("详情"), href: incViewHref(r.id), first: true }];
+  // 第一行：日期 图标 名字（图标不单占一列），第二行：类型 · 成员 · 账户 · 收款方式；整行是一个链接，点哪里都进详情
+  const head = `<span class="grow"><b class="name"><span class="ix-date">${esc(fmtDate(r.received_on))}</span><span class="ix-ico" style="--k:${k.color}" aria-hidden="true">${k.icon}</span>${esc(r.source_name)}</b><small>${sub}</small></span><span class="ix-side"><b class="ix-amt" data-money>+${fmtMoney(r.amount)}</b>${recBadge(r)}${rb}</span>`;
+  return `<li class="ix-li" data-id="${r.id}"${pick ? " data-row-chk" : ""}${canEdit(r) && !pick ? ' data-swipe-del="income"' : ""}${pick ? "" : ` ${lpAttr(menu, r.source_name)}`}>${pick ? `<label class="ix-main"><input type="checkbox" class="ix-chk" data-inc-sel="${r.id}" ${I.sel?.has(r.id) ? "checked" : ""} ${canEdit(r) ? "" : "disabled"} aria-label="${esc(t("选择"))}">${head}</label>` : `<a class="ix-main" href="${esc(incViewHref(r.id))}">${head}</a>${canEdit(r) ? `<button type="button" class="swipe-src" data-inc="del-swipe" data-id="${r.id}">${t("删除")}</button>` : ""}`}</li>`;
 }
 const selBar = () => { const I = inc(); return I.selMode ? `<div class="ix-selbar"><span id="incSelN" role="status">${t("已选 {n} 笔", { n: I.sel?.size || 0 })}</span><button type="button" class="btn btn-sm btn-ghost" data-inc="sel-all">${t("全选当前显示的")}</button><button type="button" class="btn btn-sm" data-inc="sel-del">${t("删除所选")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="sel-toggle">${t("退出多选")}</button></div>` : ""; };
 const listHtml = () => {
@@ -111,7 +96,7 @@ function acctFilterOptions(sel) {
   return `${opt("all", t("全部账户"))}${list.map((c) => opt(c.id, acctLabel(c))).join("")}${opt("none", t("没关联登记账户的"))}`;
 }
 export function recordsTab() {
-  const I = inc(), top = `${aaFixHtml()}${I.scanOpen ? scanHtml() : ""}${I.form && !inlineEditId() ? formHtml() : ""}`;
+  const I = inc(), top = `${aaFixHtml()}${I.scanOpen ? scanHtml() : ""}${I.form ? formHtml() : ""}`;
   if (!I.rec.length && !I.form) return top + empty() + kindManager();
   // 和花费明细同一套 .toolbar：宽屏一行（搜索 + 下拉）；手机收成「搜索框 + 筛选」按钮，点开才出下拉（shared/compact-filters.js）
   const opt = (v, l, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(l)}</option>`;

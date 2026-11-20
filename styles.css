@@ -4327,3 +4327,9 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .bill-fab-menu button + a, .bill-fab-menu a + button, .bill-fab-menu button + button { border-top: 1px solid var(--line); }
 .bill-fab-menu button:hover, .bill-fab-menu button:focus-visible { background: var(--surface-2); }
 .form-page .panel > .form-actions, .form-page form > .form-actions { margin-top: 14px; }   /* 表单页：控件和底下的按钮留出距离（记一笔 / 编辑花费页的「退款」勾选框紧挨按钮） */
+/* 收入明细一行：第一行「日期 图标 名字」，图标不单占一列；整行是链接 */
+.ix-main { text-decoration: none; }
+.ix-main .name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ix-main .name .ix-date { flex: none; color: var(--muted); font-size: 12.5px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.ix-main .name .ix-ico { width: 24px; height: 24px; font-size: 13px; }
+@media (max-width: 640px) { .ix-main .name .ix-ico { width: 22px; height: 22px; font-size: 12px; } }

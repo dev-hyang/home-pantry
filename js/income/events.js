@@ -8,12 +8,13 @@ import { OV } from "./overview-tab.js";
 import { R, S_PAGE, rememberSenders, renderSenders, sMainKind, sNameOf, senderGroups } from "./senders-tab.js";
 import { Store } from "../core/store.js";
 import { activeTab } from "../core/tabs.js";
-import { canEdit, inlineEditId, renderIncList } from "./records-tab.js";
+import { canEdit, renderIncList } from "./records-tab.js";
 import { debounce, pageSize } from "../core/pager.js";
 import { detailRows, exportReport, fileHead, printIncome, runAi } from "./export-ai.js";
 import { hooks, rerender } from "./rollup.js";
 import { href } from "../core/router.js";
 import { incDraw, incList } from "./list.js";
+import { go } from "../core/router.js";
 import { initAaFix } from "./aa-fix.js";
 import { initIncomeScan } from "./scan.js";
 import { registerAlerts } from "../core/alerts.js";
@@ -21,13 +22,16 @@ import { sameAmountNear } from "../stats/dup-check.js";
 import { saveMeta } from "../bills/budget.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
-import { cur, incomeHref, rate, redraw, staleAll } from "./shared.js";
+import { cur, incFormHref, incViewHref, incomeHref, rate, redraw, staleAll } from "./shared.js";
 import { download, toCsv } from "../stats/store-lite.js";
 
 /* ───────────── 事件 ───────────── */
 function armed(el, msg) { if (el.dataset.armed) return true; el.dataset.armed = "1"; const old = el.textContent; el.textContent = msg; setTimeout(() => { delete el.dataset.armed; el.textContent = old; }, 4000); return false; }
 const guard = async (fn) => { try { await fn(); } catch (e) { toast(t("操作失败：{msg}", { msg: e.message })); } };
 const reload = async () => { await loadIncome(); redraw(); };
+/** 详情页 / 编辑页（路由里有 view= / form=）：不是列表 */
+const inSubPage = () => !!(state.route?.q?.get("view") || state.route?.q?.get("form"));
+const inFormPage = () => !!state.route?.q?.get("form");
 const goTab = (id) => { location.hash = incomeHref(id); };
 /** 去「明细」前清掉所有筛选（含图表钻取带来的日期段 / 不含资本流入） */
 const NO_FILTER = () => ({ q: "", kind: "all", acct: "all", year: "all", month: "all", person: "all", batch: null, from: "", to: "", ex: false, limit: pageSize() });
@@ -46,29 +50,20 @@ export function initIncome({ render, refresh }) {
     if (act === "way-manual") { I.form = I.form && !I.form.rec?.id ? null : { rec: null }; I.scanOpen = false; return redraw(); }
     if (act === "batch-clear") { I.batch = null; history.replaceState(null, "", `${href("bills", "income")}?tab=records`); return redraw(); }
     if (act === "way-scan") { I.scanOpen = !I.scanOpen; I.form = null; return redraw(); }
-    if (act === "cancel") { if (I.drafts && I.form?.rec?.id) delete I.drafts[I.form.rec.id]; I.form = null; return redraw(); }
-    if (act === "open") { I.open = I.open === id ? null : id; if (activeTab(state.route) !== "records") { Object.assign(I, NO_FILTER()); goTab("records"); return; } return redraw(); }
+    if (act === "cancel") { const rid = I.form?.rec?.id; if (I.drafts && rid) delete I.drafts[rid]; I.form = null; if (rid && inFormPage()) return go(incViewHref(rid), { replace: true }); return redraw(); }
+    if (act === "open") { location.hash = incViewHref(id); return; }
     if (act === "more") return incList.more();   // 「继续加载」：向数据库要下一页
     if (act === "node") { OV().node = b.dataset.node || ""; return redraw(); }   // 类型页：逐层点进去 / 面包屑回上层
     if (act === "copy") {   // 复制：新记一笔，带上这笔的内容（日期回到今天，不带 id、导入批次、还款记录）
       const src = I.rec.find((r) => r.id === id) || incList.rows.find((r) => r.id === id); if (!src) return;
       const rec = { ...src }; for (const k of ["id", "household_id", "created_at", "updated_at", "created_by", "updated_by", "import_batch", "received_on", "purchase_id"]) delete rec[k];
-      I.form = { rec }; I.scanOpen = false; I.open = null;
-      if (activeTab(state.route) !== "records") { Object.assign(I, NO_FILTER()); I._keep = true; goTab("records"); return; }
+      I.form = { rec }; I.scanOpen = false;
+      if (activeTab(state.route) !== "records" || inSubPage()) { Object.assign(I, NO_FILTER()); I._keep = true; goTab("records"); return; }
       redraw(); setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
     }
-    if (act === "edit") {   // 点行 / 点「编辑」：打开编辑表单（不在「明细」标签就先切过去）；这一行已经展开着，再点一下行就收起（不保存）
-      if (b.classList.contains("ix-main") && I.form?.rec?.id === id && inlineEditId() === id) {   // 收起但留着草稿：再展开时填回去，行上有「草稿」小标
-        const f = $("#incForm"); if (f) (I.drafts = I.drafts || {})[id] = formDraft(f);
-        I.form = null; return redraw();
-      }
-      I.form = { rec: I.rec.find((r) => r.id === id) || incList.rows.find((r) => r.id === id) }; I.scanOpen = false;
-      if (activeTab(state.route) !== "records") { Object.assign(I, NO_FILTER()); I._keep = true; goTab("records"); return; }
-      redraw(); const dr = I.drafts?.[id]; if (dr) applyDraft($("#incForm"), dr);   // 之前收起时留的草稿
-      setTimeout(() => { const f = $("#incForm"); f?.scrollIntoView({ block: "center", behavior: "smooth" }); f?.elements.amount?.focus({ preventScroll: true }); }, 0); return;
-    }
+    if (act === "edit") { location.hash = incFormHref(id); return; }   // 编辑：独立的表单页（detail-page.js）
     if (act === "del-swipe") { if (!confirmDelete(t("删除这笔收入？"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }   // 左滑删除：用确认框（滑动代码按它判断用户有没有取消）
-    if (act === "del") { if (!confirmDelete(t("删除这笔收入？"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); I.open = null; await reload(); }); }
+    if (act === "del") { if (!confirmDelete(t("删除这笔收入？"))) return; return guard(async () => { await Store.deleteIncomeRecord(id); if (inSubPage()) go(incomeHref("records"), { replace: true }); await reload(); }); }
     if (act === "rep-del") { if (!confirmDelete(t("删除这条还款记录？"))) return; return guard(async () => { const p = I.rep.find((x) => x.id === id); await Store.deleteIncomeRepayment(id); if (p?.purchase_id) { await Store.deletePurchase(p.purchase_id).catch(() => {}); hooks.refresh(); } await reload(); }); }
     if (act === "sender-open") { Object.assign(I, NO_FILTER(), { q: b.dataset.key }); goTab("records"); return; }
     if (act === "drill-clear") { if (b.dataset.k === "range") { I.from = ""; I.to = ""; } else if (b.dataset.k === "ex") I.ex = false; I.limit = pageSize(); return redraw(); }
@@ -94,7 +89,7 @@ export function initIncome({ render, refresh }) {
     if (act === "print-report") return guard(() => printIncome("report"));
     if (act === "print-list") return printIncome("list");
     if (act === "kind-open") { Object.assign(I, NO_FILTER(), { kind: id, person: OV().person }); goTab("records"); return; }
-    if (act === "sel-start") { I.selMode = true; I.sel = new Set([id]); I.open = null; return redraw(); }   // 长按菜单「多选删除」：进入多选，这一行先勾上
+    if (act === "sel-start") { I.selMode = true; I.sel = new Set([id]); return redraw(); }   // 长按菜单「多选删除」：进入多选，这一行先勾上
     if (act === "sel-toggle") { I.selMode = !I.selMode; I.sel = new Set(); return redraw(); }
     if (act === "sel-all") { I.sel = new Set(incList.rows.filter(canEdit).map((r) => r.id)); return renderIncList(); }
     if (act === "sel-del") { const ids = [...(I.sel || [])]; if (!ids.length) return toast(t("先勾选要删的收入")); if (!confirmDelete(t("删除选中的 {n} 笔收入？", { n: ids.length }))) return; return guard(async () => { for (const x of ids) await Store.deleteIncomeRecord(x); I.sel = new Set(); I.selMode = false; I.open = null; toast(t("已删除 {n} 笔", { n: ids.length })); await reload(); }); }

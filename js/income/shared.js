@@ -13,6 +13,9 @@ import { dq } from "../stats/spend-drill.js";
 /** 分组柱（收入 / 消费…并排）超过 12 期就太挤：改画折线（2026-11 统一规则） */
 export const GROUPED_MAX = 12;
 export const incomeHref = (id) => `${href("bills", "income")}${id === "overview" ? "" : `?tab=${id}`}`;
+export const incViewHref = (id) => `${incomeHref("records")}&view=${encodeURIComponent(id)}`;
+/** 编辑页；sec = 从详情页哪一块点进来的（basic / acct / fx / repay / notes），光标放到那一块的第一个格子 */
+export const incFormHref = (id, sec) => `${incomeHref("records")}&form=${encodeURIComponent(id)}${sec ? `&sec=${sec}` : ""}`;
 export const GREEN = "#2c6a57", RED = "#d4694c", BLUE = "#3b7fc4", TEAL = "#24897d", SLATE = "#64748b";
 export const R2 = (v) => Math.round(v * 100) / 100;
 /** 用户自己点的操作（展开 / 编辑 / 取消 / 删除…）要立刻重画：main.js 的 render(false) 只给后台刷新用，页面上只要有任何 <form>（明细页底部的「类型管理」就有一个）它就直接跳过，点行编辑就「没反应也没报错」 */

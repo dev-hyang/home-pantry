@@ -5,11 +5,15 @@ import { $ } from "../core/util.js";
 /** 花费详情里某一块的「编辑」带 &sec=：光标放到那一块的第一个格子 */
 const SPEND_SEC_FIELD = { basic: "name", pay: "store", kind: "nature" };
 
+/** 收入详情的某一块的「编辑」带 &sec=：光标放到那一块的第一个格子（默认金额） */
+const INC_SEC_FIELD = { basic: "amount", acct: "acct_sel", fx: "orig_amount", repay: "repay_required", notes: "notes" };
+
 /** 缴费 / 保养表单：滚到表单、光标放在金额（缴费）或类型（保养）；新建账单 / 资产 / 物品放在名称上 */
 
 export function focusEntry(route) {
   if (!route) return;
   if (route.section === "bills" && route.sub === "spend" && route.q?.get("sec")) $("#spendEditForm")?.elements[SPEND_SEC_FIELD[route.q.get("sec")]]?.focus({ preventScroll: true });
+  if (route.section === "bills" && route.sub === "income" && route.q?.get("form")) $("#incForm")?.elements[INC_SEC_FIELD[route.q.get("sec")] || "amount"]?.focus({ preventScroll: true });
   if (route.section === "item") $("#itemForm")?.elements.name?.focus({ preventScroll: true });
   if (route.section === "asset") {
     const mf = $("#maintForm[data-focus]");

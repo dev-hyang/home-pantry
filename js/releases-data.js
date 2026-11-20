@@ -2,6 +2,31 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.7", title: { zh: "收入明细：点一行进详情", en: "Income records: tap a row for details" }, items: [
+    { k: "better", zh: "收入明细每一行：第一行是「日期 图标 名字」，点一行直接进详情，不再在当前页展开表单", en: "Income rows now read \"date, icon, name\"; tapping a row opens its detail page instead of an inline form" },
+    { k: "new", zh: "收入详情页：分块显示，每块有自己的「编辑」；借款的还款也在详情里记", en: "Income detail page with its own Edit button per section; loan repayments are recorded there too" },
+    { k: "better", zh: "编辑收入改成单独一页，保存后回到详情；去掉了行右边的 ▾", en: "Editing an income record is now its own page and returns to the detail after saving; the ▾ is gone" },
+  ] },
+
+  { v: "2026-11-20.6", title: { zh: "缴费记录、收入详情和多选删除", en: "Payment and income details, multi-select delete" }, items: [
+    { k: "new", zh: "缴费记录、一次性账单的缴费有了详情页，分块显示，每块带编辑", en: "Payment records and one-time-bill payments have detail pages, one editable block at a time" },
+    { k: "new", zh: "缴费记录的长按菜单里，「删除」后面有「多选删除」", en: "Payment records get \"Select & delete\" in the long-press menu" },
+  ] },
+
+  { v: "2026-11-20.5", title: { zh: "花费详情页", en: "Spend record detail page" }, items: [
+    { k: "new", zh: "花费明细长按菜单第一项是「详情」，详情分块显示，每块有自己的「编辑」", en: "Spend rows have \"Details\" first in the long-press menu; each block has its own Edit button" },
+  ] },
+
+  { v: "2026-11-20.4", title: { zh: "账单菜单改名", en: "Bill menu renames" }, items: [
+    { k: "better", zh: "账单的 ⋯ 菜单：「缴费」改为「记缴费」，「查看缴费记录」改为「缴费记录」", en: "Bill ⋯ menu: \"Pay\" is now \"Log a payment\" and \"View payment history\" is \"Payment history\"" },
+    { k: "better", zh: "打印里去掉了「按筛选打印」", en: "Removed \"print current filter\" from printing" },
+  ] },
+
+  { v: "2026-11-20.3", title: { zh: "花费明细整理", en: "Spend list cleanup" }, items: [
+    { k: "better", zh: "花费明细：整行可点；去掉了多选删除 / 打印 / 导出按钮，多选删除改到长按菜单里", en: "Spend list: whole row is clickable; select-and-delete moved into the long-press menu" },
+    { k: "fix", zh: "缴费表单打开后光标直接在金额框，不再停在页头", en: "The payment form now focuses the amount field" },
+  ] },
+
   { v: "2026-11-20.2", title: { zh: "房屋 / 车辆里的「账单」：这个资产自己的账单清单页", en: "Bills inside a property or vehicle: a bills list page for that asset" }, items: [
     { k: "new", zh: "房屋 → 账单、车辆 → 账单，现在进入这个资产自己的账单页：周期性和一次性账单都在里面，默认看本月，顶上有 应付 / 已付 / 余额 三张小卡片，可以按时间、类型、状态筛选", en: "Property → Bills and Vehicle → Bills now open a page for that asset only: recurring and one-time bills together, this month by default, with Due / Paid / Balance cards on top and filters for time, type and status" }
   ] },

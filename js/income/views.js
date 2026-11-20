@@ -20,6 +20,7 @@ import { exportTab, planTab } from "./export-ai.js";
 import { overviewTab } from "./overview-tab.js";
 import { reportTab } from "./compare-tab.js";
 import { sendersTab } from "./senders-tab.js";
+import { incomeDetailPage, incomeFormPage } from "./detail-page.js";
 export { initIncome } from "./events.js";   // 页面加载后由 app/lazy-init.js 调用（注册点击等处理）
 import { incomeHref, staleAll } from "./shared.js";
 
@@ -49,7 +50,8 @@ function noticeHtml() {
   return parts.length ? `<div class="notice" role="status">${parts.map(esc).join("<br>")}</div>` : "";
 }
 export function viewIncome() {
-  const I = inc(), tab = activeTab(state.route) || "overview";
+  const I = inc(), tab = activeTab(state.route) || "overview", qView = state.route?.q?.get("view"), qForm = state.route?.q?.get("form");
+  if (!qForm && I._formPage) { I.form = null; I._formPage = false; }   // 从编辑页退回来（浏览器返回）：别把没存的表单带到列表顶部
   if (I._lastTab !== undefined && I._lastTab !== tab) { if (I._keep) I._keep = false; else { I.form = null; I.scanOpen = false; I.selMode = false; } }   // 换标签：不带着没关的表单 / 识别面板
   I._lastTab = tab;
   const qb = state.route?.q?.get("batch");   // 银行导入「查看收入」：只看这一批入账
@@ -58,6 +60,8 @@ export function viewIncome() {
   if (dqs && I.drillFrom !== dqs) { I.drillFrom = dqs; applyIncomeDrill(state.route.q); } else if (!dqs) I.drillFrom = null;
   if (!I.loaded && !I.loading) { I.loading = true; loadIncome().finally(() => { I.loading = false; rerender(); }); }
   if (!I.loaded) return shell(tab, `<div class="panel empty"><strong>${t("加载中…")}</strong></div>`);
+  if (tab === "records" && qForm) return incomeFormPage(qForm);   // 详情页 / 编辑页：单独一页，不带页签和圆形 ＋
+  if (tab === "records" && qView) return incomeDetailPage(qView);
   const body = { overview: overviewTab, records: recordsTab, category: categoryTab, senders: sendersTab, compare: reportTab, import: importTab, export: exportTab, plan: planTab }[tab]();
   return shell(tab, I.ok || tab === "plan" ? body : "");
 }

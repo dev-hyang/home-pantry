@@ -8,7 +8,8 @@ import { meta, saveMeta } from "../bills/budget.js";
 import { rerender } from "./rollup.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
-import { cur, fmtMoney, personOptions, selOpts } from "./shared.js";
+import { cur, fmtMoney, incomeHref, personOptions, selOpts } from "./shared.js";
+import { go } from "../core/router.js";
 import { acctById } from "../bills/card-picker.js";
 
 /* ── 入账账户：「卡与账户」里登记的账户（支票 / 储蓄 / 券商 / 退休 / HSA / 借记卡 / 钱包 / 现金…），可设默认 ──
@@ -119,6 +120,6 @@ export async function saveRecord(form) {
     const next = want && accSel && accSel !== "other" ? accSel : !want && accSel && accSel === was ? "" : was;
     if (next !== was) await saveDefaultAcct(next).catch(() => toast(t("默认账户没存上，下次再试")));
     if (I.drafts && f.rec?.id) delete I.drafts[f.rec.id];
-    I.form = null; await loadIncome(); toast(t("已保存")); rerender(); }
+    const back = state.route?.q?.get("form") && f.rec?.id; I.form = null; await loadIncome(); toast(t("已保存")); if (back) return go(`${incomeHref("records")}&view=${encodeURIComponent(back)}`, { replace: true }); rerender(); }
   catch (e) { fail(/income_amount|account_id/i.test(e.message || "") ? t("数据库还没升级：请先执行 supabase/migrations/056_income_ledger.sql") : t("保存失败：{msg}", { msg: e.message })); }
 }
