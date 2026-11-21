@@ -1,11 +1,12 @@
 /* 财务 → 账户：账户概览、银行账户、投资账户、电子钱包与礼品卡（信用卡页是 cards-page.js）。
  * 余额来自净资产那套（余额快照 state.balances → computeNetWorth 的 accounts）：账户页「更新余额」记一笔，每月自动存快照；投资账户只记总值，不记持仓和交易。
- * 每页：顶上几个小指标 → 账户清单（一行一个，长按有菜单）→ 添加账户的小标签 → 停用的（默认折叠）。 */
+ * 每页：顶上几个小指标 → 账户清单（一行一个，长按有菜单）→ 停用的（默认折叠）；添加账户 = 右下角圆形 ＋。 */
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { esc, fmtDate, money } from "../core/util.js";
 import { href } from "../core/router.js";
 import { eyeFilter } from "../core/filter-pop.js";
+import { fabMenu } from "../core/fab-menu.js";
 import { finHead } from "./fin-head.js";
 import { cardsRO } from "../core/finance-access.js";
 import { lpAttr } from "../core/long-press.js";
@@ -32,7 +33,8 @@ function acctRow(c, rows) {
     ${bal != null ? `<b class="gift-bal">${mny(r.side === "l" ? -bal : bal)}</b>` : ""}</li>`;
 }
 const list = (cards, rows) => (cards.length ? `<div class="panel"><ul class="restock-list card-list">${cards.map((c) => acctRow(c, rows)).join("")}</ul></div>` : "");
-const addChips = (kinds) => (cardsRO() ? "" : `<div class="acct-add">${kinds.map((k) => `<a class="chip" href="${cardHref("new")}&kind=${k}">＋ ${ACCT_KINDS[k][1]} ${esc(t(ACCT_KINDS[k][0]))}</a>`).join("")}</div>`);
+/** 添加账户：右下角圆形 ＋（只有一种就直接是链接，多种弹菜单）；只读时没有 */
+const addFab = (kinds) => (cardsRO() ? "" : fabMenu(kinds.map((k) => ({ label: t(ACCT_KINDS[k][0]), icon: ACCT_KINDS[k][1], href: `${cardHref("new")}&kind=${k}` })), { label: t("添加账户") }));
 const head = (title, tip) => finHead({ label: title, note: tip ? infoTip(tip, { align: "start" }) : "", right: eyeFilter() });
 const empty = (msg) => `<div class="panel empty"><strong>${esc(msg)}</strong></div>`;
 const needTip = (n) => (n ? t("{n} 个账户该更新余额", { n }) : t("余额都是新的"));
@@ -61,8 +63,8 @@ export function viewBanks() {
   const rows = nwRows(), cards = live("bank"), s = summarizeRows(rows.filter((r) => r.card && groupOfKind(r.card.kind) === "bank")), off = offOf("bank");
   return `<section class="section">${head(t("银行账户"), t("支票、储蓄、现金和借记卡：账单从哪扣、收入入到哪。余额在账户页「更新余额」，每月自动存快照。"))}
     <div class="kpis">${kpi(t("总余额"), mny(s.total))}${kpi(t("账户"), esc(t("{n} 个", { n: s.n })))}${kpi(t("余额状态"), esc(needTip(s.needUpdate)))}</div>
-    ${cards.length ? list(cards, rows) : empty(t("还没有银行账户。点下面的标签添加。"))}
-    ${addChips(GROUPS.bank.kinds)}
+    ${cards.length ? list(cards, rows) : empty(t("还没有银行账户。点右下角的 ＋ 添加。"))}
+    ${addFab(GROUPS.bank.kinds)}
     ${off.length ? offSection(off) : ""}</section>`;
 }
 
@@ -76,8 +78,8 @@ export function viewInvest() {
   }).join("");
   return `<section class="section">${head(t("投资账户"), t("只记总值：在账户页「更新余额」记一笔当前的总额，每月自动存快照看走势；不记持仓和交易。"))}
     <div class="kpis">${kpi(t("总值"), mny(s.total))}${kpi(t("账户"), esc(t("{n} 个", { n: s.n })))}${kpi(t("余额状态"), esc(needTip(s.needUpdate)))}</div>
-    ${blocks || empty(t("还没有投资账户。点下面的标签添加。"))}
-    ${addChips(GROUPS.invest.kinds)}
+    ${blocks || empty(t("还没有投资账户。点右下角的 ＋ 添加。"))}
+    ${addFab(GROUPS.invest.kinds)}
     ${off.length ? offSection(off) : ""}</section>`;
 }
 
@@ -88,6 +90,6 @@ export function viewWallets() {
     <div class="section-head"><h2>📱 ${t("电子钱包")}</h2><p>${esc(t("{n} 个", { n: wallets.length }))}</p></div>
     ${wallets.length ? list(wallets, rows) : empty(t("还没有电子钱包。"))}
     ${gifts.length ? giftSection(gifts) : `<div class="section-head" style="margin-top:14px"><h2>🎁 ${t("礼品卡")}</h2></div>${empty(t("还没有礼品卡。"))}`}
-    ${addChips(GROUPS.wallet.kinds)}
+    ${addFab(GROUPS.wallet.kinds)}
     ${off.length ? offSection(off) : ""}</section>`;
 }

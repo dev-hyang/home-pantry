@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.10", title: { zh: "信用卡、银行、投资、钱包：添加账户统一到右下角圆形 ＋", en: "Cards, banks, investments, wallets: adding accounts is now the round + button" }, items: [
+    { k: "better", zh: "银行账户、投资账户、电子钱包与礼品卡页底部那一排「＋ 某某账户」小标签没有了，统一成右下角的圆形 ＋（点开选账户种类）", en: "The row of “＋ account type” chips at the bottom of Banks, Investments and E-wallets & gift cards is gone — it is now the round ＋ at the bottom right (pick the account type)" },
+    { k: "better", zh: "信用卡页：「添加信用卡」按钮改成圆形 ＋，页头的眼睛换成「筛选」按钮；「我的卡」放到最上面", en: "Credit cards: “Add credit card” is the round ＋, the header eye became the Filter button, and “My cards” comes first" },
+  ] },
+
   { v: "2026-11-21.9", title: { zh: "修筛选条版面；预算的打印进目录；周期性账单换新页头", en: "Fix the filter bar layout; Budget’s Print moves into the Menu; Recurring bills gets the new header" }, items: [
     { k: "fix", zh: "电脑上账单明细、花费明细、借贷流水的筛选条里，「金额显示」的文字和说明摊在一行里把版面撑开；现在电脑上只留一个眼睛按钮，文字只在手机的筛选面板里出现", en: "On desktop the “Amounts” label and hint spilled into the filter row of Bills list, Spending records and Debt transactions and stretched the layout; now only the eye button shows there, the text only appears in the phone filter panel" },
     { k: "better", zh: "预算页的「打印」放进目录最下面的「本页操作」，⋯ 取消", en: "Budget’s “Print” moved into the bottom of the Menu (“This page”), and the ⋯ is gone" },

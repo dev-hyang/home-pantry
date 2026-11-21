@@ -3,6 +3,8 @@ import { ACCT_KINDS, ACCT_SHORT, bonusLeft, cardById, cardHref, cardTotal, expDa
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { Store } from "../core/store.js";
 import { finHead } from "./fin-head.js";
+import { eyeFilter } from "../core/filter-pop.js";
+import { fabMenu } from "../core/fab-menu.js";
 import { infoTip } from "../core/info-tip.js";
 import { attentionPanel } from "../core/alerts.js";
 import { cardForm } from "./card-form.js";
@@ -23,17 +25,18 @@ export function viewCards() {
   // 停用的：最近停用的在前（没有停用日期的老记录按最后修改时间）
   const off = state.cards.filter((c) => c.active === false && groupOfKind(c.kind) === "credit").sort((a, b) => String(b.inactive_since || "").localeCompare(String(a.inactive_since || "")) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
   return `<section class="section">
-    ${finHead({ label: t("信用卡"), note: infoTip(t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。"), { align: "start" }), right: ro ? `<span class="badge" style="background:var(--surface-2)">${t("只读")}</span>` : `<a class="btn btn-primary btn-sm" href="${cardHref("new")}&kind=credit">${t("添加信用卡")}</a>` })}
+    ${finHead({ label: t("信用卡"), note: infoTip(t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。"), { align: "start" }), right: `${ro ? `<span class="badge" style="background:var(--surface-2)">${t("只读")}</span>` : ""}${eyeFilter()}` })}
     ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("你可以查看卡和推荐；添加、修改、停用、删除要家主在「设置 → 家庭与成员」里给你开财务权限。")}</p>` : ""}
     ${state.cardDelete && !ro ? deleteConfirmHtml(state.cardDelete) : ""}
+    ${cards.length ? `<div class="section-head" ><h2>${t("我的卡")}</h2><p>${t("{n} 张在用", { n: cards.length })}${catalogAge() > 90 ? ` · <span class="bank-dup">${t("目录更新于 {d}，可能过期，返现规则以发卡行为准", { d: D().AS_OF })}</span>` : ""}</p></div>
+      <div class="panel"><ul class="restock-list card-list">${cards.map(cardRow).join("")}</ul></div>` : live.length ? "" : emptyHtml()}
     ${attentionPanel(["card"], { title: t("要处理"), sub: t("到期、年费、轮换类别、开卡奖励") })}
     ${cards.length ? pickPanel() : ""}
     ${cards.length ? reviewHtml() : ""}
-    ${cards.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("我的卡")}</h2><p>${t("{n} 张在用", { n: cards.length })}${catalogAge() > 90 ? ` · <span class="bank-dup">${t("目录更新于 {d}，可能过期，返现规则以发卡行为准", { d: D().AS_OF })}</span>` : ""}</p></div>
-      <div class="panel"><ul class="restock-list card-list">${cards.map(cardRow).join("")}</ul></div>` : live.length ? "" : emptyHtml()}
     ${off.length ? offSection(off) : ""}
     <p class="muted" style="margin-top:8px;font-size:12.5px" ${ro ? "hidden" : ""}>${t("手机上：一行向右滑 = 停用 / 启用，向左滑 = 删除（删除前会问花费记录怎么办）；电脑上鼠标移到行上出现同样的按钮。")}</p>
     <p class="muted kinds-note" style="margin-top:10px">${t("只记发卡行、产品、末四位、到期年月，不记完整卡号和密码。返现规则来自内置目录或你自己填，会变，以发卡行为准。")}</p>
+    ${ro ? "" : fabMenu([{ label: t("添加信用卡"), href: `${cardHref("new")}&kind=credit` }], { label: t("添加信用卡") })}
   </section>`;
 }
 /* ── 礼品卡：一组、带筛选排序；余额 = 面值 − 花费；用完就停用（右滑） ── */
