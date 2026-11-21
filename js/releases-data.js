@@ -2,6 +2,25 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.30", title: { zh: "今日页：「家里」卡片精简，滑动控制行挪到卡片上面", en: "Today: slimmer Home card, carousel controls moved above the cards" }, items: [
+    { k: "better", zh: "「家里 · 一览」只留 储藏、每套房子、每辆车；每辆车一行，点进这辆车自己的首页（以前「车辆」一行会跳到房屋概览）", en: "The Home card now only lists Storage, each house and each vehicle; each vehicle opens its own home page (the old Vehicles row jumped to the house overview)" },
+    { k: "better", zh: "今日页卡片的 ‹ 短划线 › 和 ⚙ 从卡片下面挪到卡片上面，⚙ 菜单向下弹出", en: "The ‹ dashes › and ⚙ controls on Today moved from below the cards to above them; the ⚙ menu opens downward" },
+  ] },
+
+  { v: "2026-11-20.29", title: { zh: "更多新建 / 编辑页也有了置顶的「取消 / 保存」", en: "More create / edit pages get the pinned Cancel / Save bar" }, items: [
+    { k: "better", zh: "之前没有顶部按钮的新建、编辑页（借贷、商店、家庭成员、设备保养、季节任务等）现在和其他表单一样，顶部一行：取消靠左、保存靠右，不用滑到底", en: "Create and edit pages that had no top buttons (loans, shops, family members, maintenance, seasonal tasks…) now match the rest: one row on top, Cancel on the left, Save on the right" },
+  ] },
+
+  { v: "2026-11-20.28", title: { zh: "今日页的钱卡片去掉底部 4 个入口", en: "Today's money card loses its 4 bottom shortcuts" }, items: [
+    { k: "better", zh: "「钱 · 本月」卡片底部的 对账单 / 记一笔花费 / 记一笔收入 / 预算 四个按钮去掉了，卡片更简洁；这些入口在「快捷操作」和右下角 ＋ 里还在", en: "The Statements / Log spending / Log income / Budget buttons at the bottom of the “Money · this month” card are gone for a cleaner card; the same entries remain in Quick actions and the ＋ button" },
+  ] },
+
+  { v: "2026-11-20.27", title: { zh: "房屋 / 车辆的账单页：只算这个资产，账单做成滑动卡片", en: "Property / vehicle bills page: only this asset, bills as swipeable cards" }, items: [
+    { k: "better", zh: "页面上的应付 / 已付 / 余额只统计挂在这所房子（或这辆车）上的账单，别处的一次性账单不再混进来；有预估金额时标出「含预估」", en: "Due / paid / balance now count only bills attached to this property or vehicle, so other one-time bills no longer sneak in; estimated amounts are marked “incl. estimates”" },
+    { k: "better", zh: "去掉了筛选框；下面是这个资产的全部账单，一张账单一张卡，标着「周期性」或「一次性」，左右滑动，也会自动换下一张；控制行和 ⚙ 在卡片上面，⚙ 和今日页一样", en: "Filters are gone; below is every bill of this asset, one card each, tagged Recurring or One-time. Swipe, or let it advance on its own; the controls and ⚙ sit above the card, same as on Today" },
+    { k: "better", zh: "每张卡右上角的 ⋯ 和账单详情页一样：详情、记缴费、缴费记录、复制、删除等", en: "Each card's ⋯ menu matches the bill detail page: details, log payment, payments, copy, delete and more" },
+  ] },
+
   { v: "2026-11-20.26", title: { zh: "视图切换配色", en: "View switch colour" }, items: [
     { k: "better", zh: "视图切换按钮改成和页面导航卡片同一个主题绿色，不再是黑白", en: "The view switch now uses the same theme green as the page navigation cards instead of black and white" },
   ] },

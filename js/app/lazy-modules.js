@@ -14,6 +14,7 @@ LZ.spacePick = lazyModule(() => Promise.all([LZ.itemForm.load()]).then(() => imp
 LZ.shopAsk = lazyModule(() => import("../pantry/shop-ask.js"));
 LZ.assessViews = lazyModule(() => import("../bills/assessments-views.js"));
 LZ.billViews = lazyModule(() => Promise.all([LZ.assessViews.load()]).then(() => import("../bills/views.js")));
+LZ.assetBills = lazyModule(() => Promise.all([LZ.billViews.load()]).then(() => import("../bills/asset-bills.js")));   // 房屋 / 车辆的账单页：要用账单详情卡、一次性账单卡，放在 billViews 之后加载（直接静态引用会和缴费记录页互相引用）
 LZ.about = lazyModule(() => import("../settings/about.js"));
 LZ.aiPage = lazyModule(() => import("../ai-page.js"));
 LZ.alertsPage = lazyModule(() => import("../alerts-page.js"));
@@ -113,6 +114,7 @@ export const quickVerify = lazyFn(LZ.billViews, "quickVerify");
 export const saveBillForm = lazyFn(LZ.billViews, "saveBillForm");
 export const saveBillPayForm = lazyFn(LZ.billViews, "saveBillPayForm");
 export const viewBillForm = lazyFn(LZ.billViews, "viewBillForm");
+export const viewAssetBills = lazyFn(LZ.assetBills, "viewAssetBills");
 export const viewBillTemplate = lazyFn(LZ.billViews, "viewBillTemplate");
 export const viewAbout = lazyFn(LZ.about, "viewAbout");
 export const copyAnswer = lazyFn(LZ.aiPage, "copyAnswer");

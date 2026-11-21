@@ -15,7 +15,8 @@ export const autoSecs = () => { try { const v = localStorage.getItem(SECS_KEY); 
 const pos = {};   // id → 当前第几张（真实序号）
 const reduced = () => !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-export function carouselHtml(id, slides, { label = "" } = {}) {
+/** top = 控制行（‹ 短划线 › ⚙）放在卡片上面（账单页）；默认在下面（今日页）。⚙ 菜单在上面时向下弹，在下面时向上弹 */
+export function carouselHtml(id, slides, { label = "", top = false } = {}) {
   const n = slides.length; if (!n) return "";
   const loop = n > 1, cur = Math.min(pos[id] || 0, n - 1);
   const slide = (html, j, clone) => `<div class="tslide" ${clone ? 'aria-hidden="true" data-clone="1"' : `role="group" aria-roledescription="${esc(t("卡片"))}" aria-label="${j + 1}/${n}"`}>${html}</div>`;
@@ -24,11 +25,10 @@ export function carouselHtml(id, slides, { label = "" } = {}) {
   const secs = autoSecs();
   const dash = (i) => `<button type="button" class="tc-dash ${i === cur ? "is-run" : ""}" data-tcdot="${i}" aria-label="${esc(t("第 {i} 张，共 {n} 张", { i: i + 1, n }))}" aria-current="${i === cur}"><i style="animation-duration:${secs || 10}s"></i></button>`;
   const opt = (v) => `<button type="button" class="act-item" data-tcsecs="${v}" aria-pressed="${secs === v}">${v ? t("{s} 秒", { s: v }) : t("关闭自动切换")}${secs === v ? " ✓" : ""}</button>`;
-  const gear = `<details class="act-more act-up tc-gear"><summary class="tc-nav" aria-label="${esc(t("自动切换的时间"))}" title="${esc(t("自动切换的时间"))}">⚙</summary><div class="act-menu">${[...SECS, 0].map(opt).join("")}</div></details>`;
-  return `<div class="tcarousel" data-carousel="${esc(id)}">
-    <div class="tc-view"><div class="ttrack" ${loop ? 'data-loop="1"' : ""} data-n="${n}" tabindex="0" role="region" aria-roledescription="carousel" aria-label="${esc(label)}">${track}</div></div>
-    ${loop ? `<div class="tc-ctrl">${nav(-1, t("上一张"), "‹")}<div class="tc-dashes ${secs ? "" : "is-off"}" title="${esc(secs ? t("每 {s} 秒自动换下一张；手指按着或鼠标停在卡片上时暂停", { s: secs }) : t("自动切换已关闭"))}">${slides.map((_, i) => dash(i)).join("")}</div>${nav(1, t("下一张"), "›")}${gear}</div>` : ""}
-  </div>`;
+  const gear = `<details class="act-more ${top ? "" : "act-up "}tc-gear"><summary class="tc-nav" aria-label="${esc(t("自动切换的时间"))}" title="${esc(t("自动切换的时间"))}">⚙</summary><div class="act-menu">${[...SECS, 0].map(opt).join("")}</div></details>`;
+  const ctrl = loop ? `<div class="tc-ctrl">${nav(-1, t("上一张"), "‹")}<div class="tc-dashes ${secs ? "" : "is-off"}" title="${esc(secs ? t("每 {s} 秒自动换下一张；手指按着或鼠标停在卡片上时暂停", { s: secs }) : t("自动切换已关闭"))}">${slides.map((_, i) => dash(i)).join("")}</div>${nav(1, t("下一张"), "›")}${gear}</div>` : "";
+  const view = `<div class="tc-view"><div class="ttrack" ${loop ? 'data-loop="1"' : ""} data-n="${n}" tabindex="0" role="region" aria-roledescription="carousel" aria-label="${esc(label)}">${track}</div></div>`;
+  return `<div class="tcarousel${top ? " tc-top" : ""}" data-carousel="${esc(id)}">${top ? ctrl + view : view + ctrl}</div>`;
 }
 
 const stepW = (tr) => tr.clientWidth + GAP;

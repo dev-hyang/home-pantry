@@ -14,7 +14,7 @@ import { PAY_EXTRA, accountOptions, acctById, billPayLabel, payAcctValue, resolv
 
 /** 详情页顶上的汇总卡：名称（账号尾号）+ 下次到期 + 竖三点菜单；HOA / 服务商小表；付费小表（付费方式、费用总额）；添加 / 更新时间；记缴费大按钮。
  *  底色比下面的分区卡深一点（和 .prof-card 同一套圆角和内边距） */
-export function billHeadCard(b, base) {
+export function billHeadCard(b, base, { listed = false } = {}) {   // listed = 放在清单 / 滑动卡里：标「周期性」，删除按这张账单的 id（不是当前页面的）
   const cat = billCat(b.category), isHoa = b.category === "hoa", prop = b.property_id ? state.properties.find((p) => p.id === b.property_id) : null, hoa = isHoa && prop?.hoa ? prop.hoa : null;
   const due = b.status !== "ok" && b.status !== "none" ? `<span class="badge ${BADGE[b.status]}">${t(STATUS_LABEL[b.status])}${b.next_due_on ? ` · ${fmtDate(b.next_due_on)}` : ""}</span>`
     : b.next_due_on ? `<span class="badge b-ok">${t("下次到期 {d}", { d: fmtDate(b.next_due_on) })}</span>` : "";
@@ -25,8 +25,8 @@ export function billHeadCard(b, base) {
     { label: t("特别摊派"), href: `${base}?sec=assess` },
     b.pay_url ? { label: t("去服务商缴费"), href: b.pay_url, external: true } : null,
     { label: t("复制"), href: `${href("bill", "new")}?copy=${encodeURIComponent(b.id)}` },
-    { label: t("删除"), action: "bill-delete", danger: true },
-  ]);
+    { label: t("删除"), action: "bill-delete", ...(listed ? { data: { id: b.id } } : {}), danger: true },
+  ], listed ? { label: `${b.name} · ${t("更多操作")}` } : {});
   // HOA 账单：公司 / 联系方式 / 网站读房屋资料里的 HOA（只存一份）；其他账单：收款方 + 缴费网站 + 登录提示
   const emails = (hoa?.email || "").split(/[;,，；]/).map((x) => x.trim()).filter(Boolean);
   const contact = hoa ? [hoa.phone ? `<a href="tel:${esc(hoa.phone.replace(/[^\d+]/g, ""))}">${esc(hoa.phone)}</a>` : "", ...emails.map((e) => `<a href="mailto:${esc(e)}">${esc(e)}</a>`)].filter(Boolean).join("<br>") : "";
@@ -41,7 +41,7 @@ export function billHeadCard(b, base) {
   const pay = headSec(t("付费"), [[L("付费方式", "Method"), method], [L("费用总额", "Total"), total], [L("折合每月", "Per month"), esc(monthly)]]);
   return `<section class="panel bill-head" aria-label="${esc(t("账单概要"))}">
     <div class="bh-top"><span class="mi" aria-hidden="true">${cat.icon}</span>
-      <div class="bh-t"><h2>${esc(b.name)}${b.account_last4 ? `<span class="bh-acct">（**${esc(b.account_last4)}）</span>` : ""}</h2>${due}${b.priceUp ? `<span class="badge b-low">${t("涨价了")}</span>` : ""}</div>${menu}</div>
+      <div class="bh-t"><h2>${esc(b.name)}${b.account_last4 ? `<span class="bh-acct">（**${esc(b.account_last4)}）</span>` : ""}</h2>${listed ? `<span class="badge">${t("周期性")}</span>` : ""}${due}${b.priceUp ? `<span class="badge b-low">${t("涨价了")}</span>` : ""}</div>${menu}</div>
     ${provider}${pay}
     ${stampText(b) ? `<p class="record-meta bh-stamp">${esc(stampText(b))}</p>` : ""}
     <a class="btn btn-primary bh-pay" href="${base}?pay=1">${b.autopay ? t("记核对") : t("记缴费")}</a>

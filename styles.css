@@ -2834,11 +2834,6 @@ html.force-phone .tm-wrap { grid-template-columns: 1fr; }
 .tslide .tm-kv { gap: 6px; }
 .tslide .tm-kv li > a { margin: 0; padding: 6px 10px; min-height: 44px; border-radius: 10px; background: var(--surface-2); }   /* 和其他卡片的行一样：浅灰底圆角块 */
 .tslide .tm-kv li > a:hover { filter: brightness(.97); background: var(--surface-2); }
-.tm-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.tm-link { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 12px; border-radius: 99px; background: var(--surface-2); color: var(--ink); text-decoration: none; font-size: 13px; font-weight: 600; white-space: nowrap; }
-.tm-link:hover { filter: brightness(.97); }
-.tm-link:focus-visible { outline: 2px solid var(--pine); outline-offset: 1px; }
-@media (pointer: coarse) { .tm-link { min-height: 44px; } }
 .ttodo-list li > a:focus-visible { outline: 2px solid var(--pine); outline-offset: 1px; }
 .ttodo-list .tcard-ch { flex: none; color: var(--muted); }
 .tcard-foot a.tcard-more { text-decoration: none; min-height: 32px; display: inline-flex; align-items: center; }
@@ -4342,7 +4337,7 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .is-pick { cursor: pointer; }
 /* 编辑页顶部的「取消 / 保存」（core/top-actions.js）：粘在顶栏下面，取消靠左、保存靠右 */
 .top-actions { position: sticky; top: var(--pin-top, 0px); z-index: 12; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 0 0 10px; padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--line); }
-.top-actions .btn { min-height: 44px; min-width: 88px; justify-content: center; }
+.top-actions .btn { min-height: 44px; min-width: 88px; justify-content: center; white-space: nowrap; }
 .top-actions .ta-save { margin-left: auto; }
 /* 今日 · 咩咩咩：三个入口做成一行小卡片（图标在上、文字在下，手机上也是一行三个） */
 .tai-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
@@ -4394,3 +4389,15 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .deal-nm-btn b, .dv-shop { font-weight: 600; }
 .deal-row a:hover, .dv-row a:hover, .dv-card a:hover, .dv-g-list a:hover { text-decoration: none; }
 .deal-row[data-row-open]:hover, .dv-row[data-row-open]:hover, .dv-card[data-row-open]:hover, .dv-g-list li[data-row-open]:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+
+/* ── 2026-11-20 账单页的滑动卡片：控制行在卡片上面（carouselHtml 的 top）；卡 = 账单详情页顶上的概要卡 ── */
+.tcarousel.tc-top > .tc-ctrl { margin: 0 0 10px; }
+.tcarousel.tc-top:has(.tc-view:hover) .tc-dash.is-run i { animation-play-state: paused; }
+.tcarousel:has(.tslide .act-more[open]) .tc-dash.is-run i { animation-play-state: paused; }   /* ⋯ 菜单开着时进度条停住 */
+.tcarousel.tc-top .tc-gear .act-menu { top: calc(100% + 4px); bottom: auto; }
+.tslide > .bill-head { flex: 1 1 auto; margin: 0; min-height: 360px; }   /* 同一排卡等高；高度够 ⋯ 菜单向下展开（轨道会裁掉溢出的部分） */
+/* 卡片多（账单页可能十几张）时：短划线按剩余宽度收缩，不挤到 ‹ › 和 ⚙；控制行两边各留出 ⚙ 的位置，让短划线保持居中 */
+.tc-ctrl { padding: 0 40px; }
+.tc-dashes { flex: 0 1 auto; min-width: 0; }
+.tc-dash { flex: 0 1 28px; min-width: 6px; width: auto; }
+.tc-dash[aria-current="true"] { flex-basis: 44px; width: auto; }

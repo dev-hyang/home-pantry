@@ -58,7 +58,7 @@ export function viewToday() {
   state.quickEdit = false; state.quickAdd = false; state.quickSwap = null;   // 编辑快捷操作在自己的页面（#/quick）
   const fin = financeOk();
   const noProfile = state.houseEnabled && state.propertyId && !state.houseProfiles[state.propertyId];
-  const cards = [todoCard(), homeCard(fin), fin && state.billsEnabled ? moneyCard() : "", quickCard()].filter(Boolean);
+  const cards = [todoCard(), homeCard(), fin && state.billsEnabled ? moneyCard() : "", quickCard()].filter(Boolean);
   return `
     ${headHtml()}
     ${Store.mode === "cloud" ? deviceLinkPrompt() : ""}
@@ -67,7 +67,7 @@ export function viewToday() {
     ${noProfile ? `<section class="section"><div class="panel cta-panel">
       <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的汽车房屋消耗品。")}</p></div>
       <a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></div></section>` : ""}
-    <section class="section" aria-label="${esc(t("今日卡片"))}">${carouselHtml("today", cards, { label: t("今日卡片：左右滑动，或点下面的圆点") })}</section>`;   // 一屏一张，左右滑、循环、每 30 秒自动换（js/core/carousel.js）
+    <section class="section" aria-label="${esc(t("今日卡片"))}">${carouselHtml("today", cards, { label: t("今日卡片：左右滑动，或点上面的短划线"), top: true })}</section>`;   // 一屏一张，左右滑、循环、每 30 秒自动换（js/core/carousel.js）
 }
 
 /** 日期 · 星期 · 天气 一行小字在上，问候在下；「今天有几件事」不再单独一行（看待办卡标题旁的数字） */
@@ -132,40 +132,20 @@ function moneyCard() {
   const eye = moneyEye("tm-eye");
   // 标题行点进 财务 → 收支总览（本月）；卡片本身不再是整张链接，金额才能单独点开
   return card({ k: "money", icon: "💰", title: t("钱 · 本月"), headHref: `${href("bills", "income")}?tab=overview&range=m`, headExtra: eye,
-    body: `<div class="tcard-money">${head}</div><ul class="tcard-kv tm-kv">${rowsKv.map(([k, v, h]) => `<li><a href="${esc(h)}"><span>${k}</span><span class="tm-v">${v}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`).join("")}</ul>${moneyLinks()}` });
+    body: `<div class="tcard-money">${head}</div><ul class="tcard-kv tm-kv">${rowsKv.map(([k, v, h]) => `<li><a href="${esc(h)}"><span>${k}</span><span class="tm-v">${v}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`).join("")}</ul>` });
 }
-/** 钱卡底部的常用入口：对账单、记一笔花费 / 收入、预算（没权限的页面 quickOk 去掉） */
-function moneyLinks() {
-  const ls = [[href("bills", "statements"), "🏦", t("对账单")], [SPEND_ADD(), "✍️", t("记一笔花费")], [INCOME_ADD(), "💵", t("记一笔收入")], [href("bills", "budget"), "💰", t("预算")]].filter(([h]) => quickOk(h));
-  return ls.length ? `<nav class="tm-links" aria-label="${esc(t("常用"))}">${ls.map(([h, i, l]) => `<a class="tm-link" href="${esc(quickHref(h))}"><span aria-hidden="true">${i}</span>${l}</a>`).join("")}</nav>` : "";
-}
-
 /* ── 家里 · 一览：库存、采购、设备；没有财务权限的家人还看到本月账单的笔数（不显示金额） ── */
-function homeCard(fin) {
-  const items = state.enriched || [], inSpace = (sp) => items.filter((x) => spaceOf(x.category) === sp);
-  const pantry = inSpace("pantry"), short = restockCount();
-  const shop = state.shopping.filter((s) => s.status === "todo" || s.status === "claimed").length;
-  const row = rowLink;
-  const rows = [row(href("pantry", "overview"), "🗄️", t("储藏"), short ? t("{n} 件要补货", { n: short }) : t("都够用"), short),
-    row(href("shopping"), "🛒", t("购物车"), shop ? t("{n} 项", { n: shop }) : t("空的"), false)];
+function homeCard() {
+  const items = state.enriched || [], pantry = items.filter((x) => spaceOf(x.category) === "pantry"), short = restockCount();
+  const rows = [rowLink(href("pantry", "overview"), "🗄️", t("储藏"), short ? t("{n} 件要补货", { n: short }) : pantry.length ? t("都够用") : t("还没记东西"), short)];
   if (state.houseEnabled) {
-    const props = state.properties.filter((p) => !p.archived).filter(propertyActive), live = new Set(props.map((p) => p.id));
-    const eq = (state.assetsEnriched || []).filter((a) => !a.retired && live.has(a.property_id));
-    if (eq.length) rows.push(row(`${href("house")}?todo=asset`, "⚙️", t("设备与车辆"), t("{n} 台", { n: eq.length }), false));   // 哪几台该保养，进设备页看（首页不再逐台算）
-    // 2026-11-12：每套房产一行，直接进那套房产的概览（?prop= 先切到那一套）；后面是几个常用的房屋入口，卡片排满了就在底部「更多 › 房屋」
-    for (const pr of props) rows.push(row(`${href("house", "overview")}?prop=${encodeURIComponent(pr.id)}`, "🏠", esc(pr.name || t("房产")), t("概览"), false));
-    const vehicles = (state.assetsEnriched || []).filter((a) => !a.retired && !a.property_id).length;
-    if (vehicles) rows.push(row(href("house"), "🚗", t("车辆"), t("{n} 辆", { n: vehicles }), false));
-    rows.push(row(`${href("house")}?todo=season`, "📅", t("季节任务")), row(href("house", "fix"), "🩺", t("东西坏了")), row(href("house", "profile"), "📋", t("房屋资料")), row(href("house", "supplies"), "🧰", t("汽车房屋消耗品")));
+    // 2026-11-20：只留 储藏 / 房子 / 车子。每套房产一行进那套的概览（?prop= 先切到那一套）；每辆车一行进这辆车自己的首页
+    for (const pr of state.properties.filter((p) => !p.archived).filter(propertyActive)) rows.push(rowLink(`${href("house", "overview")}?prop=${encodeURIComponent(pr.id)}`, "🏠", esc(pr.name || t("房产")), t("概览"), false));
+    const V = window.VEHICLES;
+    for (const a of (state.assetsEnriched || []).filter((x) => x.kind === "vehicle" && !x.retired && (V?.isActive ? V.isActive(x) : true)))
+      rows.push(rowLink(href("asset", a.id), V?.POWERTRAINS?.[a.type]?.icon || "🚗", esc(a.name || t("车辆")), [a.manufacture_year, a.brand, a.model].filter(Boolean).map(esc).join(" "), false));
   }
-  if (!fin && state.billsEnabled) {   // 账单全家可见：这里只给笔数，不给金额
-    const n = unpaid30().n;
-    rows.splice(2, 0, row(UNPAID30_HREF, "🧾", t("待缴账单（含逾期）"), t("{n} 笔账单", { n }), false));
-  }
-  const two = !document.documentElement.classList.contains("force-phone") && window.matchMedia?.("(min-width: 720px)").matches;   // 宽屏卡里两列：放 8 行刚好排满；手机一列放 7 行
-  const MAX = two ? 8 : 7, more = rows.length - MAX;   // 多出来的和待办卡一样，底部一行链接到房屋首页
-  const foot = state.houseEnabled && more > 0 ? `<p class="tcard-foot"><span>${t("还有 {n} 个入口", { n: more })}</span><a class="tcard-more" href="${href("house")}">${t("更多")} › ${t("房屋")}</a></p>` : "";
-  return card({ k: "home", icon: "🏡", title: t("家里 · 一览"), headHref: state.houseEnabled ? href("house") : "", body: `<ul class="tcard-rows">${rows.slice(0, MAX).join("")}</ul>${foot}` });   // 标题 → 房屋概览
+  return card({ k: "home", icon: "🏡", title: t("家里 · 一览"), headHref: state.houseEnabled ? href("house") : "", body: `<ul class="tcard-rows">${rows.join("")}</ul>` });   // 标题 → 房屋首页（房产 + 汽车）
 }
 
 /* ── 咩咩咩（AI）：和以前的格子同样的说明，外加「今天吃什么」 ── */

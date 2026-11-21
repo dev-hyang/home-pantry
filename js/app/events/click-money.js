@@ -42,6 +42,7 @@ export async function clickMoney(action, el, id, e) {
       case "billpay-cancel": return go(`${href("bill", state.route.id)}?sec=pay`, { replace: true });   // 缴费表单取消：回全部缴费记录
       case "bill-delete":
         if (!confirmDelete(t("删除这个账单和它的缴费记录？"))) return;
+        if (id) { await Store.deleteBill(id); toast(t("已删除账单及其缴费记录")); await refresh(); return render(true); }   // 清单 / 滑动卡里的菜单：按卡片的 id 删，留在当前页
         await Store.deleteBill(state.route.id); toast(t("已删除账单及其缴费记录")); return leaveBill(true);
       case "billpay-del":
         if (!confirmDelete(t("删除这条缴费记录？"))) return;
@@ -74,7 +75,7 @@ export async function clickMoney(action, el, id, e) {
       case "spend-open": { state.spendOpen = state.spendOpen === id ? null : id; return renderSpendList(); }   // 花费明细一行的 ▾：编辑 / 复制 / 删除
       case "spend-edit-cancel": { if (state.spendDrafts && state.spendEdit) delete state.spendDrafts[state.spendEdit]; state.spendEdit = null; return renderSpendList(); }
       case "spend-chip-clear": clearSpendFilter(el.dataset.k); return renderSpendRecords();
-      case "med-del": if (!confirmDelete(t("删除这张医疗账单？"))) return; return deleteMedBill(el.dataset.id);
+      case "med-del": if (!confirmDelete(t("删除这张医疗账单？"))) return; { const stay = !!el.dataset.stay; await deleteMedBill(el.dataset.id, stay); if (stay) render(true); return; }
       case "card-ai": return aiDraftCard(el.closest("form"));
       case "card-del": state.cardDelete = el.dataset.id; render(); document.getElementById("cardDelTitle")?.scrollIntoView({ block: "center" }); return;   // 先问花费记录怎么办
       case "card-del-keep": el.disabled = true; await deleteCard(el.dataset.id, { purchases: "keep" }); return refresh();

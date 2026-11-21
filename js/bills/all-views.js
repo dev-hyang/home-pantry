@@ -146,7 +146,8 @@ export function summaryHtml({ SK: S, truncated }) {
   const est = S.estimatedN ? t("含估算 {n} 笔（水电燃气按最近均值估，记缴费时填实际金额就会更新）", { n: S.estimatedN }) : "";
   const totalTip = infoTip([est, S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "", S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "",
     S.otherCurrency ? t("另有 {n} 笔非 {c} 账单未计入", { n: S.otherCurrency, c: cur() }) : "", truncated ? t("另有 {n} 期太久远或太远没有展开", { n: truncated }) : ""], { align: "start" });
-  const cards = card(t("应付"), S.total.amount, t("共 {n} 笔账单", { n: S.total.n }), totalTip) + card(t("已付"), S.paid.amount, "") + card(t("余额"), S.remaining.amount, "", infoTip(est, { align: "end" }));
+  const mark = S.estimatedN ? t("含预估") : "";   // 有按均值估的金额：应付 / 余额小字标「含预估」
+  const cards = card(t("应付"), S.total.amount, [t("共 {n} 笔账单", { n: S.total.n }), mark].filter(Boolean).join(" · "), totalTip) + card(t("已付"), S.paid.amount, "") + card(t("余额"), S.remaining.amount, mark, infoTip(est, { align: "end" }));
   return `<div class="kpis all-kpis" role="status">${cards}</div>`;
 }
 

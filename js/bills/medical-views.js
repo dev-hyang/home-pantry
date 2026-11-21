@@ -194,7 +194,7 @@ export async function saveMedPayForm(f) {
     go(detailHref(b.id), { replace: true }); return true;
   } catch (e) { err.textContent = t("保存失败：{msg}", { msg: e.message }); return false; }
 }
-export async function deleteMedBill(id) { await Store.deleteMedicalBill(id); await reloadMedical(); toast(t("已删除这张账单")); go(allBillsHref({ type: "onetime" })); }
+export async function deleteMedBill(id, stay = false) { await Store.deleteMedicalBill(id); await reloadMedical(); toast(t("已删除这张账单")); if (!stay) go(allBillsHref({ type: "onetime" })); }   // stay：从清单里的卡片删，留在当前页（调用方重画）
 export async function deleteMedPay(id) { await Store.deleteMedicalPayment(id); await reloadMedical(); toast(t("已删除这笔缴费")); }
 /** 新建账单时换种类：整页按新种类重画（标签、小类、保险项不同） */
 export function onKindPick(e) {

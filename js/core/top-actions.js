@@ -5,10 +5,12 @@
 const isCancel = (el) => /^(取消|放弃|Cancel|Discard)$/i.test(el.textContent.trim()) || /cancel$/i.test(el.dataset?.action || "");
 let seq = 0;
 
+const hasCancel = (b) => [...b.querySelectorAll("button, a.btn")].some(isCancel);
+/** on = 已知是编辑页（整页表单）：取第一条有提交按钮的按钮条；不是（on 为假）：也兜底给「新建 / 编辑」类的整页表单置顶——
+ *  按钮条里同时有「取消 / 放弃」和提交按钮，且不在列表行、表格、折叠块、弹窗里（那是行内小表单，不置顶）。没有取消的表单（设置里的单个「保存」、筛选…）不动。 */
 export function pinTopActions(root, on) {
   root.querySelectorAll(".top-actions").forEach((n) => n.remove());
-  if (!on) return;
-  const bar = [...root.querySelectorAll("form .form-actions, form .sticky-actions")].find((b) => b.querySelector('button[type="submit"], button:not([type])') && !b.closest("[hidden], dialog, details:not([open])"));
+  const bar = [...root.querySelectorAll("form .form-actions, form .sticky-actions")].find((b) => b.querySelector('button[type="submit"], button:not([type])') && !b.closest("[hidden], dialog, details:not([open])") && (on || (hasCancel(b) && !b.closest("li, td, tr, .tcarousel"))));
   if (!bar) return;
   const form = bar.closest("form"), submit = [...bar.querySelectorAll('button[type="submit"], button:not([type])')].find((b) => !isCancel(b));
   const cancel = [...bar.querySelectorAll("button, a.btn")].find((b) => b !== submit && isCancel(b));
