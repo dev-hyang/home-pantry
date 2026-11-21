@@ -1,5 +1,5 @@
 /* 记花费时选哪张卡（补记 / 编辑 / 采购已买到 / 银行导入）：下拉、提示、付款账户。 */
-import { ACCT_KINDS, kindIcon } from "./cards.js";
+import { ACCT_KINDS } from "./cards.js";
 import { esc } from "../core/util.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
@@ -9,8 +9,8 @@ const LAST_CARD = "hmh-last-card";
 export const lastCard = () => { try { return localStorage.getItem(LAST_CARD) || ""; } catch { return ""; } };
 export const rememberCard = (id) => { try { localStorage.setItem(LAST_CARD, id || ""); } catch { /* 忽略 */ } };
 export const acctById = (id) => (id ? state.cards.find((c) => c.id === id) : null);
-/** 「💳 Chase Freedom **0934」/「🏦 Chase Checking **1234」 */
-export const acctLabel = (c) => `${kindIcon(c.kind)} ${c.name}${c.last4 ? ` **${c.last4}` : ""}`;
+/** 「Chase Freedom **0934」：下拉 / 选项里不放图标（种类已经在分组名里） */
+export const acctLabel = (c) => `${c.name}${c.last4 ? ` **${c.last4}` : ""}`;
 /** 付款账户下拉（账单扣款 / 缴费记录 / 一次性账单付款 / 记花费共用）：卡和账户按种类分组；extra = 现金、其他这类额外选项 [[value, label]]；exclude = 不列这张卡 */
 export function accountOptions(selected, { none = "（未指定）", extra = [], exclude = "", kinds = null } = {}) {
   const sel = selected || "";

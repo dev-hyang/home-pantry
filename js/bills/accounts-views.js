@@ -28,8 +28,7 @@ function acctRow(c, rows) {
   const r = rowOf(rows, c), bal = r?.balance;
   const tag = r?.missing ? `<span class="badge b-soon">${t("还没记余额")}</span>` : r?.stale ? `<span class="badge b-soon">${t("余额是 {d} 的，该更新了", { d: fmtDate(r.as_of) })}</span>` : "";
   const sub = [kindName(c.kind), c.issuer, holderName(c)].filter(Boolean).map(esc).join(" · ") + (r?.as_of && !r.stale ? ` · ${esc(t("{d} 更新", { d: fmtDate(r.as_of) }))}` : "");
-  return `<li class="card-row ${c.active === false ? "inactive" : ""}" ${lpAttr([{ label: t("详情 / 更新余额"), href: cardHref(c.id), first: true }], c.name)}><span class="card-net net-bank" aria-hidden="true">${kindIcon(c.kind)}</span>
-    <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${esc(c.name)}</a>${c.last4 ? ` <span class="muted">**${esc(c.last4)}</span>` : ""}<small>${sub}</small>${tag ? `<div class="card-tags">${tag}</div>` : ""}</div>
+  return `<li class="card-row ${c.active === false ? "inactive" : ""}" ${lpAttr([{ label: t("详情 / 更新余额"), href: cardHref(c.id), first: true }], c.name)}><div class="grow"><span class="card-ico" aria-hidden="true">${kindIcon(c.kind)}</span><a class="link-name" href="${cardHref(c.id)}">${esc(c.name)}</a>${c.last4 ? ` <span class="muted">**${esc(c.last4)}</span>` : ""}<small>${sub}</small>${tag ? `<div class="card-tags">${tag}</div>` : ""}</div>
     ${bal != null ? `<b class="gift-bal">${mny(r.side === "l" ? -bal : bal)}</b>` : ""}</li>`;
 }
 const list = (cards, rows) => (cards.length ? `<div class="panel"><ul class="restock-list card-list">${cards.map((c) => acctRow(c, rows)).join("")}</ul></div>` : "");

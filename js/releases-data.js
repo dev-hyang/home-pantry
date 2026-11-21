@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.11", title: { zh: "卡与账户的行：图标缩小，和名称放在一行", en: "Card & account rows: smaller icon on the same line as the name" }, items: [
+    { k: "better", zh: "信用卡、银行、投资、钱包、礼品卡的每一行：左边单独占一列的图标 / 卡组织标签缩小，挪到名称前面同一行，名称和说明有了更多空间", en: "On every card and account row the icon / card-network badge no longer takes its own column: it is smaller and sits right before the name, leaving more room for the name and details" },
+    { k: "better", zh: "在别的页面里作为下拉选项出现的账户（付款账户、收入入账账户等），名称前面不再带图标", en: "Accounts shown as dropdown options on other pages (paying account, income account…) no longer carry an icon before the name" },
+  ] },
+
   { v: "2026-11-21.10", title: { zh: "信用卡、银行、投资、钱包：添加账户统一到右下角圆形 ＋", en: "Cards, banks, investments, wallets: adding accounts is now the round + button" }, items: [
     { k: "better", zh: "银行账户、投资账户、电子钱包与礼品卡页底部那一排「＋ 某某账户」小标签没有了，统一成右下角的圆形 ＋（点开选账户种类）", en: "The row of “＋ account type” chips at the bottom of Banks, Investments and E-wallets & gift cards is gone — it is now the round ＋ at the bottom right (pick the account type)" },
     { k: "better", zh: "信用卡页：「添加信用卡」按钮改成圆形 ＋，页头的眼睛换成「筛选」按钮；「我的卡」放到最上面", en: "Credit cards: “Add credit card” is the round ＋, the header eye became the Filter button, and “My cards” comes first" },

@@ -139,8 +139,7 @@ function cardRow(c) {
     if (g.exp != null && g.exp < 0) tags.push(`<span class="badge b-out">${t("已过期")}</span>`); else if (g.exp != null && g.exp <= 60) tags.push(`<span class="badge b-soon">${t("{d} 天后到期", { d: g.exp })}</span>`);
     if (g.bal != null && g.bal <= 0) tags.push(`<span class="badge" style="background:var(--surface-2)">${t("已用完")}</span>`);
     if (c.active === false && g.bal != null && g.bal > 0) tags.push(`<span class="badge b-soon">${t("还有余额 {m}", { m: money(g.bal) })}</span>`);   // 停用了但没用完：多半是误停用或又充值了
-    return `<li class="card-row gift-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)} ${lpCard(c)}><span class="card-net net-gift" aria-hidden="true">🎁</span>
-      <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">**${d(c.last4)}</span>` : ""}
+    return `<li class="card-row gift-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)} ${lpCard(c)}><div class="grow"><span class="card-ico" aria-hidden="true">🎁</span><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">**${d(c.last4)}</span>` : ""}
         <small>${[c.issuer, holderName(c), c.opened_on ? t("{d} 购入", { d: fmtDate(c.opened_on) }) : null, c.expires_on ? t("有效期至 {d}", { d: String(c.expires_on).slice(0, 7) }) : null, g.n ? t("{n} 笔花费", { n: g.n }) : null, offSince].filter(Boolean).map(esc).join(" · ")}</small>
         ${tags.length ? `<div class="card-tags">${tags.join(" ")}</div>` : ""}</div>
       ${g.bal != null ? `<b class="gift-bal ${g.bal <= 0 ? "done" : ""}">${g.bal <= 0 ? t("已用完") : money(g.bal)}${c.balance != null && g.bal > 0 ? `<small>/ ${money(num(c.balance))}</small>` : ""}</b>` : `<span class="gift-bal done">${t("未填面值")}</span>`}
@@ -148,8 +147,7 @@ function cardRow(c) {
   }
   if (noRewards(c)) {   // 银行账户：没有返现 / 到期，只看哪些账单从这里扣、记了多少笔
     const bills = state.billsEnriched.filter((b) => b.pay_card_id === c.id && b.active), n = cardTotal(c.id).n;
-    return `<li class="card-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)} ${lpCard(c)}><span class="card-net net-bank" aria-hidden="true">${t(ACCT_SHORT[c.kind] || "支票")}</span>
-      <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">**${d(c.last4)}</span>` : ""}
+    return `<li class="card-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)} ${lpCard(c)}><div class="grow"><span class="card-net net-bank" aria-hidden="true">${t(ACCT_SHORT[c.kind] || "支票")}</span><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">**${d(c.last4)}</span>` : ""}
         <small>${[c.issuer, holderName(c), bills.length ? t("{n} 条账单从这里扣：{names}", { n: bills.length, names: bills.slice(0, 3).map((b) => b.name).join("、") + (bills.length > 3 ? "…" : "") }) : t("还没有账单从这里扣"), n ? t("{n} 笔花费", { n }) : null, offSince].filter(Boolean).map(esc).join(" · ")}</small></div>
       ${rowActs(c)}</li>`;
   }
@@ -167,8 +165,7 @@ function cardRow(c) {
   const rot0 = rotatingNow(c), rotLim = num(rot0?.cap ?? c.rewards?.rotating_cap, 0);
   if (rot0 && !rot0.empty && rotLim) { const used = usage(c).rotUsed(); bars.push(progressHtml(t("本季轮换封顶"), Math.min(100, Math.round(used / rotLim * 100)), `${money(used)} / ${money(rotLim)}`)); }
   const NET_SHORT = { visa: "VISA", mastercard: "MC", amex: "AMEX", discover: "DISC", unionpay: "银联", other: "卡" };
-  return `<li class="card-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)} ${lpCard(c)}><span class="card-net net-${esc(c.network || "other")}" aria-hidden="true" title="${esc(networkName(c.network))}">${esc(NET_SHORT[c.network] || NET_SHORT.other)}</span>
-    <div class="grow"><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">**${d(c.last4)}</span>` : ""}
+  return `<li class="card-row ${c.active === false ? "inactive" : ""}" ${swipeAttrs(c)} ${lpCard(c)}><div class="grow"><span class="card-net net-${esc(c.network || "other")}" aria-hidden="true" title="${esc(networkName(c.network))}">${esc(NET_SHORT[c.network] || NET_SHORT.other)}</span><a class="link-name" href="${cardHref(c.id)}">${d(c.name)}</a>${c.last4 ? ` <span class="muted">**${d(c.last4)}</span>` : ""}
       <small>${[holderName(c), c.expires_on ? t("到期 {d}", { d: c.expires_on.slice(0, 7) }) : null, num(c.annual_fee) ? t("年费 {a}", { a: money(num(c.annual_fee)) }) : t("无年费"), bill ? t("还款 {d}", { d: fmtDate(bill.next_due_on) }) : c.due_day ? t("每月 {d} 号还款", { d: c.due_day }) : null, best ? `${t("其他 {b}%", { b: num(rw.base, 0) })} · ${best}` : t("所有消费 {b}%", { b: num(rw.base, 0) })].filter(Boolean).map(esc).join(" · ")}</small>
       ${tags.length ? `<div class="card-tags">${tags.join(" ")}${offSince ? ` <span class="badge" style="background:var(--surface-2)">${esc(offSince)}</span>` : ""}</div>` : offSince ? `<div class="card-tags"><span class="badge" style="background:var(--surface-2)">${esc(offSince)}</span></div>` : ""}${bars.length ? `<div class="card-bars">${bars.join("")}</div>` : ""}</div>
     ${rowActs(c)}</li>`;
