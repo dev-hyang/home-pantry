@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.33", title: { zh: "录入购物：一步一步展开", en: "Log shopping: one step at a time" }, items: [
+    { k: "better", zh: "录入方式（默认实体店小票）→ 点它展开「记到哪里」下拉（默认入库 + 花费）→ 点它展开上传照片 → 有照片后展开可跳过的文字描述 → 识别；没有照片可点「只用文字」", en: "How to add (store receipt by default) → tap it to reveal the “Record to” dropdown (Stock + spend by default) → tap it to reveal the photo upload → once there is a photo, the skippable text and Recognize appear; no photo? tap “Use text only”" },
+  ] },
+
   { v: "2026-11-20.32", title: { zh: "咩咩的回答默认折叠", en: "Meh's answers are collapsed by default" }, items: [
     { k: "better", zh: "库存里「该补货了」等页面上的咩咩回答，默认收成一行「咩咩的回答 · 日期」，点开才看全文；刚问完会自动展开", en: "Meh's answers on pages like Restock now collapse into one line (“Meh's answer · date”); tap to read, and a fresh answer opens by itself" },
   ] },

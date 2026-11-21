@@ -22,11 +22,11 @@ export function startManual() {
 }
 /** 录入方式：默认入库 + 记花费；也可以只记花费、不动库存，或只入库、不记花费 */
 const RECORD_OPTS = [["both", "入库 + 花费", "识别出的东西加进库存，同时记花费（默认）"], ["spend", "只记花费", "不入库，只把花费记下来"], ["stock", "只入库", "只加库存，不记花费"]];
-const recordPick = () => `<div class="scan-mode scan-record"><span class="pick-lbl">${t("记到哪里")}</span><div class="chips" role="group" aria-label="${t("记到哪里")}">${RECORD_OPTS.map(([k, l]) => `<button type="button" class="chip" data-action="scan-record" data-record="${k}" aria-pressed="${sc.record === k}">${t(l)}</button>`).join("")}</div>
-  <p class="muted" style="margin:0;font-size:12.5px">${t(RECORD_OPTS.find((o) => o[0] === sc.record)[2])}</p></div>`;
-/** 表单第一项：录入方式（实体店小票 / 线上订单 / 手动添加）。还没选时只显示这一项，选了才展开下面的步骤 */
+const recordPick = () => `<label class="scan-kind scan-record"><span class="pick-lbl">${t("记到哪里")}</span><select id="scanRecordSel" aria-label="${t("记到哪里")}">${RECORD_OPTS.map(([k, l]) => `<option value="${k}" ${sc.record === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
+  <p class="muted scan-record-hint" style="margin:6px 0 0;font-size:12.5px">${t(RECORD_OPTS.find((o) => o[0] === sc.record)[2])}</p>`;
+/** 第 1 步：录入方式（默认实体店小票 / 线上订单 / 手动添加）；点它就展开第 2 步（记到哪里） */
 const KINDS = [["receipt", "实体店小票"], ["order", "线上订单"], ["manual", "手动添加"]];
-const kindSelect = () => `<label class="scan-kind"><span class="pick-lbl">${t("录入方式")}</span><select id="scanKindSel" aria-label="${t("录入方式")}">${sc.kind ? "" : `<option value="" selected disabled>${t("请选择…")}</option>`}${KINDS.map(([k, l]) => `<option value="${k}" ${sc.kind === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>`;
+const kindSelect = () => `<label class="scan-kind"><span class="pick-lbl">${t("录入方式")}</span><select id="scanKindSel" aria-label="${t("录入方式")}">${KINDS.map(([k, l]) => `<option value="${k}" ${sc.kind === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>`;
 /* ───────────── 页面 ───────────── */
 export function viewScan() {
   return `<section class="section scan-page">${sc.step === "review" && sc.result ? reviewHtml() : inputHtml()}</section>`;
@@ -35,6 +35,7 @@ function inputHtml() {
   const s = aiSettings(), p = providerOf(s.provider), ready = aiReady();
   const order = sc.kind === "order";
   const canImg = visionCapable(p);
+  const st = Math.max(sc.stage || 1, sc.images.length || sc.text.trim() || sc.busy || sc.error ? 4 : 0);   // 已经展开到第几步（有照片 / 文字 / 在识别 / 有错误时直接到最后一步）
   const runOff = !ready || !sc.kind || sc.busy || (!sc.images.length && !sc.text.trim());
   const runBtn = (cls) => `<button type="button" class="btn btn-primary ${cls}" data-action="scan-run" ${runOff ? "disabled" : ""}>${sc.busy ? (sc.progress || t("正在识别…（几十秒）")) : t("识别")}</button>`;
   return `
@@ -42,25 +43,27 @@ function inputHtml() {
     ${ready ? "" : `<div class="panel cta-panel"><div><b>${t("先填一个 AI key")}</b><p class="muted">${t("推荐 Gemini（有免费额度）。key 只存在这台设备的浏览器里。")}</p></div>
       <a class="btn btn-primary" href="${href("me", "settings")}?sec=ai">${t("去设置")}</a></div>`}
     <div class="panel scan-in">
-      ${kindSelect()}
-      ${sc.kind ? "" : `<p class="muted scan-kind-hint">${t("先选录入方式，再上传小票照片或订单截图；也可以直接手动添加。")}</p>`}
-      <div class="scan-steps" ${sc.kind ? "" : "hidden"}>
-      <div class="scan-in-head"><span class="pick-lbl">${order ? t("订单截图（可选，可多张）") : t("小票照片（可多张：几张不同的小票，或一张长小票分段拍）")}</span></div>
-      <div class="scan-thumbs">
-        ${sc.images.map((im, i) => `<span class="scan-thumb"><img src="${im.url}" alt="${t("第 {n} 张", { n: i + 1 })}"><button type="button" data-action="scan-img-del" data-i="${i}" aria-label="${t("删除这张")}">×</button></span>`).join("")}
-        ${sc.images.length < MAX_IMAGES ? `<label class="scan-add ${canImg ? "" : "is-off"}"><input type="file" id="scanFile" accept="image/*" multiple ${canImg ? "" : "disabled"}><span>📷 ${t("拍照 / 选图")}</span></label>` : ""}
+      <div class="scan-step" data-step="1">${kindSelect()}</div>
+      <div class="scan-step" data-step="2" ${st >= 2 ? "" : "hidden"}>${recordPick()}</div>
+      <div class="scan-step" data-step="3" ${st >= 3 ? "" : "hidden"}>
+        <div class="scan-in-head"><span class="pick-lbl">${order ? t("订单截图（可选，可多张）") : t("小票照片（可多张：几张不同的小票，或一张长小票分段拍）")}</span></div>
+        <div class="scan-thumbs">
+          ${sc.images.map((im, i) => `<span class="scan-thumb"><img src="${im.url}" alt="${t("第 {n} 张", { n: i + 1 })}"><button type="button" data-action="scan-img-del" data-i="${i}" aria-label="${t("删除这张")}">×</button></span>`).join("")}
+          ${sc.images.length < MAX_IMAGES ? `<label class="scan-add ${canImg ? "" : "is-off"}"><input type="file" id="scanFile" accept="image/*" multiple ${canImg ? "" : "disabled"}><span>📷 ${t("拍照 / 选图")}</span></label>` : ""}
+        </div>
+        ${canImg ? "" : `<p class="form-error" style="margin:6px 0 0">${t("当前的 {p} 不能读图片：换成 Gemini（设置 → AI 助手），或只粘贴文字。", { p: t(p.name) })}</p>`}
+        ${sc.images.length > 1 ? `<div class="scan-mode"><span class="pick-lbl">${t("这几张照片是")}</span><div class="chips" role="group" aria-label="${t("几张照片的关系")}">${[["auto", "自动判断"], ["separate", "每张是一张独立小票"], ["merge", "合起来是同一张小票"]].map(([k, l]) => `<button type="button" class="chip" data-action="scan-mode" data-mode="${k}" aria-pressed="${sc.mode === k}">${t(l)}</button>`).join("")}</div>
+          <p class="muted" style="margin:0;font-size:12.5px">${t("补录几张不同商店、不同日期的小票：选“每张是一张独立小票”最稳，每张单独识别，不会混在一起；长小票分段拍选“合起来是同一张”。")}</p></div>` : ""}
+        ${st < 4 ? `<p style="margin:10px 0 0"><button type="button" class="btn btn-ghost btn-sm" data-action="scan-skip-photo">${t("没有照片？只用文字 ›")}</button></p>` : ""}
       </div>
-      ${canImg ? "" : `<p class="form-error" style="margin:6px 0 0">${t("当前的 {p} 不能读图片：换成 Gemini（设置 → AI 助手），或只粘贴文字。", { p: t(p.name) })}</p>`}
-      ${sc.images.length > 1 ? `<div class="scan-mode"><span class="pick-lbl">${t("这几张照片是")}</span><div class="chips" role="group" aria-label="${t("几张照片的关系")}">${[["auto", "自动判断"], ["separate", "每张是一张独立小票"], ["merge", "合起来是同一张小票"]].map(([k, l]) => `<button type="button" class="chip" data-action="scan-mode" data-mode="${k}" aria-pressed="${sc.mode === k}">${t(l)}</button>`).join("")}</div>
-        <p class="muted" style="margin:0;font-size:12.5px">${t("补录几张不同商店、不同日期的小票：选“每张是一张独立小票”最稳，每张单独识别，不会混在一起；长小票分段拍选“合起来是同一张”。")}</p></div>` : ""}
-      ${order ? `<details class="scan-more" ${sc.text.trim() ? "open" : ""}><summary>${t("订单文字描述（可选，可跳过：订单确认邮件、网页或 App 订单详情，整段粘贴）")}</summary>
-        <textarea id="scanText" data-autosize rows="8" maxlength="12000" placeholder="${t("例如：Instacart / Amazon / 京东 / 盒马 的订单确认内容")}">${esc(sc.text)}</textarea></details>`
-        : `<details class="scan-more" ${sc.text.trim() ? "open" : ""}><summary>${t("补充文字描述（可选，可跳过，例如小票上识别不出的商品）")}</summary>
-        <textarea id="scanText" data-autosize rows="3" maxlength="12000" placeholder="">${esc(sc.text)}</textarea></details>`}
-      ${recordPick()}
-      <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("图片和文字会发给你在设置里选的 {p}，不会保存原图。小票上的卡号、姓名建议裁掉或遮住再拍。Gemini 免费档的内容可能被用于改进产品，介意的话用付费 key。", { p: t(p.name) })}</p>
-      ${sc.error ? `<p class="form-error" role="alert">${esc(sc.error)}</p>` : ""}
-      <div class="form-actions">${runBtn("")}</div>
+      <div class="scan-step" data-step="4" ${st >= 4 ? "" : "hidden"}>
+        ${order ? `<details class="scan-more" ${sc.text.trim() || sc.skipPhoto ? "open" : ""}><summary>${t("订单文字描述（可选，可跳过：订单确认邮件、网页或 App 订单详情，整段粘贴）")}</summary>
+          <textarea id="scanText" data-autosize rows="8" maxlength="12000" placeholder="${t("例如：Instacart / Amazon / 京东 / 盒马 的订单确认内容")}">${esc(sc.text)}</textarea></details>`
+          : `<details class="scan-more" ${sc.text.trim() || sc.skipPhoto ? "open" : ""}><summary>${t("补充文字描述（可选，可跳过，例如小票上识别不出的商品）")}</summary>
+          <textarea id="scanText" data-autosize rows="3" maxlength="12000" placeholder="">${esc(sc.text)}</textarea></details>`}
+        <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("图片和文字会发给你在设置里选的 {p}，不会保存原图。小票上的卡号、姓名建议裁掉或遮住再拍。Gemini 免费档的内容可能被用于改进产品，介意的话用付费 key。", { p: t(p.name) })}</p>
+        ${sc.error ? `<p class="form-error" role="alert">${esc(sc.error)}</p>` : ""}
+        <div class="form-actions">${runBtn("")}</div>
       </div>
     </div>`;
 }

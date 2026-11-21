@@ -17,9 +17,24 @@ import { myName } from "../settings/family-lite.js";
 import { cleanStore, rememberStore } from "../stats/store-lite.js";
 
 /* ───────────── 交互：文件、文字、行内联动 ───────────── */
+const RECORD_HINTS = { both: "识别出的东西加进库存，同时记花费（默认）", spend: "不入库，只把花费记下来", stock: "只加库存，不记花费" };
+/** 一步一步展开：点（聚焦）上一步的下拉就露出下一步；不重画页面，下拉不会被收起 */
+function revealStep(n) {
+  sc.stage = Math.max(sc.stage || 1, n);
+  document.querySelectorAll(".scan-page .scan-step[hidden]").forEach((el) => { if (+el.dataset.step <= sc.stage) el.hidden = false; });
+}
+document.addEventListener("focusin", (e) => {
+  if (e.target.id === "scanKindSel") revealStep(2);
+  else if (e.target.id === "scanRecordSel") revealStep(3);
+});
 document.addEventListener("change", async (e) => {
-  if (e.target.id === "scanKindSel") {   // 录入方式下拉：手动添加直接进确认表；小票 / 订单展开下面的上传步骤
-    const k = e.target.value; sc.error = "";
+  if (e.target.id === "scanRecordSel") {   // 记到哪里：只改记录，不重画（输入框里的内容不丢）；顺带展开下一步
+    sc.record = e.target.value; revealStep(3);
+    const h = document.querySelector(".scan-record-hint"); if (h) h.textContent = t(RECORD_HINTS[sc.record] || "");
+    return;
+  }
+  if (e.target.id === "scanKindSel") {   // 录入方式下拉：手动添加直接进确认表；小票 / 订单留在这页，展开下一步
+    const k = e.target.value; sc.error = ""; sc.stage = Math.max(sc.stage || 1, 2);
     if (k === "manual") { startManual(); return repaint(); }
     sc.kind = k; if (sc.result?.manual) { sc.step = "input"; sc.result = null; }
     return repaint();
@@ -185,7 +200,7 @@ export function scanAction(action, el, ctx) {
     case "scan-kind": if (el.dataset.kind === "manual") { startManual(); return repaint(); } sc.kind = el.dataset.kind; sc.error = ""; if (sc.result?.manual) { sc.step = "input"; sc.result = null; } return repaint();
     case "scan-add-row": { if (!sc.result) return; repaint2(); const rc = sc.result.receipts[+el.dataset.r]; if (rc) rc.rows.push(blankRow()); repaint(); updateSum(); const rows = document.querySelectorAll(`.scan-rcpt[data-r="${el.dataset.r}"] .scan-row`); rows[rows.length - 1]?.querySelector('[name="name"]')?.focus(); return; }
     case "scan-mode": sc.mode = el.dataset.mode; return repaint();
-    case "scan-record": sc.record = el.dataset.record; return repaint();
+    case "scan-skip-photo": sc.stage = 4; sc.skipPhoto = true; return repaint();   // 没有照片：直接到文字 + 识别
     case "scan-add-fee": {   // 加一行税费：金额先填成「小票合计 − 现在各行合计」（读到了合计才有），可以改
       repaint2(); const rc = sc.result?.receipts[+el.dataset.r]; if (!rc) return;
       const have = rc.rows.reduce((s, x) => s + (x.include ? num(x.amount, 0) : 0), 0), gap = rc.total == null ? null : Math.round((rc.total - have) * 100) / 100;

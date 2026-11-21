@@ -4427,3 +4427,8 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .ask-fold > summary::after { content: "▾"; margin-left: auto; color: var(--muted); transition: transform .15s; }
 .ask-fold[open] > summary::after { transform: rotate(180deg); }
 .ask-fold > .ask-answer { margin-top: 6px; }
+
+/* 录入购物：一步一步展开（.scan-step：录入方式 → 记到哪里 → 上传 → 文字 + 识别） */
+.scan-step + .scan-step { margin-top: 14px; }
+.scan-step[hidden] { display: none; }
+.scan-record { margin-bottom: 0; }
