@@ -11,18 +11,18 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { D, catalogAge, d, roStop } from "./card-common.js";
 import { lpAttr } from "../core/long-press.js";
+import { groupOfKind } from "./acct-groups.js";
 
 /* ───────────── 页面 ───────────── */
 export function viewCards() {
   const id = state.route.q.get("card"), ro = cardsRO();
   if (id && !(ro && id === "new")) return cardForm(id, ro, { deleteHtml: state.cardDelete && !ro ? deleteConfirmHtml(state.cardDelete) : "" });   // 只读：能打开看，不能新建
-  const live = state.cards.filter((c) => c.active !== false), cards = live.filter((c) => !noRewards(c)), banks = live.filter(isBankAcct), gifts = live.filter((c) => c.kind === "gift");
+  const live = state.cards.filter((c) => c.active !== false && groupOfKind(c.kind) === "credit"), cards = live;   // 信用卡页只留信用卡；银行 / 投资 / 钱包 / 礼品卡在各自的页（财务 → 账户）
   // 停用的：最近停用的在前（没有停用日期的老记录按最后修改时间）
-  const off = state.cards.filter((c) => c.active === false).sort((a, b) => String(b.inactive_since || "").localeCompare(String(a.inactive_since || "")) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
-  const addChips = `<div class="acct-add">${Object.entries(ACCT_KINDS).map(([k, [name, icon]]) => `<a class="chip" href="${cardHref("new")}&kind=${k}">＋ ${icon} ${esc(t(name))}</a>`).join("")}</div>`;
+  const off = state.cards.filter((c) => c.active === false && groupOfKind(c.kind) === "credit").sort((a, b) => String(b.inactive_since || "").localeCompare(String(a.inactive_since || "")) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
   return `<section class="section">
-    <div class="section-head"><h2>${t("卡与账户")}</h2><p>${t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。银行账户也记在这里，账单扣款、缴费记录能直接选。")}</p>
-      <div class="head-acts">${ro ? `<span class="badge" style="background:var(--surface-2)">${t("只读")}</span>` : `<a class="btn btn-primary btn-sm" href="${cardHref("new")}">${t("添加卡 / 账户")}</a>`}</div></div>
+    <div class="section-head"><h2>${t("信用卡")}</h2><p>${t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。")}</p>
+      <div class="head-acts">${ro ? `<span class="badge" style="background:var(--surface-2)">${t("只读")}</span>` : `<a class="btn btn-primary btn-sm" href="${cardHref("new")}&kind=credit">${t("添加信用卡")}</a>`}</div></div>
     ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("你可以查看卡和推荐；添加、修改、停用、删除要家主在「设置 → 家庭与成员」里给你开财务权限。")}</p>` : ""}
     ${state.cardDelete && !ro ? deleteConfirmHtml(state.cardDelete) : ""}
     ${attentionPanel(["card"], { title: t("要处理"), sub: t("到期、年费、轮换类别、开卡奖励") })}
@@ -30,10 +30,6 @@ export function viewCards() {
     ${cards.length ? reviewHtml() : ""}
     ${cards.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("我的卡")}</h2><p>${t("{n} 张在用", { n: cards.length })}${catalogAge() > 90 ? ` · <span class="bank-dup">${t("目录更新于 {d}，可能过期，返现规则以发卡行为准", { d: D().AS_OF })}</span>` : ""}</p></div>
       <div class="panel"><ul class="restock-list card-list">${cards.map(cardRow).join("")}</ul></div>` : live.length ? "" : emptyHtml()}
-    ${banks.length ? `<div class="section-head" style="margin-top:14px"><h2>${t("银行与投资账户")}</h2><p>${t("支票 / 储蓄 / 券商 / 退休 / HSA / 贷款 / 现金：账单从哪扣、收入入到哪")}</p></div>
-      <div class="panel"><ul class="restock-list card-list">${banks.map(cardRow).join("")}</ul></div>` : ""}
-    ${gifts.length ? giftSection(gifts) : ""}
-    ${ro ? "" : addChips}
     ${off.length ? offSection(off) : ""}
     <p class="muted" style="margin-top:8px;font-size:12.5px" ${ro ? "hidden" : ""}>${t("手机上：一行向右滑 = 停用 / 启用，向左滑 = 删除（删除前会问花费记录怎么办）；电脑上鼠标移到行上出现同样的按钮。")}</p>
     <p class="muted kinds-note" style="margin-top:10px">${t("只记发卡行、产品、末四位、到期年月，不记完整卡号和密码。返现规则来自内置目录或你自己填，会变，以发卡行为准。")}</p>
@@ -51,7 +47,7 @@ function giftRows(gifts) {
     opened: (a, b) => String(b.c.opened_on || "").localeCompare(String(a.c.opened_on || "")), name: (a, b) => String(a.c.name).localeCompare(String(b.c.name), undefined, { sensitivity: "base" }) }[f.sort] || (() => 0);
   return rows.sort((a, b) => by(a, b) || String(a.c.name).localeCompare(String(b.c.name)));
 }
-function giftSection(gifts) {
+export function giftSection(gifts) {
   const f = giftFilter(), rows = giftRows(gifts), all = gifts.map(giftOf);
   const total = all.reduce((s, g) => s + Math.max(0, g.bal ?? 0), 0), used = all.filter((g) => g.bal != null && g.bal <= 0).length;
   const issuers = [...new Set(gifts.map((c) => c.issuer || ""))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
@@ -77,7 +73,7 @@ function cleanupPool(off) {
   const pool = off.filter(ok);
   return { eligible: pool.filter(old), recent: pool.filter((c) => !old(c)), withSpend: off.filter((c) => c.kind === "gift" && !(giftBalance(c) > 0) && cardTotal(c.id).n > 0).length };
 }
-function offSection(off) {
+export function offSection(off) {
   const f = offFilter(), q = f.q.trim().toLowerCase();
   const counts = { gift: off.filter((c) => offKindOf(c) === "gift").length, card: off.filter((c) => offKindOf(c) === "card").length, bank: off.filter((c) => offKindOf(c) === "bank").length };
   const rows = off.filter((c) => (f.kind === "all" || offKindOf(c) === f.kind) && (!q || [c.name, c.issuer, c.last4].filter(Boolean).some((x) => String(x).toLowerCase().includes(q))))

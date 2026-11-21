@@ -17,7 +17,7 @@ const n = (v) => (v == null || v === "" ? null : Number(v));
 export const ASSET_BUCKETS = ["cash", "investments", "retirement", "hsa", "properties", "vehicles", "other_assets", "receivables"];
 export const LIAB_BUCKETS = ["mortgage", "auto_loans", "other_loans", "credit_cards", "other_liabilities"];
 /** 能记余额的账户种类 → 分桶。借记卡（钱在支票账户里）、礼品卡（余额 = 面值 − 花费，见设计文档）不记 */
-export const ACCT_BUCKET = { checking: "cash", savings: "cash", cash: "cash", wallet: "cash", brokerage: "investments", retirement: "retirement", hsa: "hsa", credit: "credit_cards", loan: "other_loans" };
+export const ACCT_BUCKET = { checking: "cash", savings: "cash", cash: "cash", wallet: "cash", brokerage: "investments", retirement: "retirement", hsa: "hsa", fsa: "hsa", education: "investments", kid: "investments", crypto: "investments", credit: "credit_cards", loan: "other_loans" };
 export const BALANCE_KINDS = Object.keys(ACCT_BUCKET);
 export const isLiabilityKind = (kind) => kind === "credit" || kind === "loan";
 /** 贷款类型 → 负债分桶：房贷 / HELOC / 房屋净值贷款 = 房贷；车贷；亲友借款 = 其他负债；其余（学生贷款、个人贷款、信用额度、其他）= 其他贷款 */

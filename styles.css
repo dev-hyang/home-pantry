@@ -4462,3 +4462,16 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 @media (prefers-reduced-motion: reduce) { .is-revealed { animation: none; } }
 /* 逐步展开的页面：后面还有没展开的步骤时，底部多留半屏空白，新展开的那一块才有地方滚到屏幕中间（全部展开后就不需要了） */
 .scan-page:has(.scan-step[hidden]) { padding-bottom: 50vh; }
+
+/* 账户概览：四类账户各一张卡（财务 → 账户 → 账户概览），手机一列、电脑两列 */
+.acct-tiles { display: grid; gap: 12px; margin-top: 12px; }
+@media (min-width: 720px) { .acct-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.acct-tile { display: flex; align-items: center; gap: 12px; padding: 14px 16px; text-decoration: none; color: inherit; min-height: 88px; margin: 0; }
+.acct-tile .mi { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; font-size: 22px; }
+.acct-tile > div { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.acct-tile h3 { margin: 0; font-size: 14.5px; color: var(--muted); font-weight: 600; }
+.acct-big { font-size: 22px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.acct-tile:hover { border-color: var(--pine); }
+.kpis.k4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }   /* 账户概览顶上 4 个指标：手机 2×2，电脑一排 4 个 */
+@media (min-width: 720px) { .kpis.k4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.kpis.k4 .kpi:last-child { grid-column: auto; }   /* 盖掉手机上「最后一个占满一行」：4 个就是 2×2 */

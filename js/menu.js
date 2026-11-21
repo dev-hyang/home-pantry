@@ -57,6 +57,10 @@ export const META = {
     // 分析组里的「收支总览」= 收入页的第一个标签（同一页，不另做一份）；sub 指向真正的二级页，权限按它判断
     cashflow:  { icon: "⚖️", title: "收支总览", sub: "income", href: () => href("bills", "income"), desc: "收支总览：收入（工作 / 投资 / 房产 / 其他）vs 消费、储蓄率、投资率；资本流入（卖房卖股、借款、转入）单列不算收入" },
     statements: { icon: "🏦", desc: "银行 / 信用卡对账单：花费和收入一次导入；导出花费、收入、收支差额报表" },
+    accounts:  { icon: "🗂️", desc: "四类账户一眼看：信用卡、银行、投资、电子钱包与礼品卡；余额、要更新的、年费" },
+    banks:     { icon: "🏦", desc: "支票、储蓄、现金、借记卡：余额、账单从哪扣、收入入到哪" },
+    invest:    { icon: "📈", desc: "投资 / 退休（401K、IRA）/ 教育（529）/ 孩子账户 / HSA·FSA / 加密：只记总值，每月自动存快照" },
+    wallets:   { icon: "👛", desc: "电子钱包（PayPal、Venmo、Zelle）和礼品卡（Amazon、Target）：余额、有效期" },
     budget:    { icon: "💰", desc: "收入、固定账单、储蓄 → 月度 / 年度预算，对比实际花费，超预算提醒，大额购物规划" },
     spend:     { icon: "📊", desc: "所有花费：每月花了多少、分类占比、商店、年度报表，可搜索筛选排序" },
     cards:     { icon: "💳", desc: "信用卡：该刷哪张（按场景比返现）、到期 / 年费 / 轮换类别 / 开卡奖励提醒；银行、券商、退休、HSA、贷款账户也记在这里", count: () => state.cards.filter((c) => c.active !== false).length },
@@ -78,7 +82,7 @@ export const FIN_GROUPS = [   // 2026-11-21 重排：分析 · 收支 · 账单 
   { id: "analysis", name: "分析", subs: ["assets", "cashflow", "budget"] },
   { id: "flow", name: "收支", subs: ["spend", "income", "debts", "statements"] },
   { id: "bills", name: "账单", subs: ["overview", "all", "recurring"] },
-  { id: "accounts", name: "账户", subs: ["cards"] },
+  { id: "accounts", name: "账户", subs: ["accounts", "cards", "banks", "invest", "wallets"] },
 ];
 const HIDDEN = (section, k) => (section === "pantry" && k === "gear" && !state.gearEnabled)
   || (section === "bills" && FINANCE_HIDDEN_SUBS.includes(META.bills[k]?.sub || k) && !financeOk());   // 没有财务权限：对账单 / 收入 / 预算不进目录

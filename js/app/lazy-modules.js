@@ -157,6 +157,11 @@ export const renderShopList = lazyFn(LZ.pShopping, "renderShopList");
 export const viewShopping = lazyFn(LZ.pShopping, "viewShopping");
 LZ.pMeals = lazyModule(() => import("../pantry/meals.js"));
 export const viewMeals = lazyFn(LZ.pMeals, "viewMeals");
+LZ.accountsViews = lazyModule(() => import("../bills/accounts-views.js"));   // 账户概览 / 银行账户 / 投资账户 / 电子钱包与礼品卡
+export const viewAccountsHome = lazyFn(LZ.accountsViews, "viewAccountsHome");
+export const viewBanks = lazyFn(LZ.accountsViews, "viewBanks");
+export const viewInvest = lazyFn(LZ.accountsViews, "viewInvest");
+export const viewWallets = lazyFn(LZ.accountsViews, "viewWallets");
 LZ.cardsPage = lazyModule(() => import("../bills/cards-page.js"));
 export const runCleanup = lazyFn(LZ.cardsPage, "runCleanup");
 export const setCardActive = lazyFn(LZ.cardsPage, "setCardActive");

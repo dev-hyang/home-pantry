@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.41", title: { zh: "财务 → 账户：账户概览、信用卡、银行、投资、电子钱包与礼品卡各一页", en: "Finance → Accounts: overview, credit cards, banks, investments, e-wallets & gift cards" }, items: [
+    { k: "new", zh: "「账户」组拆成五页：账户概览（四类账户一眼看：余额、数量、要更新的）、信用卡（原来的卡片、返现复盘、停用的默认折叠）、银行账户、投资账户、电子钱包与礼品卡", en: "The Accounts group is now five pages: Overview (four account types at a glance), Credit cards (cards, cash-back review, inactive folded), Bank accounts, Investment accounts and E-wallets & gift cards" },
+    { k: "new", zh: "投资账户按用途分块：退休（401K / IRA）、教育（529）、孩子的投资账户（Trump account / UTMA）、医疗（HSA / FSA）、券商、加密货币；只记总值（在账户页「更新余额」，每月自动存快照），不记持仓和交易", en: "Investment accounts are grouped by purpose: retirement, education (529), kids’ accounts (Trump account / UTMA), health (HSA / FSA), brokerage and crypto; totals only (update the balance on the account page, monthly snapshots are automatic), no holdings or trades" },
+    { k: "better", zh: "添加账户时多了四种类型：教育账户（529）、孩子的投资账户、FSA、加密货币账户；银行、礼品卡、电子钱包从信用卡页搬到各自的页面", en: "Four new account types when adding: Education (529), Kids’ investment, FSA and Crypto; banks, gift cards and e-wallets moved off the credit cards page into their own pages" },
+  ] },
+
   { v: "2026-11-20.40", title: { zh: "收入 · 付款方：操作收进长按菜单", en: "Income · Payers: actions moved into the long-press menu" }, items: [
     { k: "better", zh: "付款方页面上的「走势」「改名 / 合并」「多选合并」「导出 CSV」按钮去掉了：长按一个付款方（电脑右键）→ 看收入明细 / 近 12 个月走势 / 改名·合并 / 多选合并 / 导出 CSV；多选合并进入后，勾选和「合并为」的操作条不变", en: "The Trend, Rename / merge, Select to merge and Export CSV buttons on the Payers page are gone: long-press a payer (right-click) → View income / 12-month trend / Rename·merge / Select to merge / Export CSV; once in merge mode the action bar works as before" },
   ] },

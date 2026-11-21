@@ -22,7 +22,7 @@ import { ASSET_TABS } from "../core/tabs.js";
    // 折叠开合、历史显示几条
 export const NW_HREF = () => href("bills", "networth");
 export { balancePanel } from "./net-worth-panel.js";
-export const BUCKET_NAMES = { cash: "现金与储蓄", investments: "投资账户", retirement: "退休账户", hsa: "HSA", properties: "房产", vehicles: "车辆", other_assets: "其他资产", receivables: "应收（借出未收）",
+export const BUCKET_NAMES = { cash: "现金与储蓄", investments: "投资账户", retirement: "退休账户", hsa: "HSA / FSA", properties: "房产", vehicles: "车辆", other_assets: "其他资产", receivables: "应收（借出未收）",
   mortgage: "房贷（含 HELOC）", auto_loans: "车贷", other_loans: "其他贷款", credit_cards: "信用卡欠款", other_liabilities: "其他负债（亲友借款、透支）" };
 const BUCKET_COLORS = { cash: "#2c6a57", investments: "#3b7fc4", retirement: "#24897d", hsa: "#5b8c3a", properties: "#8a6d3b", vehicles: "#64748b", other_assets: "#7c6fb0", receivables: "#3a9bb5",
   mortgage: "#d4694c", auto_loans: "#c2410c", other_loans: "#b45309", credit_cards: "#be123c", other_liabilities: "#9f1239" };

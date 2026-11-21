@@ -7,7 +7,7 @@
  * 设备 / 车辆买价和更换估价在房屋页面里也只给有权限的人看（finance-access.js 的 pricesOk / priceInput，只是界面闸门）。 */
 
 /** 账单下面整块隐藏的二级页 */
-export const FINANCE_HIDDEN_SUBS = ["statements", "income", "budget", "assets", "debts", "networth"];   // assets：财务 → 资产（2026-11）；debts：借贷（P2，迁移 058）；networth：净资产（P3，迁移 059）
+export const FINANCE_HIDDEN_SUBS = ["statements", "income", "budget", "assets", "debts", "networth", "accounts", "banks", "invest", "wallets"];   // assets：财务 → 资产（2026-11）；debts：借贷（P2，迁移 058）；networth：净资产（P3，迁移 059）
 /** 没有财务权限时不注册的提醒来源（见 core/alerts.js 的 SOURCE_LABEL） */
 export const FINANCE_ALERT_SOURCES = ["budget", "income", "debt", "finance"];
 
