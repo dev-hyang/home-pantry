@@ -107,6 +107,7 @@ function shopRowHtml(s) {
     ${s.status === "bought" ? "" : `<div class="card-hint-slot">${cardHintHtml(cat, "")}</div>`}
     ${s.status === "claimed" ? `<div class="who">🛍 ${t("{who} 正在买", { who: esc(whoName(s)) })}</div>` : ""}
     ${s.status === "bought" ? (s.claimed_by_name ? `<div class="who">✅ ${t("{who} 买到的", { who: esc(s.claimed_by_name) })}</div>` : "") : shopDealPicker(s)}
+    ${(() => { const d = state.items.find((i) => i.id === s.item_id)?.subscribe_every_days; return d ? `<div class="muted si-note">🔁 ${esc(t("订阅 / 定期配送：约每 {d} 天", { d }))}</div>` : ""; })()}
     ${s.item_id ? "" : `<div class="muted si-note">${t("未关联库存，买到后需手动入库")}</div>`}
     ${spend}
     <div class="si-bottom">${acts ? `<div class="acts">${acts}</div>` : "<span></span>"}<div class="si-qty">${s.status === "bought" ? showQty(num(s.quantity, 1), shopUnit(s)) : shopQty(s)}</div></div>

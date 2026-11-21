@@ -10,7 +10,9 @@ export const inState = (st) => (s) => (st === "all" ? true : st === "bought" ? s
   : s.status !== "bought" && (st === "open" || (st === "todo" ? s.status === "todo" : s.status === "claimed" && (st === "claimed" || isMine(s)))));
 /** 这一项的采购方式（线上订阅 / 批量 / 生鲜 / 其他）：按它的分类推，见 buy-mode.js */
 export const modeOfRow = (s) => {
-  const cat = state.items.find((i) => i.id === s.item_id)?.category || s.category || "other";
+  const it = state.items.find((i) => i.id === s.item_id);
+  if (it?.buy_mode) return it.buy_mode;   // 手动设过的：就按它
+  const cat = it?.category || s.category || "other";
   const m = buyModeOf(cat, (window.CATEGORIES || []).find((c) => c.id === cat)?.space);
   return m === "other" && !s.item_id ? buyModeByName(s.name) : m;   // 没关联库存：按名字猜
 };

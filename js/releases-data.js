@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.39", title: { zh: "每件物品可以手动设「采购方式」和「订阅周期」", en: "Set “How to buy” and a subscription interval per item" }, items: [
+    { k: "new", zh: "物品编辑页多了「采购方式」（自动 / 线上订阅 / 批量 / 生鲜 / 其他）和「订阅 / 定期配送周期（天）」：购物车分组按你设的来，分错了改一次就记住；有周期的在购物车那一行写「约每 N 天」", en: "The item edit page has “How to buy” (Auto / Online / Bulk / Fresh / Other) and a subscription interval in days: the cart groups by what you set, fix a wrong group once and it sticks; items with an interval show “about every N days” in the cart" },
+    { k: "better", zh: "需要先在数据库执行 supabase/migrations/100_item_buy_mode.sql（只给物品加两列）；没执行时物品其余保存照常，只会提示一句", en: "Run supabase/migrations/100_item_buy_mode.sql first (adds two columns to items); until then everything else saves normally and you just get one notice" },
+  ] },
+
   { v: "2026-11-20.38", title: { zh: "财务目录重新分组：分析 · 收支 · 账单 · 账户", en: "Finance menu regrouped: Analysis · Cash flow · Bills · Accounts" }, items: [
     { k: "better", zh: "财务目录分成四组：分析（资产、收支总览、预算与计划）、收支（花费、收入、借贷、对账单）、账单（账单概览、账单明细、周期性账单）、账户（卡与账户）", en: "The Finance menu now has four groups: Analysis (Assets, Cash-flow overview, Budget & plans), Cash flow (Spending, Income, Loans, Statements), Bills (Overview, Bill details, Recurring bills) and Accounts (Cards & accounts)" },
     { k: "better", zh: "「全部账单」改名「账单明细」，「全部周期性账单」改名「周期性账单」", en: "“All bills” is now “Bill details” and “All recurring bills” is now “Recurring bills”" },

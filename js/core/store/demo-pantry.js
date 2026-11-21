@@ -92,6 +92,8 @@ export const demoPantry = {
   },
   /** 不再提醒 / 暂停提醒：until = 'YYYY-MM-DD'（到这天之前不提醒），'9999-12-31' = 一直不提醒，null = 恢复 */
   async setItemMute(id, until) { const it = this.db.items.find((x) => x.id === id); if (!it) throw new Error("物品不存在"); it.alert_mute_until = until || null; this.persist(); },
+  /** 采购方式 + 订阅周期（见云端版说明） */
+  async setItemBuy(id, mode, every) { const it = this.db.items.find((x) => x.id === id); if (!it) throw new Error("物品不存在"); it.buy_mode = mode || null; it.subscribe_every_days = every || null; this.persist(); },
   /** 库存行的提醒小弹框：只改少货线和提前几天（存储单位）；mute = 同时设成「不再提醒」 */
   async setItemRemind(id, min, lead, mute) { const it = this.db.items.find((x) => x.id === id); if (!it) throw new Error("物品不存在"); it.min_quantity = min; it.lead_days = lead; it.alert_mute_until = mute || null; this.persist(); },
   async listShopping() { return this.db.shopping.map((x) => ({ ...x })); },

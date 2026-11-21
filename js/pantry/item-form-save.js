@@ -75,6 +75,10 @@ export async function saveItemForm(f, { silent = false } = {}) {
       const until = muteChoice(fe.alert_mute.value, raw.alert_mute_until);
       if ((until || null) !== (raw.alert_mute_until || null)) { await Store.setItemMute(it.id, until); raw.alert_mute_until = until; }
     }
+    if (sid && fe.buy_mode && !gear) {   // 采购方式 / 订阅周期：单独存（没执行迁移 100 时提示一句，物品本身已经保存）
+      const bm = fe.buy_mode.value || null, ev = Math.round(num(fe.subscribe_every_days?.value)) || null;
+      if (bm !== (raw.buy_mode || null) || ev !== (raw.subscribe_every_days || null)) { try { await Store.setItemBuy(sid, bm, ev); } catch (e) { toast(e.message); } }
+    }
     if (silent) return true;
     toast(it.id ? t("已保存修改") : t("已添加 {name}", { name }));
     leaveItem(true);

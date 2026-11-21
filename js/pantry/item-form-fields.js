@@ -48,3 +48,15 @@ export function guessCategory(f, name) {
   if (cs.value !== cat) { cs.value = cat; cs.dispatchEvent(new Event("change", { bubbles: true })); }
   if (sub && [...ss.options].some((o) => o.value === sub) && ss.value !== sub) { ss.value = sub; ss.dispatchEvent(new Event("change", { bubbles: true })); }
 }
+
+/* ── 采购方式 / 订阅周期 ── 购物车按「采购方式」分组；这里手动改过的物品以后每次都按它分组（留空 = 按分类自动推）。订阅周期：线上定期配送大约每几天一次 */
+const BUY_OPTS = [["", "自动（按分类）"], ["online", "线上订阅 / 网购"], ["bulk", "批量采购"], ["fresh", "生鲜即买"], ["other", "其他"]];
+export function buyField(v) {
+  const cur = v.buy_mode || "", per = v.avg_daily_use > 0 && v.quantity > 0 ? Math.round(v.quantity / v.avg_daily_use) : 0;
+  return `<label class="span-2 not-gear">${t("采购方式")}
+    <select name="buy_mode">${BUY_OPTS.map(([k, l]) => `<option value="${k}" ${cur === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
+    <small>${t("购物车按它分组；选了就一直按它，留空 = 按分类自动推。")}</small></label>
+  <label class="not-gear">${t("订阅 / 定期配送周期（天，可不填）")}
+    <input name="subscribe_every_days" type="number" min="1" max="365" step="1" inputmode="numeric" value="${v.subscribe_every_days || ""}" placeholder="${per ? esc(String(per)) : ""}">
+    ${per ? `<small>${esc(t("按现在的日均用量，当前库存大约 {d} 天用完，可以参考这个设周期。", { d: per }))}</small>` : ""}</label>`;
+}

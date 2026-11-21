@@ -12,7 +12,7 @@ import { t } from "../core/i18n.js";
 import { locationField } from "../core/locations.js";
 import { autofillBar } from "../core/autofill.js";
 import { unitSelect } from "../core/unit-pick.js";
-import { assetField, guessCategory, muteField, pickText } from "./item-form-fields.js";
+import { assetField, buyField, guessCategory, muteField, pickText } from "./item-form-fields.js";
 import { cartTag, statusTag } from "./inventory-items.js";
 import { categoryOptions } from "./meals-sync.js";
 import { cardSelectHtml } from "../bills/card-picker.js";
@@ -171,7 +171,7 @@ export function viewItemForm() {
             <label class="span-2 not-gear">${t("每天大约用多少（可选）")}
               <input name="avg_daily_use" type="number" min="0" step="any" inputmode="decimal" placeholder="${t("留空则根据家人的使用记录自动估算")}" value="${dv(v.avg_daily_use)}" data-orig="${dv(v.avg_daily_use)}">
             </label>
-            ${it ? muteField(v) : ""}
+            ${it ? muteField(v) : ""}${buyField(v)}
           </div>`, true)}
         ${fsec(it?.id, "notes", t("备注"), `
           <label class="sr-only" for="itemNotes">${t("备注")}</label>

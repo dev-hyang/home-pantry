@@ -80,6 +80,12 @@ export const cloudPantry = {
     if (r.error && /alert_mute_until/.test(r.error.message || "")) throw new Error("数据库还没升级：请先执行 migrations/030_item_alert_mute.sql");
     this.must(r);
   },
+  /** 采购方式 + 订阅周期（单独存：没执行迁移 100 的库，物品其余保存照常）；mode = online / bulk / fresh / other / null（自动） */
+  async setItemBuy(id, mode, every) {
+    const r = await this.sb.from("items").update({ buy_mode: mode || null, subscribe_every_days: every || null }).eq("id", id);
+    if (r.error && /buy_mode|subscribe_every_days/.test(r.error.message || "")) throw new Error("数据库还没升级：请先执行 migrations/100_item_buy_mode.sql");
+    this.must(r);
+  },
   /** 库存行的提醒小弹框：只改少货线和提前几天（存储单位）；mute = 同时设成「不再提醒」 */
   async setItemRemind(id, min, lead, mute) {
     const r = await this.sb.from("items").update({ min_quantity: min, lead_days: lead, alert_mute_until: mute || null, updated_by: state.user.id }).eq("id", id);
