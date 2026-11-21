@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.4", title: { zh: "花费、预算、借贷、对账单、资产页头：目录 + 筛选，和收入页一样", en: "Spending, Budget, Debts, Statements, Assets headers: Menu + Filter, like Income" }, items: [
+    { k: "better", zh: "这几页顶上那排导航小卡片换成「目录」按钮（标题前面），时间范围等筛选收进最右的「筛选」按钮；标题改成「花费 / 概览」这样的路径，点前半截回第一页", en: "The navigation cards on these pages are now a “Menu” button before the title, time-range and other filters moved into the Filter button on the right; titles read like a path (“Spending / Overview”) and the first part goes back to the first page" },
+    { k: "better", zh: "页头的眼睛并进「筛选」面板的「金额显示」；花费明细、借贷流水有自己的筛选条，眼睛就在那里面", en: "The header eye is now “Amounts” in the Filter panel; on Spending records and Debt transactions it lives in their own filter bar" },
+  ] },
+
   { v: "2026-11-21.3", title: { zh: "收入页：目录按钮进标题行，眼睛并进筛选", en: "Income: Menu button joins the title row, the eye moves into Filter" }, items: [
     { k: "better", zh: "「目录」按钮不再单独占一行：放在标题「收入 / 收支总览」前面，筛选按钮在同一行最右", en: "The Menu button no longer takes its own row: it sits before the “Income / Overview” title, with the Filter button at the far right of the same row" },
     { k: "better", zh: "页头的眼睛没有了，并进筛选面板的「金额显示」：默认仍然遮挡，单击露 10 秒、双击或长按切到常显示，和以前一样；明细页的眼睛在明细自己的筛选里", en: "The eye in the header is now “Amounts” inside the Filter panel: still hidden by default, tap to show for 10 s, double-tap or long-press to keep shown, as before; on Records it lives in that page’s own filter" },

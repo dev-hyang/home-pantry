@@ -121,7 +121,6 @@ export function viewBudget() {
     trend: () => `
     <section class="section">
       <div class="section-head"><h2>${t("预算 vs 实际")}</h2></div>
-      ${timeBarHtml(null)}   <!-- 和花费页同一个时间条、同一个范围值 -->
       <div class="panel chart-panel">${trendHead(t("账单和实际花费的关系"), TP, { unit: false })}<p class="muted" style="margin:0 0 6px;font-size:13px">${t("按缴费日记账；年付账单缴费的那个月会特别高，看年度更准。")}</p>${stacked}</div>
       <div class="panel chart-panel"><h3>${TP.unit === "month" ? t("每月：实际 vs 预算 vs 收入") : t("{p}：实际 vs 预算 vs 收入", { p: perWord(TP.unit) })}</h3>${vs}</div>
     </section>
@@ -138,7 +137,7 @@ export function viewBudget() {
   };
   return `
     <section class="section">
-      ${pageHead({ title: t("预算"), tabs: BUDGET_TABS, tab, hrefOf: budgetHref, label: t("预算内容"), menu: [{ label: t("打印"), action: "print-run", data: { kind: "budget" } }] })}
+      ${pageHead({ title: t("预算"), tabs: BUDGET_TABS, tab, hrefOf: budgetHref, label: t("预算内容"), filter: tab === "trend" ? timeBarHtml(null) : "", menu: [{ label: t("打印"), action: "print-run", data: { kind: "budget" } }] })}
     </section>
     ${tabs[tab]()}`;
 }

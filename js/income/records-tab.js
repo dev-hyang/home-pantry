@@ -4,7 +4,7 @@ import { CHANNELS, capitalKinds, customKinds, groupOf, inc, isOwnerNow, kindLabe
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { INC_L1S, incLeaf, incLeavesOf, splitRecord } from "../core/income-taxonomy.js";
 import { aaFixHtml } from "./aa-fix.js";
-import { toolbarEye } from "./eye-merge.js";
+import { toolbarEye } from "../core/toolbar-eye.js";
 import { activeTab } from "../core/tabs.js";
 import { compact } from "../core/list-query.js";
 import { formHtml } from "./record-form.js";

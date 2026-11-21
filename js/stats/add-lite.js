@@ -26,7 +26,7 @@ export function spendExportTab() {
 export function timeBarHtml(tab) {
   const clr = clearFiltersBtn("stats", changed(state.stats, FD.stats));
   const n = ["months", "month", "exCap", "exInv"].filter((k) => changed(state.stats, FD.stats, [k])).length;
-  const pop = (inner) => filterPop(`<div class="fpop-fields">${inner}</div>`, { id: "stats", count: n, clear: clr });
+  const pop = (inner) => filterPop(`<div class="fpop-fields">${inner}</div>`, { id: "stats", count: n, clear: clr, eye: true });
   if (!tab) return pop(`<label class="tb-field"><label class="tb-field"><span>${t("时间范围")}</span>${rangeChipsHtml()}</label>${customBar()}`);
   const ms = rangeMonths(), withMonth = tab === "category" || tab === "stores" || tab === "all";
   const m = state.stats.month && ms.includes(state.stats.month) ? state.stats.month : "";

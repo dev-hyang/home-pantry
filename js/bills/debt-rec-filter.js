@@ -5,6 +5,7 @@ import { debtById } from "./debt-logic-common.js";
 import { debtLabel, isPersonal, rowHtml, sentence, whoOf } from "./debt-rec-row.js";
 import { esc, fmtDate, num } from "../core/util.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
+import { toolbarEye } from "../core/toolbar-eye.js";
 import { t } from "../core/i18n.js";
 import { mny, r2, ui } from "./debt-rec-common.js";
 
@@ -94,6 +95,7 @@ export function recordsList(key, { txns, showDebt = false, dirFilter = showDebt,
       ${debts.length > 1 ? sel("debt", t("哪笔借贷"), [["all", t("全部借贷")], ...debtGroups()]) : ""}
       ${sel("link", t("关联"), [["all", t("关联不限")], ["yes", t("已关联花费 / 收入")], ["no", t("没关联")]])}
       ${clearFiltersBtn(`debt-rec-${key}`, changed(f, DEF))}
+      ${showDebt ? toolbarEye() : ""}
     </div>
     <div class="dr-list" id="drl-${esc(key)}">${innerHtml(key)}</div>`;
 }

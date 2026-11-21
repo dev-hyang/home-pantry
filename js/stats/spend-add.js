@@ -47,10 +47,11 @@ export function viewSpend() {
     records: spendRecordsTab, export: spendExportTab,
     all: () => `${spendOverviewTab()}${spendCategoryTab()}${viewStoreStats(rangeMonths())}${viewAnnualExport()}${spendRecordsTab()}`,
   }[tab]();
+  const bar = ranged ? timeBarHtml(tab) : "";   // 时间条 = 页头右边的筛选按钮（面板里带「金额显示」）；明细自己有筛选条，眼睛在那里面
+  const own = tab === "records" && body.includes("ix-toolbar");
   return `
     <section class="section">
-      ${onSpendPage ? pageHead({ title: t("花费"), tabs: SPEND_TABS, tab, hrefOf: spendHref, label: t("花费内容") }) : `<div class="section-head"><h2>${t("花费")}</h2></div>`}
-      ${ranged ? timeBarHtml(tab) : ""}
+      ${onSpendPage ? pageHead({ title: t("花费"), tabs: SPEND_TABS, tab, hrefOf: spendHref, label: t("花费内容"), filter: own ? false : bar }) : `<div class="section-head"><h2>${t("花费")}</h2></div>${bar}`}
       ${body}
       ${onSpendPage ? spendFab() : ""}
     </section>`;

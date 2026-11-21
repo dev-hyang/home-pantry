@@ -3,6 +3,7 @@ import { ALL_CATS, MONTH_EN, TZ, isBill, monthKey, rangeMonths } from "./spend-r
 import { BUCKETS, NATURES, bucketOf, coversUnknown, defaultNature, isTransfer, knownLeafIds, leafLabel, leavesOf, natureName, natureParams, treeOptions } from "../core/taxonomy.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { budgetBridge } from "../core/budget-bridge.js";
+import { toolbarEye } from "../core/toolbar-eye.js";
 import { compact } from "../core/list-query.js";
 import { compare, lang, t } from "../core/i18n.js";
 import { customHtml, rangeOptionsHtml } from "../core/time-range.js";
@@ -205,6 +206,7 @@ export function spendRecordsHtml() {
         ${customHtml(f.range || "all", { first, attr: "data-spend-c" })}
         <select id="spendSort" data-nosearch aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
         ${clearFiltersBtn("spend", changed(f, FD.spend))}
+        ${toolbarEye()}
       </div>
       <div id="spendChips">${spendChipsHtml()}</div>
       <div id="spendList" style="margin-top:8px">${spendListHtml()}</div>

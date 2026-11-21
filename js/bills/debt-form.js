@@ -84,8 +84,9 @@ export function viewDebts() {
     else ui().pf = { sort: pf().sort, q: who, dir: ["payable", "receivable"].includes(q.get("dir")) ? q.get("dir") : "all" };
     if (q.get("at") === "rec") requestAnimationFrame(() => { const el = document.getElementById("debt-recs"); if (el) { el.scrollIntoView({ block: "start" }); el.focus({ preventScroll: true }); } });
   }
+  const body = tabPage(tab, all);
   return `<section class="section debt-page">
-    ${pageHead({ title: t("借贷"), tabs: DEBT_TABS, tab, hrefOf: tabHref, label: t("借贷内容") })}
-    ${tabPage(tab, all)}
+    ${pageHead({ title: t("借贷"), tabs: DEBT_TABS, tab, hrefOf: tabHref, label: t("借贷内容"), filter: body.includes("dr-tools") ? false : "" })}
+    ${body}
   </section>`;
 }
