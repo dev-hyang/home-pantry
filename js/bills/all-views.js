@@ -186,7 +186,7 @@ export function viewAllBills() {
   const range = rangeOpts.slice(0, 1).map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("") + (BILL_RANGES.some(([k]) => k === f.range) ? "" : `<option value="${esc(f.range)}" selected>${esc(f.range)}</option>`)
     + rangeOpts.slice(1).map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");
   return `<section class="section">
-    <div class="section-head"><h2>🧾 ${t("全部账单")} <span id="allTitleTip" class="title-tip">${titleTip(f, C)}</span></h2><div class="head-acts" id="allActs">${headActsHtml(C.rows)}</div></div>
+    <div class="section-head"><h2>🧾 ${t("账单明细")} <span id="allTitleTip" class="title-tip">${titleTip(f, C)}</span></h2><div class="head-acts" id="allActs">${headActsHtml(C.rows)}</div></div>
     <div id="allSum">${summaryHtml(C)}</div>
     <div class="toolbar">
       <input type="search" id="allSearch" placeholder="${t("搜索名称、付款方、患者")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">
@@ -211,7 +211,7 @@ export function exportAllCsv() {
     assetKeyLabel(r.assets[0] || "general").replace(/^\S+\s/, ""), st(r), r.amountUnknown ? "" : r.amount, r.paid, r.balance, r.currency || cur(), r.payee || "", r.escrow ? "Escrow" : r.autopay ? (en ? "Autopay" : "自动扣款") : r.kind === "recurring" ? (en ? "Manual" : "手动缴费") : ""])];
   const csv = "\ufeff" + rows.map((x) => x.map((v) => { const s = String(v ?? ""); const y = /^[=+\-@]/.test(s) ? `'${s}` : s; return /[",\r\n]/.test(y) ? `"${y.replace(/"/g, '""')}"` : y; }).join(",")).join("\r\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })), el = document.createElement("a");
-  el.href = url; el.download = `${t("全部账单")}-${todayISO()}.csv`; document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  el.href = url; el.download = `${t("账单明细")}-${todayISO()}.csv`; document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   return rows.length - 1;
 }
 

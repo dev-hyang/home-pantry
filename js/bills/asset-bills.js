@@ -20,7 +20,7 @@ import { medHeadCard } from "./medical-head.js";
 
 /** 网址里的清单键：资产（property:ID / asset:ID / person:ID）；或 recurring（全部周期性账单）、general（没挂资产的）、vehicle（车辆类）；不合法就当没有 */
 const routeKey = () => { try { const k = decodeURIComponent(state.route?.id || ""); return /^(property:|asset:|person:)[\w-]+$/.test(k) || ["recurring", "general", "vehicle"].includes(k) ? k : ""; } catch { return ""; } };
-const labelOf = (key) => (key === "recurring" ? `🔁 ${t("全部周期性账单")}` : assetKeyLabel(key));
+const labelOf = (key) => (key === "recurring" ? `🔁 ${t("周期性账单")}` : assetKeyLabel(key));
 export { assetBillsHref } from "./all-href.js";   // 网址生成在 all-href.js（房屋 / 车辆页拼链接不必加载整个页面）
 
 /** 统计用的时间范围：链接带 ?range= 的照链接，否则本月 */

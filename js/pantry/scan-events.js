@@ -11,6 +11,7 @@ import { spendChanged } from "../core/spend-data.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { MAX_IMAGES, repaint, resetScan, sc, subGuess } from "./scan-common.js";
+import { revealInto } from "../core/reveal.js";
 import { compressImage as compress } from "../core/autofill-common.js";
 import { purchasePayFields } from "../bills/card-picker.js";
 import { myName } from "../settings/family-lite.js";
@@ -38,7 +39,9 @@ function syncRecordLink() {
 /** 一步一步展开：点（聚焦）上一步的下拉就露出下一步；不重画页面，下拉不会被收起 */
 function revealStep(n) {
   sc.stage = Math.max(sc.stage || 1, n);
-  document.querySelectorAll(".scan-page .scan-step[hidden]").forEach((el) => { if (+el.dataset.step <= sc.stage) el.hidden = false; });
+  const fresh = [...document.querySelectorAll(".scan-page .scan-step[hidden]")].filter((el) => +el.dataset.step <= sc.stage);
+  fresh.forEach((el) => { el.hidden = false; });
+  if (fresh.length) revealInto(fresh.at(-1));   // 新露出来的那一块自动滚到屏幕中间
 }
 document.addEventListener("focusin", (e) => {
   if (e.target.id === "scanKindSel") revealStep(2);
@@ -218,7 +221,7 @@ export function scanAction(action, el, ctx) {
     case "scan-kind": if (el.dataset.kind === "manual") { startManual(); return repaint(); } sc.kind = el.dataset.kind; sc.error = ""; if (sc.result?.manual) { sc.step = "input"; sc.result = null; } return repaint();
     case "scan-add-row": { if (!sc.result) return; repaint2(); const rc = sc.result.receipts[+el.dataset.r]; if (rc) rc.rows.push(blankRow()); repaint(); updateSum(); const rows = document.querySelectorAll(`.scan-rcpt[data-r="${el.dataset.r}"] .scan-row`); rows[rows.length - 1]?.querySelector('[name="name"]')?.focus(); return; }
     case "scan-mode": sc.mode = el.dataset.mode; return repaint();
-    case "scan-skip-photo": sc.stage = 4; sc.skipPhoto = true; return repaint();   // 没有照片：直接到文字 + 识别
+    case "scan-skip-photo": sc.stage = 4; sc.skipPhoto = true; repaint(); return revealInto(document.querySelector('.scan-page .scan-step[data-step="4"]'));   // 没有照片：直接到文字 + 识别
     case "scan-add-fee": {   // 加一行税费：金额先填成「小票合计 − 现在各行合计」（读到了合计才有），可以改
       repaint2(); const rc = sc.result?.receipts[+el.dataset.r]; if (!rc) return;
       const have = rc.rows.reduce((s, x) => s + (x.include ? num(x.amount, 0) : 0), 0), gap = rc.total == null ? null : Math.round((rc.total - have) * 100) / 100;

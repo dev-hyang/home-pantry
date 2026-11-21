@@ -257,7 +257,7 @@ export const PRESETS = () => {
     // 财务（收支 · 账户与资产 · 借贷 · 预算与计划 · 分析）；没有财务权限的那几页由 quickOk 去掉
     B ? [href("bills"), "💰", t("财务")] : null, B ? [href("bills", "overview"), "📊", t("财务概览")] : null,
     B ? [href("bills", "spend"), "📊", t("花费")] : null, B ? [href("bills", "income"), "💵", t("收入")] : null, B ? [allBillsHref({ type: "recurring" }), "🔁", t("周期性账单")] : null, B ? [allBillsHref({ type: "onetime" }), "🏥", t("一次性账单")] : null,
-    B ? [href("bills", "all"), "📋", t("全部账单")] : null, B ? [href("bills", "template"), "🧾", t("按模板建账单")] : null, B ? [href("bills", "statements"), "🏦", t("对账单")] : null,
+    B ? [href("bills", "all"), "📋", t("账单明细")] : null, B ? [href("bills", "template"), "🧾", t("按模板建账单")] : null, B ? [href("bills", "statements"), "🏦", t("对账单")] : null,
     B ? [href("bills", "cards"), "💳", t("用卡：该刷哪张")] : null, B ? [`${href("bills", "cards")}?card=new`, "💳", t("添加信用卡")] : null, B ? [href("bills", "assets"), "🏛️", t("资产")] : null,
     B ? [href("bills", "debts"), "🏦", t("借贷")] : null, B ? [href("bills", "budget"), "💰", t("预算")] : null, B ? [href("bills", "networth"), "📈", t("净资产")] : null,
     // 其他

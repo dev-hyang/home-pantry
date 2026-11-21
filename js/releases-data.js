@@ -2,6 +2,18 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.38", title: { zh: "财务目录重新分组：分析 · 收支 · 账单 · 账户", en: "Finance menu regrouped: Analysis · Cash flow · Bills · Accounts" }, items: [
+    { k: "better", zh: "财务目录分成四组：分析（资产、收支总览、预算与计划）、收支（花费、收入、借贷、对账单）、账单（账单概览、账单明细、周期性账单）、账户（卡与账户）", en: "The Finance menu now has four groups: Analysis (Assets, Cash-flow overview, Budget & plans), Cash flow (Spending, Income, Loans, Statements), Bills (Overview, Bill details, Recurring bills) and Accounts (Cards & accounts)" },
+    { k: "better", zh: "「全部账单」改名「账单明细」，「全部周期性账单」改名「周期性账单」", en: "“All bills” is now “Bill details” and “All recurring bills” is now “Recurring bills”" },
+  ] },
+
+  { v: "2026-11-20.37", title: { zh: "录入购物按钮条修复；展开后自动居中；库存「全部组别」；视图按钮矮一点", en: "Log shopping button bar fix; new sections scroll into view; Stock “All groups”; slimmer View button" }, items: [
+    { k: "fix", zh: "录入购物手动添加的表单：顶部、底部的「取消 / 确认入库」又回到同一行（切换录入方式重画后会丢掉排版，现在会补回）", en: "Log shopping manual form: Cancel / Confirm at the top and bottom are on one row again (they used to lose their layout after switching the entry mode)" },
+    { k: "better", zh: "点选后展开的新一块会自动滚到屏幕中间，手机上不用手滑往下找（录入购物先用上）", en: "A newly revealed section now scrolls to the middle of the screen, so you do not have to swipe down on a phone (Log shopping first)" },
+    { k: "better", zh: "库存的范围下拉多了「全部组别」，物品视图默认就是它（一页看全部）；也可以选日常消耗品 / 汽车房屋消耗品 / 家居耐用品", en: "The Stock scope dropdown has “All groups”, the default in the item view (everything on one page); you can still pick one group" },
+    { k: "better", zh: "所有页面的「视图」按钮矮了一点（和标题字一样高），点按区域仍是 44px", en: "The View button is slimmer on every page (same height as the title text) while the tap area is still 44px" },
+  ] },
+
   { v: "2026-11-20.36", title: { zh: "购物车按采购方式分组，一页看完所有要买的", en: "Cart grouped by how to buy, everything on one page" }, items: [
     { k: "new", zh: "购物车默认按「采购方式」分成几组：线上订阅 / 网购（省钱）、批量采购（省时）、生鲜即买（保鲜，每周一次超市行程）；一页往下看完，不用切换；顶上一排小标签带数量，点一下跳到那一组，每组可折叠", en: "The cart is now grouped by how to buy: Online / subscribe (save money), Bulk (save time) and Fresh (stay fresh, one supermarket trip a week). One page, no switching; chips on top show counts and jump to a group, and each group can be folded" },
     { k: "better", zh: "分组按物品的分类自动推（生鲜、肉蛋奶、冷冻 → 生鲜；粮油干货、零食、饮品 → 批量；纸品清洁、个人护理、药品、母婴、宠物、房屋消耗品 → 线上订阅）；排序下拉里仍可换回「最近加入的在前」等", en: "Groups are inferred from each item's category; the sort dropdown still lets you switch back to Newest first and so on" },

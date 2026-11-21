@@ -20,7 +20,7 @@ import { viewSpend, viewStats } from "./lazy-modules.js";
 
 /* ───────────── 页面与路由 ───────────── */
 /** 库存页当前范围：?space=house 看汽车房屋消耗品（房屋模块关闭时只有厨房储藏） */
-const invSpace = () => (state.houseEnabled && state.route.q.get("space") === "house" ? "house" : "pantry");
+const invSpace = () => (state.houseEnabled && state.route.q.get("space") === "house" ? "house" : state.route.q.get("space") === "pantry" ? "pantry" : "all");   // 默认「全部组别」（物品视图）；?space=pantry / house 看某一个
 export const VIEWS = {
   today:    () => viewToday(),
   alerts:   () => viewAlerts(),

@@ -31,14 +31,14 @@ export const fab = (space, label) => (String(space).includes("&cat=")
 function viewInvRows(space) {
   const f = state.filter;
   if (f.space !== space) Object.assign(f, { space, cat: "all" });
-  const all = state.enriched.filter(inSpace(space));   // 一次只看一个范围（工具条里的「范围」下拉）
+  const all = state.enriched.filter((x) => (space === "all" ? invSpaces().some((s) => inSpace(s)(x)) : inSpace(space)(x)));   // 范围下拉：全部组别（默认）或某一个组别
   const cur = f.cat !== "all" ? catOf(f.cat) : null;
   return `<section class="section inv-rows-page">
       <div class="section-head"><h2>${t("库存")}</h2><div class="head-acts">
         ${viewSeg("rows")}</div></div>
       <div class="toolbar">
         <input type="search" id="invSearch" placeholder="${t("搜索物品，例如：纸、蛋")}" value="${esc(f.q)}" aria-label="${t("搜索物品")}">
-        ${spaceFilter(space)}
+        ${spaceFilter(space, { all: true })}
         ${space === "gear" ? "" : `<select id="invStatus" aria-label="${t("按提醒筛选")}">
           ${[["all", "全部状态"], ["alert", "需要补货"], ["out", "缺货"], ["low", "少货"], ["soon", "即将告罄"], ["exp", "临期或过期"], ["ok", "充足"]]
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
@@ -83,7 +83,7 @@ function renderInvRows(host) {
       <div class="pv-body">${need.length && !state.invSel ? `<div class="inv-sec-bar"><span class="muted">${t("{n} 件要补货", { n: need.length })}</span><button type="button" class="btn btn-sm" data-action="inv-sec-shop" data-space="${space}">🛒 ${t("全部加入购物车")}</button></div>` : ""}${body}</div></details>`;
   };
   const SEC = { pantry: ["🥫", t("日常消耗品")], house: ["🧰", t("汽车房屋消耗品")], gear: ["🛋️", t("家居耐用品")] };
-  host.innerHTML = `<div class="pv-cards">${invSpaces().filter((s) => s === f.space).map((s) => sec(s, ...SEC[s])).join("")}</div>`;
+  host.innerHTML = `<div class="pv-cards">${invSpaces().filter((s) => f.space === "all" || s === f.space).map((s) => sec(s, ...SEC[s])).join("")}</div>`;
 }
 /** 库存状态标签（缺货 / 少货 / 即将告罄 / 充足）：库存行用 badge，物品编辑页标题右边也用 */
 export const statusTag = (it) => `<span class="badge ${STATUS[it.status].cls}">${t(STATUS[it.status].label)}</span>`;
@@ -124,8 +124,9 @@ export function itemRow(it) {
     <button type="button" class="swipe-alt-src" data-action="inv-shop" data-id="${it.id}">${t("{name} 加入购物车", { name: it.name })}</button>
   </li>`;
 }
-export function viewInventory(space = "pantry") {
+export function viewInventory(space = "all") {
   if (invView() === "rows") return viewInvRows(space);
+  if (space === "all") space = "pantry";   // 分类视图一次看一个组别：全部组别时先看日常消耗品
   if (state.filter.space !== space) Object.assign(state.filter, { space, cat: "all", q: "", status: state.filter.status, loc: "all" });
   const f = state.filter;
   const house = space === "house", gear = space === "gear";

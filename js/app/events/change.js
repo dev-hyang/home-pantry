@@ -71,7 +71,7 @@ export async function onMainChange(e) {
   if (e.target.matches("input[data-unit-for]")) return setShopUnit(e.target.dataset.unitFor, e.target.value);   // 购物车：改单位   // 购物车：直接输入数量
   if (e.target.id === "invCatSel") { Object.assign(state.filter, { cat: e.target.value, sub: "all" }); state.catSort = false; state.catForm = null; render(); }
   if (e.target.id === "invSubSel") { state.filter.sub = e.target.value; render(); }
-  if (e.target.id === "invSpaceSel") { const v = e.target.value; return go(v === "house" ? `${href("pantry", "inventory")}?space=house` : v === "gear" ? href("pantry", "gear") : href("pantry", "inventory")); }   // 库存范围：和以前的范围芯片同样的地址
+  if (e.target.id === "invSpaceSel") { const v = e.target.value; return go(v === "house" ? `${href("pantry", "inventory")}?space=house` : v === "gear" ? href("pantry", "gear") : v === "pantry" ? `${href("pantry", "inventory")}?space=pantry` : href("pantry", "inventory")); }   // 库存范围：和以前的范围芯片同样的地址
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
   if (e.target.id === "invOwner") { state.filter.owner = e.target.value; renderInvList(); }
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }

@@ -96,7 +96,7 @@ export function viewItemForm() {
   if (r.id !== "new" && !it) {
     return `<div class="panel empty"><strong>${t("找不到这件物品")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("pantry", "inventory")}">${t("回到库存")}</a></p></div>`;
   }
-  const space = r.q.get("space") || (state.filter.space || "pantry");
+  const space = r.q.get("space") || (state.filter.space && state.filter.space !== "all" ? state.filter.space : "pantry");
   // 已有的物品：先看详情页；点某一块的「编辑」（?edit=basic|qty|notes）才进表单（只显示那一块）
   ACTIVE_SEC = null;
   if (it && !r.q.get("edit")) return viewItemDetail(it, { crumbBase: itemBase(spaceOf(it.category)), spaceInfo: SPACE_INFO });

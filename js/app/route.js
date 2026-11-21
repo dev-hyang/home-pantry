@@ -96,7 +96,7 @@ function onRoute() {
   }
   // 概览卡片里的细项（缺货 / 少货 …）带 ?status= 进库存：套上状态筛选，再把参数去掉（刷新、后退不重复套）
   if (isListRoute(next) && next.q.get("status")) {
-    Object.assign(state.filter, { space: next.q.get("space") === "house" ? "house" : next.sub === "gear" ? "gear" : "pantry", cat: "all", q: "", loc: "all", status: next.q.get("status") });
+    Object.assign(state.filter, { space: next.q.get("space") === "house" ? "house" : next.sub === "gear" ? "gear" : next.q.get("space") === "pantry" ? "pantry" : "all", cat: "all", q: "", loc: "all", status: next.q.get("status") });
     next.q.delete("status"); history.replaceState(null, "", `${href(next.section, next.sub)}${next.q.toString() ? `?${next.q}` : ""}`);
   }
   if (isScanRoute(next) && !isScanRoute(prev)) resetScan();

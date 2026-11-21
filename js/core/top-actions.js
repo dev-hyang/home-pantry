@@ -2,6 +2,8 @@
  * 做法：每次整页重画后，在编辑页（底部导航已隐藏的页面、.form-page、收入编辑页）里找到主表单底部的按钮条，
  * 在页面顶部（面包屑下面）贴一条粘性的副本：取消靠左、保存靠右。保存是 form="表单 id" 的提交按钮，走表单原来的提交处理；
  * 底部原来的按钮条不动（页面里别的代码还在用它），所以这里不搬 DOM，只复制。 */
+/* 保存 / 确认按钮：提交按钮，或带 data-action 的主按钮（录入购物的「确认入库」是 type=button + data-action，点击走页面的事件委托，复制到顶部照样能用） */
+const SUBMIT_SEL = 'button[type="submit"], button:not([type]), button.btn-primary[data-action]';
 const isCancel = (el) => /^(取消|放弃|Cancel|Discard)$/i.test(el.textContent.trim()) || /cancel$/i.test(el.dataset?.action || "");
 let seq = 0;
 
@@ -10,9 +12,9 @@ const hasCancel = (b) => [...b.querySelectorAll("button, a.btn")].some(isCancel)
  *  按钮条里同时有「取消 / 放弃」和提交按钮，且不在列表行、表格、折叠块、弹窗里（那是行内小表单，不置顶）。没有取消的表单（设置里的单个「保存」、筛选…）不动。 */
 export function pinTopActions(root, on) {
   root.querySelectorAll(".top-actions").forEach((n) => n.remove());
-  const bar = [...root.querySelectorAll("form .form-actions, form .sticky-actions")].find((b) => b.querySelector('button[type="submit"], button:not([type])') && !b.closest("[hidden], dialog, details:not([open])") && (on || (hasCancel(b) && !b.closest("li, td, tr, .tcarousel"))));
+  const bar = [...root.querySelectorAll("form .form-actions, form .sticky-actions")].find((b) => b.querySelector(SUBMIT_SEL) && !b.closest("[hidden], dialog, details:not([open])") && (on || (hasCancel(b) && !b.closest("li, td, tr, .tcarousel"))));
   if (!bar) return;
-  const form = bar.closest("form"), submit = [...bar.querySelectorAll('button[type="submit"], button:not([type])')].find((b) => !isCancel(b));
+  const form = bar.closest("form"), submit = [...bar.querySelectorAll(SUBMIT_SEL)].find((b) => !isCancel(b));
   const cancel = [...bar.querySelectorAll("button, a.btn")].find((b) => b !== submit && isCancel(b));
   if (!form.id) form.id = `pinForm${++seq}`;
   const clone = (el) => { const c = el.cloneNode(true); c.removeAttribute("id"); c.classList.remove("swipe-src"); return c; };

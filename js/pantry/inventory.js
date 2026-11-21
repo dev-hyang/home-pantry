@@ -39,10 +39,10 @@ const stPill = (s, items) => {
 /** 搜索 / 状态 / 位置筛选是否生效（分类另算） */
 const filterActive = (f) => !!f.q.trim() || f.status !== "all" || (f.loc || "all") !== "all";
 /** 位置筛选下拉：只列这个空间里实际用到的位置，按房间分组 */
-/** 库存范围下拉：日常消耗品（默认）/ 汽车房屋消耗品 / 家居耐用品；只有一种可选时不显示。换范围 = 换地址（?space=house、/pantry/gear），见 change.js 的 invSpaceSel */
-export function spaceFilter(space) {
-  const opts = [["pantry", "日常消耗品"], ...(state.houseEnabled ? [["house", "汽车房屋消耗品"]] : []), ...(state.gearEnabled ? [["gear", "家居耐用品"]] : [])];
-  if (opts.length < 2) return "";
+/** 库存范围下拉：全部组别（物品视图默认）/ 日常消耗品 / 汽车房屋消耗品 / 家居耐用品；只有一种可选时不显示。换范围 = 换地址（?space=house、/pantry/gear），见 change.js 的 invSpaceSel */
+export function spaceFilter(space, { all = false } = {}) {   // all：物品视图多一项「全部组别」（默认）
+  const opts = [...(all ? [["all", "全部组别"]] : []), ["pantry", "日常消耗品"], ...(state.houseEnabled ? [["house", "汽车房屋消耗品"]] : []), ...(state.gearEnabled ? [["gear", "家居耐用品"]] : [])];
+  if (opts.filter(([v]) => v !== "all").length < 2) return "";
   return `<select id="invSpaceSel" aria-label="${t("库存范围")}">${opts.map(([v, l]) => `<option value="${v}" ${space === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>`;
 }
 export function locationFilter(mine, f) {
