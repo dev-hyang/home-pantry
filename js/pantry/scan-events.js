@@ -18,6 +18,23 @@ import { cleanStore, rememberStore } from "../stats/store-lite.js";
 
 /* ───────────── 交互：文件、文字、行内联动 ───────────── */
 const RECORD_HINTS = { both: "识别出的东西加进库存，同时记花费（默认）", spend: "不入库，只把花费记下来", stock: "只加库存，不记花费" };
+/** 手动添加：「记到哪里」和表单里每一行联动——只记花费：「放进库存」固定成「只记花费，不入库」并变灰；只入库：不能选「只记花费」，「金额」变灰（不记花费）；入库 + 花费：都能改。不重画，已填的内容不丢 */
+function syncRecordLink() {
+  const spend = sc.record === "spend", stock = sc.record === "stock";
+  document.querySelectorAll("#scanForm .scan-row:not(.scan-fee-row)").forEach((row) => {
+    const tg = row.querySelector('[name="target"]'), am = row.querySelector('[name="amount"]'); if (!tg) return;
+    row.classList.toggle("link-spend", spend); row.classList.toggle("link-stock", stock);
+    const skip = [...tg.options].find((o) => o.value === "__skip"); if (skip) skip.disabled = stock;
+    if (spend) { tg.value = "__skip"; tg.disabled = true; }
+    else { if (tg.disabled) tg.value = tg.dataset.def || "__new"; tg.disabled = false; if (stock && tg.value === "__skip") tg.value = "__new"; }
+    if (am) am.disabled = stock;
+    row.classList.toggle("is-new", tg.value === "__new");
+    tg.dispatchEvent(new Event("change"));   // 触屏上的选择按钮跟着变（不冒泡，不触发页面的联动）
+    const box = tg._ssel; if (box) { const inp = box.querySelector(".ssel-in"); inp.value = tg.selectedOptions[0]?.textContent.trim() || ""; inp.disabled = tg.disabled; }   // 电脑上的可搜索下拉：文字和灰掉状态跟着变
+    if (tg._sheetBtn) tg._sheetBtn.disabled = tg.disabled;
+  });
+  updateSum?.();
+}
 /** 一步一步展开：点（聚焦）上一步的下拉就露出下一步；不重画页面，下拉不会被收起 */
 function revealStep(n) {
   sc.stage = Math.max(sc.stage || 1, n);
@@ -31,12 +48,13 @@ document.addEventListener("change", async (e) => {
   if (e.target.id === "scanRecordSel") {   // 记到哪里：只改记录，不重画（输入框里的内容不丢）；顺带展开下一步
     sc.record = e.target.value; revealStep(3);
     const h = document.querySelector(".scan-record-hint"); if (h) h.textContent = t(RECORD_HINTS[sc.record] || "");
+    if (sc.result?.manual) syncRecordLink();
     return;
   }
   if (e.target.id === "scanKindSel") {   // 录入方式下拉：手动添加直接进确认表；小票 / 订单留在这页，展开下一步
     const k = e.target.value; sc.error = ""; sc.stage = Math.max(sc.stage || 1, 2);
-    if (k === "manual") { startManual(); return repaint(); }
-    sc.kind = k; if (sc.result?.manual) { sc.step = "input"; sc.result = null; }
+    if (k === "manual") { sc.record = "stock"; startManual(); return repaint(); }   // 手动添加：记到哪里默认「只入库」
+    sc.kind = k; sc.record = "both"; if (sc.result?.manual) { sc.step = "input"; sc.result = null; }
     return repaint();
   }
   if (e.target.id === "scanFile") {
@@ -128,7 +146,7 @@ async function confirm(ctx) {
   if (rows.some((x) => x.target !== "__skip" && !x.qty)) { sc.error = t("入库的行数量不能是 0。"); return repaint2(); }
   if (rows.some((x) => x.target !== "__skip" && x.qty < 0 && x.target === "__new")) { sc.error = t("退货（数量为负）要选一件已有的物品来扣库存；没有对应的物品就选「只记花费，不入库」。"); return repaint2(); }
   await loadNear(boxes.flatMap(dupCands)).catch(() => {});   // 先把这几张小票的日期 + 金额查完，提醒才是准的
-  const stockOnly = sc.record === "stock" && !sc.result?.manual;   // 只入库：不写花费，所以也不查「是不是已经记过」
+  const stockOnly = sc.record === "stock";   // 只入库：不写花费，所以也不查「是不是已经记过」
   const dupRows = stockOnly ? 0 : boxes.reduce((s, b) => s + markDups(b), 0);   // 疑似重复的行：第一次点只提醒，确认无误再点一次才入库
   if (!stockOnly && boxes.some((b) => b._rcptDup && !sc.result.receipts[+b.dataset.r]?.dupMode)) { sc.error = t("有小票可能已经录过（见小票上方的提醒）：先选「以这次为准，更新那次」还是「不是同一张，两次都留」。"); return repaint2(); }
   // 以这次为准：这张小票的行和那次的配对，配上的改那次的那一笔（不再记新花费、不再加库存），那次多出来的删掉

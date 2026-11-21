@@ -27,6 +27,10 @@ const recordPick = () => `<label class="scan-kind scan-record"><span class="pick
 /** 第 1 步：录入方式（默认实体店小票 / 线上订单 / 手动添加）；点它就展开第 2 步（记到哪里） */
 const KINDS = [["receipt", "实体店小票"], ["order", "线上订单"], ["manual", "手动添加"]];
 const kindSelect = () => `<label class="scan-kind"><span class="pick-lbl">${t("录入方式")}</span><select id="scanKindSel" aria-label="${t("录入方式")}">${KINDS.map(([k, l]) => `<option value="${k}" ${sc.kind === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>`;
+/** 页面上方的「录入方式」表单块：录入方式 + 记到哪里（手动添加时一直显示；拍照 / 订单是点了第 1 项才露出第 2 项） */
+const modePanel = (st, manual = false) => `<div class="panel scan-modes">
+    <div class="scan-step" data-step="1">${kindSelect()}</div>
+    <div class="scan-step" data-step="2" ${manual || st >= 2 ? "" : "hidden"}>${recordPick()}</div></div>`;
 /* ───────────── 页面 ───────────── */
 export function viewScan() {
   return `<section class="section scan-page">${sc.step === "review" && sc.result ? reviewHtml() : inputHtml()}</section>`;
@@ -42,10 +46,9 @@ function inputHtml() {
     <div class="section-head"><h2>${t("录入购物")}</h2><p>${t("拍小票或贴线上订单，AI 读成清单；或手动添加。确认后入库、记花费")}</p></div>
     ${ready ? "" : `<div class="panel cta-panel"><div><b>${t("先填一个 AI key")}</b><p class="muted">${t("推荐 Gemini（有免费额度）。key 只存在这台设备的浏览器里。")}</p></div>
       <a class="btn btn-primary" href="${href("me", "settings")}?sec=ai">${t("去设置")}</a></div>`}
-    <div class="panel scan-in">
-      <div class="scan-step" data-step="1">${kindSelect()}</div>
-      <div class="scan-step" data-step="2" ${st >= 2 ? "" : "hidden"}>${recordPick()}</div>
-      <div class="scan-step" data-step="3" ${st >= 3 ? "" : "hidden"}>
+    ${modePanel(st)}
+    <div class="panel scan-in scan-step" data-step="3" ${st >= 3 ? "" : "hidden"}>
+      <div>
         <div class="scan-in-head"><span class="pick-lbl">${order ? t("订单截图（可选，可多张）") : t("小票照片（可多张：几张不同的小票，或一张长小票分段拍）")}</span></div>
         <div class="scan-thumbs">
           ${sc.images.map((im, i) => `<span class="scan-thumb"><img src="${im.url}" alt="${t("第 {n} 张", { n: i + 1 })}"><button type="button" data-action="scan-img-del" data-i="${i}" aria-label="${t("删除这张")}">×</button></span>`).join("")}
@@ -68,10 +71,11 @@ function inputHtml() {
     </div>`;
 }
 function targetOptions(row) {
+  const man = !!sc.result?.manual, lockSpend = man && sc.record === "spend", lockStock = man && sc.record === "stock", skipSel = row.match === "skip" || lockSpend;   // 手动添加：只记花费 → 一律「只记花费，不入库」；只入库 → 不能选「只记花费」
   const items = sc.pool, name = (i) => `${esc(i.name)}（${esc(t(i.unit || ""))}）`;
   const grp = (space, label) => { const l = items.filter((i) => spaceOf(i.category) === space); return l.length ? `<optgroup label="${t(label)}">${l.map((i) => `<option value="${i.id}" ${row.match === i.id ? "selected" : ""}>${name(i)}</option>`).join("")}</optgroup>` : ""; };
-  return `<option value="__skip" ${row.match === "skip" ? "selected" : ""}>${t("只记花费，不入库")}</option>
-    <option value="__new" ${!row.match ? "selected" : ""}>＋ ${t("新建物品")}</option>
+  return `<option value="__skip" ${skipSel ? "selected" : ""} ${lockStock ? "disabled" : ""}>${t("只记花费，不入库")}</option>
+    <option value="__new" ${!row.match && !skipSel ? "selected" : ""}>＋ ${t("新建物品")}</option>
     ${grp("pantry", "日常消耗品")}${grp("house", "汽车房屋消耗品")}`;
 }
 function feeRowHtml(x, ri, i, cur) {
@@ -83,15 +87,16 @@ function feeRowHtml(x, ri, i, cur) {
     <p class="dup-hint" hidden></p><p class="cart-hint" hidden></p><p class="name-hint" hidden></p><p class="unit-hint" hidden></p>${x.gap ? `<p class="muted scan-gap-note">${t("按小票合计算出的差额，多半是税费；对不上就改金额或取消勾选")}</p>` : ""}</li>`;
 }
 function rowHtml(x, ri, i, cur) {
-  return `<li class="scan-row ${x.match ? "" : "is-new"}" data-r="${ri}" data-i="${i}">
+  const man = !!sc.result?.manual, lockSpend = man && sc.record === "spend", lockStock = man && sc.record === "stock";
+  return `<li class="scan-row ${x.match || lockSpend ? "" : "is-new"}${lockSpend ? " link-spend" : ""}${lockStock ? " link-stock" : ""}" data-r="${ri}" data-i="${i}">
         <label class="check-inline scan-inc"><input type="checkbox" name="inc" ${x.include ? "checked" : ""}><span>${x.raw ? `<small class="muted">${esc(x.raw)}</small>` : t("包含这一行")}</span></label>
         <div class="form-grid">
-          <label class="span-2">${t("放进库存")}<select name="target" data-search data-def="${esc(x.def || "")}">${targetOptions(x)}</select></label>
+          <label class="span-2">${t("放进库存")}<select name="target" data-search data-def="${esc(x.def || "")}" ${lockSpend ? "disabled" : ""}>${targetOptions(x)}</select></label>
           <label class="span-2">${t("名称")}<input name="name" maxlength="60" list="scanItemNames" autocomplete="off" value="${esc(x.name)}"></label>
           <label class="span-2 scan-cat">${t("新物品的分类")}<select name="cat">${categoryOptions(x.category)}</select></label>
           <label>${t("数量")}<input name="qty" type="number" step="any" inputmode="decimal" value="${esc(fmt(x.qty))}"></label>
           <label>${t("单位")}<input name="unit" list="unitList" maxlength="10" value="${esc(t(x.unit))}"></label>
-          <label>${t("金额")}（${esc(cur)}）<input name="amount" type="number" step="0.01" inputmode="decimal" value="${x.amount ?? ""}"></label>
+          <label>${t("金额")}（${esc(cur)}）<input name="amount" type="number" step="0.01" inputmode="decimal" value="${x.amount ?? ""}" ${lockStock ? "disabled" : ""}></label>
         </div>
         <p class="dup-hint" role="status" hidden></p><p class="cart-hint" role="status" hidden></p><p class="name-hint" role="status" hidden></p>${(() => { const n = noteFor(x.unit, x.qty, x.match); return `<p class="unit-hint${n.warn ? " warn" : ""}" role="status" ${n.text ? "" : "hidden"}>${esc(n.text)}</p>`; })()}</li>`;
 }
@@ -113,7 +118,8 @@ function receiptHtml(r, ri, many, cur) {
 function reviewHtml() {
   const R = sc.result, cur = Units.region.currency, many = R.receipts.length > 1;
   return `
-    ${R.manual ? `<div class="section-head"><h2>${t("录入购物")}</h2><div class="head-acts">${kindSelect()}</div><p>${t("手动添加：和拍照识别同一张表。先选放进库存的物品（或新建），名称、单位、分类会跟着填")}</p></div>` : ""}
+    ${R.manual ? `<div class="section-head"><h2>${t("录入购物")}</h2><p>${t("手动添加：和拍照识别同一张表。先选放进库存的物品（或新建），名称、单位、分类会跟着填")}</p></div>` : ""}
+    ${R.manual ? modePanel(4, true) : ""}
     <div class="section-head" ${R.manual ? "hidden" : ""}><h2>${t("确认录入")}</h2><p>${many ? t("读到 {n} 张小票：每张的商店、日期和商品分开核对", { n: R.receipts.length }) : t("核对每一行：改名称 / 数量 / 金额，选放进哪个库存物品")}</p></div>
     ${R.dropped ? `<p class="muted" style="font-size:13px">${t("另有 {n} 张没有读到商品，已忽略；可以返回重来，单独再识别一次。", { n: R.dropped })}</p>` : ""}
     <form id="scanForm" novalidate>

@@ -4432,3 +4432,13 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .scan-step + .scan-step { margin-top: 14px; }
 .scan-step[hidden] { display: none; }
 .scan-record { margin-bottom: 0; }
+
+/* 录入购物：页面上方的「录入方式」表单块（录入方式 + 记到哪里），手机一列、电脑两列 */
+.scan-modes { display: grid; gap: 14px; margin-bottom: 12px; }
+.scan-modes .scan-step + .scan-step { margin-top: 0; }
+.scan-modes .scan-kind { max-width: none; margin-bottom: 0; }
+@media (min-width: 720px) { .scan-modes { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; align-items: start; } }
+.scan-in.scan-step { margin-top: 0; }
+/* 手动添加：记到哪里联动 — 只记花费时「放进库存」灰掉；只入库时「金额」灰掉 */
+.scan-row.link-spend select[name="target"], .scan-row.link-spend .ssel, .scan-row.link-spend .ssel-btn, .scan-row.link-stock input[name="amount"] { opacity: .55; cursor: not-allowed; background: var(--surface-2); }
+.scan-row.link-spend .ssel-in { cursor: not-allowed; }

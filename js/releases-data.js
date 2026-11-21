@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.35", title: { zh: "录入购物：录入方式单独一块；手动添加的「记到哪里」和表单联动", en: "Log shopping: separate How-to-add block; manual Record-to now drives the form" }, items: [
+    { k: "better", zh: "「录入方式」和「记到哪里」做成页面上方单独的一块表单；手动添加时它们也留在表单上面，标题行恢复原样", en: "“How to add” and “Record to” are now their own block above the form; in manual mode they stay above the form and the title row is back to normal" },
+    { k: "better", zh: "手动添加默认「只入库」；选「只记花费」时，每行的「放进库存」固定成「只记花费，不入库」并变灰；选「只入库」时，「只记花费」选项不可选、「金额」变灰", en: "Manual add defaults to Stock only; Spend only locks every row's “Put in stock” to “Spend only, no stock” (greyed); Stock only disables the Spend-only choice and greys the amount" },
+  ] },
+
   { v: "2026-11-20.34", title: { zh: "多选收进长按菜单；库存标题行更整齐", en: "Multi-select moves into the long-press menu; tidier Stock header" }, items: [
     { k: "better", zh: "购物车、库存页面上的「多选」按钮去掉了：长按一行（电脑右键）→「多选」进入，进入后的勾选、全选、批量操作不变；操作条里多了「完成」退出", en: "The Select button on Cart and Stock is gone: long-press a row (right-click on a computer) → Select; ticking, Select all and bulk actions work as before, and the action bar has a Done button" },
     { k: "better", zh: "库存页去掉「165 件」，换成标题「库存」，右边是「视图」切换，同一行", en: "The Stock page drops the “165 items” line; the “Stock” title and the View switch now share one row" },
