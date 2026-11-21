@@ -4266,6 +4266,22 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .fpop-fields .tb-field select, .fpop-fields select.range-sel { width: 60%; flex: 0 1 60%; min-height: 44px; }
 .fpop-fields .check-inline { min-height: 44px; }
 @media print { .fpop { display: none; } }
+/* 「目录」按钮（左）+「筛选」按钮（右）同一行；两个按钮同一个盒子（js/core/filter-pop.js navPop） */
+.ctl-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin: 0 0 12px; }
+.ctl-row > .fpop { margin: 0; }
+.ctl-row > .npop { justify-content: flex-start; margin-right: auto; }
+.fpop-ico { flex: none; display: block; }
+.npop .fpop-panel { left: 0; right: auto; width: min(320px, calc(100vw - 32px)); }
+.npop-list { display: flex; flex-direction: column; padding-top: 6px; }
+.npop-item { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px; border-radius: 10px; color: inherit; text-decoration: none; font-size: 15px; font-weight: 600; }
+.npop-item:hover { background: var(--surface-2, var(--bg)); }
+.npop-item:focus-visible { outline: 3px solid var(--focus, #1f6feb); outline-offset: -2px; }
+.npop-item[aria-current="page"] { background: var(--surface-2, var(--bg)); color: var(--pine); }
+.npop-ico { width: 24px; text-align: center; font-size: 18px; line-height: 1; }
+.npop-lbl { flex: 1; min-width: 0; }
+.npop-ck { font-weight: 700; }
+.h-root { color: inherit; text-decoration: none; }
+.h-root:hover { text-decoration: underline; }
 .ui-hint[data-tip]::after { translate: var(--tip-dx, 0) 0; }   /* 提示浮层贴边时往里挪（js/core/info-tip.js fitTip） */
 
 /* 添加账单页：自动创建 / 手工创建两块，每个入口一整行 */

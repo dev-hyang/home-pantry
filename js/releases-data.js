@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.2", title: { zh: "收入页：新的「目录」按钮和筛选按钮并排", en: "Income: new Menu button next to the Filter button" }, items: [
+    { k: "better", zh: "收入页顶上那排导航小卡片换成「目录」按钮（三条横线），靠左；点开选页面，当前页打 ✓；筛选按钮靠右，左边加了小图标", en: "The row of navigation cards on Income is now a “Menu” button (three lines) on the left; open it to pick a page, the current one is ticked; the Filter button sits on the right with a small icon" },
+    { k: "better", zh: "「导出打印」从 ⋯ 菜单搬进目录，⋯ 取消；顶部路径「收入 / 页面名」随选择更新，点「收入」回到收支总览", en: "Export / print moved from the ⋯ menu into the Menu, and ⋯ is gone; the title path “Income / page” follows your choice, and tapping “Income” returns to the overview" },
+  ] },
+
   { v: "2026-11-21.1", title: { zh: "卡片编号并进控制行：‹ 短划线 #3/21 ›", en: "Card number joins the control row: ‹ dashes #3/21 ›" }, items: [
     { k: "better", zh: "账单页的卡片编号不再单独占一行：直接显示在控制行里，短划线后面「#3/21」，滑动时跟着变；⚙ 里「显示卡片编号」仍可关", en: "The card number on the bills page no longer takes its own line: it sits in the control row after the dashes (“#3/21”) and updates as you swipe; the ⚙ “Show card numbers” switch still turns it off" },
     { k: "fix", zh: "版本号改回「当天日期 + 从 1 开始」（今天是 2026-11-21，之前误接着 11-20 往后排到 .41）", en: "Version numbers are back to “today's date + counter from 1” (today is 2026-11-21; they had wrongly kept counting on from 11-20 up to .41)" },

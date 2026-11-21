@@ -4,14 +4,13 @@ import { Store } from "../core/store.js";
 import { esc } from "../core/util.js";
 import { attentionPanel } from "../core/alerts.js";
 import { t } from "../core/i18n.js";
-import { tabCards } from "../core/hub.js";
+import { navPop } from "../core/filter-pop.js";
 import { moneyEye } from "../core/privacy.js";
-import { moreMenu } from "../core/more-menu.js";
 import { fabMenu } from "../core/fab-menu.js";
 import { incomeHref as hrefOfTab } from "./shared.js";
 import { INCOME_TABS, activeTab } from "../core/tabs.js";
 import { pageSize } from "../core/pager.js";
-import { canSeeAll, inc, loadIncome } from "./logic.js";
+import { canSeeAll, filterSlot, inc, loadIncome } from "./logic.js";
 import { rerender } from "./rollup.js";
 import "./list.js";
 import { applyIncomeDrill, importTab, recordsTab } from "./records-tab.js";
@@ -22,23 +21,20 @@ import { reportTab } from "./compare-tab.js";
 import { sendersTab } from "./senders-tab.js";
 import { incomeDetailPage, incomeFormPage } from "./detail-page.js";
 export { initIncome } from "./events.js";   // 页面加载后由 app/lazy-init.js 调用（注册点击等处理）
-import { incomeHref, staleAll } from "./shared.js";
+import { staleAll } from "./shared.js";
 
 window.addEventListener("income-data-changed", () => staleAll(["inc", "ledger"]));
 window.addEventListener("spend-rows-changed", () => staleAll(["spend", "ledger"]));
 /* ───────────── 页面外壳 ───────────── */
 /** 页头：「💰 收入 · 当前页签」+ 紧跟着的眼睛；右上角 ⋯ 放次要页签（导出打印）；记一笔收入 / 拍照识别 / 银行导入是右下角圆形 ＋ 的菜单 */
-const headMenu = () => {
-  const items = INCOME_TABS.filter((x) => x[4] && x[0] !== "import").map(([id, name, icon]) => ({ label: `${icon} ${t(name)}`, href: hrefOfTab(id) }));
-  if (items.length) items[0].first = true;
-  return moreMenu(items, { label: t("更多操作") });
-};
+/** 「目录」按钮：所有页签（银行导入在右下角 ＋ 菜单里，只在正停在它上面时才列出） */
+const navButton = (tab) => navPop(INCOME_TABS.filter(([id]) => id !== "import" || tab === "import").map(([id, name, icon]) => ({ href: hrefOfTab(id), icon, label: t(name), current: id === tab })), { id: "incnav" });
 const incomeFab = () => fabMenu([{ label: t("手动记一笔"), data: { inc: "add" }, icon: "✍️" }, { label: t("拍照识别"), data: { inc: "scan" }, icon: "📷" }, { label: t("银行导入"), href: hrefOfTab("import"), icon: "🏦" }], { label: t("记一笔收入") });
 const shell = (tab, body) => {
   const cur = INCOME_TABS.find(([id]) => id === tab);
   return `<section class="section" id="incomePage">
-  <div class="section-head"><div class="sh-title"><h2>💰 ${t("收入")} · ${esc(t(cur?.[1] || ""))}</h2></div><div class="head-acts">${moneyEye()}${headMenu()}</div></div>
-  ${tabCards(INCOME_TABS, tab, incomeHref, t("收入内容"))}${noticeHtml()}${tab === "overview" || tab === "records" ? attentionPanel(["income"], { title: t("要处理"), sub: t("该收的还款") }) : ""}${body}
+  <div class="section-head"><div class="sh-title"><h2>💰 <a class="h-root" href="${esc(hrefOfTab("overview"))}">${t("收入")}</a> / ${esc(t(cur?.[1] || ""))}</h2></div><div class="head-acts">${moneyEye()}</div></div>
+  <div class="ctl-row">${navButton(tab)}${filterSlot.html}</div>${noticeHtml()}${tab === "overview" || tab === "records" ? attentionPanel(["income"], { title: t("要处理"), sub: t("该收的还款") }) : ""}${body}
   ${incomeFab()}</section>`;
 };
 function noticeHtml() {
@@ -50,6 +46,7 @@ function noticeHtml() {
   return parts.length ? `<div class="notice" role="status">${parts.map(esc).join("<br>")}</div>` : "";
 }
 export function viewIncome() {
+  filterSlot.html = "";
   const I = inc(), tab = activeTab(state.route) || "overview", qView = state.route?.q?.get("view"), qForm = state.route?.q?.get("form");
   if (!qForm && I._formPage) { I.form = null; I._formPage = false; }   // 从编辑页退回来（浏览器返回）：别把没存的表单带到列表顶部
   if (I._lastTab !== undefined && I._lastTab !== tab) { if (I._keep) I._keep = false; else { I.form = null; I.scanOpen = false; I.selMode = false; } }   // 换标签：不带着没关的表单 / 识别面板

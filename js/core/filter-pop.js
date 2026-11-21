@@ -7,11 +7,28 @@ import { t } from "./i18n.js";
 let openId = "";   // 现在打开的面板（同一时间最多一个）
 const OPEN_ATTR = " data-open";
 
+/* 按钮上的小图标：两条横线，各带一个圆（滑块）；目录按钮是三条横线。颜色跟文字走（currentColor） */
+const svg = (inner) => `<svg class="fpop-ico" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false">${inner}</svg>`;
+const ICON_FILTER = svg(`<path d="M2 6h16M2 14h16"/><circle cx="7" cy="6" r="2.2" fill="var(--surface)"/><circle cx="13" cy="14" r="2.2" fill="var(--surface)"/>`);
+const ICON_MENU = svg(`<path d="M3 5h14M3 10h14M3 15h14"/>`);
+
+/** 目录按钮 + 导航面板（和筛选同一个外观、同一套开关）：items = [{ href, icon, label, current }]；点一项就跳转，面板随页面重画收起 */
+export function navPop(items, { id = "nav", label = t("目录") } = {}) {
+  const open = openId === id;
+  const row = (x) => `<a class="npop-item" href="${esc(x.href)}"${x.current ? ' aria-current="page"' : ""}><span class="npop-ico" aria-hidden="true">${x.icon || ""}</span><span class="npop-lbl">${esc(x.label)}</span>${x.current ? '<span class="npop-ck" aria-hidden="true">✓</span>' : ""}</a>`;
+  return `<div class="fpop npop" data-fpop="${esc(id)}"${open ? OPEN_ATTR : ""}>
+    <button type="button" class="fpop-btn" aria-expanded="${open}" aria-controls="fpop-${esc(id)}" data-fpop-toggle>${ICON_MENU}<span>${esc(label)}</span></button>
+    <div class="fpop-panel" id="fpop-${esc(id)}"${open ? "" : " hidden"}>
+      <div class="fpop-head"><b>${esc(label)}</b></div>
+      <nav class="npop-list" aria-label="${esc(label)}">${items.map(row).join("")}</nav>
+    </div></div>`;
+}
+
 /** inner = 面板里的控件；clear = 清除按钮 html；count = 已改动的筛选个数 */
 export function filterPop(inner, { id = "fp", count = 0, clear = "", cls = "" } = {}) {
   const open = openId === id;
   return `<div class="fpop ${cls}" data-fpop="${esc(id)}"${open ? OPEN_ATTR : ""}>
-    <button type="button" class="fpop-btn" aria-expanded="${open}" aria-controls="fpop-${esc(id)}" data-fpop-toggle>${t("筛选")}<span class="tb-count"${count ? "" : " hidden"}>${count}</span></button>
+    <button type="button" class="fpop-btn" aria-expanded="${open}" aria-controls="fpop-${esc(id)}" data-fpop-toggle>${ICON_FILTER}<span>${t("筛选")}</span><span class="tb-count"${count ? "" : " hidden"}>${count}</span></button>
     <div class="fpop-panel" id="fpop-${esc(id)}"${open ? "" : " hidden"}>
       <div class="fpop-head"><b>${t("筛选")}</b>${clear}</div>
       <div class="fpop-body">${inner}</div>
