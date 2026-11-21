@@ -13,6 +13,7 @@ import { t } from "../core/i18n.js";
 import { R2, empty, fmtMoney, incDrill, kindBadge, personOptions, rate, togglesHtml } from "./shared.js";
 import { STAT_CATS, monthLabel } from "../stats/spend-roll.js";
 import { hitAttrs } from "../stats/spend-drill.js";
+import { lpAttr } from "../core/long-press.js";
 
 /* ───────────── 付款方历史：搜索 + 类型筛选 + 点表头排序，每次显示 20 个，「加载更多」（多取一个判断还有没有，不算总数） ─────────────
  * 合计 = 认定收入；资本流入（卖股卖房的本金、借款、转入）单独显示，不算进合计和占比。 */
@@ -31,6 +32,15 @@ export function senderGroups({ noSearch = false } = {}) {
   list.sort((a, b) => { const va = val(a), vb = val(b); return (typeof va === "number" ? va - vb : String(va).localeCompare(String(vb))) * sgn || b.total - a.total || b.cash - a.cash; });
   return { w, rows, list, total: incSumOf(rows), cap: R2(sumOf(rows) - incSumOf(rows)) };
 }
+/** 付款方一行的长按（电脑右键）菜单：原来页面上的「走势」「改名 / 合并」「多选合并」「导出 CSV」都收在这里 */
+function rowMenu(x) {
+  const I = inc(), key = x.key, editable = x.rows.every(canEdit);
+  return [{ label: t("看收入明细"), data: { inc: "sender-open", key }, first: true },
+    { label: I.sopen === key ? t("收起走势") : t("近 12 个月走势"), data: { inc: "sender-trend", key } },
+    editable ? { label: t("改名 / 合并"), data: { inc: "sender-rename", key } } : null,
+    editable ? { label: t("多选合并"), data: { inc: "sender-sel-start", key } } : null,
+    { label: t("导出 CSV"), data: { inc: "csv-senders" } }];
+}
 function sendersListHtml() {
   const I = inc(), { list, total, cap } = senderGroups(), lim = I.slimit || S_PAGE();
   const page = list.slice(0, lim + 1), hasNext = page.length > lim, shown = page.slice(0, lim);   // 多取一个：有第 lim+1 个才显示「加载更多」
@@ -44,12 +54,11 @@ function sendersListHtml() {
       <button type="button" class="btn btn-sm btn-primary" data-inc="sender-merge" ${pickedN >= 2 ? "" : "disabled"}>${t("合并")}</button>
       <button type="button" class="btn btn-sm btn-ghost" data-inc="sender-sel">${t("退出多选")}</button>
       <small class="muted" style="flex-basis:100%">${t("勾两家以上，合并成一个名字（默认用笔数最多的那个）。")}</small><datalist id="incSendersAll">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></div>` : "";
-  return `${selBar}<p class="muted small" style="margin:0 0 8px">${t("{n} 个付款方，收入 {m}", { n: list.length, m: fmtMoney(total) })}${cap > 0 ? ` · ${t("另有资本流入 {a}（不计收入）", { a: fmtMoney(cap) })}` : ""}</p>
-    <table class="store-table ix-stbl payee-tbl"><thead><tr>${S_COLS.map(th).join("")}<th scope="col" class="s-act"><span class="sr-only">${t("操作")}</span></th></tr></thead><tbody>
-    ${shown.map((x) => `<tr><th scope="row" class="s-name"><span class="s-name-in">${sel && x.rows.every(canEdit) ? `<input type="checkbox" class="sel" data-inc="sender-pick" data-key="${esc(x.key)}" ${sel.has(x.key) ? "checked" : ""} aria-label="${esc(t("选中 {name}", { name: sNameOf(x) }))}">` : ""}<button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(sNameOf(x))}</button></span></th>${cell("kind", kindBadge(sMainKind(x)))}${cell("n", x.n)}${cell("total", `<b>${fmtMoney(x.total)}</b>${x.cap ? `<br><small class="muted">${t("资本流入 {a}", { a: fmtMoney(x.cap) })}</small>` : ""}`)}${cell("share", rate(x.total, total))}${cell("last", x.last)}
-      <td class="s-act"><span class="s-act-in"><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-trend" data-key="${esc(x.key)}" aria-expanded="${I.sopen === x.key}" aria-label="${esc(t("{name} 近 12 个月走势", { name: sNameOf(x) }))}">${I.sopen === x.key ? "▾" : "▸"} ${t("走势")}</button>${x.rows.every(canEdit) && !sel ? `<button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</span></td></tr>
-      ${I.sopen === x.key ? `<tr class="s-form s-detail"><td colspan="7">${senderTrendHtml(x)}</td></tr>` : ""}
-      ${I.renameKey === x.key ? `<tr class="s-form"><td colspan="7"><form data-inc-form="rename" data-key="${esc(x.key)}" class="form-grid"><label>${t("统一改成")}<input name="to" maxlength="80" required value="${esc(sNameOf(x))}" list="incSenders"></label><div class="form-actions"><button class="btn btn-sm btn-primary">${t("改名（相同名字的会合并成一个）")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="">${t("取消")}</button></div></form><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></td></tr>` : ""}`).join("") || `<tr class="s-form"><td colspan="7" class="muted">${t("没有符合条件的付款方")}</td></tr>`}</tbody></table>
+  return `${selBar}<p class="muted small" style="margin:0 0 8px">${t("{n} 个付款方，收入 {m}", { n: list.length, m: fmtMoney(total) })}${cap > 0 ? ` · ${t("另有资本流入 {a}（不计收入）", { a: fmtMoney(cap) })}` : ""} · ${t("长按（电脑右键）一个付款方：走势、改名 / 合并、多选合并、导出")}</p>
+    <table class="store-table ix-stbl payee-tbl"><thead><tr>${S_COLS.map(th).join("")}</tr></thead><tbody>
+    ${shown.map((x) => `<tr ${sel ? "" : lpAttr(rowMenu(x), sNameOf(x))}><th scope="row" class="s-name"><span class="s-name-in">${sel && x.rows.every(canEdit) ? `<input type="checkbox" class="sel" data-inc="sender-pick" data-key="${esc(x.key)}" ${sel.has(x.key) ? "checked" : ""} aria-label="${esc(t("选中 {name}", { name: sNameOf(x) }))}">` : ""}<button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(sNameOf(x))}</button></span></th>${cell("kind", kindBadge(sMainKind(x)))}${cell("n", x.n)}${cell("total", `<b>${fmtMoney(x.total)}</b>${x.cap ? `<br><small class="muted">${t("资本流入 {a}", { a: fmtMoney(x.cap) })}</small>` : ""}`)}${cell("share", rate(x.total, total))}${cell("last", x.last)}</tr>
+      ${I.sopen === x.key ? `<tr class="s-form s-detail"><td colspan="6">${senderTrendHtml(x)}</td></tr>` : ""}
+      ${I.renameKey === x.key ? `<tr class="s-form"><td colspan="6"><form data-inc-form="rename" data-key="${esc(x.key)}" class="form-grid"><label>${t("统一改成")}<input name="to" maxlength="80" required value="${esc(sNameOf(x))}" list="incSenders"></label><div class="form-actions"><button class="btn btn-sm btn-primary">${t("改名（相同名字的会合并成一个）")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-rename" data-key="">${t("取消")}</button></div></form><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></td></tr>` : ""}`).join("") || `<tr class="s-form"><td colspan="6" class="muted">${t("没有符合条件的付款方")}</td></tr>`}</tbody></table>
     ${moreBtn(hasNext, 'data-inc="s-more"')}`;
 }
 /** 展开一个付款方：近 12 个月每月的认定收入（和上面的时间范围无关），点柱子看那个月的收入明细 */
@@ -108,7 +117,6 @@ export function sendersTab() {
       <input type="search" data-inc-sq value="${esc(I.sq || "")}" placeholder="${esc(t("搜索付款方 / 类型"))}" aria-label="${esc(t("搜索付款方"))}">
       <select id="incSkindF" data-search data-inc-f="skind" aria-label="${esc(t("按类型筛选"))}">${kindOptionsHtml(I.skind || "all", { all: true, groups: true, allLabel: t("全部类型") })}</select>
       <select id="incSsort" data-inc-ssort data-nosearch aria-label="${esc(t("排序"))}">${sSortOptions()}</select>${clearFiltersBtn("incSend", changed(I, FD.incSend))}</div>
-    <div class="ix-tools payee-tools"><button type="button" class="btn btn-sm btn-ghost" data-inc="sender-sel">${I.ssel ? t("退出多选") : t("多选合并")}</button><button type="button" class="btn btn-sm btn-ghost" data-inc="csv-senders">${t("导出 CSV")}</button></div>
     <div id="incSendersList">${sendersListHtml()}</div></div>`;
 }
 /** 改名 / 合并后记下别名（meta._sender_alias：原名键 → 新名），以后银行导入的入账自动用新名字（logic.js 的 senderName） */

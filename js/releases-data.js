@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.40", title: { zh: "收入 · 付款方：操作收进长按菜单", en: "Income · Payers: actions moved into the long-press menu" }, items: [
+    { k: "better", zh: "付款方页面上的「走势」「改名 / 合并」「多选合并」「导出 CSV」按钮去掉了：长按一个付款方（电脑右键）→ 看收入明细 / 近 12 个月走势 / 改名·合并 / 多选合并 / 导出 CSV；多选合并进入后，勾选和「合并为」的操作条不变", en: "The Trend, Rename / merge, Select to merge and Export CSV buttons on the Payers page are gone: long-press a payer (right-click) → View income / 12-month trend / Rename·merge / Select to merge / Export CSV; once in merge mode the action bar works as before" },
+  ] },
+
   { v: "2026-11-20.39", title: { zh: "每件物品可以手动设「采购方式」和「订阅周期」", en: "Set “How to buy” and a subscription interval per item" }, items: [
     { k: "new", zh: "物品编辑页多了「采购方式」（自动 / 线上订阅 / 批量 / 生鲜 / 其他）和「订阅 / 定期配送周期（天）」：购物车分组按你设的来，分错了改一次就记住；有周期的在购物车那一行写「约每 N 天」", en: "The item edit page has “How to buy” (Auto / Online / Bulk / Fresh / Other) and a subscription interval in days: the cart groups by what you set, fix a wrong group once and it sticks; items with an interval show “about every N days” in the cart" },
     { k: "better", zh: "需要先在数据库执行 supabase/migrations/100_item_buy_mode.sql（只给物品加两列）；没执行时物品其余保存照常，只会提示一句", en: "Run supabase/migrations/100_item_buy_mode.sql first (adds two columns to items); until then everything else saves normally and you just get one notice" },

@@ -68,6 +68,7 @@ export function initIncome({ render, refresh }) {
     if (act === "sender-rename") { I.renameKey = b.dataset.key || null; return redraw(); }
     if (act === "sender-trend") { I.sopen = I.sopen === b.dataset.key ? null : b.dataset.key; return renderSenders(); }
     if (act === "sender-sel") { I.ssel = I.ssel ? null : new Set(); I.smergeTo = ""; I.renameKey = null; return redraw(); }
+    if (act === "sender-sel-start") { I.ssel = new Set([b.dataset.key]); I.smergeTo = ""; I.renameKey = null; return redraw(); }   // 长按菜单「多选合并」：进入多选，这一家先勾上
     if (act === "sender-pick") { const k = b.dataset.key; I.ssel.has(k) ? I.ssel.delete(k) : I.ssel.add(k); return renderSenders(); }
     if (act === "sender-merge") return guard(async () => {
       const to = ($("#incMergeTo")?.value || "").trim(), keys = [...(I.ssel || [])]; if (!to || keys.length < 2) return;
