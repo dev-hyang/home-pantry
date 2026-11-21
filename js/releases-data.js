@@ -13,6 +13,7 @@ export const RELEASES = [
     { k: "better", zh: "账单页的短划线 ⚙ 里多了「显示卡片编号」：每张账单卡上面显示 #3 / 8，知道看到第几张（默认开，可关；今日页没有）", en: "The ⚙ on the bills page has a new “Show card numbers” option: each card shows #3 / 8 so you know which one you are on (on by default; not on Today)" },
     { k: "fix", zh: "账单里的「登录提示」只是文字：不再是链接、没有下划线，手机也不会把邮箱 / 网址自动识别成链接", en: "A bill's Login hint is now plain text: no link, no underline, and phones no longer auto-link emails or URLs in it" },
     { k: "better", zh: "「奉献 / 捐款」账单的图标换成 💝", en: "The Giving / Donation bill icon is now 💝" },
+    { k: "better", zh: "录入购物：表单第一项是「录入方式」下拉（实体店小票 / 线上订单 / 手动添加），选了才展开上传照片；文字描述可选、可跳过，最后点「识别」。原来的「入库 / 花费」选择改名叫「记到哪里」", en: "Log shopping: the first field is now a “How to add” dropdown (store receipt / online order / manual); choosing one reveals the photo upload, the optional text can be skipped, then tap Recognize. The old stock / spend choice is now called “Record to”" },
   ] },
 
   { v: "2026-11-20.30", title: { zh: "今日页：「家里」卡片精简，滑动控制行挪到卡片上面", en: "Today: slimmer Home card, carousel controls moved above the cards" }, items: [

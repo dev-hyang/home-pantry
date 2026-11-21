@@ -18,6 +18,12 @@ import { cleanStore, rememberStore } from "../stats/store-lite.js";
 
 /* ───────────── 交互：文件、文字、行内联动 ───────────── */
 document.addEventListener("change", async (e) => {
+  if (e.target.id === "scanKindSel") {   // 录入方式下拉：手动添加直接进确认表；小票 / 订单展开下面的上传步骤
+    const k = e.target.value; sc.error = "";
+    if (k === "manual") { startManual(); return repaint(); }
+    sc.kind = k; if (sc.result?.manual) { sc.step = "input"; sc.result = null; }
+    return repaint();
+  }
   if (e.target.id === "scanFile") {
     const files = [...e.target.files].slice(0, MAX_IMAGES - sc.images.length); e.target.value = "";
     sc.error = "";

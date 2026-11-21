@@ -4412,3 +4412,10 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .tcarousel.tc-nums .tc-no { display: block; flex: none; margin: 0 0 6px 4px; font-size: 13px; font-weight: 700; color: var(--pine); font-variant-numeric: tabular-nums; }
 .tcarousel.tc-nums .tc-no small { font-weight: 500; color: var(--muted); font-size: 12.5px; }
 .tc-gear .tc-numopt { border-top: 1px solid var(--line-soft); border-radius: 0 0 8px 8px; margin-top: 4px; }
+
+/* 录入购物：第一项是「录入方式」下拉；选了才展开上传 / 文字 / 识别（.scan-steps） */
+.scan-kind { display: grid; gap: 6px; margin: 0 0 12px; max-width: 420px; }
+.scan-kind select { width: 100%; box-sizing: border-box; min-height: 44px; }
+.scan-kind-hint { margin: 0; font-size: 13px; }
+.scan-steps[hidden] { display: none; }
+.section-head .head-acts .scan-kind { margin: 0; }
