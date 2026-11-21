@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.34", title: { zh: "多选收进长按菜单；库存标题行更整齐", en: "Multi-select moves into the long-press menu; tidier Stock header" }, items: [
+    { k: "better", zh: "购物车、库存页面上的「多选」按钮去掉了：长按一行（电脑右键）→「多选」进入，进入后的勾选、全选、批量操作不变；操作条里多了「完成」退出", en: "The Select button on Cart and Stock is gone: long-press a row (right-click on a computer) → Select; ticking, Select all and bulk actions work as before, and the action bar has a Done button" },
+    { k: "better", zh: "库存页去掉「165 件」，换成标题「库存」，右边是「视图」切换，同一行", en: "The Stock page drops the “165 items” line; the “Stock” title and the View switch now share one row" },
+  ] },
+
   { v: "2026-11-20.33", title: { zh: "录入购物：一步一步展开", en: "Log shopping: one step at a time" }, items: [
     { k: "better", zh: "录入方式（默认实体店小票）→ 点它展开「记到哪里」下拉（默认入库 + 花费）→ 点它展开上传照片 → 有照片后展开可跳过的文字描述 → 识别；没有照片可点「只用文字」", en: "How to add (store receipt by default) → tap it to reveal the “Record to” dropdown (Stock + spend by default) → tap it to reveal the photo upload → once there is a photo, the skippable text and Recognize appear; no photo? tap “Use text only”" },
   ] },

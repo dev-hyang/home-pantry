@@ -34,8 +34,8 @@ function viewInvRows(space) {
   const all = state.enriched.filter(inSpace(space));   // 一次只看一个范围（工具条里的「范围」下拉）
   const cur = f.cat !== "all" ? catOf(f.cat) : null;
   return `<section class="section inv-rows-page">
-      <div class="section-head"><p>${t("{n} 件", { n: all.length })}</p><div class="head-acts">
-        <button type="button" class="btn btn-sm ${state.invSel ? "btn-primary" : "btn-ghost"}" data-action="inv-select" aria-pressed="${!!state.invSel}">${state.invSel ? t("完成") : `☑ ${t("多选")}`}</button>${viewSeg("rows")}</div></div>
+      <div class="section-head"><h2>${t("库存")}</h2><div class="head-acts">
+        ${viewSeg("rows")}</div></div>
       <div class="toolbar">
         <input type="search" id="invSearch" placeholder="${t("搜索物品，例如：纸、蛋")}" value="${esc(f.q)}" aria-label="${t("搜索物品")}">
         ${spaceFilter(space)}
@@ -58,6 +58,7 @@ function selBar() {
   return `<div class="inv-selbar" role="toolbar" aria-label="${esc(t("多选操作"))}">
     <span class="inv-seln" aria-live="polite">${esc(selBarText())}</span>
     <button type="button" class="btn btn-sm btn-ghost" data-action="inv-sel-all">${t("全选")}</button>
+    <button type="button" class="btn btn-sm btn-primary" data-action="inv-select">${t("完成")}</button>
     <span class="spacer"></span>
     <button type="button" class="btn btn-sm" data-action="inv-sel-shop" ${off}>🛒 ${t("加入购物车")}</button>
     <button type="button" class="btn btn-sm" data-action="inv-sel-mute" ${off}>🔕 ${t("不提醒")}</button>
@@ -108,7 +109,7 @@ export function itemRow(it) {
   const badges = `${it.status !== "ok" ? `<span class="badge ${st.cls}">${t(st.label)}</span>` : remindChip(it, !!state.invSel)}${it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? t("已过期") : t("{d} 天内到期", { d: it.expDays })}</span>` : ""}${inList ? cartTag() : ""}`;
   const step = Units.step(it.du), nm = esc(it.name), sel = state.invSel, on = sel?.has(it.id);
   const rowAttrs = sel ? `data-row-sel="${it.id}"` : `data-row-open="${esc(href("item", it.id))}" data-swipe-del="item" data-swipe-alt="item" data-swipe-alt-label="${esc(t("加入购物车"))}" data-swipe-alt-go="${esc(t("松手加入"))}"`;
-  const lp = sel ? "" : lpAttr([{ label: t("详情"), href: href("item", it.id), first: true }, { label: t("加入购物车"), action: "inv-shop", data: { id: it.id } }, { label: t("删除"), action: "inv-del", data: { id: it.id }, danger: true }], it.name);
+  const lp = sel ? "" : lpAttr([{ label: t("详情"), href: href("item", it.id), first: true }, { label: t("加入购物车"), action: "inv-shop", data: { id: it.id } }, { label: t("多选"), action: "inv-sel-start", data: { id: it.id } }, { label: t("删除"), action: "inv-del", data: { id: it.id }, danger: true }], it.name);
   return `<li class="inv-row st-${it.status}${on ? " is-picked" : ""}" data-id="${it.id}" ${rowAttrs} ${lp}>
     <span class="inv-bar" aria-hidden="true"></span>
     ${sel ? `<input type="checkbox" class="inv-chk" data-sel-id="${it.id}" ${on ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: it.name }))}">` : ""}
@@ -147,7 +148,7 @@ export function viewInventory(space = "pantry") {
         <select id="invCatSel" data-search aria-label="${t("按分类筛选")}"><option value="all">${t("全部")}</option>${catSelOpts(space, cur.id)}</select>${subSel}</div>` : subChips;
   return `
     <section class="section">
-      <div class="section-head"><p>${cur ? t("{n} 件", { n: mine.filter((x) => x.category === cur.id).length }) : t("{n} 件", { n: mine.length })}</p>
+      <div class="section-head"><h2>${t("库存")}</h2>
         <div class="head-acts">${house && !phone ? `<a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>` : ""}
         ${cur && !cf ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-edit" data-cat="${cur.id}">${t("编辑分类")}</button>` : ""}
         ${viewSeg("cats")}</div></div>

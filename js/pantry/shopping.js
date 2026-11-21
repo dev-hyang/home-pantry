@@ -91,7 +91,7 @@ function shopRowHtml(s) {
   const cat = s.category || state.items.find((i) => i.id === s.item_id)?.category;
   const spend = s.status === "bought" ? priceBox
     : `<details class="si-spend"><summary>💰 ${t("记一笔花费（可选）")}</summary>${priceBox}</details>`;
-  return `<li class="shop-item ${s.status === "bought" ? "done" : ""}${picked ? " is-picked" : ""}"${swipe}${sel ? "" : ` ${lpAttr([s.status === "todo" ? { label: t("我来买"), action: "shop-claim", data: { id: s.id }, first: true } : null, s.status === "claimed" && mine ? { label: t("取消认领"), action: "shop-unclaim", data: { id: s.id }, first: true } : null, s.status === "bought" ? null : { label: t("已买到"), action: "shop-bought", data: { id: s.id } }, { label: t("删除"), action: "shop-del", data: { id: s.id }, danger: true }], s.name)}`}>
+  return `<li class="shop-item ${s.status === "bought" ? "done" : ""}${picked ? " is-picked" : ""}"${swipe}${sel ? "" : ` ${lpAttr([s.status === "todo" ? { label: t("我来买"), action: "shop-claim", data: { id: s.id }, first: true } : null, s.status === "claimed" && mine ? { label: t("取消认领"), action: "shop-unclaim", data: { id: s.id }, first: true } : null, s.status === "bought" ? null : { label: t("已买到"), action: "shop-bought", data: { id: s.id } }, { label: t("多选"), action: "shop-sel-start", data: { id: s.id } }, { label: t("删除"), action: "shop-del", data: { id: s.id }, danger: true }], s.name)}`}>
     <div class="si-top">${sel ? `<input type="checkbox" class="shop-chk" data-id="${s.id}" ${picked ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: s.name }))}">` : ""}<b class="si-name">${esc(s.name)}</b>${when ? `<small class="si-when muted" title="${esc(stampText(s))}">${when}</small>` : ""}
       <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shop-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button>${s.status === "bought" ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="shop-bought" data-id="${s.id}" data-confirm="1" aria-label="${esc(t("{name} 已买到", { name: s.name }))}">${t("已买到")}</button>`}</div>
     ${s.status === "bought" ? "" : `<div class="card-hint-slot">${cardHintHtml(cat, "")}</div>`}
@@ -144,7 +144,7 @@ function viewShopList() {
   return `<section class="section shop-list-page">
     ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("购物车"), icon: "🛒" }])}
     <div class="section-head"><h2>${t("购物车")} <span class="muted shop-n" id="shopN">${t("{n} 项", { n: shopRows().length })}</span></h2>
-      <div class="head-acts"><button type="button" class="btn btn-sm ${state.shopSel ? "btn-primary" : "btn-ghost"}" data-action="shop-select" aria-pressed="${!!state.shopSel}">${state.shopSel ? t("完成") : `☑ ${t("多选")}`}</button></div></div>
+      </div>
     ${state.shopSel ? "" : `<p class="muted rs-hint shop-hint"><span class="rs-hint-touch">${t("← 左滑删除 · 右滑标成已买到 →")}</span><span class="rs-hint-mouse">${t("在一项上往左拖删除，往右拖标成已买到；也可以点下面的按钮")}</span></p>`}
     ${shopToolbar()}
     ${storeDatalist()}
@@ -152,7 +152,7 @@ function viewShopList() {
     ${state.shopSel ? "" : `<a class="fab" href="${href("shopping", "add")}" aria-label="${esc(t("添加要买的东西"))}" title="${esc(t("添加要买的东西"))}"><span aria-hidden="true">＋</span></a>`}
     ${state.shopSel ? `<div class="inv-selbar shop-selbar" role="toolbar" aria-label="${esc(t("多选操作"))}">
       <span class="inv-seln" aria-live="polite">${esc(shopSelText())}</span>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="shop-sel-all">${t("全选")}</button><span class="spacer"></span>
+      <button type="button" class="btn btn-sm btn-ghost" data-action="shop-sel-all">${t("全选")}</button><button type="button" class="btn btn-sm btn-primary" data-action="shop-select">${t("完成")}</button><span class="spacer"></span>
       <button type="button" class="btn btn-sm btn-danger-ghost" data-action="shop-sel-remove" ${state.shopSel.size ? "" : "disabled"}>${t("移出购物车")}</button></div>` : ""}
   </section>`;
 }
