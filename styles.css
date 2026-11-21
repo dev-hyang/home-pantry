@@ -4407,10 +4407,6 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 /* 登录提示：纯文字，不做成链接、不加下划线（手机的自动识别也关掉了，见 index.html 的 format-detection） */
 .nolink, .nolink * { text-decoration: none !important; color: inherit; pointer-events: none; -webkit-touch-callout: none; }
 /* 卡片编号（js/core/carousel.js 的 numbered）：每张卡上面一行 #3 / 8；⚙ 里可关，今日页不用 */
-.tc-no { display: none; }
-.tcarousel.tc-nums .tslide { flex-direction: column; }
-.tcarousel.tc-nums .tc-no { display: block; flex: none; margin: 0 0 6px 4px; font-size: 13px; font-weight: 700; color: var(--pine); font-variant-numeric: tabular-nums; }
-.tcarousel.tc-nums .tc-no small { font-weight: 500; color: var(--muted); font-size: 12.5px; }
 .tc-gear .tc-numopt { border-top: 1px solid var(--line-soft); border-radius: 0 0 8px 8px; margin-top: 4px; }
 
 /* 录入购物：第一项是「录入方式」下拉；选了才展开上传 / 文字 / 识别（.scan-steps） */
@@ -4475,3 +4471,7 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .kpis.k4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }   /* 账户概览顶上 4 个指标：手机 2×2，电脑一排 4 个 */
 @media (min-width: 720px) { .kpis.k4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .kpis.k4 .kpi:last-child { grid-column: auto; }   /* 盖掉手机上「最后一个占满一行」：4 个就是 2×2 */
+/* 卡片编号放在控制行里：‹ 短划线 #3/21 ›（不再单独占一行） */
+.tc-pos { display: none; flex: none; font-size: 12.5px; font-weight: 700; color: var(--pine); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tc-pos small { font-weight: 500; color: var(--muted); font-size: 12px; }
+.tcarousel.tc-nums .tc-pos { display: inline; }

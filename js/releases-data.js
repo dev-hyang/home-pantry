@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.1", title: { zh: "卡片编号并进控制行：‹ 短划线 #3/21 ›", en: "Card number joins the control row: ‹ dashes #3/21 ›" }, items: [
+    { k: "better", zh: "账单页的卡片编号不再单独占一行：直接显示在控制行里，短划线后面「#3/21」，滑动时跟着变；⚙ 里「显示卡片编号」仍可关", en: "The card number on the bills page no longer takes its own line: it sits in the control row after the dashes (“#3/21”) and updates as you swipe; the ⚙ “Show card numbers” switch still turns it off" },
+    { k: "fix", zh: "版本号改回「当天日期 + 从 1 开始」（今天是 2026-11-21，之前误接着 11-20 往后排到 .41）", en: "Version numbers are back to “today's date + counter from 1” (today is 2026-11-21; they had wrongly kept counting on from 11-20 up to .41)" },
+  ] },
+
   { v: "2026-11-20.41", title: { zh: "财务 → 账户：账户概览、信用卡、银行、投资、电子钱包与礼品卡各一页", en: "Finance → Accounts: overview, credit cards, banks, investments, e-wallets & gift cards" }, items: [
     { k: "new", zh: "「账户」组拆成五页：账户概览（四类账户一眼看：余额、数量、要更新的）、信用卡（原来的卡片、返现复盘、停用的默认折叠）、银行账户、投资账户、电子钱包与礼品卡", en: "The Accounts group is now five pages: Overview (four account types at a glance), Credit cards (cards, cash-back review, inactive folded), Bank accounts, Investment accounts and E-wallets & gift cards" },
     { k: "new", zh: "投资账户按用途分块：退休（401K / IRA）、教育（529）、孩子的投资账户（Trump account / UTMA）、医疗（HSA / FSA）、券商、加密货币；只记总值（在账户页「更新余额」，每月自动存快照），不记持仓和交易", en: "Investment accounts are grouped by purpose: retirement, education (529), kids’ accounts (Trump account / UTMA), health (HSA / FSA), brokerage and crypto; totals only (update the balance on the account page, monthly snapshots are automatic), no holdings or trades" },

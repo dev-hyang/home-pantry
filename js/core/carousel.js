@@ -9,7 +9,7 @@ import { esc } from "./util.js";
 import { t } from "./i18n.js";
 
 const GAP = 12, COPIES = 5, MID = 2;
-/* 卡片编号（numbered 的轮播才有，今日页没有）：⚙ 里「显示卡片编号」开关，记在这台设备上，默认开；开了每张卡上面一行 #3 / 8 */
+/* 卡片编号（numbered 的轮播才有，今日页没有）：⚙ 里「显示卡片编号」开关，记在这台设备上，默认开；开了控制行里短划线后面显示 #3/8 */
 const NUMS_KEY = "hmh-carousel-nums";
 export const numsOn = () => { try { return localStorage.getItem(NUMS_KEY) !== "0"; } catch { return true; } };
 /* 自动切换的秒数：控制行右边 ⚙ 里选（5 / 10 / 15 / 30 秒，或关掉），记在这台设备上；默认 10 秒 */
@@ -22,15 +22,14 @@ const reduced = () => !!window.matchMedia?.("(prefers-reduced-motion: reduce)").
 export function carouselHtml(id, slides, { label = "", top = false, numbered = false } = {}) {
   const n = slides.length; if (!n) return "";
   const loop = n > 1, cur = Math.min(pos[id] || 0, n - 1);
-  const no = (j) => (numbered ? `<div class="tc-no" aria-hidden="true">#${j + 1}<small> / ${n}</small></div>` : "");
-  const slide = (html, j, clone) => `<div class="tslide" ${clone ? 'aria-hidden="true" data-clone="1"' : `role="group" aria-roledescription="${esc(t("卡片"))}" aria-label="${j + 1}/${n}"`}>${no(j)}${html}</div>`;
+  const slide = (html, j, clone) => `<div class="tslide" ${clone ? 'aria-hidden="true" data-clone="1"' : `role="group" aria-roledescription="${esc(t("卡片"))}" aria-label="${j + 1}/${n}"`}>${html}</div>`;
   const track = loop ? Array.from({ length: COPIES }, (_, c) => slides.map((h, j) => slide(h, j, c !== MID)).join("")).join("") : slide(slides[0], 0, false);
   const nav = (d, l, ch) => `<button type="button" class="tc-nav" data-tcnav="${d}" aria-label="${esc(l)}">${ch}</button>`;
   const secs = autoSecs();
   const dash = (i) => `<button type="button" class="tc-dash ${i === cur ? "is-run" : ""}" data-tcdot="${i}" aria-label="${esc(t("第 {i} 张，共 {n} 张", { i: i + 1, n }))}" aria-current="${i === cur}"><i style="animation-duration:${secs || 10}s"></i></button>`;
   const opt = (v) => `<button type="button" class="act-item" data-tcsecs="${v}" aria-pressed="${secs === v}">${v ? t("{s} 秒", { s: v }) : t("关闭自动切换")}${secs === v ? " ✓" : ""}</button>`;
   const gear = `<details class="act-more ${top ? "" : "act-up "}tc-gear"><summary class="tc-nav" aria-label="${esc(t("自动切换的时间"))}" title="${esc(t("自动切换的时间"))}">⚙</summary><div class="act-menu">${[...SECS, 0].map(opt).join("")}${numbered ? `<button type="button" class="act-item tc-numopt" data-tcnums aria-pressed="${numsOn()}">${t("显示卡片编号")}${numsOn() ? " ✓" : ""}</button>` : ""}</div></details>`;
-  const ctrl = loop ? `<div class="tc-ctrl">${nav(-1, t("上一张"), "‹")}<div class="tc-dashes ${secs ? "" : "is-off"}" style="max-width:${n * 28 + 16 + (n - 1) * 4}px" title="${esc(secs ? t("每 {s} 秒自动换下一张；手指按着或鼠标停在卡片上时暂停", { s: secs }) : t("自动切换已关闭"))}">${slides.map((_, i) => dash(i)).join("")}</div>${nav(1, t("下一张"), "›")}${gear}</div>` : "";
+  const ctrl = loop ? `<div class="tc-ctrl">${nav(-1, t("上一张"), "‹")}<div class="tc-dashes ${secs ? "" : "is-off"}" style="max-width:${n * 28 + 16 + (n - 1) * 4}px" title="${esc(secs ? t("每 {s} 秒自动换下一张；手指按着或鼠标停在卡片上时暂停", { s: secs }) : t("自动切换已关闭"))}">${slides.map((_, i) => dash(i)).join("")}</div>${numbered ? `<span class="tc-pos" aria-hidden="true">#${cur + 1}<small>/${n}</small></span>` : ""}${nav(1, t("下一张"), "›")}${gear}</div>` : "";
   const view = `<div class="tc-view"><div class="ttrack" ${loop ? 'data-loop="1"' : ""} data-n="${n}" tabindex="0" role="region" aria-roledescription="carousel" aria-label="${esc(label)}">${track}</div></div>`;
   return `<div class="tcarousel${top ? " tc-top" : ""}${numbered && numsOn() ? " tc-nums" : ""}" data-carousel="${esc(id)}">${top ? ctrl + view : view + ctrl}</div>`;
 }
@@ -64,6 +63,7 @@ function markDash(box, i, restart = true) {
     if (k !== i) { b.classList.remove("is-run"); return; }
     if (restart || !b.classList.contains("is-run")) { b.classList.remove("is-run"); void b.offsetWidth; b.classList.add("is-run"); }   // 重新触发动画
   });
+  const pe = box.querySelector(".tc-pos"); if (pe) pe.innerHTML = `#${i + 1}<small>/${box.querySelectorAll(".tc-dash").length}</small>`;   // 控制行里的「#3/21」跟着换
 }
 
 if (typeof document !== "undefined") {
@@ -93,7 +93,7 @@ if (typeof document !== "undefined") {
     const nb = e.target.closest?.("[data-tcnums]");
     if (nb) {   // ⚙ 里「显示卡片编号」：开 / 关，所有带编号的轮播一起变
       const on = !numsOn(); try { localStorage.setItem(NUMS_KEY, on ? "1" : "0"); } catch { /* 忽略 */ }
-      document.querySelectorAll(".tcarousel").forEach((b) => { if (b.querySelector(".tc-no")) b.classList.toggle("tc-nums", on); });
+      document.querySelectorAll(".tcarousel").forEach((b) => { if (b.querySelector(".tc-pos")) b.classList.toggle("tc-nums", on); });
       document.querySelectorAll("[data-tcnums]").forEach((o) => { o.setAttribute("aria-pressed", String(on)); o.textContent = t("显示卡片编号") + (on ? " ✓" : ""); });
       nb.closest("details")?.removeAttribute("open");
       return;
