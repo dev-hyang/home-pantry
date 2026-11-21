@@ -6,7 +6,7 @@ import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
-import { moneyEye } from "../core/privacy.js";
+import { toolbarEye } from "../core/toolbar-eye.js";
 import { infoTip } from "../core/info-tip.js";
 import { moreMenu } from "../core/more-menu.js";
 import { lpAttr } from "../core/long-press.js";
@@ -160,7 +160,7 @@ function titleTip(f, C) {
 /** 右上角：眼睛 + ⋯（添加账单 / 批量标记核对 / 导出 CSV）；批量标记只在当前筛选里有待核对账单时出现，所以随筛选重画 */
 function headActsHtml(rows) {
   const nv = new Set((rows || []).filter((r) => r.kind === "recurring" && r.status === "verify").map((r) => r.billId)).size;
-  return `${moneyEye()}${moreMenu([{ label: t("添加账单"), href: href("bill", "new"), first: true }, nv ? { label: t("批量标记已核对（{n} 张）", { n: nv }), action: "all-verify" } : null, { label: t("导出 CSV"), action: "all-csv" }], { label: t("更多操作") })}`;
+  return `${moreMenu([{ label: t("添加账单"), href: href("bill", "new"), first: true }, nv ? { label: t("批量标记已核对（{n} 张）", { n: nv }), action: "all-verify" } : null, { label: t("导出 CSV"), action: "all-csv" }], { label: t("更多操作") })}`;
 }
 
 function listHtml(C) {
@@ -198,6 +198,7 @@ export function viewAllBills() {
       ${sel("allPay", { label: "按付款方式筛选", list: PAY_OPTS }, f.pay)}
       ${sel("allSort", { label: "排序", list: SORT_OPTS }, f.sort)}
       ${clearFiltersBtn("all", changed(f, FD.all))}
+      ${toolbarEye()}
     </div>
     <div id="allList">${listHtml(C)}</div>
   </section>${fabHtml()}`;

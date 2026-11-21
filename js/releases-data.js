@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.5", title: { zh: "商店页、账户页、账单页也换成目录 + 筛选", en: "Shops, Accounts and Bills pages get the Menu + Filter treatment too" }, items: [
+    { k: "better", zh: "常去的商店、特价一览：导航小卡片换成标题前面的「目录」按钮，原来 ⋯ 里的「更新记录」放进目录，⋯ 取消；说明文字挪到标题下一行", en: "Shops and Deals: the navigation cards are now a “Menu” button before the title, “Update log” moved from the ⋯ menu into it (⋯ removed), and the description sits on its own line below" },
+    { k: "better", zh: "账单概览、账户各页、周期性 / 一次性账单页：页头的眼睛换成最右的「筛选」按钮（里面是「金额显示」）；账单明细的眼睛在它自己的筛选条里", en: "Bills overview, account pages and recurring / one-time bills: the header eye is now a Filter button on the right (with “Amounts” inside); on the bills list the eye is in its own filter bar" },
+    { k: "better", zh: "手机上各列表页的「筛选」按钮也带上同样的小图标", en: "On phones the Filter button on list pages now has the same small icon" },
+  ] },
+
   { v: "2026-11-21.4", title: { zh: "花费、预算、借贷、对账单、资产页头：目录 + 筛选，和收入页一样", en: "Spending, Budget, Debts, Statements, Assets headers: Menu + Filter, like Income" }, items: [
     { k: "better", zh: "这几页顶上那排导航小卡片换成「目录」按钮（标题前面），时间范围等筛选收进最右的「筛选」按钮；标题改成「花费 / 概览」这样的路径，点前半截回第一页", en: "The navigation cards on these pages are now a “Menu” button before the title, time-range and other filters moved into the Filter button on the right; titles read like a path (“Spending / Overview”) and the first part goes back to the first page" },
     { k: "better", zh: "页头的眼睛并进「筛选」面板的「金额显示」；花费明细、借贷流水有自己的筛选条，眼睛就在那里面", en: "The header eye is now “Amounts” in the Filter panel; on Spending records and Debt transactions it lives in their own filter bar" },

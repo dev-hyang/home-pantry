@@ -25,6 +25,9 @@ export function navPop(items, { id = "nav", label = t("目录") } = {}) {
     </div></div>`;
 }
 
+/** 页头右边的「筛选」按钮，面板里只有「金额显示」（没有别的筛选项、但页面有金额要遮的页面用） */
+export const eyeFilter = () => filterPop("", { id: "pg", eye: true });
+
 /** 面板里的「金额显示」一行：就是页头原来那只眼睛（单击露 10 秒 / 马上遮；双击或长按切换常显示，规则在 privacy.js，按钮带 data-moneyeye 就生效） */
 export const eyeRow = () => `<div class="fpop-eye"><span class="fpop-eye-t"><b>${t("金额显示")}</b><small>${t("默认遮挡；单击露 10 秒，双击或长按切到常显示")}</small></span>${moneyEye()}</div>`;
 

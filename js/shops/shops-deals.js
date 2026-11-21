@@ -11,7 +11,7 @@ import { state } from "../core/state.js";
 import { dealHref, typeTags } from "./shop-detail.js";
 import { shopHref, ui } from "./shops-common.js";
 import { clearActionBtn } from "../core/clear-filters.js";
-import { shopsFab, shopsMore, shopsTabs } from "./shops-nav.js";
+import { shopsFab, shopsNav } from "./shops-nav.js";
 
 /* ───────────── 特价一览：以商品为主（各家的特价放在一起比），列表 / 卡片两种看法；?item= 只看购物车的某一项 ───────────── */
 const DV_SORTS = [["best", "推荐"], ["unit", "按单价"], ["price", "按价格"], ["soon", "快到期的在前"], ["shop", "按商店"]];
@@ -76,9 +76,8 @@ export function viewDeals() {
       <ul class="dv-g-list">${g.deals.map(gRow).join("")}</ul></section>`; };
   return `<section class="section shops-page dv-page">
     ${crumbNav(crumbs)}
-    <div class="section-head"><h2>${item ? t("「{name}」的特价", { name: esc(item.name) }) : t("特价一览")}</h2>
-      <p>${item ? (base.length ? `${t("{n} 家有特价。", { n: new Set(base.map((d) => d.shop_id)).size })}${picked ? t("卡片上显示的是你选的这家。") : t("卡片上默认显示 ★ 那条（{why}）；点「用这家」换成你选的。", { why: t(WHY[base.why] || WHY.unit) })}` : t("现在没有对得上的特价。")) : t("各家有效期内的特价放在一起比；单价相同单位才好比。")}</p>${item ? "" : `<div class="head-acts">${base.length ? viewSwitch([...(item ? [] : [["group", "按商品", "🧺"]]), ["list", "列表", "☰"], ["cards", "卡片", "▦"]], mode, { action: "shops-dv-mode" }) : ""}${shopsMore()}</div>`}</div>
-    ${item ? "" : shopsTabs("deals")}
+    <div class="section-head"><div class="sh-title">${item ? "" : shopsNav("deals")}<h2>${item ? t("「{name}」的特价", { name: esc(item.name) }) : t("特价一览")}</h2></div>${item ? "" : `<div class="head-acts">${base.length ? viewSwitch([["group", "按商品", "🧺"], ["list", "列表", "☰"], ["cards", "卡片", "▦"]], mode, { action: "shops-dv-mode" }) : ""}</div>`}</div>
+      <p class="head-sub">${item ? (base.length ? `${t("{n} 家有特价。", { n: new Set(base.map((d) => d.shop_id)).size })}${picked ? t("卡片上显示的是你选的这家。") : t("卡片上默认显示 ★ 那条（{why}）；点「用这家」换成你选的。", { why: t(WHY[base.why] || WHY.unit) })}` : t("现在没有对得上的特价。")) : t("各家有效期内的特价放在一起比；单价相同单位才好比。")}</p>
     ${base.length ? `<div class="toolbar shops-toolbar dv-toolbar">
       <label class="shops-q"><span class="sr-only">${t("搜索特价")}</span><input type="search" data-dv-q value="${esc(v.q)}" placeholder="${esc(t("搜索商品、牌子、商店"))}" autocomplete="off"></label>
       ${item ? "" : `<select data-dv-f data-nosearch aria-label="${esc(t("筛选特价"))}"><option value="all" ${v.f === "all" ? "selected" : ""}>${t("全部特价")}${cnt(base.length)}</option><option value="list" ${v.f === "list" ? "selected" : ""}>${t("对上清单")}${cnt(base.filter((d) => hits.get(d.id).length).length)}</option></select>`}

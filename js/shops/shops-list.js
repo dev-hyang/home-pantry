@@ -11,7 +11,7 @@ import { lpAttr } from "../core/long-press.js";
 import { Store } from "../core/store.js";
 import { bulkBar, bulkCheck, bulkMenuItem, bulkOn, bulkRegister } from "../core/bulk-select.js";
 import { clearActionBtn } from "../core/clear-filters.js";
-import { shopsFab, shopsMore, shopsTabs } from "./shops-nav.js";
+import { shopsFab, shopsNav } from "./shops-nav.js";
 
 /* ───────────── 列表 ───────────── */
 export function viewList() {
@@ -29,9 +29,8 @@ export function viewList() {
   return `<section class="section shops-page">
     ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("常去的商店"), icon: "🏪" }])}
     ${missingPanel()}
-    <div class="section-head"><h2>${t("常去的商店")}</h2><p>${t("每家的本周广告、特价都在这里；购物车会标出哪家在打折。")}</p>
-      <div class="head-acts">${shopsMore()}</div></div>
-    ${shopsTabs("list")}
+    <div class="section-head"><div class="sh-title">${shopsNav("list")}<h2>${t("常去的商店")}</h2></div></div>
+    <p class="head-sub">${t("每家的本周广告、特价都在这里；购物车会标出哪家在打折。")}</p>
     ${u.edit === "new" && !gridOn ? shopForm(null) : ""}
     ${u.claude ? claudePanel() : ""}
     ${due.length && u.status === "active" ? `<div class="panel shops-due" role="status">🗓️ ${t("{n} 家本周的特价还没更新：{names}", { n: due.length, names: due.map((s) => esc(s.name)).join("、") })}</div>` : ""}

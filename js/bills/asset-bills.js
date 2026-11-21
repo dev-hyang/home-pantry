@@ -6,7 +6,7 @@ import { state } from "../core/state.js";
 import { esc, fmtDate } from "../core/util.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
-import { moneyEye } from "../core/privacy.js";
+import { eyeFilter } from "../core/filter-pop.js";
 import { infoTip } from "../core/info-tip.js";
 import { crumbNav } from "../core/hub.js";
 import { propertyName } from "../core/alerts.js";
@@ -54,7 +54,7 @@ export function viewAssetBills() {
     : `<div class="panel empty"><strong>${t("这个资产还没有设置账单")}</strong>${t("点右下角的 ＋ 添加账单。")}</div>`;
   return `<section class="section" id="assetBillsPage">
     ${crumbNav([...backParts(key), { label: t("账单"), icon: "🧾" }])}
-    <div class="section-head"><h2>${ico} ${esc(name)}${key === "recurring" ? "" : ` · ${t("账单")}`} ${infoTip(tipText(), { align: "start" })}</h2><div class="head-acts">${moneyEye()}</div></div>
+    <div class="section-head"><h2>${ico} ${esc(name)}${key === "recurring" ? "" : ` · ${t("账单")}`} ${infoTip(tipText(), { align: "start" })}</h2><div class="head-acts">${eyeFilter()}</div></div>
     <p class="muted kinds-note" role="status">${esc(keyLine(C, range, cards.length))}</p>
     ${summaryHtml({ SK: C.S, truncated: 0 })}
     ${body}
