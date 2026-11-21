@@ -4399,7 +4399,16 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 /* 控制行：‹ 短划线 › 居中，⚙ 固定在右端（两边各留 40px，短划线始终居中）；短划线按剩余宽度平均分，当前那条宽一些，不会缩成小点（8 张以内手机上也有 ≥ 14px） */
 .tc-ctrl { padding: 0 40px; gap: 8px; }
 .tc-dashes { flex: 1 1 0; min-width: 0; justify-content: center; gap: 4px; overflow: hidden; }   /* max-width 由 carousel.js 按张数行内设定：宽屏贴着短划线，手机占满中间 */
-.tc-dash { flex: 1 1 0; min-width: 14px; max-width: 28px; width: auto; }
-.tc-dash[aria-current="true"] { flex: 2 1 0; min-width: 24px; max-width: 44px; width: auto; }
+.tc-dash { flex: 1 1 0; min-width: 4px; max-width: 28px; width: auto; }   /* 张数少时各占 ≤ 28px（8 张手机上约 18px）；张数很多（20+）才会缩到几 px，这时靠编号看第几张 */
+.tc-dash[aria-current="true"] { flex: 2 1 0; min-width: 8px; max-width: 44px; width: auto; }
 /* 控制行在卡片上面时，⚙ 的下拉菜单要盖在下面的卡片上（卡片轨道是后面的兄弟，不抬高控制行就会盖住菜单） */
 .tcarousel.tc-top > .tc-ctrl { position: relative; z-index: 20; }
+
+/* 登录提示：纯文字，不做成链接、不加下划线（手机的自动识别也关掉了，见 index.html 的 format-detection） */
+.nolink, .nolink * { text-decoration: none !important; color: inherit; pointer-events: none; -webkit-touch-callout: none; }
+/* 卡片编号（js/core/carousel.js 的 numbered）：每张卡上面一行 #3 / 8；⚙ 里可关，今日页不用 */
+.tc-no { display: none; }
+.tcarousel.tc-nums .tslide { flex-direction: column; }
+.tcarousel.tc-nums .tc-no { display: block; flex: none; margin: 0 0 6px 4px; font-size: 13px; font-weight: 700; color: var(--pine); font-variant-numeric: tabular-nums; }
+.tcarousel.tc-nums .tc-no small { font-weight: 500; color: var(--muted); font-size: 12.5px; }
+.tc-gear .tc-numopt { border-top: 1px solid var(--line-soft); border-radius: 0 0 8px 8px; margin-top: 4px; }

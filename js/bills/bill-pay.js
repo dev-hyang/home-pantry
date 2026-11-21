@@ -32,7 +32,7 @@ export function billHeadCard(b, base, { listed = false } = {}) {   // listed = �
   const contact = hoa ? [hoa.phone ? `<a href="tel:${esc(hoa.phone.replace(/[^\d+]/g, ""))}">${esc(hoa.phone)}</a>` : "", ...emails.map((e) => `<a href="mailto:${esc(e)}">${esc(e)}</a>`)].filter(Boolean).join("<br>") : "";
   const provider = isHoa && hoa
     ? headSec("HOA", [[L("HOA 公司", "HOA"), esc([hoa.name, hoa.mgmt].filter(Boolean).join(" · "))], [L("联系方式", "Contact"), contact], [L("官网 / 缴费网站", "Website"), linkOf(b.pay_url || hoa.url)]])
-    : headSec(isHoa ? "HOA" : t("服务商"), [[L("收款方", "Payee"), esc(b.payee || "")], [L("官网 / 缴费网站", "Website"), linkOf(b.pay_url)], [L("登录提示", "Login hint"), esc(b.login_hint || "")]]);
+    : headSec(isHoa ? "HOA" : t("服务商"), [[L("收款方", "Payee"), esc(b.payee || "")], [L("官网 / 缴费网站", "Website"), linkOf(b.pay_url)], [L("登录提示", "Login hint"), b.login_hint ? `<span class="nolink">${esc(b.login_hint)}</span>` : ""]]);
   const method = b.autopay ? `${t("自动扣款")}${billPayLabel(b) ? ` · ${esc(billPayLabel(b))}` : ""}` : `${t("手动缴费")}${billPayLabel(b) ? ` · ${esc(billPayLabel(b))}` : ""}`;
   const cost = billCostParts(b);
   const formula = cost.parts.length > 1 ? `<small class="bh-formula">= ${cost.parts.map((x) => `${mny(x.amount, b.currency)} (${esc(x.k)})`).join(" + ")}</small>` : cost.parts.length ? `<small class="bh-formula">${esc(cost.parts[0].k)}${b.est != null && cost.parts[0].k === t("估算") ? ` · ${t("按最近均值")}` : ""}</small>` : "";

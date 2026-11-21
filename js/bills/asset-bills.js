@@ -7,6 +7,7 @@ import { esc, fmtDate } from "../core/util.js";
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { moneyEye } from "../core/privacy.js";
+import { infoTip } from "../core/info-tip.js";
 import { crumbNav } from "../core/hub.js";
 import { propertyName } from "../core/alerts.js";
 import { carouselHtml } from "../core/carousel.js";
@@ -35,11 +36,12 @@ function backParts(key) {
 /** 一张卡 = 账单详情页顶上那张概要卡（周期性 billHeadCard / 一次性 medHeadCard），带「周期性 / 一次性」标记和同样的 ⋯ 菜单 */
 const cardHtml = ({ kind, b }) => (kind === "onetime" ? medHeadCard(b, { listed: true }) : billHeadCard(b, href("bill", b.id), { listed: true }));
 
-function noteText(C, range, n) {
+/** 页面上只留关键信息一行：时间范围 + 几张账单；长说明（合计口径、逾期、预估）收进标题旁的 ⓘ */
+function keyLine(C, range, n) {
   const scope = range === "all" ? t("不限时间") : `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
-  const r = t(BILL_RANGES.find(([k]) => k === range)?.[1] || range);
-  return t("合计只算这个清单里的账单 · 时间范围：{r}（{s}）；逾期没缴的一直计入，含预估的金额会标出来。共 {n} 张账单。", { r, s: scope, n });
+  return t("{r}（{s}） · 共 {n} 张账单", { r: t(BILL_RANGES.find(([k]) => k === range)?.[1] || range), s: scope, n });
 }
+const tipText = () => t("合计只算这个清单里的账单；逾期没缴的一直计入，不受时间范围限制；含预估的金额会标出来。账单卡片不随时间范围变。");
 
 export function viewAssetBills() {
   const key = routeKey();
@@ -48,12 +50,12 @@ export function viewAssetBills() {
   const label = labelOf(key), name = label.replace(/^\S+\s/, ""), ico = label.split(" ")[0];
   const cards = assetBillCards(key, state.billsEnriched, state.medEnriched);
   const body = cards.length
-    ? `<section class="section" aria-label="${esc(t("账单卡片"))}">${carouselHtml(`assetbills:${key}`, cards.map(cardHtml), { label: t("账单卡片：左右滑动，或点上面的短划线"), top: true })}</section>`
+    ? `<section class="section" aria-label="${esc(t("账单卡片"))}">${carouselHtml(`assetbills:${key}`, cards.map(cardHtml), { label: t("账单卡片：左右滑动，或点上面的短划线"), top: true, numbered: true })}</section>`
     : `<div class="panel empty"><strong>${t("这个资产还没有设置账单")}</strong>${t("点右下角的 ＋ 添加账单。")}</div>`;
   return `<section class="section" id="assetBillsPage">
     ${crumbNav([...backParts(key), { label: t("账单"), icon: "🧾" }])}
-    <div class="section-head"><h2>${ico} ${esc(name)}${key === "recurring" ? "" : ` · ${t("账单")}`}</h2><div class="head-acts">${moneyEye()}</div></div>
-    <p class="muted kinds-note" role="status">${esc(noteText(C, range, cards.length))}</p>
+    <div class="section-head"><h2>${ico} ${esc(name)}${key === "recurring" ? "" : ` · ${t("账单")}`} ${infoTip(tipText(), { align: "start" })}</h2><div class="head-acts">${moneyEye()}</div></div>
+    <p class="muted kinds-note" role="status">${esc(keyLine(C, range, cards.length))}</p>
     ${summaryHtml({ SK: C.S, truncated: 0 })}
     ${body}
   </section>${fabHtml()}`;

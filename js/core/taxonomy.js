@@ -70,7 +70,7 @@ export const L2S = [
   { id: "loans_fees",     p: "financial", name: "贷款利息与手续费", icon: "💳", color: "#b4506a", leaves: ["bill_student_loan", "bill_personal_loan", "bill_car_loan", "life_fees", "debt_principal"] },
   { id: "insurance",      p: "financial", name: "保险",             icon: "🛟", color: "#5f7fa8", leaves: ["bill_insurance_life", "bill_insurance_other"] },
   { id: "gov_admin",      p: "financial", name: "政务手续",         icon: "🏛️", color: "#6b7a8f", leaves: ["life_gov", "life_mail", "legal"] },
-  { id: "donations",      p: "financial", name: "捐款奉献",         icon: "🙏", color: "#24897d", leaves: ["bill_donation"] },
+  { id: "donations",      p: "financial", name: "捐款奉献",         icon: "💝", color: "#24897d", leaves: ["bill_donation"] },
   { id: "work",           p: "financial", name: "工作与进修",       icon: "💼", color: "#3f6c8f", leaves: ["work_software", "work_cert", "work_legal", "work_supplies", "work_other", "life_edu"] },
   { id: "capital_misc",   p: "financial", name: "其他资本性",       icon: "🧱", color: "#9ca3af", leaves: ["capital_other"] },
   // 转账

@@ -3,7 +3,7 @@ import { $, catOf, esc, fmt, fmtShort, inSpace, isGear, num, spaceOf, stampText,
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { STATUS, state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { catDashboard, catSelOpts, chipGroups, grpName, isPhone, locationFilter } from "./inventory.js";
+import { catDashboard, catSelOpts, chipGroups, grpName, isPhone, locationFilter, spaceFilter } from "./inventory.js";
 import { t } from "../core/i18n.js";
 import { discardBtn, shelfGrid } from "./restock.js";
 import { href } from "../core/router.js";
@@ -31,17 +31,18 @@ export const fab = (space, label) => (String(space).includes("&cat=")
 function viewInvRows(space) {
   const f = state.filter;
   if (f.space !== space) Object.assign(f, { space, cat: "all" });
-  const spaces = invSpaces(), all = state.enriched.filter((x) => spaces.some((s) => inSpace(s)(x)));
+  const all = state.enriched.filter(inSpace(space));   // 一次只看一个范围（工具条里的「范围」下拉）
   const cur = f.cat !== "all" ? catOf(f.cat) : null;
   return `<section class="section inv-rows-page">
       <div class="section-head"><p>${t("{n} 件", { n: all.length })}</p><div class="head-acts">
         <button type="button" class="btn btn-sm ${state.invSel ? "btn-primary" : "btn-ghost"}" data-action="inv-select" aria-pressed="${!!state.invSel}">${state.invSel ? t("完成") : `☑ ${t("多选")}`}</button>${viewSeg("rows")}</div></div>
       <div class="toolbar">
         <input type="search" id="invSearch" placeholder="${t("搜索物品，例如：纸、蛋")}" value="${esc(f.q)}" aria-label="${t("搜索物品")}">
-        <select id="invStatus" aria-label="${t("按提醒筛选")}">
+        ${spaceFilter(space)}
+        ${space === "gear" ? "" : `<select id="invStatus" aria-label="${t("按提醒筛选")}">
           ${[["all", "全部状态"], ["alert", "需要补货"], ["out", "缺货"], ["low", "少货"], ["soon", "即将告罄"], ["exp", "临期或过期"], ["ok", "充足"]]
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
-        </select>
+        </select>`}
         ${locationFilter(all, f)}
         ${ownerFilter(f)}
         <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
@@ -81,7 +82,7 @@ function renderInvRows(host) {
       <div class="pv-body">${need.length && !state.invSel ? `<div class="inv-sec-bar"><span class="muted">${t("{n} 件要补货", { n: need.length })}</span><button type="button" class="btn btn-sm" data-action="inv-sec-shop" data-space="${space}">🛒 ${t("全部加入购物车")}</button></div>` : ""}${body}</div></details>`;
   };
   const SEC = { pantry: ["🥫", t("日常消耗品")], house: ["🧰", t("汽车房屋消耗品")], gear: ["🛋️", t("家居耐用品")] };
-  host.innerHTML = `<div class="pv-cards">${invSpaces().map((s) => sec(s, ...SEC[s])).join("")}</div>`;
+  host.innerHTML = `<div class="pv-cards">${invSpaces().filter((s) => s === f.space).map((s) => sec(s, ...SEC[s])).join("")}</div>`;
 }
 /** 库存状态标签（缺货 / 少货 / 即将告罄 / 充足）：库存行用 badge，物品编辑页标题右边也用 */
 export const statusTag = (it) => `<span class="badge ${STATUS[it.status].cls}">${t(STATUS[it.status].label)}</span>`;
@@ -150,15 +151,12 @@ export function viewInventory(space = "pantry") {
         <div class="head-acts">${house && !phone ? `<a class="btn btn-sm btn-ghost" href="${href("house", "template")}">${t("按房屋资料推荐")}</a>` : ""}
         ${cur && !cf ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-edit" data-cat="${cur.id}">${t("编辑分类")}</button>` : ""}
         ${viewSeg("cats")}</div></div>
-      ${!state.houseEnabled && !state.gearEnabled ? "" : `<div class="chips" role="group" aria-label="${t("库存范围")}">
-        <button type="button" class="chip" data-action="inv-space" data-space="pantry" aria-pressed="${!house && !gear}">🥫 ${t("日常消耗品")}</button>
-        ${state.houseEnabled ? `<button type="button" class="chip" data-action="inv-space" data-space="house" aria-pressed="${house}">🧰 ${t("汽车房屋消耗品")}</button>` : ""}
-        ${state.gearEnabled ? `<button type="button" class="chip" data-action="inv-space" data-space="gear" aria-pressed="${gear}">🛋️ ${t("家居耐用品")}</button>` : ""}</div>`}
       ${house && !phone ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">${t("滤网、电池、融雪盐这类要消耗、要补货的房屋用品；设备页的“相关耗材”会指到这里。")}</p>` : ""}
       ${gear && !phone ? `<p class="muted" style="margin:-4px 0 12px;font-size:13px">${t("床品、电器、自行车、千斤顶、工具这类耐用品：只记有几件、放在哪，不算消耗、不提醒补货。")}</p>` : ""}
       ${shelf ? `<div class="shelf" style="margin-bottom:14px">${shelf}</div>` : ""}
       <div class="toolbar">
         <input type="search" id="invSearch" placeholder="${gear ? t("搜索，例如：被罩、千斤顶、自行车") : house ? t("搜索，例如：滤网、电池") : t("搜索物品，例如：纸、蛋")}" value="${esc(f.q)}" aria-label="${t("搜索物品")}">
+        ${spaceFilter(space)}
         ${gear ? "" : `<select id="invStatus" aria-label="${t("按提醒筛选")}">
           ${[["all", "全部状态"], ["alert", "需要补货"], ["out", "缺货"], ["low", "少货"], ["soon", "即将告罄"], ["exp", "临期或过期"], ["ok", "充足"]]
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}

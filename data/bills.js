@@ -38,7 +38,7 @@
     { id: "security",       name: "安防 / 监控",     icon: "🚨", essential: false },
     { id: "activities",     name: "课外班 / 夏令营 / 兴趣班", icon: "🎨", essential: false },
     { id: "toll",           name: "通行费（E-ZPass）", icon: "🛣️", essential: false },
-    { id: "donation",       name: "奉献 / 捐款",     icon: "🙏", essential: false },
+    { id: "donation",       name: "奉献 / 捐款",     icon: "💝", essential: false },
     { id: "income_tax",     name: "所得税 / 预缴税",  icon: "🧮", essential: true },
     { id: "pet",            name: "宠物（保险 / 寄养 / 美容）", icon: "🐾", essential: false },
     { id: "heating_oil",    name: "取暖油 / 丙烷 / 柴火", icon: "🛢️", essential: true },

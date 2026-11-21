@@ -36,7 +36,7 @@ function rows(b, id) {
       fact(t("通常手续费（估算）"), b.typical_fee != null ? mny(b.typical_fee, cur) : ""), fact(t("通常税（估算）"), b.typical_tax != null ? mny(b.typical_tax, cur) : ""), fact(t("货币"), esc(cur || ""))];
     case "autopay": return [fact(t("缴费方式"), pick(bills.CHANNELS, b.pay_channel)), fact(t("付款账户 / 卡"), esc(billPayLabel(b) || "")), fact(t("自动扣款"), yn(b.autopay)),
       !exp && b.autopay_card_expires ? fact(t("扣款卡有效期"), esc(b.autopay_card_expires)) : "", fact(t("缴费链接"), link(b.pay_url)), fact(t("账号尾号"), esc(b.account_last4 || "")),
-      fact(t("登录提示"), esc(b.login_hint || "")), fact(t("账单怎么来"), pick(bills.STATEMENTS, b.statement_channel))];
+      fact(t("登录提示"), b.login_hint ? `<span class="nolink">${esc(b.login_hint)}</span>` : ""), fact(t("账单怎么来"), pick(bills.STATEMENTS, b.statement_channel))];
     default: return [fact(t("提前提醒（天，逗号分隔）"), esc((b.reminder_days || [7, 1]).join(", "))), fact(t("宽限天数"), b.grace_days ? esc(String(b.grace_days)) : ""), fact(t("结束日期（可选）"), b.ends_on ? esc(fmtDate(b.ends_on)) : ""),
       fact(t("滞纳金说明"), esc(b.late_fee_note || "")), fact(t("谁负责"), who ? esc(who.name) : ""), fact(t("必要支出（预算里单独统计）"), yn(b.essential !== false)), fact(t("启用（停用后不再提醒，记录保留）"), yn(b.active !== false)),
       b.notes ? fact(t("备注"), `<span class="pre">${esc(b.notes)}</span>`) : ""];

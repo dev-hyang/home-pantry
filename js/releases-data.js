@@ -8,6 +8,11 @@ export const RELEASES = [
     { k: "better", zh: "「按资产 / 按周期」换成和其他页一样的「视图」切换按钮；卡片多时短划线按宽度平均分，⚙ 固定在右端不再压住按钮", en: "“By asset / By cycle” now uses the same View switch as other pages; with many cards the dashes share the width evenly and ⚙ keeps a fixed slot at the right" },
     { k: "fix", zh: "卡片上面的 ⚙ 下拉菜单不再被下面的卡片盖住（今日页和账单页）", en: "The ⚙ dropdown above the cards is no longer hidden behind the cards (Today and bills pages)" },
     { k: "fix", zh: "房屋里的「账单」页面包屑补回了房产名：房屋 / 房产名 / 账单", en: "The Bills page under a property shows the property again in its path: Home / property / Bills" },
+    { k: "better", zh: "库存页：日常消耗品 / 汽车房屋消耗品 / 家居耐用品 收进工具条的「范围」下拉里，默认日常消耗品，物品视图一次只看一个范围", en: "Stock page: Daily supplies / Car & home supplies / Home durables now live in a Scope dropdown in the filter bar, defaulting to Daily supplies; the item view shows one scope at a time" },
+    { k: "better", zh: "周期性账单页只留「时间范围 · 几张账单」一行，合计口径等长说明收进标题旁的 ⓘ", en: "The recurring bills page keeps one key line (range · number of bills); the longer explanation moved into the ⓘ next to the title" },
+    { k: "better", zh: "账单页的短划线 ⚙ 里多了「显示卡片编号」：每张账单卡上面显示 #3 / 8，知道看到第几张（默认开，可关；今日页没有）", en: "The ⚙ on the bills page has a new “Show card numbers” option: each card shows #3 / 8 so you know which one you are on (on by default; not on Today)" },
+    { k: "fix", zh: "账单里的「登录提示」只是文字：不再是链接、没有下划线，手机也不会把邮箱 / 网址自动识别成链接", en: "A bill's Login hint is now plain text: no link, no underline, and phones no longer auto-link emails or URLs in it" },
+    { k: "better", zh: "「奉献 / 捐款」账单的图标换成 💝", en: "The Giving / Donation bill icon is now 💝" },
   ] },
 
   { v: "2026-11-20.30", title: { zh: "今日页：「家里」卡片精简，滑动控制行挪到卡片上面", en: "Today: slimmer Home card, carousel controls moved above the cards" }, items: [

@@ -15,5 +15,5 @@ export function catNeed(cat) { return state.enriched.filter((x) => x.category ==
 export function secNeed(space) { return state.enriched.filter((x) => inSpace(space)(x) && rowMatch(x) && x.status !== "ok" && !openShopFor(x.id)).sort(invSorter("default")); }
 /** 当前筛选下看得见的物品（全选用） */
 export function visibleItemIds() {
-  return state.enriched.filter((x) => invSpaces().some((s) => inSpace(s)(x)) && rowMatch(x)).map((x) => x.id);
+  return state.enriched.filter((x) => inSpace(state.filter.space || "pantry")(x) && rowMatch(x)).map((x) => x.id);
 }
