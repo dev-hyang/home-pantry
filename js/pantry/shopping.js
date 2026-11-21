@@ -9,7 +9,8 @@ import { shopDealPicker, shopsStats } from "../shops/lite.js";
 import { shopScanHtml } from "./shop-scan.js";
 import { state } from "../core/state.js";
 import { shopSelText, shopUnit } from "./shop-sync.js";
-import { inState, isMine, shopRows } from "./shop-sync-common.js";
+import { inState, isMine, modeOfRow, shopRows } from "./shop-sync-common.js";
+import { groupByMode } from "./buy-mode.js";
 import { categoryOptions } from "./meals-sync.js";
 import { cardSelectHtml } from "../bills/card-picker.js";
 import { cardHintHtml } from "../bills/cards-review.js";
@@ -27,7 +28,7 @@ function shopQty(s) {
     <button type="button" data-action="shop-qty" data-id="${s.id}" data-dir="1" aria-label="${esc(t("{name} 增加 {q} {u}", { name: s.name, q: step, u: t(d) }))}">+</button>
   </span>`;
 }
-const SHOP_SORTS = [["new", "最近加入的在前"], ["old", "加入最久的在前"], ["name", "名称 A → Z"], ["cat", "按分类"]];
+const SHOP_SORTS = [["mode", "按采购方式（一页看完）"], ["new", "最近加入的在前"], ["old", "加入最久的在前"], ["name", "名称 A → Z"], ["cat", "按分类"]];
 const shopCat = (s) => state.items.find((i) => i.id === s.item_id)?.category || s.category || "other";
 /* 采购（2026-11-13 重新设计）：#/shopping 是看板首页（几个数字 + 录入入口 + 待买预览），
  * #/shopping/list 是完整清单（搜索 + 状态 / 分类 / 排序下拉，默认加入最久的在前），#/shopping/add 是「加入清单」页（手动 / 拍照）。
@@ -45,13 +46,22 @@ function shopToolbar() {
     <select id="shopCat" data-search aria-label="${t("按分类筛选")}">${opt("all", t("全部分类"), f.cat)}${cats.map((c) => opt(c, `${(window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).icon || ""} ${t((window.CATEGORIES.find((x) => x.id === c) || OTHER_CAT).name)}`.trim(), f.cat)).join("")}</select>
     <select id="shopSort" aria-label="${t("排序")}">${SHOP_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>${clearFiltersBtn("shop", changed(f, FD.shop))}</div>`;
 }
+/** 按采购方式分组：顶上一排「线上订阅 3 · 批量 2 · 生鲜 4」小标签（点一下跳到那一组），下面每组一块（标题 + 一句说明，可折叠），组里是一行一项 */
+function groupedHtml(rows) {
+  const groups = groupByMode(rows, modeOfRow);
+  const strip = groups.length > 1 ? `<nav class="shop-modes" aria-label="${esc(t("按采购方式"))}">${groups.map(({ mode, rows: r }) => `<button type="button" class="chip" data-action="shop-jump" data-grp="${mode.id}">${mode.icon} ${esc(t(mode.name))} <b>${r.length}</b></button>`).join("")}</nav>` : "";
+  return strip + groups.map(({ mode, rows: r }) => `<details class="shop-grp" id="shopGrp-${mode.id}" open>
+    <summary><span class="sg-t"><b>${mode.icon} ${esc(t(mode.name))}</b> <span class="sg-n">${t("{n} 项", { n: r.length })}</span></span>${mode.hint ? `<small class="muted sg-hint">${esc(t(mode.hint))}</small>` : ""}</summary>
+    <ul class="shop-list">${r.map(shopRowHtml).join("")}</ul></details>`).join("");
+}
 /** 清单本身（搜索框输入时只重画这一块，光标不跳） */
 function shopListBody() {
   const f = state.shopFilter, rows = shopRows(), key = `shop:${f.st}`, lim = pageLimit(key, JSON.stringify(f));
   const empty = f.q ? t("没找到「{q}」。", { q: f.q }) : { open: t("没有待买的东西。"), todo: t("都有人认领了。"), claimed: t("点“我来买”认领，家人就不会重复买。"), mine: t("你还没有认领要买的东西。"), bought: t("买到后自动加回库存。"), all: t("购物车是空的。") }[f.st] || "";
   const bought = f.st === "bought" || f.st === "all" ? state.shopping.some((s) => s.status === "bought") : false;
   return `<div class="shop-list-meta" data-n="${rows.length}">${bought ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shop-clear">${t("清空已买到")}</button>` : ""}</div>
-    ${rows.length ? `<ul class="shop-list">${rows.slice(0, lim).map(shopRowHtml).join("")}</ul>${pageMoreBtn(key, rows.length, lim)}` : `<p class="muted shops-empty">${esc(empty)}</p>`}`;
+    ${!rows.length ? `<p class="muted shops-empty">${esc(empty)}</p>` : f.sort === "mode" ? groupedHtml(rows.slice(0, lim)) + pageMoreBtn(key, rows.length, lim)
+      : `<ul class="shop-list">${rows.slice(0, lim).map(shopRowHtml).join("")}</ul>${pageMoreBtn(key, rows.length, lim)}`}`;
 }
 export function renderShopList() { const box = $("#shopListBox"); if (box) box.innerHTML = shopListBody(); shopCount(); }
 /** 购物车标题旁的「n 项」：跟着筛选 / 搜索变 */

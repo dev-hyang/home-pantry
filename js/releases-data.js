@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.36", title: { zh: "购物车按采购方式分组，一页看完所有要买的", en: "Cart grouped by how to buy, everything on one page" }, items: [
+    { k: "new", zh: "购物车默认按「采购方式」分成几组：线上订阅 / 网购（省钱）、批量采购（省时）、生鲜即买（保鲜，每周一次超市行程）；一页往下看完，不用切换；顶上一排小标签带数量，点一下跳到那一组，每组可折叠", en: "The cart is now grouped by how to buy: Online / subscribe (save money), Bulk (save time) and Fresh (stay fresh, one supermarket trip a week). One page, no switching; chips on top show counts and jump to a group, and each group can be folded" },
+    { k: "better", zh: "分组按物品的分类自动推（生鲜、肉蛋奶、冷冻 → 生鲜；粮油干货、零食、饮品 → 批量；纸品清洁、个人护理、药品、母婴、宠物、房屋消耗品 → 线上订阅）；排序下拉里仍可换回「最近加入的在前」等", en: "Groups are inferred from each item's category; the sort dropdown still lets you switch back to Newest first and so on" },
+  ] },
+
   { v: "2026-11-20.35", title: { zh: "录入购物：录入方式单独一块；手动添加的「记到哪里」和表单联动", en: "Log shopping: separate How-to-add block; manual Record-to now drives the form" }, items: [
     { k: "better", zh: "「录入方式」和「记到哪里」做成页面上方单独的一块表单；手动添加时它们也留在表单上面，标题行恢复原样", en: "“How to add” and “Record to” are now their own block above the form; in manual mode they stay above the form and the title row is back to normal" },
     { k: "better", zh: "手动添加默认「只入库」；选「只记花费」时，每行的「放进库存」固定成「只记花费，不入库」并变灰；选「只入库」时，「只记花费」选项不可选、「金额」变灰", en: "Manual add defaults to Stock only; Spend only locks every row's “Put in stock” to “Spend only, no stock” (greyed); Stock only disables the Spend-only choice and greys the amount" },

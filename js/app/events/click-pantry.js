@@ -23,7 +23,7 @@ import { spendListNow } from "../lazy-modules.js";
 import { renderSpendList } from "../lazy-modules.js";
 
 /** 点击动作（储藏：库存、购物车、物品、分类、位置、耐用品）：这一组处理的 data-action */
-export const PANTRY_ACTIONS = new Set(["inv-sel-start","shop-sel-start","add-item","edit","item-cancel","item-delete","inv-space","supply-add","gear-enable","gear-broke","inv-view","supply-add-pick","add-item-pick","inv-cat-shop","inv-sec-shop","inv-select","inv-sel-all","inv-sel-shop","inv-sel-mute","inv-sel-del","item-remind","inv-del","inv-shop","consume","restock","inv-sub","cat","cat-new","cat-edit","cat-cancel","cat-restore","cat-hide","inv-clear","loc-new","loc-edit","loc-cancel","loc-del","cat-delete","cat-sort","cat-move","goto-cat","goto-status","shop-add-item","shop-remove-item","shop-select","shop-sel-all","shop-sel-remove","cat-check-ok","cat-check-all","cat-check-alt","mute-item","shop-add-alerts","shop-import","shop-import-cancel","shop-claim","shop-unclaim","shop-bought","shop-qty","shop-del","shop-clear","diet","shuffle","slot-swap","page-more","purchase-del","recipe-missing"]);
+export const PANTRY_ACTIONS = new Set(["shop-jump","inv-sel-start","shop-sel-start","add-item","edit","item-cancel","item-delete","inv-space","supply-add","gear-enable","gear-broke","inv-view","supply-add-pick","add-item-pick","inv-cat-shop","inv-sec-shop","inv-select","inv-sel-all","inv-sel-shop","inv-sel-mute","inv-sel-del","item-remind","inv-del","inv-shop","consume","restock","inv-sub","cat","cat-new","cat-edit","cat-cancel","cat-restore","cat-hide","inv-clear","loc-new","loc-edit","loc-cancel","loc-del","cat-delete","cat-sort","cat-move","goto-cat","goto-status","shop-add-item","shop-remove-item","shop-select","shop-sel-all","shop-sel-remove","cat-check-ok","cat-check-all","cat-check-alt","mute-item","shop-add-alerts","shop-import","shop-import-cancel","shop-claim","shop-unclaim","shop-bought","shop-qty","shop-del","shop-clear","diet","shuffle","slot-swap","page-more","purchase-del","recipe-missing"]);
 /** 点击动作（储藏：库存、购物车、物品、分类、位置、耐用品）：按 data-action 分支；el 是被点的元素，id 是它的 data-id，e 是点击事件 */
 export async function clickPantry(action, el, id, e) {
   switch (action) {
@@ -131,6 +131,7 @@ export async function clickPantry(action, el, id, e) {
       case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
       case "shop-add-item": return addAlertsToShopping([state.enriched.find((x) => x.id === id)]);
       case "shop-remove-item": return removeFromShopping([id]);
+      case "shop-jump": { const d = document.getElementById(`shopGrp-${el.dataset.grp}`); if (d) { d.open = true; d.scrollIntoView({ block: "start", behavior: "smooth" }); } return; }   // 采购方式小标签：跳到那一组
       case "shop-select": state.shopSel = state.shopSel ? null : new Set(); return render();   // 购物车「完成」：退出多选
       case "shop-sel-start": state.shopSel = new Set([id]); return render();   // 长按菜单「多选」：进入多选，这一行先勾上
       case "shop-sel-all": { const ids = shopVisibleIds(), all = ids.length && ids.every((x) => state.shopSel?.has(x)); state.shopSel = new Set(all ? [] : ids); return render(); }

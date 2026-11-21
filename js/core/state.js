@@ -21,7 +21,7 @@ export const state = {
   ovFilter: { range: "m", asset: "all", group: "asset" },   // 财务 → 账单概览（bills/overview-views.js）：范围记在本机，资产每次进来回到全部
   allFilter: { q: "", range: "all", asset: "all", type: "all", cat: "all", status: "all", pay: "all", sort: "due" },   // 财务 → 全部账单（bills/all-views.js）
   payFilter: { bill: "all", year: "all", status: "all", sort: "new" },   // 缴费记录的筛选与排序（服务器分页，读到的页在 bills/views.js 的 payList）
-  shopFilter: { st: "open", cat: "all", q: "", sort: "new" },                             // 购物车的筛选与排序
+  shopFilter: { st: "open", cat: "all", q: "", sort: "mode" },                             // 购物车的筛选与排序
   dealFilter: "all", dealStage: "all", dealActFilter: "all",   // 时间线：完成情况 / 阶段（计划、对比）；实际：进展记录 / 勾选完成
   dealSort: (() => { try { return localStorage.getItem("hmh-deal-sort") === "asc" ? "asc" : "desc"; } catch { return "desc"; } })(),   // 时间线排序：desc 由近及远（默认）/ asc 由远及近                                                               // 交易清单：全部 / 未完成 / 逾期 / 必须
   tasksOnlyUndone: false,                                                          // 季节任务：只看未完成
