@@ -2,6 +2,14 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.31", title: { zh: "全部周期性账单（固定清单）；账单概览的分组切换换成统一的「视图」控件", en: "All recurring bills as a fixed list; the overview grouping uses the shared View switch" }, items: [
+    { k: "new", zh: "财务页面目录里多了「全部周期性账单」：手机、房产税、房屋保险、车辆牌照、订阅……每张账单一张卡，不挂房产的也在，不随时间范围变", en: "Finance now lists “All recurring bills”: phone, property tax, home insurance, vehicle registration, subscriptions… one card per bill, including ones not tied to a property, independent of the time range" },
+    { k: "better", zh: "账单概览里点「家庭通用」「车辆」那一行，进的也是这样的固定清单卡片", en: "On the bills overview, the General and Vehicle rows now open the same fixed card list" },
+    { k: "better", zh: "「按资产 / 按周期」换成和其他页一样的「视图」切换按钮；卡片多时短划线按宽度平均分，⚙ 固定在右端不再压住按钮", en: "“By asset / By cycle” now uses the same View switch as other pages; with many cards the dashes share the width evenly and ⚙ keeps a fixed slot at the right" },
+    { k: "fix", zh: "卡片上面的 ⚙ 下拉菜单不再被下面的卡片盖住（今日页和账单页）", en: "The ⚙ dropdown above the cards is no longer hidden behind the cards (Today and bills pages)" },
+    { k: "fix", zh: "房屋里的「账单」页面包屑补回了房产名：房屋 / 房产名 / 账单", en: "The Bills page under a property shows the property again in its path: Home / property / Bills" },
+  ] },
+
   { v: "2026-11-20.30", title: { zh: "今日页：「家里」卡片精简，滑动控制行挪到卡片上面", en: "Today: slimmer Home card, carousel controls moved above the cards" }, items: [
     { k: "better", zh: "「家里 · 一览」只留 储藏、每套房子、每辆车；每辆车一行，点进这辆车自己的首页（以前「车辆」一行会跳到房屋概览）", en: "The Home card now only lists Storage, each house and each vehicle; each vehicle opens its own home page (the old Vehicles row jumped to the house overview)" },
     { k: "better", zh: "今日页卡片的 ‹ 短划线 › 和 ⚙ 从卡片下面挪到卡片上面，⚙ 菜单向下弹出", en: "The ‹ dashes › and ⚙ controls on Today moved from below the cards to above them; the ⚙ menu opens downward" },

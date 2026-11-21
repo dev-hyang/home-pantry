@@ -27,3 +27,13 @@ test("isSettled", () => {
   assert.ok(isSettled({ ended: true }, "recurring"));
   assert.ok(!isSettled({ active: true }, "recurring"));
 });
+test("全部周期性 / 家庭通用 / 车辆 清单", () => {
+  const phone = { id: "ph", name: "手机", category: "phone", frequency: "monthly" };
+  const reg = { id: "rg", name: "牌照", category: "vehicle_reg" };
+  const tax = { id: "tx", name: "房产税", category: "property_tax", property_id: "p1" };
+  const ot = { id: "ot", kind: "medical", provider: "医院", status: "open" };
+  const ids = (key) => assetBillCards(key, [phone, reg, tax], [ot]).map((c) => c.b.id).sort();
+  assert.deepEqual(ids("recurring"), ["ph", "rg", "tx"]);
+  assert.deepEqual(ids("general"), ["ph"]);
+  assert.deepEqual(ids("vehicle"), ["rg"]);
+});

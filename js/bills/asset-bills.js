@@ -8,6 +8,7 @@ import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { moneyEye } from "../core/privacy.js";
 import { crumbNav } from "../core/hub.js";
+import { propertyName } from "../core/alerts.js";
 import { carouselHtml } from "../core/carousel.js";
 import { fabHtml } from "./bill-fab.js";
 import { BILL_RANGES } from "./instances.js";
@@ -16,17 +17,18 @@ import { assetBillCards } from "./asset-bill-cards.js";
 import { billHeadCard } from "./bill-pay.js";
 import { medHeadCard } from "./medical-head.js";
 
-/** 网址里的资产键（property:ID / asset:ID / person:ID…）；不合法就当没有 */
-const routeKey = () => { try { const k = decodeURIComponent(state.route?.id || ""); return /^(property:|asset:|person:)[\w-]+$/.test(k) ? k : ""; } catch { return ""; } };
+/** 网址里的清单键：资产（property:ID / asset:ID / person:ID）；或 recurring（全部周期性账单）、general（没挂资产的）、vehicle（车辆类）；不合法就当没有 */
+const routeKey = () => { try { const k = decodeURIComponent(state.route?.id || ""); return /^(property:|asset:|person:)[\w-]+$/.test(k) || ["recurring", "general", "vehicle"].includes(k) ? k : ""; } catch { return ""; } };
+const labelOf = (key) => (key === "recurring" ? `🔁 ${t("全部周期性账单")}` : assetKeyLabel(key));
 export { assetBillsHref } from "./all-href.js";   // 网址生成在 all-href.js（房屋 / 车辆页拼链接不必加载整个页面）
 
 /** 统计用的时间范围：链接带 ?range= 的照链接，否则本月 */
 const rangeOf = () => { const r = state.route?.q?.get("range"); return r && BILL_RANGES.some(([k]) => k === r) ? r : "m"; };
-/** 返回的上一层：房产 = 这套房产的概览；车辆 / 设备 = 它自己的页面 */
+/** 面包屑的上层：房产 = 房屋 / 房产名（点房产名回它的概览）；车辆 / 设备 = 房屋 / 它自己的页面；其余清单（全部周期性、家庭通用、车辆）= 财务 */
 function backParts(key) {
   const [type, id] = key.split(":");
-  if (type === "property") return [{ href: href("house", "overview"), label: t("房屋") }];
-  if (type === "asset") return [{ href: href("house", "menu"), label: t("房屋") }, { href: href("asset", id), label: assetKeyLabel(key).replace(/^\S+\s/, "") }];
+  if (type === "property") return [{ href: href("house"), label: t("房屋") }, { href: `${href("house", "overview")}?prop=${encodeURIComponent(id)}`, label: propertyName(id) || t("房产"), icon: "🏠" }];
+  if (type === "asset") return [{ href: href("house"), label: t("房屋") }, { href: href("asset", id), label: assetKeyLabel(key).replace(/^\S+\s/, "") }];
   return [{ href: href("bills", "overview"), label: t("财务") }];
 }
 
@@ -36,21 +38,21 @@ const cardHtml = ({ kind, b }) => (kind === "onetime" ? medHeadCard(b, { listed:
 function noteText(C, range, n) {
   const scope = range === "all" ? t("不限时间") : `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
   const r = t(BILL_RANGES.find(([k]) => k === range)?.[1] || range);
-  return t("合计只算这个资产上的账单 · 时间范围：{r}（{s}）；逾期没缴的一直计入，含预估的金额会标出来。共 {n} 张账单。", { r, s: scope, n });
+  return t("合计只算这个清单里的账单 · 时间范围：{r}（{s}）；逾期没缴的一直计入，含预估的金额会标出来。共 {n} 张账单。", { r, s: scope, n });
 }
 
 export function viewAssetBills() {
   const key = routeKey();
   if (!key) return `<section class="section"><div class="panel empty"><strong>${t("找不到这个资产")}</strong><p><a class="btn btn-sm" href="${href("bills", "all")}">${t("全部账单")}</a></p></div></section>`;
-  const range = rangeOf(), C = allCompute({ key, q: "", range, asset: key, type: "all", cat: "all", status: "all", pay: "all", sort: "due" });
-  const label = assetKeyLabel(key), name = label.replace(/^\S+\s/, ""), ico = label.split(" ")[0];
+  const range = rangeOf(), C = allCompute({ key, q: "", range, asset: key === "recurring" ? "all" : key, type: key === "recurring" ? "recurring" : "all", cat: "all", status: "all", pay: "all", sort: "due" });
+  const label = labelOf(key), name = label.replace(/^\S+\s/, ""), ico = label.split(" ")[0];
   const cards = assetBillCards(key, state.billsEnriched, state.medEnriched);
   const body = cards.length
     ? `<section class="section" aria-label="${esc(t("账单卡片"))}">${carouselHtml(`assetbills:${key}`, cards.map(cardHtml), { label: t("账单卡片：左右滑动，或点上面的短划线"), top: true })}</section>`
     : `<div class="panel empty"><strong>${t("这个资产还没有设置账单")}</strong>${t("点右下角的 ＋ 添加账单。")}</div>`;
   return `<section class="section" id="assetBillsPage">
     ${crumbNav([...backParts(key), { label: t("账单"), icon: "🧾" }])}
-    <div class="section-head"><h2>${ico} ${esc(name)} · ${t("账单")}</h2><div class="head-acts">${moneyEye()}</div></div>
+    <div class="section-head"><h2>${ico} ${esc(name)}${key === "recurring" ? "" : ` · ${t("账单")}`}</h2><div class="head-acts">${moneyEye()}</div></div>
     <p class="muted kinds-note" role="status">${esc(noteText(C, range, cards.length))}</p>
     ${summaryHtml({ SK: C.S, truncated: 0 })}
     ${body}

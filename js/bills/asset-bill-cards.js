@@ -1,8 +1,12 @@
 /* 房屋 / 车辆 → 账单页的卡片清单：这个资产上设置的全部账单（周期性 + 一次性），一张账单一张卡，固定清单、不随时间范围变。
  * 纯函数、不依赖界面（Node 测试直接引用）。 */
 
+import { assetKeys } from "./instances.js";
+
 /** 账单是不是属于这个资产键（property:ID / asset:ID / person:ID）；周期性账单没有患者，person 只匹配一次性 */
 export function belongsTo(key, b, kind) {
+  if (key === "recurring") return kind === "recurring";   // 全部周期性账单（不分资产）
+  if (key === "general" || key === "vehicle") return assetKeys(b, kind).includes(key);   // 没挂房产 / 设备的（手机、订阅…）、车辆类的（牌照、车险…）
   const [type, id] = String(key).split(":");
   if (!id) return false;
   if (type === "property") return b.property_id === id;

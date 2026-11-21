@@ -4,12 +4,14 @@ import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { addDays } from "./dates.js";
 import { infoTip } from "../core/info-tip.js";
+import { viewSwitch } from "../core/view-switch.js";
 import { fabHtml } from "./bill-fab.js";
 import { moneyEye } from "../core/privacy.js";
 import { billTrendSection } from "./views.js";
 import { detailHref } from "./medical.js";
 import { BILL_RANGES, STATUS_GROUPS, assetBreakdown, billInstances, cycleBreakdown, filterRows, monthBounds, monthlySeries, nextDue, rangeBounds, seriesMonths, sortRows, summarize } from "./instances.js";
 import { allBillsHref, assetKeyLabel, assetOptions, rowHtml } from "./all-views.js";
+import { assetBillsHref } from "./all-href.js";
 
 const cur = () => Units.region.currency;
 const mny = (v) => Units.money(num(v), cur());
@@ -73,10 +75,10 @@ function groupHtml(C) {
     if (cyc.onetime) list += row(allBillsHref({ ...q, type: "onetime" }), `🧾 ${t("一次性")}`, cyc.onetime, max);
   } else {
     const max = Math.max(...C.byAsset.map((g) => g.total), 1);
-    list = C.byAsset.map((g) => row(allBillsHref({ range: f.range, asset: g.key }), esc(assetKeyLabel(g.key)), g, max)).join("");
+    list = C.byAsset.map((g) => row(["general", "vehicle"].includes(g.key) ? assetBillsHref(g.key, f.range) : allBillsHref({ range: f.range, asset: g.key }), esc(assetKeyLabel(g.key)), g, max)).join("");
   }
-  return `<section class="section"><div class="section-head"><h2>${t("账单分组")}</h2><p>${byCycle ? t("点一行看这类账单") : t("点一行看这个资产的账单")}</p></div>
-    <div class="chips grp-tabs" role="group" aria-label="${esc(t("分组方式"))}"><button type="button" class="chip" aria-pressed="${!byCycle}" data-action="ov-group" data-group="asset">${t("按资产")}</button><button type="button" class="chip" aria-pressed="${byCycle}" data-action="ov-group" data-group="cycle">${t("按周期")}</button></div>
+  const sw = viewSwitch([["asset", "按资产"], ["cycle", "按周期"]], byCycle ? "cycle" : "asset", { action: "ov-group", attr: "group", label: "分组方式" });
+  return `<section class="section"><div class="section-head"><h2>${t("账单分组")} ${infoTip(byCycle ? t("点一行看这类账单") : t("点一行看这个资产的账单"), { align: "start" })}</h2><div class="head-acts"><div class="view-bar">${sw}</div></div></div>
     <div class="panel"><ul class="bill-assets">${list}</ul></div></section>`;
 }
 function trendHtml(C) {
