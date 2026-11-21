@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.6", title: { zh: "标题旁的 ⓘ 变成右上角小角标", en: "The ⓘ next to titles becomes a small corner badge" }, items: [
+    { k: "better", zh: "各页标题旁的 ⓘ 现在悬在文字右上角，像铃铛的提醒角标，不再占一个字的位置", en: "The ⓘ next to page titles now floats at the top-right of the text, like the bell badge, instead of taking up a character’s width" },
+    { k: "new", zh: "新做了「嵌套目录」控件（组 → 页面 → 标签，打开就停在当前页），下一版先用在财务", en: "A new nested Menu control (group → page → tab, opens right at where you are) — Finance gets it next" },
+  ] },
+
   { v: "2026-11-21.5", title: { zh: "商店页、账户页、账单页也换成目录 + 筛选", en: "Shops, Accounts and Bills pages get the Menu + Filter treatment too" }, items: [
     { k: "better", zh: "常去的商店、特价一览：导航小卡片换成标题前面的「目录」按钮，原来 ⋯ 里的「更新记录」放进目录，⋯ 取消；说明文字挪到标题下一行", en: "Shops and Deals: the navigation cards are now a “Menu” button before the title, “Update log” moved from the ⋯ menu into it (⋯ removed), and the description sits on its own line below" },
     { k: "better", zh: "账单概览、账户各页、周期性 / 一次性账单页：页头的眼睛换成最右的「筛选」按钮（里面是「金额显示」）；账单明细的眼睛在它自己的筛选条里", en: "Bills overview, account pages and recurring / one-time bills: the header eye is now a Filter button on the right (with “Amounts” inside); on the bills list the eye is in its own filter bar" },

@@ -4298,6 +4298,25 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .npop-ico { width: 24px; text-align: center; font-size: 18px; line-height: 1; }
 .npop-lbl { flex: 1; min-width: 0; }
 .npop-ck { font-weight: 700; }
+/* 嵌套目录（js/core/tree-pop.js）：组 → 页面 → 页内标签，每层缩进，面板高度有上限、里面滚动 */
+.tpop .fpop-panel { width: min(340px, calc(100vw - 32px)); max-height: min(70vh, 560px); overflow-y: auto; overscroll-behavior: contain; }
+.tpop-row { display: flex; align-items: stretch; }
+.tpop-row > .npop-item { flex: 1 1 auto; min-width: 0; }
+button.npop-item { width: 100%; border: 0; background: none; font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+.tpop-grp { color: var(--muted); font-size: 13px; letter-spacing: .02em; }
+.tpop-grp .npop-lbl { font-weight: 700; }
+.tpop-chev, .tpop-tg { flex: none; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); font-size: 18px; transition: transform .15s; }
+.tpop-tg { width: 44px; min-height: 44px; border: 0; background: none; cursor: pointer; border-radius: 10px; }
+.tpop-tg:hover, .tpop-tg:focus-visible { background: var(--surface-2, var(--bg)); }
+.tpop-grp[aria-expanded="true"] .tpop-chev, .tpop-tg[aria-expanded="true"] > span { transform: rotate(90deg); }
+.tpop-kids { padding-left: 14px; }
+.tpop-kids[hidden] { display: none; }
+.tpop-kids .tpop-kids { padding-left: 26px; }
+.tpop-kids .npop-item { font-weight: 500; }
+.tpop-kids .npop-item[aria-current="page"] { font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { .tpop-chev, .tpop-tg { transition: none; } }
+/* 标题旁的 ⓘ：悬在文字右上角的小角标（像铃铛的提醒角标），不占一整个字的位置 */
+.section-head .ui-hint, h2 .ui-hint, h3 .ui-hint { width: 16px; height: 16px; font-size: 10px; margin-left: 2px; vertical-align: baseline; top: -.55em; }
 .h-root { color: inherit; text-decoration: none; }
 .h-root:hover { text-decoration: underline; }
 .ui-hint[data-tip]::after { translate: var(--tip-dx, 0) 0; }   /* 提示浮层贴边时往里挪（js/core/info-tip.js fitTip） */

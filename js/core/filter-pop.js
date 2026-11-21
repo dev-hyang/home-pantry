@@ -11,7 +11,10 @@ const OPEN_ATTR = " data-open";
 /* 按钮上的小图标：两条横线，各带一个圆（滑块）；目录按钮是三条横线。颜色跟文字走（currentColor） */
 const svg = (inner) => `<svg class="fpop-ico" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false">${inner}</svg>`;
 const ICON_FILTER = svg(`<path d="M2 6h16M2 14h16"/><circle cx="7" cy="6" r="2.2" fill="var(--surface)"/><circle cx="13" cy="14" r="2.2" fill="var(--surface)"/>`);
-const ICON_MENU = svg(`<path d="M3 5h14M3 10h14M3 15h14"/>`);
+export const isOpen = (id) => openId === id;
+/** 嵌套目录打开时：面板滚到当前项（居中），别让用户自己找 */
+const centerCurrent = (box) => { const p = box.querySelector(".fpop-panel"), c = p.querySelector("[data-tpop-cur]"); if (c) p.scrollTop = Math.max(0, c.offsetTop - p.clientHeight / 2 + c.offsetHeight / 2); };
+export const ICON_MENU = svg(`<path d="M3 5h14M3 10h14M3 15h14"/>`);
 
 /** 目录按钮 + 导航面板（和筛选同一个外观、同一套开关）：items = [{ href, icon, label, current }]；点一项就跳转，面板随页面重画收起 */
 export function navPop(items, { id = "nav", label = t("目录") } = {}) {
@@ -50,7 +53,7 @@ document.addEventListener("click", (e) => {
   document.querySelectorAll("[data-fpop][data-open]").forEach((b) => { if (b.dataset.fpop !== inId) { close(b); openId = ""; } });
   if (!box) return;
   const on = !box.hasAttribute("data-open");
-  if (on) { box.setAttribute("data-open", ""); box.querySelector(".fpop-panel").hidden = false; btn.setAttribute("aria-expanded", "true"); openId = box.dataset.fpop; } else { close(box); openId = ""; }
+  if (on) { box.setAttribute("data-open", ""); box.querySelector(".fpop-panel").hidden = false; btn.setAttribute("aria-expanded", "true"); openId = box.dataset.fpop; centerCurrent(box); } else { close(box); openId = ""; }
 });
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;

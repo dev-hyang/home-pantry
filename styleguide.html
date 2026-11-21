@@ -81,6 +81,26 @@
     <button class="ui-hint" type="button" data-tip="右对齐：靠屏幕右边的问号用这个。" data-tip-align="end" aria-label="说明：右对齐的提示">?</button>
   </div></div>
 
+  <h2>目录 · 筛选按钮（页头）</h2>
+  <p class="note">页头一行：目录按钮在标题前面、筛选按钮在最右；标题旁的 ⓘ 是悬在文字右上角的小角标。手机上两个按钮收成图标方块。「嵌套目录」打开时停在当前页：当前组展开、当前项高亮并滚到中间。</p>
+  <div class="panel" style="min-height: 420px"><div class="section-head"><div class="sh-title" id="sgTree"></div><div class="head-acts" id="sgFilter"></div></div></div>
+  <script type="module">
+    import { treePop } from "./js/core/tree-pop.js";
+    import { filterPop } from "./js/core/filter-pop.js";
+    const tabs = [["overview", "收支总览", "📊"], ["records", "明细", "🧾"], ["category", "类型", "🧩"], ["senders", "付款方", "🏷️"], ["compare", "收支对比", "⚖️"], ["plan", "预算与计划", "🎯"], ["export", "导出打印", "🖨️"]];
+    const tree = [
+      { label: "财务首页", icon: "💰", href: "#fin" },
+      { label: "分析", icon: "📊", children: [{ label: "资产", icon: "🏛️", href: "#a" }, { label: "预算", icon: "💰", href: "#b" }] },
+      { label: "收支", icon: "⚖️", open: true, children: [{ label: "花费", icon: "📊", href: "#s" },
+        { label: "收入", icon: "💵", href: "#i", open: true, children: tabs.map(([id, l, ic]) => ({ label: l, icon: ic, href: "#" + id, current: id === "plan" })) },
+        { label: "借贷", icon: "🏦", href: "#d" }, { label: "对账单", icon: "🏦", href: "#t" }] },
+      { label: "账单", icon: "🧾", children: [{ label: "账单概览", icon: "🧾", href: "#o" }, { label: "账单明细", icon: "📋", href: "#l" }, { label: "周期性账单", icon: "🔁", href: "#r" }] },
+      { label: "账户", icon: "🗂️", children: [{ label: "账户概览", icon: "🗂️", href: "#c" }, { label: "信用卡", icon: "💳", badge: 6, href: "#cc" }] },
+    ];
+    document.getElementById("sgTree").innerHTML = treePop(tree, { id: "sgtree" }) + '<h2 style="margin:0;font-size:18px;border:0;padding:0">💰 <a class="h-root" href="#">财务</a> / <a class="h-root" href="#">收入</a> / 预算与计划<button type="button" class="ui-hint" data-tip="和钱有关的都在这里" data-tip-align="start" aria-label="说明">i</button></h2>';
+    document.getElementById("sgFilter").innerHTML = filterPop('<div class="fpop-fields"><label class="tb-field"><span>时间范围</span><select class="range-sel"><option>近 12 个月</option></select></label></div>', { id: "sgfil", count: 1, eye: true });
+  </script>
+
   <h2>表单控件（现有标准，对照用）</h2>
   <p class="note">v2 起：输入框 / 下拉 / 日期桌面 44px、15px；手机约 46px、16px。</p>
   <div class="panel form-page"><div class="form-grid">
