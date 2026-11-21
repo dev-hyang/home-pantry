@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.9", title: { zh: "修筛选条版面；预算的打印进目录；周期性账单换新页头", en: "Fix the filter bar layout; Budget’s Print moves into the Menu; Recurring bills gets the new header" }, items: [
+    { k: "fix", zh: "电脑上账单明细、花费明细、借贷流水的筛选条里，「金额显示」的文字和说明摊在一行里把版面撑开；现在电脑上只留一个眼睛按钮，文字只在手机的筛选面板里出现", en: "On desktop the “Amounts” label and hint spilled into the filter row of Bills list, Spending records and Debt transactions and stretched the layout; now only the eye button shows there, the text only appears in the phone filter panel" },
+    { k: "better", zh: "预算页的「打印」放进目录最下面的「本页操作」，⋯ 取消", en: "Budget’s “Print” moved into the bottom of the Menu (“This page”), and the ⋯ is gone" },
+    { k: "better", zh: "账单概览里的「账单明细 ›」链接去掉（目录里就有）；周期性账单页换成和其他财务页一样的页头", en: "The “Bill list ›” link on Bills overview is gone (it is in the Menu); Recurring bills uses the same header as other Finance pages" },
+  ] },
+
   { v: "2026-11-21.8", title: { zh: "财务各页同一个「目录」：财务 / 页面 / 页签，打开就停在当前页", en: "One Finance Menu on every Finance page: Finance / page / tab, opens right where you are" }, items: [
     { k: "new", zh: "财务下所有页面（收入、花费、预算、借贷、对账单、资产、账单概览 / 明细、账户各页、信用卡）顶上都是同一个「目录」按钮：点开是整个财务的目录，自动停在当前页，当前页签也展开", en: "Every Finance page now has the same Menu button: it opens the whole Finance map, already at the page you are on, with its tabs expanded" },
     { k: "better", zh: "页头路径合成一行：财务 / 收入 / 收支总览，每一段都能点；原来上面那条单独的路径取消了", en: "The path is now a single line in the header — Finance / Income / Overview — and every part is tappable; the separate path bar above is gone" },

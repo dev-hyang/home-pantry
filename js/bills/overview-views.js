@@ -96,7 +96,7 @@ export function viewBillsHome() {
   const assetLabel = f.asset === "all" ? t("全部资产") : assetKeyLabel(f.asset);
   const empty = !state.billsEnriched.length && !state.medEnriched.length;
   return `<section class="section">
-      ${finHead({ label: t("账单概览"), right: `${eyeFilter()}<a class="btn btn-sm btn-ghost" href="${allBillsHref({ range: f.range, asset: f.asset })}">${t("账单明细")} ›</a>` })}
+      ${finHead({ label: t("账单概览"), right: eyeFilter() })}
       <div class="ov-filters">
         <select id="ovRange" aria-label="${t("时间范围")}">${range}</select>
         <select id="ovAsset" data-search aria-label="${t("按资产筛选")}">${assetOptions(C.base.rows, f.asset)}</select>

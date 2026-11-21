@@ -20,14 +20,23 @@ const row = (n, lv) => {
   return `<div class="tpop-node" data-lv="${lv}"><div class="tpop-row">${head}</div><div class="tpop-kids"${exp ? "" : " hidden"}>${n.children.map((c) => row(c, lv + 1)).join("")}</div></div>`;
 };
 
-/** nodes = 树；id = 面板 id（同一页只放一个）；label = 按钮上的名字 */
-export function treePop(nodes, { id = "tree", label = t("目录") } = {}) {
-  const open = isOpen(id);
+/** 面板最下面「本页操作」：不是去别的页面、而是做一件事（打印、导出…）；items = [{ label, icon?, href? | action + data? }] */
+const actionRow = (x) => {
+  const inner = `<span class="npop-ico" aria-hidden="true">${x.icon || ""}</span><span class="npop-lbl">${esc(x.label)}</span>`;
+  if (x.href) return `<a class="npop-item" href="${esc(x.href)}">${inner}</a>`;
+  const data = Object.entries(x.data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join("");
+  return `<button type="button" class="npop-item"${x.action ? ` data-action="${esc(x.action)}"` : ""}${data}>${inner}</button>`;
+};
+
+/** nodes = 树；id = 面板 id（同一页只放一个）；label = 按钮上的名字；actions = 本页操作 */
+export function treePop(nodes, { id = "tree", label = t("目录"), actions = [] } = {}) {
+  const open = isOpen(id), acts = actions.filter(Boolean);
   return `<div class="fpop npop tpop" data-fpop="${esc(id)}"${open ? " data-open" : ""}>
     <button type="button" class="fpop-btn" aria-expanded="${open}" aria-controls="fpop-${esc(id)}" aria-label="${esc(label)}" data-fpop-toggle>${ICON_MENU}<span>${esc(label)}</span></button>
     <div class="fpop-panel" id="fpop-${esc(id)}"${open ? "" : " hidden"}>
       <div class="fpop-head"><b>${esc(label)}</b></div>
       <nav class="npop-list tpop-list" aria-label="${esc(label)}">${nodes.map((n) => row(n, 0)).join("")}</nav>
+      ${acts.length ? `<div class="tpop-acts" role="group" aria-label="${esc(t("本页操作"))}">${acts.map(actionRow).join("")}</div>` : ""}
     </div></div>`;
 }
 

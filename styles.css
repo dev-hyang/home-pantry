@@ -4289,8 +4289,10 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .fpop-eye-t small, .tb-eye-t small { color: var(--muted); font-size: 12px; line-height: 1.3; }
 .fpop-eye .money-eye, .tb-eye .money-eye { width: 44px; height: 44px; }
 .tb-eye-t { display: none; }   /* 电脑：筛选条那一行只放眼睛；手机进了面板才有文字 */
-.tb-panel > .tb-eye { grid-column: 1 / -1; margin-top: 4px; }
-.tb-panel > .tb-eye .tb-eye-t { display: flex; }
+@media (max-width: 440px) {   /* 只有手机的筛选面板里才显示「金额显示」文字；电脑上面板是 display: contents，不限宽的话文字会摊在筛选条那一行 */
+  .tb-panel > .tb-eye { grid-column: 1 / -1; margin-top: 4px; }
+  .tb-panel > .tb-eye .tb-eye-t { display: flex; }
+}
 @media (min-width: 441px) { .toolbar .tb-eye { flex: none; } }
 .fpop-ico { flex: none; display: block; }
 /* 列表页手机上的「筛选」按钮（shared/compact-filters.js 的 .tb-toggle）也带上同一个小图标：两条横线各一个圆 */
@@ -4316,6 +4318,7 @@ button.npop-item { width: 100%; border: 0; background: none; font: inherit; font
 .tpop-tg { width: 44px; min-height: 44px; border: 0; background: none; cursor: pointer; border-radius: 10px; }
 .tpop-tg:hover, .tpop-tg:focus-visible { background: var(--surface-2, var(--bg)); }
 .tpop-grp[aria-expanded="true"] .tpop-chev, .tpop-tg[aria-expanded="true"] > span { transform: rotate(90deg); }
+.tpop-acts { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
 .tpop-kids { padding-left: 14px; }
 .tpop-kids[hidden] { display: none; }
 .tpop-kids .tpop-kids { padding-left: 26px; }

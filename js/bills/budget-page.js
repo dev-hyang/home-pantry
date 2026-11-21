@@ -137,7 +137,7 @@ export function viewBudget() {
   };
   return `
     <section class="section">
-      ${pageHead({ title: t("预算"), tabs: BUDGET_TABS, tab, hrefOf: budgetHref, label: t("预算内容"), filter: tab === "trend" ? timeBarHtml(null) : "", menu: [{ label: t("打印"), action: "print-run", data: { kind: "budget" } }] })}
+      ${pageHead({ title: t("预算"), tabs: BUDGET_TABS, tab, hrefOf: budgetHref, label: t("预算内容"), filter: tab === "trend" ? timeBarHtml(null) : "", menu: [{ label: t("打印"), icon: "🖨️", action: "print-run", data: { kind: "budget" } }] })}
     </section>
     ${tabs[tab]()}`;
 }

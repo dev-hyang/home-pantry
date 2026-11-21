@@ -8,13 +8,11 @@ import { esc } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { treePop } from "../core/tree-pop.js";
-import { moreMenu } from "../core/more-menu.js";
 import { finTree } from "./fin-tree.js";
 
-/** label = 页面名；pageHref = 页面第一个页签的网址（有 tab 时「页面」才是链接）；tab = 当前页签名；note = ⓘ 的 html；right = 右边的 html；actsId = 右边容器的 id（局部刷新用） */
+/** menu = 本页操作（打印、导出…，放在目录面板最下面，格式 { label, icon, href | action + data }）；label = 页面名；pageHref = 页面第一个页签的网址（有 tab 时「页面」才是链接）；tab = 当前页签名；note = ⓘ 的 html；right = 右边的 html；actsId = 右边容器的 id（局部刷新用） */
 export function finHead({ label, pageHref = "", tab = "", note = "", right = "", menu = [], actsId = "" }) {
   const root = `<a class="h-root" href="${esc(href("bills"))}">${t("财务")}</a>`;
   const page = tab && pageHref ? `<a class="h-root" href="${esc(pageHref)}">${esc(label)}</a>` : esc(label);
-  const items = [...menu]; if (items.length) items[0].first = true;
-  return `<div class="section-head fin-head"><div class="sh-title">${treePop(finTree(state.route), { id: "fintree" })}<h2>${root} / ${page}${tab ? ` / ${esc(tab)}` : ""}${note}</h2></div><div class="head-acts"${actsId ? ` id="${esc(actsId)}"` : ""}>${right}${moreMenu(items, { label: t("更多操作") })}</div></div>`;
+  return `<div class="section-head fin-head"><div class="sh-title">${treePop(finTree(state.route), { id: "fintree", actions: menu })}<h2>${root} / ${page}${tab ? ` / ${esc(tab)}` : ""}${note}</h2></div><div class="head-acts"${actsId ? ` id="${esc(actsId)}"` : ""}>${right}</div></div>`;
 }

@@ -2625,7 +2625,7 @@ export const EN = {
   "{n} 种，长期用的东西，只记数量和位置": "{n} kinds you keep; only count and location are tracked",
   "改回": "Move back to", "分类细化时，这些物品是按名称猜着搬的。放对了点「没错」；放错了点「改回…」或「改成…」，连着的花费也跟着换。": "When categories were refined, these items were moved by guessing from their names. Tap \"Correct\" if right, or \"Move back to…\" / \"Move to…\" if not; linked spending moves too.",
   "筛选": "Filter",
-  "目录": "Menu",
+  "目录": "Menu", "本页操作": "This page",
   "财务首页": "Finance home", "展开 / 收起": "Expand / collapse",
   "资产、净资产、预算": "Assets, net worth, budget", "花费、收入、借贷、对账单": "Spending, income, debts, statements", "账单概览、明细、周期性账单": "Bills overview, list, recurring bills", "账户概览、信用卡、银行、投资、钱包": "Accounts overview, cards, banks, investments, wallets",
   "默认遮挡；单击露 10 秒，双击或长按切到常显示": "Hidden by default; tap to show for 10 s, double-tap or long-press to keep shown",

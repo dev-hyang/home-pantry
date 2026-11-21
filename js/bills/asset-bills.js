@@ -9,6 +9,7 @@ import { t } from "../core/i18n.js";
 import { eyeFilter } from "../core/filter-pop.js";
 import { infoTip } from "../core/info-tip.js";
 import { crumbNav } from "../core/hub.js";
+import { finHead } from "./fin-head.js";
 import { propertyName } from "../core/alerts.js";
 import { carouselHtml } from "../core/carousel.js";
 import { fabHtml } from "./bill-fab.js";
@@ -53,8 +54,9 @@ export function viewAssetBills() {
     ? `<section class="section" aria-label="${esc(t("账单卡片"))}">${carouselHtml(`assetbills:${key}`, cards.map(cardHtml), { label: t("账单卡片：左右滑动，或点上面的短划线"), top: true, numbered: true })}</section>`
     : `<div class="panel empty"><strong>${t("这个资产还没有设置账单")}</strong>${t("点右下角的 ＋ 添加账单。")}</div>`;
   return `<section class="section" id="assetBillsPage">
-    ${crumbNav([...backParts(key), { label: t("账单"), icon: "🧾" }])}
-    <div class="section-head"><h2>${ico} ${esc(name)}${key === "recurring" ? "" : ` · ${t("账单")}`} ${infoTip(tipText(), { align: "start" })}</h2><div class="head-acts">${eyeFilter()}</div></div>
+    ${key === "recurring" ? finHead({ label: name, note: infoTip(tipText(), { align: "start" }), right: eyeFilter() })   // 周期性账单：财务页头；某个房产 / 车辆的账单仍带自己的路径（回到那个资产）
+      : `${crumbNav([...backParts(key), { label: t("账单"), icon: "🧾" }])}
+    <div class="section-head"><h2>${ico} ${esc(name)} · ${t("账单")} ${infoTip(tipText(), { align: "start" })}</h2><div class="head-acts">${eyeFilter()}</div></div>`}
     <p class="muted kinds-note" role="status">${esc(keyLine(C, range, cards.length))}</p>
     ${summaryHtml({ SK: C.S, truncated: 0 })}
     ${body}
