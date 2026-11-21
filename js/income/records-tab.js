@@ -4,6 +4,7 @@ import { CHANNELS, capitalKinds, customKinds, groupOf, inc, isOwnerNow, kindLabe
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { INC_L1S, incLeaf, incLeavesOf, splitRecord } from "../core/income-taxonomy.js";
 import { aaFixHtml } from "./aa-fix.js";
+import { toolbarEye } from "./eye-merge.js";
 import { activeTab } from "../core/tabs.js";
 import { compact } from "../core/list-query.js";
 import { formHtml } from "./record-form.js";
@@ -108,7 +109,7 @@ export function recordsTab() {
     <select id="incYearF" data-inc-f="year" data-nosearch aria-label="${esc(t("按年份筛选"))}">${opt("all", t("全部年份"), I.year)}${yearsOf().map((v) => opt(v, v, I.year)).join("")}</select>
     <select id="incMonthF" data-inc-f="month" data-nosearch aria-label="${esc(t("按月份筛选"))}">${opt("all", t("全部月份"), I.month || "all")}${Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => opt(m, t("{m} 月", { m: +m }), I.month)).join("")}</select>
     ${clearFiltersBtn("incRec", changed(I, FD.incRec))}
-    <select id="incSort" data-inc-f="sort" data-nosearch aria-label="${esc(t("排序"))}">${selOpts([["new", "最近的在前"], ["old", "最早的在前"], ["big", "金额从大到小"], ["small", "金额从小到大"], ["kind", "按类型（一级 · 具体类型）"]], I.sort || "new")}</select></div>
+    <select id="incSort" data-inc-f="sort" data-nosearch aria-label="${esc(t("排序"))}">${selOpts([["new", "最近的在前"], ["old", "最早的在前"], ["big", "金额从大到小"], ["small", "金额从小到大"], ["kind", "按类型（一级 · 具体类型）"]], I.sort || "new")}</select>${toolbarEye()}</div>
     ${drillChips()}
     ${I.batch ? `<div class="muted small" style="margin-top:8px">${t("只看一次银行导入的入账")} <button type="button" class="btn btn-sm btn-ghost" data-inc="batch-clear">${t("看全部收入")}</button></div>` : ""}
     <div id="incList" style="margin-top:8px">${listHtml()}</div>

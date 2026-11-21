@@ -3,6 +3,7 @@
  *  页面一改筛选就整页重画：打开状态记在这里，重画出来的面板保持打开（和 shared/compact-filters.js 的面板一个习惯）。 */
 import { esc } from "./util.js";
 import { t } from "./i18n.js";
+import { moneyEye } from "./privacy.js";
 
 let openId = "";   // 现在打开的面板（同一时间最多一个）
 const OPEN_ATTR = " data-open";
@@ -17,21 +18,24 @@ export function navPop(items, { id = "nav", label = t("目录") } = {}) {
   const open = openId === id;
   const row = (x) => `<a class="npop-item" href="${esc(x.href)}"${x.current ? ' aria-current="page"' : ""}><span class="npop-ico" aria-hidden="true">${x.icon || ""}</span><span class="npop-lbl">${esc(x.label)}</span>${x.current ? '<span class="npop-ck" aria-hidden="true">✓</span>' : ""}</a>`;
   return `<div class="fpop npop" data-fpop="${esc(id)}"${open ? OPEN_ATTR : ""}>
-    <button type="button" class="fpop-btn" aria-expanded="${open}" aria-controls="fpop-${esc(id)}" data-fpop-toggle>${ICON_MENU}<span>${esc(label)}</span></button>
+    <button type="button" class="fpop-btn" aria-expanded="${open}" aria-controls="fpop-${esc(id)}" aria-label="${esc(label)}" data-fpop-toggle>${ICON_MENU}<span>${esc(label)}</span></button>
     <div class="fpop-panel" id="fpop-${esc(id)}"${open ? "" : " hidden"}>
       <div class="fpop-head"><b>${esc(label)}</b></div>
       <nav class="npop-list" aria-label="${esc(label)}">${items.map(row).join("")}</nav>
     </div></div>`;
 }
 
-/** inner = 面板里的控件；clear = 清除按钮 html；count = 已改动的筛选个数 */
-export function filterPop(inner, { id = "fp", count = 0, clear = "", cls = "" } = {}) {
+/** 面板里的「金额显示」一行：就是页头原来那只眼睛（单击露 10 秒 / 马上遮；双击或长按切换常显示，规则在 privacy.js，按钮带 data-moneyeye 就生效） */
+export const eyeRow = () => `<div class="fpop-eye"><span class="fpop-eye-t"><b>${t("金额显示")}</b><small>${t("默认遮挡；单击露 10 秒，双击或长按切到常显示")}</small></span>${moneyEye()}</div>`;
+
+/** inner = 面板里的控件；clear = 清除按钮 html；count = 已改动的筛选个数；eye = 面板里带「金额显示」（眼睛并进筛选，页头不再单放一只） */
+export function filterPop(inner, { id = "fp", count = 0, clear = "", cls = "", eye = false } = {}) {
   const open = openId === id;
   return `<div class="fpop ${cls}" data-fpop="${esc(id)}"${open ? OPEN_ATTR : ""}>
-    <button type="button" class="fpop-btn" aria-expanded="${open}" aria-controls="fpop-${esc(id)}" data-fpop-toggle>${ICON_FILTER}<span>${t("筛选")}</span><span class="tb-count"${count ? "" : " hidden"}>${count}</span></button>
+    <button type="button" class="fpop-btn" aria-expanded="${open}" aria-controls="fpop-${esc(id)}" aria-label="${esc(t("筛选"))}" data-fpop-toggle>${ICON_FILTER}<span>${t("筛选")}</span><span class="tb-count"${count ? "" : " hidden"}>${count}</span></button>
     <div class="fpop-panel" id="fpop-${esc(id)}"${open ? "" : " hidden"}>
       <div class="fpop-head"><b>${t("筛选")}</b>${clear}</div>
-      <div class="fpop-body">${inner}</div>
+      <div class="fpop-body">${inner}${eye ? eyeRow() : ""}</div>
     </div></div>`;
 }
 

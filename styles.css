@@ -4266,10 +4266,24 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .fpop-fields .tb-field select, .fpop-fields select.range-sel { width: 60%; flex: 0 1 60%; min-height: 44px; }
 .fpop-fields .check-inline { min-height: 44px; }
 @media print { .fpop { display: none; } }
-/* 「目录」按钮（左）+「筛选」按钮（右）同一行；两个按钮同一个盒子（js/core/filter-pop.js navPop） */
-.ctl-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin: 0 0 12px; }
-.ctl-row > .fpop { margin: 0; }
-.ctl-row > .npop { justify-content: flex-start; margin-right: auto; }
+/* 页头一行：「目录」按钮在标题前面，「筛选」按钮在最右；两个按钮同一个盒子（js/core/filter-pop.js navPop / filterPop） */
+.section-head .fpop { margin: 0; }
+.sh-title > .npop { flex: none; justify-content: flex-start; }
+.sh-title > .npop + h2 { flex: 1 1 auto; margin: 0; font-size: 18px; }
+@media (max-width: 440px) {   /* 手机：页头一行放不下文字，两个按钮收成只有图标的方块（筛选个数的小圆标留着），标题才不会被挤成两行 */
+  .section-head .fpop-btn { min-width: 44px; padding: 0 12px; justify-content: center; }
+  .section-head .fpop-btn > span:not(.tb-count) { display: none; }
+}
+.fpop-eye, .tb-eye { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
+.fpop-eye { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.fpop-body > .fpop-eye:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.fpop-eye-t, .tb-eye-t { display: flex; flex-direction: column; min-width: 0; font-size: 15px; }
+.fpop-eye-t small, .tb-eye-t small { color: var(--muted); font-size: 12px; line-height: 1.3; }
+.fpop-eye .money-eye, .tb-eye .money-eye { width: 44px; height: 44px; }
+.tb-eye-t { display: none; }   /* 电脑：筛选条那一行只放眼睛；手机进了面板才有文字 */
+.tb-panel > .tb-eye { grid-column: 1 / -1; margin-top: 4px; }
+.tb-panel > .tb-eye .tb-eye-t { display: flex; }
+@media (min-width: 441px) { .toolbar .tb-eye { flex: none; } }
 .fpop-ico { flex: none; display: block; }
 .npop .fpop-panel { left: 0; right: auto; width: min(320px, calc(100vw - 32px)); }
 .npop-list { display: flex; flex-direction: column; padding-top: 6px; }

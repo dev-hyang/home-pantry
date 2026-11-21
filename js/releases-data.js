@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.3", title: { zh: "收入页：目录按钮进标题行，眼睛并进筛选", en: "Income: Menu button joins the title row, the eye moves into Filter" }, items: [
+    { k: "better", zh: "「目录」按钮不再单独占一行：放在标题「收入 / 收支总览」前面，筛选按钮在同一行最右", en: "The Menu button no longer takes its own row: it sits before the “Income / Overview” title, with the Filter button at the far right of the same row" },
+    { k: "better", zh: "页头的眼睛没有了，并进筛选面板的「金额显示」：默认仍然遮挡，单击露 10 秒、双击或长按切到常显示，和以前一样；明细页的眼睛在明细自己的筛选里", en: "The eye in the header is now “Amounts” inside the Filter panel: still hidden by default, tap to show for 10 s, double-tap or long-press to keep shown, as before; on Records it lives in that page’s own filter" },
+    { k: "fix", zh: "财务目录里点「收入」，现在进收支总览（原来直接进明细）", en: "Tapping “Income” in the Finance directory now opens the overview (it used to open Records)" },
+  ] },
+
   { v: "2026-11-21.2", title: { zh: "收入页：新的「目录」按钮和筛选按钮并排", en: "Income: new Menu button next to the Filter button" }, items: [
     { k: "better", zh: "收入页顶上那排导航小卡片换成「目录」按钮（三条横线），靠左；点开选页面，当前页打 ✓；筛选按钮靠右，左边加了小图标", en: "The row of navigation cards on Income is now a “Menu” button (three lines) on the left; open it to pick a page, the current one is ticked; the Filter button sits on the right with a small icon" },
     { k: "better", zh: "「导出打印」从 ⋯ 菜单搬进目录，⋯ 取消；顶部路径「收入 / 页面名」随选择更新，点「收入」回到收支总览", en: "Export / print moved from the ⋯ menu into the Menu, and ⋯ is gone; the title path “Income / page” follows your choice, and tapping “Income” returns to the overview" },

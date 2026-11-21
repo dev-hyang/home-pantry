@@ -206,6 +206,6 @@ export function similarIncome(row, ignoreId = null) {
 export const filterSlot = { html: "" };   // 页签里画的筛选按钮先放这里，页面外壳（views.js）把它和「目录」按钮排在同一行；每次画页面前清空
 export function filterToolbar(inner, cls = "", { withUnit = false } = {}) {   // withUnit：这一排里有周期下拉（只有收支对比 / 导出页）
   const n = (changed(state.stats, FD.stats, ["months"]) ? 1 : 0) + (withUnit && finUnit() !== "auto" ? 1 : 0);
-  filterSlot.html = filterPop(`<div class="fpop-fields">${inner}</div>`, { id: "inc", count: n, clear: clearFiltersBtn("stats", n > 0), cls: `ix-timebar ${cls}` });
+  filterSlot.html = filterPop(`<div class="fpop-fields">${inner}</div>`, { id: "inc", count: n, clear: clearFiltersBtn("stats", n > 0), cls: `ix-timebar ${cls}`, eye: true });
   return "";
 }

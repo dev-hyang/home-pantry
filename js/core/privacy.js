@@ -87,7 +87,7 @@ export function decoratePrivacy(route) {
   main.querySelectorAll(BOARD_NUMS).forEach((el) => el.setAttribute("data-money", ""));
   markLoose(main);   // 看板、表格之外，句子 / 按钮里的金额
   // 眼睛放在页面标题旁边（每页一只）：页面自己在标题里放了就不再加；没有标题行的页面才退回「看板上方一行」
-  const headEye = !!main.querySelector(".section-head [data-moneyeye]");
+  const headEye = !!main.querySelector(".section-head [data-moneyeye], .fpop-eye [data-moneyeye], .tb-eye [data-moneyeye]");   // 收入页的眼睛在筛选面板里
   main.querySelectorAll(".kpis, .sum-main, .bill-cards").forEach((box) => {
     if (box.classList.contains("all-kpis") || box.previousElementSibling?.classList?.contains("money-eye-row") || !box.querySelector("[data-money]") && !box.matches("[data-money], .sum-main")) return;
     if (headEye) return;

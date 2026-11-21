@@ -2626,6 +2626,7 @@ export const EN = {
   "改回": "Move back to", "分类细化时，这些物品是按名称猜着搬的。放对了点「没错」；放错了点「改回…」或「改成…」，连着的花费也跟着换。": "When categories were refined, these items were moved by guessing from their names. Tap \"Correct\" if right, or \"Move back to…\" / \"Move to…\" if not; linked spending moves too.",
   "筛选": "Filter",
   "目录": "Menu",
+  "默认遮挡；单击露 10 秒，双击或长按切到常显示": "Hidden by default; tap to show for 10 s, double-tap or long-press to keep shown",
   "{c}：{n} 件要补货，全部加入购物车": "{c}: {n} need restocking, add all to the cart",
   "购物车": "Cart",
   "已加入": "Added", "未加入": "Not added", "点一下移出购物车": "Tap to remove from the cart", "点一下加入购物车": "Tap to add to the cart",

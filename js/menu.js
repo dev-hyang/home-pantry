@@ -53,7 +53,7 @@ export const META = {
     all:       { icon: "📋", desc: "所有账单（周期性 + 一次性）一行一期：搜索、按资产 / 状态 / 时间筛选，到期近的在前" },
     recurring: { icon: "🔁", title: "周期性账单", sub: "assetbills", href: () => assetBillsHref("recurring"), desc: "手机、房产税、房屋保险、车辆牌照、水电气网、房贷、订阅……每张账单一张卡，固定清单，不随时间范围变；不挂房产的账单也在这里", count: () => billAlerts(state.billsEnriched).length },
     onetime:   { icon: "🏥", desc: "一次事件产生的账单：医疗、宠物、法律税务、装修工程；有总额、可分次付、有余额", count: () => state.medEnriched.filter((b) => b.open).length },
-    income:    { icon: "💵", href: () => `${href("bills", "income")}?tab=records`, desc: "收入明细、类型、付款方：工作 / 投资 / 房产 / 其他；个人赠与 / 借款的还款" },
+    income:    { icon: "💵", href: () => href("bills", "income"), desc: "收入明细、类型、付款方：工作 / 投资 / 房产 / 其他；个人赠与 / 借款的还款" },
     // 分析组里的「收支总览」= 收入页的第一个标签（同一页，不另做一份）；sub 指向真正的二级页，权限按它判断
     cashflow:  { icon: "⚖️", title: "收支总览", sub: "income", href: () => href("bills", "income"), desc: "收支总览：收入（工作 / 投资 / 房产 / 其他）vs 消费、储蓄率、投资率；资本流入（卖房卖股、借款、转入）单列不算收入" },
     statements: { icon: "🏦", desc: "银行 / 信用卡对账单：花费和收入一次导入；导出花费、收入、收支差额报表" },
