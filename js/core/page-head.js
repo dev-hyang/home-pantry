@@ -16,5 +16,5 @@ export function pageHead({ icon = "", title, tabs, tab, hrefOf, label, menu = []
   const root = `${icon ? `${icon} ` : ""}${plain || !tabs.length ? esc(title) : `<a class="h-root" href="${esc(hrefOf(tabs[0][0]))}">${esc(title)}</a>`}`;
   const items = [...menu]; if (items.length) items[0].first = true;
   const right = filter === false ? "" : filter || filterPop("", { id: "pg", eye: true });
-  return `<div class="section-head"><div class="sh-title">${nav}<h2>${root}${cur && !plain ? ` / ${esc(t(cur[1]))}` : ""}</h2>${note}</div><div class="head-acts">${right}${moreMenu(items, { label: t("更多操作") })}</div></div>`;
+  return `<div class="section-head"><div class="sh-title">${nav}<h2>${root}${cur && !plain ? ` / ${esc(t(cur[1]))}` : ""}${note}</h2></div><div class="head-acts">${right}${moreMenu(items, { label: t("更多操作") })}</div></div>`;
 }

@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.7", title: { zh: "财务首页改成四张大卡片，带「目录」按钮", en: "Finance home is now four big cards, with a Menu button" }, items: [
+    { k: "better", zh: "财务首页分成四张大卡片：分析、收支、账单、账户；卡片头显示这一组要处理的总数，里面一行一个页面，点一下就进", en: "The Finance home is four big cards — Analysis, Money in & out, Bills, Accounts — each showing how many things need attention, with one row per page inside" },
+    { k: "new", zh: "标题前面多了「目录」按钮：点开是整个财务的目录（组 → 页面 → 页内标签），下一版起每个财务页都有同一个", en: "A “Menu” button before the title opens the whole Finance map (group → page → tab); every Finance page gets the same one in the next version" },
+    { k: "fix", zh: "资产、净资产、对账单这些页的 ⓘ 原来离标题有一段距离，现在和其他页一样紧贴标题最后一个字", en: "On Assets, Net worth, Statements and similar pages the ⓘ used to sit away from the title; it now hugs the last character like everywhere else" },
+    { k: "better", zh: "「分析」里不再重复列「收支总览」（它是收入的第一页），现在只有资产和预算", en: "“Analysis” no longer lists Overview twice (it is Income’s first page) — just Assets and Budget now" },
+  ] },
+
   { v: "2026-11-21.6", title: { zh: "标题旁的 ⓘ 变成右上角小角标", en: "The ⓘ next to titles becomes a small corner badge" }, items: [
     { k: "better", zh: "各页标题旁的 ⓘ 现在悬在文字右上角，像铃铛的提醒角标，不再占一个字的位置", en: "The ⓘ next to page titles now floats at the top-right of the text, like the bell badge, instead of taking up a character’s width" },
     { k: "new", zh: "新做了「嵌套目录」控件（组 → 页面 → 标签，打开就停在当前页），下一版先用在财务", en: "A new nested Menu control (group → page → tab, opens right at where you are) — Finance gets it next" },

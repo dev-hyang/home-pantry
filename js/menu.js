@@ -27,6 +27,7 @@ import { personNameOf } from "./settings/family-lite.js";
 import { SETTING_SECTIONS } from "./settings/settings-menu.js";
 import { infoTip } from "./core/info-tip.js";
 import { assetBillsHref } from "./bills/all-href.js";
+import { viewFinanceMenu } from "./bills/fin-home.js";   // 财务首页（四张卡片）和贯穿财务各页的嵌套目录
 
 const SECTION_ICON = { pantry: "🗄️", house: "🏠", bills: "💰", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”
@@ -75,15 +76,6 @@ export const META = {
     releases:  { icon: "📰", desc: "每次更新了什么" },
   },
 };
-/* 财务目录分组（2026-11，P1 信息架构）：同一页里的小标题，不多一层（底栏 → 目录 → 页面 → 页内标签）。
- * 手机：一列分组列表；宽屏：两栏分组卡片（CSS columns，读屏顺序 = 视觉顺序：先左栏再右栏）。
- * 借贷（P2）：原来是一张不可点的「即将推出」卡，现在是真的页面（只给有财务权限的人看；g.soon 的画法留着给以后的占位用）。 */
-export const FIN_GROUPS = [   // 2026-11-21 重排：分析 · 收支 · 账单 · 账户（卡与账户待重构）
-  { id: "analysis", name: "分析", subs: ["assets", "cashflow", "budget"] },
-  { id: "flow", name: "收支", subs: ["spend", "income", "debts", "statements"] },
-  { id: "bills", name: "账单", subs: ["overview", "all", "recurring"] },
-  { id: "accounts", name: "账户", subs: ["accounts", "cards", "banks", "invest", "wallets"] },
-];
 const HIDDEN = (section, k) => (section === "pantry" && k === "gear" && !state.gearEnabled)
   || (section === "bills" && FINANCE_HIDDEN_SUBS.includes(META.bills[k]?.sub || k) && !financeOk());   // 没有财务权限：对账单 / 收入 / 预算不进目录
 
@@ -95,26 +87,6 @@ export const menuRow = ({ href: url, icon, title, desc, count, countLabel, exter
 
 export const KIND_ICON = { sfh: "🏡", townhome: "🏘️", condo: "🏢", apartment: "🔑", other: "🏠" };   // 房产类型图标：列表行和面包屑共用
 /** 某个页签的目录页（房屋：当前房产的页面目录） */
-/** 财务目录：按 FIN_GROUPS 分组；没权限的行、整组都空的组不出现 */
-function viewFinanceMenu() {
-  const sec = SECTIONS.bills, known = new Set(sec.subs.filter(([, , h]) => !h).map(([k]) => k));
-  const row = (k) => {
-    const m = META.bills[k] || {}, label = m.title || sec.subs.find(([s]) => s === k)?.[1] || k;
-    let count = 0; try { count = m.count ? m.count() : 0; } catch { count = 0; }
-    return menuRow({ href: m.href ? m.href() : href("bills", k), icon: m.icon || "•", title: t(label), desc: m.desc ? t(m.desc) : "", count });
-  };
-  const groups = FIN_GROUPS.map((g) => {
-    const body = g.soon
-      ? (financeOk() ? `<div class="mrow mrow-soon" aria-disabled="true"><span class="mi" aria-hidden="true">${g.soon.icon}</span><span class="mt"><b>${esc(t(g.soon.title))}</b><small>${esc(t(g.soon.desc))}</small></span><span class="badge mcount">${esc(t("即将推出"))}</span></div>` : "")
-      : g.subs.filter((k) => (known.has(k) || META.bills[k]?.sub) && !HIDDEN("bills", k)).map(row).join("");
-    return body ? `<section class="fin-group" aria-labelledby="fg-${g.id}"><h3 class="fin-group-h" id="fg-${g.id}">${esc(t(g.name))}</h3><div class="panel mlist">${body}</div></section>` : "";
-  }).join("");
-  return `<section class="section menu-page">
-    <div class="section-head"><div class="sh-title"><h2>${SECTION_ICON.bills} ${t(sec.name)}</h2>${infoTip(t("和钱有关的都在这里；房子、车的日常维护在「房屋」"), { align: "start" })}</div></div>
-    <div class="fin-groups">${groups}</div>
-  </section>`;
-}
-
 export function viewMenu(section) {
   if (section === "bills") return viewFinanceMenu();
   const sec = SECTIONS[section]; if (!sec?.subs) return "";

@@ -11,9 +11,7 @@ export function foldHeadNotes(root = document.getElementById("main")) {
     const head = p.parentElement, h2 = head.querySelector(":scope > h2, :scope > .sh-title > h2");
     const text = p.textContent.trim();
     if (!h2 || p.hasAttribute("data-keep") || p.querySelector("a, button, input") || p.classList.contains("form-error") || /\d/.test(text) || !LOOKS_LIKE_NOTE(text)) return;
-    let box = h2.parentElement;
-    if (!box.classList.contains("sh-title")) { box = document.createElement("div"); box.className = "sh-title"; h2.replaceWith(box); box.appendChild(h2); }
-    box.insertAdjacentHTML("beforeend", infoTip(text, { align: "start" }));
+    h2.insertAdjacentHTML("beforeend", infoTip(text, { align: "start" }));   // 放进标题里、紧贴最后一个字（右上角小角标），不再飘在标题旁边
     p.remove();
   });
 }

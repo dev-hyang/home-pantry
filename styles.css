@@ -577,10 +577,16 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 .menu-page { max-width: none; }   /* 目录页也占满居中列，和底部页签对齐 */
 .mlist { padding: 4px 6px; }
 /* 财务目录：分组小标题；手机一列，宽屏两栏卡片（columns 保持 DOM 顺序 = 读屏 / Tab 顺序，先左栏再右栏） */
-.fin-groups { display: block; }
-.fin-group { break-inside: avoid; margin: 0 0 16px; }
-.fin-group-h { font-size: 13px; font-weight: 700; letter-spacing: .02em; color: var(--muted); margin: 0 4px 6px; text-transform: uppercase; }
-@media (min-width: 760px) { .fin-groups { columns: 2; column-gap: 16px; } .fin-group { display: inline-block; width: 100%; } }
+/* 财务首页：四张大卡片（分析 · 收支 · 账单 · 账户），手机一列、宽屏 2 × 2；卡片头 = 组图标 + 名字 + 一句话 + 待处理总数 */
+.fin-cards { display: grid; gap: 14px; grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 760px) { .fin-cards { grid-template-columns: 1fr 1fr; gap: 16px; } }
+.fin-card { padding: 12px; border-radius: 16px; background: var(--surface-2); }
+.fin-card-h { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 4px 8px; }
+.fin-card-ico { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--surface); font-size: 20px; }
+.fin-card-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fin-card-t h3 { margin: 0; font-size: 16px; }
+.fin-card-t small { color: var(--muted); font-size: 12px; }
+.fin-card .panel.mlist { margin: 0; }
 .mrow-soon { cursor: default; }   /* 不降透明度：文字对比度保持 AA */
 .mrow-soon:hover { background: none; }
 /* 财务 → 资产：一行一个房产 / 车辆，标签 + 值的小块自动换行；手机上一块一行 */

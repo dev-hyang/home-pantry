@@ -1,1 +1,0 @@
-import{b as t}from"./chunk-7FV6LA3Y.js";import{u as o}from"./chunk-66QSZS4R.js";var i={fn:()=>{}},m=t("inc",{host:"#incList",map:n=>({...n,amount:o(n.amount),income_amount:n.income_amount==null?null:o(n.income_amount)}),draw:()=>i.fn()});window.addEventListener("income-rows-changed",()=>m.reload());export{i as a,m as b};
