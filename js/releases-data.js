@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-20.32", title: { zh: "咩咩的回答默认折叠", en: "Meh's answers are collapsed by default" }, items: [
+    { k: "better", zh: "库存里「该补货了」等页面上的咩咩回答，默认收成一行「咩咩的回答 · 日期」，点开才看全文；刚问完会自动展开", en: "Meh's answers on pages like Restock now collapse into one line (“Meh's answer · date”); tap to read, and a fresh answer opens by itself" },
+  ] },
+
   { v: "2026-11-20.31", title: { zh: "全部周期性账单（固定清单）；账单概览的分组切换换成统一的「视图」控件", en: "All recurring bills as a fixed list; the overview grouping uses the shared View switch" }, items: [
     { k: "new", zh: "财务页面目录里多了「全部周期性账单」：手机、房产税、房屋保险、车辆牌照、订阅……每张账单一张卡，不挂房产的也在，不随时间范围变", en: "Finance now lists “All recurring bills”: phone, property tax, home insurance, vehicle registration, subscriptions… one card per bill, including ones not tied to a property, independent of the time range" },
     { k: "better", zh: "账单概览里点「家庭通用」「车辆」那一行，进的也是这样的固定清单卡片", en: "On the bills overview, the General and Vehicle rows now open the same fixed card list" },

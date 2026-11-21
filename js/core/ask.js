@@ -47,8 +47,10 @@ export function askInline(ask, { inPanel = false } = {}) {
     : can ? `<button type="button" class="btn btn-sm ${c ? "btn-ghost" : ""}" data-action="ask-run" data-ask="${esc(ask.id)}">${aiIcon(16)} ${c ? t("重新问") : t("问咩咩")}</button>`
     : `<button type="button" class="btn btn-sm" data-action="ask-copy" data-ask="${esc(ask.id)}">${aiIcon(16)} ${t("复制提示词")}</button>`;
   const answer = c ? `<div class="ask-answer"><div class="ask-answer-head">${aiIcon(18)} <b>${t("咩咩")}</b><small class="muted">${new Date(c.at).toLocaleDateString()}</small><span class="spacer"></span><button type="button" class="btn btn-sm btn-ghost" data-action="ask-copy-answer" data-ask="${esc(ask.id)}">${t("复制")}</button><a class="btn btn-sm btn-ghost" href="${href("ai")}?from=${encodeURIComponent(ask.id)}">${t("追问")}</a></div>${renderAnswer(c.a)}<p class="disclaimer">${t("AI 回答仅供参考；涉及燃气、电、结构、法律、医疗请找专业人士。")}</p></div>` : "";
+  // 页面上（不是点 ? 展开的面板里）的答复默认折叠成一行「咩咩的回答 · 日期」，点开才看；展开状态记住（重画不收回去）
+  const shown = !inPanel && c ? `<details class="ask-fold" data-ask-fold="${esc(ask.id)}" ${state.askFoldOpen?.[ask.id] ? "open" : ""}><summary>${aiIcon(16)} <b>${t("咩咩的回答")}</b> <small class="muted">${new Date(c.at).toLocaleDateString()}</small></summary>${answer}</details>` : answer;
   const err = r.error ? `<p class="form-error" role="alert">${esc(r.error)}</p>` : "";
-  return `<div class="ask-inline ${inPanel ? "" : "standalone"}">${c ? "" : `<small class="muted ask-q">${esc(ask.question)}</small>`}<div class="ask-acts">${btn}${!can && !ready ? `<a class="ask-keylink" href="${href("me", "settings")}?sec=ai">${t("填 key 直接出答案")}</a>` : ""}</div>${err}${answer}</div>`;
+  return `<div class="ask-inline ${inPanel ? "" : "standalone"}">${c ? "" : `<small class="muted ask-q">${esc(ask.question)}</small>`}<div class="ask-acts">${btn}${!can && !ready ? `<a class="ask-keylink" href="${href("me", "settings")}?sec=ai">${t("填 key 直接出答案")}</a>` : ""}</div>${err}${shown}</div>`;
 }
 /** 回答做最简渲染：转义后按行分段，- / 1. 开头的行做成列表，**粗体** */
 function renderAnswer(text) {
@@ -77,7 +79,7 @@ export async function runAsk(id) {
   try {
     const p = askPrompt(ask);
     const a = await askText(p.system, p.user, { maxTokens: 700, temperature: 0.4 });
-    remember(id, ask.question, String(a || "").trim()); r[id] = { busy: false, error: null };
+    remember(id, ask.question, String(a || "").trim()); r[id] = { busy: false, error: null }; (state.askFoldOpen ||= {})[id] = true;
   } catch (e) { r[id] = { busy: false, error: e.message }; }
   rerender();
 }
@@ -112,3 +114,7 @@ export const ctx = {
   },
 };
 window.__askCtx = ctx;
+
+if (typeof document !== "undefined") document.addEventListener("toggle", (e) => {   // toggle 不冒泡，用捕获：记住答复折叠块的开合
+  const d = e.target; if (d?.matches?.("details[data-ask-fold]")) (state.askFoldOpen ||= {})[d.dataset.askFold] = d.open;
+}, true);

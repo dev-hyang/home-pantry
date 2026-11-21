@@ -4419,3 +4419,11 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .scan-kind-hint { margin: 0; font-size: 13px; }
 .scan-steps[hidden] { display: none; }
 .section-head .head-acts .scan-kind { margin: 0; }
+
+/* 咩咩的回答：页面上默认折叠成一行（js/core/ask.js 的 ask-fold），点开看全文 */
+.ask-fold { margin-top: 8px; }
+.ask-fold > summary { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; background: var(--surface-2); border-radius: var(--r-sm); cursor: pointer; list-style: none; font-size: 13.5px; }
+.ask-fold > summary::-webkit-details-marker { display: none; }
+.ask-fold > summary::after { content: "▾"; margin-left: auto; color: var(--muted); transition: transform .15s; }
+.ask-fold[open] > summary::after { transform: rotate(180deg); }
+.ask-fold > .ask-answer { margin-top: 6px; }
