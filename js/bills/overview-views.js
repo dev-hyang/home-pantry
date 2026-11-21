@@ -7,6 +7,7 @@ import { infoTip } from "../core/info-tip.js";
 import { viewSwitch } from "../core/view-switch.js";
 import { fabHtml } from "./bill-fab.js";
 import { eyeFilter } from "../core/filter-pop.js";
+import { finHead } from "./fin-head.js";
 import { billTrendSection } from "./views.js";
 import { detailHref } from "./medical.js";
 import { BILL_RANGES, STATUS_GROUPS, assetBreakdown, billInstances, cycleBreakdown, filterRows, monthBounds, monthlySeries, nextDue, rangeBounds, seriesMonths, sortRows, summarize } from "./instances.js";
@@ -95,7 +96,7 @@ export function viewBillsHome() {
   const assetLabel = f.asset === "all" ? t("全部资产") : assetKeyLabel(f.asset);
   const empty = !state.billsEnriched.length && !state.medEnriched.length;
   return `<section class="section">
-      <div class="section-head"><h2>${t("账单概览")}</h2><div class="head-acts">${eyeFilter()}<a class="btn btn-sm btn-ghost" href="${allBillsHref({ range: f.range, asset: f.asset })}">${t("账单明细")} ›</a></div></div>
+      ${finHead({ label: t("账单概览"), right: `${eyeFilter()}<a class="btn btn-sm btn-ghost" href="${allBillsHref({ range: f.range, asset: f.asset })}">${t("账单明细")} ›</a>` })}
       <div class="ov-filters">
         <select id="ovRange" aria-label="${t("时间范围")}">${range}</select>
         <select id="ovAsset" data-search aria-label="${t("按资产筛选")}">${assetOptions(C.base.rows, f.asset)}</select>

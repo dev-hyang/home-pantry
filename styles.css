@@ -4281,6 +4281,7 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
   .section-head .fpop-btn { min-width: 44px; padding: 0 12px; justify-content: center; }
   .section-head .fpop-btn > span:not(.tb-count) { display: none; }
 }
+@media (max-width: 440px) { .fin-head h2 { font-size: 16px; } }   /* 手机：「财务 / 页面 / 页签」三段路径要在一行里放下 */
 .fpop-eye, .tb-eye { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
 .fpop-eye { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 .fpop-body > .fpop-eye:first-child { margin-top: 0; padding-top: 0; border-top: 0; }

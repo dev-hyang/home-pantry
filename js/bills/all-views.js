@@ -7,6 +7,7 @@ import { esc, fmtDate, num, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
 import { toolbarEye } from "../core/toolbar-eye.js";
+import { finHead } from "./fin-head.js";
 import { infoTip } from "../core/info-tip.js";
 import { moreMenu } from "../core/more-menu.js";
 import { lpAttr } from "../core/long-press.js";
@@ -186,7 +187,7 @@ export function viewAllBills() {
   const range = rangeOpts.slice(0, 1).map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("") + (BILL_RANGES.some(([k]) => k === f.range) ? "" : `<option value="${esc(f.range)}" selected>${esc(f.range)}</option>`)
     + rangeOpts.slice(1).map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");
   return `<section class="section">
-    <div class="section-head"><h2>🧾 ${t("账单明细")} <span id="allTitleTip" class="title-tip">${titleTip(f, C)}</span></h2><div class="head-acts" id="allActs">${headActsHtml(C.rows)}</div></div>
+    ${finHead({ label: t("账单明细"), note: `<span id="allTitleTip" class="title-tip">${titleTip(f, C)}</span>`, right: headActsHtml(C.rows), actsId: "allActs" })}
     <div id="allSum">${summaryHtml(C)}</div>
     <div class="toolbar">
       <input type="search" id="allSearch" placeholder="${t("搜索名称、付款方、患者")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">

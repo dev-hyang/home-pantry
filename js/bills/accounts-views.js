@@ -6,6 +6,7 @@ import { t } from "../core/i18n.js";
 import { esc, fmtDate, money } from "../core/util.js";
 import { href } from "../core/router.js";
 import { eyeFilter } from "../core/filter-pop.js";
+import { finHead } from "./fin-head.js";
 import { cardsRO } from "../core/finance-access.js";
 import { lpAttr } from "../core/long-press.js";
 import { infoTip } from "../core/info-tip.js";
@@ -32,7 +33,7 @@ function acctRow(c, rows) {
 }
 const list = (cards, rows) => (cards.length ? `<div class="panel"><ul class="restock-list card-list">${cards.map((c) => acctRow(c, rows)).join("")}</ul></div>` : "");
 const addChips = (kinds) => (cardsRO() ? "" : `<div class="acct-add">${kinds.map((k) => `<a class="chip" href="${cardHref("new")}&kind=${k}">＋ ${ACCT_KINDS[k][1]} ${esc(t(ACCT_KINDS[k][0]))}</a>`).join("")}</div>`);
-const head = (title, tip) => `<div class="section-head"><h2>${title} ${tip ? infoTip(tip, { align: "start" }) : ""}</h2><div class="head-acts">${eyeFilter()}</div></div>`;
+const head = (title, tip) => finHead({ label: title, note: tip ? infoTip(tip, { align: "start" }) : "", right: eyeFilter() });
 const empty = (msg) => `<div class="panel empty"><strong>${esc(msg)}</strong></div>`;
 const needTip = (n) => (n ? t("{n} 个账户该更新余额", { n }) : t("余额都是新的"));
 

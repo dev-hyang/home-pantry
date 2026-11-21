@@ -2,6 +2,8 @@
 import { ACCT_KINDS, ACCT_SHORT, bonusLeft, cardById, cardHref, cardTotal, expDays, feeDays, giftBalance, holderName, isBankAcct, kindName, networkName, noRewards, reloadCards, rewardCatIcon, rewardCatName, rotatingNow, usage } from "./cards.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { Store } from "../core/store.js";
+import { finHead } from "./fin-head.js";
+import { infoTip } from "../core/info-tip.js";
 import { attentionPanel } from "../core/alerts.js";
 import { cardForm } from "./card-form.js";
 import { cardsRO } from "../core/finance-access.js";
@@ -21,8 +23,7 @@ export function viewCards() {
   // 停用的：最近停用的在前（没有停用日期的老记录按最后修改时间）
   const off = state.cards.filter((c) => c.active === false && groupOfKind(c.kind) === "credit").sort((a, b) => String(b.inactive_since || "").localeCompare(String(a.inactive_since || "")) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
   return `<section class="section">
-    <div class="section-head"><h2>${t("信用卡")}</h2><p>${t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。")}</p>
-      <div class="head-acts">${ro ? `<span class="badge" style="background:var(--surface-2)">${t("只读")}</span>` : `<a class="btn btn-primary btn-sm" href="${cardHref("new")}&kind=credit">${t("添加信用卡")}</a>`}</div></div>
+    ${finHead({ label: t("信用卡"), note: infoTip(t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。"), { align: "start" }), right: ro ? `<span class="badge" style="background:var(--surface-2)">${t("只读")}</span>` : `<a class="btn btn-primary btn-sm" href="${cardHref("new")}&kind=credit">${t("添加信用卡")}</a>` })}
     ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("你可以查看卡和推荐；添加、修改、停用、删除要家主在「设置 → 家庭与成员」里给你开财务权限。")}</p>` : ""}
     ${state.cardDelete && !ro ? deleteConfirmHtml(state.cardDelete) : ""}
     ${attentionPanel(["card"], { title: t("要处理"), sub: t("到期、年费、轮换类别、开卡奖励") })}

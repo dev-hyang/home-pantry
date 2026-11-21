@@ -61,7 +61,7 @@ export function render(force = true) {
 export function syncEditing() { document.body.classList.toggle("editing", !!document.querySelector("#main .sticky-actions, #main .top-actions")); }
 /** 页面函数返回 Promise = 这个页面的代码还没下载（js/core/lazy.js）：先放 面包屑 + 「加载中…」，下载完（还停在这个页面）再重画。返回 true = 已经画好 */
 function mountView(pre, out) {
-  if (!out || typeof out.then !== "function") { $("#main").innerHTML = pre + out; return true; }
+  if (!out || typeof out.then !== "function") { $("#main").innerHTML = (String(out).includes("fin-head") ? "" : pre) + out; return true; }   // 带财务页头（路径在页头里）的页面：不再画上面那条面包屑
   const key = location.hash;
   $("#main").innerHTML = pre + `<div class="panel empty" role="status">${t("加载中…")}</div>`;
   out.then(() => { if (location.hash === key && state.enriched) { render(true); focusEntry(state.route); } }, (e) => {   // 懒加载完才有表单：这时才能把光标放进去

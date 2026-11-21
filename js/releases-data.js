@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.8", title: { zh: "财务各页同一个「目录」：财务 / 页面 / 页签，打开就停在当前页", en: "One Finance Menu on every Finance page: Finance / page / tab, opens right where you are" }, items: [
+    { k: "new", zh: "财务下所有页面（收入、花费、预算、借贷、对账单、资产、账单概览 / 明细、账户各页、信用卡）顶上都是同一个「目录」按钮：点开是整个财务的目录，自动停在当前页，当前页签也展开", en: "Every Finance page now has the same Menu button: it opens the whole Finance map, already at the page you are on, with its tabs expanded" },
+    { k: "better", zh: "页头路径合成一行：财务 / 收入 / 收支总览，每一段都能点；原来上面那条单独的路径取消了", en: "The path is now a single line in the header — Finance / Income / Overview — and every part is tappable; the separate path bar above is gone" },
+  ] },
+
   { v: "2026-11-21.7", title: { zh: "财务首页改成四张大卡片，带「目录」按钮", en: "Finance home is now four big cards, with a Menu button" }, items: [
     { k: "better", zh: "财务首页分成四张大卡片：分析、收支、账单、账户；卡片头显示这一组要处理的总数，里面一行一个页面，点一下就进", en: "The Finance home is four big cards — Analysis, Money in & out, Bills, Accounts — each showing how many things need attention, with one row per page inside" },
     { k: "new", zh: "标题前面多了「目录」按钮：点开是整个财务的目录（组 → 页面 → 页内标签），下一版起每个财务页都有同一个", en: "A “Menu” button before the title opens the whole Finance map (group → page → tab); every Finance page gets the same one in the next version" },
