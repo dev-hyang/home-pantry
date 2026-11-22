@@ -24,6 +24,9 @@ export const shiftAlertSource = lazyFn(LZ.alertsPage, "shiftAlertSource");
 LZ.houseMenu = lazyModule(() => import("../house/house-menu.js"));
    // 房屋页签的目录页（房产列表 / 车辆 / 买卖计划）
 export const viewPropertyList = lazyFn(LZ.houseMenu, "viewPropertyList");
+export const viewHouseProps = lazyFn(LZ.houseMenu, "viewHouseProps");   // 房产 / 汽车 / 注意事项 三个目录页
+export const viewHouseCars = lazyFn(LZ.houseMenu, "viewHouseCars");
+export const viewHouseAlerts = lazyFn(LZ.houseMenu, "viewHouseAlerts");
 LZ.houseAssets = lazyModule(() => import("../house/assets.js"));
 LZ.recall = lazyModule(() => import("../house/recall.js"));
 LZ.tasks = lazyModule(() => import("../house/tasks.js"));

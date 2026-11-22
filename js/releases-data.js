@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.21", title: { zh: "房屋目录重新设计：四个一级目录，房产和车辆各自往下分层", en: "House menu redesigned: four top-level sections, properties and cars each nest their own pages" }, items: [
+    { k: "new", zh: "房屋首页变成四个入口：房产、汽车、买卖计划、注意事项，各自是独立的目录页（新增 房产 / 汽车 / 注意事项 三页；原来首页上的待办面板搬到「注意事项」页，旧的 ?todo= 链接照样能用）", en: "The House home page is now four entry cards — Houses, Cars, Buy / sell plans, Alerts — each its own directory page (new Houses, Cars and Alerts pages; the to-do board moved to “Alerts”, old ?todo= links still work)" },
+    { k: "better", zh: "房屋的「目录」按这四个一级目录分层，点一级入口就跳到它自己的目录页，展开箭头才展开下一层", en: "The House menu follows the same four sections: tapping a section jumps to its own directory page, only the arrow expands the next level" },
+    { k: "better", zh: "房屋下面是每一套房产，房产下面是它的概览 / 房屋资料 / 账单 / 季节任务 / 设备保养 / 交易；汽车下面是每一辆车，车下面也像房子一样分页：车辆概览 / 车辆资料 / 保养记录 / 保养时间表 / 账单 / 交易", en: "Under Houses is each property with its Overview / Profile / Bills / Tasks / Equipment / Deals; under Cars is each vehicle, which now has its own pages too: Overview / Profile / Service log / Schedule / Bills / Deals" },
+    { k: "better", zh: "买卖计划下面直接列出四种指南（买房 / 买车 / 卖房 / 卖车）；待办与注意事项下面是四类（设备与车辆、季节任务、交易、耗材 · HOA · 保险）；买卖计划页也用同样的页头", en: "Buy / sell plans lists the four guides directly; To-dos and alerts lists the four categories; the plans page uses the same header" },
+  ] },
+
   { v: "2026-11-21.20", title: { zh: "资产融资 / 个人借贷：筛选进页头，贷款行重新排版", en: "Asset financing / Personal lending: filters in the header, loan rows redesigned" }, items: [
     { k: "better", zh: "资产融资：状态、类型、排序挪进右上角的筛选按钮；搜索框和贷款行放在同一个容器里", en: "Asset financing: status, type and sort moved into the Filter button at the top right; the search box now sits in the same container as the loan rows" },
     { k: "better", zh: "个人借贷：搜索、方向、状态、排序都在右上角的筛选按钮里，下面只剩借贷行记录", en: "Personal lending: search, direction, status and sort are all in the Filter button; only the loan rows remain below" },

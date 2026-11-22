@@ -27,7 +27,7 @@ export function houseTodoBoard() {
   const tone = (k) => { const w = Math.min(...all.filter((x) => x.source === k).map((x) => x.severity)); return w <= 2 ? w : null; };
   const chips = `<div class="ht-cards" role="group" aria-label="${esc(t("按类别看"))}">${KINDS.map(([k, ic, nm]) => {
     const c = n(k), on = sel === k, w = c ? tone(k) : null;
-    return `<a class="ht-card${on ? " is-on" : ""}${c ? "" : " is-zero"}" href="${on ? href("house") : `${href("house")}?todo=${k}`}" ${on ? 'aria-current="true"' : ""} aria-label="${esc(`${t(nm)}，${t("{n} 件", { n: c })}`)}">
+    return `<a class="ht-card${on ? " is-on" : ""}${c ? "" : " is-zero"}" href="${on ? href("house", "alerts") : `${href("house", "alerts")}?todo=${k}`}" ${on ? 'aria-current="true"' : ""} aria-label="${esc(`${t(nm)}，${t("{n} 件", { n: c })}`)}">
       <span class="ht-top"><span class="ht-ico" aria-hidden="true">${ic}</span><b class="ht-n">${c}</b></span><small>${esc(t(nm))}</small>${w ? `<span class="ui-badge" data-tone="${w === 1 ? "danger" : "warn"}" data-size="sm">${esc(t(SEVERITY_LABEL[w]))}</span>` : ""}</a>`;
   }).join("")}</div>`;
   // 分组：在用的房产（当前房产在前）→ 车辆 → 不分房产的（家里的耗材补货）

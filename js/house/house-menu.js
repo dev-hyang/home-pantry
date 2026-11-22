@@ -14,7 +14,7 @@ import { planEntryCards } from "./plan.js";
 import { activeVehicles, assetName, assetsDueCount, myVehicles, pastVehicles, pastVehiclesSection } from "./assets.js";
 import { monthTasks } from "./tasks-logic.js";
 import { dealTasks, openDeal } from "./deals.js";
-import { houseTodoBoard } from "./todo-board.js";
+import { houseAlerts, houseTodoBoard } from "./todo-board.js";
 import { PROFILE_SECTIONS, houseDraft, sectionStatus } from "./views.js";
 import { myAssets, vehStatus } from "./asset-common.js";
 
@@ -45,7 +45,7 @@ export function houseNavTiles() {
 }
 
 /** 房屋页签的第一层：房产列表（每套一行，带状态和待处理数），下面是家庭级的车辆和添加房产 */
-export function viewPropertyList() {
+function kit() {
   const K = window.BILLS.PROPERTY_KINDS, ST = window.DEALS.PROPERTY_STATUS;
   // 卡片（不是行）：图标 + 名称 + 一两行基本信息；最后一张空白卡「＋ 添加…」。不放统计数字
   const card = (attrs, icon, title, lines, current = false, flag = "") => {
@@ -64,20 +64,35 @@ export function viewPropertyList() {
     const v = a.vehicle || {}, pt = window.VEHICLES?.POWERTRAINS?.[a.type];
     return card(`href="${esc(href("asset", a.id))}"`, pt?.icon || "🚗", assetName(a), [[a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "), [v.plate, t(window.VEHICLES?.STATUS?.[vehStatus(a)]?.name || "")].filter(Boolean).join(" · ")]);
   };
-  return `<section class="section menu-page house-landing">
-    ${houseBar()}
-    <section class="hv-sec" aria-label="${esc(t("房屋"))}"><div class="section-head"><h3>${t("房屋")}</h3><p>${t("点一套房产进入它的概览")}</p></div>
+  return { props, vehicles, houseCard, archivedCard, vCard, addCard, ended, archived };
+}
+const sec = (inner) => `<section class="section menu-page house-landing">${houseBar()}${inner}</section>`;
+/** 房屋首页：四个一级目录页的入口（房产 · 汽车 · 买卖计划 · 注意事项），点进去是各自的目录页 */
+export function viewPropertyList() {
+  const { props, vehicles } = kit(), n = houseAlerts().length;
+  const entry = (url, icon, title, stat, desc) => `<a class="hv-card" href="${esc(url)}"><span class="hv-ico" aria-hidden="true">${icon}</span><span class="hv-txt"><b>${esc(title)}</b><small>${esc(stat)}</small><small>${esc(desc)}</small></span></a>`;
+  return sec(`<div class="hv-grid">${entry(href("house", "properties"), "🏠", t("房产"), t("{n} 套", { n: props.length }), t("点一套房产进入它的概览"))}
+    ${entry(href("house", "cars"), "🚗", t("汽车"), t("{n} 辆", { n: vehicles.length }), t("车辆资料、保养、账单、交易"))}
+    ${entry(href("house", "plan"), "🧭", t("买卖计划"), t("买房 / 买车 / 卖房 / 卖车"), t("还没买 / 卖：先看指南、列清单"))}
+    ${entry(href("house", "alerts"), "🔔", t("注意事项"), n ? t("{n} 件待处理", { n }) : t("都处理好了 ✓"), t("设备保养、季节任务、交易、耗材 · HOA · 保险"))}</div>`);
+}
+/** 房产目录页（#/house/properties）：每套房产一张卡，点进它的概览；已结束 / 已归档的收在下面 */
+export function viewHouseProps() {
+  const { props, houseCard, archivedCard, addCard, ended, archived } = kit();
+  return sec(`<section class="hv-sec" aria-label="${esc(t("房产"))}"><div class="section-head"><h3>${t("房产")}</h3><p>${t("点一套房产进入它的概览")}</p></div>
     <div class="hv-grid">${props.map(houseCard).join("")}${state.editProperty === "new" || !canManageHome() ? "" : addCard(`href="${esc(href("house", "profile"))}?sec=type&newprop=1"`, t("添加房产"), t("自住、出租或租住的房子都可以"))}</div>
     ${ended.length ? `<details class="asset-ended"><summary>${t("已结束的房产")} <small>${t("{n} 套，已卖出或已退租；档案、账单和记录保留", { n: ended.length })}</small></summary><div class="hv-grid">${ended.map(houseCard).join("")}</div></details>` : ""}
-    ${archived.length ? `<details class="asset-ended"><summary>${t("已归档的房产")} <small>${t("{n} 套，不再持有或租住；资料、账单、设备都保留，可随时恢复", { n: archived.length })}</small></summary><div class="hv-grid">${archived.map(archivedCard).join("")}</div></details>` : ""}</section>
-    <section class="hv-sec" aria-label="${esc(t("汽车"))}"><div class="section-head"><h3>🚗 ${t("汽车")}</h3></div>
-    <div class="hv-grid">${vehicles.map(vCard).join("")}${addCard(`href="${esc(href("asset", "new"))}?type=vehicle_gas&wiz=1"`, t("添加车辆"), t("记下你已经有的车：油车、混动、纯电都可以"))}</div>
-    ${pastVehiclesSection(pastVehicles())}</section>
-    <details class="hv-sec hv-plan" data-hfold="plan" ${houseFold().plan === false ? "open" : ""}><summary><h3>🧭 ${t("买卖计划")}</h3><small>${t("还没买 / 卖：先看指南、列清单；不会创建房产或车辆")}</small><span class="mch" aria-hidden="true">›</span></summary>
-    <div class="hv-grid">${planEntryCards()}</div></details>
-    ${houseTodoBoard()}
-  </section>`;
+    ${archived.length ? `<details class="asset-ended"><summary>${t("已归档的房产")} <small>${t("{n} 套，不再持有或租住；资料、账单、设备都保留，可随时恢复", { n: archived.length })}</small></summary><div class="hv-grid">${archived.map(archivedCard).join("")}</div></details>` : ""}</section>`);
 }
+/** 汽车目录页（#/house/cars）：每辆车一张卡，点进车辆概览；不再用的车收在下面 */
+export function viewHouseCars() {
+  const { vehicles, vCard, addCard } = kit();
+  return sec(`<section class="hv-sec" aria-label="${esc(t("汽车"))}"><div class="section-head"><h3>🚗 ${t("汽车")}</h3></div>
+    <div class="hv-grid">${vehicles.map(vCard).join("")}${addCard(`href="${esc(href("asset", "new"))}?type=vehicle_gas&wiz=1"`, t("添加车辆"), t("记下你已经有的车：油车、混动、纯电都可以"))}</div>
+    ${pastVehiclesSection(pastVehicles())}</section>`);
+}
+/** 注意事项页（#/house/alerts）：各房产和车辆要处理的事，按类别看（原房屋首页的待办面板） */
+export function viewHouseAlerts() { return sec(houseTodoBoard()); }
 /* 房屋页签首页的折叠状态（资产 / 房屋 / 汽车）：记在这台设备上（hmh-house-fold），切换时不重画页面 */
 const HF_KEY = "hmh-house-fold";
 const houseFold = () => { if (!state.houseFold) { try { state.houseFold = JSON.parse(localStorage.getItem(HF_KEY) || "{}") || {}; } catch { state.houseFold = {}; } } return state.houseFold; };
