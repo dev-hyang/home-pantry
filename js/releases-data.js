@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.18", title: { zh: "房屋各页：「目录」按房产分层", en: "House pages: a Menu organised by property" }, items: [
+    { k: "better", zh: "房屋首页、概览、房屋资料、季节任务、设备保养、交易、汽车房屋消耗品、车辆：页头统一成「[目录] 房屋 / 房产名 / 页面」；目录按房产分层（每套房产展开是它的概览 / 房屋资料 / 账单 / 季节任务 / 设备保养 / 交易），另有汽车；点另一套房产的页面直接切过去", en: "House home, Overview, House profile, Seasonal tasks, Equipment, Deals, Supplies and Vehicles share one header, “[Menu] House / property / page”; the menu is organised by property (each expands to its Overview / Profile / Bills / Tasks / Equipment / Deals), plus Cars; tapping a page of another property switches straight to it" },
+  ] },
+
   { v: "2026-11-21.17", title: { zh: "「我的」各页：同一个「目录」", en: "My pages: one Menu" }, items: [
     { k: "better", zh: "我的首页、家里的数字、设置（每个分区）、介绍、发布日志：页头统一成「[目录] 我的 / 页面 / 分区」；目录里设置下面列着所有分区，打开就停在当前页；上面单独的一条路径取消了（家庭成员 / 家人详情仍带自己的路径）", en: "My home, Household numbers, Settings (every section), About and Release notes share one header, “[Menu] Me / page / section”; the menu lists every settings section and opens at the current page; the separate path bar is gone (member / person details keep their own path)" },
   ] },

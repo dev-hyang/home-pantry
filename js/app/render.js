@@ -20,6 +20,7 @@ import { t } from "../core/i18n.js";
 import { viewOtBill } from "./lazy-modules.js";
 import { pantryNav } from "../pantry/restock-sync.js";
 import { meHead } from "../settings/me-nav.js";
+import { HOUSE_TOP, houseDeep, houseHead } from "../house/house-nav.js";
 import { renderInvList } from "./lazy-modules.js";
 import { focusEntry } from "./entry-focus.js";
 
@@ -81,11 +82,11 @@ function renderBody(r) {
   if (routeBlocked(r)) { $("#main").innerHTML = ""; toast(t("家主还没给你开财务权限")); go(financeFallback(r), { replace: true }); return; }   // 对账单 / 收入 / 预算 / 添加卡：没有财务权限时直接打开网址也跳走
   if (r.section === "bills") maybeAutoSnapshot().then((w) => { if (w && state.route?.section === "bills" && state.route?.sub === "networth") render(false); });   // 本月还没有快照 / 自动快照的数字变了：后台写一行（不挡画面）
   if (r.section === "pantry" && r.sub === "gear" && !state.gearEnabled) { $("#main").innerHTML = crumb(r) + offPanel(t("家居耐用品模块已关闭"), "gear-enable", t("打开家居耐用品")); return; }
-  if (r.sub === "menu") { mountView(r.section === "me" ? meHead(r) : "", r.section === "house" ? viewPropertyList() : viewMenu(r.section)); return; }   // 页签目录页；房屋先列房产
+  if (r.sub === "menu") { mountView(r.section === "me" ? meHead(r) : r.section === "house" ? houseHead(r) : "", r.section === "house" ? viewPropertyList() : viewMenu(r.section)); return; }   // 页签目录页；房屋先列房产
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
   // 页头：储藏 / 我的 = 「[目录] 区域 / 页面」一行（成员、家人详情另带自己的面包屑）；其他区域照旧面包屑
-  const pre = r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : r.section === "me" ? meHead(r) + (r.q?.get("person") || r.q?.get("member") ? crumb(r) : "") : crumb(r);
+  const pre = r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : r.section === "me" ? meHead(r) + (r.q?.get("person") || r.q?.get("member") ? crumb(r) : "") : r.section === "house" && HOUSE_TOP.includes(r.sub) && !houseDeep(r) ? houseHead(r) : crumb(r);
   if (!mountView(pre, view())) return;   // 储藏的每个页面顶上都有页面导航卡片
   if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"))) renderInvList();
   const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : r.section === "pantry" && r.sub === "gear" ? $("#invSec-gear") : null;   // 从概览「汽车房屋消耗品」或旧的家居耐用品链接进来：展开并滚到那一块

@@ -65,7 +65,6 @@ export function viewPropertyList() {
     return card(`href="${esc(href("asset", a.id))}"`, pt?.icon || "🚗", assetName(a), [[a.manufacture_year, a.brand, a.model].filter(Boolean).join(" "), [v.plate, t(window.VEHICLES?.STATUS?.[vehStatus(a)]?.name || "")].filter(Boolean).join(" · ")]);
   };
   return `<section class="section menu-page house-landing">
-    <div class="section-head"><h2>🏠 ${t("房屋")}</h2></div>
     ${houseBar()}
     <section class="hv-sec" aria-label="${esc(t("房屋"))}"><div class="section-head"><h3>${t("房屋")}</h3><p>${t("点一套房产进入它的概览")}</p></div>
     <div class="hv-grid">${props.map(houseCard).join("")}${state.editProperty === "new" || !canManageHome() ? "" : addCard(`href="${esc(href("house", "profile"))}?sec=type&newprop=1"`, t("添加房产"), t("自住、出租或租住的房子都可以"))}</div>
