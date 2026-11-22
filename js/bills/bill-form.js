@@ -90,7 +90,7 @@ export function viewBillForm() {
   const hide = (k) => (b && sec && !full && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">
-      ${b ? billCrumb(b, root, hubHref, full ? t("编辑账单") : t(BILL_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([billRoot(), { label: t("添加账单") }])}
+      ${b ? billCrumb(b, root, hubHref, full ? t("编辑账单") : t(BILL_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([...billRoot(), { label: t("添加账单") }])}
       ${autofillBar("bill", "#billForm")}
       <form id="billForm" class="panel ${B().isSubCat(v.category) ? "is-sub" : ""} ${v.category === "hoa" ? "is-hoa" : ""} ${b && sec && !full ? "one-sec" : ""}" novalidate data-autosave>
         <input type="hidden" name="bill_id" value="${d(b?.id)}">

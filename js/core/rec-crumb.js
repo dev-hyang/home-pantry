@@ -3,6 +3,7 @@
 import { href } from "./router.js";
 import { t } from "./i18n.js";
 import { crumbNav } from "./hub.js";
+import { finBase } from "./crumb-base.js";
 
 /** sub = "spend" | "income"；listHref = 明细列表的网址；leaf = 当前这一项的名字 */
-export const recCrumb = (sub, listHref, leaf) => crumbNav([{ href: href("bills"), label: t("财务") }, { href: href("bills", sub), label: t(sub === "spend" ? "花费" : "收入") }, { href: listHref, label: t("明细") }, { label: leaf }]);
+export const recCrumb = (sub, listHref, leaf) => crumbNav([...finBase(sub), { href: href("bills", sub), label: t(sub === "spend" ? "花费" : "收入") }, { href: listHref, label: t("明细") }, { label: leaf }]);

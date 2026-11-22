@@ -10,6 +10,7 @@ import { eyeFilter } from "../core/filter-pop.js";
 import { infoTip } from "../core/info-tip.js";
 import { crumbNav } from "../core/hub.js";
 import { finHead } from "./fin-head.js";
+import { finBase, houseCars, houseProps } from "../core/crumb-base.js";
 import { propertyName } from "../core/alerts.js";
 import { carouselHtml } from "../core/carousel.js";
 import { fabHtml } from "./bill-fab.js";
@@ -29,9 +30,9 @@ const rangeOf = () => { const r = state.route?.q?.get("range"); return r && BILL
 /** 面包屑的上层：房产 = 房屋 / 房产名（点房产名回它的概览）；车辆 / 设备 = 房屋 / 它自己的页面；其余清单（全部周期性、家庭通用、车辆）= 财务 */
 function backParts(key) {
   const [type, id] = key.split(":");
-  if (type === "property") return [{ href: href("house"), label: t("房屋") }, { href: `${href("house", "overview")}?prop=${encodeURIComponent(id)}`, label: propertyName(id) || t("房产"), icon: "🏠" }];
-  if (type === "asset") return [{ href: href("house"), label: t("房屋") }, { href: href("asset", id), label: assetKeyLabel(key).replace(/^\S+\s/, "") }];
-  return [{ href: href("bills", "overview"), label: t("财务") }];
+  if (type === "property") return [...houseProps(), { href: `${href("house", "overview")}?prop=${encodeURIComponent(id)}`, label: propertyName(id) || t("房产"), icon: "🏠" }];
+  if (type === "asset") return [...(state.assets.find((x) => x.id === id)?.kind === "vehicle" ? houseCars() : houseProps()), { href: href("asset", id), label: assetKeyLabel(key).replace(/^\S+\s/, "") }];
+  return finBase("assetbills");
 }
 
 /** 一张卡 = 账单详情页顶上那张概要卡（周期性 billHeadCard / 一次性 medHeadCard），带「周期性 / 一次性」标记和同样的 ⋯ 菜单 */

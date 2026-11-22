@@ -1,6 +1,7 @@
 /* 设备页：检查卡（看什么、正常是什么样、什么时候叫人、红线）和设备列表（搜索 + 类型 / 保养 / 保修 / 位置筛选）。 */
 import { $, esc, fmtDate, money, num } from "../core/util.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
+import { houseCars, houseProps } from "../core/crumb-base.js";
 import { ctx as askCtx, askInline } from "../core/ask.js";
 import { assetCard } from "./vehicles-page.js";
 import { assetName, isVehicle, rank } from "./assets-logic.js";
@@ -36,8 +37,8 @@ export function careCard(key, { open = false, ask = null } = {}) {
 /** 设备：房屋 / 房产 / 设备保养 / 设备名；车辆：房屋 / 车辆 / 车名（固定层级，不随“从哪个页面进来”变） */
 export const assetBase = (a, veh) => {
   const pid = a?.property_id || state.propertyId, pn = pid ? propertyName(pid) : "";
-  return veh ? [{ href: href("house"), label: t("房屋") }]
-    : [{ href: href("house"), label: t("房屋") }, ...(pn ? [{ href: `${href("house", "overview")}?prop=${pid}`, label: pn, icon: "🏠" }] : []), { href: `${href("house", "assets")}${pid ? `?prop=${pid}` : ""}`, label: t("设备保养") }];
+  return veh ? houseCars()
+    : [...houseProps(), ...(pn ? [{ href: `${href("house", "overview")}?prop=${pid}`, label: pn, icon: "🏠" }] : []), { href: `${href("house", "assets")}${pid ? `?prop=${pid}` : ""}`, label: t("设备保养") }];
 };
 export const assetTrail = (a, _root, hubHref) => [...assetBase(a, isVehicle(a)), { href: hubHref, label: assetName(a), icon: a.t?.icon || "⚙️" }];
 export const assetCrumb = (a, root, hubHref, cur) => crumbNav([...assetTrail(a, root, hubHref), { label: cur }]);

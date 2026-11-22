@@ -18,6 +18,7 @@ import { adultPeople } from "../settings/family-lite.js";
 import { copyOf } from "../core/more-menu.js";
 import { cardDetailPage } from "./card-detail.js";
 import { collectCard } from "./card-collect.js";
+import { groupHref as finGroupLink } from "./fin-tree.js";
 import { firstStep, wzActions, wzChrome, wzIntercept } from "./card-wizard.js";
 
 /* ───────────── 表单 ───────────── */
@@ -57,7 +58,7 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
   const credits = (v.credits || []).map((x) => `${x.name} | ${num(x.amount)} | ${x.period || "year"} | ${x.resets_on || ""} | ${num(x.used, 0)}`).join("\n");
   const b = v.bonus || {};
   return `<section class="section form-page">
-    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(groupHref(kind))}<a href="${href("bills")}">${t("财务")}</a><span class="sep">/</span><a href="${groupHref(kind)}">${t(groupName(kind))}</a><span class="sep">/</span>${isNew ? `<b>${t("添加")} ${esc(kindName(kind))}</b>` : `<a href="${cardHref(c.id)}">${d(v.name)}</a><span class="sep">/</span><b>${t("编辑")}</b>`}</nav>
+    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(groupHref(kind))}<a href="${href("bills")}">${t("财务")}</a><span class="sep">/</span><a href="${finGroupLink("accounts")}">${t("账户")}</a><span class="sep">/</span><a href="${groupHref(kind)}">${t(groupName(kind))}</a><span class="sep">/</span>${isNew ? `<b>${t("添加")} ${esc(kindName(kind))}</b>` : `<a href="${cardHref(c.id)}">${d(v.name)}</a><span class="sep">/</span><b>${t("编辑")}</b>`}</nav>
     <form id="cardForm" class="panel" novalidate data-id="${d(c?.id)}" ${ro ? 'data-readonly="1"' : ""}${isNew && !ro ? ` data-wzf data-step="${firstStep()}"` : ""}>
       ${isNew && !ro ? wzChrome(kind) : ""}
       ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("只读：家主开放财务权限后才能修改")}</p><fieldset disabled style="border:0;padding:0;margin:0;min-width:0">` : ""}

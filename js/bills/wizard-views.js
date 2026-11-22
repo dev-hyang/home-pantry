@@ -3,6 +3,7 @@
  * 草稿放在 state.billDraft（内存，不入库；创建成功或换一次新的进入就清掉）；步骤在网址里（返回键 = 上一步）。 */
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
+import { finBase } from "../core/crumb-base.js";
 import { $, esc, fmtDate, todayISO } from "../core/util.js";
 import { go, href } from "../core/router.js";
 import { t } from "../core/i18n.js";
@@ -105,7 +106,7 @@ export function viewBillWizard() {
   const q = state.route.q, d = ensureDraft(q), step = Math.min(LAST_STEP, Math.max(1, parseInt(q.get("step"), 10) || 1)), today = todayISO();
   const [title, why] = STEP_TEXT[step], pct = Math.round((step / LAST_STEP) * 100), last = step === LAST_STEP;
   return `<section class="section form-page wiz">
-    ${crumbNav([{ href: href("bills", "all"), label: t("账单") }, { label: t("添加账单") }])}
+    ${crumbNav([...finBase("overview"), { label: t("添加账单") }])}
     <p class="wiz-step" role="status" aria-live="polite">${t("第 {n} 步 / 共 {m} 步", { n: step, m: LAST_STEP })} · ${t(STEPS[step - 1].name)}</p>
     <span class="mprog" aria-hidden="true"><i style="width:${pct}%"></i></span>
     <form id="wizForm" class="panel" novalidate data-step="${step}">

@@ -8,11 +8,13 @@ import { esc } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { treePop } from "../core/tree-pop.js";
-import { finTree } from "./fin-tree.js";
+import { finTree, groupHref } from "./fin-tree.js";
+import { finGroupOf } from "../core/crumb-base.js";
 
 /** menu = 本页操作（打印、导出…，放在目录面板最下面，格式 { label, icon, href | action + data }）；label = 页面名；pageHref = 页面第一个页签的网址（有 tab 时「页面」才是链接）；tab = 当前页签名；note = ⓘ 的 html；right = 右边的 html；actsId = 右边容器的 id（局部刷新用） */
 export function finHead({ label, pageHref = "", tab = "", note = "", right = "", menu = [], actsId = "" }) {
-  const root = `<a class="h-root" href="${esc(href("bills"))}">${t("财务")}</a>`;
+  const root = `<a class="h-root" href="${esc(href("bills"))}">${t("财务")}</a>`, g = state.route?.sub === "group" ? null : finGroupOf(state.route?.sub);   // 分组（分析 / 收支 / 账单 / 账户）是页面上一层的目录页
+  const grp = g ? ` / <a class="h-root" href="${esc(groupHref(g.id))}">${esc(t(g.name))}</a>` : "";
   const page = tab && pageHref ? `<a class="h-root" href="${esc(pageHref)}">${esc(label)}</a>` : esc(label);
-  return `<div class="section-head fin-head"><div class="sh-title">${treePop(finTree(state.route), { id: "fintree", actions: menu })}<h2>${root} / ${page}${tab ? ` / ${esc(tab)}` : ""}${note}</h2></div><div class="head-acts"${actsId ? ` id="${esc(actsId)}"` : ""}>${right}</div></div>`;
+  return `<div class="section-head fin-head"><div class="sh-title">${treePop(finTree(state.route), { id: "fintree", actions: menu })}<h2>${root}${grp} / ${page}${tab ? ` / ${esc(tab)}` : ""}${note}</h2></div><div class="head-acts"${actsId ? ` id="${esc(actsId)}"` : ""}>${right}</div></div>`;
 }

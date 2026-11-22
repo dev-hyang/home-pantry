@@ -1017,6 +1017,8 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 /* 深层页面：[目录] ‹ 返回 面包屑（js/core/crumb-nav.js）；手机上目录按钮只留图标 */
 .crumb-row { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
 .crumb-row > .crumb { flex: 1 1 auto; min-width: 0; margin: 0; }
+.crumb-row .crumb .crumb-back { display: none; }   /* 有目录按钮就不要「‹ 返回」了：每一层面包屑本身都能点回上一层 */
+.fin-head h2, .sec-path { word-break: keep-all; }   /* 层级变多后标题可能换行：只在「 / 」处断，不拆开一个词 */
 .crumb-row > .npop { flex: none; }
 @media (max-width: 440px) { .crumb-row .fpop-btn { min-width: 44px; padding: 0 12px; justify-content: center; } .crumb-row .fpop-btn > span { display: none; } }
 .card-ico { display: inline-block; margin-right: 6px; font-size: 14px; line-height: 1; vertical-align: -1px; }

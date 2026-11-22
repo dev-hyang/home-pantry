@@ -1,6 +1,7 @@
 /* 出了问题：页面、第 ② 层问咩咩、结果。 */
 import { $, esc, num, toast, todayISO } from "../core/util.js";
 import { Store } from "../core/store.js";
+import { houseCars, houseProps } from "../core/crumb-base.js";
 import { aiIcon, aiQuota, aiReady, askText, generalPrompt, quotaMessage, visionCapable } from "../core/ai.js";
 import { aiSettings, providerOf } from "../core/ai-common.js";
 import { ctx as askCtx } from "../core/ask.js";
@@ -24,7 +25,7 @@ export function viewFix() {
   const q = ready ? aiQuota() : null, blocked = !!q && !q.ok, canImg = ready && visionCapable(p);
   const veh = isVehicle(a);
   const pid = a?.property_id || state.propertyId, pn = pid ? propertyName(pid) : "";
-  const crumb = crumbNav([{ href: href("house"), label: t("房屋") }, ...(pn && !isVehicle(a) ? [{ href: `${href("house", "overview")}?prop=${pid}`, label: pn, icon: "🏠" }] : []),
+  const crumb = crumbNav([...(isVehicle(a) ? houseCars() : houseProps()), ...(pn && !isVehicle(a) ? [{ href: `${href("house", "overview")}?prop=${pid}`, label: pn, icon: "🏠" }] : []),
     ...(isVehicle(a) ? [] : [{ href: `${href("house", "assets")}${pid ? `?prop=${pid}` : ""}`, label: t("设备保养") }]), ...(a ? [{ href: href("asset", a.id), label: assetName(a), icon: a.t?.icon || "⚙️" }] : []), { label: t("出了问题？"), icon: "🩺" }]);
   const opt = (x) => `<option value="${esc(x.id)}" ${x.id === f.asset ? "selected" : ""}>${x.t?.icon || "⚙️"} ${esc(assetName(x))}${isFixture(x) && unitsText(x) ? `（${esc(unitsText(x, 2))}）` : x.location ? `（${esc(t(x.location))}）` : ""}</option>`;
   const list = candidates();

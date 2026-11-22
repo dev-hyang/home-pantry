@@ -3,6 +3,7 @@
 import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { assetKeys } from "./instances.js";
+import { finBase } from "../core/crumb-base.js";
 import { assetKeyLabel } from "./all-views.js";
 
 /** 概览页的网址：不带资产 = 默认筛选；带资产 = 路径里加一段；extra 是 ?range=m 这类查询参数 */
@@ -18,5 +19,5 @@ export function scopeKeyOf(b, kind) {
 /** 面包屑各级：last = 最后一级（账单名，或「账单名」下的子页由调用方继续往后接） */
 export function billScopeParts(b, kind) {
   const key = scopeKeyOf(b, kind), home = overviewHref();
-  return [{ href: home, label: t("财务") }, { href: home, label: t("账单概览") }, ...(key ? [{ href: overviewHref(key), label: assetKeyLabel(key).replace(/^\S+\s/, ""), icon: assetKeyLabel(key).split(" ")[0] }] : [])];
+  return [...finBase("overview"), { href: home, label: t("账单概览") }, ...(key ? [{ href: overviewHref(key), label: assetKeyLabel(key).replace(/^\S+\s/, ""), icon: assetKeyLabel(key).split(" ")[0] }] : [])];
 }

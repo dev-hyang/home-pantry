@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.26", title: { zh: "面包屑按层级补全：每一层都能点回上一层；有目录按钮就不要「返回」", en: "Breadcrumbs completed level by level: every level links to a real parent; no “Back” next to the Menu button" }, items: [
+    { k: "fix", zh: "财务各页的路径补上「分组」这一层：财务 / 收支 / 收入 / 收支总览（点「收支」回到收支目录页）；账单、借贷、信用卡、账户、收入 / 花费详情和表单的路径同样补全（例如 财务 / 账户 / 投资账户 / 某个账户）", en: "Finance paths now include the group level: Finance / Money in & out / Income / Overview (tapping “Money in & out” opens that directory page); the same applies to bills, debts, cards, accounts and income / spending details and forms (e.g. Finance / Accounts / Investments / an account)" },
+    { k: "fix", zh: "房屋各页的路径补上「房产」「汽车」目录页这一层：房屋 / 房产 / 某套房产 / 设备保养 / 某台设备；房屋 / 汽车 / 某辆车 / 保养记录；房产和车辆的账单、出了问题等页面也一样", en: "House paths now include the Houses / Cars directory pages: House / Houses / a property / Equipment / a device; House / Cars / a vehicle / Service log; bills and “Something's wrong” pages of properties and vehicles too" },
+    { k: "better", zh: "页面上有「目录」按钮后，面包屑前面的「‹ 返回」去掉了（每一层本身就能点回上一层）；层级变长换行时只在「 / 」处断开", en: "With the Menu button present the “‹ Back” in front of the breadcrumb is gone (every level links to its parent); long paths wrap only at “ / ”" },
+    { k: "fix", zh: "常用账单模板页的路径补上「周期性账单」这一层：财务 / 账单 / 周期性账单 / 常用账单", en: "The bill templates page path now includes Recurring bills: Finance / Bills / Recurring bills / Templates" },
+  ] },
+
   { v: "2026-11-21.25", title: { zh: "深层页面也有「目录」按钮", en: "Deep pages get the Menu button too" }, items: [
     { k: "new", zh: "详情页、表单页和各种子页（车辆、账单、借贷、信用卡、收入 / 花费详情、商店详情、物品、成员…）原来只有「‹ 返回 …」面包屑，现在最前面多了一个「目录」按钮：打开是所在区域（财务 / 房屋 / 储藏 / 采购 / 我的）的同一棵目录，随时可以跳到别处；面包屑照旧保留", en: "Detail pages, forms and sub-pages (vehicles, bills, debts, cards, income / spending details, store details, items, members…) only had the “‹ Back …” breadcrumb; they now start with a Menu button that opens the same tree as its section (Finance / House / Storage / Shopping / Me), so you can jump anywhere; the breadcrumb stays" },
   ] },

@@ -4,6 +4,7 @@ import { billCat } from "./logic.js";
 import { billInUse, endedSuffix, propertyActive, propertyById } from "../core/lifecycle.js";
 import { billScopeParts } from "./trail.js";
 import { crumbNav } from "../core/hub.js";
+import { finBase } from "../core/crumb-base.js";
 import { detailHref } from "./medical.js";
 import { esc, num } from "../core/util.js";
 import { fullFormUrl } from "./wizard-views.js";
@@ -29,7 +30,7 @@ export function propertyBar({ all = false } = {}) {
 export function billTypeChooser() {
   const row = (href_, icon, title, desc, eg = "") => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small>${eg ? `<small>${eg}</small>` : ""}</span><span class="mch" aria-hidden="true">›</span></a></div>`;
   const ai = `<div class="kind-card kind-ai"><div class="kind-main kind-static"><span class="kind-ico" aria-hidden="true">✨</span><span class="grow"><b>${t("AI 扫描")}</b><small>${t("拍一封信、一张账单或邮件截图，AI 判断是周期性还是一次性，自动填好表单；核对后再保存。")}</small></span></div>${scanNewBillBar()}</div>`;
-  return `<section class="section form-page">${crumbNav([billRoot(), { label: t("添加账单") }])}
+  return `<section class="section form-page">${crumbNav([...billRoot(), { label: t("添加账单") }])}
     <div class="section-head"><h2>${t("添加账单")}</h2></div>
     <div class="section-head kind-sec"><h2>${t("自动创建")}</h2></div>
     <div class="panel kind-cards one">
@@ -44,7 +45,7 @@ export function billTypeChooser() {
     </div></section>`;
 }
 /** 账单页面包屑：账单 / 房产 / 账单名 / 当前块 —— 有房产的账单带上房产（点它回到这套房产的账单清单），免得多套房产时分不清是哪套的 */
-export const billRoot = () => ({ href: href("bills", "overview"), label: t("财务") });
+export const billRoot = () => finBase("overview");   // 财务 / 账单（分组）
    // 添加账单页等「还没有具体账单」的面包屑第一级
 /** 账单详情页路径：财务 / 账单概览 / 资产 / 账单名（后面接分区时再追加一级） */
 export const billTrail = (b, _root, hubHref) => [...billScopeParts(b, "recurring"), { href: hubHref, label: b.name, icon: billCat(b.category).icon }];

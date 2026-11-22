@@ -28,7 +28,8 @@ import { SETTING_SECTIONS } from "./settings/settings-menu.js";
 import { infoTip } from "./core/info-tip.js";
 import { assetBillsHref } from "./bills/all-href.js";
 import { viewFinanceMenu } from "./bills/fin-home.js";
-import { groupHref, groupName } from "./bills/cards.js";   // 财务首页（四张卡片）和贯穿财务各页的嵌套目录
+import { groupHref, groupName } from "./bills/cards.js";
+import { finBase, houseCars, houseProps } from "./core/crumb-base.js";   // 财务首页（四张卡片）和贯穿财务各页的嵌套目录
 
 const SECTION_ICON = { pantry: "🗄️", house: "🏠", bills: "💰", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”
@@ -103,7 +104,7 @@ export function viewMenu(section) {
   const apps = section === "me" ? (window.SISTER_APPS || []).filter((a) => a.id !== "home-pantry") : [];
   const prop = section === "house" ? state.properties.find((p) => p.id === state.propertyId) : null;
   return `<section class="section menu-page">
-    ${prop ? `${crumbNav([{ href: href("house"), label: t("房屋") }, { label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }])}<p class="muted" style="margin:-6px 0 12px;font-size:13px">${esc([t(window.DEALS.PROPERTY_STATUS[prop.status] || "持有"), prop.address].filter(Boolean).join(" · "))}</p>`
+    ${prop ? `${crumbNav([...houseProps(), { label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }])}<p class="muted" style="margin:-6px 0 12px;font-size:13px">${esc([t(window.DEALS.PROPERTY_STATUS[prop.status] || "持有"), prop.address].filter(Boolean).join(" · "))}</p>`
       : section === "me" ? "" : `<div class="section-head"><h2>${SECTION_ICON[section] || ""} ${t(sec.name)}</h2></div>`}
     ${section === "house" ? houseBar() : ""}
     <div class="panel mlist">${rows}</div>
@@ -121,7 +122,7 @@ export function crumb(r) {
   if (r.section === "bills" && r.sub === "cards" && r.q?.get("card")) {   // 卡 / 账户详情：财务 / 所在的那一页（信用卡、银行、投资…） / 名字；添加 / 编辑页自己画
     const id = r.q.get("card"); if (id === "new" || r.q.get("edit")) return "";
     const c = state.cards.find((x) => x.id === id), kind = c?.kind || "credit";
-    return crumbNav([{ href: href("bills"), label: t(sec.name) }, { href: groupHref(kind), label: t(groupName(kind)) }, { label: c ? c.name : t("找不到这张卡") }]);
+    return crumbNav([...finBase("cards"), { href: groupHref(kind), label: t(groupName(kind)) }, { label: c ? c.name : t("找不到这张卡") }]);
   }
   if (r.section === "house" && r.sub === "plan" && (r.q?.get("k") || r.q?.get("p"))) {   // 买卖计划的指南 / 某个计划：房屋 / 买卖计划 / 指南名（买卖计划不属于某套房产，路径里不放房产名）
     const k = r.q.get("k"), g = k && window.GUIDES?.GUIDES?.[k], plan = r.q.get("p") && (state.plans || []).find((x) => x.id === r.q.get("p"));
@@ -132,8 +133,8 @@ export function crumb(r) {
   const cur = sec.subs.find(([k]) => k === r.sub) || sec.subs.find(([k]) => k === parent[r.sub]);
   const prop = r.section === "house" && r.sub !== "vehicles" ? state.properties.find((p) => p.id === state.propertyId) : null;
   // 房屋下的子页：房屋 / 房产 / 页面（之前只剩房产名，“房屋”这一级消失了）
-  const parts = prop ? [{ href: href("house"), label: t(sec.name) }, { href: href("house", "overview"), label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }] : [{ href: href(r.section), label: t(sec.name) }];
-  if (prop && r.sub === "overview") return crumbNav([parts[0], { label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }]);   // 房屋 / 房产名（概览就是房产本身，不再多一级「概览」）
+  const parts = prop ? [...houseProps(), { href: `${href("house", "overview")}?prop=${encodeURIComponent(prop.id)}`, label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }] : r.section === "bills" ? finBase(r.sub) : [{ href: href(r.section), label: t(sec.name) }];
+  if (prop && r.sub === "overview") return crumbNav([...houseProps(), { label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }]);   // 房屋 / 房产名（概览就是房产本身，不再多一级「概览」）
   const curLabel = cur ? t(cur[1]) : "", subHref = href(r.section, cur?.[0] || r.sub);
   // 二级页（常用账单 / 推荐耗材 / 生成设备）：要显示 上级 / 当前页 两层，之前只显示当前页，看起来像少了一层
   const par = parent[r.sub] ? sec.subs.find(([k]) => k === parent[r.sub]) : null;
@@ -147,7 +148,7 @@ export function crumb(r) {
   const vehDeal = r.section === "house" && r.sub === "deal" && q.get("asset") ? state.assetsEnriched.find((a) => a.id === q.get("asset")) : null;
   if (vehDeal) {
     const dealHref_ = `${subHref}?asset=${encodeURIComponent(vehDeal.id)}${q.get("deal") ? `&deal=${encodeURIComponent(q.get("deal"))}` : ""}`;
-    const vparts = [{ href: href("house"), label: t(sec.name) }, { href: href("asset", vehDeal.id), label: assetName(vehDeal) }];
+    const vparts = [...houseCars(), { href: href("asset", vehDeal.id), label: assetName(vehDeal) }];
     const dealRoot = `${subHref}?asset=${encodeURIComponent(vehDeal.id)}`;
     if (hist) { vparts.push({ href: dealRoot, label: curLabel }); if (dsec) vparts.push({ href: dealHref_, label: hist }, { label: dsec }); else vparts.push({ label: hist }); }
     else if (dsec) vparts.push({ href: dealHref_, label: curLabel }, { label: dsec }); else vparts.push({ label: curLabel });
@@ -170,6 +171,7 @@ export function crumb(r) {
     else parts.push({ href: subHref, label: curLabel }, { label: d ? d.name : q.get("new") ? t("添加") : t("找不到") });
   }
   else if (r.section === "bills" && activeTab(r) && activeTab(r) !== SPLIT_FIRST(r)) parts.push({ href: subHref, label: curLabel }, { label: t(tabLabel(r)) });   // 花费 / 预算的页内标签：账单 / 花费 / 明细
+  else if (r.section === "bills" && r.sub === "template") parts.push({ href: assetBillsHref("recurring"), label: t("周期性账单") }, { label: curLabel });   // 财务 / 账单 / 周期性账单 / 常用账单
   else if (par) parts.push({ href: href(r.section, par[0]), label: t(par[1]) }, { label: curLabel });   // 常用账单 → 账单 / 清单 / 常用账单；生成设备 → 房屋 / 房产 / 设备保养 / 生成设备
   else parts.push({ label: curLabel });
   return crumbNav(parts);

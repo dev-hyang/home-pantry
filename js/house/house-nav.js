@@ -55,6 +55,6 @@ export function houseHead(r) {
   const sub = r?.sub || "menu", p = state.properties.find((x) => x.id === state.propertyId), root = `<a class="h-root" href="${esc(href("house"))}">${t("房屋")}</a>`;
   const path = sub === "menu" || !NAME[sub] ? t("房屋")
     : sub === "supplies" || sub === "vehicles" || sub === "plan" || sub === "properties" || sub === "cars" || sub === "alerts" ? `${root} / <b aria-current="page">${esc(t(NAME[sub]))}</b>`
-      : `${root}${p ? ` / <a class="h-root" href="${esc(href("house", "overview"))}">${esc(p.name)}</a>` : ""} / <b aria-current="page">${esc(t(NAME[sub]))}</b>`;
+      : `${root} / <a class="h-root" href="${esc(href("house", "properties"))}">${t("房产")}</a>${p ? ` / <a class="h-root" href="${esc(href("house", "overview"))}">${esc(p.name)}</a>` : ""} / <b aria-current="page">${esc(t(NAME[sub]))}</b>`;
   return `<div class="section-head fin-head sec-head"><div class="sh-title">${treePop(houseTree(r), { id: "housetree" })}<nav class="sec-path" aria-label="${esc(t("当前位置"))}">${path}</nav></div></div>`;
 }
