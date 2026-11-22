@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.10", title: { zh: "新：财务 → 税务（参考用）；账户里加了通勤福利", en: "New: Finance → Tax (reference); commuter benefits in Accounts" }, items: [
+    { k: "new", zh: "财务 → 分析 → 税务：税务日历（报税、预缴、单据到齐的日子）、每年的单据清单（勾已收到、记放在哪）、买卖房 / 车 / 股票和收到境外赠与等事件指南、知识库（W-2、1099、ITIN、标准扣除…）。参考用，不是报税软件，不存 SSN / ITIN / PIN", en: "Finance → Analysis → Tax: a tax calendar (filing, estimated payments, forms arriving), a yearly document checklist (tick received, note where), event guides for buying / selling a home, car or stocks and receiving foreign gifts, and a Learn section (W-2, 1099, ITIN, standard deduction…). Reference only, not tax software; never stores SSN / ITIN / PIN" },
+    { k: "new", zh: "税务提醒进「今日」：报税 / 预缴截止临近、单据没收齐、境外亲友赠与累计接近 10 万美元（Form 3520 线）、年底税务检查", en: "Tax reminders appear in Today: filing / estimated deadlines, missing documents, foreign family gifts nearing $100,000 (the Form 3520 line), year-end tax check" },
+    { k: "better", zh: "「FSA」账户类型改名「FSA / 通勤福利」：公交通勤福利账户记在这里；Ventra 交通卡记在电子钱包", en: "The FSA account type is now “FSA / commuter benefits”: record a transit commuter account there; the Ventra card itself goes under e-wallets" },
+  ] },
+
   { v: "2026-11-22.9", title: { zh: "添加商店改成单独的页面", en: "Add shop is now its own page" }, items: [
     { k: "better", zh: "点「添加商店」进入单独的页面，分步填写、最后确认；不再在商店列表上展开表单。保存后直接进新商店的详情页", en: "Add shop opens its own page with the step-by-step flow and a final review, instead of unfolding a form on the shop list; after saving you land on the new shop" },
     { k: "fix", zh: "分步添加页面（商店、借贷、家庭成员）填写时，后台同步不会再把没保存的内容冲掉", en: "Background sync no longer wipes what you have typed on the step-by-step add pages (shop, loan, family member)" },

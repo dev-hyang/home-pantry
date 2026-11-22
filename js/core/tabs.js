@@ -17,7 +17,9 @@ export const STATEMENT_TABS = [["import", "导入", "📥", "选对账单或粘�
 // 借贷（财务 P2，迁移 058；2026-11 原「借贷总览」做进入页）：全部借贷 · 资产融资（房贷 / 车贷 / HELOC / 学生贷款 / 分期）· 个人借贷（亲友之间）· 还款记录
 export const DEBT_TABS = [["all", "全部借贷", "📊"], ["asset", "资产融资", "🏦", "房贷、车贷、HELOC、学生贷款、分期"], ["personal", "个人借贷", "🤝", "借给亲友、向亲友借的钱：余额、到期、部分还款"], ["txns", "还款记录", "🧾", "放款、还本、利息、Escrow 的全部流水"]];
 export const ASSET_TABS = [["assets", "资产概览", "🏛️"], ["networth", "净资产", "📈"]];   // 资产页和净资产页之间的导航小卡片（两个独立路由，不走 ?tab=）
-const DEFS = { debts: DEBT_TABS, statements: STATEMENT_TABS, income: INCOME_TABS, spend: SPEND_TABS, budget: BUDGET_TABS };
+/* 税务（财务 → 税务，2026-11）：今年 · 单据 · 事件指南 · 知识库 */
+export const TAX_TABS = [["year", "今年", "📅", "家庭情况、税务日历、境外赠与累计、容易漏的"], ["docs", "单据", "📄", "今年要收的单据，勾已收到、记放在哪"], ["events", "事件指南", "🧭", "买卖房、车、股票，境外赠与，孩子出生…会碰到什么税"], ["learn", "知识库", "📚", "W-2、1099、ITIN、FBAR…是什么、谁要报"]];
+const DEFS = { tax: TAX_TABS, debts: DEBT_TABS, statements: STATEMENT_TABS, income: INCOME_TABS, spend: SPEND_TABS, budget: BUDGET_TABS };
 export const firstTab = (r) => (DEFS[r?.sub] || [])[0]?.[0] || null;
 
 /** 当前路由的页内标签 id（不认识的回到第一个）；不是花费 / 预算页返回 null */

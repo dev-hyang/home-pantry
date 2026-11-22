@@ -34,6 +34,7 @@ const AREAS = () => [
   { src: ["medical"], icon: "🏥", name: "一次性账单", href: allBillsHref({ type: "onetime" }), on: state.billsEnabled },
   { src: ["debt"], icon: "🏦", name: "借贷还款", href: href("bills", "debts"), on: state.billsEnabled },
   { src: ["card"], icon: "💳", name: "卡与账户", href: href("bills", "cards"), on: state.billsEnabled },
+  { src: ["tax"], icon: "🧾", name: "税务", href: href("bills", "tax"), on: state.billsEnabled },
   { src: ["budget"], icon: "💰", name: "预算", href: href("bills", "budget"), on: state.billsEnabled },
   { src: ["income"], icon: "🤝", name: "收入还款", href: `${href("bills", "income")}?tab=records`, on: state.billsEnabled },
   { src: ["asset"], icon: "⚙️", name: "设备保养", href: href("house", "assets"), on: state.houseEnabled },

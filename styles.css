@@ -4604,3 +4604,20 @@ form[data-gwz][data-step="basic"] [data-fsec]:not([data-fsec="basic"]),
 form[data-gwz][data-step="contact"] [data-fsec]:not([data-fsec="contact"]),
 form[data-gwz][data-step="update"] [data-fsec]:not([data-fsec="update"]),
 form[data-gwz][data-step="review"] [data-fsec] { display: none !important; }
+/* 财务 → 税务（js/tax/tax-page.js） */
+.tax-nav, .tax-years { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
+.tax-nav .btn, .tax-years .btn { min-height: 44px; justify-content: center; }
+.tax-flags { display: grid; gap: 4px; margin: 10px 0; }
+.tax-year-flags { display: grid; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.tax-docs { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.tax-doc { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
+.tax-doc:last-child { border-bottom: 0; }
+.tax-doc small { display: block; color: var(--muted); font-weight: 400; }
+.tax-where { width: 100%; box-sizing: border-box; min-height: 44px; }
+.tax-tip { padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.tax-tip:last-child { border-bottom: 0; }
+.tax-tip p { margin: 4px 0 0; font-size: 14px; line-height: 1.5; }
+.tax-event { margin: 0 0 10px; }
+.tax-event > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.tax-event h4 { margin: 12px 0 4px; font-size: 14px; }
+.tax-event ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; line-height: 1.5; }

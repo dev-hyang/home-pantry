@@ -85,7 +85,7 @@ export function viewInvest() {
 /** 电子钱包与礼品卡：两个区 */
 export function viewWallets() {
   const rows = nwRows(), wallets = live("wallet").filter((c) => c.kind === "wallet"), gifts = live("wallet").filter((c) => c.kind === "gift"), off = offOf("wallet");
-  return `<section class="section">${head(t("电子钱包与礼品卡"), t("电子钱包：PayPal、Venmo、Zelle 等；礼品卡：Amazon、Target 等，余额 = 面值 − 记在这张卡上的花费。"))}
+  return `<section class="section">${head(t("电子钱包与礼品卡"), t("电子钱包：PayPal、Venmo、Zelle、Ventra（交通卡）等；礼品卡：Amazon、Target 等，余额 = 面值 − 记在这张卡上的花费。"))}
     <div class="section-head"><h2>📱 ${t("电子钱包")}</h2><p>${esc(t("{n} 个", { n: wallets.length }))}</p></div>
     ${wallets.length ? list(wallets, rows) : empty(t("还没有电子钱包。"))}
     ${gifts.length ? giftSection(gifts) : `<div class="section-head" style="margin-top:14px"><h2>🎁 ${t("礼品卡")}</h2></div>${empty(t("还没有礼品卡。"))}`}

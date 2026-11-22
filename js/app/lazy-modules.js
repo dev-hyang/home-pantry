@@ -91,6 +91,8 @@ export const runDealAi = lazyFn(LZ.dealProgress, "runDealAi");
 export const saveDealEventForm = lazyFn(LZ.dealProgress, "saveDealEventForm");
 export const setDealAiConsent = lazyFn(LZ.dealProgress, "setDealAiConsent");
 export const viewStatements = lazyFn(LZ.statements, "viewStatements");
+LZ.tax = lazyModule(() => import("../tax/tax-page.js"));   // 财务 → 税务：进页面才下载（日历和提醒在 tax/tax-calendar.js，随首页）
+export const viewTax = lazyFn(LZ.tax, "viewTax");
 export const viewDebts = lazyFn(LZ.debts, "viewDebts");
 export const viewFinAssets = lazyFn(LZ.finAssets, "viewFinAssets");
 export const fixAction = lazyFn(LZ.fix, "fixAction");

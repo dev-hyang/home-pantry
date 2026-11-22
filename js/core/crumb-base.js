@@ -8,7 +8,7 @@ import { FIN_GROUPS, groupHref } from "../bills/fin-tree.js";
 
 /** 财务各页（路由 sub）属于哪一组 */
 const GROUP_OF = { overview: "bills", all: "bills", assetbills: "bills", template: "bills", recurring: "bills", spend: "flow", income: "flow", debts: "flow", statements: "flow",
-  assets: "analysis", networth: "analysis", budget: "analysis", accounts: "accounts", cards: "accounts", banks: "accounts", invest: "accounts", wallets: "accounts" };
+  assets: "analysis", networth: "analysis", budget: "analysis", tax: "analysis", accounts: "accounts", cards: "accounts", banks: "accounts", invest: "accounts", wallets: "accounts" };
 export const finGroupOf = (sub) => FIN_GROUPS.find((g) => g.id === GROUP_OF[sub]) || null;
 /** 财务 / 这个页面所属的分组（没有分组的页面只有「财务」） */
 export function finBase(sub) {

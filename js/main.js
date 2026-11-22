@@ -23,6 +23,7 @@ import "./settings/income.js";
 import { escrowAlertItems } from "./bills/escrow.js";
 import "./bills/finance.js";
 import "./bills/finance-alerts.js";
+import "./tax/tax-alerts.js";
 import { maintFilter } from "./house/assets-logic.js";
 import { payeeInput } from "./stats/payees.js";
 import { initHomeStats } from "./stats/home-stats.js";
