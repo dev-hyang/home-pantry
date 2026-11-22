@@ -2,7 +2,8 @@
 import { ASSET_SECTIONS, suppliesSection } from "./asset-supplies.js";
 import { SECTIONS, go, href } from "../core/router.js";
 import { assetAsk, assetBase, assetCrumb, careCard } from "./asset-list.js";
-import { assetHub, vehSteps, vehicleOverview, vehicleProfile } from "./asset-hub.js";
+import { assetHub, vehicleOverview, vehicleProfile } from "./asset-hub.js";
+import { vwActions, vwChrome } from "./veh-wizard.js";
 import { assetName, isVehicle } from "./assets-logic.js";
 import { autofillBar } from "../core/autofill.js";
 import { crumbNav } from "../core/hub.js";
@@ -55,11 +56,7 @@ export const unitRow = (u = {}) => `<div class="unit-row">
     <input name="unit_qty" type="number" inputmode="numeric" min="0" max="999" step="1" value="${esc(u.qty ?? 1)}" aria-label="${t("数量")}">
     <input name="unit_note" maxlength="60" placeholder="${t("备注，如：进水阀 2024 换过")}" value="${esc(u.note || "")}" aria-label="${t("备注")}">
     <button type="button" class="btn btn-sm btn-ghost" data-action="unit-del" aria-label="${t("删除这一处")}">×</button></div>`;
-export function readUnits(f) {
-  const rows = [...f.querySelectorAll(".unit-row")].map((r) => ({ loc: r.querySelector("[name=unit_loc]")?.value || "", qty: Math.max(0, Math.round(num(r.querySelector("[name=unit_qty]")?.value, 1))), note: (r.querySelector("[name=unit_note]")?.value || "").trim().slice(0, 60) }))
-    .filter((u) => u.loc || u.note || u.qty > 1);
-  return rows.length ? rows : null;
-}
+export { readUnits } from "./asset-read.js";
 /** 车辆专有区块：车牌、里程、证照到期、保险（与房屋保险同构） */
 function vehicleFieldset(a, hide = () => "") {
   const v = a?.vehicle || {}, ins = v.insurance || {};
@@ -161,20 +158,15 @@ export function viewAssetForm() {
   if (a && sec === "supplies") return `<section class="section">${assetCrumb(a, root, hubHref, t("相关耗材"))}${suppliesSection(a)}</section>`;
   if (a && sec === "recall") return `<section class="section form-page">${assetCrumb(a, root, hubHref, t("产品召回"))}${recallSection(a)}</section>`;
   if (a && sec === "care") return `<section class="section">${assetCrumb(a, root, hubHref, t("检查卡"))}${careCard(a.type, { open: true, ask: assetAsk(a) })}</section>`;
-  // 添加车辆向导：新建的第 1 步只显示「基本信息」（wiz=1，还没有这辆车）；建好后各步是 asset/<id>?sec=…&wiz=1
-  const wizNew = !a && veh && r.q.get("wiz") === "1", wiz = wizNew || (!!a && veh && r.q.get("wiz") === "1" && !!sec);
-  const steps = vehSteps(), curSec = wizNew ? "basic" : sec, stepIdx = steps.findIndex((s) => s.id === curSec);
-  const prevSec = stepIdx > 0 ? steps[stepIdx - 1] : null, nextSec = steps[stepIdx + 1] || null;
-  const stepHref = (s) => `${href("asset", a?.id || "new")}?sec=${s.id}&wiz=1`;
+  // 添加车辆向导（veh-wizard.js）：一步一页，最后确认页，点「确认并创建」才建车；表单还是这一个，各分区一次显示一个
+  const wizNew = !a && veh && r.q.get("wiz") === "1";
   const hide = (k) => (wizNew ? (k === "basic" ? "" : "hidden") : a && sec && sec !== k ? "hidden" : "");
-  const wizBar = wiz ? `<div class="wiz-steps"><p class="wiz-now"><b>${t("第 {n} 步，共 {m} 步", { n: stepIdx + 1, m: steps.length })}</b> · ${esc(t(steps[stepIdx]?.name || ""))}</p>
-    <ol class="wiz-dots" aria-hidden="true">${steps.map((s, i) => `<li class="${i < stepIdx ? "is-done" : i === stepIdx ? "is-now" : ""}"></li>`).join("")}</ol></div>` : "";
   return `
     <section class="section form-page">
       ${a ? assetCrumb(a, root, hubHref, t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([...assetBase(null, veh), { label: veh ? t("添加车辆") : t("添加设备") }])}
-      ${wizBar}
+      ${wizNew ? vwChrome() : ""}
       ${a && sec === "notes" ? "" : autofillBar(veh ? "vehicle" : "asset", "#assetForm")}
-      <form id="assetForm" ${wizNew ? `data-wiz-new="1"` : wiz ? `data-wiz="1" data-next="${esc(nextSec ? stepHref(nextSec) : hubHref)}"` : ""} class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${H().isFixtureType(v.type) ? "is-fixture" : ""} ${(a && sec) || wizNew ? "one-sec" : ""}" novalidate ${wizNew ? "" : "data-autosave"}>
+      <form id="assetForm" ${wizNew ? `data-vwz="1"` : ""} class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${H().isFixtureType(v.type) ? "is-fixture" : ""} ${(a && sec) || wizNew ? "one-sec" : ""}" novalidate ${wizNew ? "" : "data-autosave"}>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
         ${fromItem ? `<input type="hidden" name="from_item" value="${esc(fromItem.id)}"><p class="hint" style="margin-top:0">${t("由家居耐用品“{name}”升级：补上品牌、安装日期、保修和保养周期后保存。", { name: esc(fromItem.name) })}</p>
           <label class="check-inline" style="margin-bottom:10px"><input type="checkbox" name="drop_item"><span>${t("建好后从家居耐用品里移除这件物品")}</span></label>` : ""}
@@ -253,18 +245,11 @@ export function viewAssetForm() {
           <label class="sr-only" for="assetNotes">${t("备注")}</label>
           <textarea id="assetNotes" name="notes" rows="3" maxlength="500" placeholder="${t("滤网尺寸、维修商电话、借给了谁…")}">${d(v.notes)}</textarea>
         </fieldset>
+        ${wizNew ? `<div data-vz-review hidden></div>` : ""}
         <p id="assetFormError" class="form-error" role="alert"></p>
-        ${wiz ? `<div class="sticky-actions wiz-bar">
-          <div class="form-actions wiz-row">
-            ${prevSec && !wizNew ? `<a class="btn btn-ghost" href="${stepHref(prevSec)}">‹ ${t("上一步")}</a>` : ""}
-            ${nextSec && !wizNew ? `<a class="btn btn-ghost" href="${stepHref(nextSec)}">${t("跳过")}</a>` : ""}
-            ${wizNew ? `<button type="button" class="btn btn-ghost" data-action="asset-cancel">${t("取消")}</button>` : ""}
-            <button type="submit" class="btn btn-primary">${wizNew ? t("下一步") : nextSec ? t("保存并下一步") : t("完成")}</button>
-          </div>
-          ${wizNew ? "" : `<div class="form-actions wiz-exit"><a class="btn btn-ghost" href="${hubHref}" title="${esc(t("保存这一步填的内容，其余各步以后再补，回概览"))}">${t("全部跳过，稍后再填")}</a></div>`}
-        </div>` : `<div class="form-actions sticky-actions">
-          <button type="submit" class="btn btn-primary">${a ? t("保存修改") : veh ? t("添加车辆") : t("添加设备")}</button>
+        ${wizNew ? vwActions() : `<div class="form-actions sticky-actions">
           <button type="button" class="btn btn-ghost" data-action="asset-cancel">${t("取消")}</button>
+          <button type="submit" class="btn btn-primary">${a ? t("保存修改") : veh ? t("添加车辆") : t("添加设备")}</button>
         </div>`}
       </form>
       ${a ? "" : `<p class="muted" style="margin-top:12px;font-size:13px">${veh ? t("保存后可以在这辆车下记录每次保养、维修，按项目算下次到期。") : t("保存后可以在这台设备下记录每次检查、保养和维修。")}</p>`}
