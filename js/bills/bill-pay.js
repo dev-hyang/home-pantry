@@ -14,6 +14,12 @@ import { PAY_EXTRA, accountOptions, acctById, billPayLabel, payAcctValue, resolv
 
 /** 详情页顶上的汇总卡：名称（账号尾号）+ 下次到期 + 竖三点菜单；HOA / 服务商小表；付费小表（付费方式、费用总额）；添加 / 更新时间；记缴费大按钮。
  *  底色比下面的分区卡深一点（和 .prof-card 同一套圆角和内边距） */
+/** 这张账单属于谁（卡片第一行）：具体资产（设备 / 车辆）> 房产 > 全家共用；账号尾号太不显眼，看这一行就知道 */
+function ownerLine(b) {
+  const a = b.asset_id && state.assets.find((x) => x.id === b.asset_id), p = !a && b.property_id && state.properties.find((x) => x.id === b.property_id);
+  const [icon, name] = a ? [a.kind === "vehicle" ? "🚗" : "🔧", a.name] : p ? ["🏠", p.name] : ["👨‍👩‍👧", t("全家共用")];
+  return `<p class="bh-owner${a || p ? "" : " is-shared"}"><span aria-hidden="true">${icon}</span> ${esc(name)}</p>`;
+}
 export function billHeadCard(b, base, { listed = false } = {}) {   // listed = 放在清单 / 滑动卡里：标「周期性」，删除按这张账单的 id（不是当前页面的）
   const cat = billCat(b.category), isHoa = b.category === "hoa", prop = b.property_id ? state.properties.find((p) => p.id === b.property_id) : null, hoa = isHoa && prop?.hoa ? prop.hoa : null;
   const due = b.status !== "ok" && b.status !== "none" ? `<span class="badge ${BADGE[b.status]}">${t(STATUS_LABEL[b.status])}${b.next_due_on ? ` · ${fmtDate(b.next_due_on)}` : ""}</span>`
@@ -40,6 +46,7 @@ export function billHeadCard(b, base, { listed = false } = {}) {   // listed = �
   const monthly = b.monthly && b.frequency !== "monthly" ? t("折合每月 {m}", { m: money(b.monthly) }) : "";
   const pay = headSec(t("付费"), [[L("付费方式", "Method"), method], [L("费用总额", "Total"), total], [L("折合每月", "Per month"), esc(monthly)]]);
   return `<section class="panel bill-head" aria-label="${esc(t("账单概要"))}">
+    ${ownerLine(b)}
     <div class="bh-top"><span class="mi" aria-hidden="true">${cat.icon}</span>
       <div class="bh-t"><h2>${esc(b.name)}${b.account_last4 ? `<span class="bh-acct">（**${esc(b.account_last4)}）</span>` : ""}</h2>${listed ? `<span class="badge">${t("周期性")}</span>` : ""}${due}${b.priceUp ? `<span class="badge b-low">${t("涨价了")}</span>` : ""}</div>${menu}</div>
     ${provider}${pay}

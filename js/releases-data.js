@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.14", title: { zh: "周期性账单卡片：第一行写明属于哪个资产", en: "Recurring bill cards: the first line says which asset it belongs to" }, items: [
+    { k: "better", zh: "每张周期性账单卡片（清单里和详情页）最上面多了一行：属于哪个设备 / 车辆（🔧 🚗）、哪套房产（🏠），都没有就写「全家共用」；不用再靠账号尾号去猜", en: "Every recurring bill card (in the list and on the detail page) now starts with a line saying which device / vehicle (🔧 🚗) or property (🏠) it belongs to, or “Shared by the whole family” — no more guessing from the account digits" },
+  ] },
+
   { v: "2026-11-21.13", title: { zh: "添加卡 / 账户改成分步向导 + 确认页；各账户页的取消、返回回到自己那一页", en: "Adding a card / account is now a step-by-step wizard with a review page; cancel and back return to the right page" }, items: [
     { k: "new", zh: "添加卡 / 账户改成一步一页：类型 → 基本信息 →（信用卡还有 还款 → 返现规则 → 开卡奖励 → 报销额度）→ 备注 → 确认；顶上显示第几步、进度条；回车 = 下一步", en: "Adding a card / account is one step per page: Type → Basics → (for credit cards also Repayment → Rewards → Sign-up bonus → Credits) → Notes → Review; the top shows the step and a progress bar; Enter = next" },
     { k: "new", zh: "最后一步是确认页：全部信息按块汇总，每一块有「编辑」回到对应那一步，核对无误再「确认并保存」", en: "The last step is a review page: everything grouped by section, each with an “Edit” button back to its step, then “Confirm and save”" },
