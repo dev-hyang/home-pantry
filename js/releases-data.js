@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.14", title: { zh: "修复：财务目录里账户的数字都算到了「信用卡」一行", en: "Fix: Finance menu counted every account under Credit cards" }, items: [
+    { k: "fix", zh: "财务 → 账户目录里，「信用卡」一行的数字原来是所有账户的总数，银行账户、投资账户、电子钱包与礼品卡三行没有数字。现在每一行只数自己那一类，「账户」分组的总数是这四行相加", en: "In the Finance → Accounts menu the Credit cards row showed the total number of all accounts while Bank, Investment and E-wallet rows had none. Each row now counts only its own kind, and the Accounts group total is the sum of the four" },
+  ] },
+
   { v: "2026-11-22.13", title: { zh: "税务页改版：年份进筛选、家庭情况单独一页、赠与累计按类型汇总；账户统计问题", en: "Tax page redesign: year in the filter, Household on its own page, gifts totalled by type" }, items: [
     { k: "better", zh: "税务页去掉了页内标签条（页头的「目录」按钮已经能切换）；税务年度放进页头右边的「筛选」里", en: "Removed the in-page tab strip from Tax (the Menu button already switches pages); the tax year now lives in the Filter button" },
     { k: "better", zh: "家庭情况单独成一页（报税身份、配偶 ITIN、孩子人数、要打开的提醒），首页只放一张摘要卡，点右边的箭头进去改；长文字不再越出卡片", en: "Household is its own page (filing status, spouse ITIN, children, reminders); the home page keeps one summary card with an arrow, and long text no longer spills out of cards" },

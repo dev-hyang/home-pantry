@@ -1,6 +1,7 @@
 /* 每个底部页签的“目录页”（参考家庭学堂“我的”页）：二级页不再用横向滑动的标签，而是一栏一栏的行，点进去；
  * 子页顶部一条面包屑「‹ 房屋」回目录。目录行带简短说明和当前要处理的数量。 */
 import { state } from "./core/state.js";
+import { groupOfKind } from "./bills/acct-groups.js";
 import { liveNetWorth } from "./bills/nw-logic.js";
 import { isClosedStatus } from "./core/debt-rules.js";
 import { SECTIONS, href } from "./core/router.js";
@@ -33,6 +34,8 @@ import { finBase, houseCars, houseProps } from "./core/crumb-base.js";   // 财�
 
 const SECTION_ICON = { pantry: "🗄️", house: "🏠", bills: "💰", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”
+/** 财务目录里账户各页的数字：每一页只数自己那一类账户（以前信用卡一行数了所有账户，银行 / 投资 / 钱包都没有数字） */
+const acctCount = (group) => (state.cards || []).filter((c) => c.active !== false && groupOfKind(c.kind) === group).length;
 export const META = {
   pantry: {
     overview:  { icon: "📊", desc: "补货与临期一览、各分类库存", count: () => alertsOf(state.enriched.filter(inSpace("pantry"))).length },
@@ -61,13 +64,13 @@ export const META = {
     cashflow:  { icon: "⚖️", title: "收支总览", sub: "income", href: () => href("bills", "income"), desc: "收支总览：收入（工作 / 投资 / 房产 / 其他）vs 消费、储蓄率、投资率；资本流入（卖房卖股、借款、转入）单列不算收入" },
     statements: { icon: "🏦", desc: "银行 / 信用卡对账单：花费和收入一次导入；导出花费、收入、收支差额报表" },
     accounts:  { icon: "🗂️", desc: "四类账户一眼看：信用卡、银行、投资、电子钱包与礼品卡；余额、要更新的、年费" },
-    banks:     { icon: "🏦", desc: "支票、储蓄、现金、借记卡：余额、账单从哪扣、收入入到哪" },
-    invest:    { icon: "📈", desc: "投资 / 退休（401K、IRA）/ 教育（529）/ 孩子账户 / HSA·FSA·通勤福利 / 加密：只记总值，每月自动存快照" },
-    wallets:   { icon: "👛", desc: "电子钱包（PayPal、Venmo、Zelle）和礼品卡（Amazon、Target）：余额、有效期" },
+    banks:     { icon: "🏦", desc: "支票、储蓄、现金、借记卡：余额、账单从哪扣、收入入到哪", count: () => acctCount("bank") },
+    invest:    { icon: "📈", desc: "投资 / 退休（401K、IRA）/ 教育（529）/ 孩子账户 / HSA·FSA·通勤福利 / 加密：只记总值，每月自动存快照", count: () => acctCount("invest") },
+    wallets:   { icon: "👛", desc: "电子钱包（PayPal、Venmo、Zelle）和礼品卡（Amazon、Target）：余额、有效期", count: () => acctCount("wallet") },
     tax:       { icon: "🧾", desc: "税务提醒和报税参考：税务日历、单据清单、买卖房车股票的事件指南、境外赠与累计（不是报税软件，不存 SSN / ITIN / PIN）" },
     budget:    { icon: "💰", desc: "收入、固定账单、储蓄 → 月度 / 年度预算，对比实际花费，超预算提醒，大额购物规划" },
     spend:     { icon: "📊", desc: "所有花费：每月花了多少、分类占比、商店、年度报表，可搜索筛选排序" },
-    cards:     { icon: "💳", desc: "信用卡：该刷哪张（按场景比返现）、到期 / 年费 / 轮换类别 / 开卡奖励提醒；银行、券商、退休、HSA、贷款账户也记在这里", count: () => state.cards.filter((c) => c.active !== false).length },
+    cards:     { icon: "💳", desc: "信用卡：该刷哪张（按场景比返现）、到期 / 年费 / 轮换类别 / 开卡奖励提醒", count: () => acctCount("credit") },
     assets:    { icon: "🏛️", desc: "资产概览和净资产：房产、车辆、账户的钱的一面（买入 / 卖出价、估值、余额、贷款），以及资产 − 负债、每月快照和走势" },
     debts:     { icon: "🏦", desc: "房贷、车贷、学生贷款、亲友借款：余额、还款计划、本金 / 利息拆分、Escrow", count: () => debtsEnriched().filter((e) => e.overdue || (e.asset_id && e.link_confirmed === false && !isClosedStatus(e.status))).length },
     networth:  { icon: "📈", desc: "资产 − 负债：账户余额、房产 / 车辆估值、贷款余额；每月快照看走势，财富增长 vs 消费，每处资产的净值", count: () => (state.nwOk ? liveNetWorth().stale.length : 0), countLabel: "需要更新" },
