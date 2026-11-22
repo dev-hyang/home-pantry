@@ -4656,3 +4656,7 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-imp-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .tax-imp-form input { min-height: 44px; min-width: 0; box-sizing: border-box; }
 @media (max-width: 480px) { .tax-imp-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .tax-imp-form input[name="desc"] { grid-column: 1 / -1; } }
+/* 税务 → 汇总：导出 / 打印按钮；打印时只留内容 */
+.tax-tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.tax-tools .btn { min-height: 44px; }
+@media print { .tax-tools, .tax-page .fpop, .tax-page .tax-num-foot label, .tax-page .tax-num-in { display: none !important; } .tax-page .panel { break-inside: avoid; box-shadow: none; } }

@@ -4148,6 +4148,11 @@ export const EN = {
   "金额与期限": "Amount & term", "还款安排": "Repayment", "关联账户与资产": "Linked accounts & assets",
   "请先填：{name}": "Please fill in first: {name}",
   // ── 财务 → 税务（一期）、通勤福利 ──
+  "去年（{y}）：{a}": "Last year ({y}): {a}", "导出 CSV": "Export CSV", "打印 / 存成 PDF": "Print / save as PDF",
+  "{y} 年预缴税参考（联邦）": "{y} estimated-tax reference (federal)", "工资之外有较大收入（卖股票的收益、利息、租金、自由职业）或预扣不够时用。只是提醒级的参考，不是申报。": "For when you have significant income beyond wages (stock gains, interest, rent, freelance) or too little withholding. A reminder-level reference, not a filing.",
+  "本年预计联邦税额": "Expected federal tax this year", "去年联邦税额（去年 1040 总税额）": "Last year's federal tax (total tax on last year's 1040)", "去年 AGI 超过 15 万美元（要交去年税额的 110%）": "Last year's AGI was over $150,000 (110% of last year's tax applies)",
+  "全年至少要交够（联邦，参考）": "Pay at least this much for the year (federal, reference)", "已扣的税（W-2）+ 已缴的预缴税": "Tax withheld (W-2) + estimated payments made", "还差": "Still to pay", "还有 {n} 期，每期约": "{n} payments left, about each", "预缴的几期都过了": "All estimated-payment dates have passed", "填上本年预计税额或去年税额，才会算。": "Enter this year's expected tax or last year's tax to get a result.",
+  "规则：全年交够「本年税额的 90%」和「去年税额的 100%（去年 AGI 高于 15 万是 110%）」中较小的，一般可免预缴罚款；扣完预扣后欠税不到 1,000 美元也不用预缴（待核对）。": "Rule: paying the lesser of 90% of this year's tax and 100% of last year's (110% if last year's AGI was over $150,000) generally avoids the estimated-tax penalty; owing less than $1,000 after withholding also needs no estimated payments (verify).",
   "买卖与成本基础": "Sales & cost basis", "卖房 / 卖车前后的收益参考：成本基础、装修翻新、自住满 2 年的排除额度": "Gain reference around selling a home or car: cost basis, improvements and the 2-year exclusion", "去相关的页面": "Open the related page",
   "卖房、卖车前后的收益参考。买入价、卖出价来自 房屋 / 车辆 里已有的记录；装修翻新、买卖费用、住满与否记在这里。参考用，以 TurboTax 和官方说明为准。": "A gain reference around selling a home or car. Purchase and sale prices come from your Home / Vehicles records; improvements, costs and the 2-year test are recorded here. For reference; TurboTax and the official guidance are authoritative.",
   "房子": "Homes", "已卖出的车": "Sold cars", "还没有房产。": "No properties yet.", "还没有卖出的车。卖车时在车辆的交易里走「卖车」流程，价格记在那里。": "No sold cars yet. Use the sell-car flow in the vehicle's deal and the price is recorded there.",

@@ -3,17 +3,19 @@
 import { esc } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { state } from "../core/state.js";
-import { GROUP_NAMES, RULES_NOTE, deductionCompare, taxRows, valueOf } from "./tax-numbers.js";
+import { GROUP_NAMES, RULES_NOTE, deductionCompare, prevValue, taxRows, valueOf } from "./tax-numbers.js";
 import { TAX_THRESHOLDS, acctOf, setupFor, yearState } from "./tax-calendar.js";
+import { planCard } from "./tax-plan.js";
 
 const tx = (o) => (o ? (lang === "en" ? o.en : o.zh) : "");
 const money = (n) => Units.money(n);
 
 function rowHtml(y, r) {
-  const st = yearState(y), manual = st.nums?.[r.id], val = valueOf(y, r), ok = !!st.ok?.[r.id];
+  const st = yearState(y), manual = st.nums?.[r.id], val = valueOf(y, r), ok = !!st.ok?.[r.id], prev = prevValue(y, r.id);   // 去年的数（有就在旁边小字对比）
   const valueCell = r.manual ? `<input class="tax-num-in" type="number" step="0.01" min="0" inputmode="decimal" data-tax-num="${r.id}" data-y="${y}" value="${manual ?? ""}" placeholder="0.00" aria-label="${esc(tx(r.name))}">`
     : `<b class="tax-num-val">${val == null ? "—" : money(val)}</b>`;
   return `<li class="tax-num"><div class="tax-num-top"><span class="tax-num-name">${esc(tx(r.name))}</span>${valueCell}</div>
+    ${prev ? `<small class="muted">${t("去年（{y}）：{a}", { y: y - 1, a: money(prev) })}${val != null && prev ? ` · ${val - prev >= 0 ? "+" : "−"}${money(Math.abs(val - prev))}` : ""}</small>` : ""}
     ${r.note ? `<small class="muted">${esc(tx(r.note))}</small>` : ""}${r.tt ? `<small class="tax-num-tt">TurboTax · ${esc(tx(r.tt))}</small>` : ""}
     <div class="tax-num-foot">${r.src ? `<a href="${esc(r.src)}">${t("看来源明细")} ›</a>` : "<span></span>"}<label class="check-inline"><input type="checkbox" data-tax-ok="${r.id}" data-y="${y}" ${ok ? "checked" : ""}><span>${t("已核对")}</span></label></div></li>`;
 }
@@ -39,6 +41,7 @@ function fbarCard(y) {
 export function summaryTab(y) {
   const rows = taxRows(y), groups = Object.keys(GROUP_NAMES);
   const cards = groups.map((g) => `<section class="panel dt-block"><div class="dt-head"><h3>${esc(tx(GROUP_NAMES[g]))}</h3></div><ul class="tax-nums">${rows.filter((r) => r.group === g).map((r) => rowHtml(y, r)).join("")}</ul></section>`).join("");
+  const tools = `<div class="tax-tools"><button type="button" class="btn btn-sm" data-tax-export="${y}">⬇ ${t("导出 CSV")}</button><button type="button" class="btn btn-sm btn-ghost" data-tax-print>🖨 ${t("打印 / 存成 PDF")}</button></div>`;
   return `<p class="muted tax-wrap">${t("{y} 年和报税有关的数字，按 TurboTax 的填写顺序排。自动算的来自你已有的记录；手填的在这里直接输入。每行点「看来源明细」核对，核对完勾「已核对」。", { y })}</p>
-    ${cards}${deductionCard(y)}${setupFor(y).flags.foreign ? fbarCard(y) : ""}`;
+    ${tools}${cards}${deductionCard(y)}${planCard(y)}${setupFor(y).flags.foreign ? fbarCard(y) : ""}`;
 }

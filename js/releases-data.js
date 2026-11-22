@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.20", title: { zh: "税务四期：汇总表导出、和去年对比、预缴税参考", en: "Tax phase 4: export the summary, compare with last year, estimated-tax reference" }, items: [
+    { k: "new", zh: "税务 → 汇总：可以导出成 CSV（Excel 直接打开，带 TurboTax 里在哪填、来源、是否已核对、去年的数）或打印 / 存成 PDF", en: "Tax → Summary can be exported as CSV (opens in Excel, with where to enter it in TurboTax, origin, checked, prior-year value) or printed / saved as PDF" },
+    { k: "new", zh: "每一行旁边小字显示去年的数和相差多少，一眼看出哪一项变化大", en: "Each row shows last year's value and the difference in small text, so big changes stand out" },
+    { k: "new", zh: "预缴税参考（联邦，提醒级）：填本年预计税额和去年税额，按「本年 90% / 去年 100%（高收入 110%）取小」减去已扣和已缴的，算出还差多少、每期约多少。不是申报，规则待核对", en: "Estimated-tax reference (federal, reminder level): enter this year's expected tax and last year's tax and it works out the shortfall and the per-quarter amount using the lesser of 90% of this year or 100% of last year (110% for high income) minus withholding and payments made. Not a filing; verify the rules" },
+  ] },
+
   { v: "2026-11-22.19", title: { zh: "税务三期：买卖与成本基础（卖房 / 卖车的收益参考）", en: "Tax phase 3: sales and cost basis (home / car sale gain reference)" }, items: [
     { k: "new", zh: "税务 → 买卖与成本基础：房子的成本基础 = 买入价 + 买入费用 + 装修翻新（你逐条记），收益 = 卖价 − 卖出费用 − 成本基础，自住满 2 年按合并报税排除 50 万美元后算应税收益；亏损的自住房提示不能抵税。出租房另给折旧年额参考（27.5 年，去掉土地）", en: "Tax → Sales & cost basis: a home's cost basis = purchase price + buying costs + improvements (you log them), gain = sale price − selling costs − basis, with the $500,000 joint exclusion when you lived there 2 years; losses on a home you lived in are flagged as not deductible. Rentals also get a yearly depreciation reference (27.5 years, land removed)" },
     { k: "new", zh: "已卖出的车：买入价、卖出价对比，亏损提示不能抵税；买卖价格来自 房屋 / 车辆 里已有的记录，装修、费用、住满与否记在税务页", en: "Sold cars: purchase vs sale price, with a note that a loss is not deductible; prices come from your Home / Vehicles records, while improvements, costs and the 2-year test are recorded on the Tax page" },

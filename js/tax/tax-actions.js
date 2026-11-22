@@ -4,6 +4,7 @@ import { toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { render } from "../app/render.js";
 import { go, href } from "../core/router.js";
+import { summaryCsv } from "./tax-numbers.js";
 
 const done = async (p) => { try { await p; render(false); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } };
 const patchDoc = (y, id, patch) => { const docs = { ...(yearState(y).docs || {}) }; docs[id] = { ...(docs[id] || {}), ...patch }; return saveYear(y, { docs }); };
@@ -13,6 +14,8 @@ if (typeof document !== "undefined") {
     const el = e.target; if (!el.closest?.(".tax-page")) return;
     const d = el.dataset, y = d.y;
     if ("taxYsel" in d) return go(`${href("bills", "tax")}?${d.tab === "year" ? "" : `tab=${d.tab}&`}y=${el.value}`);   // 筛选里换税务年度
+    if (d.taxPlan) return done(saveYear(y, { plan: { ...(yearState(y).plan || {}), [d.taxPlan]: el.value === "" ? null : Math.max(0, Number(el.value) || 0) } }));   // 预缴税参考的输入
+    if ("taxPlanAgi" in d) return done(saveYear(y, { plan: { ...(yearState(y).plan || {}), priorAgiHigh: el.checked } }));
     if (d.taxProp) return done(saveProp(d.taxProp, { [d.key]: d.key === "lived" ? el.value : el.value === "" ? null : Math.max(0, Number(el.value) || 0) }));   // 买卖备忘
     if (d.taxNum) return done(saveYear(y, { nums: { ...(yearState(y).nums || {}), [d.taxNum]: el.value === "" ? null : Math.max(0, Number(el.value) || 0) } }));   // 汇总表手填的数
     if (d.taxOk) return done(saveYear(y, { ok: { ...(yearState(y).ok || {}), [d.taxOk]: el.checked } }));
@@ -33,5 +36,10 @@ if (typeof document !== "undefined") {
   document.addEventListener("click", (e) => {   // 删一条装修翻新
     const b = e.target.closest?.("[data-tax-imp-del]"); if (!b || !b.closest(".tax-page")) return;
     const [id, n] = b.dataset.taxImpDel.split(":"); done(saveProp(id, { improvements: (propOf(id).improvements || []).filter((_, i) => i !== +n) }));
+  });
+  document.addEventListener("click", (e) => {   // 导出 CSV / 打印
+    const x = e.target.closest?.("[data-tax-export]"), p = e.target.closest?.("[data-tax-print]");
+    if (x && x.closest(".tax-page")) { const y = x.dataset.taxExport, a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([summaryCsv(y)], { type: "text/csv;charset=utf-8" })); a.download = `tax-summary-${y}.csv`; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); return; }
+    if (p && p.closest(".tax-page")) window.print();
   });
 }

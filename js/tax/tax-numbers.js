@@ -5,6 +5,7 @@
 import { state } from "../core/state.js";
 import { href } from "../core/router.js";
 import { debtById, debtTxns } from "../bills/debt-logic-common.js";
+import { lang } from "../core/i18n.js";
 import { foreignGiftTotal, yearState } from "./tax-calendar.js";
 
 const z = (zh, en) => ({ zh, en });
@@ -51,9 +52,20 @@ export const GROUP_NAMES = { income: z("收入", "Income"), info: z("只作参�
 
 /** 一行当前用的数：手填优先，没有手填用自动算的（没有就 null） */
 export const valueOf = (y, row) => { const m = yearState(y).nums?.[row.id]; return m != null && m !== "" ? Number(m) : row.auto ?? null; };
+/** 去年同一项的数（去年自己的手填 / 自动算；没有这一项返回 null）——和去年对比、导出用 */
+export const prevValue = (y, id) => { const r = taxRows(y - 1).find((x) => x.id === id); return r ? valueOf(y - 1, r) : null; };
 /** 标准扣除 vs 逐项扣除（合并报税）：逐项 = 房贷利息 + min(房产税 + 州税, SALT 上限) + 捐款（医疗不算：要超过 AGI 的比例才可扣） */
 export function deductionCompare(y) {
   const v = (id) => valueOf(y, taxRows(y).find((r) => r.id === id)) || 0, std = STD_DEDUCTION[y]?.mfj ?? null, cap = SALT_CAP[y] ?? null;
   const salt = v("propTax") + v("stateTax"), saltUsed = cap == null ? salt : Math.min(salt, cap), itemized = r2(v("mortgageInt") + saltUsed + v("charity"));
   return { std, cap, salt, saltUsed, itemized, better: std == null ? null : itemized > std ? "itemized" : "standard", diff: std == null ? null : r2(itemized - std) };
+}
+
+/** 导出这一年的汇总表（CSV，Excel 能直接打开；带 BOM 防乱码）：分组、项目、数、来源（自动 / 手填）、是否已核对、TurboTax 里在哪填、去年的数、备注 */
+export function summaryCsv(y) {
+  const en = lang === "en", pick = (o) => (o ? (en ? o.en : o.zh) : ""), esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`, st = yearState(y);
+  const head = en ? ["Group", "Item", "Amount", "Origin", "Checked", "TurboTax", "Prior year", "Note"] : ["分组", "项目", "数", "来源", "已核对", "TurboTax 里在哪填", "去年", "备注"];
+  const lines = [head, ...taxRows(y).map((r) => { const v = valueOf(y, r), pv = prevValue(y, r.id), manual = st.nums?.[r.id] != null && st.nums?.[r.id] !== "";
+    return [pick(GROUP_NAMES[r.group]), pick(r.name), v ?? "", r.manual || manual ? (en ? "typed" : "手填") : (en ? "automatic" : "自动算"), st.ok?.[r.id] ? (en ? "yes" : "是") : "", pick(r.tt), pv ?? "", pick(r.note)]; })];
+  return "\ufeff" + lines.map((l) => l.map(esc).join(",")).join("\r\n");
 }
