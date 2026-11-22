@@ -4,7 +4,7 @@ import { esc, fmt, fmtDate, money, num } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { priceOrNull, pricesOk } from "../core/finance-access.js";
 import { assetName } from "./assets-logic.js";
-import { V, distUnit, vehStatus } from "./asset-common.js";
+import { H, V, distUnit, vehStatus } from "./asset-common.js";
 
 const date = (d) => (d ? esc(fmtDate(d)) : "");
 const text = (x) => (x == null || x === "" ? "" : esc(x));
@@ -26,7 +26,21 @@ function rowsOf(a, id) {
   }
 }
 
-export function vehicleFacts(a, id) {
-  const rows = rowsOf(a, id).filter(([, val]) => val);
+const factsHtml = (all) => {
+  const rows = all.filter(([, val]) => val);
   return rows.length ? `<dl class="fact-grid one">${rows.map(([k, val]) => `<div class="fact"><dt>${k}</dt><dd>${val}</dd></div>`).join("")}</dl>` : `<p class="muted prof-empty">${t("未填")}</p>`;
+};
+export const vehicleFacts = (a, id) => factsHtml(rowsOf(a, id));
+/** 设备 / 工具的分区内容（添加向导的确认页用；字段和标签对应 asset-form.js 的表单） */
+export function equipmentFacts(a, id) {
+  const at = H().assetType(a.type), money$ = (x) => (pricesOk() && priceOrNull(x) != null ? esc(money(num(x))) : "");
+  const rows = {
+    basic: () => [[t("类型"), at ? esc(`${at.icon} ${t(at.name)}`) : ""], [t("名称"), text(a.name)], [t("位置"), text(a.location)], [t("品牌"), text(a.brand)], [t("型号"), text(a.model)], [t("序列号"), text(a.serial)]],
+    units: () => [[t("位置与数量"), (a.units || []).map((u) => esc(`${u.loc || "—"} × ${u.qty}${u.note ? ` · ${u.note}` : ""}`)).join("<br>")]],
+    years: () => [[t("安装 / 购买日期"), date(a.installed_on)], [t("出厂年份"), text(a.manufacture_year)], [t("整机保修到"), date(a.warranty_until)], [t("人工保修到"), date(a.labor_warranty_until)]],
+    life: () => [[t("预期寿命（年）"), text(a.expected_life_years)], [t("保养间隔（月）"), text(a.service_interval_months)]],
+    cost: () => [[t("购买价格"), money$(a.purchase_price)], [t("更换估价"), money$(a.replacement_cost_estimate)], [t("谁负责维护"), a.owner && H().OWNERS[a.owner] ? esc(t(H().OWNERS[a.owner].name)) : ""]],
+    notes: () => [[t("备注"), a.notes ? `<span class="pre">${esc(a.notes)}</span>` : ""]],
+  }[id];
+  return factsHtml(rows ? rows() : []);
 }

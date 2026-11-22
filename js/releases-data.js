@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.4", title: { zh: "添加设备 / 工具：最后一步确认后才创建，每一块都能回头编辑", en: "Add equipment / tool: created only after the final review, every block editable" }, items: [
+    { k: "better", zh: "添加设备和工具也改成一步一页，最后一页「确认」列出全部信息，每一块带「编辑」，点「确认并创建」才真正建好（和添加房产、车辆一致）", en: "Adding equipment and tools is now step by step too: the last page lists everything with an Edit button on each block, and Confirm and create makes it (same as adding a property or vehicle)" },
+    { k: "fix", zh: "中途取消或退出，不会再自动存下一台只填了一半的设备", en: "Cancelling or leaving halfway no longer auto-saves a half-filled piece of equipment" },
+  ] },
+
   { v: "2026-11-22.3", title: { zh: "添加车辆：最后一步确认后才创建，每一块都能回头编辑", en: "Add vehicle: created only after the final review, every block editable" }, items: [
     { k: "better", zh: "添加车辆改成一步一页，最后一页「确认」把整辆车的资料列出来，每一块带「编辑」，点「确认并创建」才真正建车", en: "Adding a vehicle is step by step; the last page lists every block with an Edit button, and Confirm and create finally makes the vehicle" },
     { k: "fix", zh: "中途取消或退出，不会再留下一辆只填了名字的车", en: "Cancelling or leaving halfway no longer leaves a vehicle with just a name behind" },

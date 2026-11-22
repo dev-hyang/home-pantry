@@ -158,13 +158,13 @@ export function viewAssetForm() {
   if (a && sec === "supplies") return `<section class="section">${assetCrumb(a, root, hubHref, t("相关耗材"))}${suppliesSection(a)}</section>`;
   if (a && sec === "recall") return `<section class="section form-page">${assetCrumb(a, root, hubHref, t("产品召回"))}${recallSection(a)}</section>`;
   if (a && sec === "care") return `<section class="section">${assetCrumb(a, root, hubHref, t("检查卡"))}${careCard(a.type, { open: true, ask: assetAsk(a) })}</section>`;
-  // 添加车辆向导（veh-wizard.js）：一步一页，最后确认页，点「确认并创建」才建车；表单还是这一个，各分区一次显示一个
-  const wizNew = !a && veh && r.q.get("wiz") === "1";
+  // 添加车辆 / 设备 / 工具向导（veh-wizard.js）：一步一页，最后确认页，点「确认并创建」才建；表单还是这一个，各分区一次显示一个
+  const wizNew = !a && !fromItem && !rep;   // 新建车辆 / 设备 / 工具都走向导；「从家居耐用品升级」「召回换新」带着原物品的信息，仍是一页
   const hide = (k) => (wizNew ? (k === "basic" ? "" : "hidden") : a && sec && sec !== k ? "hidden" : "");
   return `
     <section class="section form-page">
       ${a ? assetCrumb(a, root, hubHref, t(ASSET_SECTIONS.find((s) => s.id === sec)?.name || "")) : crumbNav([...assetBase(null, veh), { label: veh ? t("添加车辆") : t("添加设备") }])}
-      ${wizNew ? vwChrome() : ""}
+      ${wizNew ? vwChrome(v.kind, H().isFixtureType(v.type)) : ""}
       ${a && sec === "notes" ? "" : autofillBar(veh ? "vehicle" : "asset", "#assetForm")}
       <form id="assetForm" ${wizNew ? `data-vwz="1"` : ""} class="panel ${tool ? "is-tool" : ""} ${veh ? "is-vehicle" : ""} ${H().isFixtureType(v.type) ? "is-fixture" : ""} ${(a && sec) || wizNew ? "one-sec" : ""}" novalidate ${wizNew ? "" : "data-autosave"}>
         <input type="hidden" name="asset_id" value="${d(a?.id)}">
@@ -173,7 +173,7 @@ export function viewAssetForm() {
         ${rep ? `<input type="hidden" name="replaces" value="${esc(rep.from.id)}"><p class="hint" style="margin-top:0">🔁 ${t("替换被召回的“{name}”：填上新机的型号、序列号、购买日期和保修；保存后旧机标成“已更换”，不再提醒。", { name: esc(assetName(rep.from)) })}</p>` : ""}
         <fieldset data-sec="basic" ${hide("basic")}>
           <legend>${t("基本信息")}</legend>
-          <div class="seg-radio" style="margin-bottom:10px" ${wizNew ? "hidden" : ""}>${kindPill("equipment")}${kindPill("tool")}${kindPill("vehicle")}</div>
+          <div class="seg-radio" style="margin-bottom:10px" ${wizNew && veh ? "hidden" : ""}>${kindPill("equipment")}${kindPill("tool")}${kindPill("vehicle")}</div>
           <div class="form-grid">
             <label><span class="veh-hide">${t("类型")}</span><span class="veh-show">${t("动力类型")}</span>
               <select name="type" required>${typeOptions(v.type, v.kind)}</select>
