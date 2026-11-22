@@ -9,6 +9,7 @@ import { debtHref } from "./debt-logic.js";
 import { esc, fmtDate } from "../core/util.js";
 import { loanCard, looseBillsHtml, personCard } from "./debts-list.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
+import { fabMenu } from "../core/fab-menu.js";
 import { recordsList } from "./debt-records.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
@@ -20,22 +21,22 @@ const fsel = (attr, f, key, label, list) => `<label class="tb-field"><span>${t(l
 const fsearch = (attr, f, ph, label) => `<label class="tb-field tb-q"><span>${t("搜索")}</span><input type="search" ${attr}="q" value="${esc(f.q)}" placeholder="${esc(t(ph))}" aria-label="${esc(t(label))}" autocomplete="off"></label>`;
 /** 列表区：标题 + 筛选条 + 小结 + 列表（按页）；id=debt-recs，统计面板里的名字链过来时滚到这里 */
 const recsBlock = ({ title, tools, sum, body }) => `<div class="debt-recs" id="debt-recs" tabindex="-1"><div class="ds-viewbar"><h3>${title}</h3></div>${tools}${sum}<div class="panel">${body}</div></div>`;
+/** 添加：右下角圆形 ＋（只有一项就直接是链接，几项弹菜单） */
+const ADD = () => ({ label: t("添加贷款"), icon: "🏦", href: debtHref(null, "new=1") });
+const LEND = () => ({ label: t("借出"), icon: "🤝", href: debtHref(null, "new=1&cat=personal_lending&dir=receivable") });
+const BORROW = () => ({ label: t("借入"), icon: "🙏", href: debtHref(null, "new=1&cat=personal_lending&dir=payable") });
+const addFab = (items) => fabMenu(items.map((x) => ({ ...x, label: x.label })), { label: t("添加") });
 export function tabPage(tab, all) {
   if (tab === "txns") return txnsTab();
   const mine = all.filter((e) => tab === "all" || debtGroup(e) === tab), dash = debtDashboard(tab, all);
-  if (tab === "asset") return `<div class="section-head debt-head"><h2>🏦 ${t("资产融资")}</h2><div class="head-acts"><a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1"))}">＋ ${t("添加贷款")}</a></div></div>
-    ${dash}${assetRecs(mine)}${looseBillsHtml()}${sumHint()}`;
-  if (tab === "personal") return `<div class="section-head debt-head"><h2>🤝 ${t("个人借贷")}</h2><div class="head-acts">
-      <a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1&cat=personal_lending&dir=receivable"))}">＋ ${t("借出")}</a>
-      <a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1&cat=personal_lending&dir=payable"))}">＋ ${t("借入")}</a></div></div>
-    ${dash}${personalTab(mine)}${sumHint()}
-    <p class="hint">${t("借出是钱从账户出去（不算消费）；收回本金不算收入，收到的利息算投资收益。以前收入里「需要还」的记录已经转成这里的借入。")}</p>`;
+  if (tab === "asset") return `${dash}${assetRecs(mine)}${looseBillsHtml()}${sumHint()}${addFab([ADD()])}`;
+  if (tab === "personal") return `${dash}${personalTab(mine)}${sumHint()}
+    <p class="hint">${t("借出是钱从账户出去（不算消费）；收回本金不算收入，收到的利息算投资收益。以前收入里「需要还」的记录已经转成这里的借入。")}</p>${addFab([LEND(), BORROW()])}`;
   // 全部借贷（进入页）
-  return `<div class="section-head debt-head"><h2>📊 ${t("全部借贷")} <small class="muted">${t("全部历史，含已还清的")}</small></h2></div>
-    ${dash || `<div class="panel empty"><strong>${t("还没有借贷记录")}</strong>${t("房贷、车贷、学生贷款、分期，和亲友之间的借款都可以记在这里")}
+  return `${dash || `<div class="panel empty"><strong>${t("还没有借贷记录")}</strong>${t("房贷、车贷、学生贷款、分期，和亲友之间的借款都可以记在这里")}
       <div class="form-actions"><a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1"))}">＋ ${t("添加贷款")}</a><a class="btn btn-sm" href="${esc(tabHref("personal"))}">🤝 ${t("个人借贷")}</a></div></div>`}
     ${attentionPanel(["debt"], { title: t("要处理"), sub: t("快到期、逾期的借款，待确认的车贷") })}
-    ${dash ? sumHint() : ""}`;
+    ${dash ? sumHint() : ""}${addFab([ADD(), LEND(), BORROW()])}`;
 }
 const sumHint = () => `<p class="hint">${t("总额 = 原始本金加上后来又借的；已还 = 总额 − 未还（房贷按摊还表）；已还清 / 核销 / 关闭的按结清算。同一个对方的几笔合在一行：点名字，一笔的进详情，几笔的在列表里筛出来。")}</p>`;
 /* 资产融资：贷款卡片列表，筛选（搜索、状态、类型）+ 排序（默认在还的在前、未还多的在前），按页加载更多 */

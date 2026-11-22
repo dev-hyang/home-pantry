@@ -4303,6 +4303,8 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 @media (max-width: 440px) {   /* 手机：页头一行放不下文字，两个按钮收成只有图标的方块（筛选个数的小圆标留着），标题才不会被挤成两行 */
   .section-head .fpop-btn { min-width: 44px; padding: 0 12px; justify-content: center; }
   .section-head .fpop-btn > span:not(.tb-count) { display: none; }
+  .section-head .view-sw > summary { min-height: 44px; min-width: 44px; justify-content: center; }
+  .section-head .view-sw .vs-cur { display: none; }   /* 页头里的视图切换：手机上也只留图标（名称在无障碍标签里） */
 }
 @media (max-width: 440px) { .fin-head h2 { font-size: 16px; } }   /* 手机：「财务 / 页面 / 页签」三段路径要在一行里放下 */
 .fpop-eye, .tb-eye { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }

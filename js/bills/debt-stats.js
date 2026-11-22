@@ -68,7 +68,7 @@ export function owedSplit(all) {
 
 /* ───────────── 视图 ───────────── */
 const VKEY = "hmh-debt-view";
-const viewMode = () => { try { return localStorage.getItem(VKEY) === "table" ? "table" : "group"; } catch { return "group"; } };
+export const viewMode = () => { try { return localStorage.getItem(VKEY) === "table" ? "table" : "group"; } catch { return "group"; } };
 const SORT_COLS = [["name", "对方"], ["dir", "方向"], ["n", "笔数"], ["total", "总额"], ["paid", "已还"], ["left", "未还"], ["pct", "进度"], ["last", "最近"]];
 const sortRows = (rows, { k = "total", d = "desc" } = {}) => {
   const v = (r) => (k === "name" ? r.name.toLowerCase() : k === "dir" ? r.dir : r[k] ?? "");
@@ -164,14 +164,12 @@ export function debtDashboard(tab, all) {
   const seg = SEGS.some(([k]) => k === tab) ? tab : "all", s = debtStats(all, seg);
   if (!s.list.length) return "";
   const view = viewMode(), dirs = new Set(s.rows.map((r) => r.dir));
-  const chip = (k, l) => `<button type="button" class="chip" data-ds="view" data-v="${k}" aria-pressed="${view === k}">${esc(l)}</button>`;
   const body = view === "table" ? sortTable(s.rows, seg)
     : `<div class="ds-two ${dirs.size < 2 ? "ds-one" : ""}">${progressGroup(`🙏 ${t("借入（我欠别人）")}`, s.rows, "payable", seg)}${progressGroup(`🤝 ${t("借出（别人欠我）")}`, s.rows, "receivable", seg)}</div>`;
   return `<div class="debt-sum">
     ${kpiRow(all, seg, s)}
     ${owedPanel(all, seg)}
-    <div class="ds-viewbar"><h3>${seg === "asset" ? t("按贷款方") : t("按对方")} <small class="muted">${t("{n} 位", { n: s.rows.length })}</small></h3>
-      <div class="ds-toggle" role="group" aria-label="${esc(t("切换视图"))}">${chip("group", t("借入 / 借出"))}${chip("table", t("表格"))}</div></div>
+    <div class="ds-viewbar"><h3>${seg === "asset" ? t("按贷款方") : t("按对方")} <small class="muted">${t("{n} 位", { n: s.rows.length })}</small></h3></div>
     ${body}
     ${seg !== "personal" ? catPanel(s.cats) : ""}
   </div>`;
@@ -196,11 +194,9 @@ if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") 
 export function initDebtSummary({ render }) {
   const main = document.getElementById("main");
   main.addEventListener("click", (e) => {
+    const vw = e.target.closest?.('[data-action="ds-view"]');   // 页头右边的视图切换（借入 / 借出 ↔ 表格）
+    if (vw) { try { localStorage.setItem(VKEY, vw.dataset.v === "table" ? "table" : "group"); } catch { /* 忽略 */ } render(false); return; }
     const b = e.target.closest?.("[data-ds]"); if (!b) return;
-    if (b.dataset.ds === "view") {
-      try { localStorage.setItem(VKEY, b.dataset.v); } catch { /* 忽略 */ }
-      render(false); requestAnimationFrame(() => document.querySelector(`[data-ds="view"][data-v="${b.dataset.v}"]`)?.focus()); return;
-    }
     if (b.dataset.ds === "sort") {
       const k = b.dataset.k, s = ui().dsSort || { k: "total", d: "desc" };
       ui().dsSort = { k, d: s.k === k ? (s.d === "asc" ? "desc" : "asc") : ["name", "dir"].includes(k) ? "asc" : "desc" };

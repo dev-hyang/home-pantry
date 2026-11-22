@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.19", title: { zh: "借贷三页：视图切换进页头，添加改成圆形 ＋", en: "Debts: view switch in the header, adding via the round ＋" }, items: [
+    { k: "better", zh: "全部借贷、资产融资、个人借贷：「借入 / 借出」和「表格」两种视图改成页头右边的统一「切换」按钮（记在本机），页面里原来那两个小标签去掉了", en: "All debts, Asset financing and Personal lending: the “Borrowed / Lent” and “Table” views are now the shared switch button in the header (remembered on this device); the two small chips in the page are gone" },
+    { k: "better", zh: "「添加贷款」「借出」「借入」按钮没有了，统一到右下角圆形 ＋（资产融资直接是 ＋，个人借贷点开选借出 / 借入）；页面里重复的标题行也去掉了", en: "The “Add loan”, “Lent” and “Borrowed” buttons are gone; adding is the round ＋ at the bottom right (a plain ＋ on Asset financing, a menu to pick Lent / Borrowed on Personal lending); the duplicate title rows are removed" },
+    { k: "better", zh: "账单概览：去掉「统计范围：…」那句说明（时间范围和资产在右上角筛选里）", en: "Bills overview: the “Scope: …” sentence is gone (time range and asset are in the Filter at the top right)" },
+  ] },
+
   { v: "2026-11-21.18", title: { zh: "房屋各页：「目录」按房产分层", en: "House pages: a Menu organised by property" }, items: [
     { k: "better", zh: "房屋首页、概览、房屋资料、季节任务、设备保养、交易、汽车房屋消耗品、车辆：页头统一成「[目录] 房屋 / 房产名 / 页面」；目录按房产分层（每套房产展开是它的概览 / 房屋资料 / 账单 / 季节任务 / 设备保养 / 交易），另有汽车；点另一套房产的页面直接切过去", en: "House home, Overview, House profile, Seasonal tasks, Equipment, Deals, Supplies and Vehicles share one header, “[Menu] House / property / page”; the menu is organised by property (each expands to its Overview / Profile / Bills / Tasks / Equipment / Deals), plus Cars; tapping a page of another property switches straight to it" },
   ] },
