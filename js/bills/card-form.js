@@ -1,13 +1,13 @@
 /* 卡的表单，和 AI 起草返现规则（只发卡名，结果填进表单由人确认）。 */
 import { $, esc, fmtDate, num, toast, todayISO } from "../core/util.js";
-import { ACCT_KINDS, CARDS_HREF, cardById, cardHref, fromCatalog, kindName, noRewards, quarterOf, reloadCards } from "./cards.js";
+import { ACCT_KINDS, CARDS_HREF, groupHref, groupName, cardById, cardHref, fromCatalog, kindName, noRewards, quarterOf, reloadCards } from "./cards.js";
 import { Store } from "../core/store.js";
 import { accountOptions, acctLabel } from "./card-picker.js";
 import { aiReady, askText } from "../core/ai.js";
 import { backBtn } from "../core/hub.js";
 import { dupOnce, normName } from "../core/item-match.js";
 import { enrichBills, initialDue } from "./logic.js";
-import { go } from "../core/router.js";
+import { go, href } from "../core/router.js";
 import { spendChanged } from "../core/spend-data.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
@@ -51,7 +51,7 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
   const credits = (v.credits || []).map((x) => `${x.name} | ${num(x.amount)} | ${x.period || "year"} | ${x.resets_on || ""} | ${num(x.used, 0)}`).join("\n");
   const b = v.bonus || {};
   return `<section class="section form-page">
-    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(CARDS_HREF())}<a href="${CARDS_HREF()}">${t("卡与账户")}</a><span class="sep">/</span>${isNew ? `<b>${bank ? t("添加账户") : t("添加卡")}</b>` : `<a href="${cardHref(c.id)}">${d(v.name)}</a><span class="sep">/</span><b>${t("编辑")}</b>`}</nav>
+    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(groupHref(kind))}<a href="${href("bills")}">${t("财务")}</a><span class="sep">/</span><a href="${groupHref(kind)}">${t(groupName(kind))}</a><span class="sep">/</span>${isNew ? `<b>${bank ? t("添加账户") : t("添加卡")}</b>` : `<a href="${cardHref(c.id)}">${d(v.name)}</a><span class="sep">/</span><b>${t("编辑")}</b>`}</nav>
     <form id="cardForm" class="panel" novalidate data-id="${d(c?.id)}" ${ro ? 'data-readonly="1"' : ""}>
       ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("只读：家主开放财务权限后才能修改")}</p><fieldset disabled style="border:0;padding:0;margin:0;min-width:0">` : ""}
       ${W("basic")}<fieldset><legend>${bank ? t("这个账户") : t("这张卡")}</legend><div class="form-grid">
@@ -166,7 +166,7 @@ export async function saveCardForm(f) {
     }
     state.cardDraft = null; await reloadCards();
     toast(old ? t("已保存") : t("已添加 {name}", { name }));
-    if (!old) go(CARDS_HREF());
+    if (!old) go(groupHref(card.kind));
     else if (state.prevRoute?.section === "bills" && state.prevRoute.q?.get("card") === old.id && !state.prevRoute.q.get("edit")) history.back();   // 从详情页点「编辑」进来的：保存后退回详情页
     else go(cardHref(old.id), { replace: true });
     return id;
@@ -183,7 +183,8 @@ export async function deleteCard(id, { purchases = "keep" } = {}) {
   // 名下花费在数据库里一次改完 / 删完（不再逐笔：浏览器里也没有整表花费）
   const n = purchases === "delete" ? await Store.deleteCardPurchases(id) : await Store.detachCardPurchases(id, label);
   await Store.deleteCard(id); state.cardDelete = null; await reloadCards(); if (n) spendChanged();
-  toast(n ? (purchases === "delete" ? t("已删除，连同 {n} 笔花费", { n }) : t("已删除，{n} 笔花费保留", { n })) : t("已删除")); go(CARDS_HREF());
+  const goBack = groupHref(c.kind);
+  toast(n ? (purchases === "delete" ? t("已删除，连同 {n} 笔花费", { n }) : t("已删除，{n} 笔花费保留", { n })) : t("已删除")); go(goBack);
 }
 /* ───────────── AI 起草返现规则（只发卡名；起草结果填进表单，由你核对后保存） ───────────── */
 const AI_SYSTEM = [

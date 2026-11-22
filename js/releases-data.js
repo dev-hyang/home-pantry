@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.12", title: { zh: "修账户页路径和「保存余额」；收款方页和付款方页同一个玩法", en: "Fix account page path and “Save balance”; Payees works like Income payers" }, items: [
+    { k: "fix", zh: "投资账户（HSA、401K…）、银行账户、钱包的详情 / 添加 / 编辑页，路径原来一律显示「信用卡」，现在是「财务 / 投资账户 / 名字」；添加或删除后回到所在的那一页", en: "Detail / add / edit pages of investment accounts (HSA, 401K…), banks and wallets always said “Credit cards” in the path; it now reads “Finance / Investments / name”, and add or delete returns to that page" },
+    { k: "fix", zh: "账户详情页的「保存余额」点了没反应（净资产页的代码没加载）；现在能保存，资产页的「更新余额」也一样", en: "“Save balance” did nothing on account pages (the net-worth code was not loaded); it works now, and so does “Update balance” on the Assets page" },
+    { k: "better", zh: "花费 → 收款方：「只看」（一级分类）挪进右上角的筛选按钮；行里的「走势」「改名 / 合并」和上面的「多选合并」「整理收款方」「撤销」「导出 CSV」都收进长按（电脑右键）菜单，和 收入 → 付款方 一样", en: "Spending → Payees: the “Only show” category filter moved into the Filter button; the row buttons (Trend, Rename / merge) and the tool buttons (Select to merge, Tidy, Undo, Export CSV) moved into the long-press (right-click) menu, like Income → Payers" },
+  ] },
+
   { v: "2026-11-21.11", title: { zh: "卡与账户的行：图标缩小，和名称放在一行", en: "Card & account rows: smaller icon on the same line as the name" }, items: [
     { k: "better", zh: "信用卡、银行、投资、钱包、礼品卡的每一行：左边单独占一列的图标 / 卡组织标签缩小，挪到名称前面同一行，名称和说明有了更多空间", en: "On every card and account row the icon / card-network badge no longer takes its own column: it is smaller and sits right before the name, leaving more room for the name and details" },
     { k: "better", zh: "在别的页面里作为下拉选项出现的账户（付款账户、收入入账账户等），名称前面不再带图标", en: "Accounts shown as dropdown options on other pages (paying account, income account…) no longer carry an icon before the name" },

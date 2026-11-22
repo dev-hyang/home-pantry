@@ -12,6 +12,8 @@ import { monthLabel } from "./spend-roll.js";
 import { dq, hitAttrs } from "./spend-drill.js";
 import { STORE_NONE, STORE_REST, statKit, storeDatalist } from "./store-lite.js";
 import { rangeLabel } from "./add-lite.js";
+import { storeL1Of } from "./payees-l1.js";
+import { lpAttr } from "../core/long-press.js";
 
 /* ── 全历史名单（最近一次、整理预览）：读一次缓存，花费变了重读 ── */
 export const NAMES = { rows: null, busy: false, missing: false };
@@ -49,12 +51,11 @@ export const payeeDrill = (keys) => dq({ ...(keys.length === 1 ? { store: keys[0
 /* ── 页面 ── */
 export function viewPayees(months, month = state.stats.month) {
   const sel = month && months.includes(month) ? month : "";
-  const l1 = L1S.some((x) => x.id === state.stats.storeL1 && x.id !== "transfer") ? state.stats.storeL1 : "all";
+  const l1 = storeL1Of();
   CTX = { sel, l1 };
   if (state.route?.q?.get("tidy") === "1") { if (!P().tidyFromLink) { P().tidy = true; P().tidyFromLink = true; } } else P().tidyFromLink = false;   // 导入完成页「去整理」带过来的（每次点链接都打开一次）
   if (!NAMES.rows) loadNames();
-  const l1Sel = `<label class="tb-field"><span>${t("只看")}</span><select id="statsStoreL1" data-nosearch aria-label="${t("按一级分类筛选收款方")}"><option value="all" ${l1 === "all" ? "selected" : ""}>${t("全部花费（不含转账）")}</option>${L1S.filter((x) => x.id !== "transfer").map((x) => `<option value="${x.id}" ${x.id === l1 ? "selected" : ""}>${x.icon} ${esc(t(x.name))}</option>`).join("")}</select></label>`;
-  const head = `<div class="section-head"><h2>${t("收款方")}</h2><p>${esc(sel ? monthLabel(sel) : rangeLabel())}${t("；账单、订阅、保险按收款方；名称不区分大小写")}</p></div><div class="time-bar">${l1Sel}</div>`;
+  const head = `<div class="section-head"><h2>${t("收款方")}</h2><p>${esc(sel ? monthLabel(sel) : rangeLabel())}${t("；账单、订阅、保险按收款方；名称不区分大小写")}</p></div>`;   // 「只看」在页头右边的筛选按钮里（payees-l1.js）
   const list = payeeList(months, sel, l1);
   if (!list) return `<section class="section">${head}${statKit.LOADING()}</section>`;
   if (!list.length) return `<section class="section">${head}<div class="panel empty"><strong>${t("这段时间没有符合条件的花费")}</strong></div></section>`;
@@ -63,12 +64,6 @@ export function viewPayees(months, month = state.stats.month) {
       <div class="toolbar ix-stoolbar">
         <input type="search" id="payeeSearch" value="${esc(P().q)}" placeholder="${esc(t("搜索收款方 / 分类"))}" aria-label="${esc(t("搜索收款方"))}">
         <select id="payeeSort" data-nosearch aria-label="${esc(t("排序"))}">${sortOptions()}</select>
-      </div>
-      <div class="ix-tools payee-tools">
-        <button type="button" class="btn btn-sm btn-ghost" data-action="payee-sel">${P().sel ? t("退出多选") : t("多选合并")}</button>
-        <button type="button" class="btn btn-sm btn-ghost" data-action="payee-tidy" aria-expanded="${P().tidy}">${t("整理收款方")}</button>
-        ${undoLog().length ? `<button type="button" class="btn btn-sm btn-ghost" data-action="payee-undo">${t("撤销上次合并")}</button>` : ""}
-        <button type="button" class="btn btn-sm btn-ghost" data-action="payee-csv">${t("导出 CSV")}</button>
       </div>
       <div id="payeeList">${listHtml(list)}</div>
       ${storeDatalist()}
@@ -120,13 +115,21 @@ function listHtml(all) {
   const cols = COLS.filter(([key]) => key !== "last" || hasLast);
   const th = ([key, label]) => { const on = k === key; return `<th scope="col" class="s-${key}" ${on ? `aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : ""}><button type="button" class="th-sort${on ? " is-on" : ""}" data-action="payee-sort" data-k="${key}" title="${esc(t("点一下按这一列排序"))}">${t(label)}<span aria-hidden="true">${on ? (dir === "asc" ? " ▲" : " ▼") : " ↕"}</span></button></th>`; };
   const cell = (key, inner) => `<td class="s-${key}" data-l="${esc(t(COLS.find((c) => c[0] === key)[1]))}">${inner}</td>`;
-  const span = cols.length + 1;
+  const span = cols.length;
+  /** 一行的长按（电脑右键）菜单：原来行里的「走势」「改名 / 合并」和工具条里的「多选合并」「整理收款方」「撤销」「导出 CSV」都收在这里（和 收入 → 付款方 一样） */
+  const rowMenu = (x) => { const own = x.key !== "__none__";
+    return [{ label: t("看花费明细"), data: { drill: payeeDrill([x.key]) }, first: true },
+      { label: S.open === x.key ? t("收起走势") : t("近 12 个月走势"), action: "payee-open", data: { key: x.key } },
+      own ? { label: t("改名 / 合并"), action: "payee-rename", data: { key: x.key } } : null,
+      own ? { label: t("多选合并"), action: "payee-sel" } : null,
+      { label: t("整理收款方"), action: "payee-tidy" },
+      undoLog().length ? { label: t("撤销上次合并"), action: "payee-undo" } : null,
+      { label: t("导出 CSV"), action: "payee-csv" }]; };
   const row = (x) => {
     const own = x.key !== "__none__", picked = S.sel?.has(x.key);
     const pick = S.sel && own ? `<input type="checkbox" class="sel" data-action="payee-pick" data-key="${esc(x.key)}" ${picked ? "checked" : ""} aria-label="${esc(t("选中 {name}", { name: x.name }))}">` : "";
-    const tr = `<tr${picked ? ' class="is-picked"' : ""}><th scope="row" class="s-name"><span class="s-name-in">${pick}<button type="button" class="link-name linkbtn" data-drill="${esc(payeeDrill([x.key]))}" title="${esc(t("查看明细"))}">${esc(x.name)}</button></span></th>
-      ${cell("kind", x.node ? `<span class="ix-kind">${esc(nodeText(x.node))}</span>` : "")}${cell("n", x.count)}${cell("total", `<b>${esc(money(x.total))}</b>`)}${cell("share", total > 0 ? `${Math.round((x.total / total) * 1000) / 10}%` : "–")}${cell("avg", esc(money(x.total / x.count)))}${hasLast ? cell("last", x.last ? esc(fmtDay(x.last)) : "–") : ""}
-      <td class="s-act"><span class="s-act-in"><button type="button" class="btn btn-sm btn-ghost" data-action="payee-open" data-key="${esc(x.key)}" aria-expanded="${S.open === x.key}" aria-label="${esc(t("{name} 近 12 个月走势", { name: x.name }))}">${S.open === x.key ? "▾" : "▸"} ${t("走势")}</button>${own && !S.sel ? `<button type="button" class="btn btn-sm btn-ghost" data-action="payee-rename" data-key="${esc(x.key)}">${t("改名 / 合并")}</button>` : ""}</span></td></tr>
+    const tr = `<tr${picked ? ' class="is-picked"' : ""} ${S.sel ? "" : lpAttr(rowMenu(x), x.name)}><th scope="row" class="s-name"><span class="s-name-in">${pick}<button type="button" class="link-name linkbtn" data-drill="${esc(payeeDrill([x.key]))}" title="${esc(t("查看明细"))}">${esc(x.name)}</button></span></th>
+      ${cell("kind", x.node ? `<span class="ix-kind">${esc(nodeText(x.node))}</span>` : "")}${cell("n", x.count)}${cell("total", `<b>${esc(money(x.total))}</b>`)}${cell("share", total > 0 ? `${Math.round((x.total / total) * 1000) / 10}%` : "–")}${cell("avg", esc(money(x.total / x.count)))}${hasLast ? cell("last", x.last ? esc(fmtDay(x.last)) : "–") : ""}</tr>
       ${S.open === x.key ? `<tr class="s-form s-detail"><td colspan="${span}">${detailHtml(x)}</td></tr>` : ""}`;
     const form = S.renameKey === x.key ? `<tr class="s-form"><td colspan="${span}"><div class="payee-form">
       <label>${t("统一改成")}<input id="payeeTo" maxlength="40" list="storeList" value="${esc(x.name)}" autocomplete="off"></label>
@@ -141,7 +144,7 @@ function listHtml(all) {
       <button type="button" class="btn btn-sm btn-primary" data-action="payee-merge" ${picked.length >= 2 ? "" : "disabled"}>${t("合并")}</button>
       <button type="button" class="btn btn-sm btn-ghost" data-action="payee-sel">${t("退出多选")}</button>
       <small class="muted" style="flex-basis:100%">${t("勾两家以上，合并成一个名字（默认用笔数最多的那个）。")}</small></div>` : "";
-  return `${selBar}<p class="muted small" style="margin:0 0 6px">${t("{n} 家，合计 {m}", { n: list.length, m: money(list.reduce((a, x) => a + x.total, 0)) })}</p>
-    ${list.length ? `<table class="store-table ix-stbl payee-tbl"><thead><tr>${cols.map(th).join("")}<th scope="col" class="s-act"><span class="sr-only">${t("操作")}</span></th></tr></thead><tbody>${shown.map(row).join("")}</tbody></table>` : `<p class="muted">${t("没有符合条件的收款方")}</p>`}
+  return `${selBar}<p class="muted small" style="margin:0 0 6px">${t("{n} 家，合计 {m}", { n: list.length, m: money(list.reduce((a, x) => a + x.total, 0)) })} · ${t("长按（电脑右键）一个收款方：明细、走势、改名 / 合并、多选合并、整理、导出")}</p>
+    ${list.length ? `<table class="store-table ix-stbl payee-tbl"><thead><tr>${cols.map(th).join("")}</tr></thead><tbody>${shown.map(row).join("")}</tbody></table>` : `<p class="muted">${t("没有符合条件的收款方")}</p>`}
     ${moreBtn(list.length > shown.length, 'data-action="payee-more"')}`;
 }

@@ -27,7 +27,8 @@ import { personNameOf } from "./settings/family-lite.js";
 import { SETTING_SECTIONS } from "./settings/settings-menu.js";
 import { infoTip } from "./core/info-tip.js";
 import { assetBillsHref } from "./bills/all-href.js";
-import { viewFinanceMenu } from "./bills/fin-home.js";   // 财务首页（四张卡片）和贯穿财务各页的嵌套目录
+import { viewFinanceMenu } from "./bills/fin-home.js";
+import { groupHref, groupName } from "./bills/cards.js";   // 财务首页（四张卡片）和贯穿财务各页的嵌套目录
 
 const SECTION_ICON = { pantry: "🗄️", house: "🏠", bills: "💰", me: "👤" };
 // 每个二级页：图标、一句说明、可选的“要处理的数量”
@@ -116,6 +117,11 @@ export function viewMenu(section) {
 const SPLIT_FIRST = (r) => firstTab(r);   // 第一个标签就是页面本身，面包屑不再多一层
 export function crumb(r) {
   const sec = SECTIONS[r.section]; if (!sec?.subs || r.section === "shops" || r.section === "shopping" || r.sub === "menu" || r.sub === "pages" || (r.section === "house" && r.sub === "fix") || (r.section === "bills" && r.sub === "assetbills") || (r.section === "bills" && r.sub === "spend" && (r.q?.get("form") || r.q?.get("copy") || r.q?.get("add") || r.q?.get("view"))) || (r.section === "bills" && r.sub === "income" && (r.q?.get("form") || r.q?.get("view")))) return "";   // 这几页自己画带名字的面包屑（资产账单、花费表单页）   // 出了问题？页自己画带设备名的面包屑
+  if (r.section === "bills" && r.sub === "cards" && r.q?.get("card")) {   // 卡 / 账户详情：财务 / 所在的那一页（信用卡、银行、投资…） / 名字；添加 / 编辑页自己画
+    const id = r.q.get("card"); if (id === "new" || r.q.get("edit")) return "";
+    const c = state.cards.find((x) => x.id === id), kind = c?.kind || "credit";
+    return crumbNav([{ href: href("bills"), label: t(sec.name) }, { href: groupHref(kind), label: t(groupName(kind)) }, { label: c ? c.name : t("找不到这张卡") }]);
+  }
   const parent = r.section === "bills" ? { template: "recurring" } : { template: "supplies", "asset-template": "assets" };
   const cur = sec.subs.find(([k]) => k === r.sub) || sec.subs.find(([k]) => k === parent[r.sub]);
   const prop = r.section === "house" && r.sub !== "vehicles" ? state.properties.find((p) => p.id === state.propertyId) : null;

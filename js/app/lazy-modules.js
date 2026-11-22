@@ -6,7 +6,7 @@ export const LZ = {};
 LZ.bankImport = lazyModule(() => import("../stats/bank-import.js"));
 LZ.statements = lazyModule(() => Promise.all([LZ.bankImport.load()]).then(() => import("../stats/statements.js")));
 LZ.debts = lazyModule(() => import("../bills/debts.js"));
-LZ.finAssets = lazyModule(() => Promise.all([LZ.debts.load()]).then(() => import("../bills/fin-assets.js")));
+LZ.finAssets = lazyModule(() => Promise.all([LZ.debts.load(), LZ.netWorth.load()]).then(() => import("../bills/fin-assets.js")));
 LZ.fix = lazyModule(() => import("../house/fix.js"));
 LZ.scan = lazyModule(() => import("../pantry/scan.js"));
 LZ.itemForm = lazyModule(() => import("../pantry/item-form.js"));
@@ -162,7 +162,7 @@ export const viewAccountsHome = lazyFn(LZ.accountsViews, "viewAccountsHome");
 export const viewBanks = lazyFn(LZ.accountsViews, "viewBanks");
 export const viewInvest = lazyFn(LZ.accountsViews, "viewInvest");
 export const viewWallets = lazyFn(LZ.accountsViews, "viewWallets");
-LZ.cardsPage = lazyModule(() => import("../bills/cards-page.js"));
+LZ.cardsPage = lazyModule(() => LZ.netWorth.load().then(() => import("../bills/cards-page.js")));   // 卡与账户详情页里有「保存余额」表单：先加载净资产模块（见 finAssets）
 export const runCleanup = lazyFn(LZ.cardsPage, "runCleanup");
 export const setCardActive = lazyFn(LZ.cardsPage, "setCardActive");
 export const viewCards = lazyFn(LZ.cardsPage, "viewCards");

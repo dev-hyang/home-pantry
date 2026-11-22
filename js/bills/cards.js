@@ -10,6 +10,7 @@ import { href } from "../core/router.js";
 import { registerAlerts } from "../core/alerts.js";
 import { TZ, cached } from "../core/spend-data.js";
 import { personNameOf } from "../settings/family-lite.js";
+import { GROUPS, groupOfKind } from "./acct-groups.js";
 
 const D = () => window.CARDS;
 /* 卡与账户的种类：信用卡 / 借记卡 / 电子钱包 / 礼品卡是「卡」；支票 / 储蓄（迁移 036）、券商 / 退休（401K / IRA）/ HSA / 贷款（负债）/ 现金（迁移 056）是「账户」。
@@ -38,6 +39,10 @@ export const cardMonths = () => { const m = TOTALS.get("t"); return m ? [...new 
 /** 礼品卡余额：面值 / 充值总额 − 记在这张卡上的花费（没填面值返回 null） */
 export const giftBalance = (c) => (c?.kind === "gift" && c.balance != null ? r2(num(c.balance) - cardTotal(c.id).sum) : null);
 export const CARDS_HREF = () => href("bills", "cards");
+/** 账户种类 → 它所在的那一页（信用卡 / 银行 / 投资 / 钱包）：详情、编辑、添加页的路径和「返回」都回这里，不再一律回信用卡 */
+const GROUP_SUB = { credit: "cards", bank: "banks", invest: "invest", wallet: "wallets" };
+export const groupHref = (kind) => href("bills", GROUP_SUB[groupOfKind(kind)] || "cards");
+export const groupName = (kind) => (GROUPS[groupOfKind(kind)] || GROUPS.credit).name;
 export const cardHref = (id) => `${CARDS_HREF()}?card=${id || "new"}`;
 const r2 = (v) => Math.round(v * 100) / 100;
 export const holderName = (c) => (c.holder_person_id ? personNameOf(c.holder_person_id) || t("家人") : t("共用"));   // 持卡人是家庭成员（人），不是设备
