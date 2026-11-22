@@ -10,6 +10,7 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { cur, fmtMoney, incomeHref, personOptions, selOpts } from "./shared.js";
 import { go } from "../core/router.js";
+import { curSec, fsec, secTitle } from "../core/form-sec.js";
 import { acctById } from "../bills/card-picker.js";
 
 /* ── 入账账户：「卡与账户」里登记的账户（支票 / 储蓄 / 券商 / 退休 / HSA / 借记卡 / 钱包 / 现金…），可设默认 ──
@@ -64,33 +65,35 @@ async function saveDefaultAcct(value) {
 export const kindHint = (kind) => (kind === "zelle" || kind === "reimburse" ? t("朋友 AA 还你、替人垫付后还回、报销：是你自己的钱回来了，不算收入——请在 花费 里记一笔负数（勾「退款 / 报销」，选当初那笔的分类）。这里只记真正的收入：赠与、副业收款等。")
   : GAIN_KINDS.includes(kind) ? t("卖出 / 资本利得：到账金额里只有赚的那部分算收入，填在下面「其中已实现收益」；不填 = {d}。", { d: isIncomeKind(kind) ? t("整笔都算收入") : t("整笔都不算收入") })
   : isIncomeKind(kind) ? "" : t("资本与资产流入：记下来（现金流里看得到），但不算收入。"));
+const INC_SEC_NAMES = { basic: "基本信息", acct: "账户与归属", fx: "国际电汇 / 外币", repay: "借款 / 还款", notes: "备注与来源" };
 export function formHtml() {
   const I = inc(), f = I.form, owner = isOwnerNow(), mine = myPersonId();
   let r = f.rec || {};
+  const sec = r.id ? curSec(INC_SEC_NAMES) : "";   // 详情页某一块的「编辑」：只显示那一块（core/form-sec.js）
   const person = r.person_id !== undefined ? r.person_id : mine, d = (v) => esc(v ?? "");
   if (!r.id) r = { ...r, source_name: r.source_name || defValid("source_name") || undefined, kind: r.kind || defValid("kind") || undefined, channel: r.channel || defValid("channel") || undefined };   // 新记一笔：预填默认的付款方 / 类型 / 收款方式
   const accVal = r.id ? acctValueOf(r) : defAcctValid(), kind = r.kind || "other", gain = GAIN_KINDS.includes(kind) || r.income_amount != null;   // 新记一笔默认选上你设的默认账户；编辑按 account_id（老记录按文字）对上登记过的账户
   const persons = owner ? personOptions(person || "none") : `<option value="${mine || "none"}">${esc(personName(mine) || t("未指定 / 全家"))}</option>`;
-  return `<form class="panel" data-inc-form="record" id="incForm" autocomplete="off"><h3 style="margin:0 0 8px">${r.id ? t("编辑收入") : t("记一笔收入")}</h3>
+  return `<form class="panel" data-inc-form="record" id="incForm" autocomplete="off" ${sec ? "novalidate" : ""}>${secTitle(INC_SEC_NAMES[sec], sec) || `<h3 style="margin:0 0 8px">${r.id ? t("编辑收入") : t("记一笔收入")}</h3>`}
     <div class="form-grid">
-      <label>${t("到账日期")}<input type="date" name="received_on" value="${d(r.received_on || todayISO())}" max="${todayISO()}" required></label>
-      <label>${t("到账金额")}（${esc(cur())}）<input type="number" name="amount" step="0.01" min="0.01" inputmode="decimal" value="${d(r.amount)}" required></label>
-      <label>${t("谁给的（付款方 / 雇主）")}<input name="source_name" list="incSenders" maxlength="80" value="${d(r.source_name)}" required placeholder="${esc(t("公司名 / 汇款人"))}"><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></label>
-      <label>${t("类型")}<select name="kind" data-inc-kind>${kindOptionsHtml(kind)}</select><small class="muted" data-inc-kind-hint>${esc(kindHint(kind))}</small></label>
-      <label data-inc-gain ${gain ? "" : "hidden"}>${t("其中已实现收益（算收入的部分，选填）")}<input type="number" name="income_amount" step="0.01" min="0" inputmode="decimal" value="${d(r.income_amount)}" aria-describedby="incGainHelp"><small class="muted" id="incGainHelp">${t("例：成本 $10,000 的股票卖了 $15,000，到账 15,000，这里填 5,000。")}</small></label>
-      <label>${t("收款方式")}<select name="channel" data-nosearch><option value="">${t("未填")}</option>${selOpts(CHANNELS, r.channel)}</select></label>
-      ${defsHtml(r)}
-      <label>${t("这是谁的收入")}<select name="person_id" data-nosearch>${persons}</select></label>
-      <label>${t("入到哪个账户")}<select name="acct_sel" data-inc-acct>${acctSelectHtml(accVal)}</select>
+      <label ${fsec("basic", sec)}>${t("到账日期")}<input type="date" name="received_on" value="${d(r.received_on || todayISO())}" max="${todayISO()}" required></label>
+      <label ${fsec("basic", sec)}>${t("到账金额")}（${esc(cur())}）<input type="number" name="amount" step="0.01" min="0.01" inputmode="decimal" value="${d(r.amount)}" required></label>
+      <label ${fsec("basic", sec)}>${t("谁给的（付款方 / 雇主）")}<input name="source_name" list="incSenders" maxlength="80" value="${d(r.source_name)}" required placeholder="${esc(t("公司名 / 汇款人"))}"><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></label>
+      <label ${fsec("basic", sec)}>${t("类型")}<select name="kind" data-inc-kind>${kindOptionsHtml(kind)}</select><small class="muted" data-inc-kind-hint>${esc(kindHint(kind))}</small></label>
+      <label ${fsec("basic", sec)} data-inc-gain ${gain ? "" : "hidden"}>${t("其中已实现收益（算收入的部分，选填）")}<input type="number" name="income_amount" step="0.01" min="0" inputmode="decimal" value="${d(r.income_amount)}" aria-describedby="incGainHelp"><small class="muted" id="incGainHelp">${t("例：成本 $10,000 的股票卖了 $15,000，到账 15,000，这里填 5,000。")}</small></label>
+      <label ${fsec("basic", sec)}>${t("收款方式")}<select name="channel" data-nosearch><option value="">${t("未填")}</option>${selOpts(CHANNELS, r.channel)}</select></label>
+      <div style="display:contents" ${fsec("basic", sec)}>${defsHtml(r)}</div>
+      <label ${fsec("acct", sec)}>${t("这是谁的收入")}<select name="person_id" data-nosearch>${persons}</select></label>
+      <label ${fsec("acct", sec)}>${t("入到哪个账户")}<select name="acct_sel" data-inc-acct>${acctSelectHtml(accVal)}</select>
         <input name="account" maxlength="60" value="${accVal === "other" ? d(r.account) : ""}" placeholder="Chase ····1234" style="margin-top:6px" ${accVal === "other" ? "" : "hidden"}></label>
-      <div class="ix-acct-def"><label class="check-inline"><input type="checkbox" name="acct_default" ${accVal && accVal === defAcct() ? "checked" : ""}><span>${t("设为我的默认入账账户")}</span></label>
+      <div class="ix-acct-def" ${fsec("acct", sec)}><label class="check-inline"><input type="checkbox" name="acct_default" ${accVal && accVal === defAcct() ? "checked" : ""}><span>${t("设为我的默认入账账户")}</span></label>
         ${hasBankAcct() ? "" : `<small class="muted">${t("还没登记账户？到「卡与账户」里登记银行、券商、退休账户后，这里就能选。")} <a href="${CARDS_HREF()}">${t("去登记")}</a></small>`}</div>
-      <label>${t("备注")}<input name="notes" maxlength="500" value="${d(r.notes)}"></label></div>
-    <details style="margin-top:8px" ${r.orig_amount || r.fee != null ? "open" : ""}><summary>${t("国际电汇 / 外币（选填）")}</summary><div class="form-grid" style="margin-top:6px">
+      <label ${fsec("notes", sec)}>${t("备注")}<input name="notes" maxlength="500" value="${d(r.notes)}"></label></div>
+    <details ${fsec("fx", sec)} style="margin-top:8px" ${r.orig_amount || r.fee != null || sec === "fx" ? "open" : ""}><summary>${t("国际电汇 / 外币（选填）")}</summary><div class="form-grid" style="margin-top:6px">
       <label>${t("汇出金额（原币种）")}<input type="number" name="orig_amount" step="0.01" min="0" value="${d(r.orig_amount)}"></label><label>${t("原币种")}<input name="orig_currency" maxlength="3" value="${d(r.orig_currency)}" placeholder="CNY"></label>
       <label>${t("手续费")}<input type="number" name="fee" step="0.01" min="0" value="${d(r.fee)}"></label></div><small class="muted">${t("到账金额填实际收到的（已扣手续费、已换成家庭货币）；这里只是留个底，方便对账。")}</small></details>
-    <label class="check-inline" style="margin-top:8px"><input type="checkbox" name="repay_required" data-inc-repay ${r.repay_required ? "checked" : ""}><span>${t("需要还（个人赠与 / 借款）——当借款到账，不算收入")}</span></label>
-    <div class="form-grid" data-inc-repay-box ${r.repay_required ? "" : "hidden"} style="margin-top:6px"><label>${t("还款到期日")}<input type="date" name="repay_due_on" value="${d(r.repay_due_on)}"></label><label>${t("需要还的总额（空 = 收到的金额）")}<input type="number" name="repay_amount" step="0.01" min="0" value="${d(r.repay_amount)}"></label></div>
+    <label ${fsec("repay", sec)} class="check-inline" style="margin-top:8px"><input type="checkbox" name="repay_required" data-inc-repay ${r.repay_required ? "checked" : ""}><span>${t("需要还（个人赠与 / 借款）——当借款到账，不算收入")}</span></label>
+    <div class="form-grid" ${fsec("repay", sec)} data-inc-repay-box ${r.repay_required ? "" : "hidden"} style="margin-top:6px"><label>${t("还款到期日")}<input type="date" name="repay_due_on" value="${d(r.repay_due_on)}"></label><label>${t("需要还的总额（空 = 收到的金额）")}<input type="number" name="repay_amount" step="0.01" min="0" value="${d(r.repay_amount)}"></label></div>
     <p class="form-error" role="alert" id="incFormErr" hidden></p>
     <div class="form-actions"><button class="btn btn-primary" id="incSave">${t("保存")}</button><button type="button" class="btn btn-ghost" data-inc="cancel">${t("取消")}</button></div></form>`;
 }

@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.6", title: { zh: "借贷、收入、花费、商店：详情页每一块的「编辑」只改这一块", en: "Loans, income, spending, shops: each block’s Edit now changes just that block" }, items: [
+    { k: "better", zh: "收入、花费、商店详情页每一块右上角的「编辑」，现在打开的编辑页只显示这一块的字段（以前是整张表单，只是把光标放到那一块）", en: "On income, spending and shop details, a block’s Edit now opens a page with just that block’s fields (it used to open the whole form and only move the cursor)" },
+    { k: "new", zh: "借贷详情页多了资料分块（基本信息、金额与期限、还款安排、关联账户与资产、备注），每块带「编辑」，只改这一块；个人借贷没有还款安排和关联两块", en: "Loan details now have blocks (Basics, Amount & term, Repayment, Linked accounts & assets, Notes), each with its own Edit; personal loans skip Repayment and Linked" },
+    { k: "better", zh: "没改的字段原样保存，不会因为只编辑一块而丢掉别的内容", en: "Fields you did not touch are saved as they were, so editing one block never drops the rest" },
+  ] },
+
   { v: "2026-11-22.5", title: { zh: "资产页：链接更准，名称直接点进去", en: "Assets page: better links, tap the name to open" }, items: [
     { k: "better", zh: "资产页每套房产、每辆车的「在房屋里打开」去掉了，名称本身就是链接（带下划线），点名称进入原记录", en: "Removed the “Open under Home” link on each property and vehicle in Assets; the underlined name itself now opens the record" },
     { k: "better", zh: "资产页顶上的链接：「房产列表」进房屋 / 房产，「管理车辆」改名「车辆列表」进房屋 / 车辆，「卡与账户」进财务 / 账户（不再只是信用卡）", en: "Assets page links: Properties opens Home / Properties, “Manage vehicles” is now Vehicles and opens Home / Vehicles, Cards & accounts opens Finance / Accounts (not just credit cards)" },

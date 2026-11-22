@@ -4584,3 +4584,9 @@ button.npop-item { width: 100%; border: 0; background: none; font: inherit; font
 .tc-pos { display: none; flex: none; font-size: 12.5px; font-weight: 700; color: var(--pine); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tc-pos small { font-weight: 500; color: var(--muted); font-size: 12px; }
 .tcarousel.tc-nums .tc-pos { display: inline; }
+/* 编辑页只改一块（core/form-sec.js）：不是这一块的字段藏起来（值还在表单里，保存时原样带着） */
+[data-fsec][hidden] { display: none !important; }
+.fsec-title { margin: 0 0 12px; font-size: 16px; }
+/* 借贷详情的资料分块（bills/debt-sections.js）：手机一列，宽屏两列 */
+.dd-secs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 14px; margin-top: 4px; }
+@media (min-width: 760px) { .dd-secs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

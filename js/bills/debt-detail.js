@@ -5,6 +5,7 @@ import { amortHtml, breakdownHtml, daysText, kpi, payTableHtml, termsHtml } from
 import { assetName } from "../house/assets.js";
 import { debt060, debtHref, paymentTable } from "./debt-logic.js";
 import { debtForm } from "./debt-form.js";
+import { debtBlocks } from "./debt-sections.js";
 import { esc, fmtDate, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
 import { moreMenu } from "../core/more-menu.js";
@@ -125,7 +126,7 @@ function personalDetail(e) {
       ${kpi(t("到期"), e.maturity_date ? esc(fmtDate(e.maturity_date)) : "—", e.maturity_date && !isClosedStatus(e.status) ? `<span class="${e.overdue ? "dd-warn" : ""}">${esc(daysText(e.maturity_date))}</span>` : t("没约定"))}
       ${kpi(recv ? t("收到的利息") : t("付的利息"), e.paid.interest ? mny(e.paid.interest, c) : "—")}
     </div>
-    ${e.notes ? `<p class="muted dd-notes">${esc(e.notes)}</p>` : ""}
+    ${debtBlocks(e)}
     <div class="section-head dd-sec"><h2>${t("还款记录")}</h2><div class="head-acts"><small class="muted">${t("{n} 条", { n })}</small>
       ${open || !n ? `<button type="button" class="btn btn-sm ${open ? "btn-ghost" : "btn-primary"}" data-debt="rec-open" data-id="${esc(e.id)}" aria-expanded="${open}" aria-controls="dd-rec-form">${open ? t("收起") : `＋ ${t("记一笔还款")}`}</button>` : ""}</div></div>
     ${open ? `<div class="panel dd-rec-form" id="dd-rec-form">${recordForm(e)}</div>` : ""}
@@ -150,8 +151,9 @@ export function detail(id) {
     ${proposalHtml(e)}
     <div class="dd-grid">
       <div class="panel dd-card"><h3>${t("下一期构成")}</h3>${breakdownHtml(e)}</div>
-      <div class="panel dd-card"><h3>${t("贷款条款")}</h3>${termsHtml(e)}${e.notes ? `<p class="muted dd-notes">${esc(e.notes)}</p>` : ""}</div>
+      <div class="panel dd-card"><h3>${t("贷款条款")}</h3>${termsHtml(e)}</div>
     </div>
+    ${debtBlocks(e)}
     <div class="section-head dd-sec"><h2>${t("每期还款拆分")}</h2>${e.bill && e.split ? `<div class="dd-resplit"><label class="check-inline"><input type="checkbox" data-debt-overwrite ${ui().overwrite ? "checked" : ""}><span>${t("覆盖手动改过的")}</span></label><button type="button" class="btn btn-sm" data-debt="resplit" data-id="${esc(e.id)}">${t("按摊还表重新拆分")}</button></div>` : ""}</div>
     <div class="panel">${payTableHtml(e)}</div>
     <p class="hint">${t("本息只按摊还表算（第 k 期 = 第一期还款日往后 k−1 个月，早几天晚几天交都对到那一期）；Escrow = 实付 − 本息 − 额外本金。本金记成「融资 / 还本」（不算消费），利息{e}算消费。", { e: e.escrow ? t("和 Escrow（房产税、保险）") : "" })}</p>
