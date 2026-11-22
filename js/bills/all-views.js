@@ -138,8 +138,6 @@ function compute(f = state.allFilter) {
   return { rows, base: base.rows, truncated: base.truncated, from, to, today, S: summarize(rows, { cur: cur(), today }), SK: summarize(base.rows, { cur: cur(), today }) };
 }
 
-/** 当前筛选结果里待核对的自动扣款账单（每张账单一个 id）：「全部标为已核对」用 */
-export const verifyBillIds = () => [...new Set(compute().rows.filter((r) => r.kind === "recurring" && r.status === "verify").map((r) => r.billId))];
 
 /** 三张合计卡：口径说明收进各卡标题旁的 ⓘ（估算 / 未知金额 / Escrow / 其他币种 / 没展开的期都影响「应付」，估算也影响「余额」） */
 export function summaryHtml({ SK: S, truncated }) {
@@ -158,12 +156,6 @@ function titleTip(f, C) {
   return infoTip(t("周期性 + 一次性账单，一行 = 一期账单。时间范围：{r}（{s}）；逾期没缴的不受范围限制，一直显示。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope }), { align: "start" });
 }
 
-/** 右上角：眼睛 + ⋯（添加账单 / 批量标记核对 / 导出 CSV）；批量标记只在当前筛选里有待核对账单时出现，所以随筛选重画 */
-function headActsHtml(rows) {
-  const nv = new Set((rows || []).filter((r) => r.kind === "recurring" && r.status === "verify").map((r) => r.billId)).size;
-  return `${moreMenu([{ label: t("添加账单"), href: href("bill", "new"), first: true }, nv ? { label: t("批量标记已核对（{n} 张）", { n: nv }), action: "all-verify" } : null, { label: t("导出 CSV"), action: "all-csv" }], { label: t("更多操作") })}`;
-}
-
 function listHtml(C) {
   const f = state.allFilter, lim = pageLimit("allbills", JSON.stringify(f));
   if (!C.rows.length) return `<div class="panel empty"><strong>${t("没有符合条件的账单")}</strong>${changed(f, FD.all) ? t("试试清除筛选，或换一个时间范围。") : t("这个时间范围里没有到期的账单；逾期的会一直显示。")}</div>`;
@@ -176,7 +168,6 @@ export function renderAllList() {
   const h = document.getElementById("allList"); if (!h) return;
   const C = compute(); h.innerHTML = listHtml(C);
   const s = document.getElementById("allSum"); if (s) s.innerHTML = summaryHtml(C);
-  const a = document.getElementById("allActs"); if (a && !a.querySelector("details[open]")) a.innerHTML = headActsHtml(C.rows);
   const tt = document.getElementById("allTitleTip"); if (tt) tt.innerHTML = titleTip(state.allFilter, C);
 }
 
@@ -187,7 +178,7 @@ export function viewAllBills() {
   const range = rangeOpts.slice(0, 1).map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("") + (BILL_RANGES.some(([k]) => k === f.range) ? "" : `<option value="${esc(f.range)}" selected>${esc(f.range)}</option>`)
     + rangeOpts.slice(1).map(([k, l]) => `<option value="${k}" ${f.range === k ? "selected" : ""}>${t(l)}</option>`).join("");
   return `<section class="section">
-    ${finHead({ label: t("账单明细"), note: `<span id="allTitleTip" class="title-tip">${titleTip(f, C)}</span>`, right: headActsHtml(C.rows), actsId: "allActs" })}
+    ${finHead({ label: t("账单明细"), note: `<span id="allTitleTip" class="title-tip">${titleTip(f, C)}</span>` })}
     <div id="allSum">${summaryHtml(C)}</div>
     <div class="toolbar">
       <input type="search" id="allSearch" placeholder="${t("搜索名称、付款方、患者")}" value="${esc(f.q || "")}" aria-label="${t("搜索账单")}">
@@ -203,18 +194,6 @@ export function viewAllBills() {
     </div>
     <div id="allList">${listHtml(C)}</div>
   </section>${fabHtml()}`;
-}
-
-/** 导出当前筛选下的全部账单（一行一期）：CSV，Excel 能直接打开；以 = + - @ 开头的文本前面加 ' 防公式注入 */
-export function exportAllCsv() {
-  const C = compute(), st = (r) => t(LABEL[r.status] || r.status);
-  const en = lang === "en", head = en ? ["Due date", "Bill", "Type", "Category", "Asset", "Status", "Total due", "Paid", "Balance", "Currency", "Payee", "Payment method"] : ["到期日", "账单", "类型", "分类", "资产", "状态", "应付", "已付", "余额", "货币", "付款方", "付款方式"];   // 表头直接按界面语言写（不走词条：这几个词在别处的英文是另一个意思）
-  const rows = [head, ...C.rows.map((r) => [r.dueOn || "", r.name, r.kind === "onetime" ? t("一次性") : t("周期性"), r.kind === "onetime" ? t(KINDS[r.category]?.name || r.category) : t(billCat(r.category).name),
-    assetKeyLabel(r.assets[0] || "general").replace(/^\S+\s/, ""), st(r), r.amountUnknown ? "" : r.amount, r.paid, r.balance, r.currency || cur(), r.payee || "", r.escrow ? "Escrow" : r.autopay ? (en ? "Autopay" : "自动扣款") : r.kind === "recurring" ? (en ? "Manual" : "手动缴费") : ""])];
-  const csv = "\ufeff" + rows.map((x) => x.map((v) => { const s = String(v ?? ""); const y = /^[=+\-@]/.test(s) ? `'${s}` : s; return /[",\r\n]/.test(y) ? `"${y.replace(/"/g, '""')}"` : y; }).join(",")).join("\r\n");
-  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })), el = document.createElement("a");
-  el.href = url; el.download = `${t("账单明细")}-${todayISO()}.csv`; document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-  return rows.length - 1;
 }
 
 export { compute as allCompute };   // 资产账单页（asset-bills.js）用同一份口径

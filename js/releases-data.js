@@ -2,6 +2,16 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.13", title: { zh: "添加卡 / 账户改成分步向导 + 确认页；各账户页的取消、返回回到自己那一页", en: "Adding a card / account is now a step-by-step wizard with a review page; cancel and back return to the right page" }, items: [
+    { k: "new", zh: "添加卡 / 账户改成一步一页：类型 → 基本信息 →（信用卡还有 还款 → 返现规则 → 开卡奖励 → 报销额度）→ 备注 → 确认；顶上显示第几步、进度条；回车 = 下一步", en: "Adding a card / account is one step per page: Type → Basics → (for credit cards also Repayment → Rewards → Sign-up bonus → Credits) → Notes → Review; the top shows the step and a progress bar; Enter = next" },
+    { k: "new", zh: "最后一步是确认页：全部信息按块汇总，每一块有「编辑」回到对应那一步，核对无误再「确认并保存」", en: "The last step is a review page: everything grouped by section, each with an “Edit” button back to its step, then “Confirm and save”" },
+    { k: "fix", zh: "投资 / 银行 / 钱包账户添加页上的取消、只读返回，原来都回到信用卡页，现在回到各自那一页；路径是「财务 / 投资账户 / 添加 某某账户」", en: "Cancel and read-only back on the add page of investment / bank / wallet accounts used to land on Credit cards; they now return to their own page, and the path reads “Finance / Investments / Add …”" },
+    { k: "fix", zh: "收入 → 付款方、花费 → 收款方：搜索框下面的小提示拆成单独一行，不再把一长串字挤出边界", en: "Income → Payers and Spending → Payees: the small hint under the search box is now its own line so the long text no longer runs out of bounds" },
+    { k: "better", zh: "账单明细：右上角的 ⋯ 和里面的功能（添加账单、批量标记已核对、导出 CSV）去掉了；添加账单用右下角的圆形 ＋", en: "Bills list: the ⋯ menu at the top right and its actions (Add bill, Mark as verified, Export CSV) are gone; add bills with the round ＋ at the bottom right" },
+    { k: "better", zh: "账单概览：「时间范围」和「资产」两个下拉并进右上角的筛选按钮（带已改动的个数），页面顶上更清爽", en: "Bills overview: the “Time range” and “Asset” dropdowns moved into the Filter button at the top right (with a count of changed filters)" },
+    { k: "better", zh: "花费 → 收款方：排序和「主要分类」并排放在搜索框右边，手机上收成统一的「筛选」按钮", en: "Spending → Payees: sort and “Main category” sit beside the search box and collapse into the shared Filter button on phones" },
+  ] },
+
   { v: "2026-11-21.12", title: { zh: "修账户页路径和「保存余额」；收款方页和付款方页同一个玩法", en: "Fix account page path and “Save balance”; Payees works like Income payers" }, items: [
     { k: "fix", zh: "投资账户（HSA、401K…）、银行账户、钱包的详情 / 添加 / 编辑页，路径原来一律显示「信用卡」，现在是「财务 / 投资账户 / 名字」；添加或删除后回到所在的那一页", en: "Detail / add / edit pages of investment accounts (HSA, 401K…), banks and wallets always said “Credit cards” in the path; it now reads “Finance / Investments / name”, and add or delete returns to that page" },
     { k: "fix", zh: "账户详情页的「保存余额」点了没反应（净资产页的代码没加载）；现在能保存，资产页的「更新余额」也一样", en: "“Save balance” did nothing on account pages (the net-worth code was not loaded); it works now, and so does “Update balance” on the Assets page" },

@@ -49,6 +49,9 @@ function body(c, id) {
 }
 
 /** c：这张卡；ro：只读；deleteHtml：删除前的确认面板（card-del 点了之后出现，由卡片列表页的函数生成） */
+/** 某一块的内容（详情页和添加向导的确认页共用） */
+export const cardSectionBody = (c, id) => body(c, id);
+
 export function cardDetailPage(c, ro, deleteHtml = "") {
   const bank = noRewards(c), base = cardHref(c.id), K = ACCT_KINDS[c.kind] || ACCT_KINDS.credit;
   const active = c.active !== false;

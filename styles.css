@@ -978,6 +978,18 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .card-list .card-row { align-items: flex-start; }
 /* 卡与账户的行：图标 / 卡组织小标签不单独占一列，缩小后和名称同一行（.grow 里，名称前面） */
 .card-row .grow > .card-net { display: inline-block; min-width: 0; margin: 0 6px 0 0; padding: 1px 6px; font-size: 10.5px; line-height: 1.4; vertical-align: 1px; }
+/* 列表上面一行小提示（长按有更多操作）：单独一行、可换行，不撑出边界 */
+.list-hint { margin: -4px 0 8px; font-size: 12px; line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; }
+/* 添加卡 / 账户向导（js/bills/card-wizard.js）：第几步 + 进度条；确认页沿用详情页的分区卡片 */
+.wz-head { margin: 0 0 12px; }
+.wz-now { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
+.wz-bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.wz-bar > i { display: block; height: 100%; border-radius: 3px; background: var(--pine); transition: width .2s; }
+.form-page .wz-actions { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; }
+.form-page .wz-actions .btn { flex: 1 1 0; min-width: 0; width: auto; justify-content: center; padding-left: 8px; padding-right: 8px; white-space: nowrap; }   /* 上一步 / 下一步 / 取消 排成一行，手机上不上下堆叠 */
+.wz-actions [hidden] { display: none !important; }
+.wz-review .prof-edit { margin-left: auto; }
+@media (prefers-reduced-motion: reduce) { .wz-bar > i { transition: none; } }
 .card-ico { display: inline-block; margin-right: 6px; font-size: 14px; line-height: 1; vertical-align: -1px; }
 .card-net { flex: 0 0 auto; min-width: 44px; padding: 3px 6px; border-radius: 6px; font-size: 11px; font-weight: 600; text-align: center; letter-spacing: .02em; background: var(--surface-2); color: var(--muted); margin-top: 3px; }
 .card-net.net-visa { background: #1a1f71; color: #fff; } .card-net.net-mastercard { background: #eb001b; color: #fff; } .card-net.net-amex { background: #2e77bc; color: #fff; } .card-net.net-discover { background: #ff6000; color: #fff; } .card-net.net-unionpay { background: #d7272e; color: #fff; }
@@ -4274,6 +4286,7 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .fpop-fields .tb-field { display: flex; justify-content: space-between; gap: 10px; }
 .fpop-fields .tb-field select, .fpop-fields select.range-sel { width: 60%; flex: 0 1 60%; min-height: 44px; }
 .fpop-fields .check-inline { min-height: 44px; }
+.fpop-fields .tb-field .ssel, .fpop-fields .tb-field .ssel-btn { flex: 0 1 60%; width: 60%; min-width: 0; }   /* 面板里的可搜索下拉（资产…）和普通下拉同宽 */
 @media print { .fpop { display: none; } }
 /* 页头一行：「目录」按钮在标题前面，「筛选」按钮在最右；两个按钮同一个盒子（js/core/filter-pop.js navPop / filterPop） */
 .section-head .fpop { margin: 0; }

@@ -54,7 +54,8 @@ function sendersListHtml() {
       <button type="button" class="btn btn-sm btn-primary" data-inc="sender-merge" ${pickedN >= 2 ? "" : "disabled"}>${t("合并")}</button>
       <button type="button" class="btn btn-sm btn-ghost" data-inc="sender-sel">${t("退出多选")}</button>
       <small class="muted" style="flex-basis:100%">${t("勾两家以上，合并成一个名字（默认用笔数最多的那个）。")}</small><datalist id="incSendersAll">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></div>` : "";
-  return `${selBar}<p class="muted small" style="margin:0 0 8px">${t("{n} 个付款方，收入 {m}", { n: list.length, m: fmtMoney(total) })}${cap > 0 ? ` · ${t("另有资本流入 {a}（不计收入）", { a: fmtMoney(cap) })}` : ""} · ${t("长按（电脑右键）一个付款方：走势、改名 / 合并、多选合并、导出")}</p>
+  return `${selBar}<p class="muted small" style="margin:0 0 8px">${t("{n} 个付款方，收入 {m}", { n: list.length, m: fmtMoney(total) })}${cap > 0 ? ` · ${t("另有资本流入 {a}（不计收入）", { a: fmtMoney(cap) })}` : ""}</p>
+    <p class="list-hint">${t("长按（电脑右键）一行：更多操作")}</p>
     <table class="store-table ix-stbl payee-tbl"><thead><tr>${S_COLS.map(th).join("")}</tr></thead><tbody>
     ${shown.map((x) => `<tr ${sel ? "" : lpAttr(rowMenu(x), sNameOf(x))}><th scope="row" class="s-name"><span class="s-name-in">${sel && x.rows.every(canEdit) ? `<input type="checkbox" class="sel" data-inc="sender-pick" data-key="${esc(x.key)}" ${sel.has(x.key) ? "checked" : ""} aria-label="${esc(t("选中 {name}", { name: sNameOf(x) }))}">` : ""}<button type="button" class="link-name" data-inc="sender-open" data-key="${esc(x.key)}">${esc(sNameOf(x))}</button></span></th>${cell("kind", kindBadge(sMainKind(x)))}${cell("n", x.n)}${cell("total", `<b>${fmtMoney(x.total)}</b>${x.cap ? `<br><small class="muted">${t("资本流入 {a}", { a: fmtMoney(x.cap) })}</small>` : ""}`)}${cell("share", rate(x.total, total))}${cell("last", x.last)}</tr>
       ${I.sopen === x.key ? `<tr class="s-form s-detail"><td colspan="6">${senderTrendHtml(x)}</td></tr>` : ""}

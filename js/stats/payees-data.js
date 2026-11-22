@@ -43,7 +43,10 @@ export function sorted(list) {
   const val = { name: (x) => x.name.toLowerCase(), kind: (x) => nodeText(x.node), n: (x) => x.count, total: (x) => x.total, share: (x) => x.total, avg: (x) => x.total / x.count, last: (x) => x.last || "" }[k] || ((x) => x.total);
   return [...list].sort((a, b) => { const va = val(a), vb = val(b); return (typeof va === "number" ? va - vb : compare(String(va), String(vb))) * sgn || b.total - a.total; });
 }
-export const filtered = (list) => { const q = P().q.trim().toLowerCase(); return q ? list.filter((x) => `${x.name} ${nodeText(x.node)}`.toLowerCase().includes(q)) : list; };
+export const filtered = (list) => {
+  const q = P().q.trim().toLowerCase(), kind = P().kind || "all";
+  return list.filter((x) => (!q || `${x.name} ${nodeText(x.node)}`.toLowerCase().includes(q)) && (kind === "all" || (x.node && l1IdOf(x.node.id) === kind)));   // 搜索 + 主要分类（一级）
+};
 /* ── 钻取：收款方 / 一组收款方 / 分类 → 明细，套上同样的时间范围 ── */
 export let CTX = { sel: "", l1: "all" };
 const win = () => (CTX.sel ? { month: CTX.sel } : statKit.winDrill());
@@ -63,6 +66,7 @@ export function viewPayees(months, month = state.stats.month) {
     <div class="panel">
       <div class="toolbar ix-stoolbar">
         <input type="search" id="payeeSearch" value="${esc(P().q)}" placeholder="${esc(t("搜索收款方 / 分类"))}" aria-label="${esc(t("搜索收款方"))}">
+        <select id="payeeKind" data-nosearch aria-label="${esc(t("按主要分类筛选"))}"><option value="all">${t("全部分类")}</option>${L1S.filter((x) => x.id !== "transfer").map((x) => `<option value="${x.id}" ${(P().kind || "all") === x.id ? "selected" : ""}>${x.icon} ${esc(t(x.name))}</option>`).join("")}</select>
         <select id="payeeSort" data-nosearch aria-label="${esc(t("排序"))}">${sortOptions()}</select>
       </div>
       <div id="payeeList">${listHtml(list)}</div>
@@ -144,7 +148,8 @@ function listHtml(all) {
       <button type="button" class="btn btn-sm btn-primary" data-action="payee-merge" ${picked.length >= 2 ? "" : "disabled"}>${t("合并")}</button>
       <button type="button" class="btn btn-sm btn-ghost" data-action="payee-sel">${t("退出多选")}</button>
       <small class="muted" style="flex-basis:100%">${t("勾两家以上，合并成一个名字（默认用笔数最多的那个）。")}</small></div>` : "";
-  return `${selBar}<p class="muted small" style="margin:0 0 6px">${t("{n} 家，合计 {m}", { n: list.length, m: money(list.reduce((a, x) => a + x.total, 0)) })} · ${t("长按（电脑右键）一个收款方：明细、走势、改名 / 合并、多选合并、整理、导出")}</p>
+  return `${selBar}<p class="muted small" style="margin:0 0 6px">${t("{n} 家，合计 {m}", { n: list.length, m: money(list.reduce((a, x) => a + x.total, 0)) })}</p>
+    <p class="list-hint">${t("长按（电脑右键）一行：更多操作")}</p>
     ${list.length ? `<table class="store-table ix-stbl payee-tbl"><thead><tr>${cols.map(th).join("")}</tr></thead><tbody>${shown.map(row).join("")}</tbody></table>` : `<p class="muted">${t("没有符合条件的收款方")}</p>`}
     ${moreBtn(list.length > shown.length, 'data-action="payee-more"')}`;
 }

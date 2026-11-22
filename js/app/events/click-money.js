@@ -2,7 +2,6 @@
 import { $, applyDraft, confirmDelete, fmtDate, formDraft, money, num, toast } from "../../core/util.js";
 import { Store } from "../../core/store.js";
 import { backfillPayments, deleteBillPay, leaveBill, quickVerify } from "../lazy-modules.js";
-import { exportAllCsv, verifyBillIds } from "../../bills/all-views.js";
 import { friendlyErr } from "../errors.js";
 import { go, href } from "../../core/router.js";
 import { ignoreSuggestion, linkBillAsset } from "../../bills/asset-ui.js";
@@ -20,7 +19,7 @@ import { spendListNow } from "../lazy-modules.js";
 import { clearSpendFilter, renderSpendList, renderSpendRecords, spendRowsLoaded } from "../lazy-modules.js";
 
 /** 点击动作（财务：账单、缴费、卡、花费、统计、导出）：这一组处理的 data-action */
-export const MONEY_ACTIONS = new Set(["print-run","ov-group","bill-cancel","assess-cancel","assess-del","assess-undo","billpay-cancel","bill-delete","billpay-del","bill-verify","bill-link-asset","bill-link-ignore","billpay-backfill","all-verify","all-csv","bills-enable","tpl-all","spend-edit","spend-edit-collapse","trip-reclass","spend-copy","spend-open","spend-edit-cancel","spend-chip-clear","med-del","card-ai","card-del","card-del-keep","card-del-all","card-del-cancel","card-cleanup-open","card-cleanup-cancel","card-cleanup-run","card-deact","card-react","med-pay-del","spend-more","spend-sel-start","spend-sel-toggle","spend-sel-all","spend-sel-none","spend-sel-del","stats-months","spend-add-toggle","stats-node","stats-trips","csv-summary","csv-detail"]);
+export const MONEY_ACTIONS = new Set(["print-run","ov-group","bill-cancel","assess-cancel","assess-del","assess-undo","billpay-cancel","bill-delete","billpay-del","bill-verify","bill-link-asset","bill-link-ignore","billpay-backfill","bills-enable","tpl-all","spend-edit","spend-edit-collapse","trip-reclass","spend-copy","spend-open","spend-edit-cancel","spend-chip-clear","med-del","card-ai","card-del","card-del-keep","card-del-all","card-del-cancel","card-cleanup-open","card-cleanup-cancel","card-cleanup-run","card-deact","card-react","med-pay-del","spend-more","spend-sel-start","spend-sel-toggle","spend-sel-all","spend-sel-none","spend-sel-del","stats-months","spend-add-toggle","stats-node","stats-trips","csv-summary","csv-detail"]);
 /** 点击动作（财务：账单、缴费、卡、花费、统计、导出）：按 data-action 分支；el 是被点的元素，id 是它的 data-id，e 是点击事件 */
 export async function clickMoney(action, el, id, e) {
   switch (action) {
@@ -52,15 +51,6 @@ export async function clickMoney(action, el, id, e) {
       case "bill-link-asset": el.disabled = true; try { await linkBillAsset(id, el.dataset.asset); toast(t("已挂到这辆车上")); } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); } return refresh();
       case "bill-link-ignore": ignoreSuggestion(id); return render(true);
       case "billpay-backfill": el.disabled = true; try { await backfillPayments(el.dataset.id); } catch (err) { toast(t("补标失败：{msg}", { msg: friendlyErr(err.message) })); } return refresh();
-      case "all-verify": {   // 批量「已核对」：只对自动扣款、过了日子还没记录的账单；每张记一条「已核对」缴费，可在账单的缴费记录里单独删
-        const ids = verifyBillIds(); if (!ids.length) return;
-        if (!window.confirm(t("把这 {n} 张自动扣款账单标为已核对？每张记一条“已核对”缴费（金额按通常金额 / 最近均值），记错了可以在账单的缴费记录里单独删除。", { n: ids.length }))) return;
-        el.disabled = true; let done = 0;
-        try { for (const bid of ids) { await quickVerify(bid); done++; } } catch (err) { toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
-        if (done) toast(t("已核对 {n} 张账单", { n: done }));
-        return refresh();
-      }
-      case "all-csv": { const n = exportAllCsv(); return toast(t("已导出 {n} 期账单", { n })); }
       case "bills-enable":
         state.billsEnabled = true; try { localStorage.setItem("hmh-bills-off", "0"); } catch { /* 忽略 */ }
         return render();

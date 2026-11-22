@@ -17,6 +17,8 @@ import { balancePanel } from "./net-worth-panel.js";
 import { adultPeople } from "../settings/family-lite.js";
 import { copyOf } from "../core/more-menu.js";
 import { cardDetailPage } from "./card-detail.js";
+import { collectCard } from "./card-collect.js";
+import { firstStep, wzActions, wzChrome, wzIntercept } from "./card-wizard.js";
 
 /* ───────────── 表单 ───────────── */
 const NUMF = (v) => (v == null || v === "" ? "" : num(v));
@@ -33,7 +35,7 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
   const secQ = !isNew ? state.route.q.get("edit") : null;
   if (!isNew && (ro || !secQ)) return cardDetailPage(c, ro, extra.deleteHtml || "");
   const sec = ["basic", "repay", "rewards", "bonus", "credits", "notes"].includes(secQ) ? secQ : null;
-  const W = (sid) => `<div class="cf-sec" data-csec="${sid}"${sec && sec !== sid ? " hidden" : ""}>`;   // 每个分区一个外框：只改一块时其余块藏起来（字段还在表单里，一起保存）
+  const W = (sid) => `<div class="cf-sec" data-csec="${sid}"${isNew ? (sid === firstStep() ? "" : " hidden") : sec && sec !== sid ? " hidden" : ""}>`;   // 新建 = 向导（card-wizard.js）：一次只显示一步   // 每个分区一个外框：只改一块时其余块藏起来（字段还在表单里，一起保存）
   const cp = state.route.q.get("copy");   // 复制为新卡：规则、网络、年费、持卡人等带过去；末四位、到期、账单日、还款日、奖励、报销额度不带
   if (isNew && cp && !state.cardDraft) { const src = cardById(cp); if (src) state.cardDraft = { ...copyOf(src, ["last4", "expires_on", "opened_on", "balance", "bonus", "credits", "bill_id", "statement_day", "due_day", "inactive_since", "created_at", "updated_at"]), name: `${src.name}（2）`.slice(0, 60), active: true }; }
   const v = c || state.cardDraft || { name: "", issuer: "", network: "visa", kind: "credit", annual_fee: 0, active: true, rewards: { base: 1, cats: {}, caps: {}, merchants: {}, point_value: 1, foreign_fee: 0, has_rotating: false, rotating: [] }, credits: [] };
@@ -45,20 +47,23 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
   const opt = (val, label, on) => `<option value="${esc(val)}" ${on ? "selected" : ""}>${esc(label)}</option>`;
   const aiBtn = `<div class="span-2" ${only("credit")}><button type="button" class="btn btn-sm btn-ghost" data-action="card-ai">✨ ${t("用 AI 按卡名起草返现规则")}</button> <small class="muted">${t("只把卡的名字发给你设置的模型；按模型记忆起草，可能过时，逐项核对后再保存。")}</small></div>`;
   const catalogSel = isNew ? `<label class="span-2" ${only("credit")}>${t("从内置目录选（可选）")}<select name="catalog"><option value="">${t("— 不用目录，手填 —")}</option>${D().CATALOG.map((k) => opt(k.id, `${t(k.name)}${k.issuer ? ` · ${k.issuer}` : ""}`, v.catalog_id === k.id)).join("")}</select><small>${t("选了会把返现规则、年费、网络填好；末四位、到期、持卡人还要你填。目录更新于 {d}。", { d: D().AS_OF })}</small></label>` : "";
+  const typeFields = `<label>${t("类型")}<select name="kind">${Object.entries(ACCT_KINDS).map(([k, [n, icon]]) => opt(k, `${icon} ${t(n)}`, kind === k)).join("")}</select><small>${t("支票 / 储蓄账户没有返现，不参与推荐；用来记账单从哪扣款、缴费用的哪个账户")}</small></label>
+        ${catalogSel}
+        ${aiBtn}
+        <input type="hidden" name="catalog_id" value="${d(v.catalog_id)}"><input type="hidden" name="rules_as_of" value="${d(v.rules_as_of)}">`;   // 类型 + 目录 + AI 起草 + 目录标记：新建是向导的第一步，已有的卡在「基本信息」里
   const catsGrid = D().REWARD_CATS.filter(([k]) => k !== "other").map(([k, name, icon]) => `<label class="cat-rate"><span>${icon} ${esc(t(name))}</span><input name="cat_${k}" type="number" min="0" step="0.25" inputmode="decimal" value="${NUMF(rw.cats?.[k])}" placeholder="${NUMF(rw.base) || 1}"></label>`).join("");
   const rotCats = D().REWARD_CATS.filter(([k]) => k !== "other").map(([k, name, icon]) => `<label class="radio-pill"><input type="checkbox" name="rot_cat" value="${k}" ${(rot.cats || []).includes(k) ? "checked" : ""}><span>${icon} ${esc(t(name))}</span></label>`).join("");
   const merchants = Object.entries(rw.merchants || {}).map(([k, val]) => `${k}=${val}`).join(", ");
   const credits = (v.credits || []).map((x) => `${x.name} | ${num(x.amount)} | ${x.period || "year"} | ${x.resets_on || ""} | ${num(x.used, 0)}`).join("\n");
   const b = v.bonus || {};
   return `<section class="section form-page">
-    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(groupHref(kind))}<a href="${href("bills")}">${t("财务")}</a><span class="sep">/</span><a href="${groupHref(kind)}">${t(groupName(kind))}</a><span class="sep">/</span>${isNew ? `<b>${bank ? t("添加账户") : t("添加卡")}</b>` : `<a href="${cardHref(c.id)}">${d(v.name)}</a><span class="sep">/</span><b>${t("编辑")}</b>`}</nav>
-    <form id="cardForm" class="panel" novalidate data-id="${d(c?.id)}" ${ro ? 'data-readonly="1"' : ""}>
+    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(groupHref(kind))}<a href="${href("bills")}">${t("财务")}</a><span class="sep">/</span><a href="${groupHref(kind)}">${t(groupName(kind))}</a><span class="sep">/</span>${isNew ? `<b>${t("添加")} ${esc(kindName(kind))}</b>` : `<a href="${cardHref(c.id)}">${d(v.name)}</a><span class="sep">/</span><b>${t("编辑")}</b>`}</nav>
+    <form id="cardForm" class="panel" novalidate data-id="${d(c?.id)}" ${ro ? 'data-readonly="1"' : ""}${isNew && !ro ? ` data-wzf data-step="${firstStep()}"` : ""}>
+      ${isNew && !ro ? wzChrome(kind) : ""}
       ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("只读：家主开放财务权限后才能修改")}</p><fieldset disabled style="border:0;padding:0;margin:0;min-width:0">` : ""}
+      ${isNew ? `${W("type")}<fieldset><legend>${t("类型")}</legend><div class="form-grid">${typeFields}</div></fieldset></div>` : ""}
       ${W("basic")}<fieldset><legend>${bank ? t("这个账户") : t("这张卡")}</legend><div class="form-grid">
-        <label>${t("类型")}<select name="kind">${Object.entries(ACCT_KINDS).map(([k, [n, icon]]) => opt(k, `${icon} ${t(n)}`, kind === k)).join("")}</select><small>${t("支票 / 储蓄账户没有返现，不参与推荐；用来记账单从哪扣款、缴费用的哪个账户")}</small></label>
-        ${catalogSel}
-        ${aiBtn}
-        <input type="hidden" name="catalog_id" value="${d(v.catalog_id)}"><input type="hidden" name="rules_as_of" value="${d(v.rules_as_of)}">
+        ${isNew ? "" : typeFields}
         <label>${t("名称")}<input name="name" required maxlength="60" value="${d(v.name)}" placeholder="${esc(bank ? t("例如 Chase Checking") : t("例如 Chase Freedom Unlimited"))}"></label>
         <label><span ${only("gift")}>${t("商家 / 品牌（在哪用）")}</span><span ${only("credit debit wallet checking savings brokerage retirement hsa loan cash")}>${t("发卡行 / 银行")}</span><input name="issuer" maxlength="40" list="giftMerchants" value="${d(v.issuer)}"><small ${only("gift")}>${t("通用的 Visa / Mastercard 礼品卡写「通用」；筛选按它分")}</small></label>
         <datalist id="giftMerchants">${["Amazon", "Target", "Walmart", "Costco", "Trader Joe's", "Whole Foods", "Home Depot", "Lowe's", "Starbucks", "Apple", "Visa 通用", "Mastercard 通用", "京东", "天猫", "盒马"].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
@@ -113,8 +118,9 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
         <label>${t("每行一条：名称 | 金额 | year 或 quarter 或 month | 清零日期 | 已用")}<textarea name="credits" rows="3" placeholder="${esc(t("旅行报销 | 300 | year | 2027-01-01 | 120"))}">${d(credits)}</textarea></label>
       </fieldset></div>
       ${W("notes")}<label>${t("备注")}<input name="notes" maxlength="500" value="${d(v.notes)}"></label></div>
-      ${ro ? `</fieldset><div class="form-actions"><a class="btn btn-ghost" href="${CARDS_HREF()}">${t("返回")}</a></div>` : `<p id="cardError" class="form-error" role="alert"></p>
-      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button><a class="btn btn-ghost" href="${c ? cardHref(c.id) : CARDS_HREF()}">${t("取消")}</a></div>`}
+      ${isNew && !ro ? '<div class="wz-review" data-wz-review hidden></div>' : ""}
+      ${ro ? `</fieldset><div class="form-actions"><a class="btn btn-ghost" href="${groupHref(kind)}">${t("返回")}</a></div>` : `<p id="cardError" class="form-error" role="alert"></p>
+      ${isNew ? wzActions(groupHref(kind)) : `<div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button><a class="btn btn-ghost" href="${cardHref(c.id)}">${t("取消")}</a></div>`}`}
     </form>
   </section>`;
 }
@@ -125,28 +131,14 @@ export function applyCatalogPick(id) {
 }
 export async function saveCardForm(f) {
   if (roStop()) return false;
+  if (wzIntercept(f)) return false;   // 向导里按回车 = 下一步，不直接保存
   const fe = f.elements, err = $("#cardError");
   const name = fe.name.value.trim(); if (!name) { err.textContent = t("请填名称"); fe.name.focus(); return false; }
   { // 疑似重复：同名，或同样的末四位（手动加过、导入对账单时又加一次）——先提醒一次
     const l4 = fe.last4?.value.trim() || "", hit = (state.cards || []).find((c) => c.id !== f.dataset.id && (normName(c.name) === normName(name) || (l4 && c.last4 === l4)));
     if (dupOnce(f, hit?.id)) { err.textContent = t("已经有「{name}」了（同名或末四位一样）。确认是另一张，再点一次保存。", { name: acctLabel(hit) }); fe.name.focus(); return false; }
   }
-  const old = f.dataset.id ? cardById(f.dataset.id) : null, rw0 = old?.rewards || state.cardDraft?.rewards || {};
-  const n = (k) => (fe[k] && fe[k].value !== "" ? num(fe[k].value) : null);
-  const cats = {}; for (const [k] of D().REWARD_CATS) { const v = fe[`cat_${k}`]; if (v && v.value !== "") cats[k] = num(v.value); }
-  const merchants = {}; for (const part of fe.merchants.value.split(/[,，]/)) { const m = part.trim().match(/^(.+?)\s*=\s*([\d.]+)$/); if (m) merchants[m[1].trim().toLowerCase()] = num(m[2]); }
-  const q = quarterOf(), rotCats = [...f.querySelectorAll('input[name="rot_cat"]:checked')].map((x) => x.value);
-  const rotating = (rw0.rotating || []).filter((x) => x.from !== q.from);
-  if (fe.has_rotating.checked && rotCats.length) rotating.push({ from: q.from, to: q.to, cats: rotCats, rate: n("rot_rate") ?? 5, cap: n("rot_cap"), activated: fe.rot_activated.checked });
-  const rewards = { ...rw0, base: n("base") ?? 0, point_value: n("point_value") ?? 1, foreign_fee: n("foreign_fee") ?? 0, cats, merchants, has_rotating: fe.has_rotating.checked, rotating, caps: rw0.caps || {} };
-  const bonus = n("bonus_spend") ? { spend: n("bonus_spend"), by: fe.bonus_by.value || null, reward_value: n("bonus_value") ?? 0, label: fe.bonus_label.value.trim(), spent: 0, start: old?.bonus?.start || fe.opened_on.value || null, spent_manual: n("bonus_spent"), done: fe.bonus_done.checked } : null;
-  const credits = fe.credits.value.split(/\r?\n/).map((l) => l.split("|").map((x) => x.trim())).filter((p) => p[0] && p[1]).map((p) => ({ name: p[0].slice(0, 40), amount: num(p[1]), period: ["year", "quarter", "month"].includes(p[2]) ? p[2] : "year", resets_on: /^\d{4}-\d{2}-\d{2}$/.test(p[3] || "") ? p[3] : null, used: num(p[4], 0) }));
-  let bill_id = fe.bill_id.value || null;
-  const payFrom = fe.pay_from?.value || null;   // 信用卡从哪个账户还款：写到关联的还款账单上
-  const card = { id: old?.id, name, issuer: fe.issuer.value.trim() || null, network: fe.network.value, kind: fe.kind.value, last4: /^\d{4}$/.test(fe.last4.value.trim()) ? fe.last4.value.trim() : null, holder_person_id: fe.holder_person_id.value || null,
-    expires_on: fe.expires_on.value ? `${fe.expires_on.value}-01` : null, opened_on: fe.opened_on.value || null, annual_fee: n("annual_fee") ?? 0, balance: fe.kind.value === "gift" ? n("balance") : null, fee_month: n("fee_month"), credit_limit: n("credit_limit"), statement_day: n("statement_day"), due_day: n("due_day"), autopay: fe.autopay.checked,
-    bill_id: bill_id === "__new" ? null : bill_id, catalog_id: fe.catalog_id.value || null, rewards, bonus, credits, rules_as_of: fe.rules_as_of.value || (old?.rules_as_of ?? todayISO()), active: fe.active.checked, notes: fe.notes.value.trim() || null,
-    inactive_since: fe.active.checked ? null : (old?.active === false ? old.inactive_since || null : todayISO()) };   // 刚取消「在用」：记今天为停用日期
+  const { card, bill_id, payFrom, old } = collectCard(f);
   const btn = f.querySelector('button[type="submit"]'); btn.disabled = true; err.textContent = "";
   try {
     if (bill_id === "__new") {   // 新建一条「信用卡」类周期账单：到期 / 核对提醒、缴费记录都走账单模块

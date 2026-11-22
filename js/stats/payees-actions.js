@@ -154,6 +154,7 @@ export function payeeInput(e, searchSoon) {
 }
 /** 排序下拉（手机上表头不显示） */
 export function payeeChange(e) {
+  if (e.target.id === "payeeKind") { P().kind = e.target.value; P().limit = 0; renderPayeeList(); return true; }
   if (e.target.id !== "payeeSort") return false;
   const [k, dir] = e.target.value.split(":"); P().sort = { k, dir }; renderPayeeList(); return true;
 }
