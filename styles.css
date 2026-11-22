@@ -600,6 +600,19 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 .fa-amt b { font-size: 16px; } .fa-amt small { font-size: 12px; color: var(--muted); }
 .fa-meta { margin-top: 2px; font-size: 12px; color: var(--muted); }
 .fa-lines { margin-top: 6px; }
+/* 借贷行（资产融资 / 个人借贷，js/bills/debts-list.js）：名称 · 金额 · ⋯ 一行；标签一行；下面小事实 2 列（宽屏 4 列）整齐对齐 */
+.dr-row { padding: 12px 4px; }
+.dr-top { display: flex; align-items: center; gap: 8px; }
+.dr-name { flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 700; color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+.dr-name:hover { text-decoration: underline; }
+.dr-top .act-more > summary { width: 44px; height: 44px; min-width: 44px; min-height: 44px; margin: -6px -6px -6px 0; }   /* ⋯ 点按区域不小于 44px */
+.dr-amt { flex: none; display: flex; flex-direction: column; align-items: flex-end; text-align: right; font-variant-numeric: tabular-nums; }
+.dr-amt b { font-size: 16px; } .dr-amt small { font-size: 12px; color: var(--muted); }
+.dr-badges { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 4px 0 0; }
+.dr-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin: 10px 0 0; }
+@media (min-width: 760px) { .dr-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.dr-facts .fa-fact { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.dr-facts .fa-fact > small { font-size: 12px; color: var(--muted); }
 .fa-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 6px 0; border-top: 1px dashed var(--line); font-size: 13px; font-variant-numeric: tabular-nums; }
 .fa-line > span:first-child { color: var(--muted); font-size: 12px; flex: 0 0 auto; white-space: nowrap; }
 .fa-val { text-align: right; min-width: 0; overflow-wrap: anywhere; }
@@ -4293,6 +4306,8 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 .fpop-fields .tb-field { display: flex; justify-content: space-between; gap: 10px; }
 .fpop-fields .tb-field select, .fpop-fields select.range-sel { width: 60%; flex: 0 1 60%; min-height: 44px; }
 .fpop-fields .check-inline { min-height: 44px; }
+.fpop-fields .tb-q input { width: 60%; flex: 0 1 60%; min-height: 44px; }   /* 面板里的搜索框和下拉同宽 */
+.debt-list-box > .debt-q { width: 100%; margin: 0 0 10px; }   /* 资产融资：搜索框和贷款行在同一个容器里 */
 .fpop-fields .tb-field .ssel, .fpop-fields .tb-field .ssel-btn { flex: 0 1 60%; width: 60%; min-width: 0; }   /* 面板里的可搜索下拉（资产…）和普通下拉同宽 */
 @media print { .fpop { display: none; } }
 /* 页头一行：「目录」按钮在标题前面，「筛选」按钮在最右；两个按钮同一个盒子（js/core/filter-pop.js navPop / filterPop） */

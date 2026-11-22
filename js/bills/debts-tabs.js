@@ -10,6 +10,7 @@ import { esc, fmtDate } from "../core/util.js";
 import { loanCard, looseBillsHtml, personCard } from "./debts-list.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { fabMenu } from "../core/fab-menu.js";
+import { eyeFilter, filterPop } from "../core/filter-pop.js";
 import { recordsList } from "./debt-records.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
@@ -19,8 +20,8 @@ import { debtTxns } from "./debt-logic-common.js";
 /* ───────────── 标签页 ───────────── */
 const fsel = (attr, f, key, label, list) => `<label class="tb-field"><span>${t(label)}</span><select ${attr}="${key}" data-nosearch aria-label="${esc(t(label))}">${list.map(([k, l]) => `<option value="${k}"${k === f[key] ? " selected" : ""}>${esc(t(l))}</option>`).join("")}</select></label>`;
 const fsearch = (attr, f, ph, label) => `<label class="tb-field tb-q"><span>${t("搜索")}</span><input type="search" ${attr}="q" value="${esc(f.q)}" placeholder="${esc(t(ph))}" aria-label="${esc(t(label))}" autocomplete="off"></label>`;
-/** 列表区：标题 + 筛选条 + 小结 + 列表（按页）；id=debt-recs，统计面板里的名字链过来时滚到这里 */
-const recsBlock = ({ title, tools, sum, body }) => `<div class="debt-recs" id="debt-recs" tabindex="-1"><div class="ds-viewbar"><h3>${title}</h3></div>${tools}${sum}<div class="panel">${body}</div></div>`;
+/** 列表区：标题 + 一个容器（搜索框 + 小结 + 列表，按页）；筛选在页头右边的筛选按钮里（tabFilter）；id=debt-recs，统计面板里的名字链过来时滚到这里 */
+const recsBlock = ({ title, search = "", sum, body }) => `<div class="debt-recs" id="debt-recs" tabindex="-1"><div class="ds-viewbar"><h3>${title}</h3></div><div class="panel debt-list-box">${search}${sum}${body}</div></div>`;
 /** 添加：右下角圆形 ＋（只有一项就直接是链接，几项弹菜单） */
 const ADD = () => ({ label: t("添加贷款"), icon: "🏦", href: debtHref(null, "new=1") });
 const LEND = () => ({ label: t("借出"), icon: "🤝", href: debtHref(null, "new=1&cat=personal_lending&dir=receivable") });
@@ -56,13 +57,12 @@ function assetRows(loans) {
 function assetRecs(loans) {
   const f = af(), rows = assetRows(loans), cats = [...new Set(loans.map((e) => e.category))];
   const lim = pageLimit("debt-asset", JSON.stringify(f)), shown = rows.slice(0, lim), A_ = "data-debt-af";
-  const tools = loans.length ? `<div class="time-bar debt-pf" role="group" aria-label="${esc(t("筛选和排序"))}">${fsearch(A_, f, "贷款名称、贷款方、资产", "搜索贷款")}
-      ${fsel(A_, f, "st", "状态", ASTS)}${cats.length > 1 ? fsel(A_, f, "cat", "类型", [["all", "全部类型"], ...cats.map((c) => [c, debtCat(c).name])]) : ""}${fsel(A_, f, "sort", "排序", ASORTS)}${clearFiltersBtn("debtA", changed(f, FD.debtA))}</div>` : "";
+  const search = loans.length ? `<input type="search" class="debt-q" ${A_}="q" value="${esc(f.q)}" placeholder="${esc(t("贷款名称、贷款方、资产"))}" aria-label="${esc(t("搜索贷款"))}" autocomplete="off">` : "";
   const owe = rows.filter(isOpen).reduce((s, e) => s + (e.balance || 0), 0);
   const sum = loans.length ? `<p class="muted debt-pf-sum" role="status">${t("{n} 笔贷款", { n: rows.length })}${owe ? ` · ${t("未还 {a}", { a: mny(A.r2(owe)) })}` : ""}</p>` : "";
   const body = !loans.length ? `<div class="empty"><strong>${t("还没有贷款")}</strong>${t("房贷、车贷、学生贷款、分期都可以记在这里")}</div>`
     : rows.length ? `<ul class="fa-list">${shown.map(loanCard).join("")}</ul>${pageMoreBtn("debt-asset", rows.length, shown.length)}` : `<div class="empty">${t("没有符合筛选的贷款")}</div>`;
-  return recsBlock({ title: `${t("全部贷款")} <small class="muted">${t("在还的在前")}</small>`, tools, sum, body });
+  return recsBlock({ title: `${t("全部贷款")} <small class="muted">${t("在还的在前")}</small>`, search, sum, body });
 }
 /* 个人借贷：筛选（按人搜索、借出 / 借入、状态）+ 排序（默认按借款日期 新 → 旧），一个列表、按页显示 */
 const PSORTS = [["new", "借款日期 新 → 旧"], ["old", "借款日期 旧 → 新"], ["amt", "金额 大 → 小"], ["amtAsc", "金额 小 → 大"], ["left", "未还 大 → 小"], ["due", "到期 近 → 远"]];
@@ -85,12 +85,23 @@ function personalTab(mine) {
   const f = pf(), rows = personalRows(mine), P_ = "data-debt-pf";
   const lim = pageLimit("debt-personal", JSON.stringify(f)), shown = rows.slice(0, lim);
   const left = (dir) => rows.filter((x) => x.e.direction === dir).reduce((s, x) => s + (x.f.left || 0), 0);
-  const tools = mine.length ? `<div class="time-bar debt-pf" role="group" aria-label="${esc(t("筛选和排序"))}">${fsearch(P_, f, "对方名字、备注", "按人搜索")}
-      ${fsel(P_, f, "dir", "方向", PDIRS)}${fsel(P_, f, "st", "状态", PSTS)}${fsel(P_, f, "sort", "排序", PSORTS)}${clearFiltersBtn("debtP", pFiltered())}</div>` : "";
   const sum = mine.length ? `<p class="muted debt-pf-sum" role="status">${t("{n} 笔借贷", { n: rows.length })}${left("receivable") ? ` · ${t("别人还欠我 {a}", { a: mny(A.r2(left("receivable"))) })}` : ""}${left("payable") ? ` · ${t("我还欠 {a}", { a: mny(A.r2(left("payable"))) })}` : ""}</p>` : "";
   const body = !mine.length ? `<div class="empty">${t("还没有个人借贷：借给亲友、向亲友借的钱都可以记在这里")}</div>`
     : rows.length ? `<ul class="fa-list">${shown.map((x) => personCard(x.e)).join("")}</ul>${pageMoreBtn("debt-personal", rows.length, shown.length)}` : `<div class="empty">${t("没有符合筛选的借贷")}</div>`;
-  return recsBlock({ title: `${t("每一笔借贷")} <small class="muted">${t("默认按借款日期 新 → 旧")}</small>`, tools, sum, body });
+  return recsBlock({ title: `${t("每一笔借贷")} <small class="muted">${t("默认按借款日期 新 → 旧")}</small>`, sum, body });
+}
+/** 页头右边的筛选按钮：资产融资 = 状态 / 类型 / 排序；个人借贷 = 搜索 / 方向 / 状态 / 排序（搜索也放这里）；其余页只有「金额显示」 */
+export function tabFilter(tab, all) {
+  const mine = all.filter((e) => debtGroup(e) === tab);
+  if (tab === "asset" && mine.length) {
+    const f = af(), A_ = "data-debt-af", cats = [...new Set(mine.map((e) => e.category))], n = ["st", "cat", "q"].filter((k) => changed(f, FD.debtA, [k])).length;
+    return filterPop(`<div class="fpop-fields">${fsel(A_, f, "st", "状态", ASTS)}${cats.length > 1 ? fsel(A_, f, "cat", "类型", [["all", "全部类型"], ...cats.map((c) => [c, debtCat(c).name])]) : ""}${fsel(A_, f, "sort", "排序", ASORTS)}</div>`, { id: "debtf", count: n, clear: clearFiltersBtn("debtA", n > 0), eye: true });
+  }
+  if (tab === "personal" && mine.length) {
+    const f = pf(), P_ = "data-debt-pf", n = ["dir", "st", "q"].filter((k) => changed(f, FD.debtP, [k])).length;
+    return filterPop(`<div class="fpop-fields">${fsearch(P_, f, "对方名字、备注", "按人搜索")}${fsel(P_, f, "dir", "方向", PDIRS)}${fsel(P_, f, "st", "状态", PSTS)}${fsel(P_, f, "sort", "排序", PSORTS)}</div>`, { id: "debtf", count: n, clear: clearFiltersBtn("debtP", n > 0), eye: true });
+  }
+  return eyeFilter();
 }
 const txnName = (x) => t(TXN_TYPES[x.type]?.name || x.type);
 export const txnsOf0 = (id) => debtTxns().filter((x) => x.debt_id === id);

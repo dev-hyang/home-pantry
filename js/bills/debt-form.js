@@ -2,11 +2,10 @@
 import { DEBT_CATS, DIRECTIONS, FREQS, ROLES, STATUSES, debtCat, debtCatOfBill, freqOfBill } from "../core/debt-rules.js";
 import { DEBT_TABS, activeTab } from "../core/tabs.js";
 import { viewSwitch } from "../core/view-switch.js";
-import { eyeFilter } from "../core/filter-pop.js";
 import { viewMode } from "./debt-stats.js";
 import { SEGS } from "./debt-stats.js";
 import { Store } from "../core/store.js";
-import { af, pf, tabPage } from "./debts-tabs.js";
+import { af, pf, tabFilter, tabPage } from "./debts-tabs.js";
 import { assetName } from "../house/assets.js";
 import { debt060, debtHref } from "./debt-logic.js";
 import { detail } from "./debt-detail.js";
@@ -91,7 +90,7 @@ export function viewDebts() {
   // 页头右边：有借贷记录时先放视图切换（借入 / 借出 ↔ 表格），再是筛选按钮（带「金额显示」）；还款记录页有自己的筛选条
   const sw = tab !== "txns" && all.length ? viewSwitch([["group", "借入 / 借出"], ["table", "表格"]], viewMode(), { action: "ds-view", label: "视图" }) : "";
   return `<section class="section debt-page">
-    ${pageHead({ title: t("借贷"), tabs: DEBT_TABS, tab, hrefOf: tabHref, label: t("借贷内容"), filter: body.includes("dr-tools") ? false : `${sw}${eyeFilter()}` })}
+    ${pageHead({ title: t("借贷"), tabs: DEBT_TABS, tab, hrefOf: tabHref, label: t("借贷内容"), filter: body.includes("dr-tools") ? false : `${sw}${tabFilter(tab, all)}` })}
     ${body}
   </section>`;
 }

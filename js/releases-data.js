@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.20", title: { zh: "资产融资 / 个人借贷：筛选进页头，贷款行重新排版", en: "Asset financing / Personal lending: filters in the header, loan rows redesigned" }, items: [
+    { k: "better", zh: "资产融资：状态、类型、排序挪进右上角的筛选按钮；搜索框和贷款行放在同一个容器里", en: "Asset financing: status, type and sort moved into the Filter button at the top right; the search box now sits in the same container as the loan rows" },
+    { k: "better", zh: "个人借贷：搜索、方向、状态、排序都在右上角的筛选按钮里，下面只剩借贷行记录", en: "Personal lending: search, direction, status and sort are all in the Filter button; only the loan rows remain below" },
+    { k: "better", zh: "贷款 / 借款每一行重新排版：第一行是名称（点进详情）· 最重要的金额 · ⋯，然后是标签，下面是整齐的两列（宽屏四列）小信息；⋯ 和长按（电脑右键）都是 详情 / 编辑 / 删除", en: "Loan and borrowing rows are re-laid out: name (opens details) · key amount · ⋯ on the first line, then tags, then a tidy two-column (four on desktop) grid of facts; ⋯ and long-press (right-click) both give Details / Edit / Delete" },
+  ] },
+
   { v: "2026-11-21.19", title: { zh: "借贷三页：视图切换进页头，添加改成圆形 ＋", en: "Debts: view switch in the header, adding via the round ＋" }, items: [
     { k: "better", zh: "全部借贷、资产融资、个人借贷：「借入 / 借出」和「表格」两种视图改成页头右边的统一「切换」按钮（记在本机），页面里原来那两个小标签去掉了", en: "All debts, Asset financing and Personal lending: the “Borrowed / Lent” and “Table” views are now the shared switch button in the header (remembered on this device); the two small chips in the page are gone" },
     { k: "better", zh: "「添加贷款」「借出」「借入」按钮没有了，统一到右下角圆形 ＋（资产融资直接是 ＋，个人借贷点开选借出 / 借入）；页面里重复的标题行也去掉了", en: "The “Add loan”, “Lent” and “Borrowed” buttons are gone; adding is the round ＋ at the bottom right (a plain ＋ on Asset financing, a menu to pick Lent / Borrowed on Personal lending); the duplicate title rows are removed" },
