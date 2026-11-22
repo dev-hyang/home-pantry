@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.17", title: { zh: "「我的」各页：同一个「目录」", en: "My pages: one Menu" }, items: [
+    { k: "better", zh: "我的首页、家里的数字、设置（每个分区）、介绍、发布日志：页头统一成「[目录] 我的 / 页面 / 分区」；目录里设置下面列着所有分区，打开就停在当前页；上面单独的一条路径取消了（家庭成员 / 家人详情仍带自己的路径）", en: "My home, Household numbers, Settings (every section), About and Release notes share one header, “[Menu] Me / page / section”; the menu lists every settings section and opens at the current page; the separate path bar is gone (member / person details keep their own path)" },
+  ] },
+
   { v: "2026-11-21.16", title: { zh: "采购、购物车、常去的商店：同一个「目录」", en: "Shopping, Cart, Favorite stores: one Menu" }, items: [
     { k: "better", zh: "采购首页、购物车、加入购物车、常去的商店、特价一览：页头统一成「[目录] 采购 / 页面」；目录里「常去的商店」下面是商店列表、特价一览、找附近的商店、更新记录，购物车带没买的件数，打开就停在当前页", en: "Shopping home, Cart, Add to cart, Favorite stores and Deals share one header, “[Menu] Shopping / page”; the menu has Favorite stores → store list, deals, find nearby, update log, the cart shows the count still to buy, and it opens at the current page" },
   ] },

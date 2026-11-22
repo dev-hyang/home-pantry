@@ -99,11 +99,12 @@ export function viewMenu(section) {
     let count = 0; try { count = m.count ? m.count() : 0; } catch { count = 0; }
     return menuRow({ href: m.href ? m.href() : href(section, k), icon: m.icon || "•", title: t(label), desc: m.desc ? t(m.desc) : "", count, countLabel: m.countLabel ? t(m.countLabel) : "" });
   }).join("");
+  // 我的首页（section === "me"）的页头由 render.js 的 meHead 画（目录 + 路径），这里不重复画
   const apps = section === "me" ? (window.SISTER_APPS || []).filter((a) => a.id !== "home-pantry") : [];
   const prop = section === "house" ? state.properties.find((p) => p.id === state.propertyId) : null;
   return `<section class="section menu-page">
     ${prop ? `${crumbNav([{ href: href("house"), label: t("房屋") }, { label: prop.name, icon: KIND_ICON[prop.kind] || "🏠" }])}<p class="muted" style="margin:-6px 0 12px;font-size:13px">${esc([t(window.DEALS.PROPERTY_STATUS[prop.status] || "持有"), prop.address].filter(Boolean).join(" · "))}</p>`
-      : `<div class="section-head"><h2>${SECTION_ICON[section] || ""} ${t(sec.name)}</h2></div>`}
+      : section === "me" ? "" : `<div class="section-head"><h2>${SECTION_ICON[section] || ""} ${t(sec.name)}</h2></div>`}
     ${section === "house" ? houseBar() : ""}
     <div class="panel mlist">${rows}</div>
     ${apps.length ? `<div class="section-head" style="margin-top:22px"><h2>${t("姐妹站点")}</h2></div>
