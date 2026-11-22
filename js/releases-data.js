@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.18", title: { zh: "税务二期：数字汇总表、标准 / 逐项扣除对比、境外账户 FBAR 预判", en: "Tax phase 2: number summary, standard vs itemized comparison, FBAR check" }, items: [
+    { k: "new", zh: "税务 → 汇总：这一年和报税有关的数字，按 TurboTax 的顺序排。自动算的来自你已有的记录（利息 / 股息 / 卖出收益 / 租金、房贷利息、房产税、预缴税、赠与累计）；工资、捐款、医疗、HSA / IRA / 401K 这些记录里没有来源的手填。每行有来源链接、TurboTax 里在哪填、「已核对」勾选", en: "Tax → Summary: this year's tax-related numbers in TurboTax order. Automatic ones come from your records (interest, dividends, sale gains, rent, mortgage interest, property tax, estimated payments, gifts); wages, donations, medical and HSA / IRA / 401K are typed in. Each row has a source link, where to enter it in TurboTax and a Checked tick" },
+    { k: "new", zh: "标准扣除 vs 逐项扣除对比（合并报税）：逐项 = 房贷利息 + 房产税和州税（有上限）+ 捐款，和标准扣除比，告诉你哪个更划算（参考）", en: "Standard vs itemized deduction comparison (joint filing): itemized = mortgage interest + property and state tax (capped) + donations, compared with the standard deduction (reference)" },
+    { k: "new", zh: "境外账户（可选）：在「账户与开户」里给境外账户打勾，汇总页按年内最高余额预判是否超过 FBAR 的 1 万美元线", en: "Foreign accounts (optional): tick them under Accounts & opening and Summary checks their year-high balances against the $10,000 FBAR line" },
+  ] },
+
   { v: "2026-11-22.17", title: { zh: "税务：家庭情况按年度存快照", en: "Tax: household details are saved per year" }, items: [
     { k: "better", zh: "家庭情况（孩子人数、配偶证件、要打开的提醒）改成每个税务年度各存一份：2025 年 1 个孩子、2026 年 2 个互不影响；某年没单独存过就沿用上一年的，改任何一项才存成那一年自己的", en: "Household details (children, spouse ID, reminders) are now saved per tax year: one child in 2025 and two in 2026 do not affect each other; a year you have not saved reuses the previous year until you change something" },
     { k: "better", zh: "税务日历、单据清单、「容易漏的」和提醒都按那一年的快照来", en: "The tax calendar, document list, easy-to-miss tips and reminders all use that year's snapshot" },

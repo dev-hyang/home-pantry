@@ -16,6 +16,7 @@ import { GUIDES } from "./tax-content-accounts.js";
 import { FSA_TYPES, accountChecks } from "./tax-checks.js";
 import { EVENTS } from "./tax-content-events.js";
 import { TERMS } from "./tax-content-terms.js";
+import { summaryTab } from "./tax-summary.js";
 import "./tax-actions.js";
 
 const tx = (o) => (o ? (lang === "en" ? o.en : o.zh) : "");
@@ -90,10 +91,11 @@ function accountsTab() {
   const fsas = cards.filter((c) => c.kind === "fsa" && c.active !== false);
   const types = (v) => `<option value="">${t("还没标")}</option>${Object.entries(FSA_TYPES).map(([k, n]) => `<option value="${k}" ${v === k ? "selected" : ""}>${esc(tx(n))}</option>`).join("")}`;
   const fsaCard = fsas.length ? `<section class="panel dt-block"><div class="dt-head"><h3>${t("你的 FSA / 通勤福利账户")}</h3></div><div class="form-grid">${fsas.map((c) => `<label>${esc(c.name)}<select data-tax-fsa="${esc(c.id)}">${types(acctOf(c.id).fsaType || "")}</select></label>`).join("")}</div></section>` : "";
+  const foreignCard = setupFor(activeTaxYear()).flags.foreign ? `<section class="panel dt-block"><div class="dt-head"><h3>🌏 ${t("哪些是境外账户")}</h3></div><p class="muted tax-wrap">${t("给境外的银行 / 投资账户打勾；「汇总」里会用它们的年内最高余额预判 FBAR。")}</p><div class="tax-flags">${cards.filter((c) => c.active !== false).map((c) => `<label class="check-inline"><input type="checkbox" data-tax-foreign="${esc(c.id)}" ${acctOf(c.id).foreign ? "checked" : ""}><span>${esc(c.name)}</span></label>`).join("") || `<span class="muted">${t("还没有账户")}</span>`}</div></section>` : "";
   const rows = checks.length ? checks.map((c) => `<div class="tax-tip"><b>${c.level === "warn" ? "⚠️" : "ℹ️"} ${esc(tx(c.title))}</b><p>${esc(tx(c.body))}</p></div>`).join("") : `<p class="muted">${t("目前没有需要你确认的冲突。加了 HSA / FSA / 529 / 孩子账户后，这里会自动检查。")}</p>`;
   const guides = [...GUIDES].sort((a, b) => have(b.kind) - have(a.kind)).map((g) => `<details class="panel tax-event" ${have(g.kind) ? "open" : ""}><summary><b>${g.icon} ${esc(tx(g.title))}</b>${have(g.kind) ? ` <span class="badge b-ok">${t("你已有 {n} 个", { n: have(g.kind) })}</span>` : ""}</summary>
     <h4>${t("开户前先决定")}</h4>${list(g.ask)}<h4>${t("税务上怎么算")}</h4>${list(g.effects)}<h4>${t("容易踩的坑")}</h4>${list(g.watch)}<p class="hint"><a href="${esc(g.source)}" target="_blank" rel="noopener">${t("官方说明")} ↗</a></p></details>`).join("");
-  return `<section class="panel dt-block"><div class="dt-head"><h3>${t("需要你确认的")}</h3></div>${rows}</section>${fsaCard}<h3 class="tax-sub">${t("开户前先看（按账户类型）")}</h3>${guides}`;
+  return `<section class="panel dt-block"><div class="dt-head"><h3>${t("需要你确认的")}</h3></div>${rows}</section>${fsaCard}${foreignCard}<h3 class="tax-sub">${t("开户前先看（按账户类型）")}</h3>${guides}`;
 }
 const LINKS = { "house-deal": () => href("house", "deal"), "house-assets": () => href("house", "cars"), income: () => `${href("bills", "income")}?tab=records`, settings: () => `${href("me", "settings")}?sec=family`, cards: () => href("bills", "accounts") };
 function eventsTab(s) {
@@ -103,12 +105,12 @@ function eventsTab(s) {
 }
 const learnTab = () => TERMS.map((e) => `<details class="panel tax-event"><summary><b>${esc(tx(e.name))}</b></summary><p>${esc(tx(e.body))}</p><p class="hint"><a href="${esc(e.source)}" target="_blank" rel="noopener">${t("官方说明")} ↗</a></p></details>`).join("");
 
-const YEAR_TABS = ["year", "household", "docs"];   // 这几页和税务年度有关：筛选里才放年份
+const YEAR_TABS = ["year", "household", "summary", "docs"];   // 这几页和税务年度有关：筛选里才放年份
 export function viewTax() {
   const q = state.route?.q, tab = activeTab(state.route) || "year", y = +q?.get("y") || activeTaxYear(), s = setupFor(y), now = new Date().getFullYear();   // 家庭情况按这一年的快照
   const years = [...new Set([...Array.from({ length: now - 2024 + 1 }, (_, i) => 2024 + i), y])].sort();
   const filter = YEAR_TABS.includes(tab) ? filterPop(`<div class="fpop-fields"><label class="tb-field"><span>${t("税务年度")}</span><select data-tax-ysel data-tab="${tab}" data-nosearch aria-label="${esc(t("税务年度"))}">${years.map((v) => `<option value="${v}" ${v === y ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>`, { id: "taxy", eye: true }) : false;
-  const body = tab === "household" ? householdTab(s, y) : tab === "docs" ? docsTab(y, s) : tab === "accounts" ? accountsTab() : tab === "events" ? eventsTab(s) : tab === "learn" ? learnTab() : yearTab(y, s);
+  const body = tab === "household" ? householdTab(s, y) : tab === "summary" ? summaryTab(y) : tab === "docs" ? docsTab(y, s) : tab === "accounts" ? accountsTab() : tab === "events" ? eventsTab(s) : tab === "learn" ? learnTab() : yearTab(y, s);
   return `<section class="section tax-page">${pageHead({ title: t("税务"), tabs: TAX_TABS, tab, hrefOf: (id) => tabHref(id, y), filter, note: infoTip(t("参考用，不是税务建议；以 IRS、伊利诺伊税务局官网和 TurboTax 为准。不存 SSN / ITIN / PIN。"), { align: "start" }) })}
     <p class="notice" role="note">${t("参考用，不是税务建议。数字和政策每年会变，标「待核对」的报税前对着官网再看一遍。")}</p>
     ${body}</section>`;

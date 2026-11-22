@@ -13,6 +13,9 @@ if (typeof document !== "undefined") {
     const el = e.target; if (!el.closest?.(".tax-page")) return;
     const d = el.dataset, y = d.y;
     if ("taxYsel" in d) return go(`${href("bills", "tax")}?${d.tab === "year" ? "" : `tab=${d.tab}&`}y=${el.value}`);   // 筛选里换税务年度
+    if (d.taxNum) return done(saveYear(y, { nums: { ...(yearState(y).nums || {}), [d.taxNum]: el.value === "" ? null : Math.max(0, Number(el.value) || 0) } }));   // 汇总表手填的数
+    if (d.taxOk) return done(saveYear(y, { ok: { ...(yearState(y).ok || {}), [d.taxOk]: el.checked } }));
+    if (d.taxForeign) return done(saveAcct(d.taxForeign, { foreign: el.checked }));
     if (d.taxFsa) return done(saveAcct(d.taxFsa, { fsaType: el.value }));
     if (d.taxFlag) return done(saveSetup({ flags: { [d.taxFlag]: el.checked } }, y));   // 家庭情况按税务年度存快照（data-y）
     if ("taxItin" in d) return done(saveSetup({ spouseItin: el.checked }, y));

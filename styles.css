@@ -4637,3 +4637,15 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-gift-main > span:first-child { flex: 1 1 auto; min-width: 0; }
 .tax-gift-add { flex: 0 0 auto; min-width: 44px; min-height: 44px; justify-content: center; font-size: 18px; }
 .tax-gift-total { display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-size: 16px; }
+/* 税务 → 汇总（js/tax/tax-summary.js） */
+.tax-nums { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.tax-num { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px dashed var(--line); min-width: 0; }
+.tax-num:last-child { border-bottom: 0; }
+.tax-num-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.tax-num-name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.tax-num-val { white-space: nowrap; }
+.tax-num-in { width: 9.5em; max-width: 45%; min-height: 44px; box-sizing: border-box; text-align: right; flex: 0 0 auto; }
+.tax-num small { display: block; overflow-wrap: anywhere; }
+.tax-num-tt { color: var(--pine); }
+.tax-num-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; }
+.tax-num-foot a { min-height: 44px; display: inline-flex; align-items: center; }
