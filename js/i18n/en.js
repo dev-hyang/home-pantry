@@ -4148,6 +4148,11 @@ export const EN = {
   "金额与期限": "Amount & term", "还款安排": "Repayment", "关联账户与资产": "Linked accounts & assets",
   "请先填：{name}": "Please fill in first: {name}",
   // ── 财务 → 税务（一期）、通勤福利 ──
+  "合并报税": "Joint filing", "配偶用 SSN": "Spouse uses an SSN", "{n} 个孩子": "{n} children", "还没打开任何提醒": "No reminders switched on yet", "报税身份": "Filing status",
+  "税务居民；合并报税（Married Filing Jointly）；联邦 1040 + 伊利诺伊 IL-1040；用 TurboTax。": "Tax resident; Married Filing Jointly; federal 1040 + Illinois IL-1040; TurboTax.",
+  "要打开哪些提醒": "Which reminders to switch on", "下面的开关决定「今年」页和提醒里显示哪些单据、截止日和提示；随时可以改。": "The switches below decide which documents, deadlines and tips appear in This year and in reminders; change them any time.", "{y} 年的状态": "Status for {y}",
+  "合计": "Total", "{y} 年亲友赠与累计": "Gifts from family in {y}", "统计口径：收入类型是「国际电汇」或「个人赠与」的全部记录，不论是否标了「需要还」。点一项看明细；有关联的赠与人（父母、兄弟姐妹）要合并看。": "How it is counted: every income record of type “international wire” or “gift”, whether or not marked “needs repaying”. Tap a line for the details; related donors (parents, siblings) must be considered together.",
+  "报税身份、配偶 ITIN、孩子人数，以及哪些提醒要打开": "Filing status, spouse ITIN, number of children and which reminders to switch on", "家庭情况": "Household",
   "账户与开户": "Accounts & opening", "开 HSA / FSA / 529 / 孩子账户前后的税务提示和冲突检查": "Tax notes and conflict checks before and after opening an HSA / FSA / 529 / child account",
   "我或配偶单位有普通医疗 FSA / HRA": "I or my spouse's employer have a general-purpose health FSA / HRA", "你的 FSA / 通勤福利账户": "Your FSA / commuter accounts", "还没标": "Not marked yet",
   "需要你确认的": "Needs your confirmation", "目前没有需要你确认的冲突。加了 HSA / FSA / 529 / 孩子账户后，这里会自动检查。": "No conflicts to confirm right now. Once you add an HSA / FSA / 529 / child account they are checked here automatically.",

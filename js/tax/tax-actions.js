@@ -3,6 +3,7 @@ import { saveAcct, saveSetup, saveYear, yearState } from "./tax-calendar.js";
 import { toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { render } from "../app/render.js";
+import { go, href } from "../core/router.js";
 
 const done = async (p) => { try { await p; render(false); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } };
 const patchDoc = (y, id, patch) => { const docs = { ...(yearState(y).docs || {}) }; docs[id] = { ...(docs[id] || {}), ...patch }; return saveYear(y, { docs }); };
@@ -11,6 +12,7 @@ if (typeof document !== "undefined") {
   document.addEventListener("change", (e) => {
     const el = e.target; if (!el.closest?.(".tax-page")) return;
     const d = el.dataset, y = d.y;
+    if ("taxYsel" in d) return go(`${href("bills", "tax")}?${d.tab === "year" ? "" : `tab=${d.tab}&`}y=${el.value}`);   // 筛选里换税务年度
     if (d.taxFsa) return done(saveAcct(d.taxFsa, { fsaType: el.value }));
     if (d.taxFlag) return done(saveSetup({ flags: { [d.taxFlag]: el.checked } }));
     if ("taxItin" in d) return done(saveSetup({ spouseItin: el.checked }));

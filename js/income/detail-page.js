@@ -47,6 +47,8 @@ export function incomeDetailPage(id) {
 export function incomeFormPage(id) {
   const I = inc();
   if (id === "new") {   // 记一笔 / 复制：form 已经由点击处设好（复制带内容）；直接打开网址时是空白的新一笔
+    const pk = state.route?.q?.get("kind");   // 税务页「＋ 国际电汇 / 个人赠与」：带类型进来就预选；每次新进都从头来
+    if (pk && I._newRoute !== state.route) { I.form = { rec: { kind: pk } }; I._newRoute = state.route; }
     if (!I.form || I.form.rec?.id) I.form = { rec: null };
     I._formPage = true;
     return `<section class="section form-page">${crumb(I.form.rec ? t("复制收入") : t("记一笔收入"))}${formHtml()}</section>`;

@@ -4622,3 +4622,18 @@ form[data-gwz][data-step="review"] [data-fsec] { display: none !important; }
 .tax-event h4 { margin: 12px 0 4px; font-size: 14px; }
 .tax-event ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; line-height: 1.5; }
 .tax-sub { margin: 18px 0 8px; font-size: 16px; }
+/* 税务页（改版 2026-11-22.13）：家庭情况摘要卡、赠与累计表、不让文字越界 */
+.tax-page .dt-block, .tax-page .panel, .tax-page .dd-secs > * { min-width: 0; overflow-wrap: anywhere; }
+.tax-page .check-inline { align-items: flex-start; }
+.tax-page .check-inline > span { min-width: 0; overflow-wrap: anywhere; }
+.tax-wrap { margin: 0 0 10px; font-size: 13px; line-height: 1.5; }
+a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: space-between; color: inherit; text-decoration: none; min-height: 44px; margin-bottom: 10px; }
+.tax-sum-body { min-width: 0; flex: 1 1 auto; }
+.tax-sum-body h3 { margin: 0 0 4px; }
+.tax-sum-body p { margin: 0 0 6px; font-size: 13px; }
+.tax-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.tax-gift-row { display: flex; align-items: center; gap: 8px; border-bottom: 1px dashed var(--line); }
+.tax-gift-main { flex: 1 1 auto; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; }
+.tax-gift-main > span:first-child { flex: 1 1 auto; min-width: 0; }
+.tax-gift-add { flex: 0 0 auto; min-width: 44px; min-height: 44px; justify-content: center; font-size: 18px; }
+.tax-gift-total { display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-size: 16px; }

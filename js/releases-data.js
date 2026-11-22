@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.13", title: { zh: "税务页改版：年份进筛选、家庭情况单独一页、赠与累计按类型汇总；账户统计问题", en: "Tax page redesign: year in the filter, Household on its own page, gifts totalled by type" }, items: [
+    { k: "better", zh: "税务页去掉了页内标签条（页头的「目录」按钮已经能切换）；税务年度放进页头右边的「筛选」里", en: "Removed the in-page tab strip from Tax (the Menu button already switches pages); the tax year now lives in the Filter button" },
+    { k: "better", zh: "家庭情况单独成一页（报税身份、配偶 ITIN、孩子人数、要打开的提醒），首页只放一张摘要卡，点右边的箭头进去改；长文字不再越出卡片", en: "Household is its own page (filing status, spouse ITIN, children, reminders); the home page keeps one summary card with an arrow, and long text no longer spills out of cards" },
+    { k: "better", zh: "亲友赠与累计：不再排除「需要还」，「国际电汇」和「个人赠与」分开合计再加总（如 国际电汇 7.8 万 + 个人赠与 0.9 万 = 8.7 万），每一项点进去看明细，右边的 ＋ 直接按这个类型添加", en: "Family gifts: no longer excludes “needs repaying”; international wire and gift are totalled separately and added up, each line opens its records and the + adds a record of that type" },
+    { k: "fix", zh: "账户概览里银行 / 投资账户的个数按账户本身数（以前按余额记录数，余额没读到时显示 0 个）", en: "Account counts for bank / investment accounts on the Accounts overview now count the accounts themselves (they used to count balance records and showed 0 when balances were not loaded)" },
+  ] },
+
   { v: "2026-11-22.12", title: { zh: "电子钱包（Ventra、PayPal…）没有「返现规则」这一步了", en: "E-wallets (Ventra, PayPal…) no longer have a Rewards step" }, items: [
     { k: "better", zh: "添加电子钱包：类型 → 基本信息 → 备注 → 确认，去掉了「返现规则」（电子钱包本身没有返现）；信用卡和借记卡仍有返现规则", en: "Adding an e-wallet is now Type → Basics → Notes → Review without the Rewards step (e-wallets have no cash back); credit and debit cards keep it" },
     { k: "better", zh: "电子钱包的详情页也不再显示「返现规则」这一块（以前填过的数据还在，不会丢）", en: "An e-wallet's detail page no longer shows a Rewards block (anything entered earlier is kept)" },

@@ -42,7 +42,8 @@ const needTip = (n) => (n ? t("{n} 个账户该更新余额", { n }) : t("余额
 export function viewAccountsHome() {
   const rows = nwRows(), nw = (() => { try { return liveNetWorth(); } catch { return null; } })();
   const by = (g) => rows.filter((r) => r.card && groupOfKind(r.card.kind) === g);
-  const bank = summarizeRows(by("bank")), inv = summarizeRows(by("invest")), cr = live("credit"), gifts = live("wallet").filter((c) => c.kind === "gift");
+  const cnt = (g) => live(g).length;   // 账户个数按「账户」本身数（余额没读到、没记余额也算）；合计和「要更新」才看余额
+  const bank = { ...summarizeRows(by("bank")), n: cnt("bank") }, inv = { ...summarizeRows(by("invest")), n: cnt("invest") }, cr = live("credit"), gifts = live("wallet").filter((c) => c.kind === "gift");
   const giftTotal = gifts.reduce((s, c) => s + Math.max(0, giftBalance(c) ?? 0), 0), fees = cr.reduce((s, c) => s + (Number(c.annual_fee) || 0), 0), limit = cr.reduce((s, c) => s + (Number(c.credit_limit) || 0), 0);
   const tile = (g, big, lines, to) => `<a class="panel acct-tile" href="${to}"><span class="mi" aria-hidden="true">${GROUPS[g].icon}</span><div><h3>${esc(t(GROUPS[g].name))}</h3><b class="acct-big">${big}</b><small class="muted">${lines.filter(Boolean).map(esc).join(" · ")}</small></div><span class="mch" aria-hidden="true">›</span></a>`;
   const need = bank.needUpdate + inv.needUpdate;

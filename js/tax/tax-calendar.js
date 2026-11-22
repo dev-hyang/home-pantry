@@ -53,8 +53,10 @@ export function relevantDeadlines(y) {
   return deadlinesFor(y).filter((d) => (!d.when || flags[d.when]) && (!d.ext || st.extended));
 }
 
-/** 公历年 y 收到的境外亲友赠与累计（参考）：收入类型是「个人赠与」或「国际电汇」，且有原币种 / 是国际电汇，不含「需要还」的借款 */
+/** 公历年 y 收到的赠与累计（参考）：收入类型是「国际电汇」或「个人赠与」的全部记录（不再排除「需要还」，也不看原币种——家里记这两类时都是境外亲友的钱）；按类型分开合计 */
+export const GIFT_KINDS = ["wire", "gift"];
 export function foreignGiftTotal(y) {
-  const recs = (state.inc?.rec || []).filter((r) => String(r.received_on || "").startsWith(String(y)) && !r.repay_required && (r.kind === "wire" || (r.kind === "gift" && (r.orig_currency || r.orig_amount))));
-  return { total: Math.round(recs.reduce((s, r) => s + (+r.amount || 0), 0) * 100) / 100, n: recs.length, loaded: !!state.inc?.loaded };
+  const recs = (state.inc?.rec || []).filter((r) => String(r.received_on || "").startsWith(String(y)) && GIFT_KINDS.includes(r.kind));
+  const by = Object.fromEntries(GIFT_KINDS.map((k) => { const rows = recs.filter((r) => r.kind === k); return [k, { n: rows.length, total: Math.round(rows.reduce((s2, r) => s2 + (+r.amount || 0), 0) * 100) / 100 }]; }));
+  return { by, total: Math.round(recs.reduce((s2, r) => s2 + (+r.amount || 0), 0) * 100) / 100, n: recs.length, loaded: !!state.inc?.loaded };
 }
