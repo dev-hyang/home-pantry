@@ -20,6 +20,7 @@ import { t } from "../core/i18n.js";
 import { viewOtBill } from "./lazy-modules.js";
 import { pantryNav } from "../pantry/restock-sync.js";
 import { meHead } from "../settings/me-nav.js";
+import { addCrumbNav } from "../core/crumb-nav.js";
 import { HOUSE_TOP, houseDeep, houseHead } from "../house/house-nav.js";
 import { renderInvList } from "./lazy-modules.js";
 import { focusEntry } from "./entry-focus.js";
@@ -49,7 +50,7 @@ export function render(force = true) {
   // 数据刷新（后台读完借贷 / 净资产 / 收入、切回标签页、家人改动）会重画整页：先把页面里「每一张」表单还没保存的改动记下来，
   // 画完再填回去，连光标位置一起（11-09：以前只认一份表单名单，新加的表单——比如卡和账户——不在名单里，填到一半 2–3 秒就被冲掉）
   const kept = force || userActing ? null : keepUnsaved();   // 用户自己点的（筛选、清除、展开…）照常按新状态画；只有后台刷新才保留
-  try { renderBody(r); } finally { if (kept) restoreUnsaved(kept); }
+  try { renderBody(r); addCrumbNav(r); } finally { if (kept) restoreUnsaved(kept); }   // 深层页面：面包屑前面加「目录」按钮
   restoreCarousels();   // 左右滑动的卡片（今日）：放回刚才看的那张
   { const pf = $("#billPayForm"); if (pf) recalcPayTotal(pf); }   // 缴费表单：先算一次总金额
   { const af = $("#main [data-as-focus]"); if (af) requestAnimationFrame(() => af.scrollIntoView({ block: "start" })); }   // 从账单页点某笔摊派进来：滚到那一笔

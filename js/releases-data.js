@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.25", title: { zh: "深层页面也有「目录」按钮", en: "Deep pages get the Menu button too" }, items: [
+    { k: "new", zh: "详情页、表单页和各种子页（车辆、账单、借贷、信用卡、收入 / 花费详情、商店详情、物品、成员…）原来只有「‹ 返回 …」面包屑，现在最前面多了一个「目录」按钮：打开是所在区域（财务 / 房屋 / 储藏 / 采购 / 我的）的同一棵目录，随时可以跳到别处；面包屑照旧保留", en: "Detail pages, forms and sub-pages (vehicles, bills, debts, cards, income / spending details, store details, items, members…) only had the “‹ Back …” breadcrumb; they now start with a Menu button that opens the same tree as its section (Finance / House / Storage / Shopping / Me), so you can jump anywhere; the breadcrumb stays" },
+  ] },
+
   { v: "2026-11-21.24", title: { zh: "收尾：加入购物车的 ⋯ 并进目录；去掉重复的「其他功能」；清掉旧导航代码；补英文", en: "Clean-up: Add-to-cart ⋯ moves into the Menu; duplicate “More” rows removed; old navigation code removed; English filled in" }, items: [
     { k: "better", zh: "采购 → 加入购物车：页头右上角的 ⋯（扫描、补货提醒、买好了录入库存）取消，三项放进目录里「加入购物车」的下面", en: "Shopping → Add to cart: the ⋯ at the top right (Scan, Restock reminders, Log what I bought) is gone; the three items are under “Add to cart” in the Menu" },
     { k: "better", zh: "收入概览、花费概览、预算「本月」页底部那块「其他功能 / 更多」入口行去掉了（目录里都有）", en: "The “More” entry rows at the bottom of Income overview, Spending overview and Budget (this month) are gone (everything is in the Menu)" },
