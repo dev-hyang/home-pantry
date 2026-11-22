@@ -587,6 +587,10 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 .fin-card-t h3 { margin: 0; font-size: 16px; }
 .fin-card-t small { color: var(--muted); font-size: 12px; }
 .fin-card .panel.mlist { margin: 0; }
+/* 财务首页的入口卡：整张是链接，下面一行小字列出这一组有哪几页 */
+.fin-entry { display: block; color: inherit; text-decoration: none; }
+.fin-entry:hover, .fin-entry:focus-visible { background: color-mix(in srgb, var(--pine) 8%, var(--surface-2)); }
+.fin-entry-pages { margin: 0; padding: 0 4px 4px 50px; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 .mrow-soon { cursor: default; }   /* 不降透明度：文字对比度保持 AA */
 .mrow-soon:hover { background: none; }
 /* 财务 → 资产：一行一个房产 / 车辆，标签 + 值的小块自动换行；手机上一块一行 */

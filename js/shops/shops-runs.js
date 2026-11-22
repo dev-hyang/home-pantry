@@ -1,7 +1,7 @@
 /* 更新记录（什么时候、怎么录的、哪几家、加了几条、失败原因）和给每周定时任务用的入口。 */
 import { FOCUS_SECTIONS, adUrl, chainOf, dealsDue, flippUrl, importGroups, myItemNames, parseLooseJson, restockWatch, savedZip, weekWindow } from "./logic.js";
 import { R, applyDeals, logRun, shopById } from "./shops-actions.js";
-import { crumbNav } from "../core/hub.js";
+import { buyHead } from "./buy-nav.js";
 import { esc } from "../core/util.js";
 import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
@@ -19,7 +19,7 @@ export function viewRuns() {
   const lastAuto = (state.dealRuns || []).find((r) => r.source === "auto");
   const opt = (v, l, c) => `<option value="${esc(v)}" ${c === v ? "selected" : ""}>${esc(l)}</option>`;
   return `<section class="section shops-page">
-    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }, { label: t("更新记录"), icon: "📜" }])}
+    ${buyHead("log")}
     ${state.runsMissing ? `<div class="panel cta-panel"><div><b>${t("数据库还没升级")}</b><p class="muted">${t("请在 Supabase 的 SQL Editor 执行 migrations/068_shop_deal_runs.sql，才能记录每次更新、打开每周自动更新。")}</p></div></div>` : ""}
     <div class="panel runs-auto">
       <b>🤖 ${t("每周自动更新")}</b>

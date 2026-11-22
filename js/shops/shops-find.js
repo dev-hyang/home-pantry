@@ -1,6 +1,6 @@
 /* 常去的商店：找附近的商店、用 Claude 整理（复制指令 → 贴回 JSON → 按商店导入）。 */
 import { MAX_MI, SHOP_CATS, shopCat } from "./logic.js";
-import { crumbNav } from "../core/hub.js";
+import { buyHead } from "./buy-nav.js";
 import { esc, fmtShort } from "../core/util.js";
 import { href } from "../core/router.js";
 import { state } from "../core/state.js";
@@ -12,7 +12,7 @@ export function viewFind() {
   const f = ui().find, have = new Map((state.shops || []).filter((s) => s.osm_id).map((s) => [s.osm_id, s]));
   const fq = (f.q || "").trim().toLowerCase(), res = f.results && f.results.filter((x) => !fq || `${x.name} ${x.address}`.toLowerCase().includes(fq));   // 结果里再按名称 / 地址筛
   return `<section class="section shops-page">
-    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }, { label: t("找附近的商店"), icon: "📍" }])}
+    ${buyHead("find")}
     ${missingPanel()}
     <form class="panel shops-find" id="shopsFindForm" aria-label="${esc(t("找附近的商店"))}">
       <div class="shops-find-row">
