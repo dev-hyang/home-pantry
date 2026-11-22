@@ -4148,6 +4148,7 @@ export const EN = {
   "金额与期限": "Amount & term", "还款安排": "Repayment", "关联账户与资产": "Linked accounts & assets",
   "请先填：{name}": "Please fill in first: {name}",
   // ── 财务 → 税务（一期）、通勤福利 ──
+  "买入时收到的退款 / 贷款方 credit（会减少成本，不是收入）": "Refunds / lender credits received at purchase (they reduce cost, not income)", "例如：中介多收后退给你的钱、贷款方在 closing 里给的 credit。它们冲减买房的费用，不要当成收入记。": "For example money an agent refunded after overcharging, or a lender credit at closing. They reduce your purchase costs; do not record them as income.",
   "去年（{y}）：{a}": "Last year ({y}): {a}", "导出 CSV": "Export CSV", "打印 / 存成 PDF": "Print / save as PDF",
   "{y} 年预缴税参考（联邦）": "{y} estimated-tax reference (federal)", "工资之外有较大收入（卖股票的收益、利息、租金、自由职业）或预扣不够时用。只是提醒级的参考，不是申报。": "For when you have significant income beyond wages (stock gains, interest, rent, freelance) or too little withholding. A reminder-level reference, not a filing.",
   "本年预计联邦税额": "Expected federal tax this year", "去年联邦税额（去年 1040 总税额）": "Last year's federal tax (total tax on last year's 1040)", "去年 AGI 超过 15 万美元（要交去年税额的 110%）": "Last year's AGI was over $150,000 (110% of last year's tax applies)",

@@ -1,5 +1,5 @@
 /* 税务 → 买卖与成本基础（三期）：卖房 / 卖车前后的收益参考计算。
- *  · 房子：成本基础 = 买入价 + 买入时的费用 + 装修翻新（你在这里逐条记）；收益 = 卖价 − 卖出费用 − 成本基础；
+ *  · 房子：成本基础 = 买入价 + 买入时的费用 − 买入时收到的退款 / 贷款方 credit + 装修翻新（你在这里逐条记）；收益 = 卖价 − 卖出费用 − 成本基础；
  *    自住满 2 年（近 5 年）合并报税最多排除 50 万美元，超出才交税；出租的房子另给一个折旧年额参考。
  *  · 车子：自用车卖得比买入价低是亏损，不能抵税；高了才有收益。
  * 买入价 / 卖出价 / 日期来自「房屋」和「车辆」里已有的记录；装修、费用、住满与否记在这里（存预算表的 _tax_cfg.props，不动房产记录）。
@@ -18,7 +18,7 @@ const num = (v) => (v == null || v === "" ? null : Number(v));
 /** 一套房的收益参考：输入来自房产记录 + 这里记的改善 / 费用；缺买入价或卖价时 ready = false */
 export function homeGain(p) {
   const x = propOf(p.id), imps = (x.improvements || []).reduce((s, i) => s + (+i.amount || 0), 0), buy = num(p.purchase_price), sale = num(p.sale_price);
-  const basis = buy == null ? null : r2(buy + (+x.buyCosts || 0) + imps), realized = sale == null ? null : r2(sale - (+x.sellCosts || 0));
+  const basis = buy == null ? null : r2(buy + (+x.buyCosts || 0) - (+x.buyCredits || 0) + imps), realized = sale == null ? null : r2(sale - (+x.sellCosts || 0));
   const gain = basis != null && realized != null ? r2(realized - basis) : null, excl = x.lived === "yes" ? HOME_EXCLUSION_MFJ : 0;
   return { x, imps, basis, realized, gain, excl, taxable: gain == null ? null : Math.max(0, r2(gain - excl)), ready: gain != null };
 }
@@ -41,6 +41,7 @@ function homeCard(p) {
       ${row(t("装修翻新合计"), money(g.imps))}${row(t("成本基础"), g.basis == null ? NA : money(g.basis))}${row(t("扣掉卖出费用后的卖价"), g.realized == null ? NA : money(g.realized))}</dl>${verdict}
     <h4>${t("记一下这些")}</h4>
     <div class="form-grid"><label>${t("买入时的费用（过户、律师、评估…）")}<input type="number" min="0" step="0.01" inputmode="decimal" data-tax-prop="${esc(p.id)}" data-key="buyCosts" value="${x.buyCosts ?? ""}"></label>
+      <label class="span-2">${t("买入时收到的退款 / 贷款方 credit（会减少成本，不是收入）")}<input type="number" min="0" step="0.01" inputmode="decimal" data-tax-prop="${esc(p.id)}" data-key="buyCredits" value="${x.buyCredits ?? ""}"><small class="muted">${t("例如：中介多收后退给你的钱、贷款方在 closing 里给的 credit。它们冲减买房的费用，不要当成收入记。")}</small></label>
       <label>${t("卖出时的费用（中介佣金、过户…）")}<input type="number" min="0" step="0.01" inputmode="decimal" data-tax-prop="${esc(p.id)}" data-key="sellCosts" value="${x.sellCosts ?? ""}"></label>
       <label class="span-2">${t("卖出前 5 年里自己住满 2 年（夫妻都要满足使用条件）")}<select data-tax-prop="${esc(p.id)}" data-key="lived" data-nosearch><option value="">${t("还没标")}</option><option value="yes" ${x.lived === "yes" ? "selected" : ""}>${t("是，满 2 年")}</option><option value="no" ${x.lived === "no" ? "selected" : ""}>${t("不满")}</option></select></label></div>
     <h4>${t("装修翻新（会加到成本基础）")}</h4><ul class="tax-imps">${impRows || `<li class="muted">${t("还没记")}</li>`}</ul>

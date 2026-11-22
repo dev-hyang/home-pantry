@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.21", title: { zh: "税务：买房时收到的退款 / 贷款方 credit 不算收入，冲减成本", en: "Tax: closing refunds and lender credits are not income, they reduce cost" }, items: [
+    { k: "new", zh: "税务 → 买卖与成本基础：房子多了「买入时收到的退款 / 贷款方 credit」一栏，会从成本基础里减掉（以前只能记费用，退款没地方放）", en: "Tax → Sales & cost basis: each home has a new field for refunds / lender credits received at purchase, subtracted from the cost basis" },
+    { k: "better", zh: "事件指南「买房」补了一条：closing 多收事后退款、贷款方 credit 一般不算收入；要向对方要书面说明并存好", en: "The Buying a home guide now explains that closing refunds and lender credits are generally not income and that you should get a written note and keep it" },
+  ] },
+
   { v: "2026-11-22.20", title: { zh: "税务四期：汇总表导出、和去年对比、预缴税参考", en: "Tax phase 4: export the summary, compare with last year, estimated-tax reference" }, items: [
     { k: "new", zh: "税务 → 汇总：可以导出成 CSV（Excel 直接打开，带 TurboTax 里在哪填、来源、是否已核对、去年的数）或打印 / 存成 PDF", en: "Tax → Summary can be exported as CSV (opens in Excel, with where to enter it in TurboTax, origin, checked, prior-year value) or printed / saved as PDF" },
     { k: "new", zh: "每一行旁边小字显示去年的数和相差多少，一眼看出哪一项变化大", en: "Each row shows last year's value and the difference in small text, so big changes stand out" },
