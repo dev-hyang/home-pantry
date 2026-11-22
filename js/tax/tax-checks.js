@@ -6,7 +6,7 @@ import { acctOf, setupOf } from "./tax-calendar.js";
 
 const z = (zh, en) => ({ zh, en });
 /** FSA 的几种：只有「普通医疗」和没标记的会和 HSA 冲突 */
-export const FSA_TYPES = { general: z("普通医疗 FSA", "General-purpose health FSA"), limited: z("只限牙科 / 视力（limited-purpose）", "Limited-purpose (dental / vision only)"), dependent: z("看护 FSA（孩子 / 家人看护）", "Dependent-care FSA"), commuter: z("通勤福利（公交 / 停车）", "Commuter benefits (transit / parking)") };
+export const FSA_TYPES = { general: z("普通医疗 FSA", "General-purpose health FSA"), limited: z("只限牙科 / 视力（limited-purpose）", "Limited-purpose (dental / vision only)"), dependent: z("看护 FSA（孩子 / 家人看护）", "Dependent-care FSA") };
 const live = (kind) => (state.cards || []).filter((c) => c.kind === kind && c.active !== false);
 const NEEDS_TYPE = (c) => !["limited", "dependent", "commuter"].includes(acctOf(c.id).fsaType);
 

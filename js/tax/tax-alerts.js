@@ -8,7 +8,7 @@ import { href } from "../core/router.js";
 import { registerAlerts } from "../core/alerts.js";
 import { financeOk } from "../core/finance-access.js";
 import { warnChecks } from "./tax-checks.js";
-import { TAX_THRESHOLDS, activeTaxYear, daysUntil, foreignGiftTotal, relevantDeadlines, setupOf, yearState } from "./tax-calendar.js";
+import { TAX_THRESHOLDS, activeTaxYear, daysUntil, foreignGiftTotal, relevantDeadlines, setupFor, yearState } from "./tax-calendar.js";
 
 const pick = (o) => (lang === "en" ? o.en : o.zh);
 const link = () => href("bills", "tax");
@@ -19,7 +19,7 @@ export function taxAlertItems() {
   if (!state.billsEnabled || !financeOk() || !state.budget) return [];
   const out = [], today = todayISO(), y = activeTaxYear(today), st = yearState(y);
   if (st.filed) return out;
-  const flags = setupOf().flags;
+  const flags = setupFor(y).flags;
   for (const d of relevantDeadlines(y)) {
     const left = daysUntil(d.date, today), near = d.id === "file" || d.id === "fbar" ? 60 : d.id.startsWith("q") ? 30 : 0;
     if (!near || left < 0 || left > near) continue;

@@ -2,6 +2,16 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.17", title: { zh: "税务：家庭情况按年度存快照", en: "Tax: household details are saved per year" }, items: [
+    { k: "better", zh: "家庭情况（孩子人数、配偶证件、要打开的提醒）改成每个税务年度各存一份：2025 年 1 个孩子、2026 年 2 个互不影响；某年没单独存过就沿用上一年的，改任何一项才存成那一年自己的", en: "Household details (children, spouse ID, reminders) are now saved per tax year: one child in 2025 and two in 2026 do not affect each other; a year you have not saved reuses the previous year until you change something" },
+    { k: "better", zh: "税务日历、单据清单、「容易漏的」和提醒都按那一年的快照来", en: "The tax calendar, document list, easy-to-miss tips and reminders all use that year's snapshot" },
+  ] },
+
+  { v: "2026-11-22.16", title: { zh: "通勤福利单独成账户类型；个人赠与标「赠与人」（需先执行两条数据库迁移）", en: "Commuter benefits become their own account type; gifts get a donor mark (two database migrations to run first)" }, items: [
+    { k: "new", zh: "账户类型多了「通勤福利（公交 / 停车）」，和 FSA 分开，归在投资账户里；「FSA」类型名字恢复成「FSA 弹性支出」。需要先执行 supabase/migrations/102_commuter_kind.sql（只放宽类型清单，不动已有数据）", en: "New account type Commuter benefits (transit / parking), separate from FSA and listed under Investment accounts; the FSA type is back to “FSA”. Run supabase/migrations/102_commuter_kind.sql first (it only widens the type list, no data changes)" },
+    { k: "new", zh: "收入里的「个人赠与」多了「赠与人是」：非美国人 / 美国人。税务页的赠与累计按它分：非美国人的才算 Form 3520 门槛，美国人的单列不算；没标的先按非美国人算并提示。可以同时勾「需要还」（个人用），统计里会单独说明其中标了需要还的金额。需要先执行 supabase/migrations/103_income_gift_donor.sql（只加一列）", en: "Gift income now asks who the donor is: non-US person or US person. The Tax gift total splits by it: only non-US donors count toward the Form 3520 threshold, US donors are listed separately, and unmarked ones count as non-US with a prompt. You can also tick Needs repaying for your own use; the card states how much of the total is marked that way. Run supabase/migrations/103_income_gift_donor.sql first (it adds one column)" },
+  ] },
+
   { v: "2026-11-22.15", title: { zh: "税务：赠与累计的明细链接带上筛选，去掉 ＋", en: "Tax: gift total links carry their filter; removed the + buttons" }, items: [
     { k: "fix", zh: "「亲友赠与累计」里点「国际电汇」或「个人赠与」，收入明细现在会筛成这个类型和这一年（以前显示全部）", en: "Tapping International wire or Personal gift in the family-gifts total now opens the income records filtered to that type and year (it used to show everything)" },
     { k: "better", zh: "去掉每一项末尾的 ＋ 按钮；卡片里说明：美国境内的借款 / 赠与不在这里算，要私下还的记成「借款到账」", en: "Removed the + at the end of each line; the card now explains that loans or gifts inside the US are not counted, and one you will repay privately should be recorded as loan received" },

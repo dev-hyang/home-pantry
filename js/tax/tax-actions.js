@@ -14,9 +14,9 @@ if (typeof document !== "undefined") {
     const d = el.dataset, y = d.y;
     if ("taxYsel" in d) return go(`${href("bills", "tax")}?${d.tab === "year" ? "" : `tab=${d.tab}&`}y=${el.value}`);   // 筛选里换税务年度
     if (d.taxFsa) return done(saveAcct(d.taxFsa, { fsaType: el.value }));
-    if (d.taxFlag) return done(saveSetup({ flags: { [d.taxFlag]: el.checked } }));
-    if ("taxItin" in d) return done(saveSetup({ spouseItin: el.checked }));
-    if ("taxKids" in d) return done(saveSetup({ kids: Math.max(0, Math.min(12, Math.round(Number(el.value) || 0))) }));
+    if (d.taxFlag) return done(saveSetup({ flags: { [d.taxFlag]: el.checked } }, y));   // 家庭情况按税务年度存快照（data-y）
+    if ("taxItin" in d) return done(saveSetup({ spouseItin: el.checked }, y));
+    if ("taxKids" in d) return done(saveSetup({ kids: Math.max(0, Math.min(12, Math.round(Number(el.value) || 0))) }, y));
     if (d.taxYear) return done(saveYear(y, { [d.taxYear]: el.checked }));
     if (d.taxDoc) return done(patchDoc(y, d.taxDoc, { got: el.checked }));
     if (d.taxWhere) return done(patchDoc(y, d.taxWhere, { where: el.value.trim().slice(0, 60) }));

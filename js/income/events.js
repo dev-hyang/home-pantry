@@ -129,6 +129,7 @@ export function initIncome({ render, refresh }) {
       const f = el.closest("form"), box = f?.querySelector("[data-inc-gain]"), hint = f?.querySelector("[data-inc-kind-hint]");
       if (box) box.hidden = !(GAIN_KINDS.includes(el.value) || (box.querySelector("input")?.value || "") !== "");
       if (hint) hint.textContent = kindHint(el.value);
+      const donor = f?.querySelector("[data-inc-donor]"); if (donor) donor.hidden = el.value !== "gift";   // 个人赠与才问赠与人
     }
     if (el.name && DEF_FIELDS.some(([k]) => k === el.name)) { const cb = el.closest("form")?.elements[`def_${el.name}`]; if (cb) cb.checked = !!el.value && el.value === defOf(el.name); }   // 改了值：「设为默认」跟着当前值是不是默认来（不 return，别的处理照走）
     if (el.dataset?.incRepay !== undefined) { const box = el.closest("form")?.querySelector("[data-inc-repay-box]"); if (box) box.hidden = !el.checked; return; }

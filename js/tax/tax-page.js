@@ -10,7 +10,7 @@ import { pageHead } from "../core/page-head.js";
 import { filterPop } from "../core/filter-pop.js";
 import { infoTip } from "../core/info-tip.js";
 import { TAX_TABS, activeTab } from "../core/tabs.js";
-import { GIFT_KINDS, TAX_THRESHOLDS, acctOf, activeTaxYear, daysUntil, foreignGiftTotal, relevantDeadlines, setupOf, yearState } from "./tax-calendar.js";
+import { GIFT_KINDS, TAX_THRESHOLDS, acctOf, activeTaxYear, daysUntil, foreignGiftTotal, relevantDeadlines, setupFor, snapshotYear, yearState } from "./tax-calendar.js";
 import { DOCS, TIPS } from "./tax-content-docs.js";
 import { GUIDES } from "./tax-content-accounts.js";
 import { FSA_TYPES, accountChecks } from "./tax-checks.js";
@@ -31,15 +31,16 @@ const FLAGS = [["stocks", "买卖股票 / 加密货币"], ["gifts", "收到境�
 function householdSummary(s, y) {
   const on_ = FLAGS.filter(([k]) => s.flags[k]).map(([, n]) => `<span class="tag">${esc(t(n))}</span>`).join("");
   return `<a class="panel dt-block tax-sum" href="${tabHref("household", y)}"><div class="tax-sum-body"><h3>${t("家庭情况")}</h3>
-    <p class="muted">${t("合并报税")} · ${s.spouseItin ? t("配偶用 ITIN") : t("配偶用 SSN")} · ${t("{n} 个孩子", { n: s.kids })}</p><div class="tax-chips">${on_ || `<span class="muted">${t("还没打开任何提醒")}</span>`}</div></div><span class="mch" aria-hidden="true">›</span></a>`;
+    <p class="muted">${t("{y} 年", { y })} · ${t("合并报税")} · ${s.spouseItin ? t("配偶用 ITIN") : t("配偶用 SSN")} · ${t("{n} 个孩子", { n: s.kids })}</p><div class="tax-chips">${on_ || `<span class="muted">${t("还没打开任何提醒")}</span>`}</div></div><span class="mch" aria-hidden="true">›</span></a>`;
 }
 function householdTab(s, y) {
-  const flags = FLAGS.map(([k, n]) => `<label class="check-inline"><input type="checkbox" data-tax-flag="${k}" ${s.flags[k] ? "checked" : ""}><span>${t(n)}</span></label>`).join("");
+  const flags = FLAGS.map(([k, n]) => `<label class="check-inline"><input type="checkbox" data-tax-flag="${k}" data-y="${y}" ${s.flags[k] ? "checked" : ""}><span>${t(n)}</span></label>`).join("");
   const st = yearState(y);
-  return `<section class="panel dt-block"><div class="dt-head"><h3>${t("报税身份")}</h3></div>
+  const own = snapshotYear(y), snap = own === String(y) ? t("{y} 年单独存的快照", { y }) : own ? t("{y} 年还没单独存，沿用 {o} 年的；改任何一项就会存成 {y} 年自己的", { y, o: own }) : t("{y} 年还没单独存，用默认；改任何一项就会存成 {y} 年自己的", { y });
+  return `<p class="hint tax-wrap">${t("家庭情况每年不一样（比如孩子人数、配偶的证件），所以按税务年度分别存；在页头「筛选」里换年份看别的年。")} <b>${esc(snap)}</b></p><section class="panel dt-block"><div class="dt-head"><h3>${t("报税身份")}</h3></div>
     <p class="muted tax-wrap">${t("税务居民；合并报税（Married Filing Jointly）；联邦 1040 + 伊利诺伊 IL-1040；用 TurboTax。")}</p>
-    <div class="form-grid"><label class="check-inline span-2"><input type="checkbox" data-tax-itin ${s.spouseItin ? "checked" : ""}><span>${t("配偶用 ITIN 报税")}</span></label>
-      <label>${t("孩子人数")}<input type="number" min="0" max="12" inputmode="numeric" data-tax-kids value="${s.kids}"></label></div></section>
+    <div class="form-grid"><label class="check-inline span-2"><input type="checkbox" data-tax-itin data-y="${y}" ${s.spouseItin ? "checked" : ""}><span>${t("配偶用 ITIN 报税")}</span></label>
+      <label>${t("孩子人数")}<input type="number" min="0" max="12" inputmode="numeric" data-tax-kids data-y="${y}" value="${s.kids}"></label></div></section>
     <section class="panel dt-block"><div class="dt-head"><h3>${t("要打开哪些提醒")}</h3></div><p class="muted tax-wrap">${t("下面的开关决定「今年」页和提醒里显示哪些单据、截止日和提示；随时可以改。")}</p><div class="tax-flags">${flags}</div></section>
     <section class="panel dt-block"><div class="dt-head"><h3>${t("{y} 年的状态", { y })}</h3></div><div class="tax-flags">
       <label class="check-inline"><input type="checkbox" data-tax-year="extended" data-y="${y}" ${st.extended ? "checked" : ""}><span>${t("{y} 年已申请延期", { y })}</span></label>
@@ -57,12 +58,14 @@ function calendarCard(y) {
 /** 亲友赠与累计：国际电汇 / 个人赠与分开合计，每一项点进去看明细，右边的 ＋ 直接按这个类型添加；合计和 10 万美元申报线比 */
 function giftCard(y) {
   const g = foreignGiftTotal(y), th = TAX_THRESHOLDS.foreignGift, pct = Math.min(100, Math.round((g.total / th.amount) * 100)), inc = href("bills", "income");
-  const label = { wire: t("国际电汇"), gift: t("个人赠与") };
+  const label = { wire: t("国际电汇"), gift: t("个人赠与（非美国人 / 未标）") };
   const detail = (k) => `${inc}?tab=records&inc=1&kind=${k}&from=${y}-01-01&to=${y}-12-31`;   // inc=1 才会套上类型和日期筛选（收入明细的钻取约定）
-  const rows = GIFT_KINDS.map((k) => `<div class="tax-gift-row"><a class="tax-gift-main" href="${detail(k)}"><span>${esc(label[k])} <small class="muted">${t("{n} 笔", { n: g.by[k].n })}</small></span><b>${money(g.by[k].total)}</b><span class="mch" aria-hidden="true">›</span></a></div>`).join("");
+  const row = (k, n, total, name) => `<div class="tax-gift-row"><a class="tax-gift-main" href="${detail(k)}"><span>${esc(name)} <small class="muted">${t("{n} 笔", { n })}</small></span><b>${money(total)}</b><span class="mch" aria-hidden="true">›</span></a></div>`;
+  const note = (txt) => `<p class="hint">${txt}</p>`;
   const body = !g.loaded ? `<p class="muted">${t("收入记录还没读到；打开一次 财务 → 收入 再回来。")}</p>`
-    : `${rows}<div class="tax-gift-total"><span>${t("合计")}</span><b>${money(g.total)}</b></div><span class="mprog"><i style="width:${pct}%"></i></span>
-       <p class="hint">${t("统计口径：收入类型是「国际电汇」或「个人赠与」的全部记录，不论是否标了「需要还」。点一项看明细；有关联的赠与人（父母、兄弟姐妹）要合并看。美国境内的借款 / 赠与（比如 gift letter）不在这里算：要私下还的，记成「借款到账」就不会算进来。")}</p>`;
+    : `${row("wire", g.by.wire.n, g.by.wire.total, label.wire)}${row("gift", g.by.gift.n, g.by.gift.total, label.gift)}<div class="tax-gift-total"><span>${t("合计")}</span><b>${money(g.total)}</b></div><span class="mprog"><i style="width:${pct}%"></i></span>
+       ${g.us.n ? note(t("另有「个人赠与」{n} 笔来自美国人，共 {a}，不算在上面（Form 3520 只管非美国人给的）。", { n: g.us.n, a: money(g.us.total) })) : ""}${g.unmarked ? note(t("有 {n} 笔「个人赠与」还没标赠与人，先按非美国人算；在那笔记录里标一下。", { n: g.unmarked })) : ""}${g.repay ? note(t("其中标了「需要还」的有 {a}：真是借款的话不算赠与。", { a: money(g.repay) })) : ""}
+       ${note(t("统计口径：「国际电汇」全部算；「个人赠与」按赠与人的税务身份分（美国税务居民，包括绿卡 / 住满天数的非公民，算美国人；在境外或不是美国税务居民的算非美国人）。点一项看明细；有关联的赠与人（父母、兄弟姐妹）要合并看。"))}`;
   return `<section class="panel dt-block"><div class="dt-head"><h3>🎁 ${t("{y} 年亲友赠与累计", { y })}</h3></div>${body}
     <p class="hint">${esc(tx(th.label))} · <a href="${esc(th.source)}" target="_blank" rel="noopener">${t("官方说明")} ↗</a> · ${t("核对：{d}", { d: th.verified })}</p></section>`;
 }
@@ -102,7 +105,7 @@ const learnTab = () => TERMS.map((e) => `<details class="panel tax-event"><summa
 
 const YEAR_TABS = ["year", "household", "docs"];   // 这几页和税务年度有关：筛选里才放年份
 export function viewTax() {
-  const q = state.route?.q, tab = activeTab(state.route) || "year", s = setupOf(), y = +q?.get("y") || activeTaxYear(), now = new Date().getFullYear();
+  const q = state.route?.q, tab = activeTab(state.route) || "year", y = +q?.get("y") || activeTaxYear(), s = setupFor(y), now = new Date().getFullYear();   // 家庭情况按这一年的快照
   const years = [...new Set([...Array.from({ length: now - 2024 + 1 }, (_, i) => 2024 + i), y])].sort();
   const filter = YEAR_TABS.includes(tab) ? filterPop(`<div class="fpop-fields"><label class="tb-field"><span>${t("税务年度")}</span><select data-tax-ysel data-tab="${tab}" data-nosearch aria-label="${esc(t("税务年度"))}">${years.map((v) => `<option value="${v}" ${v === y ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>`, { id: "taxy", eye: true }) : false;
   const body = tab === "household" ? householdTab(s, y) : tab === "docs" ? docsTab(y, s) : tab === "accounts" ? accountsTab() : tab === "events" ? eventsTab(s) : tab === "learn" ? learnTab() : yearTab(y, s);

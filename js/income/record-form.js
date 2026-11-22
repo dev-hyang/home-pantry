@@ -81,6 +81,7 @@ export function formHtml() {
       <label ${fsec("basic", sec)}>${t("谁给的（付款方 / 雇主）")}<input name="source_name" list="incSenders" maxlength="80" value="${d(r.source_name)}" required placeholder="${esc(t("公司名 / 汇款人"))}"><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></label>
       <label ${fsec("basic", sec)}>${t("类型")}<select name="kind" data-inc-kind>${kindOptionsHtml(kind)}</select><small class="muted" data-inc-kind-hint>${esc(kindHint(kind))}</small></label>
       <label ${fsec("basic", sec)} data-inc-gain ${gain ? "" : "hidden"}>${t("其中已实现收益（算收入的部分，选填）")}<input type="number" name="income_amount" step="0.01" min="0" inputmode="decimal" value="${d(r.income_amount)}" aria-describedby="incGainHelp"><small class="muted" id="incGainHelp">${t("例：成本 $10,000 的股票卖了 $15,000，到账 15,000，这里填 5,000。")}</small></label>
+      <label ${fsec("basic", sec)} data-inc-donor ${kind === "gift" ? "" : "hidden"}>${t("赠与人是")}<select name="gift_donor" data-nosearch><option value="">${t("还没标")}</option><option value="foreign" ${r.gift_donor === "foreign" ? "selected" : ""}>${t("非美国人（在境外，或不是美国税务居民）")}</option><option value="us" ${r.gift_donor === "us" ? "selected" : ""}>${t("美国人（美国公民或美国税务居民）")}</option></select><small class="muted">${t("看赠与人的税务身份，不看钱从哪里转来，也不看是不是公民：绿卡 / 住满天数的美国税务居民算「美国人」。")}</small></label>
       <label ${fsec("basic", sec)}>${t("收款方式")}<select name="channel" data-nosearch><option value="">${t("未填")}</option>${selOpts(CHANNELS, r.channel)}</select></label>
       <div style="display:contents" ${fsec("basic", sec)}>${defsHtml(r)}</div>
       <label ${fsec("acct", sec)}>${t("这是谁的收入")}<select name="person_id" data-nosearch>${persons}</select></label>
@@ -112,6 +113,7 @@ export async function saveRecord(form) {
   const row = { id: f.rec?.id, received_on: g("received_on") || todayISO(), amount, currency: cur(), orig_amount: num(g("orig_amount")) > 0 ? num(g("orig_amount")) : null, orig_currency: g("orig_currency").toUpperCase().slice(0, 3) || null,
     fee: g("fee") === "" ? null : num(g("fee")), source_name: name, kind: g("kind") || "other", channel: g("channel") || null, person_id: pid && pid !== "none" ? pid : null, account, account_id: accCard?.id || null, income_amount,
     import_batch: f.rec?.import_batch || null, repay_required: repay, repay_due_on: repay ? g("repay_due_on") || null : null, repay_amount: repay && num(g("repay_amount")) > 0 ? num(g("repay_amount")) : null, notes: g("notes") || null };
+  if (row.kind === "gift") row.gift_donor = g("gift_donor") || null; else if (f.rec?.gift_donor) row.gift_donor = null;   // 只有「个人赠与」才有赠与人；改成别的类型时清掉旧的
   if (row.orig_currency && !/^[A-Z]{3}$/.test(row.orig_currency)) return fail(t("原币种填 3 位字母，如 CNY"));
   const dup = !row.id && similarIncome(row), key = `${row.received_on}|${row.amount}|${skey(name)}`;
   if (dup && f.dupAck !== key) { f.dupAck = key; return fail(t("看起来已经记过：{d} · {n} · {a}。确认不是重复的话，再点一次保存。", { d: dup.received_on, n: dup.source_name, a: fmtMoney(dup.amount) })); }
@@ -124,5 +126,5 @@ export async function saveRecord(form) {
     if (next !== was) await saveDefaultAcct(next).catch(() => toast(t("默认账户没存上，下次再试")));
     if (I.drafts && f.rec?.id) delete I.drafts[f.rec.id];
     const onPage = !!state.route?.q?.get("form"), back = onPage && f.rec?.id; I.form = null; await loadIncome(); toast(t("已保存")); if (back) return go(`${incomeHref("records")}&view=${encodeURIComponent(back)}`, { replace: true }); if (onPage) return go(incomeHref("records"), { replace: true }); rerender(); }
-  catch (e) { fail(/income_amount|account_id/i.test(e.message || "") ? t("数据库还没升级：请先执行 supabase/migrations/056_income_ledger.sql") : t("保存失败：{msg}", { msg: e.message })); }
+  catch (e) { fail(/gift_donor/i.test(e.message || "") ? t("数据库还没升级：请先执行 supabase/migrations/103_income_gift_donor.sql") : /income_amount|account_id/i.test(e.message || "") ? t("数据库还没升级：请先执行 supabase/migrations/056_income_ledger.sql") : t("保存失败：{msg}", { msg: e.message })); }
 }

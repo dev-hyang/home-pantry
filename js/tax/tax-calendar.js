@@ -15,11 +15,20 @@ export const TAX_THRESHOLDS = {
 export const DEFAULT_SETUP = { filing: "mfj", spouseItin: true, kids: 3, flags: { stocks: true, gifts: true, foreign: false, rental: false, selfEmp: false, estimated: false, generalFsa: false } };
 export const cfg = () => state.budget?.cat_budgets?._tax_cfg || {};
 const saveMeta = async (patch) => (await import("../bills/budget-groups.js")).saveMeta(patch);   // 只在保存时才加载预算模块，提醒（随首页加载）不依赖它
-export const setupOf = () => { const c = cfg().setup || {}; return { ...DEFAULT_SETUP, ...c, flags: { ...DEFAULT_SETUP.flags, ...(c.flags || {}) } }; };
+/** 家庭情况每年不一样（今年新生儿、去年 1 个孩子今年 2 个…），所以按税务年度存快照：years[y].setup。
+ *  setupFor(y) = 最近一份「不晚于 y」的快照；一份都没有就用默认 + 以前全局存的设置。没改过的年份自动沿用上一年的。 */
+const merge = (base, c) => ({ ...base, ...(c || {}), flags: { ...base.flags, ...((c && c.flags) || {}) } });
+export function snapshotYear(y) { const ys = Object.keys(cfg().years || {}).filter((k) => +k <= +y && cfg().years[k]?.setup).sort(); return ys.length ? ys[ys.length - 1] : null; }
+export const setupFor = (y) => { const k = snapshotYear(y), legacy = merge(DEFAULT_SETUP, cfg().setup); return k ? merge(legacy, cfg().years[k].setup) : legacy; };
+/** 没指定年份的地方（账户检查等）：用现在在办的那个税务年度 */
+export const setupOf = () => setupFor(activeTaxYear());
+export async function saveSetup(patch, y = activeTaxYear()) {
+  const c = cfg(), next = merge(setupFor(y), patch);   // 存的是这一年的完整快照
+  await saveMeta({ _tax_cfg: { ...c, years: { ...(c.years || {}), [y]: { ...((c.years || {})[y] || {}), setup: next } } } });
+}
 export const acctOf = (id) => (cfg().accts || {})[id] || {};
 export async function saveAcct(id, patch) { const c = cfg(); await saveMeta({ _tax_cfg: { ...c, accts: { ...(c.accts || {}), [id]: { ...acctOf(id), ...patch } } } }); }
 export const yearState = (y) => (cfg().years || {})[y] || {};
-export async function saveSetup(patch) { const c = cfg(); await saveMeta({ _tax_cfg: { ...c, setup: { ...setupOf(), ...patch, flags: { ...setupOf().flags, ...(patch.flags || {}) } } } }); }
 export async function saveYear(y, patch) { const c = cfg(); await saveMeta({ _tax_cfg: { ...c, years: { ...(c.years || {}), [y]: { ...yearState(y), ...patch } } } }); }
 
 /** 默认看哪一个税务年度：1–10 月是在办上一年的税（除非已标记报完）；11–12 月起开始看今年 */
@@ -49,14 +58,19 @@ export function deadlinesFor(y) {
 }
 /** 这个家庭用得上的日历项（按设置里的标记过滤；延期项只在标记了延期时算） */
 export function relevantDeadlines(y) {
-  const flags = setupOf().flags, st = yearState(y);
+  const flags = setupFor(y).flags, st = yearState(y);
   return deadlinesFor(y).filter((d) => (!d.when || flags[d.when]) && (!d.ext || st.extended));
 }
 
-/** 公历年 y 收到的赠与累计（参考）：收入类型是「国际电汇」或「个人赠与」的全部记录（不再排除「需要还」，也不看原币种——家里记这两类时都是境外亲友的钱）；按类型分开合计 */
+/** 公历年 y 收到的赠与累计（参考，Form 3520 只管「非美国人」给的）：
+ *  · 国际电汇：全部算；
+ *  · 个人赠与：赠与人标了「美国人」的不算（单列），标了「非美国人」或还没标的算（没标的先按境外算，页面提示去标）；
+ *  · 不再排除「需要还」，另外列出其中标了需要还的金额（真是借款的话不算赠与）。 */
 export const GIFT_KINDS = ["wire", "gift"];
+const r2 = (n) => Math.round(n * 100) / 100, sum = (rows) => r2(rows.reduce((s2, r) => s2 + (+r.amount || 0), 0));
 export function foreignGiftTotal(y) {
   const recs = (state.inc?.rec || []).filter((r) => String(r.received_on || "").startsWith(String(y)) && GIFT_KINDS.includes(r.kind));
-  const by = Object.fromEntries(GIFT_KINDS.map((k) => { const rows = recs.filter((r) => r.kind === k); return [k, { n: rows.length, total: Math.round(rows.reduce((s2, r) => s2 + (+r.amount || 0), 0) * 100) / 100 }]; }));
-  return { by, total: Math.round(recs.reduce((s2, r) => s2 + (+r.amount || 0), 0) * 100) / 100, n: recs.length, loaded: !!state.inc?.loaded };
+  const wire = recs.filter((r) => r.kind === "wire"), gift = recs.filter((r) => r.kind === "gift"), us = gift.filter((r) => r.gift_donor === "us"), counted = gift.filter((r) => r.gift_donor !== "us");
+  const by = { wire: { n: wire.length, total: sum(wire) }, gift: { n: counted.length, total: sum(counted) } }, all = [...wire, ...counted];
+  return { by, us: { n: us.length, total: sum(us) }, unmarked: gift.filter((r) => !r.gift_donor).length, repay: sum(all.filter((r) => r.repay_required)), total: sum(all), n: all.length, loaded: !!state.inc?.loaded };
 }

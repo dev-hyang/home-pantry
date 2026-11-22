@@ -4,7 +4,7 @@
 export const GROUPS = {
   credit: { name: "信用卡", icon: "💳", kinds: ["credit"] },
   bank: { name: "银行账户", icon: "🏦", kinds: ["checking", "savings", "cash", "debit"] },
-  invest: { name: "投资账户", icon: "📈", kinds: ["brokerage", "retirement", "education", "kid", "hsa", "fsa", "crypto"] },
+  invest: { name: "投资账户", icon: "📈", kinds: ["brokerage", "retirement", "education", "kid", "hsa", "fsa", "commuter", "crypto"] },
   wallet: { name: "电子钱包与礼品卡", icon: "👛", kinds: ["wallet", "gift"] },
 };
 /** 账户种类 → 属于哪个分组（贷款不在这里：在 借贷；没见过的种类按信用卡处理，和以前「卡」的默认一致） */
@@ -18,7 +18,7 @@ export const INVEST_SECTIONS = [
   { id: "retirement", icon: "🧓", name: "退休账户（401K / IRA）", kinds: ["retirement"] },
   { id: "education", icon: "🎓", name: "教育账户（529）", kinds: ["education"] },
   { id: "kid", icon: "🧒", name: "孩子的投资账户（Trump account / UTMA）", kinds: ["kid"] },
-  { id: "health", icon: "🩺", name: "医疗账户（HSA / FSA）", kinds: ["hsa", "fsa"] },
+  { id: "health", icon: "🩺", name: "医疗与通勤福利（HSA / FSA / 通勤）", kinds: ["hsa", "fsa", "commuter"] },
   { id: "brokerage", icon: "📈", name: "券商 / 投资账户", kinds: ["brokerage"] },
   { id: "crypto", icon: "🪙", name: "加密货币账户", kinds: ["crypto"] },
 ];

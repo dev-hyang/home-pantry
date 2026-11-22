@@ -19,6 +19,7 @@ export const demoFinance = {
   async listIncomeRecords() { return this.db.income_records.map((x) => ({ ...x })); },
   async saveIncomeRecord(r) {
     const now = new Date().toISOString(), row = pick(r, INCOME_FIELDS, {});
+    if (r.gift_donor !== undefined) row.gift_donor = r.gift_donor;
     if (r.id) { const i = this.db.income_records.findIndex((x) => x.id === r.id); if (i < 0) throw new Error("记录不存在"); this.db.income_records[i] = { ...this.db.income_records[i], ...row, updated_at: now }; this.persist(); return r.id; }
     const id = uid(); this.db.income_records.push({ ...row, id, created_by: "demo", created_at: now, updated_at: now }); this.persist(); return id;
   },
