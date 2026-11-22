@@ -7,10 +7,6 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { shopHref } from "./shops-common.js";
 
-export const SHOP_TABS = [["list", "商店列表", "🏪"], ["deals", "特价一览", "🏷"]];
-const tabHref = (id) => href("shops", id);
-/** 「目录」按钮（标题前面）：商店列表、特价一览，还有原来 ⋯ 里的更新记录——全是页面之间的导航，所以 ⋯ 取消了 */
-export const shopsNav = (active) => navPop([...SHOP_TABS.map(([id, name, icon]) => ({ href: tabHref(id), icon, label: t(name), current: id === active })), { href: href("shops", "log"), icon: "📜", label: t("更新记录") }], { id: "shopsnav", label: t("目录") });
 /** 右下角 ＋：录入特价去哪家——本周还没更新的那家优先，否则第一家常去的 */
 export function shopsFab(page = "list") {
   const live = (state.shops || []).filter((s) => !s.archived), target = live.find(dealsDue) || live[0];

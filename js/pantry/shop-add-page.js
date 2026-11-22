@@ -4,6 +4,7 @@
  * 已有物品：下拉（按分类分组、可输入搜索）选库存里的物品，单位和分类跟着库存走；新物品：写名字，保存时库存里有相同 / 相近的，会问是不是改成加已有物品。 */
 import { esc, fmtShort, num, showQty } from "../core/util.js";
 import { crumbNav } from "../core/hub.js";
+import { buyHead } from "../shops/buy-nav.js";
 import { href } from "../core/router.js";
 import { moreMenu } from "../core/more-menu.js";
 import { shopAdviceHtml } from "../bills/budget.js";
@@ -83,8 +84,7 @@ export function viewShopAdd() {
   if (q?.get("mode") === "photo") return scanPage(q.get("kind"));
   const recent = state.shopping.filter((s) => s.status !== "bought").sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))).slice(0, 8);
   return `<section class="section shop-add-page">
-    ${crumb()}
-    <div class="section-head"><h2>${t("加入购物车")}</h2><div class="head-acts">${menu()}</div></div>
+    ${buyHead("add", { right: menu() })}
     <div class="panel add-choices">
       ${choice("📦", t("已有物品"), t("库存里有的，快用完了补一份"), [[`📷 ${t("扫描加入")}`, addHref("?mode=photo&kind=existing")], [`✍️ ${t("手动加入")}`, addHref("?form=existing")], [`🔔 ${t("从补货清单加入")}`, addHref("?form=restock")]])}
       ${choice("✨", t("新物品"), t("库存里还没有；买到后会新建物品"), [[`📷 ${t("扫描")}`, addHref("?mode=photo&kind=new")], [`✍️ ${t("手动")}`, addHref("?form=new")]])}

@@ -11,7 +11,8 @@ import { state } from "../core/state.js";
 import { dealHref, typeTags } from "./shop-detail.js";
 import { shopHref, ui } from "./shops-common.js";
 import { clearActionBtn } from "../core/clear-filters.js";
-import { shopsFab, shopsNav } from "./shops-nav.js";
+import { shopsFab } from "./shops-nav.js";
+import { buyHead } from "./buy-nav.js";
 
 /* ───────────── 特价一览：以商品为主（各家的特价放在一起比），列表 / 卡片两种看法；?item= 只看购物车的某一项 ───────────── */
 const DV_SORTS = [["best", "推荐"], ["unit", "按单价"], ["price", "按价格"], ["soon", "快到期的在前"], ["shop", "按商店"]];
@@ -75,8 +76,7 @@ export function viewDeals() {
       <span class="dv-g-act">${m.length ? `<span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-tolist" data-deal="${first.id}">＋ ${t("清单")}</button>`}</span></div>
       <ul class="dv-g-list">${g.deals.map(gRow).join("")}</ul></section>`; };
   return `<section class="section shops-page dv-page">
-    ${crumbNav(crumbs)}
-    <div class="section-head"><div class="sh-title">${item ? "" : shopsNav("deals")}<h2>${item ? t("「{name}」的特价", { name: esc(item.name) }) : t("特价一览")}</h2></div>${item ? "" : `<div class="head-acts">${base.length ? viewSwitch([["group", "按商品", "🧺"], ["list", "列表", "☰"], ["cards", "卡片", "▦"]], mode, { action: "shops-dv-mode" }) : ""}</div>`}</div>
+    ${item ? `${crumbNav(crumbs)}<div class="section-head"><div class="sh-title"><h2>${t("「{name}」的特价", { name: esc(item.name) })}</h2></div></div>` : buyHead("deals", { right: base.length ? viewSwitch([["group", "按商品", "🧺"], ["list", "列表", "☰"], ["cards", "卡片", "▦"]], mode, { action: "shops-dv-mode" }) : "" })}
       <p class="head-sub">${item ? (base.length ? `${t("{n} 家有特价。", { n: new Set(base.map((d) => d.shop_id)).size })}${picked ? t("卡片上显示的是你选的这家。") : t("卡片上默认显示 ★ 那条（{why}）；点「用这家」换成你选的。", { why: t(WHY[base.why] || WHY.unit) })}` : t("现在没有对得上的特价。")) : t("各家有效期内的特价放在一起比；单价相同单位才好比。")}</p>
     ${base.length ? `<div class="toolbar shops-toolbar dv-toolbar">
       <label class="shops-q"><span class="sr-only">${t("搜索特价")}</span><input type="search" data-dv-q value="${esc(v.q)}" placeholder="${esc(t("搜索商品、牌子、商店"))}" autocomplete="off"></label>

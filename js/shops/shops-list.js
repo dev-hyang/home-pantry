@@ -11,7 +11,8 @@ import { lpAttr } from "../core/long-press.js";
 import { Store } from "../core/store.js";
 import { bulkBar, bulkCheck, bulkMenuItem, bulkOn, bulkRegister } from "../core/bulk-select.js";
 import { clearActionBtn } from "../core/clear-filters.js";
-import { shopsFab, shopsNav } from "./shops-nav.js";
+import { shopsFab } from "./shops-nav.js";
+import { buyHead } from "./buy-nav.js";
 
 /* ───────────── 列表 ───────────── */
 export function viewList() {
@@ -27,9 +28,8 @@ export function viewList() {
   const gridOn = all.length > 0 && u.status !== "archived";   // 常去的商店：网格最后一张是「＋ 添加商店」空白卡，点开后表单就在那个位置
   const chips = [["", t("全部"), "", pool.length], ...SHOP_CATS.filter(([c]) => catCount(c)).map(([c, n, i]) => [c, t(n), i, catCount(c)])];
   return `<section class="section shops-page">
-    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("常去的商店"), icon: "🏪" }])}
+    ${buyHead("shops-list")}
     ${missingPanel()}
-    <div class="section-head"><div class="sh-title">${shopsNav("list")}<h2>${t("常去的商店")}</h2></div></div>
     <p class="head-sub">${t("每家的本周广告、特价都在这里；购物车会标出哪家在打折。")}</p>
     ${u.edit === "new" && !gridOn ? shopForm(null) : ""}
     ${u.claude ? claudePanel() : ""}

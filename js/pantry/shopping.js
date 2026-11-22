@@ -2,6 +2,7 @@ import { $, du, esc, fmt, fmtShort, money, num, showQty, stampText, toDisp } fro
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { lang, t } from "../core/i18n.js";
 import { crumbNav } from "../core/hub.js";
+import { buyHead } from "../shops/buy-nav.js";
 import { href } from "../core/router.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { shopAdviceHtml, shopForecastHtml } from "../bills/budget.js";
@@ -130,7 +131,7 @@ function viewShopHome() {
   const st = shopStats(), sh = shopsStats();
   const who = [...st.byWho].map(([w, n]) => `${esc(w)} ${n}`).join(" · ");
   return `<section class="section shop-home">
-    <div class="section-head"><h2>${t("采购")}</h2></div>
+    ${buyHead("home")}
     ${shopImportHtml()}
     <div class="sd-acts" role="group" aria-label="${esc(t("录入"))}">
       <div class="sd-grp"><span class="sd-grp-t">${t("买回来了，录入库存")}</span>
@@ -153,9 +154,7 @@ function viewShopList() {
   const st = state.route?.q?.get("st");
   if (st && SHOP_STATES.some(([k]) => k === st)) { state.shopFilter.st = st; state.route.q.delete("st"); history.replaceState(null, "", href("shopping", "list")); }
   return `<section class="section shop-list-page">
-    ${crumbNav([{ href: href("shopping"), label: t("采购") }, { label: t("购物车"), icon: "🛒" }])}
-    <div class="section-head"><h2>${t("购物车")} <span class="muted shop-n" id="shopN">${t("{n} 项", { n: shopRows().length })}</span></h2>
-      </div>
+    ${buyHead("list", { suffix: ` <span class="muted shop-n" id="shopN">${t("{n} 项", { n: shopRows().length })}</span>` })}
     ${state.shopSel ? "" : `<p class="muted rs-hint shop-hint"><span class="rs-hint-touch">${t("← 左滑删除 · 右滑标成已买到 →")}</span><span class="rs-hint-mouse">${t("在一项上往左拖删除，往右拖标成已买到；也可以点下面的按钮")}</span></p>`}
     ${shopToolbar()}
     ${storeDatalist()}

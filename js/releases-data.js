@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.16", title: { zh: "采购、购物车、常去的商店：同一个「目录」", en: "Shopping, Cart, Favorite stores: one Menu" }, items: [
+    { k: "better", zh: "采购首页、购物车、加入购物车、常去的商店、特价一览：页头统一成「[目录] 采购 / 页面」；目录里「常去的商店」下面是商店列表、特价一览、找附近的商店、更新记录，购物车带没买的件数，打开就停在当前页", en: "Shopping home, Cart, Add to cart, Favorite stores and Deals share one header, “[Menu] Shopping / page”; the menu has Favorite stores → store list, deals, find nearby, update log, the cart shows the count still to buy, and it opens at the current page" },
+  ] },
+
   { v: "2026-11-21.15", title: { zh: "储藏各页：导航小卡片换成「目录」按钮", en: "Storage pages: the navigation cards become a Menu button" }, items: [
     { k: "better", zh: "储藏每个页面顶上那排导航小卡片（概览 / 库存 / 菜单 / 录入购物）换成「目录」按钮，后面是路径「储藏 / 当前页」；库存的待补货件数在目录里；原来上面单独的一条路径取消了", en: "The row of navigation cards on every Storage page (Overview / Inventory / Menu / Log purchase) is now a “Menu” button followed by the path “Storage / current page”; the to-restock count is in the menu; the separate path bar above is gone" },
   ] },
