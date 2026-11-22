@@ -45,7 +45,7 @@ const CELL_SEL = "td, b, strong, small, .num, .badge, .hb-val, .ch-val, svg text
 const BLOCK_OF = (el) => el.closest("table, svg, .hb-list, .chart, .ch-table, .restock-list, .mlist, ul, .panel, .bill-card, .all-sum");   // .bill-card = 账单概览的卡片，.all-sum = 全部账单顶上的合计行：它们不在表格 / 列表 / 面板里，也要有自己的「块」，遮挡才生效
 function markCells(main) {
   main.querySelectorAll(CELL_SEL).forEach((el) => {
-    if (el.closest("[data-money], [data-money-cell], [data-money-off], form, .kpi, .sum-main, .tcard, .crumb, nav, button, select, label") || el.hasAttribute("data-money-cell")) return;   // 看板大数字、表单、按钮、导航不在这里遮   // 看板大数字、表单、今日卡片另有处理
+    if (el.closest("[data-money], [data-money-cell], [data-money-off], [data-money-skip], form, .kpi, .sum-main, .tcard, .crumb, nav, button, select, label") || el.hasAttribute("data-money-cell")) return;   // 看板大数字、表单、按钮、导航不在这里遮   // 看板大数字、表单、今日卡片另有处理
     if (el.children.length > 2 || !isMoneyText(el.textContent || "")) return;   // 只看叶子格子；没有货币符号 = 不是钱，不遮
     el.setAttribute("data-money-cell", "");
     const block = el.closest(".chart") || BLOCK_OF(el); if (block) block.setAttribute("data-money-block", "");

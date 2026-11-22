@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.19", title: { zh: "税务三期：买卖与成本基础（卖房 / 卖车的收益参考）", en: "Tax phase 3: sales and cost basis (home / car sale gain reference)" }, items: [
+    { k: "new", zh: "税务 → 买卖与成本基础：房子的成本基础 = 买入价 + 买入费用 + 装修翻新（你逐条记），收益 = 卖价 − 卖出费用 − 成本基础，自住满 2 年按合并报税排除 50 万美元后算应税收益；亏损的自住房提示不能抵税。出租房另给折旧年额参考（27.5 年，去掉土地）", en: "Tax → Sales & cost basis: a home's cost basis = purchase price + buying costs + improvements (you log them), gain = sale price − selling costs − basis, with the $500,000 joint exclusion when you lived there 2 years; losses on a home you lived in are flagged as not deductible. Rentals also get a yearly depreciation reference (27.5 years, land removed)" },
+    { k: "new", zh: "已卖出的车：买入价、卖出价对比，亏损提示不能抵税；买卖价格来自 房屋 / 车辆 里已有的记录，装修、费用、住满与否记在税务页", en: "Sold cars: purchase vs sale price, with a note that a loss is not deductible; prices come from your Home / Vehicles records, while improvements, costs and the 2-year test are recorded on the Tax page" },
+    { k: "fix", zh: "修复：金额遮挡开着时，税务页里的勾选框、按钮要点两下才有反应（第一下被当成「露出金额」）。现在税务页的金额只逐个遮挡，勾选和按钮一下就生效", en: "Fixed: with amounts hidden, checkboxes and buttons on the Tax pages needed two taps (the first was treated as revealing amounts). Amounts on Tax are now hidden one by one, so ticks and buttons work on the first tap" },
+  ] },
+
   { v: "2026-11-22.18", title: { zh: "税务二期：数字汇总表、标准 / 逐项扣除对比、境外账户 FBAR 预判", en: "Tax phase 2: number summary, standard vs itemized comparison, FBAR check" }, items: [
     { k: "new", zh: "税务 → 汇总：这一年和报税有关的数字，按 TurboTax 的顺序排。自动算的来自你已有的记录（利息 / 股息 / 卖出收益 / 租金、房贷利息、房产税、预缴税、赠与累计）；工资、捐款、医疗、HSA / IRA / 401K 这些记录里没有来源的手填。每行有来源链接、TurboTax 里在哪填、「已核对」勾选", en: "Tax → Summary: this year's tax-related numbers in TurboTax order. Automatic ones come from your records (interest, dividends, sale gains, rent, mortgage interest, property tax, estimated payments, gifts); wages, donations, medical and HSA / IRA / 401K are typed in. Each row has a source link, where to enter it in TurboTax and a Checked tick" },
     { k: "new", zh: "标准扣除 vs 逐项扣除对比（合并报税）：逐项 = 房贷利息 + 房产税和州税（有上限）+ 捐款，和标准扣除比，告诉你哪个更划算（参考）", en: "Standard vs itemized deduction comparison (joint filing): itemized = mortgage interest + property and state tax (capped) + donations, compared with the standard deduction (reference)" },

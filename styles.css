@@ -4649,3 +4649,10 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-num-tt { color: var(--pine); }
 .tax-num-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; }
 .tax-num-foot a { min-height: 44px; display: inline-flex; align-items: center; }
+/* 税务 → 买卖与成本基础（js/tax/tax-sales.js） */
+.tax-imps { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
+.tax-imp { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; border-bottom: 1px dashed var(--line); }
+.tax-imp span { min-width: 0; overflow-wrap: anywhere; }
+.tax-imp-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.tax-imp-form input { min-height: 44px; min-width: 0; box-sizing: border-box; }
+@media (max-width: 480px) { .tax-imp-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .tax-imp-form input[name="desc"] { grid-column: 1 / -1; } }

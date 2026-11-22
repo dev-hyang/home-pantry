@@ -28,6 +28,8 @@ export async function saveSetup(patch, y = activeTaxYear()) {
 }
 export const acctOf = (id) => (cfg().accts || {})[id] || {};
 export async function saveAcct(id, patch) { const c = cfg(); await saveMeta({ _tax_cfg: { ...c, accts: { ...(c.accts || {}), [id]: { ...acctOf(id), ...patch } } } }); }
+export const propOf = (id) => (cfg().props || {})[id] || {};   // 房子 / 车的买卖备忘（装修、费用、住满与否）
+export async function saveProp(id, patch) { const c = cfg(); await saveMeta({ _tax_cfg: { ...c, props: { ...(c.props || {}), [id]: { ...propOf(id), ...patch } } } }); }
 export const yearState = (y) => (cfg().years || {})[y] || {};
 export async function saveYear(y, patch) { const c = cfg(); await saveMeta({ _tax_cfg: { ...c, years: { ...(c.years || {}), [y]: { ...yearState(y), ...patch } } } }); }
 

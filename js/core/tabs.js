@@ -18,7 +18,7 @@ export const STATEMENT_TABS = [["import", "导入", "📥", "选对账单或粘�
 export const DEBT_TABS = [["all", "全部借贷", "📊"], ["asset", "资产融资", "🏦", "房贷、车贷、HELOC、学生贷款、分期"], ["personal", "个人借贷", "🤝", "借给亲友、向亲友借的钱：余额、到期、部分还款"], ["txns", "还款记录", "🧾", "放款、还本、利息、Escrow 的全部流水"]];
 export const ASSET_TABS = [["assets", "资产概览", "🏛️"], ["networth", "净资产", "📈"]];   // 资产页和净资产页之间的导航小卡片（两个独立路由，不走 ?tab=）
 /* 税务（财务 → 税务，2026-11）：今年 · 单据 · 事件指南 · 知识库 */
-export const TAX_TABS = [["year", "今年", "📅", "家庭情况、税务日历、境外赠与累计、容易漏的"], ["household", "家庭情况", "👨‍👩‍👧", "报税身份、配偶 ITIN、孩子人数，以及哪些提醒要打开"], ["summary", "汇总", "🧮", "这一年和报税有关的数字：自动算的 + 手填的，按 TurboTax 的顺序排，标准 / 逐项扣除对比"], ["docs", "单据", "📄", "今年要收的单据，勾已收到、记放在哪"], ["accounts", "账户与开户", "🗂️", "开 HSA / FSA / 529 / 孩子账户前后的税务提示和冲突检查"], ["events", "事件指南", "🧭", "买卖房、车、股票，境外赠与，孩子出生…会碰到什么税"], ["learn", "知识库", "📚", "W-2、1099、ITIN、FBAR…是什么、谁要报"]];
+export const TAX_TABS = [["year", "今年", "📅", "家庭情况、税务日历、境外赠与累计、容易漏的"], ["household", "家庭情况", "👨‍👩‍👧", "报税身份、配偶 ITIN、孩子人数，以及哪些提醒要打开"], ["summary", "汇总", "🧮", "这一年和报税有关的数字：自动算的 + 手填的，按 TurboTax 的顺序排，标准 / 逐项扣除对比"], ["docs", "单据", "📄", "今年要收的单据，勾已收到、记放在哪"], ["sales", "买卖与成本基础", "🏷️", "卖房 / 卖车前后的收益参考：成本基础、装修翻新、自住满 2 年的排除额度"], ["accounts", "账户与开户", "🗂️", "开 HSA / FSA / 529 / 孩子账户前后的税务提示和冲突检查"], ["events", "事件指南", "🧭", "买卖房、车、股票，境外赠与，孩子出生…会碰到什么税"], ["learn", "知识库", "📚", "W-2、1099、ITIN、FBAR…是什么、谁要报"]];
 const DEFS = { tax: TAX_TABS, debts: DEBT_TABS, statements: STATEMENT_TABS, income: INCOME_TABS, spend: SPEND_TABS, budget: BUDGET_TABS };
 export const firstTab = (r) => (DEFS[r?.sub] || [])[0]?.[0] || null;
 
