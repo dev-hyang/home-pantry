@@ -58,12 +58,11 @@ function calendarCard(y) {
 function giftCard(y) {
   const g = foreignGiftTotal(y), th = TAX_THRESHOLDS.foreignGift, pct = Math.min(100, Math.round((g.total / th.amount) * 100)), inc = href("bills", "income");
   const label = { wire: t("国际电汇"), gift: t("个人赠与") };
-  const detail = (k) => `${inc}?tab=records&kind=${k}&from=${y}-01-01&to=${y}-12-31`, add = (k) => `${inc}?tab=records&form=new&kind=${k}`;
-  const rows = GIFT_KINDS.map((k) => `<div class="tax-gift-row"><a class="tax-gift-main" href="${detail(k)}"><span>${esc(label[k])} <small class="muted">${t("{n} 笔", { n: g.by[k].n })}</small></span><b>${money(g.by[k].total)}</b><span class="mch" aria-hidden="true">›</span></a>
-      <a class="btn btn-sm btn-ghost tax-gift-add" href="${add(k)}" aria-label="${esc(t("添加 {name}", { name: label[k] }))}">＋</a></div>`).join("");
+  const detail = (k) => `${inc}?tab=records&inc=1&kind=${k}&from=${y}-01-01&to=${y}-12-31`;   // inc=1 才会套上类型和日期筛选（收入明细的钻取约定）
+  const rows = GIFT_KINDS.map((k) => `<div class="tax-gift-row"><a class="tax-gift-main" href="${detail(k)}"><span>${esc(label[k])} <small class="muted">${t("{n} 笔", { n: g.by[k].n })}</small></span><b>${money(g.by[k].total)}</b><span class="mch" aria-hidden="true">›</span></a></div>`).join("");
   const body = !g.loaded ? `<p class="muted">${t("收入记录还没读到；打开一次 财务 → 收入 再回来。")}</p>`
     : `${rows}<div class="tax-gift-total"><span>${t("合计")}</span><b>${money(g.total)}</b></div><span class="mprog"><i style="width:${pct}%"></i></span>
-       <p class="hint">${t("统计口径：收入类型是「国际电汇」或「个人赠与」的全部记录，不论是否标了「需要还」。点一项看明细；有关联的赠与人（父母、兄弟姐妹）要合并看。")}</p>`;
+       <p class="hint">${t("统计口径：收入类型是「国际电汇」或「个人赠与」的全部记录，不论是否标了「需要还」。点一项看明细；有关联的赠与人（父母、兄弟姐妹）要合并看。美国境内的借款 / 赠与（比如 gift letter）不在这里算：要私下还的，记成「借款到账」就不会算进来。")}</p>`;
   return `<section class="panel dt-block"><div class="dt-head"><h3>🎁 ${t("{y} 年亲友赠与累计", { y })}</h3></div>${body}
     <p class="hint">${esc(tx(th.label))} · <a href="${esc(th.source)}" target="_blank" rel="noopener">${t("官方说明")} ↗</a> · ${t("核对：{d}", { d: th.verified })}</p></section>`;
 }

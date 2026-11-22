@@ -1,1 +1,0 @@
-import{xa as f}from"./chunk-2HWIMT4Y.js";import{d as o}from"./chunk-5WPCZBGF.js";import{f as m}from"./chunk-DZDSB6EA.js";import{k as e}from"./chunk-6NI2A44P.js";var c=(r,l,t)=>o([...f(r),{href:m("bills",r),label:e(r==="spend"?"花费":"收入")},{href:l,label:e("明细")},{label:t}]);export{c as a};

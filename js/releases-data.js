@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.15", title: { zh: "税务：赠与累计的明细链接带上筛选，去掉 ＋", en: "Tax: gift total links carry their filter; removed the + buttons" }, items: [
+    { k: "fix", zh: "「亲友赠与累计」里点「国际电汇」或「个人赠与」，收入明细现在会筛成这个类型和这一年（以前显示全部）", en: "Tapping International wire or Personal gift in the family-gifts total now opens the income records filtered to that type and year (it used to show everything)" },
+    { k: "better", zh: "去掉每一项末尾的 ＋ 按钮；卡片里说明：美国境内的借款 / 赠与不在这里算，要私下还的记成「借款到账」", en: "Removed the + at the end of each line; the card now explains that loans or gifts inside the US are not counted, and one you will repay privately should be recorded as loan received" },
+  ] },
+
   { v: "2026-11-22.14", title: { zh: "修复：财务目录里账户的数字都算到了「信用卡」一行", en: "Fix: Finance menu counted every account under Credit cards" }, items: [
     { k: "fix", zh: "财务 → 账户目录里，「信用卡」一行的数字原来是所有账户的总数，银行账户、投资账户、电子钱包与礼品卡三行没有数字。现在每一行只数自己那一类，「账户」分组的总数是这四行相加", en: "In the Finance → Accounts menu the Credit cards row showed the total number of all accounts while Bank, Investment and E-wallet rows had none. Each row now counts only its own kind, and the Accounts group total is the sum of the four" },
   ] },
