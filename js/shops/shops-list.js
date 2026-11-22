@@ -33,7 +33,6 @@ export function viewList() {
     ${buyHead("shops-list")}
     ${missingPanel()}
     <p class="head-sub">${t("每家的本周广告、特价都在这里；购物车会标出哪家在打折。")}</p>
-    ${u.edit === "new" && !gridOn ? shopForm(null) : ""}
     ${u.claude ? claudePanel() : ""}
     ${due.length && u.status === "active" ? `<div class="panel shops-due" role="status">🗓️ ${t("{n} 家本周的特价还没更新：{names}", { n: due.length, names: due.map((s) => esc(s.name)).join("、") })}</div>` : ""}
     ${all.length ? `<div class="toolbar shops-toolbar">
@@ -102,6 +101,6 @@ export function shopForm(s, { page = false } = {}) {
     ${s ? "" : gwReview()}
     <datalist id="shopChains">${Object.values(CHAINS).map((c) => `<option value="${esc(c.name)}">`).join("")}</datalist>
     ${s ? `<div class="form-actions">${page ? `<a class="btn btn-ghost" href="${shopHref(s)}">${t("取消")}</a>` : `<button type="button" class="btn btn-ghost" data-action="shops-edit-cancel">${t("取消")}</button>`}<button class="btn btn-primary" type="submit">${t("保存")}</button>
-      ${s && !page ? `${s.archived ? "" : `<button type="button" class="btn btn-ghost" data-action="shops-archive" data-id="${s.id}">${t("不去了")}</button>`}<button type="button" class="btn btn-ghost btn-danger" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>` : ""}</div>` : gwActions(`<button type="button" class="btn btn-ghost" data-action="shops-edit-cancel">${t("取消")}</button>`)}
+      ${s && !page ? `${s.archived ? "" : `<button type="button" class="btn btn-ghost" data-action="shops-archive" data-id="${s.id}">${t("不去了")}</button>`}<button type="button" class="btn btn-ghost btn-danger" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>` : ""}</div>` : gwActions(`<a class="btn btn-ghost" href="${href("shops", "list")}">${t("取消")}</a>`)}
   </form>`;
 }

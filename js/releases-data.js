@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.9", title: { zh: "添加商店改成单独的页面", en: "Add shop is now its own page" }, items: [
+    { k: "better", zh: "点「添加商店」进入单独的页面，分步填写、最后确认；不再在商店列表上展开表单。保存后直接进新商店的详情页", en: "Add shop opens its own page with the step-by-step flow and a final review, instead of unfolding a form on the shop list; after saving you land on the new shop" },
+    { k: "fix", zh: "分步添加页面（商店、借贷、家庭成员）填写时，后台同步不会再把没保存的内容冲掉", en: "Background sync no longer wipes what you have typed on the step-by-step add pages (shop, loan, family member)" },
+  ] },
+
   { v: "2026-11-22.8", title: { zh: "添加商店、添加家庭成员：分步填写，最后确认后才创建", en: "Add shop, add family member: step by step, created only after the final review" }, items: [
     { k: "better", zh: "添加商店（基本信息 → 特价更新）和添加家庭成员（基本资料 → 联系方式）也改成分步填写，最后一页「确认」列出全部信息，每一块带「编辑」，点「确认并创建」才真正建", en: "Adding a shop (Basics → Deal updates) and a family member (Profile → Contact) is now step by step; the last page lists everything with an Edit button on each block, and Confirm and create makes it" },
   ] },

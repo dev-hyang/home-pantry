@@ -26,10 +26,7 @@ function formRow(f) {
 export async function shopsAction(action, el, { render, go, refresh }) {
   const u = ui(), id = el.dataset.id;
   switch (action) {
-    case "shops-new": {   // 再点一次收起来
-      if (u.edit === "new") { u.edit = null; render(); return; }
-      u.edit = "new"; render(); const f = $("#shopEditForm"); f?.scrollIntoView({ block: "nearest", behavior: "smooth" }); f?.elements.name.focus({ preventScroll: true }); return;
-    }
+    case "shops-new": go(`${href("shops", "shop")}/new`); return;   // 添加商店：单独的页面（分步 + 确认）
     case "shops-edit": u.edit = id; render(); return;
     case "shops-edit-cancel": u.edit = null; render(); return;
     case "shops-status": u.status = el.dataset.v; render(); return;
@@ -205,7 +202,7 @@ export function bindShops(render) {
       const id = f.dataset.id, old = id ? shopById(id) : null;
       const saved = await Store.saveShop(old ? { ...old, ...row } : row); upsertLocal(saved); ui().edit = null;
       toast(old ? t("已保存") : t("已加入 {name}", { name: saved.name }));
-      if (old && state.route?.q?.get("edit")) return go(`${href("shops", "shop")}/${encodeURIComponent(saved.id)}`, { replace: true });   // 编辑页保存后回到商店详情
+      if (state.route?.sub === "shop" && (!old || state.route?.q?.get("edit"))) return go(`${href("shops", "shop")}/${encodeURIComponent(saved.id)}`, { replace: true });   // 添加 / 编辑页保存后进商店详情
       R();
     } catch (err) { toast(t("保存失败：{msg}", { msg: err.message })); }
   });
