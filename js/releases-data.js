@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.23", title: { zh: "修买卖计划的路径", en: "Fix the Buy / sell plans path" }, items: [
+    { k: "fix", zh: "买卖计划里的指南（我想买房 / 买车 / 卖房 / 卖车）和每个计划，路径原来写成「房屋 / 某套房产 / 买卖计划」，现在是「房屋 / 买卖计划 / 指南名」——买卖计划不属于哪一套房产", en: "The guides (I want to buy a home / buy a car / sell a home / sell a car) and each plan under Buy / sell plans showed the path “House / some property / Buy / sell plans”; it is now “House / Buy / sell plans / guide name” — plans don't belong to a particular property" },
+  ] },
+
   { v: "2026-11-21.22", title: { zh: "财务四个一级目录页；采购下两页补上「目录」", en: "Four top-level Finance directory pages; two Shopping pages get the Menu" }, items: [
     { k: "new", zh: "财务首页变成四张入口卡片（分析、收支、账单、账户），点一张进它自己的目录页「财务 / 分析」等，里面一行一个页面；目录里点这四个一级入口也直接跳到对应的目录页，展开箭头才展开下一层", en: "The Finance home is four entry cards (Analysis, Money in & out, Bills, Accounts); each opens its own directory page (“Finance / Analysis”…) with one row per page; tapping those four sections in the Menu also jumps to the directory page, only the arrow expands the next level" },
     { k: "fix", zh: "采购 → 常去的商店 → 找附近的商店、更新记录：页头补上了「目录」按钮和「采购 / 常去的商店 / …」路径（原来漏换，还是旧的面包屑）", en: "Shopping → Favorite stores → Find nearby and Update log: the header now has the Menu button and the “Shopping / Favorite stores / …” path (they had been missed and still showed the old breadcrumb)" },

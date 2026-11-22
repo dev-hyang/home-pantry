@@ -5,7 +5,7 @@ import { liveNetWorth } from "./bills/nw-logic.js";
 import { isClosedStatus } from "./core/debt-rules.js";
 import { SECTIONS, href } from "./core/router.js";
 import { esc, inSpace } from "./core/util.js";
-import { t } from "./core/i18n.js";
+import { lang, t } from "./core/i18n.js";
 import { alertsOf } from "./core/logic.js";
 import { assetName } from "./house/assets-logic.js";
 import { undoneThisMonth } from "./house/tasks-logic.js";
@@ -122,6 +122,11 @@ export function crumb(r) {
     const id = r.q.get("card"); if (id === "new" || r.q.get("edit")) return "";
     const c = state.cards.find((x) => x.id === id), kind = c?.kind || "credit";
     return crumbNav([{ href: href("bills"), label: t(sec.name) }, { href: groupHref(kind), label: t(groupName(kind)) }, { label: c ? c.name : t("找不到这张卡") }]);
+  }
+  if (r.section === "house" && r.sub === "plan" && (r.q?.get("k") || r.q?.get("p"))) {   // 买卖计划的指南 / 某个计划：房屋 / 买卖计划 / 指南名（买卖计划不属于某套房产，路径里不放房产名）
+    const k = r.q.get("k"), g = k && window.GUIDES?.GUIDES?.[k], plan = r.q.get("p") && (state.plans || []).find((x) => x.id === r.q.get("p"));
+    const label = g && Array.isArray(g.name) ? (lang === "en" ? g.name[1] : `我想${g.name[0]}`) : plan ? plan.title : t("买卖计划");
+    return crumbNav([{ href: href("house"), label: t(sec.name) }, { href: href("house", "plan"), label: t("买卖计划") }, { label, icon: g?.icon }]);
   }
   const parent = r.section === "bills" ? { template: "recurring" } : { template: "supplies", "asset-template": "assets" };
   const cur = sec.subs.find(([k]) => k === r.sub) || sec.subs.find(([k]) => k === parent[r.sub]);
