@@ -4660,3 +4660,18 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
 .tax-tools .btn { min-height: 44px; }
 @media print { .tax-tools, .tax-page .fpop, .tax-page .tax-num-foot label, .tax-page .tax-num-in { display: none !important; } .tax-page .panel { break-inside: avoid; box-shadow: none; } }
+/* 买卖与成本基础：一步一步（tax-sales.js 2026-11-22.22） */
+.tax-step { margin: 0 0 14px; padding: 0 0 12px; border-bottom: 1px dashed var(--line); min-width: 0; }
+.tax-step h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 15px; }
+.tax-step-n { display: inline-grid; place-items: center; min-width: 24px; height: 24px; border-radius: 50%; background: var(--pine); color: #fff; font-size: 13px; }
+.tax-step p { margin: 4px 0; }
+.tax-sub-total { text-align: right; }
+.tax-add-btn { min-height: 44px; }
+.tax-result { border-bottom: 0; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+.tax-item-form { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 8px; align-items: end; margin-top: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+.tax-item-form label { display: grid; gap: 3px; font-size: 13px; font-weight: 600; min-width: 0; }
+.tax-item-form input { min-height: 44px; min-width: 0; box-sizing: border-box; }
+.tax-item-actions, .tax-item-form .tax-item-err { grid-column: 1 / -1; }
+.tax-item-actions { display: flex; gap: 8px; }
+.tax-item-actions .btn { flex: 1 1 0; min-height: 44px; justify-content: center; }
+@media (max-width: 480px) { .tax-item-form { grid-template-columns: minmax(0, 1fr); } }

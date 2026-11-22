@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.22", title: { zh: "买卖与成本基础：一步一步、一项一项填；不再自动折叠你正在填的房", en: "Sales & cost basis: step by step, one item at a time; no more collapsing the home you are filling" }, items: [
+    { k: "fix", zh: "修复：每保存一次，页面会自动把第一套房折叠、展开第二套。现在展开 / 折叠记在页面里，你点开的房子保存后仍然开着", en: "Fixed: after every save the first home collapsed and the second opened. Open / closed is now remembered, so the home you opened stays open" },
+    { k: "better", zh: "房子的卡片改成 ①→⑦ 一步一步：买入价（只读）→ 买入费用 → 买入退款 / credit → 装修翻新 → 卖出价（只读）→ 卖出费用 → 自住满 2 年 → 结果。费用、退款、装修都是一条条的清单，点「＋ 添加一项」才展开小表单（内容 + 金额，装修的日期可不填），一次加一项，每项右边有 ×", en: "A home card now runs step by step 1 to 7: purchase price (read-only) → buying costs → buying refunds / credits → improvements → sale price (read-only) → selling costs → lived 2 years → result. Costs, refunds and improvements are lists; tap Add an item to open a small form (description + amount, date optional for improvements), one item at a time, each with a ×" },
+    { k: "fix", zh: "填写内容或金额漏了时，会在表单里直接写出原因（以前日期没填就悄悄点不了「添加」，不知道是哪个字段）；日期不再是必填", en: "A missing description or amount now shows the reason right in the form (before, a missing date silently disabled Add without saying which field); the date is no longer required" },
+  ] },
+
   { v: "2026-11-22.21", title: { zh: "税务：买房时收到的退款 / 贷款方 credit 不算收入，冲减成本", en: "Tax: closing refunds and lender credits are not income, they reduce cost" }, items: [
     { k: "new", zh: "税务 → 买卖与成本基础：房子多了「买入时收到的退款 / 贷款方 credit」一栏，会从成本基础里减掉（以前只能记费用，退款没地方放）", en: "Tax → Sales & cost basis: each home has a new field for refunds / lender credits received at purchase, subtracted from the cost basis" },
     { k: "better", zh: "事件指南「买房」补了一条：closing 多收事后退款、贷款方 credit 一般不算收入；要向对方要书面说明并存好", en: "The Buying a home guide now explains that closing refunds and lender credits are generally not income and that you should get a written note and keep it" },
