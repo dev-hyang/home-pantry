@@ -19,6 +19,7 @@ import { debtsEnriched } from "./debt-logic-common.js";
 import { pageHead } from "../core/page-head.js";
 import { curSec, fsec, secTitle } from "../core/form-sec.js";
 import { DEBT_SEC_NAMES } from "./debt-sections.js";
+import { dwActions, dwChrome } from "./debt-wizard.js";
 
 /* ───────────── 新建 / 编辑 ───────────── */
 /** 银行的 Escrow 计划：每行 从哪个月起 + 每期金额（已有的几行 + 两行空的） */
@@ -38,8 +39,8 @@ export function debtForm(d) {
   const val = (k) => esc(v[k] ?? ""), personal = v.category === "personal_lending";
   const opt = (obj, sel) => Object.entries(obj).map(([k, x]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${esc(t(typeof x === "string" ? x : x.name))}</option>`).join("");
   const loanAccts = (state.cards || []).filter((c) => c.kind === "loan"), has060 = debt060();
-  return `<form data-debt-form="debt" class="panel" novalidate>${secTitle(DEBT_SEC_NAMES[sec], sec)}${d ? `<input type="hidden" name="id" value="${esc(d.id)}">` : ""}${bill ? `<input type="hidden" name="bill" value="${esc(bill.id)}">` : ""}
-    ${bill ? `<p class="muted" style="margin:0 0 10px">${t("从账单「{n}」建贷款：账单继续管提醒和缴费，贷款记本金、利率和拆分。", { n: bill.name })}</p>` : ""}
+  return `<form data-debt-form="debt" class="panel" novalidate ${d ? "" : "data-dwz=\"1\""}>${secTitle(DEBT_SEC_NAMES[sec], sec)}${d ? "" : dwChrome(personal)}${d ? `<input type="hidden" name="id" value="${esc(d.id)}">` : ""}${bill ? `<input type="hidden" name="bill" value="${esc(bill.id)}">` : ""}
+    ${bill ? `<p data-fsec="basic" class="muted" style="margin:0 0 10px">${t("从账单「{n}」建贷款：账单继续管提醒和缴费，贷款记本金、利率和拆分。", { n: bill.name })}</p>` : ""}
     <div class="form-grid">
       <label ${fsec("basic", sec)}>${t("类型")}<select name="category" data-debt-cat>${opt(DEBT_CATS, v.category)}</select></label>
       <label ${fsec("basic", sec)}>${t("名称")}<input name="name" maxlength="60" required value="${val("name")}" placeholder="${esc(t("例如 房贷 · Chase"))}"></label>
@@ -65,11 +66,12 @@ export function debtForm(d) {
       <label ${fsec("link", sec)} class="check-inline" data-debt-asset ${personal ? "hidden" : ""}><input type="checkbox" name="secured" ${v.secured ? "checked" : ""}><span>${t("以这处资产抵押")}</span></label>
       <label ${fsec("notes", sec)} style="grid-column:1/-1">${t("备注")}<textarea name="notes" maxlength="1000" rows="2">${val("notes")}</textarea></label>
     </div>
-    ${sec ? "" : `${has060 ? "" : `<p class="notice" role="status">${t("执行 supabase/migrations/060_debt_schedule.sql 后可以填第一期还款日、Escrow 计划和对账单校准。")}</p>`}
+    ${sec ? "" : `<div data-fsec="terms">${has060 ? "" : `<p class="notice" role="status">${t("执行 supabase/migrations/060_debt_schedule.sql 后可以填第一期还款日、Escrow 计划和对账单校准。")}</p>`}
     <p class="muted" style="font-size:13px">${t("房贷按对账单拆分要填：原始本金、年利率、期限、第一期还款日；Escrow 计划可选（每年 Escrow 分析后加一行）。")}</p>
-    <p class="muted" style="font-size:13px">${t("中途开始记的贷款：填「某天的未还本金」和那一天（看对账单），不用填原始本金；之前的还款会按利率倒推拆分。")}</p>`}
+    <p class="muted" style="font-size:13px">${t("中途开始记的贷款：填「某天的未还本金」和那一天（看对账单），不用填原始本金；之前的还款会按利率倒推拆分。")}</p></div>`}
+    ${d ? "" : `<div data-dw-review hidden></div>`}
     <p class="form-error" role="alert" data-debt-err></p>
-    <div class="form-actions"><button class="btn btn-primary">${d ? t("保存") : t("添加")}</button><a class="btn btn-ghost" href="${esc(d ? debtHref(d.id) : href("bills", "debts"))}">${t("取消")}</a></div></form>`;
+    ${d ? `<div class="form-actions"><button class="btn btn-primary">${t("保存")}</button><a class="btn btn-ghost" href="${esc(debtHref(d.id))}">${t("取消")}</a></div>` : dwActions(href("bills", "debts"))}</form>`;
 }
 export function viewDebts() {
   const q = state.route.q;

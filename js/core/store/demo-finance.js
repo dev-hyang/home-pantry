@@ -1,6 +1,7 @@
 /* 演示模式（数据存在浏览器里）的数据读写：收入记录、预算、借贷、账户余额、净资产。 */
 import { INCOME_FIELDS, balanceRow, debtRow, debtTxnRow, demoSave, incomeTotal, pick, snapshotRow, valuationRow } from "../store.js";
 import { t } from "../i18n.js";
+import { uid } from "../util.js";
 
 export const demoFinance = {
   // 自定义名称的翻译（位置 / 分类 / 小类在其他语言下怎么叫）

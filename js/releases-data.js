@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.7", title: { zh: "添加借贷：一步一页，最后确认后才创建", en: "Add loan: step by step, created only after the final review" }, items: [
+    { k: "better", zh: "添加借贷改成一步一页（基本信息 → 金额与期限 → 还款安排 → 关联账户与资产 → 备注），最后一页「确认」列出全部信息，每一块带「编辑」，点「确认并创建」才真正建", en: "Adding a loan is now step by step (Basics → Amount & term → Repayment → Linked accounts & assets → Notes); the last page lists everything with an Edit button on each block, and Confirm and create makes it" },
+    { k: "better", zh: "个人借贷（借给朋友 / 向朋友借）只有基本信息、金额与期限、备注三步", en: "Personal loans (to or from a friend) only have three steps: Basics, Amount & term, Notes" },
+  ] },
+
   { v: "2026-11-22.6", title: { zh: "借贷、收入、花费、商店：详情页每一块的「编辑」只改这一块", en: "Loans, income, spending, shops: each block’s Edit now changes just that block" }, items: [
     { k: "better", zh: "收入、花费、商店详情页每一块右上角的「编辑」，现在打开的编辑页只显示这一块的字段（以前是整张表单，只是把光标放到那一块）", en: "On income, spending and shop details, a block’s Edit now opens a page with just that block’s fields (it used to open the whole form and only move the cursor)" },
     { k: "new", zh: "借贷详情页多了资料分块（基本信息、金额与期限、还款安排、关联账户与资产、备注），每块带「编辑」，只改这一块；个人借贷没有还款安排和关联两块", en: "Loan details now have blocks (Basics, Amount & term, Repayment, Linked accounts & assets, Notes), each with its own Edit; personal loans skip Repayment and Linked" },

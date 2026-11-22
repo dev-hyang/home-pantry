@@ -14,6 +14,7 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { cur, hooks, ui } from "./debt-common.js";
 import { billOfDebt, canSplit, debtById, loadDebts } from "./debt-logic-common.js";
+import { dwIntercept } from "./debt-wizard.js";
 
 /* ───────────── 动作 ───────────── */
 const guard = async (fn) => { try { await fn(); } catch (e) { toast(t("操作失败：{msg}", { msg: e.message })); } };
@@ -129,7 +130,7 @@ export function initDebts({ render, refresh }) {
     const f = e.target.closest?.("[data-debt-form]"); if (!f) return;
     e.preventDefault(); e.stopPropagation();
     const kind = f.dataset.debtForm, d = f.dataset.id ? debtById(f.dataset.id) : null, fd = new FormData(f), g = (k) => String(fd.get(k) ?? "").trim();
-    if (kind === "debt") return saveDebtForm(f);
+    if (kind === "debt") return dwIntercept(f) ? undefined : saveDebtForm(f);   // 添加借贷向导：回车 = 下一步，确认页先复查每一步
     if (kind === "pay-link" && d) return guard(async () => {
       const pid = g("purchase"); if (!pid) return toast(t("请选一笔花费"));
       f.querySelector("button.btn-primary").disabled = true;

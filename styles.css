@@ -4072,7 +4072,7 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .form-actions-split[data-n="4"] > .btn { font-size: 13px; padding-inline: 6px; }
 .form-actions-split[data-n="5"] > .btn, .form-actions-split[data-n="6"] > .btn { font-size: 12px; padding-inline: 4px; }
 .form-actions-split [hidden] { display: none !important; }
-@media (max-width: 480px) { .form-actions-split[data-n="3"] > .btn { font-size: 13px; padding-inline: 6px; } .form-actions-split[data-n="3"] > .btn:last-of-type { flex-grow: 1.8; } }   /* 手机上 3 个按钮：最右边的主按钮分多一点，「保存并下一步」不被截 */
+@media (max-width: 480px) { .form-actions-split[data-n="3"] > .btn { font-size: 13px; padding-inline: 6px; } .form-actions-split[data-n="3"] > .btn-primary { flex-grow: 1.8; } }   /* 手机上 3 个按钮：最右边的主按钮分多一点，「保存并下一步」不被截 */
 .form-actions.wiz-exit .btn { min-height: 44px; }
 
 /* 头部卡里的小表：标题 + 左标签右内容，各块之间一条细线 */
@@ -4590,3 +4590,11 @@ button.npop-item { width: 100%; border: 0; background: none; font: inherit; font
 /* 借贷详情的资料分块（bills/debt-sections.js）：手机一列，宽屏两列 */
 .dd-secs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 14px; margin-top: 4px; }
 @media (min-width: 760px) { .dd-secs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* 添加借贷向导（bills/debt-wizard.js）：按表单的 data-step 只显示当前这一块（没有 data-step = 第一步；review = 只显示确认页） */
+form[data-dwz]:not([data-step]) [data-fsec]:not([data-fsec="basic"]),
+form[data-dwz][data-step="basic"] [data-fsec]:not([data-fsec="basic"]),
+form[data-dwz][data-step="terms"] [data-fsec]:not([data-fsec="terms"]),
+form[data-dwz][data-step="pay"] [data-fsec]:not([data-fsec="pay"]),
+form[data-dwz][data-step="link"] [data-fsec]:not([data-fsec="link"]),
+form[data-dwz][data-step="notes"] [data-fsec]:not([data-fsec="notes"]),
+form[data-dwz][data-step="review"] [data-fsec] { display: none !important; }
