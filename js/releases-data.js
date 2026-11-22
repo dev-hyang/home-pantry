@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.1", title: { zh: "编辑 / 新建页的「取消 · 保存」统一：只在底部一条，取消靠左、保存靠右", en: "Edit / create pages: one Cancel · Save bar at the bottom, Cancel left, Save right" }, items: [
+    { k: "better", zh: "编辑页顶上多出来的那一份「取消 / 保存」去掉了，只保留底部常驻的一条（长表单也不用滑到底）", en: "Removed the duplicate Cancel / Save bar at the top of edit pages; the bottom bar stays visible while you scroll" },
+    { k: "better", zh: "所有表单的按钮条统一：取消靠左、保存 / 确认靠右、上一步 / 下一步在中间；按钮等宽排成一行，按钮越多字越小", en: "All form bars follow one layout: Cancel left, Save / Confirm right, Back / Next in the middle; equal widths on one row, smaller text when there are more buttons" },
+    { k: "fix", zh: "房屋资料各分区、添加卡向导的按钮顺序改正（原来保存在前、取消在最右）", en: "Fixed button order on house profile sections and the add-card wizard (Save used to come first, Cancel last)" },
+  ] },
+
   { v: "2026-11-21.26", title: { zh: "面包屑按层级补全：每一层都能点回上一层；有目录按钮就不要「返回」", en: "Breadcrumbs completed level by level: every level links to a real parent; no “Back” next to the Menu button" }, items: [
     { k: "fix", zh: "财务各页的路径补上「分组」这一层：财务 / 收支 / 收入 / 收支总览（点「收支」回到收支目录页）；账单、借贷、信用卡、账户、收入 / 花费详情和表单的路径同样补全（例如 财务 / 账户 / 投资账户 / 某个账户）", en: "Finance paths now include the group level: Finance / Money in & out / Income / Overview (tapping “Money in & out” opens that directory page); the same applies to bills, debts, cards, accounts and income / spending details and forms (e.g. Finance / Accounts / Investments / an account)" },
     { k: "fix", zh: "房屋各页的路径补上「房产」「汽车」目录页这一层：房屋 / 房产 / 某套房产 / 设备保养 / 某台设备；房屋 / 汽车 / 某辆车 / 保养记录；房产和车辆的账单、出了问题等页面也一样", en: "House paths now include the Houses / Cars directory pages: House / Houses / a property / Equipment / a device; House / Cars / a vehicle / Service log; bills and “Something's wrong” pages of properties and vehicles too" },
