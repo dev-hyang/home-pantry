@@ -16,7 +16,8 @@ export function buyTree(cur) {
     .map(([id, h, icon, label]) => ({ label, icon, href: h, current: id === cur }));
   return [{ label: t("采购首页"), icon: "🛒", href: href("shopping"), current: cur === "home" },
     { label: t("购物车"), icon: "🛍️", href: href("shopping", "list"), badge: left || "", current: cur === "list" },
-    { label: t("加入购物车"), icon: "＋", href: href("shopping", "add"), current: cur === "add" },
+    { label: t("加入购物车"), icon: "＋", href: href("shopping", "add"), current: cur === "add", open: cur === "add",
+      children: [{ label: t("扫描加入"), icon: "📷", href: `${href("shopping", "add")}?mode=photo` }, { label: t("补货提醒"), icon: "🔔", href: `${href("shopping", "add")}?form=restock` }, { label: t("买好了，录入库存"), icon: "🧾", href: href("pantry", "scan") }] },
     { label: t("常去的商店"), icon: "🏪", href: href("shops", "list"), open: shopsKids.some((x) => x.current), children: shopsKids }];
 }
 

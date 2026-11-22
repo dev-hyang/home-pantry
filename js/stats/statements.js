@@ -8,7 +8,6 @@ import { state } from "../core/state.js";
 import { $, esc, fmtDate, money, moneyExact, num, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
-import { tabBar } from "../core/hub.js";
 import { debounce, moreBtn, pageSize } from "../core/pager.js";
 import { STATEMENT_TABS, activeTab } from "../core/tabs.js";
 import { bankImportTab } from "./bank-import.js";

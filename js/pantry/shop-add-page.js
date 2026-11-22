@@ -31,7 +31,6 @@ export function itemPickOptions() {
   return `<option value="">${t("请选择库存里的物品…")}</option>${known.join("")}${rest.length ? `<optgroup label="${esc(t("其他"))}">${rest.map(opt).join("")}</optgroup>` : ""}`;
 }
 
-const menu = () => moreMenu([{ label: `📷 ${t("扫描")}`, href: addHref("?mode=photo"), first: true }, { label: `🔔 ${t("补货提醒")}`, href: addHref("?form=restock") }, { label: `🧾 ${t("买好了，录入库存")}`, href: href("pantry", "scan") }], { label: t("更多操作") });
 
 /** 一个选择块：点开弹出几个入口 */
 const choice = (icon, title, desc, opts) => `<details class="act-more add-choice"><summary><span class="ac-ico" aria-hidden="true">${icon}</span><span class="ac-txt"><b>${title}</b><small>${desc}</small></span><span class="mch" aria-hidden="true">›</span></summary>
@@ -84,7 +83,7 @@ export function viewShopAdd() {
   if (q?.get("mode") === "photo") return scanPage(q.get("kind"));
   const recent = state.shopping.filter((s) => s.status !== "bought").sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))).slice(0, 8);
   return `<section class="section shop-add-page">
-    ${buyHead("add", { right: menu() })}
+    ${buyHead("add")}
     <div class="panel add-choices">
       ${choice("📦", t("已有物品"), t("库存里有的，快用完了补一份"), [[`📷 ${t("扫描加入")}`, addHref("?mode=photo&kind=existing")], [`✍️ ${t("手动加入")}`, addHref("?form=existing")], [`🔔 ${t("从补货清单加入")}`, addHref("?form=restock")]])}
       ${choice("✨", t("新物品"), t("库存里还没有；买到后会新建物品"), [[`📷 ${t("扫描")}`, addHref("?mode=photo&kind=new")], [`✍️ ${t("手动")}`, addHref("?form=new")]])}

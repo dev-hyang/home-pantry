@@ -10,7 +10,6 @@ import { esc, money } from "../core/util.js";
 import { href } from "../core/router.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
-import { tabHub } from "../core/hub.js";
 import { tripsPanel } from "./spend-trips.js";
 import { rangeLabel } from "./add-lite.js";
 
@@ -77,8 +76,7 @@ export function spendOverviewTab(withHub = false) {
   } else body = LOADING();
   return `${overviewKpis()}
     ${notes.map((x) => `<p class="muted" style="font-size:13px">${esc(x)}</p>`).join("")}
-    ${body}
-    ${withHub ? tabHub(SPEND_TABS, spendHref, t("其他功能")) : ""}`;
+    ${body}`;
 }
 /* ── 分类：一级 → 二级 → 叶子 逐层点进去（面包屑回上层）；每层有子类排行（带占比）和选中节点的月度柱状图（按子类堆叠）。
  * 跟着时间范围、月份、「排除资本性 / 投资」开关；转账不在这里（不是花费），在明细里看。 */

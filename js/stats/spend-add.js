@@ -9,7 +9,6 @@ import { normRange } from "../core/time-range.js";
 import { spendCategoryTab, spendHref, spendOverviewTab } from "./spend-overview.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
-import { tabBar } from "../core/hub.js";
 import { viewHomeStats } from "./home-stats.js";
 import { propertyOptions, spendExportTab, timeBarHtml } from "./add-lite.js";
 import { activeProps } from "./add-lite-common.js";

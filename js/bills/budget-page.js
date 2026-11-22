@@ -8,7 +8,6 @@ import { fmtDate, saleEvents, sitesHtml } from "./budget-shopping.js";
 import { href } from "../core/router.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
-import { tabBar, tabHub } from "../core/hub.js";
 import { perWord, rangeMonths, trendHead, trendPeriods } from "../stats/spend-roll.js";
 import { dq, hitAttrs } from "../stats/spend-drill.js";
 import { timeBarHtml } from "../stats/add-lite.js";
@@ -74,7 +73,6 @@ export function viewBudget() {
       ${plan.income != null && plan.pool <= 0 ? `<p class="form-error">${t("固定账单和储蓄已经用完了收入，没有可支配额：先看看账单能不能压缩，或降低储蓄比例。")}</p>` : ""}
     </section>
     ${attentionPanel(["budget"], { title: t("要处理") })}
-    ${tabHub(BUDGET_TABS, budgetHref, t("更多"))}
     <section class="section">
       <div class="section-head"><h2>${t("本月预算")}</h2><p>${t("竖线是本月已过去的进度；条越过竖线说明花得比时间快")}</p></div>
       <div class="panel">

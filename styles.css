@@ -1229,8 +1229,6 @@ form fieldset[hidden] { display: none !important; }
 .bill-pay-sel { width: auto; max-width: 260px; font-size: 12.5px; padding: 5px 24px 5px 8px; min-height: 0; }
 @media (max-width: 520px) { .bill-row { grid-template-columns: minmax(0, 1fr) auto; } .bill-row .bill-pay-sel { grid-column: 1 / -1; width: 100%; max-width: none; } }   /* 手机：怎么付的下拉独占一行，名字不被挤 */
 .card-net.net-bank { background: var(--pine); color: #fff; }
-.acct-add { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.acct-add .chip { text-decoration: none; }
 form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 #billForm .sub-only { display: none; }
 #billForm.is-sub .sub-only { display: grid; }
@@ -2550,8 +2548,6 @@ html.force-phone .today-layout { grid-template-columns: minmax(0, 1fr); }
 .ds-viewbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 4px 0 8px; }
 .ds-viewbar h3 { font-size: 16px; font-weight: 600; margin: 0; }
 .ds-viewbar h3 small { font-size: 13px; font-weight: 500; }
-.ds-toggle { display: flex; gap: 6px; }
-.ds-toggle .chip { min-height: 34px; }
 .ds-scroll { overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; margin-right: -6px; scrollbar-gutter: stable; }
 .ds-scroll:focus-visible, .ds-tscroll:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
 .ds-tpanel { padding-top: 4px; }
@@ -3828,9 +3824,6 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
   }
 }
 /* 时间范围 + 资产：两个下拉一直可见（不走手机的「筛选」折叠：范围是这页最重要的口径），手机各占一半 */
-.ov-filters { display: flex; gap: 8px; margin-bottom: 8px; }
-.ov-filters select { flex: 1 1 0; min-width: 0; }
-@media (min-width: 761px) { .ov-filters select { flex: 0 1 260px; } }
 .bill-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 8px; }
 .bill-card { position: relative; display: flex; flex-direction: column; gap: 4px; min-height: 96px; padding: 12px 14px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface); color: var(--bc-fg); text-decoration: none; }   /* 白底卡片 + 线框，和别的页面的卡片一致；颜色只给图标底和标题字 */
 .bill-card:hover { border-color: var(--bc-fg); }
@@ -4109,9 +4102,6 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 
 .pick-panel .pick-q { width: 100%; }
 /* 概览筛选行：时间范围固定宽度，资产（可搜索：电脑是 .ssel，手机是 .ssel-btn）占剩下的 */
-.ov-filters #ovRange { flex: 0 0 8.5em; }
-.ov-filters .ssel, .ov-filters .ssel-btn { flex: 1 1 0; min-width: 0; }
-@media (min-width: 761px) { .ov-filters #ovRange { flex: 0 0 200px; } .ov-filters .ssel, .ov-filters .ssel-btn { flex: 0 1 320px; } }
 
 /* 登录记录：一行一次登录（设备图标 / 设备 + 浏览器 / 时间 IP / 新设备·新网络标签）；可疑且没确认的左边一条红线 */
 .login-list .login-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; min-width: 0; }

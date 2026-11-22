@@ -14,7 +14,6 @@ import { href } from "../core/router.js";
 import { setRecordFilter } from "./debt-records.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
-import { tabBar } from "../core/hub.js";
 import { tabHref, ui, vehicles } from "./debt-common.js";
 import { debtsEnriched } from "./debt-logic-common.js";
 import { pageHead } from "../core/page-head.js";

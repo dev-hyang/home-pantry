@@ -9,7 +9,6 @@ import { iso, monthsBetween, roll, spanOfMonths } from "./rollup.js";
 import { recordRow, repayPanel } from "./records-tab.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
-import { tabHub } from "../core/hub.js";
 import { BLUE, DRILL_HINT, GREEN, GROUPED_MAX, R2, RED, SLATE, TEAL, cur, empty, fmtMoney, incDrill, incomeHref, netWorthCard, pctOf, personOptions, rate } from "./shared.js";
 import { trendHead, trendPeriods } from "../stats/spend-roll.js";
 import { dq, hitAttrs } from "../stats/spend-drill.js";
@@ -104,6 +103,5 @@ export function overviewTab() {
   const recentHtml = recent.length ? `<div class="panel"><div class="chart-head"><h3>${t("最近到账")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("records")}">${t("全部明细")} ›</a></div><ul class="restock-list ix-list">${recent.map(recordRow).join("")}</ul></div>` : "";
   return `${ovBar(O)}${kpis}${netWorthCard()}${all ? waterfallHtml(F, spW, esc(incDrill({ kind: "g:capital", ...w, person: O.person }))) : ""}
     <div class="panel chart-panel">${trendHead(`${t("收入 vs 消费（{r}）", { r: trend.length === months.length ? spanLabel(O.range) : t("近 12 个月") })} · ${TP.title}`, TP)}${trendChart}<p class="muted drill-hint">${asLine ? t("折线 = 认定收入、消费（日常 + 住房）和投资转入。点一个点看对应的明细。") : t("柱子 = 认定收入和消费（日常 + 住房），虚线 = 投资转入。点一下看对应的明细。")}</p></div>
-    ${breakdown}<div class="ix-two">${rank}${members}</div>${recentHtml}${repayPanel()}
-    ${tabHub(INCOME_TABS, incomeHref, t("其他功能"))}`;
+    ${breakdown}<div class="ix-two">${rank}${members}</div>${recentHtml}${repayPanel()}`;
 }

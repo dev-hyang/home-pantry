@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-21.24", title: { zh: "收尾：加入购物车的 ⋯ 并进目录；去掉重复的「其他功能」；清掉旧导航代码；补英文", en: "Clean-up: Add-to-cart ⋯ moves into the Menu; duplicate “More” rows removed; old navigation code removed; English filled in" }, items: [
+    { k: "better", zh: "采购 → 加入购物车：页头右上角的 ⋯（扫描、补货提醒、买好了录入库存）取消，三项放进目录里「加入购物车」的下面", en: "Shopping → Add to cart: the ⋯ at the top right (Scan, Restock reminders, Log what I bought) is gone; the three items are under “Add to cart” in the Menu" },
+    { k: "better", zh: "收入概览、花费概览、预算「本月」页底部那块「其他功能 / 更多」入口行去掉了（目录里都有）", en: "The “More” entry rows at the bottom of Income overview, Spending overview and Budget (this month) are gone (everything is in the Menu)" },
+    { k: "better", zh: "清掉不再使用的旧导航代码（旧标签条、导航小卡片、一个每次画页面都会白跑的检测），页面略微更轻", en: "Removed unused old navigation code (the old tab strip, nav cards and a check that ran on every page draw), so pages are slightly lighter" },
+    { k: "fix", zh: "补上 13 条缺少英文的文案（账户页的提示、「{n} 件待处理」「看花费明细」等）", en: "Added English for 13 strings that had none (account page hints, “{n} to handle”, “View spending details”…)" },
+  ] },
+
   { v: "2026-11-21.23", title: { zh: "修买卖计划的路径", en: "Fix the Buy / sell plans path" }, items: [
     { k: "fix", zh: "买卖计划里的指南（我想买房 / 买车 / 卖房 / 卖车）和每个计划，路径原来写成「房屋 / 某套房产 / 买卖计划」，现在是「房屋 / 买卖计划 / 指南名」——买卖计划不属于哪一套房产", en: "The guides (I want to buy a home / buy a car / sell a home / sell a car) and each plan under Buy / sell plans showed the path “House / some property / Buy / sell plans”; it is now “House / Buy / sell plans / guide name” — plans don't belong to a particular property" },
   ] },
