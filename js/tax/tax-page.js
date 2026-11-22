@@ -9,8 +9,10 @@ import { href } from "../core/router.js";
 import { pageHead } from "../core/page-head.js";
 import { infoTip } from "../core/info-tip.js";
 import { TAX_TABS, activeTab } from "../core/tabs.js";
-import { TAX_THRESHOLDS, activeTaxYear, daysUntil, foreignGiftTotal, relevantDeadlines, setupOf, yearState } from "./tax-calendar.js";
+import { TAX_THRESHOLDS, acctOf, activeTaxYear, daysUntil, foreignGiftTotal, relevantDeadlines, setupOf, yearState } from "./tax-calendar.js";
 import { DOCS, TIPS } from "./tax-content-docs.js";
+import { GUIDES } from "./tax-content-accounts.js";
+import { FSA_TYPES, accountChecks } from "./tax-checks.js";
 import { EVENTS } from "./tax-content-events.js";
 import { TERMS } from "./tax-content-terms.js";
 import "./tax-actions.js";
@@ -21,7 +23,7 @@ const tabHref = (id, y) => `${href("bills", "tax")}?${id === "year" ? "" : `tab=
 const on = (when, s) => !when || (when === "mortgage" ? s.flags.mortgage !== false : when === "kids" ? s.kids > 0 : when === "spouseItin" ? s.spouseItin : s.flags[when]);
 const money = (n) => Units.money(n);
 
-const FLAGS = [["stocks", "买卖股票 / 加密货币"], ["gifts", "收到境外亲友的赠与"], ["rental", "有出租房"], ["selfEmp", "自由职业 / 平台收入"], ["estimated", "需要预缴税（季度）"], ["foreign", "有境外账户 / 收入（可选，没有就关着）"]];
+const FLAGS = [["stocks", "买卖股票 / 加密货币"], ["gifts", "收到境外亲友的赠与"], ["rental", "有出租房"], ["selfEmp", "自由职业 / 平台收入"], ["estimated", "需要预缴税（季度）"], ["generalFsa", "我或配偶单位有普通医疗 FSA / HRA"], ["foreign", "有境外账户 / 收入（可选，没有就关着）"]];
 
 function profileCard(s, y) {
   const flags = FLAGS.map(([k, n]) => `<label class="check-inline"><input type="checkbox" data-tax-flag="${k}" ${s.flags[k] ? "checked" : ""}><span>${t(n)}</span></label>`).join("");
@@ -65,9 +67,20 @@ function docsTab(y, s) {
   return `<section class="panel"><p class="muted" style="margin:0 0 8px;font-size:13px">${t("只记「收到没有」和「放在哪」；不要把 SSN、ITIN、PIN、银行账号写在这里，也不上传文件。")}</p><ul class="tax-docs">${rows}</ul>
     <label class="check-inline" style="margin-top:12px"><input type="checkbox" data-tax-year="docsDone" data-y="${y}" ${st.docsDone ? "checked" : ""}><span>${t("单据都收齐了（不再提醒）")}</span></label></section>`;
 }
+const list = (items) => `<ul>${items.map((x) => `<li>${rich(tx(x))}</li>`).join("")}</ul>`;
+/** 账户与开户：冲突检查 + 每种账户开户前的税务提示 */
+function accountsTab() {
+  const cards = state.cards || [], have = (k) => cards.filter((c) => c.kind === k && c.active !== false).length, checks = accountChecks();
+  const fsas = cards.filter((c) => c.kind === "fsa" && c.active !== false);
+  const types = (v) => `<option value="">${t("还没标")}</option>${Object.entries(FSA_TYPES).map(([k, n]) => `<option value="${k}" ${v === k ? "selected" : ""}>${esc(tx(n))}</option>`).join("")}`;
+  const fsaCard = fsas.length ? `<section class="panel dt-block"><div class="dt-head"><h3>${t("你的 FSA / 通勤福利账户")}</h3></div><div class="form-grid">${fsas.map((c) => `<label>${esc(c.name)}<select data-tax-fsa="${esc(c.id)}">${types(acctOf(c.id).fsaType || "")}</select></label>`).join("")}</div></section>` : "";
+  const rows = checks.length ? checks.map((c) => `<div class="tax-tip"><b>${c.level === "warn" ? "⚠️" : "ℹ️"} ${esc(tx(c.title))}</b><p>${esc(tx(c.body))}</p></div>`).join("") : `<p class="muted">${t("目前没有需要你确认的冲突。加了 HSA / FSA / 529 / 孩子账户后，这里会自动检查。")}</p>`;
+  const guides = [...GUIDES].sort((a, b) => have(b.kind) - have(a.kind)).map((g) => `<details class="panel tax-event" ${have(g.kind) ? "open" : ""}><summary><b>${g.icon} ${esc(tx(g.title))}</b>${have(g.kind) ? ` <span class="badge b-ok">${t("你已有 {n} 个", { n: have(g.kind) })}</span>` : ""}</summary>
+    <h4>${t("开户前先决定")}</h4>${list(g.ask)}<h4>${t("税务上怎么算")}</h4>${list(g.effects)}<h4>${t("容易踩的坑")}</h4>${list(g.watch)}<p class="hint"><a href="${esc(g.source)}" target="_blank" rel="noopener">${t("官方说明")} ↗</a></p></details>`).join("");
+  return `<section class="panel dt-block"><div class="dt-head"><h3>${t("需要你确认的")}</h3></div>${rows}</section>${fsaCard}<h3 class="tax-sub">${t("开户前先看（按账户类型）")}</h3>${guides}`;
+}
 const LINKS = { "house-deal": () => href("house", "deal"), "house-assets": () => href("house", "cars"), income: () => `${href("bills", "income")}?tab=records`, settings: () => `${href("me", "settings")}?sec=family`, cards: () => href("bills", "accounts") };
 function eventsTab(s) {
-  const list = (items) => `<ul>${items.map((x) => `<li>${rich(tx(x))}</li>`).join("")}</ul>`;
   return EVENTS.filter((e) => on(e.when, s)).map((e) => `<details class="panel tax-event"><summary><b>${e.icon} ${esc(tx(e.title))}</b></summary>
     <h4>${t("会碰到什么")}</h4>${list(e.meet)}<h4>${t("现在要做")}</h4>${list(e.todo)}<h4>${t("要存什么")}</h4>${list(e.keep)}
     ${LINKS[e.link] ? `<p><a class="btn btn-sm btn-ghost" href="${esc(LINKS[e.link]())}">${t("去小助手里相关的页面")}</a></p>` : ""}</details>`).join("");
@@ -79,10 +92,10 @@ export function viewTax() {
   const yr = [y - 1, y, y + 1].filter((v) => v === y || (v <= now && v >= 2024));
   const nav = TAX_TABS.map(([id, name, icon]) => `<a class="btn btn-sm ${id === tab ? "btn-primary" : "btn-ghost"}" href="${tabHref(id, y)}" ${id === tab ? 'aria-current="page"' : ""}>${icon} ${t(name)}</a>`).join("");
   const years = yr.map((v) => `<a class="btn btn-sm ${v === y ? "btn-primary" : "btn-ghost"}" href="${tabHref(tab, v)}">${v}</a>`).join("");
-  const body = tab === "docs" ? docsTab(y, s) : tab === "events" ? eventsTab(s) : tab === "learn" ? learnTab() : yearTab(y, s);
+  const body = tab === "docs" ? docsTab(y, s) : tab === "accounts" ? accountsTab() : tab === "events" ? eventsTab(s) : tab === "learn" ? learnTab() : yearTab(y, s);
   return `<section class="section tax-page">${pageHead({ title: t("税务"), tabs: TAX_TABS, tab, hrefOf: (id) => tabHref(id, y), filter: false, plain: true, note: infoTip(t("参考用，不是税务建议；以 IRS、伊利诺伊税务局官网和 TurboTax 为准。不存 SSN / ITIN / PIN。"), { align: "start" }) })}
     <div class="tax-nav" role="navigation">${nav}</div>
-    ${tab === "learn" || tab === "events" ? "" : `<div class="tax-years" aria-label="${esc(t("税务年度"))}"><span class="muted">${t("税务年度")}</span> ${years}</div>`}
+    ${tab === "learn" || tab === "events" || tab === "accounts" ? "" : `<div class="tax-years" aria-label="${esc(t("税务年度"))}"><span class="muted">${t("税务年度")}</span> ${years}</div>`}
     <p class="notice" role="note">${t("参考用，不是税务建议。数字和政策每年会变，标「待核对」的报税前对着官网再看一遍。")}</p>
     ${body}</section>`;
 }

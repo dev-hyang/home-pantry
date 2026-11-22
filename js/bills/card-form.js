@@ -20,6 +20,7 @@ import { cardDetailPage } from "./card-detail.js";
 import { collectCard } from "./card-collect.js";
 import { groupHref as finGroupLink } from "./fin-tree.js";
 import { firstStep, wzActions, wzChrome, wzIntercept } from "./card-wizard.js";
+import { taxHintHtml } from "../tax/tax-hint.js";
 
 /* ───────────── 表单 ───────────── */
 const NUMF = (v) => (v == null || v === "" ? "" : num(v));
@@ -51,7 +52,7 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
   const typeFields = `<label>${t("类型")}<select name="kind">${Object.entries(ACCT_KINDS).map(([k, [n, icon]]) => opt(k, `${icon} ${t(n)}`, kind === k)).join("")}</select><small>${t("支票 / 储蓄账户没有返现，不参与推荐；用来记账单从哪扣款、缴费用的哪个账户")}</small></label>
         ${catalogSel}
         ${aiBtn}
-        <input type="hidden" name="catalog_id" value="${d(v.catalog_id)}"><input type="hidden" name="rules_as_of" value="${d(v.rules_as_of)}">`;   // 类型 + 目录 + AI 起草 + 目录标记：新建是向导的第一步，已有的卡在「基本信息」里
+        <input type="hidden" name="catalog_id" value="${d(v.catalog_id)}"><input type="hidden" name="rules_as_of" value="${d(v.rules_as_of)}">${taxHintHtml(v.kind)}`;   // 类型 + 目录 + AI 起草 + 目录标记：新建是向导的第一步，已有的卡在「基本信息」里
   const catsGrid = D().REWARD_CATS.filter(([k]) => k !== "other").map(([k, name, icon]) => `<label class="cat-rate"><span>${icon} ${esc(t(name))}</span><input name="cat_${k}" type="number" min="0" step="0.25" inputmode="decimal" value="${NUMF(rw.cats?.[k])}" placeholder="${NUMF(rw.base) || 1}"></label>`).join("");
   const rotCats = D().REWARD_CATS.filter(([k]) => k !== "other").map(([k, name, icon]) => `<label class="radio-pill"><input type="checkbox" name="rot_cat" value="${k}" ${(rot.cats || []).includes(k) ? "checked" : ""}><span>${icon} ${esc(t(name))}</span></label>`).join("");
   const merchants = Object.entries(rw.merchants || {}).map(([k, val]) => `${k}=${val}`).join(", ");

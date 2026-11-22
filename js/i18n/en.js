@@ -4148,6 +4148,11 @@ export const EN = {
   "金额与期限": "Amount & term", "还款安排": "Repayment", "关联账户与资产": "Linked accounts & assets",
   "请先填：{name}": "Please fill in first: {name}",
   // ── 财务 → 税务（一期）、通勤福利 ──
+  "账户与开户": "Accounts & opening", "开 HSA / FSA / 529 / 孩子账户前后的税务提示和冲突检查": "Tax notes and conflict checks before and after opening an HSA / FSA / 529 / child account",
+  "我或配偶单位有普通医疗 FSA / HRA": "I or my spouse's employer have a general-purpose health FSA / HRA", "你的 FSA / 通勤福利账户": "Your FSA / commuter accounts", "还没标": "Not marked yet",
+  "需要你确认的": "Needs your confirmation", "目前没有需要你确认的冲突。加了 HSA / FSA / 529 / 孩子账户后，这里会自动检查。": "No conflicts to confirm right now. Once you add an HSA / FSA / 529 / child account they are checked here automatically.",
+  "开户前先看（按账户类型）": "Before you open (by account type)", "你已有 {n} 个": "You have {n}", "开户前先决定": "Decide before opening", "税务上怎么算": "How it is taxed", "容易踩的坑": "Common traps",
+  "去「账户与开户」把每个 FSA 的类型标出来，确认有没有冲突": "Open Accounts & opening, mark each FSA's type and confirm there is no conflict", "看完整的税务提示": "See the full tax notes",
   "税务": "Tax", "今年": "This year", "单据": "Documents", "事件指南": "Event guides", "知识库": "Learn",
   "家庭情况、税务日历、境外赠与累计、容易漏的": "Household setup, tax calendar, foreign-gift total, easy-to-miss items", "今年要收的单据，勾已收到、记放在哪": "Documents to collect this year: tick received, note where they are",
   "买卖房、车、股票，境外赠与，孩子出生…会碰到什么税": "Buying / selling a home, car or stocks, foreign gifts, a new child… what tax comes up", "W-2、1099、ITIN、FBAR…是什么、谁要报": "W-2, 1099, ITIN, FBAR… what they are and who files",

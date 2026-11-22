@@ -12,10 +12,12 @@ export const TAX_THRESHOLDS = {
 };
 
 /** 默认设置：按这个家庭的情况（2026-11-22 你给的回答）；全部可在页面上改。境外账户 / 收入是可选项，默认关 */
-export const DEFAULT_SETUP = { filing: "mfj", spouseItin: true, kids: 3, flags: { stocks: true, gifts: true, foreign: false, rental: false, selfEmp: false, estimated: false } };
+export const DEFAULT_SETUP = { filing: "mfj", spouseItin: true, kids: 3, flags: { stocks: true, gifts: true, foreign: false, rental: false, selfEmp: false, estimated: false, generalFsa: false } };
 export const cfg = () => state.budget?.cat_budgets?._tax_cfg || {};
 const saveMeta = async (patch) => (await import("../bills/budget-groups.js")).saveMeta(patch);   // 只在保存时才加载预算模块，提醒（随首页加载）不依赖它
 export const setupOf = () => { const c = cfg().setup || {}; return { ...DEFAULT_SETUP, ...c, flags: { ...DEFAULT_SETUP.flags, ...(c.flags || {}) } }; };
+export const acctOf = (id) => (cfg().accts || {})[id] || {};
+export async function saveAcct(id, patch) { const c = cfg(); await saveMeta({ _tax_cfg: { ...c, accts: { ...(c.accts || {}), [id]: { ...acctOf(id), ...patch } } } }); }
 export const yearState = (y) => (cfg().years || {})[y] || {};
 export async function saveSetup(patch) { const c = cfg(); await saveMeta({ _tax_cfg: { ...c, setup: { ...setupOf(), ...patch, flags: { ...setupOf().flags, ...(patch.flags || {}) } } } }); }
 export async function saveYear(y, patch) { const c = cfg(); await saveMeta({ _tax_cfg: { ...c, years: { ...(c.years || {}), [y]: { ...yearState(y), ...patch } } } }); }

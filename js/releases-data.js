@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.11", title: { zh: "税务：开账户前的提示和冲突检查（HSA + FSA、529、孩子账户）", en: "Tax: pre-opening notes and conflict checks (HSA + FSA, 529, child accounts)" }, items: [
+    { k: "new", zh: "税务多了「账户与开户」页：自动检查 HSA 和普通医疗 FSA 是否冲突（自己的或配偶单位的都算），冲突时提醒「今日」；HSA、FSA / 通勤福利、529、孩子账户（Trump account / UTMA）、退休、券商、加密、储蓄各有一份开户前要先决定什么、税务怎么算、容易踩的坑", en: "Tax now has an Accounts & opening page: it checks whether an HSA conflicts with a general-purpose health FSA (yours or a spouse's) and reminds you in Today; HSA, FSA / commuter, 529, child accounts (Trump account / UTMA), retirement, brokerage, crypto and savings each get what to decide first, how it is taxed and common traps" },
+    { k: "new", zh: "添加账户时选了 HSA / FSA / 529 / 孩子账户 / 退休 / 加密 / 券商，类型下面会出现一句税务提示，链到完整指南", en: "When you add an account of type HSA / FSA / 529 / child / retirement / crypto / brokerage, a one-line tax note appears under the type with a link to the full guide" },
+  ] },
+
   { v: "2026-11-22.10", title: { zh: "新：财务 → 税务（参考用）；账户里加了通勤福利", en: "New: Finance → Tax (reference); commuter benefits in Accounts" }, items: [
     { k: "new", zh: "财务 → 分析 → 税务：税务日历（报税、预缴、单据到齐的日子）、每年的单据清单（勾已收到、记放在哪）、买卖房 / 车 / 股票和收到境外赠与等事件指南、知识库（W-2、1099、ITIN、标准扣除…）。参考用，不是报税软件，不存 SSN / ITIN / PIN", en: "Finance → Analysis → Tax: a tax calendar (filing, estimated payments, forms arriving), a yearly document checklist (tick received, note where), event guides for buying / selling a home, car or stocks and receiving foreign gifts, and a Learn section (W-2, 1099, ITIN, standard deduction…). Reference only, not tax software; never stores SSN / ITIN / PIN" },
     { k: "new", zh: "税务提醒进「今日」：报税 / 预缴截止临近、单据没收齐、境外亲友赠与累计接近 10 万美元（Form 3520 线）、年底税务检查", en: "Tax reminders appear in Today: filing / estimated deadlines, missing documents, foreign family gifts nearing $100,000 (the Form 3520 line), year-end tax check" },

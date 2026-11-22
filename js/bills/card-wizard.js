@@ -7,6 +7,7 @@ import { t } from "../core/i18n.js";
 import { CARD_SECS, cardSectionBody } from "./card-detail.js";
 import { noRewards } from "./cards.js";
 import { collectCard } from "./card-collect.js";
+import { refreshTaxHint } from "../tax/tax-hint.js";
 
 /** [id, 名称, 图标, 适用种类（空 = 全部）] */
 const STEPS = [["type", "类型", "🧭"], ["basic", "基本信息", "💳"], ["repay", "还款", "📅", ["credit"]], ["rewards", "返现规则", "🎯", ["credit", "debit", "wallet"]],
@@ -78,5 +79,6 @@ if (typeof document !== "undefined") {
   document.addEventListener("change", (e) => {   // 换了类型：步骤数 / 名称跟着变
     const f = form(); if (!f?.hasAttribute("data-wzf") || e.target.name !== "kind") return;
     f.querySelector("[data-wz-now]").textContent = wzNow(kindOf(f), cur(f));
+    refreshTaxHint(f);   // 开户前的税务提示跟着类型换（HSA / FSA / 529 / 孩子账户…）
   });
 }
