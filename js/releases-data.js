@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.2", title: { zh: "添加房产：最后一步确认后才创建，每一块都能回头编辑", en: "Add property: created only after the final review, every block editable" }, items: [
+    { k: "better", zh: "添加房产改成一步一页，填的内容先只记在这一页里；最后一页「确认」把整套资料列出来，每一块带「编辑」，点「确认并创建」才真正建房产", en: "Adding a property is now step by step; nothing is saved until the last page, which lists every block with an Edit button, and Confirm and create finally makes the property" },
+    { k: "fix", zh: "中途取消或退出，不会再留下一套只填了一半的房产", en: "Cancelling or leaving halfway no longer leaves a half-filled property behind" },
+  ] },
+
   { v: "2026-11-22.1", title: { zh: "编辑 / 新建页的「取消 · 保存」统一：只在底部一条，取消靠左、保存靠右", en: "Edit / create pages: one Cancel · Save bar at the bottom, Cancel left, Save right" }, items: [
     { k: "better", zh: "编辑页顶上多出来的那一份「取消 / 保存」去掉了，只保留底部常驻的一条（长表单也不用滑到底）", en: "Removed the duplicate Cancel / Save bar at the top of edit pages; the bottom bar stays visible while you scroll" },
     { k: "better", zh: "所有表单的按钮条统一：取消靠左、保存 / 确认靠右、上一步 / 下一步在中间；按钮等宽排成一行，按钮越多字越小", en: "All form bars follow one layout: Cancel left, Save / Confirm right, Back / Next in the middle; equal widths on one row, smaller text when there are more buttons" },

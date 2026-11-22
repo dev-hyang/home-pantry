@@ -1,7 +1,7 @@
 /* 点击动作：房屋：设备、保养、季节任务、交易、房产、买卖计划。 */
 import { $, armed, confirmDelete, toast } from "../../core/util.js";
 import { Store } from "../../core/store.js";
-import { analyze, cancelDeal, completeBuy, completeVehicleDeal, dealTasks, deleteCustomTask, deleteDealEvent, deleteSeasonTask, leaveAsset, openDeal, planAction, runDealAi, shiftTasksMonth, startDeal, toggleDealSkip, togglePlanCheck, unitRow } from "../lazy-modules.js";
+import { analyze, cancelDeal, completeBuy, completeVehicleDeal, dealTasks, deleteCustomTask, deleteDealEvent, deleteSeasonTask, leaveAsset, newCreate, newGo, openDeal, planAction, runDealAi, shiftTasksMonth, startDeal, toggleDealSkip, togglePlanCheck, unitRow } from "../lazy-modules.js";
 import { canManageHome } from "../../settings/members.js";
 import { freeDefault } from "../route.js";
 import { friendlyErr } from "../errors.js";
@@ -13,10 +13,12 @@ import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 
 /** 点击动作（房屋：设备、保养、季节任务、交易、房产、买卖计划）：这一组处理的 data-action */
-export const HOUSE_ACTIONS = new Set(["asset-cancel","asset-delete","asset-row-del","maint-del","tasks-prev","tasks-next","tasks-today","season-new","season-edit","season-cancel","season-delete","unit-add","unit-del","property","house-open","property-edit","property-cancel","property-delete","deal-start","deal-delete","deal-cancel","deal-closeout","plan-new","plan-edit","plan-cancel","plan-status","plan-delete","cand-new","cand-edit","cand-delete","cand-win","offer-new","offer-edit","offer-delete","plan-check","plan-open-property","deal-task-skip","deal-task-edit","deal-task-new","deal-task-cancel","deal-due-reset","deal-task-delete","deal-event-new","deal-event-edit","deal-event-cancel","deal-event-delete","deal-ai-run","deal-view","deal-closeout-cancel","property-default","property-archive","house-enable","house-cancel","property-of-bill","deal-filter","tasks-undone"]);
+export const HOUSE_ACTIONS = new Set(["house-new-go","house-new-create","asset-cancel","asset-delete","asset-row-del","maint-del","tasks-prev","tasks-next","tasks-today","season-new","season-edit","season-cancel","season-delete","unit-add","unit-del","property","house-open","property-edit","property-cancel","property-delete","deal-start","deal-delete","deal-cancel","deal-closeout","plan-new","plan-edit","plan-cancel","plan-status","plan-delete","cand-new","cand-edit","cand-delete","cand-win","offer-new","offer-edit","offer-delete","plan-check","plan-open-property","deal-task-skip","deal-task-edit","deal-task-new","deal-task-cancel","deal-due-reset","deal-task-delete","deal-event-new","deal-event-edit","deal-event-cancel","deal-event-delete","deal-ai-run","deal-view","deal-closeout-cancel","property-default","property-archive","house-enable","house-cancel","property-of-bill","deal-filter","tasks-undone"]);
 /** 点击动作（房屋：设备、保养、季节任务、交易、房产、买卖计划）：按 data-action 分支；el 是被点的元素，id 是它的 data-id，e 是点击事件 */
 export async function clickHouse(action, el, id, e) {
   switch (action) {
+      case "house-new-go": return newGo(el);   // 添加房产向导：上一步（先把这一步读进草稿）
+      case "house-new-create": return newCreate(el);   // 添加房产向导：确认后才建房产
       case "asset-cancel": return leaveAsset(false);
       case "asset-delete":
         if (!confirmDelete(t("删除这台设备和它的保养记录？"))) return;

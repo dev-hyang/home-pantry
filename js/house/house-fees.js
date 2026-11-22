@@ -12,6 +12,8 @@ import { H } from "./asset-common.js";
  * 资料里不再能改金额，只读显示这套房产「房屋保险」/「HOA / 物业费」类账单的金额，点过去改账单。
  * 旧数据：资料里填过金额、还没有对应账单 → 照样显示（标「资料里的旧值」）并给一个预填好的「创建账单」；旧值原样留在资料里，不悄悄丢。 */
 /** 这套房产某类在用的账单：先找挂在这套房产上的，再找没挂房产的（和以前 HOA 链接的规则一致） */
+/** 现在看的是哪套房产：添加房产向导里还没建房产，用占位 id，别拿别的房产的账单当它的 */
+export const curPid = () => (state.route?.q?.get("newprop") === "1" ? "__new__" : state.propertyId);
 export function linkedBill(pid, cat) {
   const list = (state.billsEnriched || []).filter((b) => b.category === cat && b.active !== false && !b.ended);
   return list.find((b) => b.property_id === pid) || list.find((b) => !b.property_id) || null;
@@ -72,7 +74,7 @@ export function hoaOf(p) {
   return { enabled: a.on, dues_period: "monthly", ...(p.hoa || {}) };
 }
 /** 每月要交多少：常规月费（账单）+ 本期要交的特别摊派（HOA 账单里没缴的分期 / 一次性结清，到期日在本期月底之前） */
-export function hoaMonthly(h, pid = state.propertyId) {
+export function hoaMonthly(h, pid = curPid()) {
   const unit = num(h.dues_unit) || 0, parking = num(h.dues_parking) || 0, other = num(h.dues_other) || 0;
   const reg = hoaRegular(pid, h), regular = reg.monthly || 0;   // 常规月费：账单优先（单元 / 车位 / 其他只是资料里的旧拆分，留作参考）
   const ap = reg.bill ? assessmentParts(reg.bill.id, state.assess, state.assessItems, reg.bill.next_due_on) : { installment: 0, payoff: 0 };
@@ -99,7 +101,7 @@ export function noteArea(name, value, placeholder, max = 1000) {
   return `<textarea class="grow" name="${name}" rows="${rows}" maxlength="${max}" data-grow placeholder="${esc(placeholder || "")}">${esc(v)}</textarea><small class="grow-count" ${v.length >= max * 0.8 ? "" : "hidden"}>${v.length}/${max}</small>`;
 }
 /** 特别摊派的状态（数据在 HOA 账单的「特别摊派」里）：none / due（days = 下一期没缴的离今天几天）/ paid；还带 bill、list（各笔摊派）、remaining、next */
-export function assessmentStatus(hoa, pid = state.propertyId) {
+export function assessmentStatus(hoa, pid = curPid()) {
   const b = hoa?.enabled ? linkedBill(pid, "hoa") : null;
   if (!b) return { kind: "none" };
   const list = assessmentsOf(b.id, state.assess, state.assessItems).filter((a) => a.status !== "closed");
@@ -116,9 +118,9 @@ export function hoaFact(p) {
   const bits = [];
   if (hoa.name) bits.push(`<b>${esc(hoa.name)}</b>`);
   if (hoa.mgmt) bits.push(esc(hoa.mgmt));
-  const reg = hoaRegular(p.property_id || state.propertyId, hoa);
+  const reg = hoaRegular(p.property_id || curPid(), hoa);
   if (reg.src) bits.push(`${reg.text}${reg.src === "profile" ? ` <small class="muted">${t("（资料里的旧值）")}</small>` : ""}`);
-  const sa = assessmentStatus(hoa, p.property_id || state.propertyId);
+  const sa = assessmentStatus(hoa, p.property_id || curPid());
   if (sa.kind === "due") bits.push(`<span class="badge ${sa.days != null && sa.days <= 14 ? "b-out" : "b-soon"}">${t("特别摊派")} ${money(sa.remaining)} ${t("待缴")}</span>`);
   return { k: `🏘️ ${esc(t(a.label))}`, v: bits.length ? bits.join(" · ") : `<span class="muted">${t("未填")}</span> <a href="${href("house", "profile")}">${t("补充")}</a>` };
 }
@@ -139,12 +141,12 @@ function hoaBlock(p) {
     ...emails.map((e) => `<a href="mailto:${esc(e)}">✉️ ${esc(e)}</a>`),
     hoa.url ? `<a href="${esc(hoa.url)}" target="_blank" rel="noopener noreferrer">🔗 ${t("业主门户")}</a>` : "",
   ].filter(Boolean).join(" · ");
-  const sa = assessmentStatus(hoa, state.propertyId);
+  const sa = assessmentStatus(hoa, curPid());
   const breakdown = hoa.dues_unit || hoa.dues_parking || hoa.dues_other ? ` <small class="muted">(${[hoa.dues_unit ? t("单元 {a}", { a: money(hoa.dues_unit) }) : "", hoa.dues_parking ? t("车位 {a}", { a: money(hoa.dues_parking) }) : "", hoa.dues_other ? `${esc(hoa.dues_other_label || t("其他"))} ${money(hoa.dues_other)}` : ""].filter(Boolean).join(" + ")})</small>` : "";
   const asLink = sa.bill ? `${href("bill", sa.bill.id)}?sec=assess` : null;
   const saText = sa.kind === "none" ? `${t("没有进行中的特别摊派")}${sa.bill ? ` <a href="${asLink}&edit=new">${t("添加")}</a>` : ""}`
     : `${sa.list.map((a) => `<div><b>${esc(a.name)}</b> · ${t("剩余 {m}", { m: money(a.remaining) })} · ${a.paidN}/${a.rows.length}${a.done ? ` <span class="badge b-ok">${t("已缴清")}</span>` : ""}</div>`).join("")}${sa.kind === "due" ? `<span class="badge ${sa.days != null && sa.days < 0 ? "b-out" : "b-soon"}">${sa.days == null ? t("待缴") : sa.days < 0 ? t("已逾期 {d} 天", { d: -sa.days }) : t("下一期 {d} 天后", { d: sa.days })}</span> ` : ""}<a href="${asLink}">${t("在账单里查看 / 管理")}</a>`;
-  const reg = hoaRegular(state.propertyId, hoa);   // 常规费用：HOA 账单（唯一来源）；以前的 bills.archived 判断是个不存在的字段，现在按 active / 已结束挑
+  const reg = hoaRegular(curPid(), hoa);   // 常规费用：HOA 账单（唯一来源）；以前的 bills.archived 判断是个不存在的字段，现在按 active / 已结束挑
   // 标签 / 值的事实行（与房屋卡片同款）：值可换行，手机上不会把内容挤到屏幕外；表格 + 横向滚动会让长邮箱、备注把值列推出视野
   const row = (k, v) => (v ? `<div class="fact wide"><dt>${k}</dt><dd>${v}</dd></div>` : "");
   const hint = [reg.src ? reg.text : null, sa.kind === "due" ? t("特别摊派待缴") : null, hoa.mgmt].filter(Boolean).join(" · ");
@@ -153,7 +155,7 @@ function hoaBlock(p) {
       <dl class="fact-grid one">
         ${row(t("管理公司 / 联系人"), hoa.mgmt ? esc(hoa.mgmt) : "")}
         ${row(t("联系方式"), contact)}
-        ${row(t("费用"), `${reg.src ? `${reg.text}${reg.src === "profile" ? breakdown : ""} · ` : ""}${amountSource(reg.src, reg.bill, "hoa", state.propertyId, { amount: reg.legacy, freq: reg.freq, name: hoa.name ? `HOA · ${hoa.name}`.slice(0, 60) : t("HOA 月费"), payee: hoa.name || hoa.mgmt || "" })}`)}
+        ${row(t("费用"), `${reg.src ? `${reg.text}${reg.src === "profile" ? breakdown : ""} · ` : ""}${amountSource(reg.src, reg.bill, "hoa", curPid(), { amount: reg.legacy, freq: reg.freq, name: hoa.name ? `HOA · ${hoa.name}`.slice(0, 60) : t("HOA 月费"), payee: hoa.name || hoa.mgmt || "" })}`)}
         ${row(t("特别摊派"), saText)}
         ${(() => { const m = hoaMonthly(hoa); return m.sa ? row(t("每月总计"), `<b>${money(m.total)}</b> <small class="muted">= ${t("月费 {a}", { a: money(m.regular) })} + ${t("评估分期 {a}", { a: money(m.sa) })}</small>`) : ""; })()}
         ${row(t("出租规则"), hoa.rent_policy && hoa.rent_policy !== "unknown" ? [labelOf(RENT_POLICIES, hoa.rent_policy), hoa.rent_cap_pct ? t("上限 {p}%", { p: hoa.rent_cap_pct }) : "", hoa.rent_min_months ? t("最短 {n} 个月", { n: hoa.rent_min_months }) : "", hoa.rent_notes ? esc(hoa.rent_notes) : ""].filter(Boolean).join(" · ") : "")}

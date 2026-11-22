@@ -1,7 +1,7 @@
 /* 房屋资料的分区清单（地址、保险、HOA、应急、材料…）和每个分区的完成度、保险事实。 */
 import { EMERGENCY_FIELDS, emergencyFilled } from "./house-draft.js";
 import { activeProperties } from "../core/lifecycle.js";
-import { assessmentStatus, hoaFact, hoaOf, hoaRegular, insurancePremium, ownershipOf } from "./house-fees.js";
+import { assessmentStatus, curPid, hoaFact, hoaOf, hoaRegular, insurancePremium, ownershipOf } from "./house-fees.js";
 import { currentProp } from "./deals.js";
 import { daysUntil, esc, fmtDate, money } from "../core/util.js";
 import { href } from "../core/router.js";
@@ -33,13 +33,13 @@ export function sectionStatus(d, id) {
     case "address": { const n = filled([d.address, d.year_built]); return { text: `${n} / 2`, pct: n * 50 }; }
     case "insurance": {
       if (!d.insured) return { text: t("未投保"), pct: null };
-      const n = filled([d.insurance_provider, d.insurance_policy, d.insurance_from, d.insurance_to, d.insurance_coverage, insurancePremium(state.propertyId, d).src === "bill", d.insurance_agent, d.insurance_phone, d.insurance_email]);
+      const n = filled([d.insurance_provider, d.insurance_policy, d.insurance_from, d.insurance_to, d.insurance_coverage, insurancePremium(curPid(), d).src === "bill", d.insurance_agent, d.insurance_phone, d.insurance_email]);
       return { text: `${n} / 9`, pct: Math.round((n / 9) * 100) };
     }
     case "hoa": {
       const h = hoaOf(d); if (!h.enabled) return { text: t("无 {label}", { label: t(Hh.assocOf(d.house_type).label) }), pct: null };
-      const n = filled([h.name, h.mgmt, h.phone || h.email || h.url, hoaRegular(state.propertyId, h).src === "bill", h.rules, h.rent_policy && h.rent_policy !== "unknown"]);
-      return { text: `${n} / 6${assessmentStatus(h, state.propertyId).kind === "due" ? ` · ${t("特别摊派待缴")}` : ""}${h.lawsuit ? ` · ${t("有诉讼")}` : ""}`, pct: Math.round(n / 6 * 100) };
+      const n = filled([h.name, h.mgmt, h.phone || h.email || h.url, hoaRegular(curPid(), h).src === "bill", h.rules, h.rent_policy && h.rent_policy !== "unknown"]);
+      return { text: `${n} / 6${assessmentStatus(h, curPid()).kind === "due" ? ` · ${t("特别摊派待缴")}` : ""}${h.lawsuit ? ` · ${t("有诉讼")}` : ""}`, pct: Math.round(n / 6 * 100) };
     }
     case "ownership": {
       const o = ownershipOf(d), n = filled([o.pin, o.parking_type, o.parking_type && o.parking_type !== "none" && (o.parking_pin || o.parking_no || o.parking_deeded), o.storage_type, (o.tax_exemptions || []).length]);
@@ -76,7 +76,7 @@ export function insuranceFact(p) {
   if (period) bits.push(esc(period));
   if (p.insurance_policy) bits.push(`${t("保单号")} ${esc(p.insurance_policy)}`);
   if (p.insurance_coverage) bits.push(esc(p.insurance_coverage));
-  const prem = insurancePremium(state.propertyId, p);   // 年保费：保险账单是唯一来源
+  const prem = insurancePremium(curPid(), p);   // 年保费：保险账单是唯一来源
   if (prem.amount != null) bits.push(`${t("年保费 {a}", { a: money(prem.amount) })}${prem.src === "profile" ? ` <small class="muted">${t("（资料里的旧值）")}</small>` : ""}`);
   return { k, v: bits.join(" · "), sub: agentValue(p) };
 }
@@ -85,7 +85,7 @@ export function insuranceRows(p) {
   const s = insuranceStatus(p), [cls, label] = INS_BADGE[s.kind];
   if (s.kind === "none") return [];
   const period = p.insurance_from || p.insurance_to ? `${p.insurance_from ? fmtDate(p.insurance_from) : "…"} – ${p.insurance_to ? fmtDate(p.insurance_to) : "…"}` : "";
-  const prem = insurancePremium(state.propertyId, p);   // 年保费：保险账单是唯一来源
+  const prem = insurancePremium(curPid(), p);   // 年保费：保险账单是唯一来源
   const agent = agentValue(p).replace(/^[^：:]*[：:]/, "");
   return [
     [t("保险状态"), `<span class="badge ${cls}">${t(label)}${s.kind === "expiring" ? ` · ${t("{d} 天", { d: s.days })}` : ""}</span>${period ? ` ${esc(period)}` : ""}`],

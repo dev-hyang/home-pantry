@@ -1,6 +1,6 @@
 /* 房屋资料：分区列表（带完成度）→ 点进去只改一块，各分区的表单字段。 */
 import { EMERGENCY_FIELDS, emergencyOf, houseDraft } from "./house-draft.js";
-import { PARKING_TYPES, RENT_POLICIES, STORAGE_TYPES, TAX_EXEMPTIONS, amountSource, hoaFact, hoaMonthly, hoaOf, insurancePremium, labelOf, noteArea, ownershipOf, refSection } from "./house-fees.js";
+import { PARKING_TYPES, RENT_POLICIES, STORAGE_TYPES, TAX_EXEMPTIONS, amountSource, hoaFact, hoaMonthly, hoaOf, curPid, insurancePremium, labelOf, noteArea, ownershipOf, refSection } from "./house-fees.js";
 import { PROFILE_ASK, PROFILE_SECTIONS, insuranceRows, sectionStatus } from "./house-sections.js";
 import { ctx as askCtx, askInline } from "../core/ask.js";
 import { autofillBar } from "../core/autofill.js";
@@ -12,10 +12,12 @@ import { href } from "../core/router.js";
 import { lang, t } from "../core/i18n.js";
 import { state } from "../core/state.js";
 import { H } from "./asset-common.js";
+import { isNewProp, isReviewing, newBar, newSteps, viewNewReview } from "./house-new.js";
 
 /* ── 房屋资料：分区列表（带完成度）→ 点进去只改一块 ── */
 export function viewHouseProfile() {
   const sec = state.route?.q?.get("sec");
+  if (isReviewing()) return viewNewReview(sectionFacts);
   if (sec && PROFILE_SECTIONS.some((s) => s.id === sec)) return viewProfileSection(sec);
   const d = houseDraft(), first = !state.houseProfile;
   // 每个分区一个卡片（section container）：标题 + 完成度 + 「编辑」（进这一块自己的编辑页）+ 现在填的内容，整套房子的基本信息在这一页看全
@@ -37,13 +39,13 @@ export function viewHouseProfile() {
   </section>`;
 }
 /** 资料页每个卡片里的内容：只读摘要（没填的显示「未填」） */
-function sectionFacts(d, id) {
+export function sectionFacts(d, id) {
   const Hh = H(), none = `<span class="muted">${t("未填")}</span>`;
   const tags = (names, soft) => (names.length ? `<span class="tagline">${names.map((n) => `<span class="tag${soft ? " tag-soft" : ""}">${esc(n)}</span>`).join("")}</span>` : "");
   const dl = (rows) => { const r = rows.filter(([, v]) => v); return r.length ? `<dl class="fact-grid one">${r.map(([k, v]) => `<div class="fact"><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>` : `<p class="muted prof-empty">${t("未填")}</p>`; };
   const names = (group, ids) => ids.map((x) => Hh.MATERIALS[group].find((m) => m.id === x)).filter(Boolean).map((m) => t(m.name));
   switch (id) {
-    case "type": { const ht = Hh.typeOf(d.region, d.house_type); const B = window.BILLS, cp = currentProp(); return dl([[t("房产名称"), cp ? esc(cp.name) : ""], [t("地区"), esc(t(Hh.REGIONS[d.region]?.name || ""))], [t("房型"), ht ? `${ht.icon} ${esc(t(ht.name))}` : ""], [t("类型"), cp ? esc(t(B.PROPERTY_KINDS[cp.kind] || "")) : ""], [t("用途"), cp ? esc(t(B.PROPERTY_ROLES[cp.role] || "")) : ""], [t("状态"), cp ? esc(statusText(cp)) : ""]]); }
+    case "type": { const ht = Hh.typeOf(d.region, d.house_type); const B = window.BILLS, cp = isNewProp() ? d.prop : currentProp(); return dl([[t("房产名称"), cp ? esc(cp.name) : ""], [t("地区"), esc(t(Hh.REGIONS[d.region]?.name || ""))], [t("房型"), ht ? `${ht.icon} ${esc(t(ht.name))}` : ""], [t("类型"), cp ? esc(t(B.PROPERTY_KINDS[cp.kind] || "")) : ""], [t("用途"), cp ? esc(t(B.PROPERTY_ROLES[cp.role] || "")) : ""], [t("状态"), cp ? esc(isNewProp() ? t(window.DEALS.PROPERTY_STATUS[cp.status] || "") : statusText(cp)) : ""]]); }
     case "address": return dl([[t("地址"), esc(d.address || "")], [t("建成年份"), d.year_built ? `${d.year_built}${t("（约 {age} 年房龄）", { age: new Date().getFullYear() - d.year_built })}` : ""]]);
     case "insurance": { if (!d.insured) return `<p class="muted prof-empty">${t("未投保")}</p>`; return dl(insuranceRows(d)); }
     case "hoa": {
@@ -78,14 +80,10 @@ function viewProfileSection(sec) {
   const check = (name, list, sel) => list.map((x) => `<label class="check"><input type="checkbox" name="${name}" value="${x.id}" ${sel.includes(x.id) ? "checked" : ""}><span>${esc(t(x.name))}</span></label>`).join("");
   const thisYear = new Date().getFullYear();
   const meta = PROFILE_SECTIONS.find((s) => s.id === sec);
-  const isNew = state.route?.q?.get("newprop") === "1", wiz = isNew || state.route?.q?.get("wiz") === "1";   // 添加房产向导：newprop = 第 1 步（还没建房产），wiz = 之后各步
-  if (isNew && !canManageHome()) return `<div class="panel empty"><strong>${t("只有家主可以新增房产")}</strong></div>`;
-  const stepIdx = PROFILE_SECTIONS.findIndex((s) => s.id === sec), nextSec = PROFILE_SECTIONS[stepIdx + 1];
-  const prevSec = stepIdx > 0 ? PROFILE_SECTIONS[stepIdx - 1] : null, prevHref = prevSec ? `${href("house", "profile")}?sec=${prevSec.id}&wiz=1` : "";
-  const nextHref = nextSec ? `${href("house", "profile")}?sec=${nextSec.id}&wiz=1` : href("house", "overview");
-  const steps = wiz ? `<div class="wiz-steps" aria-label="${esc(t("第 {n} 步，共 {m} 步", { n: stepIdx + 1, m: PROFILE_SECTIONS.length }))}"><p class="wiz-now"><b>${t("第 {n} 步，共 {m} 步", { n: stepIdx + 1, m: PROFILE_SECTIONS.length })}</b> · ${esc(t(meta?.name || sec))}</p>
-    <ol class="wiz-dots" aria-hidden="true">${PROFILE_SECTIONS.map((s, i) => `<li class="${i < stepIdx ? "is-done" : i === stepIdx ? "is-now" : ""}"></li>`).join("")}</ol></div>` : "";
-  const body = {
+  const np = isNewProp(), rv = np && state.route?.q?.get("rv") === "1";   // 添加房产向导：全程在内存草稿里，确认后才建（house-new.js）
+  if (np && !canManageHome()) return `<div class="panel empty"><strong>${t("只有家主可以新增房产")}</strong></div>`;
+  const steps = np && !rv ? newSteps(sec) : "";
+    const body = {
     type: () => `
         <fieldset>
           <legend>${t("地区")}</legend>
@@ -100,7 +98,7 @@ function viewProfileSection(sec) {
         </fieldset>
         <fieldset>
           <legend>${t("房产类型与用途")}</legend>
-          <div class="form-grid">${propSelects(state.route?.q?.get("newprop") === "1" ? null : currentProp())}</div>
+          <div class="form-grid">${propSelects(np ? d.prop : currentProp())}</div>
         </fieldset>`,
     address: () => `
         <fieldset>
@@ -140,22 +138,15 @@ function viewProfileSection(sec) {
     <section class="section form-page house-form">
       ${sec === "insurance" ? autofillBar("insurance", "#houseForm") : ""}
       ${steps}
-      <form id="houseForm" class="panel" data-sec="${sec}" ${isNew ? `data-new="1"` : wiz ? `data-wiz="1" data-next="${esc(nextHref)}" data-autosave` : "data-autosave"} novalidate>
-        ${isNew ? "" : askInline({ id: `profile-${state.propertyId}-${sec}`, title: t(meta?.name || sec), question: PROFILE_ASK[sec] ? t(PROFILE_ASK[sec]) : t("这一块该填什么、去哪里找？"), context: () => askCtx.property(state.propertyId) })}
+      <form id="houseForm" class="panel" data-sec="${sec}" ${np ? `data-newwiz="1" ${rv ? `data-rv="1"` : ""}` : "data-autosave"} novalidate>
+        ${np ? "" : askInline({ id: `profile-${state.propertyId}-${sec}`, title: t(meta?.name || sec), question: PROFILE_ASK[sec] ? t(PROFILE_ASK[sec]) : t("这一块该填什么、去哪里找？"), context: () => askCtx.property(state.propertyId) })}
         ${body}
         <p id="houseFormError" class="form-error" role="alert"></p>
-        <div class="${wiz ? "sticky-actions wiz-bar" : "form-actions sticky-actions"}">
-          ${wiz && sec === "hoa" ? `<div class="hoa-line"><span class="hoa-mini">${t("每月总计")} <b data-hoa-total-mini>${money(hoaMonthly(hoaOf(d)).total)}</b></span></div>` : ""}
-          ${wiz ? `<div class="form-actions wiz-row">` : ""}
-            ${wiz && !isNew && prevSec ? `<a class="btn btn-ghost" href="${prevHref}">‹ ${t("上一步")}</a>` : ""}
-            ${wiz && !isNew && nextSec ? `<a class="btn btn-ghost" href="${nextHref}">${t("跳过")}</a>` : ""}
-            ${isNew ? `<a class="btn btn-ghost" href="${href("house")}" data-action="house-cancel">${t("取消")}</a>` : ""}
-            <button type="submit" class="btn btn-primary">${isNew ? t("下一步") : wiz ? (nextSec ? t("保存并下一步") : t("完成")) : t("保存")}</button>
-            ${wiz ? "" : `<a class="btn btn-ghost" href="${href("house", "profile")}" data-action="house-cancel">${t("取消")}</a>`}
-            ${!wiz && sec === "hoa" ? `<span class="hoa-mini">${t("每月总计")} <b data-hoa-total-mini>${money(hoaMonthly(hoaOf(d)).total)}</b></span>` : ""}
-          ${wiz ? "</div>" : ""}
-          ${wiz && !isNew ? `<div class="form-actions wiz-exit"><a class="btn btn-ghost" href="${href("house", "overview")}" title="${esc(t("保存这一步填的内容，其余各步以后再补，回概览"))}">${t("全部跳过，稍后再填")}</a></div>` : ""}
-        </div>
+        ${np ? newBar(sec, rv) : `<div class="form-actions sticky-actions">
+          <a class="btn btn-ghost" href="${href("house", "profile")}" data-action="house-cancel">${t("取消")}</a>
+          ${sec === "hoa" ? `<span class="hoa-mini">${t("每月总计")} <b data-hoa-total-mini>${money(hoaMonthly(hoaOf(d)).total)}</b></span>` : ""}
+          <button type="submit" class="btn btn-primary">${t("保存")}</button>
+        </div>`}
       </form>
     </section>`;
 }
@@ -241,9 +232,9 @@ function insuranceFieldset(d) {
 }
 /** 资料表单里的年保费：只读，来自保险账单；旧值放在隐藏字段里原样保存（不丢），并给「创建账单」 */
 function premiumReadonly(d) {
-  const pr = insurancePremium(state.propertyId, d);
+  const pr = insurancePremium(curPid(), d);
   const val = pr.amount != null ? `<b>${money(pr.amount)}</b>` : `<span class="muted">${t("未填")}</span>`;
-  const link = amountSource(pr.src, pr.bill, "insurance_home", state.propertyId, { amount: pr.src === "profile" ? pr.amount : null, freq: "annual", name: t("房屋保险"), payee: d.insurance_provider || "" });
+  const link = amountSource(pr.src, pr.bill, "insurance_home", curPid(), { amount: pr.src === "profile" ? pr.amount : null, freq: "annual", name: t("房屋保险"), payee: d.insurance_provider || "" });
   return `<input type="hidden" name="insurance_premium" value="${d.insurance_premium ?? ""}">
     <div class="form-field ro-field"><span class="field-label">${t("年保费")}</span><span>${val} · ${link}</span><small>${t("金额在账单里改：账单是唯一来源，预算和现金流都按它算")}</small></div>`;
 }

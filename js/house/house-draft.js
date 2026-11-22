@@ -14,6 +14,7 @@ export function houseDraft() {
     else {
       const region = defaultRegion(), ht = H().HOUSE_TYPES[region][0];
       state.houseDraft = { region, house_type: ht.id, year_built: null, features: [...ht.features], exterior: [], roof: null, flooring: [], insured: false };
+      if (newProp) state.houseDraft.prop = { name: "", kind: "other", role: "owner_occupied", status: "owned" };   // 添加房产向导：房产本身的名称 / 类型 / 用途 / 状态也放在草稿里，最后一起建
     }
     state.houseDraft.address = prop?.address || "";
   }
@@ -27,6 +28,7 @@ export function readHouseForm(form) {
   const str = (n) => (fe[n].value || "").trim() || null;
   const checked = (name) => [...form.querySelectorAll(`input[name="${name}"]:checked`)].map((x) => x.value);
   const num = (v) => (v === "" ? null : Math.round(Math.max(0, Number(v) || 0) * 100) / 100);
+  if (has("prop_name") && d.prop) d.prop = { name: fe.prop_name.value.trim(), kind: fe.prop_kind.value, role: fe.prop_role.value, status: fe.prop_status.value || "owned" };   // 只有添加房产向导的草稿带 prop
   if (has("region")) d.region = fe.region.value;
   if (has("house_type")) d.house_type = fe.house_type.value;
   if (has("year_built")) { const y = parseInt(fe.year_built.value, 10); d.year_built = Number.isFinite(y) ? y : null; }

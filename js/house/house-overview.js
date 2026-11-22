@@ -1,6 +1,6 @@
 /* 房屋概览：房屋卡片、耗材提醒、设备 / 季节任务 / 交易的摘要面板。 */
 import { EMERGENCY_FIELDS, emergencyFilled, emergencyOf } from "./house-draft.js";
-import { RENT_POLICIES, amountSource, hoaOf, hoaRegular, hoaTotalHtml, noteArea, refSection, statusLine } from "./house-fees.js";
+import { RENT_POLICIES, amountSource, curPid, hoaOf, hoaRegular, hoaTotalHtml, noteArea, refSection, statusLine } from "./house-fees.js";
 import { alertAct, alertBadge, alertText, assetAlerts, myAssets } from "./asset-common.js";
 import { alertsOf } from "../core/logic.js";
 import { assetAsk, assetMenu, assetName } from "./assets.js";
@@ -161,12 +161,12 @@ function dealPanel() {
 }
 /** HOA 常规费用（只读）：来自 HOA 账单；资料里以前填的单元 / 车位 / 其他月费和周期放在隐藏字段里原样保存（不丢），没账单时显示旧值并给预填的「创建账单」 */
 function hoaDuesReadonly(d, hoa) {
-  const reg = hoaRegular(state.propertyId, hoa);
+  const reg = hoaRegular(curPid(), hoa);
   const hidden = [["hoa_dues", hoa.dues], ["hoa_dues_unit", hoa.dues_unit], ["hoa_dues_parking", hoa.dues_parking], ["hoa_dues_other", hoa.dues_other], ["hoa_dues_other_label", hoa.dues_other_label], ["hoa_dues_period", hoa.dues_period || "monthly"]]
     .map(([n, v]) => `<input type="hidden" name="${n}" value="${esc(v ?? "")}">`).join("");
   const split = reg.src === "profile" && (hoa.dues_unit || hoa.dues_parking || hoa.dues_other)
     ? ` <small class="muted">(${[hoa.dues_unit ? t("单元 {a}", { a: money(hoa.dues_unit) }) : "", hoa.dues_parking ? t("车位 {a}", { a: money(hoa.dues_parking) }) : "", hoa.dues_other ? `${esc(hoa.dues_other_label || t("其他"))} ${money(hoa.dues_other)}` : ""].filter(Boolean).join(" + ")})</small>` : "";
-  const link = amountSource(reg.src, reg.bill, "hoa", state.propertyId, { amount: reg.legacy, freq: reg.freq, name: hoa.name ? `HOA · ${hoa.name}`.slice(0, 60) : t("HOA 月费"), payee: hoa.name || hoa.mgmt || "" });
+  const link = amountSource(reg.src, reg.bill, "hoa", curPid(), { amount: reg.legacy, freq: reg.freq, name: hoa.name ? `HOA · ${hoa.name}`.slice(0, 60) : t("HOA 月费"), payee: hoa.name || hoa.mgmt || "" });
   return `${hidden}<div class="span-2 form-field ro-field"><span class="field-label">${t("常规费用")}</span><span>${reg.src ? `<b>${reg.text}</b>${split} · ` : `<span class="muted">${t("未填")}</span> · `}${link}</span><small>${t("金额在账单里改：账单是唯一来源，预算和现金流都按它算")}</small></div>`;
 }
 /** 资料表单里的 HOA / 物业区块：叫法和默认值按当前房型 */

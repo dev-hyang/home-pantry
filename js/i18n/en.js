@@ -4144,6 +4144,8 @@ export const EN = {
   "稍后再填": "Fill in later",
   "请填写房产名称。": "Enter a property name.",
   "房产已添加，接着填地址与建成年份": "Property added; now the address and year built",
+  "确认并创建": "Confirm and create", "房产已添加": "Property added",
+  "请核对下面的信息；哪一块要改，点它的「编辑」。没问题就点最下面的「确认并创建」，到这一步才会真正建好这套房产。": "Check the details below; tap Edit on any block to change it. Nothing is created until you tap Confirm and create at the bottom.",
   "上一步": "Back",
   "全部跳过": "Skip all",
   "不保存这一步，其余各步都跳过，回概览": "Don't save this step, skip the rest and go to the overview",

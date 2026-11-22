@@ -13,6 +13,7 @@ export { EMERGENCY_FIELDS, defaultRegion, houseDraft, readHouseForm } from "./ho
 export { PROFILE_SECTIONS, applyTypeDefaults, insuranceAlertItems, insuranceFact, insuranceRows, insuranceStatus, sectionStatus } from "./house-sections.js";
 export { viewHouse, viewHouseSupplies } from "./house-overview.js";
 export { viewHouseProfile } from "./house-profile.js";
+export { newCreate, newGo, newStepSubmit } from "./house-new.js";
 /* ── 推荐耗材（按模板批量添加） ── */
 export function viewHouseTemplate() {
   const p = state.houseProfile;
