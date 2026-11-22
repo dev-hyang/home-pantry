@@ -993,6 +993,10 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 /* 账单卡片第一行：属于哪个资产 / 房产，没有就是「全家共用」 */
 .bh-owner { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .bh-owner.is-shared { font-weight: 500; }
+/* 非财务区域的页头（储藏…）：[目录] 区域 / 当前页——路径是导航文字，不是标题 */
+.sec-path { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+.sec-path b { font-weight: 700; }
+@media (max-width: 440px) { .sec-path { font-size: 16px; } }
 .card-ico { display: inline-block; margin-right: 6px; font-size: 14px; line-height: 1; vertical-align: -1px; }
 .card-net { flex: 0 0 auto; min-width: 44px; padding: 3px 6px; border-radius: 6px; font-size: 11px; font-weight: 600; text-align: center; letter-spacing: .02em; background: var(--surface-2); color: var(--muted); margin-top: 3px; }
 .card-net.net-visa { background: #1a1f71; color: #fff; } .card-net.net-mastercard { background: #eb001b; color: #fff; } .card-net.net-amex { background: #2e77bc; color: #fff; } .card-net.net-discover { background: #ff6000; color: #fff; } .card-net.net-unionpay { background: #d7272e; color: #fff; }

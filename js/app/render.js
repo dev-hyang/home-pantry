@@ -83,7 +83,7 @@ function renderBody(r) {
   if (r.sub === "menu") { mountView("", r.section === "house" ? viewPropertyList() : viewMenu(r.section)); return; }   // 页签目录页；房屋先列房产
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
-  if (!mountView(crumb(r) + (r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : ""), view())) return;   // 储藏的每个页面顶上都有页面导航卡片
+  if (!mountView((r.section === "pantry" ? "" : crumb(r)) + (r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : ""), view())) return;   // 储藏的每个页面顶上都有页面导航卡片
   if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"))) renderInvList();
   const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : r.section === "pantry" && r.sub === "gear" ? $("#invSec-gear") : null;   // 从概览「汽车房屋消耗品」或旧的家居耐用品链接进来：展开并滚到那一块
   if (hs && !state.scrolledHouse) { hs.open = true; state.scrolledHouse = true; requestAnimationFrame(() => hs.scrollIntoView({ block: "start" })); }
