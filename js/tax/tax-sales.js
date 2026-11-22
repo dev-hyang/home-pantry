@@ -1,6 +1,6 @@
 /* 税务 → 买卖与成本基础（三期，2026-11-22.22 改成一项一项填）：卖房 / 卖车前后的收益参考计算。
  *  · 房子按 ①→⑦ 一步一步看 / 填：① 买入价（来自房屋记录，只读）→ ② 买入时付的费用 → ③ 买入时收到的退款 / credit → ④ 装修翻新 → ⑤ 卖出价（只读）→ ⑥ 卖出时的费用 → ⑦ 自住满 2 年？
- *    ②③④⑥ 每一块都是一条条的清单，点「＋ 添加一项」才展开一个小表单（内容 + 金额，装修可选日期），一次加一项，每项右边有 × 删除。
+ *    ②③④⑥ 每一块都是一条条的清单，点「＋ 添加一项」才展开一个小表单（这一项是什么 + 金额 + 可选的日期），一次加一项，每项右边有 × 删除。
  *  · 成本基础 = 买入价 + ② − ③ + ④；收益 = 卖价 − ⑥ − 成本基础；自住满 2 年（近 5 年）合并报税最多排除 50 万美元，超出才交税；出租的房子另给折旧年额参考。
  *  · 车子：自用车卖得比买入价低是亏损，不能抵税；高了才有收益。
  * 买入价 / 卖出价 / 日期来自「房屋」和「车辆」里已有的记录；清单和「住满与否」记在这里（存预算表的 _tax_cfg.props，不动房产记录）。全是参考，政策和额度待核对。
@@ -10,20 +10,22 @@ import { lang, t } from "../core/i18n.js";
 import { state } from "../core/state.js";
 import { href } from "../core/router.js";
 import { propOf } from "./tax-calendar.js";
+import { ui } from "./tax-ui.js";
+import { closingBlock } from "./tax-closing-ai.js";
 
 const money = (n) => Units.money(n);
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 export const HOME_EXCLUSION_MFJ = 500000;   // 合并报税，待核对
 const num = (v) => (v == null || v === "" ? null : Number(v));
 /** 界面状态（不入库）：open = 每套房的展开 / 折叠（用户点过的以用户为准）；add = 正在加一项的那一块 "房产 id|清单名" */
-export const ui = { open: new Map(), add: null };
+export { ui };
 
 /** 四张清单：key = 存在 props[id] 里的字段；legacy = 以前（只有一个数字框时）存的合计，还认；sign = 对成本基础是加还是减 */
 export const SECS = [
-  { key: "buyItems", legacy: "buyCosts", sign: 1, n: "②", title: "买入时付的费用", hint: "过户费、律师费、评估费、贷款费用…", ph: "例如：律师费" },
-  { key: "creditItems", legacy: "buyCredits", sign: -1, n: "③", title: "买入时收到的退款 / credit", hint: "中介多收后退给你的钱、贷款方在 closing 里给的 credit。会减少成本，不是收入。", ph: "例如：贷款方 credit" },
+  { key: "buyItems", legacy: "buyCosts", sign: 1, n: "②", title: "买入时付的费用", hint: "过户费、律师费、评估费、贷款费用…", ph: "例如：律师费", date: true },
+  { key: "creditItems", legacy: "buyCredits", sign: -1, n: "③", title: "买入时收到的退款 / credit", hint: "中介多收后退给你的钱、贷款方在 closing 里给的 credit。会减少成本，不是收入。", ph: "例如：贷款方 credit", date: true },
   { key: "improvements", legacy: null, sign: 1, n: "④", title: "装修翻新（加到成本基础）", hint: "屋顶、厨房、窗户、地板…大的翻新才算，日常维修不算。", ph: "例如：换屋顶", date: true },
-  { key: "sellItems", legacy: "sellCosts", sign: 1, n: "⑥", title: "卖出时的费用", hint: "中介佣金、过户费…", ph: "例如：中介佣金" },
+  { key: "sellItems", legacy: "sellCosts", sign: 1, n: "⑥", title: "卖出时的费用", hint: "中介佣金、过户费…", ph: "例如：中介佣金", date: true },
 ];
 /** 一块清单里的行（含以前填的合计）和合计 */
 export function itemsOf(x, s) {
@@ -51,7 +53,7 @@ const step = (n, title, body, hint = "") => `<section class="tax-step"><h4><span
 /** 一块清单：行 + 合计 + 「＋ 添加一项」（点了才展开小表单） */
 function listBlock(p, s) {
   const x = propOf(p.id), { rows, total } = itemsOf(x, s), key = `${p.id}|${s.key}`, adding = ui.add === key;
-  const li = rows.map((r) => `<li class="tax-imp"><span>${r.on ? `${esc(r.on)} · ` : ""}${esc(r.desc || "")} <b>${money(+r.amount || 0)}</b></span><button type="button" class="btn btn-sm btn-ghost" data-tax-item-del="${esc(r.legacy ? `${p.id}|legacy|${r.legacy}` : `${key}|${r.i}`)}" aria-label="${esc(t("删除这一条"))}">×</button></li>`).join("");
+  const li = rows.map((r) => `<li class="tax-imp"><span class="tax-imp-d">${r.on ? `<small class="muted">${esc(r.on)}</small>` : ""}${esc(r.desc || "")}</span><b class="tax-imp-a">${money(+r.amount || 0)}</b><button type="button" class="btn btn-sm btn-ghost" data-tax-item-del="${esc(r.legacy ? `${p.id}|legacy|${r.legacy}` : `${key}|${r.i}`)}" aria-label="${esc(t("删除这一条"))}">×</button></li>`).join("");
   const form = adding ? `<form class="tax-item-form" data-tax-item="${esc(key)}" novalidate>
       <label>${t("这一项是什么")}<input name="desc" maxlength="60" placeholder="${esc(t(s.ph))}" autocomplete="off"></label>
       <label>${t("金额")}<input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00"></label>
@@ -70,6 +72,7 @@ function homeCard(p, idx) {
   const lived = `<select data-tax-prop="${esc(p.id)}" data-key="lived" data-nosearch aria-label="${esc(t("自住满 2 年？"))}"><option value="">${t("还没标")}</option><option value="yes" ${x.lived === "yes" ? "selected" : ""}>${t("是，满 2 年")}</option><option value="no" ${x.lived === "no" ? "selected" : ""}>${t("不满")}</option></select>`;
   return `<details class="panel tax-event" data-tax-open="${esc(p.id)}" ${open ? "open" : ""}><summary><b>🏡 ${esc(p.name)}</b> <span class="muted">${esc(tx(p.role === "landlord" ? "出租" : "自住", p.role === "landlord" ? "rental" : "owner-occupied"))}</span></summary>
     <p class="muted tax-wrap">${t("按 ①→⑦ 一项一项看、一项一项加：没有的就空着，往下走。最底下是算出来的结果。")}</p>
+    ${closingBlock(p)}
     ${step("①", t("买入价"), `<p><b>${p.purchase_price != null ? money(p.purchase_price) : NA}</b> <span class="muted">${t("来自 房屋 的记录，这里只读")}</span></p>`)}
     ${listBlock(p, SECS[0])}${listBlock(p, SECS[1])}${listBlock(p, SECS[2])}
     ${step("⑤", t("卖出价"), `<p><b>${p.sale_price != null ? money(p.sale_price) : NA}</b> <span class="muted">${t("来自 房屋 → 交易 的记录，这里只读")}</span></p>`)}
