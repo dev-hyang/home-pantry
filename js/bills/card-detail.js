@@ -13,7 +13,7 @@ import { D } from "./card-common.js";
 export const CARD_SECS = [
   { id: "basic", icon: "💳", name: (bank) => (bank ? "这个账户" : "这张卡"), kinds: null },
   { id: "repay", icon: "📅", name: () => "还款", kinds: ["credit"] },
-  { id: "rewards", icon: "🎯", name: () => "返现规则", kinds: ["credit", "debit", "wallet"] },
+  { id: "rewards", icon: "🎯", name: () => "返现规则", kinds: ["credit", "debit"] },
   { id: "bonus", icon: "🎁", name: () => "开卡奖励", kinds: ["credit"] },
   { id: "credits", icon: "🧾", name: () => "报销额度", kinds: ["credit"] },
   { id: "notes", icon: "📝", name: () => "备注", kinds: null },

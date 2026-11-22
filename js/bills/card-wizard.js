@@ -1,16 +1,16 @@
 /* 添加卡 / 账户的向导（#/bills/<某一页>?card=new）：一步一页，最后一页「确认」汇总全部信息，每一块带「编辑」回到对应那一步，确认无误再保存。
- *  步骤随种类变：信用卡 = 类型 → 基本信息 → 还款 → 返现规则 → 开卡奖励 → 报销额度 → 备注 → 确认；银行 / 投资 / 钱包 / 礼品卡 = 类型 → 基本信息 → 备注 → 确认。
+ *  步骤随种类变：信用卡 = 类型 → 基本信息 → 还款 → 返现规则 → 开卡奖励 → 报销额度 → 备注 → 确认；借记卡 = 类型 → 基本信息 → 返现规则 → 备注 → 确认；银行 / 投资 / 电子钱包（Ventra、PayPal…）/ 礼品卡 = 类型 → 基本信息 → 备注 → 确认。
  *  做法：表单还是原来那一个（字段、保存逻辑都不变），各分区（.cf-sec）一次只显示一个；确认页由 collectCard 读出表单当前内容、复用详情页的分区画法。
  *  只用于新建；已有的卡仍是详情页 → 某一块「编辑」。 */
 import { esc } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { CARD_SECS, cardSectionBody } from "./card-detail.js";
-import { noRewards } from "./cards.js";
+import { groupHref, groupName, kindName, noRewards } from "./cards.js";
 import { collectCard } from "./card-collect.js";
 import { refreshTaxHint } from "../tax/tax-hint.js";
 
 /** [id, 名称, 图标, 适用种类（空 = 全部）] */
-const STEPS = [["type", "类型", "🧭"], ["basic", "基本信息", "💳"], ["repay", "还款", "📅", ["credit"]], ["rewards", "返现规则", "🎯", ["credit", "debit", "wallet"]],
+const STEPS = [["type", "类型", "🧭"], ["basic", "基本信息", "💳"], ["repay", "还款", "📅", ["credit"]], ["rewards", "返现规则", "🎯", ["credit", "debit"]],
   ["bonus", "开卡奖励", "🎁", ["credit"]], ["credits", "报销额度", "🧾", ["credit"]], ["notes", "备注", "📝"], ["review", "确认", "✅"]];
 export const stepsFor = (kind) => STEPS.filter((s) => !s[3] || s[3].includes(kind));
 export const firstStep = () => STEPS[0][0];
@@ -68,7 +68,14 @@ function advance(f) {
   show(f, list[Math.min(list.length - 1, i + 1)][0]);
 }
 
+/** 换了类型：页头面包屑里的分组名和「添加 xxx」跟着变 */
+function refreshCrumb(f) {
+  const kind = kindOf(f), a = document.querySelector("[data-crumb-group]"), b = document.querySelector("[data-crumb-title]");
+  if (a) { a.textContent = t(groupName(kind)); a.setAttribute("href", groupHref(kind)); }
+  if (b) b.textContent = `${t("添加")} ${kindName(kind)}`;
+}
 if (typeof document !== "undefined") {
+  document.addEventListener("input", (e) => { if (e.target.name === "base") e.target.dataset.touched = "1"; });
   document.addEventListener("click", (e) => {
     const b = e.target.closest?.("[data-wz]"); const f = form(); if (!b || !f || !f.hasAttribute("data-wzf")) return;
     const act = b.dataset.wz, id = cur(f), list = stepsFor(kindOf(f)), i = list.findIndex((s) => s[0] === id);
@@ -79,6 +86,8 @@ if (typeof document !== "undefined") {
   document.addEventListener("change", (e) => {   // 换了类型：步骤数 / 名称跟着变
     const f = form(); if (!f?.hasAttribute("data-wzf") || e.target.name !== "kind") return;
     f.querySelector("[data-wz-now]").textContent = wzNow(kindOf(f), cur(f));
-    refreshTaxHint(f);   // 开户前的税务提示跟着类型换（HSA / FSA / 529 / 孩子账户…）
+    refreshTaxHint(f);
+    refreshCrumb(f);
+    const base = f.elements.base; if (base && !base.dataset.touched) base.value = kindOf(f) === "credit" ? 1 : 0;   // 信用卡默认 1%；借记卡、电子钱包、账户默认 0（没动过才改）   // 开户前的税务提示跟着类型换（HSA / FSA / 529 / 孩子账户…）
   });
 }

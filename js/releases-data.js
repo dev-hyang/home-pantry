@@ -2,6 +2,14 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.12", title: { zh: "电子钱包（Ventra、PayPal…）没有「返现规则」这一步了", en: "E-wallets (Ventra, PayPal…) no longer have a Rewards step" }, items: [
+    { k: "better", zh: "添加电子钱包：类型 → 基本信息 → 备注 → 确认，去掉了「返现规则」（电子钱包本身没有返现）；信用卡和借记卡仍有返现规则", en: "Adding an e-wallet is now Type → Basics → Notes → Review without the Rewards step (e-wallets have no cash back); credit and debit cards keep it" },
+    { k: "better", zh: "电子钱包的详情页也不再显示「返现规则」这一块（以前填过的数据还在，不会丢）", en: "An e-wallet's detail page no longer shows a Rewards block (anything entered earlier is kept)" },
+    { k: "fix", zh: "电子钱包、银行 / 投资账户、礼品卡保存时返现一律记为 0（以前默认带着 1%，Ventra 会被当成 1% 返现的卡）；借记卡默认 0，信用卡默认 1%", en: "E-wallets, bank / investment accounts and gift cards now always save with 0% cash back (they used to carry a default 1%, so Ventra looked like a 1% card); debit cards default to 0, credit cards to 1%" },
+    { k: "fix", zh: "修复：在 财务 → 投资账户点「添加 FSA / 通勤福利」，打开的表单类型是「礼品卡」。原因是上一次打开添加表单没保存的草稿被留下了，现在每次进添加页都从头开始", en: "Fixed: tapping Add FSA / commuter benefits under Finance → Investment accounts opened the form on Gift card, because an unsaved draft from an earlier visit was kept; each visit to an add page now starts fresh" },
+    { k: "fix", zh: "添加账户时换类型，页头面包屑里的分组名和「添加 xxx」跟着变", en: "Changing the account type while adding now updates the group and “Add …” in the breadcrumb" },
+  ] },
+
   { v: "2026-11-22.11", title: { zh: "税务：开账户前的提示和冲突检查（HSA + FSA、529、孩子账户）", en: "Tax: pre-opening notes and conflict checks (HSA + FSA, 529, child accounts)" }, items: [
     { k: "new", zh: "税务多了「账户与开户」页：自动检查 HSA 和普通医疗 FSA 是否冲突（自己的或配偶单位的都算），冲突时提醒「今日」；HSA、FSA / 通勤福利、529、孩子账户（Trump account / UTMA）、退休、券商、加密、储蓄各有一份开户前要先决定什么、税务怎么算、容易踩的坑", en: "Tax now has an Accounts & opening page: it checks whether an HSA conflicts with a general-purpose health FSA (yours or a spouse's) and reminds you in Today; HSA, FSA / commuter, 529, child accounts (Trump account / UTMA), retirement, brokerage, crypto and savings each get what to decide first, how it is taxed and common traps" },
     { k: "new", zh: "添加账户时选了 HSA / FSA / 529 / 孩子账户 / 退休 / 加密 / 券商，类型下面会出现一句税务提示，链到完整指南", en: "When you add an account of type HSA / FSA / 529 / child / retirement / crypto / brokerage, a one-line tax note appears under the type with a link to the full guide" },

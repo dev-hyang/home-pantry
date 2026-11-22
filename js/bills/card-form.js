@@ -27,6 +27,10 @@ const NUMF = (v) => (v == null || v === "" ? "" : num(v));
 export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：详情页上「删除前的确认」面板（卡片列表页生成）
   const isNew = id === "new", c = isNew ? null : cardById(id);
   const preset = state.route.q.get("preset");
+  if (isNew && state.cardDraftRoute !== state.route) {   // 每次新进「添加」都丢掉上一次没保存的草稿（以前不丢：先开过礼品卡再点「添加 FSA」，类型还是礼品卡）；只有「选了目录后重画」那一次保留
+    if (state.cardDraftKeep) state.cardDraftKeep = false; else state.cardDraft = null;
+    state.cardDraftRoute = state.route;
+  }
   if (isNew && preset && !state.cardDraft) {   // 链接预填：#/bills/cards?card=new&preset=<目录 id>&last4=1234&due=24
     const dft = fromCatalog(preset); if (dft) { const l4 = state.route.q.get("last4"), due = +state.route.q.get("due"); state.cardDraft = { ...dft, last4: /^\d{4}$/.test(l4 || "") ? l4 : null, due_day: due >= 1 && due <= 31 ? due : null }; }
   }
@@ -59,7 +63,7 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
   const credits = (v.credits || []).map((x) => `${x.name} | ${num(x.amount)} | ${x.period || "year"} | ${x.resets_on || ""} | ${num(x.used, 0)}`).join("\n");
   const b = v.bonus || {};
   return `<section class="section form-page">
-    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(groupHref(kind))}<a href="${href("bills")}">${t("财务")}</a><span class="sep">/</span><a href="${finGroupLink("accounts")}">${t("账户")}</a><span class="sep">/</span><a href="${groupHref(kind)}">${t(groupName(kind))}</a><span class="sep">/</span>${isNew ? `<b>${t("添加")} ${esc(kindName(kind))}</b>` : `<a href="${cardHref(c.id)}">${d(v.name)}</a><span class="sep">/</span><b>${t("编辑")}</b>`}</nav>
+    <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(groupHref(kind))}<a href="${href("bills")}">${t("财务")}</a><span class="sep">/</span><a href="${finGroupLink("accounts")}">${t("账户")}</a><span class="sep">/</span><a href="${groupHref(kind)}" data-crumb-group>${t(groupName(kind))}</a><span class="sep">/</span>${isNew ? `<b data-crumb-title>${t("添加")} ${esc(kindName(kind))}</b>` : `<a href="${cardHref(c.id)}">${d(v.name)}</a><span class="sep">/</span><b>${t("编辑")}</b>`}</nav>
     <form id="cardForm" class="panel" novalidate data-id="${d(c?.id)}" ${ro ? 'data-readonly="1"' : ""}${isNew && !ro ? ` data-wzf data-step="${firstStep()}"` : ""}>
       ${isNew && !ro ? wzChrome(kind) : ""}
       ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("只读：家主开放财务权限后才能修改")}</p><fieldset disabled style="border:0;padding:0;margin:0;min-width:0">` : ""}
@@ -129,7 +133,7 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
 /** 表单里选了目录：用目录内容重画（草稿放 state.cardDraft） */
 export function applyCatalogPick(id) {
   const draft = id ? fromCatalog(id) : null;
-  state.cardDraft = draft; go(cardHref("new"), { replace: true });
+  state.cardDraft = draft; state.cardDraftKeep = true; go(cardHref("new"), { replace: true });
 }
 export async function saveCardForm(f) {
   if (roStop()) return false;
