@@ -13,6 +13,7 @@ import { bulkBar, bulkCheck, bulkMenuItem, bulkOn, bulkRegister } from "../core/
 import { clearActionBtn } from "../core/clear-filters.js";
 import { shopsFab } from "./shops-nav.js";
 import { curSec, fsec, secTitle } from "../core/form-sec.js";
+import { gwActions, gwAttr, gwChrome, gwReview } from "../core/form-wizard.js";
 import { buyHead } from "./buy-nav.js";
 
 /* ───────────── 列表 ───────────── */
@@ -80,11 +81,12 @@ function shopCard(s) {
 function newCard() {
   return `<button type="button" class="shop-card shop-new" data-action="shops-new" aria-expanded="false" aria-controls="shopEditForm"><span class="shop-new-plus" aria-hidden="true">＋</span><b>${t("添加商店")}</b><small>${t("名称、地址、每周几换广告")}</small></button>`;
 }
+const SHOP_STEPS = [["basic", "基本信息"], ["update", "特价更新"]];
 export function shopForm(s, { page = false } = {}) {
   const sec = s && page ? curSec(["basic", "update"]) : "";   // 详情页某一块的「编辑」：只显示那一块（core/form-sec.js）
   const v = s || { category: "groceries", refresh: "weekly", refresh_dow: 3 };
-  return `<form class="panel shop-form" id="shopEditForm" data-id="${esc(s?.id || "")}" ${sec ? "novalidate" : ""} aria-label="${esc(s ? t("编辑商店") : t("添加商店"))}">
-    ${secTitle(sec === "update" ? "特价更新" : "基本信息", sec)}
+  return `<form class="panel shop-form" id="shopEditForm" data-id="${esc(s?.id || "")}" ${sec ? "novalidate" : ""}${s ? "" : gwAttr(SHOP_STEPS)} aria-label="${esc(s ? t("编辑商店") : t("添加商店"))}">
+    ${secTitle(sec === "update" ? "特价更新" : "基本信息", sec)}${s ? "" : gwChrome(SHOP_STEPS)}
     <div class="form-grid">
       <label ${fsec("basic", sec)} class="span-2">${t("名称")}<input name="name" required maxlength="60" value="${esc(v.name || "")}" placeholder="${esc(t("例如：ALDI"))}" list="shopChains"></label>
       <label ${fsec("basic", sec)}>${t("分类")}<select name="category" data-nosearch>${SHOP_CATS.map(([c, n, i]) => `<option value="${c}" ${v.category === c ? "selected" : ""}>${i} ${esc(t(n))}</option>`).join("")}</select></label>
@@ -97,8 +99,9 @@ export function shopForm(s, { page = false } = {}) {
       <label ${fsec("update", sec)} class="span-2 check-inline shop-auto"><input type="checkbox" name="auto_update" ${v.auto_update ? "checked" : ""}><span>🤖 ${t("换广告那天自动更新（Claude 定时任务每天早上看一次，到了这家的换广告日就读广告、自动录入；只对「每周」的商店生效，季节 / 节日类的保持手动）")}</span></label>
       <label ${fsec("basic", sec)} class="span-2">${t("备注")}<input name="notes" maxlength="300" value="${esc(v.notes || "")}" placeholder="${esc(t("会员卡、营业时间、哪个门口好停车…"))}"></label>
     </div>
+    ${s ? "" : gwReview()}
     <datalist id="shopChains">${Object.values(CHAINS).map((c) => `<option value="${esc(c.name)}">`).join("")}</datalist>
-    <div class="form-actions">${page ? `<a class="btn btn-ghost" href="${shopHref(s)}">${t("取消")}</a>` : `<button type="button" class="btn btn-ghost" data-action="shops-edit-cancel">${t("取消")}</button>`}<button class="btn btn-primary" type="submit">${t("保存")}</button>
-      ${s && !page ? `${s.archived ? "" : `<button type="button" class="btn btn-ghost" data-action="shops-archive" data-id="${s.id}">${t("不去了")}</button>`}<button type="button" class="btn btn-ghost btn-danger" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>` : ""}</div>
+    ${s ? `<div class="form-actions">${page ? `<a class="btn btn-ghost" href="${shopHref(s)}">${t("取消")}</a>` : `<button type="button" class="btn btn-ghost" data-action="shops-edit-cancel">${t("取消")}</button>`}<button class="btn btn-primary" type="submit">${t("保存")}</button>
+      ${s && !page ? `${s.archived ? "" : `<button type="button" class="btn btn-ghost" data-action="shops-archive" data-id="${s.id}">${t("不去了")}</button>`}<button type="button" class="btn btn-ghost btn-danger" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>` : ""}</div>` : gwActions(`<button type="button" class="btn btn-ghost" data-action="shops-edit-cancel">${t("取消")}</button>`)}
   </form>`;
 }

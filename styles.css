@@ -4598,3 +4598,9 @@ form[data-dwz][data-step="pay"] [data-fsec]:not([data-fsec="pay"]),
 form[data-dwz][data-step="link"] [data-fsec]:not([data-fsec="link"]),
 form[data-dwz][data-step="notes"] [data-fsec]:not([data-fsec="notes"]),
 form[data-dwz][data-step="review"] [data-fsec] { display: none !important; }
+/* 通用添加向导（core/form-wizard.js）：按表单的 data-step 只显示当前这一块（没有 data-step = 第一块；review = 只显示确认页）；块 id 在这里登记 */
+form[data-gwz]:not([data-step]) [data-fsec]:not([data-fsec="basic"]),
+form[data-gwz][data-step="basic"] [data-fsec]:not([data-fsec="basic"]),
+form[data-gwz][data-step="contact"] [data-fsec]:not([data-fsec="contact"]),
+form[data-gwz][data-step="update"] [data-fsec]:not([data-fsec="update"]),
+form[data-gwz][data-step="review"] [data-fsec] { display: none !important; }

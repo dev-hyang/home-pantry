@@ -9,6 +9,7 @@ import { amOwner, famMembers, familyHref, meId, reloadMembers } from "./members.
 import { deviceText, ensureLogins, L, lastLoginOf, loginHasMore, loginRowHtml, loginWindow } from "./logins.js";
 import { adultPeople, devicesOf, myPersonOf, personHref, personNameOf, visiblePeople } from "./family-lite.js";
 import { F, demo } from "./family-common.js";
+import { gwActions, gwAttr, gwChrome, gwReview } from "../core/form-wizard.js";
 export { adultPeople, deviceLinkPrompt, devicesOf, myMember, myName, myPersonOf, personHref, personNameOf, resetFamilyUi, visiblePeople } from "./family-lite.js";
 
 const personOk = (p) => amOwner() || p.id === myPersonOf();
@@ -139,19 +140,20 @@ export function personPage(id) {
     ${p.kind !== "pet" && hasDev ? sec("logs", "🕘", t("登录记录"), logsBody(p)) : ""}${danger}${linkSheet()}</div>`;
 }
 /** 新建家庭成员：基本资料表单页（取消在左、保存在右） */
+const PERSON_STEPS = [["basic", "基本资料"], ["contact", "联系方式"]];
 function newPersonPage() {
   const sel = (name, opts) => `<select name="${name}">${opts.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join("")}</select>`;
   return `<div class="mem-profile"><section class="panel prof-card"><div class="prof-head"><span class="mi" aria-hidden="true">🪪</span><div class="prof-t"><h3>${t("添加家庭成员")}</h3></div></div>
-    <form id="personForm" data-id="" novalidate><div class="form-grid">
-      <label>${t("名字")}<input name="name" required maxlength="40" autocomplete="off"></label>
-      <label>${t("类别")}${sel("kind", Object.entries(PEOPLE_KINDS).map(([k, n]) => [k, t(n)]))}</label>
-      <label>${t("性别")}${sel("gender", [["", t("不填")], ["male", t("男")], ["female", t("女")]])}</label>
-      <label>${t("生日")}<input name="birth" type="date"></label>
-      <label>${t("电话")}<input name="phone" type="tel" inputmode="tel" maxlength="40"></label>
-      <label>${t("邮箱")}<input name="email" type="email" maxlength="120"></label>
-      <label class="span-2">${t("地址")}<textarea name="address" rows="2" maxlength="300"></textarea></label>
-    </div><p id="personErr" class="form-error" role="alert"></p>
-    <div class="form-actions form-actions-split"><button type="button" class="btn btn-ghost" data-action="person-new-cancel">${t("取消")}</button><button type="submit" class="btn btn-primary">${t("保存")}</button></div></form></section></div>`;
+    <form id="personForm" data-id="" novalidate${gwAttr(PERSON_STEPS)}>${gwChrome(PERSON_STEPS)}<div class="form-grid">
+      <label data-fsec="basic">${t("名字")}<input name="name" required maxlength="40" autocomplete="off"></label>
+      <label data-fsec="basic">${t("类别")}${sel("kind", Object.entries(PEOPLE_KINDS).map(([k, n]) => [k, t(n)]))}</label>
+      <label data-fsec="basic">${t("性别")}${sel("gender", [["", t("不填")], ["male", t("男")], ["female", t("女")]])}</label>
+      <label data-fsec="basic">${t("生日")}<input name="birth" type="date"></label>
+      <label data-fsec="contact">${t("电话")}<input name="phone" type="tel" inputmode="tel" maxlength="40"></label>
+      <label data-fsec="contact">${t("邮箱")}<input name="email" type="email" maxlength="120"></label>
+      <label data-fsec="contact" class="span-2">${t("地址")}<textarea name="address" rows="2" maxlength="300"></textarea></label>
+    </div>${gwReview()}<p id="personErr" class="form-error" role="alert"></p>
+    ${gwActions(`<button type="button" class="btn btn-ghost" data-action="person-new-cancel">${t("取消")}</button>`)}</form></section></div>`;
 }
 /* ── 事件：块的编辑 / 折叠 / 设备详情 / 范围 / 保存 ── */
 /** 重画当前页；keep = 留在原来的位置（登录记录里切范围 / 加载更多，不回到页面顶端） */
