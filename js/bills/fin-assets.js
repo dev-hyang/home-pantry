@@ -62,11 +62,10 @@ function valueHead(eq) {
   return `<span class="fa-amt">${v}${sub ? `<small>${sub}</small>` : ""}</span>`;
 }
 /** 行的外壳：第一行 名称 + 状态徽标 | 市值；第二行 灰色一句话；下面一行一项；最后是「打开」链接 */
-const faRow = ({ name, badge, meta, eq, lines, openHref, openLabel, panel }) => `<li class="fa-row">
-    <div class="fa-top"><div class="fa-name"><b>${esc(name)}</b>${badge}</div>${valueHead(eq)}</div>
+const faRow = ({ name, badge, meta, eq, lines, openHref, panel }) => `<li class="fa-row">
+    <div class="fa-top"><div class="fa-name"><b><a href="${openHref}">${esc(name)}</a></b>${badge}</div>${valueHead(eq)}</div>
     ${meta ? `<div class="fa-meta">${meta}</div>` : ""}
     <div class="fa-lines">${lines}</div>
-    <a class="fa-open" href="${openHref}">${esc(openLabel)} ›</a>
     ${panel}</li>`;
 
 function propertyRow(p, spend, loans = [], eq = null) {
@@ -87,7 +86,7 @@ function propertyRow(p, spend, loans = [], eq = null) {
       ...loans.map((e) => fact(t("贷款"), debtLine(e))),
       fact(t("{y} 年花费", { y }), `${spent} · <a href="${href("bills", "spend")}?tab=records&prop=${encodeURIComponent(p.id)}&year=${y}">${t("明细")}</a>`),
     ].join(""),
-    openHref: `${href("house", "overview")}?prop=${encodeURIComponent(p.id)}`, openLabel: t("在房屋里打开"),
+    openHref: `${href("house", "overview")}?prop=${encodeURIComponent(p.id)}`,
     panel: eq ? valuationPanel("property", p, { fallback: eq.source === "purchase" ? eq.value : null }) : "",
   });
 }
@@ -102,7 +101,7 @@ function vehicleRow(a, loans, eq = null) {
       st === "financed" || st === "leased" || v.loan_end ? fact(st === "leased" ? t("租约到期") : t("贷款到期"), v.loan_end ? esc(fmtDate(v.loan_end)) : `<span class="muted">${t("未填")}</span>`) : "",
       ...loans.map((e) => fact(t("车贷"), debtLine(e))),
     ].join(""),
-    openHref: href("asset", a.id), openLabel: t("打开车辆"),
+    openHref: href("asset", a.id),
     panel: eq ? valuationPanel("vehicle", a) : "",
   });
 }
@@ -143,14 +142,14 @@ export function viewFinAssets() {
       ${nw ? `<div class="kpi"><span>${t("净资产")}</span><b class="${nw.netWorth < 0 ? "down" : ""}">${money(nw.netWorth)}</b><small>${t("资产 − 负债")}</small></div>` : ""}
       <div class="kpi"><span>${t("房产账单每月")}</span><b>${money(housing)}</b><small>${t("自己交的部分，不含 Escrow 代缴")}</small></div>
     </div>
-    <div class="section-head"><h2>🏠 ${t("房产")}</h2>${state.houseEnabled ? `<a class="btn btn-sm btn-ghost" href="${href("house")}">${t("房产列表")}</a>` : ""}</div>
+    <div class="section-head"><h2>🏠 ${t("房产")}</h2>${state.houseEnabled ? `<a class="btn btn-sm btn-ghost" href="${href("house", "properties")}">${t("房产列表")}</a>` : ""}</div>
     <div class="panel">${props.length ? `<ul class="fa-list">${props.map((p) => propertyRow(p, spend, debts.filter((e) => e.property_id === p.id), eqOf("property", p.id))).join("")}</ul>` : `<div class="empty"><strong>${t("还没有房产")}</strong></div>`}</div>
     <p class="hint">${t("买入 / 卖出价在交易交割时写入（房屋 → 交易）；花费按记账时选的房产统计，账单缴费自动带上账单的房产。")}</p>
-    <div class="section-head" style="margin-top:18px"><h2>🚗 ${t("车辆")}</h2><a class="btn btn-sm btn-ghost" href="${href("house")}">${t("管理车辆")}</a></div>
+    <div class="section-head" style="margin-top:18px"><h2>🚗 ${t("车辆")}</h2><a class="btn btn-sm btn-ghost" href="${href("house", "cars")}">${t("车辆列表")}</a></div>
     <div class="panel">${vRows.length ? `<ul class="fa-list">${vRows.join("")}</ul>` : `<div class="empty"><strong>${t("还没有车辆")}</strong></div>`}
       ${loose.length ? `<p class="muted" style="margin:10px 4px 4px;font-size:13px">${t("还没关联车辆的车贷（在贷款详情里选车）：")} ${loose.map(debtLine).join(" · ")}</p>` : ""}</div>
     ${looseBillsHtml()}
-    <div class="section-head" style="margin-top:18px"><h2>🏦 ${t("账户与余额")}</h2><a class="btn btn-sm btn-ghost" href="${href("bills", "cards")}">${t("卡与账户")}</a></div>
+    <div class="section-head" style="margin-top:18px"><h2>🏦 ${t("账户与余额")}</h2><a class="btn btn-sm btn-ghost" href="${href("bills", "accounts")}">${t("卡与账户")}</a></div>
     ${acctRows.length ? `<ul class="fa-accts panel">${acctRows.join("")}</ul>` : `<div class="panel empty"><strong>${t("还没有登记账户")}</strong>${t("在 卡与账户 里添加支票、储蓄、券商、退休、HSA、贷款或现金账户。")}</div>`}
   </section>`;
 }

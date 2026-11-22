@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.5", title: { zh: "资产页：链接更准，名称直接点进去", en: "Assets page: better links, tap the name to open" }, items: [
+    { k: "better", zh: "资产页每套房产、每辆车的「在房屋里打开」去掉了，名称本身就是链接（带下划线），点名称进入原记录", en: "Removed the “Open under Home” link on each property and vehicle in Assets; the underlined name itself now opens the record" },
+    { k: "better", zh: "资产页顶上的链接：「房产列表」进房屋 / 房产，「管理车辆」改名「车辆列表」进房屋 / 车辆，「卡与账户」进财务 / 账户（不再只是信用卡）", en: "Assets page links: Properties opens Home / Properties, “Manage vehicles” is now Vehicles and opens Home / Vehicles, Cards & accounts opens Finance / Accounts (not just credit cards)" },
+  ] },
+
   { v: "2026-11-22.4", title: { zh: "添加设备 / 工具：最后一步确认后才创建，每一块都能回头编辑", en: "Add equipment / tool: created only after the final review, every block editable" }, items: [
     { k: "better", zh: "添加设备和工具也改成一步一页，最后一页「确认」列出全部信息，每一块带「编辑」，点「确认并创建」才真正建好（和添加房产、车辆一致）", en: "Adding equipment and tools is now step by step too: the last page lists everything with an Edit button on each block, and Confirm and create makes it (same as adding a property or vehicle)" },
     { k: "fix", zh: "中途取消或退出，不会再自动存下一台只填了一半的设备", en: "Cancelling or leaving halfway no longer auto-saves a half-filled piece of equipment" },
