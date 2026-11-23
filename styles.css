@@ -4664,6 +4664,9 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-inc-rec .ui-hint { margin: 0 4px; }
 .tax-inc-more { margin: 4px 0 6px; font-size: 13px; }
 .tax-inc-gift { margin: 0 0 4px 12px; }
+.tax-inc-gift .mprog { display: block; margin: 6px 0 8px; }
+.tax-inc-opt { min-height: 44px; align-items: center; font-size: 13px; }
+.tax-inc-opt > span { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 /* 税务 → 汇总（js/tax/tax-summary.js） */
 .tax-nums { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .tax-num { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px dashed var(--line); min-width: 0; }

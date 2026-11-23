@@ -67,11 +67,12 @@ export function relevantDeadlines(y) {
 /** 公历年 y 收到的赠与累计（参考，Form 3520 只管「非美国人」给的）：
  *  · 国际电汇：全部算；
  *  · 个人赠与：赠与人标了「美国人」的不算（单列），标了「非美国人」或还没标的算（没标的先按境外算，页面提示去标）；
- *  · 不再排除「需要还」，另外列出其中标了需要还的金额（真是借款的话不算赠与）。 */
+ *  · 「需要还」默认也算（税务上没有正式借据 / 还款安排的借款可能被当赠与）；当年可取消（repayAsGift=false），另外列出其中标了需要还的金额。 */
 export const GIFT_KINDS = ["wire", "gift"];
 const r2 = (n) => Math.round(n * 100) / 100, sum = (rows) => r2(rows.reduce((s2, r) => s2 + (+r.amount || 0), 0));
 export function foreignGiftTotal(y) {
-  const recs = (state.inc?.rec || []).filter((r) => String(r.received_on || "").startsWith(String(y)) && GIFT_KINDS.includes(r.kind));
+  const asGift = yearState(y).repayAsGift !== false;   // 默认：标了「需要还」的也按赠与算（税务看实质；卡片底部可取消）
+  const recs = (state.inc?.rec || []).filter((r) => String(r.received_on || "").startsWith(String(y)) && GIFT_KINDS.includes(r.kind) && (asGift || !r.repay_required));
   const wire = recs.filter((r) => r.kind === "wire"), gift = recs.filter((r) => r.kind === "gift"), us = gift.filter((r) => r.gift_donor === "us"), counted = gift.filter((r) => r.gift_donor !== "us");
   const by = { wire: { n: wire.length, total: sum(wire) }, gift: { n: counted.length, total: sum(counted) } }, all = [...wire, ...counted];
   return { by, us: { n: us.length, total: sum(us) }, unmarked: gift.filter((r) => !r.gift_donor).length, repay: sum(all.filter((r) => r.repay_required)), total: sum(all), n: all.length, loaded: !!state.inc?.loaded };

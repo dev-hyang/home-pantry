@@ -7,7 +7,7 @@ import { state } from "../core/state.js";
 import { href } from "../core/router.js";
 import { infoTip } from "../core/info-tip.js";
 import { incLeaf } from "../core/income-taxonomy.js";
-import { TAX_THRESHOLDS, foreignGiftTotal } from "./tax-calendar.js";
+import { TAX_THRESHOLDS, foreignGiftTotal, yearState } from "./tax-calendar.js";
 import { TAX_GROUPS, assessRecord } from "./tax-income-rules.js";
 import { taxRows } from "./tax-numbers.js";
 
@@ -20,7 +20,7 @@ const GROUP_N = { work: "tax", invest: "tax", rent: "tax", side: "tax", maybe: "
 
 /** 这一年所有有规则的收入记录 → [{ r, a }]（a = assessRecord 的结果），按日期从早到晚 */
 function yearItems(y) {
-  return (state.inc?.rec || []).filter((r) => String(r.received_on || "").startsWith(String(y))).map((r) => ({ r, a: assessRecord(r) })).filter((x) => x.a)
+  return (state.inc?.rec || []).filter((r) => String(r.received_on || "").startsWith(String(y))).map((r) => ({ r, a: assessRecord(r, { repayAsGift: yearState(y).repayAsGift !== false }) })).filter((x) => x.a)
     .sort((p, q) => String(p.r.received_on).localeCompare(String(q.r.received_on)));
 }
 const sumOf = (items) => r2(items.reduce((s, x) => s + x.a.amount, 0));
@@ -47,6 +47,7 @@ function giftFoot(y) {
   const g = foreignGiftTotal(y), th = TAX_THRESHOLDS.foreignGift, pct = Math.min(100, Math.round((g.total / th.amount) * 100));
   const tip = [tx(th.label), g.us.n ? t("另有 {n} 笔来自美国人，共 {a}，不算在合计里。", { n: g.us.n, a: money(g.us.total) }) : "", g.repay ? t("标了「需要还」的 {a}：真是借款的话不算赠与。", { a: money(g.repay) }) : "", t("核对：{d}", { d: th.verified })];
   return `<div class="tax-inc-gift"><div class="tax-inc-sumrow"><span>${t("计入 Form 3520 的合计")} ${infoTip(tip, { align: "end" })}</span><b>${money(g.total)}</b></div><span class="mprog"><i style="width:${pct}%"></i></span>
+    <label class="check-inline tax-inc-opt"><input type="checkbox" data-tax-year="repayAsGift" data-y="${y}" ${yearState(y).repayAsGift !== false ? "checked" : ""}><span>${t("标了「需要还」的也按赠与算")} ${infoTip(t("税务看实质，不看你家里的账：没有正式借据 / 利息 / 还款安排的借款，IRS 可能当赠与。真借款并在还的，取消勾选。借贷里的还款记录不受影响。"), { align: "end", pos: "bottom" })}</span></label>
     <p class="tax-inc-more"><a href="${esc(th.source)}" target="_blank" rel="noopener">${t("官方说明")} ↗</a></p></div>`;
 }
 function groupBlock(y, g, items) {

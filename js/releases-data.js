@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-23.2", title: { zh: "税务：标了「需要还」的赠与 / 电汇也算进赠与累计", en: "Tax: gifts and wires marked “must repay” now count toward the gift total" }, items: [
+    { k: "fix", zh: "税务上看实质：标了「需要还」（或关联了借贷）的个人赠与 / 国际电汇，默认也算进「收入报税累计」的亲友赠与和 Form 3520 合计", en: "Tax looks at substance: gifts and international wires marked “must repay” (or linked to a loan) now count in the family-gifts total and the Form 3520 total by default" },
+    { k: "better", zh: "借贷里的还款记录、余额完全不变；真是正式借款的，在赠与那一组底部取消勾选就不算", en: "Loan balances and repayment records are untouched; for a genuine formal loan, untick the box at the bottom of the gifts group" },
+  ] },
+
   { v: "2026-11-23.1", title: { zh: "税务「今年」：收入报税累计，每笔都有说明", en: "Tax · This year: income for tax, with a note on every item" }, items: [
     { k: "new", zh: "原来的「亲友赠与累计」改成「收入报税累计」：工资、投资、租金、副业 / 稿酬、看情况的入账、亲友赠与，按大类和收入类型分组，各有小计", en: "The family-gifts card is now “Income for tax”: wages, investments, rent, side work / honoraria, case-by-case items and family gifts, grouped with subtotals" },
     { k: "new", zh: "每一笔旁边有个小 i：为什么要报、TurboTax 在哪填、汇总页有没有这一项；对方不寄 1099 的稿酬 / 副业收入也会列出来；每个分类的说明收进分类旁的小 i，页面更清爽", en: "Every item has an i: why it is reportable, where to enter it in TurboTax and whether the summary page lists it; honoraria with no 1099 are included; each group's description sits behind its own i" },
