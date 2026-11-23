@@ -1,4 +1,4 @@
-export { pantryNav, restockPanel, rsHint, setFold, shelfGrid, viewDashboard } from "./restock.js";
+export { pantryNav, restockPanel, rsHint, setFold, shelfGrid } from "./restock.js";
 export { catFormHtml, catStatus, groupedCats, isPhone, matchItem, moveCat, orderedCats } from "./inventory.js";
 export { cartTag, catNeed, invView, itemCard, itemRow, renderInvList, secNeed, selBarText, setInvView, statusTag, viewInventory, visibleItemIds } from "./inventory-items.js";
 export { importNames, renderShopList, shopSelText, shopUnit, shopVisibleIds, viewShopping } from "./shopping.js";

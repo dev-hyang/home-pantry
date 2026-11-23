@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.25", title: { zh: "储藏概览重排：三张组别卡片 + 录入购物，底部问咩咩", en: "Pantry overview redesigned: group cards + Log shopping, Ask at the bottom" }, items: [
+    { k: "new", zh: "概览最上面是仪表卡片：日常消耗品、汽车房屋消耗品、家居耐用品（缺货 / 少货 / 临期各几件，共几件），点一张进库存下对应的二级页；旁边多一张「录入购物」", en: "The top of the overview is now a row of cards: Everyday supplies, Car & home supplies and Home durables (out / low / expiring counts and the total), each opening its page under Inventory, plus a Log shopping card" },
+    { k: "new", zh: "最下面是「问咩咩」：几个现成的问题（怎么安排采购、快过期的怎么吃、总缺货怎么办……），默认折叠，点开再问", en: "At the bottom, Ask: ready-made questions (plan the shopping, use up what is expiring, things that keep running out…), collapsed by default" },
+    { k: "better", zh: "去掉概览底部原来的各组别列表，以及概览页右下角的「＋」（添加物品只在库存页保留）", en: "Removed the old group lists at the bottom of the overview and the + button there (adding items stays on the Inventory page)" },
+  ] },
+
   { v: "2026-11-22.24", title: { zh: "储藏目录：库存下多了三个二级入口", en: "Pantry menu: three sub-pages under Inventory" }, items: [
     { k: "new", zh: "储藏的「目录」里，库存下面多了：日常消耗品、汽车房屋消耗品、家居耐用品（带要补货的件数）；点进去只看这一组，页面和库存首页一样，物品 / 分类两种视图都能用", en: "Under Inventory in the Pantry menu there are now Everyday supplies, Car & home supplies and Home durables (with restock counts); each opens just that group, with the same page and both Items / Categories views as the Inventory home" },
     { k: "better", zh: "页头路径跟着走：储藏 / 库存 / 日常消耗品，点「库存」回到全部", en: "The header path follows: Pantry / Inventory / Everyday supplies; tap Inventory to go back to all" },
