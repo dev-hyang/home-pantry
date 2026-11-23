@@ -23,7 +23,7 @@ export { ui };
 /** 四张清单：key = 存在 props[id] 里的字段；legacy = 以前（只有一个数字框时）存的合计，还认；sign = 对成本基础是加还是减 */
 export const SECS = [
   { key: "buyItems", legacy: "buyCosts", sign: 1, n: "②", title: "买入时付的费用", hint: "过户费、律师费、评估费、贷款费用…", ph: "例如：律师费", date: true },
-  { key: "creditItems", legacy: "buyCredits", sign: -1, n: "③", title: "买入时收到的退款 / credit", hint: "中介多收后退给你的钱、贷款方在 closing 里给的 credit。会减少成本，不是收入。", ph: "例如：贷款方 credit", date: true },
+  { key: "creditItems", legacy: "buyCredits", sign: -1, n: "③", title: "买入时收到的退款 / credit", hint: "买家中介退回的佣金、title 退回的 closing 多收款、贷款方的 credit（包括 Zelle 转来的）。会降低成本基础，不是收入；每笔单独记一项。", ph: "例如：贷款方 credit", date: true },
   { key: "improvements", legacy: null, sign: 1, n: "④", title: "装修翻新（加到成本基础）", hint: "屋顶、厨房、窗户、地板…大的翻新才算，日常维修不算。", ph: "例如：换屋顶", date: true },
   { key: "sellItems", legacy: "sellCosts", sign: 1, n: "⑥", title: "卖出时的费用", hint: "中介佣金、过户费…", ph: "例如：中介佣金", date: true },
 ];
@@ -78,7 +78,7 @@ function homeCard(p, idx) {
     ${step("⑤", t("卖出价"), `<p><b>${p.sale_price != null ? money(p.sale_price) : NA}</b> <span class="muted">${t("来自 房屋 → 交易 的记录，这里只读")}</span></p>`)}
     ${listBlock(p, SECS[3])}
     ${step("⑦", t("自住满 2 年？"), lived, t("卖出前 5 年里自己住满 2 年（夫妻都要满足使用条件），才有 50 万美元的排除额度。"))}
-    <section class="tax-step tax-result"><h4>${t("结果（参考）")}</h4><dl class="dt-list">${row(t("成本基础"), g.basis == null ? NA : money(g.basis))}${row(t("扣掉卖出费用后的卖价"), g.realized == null ? NA : money(g.realized))}</dl>${verdict}</section>
+    <section class="tax-step tax-result"><h4>${t("结果（参考）")}</h4><dl class="dt-list">${row(t("成本基础"), g.basis == null ? NA : money(g.basis))}${row(t("扣掉卖出费用后的卖价"), g.realized == null ? NA : money(g.realized))}</dl>${g.T.creditItems ? `<p class="hint">${t("closing 退款已调整成本基础：已按买入时的退款 / credit {a} 调低（不算收入）。", { a: money(g.T.creditItems) })}</p>` : ""}${verdict}</section>
     ${rental ? `<label>${t("土地占比 %（折旧要去掉土地，不确定先填 20）")}<input type="number" min="0" max="95" step="1" inputmode="numeric" data-tax-prop="${esc(p.id)}" data-key="landPct" value="${x.landPct ?? ""}" placeholder="20"></label>
       <p class="hint">${t("出租房：每年折旧参考约 {a}（买入价 + 费用 − 退款 + 改善，去掉 {p}% 土地后 ÷ 27.5 年；第一年和最后一年要按月折算）。卖出时折旧会被「回收」征税，别漏。", { a: money(rentalDepreciation(p)), p: x.landPct ?? 20 })}</p>` : ""}
     <p class="hint">${t("政策待核对：自住满 2 年合并报税最多排除 50 万美元收益（单身 25 万）；出租过的部分有折旧回收。")} <a href="https://www.irs.gov/taxtopics/tc701" target="_blank" rel="noopener">${t("官方说明")} ↗</a></p></details>`;

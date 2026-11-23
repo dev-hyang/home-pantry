@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-23.4", title: { zh: "买房成本基础：closing 退款的提示更清楚", en: "Home cost basis: clearer note for closing refunds" }, items: [
+    { k: "better", zh: "税务 → 买卖与成本基础 的「买入时收到的退款 / credit」写明：中介退回的佣金、title 退回的 closing 多收款、贷款方 credit 都记在这里，会降低成本基础，不是收入", en: "In Tax → Sales & cost basis, the “refunds / credits at purchase” step now says agent commission refunds, title refunds and lender credits go here: they lower the cost basis and are not income" },
+    { k: "better", zh: "有退款时，结果下面会提示「closing 退款已调整成本基础」和扣掉的金额", en: "When there are refunds, the result shows a note with the amount deducted from the cost basis" },
+  ] },
+
   { v: "2026-11-23.3", title: { zh: "小 i 提示改成文字右上角的角标，有大中小三种", en: "Info tips are now corner badges at the top-right of the text, in three sizes" }, items: [
     { k: "better", zh: "收入报税累计里所有的小 i，改成贴在文字右上角的小角标：不再单独占一格，整行都能点", en: "In the income-for-tax card every i is now a small badge at the top-right of its text: no separate slot, and the whole row stays clickable" },
     { k: "better", zh: "小 i 现在有小 / 中 / 大三种尺寸，也可以改回单独占位的圆形按钮；以后新页面默认用右上角角标", en: "The i comes in small / medium / large, and can still be a standalone round button; new pages default to the corner badge" },
