@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-22.24", title: { zh: "储藏目录：库存下多了三个二级入口", en: "Pantry menu: three sub-pages under Inventory" }, items: [
+    { k: "new", zh: "储藏的「目录」里，库存下面多了：日常消耗品、汽车房屋消耗品、家居耐用品（带要补货的件数）；点进去只看这一组，页面和库存首页一样，物品 / 分类两种视图都能用", en: "Under Inventory in the Pantry menu there are now Everyday supplies, Car & home supplies and Home durables (with restock counts); each opens just that group, with the same page and both Items / Categories views as the Inventory home" },
+    { k: "better", zh: "页头路径跟着走：储藏 / 库存 / 日常消耗品，点「库存」回到全部", en: "The header path follows: Pantry / Inventory / Everyday supplies; tap Inventory to go back to all" },
+  ] },
+
   { v: "2026-11-22.23", title: { zh: "买卖与成本基础：每一项都能记日期", en: "Sales & cost basis: every item can have a date" }, items: [
     { k: "better", zh: "买入费用、买入退款 / credit、装修翻新、卖出费用，每一项添加时都多一个「日期（可不填）」，清单里会把日期写在前面，方便和 closing 文件逐项对账", en: "Buying costs, buying refunds / credits, improvements and selling costs now each take an optional date when you add an item, shown first in the list so you can match them against your closing documents" },
     { k: "new", zh: "买卖与成本基础里的房子卡片，可以用买房的 Closing Disclosure 自动填（可选，也可以照旧手填）：拍 / 截图费用明细页，AI 读出买家付的每一项费用和 credit，先给你核对（能取消勾选、改金额），点「加进清单」才写进「买入时付的费用」和「退款 / credit」。房贷积分、贷款相关费用、预付和 Escrow 不计入成本基础，只列出来给你看", en: "The home card in Sales & cost basis can now be filled from your purchase Closing Disclosure (optional; manual entry still works): photograph or screenshot the cost-detail pages, the AI reads each fee the buyer paid and each credit, shows them for you to check (untick, edit amounts) and only Add to the list writes them into Buying costs and Refunds / credits. Mortgage points, loan fees, prepaids and escrow are not added to cost basis and are only listed for reference" },

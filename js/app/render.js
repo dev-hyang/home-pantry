@@ -17,7 +17,7 @@ import { restoreCarousels } from "../core/carousel.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { viewOtBill } from "./lazy-modules.js";
-import { pantryNav } from "../pantry/restock-sync.js";
+import { pantryCur, pantryNav } from "../pantry/restock-sync.js";
 import { meHead } from "../settings/me-nav.js";
 import { addCrumbNav } from "../core/crumb-nav.js";
 import { HOUSE_TOP, houseDeep, houseHead } from "../house/house-nav.js";
@@ -85,7 +85,7 @@ function renderBody(r) {
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
   // 页头：储藏 / 我的 = 「[目录] 区域 / 页面」一行（成员、家人详情另带自己的面包屑）；其他区域照旧面包屑
-  const pre = r.section === "pantry" ? pantryNav(r.sub === "gear" ? "inventory" : r.sub) : r.section === "me" ? meHead(r) + (r.q?.get("person") || r.q?.get("member") ? crumb(r) : "") : r.section === "house" && HOUSE_TOP.includes(r.sub) && !houseDeep(r) ? houseHead(r) : crumb(r);
+  const pre = r.section === "pantry" ? pantryNav(pantryCur(r)) : r.section === "me" ? meHead(r) + (r.q?.get("person") || r.q?.get("member") ? crumb(r) : "") : r.section === "house" && HOUSE_TOP.includes(r.sub) && !houseDeep(r) ? houseHead(r) : crumb(r);
   if (!mountView(pre, view())) return;   // 储藏的每个页面顶上都有页面导航卡片
   if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"))) renderInvList();
   const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : r.section === "pantry" && r.sub === "gear" ? $("#invSec-gear") : null;   // 从概览「汽车房屋消耗品」或旧的家居耐用品链接进来：展开并滚到那一块

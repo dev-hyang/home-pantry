@@ -4377,8 +4377,8 @@ button.npop-item { width: 100%; border: 0; background: none; font: inherit; font
 @media (prefers-reduced-motion: reduce) { .tpop-chev, .tpop-tg { transition: none; } }
 /* 标题旁的 ⓘ：悬在文字右上角的小角标（像铃铛的提醒角标），不占一整个字的位置 */
 .section-head .ui-hint, h2 .ui-hint, h3 .ui-hint { width: 16px; height: 16px; font-size: 10px; margin-left: 2px; vertical-align: baseline; top: -.55em; }
-.h-root { color: inherit; text-decoration: none; }
-.h-root:hover { text-decoration: underline; }
+.h-root, .sec-path a { color: inherit; text-decoration: none; }
+.h-root:hover, .sec-path a:hover { text-decoration: underline; }
 .ui-hint[data-tip]::after { translate: var(--tip-dx, 0) 0; }   /* 提示浮层贴边时往里挪（js/core/info-tip.js fitTip） */
 
 /* 添加账单页：自动创建 / 手工创建两块，每个入口一整行 */
