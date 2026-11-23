@@ -3326,7 +3326,7 @@ export const EN = {
   "房产相关报销 / 返还": "Property reimbursement",
   "其他房产收入": "Other property income",
   "政府补助 / 福利": "Government benefits",
-  "副业收入": "Side business income",
+  "副业收入": "Side business income", "稿酬 / 酬金": "Honorarium / fee",
   "卖股票 / 基金所得": "Stock sale proceeds",
   "卖房所得": "Property sale proceeds",
   "借款到账": "Loan proceeds",

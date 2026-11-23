@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-23.1", title: { zh: "税务「今年」：收入报税累计，每笔都有说明", en: "Tax · This year: income for tax, with a note on every item" }, items: [
+    { k: "new", zh: "原来的「亲友赠与累计」改成「收入报税累计」：工资、投资、租金、副业 / 稿酬、看情况的入账、亲友赠与，按大类和收入类型分组，各有小计", en: "The family-gifts card is now “Income for tax”: wages, investments, rent, side work / honoraria, case-by-case items and family gifts, grouped with subtotals" },
+    { k: "new", zh: "每一笔旁边有个小 i：为什么要报、TurboTax 在哪填、汇总页有没有这一项；对方不寄 1099 的稿酬 / 副业收入也会列出来；每个分类的说明收进分类旁的小 i，页面更清爽", en: "Every item has an i: why it is reportable, where to enter it in TurboTax and whether the summary page lists it; honoraria with no 1099 are included; each group's description sits behind its own i" },
+    { k: "better", zh: "收入类型新增「稿酬 / 酬金」；汇总页多了「副业 / 稿酬收入」一行，车位 / 储藏间出租并进租金", en: "New income type “Honorarium / fee”; the summary page gets a Side work / honoraria row, and parking / storage rent now counts as rent" },
+  ] },
+
   { v: "2026-11-22.25", title: { zh: "储藏概览重排：三张组别卡片 + 录入购物，底部问咩咩", en: "Pantry overview redesigned: group cards + Log shopping, Ask at the bottom" }, items: [
     { k: "new", zh: "概览最上面是仪表卡片：日常消耗品、汽车房屋消耗品、家居耐用品（缺货 / 少货 / 临期各几件，共几件），点一张进库存下对应的二级页；旁边多一张「录入购物」", en: "The top of the overview is now a row of cards: Everyday supplies, Car & home supplies and Home durables (out / low / expiring counts and the total), each opening its page under Inventory, plus a Log shopping card" },
     { k: "new", zh: "最下面是「问咩咩」：几个现成的问题（怎么安排采购、快过期的怎么吃、总缺货怎么办……），默认折叠，点开再问", en: "At the bottom, Ask: ready-made questions (plan the shopping, use up what is expiring, things that keep running out…), collapsed by default" },

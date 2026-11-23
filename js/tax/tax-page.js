@@ -10,12 +10,13 @@ import { pageHead } from "../core/page-head.js";
 import { filterPop } from "../core/filter-pop.js";
 import { infoTip } from "../core/info-tip.js";
 import { TAX_TABS, activeTab } from "../core/tabs.js";
-import { GIFT_KINDS, TAX_THRESHOLDS, acctOf, activeTaxYear, daysUntil, foreignGiftTotal, relevantDeadlines, setupFor, snapshotYear, yearState } from "./tax-calendar.js";
+import { acctOf, activeTaxYear, daysUntil, relevantDeadlines, setupFor, snapshotYear, yearState } from "./tax-calendar.js";
 import { DOCS, TIPS } from "./tax-content-docs.js";
 import { GUIDES } from "./tax-content-accounts.js";
 import { FSA_TYPES, accountChecks } from "./tax-checks.js";
 import { EVENTS } from "./tax-content-events.js";
 import { TERMS } from "./tax-content-terms.js";
+import { incomeTaxCard } from "./tax-income-card.js";
 import { summaryTab } from "./tax-summary.js";
 import { salesTab } from "./tax-sales.js";
 import "./tax-actions.js";
@@ -57,27 +58,13 @@ function calendarCard(y) {
   return `<section class="panel dt-block"><div class="dt-head"><h3>${t("{y} 年的税务日历", { y })}</h3></div><dl class="dt-list">${rows}</dl>
     <p class="hint">${t("周末顺延；法定假日以 IRS / 伊利诺伊税务局公告为准。")}</p></section>`;
 }
-/** 亲友赠与累计：国际电汇 / 个人赠与分开合计，每一项点进去看明细，右边的 ＋ 直接按这个类型添加；合计和 10 万美元申报线比 */
-function giftCard(y) {
-  const g = foreignGiftTotal(y), th = TAX_THRESHOLDS.foreignGift, pct = Math.min(100, Math.round((g.total / th.amount) * 100)), inc = href("bills", "income");
-  const label = { wire: t("国际电汇"), gift: t("个人赠与（非美国人 / 未标）") };
-  const detail = (k) => `${inc}?tab=records&inc=1&kind=${k}&from=${y}-01-01&to=${y}-12-31`;   // inc=1 才会套上类型和日期筛选（收入明细的钻取约定）
-  const row = (k, n, total, name) => `<div class="tax-gift-row"><a class="tax-gift-main" href="${detail(k)}"><span>${esc(name)} <small class="muted">${t("{n} 笔", { n })}</small></span><b>${money(total)}</b><span class="mch" aria-hidden="true">›</span></a></div>`;
-  const note = (txt) => `<p class="hint">${txt}</p>`;
-  const body = !g.loaded ? `<p class="muted">${t("收入记录还没读到；打开一次 财务 → 收入 再回来。")}</p>`
-    : `${row("wire", g.by.wire.n, g.by.wire.total, label.wire)}${row("gift", g.by.gift.n, g.by.gift.total, label.gift)}<div class="tax-gift-total"><span>${t("合计")}</span><b>${money(g.total)}</b></div><span class="mprog"><i style="width:${pct}%"></i></span>
-       ${g.us.n ? note(t("另有「个人赠与」{n} 笔来自美国人，共 {a}，不算在上面（Form 3520 只管非美国人给的）。", { n: g.us.n, a: money(g.us.total) })) : ""}${g.unmarked ? note(t("有 {n} 笔「个人赠与」还没标赠与人，先按非美国人算；在那笔记录里标一下。", { n: g.unmarked })) : ""}${g.repay ? note(t("其中标了「需要还」的有 {a}：真是借款的话不算赠与。", { a: money(g.repay) })) : ""}
-       ${note(t("统计口径：「国际电汇」全部算；「个人赠与」按赠与人的税务身份分（美国税务居民，包括绿卡 / 住满天数的非公民，算美国人；在境外或不是美国税务居民的算非美国人）。点一项看明细；有关联的赠与人（父母、兄弟姐妹）要合并看。"))}`;
-  return `<section class="panel dt-block"><div class="dt-head"><h3>🎁 ${t("{y} 年亲友赠与累计", { y })}</h3></div>${body}
-    <p class="hint">${esc(tx(th.label))} · <a href="${esc(th.source)}" target="_blank" rel="noopener">${t("官方说明")} ↗</a> · ${t("核对：{d}", { d: th.verified })}</p></section>`;
-}
 const tipsCard = (s) => `<section class="panel dt-block"><div class="dt-head"><h3>${t("容易漏的")}</h3></div>${TIPS.filter((x) => on(x.when, s)).map((x) => `<div class="tax-tip"><b>${x.icon} ${esc(tx(x.title))}</b><p>${esc(tx(x.body))}</p></div>`).join("")}</section>`;
 
 function yearTab(y, s) {
   const docsOn = DOCS.filter((d) => on(d.when, s)), got = docsOn.filter((d) => yearState(y).docs?.[d.id]?.got).length, pct = docsOn.length ? Math.round((got / docsOn.length) * 100) : 0;
   const prog = `<section class="panel dt-block"><div class="dt-head"><h3>📄 ${t("{y} 年单据", { y })}</h3><a class="btn btn-sm btn-ghost" href="${tabHref("docs", y)}">${t("去清单")}</a></div>
     <p style="margin:0 0 6px"><b>${got} / ${docsOn.length}</b> <span class="muted">${t("已收到")}</span></p><span class="mprog"><i style="width:${pct}%"></i></span></section>`;
-  return `${householdSummary(s, y)}<div class="dt-grid dd-secs">${calendarCard(y)}${prog}${s.flags.gifts ? giftCard(y) : ""}</div>${tipsCard(s)}`;
+  return `${householdSummary(s, y)}<div class="dt-grid dd-secs">${calendarCard(y)}${prog}</div>${incomeTaxCard(y)}${tipsCard(s)}`;
 }
 function docsTab(y, s) {
   const st = yearState(y), docs = st.docs || {};

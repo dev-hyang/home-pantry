@@ -4637,6 +4637,33 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-gift-main > span:first-child { flex: 1 1 auto; min-width: 0; }
 .tax-gift-add { flex: 0 0 auto; min-width: 44px; min-height: 44px; justify-content: center; font-size: 18px; }
 .tax-gift-total { display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-size: 16px; }
+/* 税务 → 今年 → 收入报税累计（js/tax/tax-income-card.js） */
+.tax-inc .dt-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tax-inc .ui-hint[data-tip]::after { max-width: min(320px, 78vw); }
+.tax-inc-sum { display: grid; gap: 0; margin-bottom: 8px; }
+.tax-inc-sumrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 36px; font-size: 14px; border-bottom: 1px dashed var(--line); }
+.tax-inc-sumrow > span { min-width: 0; }
+.tax-inc-sumrow.is-main { font-size: 16px; font-weight: 700; min-height: 44px; }
+.tax-inc-group { border-top: 1px solid var(--line); padding: 2px 0 6px; }
+.tax-inc-group > summary, .tax-inc-leaf > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; cursor: pointer; }
+.tax-inc-group > summary { font-weight: 700; }
+.tax-inc-gn { min-width: 0; flex: 1 1 auto; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+.tax-inc-gt { min-width: 0; overflow-wrap: anywhere; }
+.tax-inc-ln { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+.tax-inc-gn .ui-hint { margin: 0 2px; }
+.tax-inc-group > summary > b, .tax-inc-leaf > summary > b { flex: 0 0 auto; white-space: nowrap; }
+.tax-inc-leaf { margin-left: 12px; border-top: 1px dashed var(--line); }
+.tax-inc-leaf > summary { font-size: 14px; font-weight: 600; }
+.tax-inc-recs { list-style: none; margin: 0; padding: 0; }
+.tax-inc-rec { display: flex; align-items: center; gap: 8px; min-height: 44px; border-top: 1px dotted var(--line); }
+.tax-inc-main { flex: 1 1 auto; min-width: 0; min-height: 44px; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; column-gap: 8px; align-items: center; color: inherit; text-decoration: none; font-size: 14px; }
+.tax-inc-d { color: var(--muted); font-size: 13px; }
+.tax-inc-p { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tax-inc-a { white-space: nowrap; }
+.tax-inc-tag { grid-column: 2 / -1; color: var(--muted); font-size: 12px; line-height: 1.4; padding-bottom: 4px; }
+.tax-inc-rec .ui-hint { margin: 0 4px; }
+.tax-inc-more { margin: 4px 0 6px; font-size: 13px; }
+.tax-inc-gift { margin: 0 0 4px 12px; }
 /* 税务 → 汇总（js/tax/tax-summary.js） */
 .tax-nums { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .tax-num { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px dashed var(--line); min-width: 0; }

@@ -42,7 +42,7 @@ export const INC_LEAVES = [
   ["property_reimb", "房产相关报销 / 返还", "🧾", "#905030", "property"], ["other_property", "其他房产收入", "🏘️", "#b07a5a", "property"],
   ["tax_refund", "退税", "🧾", "#6b7280", "other_income"], ["insurance", "保险理赔", "🛡️", "#c75a85", "other_income"], ["cashback", "返现 / 奖励", "💳", "#3f6c8f", "other_income"],
   ["reimburse", "报销", "💵", "#d4694c", "other_income"], ["zelle", "Zelle / Venmo 转入", "👥", "#7563c0", "other_income"], ["gift", "个人赠与", "🎀", "#c0603a", "other_income"],
-  ["gov_benefit", "政府补助 / 福利", "🏛️", "#5f7fa8", "other_income"], ["side_business", "副业收入", "🛠️", "#8a6d3b", "other_income"], ["other", "其他", "📥", "#8a948f", "other_income"],
+  ["gov_benefit", "政府补助 / 福利", "🏛️", "#5f7fa8", "other_income"], ["side_business", "副业收入", "🛠️", "#8a6d3b", "other_income"], ["honorarium", "稿酬 / 酬金", "✍️", "#7d6a2e", "other_income"], ["other", "其他", "📥", "#8a948f", "other_income"],
   ["sale", "出售所得", "🏷️", "#8a5fb0", "capital"], ["stock_sale", "卖股票 / 基金所得", "📉", "#6b5fb0", "capital"], ["property_sale", "卖房所得", "🏡", "#5b4f90", "capital"],
   ["wire", "国际电汇", "🌐", "#3b7fc4", "capital"], ["loan_proceeds", "借款到账", "🏦", "#64748b", "capital"], ["returned_principal", "本金返还", "↩️", "#7a8494", "capital"],
   ["expense_refund", "支出退回", "🔙", "#8a94a4", "capital"], ["xfer_savings", "从储蓄账户转入", "🔁", "#5a6b7b", "capital"], ["xfer_invest", "从投资账户转入", "🔁", "#4a5b6b", "capital"],
