@@ -4650,6 +4650,9 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-inc-gt { min-width: 0; overflow-wrap: anywhere; }
 .tax-inc-ln { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
 .tax-inc-group > summary > b, .tax-inc-leaf > summary > b { flex: 0 0 auto; white-space: nowrap; }
+.tax-inc-take { flex: 0 0 auto; display: grid; justify-items: end; line-height: 1.3; }
+.tax-inc-take > b { white-space: nowrap; }
+.tax-inc-take > small { color: var(--muted); font-size: 12px; font-weight: 400; }
 .tax-inc-leaf { margin-left: 12px; border-top: 1px dashed var(--line); }
 .tax-inc-leaf > summary { font-size: 14px; font-weight: 600; }
 .tax-inc-recs { list-style: none; margin: 0; padding: 0; }

@@ -70,6 +70,10 @@ export const TAX_RULES = {
   wire: { g: "gift", n: "info", why: z("国际电汇只是钱到账，不一定是收入：是亲友赠与就按赠与看；是工资 / 稿酬 / 卖东西的钱，要改成对应类型。", "An international wire is only money arriving: if it is a family gift treat it as a gift; if it is pay, a fee or a sale, change the type."), tt: z("赠与 → Form 3520（超 $10 万）；其他 → 对应类型", "Gift → Form 3520 (over $100k); otherwise per its real type"), sum: "gifts" },
 };
 
+/* 工作收入这一组：你记的是税后到账，不是应税工资；每条说明前面都先写这一句 */
+const TAKE_HOME = z("你记的是税后到账，不是应税工资，报税以 W-2 为准。", "What you record is take-home pay, not taxable wages; the W-2 is what you file from.");
+for (const r of Object.values(TAX_RULES)) if (r.g === "work") r.why = z(`${TAKE_HOME.zh}${r.why.zh}`, `${TAKE_HOME.en} ${r.why.en}`);
+
 /** 这笔该怎么看：{ rule（没规则的类型返回 null，不列）, n, amount（计入的金额）, why, tt, sum, sumNote, tag（额外一句话，没有就空） }
  *  规则按类型；再按这一笔自己的情况调整：需要还 → 当借款；赠与人是美国人 → 不用申报；卖出没填已实现收益 → 先不算。 */
 /** treat = 这笔标了「需要还」的税务处理（tax-calendar.js repayTreatment 算好传进来；没传 = "gift"） */

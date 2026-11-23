@@ -4,6 +4,7 @@
 export const RELEASES = [
   { v: "2026-11-23.6", title: { zh: "税务：按每笔借款判断算不算赠与", en: "Tax: each loan decides whether it counts as a gift" }, items: [
     { k: "new", zh: "标了「需要还」的赠与 / 电汇：关联的借贷填了「有书面借据」并有利息或还款计划，就按真借款处理，不计入赠与和 Form 3520；其余仍按赠与算", en: "Gifts or wires marked “must repay”: if the linked loan has a written note plus interest or a repayment plan it is treated as a real loan and left out of the gift and Form 3520 totals; the rest still count as gifts" },
+    { k: "better", zh: "「工作收入」一组改成显示「到账 $X（报税以 W-2 为准）」，不再计入「要报的收入合计」；每条工资记录的小 i 先写明你记的是税后到账、不是应税工资", en: "The Employment group now shows “Take-home $X (file from the W-2)” and is left out of the taxable total; each pay item's i first says what you record is take-home pay, not taxable wages" },
     { k: "better", zh: "卡片底部的勾选框保留，取消勾选 = 整年都不算赠与；每笔下面会标是按赠与还是按借款算", en: "The box at the bottom of the card stays (untick = nothing counts as a gift that year); each item says whether it counts as a gift or a loan" },
   ] },
 
