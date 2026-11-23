@@ -12,6 +12,9 @@ import { href } from "../core/router.js";
 import { propOf } from "./tax-calendar.js";
 import { ui } from "./tax-ui.js";
 import { closingBlock } from "./tax-closing-ai.js";
+import { ensureSpend, linkedRefs, pickerHtml, resolveLink } from "./tax-links.js";
+import { isTransfer, leafLabel } from "../core/taxonomy.js";
+import { render } from "../app/render.js";
 
 const money = (n) => Units.money(n);
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
@@ -22,21 +25,21 @@ export { ui };
 
 /** 四张清单：key = 存在 props[id] 里的字段；legacy = 以前（只有一个数字框时）存的合计，还认；sign = 对成本基础是加还是减 */
 export const SECS = [
-  { key: "buyItems", legacy: "buyCosts", sign: 1, n: "②", title: "买入时付的费用", hint: "过户费、律师费、评估费、贷款费用…", ph: "例如：律师费", date: true },
+  { key: "buyItems", legacy: "buyCosts", sign: 1, n: "②", title: "买入时付的费用", hint: "过户费、律师费、评估费、贷款费用…", ph: "例如：律师费", date: true, link: "spend" },
   { key: "creditItems", legacy: "buyCredits", sign: -1, n: "③", title: "买入时收到的退款 / credit", hint: "买家中介退回的佣金、title 退回的 closing 多收款、贷款方的 credit（包括 Zelle 转来的）。会降低成本基础，不是收入；每笔单独记一项。", ph: "例如：贷款方 credit", date: true },
-  { key: "improvements", legacy: null, sign: 1, n: "④", title: "装修翻新（加到成本基础）", hint: "屋顶、厨房、窗户、地板…大的翻新才算，日常维修不算。", ph: "例如：换屋顶", date: true },
-  { key: "sellItems", legacy: "sellCosts", sign: 1, n: "⑥", title: "卖出时的费用", hint: "中介佣金、过户费…", ph: "例如：中介佣金", date: true },
+  { key: "improvements", legacy: null, sign: 1, n: "④", title: "装修翻新（加到成本基础）", hint: "屋顶、厨房、窗户、地板…大的翻新才算，日常维修不算。", ph: "例如：换屋顶", date: true, link: "spend" },
+  { key: "sellItems", legacy: "sellCosts", sign: 1, n: "⑥", title: "卖出时的费用", hint: "中介佣金、过户费…", ph: "例如：中介佣金", date: true, link: "spend" },
 ];
 /** 一块清单里的行（含以前填的合计）和合计 */
-export function itemsOf(x, s) {
-  const rows = (x[s.key] || []).map((it, i) => ({ ...it, i })), old = s.legacy ? num(x[s.legacy]) : null;
+export function itemsOf(x, s, pid) {
+  const rows = (x[s.key] || []).map((it, i) => ({ ...(it.link ? resolveLink(it, pid) : it), i })), old = s.legacy ? num(x[s.legacy]) : null;
   if (old) rows.unshift({ desc: t("以前填的合计"), amount: old, legacy: s.legacy });
   return { rows, total: r2(rows.reduce((a, r) => a + (+r.amount || 0), 0)) };
 }
 
 /** 一套房的收益参考；缺买入价或卖价时 ready = false */
 export function homeGain(p) {
-  const x = propOf(p.id), T = Object.fromEntries(SECS.map((s) => [s.key, itemsOf(x, s).total])), buy = num(p.purchase_price), sale = num(p.sale_price);
+  const x = propOf(p.id), T = Object.fromEntries(SECS.map((s) => [s.key, itemsOf(x, s, p.id).total])), buy = num(p.purchase_price), sale = num(p.sale_price);
   const basis = buy == null ? null : r2(buy + T.buyItems - T.creditItems + T.improvements), realized = sale == null ? null : r2(sale - T.sellItems);
   const gain = basis != null && realized != null ? r2(realized - basis) : null, excl = x.lived === "yes" ? HOME_EXCLUSION_MFJ : 0;
   return { x, T, imps: T.improvements, basis, realized, gain, excl, taxable: gain == null ? null : Math.max(0, r2(gain - excl)), ready: gain != null };
@@ -52,15 +55,16 @@ const step = (n, title, body, hint = "") => `<section class="tax-step"><h4><span
 
 /** 一块清单：行 + 合计 + 「＋ 添加一项」（点了才展开小表单） */
 function listBlock(p, s) {
-  const x = propOf(p.id), { rows, total } = itemsOf(x, s), key = `${p.id}|${s.key}`, adding = ui.add === key;
-  const li = rows.map((r) => `<li class="tax-imp"><span class="tax-imp-d">${r.on ? `<small class="muted">${esc(r.on)}</small>` : ""}${esc(r.desc || "")}</span><b class="tax-imp-a">${money(+r.amount || 0)}</b><button type="button" class="btn btn-sm btn-ghost" data-tax-item-del="${esc(r.legacy ? `${p.id}|legacy|${r.legacy}` : `${key}|${r.i}`)}" aria-label="${esc(t("删除这一条"))}">×</button></li>`).join("");
-  const form = adding ? `<form class="tax-item-form" data-tax-item="${esc(key)}" novalidate>
+  const x = propOf(p.id), { rows, total } = itemsOf(x, s, p.id), key = `${p.id}|${s.key}`, adding = ui.add === key;
+  const li = rows.map((r) => `<li class="tax-imp ${r.missing ? "is-missing" : ""}"><span class="tax-imp-d">${r.on ? `<small class="muted">${esc(r.on)}</small>` : ""}${r.link ? `<span title="${esc(t("链接到花费记录，金额跟着记录走"))}">🔗 </span>` : ""}${esc(r.desc || "")}${r.missing ? ` <small class="form-error">${t("记录已删除，不计入")}</small>` : ""}</span><b class="tax-imp-a">${money(+r.amount || 0)}</b><button type="button" class="btn btn-sm btn-ghost" data-tax-item-del="${esc(r.legacy ? `${p.id}|legacy|${r.legacy}` : `${key}|${r.i}`)}" aria-label="${esc(r.link ? t("解除链接") : t("删除这一条"))}">×</button></li>`).join("");
+  const picking = s.link && ui.pick === key, linkBtn = s.link && !adding && !picking ? ` <button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-pick="${esc(key)}">🔗 ${t("从花费记录里选")}</button>` : "";
+  const form = picking ? pickerHtml(p, key, leafLabel, isTransfer, linkedRefs(x, SECS.filter((z) => z.link).map((z) => z.key)), money) : adding ? `<form class="tax-item-form" data-tax-item="${esc(key)}" novalidate>
       <label>${t("这一项是什么")}<input name="desc" maxlength="60" placeholder="${esc(t(s.ph))}" autocomplete="off"></label>
       <label>${t("金额")}<input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00"></label>
       ${s.date ? `<label>${t("日期（可不填）")}<input name="on" type="date"></label>` : ""}
       <div class="tax-item-actions"><button type="submit" class="btn btn-sm btn-primary">${t("添加")}</button><button type="button" class="btn btn-sm btn-ghost" data-tax-add-cancel>${t("取消")}</button></div>
       <p class="form-error tax-item-err" role="alert"></p></form>`
-    : `<button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-add="${esc(key)}">＋ ${t("添加一项")}</button>`;
+    : `<button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-add="${esc(key)}">＋ ${t("添加一项")}</button>${linkBtn}`;
   return step(s.n, t(s.title), `${rows.length ? `<ul class="tax-imps">${li}</ul><p class="tax-sub-total">${t("小计")} <b>${money(total)}</b></p>` : `<p class="muted">${t("还没有。没有就不用填，直接往下。")}</p>`}${form}`, s.hint ? t(s.hint) : "");
 }
 
@@ -91,6 +95,7 @@ function carCard(a) {
 }
 export function salesTab() {
   const homes = (state.properties || []).filter((p) => p.role !== "tenant" && !["looking", "renting", "moved_out"].includes(p.status)), cars = (state.assets || []).filter((a) => a.kind === "vehicle" && ["sold", "returned"].includes(a.vehicle?.status || ""));
+  ensureSpend(homes.map((p) => p.id), () => render(false));   // 这几套房关联的花费：读一次，读完重画
   return `<p class="muted tax-wrap">${t("卖房、卖车前后的收益参考。买入价、卖出价来自 房屋 / 车辆 里已有的记录；费用、退款、装修翻新、住满与否记在这里，一项一项加。参考用，以 TurboTax 和官方说明为准。")}</p>
     <h3 class="tax-sub">${t("房子")}</h3>${homes.map(homeCard).join("") || `<p class="muted">${t("还没有房产。")}</p>`}
     <h3 class="tax-sub">${t("已卖出的车")}</h3>${cars.map(carCard).join("") || `<p class="muted">${t("还没有卖出的车。卖车时在车辆的交易里走「卖车」流程，价格记在那里。")}</p>`}`;

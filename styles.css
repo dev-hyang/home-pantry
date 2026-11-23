@@ -4750,3 +4750,13 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .ov-ask > summary::-webkit-details-marker { display: none; }
 .ov-ask:not([open]) .pv-chev { transform: rotate(-90deg); }
 .ov-ask-body { padding: 0 14px 14px; }
+/* 税务 → 买卖：从花费记录里选（链接行） */
+.tax-link-form { margin-top: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 8px; }
+.tax-pick { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+.tax-pick-row { border-bottom: 1px dashed var(--line); }
+.tax-pick-row .check-inline { display: flex; align-items: center; gap: 10px; min-height: 44px; width: 100%; }
+.tax-pick-d { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.tax-pick-c { display: block; }
+.tax-imp.is-missing .tax-imp-d { opacity: .7; }
+.tax-link-form .tax-item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tax-add-btn + .tax-add-btn { margin-left: 8px; }

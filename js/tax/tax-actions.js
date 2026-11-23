@@ -34,7 +34,7 @@ if (typeof document !== "undefined") {
   document.addEventListener("click", (e) => {
     const add = e.target.closest?.("[data-tax-add]"), cancel = e.target.closest?.("[data-tax-add-cancel]"), del = e.target.closest?.("[data-tax-item-del]");
     if (!(add || cancel || del) || !e.target.closest(".tax-page")) return;
-    if (add) { ui.add = add.dataset.taxAdd; return render(false); }
+    if (add) { ui.add = add.dataset.taxAdd; ui.pick = null; return render(false); }
     if (cancel) { ui.add = null; return render(false); }
     const [id, key, third] = del.dataset.taxItemDel.split("|");
     if (key === "legacy") return done(saveProp(id, { [third]: null }));   // 以前只有一个数字框时存的合计
