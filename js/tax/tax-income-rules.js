@@ -72,14 +72,15 @@ export const TAX_RULES = {
 
 /** 这笔该怎么看：{ rule（没规则的类型返回 null，不列）, n, amount（计入的金额）, why, tt, sum, sumNote, tag（额外一句话，没有就空） }
  *  规则按类型；再按这一笔自己的情况调整：需要还 → 当借款；赠与人是美国人 → 不用申报；卖出没填已实现收益 → 先不算。 */
-export function assessRecord(r, { repayAsGift = true } = {}) {
+/** treat = 这笔标了「需要还」的税务处理（tax-calendar.js repayTreatment 算好传进来；没传 = "gift"） */
+export function assessRecord(r, { treat = "gift" } = {}) {
   const rule = TAX_RULES[r.kind];
   if (!rule) return null;
   const split = splitRecord(r), amount = rule.g === "gift" || rule.n === "no" ? +r.amount || 0 : split.income;   // 赠与 / 不用报的显示到账金额；要报的显示认定收入
   const base = { rule, n: rule.n, amount, why: rule.why, tt: rule.tt, sum: rule.sum, sumNote: rule.sumNote, tag: null, group: rule.g };
   if (r.kind === "gift" && r.gift_donor === "us") return { ...base, tag: z("美国人给的：不用报 3520", "US donor: no Form 3520") };
-  if (r.repay_required && repayAsGift && rule.g === "gift") return { ...base, tag: z("有借款标记：税务上先按赠与算（你的借贷还款记录不受影响）", "Marked as a loan: counted as a gift for tax (your loan repayment records are unchanged)"), why: z("你在家里的账上标了「需要还」，但税务看实质：没有正式借据、利息和还款安排的「借款」，IRS 可能当赠与，所以先按赠与计入 Form 3520 的合计。真有正式借款并在还，可在卡片底部取消勾选。", "You marked it as repayable in your own books, but tax looks at substance: a “loan” with no formal note, interest or repayment schedule may be treated as a gift by the IRS, so it counts toward the Form 3520 total. If it is a genuine loan being repaid, untick the box at the bottom of the card.") };
-  if (r.repay_required) return { ...base, n: "no", amount: +r.amount || 0, group: "no", tag: z("需要还：当借款", "Must repay: treated as a loan"), why: z("需要还的钱是借款，不是收入，也不是赠与。", "Money you must repay is a loan, not income or a gift."), tt: z("不填", "Nothing to enter"), sum: null, sumNote: NOT_INCOME };
+  if (r.repay_required && treat === "gift" && rule.g === "gift") return { ...base, tag: z("有借款标记：税务上先按赠与算（你的借贷还款记录不受影响）", "Marked as a loan: counted as a gift for tax (your loan repayment records are unchanged)"), why: z("你在家里的账上标了「需要还」，但税务看实质：没有正式借据、利息和还款安排的「借款」，IRS 可能当赠与，所以先按赠与计入 Form 3520 的合计。要按真借款处理：在借贷里把「借款凭证」填成「有书面借据」，并写上利息或还款计划，这笔会自动改按借款；或取消卡片底部的勾选（整年都不算）。", "You marked it as repayable in your own books, but tax looks at substance: a “loan” with no formal note, interest or repayment schedule may be treated as a gift by the IRS, so it counts toward the Form 3520 total. To treat it as a genuine loan: in Loans set the agreement to “written note” and add interest or a repayment plan, and it switches to a loan automatically; or untick the box at the bottom of the card (whole year).") };
+  if (r.repay_required) return { ...base, n: "no", amount: +r.amount || 0, group: "no", tag: treat === "formal" ? z("有正式借据：按借款，不计入赠与", "Formal loan: treated as a loan, not a gift") : z("需要还：当借款", "Must repay: treated as a loan"), why: z("需要还的钱是借款，不是收入，也不是赠与。", "Money you must repay is a loan, not income or a gift."), tt: z("不填", "Nothing to enter"), sum: null, sumNote: NOT_INCOME };
   if (r.kind === "gift" && !r.gift_donor) return { ...base, tag: z("没标赠与人：先按非美国人", "Donor not set: counted as non-US") };
   if (["stock_sale", "sale", "property_sale"].includes(r.kind) && (r.income_amount == null || r.income_amount === "")) return { ...base, n: "maybe", tag: z("没填已实现收益：未计入", "No gain filled in: not counted") };
   return base;

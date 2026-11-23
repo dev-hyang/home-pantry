@@ -4,6 +4,7 @@
  * 存放：预算表 cat_budgets 里的 _tax_cfg（和收入设置同一处，已在备份里）；不存任何证件号 / PIN。 */
 import { state } from "../core/state.js";
 import { todayISO } from "../core/util.js";
+import { repayTreatmentOf } from "./tax-repay.js";
 
 /** 阈值（每项带出处和核对日期；要改只改这里，页面和提醒都读它） */
 export const TAX_THRESHOLDS = {
@@ -69,10 +70,12 @@ export function relevantDeadlines(y) {
  *  · 个人赠与：赠与人标了「美国人」的不算（单列），标了「非美国人」或还没标的算（没标的先按境外算，页面提示去标）；
  *  · 「需要还」默认也算（税务上没有正式借据 / 还款安排的借款可能被当赠与）；当年可取消（repayAsGift=false），另外列出其中标了需要还的金额。 */
 export const GIFT_KINDS = ["wire", "gift"];
+/** 标了「需要还」的赠与 / 电汇，税务上还算不算赠与（规则见 tax-repay.js）："gift" 算 | "toggle" 当年开关关了，按借款 | "formal" 关联了正式借款，按借款 */
+export const repayTreatment = (r, y) => repayTreatmentOf(r, { repayAsGift: yearState(y).repayAsGift, debts: state.debts, debtTxns: state.debtTxns });
+export const repayCountsAsGift = (r, y) => repayTreatment(r, y) === "gift";
 const r2 = (n) => Math.round(n * 100) / 100, sum = (rows) => r2(rows.reduce((s2, r) => s2 + (+r.amount || 0), 0));
 export function foreignGiftTotal(y) {
-  const asGift = yearState(y).repayAsGift !== false;   // 默认：标了「需要还」的也按赠与算（税务看实质；卡片底部可取消）
-  const recs = (state.inc?.rec || []).filter((r) => String(r.received_on || "").startsWith(String(y)) && GIFT_KINDS.includes(r.kind) && (asGift || !r.repay_required));
+  const recs = (state.inc?.rec || []).filter((r) => String(r.received_on || "").startsWith(String(y)) && GIFT_KINDS.includes(r.kind) && repayCountsAsGift(r, y));
   const wire = recs.filter((r) => r.kind === "wire"), gift = recs.filter((r) => r.kind === "gift"), us = gift.filter((r) => r.gift_donor === "us"), counted = gift.filter((r) => r.gift_donor !== "us");
   const by = { wire: { n: wire.length, total: sum(wire) }, gift: { n: counted.length, total: sum(counted) } }, all = [...wire, ...counted];
   return { by, us: { n: us.length, total: sum(us) }, unmarked: gift.filter((r) => !r.gift_donor).length, repay: sum(all.filter((r) => r.repay_required)), total: sum(all), n: all.length, loaded: !!state.inc?.loaded };
