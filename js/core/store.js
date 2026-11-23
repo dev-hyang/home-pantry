@@ -80,9 +80,11 @@ export const TERM_FIELDS = ["term", "zh", "en", "hant"];
 /* 借贷（迁移 058） */
 /** 迁移 060 加的列（第一期还款日、银行 Escrow 计划、对账单校准；流水的额外本金）：库里还没有这些列时写库前去掉（debt060 = false），其余照旧 */
 export const DEBT_060 = ["first_payment_date", "escrow_schedule", "statement_check"];
-export const schemaFlags = { debt060: true };
+/** 迁移 104 加的列（借款凭证、借据放在哪）：库里还没有时写库前去掉（debt104 = false） */
+export const DEBT_104 = ["agreement", "agreement_note"];
+export const schemaFlags = { debt060: true, debt104: true };
 export const DEBT_FIELDS = ["name", "category", "direction", "counterparty_name", "person_id", "lender_card_id", "original_principal", "currency", "interest_rate", "term_months", "start_date", "maturity_date",
-  "payment_frequency", "scheduled_payment", "opening_balance", "opening_balance_on", "status", "property_id", "asset_id", "financing_role", "secured", "link_confirmed", "notes", ...DEBT_060];
+  "payment_frequency", "scheduled_payment", "opening_balance", "opening_balance_on", "status", "property_id", "asset_id", "financing_role", "secured", "link_confirmed", "notes", ...DEBT_060, ...DEBT_104];
 /** 按批次汇总：{ spend: { 批次: { n, sum } }, inc: 同上 | null }（sum 是净额：退款是负数） */
 export function batchTotalsOf(ids, purchases, incomes, noInc = false) {
   const want = new Set(ids), out = { spend: {}, inc: noInc ? null : {} };
@@ -103,6 +105,9 @@ export function debtRow(d) {
   if (r.opening_balance == null || !r.opening_balance_on) { r.opening_balance = null; r.opening_balance_on = null; }   // 两个一起填才有意义（数据库 check）
   if ("escrow_schedule" in r) r.escrow_schedule = Array.isArray(r.escrow_schedule) ? r.escrow_schedule.slice(0, 60) : [];
   if (!schemaFlags.debt060) for (const k of DEBT_060) delete r[k];
+  if ("agreement" in r) r.agreement = ["written", "verbal", "none"].includes(r.agreement) ? r.agreement : null;
+  if ("agreement_note" in r) r.agreement_note = String(r.agreement_note || "").trim().slice(0, 120) || null;
+  if (!schemaFlags.debt104) for (const k of DEBT_104) delete r[k];
   return r;
 }
 export function debtTxnRow(x) {

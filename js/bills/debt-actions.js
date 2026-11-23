@@ -30,7 +30,7 @@ async function saveDebtForm(f) {
     term_months: g("term_months") ? Math.round(num(g("term_months"))) : null, start_date: g("start_date") || null, maturity_date: g("maturity_date") || null, payment_frequency: g("payment_frequency") || "monthly",
     scheduled_payment: numOrNull(g("scheduled_payment")), opening_balance: numOrNull(g("opening_balance")), opening_balance_on: g("opening_balance_on") || null, status: g("status") || "active",
     property_id: cat === "personal_lending" ? null : g("property_id") || null, asset_id: cat === "personal_lending" ? null : g("asset_id") || null, financing_role: g("financing_role") || null,
-    secured: fd.get("secured") === "on", notes: g("notes") || null, currency: old?.currency || cur() };
+    secured: fd.get("secured") === "on", agreement: cat === "personal_lending" ? g("agreement") || null : null, agreement_note: cat === "personal_lending" ? g("agreement_note") || null : null, notes: g("notes") || null, currency: old?.currency || cur() };
   if (debt060()) {
     row.first_payment_date = cat === "personal_lending" ? null : g("first_payment_date") || null;
     const froms = fd.getAll("escrow_from").map(String), amts = fd.getAll("escrow_amount").map(String);

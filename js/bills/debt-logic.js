@@ -8,6 +8,7 @@ import { canSplit, debtOfBill, enrichDebt, piOf, r2, txnsOf } from "./debt-logic
 
 /** 迁移 060 执行了没有（第一期还款日 / Escrow 计划 / 对账单校准 / 额外本金这几列）：没执行时这些字段不显示、不保存 */
 export const debt060 = () => Store.mode !== "cloud" || schemaFlags.debt060;
+export const debt104 = () => Store.mode !== "cloud" || schemaFlags.debt104;
 export { bankEscrowAt, billOfDebt, canSplit, debtById, debtOfBill, debtOfIncome, debtTxns, debts, debtsEnriched, enrichDebt, escrowFor, loadDebts, piOf, txnsOf } from "./debt-logic-common.js";
 export { beforeDeletePayment, calibrateDebt, clearOverride, overrideSplit, paymentTable, resplitDebt, setExtraPrincipal, splitBillPayment, unsplitDebt } from "./debt-split-logic.js";
 export { debtAlertItems, debtHref, deleteDebtTxn, ensureBorrowDebt, payOffForAsset, recordDebtTxn, relinkPaymentPurchase, syncDebtStatus, syncVehicle, updateDebtTxn } from "./debt-personal-logic.js";

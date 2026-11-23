@@ -17,6 +17,10 @@ export const DEBT_CATS = {
 export const DEBT_CAT_IDS = Object.keys(DEBT_CATS);
 export const debtCat = (id) => DEBT_CATS[id] || DEBT_CATS.other;
 export const isPersonalDebt = (d) => d?.category === "personal_lending";
+/** 借款凭证（迁移 104 的 agreement）：written 书面借据 / verbal 口头约定 / none 什么都没有；空 = 还没填（税务上按「没有」算） */
+export const AGREEMENTS = { written: "有书面借据", verbal: "口头约定", none: "什么都没有" };
+/** 税务口径的「正式借款」：银行类（房贷、车贷、HELOC…）永远算；亲友借贷要「有书面借据」且「有利息或还款计划」（每期还款 / 到期日）。只给税务页判断用，不影响借贷本身的记录和余额 */
+export const isFormalDebt = (d) => !!d && (!isPersonalDebt(d) || (d.agreement === "written" && (Number(d.interest_rate) > 0 || Number(d.scheduled_payment) > 0 || !!d.maturity_date)));
 /** 页内标签：资产融资 = 除亲友借贷以外的全部（房贷、车贷、学生贷款、分期……），个人借贷 = 亲友之间 */
 export const debtGroup = (d) => (isPersonalDebt(d) ? "personal" : "asset");
 

@@ -1,5 +1,5 @@
 /* 借贷：新建 / 编辑表单。 */
-import { DEBT_CATS, DIRECTIONS, FREQS, ROLES, STATUSES, debtCat, debtCatOfBill, freqOfBill } from "../core/debt-rules.js";
+import { AGREEMENTS, DEBT_CATS, DIRECTIONS, FREQS, ROLES, STATUSES, debtCat, debtCatOfBill, freqOfBill } from "../core/debt-rules.js";
 import { DEBT_TABS, activeTab } from "../core/tabs.js";
 import { viewSwitch } from "../core/view-switch.js";
 import { viewMode } from "./debt-stats.js";
@@ -7,7 +7,7 @@ import { SEGS } from "./debt-stats.js";
 import { Store } from "../core/store.js";
 import { af, pf, tabFilter, tabPage } from "./debts-tabs.js";
 import { assetName } from "../house/assets.js";
-import { debt060, debtHref } from "./debt-logic.js";
+import { debt060, debt104, debtHref } from "./debt-logic.js";
 import { detail } from "./debt-detail.js";
 import { esc, todayISO } from "../core/util.js";
 import { href } from "../core/router.js";
@@ -48,6 +48,8 @@ export function debtForm(d) {
       <label ${fsec("basic", sec)}>${personal ? t("对方（人名）") : t("贷款方")}<input name="counterparty_name" maxlength="80" value="${val("counterparty_name")}"></label>
       <label ${fsec("basic", sec)}>${t("家里哪一位")}<select name="person_id"><option value="">${t("全家 / 不指定")}</option>${(state.people || []).filter((p) => p.kind !== "pet").map((p) => `<option value="${esc(p.id)}" ${p.id === v.person_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
       <label ${fsec("terms", sec)}>${personal ? t("金额") : t("原始本金")}<input name="original_principal" type="number" inputmode="decimal" min="0" step="0.01" value="${val("original_principal")}"></label>
+      ${debt104() ? `<label ${fsec("terms", sec)} data-debt-personal ${personal ? "" : "hidden"}>${t("借款凭证")}<select name="agreement"><option value="">${t("还没填")}</option>${opt(AGREEMENTS, v.agreement)}</select></label>
+      <label ${fsec("terms", sec)} data-debt-personal ${personal ? "" : "hidden"}>${t("借据放在哪（可选）")}<input name="agreement_note" maxlength="120" value="${val("agreement_note")}" placeholder="${esc(t("Drive / 家庭文件"))}"></label>` : ""}
       <label ${fsec("terms", sec)}>${t("年利率 %")}<input name="interest_rate" type="number" inputmode="decimal" min="0" max="100" step="0.001" value="${val("interest_rate")}"></label>
       <label ${fsec("terms", sec)}>${t("期限（月）")}<input name="term_months" type="number" inputmode="numeric" min="1" max="600" step="1" value="${val("term_months")}"></label>
       <label ${fsec("terms", sec)}>${t("起始日（放款）")}<input name="start_date" type="date" value="${val("start_date")}"></label>

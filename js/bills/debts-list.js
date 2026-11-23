@@ -1,6 +1,6 @@
 /* 借贷 → 列表：每笔借贷一行（余额、下次还款、利率）。 */
 import * as A from "../core/amortization.js";
-import { DIRECTIONS, isClosedStatus, isLoanBillCat } from "../core/debt-rules.js";
+import { AGREEMENTS, DIRECTIONS, isClosedStatus, isLoanBillCat } from "../core/debt-rules.js";
 import { debtHref } from "./debt-logic.js";
 import { esc, fmtDate } from "../core/util.js";
 import { href } from "../core/router.js";
@@ -46,7 +46,7 @@ export function personCard(e) {
   const paidPct = e.original > 0 && e.balance != null ? Math.round(((e.original - e.balance) / e.original) * 100) : null;
   const person = e.person_id ? (state.people || []).find((p) => p.id === e.person_id)?.name : null;
   return debtRow(e, { name: who, label: t("打开借款 {name}", { name: who }), amount: e.balance != null ? mny(e.balance, e.currency) : "—", amountLabel: recv ? t("对方还欠") : t("我还欠"),
-    badges: `<span class="badge" style="background:var(--surface-2)">${esc(t(DIRECTIONS[e.direction].short))}</span>${e.balance === 0 && !isClosedStatus(e.status) ? `<span class="badge b-ok">${t("已结清")}</span>` : statusBadge(e)}`,
+    badges: `<span class="badge" style="background:var(--surface-2)">${esc(t(DIRECTIONS[e.direction].short))}</span><span class="ui-badge" data-size="sm" data-tone="${e.agreement === "written" ? "ok" : "neutral"}">${e.agreement === "written" ? t("有借据") : e.agreement ? t(AGREEMENTS[e.agreement]) : t("借据未填")}</span>${e.balance === 0 && !isClosedStatus(e.status) ? `<span class="badge b-ok">${t("已结清")}</span>` : statusBadge(e)}`,
     facts: [fact(t("金额"), mny(e.original, e.currency)),
       fact(t("借款日期"), e.start_date ? esc(fmtDate(e.start_date)) : ""),
       fact(t("到期"), e.maturity_date ? `${esc(fmtDate(e.maturity_date))}${e.overdue ? ` <span class="badge b-out">${t("逾期")}</span>` : ""}` : `<span class="muted">${t("没约定")}</span>`),

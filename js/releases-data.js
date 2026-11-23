@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-23.5", title: { zh: "借贷：亲友借款可以记「有没有借据」", en: "Loans: record whether a family loan has a written note" }, items: [
+    { k: "new", zh: "亲友借贷多了「借款凭证」（有书面借据 / 口头约定 / 什么都没有）和「借据放在哪」，借贷列表里有小徽标显示有没有借据", en: "Family loans now have an Agreement field (written note / verbal / none) and a note on where the paper is kept, with a small badge in the loans list" },
+    { k: "better", zh: "只是记录，借款余额和还款记录不变；下一步税务页会按这个判断一笔「借款」算不算正式借款", en: "Records only: balances and repayments are unchanged; next, the tax page will use this to decide whether a loan counts as formal" },
+  ] },
+
   { v: "2026-11-23.4", title: { zh: "买房成本基础：closing 退款的提示更清楚", en: "Home cost basis: clearer note for closing refunds" }, items: [
     { k: "better", zh: "税务 → 买卖与成本基础 的「买入时收到的退款 / credit」写明：中介退回的佣金、title 退回的 closing 多收款、贷款方 credit 都记在这里，会降低成本基础，不是收入", en: "In Tax → Sales & cost basis, the “refunds / credits at purchase” step now says agent commission refunds, title refunds and lender credits go here: they lower the cost basis and are not income" },
     { k: "better", zh: "有退款时，结果下面会提示「closing 退款已调整成本基础」和扣掉的金额", en: "When there are refunds, the result shows a note with the amount deducted from the cost basis" },

@@ -1,6 +1,6 @@
 /* 借贷详情页的资料分块：每块一张卡（标题 + 「编辑」+ 当前填的内容），点「编辑」进编辑页只改这一块（debt-form.js 按 &sec= 显示对应字段）。
  * 和房屋资料、卡与账户、收入详情同一种样式（dtBlock）。个人借贷没有还款安排 / 关联资产两块。 */
-import { DEBT_CATS, DIRECTIONS, FREQS, ROLES, STATUSES, isPersonalDebt } from "../core/debt-rules.js";
+import { AGREEMENTS, DEBT_CATS, DIRECTIONS, FREQS, ROLES, STATUSES, isPersonalDebt } from "../core/debt-rules.js";
 import { dtBlock, dtRow } from "../core/detail-ui.js";
 import { esc, fmtDate } from "../core/util.js";
 import { assetName } from "../house/assets.js";
@@ -23,7 +23,7 @@ export function debtRows(e) {
   return {
     basic: [dtRow(t("类型"), esc(t(DEBT_CATS[e.category]?.name || ""))), dtRow(t("名称"), esc(e.name)), personal ? dtRow(t("方向"), esc(t(DIRECTIONS[e.direction]?.name || ""))) : "",
       dtRow(personal ? t("对方（人名）") : t("贷款方"), esc(e.counterparty_name || "")), dtRow(t("家里哪一位"), esc(person || "")), dtRow(t("状态"), esc(t(STATUSES[e.status]?.name || e.status || "")))],
-    terms: [dtRow(personal ? t("金额") : t("原始本金"), e.original ? mny(e.original, c) : ""), dtRow(t("年利率"), e.interest_rate != null && e.interest_rate !== "" ? pct(e.interest_rate) : ""),
+    terms: [dtRow(personal ? t("金额") : t("原始本金"), e.original ? mny(e.original, c) : ""), dtRow(t("年利率"), e.interest_rate != null && e.interest_rate !== "" ? pct(e.interest_rate) : ""), personal ? dtRow(t("借款凭证"), esc(e.agreement ? `${t(AGREEMENTS[e.agreement])}${e.agreement_note ? ` · ${e.agreement_note}` : ""}` : t("还没填"))) : "",
       dtRow(t("期限"), e.term_months ? t("{n} 个月", { n: e.term_months }) : ""), dtRow(t("起始日（放款）"), date(e.start_date)), personal ? "" : dtRow(t("第一期还款日"), date(e.first_payment_date)), dtRow(t("到期日"), date(e.maturity_date)),
       e.opening_balance != null ? dtRow(t("记录起点"), t("{d} 余额 {a}", { d: fmtDate(e.opening_balance_on), a: mny(e.opening_balance, c) })) : ""],
     pay: [dtRow(t("还款频率"), esc(t(FREQS[e.payment_frequency] || ""))), dtRow(t("每期还款（含 Escrow）"), e.scheduled_payment ? mny(e.scheduled_payment, c) : ""),

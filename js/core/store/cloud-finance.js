@@ -48,6 +48,8 @@ export const cloudFinance = {
     // 迁移 060 有没有执行：有行就看列在不在，没行试读一次那一列（失败 = 没执行，写库时去掉 060 的列）
     if (rows.length) schemaFlags.debt060 = "first_payment_date" in rows[0];
     else { const r = await this.sb.from("debt_accounts").select("first_payment_date").limit(1); schemaFlags.debt060 = !r.error; }
+    if (rows.length) schemaFlags.debt104 = "agreement" in rows[0];   // 迁移 104（借款凭证）同理
+    else { const r = await this.sb.from("debt_accounts").select("agreement").limit(1); schemaFlags.debt104 = !r.error; }
     return rows;
   },
   async saveDebt(d) {
