@@ -136,7 +136,7 @@ export function viewNetWorth() {
   const kpi = (label, val, small = "", neg = false) => `<div class="kpi"><span>${esc(label)}</span><b class="${neg ? "down" : ""}">${val}</b>${small}</div>`;   // 统计卡只显示，不跳转（页面之间用上面的导航卡片切）
   const other = r.otherCur.length ? `<div class="panel"><h3>${t("其他币种（不算进净资产）")}</h3><ul class="nw-other">${r.otherCur.map((x) => `<li>${esc(x.name)}：${x.side === "l" ? "−" : ""}${mny(x.amount, x.currency)}</li>`).join("")}</ul></div>` : "";
   return `<section class="section nw-page">
-    ${pageHead({ icon: "📈", title: t("净资产"), tabs: ASSET_TABS, tab: "networth", hrefOf: (id) => href("bills", id), label: t("资产内容"), plain: true, note: infoTip(t("净资产 = 资产 − 负债。账户余额、房产 / 车辆估值在资产页和卡与账户里更新；贷款余额来自借贷（按摊还表）。只算 {cur}。", { cur: cur() }), { align: "start" }) })}
+    ${pageHead({ icon: "📈", title: t("净资产"), tabs: ASSET_TABS, tab: "networth", hrefOf: (id) => href("bills", id), label: t("资产内容"), plain: true, note: infoTip.classic(t("净资产 = 资产 − 负债。账户余额、房产 / 车辆估值在资产页和卡与账户里更新；贷款余额来自借贷（按摊还表）。只算 {cur}。", { cur: cur() }), { align: "start" }) })}
     <div class="kpis">
       ${kpi(t("净资产"), mny(r.netWorth), `<small>${t("截至今天")}</small>`, r.netWorth < 0)}
       ${kpi(t("总资产"), mny(r.assetsTotal), `<small>${t("房产、车辆、账户")}</small>`)}

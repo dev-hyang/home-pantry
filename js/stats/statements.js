@@ -108,7 +108,7 @@ function exportBody() {
 
 export function viewStatements() {
   const tab = activeTab(state.route) || "import";
-  return `<section class="section">${pageHead({ icon: "🏦", title: t("对账单"), tabs: STATEMENT_TABS, tab, hrefOf, label: t("对账单内容"), note: infoTip(t("导入银行 / 信用卡对账单（花费和收入一次导入），对账时看花费和收入的全部流水，导出花费、收入和收支差额的报表。"), { align: "start" }) })}</section>
+  return `<section class="section">${pageHead({ icon: "🏦", title: t("对账单"), tabs: STATEMENT_TABS, tab, hrefOf, label: t("对账单内容"), note: infoTip.classic(t("导入银行 / 信用卡对账单（花费和收入一次导入），对账时看花费和收入的全部流水，导出花费、收入和收支差额的报表。"), { align: "start" }) })}</section>
     ${tab === "export" ? exportBody() : tab === "all" ? `<section class="section" id="stmtAll">${allTab()}</section>` : bankImportTab()}`;
 }
 

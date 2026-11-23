@@ -143,17 +143,17 @@ function compute(f = state.allFilter) {
 export function summaryHtml({ SK: S, truncated }) {
   const card = (label, amount, sub, tip = "") => `<div class="kpi"><span>${label}${tip ? ` ${tip}` : ""}</span><b>${mny(amount)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</div>`;
   const est = S.estimatedN ? t("含估算 {n} 笔（水电燃气按最近均值估，记缴费时填实际金额就会更新）", { n: S.estimatedN }) : "";
-  const totalTip = infoTip([est, S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "", S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "",
+  const totalTip = infoTip.classic([est, S.unknownN ? t("{n} 笔金额未知按 0 算", { n: S.unknownN }) : "", S.escrow.n ? t("Escrow 代缴 {n} 笔 {a} 不计入", { n: S.escrow.n, a: mny(S.escrow.amount) }) : "",
     S.otherCurrency ? t("另有 {n} 笔非 {c} 账单未计入", { n: S.otherCurrency, c: cur() }) : "", truncated ? t("另有 {n} 期太久远或太远没有展开", { n: truncated }) : ""], { align: "start" });
   const mark = S.estimatedN ? t("含预估") : "";   // 有按均值估的金额：应付 / 余额小字标「含预估」
-  const cards = card(t("应付"), S.total.amount, [t("共 {n} 笔账单", { n: S.total.n }), mark].filter(Boolean).join(" · "), totalTip) + card(t("已付"), S.paid.amount, "") + card(t("余额"), S.remaining.amount, mark, infoTip(est, { align: "end" }));
+  const cards = card(t("应付"), S.total.amount, [t("共 {n} 笔账单", { n: S.total.n }), mark].filter(Boolean).join(" · "), totalTip) + card(t("已付"), S.paid.amount, "") + card(t("余额"), S.remaining.amount, mark, infoTip.classic(est, { align: "end" }));
   return `<div class="kpis all-kpis" role="status">${cards}</div>`;
 }
 
 /** 标题旁 ⓘ 的说明：一行 = 一期账单 + 当前时间范围（筛选一变就要重画，所以单独成块） */
 function titleTip(f, C) {
   const scope = f.range === "all" ? t("不限时间") : `${fmtDate(C.from)} – ${fmtDate(C.to)}`;
-  return infoTip(t("周期性 + 一次性账单，一行 = 一期账单。时间范围：{r}（{s}）；逾期没缴的不受范围限制，一直显示。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope }), { align: "start" });
+  return infoTip.classic(t("周期性 + 一次性账单，一行 = 一期账单。时间范围：{r}（{s}）；逾期没缴的不受范围限制，一直显示。", { r: t(BILL_RANGES.find(([k]) => k === f.range)?.[1] || f.range), s: scope }), { align: "start" });
 }
 
 function listHtml(C) {

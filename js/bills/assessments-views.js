@@ -33,7 +33,7 @@ export function assessListPage(b, crumb) {
     const items = menuItems(a, base);
     return `<section class="panel prof-card as-card" id="as-${esc(a.id)}" ${isFocus ? "data-as-focus" : ""} ${lpAttr(items, a.name)}>
       <header class="prof-head"><span class="mi" aria-hidden="true">📣</span>
-        <div class="prof-t"><h3>${esc(a.name)}${a.notes ? ` ${infoTip(a.notes)}` : ""}</h3>
+        <div class="prof-t"><h3>${esc(a.name)}${a.notes ? ` ${infoTip.classic(a.notes)}` : ""}</h3>
           <small>${a.done ? `<span class="badge b-ok">${t("已缴清")}</span> ` : a.status === "closed" ? `<span class="badge">${t("已关闭")}</span> ` : ""}${esc(t("共 {total}", { total: mny(a.total, cur) }))}</small>
           ${lines.map((x) => `<small class="as-desc">${esc(x)}</small>`).join("")}</div>
         ${moreMenu(items, { label: `${a.name} · ${t("更多操作")}` })}</header>

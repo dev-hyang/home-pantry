@@ -134,7 +134,7 @@ export function viewFinAssets() {
       <span class="mch" aria-hidden="true">›</span></a>${acctOf(c.id)?.viaDebt ? "" : balancePanel(c)}</li>`));
   const cashLike = nw ? nw.assets.cash + nw.assets.investments + nw.assets.retirement + nw.assets.hsa : null;
   return `<section class="section fin-assets">
-    ${pageHead({ icon: "🏛️", title: t("资产"), tabs: ASSET_TABS, tab: "assets", hrefOf: (id) => href("bills", id), label: t("资产内容"), plain: true, note: infoTip(t("房产、车辆和账户的钱的那一面；改资料回到原来的地方（房屋 / 车辆 / 卡与账户），这里只读"), { align: "start" }) })}
+    ${pageHead({ icon: "🏛️", title: t("资产"), tabs: ASSET_TABS, tab: "assets", hrefOf: (id) => href("bills", id), label: t("资产内容"), plain: true, note: infoTip.classic(t("房产、车辆和账户的钱的那一面；改资料回到原来的地方（房屋 / 车辆 / 卡与账户），这里只读"), { align: "start" }) })}
     <div class="kpis">
       <div class="kpi"><span>${t("持有的房产")}</span><b>${held}</b><small>${t("共 {n} 套有记录", { n: props.length })}</small></div>
       <div class="kpi"><span>${t("在用的车辆")}</span><b>${liveVeh}</b><small>${t("共 {n} 辆有记录", { n: vehicles.length })}</small></div>

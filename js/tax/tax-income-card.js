@@ -33,8 +33,8 @@ function tipLines(y, a) {
 }
 function recordRow(y, { r, a }) {
   const d = String(r.received_on || "");
-  return `<li class="tax-inc-rec"><a class="tax-inc-main" href="${incUrl(r.kind, d, d)}"><span class="tax-inc-d">${esc(d.slice(5))}</span><span class="tax-inc-p">${esc(r.source_name || "—")}</span><b class="tax-inc-a">${money(a.amount)}</b>
-    ${a.tag ? `<small class="tax-inc-tag">${esc(tx(a.tag))}</small>` : ""}</a>${infoTip(tipLines(y, a), { align: "end" })}</li>`;
+  return `<li class="tax-inc-rec"><span class="tax-inc-d">${esc(d.slice(5))}</span><span class="tax-inc-pw"><a class="tax-inc-link" href="${incUrl(r.kind, d, d)}">${esc(r.source_name || "—")}</a>${infoTip(tipLines(y, a), { size: "sm", align: "end" })}</span><b class="tax-inc-a">${money(a.amount)}</b>
+    ${a.tag ? `<small class="tax-inc-tag">${esc(tx(a.tag))}</small>` : ""}</li>`;   // 整行可点（链接的 ::after 铺满整行），i 角标在付款方文字的右上角
 }
 /** 一个二级（收入类型）：可折叠，标题上有类型名、笔数、小计；超过 3 笔默认收起 */
 function leafBlock(y, kind, items) {
@@ -46,18 +46,18 @@ function leafBlock(y, kind, items) {
 function giftFoot(y) {
   const g = foreignGiftTotal(y), th = TAX_THRESHOLDS.foreignGift, pct = Math.min(100, Math.round((g.total / th.amount) * 100));
   const tip = [tx(th.label), g.us.n ? t("另有 {n} 笔来自美国人，共 {a}，不算在合计里。", { n: g.us.n, a: money(g.us.total) }) : "", g.repay ? t("标了「需要还」的 {a}：真是借款的话不算赠与。", { a: money(g.repay) }) : "", t("核对：{d}", { d: th.verified })];
-  return `<div class="tax-inc-gift"><div class="tax-inc-sumrow"><span>${t("计入 Form 3520 的合计")} ${infoTip(tip, { align: "end" })}</span><b>${money(g.total)}</b></div><span class="mprog"><i style="width:${pct}%"></i></span>
-    <label class="check-inline tax-inc-opt"><input type="checkbox" data-tax-year="repayAsGift" data-y="${y}" ${yearState(y).repayAsGift !== false ? "checked" : ""}><span>${t("标了「需要还」的也按赠与算")} ${infoTip(t("税务看实质，不看你家里的账：没有正式借据 / 利息 / 还款安排的借款，IRS 可能当赠与。真借款并在还的，取消勾选。借贷里的还款记录不受影响。"), { align: "end", pos: "bottom" })}</span></label>
+  return `<div class="tax-inc-gift"><div class="tax-inc-sumrow"><span>${t("计入 Form 3520 的合计")}${infoTip(tip, { size: "sm", align: "end" })}</span><b>${money(g.total)}</b></div><span class="mprog"><i style="width:${pct}%"></i></span>
+    <label class="check-inline tax-inc-opt"><input type="checkbox" data-tax-year="repayAsGift" data-y="${y}" ${yearState(y).repayAsGift !== false ? "checked" : ""}><span>${t("标了「需要还」的也按赠与算")}${infoTip(t("税务看实质，不看你家里的账：没有正式借据 / 利息 / 还款安排的借款，IRS 可能当赠与。真借款并在还的，取消勾选。借贷里的还款记录不受影响。"), { size: "sm", align: "end", pos: "bottom" })}</span></label>
     <p class="tax-inc-more"><a href="${esc(th.source)}" target="_blank" rel="noopener">${t("官方说明")} ↗</a></p></div>`;
 }
 function groupBlock(y, g, items) {
   const [tone, label] = BADGE[GROUP_N[g.id]], kinds = [...new Set(items.map((x) => x.r.kind))], counted = GROUP_N[g.id] === "tax" ? items.filter((x) => x.a.n === "tax") : items;
-  return `<details class="tax-inc-group" open><summary><span class="tax-inc-gn"><span class="tax-inc-gt">${g.icon} ${esc(tx(g.name))}</span><span class="ui-badge" data-tone="${tone}" data-size="sm">${t(label)}</span>${infoTip(tx(g.desc), { align: "start", pos: "bottom" })}</span><b>${money(sumOf(counted))}</b></summary>
+  return `<details class="tax-inc-group" open><summary><span class="tax-inc-gn"><span class="tax-inc-gt">${g.icon} ${esc(tx(g.name))}${infoTip(tx(g.desc), { align: "start", pos: "bottom" })}</span><span class="ui-badge" data-tone="${tone}" data-size="sm">${t(label)}</span></span><b>${money(sumOf(counted))}</b></summary>
     ${kinds.map((k) => leafBlock(y, k, items.filter((x) => x.r.kind === k))).join("")}${g.id === "gift" ? giftFoot(y) : ""}</details>`;
 }
 
 export function incomeTaxCard(y) {
-  const head = `<div class="dt-head"><h3>💰 ${t("{y} 年收入报税累计", { y })}</h3>${infoTip([t("这一年所有可能涉及报税的收入，按大类和收入类型分组。"), t("每笔的小 i：为什么要报、TurboTax 在哪填、汇总页有没有。"), t("借款、转账、卖房 / 卖股票的本金不列在这里。"), t("参考用，以 W-2 / 1099 和 IRS 官网为准。")], { align: "end" })}</div>`;
+  const head = `<div class="dt-head"><h3>💰 ${t("{y} 年收入报税累计", { y })}${infoTip([t("这一年所有可能涉及报税的收入，按大类和收入类型分组。"), t("每笔的小 i：为什么要报、TurboTax 在哪填、汇总页有没有。"), t("借款、转账、卖房 / 卖股票的本金不列在这里。"), t("参考用，以 W-2 / 1099 和 IRS 官网为准。")], { size: "lg", align: "start" })}</h3></div>`;
   if (!state.inc?.loaded) return `<section class="panel dt-block tax-inc">${head}<p class="muted">${t("收入记录还没读到；打开一次 财务 → 收入 再回来。")}</p></section>`;
   const items = yearItems(y), by = (g) => items.filter((x) => x.a.group === g), nOf = (n) => items.filter((x) => x.a.n === n && x.a.group !== "gift");
   const line = (name, v, cls = "") => `<div class="tax-inc-sumrow ${cls}"><span>${name}</span><b>${money(v)}</b></div>`;

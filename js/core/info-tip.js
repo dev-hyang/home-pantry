@@ -1,13 +1,20 @@
 /* 小「i」提示：把说明文字收进一个小圆标，电脑悬停 / 键盘聚焦、手机点一下显示（样式 shared/ui.css 的 .ui-hint）。
- * 用法：infoTip("说明文字", { align: "end" })；靠右边的用 align:"end"，靠左边的用 "start"，居中不传。
- * 多条说明传数组，会换行显示。 */
+ * 用法：infoTip("说明文字", { align, pos, mode, size })
+ *   mode  "sup"（默认）= 缩在文字右上角的小角标，不占行、不占列，跟在它说明的那段文字后面；
+ *         "inline" = 独立占位的圆形按钮（跟在整行末尾、单独一列时用）；
+ *         "classic" = 不带 data-mode（旧页面原有的样式，由各页自己的 CSS 管；老调用点用 infoTip.classic）。
+ *   size  "sm" | "md"（默认）| "lg"：按旁边文字大小选——小 ≈ 13px 以下的小字，中 ≈ 14–16px 正文，大 ≈ 标题（18px 以上）。
+ *   align 浮层对齐：靠右边用 "end"，靠左边用 "start"，居中不传；pos "bottom" = 在下方显示。
+ * 没有特殊说明时一律用默认（右上角角标）。多条说明传数组，会换行显示。 */
 import { esc } from "./util.js";
 
-export function infoTip(text, { align = "", pos = "" } = {}) {
+export function infoTip(text, { align = "", pos = "", mode = "sup", size = "md" } = {}) {
   const s = Array.isArray(text) ? text.filter(Boolean).join("\n") : String(text || "");
   if (!s) return "";
-  return `<button type="button" class="ui-hint" data-tip="${esc(s)}" aria-label="${esc(s)}"${align ? ` data-tip-align="${align}"` : ""}${pos ? ` data-tip-pos="${pos}"` : ""}>i</button>`;
+  const m = mode === "classic" ? "" : ` data-mode="${mode === "inline" ? "inline" : "sup"}" data-size="${["sm", "lg"].includes(size) ? size : "md"}"`;
+  return `<button type="button" class="ui-hint" data-tip="${esc(s)}" aria-label="${esc(s)}"${m}${align ? ` data-tip-align="${align}"` : ""}${pos ? ` data-tip-pos="${pos}"` : ""}>i</button>`;
 }
+infoTip.classic = (text, o = {}) => infoTip(text, { ...o, mode: "classic" });
 
 /* Safari / 部分手机点按钮不会聚焦，:focus 就不触发；点一下手动聚焦，点别处自然失焦收起 */
 if (!window.__infoTipBound) {

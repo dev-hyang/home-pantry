@@ -34,7 +34,7 @@ function acctRow(c, rows) {
 const list = (cards, rows) => (cards.length ? `<div class="panel"><ul class="restock-list card-list">${cards.map((c) => acctRow(c, rows)).join("")}</ul></div>` : "");
 /** 添加账户：右下角圆形 ＋（只有一种就直接是链接，多种弹菜单）；只读时没有 */
 const addFab = (kinds) => (cardsRO() ? "" : fabMenu(kinds.map((k) => ({ label: t(ACCT_KINDS[k][0]), icon: ACCT_KINDS[k][1], href: `${cardHref("new")}&kind=${k}` })), { label: t("添加账户") }));
-const head = (title, tip) => finHead({ label: title, note: tip ? infoTip(tip, { align: "start" }) : "", right: eyeFilter() });
+const head = (title, tip) => finHead({ label: title, note: tip ? infoTip.classic(tip, { align: "start" }) : "", right: eyeFilter() });
 const empty = (msg) => `<div class="panel empty"><strong>${esc(msg)}</strong></div>`;
 const needTip = (n) => (n ? t("{n} 个账户该更新余额", { n }) : t("余额都是新的"));
 

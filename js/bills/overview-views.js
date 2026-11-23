@@ -41,7 +41,7 @@ function card(kind, icon, label, value, sub, link, aria, extra = "", tip = "") {
 function cardsHtml(C) {
   const { S, next } = C, f = state.ovFilter, q = { range: f.range, asset: f.asset }, link = (extra = {}) => allBillsHref({ ...q, ...extra });
   const cnt = (k) => `${k} ${t("笔账单")}`;
-  const total = card("total", "💲", t("全部账单"), mny(S.total.amount), cnt(S.total.n), link(), `${t("全部账单")}，${cnt(S.total.n)}，${mny(S.total.amount)}`, "bc-wide", infoTip(totalNotes(C), { align: "end", pos: "bottom" }));
+  const total = card("total", "💲", t("全部账单"), mny(S.total.amount), cnt(S.total.n), link(), `${t("全部账单")}，${cnt(S.total.n)}，${mny(S.total.amount)}`, "bc-wide", infoTip.classic(totalNotes(C), { align: "end", pos: "bottom" }));
   const overdue = card("overdue", "⚠️", t("逾期"), mny(S.overdue.amount), S.overdue.n ? cnt(S.overdue.n) : t("没有逾期 ✓"), allBillsHref({ asset: f.asset, status: "overdue" }), `${t("逾期")}，${cnt(S.overdue.n)}，${mny(S.overdue.amount)}`);
   const paid = card("paid", "✅", t("已缴"), mny(S.paid.amount), `${cnt(S.paid.n)}${S.partial.n ? ` · ${t("另有 {n} 笔部分已付", { n: S.partial.n })}` : ""}`, link({ status: "paid" }), `${t("已缴")}，${cnt(S.paid.n)}，${mny(S.paid.amount)}`);
   const days = next ? Math.round((new Date(`${next.dueOn}T12:00:00`) - new Date(`${C.today}T12:00:00`)) / 86400000) : null;
@@ -49,7 +49,7 @@ function cardsHtml(C) {
     ? card("next", "📅", t("下一笔到期"), esc(fmtDate(next.dueOn)), `${esc(next.name)} · ${days === 0 ? t("今天") : t("{d} 天后", { d: days })} · ${mny(next.amount)}`, next.kind === "onetime" ? detailHref(next.billId) : href("bill", next.billId), `${t("下一笔到期")}，${fmtDate(next.dueOn)}，${next.name}`)
     : card("next", "📅", t("下一笔到期"), "—", t("接下来没有待缴的账单"), link({ status: "unpaid" }), t("下一笔到期：没有"));
   const soon = card("soon", "⏳", t("即将到期"), mny(S.soon.amount), `${S.soon.n ? cnt(S.soon.n) : t("7 天内没有")} · ${t("7 天内")}`, link({ status: "soon" }), `${t("即将到期")}，${cnt(S.soon.n)}，${mny(S.soon.amount)}`);
-  const remain = card("remain", "📊", t("剩余待缴"), mny(S.remaining.amount), `${cnt(S.remaining.n)} · ${t("应付 − 已缴")}`, link({ status: "unpaid" }), `${t("剩余待缴")}，${cnt(S.remaining.n)}，${mny(S.remaining.amount)}`, "bc-wide-m", infoTip(estNote(S), { align: "end", pos: "bottom" }));
+  const remain = card("remain", "📊", t("剩余待缴"), mny(S.remaining.amount), `${cnt(S.remaining.n)} · ${t("应付 − 已缴")}`, link({ status: "unpaid" }), `${t("剩余待缴")}，${cnt(S.remaining.n)}，${mny(S.remaining.amount)}`, "bc-wide-m", infoTip.classic(estNote(S), { align: "end", pos: "bottom" }));
   return `<div class="bill-cards">${total}${overdue}${paid}${nextCard}${soon}${remain}</div>`;
 }
 const estNote = (S) => (S.estimatedN ? t("含估算 {n} 笔（水电燃气按最近均值估，记缴费时填实际金额就会更新）", { n: S.estimatedN }) : "");
@@ -79,7 +79,7 @@ function groupHtml(C) {
     list = C.byAsset.map((g) => row(["general", "vehicle"].includes(g.key) ? assetBillsHref(g.key, f.range) : allBillsHref({ range: f.range, asset: g.key }), esc(assetKeyLabel(g.key)), g, max)).join("");
   }
   const sw = viewSwitch([["asset", "按资产"], ["cycle", "按周期"]], byCycle ? "cycle" : "asset", { action: "ov-group", attr: "group", label: "分组方式" });
-  return `<section class="section"><div class="section-head"><h2>${t("账单分组")} ${infoTip(byCycle ? t("点一行看这类账单") : t("点一行看这个资产的账单"), { align: "start" })}</h2><div class="head-acts"><div class="view-bar">${sw}</div></div></div>
+  return `<section class="section"><div class="section-head"><h2>${t("账单分组")} ${infoTip.classic(byCycle ? t("点一行看这类账单") : t("点一行看这个资产的账单"), { align: "start" })}</h2><div class="head-acts"><div class="view-bar">${sw}</div></div></div>
     <div class="panel"><ul class="bill-assets">${list}</ul></div></section>`;
 }
 function trendHtml(C) {

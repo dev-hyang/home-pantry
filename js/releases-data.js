@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-23.3", title: { zh: "小 i 提示改成文字右上角的角标，有大中小三种", en: "Info tips are now corner badges at the top-right of the text, in three sizes" }, items: [
+    { k: "better", zh: "收入报税累计里所有的小 i，改成贴在文字右上角的小角标：不再单独占一格，整行都能点", en: "In the income-for-tax card every i is now a small badge at the top-right of its text: no separate slot, and the whole row stays clickable" },
+    { k: "better", zh: "小 i 现在有小 / 中 / 大三种尺寸，也可以改回单独占位的圆形按钮；以后新页面默认用右上角角标", en: "The i comes in small / medium / large, and can still be a standalone round button; new pages default to the corner badge" },
+  ] },
+
   { v: "2026-11-23.2", title: { zh: "税务：标了「需要还」的赠与 / 电汇也算进赠与累计", en: "Tax: gifts and wires marked “must repay” now count toward the gift total" }, items: [
     { k: "fix", zh: "税务上看实质：标了「需要还」（或关联了借贷）的个人赠与 / 国际电汇，默认也算进「收入报税累计」的亲友赠与和 Form 3520 合计", en: "Tax looks at substance: gifts and international wires marked “must repay” (or linked to a loan) now count in the family-gifts total and the Form 3520 total by default" },
     { k: "better", zh: "借贷里的还款记录、余额完全不变；真是正式借款的，在赠与那一组底部取消勾选就不算", en: "Loan balances and repayment records are untouched; for a genuine formal loan, untick the box at the bottom of the gifts group" },

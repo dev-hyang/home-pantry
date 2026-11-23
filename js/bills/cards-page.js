@@ -25,7 +25,7 @@ export function viewCards() {
   // 停用的：最近停用的在前（没有停用日期的老记录按最后修改时间）
   const off = state.cards.filter((c) => c.active === false && groupOfKind(c.kind) === "credit").sort((a, b) => String(b.inactive_since || "").localeCompare(String(a.inactive_since || "")) || String(b.updated_at || "").localeCompare(String(a.updated_at || "")));
   return `<section class="section">
-    ${finHead({ label: t("信用卡"), note: infoTip(t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。"), { align: "start" }), right: `${ro ? `<span class="badge" style="background:var(--surface-2)">${t("只读")}</span>` : ""}${eyeFilter()}` })}
+    ${finHead({ label: t("信用卡"), note: infoTip.classic(t("按场景比返现：该刷哪张、为什么；到期、年费、轮换类别、开卡奖励按时提醒。"), { align: "start" }), right: `${ro ? `<span class="badge" style="background:var(--surface-2)">${t("只读")}</span>` : ""}${eyeFilter()}` })}
     ${ro ? `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("你可以查看卡和推荐；添加、修改、停用、删除要家主在「设置 → 家庭与成员」里给你开财务权限。")}</p>` : ""}
     ${state.cardDelete && !ro ? deleteConfirmHtml(state.cardDelete) : ""}
     ${cards.length ? `<div class="section-head" ><h2>${t("我的卡")}</h2><p>${t("{n} 张在用", { n: cards.length })}${catalogAge() > 90 ? ` · <span class="bank-dup">${t("目录更新于 {d}，可能过期，返现规则以发卡行为准", { d: D().AS_OF })}</span>` : ""}</p></div>
