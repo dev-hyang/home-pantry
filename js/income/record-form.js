@@ -1,4 +1,5 @@
 /* 记一笔收入的表单：入账账户、其他默认值（付款方 / 类型 / 收款方式）、表单本体。 */
+import { numAttrs } from "../core/ui-num.js";
 import { $, esc, num, toast, todayISO } from "../core/util.js";
 import { ACCT_KINDS, CARDS_HREF } from "../bills/cards.js";
 import { CHANNELS, GAIN_KINDS, inc, isIncomeKind, isOwnerNow, kindList, kindOptionsHtml, knownSenders, loadIncome, myPersonId, personName, similarIncome, skey } from "./logic.js";
@@ -78,10 +79,10 @@ export function formHtml() {
   return `<form class="panel" data-inc-form="record" id="incForm" autocomplete="off" ${sec ? "novalidate" : ""}>${secTitle(INC_SEC_NAMES[sec], sec) || `<h3 style="margin:0 0 8px">${r.id ? t("编辑收入") : t("记一笔收入")}</h3>`}
     <div class="form-grid">
       <label ${fsec("basic", sec)}>${t("到账日期")}<input type="date" name="received_on" value="${d(r.received_on || todayISO())}" max="${todayISO()}" required></label>
-      <label ${fsec("basic", sec)}>${t("到账金额")}（${esc(cur())}）<input type="number" name="amount" step="0.01" min="0.01" inputmode="decimal" value="${d(r.amount)}" required></label>
+      <label ${fsec("basic", sec)}>${t("到账金额")}（${esc(cur())}）<input ${numAttrs("money", { min: 0.01 })} name="amount" value="${d(r.amount)}" required></label>
       <label ${fsec("basic", sec)}>${t("谁给的（付款方 / 雇主）")}<input name="source_name" list="incSenders" maxlength="80" value="${d(r.source_name)}" required placeholder="${esc(t("公司名 / 汇款人"))}"><datalist id="incSenders">${knownSenders().map((s) => `<option value="${esc(s)}">`).join("")}</datalist></label>
       <label ${fsec("basic", sec)}>${t("类型")}<select name="kind" data-inc-kind>${kindOptionsHtml(kind)}</select><small class="muted" data-inc-kind-hint>${esc(kindHint(kind))}</small></label>
-      <label ${fsec("basic", sec)} data-inc-gain ${gain ? "" : "hidden"}>${t("其中已实现收益（算收入的部分，选填）")}<input type="number" name="income_amount" step="0.01" min="0" inputmode="decimal" value="${d(r.income_amount)}" aria-describedby="incGainHelp"><small class="muted" id="incGainHelp">${t("例：成本 $10,000 的股票卖了 $15,000，到账 15,000，这里填 5,000。")}</small></label>
+      <label ${fsec("basic", sec)} data-inc-gain ${gain ? "" : "hidden"}>${t("其中已实现收益（算收入的部分，选填）")}<input ${numAttrs("money")} name="income_amount" value="${d(r.income_amount)}" aria-describedby="incGainHelp"><small class="muted" id="incGainHelp">${t("例：成本 $10,000 的股票卖了 $15,000，到账 15,000，这里填 5,000。")}</small></label>
       <label ${fsec("basic", sec)} data-inc-donor ${kind === "gift" ? "" : "hidden"}>${t("赠与人是")}<select name="gift_donor" data-nosearch><option value="">${t("还没标")}</option><option value="foreign" ${r.gift_donor === "foreign" ? "selected" : ""}>${t("非美国人（在境外，或不是美国税务居民）")}</option><option value="us" ${r.gift_donor === "us" ? "selected" : ""}>${t("美国人（美国公民或美国税务居民）")}</option></select><small class="muted">${t("看赠与人的税务身份，不看钱从哪里转来，也不看是不是公民：绿卡 / 住满天数的美国税务居民算「美国人」。")}</small></label>
       <label ${fsec("basic", sec)}>${t("收款方式")}<select name="channel" data-nosearch><option value="">${t("未填")}</option>${selOpts(CHANNELS, r.channel)}</select></label>
       <div style="display:contents" ${fsec("basic", sec)}>${defsHtml(r)}</div>
@@ -93,10 +94,10 @@ export function formHtml() {
         ${hasBankAcct() ? "" : `<small class="muted">${t("还没登记账户？到「卡与账户」里登记银行、券商、退休账户后，这里就能选。")} <a href="${CARDS_HREF()}">${t("去登记")}</a></small>`}</div>
       <label ${fsec("notes", sec)}>${t("备注")}<input name="notes" maxlength="500" value="${d(r.notes)}"></label></div>
     <details ${fsec("fx", sec)} style="margin-top:8px" ${r.orig_amount || r.fee != null || sec === "fx" ? "open" : ""}><summary>${t("国际电汇 / 外币（选填）")}</summary><div class="form-grid" style="margin-top:6px">
-      <label>${t("汇出金额（原币种）")}<input type="number" name="orig_amount" step="0.01" min="0" value="${d(r.orig_amount)}"></label><label>${t("原币种")}<input name="orig_currency" maxlength="3" value="${d(r.orig_currency)}" placeholder="CNY"></label>
-      <label>${t("手续费")}<input type="number" name="fee" step="0.01" min="0" value="${d(r.fee)}"></label></div><small class="muted">${t("到账金额填实际收到的（已扣手续费、已换成家庭货币）；这里只是留个底，方便对账。")}</small></details>
+      <label>${t("汇出金额（原币种）")}<input ${numAttrs("money")} name="orig_amount" value="${d(r.orig_amount)}"></label><label>${t("原币种")}<input name="orig_currency" maxlength="3" value="${d(r.orig_currency)}" placeholder="CNY"></label>
+      <label>${t("手续费")}<input ${numAttrs("money")} name="fee" value="${d(r.fee)}"></label></div><small class="muted">${t("到账金额填实际收到的（已扣手续费、已换成家庭货币）；这里只是留个底，方便对账。")}</small></details>
     <label ${fsec("repay", sec)} class="check-inline" style="margin-top:8px"><input type="checkbox" name="repay_required" data-inc-repay ${r.repay_required ? "checked" : ""}><span>${t("需要还（个人赠与 / 借款）——当借款到账，不算收入")}</span></label>
-    <div class="form-grid" ${fsec("repay", sec)} data-inc-repay-box ${r.repay_required ? "" : "hidden"} style="margin-top:6px"><label>${t("还款到期日")}<input type="date" name="repay_due_on" value="${d(r.repay_due_on)}"></label><label>${t("需要还的总额（空 = 收到的金额）")}<input type="number" name="repay_amount" step="0.01" min="0" value="${d(r.repay_amount)}"></label></div>
+    <div class="form-grid" ${fsec("repay", sec)} data-inc-repay-box ${r.repay_required ? "" : "hidden"} style="margin-top:6px"><label>${t("还款到期日")}<input type="date" name="repay_due_on" value="${d(r.repay_due_on)}"></label><label>${t("需要还的总额（空 = 收到的金额）")}<input ${numAttrs("money")} name="repay_amount" value="${d(r.repay_amount)}"></label></div>
     <p class="form-error" role="alert" id="incFormErr" hidden></p>
     <div class="form-actions"><button class="btn btn-primary" id="incSave">${t("保存")}</button><button type="button" class="btn btn-ghost" data-inc="cancel">${t("取消")}</button></div></form>`;
 }

@@ -1,4 +1,5 @@
 /* 账单表单（整页；编辑时下方带缴费记录）：类型、金额、周期、枢纽页。 */
+import { numAttrs } from "../core/ui-num.js";
 import { SECTIONS, go, href } from "../core/router.js";
 import { Store } from "../core/store.js";
 import { VEHICLE_CATS } from "./instances.js";
@@ -111,16 +112,16 @@ export function viewBillForm() {
           <legend>${t("② 多少钱、多久一次")}</legend>
           <div class="form-grid">
             <label>${t("频率")}<select name="frequency">${opts(B().FREQUENCIES, v.frequency)}</select></label>
-            <label>${t("每 N 个月（自定义时）")}<input name="interval_months" type="number" inputmode="numeric" min="1" max="60" value="${d(v.interval_months)}"></label>
-            <label>${t("每月几号到期")}<input name="due_day" type="number" inputmode="numeric" min="1" max="31" placeholder="${t("月付类填")}" value="${d(v.due_day)}"></label>
+            <label>${t("每 N 个月（自定义时）")}<input name="interval_months" ${numAttrs("int", { max: 60, min: 1, step: null })} value="${d(v.interval_months)}"></label>
+            <label>${t("每月几号到期")}<input name="due_day" ${numAttrs("int", { max: 31, min: 1, step: null })} placeholder="${t("月付类填")}" value="${d(v.due_day)}"></label>
             <label>${t("固定日期（半年 / 年付）")}<input name="due_dates" placeholder="${t("例如 03-01, 08-01")}" value="${d((v.due_dates || []).join(", "))}"><small>${t("填了固定日期就按它循环，忽略“每月几号”")}</small></label>
             <label>${t("下次到期日")}<input name="next_due_on" type="date" value="${d(v.next_due_on)}"><small>${t("留空会按规则自动算；每周 / 年付没填日期的请手动填")}</small></label>
             <label>${t("金额类型")}<select name="amount_type"><option value="fixed" ${v.amount_type === "fixed" ? "selected" : ""}>${t("固定")}</option><option value="variable" ${v.amount_type !== "fixed" ? "selected" : ""}>${t("每次不同")}</option></select></label>
-            <label>${t("通常金额")}<input name="typical_amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="${t("每次不同的可留空，按记录平均")}" value="${d(v.typical_amount)}"><small>${t("固定金额填这里。水电燃气这类每次不同的：还没缴的那期先按最近 6 次的均值估（标“估”），记缴费时填实际金额，那一期就变成真实数字。")}</small></label>
-            <label class="hoa-only">${t("单元费 Unit assessment")}<input name="unit_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.unit_amount)}"><small>${t("HOA 月费分成单元费和车位费；填了，“通常金额”自动 = 两者之和。")}</small></label>
-            <label class="hoa-only">${t("车位费 Parking assessment")}<input name="parking_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.parking_amount)}"></label>
-            <label>${t("通常手续费（估算）")}<input name="typical_fee" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.typical_fee)}"><small>${t("有服务费 / 刷卡费的填；没缴之前用它估“费用总额”，记缴费时当默认值，实际金额不同就改。")}</small></label>
-            <label>${t("通常税（估算）")}<input name="typical_tax" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.typical_tax)}"><small>${t("税额每次可能不一样；这里填大概值，记缴费时填实际的。")}</small></label>
+            <label>${t("通常金额")}<input name="typical_amount" ${numAttrs("money")} placeholder="${t("每次不同的可留空，按记录平均")}" value="${d(v.typical_amount)}"><small>${t("固定金额填这里。水电燃气这类每次不同的：还没缴的那期先按最近 6 次的均值估（标“估”），记缴费时填实际金额，那一期就变成真实数字。")}</small></label>
+            <label class="hoa-only">${t("单元费 Unit assessment")}<input name="unit_amount" ${numAttrs("money")} value="${d(v.unit_amount)}"><small>${t("HOA 月费分成单元费和车位费；填了，“通常金额”自动 = 两者之和。")}</small></label>
+            <label class="hoa-only">${t("车位费 Parking assessment")}<input name="parking_amount" ${numAttrs("money")} value="${d(v.parking_amount)}"></label>
+            <label>${t("通常手续费（估算）")}<input name="typical_fee" ${numAttrs("money")} value="${d(v.typical_fee)}"><small>${t("有服务费 / 刷卡费的填；没缴之前用它估“费用总额”，记缴费时当默认值，实际金额不同就改。")}</small></label>
+            <label>${t("通常税（估算）")}<input name="typical_tax" ${numAttrs("money")} value="${d(v.typical_tax)}"><small>${t("税额每次可能不一样；这里填大概值，记缴费时填实际的。")}</small></label>
             <label>${t("货币")}<input name="currency" maxlength="3" pattern="[A-Z]{3}" value="${d(v.currency || Units.region.currency)}"></label>
           </div>
         </fieldset>
@@ -143,7 +144,7 @@ export function viewBillForm() {
           <legend>${t("④ 提醒与其他")}</legend>
           <div class="form-grid">
             <label>${t("提前提醒（天，逗号分隔）")}<input name="reminder_days" placeholder="7, 1" value="${d((v.reminder_days || [7, 1]).join(", "))}"></label>
-            <label>${t("宽限天数")}<input name="grace_days" type="number" inputmode="numeric" min="0" max="60" value="${d(v.grace_days ?? 0)}"></label>
+            <label>${t("宽限天数")}<input name="grace_days" ${numAttrs("int", { max: 60, step: null })} value="${d(v.grace_days ?? 0)}"></label>
             <label>${t("结束日期（可选）")}<input name="ends_on" type="date" value="${d(v.ends_on)}"><small>${t("晚于它的到期不再提醒，例如卖房后的最后一期")}</small></label>
             <label class="span-2">${t("滞纳金说明")}<input name="late_fee_note" maxlength="120" placeholder="${t("例如：逾期 1.5% 或 $25")}" value="${d(v.late_fee_note)}"></label>
             ${adultPeople().length ? `<label>${t("谁负责")}<select name="assigned_person_id"><option value="">${t("不指定")}</option>${adultPeople().map((p) => `<option value="${p.id}" ${p.id === v.assigned_person_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select><small>${t("关联家庭成员（不是登录设备），在 设置 → 家庭与成员 里管理。")}</small></label>` : `<input type="hidden" name="assigned_person_id" value="">`}

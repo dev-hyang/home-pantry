@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.24", title: { zh: "金额、天数框统一了写法（先从账单、贷款、收入三张表单开始）", en: "Amount and day boxes now share one setup (bills, loans, income forms first)" }, items: [
+    { k: "better", zh: "账单、贷款、收入表单里的金额、利率、天数框，输入规则统一（金额两位小数、天数整数），数字用等宽字体，位数更整齐。", en: "Amount, rate and day boxes in the bill, loan and income forms follow the same rules (two decimals for money, whole numbers for days) and use even-width digits." },
+    { k: "better", zh: "外观和输入框大小不变；其他表单会陆续换过来。", en: "Look and size are unchanged; other forms will follow." },
+  ] },
   { v: "2026-11-24.23", title: { zh: "数字框点进去会整段选中，直接输入就覆盖", en: "Number boxes select everything on focus, so typing replaces it" }, items: [
     { k: "better", zh: "金额、天数这类数字框，不管是 0 还是原来有数（比如 12.50），点进去都会整段选中，直接输入新数就行；不输入就离开，原值不变。", en: "In amount and day-count boxes, whether the value is 0 or an existing number like 12.50, tapping in selects all of it so typing replaces it. Leave without typing and the value is unchanged." },
     { k: "better", zh: "想改其中某一位，再点一下数字就能放光标。所有表单一起生效。", en: "To edit one digit, tap the number again to place the cursor. Applies to every form." },

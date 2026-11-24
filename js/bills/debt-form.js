@@ -1,4 +1,5 @@
 /* 借贷：新建 / 编辑表单。 */
+import { numAttrs } from "../core/ui-num.js";
 import { AGREEMENTS, DEBT_CATS, DIRECTIONS, FREQS, ROLES, STATUSES, debtCat, debtCatOfBill, freqOfBill } from "../core/debt-rules.js";
 import { DEBT_TABS, activeTab } from "../core/tabs.js";
 import { viewSwitch } from "../core/view-switch.js";
@@ -26,7 +27,7 @@ import { dwActions, dwChrome } from "./debt-wizard.js";
 function escrowFields(v, personal, sec = "") {
   const rows = [...(v.escrow_schedule || []), { from: "", amount: "" }, { from: "", amount: "" }];
   return `<fieldset ${fsec("pay", sec)} class="dd-escrow" data-debt-asset ${personal ? "hidden" : ""} style="grid-column:1/-1"><legend>${t("Escrow 计划（银行每期收的 Escrow，可选）")}</legend>
-    ${rows.map((r, i) => `<div class="dd-escrow-row"><label>${t("从哪个月起")}<input type="month" name="escrow_from" value="${esc(r.from || "")}" aria-label="${esc(t("第 {n} 行：从哪个月起", { n: i + 1 }))}"></label><label>${t("每期金额")}<input type="number" name="escrow_amount" inputmode="decimal" min="0" step="0.01" value="${esc(r.amount ?? "")}" aria-label="${esc(t("第 {n} 行：每期金额", { n: i + 1 }))}"></label></div>`).join("")}
+    ${rows.map((r, i) => `<div class="dd-escrow-row"><label>${t("从哪个月起")}<input type="month" name="escrow_from" value="${esc(r.from || "")}" aria-label="${esc(t("第 {n} 行：从哪个月起", { n: i + 1 }))}"></label><label>${t("每期金额")}<input ${numAttrs("money")} name="escrow_amount" value="${esc(r.amount ?? "")}" aria-label="${esc(t("第 {n} 行：每期金额", { n: i + 1 }))}"></label></div>`).join("")}
     <small class="muted">${t("只用来提示多付的部分（可标成额外本金）；本金 / 利息只按摊还表算。清空一行就是删掉。")}</small></fieldset>`;
 }
 export function debtForm(d) {
@@ -47,18 +48,18 @@ export function debtForm(d) {
       <label ${fsec("basic", sec)} data-debt-personal ${personal ? "" : "hidden"}>${t("方向")}<select name="direction">${opt(DIRECTIONS, v.direction)}</select></label>
       <label ${fsec("basic", sec)}>${personal ? t("对方（人名）") : t("贷款方")}<input name="counterparty_name" maxlength="80" value="${val("counterparty_name")}"></label>
       <label ${fsec("basic", sec)}>${t("家里哪一位")}<select name="person_id"><option value="">${t("全家 / 不指定")}</option>${(state.people || []).filter((p) => p.kind !== "pet").map((p) => `<option value="${esc(p.id)}" ${p.id === v.person_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
-      <label ${fsec("terms", sec)}>${personal ? t("金额") : t("原始本金")}<input name="original_principal" type="number" inputmode="decimal" min="0" step="0.01" value="${val("original_principal")}"></label>
+      <label ${fsec("terms", sec)}>${personal ? t("金额") : t("原始本金")}<input name="original_principal" ${numAttrs("money")} value="${val("original_principal")}"></label>
       ${debt104() ? `<label ${fsec("terms", sec)} data-debt-personal ${personal ? "" : "hidden"}>${t("借款凭证")}<select name="agreement"><option value="">${t("还没填")}</option>${opt(AGREEMENTS, v.agreement)}</select></label>
       <label ${fsec("terms", sec)} data-debt-personal ${personal ? "" : "hidden"}>${t("借据放在哪（可选）")}<input name="agreement_note" maxlength="120" value="${val("agreement_note")}" placeholder="${esc(t("Drive / 家庭文件"))}"></label>` : ""}
-      <label ${fsec("terms", sec)}>${t("年利率 %")}<input name="interest_rate" type="number" inputmode="decimal" min="0" max="100" step="0.001" value="${val("interest_rate")}"></label>
-      <label ${fsec("terms", sec)}>${t("期限（月）")}<input name="term_months" type="number" inputmode="numeric" min="1" max="600" step="1" value="${val("term_months")}"></label>
+      <label ${fsec("terms", sec)}>${t("年利率 %")}<input name="interest_rate" ${numAttrs("rate")} value="${val("interest_rate")}"></label>
+      <label ${fsec("terms", sec)}>${t("期限（月）")}<input name="term_months" ${numAttrs("int", { max: 600, min: 1 })} value="${val("term_months")}"></label>
       <label ${fsec("terms", sec)}>${t("起始日（放款）")}<input name="start_date" type="date" value="${val("start_date")}"></label>
       ${has060 ? `<label ${fsec("terms", sec)} data-debt-asset ${personal ? "hidden" : ""}>${t("第一期还款日")}<input name="first_payment_date" type="date" value="${val("first_payment_date")}" aria-describedby="dd-first-help"><small id="dd-first-help" class="muted">${t("对账单 / 还款计划上的第一期（例如 6 月放款、8/1 第一期）")}</small></label>` : ""}
       <label ${fsec("terms", sec)}>${t("到期日")}<input name="maturity_date" type="date" value="${val("maturity_date")}"></label>
       <label ${fsec("pay", sec)}>${t("还款频率")}<select name="payment_frequency">${opt(FREQS, v.payment_frequency)}</select></label>
-      <label ${fsec("pay", sec)}>${t("每期还款（含 Escrow）")}<input name="scheduled_payment" type="number" inputmode="decimal" min="0" step="0.01" value="${val("scheduled_payment")}"></label>
+      <label ${fsec("pay", sec)}>${t("每期还款（含 Escrow）")}<input name="scheduled_payment" ${numAttrs("money")} value="${val("scheduled_payment")}"></label>
       ${has060 ? escrowFields(v, personal, sec) : ""}
-      <label ${fsec("terms", sec)}>${t("某天的未还本金")}<input name="opening_balance" type="number" inputmode="decimal" min="0" step="0.01" value="${val("opening_balance")}"></label>
+      <label ${fsec("terms", sec)}>${t("某天的未还本金")}<input name="opening_balance" ${numAttrs("money")} value="${val("opening_balance")}"></label>
       <label ${fsec("terms", sec)}>${t("那一天")}<input name="opening_balance_on" type="date" max="${todayISO()}" value="${val("opening_balance_on")}"></label>
       <label ${fsec("basic", sec)}>${t("状态")}<select name="status">${opt(STATUSES, v.status)}</select></label>
       ${loanAccts.length ? `<label ${fsec("link", sec)}>${t("卡与账户里的贷款账户")}<select name="lender_card_id"><option value="">${t("不关联")}</option>${loanAccts.map((c) => `<option value="${esc(c.id)}" ${c.id === v.lender_card_id ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>` : ""}

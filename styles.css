@@ -525,6 +525,8 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-grid label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; align-content: start; min-width: 0; }
 /* 日期 / 月份输入框在 iOS 上有固有最小宽度，会撑出边框：强制占满所在格、允许收缩 */
+/* 数字 / 金额框（js/core/ui-num.js 的 num() 生成 data-num）：等宽数字，位数对得齐；盒子大小不变，仍跟其他输入框一致 */
+input[data-num] { font-variant-numeric: tabular-nums; }
 input[type="date"], input[type="month"], input[type="datetime-local"], input[type="time"] { min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
 input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .form-grid > label > input, .form-grid > label > select, .form-grid > label > textarea { min-width: 0; }
