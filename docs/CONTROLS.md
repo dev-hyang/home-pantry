@@ -17,8 +17,8 @@
 
 | 文件 | 内容 |
 |---|---|
-| `shared/ui.css`（母版，姊妹站各留副本） | 徽标、铃铛、提示 |
-| `styles.css`（home-pantry 自己） | 箭头、行、选项、弹窗变量、数字框、搜索框（稳定后再同步到姊妹站） |
+| `shared/ui.css`（母版，姊妹站各留副本） | 徽标、铃铛、提示、箭头、行、选项、弹窗变量、数字框 |
+| `styles.css`（home-pantry 自己） | 各页面自己的样式（搜索框、日期框的统一样式也在这里） |
 | `js/core/*.js` | 生成 HTML 的函数和全局行为 |
 
 ## 控件清单
@@ -35,7 +35,7 @@
 **聚焦整段选中**由 `js/core/num-focus.js` 全局处理（`type=number`、`inputmode=decimal|numeric`），不用在控件上配置。
 动态 `min` / `max` 的框（出厂年份、搜索半径等）仍写原生属性。
 
-### 箭头 · `ui-chev` · `styles.css`
+### 箭头 · `ui-chev` · `shared/ui.css`
 `<span class="ui-chev" aria-hidden="true">›</span>`
 
 | 属性 | 取值 | 说明 |
@@ -44,7 +44,7 @@
 
 父级 `[open]` 时转 90° 的规则写在各容器下（`.xxx[open] > summary .ui-chev`）。`rl-badge-go`（发布日志）在共享文件里，暂未并入。
 
-### 行 · `ui-row` · `styles.css`
+### 行 · `ui-row` · `shared/ui.css`
 `<li class="ui-row 自己的类名" data-variant="…">`，列的排法（grid / flex）写在自己的类名下。
 
 | `data-variant` | 说明 | 最小高 |
@@ -57,7 +57,7 @@
 未换：`dl-row`（时间线）、`dd-row` / `dr-row`（债务行内部网格）、宽屏表格行 `dv-row` / `deal-row` / `ssr-row` / `ask-item`（需要手机折叠，另做）。
 行为钩子：长按菜单 `data-lp`（`lpAttr(items, title)` 生成）、滑动 `.swipe-src` / `.swipe-alt-src`。
 
-### 可选的一行 · `ui-opt` · `styles.css`
+### 可选的一行 · `ui-opt` · `shared/ui.css`
 `<… class="ui-opt 自己的类名">`，用在下拉选项、目录项、底部弹窗选项。
 
 | 状态 | 写法 |
@@ -124,6 +124,6 @@
 - 宽屏表格行（`dv-row` 等）的手机折叠。
 - `rl-badge-go` 并入 `ui-chev`（要和姊妹站一起改共享文件）。
 - 选人面板、长按菜单换成原生 `<dialog>`（现在只补了焦点和 Esc，背后页面不是 `inert`）：选人面板跟着页面重画，换成 `<dialog>` 要在每次重画后补一次 `showModal()`，暂不做。
-- 把箭头 / 行 / 选项 / 弹窗样式从 `styles.css` 搬进 `shared/ui.css`，同步到姊妹站。
+- 姊妹站还没用上这些控件：样式已随 2026-11-24.41 同步进各自的 `shared/ui.css`，要用时直接写 `ui-chev` / `ui-row` / `ui-opt`（姊妹站没有 `--r-md` / `--r-sm`，用了兜底值）。
 - 清理疑似死代码类名：已在 2026-11-24.32 删除 `purchase-row`（含 `pr-*`）、`tl-item`、`tatt-row` / `tatt-list`、`med-li`、`ks-row`（含 `kpi-split`）、`hb-row` 的样式。
   还留着没确认的：`.tl` 时间线的 `tl-mark`、`tl-dot`、`tl-today`，`hb-list`（JS 里已没有使用，下次顺手清）。

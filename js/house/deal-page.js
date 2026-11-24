@@ -6,7 +6,7 @@ import { dealLanding } from "./deal-home.js";
 import "./deal-search.js";
 import { isCash } from "./deal-fin.js";
 import { lastRead } from "../core/closing-ai.js";
-import { cancelPage, completePage, dealFab, eventPage, financingField, financingSwitch, infoAiPage, infoPage, taskPage } from "./deal-task-pages.js";
+import { cancelPage, completeInfo, completePage, dealFab, eventPage, financingField, financingSwitch, infoAiPage, infoPage, taskPage } from "./deal-task-pages.js";
 import { D, END_LAG, V, addTaskCard, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openDeals, openVehicleDeal, propertyLive, subjectDeals, skipBtn, statusText, taskCard, taskEditForm, taskRow } from "./deal-tasks.js";
 import { addDays } from "../bills/logic.js";
 import { debtHref } from "../bills/debt-logic.js";
@@ -46,14 +46,16 @@ function dealToolbar(view, deal = null) {
   return `<div class="toolbar deal-toolbar" role="group" aria-label="${esc(t("筛选和排序"))}"><input type="search" id="dealSearch" value="${esc(state.dealQ || "")}" placeholder="${esc(t("搜索事项 / 进展记录"))}" aria-label="${esc(t("搜索"))}" autocomplete="off">${parts.join("")}${clearFiltersBtn("deal", dealFiltered(view))}</div>`;
 }
 const dealFilterBar = () => dealToolbar("list");
-/** 总进度卡片右上角 ⋯：已取消 = 恢复 / 删除；进行中 = 取消这笔交易；已完成 = 取消这笔交易（取消后才能删除）；都有「回到交易首页」 */
+/** 完成这笔交易的入口：卖房 / 退租走退出向导，其余走完成页（⋯ 菜单和清单全部做完后的提示共用） */
+const finishStep = (deal) => { const wizard = !deal.asset_id && ["sell", "move_out"].includes(deal.kind); return { label: wizard ? t("退出向导") : completeInfo(deal).label, href: dealHref(deal, wizard ? "closeout" : "complete") }; };
+/** 总进度卡片右上角 ⋯：已取消 = 恢复 / 删除；进行中 = 完成交易 / 取消这笔交易；已完成 = 取消这笔交易（取消后才能删除）；都有「回到交易首页」 */
 function dealMenu(deal, veh, p) {
   const home = { label: t("回到交易首页"), href: kindHref(deal.kind, veh?.id) };
   const openSame = (veh ? openVehicleDeal(veh.id) : openDeals(p.id)).some((x) => x.kind === deal.kind);
   const data = { deal: deal.id };
   if (deal.outcome === "cancelled") return moreMenu([!openSame ? { label: t("恢复这笔交易"), action: "deal-restore", data, first: true } : null, { label: t("删除"), action: "deal-delete", data, danger: true }, home]);
   if (deal.outcome) return moreMenu([{ label: t("取消这笔交易"), action: "deal-cancel-closed", data, danger: true, first: true }, home]);
-  return moreMenu([{ label: t("取消这笔交易"), href: dealHref(deal, "cancel"), danger: true, first: true }, home]);
+  return moreMenu([{ ...finishStep(deal), first: true }, { label: t("取消这笔交易"), href: dealHref(deal, "cancel"), danger: true }, home]);
 }
 
 export function viewDeal() {
@@ -163,6 +165,7 @@ export function viewDeal() {
       <div class="panel deal-progress">
         <div class="kv kv-head"><div><b>${t("总进度 {p}%", { p: pct })}</b><div class="muted">${t("已完成 {a} / {b}", { a: doneN, b: total })}${skippedAll ? ` · ⊘ ${t("跳过 {n}", { n: skippedAll })}` : ""}${mustLeft ? ` · ${t("必须项还剩 {n}", { n: mustLeft })}` : ""}${nextDue ? ` · ${t("最近截止 {date}", { date: fmtDate(nextDue.due) })}` : ""}</div></div><div class="head-acts">${dealMenu(deal, veh, p)}</div></div>
         <div class="life-bar big"><i style="width:${pct}%"></i></div>
+        ${!closed && total && !undone.length ? `<div class="deal-ready"><span>${t("清单都做完了。交易要点「完成」才会正式结束、更新房产 / 车辆状态。")}</span><a class="btn btn-primary" href="${finishStep(deal).href}">${esc(finishStep(deal).label)}</a></div>` : ""}
         ${financingSwitch(deal)}
       </div>
     </section>

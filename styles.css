@@ -4631,7 +4631,6 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-step-n { display: inline-grid; place-items: center; min-width: 24px; height: 24px; border-radius: 50%; background: var(--pine); color: #fff; font-size: 13px; }
 .tax-step p { margin: 4px 0; }
 .tax-sub-total { text-align: right; }
-.tax-add-btn { min-height: 44px; }
 .tax-result { border-bottom: 0; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
 .tax-item-form { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 8px; align-items: end; margin-top: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
 .tax-item-form label { display: grid; gap: 3px; font-size: 13px; font-weight: 600; min-width: 0; }
@@ -4652,7 +4651,9 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-item-form > * { min-width: 0; }
 .tax-item-form input { width: 100%; max-width: 100%; }
 .tax-item-actions { gap: 8px; }
-.tax-item-actions .btn, .tax-add-btn { flex: 0 0 auto; width: auto; min-height: 40px; padding: 8px 18px; justify-content: center; }
+.tax-item-actions .btn, .tax-add-btn { flex: 0 0 auto; width: auto; justify-content: center; }
+/* 税务买卖页的按钮：一律矮一点（34px、字 13px），手机和电脑一样；× 删除键 34px 见 .tax-imp */
+.tax-page .btn.btn-sm, .tax-page .tax-add-btn, .tax-page .tax-item-actions .btn { box-sizing: border-box; min-height: 34px; padding: 4px 14px; font-size: 13px; line-height: 1.3; }
 .tax-page select, .tax-page input:not([type="checkbox"]):not([type="radio"]) { max-width: 100%; box-sizing: border-box; }
 /* Closing Disclosure 自动填：核对面板 */
 .tax-add-btn { white-space: nowrap; }
@@ -4716,9 +4717,7 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 /* 买卖清单：AI 识别查重的标记、按金额 / 日期找收入的小表单 */
 .tax-dup { display: block; margin-top: 2px; font-size: 12px; color: var(--muted, #5a6b64); }
 .tax-dup.is-strong { color: var(--out, #b3402a); font-weight: 600; }
-.tax-find-form { margin-bottom: 6px; }
 /* 买卖清单的查找 / 链接表单：按钮点按区域 ≥ 44px（和输入框一样高） */
-.tax-find-form .tax-item-actions .btn, .tax-link-form .tax-item-actions .btn { min-height: 44px; }
 .tax-event > summary > .muted { margin-left: 8px; }   /* 买卖页每套房标题：名字和「自住 / 出租」之间留空 */
 /* 交易首页 / 某一类交易的子页（js/house/deal-home.js，2026-11-24）：每类交易一张卡片，手机一列、宽屏两列 */
 .deal-kinds { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
@@ -4743,6 +4742,9 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .task-card.overdue .tc-body small { color: var(--out); }
 .task-card .ui-chev { flex: none; }
 /* 交易：右下角 ＋ 下面留白；取消页 / 完成页的按钮一样高，手机上确认按钮独占一行 */
+.deal-ready { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; padding: 10px 12px; border-radius: var(--r-md); background: var(--ok-bg); font-size: 14px; }
+.deal-ready > span { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+.deal-ready .btn { min-height: 44px; }
 .fab-space { height: 72px; }
 .deal-confirm-actions { display: flex; gap: 8px; flex-wrap: wrap !important; }
 .deal-confirm-actions .btn { flex: 1 1 140px; min-height: 44px; justify-content: center; text-align: center; }

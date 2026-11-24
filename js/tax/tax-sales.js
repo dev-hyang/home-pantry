@@ -13,7 +13,7 @@ import { href } from "../core/router.js";
 import { propOf } from "./tax-calendar.js";
 import { ui } from "./tax-ui.js";
 import { closingBlock } from "./tax-closing-ai.js";
-import { FILTER_MIN, ensureSpend, filterBar, findHtml, linkedRefs, pickerHtml, resolveLink, rowAttrs } from "./tax-links.js";
+import { FILTER_MIN, ensureSpend, filterBar, linkedRefs, pickerHtml, resolveLink, rowAttrs } from "./tax-links.js";
 import { moneyEye } from "../core/privacy.js";
 import { isTransfer, leafLabel } from "../core/taxonomy.js";
 import { render } from "../app/render.js";
@@ -41,14 +41,20 @@ export function itemsOf(x, s, pid) {
 
 /** 一套房的收益参考；缺买入价或卖价时 ready = false */
 export function homeGain(p) {
-  const x = propOf(p.id), T = Object.fromEntries(SECS.map((s) => [s.key, itemsOf(x, s, p.id).total])), buy = num(p.purchase_price), sale = num(p.sale_price);
+  const x = propOf(p.id), T = Object.fromEntries(SECS.map((s) => [s.key, itemsOf(x, s, p.id).total])), buy = buyPriceOf(p).price, sale = num(p.sale_price);
   const basis = buy == null ? null : r2(buy + T.buyItems - T.creditItems + T.improvements), realized = sale == null ? null : r2(sale - T.sellItems);
   const gain = basis != null && realized != null ? r2(realized - basis) : null, excl = x.lived === "yes" ? HOME_EXCLUSION_MFJ : 0;
   return { x, T, imps: T.improvements, basis, realized, gain, excl, taxable: gain == null ? null : Math.max(0, r2(gain - excl)), ready: gain != null };
 }
+/** 买入价：房屋记录里的买入价（完成交割时才写入）；还没写入就先用这套房最近一笔没取消的买入交易里填的价格（fromDeal = true，页面上标明来源） */
+export function buyPriceOf(p) {
+  if (num(p.purchase_price) != null) return { price: num(p.purchase_price), fromDeal: false };
+  const d = (state.deals || []).filter((x) => x.property_id === p.id && x.kind === "buy" && x.outcome !== "cancelled" && num(x.price) != null).sort((a, b) => String(b.created_at || b.closing_on || "").localeCompare(String(a.created_at || a.closing_on || "")))[0];
+  return d ? { price: num(d.price), fromDeal: true } : { price: null, fromDeal: false };
+}
 export const carGain = (a) => { const buy = num(a.purchase_price), sale = num(a.vehicle?.sale_price); return { buy, sale, gain: buy != null && sale != null ? r2(sale - buy) : null }; };
 /** 出租房的年折旧参考：（买入价 + 费用 − 退款 + 改善）去掉土地后 ÷ 27.5 年（第一年和最后一年按月折算这里没算） */
-export const rentalDepreciation = (p) => { const g = homeGain(p), land = Math.min(95, Math.max(0, num(g.x.landPct) ?? 20)); return r2((((num(p.purchase_price) || 0) + g.T.buyItems - g.T.creditItems + g.T.improvements) * (1 - land / 100)) / 27.5); };
+export const rentalDepreciation = (p) => { const g = homeGain(p), land = Math.min(95, Math.max(0, num(g.x.landPct) ?? 20)); return r2((((buyPriceOf(p).price || 0) + g.T.buyItems - g.T.creditItems + g.T.improvements) * (1 - land / 100)) / 27.5); };
 
 const tx = (zh, en) => (lang === "en" ? en : zh);
 const row = (k, v) => `<div data-variant="detail" class="ui-row dt-row"><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
@@ -59,16 +65,15 @@ const step = (n, title, body, hint = "") => `<section class="tax-step"><h4><span
 function listBlock(p, s) {
   const x = propOf(p.id), { rows, total } = itemsOf(x, s, p.id), key = `${p.id}|${s.key}`, adding = ui.add === key;
   const li = rows.map((r) => `<li class="tax-imp ${r.missing ? "is-missing" : ""}" ${rowAttrs(r.on, r.desc, r.amount)}><span class="tax-imp-d">${r.on ? `<small class="muted">${esc(r.on)}</small>` : ""}${r.link ? `<span title="${esc(r.link === "income" ? t("链接到收入记录，金额跟着记录走") : t("链接到花费记录，金额跟着记录走"))}">🔗 </span>` : ""}${esc(r.desc || "")}${r.missing ? ` <small class="form-error">${t("记录已删除，不计入")}</small>` : ""}</span><b class="tax-imp-a">${money(+r.amount || 0)}</b><button type="button" class="btn btn-sm btn-ghost" data-tax-item-del="${esc(r.legacy ? `${p.id}|legacy|${r.legacy}` : `${key}|${r.i}`)}" aria-label="${esc(r.link ? t("解除链接") : t("删除这一条"))}">×</button></li>`).join("");
-  const picking = s.link && ui.pick === key, finding = s.link === "income" && ui.find?.key === key, linkedSet = linkedRefs(x, SECS.filter((z) => z.link === s.link).map((z) => z.key), s.link);
-  const findBtn = s.link === "income" && !adding && !picking && !finding ? ` <button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-find-open="${esc(key)}">🔎 ${t("按金额 / 日期找")}</button>` : "";
-  const linkBtn = s.link && !adding && !picking && !finding ? ` <button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-pick="${esc(key)}">🔗 ${s.link === "income" ? t("从收入记录里选") : t("从花费记录里选")}</button>` : "";
-  const form = finding ? findHtml(p, key, linkedSet, money) : picking ? pickerHtml(p, key, s.link, leafLabel, isTransfer, linkedSet, money) : adding ? `<form class="tax-item-form" data-tax-item="${esc(key)}" novalidate>
+  const picking = s.link && ui.pick === key, linkedSet = linkedRefs(x, SECS.filter((z) => z.link === s.link).map((z) => z.key), s.link);
+  const linkBtn = s.link && !adding && !picking ? ` <button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-pick="${esc(key)}">🔗 ${s.link === "income" ? t("从收入记录里选") : t("从花费记录里选")}</button>` : "";
+  const form = picking ? pickerHtml(p, key, s.link, leafLabel, isTransfer, linkedSet, money) : adding ? `<form class="tax-item-form" data-tax-item="${esc(key)}" novalidate>
       <label>${t("这一项是什么")}<input name="desc" maxlength="60" placeholder="${esc(t(s.ph))}" autocomplete="off"></label>
       <label>${t("金额")}<input name="amount" ${numAttrs("money", { min: 0.01 })} placeholder="0.00"></label>
       ${s.date ? `<label>${t("日期（可不填）")}<input name="on" type="date"></label>` : ""}
       <div class="tax-item-actions"><button type="submit" class="btn btn-sm btn-primary">${t("添加")}</button><button type="button" class="btn btn-sm btn-ghost" data-tax-add-cancel>${t("取消")}</button></div>
       <p class="form-error tax-item-err" role="alert"></p></form>`
-    : `<button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-add="${esc(key)}">＋ ${t("添加一项")}</button>${linkBtn}${findBtn}`;
+    : `<button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-add="${esc(key)}">＋ ${t("添加一项")}</button>${linkBtn}`;
   return step(s.n, t(s.title), `${rows.length ? `<div data-tax-filter>${rows.length >= FILTER_MIN ? filterBar() : ""}<ul class="tax-imps">${li}</ul></div><p class="tax-sub-total">${t("小计")} <b>${money(total)}</b></p>` : `<p class="muted">${t("还没有。没有就不用填，直接往下。")}</p>`}${form}`, s.hint ? t(s.hint) : "");
 }
 
@@ -81,7 +86,7 @@ function homeCard(p, idx) {
   return `<details class="panel tax-event" data-tax-open="${esc(p.id)}" ${open ? "open" : ""}><summary><b>🏡 ${esc(p.name)}</b> <span class="muted">${esc(tx(p.role === "landlord" ? "出租" : "自住", p.role === "landlord" ? "rental" : "owner-occupied"))}</span></summary>
     <p class="muted tax-wrap">${t("按 ①→⑦ 一项一项看、一项一项加：没有的就空着，往下走。最底下是算出来的结果。")}</p>
     ${closingBlock(p)}
-    ${step("①", t("买入价"), `<p><b>${p.purchase_price != null ? money(p.purchase_price) : NA}</b> <span class="muted">${t("来自 房屋 的记录，这里只读")}</span></p>`)}
+    ${step("①", t("买入价"), (() => { const b = buyPriceOf(p); return `<p><b>${b.price != null ? money(b.price) : NA}</b> <span class="muted">${b.fromDeal ? t("来自 房屋 → 交易 里填的价格；交易点「完成交割」后会写进房屋记录") : b.price != null ? t("来自 房屋 的记录，这里只读") : t("房屋记录里还没有买入价；在 房屋 → 交易 的买入交易里填价格")}</span></p>`; })())}
     ${listBlock(p, SECS[0])}${listBlock(p, SECS[1])}${listBlock(p, SECS[2])}
     ${step("⑤", t("卖出价"), `<p><b>${p.sale_price != null ? money(p.sale_price) : NA}</b> <span class="muted">${t("来自 房屋 → 交易 的记录，这里只读")}</span></p>`)}
     ${listBlock(p, SECS[3])}

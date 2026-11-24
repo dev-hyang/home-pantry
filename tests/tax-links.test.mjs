@@ -25,9 +25,9 @@ test("收入链接：没读到收入用备份；读到了跟记录走；删了�
   const r = resolveLink(irow, "p1"); assert.equal(r.amount, 55.5); assert.equal(r.desc, "title 退款");
   state.inc = { loaded: true, rec: [] }; assert.equal(resolveLink(irow, "p1").missing, true);
 });
-test("收入选择器：只列关联了这套房、没被链接的；linkRows 生成链接行", () => {
+test("收入选择器：列所有没被链接的收入，关联这套房的排前面；linkRows 生成链接行", () => {
   state.inc = { loaded: true, rec: [{ id: "a", amount: 10, received_on: "2026-01-01", property_id: "p1", source_name: "A" }, { id: "b", amount: 20, received_on: "2026-02-01", property_id: "p2" }, { id: "c", amount: 30, received_on: "2026-03-01", property_id: "p1", source_name: "C" }] };
-  assert.deepEqual(pickableIncome("p1", new Set(["a"])).map((r) => r.id), ["c"]);
+  assert.deepEqual(pickableIncome("p1", new Set(["a"])).map((r) => r.id), ["c", "b"]);
   assert.deepEqual(linkRows("income", "p1", new Set(["c"])), [{ link: "income", ref: "c", desc: "C", amount: 30, on: "2026-03-01" }]);
 });
 
@@ -37,15 +37,7 @@ test("金额档位：从高到低；按绝对值；下限含、上限不含", ()
   assert.equal(bucketOk("500", 999.99), true); assert.equal(bucketOk("500", 1000), false); assert.equal(bucketOk("0", -49.5), true); assert.equal(bucketOk("0", 50), false);
 });
 
-import { dupInfo, matchIncome, similarName } from "../js/tax/tax-links-lib.js";
-const inc = [{ id: "a", amount: 1200, received_on: "2026-03-10", source_name: "Title Co" }, { id: "b", amount: 1200, received_on: "2026-03-30", source_name: "X" }, { id: "c", amount: 500, received_on: "2026-03-11", source_name: "Y" }];
-test("找收入：金额 ±1 分、日期 ±14 天；只给一项也行；已链接的不出现；近的排前", () => {
-  assert.deepEqual(matchIncome(inc, { amount: "1200", on: "2026-03-12" }).map((r) => r.id), ["a"]);
-  assert.deepEqual(matchIncome(inc, { amount: "1200", on: "" }).map((r) => r.id).sort(), ["a", "b"]);
-  assert.deepEqual(matchIncome(inc, { amount: "", on: "2026-03-12" }).map((r) => r.id), ["c", "a"]);
-  assert.deepEqual(matchIncome(inc, { amount: "1200.01", on: "2026-03-12", linked: new Set(["a"]) }), []);
-  assert.deepEqual(matchIncome(inc, { amount: "", on: "" }), []);
-});
+import { dupInfo, similarName } from "../js/tax/tax-links-lib.js";
 test("名字像不像：包含 / 共有词；无关的不像", () => {
   assert.equal(similarName("Title - Settlement Fee", "Settlement fee"), true);
   assert.equal(similarName("律师费", "律师费用"), true);

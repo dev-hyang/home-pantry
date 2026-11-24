@@ -25,19 +25,10 @@ export function resolveLink(row, pid) {
 export function linkedRefs(x, keys, kind = "spend") {
   return new Set(keys.flatMap((k) => (x[k] || []).filter((r) => r.link === kind).map((r) => r.ref)));
 }
-/** 选择器里能选的收入：关联了这套房的、还没被链接 */
+/** 选择器里能选的收入：还没被链接、金额为正的全部收入记录；关联了这套房的排前面（再按日期从近到远），找不到时在搜索框里按名称 / 日期 / 金额筛 */
 export function pickableIncome(pid, linked) {
-  return (state.inc?.rec || []).filter((r) => r.property_id === pid && Number(r.amount) > 0 && !linked.has(r.id)).sort((a, b) => String(b.received_on).localeCompare(String(a.received_on)));
-}
-/* ── 按金额 / 日期找收入（「买入时收到的退款 / credit」）：不要求收入记录关联了房产，由你确认后才链接 ── */
-const dayNum = (d) => Date.parse(`${String(d).slice(0, 10)}T00:00:00Z`) / 864e5;
-/** 在所有收入记录里找：金额相差不超过 1 分、日期相差不超过 days 天；金额、日期至少给一个；日期近的排前 */
-export function matchIncome(recs, { amount, on, days = 14, linked = new Set() }) {
-  const a = amount === "" || amount == null ? null : Math.abs(Number(amount)), hasA = a != null && a > 0, hasD = /^\d{4}-\d{2}-\d{2}$/.test(on || "");
-  if (!hasA && !hasD) return [];
-  return recs.filter((r) => !linked.has(r.id) && Number(r.amount) > 0 && (!hasA || Math.abs(Number(r.amount) - a) <= 0.01) && (!hasD || Math.abs(dayNum(r.received_on) - dayNum(on)) <= days))
-    .map((r) => ({ r, gap: hasD ? Math.abs(dayNum(r.received_on) - dayNum(on)) : 0 }))
-    .sort((x, y) => x.gap - y.gap || String(y.r.received_on).localeCompare(String(x.r.received_on))).slice(0, 30).map((x) => x.r);
+  const mine = (r) => (r.property_id === pid ? 0 : 1);
+  return (state.inc?.rec || []).filter((r) => Number(r.amount) > 0 && !linked.has(r.id)).sort((a, b) => mine(a) - mine(b) || String(b.received_on).localeCompare(String(a.received_on)));
 }
 
 /* ── AI 识别查重：和清单里已有的行比 ── */

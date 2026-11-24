@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.42", title: { zh: "交易清单做完后能直接完成；税务买入价取自交易", en: "Finish a deal from the checklist; tax uses the deal purchase price" }, items: [
+    { k: "better", zh: "总进度卡片右上角的 ⋯ 菜单加了「完成交割 / 已提车 / 退出向导」；清单全做完时卡片里也会提示并带完成按钮。", en: "The ⋯ menu on the progress card now has Complete closing / Picked up / Exit wizard; when every item is done the card also prompts you." },
+    { k: "fix", zh: "交易清单里「 · 」隔开的说明，一段中文太长时不再撑出屏幕，会在段内换行。", en: "In deal checklists, a long Chinese segment between “ · ” separators no longer runs off the screen; it wraps." },
+    { k: "better", zh: "税务 → 买卖：买入价在房屋记录还没有时，先用买入交易里填的价格，并标明来源。", en: "Tax → Sales: if the property has no purchase price yet, the price from the buy deal is used and the source is shown." },
+    { k: "better", zh: "「买入时收到的退款」的「从收入记录里选」现在直接带搜索，去掉了单独的「按金额 / 日期找」；这一页的按钮也调矮了。", en: "Credits at purchase: “Pick from income records” now has search built in; the separate “Find by amount / date” button is gone, and buttons on this page are shorter." },
+  ] },
   { v: "2026-11-24.41", title: { zh: "共用控件样式整理：箭头、行、选项搬进共用样式表", en: "Shared control styles tidied: arrows, rows and options moved into the shared stylesheet" }, items: [
     { k: "better", zh: "箭头、记录行、可选项、底部弹窗变量和数字框的样式搬进 shared/ui.css，界面不变。", en: "Arrow, row, option, sheet-variable and number-field styles moved into shared/ui.css; the interface looks the same." },
   ] },
