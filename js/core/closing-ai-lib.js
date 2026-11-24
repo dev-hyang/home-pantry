@@ -25,6 +25,8 @@ export function tidyDeal(raw) {
     contract_date: isDate(d.contract_date) ? d.contract_date : null, closing_date: isDate(d.closing_date) ? d.closing_date : null,
     review_deadline: isDate(d.review_deadline) ? d.review_deadline : null, financing_deadline: isDate(d.financing_deadline) ? d.financing_deadline : null,
     price: num(d.price), earnest_money: num(d.earnest_money), loan_amount: loanAmt, financing,
+    interest_rate: (() => { const r = parseFloat(String(d.interest_rate ?? "").replace(/[^0-9.]/g, "")); return Number.isFinite(r) && r <= 30 ? Math.round(r * 1000) / 1000 : null; })(), term_months: (() => { const m = num(d.term_months); return m != null && m >= 1 && m <= 600 ? Math.round(m) : null; })(),
+    monthly_payment: num(d.monthly_payment), monthly_escrow: num(d.monthly_escrow),
     lender: txt(d.lender), title_company: txt(d.title_company), agent: txt(d.agent), attorney: txt(d.attorney),
   };
 }

@@ -28,3 +28,10 @@ test("车辆只列车辆的字段；写入只含勾选的、不含一致的", ()
   assert.deepEqual(rows.map((r) => r.key).sort(), ["closing_on", "financing", "lender", "price"]);   // 没有 attorney
   assert.deepEqual(buildPatch(rows, new Set(["closing_on", "price", "lender"])), { closing_on: "2026-07-01", lender: "CU" });   // price 一致不写
 });
+
+test("tidyDeal：贷款条款（利率 / 期限 / 月供）只认合理的值", () => {
+  const r = tidyDeal({ loan_amount: "420,000", interest_rate: "6.375", term_months: 360, monthly_payment: 2620.5, monthly_escrow: 800 });
+  assert.equal(r.interest_rate, 6.375); assert.equal(r.term_months, 360); assert.equal(r.monthly_payment, 2620.5); assert.equal(r.monthly_escrow, 800);
+  const bad = tidyDeal({ interest_rate: 637.5, term_months: 0 });
+  assert.equal(bad.interest_rate, null); assert.equal(bad.term_months, null);
+});

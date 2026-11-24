@@ -18,8 +18,8 @@ export const lastRead = (dealId) => CACHE.get(dealId) || null;
 export const rememberRead = (dealId, data) => CACHE.set(dealId, { data, at: Date.now() });
 
 const SHAPE_PROP = { doc_type: "closing_disclosure|settlement_statement|purchase_contract|other", contract_date: "YYYY-MM-DD or null", closing_date: "YYYY-MM-DD or null", review_deadline: "YYYY-MM-DD or null", financing_deadline: "YYYY-MM-DD or null",
-  price: "number or null", earnest_money: "number or null", loan_amount: "number or null", financing: "loan|cash|null", lender: "company or null", title_company: "company or null", agent: "company or null", attorney: "firm or null" };
-const SHAPE_VEH = { doc_type: "bill_of_sale|other", contract_date: "YYYY-MM-DD or null", closing_date: "YYYY-MM-DD or null", price: "number or null", earnest_money: "number or null", loan_amount: "number or null", financing: "loan|cash|null", lender: "company or null", agent: "dealer company or null" };
+  price: "number or null", earnest_money: "number or null", loan_amount: "number or null", interest_rate: "annual % number or null", term_months: "integer or null", monthly_payment: "number or null", monthly_escrow: "number or null", financing: "loan|cash|null", lender: "company or null", title_company: "company or null", agent: "company or null", attorney: "firm or null" };
+const SHAPE_VEH = { doc_type: "bill_of_sale|other", contract_date: "YYYY-MM-DD or null", closing_date: "YYYY-MM-DD or null", price: "number or null", earnest_money: "number or null", loan_amount: "number or null", interest_rate: "annual % number or null", term_months: "integer or null", monthly_payment: "number or null", financing: "loan|cash|null", lender: "company or null", agent: "dealer company or null" };
 
 /** 提示词：房产买卖 / 车辆各一份。dealKind = buy / sell / veh_buy / veh_sell */
 export function dealPrompt(veh, dealKind) {
@@ -27,7 +27,7 @@ export function dealPrompt(veh, dealKind) {
   if (veh) return [
     "Photos / screenshots of a US VEHICLE purchase or sale document (purchase agreement, buyer's order, bill of sale, or loan / finance paperwork).",
     "contract_date = the date the agreement was signed. closing_date = the delivery / pickup / hand-over date if printed. price = the vehicle sale price (before tax and fees if shown separately). earnest_money = deposit / down payment paid up front.",
-    "loan_amount = the amount financed if there is a loan, else null. financing = loan if the document shows a loan or a lender, cash only if it clearly says paid in cash, otherwise null.",
+    "loan_amount = the amount financed if there is a loan, else null. interest_rate = the APR / interest rate as a percent number (e.g. 6.5), term_months = the loan term in months, monthly_payment = the monthly payment, each only if printed, else null. financing = loan if the document shows a loan or a lender, cash only if it clearly says paid in cash, otherwise null.",
     "lender = bank / credit union / finance company; agent = the dealership or seller company. Company names ONLY, never a person's name, address, phone, email or any id / account number. null if not visible.",
     "Fill only what is clearly visible; otherwise null. Return exactly: " + JSON.stringify(SHAPE_VEH),
   ].join("\n");
@@ -36,6 +36,7 @@ export function dealPrompt(veh, dealKind) {
     "doc_type: closing_disclosure, settlement_statement, purchase_contract or other.",
     "contract_date = the date the contract was signed / accepted (contracts only; a Closing Disclosure has none). closing_date = the closing / settlement date. review_deadline = the attorney-review or inspection deadline ONLY if a date is printed. financing_deadline = the mortgage-commitment / financing-contingency date ONLY if printed.",
     "price = sale price / purchase price. earnest_money = earnest money / deposit (on a Closing Disclosure: the Deposit line). loan_amount = the loan amount if there is a mortgage, else null.",
+    "interest_rate = the note interest rate as a percent number (e.g. 6.375, from the Loan Terms section), term_months = the loan term in months (30 years = 360), monthly_payment = the monthly principal & interest only (Loan Terms / Projected Payments), monthly_escrow = the monthly escrow amount if shown separately; each null if not printed.",
     "financing = loan if there is a mortgage (loan amount above 0) or a financing contingency; cash only if the document clearly says all-cash / no financing; otherwise null.",
     `lender = the lender; title_company = the settlement agent / title company; agent = the real-estate brokerage on the ${side}'s side; attorney = a law firm if one is named. Company or firm names ONLY, never a person's name, address, phone, email or any id / account number. null if not visible.`,
     "Fill only what is clearly visible; otherwise null. Return exactly: " + JSON.stringify(SHAPE_PROP),

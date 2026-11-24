@@ -34,7 +34,7 @@ export function debtForm(d) {
   const catQ = q.get("cat") || (bill ? debtCatOfBill(bill.category) : null);
   const v = d || { category: catQ && DEBT_CATS[catQ] ? catQ : "mortgage", direction: q.get("dir") === "receivable" ? "receivable" : "payable", name: bill?.name || q.get("name") || "",
     counterparty_name: q.get("lender") || bill?.payee || "", original_principal: q.get("principal") || "", property_id: q.get("prop") || bill?.property_id || "", asset_id: q.get("asset") || "",
-    start_date: q.get("start") || "", scheduled_payment: bill?.est ?? "", payment_frequency: bill ? freqOfBill(bill) : catQ === "personal_lending" ? "none" : "monthly", status: "active", secured: catQ ? debtCat(catQ).secured : true };
+    start_date: q.get("start") || "", interest_rate: q.get("rate") || "", term_months: q.get("term") || "", scheduled_payment: q.get("pay") || (bill?.est ?? ""), payment_frequency: bill ? freqOfBill(bill) : catQ === "personal_lending" ? "none" : "monthly", status: "active", secured: catQ ? debtCat(catQ).secured : true };
   const sec = d ? curSec(DEBT_SEC_NAMES) : "";   // 详情页某一块的「编辑」：只显示那一块（core/form-sec.js）
   const val = (k) => esc(v[k] ?? ""), personal = v.category === "personal_lending";
   const opt = (obj, sel) => Object.entries(obj).map(([k, x]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${esc(t(typeof x === "string" ? x : x.name))}</option>`).join("");

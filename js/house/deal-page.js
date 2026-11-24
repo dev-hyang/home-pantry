@@ -3,6 +3,7 @@ import { viewSwitch } from "../core/view-switch.js";
 import { dealKindPage, dealLanding } from "./deal-home.js";
 import "./deal-search.js";
 import { isCash } from "./deal-fin.js";
+import { lastRead } from "../core/closing-ai.js";
 import { cancelPage, completePage, dealFab, eventPage, financingField, financingSwitch, infoAiPage, infoPage, taskPage } from "./deal-task-pages.js";
 import { D, END_LAG, V, addTaskCard, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openVehicleDeal, propertyLive, subjectDeals, skipBtn, statusText, taskCard, taskEditForm, taskRow } from "./deal-tasks.js";
 import { addDays } from "../bills/logic.js";
@@ -120,9 +121,10 @@ export function viewDeal() {
   const addRow = addTaskCard(deal, "special");
   // 买入 / 买车填了贷款行：交割那一步提供「创建贷款」（预填贷款方、成交价 − 定金、房产 / 车辆 id）；已经有挂在这处资产上的贷款就不再提示
   const subjectId = veh ? veh.id : p?.id, hasLoan = state.debtsOk && allDebts().some((x) => (veh ? x.asset_id === subjectId : x.property_id === subjectId) && x.direction === "payable");
+  const loanRead = lastRead(deal.id)?.data;   // 刚用文件自动填读到的贷款条款（内存里，刷新就没了）
   const loanRow = ["buy", "veh_buy"].includes(deal.kind) && deal.outcome !== "cancelled" && !isCash(deal) && deal.lender && pricesOk() && state.debtsOk && !hasLoan
-    ? row(debtHref(null, `new=1&cat=${veh ? "auto_loan" : "mortgage"}&lender=${encodeURIComponent(deal.lender)}${deal.price != null ? `&principal=${Math.max(0, num(deal.price) - num(deal.earnest_money))}` : ""}&${veh ? "asset" : "prop"}=${encodeURIComponent(subjectId)}${deal.closing_on ? `&start=${deal.closing_on}` : ""}&name=${encodeURIComponent(`${veh ? t("车贷") : t("房贷")} · ${deal.lender}`.slice(0, 60))}`),
-        "🏦", t("创建贷款"), t("贷款方 {l}；本金先按成交价 − 定金估，按贷款文件改", { l: deal.lender }), null) : "";
+    ? row(debtHref(null, `new=1&cat=${veh ? "auto_loan" : "mortgage"}&lender=${encodeURIComponent(deal.lender)}${loanRead?.loan_amount > 0 ? `&principal=${loanRead.loan_amount}` : deal.price != null ? `&principal=${Math.max(0, num(deal.price) - num(deal.earnest_money))}` : ""}${loanRead?.interest_rate != null ? `&rate=${loanRead.interest_rate}` : ""}${loanRead?.term_months ? `&term=${loanRead.term_months}` : ""}${loanRead?.monthly_payment ? `&pay=${Math.round((loanRead.monthly_payment + (loanRead.monthly_escrow || 0)) * 100) / 100}` : ""}&${veh ? "asset" : "prop"}=${encodeURIComponent(subjectId)}${deal.closing_on ? `&start=${deal.closing_on}` : ""}&name=${encodeURIComponent(`${veh ? t("车贷") : t("房贷")} · ${deal.lender}`.slice(0, 60))}`),
+        "🏦", t("创建贷款"), loanRead?.loan_amount > 0 ? t("贷款方 {l}；金额、利率、期限按你刚识别的文件预填，请再核对", { l: deal.lender }) : t("贷款方 {l}；本金先按成交价 − 定金估，按贷款文件改", { l: deal.lender }), null) : "";
   const view = ["list", "plan", "actual", "compare"].includes(sec) ? sec : null;   // 子页：清单 / 计划 / 实际 / 对比（原来是主页里的视图切换）
   const laneH = { isEditing, editBtn, skipBtn, editForm: (x) => taskEditForm(x.deal, x), sort: state.dealSort === "asc" ? "asc" : "desc", filter: state.dealFilter || "all", stage: state.dealStage || "all", act: state.dealActFilter || "all", q: (state.dealQ || "").trim().toLowerCase() };
   const disclaimer = `<p class="disclaimer">${t("截止日按{a}和{b}推算，可点 ✎ 调整；必须项逾期会在首页置顶", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })}${deal.baseline?._at ? ` ${t("「计划」是填了合同日后冻结的模板日期，改期只影响「预计」，不会改掉原计划。")}` : ""}</p>`;

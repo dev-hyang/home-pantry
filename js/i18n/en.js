@@ -4547,6 +4547,7 @@ export const EN = {
   "购房合同": "Purchase contract",
   "购车协议 / bill of sale": "Purchase agreement / bill of sale",
   "文件": "document",
+  "贷款方 {l}；金额、利率、期限按你刚识别的文件预填，请再核对": "Lender {l}; amount, rate and term are pre-filled from the document you just read — please double-check",
   /* 2026-11-24：税务买卖链接 / 邀请码财务权限 / 对账单查重 */
   "给家主留一句话（可不填），例如：我是小明的妈妈": "A note for the owner (optional), e.g. I'm Ming's mom",
   "给家主的话": "Note to the owner",

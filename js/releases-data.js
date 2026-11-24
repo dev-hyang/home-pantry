@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.21", title: { zh: "「创建贷款」可以用刚识别的 Closing Disclosure 预填", en: "“Create loan” can be pre-filled from the Closing Disclosure you just read" }, items: [
+    { k: "new", zh: "用文件自动填读到贷款金额、利率、期限、月供后，交易清单上的「创建贷款」会直接预填这些（月供 = 本金利息 + Escrow），你再核对一下就能保存。", en: "After auto-fill reads the loan amount, rate, term and payment, “Create loan” on the transaction checklist is pre-filled with them (payment = principal & interest + escrow) for you to double-check and save." },
+    { k: "better", zh: "没读过文件时和以前一样：本金按成交价 − 定金估。识别结果只在当前页面有效，刷新后要重新识别。", en: "Without a document read it works as before: principal estimated as price − earnest money. A read lasts only for the current page session." },
+  ] },
   { v: "2026-11-24.20", title: { zh: "交易信息可以用购房合同 / Closing Disclosure 自动填", en: "Transaction details can be auto-filled from the contract / Closing Disclosure" }, items: [
     { k: "new", zh: "交易信息页多了「用文件自动填」：拍或截图购房合同、Closing Disclosure、结算单（买车是购车协议），AI 读出合同日、交割日、价格、定金、贷款行、产权公司、经纪人、律师等，先列出来给你核对，再写入。", en: "The transaction details page has an auto-fill: photograph or screenshot the contract, Closing Disclosure or settlement statement (bill of sale for vehicles). The AI reads dates, price, deposit, lender, title company, agent and attorney and shows them for you to check before anything is saved." },
     { k: "new", zh: "现在没填的默认勾上；和现有不同的默认不勾，要改请自己勾；一致的只做提示。文件里有贷款金额就判为贷款，写明现金就判为现金，清单跟着变。", en: "Empty fields are ticked by default; ones that differ from what you have are not, so you decide. Matching ones are just shown. A loan amount means loan, \"cash\" means cash, and the checklist follows." },
