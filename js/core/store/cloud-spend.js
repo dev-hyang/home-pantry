@@ -45,6 +45,19 @@ export const cloudSpend = {
   /** 删除卡：名下花费改成文字付款方式 / 一起删；返回几笔 */
   async detachCardPurchases(cardId, label) { return (this.must(await this.sb.from("purchases").update({ card_id: null, method: label }).eq("household_id", this.hid).eq("card_id", cardId).select("id")) || []).length; },
   async deleteCardPurchases(cardId) { return (this.must(await this.sb.from("purchases").delete().eq("household_id", this.hid).eq("card_id", cardId).select("id")) || []).length; },
+  /** 这些导入指纹（迁移 109）哪些已经在花费 / 收入里：返回 Map(指纹 → 记录 id)；还没执行迁移 = 空 */
+  async importKeysExist(keys) {
+    const out = new Map();
+    for (let i = 0; i < keys.length; i += 100) {
+      const part = keys.slice(i, i + 100);
+      for (const table of ["purchases", "income_records"]) {
+        const r = await this.sb.from(table).select("id,import_key").eq("household_id", this.hid).in("import_key", part);
+        if (r.error) { if (/import_key/i.test(r.error.message)) return out; throw new Error(r.error.message); }
+        for (const x of r.data) out.set(x.import_key, x.id);
+      }
+    }
+    return out;
+  },
   async addPurchase(p) { return this.must(await this.sb.from("purchases").insert({ ...p, household_id: this.hid }).select("id").single()).id; },
   async updatePurchase(id, patch) { this.must(await this.sb.from("purchases").update(patch).eq("id", id)); },
   /** 一条账单的全部缴费（内存里只有近 400 天的）：重新拆分历史还款用；一笔贷款最多几百期 */

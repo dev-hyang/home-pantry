@@ -51,6 +51,11 @@ export const demoSpend = {
     return this.db.purchases.filter((p) => p.purchased_at >= from && p.purchased_at < to)
       .sort((a, b) => a.purchased_at.localeCompare(b.purchased_at)).map((x) => ({ ...x, category: canonCat(x.category) }));
   },
+  async importKeysExist(keys) {
+    const want = new Set(keys), out = new Map();
+    for (const x of [...this.db.purchases, ...this.db.income_records]) if (x.import_key && want.has(x.import_key)) out.set(x.import_key, x.id);
+    return out;
+  },
   async addPurchase(p) { const id = uid(); this.db.purchases.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
   async deletePurchase(id) { this.db.purchases = this.db.purchases.filter((x) => x.id !== id); this.persist(); },
   async firstPurchaseYear() { const d = this.db.purchases.map((x) => x.purchased_at).sort()[0]; return d ? +String(d).slice(0, 4) : null; },

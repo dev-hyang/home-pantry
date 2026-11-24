@@ -41,6 +41,7 @@ export function accountHtml() {
   return `<div class="bank-acct"><label>${t("这批是哪个账户的")}<select data-bank-acct>${opt("none", t("不选择（不记账户）"), a.mode === "none")}${opt("new", t("新账户…"), a.mode === "new")}${list.length ? `<optgroup label="${esc(t("已有账户"))}">${list.map((x) => opt(x.id, `${x.name}${x.last4 && !x.name.includes(x.last4) ? ` **${x.last4}` : ""}`, a.mode === "id" && a.id === x.id)).join("")}</optgroup>` : ""}</select></label>
     ${a.mode === "new" ? `<label>${t("账户名")}<input data-bank-acct-name maxlength="40" value="${esc(a.name)}" placeholder="${esc(t("例如 Chase Freedom **1234"))}"></label>` : ""}
     ${hint ? `<div class="bank-acct-tools">${hint}</div>` : ""}
+    ${a.mode === "none" ? `<small class="muted">${t("没选账户：同一份对账单重复导入时，防重复的效果会差一些（指纹里没有账户）。")}</small>` : ""}
     <small class="muted">${t("记在这批导入上（不记到每一笔花费上），用来看哪个账户哪几个月已经补过。")}</small></div>`;
 }
 /** 对账单合计 vs 读出来的：差太多就提示可能漏读 */

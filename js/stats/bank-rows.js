@@ -6,6 +6,7 @@ import { detectAccount, looksOFX, looksQIF, parseStatementLines, pdfLines, readO
 import { guessKind, incomeRules, senderName, similarIncome, skey } from "../income/logic.js";
 import { loadNear, nearRows, poolRows } from "./dup-check.js";
 import { matchTrips } from "./dup-trips.js";
+import { acctKeyOf, importKeyOf, knownKey, loadKnownKeys } from "./bank-keys.js";
 import { matchPayments, paymentPool } from "./dup-bills.js";
 import { state } from "../core/state.js";
 import { money, num } from "../core/util.js";
@@ -103,7 +104,10 @@ export function rebuild() {
   const used = new Set(), seen = {};
   for (const r of rows) {
     const k0 = `${r.date}|${r.out}|${r.desc}`; r.fk = `${k0}#${seen[k0] = (seen[k0] || 0) + 1}`;
+    r.ik = importKeyOf(acctKeyOf(S.account), r.fk);
     if (r.skip) continue;
+    const kid = knownKey(r.ik);   // 指纹：这一行以前导入过（同一份对账单、同一行）：默认不再导入；它对应的那条记录不再去配别的行
+    if (kid) { used.add(kid); r.keyDup = true; r.dupOf = t("以前导入过这一行（同一份对账单）"); if (S.force.has(r.fk)) r.forced = true; else { r.dup = true; if (r.inc) r.idup = true; } continue; }
     const hit = (nearRows(r.date, r.out) || []).find((p) => !used.has(p.id));   // 数据库按 时间新 → 旧 给出
     if (hit) { used.add(hit.id); r.dupOf = `${hit.name} · ${String(hit.purchased_at).slice(0, 10)}`; if (S.force.has(r.fk)) r.forced = true; else r.dup = true; }   // 手动确认过不是重复的：照常导入
   }
@@ -130,6 +134,7 @@ export function rebuild() {
     const ref = !hit && (nearRows(r.date, r.out) || []).find((p) => num(p.amount) < 0);   // 已经记成退款（负花费）的
     if (hit || ref) { r.dupOf = hit ? `${hit.source_name} · ${hit.received_on}` : `${ref.name} · ${String(ref.purchased_at).slice(0, 10)}（${t("已记成退款")}）`; if (S.force.has(r.fk)) r.forced = true; else r.idup = true; }
   }
+  loadKnownKeys(rows.filter((r) => !r.skip).map((r) => r.ik)).then((fresh) => { if (fresh) { rebuild(); redraw(); } }).catch(() => {});   // 指纹查回来有已导入的，重新判断
   S.rows = rows;
   const g = new Map();
   for (const r of rows) {

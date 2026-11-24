@@ -24,7 +24,7 @@ export const demoFinance = {
     if (r.id) { const i = this.db.income_records.findIndex((x) => x.id === r.id); if (i < 0) throw new Error("记录不存在"); this.db.income_records[i] = { ...this.db.income_records[i], ...row, updated_at: now }; this.persist(); return r.id; }
     const id = uid(); this.db.income_records.push({ ...row, id, created_by: "demo", created_at: now, updated_at: now }); this.persist(); return id;
   },
-  async addIncomeRecords(rows) { const now = new Date().toISOString(); for (const r of rows) this.db.income_records.push({ ...pick(r, INCOME_FIELDS, {}), id: uid(), created_by: "demo", created_at: now, updated_at: now }); this.persist(); },
+  async addIncomeRecords(rows) { const now = new Date().toISOString(); for (const r of rows) this.db.income_records.push({ ...pick(r, INCOME_FIELDS, {}), ...(r.import_key ? { import_key: r.import_key } : {}), id: uid(), created_by: "demo", created_at: now, updated_at: now }); this.persist(); },
   async deleteIncomeRecord(id) { this.db.income_records = this.db.income_records.filter((x) => x.id !== id); this.db.income_repayments = this.db.income_repayments.filter((p) => p.record_id !== id); this.persist(); },
   async deleteIncomeByBatch(batch) { const gone = new Set(this.db.income_records.filter((x) => x.import_batch === batch).map((x) => x.id)); this.db.income_records = this.db.income_records.filter((x) => !gone.has(x.id)); this.db.income_repayments = this.db.income_repayments.filter((p) => !gone.has(p.record_id)); this.persist(); },
   async renameIncomeSource(ids, name) { const set = new Set(ids); for (const x of this.db.income_records) if (set.has(x.id)) x.source_name = name; this.persist(); },

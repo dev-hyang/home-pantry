@@ -30,7 +30,7 @@ export const cloudFinance = {
     return this.must(await this.sb.from("income_records").insert(row).select("id").single()).id;
   },
   async addIncomeRecords(rows) {   // 银行导入：一批一起写
-    for (let i = 0; i < rows.length; i += 200) this.must(await this.sb.from("income_records").insert(rows.slice(i, i + 200).map((r) => pick(r, INCOME_FIELDS, { household_id: this.hid }))));
+    for (let i = 0; i < rows.length; i += 200) this.must(await this.sb.from("income_records").insert(rows.slice(i, i + 200).map((r) => ({ ...pick(r, INCOME_FIELDS, { household_id: this.hid }), ...(r.import_key ? { import_key: r.import_key } : {}) }))));   // import_key：对账单导入指纹（迁移 109）
   },
   async deleteIncomeRecord(id) { this.must(await this.sb.from("income_records").delete().eq("id", id)); },   // 还款记录级联删除
   async deleteIncomeByBatch(batch) { this.must(await this.sb.from("income_records").delete().eq("household_id", this.hid).eq("import_batch", batch)); },

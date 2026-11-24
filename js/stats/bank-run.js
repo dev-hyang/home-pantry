@@ -32,11 +32,15 @@ export async function doImport() {
   const batchId = `b${Date.now().toString(36)}`;   // 每笔花费记上批次 id（迁移 034）；没执行迁移时退回只记 id 列表
   let tagged = !S.noBatchCol;
   const one = async ({ r, cat, name, store }) => {
-    const row = { item_id: null, name: name || merchantName(r.desc), category: cat, quantity: null, unit: null, store: store || merchantName(r.desc), amount: r.out, currency: cur(), purchased_at: new Date(`${r.date}T12:00:00`).toISOString(), ...(S.account.mode === "id" && String(S.account.id).startsWith("card:") ? { card_id: String(S.account.id).slice(5) } : {}) };
+    const row = { item_id: null, name: name || merchantName(r.desc), category: cat, quantity: null, unit: null, store: store || merchantName(r.desc), amount: r.out, currency: cur(), purchased_at: new Date(`${r.date}T12:00:00`).toISOString(), ...(S.account.mode === "id" && String(S.account.id).startsWith("card:") ? { card_id: String(S.account.id).slice(5) } : {}), ...(r.ik && !(r.keyDup && r.forced) && !S.noKeyCol ? { import_key: r.ik } : {}) };
     try {
       let id;
-      try { id = await Store.addPurchase(tagged ? { ...row, import_batch: batchId } : row); }
-      catch (e) { if (tagged && /import_batch/i.test(e.message)) { tagged = false; S.noBatchCol = true; id = await Store.addPurchase(row); } else throw e; }   // 还没执行迁移 034：不记批次，照旧导入
+      const put = (x) => Store.addPurchase(tagged ? { ...x, import_batch: batchId } : x);
+      try { id = await put(row); }
+      catch (e) {
+        if (row.import_key && /import_key/i.test(e.message) && !/duplicate|unique/i.test(e.message)) { S.noKeyCol = true; delete row.import_key; id = await put(row); }   // 还没执行迁移 109：不记指纹，照旧导入
+        else if (tagged && /import_batch/i.test(e.message)) { tagged = false; S.noBatchCol = true; id = await Store.addPurchase(row); } else throw e;
+      }   // 还没执行迁移 034：不记批次，照旧导入
       ids.push(id); sum += r.out; rowsDone.push({ id, name: merchantName(r.desc), category: cat, amount: r.out, date: r.date });
     } catch (e) { failed++; }
   };
@@ -59,7 +63,7 @@ export async function doImport() {
     for (const g of S.groups) {
       if (!g.inc || !S.include[g.id] || S.ikind[g.id] === AA_BACK) continue;
       const kind = S.ikind[g.id] || "other";
-      for (const r of g.rows) { if (r.idup && !r.forced) continue; rowsIn.push({ received_on: r.date, amount: Math.round(-r.out * 100) / 100, currency: cur(), orig_amount: null, orig_currency: null, fee: null, source_name: g.name, kind, channel: guessChannel(r.desc), person_id: who, account: acctLabel, account_id: cardId || null, income_amount: null, import_batch: batchId, repay_required: false, repay_due_on: null, repay_amount: null, notes: null }); }
+      for (const r of g.rows) { if (r.idup && !r.forced) continue; rowsIn.push({ received_on: r.date, amount: Math.round(-r.out * 100) / 100, currency: cur(), orig_amount: null, orig_currency: null, fee: null, source_name: g.name, kind, channel: guessChannel(r.desc), import_key: r.ik && !(r.keyDup && r.forced) && !S.noKeyCol ? r.ik : undefined, person_id: who, account: acctLabel, account_id: cardId || null, income_amount: null, import_batch: batchId, repay_required: false, repay_due_on: null, repay_amount: null, notes: null }); }
       if (S.remember && kind !== S.auto[g.id]) learnedInc[g.id.slice(3)] = kind;
     }
     if (rowsIn.length) { try { await Store.addIncomeRecords(rowsIn); inN = rowsIn.length; batch.inN = inN; batch.inSum = Math.round(rowsIn.reduce((a, r) => a + r.amount, 0) * 100) / 100; } catch (e) { incFailed = true; } }
