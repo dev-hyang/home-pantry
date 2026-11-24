@@ -67,8 +67,8 @@ function kindCard(kind, deals, canStart, veh) {
   const K = D().KINDS, mine = deals.filter((d) => d.kind === kind), open = mine.find((d) => !d.outcome), closed = mine.filter((d) => d.outcome);
   const last = closed[0];
   let body;
-  if (open) body = row(kindHref(kind, veh?.id), KIND_ICON[kind] || "📝", t("{kind}进行中", { kind: t(K[kind]) }), openRowDesc(open), dealProgress(open).pct, dealProgress(open).late ? `<span class="badge b-out mcount">${t("逾期 {n}", { n: dealProgress(open).late })}</span>` : "");
-  else if (closed.length) body = row(kindHref(kind, veh?.id), KIND_ICON[kind] || "📝", t("{kind}交易历史", { kind: t(K[kind]) }),
+  if (open) body = row(dealHref(open), KIND_ICON[kind] || "📝", t("{kind}进行中", { kind: t(K[kind]) }), openRowDesc(open), dealProgress(open).pct, dealProgress(open).late ? `<span class="badge b-out mcount">${t("逾期 {n}", { n: dealProgress(open).late })}</span>` : "");
+  else if (closed.length) body = row(closed.length === 1 ? dealHref(closed[0]) : kindHref(kind, veh?.id), KIND_ICON[kind] || "📝", t("{kind}交易历史", { kind: t(K[kind]) }),
     esc([t("{n} 笔", { n: closed.length }), t("最近：{d} {o}", { d: dealDate(last), o: outcomeText(last) }), priceOrNull(last.price) ? money(num(last.price)) : null].filter(Boolean).join(" · ")), null);
   else body = `<div class="deal-empty"><span class="mi" aria-hidden="true">${KIND_ICON[kind] || "📝"}</span><div><b>${t(K[kind])}</b><p class="muted">${t("还没有记录{kind}交易", { kind: t(K[kind]) })}</p></div></div>`;
   const act = canStart && !open ? `<div class="deal-kind-act">${startBtn(kind, veh)}</div>` : "";

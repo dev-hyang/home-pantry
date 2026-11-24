@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.15", title: { zh: "交易页：少一层目录，清单 / 计划 / 实际 / 对比各是一个子页", en: "Transactions: one less level; List / Plan / Actual / Compare are now sub-pages" }, items: [
+    { k: "new", zh: "首页点「卖出进行中」直接进这笔交易，不再多一层「卖出」目录页；只有 1 笔历史也直接进，多笔历史才进历史列表", en: "Tapping “Sale in progress” on the home page opens that transaction directly; a single past transaction opens directly too, several go to a history list" },
+    { k: "new", zh: "交易主页：上面是只做统计的总结卡片（总进度、已完成、必须项、最近截止），下面是清单、计划、实际、对比四张带描述的行卡片，各进一个子页；原来的视图切换去掉了", en: "Transaction home: a summary card (progress, done, must-do, next due) and four described cards — List, Plan, Actual, Compare — each opening its own page; the view switcher is gone" },
+    { k: "better", zh: "面包屑：房产 / 交易 / 卖出进行中 / 清单 / 交易信息", en: "Breadcrumbs: Home / Transactions / Sale in progress / List / Transaction info" },
+  ] },
   { v: "2026-11-24.14", title: { zh: "买入和卖出可以同时进行（卖出进行中也能补录买入）", en: "Buy and sell can run at the same time (record a purchase while selling)" }, items: [
     { k: "new", zh: "一套房（或一辆车）同一时间可以有一笔进行中的买入和一笔进行中的卖出；同一类型还是只能一笔。卖出进行中，买入卡片上仍有「记录买入交易」，用来补录当初的买入", en: "A home (or car) can now have one buy and one sell in progress at the same time; a second one of the same kind is still not allowed. While selling, the Buy card still offers “Record purchase” so you can backfill the original purchase" },
     { k: "better", zh: "两笔同时进行时，房子状态以卖出优先显示「卖出中」；买入交割后仍是卖出中；取消卖出后，如果买入还在进行就变回「买入中」", en: "With both in progress the home shows “Selling”; closing the purchase keeps it Selling; cancelling the sale returns it to “Buying” if the purchase is still open" },

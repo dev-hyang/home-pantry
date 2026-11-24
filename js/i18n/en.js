@@ -4491,6 +4491,11 @@ export const EN = {
   "现在的状态下不能开始这类交易。": "This kind can't be started in the current status.",
   "{kind}交易": "{kind}",
   "回到{kind}交易页": "Back to {kind}",
+  "{n} 个阶段": "{n} stages",
+  "按{a}和{b}推算的时间线，可调整日期": "Timeline worked out from {a} and {b}; dates can be adjusted",
+  "{n} 项已完成": "{n} done",
+  "{n} 条进展记录": "{n} progress notes",
+  "计划和实际对照：哪些提前、哪些拖后": "Plan vs actual: what ran early, what ran late",
   /* 2026-11-24：税务买卖链接 / 邀请码财务权限 / 对账单查重 */
   "给家主留一句话（可不填），例如：我是小明的妈妈": "A note for the owner (optional), e.g. I'm Ming's mom",
   "给家主的话": "Note to the owner",

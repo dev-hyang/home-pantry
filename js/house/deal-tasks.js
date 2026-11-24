@@ -39,19 +39,26 @@ export function routeDeal() {
 export const subjectDeals = (p, veh) => state.deals.filter((d) => (veh ? d.asset_id === veh.id : d.property_id === p?.id));
 /** 某一类交易的子页地址（车辆带 ?asset=） */
 export const kindHref = (kind, assetId = null) => `${href("house", "deal")}?${assetId ? `asset=${encodeURIComponent(assetId)}&` : ""}kind=${encodeURIComponent(kind)}`;
-/** 面包屑里「交易」后面的几级：买入 / 详情（进行中 或 日期）/ 详情下的子页；首页返回空 */
+/** 面包屑里「交易」后面的几级：交易主页（卖出进行中）/ 视图或清单下的子页；某一类的历史列表页只有一级；首页返回空 */
 export function dealTail(q) {
   const asset = q.get("asset"), deal = routeDeal(), kind = deal?.kind || q.get("kind"); if (!kind || !D().KINDS[kind]) return [];
-  const kindItem = { href: kindHref(kind, asset), label: t(D().KINDS[kind]) };
-  if (!q.get("deal") && !q.get("sec")) return [{ label: kindItem.label }];   // 买入子页
-  const label = !deal ? t("详情") : !deal.outcome ? t("进行中") : `${fmtDate(deal.closing_on || (deal.closed_at || deal.updated_at || "").slice(0, 10))}${deal.outcome === "cancelled" ? ` · ${t("已取消")}` : ""}`;
-  const sub = dealSubLabel(q.get("sec"), deal);
-  return sub ? [kindItem, { href: dealHref(deal), label }, { label: sub }] : [kindItem, { label }];
+  const K = t(D().KINDS[kind]);
+  if (!q.get("deal") && !q.get("sec")) return [{ label: t("{kind}交易历史", { kind: K }) }];   // 这一类的历史列表页
+  const date = deal ? fmtDate(deal.closing_on || (deal.closed_at || deal.updated_at || "").slice(0, 10)) : "";
+  const hubLabel = !deal ? t("详情") : !deal.outcome ? t("{kind}进行中", { kind: K }) : `${t(deal.outcome === "cancelled" ? "{kind}已取消" : "{kind}已完成", { kind: K })} · ${date}`;
+  const hub = { href: dealHref(deal), label: hubLabel }, sec = q.get("sec");
+  if (!sec) return [hub];
+  const sub = dealSubLabel(sec, deal); if (!sub) return [hub];
+  if (sec === "info" || sec.startsWith("stage:")) return [hub, { href: dealHref(deal, "list"), label: t(VIEW_LABEL.list) }, { label: sub }];   // 清单 / 交易信息、清单 / 准备
+  return [hub, { label: sub }];
 }
+/** 交易主页下的四个视图子页（?sec=list|plan|actual|compare） */
+export const VIEW_LABEL = { list: "清单", plan: "计划", actual: "实际", compare: "对比" };
 /** 交易子页在面包屑里的名字（?sec=info / stage:xxx / closeout） */
 export function dealSubLabel(sec, deal = routeDeal()) {
   if (!sec) return null;
   if (sec === "info") return t("交易信息");
+  if (VIEW_LABEL[sec]) return t(VIEW_LABEL[sec]);
   if (sec.startsWith("stage:")) return t(D().stagesOf(deal?.kind)[sec.slice(6)] || "");
   if (sec === "closeout") return deal?.kind === "buy" ? t("完成交割") : t("交割与退出");
   return null;

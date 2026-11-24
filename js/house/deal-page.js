@@ -1,7 +1,7 @@
 import { viewSwitch } from "../core/view-switch.js";
 /* 交易页：任务行、编辑表单、交易详情、新建 / 编辑交易的表单、交割面板。 */
 import { dealKindPage, dealLanding } from "./deal-home.js";
-import { D, END_LAG, V, addTaskRow, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openVehicleDeal, propertyLive, skipBtn, statusText, taskEditForm, taskRow } from "./deal-tasks.js";
+import { D, END_LAG, V, addTaskRow, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openVehicleDeal, propertyLive, subjectDeals, skipBtn, statusText, taskEditForm, taskRow } from "./deal-tasks.js";
 import { addDays } from "../bills/logic.js";
 import { debtHref } from "../bills/debt-logic.js";
 import { analyze, briefHtml, eventFormPanel, freezeBaseline, lanesHtml, needsFreeze } from "./deal-progress.js";
@@ -123,8 +123,28 @@ export function viewDeal() {
     ? row(debtHref(null, `new=1&cat=${veh ? "auto_loan" : "mortgage"}&lender=${encodeURIComponent(deal.lender)}${deal.price != null ? `&principal=${Math.max(0, num(deal.price) - num(deal.earnest_money))}` : ""}&${veh ? "asset" : "prop"}=${encodeURIComponent(subjectId)}${deal.closing_on ? `&start=${deal.closing_on}` : ""}&name=${encodeURIComponent(`${veh ? t("车贷") : t("房贷")} · ${deal.lender}`.slice(0, 60))}`),
         "🏦", t("创建贷款"), t("贷款方 {l}；本金先按成交价 − 定金估，按贷款文件改", { l: deal.lender }), null) : "";
   const cancelRow = closed ? "" : `<p style="margin:8px 0 0;text-align:right"><button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel" data-deal="${deal.id}">${t("取消这笔交易")}</button></p>`;
-  const view = DEAL_VIEWS.some((v) => v[0] === state.dealView) ? state.dealView : "list";
+  const view = ["list", "plan", "actual", "compare"].includes(sec) ? sec : null;   // 子页：清单 / 计划 / 实际 / 对比（原来是主页里的视图切换）
   const laneH = { isEditing, editBtn, skipBtn, editForm: (x) => taskEditForm(x.deal, x), sort: state.dealSort === "asc" ? "asc" : "desc", filter: state.dealFilter || "all", stage: state.dealStage || "all", act: state.dealActFilter || "all" };
+  const disclaimer = `<p class="disclaimer">${t("截止日按{a}和{b}推算，可点 ✎ 调整；必须项逾期会在首页置顶", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })}${deal.baseline?._at ? ` ${t("「计划」是填了合同日后冻结的模板日期，改期只影响「预计」，不会改掉原计划。")}` : ""}</p>`;
+  if (view === "list") {   // 清单页：交易信息 + 各阶段 + 添加自定义事项 + 完成 / 创建贷款
+    return `${bar}${headCard}${newTaskPanel(deal)}<section class="section"><div class="panel mlist">${infoRow}${stageRows}${addRow}${closeRow}${loanRow}</div>${cancelRow}${disclaimer}</section>`;
+  }
+  if (view) {   // 计划 / 实际 / 对比：时间线（布局和以前一样）
+    return `${bar}${headCard}<section class="section">
+      ${view !== "plan" ? briefHtml(deal, an, laneH) : ""}
+      <div class="dl-bar">${view !== "plan" ? `<button type="button" class="btn btn-primary btn-sm" data-action="deal-event-new" data-deal="${deal.id}">＋ ${t("记一笔进展")}</button>` : ""}</div>
+      ${dealToolbar(view, deal)}${eventFormPanel(deal, an)}${lanesHtml(deal, an, filterDealRows(an.rows, { stage: true }), view, laneH)}
+      ${disclaimer}</section>`;
+  }
+  // ── 交易主页：总结卡片（只是统计）+ 清单 / 计划 / 实际 / 对比 四张行卡片（带描述）+ 这一类的历史 ──
+  const evN = (state.dealEvents || []).filter((e) => e.deal_id === deal.id).length, hist = subjectDeals(p, veh).filter((d) => d.kind === deal.kind && d.outcome && d.id !== deal.id);
+  const viewRows = [
+    row(link("list"), "☰", t("清单"), esc([t("{n} 个阶段", { n: groups.length }), t("已完成 {a} / {b}", { a: doneN, b: total }), nextDue ? t("最近截止 {date}", { date: fmtDate(nextDue.due) }) : null].filter(Boolean).join(" · ")), pct),
+    row(link("plan"), "📋", t("计划"), esc(t("按{a}和{b}推算的时间线，可调整日期", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })), null),
+    row(link("actual"), "✅", t("实际"), esc([t("{n} 项已完成", { n: doneN }), t("{n} 条进展记录", { n: evN })].join(" · ")), null),
+    row(link("compare"), "⚖️", t("对比"), esc(t("计划和实际对照：哪些提前、哪些拖后")), null),
+    hist.length ? row(kindHref(deal.kind, veh?.id), "🗂️", t("{kind}交易历史", { kind: t(K[deal.kind]) }), esc(t("{n} 笔", { n: hist.length })), null) : "",
+  ].join("");
   return `${bar}${headCard}
     <section class="section">
       <div class="section-head"><h2>${closed ? (deal.outcome === "cancelled" ? t("{kind}已取消", { kind: t(K[deal.kind]) }) : t("{kind}已完成", { kind: t(K[deal.kind]) })) : t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${deal.closing_on ? `${t(dateLabels(deal)[1])} ${fmtDate(deal.closing_on)}` : t("还没填{d}", { d: t(dateLabels(deal)[1]) })}</p></div>
@@ -134,17 +154,7 @@ export function viewDeal() {
         <div class="life-bar big"><i style="width:${pct}%"></i></div>
       </div>
     </section>
-    ${newTaskPanel(deal)}
-    <section class="section">
-      <div class="view-bar">${viewSwitch(DEAL_VIEWS.map(([v, ico, name]) => [v, name, ico]), view, { action: "deal-view", attr: "view" })}</div>
-      ${view === "list" ? `<div class="panel mlist">${infoRow}${stageRows}${addRow}${closeRow}${loanRow}</div>` : `<div class="panel mlist">${infoRow}</div>
-        ${view !== "plan" ? briefHtml(deal, an, laneH) : ""}
-        <div class="dl-bar">${view !== "plan" ? `<button type="button" class="btn btn-primary btn-sm" data-action="deal-event-new" data-deal="${deal.id}">＋ ${t("记一笔进展")}</button>` : ""}</div>
-        ${dealToolbar(view, deal)}${eventFormPanel(deal, an)}${lanesHtml(deal, an, filterDealRows(an.rows, { stage: true }), view, laneH)}
-        <div class="panel mlist" style="margin-top:12px">${addRow}${closeRow}${loanRow}</div>`}${cancelRow}
-      <p class="disclaimer">${t("截止日按{a}和{b}推算，可点 ✎ 调整；必须项逾期会在首页置顶", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })}${deal.baseline?._at ? ` ${t("「计划」是填了合同日后冻结的模板日期，改期只影响「预计」，不会改掉原计划。")}` : ""}</p>
-    </section>
-`;
+    <section class="section"><div class="panel mlist">${viewRows}</div></section>`;
 }
 /** 交易页顶部：房产状态卡 */
 function propertyCard(p) {
