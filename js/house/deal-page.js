@@ -106,7 +106,7 @@ export function viewDeal() {
   const row = (url, icon, title, desc, prog, badge = "", attrs = "") => `<${url ? `a href="${url}"` : `button type="button" ${attrs}`} class="mrow">
       <span class="mi" aria-hidden="true">${icon}</span>
       <span class="mt"><b>${title}</b><small>${desc}</small>${prog != null ? `<span class="mprog"><i style="width:${prog}%"></i></span>` : ""}</span>
-      ${badge}<span class="mch" aria-hidden="true">›</span></${url ? "a" : "button"}>`;
+      ${badge}<span class="ui-chev" aria-hidden="true">›</span></${url ? "a" : "button"}>`;
   const stageRows = groups.map((g) => {
     const live = g.rows.filter((x) => !x.skipped), s = g.rows.length - live.length, n = live.length, d = live.filter((x) => x.done).length;
     const late = live.filter((x) => !x.done && x.overdue).length, must = live.filter((x) => !x.done && x.priority === "must").length, allDone = n > 0 && d === n;

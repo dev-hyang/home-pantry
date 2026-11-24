@@ -525,6 +525,13 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-grid label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; align-content: start; min-width: 0; }
 /* 日期 / 月份输入框在 iOS 上有固有最小宽度，会撑出边框：强制占满所在格、允许收缩 */
+/* 箭头（统一写法 <span class="ui-chev" aria-hidden="true">›</span>）：右指 › 表示「进去」，父级 [open] 时各处再按需要转 90°；
+   data-dir="down" 是 ▾ 下拉箭头（收起时转 -90°，大小跟文字）。各处的位置 / 间距规则仍写在各自的容器下。 */
+.ui-chev { flex: none; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
+.ui-chev[data-dir="down"] { font-size: inherit; transition-duration: .2s; }
+@media (prefers-reduced-motion: reduce) { .ui-chev { transition: none; } }
+/* 搜索框：去掉 iOS / Safari 自带的药丸外观，圆角、边框、高度和其他输入框一致（高度仍跟旁边的下拉对齐，不单独加高） */
+input[type="search"] { -webkit-appearance: none; appearance: none; }
 /* 数字 / 金额框（js/core/ui-num.js 的 num() 生成 data-num）：等宽数字，位数对得齐；盒子大小不变，仍跟其他输入框一致 */
 input[data-num] { font-variant-numeric: tabular-nums; }
 input[type="date"], input[type="month"], input[type="datetime-local"], input[type="time"] { min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
@@ -650,7 +657,7 @@ button.mrow:last-child { border-bottom: 0; }
 /* 分区完成度小进度条 */
 .mprog { display: block; height: 4px; border-radius: 99px; background: var(--surface-2); margin-top: 5px; max-width: 220px; overflow: hidden; }
 .mprog i { display: block; height: 100%; background: var(--pine); }
-.mrow .mch { color: var(--muted); font-size: 20px; line-height: 1; }
+.mrow .ui-chev { color: var(--muted); font-size: 20px; line-height: 1; }
 /* 面包屑：全站子页只有这一行层级，最后一项加粗放大当标题（‹ 我的 / 设置 / 家庭与成员） */
 /* 面包屑：上级是主色链接（悬停 / 点击时才出现下划线），当前页是同样大小的加粗深色文字；分隔符小而淡，间距收紧 */
 .crumb { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 0; margin: -6px 0 14px; font-size: 14px; line-height: 1.5; }
@@ -901,9 +908,9 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .ref-panel > summary::-webkit-details-marker { display: none; }
 .ref-panel > summary b { font-size: 15px; white-space: nowrap; }
 .ref-panel > summary small { flex: 1; min-width: 0; color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ref-panel > summary .mch { color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
+.ref-panel > summary .ui-chev { color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
 .ref-panel[open] > summary { border-bottom: 1px solid var(--line); }
-.ref-panel[open] > summary .mch { transform: rotate(90deg); }
+.ref-panel[open] > summary .ui-chev { transform: rotate(90deg); }
 .ref-body { padding: 12px 14px 14px; }
 #house-emergency .ref-panel { border-left: 4px solid var(--out); }
 #house-emergency .fact dd .pre { white-space: pre-wrap; }
@@ -1093,7 +1100,7 @@ html.force-phone .today-layout { grid-template-columns: 1fr; }   /* 桌面预览
 .tatt-row .grow { min-width: 0; }
 .tatt-row b { font-weight: 700; }
 .tatt-row small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.35; overflow-wrap: anywhere; }
-.tatt-row .mch { margin-left: auto; color: var(--muted); align-self: center; }
+.tatt-row .ui-chev { margin-left: auto; color: var(--muted); align-self: center; }
 .tmore { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; color: var(--pine); text-decoration: none; }
 .tmore:hover { text-decoration: underline; }
 /* 待办 · 按模块的块头：轻重计数 + 看全部（原「需要注意」块并进来） */
@@ -1542,8 +1549,8 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .rest-detail > summary { display: flex; align-items: center; gap: 10px; cursor: pointer; min-height: 44px; list-style: none; }
 .rest-detail > summary::-webkit-details-marker { display: none; }
 .rest-detail .rd-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
-.rest-detail > summary .mch { color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
-.rest-detail[open] > summary .mch { transform: rotate(90deg); }
+.rest-detail > summary .ui-chev { color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
+.rest-detail[open] > summary .ui-chev { transform: rotate(90deg); }
 .rest-detail > summary small { color: var(--muted); font-weight: 400; }
 .rest-list { list-style: none; margin: 4px 0 0; padding: 0; }
 .rest-list li { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 8px; }
@@ -2225,7 +2232,7 @@ body.editing .minibar { display: none; }
 .tgl-state { flex: none; min-width: 2.5em; font-size: 13px; font-weight: 600; color: var(--muted); }
 @media (max-width: 480px) {
   .mem-go { font-size: 0; }   /* 手机上只留 › ，整行都能点 */
-  .mem-go .mch { font-size: 20px; }
+  .mem-go .ui-chev { font-size: 20px; }
   .mem-perm { flex-wrap: wrap; }
   .mem-perm .grow { flex-basis: calc(100% - 100px); }
   .mem-danger .mem-perm .btn { flex: 1 1 100%; min-height: 44px; }
@@ -2283,7 +2290,7 @@ button.hb-name { color: var(--pine); font-weight: 700; padding: 6px 0; min-heigh
 .nw-other { margin: 6px 0 0; padding-left: 18px; }
 .nw-card { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: 44px; margin-bottom: 12px; color: inherit; text-decoration: none; }
 .nw-card b { font-size: 20px; }
-.nw-card .mch { margin-left: auto; }
+.nw-card .ui-chev { margin-left: auto; }
 .nw-card:focus-visible, a.kpi:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 a.kpi { color: inherit; text-decoration: none; display: block; }
 .nw-card-bal { margin-top: 14px; }
@@ -2656,7 +2663,6 @@ a.tcard:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .tcard-head { display: flex; align-items: center; gap: 6px; min-height: 24px; }
 .tcard-head h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--muted); flex: 1; min-width: 0; }
 .tcard-ico { font-size: 16px; line-height: 1; }
-.tcard-ch { color: var(--muted); font-size: 18px; line-height: 1; }
 .tcard-edit { margin-left: auto; }
 .tcard-big { display: flex; flex-direction: column; gap: 0; }
 .tcard-big b { font-size: 26px; font-weight: 600; line-height: 1.15; letter-spacing: -.01em; overflow-wrap: anywhere; }
@@ -2755,7 +2761,7 @@ html.force-phone .pentries { display: none; } html.force-phone .pentry-dd { disp
 .tr-v { font-size: 14px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
 .tr-v.down { color: var(--out); }
 .tr-k1 { font-size: 14px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tcard-rows .tcard-ch { flex: none; }
+.tcard-rows .ui-chev { flex: none; }
 .tcard-scroll { margin: 0; padding: 0; }
 /* 录入购物 · 手动：「加一条」和说明一行，窄屏换行 */
 .scan-addrow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 4px 0 0; }
@@ -2777,7 +2783,7 @@ html.force-phone .pentries { display: none; } html.force-phone .pentry-dd { disp
 @media (max-width: 640px) { .today-head .today-hi { font-size: 19px; } }
 .tcard-head h3 { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .tcard-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tcard-head .tcard-ch { margin-left: auto; }
+.tcard-head .ui-chev { margin-left: auto; }
 /* 11-07 钱 · 本月：金额小一号、「日常消费」跟在后面；上月一行小字；下面的数靠右对齐，四五位金额也放得下 */
 .tcard-money { display: grid; gap: 1px; min-width: 0; }
 .tm-main { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 6px; margin: 0; min-width: 0; }
@@ -2881,13 +2887,13 @@ html.force-phone .tm-wrap { grid-template-columns: 1fr; }
 .tm-kv li > a > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .tm-kv .tm-v { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink); }
 .tm-kv .tm-v small { display: block; font-size: 11.5px; line-height: 1.2; color: var(--muted); }
-.tm-kv .tcard-ch { color: var(--muted); }
+.tm-kv .ui-chev { color: var(--muted); }
 .tslide .tm-kv li { padding: 0; border-bottom: 0; }
 .tslide .tm-kv { gap: 6px; }
 .tslide .tm-kv li > a { margin: 0; padding: 6px 10px; min-height: 44px; border-radius: 10px; background: var(--surface-2); }   /* 和其他卡片的行一样：浅灰底圆角块 */
 .tslide .tm-kv li > a:hover { filter: brightness(.97); background: var(--surface-2); }
 .ttodo-list li > a:focus-visible { outline: 2px solid var(--pine); outline-offset: 1px; }
-.ttodo-list .tcard-ch { flex: none; color: var(--muted); }
+.ttodo-list .ui-chev { flex: none; color: var(--muted); }
 .tcard-foot a.tcard-more { text-decoration: none; min-height: 32px; display: inline-flex; align-items: center; }
 .ttodo-list .grow { display: flex; flex-direction: column; min-width: 0; flex: 1; overflow: hidden; }
 .ttodo-list .tr-k1 { font-size: 14px; font-weight: 500; }
@@ -3285,8 +3291,8 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .pv-ttl b { font-size: 17px; }
 .pv-ttl small { color: var(--muted); font-size: 13px; }
 .pv-ttl small.pv-bad { color: var(--out); font-weight: 600; }
-.pv-chev { color: var(--muted); transition: transform .2s; }
-.pv-card:not([open]) .pv-chev { transform: rotate(-90deg); }
+.ui-chev { color: var(--muted); transition: transform .2s; }
+.pv-card:not([open]) .ui-chev { transform: rotate(-90deg); }
 .pv-body { padding: 0 16px 16px; }
 .pv-stats { list-style: none; margin: 0 0 4px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
 .pv-stat { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line-soft); border-left: 4px solid var(--line); color: inherit; text-decoration: none; }
@@ -3372,8 +3378,8 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .form-page .fsec:first-of-type { border-top: 0; }
 .form-page .fsec > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; cursor: pointer; list-style: none; font-size: 15px; font-weight: 600; }
 .form-page .fsec > summary::-webkit-details-marker { display: none; }
-.form-page .fsec-chev { color: var(--muted); transition: transform .2s; }
-.form-page .fsec:not([open]) .fsec-chev { transform: rotate(-90deg); }
+.form-page .ui-chev { color: var(--muted); transition: transform .2s; }
+.form-page .fsec:not([open]) .ui-chev { transform: rotate(-90deg); }
 .form-page .fsec > fieldset { margin: 0 0 16px; }
 .form-page .fsec > fieldset > legend.sr-only { float: none; width: 1px; }
 #itemForm .fsec[open] { padding-bottom: 2px; }
@@ -3430,7 +3436,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .space-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .space-txt b { font-size: 16px; }
 .space-txt small { color: var(--muted); font-size: 13px; line-height: 1.4; }
-.space-choice .mch { color: var(--muted); }
+.space-choice .ui-chev { color: var(--muted); }
 #itemForm .space-pick { border: 0; margin: 0; padding: 0; min-width: 0; }
 #itemForm .space-pick legend { float: none; width: auto; font-size: 14px; font-weight: 600; margin: 0 0 6px; }
 .space-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
@@ -3571,8 +3577,8 @@ span.rem-tag { cursor: default; }
 .space-dd > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-color: var(--pine); background: color-mix(in srgb, var(--pine) 8%, var(--surface)); flex-direction: row; }
 .space-dd > summary::-webkit-details-marker { display: none; }
 .space-sum-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.space-chev { flex: none; color: var(--muted); transition: transform .2s; }
-.space-dd:not([open]) .space-chev { transform: rotate(-90deg); }
+.ui-chev { flex: none; color: var(--muted); transition: transform .2s; }
+.space-dd:not([open]) .ui-chev { transform: rotate(-90deg); }
 .space-dd > summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .space-dd[open] > .space-opts { margin-top: 8px; }
 .space-sum { min-height: 0; }
@@ -3864,7 +3870,7 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .ba-name { grid-area: name; overflow-wrap: anywhere; }
 .ba-amt { grid-area: amt; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .ba-amt small { display: block; font-size: 12px; color: var(--muted); }
-.ba-row .mch { grid-area: go; }
+.ba-row .ui-chev { grid-area: go; }
 .ba-bar { grid-area: bar; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
 .ba-bar i { display: block; height: 100%; background: var(--pine); border-radius: 3px; }
 /* 按月走势：竖条（应付浅色、已付深色）；未来的月份描边表示还没发生 */
@@ -4009,7 +4015,7 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .plan-stage { margin-bottom: 10px; padding: 0; }
 .plan-stage > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; min-height: 48px; }
 .plan-stage > summary::-webkit-details-marker { display: none; }
-.plan-stage[open] > summary .mch { transform: rotate(90deg); }
+.plan-stage[open] > summary .ui-chev { transform: rotate(90deg); }
 .plan-body { padding: 0 14px 14px; }
 .plan-body .tips { margin-bottom: 10px; }
 .plan-dec { border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 8px; }
@@ -4155,8 +4161,8 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 /* 家庭成员详情页的块：和房屋资料 / 账单详情的分区卡同一套（.prof-card / .prof-head / .prof-edit），可折叠，右上角是编辑 + 箭头 */
 .fam-sec > summary { list-style: none; cursor: pointer; margin-bottom: 0; } .fam-sec > summary::-webkit-details-marker { display: none; }
 .fam-sec[open] > summary { margin-bottom: 8px; }
-.fam-sec > summary .mch { flex: none; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
-.fam-sec[open] > summary .mch { transform: rotate(90deg); }
+.fam-sec > summary .ui-chev { flex: none; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
+.fam-sec[open] > summary .ui-chev { transform: rotate(90deg); }
 .fam-sec > summary h3 { margin: 0; }
 .fam-scope { margin-bottom: 8px; padding-bottom: 0; }
 .fam-card[data-href] { cursor: pointer; } .fam-card[data-href]:hover { border-color: var(--pine); }
@@ -4224,13 +4230,13 @@ form:not(.is-hoa) .hoa-only { display: none; }
 .as-sec { margin-top: 8px; border-top: 1px dashed var(--line); }
 .as-sec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; font-size: 14px; font-weight: 600; } .as-sec > summary::-webkit-details-marker { display: none; }
 .as-sec.as-paid > summary { color: var(--muted); }
-.as-sec > summary .mch { flex: none; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
-.as-sec[open] > summary .mch { transform: rotate(90deg); }
+.as-sec > summary .ui-chev { flex: none; color: var(--muted); font-size: 20px; line-height: 1; transition: transform .15s; }
+.as-sec[open] > summary .ui-chev { transform: rotate(90deg); }
 .as-sec .as-items li { padding: 8px 0; }
 
 /* 账单页摊派块：每行整行可点，进到那笔摊派 */
 .restock-list li.as-link { padding: 0; } .as-hit { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 0; color: inherit; text-decoration: none; min-width: 0; width: 100%; }
-.as-hit .grow { min-width: 0; overflow-wrap: anywhere; } .as-hit .mch { flex: none; color: var(--muted); font-size: 20px; line-height: 1; }
+.as-hit .grow { min-width: 0; overflow-wrap: anywhere; } .as-hit .ui-chev { flex: none; color: var(--muted); font-size: 20px; line-height: 1; }
 .as-hit:hover .grow { text-decoration: underline; }
 
 /* 行记录长按（js/core/long-press.js）：触屏上长按弹底部面板；不让系统选中文字 / 弹出自带菜单；按住时这一行淡淡变色 */
@@ -4255,8 +4261,8 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 
 /* 房屋首页：买卖计划可折叠（默认收起，记在这台设备上）；各房产要处理的事用 4 张小卡片切换类别 */
 .hv-plan > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 1fr auto; column-gap: 12px; align-items: center; min-height: 44px; padding-bottom: 10px; } .hv-plan > summary::-webkit-details-marker { display: none; }
-.hv-plan > summary h3 { grid-column: 1; margin: 0; font-size: 18px; font-weight: 600; } .hv-plan > summary small { grid-column: 1; color: var(--muted); font-size: 13px; } .hv-plan > summary .mch { grid-column: 2; grid-row: 1 / span 2; }
-.hv-plan > summary .mch { color: var(--muted); font-size: 22px; line-height: 1; transition: transform .15s; } .hv-plan[open] > summary .mch { transform: rotate(90deg); }
+.hv-plan > summary h3 { grid-column: 1; margin: 0; font-size: 18px; font-weight: 600; } .hv-plan > summary small { grid-column: 1; color: var(--muted); font-size: 13px; } .hv-plan > summary .ui-chev { grid-column: 2; grid-row: 1 / span 2; }
+.hv-plan > summary .ui-chev { color: var(--muted); font-size: 22px; line-height: 1; transition: transform .15s; } .hv-plan[open] > summary .ui-chev { transform: rotate(90deg); }
 .house-landing > .hv-plan:not([open]) { padding-bottom: 4px; } .house-landing > .hv-plan:not([open]) > summary { padding-bottom: 6px; }
 .ht-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0 0 12px; }
 @media (min-width: 640px) { .ht-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
@@ -4366,17 +4372,18 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 button.npop-item { width: 100%; border: 0; background: none; font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
 .tpop-grp { color: var(--muted); font-size: 13px; letter-spacing: .02em; }
 .tpop-grp .npop-lbl { font-weight: 700; }
-.tpop-chev, .tpop-tg { flex: none; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); font-size: 18px; transition: transform .15s; }
+.tpop-grp .ui-chev, .tpop-tg { display: inline-flex; align-items: center; justify-content: center; }
+.tpop-tg { flex: none; color: var(--muted); font-size: 18px; transition: transform .15s; }
 .tpop-tg { width: 44px; min-height: 44px; border: 0; background: none; cursor: pointer; border-radius: 10px; }
 .tpop-tg:hover, .tpop-tg:focus-visible { background: var(--surface-2, var(--bg)); }
-.tpop-grp[aria-expanded="true"] .tpop-chev, .tpop-tg[aria-expanded="true"] > span { transform: rotate(90deg); }
+.tpop-grp[aria-expanded="true"] .ui-chev, .tpop-tg[aria-expanded="true"] > span { transform: rotate(90deg); }
 .tpop-acts { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
 .tpop-kids { padding-left: 14px; }
 .tpop-kids[hidden] { display: none; }
 .tpop-kids .tpop-kids { padding-left: 26px; }
 .tpop-kids .npop-item { font-weight: 500; }
 .tpop-kids .npop-item[aria-current="page"] { font-weight: 700; }
-@media (prefers-reduced-motion: reduce) { .tpop-chev, .tpop-tg { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .tpop-tg { transition: none; } }
 /* 标题旁的 ⓘ：悬在文字右上角的小角标（像铃铛的提醒角标），不占一整个字的位置 */
 .section-head .ui-hint, h2 .ui-hint, h3 .ui-hint { width: 16px; height: 16px; font-size: 10px; margin-left: 2px; vertical-align: baseline; top: -.55em; }
 .h-root, .sec-path a { color: inherit; text-decoration: none; }
@@ -4750,7 +4757,7 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .ov-ask { border: 1px solid var(--line-soft); border-radius: 12px; background: var(--surface); }
 .ov-ask > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 8px 14px; cursor: pointer; list-style: none; font-weight: 600; }
 .ov-ask > summary::-webkit-details-marker { display: none; }
-.ov-ask:not([open]) .pv-chev { transform: rotate(-90deg); }
+.ov-ask:not([open]) .ui-chev { transform: rotate(-90deg); }
 .ov-ask-body { padding: 0 14px 14px; }
 /* 税务 → 买卖：从花费记录里选（链接行） */
 .tax-link-form { margin-top: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 8px; }
@@ -4810,7 +4817,7 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .task-card.done .tt b { text-decoration: line-through; opacity: .7; }
 .task-card.skipped { opacity: .65; }
 .task-card.overdue .tc-body small { color: var(--out); }
-.task-card .mch { flex: none; }
+.task-card .ui-chev { flex: none; }
 /* 交易：右下角 ＋ 下面留白；取消页 / 完成页的按钮一样高，手机上确认按钮独占一行 */
 .fab-space { height: 72px; }
 .deal-confirm-actions { display: flex; gap: 8px; flex-wrap: wrap !important; }

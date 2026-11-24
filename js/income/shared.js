@@ -27,7 +27,7 @@ export function netWorthCard() {
   const r = liveNetWorth(), m = thisMonth(), mom = monthChange(trendPoints(state.nwSnapshots, cur(), { live: r, month: m }), m);
   const sgn = (v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${fmtMoney(Math.abs(v))}`;
   return `<a class="panel nw-card" href="${href("bills", "networth")}"><span>📈 ${t("净资产")}</span><b class="${r.netWorth < 0 ? "down" : ""}">${fmtMoney(r.netWorth)}</b>
-    <small class="muted">${mom == null ? t("资产 {a} · 负债 {l}", { a: fmtMoney(r.assetsTotal, true), l: fmtMoney(r.liabilitiesTotal, true) }) : t("比上月 {d}", { d: sgn(mom) })}</small><span class="mch" aria-hidden="true">›</span></a>`;
+    <small class="muted">${mom == null ? t("资产 {a} · 负债 {l}", { a: fmtMoney(r.assetsTotal, true), l: fmtMoney(r.liabilitiesTotal, true) }) : t("比上月 {d}", { d: sgn(mom) })}</small><span class="ui-chev" aria-hidden="true">›</span></a>`;
 }
 export const rollAsync = async (kind, from, to, unit = "month") => { roll(kind, from, to, unit); await ROLL.get(`${kind}|${from}|${to}|${unit}`)?.p; return ROLL.get(`${kind}|${from}|${to}|${unit}`)?.rows || []; };
 export const staleAll = (kinds) => { for (const [k, e] of ROLL) if (kinds.includes(k.split("|")[0])) e.stale = true; };

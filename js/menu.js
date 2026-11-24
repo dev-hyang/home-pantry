@@ -89,7 +89,7 @@ export const menuRow = ({ href: url, icon, title, desc, count, countLabel, exter
     <span class="mi" aria-hidden="true">${icon}</span>
     <span class="mt"><b>${esc(title)}</b>${desc ? `<small>${esc(desc)}</small>` : ""}</span>
     ${count ? `<span class="badge b-soon mcount">${count}${countLabel ? ` ${esc(countLabel)}` : ""}</span>` : ""}
-    <span class="mch" aria-hidden="true">›</span></a>`;
+    <span class="ui-chev" aria-hidden="true">›</span></a>`;
 
 export const KIND_ICON = { sfh: "🏡", townhome: "🏘️", condo: "🏢", apartment: "🔑", other: "🏠" };   // 房产类型图标：列表行和面包屑共用
 /** 某个页签的目录页（房屋：当前房产的页面目录） */

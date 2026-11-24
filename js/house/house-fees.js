@@ -168,7 +168,7 @@ function hoaBlock(p) {
 /** 概览里的参考块：标题 + 一句摘要，默认折叠；手机上一屏就能看完“要做的事”，参考资料点开再看 */
 export function refSection(id, { title, hint, body, open = false }) {
   return `<section class="section ref" ${id ? `id="${id}"` : ""}><details class="panel ref-panel" ${open ? "open" : ""}>
-    <summary><b>${title}</b>${hint ? `<small>${hint}</small>` : ""}<span class="mch" aria-hidden="true">›</span></summary>
+    <summary><b>${title}</b>${hint ? `<small>${hint}</small>` : ""}<span class="ui-chev" aria-hidden="true">›</span></summary>
     <div class="ref-body">${body}</div></details></section>`;
 }
 /** 提醒总线：特别摊派里「一次性结清」45 天内到期，或任何一期已逾期（必须）。每月的分期跟着 HOA 账单自己的提醒走，这里不重复提醒 */

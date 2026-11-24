@@ -71,7 +71,7 @@ function stageHtml(kind, s, open) {
     chk = `<fieldset class="plan-chk"><legend><b>${esc(tx(s.checklist.title))}</b> <small class="muted">${t("勾选只保存在这台设备上")}</small></legend>
       ${s.checklist.items.map((x, i) => `<label class="plan-chk-row"><input type="checkbox" data-action="plan-check" data-kind="${kind}" data-stage="${s.id}" data-idx="${i}" ${done.has(i) ? "checked" : ""}><span>${esc(tx(x))}</span></label>`).join("")}</fieldset>`;
   }
-  return `<details class="panel plan-stage" ${open ? "open" : ""}><summary><b>${esc(tx(s.title))}</b><span class="mch" aria-hidden="true">›</span></summary>
+  return `<details class="panel plan-stage" ${open ? "open" : ""}><summary><b>${esc(tx(s.title))}</b><span class="ui-chev" aria-hidden="true">›</span></summary>
     <div class="plan-body"><p class="muted">${esc(tx(s.why))}</p>
     <p><b>${t("怎么做")}</b></p>${list(s.steps)}
     ${dec}

@@ -131,7 +131,7 @@ export function viewFinAssets() {
   const acctRows = [...ACCOUNT_KINDS, "credit"].flatMap((k) => [...accts, ...credit].filter((c) => c.kind === k).map((c) => `<li class="fa-acct"><a class="mrow" href="${esc(cardHref(c.id))}">
       <span class="mi" aria-hidden="true">${kindIcon(k)}</span>
       <span class="mt"><b>${esc(c.name)}${c.last4 ? ` ··${esc(c.last4)}` : ""}</b><small>${esc([kindName(k), c.issuer].filter(Boolean).join(" · "))} · ${esc(balTxt(c))}</small></span>
-      <span class="mch" aria-hidden="true">›</span></a>${acctOf(c.id)?.viaDebt ? "" : balancePanel(c)}</li>`));
+      <span class="ui-chev" aria-hidden="true">›</span></a>${acctOf(c.id)?.viaDebt ? "" : balancePanel(c)}</li>`));
   const cashLike = nw ? nw.assets.cash + nw.assets.investments + nw.assets.retirement + nw.assets.hsa : null;
   return `<section class="section fin-assets">
     ${pageHead({ icon: "🏛️", title: t("资产"), tabs: ASSET_TABS, tab: "assets", hrefOf: (id) => href("bills", id), label: t("资产内容"), plain: true, note: infoTip.classic(t("房产、车辆和账户的钱的那一面；改资料回到原来的地方（房屋 / 车辆 / 卡与账户），这里只读"), { align: "start" }) })}

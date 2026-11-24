@@ -45,13 +45,13 @@ export function setTodayPref(patch) {
 /** 一张卡：链接卡（整张可点）或容器卡（里面各行自己可点）。head 是标题行，body 是内容 */
 const card = ({ k, icon, title, count = "", href: h = "", headHref = "", headExtra = "", cls = "", body = "" }) => {
   const inner = `<span class="tcard-ico" aria-hidden="true">${icon}</span><h3 id="tc-${k}"><span class="tcard-t">${title}</span>${count}</h3>`;   // 计数紧跟标题（像通知）
-  const head = headHref ? `<div class="tcard-head"><a class="tcard-hlink" href="${esc(headHref)}">${inner}<span class="tcard-ch" aria-hidden="true">›</span></a>${headExtra}</div>`
-    : `<div class="tcard-head">${inner}${h ? `<span class="tcard-ch" aria-hidden="true">›</span>` : ""}${headExtra}</div>`;
+  const head = headHref ? `<div class="tcard-head"><a class="tcard-hlink" href="${esc(headHref)}">${inner}<span class="ui-chev" aria-hidden="true">›</span></a>${headExtra}</div>`
+    : `<div class="tcard-head">${inner}${h ? `<span class="ui-chev" aria-hidden="true">›</span>` : ""}${headExtra}</div>`;
   return h ? `<a class="tcard ${cls}" href="${esc(h)}" aria-labelledby="tc-${k}">${head}${body}</a>`
     : `<section class="tcard ${cls}" aria-labelledby="tc-${k}">${head}${body}</section>`;
 };
 /** 卡里一行一个链接（家里一览、快捷操作同一个样子） */
-const rowLink = (h, icon, label, value = "", hot = false, attrs = "") => `<li><a href="${esc(h)}"${attrs}><span class="tr-ico" aria-hidden="true">${icon}</span><span class="grow">${value ? `<span class="tr-k">${label}</span><b class="tr-v${hot ? " down" : ""}">${value}</b>` : `<span class="tr-k1">${label}</span>`}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`;   // 有值的两行（名称小字在上、数在下），窄卡片里不会挤出框
+const rowLink = (h, icon, label, value = "", hot = false, attrs = "") => `<li><a href="${esc(h)}"${attrs}><span class="tr-ico" aria-hidden="true">${icon}</span><span class="grow">${value ? `<span class="tr-k">${label}</span><b class="tr-v${hot ? " down" : ""}">${value}</b>` : `<span class="tr-k1">${label}</span>`}</span><span class="ui-chev" aria-hidden="true">›</span></a></li>`;   // 有值的两行（名称小字在上、数在下），窄卡片里不会挤出框
 
 /* ───────────── 今日 ───────────── */
 export function viewToday() {
@@ -101,7 +101,7 @@ function todoCard() {
   const foot = `<p class="tcard-foot"><span></span><a class="tcard-more" href="${href("alerts")}">${t("全部待办和提醒")} ›</a></p>`;
   if (!rows.length) return card({ k: "todo", icon: "🗂️", title: t("待办"), headHref: href("alerts"),
     body: `<div class="tcard-ok"><span class="tok-ico" aria-hidden="true">✓</span><div><b>${t("各处都没有待办")}</b><small>${t("购物车、储藏和账单都没有要处理的。")}</small></div></div>${foot}` });
-  const list = rows.map((r) => `<li><a href="${esc(r.href)}"><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow"><span class="tr-k1">${esc(r.name)}</span><small class="tr-sub">${esc(r.first || "")}</small></span><span class="badge mcount attn-count">${r.n}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`).join("");
+  const list = rows.map((r) => `<li><a href="${esc(r.href)}"><span class="tr-ico" aria-hidden="true">${r.icon}</span><span class="grow"><span class="tr-k1">${esc(r.name)}</span><small class="tr-sub">${esc(r.first || "")}</small></span><span class="badge mcount attn-count">${r.n}</span><span class="ui-chev" aria-hidden="true">›</span></a></li>`).join("");
   return card({ k: "todo", icon: "🗂️", title: t("待办"), count: badge, headHref: href("alerts"), body: `<ul class="tcard-list ttodo-list">${list}</ul>${foot}` });
 }
 
@@ -132,7 +132,7 @@ function moneyCard() {
   const eye = moneyEye("tm-eye");
   // 标题行点进 财务 → 收支总览（本月）；卡片本身不再是整张链接，金额才能单独点开
   return card({ k: "money", icon: "💰", title: t("钱 · 本月"), headHref: `${href("bills", "income")}?tab=overview&range=m`, headExtra: eye,
-    body: `<div class="tcard-money">${head}</div><ul class="tcard-kv tm-kv">${rowsKv.map(([k, v, h]) => `<li><a href="${esc(h)}"><span>${k}</span><span class="tm-v">${v}</span><span class="tcard-ch" aria-hidden="true">›</span></a></li>`).join("")}</ul>` });
+    body: `<div class="tcard-money">${head}</div><ul class="tcard-kv tm-kv">${rowsKv.map(([k, v, h]) => `<li><a href="${esc(h)}"><span>${k}</span><span class="tm-v">${v}</span><span class="ui-chev" aria-hidden="true">›</span></a></li>`).join("")}</ul>` });
 }
 /* ── 家里 · 一览：库存、采购、设备；没有财务权限的家人还看到本月账单的笔数（不显示金额） ── */
 function homeCard() {
@@ -161,7 +161,7 @@ function aiBlock() {
 function quickCard() {
   const mine = quickList().map((id) => PRESETS().find((p) => p[0] === id)).filter(Boolean);
   const one = ([id, icon, nm]) => id.startsWith("action:")
-    ? `<li><button type="button" data-action="quick-run" data-id="${esc(id)}"><span class="tr-ico" aria-hidden="true">${icon}</span><span class="grow"><span class="tr-k1">${esc(nm)}</span></span><span class="tcard-ch" aria-hidden="true">›</span></button></li>`
+    ? `<li><button type="button" data-action="quick-run" data-id="${esc(id)}"><span class="tr-ico" aria-hidden="true">${icon}</span><span class="grow"><span class="tr-k1">${esc(nm)}</span></span><span class="ui-chev" aria-hidden="true">›</span></button></li>`
     : rowLink(quickHref(id), icon, esc(nm));
   return card({ k: "quick", icon: "⚡", title: t("快捷操作"), cls: "tcard-quick", headHref: href("quick"),   // 标题行点进「编辑快捷操作」
     body: mine.length ? `<div class="tcard-scroll" tabindex="0" aria-label="${esc(t("快捷操作"))}"><ul class="tcard-rows">${mine.map(one).join("")}</ul></div>` : `<p class="muted" style="margin:0">${t("还没有快捷操作，点“编辑”添加。")}</p>` });

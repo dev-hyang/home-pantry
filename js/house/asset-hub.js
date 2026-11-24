@@ -101,7 +101,7 @@ export function vehicleOverview(a, root) {
 /** 本地须知（按地区）：原来在「房屋 / 车辆」列表页底部，现在放进每辆车概览页的最底部（折叠，不占版面） */
 function vehNotesHtml() {
   const region = state.houseProfile?.region || (Units.region.system === "us" ? "na" : "cn"), notes = V().REGION_NOTES[region] || [];
-  return notes.length ? `<section class="section"><details class="panel ref-panel veh-notes"><summary><b>${t("本地须知")}</b><small>${t("牌照、年检、保险等当地规定")}</small><span class="mch" aria-hidden="true">›</span></summary>
+  return notes.length ? `<section class="section"><details class="panel ref-panel veh-notes"><summary><b>${t("本地须知")}</b><small>${t("牌照、年检、保险等当地规定")}</small><span class="ui-chev" aria-hidden="true">›</span></summary>
     <ul class="tips ref-body">${notes.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul></details></section>` : "";
 }
 /** 车辆资料：每个分区一张卡（完成度 + 摘要 + 编辑），和房屋资料同一种样式 */

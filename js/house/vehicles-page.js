@@ -16,7 +16,7 @@ import { lpAttr } from "../core/long-press.js";
 /** 已卖出 / 已归还的车：一行一辆，点开还能看档案、保养记录和当时的交易清单 */
 export function pastVehiclesSection(past) {
   if (!past.length) return "";
-  return `<section class="section"><details class="panel ref-panel"><summary><b>${t("历史车辆")}</b><small>${t("{n} 辆，已卖出或已归还；档案和保养记录保留", { n: past.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
+  return `<section class="section"><details class="panel ref-panel"><summary><b>${t("历史车辆")}</b><small>${t("{n} 辆，已卖出或已归还；档案和保养记录保留", { n: past.length })}</small><span class="ui-chev" aria-hidden="true">›</span></summary>
     <ul class="restock-list hist-list ref-body">${past.map((a) => { const v = a.vehicle || {}; return `<li>
       <span class="asset-ico" aria-hidden="true">${V().POWERTRAINS[a.type]?.icon || "🚗"}</span>
       <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>

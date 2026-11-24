@@ -45,7 +45,7 @@ export function viewAccountsHome() {
   const cnt = (g) => live(g).length;   // 账户个数按「账户」本身数（余额没读到、没记余额也算）；合计和「要更新」才看余额
   const bank = { ...summarizeRows(by("bank")), n: cnt("bank") }, inv = { ...summarizeRows(by("invest")), n: cnt("invest") }, cr = live("credit"), gifts = live("wallet").filter((c) => c.kind === "gift");
   const giftTotal = gifts.reduce((s, c) => s + Math.max(0, giftBalance(c) ?? 0), 0), fees = cr.reduce((s, c) => s + (Number(c.annual_fee) || 0), 0), limit = cr.reduce((s, c) => s + (Number(c.credit_limit) || 0), 0);
-  const tile = (g, big, lines, to) => `<a class="panel acct-tile" href="${to}"><span class="mi" aria-hidden="true">${GROUPS[g].icon}</span><div><h3>${esc(t(GROUPS[g].name))}</h3><b class="acct-big">${big}</b><small class="muted">${lines.filter(Boolean).map(esc).join(" · ")}</small></div><span class="mch" aria-hidden="true">›</span></a>`;
+  const tile = (g, big, lines, to) => `<a class="panel acct-tile" href="${to}"><span class="mi" aria-hidden="true">${GROUPS[g].icon}</span><div><h3>${esc(t(GROUPS[g].name))}</h3><b class="acct-big">${big}</b><small class="muted">${lines.filter(Boolean).map(esc).join(" · ")}</small></div><span class="ui-chev" aria-hidden="true">›</span></a>`;
   const need = bank.needUpdate + inv.needUpdate;
   return `<section class="section">${head(`${t("账户概览")}`, t("四类账户一眼看：信用卡、银行、投资、电子钱包与礼品卡。余额来自账户页的「更新余额」；投资账户只记总值（每月自动存快照），不记持仓和交易。"))}
     <div class="kpis k4">${kpi(t("现金与储蓄"), mny(nw?.assets.cash ?? 0))}${kpi(t("投资、退休与医疗"), mny((nw?.assets.investments ?? 0) + (nw?.assets.retirement ?? 0) + (nw?.assets.hsa ?? 0)))}${kpi(t("信用卡欠款"), mny(nw?.liabilities.credit_cards ?? 0))}${kpi(t("礼品卡余额"), mny(giftTotal))}</div>

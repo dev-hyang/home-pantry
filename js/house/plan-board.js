@@ -31,7 +31,7 @@ const opts = (m, cur) => Object.keys(m).map((k) => `<option value="${k}" ${k ===
 export function planListHtml(kind) {
   const list = plansOf(kind);
   const row = (p) => { const n = candsOf(p.id).length;
-    return `<a class="plan-row" href="${esc(planPageHref(p.id))}"><span class="plan-row-t"><b>${esc(p.title)}</b><small>${esc([lab(PLAN_STATUS, p.status), t("{n} 个候选", { n }), p.budget != null && pricesOk() ? t("预算 {m}", { m: money(num(p.budget)) }) : ""].filter(Boolean).join(" · "))}</small></span><span class="mch" aria-hidden="true">›</span></a>`; };
+    return `<a class="plan-row" href="${esc(planPageHref(p.id))}"><span class="plan-row-t"><b>${esc(p.title)}</b><small>${esc([lab(PLAN_STATUS, p.status), t("{n} 个候选", { n }), p.budget != null && pricesOk() ? t("预算 {m}", { m: money(num(p.budget)) }) : ""].filter(Boolean).join(" · "))}</small></span><span class="ui-chev" aria-hidden="true">›</span></a>`; };
   return list.length ? `<div class="plan-rows">${list.map(row).join("")}</div>` : "";
 }
 export const planPageHref = (id) => `${href("house", "plan")}?p=${id}`;

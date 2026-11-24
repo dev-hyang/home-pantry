@@ -89,7 +89,7 @@ export function offSection(off) {
       <select id="offSort" aria-label="${esc(t("排序"))}">${opt("since", t("停用时间：近 → 远"), f.sort)}${opt("name", t("名称 A → Z"), f.sort)}</select>${clearFiltersBtn("off", changed(f, FD.off))}</div>` : "";
   const pool = cleanupPool(off), cleanable = pool.eligible.length + pool.recent.length;
   const summary = [counts.gift ? t("礼品卡 {n}", { n: counts.gift }) : "", counts.card ? t("信用卡 {n}", { n: counts.card }) : "", counts.bank ? t("账户 {n}", { n: counts.bank }) : ""].filter(Boolean).join(" · ");
-  return `<details class="ref-panel panel" style="margin-top:10px" ${state.cardCleanup || q || f.kind !== "all" || f.sort !== "since" ? "open" : ""}><summary><b>${t("停用的卡")}</b><small>${t("{n} 张卡", { n: off.length })}${summary ? ` · ${summary}` : ""}</small><span class="mch" aria-hidden="true">›</span></summary>
+  return `<details class="ref-panel panel" style="margin-top:10px" ${state.cardCleanup || q || f.kind !== "all" || f.sort !== "since" ? "open" : ""}><summary><b>${t("停用的卡")}</b><small>${t("{n} 张卡", { n: off.length })}${summary ? ` · ${summary}` : ""}</small><span class="ui-chev" aria-hidden="true">›</span></summary>
     <div class="ref-body" style="padding:10px 14px 0">${toolbar}
       ${cardsRO() ? "" : state.cardCleanup ? cleanupHtml(pool) : cleanable ? `<p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("有 {n} 张用完的礼品卡可以一键清掉", { n: cleanable })} <button type="button" class="btn btn-sm btn-ghost" data-action="card-cleanup-open">${t("清理")}</button></p>` : ""}</div>
     <ul class="restock-list card-list ref-body" style="padding-top:0">${rows.length ? rows.map(cardRow).join("") : `<li class="muted" style="font-size:13px">${t("没有符合条件的卡")}</li>`}</ul>

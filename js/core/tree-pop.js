@@ -16,7 +16,7 @@ const row = (n, lv) => {
   const exp = !!n.open, tg = (cls, label) => `<button type="button" class="${cls}" data-tpop-toggle aria-expanded="${exp}" aria-label="${esc(label)}">`;
   const head = n.href
     ? `<a class="npop-item" href="${esc(n.href)}"${cur}>${inner}</a>${tg("tpop-tg", t("展开 / 收起"))}<span aria-hidden="true">›</span></button>`
-    : `${tg("npop-item tpop-grp", n.label)}${inner}<span class="tpop-chev" aria-hidden="true">›</span></button>`;
+    : `${tg("npop-item tpop-grp", n.label)}${inner}<span class="ui-chev" aria-hidden="true">›</span></button>`;
   return `<div class="tpop-node" data-lv="${lv}"><div class="tpop-row">${head}</div><div class="tpop-kids"${exp ? "" : " hidden"}>${n.children.map((c) => row(c, lv + 1)).join("")}</div></div>`;
 };
 

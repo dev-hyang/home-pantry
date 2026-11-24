@@ -60,7 +60,7 @@ function spacePick(cur, open) {
   const now = list.find(([s]) => s === cur) || list[0];
   /* 卡片式下拉（2026-11-16）：收起时只显示选中的那一类（名称 + 一行说明）；展开是几张带说明的大卡片，选中后自动收起。新物品默认展开，编辑已有物品默认收起 */
   return `<fieldset class="span-2 space-pick"><legend>${t("组别")}</legend>
-    <details class="space-dd" ${open ? "open" : ""}><summary class="space-card space-sum" aria-label="${esc(t("组别"))}"><span class="space-sum-txt">${card(now)}</span><span class="space-chev" aria-hidden="true">▾</span></summary>
+    <details class="space-dd" ${open ? "open" : ""}><summary class="space-card space-sum" aria-label="${esc(t("组别"))}"><span class="space-sum-txt">${card(now)}</span><span class="ui-chev" data-dir="down" aria-hidden="true">▾</span></summary>
     <div class="space-opts">${list.map((x) => `<label class="space-opt">
     <input type="radio" name="space" value="${x[0]}" ${x[0] === cur ? "checked" : ""}><span class="space-card">${card(x)}</span></label>`).join("")}</div></details>
     <p class="muted space-rel">${t("组别 › 大类 › 小类：组别决定东西的性质（日常消耗品、汽车房屋消耗品、家居耐用品）；大类是组别下的分类，例如蔬果、清洁；小类是大类下的细分，例如叶菜。")}</p></fieldset>`;
@@ -75,7 +75,7 @@ function fsec(id, k, title, body, openDefault, cls = "", aside = "") {
     return `<div class="fsec fsec-flat ${cls}" data-fsec="${esc(key)}"${k === ACTIVE_SEC ? "" : " hidden"}><div class="fsec-flat-h">${title}</div><fieldset><legend class="sr-only">${title}</legend>${body}</fieldset></div>`;
   }
   const open = FOLD.has(key) ? FOLD.get(key) : openDefault, hid = "";
-  return `<details class="fsec ${cls}" data-fsec="${esc(key)}" ${open ? "open" : ""}${hid}><summary><span class="fsec-ttl">${title}</span>${aside ? `<span class="fsec-aside">${aside}</span>` : ""}<span class="fsec-chev" aria-hidden="true">▾</span></summary>
+  return `<details class="fsec ${cls}" data-fsec="${esc(key)}" ${open ? "open" : ""}${hid}><summary><span class="fsec-ttl">${title}</span>${aside ? `<span class="fsec-aside">${aside}</span>` : ""}<span class="ui-chev" data-dir="down" aria-hidden="true">▾</span></summary>
     <fieldset><legend class="sr-only">${title}</legend>${body}</fieldset></details>`;
 }
 if (typeof document !== "undefined") document.addEventListener("toggle", (e) => { const d = e.target; if (d?.matches?.("details.fsec[data-fsec]")) FOLD.set(d.dataset.fsec, d.open); }, true);

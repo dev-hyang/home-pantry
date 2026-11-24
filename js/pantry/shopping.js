@@ -126,7 +126,7 @@ function shopStats() {
     recent: recent.length, spent: recent.reduce((a, s) => a + num(s.amount, 0), 0), priced: recent.some((s) => s.amount != null) };
 }
 const tile = (to, icon, label, big, sub) => `<a class="panel sd-tile" href="${to}">
-  <span class="sd-top"><span class="sd-ico" aria-hidden="true">${icon}</span><span class="sd-lbl">${label}</span><span class="mch" aria-hidden="true">›</span></span>
+  <span class="sd-top"><span class="sd-ico" aria-hidden="true">${icon}</span><span class="sd-lbl">${label}</span><span class="ui-chev" aria-hidden="true">›</span></span>
   <span class="sd-big">${big}</span><span class="sd-sub">${sub}</span></a>`;
 function viewShopHome() {
   const st = shopStats(), sh = shopsStats();

@@ -64,7 +64,7 @@ function shopCard(s) {
   const pick = !!bulkOn("shops");
   return `<article class="shop-card ${s.archived ? "is-off" : ""}${pick ? " is-pick" : ""}" ${pick ? "data-row-chk" : `data-swipe-del="store" ${lpAttr([{ label: t("打开"), href: shopHref(s), first: true }, s.archived ? { label: t("加回常去"), action: "shops-unarchive", data: { id: s.id } } : { label: t("本周广告"), href: adUrl(s), external: true }, s.archived ? null : { label: t("更新特价"), href: `${shopHref(s)}?update=1` }, { label: t("删除"), action: "shops-del", data: { id: s.id }, danger: true }, bulkMenuItem("shops", s.id)], s.name)}`}>${pick ? `<label class="shop-chk">${bulkCheck("shops", s.id)}</label>` : ""}
     <${pick ? "span" : "a"} class="shop-main"${pick ? "" : ` href="${shopHref(s)}"`}><span class="shop-ico" aria-hidden="true">${icon}</span>
-      <span class="shop-txt"><b>${esc(s.name)}</b><small>${d != null ? `${t("{n} 英里", { n: d.toFixed(1) })} · ` : ""}${esc(s.address || t("没填地址"))}</small></span><span class="mch" aria-hidden="true">›</span></${pick ? "span" : "a"}>
+      <span class="shop-txt"><b>${esc(s.name)}</b><small>${d != null ? `${t("{n} 英里", { n: d.toFixed(1) })} · ` : ""}${esc(s.address || t("没填地址"))}</small></span><span class="ui-chev" aria-hidden="true">›</span></${pick ? "span" : "a"}>
     <div class="shop-meta"><span class="tag">${esc(t(cn))}</span>${s.refresh === "weekly"
         ? `<span class="tag"${s.auto_update ? ` title="${esc(t("换广告那天由 Claude 定时任务自动更新"))}"` : ""}>${s.auto_update ? `🤖 ` : ""}${t("每{d}换广告", { d: t(DOW[s.refresh_dow ?? 3]) })}</span>`
         : ""}

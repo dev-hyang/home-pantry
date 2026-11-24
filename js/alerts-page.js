@@ -99,7 +99,7 @@ function byArea(all) {
   if (!rows.length) return `<section class="section"><div class="panel empty"><strong>${t("各处都没有待办 ✓")}</strong>${t("购物车是空的，账单、保养和季节任务都不急。")}</div></section>`;
   const row = (r) => `<a class="mrow" href="${esc(r.href)}"><span class="mi" aria-hidden="true">${r.icon}</span>
       <span class="mt"><b>${esc(r.name)}</b><small>${esc(r.first)}</small></span>
-      <span class="badge mcount ${r.worst <= 2 ? SEVERITY_CLS[r.worst] : "attn-count"}">${r.n}</span><span class="mch" aria-hidden="true">›</span></a>`;
+      <span class="badge mcount ${r.worst <= 2 ? SEVERITY_CLS[r.worst] : "attn-count"}">${r.n}</span><span class="ui-chev" aria-hidden="true">›</span></a>`;
   return `<section class="section"><div class="panel mlist">${rows.map(row).join("")}</div></section>`;
 }
 export function viewAlerts() {

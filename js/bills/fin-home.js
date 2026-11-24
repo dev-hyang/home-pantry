@@ -17,7 +17,7 @@ const entry = (g) => {
   const pages = finGroupPages(g); if (!pages.length) return "";
   const total = pages.reduce((a, p) => a + (+p.count || 0), 0);
   return `<a class="fin-card fin-entry" href="${esc(groupHref(g.id))}" aria-labelledby="fg-${g.id}">
-    <header class="fin-card-h"><span class="fin-card-ico" aria-hidden="true">${g.icon}</span><span class="fin-card-t"><h3 id="fg-${g.id}">${esc(t(g.name))}</h3><small>${esc(t(g.desc))}</small></span>${total ? `<span class="ui-badge" data-tone="warn" data-size="sm">${total}</span>` : ""}<span class="mch" aria-hidden="true">›</span></header>
+    <header class="fin-card-h"><span class="fin-card-ico" aria-hidden="true">${g.icon}</span><span class="fin-card-t"><h3 id="fg-${g.id}">${esc(t(g.name))}</h3><small>${esc(t(g.desc))}</small></span>${total ? `<span class="ui-badge" data-tone="warn" data-size="sm">${total}</span>` : ""}<span class="ui-chev" aria-hidden="true">›</span></header>
     <p class="fin-entry-pages">${pages.map((p) => esc(p.label)).join(" · ")}</p></a>`;
 };
 

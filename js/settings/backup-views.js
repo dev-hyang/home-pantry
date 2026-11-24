@@ -82,7 +82,7 @@ export function backupPanel() {
     <div class="panel bk-panel"><h3>${t("从备份恢复")}</h3><p class="muted">${t("换了手机、数据库被删、或换了 Supabase 项目：先登录并建好家庭（新项目要先在 SQL Editor 执行 supabase/schema.sql），再选备份文件导回来。")}</p>
       <div class="bk-row"><label class="btn btn-sm">${t("选备份文件")}<input id="backupFile" type="file" accept="application/json,.json" hidden></label></div>
       ${preview}</div>
-    <details class="ref-panel panel"><summary><b>${t("数据库没了怎么重建")}</b><span class="mch" aria-hidden="true">›</span></summary><div class="ref-body"><ol class="small" style="margin:0;padding-left:18px">
+    <details class="ref-panel panel"><summary><b>${t("数据库没了怎么重建")}</b><span class="ui-chev" aria-hidden="true">›</span></summary><div class="ref-body"><ol class="small" style="margin:0;padding-left:18px">
       <li>${t("新建 Supabase 项目（或在原项目里），SQL Editor 执行 supabase/schema.sql（完整建表，含所有迁移；再执行 037_backups.sql 建备份桶）。")}</li>
       <li>${t("把新项目的 URL 和 anon key 填进 config.js，重新部署。")}</li>
       <li>${t("每位家人重新注册登录；家主创建家庭，其他人用邀请码加入。")}</li>

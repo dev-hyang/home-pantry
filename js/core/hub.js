@@ -7,7 +7,7 @@ import { t } from "./i18n.js";
 export const hubRow = ({ href, icon, title, desc = "", pct = null, badge = "" }) => `<a class="mrow" href="${esc(href)}">
     <span class="mi" aria-hidden="true">${icon}</span>
     <span class="mt"><b>${esc(title)}</b>${desc ? `<small>${desc}</small>` : ""}${pct != null ? `<span class="mprog"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></span>` : ""}</span>
-    ${badge}<span class="mch" aria-hidden="true">›</span></a>`;
+    ${badge}<span class="ui-chev" aria-hidden="true">›</span></a>`;
 
 export const hubList = (rows) => `<div class="panel mlist">${rows.join("")}</div>`;
 

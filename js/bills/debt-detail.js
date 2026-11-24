@@ -104,7 +104,7 @@ function linkPanel(e) {
     ${target !== "property" ? `<label>${t("车辆")}<select name="asset_id"><option value="">${t("不关联")}</option>${vs.map((a) => `<option value="${esc(a.id)}" ${a.id === e.asset_id ? "selected" : ""}>${esc(assetName(a))}</option>`).join("")}</select></label>` : ""}
     <div class="form-actions" style="grid-column:1/-1"><button class="btn btn-sm">${t("保存关联")}</button></div></form>`;
 }
-const fold = (title, sub, body, { open = false, id = "" } = {}) => `<details class="panel ref-panel dd-fold"${id ? ` id="${id}"` : ""} ${open ? "open" : ""}><summary><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}<span class="mch" aria-hidden="true">›</span></summary><div class="dd-fold-body">${body}</div></details>`;
+const fold = (title, sub, body, { open = false, id = "" } = {}) => `<details class="panel ref-panel dd-fold"${id ? ` id="${id}"` : ""} ${open ? "open" : ""}><summary><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}<span class="ui-chev" aria-hidden="true">›</span></summary><div class="dd-fold-body">${body}</div></details>`;
 /** 详情头部：名称、类型 / 状态、对方 · 资产 · 账单、编辑 */
 function headHtml(e) {
   const personal = isPersonalDebt(e), who = personal ? e.counterparty_name || e.name : e.name;

@@ -28,7 +28,7 @@ export function propertyBar({ all = false } = {}) {
 }
 /** 添加账单页：两块。自动创建（AI 扫描 → 模板）在前；手工创建（周期性分步 → 一次性分步 → 一次填完整页）在后。每个入口一张整行卡片 */
 export function billTypeChooser() {
-  const row = (href_, icon, title, desc, eg = "") => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small>${eg ? `<small>${eg}</small>` : ""}</span><span class="mch" aria-hidden="true">›</span></a></div>`;
+  const row = (href_, icon, title, desc, eg = "") => `<div class="kind-card"><a class="kind-main" href="${href_}"><span class="kind-ico" aria-hidden="true">${icon}</span><span class="grow"><b>${title}</b><small>${desc}</small>${eg ? `<small>${eg}</small>` : ""}</span><span class="ui-chev" aria-hidden="true">›</span></a></div>`;
   const ai = `<div class="kind-card kind-ai"><div class="kind-main kind-static"><span class="kind-ico" aria-hidden="true">✨</span><span class="grow"><b>${t("AI 扫描")}</b><small>${t("拍一封信、一张账单或邮件截图，AI 判断是周期性还是一次性，自动填好表单；核对后再保存。")}</small></span></div>${scanNewBillBar()}</div>`;
   return `<section class="section form-page">${crumbNav([...billRoot(), { label: t("添加账单") }])}
     <div class="section-head"><h2>${t("添加账单")}</h2></div>

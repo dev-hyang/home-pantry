@@ -24,7 +24,7 @@ export function assessListPage(b, crumb) {
   const payDate = (x) => paidOn(x, b.pays);
   const rowLi = (x) => `<li><span class="badge ${isPaid(x) ? "b-ok" : ""}">${isPaid(x) ? t("已缴") : t("待缴")}</span>
         <div class="grow">${esc(fmtDate(x.due_on))}<small>${[kindName(x.kind), x.payment_id ? t("{d} 缴", { d: fmtDate(payDate(x)) || "—" }) : x.settled_on ? t("已缴（无缴费记录）") : null].filter(Boolean).map(esc).join(" · ")}</small></div><b>${mny(x.amount, cur)}</b>${isPaid(x) ? moreMenu(paidRowItems(b, x), { label: t("更多操作") }) : ""}</li>`;
-  const sec = (cls, title, rows, open, more = "") => `<details class="as-sec ${cls}" ${open ? "open" : ""}><summary>${title}<span class="mch" aria-hidden="true">›</span></summary><ul class="restock-list as-items">${rows.map(rowLi).join("")}</ul>${more}</details>`;
+  const sec = (cls, title, rows, open, more = "") => `<details class="as-sec ${cls}" ${open ? "open" : ""}><summary>${title}<span class="ui-chev" aria-hidden="true">›</span></summary><ul class="restock-list as-items">${rows.map(rowLi).join("")}</ul>${more}</details>`;
   const cards = list.map((a) => {
     const todo = a.rows.filter((x) => !isPaid(x)), paid = a.rows.filter(isPaid), isFocus = a.id === focus;
     const planN = todo.filter((x) => x.kind === "installment").length, last = [...paid].sort((x, y) => String(payDate(y)).localeCompare(String(payDate(x))))[0], next = todo[0];

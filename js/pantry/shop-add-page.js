@@ -34,7 +34,7 @@ export function itemPickOptions() {
 
 
 /** 一个选择块：点开弹出几个入口 */
-const choice = (icon, title, desc, opts) => `<details class="act-more add-choice"><summary><span class="ac-ico" aria-hidden="true">${icon}</span><span class="ac-txt"><b>${title}</b><small>${desc}</small></span><span class="mch" aria-hidden="true">›</span></summary>
+const choice = (icon, title, desc, opts) => `<details class="act-more add-choice"><summary><span class="ac-ico" aria-hidden="true">${icon}</span><span class="ac-txt"><b>${title}</b><small>${desc}</small></span><span class="ui-chev" aria-hidden="true">›</span></summary>
   <div class="act-menu" role="menu">${opts.map(([label, h]) => `<a class="act-item" role="menuitem" href="${esc(h)}">${label}</a>`).join("")}</div></details>`;
 
 function formPage(kind) {

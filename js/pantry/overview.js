@@ -45,7 +45,7 @@ function askList(list, alerts, expiring) {
     ["overstock", t("有没有囤太多的？"), t("囤货检查"), t("按家里人数，哪些东西可能囤得太多、可以先不买？"), [...base, t("共 {n} 件物品", { n: list.length })], list.length],
     ["home-supplies", t("滤网、电池这类多久换？"), t("汽车房屋消耗品"), t("滤网、电池、融雪盐这类汽车房屋消耗品，一般多久换一次，家里该备多少？"), [...base, t("共 {n} 件汽车房屋消耗品", { n: state.enriched.filter(inSpace("house")).length })], state.houseEnabled],
   ].filter((q) => q[5]);
-  return `<div class="ov-asks">${Q.map(([id, label, title, question, context]) => `<details class="ov-ask" data-ask-q="${id}"${state.ovAskOpen?.[id] ? " open" : ""}><summary><span>${esc(label)}</span><span class="pv-chev" aria-hidden="true">▾</span></summary>
+  return `<div class="ov-asks">${Q.map(([id, label, title, question, context]) => `<details class="ov-ask" data-ask-q="${id}"${state.ovAskOpen?.[id] ? " open" : ""}><summary><span>${esc(label)}</span><span class="ui-chev" data-dir="down" aria-hidden="true">▾</span></summary>
     <div class="ov-ask-body">${askInline({ id: `pantry-ov-${id}`, title, question, context })}</div></details>`).join("")}</div>`;
 }
 const cartBtn = () => {

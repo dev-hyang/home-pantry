@@ -130,7 +130,7 @@ export function viewAssets() {
 function retiredSection(list) {
   if (!list.length) return "";
   const lim = pageLimit("retired", state.propertyId);   // 点过「继续加载」就保持展开（整页重画会把 details 收起）
-  return `<section class="section"><details class="panel ref-panel"${lim > pageSize() ? " open" : ""}><summary><b>${t("已更换 / 已退货")}</b><small>${t("{n} 台，召回后换新或退款；档案和保养记录保留", { n: list.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
+  return `<section class="section"><details class="panel ref-panel"${lim > pageSize() ? " open" : ""}><summary><b>${t("已更换 / 已退货")}</b><small>${t("{n} 台，召回后换新或退款；档案和保养记录保留", { n: list.length })}</small><span class="ui-chev" aria-hidden="true">›</span></summary>
     <ul class="restock-list hist-list ref-body">${list.slice(0, lim).map((a) => { const r = recallOf(a) || {}, n = r.replaced_by ? state.assets.find((x) => x.id === r.replaced_by) : null; return `<li>
       <span class="asset-ico" aria-hidden="true">${a.t?.icon || "⚙️"}</span>
       <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>

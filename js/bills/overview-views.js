@@ -68,7 +68,7 @@ function groupHtml(C) {
   if (!C.byAsset.length && !cyc.recurring && !cyc.onetime) return "";
   const amt = (g) => `<span class="ba-amt"><b>${mny(g.total)}</b><small>${g.remaining > 0 ? t("余 {a}", { a: mny(g.remaining) }) : t("已结清")}</small></span>`;
   const bar = (g, max) => `<span class="ba-bar" aria-hidden="true"><i style="width:${Math.max(3, Math.round((g.total / max) * 100))}%"></i></span>`;
-  const row = (href_, name, g, max, sub = false) => `<li ${sub ? 'class="ba-sub"' : ""}><a class="ba-row" href="${href_}"><span class="ba-name">${name}${g.n ? ` <small class="muted">${t("{n} 笔账单", { n: g.n })}</small>` : ""}</span>${amt(g)}${bar(g, max)}<span class="mch" aria-hidden="true">›</span></a></li>`;
+  const row = (href_, name, g, max, sub = false) => `<li ${sub ? 'class="ba-sub"' : ""}><a class="ba-row" href="${href_}"><span class="ba-name">${name}${g.n ? ` <small class="muted">${t("{n} 笔账单", { n: g.n })}</small>` : ""}</span>${amt(g)}${bar(g, max)}<span class="ui-chev" aria-hidden="true">›</span></a></li>`;
   let list = "";
   if (byCycle) {
     const max = Math.max(cyc.recurring?.total || 0, cyc.onetime?.total || 0, 1), q = { range: f.range, asset: f.asset };

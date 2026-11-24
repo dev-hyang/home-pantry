@@ -137,7 +137,7 @@ function owedPanel(all, seg) {
 
 function catPanel(cats) {
   if (cats.length < 2) return "";
-  return `<details class="panel ref-panel dd-fold"><summary><b>${t("按类型")}</b><small>${t("{n} 种", { n: cats.length })}</small><span class="mch" aria-hidden="true">›</span></summary>
+  return `<details class="panel ref-panel dd-fold"><summary><b>${t("按类型")}</b><small>${t("{n} 种", { n: cats.length })}</small><span class="ui-chev" aria-hidden="true">›</span></summary>
     <div class="table-scroll" tabindex="0" role="region" aria-label="${esc(t("按类型"))}"><table class="dd-tbl"><thead><tr><th scope="col">${t("类型")}</th><th scope="col" class="num">${t("笔数")}</th><th scope="col" class="num">${t("总额")}</th><th scope="col" class="num">${t("未还")}</th></tr></thead>
     <tbody>${cats.map((c) => `<tr><th scope="row">${debtCat(c.cat).icon} ${esc(t(debtCat(c.cat).name))}</th><td class="num">${c.n}</td><td class="num">${mny(c.total)}</td><td class="num">${mny(c.left)}</td></tr>`).join("")}</tbody></table></div></details>`;
 }

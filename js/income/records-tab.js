@@ -130,7 +130,7 @@ export function recordsTab() {
 const l1Select = (attrs, sel) => `<select ${attrs} data-nosearch>${INC_L1S.map((g) => `<option value="${g.id}" ${sel === g.id ? "selected" : ""}>${esc(`${t(g.name)}${g.income ? "" : ` · ${t("不计收入")}`}`)}</option>`).join("")}</select>`;
 function kindManager() {
   const cs = customKinds();
-  return `<details class="panel ref-panel" style="margin-top:10px"><summary><b>${t("管理收入类型")}</b><small>${t("内置 {n} 种，自定义 {m} 种", { n: kindList().filter((k) => !k.custom).length, m: cs.length })}</small><span class="mch" aria-hidden="true">›</span></summary><div class="ref-body">
+  return `<details class="panel ref-panel" style="margin-top:10px"><summary><b>${t("管理收入类型")}</b><small>${t("内置 {n} 种，自定义 {m} 种", { n: kindList().filter((k) => !k.custom).length, m: cs.length })}</small><span class="ui-chev" aria-hidden="true">›</span></summary><div class="ref-body">
     <p class="muted small" style="margin:0 0 6px">${t("内置类型的一级：{g}", { g: INC_L1S.map((g) => `${t(g.name)}（${incLeavesOf(g.id).filter((id) => !id.startsWith("c_")).map((id) => t(incLeaf(id).name)).join("、")}）`).join("；") })}</p>
     <p class="muted small" style="margin:0 0 6px">${t("「资本与资产流入」只是现金流入，不算收入：卖房 / 卖股票的本金、借款、本金返还、自己账户转入、国际电汇。卖出时有赚的，在记录里填「其中已实现收益」，那部分算投资收益。")}</p>
     <ul class="plain small">${cs.map((k) => `<li>${esc(k.icon || "🏷️")} ${esc(kindLabel(k.id))} ${l1Select(`data-inc-kparent="${esc(k.id)}" aria-label="${esc(t("一级分类"))}"`, k.parent)} <button type="button" class="btn btn-sm btn-ghost" data-inc="kind-del" data-id="${esc(k.id)}">${t("删除")}</button></li>`).join("") || `<li class="muted">${t("还没有自定义类型")}</li>`}</ul>

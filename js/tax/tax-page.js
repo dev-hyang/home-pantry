@@ -35,7 +35,7 @@ const FLAGS = [["stocks", "买卖股票 / 加密货币"], ["gifts", "收到境�
 function householdSummary(s, y) {
   const on_ = FLAGS.filter(([k]) => s.flags[k]).map(([, n]) => `<span class="tag">${esc(t(n))}</span>`).join("");
   return `<a class="panel dt-block tax-sum" href="${tabHref("household", y)}"><div class="tax-sum-body"><h3>${t("家庭情况")}</h3>
-    <p class="muted">${t("{y} 年", { y })} · ${t("合并报税")} · ${s.spouseItin ? t("配偶用 ITIN") : t("配偶用 SSN")} · ${t("{n} 个孩子", { n: s.kids })}</p><div class="tax-chips">${on_ || `<span class="muted">${t("还没打开任何提醒")}</span>`}</div></div><span class="mch" aria-hidden="true">›</span></a>`;
+    <p class="muted">${t("{y} 年", { y })} · ${t("合并报税")} · ${s.spouseItin ? t("配偶用 ITIN") : t("配偶用 SSN")} · ${t("{n} 个孩子", { n: s.kids })}</p><div class="tax-chips">${on_ || `<span class="muted">${t("还没打开任何提醒")}</span>`}</div></div><span class="ui-chev" aria-hidden="true">›</span></a>`;
 }
 function householdTab(s, y) {
   const flags = FLAGS.map(([k, n]) => `<label class="check-inline"><input type="checkbox" data-tax-flag="${k}" data-y="${y}" ${s.flags[k] ? "checked" : ""}><span>${t(n)}</span></label>`).join("");

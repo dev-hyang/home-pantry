@@ -40,7 +40,7 @@ export function houseTodoBoard() {
   const group = (g) => {
     const worst = Math.min(...g.items.map((x) => x.severity));
     return `<details class="panel ref-panel house-todo-grp" open><summary><b>${esc(g.title)}</b>${g.cur && shown.length > 1 ? ` <span class="badge" style="background:var(--surface-2)">${t("当前")}</span>` : ""}
-        <small>${t("{n} 件", { n: g.items.length })}${worst <= 2 ? `<span class="badge ${SEVERITY_CLS[worst]}">${esc(t(SEVERITY_LABEL[worst]))}</span>` : ""}</small><span class="mch" aria-hidden="true">›</span></summary>
+        <small>${t("{n} 件", { n: g.items.length })}${worst <= 2 ? `<span class="badge ${SEVERITY_CLS[worst]}">${esc(t(SEVERITY_LABEL[worst]))}</span>` : ""}</small><span class="ui-chev" aria-hidden="true">›</span></summary>
       <ul class="restock-list alert-list">${g.items.slice(0, GROUP_MAX).map(alertRow).join("")}</ul>
       ${g.items.length > GROUP_MAX ? `<p class="house-todo-more"><a class="btn btn-sm btn-ghost" href="${href("alerts")}">${t("看全部 {n} 条", { n: g.items.length })}</a></p>` : ""}</details>`;
   };

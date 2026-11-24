@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.26", title: { zh: "全站的展开 / 进入箭头统一了", en: "Expand and go arrows are now consistent everywhere" }, items: [
+    { k: "better", zh: "菜单、卡片、可展开的区块上的「›」和「▾」箭头统一成同一套大小、颜色和转动动画；今日页卡片上的箭头从 18px 调到 20px，和别处一致。", en: "The › and ▾ arrows on menus, cards and expandable sections share one size, colour and rotation. Arrows on Today cards grow from 18px to 20px to match the rest." },
+    { k: "better", zh: "搜索框在 iPhone 上和其他输入框同样的圆角和边框。", en: "Search boxes on iPhone now have the same corners and border as other inputs." },
+  ] },
   { v: "2026-11-24.25", title: { zh: "全站的金额、数量、天数框都换成统一写法", en: "All amount, quantity and day boxes now share one setup" }, items: [
     { k: "better", zh: "其余表单里的数字框（约 120 个）也按统一规则输入：金额两位小数、天数整数、利率按百分比，手机上都弹数字键盘，数字等宽对齐。", en: "The remaining number boxes in all other forms (about 120) now follow the same rules: two decimals for money, whole numbers for days, percentages for rates, a numeric keypad on phones and even-width digits." },
     { k: "better", zh: "每个框原来的最小值、最大值、步长都保留，不会多出新的限制；外观和大小不变。", en: "Each box keeps its original min, max and step, so no new limits appear; look and size are unchanged." },
