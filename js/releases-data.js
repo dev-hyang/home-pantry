@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.3", title: { zh: "花费 / 收入明细：时间范围统一", en: "Spending / income lists: one time-range filter" }, items: [
+    { k: "better", zh: "花费明细的时间范围里，「全部历史」和「自定义」排到最前面，默认仍是全部历史（默认时筛选计数为 0）", en: "In the spending list, “All time” and “Custom” now come first; default stays All time (filter count is 0 by default)" },
+    { k: "better", zh: "收入明细把「全部年份 / 全部月份」两个下拉合并成和花费一样的一个时间范围：全部历史（默认）、自定义起止月份，以及本月、近几个月、某一年等", en: "The income list replaces the two “all years / all months” menus with the same single time range as spending: All time (default), Custom months, this month, recent months, a given year…" },
+  ] },
   { v: "2026-11-24.2", title: { zh: "收入可以关联房产，税务里直接链接", en: "Income can link to a home; link it in Tax" }, items: [
     { k: "new", zh: "记收入时多了「关联房产」（可不填）：房产相关的报销 / 返还、credit、租金选上对应的房子", en: "Income records have an optional “Linked home”: pick the home for reimbursements, credits or rent" },
     { k: "new", zh: "税务 → 买卖与成本基础 →「买入时收到的退款 / credit」多了「🔗 从收入记录里选」：关联了这套房的收入直接带进来，不用手填金额", en: "Tax → Buy / sell: “Refunds / credits at purchase” has “🔗 Pick from income records”: income linked to this home comes in with its amount" },

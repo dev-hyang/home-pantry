@@ -19,7 +19,7 @@ export const FD = {
   pay: { bill: "all", year: "all", status: "all" },
   spend: { q: "", cat: "all", nat: "all", prop: "all", store: "all", stores: null, grp: null, range: "all", year: "all", mon: "all", months: null, dmax: null, batch: null },
   med: { q: "", kind: "all", patient: "all", provider: "all", status: "all", year: "all", property: "all" },
-  incRec: { q: "", kind: "all", acct: "all", person: "all", year: "all", month: "all", from: "", to: "", ex: false, batch: null },   // 收入记录（含图表下钻的日期段、导入批次）
+  incRec: { q: "", kind: "all", acct: "all", person: "all", range: "all", year: "all", month: "all", from: "", to: "", ex: false, batch: null },   // 收入记录（含图表下钻的日期段、导入批次）
   incSend: { person: "all", sq: "", skind: "all" },   // 付款方汇总
   debtP: { q: "", dir: "all", st: "all" },   // 借贷 → 个人借贷
   debtA: { q: "", st: "all", cat: "all" },   // 借贷 → 资产融资的贷款列表

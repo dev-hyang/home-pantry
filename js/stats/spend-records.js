@@ -202,7 +202,7 @@ export function spendRecordsHtml() {
         <select id="spendNat" data-nosearch aria-label="${t("按经济性质筛选")}">${opt("all", t("全部性质"), f.nat || "all")}${NATURES.map((n) => opt(n.id, t(n.name), f.nat)).join("")}</select>
         ${activeProps().length > 1 || (f.prop && f.prop !== "all") ? `<select id="spendProp" data-nosearch aria-label="${t("按房产筛选")}">${opt("all", t("全部房产"), f.prop || "all")}${activeProps().map((p) => opt(p.id, p.name, f.prop)).join("")}${opt("none", t("没关联房产"), f.prop)}</select>` : ""}
         <select id="spendStore" data-search aria-label="${t("按收款方筛选")}">${opt("all", t("全部收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${opt("__none__", t("未填写收款方"), f.store)}</select>
-        <select id="spendRange" class="range-sel" data-default="all" data-nosearch aria-label="${t("时间范围")}">${rangeOptionsHtml(f.range || "all", { first })}</select>
+        <select id="spendRange" class="range-sel" data-default="all" data-nosearch aria-label="${t("时间范围")}">${rangeOptionsHtml(f.range || "all", { first, allFirst: true })}</select>
         ${customHtml(f.range || "all", { first, attr: "data-spend-c" })}
         <select id="spendSort" data-nosearch aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
         ${clearFiltersBtn("spend", changed(f, FD.spend))}

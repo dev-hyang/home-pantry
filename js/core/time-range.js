@@ -118,11 +118,13 @@ export const lastByPeriods = (periods, months, values) => { const idx = new Map(
 
 /* ── 控件 ── */
 /** 时间范围下拉的选项：本月 · 上月 · 近 3 / 6 / 12 个月 · 今年 · 去年 · 往年… · 近 3 / 5 年 · 全部历史 · 自定义… */
-export function rangeOptionsHtml(cur, { first = thisYear() } = {}) {
+export function rangeOptionsHtml(cur, { first = thisYear(), allFirst = false } = {}) {   // allFirst：明细页用，「全部历史」「自定义」排最前（默认是全部历史）
   cur = normRange(cur);
   const y0 = thisYear(), older = Array.from({ length: Math.max(0, Math.min(10, y0 - 1 - first)) }, (_, i) => y0 - 2 - i);
   const opt = (v, label = rangeLabelOf(v)) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;
   const custom = cur.startsWith("c:") ? cur : `c:${addM(thisMonth(), -5)}:${thisMonth()}`;
+  const customOpt = `<option value="${esc(custom)}" ${cur.startsWith("c:") ? "selected" : ""}>${esc(t("自定义…"))}</option>`;
+  if (allFirst) return [opt("all"), customOpt, opt("m"), opt("pm"), opt("3"), opt("6"), opt("12"), opt(`y:${y0}`), opt(`y:${y0 - 1}`), ...older.map((y) => opt(`y:${y}`)), opt("3y"), opt("5y")].join("");
   return [opt("m"), opt("pm"), opt("3"), opt("6"), opt("12"), opt(`y:${y0}`), opt(`y:${y0 - 1}`), ...older.map((y) => opt(`y:${y}`)), opt("3y"), opt("5y"), opt("all"),
     `<option value="${esc(custom)}" ${cur.startsWith("c:") ? "selected" : ""}>${esc(t("自定义…"))}</option>`].join("");
 }
