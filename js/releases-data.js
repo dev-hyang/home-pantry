@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.36", title: { zh: "修正：家庭成员页顶部路径重复", en: "Fix: duplicated path at the top of family member pages" }, items: [
+    { k: "fix", zh: "设置 → 家庭与成员 → 某位成员的页面，顶部原来有两行路径和一个「‹ 返回」；现在合并成一行「我的 / 设置 / 家庭与成员 / 姓名」。", en: "Family member pages had two path rows and a “‹ Back” button. They are now one row: Me / Settings / Family & members / Name." },
+  ] },
   { v: "2026-11-24.35", title: { zh: "收入详情：关联了房产会显示在「账户与归属」里", en: "Income details: a linked property now shows under “Account & owner”" }, items: [
     { k: "better", zh: "收入详情页的「账户与归属」多了「关联房产」一行，点一下直接去那套房产。", en: "The “Account & owner” block on an income record now shows the linked property; tap it to open that property." },
   ] },

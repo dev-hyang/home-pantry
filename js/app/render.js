@@ -84,8 +84,8 @@ function renderBody(r) {
   if (r.sub === "menu") { mountView(r.section === "me" ? meHead(r) : r.section === "house" ? houseHead(r) : "", r.section === "house" ? viewPropertyList() : viewMenu(r.section)); return; }   // 页签目录页；房屋先列房产
   const v = VIEWS[r.section];
   const view = typeof v === "function" ? v : v[r.sub];
-  // 页头：储藏 / 我的 = 「[目录] 区域 / 页面」一行（成员、家人详情另带自己的面包屑）；其他区域照旧面包屑
-  const pre = r.section === "pantry" ? pantryNav(pantryCur(r)) : r.section === "me" ? meHead(r) + (r.q?.get("person") || r.q?.get("member") ? crumb(r) : "") : r.section === "house" && HOUSE_TOP.includes(r.sub) && !houseDeep(r) ? houseHead(r) : crumb(r);
+  // 页头：储藏 / 我的 = 「[目录] 区域 / 页面」一行（成员、家人详情的人名在同一行路径里）；其他区域照旧面包屑
+  const pre = r.section === "pantry" ? pantryNav(pantryCur(r)) : r.section === "me" ? meHead(r) : r.section === "house" && HOUSE_TOP.includes(r.sub) && !houseDeep(r) ? houseHead(r) : crumb(r);
   if (!mountView(pre, view())) return;   // 储藏的每个页面顶上都有页面导航卡片
   if ((r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"))) renderInvList();
   const hs = r.section === "pantry" && r.sub === "inventory" && r.q.get("space") === "house" ? $("#invSec-house") : r.section === "pantry" && r.sub === "gear" ? $("#invSec-gear") : null;   // 从概览「汽车房屋消耗品」或旧的家居耐用品链接进来：展开并滚到那一块

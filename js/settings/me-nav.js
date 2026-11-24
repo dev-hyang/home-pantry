@@ -6,6 +6,8 @@ import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { treePop } from "../core/tree-pop.js";
 import { SETTING_SECTIONS } from "./settings-menu.js";
+import { familyHref, memberCrumbLabel } from "./members.js";
+import { personNameOf } from "./family-lite.js";
 
 const secIcon = (s) => (s.icon === "__AI__" ? "✨" : s.icon);
 
@@ -24,7 +26,9 @@ export function meHead(r) {
   const sub = r?.sub || "menu", sec = r?.q?.get("sec") || "", root = `<a class="h-root" href="${esc(href("me"))}">${t("我的")}</a>`;
   const NAME = { stats: "家里的数字", settings: "设置", about: "介绍", releases: "发布日志" };
   const s = sub === "settings" && sec ? SETTING_SECTIONS.find((x) => x.id === sec) : null;
-  const path = sub === "menu" || !NAME[sub] ? t("我的")
+  const q = r?.q, leaf = s?.id === "family" ? (q.get("person") ? personNameOf(q.get("person")) || t("家庭成员") : q.get("member") ? memberCrumbLabel(q.get("member")) : "") : "";   // 家庭成员 / 成员详情：路径多一级人名（不再另画一行面包屑）
+  const path = leaf ? `${root} / <a class="h-root" href="${esc(href("me", "settings"))}">${t("设置")}</a> / <a class="h-root" href="${esc(familyHref())}">${esc(t(s.name))}</a> / <b aria-current="page">${esc(leaf)}</b>`
+    : sub === "menu" || !NAME[sub] ? t("我的")
     : s ? `${root} / <a class="h-root" href="${esc(href("me", "settings"))}">${t("设置")}</a> / <b aria-current="page">${esc(t(s.name))}</b>`
       : `${root} / <b aria-current="page">${esc(t(NAME[sub]))}</b>`;
   return `<div class="section-head fin-head sec-head"><div class="sh-title">${treePop(meTree(r), { id: "metree" })}<nav class="sec-path" aria-label="${esc(t("当前位置"))}">${path}</nav></div></div>`;
