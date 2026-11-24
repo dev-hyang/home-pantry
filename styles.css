@@ -4818,3 +4818,11 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 /* 交易主页总结卡片里的付款方式切换（贷款 / 现金） */
 .deal-fin { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
 .deal-fin .chip { min-height: 44px; }
+
+/* 用文件自动填：核对页的一行一项 */
+.ai-rows { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 4px; }
+.ai-row .check-inline { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 6px 0; }
+.ai-row .check-inline input { margin-top: 3px; flex: none; }
+.ai-row small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.4; }
+.ai-row.same { opacity: .7; }
+.ai-row.diff small { color: var(--warn, #8a5a00); }

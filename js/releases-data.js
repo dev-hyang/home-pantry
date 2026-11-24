@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.20", title: { zh: "交易信息可以用购房合同 / Closing Disclosure 自动填", en: "Transaction details can be auto-filled from the contract / Closing Disclosure" }, items: [
+    { k: "new", zh: "交易信息页多了「用文件自动填」：拍或截图购房合同、Closing Disclosure、结算单（买车是购车协议），AI 读出合同日、交割日、价格、定金、贷款行、产权公司、经纪人、律师等，先列出来给你核对，再写入。", en: "The transaction details page has an auto-fill: photograph or screenshot the contract, Closing Disclosure or settlement statement (bill of sale for vehicles). The AI reads dates, price, deposit, lender, title company, agent and attorney and shows them for you to check before anything is saved." },
+    { k: "new", zh: "现在没填的默认勾上；和现有不同的默认不勾，要改请自己勾；一致的只做提示。文件里有贷款金额就判为贷款，写明现金就判为现金，清单跟着变。", en: "Empty fields are ticked by default; ones that differ from what you have are not, so you decide. Matching ones are just shown. A loan amount means loan, \"cash\" means cash, and the checklist follows." },
+    { k: "better", zh: "图片只发给你选的 AI 服务商、不保存，发之前会先问你；没设 AI 或所选服务商不能读图时按钮灰掉并说明。", en: "Images go only to the AI provider you chose and are not stored, and you are asked first. Without an AI key, or with a provider that cannot read images, the button is greyed out with a note." },
+  ] },
   { v: "2026-11-24.19", title: { zh: "买卖交易可以选「付款方式」：现金 / 贷款，清单跟着变", en: "Buy / sell transactions have a payment method: cash or loan, and the checklist follows" }, items: [
     { k: "new", zh: "买入、卖出、买车、卖车多了「付款方式」（贷款 / 现金；卖出时是买家的付款方式，可以不选，按贷款算）。交易主页总结卡片上一点就切换，交易信息里也能改", en: "Buy, sell, buy-a-car and sell-a-car have a Payment method (loan / cash; for a sale it is the buyer's, and may be left unset = loan). Switch it on the transaction home or in the info" },
     { k: "new", zh: "现金买入没有贷款预批、提交贷款材料、评估、贷款承诺（整个「贷款与评估」阶段不再出现），改成资金证明、电汇核实；买家现金的卖出没有「配合买方评估」，多一条「要买家资金证明」；买车同理。已经勾过的事项切换后仍保留", en: "A cash purchase drops loan pre-approval, loan documents, appraisal and the commitment (the whole Financing & appraisal stage disappears) and gains proof of funds and wire verification; a sale to a cash buyer drops the appraisal and adds asking for proof of funds; the same for cars. Steps you already ticked are kept" },

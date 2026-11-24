@@ -4,6 +4,8 @@
  *  · 添加自定义事项页（?sec=task-new&stage=<阶段>）：就是那张表单，底部「取消 / 保存」
  * 保存后回到哪里：表单里的 return_to（app/events/submit.js 读它）。 */
 import { isCash, hasFinancing } from "./deal-fin.js";
+import { dealAiBar, infoAiPage } from "./deal-ai.js";
+export { infoAiPage };
 import { D, PRIO_CLS, customBadge, dateLine, dealAsk, dealHref, dealTasks, dateLabels, isVehDeal, skipBtn, taskEditForm } from "./deal-tasks.js";
 import { askButton, askPanel } from "../core/ask.js";
 import { eventFormPage } from "./deal-progress.js";
@@ -45,7 +47,7 @@ export function infoPage(d) {
       pricesOk() ? fact(t("成交价"), price("price")) : "", pricesOk() ? fact(t("定金"), price("earnest_money")) : "",
       fact(t("律师"), txt("attorney")), isCash(d) ? null : fact(t("贷款行 / 贷款经纪"), txt("lender")), fact(t("经纪人"), txt("agent")), fact(t("产权公司"), txt("title_company")), fact(t("验房师"), txt("inspector")), fact(t("备注"), txt("notes"), true)];
   return `<section class="section"><div class="panel"><div class="kv"><h3 style="margin:0">${t("交易信息")}</h3><a class="btn btn-primary btn-sm" href="${dealHref(d, "info")}&edit=1">${t("编辑")}</a></div>
-    <dl class="fact-grid">${rows.filter(Boolean).join("")}</dl></div></section>`;
+    ${dealAiBar(d)}<dl class="fact-grid">${rows.filter(Boolean).join("")}</dl></div></section>`;
 }
 
 /** 事项详情页 / 编辑页 / 添加自定义事项页；sec = "task:<key>" 或 "task-new" */

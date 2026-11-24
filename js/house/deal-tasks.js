@@ -51,6 +51,7 @@ export function dealTail(q) {
   if (!sec) return [hub];
   const list = { href: dealHref(deal, "list"), label: t(VIEW_LABEL.list) }, ST = D().stagesOf(deal.kind) || {};
   const stageItem = (k) => ({ href: dealHref(deal, `stage:${k}`), label: t(ST[k] || "") });
+  if (sec === "info-ai") return [hub, list, { href: dealHref(deal, "info"), label: t("交易信息") }, { label: t("自动填") }];
   if (sec === "info") return edit ? [hub, list, { href: dealHref(deal, "info"), label: t("交易信息") }, { label: t("编辑") }] : [hub, list, { label: t("交易信息") }];
   if (sec.startsWith("stage:")) return [hub, list, { label: t(ST[sec.slice(6)] || "") }];
   if (sec === "task-new") return [hub, list, stageItem(q.get("stage") || "special"), { label: t("添加自定义事项") }];

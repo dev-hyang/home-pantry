@@ -51,6 +51,13 @@ export async function completeVehicleDeal(deal) {
   if (deal.kind === "veh_sell") await payOffForAsset({ asset_id: a.id, on: day }).catch(() => 0);   // 卖车款还清车贷
   toast(deal.kind === "veh_buy" ? t("已标为{st}，去车辆档案补车牌、里程和保险", { st: t(V().STATUS[v.status].name) }) : t("已标为{st}，档案和保养记录保留在“历史车辆”里", { st: t(V().STATUS[v.status].name) }));
 }
+/** 用文件自动填：把勾选的字段写进这笔交易（合同日填了、审查截止没填，按 5 个工作日估一个；填了合同日就冻结模板日期当作计划） */
+export async function applyDealAiPatch(deal, patch) {
+  const next = { ...deal, ...patch };
+  if (!isVehDeal(next) && next.contract_on && !next.review_deadline) next.review_deadline = addBusinessDays(next.contract_on, 5);
+  await Store.saveDeal(next);
+  try { await freezeBaseline(next, dealTasks(next)); } catch { /* 基线补不上不影响保存 */ }
+}
 export async function saveDealForm(f) {
   const fe = f.elements, d = state.deals.find((x) => x.id === fe.deal_id.value);
   if (!d) return;

@@ -3,7 +3,7 @@ import { viewSwitch } from "../core/view-switch.js";
 import { dealKindPage, dealLanding } from "./deal-home.js";
 import "./deal-search.js";
 import { isCash } from "./deal-fin.js";
-import { cancelPage, completePage, dealFab, eventPage, financingField, financingSwitch, infoPage, taskPage } from "./deal-task-pages.js";
+import { cancelPage, completePage, dealFab, eventPage, financingField, financingSwitch, infoAiPage, infoPage, taskPage } from "./deal-task-pages.js";
 import { D, END_LAG, V, addTaskCard, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openVehicleDeal, propertyLive, subjectDeals, skipBtn, statusText, taskCard, taskEditForm, taskRow } from "./deal-tasks.js";
 import { addDays } from "../bills/logic.js";
 import { debtHref } from "../bills/debt-logic.js";
@@ -76,6 +76,7 @@ export function viewDeal() {
   const wizard = !veh && ["sell", "move_out"].includes(deal.kind), s0 = q?.get("sec") || "";
   const sec = ((closed && ["closeout", "complete", "cancel"].includes(s0)) || (s0 === "closeout" && !wizard) || (s0 === "complete" && wizard) ? "" : s0);   // 历史交易没有完成 / 取消页；卖房 / 退租是 closeout（退出向导），买入 / 车辆是 complete
   // ── 子页：交易信息 / 某个阶段的清单 / 交割（面包屑由 menu.js 统一画：‹ 房产 / 交易 / 子页名）──
+  if (sec === "info-ai") return infoAiPage(deal);   // 用文件自动填：核对页
   if (sec === "info") return q?.get("edit") ? `<section class="section">${dealForm(deal, dealHref(deal, "info"))}</section>` : infoPage(deal);   // 详情页（只读 + 编辑按钮）/ 编辑表单页
   if (sec.startsWith("task:") || sec === "task-new") return taskPage(deal, sec, q);
   if (sec === "event-new" || sec.startsWith("event:")) return eventPage(deal, sec, q, an);   // 记一笔进展 / 修改进展记录（独立页面）
