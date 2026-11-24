@@ -32,6 +32,25 @@ function describe(b) {
   return { ids: b.map((p) => p.id), n: b.length, total: b.reduce((s, p) => s + cents(p.amount), 0), store, day, cards: new Set(b.map((p) => p.card_id).filter(Boolean)), cash: b.every((p) => !p.card_id && p.method) };
 }
 
+/** 反方向：这张小票（或这次账单缴费）以前是不是已经从对账单导入成了一整笔？
+ *  只看银行导入的行（import_batch 不空）：合计差不超过 max(0.5 美元, 1%)，流水入账日比小票晚 0–7 天（早不超过 2 天），
+ *  商店对上；或者金额一模一样且日期在 3.5 天内。对账单选了卡而那笔记在另一张卡上 = 不是。返回最像的一笔或 null。 */
+export function findLump(pool, { store = "", day, total, card = "" }) {
+  const tot = cents(total); if (tot <= 0 || !day) return null;
+  const tol = Math.max(50, Math.round(tot * 0.01)); let best = null;
+  for (const p of pool) {
+    if (!p.import_batch || p.virtual || p.amount == null) continue;
+    const diff = Math.abs(cents(p.amount) - tot); if (diff > tol) continue;
+    const gap = dayNum(localDay(p.purchased_at)) - dayNum(day); if (gap < -2 || gap > 7) continue;
+    if (card && p.card_id && p.card_id !== card) continue;
+    const st = !!store && (storeClose(p.store, store) || storeClose(p.name, store)), near = Math.abs(gap) <= 3.5;
+    if (!(st || (diff <= 1 && near))) continue;
+    const score = (diff <= 1 ? 4 : 2) + (st ? 3 : 0) + (card && p.card_id === card ? 2 : 0) + (Math.abs(gap) <= 1 ? 2 : near ? 1 : 0);
+    if (!best || score > best.score) best = { p, score };
+  }
+  return best?.p || null;
+}
+
 /** rows = [{ fk, date, out, texts: [流水描述, 整理后的商家名] }]；pool = 已有花费；card = 对账单选的卡 id（可空）；used = 已经被逐行对上的花费 id。
  *  返回 Map(fk → { tier: "strong" | "weak", n, total, store, day, ids, diff, score }) */
 export function matchTrips(rows, pool, { card = "", used = new Set() } = {}) {

@@ -44,3 +44,17 @@ test("已经被逐行对上的花费、银行导入的行、单行小票都不�
   const pool = [...receipt("a", "2026-11-12", "Target", [50, 37.3]), ...receipt("c", "2026-11-12", "Target", [87.3], { import_batch: "b1" })];
   assert.equal(matchTrips([row("r1", "2026-11-13", 87.3, "TARGET")], pool, { used: new Set(["a0"]) }).get("r1"), undefined);
 });
+
+import { findLump } from "../js/stats/dup-trips.js";
+const lump = (o = {}) => ({ id: "L", amount: 87.3, store: "Target", name: "Target", import_batch: "b1", purchased_at: at("2026-11-15"), ...o });
+test("反方向：银行导入的整笔 ↔ 这张小票 / 这次缴费", () => {
+  const f = (p, c = {}) => findLump([p], { store: "Target", day: "2026-11-12", total: 87.3, ...c });
+  assert.equal(f(lump()).id, "L");                                        // 晚 3 天入账 + 商店对上
+  assert.equal(f(lump({ amount: 88 })).id, "L");                          // 差 0.7 ≤ 1%
+  assert.equal(f(lump({ import_batch: null })), null);                    // 手记的不算
+  assert.equal(f(lump({ amount: 95 })), null);                            // 差太多
+  assert.equal(f(lump({ purchased_at: at("2026-11-25") })), null);        // 晚 13 天
+  assert.equal(f(lump({ card_id: "A" }), { card: "B" }), null);           // 不同的卡
+  assert.equal(f(lump({ store: "Costco", name: "Costco", purchased_at: at("2026-11-18") })), null);       // 商店不对且日期超 3.5 天
+  assert.equal(f(lump({ store: "Costco", name: "Costco", purchased_at: at("2026-11-13") })).id, "L");   // 商店不对但金额一模一样 + 日期近
+});

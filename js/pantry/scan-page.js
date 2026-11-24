@@ -3,7 +3,8 @@ import { $, esc, fmt, fmtShort, num, spaceOf, todayISO } from "../core/util.js";
 import { FEES_CAT, buildPool, noteFor } from "./scan-parse.js";
 import { aiReady, visionCapable } from "../core/ai.js";
 import { aiSettings, providerOf } from "../core/ai-common.js";
-import { dupNote, loadNear, matchOpenShopping, sameReceipt, similarPurchases } from "../stats/dup-check.js";
+import { dupNote, loadNear, matchOpenShopping, sameLump, sameReceipt, similarPurchases } from "../stats/dup-check.js";
+import { purchasePayFields } from "../bills/card-picker.js";
 import { href } from "../core/router.js";
 import { itemNameOptions } from "../core/item-match.js";
 import { t } from "../core/i18n.js";
@@ -109,6 +110,7 @@ function receiptHtml(r, ri, many, cur) {
         <label>${t("购买日期")}<input name="date" type="date" max="${todayISO()}" value="${esc(r.date)}"><small class="${r.dateSrc === "today" ? "form-error" : "muted"}">${r.dateSrc === "user" ? t("你填的日期") : r.dateSrc === "receipt" ? t("取自小票 / 文字，不对可以改") : t("没有读到日期，先用今天；补记的话请改成实际购买日")}</small></label>
       </div>
       <div class="rcpt-dup" role="status" hidden></div>
+      <div class="rcpt-lump" role="status" hidden></div>
       <p class="muted scan-past" ${r.date < todayISO() ? "" : "hidden"} style="margin:8px 0 0;font-size:13px">📌 ${t("补记以前的购物：默认只记花费，不入库（东西多半已经用掉）。要加库存的行，把“放进库存”改成对应物品。")}</p>
       <ul class="scan-rows">${r.rows.map((x, i) => (x.fee ? "" : rowHtml(x, ri, i, cur))).join("")}</ul>
       ${sc.result?.manual ? "" : `<div class="scan-fees"><h4>🧾 ${t("税费及其他")}</h4><p class="muted">${t("税、小费、配送费、服务费：记成单独的花费，商品价格不受影响；不要的取消勾选")}</p><ul class="scan-rows">${r.rows.map((x, i) => (x.fee ? feeRowHtml(x, ri, i, cur) : "")).join("")}</ul><button type="button" class="btn btn-ghost btn-sm" data-action="scan-add-fee" data-r="${ri}">＋ ${t("加一行税费")}</button></div>`}
@@ -151,6 +153,13 @@ function rcptDupHtml(hit, mode, mine, drop = new Set()) {
     : t("是同一张小票就选「以这次为准」，会更正那次的金额，不会记两遍。");
   return `<p class="dup-hint">⚠ ${esc(head)}</p><div class="chips" role="group" aria-label="${esc(t("这张小票怎么处理"))}">${chip("replace", "以这次为准，更新那次")}${chip("keep", "不是同一张，两次都留")}</div><p class="muted rcpt-dup-how">${esc(how)}</p>${mode === "replace" && extra.length ? `<ul class="rcpt-dup-extra">${extra.map((p) => `<li><label class="check-inline"><input type="checkbox" data-drop-id="${esc(p.id)}" ${drop.has(p.id) ? "checked" : ""}><span>${t("删掉")}「${esc(p.name)}」<span class="muted">${esc(Units.money(num(p.amount)))}</span></span></label></li>`).join("")}</ul>` : ""}`;
 }
+/** 这张小票以前从银行对账单导成了一整笔：提醒，选「用这张小票替换它」（确认入库后删掉那一整笔）或「不是同一笔，都留」 */
+function lumpHtml(lump, mode, total) {
+  const chip = (k, l) => `<button type="button" class="chip" data-action="scan-lumpmode" data-mode="${k}" aria-pressed="${mode === k}">${esc(t(l))}</button>`;
+  const head = t("银行对账单里已经有一笔：{s} {d}，{a}（这张小票合计 {b}）", { s: lump.store || lump.name, d: fmtShort(lump.purchased_at), a: Units.money(num(lump.amount)), b: Units.money(total) });
+  const how = mode === "replace" ? t("确认入库后，对账单里那一整笔会删掉，换成这张小票的明细，不会记两遍。") : mode === "keep" ? t("两边都留：整笔和明细都会算进花费（会重复）。") : t("是同一次消费就选「用这张小票替换它」。");
+  return `<p class="dup-hint">⚠ ${esc(head)}</p><div class="chips" role="group" aria-label="${esc(t("对账单里的整笔怎么处理"))}">${chip("replace", "用这张小票替换它")}${chip("keep", "不是同一笔，都留")}</div><p class="muted rcpt-dup-how">${esc(how)}</p>`;
+}
 /** 每一行和已有花费对一下：疑似别人（或自己）已经记过的，在行下面提醒；返回「勾选了的小票里被提醒的行数」。
  *  已有花费按 日期 + 金额 向数据库查（dup-check.js 的缓存）；还没查过的先按没有算，查回来再标一遍。
  *  整张小票像是录过的（box._rcptDup，11-14：逐行金额差几分也能认出来）在小票上方提醒；选过怎么处理之后，逐行提醒就不再出 */
@@ -161,6 +170,12 @@ export function markDups(box) {
   if (rc && !hit) rc.dupMode = "";
   const mode = hit ? rc?.dupMode || "" : "", banner = box.querySelector(".rcpt-dup");
   box._rcptDup = hit;
+  {   // 对账单里的整笔
+    const total = mine.reduce((s, r) => s + num(r.amount), 0), lump = sameLump({ store, day: date, total, card: purchasePayFields(box.querySelector('[name="pay"]')?.value || "").card_id || "" });
+    if (rc && !lump) rc.lumpMode = "";
+    box._lump = lump; const lb = box.querySelector(".rcpt-lump");
+    if (lb) { const html = lump ? lumpHtml(lump, rc?.lumpMode || "", total) : ""; if (lb.dataset.html !== html) { lb.innerHTML = html; lb.dataset.html = html; } lb.hidden = !lump; }
+  }
   if (banner) { const html = hit ? rcptDupHtml(hit, mode, mine, rc?.dropSel) : ""; if (banner.dataset.html !== html) { banner.innerHTML = html; banner.dataset.html = html; } banner.hidden = !hit; }
   let n = 0; const taken = new Set();
   box.querySelectorAll(".scan-row").forEach((r) => {

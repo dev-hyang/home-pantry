@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.8", title: { zh: "补录小票 / 缴费时，认出已经导入的对账单整笔", en: "Adding a receipt or payment now spots a statement line you already imported" }, items: [
+    { k: "new", zh: "录入小票时，如果银行对账单里已经有一笔对得上的整笔（合计一样、商店对上），小票上方会提醒；选「用这张小票替换它」，确认入库后会删掉那一整笔，换成小票的明细，不会记两遍", en: "When you add a receipt and a matching whole-amount statement line already exists (same total, same store), a note appears above the receipt; choose “replace it with this receipt” and the statement line is removed once you confirm" },
+    { k: "new", zh: "记账单缴费时，如果对账单里已经导入了对应的一笔，会问你要不要直接把它当作这次缴费，不再多记一笔花费", en: "When recording a bill payment and the matching statement line was already imported, you are asked whether to use it as this payment instead of adding another expense" },
+  ] },
   { v: "2026-11-24.7", title: { zh: "对账单导入：认出已经记过的账单缴费", en: "Statement import: spot bill payments you already recorded" }, items: [
     { k: "new", zh: "对账单里的一笔，如果和你记过的账单缴费金额一样、收款方对得上（或日期相近），就当作已记录、默认不导入，写明对上的是哪笔缴费；医疗等一次性账单、房贷车贷的整笔缴费也能认出来", en: "A statement line that matches a bill payment you recorded (same amount, payee or nearby date) is skipped by default and shows which payment it matched; one-time (medical) bills and whole mortgage / car-loan payments are recognised too" },
     { k: "better", zh: "自动扣款常比你记的缴费日晚好几天入账，现在最多往后看 10 天；金额差一点（手续费）且收款方对上的，照常导入，只提醒「可能已记录过」", en: "Autopay often posts days after your recorded date, so up to 10 days later is now considered; if the amount is only slightly off and the payee matches, it is still imported with a “may already be recorded” note" },

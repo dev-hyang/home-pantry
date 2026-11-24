@@ -8,6 +8,7 @@ import { fmtDate, num, toast, todayISO } from "../core/util.js";
 import { leaveBill } from "./bill-form.js";
 import { olderPayment, resetPayHistory } from "./pay-history.js";
 import { state } from "../core/state.js";
+import { sameLumpAsync } from "../stats/dup-check.js";
 import { t } from "../core/i18n.js";
 import { withProperty } from "../core/alerts.js";
 import { B } from "./bill-common.js";
@@ -70,7 +71,12 @@ export async function recordPayment(bill, { paid_on, due_on, amount, status, met
   const currency = bill.currency || Units.region.currency;
   let purchase_id = null;
   const total = status === "skipped" ? 0 : num(amount) + num(late_fee) + num(fee_amount) + num(tax_amount) + num(assessment_amount);
-  if (total > 0 && bill.direction !== "receivable") {
+  // 这次缴费以前是不是已经从银行对账单导成了一整笔：是的话问一下，用它当这次缴费的花费，不再多记一笔（dup-trips.js 的 findLump）
+  const payeeNow = (store || "").trim().slice(0, 40) || bill.payee || bill.name || "";
+  const lump = total > 0 && bill.direction !== "receivable" ? await sameLumpAsync({ store: payeeNow, day: paid_on, total: Math.round(total * 100) / 100, card: card_id || "" }).catch(() => null) : null;
+  if (lump && confirm(t("银行对账单里已经有一笔 {a}（{d}，{s}）。把它当作这次缴费，不再多记一笔花费吗？", { a: Units.money(num(lump.amount)), d: String(lump.purchased_at).slice(0, 10), s: lump.store || lump.name }))) {
+    purchase_id = lump.id; await Store.updatePurchase(lump.id, { name: bill.name, category: `bill_${bill.category}`, ...(bill.property_id ? { property_id: bill.property_id } : {}) });
+  } else if (total > 0 && bill.direction !== "receivable") {
     purchase_id = await Store.addPurchase({ item_id: null, name: bill.name, category: `bill_${bill.category}`, quantity: null, unit: null, store: (store || "").trim().slice(0, 40) || bill.payee || bill.name || null,
       amount: Math.round(total * 100) / 100, currency, purchased_at: new Date(`${paid_on}T12:00:00`).toISOString(), ...(card_id ? { card_id } : {}), ...(bill.property_id ? { property_id: bill.property_id } : {}) });   // 关联账单的房产（迁移 055）
   }

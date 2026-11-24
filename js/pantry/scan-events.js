@@ -152,6 +152,8 @@ async function confirm(ctx) {
   const stockOnly = sc.record === "stock";   // 只入库：不写花费，所以也不查「是不是已经记过」
   const dupRows = stockOnly ? 0 : boxes.reduce((s, b) => s + markDups(b), 0);   // 疑似重复的行：第一次点只提醒，确认无误再点一次才入库
   if (!stockOnly && boxes.some((b) => b._rcptDup && !sc.result.receipts[+b.dataset.r]?.dupMode)) { sc.error = t("有小票可能已经录过（见小票上方的提醒）：先选「以这次为准，更新那次」还是「不是同一张，两次都留」。"); return repaint2(); }
+  if (!stockOnly && boxes.some((b) => b._lump && !sc.result.receipts[+b.dataset.r]?.lumpMode)) { sc.error = t("银行对账单里已经有对得上的一整笔（见小票上方的提醒）：先选「用这张小票替换它」还是「不是同一笔，都留」。"); return repaint2(); }
+  const lumpIds = stockOnly ? [] : [...new Set(boxes.filter((b) => b._lump && sc.result.receipts[+b.dataset.r]?.lumpMode === "replace").map((b) => b._lump.id))];
   // 以这次为准：这张小票的行和那次的配对，配上的改那次的那一笔（不再记新花费、不再加库存），那次多出来的删掉
   const dropIds = [];
   if (!stockOnly) boxes.forEach((b, bi) => {
@@ -194,7 +196,8 @@ async function confirm(ctx) {
       }
     }
     if (dropIds.length) await Store.deletePurchases(dropIds);
-    if (fixed || dropIds.length) spendChanged();
+    if (lumpIds.length) await Store.deletePurchases(lumpIds);   // 用小票替换了对账单里的整笔
+    if (fixed || dropIds.length || lumpIds.length) spendChanged();
     for (const s of new Set(rows.map((x) => x.store).filter(Boolean))) rememberStore(s);
     toast((boxes.length > 1 ? t("已录入 {r} 张小票：", { r: boxes.length }) : t("已录入：")) + t("入库 {a} 项，新建 {b} 项，只记花费 {c} 项", { a: stocked, b: created, c: spendOnly }) + (fixed ? t("；更正了之前录的 {n} 项", { n: fixed }) : "") + (dropIds.length ? t("，删掉 {m} 项", { m: dropIds.length }) : "") + (cartDone ? t("；购物车 {n} 项已标成已买到", { n: cartDone }) : "") + (convs.length ? t("；已换算单位：{list}", { list: convs.join("、") }) : "") + (warns.length ? t("；{names} 的单位无法换算，按原数字记入了，请核对库存", { names: warns.join("、") }) : ""));
     resetScan(); ctx.go(href("shopping")); ctx.refresh();
@@ -232,6 +235,7 @@ export function scanAction(action, el, ctx) {
     case "scan-run": return run();
     case "scan-back": if (sc.result?.manual) { startManual(); return repaint(); } sc.step = "input"; sc.result = null; sc.error = ""; return repaint();
     case "scan-confirm": return confirm(ctx);
+    case "scan-lumpmode": { const box = el.closest(".scan-rcpt"), rc = box && sc.result?.receipts[+box.dataset.r]; if (!rc) return; rc.lumpMode = rc.lumpMode === el.dataset.mode ? "" : el.dataset.mode; sc.error = ""; document.querySelector('#scanForm > p.form-error[role="alert"]')?.remove(); updateSum(); return; }
     case "scan-dupmode": { const box = el.closest(".scan-rcpt"), rc = box && sc.result?.receipts[+box.dataset.r]; if (!rc) return; rc.dupMode = rc.dupMode === el.dataset.mode ? "" : el.dataset.mode; sc.error = ""; document.querySelector('#scanForm > p.form-error[role="alert"]')?.remove(); updateSum(); return; }
     default: return undefined;
   }
