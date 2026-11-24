@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.2", title: { zh: "收入可以关联房产，税务里直接链接", en: "Income can link to a home; link it in Tax" }, items: [
+    { k: "new", zh: "记收入时多了「关联房产」（可不填）：房产相关的报销 / 返还、credit、租金选上对应的房子", en: "Income records have an optional “Linked home”: pick the home for reimbursements, credits or rent" },
+    { k: "new", zh: "税务 → 买卖与成本基础 →「买入时收到的退款 / credit」多了「🔗 从收入记录里选」：关联了这套房的收入直接带进来，不用手填金额", en: "Tax → Buy / sell: “Refunds / credits at purchase” has “🔗 Pick from income records”: income linked to this home comes in with its amount" },
+  ] },
   { v: "2026-11-24.1", title: { zh: "邀请码加入：可以留话、申请财务权限", en: "Joining by invite code: leave a note, ask for finance access" }, items: [
     { k: "new", zh: "用邀请码加入时可以给家主留一句话，也可以勾选「我需要财务权限」；家主批准时能同时选「他是名册里的谁」和是否开财务权限", en: "When joining with an invite code you can leave the owner a note and tick “I need finance access”; the owner can pick who they are in the people list and grant finance access while approving" },
     { k: "new", zh: "加入以后，没有财务权限的家人可以在 设置 → 家庭 里随时申请、撤回；家主会收到提醒，一键同意或拒绝", en: "After joining, members without finance access can ask for it (or withdraw) in Settings → Family; the owner gets an alert and can approve or decline in one tap" },

@@ -26,7 +26,7 @@ export { ui };
 /** 四张清单：key = 存在 props[id] 里的字段；legacy = 以前（只有一个数字框时）存的合计，还认；sign = 对成本基础是加还是减 */
 export const SECS = [
   { key: "buyItems", legacy: "buyCosts", sign: 1, n: "②", title: "买入时付的费用", hint: "过户费、律师费、评估费、贷款费用…", ph: "例如：律师费", date: true, link: "spend" },
-  { key: "creditItems", legacy: "buyCredits", sign: -1, n: "③", title: "买入时收到的退款 / credit", hint: "买家中介退回的佣金、title 退回的 closing 多收款、贷款方的 credit（包括 Zelle 转来的）。会降低成本基础，不是收入；每笔单独记一项。", ph: "例如：贷款方 credit", date: true },
+  { key: "creditItems", legacy: "buyCredits", sign: -1, n: "③", title: "买入时收到的退款 / credit", hint: "买家中介退回的佣金、title 退回的 closing 多收款、贷款方的 credit（包括 Zelle 转来的）。会降低成本基础，不是收入；每笔单独记一项。", ph: "例如：贷款方 credit", date: true, link: "income" },
   { key: "improvements", legacy: null, sign: 1, n: "④", title: "装修翻新（加到成本基础）", hint: "屋顶、厨房、窗户、地板…大的翻新才算，日常维修不算。", ph: "例如：换屋顶", date: true, link: "spend" },
   { key: "sellItems", legacy: "sellCosts", sign: 1, n: "⑥", title: "卖出时的费用", hint: "中介佣金、过户费…", ph: "例如：中介佣金", date: true, link: "spend" },
 ];
@@ -56,9 +56,9 @@ const step = (n, title, body, hint = "") => `<section class="tax-step"><h4><span
 /** 一块清单：行 + 合计 + 「＋ 添加一项」（点了才展开小表单） */
 function listBlock(p, s) {
   const x = propOf(p.id), { rows, total } = itemsOf(x, s, p.id), key = `${p.id}|${s.key}`, adding = ui.add === key;
-  const li = rows.map((r) => `<li class="tax-imp ${r.missing ? "is-missing" : ""}"><span class="tax-imp-d">${r.on ? `<small class="muted">${esc(r.on)}</small>` : ""}${r.link ? `<span title="${esc(t("链接到花费记录，金额跟着记录走"))}">🔗 </span>` : ""}${esc(r.desc || "")}${r.missing ? ` <small class="form-error">${t("记录已删除，不计入")}</small>` : ""}</span><b class="tax-imp-a">${money(+r.amount || 0)}</b><button type="button" class="btn btn-sm btn-ghost" data-tax-item-del="${esc(r.legacy ? `${p.id}|legacy|${r.legacy}` : `${key}|${r.i}`)}" aria-label="${esc(r.link ? t("解除链接") : t("删除这一条"))}">×</button></li>`).join("");
-  const picking = s.link && ui.pick === key, linkBtn = s.link && !adding && !picking ? ` <button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-pick="${esc(key)}">🔗 ${t("从花费记录里选")}</button>` : "";
-  const form = picking ? pickerHtml(p, key, leafLabel, isTransfer, linkedRefs(x, SECS.filter((z) => z.link).map((z) => z.key)), money) : adding ? `<form class="tax-item-form" data-tax-item="${esc(key)}" novalidate>
+  const li = rows.map((r) => `<li class="tax-imp ${r.missing ? "is-missing" : ""}"><span class="tax-imp-d">${r.on ? `<small class="muted">${esc(r.on)}</small>` : ""}${r.link ? `<span title="${esc(r.link === "income" ? t("链接到收入记录，金额跟着记录走") : t("链接到花费记录，金额跟着记录走"))}">🔗 </span>` : ""}${esc(r.desc || "")}${r.missing ? ` <small class="form-error">${t("记录已删除，不计入")}</small>` : ""}</span><b class="tax-imp-a">${money(+r.amount || 0)}</b><button type="button" class="btn btn-sm btn-ghost" data-tax-item-del="${esc(r.legacy ? `${p.id}|legacy|${r.legacy}` : `${key}|${r.i}`)}" aria-label="${esc(r.link ? t("解除链接") : t("删除这一条"))}">×</button></li>`).join("");
+  const picking = s.link && ui.pick === key, linkBtn = s.link && !adding && !picking ? ` <button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-pick="${esc(key)}">🔗 ${s.link === "income" ? t("从收入记录里选") : t("从花费记录里选")}</button>` : "";
+  const form = picking ? pickerHtml(p, key, s.link, leafLabel, isTransfer, linkedRefs(x, SECS.filter((z) => z.link === s.link).map((z) => z.key), s.link), money) : adding ? `<form class="tax-item-form" data-tax-item="${esc(key)}" novalidate>
       <label>${t("这一项是什么")}<input name="desc" maxlength="60" placeholder="${esc(t(s.ph))}" autocomplete="off"></label>
       <label>${t("金额")}<input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00"></label>
       ${s.date ? `<label>${t("日期（可不填）")}<input name="on" type="date"></label>` : ""}

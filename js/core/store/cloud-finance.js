@@ -24,6 +24,7 @@ export const cloudFinance = {
   async listIncomeRecords() { return this.pageAll(() => this.sb.from("income_records").select("*").eq("household_id", this.hid).order("received_on", { ascending: false }).order("id"), 20000); },   // 分页：超过 1000 笔时最早的不会被截掉
   async saveIncomeRecord(r) {
     const row = pick(r, INCOME_FIELDS, { household_id: this.hid });
+    if (r.property_id !== undefined) row.property_id = r.property_id;   // 迁移 106：关联房产；没填表单字段时不送这一列
     if (r.gift_donor !== undefined) row.gift_donor = r.gift_donor;   // 迁移 103；只有赠与记录才送这一列（没执行 103 时别的收入照常能存）
     if (r.id) { this.must(await this.sb.from("income_records").update(row).eq("id", r.id)); return r.id; }
     return this.must(await this.sb.from("income_records").insert(row).select("id").single()).id;

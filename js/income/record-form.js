@@ -73,6 +73,7 @@ export function formHtml() {
   const person = r.person_id !== undefined ? r.person_id : mine, d = (v) => esc(v ?? "");
   if (!r.id) r = { ...r, source_name: r.source_name || defValid("source_name") || undefined, kind: r.kind || defValid("kind") || undefined, channel: r.channel || defValid("channel") || undefined };   // 新记一笔：预填默认的付款方 / 类型 / 收款方式
   const accVal = r.id ? acctValueOf(r) : defAcctValid(), kind = r.kind || "other", gain = GAIN_KINDS.includes(kind) || r.income_amount != null;   // 新记一笔默认选上你设的默认账户；编辑按 account_id（老记录按文字）对上登记过的账户
+  const propOpts = (state.properties || []).filter((x) => !x.archived || x.id === r.property_id).map((x) => `<option value="${esc(x.id)}" ${x.id === r.property_id ? "selected" : ""}>${esc(x.name)}</option>`).join("");
   const persons = owner ? personOptions(person || "none") : `<option value="${mine || "none"}">${esc(personName(mine) || t("未指定 / 全家"))}</option>`;
   return `<form class="panel" data-inc-form="record" id="incForm" autocomplete="off" ${sec ? "novalidate" : ""}>${secTitle(INC_SEC_NAMES[sec], sec) || `<h3 style="margin:0 0 8px">${r.id ? t("编辑收入") : t("记一笔收入")}</h3>`}
     <div class="form-grid">
@@ -85,6 +86,7 @@ export function formHtml() {
       <label ${fsec("basic", sec)}>${t("收款方式")}<select name="channel" data-nosearch><option value="">${t("未填")}</option>${selOpts(CHANNELS, r.channel)}</select></label>
       <div style="display:contents" ${fsec("basic", sec)}>${defsHtml(r)}</div>
       <label ${fsec("acct", sec)}>${t("这是谁的收入")}<select name="person_id" data-nosearch>${persons}</select></label>
+      ${propOpts ? `<label ${fsec("acct", sec)}>${t("关联房产（可不填）")}<select name="property_id" data-nosearch><option value="">${t("不关联")}</option>${propOpts}</select><small class="muted">${t("房产相关的收入（报销 / 返还、credit、租金）选上，税务的买卖与成本基础里就能直接链接。")}</small></label>` : ""}
       <label ${fsec("acct", sec)}>${t("入到哪个账户")}<select name="acct_sel" data-inc-acct>${acctSelectHtml(accVal)}</select>
         <input name="account" maxlength="60" value="${accVal === "other" ? d(r.account) : ""}" placeholder="Chase ····1234" style="margin-top:6px" ${accVal === "other" ? "" : "hidden"}></label>
       <div class="ix-acct-def" ${fsec("acct", sec)}><label class="check-inline"><input type="checkbox" name="acct_default" ${accVal && accVal === defAcct() ? "checked" : ""}><span>${t("设为我的默认入账账户")}</span></label>
@@ -113,6 +115,7 @@ export async function saveRecord(form) {
   const row = { id: f.rec?.id, received_on: g("received_on") || todayISO(), amount, currency: cur(), orig_amount: num(g("orig_amount")) > 0 ? num(g("orig_amount")) : null, orig_currency: g("orig_currency").toUpperCase().slice(0, 3) || null,
     fee: g("fee") === "" ? null : num(g("fee")), source_name: name, kind: g("kind") || "other", channel: g("channel") || null, person_id: pid && pid !== "none" ? pid : null, account, account_id: accCard?.id || null, income_amount,
     import_batch: f.rec?.import_batch || null, repay_required: repay, repay_due_on: repay ? g("repay_due_on") || null : null, repay_amount: repay && num(g("repay_amount")) > 0 ? num(g("repay_amount")) : null, notes: g("notes") || null };
+  if (fd.has("property_id")) row.property_id = g("property_id") || null;   // 迁移 106
   if (row.kind === "gift") row.gift_donor = g("gift_donor") || null; else if (f.rec?.gift_donor) row.gift_donor = null;   // 只有「个人赠与」才有赠与人；改成别的类型时清掉旧的
   if (row.orig_currency && !/^[A-Z]{3}$/.test(row.orig_currency)) return fail(t("原币种填 3 位字母，如 CNY"));
   const dup = !row.id && similarIncome(row), key = `${row.received_on}|${row.amount}|${skey(name)}`;

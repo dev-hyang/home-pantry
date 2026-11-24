@@ -6,7 +6,8 @@
 import { esc } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { ui } from "./tax-ui.js";
-import { dayOf, linkedRefs, pickable, r2, resolveLink } from "./tax-links-lib.js";
+import { linkRows, linkedRefs, pickable, pickableIncome, resolveLink } from "./tax-links-lib.js";
+import { state } from "../core/state.js";
 export { linkedRefs, pickable, resolveLink };
 import { propOf, saveProp } from "./tax-calendar.js";
 import { toast } from "../core/util.js";
@@ -26,8 +27,17 @@ export async function ensureSpend(pids, done) {
 }
 if (typeof window !== "undefined") window.addEventListener("spend-rows-changed", () => ui.spend.clear());
 
+/** 收入的选择器：收入记录关联了这套房的（收入记录里的「关联房产」）；记录都在内存里，不用读 */
+function incomePicker(p, key, linked, money) {
+  if (!state.inc?.loaded) return `<p class="muted">${t("收入记录还没读到；打开一次 财务 → 收入 再回来。")}</p>`;
+  const rows = pickableIncome(p.id, linked).map((r) => `<li class="tax-pick-row"><label class="check-inline"><input type="checkbox" name="pick" value="${esc(r.id)}"><span class="tax-pick-d"><small class="muted">${esc(String(r.received_on || "").slice(0, 10))}</small> ${esc(r.source_name || "—")}</span><b class="tax-imp-a">${money(Number(r.amount) || 0)}</b></label></li>`).join("");
+  return `<form class="tax-link-form" data-tax-link="${esc(key)}" novalidate>${rows ? `<ul class="tax-pick">${rows}</ul>` : `<p class="muted">${t("这套房没有关联的收入记录。在 收入 的记录里把「关联房产」选上，这里就能选到。")}</p>`}
+    <div class="tax-item-actions">${rows ? `<button type="submit" class="btn btn-sm btn-primary">${t("链接所选")}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-tax-pick-cancel>${t("取消")}</button></div></form>`;
+}
+
 /** 选择器表单：勾选要链接的花费 */
-export function pickerHtml(p, key, leafLabelOf, isTransfer, linked, money) {
+export function pickerHtml(p, key, kind, leafLabelOf, isTransfer, linked, money) {
+  if (kind === "income") return incomePicker(p, key, linked, money);
   const got = ui.spend.get(p.id);
   if (!got || got.loading) return `<p class="muted">${t("正在读这套房的花费记录…")}</p>`;
   if (got.err) return `<p class="form-error" role="alert">${esc(t("读花费记录失败：{msg}", { msg: got.err }))}</p>`;
@@ -48,7 +58,7 @@ if (typeof document !== "undefined") {
     const f = e.target; if (!f?.dataset?.taxLink || !f.closest(".tax-page")) return;
     e.preventDefault(); const [id, key] = f.dataset.taxLink.split("|"), ids = new Set(new FormData(f).getAll("pick").map(String));
     if (!ids.size) return toast(t("先勾选要链接的花费。"));
-    const rows = (ui.spend.get(id)?.rows || []).filter((r) => ids.has(String(r.id))).map((r) => ({ link: "spend", ref: r.id, desc: String(r.name || "").slice(0, 60), amount: r2(r.amount), on: dayOf(r.purchased_at) }));
+    const rows = linkRows(key.startsWith("creditItems") ? "income" : "spend", id, ids);
     ui.pick = null;
     try { await saveProp(id, { [key]: [...(propOf(id)[key] || []), ...rows] }); } catch (err) { toast(t("保存失败：{msg}", { msg: err.message })); }
     render(false);
