@@ -111,7 +111,7 @@ export function itemRow(it) {
   const step = Units.step(it.du), nm = esc(it.name), sel = state.invSel, on = sel?.has(it.id);
   const rowAttrs = sel ? `data-row-sel="${it.id}"` : `data-row-open="${esc(href("item", it.id))}" data-swipe-del="item" data-swipe-alt="item" data-swipe-alt-label="${esc(t("加入购物车"))}" data-swipe-alt-go="${esc(t("松手加入"))}"`;
   const lp = sel ? "" : lpAttr([{ label: t("详情"), href: href("item", it.id), first: true }, { label: t("加入购物车"), action: "inv-shop", data: { id: it.id } }, { label: t("多选"), action: "inv-sel-start", data: { id: it.id } }, { label: t("删除"), action: "inv-del", data: { id: it.id }, danger: true }], it.name);
-  return `<li class="inv-row st-${it.status}${on ? " is-picked" : ""}" data-id="${it.id}" ${rowAttrs} ${lp}>
+  return `<li class="ui-row inv-row st-${it.status}${on ? " is-picked" : ""}" data-id="${it.id}" ${rowAttrs} ${lp}>
     <span class="inv-bar" aria-hidden="true"></span>
     ${sel ? `<input type="checkbox" class="inv-chk" data-sel-id="${it.id}" ${on ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: it.name }))}">` : ""}
     <div class="inv-main"><div class="inv-name">${sel ? `<span class="inv-link">${nm}</span>` : `<a href="${esc(href("item", it.id))}" class="inv-link">${nm}</a>`}${badges}</div><div class="inv-meta">${meta}</div></div>

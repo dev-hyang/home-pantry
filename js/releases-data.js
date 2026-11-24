@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.27", title: { zh: "库存和账单的列表行换成统一的外观", en: "Inventory and bill list rows share one look" }, items: [
+    { k: "better", zh: "库存行、账单行（含「全部账单」和买卖交易里的账单）用同一种实线分隔，行高不低于 56px，最后一行不再多画一条线。", en: "Inventory rows and bill rows (including All bills and bills inside a transaction) use the same solid divider, a minimum height of 56px, and no extra line under the last row." },
+    { k: "better", zh: "库存行的最小高从 64px 调到 56px，列表更紧凑一点；账单行原来的虚线改成实线。", en: "Inventory rows go from 64px to 56px minimum for a slightly tighter list; the dashed line under bill rows is now solid." },
+  ] },
   { v: "2026-11-24.26", title: { zh: "全站的展开 / 进入箭头统一了", en: "Expand and go arrows are now consistent everywhere" }, items: [
     { k: "better", zh: "菜单、卡片、可展开的区块上的「›」和「▾」箭头统一成同一套大小、颜色和转动动画；今日页卡片上的箭头从 18px 调到 20px，和别处一致。", en: "The › and ▾ arrows on menus, cards and expandable sections share one size, colour and rotation. Arrows on Today cards grow from 18px to 20px to match the rest." },
     { k: "better", zh: "搜索框在 iPhone 上和其他输入框同样的圆角和边框。", en: "Search boxes on iPhone now have the same corners and border as other inputs." },

@@ -121,7 +121,7 @@ export function rowHtml(r) {
   const amt = estAmount(r.amountUnknown && !done ? "—" : `<b>${mny(r.amount, c)}</b>`, r.amountIsEst && !done);
   const pays = info.split ? `<ul class="all-pays" aria-label="${esc(t("分期付款"))}">${info.lines.map((p, k) => `<li><span class="ap-no">${esc(L(`分期 #${k + 1}`, `Split #${k + 1}`))}</span><span class="ap-date">${esc(fmtDate(p.date))}</span><b class="ap-amt">${mny(p.amount, c)}</b>${p.balance != null ? `<small class="ap-bal">${esc(t("余额 {a}", { a: mny(p.balance, c) }))}</small>` : ""}</li>`).join("")}</ul>` : "";
   const act = action(r);
-  return `<li class="bill-row all-row ${done ? "is-paid" : ""}" ${lpAttr(rowItems(r), r.name)}>
+  return `<li class="ui-row bill-row all-row ${done ? "is-paid" : ""}" data-variant="record" ${lpAttr(rowItems(r), r.name)}>
     <div class="all-l1">${name}</div>
     <div class="all-amt">${amt}</div>
     <div class="all-l2">${meta}</div>

@@ -532,6 +532,11 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 @media (prefers-reduced-motion: reduce) { .ui-chev { transition: none; } }
 /* 搜索框：去掉 iOS / Safari 自带的药丸外观，圆角、边框、高度和其他输入框一致（高度仍跟旁边的下拉对齐，不单独加高） */
 input[type="search"] { -webkit-appearance: none; appearance: none; }
+/* 记录行的公共外观（<li class="ui-row" data-variant="record|detail">）：实线分隔、最后一行不画线、最小高 56px（detail 键值行 44px，点按区不低于 44px）。
+   列的排法（grid / flex）各行自己定，写在各自的类名下；以后菜单行、键值行、卡片行也逐个换到这里。 */
+.ui-row { box-sizing: border-box; min-height: 56px; border-bottom: 1px solid var(--line); }
+.ui-row:last-child { border-bottom: 0; }
+.ui-row[data-variant="detail"] { min-height: 44px; }
 /* 数字 / 金额框（js/core/ui-num.js 的 num() 生成 data-num）：等宽数字，位数对得齐；盒子大小不变，仍跟其他输入框一致 */
 input[data-num] { font-variant-numeric: tabular-nums; }
 input[type="date"], input[type="month"], input[type="datetime-local"], input[type="time"] { min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
@@ -1230,8 +1235,7 @@ body.quick-dragging { overflow-anchor: none; user-select: none; -webkit-user-sel
 .prop-bar { margin-bottom: 10px; }
 .bill-list { list-style: none; margin: 0; padding: 0; }
 /* 账单清单行：三列网格（名称与说明 / 金额 / 自动开关），名称再长也在第一列里换行，金额和开关固定在右边不掉行 */
-.bill-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
-.bill-row:last-child { border-bottom: 0; }
+.bill-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px 10px; padding: 10px 0; }
 .bill-row.inactive { opacity: .55; }
 .bill-row .grow { min-width: 0; }
 .bill-row .link-name { overflow-wrap: anywhere; }
@@ -3320,8 +3324,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .inv-seg .seg-btn[aria-pressed="true"] { background: var(--pine); color: var(--surface); }
 .inv-sec > summary .inv-sec-add { min-width: 44px; min-height: 40px; font-size: 18px; }
 .inv-list { list-style: none; margin: 0; padding: 0; }
-.inv-row { display: grid; grid-template-columns: 4px minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; min-height: 64px; padding: 8px 6px 8px 0; border-top: 1px solid var(--line-soft); cursor: pointer; background: var(--surface); }
-.inv-row:first-child { border-top: 0; }
+.inv-row { display: grid; grid-template-columns: 4px minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; padding: 8px 6px 8px 0; cursor: pointer; background: var(--surface); }
 .inv-row:hover { background: color-mix(in srgb, var(--surface-2) 60%, var(--surface)); }
 .inv-bar { align-self: stretch; border-radius: 3px; background: var(--pine); opacity: .35; }
 .inv-row.st-out .inv-bar { background: var(--out); opacity: 1; }

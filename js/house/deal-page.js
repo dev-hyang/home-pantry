@@ -236,7 +236,7 @@ function closeoutPanel(p, deal) {
     </div>
     <h3 style="font-size:15px;margin:14px 0 6px">${t("这套房产的账单（{n} 条）", { n: bills.length })}</h3>
     <p class="muted" style="font-size:13px;margin:0 0 8px">${t("结束日期之后不再提醒；水电气网默认多留 2–6 周等最后一期账单。自动扣款的请在清单里按“取消自动扣款”任务逐条去取消。")}</p>
-    ${bills.length ? `<ul class="bill-list">${bills.map((b) => `<li class="bill-row">
+    ${bills.length ? `<ul class="bill-list">${bills.map((b) => `<li class="ui-row bill-row" data-variant="record">
         <div class="grow"><b>${esc(b.name)}</b>${b.autopay ? ` <span class="badge b-soon">${t("自动扣款")}</span>` : ""}<small>${esc(b.payee || "")}</small></div>
         <label>${t("结束于")}<input name="end_${b.id}" type="date" value="${esc(addDays(closing, END_LAG[b.category] ?? 0))}"></label></li>`).join("")}</ul>` : `<p class="muted">${t("没有挂在这套房产的账单。")}</p>`}
     <label class="check-inline" style="margin-top:10px"><input type="checkbox" name="archive" checked><span>${t("归档房产（从切换条隐藏，资料和记录保留只读）")}</span></label>
