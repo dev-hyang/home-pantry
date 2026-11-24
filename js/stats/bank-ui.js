@@ -23,7 +23,7 @@ const catOpts = (sel) => `<option value="" ${!sel ? "selected" : ""}>${esc(t("�
 const dupListHtml = (rows) => '<details class="bank-dups" ' + (rows.some((r) => r.forced) ? "open" : "") + '><summary>' + t("核对 / 取消跳过") + '</summary><ul class="plain small" style="margin:6px 0 0">'
   + rows.map((r) => '<li><label class="check-inline"><input type="checkbox" data-bank-force="' + esc(r.fk) + '" ' + (r.forced ? "checked" : "") + '><span>' + t("仍然导入") + ' · ' + esc(r.date) + ' · ' + money(r.out) + ' · <span class="muted">' + esc(t("对上的：{x}", { x: r.dupOf })) + '</span></span></label></li>').join("") + '</ul></details>';
 /** 中档：合计差一点（小费 / 折扣）且商店对上，照常导入，只提醒 */
-const weakHint = (rows) => { const w = rows.filter((r) => r.tripWeak); return w.length ? ` · <span class="bank-src" title="${esc(w.map((r) => `${r.date} ${money(r.out)} → ${r.tripWeak}`).join("\n"))}">${t("{n} 笔可能已按小票记录，请核对", { n: w.length })}</span>` : ""; };
+const weakHint = (rows) => { const w = rows.filter((r) => r.tripWeak); return w.length ? ` · <span class="bank-src" title="${esc(w.map((r) => `${r.date} ${money(r.out)} → ${r.tripWeak}`).join("\n"))}">${t("{n} 笔可能已记录过（小票 / 账单缴费），请核对", { n: w.length })}</span>` : ""; };
 function groupRow(g) {
   const inc = !!S.include[g.id], dups = g.rows.filter((r) => r.dup).length, n = g.rows.length, matched = g.rows.filter((r) => r.dupOf);
   const sel = `<select data-bank-cat="${esc(g.id)}" aria-label="${esc(t("分类"))}">${catOpts(S.pick[g.id])}</select>`;   // 默认跳过的也能勾上、选个分类导入

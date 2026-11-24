@@ -6,6 +6,8 @@ import { detectAccount, looksOFX, looksQIF, parseStatementLines, pdfLines, readO
 import { guessKind, incomeRules, senderName, similarIncome, skey } from "../income/logic.js";
 import { loadNear, nearRows, poolRows } from "./dup-check.js";
 import { matchTrips } from "./dup-trips.js";
+import { matchPayments, paymentPool } from "./dup-bills.js";
+import { state } from "../core/state.js";
 import { money, num } from "../core/util.js";
 import { redraw } from "./bank-ui.js";
 import { t } from "../core/i18n.js";
@@ -113,6 +115,15 @@ export function rebuild() {
     const label = t("小票：{s} · {n} 项 · 合计 {a}（{d}）", { s: m.store || t("商店未填"), n: m.n, a: money(m.total), d: m.day });
     if (m.tier === "strong") { r.dupOf = label; if (S.force.has(r.fk)) r.forced = true; else r.dup = true; } else r.tripWeak = label;
   }
+  // 账单缴费 ↔ 流水：拿缴费记录（不管有没有写花费；医疗等一次性账单、房贷车贷的整笔也在内）比：金额一样 + 收款方或日期近 = 强，金额差一点 + 收款方对上 = 中（dup-bills.js）
+  loadMedicalOnce(rebuild);
+  const pays = matchPayments(rows.filter((r) => !r.skip && !r.inc && !r.dup && r.out > 0).map((r) => ({ fk: r.fk, date: r.date, out: r.out, texts: [r.desc, merchantName(r.desc)] })),
+    paymentPool({ bills: state.bills, payments: state.billPayments, medBills: state.medBills, medPayments: state.medPayments }), { card: cardId, usedPurchases: used });
+  for (const r of rows) {
+    const m = pays.get(r.fk); if (!m) continue;
+    const label = t("账单缴费：{n} · {d} · {a}", { n: m.label || t("账单"), d: m.date, a: money(m.amount) });
+    if (m.tier === "strong") { r.dupOf = label; r.tripWeak = ""; if (S.force.has(r.fk)) r.forced = true; else r.dup = true; } else if (!r.tripWeak) r.tripWeak = label;
+  }
   for (const r of rows) {
     if (!r.inc) continue;
     const amt = Math.round(-r.out * 100) / 100, hit = similarIncome({ received_on: r.date, amount: amt, source_name: senderName(r.desc) });
@@ -128,5 +139,11 @@ export function rebuild() {
   }
   S.groups = [...g.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
   for (const x of S.groups) { x.src = x.rows[0].src || ""; if (!(x.id in S.auto)) S.auto[x.id] = x.inc ? (incomeRules()[x.id.slice(3)] || guessKind(x.rows[0].desc)) : x.skip ? "" : x.rows[0].cat; if (!(x.id in S.pick)) S.pick[x.id] = x.inc ? "" : x.skip ? SKIP_CAT[x.skip] || "" : x.rows[0].cat; if (x.inc && !(x.id in S.ikind)) { const rr = refundRules()[x.id.slice(3)]; S.ikind[x.id] = rr ? AA_BACK : !incomeRules()[x.id.slice(3)] && AA_KINDS.includes(S.auto[x.id]) ? AA_BACK : S.auto[x.id]; if (rr && !(x.id in S.rcat)) S.rcat[x.id] = rr; } if (!(x.id in S.include)) S.include[x.id] = x.inc ? !x.rows.every((r) => r.incUnsure) : !x.skip; }
+}
+/** 医疗等一次性账单的缴费不一定读进来过（按需加载）：对账单导入时读一次，读完重新判断 */
+let medTried = false;
+function loadMedicalOnce(rebuildFn) {
+  if (medTried || state.medPayments?.length) return; medTried = true;
+  import("../bills/medical-data.js").then((m) => m.reloadMedical()).then(() => { rebuildFn(); redraw(); }).catch(() => {});
 }
 export const resetPicks = () => { S.pick = {}; S.include = {}; S.auto = {}; S.rcat = {}; };

@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.7", title: { zh: "对账单导入：认出已经记过的账单缴费", en: "Statement import: spot bill payments you already recorded" }, items: [
+    { k: "new", zh: "对账单里的一笔，如果和你记过的账单缴费金额一样、收款方对得上（或日期相近），就当作已记录、默认不导入，写明对上的是哪笔缴费；医疗等一次性账单、房贷车贷的整笔缴费也能认出来", en: "A statement line that matches a bill payment you recorded (same amount, payee or nearby date) is skipped by default and shows which payment it matched; one-time (medical) bills and whole mortgage / car-loan payments are recognised too" },
+    { k: "better", zh: "自动扣款常比你记的缴费日晚好几天入账，现在最多往后看 10 天；金额差一点（手续费）且收款方对上的，照常导入，只提醒「可能已记录过」", en: "Autopay often posts days after your recorded date, so up to 10 days later is now considered; if the amount is only slightly off and the payee matches, it is still imported with a “may already be recorded” note" },
+  ] },
   { v: "2026-11-24.6", title: { zh: "对账单导入：认出已经按小票记过的花费", en: "Statement import: spot spending already entered from receipts" }, items: [
     { k: "new", zh: "对账单里的一整笔，如果和你已经记的某张小票（一行一个物品）合计对得上，商店也对得上，就当作已记录、默认不导入，并写明对上的是哪张小票；不是同一笔可以改成「仍然导入」", en: "A single statement line that matches the total of a receipt you already entered item by item (and the store matches) is treated as recorded and skipped by default, showing which receipt it matched; switch to “import anyway” if it is different" },
     { k: "better", zh: "合计只差一点（小费、折扣）且商店对上的，照常导入，只提醒「可能已按小票记录」；对账单选了卡的话，记在别的卡上的小票不会被当成同一笔", en: "If the total is only slightly off (tip, discount) and the store matches, it is still imported with a “may already be recorded” note; receipts paid with a different card are never treated as the same charge" },
