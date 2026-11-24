@@ -12,20 +12,20 @@ const row = (n, lv) => {
   const cur = n.current ? ' aria-current="page" data-tpop-cur' : "";
   const inner = `<span class="npop-ico" aria-hidden="true">${n.icon || ""}</span><span class="npop-lbl">${esc(n.label)}</span>${n.badge ? `<span class="ui-badge" data-tone="warn" data-size="sm">${esc(String(n.badge))}</span>` : ""}${n.current ? '<span class="npop-ck" aria-hidden="true">✓</span>' : ""}`;
   const kids = n.children?.length;
-  if (!kids) return `<a class="npop-item" href="${esc(n.href || "#/")}"${cur}>${inner}</a>`;
+  if (!kids) return `<a class="ui-opt npop-item" href="${esc(n.href || "#/")}"${cur}>${inner}</a>`;
   const exp = !!n.open, tg = (cls, label) => `<button type="button" class="${cls}" data-tpop-toggle aria-expanded="${exp}" aria-label="${esc(label)}">`;
   const head = n.href
-    ? `<a class="npop-item" href="${esc(n.href)}"${cur}>${inner}</a>${tg("tpop-tg", t("展开 / 收起"))}<span aria-hidden="true">›</span></button>`
-    : `${tg("npop-item tpop-grp", n.label)}${inner}<span class="ui-chev" aria-hidden="true">›</span></button>`;
+    ? `<a class="ui-opt npop-item" href="${esc(n.href)}"${cur}>${inner}</a>${tg("tpop-tg", t("展开 / 收起"))}<span aria-hidden="true">›</span></button>`
+    : `${tg("ui-opt npop-item tpop-grp", n.label)}${inner}<span class="ui-chev" aria-hidden="true">›</span></button>`;
   return `<div class="tpop-node" data-lv="${lv}"><div class="tpop-row">${head}</div><div class="tpop-kids"${exp ? "" : " hidden"}>${n.children.map((c) => row(c, lv + 1)).join("")}</div></div>`;
 };
 
 /** 面板最下面「本页操作」：不是去别的页面、而是做一件事（打印、导出…）；items = [{ label, icon?, href? | action + data? }] */
 const actionRow = (x) => {
   const inner = `<span class="npop-ico" aria-hidden="true">${x.icon || ""}</span><span class="npop-lbl">${esc(x.label)}</span>`;
-  if (x.href) return `<a class="npop-item" href="${esc(x.href)}">${inner}</a>`;
+  if (x.href) return `<a class="ui-opt npop-item" href="${esc(x.href)}">${inner}</a>`;
   const data = Object.entries(x.data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join("");
-  return `<button type="button" class="npop-item"${x.action ? ` data-action="${esc(x.action)}"` : ""}${data}>${inner}</button>`;
+  return `<button type="button" class="ui-opt npop-item"${x.action ? ` data-action="${esc(x.action)}"` : ""}${data}>${inner}</button>`;
 };
 
 /** nodes = 树；id = 面板 id（同一页只放一个）；label = 按钮上的名字；actions = 本页操作 */

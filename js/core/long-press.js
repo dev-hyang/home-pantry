@@ -22,7 +22,7 @@ function openSheet(row, items) {
   closeSheet();
   const title = row.dataset.lpTitle || "";
   const one = (x) => {
-    const cls = `fam-sheet-row lp-row${x.danger ? " is-danger" : ""}`;
+    const cls = `ui-opt fam-sheet-row lp-row${x.danger ? " is-danger" : ""}`;
     if (x.href) return `<a class="${cls}" href="${esc(x.href)}"${x.external ? ' target="_blank" rel="noopener noreferrer"' : ""}>${esc(x.label)}</a>`;
     const data = Object.entries(x.data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join("");
     return `<button type="button" class="${cls}"${x.action ? ` data-action="${esc(x.action)}"` : ""}${data}>${esc(x.label)}</button>`;

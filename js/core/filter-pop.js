@@ -19,7 +19,7 @@ export const ICON_MENU = svg(`<path d="M3 5h14M3 10h14M3 15h14"/>`);
 /** 目录按钮 + 导航面板（和筛选同一个外观、同一套开关）：items = [{ href, icon, label, current }]；点一项就跳转，面板随页面重画收起 */
 export function navPop(items, { id = "nav", label = t("目录") } = {}) {
   const open = openId === id;
-  const row = (x) => `<a class="npop-item" href="${esc(x.href)}"${x.current ? ' aria-current="page"' : ""}><span class="npop-ico" aria-hidden="true">${x.icon || ""}</span><span class="npop-lbl">${esc(x.label)}</span>${x.current ? '<span class="npop-ck" aria-hidden="true">✓</span>' : ""}</a>`;
+  const row = (x) => `<a class="ui-opt npop-item" href="${esc(x.href)}"${x.current ? ' aria-current="page"' : ""}><span class="npop-ico" aria-hidden="true">${x.icon || ""}</span><span class="npop-lbl">${esc(x.label)}</span>${x.current ? '<span class="npop-ck" aria-hidden="true">✓</span>' : ""}</a>`;
   return `<div class="fpop npop" data-fpop="${esc(id)}"${open ? OPEN_ATTR : ""}>
     <button type="button" class="fpop-btn" aria-expanded="${open}" aria-controls="fpop-${esc(id)}" aria-label="${esc(label)}" data-fpop-toggle>${ICON_MENU}<span>${esc(label)}</span></button>
     <div class="fpop-panel" id="fpop-${esc(id)}"${open ? "" : " hidden"}>

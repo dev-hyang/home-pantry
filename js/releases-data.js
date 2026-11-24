@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.29", title: { zh: "下拉选项、目录项、弹窗选项的点按外观统一", en: "Dropdown, menu and pop-up options share one tap style" }, items: [
+    { k: "better", zh: "可搜索下拉的选项、目录面板的条目、底部弹窗（长按菜单、选人）里的选项，高度都不低于 44px，悬停、键盘选中和当前项的底色一致。", en: "Options in searchable dropdowns, contents-panel entries and bottom-sheet options (long-press menus, picking a person) are all at least 44px tall, with the same hover, keyboard and current-item colours." },
+    { k: "better", zh: "可搜索下拉里的选项从 40px 提到 44px，列表略长一点；目录里当前所在的一项底色改成和下拉一致的浅绿。", en: "Options in searchable dropdowns grow from 40px to 44px, so the list is a little longer; the current item in the contents panel now uses the same light green as dropdowns." },
+  ] },
   { v: "2026-11-24.28", title: { zh: "菜单、任务、详情等列表行也换成统一外观", en: "Menu, task and detail rows share the same look too" }, items: [
     { k: "better", zh: "设置 / 财务等菜单行、任务和模板行、债务行统一成实线分隔、行高不低于 56px；报税和详情页的「名称：内容」行统一成不低于 44px，原来的上边线改为下边线。", en: "Menu rows, task and template rows and debt rows use a solid divider and at least 56px; the label-and-value rows on tax and detail pages are at least 44px, with the divider moved from above to below." },
     { k: "better", zh: "扫描结果和摊派记录这类带边框的卡片行用同一种边框和圆角；弹出菜单里的选项高度从 40px 提到 44px，更好点。", en: "Bordered card rows (scan results, assessments) share one border and corner radius; options in pop-up menus grow from 40px to 44px so they are easier to tap." },

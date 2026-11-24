@@ -107,7 +107,7 @@ function linkSheet() {
   const rows = [["", t("（不链接任何人）")], ...adultPeople().map((x) => [x.id, x.name])];
   return `<div class="fam-sheet-back" data-action="dev-link-cancel"></div><div class="fam-sheet" role="dialog" aria-modal="true" aria-label="${esc(t("属于哪位家庭成员"))}">
     <h3>${t("「{n}」属于哪位家庭成员？", { n: esc(m.display_name) })}</h3>
-    <div class="fam-sheet-list">${rows.map(([id, name]) => `<button type="button" class="fam-sheet-row ${id === (m.person_id || "") ? "is-cur" : ""}" data-action="dev-link-pick" data-id="${esc(m.user_id)}" data-person="${esc(id)}">${esc(name)}${id === (m.person_id || "") ? " ✓" : ""}</button>`).join("")}</div>
+    <div class="fam-sheet-list">${rows.map(([id, name]) => `<button type="button" class="ui-opt fam-sheet-row ${id === (m.person_id || "") ? "is-cur" : ""}" data-action="dev-link-pick" data-id="${esc(m.user_id)}" data-person="${esc(id)}">${esc(name)}${id === (m.person_id || "") ? " ✓" : ""}</button>`).join("")}</div>
     <button type="button" class="btn btn-ghost fam-sheet-cancel" data-action="dev-link-cancel">${t("取消")}</button></div>`;
 }
 function devicesBody(p) {
