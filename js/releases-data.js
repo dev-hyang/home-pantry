@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.34", title: { zh: "修正：手机上报税页「名称：内容」被居中了", en: "Fix: label-and-value rows on the tax page were centred on phones" }, items: [
+    { k: "fix", zh: "手机上，报税和详情页里「名称」和「内容」上下排列的行，上一版误成了居中；现在恢复靠左对齐。电脑上不受影响。", en: "On phones, the stacked label-and-value rows on the tax and detail pages had become centred in the last update. They are left-aligned again; desktop is unchanged." },
+  ] },
   { v: "2026-11-24.33", title: { zh: "底部弹出的面板支持键盘：Esc 关闭，Tab 不会跑到背后", en: "Bottom panels now work with the keyboard: Esc closes, Tab stays inside" }, items: [
     { k: "better", zh: "「属于哪位家庭成员」选人面板可以按 Esc 关闭；长按菜单和选人面板打开后，Tab 键只在面板里切换，关闭后焦点回到原来的位置。", en: "The “which family member” panel closes with Esc. In it and in the long-press menu, Tab now stays inside the panel, and focus returns to where it was when the panel closes." },
     { k: "better", zh: "读屏软件打开面板时会直接读出面板名字。", en: "Screen readers announce the panel name as soon as it opens." },

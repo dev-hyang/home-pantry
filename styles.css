@@ -4380,7 +4380,7 @@ button.npop-item { width: 100%; border: 0; background: none; font: inherit; font
 .dt-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
 .dt-row dt { flex: 0 0 7em; color: var(--muted); font-size: 13.5px; }
 .dt-row dd { margin: 0; flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-@media (max-width: 560px) { .dt-row { flex-direction: column; gap: 2px; } .dt-row dt { flex: none; } }   /* 点行空白处就能进去 / 勾选 */
+@media (max-width: 560px) { .dt-row { flex-direction: column; align-items: stretch; gap: 2px; } .dt-row dt { flex: none; } }   /* 点行空白处就能进去 / 勾选 */
 .rec-list .rec-day { display: inline-block; margin-right: 8px; color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
 .rec-list .rec-row .grow small { display: flex; margin-top: 2px; color: var(--muted); line-height: 1.45; }
 .rec-list .rec-amt { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
