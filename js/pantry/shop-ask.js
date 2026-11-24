@@ -1,6 +1,7 @@
 /* 加入购物车前确认数量和单位（2026-11-14）：所有「加入购物车」都走这里——单件（行上的按钮、右滑）和多件（全部加入、多选）同一个框。
  * 不是浏览器的 alert / prompt（那些可能被拦截），是页面里自己画的 <dialog>：电脑上居中，手机上贴底部；
  * 每件一行：勾选、名称、数量、单位（下拉，可「其他…」手填）；件数多时框内滚动。Esc / 点外面 / 取消都是不加。 */
+import { numAttrs } from "../core/ui-num.js";
 import { esc, fmt, spaceOf } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { unitSelect } from "../core/unit-pick.js";
@@ -15,7 +16,7 @@ export function askShopItems(list) {
     const row = (it, i) => `<li class="ask-item">
       ${many ? `<input type="checkbox" class="ask-inc" data-i="${i}" checked aria-label="${esc(t("加入 {name}", { name: it.name }))}">` : ""}
       <span class="ask-name">${esc(it.name)}</span>
-      <input type="number" class="ask-qty" data-i="${i}" inputmode="decimal" min="0" step="any" value="${esc(fmt(Math.max(1, Math.round(Number(it.dsuggest) || 1))))}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
+      <input ${numAttrs("qty")} class="ask-qty" data-i="${i}" value="${esc(fmt(Math.max(1, Math.round(Number(it.dsuggest) || 1))))}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
       ${unitSelect(`data-i="${i}" aria-label="${esc(t("{name} 单位", { name: it.name }))}"`, it.du || it.unit || "个", { cls: "ask-unit" })}
     </li>`;
     dlg.innerHTML = `<form class="ask-form" novalidate>
@@ -97,8 +98,8 @@ export function askRemind(it) {
     dlg.innerHTML = `<form class="ask-form" novalidate>
       <h3 id="askRemindTitle">🔔 ${esc(t("提醒设置：{name}", { name: it.name }))}</h3>
       <div class="ask-fields">
-        <label>${esc(t("少货线"))}<span class="ask-unit-line"><input type="number" name="min" inputmode="decimal" min="0" step="any" value="${esc(fmt(Math.round(defMin * f * 100) / 100))}"><b>${esc(t(it.du))}</b></span><small class="muted">${esc(t("数量低于或等于它时提醒“少货”"))}</small></label>
-        <label>${esc(t("提前几天提醒"))}<span class="ask-unit-line"><input type="number" name="lead" inputmode="numeric" min="0" max="60" step="1" value="${esc(defLead)}"><b>${esc(t("天"))}</b></span><small class="muted">${esc(t("预计剩余天数低于它时提醒“即将告罄”"))}</small></label>
+        <label>${esc(t("少货线"))}<span class="ask-unit-line"><input ${numAttrs("qty")} name="min" value="${esc(fmt(Math.round(defMin * f * 100) / 100))}"><b>${esc(t(it.du))}</b></span><small class="muted">${esc(t("数量低于或等于它时提醒“少货”"))}</small></label>
+        <label>${esc(t("提前几天提醒"))}<span class="ask-unit-line"><input ${numAttrs("int", { max: 60 })} name="lead" value="${esc(defLead)}"><b>${esc(t("天"))}</b></span><small class="muted">${esc(t("预计剩余天数低于它时提醒“即将告罄”"))}</small></label>
       </div>
       <p class="form-error ask-err" role="alert"></p>
       <div class="ask-acts">

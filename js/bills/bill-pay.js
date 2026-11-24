@@ -1,4 +1,5 @@
 /* 账单详情的头部卡、记一笔缴费的整页表单、特别摊派下拉、金额分组、补记缴费。 */
+import { numAttrs } from "../core/ui-num.js";
 import { L, billCostParts, headSec, linkOf } from "./bill-form.js";
 import { Store } from "../core/store.js";
 import { acctText, billCat } from "./logic.js";
@@ -109,7 +110,7 @@ function amountGroup(b, edit, settleId = null) {
   const cur = b.currency || Units.region.currency, n2 = (x) => num(x).toFixed(2);
   const split = edit ? edit.unit_amount != null || edit.parking_amount != null : b.unit_amount != null || b.parking_amount != null;   // 老记录没拆过就保持一个金额
   const base = edit ? (edit.amount != null ? n2(edit.amount) : "") : settleId ? "0.00" : b.est != null ? n2(b.est) : "";   // 一次性结清：本期金额默认 0（只交摊派）
-  const inp = (name, val, hint = "") => `<input name="${name}" type="number" inputmode="decimal" min="0" step="0.01" value="${val}" data-amt-in aria-label="${esc(hint)}">`;
+  const inp = (name, val, hint = "") => `<input name="${name}" ${numAttrs("money")} value="${val}" data-amt-in aria-label="${esc(hint)}">`;
   const row = (label, input) => `<label class="amt-row"><span class="amt-l">${label}</span>${input}</label>`;
   const baseRows = split
     ? row(`${t("单元费")}${lang === "en" ? "" : " <small>Unit</small>"}`, inp("unit_amount", edit ? n2(edit.unit_amount) : n2(b.unit_amount), t("单元费"))) + row(`${t("车位费")}${lang === "en" ? "" : " <small>Parking</small>"}`, inp("parking_amount", edit ? n2(edit.parking_amount) : n2(b.parking_amount), t("车位费"))) + `<div class="amt-row amt-sub"><span class="amt-l">${t("HOA 小计")} <small>${t("单元费 + 车位费")}</small></span><b id="paySub">${mny(edit ? num(edit.unit_amount) + num(edit.parking_amount) : num(b.unit_amount) + num(b.parking_amount), cur)}</b></div><input type="hidden" name="amount" value="${edit ? n2(edit.amount) : n2(num(b.unit_amount) + num(b.parking_amount))}">`

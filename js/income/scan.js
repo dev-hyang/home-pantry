@@ -1,6 +1,7 @@
 /* 收入 · 拍照 / 粘贴识别：支票、工资条、电汇确认单、Zelle / Venmo 截图、退税通知、存款回执 → AI 读成收入草稿 → 你逐条核对后才保存。
  * 和「拍小票识别花费」同一套做法（拍 / 选图 + 补充文字 → AI → 核对 → 入库），区别：收入是高度隐私的数据，
  * 所以发给 AI 之前要勾选同意（默认不勾），不保存原图，识别出来的先是草稿，和已有收入对得上的默认不勾（防重复）。 */
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, num, todayISO, toast } from "../core/util.js";
@@ -62,7 +63,7 @@ function resultHtml() {
   const who = sc.who ?? (myPersonId() || "none"), n = sc.items.filter((x) => x.on).length;
   const row = (x, i) => `<li class="ix-draft" data-i="${i}"><label class="check-inline"><input type="checkbox" data-sc-f="on" ${x.on ? "checked" : ""} aria-label="${esc(t("保存这条"))}"><span><b>${esc(x.sender || t("（没读出付款方）"))}</b></span></label>
     <div class="form-grid"><label>${t("到账日期")}<input type="date" data-sc-f="date" max="${todayISO()}" value="${esc(x.date)}"></label>
-      <label>${t("到账金额")}（${esc(cur())}）<input type="number" data-sc-f="amount" step="0.01" min="0" inputmode="decimal" value="${esc(x.amount)}"></label>
+      <label>${t("到账金额")}（${esc(cur())}）<input ${numAttrs("money")} data-sc-f="amount" value="${esc(x.amount)}"></label>
       <label>${t("谁给的")}<input data-sc-f="sender" maxlength="80" value="${esc(x.sender)}"></label>
       <label>${t("类型")}<select data-sc-f="kind">${kindOptionsHtml(x.kind)}</select></label></div>
     ${x.fx ? `<small class="bank-dup">${t("原金额 {a} {c}：请把到账金额改成实际收到的 {cur} 金额", { a: x.orig_amount, c: x.orig_currency, cur: cur() })}</small>` : ""}

@@ -1,3 +1,4 @@
+import { numAttrs } from "../core/ui-num.js";
 import { viewSwitch } from "../core/view-switch.js";
 import { $, catOf, esc, fmt, fmtShort, inSpace, isGear, num, spaceOf, stampText, todayISO } from "../core/util.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
@@ -116,7 +117,7 @@ export function itemRow(it) {
     <div class="inv-main"><div class="inv-name">${sel ? `<span class="inv-link">${nm}</span>` : `<a href="${esc(href("item", it.id))}" class="inv-link">${nm}</a>`}${badges}</div><div class="inv-meta">${meta}</div></div>
     <div class="inv-qty" role="group" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
       <button type="button" data-action="consume" data-id="${it.id}" aria-label="${esc(t("{name} 用掉 {q} {u}", { name: it.name, q: step, u: t(it.du) }))}">−</button>
-      <input type="number" inputmode="decimal" min="0" step="any" value="${fmt(it.dqty)}" data-inv-qty="${it.id}" data-keep="invq:${it.id}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
+      <input ${numAttrs("qty")} value="${fmt(it.dqty)}" data-inv-qty="${it.id}" data-keep="invq:${it.id}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
       ${unitSelect(`data-inv-unit="${it.id}" aria-label="${esc(t("{name} 单位", { name: it.name }))}"`, it.du, { cls: "inv-unit" })}
       <button type="button" data-action="restock" data-id="${it.id}" aria-label="${esc(t("{name} 补充 {q} {u}", { name: it.name, q: step, u: t(it.du) }))}">+</button>
     </div>

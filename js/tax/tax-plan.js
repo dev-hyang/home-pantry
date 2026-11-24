@@ -2,6 +2,7 @@
  * 这里只按联邦的「安全港」规则给一个参考：全年至少交够 本年税额的 90% 和 去年税额的 100%（去年 AGI 超过 15 万美元是 110%）中较小的那个，
  * 减去已扣的税（工资预扣）和已缴的预缴税，剩下的平分到还没到期的几期。不是申报，也不替你算税额：本年税额、去年税额由你填（去年的在去年的报税表上）。
  * 伊利诺伊另有自己的规则，这里不算。数字和规则待核对，以 IRS 官网（Form 1040-ES）为准。 */
+import { numAttrs } from "../core/ui-num.js";
 import { esc, todayISO } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { deadlinesFor, yearState } from "./tax-calendar.js";
@@ -20,7 +21,7 @@ export function planOf(y) {
   return { p, required, wh, est, needed, left: dates.length, dates, perQuarter: dates.length ? r2(needed / dates.length) : needed };
 }
 export function planCard(y) {
-  const c = planOf(y), p = c.p, inp = (key, label, ph) => `<label>${esc(label)}<input type="number" min="0" step="0.01" inputmode="decimal" data-tax-plan="${key}" data-y="${y}" value="${p[key] ?? ""}" placeholder="${esc(ph)}"></label>`;
+  const c = planOf(y), p = c.p, inp = (key, label, ph) => `<label>${esc(label)}<input ${numAttrs("money")} data-tax-plan="${key}" data-y="${y}" value="${p[key] ?? ""}" placeholder="${esc(ph)}"></label>`;
   const result = c.required ? `<dl class="dt-list"><div class="dt-row"><dt>${t("全年至少要交够（联邦，参考）")}</dt><dd>${money(c.required)}</dd></div><div class="dt-row"><dt>${t("已扣的税（W-2）+ 已缴的预缴税")}</dt><dd>${money(c.wh + c.est)}</dd></div>
       <div class="dt-row"><dt>${t("还差")}</dt><dd><b>${money(c.needed)}</b></dd></div>${c.left ? `<div class="dt-row"><dt>${t("还有 {n} 期，每期约", { n: c.left })}</dt><dd><b>${money(c.perQuarter)}</b> <span class="muted">${esc(c.dates.map((d) => d.date).join(" · "))}</span></dd></div>` : `<div class="dt-row"><dt>${t("预缴的几期都过了")}</dt><dd>—</dd></div>`}</dl>` : `<p class="muted">${t("填上本年预计税额或去年税额，才会算。")}</p>`;
   return `<section class="panel dt-block"><div class="dt-head"><h3>🗓️ ${t("{y} 年预缴税参考（联邦）", { y })}</h3></div>

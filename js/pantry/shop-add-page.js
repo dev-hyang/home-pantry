@@ -2,6 +2,7 @@
  *   首页 = 标题 + ⋯（扫描 / 补货提醒 / 买好录入库存）、一个「加入购物车」块（已有物品 / 新物品，各点开选扫描或手动）、「最近加入」最多 8 条；
  *   ?form=existing|new = 单独的手动表单页（取消 / 保存）；?mode=photo[&kind=…] = 扫描页。
  * 已有物品：下拉（按分类分组、可输入搜索）选库存里的物品，单位和分类跟着库存走；新物品：写名字，保存时库存里有相同 / 相近的，会问是不是改成加已有物品。 */
+import { numAttrs } from "../core/ui-num.js";
 import { esc, fmtShort, num, showQty } from "../core/util.js";
 import { crumbNav } from "../core/hub.js";
 import { buyHead } from "../shops/buy-nav.js";
@@ -43,10 +44,10 @@ function formPage(kind) {
     <form class="panel shop-add-form" id="shopForm" data-kind="${kind}" aria-label="${esc(t("手动添加采购项"))}">
       ${ex ? `<label class="full">${t("要买什么（库存里的物品）")}<select name="item_id" data-search required>${itemPickOptions()}</select></label>`
         : `<label class="full">${t("要买什么")}<input name="name" required maxlength="60" placeholder="${esc(t("例如：鸡蛋、牛奶、洗洁精"))}" autocomplete="off"></label>`}
-      <label>${t("数量")}<input name="quantity" type="number" min="0.1" step="0.1" value="1" inputmode="decimal"></label>
+      <label>${t("数量")}<input name="quantity" ${numAttrs("money", { min: 0.1, step: 0.1 })} value="1"></label>
       <label>${t("单位")}<input name="unit" list="unitList" placeholder="${esc(ex ? t("跟着库存") : t("不填自动选"))}" maxlength="10" ${ex ? "readonly" : ""}></label>
       <label>${t("分类")}<select name="category" ${ex ? "disabled" : ""}><option value="">${ex ? t("跟着库存") : t("自动分类")}</option>${categoryOptions()}</select></label>
-      <label>${t("预估金额")}<input name="estimate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="${esc(t("可不填，用来做预算提示"))}"></label>
+      <label>${t("预估金额")}<input name="estimate" ${numAttrs("money")} placeholder="${esc(t("可不填，用来做预算提示"))}"></label>
       <div class="form-actions full"><a class="btn btn-ghost" href="${addHref()}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button></div>
       <p class="muted full shop-add-tip">${ex ? t("单位和分类按库存里的物品填好；买到后自动加回库存。") : t("保存时如果库存里已有相同或相近的物品，会问你要不要改成加已有物品。")}</p>
     </form></section>`;
@@ -60,7 +61,7 @@ export function restockCandidates() {
 function restockPage() {
   const list = restockCandidates();
   const row = (it) => `<li class="rs-pick-row" data-id="${esc(it.id)}"><label class="check-inline"><input type="checkbox" name="inc" checked aria-label="${esc(t("加入 {name}", { name: it.name }))}"><span class="rp-name">${esc(it.name)}</span></label>
-      <input type="number" name="qty" inputmode="decimal" min="0" step="any" value="${esc(fmt(Math.max(1, Math.round(Number(it.dsuggest) || 1))))}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
+      <input ${numAttrs("qty")} name="qty" value="${esc(fmt(Math.max(1, Math.round(Number(it.dsuggest) || 1))))}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">
       ${unitSelect(`name="unit" aria-label="${esc(t("{name} 单位", { name: it.name }))}"`, it.du || it.unit || "个")}</li>`;
   return `<section class="section shop-add-page form-page">${crumb(t("从补货清单加入"))}
     <form class="panel restock-form" id="restockForm" aria-label="${esc(t("从补货清单加入"))}">

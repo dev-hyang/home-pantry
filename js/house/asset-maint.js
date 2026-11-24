@@ -1,4 +1,5 @@
 /* 保养记录：列表、筛选、分区，和保存一条保养记录。 */
+import { numAttrs } from "../core/ui-num.js";
 import { $, esc, fmt, fmtDate, fmtShort, num, toast, todayISO } from "../core/util.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { Store } from "../core/store.js";
@@ -92,9 +93,9 @@ function maintSectionHtml(a, focusLog, { K, R, veh, editLog, e, isInspect, preIt
         <label>${t("日期")}<input name="done_on" type="date" required value="${esc(e.done_on || todayISO())}" max="${todayISO()}"></label>
         <label>${t("类型")}<select name="kind">${Object.entries(K).map(([k, n]) => `<option value="${k}" ${k === (e.kind || "service") ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
         ${veh ? `<label>${t("保养项目")}<select name="service_item"><option value="">${t("请选择")}</option>${V().itemsFor(a.type).map((s) => `<option value="${s.key}" ${s.key === preItem ? "selected" : ""}>${esc(t(s.name))}</option>`).join("")}</select><small>${t("保养 / 检查 / 更换必选，这一项的下次日期才会更新；维修可不选")}</small></label>
-                <label>${t("里程（{u}）", { u: distUnit() })}<input name="odometer" type="number" inputmode="numeric" min="0" step="1" value="${e.odometer ?? ""}" placeholder="${a.nowMiles != null ? fmt(a.nowMiles) : ""}"><small>${t("填了会同时更新车辆当前里程")}</small></label>`
+                <label>${t("里程（{u}）", { u: distUnit() })}<input name="odometer" ${numAttrs("int")} value="${e.odometer ?? ""}" placeholder="${a.nowMiles != null ? fmt(a.nowMiles) : ""}"><small>${t("填了会同时更新车辆当前里程")}</small></label>`
               : `<label class="inspect-only">${t("检查结论")}<select name="result">${Object.entries(R).map(([k, n]) => `<option value="${k}" ${k === e.result ? "selected" : ""}>${t(n)}</option>`).join("")}</select><small>${t("“需保养 / 维修 / 更换”会提醒到记下一条为止")}</small></label>`}
-        <label>${t("花费（{cur}，可不填）", { cur: Units.region.currency })}<input name="cost" type="number" inputmode="decimal" min="0" step="0.01" value="${e.cost ?? ""}"></label>
+        <label>${t("花费（{cur}，可不填）", { cur: Units.region.currency })}<input name="cost" ${numAttrs("money")} value="${e.cost ?? ""}"></label>
         <label>${t("收款方")}<input name="vendor" maxlength="40" list="storeList" value="${esc(e.vendor || "")}" placeholder="${t("维修商 / 师傅 / 商店，自己做可不填")}"></label>
         ${(() => { const pur = e.purchase_id ? purchaseById(e.purchase_id) : null; if (e.purchase_id && !pur) fillFromPurchase(e.purchase_id, '#maintForm [name="pay"]', (p) => payAcctValue(p.card_id, p.method)); const sel = cardSelectHtml("pay", pur ? payAcctValue(pur.card_id, pur.method) : undefined); return sel ? `<label>${t("怎么付的")}${sel}</label>` : ""; })()}
         <label class="span-2 check-inline"><input type="checkbox" name="diy" ${e.diy ? "checked" : ""}><span>${t("自己动手")}</span></label>

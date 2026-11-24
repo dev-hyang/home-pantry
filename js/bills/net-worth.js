@@ -1,3 +1,4 @@
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, fmtDate, num, toast, todayISO, confirmDelete } from "../core/util.js";
@@ -46,7 +47,7 @@ export function valuationPanel(kind, item, { fallback = null } = {}) {
     <summary><span>${t("估值")}：<b>${now}</b></span><span class="nw-sum-act">${t("更新估值")}</span></summary>
     <form class="nw-form" data-nw-form="val" data-kind="${esc(kind)}" data-id="${esc(item.id)}">
       <label>${t("日期")}<input type="date" name="as_of" required value="${todayISO()}" max="${todayISO()}"></label>
-      <label>${t("市值（{cur}）", { cur: cur() })}<input type="number" name="value" min="0" step="1" inputmode="decimal" required value="${last ? esc(last.value) : ""}"></label>
+      <label>${t("市值（{cur}）", { cur: cur() })}<input ${numAttrs("money", { step: 1 })} name="value" required value="${last ? esc(last.value) : ""}"></label>
       <label>${t("来源")}<select name="source"><option value="manual">${SRC.manual}</option><option value="estimate">${SRC.estimate}</option></select></label>
       <label class="nw-note">${t("备注（可选）")}<input name="notes" maxlength="300" placeholder="${esc(kind === "property" ? t("如 Zillow / 评估报告") : t("如 KBB 私人出售价"))}"></label>
       <button type="submit" class="btn btn-primary btn-sm">${t("保存估值")}</button>

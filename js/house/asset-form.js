@@ -1,4 +1,5 @@
 /* 设备表单（整页；编辑时下方带保养记录）：类型、车辆字段、位置与数量、保养计划。 */
+import { numAttrs } from "../core/ui-num.js";
 import { ASSET_SECTIONS, suppliesSection } from "./asset-supplies.js";
 import { SECTIONS, go, href } from "../core/router.js";
 import { assetAsk, assetBase, assetCrumb, careCard } from "./asset-list.js";
@@ -53,7 +54,7 @@ function unitsFieldset(v, hide = () => "") {
 }
 export const unitRow = (u = {}) => `<div class="unit-row">
     <select name="unit_loc" aria-label="${t("位置")}">${locationOptions(u.loc || "", { addNew: false })}</select>
-    <input name="unit_qty" type="number" inputmode="numeric" min="0" max="999" step="1" value="${esc(u.qty ?? 1)}" aria-label="${t("数量")}">
+    <input name="unit_qty" ${numAttrs("int", { max: 999 })} value="${esc(u.qty ?? 1)}" aria-label="${t("数量")}">
     <input name="unit_note" maxlength="60" placeholder="${t("备注，如：进水阀 2024 换过")}" value="${esc(u.note || "")}" aria-label="${t("备注")}">
     <button type="button" class="btn btn-sm btn-ghost" data-action="unit-del" aria-label="${t("删除这一处")}">×</button></div>`;
 export { readUnits } from "./asset-read.js";
@@ -66,9 +67,9 @@ function vehicleFieldset(a, hide = () => "") {
       <div class="form-grid">
         <label>${t("车牌")}<input name="veh_plate" maxlength="12" value="${d(v.plate)}"></label>
         <label>${t("上牌州 / 省")}<input name="veh_plate_state" maxlength="12" placeholder="IL" value="${d(v.plate_state)}"></label>
-        <label>${t("当前里程（{u}）", { u: distUnit() })}<input name="veh_odometer" type="number" inputmode="numeric" min="0" step="1" value="${d(v.odometer)}"></label>
+        <label>${t("当前里程（{u}）", { u: distUnit() })}<input name="veh_odometer" ${numAttrs("int")} value="${d(v.odometer)}"></label>
         <label>${t("里程记录日期")}<input name="veh_odometer_on" type="date" max="${todayISO()}" value="${d(v.odometer_on || todayISO())}"></label>
-        <label>${t("年均里程（{u}）", { u: distUnit() })}<input name="veh_annual_miles" type="number" inputmode="numeric" min="0" step="100" placeholder="12000" value="${d(v.annual_miles)}"><small>${t("用来把“按里程”的保养换算成日期")}</small></label>
+        <label>${t("年均里程（{u}）", { u: distUnit() })}<input name="veh_annual_miles" ${numAttrs("int", { step: 100 })} placeholder="12000" value="${d(v.annual_miles)}"><small>${t("用来把“按里程”的保养换算成日期")}</small></label>
       </div>
     </fieldset>
     <fieldset class="veh-only" data-sec="docs" ${hide("docs")}>
@@ -79,7 +80,7 @@ function vehicleFieldset(a, hide = () => "") {
         <label>${t("租赁到期（租车才填）")}<input name="veh_lease_end" type="date" value="${d(v.lease_end)}"><small>${t("到期前 90 天提醒，可从车辆交易里走归还流程")}</small></label>
         <label>${t("贷款结清日期（贷款中才填）")}<input name="veh_loan_end" type="date" value="${d(v.loan_end)}">${vehicleLoanNote(a)}</label>
         <label>${t("卖出 / 归还日期")}<input name="veh_disposed_on" type="date" value="${d(v.disposed_on)}"></label>
-        ${priceInput(`<label>${t("卖出价（{cur}）", { cur: Units.region.currency })}<input name="veh_sale_price" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.sale_price)}"></label>`, "veh_sale_price", v.sale_price)}
+        ${priceInput(`<label>${t("卖出价（{cur}）", { cur: Units.region.currency })}<input name="veh_sale_price" ${numAttrs("money")} value="${d(v.sale_price)}"></label>`, "veh_sale_price", v.sale_price)}
         <label>${t("牌照年贴到期")}<input name="veh_registration_due" type="date" value="${d(v.registration_due)}"><small>${t("到期前 30 天提醒")}</small></label>
         <label>${t("排放检测到期")}<input name="veh_emissions_due" type="date" value="${d(v.emissions_due)}"><small>${t("纯电免检可留空")}</small></label>
       </div>
@@ -218,10 +219,10 @@ export function viewAssetForm() {
           <legend>${t("寿命与保养周期")}</legend>
           <div class="form-grid">
             <label>${t("预期寿命（年）")}
-              <input name="expected_life_years" type="number" inputmode="decimal" min="0" max="100" step="0.5" placeholder="${t("常见经验值")}" value="${d(v.expected_life_years)}">
+              <input name="expected_life_years" ${numAttrs("rate", { step: 0.5 })} placeholder="${t("常见经验值")}" value="${d(v.expected_life_years)}">
             </label>
             <label>${t("保养间隔（月）")}
-              <input name="service_interval_months" type="number" inputmode="numeric" min="1" max="120" step="1" placeholder="${t("留空则不提醒")}" value="${d(v.service_interval_months)}">
+              <input name="service_interval_months" ${numAttrs("int", { max: 120, min: 1 })} placeholder="${t("留空则不提醒")}" value="${d(v.service_interval_months)}">
               <small>${t("记一次检查或保养后，按这个间隔算下次")}</small>
             </label>
           </div>
@@ -230,10 +231,10 @@ export function viewAssetForm() {
           <legend><span class="veh-hide">${t("费用与负责方")}</span><span class="veh-show">${t("购车价格")}</span></legend>
           <div class="form-grid">
             ${priceInput(`<label>${t("购买价格（{cur}）", { cur })}
-              <input name="purchase_price" type="number" inputmode="decimal" min="0" step="0.01" value="${d(v.purchase_price)}">
+              <input name="purchase_price" ${numAttrs("money")} value="${d(v.purchase_price)}">
             </label>`, "purchase_price", v.purchase_price)}
             <label class="eq-only" ${pricesOk() ? "" : 'style="display:none" aria-hidden="true"'}><!-- 没财务权限：更换估价藏起来，值仍随表单原样保存 -->${t("更换估价（{cur}）", { cur })}
-              <input name="replacement_cost_estimate" type="number" inputmode="decimal" min="0" step="0.01" placeholder="${t("第三期“修还是换”会用到")}" value="${d(v.replacement_cost_estimate)}">
+              <input name="replacement_cost_estimate" ${numAttrs("money")} placeholder="${t("第三期“修还是换”会用到")}" value="${d(v.replacement_cost_estimate)}">
             </label>
             <label class="eq-only">${t("谁负责维护")}
               <select name="owner">${OWNER_OPTS.map((k) => `<option value="${k}" ${v.owner === k ? "selected" : ""}>${t(H().OWNERS[k].name)}</option>`).join("")}</select>

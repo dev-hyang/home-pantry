@@ -1,4 +1,5 @@
 /* AI 菜单助手 · 界面：菜单页顶部的对话框 + 结果渲染；没 key 时变成“复制提示词 / 打开豆包”模式 */
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, toast } from "../core/util.js";
@@ -23,7 +24,7 @@ export function aiPanel() {
       <div class="chips" style="margin-bottom:8px">${chips}</div>
       <div class="ai-row">
         <input name="ask" maxlength="300" placeholder="${t("想吃什么、几个人、有什么要求…")}" value="${esc(a.ask)}" aria-label="${t("菜单需求")}">
-        <label class="ai-people">${t("人数")}<input name="people" type="number" inputmode="numeric" min="1" max="20" value="${s.people || 4}"></label>
+        <label class="ai-people">${t("人数")}<input name="people" ${numAttrs("int", { max: 20, min: 1, step: null })} value="${s.people || 4}"></label>
       </div>
       <div class="form-actions" style="margin-top:8px">
         ${ready && !blocked ? `<button type="submit" class="btn btn-primary" ${a.busy ? "disabled" : ""}>${a.busy ? t("生成中…") : t("生成今日菜单")}</button>` : ""}

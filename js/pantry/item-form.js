@@ -1,3 +1,4 @@
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { ownerField } from "./owner.js";
 import { aliasesOf, findItem, similarItems } from "../core/item-match.js";
@@ -83,7 +84,7 @@ function spendFieldset() {
   return fsec("", "spend", t("花费（选填）"), `
           <p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("填了金额就同时记一笔花费，关联到这件物品；不填就只入库。")}</p>
           <div class="form-grid">
-            <label>${t("金额（{cur}）", { cur: Units.region.currency })}<input name="sp_amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label>
+            <label>${t("金额（{cur}）", { cur: Units.region.currency })}<input name="sp_amount" ${numAttrs("money")} placeholder="0.00"></label>
             <label>${t("商店 / 收款方")}<input name="sp_store" maxlength="40" list="storeList" value="${esc(lastStore())}"></label>
             <label>${t("日期")}<input name="sp_date" type="date" max="${todayISO()}" value="${todayISO()}"></label>
             ${cardSelectHtml("sp_card") ? `<label>${t("怎么付的")}${cardSelectHtml("sp_card")}</label>` : ""}
@@ -152,7 +153,7 @@ export function viewItemForm() {
           <p class="muted only-gear" style="margin:0 0 10px;font-size:13px">${t("家居耐用品只记数量和位置，不算消耗，也不会提醒补货。需要保养周期或保修的，用下方“升级为设备档案”。")}</p>
           <div class="form-grid">
             <label>${t("当前数量")}
-              <input name="quantity" type="number" min="0" step="any" inputmode="decimal" required value="${dv(v.quantity ?? 0)}" data-orig="${dv(v.quantity ?? 0)}">
+              <input name="quantity" ${numAttrs("qty")} required value="${dv(v.quantity ?? 0)}" data-orig="${dv(v.quantity ?? 0)}">
             </label>
             <label>${t("单位")}
               ${unitSelect(`name="unit" required ${it || src ? "" : 'data-auto="1"'}`, dUnit || "个")}
@@ -161,15 +162,15 @@ export function viewItemForm() {
             <label class="span-2 not-gear remind-toggle check-inline"><input type="checkbox" name="remind" ${remind ? "checked" : ""}>
               <span><b>${t("提醒补货")}</b><small class="muted">${t("打开后，少于少货线或快用完时提醒；不打开就不提醒")}</small></span></label>
             <label class="not-gear remind-only">${t("少货线")}
-              <input name="min_quantity" type="number" min="0" step="any" inputmode="decimal" value="${dv(v.min_quantity ?? 0)}" data-orig="${dv(v.min_quantity ?? 0)}">
+              <input name="min_quantity" ${numAttrs("qty")} value="${dv(v.min_quantity ?? 0)}" data-orig="${dv(v.min_quantity ?? 0)}">
               <small>${t("数量低于或等于它时提醒“少货”")}</small>
             </label>
             <label class="not-gear remind-only">${t("提前几天提醒")}
-              <input name="lead_days" type="number" min="0" max="60" step="1" inputmode="numeric" value="${esc(v.lead_days ?? 3)}">
+              <input name="lead_days" ${numAttrs("int", { max: 60 })} value="${esc(v.lead_days ?? 3)}">
               <small>${t("预计剩余天数低于它时提醒“即将告罄”")}</small>
             </label>
             <label class="span-2 not-gear">${t("每天大约用多少（可选）")}
-              <input name="avg_daily_use" type="number" min="0" step="any" inputmode="decimal" placeholder="${t("留空则根据家人的使用记录自动估算")}" value="${dv(v.avg_daily_use)}" data-orig="${dv(v.avg_daily_use)}">
+              <input name="avg_daily_use" ${numAttrs("qty")} placeholder="${t("留空则根据家人的使用记录自动估算")}" value="${dv(v.avg_daily_use)}" data-orig="${dv(v.avg_daily_use)}">
             </label>
             ${it ? muteField(v) : ""}${buyField(v)}
           </div>`, true)}

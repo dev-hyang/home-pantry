@@ -1,6 +1,7 @@
 /* 买卖计划：计划 → 候选（一套房 / 一辆车）→ 出价记录（迁移 078，全家共享；设计见 docs/design-bills-overview.md §17）
  * 页面：#/house/plan?p=<计划 id>。买房 / 买车指南页上有「我的计划」列表和新建入口。
  * 还没买，所以不产生房产 / 车辆；候选被接受后再建房产 / 车辆（版本 D）。价格只给有财务权限的人看和填（界面闸门，和交易页一致）。 */
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { href } from "../core/router.js";
@@ -41,7 +42,7 @@ export function planFormHtml(kind) {
   const p = e.id ? (state.plans || []).find((x) => x.id === e.id) : null;
   return `<form id="planForm" class="panel plan-form" novalidate><input type="hidden" name="rec_id" value="${esc(p?.id || "")}"><input type="hidden" name="kind" value="${esc(p?.kind || e.kind || kind)}">
     <div class="field"><label for="plTitle">${t("计划名称")}</label><input id="plTitle" name="title" maxlength="80" required value="${esc(p?.title || "")}" placeholder="${esc(t("例如：2027 年换一套大点的房子"))}"></div>
-    ${pricesOk() ? `<div class="field"><label for="plBudget">${t("预算上限")}</label><input id="plBudget" name="budget" type="number" inputmode="decimal" min="0" step="any" value="${esc(p?.budget ?? "")}"></div>` : ""}
+    ${pricesOk() ? `<div class="field"><label for="plBudget">${t("预算上限")}</label><input id="plBudget" name="budget" ${numAttrs("qty")} value="${esc(p?.budget ?? "")}"></div>` : ""}
     <div class="field"><label for="plNotes">${t("备注")}</label><textarea id="plNotes" name="notes" rows="2" maxlength="2000">${esc(p?.notes || "")}</textarea></div>
     <div class="form-actions"><button class="btn btn-primary" type="submit">${t("保存")}</button><button class="btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
 }
@@ -55,10 +56,10 @@ function candFormHtml(plan) {
     <div class="field"><label for="cdAddr">${isHome ? t("地址") : t("在哪里看车 / 卖家")}</label><input id="cdAddr" name="address" maxlength="200" value="${esc(c?.address || "")}"></div>
     <div class="field"><label for="cdUrl">${t("链接")}</label><input id="cdUrl" name="url" type="url" maxlength="500" value="${esc(c?.url || "")}" placeholder="https://"></div>
     <div class="plan-grid2">
-      ${pricesOk() ? `<div class="field"><label for="cdPrice">${t("挂牌价 / 报价")}</label><input id="cdPrice" name="price" type="number" inputmode="decimal" min="0" step="any" value="${esc(c?.price ?? "")}"></div>` : priceInput("", "price", c?.price)}
+      ${pricesOk() ? `<div class="field"><label for="cdPrice">${t("挂牌价 / 报价")}</label><input id="cdPrice" name="price" ${numAttrs("qty")} value="${esc(c?.price ?? "")}"></div>` : priceInput("", "price", c?.price)}
       <div class="field"><label for="cdStatus">${t("状态")}</label><select id="cdStatus" name="status">${opts(CAND_STATUS, c?.status || "considering")}</select></div>
       <div class="field"><label for="cdScore">${t("总体打分")}</label><select id="cdScore" name="score"><option value="">—</option>${[1, 2, 3, 4, 5].map((n) => `<option value="${n}" ${c?.score === n ? "selected" : ""}>${"★".repeat(n)}</option>`).join("")}</select></div>
-      ${DETAIL_FIELDS[plan.kind].map(([k, nm, isNum]) => `<div class="field"><label for="cd_${k}">${esc(lab({ x: nm }, "x"))}</label><input id="cd_${k}" name="d_${k}" ${isNum ? 'type="number" inputmode="decimal" step="any" min="0"' : "maxlength=\"60\""} value="${esc(d[k] ?? "")}"></div>`).join("")}
+      ${DETAIL_FIELDS[plan.kind].map(([k, nm, isNum]) => `<div class="field"><label for="cd_${k}">${esc(lab({ x: nm }, "x"))}</label><input id="cd_${k}" name="d_${k}" ${isNum ? numAttrs("qty") : "maxlength=\"60\""} value="${esc(d[k] ?? "")}"></div>`).join("")}
     </div>
     <div class="field"><label for="cdPros">${t("优点")}</label><textarea id="cdPros" name="pros" rows="2" maxlength="1000">${esc(c?.pros || "")}</textarea></div>
     <div class="field"><label for="cdCons">${t("缺点 / 担心的")}</label><textarea id="cdCons" name="cons" rows="2" maxlength="1000">${esc(c?.cons || "")}</textarea></div>
@@ -72,8 +73,8 @@ function offerFormHtml(cand) {
   return `<form id="offerForm" class="panel plan-form" novalidate><input type="hidden" name="rec_id" value="${esc(o?.id || "")}"><input type="hidden" name="candidate_id" value="${cand.id}">
     <div class="plan-grid2">
       <div class="field"><label for="ofOn">${t("出价日期")}</label><input id="ofOn" name="offered_on" type="date" required value="${esc(o?.offered_on || todayISO())}"></div>
-      ${pricesOk() ? `<div class="field"><label for="ofAmt">${t("我的出价")}</label><input id="ofAmt" name="amount" type="number" inputmode="decimal" min="0" step="any" required value="${esc(o?.amount ?? "")}"></div>
-      <div class="field"><label for="ofCtr">${t("对方还价")}</label><input id="ofCtr" name="counter_amount" type="number" inputmode="decimal" min="0" step="any" value="${esc(o?.counter_amount ?? "")}"></div>` : `<input type="hidden" name="amount" value="${esc(o?.amount ?? 0)}">`}
+      ${pricesOk() ? `<div class="field"><label for="ofAmt">${t("我的出价")}</label><input id="ofAmt" name="amount" ${numAttrs("qty")} required value="${esc(o?.amount ?? "")}"></div>
+      <div class="field"><label for="ofCtr">${t("对方还价")}</label><input id="ofCtr" name="counter_amount" ${numAttrs("qty")} value="${esc(o?.counter_amount ?? "")}"></div>` : `<input type="hidden" name="amount" value="${esc(o?.amount ?? 0)}">`}
       <div class="field"><label for="ofOut">${t("结果")}</label><select id="ofOut" name="outcome">${opts(OFFER_OUTCOME, o?.outcome || "pending")}</select></div>
     </div>
     <div class="field"><label for="ofCond">${t("条件（定金、验房、贷款、交割日…）")}</label><textarea id="ofCond" name="conditions" rows="2" maxlength="1000">${esc(o?.conditions || "")}</textarea></div>

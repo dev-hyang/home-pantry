@@ -1,5 +1,6 @@
 /* 税务 → 汇总（二期）：数字汇总表 + 标准 / 逐项扣除对比 + 境外账户 FBAR 预判。数字的来源和算法在 tax-numbers.js。
  * 每行：名称 / 数（自动算的只读，手填的是输入框）/ 来源链接 / TurboTax 里在哪填 / 「已核对」勾选。全是参考，以官方单据为准。 */
+import { numAttrs } from "../core/ui-num.js";
 import { esc } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { state } from "../core/state.js";
@@ -12,7 +13,7 @@ const money = (n) => Units.money(n);
 
 function rowHtml(y, r) {
   const st = yearState(y), manual = st.nums?.[r.id], val = valueOf(y, r), ok = !!st.ok?.[r.id], prev = prevValue(y, r.id);   // 去年的数（有就在旁边小字对比）
-  const valueCell = r.manual ? `<input class="tax-num-in" type="number" step="0.01" min="0" inputmode="decimal" data-tax-num="${r.id}" data-y="${y}" value="${manual ?? ""}" placeholder="0.00" aria-label="${esc(tx(r.name))}">`
+  const valueCell = r.manual ? `<input class="tax-num-in" ${numAttrs("money")} data-tax-num="${r.id}" data-y="${y}" value="${manual ?? ""}" placeholder="0.00" aria-label="${esc(tx(r.name))}">`
     : `<b class="tax-num-val">${val == null ? "—" : money(val)}</b>`;
   return `<li class="tax-num"><div class="tax-num-top"><span class="tax-num-name">${esc(tx(r.name))}</span>${valueCell}</div>
     ${prev ? `<small class="muted">${t("去年（{y}）：{a}", { y: y - 1, a: money(prev) })}${val != null && prev ? ` · ${val - prev >= 0 ? "+" : "−"}${money(Math.abs(val - prev))}` : ""}</small>` : ""}

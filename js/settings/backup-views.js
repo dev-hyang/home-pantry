@@ -1,3 +1,4 @@
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, fmtDate, syncState } from "../core/util.js";
@@ -65,7 +66,7 @@ export function backupPanel() {
       <div class="bk-row"><button type="button" class="btn btn-primary" data-action="backup-now">${t("现在备份")}</button><button type="button" class="btn btn-ghost" data-action="backup-download">${t("下载一份")}</button></div></div>
     <form id="backupForm" onsubmit="return false">
       <div class="bk-sched"><label>${t("多久备份一次")} <select name="every" aria-label="${esc(t("多久备份一次"))}">${[["off", "不自动备份"], ["week", "每周"], ["month", "每月"], ["custom", "自定义（天）"]].map(([v, l]) => `<option value="${v}" ${s.every === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select></label>
-        <label data-backup-days ${s.every === "custom" ? "" : "hidden"}>${t("每隔几天")} <input name="days" type="number" min="1" max="365" inputmode="numeric" value="${s.days}" aria-label="${esc(t("每隔几天"))}"> ${t("天")}</label></div>
+        <label data-backup-days ${s.every === "custom" ? "" : "hidden"}>${t("每隔几天")} <input name="days" ${numAttrs("int", { max: 365, min: 1, step: null })} value="${s.days}" aria-label="${esc(t("每隔几天"))}"> ${t("天")}</label></div>
       <p class="muted">${t("网页关着时跑不了：到期后下次打开应用时自动备份一次。")}</p>
       <h3>${t("备份到哪")} <small class="muted">${t("可多选")}</small></h3>
       <div class="bk-cards">

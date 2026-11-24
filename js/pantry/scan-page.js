@@ -1,4 +1,5 @@
 /* 录入购物：手动添加（和拍照识别同一张确认表）和页面。 */
+import { numAttrs } from "../core/ui-num.js";
 import { $, esc, fmt, fmtShort, num, spaceOf, todayISO } from "../core/util.js";
 import { FEES_CAT, buildPool, noteFor } from "./scan-parse.js";
 import { aiReady, visionCapable } from "../core/ai.js";
@@ -83,7 +84,7 @@ function feeRowHtml(x, ri, i, cur) {
   return `<li class="scan-row scan-fee-row" data-r="${ri}" data-i="${i}">
     <label class="check-inline scan-inc"><input type="checkbox" name="inc" ${x.include ? "checked" : ""} aria-label="${esc(t("包含这一行"))}"></label>
     <input name="name" maxlength="60" autocomplete="off" aria-label="${esc(t("名称"))}" value="${esc(x.name)}">
-    <input name="amount" type="number" step="0.01" inputmode="decimal" aria-label="${esc(t("金额"))}（${esc(cur)}）" value="${x.amount ?? ""}">
+    <input name="amount" ${numAttrs("money", { min: null })} aria-label="${esc(t("金额"))}（${esc(cur)}）" value="${x.amount ?? ""}">
     <input type="hidden" name="qty" value=""><input type="hidden" name="unit" value=""><input type="hidden" name="target" value="__skip"><input type="hidden" name="cat" value="${FEES_CAT}">
     <p class="dup-hint" hidden></p><p class="cart-hint" hidden></p><p class="name-hint" hidden></p><p class="unit-hint" hidden></p>${x.gap ? `<p class="muted scan-gap-note">${t("按小票合计算出的差额，多半是税费；对不上就改金额或取消勾选")}</p>` : ""}</li>`;
 }
@@ -95,9 +96,9 @@ function rowHtml(x, ri, i, cur) {
           <label class="span-2">${t("放进库存")}<select name="target" data-search data-def="${esc(x.def || "")}" ${lockSpend ? "disabled" : ""}>${targetOptions(x)}</select></label>
           <label class="span-2">${t("名称")}<input name="name" maxlength="60" list="scanItemNames" autocomplete="off" value="${esc(x.name)}"></label>
           <label class="span-2 scan-cat">${t("新物品的分类")}<select name="cat">${categoryOptions(x.category)}</select></label>
-          <label>${t("数量")}<input name="qty" type="number" step="any" inputmode="decimal" value="${esc(fmt(x.qty))}"></label>
+          <label>${t("数量")}<input name="qty" ${numAttrs("qty", { min: null })} value="${esc(fmt(x.qty))}"></label>
           <label>${t("单位")}<input name="unit" list="unitList" maxlength="10" value="${esc(t(x.unit))}"></label>
-          <label>${t("金额")}（${esc(cur)}）<input name="amount" type="number" step="0.01" inputmode="decimal" value="${x.amount ?? ""}" ${lockStock ? "disabled" : ""}></label>
+          <label>${t("金额")}（${esc(cur)}）<input name="amount" ${numAttrs("money", { min: null })} value="${x.amount ?? ""}" ${lockStock ? "disabled" : ""}></label>
         </div>
         <p class="dup-hint" role="status" hidden></p><p class="cart-hint" role="status" hidden></p><p class="name-hint" role="status" hidden></p>${(() => { const n = noteFor(x.unit, x.qty, x.match); return `<p class="unit-hint${n.warn ? " warn" : ""}" role="status" ${n.text ? "" : "hidden"}>${esc(n.text)}</p>`; })()}</li>`;
 }

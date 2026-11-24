@@ -1,4 +1,5 @@
 /* 卡的余额面板（卡表单里要同步用到，所以不放进按需加载的净资产页面模块）。 */
+import { numAttrs } from "../core/ui-num.js";
 import { BALANCE_KINDS, isLiabilityKind } from "../stats/net-worth.js";
 import { STALE_DAYS, balancesOf } from "./nw-logic.js";
 import { esc, fmtDate, todayISO } from "../core/util.js";
@@ -18,7 +19,7 @@ export function balancePanel(c, { open = false } = {}) {
     <summary><span>${liab ? t("欠款") : t("余额")}：<b>${last ? mny(last.balance, last.currency) : t("未记录")}</b>${last ? ` <small class="muted">${t("截至 {d}", { d: fmtDate(last.as_of) })}</small>` : ""}${stale ? ` <span class="badge b-soon">${t("需要更新")}</span>` : ""}</span><span class="nw-sum-act">${t("更新余额")}</span></summary>
     <form class="nw-form" data-nw-form="bal" data-id="${esc(c.id)}">
       <label>${t("日期")}<input type="date" name="as_of" required value="${todayISO()}" max="${todayISO()}"></label>
-      <label>${liab ? t("欠款（{cur}）", { cur: cur() }) : t("余额（{cur}）", { cur: cur() })}<input type="number" name="balance" step="0.01" inputmode="decimal" required ${liab ? 'min="0"' : ""} value="${last ? esc(last.balance) : ""}"></label>
+      <label>${liab ? t("欠款（{cur}）", { cur: cur() }) : t("余额（{cur}）", { cur: cur() })}<input ${numAttrs("money", { min: null })} name="balance" required ${liab ? 'min="0"' : ""} value="${last ? esc(last.balance) : ""}"></label>
       <label class="nw-note">${t("备注（可选）")}<input name="notes" maxlength="300"></label>
       <button type="submit" class="btn btn-primary btn-sm">${t("保存余额")}</button>
     </form>

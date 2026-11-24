@@ -1,4 +1,5 @@
 /* 房屋概览：房屋卡片、耗材提醒、设备 / 季节任务 / 交易的摘要面板。 */
+import { numAttrs } from "../core/ui-num.js";
 import { EMERGENCY_FIELDS, emergencyFilled, emergencyOf } from "./house-draft.js";
 import { RENT_POLICIES, amountSource, curPid, hoaOf, hoaRegular, hoaTotalHtml, noteArea, refSection, statusLine } from "./house-fees.js";
 import { alertAct, alertBadge, alertText, assetAlerts, myAssets } from "./asset-common.js";
@@ -188,8 +189,8 @@ export function hoaFieldset(d) {
     <h4 class="sub-legend">${t("出租规则")}<small>${t("公寓常见：出租比例上限、最短租期、要不要 HOA 审批；买前、想出租前都要看")}</small></h4>
     <div class="form-grid">
       <label>${t("能不能出租")}<select name="hoa_rent_policy">${RENT_POLICIES.map(([k, n]) => `<option value="${k}" ${(hoa.rent_policy || "unknown") === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
-      <label>${t("出租比例上限 %")}<input name="hoa_rent_cap" type="number" inputmode="decimal" min="0" max="100" step="1" value="${hoa.rent_cap_pct ?? ""}"></label>
-      <label>${t("最短租期（月）")}<input name="hoa_rent_min" type="number" inputmode="numeric" min="0" step="1" value="${hoa.rent_min_months ?? ""}"></label>
+      <label>${t("出租比例上限 %")}<input name="hoa_rent_cap" ${numAttrs("rate", { step: 1 })} value="${hoa.rent_cap_pct ?? ""}"></label>
+      <label>${t("最短租期（月）")}<input name="hoa_rent_min" ${numAttrs("int")} value="${hoa.rent_min_months ?? ""}"></label>
       <label class="span-2">${t("说明")}${noteArea("hoa_rent_notes", hoa.rent_notes, t("例如：需自住满 1 年；出租名额已满，轮候中"))}</label>
     </div>
     <h4 class="sub-legend">${t("诉讼与纠纷")}<small>${t("HOA 正在打的官司会影响贷款和转手；买卖前问 22.1 披露")}</small></h4>

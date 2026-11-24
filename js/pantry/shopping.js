@@ -1,3 +1,4 @@
+import { numAttrs } from "../core/ui-num.js";
 import { $, du, esc, fmt, fmtShort, money, num, showQty, stampText, toDisp } from "../core/util.js";
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { lang, t } from "../core/i18n.js";
@@ -89,7 +90,7 @@ function shopRowHtml(s) {
     <button type="button" class="btn btn-sm btn-primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button>`;
   const priceBox = s.status === "bought" ? (s.amount != null ? `<div class="muted" style="font-size:12px">${t("花费 {m}", { m: money(num(s.amount)) })}</div>` : "")
     : `<div class="price-in">
-        <input type="number" min="0" step="0.01" inputmode="decimal" data-price-for="${s.id}" data-keep="price-${s.id}" placeholder="${esc(t("花费 {sym}（可不填）", { sym: Units.money(0).replace(/[\d.,\s]/g, "") }))}" aria-label="${esc(t("{name} 实际花费", { name: s.name }))}">
+        <input ${numAttrs("money")} data-price-for="${s.id}" data-keep="price-${s.id}" placeholder="${esc(t("花费 {sym}（可不填）", { sym: Units.money(0).replace(/[\d.,\s]/g, "") }))}" aria-label="${esc(t("{name} 实际花费", { name: s.name }))}">
         <input type="text" maxlength="40" list="storeList" data-store-for="${s.id}" data-keep="store-${s.id}" placeholder="${t("在哪买（可不填）")}" aria-label="${esc(t("{name} 购买商店", { name: s.name }))}">
         ${cardSelectHtml("card_id", undefined, `data-card-for="${s.id}" data-keep="card-${s.id}"`)}
       </div>`;

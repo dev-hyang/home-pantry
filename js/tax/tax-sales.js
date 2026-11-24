@@ -5,6 +5,7 @@
  *  · 车子：自用车卖得比买入价低是亏损，不能抵税；高了才有收益。
  * 买入价 / 卖出价 / 日期来自「房屋」和「车辆」里已有的记录；清单和「住满与否」记在这里（存预算表的 _tax_cfg.props，不动房产记录）。全是参考，政策和额度待核对。
  * 哪一块展开 / 哪一块正在加一项，记在内存里（ui），重画页面（每次保存后都会）不会把你正在填的那套房折叠起来。 */
+import { numAttrs } from "../core/ui-num.js";
 import { esc } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { state } from "../core/state.js";
@@ -63,7 +64,7 @@ function listBlock(p, s) {
   const linkBtn = s.link && !adding && !picking && !finding ? ` <button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-pick="${esc(key)}">🔗 ${s.link === "income" ? t("从收入记录里选") : t("从花费记录里选")}</button>` : "";
   const form = finding ? findHtml(p, key, linkedSet, money) : picking ? pickerHtml(p, key, s.link, leafLabel, isTransfer, linkedSet, money) : adding ? `<form class="tax-item-form" data-tax-item="${esc(key)}" novalidate>
       <label>${t("这一项是什么")}<input name="desc" maxlength="60" placeholder="${esc(t(s.ph))}" autocomplete="off"></label>
-      <label>${t("金额")}<input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00"></label>
+      <label>${t("金额")}<input name="amount" ${numAttrs("money", { min: 0.01 })} placeholder="0.00"></label>
       ${s.date ? `<label>${t("日期（可不填）")}<input name="on" type="date"></label>` : ""}
       <div class="tax-item-actions"><button type="submit" class="btn btn-sm btn-primary">${t("添加")}</button><button type="button" class="btn btn-sm btn-ghost" data-tax-add-cancel>${t("取消")}</button></div>
       <p class="form-error tax-item-err" role="alert"></p></form>`
@@ -86,7 +87,7 @@ function homeCard(p, idx) {
     ${listBlock(p, SECS[3])}
     ${step("⑦", t("自住满 2 年？"), lived, t("卖出前 5 年里自己住满 2 年（夫妻都要满足使用条件），才有 50 万美元的排除额度。"))}
     <section class="tax-step tax-result"><h4>${t("结果（参考）")}</h4><dl class="dt-list">${row(t("成本基础"), g.basis == null ? NA : money(g.basis))}${row(t("扣掉卖出费用后的卖价"), g.realized == null ? NA : money(g.realized))}</dl>${g.T.creditItems ? `<p class="hint">${t("closing 退款已调整成本基础：已按买入时的退款 / credit {a} 调低（不算收入）。", { a: money(g.T.creditItems) })}</p>` : ""}${verdict}</section>
-    ${rental ? `<label>${t("土地占比 %（折旧要去掉土地，不确定先填 20）")}<input type="number" min="0" max="95" step="1" inputmode="numeric" data-tax-prop="${esc(p.id)}" data-key="landPct" value="${x.landPct ?? ""}" placeholder="20"></label>
+    ${rental ? `<label>${t("土地占比 %（折旧要去掉土地，不确定先填 20）")}<input ${numAttrs("int", { max: 95 })} data-tax-prop="${esc(p.id)}" data-key="landPct" value="${x.landPct ?? ""}" placeholder="20"></label>
       <p class="hint">${t("出租房：每年折旧参考约 {a}（买入价 + 费用 − 退款 + 改善，去掉 {p}% 土地后 ÷ 27.5 年；第一年和最后一年要按月折算）。卖出时折旧会被「回收」征税，别漏。", { a: money(rentalDepreciation(p)), p: x.landPct ?? 20 })}</p>` : ""}
     <p class="hint">${t("政策待核对：自住满 2 年合并报税最多排除 50 万美元收益（单身 25 万）；出租过的部分有折旧回收。")} <a href="https://www.irs.gov/taxtopics/tc701" target="_blank" rel="noopener">${t("官方说明")} ↗</a></p></details>`;
 }

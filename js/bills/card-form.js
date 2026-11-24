@@ -1,4 +1,5 @@
 /* 卡的表单，和 AI 起草返现规则（只发卡名，结果填进表单由人确认）。 */
+import { numAttrs } from "../core/ui-num.js";
 import { $, esc, fmtDate, num, toast, todayISO } from "../core/util.js";
 import { ACCT_KINDS, CARDS_HREF, groupHref, groupName, cardById, cardHref, fromCatalog, kindName, noRewards, quarterOf, reloadCards } from "./cards.js";
 import { Store } from "../core/store.js";
@@ -57,7 +58,7 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
         ${catalogSel}
         ${aiBtn}
         <input type="hidden" name="catalog_id" value="${d(v.catalog_id)}"><input type="hidden" name="rules_as_of" value="${d(v.rules_as_of)}">${taxHintHtml(v.kind)}`;   // 类型 + 目录 + AI 起草 + 目录标记：新建是向导的第一步，已有的卡在「基本信息」里
-  const catsGrid = D().REWARD_CATS.filter(([k]) => k !== "other").map(([k, name, icon]) => `<label class="cat-rate"><span>${icon} ${esc(t(name))}</span><input name="cat_${k}" type="number" min="0" step="0.25" inputmode="decimal" value="${NUMF(rw.cats?.[k])}" placeholder="${NUMF(rw.base) || 1}"></label>`).join("");
+  const catsGrid = D().REWARD_CATS.filter(([k]) => k !== "other").map(([k, name, icon]) => `<label class="cat-rate"><span>${icon} ${esc(t(name))}</span><input name="cat_${k}" ${numAttrs("money", { step: 0.25 })} value="${NUMF(rw.cats?.[k])}" placeholder="${NUMF(rw.base) || 1}"></label>`).join("");
   const rotCats = D().REWARD_CATS.filter(([k]) => k !== "other").map(([k, name, icon]) => `<label class="radio-pill"><input type="checkbox" name="rot_cat" value="${k}" ${(rot.cats || []).includes(k) ? "checked" : ""}><span>${icon} ${esc(t(name))}</span></label>`).join("");
   const merchants = Object.entries(rw.merchants || {}).map(([k, val]) => `${k}=${val}`).join(", ");
   const credits = (v.credits || []).map((x) => `${x.name} | ${num(x.amount)} | ${x.period || "year"} | ${x.resets_on || ""} | ${num(x.used, 0)}`).join("\n");
@@ -75,18 +76,18 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
         <datalist id="giftMerchants">${["Amazon", "Target", "Walmart", "Costco", "Trader Joe's", "Whole Foods", "Home Depot", "Lowe's", "Starbucks", "Apple", "Visa 通用", "Mastercard 通用", "京东", "天猫", "盒马"].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
         <label ${only("credit debit")}>${t("网络")}<select name="network">${Object.entries(D().NETWORKS).map(([k, n]) => opt(k, t(n), (v.network || "visa") === k)).join("")}</select><small>${t("Costco 这类只收某个网络的商家，推荐时会用到")}</small></label>
         <label>${t("末四位")}<input name="last4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" value="${d(v.last4)}" placeholder="1234"><small>${t("只记后 4 位，银行导入时靠它认账户")}</small></label>
-        <label ${only("gift")}>${t("面值 / 充值总额（{cur}）", { cur: cur() })}<input name="balance" type="number" min="0" step="0.01" inputmode="decimal" value="${NUMF(v.balance)}"><small>${t("余额 = 它减去记在这张卡上的花费；用完了把「在用」取消")}</small></label>
+        <label ${only("gift")}>${t("面值 / 充值总额（{cur}）", { cur: cur() })}<input name="balance" ${numAttrs("money")} value="${NUMF(v.balance)}"><small>${t("余额 = 它减去记在这张卡上的花费；用完了把「在用」取消")}</small></label>
         <label>${t("持卡人 / 户主")}<select name="holder_person_id">${opt("", t("共用"), !v.holder_person_id)}${adultPeople().map((p) => opt(p.id, p.name, v.holder_person_id === p.id)).join("")}</select></label>
         <label ${only("credit debit gift")}><span ${only("gift")}>${t("有效期至（可选）")}</span><span ${only("credit debit")}>${t("到期年月")}</span><input name="expires_on" type="month" value="${d((v.expires_on || "").slice(0, 7))}"></label>
         <label>${t("开卡 / 开户日期")}<input name="opened_on" type="date" max="${todayISO()}" value="${d(v.opened_on)}"></label>
-        <label ${only("credit")}>${t("年费（{cur}）", { cur: cur() })}<input name="annual_fee" type="number" min="0" step="0.01" inputmode="decimal" value="${NUMF(v.annual_fee)}"></label>
+        <label ${only("credit")}>${t("年费（{cur}）", { cur: cur() })}<input name="annual_fee" ${numAttrs("money")} value="${NUMF(v.annual_fee)}"></label>
         <label ${only("credit")}>${t("年费哪个月收")}<select name="fee_month">${opt("", t("按开卡月"), !v.fee_month)}${Array.from({ length: 12 }, (_, i) => opt(i + 1, t("{m} 月", { m: i + 1 }), v.fee_month === i + 1)).join("")}</select></label>
-        <label ${only("credit")}>${t("额度（可空）")}<input name="credit_limit" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(v.credit_limit)}"></label>
+        <label ${only("credit")}>${t("额度（可空）")}<input name="credit_limit" ${numAttrs("money", { step: 1 })} value="${NUMF(v.credit_limit)}"></label>
         <label class="check-inline"><input type="checkbox" name="active" ${v.active !== false ? "checked" : ""}><span>${bank ? t("在用（停用的不出现在下拉里）") : t("在用（停用的不参与推荐）")}</span></label>
       </div></fieldset></div>
       ${W("repay")}<fieldset ${only("credit")}><legend>${t("还款")}</legend><div class="form-grid">
-        <label>${t("账单日（每月几号）")}<input name="statement_day" type="number" min="1" max="31" inputmode="numeric" value="${NUMF(v.statement_day)}"></label>
-        <label>${t("还款日（每月几号）")}<input name="due_day" type="number" min="1" max="31" inputmode="numeric" value="${NUMF(v.due_day)}"></label>
+        <label>${t("账单日（每月几号）")}<input name="statement_day" ${numAttrs("int", { max: 31, min: 1, step: null })} value="${NUMF(v.statement_day)}"></label>
+        <label>${t("还款日（每月几号）")}<input name="due_day" ${numAttrs("int", { max: 31, min: 1, step: null })} value="${NUMF(v.due_day)}"></label>
         <label class="check-inline"><input type="checkbox" name="autopay" ${v.autopay ? "checked" : ""}><span>${t("自动还款")}</span></label>
         <label>${t("从哪个账户还款")}<select name="pay_from">${accountOptions(linkedBill?.pay_card_id || "", { none: "（未指定）", exclude: c?.id || "", kinds: ["checking", "savings", "debit"] })}</select><small>${t("写到关联的还款账单上（它的付款账户）；账户在上面的「添加卡 / 账户」里加")}</small></label>
         <label>${t("还款提醒走哪条账单")}<select name="bill_id">${opt("", t("（不提醒）"), !v.bill_id)}${bills.map((x) => opt(x.id, `${x.name}${x.next_due_on ? ` · ${fmtDate(x.next_due_on)}` : ""}`, v.bill_id === x.id)).join("")}${opt("__new", t("新建一条「信用卡」还款账单"), false)}</select><small>${t("到期 / 核对提醒和缴费记录都在账单模块里，这里只是关联")}</small></label>
@@ -94,9 +95,9 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
       ${W("rewards")}<fieldset ${only("credit debit wallet")}><legend>${t("返现规则")}</legend>
         <p class="muted" style="margin:0 0 8px;font-size:13px">${t("全部按「% 返现」填；积分卡先定每点值多少美分，各类别写折算后的 %。没填的类别按「其他消费」。")}</p>
         <div class="form-grid">
-          <label>${t("其他消费 %")}<input name="base" type="number" min="0" step="0.25" inputmode="decimal" value="${NUMF(rw.base) || 0}"></label>
-          <label>${t("每点值多少美分（现金卡 = 1）")}<input name="point_value" type="number" min="0" step="0.05" inputmode="decimal" value="${NUMF(rw.point_value) || 1}"></label>
-          <label>${t("境外手续费 %")}<input name="foreign_fee" type="number" min="0" step="0.1" inputmode="decimal" value="${NUMF(rw.foreign_fee) || 0}"></label>
+          <label>${t("其他消费 %")}<input name="base" ${numAttrs("money", { step: 0.25 })} value="${NUMF(rw.base) || 0}"></label>
+          <label>${t("每点值多少美分（现金卡 = 1）")}<input name="point_value" ${numAttrs("money", { step: 0.05 })} value="${NUMF(rw.point_value) || 1}"></label>
+          <label>${t("境外手续费 %")}<input name="foreign_fee" ${numAttrs("money", { step: 0.1 })} value="${NUMF(rw.foreign_fee) || 0}"></label>
         </div>
         <div class="cat-rates">${catsGrid}</div>
         <div class="form-grid" style="margin-top:8px">
@@ -106,18 +107,18 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
           <div class="form-grid" style="margin-top:8px">
             <label class="check-inline span-2"><input type="checkbox" name="has_rotating" ${rw.has_rotating ? "checked" : ""}><span>${t("这张卡有季度轮换类别")}</span></label>
             <div class="span-2"><div class="lab" style="font-size:13px;font-weight:700;margin-bottom:4px">${t("本季（{q}）的类别", { q: q.label })}</div><div class="seg-radio">${rotCats}</div></div>
-            <label>${t("本季 %")}<input name="rot_rate" type="number" min="0" step="0.5" inputmode="decimal" value="${NUMF(rot.rate) || 5}"></label>
-            <label>${t("本季封顶（{cur}）", { cur: cur() })}<input name="rot_cap" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(rot.cap ?? rw.rotating_cap)}"></label>
+            <label>${t("本季 %")}<input name="rot_rate" ${numAttrs("money", { step: 0.5 })} value="${NUMF(rot.rate) || 5}"></label>
+            <label>${t("本季封顶（{cur}）", { cur: cur() })}<input name="rot_cap" ${numAttrs("money", { step: 1 })} value="${NUMF(rot.cap ?? rw.rotating_cap)}"></label>
             <p class="muted span-2" style="margin:0;font-size:12.5px">${t("每季类别以发卡行为准（链接可能变）：")} <a href="https://www.discover.com/credit-cards/cash-back/cashback-calendar.html" target="_blank" rel="noopener noreferrer">Discover it</a> · <a href="https://www.chase.com/personal/credit-cards/freedom/5percent" target="_blank" rel="noopener noreferrer">Chase Freedom</a></p>
             <label class="check-inline span-2"><input type="checkbox" name="rot_activated" ${rot.activated ? "checked" : ""}><span>${t("本季已激活")}</span></label>
           </div></details>
       </fieldset></div>
       ${W("bonus")}<fieldset ${only("credit")}><legend>${t("开卡奖励（可选）")}</legend><div class="form-grid">
-        <label>${t("要刷满（{cur}）", { cur: cur() })}<input name="bonus_spend" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(b.spend)}"></label>
+        <label>${t("要刷满（{cur}）", { cur: cur() })}<input name="bonus_spend" ${numAttrs("money", { step: 1 })} value="${NUMF(b.spend)}"></label>
         <label>${t("截止日期")}<input name="bonus_by" type="date" value="${d(b.by)}"></label>
-        <label>${t("奖励值多少（{cur}）", { cur: cur() })}<input name="bonus_value" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(b.reward_value)}"></label>
+        <label>${t("奖励值多少（{cur}）", { cur: cur() })}<input name="bonus_value" ${numAttrs("money", { step: 1 })} value="${NUMF(b.reward_value)}"></label>
         <label>${t("奖励说明")}<input name="bonus_label" maxlength="60" value="${d(b.label)}" placeholder="${esc(t("例如 60,000 点 ≈ $750"))}"></label>
-        <label>${t("已刷了多少（不填 = 按记到这张卡的花费自动累计）")}<input name="bonus_spent" type="number" min="0" step="1" inputmode="decimal" value="${NUMF(b.spent_manual)}"></label>
+        <label>${t("已刷了多少（不填 = 按记到这张卡的花费自动累计）")}<input name="bonus_spent" ${numAttrs("money", { step: 1 })} value="${NUMF(b.spent_manual)}"></label>
         <label class="check-inline"><input type="checkbox" name="bonus_done" ${b.done ? "checked" : ""}><span>${t("已拿到奖励")}</span></label>
       </div></fieldset></div>
       ${W("credits")}<fieldset ${only("credit")}><legend>${t("报销额度（可选）")}</legend>

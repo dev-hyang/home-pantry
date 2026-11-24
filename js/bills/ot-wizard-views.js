@@ -1,5 +1,6 @@
 /* 创建一次性账单的向导（#/bills/onetime?bill=new&type=wizard…&step=n）：5 步，完成后进这张账单的详情页。
  * 逻辑在 ot-wizard.js；样式沿用周期性向导（.wiz / .wz-*）。设计见 docs/design-bills-overview.md §16.5。 */
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, esc } from "../core/util.js";
@@ -55,9 +56,9 @@ function stepWho(d) {
 function stepMoney(d) {
   const K = Kof(d), cur = Units.region.currency;
   return `<div class="form-grid">
-    <label>${t(K.billed)}（${cur}）<input name="billed_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(d.billed_amount)}"></label>
-    ${K.insurance ? `<label>${t("保险已付")}<input name="insurance_paid" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(d.insurance_paid)}"></label>` : ""}
-    <label>${t(K.owed)}<input name="patient_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(d.patient_amount)}"><small>${t(K.insurance ? "留空 = 总额 − 保险已付" : "留空 = 总额")}</small></label>
+    <label>${t(K.billed)}（${cur}）<input name="billed_amount" ${numAttrs("money")} value="${esc(d.billed_amount)}"></label>
+    ${K.insurance ? `<label>${t("保险已付")}<input name="insurance_paid" ${numAttrs("money")} value="${esc(d.insurance_paid)}"></label>` : ""}
+    <label>${t(K.owed)}<input name="patient_amount" ${numAttrs("money")} value="${esc(d.patient_amount)}"><small>${t(K.insurance ? "留空 = 总额 − 保险已付" : "留空 = 总额")}</small></label>
     <label>${t(d.kind === "medical" || d.kind === "pet" ? "就诊日期" : d.kind === "travel" ? "出发日期" : "服务日期")}<input name="service_date" type="date" value="${esc(d.service_date)}"></label>
     <label>${t("账单日期 Bill date")}<input name="bill_date" type="date" value="${esc(d.bill_date)}"></label>
     <label>${t("到期日")}<input name="due_on" type="date" value="${esc(d.due_on)}"></label></div>`;

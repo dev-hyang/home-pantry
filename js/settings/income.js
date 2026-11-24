@@ -1,6 +1,7 @@
 /* 我的 → 账单 → 收入 → 预算与计划：每个人可以有多份收入（主业、兼职…），一行一张卡片，只能看到和编辑自己的；
  * 家主还能看到、编辑每个人的收入和全家合计，调整储蓄比例、重新生成预算。
  * 收入存在 member_incomes（迁移 023 / 024，行级安全：本人或家主可读写）；预算本身（各类金额）是全家共用的。 */
+import { numAttrs } from "../core/ui-num.js";
 import { memberName } from "../core/logic.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
@@ -16,7 +17,7 @@ const uidNew = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}${
 /** 一张收入卡片：来源 / 金额 / 每月或每年 / 删除（金额的标签和输入框同一行，前面带货币符号） */
 const cardHtml = (l = {}) => `<div class="inc-card" data-line="${esc(l.id || uidNew())}">
   <label class="inc-field inc-label">${t("来源")}<input name="label" maxlength="30" value="${esc(l.label || "")}" placeholder="${t("例如：主业、兼职")}"></label>
-  <label class="inc-field">${t("金额")}<span class="inc-amt"><i aria-hidden="true">${esc(sym())}</i><input name="amount" type="number" min="0" step="0.01" inputmode="decimal" value="${l.amount ?? ""}" placeholder="0.00" aria-label="${t("金额（{cur}）", { cur: cur() })}"></span></label>
+  <label class="inc-field">${t("金额")}<span class="inc-amt"><i aria-hidden="true">${esc(sym())}</i><input name="amount" ${numAttrs("money")} value="${l.amount ?? ""}" placeholder="0.00" aria-label="${t("金额（{cur}）", { cur: cur() })}"></span></label>
   <select name="period" aria-label="${t("按")}"><option value="month" ${l.period !== "year" ? "selected" : ""}>${t("每月")}</option><option value="year" ${l.period === "year" ? "selected" : ""}>${t("每年")}</option></select>
   <button type="button" class="btn btn-sm btn-danger-ghost inc-del" data-action="income-del-row">${t("删除")}</button></div>`;
 
@@ -43,7 +44,7 @@ export function incomePanel() {
       ${others.map((m) => { const inc = state.incomes.find((i) => i.user_id === m.user_id); return `<div class="inc-member"><h4>${esc(memberName(m.user_id) || m.display_name)} <small class="muted">${inc ? `${t("折合每月")} ${money(monthlyOf(inc))}` : t("未填")}</small></h4>${incomeForm(m.user_id, inc)}</div>`; }).join("") || `<p class="muted" style="margin:0">${t("还没有其他成员。")}</p>`}
       <p class="inc-total"><b>${t("合计")}</b> ${money(total)} / ${t("月")} <small class="muted">${t("年 {a}", { a: money(total * 12) })}</small></p></div>
     <div class="panel"><div class="kv"><div><b>${t("预算生成比例")}</b><div class="muted">${t("预算 = 全家收入 − 固定账单 − 储蓄；剩下的按过去的花费比例分给各类。只有家主能改。")}</div></div></div>
-      <form id="ratioForm" class="bud-inline"><label class="inc-field">${t("计划储蓄占收入")}（%）<input name="savings_pct" type="number" min="0" max="90" step="1" inputmode="numeric" value="${esc(b.savings_pct ?? 20)}" style="width:90px"></label>
+      <form id="ratioForm" class="bud-inline"><label class="inc-field">${t("计划储蓄占收入")}（%）<input name="savings_pct" ${numAttrs("int", { max: 90 })} value="${esc(b.savings_pct ?? 20)}" style="width:90px"></label>
         <button type="submit" class="btn btn-sm">${t("保存比例")}</button></form>
       <div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="budget-generate" ${total > 0 ? "" : "disabled"}>${plan ? t("重新生成预算") : t("生成预算")}</button>
         <a class="btn btn-sm btn-ghost" href="${href("bills", "budget")}">${t("去看预算")}</a></div>

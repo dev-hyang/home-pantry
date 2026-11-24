@@ -1,6 +1,7 @@
 /* 账单详情 → 特别摊派（?sec=assess）：这条账单的摊派列表（进度 + 每一期）、新增 / 编辑页（付款计划一期一行）。
  * 数据在 state.assess / state.assessItems（启动时整表读进内存，小表）；缴费时在缴费表单里勾选「这次交哪几期」，见 views.js。
  * 付款计划的写法：分期（每月一期，可「快速生成」）+ 一次性结清（可以只有其中一种，也可以前几期分期、最后一次结清）。 */
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { esc, fmtDate, num, todayISO, toast } from "../core/util.js";
@@ -68,7 +69,7 @@ const rowHtml = (x = {}, paid = false) => {
       <button type="button" class="btn btn-ghost as-del" data-as-del aria-label="${esc(t("删除这一期"))}" title="${esc(t("删除这一期"))}">✕</button></div>
     <div class="as-fields">
       <label>${lang === "en" ? "Due date" : "到期日"}<input type="date" name="as_due" required value="${esc(x.due_on || "")}"></label>
-      <label>${lang === "en" ? "Amount" : "金额"}<input type="number" name="as_amt" inputmode="decimal" min="0.01" step="0.01" required value="${x.amount != null ? num(x.amount).toFixed(2) : ""}"></label></div>
+      <label>${lang === "en" ? "Amount" : "金额"}<input ${numAttrs("money", { min: 0.01 })} name="as_amt" required value="${x.amount != null ? num(x.amount).toFixed(2) : ""}"></label></div>
     <label class="as-settled"><input type="checkbox" name="as_settled" ${x.settled_on ? "checked" : ""}><span>${t("已缴（无缴费记录）")}</span></label></li>`;
 };
 
@@ -89,8 +90,8 @@ export function assessFormPage(b, a, crumb, copyFrom = null, addKind = null) {
       <h3 class="as-h">${t("付款计划")}</h3>
       <details class="as-gen" ${src ? "" : "open"}><summary>${a ? t("重新生成未缴的分期") : t("快速生成分期")}</summary>
         <div class="form-grid">
-          <label>${t("期数")}<input name="g_count" type="number" inputmode="numeric" min="1" max="120" placeholder="3" ${a && instN ? `value="${instN}"` : ""}></label>
-          <label>${t("每期金额 / 总额")}<span class="as-gen2"><input name="g_amt" type="number" inputmode="decimal" min="0.01" step="0.01" aria-label="${esc(t("金额"))}" ${a && left > 0 ? `value="${left.toFixed(2)}"` : ""}><select name="g_mode" aria-label="${esc(t("金额含义"))}"><option value="each" ${a && left > 0 ? "" : "selected"}>${t("每期")}</option><option value="total" ${a && left > 0 ? "selected" : ""}>${t("总额")}</option></select></span></label>
+          <label>${t("期数")}<input name="g_count" ${numAttrs("int", { max: 120, min: 1, step: null })} placeholder="3" ${a && instN ? `value="${instN}"` : ""}></label>
+          <label>${t("每期金额 / 总额")}<span class="as-gen2"><input name="g_amt" ${numAttrs("money", { min: 0.01 })} aria-label="${esc(t("金额"))}" ${a && left > 0 ? `value="${left.toFixed(2)}"` : ""}><select name="g_mode" aria-label="${esc(t("金额含义"))}"><option value="each" ${a && left > 0 ? "" : "selected"}>${t("每期")}</option><option value="total" ${a && left > 0 ? "selected" : ""}>${t("总额")}</option></select></span></label>
           <label>${t("第一期到期日")}<input name="g_start" type="date" value="${esc(startDefault)}"></label>
           <div class="as-gen-go"><button type="button" class="btn btn-sm" data-as-gen>${t("生成分期")}</button></div>
         </div>

@@ -1,4 +1,5 @@
 /* 物品表单里的几个独立字段：关联设备、不再提醒、分类猜测。 */
+import { numAttrs } from "../core/ui-num.js";
 import { MUTE_FOREVER, daysFromTodayISO, esc, spaceOf, todayISO } from "../core/util.js";
 import { guessNew } from "../core/sub-guess.js";
 import { t } from "../core/i18n.js";
@@ -57,6 +58,6 @@ export function buyField(v) {
     <select name="buy_mode">${BUY_OPTS.map(([k, l]) => `<option value="${k}" ${cur === k ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
     <small>${t("购物车按它分组；选了就一直按它，留空 = 按分类自动推。")}</small></label>
   <label class="not-gear">${t("订阅 / 定期配送周期（天，可不填）")}
-    <input name="subscribe_every_days" type="number" min="1" max="365" step="1" inputmode="numeric" value="${v.subscribe_every_days || ""}" placeholder="${per ? esc(String(per)) : ""}">
+    <input name="subscribe_every_days" ${numAttrs("int", { max: 365, min: 1 })} value="${v.subscribe_every_days || ""}" placeholder="${per ? esc(String(per)) : ""}">
     ${per ? `<small>${esc(t("按现在的日均用量，当前库存大约 {d} 天用完，可以参考这个设周期。", { d: per }))}</small>` : ""}</label>`;
 }

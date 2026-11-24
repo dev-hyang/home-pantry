@@ -2,6 +2,7 @@
  * 不再在明细列表上方展开表单，也不在行里插表单：右下角圆形 ＋ → 手动记一笔，明细行的右键 / 长按菜单 → 编辑 / 复制，都来这一页。
  * 新记 / 复制用 id="purchaseForm"、编辑用 id="spendEditForm"：保存、重复提醒、分类联动的处理（app/events/submit.js、change.js、stats/dup-check.js）沿用原来的；
  * 表单带 data-page，保存成功后回到明细。 */
+import { numAttrs } from "../core/ui-num.js";
 import { recCrumb } from "../core/rec-crumb.js";
 import { esc, fmtDay, num } from "../core/util.js";
 import { state } from "../core/state.js";
@@ -65,7 +66,7 @@ export function spendFormPage(P) {
       <div class="form-grid">
         <label ${fsec("basic", sec)} class="span-2">${t("名称")}<input name="name" required maxlength="60" value="${v("name")}" placeholder="${esc(t("买了什么，例如：超市采购"))}"></label>
         <label ${fsec("basic", sec)}>${t("分类")}${catSelect(cat)}</label>
-        <label ${fsec("basic", sec)}>${t("金额（{cur}）", { cur: src?.currency || Units.region.currency })}<input name="amount" type="number" ${isEdit ? "" : 'min="0"'} step="0.01" inputmode="decimal" required value="${amount}"><small>${isEdit ? t("退款 / 报销填负数") : t("退款 / 报销勾下面的选项")}</small></label>
+        <label ${fsec("basic", sec)}>${t("金额（{cur}）", { cur: src?.currency || Units.region.currency })}<input name="amount" ${numAttrs("money", { min: null })} ${isEdit ? "" : 'min="0"'} required value="${amount}"><small>${isEdit ? t("退款 / 报销填负数") : t("退款 / 报销勾下面的选项")}</small></label>
         <label ${fsec("pay", sec)}>${t("商店 / 收款方")}<input name="store" maxlength="40" list="storeList" value="${esc(src?.store ?? (isEdit ? "" : lastStore()))}"></label>
         <label ${fsec("basic", sec)}>${t("日期")}<input name="date" type="date" max="${today}" value="${esc(day)}"></label>
         ${state.billsEnabled ? `<label ${fsec("pay", sec)}>${t("怎么付的")}${cardSelectHtml("card_id", card)}</label>` : ""}

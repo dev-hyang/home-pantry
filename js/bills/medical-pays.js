@@ -1,5 +1,6 @@
 /* 一次性账单的缴费：首页的「缴费记录」区（行格式和周期性账单一样：点一下编辑，⋯ / 长按有 编辑、复制、删除；空的时候区里有「记一笔缴费」）
  * 和缴费的独立页（?pay=new | <缴费 id>，&copy=<缴费 id> 是复制）。保存逻辑在 medical-views.js 的 saveMedPayForm。 */
+import { numAttrs } from "../core/ui-num.js";
 import { payBody, payRowHtml } from "./pay-row-fmt.js";
 import { crumbNav } from "../core/hub.js";
 import { esc, fmtDate, num, todayISO } from "../core/util.js";
@@ -62,7 +63,7 @@ export function medPayPage(b, edit, copyFrom = null) {
     <form id="medPayForm" class="panel" novalidate data-bill="${b.id}" data-id="${d(edit?.id)}">
       <div class="form-grid">
         <label>${t("缴费日期 Payment date")}<input name="paid_on" type="date" required value="${d(edit?.paid_on || todayISO())}" max="${todayISO()}"></label>
-        <label>${t("金额（{cur}）", { cur: b.currency })}<input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required value="${amountVal}"></label>
+        <label>${t("金额（{cur}）", { cur: b.currency })}<input name="amount" ${numAttrs("money", { min: 0.01 })} required value="${amountVal}"></label>
         <label>${t("付款方式 / 账户")}<select name="method">${methodOptions(src)}</select></label>
         <label>${t("确认号 Confirmation #")}<input name="confirmation_ref" maxlength="60" value="${d(edit?.confirmation_ref)}"></label>
         <label class="check-inline span-2"><input type="checkbox" name="refund" ${src && num(src.amount) < 0 ? "checked" : ""}><span>${t("这是退款 / 保险事后理赔")}</span></label>

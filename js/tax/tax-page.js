@@ -2,6 +2,7 @@
  * 页面之间用页头的「目录」切换（不再放页内标签条）；税务年度放在页头右边的「筛选」里。设计见 docs/design-tax.md。
  * 设置 / 每年状态的读写在 tax-calendar.js（存预算表的 _tax_cfg）；点击 / 勾选的处理在 tax-actions.js；文字内容在 tax-content-*.js。
  * 永远不存 SSN / ITIN / PIN / 账号：单据只记「收到没有」和「放在哪」。 */
+import { numAttrs } from "../core/ui-num.js";
 import { esc, todayISO } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { state } from "../core/state.js";
@@ -43,7 +44,7 @@ function householdTab(s, y) {
   return `<p class="hint tax-wrap">${t("家庭情况每年不一样（比如孩子人数、配偶的证件），所以按税务年度分别存；在页头「筛选」里换年份看别的年。")} <b>${esc(snap)}</b></p><section class="panel dt-block"><div class="dt-head"><h3>${t("报税身份")}</h3></div>
     <p class="muted tax-wrap">${t("税务居民；合并报税（Married Filing Jointly）；联邦 1040 + 伊利诺伊 IL-1040；用 TurboTax。")}</p>
     <div class="form-grid"><label class="check-inline span-2"><input type="checkbox" data-tax-itin data-y="${y}" ${s.spouseItin ? "checked" : ""}><span>${t("配偶用 ITIN 报税")}</span></label>
-      <label>${t("孩子人数")}<input type="number" min="0" max="12" inputmode="numeric" data-tax-kids data-y="${y}" value="${s.kids}"></label></div></section>
+      <label>${t("孩子人数")}<input ${numAttrs("int", { max: 12, step: null })} data-tax-kids data-y="${y}" value="${s.kids}"></label></div></section>
     <section class="panel dt-block"><div class="dt-head"><h3>${t("要打开哪些提醒")}</h3></div><p class="muted tax-wrap">${t("下面的开关决定「今年」页和提醒里显示哪些单据、截止日和提示；随时可以改。")}</p><div class="tax-flags">${flags}</div></section>
     <section class="panel dt-block"><div class="dt-head"><h3>${t("{y} 年的状态", { y })}</h3></div><div class="tax-flags">
       <label class="check-inline"><input type="checkbox" data-tax-year="extended" data-y="${y}" ${st.extended ? "checked" : ""}><span>${t("{y} 年已申请延期", { y })}</span></label>

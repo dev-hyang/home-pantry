@@ -1,5 +1,6 @@
 /* 预算页的联动与常用功能：固定账单、补货预估（联动库存）、大件家电基金（联动设备）、现金流预测、储蓄目标、
  * 订阅与固定账单年成本、月度复盘、家庭分摊。每一块往 budget.js 的“插槽”里注册，预算页按顺序拼出来。 */
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { esc, money, num, toast, confirmDelete } from "../core/util.js";
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}${Math.random().toString(16).slice(2)}`);
@@ -60,7 +61,7 @@ registerSection("month", 0, ({ plan }) => {
   ].filter(Boolean);
   const move = leftover != null && leftover > 1 && goals.length ? `<form id="reviewMoveForm" class="bud-move"><label class="muted" style="font-size:13px">${t("把结余存进目标")}</label>
     <select name="goal">${goals.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`).join("")}</select>
-    <input name="amount" type="number" min="1" step="1" value="${Math.floor(leftover)}" aria-label="${t("金额")}"><button class="btn btn-sm" type="submit">${t("存入")}</button></form>` : "";
+    <input name="amount" ${numAttrs("int", { min: 1 })} value="${Math.floor(leftover)}" aria-label="${t("金额")}"><button class="btn btn-sm" type="submit">${t("存入")}</button></form>` : "";
   return sec("budReview", t("{m} 复盘", { m: monthLabel(last) }), t("上个月花得怎么样"), `<div class="panel"><ul class="tips bud-advice">${lines.map((l) => `<li>${l}</li>`).join("")}</ul>${move}</div>`);
 });
 
@@ -124,7 +125,7 @@ registerSection("bills", 20, ({ plan }) => {
     ${chart}
     ${biggest.length ? `<ul class="restock-list">${biggest.map((e) => `<li><span class="badge" style="background:var(--surface-2)">${fmtD(e.date)}</span><div class="grow"><span class="name">${esc(e.name)}</span></div><b>${money(-e.amt)}</b></li>`).join("")}</ul>` : ""}
     <form id="incomeDayForm" class="bud-inline"><label class="muted" style="font-size:13px">${t("每月发薪日（选填，用来算先后）")}</label>
-      <input name="day" type="number" min="1" max="31" step="1" inputmode="numeric" value="${day || ""}" placeholder="${t("几号")}" aria-label="${t("发薪日")}"><button class="btn btn-sm" type="submit">${t("保存")}</button></form></div>`);
+      <input name="day" ${numAttrs("int", { max: 31, min: 1 })} value="${day || ""}" placeholder="${t("几号")}" aria-label="${t("发薪日")}"><button class="btn btn-sm" type="submit">${t("保存")}</button></form></div>`);
 });
 
 /* ───────────── 储蓄目标 ───────────── */
@@ -136,12 +137,12 @@ registerSection("goals", 0, ({ plan }) => {
   return sec("budGoals", t("储蓄目标"), t("给大件或旅行设个目标，每月该存多少算给你"), `<div class="panel">
     ${rows.length ? rows.map(({ g, left, m, need, done }) => `<div class="bud-row" data-swipe-del="budget-goal" ${lpAttr([{ label: t("删除"), action: "budget-goal-del", data: { id: g.id }, danger: true }], g.name)}><div class="bud-head"><b>🎯 ${esc(g.name)}</b><span>${money(g.saved || 0)} / ${money(g.target)} · ${pct(g.saved || 0, g.target)}%</span></div>${barHtml(g.saved || 0, g.target)}
       <small class="muted">${done ? `✅ ${t("已攒够")}` : t("{d} 前还差 {a}，每月存 {b}（约 {m} 个月）", { d: esc(g.date), a: money(left), b: money(need), m })}</small>
-      <div class="bud-inline"><input type="number" min="1" step="1" inputmode="decimal" data-goal-amt="${g.id}" placeholder="${t("存入金额")}" aria-label="${t("存入金额")}"><button type="button" class="btn btn-sm" data-action="budget-goal-save" data-id="${g.id}">${t("存入")}</button>
+      <div class="bud-inline"><input ${numAttrs("money", { min: 1, step: 1 })} data-goal-amt="${g.id}" placeholder="${t("存入金额")}" aria-label="${t("存入金额")}"><button type="button" class="btn btn-sm" data-action="budget-goal-save" data-id="${g.id}">${t("存入")}</button>
         <button type="button" class="btn btn-sm btn-danger-ghost swipe-src" data-action="budget-goal-del" data-id="${g.id}">${t("删除")}</button></div></div>`).join("")
       : `<p class="muted" style="margin:0">${t("还没有目标，例如：旅行、洗碗机、应急金。")}</p>`}
     ${rows.length ? `<p class="${plan.savings != null && needTotal > plan.savings ? "form-error" : "muted"}" style="margin:8px 0 0;font-size:13px">${plan.savings != null ? t("所有目标每月共需 {a}，计划储蓄 {b}（占 {p}%）。", { a: money(needTotal), b: money(plan.savings), p: pct(needTotal, plan.savings) }) : t("所有目标每月共需 {a}。", { a: money(needTotal) })}${plan.savings != null && needTotal > plan.savings ? ` ${t("超出了，可以拉长期限或提高储蓄比例。")}` : ""}</p>` : ""}
     <form id="goalForm" class="form-grid" style="margin-top:10px"><label>${t("目标名称")}<input name="name" required maxlength="40" placeholder="${t("例如：旅行")}"></label>
-      <label>${t("目标金额（{cur}）", { cur: cur() })}<input name="target" type="number" min="1" step="1" inputmode="decimal" required></label>
+      <label>${t("目标金额（{cur}）", { cur: cur() })}<input name="target" ${numAttrs("money", { min: 1, step: 1 })} required></label>
       <label>${t("完成日期")}<input name="date" type="date" required></label>
       <div class="form-actions" style="align-self:end"><button type="submit" class="btn btn-primary btn-sm">${t("添加目标")}</button></div></form></div>`);
 });
@@ -178,7 +179,7 @@ registerSection("goals", 10, () => {
       ${net.map((r) => `<tr><th scope="row">${esc(r.part.name)}</th><td>${money(r.paid)}</td><td>${money(r.share)} <small class="muted">${Math.round((weight(r.part) / wsum) * 100)}%</small></td><td class="${r.net >= 0 ? "" : "down"}">${r.net >= 0 ? "+" : ""}${money(r.net)}</td></tr>`).join("")}</tbody></table>
     ${moves.length ? `<ul class="tips bud-advice">${moves.map((x) => `<li>💸 ${t("{a} 付给 {b}：{m}", { a: esc(x.from), b: esc(x.to), m: money(x.a) })}</li>`).join("")}</ul>` : `<p class="muted" style="margin:8px 0 0">${t("这个月基本平了。")}</p>`}
     ${unrec ? `<p class="muted" style="margin:6px 0 0;font-size:13px">${t("另有 {n} 笔没有记账人（旧记录），不参与分摊。", { n: unrec })}</p>` : ""}
-    <form id="splitForm" class="form-grid" style="margin-top:10px">${members.map((x) => `<label>${esc(x.name)} ${t("占比 %")}<input name="w_${x.key}" type="number" min="0" max="100" step="1" inputmode="numeric" value="${Math.round(weight(x))}"></label>`).join("")}
+    <form id="splitForm" class="form-grid" style="margin-top:10px">${members.map((x) => `<label>${esc(x.name)} ${t("占比 %")}<input name="w_${x.key}" ${numAttrs("int", { max: 100 })} value="${Math.round(weight(x))}"></label>`).join("")}
       <div class="form-actions" style="align-self:end"><button class="btn btn-sm" type="submit">${t("保存占比")}</button></div></form></div>`);
 });
 registerAction("budget-split-month", (el, ctx) => { state.budgetSplitMonth = el.dataset.m; ctx.render(); });

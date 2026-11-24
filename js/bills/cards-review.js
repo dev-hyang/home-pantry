@@ -1,4 +1,5 @@
 /* 用卡复盘（各卡花了多少、返现估算）和「现在该刷哪张」。 */
+import { numAttrs } from "../core/ui-num.js";
 import { askInline } from "../core/ask.js";
 import { cardMonths, isBankAcct, pickCards, pickFor, reviewMonth, rewardCatName } from "./cards.js";
 import { esc, money, num } from "../core/util.js";
@@ -30,7 +31,7 @@ export function pickPanel() {
     <div class="form-grid pick-grid">
       <label>${t("买什么")}<select name="cat">${cats}</select></label>
       <label>${t("在哪买（可不填）")}<input name="merchant" maxlength="40" list="storeList" value="${d(p.merchant)}" placeholder="${esc(t("Costco / Amazon / 餐厅名…"))}"></label>
-      <label>${t("金额（可不填）")}<input name="amount" type="number" min="0" step="0.01" inputmode="decimal" value="${d(p.amount)}" placeholder="${esc(cur())}"></label>
+      <label>${t("金额（可不填）")}<input name="amount" ${numAttrs("money")} value="${d(p.amount)}" placeholder="${esc(cur())}"></label>
       <label class="check-inline"><input type="checkbox" name="abroad" ${p.abroad ? "checked" : ""}><span>${t("境外消费")}</span></label>
     </div>
     <div id="cardPickOut">${pickResultHtml()}</div>

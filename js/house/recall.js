@@ -4,6 +4,7 @@
  * - open / stop_use：首页提醒（停止使用 = 紧急·必须；待处理 = 尽快·必须），直到处理完（assets.js 的 assetAlertItems）
  * - 三个出口：修好了（记一条维修记录）/ 换新（#/asset/new?replaces=<旧id>，保存后旧机 replaced_by = 新机）/ 退款（记一笔负数花费）
  * - 换新、退款处理完的旧设备算「退役」：不再进设备列表、提醒和换季任务，列表底部「已更换 / 已退货」里还能打开 */
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { $, armed, catOf, esc, fmtDate, money, num, todayISO, toast } from "../core/util.js";
@@ -104,7 +105,7 @@ export function recallSection(a) {
           <a class="btn btn-sm btn-primary" href="${href("asset", "new")}?replaces=${encodeURIComponent(a.id)}">${t("登记换来的新机")}</a></div></details>
       <details class="panel rc-exit"><summary><span class="rc-ico" aria-hidden="true">💵</span><span><b>${t("退款了")}</b><small>${t("退货退款，东西不要了")}</small></span></summary>
         <form id="recallRefundForm" class="rc-body"><input type="hidden" name="asset_id" value="${esc(a.id)}">
-          <label>${t("退款金额（{cur}）", { cur: Units.region.currency })}<input name="amount" type="number" inputmode="decimal" min="0" step="0.01" value="${d(priceOrNull(a.purchase_price))}"></label>
+          <label>${t("退款金额（{cur}）", { cur: Units.region.currency })}<input name="amount" ${numAttrs("money")} value="${d(priceOrNull(a.purchase_price))}"></label>
           <label>${t("日期")}<input name="date" type="date" required value="${todayISO()}" max="${todayISO()}"></label>
           <label>${t("记到哪个分类")}<select name="category">${categoryOptions(defCat, { spend: true })}</select></label>
           ${pay ? `<label>${t("退回到")}${pay}</label>` : ""}

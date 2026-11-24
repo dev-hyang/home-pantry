@@ -1,6 +1,7 @@
 /* 创建周期性账单的向导（#/bill/new?type=recurring&step=n）：一屏一个问题，5 步，完成后进新账单的详情页。
  * 逻辑（默认值、预览、校验、拼账单）在 wizard.js；这里只管画面和事件。设计见 docs/design-bills-overview.md §16。
  * 草稿放在 state.billDraft（内存，不入库；创建成功或换一次新的进入就清掉）；步骤在网址里（返回键 = 上一步）。 */
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { finBase } from "../core/crumb-base.js";
@@ -57,7 +58,7 @@ function stepWhat(d) {
 function stepWhen(d, today) {
   const f = d.frequency;
   const when = askDay(f)
-    ? `<label>${t("每月几号到期")}<input name="due_day" type="number" inputmode="numeric" min="1" max="31" value="${esc(d.due_day)}" placeholder="${t("例如 20")}"></label>${f === "custom" ? `<label>${t("每几个月一次")}<input name="interval_months" type="number" inputmode="numeric" min="1" max="60" value="${esc(d.interval_months)}"></label>` : ""}`
+    ? `<label>${t("每月几号到期")}<input name="due_day" ${numAttrs("int", { max: 31, min: 1, step: null })} value="${esc(d.due_day)}" placeholder="${t("例如 20")}"></label>${f === "custom" ? `<label>${t("每几个月一次")}<input name="interval_months" ${numAttrs("int", { max: 60, min: 1, step: null })} value="${esc(d.interval_months)}"></label>` : ""}`
     : `<label>${t("下一次到期日")}<input name="next_due_on" type="date" value="${esc(d.next_due_on)}"></label>`;
   return `<div class="form-grid">
       <label>${t("多久交一次")}<select name="frequency">${WIZARD_FREQS.map((k) => `<option value="${k}" ${k === f ? "selected" : ""}>${t(B().FREQUENCIES[k])}</option>`).join("")}</select></label>
@@ -68,7 +69,7 @@ function stepWhen(d, today) {
       <label class="wz-opt"><input type="radio" name="amount_type" value="fixed" ${d.amount_type === "fixed" ? "checked" : ""}><span><b>${t("固定金额")}</b><small>${t("每次一样，例如房贷、网络、订阅")}</small></span></label>
       <label class="wz-opt"><input type="radio" name="amount_type" value="variable" ${d.amount_type !== "fixed" ? "checked" : ""}><span><b>${t("每次不一样")}</b><small>${t("例如水电燃气：先不填，记缴费时填实际金额，我按最近几次的均值估")}</small></span></label>
     </fieldset>
-    <label data-wz-amount ${d.amount_type === "fixed" ? "" : "hidden"} style="display:${d.amount_type === "fixed" ? "grid" : "none"};margin-top:8px">${t("每次金额（{cur}）", { cur: Units.region.currency })}<input name="typical_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(d.typical_amount)}"></label>`;
+    <label data-wz-amount ${d.amount_type === "fixed" ? "" : "hidden"} style="display:${d.amount_type === "fixed" ? "grid" : "none"};margin-top:8px">${t("每次金额（{cur}）", { cur: Units.region.currency })}<input name="typical_amount" ${numAttrs("money")} value="${esc(d.typical_amount)}"></label>`;
 }
 const previewText = (d, today) => { const n = nextDuePreview(d, today); return n ? `📅 ${t("下次到期：{d}", { d: esc(fmtDate(n)) })}` : t(askDay(d.frequency) ? "填上每月几号，我来算下次到期日。" : "选一个下一次到期的日期。"); };
 const PAY_TEXT = { autopay: ["自动扣款", "银行 / 卡每期自动扣；到期前后提醒你核对金额"], online: ["在线手动缴费", "到期前提醒你去缴费，可以贴缴费链接"], escrow: ["Escrow 代缴", "房产税、保险由贷款方从房贷月供里代缴：不重复提醒"], other: ["其他方式", "邮寄支票、电话、现场缴费"] };

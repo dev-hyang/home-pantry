@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.25", title: { zh: "全站的金额、数量、天数框都换成统一写法", en: "All amount, quantity and day boxes now share one setup" }, items: [
+    { k: "better", zh: "其余表单里的数字框（约 120 个）也按统一规则输入：金额两位小数、天数整数、利率按百分比，手机上都弹数字键盘，数字等宽对齐。", en: "The remaining number boxes in all other forms (about 120) now follow the same rules: two decimals for money, whole numbers for days, percentages for rates, a numeric keypad on phones and even-width digits." },
+    { k: "better", zh: "每个框原来的最小值、最大值、步长都保留，不会多出新的限制；外观和大小不变。", en: "Each box keeps its original min, max and step, so no new limits appear; look and size are unchanged." },
+  ] },
   { v: "2026-11-24.24", title: { zh: "金额、天数框统一了写法（先从账单、贷款、收入三张表单开始）", en: "Amount and day boxes now share one setup (bills, loans, income forms first)" }, items: [
     { k: "better", zh: "账单、贷款、收入表单里的金额、利率、天数框，输入规则统一（金额两位小数、天数整数），数字用等宽字体，位数更整齐。", en: "Amount, rate and day boxes in the bill, loan and income forms follow the same rules (two decimals for money, whole numbers for days) and use even-width digits." },
     { k: "better", zh: "外观和输入框大小不变；其他表单会陆续换过来。", en: "Look and size are unchanged; other forms will follow." },

@@ -1,3 +1,4 @@
+import { numAttrs } from "../core/ui-num.js";
 import { assetSelectHtml } from "./asset-ui.js";
 import { copyOf } from "../core/more-menu.js";
 import { state } from "../core/state.js";
@@ -82,7 +83,7 @@ function viewDetail(id, payId) {
         <label>${t("保险公司")}<input name="insurer" maxlength="60" value="${d(v.insurer)}"></label>
         <label>${t("计划类型")}<select name="plan_type"><option value="">${t("未指定")}</option>${Object.entries(PLAN_TYPES).map(([k, n]) => `<option value="${k}" ${v.plan_type === k ? "selected" : ""}>${t(n)}</option>`).join("")}</select></label>
         <label>${t("理赔号 Claim #")}<input name="claim_ref" maxlength="60" value="${d(v.claim_ref)}"></label>
-        <label>${t("保险已付")}<input name="insurance_paid" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.insurance_paid)}"></label>
+        <label>${t("保险已付")}<input name="insurance_paid" ${numAttrs("money")} value="${num0(v.insurance_paid)}"></label>
         </div>
       </fieldset>` : ""}
       <fieldset data-sec="amount" ${hide("amount")}>
@@ -91,9 +92,9 @@ function viewDetail(id, payId) {
         <label>${t(v.kind === "medical" || v.kind === "pet" ? "就诊日期" : v.kind === "travel" ? "出发日期" : "服务日期")}<input name="service_date" type="date" value="${d(v.service_date)}"></label>
         <label>${t("账单日期 Bill date")}<input name="bill_date" type="date" value="${d(v.bill_date)}"></label>
         <label>${t("到期日")}<input name="due_on" type="date" value="${d(v.due_on)}"></label>
-        <label>${t(K.billed)}（${esc(v.currency)}）<input name="billed_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.billed_amount)}"></label>
-        <label>${t("折扣 / 冲减")}<input name="adjustment" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.adjustment)}"></label>
-        <label>${t(K.owed)}<input name="patient_amount" type="number" inputmode="decimal" min="0" step="0.01" value="${num0(v.patient_amount)}"><small>${t(K.insurance ? "留空 = 总额 − 保险已付 − 折扣；以保险说明（EOB）上的为准" : "留空 = 总额 − 折扣")}</small></label>
+        <label>${t(K.billed)}（${esc(v.currency)}）<input name="billed_amount" ${numAttrs("money")} value="${num0(v.billed_amount)}"></label>
+        <label>${t("折扣 / 冲减")}<input name="adjustment" ${numAttrs("money")} value="${num0(v.adjustment)}"></label>
+        <label>${t(K.owed)}<input name="patient_amount" ${numAttrs("money")} value="${num0(v.patient_amount)}"><small>${t(K.insurance ? "留空 = 总额 − 保险已付 − 折扣；以保险说明（EOB）上的为准" : "留空 = 总额 − 折扣")}</small></label>
         <label>${t("状态")}<select name="status">${["awaiting_insurance", "open", "disputed", "collections", "written_off"].map((k) => `<option value="${k}" ${v.status === k ? "selected" : ""}>${t(STATUS[k])}</option>`).join("")}</select><small>${t("已结清 / 部分已付由付款记录自动算")}</small></label>
         ${v.kind === "medical" ? `<label class="span-2 check-inline"><input type="checkbox" name="hsa_eligible" ${v.hsa_eligible ? "checked" : ""}><span>${t("可用 HSA / FSA 报销")}</span></label>` : ""}
         </div>

@@ -1,4 +1,5 @@
 /* 单个商店：详情页、更新 / 核对区、这家的特价列表。 */
+import { numAttrs } from "../core/ui-num.js";
 import { DEAL_TYPES, adUrl, dealCatName, dealMatches, dealTypeName, dealsDue, flippUrl, liveDeals, mapUrl, openShopping, priceHistory, replaceable, shopCat } from "./logic.js";
 import { PICK_KEY, localPicks, shopName, unitMoney } from "./lite.js";
 import { R } from "./shops-actions.js";
@@ -114,8 +115,8 @@ function dealTypeDrop(value, labelId) {
 export function dealEditFormHtml(d, s) {
   return `<form class="panel deal-edit" id="dealEditForm" data-id="${d.id}">
       <div class="form-grid"><label class="span-2">${t("名称")}<input name="name" maxlength="80" required value="${esc(d.name)}"></label><label>${t("规格")}<input name="size" maxlength="40" value="${esc(d.size || "")}"></label>
-      <label>${t("价格")}<input name="price" type="number" min="0" step="0.01" value="${d.price ?? ""}"></label><label>${t("广告原文")}<input name="price_text" maxlength="40" value="${esc(d.price_text || "")}"></label>
-      <label>${t("单价")}<input name="unit_price" type="number" min="0" step="0.0001" value="${d.unit_price ?? ""}"></label><label>${t("单位")}<input name="unit_label" maxlength="12" value="${esc(d.unit_label || "")}"></label>
+      <label>${t("价格")}<input name="price" ${numAttrs("money")} value="${d.price ?? ""}"></label><label>${t("广告原文")}<input name="price_text" maxlength="40" value="${esc(d.price_text || "")}"></label>
+      <label>${t("单价")}<input name="unit_price" ${numAttrs("money", { step: 0.0001 })} value="${d.unit_price ?? ""}"></label><label>${t("单位")}<input name="unit_label" maxlength="12" value="${esc(d.unit_label || "")}"></label>
       <label>${t("到期")}<input name="valid_to" type="date" value="${esc(d.valid_to || "")}"></label><label class="span-2">${t("通用叫法")}<input name="aka" maxlength="120" value="${esc(d.aka || "")}" placeholder="${esc(t("鸡蛋, eggs"))}"></label>
       ${state.runsMissing ? "" : `<div class="span-2 dt-field"><span class="dt-lbl" id="dtLbl-${d.id}">${t("折扣类型")}</span>${dealTypeDrop(d.deal_type, `dtLbl-${d.id}`)}</div>`}</div>
       <div class="form-actions"><a class="btn btn-ghost" href="${shopHref(s)}?deal=${encodeURIComponent(d.id)}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button></div></form>`;

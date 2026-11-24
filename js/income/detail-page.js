@@ -1,5 +1,6 @@
 /* 收入详情页（#/bills/income?tab=records&view=<id>）和编辑页（&form=<id>）：只读分块，每块右上角有自己的「编辑」（去编辑页，光标放到那一块的第一个格子）。
  * 入口：收入明细的点行 / 长按菜单「详情」「编辑」。还款（借款）那一块里可以直接记还款、删还款。 */
+import { numAttrs } from "../core/ui-num.js";
 import { esc, fmtDay, todayISO } from "../core/util.js";
 import { CHANNELS, inc, kindLabel, kindOf, memberLabel, personName, repayState } from "./logic.js";
 import { splitRecord } from "../core/income-taxonomy.js";
@@ -23,7 +24,7 @@ function repayRows(r, s) {
   if (s.debt) return [dtRow(t("已转为借款"), `${esc(sums)}<p style="margin:6px 0 0"><a class="btn btn-sm" href="${esc(debtHref(s.debt))}">${t("去借贷里记还款")} ›</a></p>`)];
   const reps = inc().rep.filter((p) => p.record_id === r.id).sort((a, b) => b.paid_on.localeCompare(a.paid_on));
   const list = `<ul class="ix-reps">${reps.map((p) => `<li><span>${p.paid_on} · <b>${fmtMoney(p.amount)}</b>${p.method ? ` · ${esc(p.method)}` : ""}${p.purchase_id ? ` · <span class="muted">${t("已计入花费")}</span>` : ""}</span>${canEdit(r) ? `<button type="button" class="btn btn-sm btn-ghost" data-inc="rep-del" data-id="${p.id}">${t("删除")}</button>` : ""}</li>`).join("") || `<li class="muted">${t("还没有还款记录")}</li>`}</ul>`;
-  const form = s.left > 0 && canEdit(r) ? `<form data-inc-form="repay" data-id="${r.id}" class="form-grid" style="margin-top:6px"><label>${t("还款日期")}<input type="date" name="paid_on" value="${todayISO()}" max="${todayISO()}" required></label><label>${t("金额")}<input type="number" name="amount" step="0.01" min="0.01" value="${s.left}" required></label><label>${t("方式")}<input name="method" maxlength="40" placeholder="Zelle / ${esc(t("现金"))}"></label><label class="check-inline" style="grid-column:1/-1"><input type="checkbox" name="as_spend" checked><span>${t("同时记为一笔花费（钱从账户里出去了）")}</span></label><small class="muted" style="grid-column:1/-1">${t("如果这笔转账已经从银行对账单导入成花费了，系统会发现并不再重复记；也可以取消勾选。")}</small><div class="form-actions"><button class="btn btn-sm btn-primary">${t("记一笔还款")}</button></div></form>` : "";
+  const form = s.left > 0 && canEdit(r) ? `<form data-inc-form="repay" data-id="${r.id}" class="form-grid" style="margin-top:6px"><label>${t("还款日期")}<input type="date" name="paid_on" value="${todayISO()}" max="${todayISO()}" required></label><label>${t("金额")}<input ${numAttrs("money", { min: 0.01 })} name="amount" value="${s.left}" required></label><label>${t("方式")}<input name="method" maxlength="40" placeholder="Zelle / ${esc(t("现金"))}"></label><label class="check-inline" style="grid-column:1/-1"><input type="checkbox" name="as_spend" checked><span>${t("同时记为一笔花费（钱从账户里出去了）")}</span></label><small class="muted" style="grid-column:1/-1">${t("如果这笔转账已经从银行对账单导入成花费了，系统会发现并不再重复记；也可以取消勾选。")}</small><div class="form-actions"><button class="btn btn-sm btn-primary">${t("记一笔还款")}</button></div></form>` : "";
   return [dtRow(t("还款（还给对方）"), esc(sums)), r.repay_due_on ? dtRow(t("还款到期日"), esc(fmtDay(r.repay_due_on))) : "", dtRow(t("还款记录"), list + form)];
 }
 

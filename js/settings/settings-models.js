@@ -1,4 +1,5 @@
 /* 设置：AI 模型下拉（常用免费模型目录 + 这个 key 实际能用的列表）和 AI 设置。 */
+import { numAttrs } from "../core/ui-num.js";
 import { AUTH_STYLES, FREE_MODELS, FREE_MODELS_AS_OF, aiChanges, aiIcon, aiQuota, aiReady, autoModel, catalogAgeDays, effective, listModels, modelInfo, modelsCachedAt } from "../core/ai.js";
 import { DATE_FMTS, dateFormat, esc, fmtDay, toast } from "../core/util.js";
 import { LANGS, detectLang, langOverride, t } from "../core/i18n.js";
@@ -93,7 +94,7 @@ function aiBlock() {
         <small>${esc(t(p.hint || ""))}${p.signup ? ` <a href="${p.signup}" target="_blank" rel="noopener noreferrer">${t("去申请 key")}</a>` : ""}</small></label>
       <label>${t("API key")}<input name="key" type="password" autocomplete="off" maxlength="300" value="${esc(s.key)}" placeholder="${esc(p.keyPrefix ? `${[].concat(p.keyPrefix)[0]}…` : "sk-…")}">
         <small>${esc(t(p.keyHint || "在服务商控制台创建 API key，整段粘贴到这里"))}</small></label>
-      <label>${t("家庭人数（菜单份量）")}<input name="people" type="number" inputmode="numeric" min="1" max="20" value="${s.people || 4}"></label>
+      <label>${t("家庭人数（菜单份量）")}<input name="people" ${numAttrs("int", { max: 20, min: 1, step: null })} value="${s.people || 4}"></label>
     </div>
     ${custom ? "" : `<p class="hint">${t("模型名和接口地址已内置（{model}），一般不用改；要换模型再展开下面的“高级”。", { model: effective(s, p).model })}${s.model || s.base ? ` <button type="button" class="btn btn-sm btn-ghost" data-action="ai-clear-adv">${t("清掉手填的模型名 / 地址")}</button>` : ""}</p>`}
     <details class="adv" ${custom ? "open" : ""}><summary>${custom ? t("接口地址、模型与鉴权（自定义必填）") : t("高级：换模型 / 自定义接口地址")}</summary>

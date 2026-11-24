@@ -3,6 +3,7 @@
  *    读到记录后金额和名称一律以记录为准（记录里改了，这里跟着变）；记录被删了 → 这一行不计入，标「记录已删除」，由你 × 掉。
  *  · 花费记录只在打开买卖页时、按房产读一次（ui.spend），不读整表；只列这套房的、不是转账的、不是账单虚拟行的。
  *  · 同一笔只能放进一张清单（已链接过的不再出现在选择器里）。 */
+import { numAttrs } from "../core/ui-num.js";
 import { esc } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { ui } from "./tax-ui.js";
@@ -46,7 +47,7 @@ if (typeof document !== "undefined") {
 export function findHtml(p, key, linked, money) {
   const f = ui.find, on = f.on ?? p.acquired_on ?? "";
   const form = `<form class="tax-item-form tax-find-form" data-tax-find="${esc(key)}" novalidate>
-    <label>${t("金额")}<input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" value="${esc(f.amount ?? "")}" placeholder="0.00"></label>
+    <label>${t("金额")}<input name="amount" ${numAttrs("money", { min: 0.01 })} value="${esc(f.amount ?? "")}" placeholder="0.00"></label>
     <label>${t("大概的日期")}<input name="on" type="date" value="${esc(on)}"></label>
     <div class="tax-item-actions"><button type="submit" class="btn btn-sm btn-primary">${t("查找")}</button><button type="button" class="btn btn-sm btn-ghost" data-tax-pick-cancel>${t("取消")}</button></div>
     <p class="muted tax-wrap" style="grid-column:1/-1;margin:0">${t("金额相同、日期前后 14 天内的收入记录；只填一项也行。找到后由你勾选，不会自动链接。")}</p></form>`;

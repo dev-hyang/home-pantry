@@ -1,4 +1,5 @@
 /* 预算页面。 */
+import { numAttrs } from "../core/ui-num.js";
 import { BILLS_GROUP, DRILL_HINT, MEDICAL_BUDGET_GROUP, actualByMonth, bigThreshold, budgetGroups, cur, extras, medInPool, meta, pct } from "./budget-groups.js";
 import { BUDGET_TABS, activeTab } from "../core/tabs.js";
 import { attentionPanel } from "../core/alerts.js";
@@ -91,8 +92,8 @@ export function viewBudget() {
     <section class="section">
       <div class="section-head"><h2>${t("各类月预算")}</h2><p>${t("可以改，留空 = 用建议值")}</p></div>
       <form id="budgetCatsForm" class="panel">
-        <div class="form-grid">${plan.groups.map((g) => `<label>${g.icon} ${esc(t(g.name))}（${t("建议 {a}", { a: money(g.suggested) })}${g.fromFund ? t("，按设备寿命") : ""}）<input name="cat_${g.id}" type="number" min="0" step="1" inputmode="decimal" value="${g.custom ? esc(g.budget) : ""}" placeholder="${g.suggested}" ${plan.owner ? "" : "disabled"}></label>`).join("")}</div>
-        <label style="display:block;margin-top:10px;font-size:13px;font-weight:700">${t("“大额”提醒门槛（{cur}，记一笔达到它时问要不要标成资本性支出）", { cur: cur() })}<input name="big_threshold" type="number" min="1" step="1" inputmode="numeric" value="${meta("_big_threshold", "") || ""}" placeholder="${bigThreshold()}" style="max-width:160px;display:block;margin-top:4px" ${plan.owner ? "" : "disabled"}></label>
+        <div class="form-grid">${plan.groups.map((g) => `<label>${g.icon} ${esc(t(g.name))}（${t("建议 {a}", { a: money(g.suggested) })}${g.fromFund ? t("，按设备寿命") : ""}）<input name="cat_${g.id}" ${numAttrs("money", { step: 1 })} value="${g.custom ? esc(g.budget) : ""}" placeholder="${g.suggested}" ${plan.owner ? "" : "disabled"}></label>`).join("")}</div>
+        <label style="display:block;margin-top:10px;font-size:13px;font-weight:700">${t("“大额”提醒门槛（{cur}，记一笔达到它时问要不要标成资本性支出）", { cur: cur() })}<input name="big_threshold" ${numAttrs("int", { min: 1 })} value="${meta("_big_threshold", "") || ""}" placeholder="${bigThreshold()}" style="max-width:160px;display:block;margin-top:4px" ${plan.owner ? "" : "disabled"}></label>
         <p class="${plan.left != null && plan.left < -1 ? "form-error" : "muted"}" style="margin:8px 0 0;font-size:13px">${!plan.owner ? t("只有家主能调整预算比例和各类金额。") : plan.left < -1 ? t("各类预算加起来超出可支配额 {a}，实际会吃掉储蓄。", { a: money(-plan.left) }) : t("账单、各类预算和储蓄加起来还剩 {a} 没分配。", { a: money(Math.max(0, plan.left)) })}</p>
         ${plan.owner ? `<div class="form-actions"><button type="submit" class="btn btn-primary btn-sm">${t("保存预算")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="budget-reset">${t("恢复建议值")}</button><a class="btn btn-sm btn-ghost" href="${settingsHref}">${t("调整收入和比例")}</a></div>` : ""}</form>
     </section>
@@ -102,7 +103,7 @@ export function viewBudget() {
       <form id="planForm" class="panel">
         <div class="form-grid">
           <label>${t("想买什么（可不填）")}<input name="name" maxlength="60" placeholder="${t("例如：洗碗机、沙发")}"></label>
-          <label>${t("价格（{cur}）", { cur: cur() })}<input name="price" type="number" min="1" step="1" inputmode="decimal" required></label>
+          <label>${t("价格（{cur}）", { cur: cur() })}<input name="price" ${numAttrs("money", { min: 1, step: 1 })} required></label>
           <label>${t("算进哪一类")}<select name="group">${plan.groups.map((g) => `<option value="${g.id}" ${g.id === "home_maint" ? "selected" : ""}>${g.icon} ${esc(t(g.name))}</option>`).join("")}</select></label>
           <label>${t("打算在什么时候买")}<select name="event"><option value="">${t("尽快")}</option>${events.map((e, i) => `<option value="${i}">${esc(t(e.name))} · ${esc(fmtDate(e.date))}${e.approx ? t("（约）") : ""}</option>`).join("")}</select></label>
         </div>

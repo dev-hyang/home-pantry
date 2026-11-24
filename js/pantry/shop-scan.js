@@ -1,6 +1,7 @@
 /* 拍照加入购物车（2026-11-13）：在家里拍快用完的东西、空瓶空袋、手写的清单或聊天截图 → AI 认出要买什么 → 核对后加进购物车。
  * 和「录入购物」（js/pantry/scan.js，小票 → 入库 + 记花费）分开：这里只加购物车，不动库存、不记花费。
  * 用设置里的 AI key；照片在手机上压缩后发给所选服务商，不保存原图；一律人工确认后才写入。 */
+import { numAttrs } from "../core/ui-num.js";
 import { state } from "../core/state.js";
 import { findItem, normName } from "../core/item-match.js";
 import { Store } from "../core/store.js";
@@ -67,7 +68,7 @@ export function shopScanHtml() {
       <ul class="ssr-list">${ss.rows.map((r, i) => `<li class="ssr-row">
         <input type="checkbox" name="inc" data-i="${i}" ${r.include ? "checked" : ""} aria-label="${esc(t("加入 {name}", { name: r.name }))}">
         <input name="name" data-i="${i}" value="${esc(r.name)}" maxlength="60" list="itemNames" aria-label="${esc(t("名称"))}">
-        <input name="quantity" data-i="${i}" type="number" min="0.1" step="0.1" inputmode="decimal" value="${r.quantity}" aria-label="${esc(t("数量"))}">
+        <input name="quantity" data-i="${i}" ${numAttrs("money", { min: 0.1, step: 0.1 })} value="${r.quantity}" aria-label="${esc(t("数量"))}">
         <input name="unit" data-i="${i}" list="unitList" maxlength="10" value="${esc(t(r.unit))}" placeholder="${esc(t("单位"))}" aria-label="${esc(t("单位"))}">
         <select name="category" data-i="${i}" aria-label="${esc(t("分类"))}">${categoryOptions(r.category)}</select>
         ${r.dup || r.item_id ? `<small class="ssr-note">${r.dup ? t("已在清单里") : t("库存里有，买到后自动入库")}</small>` : ""}

@@ -1,4 +1,5 @@
 /* 借贷详情页：校准、记一笔、关联面板、头部、个人借贷详情和详情本体。 */
+import { numAttrs } from "../core/ui-num.js";
 import * as A from "../core/amortization.js";
 import { DIRECTIONS, debtCat, isClosedStatus, isLoanBillCat, isPersonalDebt } from "../core/debt-rules.js";
 import { amortHtml, breakdownHtml, daysText, kpi, payTableHtml, termsHtml } from "./debt-detail-tables.js";
@@ -22,10 +23,10 @@ export function overrideForm(e, r) {
   return `<form id="dd-edit" data-debt-form="override" data-id="${esc(e.id)}" data-pay="${esc(r.id)}" class="dd-edit" aria-label="${esc(t("改 {d} 这一期", { d: fmtDate(r.paid_on) }))}">
     <p class="dd-edit-title"><b>${t("改 {d} 这一期（按对账单）", { d: fmtDate(r.paid_on) })}</b> <small class="muted">${t("实付 {a}", { a: mny(r.total, e.currency) })}</small></p>
     <div class="form-grid">
-      <label>${t("本金")}<input type="number" name="principal" inputmode="decimal" step="0.01" min="0" value="${v.principal}" required></label>
-      <label>${t("额外本金")}<input type="number" name="extra" inputmode="decimal" step="0.01" min="0" value="${v.extra || ""}"></label>
-      <label>${t("利息")}<input type="number" name="interest" inputmode="decimal" step="0.01" min="0" value="${v.interest}"></label>
-      <label>Escrow<input type="number" name="escrow" inputmode="decimal" step="0.01" min="0" value="${v.escrow}"></label>
+      <label>${t("本金")}<input ${numAttrs("money")} name="principal" value="${v.principal}" required></label>
+      <label>${t("额外本金")}<input ${numAttrs("money")} name="extra" value="${v.extra || ""}"></label>
+      <label>${t("利息")}<input ${numAttrs("money")} name="interest" value="${v.interest}"></label>
+      <label>Escrow<input ${numAttrs("money")} name="escrow" value="${v.escrow}"></label>
     </div>
     <div class="form-actions"><button class="btn btn-sm btn-primary">${t("保存这一期")}</button>${r.source === "manual" ? `<button type="button" class="btn btn-sm btn-ghost" data-debt="override-clear" data-id="${esc(e.id)}" data-pay="${esc(r.id)}">${t("改回按摊还表")}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-debt="pay-edit" data-pay="">${t("取消")}</button></div>
   </form>`;
@@ -68,9 +69,9 @@ function calibrateHtml(e) {
     </div>` : "";
   return `<form data-debt-form="calib" data-id="${esc(e.id)}" class="form-grid">
       <label>${t("对账单这一期的还款日")}<input type="date" name="date" required value="${esc(v.date || "")}"></label>
-      <label>${t("本金")}<input type="number" name="principal" inputmode="decimal" step="0.01" min="0" required value="${esc(v.principal ?? "")}"></label>
-      <label>${t("利息")}<input type="number" name="interest" inputmode="decimal" step="0.01" min="0" required value="${esc(v.interest ?? "")}"></label>
-      <label>${t("还款后余额（可不填）")}<input type="number" name="balance" inputmode="decimal" step="0.01" min="0" value="${esc(v.balance ?? "")}"></label>
+      <label>${t("本金")}<input ${numAttrs("money")} name="principal" required value="${esc(v.principal ?? "")}"></label>
+      <label>${t("利息")}<input ${numAttrs("money")} name="interest" required value="${esc(v.interest ?? "")}"></label>
+      <label>${t("还款后余额（可不填）")}<input ${numAttrs("money")} name="balance" value="${esc(v.balance ?? "")}"></label>
       <div class="form-actions" style="grid-column:1/-1"><button class="btn btn-sm btn-primary">${t("核对")}</button>${e.statement_check ? `<button type="button" class="btn btn-sm btn-ghost" data-debt="calib-clear" data-id="${esc(e.id)}">${t("取消校准")}</button>` : ""}</div>
     </form>${out}
     ${e.statement_check ? `<p class="muted dd-note">${t("已校准：{d} 本金 {p} + 利息 {i}", { d: fmtDate(sc.date), p: mny(sc.principal, cur), i: mny(sc.interest, cur) })}</p>` : ""}`;
@@ -82,8 +83,8 @@ function recordForm(e) {
   return `<form data-debt-form="txn" data-id="${esc(e.id)}" class="form-grid">
     <label>${t("类型")}<select name="kind">${kinds.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("")}</select></label>
     <label>${t("日期")}<input type="date" name="date" value="${todayISO()}" max="${todayISO()}" required></label>
-    <label>${t("本金")}<input type="number" name="principal" inputmode="decimal" step="0.01" min="0" value="${personal && e.balance > 0 ? e.balance : ""}"></label>
-    ${personal ? `<label>${recv ? t("利息（收到的）") : t("利息（付的）")}<input type="number" name="interest" inputmode="decimal" step="0.01" min="0"></label>` : ""}
+    <label>${t("本金")}<input ${numAttrs("money")} name="principal" value="${personal && e.balance > 0 ? e.balance : ""}"></label>
+    ${personal ? `<label>${recv ? t("利息（收到的）") : t("利息（付的）")}<input ${numAttrs("money")} name="interest"></label>` : ""}
     <label>${t("账户")}<select name="acct"><option value="">${t("不指定")}</option>${accts.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}${c.last4 ? ` ··${esc(c.last4)}` : ""}</option>`).join("")}</select></label>
     <label>${t("备注")}<input name="notes" maxlength="200"></label>
     <label class="check-inline" style="grid-column:1/-1"><input type="checkbox" name="cash" checked><span>${personal ? (recv ? t("同时记一笔收入（收回本金不算收入，利息算投资收益）") : t("同时记一笔花费（还本金不算消费）")) : t("同时记一笔花费（性质：融资 / 还本）")}</span></label>

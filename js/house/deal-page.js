@@ -1,3 +1,4 @@
+import { numAttrs } from "../core/ui-num.js";
 import { viewSwitch } from "../core/view-switch.js";
 /* 交易页：任务行、编辑表单、交易详情、新建 / 编辑交易的表单、交割面板。 */
 import { dealKindPage, dealLanding } from "./deal-home.js";
@@ -191,8 +192,8 @@ function dealForm(d, cancelHref) {
       ${financingField(d)}
       ${d.kind === "veh_return" ? "" : `<label>${t(c)}<input name="contract_on" type="date" value="${v("contract_on")}"><small>${t("准备阶段的事项按它推算")}</small></label>`}
       <label>${t(z)}<input name="closing_on" type="date" value="${v("closing_on")}"><small>${d.kind === "veh_return" ? t("预检、归还、最终账单都按它推算") : t("保险、上牌、拆车牌、已售通知按它推算")}</small></label>
-      ${priceInput(`<label>${d.kind === "veh_return" ? t("买断价（可选）") : t("成交价")}<input name="price" type="number" inputmode="decimal" min="0" step="0.01" value="${v("price")}"></label>`, "price", d.price)}
-      ${priceInput(`<label>${d.kind === "veh_return" ? t("处置费 / 预估超里程费") : t("定金")}<input name="earnest_money" type="number" inputmode="decimal" min="0" step="0.01" value="${v("earnest_money")}"></label>`, "earnest_money", d.earnest_money)}
+      ${priceInput(`<label>${d.kind === "veh_return" ? t("买断价（可选）") : t("成交价")}<input name="price" ${numAttrs("money")} value="${v("price")}"></label>`, "price", d.price)}
+      ${priceInput(`<label>${d.kind === "veh_return" ? t("处置费 / 预估超里程费") : t("定金")}<input name="earnest_money" ${numAttrs("money")} value="${v("earnest_money")}"></label>`, "earnest_money", d.earnest_money)}
       ${isCash(d) ? "" : `<label>${d.kind === "veh_return" ? t("租赁公司") : t("贷款行 / 租赁公司")}<input name="lender" maxlength="120" value="${v("lender")}"><small>${d.kind === "veh_buy" ? t("填了，完成时车会标为“贷款中”") : ""}</small></label>`}
       <label>${d.kind === "veh_buy" ? t("车行 / 卖家") : d.kind === "veh_sell" ? t("买家 / 车行") : t("经销商 / 归还地点")}<input name="agent" maxlength="120" placeholder="${t("姓名 · 电话 / 邮箱")}" value="${v("agent")}"></label>
       <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" value="${v("notes")}"></label>
@@ -209,8 +210,8 @@ function dealForm(d, cancelHref) {
       <label>${t("交割日")}<input name="closing_on" type="date" value="${v("closing_on")}"><small>${t("停服务、保险、交割后事项按它推算")}</small></label>
       <label>${t("律师审查截止")}<input name="review_deadline" type="date" value="${v("review_deadline")}"></label>
       ${isCash(d) ? "" : `<label>${t("贷款条款截止")}<input name="financing_deadline" type="date" value="${v("financing_deadline")}"></label>`}
-      ${priceInput(`<label>${t("成交价")}<input name="price" type="number" inputmode="decimal" min="0" step="0.01" value="${v("price")}"></label>`, "price", d.price)}
-      ${priceInput(`<label>${t("定金")}<input name="earnest_money" type="number" inputmode="decimal" min="0" step="0.01" value="${v("earnest_money")}"></label>`, "earnest_money", d.earnest_money)}
+      ${priceInput(`<label>${t("成交价")}<input name="price" ${numAttrs("money")} value="${v("price")}"></label>`, "price", d.price)}
+      ${priceInput(`<label>${t("定金")}<input name="earnest_money" ${numAttrs("money")} value="${v("earnest_money")}"></label>`, "earnest_money", d.earnest_money)}
       <label>${t("律师")}<input name="attorney" maxlength="120" placeholder="${t("姓名 · 电话 / 邮箱")}" value="${v("attorney")}"></label>
       ${isCash(d) ? "" : `<label>${t("贷款行 / 贷款经纪")}<input name="lender" maxlength="120" value="${v("lender")}"></label>`}
       <label>${t("经纪人")}<input name="agent" maxlength="120" value="${v("agent")}"></label>
@@ -231,7 +232,7 @@ function closeoutPanel(p, deal) {
     <input type="hidden" name="deal_id" value="${esc(deal.id)}">
     <div class="form-grid">
       <label>${deal.kind === "move_out" ? t("退租日") : t("交割日")}<input name="closing_on" type="date" required value="${esc(closing)}"></label>
-      ${deal.kind === "sell" ? priceInput(`<label>${t("成交价")}<input name="sale_price" type="number" inputmode="decimal" min="0" step="0.01" value="${esc(deal.price ?? "")}"></label>`, "sale_price", deal.price) : ""}
+      ${deal.kind === "sell" ? priceInput(`<label>${t("成交价")}<input name="sale_price" ${numAttrs("money")} value="${esc(deal.price ?? "")}"></label>`, "sale_price", deal.price) : ""}
     </div>
     <h3 style="font-size:15px;margin:14px 0 6px">${t("这套房产的账单（{n} 条）", { n: bills.length })}</h3>
     <p class="muted" style="font-size:13px;margin:0 0 8px">${t("结束日期之后不再提醒；水电气网默认多留 2–6 周等最后一期账单。自动扣款的请在清单里按“取消自动扣款”任务逐条去取消。")}</p>

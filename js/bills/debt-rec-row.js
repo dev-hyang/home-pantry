@@ -1,4 +1,5 @@
 /* 借贷流水：一行怎么读、编辑一行。 */
+import { numAttrs } from "../core/ui-num.js";
 import { debtById } from "./debt-logic-common.js";
 import { debtHref } from "./debt-logic.js";
 import { esc, fmtDate, todayISO } from "../core/util.js";
@@ -79,9 +80,9 @@ function editForm(x, d) {
     <div class="form-grid">
       <label>${t("日期")}<input type="date" name="date" required max="${todayISO()}" value="${esc(x.txn_date)}"></label>
       <label>${t("类型")}<select name="type">${[...new Set([x.type, ...typesFor(d)])].map((k) => `<option value="${k}" ${k === x.type ? "selected" : ""}>${esc(sentence({ type: k }, d))}</option>`).join("")}</select></label>
-      <label>${t("本金")}<input type="number" name="principal" inputmode="decimal" step="0.01" value="${x.principal_amount || ""}"></label>
-      <label>${t("利息")}<input type="number" name="interest" inputmode="decimal" step="0.01" min="0" value="${x.interest_amount || ""}"></label>
-      <label>${t("手续费 / 滞纳金")}<input type="number" name="fee" inputmode="decimal" step="0.01" min="0" value="${x.fee_amount || ""}"></label>
+      <label>${t("本金")}<input ${numAttrs("money", { min: null })} name="principal" value="${x.principal_amount || ""}"></label>
+      <label>${t("利息")}<input ${numAttrs("money")} name="interest" value="${x.interest_amount || ""}"></label>
+      <label>${t("手续费 / 滞纳金")}<input ${numAttrs("money")} name="fee" value="${x.fee_amount || ""}"></label>
       <label>${t("备注")}<input name="notes" maxlength="200" value="${esc(x.notes || "")}"></label>
       <div class="dr-link-field" style="grid-column:1/-1"><div class="dr-link-row"><label>${t("关联一笔花费 / 收入 / 转账")}${linkSel}</label>
         <button type="button" class="btn btn-sm btn-ghost dr-refresh" data-rec-act="cand-refresh" data-id="${esc(x.id)}" ${cand ? "" : "disabled"} aria-label="${esc(t("重新查找相近的花费和收入"))}" title="${esc(t("重新查找相近的花费和收入（刚导入或刚记了一笔时用）"))}"><span aria-hidden="true">↻</span></button></div>${hint}</div>

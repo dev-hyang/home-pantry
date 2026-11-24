@@ -2,6 +2,7 @@
  * 流程：拍 / 截图 Closing Disclosure → 发给你在设置里选的 AI 服务商（不保存）→ 读出买家付的每一项费用和各种 credit → 先给你核对（可取消勾选、改金额）→ 点「加进清单」才写进 ② 买入时付的费用 / ③ 退款 / credit。
  * AI 只做分类建议：能计入成本基础的（过户 / 律师 / 记录 / 转让税 / 产权保险…）勾上；房贷积分（可按利息扣除）、贷款相关费用、预付和 Escrow 不计入成本基础，只列出来给你看，不会加进去。
  * 不存任何证件号；图片不保存；只填你确认的，已有的清单不会被改。 */
+import { numAttrs } from "../core/ui-num.js";
 import { esc } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { aiReady, askText, visionCapable } from "../core/ai.js";
@@ -35,9 +36,9 @@ function dupMark(r, existing) {
 }
 function reviewPanel(p) {
   const x0 = propOf(p.id), exBuy = rowsOf(x0, "buyItems", p.id), exCred = rowsOf(x0, "creditItems", p.id);
-  const d = ui.cd.data, rows = (arr, kind) => arr.map((r, i) => { const m = dupMark(r, exCred); return `<li class="tax-cd-row"><label class="check-inline"><input type="checkbox" data-cd="${kind}" data-i="${i}" ${m.on ? "checked" : ""}><span>${esc(r.desc)}${m.note}</span></label><input type="number" min="0" step="0.01" inputmode="decimal" value="${r.amount}" data-cd-amt="${kind}:${i}" aria-label="${esc(t("金额"))}"></li>`; }).join("");
+  const d = ui.cd.data, rows = (arr, kind) => arr.map((r, i) => { const m = dupMark(r, exCred); return `<li class="tax-cd-row"><label class="check-inline"><input type="checkbox" data-cd="${kind}" data-i="${i}" ${m.on ? "checked" : ""}><span>${esc(r.desc)}${m.note}</span></label><input ${numAttrs("money")} value="${r.amount}" data-cd-amt="${kind}:${i}" aria-label="${esc(t("金额"))}"></li>`; }).join("");
   const other = d.lines.filter((r) => r.bucket !== "basis");
-  const basisRows = d.lines.map((r, i) => { if (r.bucket !== "basis") return ""; const m = dupMark(r, exBuy); return `<li class="tax-cd-row"><label class="check-inline"><input type="checkbox" data-cd="basis" data-i="${i}" ${m.on ? "checked" : ""}><span>${esc(r.desc)}${m.note}</span></label><input type="number" min="0" step="0.01" inputmode="decimal" value="${r.amount}" data-cd-amt="basis:${i}" aria-label="${esc(t("金额"))}"></li>`; }).join("");
+  const basisRows = d.lines.map((r, i) => { if (r.bucket !== "basis") return ""; const m = dupMark(r, exBuy); return `<li class="tax-cd-row"><label class="check-inline"><input type="checkbox" data-cd="basis" data-i="${i}" ${m.on ? "checked" : ""}><span>${esc(r.desc)}${m.note}</span></label><input ${numAttrs("money")} value="${r.amount}" data-cd-amt="basis:${i}" aria-label="${esc(t("金额"))}"></li>`; }).join("");
   const dupN = [...d.lines.filter((r) => r.bucket === "basis").map((r) => dupInfo(r, exBuy)), ...d.credits.map((r) => dupInfo(r, exCred))].filter(Boolean).length;
   const groups = Object.entries(BUCKET_NAME).map(([b, name]) => { const ls = other.filter((r) => r.bucket === b); return ls.length ? `<p class="muted tax-wrap"><b>${esc(t(name))}</b><br>${ls.map((r) => `${esc(r.desc)} ${money(r.amount)}`).join(" · ")}</p>` : ""; }).join("");
   return `<section class="tax-step tax-cd-review"><h4>📋 ${t("AI 读到的（请核对）")}</h4>${dupN ? `<p class="hint">${t("有 {n} 项和清单里已有的金额对上了，默认没勾（不添加）。确实不是同一笔，再勾上。", { n: dupN })}</p>` : ""}
