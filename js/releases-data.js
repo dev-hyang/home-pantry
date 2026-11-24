@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.41", title: { zh: "共用控件样式整理：箭头、行、选项搬进共用样式表", en: "Shared control styles tidied: arrows, rows and options moved into the shared stylesheet" }, items: [
+    { k: "better", zh: "箭头、记录行、可选项、底部弹窗变量和数字框的样式搬进 shared/ui.css，界面不变。", en: "Arrow, row, option, sheet-variable and number-field styles moved into shared/ui.css; the interface looks the same." },
+  ] },
   { v: "2026-11-24.40", title: { zh: "交易页更整齐：买入 / 卖出各一个卡片，详情右上角有 ⋯ 菜单", en: "Tidier deals page: Buy / Sell cards, and a ⋯ menu on deal details" }, items: [
     { k: "better", zh: "买入、卖出各自一个卡片：标题、说明、最近一笔、按钮和展开的历史都在里面；「查看历史」靠左，「记录…交易」靠右。", en: "Buy and Sell are now one card each: title, description, latest deal, buttons and the expanded history. “View history” on the left, “Record…” on the right." },
     { k: "better", zh: "交易详情的总进度卡片右上角加了 ⋯ 菜单：已取消的可以恢复 / 删除，进行中和已完成的可以取消，都能回到交易首页。历史行上的已取消交易只保留「恢复」。", en: "The progress card on deal details has a ⋯ menu: restore / delete for cancelled deals, cancel for open or completed ones, and back to the deals home. Cancelled rows in history keep only “Restore”." },
