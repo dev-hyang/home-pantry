@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.18", title: { zh: "交易页的筛选和搜索，换成和其他明细页一样的格式", en: "Transactions: the same search + filter bar as the other lists" }, items: [
+    { k: "new", zh: "计划、实际、对比和阶段页顶部是「搜索框 + 筛选」：可以搜事项名称 / 备注 / 进展记录的内容，再按完成情况、阶段、排序筛；手机上收成「搜索框 + 筛选」按钮，有筛选时按钮上显示个数，可一键清除", en: "Plan, Actual, Compare and stage pages have the usual “search + filters” bar: search task names, notes and progress notes, then filter by status, stage and sort; on phones it collapses to a search box and a Filters button with a count and a clear button" },
+    { k: "better", zh: "搜索在输入停顿后生效，输入框保持焦点；对比视图里「清单之外」的进展记录也能被搜到", en: "Search applies after you pause typing and keeps focus; progress notes outside the checklist show up in Compare when they match" },
+  ] },
   { v: "2026-11-24.17", title: { zh: "交易页：右下角 ＋，每个操作都是独立页面", en: "Transactions: a ＋ button, and every action is its own page" }, items: [
     { k: "new", zh: "交易主页右下角有圆形 ＋：添加自定义事项、记一笔进展、退出向导 / 完成交割、取消这笔交易；清单和阶段页的 ＋ 是添加自定义事项，计划 / 实际 / 对比页的 ＋ 是记一笔进展；已完成的历史交易只有前两项", en: "The transaction home has a round ＋: add a custom task, log progress, exit wizard / complete closing, cancel the transaction. On List and stage pages it adds a custom task; on Plan / Actual / Compare it logs progress. Past transactions only have the first two" },
     { k: "new", zh: "记一笔进展、修改进展、退出向导、完成交割、取消交易都是独立页面（有面包屑，底部取消 / 保存或确认），不再在原页面里就地展开；清单页里原来的「完成」行和「取消这笔交易」按钮挪进了 ＋", en: "Logging or editing progress, the exit wizard, completing and cancelling are now separate pages with breadcrumbs and Cancel / Save (or Confirm) at the bottom, instead of expanding in place; the old Complete row and Cancel button on the List page moved into the ＋" },

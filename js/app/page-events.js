@@ -34,7 +34,7 @@ onClearFilters("inv", clearAnd(() => { Object.assign(state.filter, FD.inv); clea
 onClearFilters("shop", clearAnd(() => Object.assign(state.shopFilter, FD.shop)), () => changed(state.shopFilter, FD.shop));
 onClearFilters("maint", clearAnd(() => Object.assign(maintFilter, FD.maint)), () => changed(maintFilter, FD.maint));
 onClearFilters("asset", clearAnd(() => Object.assign(state.assetFilter, FD.asset)), () => changed(state.assetFilter, FD.asset));
-onClearFilters("deal", clearAnd(() => { state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; }));
+onClearFilters("deal", clearAnd(() => { state.dealFilter = "all"; state.dealStage = "all"; state.dealActFilter = "all"; state.dealQ = ""; }));
    // 排序不动
 // 新建账单完成（向导 / AI 扫描）：先把数据读回来，再进这张账单的详情页（?new=1 = 显示「已创建」提示条；?ai=1 = 「AI 识别创建」）
 document.addEventListener("bill-created", async (e) => {

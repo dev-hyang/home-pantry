@@ -108,6 +108,9 @@ function evLine(ev) {
     ${ev.note ? `<small>${esc(ev.note)}</small>` : ""}${bits ? `<small class="muted">${bits}</small>` : ""}</div>`;
 }
 
+/** 搜索时匹配进展记录的文字：做了什么 / 备注 / 联系人 */
+const evSearchText = (ev) => `${ev.title || ""} ${ev.note || ""} ${ev.contact || ""}`.toLowerCase();
+
 /** 计划那一侧：模板事项（基线日期） */
 function planCell(deal, x) {
   const moved = x.baseline && x.due && x.due !== x.baseline;
@@ -165,8 +168,9 @@ export function lanesHtml(deal, an, rows, mode, h) {
   const items = rows.filter((x) => x.baseline || x.due).map((x) => ({ d: x.baseline || x.due, html: `<li class="dl-row ${x.skipped ? "is-skip" : x.done ? "is-done" : x.lateNow > 0 ? "is-late" : ""}${x.prog ? " is-prog" : ""}"><div class="dl-c dl-cp">${planCell(deal, x)}</div><i class="dl-dot" aria-hidden="true"></i>
     <div class="dl-c dl-ca">${mode === "compare" ? actCell(deal, x, evs.filter((e) => firstKey(e) === x.key), h) : ""}</div></li>` }));
   const plain = (h.filter || "all") === "all" && (h.stage || "all") === "all";   // 清单之外的进展、合同日 / 交割日：只在没有筛选时显示（筛「未完成」时它们是噪音）
-  if (mode === "compare" && plain) for (const e of evs.filter((e) => !firstKey(e))) items.push({ d: e.happened_on, html: `<li class="dl-row dl-solo"><div class="dl-c dl-cp"><span class="dl-empty">${t("清单之外")}</span></div><i class="dl-dot dl-dot-ev" aria-hidden="true"></i><div class="dl-c dl-ca"><span class="dl-tag">✅ ${t("实际")}</span><div class="dl-card dl-act done">${evLine(e)}</div></div></li>` });
-  if (plain) for (const k of ["contract", "closing"]) { const m = markRow(deal, k); if (m) items.push(m); }
+  if (mode === "compare" && plain) for (const e of evs.filter((e) => !firstKey(e) && (!h.q || evSearchText(e).includes(h.q)))) items.push({ d: e.happened_on, html: `<li class="dl-row dl-solo"><div class="dl-c dl-cp"><span class="dl-empty">${t("清单之外")}</span></div><i class="dl-dot dl-dot-ev" aria-hidden="true"></i><div class="dl-c dl-ca"><span class="dl-tag">✅ ${t("实际")}</span><div class="dl-card dl-act done">${evLine(e)}</div></div></li>` });
+  // 搜索时不显示合同日 / 交割日这两个里程碑
+  if (plain && !h.q) for (const k of ["contract", "closing"]) { const m = markRow(deal, k); if (m) items.push(m); }
   const undated = rows.filter((x) => !x.baseline && !x.due);
   if (!items.length && !undated.length) return noMatch();
   orderWithToday(items, h.sort, today);
@@ -178,7 +182,7 @@ export function lanesHtml(deal, an, rows, mode, h) {
 function actualHtml(deal, an, h) {
   const today = todayISO(), all = actualEntries(deal, an.rows), byKey = new Map(an.rows.map((r) => [r.key, r]));
   if (!all.length) return `<div class="panel empty"><strong>${t("还没有实际进展")}</strong>${t("做了什么就记一笔：和卖方律师改合同、联系 ComEd 停服务、签字……也可以在清单里勾选完成。")}</div>`;
-  const list = all.filter((en) => ({ all: true, events: !!en.ev, tasks: !!en.task }[h.act || "all"] ?? true));   // 显示：全部 / 进展记录 / 勾选完成的事项
+  const list = all.filter((en) => ({ all: true, events: !!en.ev, tasks: !!en.task }[h.act || "all"] ?? true) && (!h.q || (en.ev ? evSearchText(en.ev) : `${t(en.task.name)} ${en.task.userNote || ""}`.toLowerCase()).includes(h.q)));   // 显示：全部 / 进展记录 / 勾选完成的事项；再按搜索框过滤
   if (!list.length) return noMatch();
   const items = list.map((en) => {
     if (en.task) {

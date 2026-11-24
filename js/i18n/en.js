@@ -4505,6 +4505,9 @@ export const EN = {
   "这笔交易会标为已取消，放进历史；清单、时间线和交易信息都保留，仍可查看。房产状态按剩下还在进行的交易恢复，没有别的交易就退回开始之前的状态。": "The transaction is marked cancelled and moved to history; its checklist, timeline and info are kept and can still be viewed. The home's status goes back according to any other transaction still in progress, or to what it was before.",
   "退出向导": "Exit wizard",
   "不需要这条记录了？": "Don't need this note any more?",
+  "搜索事项 / 进展记录": "Search tasks / progress notes",
+  "全部状态": "All statuses",
+  "全部记录": "All entries",
   /* 2026-11-24：税务买卖链接 / 邀请码财务权限 / 对账单查重 */
   "给家主留一句话（可不填），例如：我是小明的妈妈": "A note for the owner (optional), e.g. I'm Ming's mom",
   "给家主的话": "Note to the owner",

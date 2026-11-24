@@ -1,6 +1,7 @@
 import { viewSwitch } from "../core/view-switch.js";
 /* 交易页：任务行、编辑表单、交易详情、新建 / 编辑交易的表单、交割面板。 */
 import { dealKindPage, dealLanding } from "./deal-home.js";
+import "./deal-search.js";
 import { cancelPage, completePage, dealFab, eventPage, infoPage, taskPage } from "./deal-task-pages.js";
 import { D, END_LAG, V, addTaskCard, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openVehicleDeal, propertyLive, subjectDeals, skipBtn, statusText, taskCard, taskEditForm, taskRow } from "./deal-tasks.js";
 import { addDays } from "../bills/logic.js";
@@ -25,18 +26,20 @@ const DEAL_VIEWS = [["list", "☰", "清单"], ["plan", "📋", "计划"], ["act
 const DEAL_FILTERS = [["all", "全部"], ["undone", "未完成"], ["overdue", "逾期"], ["must", "必须项（未完成）"], ["done", "已完成"], ["skipped", "已跳过"]];
 const DEAL_ACT_FILTERS = [["all", "全部"], ["events", "进展记录"], ["tasks", "勾选完成的事项"]];
 const DEAL_SORTS = [["desc", "由近及远"], ["asc", "由远及近"]];
-/** 完成情况筛选；stage = true 时再按阶段筛（时间线用；单个阶段页本来就只有一个阶段） */
-const filterDealRows = (rows, { stage = false } = {}) => rows.filter((x) => ({ all: true, undone: !x.done && !x.skipped, overdue: !x.done && !x.skipped && x.overdue, must: !x.done && !x.skipped && x.priority === "must", done: !!x.done, skipped: !!x.skipped }[state.dealFilter] ?? true)
-  && (!stage || (state.dealStage || "all") === "all" || x.stage === state.dealStage));
-const dealFiltered = (view) => (view === "actual" ? (state.dealActFilter || "all") !== "all" : (state.dealFilter || "all") !== "all" || (state.dealStage || "all") !== "all");
-/** 筛选 / 阶段 / 排序：下拉框（和收入、花费页的时间条同一个样子）。view = list（单个阶段页，只有完成情况）/ plan / actual / compare */
+/** 完成情况筛选 + 搜索；stage = true 时再按阶段筛（时间线用；单个阶段页本来就只有一个阶段） */
+const taskText = (x) => `${t(x.name)} ${x.note ? t(x.note) : ""} ${x.userNote || ""} ${x.rec?.note || ""}`.toLowerCase();
+const filterDealRows = (rows, { stage = false } = {}) => rows.filter((x) => ({ all: true, undone: !x.done && !x.skipped, overdue: !x.done && !x.skipped && x.overdue, must: !x.done && !x.skipped && x.priority === "must", done: !!x.done, skipped: !!x.skipped }[state.dealFilter || "all"] ?? true)
+  && (!stage || (state.dealStage || "all") === "all" || x.stage === state.dealStage) && (!state.dealQ?.trim() || taskText(x).includes(state.dealQ.trim().toLowerCase())));
+const dealFiltered = (view) => !!state.dealQ?.trim() || (view === "actual" ? (state.dealActFilter || "all") !== "all" : (state.dealFilter || "all") !== "all" || (state.dealStage || "all") !== "all");
+/** 筛选条：和别的明细页同一种「搜索框 + 下拉」（手机上收成「搜索框 + 筛选」按钮，js/core 的 compact-filters 自动处理）。
+ *  view = list（单个阶段页，只有完成情况）/ plan / actual / compare */
 function dealToolbar(view, deal = null) {
-  const sel = (key, label, list, v) => `<label class="tb-field"><span>${t(label)}</span><select data-deal-sel="${key}" data-nosearch aria-label="${esc(t(label))}">${list.map(([k, l]) => `<option value="${k}"${k === v ? " selected" : ""}>${esc(t(l))}</option>`).join("")}</select></label>`;
+  const sel = (key, id, label, firstLabel, list, v) => `<select ${id ? `id="${id}"` : ""} data-deal-sel="${key}" data-nosearch aria-label="${esc(t(label))}">${list.map(([k, l]) => `<option value="${k}"${k === v ? " selected" : ""}>${esc(t(k === "all" ? firstLabel : l))}</option>`).join("")}</select>`;
   const stages = deal ? Object.entries(D().stagesOf(deal.kind)).map(([k, n]) => [k, n]) : [];
-  const parts = view === "actual" ? [sel("act", "显示", DEAL_ACT_FILTERS, state.dealActFilter || "all")]
-    : [sel("filter", "完成情况", DEAL_FILTERS, state.dealFilter || "all"), ...(view !== "list" && stages.length ? [sel("stage", "阶段", [["all", "全部阶段"], ...stages], state.dealStage || "all")] : [])];
-  if (view !== "list") parts.push(sel("sort", "排序", DEAL_SORTS, state.dealSort === "asc" ? "asc" : "desc"));
-  return `<div class="time-bar deal-tools" role="group" aria-label="${esc(t("筛选和排序"))}">${parts.join("")}${clearFiltersBtn("deal", dealFiltered(view))}</div>`;
+  const parts = view === "actual" ? [sel("act", "dealActSel", "显示", "全部记录", DEAL_ACT_FILTERS, state.dealActFilter || "all")]
+    : [sel("filter", "dealStatusSel", "完成情况", "全部状态", DEAL_FILTERS, state.dealFilter || "all"), ...(view !== "list" && stages.length ? [sel("stage", "dealStageSel", "阶段", "全部阶段", [["all", ""], ...stages], state.dealStage || "all")] : [])];
+  if (view !== "list") parts.push(sel("sort", "dealSort", "排序", "", DEAL_SORTS, state.dealSort === "asc" ? "asc" : "desc"));
+  return `<div class="toolbar deal-toolbar" role="group" aria-label="${esc(t("筛选和排序"))}"><input type="search" id="dealSearch" value="${esc(state.dealQ || "")}" placeholder="${esc(t("搜索事项 / 进展记录"))}" aria-label="${esc(t("搜索"))}" autocomplete="off">${parts.join("")}${clearFiltersBtn("deal", dealFiltered(view))}</div>`;
 }
 const dealFilterBar = () => dealToolbar("list");
 export function viewDeal() {
@@ -119,7 +122,7 @@ export function viewDeal() {
     ? row(debtHref(null, `new=1&cat=${veh ? "auto_loan" : "mortgage"}&lender=${encodeURIComponent(deal.lender)}${deal.price != null ? `&principal=${Math.max(0, num(deal.price) - num(deal.earnest_money))}` : ""}&${veh ? "asset" : "prop"}=${encodeURIComponent(subjectId)}${deal.closing_on ? `&start=${deal.closing_on}` : ""}&name=${encodeURIComponent(`${veh ? t("车贷") : t("房贷")} · ${deal.lender}`.slice(0, 60))}`),
         "🏦", t("创建贷款"), t("贷款方 {l}；本金先按成交价 − 定金估，按贷款文件改", { l: deal.lender }), null) : "";
   const view = ["list", "plan", "actual", "compare"].includes(sec) ? sec : null;   // 子页：清单 / 计划 / 实际 / 对比（原来是主页里的视图切换）
-  const laneH = { isEditing, editBtn, skipBtn, editForm: (x) => taskEditForm(x.deal, x), sort: state.dealSort === "asc" ? "asc" : "desc", filter: state.dealFilter || "all", stage: state.dealStage || "all", act: state.dealActFilter || "all" };
+  const laneH = { isEditing, editBtn, skipBtn, editForm: (x) => taskEditForm(x.deal, x), sort: state.dealSort === "asc" ? "asc" : "desc", filter: state.dealFilter || "all", stage: state.dealStage || "all", act: state.dealActFilter || "all", q: (state.dealQ || "").trim().toLowerCase() };
   const disclaimer = `<p class="disclaimer">${t("截止日按{a}和{b}推算，可点 ✎ 调整；必须项逾期会在首页置顶", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })}${deal.baseline?._at ? ` ${t("「计划」是填了合同日后冻结的模板日期，改期只影响「预计」，不会改掉原计划。")}` : ""}</p>`;
   if (view === "list") {   // 清单页：交易信息 + 各阶段 + 添加自定义事项 + 完成 / 创建贷款
     return `${bar}${headCard}<section class="section"><div class="panel mlist">${infoRow}${stageRows}${loanRow}${addRow}</div>${disclaimer}</section>${dealFab(deal, "list")}`;
