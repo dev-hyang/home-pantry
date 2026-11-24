@@ -61,10 +61,10 @@ const menuItems = (a, base) => [{ label: t("编辑"), href: `${base}?sec=assess&
   { label: t("缴费记录"), href: `${base}?sec=assess&pays=${encodeURIComponent(a.id)}` }, { label: t("复制"), href: `${base}?sec=assess&edit=new&copy=${encodeURIComponent(a.id)}` }, { label: t("删除"), action: "assess-del", data: { id: a.id }, danger: true }];
 
 const rowHtml = (x = {}, paid = false) => {
-  if (paid) return `<li class="as-row is-paid" data-id="${esc(x.id || "")}">   <!-- 已关联缴费：锁定，只读显示；隐藏域让保存时仍能读到这一期 -->
+  if (paid) return `<li data-variant="card" class="ui-row as-row is-paid" data-id="${esc(x.id || "")}">   <!-- 已关联缴费：锁定，只读显示；隐藏域让保存时仍能读到这一期 -->
     <input type="hidden" name="as_due" value="${esc(x.due_on || "")}"><input type="hidden" name="as_amt" value="${num(x.amount).toFixed(2)}"><input type="hidden" name="as_kind" value="${esc(x.kind || "installment")}">
     <div class="as-line"><b class="as-date">${esc(fmtDate(x.due_on))}</b><span class="as-kindtxt">${esc(kindName(x.kind))}</span><b class="as-money">${mny(x.amount)}</b><span class="badge b-ok">${t("已缴")}</span></div></li>`;
-  return `<li class="as-row" data-id="${esc(x.id || "")}">
+  return `<li data-variant="card" class="ui-row as-row" data-id="${esc(x.id || "")}">
     <div class="as-line"><select name="as_kind" aria-label="${esc(t("类型"))}">${KINDS.map(([k, n]) => `<option value="${k}" ${x.kind === k ? "selected" : ""}>${esc(t(n))}</option>`).join("")}</select>
       <button type="button" class="btn btn-ghost as-del" data-as-del aria-label="${esc(t("删除这一期"))}" title="${esc(t("删除这一期"))}">✕</button></div>
     <div class="as-fields">

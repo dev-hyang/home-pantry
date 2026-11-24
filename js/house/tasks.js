@@ -45,7 +45,7 @@ export function taskRow(x, year, month) {
   const badge = task.custom ? ` <span class="badge" style="background:var(--surface-2)">${task.once ? t("一次性") : t("自定义")}</span>` : "";
   const overdue = task.once && !done && task.rec.due_on < todayISO();
   const editing = task.custom && state.seasonForm?.id === task.rec.id;
-  return `<li class="task-row ${done ? "done" : ""} ${overdue ? "overdue" : ""} ${editing ? "editing" : ""}">
+  return `<li class="ui-row task-row ${done ? "done" : ""} ${overdue ? "overdue" : ""} ${editing ? "editing" : ""}">
     <input type="checkbox" id="${id}" ${attrs} ${done ? "checked" : ""}>
     <div class="grow"><label for="${id}"><b>${esc(task.custom ? task.name : t(task.name))}${badge}</b><small>${when}</small></label>${card}</div>
     ${task.custom ? `<button type="button" class="task-edit" data-action="season-edit" data-id="${esc(task.rec.id)}" aria-label="${esc(t("编辑：{name}", { name: task.name }))}" title="${esc(t("编辑"))}">✎</button>` : ""}

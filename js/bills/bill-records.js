@@ -47,7 +47,7 @@ export function viewBillTemplate() {
           const rowHtml = (r, i) => {
             const exists = hasBill(r), c = billCat(r.category);
             const when = r.due_dates ? joinList(r.due_dates.map((d) => d.replace("-", "/"))) : r.due_day ? t("每月 {d} 号", { d: r.due_day }) : t("到期日建后补填");
-            return `<label class="tpl-row ${exists ? "is-have" : ""}" style="--cat:var(--pine)">
+            return `<label class="ui-row tpl-row ${exists ? "is-have" : ""}" style="--cat:var(--pine)">
             <input type="checkbox" name="tpl" value="${i}" ${exists ? "disabled" : r.optional ? "" : "checked"}>
             <span class="grow"><b>${c.icon} ${esc(t(r.name))}</b>${r.sub_kind ? ` <span class="badge sub-kind">${t(B().SUB_KINDS[r.sub_kind] || r.sub_kind)}</span>` : ""}<small>${[r.payee ? esc(r.payee) : null, t(B().FREQUENCIES[r.frequency]) + (r.frequency === "custom" ? ` (${r.interval_months})` : ""), when, r.autopay ? t("通常自动扣款") : t("手动缴费"), r.property === false ? t("与房产无关") : null].filter(Boolean).join(" · ")}</small>
               ${r.note ? `<small class="note">${esc(t(r.note))}</small>` : ""}</span>

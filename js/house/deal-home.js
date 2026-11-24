@@ -51,7 +51,7 @@ function kindsOf(p, veh, deals) {
 }
 
 /** 一行入口（和交易详情里的 .mrow 同一个样子） */
-const row = (url, icon, title, desc, prog, badge = "") => `<a href="${url}" class="mrow"><span class="mi" aria-hidden="true">${icon}</span>
+const row = (url, icon, title, desc, prog, badge = "") => `<a href="${url}" class="ui-row mrow"><span class="mi" aria-hidden="true">${icon}</span>
   <span class="mt"><b>${title}</b><small>${desc}</small>${prog != null ? `<span class="mprog"><i style="width:${prog}%"></i></span>` : ""}</span>${badge}<span class="ui-chev" aria-hidden="true">›</span></a>`;
 /** 进行中那笔的入口行 */
 function openRow(d, url) {

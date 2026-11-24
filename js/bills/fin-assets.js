@@ -62,7 +62,7 @@ function valueHead(eq) {
   return `<span class="fa-amt">${v}${sub ? `<small>${sub}</small>` : ""}</span>`;
 }
 /** 行的外壳：第一行 名称 + 状态徽标 | 市值；第二行 灰色一句话；下面一行一项；最后是「打开」链接 */
-const faRow = ({ name, badge, meta, eq, lines, openHref, panel }) => `<li class="fa-row">
+const faRow = ({ name, badge, meta, eq, lines, openHref, panel }) => `<li class="ui-row fa-row">
     <div class="fa-top"><div class="fa-name"><b><a href="${openHref}">${esc(name)}</a></b>${badge}</div>${valueHead(eq)}</div>
     ${meta ? `<div class="fa-meta">${meta}</div>` : ""}
     <div class="fa-lines">${lines}</div>
@@ -128,7 +128,7 @@ export function viewFinAssets() {
   const held = props.filter((p) => !["sold", "moved_out", "looking"].includes(p.status) && !p.archived).length;
   const liveVeh = vehicles.filter((a) => window.VEHICLES.isActive(a) && window.VEHICLES.statusOf(a) !== "looking").length;
   const housing = props.reduce((s, p) => s + propertyBills(p.id).monthly, 0);
-  const acctRows = [...ACCOUNT_KINDS, "credit"].flatMap((k) => [...accts, ...credit].filter((c) => c.kind === k).map((c) => `<li class="fa-acct"><a class="mrow" href="${esc(cardHref(c.id))}">
+  const acctRows = [...ACCOUNT_KINDS, "credit"].flatMap((k) => [...accts, ...credit].filter((c) => c.kind === k).map((c) => `<li class="fa-acct"><a class="ui-row mrow" href="${esc(cardHref(c.id))}">
       <span class="mi" aria-hidden="true">${kindIcon(k)}</span>
       <span class="mt"><b>${esc(c.name)}${c.last4 ? ` ··${esc(c.last4)}` : ""}</b><small>${esc([kindName(k), c.issuer].filter(Boolean).join(" · "))} · ${esc(balTxt(c))}</small></span>
       <span class="ui-chev" aria-hidden="true">›</span></a>${acctOf(c.id)?.viaDebt ? "" : balancePanel(c)}</li>`));

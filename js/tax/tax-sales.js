@@ -51,7 +51,7 @@ export const carGain = (a) => { const buy = num(a.purchase_price), sale = num(a.
 export const rentalDepreciation = (p) => { const g = homeGain(p), land = Math.min(95, Math.max(0, num(g.x.landPct) ?? 20)); return r2((((num(p.purchase_price) || 0) + g.T.buyItems - g.T.creditItems + g.T.improvements) * (1 - land / 100)) / 27.5); };
 
 const tx = (zh, en) => (lang === "en" ? en : zh);
-const row = (k, v) => `<div class="dt-row"><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
+const row = (k, v) => `<div data-variant="detail" class="ui-row dt-row"><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
 const NA = `<span class="muted">—</span>`;
 const step = (n, title, body, hint = "") => `<section class="tax-step"><h4><span class="tax-step-n">${n}</span> ${esc(title)}</h4>${hint ? `<p class="muted tax-wrap">${esc(hint)}</p>` : ""}${body}</section>`;
 

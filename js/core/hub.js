@@ -4,7 +4,7 @@ import { esc } from "./util.js";
 import { t } from "./i18n.js";
 
 /** 一行入口；pct 为空不画进度条 */
-export const hubRow = ({ href, icon, title, desc = "", pct = null, badge = "" }) => `<a class="mrow" href="${esc(href)}">
+export const hubRow = ({ href, icon, title, desc = "", pct = null, badge = "" }) => `<a class="ui-row mrow" href="${esc(href)}">
     <span class="mi" aria-hidden="true">${icon}</span>
     <span class="mt"><b>${esc(title)}</b>${desc ? `<small>${desc}</small>` : ""}${pct != null ? `<span class="mprog"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></span>` : ""}</span>
     ${badge}<span class="ui-chev" aria-hidden="true">›</span></a>`;

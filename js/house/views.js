@@ -37,7 +37,7 @@ export function viewHouseTemplate() {
           ${rows.map((r) => {
             const has = exists(r);
             const key = `${r.category}|${r.name}`;
-            return `<label class="tpl-row ${has ? "is-have" : ""}">
+            return `<label class="ui-row tpl-row ${has ? "is-have" : ""}">
               <input type="checkbox" name="tpl" value="${esc(key)}" ${has ? "disabled" : "checked"}>
               <span class="grow"><b>${esc(t(r.name))}</b>
                 <small>${t("先备 {q} {u}", { q: r.qty, u: esc(t(r.unit)) })}${r.min ? t("，少于 {q} {u} 提醒", { q: r.min, u: esc(t(r.unit)) }) : ""}${r.every ? t("，约每 {d} 天用 1 {u}", { d: r.every, u: esc(t(r.unit)) }) : ""}</small>

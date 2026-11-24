@@ -111,7 +111,7 @@ export function txnRow(x, d, { manage = false } = {}) {
     x.escrow_amount ? t("Escrow {a}", { a: mny(x.escrow_amount, d?.currency) }) : null, x.fee_amount ? t("滞纳金 {a}", { a: mny(x.fee_amount, d?.currency) }) : null].filter(Boolean);
   const src = x.bill_payment_id ? t("账单缴费") : x.purchase_id ? t("已记花费") : x.income_record_id ? t("已记收入") : null;
   // 一行：左边 日期 · 类型 · 贷款（+ 拆分明细），右边金额（右对齐、等宽数字）；手机上明细换行，金额仍在右上
-  return `<li class="fa-row dd-row"><div class="dd-row-main"><span class="dd-row-top"><b>${esc(fmtDate(x.txn_date))}</b><span>${esc(txnName(x))}</span>${x.split_source === "manual" && x.bill_payment_id ? `<span class="badge b-soon">${t("手动")}</span>` : ""}
+  return `<li class="ui-row fa-row dd-row"><div class="dd-row-main"><span class="dd-row-top"><b>${esc(fmtDate(x.txn_date))}</b><span>${esc(txnName(x))}</span>${x.split_source === "manual" && x.bill_payment_id ? `<span class="badge b-soon">${t("手动")}</span>` : ""}
       ${d ? `<a href="${esc(debtHref(d.id))}">${esc(d.name)}</a>` : ""}</span>
     <small class="muted">${[...parts, src, x.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
     <b class="dd-amt">${mny(x.total, d?.currency)}</b>

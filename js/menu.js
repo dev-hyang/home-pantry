@@ -85,7 +85,7 @@ export const META = {
 const HIDDEN = (section, k) => (section === "pantry" && k === "gear" && !state.gearEnabled)
   || (section === "bills" && FINANCE_HIDDEN_SUBS.includes(META.bills[k]?.sub || k) && !financeOk());   // 没有财务权限：对账单 / 收入 / 预算不进目录
 
-export const menuRow = ({ href: url, icon, title, desc, count, countLabel, external }) => `<a class="mrow" href="${esc(url)}" ${external ? 'target="_blank" rel="noopener noreferrer"' : ""}>
+export const menuRow = ({ href: url, icon, title, desc, count, countLabel, external }) => `<a class="ui-row mrow" href="${esc(url)}" ${external ? 'target="_blank" rel="noopener noreferrer"' : ""}>
     <span class="mi" aria-hidden="true">${icon}</span>
     <span class="mt"><b>${esc(title)}</b>${desc ? `<small>${esc(desc)}</small>` : ""}</span>
     ${count ? `<span class="badge b-soon mcount">${count}${countLabel ? ` ${esc(countLabel)}` : ""}</span>` : ""}

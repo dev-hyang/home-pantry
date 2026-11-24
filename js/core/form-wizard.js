@@ -49,7 +49,7 @@ function reviewHtml(f) {
   const cards = stepsOf(f).filter((s) => s[0] !== REVIEW).map(([id, name]) => {
     const rows = [...f.querySelectorAll(`[data-fsec="${id}"]`)].filter((el) => el.matches("label, div")).map((el) => [labelText(el), valueText(el)]).filter(([k]) => k);
     return `<section class="panel dt-block"><div class="dt-head"><h3>${esc(name)}</h3><button type="button" class="btn btn-sm btn-ghost" data-gw="goto" data-step="${id}" aria-label="${esc(t("编辑 {name}", { name }))}">${t("编辑")}</button></div>
-      <dl class="dt-list">${rows.map(([k, v]) => `<div class="dt-row"><dt>${esc(k)}</dt><dd>${v ? esc(v) : '<span class="muted">—</span>'}</dd></div>`).join("")}</dl></section>`;
+      <dl class="dt-list">${rows.map(([k, v]) => `<div data-variant="detail" class="ui-row dt-row"><dt>${esc(k)}</dt><dd>${v ? esc(v) : '<span class="muted">—</span>'}</dd></div>`).join("")}</dl></section>`;
   }).join("");
   return `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("请核对下面的信息；哪一块要改，点它的「编辑」回到那一步。没问题就点最下面的「确认并创建」，到这一步才会真正建好。")}</p><div class="dt-grid dd-secs">${cards}</div>`;
 }

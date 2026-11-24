@@ -44,7 +44,7 @@ export function rowHtml(x, L) {
     ? `<a class="btn btn-sm btn-ghost" href="${esc(debtHref(x.debt_id))}">${t("去拆分表改")}<span class="sr-only"> ${esc(fmtDate(x.txn_date))} ${esc(title)}</span></a>`
     : `<button type="button" class="btn btn-sm btn-ghost" data-rec-act="edit" data-id="${esc(x.id)}" aria-expanded="${editing}" aria-controls="dr-edit-${esc(x.id)}">${editing ? t("收起") : t("编辑")}<span class="sr-only"> ${esc(fmtDate(x.txn_date))} ${esc(title)}</span></button>`;
   const ctx = L.showDebt && d ? `<a href="${esc(debtHref(d.id))}">${isPersonal(d) ? "" : "🏦 "}${esc(debtLabel(d))}</a>` : "";
-  return `<li class="fa-row dd-row dr-row${editing ? " is-editing" : ""}">
+  return `<li class="ui-row fa-row dd-row dr-row${editing ? " is-editing" : ""}">
     ${flowIcon(flowOf(x, d))}
     <div class="dd-row-main"><span class="dd-row-top"><b class="dr-title">${esc(title)}</b>${x.split_source === "manual" && x.bill_payment_id ? `<span class="badge b-soon">${t("手动")}</span>` : ""}</span>
       <small class="muted dr-meta"><span>${esc(fmtDate(x.txn_date))}</span>${ctx ? `<span>${ctx}</span>` : ""}${[...split, src, x.notes].filter(Boolean).map((v) => `<span>${esc(v)}</span>`).join("")}</small></div>

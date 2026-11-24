@@ -130,7 +130,7 @@ export function viewSettings() {
       apps: t("小月亮、家庭学堂；介绍与注意事项"),
     };
     return `<section class="section menu-page"><div class="section-head"><p>${t("家庭、房产、语言、存放位置、模块、同步与备份、AI、姐妹站点")}</p></div>
-      <div class="panel mlist">${SETTING_SECTIONS.map((s) => `<a class="mrow" href="${href("me", "settings")}?sec=${s.id}"><span class="mi" aria-hidden="true">${s.icon === "__AI__" ? aiIcon(24) : s.icon}</span><span class="mt"><b>${t(s.name)}</b><small>${esc(status[s.id])}</small></span><span class="ui-chev" aria-hidden="true">›</span></a>`).join("")}</div>
+      <div class="panel mlist">${SETTING_SECTIONS.map((s) => `<a class="ui-row mrow" href="${href("me", "settings")}?sec=${s.id}"><span class="mi" aria-hidden="true">${s.icon === "__AI__" ? aiIcon(24) : s.icon}</span><span class="mt"><b>${t(s.name)}</b><small>${esc(status[s.id])}</small></span><span class="ui-chev" aria-hidden="true">›</span></a>`).join("")}</div>
       <div class="form-actions" style="margin-top:14px">${cloud ? `<button type="button" class="btn btn-danger-ghost" data-action="logout">${t("退出登录")}</button>` : `<button type="button" class="btn btn-danger-ghost" data-action="reset-demo">${t("恢复演示数据")}</button>`}</div>
     </section>`;
   }

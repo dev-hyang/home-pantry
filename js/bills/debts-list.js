@@ -21,7 +21,7 @@ const equityText = (e) => {
  *  ⋯ 和长按（电脑右键）同一份菜单：详情 / 编辑 / 删除。 */
 function debtRow(e, { name, label, amount, amountLabel, badges, facts }) {
   const menu = [{ label: t("详情"), href: debtHref(e.id), first: true }, { label: t("编辑"), href: debtHref(e.id, "&edit=1") }, { label: t("删除"), data: { debt: "delete", id: e.id }, danger: true }];
-  return `<li class="fa-row dr-row" ${lpAttr(menu, name)}>
+  return `<li class="ui-row fa-row dr-row" ${lpAttr(menu, name)}>
     <div class="dr-top"><a class="dr-name" href="${esc(debtHref(e.id))}" aria-label="${esc(label)}">${esc(name)}</a>
       <span class="dr-amt"><b>${amount}</b><small>${esc(amountLabel)}</small></span>${moreMenu(menu, { label: `${name} · ${t("更多操作")}` })}</div>
     <div class="dr-badges">${badges}</div>
@@ -58,7 +58,7 @@ const looseLoanBills = () => state.billsEnriched.filter((b) => isLoanBillCat(b.c
 export const looseBillsHtml = () => {
   const list = looseLoanBills(); if (!list.length) return "";
   return `<div class="panel" style="margin-top:12px"><b>${t("还没建贷款的贷款账单")}</b><p class="muted" style="font-size:13px;margin:4px 0 8px">${t("建了贷款才能算余额、按本金 / 利息拆分还款")}</p>
-    <ul class="fa-list">${list.map((b) => `<li class="fa-row"><div class="fa-head"><a href="${esc(href("bill", b.id))}">${esc(b.name)}</a><small class="muted">${mny(b.est, b.currency)}</small>
+    <ul class="fa-list">${list.map((b) => `<li class="ui-row fa-row"><div class="fa-head"><a href="${esc(href("bill", b.id))}">${esc(b.name)}</a><small class="muted">${mny(b.est, b.currency)}</small>
       <a class="btn btn-sm fa-edit" href="${esc(newFromBillHref(b))}">${t("建贷款")}</a></div></li>`).join("")}</ul></div>`;
 };
 export const newFromBillHref = (b) => debtHref(null, `new=1&bill=${encodeURIComponent(b.id)}`);

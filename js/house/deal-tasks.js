@@ -206,13 +206,13 @@ export function taskCard(x) {
     <span class="ui-chev" aria-hidden="true">›</span></div>`;
 }
 /** 清单页 / 阶段页的最后一行卡片：添加自定义事项（进独立页面） */
-export const addTaskCard = (deal, stage = "special") => `<a href="${dealHref(deal, "task-new")}${stage && stage !== "special" ? `&stage=${encodeURIComponent(stage)}` : ""}" class="mrow"><span class="mi" aria-hidden="true">➕</span>
+export const addTaskCard = (deal, stage = "special") => `<a href="${dealHref(deal, "task-new")}${stage && stage !== "special" ? `&stage=${encodeURIComponent(stage)}` : ""}" class="ui-row mrow"><span class="mi" aria-hidden="true">➕</span>
   <span class="mt"><b>${t("添加自定义事项")}</b><small>${isVehDeal(deal) ? t("车行 / 租赁公司的特别要求，或自己想记的事；也留作记录") : t("某个 condo / village / HOA 的特别要求，如必须申报 intent to sell；也留作记录")}</small></span><span class="ui-chev" aria-hidden="true">›</span></a>`;
 export function taskRow(x, { showProp = false } = {}) {
   const id = `deal-${x.deal.id}-${x.key}`, dAsk = dealAsk(x);
   const prop = showProp ? state.properties.find((p) => p.id === x.deal.property_id) : null;
   const editing = isEditing(x);
-  return `<li class="task-row ${x.done ? "done" : ""} ${x.skipped ? "skipped" : ""} ${x.overdue ? "overdue" : ""} ${editing ? "editing" : ""}">
+  return `<li class="ui-row task-row ${x.done ? "done" : ""} ${x.skipped ? "skipped" : ""} ${x.overdue ? "overdue" : ""} ${editing ? "editing" : ""}">
     <input type="checkbox" id="${id}" data-deal-task="${esc(x.key)}" data-deal="${x.deal.id}" ${x.done ? "checked" : ""}>
     <label for="${id}"><span class="tt"><b>${esc(t(x.name))}</b> <span class="badge ${PRIO_CLS[x.priority]}">${t(D().PRIORITY[x.priority])}</span>${customBadge(x)}</span>
       <small>${dateLine(x)}${prop ? ` · ${esc(prop.name)}` : ""}${taskNotes(x)}</small></label>

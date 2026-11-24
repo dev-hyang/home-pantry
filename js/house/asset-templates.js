@@ -33,7 +33,7 @@ export function viewAssetTemplate() {
           ${rows.map((r) => {
             const exists = haveTypes.has(r.id);
             const o = H().OWNERS[r.owner];
-            return `<label class="tpl-row ${exists ? "is-have" : ""}">
+            return `<label class="ui-row tpl-row ${exists ? "is-have" : ""}">
               <input type="checkbox" name="tpl" value="${esc(r.id)}" ${exists ? "disabled" : r.optional ? "" : "checked"}>
               <span class="grow"><b>${r.icon} ${esc(t(r.name))}</b><small>${r.life ? t("常见寿命约 {n} 年", { n: r.life }) : t("寿命不固定")}${r.interval ? t("，建议每 {n} 个月保养", { n: r.interval }) : ""}${o ? t("，通常由{who}负责", { who: t(o.name) }) : ""}</small>
                 ${r.tip ? `<small class="note">${esc(t(r.tip))}</small>` : ""}</span>

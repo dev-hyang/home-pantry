@@ -54,7 +54,7 @@ function householdTab(s, y) {
 function calendarCard(y) {
   const today = todayISO(), rows = relevantDeadlines(y).map((d) => {
     const left = daysUntil(d.date, today), cls = left < 0 ? "" : left <= 14 ? "b-out" : left <= 45 ? "b-soon" : "b-ok";
-    return `<div class="dt-row"><dt>${esc(d.date)}</dt><dd>${esc(tx(d.title))} ${left >= 0 ? `<span class="badge ${cls}">${t("还有 {n} 天", { n: left })}</span>` : `<span class="muted">${t("已过")}</span>`}</dd></div>`;
+    return `<div data-variant="detail" class="ui-row dt-row"><dt>${esc(d.date)}</dt><dd>${esc(tx(d.title))} ${left >= 0 ? `<span class="badge ${cls}">${t("还有 {n} 天", { n: left })}</span>` : `<span class="muted">${t("已过")}</span>`}</dd></div>`;
   }).join("");
   return `<section class="panel dt-block"><div class="dt-head"><h3>${t("{y} 年的税务日历", { y })}</h3></div><dl class="dt-list">${rows}</dl>
     <p class="hint">${t("周末顺延；法定假日以 IRS / 伊利诺伊税务局公告为准。")}</p></section>`;

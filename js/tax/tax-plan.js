@@ -22,8 +22,8 @@ export function planOf(y) {
 }
 export function planCard(y) {
   const c = planOf(y), p = c.p, inp = (key, label, ph) => `<label>${esc(label)}<input ${numAttrs("money")} data-tax-plan="${key}" data-y="${y}" value="${p[key] ?? ""}" placeholder="${esc(ph)}"></label>`;
-  const result = c.required ? `<dl class="dt-list"><div class="dt-row"><dt>${t("全年至少要交够（联邦，参考）")}</dt><dd>${money(c.required)}</dd></div><div class="dt-row"><dt>${t("已扣的税（W-2）+ 已缴的预缴税")}</dt><dd>${money(c.wh + c.est)}</dd></div>
-      <div class="dt-row"><dt>${t("还差")}</dt><dd><b>${money(c.needed)}</b></dd></div>${c.left ? `<div class="dt-row"><dt>${t("还有 {n} 期，每期约", { n: c.left })}</dt><dd><b>${money(c.perQuarter)}</b> <span class="muted">${esc(c.dates.map((d) => d.date).join(" · "))}</span></dd></div>` : `<div class="dt-row"><dt>${t("预缴的几期都过了")}</dt><dd>—</dd></div>`}</dl>` : `<p class="muted">${t("填上本年预计税额或去年税额，才会算。")}</p>`;
+  const result = c.required ? `<dl class="dt-list"><div data-variant="detail" class="ui-row dt-row"><dt>${t("全年至少要交够（联邦，参考）")}</dt><dd>${money(c.required)}</dd></div><div data-variant="detail" class="ui-row dt-row"><dt>${t("已扣的税（W-2）+ 已缴的预缴税")}</dt><dd>${money(c.wh + c.est)}</dd></div>
+      <div data-variant="detail" class="ui-row dt-row"><dt>${t("还差")}</dt><dd><b>${money(c.needed)}</b></dd></div>${c.left ? `<div data-variant="detail" class="ui-row dt-row"><dt>${t("还有 {n} 期，每期约", { n: c.left })}</dt><dd><b>${money(c.perQuarter)}</b> <span class="muted">${esc(c.dates.map((d) => d.date).join(" · "))}</span></dd></div>` : `<div data-variant="detail" class="ui-row dt-row"><dt>${t("预缴的几期都过了")}</dt><dd>—</dd></div>`}</dl>` : `<p class="muted">${t("填上本年预计税额或去年税额，才会算。")}</p>`;
   return `<section class="panel dt-block"><div class="dt-head"><h3>🗓️ ${t("{y} 年预缴税参考（联邦）", { y })}</h3></div>
     <p class="muted tax-wrap">${t("工资之外有较大收入（卖股票的收益、利息、租金、自由职业）或预扣不够时用。只是提醒级的参考，不是申报。")}</p>
     <div class="form-grid">${inp("expectedTax", t("本年预计联邦税额"), "0.00")}${inp("priorTax", t("去年联邦税额（去年 1040 总税额）"), "0.00")}

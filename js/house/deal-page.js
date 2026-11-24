@@ -103,7 +103,7 @@ export function viewDeal() {
   const infoN = INFO_FIELDS.filter((k) => deal[k] != null && deal[k] !== "").length;
   const nextDue = undone.filter((x) => x.due).sort((a, b) => a.due.localeCompare(b.due))[0];
   // url 为 null 时画成按钮（attrs 里带 data-action）
-  const row = (url, icon, title, desc, prog, badge = "", attrs = "") => `<${url ? `a href="${url}"` : `button type="button" ${attrs}`} class="mrow">
+  const row = (url, icon, title, desc, prog, badge = "", attrs = "") => `<${url ? `a href="${url}"` : `button type="button" ${attrs}`} class="ui-row mrow">
       <span class="mi" aria-hidden="true">${icon}</span>
       <span class="mt"><b>${title}</b><small>${desc}</small>${prog != null ? `<span class="mprog"><i style="width:${prog}%"></i></span>` : ""}</span>
       ${badge}<span class="ui-chev" aria-hidden="true">›</span></${url ? "a" : "button"}>`;

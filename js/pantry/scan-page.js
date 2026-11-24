@@ -81,7 +81,7 @@ function targetOptions(row) {
     ${grp("pantry", "日常消耗品")}${grp("house", "汽车房屋消耗品")}`;
 }
 function feeRowHtml(x, ri, i, cur) {
-  return `<li class="scan-row scan-fee-row" data-r="${ri}" data-i="${i}">
+  return `<li data-variant="card" class="ui-row scan-row scan-fee-row" data-r="${ri}" data-i="${i}">
     <label class="check-inline scan-inc"><input type="checkbox" name="inc" ${x.include ? "checked" : ""} aria-label="${esc(t("包含这一行"))}"></label>
     <input name="name" maxlength="60" autocomplete="off" aria-label="${esc(t("名称"))}" value="${esc(x.name)}">
     <input name="amount" ${numAttrs("money", { min: null })} aria-label="${esc(t("金额"))}（${esc(cur)}）" value="${x.amount ?? ""}">
@@ -90,7 +90,7 @@ function feeRowHtml(x, ri, i, cur) {
 }
 function rowHtml(x, ri, i, cur) {
   const man = !!sc.result?.manual, lockSpend = man && sc.record === "spend", lockStock = man && sc.record === "stock";
-  return `<li class="scan-row ${x.match || lockSpend ? "" : "is-new"}${lockSpend ? " link-spend" : ""}${lockStock ? " link-stock" : ""}" data-r="${ri}" data-i="${i}">
+  return `<li data-variant="card" class="ui-row scan-row ${x.match || lockSpend ? "" : "is-new"}${lockSpend ? " link-spend" : ""}${lockStock ? " link-stock" : ""}" data-r="${ri}" data-i="${i}">
         <label class="check-inline scan-inc"><input type="checkbox" name="inc" ${x.include ? "checked" : ""}><span>${x.raw ? `<small class="muted">${esc(x.raw)}</small>` : t("包含这一行")}</span></label>
         <div class="form-grid">
           <label class="span-2">${t("放进库存")}<select name="target" data-search data-def="${esc(x.def || "")}" ${lockSpend ? "disabled" : ""}>${targetOptions(x)}</select></label>

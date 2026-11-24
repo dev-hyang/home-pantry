@@ -21,7 +21,7 @@ function rowHtml(y, r) {
     <div class="tax-num-foot">${r.src ? `<a href="${esc(r.src)}">${t("看来源明细")} ›</a>` : "<span></span>"}<label class="check-inline"><input type="checkbox" data-tax-ok="${r.id}" data-y="${y}" ${ok ? "checked" : ""}><span>${t("已核对")}</span></label></div></li>`;
 }
 function deductionCard(y) {
-  const c = deductionCompare(y), line = (k, v) => `<div class="dt-row"><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
+  const c = deductionCompare(y), line = (k, v) => `<div data-variant="detail" class="ui-row dt-row"><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
   const verdict = c.better == null ? `<p class="muted">${t("{y} 年没有标准扣除额的参考数据，请对着 IRS 官网比较。", { y })}</p>`
     : `<p><b>${c.better === "itemized" ? t("逐项扣除更划算（参考）") : t("标准扣除更划算（参考）")}</b> <span class="muted">${t("相差 {a}", { a: money(Math.abs(c.diff)) })}</span></p>`;
   return `<section class="panel dt-block"><div class="dt-head"><h3>${t("标准扣除 vs 逐项扣除（合并报税，参考）")}</h3></div><dl class="dt-list">
@@ -34,7 +34,7 @@ function fbarCard(y) {
   const flagged = (state.cards || []).filter((c) => acctOf(c.id).foreign), th = TAX_THRESHOLDS.fbar;
   const peak = (c) => Math.max(0, ...(state.balances || []).filter((b) => b.card_id === c.id && String(b.as_of).slice(0, 4) === String(y)).map((b) => +b.balance || 0));
   const rows = flagged.map((c) => ({ c, p: peak(c) })), total = rows.reduce((s, r) => s + r.p, 0);
-  const body = rows.length ? `<dl class="dt-list">${rows.map((r) => `<div class="dt-row"><dt>${esc(r.c.name)}</dt><dd>${money(r.p)}</dd></div>`).join("")}</dl><p><b>${t("最高余额合计")} ${money(total)}</b> <span class="badge ${total > th.amount ? "b-out" : "b-ok"}">${total > th.amount ? t("超过 FBAR 线") : t("没超过")}</span></p>`
+  const body = rows.length ? `<dl class="dt-list">${rows.map((r) => `<div data-variant="detail" class="ui-row dt-row"><dt>${esc(r.c.name)}</dt><dd>${money(r.p)}</dd></div>`).join("")}</dl><p><b>${t("最高余额合计")} ${money(total)}</b> <span class="badge ${total > th.amount ? "b-out" : "b-ok"}">${total > th.amount ? t("超过 FBAR 线") : t("没超过")}</span></p>`
     : `<p class="muted">${t("还没有标成「境外」的账户：在「账户与开户」里给境外账户打勾。")}</p>`;
   return `<section class="panel dt-block"><div class="dt-head"><h3>🌏 ${t("{y} 年境外账户 FBAR 预判（可选）", { y })}</h3></div>${body}
     <p class="hint">${esc(tx(th.label))} · <a href="${esc(th.source)}" target="_blank" rel="noopener">${t("官方说明")} ↗</a> · ${t("这只是预判，不是申报；余额取你在「更新余额」里记过的。")}</p></section>`;

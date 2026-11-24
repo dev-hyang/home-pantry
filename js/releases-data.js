@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.28", title: { zh: "菜单、任务、详情等列表行也换成统一外观", en: "Menu, task and detail rows share the same look too" }, items: [
+    { k: "better", zh: "设置 / 财务等菜单行、任务和模板行、债务行统一成实线分隔、行高不低于 56px；报税和详情页的「名称：内容」行统一成不低于 44px，原来的上边线改为下边线。", en: "Menu rows, task and template rows and debt rows use a solid divider and at least 56px; the label-and-value rows on tax and detail pages are at least 44px, with the divider moved from above to below." },
+    { k: "better", zh: "扫描结果和摊派记录这类带边框的卡片行用同一种边框和圆角；弹出菜单里的选项高度从 40px 提到 44px，更好点。", en: "Bordered card rows (scan results, assessments) share one border and corner radius; options in pop-up menus grow from 40px to 44px so they are easier to tap." },
+    { k: "better", zh: "任务和模板行原来的虚线改成实线，单行任务会比以前略高。", en: "Dashed dividers under task and template rows are now solid, and single-line tasks are slightly taller." },
+  ] },
   { v: "2026-11-24.27", title: { zh: "库存和账单的列表行换成统一的外观", en: "Inventory and bill list rows share one look" }, items: [
     { k: "better", zh: "库存行、账单行（含「全部账单」和买卖交易里的账单）用同一种实线分隔，行高不低于 56px，最后一行不再多画一条线。", en: "Inventory rows and bill rows (including All bills and bills inside a transaction) use the same solid divider, a minimum height of 56px, and no extra line under the last row." },
     { k: "better", zh: "库存行的最小高从 64px 调到 56px，列表更紧凑一点；账单行原来的虚线改成实线。", en: "Inventory rows go from 64px to 56px minimum for a slightly tighter list; the dashed line under bill rows is now solid." },

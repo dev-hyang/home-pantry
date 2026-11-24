@@ -537,6 +537,7 @@ input[type="search"] { -webkit-appearance: none; appearance: none; }
 .ui-row { box-sizing: border-box; min-height: 56px; border-bottom: 1px solid var(--line); }
 .ui-row:last-child { border-bottom: 0; }
 .ui-row[data-variant="detail"] { min-height: 44px; }
+.ui-row[data-variant="card"] { min-height: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }   /* 卡片行：自带一圈边框，最后一个也要边框 */
 /* 数字 / 金额框（js/core/ui-num.js 的 num() 生成 data-num）：等宽数字，位数对得齐；盒子大小不变，仍跟其他输入框一致 */
 input[data-num] { font-variant-numeric: tabular-nums; }
 input[type="date"], input[type="month"], input[type="datetime-local"], input[type="time"] { min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
@@ -609,8 +610,7 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 .mrow-soon:hover { background: none; }
 /* 财务 → 资产：一行一个房产 / 车辆，标签 + 值的小块自动换行；手机上一块一行 */
 .fa-list { list-style: none; margin: 0; padding: 0; }
-.fa-row { padding: 12px 6px; border-bottom: 1px solid var(--line); }
-.fa-row:last-child { border-bottom: 0; }
+.fa-row { padding: 12px 6px; }
 .fa-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px 12px; }
 .fa-name { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; flex: 1 1 auto; }
 .fa-name b { font-size: 16px; overflow-wrap: anywhere; }
@@ -647,8 +647,7 @@ form.is-dirty .btn-primary { box-shadow: 0 0 0 3px color-mix(in srgb, var(--must
 .debt-pay small { color: var(--muted); font-variant-numeric: tabular-nums; }
 .fa-row details > form .form-actions { flex-wrap: wrap; }
 @media (max-width: 480px) { .amort-table th:nth-child(3), .amort-table td:nth-child(3) { display: none; } }   /* 手机：本息列省掉（= 利息 + 本金） */
-.mrow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 10px 10px; border-radius: var(--r-sm); color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); box-sizing: border-box; }
-.mrow:last-child { border-bottom: 0; }
+.mrow { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 10px; border-radius: var(--r-sm); color: var(--ink); text-decoration: none; }
 .mrow:hover { background: var(--bg); }
 .mrow:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
 .mrow .mi { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; font-size: 19px; }
@@ -824,8 +823,7 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .maint-grid .check-inline { display: flex; align-items: center; gap: 8px; font-weight: 500; }
 .maint-grid .check-inline input { width: 18px; height: 18px; min-height: 0; accent-color: var(--pine); }
 .task-list { list-style: none; margin: 0; padding: 0; }
-.task-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px dashed var(--line); }
-.task-row:last-child { border-bottom: 0; }
+.task-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; }
 /* 任务勾选框：圆圈，勾完变成实心绿圈 + ✔，做完的保留在列表里不隐藏 */
 .task-row > input { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; min-height: 0; margin-top: 1px; flex: 0 0 auto; border: 2px solid var(--pine); border-radius: 50%; background: #fff; cursor: pointer; position: relative; padding: 0; }
 .task-row > input:checked { background: var(--pine); }
@@ -1064,7 +1062,7 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .act-more > summary::-webkit-details-marker { display: none; }
 .act-more[open] > summary { background: var(--surface-2); }
 .act-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 150px; display: grid; gap: 2px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: 0 8px 24px rgba(0, 0, 0, .16); }
-.act-item { all: unset; box-sizing: border-box; display: block; min-height: 40px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; white-space: nowrap; line-height: 20px; }
+.act-item { all: unset; box-sizing: border-box; display: block; min-height: 44px; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; white-space: nowrap; line-height: 20px; }
 .act-item:hover, .act-item:focus-visible { background: var(--surface-2); }
 .act-item:focus-visible { outline: 2px solid var(--pine); outline-offset: -2px; }
 @media print { .alert-acts { display: none; } }
@@ -1287,7 +1285,7 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .tpl-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; font-size: 13px; }
 .tpl-group { border: 0; padding: 0; margin: 0 0 14px; }
 .tpl-group legend { font-weight: 600; font-size: 15px; padding: 0; margin-bottom: 4px; }
-.tpl-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0 10px 10px; border-left: 3px solid var(--cat); border-bottom: 1px dashed var(--line); cursor: pointer; }
+.tpl-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0 10px 10px; border-left: 3px solid var(--cat); cursor: pointer; }
 .tpl-row input { width: 18px; height: 18px; min-height: 0; margin-top: 3px; accent-color: var(--pine); flex: 0 0 auto; }
 .tpl-row small { display: block; color: var(--muted); font-size: 12px; }
 .tpl-row .note { color: var(--ink); opacity: .8; margin-top: 2px; }
@@ -1387,7 +1385,6 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .scan-text { display: grid; gap: 4px; font-size: 13px; font-weight: 700; }
 .scan-text textarea { font-weight: 400; }
 .scan-rows { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
-.scan-row { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 12px; background: var(--surface); }
 .scan-inc { margin-bottom: 8px; }
 .scan-row .scan-cat { display: none; }
 .scan-row.is-new .scan-cat { display: grid; }
@@ -4106,7 +4103,7 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .as-gen2 { display: grid; grid-template-columns: minmax(0, 1fr) 6.5em; gap: 8px; }
 .as-gen2 input, .as-gen2 select { box-sizing: border-box; min-width: 0; width: 100%; }
 .as-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.as-row { border: 1px solid var(--line-soft); border-radius: var(--r-md); padding: 10px 12px; display: grid; gap: 10px; background: var(--surface); min-width: 0; }
+.as-row { display: grid; gap: 10px; min-width: 0; }
 .as-row.is-paid { background: var(--surface-2); padding: 8px 12px; }
 .as-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .as-line select { flex: 1; min-width: 0; box-sizing: border-box; min-height: 44px; }
@@ -4432,7 +4429,7 @@ button.npop-item { width: 100%; border: 0; background: none; font: inherit; font
 .dt-head h3 { margin: 0; font-size: 15px; }
 .dt-head .btn { min-height: 44px; display: inline-flex; align-items: center; }
 .dt-list { margin: 0; }
-.dt-row { display: flex; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line, rgba(0,0,0,.08)); }
+.dt-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
 .dt-row dt { flex: 0 0 7em; color: var(--muted); font-size: 13.5px; }
 .dt-row dd { margin: 0; flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 @media (max-width: 560px) { .dt-row { flex-direction: column; gap: 2px; } .dt-row dt { flex: none; } }   /* 点行空白处就能进去 / 勾选 */
