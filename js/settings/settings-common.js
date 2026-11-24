@@ -13,9 +13,11 @@ export const inviteLine = () => {
   return ms <= 0 ? `<b style="color:var(--out)">${t("邀请码已过期")}</b>` : t("有效期至 {d}（还有 {n} 天）", { d: fmtShort(exp), n: Math.max(1, Math.ceil(ms / 864e5)) });
 };
 /** 家主：等批准的加入申请 */
-export function pendingList() {
+export function pendingList() {   // 批准时可以同时：关联名册里的某位成员、开财务权限（迁移 105：申请人加入时留的话 / 勾选的「想要财务权限」也显示在这里）
   const p = state.pendingMembers || []; if (!isOwner() || !p.length) return "";
-  const row = (m) => `<li><div class="grow"><b>${esc(m.display_name)}</b>${m.joined_at ? `<small class="muted">${t("{d} 申请", { d: fmtShort(m.joined_at) })}</small>` : ""}</div>
+  const people = (state.people || []).filter((x) => (x.kind || "adult") === "adult"), opts = people.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
+  const row = (m) => `<li class="pend-row"><div class="grow"><b>${esc(m.display_name)}</b>${m.joined_at ? `<small class="muted">${t("{d} 申请", { d: fmtShort(m.joined_at) })}</small>` : ""}${m.join_note ? `<small class="muted">💬 ${esc(m.join_note)}</small>` : ""}${m.finance_requested_at ? `<small><span class="badge">💰 ${t("想要财务权限")}</span></small>` : ""}
+      <div class="pend-opts"><label>${t("他是名册里的谁")}<select data-appr-person="${m.user_id}"><option value="">${t("稍后再关联")}</option>${opts}</select></label><label class="check-inline"><input type="checkbox" data-appr-fin="${m.user_id}" ${m.finance_requested_at ? "checked" : ""}><span>${t("同时开财务权限")}</span></label></div></div>
       <span class="head-acts"><button type="button" class="btn btn-sm btn-primary" data-action="member-approve" data-id="${m.user_id}">${t("批准")}</button><button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-reject" data-id="${m.user_id}">${t("拒绝")}</button></span></li>`;
   return `<div class="panel pend-panel"><h3 style="font-size:15px;margin:0 0 6px">${t("等你批准（{n}）", { n: p.length })}</h3>
     <p class="muted small" style="margin:0 0 8px">${t("认识这个人再批准：批准后对方能看到家里的数据（对账单、收入、预算除外，要另外开财务权限）。不认识就拒绝，并重新生成邀请码。")}</p>

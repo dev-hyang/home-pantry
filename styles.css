@@ -4760,3 +4760,11 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-imp.is-missing .tax-imp-d { opacity: .7; }
 .tax-link-form .tax-item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .tax-add-btn + .tax-add-btn { margin-left: 8px; }
+/* 设置 → 家庭：批准加入时的关联成员 / 财务权限，成员的财务权限申请（迁移 105） */
+.pend-row .grow { display: grid; gap: 4px; min-width: 0; }
+.pend-opts { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 4px; }
+.pend-opts label { display: flex; align-items: center; gap: 6px; font-size: 13px; min-height: 44px; }
+.pend-opts select { min-height: 44px; box-sizing: border-box; max-width: 100%; }
+.fin-req .dl-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.fin-req .dl-row input { flex: 1 1 200px; min-width: 0; min-height: 44px; box-sizing: border-box; }
+.gate-card .check-inline { display: flex; align-items: center; gap: 8px; min-height: 44px; margin: 6px 0; text-align: left; }

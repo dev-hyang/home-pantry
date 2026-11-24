@@ -12,6 +12,7 @@ import { go } from "../../core/router.js";
 import { refresh } from "../data.js";
 import { render } from "../render.js";
 import { renderLogin } from "../auth/login.js";
+import { financeAction } from "../../settings/finance-request.js";
 import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 import { personAddCancel, personAddDo, personMerge, personMergeCancel, personMergeOpen, personUse } from "../lazy-modules.js";
@@ -19,7 +20,7 @@ import { refreshBackupUi } from "../../settings/backup-ui.js";
 import { deviceLinkDo, deviceLinkNew, removePerson } from "../lazy-modules.js";
 
 /** 点击动作（家庭与设置：成员、家人名册、邀请、加入、登录、备份）：这一组处理的 data-action */
-export const FAMILY_ACTIONS = new Set(["login-ack","logins-more","person-del-page","person-remove","person-new-cancel","device-link","device-link-new","discard","person-add-do","person-add-cancel","person-use","person-merge-open","person-merge-cancel","person-merge","copy-invite","notif","export","backup-now","backup-continue","backup-download","backup-pick-folder","backup-forget-folder","backup-pick-sql","backup-forget-sql","backup-grant","backup-relist","backup-src","backup-dl","backup-use","backup-rm","backup-gd-on","backup-gd-pick","backup-gd-clear","backup-gd-off","backup-dbx-on","backup-dbx-off","backup-restore-cancel","backup-restore-confirm","reset-demo","logout","login-mode","otp-back","lang","member-role","member-finance","member-remove","rotate-invite","close-invite","member-approve","member-reject","join-recheck","join-cancel"]);
+export const FAMILY_ACTIONS = new Set(["login-ack","logins-more","person-del-page","person-remove","person-new-cancel","device-link","device-link-new","discard","person-add-do","person-add-cancel","person-use","person-merge-open","person-merge-cancel","person-merge","copy-invite","fin-request","fin-cancel","fin-off","fin-yes","fin-no","notif","export","backup-now","backup-continue","backup-download","backup-pick-folder","backup-forget-folder","backup-pick-sql","backup-forget-sql","backup-grant","backup-relist","backup-src","backup-dl","backup-use","backup-rm","backup-gd-on","backup-gd-pick","backup-gd-clear","backup-gd-off","backup-dbx-on","backup-dbx-off","backup-restore-cancel","backup-restore-confirm","reset-demo","logout","login-mode","otp-back","lang","member-role","member-finance","member-remove","rotate-invite","close-invite","member-approve","member-reject","join-recheck","join-cancel"]);
 /** 点击动作（家庭与设置：成员、家人名册、邀请、加入、登录、备份）：按 data-action 分支；el 是被点的元素，id 是它的 data-id，e 是点击事件 */
 export async function clickFamily(action, el, id, e) {
   switch (action) {
@@ -115,10 +116,11 @@ export async function clickFamily(action, el, id, e) {
         toast(t("已关闭邀请：现在谁也不能用邀请码加入了")); return render();
       }
       case "member-approve": {
-        await CloudStore.approveMember(id);
+        const root = el.closest(".pend-row"); await CloudStore.approveMember(id, { finance: !!root?.querySelector("[data-appr-fin]")?.checked, person: root?.querySelector("[data-appr-person]")?.value || null });
         state.members = await CloudStore.listMembers(); state.pendingMembers = await CloudStore.listPendingMembers();
         toast(t("已批准，对方现在可以进入了")); return render();
       }
+      case "fin-request": case "fin-cancel": case "fin-off": case "fin-yes": case "fin-no": return financeAction(action, id);   // 财务权限申请 / 批准（迁移 105）
       case "member-reject": {
         if (!armed(el, t("再点一次确认拒绝"))) return;
         await CloudStore.removeMember(id); state.pendingMembers = await CloudStore.listPendingMembers();

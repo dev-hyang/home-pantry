@@ -18,6 +18,8 @@ export function renderOnboarding() {
     <p class="muted">${anon ? t("用家人给的邀请码加入。") : t("第一次使用请创建家庭；家人已经创建过的话，用邀请码加入。")}</p>
     <form id="joinHhForm"><input name="code" required maxlength="12" placeholder="${t("邀请码")}" autocapitalize="characters" aria-label="${t("邀请码")}">
       <input name="display_name" required maxlength="20" placeholder="${t("我的称呼，例如：爸爸")}" aria-label="${t("我的称呼")}" value="${esc(state.user?.user_metadata?.display_name || "")}">
+      <input name="note" maxlength="60" placeholder="${t("给家主留一句话（可不填），例如：我是小明的妈妈")}" aria-label="${t("给家主的话")}">
+      <label class="check-inline"><input type="checkbox" name="want_finance"><span>${t("我需要财务权限（对账单 / 收入 / 预算 / 用卡）")}</span></label>
       <button class="btn btn-dark" type="submit">${t("用邀请码加入")}</button></form>
     <hr>
     ${anon ? `<p class="muted">${t("创建新家庭需要用邮箱登录，这样家庭有一个能找回的主人。")}<button type="button" class="btn btn-sm btn-ghost" data-action="logout">${t("改用邮箱登录")}</button></p>`
@@ -39,7 +41,7 @@ export function joinOutcome(data) {
 }
 export const JOIN_MSG = { invalid: "邀请码不正确，请向家主确认", expired: "邀请码已过期，请向家主要一个新的", throttled: "试得太多次了，请 15 分钟后再试", full: "等家主批准的申请太多了，请联系家主先处理" };
 export async function doJoinHousehold(f) {
-  const { data, error } = await CloudStore.sb.rpc("join_household", { p_code: f.elements.code.value.trim(), p_display_name: f.elements.display_name.value.trim() });
+  const { data, error } = await CloudStore.sb.rpc("join_household", { p_code: f.elements.code.value.trim(), p_display_name: f.elements.display_name.value.trim(), p_note: f.elements.note?.value.trim() || null, p_want_finance: !!f.elements.want_finance?.checked });
   if (error) return toast(error.message.includes("invalid") ? t("邀请码不正确，请向家主确认") : t("加入失败：{msg}", { msg: error.message }));
   const o = joinOutcome(data);
   if (JOIN_MSG[o.status]) return toast(t(JOIN_MSG[o.status]));
@@ -92,6 +94,12 @@ export async function loadPending() {
 }
 registerAlerts(loginAlertItems);
    // 陌生设备 / 新网络登录（迁移 086）
+registerAlerts(() => {   // 家主：待处理的财务权限申请
+  const n = state.members?.some((m) => m.user_id === state.user?.id && m.role === "owner") ? state.members.filter((m) => m.finance_requested_at && m.role !== "owner" && m.can_finance !== true) : [];
+  if (!n.length) return [];
+  const link = `${href("me", "settings")}?sec=family`;
+  return [{ source: "join", severity: 1, must: true, title: t("{n} 人申请财务权限", { n: n.length }), detail: n.map((m) => m.display_name).join("、"), href: link, actions: [{ type: "link", href: link, label: t("去处理"), cls: "btn-primary" }] }];
+});
 registerAlerts(() => {
   const p = state.pendingMembers || []; if (!p.length) return [];
   const link = `${href("me", "settings")}?sec=family`;

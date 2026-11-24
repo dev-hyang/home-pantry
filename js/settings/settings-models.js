@@ -19,6 +19,7 @@ import { tempUnitPref } from "../core/weather.js";
 import { usageHTML } from "../core/usage.js";
 import { viewPrintSettings } from "./print.js";
 import { inviteLine, isOwner, pendingList, sisterAppsPanel } from "./settings-common.js";
+import { financeRequestCard, financeRequestsPanel } from "./finance-request.js";
 import { deviceLinkPrompt } from "./family-lite.js";
 
 /* ── 模型下拉：常用免费模型目录（带上限）+ 这个 key 实际能用的列表（画出来后后台查，缓存一天）；没有目录的服务商仍是手填 ── */
@@ -155,6 +156,8 @@ export function viewSettings() {
     </div>` : ""}
     ${cloud ? deviceLinkPrompt() : ""}
     ${cloud ? pendingList() : ""}
+    ${cloud ? financeRequestsPanel() : ""}
+    ${cloud ? financeRequestCard() : ""}
     ${peoplePanel()}
     ${cloud ? "" : `    <div class="panel config-diag">
       <b>${t("为什么还是本地演示模式")}</b>

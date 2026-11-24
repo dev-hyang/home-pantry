@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.1", title: { zh: "邀请码加入：可以留话、申请财务权限", en: "Joining by invite code: leave a note, ask for finance access" }, items: [
+    { k: "new", zh: "用邀请码加入时可以给家主留一句话，也可以勾选「我需要财务权限」；家主批准时能同时选「他是名册里的谁」和是否开财务权限", en: "When joining with an invite code you can leave the owner a note and tick “I need finance access”; the owner can pick who they are in the people list and grant finance access while approving" },
+    { k: "new", zh: "加入以后，没有财务权限的家人可以在 设置 → 家庭 里随时申请、撤回；家主会收到提醒，一键同意或拒绝", en: "After joining, members without finance access can ask for it (or withdraw) in Settings → Family; the owner gets an alert and can approve or decline in one tap" },
+    { k: "better", zh: "有了财务权限的家人可以自己关掉；打开只能家主同意", en: "Members can turn their own finance access off; only the owner can turn it on" },
+  ] },
   { v: "2026-11-23.7", title: { zh: "税务：买卖清单可以链接花费记录", en: "Tax: link spending records into the buy / sell lists" }, items: [
     { k: "new", zh: "买卖与成本基础里，买入费用、装修翻新、卖出费用三张清单多了「🔗 从花费记录里选」：勾选这套房的花费，金额自动带进来，不用再手填", en: "In Buy / sell & cost basis, the closing-costs, improvements and selling-costs lists have “🔗 Pick from spending records”: tick this home’s spending and the amount comes in automatically" },
     { k: "better", zh: "链接的行金额跟着花费记录走（记录里改了这里也变）；记录被删了会标出来、不计入；点 × 只是解除链接，不会删花费记录", en: "Linked rows follow the spending record (edit it and the list updates); deleted records are flagged and not counted; × only unlinks, it never deletes the record" },

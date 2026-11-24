@@ -20,7 +20,8 @@ export const cloudPeople = {
   async listMembers() {   // 只列正式成员（迁移 049 起新加入的人先是「待批准」）；没执行 049 时没有 status 列，退回原来的读法
     const base = "user_id,display_name,role,joined_at,person_id";   // person_id：这台设备属于哪位家庭成员（迁移 084）；没读回来界面就会一直显示「还没链接」
     const q = (cols, active) => { let b = this.sb.from("household_members").select(cols).eq("household_id", this.hid); if (active) b = b.eq("status", "active"); return b.order("joined_at"); };
-    let r = await q(`${base},can_finance,${PROFILE_COLS}`, true);
+    let r = await q(`${base},can_finance,finance_requested_at,finance_request_note,${PROFILE_COLS}`, true);   // finance_requested_at / finance_request_note：财务权限申请（迁移 105）
+    if (r.error && /finance_request/i.test(r.error.message)) r = await q(`${base},can_finance,${PROFILE_COLS}`, true);
     if (r.error && /person_id/i.test(r.error.message)) { const b0 = base.replace(",person_id", ""); r = await q(`${b0},can_finance,${PROFILE_COLS}`, true); }   // 还没执行迁移 084   // 电话 / 邮箱 / 地址：成员资料（迁移 052）
     state.noProfileCols = !!(r.error && /phone|email|address|can_finance|status|does not exist|schema cache/i.test(r.error.message));
     if (state.noProfileCols) r = await q(`${base},can_finance`, true);   // 没执行 052：资料字段在界面上灰掉，提示先执行迁移
@@ -36,10 +37,16 @@ export const cloudPeople = {
   },
   /** 等家主批准的加入申请（读不到 = 没有） */
   async listPendingMembers() {
-    const r = await this.sb.from("household_members").select("user_id,display_name,joined_at").eq("household_id", this.hid).eq("status", "pending").order("joined_at");
+    const r = await this.sb.from("household_members").select("user_id,display_name,joined_at,join_note,finance_requested_at").eq("household_id", this.hid).eq("status", "pending").order("joined_at");   // join_note / finance_requested_at：迁移 105
+    if (r.error && /join_note|finance_requested_at/i.test(r.error.message)) { const r2 = await this.sb.from("household_members").select("user_id,display_name,joined_at").eq("household_id", this.hid).eq("status", "pending").order("joined_at"); return r2.error ? [] : r2.data; }
     return r.error ? [] : r.data;
   },
-  async approveMember(userId) { this.must(await this.sb.rpc("approve_member", { p_household: this.hid, p_user: userId })); },
+  async approveMember(userId, { finance = false, person = null } = {}) { this.must(await this.sb.rpc("approve_member", { p_household: this.hid, p_user: userId, p_finance: !!finance, p_person: person || null })); },
+  /* 财务权限申请（迁移 105）：成员申请 / 撤回 / 关掉自己的；家主同意 / 拒绝 */
+  async requestFinance(note) { this.must(await this.sb.rpc("request_finance", { p_household: this.hid, p_note: note || null })); },
+  async cancelFinanceRequest() { this.must(await this.sb.rpc("cancel_finance_request", { p_household: this.hid })); },
+  async disableMyFinance() { this.must(await this.sb.rpc("disable_my_finance", { p_household: this.hid })); },
+  async decideFinanceRequest(userId, approve) { this.must(await this.sb.rpc("decide_finance_request", { p_household: this.hid, p_user: userId, p_approve: !!approve })); },
   async closeInvite() { this.must(await this.sb.rpc("close_invite", { p_household: this.hid })); },
   /* 家主管理（security definer RPC，见 migrations/004、005） */
   async setMemberRole(userId, role) { this.must(await this.sb.rpc("set_member_role", { p_household: this.hid, p_user: userId, p_role: role })); },
