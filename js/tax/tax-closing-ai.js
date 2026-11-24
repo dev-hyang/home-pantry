@@ -31,7 +31,7 @@ export function closingBlock(p) {
 function dupMark(r, existing) {
   const d = dupInfo(r, existing); if (!d) return { on: true, note: "" };
   const who = `${esc(d.row.desc || "")} ${money(d.row.amount)}`;
-  return { on: false, note: `<small class="tax-dup ${d.strong ? "is-strong" : ""}">${d.strong ? t("很可能重复") : t("金额相同")}：${t("清单里已有「{x}」；默认不添加，不是同一笔就勾上", { x: who })}</small>` };
+  return { on: false, note: `<small class="tax-dup ${d.strong ? "is-strong" : ""}">${t(d.strong ? "很可能重复：清单里已有「{x}」；默认不添加，不是同一笔就勾上" : "金额相同：清单里已有「{x}」；默认不添加，不是同一笔就勾上", { x: who })}</small>` };
 }
 function reviewPanel(p) {
   const x0 = propOf(p.id), exBuy = rowsOf(x0, "buyItems", p.id), exCred = rowsOf(x0, "creditItems", p.id);

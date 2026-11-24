@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.10", title: { zh: "小票替换对账单整笔：少一次重复确认", en: "Replacing a statement line with a receipt: one fewer repeat confirmation" }, items: [
+    { k: "better", zh: "录小票时，已经在小票上方提醒过的对账单整笔，不再在每一行下面重复提醒、也不再多要一次确认", en: "When a receipt matches a statement line, the note above the receipt is enough; the row-level duplicate warning and the extra confirmation are gone" },
+    { k: "fix", zh: "英文界面的重复提示去掉了中文冒号；买卖页每套房的标题里，名字和「自住 / 出租」之间留出空隙", en: "English duplicate hints no longer use a Chinese colon; the home title on the Buy / sell page has a gap before “owner-occupied / rental”" },
+  ] },
   { v: "2026-11-24.9", title: { zh: "修复：税务「从花费记录里选」打不开；小票查重更准；英文界面补全", en: "Fixes: Tax “pick from spending” would not open; better receipt matching; English strings filled in" }, items: [
     { k: "fix", zh: "税务 → 买卖与成本基础：「从花费记录里选」点了没反应（近几个版本），已修好", en: "Tax → Buy / sell: “Pick from spending records” did nothing in the last few versions; fixed" },
     { k: "fix", zh: "对账单导入认小票：一次拍了几张不同商店的小票时，以前会合成一张，合计对不上；现在按商店和日期分开", en: "Statement import: receipts from several stores scanned together used to be merged into one, so totals never matched; they are now split by store and date" },

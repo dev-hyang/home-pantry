@@ -4786,3 +4786,4 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-find-form { margin-bottom: 6px; }
 /* 买卖清单的查找 / 链接表单：按钮点按区域 ≥ 44px（和输入框一样高） */
 .tax-find-form .tax-item-actions .btn, .tax-link-form .tax-item-actions .btn { min-height: 44px; }
+.tax-event > summary > .muted { margin-left: 8px; }   /* 买卖页每套房标题：名字和「自住 / 出租」之间留空 */

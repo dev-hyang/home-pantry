@@ -180,7 +180,7 @@ export function markDups(box) {
   let n = 0; const taken = new Set();
   box.querySelectorAll(".scan-row").forEach((r) => {
     const g = (k) => r.querySelector(`[name="${k}"]`).value, hint = r.querySelector(".dup-hint");
-    const list = g("amount") === "" || mode || r.classList.contains("scan-fee-row") ? [] : similarPurchases({ name: g("name"), amount: num(g("amount")), store, at: new Date(`${date}T12:00:00`) });
+    const list = g("amount") === "" || mode || r.classList.contains("scan-fee-row") ? [] : similarPurchases({ name: g("name"), amount: num(g("amount")), store, at: new Date(`${date}T12:00:00`) }, box._lump ? new Set([box._lump.id]) : new Set());   // 对账单里的整笔已经在小票上方单独提醒过，行级不再重复提醒
     hint.innerHTML = dupNote(list); hint.hidden = !list.length;
     const cart = r.querySelector(".cart-hint"), tg = g("target"), sh = mode === "replace" ? null : matchOpenShopping({ name: g("name"), item_id: tg.startsWith("__") ? null : tg, at: new Date(`${date}T12:00:00`) }, taken);
     if (sh && r.querySelector('[name="inc"]').checked) taken.add(sh.id);
