@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.5", title: { zh: "税务买卖：按金额找收入、AI 识别查重", en: "Tax buy / sell: find income by amount, duplicate check for AI results" }, items: [
+    { k: "new", zh: "「买入时收到的退款 / credit」多了「🔎 按金额 / 日期找」：填金额和大概日期（默认成交日），从所有收入记录里找出对得上的，勾选后链接，不用先给收入选房产", en: "“Refunds / credits at purchase” has “🔎 Find by amount / date”: enter an amount and rough date (defaults to closing day), pick from matching income records, and link — no need to tag income with a home first" },
+    { k: "new", zh: "用 Closing Disclosure 自动填时，和清单里已有的项金额对上的会标出「很可能重复 / 金额相同」并默认不勾；不是同一笔再勾上", en: "When auto-filling from a Closing Disclosure, items whose amount matches an existing row are flagged “likely duplicate / same amount” and unticked by default; tick them if they are different" },
+  ] },
   { v: "2026-11-24.4", title: { zh: "税务买卖清单：更好读、好找", en: "Tax buy / sell lists: easier to read and search" }, items: [
     { k: "new", zh: "页面右上多了「金额显示」眼睛：外出时金额模糊，单击露 10 秒", en: "New “amount display” eye on the page: amounts are blurred when you are out; tap to reveal for 10 seconds" },
     { k: "better", zh: "清单和「从记录里选」的框略深于背景；每行的日期、🔗、名称放在同一行，放不下才折行；最多显示约 6 行，多了可滚动", en: "Lists and the picker have a slightly darker box; date, 🔗 and name sit on one line (wrapping only if needed); about 6 rows show, then it scrolls" },

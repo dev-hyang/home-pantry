@@ -36,3 +36,25 @@ test("金额档位：从高到低；按绝对值；下限含、上限不含", ()
   assert.equal(bucketOk("all", 5), true); assert.equal(bucketOk("1000", 1000), true); assert.equal(bucketOk("1000", 999.99), false);
   assert.equal(bucketOk("500", 999.99), true); assert.equal(bucketOk("500", 1000), false); assert.equal(bucketOk("0", -49.5), true); assert.equal(bucketOk("0", 50), false);
 });
+
+import { dupInfo, matchIncome, similarName } from "../js/tax/tax-links-lib.js";
+const inc = [{ id: "a", amount: 1200, received_on: "2026-03-10", source_name: "Title Co" }, { id: "b", amount: 1200, received_on: "2026-03-30", source_name: "X" }, { id: "c", amount: 500, received_on: "2026-03-11", source_name: "Y" }];
+test("找收入：金额 ±1 分、日期 ±14 天；只给一项也行；已链接的不出现；近的排前", () => {
+  assert.deepEqual(matchIncome(inc, { amount: "1200", on: "2026-03-12" }).map((r) => r.id), ["a"]);
+  assert.deepEqual(matchIncome(inc, { amount: "1200", on: "" }).map((r) => r.id).sort(), ["a", "b"]);
+  assert.deepEqual(matchIncome(inc, { amount: "", on: "2026-03-12" }).map((r) => r.id), ["c", "a"]);
+  assert.deepEqual(matchIncome(inc, { amount: "1200.01", on: "2026-03-12", linked: new Set(["a"]) }), []);
+  assert.deepEqual(matchIncome(inc, { amount: "", on: "" }), []);
+});
+test("名字像不像：包含 / 共有词；无关的不像", () => {
+  assert.equal(similarName("Title - Settlement Fee", "Settlement fee"), true);
+  assert.equal(similarName("律师费", "律师费用"), true);
+  assert.equal(similarName("Recording Fee", "Appraisal"), false);
+});
+test("AI 查重：金额相同才算；名字也像 = strong；被删的不算", () => {
+  const rows = [{ desc: "Settlement fee", amount: 900 }, { desc: "其他", amount: 250.5 }, { desc: "gone", amount: 70, missing: true }];
+  assert.deepEqual(dupInfo({ desc: "Title - Settlement Fee", amount: 900 }, rows).strong, true);
+  assert.equal(dupInfo({ desc: "Notary", amount: 250.5 }, rows).strong, false);
+  assert.equal(dupInfo({ desc: "x", amount: 70 }, rows), null);
+  assert.equal(dupInfo({ desc: "x", amount: 901 }, rows), null);
+});

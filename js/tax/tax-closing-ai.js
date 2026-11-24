@@ -10,6 +10,7 @@ import { SYSTEM, compressImage, numOr, parseJson } from "../core/autofill-common
 import { render } from "../app/render.js";
 import { propOf, saveProp } from "./tax-calendar.js";
 import { ui } from "./tax-ui.js";
+import { dupInfo, rowsOf } from "./tax-links-lib.js";
 
 const money = (n) => Units.money(n);
 const BUCKETS = ["basis", "points", "loan_cost", "prepaid_escrow", "other"];
@@ -26,12 +27,20 @@ export function closingBlock(p) {
     <div class="af-status" role="status" aria-live="polite"></div></div>`;
 }
 
+/** 识别出的一项和清单里已有的行比：金额相同才算对上（名字也像 = 很可能重复）。对上的默认不勾，勾上才加；标出对上的是哪一项 */
+function dupMark(r, existing) {
+  const d = dupInfo(r, existing); if (!d) return { on: true, note: "" };
+  const who = `${esc(d.row.desc || "")} ${money(d.row.amount)}`;
+  return { on: false, note: `<small class="tax-dup ${d.strong ? "is-strong" : ""}">${d.strong ? t("很可能重复") : t("金额相同")}：${t("清单里已有「{x}」；默认不添加，不是同一笔就勾上", { x: who })}</small>` };
+}
 function reviewPanel(p) {
-  const d = ui.cd.data, rows = (arr, kind) => arr.map((r, i) => `<li class="tax-cd-row"><label class="check-inline"><input type="checkbox" data-cd="${kind}" data-i="${i}" checked><span>${esc(r.desc)}</span></label><input type="number" min="0" step="0.01" inputmode="decimal" value="${r.amount}" data-cd-amt="${kind}:${i}" aria-label="${esc(t("金额"))}"></li>`).join("");
+  const x0 = propOf(p.id), exBuy = rowsOf(x0, "buyItems", p.id), exCred = rowsOf(x0, "creditItems", p.id);
+  const d = ui.cd.data, rows = (arr, kind) => arr.map((r, i) => { const m = dupMark(r, exCred); return `<li class="tax-cd-row"><label class="check-inline"><input type="checkbox" data-cd="${kind}" data-i="${i}" ${m.on ? "checked" : ""}><span>${esc(r.desc)}${m.note}</span></label><input type="number" min="0" step="0.01" inputmode="decimal" value="${r.amount}" data-cd-amt="${kind}:${i}" aria-label="${esc(t("金额"))}"></li>`; }).join("");
   const other = d.lines.filter((r) => r.bucket !== "basis");
-  const basisRows = d.lines.map((r, i) => (r.bucket === "basis" ? `<li class="tax-cd-row"><label class="check-inline"><input type="checkbox" data-cd="basis" data-i="${i}" checked><span>${esc(r.desc)}</span></label><input type="number" min="0" step="0.01" inputmode="decimal" value="${r.amount}" data-cd-amt="basis:${i}" aria-label="${esc(t("金额"))}"></li>` : "")).join("");
+  const basisRows = d.lines.map((r, i) => { if (r.bucket !== "basis") return ""; const m = dupMark(r, exBuy); return `<li class="tax-cd-row"><label class="check-inline"><input type="checkbox" data-cd="basis" data-i="${i}" ${m.on ? "checked" : ""}><span>${esc(r.desc)}${m.note}</span></label><input type="number" min="0" step="0.01" inputmode="decimal" value="${r.amount}" data-cd-amt="basis:${i}" aria-label="${esc(t("金额"))}"></li>`; }).join("");
+  const dupN = [...d.lines.filter((r) => r.bucket === "basis").map((r) => dupInfo(r, exBuy)), ...d.credits.map((r) => dupInfo(r, exCred))].filter(Boolean).length;
   const groups = Object.entries(BUCKET_NAME).map(([b, name]) => { const ls = other.filter((r) => r.bucket === b); return ls.length ? `<p class="muted tax-wrap"><b>${esc(t(name))}</b><br>${ls.map((r) => `${esc(r.desc)} ${money(r.amount)}`).join(" · ")}</p>` : ""; }).join("");
-  return `<section class="tax-step tax-cd-review"><h4>📋 ${t("AI 读到的（请核对）")}</h4>
+  return `<section class="tax-step tax-cd-review"><h4>📋 ${t("AI 读到的（请核对）")}</h4>${dupN ? `<p class="hint">${t("有 {n} 项和清单里已有的金额对上了，默认没勾（不添加）。确实不是同一笔，再勾上。", { n: dupN })}</p>` : ""}
     <p class="muted tax-wrap">${d.closing_date ? t("成交日 {d}", { d: d.closing_date }) : t("没读到成交日")}${d.sale_price != null ? ` · ${t("成交价 {a}", { a: money(d.sale_price) })}${p.purchase_price == null ? ` · ${t("房屋记录里还没有买入价，去 房屋 → 交易 记上")}` : p.purchase_price !== d.sale_price ? ` · ${t("和房屋记录里的买入价 {a} 不一样，请核对", { a: money(p.purchase_price) })}` : ""}` : ""}</p>
     <h5>${t("加进 ② 买入时付的费用")}</h5>${basisRows ? `<ul class="tax-cd-list">${basisRows}</ul>` : `<p class="muted">${t("没有识别出可以计入成本基础的费用。")}</p>`}
     <h5>${t("加进 ③ 退款 / credit")}</h5>${d.credits.length ? `<ul class="tax-cd-list">${rows(d.credits, "credit")}</ul>` : `<p class="muted">${t("没有识别出 credit。")}</p>`}
