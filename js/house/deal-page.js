@@ -1,4 +1,5 @@
 import { numAttrs } from "../core/ui-num.js";
+import { moreMenu } from "../core/more-menu.js";
 import { viewSwitch } from "../core/view-switch.js";
 /* 交易页：任务行、编辑表单、交易详情、新建 / 编辑交易的表单、交割面板。 */
 import { dealLanding } from "./deal-home.js";
@@ -45,6 +46,16 @@ function dealToolbar(view, deal = null) {
   return `<div class="toolbar deal-toolbar" role="group" aria-label="${esc(t("筛选和排序"))}"><input type="search" id="dealSearch" value="${esc(state.dealQ || "")}" placeholder="${esc(t("搜索事项 / 进展记录"))}" aria-label="${esc(t("搜索"))}" autocomplete="off">${parts.join("")}${clearFiltersBtn("deal", dealFiltered(view))}</div>`;
 }
 const dealFilterBar = () => dealToolbar("list");
+/** 总进度卡片右上角 ⋯：已取消 = 恢复 / 删除；进行中 = 取消这笔交易；已完成 = 取消这笔交易（取消后才能删除）；都有「回到交易首页」 */
+function dealMenu(deal, veh, p) {
+  const home = { label: t("回到交易首页"), href: kindHref(deal.kind, veh?.id) };
+  const openSame = (veh ? openVehicleDeal(veh.id) : openDeals(p.id)).some((x) => x.kind === deal.kind);
+  const data = { deal: deal.id };
+  if (deal.outcome === "cancelled") return moreMenu([!openSame ? { label: t("恢复这笔交易"), action: "deal-restore", data, first: true } : null, { label: t("删除"), action: "deal-delete", data, danger: true }, home]);
+  if (deal.outcome) return moreMenu([{ label: t("取消这笔交易"), action: "deal-cancel-closed", data, danger: true, first: true }, home]);
+  return moreMenu([{ label: t("取消这笔交易"), href: dealHref(deal, "cancel"), danger: true, first: true }, home]);
+}
+
 export function viewDeal() {
   const q = state.route?.q;
   const assetId = q?.get("asset") || null;
@@ -149,9 +160,8 @@ export function viewDeal() {
     <section class="section">
       <div class="section-head"><h2>${closed ? (deal.outcome === "cancelled" ? t("{kind}已取消", { kind: t(K[deal.kind]) }) : t("{kind}已完成", { kind: t(K[deal.kind]) })) : t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${deal.closing_on ? `${t(dateLabels(deal)[1])} ${fmtDate(deal.closing_on)}` : t("还没填{d}", { d: t(dateLabels(deal)[1]) })}</p></div>
       ${closed ? `<p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。")} <a href="${kindHref(deal.kind, veh?.id)}">${t("回到交易首页")}</a></p>` : ""}
-      ${deal.outcome === "cancelled" ? `<div class="form-actions deal-cancelled-acts">${!(veh ? openVehicleDeal(veh.id) : openDeals(p.id)).some((x) => x.kind === deal.kind) ? `<button type="button" class="btn btn-sm btn-primary" data-action="deal-restore" data-deal="${esc(deal.id)}">${t("恢复这笔交易")}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost is-danger" data-action="deal-delete" data-deal="${esc(deal.id)}">${t("删除")}</button></div>` : ""}
       <div class="panel deal-progress">
-        <div class="kv"><div><b>${t("总进度 {p}%", { p: pct })}</b><div class="muted">${t("已完成 {a} / {b}", { a: doneN, b: total })}${skippedAll ? ` · ⊘ ${t("跳过 {n}", { n: skippedAll })}` : ""}${mustLeft ? ` · ${t("必须项还剩 {n}", { n: mustLeft })}` : ""}${nextDue ? ` · ${t("最近截止 {date}", { date: fmtDate(nextDue.due) })}` : ""}</div></div></div>
+        <div class="kv kv-head"><div><b>${t("总进度 {p}%", { p: pct })}</b><div class="muted">${t("已完成 {a} / {b}", { a: doneN, b: total })}${skippedAll ? ` · ⊘ ${t("跳过 {n}", { n: skippedAll })}` : ""}${mustLeft ? ` · ${t("必须项还剩 {n}", { n: mustLeft })}` : ""}${nextDue ? ` · ${t("最近截止 {date}", { date: fmtDate(nextDue.due) })}` : ""}</div></div><div class="head-acts">${dealMenu(deal, veh, p)}</div></div>
         <div class="life-bar big"><i style="width:${pct}%"></i></div>
         ${financingSwitch(deal)}
       </div>

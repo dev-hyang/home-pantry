@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.40", title: { zh: "交易页更整齐：买入 / 卖出各一个卡片，详情右上角有 ⋯ 菜单", en: "Tidier deals page: Buy / Sell cards, and a ⋯ menu on deal details" }, items: [
+    { k: "better", zh: "买入、卖出各自一个卡片：标题、说明、最近一笔、按钮和展开的历史都在里面；「查看历史」靠左，「记录…交易」靠右。", en: "Buy and Sell are now one card each: title, description, latest deal, buttons and the expanded history. “View history” on the left, “Record…” on the right." },
+    { k: "better", zh: "交易详情的总进度卡片右上角加了 ⋯ 菜单：已取消的可以恢复 / 删除，进行中和已完成的可以取消，都能回到交易首页。历史行上的已取消交易只保留「恢复」。", en: "The progress card on deal details has a ⋯ menu: restore / delete for cancelled deals, cancel for open or completed ones, and back to the deals home. Cancelled rows in history keep only “Restore”." },
+    { k: "fix", zh: "事项编辑页的「取消 / 保存」不再套一层灰底边框。", en: "The task edit page no longer wraps “Cancel / Save” in an extra grey box." },
+  ] },
   { v: "2026-11-24.39", title: { zh: "交易页：查看历史、恢复和删除，去掉单独的买入 / 卖出页", en: "Deals: view history, restore and delete; no separate Buy / Sell pages" }, items: [
     { k: "better", zh: "每一类交易旁边多了「查看历史」按钮，点开能看到全部已完成和已取消的交易（从近到远）。", en: "Each deal type now has a “View history” button listing all completed and cancelled deals, newest first." },
     { k: "better", zh: "已取消的交易可以「恢复」（变回进行中）或「删除」，交易详情里也有这两个按钮。", en: "Cancelled deals can be restored (back to in progress) or deleted, also from the deal details page." },

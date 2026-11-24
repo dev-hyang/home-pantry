@@ -4784,24 +4784,29 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .ai-row.same { opacity: .7; }
 .ai-row.diff small { color: var(--warn, #8a5a00); }
 /* 交易页（2026-11-24.36）：每类交易一个 Section，其他交易折叠成行 */
-.deal-sec { margin-bottom: 18px; }
+.deal-sec { margin: 0 0 14px; }
+.deal-sec .section-head { margin-bottom: 6px; }
+.deal-sec .deal-desc { margin: 0 0 10px; font-size: 13px; line-height: 1.5; }
+.deal-hist-btn { border: 1px solid var(--line); min-height: 44px; padding-inline: 16px; }
 .deal-intro { margin: 0 0 12px; }
+.deal-sec .deal-kind { border: 0; padding: 0; margin: 0; }
 .deal-sec .deal-kind-act { padding: 8px 0 0; }
 .deal-more { margin-top: 10px; }
 .deal-more > summary { cursor: pointer; list-style: none; min-height: 44px; display: flex; align-items: center; font-size: 13px; font-weight: 600; color: var(--muted); }
 .deal-more > summary::-webkit-details-marker { display: none; }
 .deal-more > summary::before { content: "▸ "; margin-right: 4px; }
 .deal-more[open] > summary::before { content: "▾ "; }
-.deal-rows { list-style: none; margin: 10px 0 0; padding: 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius, 12px); }
+.deal-rows { list-style: none; margin: 10px 0 0; padding: 0; border-top: 1px solid var(--line); }
 .deal-rows > li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
 .deal-rows > li:first-child { border-top: 0; }
+.deal-rows .ui-chev { color: var(--muted); padding: 0 4px; }
 .deal-rows .grow { flex: 1 1 140px; min-width: 0; }
 .deal-rows .grow small { display: block; color: var(--muted); overflow-wrap: anywhere; }
-.deal-row-acts { display: flex; gap: 6px; margin-left: auto; }
+.deal-row-acts { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .deal-row-acts .btn, .deal-cancelled-acts .btn { min-height: 44px; }
 .btn.is-danger { color: var(--out); }
-.deal-cancelled-acts { margin: 0 0 10px; }
-.deal-kind-act { display: flex; flex-wrap: wrap; gap: 8px; }
+.deal-kind-act { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }   /* 查看历史靠左，记录…交易靠右 */
+.deal-kind-act > [data-action="deal-start"] { margin-left: auto; }
 /* 详情页标题 + 右上角「编辑」：标题再长也不把按钮挤到下一行 */
 .kv-head { flex-wrap: nowrap; align-items: flex-start; }
 .kv-head > :first-child { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
@@ -4815,3 +4820,7 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-inc-title { min-width: 0; flex: 1 1 auto; font-size: 15px; font-weight: 700; }
 .tax-inc-total { flex: none; white-space: nowrap; }
 .tax-inc-card[open] .tax-inc-total { display: none; }
+
+/* 事项编辑页：表单直接放在页面卡片里，不再套一层灰底边框；保存栏也不再单独一个框 */
+.task-edit-form.is-page { margin: 0; padding: 0; background: none; border: 0; }
+.task-edit-form.is-page .sticky-actions { border-top: 0; padding: 12px 0 0; }

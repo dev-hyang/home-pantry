@@ -224,7 +224,7 @@ export function taskRow(x, { showProp = false } = {}) {
 export function taskEditForm(deal, x, stage = "special", page = null) {   // page = { cancelHref, returnTo }：独立页面里的表单，底部只有「取消 / 保存」
   const custom = !x || x.custom, rec = x?.custom ? x.rec : null;
   const opts = (map, cur) => Object.entries(map).map(([k, n]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${esc(t(n))}</option>`).join("");
-  return `<form id="dealTaskForm" class="task-edit-form" novalidate>
+  return `<form id="dealTaskForm" class="task-edit-form${page ? " is-page" : ""}" novalidate>
     <input type="hidden" name="deal_id" value="${esc(deal.id)}"><input type="hidden" name="key" value="${esc(x?.key || "")}">${page ? `<input type="hidden" name="return_to" value="${esc(page.returnTo)}">` : ""}
     <div class="form-grid">
       ${custom ? `<label class="span-2">${t("事项名称")}<input name="name" required maxlength="120" value="${esc(rec?.name || "")}" placeholder="${esc(t("如：向 HOA 提交 intent to sell 通知"))}"></label>
