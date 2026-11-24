@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.16", title: { zh: "交易：交易信息 / 事项都有详情页，阶段里的事项变成行卡片", en: "Transactions: info and tasks get detail pages; tasks in a stage become row cards" }, items: [
+    { k: "new", zh: "「交易信息」先是一张只读的详情卡，右上角「编辑」进表单，底部「取消 / 保存」，保存后回到详情", en: "“Transaction info” is now a read-only detail card; Edit opens the form with Cancel / Save at the bottom and returns to the details after saving" },
+    { k: "new", zh: "阶段页里每个事项是一张行卡片：左边勾一下标完成，点卡片进事项详情（状态、日期、备注、说明；可编辑、跳过、删除自定义事项）", en: "Each task in a stage is a row card: tick the box to mark it done, tap the card for its details (status, dates, notes; edit, skip, delete a custom task)" },
+    { k: "new", zh: "清单页和每个阶段页的最后一行是「添加自定义事项」行卡片，点进独立的添加页面（底部取消 / 保存），不再在原页面展开", en: "The last row of the List page and of every stage page is “Add a custom task”, which opens its own page (Cancel / Save) instead of expanding in place" },
+  ] },
   { v: "2026-11-24.15", title: { zh: "交易页：少一层目录，清单 / 计划 / 实际 / 对比各是一个子页", en: "Transactions: one less level; List / Plan / Actual / Compare are now sub-pages" }, items: [
     { k: "new", zh: "首页点「卖出进行中」直接进这笔交易，不再多一层「卖出」目录页；只有 1 笔历史也直接进，多笔历史才进历史列表", en: "Tapping “Sale in progress” on the home page opens that transaction directly; a single past transaction opens directly too, several go to a history list" },
     { k: "new", zh: "交易主页：上面是只做统计的总结卡片（总进度、已完成、必须项、最近截止），下面是清单、计划、实际、对比四张带描述的行卡片，各进一个子页；原来的视图切换去掉了", en: "Transaction home: a summary card (progress, done, must-do, next due) and four described cards — List, Plan, Actual, Compare — each opening its own page; the view switcher is gone" },

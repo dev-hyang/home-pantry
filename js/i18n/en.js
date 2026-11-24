@@ -4496,6 +4496,11 @@ export const EN = {
   "{n} 项已完成": "{n} done",
   "{n} 条进展记录": "{n} progress notes",
   "计划和实际对照：哪些提前、哪些拖后": "Plan vs actual: what ran early, what ran late",
+  "找不到这条事项": "Task not found",
+  "已跳过（不适用）": "Skipped (not applicable)",
+  "标记完成：{name}": "Mark done: {name}",
+  "清单按伊利诺伊州常见流程整理，产权、税费和期限以车管所（SOS）和车行 / 租赁公司为准；其他州请按本地流程增删。点事项进详情，可以调整应完成日期、记录实际完成日期。": "Checklist follows common Illinois practice; title, taxes and deadlines per the Secretary of State and your dealer / lessor. Other states: adjust to local rules. Open a task to adjust its due date or record when it was done.",
+  "清单按伊利诺伊州（芝加哥）常见流程整理，日期和税费以合同、律师和产权公司为准；其他州请按本地流程增删。点事项进详情，可以调整应完成日期、记录实际完成日期。": "The checklist follows the usual Illinois (Chicago) process; dates and fees are governed by your contract, attorney and title company; for other states add or remove steps. Open a task to adjust its due date or record when it was done.",
   /* 2026-11-24：税务买卖链接 / 邀请码财务权限 / 对账单查重 */
   "给家主留一句话（可不填），例如：我是小明的妈妈": "A note for the owner (optional), e.g. I'm Ming's mom",
   "给家主的话": "Note to the owner",

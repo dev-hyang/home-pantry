@@ -148,14 +148,14 @@ export async function onMainSubmit(e) {
       state.deleteProperty = null; toast(t("已彻底删除“{name}”及其账单、设备和资料；花费记录保留", { name: p.name })); return refresh();
     }
     if (f.id === "dealForm") {   // 交易信息保存后回交易首页（清单）；保留 ?asset= / ?deal=
-      await saveDealForm(f); f.dataset.saved = "1"; state.dealView = "list"; await refresh();
-      const q = new URLSearchParams(state.route.q); q.delete("sec"); return go(`${href("house", "deal")}${q.toString() ? `?${q}` : ""}`, { replace: true });
+      await saveDealForm(f); f.dataset.saved = "1"; await refresh();
+      const q = new URLSearchParams(state.route.q); q.set("sec", "info"); q.delete("edit"); return go(`${href("house", "deal")}?${q}`, { replace: true });   // 保存后回交易信息详情页
     }   // 已保存：刷新时不再当作未保存改动
     if (f.id === "planForm") { const pid = await savePlanForm(f); state.planEdit = null; await refresh(); if (!f.elements.rec_id.value) go(`${href("house", "plan")}?p=${pid}`); return; }
     if (f.id === "candForm") { await saveCandForm(f); state.planEdit = null; return refresh(); }
     if (f.id === "offerForm") { await saveOfferForm(f); state.planEdit = null; return refresh(); }
     if (f.id === "dealEventForm") { await saveDealEventForm(f); state.dealEventEdit = null; return refresh(); }
-    if (f.id === "dealTaskForm") { await saveDealTaskForm(f); state.dealTaskEdit = null; return refresh(); }
+    if (f.id === "dealTaskForm") { await saveDealTaskForm(f); state.dealTaskEdit = null; await refresh(); const to = f.elements.return_to?.value; if (to) go(to, { replace: true }); return; }   // 独立页面里的事项表单：保存后回 return_to
     if (f.id === "seasonForm") { if (await saveSeasonForm(f)) { state.seasonForm = null; return refresh(); } return; }
     if (f.id === "closeoutForm") { await applyCloseout(f); go(href("house", "overview")); return refresh(); }
     if (f.id === "assetTemplateForm") {

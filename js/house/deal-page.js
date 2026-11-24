@@ -1,7 +1,8 @@
 import { viewSwitch } from "../core/view-switch.js";
 /* 交易页：任务行、编辑表单、交易详情、新建 / 编辑交易的表单、交割面板。 */
 import { dealKindPage, dealLanding } from "./deal-home.js";
-import { D, END_LAG, V, addTaskRow, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openVehicleDeal, propertyLive, subjectDeals, skipBtn, statusText, taskEditForm, taskRow } from "./deal-tasks.js";
+import { infoPage, taskPage } from "./deal-task-pages.js";
+import { D, END_LAG, V, addTaskCard, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openVehicleDeal, propertyLive, subjectDeals, skipBtn, statusText, taskCard, taskEditForm, taskRow } from "./deal-tasks.js";
 import { addDays } from "../bills/logic.js";
 import { debtHref } from "../bills/debt-logic.js";
 import { analyze, briefHtml, eventFormPanel, freezeBaseline, lanesHtml, needsFreeze } from "./deal-progress.js";
@@ -70,17 +71,17 @@ export function viewDeal() {
   const K = D().KINDS;
   const sec = ((closed || veh) && q?.get("sec") === "closeout" ? "" : q?.get("sec")) || "";   // 历史交易、车辆交易没有交割页（车辆直接一键完成）
   // ── 子页：交易信息 / 某个阶段的清单 / 交割（面包屑由 menu.js 统一画：‹ 房产 / 交易 / 子页名）──
-  if (sec === "info") return `<section class="section">${dealForm(deal)}</section>`;
+  if (sec === "info") return q?.get("edit") ? `<section class="section">${dealForm(deal, dealHref(deal, "info"))}</section>` : infoPage(deal);   // 详情页（只读 + 编辑按钮）/ 编辑表单页
+  if (sec.startsWith("task:") || sec === "task-new") return taskPage(deal, sec, q);   // 事项详情 / 编辑 / 添加自定义事项（独立页面）
   if (sec.startsWith("stage:")) {
     const sk = sec.slice(6), ST = D().stagesOf(deal.kind), g = groups.find((x) => x.k === sk) || (ST[sk] ? { k: sk, n: ST[sk], rows: [] } : null);   // 空阶段（如删光自定义事项后）也画出来，方便再添加
     if (!g) return `<section class="section"><div class="panel empty"><strong>${t("没有这个阶段")}</strong></div></section>`;
     const done = g.rows.filter((x) => x.done).length, skippedN = g.rows.filter((x) => x.skipped).length;
-    return `${newTaskPanel(deal)}<section class="section">
+    return `<section class="section">
       <p class="muted" style="margin:-6px 0 12px;font-size:13px">${t("{kind}流程", { kind: t(K[deal.kind]) })} · ${t("已完成 {a} / {b}", { a: done, b: g.rows.length - skippedN })}${skippedN ? ` · ⊘ ${t("跳过 {n}", { n: skippedN })}` : ""}</p>
       ${g.rows.length ? dealFilterBar() : ""}
-      <div class="panel">${filterDealRows(g.rows).length ? `<ul class="task-list">${filterDealRows(g.rows).sort((a, b) => (a.due || "9").localeCompare(b.due || "9")).map((x) => taskRow(x)).join("")}</ul>` : `<div class="empty"><strong>${t("没有符合条件的事项")}</strong></div>`}</div>
-      <p><button type="button" class="btn btn-sm btn-ghost" data-action="deal-task-new" data-deal="${deal.id}" data-stage="${g.k}">＋ ${t("添加自定义事项")}</button></p>
-      <p class="disclaimer">${veh ? t("清单按伊利诺伊州常见流程整理，产权、税费和期限以车管所（SOS）和车行 / 租赁公司为准；其他州请按本地流程增删。点事项右侧的 ✎ 可以调整应完成日期、记录实际完成日期。") : t("清单按伊利诺伊州（芝加哥）常见流程整理，日期和税费以合同、律师和产权公司为准；其他州请按本地流程增删。点事项右侧的 ✎ 可以调整应完成日期、记录实际完成日期。")}</p>
+      <div class="panel mlist task-cards">${filterDealRows(g.rows).length ? filterDealRows(g.rows).sort((a, b) => (a.due || "9").localeCompare(b.due || "9")).map((x) => taskCard(x)).join("") : `<div class="empty"><strong>${t("没有符合条件的事项")}</strong></div>`}${addTaskCard(deal, g.k)}</div>
+      <p class="disclaimer">${veh ? t("清单按伊利诺伊州常见流程整理，产权、税费和期限以车管所（SOS）和车行 / 租赁公司为准；其他州请按本地流程增删。点事项进详情，可以调整应完成日期、记录实际完成日期。") : t("清单按伊利诺伊州（芝加哥）常见流程整理，日期和税费以合同、律师和产权公司为准；其他州请按本地流程增删。点事项进详情，可以调整应完成日期、记录实际完成日期。")}</p>
     </section>`;
   }
   if (sec === "closeout") return `<section class="section">
@@ -111,7 +112,7 @@ export function viewDeal() {
     return row(link(`stage:${g.k}`), allDone ? "✅" : n === 0 ? "⊘" : "☐", t(g.n), esc(desc), n ? Math.round((d / n) * 100) : 100, badge);
   }).join("");
   const infoRow = row(link("info"), "📝", t("交易信息"), veh ? (infoN ? t("日期、价格、贷款行 / 租赁公司、对方联系方式") : t("先填{a}和{b}，清单日期按它们推算", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })) : infoN ? t("合同日、交割日、价格、律师、贷款行、经纪人等") : t("先填合同日和交割日，清单截止日按它们推算"), Math.round((infoN / INFO_FIELDS.length) * 100), `<span class="badge mcount" style="background:var(--surface-2)">${infoN}/${INFO_FIELDS.length}</span>`);
-  const addRow = addTaskRow(deal, "special", row);
+  const addRow = addTaskCard(deal, "special");
   // 完成：房产买入 / 车辆都是一键确认（按钮，点两次），卖房 / 退租走向导页
   const closeRow = closed ? "" : veh
     ? row(null, deal.kind === "veh_buy" ? "🔑" : "📦", deal.kind === "veh_buy" ? t("已提车，标为持有") : deal.kind === "veh_sell" ? t("已交车，标为已卖出") : t("已归还，标为已归还"),
@@ -127,7 +128,7 @@ export function viewDeal() {
   const laneH = { isEditing, editBtn, skipBtn, editForm: (x) => taskEditForm(x.deal, x), sort: state.dealSort === "asc" ? "asc" : "desc", filter: state.dealFilter || "all", stage: state.dealStage || "all", act: state.dealActFilter || "all" };
   const disclaimer = `<p class="disclaimer">${t("截止日按{a}和{b}推算，可点 ✎ 调整；必须项逾期会在首页置顶", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })}${deal.baseline?._at ? ` ${t("「计划」是填了合同日后冻结的模板日期，改期只影响「预计」，不会改掉原计划。")}` : ""}</p>`;
   if (view === "list") {   // 清单页：交易信息 + 各阶段 + 添加自定义事项 + 完成 / 创建贷款
-    return `${bar}${headCard}${newTaskPanel(deal)}<section class="section"><div class="panel mlist">${infoRow}${stageRows}${addRow}${closeRow}${loanRow}</div>${cancelRow}${disclaimer}</section>`;
+    return `${bar}${headCard}<section class="section"><div class="panel mlist">${infoRow}${stageRows}${loanRow}${closeRow}${addRow}</div>${cancelRow}${disclaimer}</section>`;
   }
   if (view) {   // 计划 / 实际 / 对比：时间线（布局和以前一样）
     return `${bar}${headCard}<section class="section">
@@ -179,7 +180,7 @@ function vehicleCard(a) {
         <p class="muted">${meta.map(esc).join(" · ")}</p></div>
     </div></section>`;
 }
-function dealForm(d) {
+function dealForm(d, cancelHref) {
   const v = (k) => esc(d[k] ?? "");
   if (isVehDeal(d)) {   // 车辆：日期两个、价格、定金、贷款行 / 租赁公司、对方联系方式、备注
     const [c, z] = dateLabels(d);
@@ -194,7 +195,7 @@ function dealForm(d) {
       <label>${d.kind === "veh_buy" ? t("车行 / 卖家") : d.kind === "veh_sell" ? t("买家 / 车行") : t("经销商 / 归还地点")}<input name="agent" maxlength="120" placeholder="${t("姓名 · 电话 / 邮箱")}" value="${v("agent")}"></label>
       <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" value="${v("notes")}"></label>
     </div>
-    <div class="form-actions sticky-actions" style="margin-top:10px"><button class="btn btn-primary" type="submit">${t("保存交易信息")}</button>
+    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="btn btn-ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button>
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>
   </form>`;
   }
@@ -214,9 +215,8 @@ function dealForm(d) {
       <label>${t("验房师")}<input name="inspector" maxlength="120" value="${v("inspector")}"></label>
       <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" value="${v("notes")}"></label>
     </div>
-    <div class="form-actions sticky-actions" style="margin-top:10px"><button class="btn btn-primary" type="submit">${t("保存交易信息")}</button>
-      <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span>
-      <small class="muted">${t("切换标签页或家人改动时不会丢，但要点保存才写入")}</small></div>
+    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="btn btn-ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button>
+      <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>
   </form>`;
 }
 /** 历史交易：每条可点开（?deal=<id>）查看、修改当时的清单、时间线和交易信息；current = 正在看的那条 */

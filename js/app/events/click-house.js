@@ -91,7 +91,7 @@ export async function clickHouse(action, el, id, e) {
       case "deal-due-reset": el.form.elements.due_on.value = el.dataset.plan || ""; return markDirty(el.form, true);   // 只回填输入框，点保存才生效
       case "deal-task-delete":
         if (!confirmDelete(t("删除这条自定义事项？"))) return;
-        await deleteCustomTask(el.dataset.id); state.dealTaskEdit = null; toast(t("已删除这条事项")); return refresh();
+        await deleteCustomTask(el.dataset.id); state.dealTaskEdit = null; toast(t("已删除这条事项")); if (el.dataset.back) go(el.dataset.back, { replace: true }); return refresh();
       case "deal-event-new": state.dealEventEdit = { deal: el.dataset.deal, id: "", key: el.dataset.key || "" }; render(); { const f = $("#dealEventForm"); f?.scrollIntoView({ block: "center" }); f?.elements.title?.focus(); } return;
       case "deal-event-edit": { const ev = state.dealEvents.find((x) => x.id === el.dataset.id); if (!ev) return; state.dealEventEdit = { deal: ev.deal_id, id: ev.id, key: "" }; render(); { const f = $("#dealEventForm"); f?.scrollIntoView({ block: "center" }); f?.elements.title?.focus(); } return; }
       case "deal-event-cancel": state.dealEventEdit = null; return render();
