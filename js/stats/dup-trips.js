@@ -14,13 +14,15 @@ export const storeClose = (desc, store) => { const x = norm(desc), y = norm(stor
 const localDay = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const dayNum = (d) => Date.parse(`${String(d).slice(0, 10)}T12:00:00Z`) / DAY;
 
-/** 已有花费按「谁记的 + 录入时间（相隔 10 分钟内算同一次）」分成一批批 */
+/** 已有花费按「谁记的 + 商店 + 消费日 + 录入时间（相隔 10 分钟内算同一次）」分成一批批：
+ *  一次拍几张小票会在几分钟内一起录入，所以不同商店 / 不同日期的要先分开，不然几张小票会并成一批，合计就对不上了 */
 export function receiptBatches(rows) {
-  const s = [...rows].sort((a, b) => String(a.created_by).localeCompare(String(b.created_by)) || String(a.created_at).localeCompare(String(b.created_at)));
+  const key = (p) => `${p.created_by}|${norm(p.store)}|${localDay(p.purchased_at)}`;
+  const s = [...rows].sort((a, b) => key(a).localeCompare(key(b)) || String(a.created_at).localeCompare(String(b.created_at)));
   const out = [];
   for (const p of s) {
     const last = out.at(-1), prev = last?.at(-1);
-    if (prev && prev.created_by === p.created_by && (!p.created_at || !prev.created_at || new Date(p.created_at) - new Date(prev.created_at) <= 10 * 60 * 1000)) last.push(p);
+    if (prev && key(prev) === key(p) && (!p.created_at || !prev.created_at || new Date(p.created_at) - new Date(prev.created_at) <= 10 * 60 * 1000)) last.push(p);
     else out.push([p]);
   }
   return out;

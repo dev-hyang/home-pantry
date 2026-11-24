@@ -4784,3 +4784,5 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-dup { display: block; margin-top: 2px; font-size: 12px; color: var(--muted, #5a6b64); }
 .tax-dup.is-strong { color: var(--out, #b3402a); font-weight: 600; }
 .tax-find-form { margin-bottom: 6px; }
+/* 买卖清单的查找 / 链接表单：按钮点按区域 ≥ 44px（和输入框一样高） */
+.tax-find-form .tax-item-actions .btn, .tax-link-form .tax-item-actions .btn { min-height: 44px; }

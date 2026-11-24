@@ -58,3 +58,11 @@ test("反方向：银行导入的整笔 ↔ 这张小票 / 这次缴费", () => 
   assert.equal(f(lump({ store: "Costco", name: "Costco", purchased_at: at("2026-11-18") })), null);       // 商店不对且日期超 3.5 天
   assert.equal(f(lump({ store: "Costco", name: "Costco", purchased_at: at("2026-11-13") })).id, "L");   // 商店不对但金额一模一样 + 日期近
 });
+
+test("一次拍几张小票（同一个人、几分钟内录入）：不同商店 / 不同日期要分成几批，不能并成一批", () => {
+  const rows = [...receipt("a", "2026-11-23", "ALDI", [3.41, 3.39, 1.38]), ...receipt("j", "2026-11-23", "Jewel Osco", [3.99, 7.49, 4.01, 3.47])];
+  assert.equal(receiptBatches(rows).length, 2);
+  const m = matchTrips([row("r1", "2026-11-24", 18.96, "JEWEL OSCO 3452 CHICAGO IL"), row("r2", "2026-11-25", 8.18, "ALDI 72058")], rows);
+  assert.equal(m.get("r1").tier, "strong"); assert.equal(m.get("r1").n, 4); assert.equal(m.get("r2").tier, "strong");
+  assert.equal(receiptBatches([...receipt("a", "2026-11-23", "ALDI", [1, 2]), ...receipt("b", "2026-11-24", "ALDI", [3, 4])]).length, 2);
+});

@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.9", title: { zh: "修复：税务「从花费记录里选」打不开；小票查重更准；英文界面补全", en: "Fixes: Tax “pick from spending” would not open; better receipt matching; English strings filled in" }, items: [
+    { k: "fix", zh: "税务 → 买卖与成本基础：「从花费记录里选」点了没反应（近几个版本），已修好", en: "Tax → Buy / sell: “Pick from spending records” did nothing in the last few versions; fixed" },
+    { k: "fix", zh: "对账单导入认小票：一次拍了几张不同商店的小票时，以前会合成一张，合计对不上；现在按商店和日期分开", en: "Statement import: receipts from several stores scanned together used to be merged into one, so totals never matched; they are now split by store and date" },
+    { k: "better", zh: "英文界面：新加的按钮和提示补上英文；查找 / 链接的按钮点按区域加大", en: "English UI: new buttons and hints now have English text; the find / link buttons have a bigger tap area" },
+  ] },
   { v: "2026-11-24.8", title: { zh: "补录小票 / 缴费时，认出已经导入的对账单整笔", en: "Adding a receipt or payment now spots a statement line you already imported" }, items: [
     { k: "new", zh: "录入小票时，如果银行对账单里已经有一笔对得上的整笔（合计一样、商店对上），小票上方会提醒；选「用这张小票替换它」，确认入库后会删掉那一整笔，换成小票的明细，不会记两遍", en: "When you add a receipt and a matching whole-amount statement line already exists (same total, same store), a note appears above the receipt; choose “replace it with this receipt” and the statement line is removed once you confirm" },
     { k: "new", zh: "记账单缴费时，如果对账单里已经导入了对应的一笔，会问你要不要直接把它当作这次缴费，不再多记一笔花费", en: "When recording a bill payment and the matching statement line was already imported, you are asked whether to use it as this payment instead of adding another expense" },

@@ -6,7 +6,7 @@
 import { esc } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { ui } from "./tax-ui.js";
-import { AMT_BUCKETS, bucketOk, linkRows, linkedRefs, matchIncome, pickable, pickableIncome, resolveLink } from "./tax-links-lib.js";
+import { AMT_BUCKETS, bucketOk, dayOf, linkRows, linkedRefs, matchIncome, pickable, pickableIncome, r2, resolveLink } from "./tax-links-lib.js";
 import { state } from "../core/state.js";
 export { linkedRefs, pickable, resolveLink };
 import { propOf, saveProp } from "./tax-calendar.js";
