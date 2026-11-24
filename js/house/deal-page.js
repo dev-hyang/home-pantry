@@ -1,12 +1,12 @@
 import { numAttrs } from "../core/ui-num.js";
 import { viewSwitch } from "../core/view-switch.js";
 /* 交易页：任务行、编辑表单、交易详情、新建 / 编辑交易的表单、交割面板。 */
-import { dealKindPage, dealLanding } from "./deal-home.js";
+import { dealLanding } from "./deal-home.js";
 import "./deal-search.js";
 import { isCash } from "./deal-fin.js";
 import { lastRead } from "../core/closing-ai.js";
 import { cancelPage, completePage, dealFab, eventPage, financingField, financingSwitch, infoAiPage, infoPage, taskPage } from "./deal-task-pages.js";
-import { D, END_LAG, V, addTaskCard, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openVehicleDeal, propertyLive, subjectDeals, skipBtn, statusText, taskCard, taskEditForm, taskRow } from "./deal-tasks.js";
+import { D, END_LAG, V, addTaskCard, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openDeals, openVehicleDeal, propertyLive, subjectDeals, skipBtn, statusText, taskCard, taskEditForm, taskRow } from "./deal-tasks.js";
 import { addDays } from "../bills/logic.js";
 import { debtHref } from "../bills/debt-logic.js";
 import { analyze, briefHtml, freezeBaseline, lanesHtml, needsFreeze } from "./deal-progress.js";
@@ -59,8 +59,7 @@ export function viewDeal() {
   const byId = q?.get("deal") ? state.deals.find((d) => d.id === q.get("deal") && mine(d)) || null : null;
   const open = veh ? openVehicleDeal(veh.id) : openDeal(p.id);
   if (!byId && !q?.get("sec")) {
-    const kind = q?.get("kind");
-    return kind && D().KINDS[kind] ? dealKindPage({ p, veh, kind, bar: barNow, headCard: headNow }) : dealLanding({ p, veh, bar: barNow, headCard: headNow });
+    return dealLanding({ p, veh, bar: barNow, headCard: headNow });   // 旧链接的 ?kind=… 也回交易首页
   }
   const deal = byId || open;
   if (!deal) return dealLanding({ p, veh, bar: barNow, headCard: headNow });
@@ -139,18 +138,18 @@ export function viewDeal() {
       ${disclaimer}</section>${dealFab(deal, "view", { from: view })}`;
   }
   // ── 交易主页：总结卡片（只是统计）+ 清单 / 计划 / 实际 / 对比 四张行卡片（带描述）+ 这一类的历史 ──
-  const evN = (state.dealEvents || []).filter((e) => e.deal_id === deal.id).length, hist = subjectDeals(p, veh).filter((d) => d.kind === deal.kind && d.outcome && d.id !== deal.id);
+  const evN = (state.dealEvents || []).filter((e) => e.deal_id === deal.id).length;
   const viewRows = [
     row(link("list"), "☰", t("清单"), esc([t("{n} 个阶段", { n: groups.length }), t("已完成 {a} / {b}", { a: doneN, b: total }), nextDue ? t("最近截止 {date}", { date: fmtDate(nextDue.due) }) : null].filter(Boolean).join(" · ")), pct),
     row(link("plan"), "📋", t("计划"), esc(t("按{a}和{b}推算的时间线，可调整日期", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })), null),
     row(link("actual"), "✅", t("实际"), esc([t("{n} 项已完成", { n: doneN }), t("{n} 条进展记录", { n: evN })].join(" · ")), null),
     row(link("compare"), "⚖️", t("对比"), esc(t("计划和实际对照：哪些提前、哪些拖后")), null),
-    hist.length ? row(kindHref(deal.kind, veh?.id), "🗂️", t("{kind}交易历史", { kind: t(K[deal.kind]) }), esc(t("{n} 笔", { n: hist.length })), null) : "",
   ].join("");
   return `${bar}${headCard}
     <section class="section">
       <div class="section-head"><h2>${closed ? (deal.outcome === "cancelled" ? t("{kind}已取消", { kind: t(K[deal.kind]) }) : t("{kind}已完成", { kind: t(K[deal.kind]) })) : t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${deal.closing_on ? `${t(dateLabels(deal)[1])} ${fmtDate(deal.closing_on)}` : t("还没填{d}", { d: t(dateLabels(deal)[1]) })}</p></div>
-      ${closed ? `<p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。")} <a href="${kindHref(deal.kind, veh?.id)}">${t("回到{kind}交易页", { kind: t(K[deal.kind]) })}</a></p>` : ""}
+      ${closed ? `<p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。")} <a href="${kindHref(deal.kind, veh?.id)}">${t("回到交易首页")}</a></p>` : ""}
+      ${deal.outcome === "cancelled" ? `<div class="form-actions deal-cancelled-acts">${!(veh ? openVehicleDeal(veh.id) : openDeals(p.id)).some((x) => x.kind === deal.kind) ? `<button type="button" class="btn btn-sm btn-primary" data-action="deal-restore" data-deal="${esc(deal.id)}">${t("恢复这笔交易")}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost is-danger" data-action="deal-delete" data-deal="${esc(deal.id)}">${t("删除")}</button></div>` : ""}
       <div class="panel deal-progress">
         <div class="kv"><div><b>${t("总进度 {p}%", { p: pct })}</b><div class="muted">${t("已完成 {a} / {b}", { a: doneN, b: total })}${skippedAll ? ` · ⊘ ${t("跳过 {n}", { n: skippedAll })}` : ""}${mustLeft ? ` · ${t("必须项还剩 {n}", { n: mustLeft })}` : ""}${nextDue ? ` · ${t("最近截止 {date}", { date: fmtDate(nextDue.due) })}` : ""}</div></div></div>
         <div class="life-bar big"><i style="width:${pct}%"></i></div>

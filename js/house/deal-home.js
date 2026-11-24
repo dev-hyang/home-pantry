@@ -1,10 +1,11 @@
 /* 交易首页 + 某一类交易的子页：每类交易（买入 / 卖出；车辆：买车、卖车、归还；租房：退租）一个 Section
  *  · 标题「买入 · N 笔交易」；没有交易 → 只有「记录…交易」按钮；有 → 先显示进行中的一笔，没有进行中就显示最近一笔
- *  · 其余交易（已交割 / 已完成 / 已取消）折叠成「其他交易（n）」，展开后按日期从近到远一行一笔；只有已取消的能删除
- *  · 点一行 / 点进行中 → 交易详情（?deal=<id>，在 deal-page.js）；子页（?kind=buy）同样的 Section，「其他交易」默认展开
- *  纯展示：开始 / 取消 / 删除的点击处理在 app/events/click-house.js（deal-start / deal-cancel-closed / deal-delete）。 */
+ *  · 「查看历史（n）」展开全部已结束的交易，按日期从近到远一行一笔；已取消的可恢复 / 删除，已交割的先取消再删除
+ *  · 点一行 / 点进行中 → 交易详情（?deal=<id>，在 deal-page.js）；没有单独的「买入 / 卖出」子页，一律回到这里
+ *  纯展示：点击处理在 app/events/click-house.js（deal-start / deal-history / deal-restore / deal-cancel-closed / deal-delete）。 */
 import { D, V, dealHref, dealTasks, isVehDeal, propertyLive, subjectDeals } from "./deal-tasks.js";
 import { esc, fmtDate, money, num } from "../core/util.js";
+import { state } from "../core/state.js";
 import { lpAttr } from "../core/long-press.js";
 import { priceOrNull } from "../core/finance-access.js";
 import { t } from "../core/i18n.js";
@@ -65,17 +66,17 @@ function lastRow(d, kind) {
   const desc = [dealDate(d), outcomeText(d), priceOrNull(d.price) ? money(num(d.price)) : null].filter(Boolean).map(esc).join(" · ");
   return row(dealHref(d), KIND_ICON[kind] || "📝", t("最近一笔{kind}交易", { kind: t(D().KINDS[kind]) }), desc, null);
 }
-/** 一类交易的 Section：标题（几笔）→ 进行中 / 最近一笔 → 其余折叠成行（从近到远）。没有交易：只给「记录…交易」按钮 */
-function kindSection(kind, deals, canStart, veh, expand = false) {
+/** 一类交易的 Section：标题（几笔）→ 进行中 / 最近一笔 → 按钮（记录…交易 / 查看历史）→ 展开后全部历史交易一行一笔（从近到远） */
+function kindSection(kind, deals, canStart, veh) {
   const K = D().KINDS, mine = deals.filter((d) => d.kind === kind).sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || String(b.created_at || "").localeCompare(String(a.created_at || "")));
   const open = mine.find((d) => !d.outcome), closed = mine.filter((d) => d.outcome);
   const head = mine.length ? t("{kind} · {n} 笔交易", { kind: t(K[kind]), n: mine.length }) : t("{kind} · 还没有交易", { kind: t(K[kind]) });
-  const feat = open || closed[0], rest = open ? closed : closed.slice(1);
+  const feat = open || closed[0], hkey = `${veh?.id || "p"}:${kind}`, histOpen = !!state.dealHistOpen?.[hkey];
   const main = open ? `<div class="panel mlist deal-kind is-open">${openRow(open, dealHref(open))}</div>` : feat ? `<div class="panel mlist deal-kind">${lastRow(feat, kind)}</div>` : "";
-  const act = canStart && !open ? `<div class="deal-kind-act">${startBtn(kind, veh)}</div>` : "";
+  const histBtn = closed.length ? `<button type="button" class="btn btn-sm" data-action="deal-history" data-key="${esc(hkey)}" aria-expanded="${histOpen}">${histOpen ? t("收起历史") : t("查看历史（{n}）", { n: closed.length })}</button>` : "";
+  const acts = (canStart && !open) || histBtn ? `<div class="deal-kind-act">${canStart && !open ? startBtn(kind, veh) : ""}${histBtn}</div>` : "";
   const note = !mine.length && !canStart ? `<p class="muted">${t("现在的状态下不能开始这类交易。")}</p>` : "";
-  const more = rest.length ? `<details class="deal-more" ${expand ? "open" : ""}><summary>${t("其他交易（{n}）", { n: rest.length })}</summary>${dealRows(rest)}</details>` : "";
-  return `<section class="section deal-sec"><div class="section-head"><h2>${KIND_ICON[kind] || "📝"} ${esc(head)}</h2></div>${main}${act}${note}${more}</section>`;
+  return `<section class="section deal-sec"><div class="section-head"><h2>${KIND_ICON[kind] || "📝"} ${esc(head)}</h2></div>${main}${acts}${note}${histOpen ? dealRows(closed, !!open) : ""}</section>`;
 }
 
 /** 交易首页 */
@@ -89,22 +90,17 @@ export function dealLanding({ p, veh, bar, headCard }) {
     ${!live ? `<p class="muted">${veh ? t("已卖出或已归还的车只保留历史。") : t("已卖出或退租的房产只保留历史。")}</p>` : ""}`;
 }
 
-/** 某一类交易的子页：和首页同一个 Section，只是「其他交易」默认展开 */
-export function dealKindPage({ p, veh, kind, bar, headCard }) {
-  const starts = veh ? vehicleStarts(veh) : propertyStarts(p);
-  return `${bar}${headCard}${kindSection(kind, subjectDeals(p, veh), starts.some(([x]) => x === kind), veh, true)}`;
-}
-
-/** 其余交易：一行一笔（日期 / 结果 / 金额；点一行进详情）。只有「已取消」的能删除；已交割 / 已完成的先取消再删除（左滑 / 长按菜单 / 行内按钮） */
-function dealRows(list) {
+/** 历史交易：一行一笔（结果徽章 / 日期 / 金额；点一行进详情）。已取消的可以「恢复」（变回进行中）或「删除」；已交割 / 已完成的先「取消」再删除 */
+function dealRows(list, hasOpen) {
   const li = (d) => {
-    const url = dealHref(d), cancelled = d.outcome === "cancelled";
-    const items = [{ label: t("详情"), href: url, first: true }, cancelled ? { label: t("删除"), action: "deal-delete", data: { deal: d.id }, danger: true } : { label: t("取消这笔交易"), action: "deal-cancel-closed", data: { deal: d.id }, danger: true }];
-    const acts = cancelled ? `<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="deal-delete" data-deal="${esc(d.id)}">${t("删除")}</button>` : `<button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel-closed" data-deal="${esc(d.id)}">${t("取消")}</button>`;
-    return `<li ${cancelled ? 'data-swipe-del="deal"' : ""} data-row-open="${esc(url)}" ${lpAttr(items)}>
+    const url = dealHref(d), cancelled = d.outcome === "cancelled", btn = (a, label, cls = "") => `<button type="button" class="btn btn-sm btn-ghost ${cls}" data-action="${a}" data-deal="${esc(d.id)}">${label}</button>`;
+    const restore = cancelled && !hasOpen ? { label: t("恢复"), action: "deal-restore", data: { deal: d.id } } : null;
+    const items = [{ label: t("详情"), href: url, first: true }, restore, cancelled ? { label: t("删除"), action: "deal-delete", data: { deal: d.id }, danger: true } : { label: t("取消这笔交易"), action: "deal-cancel-closed", data: { deal: d.id }, danger: true }];
+    const acts = cancelled ? `${restore ? btn("deal-restore", t("恢复")) : ""}${btn("deal-delete", t("删除"), "is-danger")}` : btn("deal-cancel-closed", t("取消"));
+    return `<li data-row-open="${esc(url)}" ${lpAttr(items)}>
     <span class="ui-badge" data-tone="${cancelled ? "warn" : "ok"}" data-size="sm">${esc(outcomeText(d))}</span>
-    <div class="grow"><a class="link-name" href="${esc(url)}">${esc(dealDate(d))}</a><small>${[priceOrNull(d.price) ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>
-    <span class="hist-act">${acts}</span></li>`;
+    <div class="grow"><a class="link-name" href="${esc(url)}">${esc(dealDate(d))}</a><small>${priceOrNull(d.price) ? esc(money(num(d.price))) : ""}</small></div>
+    <span class="deal-row-acts">${acts}</span></li>`;
   };
-  return `<ul class="restock-list hist-list deal-rows">${list.map(li).join("")}</ul>`;
+  return `<ul class="deal-rows">${list.map(li).join("")}</ul>`;
 }

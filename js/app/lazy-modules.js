@@ -58,6 +58,7 @@ export const viewTasks = lazyFn(LZ.tasks, "viewTasks");
 export const completeVehicleDeal = lazyFn(LZ.deals, "completeVehicleDeal");
 export const applyCloseout = lazyFn(LZ.deals, "applyCloseout");
 export const cancelDeal = lazyFn(LZ.deals, "cancelDeal");
+export const restoreDeal = lazyFn(LZ.deals, "restoreDeal");
 export const completeBuy = lazyFn(LZ.deals, "completeBuy");
 export const dealTasks = lazyFn(LZ.deals, "dealTasks");
 export const deleteCustomTask = lazyFn(LZ.deals, "deleteCustomTask");

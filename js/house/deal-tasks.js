@@ -39,12 +39,11 @@ export function routeDeal() {
 /** 这个主体（房产 p / 车辆 veh）的所有交易，新 → 旧 */
 export const subjectDeals = (p, veh) => state.deals.filter((d) => (veh ? d.asset_id === veh.id : d.property_id === p?.id));
 /** 某一类交易的子页地址（车辆带 ?asset=） */
-export const kindHref = (kind, assetId = null) => `${href("house", "deal")}?${assetId ? `asset=${encodeURIComponent(assetId)}&` : ""}kind=${encodeURIComponent(kind)}`;
+export const kindHref = (kind, assetId = null) => `${href("house", "deal")}${assetId ? `?asset=${encodeURIComponent(assetId)}` : ""}`;   // 交易首页（已经没有单独的买入 / 卖出子页，kind 只是为了兼容旧调用）
 /** 面包屑里「交易」后面的几级：交易主页（卖出进行中）/ 清单、计划… / 交易信息、阶段、事项（再下一级是「编辑」）；某一类的历史列表页只有一级；首页返回空 */
 export function dealTail(q) {
-  const asset = q.get("asset"), deal = routeDeal(), kind = deal?.kind || q.get("kind"); if (!kind || !D().KINDS[kind]) return [];
+  const asset = q.get("asset"), deal = routeDeal(), kind = deal?.kind; if (!kind || !D().KINDS[kind]) return [];
   const K = t(D().KINDS[kind]);
-  if (!q.get("deal") && !q.get("sec")) return [{ label: t("{kind}交易历史", { kind: K }) }];   // 这一类的历史列表页
   const date = deal ? fmtDate(deal.closing_on || (deal.closed_at || deal.updated_at || "").slice(0, 10)) : "";
   const hubLabel = !deal ? t("详情") : !deal.outcome ? t("{kind}进行中", { kind: K }) : `${t(deal.outcome === "cancelled" ? "{kind}已取消" : "{kind}已完成", { kind: K })} · ${date}`;
   const hub = { href: dealHref(deal), label: hubLabel }, sec = q.get("sec") || "", edit = !!q.get("edit");
@@ -237,11 +236,11 @@ export function taskEditForm(deal, x, stage = "special", page = null) {   // pag
       <label class="span-2">${t("备注")}<input name="note" maxlength="1000" value="${esc((rec ? rec.note : x?.userNote) ?? "")}" placeholder="${esc(t("延迟原因、对方要求、联系人…"))}"></label>
     </div>
     ${page ? `<div class="form-actions sticky-actions" style="margin-top:10px"><a class="btn btn-ghost" href="${esc(page.cancelHref)}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button><span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>` : ""}
-    <div class="form-actions" ${page ? "hidden" : ""} style="margin-top:10px"><button class="btn btn-primary btn-sm" type="submit">${t("保存")}</button>
+    ${page ? "" : `<div class="form-actions" style="margin-top:10px"><button class="btn btn-primary btn-sm" type="submit">${t("保存")}</button>
       <button class="btn btn-ghost btn-sm" type="button" data-action="deal-task-cancel">${t("取消")}</button>
       ${x && !x.done ? `<button class="btn btn-ghost btn-sm" type="button" data-action="deal-task-skip" data-deal="${esc(deal.id)}" data-key="${esc(x.key)}" data-skip="${x.skipped ? "0" : "1"}">${x.skipped ? t("恢复这一步") : t("跳过这一步（不适用）")}</button>` : ""}
       ${rec ? `<button class="btn btn-ghost btn-sm" type="button" data-action="deal-task-delete" data-id="${esc(rec.id)}">${t("删除这条事项")}</button>` : ""}
-      <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>
+      <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>`}
   </form>`;
 }
 /** 新建自定义事项的表单面板（交易枢纽页 / 阶段页顶部） */

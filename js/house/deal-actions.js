@@ -128,6 +128,18 @@ export async function cancelDeal(dealId) {
   }
   toast(t("交易已取消"));
 }
+/** 恢复一笔已取消的交易：重新变成进行中；同一类已经有进行中的就不能恢复。房产状态按「刚开始这类交易」重算 */
+export async function restoreDeal(dealId) {
+  const d = state.deals.find((x) => x.id === dealId);
+  if (!d || d.outcome !== "cancelled") return;
+  if (openDealOfKind(d.kind, { pid: d.property_id, aid: d.asset_id })) return toast(t("已经有一笔进行中的{kind}交易，先处理它再恢复", { kind: t(D().KINDS[d.kind]) }));
+  await Store.saveDeal({ ...d, outcome: null, closed_at: null });
+  if (!d.asset_id) {
+    const p = state.properties.find((x) => x.id === d.property_id);
+    if (p) { const status = statusAfterStart(p, d.kind); if (status !== p.status) await Store.saveProperty({ ...p, status }); }
+  }
+  toast(t("交易已恢复，继续进行中"));
+}
 /** 买入交割：状态改持有（卖出还在进行就仍是「卖出中」），记买入日期和价格；dealId = 哪一笔买入（没给就取进行中的买入） */
 export async function completeBuy(dealId = null) {
   const p = currentProp(), d = dealId ? state.deals.find((x) => x.id === dealId) : openDealOfKind("buy", { pid: p?.id });

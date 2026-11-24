@@ -1,7 +1,7 @@
 /* 点击动作：房屋：设备、保养、季节任务、交易、房产、买卖计划。 */
 import { $, armed, confirmDelete, toast } from "../../core/util.js";
 import { Store } from "../../core/store.js";
-import { analyze, cancelDeal, completeBuy, completeVehicleDeal, dealTasks, deleteCustomTask, deleteDealEvent, deleteSeasonTask, leaveAsset, newCreate, newGo, openDeal, planAction, runDealAi, shiftTasksMonth, startDeal, toggleDealSkip, togglePlanCheck, unitRow } from "../lazy-modules.js";
+import { analyze, cancelDeal, restoreDeal, completeBuy, completeVehicleDeal, dealTasks, deleteCustomTask, deleteDealEvent, deleteSeasonTask, leaveAsset, newCreate, newGo, openDeal, planAction, runDealAi, shiftTasksMonth, startDeal, toggleDealSkip, togglePlanCheck, unitRow } from "../lazy-modules.js";
 import { canManageHome } from "../../settings/members.js";
 import { freeDefault } from "../route.js";
 import { friendlyErr } from "../errors.js";
@@ -13,7 +13,7 @@ import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 
 /** 点击动作（房屋：设备、保养、季节任务、交易、房产、买卖计划）：这一组处理的 data-action */
-export const HOUSE_ACTIONS = new Set(["deal-financing","house-new-go","house-new-create","asset-cancel","asset-delete","asset-row-del","maint-del","tasks-prev","tasks-next","tasks-today","season-new","season-edit","season-cancel","season-delete","unit-add","unit-del","property","house-open","property-edit","property-cancel","property-delete","deal-start","deal-delete","deal-cancel","deal-closeout","plan-new","plan-edit","plan-cancel","plan-status","plan-delete","cand-new","cand-edit","cand-delete","cand-win","offer-new","offer-edit","offer-delete","plan-check","plan-open-property","deal-task-skip","deal-task-edit","deal-task-new","deal-task-cancel","deal-due-reset","deal-task-delete","deal-event-new","deal-event-edit","deal-event-cancel","deal-event-delete","deal-ai-run","deal-view","deal-closeout-cancel","property-default","property-archive","house-enable","house-cancel","property-of-bill","deal-filter","tasks-undone"]);
+export const HOUSE_ACTIONS = new Set(["deal-financing","house-new-go","house-new-create","asset-cancel","asset-delete","asset-row-del","maint-del","tasks-prev","tasks-next","tasks-today","season-new","season-edit","season-cancel","season-delete","unit-add","unit-del","property","house-open","property-edit","property-cancel","property-delete","deal-start","deal-delete","deal-cancel","deal-cancel-closed","deal-restore","deal-history","deal-closeout","plan-new","plan-edit","plan-cancel","plan-status","plan-delete","cand-new","cand-edit","cand-delete","cand-win","offer-new","offer-edit","offer-delete","plan-check","plan-open-property","deal-task-skip","deal-task-edit","deal-task-new","deal-task-cancel","deal-due-reset","deal-task-delete","deal-event-new","deal-event-edit","deal-event-cancel","deal-event-delete","deal-ai-run","deal-view","deal-closeout-cancel","property-default","property-archive","house-enable","house-cancel","property-of-bill","deal-filter","tasks-undone"]);
 /** 点击动作（房屋：设备、保养、季节任务、交易、房产、买卖计划）：按 data-action 分支；el 是被点的元素，id 是它的 data-id，e 是点击事件 */
 export async function clickHouse(action, el, id, e) {
   switch (action) {
@@ -72,6 +72,10 @@ export async function clickHouse(action, el, id, e) {
         toast(t("已删除这条历史交易"));
         if (state.route?.q?.get("deal") === id) { const q = new URLSearchParams(state.route.q); q.delete("deal"); q.delete("sec"); go(`${href("house", "deal")}${q.toString() ? `?${q}` : ""}`, { replace: true }); }
         return refresh();
+      }
+      case "deal-restore": await restoreDeal(el.dataset.deal); return refresh();   // 已取消的交易：恢复成进行中
+      case "deal-history": {   // 交易首页：「查看历史 / 收起历史」
+        const k = el.dataset.key; state.dealHistOpen = { ...(state.dealHistOpen || {}), [k]: !state.dealHistOpen?.[k] }; return render();
       }
       case "deal-cancel-closed": {   // 已交割 / 已完成的交易要删除，先改成「已取消」（只改这条交易的结果，不动房产 / 车辆现在的状态）
         if (!window.confirm(t("把这笔已完成的交易改为「已取消」？改后才能删除；不会改动房产 / 车辆现在的状态。"))) return;

@@ -46,7 +46,7 @@ export function infoPage(d) {
     : [fact(t("合同日"), date("contract_on")), fact(t("交割日"), date("closing_on")), fact(t("律师审查截止"), date("review_deadline")), isCash(d) ? null : fact(t("贷款条款截止"), date("financing_deadline")), hasFinancing(d) ? fact(finLabel(d), esc(finText(d))) : null,
       pricesOk() ? fact(t("成交价"), price("price")) : "", pricesOk() ? fact(t("定金"), price("earnest_money")) : "",
       fact(t("律师"), txt("attorney")), isCash(d) ? null : fact(t("贷款行 / 贷款经纪"), txt("lender")), fact(t("经纪人"), txt("agent")), fact(t("产权公司"), txt("title_company")), fact(t("验房师"), txt("inspector")), fact(t("备注"), txt("notes"), true)];
-  return `<section class="section"><div class="panel"><div class="kv"><h3 style="margin:0">${t("交易信息")}</h3><a class="btn btn-primary btn-sm" href="${dealHref(d, "info")}&edit=1">${t("编辑")}</a></div>
+  return `<section class="section"><div class="panel"><div class="kv kv-head"><h3 style="margin:0">${t("交易信息")}</h3><a class="btn btn-primary btn-sm" href="${dealHref(d, "info")}&edit=1">${t("编辑")}</a></div>
     ${dealAiBar(d)}<dl class="fact-grid">${rows.filter(Boolean).join("")}</dl></div></section>`;
 }
 
@@ -62,7 +62,7 @@ export function taskPage(deal, sec, q) {
   if (q.get("edit")) return `<section class="section"><div class="panel"><h3 style="margin:0 0 8px">${esc(t(x.name))}</h3>${taskEditForm(deal, x, x.stage, { cancelHref: here, returnTo: here })}</div></section>`;
   const dAsk = dealAsk(x), rec = x.custom ? x.rec : null, status = x.skipped ? t("已跳过（不适用）") : x.done ? t("已完成") : x.overdue ? t("已逾期") : t("未完成");
   return `<section class="section"><div class="panel">
-    <div class="kv"><div><h3 style="margin:0">${esc(t(x.name))}</h3><span class="badge ${PRIO_CLS[x.priority]}">${t(D().PRIORITY[x.priority])}</span>${customBadge(x)}</div>
+    <div class="kv kv-head"><div><h3 style="margin:0">${esc(t(x.name))}</h3><span class="badge ${PRIO_CLS[x.priority]}">${t(D().PRIORITY[x.priority])}</span>${customBadge(x)}</div>
       <div class="head-acts"><a class="btn btn-primary btn-sm" href="${here}&edit=1">${t("编辑")}</a></div></div>
     <p style="margin:10px 0 0"><label class="check-inline"><input type="checkbox" id="deal-${esc(deal.id)}-${esc(x.key)}" data-deal-task="${esc(x.key)}" data-deal="${esc(deal.id)}" ${x.done ? "checked" : ""}><span>${t("已完成")}</span></label></p>
     <dl class="fact-grid one">

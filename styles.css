@@ -4792,8 +4792,20 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .deal-more > summary::-webkit-details-marker { display: none; }
 .deal-more > summary::before { content: "▸ "; margin-right: 4px; }
 .deal-more[open] > summary::before { content: "▾ "; }
-.deal-rows { margin: 0; padding: 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius, 12px); }
-.deal-rows .hist-act .btn { min-height: 44px; }
+.deal-rows { list-style: none; margin: 10px 0 0; padding: 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius, 12px); }
+.deal-rows > li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.deal-rows > li:first-child { border-top: 0; }
+.deal-rows .grow { flex: 1 1 140px; min-width: 0; }
+.deal-rows .grow small { display: block; color: var(--muted); overflow-wrap: anywhere; }
+.deal-row-acts { display: flex; gap: 6px; margin-left: auto; }
+.deal-row-acts .btn, .deal-cancelled-acts .btn { min-height: 44px; }
+.btn.is-danger { color: var(--out); }
+.deal-cancelled-acts { margin: 0 0 10px; }
+.deal-kind-act { display: flex; flex-wrap: wrap; gap: 8px; }
+/* 详情页标题 + 右上角「编辑」：标题再长也不把按钮挤到下一行 */
+.kv-head { flex-wrap: nowrap; align-items: flex-start; }
+.kv-head > :first-child { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+.kv-head > .btn, .kv-head > .head-acts { flex: none; }
 /* 税务 → 今年：报税累计整张卡默认折叠（2026-11-24.37） */
 .tax-inc-card > summary { cursor: pointer; list-style: none; min-height: 44px; margin-bottom: 0; }
 .tax-inc-card > summary::-webkit-details-marker { display: none; }

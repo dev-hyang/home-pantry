@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.39", title: { zh: "交易页：查看历史、恢复和删除，去掉单独的买入 / 卖出页", en: "Deals: view history, restore and delete; no separate Buy / Sell pages" }, items: [
+    { k: "better", zh: "每一类交易旁边多了「查看历史」按钮，点开能看到全部已完成和已取消的交易（从近到远）。", en: "Each deal type now has a “View history” button listing all completed and cancelled deals, newest first." },
+    { k: "better", zh: "已取消的交易可以「恢复」（变回进行中）或「删除」，交易详情里也有这两个按钮。", en: "Cancelled deals can be restored (back to in progress) or deleted, also from the deal details page." },
+    { k: "better", zh: "不再有单独的「买入交易页 / 卖出交易页」，统一回到交易首页。", en: "The separate Buy and Sell pages are gone; everything goes back to the deals home." },
+    { k: "fix", zh: "交易事项的编辑页，底部只剩「取消 / 保存」一行；标题很长时，「编辑」按钮也固定在右上角。", en: "On the task edit page only one “Cancel / Save” row remains; the Edit button stays top-right even for long titles." },
+  ] },
   { v: "2026-11-24.38", title: { zh: "税务：报税累计默认折叠，内容更简洁", en: "Tax: the year income summary is folded by default and simpler" }, items: [
     { k: "better", zh: "「收入报税累计」默认折叠；展开后第一行是「要报的收入合计（不含工资）」。", en: "The income summary is folded by default; open it to see “Reportable income (excluding wages)” first." },
     { k: "better", zh: "下面按 工资、投资收益、租金、副业 / 稿酬、看情况、一般不用报、亲友赠与 各一行，显示小计，点开才看明细。", en: "Below, one row each for wages, investment, rent, side income, maybe, usually not reportable and gifts, with subtotals; tap to see details." },
