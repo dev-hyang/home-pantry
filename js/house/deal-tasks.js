@@ -23,7 +23,22 @@ export function routeDeal() {
   const q = state.route?.q;
   const byId = q?.get("deal") ? state.deals.find((d) => d.id === q.get("deal")) : null;
   if (byId) return byId;
-  return q?.get("asset") ? openVehicleDeal(q.get("asset")) : openDeal();
+  const asset = q?.get("asset"), kind = q?.get("kind");
+  if (kind) return state.deals.find((d) => d.kind === kind && !d.outcome && (asset ? d.asset_id === asset : d.property_id === state.propertyId)) || null;
+  return asset ? openVehicleDeal(asset) : openDeal();
+}
+/** 这个主体（房产 p / 车辆 veh）的所有交易，新 → 旧 */
+export const subjectDeals = (p, veh) => state.deals.filter((d) => (veh ? d.asset_id === veh.id : d.property_id === p?.id));
+/** 某一类交易的子页地址（车辆带 ?asset=） */
+export const kindHref = (kind, assetId = null) => `${href("house", "deal")}?${assetId ? `asset=${encodeURIComponent(assetId)}&` : ""}kind=${encodeURIComponent(kind)}`;
+/** 面包屑里「交易」后面的几级：买入 / 详情（进行中 或 日期）/ 详情下的子页；首页返回空 */
+export function dealTail(q) {
+  const asset = q.get("asset"), deal = routeDeal(), kind = deal?.kind || q.get("kind"); if (!kind || !D().KINDS[kind]) return [];
+  const kindItem = { href: kindHref(kind, asset), label: t(D().KINDS[kind]) };
+  if (!q.get("deal") && !q.get("sec")) return [{ label: kindItem.label }];   // 买入子页
+  const label = !deal ? t("详情") : !deal.outcome ? t("进行中") : `${fmtDate(deal.closing_on || (deal.closed_at || deal.updated_at || "").slice(0, 10))}${deal.outcome === "cancelled" ? ` · ${t("已取消")}` : ""}`;
+  const sub = dealSubLabel(q.get("sec"), deal);
+  return sub ? [kindItem, { href: dealHref(deal), label }, { label: sub }] : [kindItem, { label }];
 }
 /** 交易子页在面包屑里的名字（?sec=info / stage:xxx / closeout） */
 export function dealSubLabel(sec, deal = routeDeal()) {
@@ -112,12 +127,12 @@ export function dealAlertItems() {
     href: dealHref(x.deal), actions: [{ type: "check", attrs: { "data-deal-task": x.key, "data-deal": x.deal.id } }],
   }));
 }
-/** 这笔交易的页面地址（车辆交易带 ?asset=；历史交易再带 deal=） */
+/** 这笔交易详情的页面地址（车辆交易带 ?asset=；一律带 deal=<id>，进行中的也是） */
 export function dealHref(deal, sec = null) {
   const ps = new URLSearchParams();
   if (sec) ps.set("sec", sec);
   if (deal?.asset_id) ps.set("asset", deal.asset_id);
-  if (deal?.outcome) ps.set("deal", deal.id);
+  if (deal) ps.set("deal", deal.id);
   const qs = ps.toString();
   return `${href("house", "deal")}${qs ? `?${qs}` : ""}`;
 }

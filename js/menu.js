@@ -154,16 +154,15 @@ export function crumb(r) {
     const dealHref_ = `${subHref}?asset=${encodeURIComponent(vehDeal.id)}${q.get("deal") ? `&deal=${encodeURIComponent(q.get("deal"))}` : ""}`;
     const vparts = [...houseCars(), { href: href("asset", vehDeal.id), label: assetName(vehDeal) }];
     const dealRoot = `${subHref}?asset=${encodeURIComponent(vehDeal.id)}`;
-    if (hist) { vparts.push({ href: dealRoot, label: curLabel }); if (dsec) vparts.push({ href: dealHref_, label: hist }, { label: dsec }); else vparts.push({ label: hist }); }
-    else if (dsec) vparts.push({ href: dealHref_, label: curLabel }, { label: dsec }); else vparts.push({ label: curLabel });
+    const tail = houseHooks.dealTail?.(q) || [];   // 车辆 / 车名 / 交易 / 买车 / 详情 / 子页
+    if (tail.length) vparts.push({ href: dealRoot, label: curLabel }, ...tail); else vparts.push({ label: curLabel });
     return crumbNav(vparts);
   }
   const ssec = r.section === "me" && r.sub === "settings" ? SETTING_SECTIONS.find((s) => s.id === q.get("sec")) : null;
   const invPage = (r.section === "pantry" && (r.sub === "inventory" || r.sub === "gear"));
   const cat = invPage && state.filter.cat !== "all" ? window.CATEGORIES.find((c) => c.id === state.filter.cat) : null;
   if (psec) parts.push({ href: subHref, label: curLabel }, { label: t(psec.name), icon: psec.icon });
-  else if (hist) { parts.push({ href: subHref, label: curLabel }); if (dsec) parts.push({ href: `${subHref}?deal=${encodeURIComponent(q.get("deal"))}`, label: hist }, { label: dsec }); else parts.push({ label: hist }); }   // 房产 / 交易 / 历史 · 买入 / 子页
-  else if (dsec) parts.push({ href: subHref, label: curLabel }, { label: dsec });
+  else if (r.section === "house" && r.sub === "deal" && (houseHooks.dealTail?.(q) || []).length) parts.push({ href: subHref, label: curLabel }, ...houseHooks.dealTail(q));   // 房产 / 交易 / 买入 / 详情 / 子页
   else if (ssec && ssec.id === "family" && q.get("person")) parts.push({ href: subHref, label: curLabel }, { href: familyHref(), label: t(ssec.name), icon: ssec.icon }, { label: personNameOf(q.get("person")) || t("家庭成员") });
   else if (ssec && ssec.id === "family" && q.get("member")) parts.push({ href: subHref, label: curLabel }, { href: familyHref(), label: t(ssec.name), icon: ssec.icon }, { label: memberCrumbLabel(q.get("member")) });   // 设置 / 家庭与成员 / 某位成员
   else if (ssec) parts.push({ href: subHref, label: curLabel }, { label: t(ssec.name), icon: ssec.icon === "__AI__" ? aiIcon(18) : ssec.icon });

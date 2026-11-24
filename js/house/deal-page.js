@@ -1,6 +1,7 @@
 import { viewSwitch } from "../core/view-switch.js";
 /* 交易页：任务行、编辑表单、交易详情、新建 / 编辑交易的表单、交割面板。 */
-import { D, END_LAG, V, addTaskRow, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, openDeal, openVehicleDeal, propertyLive, skipBtn, statusText, taskEditForm, taskRow } from "./deal-tasks.js";
+import { dealKindPage, dealLanding } from "./deal-home.js";
+import { D, END_LAG, V, addTaskRow, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openVehicleDeal, propertyLive, skipBtn, statusText, taskEditForm, taskRow } from "./deal-tasks.js";
 import { addDays } from "../bills/logic.js";
 import { debtHref } from "../bills/debt-logic.js";
 import { analyze, briefHtml, eventFormPanel, freezeBaseline, lanesHtml, needsFreeze } from "./deal-progress.js";
@@ -45,28 +46,23 @@ export function viewDeal() {
   const p = veh ? null : currentProp();
   if (!veh && !p) return `<section class="section"><div class="panel empty"><strong>${t("还没有房产")}</strong></div></section>`;
   const mine = (d) => (veh ? d.asset_id === veh.id : d.property_id === p.id);
-  // ?deal=<id>：查看历史交易（已交割 / 已取消）—— 清单、时间线、交易信息都还能看、能改，只是没有“完成交割”入口
-  const viewed = q?.get("deal") ? state.deals.find((d) => d.id === q.get("deal") && mine(d)) || null : null;
-  const deal = viewed || (veh ? openVehicleDeal(veh.id) : openDeal(p.id));
-  const closed = !!deal?.outcome;
-  const history = state.deals.filter((d) => mine(d) && d.outcome);
-  // 子页链接：车辆交易带 asset=；查看历史交易时把 deal= 一路带着，否则回到进行中的交易
-  const link = (sec) => { const ps = new URLSearchParams(); if (sec) ps.set("sec", sec); if (veh) ps.set("asset", veh.id); if (viewed) ps.set("deal", deal.id); const qs = ps.toString(); return `${href("house", "deal")}${qs ? `?${qs}` : ""}`; };
-  const histLink = (d) => dealHref({ ...d, outcome: d.outcome || "closed" });
-  const bar = veh ? "" : houseBar();
-  const headCard = veh ? vehicleCard(veh) : propertyCard(p);
-  if (!deal) {
-    const starts = veh ? vehicleStarts(veh) : propertyStarts(p);
-    const live = veh ? V().isActive(veh) : propertyLive(p);
-    const intro = veh ? t("买车、卖车或租赁到期归还时，按常见流程生成带日期的清单：产权与上牌、保险、拆车牌、已售通知、删除个人数据，逐项提醒。")
-      : t("买入或卖出时，按伊利诺伊州流程生成带截止日期的清单：律师审查、验房、贷款承诺、停服务通知、交割后事项，逐项提醒。");
-    return `${bar}${headCard}
-      <section class="section"><div class="panel empty"><strong>${veh ? t("这辆车没有进行中的交易") : t("这套房产没有进行中的交易")}</strong>
-        ${intro}
-        <p>${starts.map(([k, l]) => `<button type="button" class="btn btn-primary" data-action="deal-start" data-kind="${k}" ${veh ? `data-asset="${veh.id}"` : ""}>${l}</button>`).join(" ")}
-           ${!live ? `<span class="muted">${veh ? t("已卖出或已归还的车只保留历史。") : t("已卖出或退租的房产只保留历史。")}</span>` : ""}</p></div></section>
-      ${dealHistory(history, null, histLink)}`;
+  // 路由：没有 deal= / sec= 也没有 kind= → 交易首页；kind= → 这一类的子页；deal=<id>（进行中或历史）→ 交易详情（?sec= 是详情下的子页）
+  // 老链接（只有 sec=、没有 deal=）按这个主体进行中的那笔处理
+  const barNow = veh ? "" : houseBar(), headNow = veh ? vehicleCard(veh) : propertyCard(p);
+  const byId = q?.get("deal") ? state.deals.find((d) => d.id === q.get("deal") && mine(d)) || null : null;
+  const open = veh ? openVehicleDeal(veh.id) : openDeal(p.id);
+  if (!byId && !q?.get("sec")) {
+    const kind = q?.get("kind");
+    return kind && D().KINDS[kind] ? dealKindPage({ p, veh, kind, bar: barNow, headCard: headNow }) : dealLanding({ p, veh, bar: barNow, headCard: headNow });
   }
+  const deal = byId || open;
+  if (!deal) return dealLanding({ p, veh, bar: barNow, headCard: headNow });
+  const viewed = deal.outcome ? deal : null;
+  const closed = !!deal.outcome;
+  // 子页链接：车辆交易带 asset=；一律带 deal=（详情是 ?deal=<id> 这一层）
+  const link = (sec) => dealHref(deal, sec);
+  const bar = barNow;
+  const headCard = headNow;
   const tasks = dealTasks(deal), an = analyze(deal, tasks);
   if (needsFreeze(deal, tasks)) freezeBaseline(deal, tasks);   // 填了合同日：把模板日期冻结成「计划」基线（只补没有的，后台写，不挡渲染）
   const groups = Object.entries(D().stagesOf(deal.kind)).map(([k, n]) => ({ k, n, rows: tasks.filter((x) => x.stage === k) })).filter((g) => g.rows.length);
@@ -127,13 +123,12 @@ export function viewDeal() {
     ? row(debtHref(null, `new=1&cat=${veh ? "auto_loan" : "mortgage"}&lender=${encodeURIComponent(deal.lender)}${deal.price != null ? `&principal=${Math.max(0, num(deal.price) - num(deal.earnest_money))}` : ""}&${veh ? "asset" : "prop"}=${encodeURIComponent(subjectId)}${deal.closing_on ? `&start=${deal.closing_on}` : ""}&name=${encodeURIComponent(`${veh ? t("车贷") : t("房贷")} · ${deal.lender}`.slice(0, 60))}`),
         "🏦", t("创建贷款"), t("贷款方 {l}；本金先按成交价 − 定金估，按贷款文件改", { l: deal.lender }), null) : "";
   const cancelRow = closed ? "" : `<p style="margin:8px 0 0;text-align:right"><button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel" data-deal="${deal.id}">${t("取消这笔交易")}</button></p>`;
-  const openNow = veh ? openVehicleDeal(veh.id) : openDeal(p.id);
   const view = DEAL_VIEWS.some((v) => v[0] === state.dealView) ? state.dealView : "list";
   const laneH = { isEditing, editBtn, skipBtn, editForm: (x) => taskEditForm(x.deal, x), sort: state.dealSort === "asc" ? "asc" : "desc", filter: state.dealFilter || "all", stage: state.dealStage || "all", act: state.dealActFilter || "all" };
   return `${bar}${headCard}
     <section class="section">
       <div class="section-head"><h2>${closed ? (deal.outcome === "cancelled" ? t("{kind}已取消", { kind: t(K[deal.kind]) }) : t("{kind}已完成", { kind: t(K[deal.kind]) })) : t("{kind}进行中", { kind: t(K[deal.kind]) })}</h2><p>${deal.closing_on ? `${t(dateLabels(deal)[1])} ${fmtDate(deal.closing_on)}` : t("还没填{d}", { d: t(dateLabels(deal)[1]) })}</p></div>
-      ${closed ? `<p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。")}${openNow ? ` <a href="${dealHref(openNow)}">${t("回到进行中的交易")}</a>` : ""}</p>` : ""}
+      ${closed ? `<p class="muted" style="margin:-6px 0 10px;font-size:13px">${t("这是历史交易。清单、时间线和交易信息仍可查看和修改，供日后参考。")} <a href="${kindHref(deal.kind, veh?.id)}">${t("回到{kind}交易页", { kind: t(K[deal.kind]) })}</a></p>` : ""}
       <div class="panel deal-progress">
         <div class="kv"><div><b>${t("总进度 {p}%", { p: pct })}</b><div class="muted">${t("已完成 {a} / {b}", { a: doneN, b: total })}${skippedAll ? ` · ⊘ ${t("跳过 {n}", { n: skippedAll })}` : ""}${mustLeft ? ` · ${t("必须项还剩 {n}", { n: mustLeft })}` : ""}${nextDue ? ` · ${t("最近截止 {date}", { date: fmtDate(nextDue.due) })}` : ""}</div></div></div>
         <div class="life-bar big"><i style="width:${pct}%"></i></div>
@@ -149,7 +144,7 @@ export function viewDeal() {
         <div class="panel mlist" style="margin-top:12px">${addRow}${closeRow}${loanRow}</div>`}${cancelRow}
       <p class="disclaimer">${t("截止日按{a}和{b}推算，可点 ✎ 调整；必须项逾期会在首页置顶", { a: t(dateLabels(deal)[0]), b: t(dateLabels(deal)[1]) })}${deal.baseline?._at ? ` ${t("「计划」是填了合同日后冻结的模板日期，改期只影响「预计」，不会改掉原计划。")}` : ""}</p>
     </section>
-    ${dealHistory(history, viewed?.id || null, histLink)}`;
+`;
 }
 /** 交易页顶部：房产状态卡 */
 function propertyCard(p) {
@@ -173,25 +168,6 @@ function vehicleCard(a) {
       <div class="grow"><h2><a class="asset-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a><span class="badge ${st.cls}" style="${st.cls ? "" : "background:var(--surface-2)"}">${t(st.name)}</span></h2>
         <p class="muted">${meta.map(esc).join(" · ")}</p></div>
     </div></section>`;
-}
-/** 没有进行中交易时可以开始哪些流程 */
-function propertyStarts(p) {
-  return [
-    !["sold", "moved_out", "selling"].includes(p.status) && p.role !== "tenant" && ["looking", "buying"].includes(p.status) ? ["buy", t("开始买入流程")] : null,
-    ["owned", "selling"].includes(p.status) && p.role !== "tenant" ? ["sell", t("开始卖出流程")] : null,
-    p.role === "tenant" && p.status === "renting" ? ["move_out", t("开始退租流程")] : null,
-    p.status === "owned" && p.role !== "tenant" ? ["buy", t("记录买入流程（刚签约）")] : null,
-  ].filter(Boolean);
-}
-function vehicleStarts(a) {
-  const st = V().statusOf(a);
-  return [
-    st === "looking" ? ["veh_buy", t("开始买车流程")] : null,
-    ["owned", "financed"].includes(st) ? ["veh_sell", t("开始卖车流程")] : null,
-    ["owned", "financed"].includes(st) ? ["veh_buy", t("记录买车流程（刚下订）")] : null,
-    st === "leased" ? ["veh_return", t("开始租赁归还流程")] : null,
-    st === "leased" ? ["veh_sell", t("买断后卖车")] : null,
-  ].filter(Boolean);
 }
 function dealForm(d) {
   const v = (k) => esc(d[k] ?? "");
@@ -234,18 +210,6 @@ function dealForm(d) {
   </form>`;
 }
 /** 历史交易：每条可点开（?deal=<id>）查看、修改当时的清单、时间线和交易信息；current = 正在看的那条 */
-function dealHistory(list, current, linkOf) {
-  if (!list.length) return "";
-  const K = D().KINDS, lim = pageLimit("deals");
-  bulkRegister("deals", { ids: () => list.filter((d) => d.id !== current).map((d) => d.id), del: (id) => Store.deleteDeal(id) });
-  const pick = !!bulkOn("deals");   // 分批显示；换页面回到一页
-  // 一行：种类徽章 + 日期 / 摘要；“查看清单”固定在右上角（手机上摘要换行也不会和按钮叠在一起）
-  return `<section class="section"><div class="section-head"><h2>${t("历史交易")}</h2></div><div class="panel">${bulkBar("deals")}<ul class="restock-list hist-list">${list.slice(0, lim).map((d) => `<li ${pick ? (d.id === current ? "" : "data-row-chk") : `data-swipe-del="deal" ${d.id === current ? "" : `data-row-open="${esc(linkOf(d))}"`} ${lpAttr([d.id === current ? null : { label: t("详情"), href: linkOf(d), first: true }, { label: t("删除"), action: "deal-delete", data: { deal: d.id }, danger: true }, d.id === current ? null : bulkMenuItem("deals", d.id)])}`} ${d.id === current ? 'aria-current="true"' : ""}>${pick && d.id !== current ? bulkCheck("deals", d.id) : ""}
-    <span class="badge" style="background:var(--surface-2)">${t(K[d.kind])}</span>
-    <div class="grow"><a class="link-name" href="${linkOf(d)}">${d.closing_on ? fmtDate(d.closing_on) : fmtDate((d.closed_at || d.updated_at || "").slice(0, 10))}</a>
-      <small>${[d.outcome === "cancelled" ? t("已取消") : isVehDeal(d) ? t("已完成") : t("已交割"), priceOrNull(d.price) ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>
-    <span class="hist-act">${pick ? "" : d.id === current ? `<span class="badge b-ok">${t("正在查看")}</span>` : `<a class="btn btn-sm btn-ghost" href="${linkOf(d)}">${t("详情")} ›</a>`}<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="deal-delete" data-deal="${esc(d.id)}">${t("删除")}</button></span></li>`).join("")}</ul>${pageMoreBtn("deals", list.length, lim)}</div></section>`;
-}
 /** 退出向导（卖出 / 退租）：交割日、成交价、每条账单的结束日期 */
 function closeoutPanel(p, deal) {
   const closing = deal.closing_on || todayISO();

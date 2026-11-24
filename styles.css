@@ -4787,3 +4787,13 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 /* 买卖清单的查找 / 链接表单：按钮点按区域 ≥ 44px（和输入框一样高） */
 .tax-find-form .tax-item-actions .btn, .tax-link-form .tax-item-actions .btn { min-height: 44px; }
 .tax-event > summary > .muted { margin-left: 8px; }   /* 买卖页每套房标题：名字和「自住 / 出租」之间留空 */
+/* 交易首页 / 某一类交易的子页（js/house/deal-home.js，2026-11-24）：每类交易一张卡片，手机一列、宽屏两列 */
+.deal-kinds { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 900px) { .deal-kinds { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+.deal-kind { margin: 0; display: flex; flex-direction: column; }
+.deal-kind.is-open { border-color: var(--pine); }
+.deal-empty { display: flex; align-items: center; gap: 12px; padding: 14px 10px; }
+.deal-empty .mi { flex: none; }
+.deal-empty p { margin: 2px 0 0; }
+.deal-kind-act { padding: 4px 10px 12px; }
+.deal-kind-act .btn { min-height: 44px; }

@@ -5,7 +5,7 @@ import { alertAct, alertBadge, alertText, assetAlerts, myAssets } from "./asset-
 import { alertsOf } from "../core/logic.js";
 import { assetAsk, assetMenu, assetName } from "./assets.js";
 import { canManageHome } from "../settings/members.js";
-import { currentProp, taskRow as dealTaskRow, dealTasks, openDeal } from "./deals.js";
+import { currentProp, dealHref, taskRow as dealTaskRow, dealTasks, openDeal } from "./deals.js";
 import { dotRow } from "../core/alerts.js";
 import { esc, inSpace, money } from "../core/util.js";
 import { houseBar } from "./property-form.js";
@@ -154,9 +154,9 @@ function dealPanel() {
   const undone = tasks.filter((x) => !x.done).sort((a, b) => (a.due || "9").localeCompare(b.due || "9")), done = tasks.filter((x) => x.done);
   return `<section class="section">
     <div class="section-head"><h2>${t("{kind}清单", { kind: t(window.DEALS.KINDS[d.kind]) })}</h2><div class="head-acts"><p>${t("已完成 {a} / {b}", { a: done.length, b: tasks.length })}</p>
-      <a class="btn btn-sm btn-ghost" href="${href("house", "deal")}">${t("交易页")}</a></div></div>
+      <a class="btn btn-sm btn-ghost" href="${dealHref(d)}">${t("交易页")}</a></div></div>
     <div class="panel"><ul class="task-list">${[...undone.slice(0, 8), ...done.slice(-4)].map((x) => dealTaskRow(x)).join("")}</ul>
-      ${undone.length > 8 ? `<p class="muted" style="margin:8px 0 0">${t("还有 {n} 项，", { n: undone.length - 8 })}<a href="${href("house", "deal")}">${t("去交易页查看")}</a></p>` : ""}</div>
+      ${undone.length > 8 ? `<p class="muted" style="margin:8px 0 0">${t("还有 {n} 项，", { n: undone.length - 8 })}<a href="${dealHref(d)}">${t("去交易页查看")}</a></p>` : ""}</div>
   </section>`;
 }
 /** HOA 常规费用（只读）：来自 HOA 账单；资料里以前填的单元 / 车位 / 其他月费和周期放在隐藏字段里原样保存（不丢），没账单时显示旧值并给预填的「创建账单」 */

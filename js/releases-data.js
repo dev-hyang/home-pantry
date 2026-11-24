@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.13", title: { zh: "交易页重新整理：首页按类型分卡片，再往下才是详情", en: "Transactions page reorganised: one card per kind, details one level down" }, items: [
+    { k: "new", zh: "房屋 / 车辆的「交易」首页改成一类一张卡片：买入、卖出（车辆：买车、卖车、归还；租房：退租）。没记过是空卡片和「记录…交易」按钮；进行中显示总进度和已完成；只有历史显示几笔和最近一笔", en: "The Transactions home is now one card per kind: buy and sell (vehicles: buy, sell, return; renting: move-out). Empty if nothing is recorded, with a “Record…” button; in progress shows overall progress; history shows the count and the latest one" },
+    { k: "new", zh: "点卡片进这一类的子页：进行中那笔的入口 + 这一类的交易历史（一行一笔）；点进行中或某一行才进入交易详情（总进度、交易信息、各阶段清单）。原来挤在详情页底部的历史列表搬到了这里", en: "Tap a card for that kind: the in-progress entry plus its history, one row each; open the entry or a row to see the transaction details. The history list that used to sit under the details has moved here" },
+    { k: "better", zh: "面包屑变成：房产 / 交易 / 买入 / 详情 / 子页；提醒和房屋页里的「进行中的交易」链接直接进详情", en: "Breadcrumbs: Home / Transactions / Buy / Details / Sub-page; alerts and house pages link straight to the details" },
+  ] },
   { v: "2026-11-24.12", title: { zh: "花费 / 收入明细：按金额筛选", en: "Spending / income lists: filter by amount" }, items: [
     { k: "new", zh: "花费明细和收入明细的筛选里多了「金额」：全部金额（默认）、自定义、1000+、500–999、200–499、100–199、50–99、0–49；花费多一档「< 0」（退款 / 报销）", en: "Both lists have a new Amount filter: All amounts (default), Custom, 1000+, 500–999, 200–499, 100–199, 50–99, 0–49; spending also has “< 0” (refunds / reimbursements)" },
     { k: "new", zh: "选「自定义…」可以填最低和最高金额，只填一个也行；筛选后的笔数和合计一起变", en: "Choose “Custom…” to enter a minimum and/or maximum; counts and totals follow the filter" },

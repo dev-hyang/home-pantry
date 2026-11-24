@@ -1,6 +1,6 @@
 /* 房屋资料里的保险年保费、HOA / 物业费用（账单是唯一来源）、产权与税务的只读展示，以及它们的提醒。 */
 import { assessmentParts, assessmentsOf, unpaidItems } from "../bills/assessments-lib.js";
-import { currentProp, openDeal, propertyLive, statusText } from "./deals.js";
+import { currentProp, dealHref, openDeal, propertyLive, statusText } from "./deals.js";
 import { daysUntil, esc, fmtDate, money, num } from "../core/util.js";
 import { freqText, monthlyEquivalent } from "../bills/logic.js";
 import { href } from "../core/router.js";
@@ -56,7 +56,7 @@ export function statusLine(inCard = false) {
     ${tag(t("状态"), statusText(p), STATUS_CLS[p.status] || "")}
     ${tag(t("类型"), t(B.PROPERTY_KINDS[p.kind] || ""))}
     ${tag(t("用途"), t(B.PROPERTY_ROLES[p.role] || ""))}
-    ${d ? `<a class="meta-tag b-soon" href="${href("house", "deal")}"><small>${t("交易")}</small>${t("进行中，查看清单")}</a>` : ""}
+    ${d ? `<a class="meta-tag b-soon" href="${dealHref(d)}"><small>${t("交易")}</small>${t("进行中，查看清单")}</a>` : ""}
   </div>`;
 }
 /* ── HOA / 物业 ── */
