@@ -74,8 +74,8 @@ export async function clickHouse(action, el, id, e) {
         const d = el.dataset.deal ? state.deals.find((x) => x.id === el.dataset.deal) : await openDeal();
         if (!d) return;
         if (d.asset_id) { if (!armed(el, t("再点一次确认完成"))) return; await completeVehicleDeal(d); return refresh(); }
-        if (d.kind === "buy") { if (!armed(el, t("再点一次确认已交割"))) return; await completeBuy(); return refresh(); }
-        state.closeout = true; return go(`${href("house", "deal")}?deal=${encodeURIComponent(d.id)}&sec=closeout`);
+        if (d.kind === "buy") { if (!armed(el, t("再点一次确认已交割"))) return; await completeBuy(d.id); return refresh(); }
+        state.closeout = true; state.closeoutDeal = d.id; return go(`${href("house", "deal")}?deal=${encodeURIComponent(d.id)}&sec=closeout`);
       }
       case "plan-new": case "plan-edit": case "plan-cancel": case "plan-status": case "plan-delete": case "cand-new": case "cand-edit": case "cand-delete": case "cand-win": case "offer-new": case "offer-edit": case "offer-delete":
         return planAction(action, el, { render, refresh, go });   // 买卖计划（迁移 078）
@@ -101,7 +101,7 @@ export async function clickHouse(action, el, id, e) {
         state.dealView = ["plan", "actual", "compare"].includes(el.dataset.view) ? el.dataset.view : "list";
         try { localStorage.setItem("hmh-deal-view", state.dealView); } catch { /* 忽略 */ }
         return render();
-      case "deal-closeout-cancel": state.closeout = null; return go(href("house", "deal"));
+      case "deal-closeout-cancel": state.closeout = null; state.closeoutDeal = null; return go(href("house", "deal"));
       case "property-default": await Store.setDefaultProperty(id); toast(t("已设为默认房产")); return refresh();
       case "property-archive": {
         const p = state.properties.find((x) => x.id === id);

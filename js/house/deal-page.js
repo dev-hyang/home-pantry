@@ -85,8 +85,8 @@ export function viewDeal() {
   }
   if (sec === "closeout") return `<section class="section">
       ${state.closeout ? closeoutPanel(p, deal) : `<div class="panel"><div class="kv"><div class="muted">${deal.kind === "buy" ? t("交割完成后，把房产状态改为“持有”，记下买入日期和价格。") : t("交割完成后：账单设结束日期、生成取消自动扣款清单、房产归档保留历史。")}</div>
-        <div class="head-acts"><button type="button" class="btn btn-primary btn-sm" data-action="deal-closeout">${deal.kind === "buy" ? t("已交割，标为持有") : t("开始退出向导")}</button>
-          <button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel">${t("取消这笔交易")}</button></div></div></div>`}
+        <div class="head-acts"><button type="button" class="btn btn-primary btn-sm" data-action="deal-closeout" data-deal="${deal.id}">${deal.kind === "buy" ? t("已交割，标为持有") : t("开始退出向导")}</button>
+          <button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel" data-deal="${deal.id}">${t("取消这笔交易")}</button></div></div></div>`}
     </section>`;
   // ── 枢纽页：总进度 + 一行一个入口，各带完成度 ──
   const total = tasks.length - skippedAll, doneN = total - undone.length, pct = total ? Math.round((doneN / total) * 100) : 0;

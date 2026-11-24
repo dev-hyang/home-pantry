@@ -15,8 +15,16 @@ const PRIO_CLS = { must: "b-out", should: "b-soon", optional: "" };
 // 退出向导里各类账单默认延后多少天结束（水电气网会有最后一期账单）
 export const END_LAG = { electric: 30, gas: 30, water: 45, internet: 14, mobile: 0, hoa: 0, property_tax: 0, mortgage: 0, rent: 0, insurance_home: 0, insurance_auto: 0 };
 export const currentProp = () => state.properties.find((p) => p.id === state.propertyId) || null;
-export const openDeal = (pid = state.propertyId) => state.deals.find((d) => d.property_id === pid && !d.outcome) || null;
-export const openVehicleDeal = (aid) => state.deals.find((d) => d.asset_id === aid && !d.outcome) || null;
+/* 同一个主体可以同时有几笔进行中的交易，但同一类型只能一笔（迁移 108）：买入和卖出可以同时进行（卖出进行中补录买入）。
+ * 只能显示「一笔」的地方（首页提醒角标、房屋概览、车辆页的小标签）用 openDeal / openVehicleDeal = 优先级最高的那一笔：卖出 / 退租 / 归还 在前，买入在后。 */
+const PRIORITY = ["sell", "move_out", "veh_sell", "veh_return", "buy", "veh_buy"];
+const byPriority = (a, b) => PRIORITY.indexOf(a.kind) - PRIORITY.indexOf(b.kind);
+export const openDeals = (pid = state.propertyId) => state.deals.filter((d) => d.property_id === pid && !d.outcome).sort(byPriority);
+export const openVehicleDeals = (aid) => state.deals.filter((d) => d.asset_id === aid && !d.outcome).sort(byPriority);
+export const openDeal = (pid = state.propertyId) => openDeals(pid)[0] || null;
+export const openVehicleDeal = (aid) => openVehicleDeals(aid)[0] || null;
+/** 某个主体（房产 id 或车辆 id）这一类型进行中的那笔 */
+export const openDealOfKind = (kind, { pid = null, aid = null }) => state.deals.find((d) => d.kind === kind && !d.outcome && (aid ? d.asset_id === aid : d.property_id === pid)) || null;
 export const isVehDeal = (d) => !!d?.asset_id;
 /** 当前路由对应的交易（?deal= 指定的历史交易 / ?asset= 车辆的进行中交易 / 当前房产的进行中交易），面包屑和子页标题用 */
 export function routeDeal() {

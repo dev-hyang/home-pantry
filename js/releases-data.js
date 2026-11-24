@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.14", title: { zh: "买入和卖出可以同时进行（卖出进行中也能补录买入）", en: "Buy and sell can run at the same time (record a purchase while selling)" }, items: [
+    { k: "new", zh: "一套房（或一辆车）同一时间可以有一笔进行中的买入和一笔进行中的卖出；同一类型还是只能一笔。卖出进行中，买入卡片上仍有「记录买入交易」，用来补录当初的买入", en: "A home (or car) can now have one buy and one sell in progress at the same time; a second one of the same kind is still not allowed. While selling, the Buy card still offers “Record purchase” so you can backfill the original purchase" },
+    { k: "better", zh: "两笔同时进行时，房子状态以卖出优先显示「卖出中」；买入交割后仍是卖出中；取消卖出后，如果买入还在进行就变回「买入中」", en: "With both in progress the home shows “Selling”; closing the purchase keeps it Selling; cancelling the sale returns it to “Buying” if the purchase is still open" },
+  ] },
   { v: "2026-11-24.13", title: { zh: "交易页重新整理：首页按类型分卡片，再往下才是详情", en: "Transactions page reorganised: one card per kind, details one level down" }, items: [
     { k: "new", zh: "房屋 / 车辆的「交易」首页改成一类一张卡片：买入、卖出（车辆：买车、卖车、归还；租房：退租）。没记过是空卡片和「记录…交易」按钮；进行中显示总进度和已完成；只有历史显示几笔和最近一笔", en: "The Transactions home is now one card per kind: buy and sell (vehicles: buy, sell, return; renting: move-out). Empty if nothing is recorded, with a “Record…” button; in progress shows overall progress; history shows the count and the latest one" },
     { k: "new", zh: "点卡片进这一类的子页：进行中那笔的入口 + 这一类的交易历史（一行一笔）；点进行中或某一行才进入交易详情（总进度、交易信息、各阶段清单）。原来挤在详情页底部的历史列表搬到了这里", en: "Tap a card for that kind: the in-progress entry plus its history, one row each; open the entry or a row to see the transaction details. The history list that used to sit under the details has moved here" },

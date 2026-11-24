@@ -35,6 +35,7 @@ export const state = {
   dealEventEdit: null, dealAi: {}, dealAiBusy: false,   // 进展记录：正在编辑的 { deal, id, key }；AI 对照分析的结果
   dealTaskEdit: null,                          // 交易清单：正在编辑的事项 { deal, key } 或新建 { deal, key: "", stage }
   dealView: (() => { try { const v = localStorage.getItem("hmh-deal-view"); return v === "timeline" ? "plan" : ["plan", "actual", "compare"].includes(v) ? v : "list"; } catch { return "list"; } })(),   // 交易页视图：list 清单 / plan 计划 / actual 实际 / compare 对比
+  closeoutDeal: null,                       // 交易页：退出向导对应哪一笔交易（同时有买入和卖出时用）
   closeout: null,                           // 交易页：退出向导是否展开
   quickEdit: false,                    // 首页：快捷操作编辑模式
   quickAdd: false,                     // 首页：正在添加自定义快捷操作

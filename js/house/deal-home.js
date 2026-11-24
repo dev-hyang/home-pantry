@@ -31,7 +31,7 @@ export function propertyStarts(p) {
     !["sold", "moved_out", "selling"].includes(p.status) && p.role !== "tenant" && ["looking", "buying"].includes(p.status) ? ["buy", t("开始买入流程")] : null,
     ["owned", "selling"].includes(p.status) && p.role !== "tenant" ? ["sell", t("开始卖出流程")] : null,
     p.role === "tenant" && p.status === "renting" ? ["move_out", t("开始退租流程")] : null,
-    p.status === "owned" && p.role !== "tenant" ? ["buy", t("记录买入流程（刚签约）")] : null,
+    ["owned", "selling"].includes(p.status) && p.role !== "tenant" ? ["buy", t("记录买入流程（刚签约）")] : null,   // 卖出进行中也可以补录买入
   ].filter(Boolean);
 }
 export function vehicleStarts(a) {

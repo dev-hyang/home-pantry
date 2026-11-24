@@ -1,5 +1,6 @@
 /* 交易的操作：开始 / 取消 / 完成交易、勾选任务、自定义任务、交割后的处理。 */
-import { D, V, currentProp, dealTasks, isVehDeal, openDeal, openVehicleDeal } from "./deal-tasks.js";
+import { statusAfterBuyClosed, statusAfterCancel, statusAfterStart } from "./deal-status.js";
+import { D, V, currentProp, dealTasks, isVehDeal, openDeal, openDealOfKind, openDeals } from "./deal-tasks.js";
 import { Store } from "../core/store.js";
 import { addDays } from "../bills/logic.js";
 import { freezeBaseline } from "./deal-progress.js";
@@ -16,16 +17,16 @@ const EMPTY_DEAL = { contract_on: null, review_deadline: null, financing_deadlin
 export async function startDeal(kind, assetId = null) {
   if (D().isVehicleKind(kind) && !assetId) return;   // 车辆流程必须挂在一辆车上
   if (assetId) {   // 刚建的占位车可能还没进 state，只看有没有进行中的交易
-    if (openVehicleDeal(assetId)) return;
+    if (openDealOfKind(kind, { aid: assetId })) return;   // 同一类型只能一笔（买车 / 卖车 / 归还各一笔可以同时有）
     await Store.saveDeal({ ...EMPTY_DEAL, property_id: null, asset_id: assetId, kind });
     const [c, z] = D().DATE_LABELS[kind];
     toast(t("已开始{kind}流程，先填{a}和{b}", { kind: t(D().KINDS[kind]), a: t(c), b: t(z) }));
     return;
   }
   const p = currentProp();
-  if (!p || openDeal(p.id)) return;
+  if (!p || openDealOfKind(kind, { pid: p.id })) return;   // 同一类型只能一笔；买入和卖出可以同时进行（卖出进行中补录买入）
   await Store.saveDeal({ ...EMPTY_DEAL, property_id: p.id, asset_id: null, kind });
-  const status = kind === "buy" ? "buying" : kind === "sell" ? "selling" : p.status;
+  const status = statusAfterStart(p, kind);   // 卖出优先：有卖出在进行，状态就是「卖出中」（deal-status.js）
   if (status !== p.status) await Store.saveProperty({ ...p, status });
   toast(t("已开始{kind}流程，先填合同日和交割日", { kind: t(D().KINDS[kind]) }));
 }
@@ -116,21 +117,22 @@ export async function cancelDeal(dealId) {
   await Store.saveDeal({ ...d, outcome: "cancelled", closed_at: new Date().toISOString() });
   if (!d.asset_id) {
     const p = state.properties.find((x) => x.id === d.property_id);
-    if (p) { const back = d.kind === "buy" ? (p.acquired_on ? "owned" : "looking") : d.kind === "sell" ? "owned" : "renting"; await Store.saveProperty({ ...p, status: back }); }
+    if (p) await Store.saveProperty({ ...p, status: statusAfterCancel(p, d.kind, openDeals(p.id).filter((x) => x.id !== d.id).map((x) => x.kind)) });
   }
   toast(t("交易已取消"));
 }
-/** 买入交割：状态改持有，记买入日期和价格 */
-export async function completeBuy() {
-  const p = currentProp(), d = openDeal(p?.id);
-  if (!d) return;
+/** 买入交割：状态改持有（卖出还在进行就仍是「卖出中」），记买入日期和价格；dealId = 哪一笔买入（没给就取进行中的买入） */
+export async function completeBuy(dealId = null) {
+  const p = currentProp(), d = dealId ? state.deals.find((x) => x.id === dealId) : openDealOfKind("buy", { pid: p?.id });
+  if (!d || d.outcome) return;
+  const sellOpen = !!openDealOfKind("sell", { pid: p.id });
   await Store.saveDeal({ ...d, outcome: "closed", closed_at: new Date().toISOString() });
-  await Store.saveProperty({ ...p, status: "owned", acquired_on: d.closing_on || todayISO(), purchase_price: d.price ?? p.purchase_price ?? null });
+  await Store.saveProperty({ ...p, status: statusAfterBuyClosed(sellOpen), acquired_on: d.closing_on || todayISO(), purchase_price: d.price ?? p.purchase_price ?? null });
   toast(t("已标为持有，可以建房屋资料、设备和账单了"));
 }
 /** 卖出 / 退租交割：账单写结束日期、房产状态与归档、交易关闭 */
 export async function applyCloseout(f) {
-  const p = currentProp(), d = openDeal(p?.id);
+  const p = currentProp(), d = (state.closeoutDeal && state.deals.find((x) => x.id === state.closeoutDeal && !x.outcome)) || openDeal(p?.id);   // 交割向导对应哪一笔：点进来时记下的那笔（同时有买入和卖出时不会弄混）
   if (!d) return;
   const fe = f.elements, closing = fe.closing_on.value || todayISO();
   const entries = state.bills.filter((b) => b.property_id === p.id && b.active).map((b) => ({ id: b.id, ends_on: fe[`end_${b.id}`]?.value || closing }));
@@ -138,7 +140,7 @@ export async function applyCloseout(f) {
   await Store.saveDeal({ ...d, closing_on: closing, price: d.kind === "sell" ? (fe.sale_price?.value === "" ? d.price : Math.round(num(fe.sale_price.value) * 100) / 100) : d.price, outcome: "closed", closed_at: new Date().toISOString() });
   await Store.saveProperty({ ...p, status: d.kind === "sell" ? "sold" : "moved_out", sold_on: closing, sale_price: d.kind === "sell" && fe.sale_price?.value !== "" ? Math.round(num(fe.sale_price.value) * 100) / 100 : p.sale_price ?? null,
     archived: fe.archive.checked, is_default: fe.archive.checked ? false : p.is_default });
-  state.closeout = null;
+  state.closeout = null; state.closeoutDeal = null;
   const paidOff = d.kind === "sell" ? await payOffForAsset({ property_id: p.id, on: closing }).catch(() => 0) : 0;   // 卖房：房贷 / HELOC 标为已还清
   if (paidOff) toast(t("{n} 笔房贷已标为还清", { n: paidOff }));
   const autopays = state.bills.filter((b) => b.property_id === p.id && b.active && b.autopay).map((b) => b.name);
