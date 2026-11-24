@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.6", title: { zh: "对账单导入：认出已经按小票记过的花费", en: "Statement import: spot spending already entered from receipts" }, items: [
+    { k: "new", zh: "对账单里的一整笔，如果和你已经记的某张小票（一行一个物品）合计对得上，商店也对得上，就当作已记录、默认不导入，并写明对上的是哪张小票；不是同一笔可以改成「仍然导入」", en: "A single statement line that matches the total of a receipt you already entered item by item (and the store matches) is treated as recorded and skipped by default, showing which receipt it matched; switch to “import anyway” if it is different" },
+    { k: "better", zh: "合计只差一点（小费、折扣）且商店对上的，照常导入，只提醒「可能已按小票记录」；对账单选了卡的话，记在别的卡上的小票不会被当成同一笔", en: "If the total is only slightly off (tip, discount) and the store matches, it is still imported with a “may already be recorded” note; receipts paid with a different card are never treated as the same charge" },
+    { k: "better", zh: "银行入账通常比消费日晚几天（pending），所以现在会往前多看 7 天的小票", en: "Banks often post a few days after the purchase (pending), so receipts up to 7 days earlier are now considered" },
+  ] },
   { v: "2026-11-24.5", title: { zh: "税务买卖：按金额找收入、AI 识别查重", en: "Tax buy / sell: find income by amount, duplicate check for AI results" }, items: [
     { k: "new", zh: "「买入时收到的退款 / credit」多了「🔎 按金额 / 日期找」：填金额和大概日期（默认成交日），从所有收入记录里找出对得上的，勾选后链接，不用先给收入选房产", en: "“Refunds / credits at purchase” has “🔎 Find by amount / date”: enter an amount and rough date (defaults to closing day), pick from matching income records, and link — no need to tag income with a home first" },
     { k: "new", zh: "用 Closing Disclosure 自动填时，和清单里已有的项金额对上的会标出「很可能重复 / 金额相同」并默认不勾；不是同一笔再勾上", en: "When auto-filling from a Closing Disclosure, items whose amount matches an existing row are flagged “likely duplicate / same amount” and unticked by default; tick them if they are different" },

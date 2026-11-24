@@ -26,7 +26,7 @@ function whoOf(p) {
 }
 
 /* ── 查重用的花费池：读过的日期段（本地日期，含头含尾）+ 这些天的花费，都在内存里 ── */
-const PAD_DAYS = 4;   // 比 ±3.5 天多留半天，跨时区 / 中午时间点都盖得住
+const PAD_DAYS = 8;   // 逐行比只看 ±3.5 天；小票 ↔ 整笔流水（dup-trips.js）要看流水前 7 天的小票，再多留一天，跨时区 / 中午时间点都盖得住
 let POOL = [], SPANS = [];   // SPANS = [[from, to]]，YYYY-MM-DD
 window.addEventListener("spend-rows-changed", () => { POOL = []; SPANS = []; });
 const shiftDay = (d, n) => localDay(new Date(new Date(`${d}T12:00:00`).getTime() + n * DAY));
@@ -52,6 +52,8 @@ export function nearRows(day, amount) {
   return POOL.filter((p) => p.amount != null && cents(p.amount) === amt && Math.abs(new Date(p.purchased_at).getTime() - tm) <= WINDOW_DAYS * DAY)
     .sort((a, b) => String(b.purchased_at).localeCompare(String(a.purchased_at)) || String(b.id).localeCompare(String(a.id)));
 }
+/** 已经读进来的花费池（小票 ↔ 整笔流水的比对用；只含已经读过的日期段） */
+export const poolRows = () => POOL;
 const candOf = (c) => ({ d: localDay(c.at), a: c.amount });
 
 /* ── 整张小票查重（11-14）：逐行比要金额一模一样，但同一张小票两个人录、或识别规则改过（Target 整单折扣分摊），

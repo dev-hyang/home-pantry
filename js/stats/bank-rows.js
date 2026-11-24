@@ -4,8 +4,9 @@ import { REFUND, SKIP, XFER_WORDS, decode, detect, fixP2PSign, headerIndex, keyO
 import { askText } from "../core/ai.js";
 import { detectAccount, looksOFX, looksQIF, parseStatementLines, pdfLines, readOFX, readQIF, readXLSX, statementTotals } from "./statement-readers.js";
 import { guessKind, incomeRules, senderName, similarIncome, skey } from "../income/logic.js";
-import { loadNear, nearRows } from "./dup-check.js";
-import { num } from "../core/util.js";
+import { loadNear, nearRows, poolRows } from "./dup-check.js";
+import { matchTrips } from "./dup-trips.js";
+import { money, num } from "../core/util.js";
 import { redraw } from "./bank-ui.js";
 import { t } from "../core/i18n.js";
 import { incomeOk } from "./bank-common.js";
@@ -103,6 +104,14 @@ export function rebuild() {
     if (r.skip) continue;
     const hit = (nearRows(r.date, r.out) || []).find((p) => !used.has(p.id));   // 数据库按 时间新 → 旧 给出
     if (hit) { used.add(hit.id); r.dupOf = `${hit.name} · ${String(hit.purchased_at).slice(0, 10)}`; if (S.force.has(r.fk)) r.forced = true; else r.dup = true; }   // 手动确认过不是重复的：照常导入
+  }
+  // 小票 ↔ 整笔流水：已有花费里一张张小票（一行一个物品）的合计，和流水里的一笔对得上 = 已经按小票记过了（dup-trips.js）。强：默认不导入；中：只提醒
+  const cardId = S.account.mode === "id" && String(S.account.id).startsWith("card:") ? String(S.account.id).slice(5) : "";
+  const trips = matchTrips(rows.filter((r) => !r.skip && !r.inc && !r.dup && r.out > 0).map((r) => ({ fk: r.fk, date: r.date, out: r.out, texts: [r.desc, merchantName(r.desc)] })), poolRows(), { card: cardId, used });
+  for (const r of rows) {
+    const m = trips.get(r.fk); if (!m) continue;
+    const label = t("小票：{s} · {n} 项 · 合计 {a}（{d}）", { s: m.store || t("商店未填"), n: m.n, a: money(m.total), d: m.day });
+    if (m.tier === "strong") { r.dupOf = label; if (S.force.has(r.fk)) r.forced = true; else r.dup = true; } else r.tripWeak = label;
   }
   for (const r of rows) {
     if (!r.inc) continue;
