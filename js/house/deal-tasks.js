@@ -57,6 +57,10 @@ export function dealTail(q) {
     const x = dealTasks(deal).find((k) => k.key === sec.slice(5)); if (!x) return [hub, list];
     return edit ? [hub, list, stageItem(x.stage), { href: dealHref(deal, sec), label: t(x.name) }, { label: t("编辑") }] : [hub, list, stageItem(x.stage), { label: t(x.name) }];
   }
+  if (sec === "event-new" || sec.startsWith("event:")) {   // 实际 / 对比 … / 记一笔进展（或修改进展记录）
+    const from = ["plan", "actual", "compare"].includes(q.get("from")) ? q.get("from") : "actual";
+    return [hub, { href: dealHref(deal, from), label: t(VIEW_LABEL[from]) }, { label: sec === "event-new" ? t("记一笔进展") : t("修改进展记录") }];
+  }
   const sub = dealSubLabel(sec, deal); return sub ? [hub, { label: sub }] : [hub];
 }
 /** 交易主页下的四个视图子页（?sec=list|plan|actual|compare） */
@@ -67,7 +71,9 @@ export function dealSubLabel(sec, deal = routeDeal()) {
   if (sec === "info") return t("交易信息");
   if (VIEW_LABEL[sec]) return t(VIEW_LABEL[sec]);
   if (sec.startsWith("stage:")) return t(D().stagesOf(deal?.kind)[sec.slice(6)] || "");
-  if (sec === "closeout") return deal?.kind === "buy" ? t("完成交割") : t("交割与退出");
+  if (sec === "closeout") return deal?.kind === "buy" ? t("完成交割") : t("退出向导");
+  if (sec === "cancel") return t("取消这笔交易");
+  if (sec === "complete") return deal?.kind === "buy" ? t("完成交割") : deal?.kind === "veh_buy" ? t("已提车，标为持有") : deal?.kind === "veh_sell" ? t("已交车，标为已卖出") : t("已归还，标为已归还");
   return null;
 }
 /** 面包屑：看历史交易时中间多一级“历史 / 买入” */

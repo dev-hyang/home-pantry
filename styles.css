@@ -4809,3 +4809,8 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .task-card.skipped { opacity: .65; }
 .task-card.overdue .tc-body small { color: var(--out); }
 .task-card .mch { flex: none; }
+/* 交易：右下角 ＋ 下面留白；取消页 / 完成页的按钮一样高，手机上确认按钮独占一行 */
+.fab-space { height: 72px; }
+.deal-confirm-actions { display: flex; gap: 8px; flex-wrap: wrap !important; }
+.deal-confirm-actions .btn { flex: 1 1 140px; min-height: 44px; justify-content: center; text-align: center; }
+@media (max-width: 480px) { .deal-confirm-actions > .btn, .form-page .form-actions.deal-confirm-actions > .btn { flex: 1 1 100% !important; white-space: normal; } .deal-confirm-actions > .btn-primary, .deal-confirm-actions > .btn-danger { order: -1; } }

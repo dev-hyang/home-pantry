@@ -69,12 +69,19 @@ export async function clickHouse(action, el, id, e) {
         if (state.route?.q?.get("deal") === id) { const q = new URLSearchParams(state.route.q); q.delete("deal"); q.delete("sec"); go(`${href("house", "deal")}${q.toString() ? `?${q}` : ""}`, { replace: true }); }
         return refresh();
       }
-      case "deal-cancel": if (!armed(el, t("再点一次确认取消"))) return; await cancelDeal(el.dataset.deal || null); return refresh();
+      case "deal-cancel": {   // 取消页上的按钮（data-confirm）一步确认；别处的按钮还是点两次
+        if (!el.dataset.confirm && !armed(el, t("再点一次确认取消"))) return;
+        const dd = el.dataset.deal ? state.deals.find((x) => x.id === el.dataset.deal) : null;
+        await cancelDeal(el.dataset.deal || null);
+        if (dd) go(`${href("house", "deal")}?${dd.asset_id ? `asset=${encodeURIComponent(dd.asset_id)}&` : ""}deal=${encodeURIComponent(dd.id)}`, { replace: true });   // 回这笔交易的主页（已取消）
+        return refresh();
+      }
       case "deal-closeout": {
         const d = el.dataset.deal ? state.deals.find((x) => x.id === el.dataset.deal) : await openDeal();
         if (!d) return;
-        if (d.asset_id) { if (!armed(el, t("再点一次确认完成"))) return; await completeVehicleDeal(d); return refresh(); }
-        if (d.kind === "buy") { if (!armed(el, t("再点一次确认已交割"))) return; await completeBuy(d.id); return refresh(); }
+        const toDeal = () => go(`${href("house", "deal")}?${d.asset_id ? `asset=${encodeURIComponent(d.asset_id)}&` : ""}deal=${encodeURIComponent(d.id)}`, { replace: true });   // 完成后回这笔交易的主页
+        if (d.asset_id) { if (!el.dataset.confirm && !armed(el, t("再点一次确认完成"))) return; await completeVehicleDeal(d); toDeal(); return refresh(); }
+        if (d.kind === "buy") { if (!el.dataset.confirm && !armed(el, t("再点一次确认已交割"))) return; await completeBuy(d.id); toDeal(); return refresh(); }
         state.closeout = true; state.closeoutDeal = d.id; return go(`${href("house", "deal")}?deal=${encodeURIComponent(d.id)}&sec=closeout`);
       }
       case "plan-new": case "plan-edit": case "plan-cancel": case "plan-status": case "plan-delete": case "cand-new": case "cand-edit": case "cand-delete": case "cand-win": case "offer-new": case "offer-edit": case "offer-delete":
@@ -95,7 +102,7 @@ export async function clickHouse(action, el, id, e) {
       case "deal-event-new": state.dealEventEdit = { deal: el.dataset.deal, id: "", key: el.dataset.key || "" }; render(); { const f = $("#dealEventForm"); f?.scrollIntoView({ block: "center" }); f?.elements.title?.focus(); } return;
       case "deal-event-edit": { const ev = state.dealEvents.find((x) => x.id === el.dataset.id); if (!ev) return; state.dealEventEdit = { deal: ev.deal_id, id: ev.id, key: "" }; render(); { const f = $("#dealEventForm"); f?.scrollIntoView({ block: "center" }); f?.elements.title?.focus(); } return; }
       case "deal-event-cancel": state.dealEventEdit = null; return render();
-      case "deal-event-delete": if (!confirmDelete(t("删除这条进展记录？"))) return; await deleteDealEvent(el.dataset.id); state.dealEventEdit = null; toast(t("已删除")); return refresh();
+      case "deal-event-delete": if (!confirmDelete(t("删除这条进展记录？"))) return; await deleteDealEvent(el.dataset.id); state.dealEventEdit = null; if (el.dataset.back) go(el.dataset.back, { replace: true }); toast(t("已删除")); return refresh();
       case "deal-ai-run": { const d = state.deals.find((x) => x.id === el.dataset.deal); if (!d) return; const p = runDealAi(d, await analyze(d, await dealTasks(d))); render(); await p; return render(); }
       case "deal-view":
         state.dealView = ["plan", "actual", "compare"].includes(el.dataset.view) ? el.dataset.view : "list";

@@ -10,6 +10,9 @@ import { lang, t } from "../core/i18n.js";
 import { addDays } from "../bills/logic.js";
 import { aiReady, askText } from "../core/ai.js";
 import { myName } from "../settings/family-lite.js";
+import { href } from "../core/router.js";
+/** 交易子页的地址（不引 deal-tasks.js，免得循环依赖）：车辆带 asset=，一律带 deal= */
+const dh = (deal, sec, extra = "") => { const ps = new URLSearchParams({ sec }); if (deal.asset_id) ps.set("asset", deal.asset_id); ps.set("deal", deal.id); return `${href("house", "deal")}?${ps}${extra}`; };
 
 const D = () => window.DEALS;
 const PRIO_CLS = { must: "b-out", should: "b-soon", optional: "" };
@@ -101,7 +104,7 @@ const kpiS = (label, val, small = "") => `<div class="kpi"><span>${esc(label)}</
 function evLine(ev) {
   const bits = [ev.contact && `👤 ${esc(ev.contact)}`, ev.created_by_name && esc(ev.created_by_name)].filter(Boolean).join(" · ");
   return `<div class="dl-ev"><div class="dl-top"><time datetime="${ev.happened_on}">${md(ev.happened_on)}</time><b>${esc(ev.title)}</b>
-    <button type="button" class="task-edit" data-action="deal-event-edit" data-id="${esc(ev.id)}" aria-label="${esc(t("修改这条进展"))}" title="${esc(t("修改"))}">✎</button></div>
+    <a class="task-edit" href="${(() => { const d = state.deals.find((x) => x.id === ev.deal_id); return d ? dh(d, `event:${ev.id}`, "&from=actual") : "#"; })()}" aria-label="${esc(t("修改这条进展"))}" title="${esc(t("修改"))}">✎</a></div>
     ${ev.note ? `<small>${esc(ev.note)}</small>` : ""}${bits ? `<small class="muted">${bits}</small>` : ""}</div>`;
 }
 
@@ -128,7 +131,7 @@ function actCell(deal, x, evs, h) {
   return `<span class="dl-tag">✅ ${t("实际")}</span><div class="dl-card dl-act ${x.done ? "done" : x.lateNow > 0 ? "late" : "todo"}">
     ${head}${held}${evs.map(evLine).join("")}
     <div class="dl-acts"><label class="dl-check" for="${id}"><input type="checkbox" id="${id}" data-deal-task="${esc(x.key)}" data-deal="${deal.id}" ${x.done ? "checked" : ""}><span>${x.done ? t("已完成") : t("标记完成")}</span></label>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="deal-event-new" data-deal="${deal.id}" data-key="${esc(x.key)}">＋ ${t("记一笔进展")}</button>${x.done ? "" : `<button type="button" class="btn btn-sm btn-ghost" data-action="deal-task-skip" data-deal="${deal.id}" data-key="${esc(x.key)}" data-skip="1" title="${esc(t("跳过这一步（不适用）"))}">⊘ ${t("跳过此步")}</button>`}${h.editBtn(x)}</div>
+      <a class="btn btn-sm btn-ghost" href="${dh(deal, "event-new", `&key=${encodeURIComponent(x.key)}&from=actual`)}">＋ ${t("记一笔进展")}</a>${x.done ? "" : `<button type="button" class="btn btn-sm btn-ghost" data-action="deal-task-skip" data-deal="${deal.id}" data-key="${esc(x.key)}" data-skip="1" title="${esc(t("跳过这一步（不适用）"))}">⊘ ${t("跳过此步")}</button>`}${h.editBtn(x)}</div>
     ${editing ? h.editForm(x) : ""}</div>`;
 }
 
@@ -197,7 +200,7 @@ export function briefHtml(deal, an, h) {
   const msLine = ms && ms.baseline ? `<p class="dl-ms">${t("{l}：原计划 {a}", { l: t(label || ms.name), a: `<b>${fmtDate(ms.baseline)}</b>` })}${ms.done ? ` → ${t("实际 {b}", { b: `<b>${fmtDate(ms.done.done_on)}</b>` })} ${varPill(ms.slip)}`
     : ms.forecast && ms.forecast !== ms.baseline ? ` → ${t("预计 {b}", { b: `<b class="${ms.slip > 0 ? "lag-late" : ""}">${fmtDate(ms.forecast)}</b>` })} ${varPill(ms.slip)}` : ` · ${pill("ok", t("预计按计划"))}`}</p>` : "";
   const list = an.overdue.slice(0, 5).map((x) => `<li><div class="grow"><b>${esc(t(x.name))}</b><small>${t("本来应该 {d} 完成，已晚 {n} 天", { d: fmtDate(x.baseline), n: x.lateNow })}${x.priority === "must" ? ` · ${t("必须项")}` : ""}${x.held.length ? ` · ${t("在等：{n}", { n: x.held.map((n) => t(n)).join("、") })}` : ""}</small></div>
-    <button type="button" class="btn btn-sm btn-ghost" data-action="deal-event-new" data-deal="${deal.id}" data-key="${esc(x.key)}">＋ ${t("记一笔进展")}</button></li>`).join("");
+    <a class="btn btn-sm btn-ghost" href="${dh(deal, "event-new", `&key=${encodeURIComponent(x.key)}&from=compare`)}">＋ ${t("记一笔进展")}</a></li>`).join("");
   return `<div class="panel dl-brief"><h3 style="margin:0 0 8px">${t("对照计划")}</h3>
     <div class="kpis">${kpiS(t("已完成"), `${an.done} / ${an.total}`, an.skipped ? `<small>⊘ ${t("跳过 {n} 项", { n: an.skipped })}</small>` : "")}${kpiS(t("晚于计划"), `<span class="${an.late ? "down" : ""}">${an.late}</span>`, `<small>${t("含预计会晚的")}</small>`)}${kpiS(t("已过原计划日"), `<span class="${an.overdue.length ? "down" : ""}">${an.overdue.length}</span>`, `<small>${t("还没做")}</small>`)}</div>
     ${msLine}${an.overdue.length ? `<ul class="restock-list dl-late-list">${list}</ul>${an.overdue.length > 5 ? `<p class="muted small" style="margin:6px 0 0">${t("还有 {n} 项…", { n: an.overdue.length - 5 })}</p>` : ""}` : `<p class="muted small" style="margin:6px 0 0">${t("没有超过原计划日的事项。")}</p>`}
@@ -253,6 +256,27 @@ export function eventFormPanel(deal, an) {
       <button class="btn btn-ghost btn-sm" type="button" data-action="deal-event-cancel">${t("取消")}</button>
       ${ev ? `<button class="btn btn-ghost btn-sm" type="button" data-action="deal-event-delete" data-id="${esc(ev.id)}">${t("删除这条")}</button>` : ""}
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div></form></section>`;
+}
+/** 记一笔进展 / 修改进展记录的独立页面（底部「取消 / 保存」，保存后回 returnTo；修改页另有一块「删除这条」） */
+export function eventFormPage(deal, an, { ev = null, key = "", cancelHref, returnTo }) {
+  const opt = (x) => `<option value="${esc(x.key)}" ${x.key === key ? "selected" : ""}>${x.done ? "✓ " : ""}${esc(t(x.name))}</option>`;
+  const undone = an.rows.filter((x) => !x.done && !x.skipped), done = an.rows.filter((x) => x.done);
+  const form = `<form id="dealEventForm" class="panel" novalidate>
+    <h3 style="margin:0 0 8px">${ev ? t("修改进展记录") : t("记一笔进展")}</h3>
+    <input type="hidden" name="deal_id" value="${esc(deal.id)}"><input type="hidden" name="event_id" value="${esc(ev?.id || "")}"><input type="hidden" name="return_to" value="${esc(returnTo)}">
+    <div class="form-grid">
+      <label>${t("发生日期")}<input name="happened_on" type="date" required max="${todayISO()}" value="${esc(ev?.happened_on || todayISO())}"></label>
+      <label>${t("联系人（可选）")}<input name="contact" maxlength="120" value="${esc(ev?.contact || "")}" placeholder="${esc(t("律师 / 经纪人 / ComEd …"))}"></label>
+      <label class="span-2">${t("做了什么")}<input name="title" required maxlength="200" value="${esc(ev?.title || "")}" placeholder="${esc(t("例如：和卖方律师改完合同第二版；联系 ComEd 预约停服务"))}"></label>
+      <label class="span-2">${t("对应的清单事项（可选）")}<select name="task_key"><option value="">${t("（不对应清单事项，只是记录）")}</option>
+        ${undone.length ? `<optgroup label="${esc(t("还没完成"))}">${undone.map(opt).join("")}</optgroup>` : ""}${done.length ? `<optgroup label="${esc(t("已完成"))}">${done.map(opt).join("")}</optgroup>` : ""}</select></label>
+      <label class="check-inline span-2"><input type="checkbox" name="mark_done"><span>${t("同时把这一步标为已完成（完成日期 = 上面的日期）")}</span></label>
+      <label class="span-2">${t("备注（可选）")}<input name="note" maxlength="1000" value="${esc(ev?.note || "")}" placeholder="${esc(t("对方要求、延迟原因、下一步…"))}"></label>
+    </div>
+    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="btn btn-ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button>
+      <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div></form>`;
+  const del = ev ? `<div class="panel"><div class="kv"><div class="muted">${t("不需要这条记录了？")}</div><button type="button" class="btn btn-sm btn-danger-ghost" data-action="deal-event-delete" data-id="${esc(ev.id)}" data-back="${esc(returnTo)}">${t("删除这条")}</button></div></div>` : "";
+  return `<section class="section">${form}${del}</section>`;
 }
 export async function saveDealEventForm(f) {
   const fe = f.elements, deal = state.deals.find((d) => d.id === fe.deal_id.value); if (!deal) return;

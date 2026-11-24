@@ -5,6 +5,9 @@
  * 保存后回到哪里：表单里的 return_to（app/events/submit.js 读它）。 */
 import { D, PRIO_CLS, customBadge, dateLine, dealAsk, dealHref, dealTasks, dateLabels, isVehDeal, skipBtn, taskEditForm } from "./deal-tasks.js";
 import { askButton, askPanel } from "../core/ask.js";
+import { eventFormPage } from "./deal-progress.js";
+import { fabMenu } from "../core/fab-menu.js";
+import { state } from "../core/state.js";
 import { esc, fmtDate, money, num } from "../core/util.js";
 import { priceOrNull, pricesOk } from "../core/finance-access.js";
 import { t } from "../core/i18n.js";
@@ -52,4 +55,49 @@ export function taskPage(deal, sec, q) {
     <div class="form-actions" style="margin-top:10px">${askButton(dAsk)}${skipBtn(x) ? `<button type="button" class="btn btn-ghost btn-sm" data-action="deal-task-skip" data-deal="${esc(deal.id)}" data-key="${esc(x.key)}" data-skip="${x.skipped ? "0" : "1"}">${x.skipped ? t("恢复这一步") : t("跳过这一步（不适用）")}</button>` : ""}
       ${rec ? `<button type="button" class="btn btn-ghost btn-sm" data-action="deal-task-delete" data-id="${esc(rec.id)}" data-back="${esc(stageHref(x.stage))}">${t("删除这条事项")}</button>` : ""}</div>
     ${askPanel(dAsk)}</div></section>`;
+}
+
+/** 进展记录：记一笔（?sec=event-new&key=事项&from=视图）/ 修改（?sec=event:<id>）；from = 从哪个视图来的（保存 / 取消后回那里，默认「实际」） */
+export function eventPage(deal, sec, q, an) {
+  const from = ["plan", "actual", "compare"].includes(q.get("from")) ? q.get("from") : "actual", back = dealHref(deal, from);
+  const ev = sec.startsWith("event:") ? (state.dealEvents || []).find((x) => x.id === sec.slice(6)) : null;
+  if (sec.startsWith("event:") && !ev) return `<section class="section"><div class="panel empty"><strong>${t("找不到这条记录")}</strong></div></section>`;
+  return eventFormPage(deal, an, { ev, key: ev ? (ev.task_keys || [])[0] || "" : q.get("key") || "", cancelHref: back, returnTo: back });
+}
+
+/** 「完成」这一步叫什么 / 说明什么：房产买入 = 完成交割；车辆各一种；卖房 / 退租走退出向导页（?sec=closeout，不在这里） */
+export function completeInfo(deal) {
+  const k = deal.kind;
+  if (k === "buy") return { label: t("完成交割"), btn: t("已交割，标为持有"), desc: t("交割后标为持有，记买入日期和价格") };
+  if (k === "veh_buy") return { label: t("已提车，标为持有"), btn: t("已提车，标为持有"), desc: t("把购车日期、价格写进车辆档案；填了贷款行就标为贷款中") };
+  if (k === "veh_sell") return { label: t("已交车，标为已卖出"), btn: t("已交车，标为已卖出"), desc: t("记下日期和成交价，车从列表和提醒里退出，档案与保养记录保留") };
+  return { label: t("已归还，标为已归还"), btn: t("已归还，标为已归还"), desc: t("记下日期，车从列表和提醒里退出，档案与保养记录保留。") };
+}
+/** 完成页：一段说明 + 「取消 / 确认」（买入 / 车辆：一步确认；卖房 / 退租是退出向导页） */
+export function completePage(deal) {
+  const c = completeInfo(deal);
+  return `<section class="section"><div class="panel"><h3 style="margin:0 0 6px">${esc(c.label)}</h3><p class="muted">${esc(c.desc)}</p>
+    <div class="form-actions sticky-actions deal-confirm-actions"><a class="btn btn-ghost" href="${dealHref(deal)}">${t("取消")}</a><button type="button" class="btn btn-primary" data-action="deal-closeout" data-deal="${esc(deal.id)}" data-confirm="1">${esc(c.btn)}</button></div></div></section>`;
+}
+/** 取消交易页：说明会发生什么 + 「返回 / 取消这笔交易」 */
+export function cancelPage(deal) {
+  return `<section class="section"><div class="panel"><h3 style="margin:0 0 6px">${t("取消这笔交易")}</h3>
+    <p class="muted">${t("这笔交易会标为已取消，放进历史；清单、时间线和交易信息都保留，仍可查看。房产状态按剩下还在进行的交易恢复，没有别的交易就退回开始之前的状态。")}</p>
+    <div class="form-actions sticky-actions deal-confirm-actions"><a class="btn btn-ghost" href="${dealHref(deal)}">${t("返回")}</a><button type="button" class="btn btn-danger" data-action="deal-cancel" data-deal="${esc(deal.id)}" data-confirm="1">${t("取消这笔交易")}</button></div></div></section>`;
+}
+
+/** 右下角圆形 ＋（只有一项时直接是一个圆形 ＋ 链接）：主页 = 添加自定义事项 / 记一笔进展 /（进行中）完成或退出 /（进行中）取消交易；
+ *  清单 / 阶段页 = 添加自定义事项；计划 / 实际 / 对比页 = 记一笔进展。位置 = "hub" | "list" | "stage" | "view"（view 时 from = 当前视图） */
+export function dealFab(deal, where, opts = {}) {
+  return `<div class="fab-space" aria-hidden="true"></div>${dealFabMenu(deal, where, opts)}`;   // 空白：页面拉到底时右下角 ＋ 不盖住最后一行字
+}
+function dealFabMenu(deal, where, { stage = "special", from = "actual" } = {}) {
+  const closed = !!deal.outcome, addTask = { icon: "➕", label: t("添加自定义事项"), href: `${dealHref(deal, "task-new")}${stage && stage !== "special" ? `&stage=${encodeURIComponent(stage)}` : ""}` };
+  const addEvent = { icon: "📝", label: t("记一笔进展"), href: `${dealHref(deal, "event-new")}&from=${from}` };
+  if (where === "list" || where === "stage") return fabMenu([addTask], { label: t("添加自定义事项") });
+  if (where === "view") return fabMenu([addEvent], { label: t("记一笔进展") });
+  const wizard = !deal.asset_id && ["sell", "move_out"].includes(deal.kind);   // 卖房 / 退租：退出向导页；其余：完成页
+  return fabMenu([addTask, addEvent,
+    closed ? null : { icon: "🔑", label: wizard ? t("退出向导") : completeInfo(deal).label, href: dealHref(deal, wizard ? "closeout" : "complete") },
+    closed ? null : { icon: "⛔", label: t("取消这笔交易"), href: dealHref(deal, "cancel") }], { label: t("添加") });
 }

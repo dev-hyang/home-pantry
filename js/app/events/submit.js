@@ -154,7 +154,7 @@ export async function onMainSubmit(e) {
     if (f.id === "planForm") { const pid = await savePlanForm(f); state.planEdit = null; await refresh(); if (!f.elements.rec_id.value) go(`${href("house", "plan")}?p=${pid}`); return; }
     if (f.id === "candForm") { await saveCandForm(f); state.planEdit = null; return refresh(); }
     if (f.id === "offerForm") { await saveOfferForm(f); state.planEdit = null; return refresh(); }
-    if (f.id === "dealEventForm") { await saveDealEventForm(f); state.dealEventEdit = null; return refresh(); }
+    if (f.id === "dealEventForm") { await saveDealEventForm(f); state.dealEventEdit = null; await refresh(); const to = f.elements.return_to?.value; if (to) go(to, { replace: true }); return; }   // 独立页面里的进展表单：保存后回来源视图
     if (f.id === "dealTaskForm") { await saveDealTaskForm(f); state.dealTaskEdit = null; await refresh(); const to = f.elements.return_to?.value; if (to) go(to, { replace: true }); return; }   // 独立页面里的事项表单：保存后回 return_to
     if (f.id === "seasonForm") { if (await saveSeasonForm(f)) { state.seasonForm = null; return refresh(); } return; }
     if (f.id === "closeoutForm") { await applyCloseout(f); go(href("house", "overview")); return refresh(); }

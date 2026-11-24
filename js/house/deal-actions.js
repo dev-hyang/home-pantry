@@ -132,7 +132,7 @@ export async function completeBuy(dealId = null) {
 }
 /** 卖出 / 退租交割：账单写结束日期、房产状态与归档、交易关闭 */
 export async function applyCloseout(f) {
-  const p = currentProp(), d = (state.closeoutDeal && state.deals.find((x) => x.id === state.closeoutDeal && !x.outcome)) || openDeal(p?.id);   // 交割向导对应哪一笔：点进来时记下的那笔（同时有买入和卖出时不会弄混）
+  const p = currentProp(), fid = f.elements.deal_id?.value || state.closeoutDeal, d = (fid && state.deals.find((x) => x.id === fid && !x.outcome)) || openDeal(p?.id);   // 交割向导对应哪一笔：点进来时记下的那笔（同时有买入和卖出时不会弄混）
   if (!d) return;
   const fe = f.elements, closing = fe.closing_on.value || todayISO();
   const entries = state.bills.filter((b) => b.property_id === p.id && b.active).map((b) => ({ id: b.id, ends_on: fe[`end_${b.id}`]?.value || closing }));

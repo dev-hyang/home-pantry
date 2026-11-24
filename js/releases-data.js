@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.17", title: { zh: "交易页：右下角 ＋，每个操作都是独立页面", en: "Transactions: a ＋ button, and every action is its own page" }, items: [
+    { k: "new", zh: "交易主页右下角有圆形 ＋：添加自定义事项、记一笔进展、退出向导 / 完成交割、取消这笔交易；清单和阶段页的 ＋ 是添加自定义事项，计划 / 实际 / 对比页的 ＋ 是记一笔进展；已完成的历史交易只有前两项", en: "The transaction home has a round ＋: add a custom task, log progress, exit wizard / complete closing, cancel the transaction. On List and stage pages it adds a custom task; on Plan / Actual / Compare it logs progress. Past transactions only have the first two" },
+    { k: "new", zh: "记一笔进展、修改进展、退出向导、完成交割、取消交易都是独立页面（有面包屑，底部取消 / 保存或确认），不再在原页面里就地展开；清单页里原来的「完成」行和「取消这笔交易」按钮挪进了 ＋", en: "Logging or editing progress, the exit wizard, completing and cancelling are now separate pages with breadcrumbs and Cancel / Save (or Confirm) at the bottom, instead of expanding in place; the old Complete row and Cancel button on the List page moved into the ＋" },
+    { k: "better", zh: "事项和进展保存后回到你来的那一页；取消页、完成页手机上按钮整行宽", en: "After saving a task or a progress note you return to where you came from; confirm buttons are full width on phones" },
+  ] },
   { v: "2026-11-24.16", title: { zh: "交易：交易信息 / 事项都有详情页，阶段里的事项变成行卡片", en: "Transactions: info and tasks get detail pages; tasks in a stage become row cards" }, items: [
     { k: "new", zh: "「交易信息」先是一张只读的详情卡，右上角「编辑」进表单，底部「取消 / 保存」，保存后回到详情", en: "“Transaction info” is now a read-only detail card; Edit opens the form with Cancel / Save at the bottom and returns to the details after saving" },
     { k: "new", zh: "阶段页里每个事项是一张行卡片：左边勾一下标完成，点卡片进事项详情（状态、日期、备注、说明；可编辑、跳过、删除自定义事项）", en: "Each task in a stage is a row card: tick the box to mark it done, tap the card for its details (status, dates, notes; edit, skip, delete a custom task)" },
