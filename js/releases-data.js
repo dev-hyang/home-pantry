@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.4", title: { zh: "税务买卖清单：更好读、好找", en: "Tax buy / sell lists: easier to read and search" }, items: [
+    { k: "new", zh: "页面右上多了「金额显示」眼睛：外出时金额模糊，单击露 10 秒", en: "New “amount display” eye on the page: amounts are blurred when you are out; tap to reveal for 10 seconds" },
+    { k: "better", zh: "清单和「从记录里选」的框略深于背景；每行的日期、🔗、名称放在同一行，放不下才折行；最多显示约 6 行，多了可滚动", en: "Lists and the picker have a slightly darker box; date, 🔗 and name sit on one line (wrapping only if needed); about 6 rows show, then it scrolls" },
+    { k: "new", zh: "记录多了（7 条以上）会出现搜索框和金额档位（全部金额、1000+、500–999…），快速定位", en: "With 7+ rows a search box and an amount filter (All, 1000+, 500–999…) appear for quick lookup" },
+  ] },
   { v: "2026-11-24.3", title: { zh: "花费 / 收入明细：时间范围统一", en: "Spending / income lists: one time-range filter" }, items: [
     { k: "better", zh: "花费明细的时间范围里，「全部历史」和「自定义」排到最前面，默认仍是全部历史（默认时筛选计数为 0）", en: "In the spending list, “All time” and “Custom” now come first; default stays All time (filter count is 0 by default)" },
     { k: "better", zh: "收入明细把「全部年份 / 全部月份」两个下拉合并成和花费一样的一个时间范围：全部历史（默认）、自定义起止月份，以及本月、近几个月、某一年等", en: "The income list replaces the two “all years / all months” menus with the same single time range as spending: All time (default), Custom months, this month, recent months, a given year…" },

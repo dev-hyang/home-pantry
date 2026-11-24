@@ -3,6 +3,10 @@ import { ui } from "./tax-ui.js";
 import { state } from "../core/state.js";
 
 export const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+/** 金额档位（从高到低，第一项 = 全部金额）：按金额的绝对值；[含下限, 不含上限) */
+export const AMT_BUCKETS = [["all", "全部金额"], ["1000", "1000+"], ["500", "500–999"], ["200", "200–499"], ["100", "100–199"], ["50", "50–99"], ["0", "0–49"]];
+const AMT_RANGE = { 1000: [1000, Infinity], 500: [500, 1000], 200: [200, 500], 100: [100, 200], 50: [50, 100], 0: [0, 50] };
+export const bucketOk = (b, amt) => { const r = AMT_RANGE[b]; if (!r) return true; const a = Math.abs(Number(amt) || 0); return a >= r[0] && a < r[1]; };
 export const dayOf = (iso) => String(iso || "").slice(0, 10);
 
 /** 一行链接解析成显示 / 计算用的行：missing = 记录读到了但找不到（已删除）→ 金额按 0 算 */

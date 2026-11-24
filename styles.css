@@ -4768,3 +4768,15 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .fin-req .dl-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .fin-req .dl-row input { flex: 1 1 200px; min-width: 0; min-height: 44px; box-sizing: border-box; }
 .gate-card .check-inline { display: flex; align-items: center; gap: 8px; min-height: 44px; margin: 6px 0; text-align: left; }
+/* 买卖清单（2026-11-24.4）：清单 / 选择器的框比背景略深一点；一行放日期 · 🔗 · 名称（放不下再折）；最多约 6 行，多了滚动；搜索 + 金额档位 */
+.tax-imps, .tax-pick { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 0 10px; max-height: 300px; overflow-y: auto; overscroll-behavior: contain; }
+.tax-imps .tax-imp:last-child, .tax-pick .tax-pick-row:last-child { border-bottom: 0; }
+.tax-imp[hidden], .tax-pick-row[hidden] { display: none; }
+.tax-imp-d { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; line-height: 1.35; }
+.tax-imp-d > span[title] { font-size: 1em; line-height: 1; }
+.tax-link-form, .tax-item-form { background: var(--surface-2); }
+.tax-fbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 6px; }
+.tax-fbar input[type="search"] { flex: 1 1 160px; min-width: 0; min-height: 44px; box-sizing: border-box; }
+.tax-fbar select { min-height: 44px; box-sizing: border-box; max-width: 100%; }
+.tax-fc { font-size: 12px; white-space: nowrap; }
+.tax-eye { align-items: center; gap: 8px; }

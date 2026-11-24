@@ -30,3 +30,9 @@ test("收入选择器：只列关联了这套房、没被链接的；linkRows �
   assert.deepEqual(pickableIncome("p1", new Set(["a"])).map((r) => r.id), ["c"]);
   assert.deepEqual(linkRows("income", "p1", new Set(["c"])), [{ link: "income", ref: "c", desc: "C", amount: 30, on: "2026-03-01" }]);
 });
+
+import { bucketOk } from "../js/tax/tax-links-lib.js";
+test("金额档位：从高到低；按绝对值；下限含、上限不含", () => {
+  assert.equal(bucketOk("all", 5), true); assert.equal(bucketOk("1000", 1000), true); assert.equal(bucketOk("1000", 999.99), false);
+  assert.equal(bucketOk("500", 999.99), true); assert.equal(bucketOk("500", 1000), false); assert.equal(bucketOk("0", -49.5), true); assert.equal(bucketOk("0", 50), false);
+});
