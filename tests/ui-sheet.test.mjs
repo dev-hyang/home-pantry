@@ -14,3 +14,14 @@ test("没有标题不画 h3；label 和取消文字会转义", () => {
   assert.doesNotMatch(h, /<h3>/);
   assert.match(h, /a&quot;&lt;b/); assert.match(h, /&lt;x&gt;/);
 });
+
+import { cycleFocus } from "../js/core/ui-sheet.js";
+test("Tab 在面板里转圈", () => {
+  const [a, b, c] = [{}, {}, {}], list = [a, b, c];
+  assert.equal(cycleFocus(list, a, false), b);
+  assert.equal(cycleFocus(list, c, false), a);   // 末尾回到开头
+  assert.equal(cycleFocus(list, a, true), c);    // Shift+Tab 从开头回到末尾
+  assert.equal(cycleFocus(list, {}, false), a);  // 焦点在面板外：从头开始
+  assert.equal(cycleFocus(list, {}, true), c);
+  assert.equal(cycleFocus([], a, false), null);
+});

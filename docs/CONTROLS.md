@@ -79,7 +79,7 @@
 | `cancelText` | 取消按钮文字 |
 
 外观变量：`--sheet-r`、`--sheet-shade`、`--sheet-shadow`（`ask-dlg` 手机端共用）。
-已知缺口：这个面板没有原生 `<dialog>` 的焦点锁定；选人面板没有 Esc 关闭。
+键盘与焦点（2026-11-24.33 起，`ui-sheet.js` 里自动生效，调用方不用接线）：出现时焦点移进面板、消失后回到原处；Tab 只在面板里转圈；Esc 点「取消」（长按菜单自己处理 Esc）。背后的页面不会被设成 `inert`，和原生 `<dialog>` 比还差这一点。
 
 ### 对话框 · `ask-dlg` / `ask-form` / `ask-acts`
 原生 `<dialog>.showModal()`；手机上贴底、电脑上居中。浏览器负责 Esc、焦点、背景不可点。
@@ -123,7 +123,7 @@
 
 - 宽屏表格行（`dv-row` 等）的手机折叠。
 - `rl-badge-go` 并入 `ui-chev`（要和姊妹站一起改共享文件）。
-- 选人面板、长按菜单换成原生 `<dialog>`（焦点锁定、Esc）。
+- 选人面板、长按菜单换成原生 `<dialog>`（现在只补了焦点和 Esc，背后页面不是 `inert`）：选人面板跟着页面重画，换成 `<dialog>` 要在每次重画后补一次 `showModal()`，暂不做。
 - 把箭头 / 行 / 选项 / 弹窗样式从 `styles.css` 搬进 `shared/ui.css`，同步到姊妹站。
 - 清理疑似死代码类名：已在 2026-11-24.32 删除 `purchase-row`（含 `pr-*`）、`tl-item`、`tatt-row` / `tatt-list`、`med-li`、`ks-row`（含 `kpi-split`）、`hb-row` 的样式。
   还留着没确认的：`.tl` 时间线的 `tl-mark`、`tl-dot`、`tl-today`，`hb-list`（JS 里已没有使用，下次顺手清）。

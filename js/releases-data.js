@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.33", title: { zh: "底部弹出的面板支持键盘：Esc 关闭，Tab 不会跑到背后", en: "Bottom panels now work with the keyboard: Esc closes, Tab stays inside" }, items: [
+    { k: "better", zh: "「属于哪位家庭成员」选人面板可以按 Esc 关闭；长按菜单和选人面板打开后，Tab 键只在面板里切换，关闭后焦点回到原来的位置。", en: "The “which family member” panel closes with Esc. In it and in the long-press menu, Tab now stays inside the panel, and focus returns to where it was when the panel closes." },
+    { k: "better", zh: "读屏软件打开面板时会直接读出面板名字。", en: "Screen readers announce the panel name as soon as it opens." },
+  ] },
   { v: "2026-11-24.32", title: { zh: "清理了一批不再使用的旧样式", en: "Removed a batch of unused old styles" }, items: [
     { k: "better", zh: "删掉了已经没有页面在用的旧样式（约 50 行），页面外观没有变化，加载的样式文件略小一点。", en: "Removed old styles that no page uses any more (about 50 lines). Pages look the same and the style file is slightly smaller." },
   ] },
