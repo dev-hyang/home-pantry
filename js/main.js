@@ -1,4 +1,5 @@
 import "./core/autosize.js";
+import "./core/num-focus.js";
 import { initPrivacy, setPrivacyRoute } from "./core/privacy.js";
 import { state } from "./core/state.js";
 import { $, toast } from "./core/util.js";

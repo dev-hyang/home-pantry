@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.22", title: { zh: "金额框里是 0 时，点进去直接输入就行", en: "Tap an amount box showing 0 and just type" }, items: [
+    { k: "fix", zh: "金额、天数这类数字框，原来显示 0 或 0.00 时，输入 9 会变成 09 或 0.009；现在点进去会自动选中这个 0，直接输入就覆盖掉。", en: "In amount and day-count boxes showing 0 or 0.00, typing 9 used to give 09 or 0.009. Now the 0 is selected on focus, so typing replaces it." },
+    { k: "better", zh: "不是 0 的值不会被选中，想在原来的数上改还是照常。所有表单一起生效。", en: "Non-zero values are not selected, so editing an existing number works as before. Applies to every form." },
+  ] },
   { v: "2026-11-24.21", title: { zh: "「创建贷款」可以用刚识别的 Closing Disclosure 预填", en: "“Create loan” can be pre-filled from the Closing Disclosure you just read" }, items: [
     { k: "new", zh: "用文件自动填读到贷款金额、利率、期限、月供后，交易清单上的「创建贷款」会直接预填这些（月供 = 本金利息 + Escrow），你再核对一下就能保存。", en: "After auto-fill reads the loan amount, rate, term and payment, “Create loan” on the transaction checklist is pre-filled with them (payment = principal & interest + escrow) for you to double-check and save." },
     { k: "better", zh: "没读过文件时和以前一样：本金按成交价 − 定金估。识别结果只在当前页面有效，刷新后要重新识别。", en: "Without a document read it works as before: principal estimated as price − earnest money. A read lasts only for the current page session." },
