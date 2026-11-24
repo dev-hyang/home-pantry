@@ -4814,3 +4814,7 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .deal-confirm-actions { display: flex; gap: 8px; flex-wrap: wrap !important; }
 .deal-confirm-actions .btn { flex: 1 1 140px; min-height: 44px; justify-content: center; text-align: center; }
 @media (max-width: 480px) { .deal-confirm-actions > .btn, .form-page .form-actions.deal-confirm-actions > .btn { flex: 1 1 100% !important; white-space: normal; } .deal-confirm-actions > .btn-primary, .deal-confirm-actions > .btn-danger { order: -1; } }
+
+/* 交易主页总结卡片里的付款方式切换（贷款 / 现金） */
+.deal-fin { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.deal-fin .chip { min-height: 44px; }

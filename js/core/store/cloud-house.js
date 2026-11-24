@@ -41,6 +41,7 @@ export const cloudHouse = {
     if (state.noBaselineCol) delete row.baseline;
     const run = async (r) => (d.id ? this.sb.from("property_deals").update(r).eq("id", d.id) : this.sb.from("property_deals").insert(r).select("id").single());
     let res = await run(row);
+    if (res.error && /financing/i.test(res.error.message) && "financing" in row) { const { financing, ...rest } = row; res = await run(rest); }   // 迁移 110 还没执行：不存付款方式，交易照常保存
     if (res.error && /baseline/i.test(res.error.message) && "baseline" in row) { state.noBaselineCol = true; const { baseline, ...rest } = row; res = await run(rest); }   // 迁移 046 还没执行：不存基线，交易照常保存
     const out = this.must(res);
     await this.writeFin("property_deals", d.id || out.id, fin);

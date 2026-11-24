@@ -157,7 +157,7 @@ const FIN = {
   assets:         { table: "asset_financials",    key: "asset_id",    cols: ["purchase_price", "replacement_cost_estimate", "sale_price"] },   // sale_price → vehicle.sale_price
 };
 const canFinance = () => financeAllowed({ mode: "cloud", userId: state.user?.id, members: state.members });
-export const DEAL_FIELDS = ["property_id", "asset_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "notes", "outcome", "closed_at", "baseline"];
+export const DEAL_FIELDS = ["property_id", "asset_id", "kind", "contract_on", "review_deadline", "financing_deadline", "closing_on", "price", "earnest_money", "attorney", "lender", "agent", "title_company", "inspector", "financing", "notes", "outcome", "closed_at", "baseline"];
 export const PLAN_FIELDS = ["kind", "title", "status", "budget", "notes"];
    // 买卖计划（迁移 078）
 export const PLAN_CAND_FIELDS = ["plan_id", "name", "address", "url", "price", "status", "score", "pros", "cons", "details", "notes"];

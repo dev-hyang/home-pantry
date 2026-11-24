@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.19", title: { zh: "买卖交易可以选「付款方式」：现金 / 贷款，清单跟着变", en: "Buy / sell transactions have a payment method: cash or loan, and the checklist follows" }, items: [
+    { k: "new", zh: "买入、卖出、买车、卖车多了「付款方式」（贷款 / 现金；卖出时是买家的付款方式，可以不选，按贷款算）。交易主页总结卡片上一点就切换，交易信息里也能改", en: "Buy, sell, buy-a-car and sell-a-car have a Payment method (loan / cash; for a sale it is the buyer's, and may be left unset = loan). Switch it on the transaction home or in the info" },
+    { k: "new", zh: "现金买入没有贷款预批、提交贷款材料、评估、贷款承诺（整个「贷款与评估」阶段不再出现），改成资金证明、电汇核实；买家现金的卖出没有「配合买方评估」，多一条「要买家资金证明」；买车同理。已经勾过的事项切换后仍保留", en: "A cash purchase drops loan pre-approval, loan documents, appraisal and the commitment (the whole Financing & appraisal stage disappears) and gains proof of funds and wire verification; a sale to a cash buyer drops the appraisal and adds asking for proof of funds; the same for cars. Steps you already ticked are kept" },
+    { k: "better", zh: "现金交易的交易信息里不再显示贷款条款截止和贷款行，「创建贷款」也不提示；现金买车完成时车不会标成贷款中。已有的交易没有选付款方式，行为不变（按贷款）", en: "For cash deals the info hides the loan deadline and lender, and “Create loan” is not offered; a cash car purchase is not marked as financed. Existing transactions have no payment method set and behave as before (loan)" },
+  ] },
   { v: "2026-11-24.18", title: { zh: "交易页的筛选和搜索，换成和其他明细页一样的格式", en: "Transactions: the same search + filter bar as the other lists" }, items: [
     { k: "new", zh: "计划、实际、对比和阶段页顶部是「搜索框 + 筛选」：可以搜事项名称 / 备注 / 进展记录的内容，再按完成情况、阶段、排序筛；手机上收成「搜索框 + 筛选」按钮，有筛选时按钮上显示个数，可一键清除", en: "Plan, Actual, Compare and stage pages have the usual “search + filters” bar: search task names, notes and progress notes, then filter by status, stage and sort; on phones it collapses to a search box and a Filters button with a count and a clear button" },
     { k: "better", zh: "搜索在输入停顿后生效，输入框保持焦点；对比视图里「清单之外」的进展记录也能被搜到", en: "Search applies after you pause typing and keeps focus; progress notes outside the checklist show up in Compare when they match" },

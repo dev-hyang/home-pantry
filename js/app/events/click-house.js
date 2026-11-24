@@ -13,7 +13,7 @@ import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 
 /** 点击动作（房屋：设备、保养、季节任务、交易、房产、买卖计划）：这一组处理的 data-action */
-export const HOUSE_ACTIONS = new Set(["house-new-go","house-new-create","asset-cancel","asset-delete","asset-row-del","maint-del","tasks-prev","tasks-next","tasks-today","season-new","season-edit","season-cancel","season-delete","unit-add","unit-del","property","house-open","property-edit","property-cancel","property-delete","deal-start","deal-delete","deal-cancel","deal-closeout","plan-new","plan-edit","plan-cancel","plan-status","plan-delete","cand-new","cand-edit","cand-delete","cand-win","offer-new","offer-edit","offer-delete","plan-check","plan-open-property","deal-task-skip","deal-task-edit","deal-task-new","deal-task-cancel","deal-due-reset","deal-task-delete","deal-event-new","deal-event-edit","deal-event-cancel","deal-event-delete","deal-ai-run","deal-view","deal-closeout-cancel","property-default","property-archive","house-enable","house-cancel","property-of-bill","deal-filter","tasks-undone"]);
+export const HOUSE_ACTIONS = new Set(["deal-financing","house-new-go","house-new-create","asset-cancel","asset-delete","asset-row-del","maint-del","tasks-prev","tasks-next","tasks-today","season-new","season-edit","season-cancel","season-delete","unit-add","unit-del","property","house-open","property-edit","property-cancel","property-delete","deal-start","deal-delete","deal-cancel","deal-closeout","plan-new","plan-edit","plan-cancel","plan-status","plan-delete","cand-new","cand-edit","cand-delete","cand-win","offer-new","offer-edit","offer-delete","plan-check","plan-open-property","deal-task-skip","deal-task-edit","deal-task-new","deal-task-cancel","deal-due-reset","deal-task-delete","deal-event-new","deal-event-edit","deal-event-cancel","deal-event-delete","deal-ai-run","deal-view","deal-closeout-cancel","property-default","property-archive","house-enable","house-cancel","property-of-bill","deal-filter","tasks-undone"]);
 /** 点击动作（房屋：设备、保养、季节任务、交易、房产、买卖计划）：按 data-action 分支；el 是被点的元素，id 是它的 data-id，e 是点击事件 */
 export async function clickHouse(action, el, id, e) {
   switch (action) {
@@ -60,6 +60,10 @@ export async function clickHouse(action, el, id, e) {
         if (!window.confirm(t("删除“{name}”？\n\n账单、花费记录和借贷会保留，只是不再关联这套房产（房产 ID 变成空）。\n房屋资料、设备与保养记录、季节任务、交易、估值会跟着房产一起删除，不能恢复。\n\n只是不再持有或租住的话，建议用“归档”：所有数据都保留，可随时恢复。", { name: p.name }))) return;
         await Store.deleteProperty(p.id); toast(t("已删除“{name}”", { name: p.name }));
         await refresh(); if (state.route?.section === "house") go(href("house")); return;
+      }
+      case "deal-financing": {   // 付款方式（贷款 / 现金）：点一下就存，清单按它重算
+        const d = state.deals.find((x) => x.id === el.dataset.deal); if (!d) return;
+        await Store.saveDeal({ ...d, financing: el.dataset.val || null }); toast(t("已改付款方式")); return refresh();
       }
       case "deal-start": await startDeal(el.dataset.kind, el.dataset.asset || null); return refresh();
       case "deal-delete": {   // 历史交易行：删除这条交易记录（左滑 / 行内按钮）

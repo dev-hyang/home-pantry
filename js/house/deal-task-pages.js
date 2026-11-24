@@ -3,6 +3,7 @@
  *  · 事项详情页（?sec=task:<key>）：名称、阶段、重要程度、日期、备注、状态 + 勾选完成 / 编辑 / 跳过 / 删除（自定义事项）；编辑进表单页（&edit=1）
  *  · 添加自定义事项页（?sec=task-new&stage=<阶段>）：就是那张表单，底部「取消 / 保存」
  * 保存后回到哪里：表单里的 return_to（app/events/submit.js 读它）。 */
+import { isCash, hasFinancing } from "./deal-fin.js";
 import { D, PRIO_CLS, customBadge, dateLine, dealAsk, dealHref, dealTasks, dateLabels, isVehDeal, skipBtn, taskEditForm } from "./deal-tasks.js";
 import { askButton, askPanel } from "../core/ask.js";
 import { eventFormPage } from "./deal-progress.js";
@@ -15,17 +16,34 @@ import { t } from "../core/i18n.js";
 const fact = (k, v, wide = false) => `<div class="fact ${wide ? "wide" : ""}"><dt>${esc(k)}</dt><dd>${v || `<span class="muted">${t("没填")}</span>`}</dd></div>`;
 const NOT_FOUND = `<section class="section"><div class="panel empty"><strong>${t("找不到这条事项")}</strong></div></section>`;
 
+/** 付款方式：买入 / 买车 = 我的；卖出 / 卖车 = 买家的（可以不选，按贷款算） */
+const finLabel = (d) => (["sell", "veh_sell"].includes(d.kind) ? t("买家的付款方式") : t("付款方式"));
+const finText = (d) => (d.financing === "cash" ? t("现金") : d.financing === "loan" ? t("贷款") : ["sell", "veh_sell"].includes(d.kind) ? t("没选（按贷款算）") : t("贷款"));
+/** 交易信息表单里的付款方式下拉（买入 / 买车只有贷款 / 现金；卖出 / 卖车多一个「没选」） */
+export function financingField(d) {
+  if (!hasFinancing(d)) return "";
+  const sell = ["sell", "veh_sell"].includes(d.kind), cur = d.financing || (sell ? "" : "loan");
+  return `<label>${finLabel(d)}<select name="financing" data-nosearch>${sell ? `<option value="" ${cur === "" ? "selected" : ""}>${t("没选（按贷款算）")}</option>` : ""}<option value="loan" ${cur === "loan" ? "selected" : ""}>${t("贷款")}</option><option value="cash" ${cur === "cash" ? "selected" : ""}>${t("现金")}</option></select><small>${t("现金交易没有贷款预批、评估、贷款承诺这些步骤；改了清单马上跟着变，勾过的事项会保留")}</small></label>`;
+}
+/** 交易主页总结卡片里的切换（贷款 / 现金）：点一下就存，清单马上重算 */
+export function financingSwitch(d) {
+  if (!hasFinancing(d)) return "";
+  const sell = ["sell", "veh_sell"].includes(d.kind), cur = d.financing || (sell ? "" : "loan");
+  const chip = (v, l) => `<button type="button" class="chip" data-action="deal-financing" data-deal="${esc(d.id)}" data-val="${v}" aria-pressed="${cur === v}">${l}</button>`;
+  return `<div class="deal-fin" role="group" aria-label="${esc(finLabel(d))}"><span class="muted">${finLabel(d)}</span>${sell ? chip("", t("没选")) : ""}${chip("loan", t("贷款"))}${chip("cash", t("现金"))}</div>`;
+}
+
 /** 交易信息详情页：该填的字段一行一项，只读；「编辑」进表单 */
 export function infoPage(d) {
   const veh = isVehDeal(d), [c, z] = dateLabels(d), date = (k) => (d[k] ? esc(fmtDate(d[k])) : ""), txt = (k) => esc(d[k] || "");
   const price = (k) => (pricesOk() && priceOrNull(d[k]) != null ? esc(money(num(d[k]))) : "");
   const rows = veh
-    ? [d.kind === "veh_return" ? null : fact(t(c), date("contract_on")), fact(t(z), date("closing_on")),
+    ? [d.kind === "veh_return" ? null : fact(t(c), date("contract_on")), fact(t(z), date("closing_on")), hasFinancing(d) ? fact(finLabel(d), esc(finText(d))) : null,
       pricesOk() ? fact(d.kind === "veh_return" ? t("买断价（可选）") : t("成交价"), price("price")) : "", pricesOk() ? fact(d.kind === "veh_return" ? t("处置费 / 预估超里程费") : t("定金"), price("earnest_money")) : "",
-      fact(d.kind === "veh_return" ? t("租赁公司") : t("贷款行 / 租赁公司"), txt("lender")), fact(d.kind === "veh_buy" ? t("车行 / 卖家") : d.kind === "veh_sell" ? t("买家 / 车行") : t("经销商 / 归还地点"), txt("agent")), fact(t("备注"), txt("notes"), true)]
-    : [fact(t("合同日"), date("contract_on")), fact(t("交割日"), date("closing_on")), fact(t("律师审查截止"), date("review_deadline")), fact(t("贷款条款截止"), date("financing_deadline")),
+      isCash(d) ? null : fact(d.kind === "veh_return" ? t("租赁公司") : t("贷款行 / 租赁公司"), txt("lender")), fact(d.kind === "veh_buy" ? t("车行 / 卖家") : d.kind === "veh_sell" ? t("买家 / 车行") : t("经销商 / 归还地点"), txt("agent")), fact(t("备注"), txt("notes"), true)]
+    : [fact(t("合同日"), date("contract_on")), fact(t("交割日"), date("closing_on")), fact(t("律师审查截止"), date("review_deadline")), isCash(d) ? null : fact(t("贷款条款截止"), date("financing_deadline")), hasFinancing(d) ? fact(finLabel(d), esc(finText(d))) : null,
       pricesOk() ? fact(t("成交价"), price("price")) : "", pricesOk() ? fact(t("定金"), price("earnest_money")) : "",
-      fact(t("律师"), txt("attorney")), fact(t("贷款行 / 贷款经纪"), txt("lender")), fact(t("经纪人"), txt("agent")), fact(t("产权公司"), txt("title_company")), fact(t("验房师"), txt("inspector")), fact(t("备注"), txt("notes"), true)];
+      fact(t("律师"), txt("attorney")), isCash(d) ? null : fact(t("贷款行 / 贷款经纪"), txt("lender")), fact(t("经纪人"), txt("agent")), fact(t("产权公司"), txt("title_company")), fact(t("验房师"), txt("inspector")), fact(t("备注"), txt("notes"), true)];
   return `<section class="section"><div class="panel"><div class="kv"><h3 style="margin:0">${t("交易信息")}</h3><a class="btn btn-primary btn-sm" href="${dealHref(d, "info")}&edit=1">${t("编辑")}</a></div>
     <dl class="fact-grid">${rows.filter(Boolean).join("")}</dl></div></section>`;
 }

@@ -3,6 +3,7 @@ import { DAY, daysUntil, esc, fmtDate, todayISO } from "../core/util.js";
 import { addDays } from "../bills/logic.js";
 import { askButton, ctx as askCtx, askPanel } from "../core/ask.js";
 import { assetName } from "./assets.js";
+import { finMatches } from "./deal-fin.js";
 import { href } from "../core/router.js";
 import { propertyActive } from "../core/lifecycle.js";
 import { state } from "../core/state.js";
@@ -126,7 +127,8 @@ export function dealTasks(deal) {
   }
   const done = state.dealDone.filter((x) => x.deal_id === deal.id);
   const over = state.dealOverrides.filter((o) => o.deal_id === deal.id);
-  const tpl = (D().TASKS[deal.kind] || []).filter((x) => (x.when || []).every(ok)).map((x) => {
+  const isFin = (c) => String(c).startsWith("fin:");   // fin:loan / fin:cash 看这笔交易的付款方式（deal-fin.js）；已经勾过的事项付款方式切换后仍保留
+  const tpl = (D().TASKS[deal.kind] || []).filter((x) => (x.when || []).filter((c) => !isFin(c)).every(ok) && ((x.when || []).filter(isFin).every((c) => finMatches(c, deal)) || done.some((d) => d.task_key === x.key))).map((x) => {
     const base = x.base === "contract" ? deal.contract_on : deal.closing_on;
     const plan = base ? addDays(base, x.offset) : null;
     const ov = over.find((o) => o.task_key === x.key) || null;

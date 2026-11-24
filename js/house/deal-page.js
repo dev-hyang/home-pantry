@@ -2,7 +2,8 @@ import { viewSwitch } from "../core/view-switch.js";
 /* 交易页：任务行、编辑表单、交易详情、新建 / 编辑交易的表单、交割面板。 */
 import { dealKindPage, dealLanding } from "./deal-home.js";
 import "./deal-search.js";
-import { cancelPage, completePage, dealFab, eventPage, infoPage, taskPage } from "./deal-task-pages.js";
+import { isCash } from "./deal-fin.js";
+import { cancelPage, completePage, dealFab, eventPage, financingField, financingSwitch, infoPage, taskPage } from "./deal-task-pages.js";
 import { D, END_LAG, V, addTaskCard, currentProp, dateLabels, dealHref, dealTasks, editBtn, isEditing, isVehDeal, newTaskPanel, kindHref, openDeal, openVehicleDeal, propertyLive, subjectDeals, skipBtn, statusText, taskCard, taskEditForm, taskRow } from "./deal-tasks.js";
 import { addDays } from "../bills/logic.js";
 import { debtHref } from "../bills/debt-logic.js";
@@ -118,7 +119,7 @@ export function viewDeal() {
   const addRow = addTaskCard(deal, "special");
   // 买入 / 买车填了贷款行：交割那一步提供「创建贷款」（预填贷款方、成交价 − 定金、房产 / 车辆 id）；已经有挂在这处资产上的贷款就不再提示
   const subjectId = veh ? veh.id : p?.id, hasLoan = state.debtsOk && allDebts().some((x) => (veh ? x.asset_id === subjectId : x.property_id === subjectId) && x.direction === "payable");
-  const loanRow = ["buy", "veh_buy"].includes(deal.kind) && deal.outcome !== "cancelled" && deal.lender && pricesOk() && state.debtsOk && !hasLoan
+  const loanRow = ["buy", "veh_buy"].includes(deal.kind) && deal.outcome !== "cancelled" && !isCash(deal) && deal.lender && pricesOk() && state.debtsOk && !hasLoan
     ? row(debtHref(null, `new=1&cat=${veh ? "auto_loan" : "mortgage"}&lender=${encodeURIComponent(deal.lender)}${deal.price != null ? `&principal=${Math.max(0, num(deal.price) - num(deal.earnest_money))}` : ""}&${veh ? "asset" : "prop"}=${encodeURIComponent(subjectId)}${deal.closing_on ? `&start=${deal.closing_on}` : ""}&name=${encodeURIComponent(`${veh ? t("车贷") : t("房贷")} · ${deal.lender}`.slice(0, 60))}`),
         "🏦", t("创建贷款"), t("贷款方 {l}；本金先按成交价 − 定金估，按贷款文件改", { l: deal.lender }), null) : "";
   const view = ["list", "plan", "actual", "compare"].includes(sec) ? sec : null;   // 子页：清单 / 计划 / 实际 / 对比（原来是主页里的视图切换）
@@ -149,6 +150,7 @@ export function viewDeal() {
       <div class="panel deal-progress">
         <div class="kv"><div><b>${t("总进度 {p}%", { p: pct })}</b><div class="muted">${t("已完成 {a} / {b}", { a: doneN, b: total })}${skippedAll ? ` · ⊘ ${t("跳过 {n}", { n: skippedAll })}` : ""}${mustLeft ? ` · ${t("必须项还剩 {n}", { n: mustLeft })}` : ""}${nextDue ? ` · ${t("最近截止 {date}", { date: fmtDate(nextDue.due) })}` : ""}</div></div></div>
         <div class="life-bar big"><i style="width:${pct}%"></i></div>
+        ${financingSwitch(deal)}
       </div>
     </section>
     <section class="section"><div class="panel mlist">${viewRows}</div></section>${dealFab(deal, "hub")}`;
@@ -183,11 +185,12 @@ function dealForm(d, cancelHref) {
     return `<form id="dealForm" class="panel" novalidate>
     <input type="hidden" name="deal_id" value="${esc(d.id)}">
     <div class="form-grid">
+      ${financingField(d)}
       ${d.kind === "veh_return" ? "" : `<label>${t(c)}<input name="contract_on" type="date" value="${v("contract_on")}"><small>${t("准备阶段的事项按它推算")}</small></label>`}
       <label>${t(z)}<input name="closing_on" type="date" value="${v("closing_on")}"><small>${d.kind === "veh_return" ? t("预检、归还、最终账单都按它推算") : t("保险、上牌、拆车牌、已售通知按它推算")}</small></label>
       ${priceInput(`<label>${d.kind === "veh_return" ? t("买断价（可选）") : t("成交价")}<input name="price" type="number" inputmode="decimal" min="0" step="0.01" value="${v("price")}"></label>`, "price", d.price)}
       ${priceInput(`<label>${d.kind === "veh_return" ? t("处置费 / 预估超里程费") : t("定金")}<input name="earnest_money" type="number" inputmode="decimal" min="0" step="0.01" value="${v("earnest_money")}"></label>`, "earnest_money", d.earnest_money)}
-      <label>${d.kind === "veh_return" ? t("租赁公司") : t("贷款行 / 租赁公司")}<input name="lender" maxlength="120" value="${v("lender")}"><small>${d.kind === "veh_buy" ? t("填了，完成时车会标为“贷款中”") : ""}</small></label>
+      ${isCash(d) ? "" : `<label>${d.kind === "veh_return" ? t("租赁公司") : t("贷款行 / 租赁公司")}<input name="lender" maxlength="120" value="${v("lender")}"><small>${d.kind === "veh_buy" ? t("填了，完成时车会标为“贷款中”") : ""}</small></label>`}
       <label>${d.kind === "veh_buy" ? t("车行 / 卖家") : d.kind === "veh_sell" ? t("买家 / 车行") : t("经销商 / 归还地点")}<input name="agent" maxlength="120" placeholder="${t("姓名 · 电话 / 邮箱")}" value="${v("agent")}"></label>
       <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" value="${v("notes")}"></label>
     </div>
@@ -198,14 +201,15 @@ function dealForm(d, cancelHref) {
   return `<form id="dealForm" class="panel" novalidate>
     <input type="hidden" name="deal_id" value="${esc(d.id)}">
     <div class="form-grid">
+      ${financingField(d)}
       <label>${t("合同日")}<input name="contract_on" type="date" value="${v("contract_on")}"><small>${t("签约日期；律师审查、定金等按它推算")}</small></label>
       <label>${t("交割日")}<input name="closing_on" type="date" value="${v("closing_on")}"><small>${t("停服务、保险、交割后事项按它推算")}</small></label>
       <label>${t("律师审查截止")}<input name="review_deadline" type="date" value="${v("review_deadline")}"></label>
-      <label>${t("贷款条款截止")}<input name="financing_deadline" type="date" value="${v("financing_deadline")}"></label>
+      ${isCash(d) ? "" : `<label>${t("贷款条款截止")}<input name="financing_deadline" type="date" value="${v("financing_deadline")}"></label>`}
       ${priceInput(`<label>${t("成交价")}<input name="price" type="number" inputmode="decimal" min="0" step="0.01" value="${v("price")}"></label>`, "price", d.price)}
       ${priceInput(`<label>${t("定金")}<input name="earnest_money" type="number" inputmode="decimal" min="0" step="0.01" value="${v("earnest_money")}"></label>`, "earnest_money", d.earnest_money)}
       <label>${t("律师")}<input name="attorney" maxlength="120" placeholder="${t("姓名 · 电话 / 邮箱")}" value="${v("attorney")}"></label>
-      <label>${t("贷款行 / 贷款经纪")}<input name="lender" maxlength="120" value="${v("lender")}"></label>
+      ${isCash(d) ? "" : `<label>${t("贷款行 / 贷款经纪")}<input name="lender" maxlength="120" value="${v("lender")}"></label>`}
       <label>${t("经纪人")}<input name="agent" maxlength="120" value="${v("agent")}"></label>
       <label>${t("产权公司")}<input name="title_company" maxlength="120" value="${v("title_company")}"></label>
       <label>${t("验房师")}<input name="inspector" maxlength="120" value="${v("inspector")}"></label>

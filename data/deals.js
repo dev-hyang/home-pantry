@@ -22,17 +22,20 @@
 
   const TASKS = {
     buy: [
-      { key: "b_preapproval", name: "贷款预批（pre-approval），确定律师和经纪人", base: "contract", offset: -14, priority: "should", stage: "prep" },
+      { key: "b_preapproval", name: "贷款预批（pre-approval），确定律师和经纪人", base: "contract", offset: -14, priority: "should", stage: "prep", when: ["fin:loan"] },
+      { key: "b_proof_funds", name: "准备资金证明（proof of funds：银行 / 券商对账单）给卖家，确定律师和经纪人", base: "contract", offset: -14, priority: "should", stage: "prep", when: ["fin:cash"], note: "现金报价卖家会要资金证明；对账单可以遮掉账号。" },
       { key: "b_earnest", name: "交定金（earnest money，通常 1–2%）", base: "contract", offset: 2, priority: "must", stage: "contract", note: "签约后 1–2 个工作日内交到经纪公司或律师的托管账户。" },
       { key: "b_review", name: "律师审查与验房期：预约验房、氡气检测，提出修改要求", base: "contract", offset: 5, priority: "must", stage: "contract", note: "Multi-Board 7.0 合同默认 5 个工作日，错过就视为接受原条款。" },
-      { key: "b_loan_docs", name: "向贷款行提交全部材料", base: "contract", offset: 7, priority: "must", stage: "financing" },
-      { key: "b_appraisal", name: "配合评估（appraisal）", base: "contract", offset: 14, priority: "should", stage: "financing" },
-      { key: "b_commitment", name: "拿到贷款承诺（mortgage commitment）", base: "contract", offset: 30, priority: "must", stage: "financing", note: "合同里的贷款条款截止日，拿不到要请律师延期。" },
+      { key: "b_loan_docs", name: "向贷款行提交全部材料", base: "contract", offset: 7, priority: "must", stage: "financing", when: ["fin:loan"] },
+      { key: "b_appraisal", name: "配合评估（appraisal）", base: "contract", offset: 14, priority: "should", stage: "financing", when: ["fin:loan"] },
+      { key: "b_commitment", name: "拿到贷款承诺（mortgage commitment）", base: "contract", offset: 30, priority: "must", stage: "financing", note: "合同里的贷款条款截止日，拿不到要请律师延期。", when: ["fin:loan"] },
       { key: "b_hoa_docs", name: "索取 HOA 文件：22.1 披露、章程、财务、无欠费证明", base: "closing", offset: -10, priority: "must", stage: "pre_closing", when: ["kind:condo"] },
-      { key: "b_insurance", name: "房屋保险：交割日生效，把保单发给贷款行", base: "closing", offset: -7, priority: "must", stage: "pre_closing" },
+      { key: "b_insurance", name: "房屋保险：交割日生效，把保单发给贷款行", base: "closing", offset: -7, priority: "must", stage: "pre_closing", when: ["fin:loan"] },
+      { key: "b_insurance_cash", name: "房屋保险：交割日生效（现金购买没有贷款行要求，仍建议投保）", base: "closing", offset: -7, priority: "should", stage: "pre_closing", when: ["fin:cash"] },
       { key: "b_title", name: "产权保险与产权调查（律师 / 产权公司跟进）", base: "closing", offset: -7, priority: "should", stage: "pre_closing" },
       { key: "b_utilities", name: "预约交割日起开户：电（ComEd）、燃气（Nicor / Peoples Gas）、水、网络", base: "closing", offset: -7, priority: "must", stage: "pre_closing", note: "电和燃气提前 3–5 个工作日预约，交割当天抄表分账。" },
       { key: "b_usps", name: "USPS 邮件转寄、地址变更", base: "closing", offset: -7, priority: "should", stage: "pre_closing" },
+      { key: "b_wire_check", name: "大额电汇：提前和银行确认当日限额与手续；交割前打电话核实产权公司的电汇指示和账号", base: "closing", offset: -5, priority: "must", stage: "pre_closing", when: ["fin:cash"], note: "电汇诈骗最常见：只用你自己从合同或官网查到的电话核实，不要用邮件里给的号码。" },
       { key: "b_funds", name: "准备交割资金；电汇前打电话核实账户，防诈骗邮件", base: "closing", offset: -2, priority: "must", stage: "pre_closing" },
       { key: "b_walkthrough", name: "最终查验（walk-through）", base: "closing", offset: -1, priority: "must", stage: "pre_closing" },
       { key: "b_closing", name: "交割：签字、付款、拿钥匙；留存 closing statement", base: "closing", offset: 0, priority: "must", stage: "closing", note: "卖方付州和郡转让税；Chicago 买方付 $3.75 / $500；房产税按上年 105–110% 由卖方抵扣。" },
@@ -49,7 +52,8 @@
       { key: "s_tenant", name: "通知租客，按租约安排看房与押金转移", base: "contract", offset: 3, priority: "must", stage: "contract", when: ["role:landlord"] },
       { key: "s_earnest", name: "确认收到定金", base: "contract", offset: 2, priority: "must", stage: "contract" },
       { key: "s_review", name: "律师审查与验房期：回应买方的修改与维修要求", base: "contract", offset: 5, priority: "must", stage: "contract" },
-      { key: "s_appraisal", name: "配合买方评估", base: "contract", offset: 14, priority: "should", stage: "financing" },
+      { key: "s_appraisal", name: "配合买方评估", base: "contract", offset: 14, priority: "should", stage: "financing", when: ["fin:loan"] },
+      { key: "s_proof_funds", name: "向买家（经纪人）要资金证明（proof of funds）", base: "contract", offset: 2, priority: "should", stage: "contract", when: ["fin:cash"], note: "现金买家没有贷款条款，但要确认钱真的到位。" },
       { key: "s_hoa_notify", name: "HOA / 物业：通知过户日期、索取付清证明、取消自动扣款", base: "closing", offset: -14, priority: "must", stage: "pre_closing", when: ["bill:hoa"] },
       { key: "s_services", name: "安防、草坪、除虫、清洁等服务：通知交割日停止", base: "closing", offset: -14, priority: "should", stage: "pre_closing" },
       { key: "s_payoff", name: "向贷款行索取还款函（payoff letter）给律师 / 产权公司", base: "closing", offset: -10, priority: "must", stage: "pre_closing", when: ["bill:mortgage"] },
@@ -85,7 +89,8 @@
   // ── 车辆（伊利诺伊州 / 芝加哥默认；when 另可写 "region:na"、"pt:ev" / "pt:ice"（动力类型）、"status:financed" / "status:leased"（拥有状态））──
   // 买车：contract = 签约 / 下订日，closing = 提车日
   TASKS.veh_buy = [
-    { key: "vb_budget",   name: "定预算；向信用社 / 银行申请贷款预批，和车行利率比一比", base: "contract", offset: -14, priority: "should", stage: "prep" },
+    { key: "vb_budget",   name: "定预算；向信用社 / 银行申请贷款预批，和车行利率比一比", base: "contract", offset: -14, priority: "should", stage: "prep", when: ["fin:loan"] },
+    { key: "vb_budget_cash", name: "定预算；确认付款方式（银行本票 / 转账限额）和到账时间", base: "contract", offset: -14, priority: "should", stage: "prep", when: ["fin:cash"] },
     { key: "vb_history",  name: "查 VIN 历史报告（Carfax / NMVTIS）和召回记录", base: "contract", offset: -3, priority: "must", stage: "prep", note: "二手车必查；新车只查召回。" },
     { key: "vb_ppi",      name: "试驾；二手车找独立技师做购前检查（PPI）", base: "contract", offset: -2, priority: "should", stage: "prep" },
     { key: "vb_quote",    name: "向保险公司要报价，确认能加进现有保单", base: "contract", offset: -1, priority: "should", stage: "prep" },
@@ -98,7 +103,7 @@
     { key: "vb_emission", name: "排放检测（伊州车龄 4 年以上两年一次；逾期不能续牌照）", base: "closing", offset: 30, priority: "should", stage: "handover", when: ["region:na", "pt:ice"] },
     { key: "vb_sticker",  name: "Chicago / village 车贴（city sticker）：住市内 30 天内办", base: "closing", offset: 30, priority: "optional", stage: "handover", when: ["region:na"] },
     { key: "vb_app",      name: "在本应用补齐车辆档案：车牌、里程、年均里程、牌照 / 排放到期、保险", base: "closing", offset: 3, priority: "should", stage: "after" },
-    { key: "vb_loan",     name: "车贷：建账单提醒或自动扣款；记下贷款合同和 title 存放位置", base: "closing", offset: 7, priority: "should", stage: "after" },
+    { key: "vb_loan",     name: "车贷：建账单提醒或自动扣款；记下贷款合同和 title 存放位置", base: "closing", offset: 7, priority: "should", stage: "after", when: ["fin:loan"] },
     { key: "vb_docs",     name: "留存购车发票、bill of sale、临牌回执", base: "closing", offset: 7, priority: "optional", stage: "after" },
     { key: "vb_first",    name: "查首保要求（里程 / 月份），到时记第一次保养", base: "closing", offset: 60, priority: "optional", stage: "after" },
   ];
@@ -139,8 +144,8 @@
 
   // 前置依赖：key → 必须先完成的事项 key。某一步晚了，只顺延依赖它的后续步骤（保持模板里的间隔），不相干的步骤不动
   const DEPS = {
-    buy: { b_review: ["b_earnest"], b_loan_docs: ["b_review"], b_appraisal: ["b_loan_docs"], b_commitment: ["b_appraisal"], b_insurance: ["b_commitment"], b_title: ["b_commitment"], b_hoa_docs: ["b_commitment"],
-      b_funds: ["b_commitment"], b_walkthrough: ["b_funds"], b_closing: ["b_walkthrough", "b_funds", "b_commitment"], b_locks: ["b_closing"], b_setup: ["b_closing"], b_hoa_register: ["b_closing"], b_homestead: ["b_closing"] },
+    buy: { b_review: ["b_earnest"], b_wire_check: ["b_review"], b_insurance_cash: ["b_review"], b_loan_docs: ["b_review"], b_appraisal: ["b_loan_docs"], b_commitment: ["b_appraisal"], b_insurance: ["b_commitment"], b_title: ["b_commitment"], b_hoa_docs: ["b_commitment"],
+      b_funds: ["b_commitment"], b_walkthrough: ["b_funds"], b_closing: ["b_walkthrough", "b_funds", "b_commitment", "b_wire_check"], b_locks: ["b_closing"], b_setup: ["b_closing"], b_hoa_register: ["b_closing"], b_homestead: ["b_closing"] },
     sell: { s_review: ["s_earnest"], s_appraisal: ["s_review"], s_payoff: ["s_appraisal"], s_walkthrough: ["s_payoff"], s_closing: ["s_appraisal", "s_payoff", "s_walkthrough"],
       s_autopay: ["s_closing"], s_records: ["s_closing"], s_final_bills: ["s_closing"], s_mortgage_refund: ["s_closing"] },
     move_out: { m_keys: ["m_clean"], m_autopay: ["m_keys"], m_deposit: ["m_keys"] },

@@ -11,6 +11,7 @@ import { addDays } from "../bills/logic.js";
 import { aiReady, askText } from "../core/ai.js";
 import { myName } from "../settings/family-lite.js";
 import { href } from "../core/router.js";
+import { resolveDeps } from "./deal-fin.js";
 /** 交易子页的地址（不引 deal-tasks.js，免得循环依赖）：车辆带 asset=，一律带 deal= */
 const dh = (deal, sec, extra = "") => { const ps = new URLSearchParams({ sec }); if (deal.asset_id) ps.set("asset", deal.asset_id); ps.set("deal", deal.id); return `${href("house", "deal")}?${ps}${extra}`; };
 
@@ -53,7 +54,7 @@ export const eventsOf = (deal) => (state.dealEvents || []).filter((e) => e.deal_
 
 /** 给每个事项补上：基线、实际完成日、预计完成日、偏差天数、已晚天数、被哪些没做的前置步骤卡住。tasks 来自 dealTasks（x.baseline 已有） */
 export function analyze(deal, tasks) {
-  const today = todayISO(), deps = D().DEPS?.[deal.kind] || {}, byKey = new Map(tasks.map((x) => [x.key, x])), memo = new Map();
+  const today = todayISO(), byKey = new Map(tasks.map((x) => [x.key, x])), deps = resolveDeps(D().DEPS?.[deal.kind] || {}, new Set(byKey.keys())), memo = new Map();   // 现金交易没有贷款承诺：依赖它的步骤改依赖它的前置步骤
   const base = (x) => x.baseline || null;
   const eff = (x) => {   // 这一步的实际 / 预计完成日
     if (memo.has(x.key)) return memo.get(x.key);

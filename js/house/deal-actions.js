@@ -38,7 +38,7 @@ export async function completeVehicleDeal(deal) {
   const v = { ...(a.vehicle || {}) };
   const patch = { ...a };
   if (deal.kind === "veh_buy") {
-    v.status = deal.lender ? "financed" : "owned";
+    v.status = deal.lender && deal.financing !== "cash" ? "financed" : "owned";   // 现金买车：就算填了贷款行也不标贷款中
     patch.installed_on = a.installed_on || day;
     if (deal.price != null && a.purchase_price == null) patch.purchase_price = deal.price;
   } else {
@@ -59,7 +59,7 @@ export async function saveDealForm(f) {
   const s_ = (k) => (fe[k] ? fe[k].value.trim() || null : d[k] ?? null);
   const patch = { ...d, contract_on: v("contract_on"), closing_on: v("closing_on"), review_deadline: v("review_deadline"), financing_deadline: v("financing_deadline"),
     price: n("price"), earnest_money: n("earnest_money"), attorney: s_("attorney"), lender: s_("lender"), agent: s_("agent"),
-    title_company: s_("title_company"), inspector: s_("inspector"), notes: s_("notes") };
+    title_company: s_("title_company"), inspector: s_("inspector"), notes: s_("notes"), financing: fe.financing ? fe.financing.value || null : d.financing ?? null };
   // 房产：合同日填了、审查截止没填，按 5 个工作日估一个
   if (!isVehDeal(d) && patch.contract_on && !patch.review_deadline) patch.review_deadline = addBusinessDays(patch.contract_on, 5);
   await Store.saveDeal(patch);
