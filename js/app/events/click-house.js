@@ -73,6 +73,12 @@ export async function clickHouse(action, el, id, e) {
         if (state.route?.q?.get("deal") === id) { const q = new URLSearchParams(state.route.q); q.delete("deal"); q.delete("sec"); go(`${href("house", "deal")}${q.toString() ? `?${q}` : ""}`, { replace: true }); }
         return refresh();
       }
+      case "deal-cancel-closed": {   // 已交割 / 已完成的交易要删除，先改成「已取消」（只改这条交易的结果，不动房产 / 车辆现在的状态）
+        if (!window.confirm(t("把这笔已完成的交易改为「已取消」？改后才能删除；不会改动房产 / 车辆现在的状态。"))) return;
+        const dd = state.deals.find((x) => x.id === el.dataset.deal); if (!dd || !dd.outcome) return;
+        try { await Store.saveDeal({ ...dd, outcome: "cancelled" }); } catch (err) { return toast(t("操作失败：{msg}", { msg: friendlyErr(err.message) })); }
+        toast(t("已改为已取消，现在可以删除")); return refresh();
+      }
       case "deal-cancel": {   // 取消页上的按钮（data-confirm）一步确认；别处的按钮还是点两次
         if (!el.dataset.confirm && !armed(el, t("再点一次确认取消"))) return;
         const dd = el.dataset.deal ? state.deals.find((x) => x.id === el.dataset.deal) : null;

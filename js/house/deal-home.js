@@ -1,15 +1,12 @@
-/* 交易首页 + 某一类交易的子页（2026-11-24 重构，原来全挤在 deal-page.js 一页里）：
- *  · 首页（#/house/deal，车辆再带 ?asset=）：状态卡 + 每类交易一张卡片——买入、卖出（车辆：买车、卖车、归还；租房：退租）
- *      没记过 → 空卡片 +「记录…交易」；进行中 → 总进度 / 已完成 / 下一项；只有历史 → 几笔、最近一笔。点进行中 / 历史的卡片进「这一类」的子页
- *  · 某一类的子页（?kind=buy）：进行中那笔的入口 + 这一类的历史交易（一行一笔）；点进行中 / 点一行 → 交易详情（?deal=<id>，在 deal-page.js）
- *  纯展示：开始交易、删历史交易的点击处理还是 app/events/click-house.js 里原来的 deal-start / deal-delete。 */
-import { D, V, dealHref, dealTasks, isVehDeal, kindHref, propertyLive, subjectDeals } from "./deal-tasks.js";
-import { bulkBar, bulkCheck, bulkMenuItem, bulkOn, bulkRegister } from "../core/bulk-select.js";
+/* 交易首页 + 某一类交易的子页：每类交易（买入 / 卖出；车辆：买车、卖车、归还；租房：退租）一个 Section
+ *  · 标题「买入 · N 笔交易」；没有交易 → 只有「记录…交易」按钮；有 → 先显示进行中的一笔，没有进行中就显示最近一笔
+ *  · 其余交易（已交割 / 已完成 / 已取消）折叠成「其他交易（n）」，展开后按日期从近到远一行一笔；只有已取消的能删除
+ *  · 点一行 / 点进行中 → 交易详情（?deal=<id>，在 deal-page.js）；子页（?kind=buy）同样的 Section，「其他交易」默认展开
+ *  纯展示：开始 / 取消 / 删除的点击处理在 app/events/click-house.js（deal-start / deal-cancel-closed / deal-delete）。 */
+import { D, V, dealHref, dealTasks, isVehDeal, propertyLive, subjectDeals } from "./deal-tasks.js";
 import { esc, fmtDate, money, num } from "../core/util.js";
 import { lpAttr } from "../core/long-press.js";
-import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { priceOrNull } from "../core/finance-access.js";
-import { Store } from "../core/store.js";
 import { t } from "../core/i18n.js";
 
 const KIND_ICON = { buy: "📥", sell: "📤", move_out: "📦", veh_buy: "🔑", veh_sell: "🏷️", veh_return: "↩️" };
@@ -62,19 +59,24 @@ function openRow(d, url) {
 }
 const startBtn = (kind, veh) => `<button type="button" class="btn btn-primary btn-sm" data-action="deal-start" data-kind="${kind}" ${veh ? `data-asset="${veh.id}"` : ""}>${t("记录{kind}交易", { kind: t(D().KINDS[kind]) })}</button>`;
 
-/** 首页上的一张卡片：进行中 / 只有历史 / 空白 */
-function kindCard(kind, deals, canStart, veh) {
-  const K = D().KINDS, mine = deals.filter((d) => d.kind === kind), open = mine.find((d) => !d.outcome), closed = mine.filter((d) => d.outcome);
-  const last = closed[0];
-  let body;
-  if (open) body = row(dealHref(open), KIND_ICON[kind] || "📝", t("{kind}进行中", { kind: t(K[kind]) }), openRowDesc(open), dealProgress(open).pct, dealProgress(open).late ? `<span class="badge b-out mcount">${t("逾期 {n}", { n: dealProgress(open).late })}</span>` : "");
-  else if (closed.length) body = row(closed.length === 1 ? dealHref(closed[0]) : kindHref(kind, veh?.id), KIND_ICON[kind] || "📝", t("{kind}交易历史", { kind: t(K[kind]) }),
-    esc([t("{n} 笔", { n: closed.length }), t("最近：{d} {o}", { d: dealDate(last), o: outcomeText(last) }), priceOrNull(last.price) ? money(num(last.price)) : null].filter(Boolean).join(" · ")), null);
-  else body = `<div class="deal-empty"><span class="mi" aria-hidden="true">${KIND_ICON[kind] || "📝"}</span><div><b>${t(K[kind])}</b><p class="muted">${t("还没有记录{kind}交易", { kind: t(K[kind]) })}</p></div></div>`;
-  const act = canStart && !open ? `<div class="deal-kind-act">${startBtn(kind, veh)}</div>` : "";
-  return `<div class="panel mlist deal-kind ${open ? "is-open" : closed.length ? "" : "is-empty"}">${body}${act}</div>`;
+const dateKey = (d) => d.closing_on || (d.closed_at || d.updated_at || "").slice(0, 10);
+/** 最近一笔历史交易的入口行（点进交易详情） */
+function lastRow(d, kind) {
+  const desc = [dealDate(d), outcomeText(d), priceOrNull(d.price) ? money(num(d.price)) : null].filter(Boolean).map(esc).join(" · ");
+  return row(dealHref(d), KIND_ICON[kind] || "📝", t("最近一笔{kind}交易", { kind: t(D().KINDS[kind]) }), desc, null);
 }
-const openRowDesc = (d) => { const g = dealProgress(d); return [t("总进度 {p}%", { p: g.pct }), t("已完成 {a} / {b}", { a: g.doneN, b: g.total }), g.must ? t("必须项还剩 {n}", { n: g.must }) : null].filter(Boolean).map(esc).join(" · "); };
+/** 一类交易的 Section：标题（几笔）→ 进行中 / 最近一笔 → 其余折叠成行（从近到远）。没有交易：只给「记录…交易」按钮 */
+function kindSection(kind, deals, canStart, veh, expand = false) {
+  const K = D().KINDS, mine = deals.filter((d) => d.kind === kind).sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || String(b.created_at || "").localeCompare(String(a.created_at || "")));
+  const open = mine.find((d) => !d.outcome), closed = mine.filter((d) => d.outcome);
+  const head = mine.length ? t("{kind} · {n} 笔交易", { kind: t(K[kind]), n: mine.length }) : t("{kind} · 还没有交易", { kind: t(K[kind]) });
+  const feat = open || closed[0], rest = open ? closed : closed.slice(1);
+  const main = open ? `<div class="panel mlist deal-kind is-open">${openRow(open, dealHref(open))}</div>` : feat ? `<div class="panel mlist deal-kind">${lastRow(feat, kind)}</div>` : "";
+  const act = canStart && !open ? `<div class="deal-kind-act">${startBtn(kind, veh)}</div>` : "";
+  const note = !mine.length && !canStart ? `<p class="muted">${t("现在的状态下不能开始这类交易。")}</p>` : "";
+  const more = rest.length ? `<details class="deal-more" ${expand ? "open" : ""}><summary>${t("其他交易（{n}）", { n: rest.length })}</summary>${dealRows(rest)}</details>` : "";
+  return `<section class="section deal-sec"><div class="section-head"><h2>${KIND_ICON[kind] || "📝"} ${esc(head)}</h2></div>${main}${act}${note}${more}</section>`;
+}
 
 /** 交易首页 */
 export function dealLanding({ p, veh, bar, headCard }) {
@@ -82,34 +84,27 @@ export function dealLanding({ p, veh, bar, headCard }) {
   const intro = veh ? t("买车、卖车或租赁到期归还时，按常见流程生成带日期的清单：产权与上牌、保险、拆车牌、已售通知、删除个人数据，逐项提醒。")
     : t("买入或卖出时，按伊利诺伊州流程生成带截止日期的清单：律师审查、验房、贷款承诺、停服务通知、交割后事项，逐项提醒。");
   return `${bar}${headCard}
-    <section class="section"><div class="section-head"><h2>${t("交易")}</h2><p>${intro}</p></div>
-      <div class="deal-kinds">${kindsOf(p, veh, deals).map((k) => kindCard(k, deals, starts.some(([x]) => x === k), veh)).join("")}</div>
-      ${!live ? `<p class="muted">${veh ? t("已卖出或已归还的车只保留历史。") : t("已卖出或退租的房产只保留历史。")}</p>` : ""}
-    </section>`;
+    <p class="muted deal-intro">${intro}</p>
+    ${kindsOf(p, veh, deals).map((k) => kindSection(k, deals, starts.some(([x]) => x === k), veh)).join("")}
+    ${!live ? `<p class="muted">${veh ? t("已卖出或已归还的车只保留历史。") : t("已卖出或退租的房产只保留历史。")}</p>` : ""}`;
 }
 
-/** 某一类交易的子页：进行中那笔 + 这一类的历史 */
+/** 某一类交易的子页：和首页同一个 Section，只是「其他交易」默认展开 */
 export function dealKindPage({ p, veh, kind, bar, headCard }) {
-  const K = D().KINDS, deals = subjectDeals(p, veh).filter((d) => d.kind === kind), open = deals.find((d) => !d.outcome), closed = deals.filter((d) => d.outcome);
-  const starts = veh ? vehicleStarts(veh) : propertyStarts(p), canStart = starts.some(([x]) => x === kind);
-  const current = open
-    ? `<div class="panel mlist deal-kind is-open">${openRow(open, dealHref(open))}</div>`
-    : `<div class="panel mlist deal-kind is-empty"><div class="deal-empty"><span class="mi" aria-hidden="true">${KIND_ICON[kind] || "📝"}</span><div><b>${t("没有进行中的{kind}交易", { kind: t(K[kind]) })}</b>${canStart ? "" : `<p class="muted">${t("现在的状态下不能开始这类交易。")}</p>`}</div></div>${canStart ? `<div class="deal-kind-act">${startBtn(kind, veh)}</div>` : ""}</div>`;
-  return `${bar}${headCard}
-    <section class="section"><div class="section-head"><h2>${t("{kind}交易", { kind: t(K[kind]) })}</h2></div>${current}</section>
-    ${dealHistory(closed, null, (d) => dealHref(d), t("{kind}交易历史", { kind: t(K[kind]) }))}`;
+  const starts = veh ? vehicleStarts(veh) : propertyStarts(p);
+  return `${bar}${headCard}${kindSection(kind, subjectDeals(p, veh), starts.some(([x]) => x === kind), veh, true)}`;
 }
 
-/** 历史交易：一行一笔（种类徽章 + 日期 / 摘要；点一行进交易详情）；支持多选 / 左滑 / 长按菜单删除（原来在 deal-page.js，原样搬过来，只多了标题参数） */
-export function dealHistory(list, current, linkOf, title = null) {
-  if (!list.length) return "";
-  const K = D().KINDS, lim = pageLimit("deals");
-  bulkRegister("deals", { ids: () => list.filter((d) => d.id !== current).map((d) => d.id), del: (id) => Store.deleteDeal(id) });
-  const pick = !!bulkOn("deals");   // 分批显示；换页面回到一页
-  // 一行：种类徽章 + 日期 / 摘要；“查看清单”固定在右上角（手机上摘要换行也不会和按钮叠在一起）
-  return `<section class="section"><div class="section-head"><h2>${esc(title || t("历史交易"))}</h2></div><div class="panel">${bulkBar("deals")}<ul class="restock-list hist-list">${list.slice(0, lim).map((d) => `<li ${pick ? (d.id === current ? "" : "data-row-chk") : `data-swipe-del="deal" ${d.id === current ? "" : `data-row-open="${esc(linkOf(d))}"`} ${lpAttr([d.id === current ? null : { label: t("详情"), href: linkOf(d), first: true }, { label: t("删除"), action: "deal-delete", data: { deal: d.id }, danger: true }, d.id === current ? null : bulkMenuItem("deals", d.id)])}`} ${d.id === current ? 'aria-current="true"' : ""}>${pick && d.id !== current ? bulkCheck("deals", d.id) : ""}
-    <span class="badge" style="background:var(--surface-2)">${t(K[d.kind])}</span>
-    <div class="grow"><a class="link-name" href="${linkOf(d)}">${d.closing_on ? fmtDate(d.closing_on) : fmtDate((d.closed_at || d.updated_at || "").slice(0, 10))}</a>
-      <small>${[d.outcome === "cancelled" ? t("已取消") : isVehDeal(d) ? t("已完成") : t("已交割"), priceOrNull(d.price) ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>
-    <span class="hist-act">${pick ? "" : d.id === current ? `<span class="badge b-ok">${t("正在查看")}</span>` : `<a class="btn btn-sm btn-ghost" href="${linkOf(d)}">${t("详情")} ›</a>`}<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="deal-delete" data-deal="${esc(d.id)}">${t("删除")}</button></span></li>`).join("")}</ul>${pageMoreBtn("deals", list.length, lim)}</div></section>`;
+/** 其余交易：一行一笔（日期 / 结果 / 金额；点一行进详情）。只有「已取消」的能删除；已交割 / 已完成的先取消再删除（左滑 / 长按菜单 / 行内按钮） */
+function dealRows(list) {
+  const li = (d) => {
+    const url = dealHref(d), cancelled = d.outcome === "cancelled";
+    const items = [{ label: t("详情"), href: url, first: true }, cancelled ? { label: t("删除"), action: "deal-delete", data: { deal: d.id }, danger: true } : { label: t("取消这笔交易"), action: "deal-cancel-closed", data: { deal: d.id }, danger: true }];
+    const acts = cancelled ? `<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="deal-delete" data-deal="${esc(d.id)}">${t("删除")}</button>` : `<button type="button" class="btn btn-sm btn-ghost" data-action="deal-cancel-closed" data-deal="${esc(d.id)}">${t("取消")}</button>`;
+    return `<li ${cancelled ? 'data-swipe-del="deal"' : ""} data-row-open="${esc(url)}" ${lpAttr(items)}>
+    <span class="ui-badge" data-tone="${cancelled ? "warn" : "ok"}" data-size="sm">${esc(outcomeText(d))}</span>
+    <div class="grow"><a class="link-name" href="${esc(url)}">${esc(dealDate(d))}</a><small>${[priceOrNull(d.price) ? money(num(d.price)) : null, d.attorney, d.agent].filter(Boolean).map(esc).join(" · ")}</small></div>
+    <span class="hist-act">${acts}</span></li>`;
+  };
+  return `<ul class="restock-list hist-list deal-rows">${list.map(li).join("")}</ul>`;
 }

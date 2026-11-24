@@ -4783,3 +4783,14 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .ai-row small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.4; }
 .ai-row.same { opacity: .7; }
 .ai-row.diff small { color: var(--warn, #8a5a00); }
+/* 交易页（2026-11-24.36）：每类交易一个 Section，其他交易折叠成行 */
+.deal-sec { margin-bottom: 18px; }
+.deal-intro { margin: 0 0 12px; }
+.deal-sec .deal-kind-act { padding: 8px 0 0; }
+.deal-more { margin-top: 10px; }
+.deal-more > summary { cursor: pointer; list-style: none; min-height: 44px; display: flex; align-items: center; font-size: 13px; font-weight: 600; color: var(--muted); }
+.deal-more > summary::-webkit-details-marker { display: none; }
+.deal-more > summary::before { content: "▸ "; margin-right: 4px; }
+.deal-more[open] > summary::before { content: "▾ "; }
+.deal-rows { margin: 0; padding: 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius, 12px); }
+.deal-rows .hist-act .btn { min-height: 44px; }

@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.37", title: { zh: "交易页：买入、卖出各自成一块，历史交易折叠", en: "Deals page: Buy and Sell are now their own sections, history is folded" }, items: [
+    { k: "better", zh: "每一块标题写明有几笔交易；没有交易就只有「记录买入 / 卖出交易」按钮；有交易先显示进行中的一笔，没有进行中的显示最近一笔。", en: "Each section shows how many deals it has. No deals: just a “record buy/sell deal” button. Otherwise it shows the open deal, or the latest one." },
+    { k: "better", zh: "其余交易折叠成「其他交易」，展开后按日期从近到远，点一行看详情。", en: "Other deals fold into “Other deals”, newest first; tap a row for details." },
+    { k: "better", zh: "只有「已取消」的交易能删除；已交割的先点「取消」再删除。", en: "Only cancelled deals can be deleted; completed ones must be cancelled first." },
+  ] },
   { v: "2026-11-24.36", title: { zh: "修正：家庭成员页顶部路径重复", en: "Fix: duplicated path at the top of family member pages" }, items: [
     { k: "fix", zh: "设置 → 家庭与成员 → 某位成员的页面，顶部原来有两行路径和一个「‹ 返回」；现在合并成一行「我的 / 设置 / 家庭与成员 / 姓名」。", en: "Family member pages had two path rows and a “‹ Back” button. They are now one row: Me / Settings / Family & members / Name." },
   ] },
