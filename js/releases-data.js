@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.32", title: { zh: "清理了一批不再使用的旧样式", en: "Removed a batch of unused old styles" }, items: [
+    { k: "better", zh: "删掉了已经没有页面在用的旧样式（约 50 行），页面外观没有变化，加载的样式文件略小一点。", en: "Removed old styles that no page uses any more (about 50 lines). Pages look the same and the style file is slightly smaller." },
+  ] },
   { v: "2026-11-24.31", title: { zh: "这一版没有界面变化", en: "No visible changes in this version" }, items: [
     { k: "better", zh: "整理了一份控件说明文档，记录每个控件怎么用；日期框和搜索框检查过，已经是统一的，没有改动。", en: "Added a reference document for the shared controls. Date and search boxes were checked and were already consistent, so nothing changed." },
   ] },

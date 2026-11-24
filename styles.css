@@ -181,7 +181,7 @@ textarea { resize: vertical; }
    所以这里去掉原生外观，用 18px 的小方块 + 对勾（radio 是圆点）；页面里另外自定义的（任务行的圆圈、分段按钮里隐藏的）会在后面覆盖这里 */
 input[type="checkbox"], input[type="radio"] { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; min-height: 0; padding: 0; margin: 0; box-sizing: border-box; flex: 0 0 auto; border: 1.5px solid var(--muted); border-radius: 5px; background: var(--surface); display: inline-grid; place-content: center; vertical-align: middle; cursor: pointer; color: var(--pine); }
 input[type="radio"] { border-radius: 50%; }
-input[type="checkbox"]:not(:where(.task-row > input, .tl-item > input))::before { content: ""; width: 10px; height: 10px; background: currentColor; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); transform: scale(0); }
+input[type="checkbox"]:not(:where(.task-row > input))::before { content: ""; width: 10px; height: 10px; background: currentColor; clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%); transform: scale(0); }
 input[type="radio"]::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; transform: scale(0); }
 input[type="checkbox"]:checked, input[type="radio"]:checked { border-color: var(--pine); background: var(--ok-bg); }
 input[type="checkbox"]:checked::before, input[type="radio"]:checked::before { transform: scale(1); }
@@ -369,11 +369,6 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 
 /* ── 采购清单 ── */
 .add-row { display: grid; grid-template-columns: minmax(0, 1fr) 80px 90px 130px auto; gap: 8px; }
-/* 补记花费：两行——第一行 名称 / 分类 / 所属行程，第二行 金额 / 商店 / 日期 / 退款 / 按钮（12 列栅格，电脑、iPad 都不会挤变形） */
-.add-row.purchase-row { grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: center; }
-.purchase-row .pr-name { grid-column: span 5; } .purchase-row .pr-cat { grid-column: span 4; } .purchase-row .pr-trip { grid-column: span 3; }
-.purchase-row .pr-amt { grid-column: span 4; } .purchase-row .pr-store { grid-column: span 4; } .purchase-row .pr-date { grid-column: span 4; }
-.purchase-row .pr-card { grid-column: span 5; } .purchase-row .pr-refund { grid-column: span 3; } .purchase-row .pr-go { grid-column: span 4; justify-self: end; min-width: 140px; }
 .export-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 /* 导出 / 打印：年份（时间范围）一行，按钮一行；手机上按钮整行宽 */
 .export-grid { display: grid; gap: 10px; }
@@ -401,9 +396,8 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 .store-table th:first-child { text-align: left; }
 .store-table .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 @media (max-width: 720px) {
-  .add-row, .add-row.purchase-row { grid-template-columns: 1fr 1fr; }
-  .add-row > :first-child, .add-row .btn, .add-row.purchase-row .pr-name, .add-row.purchase-row .pr-go { grid-column: 1 / -1; justify-self: stretch; }
-  .add-row.purchase-row > :not(.pr-name):not(.pr-go) { grid-column: auto; }
+  .add-row { grid-template-columns: 1fr 1fr; }
+  .add-row > :first-child, .add-row .btn { grid-column: 1 / -1; justify-self: stretch; }
 }
 .price-in { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 6px; margin-top: 8px; }
 .price-in select { grid-column: 1 / -1; min-width: 0; max-width: 100%; box-sizing: border-box; min-height: 34px; padding: 4px 10px; font-size: 13px; }
@@ -993,8 +987,6 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .ssel-opt[hidden], .ssel-grp[hidden], .ssel-list[hidden] { display: none; }
 .ssel-empty { padding: 12px 10px; font-size: 13px; }
 .price-in .ssel-in { min-height: 34px; padding-top: 4px; padding-bottom: 4px; font-size: 13px; }
-.purchase-row .ssel { grid-column: span 4; } .purchase-row select.ssel-native.pr-cat { grid-column: auto; }
-@media (max-width: 720px) { .purchase-row .ssel { grid-column: auto; } }
 /* 用卡：进度条、复盘 */
 .card-bars { display: grid; gap: 4px; margin-top: 6px; }
 .prog { display: grid; grid-template-columns: minmax(70px, 28%) minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 12px; }
@@ -1101,15 +1093,6 @@ html.force-phone .today-layout { grid-template-columns: 1fr; }   /* 桌面预览
 @media (prefers-reduced-motion: reduce) { .tsec > summary .tchev { transition: none; } }
 /* 需要注意：最要紧的几条，整行是链接 */
 .tatt-note { margin: 0 0 4px; font-size: 13px; }
-.tatt-list { list-style: none; margin: 0; padding: 0; }
-.tatt-list li + li { border-top: 1px solid var(--line); }
-.tatt-row { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 9px 2px; color: inherit; text-decoration: none; }
-.tatt-row:hover b { text-decoration: underline; }
-.tatt-row .badge { flex: none; margin-top: 1px; }
-.tatt-row .grow { min-width: 0; }
-.tatt-row b { font-weight: 700; }
-.tatt-row small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.35; overflow-wrap: anywhere; }
-.tatt-row .ui-chev { margin-left: auto; color: var(--muted); align-self: center; }
 .tmore { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; color: var(--pine); text-decoration: none; }
 .tmore:hover { text-decoration: underline; }
 /* 待办 · 按模块的块头：轻重计数 + 看全部（原「需要注意」块并进来） */
@@ -1357,20 +1340,6 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .tl { list-style: none; margin: 0; padding: 0; position: relative; }
 .tl::before { content: ""; position: absolute; left: 10px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
 .tl > li { position: relative; padding: 6px 40px 12px 36px; }
-.tl-item > input { appearance: none; -webkit-appearance: none; position: absolute; left: 0; top: 7px; width: 22px; height: 22px; min-height: 0; margin: 0; padding: 0; border: 2px solid var(--pine); border-radius: 50%; background: var(--surface); cursor: pointer; }
-.tl-item > input:checked { background: var(--pine); }
-.tl-item > input:checked::after { content: "✔"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 13px; line-height: 1; }
-.tl-item > input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.tl-item > input:disabled { opacity: .5; cursor: wait; }
-.tl-item.overdue > input { border-color: var(--out); }
-.tl-item > label { display: block; cursor: pointer; }
-.tl-item > label time { display: block; font-size: 12.5px; font-weight: 700; color: var(--muted); }
-.tl-item > label small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
-.tl-item.done > label b { color: var(--muted); font-weight: 500; }
-.tl-item.done > label small { color: var(--pine); }
-.tl-item.overdue > label b, .tl-item.overdue > label time { color: var(--out); }
-.tl-item .task-edit { position: absolute; right: 0; top: 2px; }
-.tl-item .task-edit-form { margin-top: 8px; }
 .tl-mark .tl-dot { position: absolute; left: 4px; top: 11px; width: 12px; height: 12px; background: var(--ink); transform: rotate(45deg); border-radius: 2px; }
 .tl-mark time { font-size: 12.5px; font-weight: 700; color: var(--muted); margin-right: 8px; }
 .tl-today { padding: 2px 0 8px 0 !important; }
@@ -1615,10 +1584,9 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 
 /* 手机上的一次性账单：列表行先放“状态 + 金额”，名字和细节另起一行占满；付款行日期 + 按钮一行，说明另起一行；年度报表的表格改成一条一卡；编辑页保存栏常驻底部 */
 @media (max-width: 440px) {
-  .med-li, .med-pay { flex-wrap: wrap; gap: 4px 8px; }
-  .med-li > .badge, .med-pay > .badge { order: 1; }
-  .med-li > b { order: 2; margin-left: auto; }
-  .med-li > .grow, .med-pay > .grow { order: 3; flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; }
+  .med-pay { flex-wrap: wrap; gap: 4px 8px; }
+  .med-pay > .badge { order: 1; }
+  .med-pay > .grow { order: 3; flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; }
   .med-pay > .btn { order: 2; }
   .med-pay > .btn { margin-left: auto; }
   .med-tbl, .med-tbl tbody, .med-tbl tr, .med-tbl th, .med-tbl td { display: block; }
@@ -2249,9 +2217,6 @@ body.editing .minibar { display: none; }
 /* ── 花费统计（迁移 055 之后）：横向条形排行、折线空心点、统计开关、分类面包屑 ── */
 .ch-dot { fill: var(--surface); stroke-width: 2; }
 .hb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 14px; }
-.hb-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 3.2em; gap: 2px 8px; align-items: baseline; border-radius: var(--r-sm); }
-.hb-row.ch-hit-row { cursor: pointer; padding: 4px 6px; margin: -4px -6px; }
-.hb-row.ch-hit-row:hover, .hb-row.ch-hit-row:focus-visible { background: var(--surface-2); }
 .hb-name { min-width: 0; overflow-wrap: anywhere; text-align: left; font: inherit; color: var(--ink); }
 button.hb-name { color: var(--pine); font-weight: 700; padding: 6px 0; min-height: 32px; }
 .hb-val { font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -2464,21 +2429,6 @@ a.kpi { color: inherit; text-decoration: none; display: block; }
 html.force-phone .today-layout { grid-template-columns: minmax(0, 1fr); }
 .today-col > * { min-width: 0; }
 .today-col .mrow { min-width: 0; }
-/* 记一笔花费（笔记本）：三行 12 列——名称 5 · 分类 4 · 行程 3 / 金额 3 · 商店 3 · 日期 3 · 卡 3 / 性质 3 · 房产 3 · 退款 3 · 「记一笔」3（右对齐）；
- * 性质、房产两个下拉原来没给列宽，只占 1/12，看不到选项 */
-@media (min-width: 721px) {
-  .purchase-row .pr-amt, .purchase-row .pr-store, .purchase-row .pr-date { grid-column: span 3; }
-  .purchase-row .pr-card, .purchase-row .ssel:has(.pr-card) { grid-column: span 3; }
-  .purchase-row .pr-nat, .purchase-row .pr-prop, .purchase-row .pr-refund { grid-column: span 3; }
-  .purchase-row .pr-go { grid-column: span 3; justify-self: end; min-width: 140px; min-height: 44px; }
-  .purchase-row:not(:has(.pr-prop)) .pr-refund { grid-column: span 6; }
-  .purchase-row > input, .purchase-row > select, .purchase-row .ssel-in { min-height: 44px; min-width: 0; width: 100%; }
-}
-/* 手机：两列，性质 / 房产各占半行，「记一笔」整行 */
-@media (max-width: 720px) {
-  .purchase-row .pr-nat, .purchase-row .pr-prop { min-width: 0; width: 100%; }
-  .purchase-row .pr-refund { grid-column: 1 / -1; }
-}
 /* 对账单 · 最近导入（2026-11-02 重新设计）：一行 = 账户 / 文件、现在的笔数和合计（和导入时不同就注一句）、导入日期；按钮靠右一组 */
 .bank-batches > li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .bank-batches > li > .grow { flex: 1 1 260px; min-width: 0; }
@@ -2540,11 +2490,6 @@ html.force-phone .today-layout { grid-template-columns: minmax(0, 1fr); }
 /* 借贷：可点的 KPI 卡、欠款构成卡（5 张卡笔记本一行排下） */
 .debt-kpis { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
 .debt-kpis a.kpi:hover, .nw-page a.kpi:hover, .fin-assets a.kpi:hover { border-color: var(--pine); }
-.kpi-split { display: flex; flex-direction: column; gap: 4px; }
-.kpi-split .ks-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-height: 28px; color: inherit; text-decoration: none; font-size: 13px; }
-.kpi-split .ks-row span { display: inline; color: var(--pine); text-decoration: underline; text-underline-offset: 2px; }
-.kpi-split .ks-row b { font-size: 15px; font-variant-numeric: tabular-nums; }
-.kpi-split .ks-row:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
 .ks-bar { display: block; height: 6px; border-radius: 3px; background: #b45309; overflow: hidden; margin-top: 2px; }
 .ks-bar i { display: block; height: 100%; background: #d4694c; }
 
@@ -4008,8 +3953,6 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 .rf-seg { display: inline-block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
 .rf-seg.rf-chip { margin-right: 2px; }
 .rf-est { color: var(--muted); font-size: 12.5px; font-weight: 400; white-space: nowrap; }
-.med-li { display: flex; align-items: flex-start; gap: 12px; }
-.med-li > b { white-space: nowrap; font-variant-numeric: tabular-nums; margin-left: auto; }
 /* 全部账单的行：不再有单独的「估算」格 */
 .bill-row.all-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "l1 amt" "l2 l2" "pays pays" "act act"; align-items: start; }
 .bill-row.all-row .all-amt { white-space: nowrap; }

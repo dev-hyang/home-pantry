@@ -125,4 +125,5 @@
 - `rl-badge-go` 并入 `ui-chev`（要和姊妹站一起改共享文件）。
 - 选人面板、长按菜单换成原生 `<dialog>`（焦点锁定、Esc）。
 - 把箭头 / 行 / 选项 / 弹窗样式从 `styles.css` 搬进 `shared/ui.css`，同步到姊妹站。
-- 清理疑似死代码类名：`purchase-row`、`tl-item`、`tatt-row`、`med-li`、`ks-row`、`hb-row`。
+- 清理疑似死代码类名：已在 2026-11-24.32 删除 `purchase-row`（含 `pr-*`）、`tl-item`、`tatt-row` / `tatt-list`、`med-li`、`ks-row`（含 `kpi-split`）、`hb-row` 的样式。
+  还留着没确认的：`.tl` 时间线的 `tl-mark`、`tl-dot`、`tl-today`，`hb-list`（JS 里已没有使用，下次顺手清）。
