@@ -35,7 +35,7 @@ const inSubPage = () => !!(state.route?.q?.get("view") || state.route?.q?.get("f
 const inFormPage = () => !!state.route?.q?.get("form");
 const goTab = (id) => { location.hash = incomeHref(id); };
 /** 去「明细」前清掉所有筛选（含图表钻取带来的日期段 / 不含资本流入） */
-const NO_FILTER = () => ({ q: "", kind: "all", acct: "all", range: "all", year: "all", month: "all", person: "all", batch: null, from: "", to: "", ex: false, limit: pageSize() });
+const NO_FILTER = () => ({ q: "", kind: "all", acct: "all", range: "all", amt: "all", amin: "", amax: "", year: "all", month: "all", person: "all", batch: null, from: "", to: "", ex: false, limit: pageSize() });
 export function initIncome({ render, refresh }) {
   Object.assign(hooks, { render, refresh }); initIncomeScan({ render }); initAaFix({ redraw: () => hooks.render(true) });
   // 清除筛选：收入记录（搜索、下拉、下钻日期段、导入批次，网址参数一起去掉）/ 付款方汇总
@@ -141,7 +141,8 @@ export function initIncome({ render, refresh }) {
     if (el.dataset?.incSsort !== undefined) { const [k, dir] = el.value.split(":"); I.ssort = { k, dir }; I.slimit = S_PAGE(); return renderSenders(); }
     if (el.dataset?.incC) { I.range = customChanged(I.range, el.dataset.incC, el.value); I.limit = pageSize(); return renderIncList(); }   // 明细的自定义起止月份
     if (el.dataset?.incF) {
-      const k = el.dataset.incF; if (k === "q") return; I[k] = el.value; if (k === "range") { I.from = ""; I.to = ""; return rerender(); }   // 换时间范围：图表下钻带来的日期段去掉；自定义要多出两个月份下拉，整页重画
+      const k = el.dataset.incF; if (k === "q") return; I[k] = el.value; if (k === "range") { I.from = ""; I.to = ""; return rerender(); }
+      if (k === "amt") return rerender();   // 选了「自定义…」要多出两个框   // 换时间范围：图表下钻带来的日期段去掉；自定义要多出两个月份下拉，整页重画
        I.limit = pageSize(); I.slimit = S_PAGE();
       // 明细 / 付款方的筛选条：只重画列表（手机上「筛选」面板不会因为整页重画被收起，选完一个还能接着选）
       if (el.closest(".ix-toolbar")) return renderIncList();

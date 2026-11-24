@@ -4478,6 +4478,11 @@ export const EN = {
  "这些快到期的食材，怎么在过期前吃完或用掉？": "How can these soon-to-expire items be eaten or used before they expire?", "哪些东西总是缺货？应该怎么调整少货线、一次买多少才不会反复断货？": "Which items keep running out? How should I adjust the low-stock line and how much to buy at a time so they stop running out?", "按家里人数，哪些东西可能囤得太多、可以先不买？": "Given our household size, what might I be overstocked on and can skip buying for now?", "滤网、电池、融雪盐这类汽车房屋消耗品，一般多久换一次，家里该备多少？": "How often are car & home supplies like filters, batteries and ice melt usually replaced, and how many should I keep?",
   "以前导入过这一行（同一份对账单）": "Imported before (same line of the same statement)",
   "没选账户：同一份对账单重复导入时，防重复的效果会差一些（指纹里没有账户）。": "No account chosen: duplicate protection is weaker when the same statement is imported again (the fingerprint has no account).",
+  "最低": "Min",
+  "最高": "Max",
+  "不限": "No limit",
+  "最低金额": "Minimum amount",
+  "最高金额": "Maximum amount",
   /* 2026-11-24：税务买卖链接 / 邀请码财务权限 / 对账单查重 */
   "给家主留一句话（可不填），例如：我是小明的妈妈": "A note for the owner (optional), e.g. I'm Ming's mom",
   "给家主的话": "Note to the owner",

@@ -18,6 +18,7 @@ import { t } from "../core/i18n.js";
 import { acctShow, empty, fmtMoney, incFormHref, incViewHref, incomeHref, personOptions, selOpts, yearsOf } from "./shared.js";
 import { acctLabel } from "../bills/card-picker.js";
 import { customHtml, rangeOptionsHtml, rangeWindow } from "../core/time-range.js";
+import { amtCustomHtml, amtParams, amtSelectHtml } from "../core/amount-filter.js";
 import { lpAttr } from "../core/long-press.js";
 
 /* ───────────── 银行导入：对账单里的入账补入收入（和「花费 → 银行导入」是同一个入口） ───────────── */
@@ -42,7 +43,7 @@ export function repayPanel() {
 /** 图表钻取的查询串 → 明细筛选：类型（叶子 / g:一级，旧的 g:work 这类自动换算）、日期段 from–to、成员、账户、搜索、ex = 不含资本流入 */
 export function applyIncomeDrill(q) {
   const I = inc(), d = (k) => (/^\d{4}-\d{2}-\d{2}$/.test(q.get(k) || "") ? q.get(k) : "");
-  Object.assign(I, { q: q.get("q") || "", kind: normKindSel(q.get("kind") || "all"), acct: q.get("acct") || "all", person: q.get("person") || "all", range: "all", year: "all", month: "all", batch: null, from: d("from"), to: d("to"), ex: q.get("ex") === "1", limit: pageSize(), selMode: false });
+  Object.assign(I, { q: q.get("q") || "", kind: normKindSel(q.get("kind") || "all"), acct: q.get("acct") || "all", person: q.get("person") || "all", range: "all", amt: "all", amin: "", amax: "", year: "all", month: "all", batch: null, from: d("from"), to: d("to"), ex: q.get("ex") === "1", limit: pageSize(), selMode: false });
 }
 /** 明细的日期段：图表下钻带来的 from / to 优先；否则按时间范围（全部历史 = 不限） */
 const firstYear = () => +(yearsOf().at(-1) || new Date().getFullYear());
@@ -60,7 +61,8 @@ function incParams() {
   const label = (id) => skey(`${kindLabel(id)} ${kindOf(id).name} ${groupOf(id).name}`);   // 和原来搜索时拼的类型文字一样
   return compact({ kinds: byKind ? ks.filter((k) => kindMatch(I.kind, k)) : null, known: byKind ? ks : null, kunk: byKind && kindMatch(I.kind, "__unknown__") ? true : null,
     person: I.person !== "all" ? I.person : null, acct: I.acct && I.acct !== "all" ? I.acct : null, year: I.year && I.year !== "all" ? I.year : null, mon: I.month && I.month !== "all" ? I.month : null, batch: I.batch || null,
-    from: win.from || null, to: win.to || null, ex: I.ex ? capitalKinds() : null, capk: capitalKinds(), q: q || null, qkinds: q ? ks.filter((k) => label(k).includes(q)) : null,
+    from: win.from || null, to: win.to || null, ...amtParams(I.amt, I.amin, I.amax),   // amin / amax：金额筛选（迁移 107）
+    ex: I.ex ? capitalKinds() : null, capk: capitalKinds(), q: q || null, qkinds: q ? ks.filter((k) => label(k).includes(q)) : null,
     krank: sort === "name" ? Object.fromEntries(ks.map((k, i) => [k, i])) : null, sort });   // 按类型：一级 → 叶子的顺序，同类里新的在前
 }
    // loadIncome 读完（实时同步、自己改了）：统计 + 第一页重读
@@ -116,6 +118,7 @@ export function recordsTab() {
     <select id="incPersonF" data-inc-f="person" data-nosearch aria-label="${esc(t("按成员筛选"))}">${personOptions(I.person, { all: true })}</select>
     <select id="incRangeF" class="range-sel" data-inc-f="range" data-default="all" data-nosearch aria-label="${esc(t("时间范围"))}">${rangeOptionsHtml(I.range || "all", { first: firstYear(), allFirst: true })}</select>
     ${customHtml(I.range || "all", { first: firstYear(), attr: "data-inc-c" })}
+    ${amtSelectHtml({ id: "incAmtF", attr: 'data-inc-f="amt"', cur: I.amt || "all" })}${amtCustomHtml({ cur: I.amt || "all", min: I.amin, max: I.amax, minAttr: 'data-inc-f="amin"', maxAttr: 'data-inc-f="amax"' })}
     ${clearFiltersBtn("incRec", changed(I, FD.incRec))}
     <select id="incSort" data-inc-f="sort" data-nosearch aria-label="${esc(t("排序"))}">${selOpts([["new", "最近的在前"], ["old", "最早的在前"], ["big", "金额从大到小"], ["small", "金额从小到大"], ["kind", "按类型（一级 · 具体类型）"]], I.sort || "new")}</select>${toolbarEye()}</div>
     ${drillChips()}

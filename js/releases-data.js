@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.12", title: { zh: "花费 / 收入明细：按金额筛选", en: "Spending / income lists: filter by amount" }, items: [
+    { k: "new", zh: "花费明细和收入明细的筛选里多了「金额」：全部金额（默认）、自定义、1000+、500–999、200–499、100–199、50–99、0–49；花费多一档「< 0」（退款 / 报销）", en: "Both lists have a new Amount filter: All amounts (default), Custom, 1000+, 500–999, 200–499, 100–199, 50–99, 0–49; spending also has “< 0” (refunds / reimbursements)" },
+    { k: "new", zh: "选「自定义…」可以填最低和最高金额，只填一个也行；筛选后的笔数和合计一起变", en: "Choose “Custom…” to enter a minimum and/or maximum; counts and totals follow the filter" },
+  ] },
   { v: "2026-11-24.11", title: { zh: "对账单导入：同一行不会再导入第二次", en: "Statement import: the same line is never imported twice" }, items: [
     { k: "new", zh: "每一行导入时会记一个「指纹」（账户尾号 + 日期 + 金额 + 描述）；同一份对账单再导入一次，或你改过金额 / 日期 / 分类之后再导入，已经导入过的行会被认出来，默认跳过", en: "Each imported line now gets a fingerprint (account last 4 + date + amount + description); importing the same statement again, even after you edited the amount, date or category, recognises the lines and skips them by default" },
     { k: "better", zh: "同一天有两条一模一样的流水不会被当成重复；没选账户时导入页会提醒防重复效果会差一些", en: "Two identical lines on the same day are not mistaken for duplicates; the import page warns that protection is weaker when no account is chosen" },

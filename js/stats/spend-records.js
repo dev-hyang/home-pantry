@@ -7,6 +7,7 @@ import { toolbarEye } from "../core/toolbar-eye.js";
 import { compact } from "../core/list-query.js";
 import { compare, lang, t } from "../core/i18n.js";
 import { customHtml, rangeOptionsHtml } from "../core/time-range.js";
+import { amtCustomHtml, amtParams, amtSelectHtml } from "../core/amount-filter.js";
 import { href } from "../core/router.js";
 import { memberName } from "../core/logic.js";
 import { moreBtn } from "../core/pager.js";
@@ -67,7 +68,7 @@ export function spendParams() {
   if (f.store !== "all") stores = stores ? stores.filter((k) => k === f.store) : [f.store];
   return compact({ tz: TZ(), cur: Units.region.currency, med: medNames(), sort: f.sort || "new", ...natureParams(), ...catFilter(f),
     year: f.year !== "all" ? f.year : null, mon: f.mon !== "all" ? f.mon : null, months: months ? (months.length ? months : ["0000-00"]) : null, dmax: f.dmax || null, ...spanOf({ ...f, months }),
-    stores, q: f.q.trim().toLowerCase() || null, batch: f.batch || null, batch_ids: bt?.ids.size ? [...bt.ids] : null, prop: f.prop && f.prop !== "all" ? f.prop : null });
+    stores, q: f.q.trim().toLowerCase() || null, batch: f.batch || null, batch_ids: bt?.ids.size ? [...bt.ids] : null, prop: f.prop && f.prop !== "all" ? f.prop : null, ...amtParams(f.amt, f.amin, f.amax) });   // amin / amax：金额筛选（迁移 107）
 }
 /** 明细列表：读到的几页 + 当前筛选的统计；虚拟的医疗付款 id 加 med: 前缀（不会当成真实花费去删 / 改；cursor 用的是加前缀之前的原始行） */
 export const spendList = serverList("spend", {
@@ -204,6 +205,7 @@ export function spendRecordsHtml() {
         <select id="spendStore" data-search aria-label="${t("按收款方筛选")}">${opt("all", t("全部收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${opt("__none__", t("未填写收款方"), f.store)}</select>
         <select id="spendRange" class="range-sel" data-default="all" data-nosearch aria-label="${t("时间范围")}">${rangeOptionsHtml(f.range || "all", { first, allFirst: true })}</select>
         ${customHtml(f.range || "all", { first, attr: "data-spend-c" })}
+        ${amtSelectHtml({ id: "spendAmt", cur: f.amt || "all", neg: true })}${amtCustomHtml({ cur: f.amt || "all", min: f.amin, max: f.amax, minAttr: 'data-spend-amt="min"', maxAttr: 'data-spend-amt="max"' })}
         <select id="spendSort" data-nosearch aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
         ${clearFiltersBtn("spend", changed(f, FD.spend))}
         ${toolbarEye()}

@@ -79,6 +79,8 @@ export function spendFiltered(db, f = {}) {
     if (f.q && !`${s.name}${s.store_txt}`.toLowerCase().includes(f.q)) return false;
     if (isArr(f.nat) && !f.nat.includes(s.nat_eff)) return false;
     if (f.prop && !(f.prop === "none" ? !s.property_id : s.property_id === f.prop)) return false;
+    if (f.amin != null && s.sort_a < +f.amin) return false;
+    if (f.amax != null && s.sort_a >= +f.amax) return false;
     if (isArr(f.known)) {
       const hi = s.sort_a >= (+f.big || 0), bill = String(s.category).startsWith("bill_");
       const hit = has(hi ? f.hi : f.lo, s.category) || (!f.known.includes(s.category) && has(f.unk, `${bill ? "b" : ""}${hi ? "hi" : "lo"}`));
@@ -141,6 +143,8 @@ export function incFiltered(db, f = {}) {
     if (f.to && r.received_on > f.to) return false;
     if (isArr(f.ex) && f.ex.includes(r.kind)) return false;
     if (f.acct && !(f.acct === "none" ? !r.account_id : r.account_id === f.acct)) return false;
+    if (f.amin != null && +r.amount < +f.amin) return false;
+    if (f.amax != null && +r.amount >= +f.amax) return false;
     if (f.q && !(skey(`${r.source_name} ${r.notes || ""} ${r.account || ""} ${r.kind}`).includes(f.q) || has(f.qkinds, r.kind))) return false;
     return true;
   }).map((r) => ({ ...r, sort_d: r.received_on, sort_a: +r.amount, sort_n: rank(r.kind) }));
