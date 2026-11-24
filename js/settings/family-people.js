@@ -3,6 +3,7 @@ import { CloudStore, DemoStore, Store } from "../core/store.js";
 import { $, esc, fmtDate, fmtDateTime, toast } from "../core/util.js";
 import { t } from "../core/i18n.js";
 import { moreMenu } from "../core/more-menu.js";
+import { sheetHtml } from "../core/ui-sheet.js";
 import { PEOPLE_KINDS } from "../bills/medical.js";
 import { DEVICE_ICON } from "../core/device-info.js";
 import { amOwner, famMembers, familyHref, meId, reloadMembers } from "./members.js";
@@ -105,10 +106,8 @@ function deviceRow(m) {
 function linkSheet() {
   const m = F.linkDev && famMembers().find((x) => x.user_id === F.linkDev); if (!m) return "";
   const rows = [["", t("（不链接任何人）")], ...adultPeople().map((x) => [x.id, x.name])];
-  return `<div class="fam-sheet-back" data-action="dev-link-cancel"></div><div class="fam-sheet" role="dialog" aria-modal="true" aria-label="${esc(t("属于哪位家庭成员"))}">
-    <h3>${t("「{n}」属于哪位家庭成员？", { n: esc(m.display_name) })}</h3>
-    <div class="fam-sheet-list">${rows.map(([id, name]) => `<button type="button" class="ui-opt fam-sheet-row ${id === (m.person_id || "") ? "is-cur" : ""}" data-action="dev-link-pick" data-id="${esc(m.user_id)}" data-person="${esc(id)}">${esc(name)}${id === (m.person_id || "") ? " ✓" : ""}</button>`).join("")}</div>
-    <button type="button" class="btn btn-ghost fam-sheet-cancel" data-action="dev-link-cancel">${t("取消")}</button></div>`;
+  return sheetHtml({ title: t("「{n}」属于哪位家庭成员？", { n: esc(m.display_name) }), label: t("属于哪位家庭成员"), closeAttr: 'data-action="dev-link-cancel"', cancelText: t("取消"), list:
+    rows.map(([id, name]) => `<button type="button" class="ui-opt fam-sheet-row ${id === (m.person_id || "") ? "is-cur" : ""}" data-action="dev-link-pick" data-id="${esc(m.user_id)}" data-person="${esc(id)}">${esc(name)}${id === (m.person_id || "") ? " ✓" : ""}</button>`).join("") });
 }
 function devicesBody(p) {
   const own = devicesOf(p.id), unlinked = amOwner() ? famMembers().filter((m) => !m.person_id) : [];

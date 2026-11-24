@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.30", title: { zh: "底部弹出的面板外观统一", en: "Bottom pop-up panels share one look" }, items: [
+    { k: "better", zh: "长按菜单、「属于哪位家庭成员」选人面板，和手机上从底部弹出的对话框，圆角、遮罩深浅、阴影用同一套数值；面板内边距和标题字号也对齐。", en: "Long-press menus, the “which family member” panel and the dialogs that slide up from the bottom on phones now share corner radius, backdrop darkness and shadow; padding and title size are aligned too." },
+    { k: "better", zh: "长按菜单和选人面板略高一点（最高占屏幕 88%），选项多时能多看几行。", en: "Long-press and picker panels can be a little taller (up to 88% of the screen), showing more rows when there are many options." },
+  ] },
   { v: "2026-11-24.29", title: { zh: "下拉选项、目录项、弹窗选项的点按外观统一", en: "Dropdown, menu and pop-up options share one tap style" }, items: [
     { k: "better", zh: "可搜索下拉的选项、目录面板的条目、底部弹窗（长按菜单、选人）里的选项，高度都不低于 44px，悬停、键盘选中和当前项的底色一致。", en: "Options in searchable dropdowns, contents-panel entries and bottom-sheet options (long-press menus, picking a person) are all at least 44px tall, with the same hover, keyboard and current-item colours." },
     { k: "better", zh: "可搜索下拉里的选项从 40px 提到 44px，列表略长一点；目录里当前所在的一项底色改成和下拉一致的浅绿。", en: "Options in searchable dropdowns grow from 40px to 44px, so the list is a little longer; the current item in the contents panel now uses the same light green as dropdowns." },

@@ -7,6 +7,7 @@
  * 手指移动超过 10px（在滚动或左滑删除）就取消；长按触发后会吞掉随后的那一下点击，不会误跳转。 */
 import { esc } from "./util.js";
 import { t } from "./i18n.js";
+import { sheetHtml } from "./ui-sheet.js";
 
 const HOLD = 480, SLOP = 10;
 let st = null, swallowUntil = 0, sheet = null, lastType = "mouse";
@@ -28,7 +29,7 @@ function openSheet(row, items) {
     return `<button type="button" class="${cls}"${x.action ? ` data-action="${esc(x.action)}"` : ""}${data}>${esc(x.label)}</button>`;
   };
   const el = document.createElement("div"); el.className = "lp-sheet";
-  el.innerHTML = `<div class="fam-sheet-back" data-lp-close></div><div class="fam-sheet" role="dialog" aria-modal="true" aria-label="${esc(title || t("更多操作"))}">${title ? `<h3>${esc(title)}</h3>` : ""}<div class="fam-sheet-list">${items.map(one).join("")}</div><button type="button" class="btn btn-ghost fam-sheet-cancel" data-lp-close>${t("取消")}</button></div>`;
+  el.innerHTML = sheetHtml({ title: title ? esc(title) : "", label: title || t("更多操作"), list: items.map(one).join(""), closeAttr: "data-lp-close", cancelText: t("取消") });
   el.addEventListener("click", (e) => {
     if (e.target.closest("[data-lp-close]")) return closeSheet();
     const b = e.target.closest("button.lp-row"); if (!b) { if (e.target.closest(".lp-row")) setTimeout(closeSheet, 0); return; }

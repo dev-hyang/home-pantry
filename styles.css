@@ -538,6 +538,8 @@ input[type="search"] { -webkit-appearance: none; appearance: none; }
 .ui-row:last-child { border-bottom: 0; }
 .ui-row[data-variant="detail"] { min-height: 44px; }
 .ui-row[data-variant="card"] { min-height: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }   /* 卡片行：自带一圈边框，最后一个也要边框 */
+/* 底部弹窗的外观变量：ask-dlg（手机上底部弹出的对话框）和 .fam-sheet（长按菜单、选人）共用，改这里两边一起变 */
+:root { --sheet-r: 18px; --sheet-shade: rgba(0, 0, 0, .4); --sheet-shadow: 0 -8px 28px rgba(0, 0, 0, .22); }
 /* 可选的一行（下拉选项、目录项、底部弹窗里的选项共用：<… class="ui-opt">）：点按区不低于 44px，悬停 / 键盘高亮 surface-2，
    当前项 ok-bg + 加粗（is-cur 或 aria-current），禁用半透明。字号、内边距、边框这些各用处自己定。 */
 .ui-opt { box-sizing: border-box; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border: 0; border-radius: var(--r-sm); background: none; color: var(--ink); font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
@@ -3402,7 +3404,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 }
 /* 加入采购清单确认框（2026-11-14）：页面里的 <dialog>，电脑居中，手机贴底 */
 .ask-dlg { width: min(560px, calc(100vw - 32px)); max-height: min(80vh, 720px); padding: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); box-shadow: 0 18px 48px rgba(0,0,0,.28); }
-.ask-dlg::backdrop { background: rgba(0,0,0,.4); }
+.ask-dlg::backdrop { background: var(--sheet-shade); }
 .ask-form { display: flex; flex-direction: column; max-height: inherit; padding: 16px 18px; box-sizing: border-box; }
 .ask-form h3 { margin: 0 0 2px; font-size: 17px; }
 .ask-tip { margin: 0 0 10px; font-size: 13px; }
@@ -3420,7 +3422,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .ask-acts:not(:has(.spacer)) { justify-content: flex-end; }
 .ask-acts .btn { min-height: 44px; }
 @media (max-width: 640px) {
-  .ask-dlg { width: auto; max-width: none; inset-inline: 0; max-height: 88vh; margin: auto 0 0; border-radius: 18px 18px 0 0; border-bottom: 0; box-sizing: border-box; }
+  .ask-dlg { width: auto; max-width: none; inset-inline: 0; max-height: 88vh; margin: auto 0 0; border-radius: var(--sheet-r) var(--sheet-r) 0 0; border-bottom: 0; box-sizing: border-box; }
   .ask-form { padding: 16px 14px calc(14px + env(safe-area-inset-bottom, 0px)); }
   .ask-item { grid-template-columns: auto minmax(0, 1fr) 68px 88px; gap: 6px; }
   .ask-item:not(:has(.ask-inc)) { grid-template-columns: minmax(0, 1fr) 68px 88px; }
@@ -4183,9 +4185,9 @@ details.act-more > summary.btn.btn-sm:has(> .dots3), details.act-more > summary.
 
 /* 设备行：名字可以直接改（回车保存）；底部弹出的「属于哪位家庭成员」 */
 .dev-name-in { box-sizing: border-box; width: 100%; min-height: 40px; font-size: 15px; font-weight: 600; }
-.fam-sheet-back { position: fixed; inset: 0; background: rgba(0, 0, 0, .35); z-index: 60; }
-.fam-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 61; max-width: 560px; margin: 0 auto; background: var(--surface); border-radius: 16px 16px 0 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -8px 28px rgba(0, 0, 0, .22); max-height: 80vh; display: flex; flex-direction: column; gap: 10px; }
-.fam-sheet h3 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+.fam-sheet-back { position: fixed; inset: 0; background: var(--sheet-shade); z-index: 60; }
+.fam-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 61; max-width: 560px; margin: 0 auto; background: var(--surface); border-radius: var(--sheet-r) var(--sheet-r) 0 0; padding: 16px 18px calc(16px + env(safe-area-inset-bottom, 0px)); box-shadow: var(--sheet-shadow); max-height: 88vh; display: flex; flex-direction: column; gap: 10px; }
+.fam-sheet h3 { margin: 0; font-size: 17px; overflow-wrap: anywhere; }
 .fam-sheet-list { display: grid; gap: 6px; overflow-y: auto; min-height: 0; }
 .fam-sheet-row { width: 100%; border: 1px solid var(--line); background: var(--surface); }   /* 底部弹窗里的选项带一圈边框（点按区更清楚）；其余在 .ui-opt */
 .fam-sheet-row:hover { border-color: var(--pine); } .fam-sheet-row.is-cur { border-color: var(--pine); }
