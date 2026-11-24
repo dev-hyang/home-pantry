@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.38", title: { zh: "税务：报税累计默认折叠，内容更简洁", en: "Tax: the year income summary is folded by default and simpler" }, items: [
+    { k: "better", zh: "「收入报税累计」默认折叠；展开后第一行是「要报的收入合计（不含工资）」。", en: "The income summary is folded by default; open it to see “Reportable income (excluding wages)” first." },
+    { k: "better", zh: "下面按 工资、投资收益、租金、副业 / 稿酬、看情况、一般不用报、亲友赠与 各一行，显示小计，点开才看明细。", en: "Below, one row each for wages, investment, rent, side income, maybe, usually not reportable and gifts, with subtotals; tap to see details." },
+  ] },
   { v: "2026-11-24.37", title: { zh: "交易页：买入、卖出各自成一块，历史交易折叠", en: "Deals page: Buy and Sell are now their own sections, history is folded" }, items: [
     { k: "better", zh: "每一块标题写明有几笔交易；没有交易就只有「记录买入 / 卖出交易」按钮；有交易先显示进行中的一笔，没有进行中的显示最近一笔。", en: "Each section shows how many deals it has. No deals: just a “record buy/sell deal” button. Otherwise it shows the open deal, or the latest one." },
     { k: "better", zh: "其余交易折叠成「其他交易」，展开后按日期从近到远，点一行看详情。", en: "Other deals fold into “Other deals”, newest first; tap a row for details." },

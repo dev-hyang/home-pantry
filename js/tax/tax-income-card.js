@@ -52,18 +52,21 @@ function giftFoot(y) {
 }
 function groupBlock(y, g, items) {
   const [tone, label] = BADGE[GROUP_N[g.id]], kinds = [...new Set(items.map((x) => x.r.kind))], counted = GROUP_N[g.id] === "tax" ? items.filter((x) => x.a.n === "tax") : items;
-  return `<details class="tax-inc-group" open><summary><span class="tax-inc-gn"><span class="tax-inc-gt">${g.icon} ${esc(tx(g.name))}${infoTip(tx(g.desc), { align: "start", pos: "bottom" })}</span><span class="ui-badge" data-tone="${tone}" data-size="sm">${t(label)}</span></span>${g.id === "work" ? `<span class="tax-inc-take"><b>${t("到账")} ${money(sumOf(counted))}</b><small>${t("报税以 W-2 为准")}</small></span>` : `<b>${money(sumOf(counted))}</b>`}</summary>
+  return `<details class="tax-inc-group"><summary><span class="tax-inc-gn"><span class="tax-inc-gt">${g.icon} ${esc(tx(g.name))}${infoTip(tx(g.desc), { align: "start", pos: "bottom" })}</span><span class="ui-badge" data-tone="${tone}" data-size="sm">${t(label)}</span></span>${g.id === "work" ? `<span class="tax-inc-take"><b>${t("到账")} ${money(sumOf(counted))}</b><small>${t("报税以 W-2 为准")}</small></span>` : `<b>${money(sumOf(counted))}</b>`}</summary>
     ${kinds.map((k) => leafBlock(y, k, items.filter((x) => x.r.kind === k))).join("")}${g.id === "gift" ? giftFoot(y) : ""}</details>`;
 }
 
+const GROUP_ORDER = ["work", "invest", "rent", "side", "maybe", "no", "gift"];   // 工资 → 投资 → 租金 → 副业 → 看情况 → 一般不用报 → 亲友赠与
+
+/** 整张卡默认折叠：展开后第一行是「要报的收入合计（不含工资）」，下面每个大类一行（小计），再点开才是收入类型和每一笔 */
 export function incomeTaxCard(y) {
-  const head = `<div class="dt-head"><h3>💰 ${t("{y} 年收入报税累计", { y })}${infoTip([t("这一年所有可能涉及报税的收入，按大类和收入类型分组。"), t("每笔的小 i：为什么要报、TurboTax 在哪填、汇总页有没有。"), t("借款、转账、卖房 / 卖股票的本金不列在这里。"), t("参考用，以 W-2 / 1099 和 IRS 官网为准。")], { size: "lg", align: "start" })}</h3></div>`;
-  if (!state.inc?.loaded) return `<section class="panel dt-block tax-inc">${head}<p class="muted">${t("收入记录还没读到；打开一次 财务 → 收入 再回来。")}</p></section>`;
+  const title = `<span class="tax-inc-title">💰 ${t("{y} 年收入报税累计", { y })}</span>${infoTip([t("这一年所有可能涉及报税的收入，按大类和收入类型分组。"), t("每笔的小 i：为什么要报、TurboTax 在哪填、汇总页有没有。"), t("借款、转账、卖房 / 卖股票的本金不列在这里。"), t("参考用，以 W-2 / 1099 和 IRS 官网为准。")], { size: "lg", align: "start" })}`;
+  const wrap = (sum, body) => `<details class="panel dt-block tax-inc tax-inc-card"><summary class="dt-head">${title}${sum}</summary>${body}</details>`;
+  if (!state.inc?.loaded) return wrap("", `<p class="muted">${t("收入记录还没读到；打开一次 财务 → 收入 再回来。")}</p>`);
   const items = yearItems(y), by = (g) => items.filter((x) => x.a.group === g), nOf = (n) => items.filter((x) => x.a.n === n && x.a.group !== "gift" && x.a.group !== "work");
-  const line = (name, v, cls = "") => `<div class="tax-inc-sumrow ${cls}"><span>${name}</span><b>${money(v)}</b></div>`;
-  const totals = `${line(t("要报的收入合计（不含工资）"), sumOf(nOf("tax")), "is-main")}${by("work").length ? line(t("工资（税后到账，以 W-2 为准）"), sumOf(by("work"))) : ""}${line(t("看情况（不计入）"), sumOf(nOf("maybe")))}${line(t("一般不用报"), sumOf(nOf("no")))}${line(t("亲友赠与"), sumOf(by("gift")))}`;
-  const groups = TAX_GROUPS.map((g) => ({ g, rows: by(g.id) })).filter((x) => x.rows.length).map((x) => groupBlock(y, x.g, x.rows)).join("");
-  return `<section class="panel dt-block tax-inc">${head}<div class="tax-inc-sum">${totals}</div>
-    ${groups || `<p class="muted">${t("{y} 年还没有收入记录。", { y })}</p>`}
-    <p class="tax-inc-more"><a href="${href("bills", "tax")}?tab=summary&y=${y}">${t("去汇总页核对数字")} ›</a></p></section>`;
+  const total = sumOf(nOf("tax"));
+  const main = `<div class="tax-inc-sum"><div class="tax-inc-sumrow is-main"><span>${t("要报的收入合计（不含工资）")}</span><b>${money(total)}</b></div></div>`;
+  const groups = GROUP_ORDER.map((id) => TAX_GROUPS.find((g) => g.id === id)).filter(Boolean).map((g) => ({ g, rows: by(g.id) })).filter((x) => x.rows.length).map((x) => groupBlock(y, x.g, x.rows)).join("");
+  return wrap(`<b class="tax-inc-total">${money(total)}</b>`, `${main}${groups || `<p class="muted">${t("{y} 年还没有收入记录。", { y })}</p>`}
+    <p class="tax-inc-more"><a href="${href("bills", "tax")}?tab=summary&y=${y}">${t("去汇总页核对数字")} ›</a></p>`);
 }

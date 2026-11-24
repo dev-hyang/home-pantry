@@ -4794,3 +4794,12 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .deal-more[open] > summary::before { content: "▾ "; }
 .deal-rows { margin: 0; padding: 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius, 12px); }
 .deal-rows .hist-act .btn { min-height: 44px; }
+/* 税务 → 今年：报税累计整张卡默认折叠（2026-11-24.37） */
+.tax-inc-card > summary { cursor: pointer; list-style: none; min-height: 44px; margin-bottom: 0; }
+.tax-inc-card > summary::-webkit-details-marker { display: none; }
+.tax-inc-card > summary::after { content: "▸"; color: var(--muted); flex: none; }
+.tax-inc-card[open] > summary { margin-bottom: 6px; }
+.tax-inc-card[open] > summary::after { content: "▾"; }
+.tax-inc-title { min-width: 0; flex: 1 1 auto; font-size: 15px; font-weight: 700; }
+.tax-inc-total { flex: none; white-space: nowrap; }
+.tax-inc-card[open] .tax-inc-total { display: none; }
