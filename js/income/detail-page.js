@@ -11,6 +11,7 @@ import { debtHref } from "../bills/debt-logic.js";
 import { formHtml } from "./record-form.js";
 import { incFormHref, incomeHref, fmtMoney, acctShow } from "./shared.js";
 import { state } from "../core/state.js";
+import { href } from "../core/router.js";
 import { t } from "../core/i18n.js";
 import { canEdit } from "./records-tab.js";
 
@@ -35,7 +36,9 @@ export function incomeDetailPage(id) {
   const basic = dtBlock(t("基本信息"), ed("basic"), [dtRow(t("到账日期"), esc(fmtDay(r.received_on))), dtRow(t("到账金额"), `<b>+${fmtMoney(r.amount)}</b>`),
     sp.cap ? dtRow(t("统计口径"), esc(t("认定收入 {a}，资本流入 {b}", { a: fmtMoney(sp.income), b: fmtMoney(sp.cap) }))) : "",
     dtRow(t("付款方"), esc(r.source_name)), dtRow(t("类型"), `${k.icon} ${esc(kindLabel(r.kind))}`), dtRow(t("收款方式"), chan ? esc(t(chan)) : "")]);
-  const owner = dtBlock(t("账户与归属"), ed("acct"), [dtRow(t("这是谁的收入"), esc(who)), dtRow(t("入到哪个账户"), esc(acct || ""))]);
+  const prop = r.property_id ? (state.properties || []).find((x) => x.id === r.property_id) : null;
+  const owner = dtBlock(t("账户与归属"), ed("acct"), [dtRow(t("这是谁的收入"), esc(who)), dtRow(t("入到哪个账户"), esc(acct || "")),
+    prop ? dtRow(t("关联房产"), `<a href="${href("house", "overview")}?prop=${esc(prop.id)}">🏠 ${esc(prop.name)} ›</a>`) : ""]);
   const fx = r.orig_amount || r.fee != null ? dtBlock(t("国际电汇 / 外币"), ed("fx"), [r.orig_amount ? dtRow(t("汇出金额（原币种）"), esc(`${r.orig_amount} ${r.orig_currency || ""}`)) : "", r.fee != null ? dtRow(t("手续费"), fmtMoney(r.fee)) : ""]) : "";
   const repay = s ? dtBlock(t("借款 / 还款"), ed("repay"), repayRows(r, s)) : "";
   const by = r.created_by && r.created_by !== state.user?.id && memberLabel(r.created_by) ? t("{n} 记的", { n: memberLabel(r.created_by) }) : "";

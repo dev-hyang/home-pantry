@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.35", title: { zh: "收入详情：关联了房产会显示在「账户与归属」里", en: "Income details: a linked property now shows under “Account & owner”" }, items: [
+    { k: "better", zh: "收入详情页的「账户与归属」多了「关联房产」一行，点一下直接去那套房产。", en: "The “Account & owner” block on an income record now shows the linked property; tap it to open that property." },
+  ] },
   { v: "2026-11-24.34", title: { zh: "修正：手机上报税页「名称：内容」被居中了", en: "Fix: label-and-value rows on the tax page were centred on phones" }, items: [
     { k: "fix", zh: "手机上，报税和详情页里「名称」和「内容」上下排列的行，上一版误成了居中；现在恢复靠左对齐。电脑上不受影响。", en: "On phones, the stacked label-and-value rows on the tax and detail pages had become centred in the last update. They are left-aligned again; desktop is unchanged." },
   ] },
