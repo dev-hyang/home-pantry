@@ -25,7 +25,7 @@ export { ui };
 
 /** 四张清单：key = 存在 props[id] 里的字段；legacy = 以前（只有一个数字框时）存的合计，还认；sign = 对成本基础是加还是减 */
 export const SECS = [
-  { key: "buyItems", legacy: "buyCosts", sign: 1, n: "②", title: "买入时付的费用", hint: "过户费、律师费、评估费、贷款费用…", ph: "例如：律师费", date: true, link: "spend" },
+  { key: "buyItems", legacy: "buyCosts", sign: 1, n: "②", title: "买入时付的费用", hint: "只填买房价之外的费用：过户费、律师费、评估费、贷款费用…。不要填首付、wire 总额或 closing 的 Cash to Close（买入价已含房价，会重复计算）；预存的 escrow、预付利息、地税分摊也不算。", ph: "例如：律师费", date: true, link: "spend" },
   { key: "creditItems", legacy: "buyCredits", sign: -1, n: "③", title: "买入时收到的退款 / credit", hint: "买家中介退回的佣金、title 退回的 closing 多收款、贷款方的 credit（包括 Zelle 转来的）。会降低成本基础，不是收入；每笔单独记一项。", ph: "例如：贷款方 credit", date: true, link: "income" },
   { key: "improvements", legacy: null, sign: 1, n: "④", title: "装修翻新（加到成本基础）", hint: "屋顶、厨房、窗户、地板…大的翻新才算，日常维修不算。", ph: "例如：换屋顶", date: true, link: "spend" },
   { key: "sellItems", legacy: "sellCosts", sign: 1, n: "⑥", title: "卖出时的费用", hint: "中介佣金、过户费…", ph: "例如：中介佣金", date: true, link: "spend" },

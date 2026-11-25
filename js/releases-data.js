@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.51", title: { zh: "成本基础：提醒别把首付重复填进去", en: "Cost basis: don't re-enter the down payment" }, items: [
+    { k: "better", zh: "「买入时付的费用」的说明写清楚：只填房价之外的费用，不要填首付、wire 总额或 Cash to Close，否则房价会被算两遍。", en: "The \"costs paid at purchase\" note now says to enter only costs on top of the price, not the down payment, total wire or Cash to Close, which would count the price twice." },
+  ] },
   { v: "2026-11-24.46", title: { zh: "清理没用的旧样式", en: "Removed unused old styles" }, items: [
     { k: "better", zh: "删掉了已经没有页面在用的旧时间线和列表样式，界面不变。", en: "Removed old timeline and list styles that no page uses any more; nothing changes on screen." },
   ] },
