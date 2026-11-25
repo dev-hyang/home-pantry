@@ -14,6 +14,7 @@ import { STORE_NONE, STORE_REST, statKit, storeDatalist } from "./store-lite.js"
 import { rangeLabel } from "./add-lite.js";
 import { storeL1Of } from "./payees-l1.js";
 import { lpAttr } from "../core/long-press.js";
+import { infoTip } from "../core/info-tip.js";
 
 /* ── 全历史名单（最近一次、整理预览）：读一次缓存，花费变了重读 ── */
 export const NAMES = { rows: null, busy: false, missing: false };
@@ -58,11 +59,12 @@ export function viewPayees(months, month = state.stats.month) {
   CTX = { sel, l1 };
   if (state.route?.q?.get("tidy") === "1") { if (!P().tidyFromLink) { P().tidy = true; P().tidyFromLink = true; } } else P().tidyFromLink = false;   // 导入完成页「去整理」带过来的（每次点链接都打开一次）
   if (!NAMES.rows) loadNames();
-  const head = `<div class="section-head"><h2>${t("收款方")}</h2><p>${esc(sel ? monthLabel(sel) : rangeLabel())}${t("；账单、订阅、保险按收款方；名称不区分大小写")}</p></div>`;   // 「只看」在页头右边的筛选按钮里（payees-l1.js）
+  // 页面标题在页头（tabs.js）已经有了，这里不再重复一个「收款方」标题；说明收进第一张卡片的 i 里。「只看」在页头右边的筛选按钮里（payees-l1.js）
   const list = payeeList(months, sel, l1);
-  if (!list) return `<section class="section">${head}${statKit.LOADING()}</section>`;
-  if (!list.length) return `<section class="section">${head}<div class="panel empty"><strong>${t("这段时间没有符合条件的花费")}</strong></div></section>`;
-  return `<section class="section payees">${head}${kpisHtml(list)}${chartsHtml(list)}${P().tidy ? tidyHtml() : ""}
+  if (!list) return `<section class="section">${statKit.LOADING()}</section>`;
+  if (!list.length) return `<section class="section"><div class="panel empty"><strong>${t("这段时间没有符合条件的花费")}</strong></div></section>`;
+  const tip = infoTip([sel ? monthLabel(sel) : rangeLabel(), t("账单、订阅、保险按收款方；名称不区分大小写")], { size: "sm", align: "start", pos: "bottom" });
+  return `<section class="section payees">${kpisHtml(list, tip)}${chartsHtml(list)}${P().tidy ? tidyHtml() : ""}
     <div class="panel">
       <div class="toolbar ix-stoolbar">
         <input type="search" id="payeeSearch" value="${esc(P().q)}" placeholder="${esc(t("搜索收款方 / 分类"))}" aria-label="${esc(t("搜索收款方"))}">
@@ -77,12 +79,12 @@ export function viewPayees(months, month = state.stats.month) {
 /** 只重画表格（搜索、排序、多选、翻页时；输入框不丢焦点） */
 export let LAST = null;
 export function renderPayeeList() { const el = $("#payeeList"); if (el && LAST) el.innerHTML = listHtml(LAST); }
-function kpisHtml(list) {
+function kpisHtml(list, tip = "") {
   const named = list.filter((x) => x.key !== "__none__"), total = list.reduce((a, x) => a + x.total, 0), n = list.reduce((a, x) => a + x.count, 0);
   const top5 = named.slice(0, 5).reduce((a, x) => a + x.total, 0), big = named[0];
-  const card = (label, value, small = "", drill = "") => `<div class="kpi${drill ? " ch-hit-row" : ""}"${drill ? hitAttrs(drill, label) : ""}><span>${esc(label)}</span><b>${value}</b><small>${small}${drill ? " ›" : ""}</small></div>`;
+  const card = (label, value, small = "", drill = "", extra = "") => `<div class="kpi${drill ? " ch-hit-row" : ""}"${drill ? hitAttrs(drill, label) : ""}><span>${esc(label)}${extra}</span><b>${value}</b><small>${small}${drill ? " ›" : ""}</small></div>`;
   return `<div class="kpis">
-    ${card(t("收款方"), esc(t("{n} 家", { n: named.length })), list.length > named.length ? esc(t("另有未填写收款方的花费")) : "")}
+    ${card(t("收款方"), esc(t("{n} 家", { n: named.length })), list.length > named.length ? esc(t("另有未填写收款方的花费")) : "", "", tip)}
     ${card(t("花费合计"), esc(money(total)), esc(t("{n} 笔，不含转账", { n })), dq({ ...(CTX.l1 !== "all" ? { cat: CTX.l1 } : {}), ...win() }))}
     ${card(t("平均每笔"), esc(money(n ? total / n : 0)))}
     ${card(t("前 5 家占比"), total > 0 ? `${Math.round((top5 / total) * 100)}%` : "–", esc(t("钱主要花在哪几家")))}

@@ -1671,6 +1671,8 @@ export const EN = {
   "{month}各商店花费占比": "{month}: share by store",
   "{r}各商店花费占比": "{r}: share by store",
   "；账单、订阅、保险按收款方；名称不区分大小写": "; bills, subscriptions and insurance by payee; names are case-insensitive",
+  "{a} 已核对 / {b} 待核对": "{a} verified / {b} to verify",
+  "账单、订阅、保险按收款方；名称不区分大小写": "Bills, subscriptions and insurance by payee; names are case-insensitive",
   "其他功能":"More","时间范围":"Time range",
   "工作与专业": "Work & professional", "工作与专业（付费软件 · 考证 · 律师会计 · 办公用品）": "Work & professional (paid software · certifications · lawyer / accountant · office supplies)", "付费软件 / 工具 / 云服务（一次性买断或年付）": "Paid software / tools / cloud (one-off or annual)", "考证 / 执照 / 专业会员 / 考试费": "Certifications / licences / professional dues / exam fees", "律师 / 会计 / 法律咨询（非房产：移民、遗嘱、公司、劳动…）": "Lawyer / accountant / legal advice (non-property: immigration, wills, business, employment…)", "办公 / 职业用品（耗材、工作服、名片、打印）": "Office / work supplies (consumables, uniforms, cards, printing)", "其他工作花费（行业会议、差旅杂费…）": "Other work costs (conferences, misc. travel…)",
   "更早的导入（{n} 批）": "Earlier imports ({n})",

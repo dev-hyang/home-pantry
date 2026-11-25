@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.58", title: { zh: "花费排行恢复整齐，税务汇总可折叠", en: "Spending rankings tidy again; tax summary folds" }, items: [
+    { k: "fix", zh: "花费 → 分类 / 收款方里的排行：名称、金额、占比重新分列，金额靠右，下面一条进度条；分类页顶上的金额回到标题同一行右边。", en: "Rankings in Spending → Categories / Payees: name, amount and share are in separate columns again, amount on the right with the bar below; the total sits on the title line." },
+    { k: "fix", zh: "税务「今年」：收入报税累计标题旁的 i 贴回标题后面。", en: "Tax · This year: the i next to the income summary title is back beside the title." },
+    { k: "better", zh: "花费 → 收款方：去掉重复的标题，说明收进第一张卡片的 i 里。", en: "Spending → Payees: removed the duplicate title; the note is now in the first card's i." },
+    { k: "better", zh: "税务 → 汇总：每个分组默认折叠，折叠时能看到「几项已核对 / 几项待核对」。", en: "Tax → Summary: each group is folded by default and shows “N verified / M to verify”." },
+  ] },
   { v: "2026-11-24.57", title: { zh: "按钮条的「取消」判断改用共用模块", en: "Button-row Cancel detection moved to a shared module" }, items: [
     { k: "better", zh: "表单底部按钮条判断哪个是「取消」的规则，改成和三个姊妹应用共用的同一份（界面不变）。", en: "The rule that decides which button is Cancel in form button rows is now shared with the sister apps (no visible change)." },
   ] },

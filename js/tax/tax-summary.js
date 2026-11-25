@@ -39,9 +39,21 @@ function fbarCard(y) {
   return `<section class="panel dt-block"><div class="dt-head"><h3>🌏 ${t("{y} 年境外账户 FBAR 预判（可选）", { y })}</h3></div>${body}
     <p class="hint">${esc(tx(th.label))} · <a href="${esc(th.source)}" target="_blank" rel="noopener">${t("官方说明")} ↗</a> · ${t("这只是预判，不是申报；余额取你在「更新余额」里记过的。")}</p></section>`;
 }
+/* 每个分组默认折叠；展开的记在这里，勾「已核对」重画页面后不会又收起。打印前全部展开 */
+const OPEN = new Set();
+document.addEventListener("toggle", (e) => { const d = e.target, g = d.dataset?.sumGroup; if (g && !d.dataset.printing) d.open ? OPEN.add(g) : OPEN.delete(g); }, true);
+window.addEventListener("beforeprint", () => document.querySelectorAll("details[data-sum-group]").forEach((d) => { if (!d.open) { d.dataset.printing = "1"; d.open = true; } }));
+window.addEventListener("afterprint", () => document.querySelectorAll("details[data-printing]").forEach((d) => { d.open = false; setTimeout(() => delete d.dataset.printing, 50); }));
+
+/** 一个分组：折叠时标题行右边显示「4 已核对 / 10 待核对」，全部核对完变绿 */
+function groupCard(y, g, list) {
+  const done = list.filter((r) => yearState(y).ok?.[r.id]).length, left = list.length - done;
+  const stat = `<span class="tax-fold-stat${left === 0 && done ? " is-done" : ""}">${t("{a} 已核对 / {b} 待核对", { a: done, b: left })}</span>`;
+  return `<details class="panel dt-block tax-fold" data-sum-group="${esc(g)}" ${OPEN.has(g) ? "open" : ""}><summary class="dt-head"><h3>${esc(tx(GROUP_NAMES[g]))}</h3>${stat}</summary><ul class="tax-nums">${list.map((r) => rowHtml(y, r)).join("")}</ul></details>`;
+}
 export function summaryTab(y) {
   const rows = taxRows(y), groups = Object.keys(GROUP_NAMES);
-  const cards = groups.map((g) => `<section class="panel dt-block"><div class="dt-head"><h3>${esc(tx(GROUP_NAMES[g]))}</h3></div><ul class="tax-nums">${rows.filter((r) => r.group === g).map((r) => rowHtml(y, r)).join("")}</ul></section>`).join("");
+  const cards = groups.map((g) => groupCard(y, g, rows.filter((r) => r.group === g))).join("");
   const tools = `<div class="tax-tools"><button type="button" class="ui-btn" data-size="sm" data-tax-export="${y}">⬇ ${t("导出 CSV")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-print>🖨 ${t("打印 / 存成 PDF")}</button></div>`;
   return `<p class="muted tax-wrap">${t("{y} 年和报税有关的数字，按 TurboTax 的填写顺序排。自动算的来自你已有的记录；手填的在这里直接输入。每行点「看来源明细」核对，核对完勾「已核对」。", { y })}</p>
     ${tools}${cards}${deductionCard(y)}${planCard(y)}${setupFor(y).flags.foreign ? fbarCard(y) : ""}`;

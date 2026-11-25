@@ -4590,6 +4590,16 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 @media (max-width: 480px) { .tax-imp-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .tax-imp-form input[name="desc"] { grid-column: 1 / -1; } }
 /* 税务 → 汇总：导出 / 打印按钮；打印时只留内容 */
 .tax-tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+/* 税务 → 汇总：可折叠的分组（标题 + 已核对 / 待核对统计 + 箭头） */
+.tax-fold > summary { cursor: pointer; list-style: none; min-height: 44px; margin-bottom: 0; gap: 10px; }
+.tax-fold > summary::-webkit-details-marker { display: none; }
+.tax-fold > summary::after { content: "▸"; color: var(--muted); flex: none; }
+.tax-fold[open] > summary { margin-bottom: 6px; }
+.tax-fold[open] > summary::after { content: "▾"; }
+.tax-fold > summary h3 { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.tax-fold-stat { flex: none; white-space: nowrap; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tax-fold-stat.is-done { color: var(--ok); font-weight: 600; }
+@media (max-width: 480px) { .tax-fold > summary { flex-wrap: wrap; } .tax-fold > summary h3 { flex-basis: calc(100% - 24px); } .tax-fold-stat { order: 3; flex-basis: 100%; white-space: normal; } .tax-fold > summary::after { order: 2; } }
 @media print { .tax-tools, .tax-page .fpop, .tax-page .tax-num-foot label, .tax-page .tax-num-in { display: none !important; } .tax-page .panel { break-inside: avoid; box-shadow: none; } }
 /* 买卖与成本基础：一步一步（tax-sales.js 2026-11-22.22） */
 .tax-step { margin: 0 0 14px; padding: 0 0 12px; border-bottom: 1px dashed var(--line); min-width: 0; }
