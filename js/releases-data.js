@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-25.4", title: { zh: "筛选面板：电脑上靠右贴着「筛选」按钮，下拉一样宽一样高", en: "Filter panel: right-aligned under the Filter button, dropdowns equal in size" }, items: [
+    { k: "better", zh: "各页的「筛选」面板在电脑上靠右、紧贴「筛选」按钮下方展开；里面的下拉（含可搜索的分类）统一两列等宽、等高，购物车里不再忽大忽小。", en: "On laptops the Filter panel now opens right-aligned directly under the Filter button, with equal-width, equal-height dropdowns (including searchable ones)." },
+    { k: "better", zh: "手机上筛选面板里的下拉一律占满一行。", en: "On phones, dropdowns in the Filter panel each fill a full row." },
+  ] },
   { v: "2026-11-25.3", title: { zh: "小修：关联设备下拉、采购首页录入块、账单卡片点开详情", en: "Small fixes: linked-devices dropdown, purchase intake block, bill cards open details" }, items: [
     { k: "fix", zh: "物品表单的「关联设备」：触发条和同表单其他下拉一样高；设备多时面板里的搜索框改成紧凑行高，不再比选项还高。", en: "Item form: the Linked devices bar now matches other dropdowns in height, and its search box uses a compact height." },
     { k: "fix", zh: "采购首页「买回来了，录入库存」块在电脑上铺满整行宽度。", en: "The Bought it, add to stock block on the Purchases home now spans the full width on laptops." },

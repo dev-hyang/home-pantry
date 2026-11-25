@@ -1904,7 +1904,7 @@ body.editing .minibar { display: none; }
 .ix-toolbar > select, .ix-toolbar .tb-panel > select { flex: 1 1 auto; }
 .ix-toolbar .ssel { flex: 1.6 1 180px; }
 .ix-stoolbar .ssel { flex: 0 1 240px; }
-@media (max-width: 440px) { .toolbar.tb-on .tb-panel .ssel, .ix-stoolbar.tb-on .tb-panel > select { grid-column: 1 / -1; } }
+@media (max-width: 440px) { .toolbar.tb-on .tb-panel .ssel, .toolbar.tb-on .tb-panel > select, .ix-stoolbar.tb-on .tb-panel > select { grid-column: 1 / -1; } }   /* 手机：面板里的下拉一律占满一行，不要半宽、满宽混排 */
 
 /* 存储用量（js/core/usage.js）：手机上上下叠、电脑上数字靠右；状态靠图标 + 文字，不只靠颜色 */
 .usage { display: grid; gap: 18px; }
@@ -4811,10 +4811,10 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
   #main .toolbar.tb-on .tb-toggle:focus-visible { outline: 3px solid var(--focus, #1f6feb); outline-offset: 2px; }
   #main .toolbar.tb-on .tb-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--ink, #1e3a32); color: var(--bg, #fff); font-size: 12px; font-weight: 700; }
   #main .toolbar.tb-on .tb-count[hidden] { display: none; }
-  #main .toolbar.tb-on .tb-panel { display: none; position: absolute; left: 0; top: calc(100% + 4px); z-index: 15; width: min(560px, 100%); grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; background: var(--surface, #fff); border: 1px solid var(--line, #cfdcd2); border-radius: 12px; box-shadow: 0 12px 28px rgba(0, 0, 0, .16); box-sizing: border-box; }
+  #main .toolbar.tb-on .tb-panel { display: none; position: absolute; left: auto; right: 0; top: calc(100% + 4px); z-index: 15; width: min(560px, 100%); grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; background: var(--surface, #fff); border: 1px solid var(--line, #cfdcd2); border-radius: 12px; box-shadow: 0 12px 28px rgba(0, 0, 0, .16); box-sizing: border-box; }
   #main .toolbar.tb-on .tb-panel.open { display: grid; }
   #main .toolbar.tb-on .tb-panel select, #main .toolbar.tb-on .tb-panel .ssel { width: 100%; min-width: 0; flex: none; }
-  #main .toolbar.tb-on .tb-panel .ssel { grid-column: 1 / -1; }
+  #main .toolbar.tb-on .tb-panel > :is(select, .ssel, .ssel-btn) { box-sizing: border-box; min-height: var(--ctl-h, 40px); }   /* 面板里的每个下拉（含可搜索的）一样宽（两列各占一半）、一样高 */
   #main .toolbar.tb-on .tb-head { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: var(--ctl-h); padding: 0 2px 6px; border-bottom: 1px solid var(--line, #cfdcd2); }
   #main .toolbar.tb-on .tb-head-t { display: block; font-size: 15px; font-weight: 700; }
   #main .toolbar.tb-on .tb-head .clear-filters { margin-left: auto; }
