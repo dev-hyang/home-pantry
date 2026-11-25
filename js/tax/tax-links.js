@@ -43,12 +43,19 @@ if (typeof document !== "undefined") {
   document.addEventListener("input", on); document.addEventListener("change", on);
 }
 
-/** 收入的选择器：收入记录关联了这套房的（收入记录里的「关联房产」）；记录都在内存里，不用读 */
+/** 搜索 / 筛选：默认不放（列表本来就短），点「搜索」才展开；展开状态只在这一块里，不重画 */
+const searchBtn = () => `<button type="button" class="btn btn-sm btn-ghost tax-search-btn" data-tax-fsearch aria-expanded="false">🔍 ${t("搜索")}</button>`;
+const searchWrap = () => `<div class="tax-fwrap" data-tax-fwrap hidden>${filterBar()}</div>`;
+
+/** 收入的选择器：默认只列关联了这套房的收入；点「显示全部收入」才列全部（记录都在内存里，不用读） */
 function incomePicker(p, key, linked, money) {
   if (!state.inc?.loaded) return `<p class="muted">${t("收入记录还没读到；打开一次 财务 → 收入 再回来。")}</p>`;
-  const all = pickableIncome(p.id, linked);
-  const rows = all.map((r) => `<li class="tax-pick-row" ${rowAttrs(String(r.received_on || "").slice(0, 10), r.source_name, r.amount)}><label class="check-inline"><input type="checkbox" name="pick" value="${esc(r.id)}"><span class="tax-pick-d"><small class="muted">${esc(String(r.received_on || "").slice(0, 10))}</small> ${esc(r.source_name || "—")}</span><b class="tax-imp-a">${money(Number(r.amount) || 0)}</b></label></li>`).join("");
-  return `<form class="tax-link-form" data-tax-link="${esc(key)}" novalidate>${rows ? `<div data-tax-filter>${filterBar()}<ul class="tax-pick">${rows}</ul></div>` : `<p class="muted">${t("没有可链接的收入记录。先到 财务 → 收入 记一笔，这里就能选到。")}</p>`}
+  const all = pickableIncome(p.id, linked), mine = all.filter((r) => r.property_id === p.id), showAll = ui.pickAll === key;
+  const list = showAll ? all : mine;
+  const rows = list.map((r) => `<li class="tax-pick-row" ${rowAttrs(String(r.received_on || "").slice(0, 10), r.source_name, r.amount)}><label class="check-inline"><input type="checkbox" name="pick" value="${esc(r.id)}"><span class="tax-pick-d"><small class="muted">${esc(String(r.received_on || "").slice(0, 10))}</small> ${esc(r.source_name || "—")}</span><b class="tax-imp-a">${money(Number(r.amount) || 0)}</b></label></li>`).join("");
+  const scope = all.length > mine.length ? `<button type="button" class="btn btn-sm btn-ghost" data-tax-pick-all="${esc(key)}">${showAll ? t("只看这套房的收入") : t("显示全部收入（{n}）", { n: all.length })}</button>` : "";
+  const empty = `<p class="muted">${showAll || !all.length ? t("没有可链接的收入记录。先到 财务 → 收入 记一笔，这里就能选到。") : t("没有关联这套房的收入记录。在收入记录里选「关联房产」，这里就默认能选到；或者点下面显示全部。")}</p>`;
+  return `<form class="tax-link-form" data-tax-link="${esc(key)}" novalidate>${rows ? `<div data-tax-filter><div class="tax-pick-tools">${searchBtn()}${scope}</div>${searchWrap()}<ul class="tax-pick">${rows}</ul></div>` : `${empty}${scope ? `<div class="tax-pick-tools">${scope}</div>` : ""}`}
     <div class="tax-item-actions">${rows ? `<button type="submit" class="btn btn-sm btn-primary">${t("链接所选")}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-tax-pick-cancel>${t("取消")}</button></div></form>`;
 }
 
@@ -60,16 +67,20 @@ export function pickerHtml(p, key, kind, leafLabelOf, isTransfer, linked, money)
   if (got.err) return `<p class="form-error" role="alert">${esc(t("读花费记录失败：{msg}", { msg: got.err }))}</p>`;
   const list = pickable(p.id, linked, isTransfer);
   const rows = list.map((r) => `<li class="tax-pick-row" ${rowAttrs(dayOf(r.purchased_at), `${r.name} ${leafLabelOf(r.category)}`, r.amount)}><label class="check-inline"><input type="checkbox" name="pick" value="${esc(r.id)}"><span class="tax-pick-d"><small class="muted">${esc(dayOf(r.purchased_at))}</small> ${esc(r.name)}<small class="muted tax-pick-c">${esc(leafLabelOf(r.category))}</small></span><b class="tax-imp-a">${money(r2(r.amount))}</b></label></li>`).join("");
-  return `<form class="tax-link-form" data-tax-link="${esc(key)}" novalidate>${rows ? `<div data-tax-filter>${list.length >= FILTER_MIN ? filterBar() : ""}<ul class="tax-pick">${rows}</ul></div>` : `<p class="muted">${t("这套房没有可链接的花费记录。花费记账时选「房产」，这里就能选到。")}</p>`}
+  return `<form class="tax-link-form" data-tax-link="${esc(key)}" novalidate>${rows ? `<div data-tax-filter><div class="tax-pick-tools">${searchBtn()}</div>${searchWrap()}<ul class="tax-pick">${rows}</ul></div>` : `<p class="muted">${t("这套房没有可链接的花费记录。花费记账时选「房产」，这里就能选到。")}</p>`}
     <div class="tax-item-actions">${rows ? `<button type="submit" class="btn btn-sm btn-primary">${t("链接所选")}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-tax-pick-cancel>${t("取消")}</button></div></form>`;
 }
 
 /* 点「从花费记录里选」/ 取消 / 提交勾选（链接所选）。删除（解除链接）走 tax-actions.js 里和手填行一样的 × */
 if (typeof document !== "undefined") {
   document.addEventListener("click", (e) => {
+    const fs = e.target.closest?.("[data-tax-fsearch]");   // 点「搜索」：展开 / 收起这一块的搜索 + 金额筛选
+    if (fs && fs.closest(".tax-page")) { const w = fs.closest("[data-tax-filter]")?.querySelector("[data-tax-fwrap]"); if (w) { w.hidden = !w.hidden; fs.setAttribute("aria-expanded", String(!w.hidden)); if (!w.hidden) w.querySelector("input")?.focus(); } return; }
+    const all = e.target.closest?.("[data-tax-pick-all]");   // 收入选择器：只看这套房 ↔ 显示全部
+    if (all && all.closest(".tax-page")) { ui.pickAll = ui.pickAll === all.dataset.taxPickAll ? null : all.dataset.taxPickAll; render(false); return; }
     const pick = e.target.closest?.("[data-tax-pick]"), cancel = e.target.closest?.("[data-tax-pick-cancel]");
     if (!(pick || cancel) || !e.target.closest(".tax-page")) return;
-    ui.pick = pick ? pick.dataset.taxPick : null; if (pick) ui.add = null; render(false);
+    ui.pick = pick ? pick.dataset.taxPick : null; ui.pickAll = null; if (pick) ui.add = null; render(false);
   });
   document.addEventListener("submit", async (e) => {
     const f = e.target; if (!f?.dataset?.taxLink || !f.closest(".tax-page")) return;

@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.46", title: { zh: "买卖与成本基础：列表更短、搜索按需出现", en: "Sales & cost basis: shorter lists, search on demand" }, items: [
+    { k: "better", zh: "「从收入记录里选」默认只列关联了这套房的收入；需要时点「显示全部收入」。", en: "\"Pick from income records\" now lists only income linked to this property by default; tap \"Show all income\" when needed." },
+    { k: "better", zh: "搜索和金额筛选不再一直摆在那里，点「搜索」才展开；装修翻新等清单里不再放搜索框。", en: "Search and amount filter no longer sit there all the time; tap \"Search\" to open them. Lists such as renovations have no search box." },
+    { k: "better", zh: "去掉页内单独的「金额显示」眼睛行，眼睛已经在页头的筛选按钮里。", en: "Removed the separate in-page eye row; the eye is already inside the header's Filter button." },
+  ] },
   { v: "2026-11-24.45", title: { zh: "按钮高度全站统一", en: "One button height across the app" }, items: [
     { k: "better", zh: "去掉各页面单独写死的按钮高度（32 到 48px 不等），统一用标准：默认 40px、小号 34px。", en: "Removed per-page hard-coded button heights (32 to 48 px) in favour of the standard: 40 px default, 34 px small." },
     { k: "better", zh: "手机上按钮视觉高度不变，点按区域仍不小于 44px；图标小按钮、和输入框并排的按钮保持原样。", en: "On phones the visible height stays the same while the tap area is still at least 44 px; icon buttons and buttons beside input fields are unchanged." },

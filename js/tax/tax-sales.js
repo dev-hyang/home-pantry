@@ -13,8 +13,7 @@ import { href } from "../core/router.js";
 import { propOf } from "./tax-calendar.js";
 import { ui } from "./tax-ui.js";
 import { closingBlock } from "./tax-closing-ai.js";
-import { FILTER_MIN, ensureSpend, filterBar, linkedRefs, pickerHtml, resolveLink, rowAttrs } from "./tax-links.js";
-import { moneyEye } from "../core/privacy.js";
+import { ensureSpend, linkedRefs, pickerHtml, resolveLink, rowAttrs } from "./tax-links.js";
 import { isTransfer, leafLabel } from "../core/taxonomy.js";
 import { render } from "../app/render.js";
 
@@ -74,7 +73,7 @@ function listBlock(p, s) {
       <div class="tax-item-actions"><button type="submit" class="btn btn-sm btn-primary">${t("添加")}</button><button type="button" class="btn btn-sm btn-ghost" data-tax-add-cancel>${t("取消")}</button></div>
       <p class="form-error tax-item-err" role="alert"></p></form>`
     : `<button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-add="${esc(key)}">＋ ${t("添加一项")}</button>${linkBtn}`;
-  return step(s.n, t(s.title), `${rows.length ? `<div data-tax-filter>${rows.length >= FILTER_MIN ? filterBar() : ""}<ul class="tax-imps">${li}</ul></div><p class="tax-sub-total">${t("小计")} <b>${money(total)}</b></p>` : `<p class="muted">${t("还没有。没有就不用填，直接往下。")}</p>`}${form}`, s.hint ? t(s.hint) : "");
+  return step(s.n, t(s.title), `${rows.length ? `<ul class="tax-imps">${li}</ul><p class="tax-sub-total">${t("小计")} <b>${money(total)}</b></p>` : `<p class="muted">${t("还没有。没有就不用填，直接往下。")}</p>`}${form}`, s.hint ? t(s.hint) : "");
 }
 
 function homeCard(p, idx) {
@@ -105,8 +104,7 @@ function carCard(a) {
 export function salesTab() {
   const homes = (state.properties || []).filter((p) => p.role !== "tenant" && !["looking", "renting", "moved_out"].includes(p.status)), cars = (state.assets || []).filter((a) => a.kind === "vehicle" && ["sold", "returned"].includes(a.vehicle?.status || ""));
   ensureSpend(homes.map((p) => p.id), () => render(false));   // 这几套房关联的花费：读一次，读完重画
-  return `<div class="money-eye-row tax-eye"><span class="muted">${t("金额显示")}</span>${moneyEye()}</div>
-    <p class="muted tax-wrap">${t("卖房、卖车前后的收益参考。买入价、卖出价来自 房屋 / 车辆 里已有的记录；费用、退款、装修翻新、住满与否记在这里，一项一项加。参考用，以 TurboTax 和官方说明为准。")}</p>
+  return `<p class="muted tax-wrap">${t("卖房、卖车前后的收益参考。买入价、卖出价来自 房屋 / 车辆 里已有的记录；费用、退款、装修翻新、住满与否记在这里，一项一项加。参考用，以 TurboTax 和官方说明为准。")}</p>
     <h3 class="tax-sub">${t("房子")}</h3>${homes.map(homeCard).join("") || `<p class="muted">${t("还没有房产。")}</p>`}
     <h3 class="tax-sub">${t("已卖出的车")}</h3>${cars.map(carCard).join("") || `<p class="muted">${t("还没有卖出的车。卖车时在车辆的交易里走「卖车」流程，价格记在那里。")}</p>`}`;
 }

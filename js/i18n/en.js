@@ -4612,4 +4612,7 @@ export const EN = {
   "按金额 / 日期找": "Find by amount / date",
   "从收入记录里选": "Pick from income records",
   "从花费记录里选": "Pick from spending records",
+  "只看这套房的收入": "Only this property's income",
+  "显示全部收入（{n}）": "Show all income ({n})",
+  "没有关联这套房的收入记录。在收入记录里选「关联房产」，这里就默认能选到；或者点下面显示全部。": "No income is linked to this property. Set \"Linked property\" on an income record and it will show up here by default; or show all below.",
 };
