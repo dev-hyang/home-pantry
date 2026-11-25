@@ -19,6 +19,7 @@ import { cardHintHtml } from "../bills/cards-review.js";
 import { storeDatalist } from "../stats/store-lite.js";
 import { lpAttr } from "../core/long-press.js";
 import { viewShopAdd } from "./shop-add-page.js";
+import { recentCartHtml } from "./shop-recent.js";
 
 function shopQty(s) {
   const unit = shopUnit(s), d = du(unit), step = Units.step(d);
@@ -157,9 +158,11 @@ function viewShopList() {
   return `<section class="section shop-list-page">
     ${buyHead("list", { suffix: ` <span class="muted shop-n" id="shopN">${t("{n} 项", { n: shopRows().length })}</span>` })}
     ${state.shopSel ? "" : `<p class="muted rs-hint shop-hint"><span class="rs-hint-touch">${t("← 左滑删除 · 右滑标成已买到 →")}</span><span class="rs-hint-mouse">${t("在一项上往左拖删除，往右拖标成已买到；也可以点下面的按钮")}</span></p>`}
+    ${shopAdviceHtml()}
     ${shopToolbar()}
     ${storeDatalist()}
     <div id="shopListBox">${shopListBody()}</div>
+    ${state.shopSel ? "" : recentCartHtml()}
     ${state.shopSel ? "" : `<a class="fab" href="${href("shopping", "add")}" aria-label="${esc(t("添加要买的东西"))}" title="${esc(t("添加要买的东西"))}"><span aria-hidden="true">＋</span></a>`}
     ${state.shopSel ? `<div class="inv-selbar shop-selbar" role="toolbar" aria-label="${esc(t("多选操作"))}">
       <span class="inv-seln" aria-live="polite">${esc(shopSelText())}</span>

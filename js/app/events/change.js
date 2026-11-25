@@ -112,6 +112,7 @@ export async function onMainChange(e) {
     e.target.form.classList.toggle("is-house", spaceOf(e.target.value) === "house");
   }
   if (e.target.closest("#assetForm") && (e.target.name === "kind" || e.target.name === "type")) return onAssetFormChange(e);
+  if (e.target.id === "shopKind") { go(`${href("shopping", "add")}${e.target.value ? `?kind=${e.target.value}` : ""}`, { replace: true }); return; }   // 加入购物车页：选了已有物品 / 新物品，下面换成对应的加入方式和表单
   if (e.target.closest("#shopForm") && e.target.name === "item_id") {   // 加入已有物品：单位、分类跟着库存里选中的物品
     const o = e.target.selectedOptions[0], f = e.target.form;
     if (f) { f.elements.unit.value = o?.dataset.unit || ""; f.elements.category.value = o?.dataset.cat || ""; }

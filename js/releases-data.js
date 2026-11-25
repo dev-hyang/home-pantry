@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-25.5", title: { zh: "购物车重新设计：用右下角 ＋ 加入，先选已有物品还是新物品", en: "Cart redesign: add from the + button, choose existing or new item first" }, items: [
+    { k: "better", zh: "采购目录里去掉了「加入购物车」，统一用购物车页右下角的圆形 ＋；＋ 在电脑上现在落在内容区以内，不再飘到外面。", en: "Removed Add to cart from the Purchases menu; use the round + on the cart page, which now sits inside the content area on laptops." },
+    { k: "new", zh: "点 ＋ 先用下拉选「已有物品」或「新物品」，再出现对应的加入方式（扫描 / 从补货清单）和手动填写表单；保存后回到购物车。", en: "The + now starts with a dropdown (existing or new item), then shows the matching ways to add (scan / restock list) and a manual form; saving returns to the cart." },
+    { k: "better", zh: "「最近加入购物车」改成购物车底部默认折叠的一块。", en: "Recently added to cart is now a collapsed section at the bottom of the cart." },
+  ] },
   { v: "2026-11-25.4", title: { zh: "筛选面板：电脑上靠右贴着「筛选」按钮，下拉一样宽一样高", en: "Filter panel: right-aligned under the Filter button, dropdowns equal in size" }, items: [
     { k: "better", zh: "各页的「筛选」面板在电脑上靠右、紧贴「筛选」按钮下方展开；里面的下拉（含可搜索的分类）统一两列等宽、等高，购物车里不再忽大忽小。", en: "On laptops the Filter panel now opens right-aligned directly under the Filter button, with equal-width, equal-height dropdowns (including searchable ones)." },
     { k: "better", zh: "手机上筛选面板里的下拉一律占满一行。", en: "On phones, dropdowns in the Filter panel each fill a full row." },

@@ -238,7 +238,7 @@ export async function onMainSubmit(e) {
       await Store.saveShopping({ name, quantity: Math.max(0.1, num(f.elements.quantity.value, 1)), unit: existing ? linked.unit || "" : Units.normalize(f.elements.unit.value) || linked?.unit || Units.guess(name) || "", item_id: linked?.id || null, category: cat });
       { const est = num(f.elements.estimate?.value, NaN); state.shopAdvice = Number.isFinite(est) && est > 0 ? { name, estimate: est, group: groupForCategory(linked?.category || cat, est) } : null; }
       toast(t("已加入：{name}", { name }));
-      go(href("shopping", "add"), { replace: true });   // 保存后回到「加入购物车」首页，下面的「最近加入」就能看到
+      go(href("shopping", "list"), { replace: true });   // 保存后回到购物车（底部「最近加入购物车」折叠区能看到）
       refresh();
     }
     if (f.id === "memberForm") {   // 成员资料：本人改自己的，家主改任何人的（数据库函数同样校验，迁移 052）

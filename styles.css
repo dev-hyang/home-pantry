@@ -3250,7 +3250,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
   .inv-sec .pv-body { padding-inline: 6px; }
 }
 /* 右下角的大号 ＋：添加物品（在底部导航上方） */
-.fab { position: fixed; right: max(18px, calc((100vw - 1100px) / 2)); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 25; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--mustard); color: var(--mustard-ink); font-size: 32px; font-weight: 600; text-decoration: none; box-shadow: 0 6px 18px rgba(0,0,0,.22); }
+.fab { position: fixed; right: max(18px, calc((100vw - 920px) / 2 + 20px)); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 25; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--mustard); color: var(--mustard-ink); font-size: 32px; font-weight: 600; text-decoration: none; box-shadow: 0 6px 18px rgba(0,0,0,.22); }
 .fab:hover { filter: brightness(1.05); }
 .fab:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 @media print { .fab { display: none; } }
@@ -4359,6 +4359,15 @@ button.npop-item { width: 100%; border: 0; background: none; font: inherit; font
 .tai-card:hover { border-color: var(--pine); }
 .tai-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* 加入购物车首页：「已有物品 / 新物品」两个大按钮，点开弹出几个入口 */
+.shop-add-pick { display: grid; gap: 10px; margin-bottom: 12px; }
+.shop-add-pick label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: 14px; min-width: 0; }
+.shop-add-pick select { min-height: 44px; width: 100%; box-sizing: border-box; font-weight: 400; }
+.shop-add-pick .shop-add-tip { margin: 0; font-size: 12.5px; }
+.add-methods { display: flex; flex-wrap: wrap; gap: 8px; }
+.add-methods .ui-btn { flex: 1 1 200px; justify-content: center; }
+.shop-recent > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; cursor: pointer; list-style: none; }
+.shop-recent > summary::-webkit-details-marker { display: none; }
+.shop-recent:not([open]) > summary .ui-chev { transform: rotate(-90deg); }
 .add-choices { display: grid; gap: 10px; }
 .add-choice > summary { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); cursor: pointer; list-style: none; }
 .add-choice > summary::-webkit-details-marker { display: none; }

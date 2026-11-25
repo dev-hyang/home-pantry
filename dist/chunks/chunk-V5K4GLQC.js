@@ -1,0 +1,1 @@
+import{a as c}from"./chunk-BNO65ZA2.js";import{k as r,t as s}from"./chunk-AGEPTZOT.js";var o=t=>{let e=c.route?.q?.get("sec")||"";return!e||!t||(Array.isArray(t)?t.includes(e):e in t)?e:""},f=(t,e=o())=>`data-fsec="${t}"${e&&e!==t?" hidden":""}`,p=(t,e=o())=>e?`<h3 class="fsec-title">${s(r("编辑 {name}",{name:r(t)}))}</h3>`:"";export{o as a,f as b,p as c};
