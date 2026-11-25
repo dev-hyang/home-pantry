@@ -4841,3 +4841,10 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .sel-sheet-list .msel-opt { align-items: flex-start; padding-top: 10px; padding-bottom: 10px; }
 .sel-sheet-list .msel-opt input[type="checkbox"] { margin-top: 1px; }
 .sel-sheet-list .msel-opt > span { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+
+/* 可输入的下拉（js/input-suggest.js）：输入框右边一个小箭头，建议面板是全局的 fixed 列表（位置由 JS 算） */
+.sug-in { padding-right: 32px; background-repeat: no-repeat; background-position: right 12px center; background-size: 12px 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%238a8f87' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E"); }
+.sug-in:focus { border-color: var(--pine); }
+.sug-list { position: fixed; z-index: 70; min-width: 0; max-width: calc(100vw - 16px); }
+

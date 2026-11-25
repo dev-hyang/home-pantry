@@ -14,6 +14,7 @@ import { initSwipeRows } from "./swipe-rows.js";
 import { initQuickDrag } from "./quick-drag.js";
 import { initSelectSearch } from "./select-search.js";
 import { initSelectMulti } from "./select-multi.js";
+import { initInputSuggest } from "./input-suggest.js";
 import "./bills/cards.js";
 import { t } from "./core/i18n.js";
 import { initTodayRender, saveQuick } from "./today.js";
@@ -74,6 +75,7 @@ initPrivacy({ toast });
    // 金额遮挡：外出 / 在家两种模式；表格 / 图表局部重画时按当前页面再标   // 我的 → 家里的数字：近一年日志读完后重画
 initSelectSearch();
 initSelectMulti();
+initInputSuggest();
    // 选项很多的下拉（分类等）变成可搜索的（js/select-search.js）
 initQuickDrag({ isEditing: () => !!state.quickEdit, enter: () => { state.quickEdit = true; state.quickAdd = false; render(); }, save: async (ids) => { try { await saveQuick(ids); } catch (e) { toast(t("保存失败：{msg}", { msg: e.message })); } render(); } });
    // 今日页快捷操作：长按进入编辑并拖动排序   // 银行 / 信用卡 CSV 导入（花费 → 银行导入）

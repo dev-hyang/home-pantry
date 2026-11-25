@@ -119,13 +119,15 @@
     <label>单选（4 项，原生）<select><option value="1">设备 1</option> <option value="2">设备 2</option> <option value="3">设备 3</option> <option value="4">设备 4</option></select></label>
     <label>多选（12 项，可筛选）<select multiple aria-label="多选（12 项）" data-empty="不关联设备"><option value="1">设备 1</option> <option value="2" selected>设备 2</option> <option value="3">设备 3</option> <option value="4">设备 4</option> <option value="5" selected>设备 5</option> <option value="6">设备 6</option> <option value="7">设备 7</option> <option value="8">设备 8</option> <option value="9">设备 9</option> <option value="10">设备 10</option> <option value="11">设备 11</option> <option value="12">设备 12</option></select></label>
     <label class="span-2">多选（选项文字很长）<select multiple aria-label="多选（长文字）" data-empty="未勾选" data-search><option value="a" selected>第 1 期 · 2026-03-01 · $1,200.00（HOA 特别摊派，屋顶翻新工程第一笔）</option><option value="b">第 2 期 · 2026-06-01 · $1,200.00（HOA 特别摊派，屋顶翻新工程第二笔）</option><option value="c">一次性结清 · 2026-09-01 · $2,400.00</option></select></label>
+    <label>可输入（建议 + 可填别的）<input type="text" list="sgStores" placeholder="例如：Costco"><datalist id="sgStores"><option value="Costco"><option value="Trader Joe's"><option value="Walmart"><option value="Whole Foods"><option value="ALDI"></datalist></label>
     <label>多选（4 项，不筛选）<select multiple aria-label="多选（4 项）" data-empty="未选"><option value="1">设备 1</option> <option value="2">设备 2</option> <option value="3">设备 3</option> <option value="4">设备 4</option></select></label>
   </div></div>
   <script type="module">
     if (new URLSearchParams(location.search).has("touch")) { const mm = matchMedia.bind(window); window.matchMedia = (q) => (/pointer: ?coarse/.test(q) && !/any-pointer/.test(q) ? { matches: true, media: q, addEventListener() {}, removeEventListener() {} } : /any-pointer: ?fine/.test(q) ? { matches: false, media: q, addEventListener() {}, removeEventListener() {} } : mm(q)); }   // ?touch：假装是触屏，看手机上的底部面板
     const { initSelectSearch } = await import("./js/select-search.js");
     const { initSelectMulti } = await import("./js/select-multi.js");
-    initSelectSearch(); initSelectMulti();
+    const { initInputSuggest } = await import("./js/input-suggest.js");
+    initSelectSearch(); initSelectMulti(); initInputSuggest();
   </script>
 
   <h2>表单操作条 ui-formbar · ⋯ 菜单 ui-more</h2>

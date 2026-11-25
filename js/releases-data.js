@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-25.8", title: { zh: "可输入的下拉框（商店、单位、收款方等）和其他下拉统一", en: "Type-in dropdowns (stores, units, payees…) now match the other dropdowns" }, items: [
+    { k: "better", zh: "商店、单位、收款方、医疗机构这类「可以输入、也有以前的选择可点」的框，电脑上点进去就列出以前填过的，打字筛选，点一项填进去并收起；外观和其他下拉一致，也可以填列表里没有的。", en: "On laptop, fields where you can type or pick a past entry (store, unit, payee, provider) now list your earlier entries when you click in, filter as you type, and close after you pick one — same look as other dropdowns, and you can still type something new." },
+    { k: "better", zh: "手机上继续用手机自带的建议条（贴着键盘，不会点错）。", en: "On phones the built-in suggestions above the keyboard are kept." },
+  ] },
   { v: "2026-11-25.7", title: { zh: "多选下拉和单选下拉统一：不再多一个搜索框", en: "Multi-select dropdowns now match single-select ones" }, items: [
     { k: "better", zh: "「关联设备」「特别摊派」这类可多选的下拉，外观和其他下拉一样：电脑上直接在原来的框里打字筛选，不再多出一个搜索框；已选的项目显示在框里，右边有个数。", en: "Multi-select dropdowns (linked equipment, special assessments) look like the other dropdowns: on laptop you type right in the field to filter, with no extra search box; chosen items show in the field with a count." },
     { k: "better", zh: "多选下拉选一项不会自动收起（你可能还要继续选）：点外面、按 Esc 或点底部的「完成」才收起；底部还有「清除」。手机上点开是从底部弹出的面板。", en: "Multi-select dropdowns stay open while you pick; close with Done, Esc or a tap outside. There is also a Clear button. On phones they open as a bottom sheet." },
