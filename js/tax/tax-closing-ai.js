@@ -36,7 +36,7 @@ function dupMark(r, existing) {
 }
 function reviewPanel(p) {
   const x0 = propOf(p.id), exBuy = rowsOf(x0, "buyItems", p.id), exCred = rowsOf(x0, "creditItems", p.id);
-  const d = ui.cd.data, rows = (arr, kind) => arr.map((r, i) => { const m = dupMark(r, exCred); return `<li class="tax-cd-row"><label class="check-inline"><input type="checkbox" data-cd="${kind}" data-i="${i}" ${m.on ? "checked" : ""}><span>${esc(r.desc)}${m.note}</span></label><input ${numAttrs("money")} value="${r.amount}" data-cd-amt="${kind}:${i}" aria-label="${esc(t("金额"))}"></li>`; }).join("");
+  const d = ui.cd.data, rows = (arr, kind) => arr.map((r, i) => { const m = dupMark(r, exCred), lend = r.kind === "lender"; if (lend) { m.on = false; m.note += `<small class="tax-dup">${t("贷款方 credit：对应的贷款费用没进 ②，所以默认不添加")}</small>`; } return `<li class="tax-cd-row"><label class="check-inline"><input type="checkbox" data-cd="${kind}" data-i="${i}" ${m.on ? "checked" : ""}><span>${esc(r.desc)}${m.note}</span></label><input ${numAttrs("money")} value="${r.amount}" data-cd-amt="${kind}:${i}" aria-label="${esc(t("金额"))}"></li>`; }).join("");
   const other = d.lines.filter((r) => r.bucket !== "basis");
   const basisRows = d.lines.map((r, i) => { if (r.bucket !== "basis") return ""; const m = dupMark(r, exBuy); return `<li class="tax-cd-row"><label class="check-inline"><input type="checkbox" data-cd="basis" data-i="${i}" ${m.on ? "checked" : ""}><span>${esc(r.desc)}${m.note}</span></label><input ${numAttrs("money")} value="${r.amount}" data-cd-amt="basis:${i}" aria-label="${esc(t("金额"))}"></li>`; }).join("");
   const dupN = [...d.lines.filter((r) => r.bucket === "basis").map((r) => dupInfo(r, exBuy)), ...d.credits.map((r) => dupInfo(r, exCred))].filter(Boolean).length;
@@ -53,9 +53,12 @@ function reviewPanel(p) {
 /** 识别结果整理：金额取数字、说明截短、分类只认认识的 */
 function tidy(d) {
   const line = (r, bucket) => ({ desc: String(r?.desc || "").trim().slice(0, 60), amount: Math.abs(numOr(r?.amount) ?? 0), bucket });
+  const isProration = (r) => /prorat|aggregate|county tax|property tax|real estate tax|地税|分摊/i.test(String(r?.desc || ""));   // AI 万一还是把地税分摊 / aggregate adjustment 当 credit 给，这里改回「预付 / Escrow」（不是降价）
+  const credits = (d?.credits || []).filter((r) => !isProration(r)), moved = (d?.credits || []).filter(isProration);
+  const kindOf = (r) => (["lender", "seller"].includes(r?.kind) ? r.kind : /lender/i.test(String(r?.desc || "")) ? "lender" : "seller");
   return { closing_date: /^\d{4}-\d{2}-\d{2}$/.test(d?.closing_date || "") ? d.closing_date : null, sale_price: numOr(d?.sale_price),
-    lines: (d?.lines || []).map((r) => line(r, BUCKETS.includes(r?.bucket) ? r.bucket : "other")).filter((r) => r.desc && r.amount > 0),
-    credits: (d?.credits || []).map((r) => line(r, "credit")).filter((r) => r.desc && r.amount > 0) };
+    lines: [...(d?.lines || []).map((r) => line(r, BUCKETS.includes(r?.bucket) ? r.bucket : "other")), ...moved.map((r) => line(r, "prepaid_escrow"))].filter((r) => r.desc && r.amount > 0),
+    credits: credits.map((r) => ({ ...line(r, "credit"), kind: kindOf(r) })).filter((r) => r.desc && r.amount > 0) };
 }
 async function run(input) {
   const id = input.dataset.taxCd, bar = input.closest(".af-bar"), files = [...input.files].slice(0, 6); input.value = "";
@@ -70,7 +73,7 @@ async function run(input) {
       "closing_date = closing date (page 1). sale_price = the Sale Price of Property / purchase price (page 1 or page 3 summaries), a number.",
       "lines = every itemised charge in Closing Cost Details (sections A-H) that the Borrower paid (column Borrower-Paid At Closing plus Before Closing). Skip seller-paid amounts, totals, the loan amount, the deposit / earnest money and cash-to-close figures.",
       "bucket for each line: basis = fees that are part of the cost of acquiring the property (title / settlement / closing / escrow-agent fees, attorney fees, survey, recording fees, transfer / stamp taxes, owner's title insurance); points = discount points and origination points; loan_cost = other loan-related fees (appraisal, credit report, underwriting, flood certification, lender's title insurance, upfront mortgage insurance); prepaid_escrow = prepaid interest, prepaid insurance, prepaid property tax, initial escrow deposits, HOA or tax prorations; other = anything else.",
-      "credits = credits that REDUCE what the buyer pays: lender credits (section J), seller credits, other credits or adjustments paid to the buyer. Positive numbers. Do not include the earnest money deposit.",
+      "credits = ONLY credits that reduce the price / cost the buyer paid: seller credits (kind seller) and lender credits (section J, kind lender). Positive numbers. Do NOT put these in credits: property tax prorations / county tax adjustments, the Aggregate Adjustment, HOA or utility prorations, the earnest money deposit. Put the prorations and the Aggregate Adjustment into lines with bucket prepaid_escrow instead (positive amount).",
       "Fill only what is clearly visible. Never return names, addresses, SSNs or account numbers. Return exactly: " + JSON.stringify(SHAPE),
     ].join("\n");
     const d = tidy(parseJson(await askText(SYSTEM, user, { json: true, images, temperature: 0.1, maxTokens: 2500 })));

@@ -52,7 +52,7 @@ export function viewDeals() {
   const badge = (d) => (item && !picked && top && d.id === top.id ? `<span class="tag tag-ok" title="${esc(t(WHY[base.why] || WHY.unit))}">★ ${t("默认")}</span>` : priceHistory(d)?.isLow ? `<span class="tag tag-ok">${t("6 个月最低")}</span>` : "");
   const unitTxt = (d) => (d.unit_price != null ? `${unitMoney(+d.unit_price)}<small>${esc(d.unit_label || "")}</small>` : `<small class="muted">—</small>`);
   const isOn = (d) => (picked ? picked.id === d.id : item && top && d.id === top.id);
-  const row = (d) => `<li class="dv-row ${isOn(d) ? "is-pick" : ""}" data-row-open="${esc(dealHref(on.get(d.shop_id) || { id: d.shop_id }, d))}">
+  const row = (d) => `<li class="ui-row dv-row ${isOn(d) ? "is-pick" : ""}" data-variant="detail" data-row-open="${esc(dealHref(on.get(d.shop_id) || { id: d.shop_id }, d))}">
       <span class="dv-nm"><b>${esc(d.name)}</b>${d.deal_type ? `<span class="deal-types">${typeTags(d.deal_type)}</span>` : ""}<small>${[d.brand, d.size].filter(Boolean).map(esc).join(" · ")} ${badge(d)}</small></span>
       <a class="dv-shop" href="${shopHref(on.get(d.shop_id) || { id: d.shop_id })}">${esc(shopName(d.shop_id))}</a>
       <span class="dv-pr"><b>${esc(priceTxt(d))}</b>${d.price != null && d.price_text && d.price_text.replace(/\s/g, "") !== money(d.price).replace(/\s/g, "") ? `<small>${esc(d.price_text)}</small>` : ""}</span>

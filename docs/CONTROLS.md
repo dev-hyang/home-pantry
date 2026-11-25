@@ -53,8 +53,8 @@
 | `detail` | "名称：内容"行 | 44px |
 | `card` | 自带一圈边框的卡片行，最后一个也有边框 | — |
 
-已换：`inv-row`、`bill-row`、`all-row`、`mrow`、`fa-row`、`task-row`、`tpl-row`、`dt-row`、`scan-row`、`as-row`。
-未换：`dl-row`（时间线）、`dd-row` / `dr-row`（债务行内部网格）；宽屏表格行 `dv-row` / `deal-row` / `ssr-row` / `ask-item` 手机上早已折叠成两三行，分隔线也是 1px 实线，外观和 `ui-row` 一致，没有换类名；表单控件行（`bk-row`、`ai-row`、`amt-row`…）本来就不是记录行。
+已换：`inv-row`、`bill-row`、`all-row`、`mrow`、`fa-row`（含债务行 `dd-row` / `dr-row`）、`task-row`、`tpl-row`、`dt-row`、`scan-row`、`as-row`，以及宽屏表格行 `dv-row` / `deal-row`、`ssr-row`、`ask-item`（2026-11-24.54，这几种手机上本来就折叠成两三行）。
+不是记录行所以不换：`dl-row`（带圆点的时间线条目）和表单里的控件排版行（`bk-row`、`ai-row`、`amt-row`、`unit-row`、`pick-row`…）。
 行为钩子：长按菜单 `data-lp`（`lpAttr(items, title)` 生成）、滑动 `.swipe-src` / `.swipe-alt-src`。
 
 ### 可选的一行 · `ui-opt` · `shared/ui.css`

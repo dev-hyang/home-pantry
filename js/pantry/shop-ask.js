@@ -13,7 +13,7 @@ export function askShopItems(list) {
     dlg.className = "ask-dlg";
     dlg.setAttribute("aria-labelledby", "askShopTitle");
     const many = list.length > 1;
-    const row = (it, i) => `<li class="ask-item">
+    const row = (it, i) => `<li class="ui-row ask-item">
       ${many ? `<input type="checkbox" class="ask-inc" data-i="${i}" checked aria-label="${esc(t("加入 {name}", { name: it.name }))}">` : ""}
       <span class="ask-name">${esc(it.name)}</span>
       <input ${numAttrs("qty")} class="ask-qty" data-i="${i}" value="${esc(fmt(Math.max(1, Math.round(Number(it.dsuggest) || 1))))}" aria-label="${esc(t("{name} 数量", { name: it.name }))}">

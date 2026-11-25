@@ -34,9 +34,6 @@
 
 注意：美国国税局的买房成本（Pub 551）里，贷款方要求的评估费、credit report、预付利息、保险、转让前租金 / 水电、贷款相关费用都**不**算成本基础；算的是产权 / 律师 / 记录 / 转让税 / survey / owner's title insurance 等。以上只是参考，具体以 CPA 为准。
 
-## 已知和规则不一致的地方（待改）
-`tax-closing-ai.js` 的提示词目前：
-1. credits 一行写的是「lender credits、seller credits、other credits or adjustments paid to the buyer」，**地税分摊 credit 和 Aggregate Adjustment 可能被当成 credit 推到 ③**。
-2. lender credit 默认可勾选进 ③，和上面「同进同出」的规则不符（贷款费用不进 ② 时，lender credit 不该进 ③）。
-
-改法：把地税分摊和 aggregate adjustment 明确写成 `prepaid_escrow`、不是 credit；lender credit 默认不勾，只列出来。
+## 提示词里的对应处理（2026-11-24.54 已改）
+1. credits 只收卖家 credit（`seller`）和贷款方 credit（`lender`）；地税分摊、Aggregate Adjustment 归 `prepaid_escrow`（提示词里要求，`tidy()` 里还按名字兜底改回）。
+2. lender credit 在核对面板里默认不勾，并标注原因；要加要自己勾。

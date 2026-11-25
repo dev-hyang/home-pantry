@@ -65,7 +65,7 @@ export function shopScanHtml() {
     return `<form class="panel shop-scan-rv" id="shopScanForm" aria-label="${esc(t("核对要加的东西"))}">
       <b>${t("认出 {n} 样，核对一下", { n: ss.rows.length })}</b>
       <p class="muted shop-add-tip">${t("名称、数量都能改；不要的取消勾选。已经在清单里的默认不勾。")}</p>
-      <ul class="ssr-list">${ss.rows.map((r, i) => `<li class="ssr-row">
+      <ul class="ssr-list">${ss.rows.map((r, i) => `<li class="ui-row ssr-row" data-variant="detail">
         <input type="checkbox" name="inc" data-i="${i}" ${r.include ? "checked" : ""} aria-label="${esc(t("加入 {name}", { name: r.name }))}">
         <input name="name" data-i="${i}" value="${esc(r.name)}" maxlength="60" list="itemNames" aria-label="${esc(t("名称"))}">
         <input name="quantity" data-i="${i}" ${numAttrs("money", { min: 0.1, step: 0.1 })} value="${r.quantity}" aria-label="${esc(t("数量"))}">

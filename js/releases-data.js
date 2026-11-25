@@ -2,6 +2,13 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.54", title: { zh: "特价、小票核对、问咩咩清单：行样式统一", en: "Deals, receipt review and Baa Baa lists: one row style" }, items: [
+    { k: "better", zh: "特价一览、商店特价、小票核对、问咩咩的勾选清单这几处的行，换成和其他列表一样的行控件：同样的分隔线和最小高度。", en: "Rows in the deals overview, shop deals, receipt review and Baa Baa's tick lists now use the same row control as other lists: same dividers and minimum height." },
+  ] },
+  { v: "2026-11-24.54", title: { zh: "Closing Disclosure 自动填：地税分摊和 lender credit 不再算进 credit", en: "Closing Disclosure auto-fill: tax prorations and lender credits no longer counted as credits" }, items: [
+    { k: "fix", zh: "地税分摊和 Aggregate Adjustment 归到「预付 / Escrow」，不再被当成 ③ 里的 credit。", en: "Property-tax prorations and the Aggregate Adjustment now go under prepaid / escrow instead of being treated as a ③ credit." },
+    { k: "better", zh: "贷款方 credit 默认不勾（对应的贷款费用本来就不进成本基础），要加可以自己勾上。", en: "Lender credits are unticked by default (the loan costs they offset are not in the cost basis); tick one to add it." },
+  ] },
   { v: "2026-11-24.53", title: { zh: "表单底部的按钮条换成统一控件", en: "Form button rows now use the standard row control" }, items: [
     { k: "better", zh: "所有表单、对话框、税务小表单底部的按钮条换成同一个按钮条控件：一个按钮靠右，两个按钮取消靠左、保存靠右。", en: "Every form, dialog and small tax form now uses one button-row control: one button on the right, with two Cancel on the left and Save on the right." },
     { k: "better", zh: "税务小表单里「取消」改到左边、主操作在右边，和其他表单一致。", en: "In the small tax forms Cancel is now on the left and the main action on the right, like everywhere else." },
