@@ -59,7 +59,7 @@ export function tripsPanel() {
       <div class="muted" style="font-size:12.5px">${esc(String(g.first).slice(0, 10))}${String(g.first).slice(0, 10) !== String(g.last).slice(0, 10) ? ` → ${esc(String(g.last).slice(0, 10))}` : ""} · ${t("{n} 笔", { n: g.n })}</div></div>
       <b class="num">${money(g.total)}</b></div>
     <ul class="trip-cats">${Object.entries(g.byCat).sort((a, b) => b[1] - a[1]).map(([id, v]) => `<li><span>${esc(leafLabel(id))}</span><b class="num">${money(v)}</b></li>`).join("")}</ul>
-    <div class="form-actions" style="margin-top:6px"><a class="ui-btn" data-size="sm" href="${href("bills", "spend")}?tab=records&add=1&cat=travel_other&trip=${encodeURIComponent(g.trip)}">＋ ${t("记一笔")}</a><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-drill="${esc(dq({ q: `【${g.trip}】` }))}">${t("查看明细")} ›</button></div></div>`;
+    <div class="ui-acts" style="margin-top:6px"><a class="ui-btn" data-size="sm" href="${href("bills", "spend")}?tab=records&add=1&cat=travel_other&trip=${encodeURIComponent(g.trip)}">＋ ${t("记一笔")}</a><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-drill="${esc(dq({ q: `【${g.trip}】` }))}">${t("查看明细")} ›</button></div></div>`;
   return `<p class="muted" style="font-size:13px">${t("按行程汇总这趟出门的全部花费：机票、住宿、租车这类选「旅行」下的分类；旅途中的吃饭、加油、门票照常选外出就餐 / 燃油 / 娱乐——只要填了行程名，都会算进这趟。")}</p>
     ${TRIPS.err ? `<p class="form-error">${esc(TRIPS.err)}</p>` : ""}
     ${trips.length ? trips.map(card).join("") : `<div class="panel empty"><strong>${t("还没有行程")}</strong>${t("记一笔花费时在「行程」里写个名字（例如 东京 2026），这笔就归到这趟。以前的旅行也可以补记，日期选当时的。")}<p><a class="ui-btn" data-size="sm" data-tone="primary" href="${href("bills", "spend")}?tab=records&add=1&cat=travel_flight">${t("记一笔旅行花费")}</a></p></div>`}

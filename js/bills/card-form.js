@@ -126,8 +126,8 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
       </fieldset></div>
       ${W("notes")}<label>${t("备注")}<input name="notes" maxlength="500" value="${d(v.notes)}"></label></div>
       ${isNew && !ro ? '<div class="wz-review" data-wz-review hidden></div>' : ""}
-      ${ro ? `</fieldset><div class="form-actions"><a class="ui-btn" data-tone="ghost" href="${groupHref(kind)}">${t("返回")}</a></div>` : `<p id="cardError" class="form-error" role="alert"></p>
-      ${isNew ? wzActions(groupHref(kind)) : `<div class="form-actions sticky-actions"><button type="submit" class="ui-btn" data-tone="primary">${t("保存")}</button><a class="ui-btn" data-tone="ghost" href="${cardHref(c.id)}">${t("取消")}</a></div>`}`}
+      ${ro ? `</fieldset><div class="ui-acts"><a class="ui-btn" data-tone="ghost" href="${groupHref(kind)}">${t("返回")}</a></div>` : `<p id="cardError" class="form-error" role="alert"></p>
+      ${isNew ? wzActions(groupHref(kind)) : `<div class="ui-acts sticky-actions"><button type="submit" class="ui-btn" data-tone="primary">${t("保存")}</button><a class="ui-btn" data-tone="ghost" href="${cardHref(c.id)}">${t("取消")}</a></div>`}`}
     </form>
   </section>`;
 }

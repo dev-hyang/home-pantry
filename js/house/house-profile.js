@@ -35,7 +35,7 @@ export function viewHouseProfile() {
     <p class="muted" style="margin:-6px 0 12px;font-size:13px">${first ? t("先选地区和房型，保存后其余分区随时补") : t("每一块各自编辑、各自保存")}</p>
     <div class="prof-grid">${cards}</div>
     ${first ? `<p class="hint">${t("房型决定推荐什么耗材、生成哪些设备、每月有什么季节任务；其余分区（地址、保险、HOA、材料）可以之后再补。")}</p>` : ""}
-    <div class="form-actions" style="margin-top:14px">${state.houseProfile ? `<a class="ui-btn" data-tone="ghost" href="${href("house", "overview")}">${t("返回房屋概览")}</a>` : `<a class="ui-btn" data-tone="primary" href="${href("house", "profile")}?sec=type">${t("开始：选地区和房型")}</a>`}</div>
+    <div class="ui-acts" style="margin-top:14px">${state.houseProfile ? `<a class="ui-btn" data-tone="ghost" href="${href("house", "overview")}">${t("返回房屋概览")}</a>` : `<a class="ui-btn" data-tone="primary" href="${href("house", "profile")}?sec=type">${t("开始：选地区和房型")}</a>`}</div>
   </section>`;
 }
 /** 资料页每个卡片里的内容：只读摘要（没填的显示「未填」） */
@@ -142,7 +142,7 @@ function viewProfileSection(sec) {
         ${np ? "" : askInline({ id: `profile-${state.propertyId}-${sec}`, title: t(meta?.name || sec), question: PROFILE_ASK[sec] ? t(PROFILE_ASK[sec]) : t("这一块该填什么、去哪里找？"), context: () => askCtx.property(state.propertyId) })}
         ${body}
         <p id="houseFormError" class="form-error" role="alert"></p>
-        ${np ? newBar(sec, rv) : `<div class="form-actions sticky-actions">
+        ${np ? newBar(sec, rv) : `<div class="ui-acts sticky-actions">
           <a class="ui-btn" data-tone="ghost" href="${href("house", "profile")}" data-action="house-cancel">${t("取消")}</a>
           ${sec === "hoa" ? `<span class="hoa-mini">${t("每月总计")} <b data-hoa-total-mini>${money(hoaMonthly(hoaOf(d)).total)}</b></span>` : ""}
           <button type="submit" class="ui-btn" data-tone="primary">${t("保存")}</button>

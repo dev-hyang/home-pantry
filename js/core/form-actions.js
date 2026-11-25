@@ -15,20 +15,20 @@ function arrange(bar) {
   const cancel = btns.find(isCancel), rights = btns.filter((b) => b !== cancel && !isStep(b) && (isSubmit(b) || b.hasAttribute("data-wz-save")));
   if (cancel) bar.prepend(cancel);
   rights.forEach((b) => bar.append(b));
-  bar.classList.add("form-actions-split");
+  bar.classList.add("ui-acts-split");
   // 记按钮数（向导里隐藏着的「保存」只在最后一步出现，不算，免得每一步字号不一样）
   bar.dataset.n = String(btns.filter((b) => !b.hasAttribute("data-wz-save")).length);
 }
 
 export function normalizeFormActions(root = document, on = false) {
-  root.querySelectorAll("form .form-actions").forEach((bar) => { if (bar.dataset.fa !== "1") { bar.dataset.fa = "1"; arrange(bar); } });
+  root.querySelectorAll("form .ui-acts").forEach((bar) => { if (bar.dataset.fa !== "1") { bar.dataset.fa = "1"; arrange(bar); } });
   stickMainBar(root, on);
 }
 
 const hasCancel = (b) => [...b.querySelectorAll("button, a.ui-btn")].some(isCancel);
 /** 整页表单（on = 已知是编辑页；否则按钮条里同时有取消和提交、且不在行内的才算）的主按钮条贴底 */
 function stickMainBar(root, on) {
-  const bars = [...root.querySelectorAll("form .form-actions, form .sticky-actions")];
+  const bars = [...root.querySelectorAll("form .ui-acts, form .sticky-actions")];
   if (bars.some((b) => b.classList.contains("sticky-actions") && !b.closest("li, td, tr, .tcarousel, details, dialog"))) return;   // 页面自己已经有贴底条
   const bar = bars.find((b) => b.querySelector(SUBMIT_SEL) && !b.closest("[hidden], dialog, details:not([open])") && (on || (hasCancel(b) && !b.closest("li, td, tr, .tcarousel"))));
   if (bar) bar.classList.add("sticky-actions");

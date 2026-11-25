@@ -78,7 +78,7 @@ function renderPending(row) {
   gate(`<div class="panel gate-card"><h2>${t("申请已发出，等家主批准")}</h2>
     <p class="muted">${t("你用邀请码申请加入了这个家庭。家主在「设置 → 家庭」里点「批准」之后，你就能进来；在那之前这里看不到任何家里的数据。")}</p>
     <p class="muted small">${t("这个页面会自动检查，也可以手动再查一次。")}</p>
-    <div class="form-actions"><button type="button" class="ui-btn" data-tone="primary" data-action="join-recheck">${t("再查一次")}</button>
+    <div class="ui-acts"><button type="button" class="ui-btn" data-tone="primary" data-action="join-recheck">${t("再查一次")}</button>
       <button type="button" class="ui-btn" data-tone="ghost" data-action="join-cancel" data-hid="${esc(row.household_id)}">${t("取消申请")}</button>
       <button type="button" class="ui-btn" data-tone="ghost" data-action="logout">${t("退出登录")}</button></div></div>`);
   setSync(t("等待家主批准"));

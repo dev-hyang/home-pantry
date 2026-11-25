@@ -26,7 +26,7 @@ export function aiPanel() {
         <input name="ask" maxlength="300" placeholder="${t("想吃什么、几个人、有什么要求…")}" value="${esc(a.ask)}" aria-label="${t("菜单需求")}">
         <label class="ai-people">${t("人数")}<input name="people" ${numAttrs("int", { max: 20, min: 1, step: null })} value="${s.people || 4}"></label>
       </div>
-      <div class="form-actions" style="margin-top:8px">
+      <div class="ui-acts" style="margin-top:8px">
         ${ready && !blocked ? `<button type="submit" class="ui-btn" data-tone="primary" ${a.busy ? "disabled" : ""}>${a.busy ? t("生成中…") : t("生成今日菜单")}</button>` : ""}
         <button type="button" class="ui-btn" data-tone="${ready && !blocked ? "ghost" : "primary"}" data-action="ai-copy">${t("复制提示词")}</button>
         ${WEB_LLMS.slice(0, lang === "en" ? 5 : 3).map(([n, u]) => `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("")}
@@ -45,7 +45,7 @@ function menuResult(m) {
     <div class="plan">${m.meals.map((meal) => `<div class="slot"><h3>${esc(meal.name)}</h3>${meal.dishes.map((d) => `<div class="dish">${esc(d.name)}
       <small>${d.uses.length ? `<span class="have">${t("用库存：{list}", { list: esc(d.uses.join("、")) })}</span>` : ""}${d.missing.length ? ` <span class="miss">${t("缺：{list}", { list: esc(d.missing.join("、")) })}</span>` : ""}${d.note ? `<br>${esc(d.note)}` : ""}</small></div>`).join("")}</div>`).join("")}</div>
     ${m.tips ? `<p class="muted" style="margin:10px 0 0;font-size:13px">💡 ${esc(m.tips)}</p>` : ""}
-    <div class="form-actions" style="margin-top:10px">
+    <div class="ui-acts" style="margin-top:10px">
       ${missingAll.length ? `<button type="button" class="ui-btn" data-size="sm" data-action="ai-add-missing">${t("缺的 {n} 样加入购物车", { n: missingAll.length })}</button>` : ""}
       <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="ai-again">${t("换一版")}</button>
     </div>

@@ -71,7 +71,7 @@ export function medPayPage(b, edit, copyFrom = null) {
       </div>
       <p id="medPayError" class="form-error" role="alert"></p>
       <p class="muted" style="margin:10px 0 0;font-size:13px">${t(b.kind === "travel" ? "付款会自动并入 花费 的“旅行出行”分类（按小类拆：机票、住宿…）。" : "付款会自动并入 花费 的“医疗”分类。")}</p>
-      <div class="form-actions form-actions-split sticky-actions">
+      <div class="ui-acts ui-acts-split sticky-actions">
         <a class="ui-btn" data-tone="ghost" href="${esc(detailHref(b.id))}">${t("取消")}</a>
         <button type="submit" class="ui-btn" data-tone="primary">${edit ? t("保存修改") : t("记一笔")}</button></div>
     </form></section>`;

@@ -17,7 +17,7 @@ const dots = (list, id) => list.map((s, i) => `<li class="${i < list.indexOf(id)
 /** 表单顶上的进度：第 n 步 / 共 m 步 + 进度点（步骤数随类型变，show() 更新） */
 export const dwChrome = (personal) => { const list = [...contentSteps(personal), REVIEW]; return `<div class="wiz-steps"><p class="wiz-now" data-dw-now aria-live="polite">${nowText(list, "basic")}</p><ol class="wiz-dots" data-dw-dots aria-hidden="true">${dots(list, "basic")}</ol></div>`; };
 /** 底部按钮：取消 / 上一步 / 下一步 / 确认并创建（只在确认页出现） */
-export const dwActions = (cancelHref) => `<div class="form-actions sticky-actions wz-actions"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button type="button" class="ui-btn" data-tone="ghost" data-dw="prev" hidden>${t("上一步")}</button><button type="button" class="ui-btn" data-tone="primary" data-dw="next">${t("下一步")}</button><button type="submit" class="ui-btn" data-tone="primary" data-wz-save data-dw-save hidden>${t("确认并创建")}</button></div>`;
+export const dwActions = (cancelHref) => `<div class="ui-acts sticky-actions wz-actions"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button type="button" class="ui-btn" data-tone="ghost" data-dw="prev" hidden>${t("上一步")}</button><button type="button" class="ui-btn" data-tone="primary" data-dw="next">${t("下一步")}</button><button type="submit" class="ui-btn" data-tone="primary" data-wz-save data-dw-save hidden>${t("确认并创建")}</button></div>`;
 
 const form = () => document.querySelector("form[data-dwz]");
 const cur$ = (f) => f.dataset.step || "basic";

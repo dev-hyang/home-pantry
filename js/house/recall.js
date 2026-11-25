@@ -81,7 +81,7 @@ export function recallSection(a) {
         ${resolved ? "" : `<label class="span-2 check-inline"><input type="checkbox" name="stop_use" ${r.status === "stop_use" || !s ? "checked" : ""}><span>${t("厂家要求立即停止使用（首页按“紧急”提醒）")}</span></label>`}
         <label class="span-2">${t("备注")}<input name="notes" maxlength="300" value="${d(r.notes)}" placeholder="${t("例如：寄回电源线、厂家寄修理包、客服电话")}"></label>
       </div>
-      <div class="form-actions" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${s || resolved ? t("保存召回信息") : t("标记为召回")}</button>
+      <div class="ui-acts" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${s || resolved ? t("保存召回信息") : t("标记为召回")}</button>
         ${r.status ? `<span class="spacer"></span><button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="recall-clear" data-id="${esc(a.id)}">${t("清除召回标记")}</button>` : ""}</div>
     </form>`;
   if (!s) {

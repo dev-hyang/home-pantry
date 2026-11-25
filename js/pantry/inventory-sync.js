@@ -29,7 +29,7 @@ export function catFormHtml(cf) {
     </div>
     <div class="pick-row" role="group" aria-label="${t("图标")}">${icons}</div>
     <div class="pick-row" role="group" aria-label="${t("颜色")}">${colors}</div>
-    <div class="form-actions" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${editing ? t("保存") : t("添加分类")}</button>
+    <div class="ui-acts" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${editing ? t("保存") : t("添加分类")}</button>
       <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="cat-cancel">${t("取消")}</button>
       ${editing ? `<span class="spacer"></span>${builtin
         ? `${overridden ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="cat-restore" data-cat="${esc(cf.key)}">${t("恢复默认")}</button>` : ""}<button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="cat-hide" data-cat="${esc(cf.key)}" data-on="${cf.hidden ? "0" : "1"}">${cf.hidden ? t("重新显示") : t("隐藏分类")}</button>`

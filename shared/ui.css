@@ -138,8 +138,8 @@ input[data-num] { font-variant-numeric: tabular-nums; }
 .ui-btn:focus-visible { outline: 3px solid var(--focus, #2f6b4f); outline-offset: 2px; }
 @media (max-width: 640px), (pointer: coarse) { .ui-btn[data-size="sm"]::after { content: ""; position: absolute; inset: -6px 0; } .ui-btn:not([data-size="sm"])::after { content: ""; position: absolute; inset: -2px 0; } }
 .ui-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
-.ui-acts > :first-child:nth-last-child(2) { margin-right: auto; }
+.ui-acts > .ui-btn:first-child:nth-last-child(2):has(+ .ui-btn) { margin-right: auto; }   /* 只有「两个按钮」才分到两头；按钮 + 一句话、按钮 + 链接仍然靠右 */
 @media (max-width: 480px) {
-  .ui-acts > :only-child { flex: 1 1 100%; }
-  .ui-acts > :first-child:nth-last-child(2), .ui-acts > :nth-child(2):last-child { flex: 1 1 0; margin-right: 0; }
+  .ui-acts > .ui-btn:only-child { flex: 1 1 100%; }
+  .ui-acts > .ui-btn:first-child:nth-last-child(2):has(+ .ui-btn), .ui-acts > .ui-btn:first-child:nth-last-child(2) + .ui-btn { flex: 1 1 0; margin-right: 0; }
 }

@@ -80,7 +80,7 @@ export function payFormPage(b, edit = null, isCopy = false, settleId = null) {  
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(edit?.notes || "")}"></label>
       </div>
       <p class="muted" style="margin:10px 0 0;font-size:13px">${edit && !isCopy ? t("金额改了，花费统计里对应的那笔也会跟着改。") : t("有金额的记录会同时记入花费统计的“账单”组。")}</p>
-      <div class="form-actions form-actions-split sticky-actions">
+      <div class="ui-acts ui-acts-split sticky-actions">
         <button type="button" class="ui-btn" data-tone="ghost" data-action="billpay-cancel">${t("取消")}</button>
         <button type="submit" class="ui-btn" data-tone="primary">${edit ? t("保存修改") : t("记一笔")}</button></div>
     </form>`;

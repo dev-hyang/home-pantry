@@ -43,14 +43,14 @@ export function viewAi() {
       <textarea name="q" data-autosize rows="3" maxlength="1000" placeholder="${t("例如：热水器 12 年了要不要换？卖房前哪些账单要提前通知停？")}">${esc(a.q)}</textarea>
       <div class="ai-att">${attachHTML("pantry-ask", { t, esc, noText: true, hint: ready ? t("可以拍几张照片一起问（比如冰箱里的菜「这些能做什么？」、设备铭牌、账单、报修单），也能选 PDF。照片不保存。") : t("填了 API key 才能带照片问；没 key 时只复制文字。") })}</div>
       <label class="check" style="margin-top:8px"><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}><span>${t("附带家里的情况（房产、设施、待处理设备、近期账单、库存概况；不含备注和个人信息）")}</span></label>
-      <div class="form-actions" style="margin-top:10px">
+      <div class="ui-acts" style="margin-top:10px">
         ${ready && !blocked ? `<button type="submit" class="ui-btn" data-tone="primary" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
         <button type="button" class="ui-btn" data-tone="${ready && !blocked ? "ghost" : "primary"}" data-action="ai-copy-general">${t("复制提示词")}</button>
         <a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("me", "settings")}?sec=ai">${ready ? t("换模型") : t("填 API key 直接出结果")}</a>
       </div>
       ${a.error ? `<p class="form-error" role="alert">${esc(a.error)}</p>` : ""}
     </form>
-    <div class="panel ai-sites"><p class="muted" style="margin:0 0 8px;font-size:13px">${t("复制后打开任一 AI 粘贴（手机上会直接打开已安装的 App）：")}</p><div class="form-actions">${sites}</div></div>
+    <div class="panel ai-sites"><p class="muted" style="margin:0 0 8px;font-size:13px">${t("复制后打开任一 AI 粘贴（手机上会直接打开已安装的 App）：")}</p><div class="ui-acts">${sites}</div></div>
     ${a.answer ? `<div class="panel ai-answer"><div class="ai-answer-head">${aiIcon(20)} <b>${t("咩咩的回答")}</b><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="ai-copy-answer">${t("复制")}</button></div>${renderAnswer(a.answer)}
       <p class="disclaimer">${t("AI 回答仅供参考；涉及燃气、电、结构、法律、医疗请找专业人士。")}</p></div>` : ""}
   </section>`;

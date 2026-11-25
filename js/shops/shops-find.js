@@ -48,16 +48,16 @@ export function claudePanel() {
       <li>${t("复制下面的指令，粘贴给 Chrome 侧边栏里的 Claude；它只读你打开的页面，不会自己去翻。")}</li>
       <li>${t("把 Claude 最后给的 JSON 贴到下面，点「看看能导入什么」，核对后导入。")}</li>
     </ol>
-    <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-action="shops-claude-copy" data-mode="all">📋 ${t("复制「整理特价」指令")}</button>
+    <div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-action="shops-claude-copy" data-mode="all">📋 ${t("复制「整理特价」指令")}</button>
       <button type="button" class="ui-btn" data-size="sm" data-action="shops-claude-copy" data-mode="list">📋 ${t("复制「按购物车比价」指令")}</button></div>
     ${u.copyText ? copyBox() : ""}
     <label class="att-text"><span>${t("Claude 给的 JSON")}</span><textarea id="shopsImportText" data-autosize rows="3" placeholder='{"stores":[{"store":"ALDI","deals":[…]}]}'>${esc(u.impText || "")}</textarea></label>
     ${imp ? (imp.length ? `<ul class="shops-imp">${imp.map((g, i) => `<li><label class="check-inline"><input type="checkbox" data-imp="${i}" ${g.include ? "checked" : ""} ${g.shop ? "" : "disabled"}>
         <span><b>${esc(g.store || t("没写店名"))}</b> · ${t("{n} 条", { n: g.rows.length })}${g.shop ? (g.shop.name !== g.store ? ` → ${esc(g.shop.name)}` : "") : ` <span class="warn-txt">${t("常去里没有这家，先添加再导入")}</span>`}</span></label></li>`).join("")}</ul>
       <label class="check-inline"><input type="checkbox" id="shopsImpReplace" ${u.impReplace !== false ? "checked" : ""}><span>${t("替换这几家现有的特价（新一周的广告选这个）")}</span></label>
-      <div class="form-actions"><button type="button" class="ui-btn" data-tone="primary" data-action="shops-import-save">${t("导入勾选的")}</button><button type="button" class="ui-btn" data-tone="ghost" data-action="shops-import-cancel">${t("取消")}</button></div>`
+      <div class="ui-acts"><button type="button" class="ui-btn" data-tone="primary" data-action="shops-import-save">${t("导入勾选的")}</button><button type="button" class="ui-btn" data-tone="ghost" data-action="shops-import-cancel">${t("取消")}</button></div>`
       : `<p class="form-error">${t("没读出任何一家的特价，检查一下贴的是不是 Claude 最后那段 JSON。")}</p>`)
-    : `<div class="form-actions"><button type="button" class="ui-btn" data-tone="primary" data-action="shops-import-parse">${t("看看能导入什么")}</button></div>`}
+    : `<div class="ui-acts"><button type="button" class="ui-btn" data-tone="primary" data-action="shops-import-parse">${t("看看能导入什么")}</button></div>`}
     ${u.impError ? `<p class="form-error" role="alert">${esc(u.impError)}</p>` : ""}
   </div>`;
 }

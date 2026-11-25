@@ -154,7 +154,7 @@ export function viewBillForm() {
           </div>
         </fieldset>
         <p id="billFormError" class="form-error" role="alert"></p>
-        <div class="form-actions sticky-actions">
+        <div class="ui-acts sticky-actions">
           <button type="submit" class="ui-btn" data-tone="primary">${b ? t("保存修改") : t("添加账单")}</button>
           <button type="button" class="ui-btn" data-tone="ghost" data-action="bill-cancel">${t("取消")}</button>
         </div>
@@ -202,9 +202,9 @@ function billBanner(b, q, base) {
     VEHICLE_CATS.includes(b.category) && !b.asset_id && assetColumnVisible() && L("关联资产", "Linked asset")].filter(Boolean).slice(0, 4);
   const close = `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${base}" aria-label="${esc(t("关闭提示"))}">${t("知道了")}</a>`;
   if (isAi) return `<div class="notice" role="status" style="margin-bottom:12px"><b>✨ ${t("AI 识别创建")}</b> ${t("看一眼就行：不对的地方点右上角“⋯”→“编辑”改；整张读错了就撤销创建。")}${missing.length ? ` ${t("还没读到：{list}。", { list: missing.join("、") })}` : ""}
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="bill-delete">${t("撤销创建")}</button>${close}</div></div>`;
+    <div class="ui-acts" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="bill-delete">${t("撤销创建")}</button>${close}</div></div>`;
   return `<div class="notice" role="status" style="margin-bottom:12px"><b>✅ ${t("已创建")}</b>${missing.length ? ` ${t("这几项还没填：{list}，随时在下面补。", { list: missing.join("、") })}` : ` ${t("信息都齐了。")}`}
-    <div class="form-actions" style="margin-top:8px">${close}</div></div>`;
+    <div class="ui-acts" style="margin-top:8px">${close}</div></div>`;
 }
 /** 费用拆解（头部卡「费用」一行）：固定金额（没有就用估算）+ 以后接入的 特别摊派 / 手续费 / 税；返回 { total, parts:[{ k, amount }], per } */
 export function billCostParts(b) {

@@ -19,7 +19,7 @@ export const firstStep = () => STEPS[0][0];
 export const wzChrome = (kind) => `<div class="wz-head" data-wz-head><p class="wz-now" data-wz-now aria-live="polite">${wzNow(kind, "type")}</p><div class="wz-bar" aria-hidden="true"><i data-wz-bar style="width:${Math.round(100 / stepsFor(kind).length)}%"></i></div></div>`;
 const wzNow = (kind, id) => { const list = stepsFor(kind), i = Math.max(0, list.findIndex((s) => s[0] === id)); return `${esc(t("第 {n} 步 / 共 {m} 步", { n: i + 1, m: list.length }))} · ${list[i][2]} ${esc(t(list[i][1]))}`; };
 /** 底部按钮：上一步 / 下一步 / 保存（只在确认页出现）/ 取消 */
-export const wzActions = (cancelHref) => `<div class="form-actions sticky-actions wz-actions"><button type="button" class="ui-btn" data-tone="ghost" data-wz="prev" hidden>${t("上一步")}</button><button type="button" class="ui-btn" data-tone="primary" data-wz="next">${t("下一步")}</button><button type="submit" class="ui-btn" data-tone="primary" data-wz-save hidden>${t("确认并保存")}</button><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a></div>`;
+export const wzActions = (cancelHref) => `<div class="ui-acts sticky-actions wz-actions"><button type="button" class="ui-btn" data-tone="ghost" data-wz="prev" hidden>${t("上一步")}</button><button type="button" class="ui-btn" data-tone="primary" data-wz="next">${t("下一步")}</button><button type="submit" class="ui-btn" data-tone="primary" data-wz-save hidden>${t("确认并保存")}</button><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a></div>`;
 
 const form = () => document.getElementById("cardForm");
 const kindOf = (f) => f.elements.kind.value;

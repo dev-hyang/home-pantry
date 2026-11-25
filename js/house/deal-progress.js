@@ -219,7 +219,7 @@ function aiHtml(deal) {
   return `<details class="dl-ai" ${out ? "open" : ""}><summary>✨ ${t("AI 分析")}</summary>
     <p class="muted small" style="margin:6px 0 8px">${t("只发送每个清单事项的名称、计划日期、实际 / 预计日期和晚了几天，不发进展记录的内容、联系人、金额和地址；自定义事项只发「自定义事项 N」。会发给你在设置里选的 AI 服务商。")}</p>
     <label class="check-inline"><input type="checkbox" data-deal-ai="consent" ${aiConsent() ? "checked" : ""}><span>${t("我同意把这些日期对照发给 AI 服务商")}</span></label>
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="deal-ai-run" data-deal="${deal.id}" ${aiConsent() && !state.dealAiBusy ? "" : "disabled"}>${state.dealAiBusy ? t("分析中…") : out ? t("重新分析") : t("帮我分析")}</button></div>
+    <div class="ui-acts" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="deal-ai-run" data-deal="${deal.id}" ${aiConsent() && !state.dealAiBusy ? "" : "disabled"}>${state.dealAiBusy ? t("分析中…") : out ? t("重新分析") : t("帮我分析")}</button></div>
     ${out ? `<div class="ai-out" style="margin-top:10px;white-space:pre-wrap">${esc(out)}</div><p class="muted small" style="margin:6px 0 0">${t("AI 的建议仅供参考，合同期限和法律问题以律师为准。")}</p>` : ""}</details>`;
 }
 /** 点「帮我分析」：把算好的偏差发给 AI */
@@ -257,7 +257,7 @@ export function eventFormPanel(deal, an) {
       <label class="check-inline span-2"><input type="checkbox" name="mark_done" ${step && !step.done ? "" : ""}><span>${t("同时把这一步标为已完成（完成日期 = 上面的日期）")}</span></label>
       <label class="span-2">${t("备注（可选）")}<input name="note" maxlength="1000" value="${esc(ev?.note || "")}" placeholder="${esc(t("对方要求、延迟原因、下一步…"))}"></label>
     </div>
-    <div class="form-actions" style="margin-top:10px"><button class="ui-btn" data-size="sm" data-tone="primary" type="submit">${t("保存")}</button>
+    <div class="ui-acts" style="margin-top:10px"><button class="ui-btn" data-size="sm" data-tone="primary" type="submit">${t("保存")}</button>
       <button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="deal-event-cancel">${t("取消")}</button>
       ${ev ? `<button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="deal-event-delete" data-id="${esc(ev.id)}">${t("删除这条")}</button>` : ""}
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div></form></section>`;
@@ -278,7 +278,7 @@ export function eventFormPage(deal, an, { ev = null, key = "", cancelHref, retur
       <label class="check-inline span-2"><input type="checkbox" name="mark_done"><span>${t("同时把这一步标为已完成（完成日期 = 上面的日期）")}</span></label>
       <label class="span-2">${t("备注（可选）")}<input name="note" maxlength="1000" value="${esc(ev?.note || "")}" placeholder="${esc(t("对方要求、延迟原因、下一步…"))}"></label>
     </div>
-    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
+    <div class="ui-acts sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div></form>`;
   const del = ev ? `<div class="panel"><div class="kv"><div class="muted">${t("不需要这条记录了？")}</div><button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="deal-event-delete" data-id="${esc(ev.id)}" data-back="${esc(returnTo)}">${t("删除这条")}</button></div></div>` : "";
   return `<section class="section">${form}${del}</section>`;

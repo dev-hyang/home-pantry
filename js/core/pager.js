@@ -27,7 +27,7 @@ export function pageMore(key) { const p = pages.get(key); if (p) p.n += pageSize
 export function resetPages() { pages.clear(); }
 
 /** 「继续加载」按钮：more 为真才画；attrs = 按钮上的 data-*（默认走 main.js 的 page-more） */
-export const moreBtn = (more, attrs) => (more ? `<div class="form-actions" style="justify-content:center"><button type="button" class="ui-btn" data-tone="ghost" ${attrs}>${t("继续加载")}</button></div>` : "");
+export const moreBtn = (more, attrs) => (more ? `<div class="ui-acts" style="justify-content:center"><button type="button" class="ui-btn" data-tone="ghost" ${attrs}>${t("继续加载")}</button></div>` : "");
 export const pageMoreBtn = (key, total, shown) => moreBtn(total > shown, `data-action="page-more" data-page="${key}"`);
 
 /** 搜索框防抖：连续输入停下 ~200ms 再重画 */

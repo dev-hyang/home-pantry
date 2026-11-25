@@ -210,7 +210,7 @@ function dealForm(d, cancelHref) {
       <label>${d.kind === "veh_buy" ? t("车行 / 卖家") : d.kind === "veh_sell" ? t("买家 / 车行") : t("经销商 / 归还地点")}<input name="agent" maxlength="120" placeholder="${t("姓名 · 电话 / 邮箱")}" value="${v("agent")}"></label>
       <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" value="${v("notes")}"></label>
     </div>
-    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
+    <div class="ui-acts sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>
   </form>`;
   }
@@ -231,7 +231,7 @@ function dealForm(d, cancelHref) {
       <label>${t("验房师")}<input name="inspector" maxlength="120" value="${v("inspector")}"></label>
       <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" value="${v("notes")}"></label>
     </div>
-    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
+    <div class="ui-acts sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>
   </form>`;
 }
@@ -253,6 +253,6 @@ function closeoutPanel(p, deal) {
         <label>${t("结束于")}<input name="end_${b.id}" type="date" value="${esc(addDays(closing, END_LAG[b.category] ?? 0))}"></label></li>`).join("")}</ul>` : `<p class="muted">${t("没有挂在这套房产的账单。")}</p>`}
     <label class="check-inline" style="margin-top:10px"><input type="checkbox" name="archive" checked><span>${t("归档房产（从切换条隐藏，资料和记录保留只读）")}</span></label>
     <p class="muted" style="font-size:12px">${t("不会删除任何数据。以后在设置里可以恢复，或在归档后彻底删除。")}</p>
-    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${dealHref(deal)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${deal.kind === "move_out" ? t("确认退租") : t("确认已卖出")}</button></div>
+    <div class="ui-acts sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${dealHref(deal)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${deal.kind === "move_out" ? t("确认退租") : t("确认已卖出")}</button></div>
   </form>`;
 }

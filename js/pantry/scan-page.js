@@ -68,7 +68,7 @@ function inputHtml() {
           <textarea id="scanText" data-autosize rows="3" maxlength="12000" placeholder="">${esc(sc.text)}</textarea></details>`}
         <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("图片和文字会发给你在设置里选的 {p}，不会保存原图。小票上的卡号、姓名建议裁掉或遮住再拍。Gemini 免费档的内容可能被用于改进产品，介意的话用付费 key。", { p: t(p.name) })}</p>
         ${sc.error ? `<p class="form-error" role="alert">${esc(sc.error)}</p>` : ""}
-        <div class="form-actions">${runBtn("")}</div>
+        <div class="ui-acts">${runBtn("")}</div>
       </div>
     </div>`;
 }
@@ -130,7 +130,7 @@ function reviewHtml() {
       ${R.receipts.map((r, ri) => receiptHtml(r, ri, many, cur)).join("")}
       <p class="muted" id="scanSum" style="margin:8px 0 0;font-size:13px"></p>
       ${sc.error ? `<p class="form-error" role="alert">${esc(sc.error)}</p>` : ""}
-      <div class="form-actions sticky-actions">
+      <div class="ui-acts sticky-actions">
         ${R.manual ? `<a class="ui-btn" data-tone="ghost" href="${href("pantry", "inventory")}">${t("取消")}</a>` : `<button type="button" class="ui-btn" data-tone="ghost" data-action="scan-back">${t("返回重来")}</button>`}
         <button type="button" class="ui-btn" data-tone="primary" data-action="scan-confirm" ${sc.busy ? "disabled" : ""}>${sc.busy ? t("正在入库…") : many ? t("确认入库（{n} 张小票）", { n: R.receipts.filter((x) => x.include).length }) : t("确认入库")}</button>
         </div>

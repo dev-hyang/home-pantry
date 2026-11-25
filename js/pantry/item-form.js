@@ -179,7 +179,7 @@ export function viewItemForm() {
           <textarea id="itemNotes" name="notes" rows="3" maxlength="500" placeholder="${gear ? t("品牌、型号、尺寸、购买时间、借给了谁…") : t("品牌、规格、在哪买更便宜…")}">${esc(v.notes || "")}</textarea>`, !!v.notes)}
         ${it ? "" : spendFieldset()}
         <p id="itemFormError" class="form-error" role="alert"></p>
-        <div class="form-actions sticky-actions">
+        <div class="ui-acts sticky-actions">
           <button type="submit" class="ui-btn" data-tone="primary">${it ? t("保存修改") : t("添加物品")}</button>
           <button type="button" class="ui-btn" data-tone="ghost" data-action="item-cancel">${t("取消")}</button>
         </div>

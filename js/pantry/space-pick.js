@@ -19,7 +19,7 @@ export function pickSpace() {
       <p class="muted ask-tip">${esc(t("先选它属于哪一类"))}</p>
       <div class="space-list">${list.map(([s, ic, name, desc]) => `<button type="button" class="space-choice" data-space="${s}">
         <span class="space-ic" aria-hidden="true">${ic}</span><span class="space-txt"><b>${esc(t(name))}</b><small>${esc(t(desc))}</small></span><span class="ui-chev" aria-hidden="true">›</span></button>`).join("")}</div>
-      <div class="ask-acts"><button type="button" class="ui-btn" data-tone="ghost" data-ask="cancel">${esc(t("取消"))}</button></div>
+      <div class="ui-acts ask-acts"><button type="button" class="ui-btn" data-tone="ghost" data-ask="cancel">${esc(t("取消"))}</button></div>
     </div>`;
     document.body.appendChild(dlg);
     let done = false;
@@ -42,7 +42,7 @@ export function pickSupplyAdd() {
     const opt = ([k, ic, name, desc]) => `<button type="button" class="space-choice" data-c="${k}"><span class="space-ic" aria-hidden="true">${ic}</span><span class="space-txt"><b>${esc(t(name))}</b><small>${esc(t(desc))}</small></span><span class="ui-chev" aria-hidden="true">›</span></button>`;
     dlg.innerHTML = `<div class="ask-form"><h3 id="supplyPickTitle">＋ ${esc(t("添加汽车房屋消耗品"))}</h3>
       <div class="space-list">${[["manual", "✏️", "手动添加", "自己填名称、数量、放哪里"], ["template", "🧰", "按房屋设备资料推荐", "按房型和设施一次勾选加入"]].map(opt).join("")}</div>
-      <div class="ask-acts"><button type="button" class="ui-btn" data-tone="ghost" data-ask="cancel">${esc(t("取消"))}</button></div></div>`;
+      <div class="ui-acts ask-acts"><button type="button" class="ui-btn" data-tone="ghost" data-ask="cancel">${esc(t("取消"))}</button></div></div>`;
     document.body.appendChild(dlg);
     let done = false;
     const finish = (v) => { if (done) return; done = true; dlg.close(); dlg.remove(); resolve(v); };

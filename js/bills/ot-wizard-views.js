@@ -97,7 +97,7 @@ export function viewOneTimeWizard() {
       <h2 id="otwTitle" tabindex="-1">${t(title)}</h2><p class="muted" style="margin:2px 0 12px">${t(why)}</p>
       <div id="otwBody">${BODY[step](d)}</div>
       <p id="otwError" class="form-error" role="alert"></p>
-      <div class="form-actions sticky-actions">
+      <div class="ui-acts sticky-actions">
         ${step > 1 ? `<button type="button" class="ui-btn" data-tone="ghost" data-otw="back">${t("上一步")}</button>` : `<a class="ui-btn" data-tone="ghost" href="${href("bill", "new")}">${t("取消")}</a>`}
         <button type="button" class="ui-btn" data-tone="primary" data-otw="${last ? "finish" : "next"}">${last ? t("完成并创建") : t("下一步")}</button>
       </div>

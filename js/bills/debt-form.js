@@ -74,7 +74,7 @@ export function debtForm(d) {
     <p class="muted" style="font-size:13px">${t("中途开始记的贷款：填「某天的未还本金」和那一天（看对账单），不用填原始本金；之前的还款会按利率倒推拆分。")}</p></div>`}
     ${d ? "" : `<div data-dw-review hidden></div>`}
     <p class="form-error" role="alert" data-debt-err></p>
-    ${d ? `<div class="form-actions"><button class="ui-btn" data-tone="primary">${t("保存")}</button><a class="ui-btn" data-tone="ghost" href="${esc(debtHref(d.id))}">${t("取消")}</a></div>` : dwActions(href("bills", "debts"))}</form>`;
+    ${d ? `<div class="ui-acts"><button class="ui-btn" data-tone="primary">${t("保存")}</button><a class="ui-btn" data-tone="ghost" href="${esc(debtHref(d.id))}">${t("取消")}</a></div>` : dwActions(href("bills", "debts"))}</form>`;
 }
 export function viewDebts() {
   const q = state.route.q;

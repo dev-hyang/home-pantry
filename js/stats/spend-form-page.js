@@ -77,6 +77,6 @@ export function spendFormPage(P) {
       </div>
       <p id="purchaseDupHint" class="dup-hint" role="status" hidden></p>
       ${isEdit ? "" : `<p id="purchaseCardHint" class="card-hint-line">${cardHintHtml("fresh", lastStore(), null)}</p>`}
-      <div class="form-actions"><button type="submit" class="ui-btn" data-tone="primary">${isEdit ? t("保存修改") : t("记一笔")}</button><a class="ui-btn" data-tone="ghost" href="${spendRecordsHref()}">${t("取消")}</a></div>
+      <div class="ui-acts"><button type="submit" class="ui-btn" data-tone="primary">${isEdit ? t("保存修改") : t("记一笔")}</button><a class="ui-btn" data-tone="ghost" href="${spendRecordsHref()}">${t("取消")}</a></div>
     </form></section>`;
 }

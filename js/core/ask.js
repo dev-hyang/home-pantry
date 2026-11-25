@@ -50,7 +50,7 @@ export function askInline(ask, { inPanel = false } = {}) {
   // 页面上（不是点 ? 展开的面板里）的答复默认折叠成一行「咩咩的回答 · 日期」，点开才看；展开状态记住（重画不收回去）
   const shown = !inPanel && c ? `<details class="ask-fold" data-ask-fold="${esc(ask.id)}" ${state.askFoldOpen?.[ask.id] ? "open" : ""}><summary>${aiIcon(16)} <b>${t("咩咩的回答")}</b> <small class="muted">${new Date(c.at).toLocaleDateString()}</small></summary>${answer}</details>` : answer;
   const err = r.error ? `<p class="form-error" role="alert">${esc(r.error)}</p>` : "";
-  return `<div class="ask-inline ${inPanel ? "" : "standalone"}">${c ? "" : `<small class="muted ask-q">${esc(ask.question)}</small>`}<div class="ask-acts">${btn}${!can && !ready ? `<a class="ask-keylink" href="${href("me", "settings")}?sec=ai">${t("填 key 直接出答案")}</a>` : ""}</div>${err}${shown}</div>`;
+  return `<div class="ask-inline ${inPanel ? "" : "standalone"}">${c ? "" : `<small class="muted ask-q">${esc(ask.question)}</small>`}<div class="ui-acts ask-acts">${btn}${!can && !ready ? `<a class="ask-keylink" href="${href("me", "settings")}?sec=ai">${t("填 key 直接出答案")}</a>` : ""}</div>${err}${shown}</div>`;
 }
 /** 回答做最简渲染：转义后按行分段，- / 1. 开头的行做成列表，**粗体** */
 function renderAnswer(text) {

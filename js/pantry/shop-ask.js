@@ -24,7 +24,7 @@ export function askShopItems(list) {
       <p class="muted ask-tip">${esc(many ? t("确认要买多少；不要的取消勾选") : t("确认要买多少"))}</p>
       <ul class="ask-list">${list.map(row).join("")}</ul>
       <p class="form-error ask-err" role="alert"></p>
-      <div class="ask-acts">
+      <div class="ui-acts ask-acts">
         ${many ? `<button type="button" class="ui-btn ask-all" data-size="sm" data-tone="ghost" data-ask="all">${esc(t("全不选"))}</button><span class="spacer"></span>` : ""}
         <button type="button" class="ui-btn" data-tone="ghost" data-ask="cancel">${esc(t("取消"))}</button>
         <button type="submit" class="ui-btn ask-ok" data-tone="primary"></button></div>
@@ -71,7 +71,7 @@ export function askConfirm({ title, body, ok, danger = false }) {
     dlg.className = "ask-dlg ask-confirm";
     dlg.setAttribute("aria-labelledby", "askConfirmTitle");
     dlg.innerHTML = `<form class="ask-form" novalidate><h3 id="askConfirmTitle">${esc(title)}</h3><p class="ask-body">${esc(body)}</p>
-      <div class="ask-acts"><button type="button" class="ui-btn" data-tone="ghost" data-ask="cancel">${esc(t("取消"))}</button>
+      <div class="ui-acts ask-acts"><button type="button" class="ui-btn" data-tone="ghost" data-ask="cancel">${esc(t("取消"))}</button>
         <button type="submit" class="ui-btn" data-tone="${danger ? "danger-solid" : "primary"}">${esc(ok || t("确认"))}</button></div></form>`;
     document.body.appendChild(dlg);
     let done = false;
@@ -102,7 +102,7 @@ export function askRemind(it) {
         <label>${esc(t("提前几天提醒"))}<span class="ask-unit-line"><input ${numAttrs("int", { max: 60 })} name="lead" value="${esc(defLead)}"><b>${esc(t("天"))}</b></span><small class="muted">${esc(t("预计剩余天数低于它时提醒“即将告罄”"))}</small></label>
       </div>
       <p class="form-error ask-err" role="alert"></p>
-      <div class="ask-acts">
+      <div class="ui-acts ask-acts">
         ${on ? `<button type="button" class="ui-btn" data-tone="ghost" data-ask="off">${esc(t("不再提醒"))}</button>` : ""}<span class="spacer"></span>
         <button type="button" class="ui-btn" data-tone="ghost" data-ask="cancel">${esc(t("取消"))}</button>
         <button type="submit" class="ui-btn" data-tone="primary">${esc(t("保存"))}</button></div>

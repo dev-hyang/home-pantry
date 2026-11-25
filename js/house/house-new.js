@@ -18,7 +18,7 @@ const stepUrl = (sec, rv) => `${href("house", "profile")}?sec=${sec}&newprop=1${
 const ids = () => PROFILE_SECTIONS.map((s) => s.id);
 const nextOf = (sec) => ids()[ids().indexOf(sec) + 1] || "review";
 const prevOf = (sec) => ids()[ids().indexOf(sec) - 1] || null;
-const SHELL = (inner) => `<div class="form-actions sticky-actions wz-actions">${inner}</div>`;
+const SHELL = (inner) => `<div class="ui-acts sticky-actions wz-actions">${inner}</div>`;
 const cancelBtn = () => `<a class="ui-btn" data-tone="ghost" href="${href("house")}" data-action="house-cancel">${t("取消")}</a>`;
 
 /** 步骤页顶部的「第 n 步 / 共 m 步」+ 进度点（review 算最后一步） */

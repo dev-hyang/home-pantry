@@ -141,7 +141,7 @@ function seasonForm(rec, year, month) {
       <label class="only-once">${t("日期")}<input name="due_on" type="date" value="${esc(dueDefault)}"><small>${t("出现在那个月的任务里；逾期会在首页提醒")}</small></label>
       <label class="span-2">${t("备注")}<input name="note" maxlength="500" value="${esc(rec?.note || "")}" placeholder="${esc(t("怎么做、找谁、注意什么…"))}"></label>
     </div>
-    <div class="form-actions" style="margin-top:10px"><button class="ui-btn" data-size="sm" data-tone="primary" type="submit">${t("保存")}</button>
+    <div class="ui-acts" style="margin-top:10px"><button class="ui-btn" data-size="sm" data-tone="primary" type="submit">${t("保存")}</button>
       <button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="season-cancel">${t("取消")}</button>
       ${rec ? `<button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="season-delete" data-id="${esc(rec.id)}">${t("删除这条任务")}</button>` : ""}
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>

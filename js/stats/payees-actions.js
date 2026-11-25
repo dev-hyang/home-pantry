@@ -30,7 +30,7 @@ export function detailHtml(x) {
   return `<div class="payee-detail"><div class="pd-head"><b>${esc(t("近 12 个月"))}</b><span class="muted small">${esc(t("合计 {m} · {n} 个月有花费 · 月均 {a}", { m: money(tot), n: used, a: money(used ? tot / used : 0) }))}</span></div>
     ${chart}
     ${parts.length ? `<p class="pd-parts">${parts.map(([k, v]) => `<span class="chip tidy-chip">${esc(nodeText(nodeOf(k)) || k)} <small>${all.total > 0 ? Math.round((v / all.total) * 100) : 0}%</small></span>`).join("")}</p>` : ""}
-    <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-drill="${esc(payeeDrill([x.key]))}">${t("查看明细")} ›</button></div></div>`;
+    <div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-drill="${esc(payeeDrill([x.key]))}">${t("查看明细")} ›</button></div></div>`;
 }
 const nextMonth = (m) => { const d = new Date(+m.slice(0, 4), +m.slice(5, 7), 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
 /** 导入完成页的提示：全历史里还有几组可以合并的收款方（名单没读到时先读，读完重画）；0 组不显示 */
@@ -64,7 +64,7 @@ export function tidyHtml() {
       <div class="tidy-from">${g.members.map((m) => `<span class="chip tidy-chip">${esc(m.store)} <small>${esc(t("{n} 笔", { n: m.n }))}</small></span>`).join("")}</div>
       <div class="tidy-to"><span aria-hidden="true">→</span><input data-tidy-to="${i}" maxlength="40" value="${esc(S.tidyTo[i] ?? g.to)}" aria-label="${esc(t("合并后的名字"))}"><small class="muted">${esc(t("共 {n} 笔", { n }))}</small></div></li>`;
   }).join("")}</ul>
-    <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="payee-tidy-go">${t("合并所选 {n} 组", { n: groups.length - [...S.tidyOff].filter((i) => i < groups.length).length })}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="payee-tidy">${t("关闭")}</button></div>`
+    <div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="payee-tidy-go">${t("合并所选 {n} 组", { n: groups.length - [...S.tidyOff].filter((i) => i < groups.length).length })}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="payee-tidy">${t("关闭")}</button></div>`
     : `<p class="muted" style="margin:0">${t("没有需要合并的收款方：同一家的不同写法都已经是一个名字了。")}</p>`;
   return `<div class="panel tidy-panel"><h3>${t("整理收款方")}</h3>
     <p class="muted chart-sub">${t("同一家商户在对账单上有好几种写法（AMAZON MKTPL、Amazon.com、AMZN Mktp…），按规则合成一个名字；Amazon Prime 会员单独保留。改的是全部历史，合并后可以撤销。")}</p>${body}</div>`;

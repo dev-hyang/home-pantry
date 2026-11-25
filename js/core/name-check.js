@@ -48,7 +48,7 @@ export function promptDuplicateName({ save }) {
       <div class="chips" role="group" aria-label="${t("推荐称呼")}">${picks.map((p) => `<button type="button" class="chip" data-pick="${esc(p)}">${esc(p)}</button>`).join("")}</div>
       <form><input name="display_name" required maxlength="${MAX_LEN}" value="${esc(picks[0])}" aria-label="${t("我的称呼")}">
         <p class="form-error" role="alert" hidden></p>
-        <div class="form-actions"><button class="ui-btn" data-tone="primary" type="submit">${t("用这个称呼")}</button><button class="ui-btn" data-tone="ghost" type="button" data-keep>${t("保持不变")}</button></div></form></div>`;
+        <div class="ui-acts"><button class="ui-btn" data-tone="primary" type="submit">${t("用这个称呼")}</button><button class="ui-btn" data-tone="ghost" type="button" data-keep>${t("保持不变")}</button></div></form></div>`;
     document.body.appendChild(box);
     const form = box.querySelector("form"), input = form.elements.display_name, err = box.querySelector(".form-error");
     const close = (v) => { box.remove(); document.removeEventListener("keydown", onKey); resolve(v); };

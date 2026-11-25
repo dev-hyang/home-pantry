@@ -82,18 +82,18 @@
 键盘与焦点（2026-11-24.33 起，`ui-sheet.js` 里自动生效，调用方不用接线）：出现时焦点移进面板、消失后回到原处；Tab 只在面板里转圈；Esc 点「取消」（长按菜单自己处理 Esc）。背后的页面不会被设成 `inert`，和原生 `<dialog>` 比还差这一点。
 
 ### 按钮 · `ui-btn` · `shared/ui.css`
-`<button class="ui-btn" data-size="sm" data-tone="primary">保存</button>`（老页面的 `btn` / `btn-sm` / `btn-primary` 是同一套尺寸，逐页换成 `ui-btn`）
+`<button class="ui-btn" data-size="sm" data-tone="primary">保存</button>`（全站按钮已在 2026-11-24.52 全部换成 `ui-btn`，旧的 `btn` 类已删除）
 
 | 属性 | 取值 | 说明 |
 |---|---|---|
 | `data-size` | 省略（40px，字 15px）· `sm`（34px，字 13px） | 高度算上边框 |
-| `data-tone` | 省略 · `primary` · `ghost` · `danger` | 中性 · 主操作 · 描边 · 危险 |
+| `data-tone` | 省略 · `primary` · `ghost` · `danger` · `danger-solid` · `dark` · `soft` | 中性 · 主操作 · 描边 · 危险（描边）· 危险（实心红）· 深色 · 浅芥末底 |
 
 手机 / 触屏上小号的视觉高度不变，点按区域靠 `::after` 向外延伸到 ≥44px。上下内边距只给折行留空，高度由 `--btn-h` / `--btn-h-sm` 决定。
 
 ### 按钮条 · `ui-acts` · `shared/ui.css`
 一组按钮的容器：一个靠右；两个 = 第一个（取消）靠左、第二个（保存）靠右；三个及以上全靠右（删除放最左）；手机（≤480px）两个并排等宽、一个占满一行。
-旧的 `form-actions` / `ask-acts` / `tax-item-actions` / `deal-confirm-actions`（2026-11-24.44 起）用 CSS 套了同样的排法，HTML 不用改；三个以上按钮的表单条仍是等宽平分的 `form-actions-split`。新页面直接用 `ui-acts`。
+所有表单底部、对话框、税务小表单的按钮条已换成 `ui-acts`（2026-11-24.53）；`ask-acts`、`tax-item-actions`、`deal-confirm-actions`、`sticky-actions`（贴底）是叠在 `ui-acts` 上的修饰类；三个以上按钮的表单条由 `core/form-actions.js` 加上 `ui-acts-split`（等宽平分）。
 
 ### 对话框 · `ask-dlg` / `ask-form` / `ask-acts`
 原生 `<dialog>.showModal()`；手机上贴底、电脑上居中。浏览器负责 Esc、焦点、背景不可点。
@@ -146,4 +146,3 @@
 - 和输入框并排的按钮（净资产表单、「关联设备」那一行的按钮）：跟输入框一样高（44px）。
 - 分段控件 `seg-btn`、筛选面板触发键 `fpop-btn`、向导里的 `sd-grp` 大选择按钮（48px）。
 - 里面有两行字的按钮（例如「用 Closing Disclosure 自动填」）：被文字撑高。
-- 旧页面还在写 `btn` / `btn-sm` / `form-actions`：CSS 已按标准和 `ui-btn` / `ui-acts` 同样排；HTML 换名不做（约 560 处，收益小）。

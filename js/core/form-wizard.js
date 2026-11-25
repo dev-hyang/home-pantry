@@ -17,7 +17,7 @@ const dots = (f, id) => { const list = stepsOf(f), cur = list.findIndex((s) => s
 export const gwChrome = (steps) => `<div class="wiz-steps"><p class="wiz-now" data-gw-now aria-live="polite"><b>${esc(t("第 {n} 步，共 {m} 步", { n: 1, m: steps.length + 1 }))}</b> · ${esc(t(steps[0][1]))}</p><ol class="wiz-dots" data-gw-dots aria-hidden="true">${[...steps, 0].map((_, i) => `<li class="${i === 0 ? "is-now" : ""}"></li>`).join("")}</ol></div>`;
 export const gwReview = () => `<div data-gw-review hidden></div><p class="form-error" role="alert" data-gw-err></p>`;
 /** 底部按钮：取消（调用方给 HTML）/ 上一步 / 下一步 / 确认并创建（只在确认页出现） */
-export const gwActions = (cancelHtml) => `<div class="form-actions sticky-actions wz-actions">${cancelHtml}<button type="button" class="ui-btn" data-tone="ghost" data-gw="prev" hidden>${t("上一步")}</button><button type="button" class="ui-btn" data-tone="primary" data-gw="next">${t("下一步")}</button><button type="submit" class="ui-btn" data-tone="primary" data-wz-save data-gw-save hidden>${t("确认并创建")}</button></div>`;
+export const gwActions = (cancelHtml) => `<div class="ui-acts sticky-actions wz-actions">${cancelHtml}<button type="button" class="ui-btn" data-tone="ghost" data-gw="prev" hidden>${t("上一步")}</button><button type="button" class="ui-btn" data-tone="primary" data-gw="next">${t("下一步")}</button><button type="submit" class="ui-btn" data-tone="primary" data-wz-save data-gw-save hidden>${t("确认并创建")}</button></div>`;
 
 const cur = (f) => f.dataset.step || stepsOf(f)[0][0];
 const err = (f, msg) => { const el = f.querySelector("[data-gw-err]"); if (el) el.textContent = msg || ""; };

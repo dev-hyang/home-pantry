@@ -105,7 +105,7 @@ function aiBlock() {
       </div>
     </details>
     ${quotaBlock(s, p)}
-    <div class="form-actions" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("保存")}</button>
+    <div class="ui-acts" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("保存")}</button>
       <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="ai-test">${t("测试连接")}</button><span id="aiTestOut" class="muted"></span></div>
     <p class="hint">${t("性价比：DeepSeek、通义千问 qwen-turbo、豆包 lite 一次菜单约几分钱；Gemini Flash 有免费额度。只用于生成菜单，不会上传备注等个人信息。")}</p>
   </form>`;
@@ -131,7 +131,7 @@ export function viewSettings() {
     };
     return `<section class="section menu-page"><div class="section-head"><p>${t("家庭、房产、语言、存放位置、模块、同步与备份、AI、姐妹站点")}</p></div>
       <div class="panel mlist">${SETTING_SECTIONS.map((s) => `<a class="ui-row mrow" href="${href("me", "settings")}?sec=${s.id}"><span class="mi" aria-hidden="true">${s.icon === "__AI__" ? aiIcon(24) : s.icon}</span><span class="mt"><b>${t(s.name)}</b><small>${esc(status[s.id])}</small></span><span class="ui-chev" aria-hidden="true">›</span></a>`).join("")}</div>
-      <div class="form-actions" style="margin-top:14px">${cloud ? `<button type="button" class="ui-btn" data-tone="danger" data-action="logout">${t("退出登录")}</button>` : `<button type="button" class="ui-btn" data-tone="danger" data-action="reset-demo">${t("恢复演示数据")}</button>`}</div>
+      <div class="ui-acts" style="margin-top:14px">${cloud ? `<button type="button" class="ui-btn" data-tone="danger" data-action="logout">${t("退出登录")}</button>` : `<button type="button" class="ui-btn" data-tone="danger" data-action="reset-demo">${t("恢复演示数据")}</button>`}</div>
     </section>`;
   }
   const sw = (id, on, title, desc) => `<div class="panel"><div class="kv"><div><b>${title}</b><div class="muted">${desc}</div></div>

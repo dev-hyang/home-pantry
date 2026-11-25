@@ -69,7 +69,7 @@ function listBlock(p, s) {
       <label>${t("这一项是什么")}<input name="desc" maxlength="60" placeholder="${esc(t(s.ph))}" autocomplete="off"></label>
       <label>${t("金额")}<input name="amount" ${numAttrs("money", { min: 0.01 })} placeholder="0.00"></label>
       ${s.date ? `<label>${t("日期（可不填）")}<input name="on" type="date"></label>` : ""}
-      <div class="tax-item-actions"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("添加")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-add-cancel>${t("取消")}</button></div>
+      <div class="ui-acts tax-item-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-add-cancel>${t("取消")}</button><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("添加")}</button></div>
       <p class="form-error tax-item-err" role="alert"></p></form>`
     : `<button type="button" class="ui-btn tax-add-btn" data-size="sm" data-tone="ghost" data-tax-add="${esc(key)}">＋ ${t("添加一项")}</button>${linkBtn}`;
   return step(s.n, t(s.title), `${rows.length ? `<ul class="tax-imps">${li}</ul><p class="tax-sub-total">${t("小计")} <b>${money(total)}</b></p>` : `<p class="muted">${t("还没有。没有就不用填，直接往下。")}</p>`}${form}`, s.hint ? t(s.hint) : "");

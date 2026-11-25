@@ -248,7 +248,7 @@ export function viewAssetForm() {
         </fieldset>
         ${wizNew ? `<div data-vz-review hidden></div>` : ""}
         <p id="assetFormError" class="form-error" role="alert"></p>
-        ${wizNew ? vwActions() : `<div class="form-actions sticky-actions">
+        ${wizNew ? vwActions() : `<div class="ui-acts sticky-actions">
           <button type="button" class="ui-btn" data-tone="ghost" data-action="asset-cancel">${t("取消")}</button>
           <button type="submit" class="ui-btn" data-tone="primary">${a ? t("保存修改") : veh ? t("添加车辆") : t("添加设备")}</button>
         </div>`}

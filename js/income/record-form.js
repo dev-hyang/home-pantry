@@ -99,7 +99,7 @@ export function formHtml() {
     <label ${fsec("repay", sec)} class="check-inline" style="margin-top:8px"><input type="checkbox" name="repay_required" data-inc-repay ${r.repay_required ? "checked" : ""}><span>${t("需要还（个人赠与 / 借款）——当借款到账，不算收入")}</span></label>
     <div class="form-grid" ${fsec("repay", sec)} data-inc-repay-box ${r.repay_required ? "" : "hidden"} style="margin-top:6px"><label>${t("还款到期日")}<input type="date" name="repay_due_on" value="${d(r.repay_due_on)}"></label><label>${t("需要还的总额（空 = 收到的金额）")}<input ${numAttrs("money")} name="repay_amount" value="${d(r.repay_amount)}"></label></div>
     <p class="form-error" role="alert" id="incFormErr" hidden></p>
-    <div class="form-actions"><button class="ui-btn" data-tone="primary" id="incSave">${t("保存")}</button><button type="button" class="ui-btn" data-tone="ghost" data-inc="cancel">${t("取消")}</button></div></form>`;
+    <div class="ui-acts"><button class="ui-btn" data-tone="primary" id="incSave">${t("保存")}</button><button type="button" class="ui-btn" data-tone="ghost" data-inc="cancel">${t("取消")}</button></div></form>`;
 }
 export async function saveRecord(form) {
   const I = inc(), f = I.form, fd = new FormData(form), g = (k) => String(fd.get(k) ?? "").trim(), err = $("#incFormErr");

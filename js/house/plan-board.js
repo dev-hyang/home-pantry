@@ -44,7 +44,7 @@ export function planFormHtml(kind) {
     <div class="field"><label for="plTitle">${t("计划名称")}</label><input id="plTitle" name="title" maxlength="80" required value="${esc(p?.title || "")}" placeholder="${esc(t("例如：2027 年换一套大点的房子"))}"></div>
     ${pricesOk() ? `<div class="field"><label for="plBudget">${t("预算上限")}</label><input id="plBudget" name="budget" ${numAttrs("qty")} value="${esc(p?.budget ?? "")}"></div>` : ""}
     <div class="field"><label for="plNotes">${t("备注")}</label><textarea id="plNotes" name="notes" rows="2" maxlength="2000">${esc(p?.notes || "")}</textarea></div>
-    <div class="form-actions"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><button class="ui-btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
+    <div class="ui-acts"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><button class="ui-btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
 }
 
 function candFormHtml(plan) {
@@ -64,7 +64,7 @@ function candFormHtml(plan) {
     <div class="field"><label for="cdPros">${t("优点")}</label><textarea id="cdPros" name="pros" rows="2" maxlength="1000">${esc(c?.pros || "")}</textarea></div>
     <div class="field"><label for="cdCons">${t("缺点 / 担心的")}</label><textarea id="cdCons" name="cons" rows="2" maxlength="1000">${esc(c?.cons || "")}</textarea></div>
     <div class="field"><label for="cdNotes">${t("备注")}</label><textarea id="cdNotes" name="notes" rows="2" maxlength="2000">${esc(c?.notes || "")}</textarea></div>
-    <div class="form-actions"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><button class="ui-btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
+    <div class="ui-acts"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><button class="ui-btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
 }
 
 function offerFormHtml(cand) {
@@ -78,7 +78,7 @@ function offerFormHtml(cand) {
       <div class="field"><label for="ofOut">${t("结果")}</label><select id="ofOut" name="outcome">${opts(OFFER_OUTCOME, o?.outcome || "pending")}</select></div>
     </div>
     <div class="field"><label for="ofCond">${t("条件（定金、验房、贷款、交割日…）")}</label><textarea id="ofCond" name="conditions" rows="2" maxlength="1000">${esc(o?.conditions || "")}</textarea></div>
-    <div class="form-actions"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><button class="ui-btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
+    <div class="ui-acts"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><button class="ui-btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
 }
 
 function candCard(plan, c) {

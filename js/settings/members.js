@@ -69,7 +69,7 @@ export function viewMemberProfile(id) {
       ${off ? `<p class="hint mem-mig">⚠️ ${t("需要先执行迁移 052（supabase/migrations/052_member_profile.sql）才能保存电话、邮箱和地址；现在只能改称呼。")}</p>` : ""}
       <p class="form-error" id="memberErr" role="alert"></p>
       ${privacy}
-      <div class="form-actions"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><a class="ui-btn" data-tone="ghost" href="${familyHref()}">${t("取消")}</a></div>
+      <div class="ui-acts"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><a class="ui-btn" data-tone="ghost" href="${familyHref()}">${t("取消")}</a></div>
     </form>`
     : `<div class="panel"><h3 class="mem-h">${t("资料")}</h3>
       <dl class="fact-grid one">

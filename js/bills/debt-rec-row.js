@@ -88,7 +88,7 @@ function editForm(x, d) {
         <button type="button" class="ui-btn dr-refresh" data-size="sm" data-tone="ghost" data-rec-act="cand-refresh" data-id="${esc(x.id)}" ${cand ? "" : "disabled"} aria-label="${esc(t("重新查找相近的花费和收入"))}" title="${esc(t("重新查找相近的花费和收入（刚导入或刚记了一笔时用）"))}"><span aria-hidden="true">↻</span></button></div>${hint}</div>
     </div>
     <p class="muted dd-note">${t("关联只记下「这笔钱就是那一笔」，不改那笔花费或收入本身；金额以这里为准，合计 {a}。", { a: mny(x.total, c) })}</p>
-    <div class="form-actions"><button class="ui-btn" data-size="sm" data-tone="primary">${t("保存")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-rec-act="edit" data-id="${esc(x.id)}">${t("取消")}</button>
+    <div class="ui-acts"><button class="ui-btn" data-size="sm" data-tone="primary">${t("保存")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-rec-act="edit" data-id="${esc(x.id)}">${t("取消")}</button>
       <span class="spacer"></span>
       ${hasCash ? `<label class="check-inline"><input type="checkbox" name="cash" checked><span>${t("同时删掉关联的花费 / 收入")}</span></label>` : ""}
       <button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-debt="txn-del" data-id="${esc(x.id)}">${t("删除这条")}</button></div>

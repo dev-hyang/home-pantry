@@ -108,7 +108,7 @@ export function viewHouseSupplies() {
   const buttons = `<a class="ui-btn" data-size="sm" data-tone="${mine.length ? "ghost" : "primary"}" href="${href("item", "new")}?space=house${q}">${t("手动添加")}</a>
     <a class="ui-btn" data-size="sm" data-tone="${mine.length ? "ghost" : "primary"}" href="${href("house", "template")}">${t("按房屋设备资料推荐")}</a>`;
   const body = !mine.length
-    ? `<div class="panel"><div class="empty"><strong>${t("还没有汽车房屋消耗品")}</strong>${t("手动添加，或按你家的房屋和设备资料一次加好滤网、电池、融雪盐等。")}<p class="form-actions" style="justify-content:center">${buttons}</p></div></div>`
+    ? `<div class="panel"><div class="empty"><strong>${t("还没有汽车房屋消耗品")}</strong>${t("手动添加，或按你家的房屋和设备资料一次加好滤网、电池、融雪盐等。")}<p class="ui-acts" style="justify-content:center">${buttons}</p></div></div>`
     : `<div class="section-head"><p>${who ? `${esc(who)} · ` : ""}${t("{n} 种", { n: mine.length })}</p><div class="head-acts">${alerts.length ? `<button type="button" class="ui-btn" data-size="sm" data-tone="soft" data-action="shop-add-alerts" data-space="house" data-owner="${esc(scope)}">＋ ${t("全部加入购物车")}</button>` : ""}${buttons}</div></div>
       ${alerts.length ? `${rsHint()}<div class="panel">${restockPanel(alerts)}</div>` : ""}
       <div class="shelf" style="margin-top:10px">${shelfGrid("house", scope)}</div>

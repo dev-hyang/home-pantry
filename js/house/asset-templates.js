@@ -41,7 +41,7 @@ export function viewAssetTemplate() {
             </label>`;
           }).join("")}
         </fieldset>`).join("")}
-        <div class="form-actions" style="margin-top:12px">
+        <div class="ui-acts" style="margin-top:12px">
           <button type="submit" class="ui-btn" data-tone="primary" ${fresh ? "" : "disabled"}>${t("生成选中的设备")}</button>
           <a class="ui-btn" data-tone="ghost" href="${href("house", "assets")}">${t("稍后再说")}</a>
         </div>

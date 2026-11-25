@@ -79,7 +79,7 @@ function shopImportHtml() {
   return `<div class="panel shop-import" id="shopImport" role="region" aria-label="${esc(t("从别的应用带来的采购项"))}">
     <b>🐑 ${from ? t("来自牧羊人 · {n}", { n: from }) : t("来自牧羊人")}</b><p class="muted" style="margin:4px 0 8px;font-size:13px">${t("勾选要买的，再点「加进购物车」。已经在清单里的默认不勾。")}</p>
     <div class="shop-import-list">${names.map((n) => { const dup = open.has(n.toLowerCase()); return `<label class="check-inline"><input type="checkbox" value="${esc(n)}" ${dup ? "" : "checked"}><span>${esc(n)}${dup ? ` <small class="muted">${t("已在清单里")}</small>` : ""}</span></label>`; }).join("")}</div>
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="shop-import">${t("加进购物车")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="shop-import-cancel">${t("不用了")}</button></div></div>`;
+    <div class="ui-acts" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="shop-import">${t("加进购物车")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="shop-import-cancel">${t("不用了")}</button></div></div>`;
 }
 function shopRowHtml(s) {
   const mine = isMine(s);

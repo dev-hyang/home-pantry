@@ -35,7 +35,7 @@ export function infoAiPage(deal) {
   return `<section class="section"><div class="panel"><h3 style="margin:0 0 4px">📋 ${t("AI 读到的（请核对）")}</h3>
     <p class="muted">${t("文件类型：{d}", { d: t(DOC_NAME[last.data.doc_type] || "文件") })}${open ? "" : ` · ${t("没有需要写入的新信息")}`}</p>
     ${rows.length ? `<ul class="ai-rows">${rows.map(row).join("")}</ul>` : `<p class="muted">${t("没有从这些图里读到可以填的信息。换更清楚的图再试，或者手填。")}</p>`}
-    <div class="form-actions sticky-actions deal-confirm-actions"><a class="ui-btn" data-tone="ghost" href="${back}">${t("取消")}</a>${open ? `<button type="button" class="ui-btn" data-tone="primary" data-deal-ai-apply="${esc(deal.id)}">${t("写入所选")}</button>` : ""}</div>
+    <div class="ui-acts sticky-actions deal-confirm-actions"><a class="ui-btn" data-tone="ghost" href="${back}">${t("取消")}</a>${open ? `<button type="button" class="ui-btn" data-tone="primary" data-deal-ai-apply="${esc(deal.id)}">${t("写入所选")}</button>` : ""}</div>
     <p class="hint">${t("AI 只是建议：日期和金额请对着原文件确认。取消勾选的不会写入，已填的信息不会被悄悄改掉。")}</p></div></section>`;
 }
 

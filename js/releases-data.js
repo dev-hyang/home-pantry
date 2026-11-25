@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.53", title: { zh: "表单底部的按钮条换成统一控件", en: "Form button rows now use the standard row control" }, items: [
+    { k: "better", zh: "所有表单、对话框、税务小表单底部的按钮条换成同一个按钮条控件：一个按钮靠右，两个按钮取消靠左、保存靠右。", en: "Every form, dialog and small tax form now uses one button-row control: one button on the right, with two Cancel on the left and Save on the right." },
+    { k: "better", zh: "税务小表单里「取消」改到左边、主操作在右边，和其他表单一致。", en: "In the small tax forms Cancel is now on the left and the main action on the right, like everywhere else." },
+  ] },
   { v: "2026-11-24.52", title: { zh: "所有按钮换成统一的新按钮控件", en: "Every button now uses the one standard button control" }, items: [
     { k: "better", zh: "全站约 650 处按钮（保存、取消、小按钮、主按钮、危险按钮…）换成同一个按钮控件，样式只在一处定义。", en: "About 650 buttons across the app (save, cancel, small, primary, danger…) now use a single button control, styled in one place." },
     { k: "fix", zh: "如果哪个页面的按钮看起来不对（颜色、大小、位置），请告诉我，这次是整体替换。", en: "If a button looks wrong on any page (colour, size, position), please tell me; this was a wholesale replacement." },

@@ -56,7 +56,7 @@ function incomePicker(p, key, linked, money) {
   const scope = all.length > mine.length ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-pick-all="${esc(key)}">${showAll ? t("只看这套房的收入") : t("显示全部收入（{n}）", { n: all.length })}</button>` : "";
   const empty = `<p class="muted">${showAll || !all.length ? t("没有可链接的收入记录。先到 财务 → 收入 记一笔，这里就能选到。") : t("没有关联这套房的收入记录。在收入记录里选「关联房产」，这里就默认能选到；或者点下面显示全部。")}</p>`;
   return `<form class="tax-link-form" data-tax-link="${esc(key)}" novalidate>${rows ? `<div data-tax-filter><div class="tax-pick-tools">${searchBtn()}${scope}</div>${searchWrap()}<ul class="tax-pick">${rows}</ul></div>` : `${empty}${scope ? `<div class="tax-pick-tools">${scope}</div>` : ""}`}
-    <div class="tax-item-actions">${rows ? `<button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("链接所选")}</button>` : ""}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-pick-cancel>${t("取消")}</button></div></form>`;
+    <div class="ui-acts tax-item-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-pick-cancel>${t("取消")}</button>${rows ? `<button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("链接所选")}</button>` : ""}</div></form>`;
 }
 
 /** 选择器表单：勾选要链接的花费 */
@@ -68,7 +68,7 @@ export function pickerHtml(p, key, kind, leafLabelOf, isTransfer, linked, money)
   const list = pickable(p.id, linked, isTransfer);
   const rows = list.map((r) => `<li class="tax-pick-row" ${rowAttrs(dayOf(r.purchased_at), `${r.name} ${leafLabelOf(r.category)}`, r.amount)}><label class="check-inline"><input type="checkbox" name="pick" value="${esc(r.id)}"><span class="tax-pick-d"><small class="muted">${esc(dayOf(r.purchased_at))}</small> ${esc(r.name)}<small class="muted tax-pick-c">${esc(leafLabelOf(r.category))}</small></span><b class="tax-imp-a">${money(r2(r.amount))}</b></label></li>`).join("");
   return `<form class="tax-link-form" data-tax-link="${esc(key)}" novalidate>${rows ? `<div data-tax-filter><div class="tax-pick-tools">${searchBtn()}</div>${searchWrap()}<ul class="tax-pick">${rows}</ul></div>` : `<p class="muted">${t("这套房没有可链接的花费记录。花费记账时选「房产」，这里就能选到。")}</p>`}
-    <div class="tax-item-actions">${rows ? `<button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("链接所选")}</button>` : ""}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-pick-cancel>${t("取消")}</button></div></form>`;
+    <div class="ui-acts tax-item-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-pick-cancel>${t("取消")}</button>${rows ? `<button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("链接所选")}</button>` : ""}</div></form>`;
 }
 
 /* 点「从花费记录里选」/ 取消 / 提交勾选（链接所选）。删除（解除链接）走 tax-actions.js 里和手填行一样的 × */

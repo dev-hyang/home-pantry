@@ -25,7 +25,7 @@ export function vwChrome(kind, fixture) {
   return `<div class="wiz-steps" data-vz-head><p class="wiz-now" data-vz-now aria-live="polite">${nowText(list, "basic")}</p><ol class="wiz-dots" data-vz-dots aria-hidden="true">${dots(list, "basic")}</ol></div>`;
 }
 /** 底部按钮：取消 / 上一步 / 下一步 / 确认并创建（只在确认页出现） */
-export const vwActions = () => `<div class="form-actions sticky-actions wz-actions"><button type="button" class="ui-btn" data-tone="ghost" data-action="asset-cancel">${t("取消")}</button><button type="button" class="ui-btn" data-tone="ghost" data-vz="prev" hidden>${t("上一步")}</button><button type="button" class="ui-btn" data-tone="primary" data-vz="next">${t("下一步")}</button><button type="submit" class="ui-btn" data-tone="primary" data-wz-save data-vz-save hidden>${t("确认并创建")}</button></div>`;
+export const vwActions = () => `<div class="ui-acts sticky-actions wz-actions"><button type="button" class="ui-btn" data-tone="ghost" data-action="asset-cancel">${t("取消")}</button><button type="button" class="ui-btn" data-tone="ghost" data-vz="prev" hidden>${t("上一步")}</button><button type="button" class="ui-btn" data-tone="primary" data-vz="next">${t("下一步")}</button><button type="submit" class="ui-btn" data-tone="primary" data-wz-save data-vz-save hidden>${t("确认并创建")}</button></div>`;
 
 const form = () => document.getElementById("assetForm");
 const cur = (f) => f.dataset.step || "basic";

@@ -35,7 +35,7 @@ export function tabPage(tab, all) {
     <p class="hint">${t("借出是钱从账户出去（不算消费）；收回本金不算收入，收到的利息算投资收益。以前收入里「需要还」的记录已经转成这里的借入。")}</p>${addFab([LEND(), BORROW()])}`;
   // 全部借贷（进入页）
   return `${dash || `<div class="panel empty"><strong>${t("还没有借贷记录")}</strong>${t("房贷、车贷、学生贷款、分期，和亲友之间的借款都可以记在这里")}
-      <div class="form-actions"><a class="ui-btn" data-size="sm" data-tone="primary" href="${esc(debtHref(null, "new=1"))}">＋ ${t("添加贷款")}</a><a class="ui-btn" data-size="sm" href="${esc(tabHref("personal"))}">🤝 ${t("个人借贷")}</a></div></div>`}
+      <div class="ui-acts"><a class="ui-btn" data-size="sm" data-tone="primary" href="${esc(debtHref(null, "new=1"))}">＋ ${t("添加贷款")}</a><a class="ui-btn" data-size="sm" href="${esc(tabHref("personal"))}">🤝 ${t("个人借贷")}</a></div></div>`}
     ${attentionPanel(["debt"], { title: t("要处理"), sub: t("快到期、逾期的借款，待确认的车贷") })}
     ${dash ? sumHint() : ""}${addFab([ADD(), LEND(), BORROW()])}`;
 }

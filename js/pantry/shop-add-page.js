@@ -48,7 +48,7 @@ function formPage(kind) {
       <label>${t("单位")}<input name="unit" list="unitList" placeholder="${esc(ex ? t("跟着库存") : t("不填自动选"))}" maxlength="10" ${ex ? "readonly" : ""}></label>
       <label>${t("分类")}<select name="category" ${ex ? "disabled" : ""}><option value="">${ex ? t("跟着库存") : t("自动分类")}</option>${categoryOptions()}</select></label>
       <label>${t("预估金额")}<input name="estimate" ${numAttrs("money")} placeholder="${esc(t("可不填，用来做预算提示"))}"></label>
-      <div class="form-actions full"><a class="ui-btn" data-tone="ghost" href="${addHref()}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button></div>
+      <div class="ui-acts full"><a class="ui-btn" data-tone="ghost" href="${addHref()}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button></div>
       <p class="muted full shop-add-tip">${ex ? t("单位和分类按库存里的物品填好；买到后自动加回库存。") : t("保存时如果库存里已有相同或相近的物品，会问你要不要改成加已有物品。")}</p>
     </form></section>`;
 }
@@ -68,7 +68,7 @@ function restockPage() {
       <h3 style="margin:0 0 4px">${t("从补货清单加入购物车")}</h3>
       <p class="muted">${list.length ? t("确认每样要买多少、单位；不要的取消勾选。") : t("现在没有需要补货的东西，或都已经在购物车里了。")}</p>
       <ul class="rs-pick-list">${list.map(row).join("")}</ul>
-      <div class="form-actions"><a class="ui-btn" data-tone="ghost" href="${addHref()}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit" ${list.length ? "" : "disabled"}>${t("加入购物车")}</button></div>
+      <div class="ui-acts"><a class="ui-btn" data-tone="ghost" href="${addHref()}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit" ${list.length ? "" : "disabled"}>${t("加入购物车")}</button></div>
     </form></section>`;
 }
 

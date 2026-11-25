@@ -58,7 +58,7 @@ export function assetHub(a, root) {
     ${hubList(more)}
     <div class="section-head" style="margin-top:18px"><h3 style="font-size:15px">${t("档案")}</h3></div>
     ${hubList(rows)}
-    <div class="form-actions" style="margin-top:14px"><a class="ui-btn" data-tone="primary" href="${base}?log=1">${t("记保养")}</a>
+    <div class="ui-acts" style="margin-top:14px"><a class="ui-btn" data-tone="primary" href="${base}?log=1">${t("记保养")}</a>
       <span class="spacer"></span><button type="button" class="ui-btn" data-tone="danger" data-action="asset-delete">${veh ? t("删除车辆") : t("删除设备")}</button></div>
   </section>`;
 }

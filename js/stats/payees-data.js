@@ -137,7 +137,7 @@ function listHtml(all) {
       ${S.open === x.key ? `<tr class="s-form s-detail"><td colspan="${span}">${detailHtml(x)}</td></tr>` : ""}`;
     const form = S.renameKey === x.key ? `<tr class="s-form"><td colspan="${span}"><div class="payee-form">
       <label>${t("统一改成")}<input id="payeeTo" maxlength="40" list="storeList" value="${esc(x.name)}" autocomplete="off"></label>
-      <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="payee-rename-go" data-key="${esc(x.key)}">${t("改名（同名的会合并成一个）")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="payee-rename" data-key="">${t("取消")}</button></div>
+      <div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="payee-rename-go" data-key="${esc(x.key)}">${t("改名（同名的会合并成一个）")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="payee-rename" data-key="">${t("取消")}</button></div>
       <small class="muted">${t("以后导入对账单时，同样的收款方会自动用新名字。")}</small></div></td></tr>` : "";
     return tr + form;
   };

@@ -100,7 +100,7 @@ export function shopForm(s, { page = false } = {}) {
     </div>
     ${s ? "" : gwReview()}
     <datalist id="shopChains">${Object.values(CHAINS).map((c) => `<option value="${esc(c.name)}">`).join("")}</datalist>
-    ${s ? `<div class="form-actions">${page ? `<a class="ui-btn" data-tone="ghost" href="${shopHref(s)}">${t("取消")}</a>` : `<button type="button" class="ui-btn" data-tone="ghost" data-action="shops-edit-cancel">${t("取消")}</button>`}<button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
+    ${s ? `<div class="ui-acts">${page ? `<a class="ui-btn" data-tone="ghost" href="${shopHref(s)}">${t("取消")}</a>` : `<button type="button" class="ui-btn" data-tone="ghost" data-action="shops-edit-cancel">${t("取消")}</button>`}<button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
       ${s && !page ? `${s.archived ? "" : `<button type="button" class="ui-btn" data-tone="ghost" data-action="shops-archive" data-id="${s.id}">${t("不去了")}</button>`}<button type="button" class="ui-btn" data-tone="danger-solid" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>` : ""}</div>` : gwActions(`<a class="ui-btn" data-tone="ghost" href="${href("shops", "list")}">${t("取消")}</a>`)}
   </form>`;
 }

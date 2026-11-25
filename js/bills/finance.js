@@ -76,7 +76,7 @@ registerSection("bills", 0, ({ plan }) => {
     ${escrow > 0 ? `<p class="muted" style="margin:6px 0 0;font-size:13px">🏦 ${t("含在房贷月供里的房产税、保险约 {a}/月，已包含在房贷里，不重复计入。", { a: money(escrow) })}</p>` : ""}
     ${up.length ? `<p class="down" style="margin:6px 0 0">📈 ${t("涨价了：{l}", { l: up.map((b) => esc(withProperty(b.property_id, b.name))).join("、") })}</p>` : ""}
     <div class="bud-rank">${topFixed.map((b) => `<div class="bud-row"><div class="bud-head"><a class="link-name" href="${href("bill", b.id)}">${B().catOf(b.category).icon} ${esc(withProperty(b.property_id, b.name))}</a><span>${money(b.monthly)} / ${t("月")}</span></div>${barHtml(b.monthly, plan.billsM)}</div>`).join("")}</div>
-    <div class="form-actions"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "all")}">${t("看全部账单")}</a></div></div>`);
+    <div class="ui-acts"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "all")}">${t("看全部账单")}</a></div></div>`);
 });
 
 /* ───────────── 补货预估：联动库存和购物车 ───────────── */
@@ -91,7 +91,7 @@ registerSection("plan", 0, ({ plan, mp }) => {
       <p class="muted" style="margin:4px 0 8px;font-size:13px">${t("食品杂货和日用个护本月还剩 {a}，预估占 {p}%；维护与服务预估 {b}。", { a: money(stockRemain), p: pct(stockFc, Math.max(0, stockRemain)), b: money(fc.byGroup.home_maint || 0) })}</p>
       <ul class="restock-list">${rows.map((r) => `<li><span class="badge ${r.src === "stock" ? "b-low" : "b-ok"}">${r.src === "stock" ? t("告急") : t("清单")}</span><div class="grow"><span class="name">${esc(r.name)}</span></div><b>${r.est != null ? money(r.est) : `<span class="muted">${t("没价格记录")}</span>`}</b></li>`).join("")}</ul>`
       : `<div class="empty"><strong>${t("现在没有告急的库存，清单也是空的")}</strong></div>`}
-    <div class="form-actions"><a class="ui-btn" data-size="sm" href="${href("shopping")}">${t("去购物车")}</a><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("pantry", "overview")}">${t("看库存")}</a></div></div>`);
+    <div class="ui-acts"><a class="ui-btn" data-size="sm" href="${href("shopping")}">${t("去购物车")}</a><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("pantry", "overview")}">${t("看库存")}</a></div></div>`);
 });
 
 /* ───────────── 大件家电基金：按设备寿命每月预存 ───────────── */
@@ -144,7 +144,7 @@ registerSection("goals", 0, ({ plan }) => {
     <form id="goalForm" class="form-grid" style="margin-top:10px"><label>${t("目标名称")}<input name="name" required maxlength="40" placeholder="${t("例如：旅行")}"></label>
       <label>${t("目标金额（{cur}）", { cur: cur() })}<input name="target" ${numAttrs("money", { min: 1, step: 1 })} required></label>
       <label>${t("完成日期")}<input name="date" type="date" required></label>
-      <div class="form-actions" style="align-self:end"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("添加目标")}</button></div></form></div>`);
+      <div class="ui-acts" style="align-self:end"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("添加目标")}</button></div></form></div>`);
 });
 
 /* ───────────── 订阅与固定账单年成本 ───────────── */
@@ -180,7 +180,7 @@ registerSection("goals", 10, () => {
     ${moves.length ? `<ul class="tips bud-advice">${moves.map((x) => `<li>💸 ${t("{a} 付给 {b}：{m}", { a: esc(x.from), b: esc(x.to), m: money(x.a) })}</li>`).join("")}</ul>` : `<p class="muted" style="margin:8px 0 0">${t("这个月基本平了。")}</p>`}
     ${unrec ? `<p class="muted" style="margin:6px 0 0;font-size:13px">${t("另有 {n} 笔没有记账人（旧记录），不参与分摊。", { n: unrec })}</p>` : ""}
     <form id="splitForm" class="form-grid" style="margin-top:10px">${members.map((x) => `<label>${esc(x.name)} ${t("占比 %")}<input name="w_${x.key}" ${numAttrs("int", { max: 100 })} value="${Math.round(weight(x))}"></label>`).join("")}
-      <div class="form-actions" style="align-self:end"><button class="ui-btn" data-size="sm" type="submit">${t("保存占比")}</button></div></form></div>`);
+      <div class="ui-acts" style="align-self:end"><button class="ui-btn" data-size="sm" type="submit">${t("保存占比")}</button></div></form></div>`);
 });
 registerAction("budget-split-month", (el, ctx) => { state.budgetSplitMonth = el.dataset.m; ctx.render(); });
 

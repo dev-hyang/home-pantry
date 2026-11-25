@@ -72,7 +72,7 @@ export function taskPage(deal, sec, q) {
       ${x.note ? fact(t("说明"), esc(t(x.note)), true) : ""}
       ${fact(t("备注"), esc((rec ? rec.note : x.userNote) || ""), true)}
     </dl>
-    <div class="form-actions" style="margin-top:10px">${askButton(dAsk)}${skipBtn(x) ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="deal-task-skip" data-deal="${esc(deal.id)}" data-key="${esc(x.key)}" data-skip="${x.skipped ? "0" : "1"}">${x.skipped ? t("恢复这一步") : t("跳过这一步（不适用）")}</button>` : ""}
+    <div class="ui-acts" style="margin-top:10px">${askButton(dAsk)}${skipBtn(x) ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="deal-task-skip" data-deal="${esc(deal.id)}" data-key="${esc(x.key)}" data-skip="${x.skipped ? "0" : "1"}">${x.skipped ? t("恢复这一步") : t("跳过这一步（不适用）")}</button>` : ""}
       ${rec ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="deal-task-delete" data-id="${esc(rec.id)}" data-back="${esc(stageHref(x.stage))}">${t("删除这条事项")}</button>` : ""}</div>
     ${askPanel(dAsk)}</div></section>`;
 }
@@ -97,13 +97,13 @@ export function completeInfo(deal) {
 export function completePage(deal) {
   const c = completeInfo(deal);
   return `<section class="section"><div class="panel"><h3 style="margin:0 0 6px">${esc(c.label)}</h3><p class="muted">${esc(c.desc)}</p>
-    <div class="form-actions sticky-actions deal-confirm-actions"><a class="ui-btn" data-tone="ghost" href="${dealHref(deal)}">${t("取消")}</a><button type="button" class="ui-btn" data-tone="primary" data-action="deal-closeout" data-deal="${esc(deal.id)}" data-confirm="1">${esc(c.btn)}</button></div></div></section>`;
+    <div class="ui-acts sticky-actions deal-confirm-actions"><a class="ui-btn" data-tone="ghost" href="${dealHref(deal)}">${t("取消")}</a><button type="button" class="ui-btn" data-tone="primary" data-action="deal-closeout" data-deal="${esc(deal.id)}" data-confirm="1">${esc(c.btn)}</button></div></div></section>`;
 }
 /** 取消交易页：说明会发生什么 + 「返回 / 取消这笔交易」 */
 export function cancelPage(deal) {
   return `<section class="section"><div class="panel"><h3 style="margin:0 0 6px">${t("取消这笔交易")}</h3>
     <p class="muted">${t("这笔交易会标为已取消，放进历史；清单、时间线和交易信息都保留，仍可查看。房产状态按剩下还在进行的交易恢复，没有别的交易就退回开始之前的状态。")}</p>
-    <div class="form-actions sticky-actions deal-confirm-actions"><a class="ui-btn" data-tone="ghost" href="${dealHref(deal)}">${t("返回")}</a><button type="button" class="ui-btn" data-tone="danger-solid" data-action="deal-cancel" data-deal="${esc(deal.id)}" data-confirm="1">${t("取消这笔交易")}</button></div></div></section>`;
+    <div class="ui-acts sticky-actions deal-confirm-actions"><a class="ui-btn" data-tone="ghost" href="${dealHref(deal)}">${t("返回")}</a><button type="button" class="ui-btn" data-tone="danger-solid" data-action="deal-cancel" data-deal="${esc(deal.id)}" data-confirm="1">${t("取消这笔交易")}</button></div></div></section>`;
 }
 
 /** 右下角圆形 ＋（只有一项时直接是一个圆形 ＋ 链接）：主页 = 添加自定义事项 / 记一笔进展 /（进行中）完成或退出 /（进行中）取消交易；

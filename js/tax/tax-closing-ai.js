@@ -46,7 +46,7 @@ function reviewPanel(p) {
     <h5>${t("加进 ② 买入时付的费用")}</h5>${basisRows ? `<ul class="tax-cd-list">${basisRows}</ul>` : `<p class="muted">${t("没有识别出可以计入成本基础的费用。")}</p>`}
     <h5>${t("加进 ③ 退款 / credit")}</h5>${d.credits.length ? `<ul class="tax-cd-list">${rows(d.credits, "credit")}</ul>` : `<p class="muted">${t("没有识别出 credit。")}</p>`}
     ${groups ? `<h5>${t("不会加进去的（只作参考）")}</h5>${groups}` : ""}
-    <div class="tax-item-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-tax-cd-apply="${esc(p.id)}">${t("加进清单")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-cd-discard>${t("放弃")}</button></div>
+    <div class="ui-acts tax-item-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-cd-discard>${t("放弃")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-tax-cd-apply="${esc(p.id)}">${t("加进清单")}</button></div>
     <p class="hint">${t("AI 只是建议：哪些费用能计入成本基础请对着 Closing Disclosure 和 CPA 的意见确认。取消勾选的不会加。")}</p></section>`;
 }
 

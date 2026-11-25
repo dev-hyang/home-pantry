@@ -34,7 +34,7 @@ export function suppliesSection(a) {
         <button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="supply-add" data-name="${esc(name)}">${t("加入库存")}</button></li>`;
   return `<div class="panel"><p class="muted" style="margin:0 0 8px;font-size:13px">${t("这类设备用到的耗材。库存统一在 储藏 → 库存 → 汽车房屋消耗品 里管理，少货会进采购提醒。")}</p>
     <ul class="restock-list">${rows.map(li).join("")}</ul>
-    <div class="form-actions" style="margin-top:10px"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("pantry", "inventory")}?space=house">${t("看全部汽车房屋消耗品")}</a></div></div>`;
+    <div class="ui-acts" style="margin-top:10px"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("pantry", "inventory")}?space=house">${t("看全部汽车房屋消耗品")}</a></div></div>`;
 }
 export const ASSET_SECTIONS = [
   { id: "basic", icon: "🏷️", name: "基本信息" },

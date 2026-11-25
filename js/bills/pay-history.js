@@ -58,7 +58,7 @@ function listHtml(b) {
   if (!rows.length) return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个关键词，或点“清除筛选”。")}</div>`;
   const paid = rows.filter((p) => p.status !== "skipped" && p.amount != null).reduce((s, p) => s + payTotal(p), 0), page = rows.slice(0, shown), rest = rows.length - page.length;
   return `${bulkBar("billpay")}<p class="muted pay-sum">${t("共 {n} 条", { n: rows.length })}${rows.length !== all.length ? ` / ${all.length}` : ""} · ${t("合计 {m}", { m: mny(paid, b.currency) })}</p>
-    <ul class="restock-list pay-list">${page.map((p) => rowHtml(b, p)).join("")}</ul>${rest > 0 ? `<div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="pay-hist-more">${t("加载更多（还有 {n} 条）", { n: rest })}</button></div>` : ""}${older.busy ? `<p class="muted" role="status">${t("正在读取更早的记录…")}</p>` : ""}`;
+    <ul class="restock-list pay-list">${page.map((p) => rowHtml(b, p)).join("")}</ul>${rest > 0 ? `<div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="pay-hist-more">${t("加载更多（还有 {n} 条）", { n: rest })}</button></div>` : ""}${older.busy ? `<p class="muted" role="status">${t("正在读取更早的记录…")}</p>` : ""}`;
 }
 const filtered = () => changed(filter, FILTER0);   // 清除筛选用全站统一的按钮（手机上收进筛选面板第一行）；排序不算筛选，但这页原来把它算进去，保持：排序变了也显示清除
 function toolbarHtml(b) {

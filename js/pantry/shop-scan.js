@@ -73,7 +73,7 @@ export function shopScanHtml() {
         <select name="category" data-i="${i}" aria-label="${esc(t("分类"))}">${categoryOptions(r.category)}</select>
         ${r.dup || r.item_id ? `<small class="ssr-note">${r.dup ? t("已在清单里") : t("库存里有，买到后自动入库")}</small>` : ""}
       </li>`).join("")}</ul>
-      <div class="form-actions"><button type="submit" class="ui-btn" data-tone="primary">${t("加入清单（{n} 项）", { n })}</button><button type="button" class="ui-btn" data-tone="ghost" data-action="shopscan-cancel">${t("放弃")}</button></div>
+      <div class="ui-acts"><button type="submit" class="ui-btn" data-tone="primary">${t("加入清单（{n} 项）", { n })}</button><button type="button" class="ui-btn" data-tone="ghost" data-action="shopscan-cancel">${t("放弃")}</button></div>
     </form>`;
   }
   const ready = aiReady();
@@ -82,7 +82,7 @@ export function shopScanHtml() {
       hint: t("拍快用完的东西、空瓶空袋，或手写的清单、聊天截图都行。只加进购物车，不动库存。") })}
     ${ss.error ? `<p class="form-error" role="alert">${esc(ss.error)}</p>` : ""}
     ${ready ? "" : `<p class="muted shop-add-tip">${t("要先在设置里填 AI key 才能认照片。")}</p>`}
-    <div class="form-actions"><button type="button" class="ui-btn" data-tone="primary" data-action="shopscan-read" ${ss.busy || !ready ? "disabled" : ""}>${ss.busy ? t("正在认…（几十秒）") : t("认出要买的东西")}</button></div>
+    <div class="ui-acts"><button type="button" class="ui-btn" data-tone="primary" data-action="shopscan-read" ${ss.busy || !ready ? "disabled" : ""}>${ss.busy ? t("正在认…（几十秒）") : t("认出要买的东西")}</button></div>
   </div>`;
 }
 

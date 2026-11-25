@@ -235,8 +235,8 @@ export function taskEditForm(deal, x, stage = "special", page = null) {   // pag
       <label>${t("实际完成日期")}<input name="done_on" type="date" max="${todayISO()}" value="${esc(x?.done?.done_on || "")}"><small>${t("填了就算已完成，清空 = 未完成")}</small></label>
       <label class="span-2">${t("备注")}<input name="note" maxlength="1000" value="${esc((rec ? rec.note : x?.userNote) ?? "")}" placeholder="${esc(t("延迟原因、对方要求、联系人…"))}"></label>
     </div>
-    ${page ? `<div class="form-actions sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${esc(page.cancelHref)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>` : ""}
-    ${page ? "" : `<div class="form-actions" style="margin-top:10px"><button class="ui-btn" data-size="sm" data-tone="primary" type="submit">${t("保存")}</button>
+    ${page ? `<div class="ui-acts sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${esc(page.cancelHref)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>` : ""}
+    ${page ? "" : `<div class="ui-acts" style="margin-top:10px"><button class="ui-btn" data-size="sm" data-tone="primary" type="submit">${t("保存")}</button>
       <button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="deal-task-cancel">${t("取消")}</button>
       ${x && !x.done ? `<button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="deal-task-skip" data-deal="${esc(deal.id)}" data-key="${esc(x.key)}" data-skip="${x.skipped ? "0" : "1"}">${x.skipped ? t("恢复这一步") : t("跳过这一步（不适用）")}</button>` : ""}
       ${rec ? `<button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="deal-task-delete" data-id="${esc(rec.id)}">${t("删除这条事项")}</button>` : ""}

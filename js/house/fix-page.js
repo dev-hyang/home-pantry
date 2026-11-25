@@ -49,7 +49,7 @@ export function viewFix() {
         ${f.images.map((im, i) => `<span class="scan-thumb"><img src="${im.url}" alt="${t("第 {n} 张", { n: i + 1 })}"><button type="button" data-action="fix-img-del" data-i="${i}" aria-label="${t("删除这张")}">×</button></span>`).join("")}
         ${f.images.length < MAX_IMAGES ? `<label class="scan-add ${canImg ? "" : "is-off"}" title="${canImg ? "" : esc(t("当前模型不能读图；换成 Gemini 可拍照"))}"><input type="file" id="fixFile" accept="image/*" multiple ${canImg ? "" : "disabled"}><span>📷 ${t("拍照 / 选图")}</span></label>` : ""}
       </div>
-      <div class="form-actions" style="margin-top:10px">
+      <div class="ui-acts" style="margin-top:10px">
         ${submit}
         <button type="button" class="ui-btn" data-tone="${ready && !blocked ? "ghost" : "primary"}" data-action="fix-copy">${t("复制提示词")}</button>
         <a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("me", "settings")}?sec=ai">${ready ? t("换模型") : t("填 API key 直接出结果")}</a>
@@ -140,7 +140,7 @@ function resultHtml(r, a) {
     </div>
     ${r.fixes.map(fixCard).join("")}
     ${r.pro && (r.pro.when || r.pro.who) ? `<div class="panel fix-pro"><h4>☎ ${t("什么时候叫人")}</h4>${r.pro.when ? `<p>${esc(r.pro.when)}</p>` : ""}<p class="muted">${[r.pro.who ? t("找：{who}", { who: r.pro.who }) : "", r.pro.cost ? t("常见费用：{c}", { c: r.pro.cost }) : ""].filter(Boolean).join(" · ")}</p></div>` : ""}
-    <div class="form-actions">
+    <div class="ui-acts">
       ${a && !isVehicle(a) ? (fx().logged ? `<span class="badge b-ok">${t("已记到保养记录（待处理）")}</span>` : `<button type="button" class="ui-btn" data-size="sm" data-action="fix-log">${t("记到保养记录：待处理")}</button>`) : ""}
       ${a ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("asset", a.id)}?log=1">${t("修好了，记一笔维修")}</a>` : ""}
     </div>

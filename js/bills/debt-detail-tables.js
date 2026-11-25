@@ -132,6 +132,6 @@ function payLinkForm(e, r) {
       : cand.list.length || cand.taken?.some((o) => o.v.startsWith("p:")) ? `<select name="purchase" required><option value="">${t("选一笔")}</option>${opts}${takenGroup(cand, "p:")}</select>` : `<span class="muted">${t("前后 7 天没有可关联的花费。")}</span>`}</label>
       <button type="button" class="ui-btn dr-refresh" data-size="sm" data-tone="ghost" data-debt="pay-cand-refresh" data-pay="${esc(r.id)}" ${cand ? "" : "disabled"} aria-label="${esc(t("重新查找相近的花费和收入"))}" title="${esc(t("重新查找相近的花费和收入（刚导入或刚记了一笔时用）"))}"><span aria-hidden="true">↻</span></button></div>${cand ? seenLine(cand, "p:") : ""}
     <p class="muted dd-note">${t("★ = 日期和金额相近。关联后这笔缴费就记在那笔花费上（原来自动记的那笔删掉），花费会改成利息 + Escrow 部分，本金另记一行——同一笔钱不重复计算。")}</p>
-    <div class="form-actions"><button class="ui-btn" data-size="sm" data-tone="primary" ${cand?.list.length ? "" : "disabled"}>${t("关联")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="pay-link" data-pay="">${t("取消")}</button></div>
+    <div class="ui-acts"><button class="ui-btn" data-size="sm" data-tone="primary" ${cand?.list.length ? "" : "disabled"}>${t("关联")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="pay-link" data-pay="">${t("取消")}</button></div>
   </form>`;
 }

@@ -103,7 +103,7 @@ function cleanupHtml(pool) {
       <p class="muted" style="margin:4px 0 0">${t("条件：余额为 0 或没填面值、名下没有花费记录、停用超过 {d} 天（老记录没有停用日期的也算）。", { d: CLEAN_DAYS })}${pool.withSpend ? ` ${t("另有 {n} 张用完的卡名下有花费，请单张删除并选择花费去留。", { n: pool.withSpend })}` : ""}</p>
       ${pool.recent.length ? `<label class="check-inline" style="margin:6px 0 0"><input type="checkbox" id="cleanRecent" ${inc ? "checked" : ""}><span>${t("也包括 {d} 天内停用的（{n} 张）", { d: CLEAN_DAYS, n: pool.recent.length })}</span></label>` : ""}
       ${list.length ? `<p style="margin:6px 0 0;font-size:13px">${t("将删除 {n} 张：", { n: list.length })}${esc(list.map((c) => c.name).join("、"))}</p>` : `<p class="muted" style="margin:6px 0 0">${t("没有符合条件的卡。")}</p>`}
-      <div class="form-actions">
+      <div class="ui-acts">
         ${list.length ? `<button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="card-cleanup-run">${t("删除这 {n} 张", { n: list.length })}</button>` : ""}
         <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="card-cleanup-cancel">${t("取消")}</button></div></div></div>`;
 }
@@ -124,7 +124,7 @@ function deleteConfirmHtml(id) {
   return `<div class="panel cta-panel card-del-box" role="alertdialog" aria-labelledby="cardDelTitle"><div>
       <b id="cardDelTitle">${t("删除「{name}」？", { name: c.name })}</b>
       <p class="muted" style="margin:4px 0 0">${ps.length ? t("这张卡名下有 {n} 笔花费记录，合计 {m}。", { n: ps.length, m: money(sum) }) : t("这张卡名下没有花费记录。")}${bills ? ` ${t("有 {n} 条账单从它扣款，删除后改成未指定。", { n: bills })}` : ""}</p>
-      <div class="form-actions">
+      <div class="ui-acts">
         ${ps.length ? `<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="card-del-keep" data-id="${esc(c.id)}">${t("保留花费，只删卡")}</button>
           <button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="card-del-all" data-id="${esc(c.id)}">${t("连 {n} 笔花费一起删", { n: ps.length })}</button>`
         : `<button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="card-del-all" data-id="${esc(c.id)}">${t("删除")}</button>`}

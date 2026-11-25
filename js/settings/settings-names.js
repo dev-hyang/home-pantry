@@ -34,7 +34,7 @@ export function termsPanel() {
       ${terms.map(([term, src]) => `<div class="term-card" data-term="${esc(term)}"><div class="term-name"><b>${esc(term)}</b><small>${esc(src)}</small></div>
         <div class="term-fields">${cell(term, "zh", "简体", term)}${cell(term, "en", "English", "")}${cell(term, "hant", "繁體", t("自动"))}</div></div>`).join("")}
     </div>
-    <div class="form-actions" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("保存翻译")}</button></div>`
+    <div class="ui-acts" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("保存翻译")}</button></div>`
     : `<p class="muted" style="margin:0;font-size:13px">${t("还没有自己起的名字。新建位置或分类后会出现在这里。")}</p>`}
   </form>`;
 }
@@ -68,7 +68,7 @@ export function locationsPanel() {
         <label>${t("位置名")}<input name="name" required maxlength="20" placeholder="${t("例如：Emma 的房间、车库架子")}" value="${esc(lf.name || "")}"></label>
         <label>${t("所在分组")}<select name="grp">${grpOpts}</select></label>
       </div>
-      <div class="form-actions" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("保存")}</button>
+      <div class="ui-acts" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("保存")}</button>
         <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="loc-cancel">${t("取消")}</button>
         ${lf.id ? `<span class="spacer"></span><button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="loc-del" data-id="${lf.id}">${t("删除")}</button>` : ""}</div>
     </form>` : "";
@@ -79,5 +79,5 @@ export function locationsPanel() {
     ${groups.map((g) => `<div class="panel loc-group"><div class="section-head" style="margin-bottom:4px"><h3 style="font-size:15px">${esc(t(g.name))}</h3>
         <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="loc-new" data-grp="${g.id}">＋ ${t("新位置")}</button></div>
       <ul class="member-list loc-list">${g.locs.map(row).join("")}</ul></div>`).join("")}
-    ${groups.some((g) => g.id === "custom") ? "" : `<div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-action="loc-new" data-grp="custom">＋ ${t("新位置")}</button></div>`}`;
+    ${groups.some((g) => g.id === "custom") ? "" : `<div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-action="loc-new" data-grp="custom">＋ ${t("新位置")}</button></div>`}`;
 }

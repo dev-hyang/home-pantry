@@ -57,7 +57,7 @@ export function viewBillTemplate() {
           return groupNames.map((g) => `<fieldset class="tpl-group"><legend>${t(g)}${g === "订阅与会员" ? `<span class="muted" style="font-weight:400;font-size:13px"> · ${t("默认不勾，勾了再补金额和到期日；年付到期前 30 天提醒")}</span>` : ""}</legend>
             ${tpl.map((r, i) => ((r.group || "常用账单") === g ? rowHtml(r, i) : "")).join("")}</fieldset>`).join("");
         })()}
-        <div class="form-actions" style="margin-top:12px">
+        <div class="ui-acts" style="margin-top:12px">
           <button type="submit" class="ui-btn" data-tone="primary">${t("建立选中的账单")}</button>
           <a class="ui-btn" data-tone="ghost" href="${href("bills", "all")}">${t("稍后再说")}</a>
         </div>

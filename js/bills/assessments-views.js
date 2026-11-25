@@ -98,10 +98,10 @@ export function assessFormPage(b, a, crumb, copyFrom = null, addKind = null) {
         <small class="muted">${a ? t("只替换还没缴的分期（已缴的期和一次性结清行不动）；总额默认是现在没缴的分期合计。") : t("每月一期；总额除不尽的零头放在最后一期。生成后每一期都能改日期和金额。")}</small></details>
       <ul class="as-rows" id="asRows">${rows.map((x) => rowHtml(x, !!x.payment_id)).join("")}</ul>
       <p class="as-total muted" id="asTotal" role="status">${esc(totalText(rows.length, rows.reduce((s, x) => s + num(x.amount), 0)))}</p>
-      <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-as-add="installment">＋ ${t("加一期分期")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-as-add="payoff">＋ ${t("加一次性结清")}</button></div>
+      <div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-as-add="installment">＋ ${t("加一期分期")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-as-add="payoff">＋ ${t("加一次性结清")}</button></div>
       <p id="assessError" class="form-error" role="alert"></p>
       ${a ? `<p class="muted" style="font-size:13px;margin:6px 0 0">${t("已缴的期锁定，不能改；要改请先到缴费记录里取消勾选或删除那笔缴费。")}</p>` : ""}
-      <div class="form-actions form-actions-split sticky-actions">
+      <div class="ui-acts ui-acts-split sticky-actions">
         <button type="button" class="ui-btn" data-tone="ghost" data-action="assess-cancel">${t("取消")}</button>
         <button type="submit" class="ui-btn" data-tone="primary">${a ? t("保存修改") : t("添加摊派")}</button></div>
     </form>

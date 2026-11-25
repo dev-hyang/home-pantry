@@ -87,7 +87,7 @@ function basicBody(p) {
       ${owner && devs.length ? `<label>${t("角色")}${sel("role", role, [["member", t("家庭成员")], ["owner", t("家主")]])}</label>
         <label>${t("财务权限")}${sel("finance", fin ? "1" : "0", [["0", t("没有")], ["1", t("有")]])}<small>${t("家主恒有财务权限。")}</small></label>` : ""}
     </div><p id="personErr" class="form-error" role="alert"></p>
-    <div class="form-actions form-actions-split"><button type="button" class="ui-btn" data-tone="ghost" data-fam-edit="basic">${t("取消")}</button><button type="submit" class="ui-btn" data-tone="primary">${t("保存")}</button></div></form>`;
+    <div class="ui-acts ui-acts-split"><button type="button" class="ui-btn" data-tone="ghost" data-fam-edit="basic">${t("取消")}</button><button type="submit" class="ui-btn" data-tone="primary">${t("保存")}</button></div></form>`;
 }
 /** 这台设备我能不能移出：不是当前这台；家主任意，普通成员只能移出同一个人名下的 */
 const canRemoveDevice = (userId) => { const m = famMembers().find((x) => x.user_id === userId); return !!m && userId !== meId() && (amOwner() || (!!m.person_id && m.person_id === myPersonOf())); };
@@ -112,7 +112,7 @@ function linkSheet() {
 function devicesBody(p) {
   const own = devicesOf(p.id), unlinked = amOwner() ? famMembers().filter((m) => !m.person_id) : [];
   return `${own.length ? `<ul class="dev-list">${own.slice(0, F.devShow).map(deviceRow).join("")}</ul>` : `<p class="muted">${t("这位家庭成员还没有链接任何登录设备。")}</p>`}
-    ${own.length > F.devShow ? `<div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="dev-more">${t("加载更多")}</button></div>` : ""}
+    ${own.length > F.devShow ? `<div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="dev-more">${t("加载更多")}</button></div>` : ""}
     ${unlinked.length ? `<h4 class="fam-sub">${t("还没链接家庭成员的设备")}</h4><ul class="dev-list">${unlinked.map(deviceRow).join("")}</ul>` : ""}
     <p class="muted mem-note">${t("点右边的 ⋯：重命名、关联到哪位家庭成员、登出。登出别的设备 = 把它从家庭里移出，它下次打开要重新用邮箱或邀请码登录。")}</p>`;
 }
@@ -122,7 +122,7 @@ function logsBody(p) {
   const scope = amOwner() ? `<div class="chips fam-scope" role="group" aria-label="${esc(t("范围"))}"><button type="button" class="chip" aria-pressed="${!all}" data-action="logs-scope" data-all="0">${t("只看 {n}", { n: esc(p.name) })}</button><button type="button" class="chip" aria-pressed="${all}" data-action="logs-scope" data-all="1">${t("全家")}</button></div>` : "";
   return `${scope}<p class="muted mem-note" style="margin-top:0">${t("最近 {d} 天；出现没见过的设备或网络会标“可疑”，并在“注意事项”里提醒。", { d: L.days })}</p>
     ${!L.loaded ? `<p class="muted" role="status">${t("加载中…")}</p>` : rows.length ? `<ul class="restock-list login-list">${rows.map((e) => loginRowHtml(e, personNameOf, canRemoveDevice)).join("")}</ul>` : `<div class="empty"><strong>${t("这段时间没有登录记录")}</strong></div>`}
-    ${more ? `<div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="logins-more">${t("加载更多（再往前 6 天）")}</button></div>` : ""}
+    ${more ? `<div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="logins-more">${t("加载更多（再往前 6 天）")}</button></div>` : ""}
     ${amOwner() && L.bad.length ? `<details class="login-help" open><summary>${t("不是我们家人登录的？怎么办")}</summary><ol class="muted"><li>${t("在可疑记录右边的 ⋯ 里选“移出设备”，或到上面“登录设备”里点“移除”")}</li><li>${t("回到家庭与成员页，点“重新生成”换一个邀请码，旧邀请码立刻作废")}</li><li>${t("检查登录用的邮箱 / 手机号有没有被别人动过，必要时改密码或开启两步验证")}</li></ol></details>` : ""}`;
 }
 export function personPage(id) {
