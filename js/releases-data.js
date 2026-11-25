@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-25.3", title: { zh: "小修：关联设备下拉、采购首页录入块、账单卡片点开详情", en: "Small fixes: linked-devices dropdown, purchase intake block, bill cards open details" }, items: [
+    { k: "fix", zh: "物品表单的「关联设备」：触发条和同表单其他下拉一样高；设备多时面板里的搜索框改成紧凑行高，不再比选项还高。", en: "Item form: the Linked devices bar now matches other dropdowns in height, and its search box uses a compact height." },
+    { k: "fix", zh: "采购首页「买回来了，录入库存」块在电脑上铺满整行宽度。", en: "The Bought it, add to stock block on the Purchases home now spans the full width on laptops." },
+    { k: "better", zh: "房屋 / 车辆账单页的账单卡片：点卡片上不是链接、按钮的空白处，直接进入账单详情。", en: "Bill cards on a property or car bills page: tapping blank areas of a card now opens the bill details." },
+  ] },
   { v: "2026-11-25.2", title: { zh: "新增表单操作条和 ⋯ 菜单的共享控件", en: "New shared form action bar and ⋯ menu" }, items: [
     { k: "better", zh: "新增共享控件：表单底部操作条（编辑 / 分步 / 弹窗 / 区块四种）和页头右上角的 ⋯ 菜单，先放进控件图鉴，现有页面暂不变。", en: "Added shared controls: a form action bar (edit / wizard / dialog / inline) and a ⋯ menu in the header; shown in the control gallery, existing pages unchanged for now." },
   ] },

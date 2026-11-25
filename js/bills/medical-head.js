@@ -31,7 +31,7 @@ export function medHeadCard(b, { listed = false } = {}) {   // listed = 放在�
   const who = [b.patient, b.bill_ref ? `#${b.bill_ref}` : ""].filter(Boolean).map(esc);
   const ins = K.insurance ? insuranceItems(b) : [];
   const formula = b.billed_amount != null ? [`${t("总额")} ${mny(b.billed_amount, c)}`, num(b.insurance_paid) ? `${t("保险")} −${mny(b.insurance_paid, c)}` : "", num(b.adjustment) ? `${t("冲减")} −${mny(b.adjustment, c)}` : ""].filter(Boolean).map(esc) : [];
-  return `<section class="panel bill-head" aria-label="${esc(t("账单概要"))}">
+  return `<section class="panel bill-head${listed ? " is-open-card" : ""}" aria-label="${esc(t("账单概要"))}"${listed ? ` data-row-open="${esc(`${base}?sec=detail`)}"` : ""}>
     <div class="bh-top"><span class="mi" aria-hidden="true">${subIcon(b)}</span><div class="bh-t"><h2>${esc(b.provider)}</h2>${badges}</div>${menu}</div>
     <div class="oh-lines">${line(t(K.who.split(/[ （(]/)[0]), who)}${line(t("日期"), dates)}${line(t("保险"), ins)}</div>
     <div class="ot-stats" role="group" aria-label="${esc(t("应付 / 已付 / 余额"))}"><div><small>${t("应付")}</small><b>${mny(owed, c)}</b></div><div><small>${t("已付")}</small><b>${mny(b.paid || 0, c)}</b></div><div><small>${t("余额")}</small><b>${owed == null ? "—" : mny(b.balance || 0, c)}</b></div></div>

@@ -46,7 +46,7 @@ export function billHeadCard(b, base, { listed = false } = {}) {   // listed = �
   const total = cost.parts.length ? `<b class="bh-total">${mny(cost.total, b.currency)}<span> / ${cost.per}</span></b>${formula}` : "";
   const monthly = b.monthly && b.frequency !== "monthly" ? t("折合每月 {m}", { m: money(b.monthly) }) : "";
   const pay = headSec(t("付费"), [[L("付费方式", "Method"), method], [L("费用总额", "Total"), total], [L("折合每月", "Per month"), esc(monthly)]]);
-  return `<section class="panel bill-head" aria-label="${esc(t("账单概要"))}">
+  return `<section class="panel bill-head${listed ? " is-open-card" : ""}" aria-label="${esc(t("账单概要"))}"${listed ? ` data-row-open="${esc(`${base}?sec=detail`)}"` : ""}>
     ${ownerLine(b)}
     <div class="bh-top"><span class="mi" aria-hidden="true">${cat.icon}</span>
       <div class="bh-t"><h2>${esc(b.name)}${b.account_last4 ? `<span class="bh-acct">（**${esc(b.account_last4)}）</span>` : ""}</h2>${listed ? `<span class="badge">${t("周期性")}</span>` : ""}${due}${b.priceUp ? `<span class="badge b-low">${t("涨价了")}</span>` : ""}</div>${menu}</div>

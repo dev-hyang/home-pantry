@@ -1635,7 +1635,7 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .item.is-gear .item-acts .link-name { color: var(--muted); }
 .item.is-gear .item-acts .link-name:hover { color: var(--out); }
 /* 采购（2026-11-13 重新设计）：看板首页（录入按钮 + 四格数字 + 待买预览）、清单页（状态页签）、加入清单页 */
-.sd-acts { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1.25fr); gap: 10px; margin: 0 0 12px; }
+.sd-acts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 0 0 12px; }
 .sd-grp { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; align-items: stretch; padding: 10px; border: 1px solid var(--line-soft, var(--line)); border-radius: var(--r-lg); background: var(--surface); }
 .sd-grp-t { grid-column: 1 / -1; grid-row: 1; font-size: 12.5px; font-weight: 700; color: var(--muted); }
 .sd-grp .ui-btn { grid-row: 2; min-height: 48px; justify-content: center; text-align: center; white-space: normal; line-height: 1.25; }
@@ -3808,6 +3808,7 @@ details.act-more > summary.ui-btn[data-size="sm"]:has(> .dots3), details.act-mor
 .bill-detail-grid.one-col { grid-template-columns: 1fr; }
 .bill-detail-grid .prof-card .restock-list li { padding: 8px 0; }
 /* 账单详情页顶上的汇总卡：底色比分区卡深（松绿渐变），圆角 / 内边距和 .prof-card 一致 */
+.bill-head.is-open-card { cursor: pointer; }
 .bill-head { padding: 14px 16px; box-sizing: border-box; margin-bottom: 14px; min-width: 0; background: linear-gradient(135deg, color-mix(in srgb, var(--pine) 18%, var(--surface)), color-mix(in srgb, var(--pine) 6%, var(--surface))); border: 1px solid color-mix(in srgb, var(--pine) 28%, var(--line)); }
 .bh-top { display: flex; align-items: center; gap: 12px; }
 .bh-top .mi { flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--surface); display: inline-flex; align-items: center; justify-content: center; font-size: 21px; }
@@ -4017,6 +4018,10 @@ details.act-more > summary.ui-btn[data-size="sm"]:has(> .dots3), details.act-mor
 
 
 .pick-panel .pick-q { width: 100%; }
+/* 多选下拉（关联设备）：触发条和同一张表单里的下拉一样高（--control-h）；面板里的搜索框是紧凑的 36px，
+   要压过 .form-grid input 的 44px，否则比下面的选项行还高、看着不协调 */
+.form-grid .pick > summary { min-height: var(--control-h); box-sizing: border-box; font-size: var(--control-fs); }
+.form-grid .pick-panel input.pick-q[type="search"] { min-height: 36px; height: 36px; padding: 4px 10px; font-size: var(--control-fs); }
 /* 概览筛选行：时间范围固定宽度，资产（可搜索：电脑是 .ssel，手机是 .ssel-btn）占剩下的 */
 
 /* 登录记录：一行一次登录（设备图标 / 设备 + 浏览器 / 时间 IP / 新设备·新网络标签）；可疑且没确认的左边一条红线 */
