@@ -26,6 +26,7 @@ export function formDraft(f) {
     if (!el.name) continue;
     if (el.type === "checkbox") d[el.name] = { checked: el.checked };
     else if (el.type === "radio") { if (el.checked) d[el.name] = el.value; }
+    else if (el.type === "select-multiple") d[el.name] = { multi: [...el.selectedOptions].map((o) => o.value) };
     else if (el.type !== "submit" && el.type !== "button") d[el.name] = el.value;
   }
   return d;
@@ -34,6 +35,7 @@ export function applyDraft(f, d) {
   for (const [n, v] of Object.entries(d || {})) {
     const el = f.elements[n]; if (!el) continue;
     if (el instanceof RadioNodeList) { el.value = v; continue; }
+    if (v && typeof v === "object" && "multi" in v) { for (const o of el.options) o.selected = v.multi.includes(o.value); el.dispatchEvent(new Event("change", { bubbles: true })); continue; }
     if (v && typeof v === "object") { if (el.checked !== v.checked) { el.checked = v.checked; el.dispatchEvent(new Event("change", { bubbles: true })); } continue; }
     if (el.value !== v) { el.value = v; if (el.tagName === "SELECT") el.dispatchEvent(new Event("change", { bubbles: true })); }
   }

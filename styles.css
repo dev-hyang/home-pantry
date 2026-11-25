@@ -335,20 +335,6 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: .5; cur
 /* 关联设备下拉：外观和表单里的 select 一致，面板里一行一台设备 */
 .pick-field { min-width: 0; }
 .pick-lbl { display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-.pick { position: relative; margin-bottom: 4px; }
-.pick > summary { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); cursor: pointer; list-style: none; }
-.pick > summary::-webkit-details-marker { display: none; }
-.pick > summary::after { content: ""; flex: 0 0 auto; width: 7px; height: 7px; margin: 0 2px 3px 4px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); }
-.pick[open] > summary { border-color: var(--pine); }
-.pick[open] > summary::after { transform: rotate(-135deg); margin-bottom: -3px; }
-.pick-val { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; }
-.pick-val.is-empty { color: var(--muted); }
-.pick-n { flex: 0 0 auto; }   /* 已选个数：外观是 ui-badge 的数字形态，这个类只留给 JS 找到它 */
-.pick-panel { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 6; max-height: min(264px, 48vh); overflow-y: auto; overflow-x: hidden; padding: 4px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); box-shadow: 0 8px 24px rgba(0, 0, 0, .14); }
-.pick-q { margin-bottom: 4px; min-height: 36px; padding: 6px 10px; font-size: 14px; box-sizing: border-box; }
-.pick-panel .pick-row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: 8px; font-size: 14px; font-weight: 400; cursor: pointer; }
-.pick-panel .pick-row:hover { background: var(--surface-2); }
-.pick-panel .pick-row[hidden] { display: none; }
 #itemForm .only-gear { display: none; }
 #itemForm.is-gear .not-gear { display: none; }
 #itemForm.is-gear .only-gear { display: block; }
@@ -4017,11 +4003,6 @@ details.act-more > summary.ui-btn[data-size="sm"]:has(> .dots3), details.act-mor
 
 
 
-.pick-panel .pick-q { width: 100%; }
-/* 多选下拉（关联设备）：触发条和同一张表单里的下拉一样高（--control-h）；面板里的搜索框是紧凑的 36px，
-   要压过 .form-grid input 的 44px，否则比下面的选项行还高、看着不协调 */
-.form-grid .pick > summary { min-height: var(--control-h); box-sizing: border-box; font-size: var(--control-fs); }
-.form-grid .pick-panel input.pick-q[type="search"] { min-height: 36px; height: 36px; padding: 4px 10px; font-size: var(--control-fs); }
 /* 概览筛选行：时间范围固定宽度，资产（可搜索：电脑是 .ssel，手机是 .ssel-btn）占剩下的 */
 
 /* 登录记录：一行一次登录（设备图标 / 设备 + 浏览器 / 时间 IP / 新设备·新网络标签）；可疑且没确认的左边一条红线 */
@@ -4093,8 +4074,6 @@ details.act-more > summary.ui-btn[data-size="sm"]:has(> .dots3), details.act-mor
 .amt-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 10.5em); align-items: center; gap: 10px; margin: 0; }
 .amt-l { font-size: 14px; } .amt-l small { color: var(--muted); font-size: 11.5px; }
 .amt-row input[type="number"] { box-sizing: border-box; width: 100%; min-height: 40px; text-align: right; }
-.amt-as .amt-pick { margin: 0; min-width: 0; } .amt-as .pick > summary { min-height: 40px; box-sizing: border-box; } .amt-as .pick-panel { left: auto; right: 0; width: min(100%, 22em); min-width: 16em; }
-.amt-as .pick-val { text-align: right; }
 .amt-total { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 2px; }
 .amt-total span { font-weight: 700; } .amt-total b { font-size: 22px; color: var(--pine); font-variant-numeric: tabular-nums; }
 .amt-hint { margin: 0; font-size: 13px; } .amt-upd { margin: 0; }
@@ -4102,18 +4081,11 @@ details.act-more > summary.ui-btn[data-size="sm"]:has(> .dots3), details.act-mor
 form:not(.is-hoa) .hoa-only { display: none; }
 
 .amt-sub { border-top: 1px dotted var(--line); padding-top: 6px; } .amt-sub b { text-align: right; font-variant-numeric: tabular-nums; }
-.amt-pick .pick-row { display: flex; align-items: center; gap: 10px; } .amt-pick .pick-row > span { min-width: 0; }
 .amt-l { font-weight: 600; } .amt-sub .amt-l { font-weight: 500; }
 
 /* 特别摊派：下拉独占一整行（标题在上，下拉铺满，不越出表单） */
 .amt-as { display: block; } .amt-as .amt-l { display: block; margin-bottom: 4px; }
-.amt-as .amt-pick { width: 100%; } .amt-as .pick > summary { width: 100%; }
-.amt-as .pick-val { text-align: left; }
-.amt-as .pick-panel { left: 0; right: 0; width: auto; min-width: 0; max-width: 100%; }
-.amt-pick .as-none { width: 100%; box-sizing: border-box; text-align: left; background: none; border: 0; font: inherit; cursor: pointer; }
 
-.amt-pick .pick-row { flex-wrap: nowrap; } .amt-pick .pick-row input[type="checkbox"] { flex: none; }
-.amt-pick .as-opt { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 
 /* 摊派列表：一笔一张卡；头部（名称 + ⓘ + 摘要 + 右上角 ⋯）一直可见，「待缴」「已缴」两个小节各自折叠（默认收起） */
 .as-card > .prof-head { align-items: flex-start; }
@@ -4121,7 +4093,6 @@ form:not(.is-hoa) .hoa-only { display: none; }
 .as-card .prof-t h3 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .as-card .prof-t small { display: block; }
 .as-desc { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
-.as-none { margin: 4px 0 6px; font-size: 13px; }
 .as-sec { margin-top: 8px; border-top: 1px dashed var(--line); }
 .as-sec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; font-size: 14px; font-weight: 600; } .as-sec > summary::-webkit-details-marker { display: none; }
 .as-sec.as-paid > summary { color: var(--muted); }
@@ -4850,3 +4821,23 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .sticky-actions.ui-formbar { --fb-pad: 20px; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }   /* 电脑上底部页签还在：贴在页签上方 */
 @media (max-width: 640px) { .sticky-actions.ui-formbar, body.editing .sticky-actions.ui-formbar { --fb-pad: 14px; bottom: 0; } }   /* 手机上编辑页隐藏页签，贴屏幕底 */
 .sticky-actions.ui-formbar .dirty-note, .sticky-actions.ui-formbar .hoa-mini { flex: none; white-space: nowrap; }
+
+/* 多选下拉（js/select-multi.js）：外壳和单选可搜索下拉同一套（.ssel / .ssel-in / .ssel-list），面板里是勾选行 + 底部「清除 / 完成」 */
+.msel .ssel-in { padding-right: 62px; }
+.msel .ssel-in.is-empty { color: var(--muted); }
+.msel .msel-n { position: absolute; right: 34px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.msel .msel-n[hidden] { display: none; }
+.msel .msel-list { width: max-content; min-width: 100%; max-width: min(480px, calc(100vw - 28px)); padding: 0;   /* 电脑：面板按最长选项加宽，一行放不下才省略 */
+   display: flex; flex-direction: column; max-height: min(340px, 50vh); overflow: hidden; }
+.msel-opts { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px; }
+.msel-opt, .form-grid .msel-opt { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; font-size: 14px; font-weight: 400; cursor: pointer; }   /* .form-grid label 是上下排 + 粗体，这里要勾选框和文字同一行 */
+.msel-opt input[type="checkbox"] { flex: none; margin: 0; }
+.msel-opt > span { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* 选项不换行，太长用省略号（悬停看全名） */
+.msel-opt[hidden], .msel .msel-list[hidden] { display: none; }
+.msel-foot { flex: none; display: flex; justify-content: flex-end; gap: 8px; padding: 8px; border-top: 1px solid var(--line); background: var(--surface); }
+.msel-list.sel-sheet-list { max-height: min(52vh, 420px); display: block; overflow: hidden; padding: 0; }
+.msel-list.sel-sheet-list .msel-opts { max-height: min(52vh, 420px); }
+/* 手机的底部面板：没有悬停，长名字不用省略号，最多折成两行；勾选框对齐第一行 */
+.sel-sheet-list .msel-opt { align-items: flex-start; padding-top: 10px; padding-bottom: 10px; }
+.sel-sheet-list .msel-opt input[type="checkbox"] { margin-top: 1px; }
+.sel-sheet-list .msel-opt > span { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }

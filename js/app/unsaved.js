@@ -8,6 +8,7 @@ export function dirtyFields(f) {
     if (!el.name) continue;
     if (el.type === "radio") { if (el.checked && !el.defaultChecked) vals[el.name] = { radio: el.value }; }   // 单选：记选中的那个值
     else if (el.type === "checkbox") { if (el.checked !== el.defaultChecked) vals[el.name] = { checked: el.checked }; }
+    else if (el.type === "select-multiple") { const now = [...el.selectedOptions].map((o) => o.value), def = [...el.options].filter((o) => o.defaultSelected).map((o) => o.value); if (now.join(",") !== def.join(",")) vals[el.name] = { multi: now }; }   // 多选下拉：记选中的全部值
     else if (el.tagName === "SELECT") { const def = [...el.options].find((o) => o.defaultSelected)?.value ?? el.options[0]?.value; if (el.value !== def) vals[el.name] = { value: el.value }; }
     else if (el.value !== el.defaultValue) vals[el.name] = { value: el.value };
   }
@@ -36,6 +37,7 @@ export function restoreUnsaved({ list, focus, loose = [] }) {
     for (const [n, v] of Object.entries(k.vals)) {
       const el = f.elements[n]; if (!el) continue;
       if ("radio" in v) { if (el instanceof RadioNodeList) el.value = v.radio; else el.checked = el.value === v.radio; continue; }
+      if ("multi" in v) { for (const o of el.options) o.selected = v.multi.includes(o.value); el._msRefresh?.(); continue; }
       if ("checked" in v) el.checked = v.checked; else el.value = v.value;
     }
     markDirty(f, true);

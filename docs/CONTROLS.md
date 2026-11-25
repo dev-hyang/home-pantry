@@ -127,6 +127,22 @@
 
 电脑：原位打字筛选的 combobox；手机：只有带 `data-search` 的长下拉才变成弹窗里的搜索 + 清单，其余用原生下拉（刻意的，防止手指落下时选项被换）。
 
+### 多选下拉 · `js/select-multi.js`
+`<select multiple>` 自动换成和单选可搜索下拉同一个外壳（原框 + 小箭头，已选项显示在框里、右边带个数）。真实控件还是那个 `<select multiple>`：读值用 `form.elements.name.selectedOptions`，未保存草稿（`unsaved.js`、`formDraft`）已支持。
+
+| 属性 | 说明 |
+|---|---|
+| `data-empty` | 一项都没选时框里显示的字 |
+| `data-summary` | 页面自己算好的摘要（如「2 期 · $300」）；改完调 `sel._msRefresh()` |
+| `data-label`（option 上） | 摘要里用的短名（默认是选项文字） |
+| `data-clear` | 「清除」按钮的字 |
+| `data-search` / `data-nosearch` / `data-search-min` | 同单选，默认 ≥9 项才能打字筛选 |
+| `data-native` | 不要换（保留原生多选框） |
+
+- **收起规则**：单选选完就收；多选不自动收（可能还要继续选），点外面 / Esc / Tab / 「完成」才收，面板底部还有「清除」。
+- **电脑**：面板按最长选项加宽（最多约 480px），选项一行，放不下才省略（悬停看全名）。**手机**：从底部弹出面板，搜索框在面板里，长名字最多折两行（没有悬停）。
+- 图鉴页 `styleguide.html` 有样例；加 `?touch=1` 可在电脑上看手机的底部面板。
+
 ### 筛选 / 目录面板 · `filterPop` / `navPop` / `treePop` · `js/core/filter-pop.js`、`tree-pop.js`
 
 | 函数 | 参数 |

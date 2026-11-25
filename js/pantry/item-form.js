@@ -13,7 +13,7 @@ import { t } from "../core/i18n.js";
 import { locationField } from "../core/locations.js";
 import { autofillBar } from "../core/autofill.js";
 import { unitSelect } from "../core/unit-pick.js";
-import { assetField, buyField, guessCategory, muteField, pickText } from "./item-form-fields.js";
+import { assetField, buyField, guessCategory, muteField } from "./item-form-fields.js";
 import { cartTag, statusTag } from "./inventory-items.js";
 import { categoryOptions } from "./meals-sync.js";
 import { cardSelectHtml } from "../bills/card-picker.js";
@@ -186,21 +186,6 @@ export function viewItemForm() {
       </form>
     </section>`;
 }
-// 关联设备下拉：勾选后更新标题；点外面或按 Esc 收起；设备多时可搜索
-document.addEventListener("change", (e) => {
-  const dd = e.target.closest?.("details.pick"); if (!dd || !dd.querySelector("input[name=asset_ids]")) return;   // 只管「关联设备」这个下拉；别的下拉（账单摊派等）自己更新标题
-  const labels = [...dd.querySelectorAll("input[name=asset_ids]:checked")].map((x) => x.dataset.label);
-  const val = dd.querySelector(".pick-val"), n = dd.querySelector(".pick-n");
-  val.textContent = labels.length ? pickText(labels) : t("不关联设备"); val.classList.toggle("is-empty", !labels.length);
-  n.textContent = labels.length; n.hidden = !labels.length;
-});
-document.addEventListener("input", (e) => {
-  if (!e.target.classList?.contains("pick-q")) return;
-  const q = e.target.value.trim().toLowerCase();
-  e.target.closest(".pick-panel").querySelectorAll(".pick-row").forEach((r) => { r.hidden = !!q && !r.textContent.toLowerCase().includes(q); });
-});
-document.addEventListener("click", (e) => document.querySelectorAll("details.pick[open]").forEach((d) => { if (!d.contains(e.target)) d.open = false; }));
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll("details.pick[open]").forEach((d) => { d.open = false; d.querySelector("summary")?.focus(); }); });
 /* 添加物品：名称和已有物品对一下（js/core/item-match.js）——写法一样的给链接去那件，相近的列出来 */
 document.addEventListener("input", (e) => {
   if (e.target.name === "unit" && e.target.closest?.("#itemForm")) { delete e.target.dataset.auto; return; }

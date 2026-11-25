@@ -46,7 +46,7 @@ export async function saveItemForm(f, { silent = false } = {}) {
   };
   // 关联设备：只有汽车房屋消耗品存；没选过也没存过就不写这一列（还没执行迁移 021 的库也能照常保存）
   if (spaceOf(it.category) === "house") {
-    const ids = [...f.querySelectorAll('input[name="asset_ids"]:checked')].map((x) => x.value);
+    const ids = [...(fe.asset_ids?.selectedOptions || [])].map((o) => o.value);
     if (ids.length || raw.asset_ids?.length) it.asset_ids = ids;
   } else if (raw.asset_ids?.length) it.asset_ids = [];
   // 属于：只有汽车房屋消耗品存；其余永远为空

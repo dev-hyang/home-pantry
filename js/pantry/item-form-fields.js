@@ -6,17 +6,12 @@ import { t } from "../core/i18n.js";
 import { assetLabel, linkableAssets } from "./item-form-common.js";
 
 /** 关联设备：多选下拉，只有汽车房屋消耗品显示；选项就是 房屋 → 设备保养 里的设备 */
-export const pickText = (labels) => labels.join("、");
 export function assetField(v) {
   const all = linkableAssets(), picked = new Set(Array.isArray(v.asset_ids) ? v.asset_ids : []);
-  const labels = all.filter((a) => picked.has(a.id)).map(assetLabel);
   return `<div class="span-2 only-house pick-field"><span class="pick-lbl" id="assetLinkLbl">${t("关联设备")}</span>
-    ${all.length ? `<details class="pick">
-      <summary aria-labelledby="assetLinkLbl"><span class="pick-val ${labels.length ? "" : "is-empty"}">${esc(labels.length ? pickText(labels) : t("不关联设备"))}</span><b class="pick-n ui-badge" data-shape="count" data-size="lg" data-tone="neutral" data-soft ${labels.length ? "" : "hidden"}>${labels.length}</b></summary>
-      <div class="pick-panel" role="group" aria-labelledby="assetLinkLbl">
-        ${all.length > 8 ? `<input type="search" class="pick-q" placeholder="${t("搜索设备")}" aria-label="${t("搜索设备")}">` : ""}
-        ${all.map((a) => `<label class="pick-row check-inline"><input type="checkbox" name="asset_ids" value="${esc(a.id)}" data-label="${esc(assetLabel(a))}" ${picked.has(a.id) ? "checked" : ""}><span>${a.t?.icon || "⚙️"} ${esc(assetLabel(a))}</span></label>`).join("")}
-      </div></details>
+    ${all.length ? `<select multiple name="asset_ids" aria-label="${esc(t("关联设备"))}" data-empty="${esc(t("不关联设备"))}">
+      ${all.map((a) => `<option value="${esc(a.id)}" data-label="${esc(assetLabel(a))}" ${picked.has(a.id) ? "selected" : ""}>${a.t?.icon || "⚙️"} ${esc(assetLabel(a))}</option>`).join("")}
+      </select>
       <small class="muted">${t("可多选；设备页的“相关耗材”会列出它。")}</small>`
       : `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("还没有设备。先在 房屋 → 设备保养 里添加，就能在这里关联。")}</p>`}</div>`;
 }

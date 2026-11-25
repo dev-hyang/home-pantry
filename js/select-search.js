@@ -7,12 +7,12 @@
  * 键盘：↑↓ 移动、Enter 选中、Esc 还原并关闭；读屏：输入框是 combobox，列表是 listbox / option。 */
 import { t } from "./core/i18n.js";
 
-const AUTO_MIN = 9;   // 默认：选项数 ≥ 9（超过 8 个）才自动变成可搜索；少于这个数，直接点选比打字更快
+export const AUTO_MIN = 9;   // 默认：选项数 ≥ 9（超过 8 个）才自动变成可搜索；少于这个数，直接点选比打字更快
 const minOf = (sel) => { const n = parseInt(sel.dataset.searchMin, 10); return n > 0 ? n : AUTO_MIN; };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 /* 触屏（手机 / 平板）不替换：原生下拉在手机上本来就好用（系统滚轮 / 列表）；自制列表在弹键盘、页面滚动的时候，
    手指落下的位置可能已经换成了别的选项（选「通行费」结果填成「餐饮」）。有鼠标的宽屏才换成可搜索的下拉 */
-const touch = () => { try { return matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches; } catch (e) { return false; } };
+export const touch = () => { try { return matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches; } catch (e) { return false; } };
 const want = (sel) => sel.matches("select") && !touch() && sel.dataset.nosearch === undefined && !sel.dataset.sselReady && !sel.multiple && (sel.dataset.search !== undefined || sel.options.length >= minOf(sel));
 /* 触屏上带 data-search 的长下拉（物品表单的大类 / 小类 / 存放位置）：点了从底部弹出一个面板——上面一个搜索框、下面整张清单，
    打字只筛选面板里的清单，页面本身不动，所以不会出现上面说的「手指落下时选项换了」。没打字也能直接滑着点。（2026-11-14） */
@@ -50,7 +50,7 @@ function enhance(sel) {
   inp.addEventListener("blur", () => setTimeout(() => { if (box.classList.contains("is-open") && !box.contains(document.activeElement)) close(box); }, 0));
   const list = box.querySelector(".ssel-list");
   list.addEventListener("pointerdown", (e) => e.preventDefault());   // 点列表时输入框别失焦（否则 blur 先把列表关了）
-  list.addEventListener("click", (e) => { const row = e.target.closest(".ssel-opt"); if (row && !row.classList.contains("is-off")) pick(box, row.dataset.v); });
+  list.addEventListener("click", (e) => { e.preventDefault(); const row = e.target.closest(".ssel-opt"); if (row && !row.classList.contains("is-off")) pick(box, row.dataset.v); });   // preventDefault：列表在外层 <label> 里，不拦的话点选项会激活 label、把焦点还给输入框，选完又自己展开
 }
 function build(box) {
   const sel = box._sel, list = box.querySelector(".ssel-list"), cur = sel.value, parts = [];
