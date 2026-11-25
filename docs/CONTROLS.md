@@ -116,7 +116,7 @@
 ### 对话框 · `ask-dlg` / `ask-form` / `ask-acts`
 原生 `<dialog>.showModal()`；手机上贴底、电脑上居中。浏览器负责 Esc、焦点、背景不可点。
 
-### 可搜索下拉 · `js/select-search.js`
+### 可搜索下拉 · `shared/ui-select.js`
 给 `<select>` 加属性即可，不用换标签：
 
 | 属性 | 说明 |
@@ -127,7 +127,7 @@
 
 电脑：原位打字筛选的 combobox；手机：只有带 `data-search` 的长下拉才变成弹窗里的搜索 + 清单，其余用原生下拉（刻意的，防止手指落下时选项被换）。
 
-### 多选下拉 · `js/select-multi.js`
+### 多选下拉 · `shared/ui-select-multi.js`
 `<select multiple>` 自动换成和单选可搜索下拉同一个外壳（原框 + 小箭头，已选项显示在框里、右边带个数）。真实控件还是那个 `<select multiple>`：读值用 `form.elements.name.selectedOptions`，未保存草稿（`unsaved.js`、`formDraft`）已支持。
 
 | 属性 | 说明 |
@@ -143,7 +143,7 @@
 - **电脑**：面板按最长选项加宽（最多约 480px），选项一行，放不下才省略（悬停看全名）。**手机**：从底部弹出面板，搜索框在面板里，长名字最多折两行（没有悬停）。
 - 图鉴页 `styleguide.html` 有样例；加 `?touch=1` 可在电脑上看手机的底部面板。
 
-### 可输入的下拉 · `js/input-suggest.js`
+### 可输入的下拉 · `shared/ui-suggest.js`
 `<input list="…">` + `<datalist>`（商店、单位、收款方、医疗机构、物品名等）自动换成统一的建议面板，页面不用改。
 - 外观：还是那个输入框，右边一个小箭头；点进去 / 聚焦就列出 datalist 里所有选项（当前值高亮，能看到以前的选择），打字按文字筛选，点一项填进框里并收起（派发 `input` + `change`）。**可以填列表以外的值**（和 `<select>` 的区别）。
 - 键盘：↑↓ 移动、Enter 选中（没有高亮就照常提交表单）、Esc / Tab 收起。
@@ -154,9 +154,9 @@
 | 要选什么 | 用什么 | 手机 | 选完 |
 |---|---|---|---|
 | 只能选一个，选项 < 9 | 原生 `<select>` | 原生 | 浏览器收起 |
-| 只能选一个，选项 ≥ 9 | `<select>`（自动变可搜索，`select-search.js`） | `data-search` 的长下拉 → 底部弹窗 + 搜索框 | 选一项就收 |
-| 可以选多个 | `<select multiple>`（`select-multi.js`） | 底部弹窗 + 搜索框 | 不自动收：「完成」/ Esc / 点外面 |
-| 可输入、也有以前的选择 | `<input list>` + `<datalist>`（`input-suggest.js`） | 浏览器自带建议条 | 选一项就收 |
+| 只能选一个，选项 ≥ 9 | `<select>`（自动变可搜索，`ui-select.js`） | `data-search` 的长下拉 → 底部弹窗 + 搜索框 | 选一项就收 |
+| 可以选多个 | `<select multiple>`（`ui-select-multi.js`） | 底部弹窗 + 搜索框 | 不自动收：「完成」/ Esc / 点外面 |
+| 可输入、也有以前的选择 | `<input list>` + `<datalist>`（`ui-suggest.js`） | 浏览器自带建议条 | 选一项就收 |
 
 ### 筛选 / 目录面板 · `filterPop` / `navPop` / `treePop` · `js/core/filter-pop.js`、`tree-pop.js`
 

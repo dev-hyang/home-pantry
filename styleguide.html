@@ -112,7 +112,7 @@
     <label class="span-2">多行<textarea rows="2"></textarea></label>
   </div>
   <p class="row" style="margin-top:12px"><button class="ui-btn" data-tone="primary" type="button">主按钮</button> <button class="ui-btn" data-tone="ghost" type="button">次按钮</button> <button class="btn btn-sm btn-ghost" type="button">小按钮</button></p></div>
-  <h2>下拉 · 单选 / 多选（select-search.js · select-multi.js）</h2>
+  <h2>下拉 · 单选 / 多选（ui-select.js · ui-select-multi.js · ui-suggest.js）</h2>
   <p class="note">同一个外壳：原框显示当前值 + 右边小箭头，打开后当前值变灰色占位，直接打字筛选。<b>单选</b>：选一项就收起。<b>多选</b>（<code>&lt;select multiple&gt;</code>）：选一项不收起，点外面 / Esc / 「完成」才收；框里显示已选项和个数，面板底部有「清除」。选项 ≥ 9 个才能打字筛选。手机（触屏）：多选和长下拉都从底部弹出面板。</p>
   <div class="panel form-page"><div class="form-grid">
     <label>单选（12 项，可筛选）<select><option value="1">设备 1</option> <option value="2">设备 2</option> <option value="3" selected>设备 3</option> <option value="4">设备 4</option> <option value="5">设备 5</option> <option value="6">设备 6</option> <option value="7">设备 7</option> <option value="8">设备 8</option> <option value="9">设备 9</option> <option value="10">设备 10</option> <option value="11">设备 11</option> <option value="12">设备 12</option></select></label>
@@ -124,9 +124,9 @@
   </div></div>
   <script type="module">
     if (new URLSearchParams(location.search).has("touch")) { const mm = matchMedia.bind(window); window.matchMedia = (q) => (/pointer: ?coarse/.test(q) && !/any-pointer/.test(q) ? { matches: true, media: q, addEventListener() {}, removeEventListener() {} } : /any-pointer: ?fine/.test(q) ? { matches: false, media: q, addEventListener() {}, removeEventListener() {} } : mm(q)); }   // ?touch：假装是触屏，看手机上的底部面板
-    const { initSelectSearch } = await import("./js/select-search.js");
-    const { initSelectMulti } = await import("./js/select-multi.js");
-    const { initInputSuggest } = await import("./js/input-suggest.js");
+    const { initSelectSearch } = await import("./shared/ui-select.js");
+    const { initSelectMulti } = await import("./shared/ui-select-multi.js");
+    const { initInputSuggest } = await import("./shared/ui-suggest.js");
     initSelectSearch(); initSelectMulti(); initInputSuggest();
   </script>
 

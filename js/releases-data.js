@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-25.9", title: { zh: "下拉框的内部整理（外观和用法不变）", en: "Dropdowns tidied up behind the scenes (no change to how they look or work)" }, items: [
+    { k: "better", zh: "把几种下拉框的代码和样式整理成共用的一份，方便其他应用以后用上同样的下拉；你看到的外观和操作都和上一版一样。", en: "The dropdown code and styles are now one shared set so the other apps can use the same dropdowns later; what you see and do is unchanged." },
+  ] },
   { v: "2026-11-25.8", title: { zh: "可输入的下拉框（商店、单位、收款方等）和其他下拉统一", en: "Type-in dropdowns (stores, units, payees…) now match the other dropdowns" }, items: [
     { k: "better", zh: "商店、单位、收款方、医疗机构这类「可以输入、也有以前的选择可点」的框，电脑上点进去就列出以前填过的，打字筛选，点一项填进去并收起；外观和其他下拉一致，也可以填列表里没有的。", en: "On laptop, fields where you can type or pick a past entry (store, unit, payee, provider) now list your earlier entries when you click in, filter as you type, and close after you pick one — same look as other dropdowns, and you can still type something new." },
     { k: "better", zh: "手机上继续用手机自带的建议条（贴着键盘，不会点错）。", en: "On phones the built-in suggestions above the keyboard are kept." },
