@@ -20,7 +20,7 @@ const zeroBuckets = () => ({ living: 0, housing: 0, financial: 0, capital: 0, in
  *  bills[m]   = 各桶里账单类（bill_*）的部分（算「均摊」用）；liv[m] = 日常生活桶按二级分类
  *  n[m]       = 笔数（不含转账）；xfer = 转账 { n, sum }；otherCur = 其他币种的笔数 */
 export function aggregate(rows, months, { cur = "", exCap = false, exInv = false } = {}) {
-  const set = new Set(months), out = { months, bucket: {}, bills: {}, liv: {}, l2: {}, leaf: {}, n: {}, xfer: { n: 0, sum: 0 }, otherCur: 0 };
+  const set = new Set(months), out = { months, bucket: {}, bills: {}, liv: {}, l2: {}, leaf: {}, n: {}, xfer: { n: 0, sum: 0 }, otherCur: 0, hid: { cap: {}, inv: {} } };
   for (const m of months) { out.bucket[m] = zeroBuckets(); out.bills[m] = zeroBuckets(); out.liv[m] = {}; out.l2[m] = {}; out.leaf[m] = {}; out.n[m] = 0; }
   for (const r of rows) {
     if (!set.has(r.m)) continue;
@@ -30,7 +30,10 @@ export function aggregate(rows, months, { cur = "", exCap = false, exInv = false
     out.bucket[r.m][b] += r.sum; out.n[r.m] += r.n;
     if (String(r.c).startsWith("bill_")) out.bills[r.m][b] += r.sum;
     if (b === "living") { const k = l2IdOf(r.c); out.liv[r.m][k] = (out.liv[r.m][k] || 0) + r.sum; }   // 日常生活按二级分类（概览的构成）
-    if (!counted(r.c, r.nat, { exCap, exInv })) continue;
+    if (!counted(r.c, r.nat, { exCap, exInv })) {   // 被「排除资本性 / 投资」开关挡掉的：按叶子记下，页面上提示「还有多少没算进来」
+      const h = (out.hid[b === "capital" ? "cap" : "inv"][r.m] ||= {}); h[r.c] = (h[r.c] || 0) + r.sum;
+      continue;
+    }
     const l2 = l2IdOf(r.c);
     out.l2[r.m][l2] = (out.l2[r.m][l2] || 0) + r.sum;
     out.leaf[r.m][r.c] = (out.leaf[r.m][r.c] || 0) + r.sum;
@@ -51,6 +54,12 @@ export function nodeSum(agg, id, m = null) {
   return s;
 }
 const l1OfL2 = (l2) => nodeOf(l2)?.p;
+/** 被开关挡掉、但属于某个节点（all / 一级 / 二级 / 叶子）的金额：{ cap, inv }，m 为空 = 整段 */
+export function hiddenSum(agg, id, m = null) {
+  const inNode = (leaf) => id === "all" || !id || leaf === id || l2IdOf(leaf) === id || l1IdOf(leaf) === id, out = { cap: 0, inv: 0 };
+  for (const k of m ? [m] : agg.months) for (const kind of ["cap", "inv"]) for (const [leaf, v] of Object.entries(agg.hid?.[kind]?.[k] || {})) if (inNode(leaf)) out[kind] += v;
+  return { cap: r2(out.cap), inv: r2(out.inv) };
+}
 /** 每个月的一个数：f(bucket, m) */
 export const series = (agg, f) => agg.months.map((m) => f(agg.bucket[m], m));
 export const sum = (arr) => arr.reduce((a, b) => a + b, 0);
@@ -80,10 +89,14 @@ export const rankChildren = (agg, ids, m = null) => ids.map((id) => ({ id, v: r2
 
 /** 商店汇总：rows = 商店行；sel = 只看某个月（空 = 整段）；l1 = 只看某个一级分类（all = 现金流出，不含转账） */
 export function storeAgg(rows, months, { sel = "", cur = "", l1 = "all", exCap = false, exInv = false } = {}) {
-  const set = new Set(sel ? [sel] : months), map = new Map();
+  const set = new Set(sel ? [sel] : months), map = new Map(), hid = { cap: 0, inv: 0 };
   for (const r of rows) {
     if (!set.has(r.m) || (cur && r.cur && r.cur !== cur)) continue;
-    if (!counted(r.c, r.nat, { exCap, exInv })) continue;
+    if (!counted(r.c, r.nat, { exCap, exInv })) {   // 被开关挡掉的（只数属于当前一级分类的），页面上提示
+      const b = bucketOf(r.c, r.nat);
+      if (b && (l1 === "all" || l1IdOf(r.c) === l1)) hid[b === "capital" ? "cap" : "inv"] += r.sum;
+      continue;
+    }
     if (l1 !== "all" && l1IdOf(r.c) !== l1) continue;
     const k = r.sk || "__none__", a = map.get(k) || { key: k, name: "", total: 0, count: 0, byL2: {} };
     if (!a.name && r.store) a.name = r.store;
@@ -91,7 +104,9 @@ export function storeAgg(rows, months, { sel = "", cur = "", l1 = "all", exCap =
     const l2 = l2IdOf(r.c); a.byL2[l2] = (a.byL2[l2] || 0) + r.sum;
     map.set(k, a);
   }
-  return [...map.values()].filter((a) => a.count).sort((a, b) => b.total - a.total);
+  const list = [...map.values()].filter((a) => a.count).sort((a, b) => b.total - a.total);
+  list.hid = { cap: r2(hid.cap), inv: r2(hid.inv) };   // 没算进来的资本性 / 投资金额
+  return list;
 }
 
 /* ───────────── 收入与收支总览的汇总（规则全在 js/core/income-taxonomy.js） ─────────────

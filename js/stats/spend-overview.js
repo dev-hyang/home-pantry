@@ -4,12 +4,13 @@ import { DRILL_HINT, LOADING, changeTxt, comparePlan, dq, kpi, livHou, winDrill,
 import { PER_TITLE, lastMonths, monthLabel, noSpend, rangeMonths, rollErr, spendAgg, statOpts, trendHead, trendMonths, trendPeriods } from "./spend-roll.js";
 import { SPEND_TABS } from "../core/tabs.js";
 import { askInline } from "../core/ask.js";
-import { avg, fullMonths, livingSeries, median, nodeSum, normalizedMonthly, outflowSeries, rankChildren, series, sum, withHousingSeries } from "./report.js";
+import { avg, fullMonths, hiddenSum, livingSeries, median, nodeSum, normalizedMonthly, outflowSeries, rankChildren, series, sum, withHousingSeries } from "./report.js";
 import { billExpenseMonthly } from "../bills/debt-logic.js";
 import { esc, money } from "../core/util.js";
 import { href } from "../core/router.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
+import { hiddenNote } from "./hidden-note.js";
 import { tripsPanel } from "./spend-trips.js";
 import { rangeLabel } from "./add-lite.js";
 
@@ -111,7 +112,7 @@ export function spendCategoryTab() {
     chartHead = trendHead(TP.title, TP);
   } else chart = LOADING();
   const trips = node === "travel" ? `<div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-action="stats-trips" aria-expanded="${st.byTrip ? "true" : "false"}">🧳 ${st.byTrip ? t("收起按行程") : t("按行程看")}</button></div>${st.byTrip ? tripsPanel() : ""}` : "";
-  return `${nodeCrumb(node)}
+  return `${nodeCrumb(node)}${hiddenNote(hiddenSum(A, node || "all", sel || null))}
     <div class="panel chart-panel"><div class="head-row"><h3 style="margin:0">${node ? esc(nodeName(node)) : t("全部分类")}</h3><b class="num">${money(total)}</b></div>
       <p class="muted" style="margin:2px 0 8px;font-size:13px">${sel ? monthLabel(sel) : rangeLabel()}${leaf ? "" : ` · ${t("点名称看下一层，点条看明细")}`}</p>
       ${leaf ? "" : Charts.hbars({ items, fmt: money, total, title: t("子类排行"), empty: t("这段时间没有花费") })}

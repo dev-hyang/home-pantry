@@ -1934,6 +1934,10 @@ body.editing .minibar { display: none; }
 .ix-rank .rk-bar { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin: 3px 0 4px; }
 .ix-rank .rk-bar i { display: block; height: 100%; border-radius: 99px; background: var(--pine); }
 /* 收支总览的现金流瀑布：金额列右对齐，第三列一根比例条（读屏读表格，条形 aria-hidden）；手机上条形列收窄 */
+/* 项目名称允许换行（手机上一页看完，不用横向滚动）；金额列不换行、保持右对齐 */
+.wf-tbl { white-space: normal; }
+.wf-tbl th[scope="row"] { white-space: normal; overflow-wrap: anywhere; font-weight: 500; }
+.wf-tbl th[scope="row"] b { font-weight: 700; }
 .wf-tbl td:nth-child(2) { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .wf-tbl .wf-cell { width: 40%; min-width: 72px; }
 .wf-bar { display: block; height: 10px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }

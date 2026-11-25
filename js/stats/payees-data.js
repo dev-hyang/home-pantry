@@ -1,6 +1,7 @@
 /* 花费 → 收款方：全历史名单、列表数据、钻取、页面。 */
 import { $, esc, fmtDay, money } from "../core/util.js";
 import { L1S, l1IdOf, nodeOf } from "../core/taxonomy.js";
+import { hiddenNote } from "./hidden-note.js";
 import { Store } from "../core/store.js";
 import { compare, t } from "../core/i18n.js";
 import { detailHtml, tidyHtml, undoLog } from "./payees-actions.js";
@@ -37,7 +38,9 @@ function payeeList(months, sel, l1) {
   const sp = statKit.spanOfMonths(months), rows = statKit.rollup(sp.from, sp.to, true);
   if (!rows) return null;
   const last = namesByKey();
-  return storeAgg(rows, months, { sel, l1, ...statKit.statOpts() }).map((a) => ({ ...a, name: a.key === "__none__" ? t(STORE_NONE.name) : a.name || a.key, node: mainNode(a), last: last.get(a.key)?.last_at || "" }));
+  const agg = storeAgg(rows, months, { sel, l1, ...statKit.statOpts() }), out = agg.map((a) => ({ ...a, name: a.key === "__none__" ? t(STORE_NONE.name) : a.name || a.key, node: mainNode(a), last: last.get(a.key)?.last_at || "" }));
+  out.hid = agg.hid;
+  return out;
 }
 export function sorted(list) {
   const { k, dir } = P().sort, sgn = dir === "asc" ? 1 : -1;
@@ -62,9 +65,9 @@ export function viewPayees(months, month = state.stats.month) {
   // 页面标题在页头（tabs.js）已经有了，这里不再重复一个「收款方」标题；说明收进第一张卡片的 i 里。「只看」在页头右边的筛选按钮里（payees-l1.js）
   const list = payeeList(months, sel, l1);
   if (!list) return `<section class="section">${statKit.LOADING()}</section>`;
-  if (!list.length) return `<section class="section"><div class="panel empty"><strong>${t("这段时间没有符合条件的花费")}</strong></div></section>`;
+  if (!list.length) return `<section class="section">${hiddenNote(list.hid)}<div class="panel empty"><strong>${t("这段时间没有符合条件的花费")}</strong></div></section>`;
   const tip = infoTip([sel ? monthLabel(sel) : rangeLabel(), t("账单、订阅、保险按收款方；名称不区分大小写")], { size: "sm", align: "start", pos: "bottom" });
-  return `<section class="section payees">${kpisHtml(list, tip)}${chartsHtml(list)}${P().tidy ? tidyHtml() : ""}
+  return `<section class="section payees">${hiddenNote(list.hid || { cap: 0, inv: 0 })}${kpisHtml(list, tip)}${chartsHtml(list)}${P().tidy ? tidyHtml() : ""}
     <div class="panel">
       <div class="toolbar ix-stoolbar">
         <input type="search" id="payeeSearch" value="${esc(P().q)}" placeholder="${esc(t("搜索收款方 / 分类"))}" aria-label="${esc(t("搜索收款方"))}">
