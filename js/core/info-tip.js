@@ -15,6 +15,8 @@ export function infoTip(text, { align = "", pos = "", mode = "sup", size = "md" 
   return `<button type="button" class="ui-hint" data-tip="${esc(s)}" aria-label="${esc(s)}"${m}${align ? ` data-tip-align="${align}"` : ""}${pos ? ` data-tip-pos="${pos}"` : ""}>i</button>`;
 }
 infoTip.classic = (text, o = {}) => infoTip(text, { ...o, mode: "classic" });
+/** 把已经画好的 ⓘ（旧的 classic 样式）改成标题右上角的小角标（sup，大号）；已经带 data-mode 的不动。页头标题统一用它 */
+export const toSupTip = (html) => String(html || "").replace(/<button type="button" class="ui-hint"(?![^>]*data-mode)/g, '<button type="button" class="ui-hint" data-mode="sup" data-size="lg"');
 
 /* Safari / 部分手机点按钮不会聚焦，:focus 就不触发；点一下手动聚焦，点别处自然失焦收起 */
 if (!window.__infoTipBound) {

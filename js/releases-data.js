@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.49", title: { zh: "页头统一：路径置顶，页面名单独一行", en: "Unified page header: sticky path, title on its own line" }, items: [
+    { k: "new", zh: "财务各页的路径行（目录 + 财务 / 分类 / 页面）滚动时固定在顶上，房屋、储藏、我的的目录行也一样。", en: "On finance pages the path row (menu + Finance / group / page) now stays at the top while scrolling; the same for the House, Pantry and Me menu rows." },
+    { k: "better", zh: "路径下面单独一行写当前页面名，说明的 ⓘ 在名字右上角，筛选按钮靠右；路径行里不再放 ⓘ。", en: "The current page name sits on its own line under the path, with its ⓘ at the name's top-right and the Filter button on the right; no ⓘ in the path row any more." },
+  ] },
   { v: "2026-11-24.48", title: { zh: "搜索框和筛选按钮统一", en: "Search box and Filter button unified" }, items: [
     { k: "better", zh: "全站的搜索框、下拉、「筛选」按钮统一成 40px 高、同样的圆角和字号，和按钮对齐；手机上点按区域仍不小于 44px。", en: "Search boxes, dropdowns and Filter buttons now share one 40 px height, corner radius and font size, in line with buttons; tap areas stay at least 44 px on phones." },
     { k: "better", zh: "有多个筛选项的列表页，电脑上也收成「搜索框 + 筛选」一行，下拉放进点开的面板，页面更简洁。", en: "On list pages with several filters, desktop now also shows one row of search box + Filter, with the dropdowns inside the panel." },

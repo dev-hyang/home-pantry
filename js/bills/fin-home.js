@@ -23,7 +23,7 @@ const entry = (g) => {
 
 export function viewFinanceMenu() {
   return `<section class="section menu-page">
-    <div class="section-head"><div class="sh-title">${treePop(finTree(state.route), { id: "fintree" })}<h2>💰 ${t("财务")}${infoTip.classic(t("和钱有关的都在这里；房子、车的日常维护在「房屋」"), { align: "start" })}</h2></div></div>
+    <div class="section-head"><div class="sh-title">${treePop(finTree(state.route), { id: "fintree" })}<h2>💰 ${t("财务")}${infoTip(t("和钱有关的都在这里；房子、车的日常维护在「房屋」"), { align: "start", size: "lg" })}</h2></div></div>
     <div class="fin-cards">${FIN_GROUPS.map(entry).join("")}</div>
   </section>`;
 }
