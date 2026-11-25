@@ -24,6 +24,24 @@ function arrange(bar) {
 export function normalizeFormActions(root = document, on = false) {
   root.querySelectorAll("form .ui-acts").forEach((bar) => { if (bar.dataset.fa !== "1") { bar.dataset.fa = "1"; arrange(bar); } });
   stickMainBar(root, on);
+  root.querySelectorAll(".sticky-actions:not(.ui-formbar)").forEach(toFormBar);
+}
+
+/** 整页表单贴底的按钮条升级成共享控件 ui-formbar（shared/ui-form.css）：有「上一步 / 下一步」的是 wizard，其余是 edit；
+ *  只加 class / data-* 属性，各页面脚本用来找按钮的 data-wz / data-action 等都不变。向导里嵌套了别的按钮条（wiz-bar）、行内小表单（列表行、表格、折叠块、弹窗）不动。 */
+const STEP_ATTRS = ["data-wz", "data-dw", "data-gw", "data-vz"];
+const stepOf = (b) => STEP_ATTRS.map((a) => b.getAttribute(a)).find(Boolean);
+function toFormBar(bar) {
+  if (bar.querySelector(".ui-acts") || bar.closest("li, td, tr, .tcarousel, details, dialog")) return;
+  const btns = [...bar.children].filter((c) => c.classList.contains("ui-btn"));
+  btns.forEach((b) => {
+    const step = stepOf(b);
+    b.dataset.role = isCancel(b) ? "cancel" : step === "prev" ? "back" : step === "next" ? "next"
+      : (b.matches(SUBMIT_SEL) || b.hasAttribute("data-wz-save")) ? "save" : "extra";
+  });
+  bar.classList.remove("ui-acts", "ui-acts-split");
+  bar.classList.add("ui-formbar");
+  bar.dataset.variant = btns.some((b) => stepOf(b)) ? "wizard" : "edit";
 }
 
 const hasCancel = (b) => [...b.querySelectorAll("button, a.ui-btn")].some(isCancel);

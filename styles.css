@@ -4846,3 +4846,7 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 @media (max-width: 640px) { .fin-path, .sec-head { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; } }
 @media (max-width: 440px) { .fin-path .fpop-btn { min-width: 44px; padding: 0 12px; justify-content: center; } .fin-path .fpop-btn > span { display: none; } .fin-crumb { font-size: 13px; } }   /* 手机：目录只留图标，路径才放得下 */
 @media print { .fin-path, .sec-head { position: static; } }
+/* 整页表单贴底的按钮条已是共享控件 ui-formbar（shared/ui-form.css，由 core/form-actions.js 升级）：旧 .sticky-actions 的位置 / 边框规则在这里让位；--fb-pad = main 的左右内边距，条才能铺满整宽 */
+.sticky-actions.ui-formbar { --fb-pad: 20px; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }   /* 电脑上底部页签还在：贴在页签上方 */
+@media (max-width: 640px) { .sticky-actions.ui-formbar, body.editing .sticky-actions.ui-formbar { --fb-pad: 14px; bottom: 0; } }   /* 手机上编辑页隐藏页签，贴屏幕底 */
+.sticky-actions.ui-formbar .dirty-note, .sticky-actions.ui-formbar .hoa-mini { flex: none; white-space: nowrap; }

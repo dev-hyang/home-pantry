@@ -98,7 +98,7 @@
 所有表单底部、对话框、税务小表单的按钮条已换成 `ui-acts`（2026-11-24.53）；`ask-acts`、`tax-item-actions`、`deal-confirm-actions`、`sticky-actions`（贴底）是叠在 `ui-acts` 上的修饰类；三个以上按钮的表单条由 `core/form-actions.js` 加上 `ui-acts-split`（等宽平分）。
 
 ### 表单操作条 · `ui-formbar` 和 ⋯ 菜单 · `ui-more` · `shared/ui-form.css` + `shared/ui-form.js`
-表单底部的按钮条按"表单类型"分 variant（2026-11-25 新增，姊妹站按 ② ~ ⑤ 逐个接入；爱家小助手自己的 `.sticky-actions` 暂不动）：
+表单底部的按钮条按"表单类型"分 variant（2026-11-25 新增，姊妹站按 ② ~ ⑤ 逐个接入；爱家小助手自己的整页表单底栏 `.sticky-actions` 从 2026-11-25.6 起由 `core/form-actions.js` 统一升级成 `ui-formbar`：按钮上自动补 `data-role`，有上一步 / 下一步的是 wizard，其余是 edit；各页面脚本用的 data-wz / data-action 不变）：
 
 | `data-variant` | 用在哪 | 按钮（从左到右） | 位置 |
 |---|---|---|---|

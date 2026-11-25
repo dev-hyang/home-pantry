@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-25.6", title: { zh: "表单底部的「取消 / 保存」换成统一的新样式", en: "Form Cancel / Save bar now uses the shared style" }, items: [
+    { k: "better", zh: "新建、编辑表单和分步向导底部的按钮条，外观和其他几个应用统一：手机上「取消」「保存」并排等宽，电脑上取消靠左、保存靠右，一直停在屏幕底部（电脑上在底部页签上方）。", en: "The bottom button bar of create/edit forms and step-by-step wizards now matches the other apps: equal-width Cancel and Save side by side on phones, Cancel on the left and Save on the right on desktop, always pinned at the bottom." },
+  ] },
   { v: "2026-11-25.5", title: { zh: "购物车重新设计：用右下角 ＋ 加入，先选已有物品还是新物品", en: "Cart redesign: add from the + button, choose existing or new item first" }, items: [
     { k: "better", zh: "采购目录里去掉了「加入购物车」，统一用购物车页右下角的圆形 ＋；＋ 在电脑上现在落在内容区以内，不再飘到外面。", en: "Removed Add to cart from the Purchases menu; use the round + on the cart page, which now sits inside the content area on laptops." },
     { k: "new", zh: "点 ＋ 先用下拉选「已有物品」或「新物品」，再出现对应的加入方式（扫描 / 从补货清单）和手动填写表单；保存后回到购物车。", en: "The + now starts with a dropdown (existing or new item), then shows the matching ways to add (scan / restock list) and a manual form; saving returns to the cart." },
