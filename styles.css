@@ -4422,8 +4422,18 @@ button.npop-item { width: 100%; border: 0; background: none; font: inherit; font
 /* 花费明细：名称不加下划线、不显示成链接 */
 .rec-row .link-name, .rec-row a.link-name:hover { text-decoration: none; color: inherit; font-weight: 600; }
 /* 编辑 / 创建表单：取消、保存永远在同一行（最多两个按钮的按钮条） */
+/* 按钮条位置（2026-11-24.44，规则同 shared/ui.css 的 ui-acts）：一个按钮靠右；两个 = 取消靠左、保存靠右（顺序由 core/form-actions.js 排好）；手机（≤480px）两个并排等宽、一个占满一行。
+   三个以上（上一步 / 下一步 / 保存）仍是等宽平分的 form-actions-split */
+.form-actions:not(.form-actions-split):not(.wiz-row):not(.wiz-exit) { justify-content: flex-end; }
 .form-page .form-actions:not(:has(> :nth-child(3))), body.editing .form-actions:not(:has(> :nth-child(3))) { display: flex; flex-wrap: nowrap; gap: 10px; }
-.form-page .form-actions:not(:has(> :nth-child(3))) > .btn, body.editing .form-actions:not(:has(> :nth-child(3))) > .btn { flex: 1 1 0; min-width: 0; justify-content: center; }
+.form-page .form-actions:not(:has(> :nth-child(3))) > .btn, body.editing .form-actions:not(:has(> :nth-child(3))) > .btn { flex: 0 0 auto; min-width: 0; justify-content: center; }
+.form-actions-split[data-n="2"] > .btn { flex: 0 0 auto; padding-inline: 18px; }
+@media (max-width: 480px) {
+  .form-page .form-actions:not(:has(> :nth-child(3))) > .btn, body.editing .form-actions:not(:has(> :nth-child(3))) > .btn, .form-actions-split[data-n="2"] > .btn { flex: 1 1 0; }
+}
+.ask-acts:not(:has(.spacer)):has(> .btn:nth-child(2)) > .btn:first-child, .tax-item-actions:has(> .btn:nth-child(2)) > .btn-ghost, .deal-confirm-actions:has(> .btn:nth-child(2)) > .btn-ghost { margin-right: auto; }
+.tax-item-actions { justify-content: flex-end; }
+.tax-item-actions:has(> .btn:nth-child(2)) > .btn-ghost { order: -1; }
 /* 清单项（交易清单、目录行）：长文字换行，不越界 */
 .mrow .mt b, .mrow .mt small, .task-row label b, .task-row label small, .task-row .grow { overflow-wrap: anywhere; min-width: 0; }
 .mrow .mt b { line-height: 1.3; }
@@ -4747,7 +4757,8 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .deal-ready .btn { min-height: 44px; }
 .fab-space { height: 72px; }
 .deal-confirm-actions { display: flex; gap: 8px; flex-wrap: wrap !important; }
-.deal-confirm-actions .btn { flex: 1 1 140px; min-height: 44px; justify-content: center; text-align: center; }
+.deal-confirm-actions { justify-content: flex-end; }
+.deal-confirm-actions .btn { flex: 0 0 auto; min-height: 44px; justify-content: center; text-align: center; }
 @media (max-width: 480px) { .deal-confirm-actions > .btn, .form-page .form-actions.deal-confirm-actions > .btn { flex: 1 1 100% !important; white-space: normal; } .deal-confirm-actions > .btn-primary, .deal-confirm-actions > .btn-danger { order: -1; } }
 
 /* 交易主页总结卡片里的付款方式切换（贷款 / 现金） */

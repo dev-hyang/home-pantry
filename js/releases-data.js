@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.44", title: { zh: "表单底部按钮：取消靠左、保存靠右", en: "Form buttons: Cancel on the left, Save on the right" }, items: [
+    { k: "better", zh: "表单、对话框、税务小表单底部的按钮：一个按钮靠右；两个按钮取消靠左、保存靠右，不再各自拉满一行。", en: "Buttons at the bottom of forms, dialogs and small tax forms: one button sits on the right; with two, Cancel is on the left and Save on the right instead of both stretching." },
+    { k: "better", zh: "手机上两个按钮并排等宽，一个按钮占满一行；上一步 / 下一步 / 保存 这类三个以上的仍然平分。", en: "On phones two buttons sit side by side at equal width and a single one fills the row; three or more (Back / Next / Save) still share the row." },
+  ] },
   { v: "2026-11-24.43", title: { zh: "按钮统一成标准高度", en: "Buttons now share one standard height" }, items: [
     { k: "better", zh: "按钮标准高度：默认 40px、小号 34px（以前实际量出来 32 到 60px 都有），手机上小按钮的点按区域仍不小于 44px。", en: "Standard button heights: 40 px default, 34 px small (it used to range from 32 to 60 px); small buttons still keep a 44 px tap area on phones." },
     { k: "better", zh: "新增按钮条规则：一个按钮靠右；两个按钮取消靠左、保存靠右（下一版起逐页换上）。", en: "New button-row rule: one button on the right; with two, Cancel on the left and Save on the right (rolled out page by page from the next version)." },

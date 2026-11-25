@@ -93,7 +93,7 @@
 
 ### 按钮条 · `ui-acts` · `shared/ui.css`
 一组按钮的容器：一个靠右；两个 = 第一个（取消）靠左、第二个（保存）靠右；三个及以上全靠右（删除放最左）；手机（≤480px）两个并排等宽、一个占满一行。
-旧的 `form-actions` / `sticky-actions` / `ask-acts` / `tax-item-actions` 下一版起逐页换成它。
+旧的 `form-actions` / `ask-acts` / `tax-item-actions` / `deal-confirm-actions`（2026-11-24.44 起）用 CSS 套了同样的排法，HTML 不用改；三个以上按钮的表单条仍是等宽平分的 `form-actions-split`。新页面直接用 `ui-acts`。
 
 ### 对话框 · `ask-dlg` / `ask-form` / `ask-acts`
 原生 `<dialog>.showModal()`；手机上贴底、电脑上居中。浏览器负责 Esc、焦点、背景不可点。
