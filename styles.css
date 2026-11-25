@@ -156,8 +156,8 @@ main:focus, main:focus-visible, #main:focus-visible { outline: none !important; 
 .empty strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
 
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px;
-  padding: 7px 15px; border-radius: 99px; border: 1px solid transparent; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-sizing: border-box; position: relative; min-height: var(--btn-h, 40px);
+  padding: 6px 16px; border-radius: 99px; border: 1px solid transparent; font-weight: 600; cursor: pointer;
   text-decoration: none; background: var(--surface-2); color: var(--ink);
 }
 .btn:hover { filter: brightness(.97); }
@@ -165,8 +165,10 @@ main:focus, main:focus-visible, #main:focus-visible { outline: none !important; 
 .btn-dark { background: var(--ink); color: var(--bg); }
 .btn-ghost { background: transparent; border-color: var(--line); }
 .btn-danger-ghost { background: transparent; color: var(--out); border-color: currentColor; }
-.btn-sm { min-height: 32px; padding: 4px 12px; font-size: 13px; font-weight: 500; }
-@media (max-width: 640px), (pointer: coarse) { .btn-sm { min-height: 44px; } }   /* 手机 / 触屏：小按钮的点按区域不小于 44px；电脑保持 32px（鼠标点得准，列表更紧凑） */
+/* 按钮标准高度（2026-11-24.43）：默认 40px / 字 15px，小号 34px / 字 13px，高度算上边框（border-box）；尺寸变量和 ui-btn / ui-acts 见 shared/ui.css。
+   手机 / 触屏上小按钮的视觉高度不变，点按区域靠透明的 ::after 向外延伸到 ≥44px（上下各 6px） */
+.btn-sm { min-height: var(--btn-h-sm, 34px); padding: 4px 14px; font-size: 13px; font-weight: 500; }
+@media (max-width: 640px), (pointer: coarse) { .btn-sm::after { content: ""; position: absolute; inset: -6px 0; } }   /* 手机 / 触屏：小按钮的点按区域不小于 44px；电脑保持 32px（鼠标点得准，列表更紧凑） */
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .spacer { flex: 1; }
 
@@ -4652,8 +4654,6 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-item-form input { width: 100%; max-width: 100%; }
 .tax-item-actions { gap: 8px; }
 .tax-item-actions .btn, .tax-add-btn { flex: 0 0 auto; width: auto; justify-content: center; }
-/* 税务买卖页的按钮：一律矮一点（34px、字 13px），手机和电脑一样；× 删除键 34px 见 .tax-imp */
-.tax-page .btn.btn-sm, .tax-page .tax-add-btn, .tax-page .tax-item-actions .btn { box-sizing: border-box; min-height: 34px; padding: 4px 14px; font-size: 13px; line-height: 1.3; }
 .tax-page select, .tax-page input:not([type="checkbox"]):not([type="radio"]) { max-width: 100%; box-sizing: border-box; }
 /* Closing Disclosure 自动填：核对面板 */
 .tax-add-btn { white-space: nowrap; }

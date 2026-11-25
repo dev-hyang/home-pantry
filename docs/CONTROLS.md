@@ -81,6 +81,20 @@
 外观变量：`--sheet-r`、`--sheet-shade`、`--sheet-shadow`（`ask-dlg` 手机端共用）。
 键盘与焦点（2026-11-24.33 起，`ui-sheet.js` 里自动生效，调用方不用接线）：出现时焦点移进面板、消失后回到原处；Tab 只在面板里转圈；Esc 点「取消」（长按菜单自己处理 Esc）。背后的页面不会被设成 `inert`，和原生 `<dialog>` 比还差这一点。
 
+### 按钮 · `ui-btn` · `shared/ui.css`
+`<button class="ui-btn" data-size="sm" data-tone="primary">保存</button>`（老页面的 `btn` / `btn-sm` / `btn-primary` 是同一套尺寸，逐页换成 `ui-btn`）
+
+| 属性 | 取值 | 说明 |
+|---|---|---|
+| `data-size` | 省略（40px，字 15px）· `sm`（34px，字 13px） | 高度算上边框 |
+| `data-tone` | 省略 · `primary` · `ghost` · `danger` | 中性 · 主操作 · 描边 · 危险 |
+
+手机 / 触屏上小号的视觉高度不变，点按区域靠 `::after` 向外延伸到 ≥44px。上下内边距只给折行留空，高度由 `--btn-h` / `--btn-h-sm` 决定。
+
+### 按钮条 · `ui-acts` · `shared/ui.css`
+一组按钮的容器：一个靠右；两个 = 第一个（取消）靠左、第二个（保存）靠右；三个及以上全靠右（删除放最左）；手机（≤480px）两个并排等宽、一个占满一行。
+旧的 `form-actions` / `sticky-actions` / `ask-acts` / `tax-item-actions` 下一版起逐页换成它。
+
 ### 对话框 · `ask-dlg` / `ask-form` / `ask-acts`
 原生 `<dialog>.showModal()`；手机上贴底、电脑上居中。浏览器负责 Esc、焦点、背景不可点。
 

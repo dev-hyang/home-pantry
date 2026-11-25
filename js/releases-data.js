@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.43", title: { zh: "按钮统一成标准高度", en: "Buttons now share one standard height" }, items: [
+    { k: "better", zh: "按钮标准高度：默认 40px、小号 34px（以前实际量出来 32 到 60px 都有），手机上小按钮的点按区域仍不小于 44px。", en: "Standard button heights: 40 px default, 34 px small (it used to range from 32 to 60 px); small buttons still keep a 44 px tap area on phones." },
+    { k: "better", zh: "新增按钮条规则：一个按钮靠右；两个按钮取消靠左、保存靠右（下一版起逐页换上）。", en: "New button-row rule: one button on the right; with two, Cancel on the left and Save on the right (rolled out page by page from the next version)." },
+  ] },
   { v: "2026-11-24.42", title: { zh: "交易清单做完后能直接完成；税务买入价取自交易", en: "Finish a deal from the checklist; tax uses the deal purchase price" }, items: [
     { k: "better", zh: "总进度卡片右上角的 ⋯ 菜单加了「完成交割 / 已提车 / 退出向导」；清单全做完时卡片里也会提示并带完成按钮。", en: "The ⋯ menu on the progress card now has Complete closing / Picked up / Exit wizard; when every item is done the card also prompts you." },
     { k: "fix", zh: "交易清单里「 · 」隔开的说明，一段中文太长时不再撑出屏幕，会在段内换行。", en: "In deal checklists, a long Chinese segment between “ · ” separators no longer runs off the screen; it wraps." },
