@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.61", title: { zh: "控件说明补上姊妹站推广情况", en: "Control docs note the sister-app rollout" }, items: [
+    { k: "better", zh: "控件说明文档补上共享的按钮条排序文件和四个姊妹站的推广情况（界面不变）。", en: "The control docs now list the shared button-row sorting file and where each control is rolled out in the sister apps (no visible change)." },
+  ] },
   { v: "2026-11-24.60", title: { zh: "花费页提示被排除的装修 / 买房，现金流手机上自动换行", en: "Spending shows what 'Exclude capital' hides; cash-flow wraps on phones" }, items: [
     { k: "fix", zh: "花费 → 分类 / 收款方：默认「排除资本性」会把装修工程、买房卖房等挡在外面，现在页面上会写出「另有多少没算进来」，去掉勾就一起算（房产住房、花得最多的 10 家都会跟着变）。", en: "Spending → Categories / Payees: 'Exclude capital' hides renovation projects and home deals by default; the page now shows how much is left out, and unticking includes it (Housing and the top-10 payees follow)." },
     { k: "fix", zh: "收入 → 收支总览：现金流表的项目名在手机上自动换行，一页看完金额，不再横向滚动。", en: "Income → Overview: cash-flow row names wrap on phones so every amount is visible without sideways scrolling." },

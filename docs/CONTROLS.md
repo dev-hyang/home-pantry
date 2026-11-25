@@ -17,7 +17,8 @@
 
 | 文件 | 内容 |
 |---|---|
-| `shared/ui.css`（母版，姊妹站各留副本） | 徽标、铃铛、提示、箭头、行、选项、弹窗变量、数字框 |
+| `shared/ui.css`（母版，姊妹站各留副本） | 徽标、铃铛、提示、箭头、行、选项、弹窗变量、数字框、按钮、按钮条 |
+| `shared/ui-acts.js`（母版，姊妹站各留副本） | 按钮条排序：取消类排前、主按钮排后（`arrangeActs` / `isCancelBtn` / `watchActs`） |
 | `styles.css`（home-pantry 自己） | 各页面自己的样式（搜索框、日期框的统一样式也在这里） |
 | `js/core/*.js` | 生成 HTML 的函数和全局行为 |
 
@@ -146,3 +147,8 @@
 - 和输入框并排的按钮（净资产表单、「关联设备」那一行的按钮）：跟输入框一样高（44px）。
 - 分段控件 `seg-btn`、筛选面板触发键 `fpop-btn`、向导里的 `sd-grp` 大选择按钮（48px）。
 - 里面有两行字的按钮（例如「用 Closing Disclosure 自动填」）：被文字撑高。
+
+## 姊妹站推广情况（2026-11-24）
+按钮 `ui-btn`、按钮条 `ui-acts`（含 `ui-acts.js`）、箭头 `ui-chev`、菜单行 `ui-row`（baby-log / homeschool / shepherd 的 `mrow`）已在四个姊妹站换完，旧类名已删。
+姊妹站的主按钮色 / 圆角在各自 `app.css` 的 `:root` 里用 `--btn-primary-bg` / `--btn-primary-ink` / `--btn-r` 设置。
+没换的：seed-ledger 的左右两栏 `row`、homeschool 的时间线 `tl-item`、各站行内操作区 `acts` / `sec-acts`、页头操作条 `actions` / `page-acts`（结构不同，不是同一种控件）。姊妹站没有自制下拉面板，所以没有 `ui-opt` 要换。
