@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.59", title: { zh: "发布日志的箭头换成共用箭头控件", en: "Release-notes arrow uses the shared arrow control" }, items: [
+    { k: "better", zh: "发布日志入口的箭头换成和其他页面同一个箭头控件，和三个姊妹应用保持一致（界面几乎不变）。", en: "The arrow on the release-notes entry now uses the same arrow control as the rest of the app, matching the sister apps (nearly no visible change)." },
+  ] },
   { v: "2026-11-24.58", title: { zh: "花费排行恢复整齐，税务汇总可折叠", en: "Spending rankings tidy again; tax summary folds" }, items: [
     { k: "fix", zh: "花费 → 分类 / 收款方里的排行：名称、金额、占比重新分列，金额靠右，下面一条进度条；分类页顶上的金额回到标题同一行右边。", en: "Rankings in Spending → Categories / Payees: name, amount and share are in separate columns again, amount on the right with the bar below; the total sits on the title line." },
     { k: "fix", zh: "税务「今年」：收入报税累计标题旁的 i 贴回标题后面。", en: "Tax · This year: the i next to the income summary title is back beside the title." },
