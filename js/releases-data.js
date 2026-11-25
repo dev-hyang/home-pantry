@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.45", title: { zh: "按钮高度全站统一", en: "One button height across the app" }, items: [
+    { k: "better", zh: "去掉各页面单独写死的按钮高度（32 到 48px 不等），统一用标准：默认 40px、小号 34px。", en: "Removed per-page hard-coded button heights (32 to 48 px) in favour of the standard: 40 px default, 34 px small." },
+    { k: "better", zh: "手机上按钮视觉高度不变，点按区域仍不小于 44px；图标小按钮、和输入框并排的按钮保持原样。", en: "On phones the visible height stays the same while the tap area is still at least 44 px; icon buttons and buttons beside input fields are unchanged." },
+  ] },
   { v: "2026-11-24.44", title: { zh: "表单底部按钮：取消靠左、保存靠右", en: "Form buttons: Cancel on the left, Save on the right" }, items: [
     { k: "better", zh: "表单、对话框、税务小表单底部的按钮：一个按钮靠右；两个按钮取消靠左、保存靠右，不再各自拉满一行。", en: "Buttons at the bottom of forms, dialogs and small tax forms: one button sits on the right; with two, Cancel is on the left and Save on the right instead of both stretching." },
     { k: "better", zh: "手机上两个按钮并排等宽，一个按钮占满一行；上一步 / 下一步 / 保存 这类三个以上的仍然平分。", en: "On phones two buttons sit side by side at equal width and a single one fills the row; three or more (Back / Next / Save) still share the row." },
