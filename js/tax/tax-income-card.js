@@ -60,7 +60,7 @@ const GROUP_ORDER = ["work", "invest", "rent", "side", "maybe", "no", "gift"];  
 
 /** 整张卡默认折叠：展开后第一行是「要报的收入合计（不含工资）」，下面每个大类一行（小计），再点开才是收入类型和每一笔 */
 export function incomeTaxCard(y) {
-  const title = `<span class="tax-inc-title">💰 ${t("{y} 年收入报税累计", { y })}</span>${infoTip([t("这一年所有可能涉及报税的收入，按大类和收入类型分组。"), t("每笔的小 i：为什么要报、TurboTax 在哪填、汇总页有没有。"), t("借款、转账、卖房 / 卖股票的本金不列在这里。"), t("参考用，以 W-2 / 1099 和 IRS 官网为准。")], { size: "lg", align: "start" })}`;
+  const title = `<span class="tax-inc-title">💰 ${t("{y} 年收入报税累计", { y })}${infoTip([t("这一年所有可能涉及报税的收入，按大类和收入类型分组。"), t("每笔的小 i：为什么要报、TurboTax 在哪填、汇总页有没有。"), t("借款、转账、卖房 / 卖股票的本金不列在这里。"), t("参考用，以 W-2 / 1099 和 IRS 官网为准。")], { size: "lg", align: "start" })}</span>`;   // i 要写在标题 span 里面（span 是 flex:1，写在外面会被推到最右边）
   const wrap = (sum, body) => `<details class="panel dt-block tax-inc tax-inc-card"><summary class="dt-head">${title}${sum}</summary>${body}</details>`;
   if (!state.inc?.loaded) return wrap("", `<p class="muted">${t("收入记录还没读到；打开一次 财务 → 收入 再回来。")}</p>`);
   const items = yearItems(y), by = (g) => items.filter((x) => x.a.group === g), nOf = (n) => items.filter((x) => x.a.n === n && x.a.group !== "gift" && x.a.group !== "work");

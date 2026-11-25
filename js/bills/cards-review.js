@@ -14,7 +14,7 @@ export function reviewHtml() {
   if (!months.length) return `<div class="panel"><h3 style="font-size:15px;margin:0 0 4px">${t("返现复盘")}</h3><p class="muted" style="margin:0;font-size:13px">${t("记花费、采购「已买到」、银行导入时选一下用的哪张卡，这里就会算出每张卡花了多少、估算返现，以及用对卡本来能多赚多少。")}</p></div>`;
   const cur0 = state.cardReviewMonth && months.includes(state.cardReviewMonth) ? state.cardReviewMonth : months[0], r = reviewMonth(cur0);
   if (!r) return `<div class="panel card-review"><h3 style="font-size:15px;margin:0 0 4px">${t("返现复盘")}</h3><p class="muted" role="status" style="margin:0">${t("加载中…")}</p></div>`;   // 那个月的花费还在读
-  return `<div class="panel card-review"><div class="row" style="align-items:center;margin-bottom:6px"><h3 style="font-size:15px;margin:0;flex:1">${t("返现复盘")}</h3>
+  return `<div class="panel card-review"><div class="head-row" style="align-items:center;margin-bottom:6px"><h3 style="font-size:15px;margin:0;flex:1">${t("返现复盘")}</h3>
       <select id="cardReviewMonth" aria-label="${esc(t("选择月份"))}" style="width:auto">${months.map((m) => `<option value="${m}" ${m === cur0 ? "selected" : ""}>${m}</option>`).join("")}</select></div>
     <div class="kpis"><div class="kpi"><span>${t("记到卡上的花费")}</span><b>${money(r.tagged)}</b></div><div class="kpi"><span>${t("估算返现")}</span><b>${money(r.earned)}</b></div>
       <div class="kpi"><span>${t("用最优卡能返")}</span><b>${money(r.optimal)}</b><small>${r.gap >= 0.5 ? t("多赚 {a}", { a: money(r.gap) }) : t("基本用对了 👍")}</small></div></div>

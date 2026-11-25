@@ -55,7 +55,7 @@ export function tripsPanel() {
   const suggHtml = sugg.length ? `<div class="panel"><h3 style="font-size:15px;margin:0 0 4px">${t("以前的花费里，可能是旅行")}</h3><p class="muted" style="margin:0 0 6px;font-size:13px">${t("名称或商店里带机票、酒店、门票、加油…的“其他”花费；点一下归到对应类型（可在明细里再改，也可以给名称加上「【行程名】」）。")}</p>
     <ul class="restock-list">${sugg.map((p) => { const id = TRIP.guess(p.name, p.store), c = leafInfo(id);
       return `<li><div class="grow"><span class="name">${esc(p.name)}</span><small>${esc(String(p.purchased_at).slice(0, 10))}${p.store ? ` · ${esc(p.store)}` : ""} · ${money(num(p.amount))}</small></div><button type="button" class="ui-btn" data-size="sm" data-action="trip-reclass" data-id="${esc(p.id)}" data-cat="${id}">${t("归为")} ${c.icon} ${esc(t(c.name.split("（")[0]))}</button></li>`; }).join("")}</ul></div>` : "";
-  const card = (g) => `<div class="panel trip-card"><div class="row"><div class="v"><b>🧳 ${esc(g.trip)}</b>
+  const card = (g) => `<div class="panel trip-card"><div class="head-row"><div class="v"><b>🧳 ${esc(g.trip)}</b>
       <div class="muted" style="font-size:12.5px">${esc(String(g.first).slice(0, 10))}${String(g.first).slice(0, 10) !== String(g.last).slice(0, 10) ? ` → ${esc(String(g.last).slice(0, 10))}` : ""} · ${t("{n} 笔", { n: g.n })}</div></div>
       <b class="num">${money(g.total)}</b></div>
     <ul class="trip-cats">${Object.entries(g.byCat).sort((a, b) => b[1] - a[1]).map(([id, v]) => `<li><span>${esc(leafLabel(id))}</span><b class="num">${money(v)}</b></li>`).join("")}</ul>

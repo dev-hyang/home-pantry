@@ -3,7 +3,8 @@
  *  2. 大小：每个按钮等宽平分一行，按钮越多字越小（data-n 记按钮数，CSS 按它调字号和内边距，和面包屑一样自动缩）；
  *  3. 编辑 / 新建的整页表单：主按钮条贴底（sticky-actions），页面上不再另放一份顶部的取消 / 保存。
  * 只处理表单里的按钮条；行内小表单（列表行、表格、折叠块、弹窗里）只统一顺序和大小，不贴底。 */
-const isCancel = (el) => /^(取消|放弃|稍后再说|Cancel|Discard|Later)$/i.test(el.textContent.trim()) || /cancel$/i.test(el.dataset?.action || "");
+import { isCancelBtn } from "../../shared/ui-acts.js";
+const isCancel = isCancelBtn;   // 「取消」类按钮的判断和排序规则在共用的 shared/ui-acts.js（姊妹站用同一份）
 const isStep = (el) => ["prev", "next"].includes(el.dataset?.wz) || /^[‹›]?\s*(上一步|下一步|跳过|Back|Next|Skip)$/i.test(el.textContent.trim());
 const isSubmit = (el) => el.matches('button[type="submit"], button:not([type]), button[data-tone="primary"][data-action]') && !isCancel(el);
 const SUBMIT_SEL = 'button[type="submit"], button:not([type]), button[data-tone="primary"][data-action]';

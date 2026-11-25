@@ -1007,7 +1007,7 @@ textarea.grow { min-height: 0; height: auto; overflow: hidden; resize: none; lin
 .card-hint-slot:empty, .card-hint-line:empty { display: none; }
 .card-hint-line { margin: 6px 2px 0; }
 /* 旅行：每个行程一张卡，下面按类型列金额 */
-.trip-card .row { align-items: flex-start; }
+.trip-card .head-row { align-items: flex-start; }
 .trip-cats { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
 .trip-cats li { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 4px 0; border-bottom: 1px dashed var(--line); }
 .trip-cats li:last-child { border-bottom: 0; }
@@ -2167,6 +2167,16 @@ body.editing .minibar { display: none; }
 
 /* ── 花费统计（迁移 055 之后）：横向条形排行、折线空心点、统计开关、分类面包屑 ── */
 .ch-dot { fill: var(--surface); stroke-width: 2; }
+/* 横向条形排行（charts.js hbars）：一行 = 名称 | 金额（右对齐）| 占比，下面一整条进度条。行外观用公共的 ui-row，这里只管列的排法。
+ * 注意：这两个类在 charts.js（js/ 之外），清理死代码时别只搜 js/ 文件夹——2026-11-24.46 就是这样误删后排版全挤在一起的。 */
+.hb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.hb-list > .hb-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 3.4em; column-gap: 12px; row-gap: 6px; align-items: center; min-height: 0; padding: 10px 8px; border-bottom: 0; }
+.hb-row > .hb-val { text-align: right; white-space: nowrap; }
+.hb-row > .hb-pct { white-space: nowrap; }
+/* 标题行：左边标题（可换行）、右边金额，第一行对齐（花费 → 分类、收入 → 类型、旅行卡、返现复盘） */
+.head-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.head-row > :first-child { min-width: 0; overflow-wrap: anywhere; }
+.head-row > .num { flex: none; white-space: nowrap; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .hb-name { min-width: 0; overflow-wrap: anywhere; text-align: left; font: inherit; color: var(--ink); }
 button.hb-name { color: var(--pine); font-weight: 700; padding: 6px 0; min-height: 32px; }
 .hb-val { font-weight: 700; font-variant-numeric: tabular-nums; }

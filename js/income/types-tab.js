@@ -62,7 +62,7 @@ export function categoryTab() {
     : `<p class="muted">${t("这段时间没有收入")}</p>`;
   const capNote = !node && val("capital") > 0 ? `<p class="muted small" style="margin:6px 0 0">${t("资本与资产流入（卖房卖股的本金、借款、自己账户转入、国际电汇…）只是现金流入，不算收入，不在合计里。")}</p>` : "";
   return `${bar}${nodeCrumb(node)}
-    <div class="panel chart-panel"><div class="row"><h3 style="margin:0">${esc(nodeName(node))}</h3><b class="num">${fmtMoney(total)}</b></div>
+    <div class="panel chart-panel"><div class="head-row"><h3 style="margin:0">${esc(nodeName(node))}</h3><b class="num">${fmtMoney(total)}</b></div>
       <p class="muted" style="margin:2px 0 8px;font-size:13px">${sel ? monthLabel(sel) : spanLabel(O.range)}${leaf ? "" : ` · ${t("点名称看下一层，点条看明细")}`}</p>
       ${leaf ? "" : window.Charts ? window.Charts.hbars({ items, fmt: fmtMoney, total: node ? total : null, title: t("子类排行"), empty: t("这段时间没有收入") }) : ""}${capNote}
       <div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-drill="${esc(incDrill({ kind: nodeKindSel(node), ...win, person: O.person, ex: node ? "" : 1 }))}">${t("查看明细")} ›</button></div></div>

@@ -160,7 +160,7 @@
         : `<i style="width:100%;background:${x.color}"></i>`;
       const partsTxt = parts.length ? `<span class="sr-only">${esc(parts.map((p) => `${p.name} ${Math.round((p.value / x.value) * 100)}%`).join("，"))}</span>` : "";
       const name = x.btn ? `<button type="button" class="linkbtn hb-name" ${x.btn}>${esc(x.name)}</button>` : `<span class="hb-name">${esc(x.name)}</span>`;
-      const attrs = x.drill && !x.btn ? ` class="hb-row ch-hit-row" data-drill="${esc(x.drill)}" role="link" tabindex="0" aria-label="${esc(label)}，${esc(t("查看明细"))}"` : ` class="hb-row"`;
+      const attrs = x.drill && !x.btn ? ` class="ui-row hb-row ch-hit-row" data-drill="${esc(x.drill)}" role="link" tabindex="0" aria-label="${esc(label)}，${esc(t("查看明细"))}"` : ` class="ui-row hb-row"`;
       return `<li${attrs}>${name}<b class="hb-val">${esc(fmt(x.value))}</b><em class="hb-pct">${pct(x.value)}%</em><span class="hb-track" aria-hidden="true"><span class="hb-bar" style="width:${w.toFixed(2)}%">${track}</span></span>${partsTxt}</li>`;
     }).join("");
     const lg = legendParts.size > 1 ? `<ul class="ch-legend">${[...legendParts].map(([n, c]) => `<li><i style="background:${c}"></i>${esc(n)}</li>`).join("")}</ul>` : "";
@@ -227,7 +227,7 @@
     const pos = items.filter((x) => x.value > 0).sort((a, b) => b.value - a.value), extra = pos.length - LIST_TOP;
     const rows = pos
       .map((x, i) => `<li${x.drill ? ` class="ch-hit-row" data-drill="${esc(x.drill)}" role="link" tabindex="0" aria-label="${esc(x.name)}：${esc(fmt(x.value))}，${esc(t("查看明细"))}"` : ""}${i >= LIST_TOP ? " data-more hidden" : ""}><i style="background:${x.color}"></i><span>${esc(x.name)}</span><b>${esc(fmt(x.value))}</b><em>${Math.round((x.value / total) * 100)}%</em>${x.drill ? '<u aria-hidden="true">›</u>' : ""}</li>`).join("");
-    const more = extra > 0 ? `<button type="button" class="btn btn-sm btn-ghost dl-toggle" aria-expanded="false" data-more-n="${extra}">${esc(t("显示更多（还有 {n} 项）").replace("{n}", extra))}</button>` : "";
+    const more = extra > 0 ? `<button type="button" class="ui-btn dl-toggle" data-size="sm" data-tone="ghost" aria-expanded="false" data-more-n="${extra}">${esc(t("显示更多（还有 {n} 项）").replace("{n}", extra))}</button>` : "";
     return `<figure class="chart donut-wrap${stack ? " donut-stack" : ""}">
       <svg viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(title)}">${arcs}
         <text x="${cx}" y="${cy - 4}" text-anchor="middle" class="ch-center">${esc(center)}</text>

@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.57", title: { zh: "按钮条的「取消」判断改用共用模块", en: "Button-row Cancel detection moved to a shared module" }, items: [
+    { k: "better", zh: "表单底部按钮条判断哪个是「取消」的规则，改成和三个姊妹应用共用的同一份（界面不变）。", en: "The rule that decides which button is Cancel in form button rows is now shared with the sister apps (no visible change)." },
+  ] },
   { v: "2026-11-24.56", title: { zh: "共用按钮样式多了主按钮色和圆角变量", en: "Shared button style gains primary-colour and radius variables" }, items: [
     { k: "better", zh: "共用样式表的按钮可以由各站设置主按钮底色、字色和圆角（本站不变）。", en: "The shared stylesheet lets each app set its primary-button colours and corner radius (unchanged here)." },
   ] },
