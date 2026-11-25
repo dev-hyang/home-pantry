@@ -188,14 +188,14 @@ export const spendRowsLoaded = () => spendList.rows.filter((p) => !p.virtual);
 export { NO_SPEND_FILTER, spendBase } from "./records-lite.js";
 export function spendRecordsHtml() {
   const f = state.spendFilter, fc = spendList.facets || {};
-  if (fc.years && !fc.years.length) return `<div class="section-head"><h2>${t("花费记录")}</h2></div><div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("购物车点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;
+  if (fc.years && !fc.years.length) return `<div class="panel empty"><strong>${t("还没有花费记录")}</strong>${t("购物车点“已买到”、录入购物或上面的补记，都会出现在这里。")}</div>`;
   // 下拉选项：数据库读到的（全部年份）+ 联想里近 400 天的商店，在第一次统计读回来之前也有东西可选
   const y0 = new Date().getFullYear(), first = Math.min(state.stats.firstYear || y0, ...(fc.years || []).map(Number));
   const years = [...new Set([...(fc.years || []), ...Array.from({ length: Math.max(1, y0 - first + 1) }, (_, i) => String(y0 - i))])].sort().reverse();
   const stores = [...new Map([...knownStores(), ...(fc.stores || [])].map((x) => [storeKey(x), x])).values()].sort(compare);
   const used = new Set((fc.cats || []).map(canonCat));   // 分类树：一级、二级总在，叶子只列有记录的（和选中的）
   const opt = (v, label, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(label)}</option>`;
-  return `<div class="section-head"><h2>${t("花费记录")}</h2></div>
+  return `
     <div class="panel">
       <div class="toolbar ix-toolbar">
         <input type="search" id="spendSearch" placeholder="${t("搜索名称或收款方")}" value="${esc(f.q)}" aria-label="${t("搜索花费记录")}">

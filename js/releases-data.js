@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.50", title: { zh: "页头：路径写全 + 标题行，采购页也置顶", en: "Header: full path + title line; Shopping pages sticky too" }, items: [
+    { k: "better", zh: "路径行写出完整路径（包含当前页，如 财务 / 分析 / 税务 / 买卖与成本基础），不放 ⓘ；下面一行再写一遍页面名，ⓘ 在名字右上角，筛选靠右。", en: "The path row now shows the complete path including the current page (e.g. Finance / Analysis / Tax / Sales & cost basis) with no ⓘ; the line below repeats the page name with its ⓘ at the top-right and the Filter on the right." },
+    { k: "new", zh: "采购各页（购物车、加入购物车、商店…）的页头改成同样两行，路径行滚动时固定在顶上。", en: "Shopping pages (cart, add to cart, stores…) use the same two-row header, with the path row sticky while scrolling." },
+    { k: "better", zh: "花费明细页去掉重复的「花费记录」标题；买卖详情卡片里不再重复资产名；买卖页头右边有筛选（金额显示）按钮。", en: "Removed the duplicate \"Spending records\" heading on the spending list and the repeated asset name inside the sales detail card; the sales header has its Filter (amount visibility) button." },
+  ] },
   { v: "2026-11-24.49", title: { zh: "页头统一：路径置顶，页面名单独一行", en: "Unified page header: sticky path, title on its own line" }, items: [
     { k: "new", zh: "财务各页的路径行（目录 + 财务 / 分类 / 页面）滚动时固定在顶上，房屋、储藏、我的的目录行也一样。", en: "On finance pages the path row (menu + Finance / group / page) now stays at the top while scrolling; the same for the House, Pantry and Me menu rows." },
     { k: "better", zh: "路径下面单独一行写当前页面名，说明的 ⓘ 在名字右上角，筛选按钮靠右；路径行里不再放 ⓘ。", en: "The current page name sits on its own line under the path, with its ⓘ at the name's top-right and the Filter button on the right; no ⓘ in the path row any more." },

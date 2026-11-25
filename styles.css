@@ -4705,8 +4705,7 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-fc { font-size: 12px; white-space: nowrap; }
 .tax-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
 .tax-cards > .tax-acard { margin-bottom: 0; }
-.tax-asset-h { margin: 0 0 10px; font-size: 17px; }
-.tax-asset-h > .muted { margin-left: 6px; font-size: 13px; font-weight: 400; }
+.tax-asset-role { margin: 0 0 10px; font-size: 13px; }
 .tax-asset > .tax-step:first-of-type { margin-top: 0; }
 .tax-pick-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 6px; }
 .tax-fwrap[hidden] { display: none; }
@@ -4831,14 +4830,15 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
   #main .toolbar.tb-on .tb-head .clear-filters { margin-left: auto; }
 }
 
-/* ── 统一面包屑控件（2026-11-24.49）：路径行置顶 + 标题行（名字 + 右上角 ⓘ + 靠右的筛选）──────────────
- * 路径行 = 目录按钮 + 「财务 / 分组 / 页面」（不含最后一层、不放 ⓘ），和 .crumb 一样滚动时固定在顶栏下面（高度约 44px）；
+/* ── 统一面包屑控件（2026-11-24.49 / .50）：路径行置顶 + 标题行（名字 + 右上角 ⓘ + 靠右的筛选）──────────────
+ * 路径行 = 目录按钮 + 完整路径（含当前页，粗体；不放 ⓘ），和 .crumb 一样滚动时固定在顶栏下面（高度约 44px）；
  * 标题行 = 最后一层的名字（页面名 / 页签名 / 资产名），ⓘ 在名字右上角，筛选 / 操作靠右，随页面滚走。 */
 .fin-head:has(> .fin-path) { display: contents; }   /* 路径行的粘性范围要是整个页面，不能只是页头这一小块 */
 .fin-path, .sec-head { position: sticky; top: calc(var(--eco-h, 0px) + env(safe-area-inset-top, 0px)); z-index: 16; display: flex; align-items: center; gap: 8px; min-height: 44px; margin: -6px -20px 8px; padding: 2px 20px; background: var(--bg); border-bottom: 1px solid var(--line); box-sizing: border-box; }
 .sec-head > .sh-title { flex: 1 1 auto; }
 .fin-path > .npop { flex: none; margin: 0; }
 .fin-crumb { min-width: 0; flex: 1 1 auto; font-size: 14px; font-weight: 600; line-height: 1.5; word-break: keep-all; color: var(--ink); }
+.fin-crumb b { color: var(--ink); font-weight: 700; }
 .fin-crumb .h-root { color: var(--pine); padding: 4px 2px; }
 .fin-crumb .sep { color: var(--muted); opacity: .7; font-size: 12px; padding: 0 2px; }
 .fin-titlebar { margin-bottom: 12px; }

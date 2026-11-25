@@ -81,7 +81,7 @@ export function homeCard(p) {
     : g.gain < 0 ? `<p><b>${t("亏损 {a}", { a: money(-g.gain) })}</b> <span class="muted">${t("自住房的亏损不能抵税")}</span></p>`
     : `<p><b>${t("收益 {a}", { a: money(g.gain) })}</b> · ${g.excl ? t("排除 {a} 后应税约 {b}", { a: money(g.excl), b: money(g.taxable) }) : t("没排除额度，全部 {b} 都是应税收益", { b: money(g.taxable) })}</p>`;
   const lived = `<select data-tax-prop="${esc(p.id)}" data-key="lived" data-nosearch aria-label="${esc(t("自住满 2 年？"))}"><option value="">${t("还没标")}</option><option value="yes" ${x.lived === "yes" ? "selected" : ""}>${t("是，满 2 年")}</option><option value="no" ${x.lived === "no" ? "selected" : ""}>${t("不满")}</option></select>`;
-  return `<section class="panel tax-asset"><h3 class="tax-asset-h">🏡 ${esc(p.name)} <span class="muted">${esc(tx(p.role === "landlord" ? "出租" : "自住", p.role === "landlord" ? "rental" : "owner-occupied"))}</span></h3>
+  return `<section class="panel tax-asset"><p class="muted tax-asset-role">🏡 ${esc(tx(p.role === "landlord" ? "出租" : "自住", p.role === "landlord" ? "rental" : "owner-occupied"))}</p>
     <p class="muted tax-wrap">${t("按 ①→⑦ 一项一项看、一项一项加：没有的就空着，往下走。最底下是算出来的结果。")}</p>
     ${closingBlock(p)}
     ${step("①", t("买入价"), (() => { const b = buyPriceOf(p); return `<p><b>${b.price != null ? money(b.price) : NA}</b> <span class="muted">${b.fromDeal ? t("来自 房屋 → 交易 里填的价格；交易点「完成交割」后会写进房屋记录") : b.price != null ? t("来自 房屋 的记录，这里只读") : t("房屋记录里还没有买入价；在 房屋 → 交易 的买入交易里填价格")}</span></p>`; })())}
@@ -97,6 +97,6 @@ export function homeCard(p) {
 export function carCard(a) {
   const g = carGain(a), name = a.name || a.model || t("车辆");
   const verdict = g.gain == null ? `<p class="muted">${t("缺买入价或卖出价：在车辆里记上。")}</p>` : g.gain < 0 ? `<p><b>${t("亏损 {a}", { a: money(-g.gain) })}</b> <span class="muted">${t("自用车的亏损不能抵税")}</span></p>` : `<p><b>${t("收益 {a}", { a: money(g.gain) })}</b> <span class="muted">${t("高于买入价的部分要报（少见）")}</span></p>`;
-  return `<section class="panel tax-asset"><h3 class="tax-asset-h">🚗 ${esc(name)}</h3><dl class="dt-list">${row(t("买入价"), g.buy != null ? money(g.buy) : NA)}${row(t("卖出价"), g.sale != null ? money(g.sale) : NA)}</dl>${verdict}
+  return `<section class="panel tax-asset"><dl class="dt-list">${row(t("买入价"), g.buy != null ? money(g.buy) : NA)}${row(t("卖出价"), g.sale != null ? money(g.sale) : NA)}</dl>${verdict}
     <p class="hint">${t("车曾用于做生意 / 出租的另有折旧规则，这里没算。")} <a href="${href("asset", a.id)}">${t("打开车辆")} ›</a></p></section>`;
 }
