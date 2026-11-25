@@ -23,7 +23,7 @@ export function closingBlock(p) {
   if (ui.cd?.id === p.id) return reviewPanel(p);
   const s = aiSettings(), pr = providerOf(s.provider), ready = aiReady(), canImg = visionCapable(pr);
   const off = !ready ? t("先在 设置 → AI 助手 填一个 key（推荐 Gemini，有免费额度）") : !canImg ? t("当前的 {p} 不能读图片，换成 Gemini 才能用", { p: t(pr.name) }) : "";
-  return `<div class="af-bar tax-cd" data-af="closing"><label class="btn btn-sm af-btn ${off ? "is-off" : ""}"><input type="file" accept="image/*" multiple data-tax-cd="${esc(p.id)}" ${off ? "disabled" : ""}><span>📷 ${t("用 Closing Disclosure 自动填（可选）")}</span></label>
+  return `<div class="af-bar tax-cd" data-af="closing"><label class="ui-btn af-btn ${off ? "is-off" : ""}" data-size="sm"><input type="file" accept="image/*" multiple data-tax-cd="${esc(p.id)}" ${off ? "disabled" : ""}><span>📷 ${t("用 Closing Disclosure 自动填（可选）")}</span></label>
     <span class="muted af-hint">${off ? `${esc(off)} · <a href="#/me/settings?sec=ai">${t("去设置")}</a>` : t("拍 / 截图 Closing Disclosure 的费用明细页（第 2、3 页）和第 1 页。不想用也行，下面可以一项一项手填。图片发给你选的 AI 服务商，不保存；识别结果先给你核对，再加进清单。")}</span>
     <div class="af-status" role="status" aria-live="polite"></div></div>`;
 }
@@ -46,7 +46,7 @@ function reviewPanel(p) {
     <h5>${t("加进 ② 买入时付的费用")}</h5>${basisRows ? `<ul class="tax-cd-list">${basisRows}</ul>` : `<p class="muted">${t("没有识别出可以计入成本基础的费用。")}</p>`}
     <h5>${t("加进 ③ 退款 / credit")}</h5>${d.credits.length ? `<ul class="tax-cd-list">${rows(d.credits, "credit")}</ul>` : `<p class="muted">${t("没有识别出 credit。")}</p>`}
     ${groups ? `<h5>${t("不会加进去的（只作参考）")}</h5>${groups}` : ""}
-    <div class="tax-item-actions"><button type="button" class="btn btn-sm btn-primary" data-tax-cd-apply="${esc(p.id)}">${t("加进清单")}</button><button type="button" class="btn btn-sm btn-ghost" data-tax-cd-discard>${t("放弃")}</button></div>
+    <div class="tax-item-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-tax-cd-apply="${esc(p.id)}">${t("加进清单")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-cd-discard>${t("放弃")}</button></div>
     <p class="hint">${t("AI 只是建议：哪些费用能计入成本基础请对着 Closing Disclosure 和 CPA 的意见确认。取消勾选的不会加。")}</p></section>`;
 }
 

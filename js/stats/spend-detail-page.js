@@ -22,7 +22,7 @@ export function spendDetailPage({ id }) {
   const crumb = (label) => recCrumb("spend", spendRecordsHref(), label);
   const p = findRow(id);
   if (p === undefined) return `<section class="section">${crumb(t("详情"))}<div class="panel empty"><strong>${t("加载中…")}</strong></div></section>`;
-  if (!p) return `<section class="section">${crumb(t("详情"))}<div class="panel empty"><strong>${t("找不到这笔记录")}</strong><p><a class="btn btn-sm" href="${spendRecordsHref()}">${t("回到花费记录")}</a></p></div></section>`;
+  if (!p) return `<section class="section">${crumb(t("详情"))}<div class="panel empty"><strong>${t("找不到这笔记录")}</strong><p><a class="ui-btn" data-size="sm" href="${spendRecordsHref()}">${t("回到花费记录")}</a></p></div></section>`;
   const base = `${href("bills", "spend")}?form=${encodeURIComponent(p.id)}`, bill = p.pay_id ? state.bills.find((b) => b.id === p.pay_bill_id) : null;
   const edit = (sec) => (p.virtual ? "" : bill ? `${href("bill", bill.id)}?sec=pay&edit=${encodeURIComponent(p.pay_id)}` : `${base}&sec=${sec}`);
   const xfer = p.is_xfer ?? isTransfer(p.category, p.nature), nat = p.nature || defaultNature(p.category);

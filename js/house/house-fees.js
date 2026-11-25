@@ -132,7 +132,7 @@ function hoaBlock(p) {
   if (!hoa.enabled) {
     if (!a.on && !a.tips.length) return null;
     return { title: esc(t(a.label)), hint: t("没填 {label}，有的话去资料里补充", { label: t(a.label) }),
-      body: `${tips || `<div class="empty">${t("这种房型一般没有 {label}", { label: t(a.label) })}</div>`}<p style="margin:10px 0 0"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改")}</a></p>` };
+      body: `${tips || `<div class="empty">${t("这种房型一般没有 {label}", { label: t(a.label) })}</div>`}<p style="margin:10px 0 0"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("house", "profile")}">${t("修改")}</a></p>` };
   }
   // 多个邮箱用 ; 或 , 隔开，各自成一个链接；手机上允许在任意处换行，不再撑宽
   const emails = (hoa.email || "").split(/[;,，；]/).map((x) => x.trim()).filter(Boolean);
@@ -151,7 +151,7 @@ function hoaBlock(p) {
   const row = (k, v) => (v ? `<div class="fact wide"><dt>${k}</dt><dd>${v}</dd></div>` : "");
   const hint = [reg.src ? reg.text : null, sa.kind === "due" ? t("特别摊派待缴") : null, hoa.mgmt].filter(Boolean).join(" · ");
   return { title: `${esc(t(a.label))}${hoa.name ? ` · ${esc(hoa.name)}` : ""}`, hint, open: sa.kind !== "none" && sa.kind !== "paid",
-    body: `<p style="margin:0 0 6px;text-align:right"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}">${t("修改")}</a></p>
+    body: `<p style="margin:0 0 6px;text-align:right"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("house", "profile")}">${t("修改")}</a></p>
       <dl class="fact-grid one">
         ${row(t("管理公司 / 联系人"), hoa.mgmt ? esc(hoa.mgmt) : "")}
         ${row(t("联系方式"), contact)}

@@ -71,7 +71,7 @@ function maintLogsHtml(a) {
       <div class="grow"><span class="name">${esc(fmtDate(l.done_on))}${l.service_item ? ` · ${esc(t(V().serviceItem(l.service_item)?.name || l.service_item))}` : ""}</span>
         <small>${joinList([l.odometer != null ? `${fmt(l.odometer)} ${distUnit()}` : null, l.vendor ? t("收款方：{who}", { who: l.vendor }) : null, l.diy ? t("自己做的") : null, l.cost != null ? t("花费 {m}", { m: Units.money(num(l.cost), l.currency || Units.region.currency) }) : null, l.notes,
           l.created_at && t("{d} 记录", { d: fmtShort(l.created_at) })].filter(Boolean).map(esc))}</small></div>
-      ${pick ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="maint-del" data-id="${l.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>`}
+      ${pick ? "" : `<button type="button" class="ui-btn swipe-src" data-size="sm" data-tone="ghost" data-action="maint-del" data-id="${l.id}" aria-label="${t("删除这条记录")}">${t("删除")}</button>`}
     </li>`;
   return all.length ? `${bulkBar("maint")}<ul class="restock-list maint-list">${all.slice(0, lim).map(row).join("")}</ul>${pageMoreBtn(`maint:${a.id}`, all.length, lim)}` : "";
 }
@@ -101,10 +101,10 @@ function maintSectionHtml(a, focusLog, { K, R, veh, editLog, e, isInspect, preIt
         <label class="span-2 check-inline"><input type="checkbox" name="diy" ${e.diy ? "checked" : ""}><span>${t("自己动手")}</span></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(e.notes || "")}" placeholder="${t("换了什么、师傅怎么说…")}"></label>
       </div>
-      <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${editLog ? t("保存修改") : t("记一笔")}</button><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?sec=log">${t("取消")}</a>
+      <div class="form-actions" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${editLog ? t("保存修改") : t("记一笔")}</button><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("asset", a.id)}?sec=log">${t("取消")}</a>
         <small class="muted">${veh ? t("填了花费会同时记入“车辆”花费统计。") : t("填了花费会同时记入“房屋维护”花费统计。")}</small></div>
     </form>
-    <p style="margin-top:10px"><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?sec=log">${t("查看全部记录")} ›</a></p>`;
+    <p style="margin-top:10px"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("asset", a.id)}?sec=log">${t("查看全部记录")} ›</a></p>`;
 }
 /** 记一次保养：有费用先写 purchases（house_maint），再写记录并关联，删除记录时一起删 */
 export async function saveMaintForm(f) {

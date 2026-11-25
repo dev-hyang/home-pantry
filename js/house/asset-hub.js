@@ -58,8 +58,8 @@ export function assetHub(a, root) {
     ${hubList(more)}
     <div class="section-head" style="margin-top:18px"><h3 style="font-size:15px">${t("档案")}</h3></div>
     ${hubList(rows)}
-    <div class="form-actions" style="margin-top:14px"><a class="btn btn-primary" href="${base}?log=1">${t("记保养")}</a>
-      <span class="spacer"></span><button type="button" class="btn btn-danger-ghost" data-action="asset-delete">${veh ? t("删除车辆") : t("删除设备")}</button></div>
+    <div class="form-actions" style="margin-top:14px"><a class="ui-btn" data-tone="primary" href="${base}?log=1">${t("记保养")}</a>
+      <span class="spacer"></span><button type="button" class="ui-btn" data-tone="danger" data-action="asset-delete">${veh ? t("删除车辆") : t("删除设备")}</button></div>
   </section>`;
 }
 /** 车辆概览（参考房屋概览）：基本信息卡 → 导航豆腐块（各带小统计）→ 记保养。删除车辆放在名称旁 ⋮ 里 */
@@ -110,7 +110,7 @@ export function vehicleProfile(a, root) {
   const cards = vehSections().map((s) => { const x = st[s.id]();
     return `<section class="panel prof-card" aria-labelledby="vp-${s.id}"><header class="prof-head"><span class="mi" aria-hidden="true">${s.icon}</span>
       <div class="prof-t"><h3 id="vp-${s.id}">${t(s.name)}</h3></div>
-      <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=${s.id}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${t("编辑")}</a></header>
+      <a class="ui-btn prof-edit" data-size="sm" data-tone="ghost" href="${base}?sec=${s.id}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${t("编辑")}</a></header>
       ${x.pct != null ? `<span class="mprog"><i style="width:${x.pct}%"></i></span>` : ""}${vehicleFacts(a, s.id)}</section>`; }).join("");
   return `<section class="section menu-page">${assetCrumb(a, root, base, t("车辆资料"))}<p class="muted" style="margin:-6px 0 12px;font-size:13px">${t("每一块各自编辑、各自保存")}</p><div class="prof-grid">${cards}</div></section>`;
 }

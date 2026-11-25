@@ -53,7 +53,7 @@ function starterPanel() {
     <b>${t("先把常去的几家放进来")}</b>
     <p class="muted">${t("Jewel-Osco、Costco、ALDI、Tony's Fresh Market、Target、Walmart。填 ZIP 会加最近的那家门店（含地址）；不填就先只加名字。")}</p>
     <div class="shops-starter-row"><label><span class="sr-only">ZIP</span><input data-shops-zip inputmode="numeric" maxlength="5" placeholder="ZIP" value="${esc(f.zip)}"></label>
-      <button type="button" class="btn btn-primary" data-action="shops-starter" ${f.busy ? "disabled" : ""}>${f.busy ? t("正在找最近的门店…") : t("加入这 6 家")}</button></div>
+      <button type="button" class="ui-btn" data-tone="primary" data-action="shops-starter" ${f.busy ? "disabled" : ""}>${f.busy ? t("正在找最近的门店…") : t("加入这 6 家")}</button></div>
     ${f.error ? `<p class="form-error">${esc(f.error)}</p>` : ""}
   </div>`;
 }
@@ -71,9 +71,9 @@ function shopCard(s) {
       ${deals.length ? `<span class="tag tag-ok">${t("特价 {n} 项", { n: deals.length })}</span>` : ""}${hits ? `<span class="tag tag-hot">${t("对上清单 {n}", { n: hits })}</span>` : ""}
       ${due ? `<span class="tag tag-warn">${t("本周待更新")}</span>` : `<span class="muted">${upd}</span>`}</div>
     <div class="shop-acts">${s.archived
-      ? `<button type="button" class="btn btn-sm btn-primary" data-action="shops-unarchive" data-id="${s.id}">${t("加回常去")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>`
-      : `<a class="btn btn-sm btn-ghost" href="${esc(adUrl(s))}" target="_blank" rel="noopener">${t("本周广告")} ↗</a><a class="btn btn-sm" href="${shopHref(s)}?update=1">${t("更新特价")}</a>`}
-      <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shops-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button></div>
+      ? `<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="shops-unarchive" data-id="${s.id}">${t("加回常去")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>`
+      : `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${esc(adUrl(s))}" target="_blank" rel="noopener">${t("本周广告")} ↗</a><a class="ui-btn" data-size="sm" href="${shopHref(s)}?update=1">${t("更新特价")}</a>`}
+      <button type="button" class="ui-btn swipe-src" data-size="sm" data-tone="ghost" data-action="shops-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button></div>
   </article>`;   // 向左滑删除（js/swipe-rows.js 替这个隐藏按钮点一下，照旧弹确认框）
 }
 /** 网格最后的空白卡：点一下展开「添加商店」表单（和右上角「手动添加」是同一个） */
@@ -100,7 +100,7 @@ export function shopForm(s, { page = false } = {}) {
     </div>
     ${s ? "" : gwReview()}
     <datalist id="shopChains">${Object.values(CHAINS).map((c) => `<option value="${esc(c.name)}">`).join("")}</datalist>
-    ${s ? `<div class="form-actions">${page ? `<a class="btn btn-ghost" href="${shopHref(s)}">${t("取消")}</a>` : `<button type="button" class="btn btn-ghost" data-action="shops-edit-cancel">${t("取消")}</button>`}<button class="btn btn-primary" type="submit">${t("保存")}</button>
-      ${s && !page ? `${s.archived ? "" : `<button type="button" class="btn btn-ghost" data-action="shops-archive" data-id="${s.id}">${t("不去了")}</button>`}<button type="button" class="btn btn-ghost btn-danger" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>` : ""}</div>` : gwActions(`<a class="btn btn-ghost" href="${href("shops", "list")}">${t("取消")}</a>`)}
+    ${s ? `<div class="form-actions">${page ? `<a class="ui-btn" data-tone="ghost" href="${shopHref(s)}">${t("取消")}</a>` : `<button type="button" class="ui-btn" data-tone="ghost" data-action="shops-edit-cancel">${t("取消")}</button>`}<button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
+      ${s && !page ? `${s.archived ? "" : `<button type="button" class="ui-btn" data-tone="ghost" data-action="shops-archive" data-id="${s.id}">${t("不去了")}</button>`}<button type="button" class="ui-btn" data-tone="danger-solid" data-action="shops-del" data-id="${s.id}">${t("删除")}</button>` : ""}</div>` : gwActions(`<a class="ui-btn" data-tone="ghost" href="${href("shops", "list")}">${t("取消")}</a>`)}
   </form>`;
 }

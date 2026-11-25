@@ -19,5 +19,5 @@ export function payRowHtml({ edit, hitTitle, body, total = "", items = [], lpTit
   // pick = 多选删除中这一行的勾选框 html（core/bulk-select.js）：整行点一下 = 勾选，没有长按菜单 / 左滑 / 跳转
   if (pick) return `<li class="pay-row ${cls} is-pick" data-row-chk>${pick}<div class="grow pay-hit">${body}</div>${total}</li>`;
   const hit = edit ? `<a class="grow pay-hit" href="${esc(edit)}" title="${esc(hitTitle || "")}">${body}</a>` : `<div class="grow pay-hit">${body}</div>`;
-  return `<li class="pay-row ${cls}" ${swipe ? `data-swipe-del="${swipe}"` : ""} ${lpAttr(items, lpTitle)}>${hit}${total}${del ? `<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="${del.action}" data-id="${esc(del.id)}" aria-label="${esc(delLabel)}">${esc(del.label)}</button>` : ""}</li>`;
+  return `<li class="pay-row ${cls}" ${swipe ? `data-swipe-del="${swipe}"` : ""} ${lpAttr(items, lpTitle)}>${hit}${total}${del ? `<button type="button" class="ui-btn swipe-src" data-size="sm" data-tone="ghost" data-action="${del.action}" data-id="${esc(del.id)}" aria-label="${esc(delLabel)}">${esc(del.label)}</button>` : ""}</li>`;
 }

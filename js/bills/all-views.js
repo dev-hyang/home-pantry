@@ -85,9 +85,9 @@ export function assetKeyLabel(key) {
 
 const action = (r) => {
   if (r.status === "paid" || r.status === "skipped" || r.status === "written_off" || r.escrow) return "";
-  if (r.kind === "onetime") return `<a class="btn btn-sm" href="${detailHref(r.billId)}">${t("记付款")}</a>`;
-  if (r.autopay) return r.status === "verify" ? `<button type="button" class="btn btn-sm" data-action="bill-verify" data-id="${r.billId}">${t("已核对")}</button>` : "";
-  return `<a class="btn btn-sm" href="${href("bill", r.billId)}?pay=1">${t("记缴费")}</a>`;
+  if (r.kind === "onetime") return `<a class="ui-btn" data-size="sm" href="${detailHref(r.billId)}">${t("记付款")}</a>`;
+  if (r.autopay) return r.status === "verify" ? `<button type="button" class="ui-btn" data-size="sm" data-action="bill-verify" data-id="${r.billId}">${t("已核对")}</button>` : "";
+  return `<a class="ui-btn" data-size="sm" href="${href("bill", r.billId)}?pay=1">${t("记缴费")}</a>`;
 };
 /** 长按这一行的菜单：周期性 = 详情 / 记缴费（自动扣款是记核对）/ 缴费记录 / 编辑账单；一次性 = 详情（付款在详情里记） */
 function rowItems(r) {

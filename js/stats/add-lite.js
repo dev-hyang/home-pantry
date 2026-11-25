@@ -18,7 +18,7 @@ export function spendExportTab() {
       <div class="section-head"><h2>${t("打印")}</h2><p>${t("浏览器的打印窗口里也可以另存为 PDF")}</p></div>
       <div class="panel export-grid">
         <label class="export-pick"><span>${t("时间范围")}</span><select id="printRange" data-nosearch>${[3, 6, 12].map((n) => `<option value="${n}" ${n === +state.stats.months ? "selected" : ""}>${t("近 {n} 个月", { n })}</option>`).join("")}</select></label>
-        <div class="export-btns"><button type="button" class="btn btn-primary btn-sm" data-action="print-run" data-kind="spend">${t("打印花费统计")}</button></div>
+        <div class="export-btns"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="print-run" data-kind="spend">${t("打印花费统计")}</button></div>
       </div>
     </section>`;
 }

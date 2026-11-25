@@ -24,12 +24,12 @@ export function financeAlertItems() {
       const link = href("bills", "networth");
       out.push({ source: "finance", severity: 3, must: false, due: null, daysLeft: null, title: `🏦 ${t("{n} 个账户的余额该更新了", { n: stale.length })}`,
         detail: t("超过 {d} 天没更新：{names}", { d: STALE_DAYS, names: stale.slice(0, 3).map((a) => a.card?.name).filter(Boolean).join("、") }) + (stale.length > 3 ? "…" : ""),
-        href: link, badge: { label: t("需要更新"), cls: "b-soon" }, actions: [{ type: "link", href: link, label: t("去更新"), cls: "btn-ghost" }] });
+        href: link, badge: { label: t("需要更新"), cls: "b-soon" }, actions: [{ type: "link", href: link, label: t("去更新"), tone: "ghost" }] });
     }
     if (autoSnapshotFailed() && !snapshotOf(thisMonth())) {
       const link = href("bills", "networth");
       out.push({ source: "finance", severity: 3, must: false, due: null, daysLeft: null, title: `📈 ${t("本月的净资产快照没存上")}`, detail: t("自动保存失败了，去净资产页手动存一次"),
-        href: link, badge: { label: t("留意"), cls: "b-ok" }, actions: [{ type: "link", href: link, label: t("去净资产"), cls: "btn-ghost" }] });
+        href: link, badge: { label: t("留意"), cls: "b-ok" }, actions: [{ type: "link", href: link, label: t("去净资产"), tone: "ghost" }] });
     }
   }
   if (state.debtsOk) {
@@ -39,7 +39,7 @@ export function financeAlertItems() {
       const link = `${href("bills", "debts")}?tab=txns&link=no`;
       out.push({ source: "finance", severity: 3, must: false, due: null, daysLeft: null, title: `🔗 ${t("{n} 笔借贷流水没关联花费 / 收入", { n: loose.length })}`,
         detail: t("近 90 天动了钱的借贷流水：点「编辑」关联对账单导入的那一笔，免得漏记或重复"),
-        href: link, badge: { label: t("待关联"), cls: "b-soon" }, actions: [{ type: "link", href: link, label: t("去关联"), cls: "btn-ghost" }] });
+        href: link, badge: { label: t("待关联"), cls: "b-soon" }, actions: [{ type: "link", href: link, label: t("去关联"), tone: "ghost" }] });
     }
   }
   return out;

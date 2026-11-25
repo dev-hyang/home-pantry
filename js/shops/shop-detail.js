@@ -58,9 +58,9 @@ function updateHtml(s, du) {
   return `<div class="deal-in">
     ${attachHTML(id, { t, esc, textLabel: t("广告文字，或 Claude 整理好的结果（JSON）"), ph: t("在 Flipp 或超市网站上先搜好、打开这家本周的广告，再截图或复制文字贴到这里"), rows: 3,
       hint: `${t("小技巧：先自己在页面上搜出要的东西（鸡蛋、牛奶…），再截图让 AI 读，最快也最省额度。")}${ready ? "" : ` ${t("没填 AI key 时，只能导入 Claude 整理好的 JSON。")}`}` })}
-    <div class="form-actions"><button type="button" class="btn btn-primary" data-action="shops-read" data-id="${s.id}" ${du.busy ? "disabled" : ""}>${du.busy ? t("正在读…（几十秒）") : t("读出特价")}</button>
-      <button type="button" class="btn btn-ghost" data-action="shops-claude-copy" data-id="${s.id}">📋 ${t("复制给 Claude 的指令")}</button>
-      <button type="button" class="btn btn-ghost" data-action="shops-manual" data-id="${s.id}">＋ ${t("手动加一条")}</button><a class="btn btn-ghost" href="${shopHref(s)}">${t("取消")}</a></div>
+    <div class="form-actions"><button type="button" class="ui-btn" data-tone="primary" data-action="shops-read" data-id="${s.id}" ${du.busy ? "disabled" : ""}>${du.busy ? t("正在读…（几十秒）") : t("读出特价")}</button>
+      <button type="button" class="ui-btn" data-tone="ghost" data-action="shops-claude-copy" data-id="${s.id}">📋 ${t("复制给 Claude 的指令")}</button>
+      <button type="button" class="ui-btn" data-tone="ghost" data-action="shops-manual" data-id="${s.id}">＋ ${t("手动加一条")}</button><a class="ui-btn" data-tone="ghost" href="${shopHref(s)}">${t("取消")}</a></div>
     ${ui().copyText ? copyBox() : ""}
     ${du.error ? `<p class="form-error" role="alert">${esc(du.error)}</p>` : ""}
   </div>`;
@@ -80,9 +80,9 @@ function reviewHtml(s, du) {
       ${r.deal_type ? `<span class="deal-rv-tags">${typeTags(r.deal_type)}</span>` : ""}
     </li>`).join("")}</ul>
     ${has ? `<label class="check-inline"><input type="checkbox" name="replace" ${du.replace ? "checked" : ""}><span>${t("替换这家现有的 {n} 条特价（新一周的广告选这个）", { n: has })}${keep > 0 ? ` <small class="muted">${t("另有 {n} 条到期更晚、这次没出现，会留着", { n: keep })}</small>` : ""}</span></label>` : ""}
-    <div class="form-actions"><button type="submit" class="btn btn-primary">${t("保存 {n} 条", { n: rows.filter((r) => r.include).length })}</button>
-      <button type="button" class="btn btn-ghost" data-action="shops-addrow" data-id="${s.id}">＋ ${t("再加一行")}</button>
-      <button type="button" class="btn btn-ghost" data-action="shops-discard" data-id="${s.id}">${t("放弃")}</button></div>
+    <div class="form-actions"><button type="submit" class="ui-btn" data-tone="primary">${t("保存 {n} 条", { n: rows.filter((r) => r.include).length })}</button>
+      <button type="button" class="ui-btn" data-tone="ghost" data-action="shops-addrow" data-id="${s.id}">＋ ${t("再加一行")}</button>
+      <button type="button" class="ui-btn" data-tone="ghost" data-action="shops-discard" data-id="${s.id}">${t("放弃")}</button></div>
   </form>`;
 }
 /** 折扣类型的小标签（Black Friday、店内、网上、Rollback…） */
@@ -119,7 +119,7 @@ export function dealEditFormHtml(d, s) {
       <label>${t("单价")}<input name="unit_price" ${numAttrs("money", { step: 0.0001 })} value="${d.unit_price ?? ""}"></label><label>${t("单位")}<input name="unit_label" maxlength="12" value="${esc(d.unit_label || "")}"></label>
       <label>${t("到期")}<input name="valid_to" type="date" value="${esc(d.valid_to || "")}"></label><label class="span-2">${t("通用叫法")}<input name="aka" maxlength="120" value="${esc(d.aka || "")}" placeholder="${esc(t("鸡蛋, eggs"))}"></label>
       ${state.runsMissing ? "" : `<div class="span-2 dt-field"><span class="dt-lbl" id="dtLbl-${d.id}">${t("折扣类型")}</span>${dealTypeDrop(d.deal_type, `dtLbl-${d.id}`)}</div>`}</div>
-      <div class="form-actions"><a class="btn btn-ghost" href="${shopHref(s)}?deal=${encodeURIComponent(d.id)}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button></div></form>`;
+      <div class="form-actions"><a class="ui-btn" data-tone="ghost" href="${shopHref(s)}?deal=${encodeURIComponent(d.id)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button></div></form>`;
 }
 function dealsHtml(s, du, deals) {
   const open = openShopping(), q = du.q.trim().toLowerCase(), soon = (d) => d.valid_to && daysUntil(d.valid_to) <= 2;
@@ -142,8 +142,8 @@ function dealsHtml(s, du, deals) {
       <span class="deal-pr"><b>${d.price != null ? money(d.price) : esc(d.price_text || "—")}</b>${d.price_text && d.price != null && d.price_text.replace(/\s/g, "") !== money(d.price).replace(/\s/g, "") ? `<small>${esc(d.price_text)}</small>` : ""}${d.regular_price ? `<small class="muted"><s>${money(d.regular_price)}</s></small>` : ""}</span>
       <span class="deal-unit">${d.unit_price != null ? `${unitMoney(d.unit_price)}<small>${esc(d.unit_label || "")}</small>` : `<small class="muted">—</small>`}</span>
       <span class="deal-to ${soon(d) ? "warn-txt" : "muted"}">${d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""}</span>
-      <span class="deal-acts">${m.length ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="shops-tolist" data-deal="${d.id}">＋ ${t("清单")}</button>`}
-        <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shops-deal-del" data-deal="${d.id}" aria-label="${esc(t("删除 {name}", { name: d.name }))}">×</button></span>
+      <span class="deal-acts">${m.length ? "" : `<button type="button" class="ui-btn swipe-alt-src" data-size="sm" data-tone="ghost" data-action="shops-tolist" data-deal="${d.id}">＋ ${t("清单")}</button>`}
+        <button type="button" class="ui-btn swipe-src" data-size="sm" data-tone="ghost" data-action="shops-deal-del" data-deal="${d.id}" aria-label="${esc(t("删除 {name}", { name: d.name }))}">×</button></span>
     </li>`;
   };
   return `<div class="panel deal-list-panel">

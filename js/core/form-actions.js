@@ -5,12 +5,12 @@
  * 只处理表单里的按钮条；行内小表单（列表行、表格、折叠块、弹窗里）只统一顺序和大小，不贴底。 */
 const isCancel = (el) => /^(取消|放弃|稍后再说|Cancel|Discard|Later)$/i.test(el.textContent.trim()) || /cancel$/i.test(el.dataset?.action || "");
 const isStep = (el) => ["prev", "next"].includes(el.dataset?.wz) || /^[‹›]?\s*(上一步|下一步|跳过|Back|Next|Skip)$/i.test(el.textContent.trim());
-const isSubmit = (el) => el.matches('button[type="submit"], button:not([type]), button.btn-primary[data-action]') && !isCancel(el);
-const SUBMIT_SEL = 'button[type="submit"], button:not([type]), button.btn-primary[data-action]';
+const isSubmit = (el) => el.matches('button[type="submit"], button:not([type]), button[data-tone="primary"][data-action]') && !isCancel(el);
+const SUBMIT_SEL = 'button[type="submit"], button:not([type]), button[data-tone="primary"][data-action]';
 
 /** 一条按钮条：取消放最前、保存 / 确认放最后、其余（上一步 / 下一步 / 删除…）夹在中间 */
 function arrange(bar) {
-  const btns = [...bar.children].filter((c) => c.classList.contains("btn"));
+  const btns = [...bar.children].filter((c) => c.classList.contains("ui-btn"));
   if (btns.length < 2 || bar.classList.contains("wiz-exit")) return;
   const cancel = btns.find(isCancel), rights = btns.filter((b) => b !== cancel && !isStep(b) && (isSubmit(b) || b.hasAttribute("data-wz-save")));
   if (cancel) bar.prepend(cancel);
@@ -25,7 +25,7 @@ export function normalizeFormActions(root = document, on = false) {
   stickMainBar(root, on);
 }
 
-const hasCancel = (b) => [...b.querySelectorAll("button, a.btn")].some(isCancel);
+const hasCancel = (b) => [...b.querySelectorAll("button, a.ui-btn")].some(isCancel);
 /** 整页表单（on = 已知是编辑页；否则按钮条里同时有取消和提交、且不在行内的才算）的主按钮条贴底 */
 function stickMainBar(root, on) {
   const bars = [...root.querySelectorAll("form .form-actions, form .sticky-actions")];

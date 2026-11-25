@@ -78,7 +78,7 @@ export function viewUsage() {
   }
   return `
     ${state.billsEnabled ? `<div class="panel cta-panel"><div><b>${t("花费统计搬到了 财务 → 花费")}</b><p class="muted">${t("每月花了多少、分类占比、商店、年度报表、补记和花费记录都在那里；这里只看库存的使用趋势。")}</p></div>
-      <a class="btn btn-primary" href="#/bills/spend">${t("去看花费")}</a></div>` : ""}
+      <a class="ui-btn" data-tone="primary" href="#/bills/spend">${t("去看花费")}</a></div>` : ""}
     <section class="section">
       <div class="section-head"><h2>${t("消耗趋势")}</h2><p>${t("最近 12 周，来自家人点“−”的记录")}</p></div>
       ${selItem ? `

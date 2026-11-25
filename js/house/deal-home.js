@@ -58,7 +58,7 @@ function openRow(d, url) {
     g.next ? t("下一项 {date}：{name}", { date: fmtDate(g.next.due), name: t(g.next.name) }) : null].filter(Boolean).map(esc).join(" · ");
   return row(url, KIND_ICON[d.kind] || "📝", t("{kind}进行中", { kind: t(K[d.kind]) }), desc, g.pct, g.late ? `<span class="badge b-out mcount">${t("逾期 {n}", { n: g.late })}</span>` : "");
 }
-const startBtn = (kind, veh) => `<button type="button" class="btn btn-primary btn-sm" data-action="deal-start" data-kind="${kind}" ${veh ? `data-asset="${veh.id}"` : ""}>${t("记录{kind}交易", { kind: t(D().KINDS[kind]) })}</button>`;
+const startBtn = (kind, veh) => `<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="deal-start" data-kind="${kind}" ${veh ? `data-asset="${veh.id}"` : ""}>${t("记录{kind}交易", { kind: t(D().KINDS[kind]) })}</button>`;
 
 const dateKey = (d) => d.closing_on || (d.closed_at || d.updated_at || "").slice(0, 10);
 /** 最近一笔历史交易的入口行（点进交易详情） */
@@ -82,7 +82,7 @@ function kindSection(kind, deals, canStart, veh) {
   const head = mine.length ? t("{kind} · {n} 笔交易", { kind: t(K[kind]), n: mine.length }) : t("{kind} · 还没有交易", { kind: t(K[kind]) });
   const feat = open || closed[0], hkey = `${veh?.id || "p"}:${kind}`, histOpen = !!state.dealHistOpen?.[hkey];
   const main = open ? `<div class="mlist deal-kind is-open">${openRow(open, dealHref(open))}</div>` : feat ? `<div class="mlist deal-kind">${lastRow(feat, kind)}</div>` : "";
-  const histBtn = closed.length ? `<button type="button" class="btn btn-sm deal-hist-btn" data-action="deal-history" data-key="${esc(hkey)}" aria-expanded="${histOpen}">${histOpen ? t("收起历史") : t("查看历史（{n}）", { n: closed.length })}</button>` : "";
+  const histBtn = closed.length ? `<button type="button" class="ui-btn deal-hist-btn" data-size="sm" data-action="deal-history" data-key="${esc(hkey)}" aria-expanded="${histOpen}">${histOpen ? t("收起历史") : t("查看历史（{n}）", { n: closed.length })}</button>` : "";
   const start = canStart && !open ? startBtn(kind, veh) : "";
   const acts = histBtn || start ? `<div class="deal-kind-act">${histBtn}${start}</div>` : "";
   const note = !mine.length && !canStart ? `<p class="muted">${t("现在的状态下不能开始这类交易。")}</p>` : "";
@@ -103,7 +103,7 @@ function dealRows(list, hasOpen) {
     const url = dealHref(d), cancelled = d.outcome === "cancelled";
     const restore = cancelled && !hasOpen ? { label: t("恢复"), action: "deal-restore", data: { deal: d.id } } : null;
     const items = [{ label: t("详情"), href: url, first: true }, restore, cancelled ? { label: t("删除"), action: "deal-delete", data: { deal: d.id }, danger: true } : { label: t("取消这笔交易"), action: "deal-cancel-closed", data: { deal: d.id }, danger: true }];
-    const act = restore ? `<button type="button" class="btn btn-sm btn-ghost" data-action="deal-restore" data-deal="${esc(d.id)}">${t("恢复")}</button>` : "";
+    const act = restore ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="deal-restore" data-deal="${esc(d.id)}">${t("恢复")}</button>` : "";
     return `<li data-row-open="${esc(url)}" ${lpAttr(items)}>
     <span class="ui-badge" data-tone="${cancelled ? "warn" : "ok"}" data-size="sm">${esc(outcomeText(d))}</span>
     <div class="grow"><a class="link-name" href="${esc(url)}">${esc(dealDate(d))}</a><small>${priceOrNull(d.price) ? esc(money(num(d.price))) : ""}</small></div>

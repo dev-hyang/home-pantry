@@ -94,13 +94,13 @@ export function overviewTab() {
       lines: TS ? [{ name: t("投资"), color: TEAL, values: invV }] : [],
       drill: tDrill, lineDrill: (_, i) => tDrill(2, i), legendDrill: tLegend });
   const rows = incomeIn(w.from, w.to, O.person), senders = groupSum(rows, (r) => skey(r.source_name)).filter((x) => x.total > 0), top = senders.slice(0, 5), total = incSumOf(rows);
-  const rank = top.length ? `<div class="panel"><div class="chart-head"><h3>${t("主要付款方")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("senders")}">${t("全部付款方")} ›</a></div>${rankHtml(top, total, w, O.person)}</div>` : "";
+  const rank = top.length ? `<div class="panel"><div class="chart-head"><h3>${t("主要付款方")}</h3><a class="ui-btn" data-size="sm" data-tone="ghost" href="${incomeHref("senders")}">${t("全部付款方")} ›</a></div>${rankHtml(top, total, w, O.person)}</div>` : "";
   const byP = groupSum(rows, (r) => r.person_id || "");
   const members = byP.length > 1 || (byP.length === 1 && byP[0].key) ? `<div class="panel"><h3 style="margin:0 0 8px">${t("按成员")}</h3><div class="ch-scroll"><table class="store-table ix-tbl"><thead><tr><th scope="col">${t("成员")}</th><th scope="col">${t("笔数")}</th><th scope="col">${t("收入")}</th><th scope="col">${t("占比")}</th></tr></thead><tbody>
     ${byP.map((x) => `<tr class="ch-hit-row"${hitAttrs(incDrill({ ...w, person: x.key || "none" }), x.key ? personName(x.key) : t("未指定 / 全家"))}><th scope="row">${esc(x.key ? personName(x.key) || t("已删除的成员") : t("未指定 / 全家"))}</th><td>${x.n}</td><td>${fmtMoney(x.total)}</td><td>${rate(x.total, total)}</td></tr>`).join("")}
     <tr><th scope="row"><b>${t("全家合计")}</b></th><td><b>${byP.reduce((a, x) => a + x.n, 0)}</b></td><td><b>${fmtMoney(total)}</b></td><td>100%</td></tr></tbody></table></div></div>` : "";
   const recent = I.rec.filter((r) => personOk(r, O.person)).slice().sort((a, b) => b.received_on.localeCompare(a.received_on) || String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5);
-  const recentHtml = recent.length ? `<div class="panel"><div class="chart-head"><h3>${t("最近到账")}</h3><a class="btn btn-sm btn-ghost" href="${incomeHref("records")}">${t("全部明细")} ›</a></div><ul class="restock-list ix-list">${recent.map(recordRow).join("")}</ul></div>` : "";
+  const recentHtml = recent.length ? `<div class="panel"><div class="chart-head"><h3>${t("最近到账")}</h3><a class="ui-btn" data-size="sm" data-tone="ghost" href="${incomeHref("records")}">${t("全部明细")} ›</a></div><ul class="restock-list ix-list">${recent.map(recordRow).join("")}</ul></div>` : "";
   return `${ovBar(O)}${kpis}${netWorthCard()}${all ? waterfallHtml(F, spW, esc(incDrill({ kind: "g:capital", ...w, person: O.person }))) : ""}
     <div class="panel chart-panel">${trendHead(`${t("收入 vs 消费（{r}）", { r: trend.length === months.length ? spanLabel(O.range) : t("近 12 个月") })} · ${TP.title}`, TP)}${trendChart}<p class="muted drill-hint">${asLine ? t("折线 = 认定收入、消费（日常 + 住房）和投资转入。点一个点看对应的明细。") : t("柱子 = 认定收入和消费（日常 + 住房），虚线 = 投资转入。点一下看对应的明细。")}</p></div>
     ${breakdown}<div class="ix-two">${rank}${members}</div>${recentHtml}${repayPanel()}`;

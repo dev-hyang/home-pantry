@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.52", title: { zh: "所有按钮换成统一的新按钮控件", en: "Every button now uses the one standard button control" }, items: [
+    { k: "better", zh: "全站约 650 处按钮（保存、取消、小按钮、主按钮、危险按钮…）换成同一个按钮控件，样式只在一处定义。", en: "About 650 buttons across the app (save, cancel, small, primary, danger…) now use a single button control, styled in one place." },
+    { k: "fix", zh: "如果哪个页面的按钮看起来不对（颜色、大小、位置），请告诉我，这次是整体替换。", en: "If a button looks wrong on any page (colour, size, position), please tell me; this was a wholesale replacement." },
+  ] },
   { v: "2026-11-24.51", title: { zh: "成本基础：提醒别把首付重复填进去", en: "Cost basis: don't re-enter the down payment" }, items: [
     { k: "better", zh: "「买入时付的费用」的说明写清楚：只填房价之外的费用，不要填首付、wire 总额或 Cash to Close，否则房价会被算两遍。", en: "The \"costs paid at purchase\" note now says to enter only costs on top of the price, not the down payment, total wire or Cash to Close, which would count the price twice." },
   ] },

@@ -49,7 +49,7 @@ const telHref = (s) => `tel:${String(s).replace(/[^0-9+]/g, "")}`;
 /** 成员资料页：能改的人看到表单，其余只读；家主对别人另有「权限」和「危险操作」两块 */
 export function viewMemberProfile(id) {
   const list = famMembers(), m = list.find((x) => x.user_id === id);
-  if (!m) return `<div class="panel empty"><strong>${t("没有找到这位成员")}</strong>${t("可能已经被移出家庭。")}<p><a class="btn" href="${familyHref()}">${t("回家庭与成员")}</a></p></div>`;
+  if (!m) return `<div class="panel empty"><strong>${t("没有找到这位成员")}</strong>${t("可能已经被移出家庭。")}<p><a class="ui-btn" href="${familyHref()}">${t("回家庭与成员")}</a></p></div>`;
   const self = m.user_id === meId(), owner = amOwner(), isO = m.role === "owner", edit = canEdit(m), off = noCols();
   const owners = list.filter((x) => x.role === "owner").length;
   const head = `<div class="panel mem-head">${avatar(m, "lg")}
@@ -69,7 +69,7 @@ export function viewMemberProfile(id) {
       ${off ? `<p class="hint mem-mig">⚠️ ${t("需要先执行迁移 052（supabase/migrations/052_member_profile.sql）才能保存电话、邮箱和地址；现在只能改称呼。")}</p>` : ""}
       <p class="form-error" id="memberErr" role="alert"></p>
       ${privacy}
-      <div class="form-actions"><button class="btn btn-primary" type="submit">${t("保存")}</button><a class="btn btn-ghost" href="${familyHref()}">${t("取消")}</a></div>
+      <div class="form-actions"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><a class="ui-btn" data-tone="ghost" href="${familyHref()}">${t("取消")}</a></div>
     </form>`
     : `<div class="panel"><h3 class="mem-h">${t("资料")}</h3>
       <dl class="fact-grid one">
@@ -91,14 +91,14 @@ export function viewMemberProfile(id) {
       </div>
       <div class="mem-perm">
         <div class="grow"><b>👑 ${t("家主")}</b><div class="muted">${t("家主能批准加入、管理成员和邀请码，恒有财务权限。可以有多位家主。")}</div></div>
-        ${isO ? (owners > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="member-role" data-id="${esc(m.user_id)}" data-role="member">${t("取消家主")}</button>` : `<small class="muted">${t("最后一位家主")}</small>`)
-              : `<button type="button" class="btn btn-sm" data-action="member-role" data-id="${esc(m.user_id)}" data-role="owner">${t("设为家主")}</button>`}
+        ${isO ? (owners > 1 ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="member-role" data-id="${esc(m.user_id)}" data-role="member">${t("取消家主")}</button>` : `<small class="muted">${t("最后一位家主")}</small>`)
+              : `<button type="button" class="ui-btn" data-size="sm" data-action="member-role" data-id="${esc(m.user_id)}" data-role="owner">${t("设为家主")}</button>`}
       </div></div>` : "";
 
   // 危险操作放最后，单独一块
   const danger = owner && !self && (!isO || owners > 1) ? `<div class="panel mem-danger"><h3 class="mem-h">${t("危险操作")}</h3>
       <div class="mem-perm"><div class="grow"><b>${t("移出家庭")}</b><div class="muted">${t("对方会立刻看不到家里的数据；以后要回来，得重新用邀请码申请、再由家主批准。")}</div></div>
-        <button type="button" class="btn btn-sm btn-danger-ghost" data-action="member-remove" data-id="${esc(m.user_id)}">${t("移出家庭")}</button></div></div>` : "";
+        <button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="member-remove" data-id="${esc(m.user_id)}">${t("移出家庭")}</button></div></div>` : "";
 
   const selfNote = self && !owner ? `<p class="muted mem-note">${t("角色和财务权限由家主设置。")}</p>` : "";
   return `<div class="mem-profile">${head}${info}${perms}${danger}${selfNote}</div>`;

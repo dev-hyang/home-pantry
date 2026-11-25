@@ -16,7 +16,7 @@ export const maintEditHref = (a, id, sec) => `${href("asset", a.id)}?log=1&edit=
 
 export function maintDetail(a, id) {
   const l = a.logs.find((x) => x.id === id), listHref = `${href("asset", a.id)}?sec=log`;
-  if (!l) return `<div class="panel empty"><strong>${t("找不到这条记录")}</strong><p><a class="btn btn-sm" href="${listHref}">${t("回到保养记录")}</a></p></div>`;
+  if (!l) return `<div class="panel empty"><strong>${t("找不到这条记录")}</strong><p><a class="ui-btn" data-size="sm" href="${listHref}">${t("回到保养记录")}</a></p></div>`;
   const K = H().MAINT_KINDS, R = C().RESULTS, veh = isVehicle(a), pur = l.purchase_id ? purchaseById(l.purchase_id) : null;
   const item = l.service_item ? t(V().serviceItem(l.service_item)?.name || l.service_item) : "";
   const money = (v) => Units.money(num(v), l.currency || Units.region.currency);

@@ -89,7 +89,7 @@ function stepWhere(d) {
   return parts.length ? `<div class="form-grid">${parts.join("")}</div><p class="muted" style="font-size:13px">${t("都是可选的，直接点“下一步”跳过也行。")}</p>` : `<p class="muted">${t("没有需要选的，直接点“下一步”。")}</p>`;
 }
 function stepConfirm(d, today) {
-  const cat = catOf(d.category), n = nextDuePreview(d, today), row = (label, val, step) => `<div class="fact"><dt>${label}</dt><dd>${val || `<span class="muted">${t("未填")}</span>`} <button type="button" class="btn btn-sm btn-ghost" data-wz="goto" data-step="${step}" aria-label="${esc(t("修改 {name}", { name: label }))}">${t("修改")}</button></dd></div>`;
+  const cat = catOf(d.category), n = nextDuePreview(d, today), row = (label, val, step) => `<div class="fact"><dt>${label}</dt><dd>${val || `<span class="muted">${t("未填")}</span>`} <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-wz="goto" data-step="${step}" aria-label="${esc(t("修改 {name}", { name: label }))}">${t("修改")}</button></dd></div>`;
   const prop = state.properties.find((p) => p.id === d.property_id), asset = state.assets.find((a) => a.id === d.asset_id);
   const amount = d.amount_type === "fixed" ? (d.typical_amount !== "" ? Units.money(parseFloat(d.typical_amount) || 0, Units.region.currency) : "") : t("每次不一样（记缴费后按均值估）");
   return `<dl class="fact-grid one">
@@ -115,8 +115,8 @@ export function viewBillWizard() {
       <div id="wizBody">${BODY[step](d, today)}</div>
       <p id="wizError" class="form-error" role="alert"></p>
       <div class="form-actions sticky-actions">
-        ${step > 1 ? `<button type="button" class="btn btn-ghost" data-wz="back">${t("上一步")}</button>` : `<a class="btn btn-ghost" href="${href("bill", "new")}">${t("取消")}</a>`}
-        <button type="button" class="btn btn-primary" data-wz="${last ? "finish" : "next"}">${last ? t("完成并创建") : t("下一步")}</button>
+        ${step > 1 ? `<button type="button" class="ui-btn" data-tone="ghost" data-wz="back">${t("上一步")}</button>` : `<a class="ui-btn" data-tone="ghost" href="${href("bill", "new")}">${t("取消")}</a>`}
+        <button type="button" class="ui-btn" data-tone="primary" data-wz="${last ? "finish" : "next"}">${last ? t("完成并创建") : t("下一步")}</button>
       </div>
     </form>
     <p class="muted" style="margin-top:12px;font-size:13px"><a href="${fullFormUrl()}">${t("我想一次填完（整页表单）")} ›</a></p>

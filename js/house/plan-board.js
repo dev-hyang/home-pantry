@@ -44,7 +44,7 @@ export function planFormHtml(kind) {
     <div class="field"><label for="plTitle">${t("计划名称")}</label><input id="plTitle" name="title" maxlength="80" required value="${esc(p?.title || "")}" placeholder="${esc(t("例如：2027 年换一套大点的房子"))}"></div>
     ${pricesOk() ? `<div class="field"><label for="plBudget">${t("预算上限")}</label><input id="plBudget" name="budget" ${numAttrs("qty")} value="${esc(p?.budget ?? "")}"></div>` : ""}
     <div class="field"><label for="plNotes">${t("备注")}</label><textarea id="plNotes" name="notes" rows="2" maxlength="2000">${esc(p?.notes || "")}</textarea></div>
-    <div class="form-actions"><button class="btn btn-primary" type="submit">${t("保存")}</button><button class="btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
+    <div class="form-actions"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><button class="ui-btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
 }
 
 function candFormHtml(plan) {
@@ -64,7 +64,7 @@ function candFormHtml(plan) {
     <div class="field"><label for="cdPros">${t("优点")}</label><textarea id="cdPros" name="pros" rows="2" maxlength="1000">${esc(c?.pros || "")}</textarea></div>
     <div class="field"><label for="cdCons">${t("缺点 / 担心的")}</label><textarea id="cdCons" name="cons" rows="2" maxlength="1000">${esc(c?.cons || "")}</textarea></div>
     <div class="field"><label for="cdNotes">${t("备注")}</label><textarea id="cdNotes" name="notes" rows="2" maxlength="2000">${esc(c?.notes || "")}</textarea></div>
-    <div class="form-actions"><button class="btn btn-primary" type="submit">${t("保存")}</button><button class="btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
+    <div class="form-actions"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><button class="ui-btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
 }
 
 function offerFormHtml(cand) {
@@ -78,7 +78,7 @@ function offerFormHtml(cand) {
       <div class="field"><label for="ofOut">${t("结果")}</label><select id="ofOut" name="outcome">${opts(OFFER_OUTCOME, o?.outcome || "pending")}</select></div>
     </div>
     <div class="field"><label for="ofCond">${t("条件（定金、验房、贷款、交割日…）")}</label><textarea id="ofCond" name="conditions" rows="2" maxlength="1000">${esc(o?.conditions || "")}</textarea></div>
-    <div class="form-actions"><button class="btn btn-primary" type="submit">${t("保存")}</button><button class="btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
+    <div class="form-actions"><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button><button class="ui-btn" type="button" data-action="plan-cancel">${t("取消")}</button></div></form>`;
 }
 
 function candCard(plan, c) {
@@ -92,9 +92,9 @@ function candCard(plan, c) {
     ${facts ? `<div class="rf-meta">${facts}</div>` : ""}
     ${c.pros ? `<p class="plan-pc"><span aria-hidden="true">👍</span> ${esc(c.pros)}</p>` : ""}${c.cons ? `<p class="plan-pc"><span aria-hidden="true">⚠️</span> ${esc(c.cons)}</p>` : ""}${c.notes ? `<p class="muted">${esc(c.notes)}</p>` : ""}
     ${offers.length ? `<ul class="plan-offers" aria-label="${esc(t("出价记录"))}">${offers.map((o) => `<li><span>${esc(fmtDate(o.offered_on))}</span><b>${mny(o.amount)}</b>${o.counter_amount != null ? `<span class="muted">→ ${mny(o.counter_amount)}</span>` : ""}<span class="badge">${esc(lab(OFFER_OUTCOME, o.outcome))}</span>
-      <span class="plan-mini"><button type="button" class="btn btn-sm btn-ghost" data-action="offer-edit" data-id="${o.id}">${t("编辑")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="offer-delete" data-id="${o.id}">${t("删除")}</button></span>${o.conditions ? `<small class="muted plan-cond">${esc(o.conditions)}</small>` : ""}</li>`).join("")}</ul>` : ""}
+      <span class="plan-mini"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="offer-edit" data-id="${o.id}">${t("编辑")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="offer-delete" data-id="${o.id}">${t("删除")}</button></span>${o.conditions ? `<small class="muted plan-cond">${esc(o.conditions)}</small>` : ""}</li>`).join("")}</ul>` : ""}
     ${offerFormHtml(c)}
-    <div class="plan-acts">${plan.status === "active" && !["won", "rejected"].includes(c.status) ? `<button type="button" class="btn btn-sm btn-primary" data-action="cand-win" data-id="${c.id}">${plan.kind === "buy_home" ? t("就买这套：开始买入流程") : t("就买这辆：开始买车流程")}</button>` : ""}<button type="button" class="btn btn-sm" data-action="offer-new" data-cand="${c.id}">＋ ${t("记一次出价")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="cand-edit" data-id="${c.id}">${t("编辑")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="cand-delete" data-id="${c.id}">${t("删除")}</button></div>
+    <div class="plan-acts">${plan.status === "active" && !["won", "rejected"].includes(c.status) ? `<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="cand-win" data-id="${c.id}">${plan.kind === "buy_home" ? t("就买这套：开始买入流程") : t("就买这辆：开始买车流程")}</button>` : ""}<button type="button" class="ui-btn" data-size="sm" data-action="offer-new" data-cand="${c.id}">＋ ${t("记一次出价")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="cand-edit" data-id="${c.id}">${t("编辑")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="cand-delete" data-id="${c.id}">${t("删除")}</button></div>
   </article>`;
 }
 
@@ -140,7 +140,7 @@ function aiHelpers(plan, cands) {
 
 export function planPageHtml(id) {
   const plan = (state.plans || []).find((p) => p.id === id);
-  if (!plan) return `<section class="section"><div class="panel empty"><strong>${t("找不到这个计划")}</strong><p><a class="btn btn-primary" href="${esc(href("house", "plan"))}">${t("回到买卖计划")}</a></p></div></section>`;
+  if (!plan) return `<section class="section"><div class="panel empty"><strong>${t("找不到这个计划")}</strong><p><a class="ui-btn" data-tone="primary" href="${esc(href("house", "plan"))}">${t("回到买卖计划")}</a></p></div></section>`;
   const cands = candsOf(plan.id).sort((a, b) => ["won", "offered", "viewed", "considering", "rejected"].indexOf(a.status) - ["won", "offered", "viewed", "considering", "rejected"].indexOf(b.status) || (b.score || 0) - (a.score || 0));
   const guide = `${href("house", "plan")}?k=${plan.kind}`;
   const isHome = plan.kind === "buy_home";
@@ -148,11 +148,11 @@ export function planPageHtml(id) {
     <p class="plan-back"><a class="link-name" href="${esc(guide)}">‹ ${isHome ? t("买房指南") : t("买车指南")}</a></p>
     <div class="section-head"><h2>${isHome ? "🏠" : "🚗"} ${esc(plan.title)}</h2></div>
     <p class="muted"><span class="badge">${esc(lab(PLAN_STATUS, plan.status))}</span> ${plan.budget != null && pricesOk() ? ` ${t("预算 {m}", { m: `<span data-money>${money(num(plan.budget))}</span>` })}` : ""} ${plan.notes ? `· ${esc(plan.notes)}` : ""}</p>
-    ${state.planEdit?.type === "plan" ? planFormHtml(plan.kind) : `<div class="plan-acts"><button type="button" class="btn btn-sm" data-action="plan-edit" data-id="${plan.id}">${t("编辑计划")}</button>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="plan-status" data-id="${plan.id}" data-to="${plan.status === "dropped" ? "active" : "dropped"}">${plan.status === "dropped" ? t("恢复计划") : t("放弃这个计划")}</button>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="plan-delete" data-id="${plan.id}">${t("删除计划")}</button></div>`}
+    ${state.planEdit?.type === "plan" ? planFormHtml(plan.kind) : `<div class="plan-acts"><button type="button" class="ui-btn" data-size="sm" data-action="plan-edit" data-id="${plan.id}">${t("编辑计划")}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="plan-status" data-id="${plan.id}" data-to="${plan.status === "dropped" ? "active" : "dropped"}">${plan.status === "dropped" ? t("恢复计划") : t("放弃这个计划")}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="plan-delete" data-id="${plan.id}">${t("删除计划")}</button></div>`}
     <div class="section-head"><h3>${isHome ? t("候选的房子") : t("候选的车")}</h3></div>
-    ${state.planEdit?.type === "cand" && !state.planEdit.id && state.planEdit.plan === plan.id ? candFormHtml(plan) : `<p><button type="button" class="btn btn-primary" data-action="cand-new" data-plan="${plan.id}">＋ ${isHome ? t("加一套候选") : t("加一辆候选")}</button></p>`}
+    ${state.planEdit?.type === "cand" && !state.planEdit.id && state.planEdit.plan === plan.id ? candFormHtml(plan) : `<p><button type="button" class="ui-btn" data-tone="primary" data-action="cand-new" data-plan="${plan.id}">＋ ${isHome ? t("加一套候选") : t("加一辆候选")}</button></p>`}
     ${cands.length ? "" : `<div class="panel empty"><strong>${t("还没有候选")}</strong>${t("看到不错的就加进来，打分、写优缺点；两个以上就能并排对比。")}</div>`}
     ${compareTable(plan, cands)}
     <div class="plan-cands">${cands.map((c) => (state.planEdit?.type === "cand" && state.planEdit.id === c.id ? candFormHtml(plan) : candCard(plan, c))).join("")}</div>

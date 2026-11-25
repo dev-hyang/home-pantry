@@ -63,7 +63,7 @@ export function catCheckSection() {
   const where = (cat, sub) => { const c = catOf(cat); return `${c.icon} ${esc(t(c.name))}${sub ? ` · ${esc(t(sub))}` : ""}`; };
   return `<section class="section" aria-labelledby="h-catcheck">
       <div class="section-head"><h2 id="h-catcheck">${t("请确认分类")} <span class="muted">${list.length}</span></h2>
-        <button type="button" class="btn btn-ghost btn-sm" data-action="cat-check-all">${t("全部没错")}</button></div>
+        <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="cat-check-all">${t("全部没错")}</button></div>
       <p class="muted cat-check-tip">${t("分类细化时，这些物品是按名称猜着搬的。放对了点「没错」；放错了点「改回…」或「改成…」，连着的花费也跟着换。")}</p>
       <div class="panel"><ul class="restock-list cat-check">${list.slice(0, 30).map((it) => {
         const alt = catCheckAlt(it), sp = (c) => t(SPACE_NAME[catOf(c).space] || "");
@@ -71,8 +71,8 @@ export function catCheckSection() {
         <div class="grow"><button type="button" class="link-name" data-action="edit" data-id="${it.id}">${esc(it.name)}</button>
           <small>${t("现在：")}${where(it.category, it.subcategory)}<span class="muted">（${sp(it.category)}）</span></small></div>
         <div class="cat-check-acts">
-          <button type="button" class="btn btn-sm" data-action="cat-check-ok" data-id="${it.id}">${t("没错")}</button>
-          ${alt ? `<button type="button" class="btn btn-sm btn-ghost" data-action="cat-check-alt" data-id="${it.id}" data-cat="${alt[0]}" data-sub="${esc(alt[1])}" title="${esc(t(SPACE_NAME[catOf(alt[0]).space] || ""))}">${it.cat_prev ? t("改回") : t("改成")} ${where(alt[0], alt[1])}</button>` : ""}
+          <button type="button" class="ui-btn" data-size="sm" data-action="cat-check-ok" data-id="${it.id}">${t("没错")}</button>
+          ${alt ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="cat-check-alt" data-id="${it.id}" data-cat="${alt[0]}" data-sub="${esc(alt[1])}" title="${esc(t(SPACE_NAME[catOf(alt[0]).space] || ""))}">${it.cat_prev ? t("改回") : t("改成")} ${where(alt[0], alt[1])}</button>` : ""}
         </div></li>`;
       }).join("")}</ul>${list.length > 30 ? `<p class="muted cat-check-more">${t("还有 {n} 件，确认完这些再显示", { n: list.length - 30 })}</p>` : ""}</div>
     </section>`;
@@ -82,5 +82,5 @@ const FOLD_KEY = "hmh-pv-fold";
 const foldGet = () => { try { return JSON.parse(localStorage.getItem(FOLD_KEY) || "{}"); } catch { return {}; } };
 export function setFold(id, open) { const m = foldGet(); m[id] = open ? 1 : 0; try { localStorage.setItem(FOLD_KEY, JSON.stringify(m)); } catch { /* 忽略 */ } }
 /** 过期扔掉：把剩下的都记成 discard（迁移 065），「家里的数字 → 浪费」统计它；不算进日均用量 */
-export const discardBtn = (it) => `<button type="button" class="btn btn-sm btn-ghost discard-btn" data-action="discard" data-id="${it.id}" aria-label="${esc(t("{name} 过期了，扔掉剩下的", { name: it.name }))}">🗑 ${t("扔掉")}</button>`;
+export const discardBtn = (it) => `<button type="button" class="ui-btn discard-btn" data-size="sm" data-tone="ghost" data-action="discard" data-id="${it.id}" aria-label="${esc(t("{name} 过期了，扔掉剩下的", { name: it.name }))}">🗑 ${t("扔掉")}</button>`;
 export { pantryNav } from "./restock-sync.js";

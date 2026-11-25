@@ -59,7 +59,7 @@ const totalNotes = (C) => { const { S } = C; return [estNote(S), S.unknownN ? t(
 function urgentHtml(C) {
   if (!C.urgent.length) return `<section class="section"><div class="panel empty"><strong>${t("最近没有要处理的账单 ✓")}</strong></div></section>`;
   const f = state.ovFilter, more = C.urgentN;
-  return `<section class="section attn-sec ${C.urgent.some((r) => r.status === "overdue") ? "is-hot" : ""}"><div class="section-head"><h2>${t("要处理的账单")}<span class="badge attn-count b-out">${more}</span></h2><div class="head-acts"><a class="btn btn-sm btn-ghost" href="${allBillsHref({ range: f.range, asset: f.asset, status: "unpaid" })}">${t("看全部待缴")} ›</a></div></div>
+  return `<section class="section attn-sec ${C.urgent.some((r) => r.status === "overdue") ? "is-hot" : ""}"><div class="section-head"><h2>${t("要处理的账单")}<span class="badge attn-count b-out">${more}</span></h2><div class="head-acts"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${allBillsHref({ range: f.range, asset: f.asset, status: "unpaid" })}">${t("看全部待缴")} ›</a></div></div>
     <div class="panel"><ul class="bill-list">${C.urgent.map(rowHtml).join("")}</ul></div></section>`;
 }
 /** 账单分组：默认按资产；切到「按周期」= 周期性（再按每月 / 每季度 / 每年细分）和一次性各一组，有金额才出现 */
@@ -98,7 +98,7 @@ export function viewBillsHome() {
   return `<section class="section">
       ${finHead({ label: t("账单概览"), right: filterPop(`<div class="fpop-fields"><label class="tb-field"><span>${t("时间范围")}</span><select id="ovRange" aria-label="${t("时间范围")}">${range}</select></label>
         <label class="tb-field"><span>${t("资产")}</span><select id="ovAsset" data-search aria-label="${t("按资产筛选")}">${assetOptions(C.base.rows, f.asset)}</select></label></div>`, { id: "ov", count: (f.range !== "m" ? 1 : 0) + (f.asset !== "all" ? 1 : 0), eye: true }) })}   // 时间范围、资产都在页头右边的筛选按钮里
-      ${empty ? `<div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}<p><a class="btn btn-primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="btn btn-ghost" href="${href("bill", "new")}">${t("手动添加一条")}</a></p></div>` : `${cardsHtml(C)}`}
+      ${empty ? `<div class="panel empty"><strong>${t("还没有账单")}</strong>${t("先按常用账单模板一次建好水电气、网络、HOA、房产税、房贷、保险，再补金额和到期日。")}<p><a class="ui-btn" data-tone="primary" href="${href("bills", "template")}">${t("按模板建账单")}</a> <a class="ui-btn" data-tone="ghost" href="${href("bill", "new")}">${t("手动添加一条")}</a></p></div>` : `${cardsHtml(C)}`}
     </section>
     ${empty ? "" : `${urgentHtml(C)}${groupHtml(C)}${trendHtml(C)}${billTrendSection()}
     ${fabHtml()}`}`;

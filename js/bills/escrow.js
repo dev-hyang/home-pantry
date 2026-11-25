@@ -37,7 +37,7 @@ export function escrowAlertItems() {
       title: `🏦 ${t("核对 Escrow 年度分析，更新房贷月供")}`,
       detail: t("贷款方每年会寄 escrow 分析，房产税 / 保险涨了月供就会变；现在房贷月供 {a}，其中 Escrow 约 {b}/月。", { a: money(num(s.mortgage.est)), b: money(s.escrow) }),
       href: link, badge: { label: t("年度核对"), cls: "b-soon" },
-      actions: [{ type: "link", href: `${link}?sec=amount`, label: t("改月供") }, { type: "button", action: "escrow-done", id: s.pid, label: t("已更新"), cls: "btn-ghost" }] });
+      actions: [{ type: "link", href: `${link}?sec=amount`, label: t("改月供") }, { type: "button", action: "escrow-done", id: s.pid, label: t("已更新"), tone: "ghost" }] });
   }
   return items;
 }
@@ -51,7 +51,7 @@ export function escrowPanelHtml() {
     return `<div class="esc-row"><div class="grow"><b>🏦 ${esc(propertyName(s.mortgage.property_id) || t("房贷"))} · ${t("Escrow 年度核对")}</b>
       <div class="muted" style="font-size:13px">${t("房贷月供 {a}，其中 Escrow 约 {b}/月。每年收到 escrow 分析后，把月供改成新的数。", { a: money(num(s.mortgage.est)), b: money(s.escrow) })}</div></div>
       <label class="inc-field">${t("每年提醒")}<select data-escrow-month="${esc(s.pid)}" aria-label="${t("提醒月份")}">${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${month === i + 1 ? "selected" : ""}>${esc(monthName(i + 1))}</option>`).join("")}</select></label>
-      ${done ? `<span class="badge b-ok">✓ ${t("{y} 年已更新", { y: ry })}</span>` : `<button type="button" class="btn btn-sm" data-action="escrow-done" data-id="${esc(s.pid)}">${t("已更新")}</button>`}</div>`;
+      ${done ? `<span class="badge b-ok">✓ ${t("{y} 年已更新", { y: ry })}</span>` : `<button type="button" class="ui-btn" data-size="sm" data-action="escrow-done" data-id="${esc(s.pid)}">${t("已更新")}</button>`}</div>`;
   }).join("")}</div></section>`;
 }
 

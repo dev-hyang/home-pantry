@@ -75,7 +75,7 @@ export function viewAbout() {
         t("家主（创建家庭的人，可多位）可以重置邀请码、改家人称呼、设 / 取消家主、移出误加入的人。"),
       ])}</ul>`)}
 
-      ${apps.length ? panel(t("姐妹站点"), `<p class="muted">${t("同一作者的其他小工具，顶栏站名旁的小胶囊可以直接切换：")}</p><ul class="app-list">${apps.map((a) => `<li><span class="app-ico" aria-hidden="true">${a.icon}</span><div class="grow"><b>${esc(t(a.name))}</b><small>${esc(t(a.sub))}</small></div><a class="btn btn-sm" href="${esc(a.url)}">${t("打开")}</a></li>`).join("")}</ul>`) : ""}
+      ${apps.length ? panel(t("姐妹站点"), `<p class="muted">${t("同一作者的其他小工具，顶栏站名旁的小胶囊可以直接切换：")}</p><ul class="app-list">${apps.map((a) => `<li><span class="app-ico" aria-hidden="true">${a.icon}</span><div class="grow"><b>${esc(t(a.name))}</b><small>${esc(t(a.sub))}</small></div><a class="ui-btn" data-size="sm" href="${esc(a.url)}">${t("打开")}</a></li>`).join("")}</ul>`) : ""}
 
       <p class="muted about-foot">${t("更多细节在仓库的 README 和 docs/ 设计文档里。")}
         <a href="https://github.com/dev-hyang/home-pantry" target="_blank" rel="noopener noreferrer">GitHub</a> · <a href="${href("me", "settings")}">${t("设置")}</a></p>

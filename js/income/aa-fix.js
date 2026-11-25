@@ -47,7 +47,7 @@ export function aaFixHtml() {
   if (S.open && !S.near) { S.near = true; loadNear(candidates().map((r) => ({ d: r.received_on, a: -(+r.amount) }))).then((fresh) => { if (fresh) hooks.redraw(); }).catch(() => {}); }
   const head = `<div class="notice aafix-note" role="status"><b>${t("有 {n} 笔 Zelle / Venmo 转入或报销记成了收入（共 {m}）", { n, m: money(sum) })}</b>
     <br><small>${t("朋友 AA 还你、替人垫付后还回的钱是你自己的钱回来了，不算收入，应该记成「支出退回」（所选花费分类的负数花费）。按付款方逐个看一下，默认都不动。")}</small>
-    <div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-aafix="toggle" aria-expanded="${S.open}">${S.open ? t("收起") : t("逐个付款方整理")}</button></div></div>`;
+    <div class="form-actions" style="margin-top:6px"><button type="button" class="ui-btn" data-size="sm" data-aafix="toggle" aria-expanded="${S.open}">${S.open ? t("收起") : t("逐个付款方整理")}</button></div></div>`;
   if (!S.open) return head;
   const rowsHtml = list.map((g) => {
     const mode = modeOf(g), on = g.rows.filter((r) => picked(g, r)), dups = mode === "aa" ? g.rows.filter(dupOf).length : 0;
@@ -64,7 +64,7 @@ export function aaFixHtml() {
   return `${head}<div class="panel aafix">
     <ul class="restock-list bank-list">${rowsHtml}</ul>
     <label class="check-inline" style="margin-top:8px"><input type="checkbox" data-aafix-remember ${S.remember ? "checked" : ""}><span>${t("记住这些付款方的选择（以后导入对账单自动套用）")}</span></label>
-    <div class="form-actions"><button type="button" class="btn btn-primary" data-aafix="apply" ${plan.total && !S.busy ? "" : "disabled"}>${S.busy ? t("处理中…") : t("应用（{n} 笔）", { n: plan.total })}</button></div></div>`;
+    <div class="form-actions"><button type="button" class="ui-btn" data-tone="primary" data-aafix="apply" ${plan.total && !S.busy ? "" : "disabled"}>${S.busy ? t("处理中…") : t("应用（{n} 笔）", { n: plan.total })}</button></div></div>`;
 }
 
 /** 要做的事：每组按选的方式、只算勾上的 */

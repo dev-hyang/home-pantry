@@ -17,7 +17,7 @@ export { newCreate, newGo, newStepSubmit } from "./house-new.js";
 /* ── 推荐耗材（按模板批量添加） ── */
 export function viewHouseTemplate() {
   const p = state.houseProfile;
-  if (!p) return `<div class="panel empty"><strong>${t("先填写房屋资料")}</strong>${t("推荐清单会根据房型、设施和材料生成。")}<p><a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></p></div>`;
+  if (!p) return `<div class="panel empty"><strong>${t("先填写房屋资料")}</strong>${t("推荐清单会根据房型、设施和材料生成。")}<p><a class="ui-btn" data-tone="primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></p></div>`;
   const recs = H().recommendSupplies(p);
   const have = new Set(state.items.map((i) => i.name.trim()));
   const exists = (r) => have.has(r.name) || have.has(t(r.name));
@@ -28,8 +28,8 @@ export function viewHouseTemplate() {
       <div class="section-head"><h2>${t("推荐的汽车房屋消耗品")}</h2><p>${t("根据你的房屋资料，共 {n} 项", { n: recs.length })}${fresh < recs.length ? t("，其中 {n} 项已经有了", { n: recs.length - fresh }) : ""}</p></div>
       <form id="templateForm" class="panel">
         <div class="tpl-bar">
-          <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="1">${t("全选")}</button>
-          <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="0">${t("全不选")}</button>
+          <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="tpl-all" data-on="1">${t("全选")}</button>
+          <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="tpl-all" data-on="0">${t("全不选")}</button>
           <span class="muted">${t("加入后可以随时修改数量、少货线，或删除。")}</span>
         </div>
         ${groups.map(({ c, rows }) => `<fieldset class="tpl-group" style="--cat:${c.color}">
@@ -47,8 +47,8 @@ export function viewHouseTemplate() {
           }).join("")}
         </fieldset>`).join("")}
         <div class="form-actions" style="margin-top:12px">
-          <button type="submit" class="btn btn-primary" ${fresh ? "" : "disabled"}>${t("添加选中的耗材")}</button>
-          <a class="btn btn-ghost" href="${href("house", "overview")}">${t("稍后再说")}</a>
+          <button type="submit" class="ui-btn" data-tone="primary" ${fresh ? "" : "disabled"}>${t("添加选中的耗材")}</button>
+          <a class="ui-btn" data-tone="ghost" href="${href("house", "overview")}">${t("稍后再说")}</a>
         </div>
       </form>
     </section>`;

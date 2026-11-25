@@ -52,7 +52,7 @@ export function billHeadCard(b, base, { listed = false } = {}) {   // listed = �
       <div class="bh-t"><h2>${esc(b.name)}${b.account_last4 ? `<span class="bh-acct">（**${esc(b.account_last4)}）</span>` : ""}</h2>${listed ? `<span class="badge">${t("周期性")}</span>` : ""}${due}${b.priceUp ? `<span class="badge b-low">${t("涨价了")}</span>` : ""}</div>${menu}</div>
     ${provider}${pay}
     ${stampText(b) ? `<p class="record-meta bh-stamp">${esc(stampText(b))}</p>` : ""}
-    <a class="btn btn-primary bh-pay" href="${base}?pay=1">${b.autopay ? t("记核对") : t("记缴费")}</a>
+    <a class="ui-btn bh-pay" data-tone="primary" href="${base}?pay=1">${b.autopay ? t("记核对") : t("记缴费")}</a>
   </section>`;
 }
 export function payFormPage(b, edit = null, isCopy = false, settleId = null) {   // settleId：一次性结清某笔摊派（预先勾上它所有没缴的期）   // isCopy：edit 是「复制」带入的值（没有 id），标题和说明按新记一笔写
@@ -81,8 +81,8 @@ export function payFormPage(b, edit = null, isCopy = false, settleId = null) {  
       </div>
       <p class="muted" style="margin:10px 0 0;font-size:13px">${edit && !isCopy ? t("金额改了，花费统计里对应的那笔也会跟着改。") : t("有金额的记录会同时记入花费统计的“账单”组。")}</p>
       <div class="form-actions form-actions-split sticky-actions">
-        <button type="button" class="btn btn-ghost" data-action="billpay-cancel">${t("取消")}</button>
-        <button type="submit" class="btn btn-primary">${edit ? t("保存修改") : t("记一笔")}</button></div>
+        <button type="button" class="ui-btn" data-tone="ghost" data-action="billpay-cancel">${t("取消")}</button>
+        <button type="submit" class="ui-btn" data-tone="primary">${edit ? t("保存修改") : t("记一笔")}</button></div>
     </form>`;
 }
 /** 缴费表单里勾选的摊派期：{ ids, sum } */
@@ -139,7 +139,7 @@ export function recalcPayTotal(form) {   // 第一次由 main.js 在页面画好
 document.addEventListener("input", (e) => { const f = e.target.closest?.("#billPayForm"); if (f) recalcPayTotal(f); });
 document.addEventListener("change", (e) => { const f = e.target.closest?.("#billPayForm"); if (f) recalcPayTotal(f); });
 /** 旧缴费记录没记账户时，列表页顶上的「一次性补上」提示 */
-export const staleNotice = (b) => { const stale = backfillable(b); return stale.length ? `<div class="notice" role="status" style="margin-top:10px"><b>${t("有 {n} 条旧缴费记录没记账户。", { n: stale.length })}</b> ${t("按现在的付款账户 {a} 一次性补上？花费统计里对应的那几笔也会记到这张卡。现金 / 支票的不动。", { a: billPayLabel(b) })} <button type="button" class="btn btn-sm" data-action="billpay-backfill" data-id="${b.id}">${t("补上")}</button></div>` : ""; };
+export const staleNotice = (b) => { const stale = backfillable(b); return stale.length ? `<div class="notice" role="status" style="margin-top:10px"><b>${t("有 {n} 条旧缴费记录没记账户。", { n: stale.length })}</b> ${t("按现在的付款账户 {a} 一次性补上？花费统计里对应的那几笔也会记到这张卡。现金 / 支票的不动。", { a: billPayLabel(b) })} <button type="button" class="ui-btn" data-size="sm" data-action="billpay-backfill" data-id="${b.id}">${t("补上")}</button></div>` : ""; };
 /** 没记账户、也不是现金 / 支票的旧缴费记录（账单选了付款账户后可以一次性补上） */
 const backfillable = (b) => (b.pay_card_id && acctById(b.pay_card_id) ? b.pays.filter((p) => !p.card_id && p.status !== "skipped" && !/^(现金|支票|cash|check)/i.test(p.method || "")) : []);
 export async function backfillPayments(id) {

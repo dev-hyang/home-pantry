@@ -19,7 +19,7 @@ const ids = () => PROFILE_SECTIONS.map((s) => s.id);
 const nextOf = (sec) => ids()[ids().indexOf(sec) + 1] || "review";
 const prevOf = (sec) => ids()[ids().indexOf(sec) - 1] || null;
 const SHELL = (inner) => `<div class="form-actions sticky-actions wz-actions">${inner}</div>`;
-const cancelBtn = () => `<a class="btn btn-ghost" href="${href("house")}" data-action="house-cancel">${t("取消")}</a>`;
+const cancelBtn = () => `<a class="ui-btn" data-tone="ghost" href="${href("house")}" data-action="house-cancel">${t("取消")}</a>`;
 
 /** 步骤页顶部的「第 n 步 / 共 m 步」+ 进度点（review 算最后一步） */
 export function newSteps(sec) {
@@ -30,9 +30,9 @@ export function newSteps(sec) {
 }
 /** 步骤页底部：取消（在确认页编辑时：取消 = 回确认页，改动不保留）/ 上一步 / 下一步（编辑时：保存） */
 export function newBar(sec, rv) {
-  if (rv) return SHELL(`<a class="btn btn-ghost" href="${stepUrl("review")}">${t("取消")}</a><button type="submit" class="btn btn-primary">${t("保存")}</button>`);
+  if (rv) return SHELL(`<a class="ui-btn" data-tone="ghost" href="${stepUrl("review")}">${t("取消")}</a><button type="submit" class="ui-btn" data-tone="primary">${t("保存")}</button>`);
   const prev = prevOf(sec);
-  return SHELL(`${cancelBtn()}${prev ? `<button type="button" class="btn btn-ghost" data-action="house-new-go" data-to="${stepUrl(prev)}">${t("上一步")}</button>` : ""}<button type="submit" class="btn btn-primary">${t("下一步")}</button>`);
+  return SHELL(`${cancelBtn()}${prev ? `<button type="button" class="ui-btn" data-tone="ghost" data-action="house-new-go" data-to="${stepUrl(prev)}">${t("上一步")}</button>` : ""}<button type="submit" class="ui-btn" data-tone="primary">${t("下一步")}</button>`);
 }
 
 /** 确认页：每个分区 = 资料页同样的卡片 + 「编辑」；底部 取消 / 上一步 / 确认并创建 */
@@ -41,11 +41,11 @@ export function viewNewReview(sectionFacts) {
   const d = houseDraft();
   const cards = PROFILE_SECTIONS.map((s) => `<section class="panel prof-card" aria-labelledby="nr-${s.id}">
       <header class="prof-head"><span class="mi" aria-hidden="true">${s.icon}</span><div class="prof-t"><h3 id="nr-${s.id}">${t(s.name)}</h3><small>${esc(sectionStatus(d, s.id).text)}</small></div>
-        <a class="btn btn-sm btn-ghost prof-edit" href="${stepUrl(s.id, true)}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${t("编辑")}</a></header>${sectionFacts(d, s.id)}</section>`).join("");
+        <a class="ui-btn prof-edit" data-size="sm" data-tone="ghost" href="${stepUrl(s.id, true)}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${t("编辑")}</a></header>${sectionFacts(d, s.id)}</section>`).join("");
   return `<section class="section form-page house-form">${newSteps("review")}
     <p class="muted" style="margin:0 0 10px;font-size:13px">${t("请核对下面的信息；哪一块要改，点它的「编辑」。没问题就点最下面的「确认并创建」，到这一步才会真正建好这套房产。")}</p>
     <div class="prof-grid">${cards}</div><p id="houseFormError" class="form-error" role="alert"></p>
-    ${SHELL(`${cancelBtn()}<button type="button" class="btn btn-ghost" data-action="house-new-go" data-to="${stepUrl(ids()[ids().length - 1])}">${t("上一步")}</button><button type="button" class="btn btn-primary" data-action="house-new-create">${t("确认并创建")}</button>`)}</section>`;
+    ${SHELL(`${cancelBtn()}<button type="button" class="ui-btn" data-tone="ghost" data-action="house-new-go" data-to="${stepUrl(ids()[ids().length - 1])}">${t("上一步")}</button><button type="button" class="ui-btn" data-tone="primary" data-action="house-new-create">${t("确认并创建")}</button>`)}</section>`;
 }
 
 /** 步骤表单提交：把这一步读进草稿，校验，进下一步（编辑时回确认页）。不入库 */

@@ -137,7 +137,7 @@ function listHtml(all) {
       ${S.open === x.key ? `<tr class="s-form s-detail"><td colspan="${span}">${detailHtml(x)}</td></tr>` : ""}`;
     const form = S.renameKey === x.key ? `<tr class="s-form"><td colspan="${span}"><div class="payee-form">
       <label>${t("统一改成")}<input id="payeeTo" maxlength="40" list="storeList" value="${esc(x.name)}" autocomplete="off"></label>
-      <div class="form-actions"><button type="button" class="btn btn-sm btn-primary" data-action="payee-rename-go" data-key="${esc(x.key)}">${t("改名（同名的会合并成一个）")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="payee-rename" data-key="">${t("取消")}</button></div>
+      <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="payee-rename-go" data-key="${esc(x.key)}">${t("改名（同名的会合并成一个）")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="payee-rename" data-key="">${t("取消")}</button></div>
       <small class="muted">${t("以后导入对账单时，同样的收款方会自动用新名字。")}</small></div></td></tr>` : "";
     return tr + form;
   };
@@ -145,8 +145,8 @@ function listHtml(all) {
   const defTo = S.mergeTo || [...picked].sort((a, b) => b.count - a.count)[0]?.name || "";
   const selBar = S.sel ? `<div class="sel-bar payee-sel" role="region" aria-label="${esc(t("多选合并"))}"><b>${t("已选 {n} 家", { n: picked.length })}</b>
       <label class="payee-merge-to"><span>${t("合并为")}</span><input id="payeeMergeTo" maxlength="40" list="storeList" value="${esc(defTo)}" autocomplete="off"></label>
-      <button type="button" class="btn btn-sm btn-primary" data-action="payee-merge" ${picked.length >= 2 ? "" : "disabled"}>${t("合并")}</button>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="payee-sel">${t("退出多选")}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="payee-merge" ${picked.length >= 2 ? "" : "disabled"}>${t("合并")}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="payee-sel">${t("退出多选")}</button>
       <small class="muted" style="flex-basis:100%">${t("勾两家以上，合并成一个名字（默认用笔数最多的那个）。")}</small></div>` : "";
   return `${selBar}<p class="muted small" style="margin:0 0 6px">${t("{n} 家，合计 {m}", { n: list.length, m: money(list.reduce((a, x) => a + x.total, 0)) })}</p>
     <p class="list-hint">${t("长按（电脑右键）一行：更多操作")}</p>

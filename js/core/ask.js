@@ -43,10 +43,10 @@ export function guideHtml(g) {
 export function askInline(ask, { inPanel = false } = {}) {
   REG.set(ask.id, ask);
   const r = run()[ask.id] || {}, c = cachedAnswer(ask.id), ready = aiReady(), q = ready ? aiQuota() : null, can = ready && (!q || q.ok);
-  const btn = r.busy ? `<button type="button" class="btn btn-sm" disabled>${aiIcon(16)} ${t("咩咩思考中…")}</button>`
-    : can ? `<button type="button" class="btn btn-sm ${c ? "btn-ghost" : ""}" data-action="ask-run" data-ask="${esc(ask.id)}">${aiIcon(16)} ${c ? t("重新问") : t("问咩咩")}</button>`
-    : `<button type="button" class="btn btn-sm" data-action="ask-copy" data-ask="${esc(ask.id)}">${aiIcon(16)} ${t("复制提示词")}</button>`;
-  const answer = c ? `<div class="ask-answer"><div class="ask-answer-head">${aiIcon(18)} <b>${t("咩咩")}</b><small class="muted">${new Date(c.at).toLocaleDateString()}</small><span class="spacer"></span><button type="button" class="btn btn-sm btn-ghost" data-action="ask-copy-answer" data-ask="${esc(ask.id)}">${t("复制")}</button><a class="btn btn-sm btn-ghost" href="${href("ai")}?from=${encodeURIComponent(ask.id)}">${t("追问")}</a></div>${renderAnswer(c.a)}<p class="disclaimer">${t("AI 回答仅供参考；涉及燃气、电、结构、法律、医疗请找专业人士。")}</p></div>` : "";
+  const btn = r.busy ? `<button type="button" class="ui-btn" data-size="sm" disabled>${aiIcon(16)} ${t("咩咩思考中…")}</button>`
+    : can ? `<button type="button" class="ui-btn" data-size="sm" data-tone="${c ? "ghost" : ""}" data-action="ask-run" data-ask="${esc(ask.id)}">${aiIcon(16)} ${c ? t("重新问") : t("问咩咩")}</button>`
+    : `<button type="button" class="ui-btn" data-size="sm" data-action="ask-copy" data-ask="${esc(ask.id)}">${aiIcon(16)} ${t("复制提示词")}</button>`;
+  const answer = c ? `<div class="ask-answer"><div class="ask-answer-head">${aiIcon(18)} <b>${t("咩咩")}</b><small class="muted">${new Date(c.at).toLocaleDateString()}</small><span class="spacer"></span><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="ask-copy-answer" data-ask="${esc(ask.id)}">${t("复制")}</button><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("ai")}?from=${encodeURIComponent(ask.id)}">${t("追问")}</a></div>${renderAnswer(c.a)}<p class="disclaimer">${t("AI 回答仅供参考；涉及燃气、电、结构、法律、医疗请找专业人士。")}</p></div>` : "";
   // 页面上（不是点 ? 展开的面板里）的答复默认折叠成一行「咩咩的回答 · 日期」，点开才看；展开状态记住（重画不收回去）
   const shown = !inPanel && c ? `<details class="ask-fold" data-ask-fold="${esc(ask.id)}" ${state.askFoldOpen?.[ask.id] ? "open" : ""}><summary>${aiIcon(16)} <b>${t("咩咩的回答")}</b> <small class="muted">${new Date(c.at).toLocaleDateString()}</small></summary>${answer}</details>` : answer;
   const err = r.error ? `<p class="form-error" role="alert">${esc(r.error)}</p>` : "";

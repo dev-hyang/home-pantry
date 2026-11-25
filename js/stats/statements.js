@@ -95,7 +95,7 @@ function allTab() {
   return `<div class="time-bar"><label class="tb-field"><span>${t("时间范围")}</span><select data-stmt="range" class="range-sel" data-nosearch aria-label="${esc(t("时间范围"))}">${rangeOptionsHtml(o.range, { first: firstYear() })}</select></label>${customHtml(o.range, { first: firstYear(), attr: "data-stmt-c" })}
       <div class="chips" role="group" aria-label="${esc(t("显示什么"))}" style="margin:0">${DIRS.map(([v, l]) => `<button type="button" class="chip" data-stmt-dir="${v}" aria-pressed="${o.dir === v}">${t(l)}</button>`).join("")}</div></div>
     ${note}<div class="kpis"><div class="kpi"><span>${t("收入（认定）")}</span><b>${money(b.inc)}</b>${b.cap ? `<small>${t("另有资本流入 {a} · 不计收入", { a: money(b.cap) })}</small>` : ""}</div><div class="kpi"><span>${t("花费")}</span><b>${money(b.spend)}</b></div><div class="kpi"><span>${t("收支差额")}</span><b class="${b.net < 0 ? "down" : ""}">${money(b.net)}</b></div></div>
-    <div class="panel"><div class="st-tools"><input type="search" data-stmt-q value="${esc(o.q)}" placeholder="${esc(t("搜索名称 / 商店 / 付款方 / 账户"))}" aria-label="${esc(t("搜索"))}">${clearFiltersBtn("stmt", changed(o, FD.stmt))}<button type="button" class="btn btn-sm btn-ghost" data-stmt="csv">${t("导出这个列表 CSV")}</button></div>
+    <div class="panel"><div class="st-tools"><input type="search" data-stmt-q value="${esc(o.q)}" placeholder="${esc(t("搜索名称 / 商店 / 付款方 / 账户"))}" aria-label="${esc(t("搜索"))}">${clearFiltersBtn("stmt", changed(o, FD.stmt))}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-stmt="csv">${t("导出这个列表 CSV")}</button></div>
       <p class="muted small" style="margin:6px 0 8px">${t("只读：花费和收入按时间排在一起。点一行去对应的花费 / 收入页查看或修改。")}</p>
       <div id="stmtList">${listHtml()}</div></div>`;
 }

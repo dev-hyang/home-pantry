@@ -12,7 +12,7 @@ import { TAX_THRESHOLDS, activeTaxYear, daysUntil, foreignGiftTotal, relevantDea
 
 const pick = (o) => (lang === "en" ? o.en : o.zh);
 const link = () => href("bills", "tax");
-const item = (severity, title, detail, daysLeft, label, url = link()) => ({ source: "tax", severity, must: false, due: null, daysLeft, title, detail, href: url, badge: { label, cls: severity <= 2 ? "b-soon" : "b-ok" }, actions: [{ type: "link", href: url, label: t("去看税务"), cls: "btn-ghost" }] });
+const item = (severity, title, detail, daysLeft, label, url = link()) => ({ source: "tax", severity, must: false, due: null, daysLeft, title, detail, href: url, badge: { label, cls: severity <= 2 ? "b-soon" : "b-ok" }, actions: [{ type: "link", href: url, label: t("去看税务"), tone: "ghost" }] });
 
 /** 提醒的几个触发条件（deadlines 的 id 对应 tax-calendar.js） */
 export function taxAlertItems() {

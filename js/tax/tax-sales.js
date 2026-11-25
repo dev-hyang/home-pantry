@@ -62,16 +62,16 @@ const step = (n, title, body, hint = "") => `<section class="tax-step"><h4><span
 /** 一块清单：行 + 合计 + 「＋ 添加一项」（点了才展开小表单） */
 function listBlock(p, s) {
   const x = propOf(p.id), { rows, total } = itemsOf(x, s, p.id), key = `${p.id}|${s.key}`, adding = ui.add === key;
-  const li = rows.map((r) => `<li class="tax-imp ${r.missing ? "is-missing" : ""}" ${rowAttrs(r.on, r.desc, r.amount)}><span class="tax-imp-d">${r.on ? `<small class="muted">${esc(r.on)}</small>` : ""}${r.link ? `<span title="${esc(r.link === "income" ? t("链接到收入记录，金额跟着记录走") : t("链接到花费记录，金额跟着记录走"))}">🔗 </span>` : ""}${esc(r.desc || "")}${r.missing ? ` <small class="form-error">${t("记录已删除，不计入")}</small>` : ""}</span><b class="tax-imp-a">${money(+r.amount || 0)}</b><button type="button" class="btn btn-sm btn-ghost" data-tax-item-del="${esc(r.legacy ? `${p.id}|legacy|${r.legacy}` : `${key}|${r.i}`)}" aria-label="${esc(r.link ? t("解除链接") : t("删除这一条"))}">×</button></li>`).join("");
+  const li = rows.map((r) => `<li class="tax-imp ${r.missing ? "is-missing" : ""}" ${rowAttrs(r.on, r.desc, r.amount)}><span class="tax-imp-d">${r.on ? `<small class="muted">${esc(r.on)}</small>` : ""}${r.link ? `<span title="${esc(r.link === "income" ? t("链接到收入记录，金额跟着记录走") : t("链接到花费记录，金额跟着记录走"))}">🔗 </span>` : ""}${esc(r.desc || "")}${r.missing ? ` <small class="form-error">${t("记录已删除，不计入")}</small>` : ""}</span><b class="tax-imp-a">${money(+r.amount || 0)}</b><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-item-del="${esc(r.legacy ? `${p.id}|legacy|${r.legacy}` : `${key}|${r.i}`)}" aria-label="${esc(r.link ? t("解除链接") : t("删除这一条"))}">×</button></li>`).join("");
   const picking = s.link && ui.pick === key, linkedSet = linkedRefs(x, SECS.filter((z) => z.link === s.link).map((z) => z.key), s.link);
-  const linkBtn = s.link && !adding && !picking ? ` <button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-pick="${esc(key)}">🔗 ${s.link === "income" ? t("从收入记录里选") : t("从花费记录里选")}</button>` : "";
+  const linkBtn = s.link && !adding && !picking ? ` <button type="button" class="ui-btn tax-add-btn" data-size="sm" data-tone="ghost" data-tax-pick="${esc(key)}">🔗 ${s.link === "income" ? t("从收入记录里选") : t("从花费记录里选")}</button>` : "";
   const form = picking ? pickerHtml(p, key, s.link, leafLabel, isTransfer, linkedSet, money) : adding ? `<form class="tax-item-form" data-tax-item="${esc(key)}" novalidate>
       <label>${t("这一项是什么")}<input name="desc" maxlength="60" placeholder="${esc(t(s.ph))}" autocomplete="off"></label>
       <label>${t("金额")}<input name="amount" ${numAttrs("money", { min: 0.01 })} placeholder="0.00"></label>
       ${s.date ? `<label>${t("日期（可不填）")}<input name="on" type="date"></label>` : ""}
-      <div class="tax-item-actions"><button type="submit" class="btn btn-sm btn-primary">${t("添加")}</button><button type="button" class="btn btn-sm btn-ghost" data-tax-add-cancel>${t("取消")}</button></div>
+      <div class="tax-item-actions"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("添加")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-add-cancel>${t("取消")}</button></div>
       <p class="form-error tax-item-err" role="alert"></p></form>`
-    : `<button type="button" class="btn btn-sm btn-ghost tax-add-btn" data-tax-add="${esc(key)}">＋ ${t("添加一项")}</button>${linkBtn}`;
+    : `<button type="button" class="ui-btn tax-add-btn" data-size="sm" data-tone="ghost" data-tax-add="${esc(key)}">＋ ${t("添加一项")}</button>${linkBtn}`;
   return step(s.n, t(s.title), `${rows.length ? `<ul class="tax-imps">${li}</ul><p class="tax-sub-total">${t("小计")} <b>${money(total)}</b></p>` : `<p class="muted">${t("还没有。没有就不用填，直接往下。")}</p>`}${form}`, s.hint ? t(s.hint) : "");
 }
 

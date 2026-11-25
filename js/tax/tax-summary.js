@@ -42,7 +42,7 @@ function fbarCard(y) {
 export function summaryTab(y) {
   const rows = taxRows(y), groups = Object.keys(GROUP_NAMES);
   const cards = groups.map((g) => `<section class="panel dt-block"><div class="dt-head"><h3>${esc(tx(GROUP_NAMES[g]))}</h3></div><ul class="tax-nums">${rows.filter((r) => r.group === g).map((r) => rowHtml(y, r)).join("")}</ul></section>`).join("");
-  const tools = `<div class="tax-tools"><button type="button" class="btn btn-sm" data-tax-export="${y}">⬇ ${t("导出 CSV")}</button><button type="button" class="btn btn-sm btn-ghost" data-tax-print>🖨 ${t("打印 / 存成 PDF")}</button></div>`;
+  const tools = `<div class="tax-tools"><button type="button" class="ui-btn" data-size="sm" data-tax-export="${y}">⬇ ${t("导出 CSV")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tax-print>🖨 ${t("打印 / 存成 PDF")}</button></div>`;
   return `<p class="muted tax-wrap">${t("{y} 年和报税有关的数字，按 TurboTax 的填写顺序排。自动算的来自你已有的记录；手填的在这里直接输入。每行点「看来源明细」核对，核对完勾「已核对」。", { y })}</p>
     ${tools}${cards}${deductionCard(y)}${planCard(y)}${setupFor(y).flags.foreign ? fbarCard(y) : ""}`;
 }

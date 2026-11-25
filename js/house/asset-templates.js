@@ -8,7 +8,7 @@ import { H } from "./asset-common.js";
 /* ── 按房屋资料生成设备 ── */
 export function viewAssetTemplate() {
   const p = state.houseProfile;
-  if (!p) return `<div class="panel empty"><strong>${t("先填写房屋资料")}</strong>${t("设备清单会根据房型和设施生成。")}<p><a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></p></div>`;
+  if (!p) return `<div class="panel empty"><strong>${t("先填写房屋资料")}</strong>${t("设备清单会根据房型和设施生成。")}<p><a class="ui-btn" data-tone="primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></p></div>`;
   const recs = H().recommendAssets(p);
   const haveTypes = new Set(state.assets.filter((a) => a.property_id === state.propertyId).map((a) => a.type));
   const groups = [
@@ -23,8 +23,8 @@ export function viewAssetTemplate() {
       <div class="section-head"><h2>${t("按房屋资料生成设备")}</h2><p>${t("共 {n} 项", { n: recs.length })}${fresh < recs.length ? t("，其中 {n} 项已有档案", { n: recs.length - fresh }) : ""}</p></div>
       <form id="assetTemplateForm" class="panel">
         <div class="tpl-bar">
-          <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="1">${t("全选")}</button>
-          <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="0">${t("全不选")}</button>
+          <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="tpl-all" data-on="1">${t("全选")}</button>
+          <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="tpl-all" data-on="0">${t("全不选")}</button>
           <span class="muted">${t("生成后再到每台设备里补品牌、型号、安装年份和保修；寿命和周期是常见经验值，可改。")}</span>
         </div>
         ${groups.map(({ k, rows }) => `<fieldset class="tpl-group" style="--cat:#5c6b63">
@@ -42,8 +42,8 @@ export function viewAssetTemplate() {
           }).join("")}
         </fieldset>`).join("")}
         <div class="form-actions" style="margin-top:12px">
-          <button type="submit" class="btn btn-primary" ${fresh ? "" : "disabled"}>${t("生成选中的设备")}</button>
-          <a class="btn btn-ghost" href="${href("house", "assets")}">${t("稍后再说")}</a>
+          <button type="submit" class="ui-btn" data-tone="primary" ${fresh ? "" : "disabled"}>${t("生成选中的设备")}</button>
+          <a class="ui-btn" data-tone="ghost" href="${href("house", "assets")}">${t("稍后再说")}</a>
         </div>
       </form>
     </section>`;

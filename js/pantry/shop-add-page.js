@@ -48,7 +48,7 @@ function formPage(kind) {
       <label>${t("单位")}<input name="unit" list="unitList" placeholder="${esc(ex ? t("跟着库存") : t("不填自动选"))}" maxlength="10" ${ex ? "readonly" : ""}></label>
       <label>${t("分类")}<select name="category" ${ex ? "disabled" : ""}><option value="">${ex ? t("跟着库存") : t("自动分类")}</option>${categoryOptions()}</select></label>
       <label>${t("预估金额")}<input name="estimate" ${numAttrs("money")} placeholder="${esc(t("可不填，用来做预算提示"))}"></label>
-      <div class="form-actions full"><a class="btn btn-ghost" href="${addHref()}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button></div>
+      <div class="form-actions full"><a class="ui-btn" data-tone="ghost" href="${addHref()}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button></div>
       <p class="muted full shop-add-tip">${ex ? t("单位和分类按库存里的物品填好；买到后自动加回库存。") : t("保存时如果库存里已有相同或相近的物品，会问你要不要改成加已有物品。")}</p>
     </form></section>`;
 }
@@ -68,7 +68,7 @@ function restockPage() {
       <h3 style="margin:0 0 4px">${t("从补货清单加入购物车")}</h3>
       <p class="muted">${list.length ? t("确认每样要买多少、单位；不要的取消勾选。") : t("现在没有需要补货的东西，或都已经在购物车里了。")}</p>
       <ul class="rs-pick-list">${list.map(row).join("")}</ul>
-      <div class="form-actions"><a class="btn btn-ghost" href="${addHref()}">${t("取消")}</a><button class="btn btn-primary" type="submit" ${list.length ? "" : "disabled"}>${t("加入购物车")}</button></div>
+      <div class="form-actions"><a class="ui-btn" data-tone="ghost" href="${addHref()}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit" ${list.length ? "" : "disabled"}>${t("加入购物车")}</button></div>
     </form></section>`;
 }
 
@@ -90,7 +90,7 @@ export function viewShopAdd() {
       ${choice("✨", t("新物品"), t("库存里还没有；买到后会新建物品"), [[`📷 ${t("扫描")}`, addHref("?mode=photo&kind=new")], [`✍️ ${t("手动")}`, addHref("?form=new")]])}
     </div>
     ${shopAdviceHtml()}
-    ${recent.length ? `<div class="panel sd-preview"><div class="section-head"><h3>${t("最近加入购物车")}</h3><a class="btn btn-sm btn-ghost" href="${listHref()}">${t("购物车")} ›</a></div>
+    ${recent.length ? `<div class="panel sd-preview"><div class="section-head"><h3>${t("最近加入购物车")}</h3><a class="ui-btn" data-size="sm" data-tone="ghost" href="${listHref()}">${t("购物车")} ›</a></div>
       <ul>${recent.map((s) => `<li class="sp-row"><span class="sp-txt"><b>${esc(s.name)}</b> <small class="muted">${showQty(num(s.quantity, 1), shopUnit(s))}${s.created_at ? ` · ${t("{d} 加入", { d: fmtShort(s.created_at) })}` : ""}</small></span></li>`).join("")}</ul></div>` : ""}
   </section>`;
 }

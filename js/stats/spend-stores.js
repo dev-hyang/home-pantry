@@ -21,8 +21,8 @@ export function viewAnnualExport() {
     <div class="section-head"><h2>${t("年度花费报表")}</h2><p>${t("导出 CSV，可用 Excel、Numbers 或 Google 表格打开")}</p></div>
     <div class="panel export-grid">
       <label class="export-pick"><span>${t("年份")}</span><select id="csvYear" data-nosearch>${years.map((v) => `<option value="${v}">${t("{y} 年", { y: v })}</option>`).join("")}</select></label>
-      <div class="export-btns"><button type="button" class="btn btn-primary btn-sm" data-action="csv-summary">${t("导出汇总（月份 × 分类、收款方）")}</button>
-      <button type="button" class="btn btn-sm" data-action="csv-detail">${t("导出明细（每一笔）")}</button></div>
+      <div class="export-btns"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="csv-summary">${t("导出汇总（月份 × 分类、收款方）")}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-action="csv-detail">${t("导出明细（每一笔）")}</button></div>
     </div>
   </section>`;
 }

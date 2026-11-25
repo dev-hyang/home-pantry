@@ -35,7 +35,7 @@ export function tabPage(tab, all) {
     <p class="hint">${t("借出是钱从账户出去（不算消费）；收回本金不算收入，收到的利息算投资收益。以前收入里「需要还」的记录已经转成这里的借入。")}</p>${addFab([LEND(), BORROW()])}`;
   // 全部借贷（进入页）
   return `${dash || `<div class="panel empty"><strong>${t("还没有借贷记录")}</strong>${t("房贷、车贷、学生贷款、分期，和亲友之间的借款都可以记在这里")}
-      <div class="form-actions"><a class="btn btn-sm btn-primary" href="${esc(debtHref(null, "new=1"))}">＋ ${t("添加贷款")}</a><a class="btn btn-sm" href="${esc(tabHref("personal"))}">🤝 ${t("个人借贷")}</a></div></div>`}
+      <div class="form-actions"><a class="ui-btn" data-size="sm" data-tone="primary" href="${esc(debtHref(null, "new=1"))}">＋ ${t("添加贷款")}</a><a class="ui-btn" data-size="sm" href="${esc(tabHref("personal"))}">🤝 ${t("个人借贷")}</a></div></div>`}
     ${attentionPanel(["debt"], { title: t("要处理"), sub: t("快到期、逾期的借款，待确认的车贷") })}
     ${dash ? sumHint() : ""}${addFab([ADD(), LEND(), BORROW()])}`;
 }
@@ -115,7 +115,7 @@ export function txnRow(x, d, { manage = false } = {}) {
       ${d ? `<a href="${esc(debtHref(d.id))}">${esc(d.name)}</a>` : ""}</span>
     <small class="muted">${[...parts, src, x.notes].filter(Boolean).map(esc).join(" · ")}</small></div>
     <b class="dd-amt">${mny(x.total, d?.currency)}</b>
-    ${manage && !x.bill_payment_id ? `<div class="dd-row-act"><button type="button" class="btn btn-sm btn-ghost" data-debt="txn-del" data-id="${esc(x.id)}">${t("删除")}<span class="sr-only"> ${esc(fmtDate(x.txn_date))} ${esc(txnName(x))}</span></button></div>` : ""}</li>`;
+    ${manage && !x.bill_payment_id ? `<div class="dd-row-act"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="txn-del" data-id="${esc(x.id)}">${t("删除")}<span class="sr-only"> ${esc(fmtDate(x.txn_date))} ${esc(txnName(x))}</span></button></div>` : ""}</li>`;
 }
 function txnsTab() {
   return `<div class="panel" style="margin-top:12px">${recordsList("txns", { txns: debtTxns, showDebt: true, empty: t("还没有借贷流水") })}</div>

@@ -25,10 +25,10 @@ export function bulkBar(key) {
   if (cur?.key !== key) return "";
   const n = [...cur.sel].filter((id) => idsOf(key).includes(id)).length;
   return `<div class="sel-bar" role="region" aria-label="${esc(t("多选删除"))}" data-bulk-key="${esc(key)}"><b id="bulkCount">${t("已选 {n} 笔", { n })}</b>
-    <button type="button" class="btn btn-sm btn-ghost" data-bulk="all" data-key="${esc(key)}">${t("全选当前显示的 {n} 笔", { n: idsOf(key).length })}</button>
-    <button type="button" class="btn btn-sm btn-ghost" data-bulk="none" data-key="${esc(key)}">${t("清空")}</button>
-    <button type="button" class="btn btn-sm btn-danger-ghost" data-bulk="del" data-key="${esc(key)}" ${n ? "" : "disabled"}>${t("删除所选")}</button>
-    <button type="button" class="btn btn-sm btn-ghost" data-bulk="exit" data-key="${esc(key)}">${t("退出多选")}</button></div>`;
+    <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bulk="all" data-key="${esc(key)}">${t("全选当前显示的 {n} 笔", { n: idsOf(key).length })}</button>
+    <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bulk="none" data-key="${esc(key)}">${t("清空")}</button>
+    <button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-bulk="del" data-key="${esc(key)}" ${n ? "" : "disabled"}>${t("删除所选")}</button>
+    <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bulk="exit" data-key="${esc(key)}">${t("退出多选")}</button></div>`;
 }
 
 async function deleteSelected(key) {

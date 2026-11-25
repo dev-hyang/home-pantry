@@ -61,7 +61,7 @@ function shopListBody() {
   const f = state.shopFilter, rows = shopRows(), key = `shop:${f.st}`, lim = pageLimit(key, JSON.stringify(f));
   const empty = f.q ? t("没找到「{q}」。", { q: f.q }) : { open: t("没有待买的东西。"), todo: t("都有人认领了。"), claimed: t("点“我来买”认领，家人就不会重复买。"), mine: t("你还没有认领要买的东西。"), bought: t("买到后自动加回库存。"), all: t("购物车是空的。") }[f.st] || "";
   const bought = f.st === "bought" || f.st === "all" ? state.shopping.some((s) => s.status === "bought") : false;
-  return `<div class="shop-list-meta" data-n="${rows.length}">${bought ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shop-clear">${t("清空已买到")}</button>` : ""}</div>
+  return `<div class="shop-list-meta" data-n="${rows.length}">${bought ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="shop-clear">${t("清空已买到")}</button>` : ""}</div>
     ${!rows.length ? `<p class="muted shops-empty">${esc(empty)}</p>` : f.sort === "mode" ? groupedHtml(rows.slice(0, lim)) + pageMoreBtn(key, rows.length, lim)
       : `<ul class="shop-list">${rows.slice(0, lim).map(shopRowHtml).join("")}</ul>${pageMoreBtn(key, rows.length, lim)}`}`;
 }
@@ -79,15 +79,15 @@ function shopImportHtml() {
   return `<div class="panel shop-import" id="shopImport" role="region" aria-label="${esc(t("从别的应用带来的采购项"))}">
     <b>🐑 ${from ? t("来自牧羊人 · {n}", { n: from }) : t("来自牧羊人")}</b><p class="muted" style="margin:4px 0 8px;font-size:13px">${t("勾选要买的，再点「加进购物车」。已经在清单里的默认不勾。")}</p>
     <div class="shop-import-list">${names.map((n) => { const dup = open.has(n.toLowerCase()); return `<label class="check-inline"><input type="checkbox" value="${esc(n)}" ${dup ? "" : "checked"}><span>${esc(n)}${dup ? ` <small class="muted">${t("已在清单里")}</small>` : ""}</span></label>`; }).join("")}</div>
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-primary btn-sm" data-action="shop-import">${t("加进购物车")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="shop-import-cancel">${t("不用了")}</button></div></div>`;
+    <div class="form-actions" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="shop-import">${t("加进购物车")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="shop-import-cancel">${t("不用了")}</button></div></div>`;
 }
 function shopRowHtml(s) {
   const mine = isMine(s);
   let acts = "";
-  if (s.status === "todo") acts = `<button type="button" class="btn btn-sm btn-dark" data-action="shop-claim" data-id="${s.id}">${t("我来买")}</button>
-    <button type="button" class="btn btn-sm btn-primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button>`;
-  if (s.status === "claimed") acts = `${mine ? `<button type="button" class="btn btn-sm btn-ghost" data-action="shop-unclaim" data-id="${s.id}">${t("取消认领")}</button>` : ""}
-    <button type="button" class="btn btn-sm btn-primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button>`;
+  if (s.status === "todo") acts = `<button type="button" class="ui-btn" data-size="sm" data-tone="dark" data-action="shop-claim" data-id="${s.id}">${t("我来买")}</button>
+    <button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button>`;
+  if (s.status === "claimed") acts = `${mine ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="shop-unclaim" data-id="${s.id}">${t("取消认领")}</button>` : ""}
+    <button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="shop-bought" data-id="${s.id}">${t("已买到")}</button>`;
   const priceBox = s.status === "bought" ? (s.amount != null ? `<div class="muted" style="font-size:12px">${t("花费 {m}", { m: money(num(s.amount)) })}</div>` : "")
     : `<div class="price-in">
         <input ${numAttrs("money")} data-price-for="${s.id}" data-keep="price-${s.id}" placeholder="${esc(t("花费 {sym}（可不填）", { sym: Units.money(0).replace(/[\d.,\s]/g, "") }))}" aria-label="${esc(t("{name} 实际花费", { name: s.name }))}">
@@ -105,7 +105,7 @@ function shopRowHtml(s) {
     : `<details class="si-spend"><summary>💰 ${t("记一笔花费（可选）")}</summary>${priceBox}</details>`;
   return `<li class="shop-item ${s.status === "bought" ? "done" : ""}${picked ? " is-picked" : ""}"${swipe}${sel ? "" : ` ${lpAttr([s.status === "todo" ? { label: t("我来买"), action: "shop-claim", data: { id: s.id }, first: true } : null, s.status === "claimed" && mine ? { label: t("取消认领"), action: "shop-unclaim", data: { id: s.id }, first: true } : null, s.status === "bought" ? null : { label: t("已买到"), action: "shop-bought", data: { id: s.id } }, { label: t("多选"), action: "shop-sel-start", data: { id: s.id } }, { label: t("删除"), action: "shop-del", data: { id: s.id }, danger: true }], s.name)}`}>
     <div class="si-top">${sel ? `<input type="checkbox" class="shop-chk" data-id="${s.id}" ${picked ? "checked" : ""} aria-label="${esc(t("选择 {name}", { name: s.name }))}">` : ""}<b class="si-name">${esc(s.name)}</b>${when ? `<small class="si-when muted" title="${esc(stampText(s))}">${when}</small>` : ""}
-      <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="shop-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button>${s.status === "bought" ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="shop-bought" data-id="${s.id}" data-confirm="1" aria-label="${esc(t("{name} 已买到", { name: s.name }))}">${t("已买到")}</button>`}</div>
+      <button type="button" class="ui-btn swipe-src" data-size="sm" data-tone="ghost" data-action="shop-del" data-id="${s.id}" aria-label="${esc(t("删除 {name}", { name: s.name }))}">${t("删除")}</button>${s.status === "bought" ? "" : `<button type="button" class="ui-btn swipe-alt-src" data-size="sm" data-tone="ghost" data-action="shop-bought" data-id="${s.id}" data-confirm="1" aria-label="${esc(t("{name} 已买到", { name: s.name }))}">${t("已买到")}</button>`}</div>
     ${s.status === "bought" ? "" : `<div class="card-hint-slot">${cardHintHtml(cat, "")}</div>`}
     ${s.status === "claimed" ? `<div class="who">🛍 ${t("{who} 正在买", { who: esc(whoName(s)) })}</div>` : ""}
     ${s.status === "bought" ? (s.claimed_by_name ? `<div class="who">✅ ${t("{who} 买到的", { who: esc(s.claimed_by_name) })}</div>` : "") : shopDealPicker(s)}
@@ -136,7 +136,7 @@ function viewShopHome() {
     ${shopImportHtml()}
     <div class="sd-acts" role="group" aria-label="${esc(t("录入"))}">
       <div class="sd-grp"><span class="sd-grp-t">${t("买回来了，录入库存")}</span>
-        <a class="btn" href="${href("pantry", "scan")}">🧾 ${t("拍小票 / 网购订单入库")}</a></div>
+        <a class="ui-btn" href="${href("pantry", "scan")}">🧾 ${t("拍小票 / 网购订单入库")}</a></div>
     </div>
     ${shopAdviceHtml()}
     <div class="sd-grid sd-n5">
@@ -163,8 +163,8 @@ function viewShopList() {
     ${state.shopSel ? "" : `<a class="fab" href="${href("shopping", "add")}" aria-label="${esc(t("添加要买的东西"))}" title="${esc(t("添加要买的东西"))}"><span aria-hidden="true">＋</span></a>`}
     ${state.shopSel ? `<div class="inv-selbar shop-selbar" role="toolbar" aria-label="${esc(t("多选操作"))}">
       <span class="inv-seln" aria-live="polite">${esc(shopSelText())}</span>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="shop-sel-all">${t("全选")}</button><button type="button" class="btn btn-sm btn-primary" data-action="shop-select">${t("完成")}</button><span class="spacer"></span>
-      <button type="button" class="btn btn-sm btn-danger-ghost" data-action="shop-sel-remove" ${state.shopSel.size ? "" : "disabled"}>${t("移出购物车")}</button></div>` : ""}
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="shop-sel-all">${t("全选")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="shop-select">${t("完成")}</button><span class="spacer"></span>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="shop-sel-remove" ${state.shopSel.size ? "" : "disabled"}>${t("移出购物车")}</button></div>` : ""}
   </section>`;
 }
 /** 采购：#/shopping（看板）、#/shopping/list、#/shopping/add；储藏 → 采购（#/pantry/shopping）也是看板 */

@@ -130,7 +130,7 @@ function owedPanel(all, seg) {
   ].filter(Boolean) : [];
   // 全部借贷页：每一类点过去是那个标签
   const lab = (k, l) => (seg === "all" ? `<a href="${esc(debtTabHref(k === "asset" ? "asset" : "personal"))}">${esc(l)}</a>` : esc(l));
-  return `<div class="panel ds-owed"><div class="chart-head"><h3>${t("现在欠的钱")}</h3>${nw ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "networth")}">${t("净资产")} ${mny(nw.netWorth)} ›</a>` : ""}</div>
+  return `<div class="panel ds-owed"><div class="chart-head"><h3>${t("现在欠的钱")}</h3>${nw ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "networth")}">${t("净资产")} ${mny(nw.netWorth)} ›</a>` : ""}</div>
     <ul class="ds-olist">${parts.map(([k, l, v, cls]) => `<li><span class="ds-olabel"><span class="ds-sw ${cls}" aria-hidden="true"></span>${lab(k, l)}</span>${bar(Math.round((v / max) * 100), `o-${cls}`)}<b class="num">${mny(v)}</b></li>`).join("")}</ul>
     ${rel.length ? `<p class="muted ds-rel">${rel.map(esc).join(" · ")}</p>` : ""}</div>`;
 }

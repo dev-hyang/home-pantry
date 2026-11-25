@@ -40,7 +40,7 @@ export function quotaBlock(s, p) {
       <label>${t("每分钟上限（次）")}<input name="rpm" ${numAttrs("int", { max: 1000, step: null })} placeholder="${tier?.rpm ?? t("不限")}" value="${esc(s.rpm ?? "")}"></label>
       <label>${t("每天上限（次）")}<input name="rpd" ${numAttrs("int", { max: 100000, step: null })} placeholder="${tier?.rpd ?? t("不限")}" value="${esc(s.rpd ?? "")}"><small>${tier ? t("留空用默认值（各家公布的免费档，会变，以控制台为准）") : t("这个服务没有免费档；留空不限制，或按你买的额度填")}</small></label>
     </div>
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm btn-ghost" data-action="ai-usage-reset" data-provider="${p.id}">${t("重置计数")}</button>
+    <div class="form-actions" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="ai-usage-reset" data-provider="${p.id}">${t("重置计数")}</button>
       <small class="muted">${t("计数只在本机浏览器里，换设备或家人各自计")}</small></div>
   </fieldset>`;
 }

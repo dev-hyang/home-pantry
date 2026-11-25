@@ -9,7 +9,7 @@
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 export const sheetHtml = ({ title = "", label = "", list = "", closeAttr = "data-sheet-close", cancelText = "" }) =>
-  `<div class="fam-sheet-back" ${closeAttr}></div><div class="fam-sheet" role="dialog" aria-modal="true" aria-label="${esc(label)}">${title ? `<h3>${title}</h3>` : ""}<div class="fam-sheet-list">${list}</div><button type="button" class="btn btn-ghost fam-sheet-cancel" ${closeAttr}>${esc(cancelText)}</button></div>`;
+  `<div class="fam-sheet-back" ${closeAttr}></div><div class="fam-sheet" role="dialog" aria-modal="true" aria-label="${esc(label)}">${title ? `<h3>${title}</h3>` : ""}<div class="fam-sheet-list">${list}</div><button type="button" class="ui-btn fam-sheet-cancel" data-tone="ghost" ${closeAttr}>${esc(cancelText)}</button></div>`;
 
 /* ── 底部弹窗的键盘与焦点（所有 .fam-sheet 自动生效，调用方不用接线） ──
    · 出现时：焦点移进面板（读屏会读出 aria-label），记下原来的焦点；消失后焦点回到原处（原处还在页面上的话）

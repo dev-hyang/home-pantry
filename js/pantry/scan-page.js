@@ -43,11 +43,11 @@ function inputHtml() {
   const canImg = visionCapable(p);
   const st = Math.max(sc.stage || 1, sc.images.length || sc.text.trim() || sc.busy || sc.error ? 4 : 0);   // 已经展开到第几步（有照片 / 文字 / 在识别 / 有错误时直接到最后一步）
   const runOff = !ready || !sc.kind || sc.busy || (!sc.images.length && !sc.text.trim());
-  const runBtn = (cls) => `<button type="button" class="btn btn-primary ${cls}" data-action="scan-run" ${runOff ? "disabled" : ""}>${sc.busy ? (sc.progress || t("正在识别…（几十秒）")) : t("识别")}</button>`;
+  const runBtn = (cls) => `<button type="button" class="ui-btn ${cls}" data-tone="primary" data-action="scan-run" ${runOff ? "disabled" : ""}>${sc.busy ? (sc.progress || t("正在识别…（几十秒）")) : t("识别")}</button>`;
   return `
     <div class="section-head"><h2>${t("录入购物")}</h2><p>${t("拍小票或贴线上订单，AI 读成清单；或手动添加。确认后入库、记花费")}</p></div>
     ${ready ? "" : `<div class="panel cta-panel"><div><b>${t("先填一个 AI key")}</b><p class="muted">${t("推荐 Gemini（有免费额度）。key 只存在这台设备的浏览器里。")}</p></div>
-      <a class="btn btn-primary" href="${href("me", "settings")}?sec=ai">${t("去设置")}</a></div>`}
+      <a class="ui-btn" data-tone="primary" href="${href("me", "settings")}?sec=ai">${t("去设置")}</a></div>`}
     ${modePanel(st)}
     <div class="panel scan-in scan-step" data-step="3" ${st >= 3 ? "" : "hidden"}>
       <div>
@@ -59,7 +59,7 @@ function inputHtml() {
         ${canImg ? "" : `<p class="form-error" style="margin:6px 0 0">${t("当前的 {p} 不能读图片：换成 Gemini（设置 → AI 助手），或只粘贴文字。", { p: t(p.name) })}</p>`}
         ${sc.images.length > 1 ? `<div class="scan-mode"><span class="pick-lbl">${t("这几张照片是")}</span><div class="chips" role="group" aria-label="${t("几张照片的关系")}">${[["auto", "自动判断"], ["separate", "每张是一张独立小票"], ["merge", "合起来是同一张小票"]].map(([k, l]) => `<button type="button" class="chip" data-action="scan-mode" data-mode="${k}" aria-pressed="${sc.mode === k}">${t(l)}</button>`).join("")}</div>
           <p class="muted" style="margin:0;font-size:12.5px">${t("补录几张不同商店、不同日期的小票：选“每张是一张独立小票”最稳，每张单独识别，不会混在一起；长小票分段拍选“合起来是同一张”。")}</p></div>` : ""}
-        ${st < 4 ? `<p style="margin:10px 0 0"><button type="button" class="btn btn-ghost btn-sm" data-action="scan-skip-photo">${t("没有照片？只用文字 ›")}</button></p>` : ""}
+        ${st < 4 ? `<p style="margin:10px 0 0"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="scan-skip-photo">${t("没有照片？只用文字 ›")}</button></p>` : ""}
       </div>
       <div class="scan-step" data-step="4" ${st >= 4 ? "" : "hidden"}>
         ${order ? `<details class="scan-more" ${sc.text.trim() || sc.skipPhoto ? "open" : ""}><summary>${t("订单文字描述（可选，可跳过：订单确认邮件、网页或 App 订单详情，整段粘贴）")}</summary>
@@ -114,8 +114,8 @@ function receiptHtml(r, ri, many, cur) {
       <div class="rcpt-lump" role="status" hidden></div>
       <p class="muted scan-past" ${r.date < todayISO() ? "" : "hidden"} style="margin:8px 0 0;font-size:13px">📌 ${t("补记以前的购物：默认只记花费，不入库（东西多半已经用掉）。要加库存的行，把“放进库存”改成对应物品。")}</p>
       <ul class="scan-rows">${r.rows.map((x, i) => (x.fee ? "" : rowHtml(x, ri, i, cur))).join("")}</ul>
-      ${sc.result?.manual ? "" : `<div class="scan-fees"><h4>🧾 ${t("税费及其他")}</h4><p class="muted">${t("税、小费、配送费、服务费：记成单独的花费，商品价格不受影响；不要的取消勾选")}</p><ul class="scan-rows">${r.rows.map((x, i) => (x.fee ? feeRowHtml(x, ri, i, cur) : "")).join("")}</ul><button type="button" class="btn btn-ghost btn-sm" data-action="scan-add-fee" data-r="${ri}">＋ ${t("加一行税费")}</button></div>`}
-      ${sc.result?.manual ? `<div class="scan-addrow"><button type="button" class="btn btn-ghost btn-sm" data-action="scan-add-row" data-r="${ri}">＋ ${t("加一条")}</button><small class="muted">${t("要手动录入多样东西，就再加一条")}</small></div>` : ""}
+      ${sc.result?.manual ? "" : `<div class="scan-fees"><h4>🧾 ${t("税费及其他")}</h4><p class="muted">${t("税、小费、配送费、服务费：记成单独的花费，商品价格不受影响；不要的取消勾选")}</p><ul class="scan-rows">${r.rows.map((x, i) => (x.fee ? feeRowHtml(x, ri, i, cur) : "")).join("")}</ul><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="scan-add-fee" data-r="${ri}">＋ ${t("加一行税费")}</button></div>`}
+      ${sc.result?.manual ? `<div class="scan-addrow"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="scan-add-row" data-r="${ri}">＋ ${t("加一条")}</button><small class="muted">${t("要手动录入多样东西，就再加一条")}</small></div>` : ""}
       <p class="muted scan-rsum" style="margin:8px 0 0;font-size:13px"></p></fieldset>`;
 }
 function reviewHtml() {
@@ -131,8 +131,8 @@ function reviewHtml() {
       <p class="muted" id="scanSum" style="margin:8px 0 0;font-size:13px"></p>
       ${sc.error ? `<p class="form-error" role="alert">${esc(sc.error)}</p>` : ""}
       <div class="form-actions sticky-actions">
-        ${R.manual ? `<a class="btn btn-ghost" href="${href("pantry", "inventory")}">${t("取消")}</a>` : `<button type="button" class="btn btn-ghost" data-action="scan-back">${t("返回重来")}</button>`}
-        <button type="button" class="btn btn-primary" data-action="scan-confirm" ${sc.busy ? "disabled" : ""}>${sc.busy ? t("正在入库…") : many ? t("确认入库（{n} 张小票）", { n: R.receipts.filter((x) => x.include).length }) : t("确认入库")}</button>
+        ${R.manual ? `<a class="ui-btn" data-tone="ghost" href="${href("pantry", "inventory")}">${t("取消")}</a>` : `<button type="button" class="ui-btn" data-tone="ghost" data-action="scan-back">${t("返回重来")}</button>`}
+        <button type="button" class="ui-btn" data-tone="primary" data-action="scan-confirm" ${sc.busy ? "disabled" : ""}>${sc.busy ? t("正在入库…") : many ? t("确认入库（{n} 张小票）", { n: R.receipts.filter((x) => x.include).length }) : t("确认入库")}</button>
         </div>
       <datalist id="scanItemNames">${itemNameOptions(["pantry", "house"]).map((n) => `<option value="${esc(n)}">`).join("")}</datalist>
     </form>`;

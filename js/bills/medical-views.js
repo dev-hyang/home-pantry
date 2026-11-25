@@ -35,7 +35,7 @@ const d = (x) => esc(x ?? "");
 const people = () => [...new Set([...state.members.map((m) => m.display_name), ...state.medBills.flatMap((b) => [b.patient, b.guarantor])].filter(Boolean))];
 function viewDetail(id, payId) {
   const isNew = id === "new", b = isNew ? null : state.medEnriched.find((x) => x.id === id);
-  if (!isNew && !b) return `<section class="section"><div class="panel empty"><strong>${t("找不到这张账单")}</strong>${t("可能已被删除，或它是别人的私密账单。")}<p><a class="btn" href="${medHref("list")}">${t("回账单列表")}</a></p></div></section>`;
+  if (!isNew && !b) return `<section class="section"><div class="panel empty"><strong>${t("找不到这张账单")}</strong>${t("可能已被删除，或它是别人的私密账单。")}<p><a class="ui-btn" href="${medHref("list")}">${t("回账单列表")}</a></p></div></section>`;
   const newKind = KINDS[state.route.q.get("kind")] ? state.route.q.get("kind") : "medical";
   {   // 新建：默认走 5 步向导；mode=full / copy / 别的应用带来的预填（provider、date、patient、note）→ 原整页表单
     const q0 = state.route.q;
@@ -111,7 +111,7 @@ function viewDetail(id, payId) {
       ${peopleFor(v.kind) && (!secQ || secQ === "basic") ? personAddPanel(v.kind) : ""}
       <datalist id="medProviders">${[...new Set(state.medBills.map((x) => x.provider))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
       <p id="medBillError" class="form-error" role="alert"></p>
-      <div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button>${b ? `<a class="btn btn-ghost" href="${esc(detailHref(b.id))}">${t("取消")}</a>` : ""}</div>
+      <div class="form-actions sticky-actions"><button type="submit" class="ui-btn" data-tone="primary">${t("保存")}</button>${b ? `<a class="ui-btn" data-tone="ghost" href="${esc(detailHref(b.id))}">${t("取消")}</a>` : ""}</div>
     </form>
     ${b ? "" : `<p class="muted">${t("先保存账单，再记缴费。")}</p>`}
   </section>`;
@@ -137,9 +137,9 @@ const MED_SECS = [{ id: "basic", icon: "🧾", name: "这是什么账单" }, { i
 function medBanner(b, q) {
   const isAi = q.get("ai") === "1", isNew = q.get("new") === "1"; if (!isAi && !isNew) return "";
   const K = kindOf(b), base = detailHref(b.id), missing = [!b.patient && OTL(K.who.split(" ")[0], "Who"), !b.due_on && OTL("到期日", "Due date"), !b.bill_ref && OTL("账单号", "Bill #")].filter(Boolean).slice(0, 3);
-  const close = `<a class="btn btn-sm btn-ghost" href="${base}">${t("知道了")}</a>`;
+  const close = `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${base}">${t("知道了")}</a>`;
   if (isAi) return `<div class="notice" role="status" style="margin-bottom:12px"><b>✨ ${t("AI 识别创建")}</b> ${t("看一眼就行：不对的地方点下面对应分区的“编辑”改；整张读错了就撤销创建。")}${missing.length ? ` ${t("还没读到：{list}。", { list: missing.join("、") })}` : ""}
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm btn-ghost" data-action="med-del" data-id="${b.id}">${t("撤销创建")}</button>${close}</div></div>`;
+    <div class="form-actions" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="med-del" data-id="${b.id}">${t("撤销创建")}</button>${close}</div></div>`;
   return `<div class="notice" role="status" style="margin-bottom:12px"><b>✅ ${t("已创建")}</b> ${missing.length ? t("这几项还没填：{list}，随时在下面补。", { list: missing.join("、") }) : t("信息都齐了。")}${b.owed != null ? ` ${t("接着可以在下面记付款。")}` : ""}<div class="form-actions" style="margin-top:8px">${close}</div></div>`;
 }
 /** 首页：综合信息卡 + 缴费记录（缴费行点一下编辑，⋯ / 长按有 编辑、复制、删除） */
@@ -156,7 +156,7 @@ function medDetailPage(b) {
   const K = kindOf(b), base = detailHref(b.id);
   const cards = MED_SECS.filter((sec) => !sec.only || K[sec.only]).map((sec) => `<section class="panel prof-card" aria-labelledby="mc-${sec.id}">
       <header class="prof-head"><span class="mi" aria-hidden="true">${sec.icon}</span><div class="prof-t"><h3 id="mc-${sec.id}">${t(sec.name)}</h3></div>
-        <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=${sec.id}" aria-label="${esc(t("编辑 {name}", { name: t(sec.name) }))}">${t("编辑")}</a></header>${medFacts(b, sec.id)}</section>`).join("");
+        <a class="ui-btn prof-edit" data-size="sm" data-tone="ghost" href="${base}?sec=${sec.id}" aria-label="${esc(t("编辑 {name}", { name: t(sec.name) }))}">${t("编辑")}</a></header>${medFacts(b, sec.id)}</section>`).join("");
   return `<section class="section">
     ${crumbNav([...billScopeParts(b, "onetime"), { href: base, label: b.provider, icon: subIcon(b) }, { label: t("详情") }])}
     <div class="section-head"><h2>${subIcon(b)} ${esc(b.provider)}</h2></div>
@@ -210,7 +210,7 @@ const personAddPanel = (kind) => `<div id="personAdd" class="panel" hidden style
     <div class="form-grid"><label>${t("姓名")}<input id="personAddName" maxlength="40"></label>
       <label>${t("类别")}<select id="personAddKind">${(peopleFor(kind) || ["adult"]).map((k) => `<option value="${k}">${t(PEOPLE_KINDS[k])}</option>`).join("")}${kind === "medical" ? "" : ""}</select></label></div>
     <p id="personAddMsg" class="muted" role="status" style="margin:6px 0 0;font-size:13px"></p>
-    <div class="form-actions"><button type="button" class="btn btn-sm btn-primary" data-action="person-add-do">${t("添加")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-add-cancel">${t("取消")}</button></div></div>`;
+    <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="person-add-do">${t("添加")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="person-add-cancel">${t("取消")}</button></div></div>`;
 const personSelects = () => [...document.querySelectorAll("#medBillForm select[name=patient_id], #medBillForm select[name=guarantor_id]")];
 /** 下拉里选了“＋ 新增…”：不真的选它，展开新增面板（记下是给哪个下拉加的） */
 export function onPersonPick(e) {

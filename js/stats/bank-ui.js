@@ -70,17 +70,17 @@ function partsHtml() {
     const how = p.ai ? t("AI 解析") : p.local ? t("本地规则") : p.table ? t("表格") : ["ofx", "qif"].includes(p.kind) ? p.kind.toUpperCase() : "";
     const canAi = ["pdf", "image", "paste"].includes(p.kind);
     return `<li><div class="grow"><span class="name">${KIND_ICON[p.kind] || "📄"} ${esc(p.name)}</span><small>${p.scan ? t("没有文字层的扫描件 / 图片，需要 AI 才能读") : t("读出 {n} 笔", { n: p.rows.length })}${how ? ` · ${how}` : ""}${p.pages ? ` · ${t("{n} 页", { n: p.pages })}` : ""}${p.scan ? "" : spanOf(p)}${reconcileHtml(p)}${p.error ? ` · <b class="bank-dup">${esc(p.error)}</b>` : ""}</small></div>
-      ${canAi ? `<button type="button" class="btn btn-sm ${p.scan ? "" : "btn-ghost"}" data-bank-act="ai" data-i="${i}" ${S.busy ? "disabled" : ""}>${p.ai ? t("用 AI 重新解析") : t("用 AI 解析")}</button>` : ""}
-      <button type="button" class="btn btn-sm btn-ghost" data-bank-act="rm" data-i="${i}" aria-label="${esc(t("移除"))}">✕</button></li>`;
+      ${canAi ? `<button type="button" class="ui-btn" data-size="sm" data-tone="${p.scan ? "" : "ghost"}" data-bank-act="ai" data-i="${i}" ${S.busy ? "disabled" : ""}>${p.ai ? t("用 AI 重新解析") : t("用 AI 解析")}</button>` : ""}
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="rm" data-i="${i}" aria-label="${esc(t("移除"))}">✕</button></li>`;
   }).join("")}</ul>${needsAiHint && !ai ? `<p class="muted" style="font-size:13px;margin:6px 0 0">${t("PDF / 截图本地规则读不准或读不了时，可以用 AI 解析：到 设置 → AI 助手 填 key（Gemini 有免费额度）。")}</p>` : ""}
     ${S.status ? `<p role="status" class="muted" style="margin:6px 0 0">${esc(S.status)}</p>` : ""}`;
 }
 function panelHtml() {
   const hasRows = S.groups.length > 0, batches = meta("_bank_batches", []) || [];
   const head = `<div class="panel bank-pick"><p class="muted small" style="margin:0 0 8px">${t("一份对账单，花费和收入一次导入：刷卡 / 扣款记成花费；入账（工资、电汇、Zelle 转入…）单独列在「收入」一栏，勾上就记成收入（只有家主和被允许的人看得到）；信用卡还款、自己账户之间的转账跳过。")}</p><p style="margin:0 0 8px">${t("从银行或信用卡网站下载对账单，选中文件：支持 CSV、Excel、OFX / QFX、QIF，以及 PDF 月结单、截图（PDF 先用本地规则读，读不准再用 AI）。可以一次选多个月。文件只在你的浏览器里处理；只有你点“用 AI 解析”才会把内容发给你设置的模型。")}</p>
-    <label class="btn btn-primary btn-sm" style="cursor:pointer">${t("选择文件（可多选）")}<input type="file" id="bankFile" multiple accept=".csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx,.qif,.pdf,image/*,text/csv,text/plain,application/pdf" hidden></label>
+    <label class="ui-btn" data-size="sm" data-tone="primary" style="cursor:pointer">${t("选择文件（可多选）")}<input type="file" id="bankFile" multiple accept=".csv,.tsv,.txt,.xlsx,.xls,.ofx,.qfx,.qif,.pdf,image/*,text/csv,text/plain,application/pdf" hidden></label>
     <details class="bank-paste" style="margin-top:8px"><summary>${t("或者直接粘贴文字")}</summary><textarea id="bankPaste" data-autosize rows="5" placeholder="${esc(t("把网银页面或 PDF 里的交易几行直接复制粘贴到这里"))}" style="margin-top:6px"></textarea>
-      <div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-bank-act="paste">${t("读取这段文字")}</button></div></details>
+      <div class="form-actions" style="margin-top:6px"><button type="button" class="ui-btn" data-size="sm" data-bank-act="paste">${t("读取这段文字")}</button></div></details>
     ${partsHtml()}${S.error ? `<p class="form-error" role="alert">${esc(S.error)}</p>` : ""}</div>`;
   if (!S.parts.length) return head + tipsHtml() + rulesHtml() + batchesHtml(batches);
   const tp = S.parts.length === 1 && S.parts[0].table ? S.parts[0].table : null;
@@ -104,8 +104,8 @@ function panelHtml() {
     ${skipped.length ? `<section class="section"><details class="ref-panel panel"><summary><b>${t("默认跳过")}</b><small>${t("还款 / 转账 / 收入")}</small><span class="ui-chev" aria-hidden="true">›</span></summary><ul class="restock-list bank-list ref-body">${skipped.map(groupRow).join("")}</ul></details></section>` : ""}
     <div class="panel bank-go"><label class="check-inline"><input type="checkbox" data-bank-remember ${S.remember ? "checked" : ""}><span>${t("记住我选的归类（下次同一商家自动归类，全家共用）")}</span></label>
       ${accountHtml()}
-      <div class="form-actions"><button type="button" class="btn btn-primary" data-bank-act="import" ${(c.n || ic.n) && !S.busy ? "" : "disabled"}>${S.busy ? t("导入中…") : ic.n ? t("导入 {n} 笔花费 + {m} 笔收入", { n: c.n, m: ic.n }) : t("导入 {n} 笔", { n: c.n })}</button></div></div>
-    ${S.last ? `<div class="panel" role="status"><b>${t("已导入 {n} 笔，合计 {m}", { n: S.last.n, m: money(S.last.sum) })}</b> <button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo-last">${t("撤销这批")}</button>${tidyHintHtml()}</div>` : ""}
+      <div class="form-actions"><button type="button" class="ui-btn" data-tone="primary" data-bank-act="import" ${(c.n || ic.n) && !S.busy ? "" : "disabled"}>${S.busy ? t("导入中…") : ic.n ? t("导入 {n} 笔花费 + {m} 笔收入", { n: c.n, m: ic.n }) : t("导入 {n} 笔", { n: c.n })}</button></div></div>
+    ${S.last ? `<div class="panel" role="status"><b>${t("已导入 {n} 笔，合计 {m}", { n: S.last.n, m: money(S.last.sum) })}</b> <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="undo-last">${t("撤销这批")}</button>${tidyHintHtml()}</div>` : ""}
     ${batchesHtml(batches)}`;
 }
 /** 记住的归类规则：列出来、可逐条删或全部清除（归错了一次又勾了「记住」，不清掉会一直错） */
@@ -114,8 +114,8 @@ function rulesHtml() {
   const nameOf = (id) => { const c = [...window.CATEGORIES, ...window.BILLS_GROUP.cats(), ...window.LIFE_CATS, ...window.WORK_CATS, ...window.TRAVEL_CATS, window.GROCERY_MISC, window.FEES_CAT, window.VEHICLE_FUEL, window.MAINT_CAT, window.VEHICLE_CAT, window.MEDICAL_GROUP, window.PET_CARE_CAT, window.OTHER_CAT].find((x) => x && x.id === id); return c ? `${c.icon} ${t(c.name)}` : id; };
   return `<details class="ref-panel panel" style="margin-top:10px"><summary><b>${t("记住的归类")}</b><small>${t("{n} 家商家", { n: keys.length })}</small><span class="ui-chev" aria-hidden="true">›</span></summary>
     <div class="ref-body"><p class="muted" style="margin:0 0 6px;font-size:12.5px">${t("导入时勾了「记住我选的归类」后，这些商家下次自动按这里归。归错了就删掉这一条（或在导入清单里改选，会记住新的）。")}</p>
-    <ul class="restock-list">${keys.sort((a, b) => ruleUse(rules[b]).t.localeCompare(ruleUse(rules[a]).t) || a.localeCompare(b)).map((k) => { const u = ruleUse(rules[k]); return `<li><div class="grow"><span class="name">${esc(k)}</span><small>${esc(nameOf(ruleCat(rules[k])))}${u.t ? ` · ${t("用过 {n} 次 · 最近 {d}", { n: u.n, d: u.t })}` : ""}</small></div><button type="button" class="btn btn-sm btn-ghost" data-bank-act="rule-del" data-key="${esc(k)}" aria-label="${esc(t("删除这条"))}">✕</button></li>`; }).join("")}</ul>
-    <div class="form-actions" style="margin-top:8px">${redundantRules().length ? `<button type="button" class="btn btn-sm" data-bank-act="rules-tidy" title="${esc(t("你记的分类和内置关键词现在给的一样，删了结果不变"))}">${t("清理多余规则（{n}）", { n: redundantRules().length })}</button>` : ""}${staleRules().length ? `<button type="button" class="btn btn-sm btn-ghost" data-bank-act="rules-stale">${t("清理 90 天没用到的（{n}）", { n: staleRules().length })}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="rules-clear">${t("全部清除")}</button></div>
+    <ul class="restock-list">${keys.sort((a, b) => ruleUse(rules[b]).t.localeCompare(ruleUse(rules[a]).t) || a.localeCompare(b)).map((k) => { const u = ruleUse(rules[k]); return `<li><div class="grow"><span class="name">${esc(k)}</span><small>${esc(nameOf(ruleCat(rules[k])))}${u.t ? ` · ${t("用过 {n} 次 · 最近 {d}", { n: u.n, d: u.t })}` : ""}</small></div><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="rule-del" data-key="${esc(k)}" aria-label="${esc(t("删除这条"))}">✕</button></li>`; }).join("")}</ul>
+    <div class="form-actions" style="margin-top:8px">${redundantRules().length ? `<button type="button" class="ui-btn" data-size="sm" data-bank-act="rules-tidy" title="${esc(t("你记的分类和内置关键词现在给的一样，删了结果不变"))}">${t("清理多余规则（{n}）", { n: redundantRules().length })}</button>` : ""}${staleRules().length ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="rules-stale">${t("清理 90 天没用到的（{n}）", { n: staleRules().length })}</button>` : ""}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="rules-clear">${t("全部清除")}</button></div>
     <p class="muted" style="margin:6px 0 0;font-size:12px">${t("最多记 400 条，满了先淘汰最久没用到的。")}</p></div></details>`;
 }
 const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 6px">${t("怎么归类？")}</h3><ul class="plain small" style="margin:0">
@@ -129,8 +129,8 @@ const tipsHtml = () => `<div class="panel"><h3 style="font-size:15px;margin:0 0 
 const datesEditHtml = (b) => '<div class="bank-dates-edit" style="flex:1 1 100%;display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:6px">'
   + '<label>' + t("起") + '<input type="date" name="bfrom" value="' + esc(b.from || "") + '"></label>'
   + '<label>' + t("止") + '<input type="date" name="bto" value="' + esc(b.to || "") + '"></label>'
-  + '<button type="button" class="btn btn-sm btn-primary" data-bank-act="dates-save" data-batch="' + esc(b.id) + '">' + t("保存") + '</button>'
-  + '<button type="button" class="btn btn-sm btn-ghost" data-bank-act="dates-cancel">' + t("取消") + '</button>'
+  + '<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-bank-act="dates-save" data-batch="' + esc(b.id) + '">' + t("保存") + '</button>'
+  + '<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="dates-cancel">' + t("取消") + '</button>'
   + '<small class="muted" style="flex-basis:100%">' + t("只改这批记录的起止日期（“各账户已补到哪个月”按它算），不改每一笔花费的日期。") + '</small></div>';
 export async function saveBatchDates(id, li) {
   const from = li.querySelector('[name="bfrom"]')?.value || "", to = li.querySelector('[name="bto"]')?.value || "";
@@ -172,7 +172,7 @@ const batchRow = (b) => {
   return `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}${b.last4 ? ` <span class="muted">··${esc(b.last4)}</span>` : ""}` : esc(b.file || t("银行导入"))}</span>
     <small class="bank-batch-stats">${stats}${note ? ` <span class="${x.changed || gone ? "bank-dup" : "muted"}">${note}</span>` : ""}</small>
     <small class="muted">${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}</small></div>
-    <span class="bank-batch-acts">${can ? `${x.n > 0 || (!x.inN && b.ids?.length) ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "spend")}?tab=records&batch=${esc(b.id)}">${x.inN ? t("查看花费") : t("查看 / 修改")}</a>` : ""}${x.inN ? `<a class="btn btn-sm btn-ghost" href="${href("bills", "income")}?tab=records&batch=${esc(b.id)}">${t("查看收入")}</a>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="dates-edit" data-batch="${esc(b.id)}" title="${esc(t("AI 没读出日期、或读错了时，手动填这批的起止日期"))}">${t("改日期")}</button></span>${S.editDates === b.id ? datesEditHtml(b) : ""}</li>`;
+    <span class="bank-batch-acts">${can ? `${x.n > 0 || (!x.inN && b.ids?.length) ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "spend")}?tab=records&batch=${esc(b.id)}">${x.inN ? t("查看花费") : t("查看 / 修改")}</a>` : ""}${x.inN ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "income")}?tab=records&batch=${esc(b.id)}">${t("查看收入")}</a>` : ""}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="dates-edit" data-batch="${esc(b.id)}" title="${esc(t("AI 没读出日期、或读错了时，手动填这批的起止日期"))}">${t("改日期")}</button></span>${S.editDates === b.id ? datesEditHtml(b) : ""}</li>`;
 };
 export const batchAcctKey = (b) => (b.account ? `${b.account}${b.last4 ? ` ··${b.last4}` : ""}` : "");
 const batchesHtml = (batches) => {
@@ -184,13 +184,13 @@ const batchesHtml = (batches) => {
   ensureLive(head);   // 只给这一页的几批读实时数字
   const nOf = (pred) => batches.filter(pred).length;
   const opt = (v, l) => `<option value="${esc(v)}" ${S.batchAcct === v ? "selected" : ""}>${esc(l)}</option>`;
-  const recover = `<p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("以前导入过、这里却没有的批次（记录丢了或迁移前导入的）：")}<button type="button" class="btn btn-sm btn-ghost" data-bank-act="recover" style="margin-left:4px">${t("找回批次")}</button></p>`;
+  const recover = `<p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("以前导入过、这里却没有的批次（记录丢了或迁移前导入的）：")}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="recover" style="margin-left:4px">${t("找回批次")}</button></p>`;
   if (!batches.length) return `<section class="section"><div class="panel">${recover}</div></section>`;
-  return `<section class="section"><div class="section-head"><h2>${t("最近导入")}</h2><p>${t("「查看 / 修改」打开这一批的明细，每一笔都能改分类、金额、商店或删掉；「撤销」整批删除。")}</p></div>${coverageHtml(batches)}<div class="panel" style="margin-top:10px">${lost ? `<div class="notice" role="status" style="margin-bottom:8px"><b>${t("有 {n} 批早期导入只留了汇总，不能查看 / 修改 / 撤销。", { n: lost })}</b><br><small>${t("这是迁移 034 之前导入的（那时只保留最近 6 批的明细）。先在 Supabase 执行 034_purchase_import_batch.sql，再点下面的按钮：按导入时间和笔数把它们的花费找回来、补上批次标记，之后和新的批次一样。笔数对不上的会跳过，不会乱标。")}</small><div class="form-actions" style="margin-top:6px"><button type="button" class="btn btn-sm" data-bank-act="recover">${t("找回早期批次")}</button></div></div>` : ""}
+  return `<section class="section"><div class="section-head"><h2>${t("最近导入")}</h2><p>${t("「查看 / 修改」打开这一批的明细，每一笔都能改分类、金额、商店或删掉；「撤销」整批删除。")}</p></div>${coverageHtml(batches)}<div class="panel" style="margin-top:10px">${lost ? `<div class="notice" role="status" style="margin-bottom:8px"><b>${t("有 {n} 批早期导入只留了汇总，不能查看 / 修改 / 撤销。", { n: lost })}</b><br><small>${t("这是迁移 034 之前导入的（那时只保留最近 6 批的明细）。先在 Supabase 执行 034_purchase_import_batch.sql，再点下面的按钮：按导入时间和笔数把它们的花费找回来、补上批次标记，之后和新的批次一样。笔数对不上的会跳过，不会乱标。")}</small><div class="form-actions" style="margin-top:6px"><button type="button" class="ui-btn" data-size="sm" data-bank-act="recover">${t("找回早期批次")}</button></div></div>` : ""}
     ${accts.length > 1 || hasNone ? `<div class="bank-acct-bar"><span class="bab-ico" aria-hidden="true">🏦</span><select data-bank-batch-acct aria-label="${esc(t("按账户筛选"))}">${opt("all", t("全部账户（{n} 批）", { n: batches.length }))}${accts.map((a) => opt(a, `${a}（${t("{n} 批", { n: nOf((b) => batchAcctKey(b) === a) })}）`)).join("")}${hasNone ? opt("__none__", `${t("没记账户")}（${t("{n} 批", { n: nOf((b) => !batchAcctKey(b)) })}）`) : ""}</select></div>` : ""}
     <ul class="restock-list bank-batches">${head.map(batchRow).join("")}</ul>
     <p class="muted bank-batch-count">${t("显示 {a} / 共 {b} 批", { a: head.length, b: all.length })}${batches.length >= BATCH_KEEP ? ` · ${t("只保留最近 {n} 批的记录；更早的花费 / 收入都还在，只是不在这里列出、不能整批撤销", { n: BATCH_KEEP })}` : ""}</p>
-    ${rest ? `<div class="form-actions" style="justify-content:center;margin-top:4px"><button type="button" class="btn btn-ghost" data-bank-act="batches-more">${t("继续加载")}</button></div>` : ""}
+    ${rest ? `<div class="form-actions" style="justify-content:center;margin-top:4px"><button type="button" class="ui-btn" data-tone="ghost" data-bank-act="batches-more">${t("继续加载")}</button></div>` : ""}
     ${lost ? "" : recover}</div></section>`;
 };
 export function bankImportTab() { return `<section class="section" id="bankImport">${panelHtml()}</section>`; }

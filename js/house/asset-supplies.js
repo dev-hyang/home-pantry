@@ -28,13 +28,13 @@ export function suppliesSection(a) {
   const li = ({ name, item }) => item
     ? `<li><span class="badge ${STATUS[item.status].cls}">${t(STATUS[item.status].label)}</span>
         <div class="grow"><a class="link-name" href="${href("item", item.id)}">${esc(item.name)}</a><small>${t("剩 {q} {u}", { q: Math.round(item.dqty * 100) / 100, u: t(item.du) })}${item.location ? ` · 📍${esc(t(item.location))}` : ""}</small></div>
-        ${openShopFor(item.id) ? `<span class="badge b-ok">${t("已在清单")}</span>` : `<button type="button" class="btn btn-sm" data-action="shop-add-item" data-id="${item.id}">${t("加入购物车")}</button>`}</li>`
+        ${openShopFor(item.id) ? `<span class="badge b-ok">${t("已在清单")}</span>` : `<button type="button" class="ui-btn" data-size="sm" data-action="shop-add-item" data-id="${item.id}">${t("加入购物车")}</button>`}</li>`
     : `<li><span class="badge" style="background:var(--surface-2)">${t("还没备")}</span>
         <div class="grow"><b>${esc(t(name))}</b><small>${t("库存里还没有这项")}</small></div>
-        <button type="button" class="btn btn-sm btn-primary" data-action="supply-add" data-name="${esc(name)}">${t("加入库存")}</button></li>`;
+        <button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="supply-add" data-name="${esc(name)}">${t("加入库存")}</button></li>`;
   return `<div class="panel"><p class="muted" style="margin:0 0 8px;font-size:13px">${t("这类设备用到的耗材。库存统一在 储藏 → 库存 → 汽车房屋消耗品 里管理，少货会进采购提醒。")}</p>
     <ul class="restock-list">${rows.map(li).join("")}</ul>
-    <div class="form-actions" style="margin-top:10px"><a class="btn btn-sm btn-ghost" href="${href("pantry", "inventory")}?space=house">${t("看全部汽车房屋消耗品")}</a></div></div>`;
+    <div class="form-actions" style="margin-top:10px"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("pantry", "inventory")}?space=house">${t("看全部汽车房屋消耗品")}</a></div></div>`;
 }
 export const ASSET_SECTIONS = [
   { id: "basic", icon: "🏷️", name: "基本信息" },

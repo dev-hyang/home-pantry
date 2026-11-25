@@ -41,8 +41,8 @@ export function viewMeals() {
       <div class="ing">${r.parts.map((p) => `<span class="${p.item ? "have" : "miss"}">${esc(p.item ? p.item.name : t(p.kw[0]))}</span>`).join("")}</div>
       <p class="muted" style="margin:0;font-size:13px">${esc(t(r.note))}</p>
       <div class="acts">
-        ${missing.length ? `<button type="button" class="btn btn-sm" data-action="recipe-missing" data-name="${esc(r.name)}">${t("缺的加入采购")}</button>` : ""}
-        <a class="btn btn-sm btn-ghost" href="${recipeLink(r.name)}" target="_blank" rel="noopener noreferrer">${t("在下厨房看做法")}</a>
+        ${missing.length ? `<button type="button" class="ui-btn" data-size="sm" data-action="recipe-missing" data-name="${esc(r.name)}">${t("缺的加入采购")}</button>` : ""}
+        <a class="ui-btn" data-size="sm" data-tone="ghost" href="${recipeLink(r.name)}" target="_blank" rel="noopener noreferrer">${t("在下厨房看做法")}</a>
       </div>
     </article>`;
   }).join("");
@@ -53,7 +53,7 @@ export function viewMeals() {
     ${aiPanel()}
     <section class="section">
       <div class="section-head"><h2>${t("按库存推荐菜单")}</h2>
-        <button type="button" class="btn btn-sm" data-action="shuffle">${t("换一组")}</button></div>
+        <button type="button" class="ui-btn" data-size="sm" data-action="shuffle">${t("换一组")}</button></div>
       <div class="seg" role="group" aria-label="${t("饮食模式")}">
         ${Object.entries(DIETS).map(([k, v]) => `<button type="button" class="chip" data-action="diet" data-diet="${k}" aria-pressed="${state.diet === k}">${v.icon} ${t(v.name)}</button>`).join("")}
       </div>

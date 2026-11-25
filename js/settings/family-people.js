@@ -53,13 +53,13 @@ function cardHtml(p) {
       <div class="fam-act">${menu}</div></div>
     ${owner && merging ? `<div class="person-merge"><span class="muted">${t("把“{n}”合并到：", { n: esc(p.name) })}</span>
         <select data-merge-for="${p.id}" aria-label="${esc(t("合并到"))}"><option value="">${t("选一个人…")}</option>${state.people.filter((x) => x.id !== p.id).map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select>
-        <button type="button" class="btn btn-sm btn-primary" data-action="person-merge" data-id="${p.id}">${t("确认合并")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="person-merge-cancel">${t("取消")}</button>
+        <button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="person-merge" data-id="${p.id}">${t("确认合并")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="person-merge-cancel">${t("取消")}</button>
         <small class="muted">${t("它的账单、设备都会归到所选的人名下，然后这一条被删除。")}</small></div>` : ""}</li>`;
 }
 export function peoplePanel() {
   ensureLogins();
   const owner = amOwner(), list = visiblePeople();
-  const add = owner ? `<a class="btn btn-primary btn-sm" href="${personHref("new")}">＋ ${t("添加")}</a>` : "";
+  const add = owner ? `<a class="ui-btn" data-size="sm" data-tone="primary" href="${personHref("new")}">＋ ${t("添加")}</a>` : "";
   return `<div class="panel"><div class="fam-head"><h3 class="mem-h">${t("家庭成员（{n}）", { n: list.length })}</h3>${add}</div>
       ${list.length ? `<ul class="fam-list">${list.map(cardHtml).join("")}</ul>` : `<div class="empty"><strong>${t("还没有家庭成员")}</strong>${t("家主可以点上面的“＋ 添加”。")}</div>`}
       <p class="muted mem-note">${owner ? t("点右边的 ⋯ 看详情（资料、登录设备、登录记录）。账单的“谁负责”、一次性账单的患者、收入都关联到这里的人。") : t("你只能看到自己；家主管理全部家庭成员。")}</p></div>`;
@@ -67,7 +67,7 @@ export function peoplePanel() {
 /* ── 成员详情页 ── */
 /** 一个可折叠的块：标题 + 右上角编辑；编辑按钮在 <summary> 里，点它不折叠（见底部的点击处理） */
 const sec = (id, icon, title, body, { edit = false, count = "" } = {}) => `<section class="panel prof-card fam-sec" data-fam-sec="${id}">
-    <header class="prof-head"><span class="mi" aria-hidden="true">${icon}</span><div class="prof-t"><h3>${title}</h3>${count ? `<small>${count}</small>` : ""}</div>${edit ? `<button type="button" class="btn btn-sm btn-ghost prof-edit" data-fam-edit="${id}" aria-pressed="${F.edit === id}">${F.edit === id ? t("完成") : t("编辑")}</button>` : ""}</header>${body}</section>`;
+    <header class="prof-head"><span class="mi" aria-hidden="true">${icon}</span><div class="prof-t"><h3>${title}</h3>${count ? `<small>${count}</small>` : ""}</div>${edit ? `<button type="button" class="ui-btn prof-edit" data-size="sm" data-tone="ghost" data-fam-edit="${id}" aria-pressed="${F.edit === id}">${F.edit === id ? t("完成") : t("编辑")}</button>` : ""}</header>${body}</section>`;
 const fact = (k, v) => `<div class="fact"><dt>${k}</dt><dd>${v || `<span class="muted">${t("没填")}</span>`}</dd></div>`;
 function basicBody(p) {
   const owner = amOwner(), devs = devicesOf(p.id), role = roleOf(p), fin = devs.some((d) => d.role === "owner" || d.can_finance === true);
@@ -87,7 +87,7 @@ function basicBody(p) {
       ${owner && devs.length ? `<label>${t("角色")}${sel("role", role, [["member", t("家庭成员")], ["owner", t("家主")]])}</label>
         <label>${t("财务权限")}${sel("finance", fin ? "1" : "0", [["0", t("没有")], ["1", t("有")]])}<small>${t("家主恒有财务权限。")}</small></label>` : ""}
     </div><p id="personErr" class="form-error" role="alert"></p>
-    <div class="form-actions form-actions-split"><button type="button" class="btn btn-ghost" data-fam-edit="basic">${t("取消")}</button><button type="submit" class="btn btn-primary">${t("保存")}</button></div></form>`;
+    <div class="form-actions form-actions-split"><button type="button" class="ui-btn" data-tone="ghost" data-fam-edit="basic">${t("取消")}</button><button type="submit" class="ui-btn" data-tone="primary">${t("保存")}</button></div></form>`;
 }
 /** 这台设备我能不能移出：不是当前这台；家主任意，普通成员只能移出同一个人名下的 */
 const canRemoveDevice = (userId) => { const m = famMembers().find((x) => x.user_id === userId); return !!m && userId !== meId() && (amOwner() || (!!m.person_id && m.person_id === myPersonOf())); };
@@ -112,7 +112,7 @@ function linkSheet() {
 function devicesBody(p) {
   const own = devicesOf(p.id), unlinked = amOwner() ? famMembers().filter((m) => !m.person_id) : [];
   return `${own.length ? `<ul class="dev-list">${own.slice(0, F.devShow).map(deviceRow).join("")}</ul>` : `<p class="muted">${t("这位家庭成员还没有链接任何登录设备。")}</p>`}
-    ${own.length > F.devShow ? `<div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="dev-more">${t("加载更多")}</button></div>` : ""}
+    ${own.length > F.devShow ? `<div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="dev-more">${t("加载更多")}</button></div>` : ""}
     ${unlinked.length ? `<h4 class="fam-sub">${t("还没链接家庭成员的设备")}</h4><ul class="dev-list">${unlinked.map(deviceRow).join("")}</ul>` : ""}
     <p class="muted mem-note">${t("点右边的 ⋯：重命名、关联到哪位家庭成员、登出。登出别的设备 = 把它从家庭里移出，它下次打开要重新用邮箱或邀请码登录。")}</p>`;
 }
@@ -122,17 +122,17 @@ function logsBody(p) {
   const scope = amOwner() ? `<div class="chips fam-scope" role="group" aria-label="${esc(t("范围"))}"><button type="button" class="chip" aria-pressed="${!all}" data-action="logs-scope" data-all="0">${t("只看 {n}", { n: esc(p.name) })}</button><button type="button" class="chip" aria-pressed="${all}" data-action="logs-scope" data-all="1">${t("全家")}</button></div>` : "";
   return `${scope}<p class="muted mem-note" style="margin-top:0">${t("最近 {d} 天；出现没见过的设备或网络会标“可疑”，并在“注意事项”里提醒。", { d: L.days })}</p>
     ${!L.loaded ? `<p class="muted" role="status">${t("加载中…")}</p>` : rows.length ? `<ul class="restock-list login-list">${rows.map((e) => loginRowHtml(e, personNameOf, canRemoveDevice)).join("")}</ul>` : `<div class="empty"><strong>${t("这段时间没有登录记录")}</strong></div>`}
-    ${more ? `<div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="logins-more">${t("加载更多（再往前 6 天）")}</button></div>` : ""}
+    ${more ? `<div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="logins-more">${t("加载更多（再往前 6 天）")}</button></div>` : ""}
     ${amOwner() && L.bad.length ? `<details class="login-help" open><summary>${t("不是我们家人登录的？怎么办")}</summary><ol class="muted"><li>${t("在可疑记录右边的 ⋯ 里选“移出设备”，或到上面“登录设备”里点“移除”")}</li><li>${t("回到家庭与成员页，点“重新生成”换一个邀请码，旧邀请码立刻作废")}</li><li>${t("检查登录用的邮箱 / 手机号有没有被别人动过，必要时改密码或开启两步验证")}</li></ol></details>` : ""}`;
 }
 export function personPage(id) {
-  if (id === "new") return amOwner() ? newPersonPage() : `<div class="panel empty"><strong>${t("只有家主能添加家庭成员")}</strong><p><a class="btn" href="${familyHref()}">${t("回家庭与成员")}</a></p></div>`;
+  if (id === "new") return amOwner() ? newPersonPage() : `<div class="panel empty"><strong>${t("只有家主能添加家庭成员")}</strong><p><a class="ui-btn" href="${familyHref()}">${t("回家庭与成员")}</a></p></div>`;
   const p = state.people.find((x) => x.id === id);
-  if (!p || !personOk(p)) return `<div class="panel empty"><strong>${t("没有找到这位家庭成员")}</strong><p><a class="btn" href="${familyHref()}">${t("回家庭与成员")}</a></p></div>`;
+  if (!p || !personOk(p)) return `<div class="panel empty"><strong>${t("没有找到这位家庭成员")}</strong><p><a class="ui-btn" href="${familyHref()}">${t("回家庭与成员")}</a></p></div>`;
   const owner = amOwner(), hasDev = devicesOf(p.id).length > 0 || (owner && famMembers().some((m) => !m.person_id));
   const head = `<div class="panel mem-head"><span class="fam-av lg" aria-hidden="true">${avatarOf(p)}</span><div class="mem-head-t"><h2>${esc(p.name)}</h2><div class="mem-badges">${badgesOf(p)}</div></div></div>`;
   const danger = owner && p.id !== myPersonOf() && !devicesOf(p.id).length ? `<div class="panel mem-danger"><h3 class="mem-h">${t("危险操作")}</h3><div class="mem-perm"><div class="grow"><b>${t("删除这位家庭成员")}</b><div class="muted">${t("相关账单里的名字会保留，但不再关联到这个人。")}</div></div>
-      <button type="button" class="btn btn-sm btn-danger-ghost" data-action="person-del-page" data-id="${esc(p.id)}">${t("删除")}</button></div></div>` : "";
+      <button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="person-del-page" data-id="${esc(p.id)}">${t("删除")}</button></div></div>` : "";
   return `<div class="mem-profile">${head}
     ${sec("basic", "🪪", t("基本资料"), basicBody(p), { edit: true })}
     ${p.kind !== "pet" && hasDev ? sec("devices", "📱", t("登录设备"), devicesBody(p), { count: t("{n} 台", { n: devicesOf(p.id).length }) }) : ""}
@@ -152,7 +152,7 @@ function newPersonPage() {
       <label data-fsec="contact">${t("邮箱")}<input name="email" type="email" maxlength="120"></label>
       <label data-fsec="contact" class="span-2">${t("地址")}<textarea name="address" rows="2" maxlength="300"></textarea></label>
     </div>${gwReview()}<p id="personErr" class="form-error" role="alert"></p>
-    ${gwActions(`<button type="button" class="btn btn-ghost" data-action="person-new-cancel">${t("取消")}</button>`)}</form></section></div>`;
+    ${gwActions(`<button type="button" class="ui-btn" data-tone="ghost" data-action="person-new-cancel">${t("取消")}</button>`)}</form></section></div>`;
 }
 /* ── 事件：块的编辑 / 折叠 / 设备详情 / 范围 / 保存 ── */
 /** 重画当前页；keep = 留在原来的位置（登录记录里切范围 / 加载更多，不回到页面顶端） */

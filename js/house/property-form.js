@@ -16,8 +16,8 @@ export function propertyForm(p) {
         <label>${t("地址（可选）")}<input name="address" maxlength="120" value="${esc(p?.address || "")}"></label>
         <label class="span-2">${t("备注")}<input name="notes" maxlength="500" value="${esc(p?.notes || "")}"></label>
       </div>
-      <div class="form-actions" style="margin-top:8px"><button class="btn btn-sm btn-primary" type="submit">${t("保存")}</button>
-        <button class="btn btn-sm btn-ghost" type="button" data-action="property-cancel">${t("取消")}</button></div></form>`;
+      <div class="form-actions" style="margin-top:8px"><button class="ui-btn" data-size="sm" data-tone="primary" type="submit">${t("保存")}</button>
+        <button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="property-cancel">${t("取消")}</button></div></form>`;
 }
 
 /**

@@ -52,7 +52,7 @@ export function spendFormPage(P) {
   const title = isEdit ? t("编辑花费") : P.mode === "copy" ? t("复制花费") : t("记一笔花费");
   const crumb = recCrumb("spend", spendRecordsHref(), title);
   if (P.id && src === undefined) return `<section class="section form-page">${crumb}<div class="panel empty"><strong>${t("加载中…")}</strong></div></section>`;
-  if (P.id && !src) return `<section class="section form-page">${crumb}<div class="panel empty"><strong>${t("找不到这笔记录")}</strong><p><a class="btn btn-sm" href="${spendRecordsHref()}">${t("回到花费记录")}</a></p></div></section>`;
+  if (P.id && !src) return `<section class="section form-page">${crumb}<div class="panel empty"><strong>${t("找不到这笔记录")}</strong><p><a class="ui-btn" data-size="sm" href="${spendRecordsHref()}">${t("回到花费记录")}</a></p></div></section>`;
   const v = (k) => esc(src?.[k] ?? "");
   const sec = isEdit ? curSec(SPEND_SEC_NAMES) : "";   // 详情页某一块的「编辑」：只显示那一块（core/form-sec.js）
   const amount = src?.amount != null ? (isEdit ? num(src.amount).toFixed(2) : Math.abs(num(src.amount)).toFixed(2)) : "";
@@ -77,6 +77,6 @@ export function spendFormPage(P) {
       </div>
       <p id="purchaseDupHint" class="dup-hint" role="status" hidden></p>
       ${isEdit ? "" : `<p id="purchaseCardHint" class="card-hint-line">${cardHintHtml("fresh", lastStore(), null)}</p>`}
-      <div class="form-actions"><button type="submit" class="btn btn-primary">${isEdit ? t("保存修改") : t("记一笔")}</button><a class="btn btn-ghost" href="${spendRecordsHref()}">${t("取消")}</a></div>
+      <div class="form-actions"><button type="submit" class="ui-btn" data-tone="primary">${isEdit ? t("保存修改") : t("记一笔")}</button><a class="ui-btn" data-tone="ghost" href="${spendRecordsHref()}">${t("取消")}</a></div>
     </form></section>`;
 }

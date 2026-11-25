@@ -91,7 +91,7 @@ export function offSection(off) {
   const summary = [counts.gift ? t("礼品卡 {n}", { n: counts.gift }) : "", counts.card ? t("信用卡 {n}", { n: counts.card }) : "", counts.bank ? t("账户 {n}", { n: counts.bank }) : ""].filter(Boolean).join(" · ");
   return `<details class="ref-panel panel" style="margin-top:10px" ${state.cardCleanup || q || f.kind !== "all" || f.sort !== "since" ? "open" : ""}><summary><b>${t("停用的卡")}</b><small>${t("{n} 张卡", { n: off.length })}${summary ? ` · ${summary}` : ""}</small><span class="ui-chev" aria-hidden="true">›</span></summary>
     <div class="ref-body" style="padding:10px 14px 0">${toolbar}
-      ${cardsRO() ? "" : state.cardCleanup ? cleanupHtml(pool) : cleanable ? `<p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("有 {n} 张用完的礼品卡可以一键清掉", { n: cleanable })} <button type="button" class="btn btn-sm btn-ghost" data-action="card-cleanup-open">${t("清理")}</button></p>` : ""}</div>
+      ${cardsRO() ? "" : state.cardCleanup ? cleanupHtml(pool) : cleanable ? `<p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("有 {n} 张用完的礼品卡可以一键清掉", { n: cleanable })} <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="card-cleanup-open">${t("清理")}</button></p>` : ""}</div>
     <ul class="restock-list card-list ref-body" style="padding-top:0">${rows.length ? rows.map(cardRow).join("") : `<li class="muted" style="font-size:13px">${t("没有符合条件的卡")}</li>`}</ul>
     <p class="muted" style="margin:0;padding:6px 14px 10px;font-size:12.5px">${t("按停用时间由近到远；右滑一行可重新启用。停用了但还有余额的会标出来。")}</p></details>`;
 }
@@ -104,8 +104,8 @@ function cleanupHtml(pool) {
       ${pool.recent.length ? `<label class="check-inline" style="margin:6px 0 0"><input type="checkbox" id="cleanRecent" ${inc ? "checked" : ""}><span>${t("也包括 {d} 天内停用的（{n} 张）", { d: CLEAN_DAYS, n: pool.recent.length })}</span></label>` : ""}
       ${list.length ? `<p style="margin:6px 0 0;font-size:13px">${t("将删除 {n} 张：", { n: list.length })}${esc(list.map((c) => c.name).join("、"))}</p>` : `<p class="muted" style="margin:6px 0 0">${t("没有符合条件的卡。")}</p>`}
       <div class="form-actions">
-        ${list.length ? `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="card-cleanup-run">${t("删除这 {n} 张", { n: list.length })}</button>` : ""}
-        <button type="button" class="btn btn-sm btn-ghost" data-action="card-cleanup-cancel">${t("取消")}</button></div></div></div>`;
+        ${list.length ? `<button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="card-cleanup-run">${t("删除这 {n} 张", { n: list.length })}</button>` : ""}
+        <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="card-cleanup-cancel">${t("取消")}</button></div></div></div>`;
 }
 export async function runCleanup() {
   if (roStop()) return;
@@ -125,13 +125,13 @@ function deleteConfirmHtml(id) {
       <b id="cardDelTitle">${t("删除「{name}」？", { name: c.name })}</b>
       <p class="muted" style="margin:4px 0 0">${ps.length ? t("这张卡名下有 {n} 笔花费记录，合计 {m}。", { n: ps.length, m: money(sum) }) : t("这张卡名下没有花费记录。")}${bills ? ` ${t("有 {n} 条账单从它扣款，删除后改成未指定。", { n: bills })}` : ""}</p>
       <div class="form-actions">
-        ${ps.length ? `<button type="button" class="btn btn-sm btn-primary" data-action="card-del-keep" data-id="${esc(c.id)}">${t("保留花费，只删卡")}</button>
-          <button type="button" class="btn btn-sm btn-danger-ghost" data-action="card-del-all" data-id="${esc(c.id)}">${t("连 {n} 笔花费一起删", { n: ps.length })}</button>`
-        : `<button type="button" class="btn btn-sm btn-danger-ghost" data-action="card-del-all" data-id="${esc(c.id)}">${t("删除")}</button>`}
-        <button type="button" class="btn btn-sm btn-ghost" data-action="card-del-cancel">${t("取消")}</button></div>
+        ${ps.length ? `<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="card-del-keep" data-id="${esc(c.id)}">${t("保留花费，只删卡")}</button>
+          <button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="card-del-all" data-id="${esc(c.id)}">${t("连 {n} 笔花费一起删", { n: ps.length })}</button>`
+        : `<button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="card-del-all" data-id="${esc(c.id)}">${t("删除")}</button>`}
+        <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="card-del-cancel">${t("取消")}</button></div>
       ${ps.length ? `<small class="muted">${t("保留时花费上的付款方式改成文字「{label}」，统计照旧算进去。", { label })}</small>` : ""}</div></div>`;
 }
-const emptyHtml = () => `<div class="panel empty"><strong>${t("还没有卡")}</strong>${t("从内置目录选一张常见卡，填上末四位、到期月、还款日就行；不在目录里的手填规则。")}<p><a class="btn btn-primary" href="${cardHref("new")}">${t("添加第一张卡")}</a></p></div>`;
+const emptyHtml = () => `<div class="panel empty"><strong>${t("还没有卡")}</strong>${t("从内置目录选一张常见卡，填上末四位、到期月、还款日就行；不在目录里的手填规则。")}<p><a class="ui-btn" data-tone="primary" href="${cardHref("new")}">${t("添加第一张卡")}</a></p></div>`;
 function cardRow(c) {
   const offSince = c.active === false && c.inactive_since ? t("停用于 {d}", { d: fmtDate(c.inactive_since) }) : null;
   if (c.kind === "gift") {   // 礼品卡：右侧大字余额；商家、购入日期、有效期、几笔花费
@@ -175,9 +175,9 @@ const lpCard = (c) => (cardsRO() ? "" : lpAttr([{ label: t("详情"), href: card
 /** 行的手势属性：右滑 停用 / 启用，左滑 删除（js/swipe-rows.js） */
 const swipeAttrs = (c) => cardsRO() ? "" : `data-swipe-del="card" data-swipe-alt="card" data-swipe-alt-label="${esc(c.active === false ? t("启用") : t("停用"))}" data-swipe-alt-go="${esc(c.active === false ? t("松手启用") : t("松手停用"))}"`;
 /** 行右侧：编辑 + （手势 / 悬停才出现的）停用 / 启用、删除 */
-const rowActs = (c) => cardsRO() ? "" : `<span class="row-acts"><a class="btn btn-sm btn-ghost" href="${cardHref(c.id)}">${t("详情")}</a>
-    <button type="button" class="btn btn-sm btn-ghost swipe-alt-src" data-action="${c.active === false ? "card-react" : "card-deact"}" data-id="${esc(c.id)}">${c.active === false ? t("启用") : t("停用")}</button>
-    <button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="card-del" data-id="${esc(c.id)}" aria-label="${esc(t("删除 {name}", { name: c.name }))}">${t("删除")}</button></span>`;
+const rowActs = (c) => cardsRO() ? "" : `<span class="row-acts"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${cardHref(c.id)}">${t("详情")}</a>
+    <button type="button" class="ui-btn swipe-alt-src" data-size="sm" data-tone="ghost" data-action="${c.active === false ? "card-react" : "card-deact"}" data-id="${esc(c.id)}">${c.active === false ? t("启用") : t("停用")}</button>
+    <button type="button" class="ui-btn swipe-src" data-size="sm" data-tone="ghost" data-action="card-del" data-id="${esc(c.id)}" aria-label="${esc(t("删除 {name}", { name: c.name }))}">${t("删除")}</button></span>`;
 /** 停用 / 启用：记停用日期，「停用的卡」按它排 */
 export async function setCardActive(id, on) {
   if (roStop()) return;

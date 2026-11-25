@@ -25,9 +25,9 @@ export function askShopItems(list) {
       <ul class="ask-list">${list.map(row).join("")}</ul>
       <p class="form-error ask-err" role="alert"></p>
       <div class="ask-acts">
-        ${many ? `<button type="button" class="btn btn-ghost btn-sm ask-all" data-ask="all">${esc(t("全不选"))}</button><span class="spacer"></span>` : ""}
-        <button type="button" class="btn btn-ghost" data-ask="cancel">${esc(t("取消"))}</button>
-        <button type="submit" class="btn btn-primary ask-ok"></button></div>
+        ${many ? `<button type="button" class="ui-btn ask-all" data-size="sm" data-tone="ghost" data-ask="all">${esc(t("全不选"))}</button><span class="spacer"></span>` : ""}
+        <button type="button" class="ui-btn" data-tone="ghost" data-ask="cancel">${esc(t("取消"))}</button>
+        <button type="submit" class="ui-btn ask-ok" data-tone="primary"></button></div>
     </form>`;
     document.body.appendChild(dlg);
     const f = dlg.querySelector("form"), okBtn = dlg.querySelector(".ask-ok"), allBtn = dlg.querySelector('[data-ask="all"]');
@@ -71,8 +71,8 @@ export function askConfirm({ title, body, ok, danger = false }) {
     dlg.className = "ask-dlg ask-confirm";
     dlg.setAttribute("aria-labelledby", "askConfirmTitle");
     dlg.innerHTML = `<form class="ask-form" novalidate><h3 id="askConfirmTitle">${esc(title)}</h3><p class="ask-body">${esc(body)}</p>
-      <div class="ask-acts"><button type="button" class="btn btn-ghost" data-ask="cancel">${esc(t("取消"))}</button>
-        <button type="submit" class="btn ${danger ? "btn-danger" : "btn-primary"}">${esc(ok || t("确认"))}</button></div></form>`;
+      <div class="ask-acts"><button type="button" class="ui-btn" data-tone="ghost" data-ask="cancel">${esc(t("取消"))}</button>
+        <button type="submit" class="ui-btn" data-tone="${danger ? "danger-solid" : "primary"}">${esc(ok || t("确认"))}</button></div></form>`;
     document.body.appendChild(dlg);
     let done = false;
     const finish = (v) => { if (done) return; done = true; dlg.close(); dlg.remove(); resolve(v); };
@@ -103,9 +103,9 @@ export function askRemind(it) {
       </div>
       <p class="form-error ask-err" role="alert"></p>
       <div class="ask-acts">
-        ${on ? `<button type="button" class="btn btn-ghost" data-ask="off">${esc(t("不再提醒"))}</button>` : ""}<span class="spacer"></span>
-        <button type="button" class="btn btn-ghost" data-ask="cancel">${esc(t("取消"))}</button>
-        <button type="submit" class="btn btn-primary">${esc(t("保存"))}</button></div>
+        ${on ? `<button type="button" class="ui-btn" data-tone="ghost" data-ask="off">${esc(t("不再提醒"))}</button>` : ""}<span class="spacer"></span>
+        <button type="button" class="ui-btn" data-tone="ghost" data-ask="cancel">${esc(t("取消"))}</button>
+        <button type="submit" class="ui-btn" data-tone="primary">${esc(t("保存"))}</button></div>
     </form>`;
     document.body.appendChild(dlg);
     let done = false;

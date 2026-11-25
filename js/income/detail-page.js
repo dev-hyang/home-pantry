@@ -17,15 +17,15 @@ import { canEdit } from "./records-tab.js";
 
 const crumb = (label) => recCrumb("income", incomeHref("records"), label);
 const find = (id) => inc().rec.find((r) => r.id === id);
-const missing = () => `<section class="section">${crumb(t("详情"))}<div class="panel empty"><strong>${t("找不到这笔收入")}</strong><p><a class="btn btn-sm" href="${incomeHref("records")}">${t("回到收入明细")}</a></p></div></section>`;
+const missing = () => `<section class="section">${crumb(t("详情"))}<div class="panel empty"><strong>${t("找不到这笔收入")}</strong><p><a class="ui-btn" data-size="sm" href="${incomeHref("records")}">${t("回到收入明细")}</a></p></div></section>`;
 
 /** 还款（借款）这一块的内容：总额 / 已还 / 还差、还款记录、记一笔还款的小表单 */
 function repayRows(r, s) {
   const sums = t("总额 {a}，已还 {b}，还差 {c}", { a: fmtMoney(s.total), b: fmtMoney(s.paid), c: fmtMoney(s.left) });
-  if (s.debt) return [dtRow(t("已转为借款"), `${esc(sums)}<p style="margin:6px 0 0"><a class="btn btn-sm" href="${esc(debtHref(s.debt))}">${t("去借贷里记还款")} ›</a></p>`)];
+  if (s.debt) return [dtRow(t("已转为借款"), `${esc(sums)}<p style="margin:6px 0 0"><a class="ui-btn" data-size="sm" href="${esc(debtHref(s.debt))}">${t("去借贷里记还款")} ›</a></p>`)];
   const reps = inc().rep.filter((p) => p.record_id === r.id).sort((a, b) => b.paid_on.localeCompare(a.paid_on));
-  const list = `<ul class="ix-reps">${reps.map((p) => `<li><span>${p.paid_on} · <b>${fmtMoney(p.amount)}</b>${p.method ? ` · ${esc(p.method)}` : ""}${p.purchase_id ? ` · <span class="muted">${t("已计入花费")}</span>` : ""}</span>${canEdit(r) ? `<button type="button" class="btn btn-sm btn-ghost" data-inc="rep-del" data-id="${p.id}">${t("删除")}</button>` : ""}</li>`).join("") || `<li class="muted">${t("还没有还款记录")}</li>`}</ul>`;
-  const form = s.left > 0 && canEdit(r) ? `<form data-inc-form="repay" data-id="${r.id}" class="form-grid" style="margin-top:6px"><label>${t("还款日期")}<input type="date" name="paid_on" value="${todayISO()}" max="${todayISO()}" required></label><label>${t("金额")}<input ${numAttrs("money", { min: 0.01 })} name="amount" value="${s.left}" required></label><label>${t("方式")}<input name="method" maxlength="40" placeholder="Zelle / ${esc(t("现金"))}"></label><label class="check-inline" style="grid-column:1/-1"><input type="checkbox" name="as_spend" checked><span>${t("同时记为一笔花费（钱从账户里出去了）")}</span></label><small class="muted" style="grid-column:1/-1">${t("如果这笔转账已经从银行对账单导入成花费了，系统会发现并不再重复记；也可以取消勾选。")}</small><div class="form-actions"><button class="btn btn-sm btn-primary">${t("记一笔还款")}</button></div></form>` : "";
+  const list = `<ul class="ix-reps">${reps.map((p) => `<li><span>${p.paid_on} · <b>${fmtMoney(p.amount)}</b>${p.method ? ` · ${esc(p.method)}` : ""}${p.purchase_id ? ` · <span class="muted">${t("已计入花费")}</span>` : ""}</span>${canEdit(r) ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-inc="rep-del" data-id="${p.id}">${t("删除")}</button>` : ""}</li>`).join("") || `<li class="muted">${t("还没有还款记录")}</li>`}</ul>`;
+  const form = s.left > 0 && canEdit(r) ? `<form data-inc-form="repay" data-id="${r.id}" class="form-grid" style="margin-top:6px"><label>${t("还款日期")}<input type="date" name="paid_on" value="${todayISO()}" max="${todayISO()}" required></label><label>${t("金额")}<input ${numAttrs("money", { min: 0.01 })} name="amount" value="${s.left}" required></label><label>${t("方式")}<input name="method" maxlength="40" placeholder="Zelle / ${esc(t("现金"))}"></label><label class="check-inline" style="grid-column:1/-1"><input type="checkbox" name="as_spend" checked><span>${t("同时记为一笔花费（钱从账户里出去了）")}</span></label><small class="muted" style="grid-column:1/-1">${t("如果这笔转账已经从银行对账单导入成花费了，系统会发现并不再重复记；也可以取消勾选。")}</small><div class="form-actions"><button class="ui-btn" data-size="sm" data-tone="primary">${t("记一笔还款")}</button></div></form>` : "";
   return [dtRow(t("还款（还给对方）"), esc(sums)), r.repay_due_on ? dtRow(t("还款到期日"), esc(fmtDay(r.repay_due_on))) : "", dtRow(t("还款记录"), list + form)];
 }
 

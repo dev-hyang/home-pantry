@@ -26,11 +26,11 @@ export function exportTab() {
     <section class="section"><div class="section-head"><h2>${t("导出 CSV")}</h2><p>${t("可用 Excel、Numbers 或 Google 表格打开")}</p></div>
       <div class="panel export-grid">
         <label class="export-pick"><span>${t("内容")}</span><select data-inc-r="what" data-nosearch>${selOpts([["both", "收入 + 消费 + 净现金流（合并）"], ["income", "只要收入（按类型）"], ["spend", "只要消费（按分类）"]], r.what)}</select></label>
-        <div class="export-btns"><button type="button" class="btn btn-primary btn-sm" data-inc="csv-report">${t("导出这段时间 CSV")}</button><button type="button" class="btn btn-sm" data-inc="csv-detail-window">${t("导出收入明细")}</button></div>
+        <div class="export-btns"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-inc="csv-report">${t("导出这段时间 CSV")}</button><button type="button" class="ui-btn" data-size="sm" data-inc="csv-detail-window">${t("导出收入明细")}</button></div>
         <p class="muted small" style="margin:0">${cf.w.from} → ${cf.w.to} · ${t("{n} 笔到账", { n: cf.rows.length })} · ${t("收入 {a}", { a: fmtMoney(cf.tot.income) })}${cf.tot.capIn ? ` · ${t("资本流入 {a}", { a: fmtMoney(cf.tot.capIn) })}` : ""}</p>
       </div></section>
     <section class="section"><div class="section-head"><h2>${t("打印")}</h2><p>${t("浏览器的打印窗口里也可以另存为 PDF")}</p></div>
-      <div class="panel export-grid"><div class="export-btns"><button type="button" class="btn btn-primary btn-sm" data-inc="print-report">${t("打印这段时间的收入报表")}</button></div></div>
+      <div class="panel export-grid"><div class="export-btns"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-inc="print-report">${t("打印这段时间的收入报表")}</button></div></div>
       <p class="muted" style="margin:6px 0 0;font-size:13px">${t("要打印筛选后的明细，到“明细”标签里点“打印”。")}</p></section>`;
 }
 /** 给 财务 → 对账单 → 导出打印 用：收入 / 收支报表的导出块（数据没读过先读） */
@@ -105,7 +105,7 @@ export function aiPanel(cf) {
     <p class="muted small" style="margin:0 0 8px">${t("只发送汇总数字（每个周期的收入 / 花费 / 差额、各类型合计、前 10 个付款方），不发每一笔明细。付款方和成员名字默认换成「付款方 1」「成员 A」。会发给你在设置里选的 AI 服务商。")}</p>
     <label class="check-inline"><input type="checkbox" data-inc-ai="consent" ${aiConsent() ? "checked" : ""}><span>${t("我同意把这段时间的收入 / 花费汇总发给 AI 服务商")}</span></label><br>
     <label class="check-inline"><input type="checkbox" data-inc-ai="unmask" ${r.unmask ? "checked" : ""}><span>${t("不打码，发真实名字")}</span></label>
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-primary btn-sm" data-inc="ai-run" ${aiConsent() && !I.aiBusy ? "" : "disabled"}>${I.aiBusy ? t("分析中…") : out ? t("重新分析") : t("分析这段时间")}</button></div>
+    <div class="form-actions" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-inc="ai-run" ${aiConsent() && !I.aiBusy ? "" : "disabled"}>${I.aiBusy ? t("分析中…") : out ? t("重新分析") : t("分析这段时间")}</button></div>
     ${out ? `<div class="ai-out" style="margin-top:10px;white-space:pre-wrap">${esc(out)}</div><p class="muted small" style="margin:6px 0 0">${t("AI 的分析仅供参考，不是理财建议。")}</p>` : ""}</div>`;
 }
 export async function runAi() {

@@ -15,11 +15,11 @@ export const financeRequests = () => famMembers().filter((m) => m.finance_reques
 export function financeRequestCard() {
   const me = famMembers().find((m) => m.user_id === meId()); if (!me || amOwner()) return "";
   const body = me.can_finance === true
-    ? `<p class="muted">${t("你有财务权限：能看、能改对账单、收入、预算和用卡。")}</p><div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="fin-off">${t("关掉我的财务权限")}</button></div>`
+    ? `<p class="muted">${t("你有财务权限：能看、能改对账单、收入、预算和用卡。")}</p><div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="fin-off">${t("关掉我的财务权限")}</button></div>`
     : me.finance_requested_at
-      ? `<p class="muted">${t("申请已发给家主（{d}）{note}，等家主同意。", { d: fmtShort(me.finance_requested_at), note: me.finance_request_note ? `：${esc(me.finance_request_note)}` : "" })}</p><div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="fin-cancel">${t("撤回申请")}</button></div>`
+      ? `<p class="muted">${t("申请已发给家主（{d}）{note}，等家主同意。", { d: fmtShort(me.finance_requested_at), note: me.finance_request_note ? `：${esc(me.finance_request_note)}` : "" })}</p><div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="fin-cancel">${t("撤回申请")}</button></div>`
       : `<p class="muted">${t("没有财务权限时，对账单、收入、预算看不到，用卡只读。需要的话写一句理由，家主同意后就能用。")}</p>
-        <div class="dl-row"><input id="finReqNote" maxlength="60" placeholder="${esc(t("理由（可不填），例如：我来管水电账单"))}" aria-label="${esc(t("申请理由"))}"><button type="button" class="btn btn-primary" data-action="fin-request">${t("申请财务权限")}</button></div>`;
+        <div class="dl-row"><input id="finReqNote" maxlength="60" placeholder="${esc(t("理由（可不填），例如：我来管水电账单"))}" aria-label="${esc(t("申请理由"))}"><button type="button" class="ui-btn" data-tone="primary" data-action="fin-request">${t("申请财务权限")}</button></div>`;
   return `<div class="panel fin-req"><h3 style="font-size:15px;margin:0 0 6px">💰 ${t("财务权限")}</h3>${body}</div>`;
 }
 
@@ -27,7 +27,7 @@ export function financeRequestCard() {
 export function financeRequestsPanel() {
   const list = amOwner() ? financeRequests() : []; if (!list.length) return "";
   const row = (m) => `<li><div class="grow"><b>${esc(m.display_name)}</b><small class="muted">${t("{d} 申请", { d: fmtShort(m.finance_requested_at) })}${m.finance_request_note ? ` · ${esc(m.finance_request_note)}` : ""}</small></div>
-    <span class="head-acts"><button type="button" class="btn btn-sm btn-primary" data-action="fin-yes" data-id="${esc(m.user_id)}">${t("同意")}</button><button type="button" class="btn btn-sm btn-danger-ghost" data-action="fin-no" data-id="${esc(m.user_id)}">${t("拒绝")}</button></span></li>`;
+    <span class="head-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="fin-yes" data-id="${esc(m.user_id)}">${t("同意")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="fin-no" data-id="${esc(m.user_id)}">${t("拒绝")}</button></span></li>`;
   return `<div class="panel pend-panel"><h3 style="font-size:15px;margin:0 0 6px">${t("财务权限申请（{n}）", { n: list.length })}</h3>
     <p class="muted small" style="margin:0 0 8px">${t("同意后对方能看、能改对账单、收入、预算和用卡。随时可以在成员详情里关掉。")}</p><ul class="member-list">${list.map(row).join("")}</ul></div>`;
 }

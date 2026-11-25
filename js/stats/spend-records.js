@@ -108,7 +108,7 @@ function spendRow(p, L = spendLookups()) {
   return `<li${picking ? "" : ` data-swipe-del="purchase"`} class="rec-row${picking ? " is-pick" : ""}" ${picking ? "data-row-chk" : `data-row-open="${esc(rowGo)}"`}${menu}>${sel}
     <div class="grow"><span class="name"><span class="rec-day">${esc(fmtDay(p.purchased_at))}</span>${title}${tags}</span>${desc.length ? `<small class="dots">${dots(desc)}</small>` : ""}</div>
     <b class="rec-amt">${p.amount != null && num(p.amount) < 0 ? `<span class="badge b-ok">${t("退款")}</span> ` : ""}${amount}</b>
-    ${p.virtual ? "" : `<button type="button" class="btn btn-sm btn-ghost swipe-src" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button>`}</li>`;
+    ${p.virtual ? "" : `<button type="button" class="ui-btn swipe-src" data-size="sm" data-tone="ghost" data-action="purchase-del" data-id="${p.id}" aria-label="${esc(t("删除 {name} 这笔记录", { name: p.name }))}">${t("删除")}</button>`}</li>`;
 }
 const monthName = (m) => (lang === "en" ? `${MONTH_EN[+m.slice(5) - 1]} ${m.slice(0, 4)}` : t("{y} 年 {m} 月", { y: m.slice(0, 4), m: +m.slice(5) }));
 /** 筛选条下面的标签：下拉里看不到的条件（图表钻取带来的预算分组、一组商店、一段月份、导入批次）一项一个，点标签去掉那一项。
@@ -155,10 +155,10 @@ function spendListHtml() {
   }
   const S = state.spendSel, own = L.rows.filter((p) => !p.virtual), delN = S ? own.filter((p) => S.has(p.id)).length : 0;
   const selBar = S ? `<div class="sel-bar" role="region" aria-label="${esc(t("多选删除"))}"><b id="selCount">${t("已选 {n} 笔", { n: delN })}</b>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-all">${t("全选当前显示的 {n} 笔", { n: own.length })}</button>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-none">${t("清空")}</button>
-      <button type="button" class="btn btn-sm btn-danger-ghost" data-action="spend-sel-del" ${delN ? "" : "disabled"}>${t("删除所选")}</button>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="spend-sel-toggle">${t("退出多选")}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="spend-sel-all">${t("全选当前显示的 {n} 笔", { n: own.length })}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="spend-sel-none">${t("清空")}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="spend-sel-del" ${delN ? "" : "disabled"}>${t("删除所选")}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="spend-sel-toggle">${t("退出多选")}</button>
       <small class="muted" style="flex-basis:100%">${t("先用上面的筛选（年份、月份、收款方、分类、批次）缩小范围，再全选；删除前会再确认一次。")}</small></div>` : "";
   const xNote = st.xn ? `；${t("其中 {n} 笔转账（{a}）不算进合计", { n: st.xn, a: money(num(st.xsum)) })}` : "";
   // 2026-11-14 用户定：明细上面不再放一大段统计（看板上有）；明细金额不遮（data-money-off）

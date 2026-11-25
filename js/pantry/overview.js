@@ -50,7 +50,7 @@ function askList(list, alerts, expiring) {
 }
 const cartBtn = () => {
   const n = state.shopping.filter((s) => s.status !== "bought").length;
-  return `<a class="btn btn-sm cart-btn" href="${href("shopping", "list")}" aria-label="${esc(t("购物车，{n} 项", { n }))}"><span aria-hidden="true">🛒</span> ${t("购物车")}${n ? ` <b class="num">${n}</b>` : ""}</a>`;
+  return `<a class="ui-btn cart-btn" data-size="sm" href="${href("shopping", "list")}" aria-label="${esc(t("购物车，{n} 项", { n }))}"><span aria-hidden="true">🛒</span> ${t("购物车")}${n ? ` <b class="num">${n}</b>` : ""}</a>`;
 };
 export function viewDashboard() {
   const withHouse = state.houseEnabled;   // 汽车房屋消耗品也算储藏：缺货、少货、补货提醒一起看
@@ -62,7 +62,7 @@ export function viewDashboard() {
 
     <section class="section" aria-labelledby="h-restock">
       <div class="section-head"><h2 id="h-restock">${t("该补货了")}</h2>
-        <div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-sm btn-add-all" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">＋ ${t("全部加入购物车")}</button>` : ""}${cartBtn()}</div></div>
+        <div class="head-acts">${alerts.length ? `<button type="button" class="ui-btn" data-size="sm" data-tone="soft" data-action="shop-add-alerts" data-space="${withHouse ? "all" : "pantry"}">＋ ${t("全部加入购物车")}</button>` : ""}${cartBtn()}</div></div>
       ${alerts.length ? rsHint() : ""}
       <div class="panel">${alerts.length ? restockPanel(alerts) : `<div class="empty"><strong>${t("库存都很充足")}</strong>${t("用掉东西时在“库存”里点一下 −，提醒会更准。")}</div>`}</div>
     </section>

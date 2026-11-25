@@ -41,7 +41,7 @@ export function valuationPanel(kind, item, { fallback = null } = {}) {
   const key = `v:${kind}:${item.id}`, rows = valuationsOf(kind, item.id), last = rows[0];
   const SRC = { manual: t("自己估 / 评估"), estimate: t("网站估算") };
   const line = (v) => `<li><span>${esc(fmtDate(v.as_of))}</span><b>${mny(v.value, v.currency)}</b><small class="muted">${esc(SRC[v.source] || "")}${v.notes ? ` · ${esc(v.notes)}` : ""}</small>
-      <button type="button" class="btn btn-sm btn-ghost" data-nw="val-del" data-id="${esc(v.id)}" aria-label="${esc(t("删除 {d} 的估值", { d: fmtDate(v.as_of) }))}">${t("删除")}</button></li>`;
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-nw="val-del" data-id="${esc(v.id)}" aria-label="${esc(t("删除 {d} 的估值", { d: fmtDate(v.as_of) }))}">${t("删除")}</button></li>`;
   const now = last ? `${mny(last.value, last.currency)} <small class="muted">${t("截至 {d}", { d: fmtDate(last.as_of) })}</small>` : fallback != null ? `${mny(fallback)} <small class="muted">${t("按购入价")}</small>` : t("未估值");
   return `<details class="nw-hist" data-nw-key="${esc(key)}" ${detailsOpen(key)}>
     <summary><span>${t("估值")}：<b>${now}</b></span><span class="nw-sum-act">${t("更新估值")}</span></summary>
@@ -50,7 +50,7 @@ export function valuationPanel(kind, item, { fallback = null } = {}) {
       <label>${t("市值（{cur}）", { cur: cur() })}<input ${numAttrs("money", { step: 1 })} name="value" required value="${last ? esc(last.value) : ""}"></label>
       <label>${t("来源")}<select name="source"><option value="manual">${SRC.manual}</option><option value="estimate">${SRC.estimate}</option></select></label>
       <label class="nw-note">${t("备注（可选）")}<input name="notes" maxlength="300" placeholder="${esc(kind === "property" ? t("如 Zillow / 评估报告") : t("如 KBB 私人出售价"))}"></label>
-      <button type="submit" class="btn btn-primary btn-sm">${t("保存估值")}</button>
+      <button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("保存估值")}</button>
     </form>
     ${histList(key, rows, line)}
   </details>`;
@@ -70,8 +70,8 @@ function breakdown(r) {
   const items = (keys, side) => keys.map((k) => ({ name: t(BUCKET_NAMES[k]), color: BUCKET_COLORS[k], value: side[k] })).filter((x) => x.value > 0).sort((a, b) => b.value - a.value);
   const hb = (title, list) => (window.Charts ? window.Charts.hbars({ items: list, fmt: (v) => mny(v), title, empty: t("还没有") }) : "");
   return `<div class="ix-two">
-    <div class="panel chart-panel"><div class="chart-head"><h3>${t("资产构成")} <small class="muted">${mny(r.assetsTotal)}</small></h3><a class="btn btn-sm btn-ghost" href="${href("bills", "assets")}">${t("详情")} ›</a></div>${hb(t("资产按分类"), items(ASSET_BUCKETS, r.assets))}</div>
-    <div class="panel chart-panel"><div class="chart-head"><h3>${t("负债构成")} <small class="muted">${mny(r.liabilitiesTotal)}</small></h3><a class="btn btn-sm btn-ghost" href="${esc(summaryHref())}">${t("全部借贷")} ›</a></div>${hb(t("负债按分类"), items(LIAB_BUCKETS, r.liabilities))}</div>
+    <div class="panel chart-panel"><div class="chart-head"><h3>${t("资产构成")} <small class="muted">${mny(r.assetsTotal)}</small></h3><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "assets")}">${t("详情")} ›</a></div>${hb(t("资产按分类"), items(ASSET_BUCKETS, r.assets))}</div>
+    <div class="panel chart-panel"><div class="chart-head"><h3>${t("负债构成")} <small class="muted">${mny(r.liabilitiesTotal)}</small></h3><a class="ui-btn" data-size="sm" data-tone="ghost" href="${esc(summaryHref())}">${t("全部借贷")} ›</a></div>${hb(t("负债按分类"), items(LIAB_BUCKETS, r.liabilities))}</div>
   </div>`;
 }
 function trend(points, range) {
@@ -110,7 +110,7 @@ function equityTable(r) {
   if (!r.equity.length) return "";
   const srcTxt = (e) => (e.source === "purchase" ? `<small class="muted">${t("按购入价")}</small>` : e.source === "valuation" ? `<small class="muted">${esc(fmtDate(e.valueAsOf))}</small>` : `<small class="muted">${t("未估值")}</small>`);
   const loans = (e) => (e.loans.length ? e.loans.map((l) => `<a href="${esc(debtHref(l.debt.id))}">${esc(l.debt.name)}</a> ${mny(l.balance)}`).join("<br>") : `<span class="muted">${t("无")}</span>`);
-  return `<div class="panel"><div class="chart-head"><h3>${t("资产净值")}</h3><a class="btn btn-sm btn-ghost" href="${href("bills", "assets")}">${t("更新估值")} ›</a></div>
+  return `<div class="panel"><div class="chart-head"><h3>${t("资产净值")}</h3><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "assets")}">${t("更新估值")} ›</a></div>
     <div class="ch-scroll" role="region" aria-label="${esc(t("资产净值"))}" tabindex="0"><table class="store-table nw-tbl"><thead><tr><th scope="col">${t("资产")}</th><th scope="col">${t("市值")}</th><th scope="col">${t("贷款余额")}</th><th scope="col">${t("净值")}</th></tr></thead>
     <tbody>${r.equity.map((e) => `<tr><th scope="row"><a href="${esc(itemHref(e))}">${e.kind === "property" ? "🏠" : e.kind === "vehicle" ? "🚗" : "⚙️"} ${esc(itemName(e))}</a></th>
       <td>${e.value == null ? "—" : mny(e.value, e.currency)}<br>${srcTxt(e)}</td><td>${loans(e)}</td><td><b class="${e.equity != null && e.equity < 0 ? "down" : ""}">${e.equity == null ? "—" : mny(e.equity)}</b></td></tr>`).join("")}</tbody></table></div>
@@ -120,12 +120,12 @@ function snapshotsPanel() {
   const list = [...(state.nwSnapshots || [])].sort((a, b) => b.month.localeCompare(a.month)), key = "snaps";
   const SRC = { auto: t("自动"), manual: t("手动") };
   const line = (s) => `<li><span>${esc(monthLabel(s.month))} <small class="muted">${esc(s.month)}</small></span><b>${mny(Number(s.net_worth), s.currency)}</b><small class="muted">${esc(SRC[s.source] || s.source)}${s.meta?.rebuilt ? ` · ${t("重建")}` : ""}${s.currency !== cur() ? ` · ${esc(s.currency)}` : ""}</small>
-    <button type="button" class="btn btn-sm btn-ghost" data-nw="snap-del" data-id="${esc(s.id)}" aria-label="${esc(t("删除 {m} 的快照", { m: s.month }))}">${t("删除")}</button></li>`;
+    <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-nw="snap-del" data-id="${esc(s.id)}" aria-label="${esc(t("删除 {m} 的快照", { m: s.month }))}">${t("删除")}</button></li>`;
   return `<details class="nw-hist panel" data-nw-key="snaps" ${detailsOpen(key)}>
     <summary><span>${t("每月快照")}（${list.length}）</span><span class="nw-sum-act">${t("管理")}</span></summary>
     <p class="hint">${t("打开财务时，本月还没有快照会自动存一个（本月里数字变了会更新）；手动保存的不会被自动覆盖。重建过去某月只用那个月月底以前的余额、估值和还款记录；那时没记的余额不算，房产 / 车辆按买卖日期判断。")}</p>
-    <div class="nw-snap-acts"><button type="button" class="btn btn-primary btn-sm" data-nw="snap-save">${t("保存本月快照")}</button>
-      <form class="nw-form nw-inline" data-nw-form="rebuild"><label>${t("重建过去某月")}<input type="month" name="month" required max="${thisMonth()}" value="${monthsAgo(thisMonth(), 1)}"></label><button type="submit" class="btn btn-sm">${t("重建")}</button></form></div>
+    <div class="nw-snap-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-nw="snap-save">${t("保存本月快照")}</button>
+      <form class="nw-form nw-inline" data-nw-form="rebuild"><label>${t("重建过去某月")}<input type="month" name="month" required max="${thisMonth()}" value="${monthsAgo(thisMonth(), 1)}"></label><button type="submit" class="ui-btn" data-size="sm">${t("重建")}</button></form></div>
     ${histList(key, list, line)}
   </details>`;
 }

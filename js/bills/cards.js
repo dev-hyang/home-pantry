@@ -209,7 +209,7 @@ function cardAlertItems() {
   if (!state.billsEnabled || !state.cards?.length) return [];
   const out = [], link = CARDS_HREF();
   const mk = (c, severity, title, detail, label, cls, due = null, daysLeft = null) => out.push({ source: "card", severity, must: severity <= 1, due, daysLeft, title: `💳 ${title}`, detail, href: cardHref(c.id),
-    badge: { label, cls }, actions: [{ type: "link", href: cardHref(c.id), label: t("看这张卡"), cls: "btn-ghost" }] });
+    badge: { label, cls }, actions: [{ type: "link", href: cardHref(c.id), label: t("看这张卡"), tone: "ghost" }] });
   const today = todayISO(), q = quarterOf(today);
   for (const c of state.cards) {
     if (c.active === false) continue;

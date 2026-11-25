@@ -33,8 +33,8 @@ export function assetSuggestHtml() {
     <b>${t("这 {n} 张账单可能属于某辆车", { n: list.length })}</b>
     <p class="muted" style="margin:4px 0 8px">${t("按名字猜的，确认后账单就挂在这辆车上；不对就点“忽略”。")}</p>
     <ul class="restock-list">${list.map((s) => `<li><div class="grow"><b>${esc(byId.get(s.billId)?.name || "")}</b><small>${t("可能是")} 🚗 ${esc(car.get(s.assetId)?.name || "")}</small></div>
-      <button type="button" class="btn btn-sm" data-action="bill-link-asset" data-id="${s.billId}" data-asset="${s.assetId}">${t("确认")}</button>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="bill-link-ignore" data-id="${s.billId}">${t("忽略")}</button></li>`).join("")}</ul></div>`;
+      <button type="button" class="ui-btn" data-size="sm" data-action="bill-link-asset" data-id="${s.billId}" data-asset="${s.assetId}">${t("确认")}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="bill-link-ignore" data-id="${s.billId}">${t("忽略")}</button></li>`).join("")}</ul></div>`;
 }
 
 /** 确认：把这张账单挂到那辆车上（要传整张账单：saveBill 会把没带的字段写成空） */

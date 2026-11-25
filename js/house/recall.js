@@ -51,7 +51,7 @@ export function recallBanner(a, { here = false } = {}) {
   if (s) return `<div class="panel cta-panel recall-banner ${s === "stop_use" ? "is-stop" : ""}" role="status">
       <div><b>${s === "stop_use" ? `⛔ ${t("停止使用")}` : `⚠️ ${t("产品召回待处理")}`}</b>
         <p class="muted">${esc(recallAlertText(a))}${r.found_on ? ` · ${esc(t("{d} 登记", { d: fmtDate(r.found_on) }))}` : ""}</p></div>
-      ${here ? "" : `<a class="btn btn-sm btn-primary" href="${recallHref(a)}">${t("处理召回")}</a>`}</div>`;
+      ${here ? "" : `<a class="ui-btn" data-size="sm" data-tone="primary" href="${recallHref(a)}">${t("处理召回")}</a>`}</div>`;
   if (isRetired(a)) return `<div class="panel cta-panel recall-banner is-done" role="status"><div><b>${t("已退役（召回）")}</b><p class="muted">${resolvedText(a)}${t("；不再提醒，档案和保养记录保留。")}</p></div></div>`;
   if (from) return `<p class="muted recall-from">🔁 ${t("替换了被召回的 {name}", { name: `<a href="${href("asset", from.id)}">${esc(assetName(from))}</a>` })}</p>`;
   return "";
@@ -81,12 +81,12 @@ export function recallSection(a) {
         ${resolved ? "" : `<label class="span-2 check-inline"><input type="checkbox" name="stop_use" ${r.status === "stop_use" || !s ? "checked" : ""}><span>${t("厂家要求立即停止使用（首页按“紧急”提醒）")}</span></label>`}
         <label class="span-2">${t("备注")}<input name="notes" maxlength="300" value="${d(r.notes)}" placeholder="${t("例如：寄回电源线、厂家寄修理包、客服电话")}"></label>
       </div>
-      <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${s || resolved ? t("保存召回信息") : t("标记为召回")}</button>
-        ${r.status ? `<span class="spacer"></span><button type="button" class="btn btn-sm btn-danger-ghost" data-action="recall-clear" data-id="${esc(a.id)}">${t("清除召回标记")}</button>` : ""}</div>
+      <div class="form-actions" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${s || resolved ? t("保存召回信息") : t("标记为召回")}</button>
+        ${r.status ? `<span class="spacer"></span><button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="recall-clear" data-id="${esc(a.id)}">${t("清除召回标记")}</button>` : ""}</div>
     </form>`;
   if (!s) {
     const done = resolved ? `<div class="panel cta-panel recall-banner is-done"><div><b>${t("召回已处理")}</b><p class="muted">${resolvedText(a)}</p></div>
-        <button type="button" class="btn btn-sm btn-ghost" data-action="recall-reopen" data-id="${esc(a.id)}">${t("重新打开")}</button></div>` : "";
+        <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="recall-reopen" data-id="${esc(a.id)}">${t("重新打开")}</button></div>` : "";
     return `${done}${info}${resolved ? "" : `<p class="muted" style="font-size:13px">${t("登记后首页会一直提醒，直到你在这里选“修好了 / 换了新的 / 退款了”。设备档案不会被删除。")}</p>`}`;
   }
   // 处理完的三个出口：每个是一张可展开的小卡，各自一个表单（不用脚本切换字段）
@@ -99,10 +99,10 @@ export function recallSection(a) {
           <label>${t("日期")}<input name="done_on" type="date" required value="${todayISO()}" max="${todayISO()}"></label>
           <label>${t("备注")}<input name="notes" maxlength="200" placeholder="${t("例如：换了电源线，厂家免费")}"></label>
           <p class="hint">${t("会在保养记录里记一条“维修 · 召回维修”，设备继续使用。")}</p>
-          <button type="submit" class="btn btn-sm btn-primary">${t("记为已修好")}</button></form></details>
+          <button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("记为已修好")}</button></form></details>
       <details class="panel rc-exit"><summary><span class="rc-ico" aria-hidden="true">🔁</span><span><b>${t("换了新的")}</b><small>${t("厂家寄来一台新的")}</small></span></summary>
         <div class="rc-body"><p class="hint">${t("新机单独建一条档案（带入名称、类型、位置），记新的序列号和保修；保存后这台旧机标成“已更换”，从列表和提醒里退出。")}</p>
-          <a class="btn btn-sm btn-primary" href="${href("asset", "new")}?replaces=${encodeURIComponent(a.id)}">${t("登记换来的新机")}</a></div></details>
+          <a class="ui-btn" data-size="sm" data-tone="primary" href="${href("asset", "new")}?replaces=${encodeURIComponent(a.id)}">${t("登记换来的新机")}</a></div></details>
       <details class="panel rc-exit"><summary><span class="rc-ico" aria-hidden="true">💵</span><span><b>${t("退款了")}</b><small>${t("退货退款，东西不要了")}</small></span></summary>
         <form id="recallRefundForm" class="rc-body"><input type="hidden" name="asset_id" value="${esc(a.id)}">
           <label>${t("退款金额（{cur}）", { cur: Units.region.currency })}<input name="amount" ${numAttrs("money")} value="${d(priceOrNull(a.purchase_price))}"></label>
@@ -110,7 +110,7 @@ export function recallSection(a) {
           <label>${t("记到哪个分类")}<select name="category">${categoryOptions(defCat, { spend: true })}</select></label>
           ${pay ? `<label>${t("退回到")}${pay}</label>` : ""}
           <p class="hint">${t("记成一笔负数花费，统计里按净额算；金额留空则只标记已退款。")}</p>
-          <button type="submit" class="btn btn-sm btn-primary">${t("记为已退款")}</button></form></details>
+          <button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("记为已退款")}</button></form></details>
     </div>`;
   return `${recallBanner(a, { here: true })}${info}${exits}`;
 }

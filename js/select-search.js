@@ -128,7 +128,7 @@ function openSheet(sel, title, show) {
   dlg.innerHTML = `<div class="ask-form"><h3>${esc(title)}</h3>
     <input type="search" class="sel-sheet-q" placeholder="${esc(t("输入几个字筛选…"))}" aria-label="${esc(t("筛选"))}" autocomplete="off" spellcheck="false">
     <div class="ssel-list sel-sheet-list" role="listbox" aria-label="${esc(title)}"></div>
-    <div class="ask-acts"><button type="button" class="btn btn-ghost" data-x>${esc(t("取消"))}</button></div></div>`;
+    <div class="ask-acts"><button type="button" class="ui-btn" data-tone="ghost" data-x>${esc(t("取消"))}</button></div></div>`;
   document.body.appendChild(dlg);
   const box = { _sel: sel, querySelector: (q) => dlg.querySelector(q === ".ssel-in" ? ".sel-sheet-q" : q), querySelectorAll: (q) => dlg.querySelectorAll(q), dataset: {} };
   build(box);

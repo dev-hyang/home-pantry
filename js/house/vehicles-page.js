@@ -22,7 +22,7 @@ export function pastVehiclesSection(past) {
       <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>
         <small>${[t(V().STATUS[vehStatus(a)].name), v.disposed_on ? fmtDate(v.disposed_on) : null, priceOrNull(v.sale_price) != null ? money(num(v.sale_price)) : null,
           a.installed_on ? t("{d} 购入", { d: fmtDate(a.installed_on) }) : null, a.logs.length ? t("{n} 条保养记录", { n: a.logs.length }) : null, a.totalCost ? t("共花 {m}", { m: money(a.totalCost) }) : null].filter(Boolean).map(esc).join(" · ")}</small></div>
-      <span class="hist-act"><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></span></li>`; }).join("")}</ul></details></section>`;
+      <span class="hist-act"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("asset", a.id)}">${t("详情")}</a></span></li>`; }).join("")}</ul></details></section>`;
 }
 function vehicleCard(a) {
   const v = a.vehicle || {}, pt = V().POWERTRAINS[a.type];
@@ -87,7 +87,7 @@ export function assetCard(a) {
       ${a.ageYears != null || life ? `<div class="life"><div class="life-bar ${lifeCls}"><i style="width:${pct ?? 0}%"></i></div>
         <small>${a.ageYears != null ? t("已用 {age}", { age: ageText(a) }) : t("安装日期未填")}${life ? t(" · 常见寿命约 {n} 年", { n: fmt(life) }) : ""}${pct != null && pct >= 75 ? t("，已到 {p}%", { p: pct }) : ""}</small></div>` : ""}
     </div>
-    <div class="asset-side"><a class="btn btn-sm${a.recallSt ? " btn-primary" : ""}" href="${act.href}">${act.label}</a></div>
+    <div class="asset-side"><a class="ui-btn" data-size="sm" data-tone="${a.recallSt ? "primary" : ""}" href="${act.href}">${act.label}</a></div>
     <a class="swipe-src" href="${act.href}" tabindex="-1" aria-hidden="true">${act.label}</a>
     <button type="button" class="swipe-alt-src" data-action="asset-row-del" data-id="${a.id}" tabindex="-1" aria-hidden="true">${t("删除设备")}</button>
   </article>`;

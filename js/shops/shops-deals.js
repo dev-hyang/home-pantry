@@ -45,9 +45,9 @@ export function viewDeals() {
   const crumbs = item ? [{ href: href("shopping"), label: t("采购") }, { label: t("「{name}」的特价", { name: item.name }) }]
     : [{ href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }, { label: t("特价一览"), icon: "🏷" }];
   const act = (d) => {
-    if (item) { const on2 = picked ? picked.id === d.id : false; return `<button type="button" class="btn btn-sm ${on2 ? "btn-primary" : ""}" data-action="shops-pick" data-item="${item.id}" data-deal="${d.id}" aria-pressed="${on2}">${on2 ? `✓ ${t("已选这家")}` : t("用这家")}</button>`; }
+    if (item) { const on2 = picked ? picked.id === d.id : false; return `<button type="button" class="ui-btn" data-size="sm" data-tone="${on2 ? "primary" : ""}" data-action="shops-pick" data-item="${item.id}" data-deal="${d.id}" aria-pressed="${on2}">${on2 ? `✓ ${t("已选这家")}` : t("用这家")}</button>`; }
     const m = hits.get(d.id) || [];
-    return m.length ? `<span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-tolist" data-deal="${d.id}">＋ ${t("清单")}</button>`;
+    return m.length ? `<span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="shops-tolist" data-deal="${d.id}">＋ ${t("清单")}</button>`;
   };
   const badge = (d) => (item && !picked && top && d.id === top.id ? `<span class="tag tag-ok" title="${esc(t(WHY[base.why] || WHY.unit))}">★ ${t("默认")}</span>` : priceHistory(d)?.isLow ? `<span class="tag tag-ok">${t("6 个月最低")}</span>` : "");
   const unitTxt = (d) => (d.unit_price != null ? `${unitMoney(+d.unit_price)}<small>${esc(d.unit_label || "")}</small>` : `<small class="muted">—</small>`);
@@ -73,7 +73,7 @@ export function viewDeals() {
       <b class="dv-g-pr">${esc(priceTxt(d))}</b><span class="dv-unit">${unitTxt(d)}</span><span class="dv-to muted">${d.valid_to ? t("到 {d}", { d: fmtShort(d.valid_to) }) : ""}</span></li>`;
   const gCard = (g) => { const m = g.hits; const first = g.deals[0];
     return `<section class="dv-group panel" aria-label="${esc(g.label)}"><div class="dv-g-head"><b>${esc(g.label)}</b><span class="muted">${t("{n} 家", { n: new Set(g.deals.map((d) => d.shop_id)).size })}</span>
-      <span class="dv-g-act">${m.length ? `<span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : `<button type="button" class="btn btn-sm btn-ghost" data-action="shops-tolist" data-deal="${first.id}">＋ ${t("清单")}</button>`}</span></div>
+      <span class="dv-g-act">${m.length ? `<span class="tag tag-hot">${t("清单里有：{n}", { n: m.map((x) => esc(x.name)).join("、") })}</span>` : `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="shops-tolist" data-deal="${first.id}">＋ ${t("清单")}</button>`}</span></div>
       <ul class="dv-g-list">${g.deals.map(gRow).join("")}</ul></section>`; };
   return `<section class="section shops-page dv-page">
     ${item ? `${crumbNav(crumbs)}<div class="section-head"><div class="sh-title"><h2>${t("「{name}」的特价", { name: esc(item.name) })}</h2></div></div>` : buyHead("deals", { right: base.length ? viewSwitch([["group", "按商品", "🧺"], ["list", "列表", "☰"], ["cards", "卡片", "▦"]], mode, { action: "shops-dv-mode" }) : "" })}

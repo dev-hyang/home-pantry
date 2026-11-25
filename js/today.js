@@ -66,7 +66,7 @@ export function viewToday() {
     ${aiBlock()}
     ${noProfile ? `<section class="section"><div class="panel cta-panel">
       <div><b>${t("还没填房屋资料")}</b><p class="muted">${t("填好后会提示哪些部位归自己维护、材料怎么保养，并一次加好常用的汽车房屋消耗品。")}</p></div>
-      <a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></div></section>` : ""}
+      <a class="ui-btn" data-tone="primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a></div></section>` : ""}
     <section class="section" aria-label="${esc(t("今日卡片"))}">${carouselHtml("today", cards, { label: t("今日卡片：左右滑动，或点上面的短划线"), top: true })}</section>`;   // 一屏一张，左右滑、循环、每 30 秒自动换（js/core/carousel.js）
 }
 
@@ -152,7 +152,7 @@ function homeCard() {
 function aiBlock() {
   const sub = aiReady() ? (aiQuota().ok ? t("直接问：保养、账单、买卖房、收纳、带娃") : t("免费额度用完了，先用复制提示词")) : t("问家里任何事，复制提示词到任一 AI");
   return `<section class="section"><div class="panel tai"><div class="tai-head"><h3>${aiIcon(20)} ${t("咩咩咩")}</h3><p class="muted">${sub}</p></div>
-      <div class="form-actions tai-acts"><a class="btn btn-primary btn-sm" href="${href("ai")}">${t("问咩咩")}</a></div>
+      <div class="form-actions tai-acts"><a class="ui-btn" data-size="sm" data-tone="primary" href="${href("ai")}">${t("问咩咩")}</a></div>
       <div class="tai-cards">${[[href("pantry", "meals") + "?ai=", "🍳", t("今天吃什么")], [href("shopping", "add"), "📝", t("加入购物车")], [href("pantry", "scan"), "🧾", t("录入购物")]].map(([h, ic, nm]) => `<a class="tai-card" href="${h}"><span aria-hidden="true">${ic}</span><b>${nm}</b></a>`).join("")}</div></div></div></section>`;
 }
 
@@ -187,13 +187,13 @@ function quickEditor() {
   const swapId = editing ? state.quickSwap : null, swapping = swapId && mine.find((x) => x[0] === swapId);
   const pickChoices = swapping ? [swapping, ...choices] : choices;   // 改成别的：当前这个也在选项里（选回它 = 不变）
   const addPanel = editing && (state.quickAdd || swapping) ? `<div class="panel quick-add"><label>${swapping ? t("把「{name}」改成", { name: swapping[2] }) : t("添加到快捷操作")}<select id="quickSel">${pickChoices.map(([id, ic, nm]) => `<option value="${esc(id)}" ${swapping && id === swapId ? "selected" : ""}>${ic} ${esc(nm)}</option>`).join("")}</select></label>
-      <div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="${swapping ? "quick-swap-do" : "quick-add"}" ${pickChoices.length ? "" : "disabled"} ${swapping ? `data-id="${esc(swapId)}"` : ""}>${swapping ? t("改成这个") : t("添加")}</button><button type="button" class="btn btn-ghost btn-sm" data-action="quick-open">${t("取消")}</button></div></div>` : "";
+      <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="${swapping ? "quick-swap-do" : "quick-add"}" ${pickChoices.length ? "" : "disabled"} ${swapping ? `data-id="${esc(swapId)}"` : ""}>${swapping ? t("改成这个") : t("添加")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="quick-open">${t("取消")}</button></div></div>` : "";
   const quick = mine.map(tileHtml).join("")
     + (editing && choices.length ? `<div class="qwrap"><button type="button" class="qtile qtile-add" data-action="quick-open" aria-expanded="${state.quickAdd ? "true" : "false"}"><span class="qtile-ico" aria-hidden="true">＋</span><span>${t("添加")}</span></button></div>` : "");
   // 编辑按钮放在内容里（summary 里不能放按钮）
   const bar = `<div class="tquick-bar"><span></span><div class="head-acts">
-      <button type="button" class="btn btn-sm btn-ghost" data-action="quick-reset">${t("恢复默认")}</button>
-      <a class="btn btn-sm btn-primary" href="${href("today")}">${t("完成")}</a></div></div>`;
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="quick-reset">${t("恢复默认")}</button>
+      <a class="ui-btn" data-size="sm" data-tone="primary" href="${href("today")}">${t("完成")}</a></div></div>`;
   return `${bar}<div class="quick-grid ${editing ? "is-editing" : ""}">${quick || `<p class="muted">${t("还没有快捷操作，点“添加”。")}</p>`}</div>${addPanel}`;
 }
 

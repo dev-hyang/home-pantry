@@ -110,12 +110,12 @@ export function spendCategoryTab() {
       drill: (k, i) => dq({ cat: ser[k].id || "", ...TP.when(i) }), legendDrill: (k) => (ser[k].id ? dq({ cat: ser[k].id, ...(ms.length > 1 ? winDrill() : { range: 6 }) }) : null), partial: TP.partial }) : "";
     chartHead = trendHead(TP.title, TP);
   } else chart = LOADING();
-  const trips = node === "travel" ? `<div class="form-actions"><button type="button" class="btn btn-sm" data-action="stats-trips" aria-expanded="${st.byTrip ? "true" : "false"}">🧳 ${st.byTrip ? t("收起按行程") : t("按行程看")}</button></div>${st.byTrip ? tripsPanel() : ""}` : "";
+  const trips = node === "travel" ? `<div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-action="stats-trips" aria-expanded="${st.byTrip ? "true" : "false"}">🧳 ${st.byTrip ? t("收起按行程") : t("按行程看")}</button></div>${st.byTrip ? tripsPanel() : ""}` : "";
   return `${nodeCrumb(node)}
     <div class="panel chart-panel"><div class="row"><h3 style="margin:0">${node ? esc(nodeName(node)) : t("全部分类")}</h3><b class="num">${money(total)}</b></div>
       <p class="muted" style="margin:2px 0 8px;font-size:13px">${sel ? monthLabel(sel) : rangeLabel()}${leaf ? "" : ` · ${t("点名称看下一层，点条看明细")}`}</p>
       ${leaf ? "" : Charts.hbars({ items, fmt: money, total, title: t("子类排行"), empty: t("这段时间没有花费") })}
-      <div class="form-actions"><button type="button" class="btn btn-sm" data-drill="${esc(dq({ cat: node || "", ...mDrill }))}">${t("查看明细")} ›</button></div></div>
+      <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-drill="${esc(dq({ cat: node || "", ...mDrill }))}">${t("查看明细")} ›</button></div></div>
     ${trips}
     <div class="panel chart-panel">${chartHead}${chart}${DRILL_HINT()}</div>`;
 }

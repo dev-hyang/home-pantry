@@ -24,7 +24,7 @@ export function deviceLinkPrompt() {
   const opts = adultPeople().map((p) => `<option value="${esc(p.id)}">${esc(p.name)}${devicesOf(p.id).length ? ` · ${t("{n} 台设备", { n: devicesOf(p.id).length })}` : ""}</option>`).join("");
   return `<details class="panel device-link" open><summary><b>📱 ${t("这台设备是谁？")}</b></summary>
     <p class="muted">${t("选你自己，账单的“谁负责”、收入和医疗账单才会记在同一个人名下；换了新设备再登录，选同一个人就行，不会多出一个人。")}</p>
-    ${opts ? `<div class="dl-row"><select id="devLinkPick" aria-label="${esc(t("选择家庭成员"))}"><option value="">${t("选择家庭成员…")}</option>${opts}</select><button type="button" class="btn btn-primary" data-action="device-link">${t("就是我")}</button></div>` : ""}
-    <div class="dl-row"><input id="devLinkNew" maxlength="40" placeholder="${esc(t("我是新成员，名字："))}" value="${esc(opts ? "" : m.display_name || "")}" aria-label="${esc(t("新成员的名字"))}"><button type="button" class="btn ${opts ? "btn-ghost" : "btn-primary"}" data-action="device-link-new">${t("新建并链接")}</button></div></details>`;
+    ${opts ? `<div class="dl-row"><select id="devLinkPick" aria-label="${esc(t("选择家庭成员"))}"><option value="">${t("选择家庭成员…")}</option>${opts}</select><button type="button" class="ui-btn" data-tone="primary" data-action="device-link">${t("就是我")}</button></div>` : ""}
+    <div class="dl-row"><input id="devLinkNew" maxlength="40" placeholder="${esc(t("我是新成员，名字："))}" value="${esc(opts ? "" : m.display_name || "")}" aria-label="${esc(t("新成员的名字"))}"><button type="button" class="ui-btn" data-tone="${opts ? "ghost" : "primary"}" data-action="device-link-new">${t("新建并链接")}</button></div></details>`;
 }
 export const resetFamilyUi = () => { F.edit = null; F.devShow = 6; F.devOpen = null; F.scopeAll = false; };

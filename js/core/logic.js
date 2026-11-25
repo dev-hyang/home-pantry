@@ -67,8 +67,8 @@ export function pantryAlertItems() {
         title: it.name, detail: `${t("剩 {q} {u}", { q: Math.round(it.dqty * 100) / 100, u: t(it.du) })}${it.daysLeft != null && it.qty > 0 ? t("，约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) }) : ""}`,
         href: null, badge: { label: t(STATUS[it.status].label), cls: STATUS[it.status].cls },
         // 已在购物车里：按钮换成「已加入采购」标签（点开清单）；从清单删掉后自动变回「加入采购」
-        actions: [{ type: "button", action: "edit", id: it.id, label: t("编辑"), cls: "btn-ghost" },
-          { type: "button", action: "mute-item", id: it.id, label: t("不再提醒"), cls: "btn-ghost" },
+        actions: [{ type: "button", action: "edit", id: it.id, label: t("编辑"), tone: "ghost" },
+          { type: "button", action: "mute-item", id: it.id, label: t("不再提醒"), tone: "ghost" },
           openShopFor(it.id) ? { type: "tag", href: "#/shopping", label: t("已加入"), cls: "b-ok" } : { type: "button", action: "shop-add-item", id: it.id, label: t("加入购物车") }] });
     }
   }
@@ -76,7 +76,7 @@ export function pantryAlertItems() {
     items.push({ source: "pantry", severity: it.exp === "expired" ? 2 : 3, must: false, due: it.expiry_date, daysLeft: it.expDays, title: it.name,
       detail: `${it.location ? `${t(it.location)} ` : ""}${t("剩 {q} {u}", { q: Math.round(it.dqty * 100) / 100, u: t(it.du) })}`, href: null,
       badge: { label: it.exp === "expired" ? t("已过期") : it.expDays === 0 ? t("今天到期") : t("{d} 天后到期", { d: it.expDays }), cls: "b-exp" },
-      actions: [{ type: "link", href: "#/pantry/meals", label: t("看看能做什么菜"), cls: "btn-ghost" }] });
+      actions: [{ type: "link", href: "#/pantry/meals", label: t("看看能做什么菜"), tone: "ghost" }] });
   }
   return items;
 }

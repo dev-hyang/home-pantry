@@ -79,6 +79,6 @@ export function loginAlertItems() {
     return { source: "security", severity: isNewDev ? 1 : 2, must: isNewDev, due: String(e.at).slice(0, 10),
       title: `🔐 ${isNewDev ? t("{n} 用一台没见过的设备登录", { n: name }) : t("{n} 从一个新的网络登录", { n: name })}`,
       detail: `${fmtDateTime(e.at)} · ${deviceText(e.device)} · ${e.browser || ""}${e.location ? ` · ${e.location}` : ""}${e.ip ? ` · IP ${e.ip}` : ""}。${t("如果不是你们家人，可能账号被盗了：家主请马上重新生成邀请码、把这台设备移出家庭，并检查登录用的邮箱 / 手机。")}`,
-      href: link, actions: [{ type: "button", action: "login-ack", id: e.id, label: t("是我们家人"), cls: "btn-primary" }, { type: "link", href: link, label: t("去处理") }] };
+      href: link, actions: [{ type: "button", action: "login-ack", id: e.id, label: t("是我们家人"), tone: "primary" }, { type: "link", href: link, label: t("去处理") }] };
   });
 }

@@ -35,7 +35,7 @@ export function amortHtml(e) {
     <div class="table-scroll" tabindex="0" role="region" aria-label="${esc(t("摊还表"))}"><table class="dd-tbl amort-table"><caption class="sr-only">${t("摊还表")}</caption>
     <thead><tr><th scope="col">#</th><th scope="col">${t("日期")}</th><th scope="col" class="num">${t("本息")}</th><th scope="col" class="num">${t("利息")}</th><th scope="col" class="num">${t("本金")}</th><th scope="col" class="num">${t("余额")}</th></tr></thead>
     <tbody>${shown.map((r) => `<tr${r.date < today ? ' class="muted"' : ""}><td class="num">${r.n}</td><td>${esc(fmtDate(r.date))}</td><td class="num">${mny(r.payment, e.currency)}</td><td class="num">${mny(r.interest, e.currency)}</td><td class="num">${mny(r.principal, e.currency)}</td><td class="num">${mny(r.balance, e.currency)}</td></tr>`).join("")}</tbody></table></div>
-    ${rows.length > 24 ? `<p><button type="button" class="btn btn-sm btn-ghost" data-debt="amort-all" data-id="${esc(e.id)}" aria-expanded="${all}">${all ? t("只看最近 24 期") : t("显示全部 {n} 期", { n: rows.length })}</button></p>` : ""}`;
+    ${rows.length > 24 ? `<p><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="amort-all" data-id="${esc(e.id)}" aria-expanded="${all}">${all ? t("只看最近 24 期") : t("显示全部 {n} 期", { n: rows.length })}</button></p>` : ""}`;
 }
 /** 下一期的构成：本金 / 利息（按当前余额和本息）+ Escrow（银行计划；没填用 Escrow 账单估算）；条形图 + 数字，Escrow 账单只做参考 */
 export function breakdownHtml(e) {
@@ -81,7 +81,7 @@ export function payTableHtml(e) {
   const cols = 9 + (anyExtra ? 1 : 0);
   const inline = (r) => (edit?.id === r.id || linking?.id === r.id ? `<tr class="dd-inline"><td colspan="${cols}">${edit?.id === r.id ? overrideForm(e, edit) : payLinkForm(e, linking)}</td></tr>` : "");
   // 每行的「⋯」：手动编辑（账单的缴费记录表单：日期、金额、卡）、关联一笔花费、删除这笔缴费
-  const more = (r) => `<details class="act-more"><summary class="btn btn-sm btn-ghost" aria-label="${esc(t("更多操作：{d}", { d: fmtDate(r.paid_on) }))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">
+  const more = (r) => `<details class="act-more"><summary class="ui-btn" data-size="sm" data-tone="ghost" aria-label="${esc(t("更多操作：{d}", { d: fmtDate(r.paid_on) }))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">
       <a class="act-item" href="${esc(`${href("bill", e.bill.id)}?sec=pay&edit=${encodeURIComponent(r.id)}`)}">${t("手动编辑这笔缴费")}</a>
       <button type="button" class="act-item" data-debt="pay-link" data-pay="${esc(r.id)}" aria-controls="dd-link">${t("关联一笔花费")}</button>
       <button type="button" class="act-item" data-debt="pay-del" data-id="${esc(e.id)}" data-pay="${esc(r.id)}">${t("删除这笔缴费")}</button></div></details>`;
@@ -100,10 +100,10 @@ export function payTableHtml(e) {
       ${anyExtra ? cell(t("额外本金"), r.extra ? mny(r.extra, c) : "—") : ""}
       ${cell(t("还款后余额"), mny(r.balance, c))}
       ${cell(t("来源"), `${r.source === "manual" ? `<span class="badge b-soon">${t("手动")}</span>` : `<span class="badge">${t("摊还表")}</span>`}${r.stale ? ` <span class="badge b-out">${t("未保存")}</span>` : ""}${r.fee ? ` <small class="muted">${t("滞纳金 {a}", { a: mny(r.fee, c) })}</small>` : ""}`, "dd-src")}
-      <td class="dd-act">${diff ? `<button type="button" class="btn btn-sm btn-ghost" data-debt="mark-extra" data-id="${esc(e.id)}" data-pay="${esc(r.id)}" data-amt="${diff}">${t("多 {a} 记为额外本金", { a: mny(diff, c) })}</button>` : ""}
-        ${r.extra > 0 && r.source === "schedule" ? `<button type="button" class="btn btn-sm btn-ghost" data-debt="mark-extra" data-id="${esc(e.id)}" data-pay="${esc(r.id)}" data-amt="0">${t("取消额外本金")}</button>` : ""}
-        <button type="button" class="btn btn-sm btn-ghost" data-debt="pay-edit" data-pay="${esc(r.id)}" aria-expanded="${edit?.id === r.id}" aria-controls="dd-edit">${t("按对账单改")}<span class="sr-only"> ${esc(fmtDate(r.paid_on))}</span></button>
-        ${r.source === "manual" ? `<button type="button" class="btn btn-sm btn-ghost" data-debt="override-clear" data-id="${esc(e.id)}" data-pay="${esc(r.id)}">${t("按摊还表")}<span class="sr-only"> ${esc(fmtDate(r.paid_on))}</span></button>` : ""}
+      <td class="dd-act">${diff ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="mark-extra" data-id="${esc(e.id)}" data-pay="${esc(r.id)}" data-amt="${diff}">${t("多 {a} 记为额外本金", { a: mny(diff, c) })}</button>` : ""}
+        ${r.extra > 0 && r.source === "schedule" ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="mark-extra" data-id="${esc(e.id)}" data-pay="${esc(r.id)}" data-amt="0">${t("取消额外本金")}</button>` : ""}
+        <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="pay-edit" data-pay="${esc(r.id)}" aria-expanded="${edit?.id === r.id}" aria-controls="dd-edit">${t("按对账单改")}<span class="sr-only"> ${esc(fmtDate(r.paid_on))}</span></button>
+        ${r.source === "manual" ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="override-clear" data-id="${esc(e.id)}" data-pay="${esc(r.id)}">${t("按摊还表")}<span class="sr-only"> ${esc(fmtDate(r.paid_on))}</span></button>` : ""}
         ${pay(r) ? more(r) : ""}</td></tr>`;
   };
   return `${stale ? `<p class="notice" role="status">${t("{n} 期已存的拆分和摊还表不一样（表里是按摊还表算的）：点「按摊还表重新拆分」写入。", { n: stale })}</p>` : ""}
@@ -130,8 +130,8 @@ function payLinkForm(e, r) {
     <p class="dd-edit-title"><b>${t("把 {d} 这一期关联到一笔花费", { d: fmtDate(r.paid_on) })}</b> <small class="muted">${t("实付 {a}", { a: mny(r.total, e.currency) })}</small></p>
     <div class="dr-link-row"><label>${t("花费")}${!cand ? `<select disabled><option>${t("正在找前后几天的花费…")}</option></select>` : cand.err ? `<span class="form-error">${esc(cand.err)}</span>`
       : cand.list.length || cand.taken?.some((o) => o.v.startsWith("p:")) ? `<select name="purchase" required><option value="">${t("选一笔")}</option>${opts}${takenGroup(cand, "p:")}</select>` : `<span class="muted">${t("前后 7 天没有可关联的花费。")}</span>`}</label>
-      <button type="button" class="btn btn-sm btn-ghost dr-refresh" data-debt="pay-cand-refresh" data-pay="${esc(r.id)}" ${cand ? "" : "disabled"} aria-label="${esc(t("重新查找相近的花费和收入"))}" title="${esc(t("重新查找相近的花费和收入（刚导入或刚记了一笔时用）"))}"><span aria-hidden="true">↻</span></button></div>${cand ? seenLine(cand, "p:") : ""}
+      <button type="button" class="ui-btn dr-refresh" data-size="sm" data-tone="ghost" data-debt="pay-cand-refresh" data-pay="${esc(r.id)}" ${cand ? "" : "disabled"} aria-label="${esc(t("重新查找相近的花费和收入"))}" title="${esc(t("重新查找相近的花费和收入（刚导入或刚记了一笔时用）"))}"><span aria-hidden="true">↻</span></button></div>${cand ? seenLine(cand, "p:") : ""}
     <p class="muted dd-note">${t("★ = 日期和金额相近。关联后这笔缴费就记在那笔花费上（原来自动记的那笔删掉），花费会改成利息 + Escrow 部分，本金另记一行——同一笔钱不重复计算。")}</p>
-    <div class="form-actions"><button class="btn btn-sm btn-primary" ${cand?.list.length ? "" : "disabled"}>${t("关联")}</button><button type="button" class="btn btn-sm btn-ghost" data-debt="pay-link" data-pay="">${t("取消")}</button></div>
+    <div class="form-actions"><button class="ui-btn" data-size="sm" data-tone="primary" ${cand?.list.length ? "" : "disabled"}>${t("关联")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="pay-link" data-pay="">${t("取消")}</button></div>
   </form>`;
 }

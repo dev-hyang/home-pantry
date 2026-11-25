@@ -42,7 +42,7 @@ async function saveDebtForm(f) {
   if (!row.name) { err.textContent = t("请填名称"); return; }
   if ((row.opening_balance == null) !== !row.opening_balance_on) { err.textContent = t("「某天的未还本金」和「那一天」要一起填"); return; }
   if (old && old.asset_id !== row.asset_id) row.link_confirmed = true;   // 用户自己选的车辆：算确认
-  const btn = f.querySelector("button.btn-primary"); btn.disabled = true;
+  const btn = f.querySelector('button[data-tone="primary"]'); btn.disabled = true;
   try {
     const termsChanged = !old || ["original_principal", "interest_rate", "term_months", "start_date", "first_payment_date", "payment_frequency", "scheduled_payment", "opening_balance", "opening_balance_on"].some((k) => String(old[k] ?? "") !== String(row[k] ?? ""))
       || JSON.stringify(old?.escrow_schedule || []) !== JSON.stringify(row.escrow_schedule || old?.escrow_schedule || []);
@@ -133,7 +133,7 @@ export function initDebts({ render, refresh }) {
     if (kind === "debt") return dwIntercept(f) ? undefined : saveDebtForm(f);   // 添加借贷向导：回车 = 下一步，确认页先复查每一步
     if (kind === "pay-link" && d) return guard(async () => {
       const pid = g("purchase"); if (!pid) return toast(t("请选一笔花费"));
-      f.querySelector("button.btn-primary").disabled = true;
+      f.querySelector('button[data-tone="primary"]').disabled = true;
       const ok = await relinkPaymentPurchase(d, f.dataset.pay, pid);
       ui().linkPay = null; ui().payCand = null; await hooks.refresh();
       toast(ok ? t("已关联，这笔缴费记在那笔花费上") : t("没有变化")); await after();

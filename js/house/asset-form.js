@@ -49,14 +49,14 @@ function unitsFieldset(v, hide = () => "") {
       <legend>${t("位置与数量")}</legend>
       <p class="hint" style="margin-top:0">${t("一类一条：每处位置一行，写数量和备注（如“进水阀 2024 换过”）。坏了在保养记录里记，备注里写是哪一处。")}</p>
       <div id="unitRows">${rows.map(unitRow).join("")}</div>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="unit-add">＋ ${t("再加一处")}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="unit-add">＋ ${t("再加一处")}</button>
     </fieldset>`;
 }
 export const unitRow = (u = {}) => `<div class="unit-row">
     <select name="unit_loc" aria-label="${t("位置")}">${locationOptions(u.loc || "", { addNew: false })}</select>
     <input name="unit_qty" ${numAttrs("int", { max: 999 })} value="${esc(u.qty ?? 1)}" aria-label="${t("数量")}">
     <input name="unit_note" maxlength="60" placeholder="${t("备注，如：进水阀 2024 换过")}" value="${esc(u.note || "")}" aria-label="${t("备注")}">
-    <button type="button" class="btn btn-sm btn-ghost" data-action="unit-del" aria-label="${t("删除这一处")}">×</button></div>`;
+    <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="unit-del" aria-label="${t("删除这一处")}">×</button></div>`;
 export { readUnits } from "./asset-read.js";
 /** 车辆专有区块：车牌、里程、证照到期、保险（与房屋保险同构） */
 function vehicleFieldset(a, hide = () => "") {
@@ -117,7 +117,7 @@ function vehicleSchedule(a) {
       <div class="sched-top"><div class="sched-name"><b>${esc(t(s.name))}</b>${s.note ? `<small>${esc(t(s.note))}</small>` : ""}</div>${badge}</div>
       <dl class="sched-meta"><div><dt>${t("周期")}</dt><dd>${cycle(s)}</dd></div><div><dt>${t("上次")}</dt><dd>${last}</dd></div><div><dt>${t("下次")}</dt><dd>${next}</dd></div></dl>
       ${why(s) ? `<small class="muted sched-why">${why(s)}</small>` : ""}
-      <a class="btn btn-sm btn-ghost sched-log" href="${base}?log=1&item=${s.key}">${t("记一次")}</a>
+      <a class="ui-btn sched-log" data-size="sm" data-tone="ghost" href="${base}?log=1&item=${s.key}">${t("记一次")}</a>
     </li>`;
   };
   return `<div class="section-head"><p>${t("按月和按里程取先到的；里程按年均里程推算。记保养时要选对“保养项目”，那一项的下次日期才会更新")}</p></div>
@@ -130,7 +130,7 @@ export function viewAssetForm() {
   const r = state.route;
   const a = r.id && r.id !== "new" ? state.assetsEnriched.find((x) => x.id === r.id) : null;
   if (r.id !== "new" && !a) {
-    return `<div class="panel empty"><strong>${t("找不到这台设备")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("house", "assets")}">${t("回到设备档案")}</a></p></div>`;
+    return `<div class="panel empty"><strong>${t("找不到这台设备")}</strong>${t("可能已被家人删除。")}<p><a class="ui-btn" data-tone="primary" href="${href("house", "assets")}">${t("回到设备档案")}</a></p></div>`;
   }
   const qType = r.q.get("type"), tplType = qType ? H().assetType(qType) : null;
   // 从家居耐用品物品升级：?from_item=<id> 带入名称、位置、备注
@@ -249,8 +249,8 @@ export function viewAssetForm() {
         ${wizNew ? `<div data-vz-review hidden></div>` : ""}
         <p id="assetFormError" class="form-error" role="alert"></p>
         ${wizNew ? vwActions() : `<div class="form-actions sticky-actions">
-          <button type="button" class="btn btn-ghost" data-action="asset-cancel">${t("取消")}</button>
-          <button type="submit" class="btn btn-primary">${a ? t("保存修改") : veh ? t("添加车辆") : t("添加设备")}</button>
+          <button type="button" class="ui-btn" data-tone="ghost" data-action="asset-cancel">${t("取消")}</button>
+          <button type="submit" class="ui-btn" data-tone="primary">${a ? t("保存修改") : veh ? t("添加车辆") : t("添加设备")}</button>
         </div>`}
       </form>
       ${a ? "" : `<p class="muted" style="margin-top:12px;font-size:13px">${veh ? t("保存后可以在这辆车下记录每次保养、维修，按项目算下次到期。") : t("保存后可以在这台设备下记录每次检查、保养和维修。")}</p>`}

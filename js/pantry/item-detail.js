@@ -49,7 +49,7 @@ export function viewItemDetail(it, ctx) {
   const SECS = [{ id: "basic", icon: "🏷️", name: "基本信息", body: basicFacts(it, ctx.spaceInfo) }, { id: "qty", icon: "📦", name: gear ? "数量" : "数量与提醒", body: qtyFacts(it) },
     { id: "notes", icon: "📝", name: "备注", body: it.notes ? `<p class="pre" style="margin:0">${esc(it.notes)}</p>` : `<p class="muted prof-empty">${t("未填")}</p>` }];
   const cards = SECS.map((s) => `<section class="panel prof-card" aria-labelledby="idc-${s.id}"><header class="prof-head"><span class="mi" aria-hidden="true">${s.icon}</span><div class="prof-t"><h3 id="idc-${s.id}">${t(s.name)}</h3></div>
-      <a class="btn btn-sm btn-ghost prof-edit" href="${base}?edit=${s.id}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${t("编辑")}</a></header>${s.body}</section>`).join("");
+      <a class="ui-btn prof-edit" data-size="sm" data-tone="ghost" href="${base}?edit=${s.id}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${t("编辑")}</a></header>${s.body}</section>`).join("");
   return `<section class="section">
     ${crumbNav([...ctx.crumbBase, { label: it.name, icon: c.icon }])}
     <div class="panel item-head"><div class="ih-top"><div class="ih-main"><div class="ih-id"><span class="mi" aria-hidden="true">${c.icon || "📦"}</span><h2 class="ih-name">${esc(it.name)}</h2></div>${flags ? `<span class="ih-flags">${flags}</span>` : ""}</div>${menu}</div></div>

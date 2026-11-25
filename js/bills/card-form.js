@@ -37,7 +37,7 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
   }
   const qKind = state.route.q.get("kind");   // 快速添加：#/bills/cards?card=new&kind=checking
   if (isNew && qKind && ACCT_KINDS[qKind] && !state.cardDraft) state.cardDraft = { name: "", issuer: "", network: qKind === "credit" || qKind === "debit" ? "visa" : "other", kind: qKind, annual_fee: 0, active: true, rewards: { base: 0, cats: {}, caps: {}, merchants: {}, point_value: 1, foreign_fee: 0, has_rotating: false, rotating: [] }, credits: [] };
-  if (!isNew && !c) return `<section class="section"><div class="panel empty"><strong>${t("找不到这张卡")}</strong><p><a class="btn" href="${CARDS_HREF()}">${t("回用卡")}</a></p></div></section>`;
+  if (!isNew && !c) return `<section class="section"><div class="panel empty"><strong>${t("找不到这张卡")}</strong><p><a class="ui-btn" href="${CARDS_HREF()}">${t("回用卡")}</a></p></div></section>`;
   // 已有的卡：先看详情页；点某一块的「编辑」（?edit=basic|repay|rewards|bonus|credits|notes）才进表单（只显示那一块）；只读一律看详情
   const secQ = !isNew ? state.route.q.get("edit") : null;
   if (!isNew && (ro || !secQ)) return cardDetailPage(c, ro, extra.deleteHtml || "");
@@ -52,7 +52,7 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
   const rw = v.rewards || {}, q = quarterOf(), rot = (rw.rotating || []).find((x) => x.from === q.from) || { from: q.from, to: q.to, cats: [], rate: 5, activated: false };
   const bills = state.billsEnriched.filter((b) => b.category === "credit_card");
   const opt = (val, label, on) => `<option value="${esc(val)}" ${on ? "selected" : ""}>${esc(label)}</option>`;
-  const aiBtn = `<div class="span-2" ${only("credit")}><button type="button" class="btn btn-sm btn-ghost" data-action="card-ai">✨ ${t("用 AI 按卡名起草返现规则")}</button> <small class="muted">${t("只把卡的名字发给你设置的模型；按模型记忆起草，可能过时，逐项核对后再保存。")}</small></div>`;
+  const aiBtn = `<div class="span-2" ${only("credit")}><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="card-ai">✨ ${t("用 AI 按卡名起草返现规则")}</button> <small class="muted">${t("只把卡的名字发给你设置的模型；按模型记忆起草，可能过时，逐项核对后再保存。")}</small></div>`;
   const catalogSel = isNew ? `<label class="span-2" ${only("credit")}>${t("从内置目录选（可选）")}<select name="catalog"><option value="">${t("— 不用目录，手填 —")}</option>${D().CATALOG.map((k) => opt(k.id, `${t(k.name)}${k.issuer ? ` · ${k.issuer}` : ""}`, v.catalog_id === k.id)).join("")}</select><small>${t("选了会把返现规则、年费、网络填好；末四位、到期、持卡人还要你填。目录更新于 {d}。", { d: D().AS_OF })}</small></label>` : "";
   const typeFields = `<label>${t("类型")}<select name="kind">${Object.entries(ACCT_KINDS).map(([k, [n, icon]]) => opt(k, `${icon} ${t(n)}`, kind === k)).join("")}</select><small>${t("支票 / 储蓄账户没有返现，不参与推荐；用来记账单从哪扣款、缴费用的哪个账户")}</small></label>
         ${catalogSel}
@@ -126,8 +126,8 @@ export function cardForm(id, ro = false, extra = {}) {   // extra.deleteHtml：�
       </fieldset></div>
       ${W("notes")}<label>${t("备注")}<input name="notes" maxlength="500" value="${d(v.notes)}"></label></div>
       ${isNew && !ro ? '<div class="wz-review" data-wz-review hidden></div>' : ""}
-      ${ro ? `</fieldset><div class="form-actions"><a class="btn btn-ghost" href="${groupHref(kind)}">${t("返回")}</a></div>` : `<p id="cardError" class="form-error" role="alert"></p>
-      ${isNew ? wzActions(groupHref(kind)) : `<div class="form-actions sticky-actions"><button type="submit" class="btn btn-primary">${t("保存")}</button><a class="btn btn-ghost" href="${cardHref(c.id)}">${t("取消")}</a></div>`}`}
+      ${ro ? `</fieldset><div class="form-actions"><a class="ui-btn" data-tone="ghost" href="${groupHref(kind)}">${t("返回")}</a></div>` : `<p id="cardError" class="form-error" role="alert"></p>
+      ${isNew ? wzActions(groupHref(kind)) : `<div class="form-actions sticky-actions"><button type="submit" class="ui-btn" data-tone="primary">${t("保存")}</button><a class="ui-btn" data-tone="ghost" href="${cardHref(c.id)}">${t("取消")}</a></div>`}`}
     </form>
   </section>`;
 }

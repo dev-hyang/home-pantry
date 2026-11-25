@@ -128,11 +128,11 @@ export function debtAlertItems() {
       title: `${debtCat(e.category).icon} ${recv ? (d < 0 ? t("{who} 借的钱已逾期", { who }) : t("{who} 借的钱快到期", { who })) : d < 0 ? t("还款已逾期：{who}", { who }) : t("还款快到期：{who}", { who })}`,
       detail: [d < 0 ? t("逾期 {d} 天", { d: -d }) : t("{d} 天后到期", { d }), left && (recv ? t("对方还欠 {a}", { a: left }) : t("还差 {a}", { a: left }))].filter(Boolean).join(" · "),
       href: link, badge: { label: d < 0 ? t("逾期") : t("{d} 天", { d }), cls: sev === 0 ? "b-out" : sev === 2 ? "b-soon" : "b-ok" },
-      actions: [{ type: "link", href: link, label: recv ? t("记收款") : t("去还款"), cls: "btn-ghost" }] });
+      actions: [{ type: "link", href: link, label: recv ? t("记收款") : t("去还款"), tone: "ghost" }] });
   }
   const pending = debts().filter((d) => d.asset_id && d.link_confirmed === false && !isClosedStatus(d.status));
   if (pending.length) out.push({ source: "debt", severity: 3, must: false, due: null, daysLeft: null, title: `🚙 ${t("确认车贷对应的车辆")}`,
-    detail: t("{n} 笔车贷是按名字猜的车辆，确认后资产页才按它算", { n: pending.length }), href: debtHref(pending[0].id), badge: { label: t("待确认"), cls: "b-soon" }, actions: [{ type: "link", href: debtHref(pending[0].id), label: t("去确认"), cls: "btn-ghost" }] });
+    detail: t("{n} 笔车贷是按名字猜的车辆，确认后资产页才按它算", { n: pending.length }), href: debtHref(pending[0].id), badge: { label: t("待确认"), cls: "b-soon" }, actions: [{ type: "link", href: debtHref(pending[0].id), label: t("去确认"), tone: "ghost" }] });
   return out;
 }
 registerAlerts(debtAlertItems);

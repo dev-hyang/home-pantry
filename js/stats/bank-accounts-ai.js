@@ -35,7 +35,7 @@ export const guessAcctName = () => { const hints = S.parts.map((x) => x.acct).fi
 export function accountHtml() {
   const list = accounts(), a = S.account, cur = a.mode === "id" ? list.find((x) => x.id === a.id) : null;
   const opt = (v, label, on) => `<option value="${esc(v)}" ${on ? "selected" : ""}>${esc(label)}</option>`;
-  const hint = cur?.src === "own" ? `<button type="button" class="btn btn-sm btn-ghost" data-bank-act="acct-del" data-id="${esc(cur.id)}">${t("从列表删掉这个账户")}</button>`
+  const hint = cur?.src === "own" ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="acct-del" data-id="${esc(cur.id)}">${t("从列表删掉这个账户")}</button>`
     : cur?.src === "card" ? `<small class="muted">${t("这是「用卡」里登记的卡：不用了就到 用卡 里停用，这里就不再列出。")}</small>`
     : cur?.src === "bill" ? `<small class="muted">${t("这个账户来自账单里的尾号：到对应账单里清掉尾号或删掉账单，这里就不再列出。")}</small>` : "";
   return `<div class="bank-acct"><label>${t("这批是哪个账户的")}<select data-bank-acct>${opt("none", t("不选择（不记账户）"), a.mode === "none")}${opt("new", t("新账户…"), a.mode === "new")}${list.length ? `<optgroup label="${esc(t("已有账户"))}">${list.map((x) => opt(x.id, `${x.name}${x.last4 && !x.name.includes(x.last4) ? ` **${x.last4}` : ""}`, a.mode === "id" && a.id === x.id)).join("")}</optgroup>` : ""}</select></label>

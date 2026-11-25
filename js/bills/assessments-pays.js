@@ -41,7 +41,7 @@ function listHtml(b, which) {
   if (!rows.length) return `<div class="empty"><strong>${t("没有符合条件的记录")}</strong>${t("换个关键词，或点“清除筛选”。")}</div>`;
   const sum = rows.reduce((s, r) => s + num(r.amount), 0), page = rows.slice(0, shown), rest = rows.length - page.length;
   return `<p class="muted pay-sum">${t("共 {n} 条", { n: rows.length })}${rows.length !== all.length ? ` / ${all.length}` : ""} · ${t("合计 {m}", { m: mny(sum, b.currency) })}</p>
-    <ul class="restock-list pay-list">${page.map((r) => rowHtml(b, r, multi)).join("")}</ul>${rest > 0 ? `<div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="aspay-more">${t("加载更多（还有 {n} 条）", { n: rest })}</button></div>` : ""}`;
+    <ul class="restock-list pay-list">${page.map((r) => rowHtml(b, r, multi)).join("")}</ul>${rest > 0 ? `<div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="aspay-more">${t("加载更多（还有 {n} 条）", { n: rest })}</button></div>` : ""}`;
 }
 function toolbarHtml(b, which) {
   const years = [...new Set(paidRows(b, which).map((r) => r.date.slice(0, 4)).filter(Boolean))].sort().reverse(), opt = (v, l, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(l)}</option>`;

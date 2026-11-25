@@ -34,7 +34,7 @@ export function viewAi() {
   const from = state.route?.q?.get("from"); if (from && !a.q) { a.q = askHandoff(from); a.fromId = from; }   // 某一项的「追问」：带上那次的问题和答案
   const qTopic = state.route?.q?.get("topic"); if (qTopic) { const tp = TOPICS.find((x) => x.id === qTopic); if (tp?.q && !a.q) a.q = t(tp.q); }
   const topics = TOPICS.map((x) => x.link ? `<a class="chip" href="${x.link()}">${x.icon} ${t(x.name)}</a>` : `<button type="button" class="chip" data-action="ai-topic" data-topic="${x.id}">${x.icon} ${t(x.name)}</button>`).join("");
-  const sites = AI_SITES.map(([n, u]) => `<a class="btn btn-sm btn-ghost" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("");
+  const sites = AI_SITES.map(([n, u]) => `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("");
   return `<section class="section ai-page">
     <nav class="crumb" aria-label="${t("当前位置")}">${backBtn(href("today"))}<a href="${href("today")}">${t("今日")}</a><span class="sep">/</span><b>${t("咩咩咩")}</b></nav>
     <div class="ai-hero"><div class="ai-hero-ico">${aiIcon(44)}</div><div><p class="${blocked ? "form-error" : "muted"}">${!ready ? t("家里的事都可以问：保养、账单、买卖房、收纳、带娃。没填 key 时会把问题连同家里的情况拼成提示词，复制到任一 AI 即可。") : blocked ? esc(quotaMessage(q)) : `${t("用 {p} 直接回答；也可以复制提示词去别的 AI 问", { p: t(p.name) })}${q.cap ? ` · ${t("今天还剩 {n} 次免费", { n: q.remaining })}` : ""}`}</p></div></div>
@@ -44,14 +44,14 @@ export function viewAi() {
       <div class="ai-att">${attachHTML("pantry-ask", { t, esc, noText: true, hint: ready ? t("可以拍几张照片一起问（比如冰箱里的菜「这些能做什么？」、设备铭牌、账单、报修单），也能选 PDF。照片不保存。") : t("填了 API key 才能带照片问；没 key 时只复制文字。") })}</div>
       <label class="check" style="margin-top:8px"><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}><span>${t("附带家里的情况（房产、设施、待处理设备、近期账单、库存概况；不含备注和个人信息）")}</span></label>
       <div class="form-actions" style="margin-top:10px">
-        ${ready && !blocked ? `<button type="submit" class="btn btn-primary" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
-        <button type="button" class="btn ${ready && !blocked ? "btn-ghost" : "btn-primary"}" data-action="ai-copy-general">${t("复制提示词")}</button>
-        <a class="btn btn-sm btn-ghost" href="${href("me", "settings")}?sec=ai">${ready ? t("换模型") : t("填 API key 直接出结果")}</a>
+        ${ready && !blocked ? `<button type="submit" class="ui-btn" data-tone="primary" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
+        <button type="button" class="ui-btn" data-tone="${ready && !blocked ? "ghost" : "primary"}" data-action="ai-copy-general">${t("复制提示词")}</button>
+        <a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("me", "settings")}?sec=ai">${ready ? t("换模型") : t("填 API key 直接出结果")}</a>
       </div>
       ${a.error ? `<p class="form-error" role="alert">${esc(a.error)}</p>` : ""}
     </form>
     <div class="panel ai-sites"><p class="muted" style="margin:0 0 8px;font-size:13px">${t("复制后打开任一 AI 粘贴（手机上会直接打开已安装的 App）：")}</p><div class="form-actions">${sites}</div></div>
-    ${a.answer ? `<div class="panel ai-answer"><div class="ai-answer-head">${aiIcon(20)} <b>${t("咩咩的回答")}</b><button type="button" class="btn btn-sm btn-ghost" data-action="ai-copy-answer">${t("复制")}</button></div>${renderAnswer(a.answer)}
+    ${a.answer ? `<div class="panel ai-answer"><div class="ai-answer-head">${aiIcon(20)} <b>${t("咩咩的回答")}</b><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="ai-copy-answer">${t("复制")}</button></div>${renderAnswer(a.answer)}
       <p class="disclaimer">${t("AI 回答仅供参考；涉及燃气、电、结构、法律、医疗请找专业人士。")}</p></div>` : ""}
   </section>`;
 }

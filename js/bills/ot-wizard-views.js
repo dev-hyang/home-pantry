@@ -74,7 +74,7 @@ function stepWhere(d) {
       <label class="wz-opt"><input type="radio" name="visibility" value="family" ${vis === "family" ? "checked" : ""}><span><b>👪 ${t("全家可见")}</b><small>${t("装修、旅行、宠物等默认这样")}</small></span></label></fieldset>`;
 }
 function stepConfirm(d) {
-  const K = Kof(d), cur = Units.region.currency, m = (v) => (v !== "" ? Units.money(parseFloat(v) || 0, cur) : ""), row = (label, val, step) => `<div class="fact"><dt>${label}</dt><dd>${val || `<span class="muted">${t("未填")}</span>`} <button type="button" class="btn btn-sm btn-ghost" data-otw="goto" data-step="${step}" aria-label="${esc(t("修改 {name}", { name: label }))}">${t("修改")}</button></dd></div>`;
+  const K = Kof(d), cur = Units.region.currency, m = (v) => (v !== "" ? Units.money(parseFloat(v) || 0, cur) : ""), row = (label, val, step) => `<div class="fact"><dt>${label}</dt><dd>${val || `<span class="muted">${t("未填")}</span>`} <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-otw="goto" data-step="${step}" aria-label="${esc(t("修改 {name}", { name: label }))}">${t("修改")}</button></dd></div>`;
   const prop = state.properties.find((p) => p.id === d.property_id), asset = state.assets.find((a) => a.id === d.asset_id), vis = d.visibility || K.visibility;
   return `<dl class="fact-grid one">
       ${row(t("种类"), `${K.icon} ${esc(t(K.name))}`, 1)}
@@ -98,8 +98,8 @@ export function viewOneTimeWizard() {
       <div id="otwBody">${BODY[step](d)}</div>
       <p id="otwError" class="form-error" role="alert"></p>
       <div class="form-actions sticky-actions">
-        ${step > 1 ? `<button type="button" class="btn btn-ghost" data-otw="back">${t("上一步")}</button>` : `<a class="btn btn-ghost" href="${href("bill", "new")}">${t("取消")}</a>`}
-        <button type="button" class="btn btn-primary" data-otw="${last ? "finish" : "next"}">${last ? t("完成并创建") : t("下一步")}</button>
+        ${step > 1 ? `<button type="button" class="ui-btn" data-tone="ghost" data-otw="back">${t("上一步")}</button>` : `<a class="ui-btn" data-tone="ghost" href="${href("bill", "new")}">${t("取消")}</a>`}
+        <button type="button" class="ui-btn" data-tone="primary" data-otw="${last ? "finish" : "next"}">${last ? t("完成并创建") : t("下一步")}</button>
       </div>
     </form>
     <p class="muted" style="margin-top:12px;font-size:13px"><a href="${otFullFormUrl(d.kind)}">${t("我想一次填完（整页表单）")} ›</a></p>

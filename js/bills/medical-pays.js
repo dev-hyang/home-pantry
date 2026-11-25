@@ -35,7 +35,7 @@ bulkRegister("medpay", { ids: () => (lastBill?.pays || []).map((p) => p.id), del
 /** 缴费详情页（?payview=<id>）：只读，分块，每块右上角「编辑」 */
 export function medPayDetail(b, p) {
   const crumb = (label) => crumbNav([...billScopeParts(b, "onetime"), { href: detailHref(b.id), label: b.provider, icon: subIcon(b) }, { label }]);
-  if (!p) return `<section class="section">${crumb(t("详情"))}<div class="panel empty"><strong>${t("找不到这笔记录")}</strong><p><a class="btn btn-sm" href="${esc(detailHref(b.id))}">${t("回到账单")}</a></p></div></section>`;
+  if (!p) return `<section class="section">${crumb(t("详情"))}<div class="panel empty"><strong>${t("找不到这笔记录")}</strong><p><a class="ui-btn" data-size="sm" href="${esc(detailHref(b.id))}">${t("回到账单")}</a></p></div></section>`;
   const edit = `${detailHref(b.id)}?pay=${encodeURIComponent(p.id)}`, refund = num(p.amount) < 0;
   return `<section class="section">${crumb(fmtDate(p.paid_on))}<div class="section-head"><h2>${esc(fmtDate(p.paid_on))}</h2><p>${esc(b.provider)}</p></div>
     ${dtBlock(t("缴费"), edit, [dtRow(t("缴费日期"), esc(fmtDate(p.paid_on))), dtRow(t("金额"), `${refund ? `<span class="badge b-low">${t("退款")}</span> ` : ""}${esc(mny(p.amount, p.currency || b.currency))}`)])}
@@ -48,7 +48,7 @@ export function paymentsSection(b) {
   const sum = b.owed == null ? t("还没填自付金额或总额，余额未知") : t("自付 {o} · 已付 {p} · 余额 {b}", { o: mny(b.owed, b.currency), p: mny(b.paid, b.currency), b: mny(b.balance, b.currency) });
   lastBill = b;
   const body = b.pays.length ? `${bulkBar("medpay")}<ul class="restock-list pay-list">${b.pays.map((p) => payRow(b, p)).join("")}</ul>`
-    : `<div class="empty"><strong>${t("还没有缴费记录")}</strong><p><a class="btn btn-primary" href="${detailHref(b.id)}?pay=new">${t("记一笔缴费")}</a></p></div>`;
+    : `<div class="empty"><strong>${t("还没有缴费记录")}</strong><p><a class="ui-btn" data-tone="primary" href="${detailHref(b.id)}?pay=new">${t("记一笔缴费")}</a></p></div>`;
   return `<div class="section-head"><h2>${t("缴费记录")}</h2><p>${esc(sum)}</p></div>
     <div class="panel">${body}</div>`;
 }
@@ -72,7 +72,7 @@ export function medPayPage(b, edit, copyFrom = null) {
       <p id="medPayError" class="form-error" role="alert"></p>
       <p class="muted" style="margin:10px 0 0;font-size:13px">${t(b.kind === "travel" ? "付款会自动并入 花费 的“旅行出行”分类（按小类拆：机票、住宿…）。" : "付款会自动并入 花费 的“医疗”分类。")}</p>
       <div class="form-actions form-actions-split sticky-actions">
-        <a class="btn btn-ghost" href="${esc(detailHref(b.id))}">${t("取消")}</a>
-        <button type="submit" class="btn btn-primary">${edit ? t("保存修改") : t("记一笔")}</button></div>
+        <a class="ui-btn" data-tone="ghost" href="${esc(detailHref(b.id))}">${t("取消")}</a>
+        <button type="submit" class="ui-btn" data-tone="primary">${edit ? t("保存修改") : t("记一笔")}</button></div>
     </form></section>`;
 }

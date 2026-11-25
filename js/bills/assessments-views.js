@@ -66,7 +66,7 @@ const rowHtml = (x = {}, paid = false) => {
     <div class="as-line"><b class="as-date">${esc(fmtDate(x.due_on))}</b><span class="as-kindtxt">${esc(kindName(x.kind))}</span><b class="as-money">${mny(x.amount)}</b><span class="badge b-ok">${t("已缴")}</span></div></li>`;
   return `<li data-variant="card" class="ui-row as-row" data-id="${esc(x.id || "")}">
     <div class="as-line"><select name="as_kind" aria-label="${esc(t("类型"))}">${KINDS.map(([k, n]) => `<option value="${k}" ${x.kind === k ? "selected" : ""}>${esc(t(n))}</option>`).join("")}</select>
-      <button type="button" class="btn btn-ghost as-del" data-as-del aria-label="${esc(t("删除这一期"))}" title="${esc(t("删除这一期"))}">✕</button></div>
+      <button type="button" class="ui-btn as-del" data-tone="ghost" data-as-del aria-label="${esc(t("删除这一期"))}" title="${esc(t("删除这一期"))}">✕</button></div>
     <div class="as-fields">
       <label>${lang === "en" ? "Due date" : "到期日"}<input type="date" name="as_due" required value="${esc(x.due_on || "")}"></label>
       <label>${lang === "en" ? "Amount" : "金额"}<input ${numAttrs("money", { min: 0.01 })} name="as_amt" required value="${x.amount != null ? num(x.amount).toFixed(2) : ""}"></label></div>
@@ -93,19 +93,19 @@ export function assessFormPage(b, a, crumb, copyFrom = null, addKind = null) {
           <label>${t("期数")}<input name="g_count" ${numAttrs("int", { max: 120, min: 1, step: null })} placeholder="3" ${a && instN ? `value="${instN}"` : ""}></label>
           <label>${t("每期金额 / 总额")}<span class="as-gen2"><input name="g_amt" ${numAttrs("money", { min: 0.01 })} aria-label="${esc(t("金额"))}" ${a && left > 0 ? `value="${left.toFixed(2)}"` : ""}><select name="g_mode" aria-label="${esc(t("金额含义"))}"><option value="each" ${a && left > 0 ? "" : "selected"}>${t("每期")}</option><option value="total" ${a && left > 0 ? "selected" : ""}>${t("总额")}</option></select></span></label>
           <label>${t("第一期到期日")}<input name="g_start" type="date" value="${esc(startDefault)}"></label>
-          <div class="as-gen-go"><button type="button" class="btn btn-sm" data-as-gen>${t("生成分期")}</button></div>
+          <div class="as-gen-go"><button type="button" class="ui-btn" data-size="sm" data-as-gen>${t("生成分期")}</button></div>
         </div>
         <small class="muted">${a ? t("只替换还没缴的分期（已缴的期和一次性结清行不动）；总额默认是现在没缴的分期合计。") : t("每月一期；总额除不尽的零头放在最后一期。生成后每一期都能改日期和金额。")}</small></details>
       <ul class="as-rows" id="asRows">${rows.map((x) => rowHtml(x, !!x.payment_id)).join("")}</ul>
       <p class="as-total muted" id="asTotal" role="status">${esc(totalText(rows.length, rows.reduce((s, x) => s + num(x.amount), 0)))}</p>
-      <div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-as-add="installment">＋ ${t("加一期分期")}</button><button type="button" class="btn btn-sm btn-ghost" data-as-add="payoff">＋ ${t("加一次性结清")}</button></div>
+      <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-as-add="installment">＋ ${t("加一期分期")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-as-add="payoff">＋ ${t("加一次性结清")}</button></div>
       <p id="assessError" class="form-error" role="alert"></p>
       ${a ? `<p class="muted" style="font-size:13px;margin:6px 0 0">${t("已缴的期锁定，不能改；要改请先到缴费记录里取消勾选或删除那笔缴费。")}</p>` : ""}
       <div class="form-actions form-actions-split sticky-actions">
-        <button type="button" class="btn btn-ghost" data-action="assess-cancel">${t("取消")}</button>
-        <button type="submit" class="btn btn-primary">${a ? t("保存修改") : t("添加摊派")}</button></div>
+        <button type="button" class="ui-btn" data-tone="ghost" data-action="assess-cancel">${t("取消")}</button>
+        <button type="submit" class="ui-btn" data-tone="primary">${a ? t("保存修改") : t("添加摊派")}</button></div>
     </form>
-    ${a ? `<div class="danger-zone"><button type="button" class="btn btn-danger-ghost" data-action="assess-del" data-id="${esc(a.id)}">${t("删除这笔摊派")}</button><small class="muted">${t("连同它的付款计划一起删除；已缴的缴费记录保留，只是不再关联。")}</small></div>` : ""}
+    ${a ? `<div class="danger-zone"><button type="button" class="ui-btn" data-tone="danger" data-action="assess-del" data-id="${esc(a.id)}">${t("删除这笔摊派")}</button><small class="muted">${t("连同它的付款计划一起删除；已缴的缴费记录保留，只是不再关联。")}</small></div>` : ""}
   </section>`;
 }
 

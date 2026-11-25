@@ -25,7 +25,7 @@ export function vwChrome(kind, fixture) {
   return `<div class="wiz-steps" data-vz-head><p class="wiz-now" data-vz-now aria-live="polite">${nowText(list, "basic")}</p><ol class="wiz-dots" data-vz-dots aria-hidden="true">${dots(list, "basic")}</ol></div>`;
 }
 /** 底部按钮：取消 / 上一步 / 下一步 / 确认并创建（只在确认页出现） */
-export const vwActions = () => `<div class="form-actions sticky-actions wz-actions"><button type="button" class="btn btn-ghost" data-action="asset-cancel">${t("取消")}</button><button type="button" class="btn btn-ghost" data-vz="prev" hidden>${t("上一步")}</button><button type="button" class="btn btn-primary" data-vz="next">${t("下一步")}</button><button type="submit" class="btn btn-primary" data-wz-save data-vz-save hidden>${t("确认并创建")}</button></div>`;
+export const vwActions = () => `<div class="form-actions sticky-actions wz-actions"><button type="button" class="ui-btn" data-tone="ghost" data-action="asset-cancel">${t("取消")}</button><button type="button" class="ui-btn" data-tone="ghost" data-vz="prev" hidden>${t("上一步")}</button><button type="button" class="ui-btn" data-tone="primary" data-vz="next">${t("下一步")}</button><button type="submit" class="ui-btn" data-tone="primary" data-wz-save data-vz-save hidden>${t("确认并创建")}</button></div>`;
 
 const form = () => document.getElementById("assetForm");
 const cur = (f) => f.dataset.step || "basic";
@@ -58,7 +58,7 @@ function check(f, id) {
 function reviewHtml(f) {
   const a = readAsset(f), veh = kindOf(f) === "vehicle", facts = veh ? vehicleFacts : equipmentFacts;
   const blocks = contentSteps(kindOf(f), fixtureOf(f)).map((s) => `<section class="panel prof-card" aria-labelledby="vzr-${s.id}"><header class="prof-head"><span class="mi" aria-hidden="true">${s.icon}</span><div class="prof-t"><h3 id="vzr-${s.id}">${esc(t(s.name))}</h3></div>
-      <button type="button" class="btn btn-sm btn-ghost prof-edit" data-vz="goto" data-step="${s.id}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${t("编辑")}</button></header>${facts(a, s.id)}</section>`).join("");
+      <button type="button" class="ui-btn prof-edit" data-size="sm" data-tone="ghost" data-vz="goto" data-step="${s.id}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${t("编辑")}</button></header>${facts(a, s.id)}</section>`).join("");
   return `<p class="muted" style="margin:0 0 10px;font-size:13px">${veh ? t("请核对下面的信息；哪一块要改，点它的「编辑」回到那一步。没问题就点最下面的「确认并创建」，到这一步才会真正建好这辆车。") : t("请核对下面的信息；哪一块要改，点它的「编辑」回到那一步。没问题就点最下面的「确认并创建」，到这一步才会真正建好。")}</p><div class="prof-grid">${blocks}</div>`;
 }
 

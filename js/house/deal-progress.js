@@ -131,11 +131,11 @@ function actCell(deal, x, evs, h) {
   const held = x.held.length ? `<small class="dl-held">⏳ ${t("在等：{n}", { n: x.held.map((n) => t(n)).join("、") })}</small>` : "";
   const editing = h.isEditing(x);
   if (x.skipped) return `<span class="dl-tag">✅ ${t("实际")}</span><div class="dl-card dl-act skipped"><div class="dl-top"><b>⊘ ${t("已跳过")}</b></div><small>${t("这一步不适用于这笔交易，不算完成也不算延误")}</small>${evs.map(evLine).join("")}
-    <div class="dl-acts"><button type="button" class="btn btn-sm btn-ghost" data-action="deal-task-skip" data-deal="${deal.id}" data-key="${esc(x.key)}" data-skip="0">↩ ${t("恢复这一步")}</button></div></div>`;
+    <div class="dl-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="deal-task-skip" data-deal="${deal.id}" data-key="${esc(x.key)}" data-skip="0">↩ ${t("恢复这一步")}</button></div></div>`;
   return `<span class="dl-tag">✅ ${t("实际")}</span><div class="dl-card dl-act ${x.done ? "done" : x.lateNow > 0 ? "late" : "todo"}">
     ${head}${held}${evs.map(evLine).join("")}
     <div class="dl-acts"><label class="dl-check" for="${id}"><input type="checkbox" id="${id}" data-deal-task="${esc(x.key)}" data-deal="${deal.id}" ${x.done ? "checked" : ""}><span>${x.done ? t("已完成") : t("标记完成")}</span></label>
-      <a class="btn btn-sm btn-ghost" href="${dh(deal, "event-new", `&key=${encodeURIComponent(x.key)}&from=actual`)}">＋ ${t("记一笔进展")}</a>${x.done ? "" : `<button type="button" class="btn btn-sm btn-ghost" data-action="deal-task-skip" data-deal="${deal.id}" data-key="${esc(x.key)}" data-skip="1" title="${esc(t("跳过这一步（不适用）"))}">⊘ ${t("跳过此步")}</button>`}${h.editBtn(x)}</div>
+      <a class="ui-btn" data-size="sm" data-tone="ghost" href="${dh(deal, "event-new", `&key=${encodeURIComponent(x.key)}&from=actual`)}">＋ ${t("记一笔进展")}</a>${x.done ? "" : `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="deal-task-skip" data-deal="${deal.id}" data-key="${esc(x.key)}" data-skip="1" title="${esc(t("跳过这一步（不适用）"))}">⊘ ${t("跳过此步")}</button>`}${h.editBtn(x)}</div>
     ${editing ? h.editForm(x) : ""}</div>`;
 }
 
@@ -205,7 +205,7 @@ export function briefHtml(deal, an, h) {
   const msLine = ms && ms.baseline ? `<p class="dl-ms">${t("{l}：原计划 {a}", { l: t(label || ms.name), a: `<b>${fmtDate(ms.baseline)}</b>` })}${ms.done ? ` → ${t("实际 {b}", { b: `<b>${fmtDate(ms.done.done_on)}</b>` })} ${varPill(ms.slip)}`
     : ms.forecast && ms.forecast !== ms.baseline ? ` → ${t("预计 {b}", { b: `<b class="${ms.slip > 0 ? "lag-late" : ""}">${fmtDate(ms.forecast)}</b>` })} ${varPill(ms.slip)}` : ` · ${pill("ok", t("预计按计划"))}`}</p>` : "";
   const list = an.overdue.slice(0, 5).map((x) => `<li><div class="grow"><b>${esc(t(x.name))}</b><small>${t("本来应该 {d} 完成，已晚 {n} 天", { d: fmtDate(x.baseline), n: x.lateNow })}${x.priority === "must" ? ` · ${t("必须项")}` : ""}${x.held.length ? ` · ${t("在等：{n}", { n: x.held.map((n) => t(n)).join("、") })}` : ""}</small></div>
-    <a class="btn btn-sm btn-ghost" href="${dh(deal, "event-new", `&key=${encodeURIComponent(x.key)}&from=compare`)}">＋ ${t("记一笔进展")}</a></li>`).join("");
+    <a class="ui-btn" data-size="sm" data-tone="ghost" href="${dh(deal, "event-new", `&key=${encodeURIComponent(x.key)}&from=compare`)}">＋ ${t("记一笔进展")}</a></li>`).join("");
   return `<div class="panel dl-brief"><h3 style="margin:0 0 8px">${t("对照计划")}</h3>
     <div class="kpis">${kpiS(t("已完成"), `${an.done} / ${an.total}`, an.skipped ? `<small>⊘ ${t("跳过 {n} 项", { n: an.skipped })}</small>` : "")}${kpiS(t("晚于计划"), `<span class="${an.late ? "down" : ""}">${an.late}</span>`, `<small>${t("含预计会晚的")}</small>`)}${kpiS(t("已过原计划日"), `<span class="${an.overdue.length ? "down" : ""}">${an.overdue.length}</span>`, `<small>${t("还没做")}</small>`)}</div>
     ${msLine}${an.overdue.length ? `<ul class="restock-list dl-late-list">${list}</ul>${an.overdue.length > 5 ? `<p class="muted small" style="margin:6px 0 0">${t("还有 {n} 项…", { n: an.overdue.length - 5 })}</p>` : ""}` : `<p class="muted small" style="margin:6px 0 0">${t("没有超过原计划日的事项。")}</p>`}
@@ -219,7 +219,7 @@ function aiHtml(deal) {
   return `<details class="dl-ai" ${out ? "open" : ""}><summary>✨ ${t("AI 分析")}</summary>
     <p class="muted small" style="margin:6px 0 8px">${t("只发送每个清单事项的名称、计划日期、实际 / 预计日期和晚了几天，不发进展记录的内容、联系人、金额和地址；自定义事项只发「自定义事项 N」。会发给你在设置里选的 AI 服务商。")}</p>
     <label class="check-inline"><input type="checkbox" data-deal-ai="consent" ${aiConsent() ? "checked" : ""}><span>${t("我同意把这些日期对照发给 AI 服务商")}</span></label>
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-primary btn-sm" data-action="deal-ai-run" data-deal="${deal.id}" ${aiConsent() && !state.dealAiBusy ? "" : "disabled"}>${state.dealAiBusy ? t("分析中…") : out ? t("重新分析") : t("帮我分析")}</button></div>
+    <div class="form-actions" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="deal-ai-run" data-deal="${deal.id}" ${aiConsent() && !state.dealAiBusy ? "" : "disabled"}>${state.dealAiBusy ? t("分析中…") : out ? t("重新分析") : t("帮我分析")}</button></div>
     ${out ? `<div class="ai-out" style="margin-top:10px;white-space:pre-wrap">${esc(out)}</div><p class="muted small" style="margin:6px 0 0">${t("AI 的建议仅供参考，合同期限和法律问题以律师为准。")}</p>` : ""}</details>`;
 }
 /** 点「帮我分析」：把算好的偏差发给 AI */
@@ -257,9 +257,9 @@ export function eventFormPanel(deal, an) {
       <label class="check-inline span-2"><input type="checkbox" name="mark_done" ${step && !step.done ? "" : ""}><span>${t("同时把这一步标为已完成（完成日期 = 上面的日期）")}</span></label>
       <label class="span-2">${t("备注（可选）")}<input name="note" maxlength="1000" value="${esc(ev?.note || "")}" placeholder="${esc(t("对方要求、延迟原因、下一步…"))}"></label>
     </div>
-    <div class="form-actions" style="margin-top:10px"><button class="btn btn-primary btn-sm" type="submit">${t("保存")}</button>
-      <button class="btn btn-ghost btn-sm" type="button" data-action="deal-event-cancel">${t("取消")}</button>
-      ${ev ? `<button class="btn btn-ghost btn-sm" type="button" data-action="deal-event-delete" data-id="${esc(ev.id)}">${t("删除这条")}</button>` : ""}
+    <div class="form-actions" style="margin-top:10px"><button class="ui-btn" data-size="sm" data-tone="primary" type="submit">${t("保存")}</button>
+      <button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="deal-event-cancel">${t("取消")}</button>
+      ${ev ? `<button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="deal-event-delete" data-id="${esc(ev.id)}">${t("删除这条")}</button>` : ""}
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div></form></section>`;
 }
 /** 记一笔进展 / 修改进展记录的独立页面（底部「取消 / 保存」，保存后回 returnTo；修改页另有一块「删除这条」） */
@@ -278,9 +278,9 @@ export function eventFormPage(deal, an, { ev = null, key = "", cancelHref, retur
       <label class="check-inline span-2"><input type="checkbox" name="mark_done"><span>${t("同时把这一步标为已完成（完成日期 = 上面的日期）")}</span></label>
       <label class="span-2">${t("备注（可选）")}<input name="note" maxlength="1000" value="${esc(ev?.note || "")}" placeholder="${esc(t("对方要求、延迟原因、下一步…"))}"></label>
     </div>
-    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="btn btn-ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button>
+    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div></form>`;
-  const del = ev ? `<div class="panel"><div class="kv"><div class="muted">${t("不需要这条记录了？")}</div><button type="button" class="btn btn-sm btn-danger-ghost" data-action="deal-event-delete" data-id="${esc(ev.id)}" data-back="${esc(returnTo)}">${t("删除这条")}</button></div></div>` : "";
+  const del = ev ? `<div class="panel"><div class="kv"><div class="muted">${t("不需要这条记录了？")}</div><button type="button" class="ui-btn" data-size="sm" data-tone="danger" data-action="deal-event-delete" data-id="${esc(ev.id)}" data-back="${esc(returnTo)}">${t("删除这条")}</button></div></div>` : "";
   return `<section class="section">${form}${del}</section>`;
 }
 export async function saveDealEventForm(f) {

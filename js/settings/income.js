@@ -19,7 +19,7 @@ const cardHtml = (l = {}) => `<div class="inc-card" data-line="${esc(l.id || uid
   <label class="inc-field inc-label">${t("来源")}<input name="label" maxlength="30" value="${esc(l.label || "")}" placeholder="${t("例如：主业、兼职")}"></label>
   <label class="inc-field">${t("金额")}<span class="inc-amt"><i aria-hidden="true">${esc(sym())}</i><input name="amount" ${numAttrs("money")} value="${l.amount ?? ""}" placeholder="0.00" aria-label="${t("金额（{cur}）", { cur: cur() })}"></span></label>
   <select name="period" aria-label="${t("按")}"><option value="month" ${l.period !== "year" ? "selected" : ""}>${t("每月")}</option><option value="year" ${l.period === "year" ? "selected" : ""}>${t("每年")}</option></select>
-  <button type="button" class="btn btn-sm btn-danger-ghost inc-del" data-action="income-del-row">${t("删除")}</button></div>`;
+  <button type="button" class="ui-btn inc-del" data-size="sm" data-tone="danger" data-action="income-del-row">${t("删除")}</button></div>`;
 
 /** 某个人的收入卡片列表；改完点“保存”，删除一张卡片会立即生效 */
 function incomeForm(uid, row) {
@@ -27,8 +27,8 @@ function incomeForm(uid, row) {
   return `<form class="inc-form" data-uid="${esc(uid)}" novalidate>
     <div class="inc-cards">${lines.map(cardHtml).join("")}</div>
     <p class="muted inc-empty" ${lines.length ? "hidden" : ""}>${t("还没有收入，点“添加一份收入”。")}</p>
-    <div class="form-actions"><button type="button" class="btn btn-sm btn-ghost" data-action="income-add-row">＋ ${t("添加一份收入")}</button>
-      <button type="submit" class="btn btn-primary btn-sm">${t("保存")}</button></div></form>`;
+    <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="income-add-row">＋ ${t("添加一份收入")}</button>
+      <button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("保存")}</button></div></form>`;
 }
 
 export function incomePanel() {
@@ -37,7 +37,7 @@ export function incomePanel() {
     ${incomeForm(me, mine)}
     <p class="muted" style="margin:8px 0 0;font-size:13px"><b>${t("填到手工资，不含已被扣掉的税和保险。")}</b> ${t("固定工资按月或按年填；兼职 / 副业填一个大概的月均就行。偶尔的一次性收入（例如卖二手）不用填，预算不把它算进去。")}</p></div>`;
   if (!owner) return `${own}<div class="panel"><p class="muted" style="margin:0">${t("预算由家主按全家收入生成，你在 财务 → 预算 里能看到各类预算和进度，但看不到别人的收入。")}</p>
-    <div class="form-actions"><a class="btn btn-sm btn-ghost" href="${href("bills", "budget")}">${t("去看预算")}</a></div></div>`;
+    <div class="form-actions"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "budget")}">${t("去看预算")}</a></div></div>`;
   const others = state.members.filter((m) => m.user_id !== me), total = totalIncomeMonthly(), b = state.budget || {};
   return `${incomeBanner()}${own}
     <div class="panel"><div class="kv"><div><b>${t("全家收入（仅家主可见）")}</b><div class="muted">${t("每个人的收入只有本人和家主能看到；其他家人看不到。")}</div></div></div>
@@ -45,9 +45,9 @@ export function incomePanel() {
       <p class="inc-total"><b>${t("合计")}</b> ${money(total)} / ${t("月")} <small class="muted">${t("年 {a}", { a: money(total * 12) })}</small></p></div>
     <div class="panel"><div class="kv"><div><b>${t("预算生成比例")}</b><div class="muted">${t("预算 = 全家收入 − 固定账单 − 储蓄；剩下的按过去的花费比例分给各类。只有家主能改。")}</div></div></div>
       <form id="ratioForm" class="bud-inline"><label class="inc-field">${t("计划储蓄占收入")}（%）<input name="savings_pct" ${numAttrs("int", { max: 90 })} value="${esc(b.savings_pct ?? 20)}" style="width:90px"></label>
-        <button type="submit" class="btn btn-sm">${t("保存比例")}</button></form>
-      <div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-action="budget-generate" ${total > 0 ? "" : "disabled"}>${plan ? t("重新生成预算") : t("生成预算")}</button>
-        <a class="btn btn-sm btn-ghost" href="${href("bills", "budget")}">${t("去看预算")}</a></div>
+        <button type="submit" class="ui-btn" data-size="sm">${t("保存比例")}</button></form>
+      <div class="form-actions"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="budget-generate" ${total > 0 ? "" : "disabled"}>${plan ? t("重新生成预算") : t("生成预算")}</button>
+        <a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "budget")}">${t("去看预算")}</a></div>
       ${plan ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("你在预算页改过的各类金额会保留；想全部按建议值，在预算页点“恢复建议值”。")}</p>` : `<p class="muted" style="margin:8px 0 0;font-size:13px">${t("填好收入后会自动生成第一版预算。")}</p>`}</div>
     <div class="panel"><label class="check-inline"><input type="checkbox" id="medPoolToggle" ${medInPool() ? "checked" : ""}><span><b>${t("把医疗支出计入每月可支配预算")}</b></span></label>
       <p class="muted" style="margin:6px 0 0;font-size:13px">${t("默认不计入：医疗花费大额、不可预测，单独在预算页“本月”里列出。打开后医疗和其他分类一样有月预算，也会占用可支配额。")}</p></div>

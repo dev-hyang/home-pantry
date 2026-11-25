@@ -49,7 +49,7 @@ export function billDetailPage(b, root, hubHref) {
     const r = rows(b, s.id).filter(Boolean);
     return `<section class="panel prof-card" aria-labelledby="bd-${s.id}">
       <header class="prof-head"><span class="mi" aria-hidden="true">${s.icon}</span><div class="prof-t"><h3 id="bd-${s.id}">${t(s.name)}</h3></div>
-        <a class="btn btn-sm btn-ghost prof-edit" href="${hubHref}?sec=${s.id}" aria-label="${esc(t("编辑") + " · " + t(s.name))}">${t("编辑")}</a></header>
+        <a class="ui-btn prof-edit" data-size="sm" data-tone="ghost" href="${hubHref}?sec=${s.id}" aria-label="${esc(t("编辑") + " · " + t(s.name))}">${t("编辑")}</a></header>
       ${r.length ? `<dl class="fact-grid one">${r.join("")}</dl>` : `<p class="muted prof-empty">${t("未填")}</p>`}</section>`;
   }).join("");
   return `<section class="section">

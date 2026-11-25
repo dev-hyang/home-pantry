@@ -40,7 +40,7 @@ function modelField(s, p) {
   const cur = s.model || "", list = FREE_MODELS[p.id].filter((m) => m.free !== false).map((m) => ({ ...m, live: false })), custom = !!cur && !list.some((m) => m.id === cur) && !(autoModel(p.id) === cur);
   return `<label class="span-2">${t("模型")}<select name="modelSel" data-provider="${p.id}">${modelOptionsHtml(p.id, list, cur, custom)}</select>
       <small id="modelLimitHint">${limitHint(p.id, custom ? "" : cur)}</small></label>
-    <div class="span-2 model-refresh"><button type="button" class="btn btn-sm btn-ghost" id="modelRefreshBtn" data-action="ai-models-refresh">↻ ${t("刷新模型列表")}</button><small id="modelListNote" class="muted">${t("正在查这个 key 实际能用的模型…")}</small></div>
+    <div class="span-2 model-refresh"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" id="modelRefreshBtn" data-action="ai-models-refresh">↻ ${t("刷新模型列表")}</button><small id="modelListNote" class="muted">${t("正在查这个 key 实际能用的模型…")}</small></div>
     <div class="span-2" id="modelNotices">${modelNotices(p.id, cur, null)}</div>
     <label class="span-2" id="modelCustomWrap" ${custom ? "" : "hidden"}>${t("模型名（照服务商控制台里的写）")}<input name="model" maxlength="80" placeholder="${esc(p.model)}" value="${esc(cur)}"></label>`;
 }
@@ -54,7 +54,7 @@ export function modelNotices(pid, cur, live) {
   }
   if (cur && live && !live.some((m) => m.id === cur && m.live)) rows.push(`⚠️ ${t("你选的 {m} 已不在这个 key 的可用列表里，会自动换别的模型；建议改选“自动”或另一个。", { m: esc(cur) })}`);
   const ageTxt = FREE_MODELS[pid] ? t("免费上限目录更新于 {d}（{n} 天前）", { d: FREE_MODELS_AS_OF, n: age }) + (age > 45 ? `，${t("可能已过期，上限以控制台为准")}` : "") : "";
-  return `${rows.length ? `<div class="notice-box" role="status">${rows.map((r) => `<p>${r}</p>`).join("")}<button type="button" class="btn btn-sm btn-ghost" data-action="ai-notice-dismiss" data-provider="${pid}">${t("知道了")}</button></div>` : ""}
+  return `${rows.length ? `<div class="notice-box" role="status">${rows.map((r) => `<p>${r}</p>`).join("")}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="ai-notice-dismiss" data-provider="${pid}">${t("知道了")}</button></div>` : ""}
     ${ageTxt ? `<p class="muted" style="margin:6px 0 0;font-size:12.5px">${ageTxt}</p>` : ""}`;
 }
 /** 画出设置页后：后台查实际可用的模型，把下拉换成真实列表（选中项不变） */
@@ -96,7 +96,7 @@ function aiBlock() {
         <small>${esc(t(p.keyHint || "在服务商控制台创建 API key，整段粘贴到这里"))}</small></label>
       <label>${t("家庭人数（菜单份量）")}<input name="people" ${numAttrs("int", { max: 20, min: 1, step: null })} value="${s.people || 4}"></label>
     </div>
-    ${custom ? "" : `<p class="hint">${t("模型名和接口地址已内置（{model}），一般不用改；要换模型再展开下面的“高级”。", { model: effective(s, p).model })}${s.model || s.base ? ` <button type="button" class="btn btn-sm btn-ghost" data-action="ai-clear-adv">${t("清掉手填的模型名 / 地址")}</button>` : ""}</p>`}
+    ${custom ? "" : `<p class="hint">${t("模型名和接口地址已内置（{model}），一般不用改；要换模型再展开下面的“高级”。", { model: effective(s, p).model })}${s.model || s.base ? ` <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="ai-clear-adv">${t("清掉手填的模型名 / 地址")}</button>` : ""}</p>`}
     <details class="adv" ${custom ? "open" : ""}><summary>${custom ? t("接口地址、模型与鉴权（自定义必填）") : t("高级：换模型 / 自定义接口地址")}</summary>
       <div class="form-grid" style="margin-top:8px">
         ${modelField(s, p)}
@@ -105,8 +105,8 @@ function aiBlock() {
       </div>
     </details>
     ${quotaBlock(s, p)}
-    <div class="form-actions" style="margin-top:10px"><button type="submit" class="btn btn-primary btn-sm">${t("保存")}</button>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="ai-test">${t("测试连接")}</button><span id="aiTestOut" class="muted"></span></div>
+    <div class="form-actions" style="margin-top:10px"><button type="submit" class="ui-btn" data-size="sm" data-tone="primary">${t("保存")}</button>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="ai-test">${t("测试连接")}</button><span id="aiTestOut" class="muted"></span></div>
     <p class="hint">${t("性价比：DeepSeek、通义千问 qwen-turbo、豆包 lite 一次菜单约几分钱；Gemini Flash 有免费额度。只用于生成菜单，不会上传备注等个人信息。")}</p>
   </form>`;
 }
@@ -131,7 +131,7 @@ export function viewSettings() {
     };
     return `<section class="section menu-page"><div class="section-head"><p>${t("家庭、房产、语言、存放位置、模块、同步与备份、AI、姐妹站点")}</p></div>
       <div class="panel mlist">${SETTING_SECTIONS.map((s) => `<a class="ui-row mrow" href="${href("me", "settings")}?sec=${s.id}"><span class="mi" aria-hidden="true">${s.icon === "__AI__" ? aiIcon(24) : s.icon}</span><span class="mt"><b>${t(s.name)}</b><small>${esc(status[s.id])}</small></span><span class="ui-chev" aria-hidden="true">›</span></a>`).join("")}</div>
-      <div class="form-actions" style="margin-top:14px">${cloud ? `<button type="button" class="btn btn-danger-ghost" data-action="logout">${t("退出登录")}</button>` : `<button type="button" class="btn btn-danger-ghost" data-action="reset-demo">${t("恢复演示数据")}</button>`}</div>
+      <div class="form-actions" style="margin-top:14px">${cloud ? `<button type="button" class="ui-btn" data-tone="danger" data-action="logout">${t("退出登录")}</button>` : `<button type="button" class="ui-btn" data-tone="danger" data-action="reset-demo">${t("恢复演示数据")}</button>`}</div>
     </section>`;
   }
   const sw = (id, on, title, desc) => `<div class="panel"><div class="kv"><div><b>${title}</b><div class="muted">${desc}</div></div>
@@ -144,14 +144,14 @@ export function viewSettings() {
       return `
     <div class="panel">
       <div class="kv"><div><b>${esc(state.household?.name || "")}</b><div class="muted">${cloud ? t("云端协同：家人修改会实时同步") : t("本地演示：数据只保存在这个浏览器里")}</div></div>
-        ${cloud ? `<a class="btn btn-sm btn-ghost" href="${href("me", "settings")}?sec=backup">${t("同步与备份")} ›</a>` : ""}</div>
+        ${cloud ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("me", "settings")}?sec=backup">${t("同步与备份")} ›</a>` : ""}</div>
       ${cloud && state.households.length > 1 ? `<label style="display:grid;gap:4px;margin-top:12px">${t("切换家庭")}<select id="hhSwitch">${state.households.map((h) => `<option value="${h.id}" ${h.id === state.household.id ? "selected" : ""}>${esc(h.name)}</option>`).join("")}</select></label>` : ""}
     </div>
     ${cloud ? `
     <div class="panel">
       <div class="kv"><div><div class="muted">${t("邀请家人：把这个邀请码发给他们")}</div><div class="code">${esc(state.household.invite_code)}</div><div class="muted small">${inviteLine()}</div></div>
-        <div class="head-acts"><button type="button" class="btn btn-sm" data-action="copy-invite">${t("复制邀请码")}</button>
-          ${isOwner() ? `<button type="button" class="btn btn-sm btn-ghost" data-action="rotate-invite">${t("重新生成")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="close-invite">${t("关闭邀请")}</button>` : ""}</div></div>
+        <div class="head-acts"><button type="button" class="ui-btn" data-size="sm" data-action="copy-invite">${t("复制邀请码")}</button>
+          ${isOwner() ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="rotate-invite">${t("重新生成")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="close-invite">${t("关闭邀请")}</button>` : ""}</div></div>
       <p class="muted" style="font-size:12px;margin:8px 0 0">${t("家人用邀请码申请加入（不用收邮件），邀请码 7 天有效；申请后要家主在这里批准才能进来。邀请码泄露了或家人都加好了，请家主点「重新生成」或「关闭邀请」，旧码立即失效，已加入的家人不受影响。")}</p>
       ${state.user?.is_anonymous ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("你是通过邀请码直接进入的，身份保存在本设备浏览器里；清除浏览器数据或换手机后需要重新用邀请码进入。")}</p>` : ""}
     </div>` : ""}
@@ -220,7 +220,7 @@ export function viewSettings() {
     ${sw("gearToggle", state.gearEnabled, t("家居耐用品模块"), t("床品、电器、自行车、工具等耐用品，只记数量和位置；关闭后储藏里不再显示“家居耐用品”，数据不会删除"))}`,
     data: () => `
     <div class="panel"><div class="kv"><div><b>${t("浏览器通知")}</b><div class="muted">${t("打开网页时，若有新的缺货或少货会弹出提醒")}</div></div>
-      ${notif === "granted" ? `<span class="badge b-ok">${t("已开启")}</span>` : notif === "unsupported" ? `<span class="muted">${t("此浏览器不支持")}</span>` : `<button type="button" class="btn btn-sm" data-action="notif">${t("开启通知")}</button>`}</div></div>
+      ${notif === "granted" ? `<span class="badge b-ok">${t("已开启")}</span>` : notif === "unsupported" ? `<span class="muted">${t("此浏览器不支持")}</span>` : `<button type="button" class="ui-btn" data-size="sm" data-action="notif">${t("开启通知")}</button>`}</div></div>
     `,
     backup: () => (financeOk() ? backupPanel() : `<div class="panel"><p style="margin:0">${t("备份里有全家的收入、预算和对账单，只有家主和有财务权限的家人能备份、恢复。数据本身已经实时存在云端。")}</p></div>`),
     usage: () => `<p class="muted" style="margin:0 0 10px">${t("看看数据占了 Supabase 免费空间的多少，快满之前会变黄、变红提醒你。")}</p>${usageHTML()}`,
@@ -231,7 +231,7 @@ export function viewSettings() {
     apps: () => `
     ${sisterAppsPanel()}
     <div class="panel"><div class="kv"><div><b>${t("介绍与注意事项")}</b><div class="muted">${t("这个网站是什么、第一次怎么用、提醒怎么分级、哪些事要注意")}</div></div>
-      <a class="btn btn-sm" href="${href("me", "about")}">${t("查看介绍")}</a></div></div>`,
+      <a class="ui-btn" data-size="sm" href="${href("me", "about")}">${t("查看介绍")}</a></div></div>`,
   };
   // 面包屑“‹ 我的 / 设置 / 家庭与成员”由 menu.js 统一画，这里不再另起标题行
   return `<section class="section"><div class="settings">${blocks[meta.id]()}</div></section>`;

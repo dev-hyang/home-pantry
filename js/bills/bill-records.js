@@ -37,8 +37,8 @@ export function viewBillTemplate() {
       ${propertyBar()}
       <form id="billTemplateForm" class="panel">
         <div class="tpl-bar">
-          <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="1">${t("全选")}</button>
-          <button type="button" class="btn btn-sm btn-ghost" data-action="tpl-all" data-on="0">${t("全不选")}</button>
+          <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="tpl-all" data-on="1">${t("全选")}</button>
+          <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="tpl-all" data-on="0">${t("全不选")}</button>
           <span class="muted">${prop ? t("与房产相关的账单会挂在“{p}”下；每套房产可以各建一条（到期日可能不同），切换上面的房产再建", { p: esc(prop.name) }) : ""}</span>
         </div>
         ${(() => {
@@ -58,8 +58,8 @@ export function viewBillTemplate() {
             ${tpl.map((r, i) => ((r.group || "常用账单") === g ? rowHtml(r, i) : "")).join("")}</fieldset>`).join("");
         })()}
         <div class="form-actions" style="margin-top:12px">
-          <button type="submit" class="btn btn-primary">${t("建立选中的账单")}</button>
-          <a class="btn btn-ghost" href="${href("bills", "all")}">${t("稍后再说")}</a>
+          <button type="submit" class="ui-btn" data-tone="primary">${t("建立选中的账单")}</button>
+          <a class="ui-btn" data-tone="ghost" href="${href("bills", "all")}">${t("稍后再说")}</a>
         </div>
       </form>
     </section>`;

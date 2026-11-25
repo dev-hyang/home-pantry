@@ -29,8 +29,8 @@ export function viewHouse() {
     return `${houseBar()}${statusLine()}<section class="section house-intro">
       <h2>${t("先说说你家的房子")}</h2>
       <p class="muted">${t("选一下房型、外墙和地面材料、家里有哪些设施，大约 1 分钟。之后会告诉你哪些部位归自己维护、各种材料怎么保养，并一次加好常用的汽车房屋消耗品。")}</p>
-      <p><a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a>
-         <a class="btn btn-ghost" href="${href("house", "supplies")}">${t("先直接记录耗材")}</a></p>
+      <p><a class="ui-btn" data-tone="primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a>
+         <a class="ui-btn" data-tone="ghost" href="${href("house", "supplies")}">${t("先直接记录耗材")}</a></p>
     </section>
     ${shelf ? `<section class="section"><div class="section-head"><h2>${t("汽车房屋消耗品")}</h2></div><div class="shelf">${shelf}</div></section>` : ""}`;
   }
@@ -58,8 +58,8 @@ export function viewHouse() {
     title: `🚨 ${t("应急信息与关键位置")}`,
     hint: emN ? EMERGENCY_FIELDS.filter((f) => em[f.id]).slice(0, 4).map((f) => t(f.name)).join(" · ") : t("还没填：总水阀、燃气阀、配电箱在哪、怎么关"),
     body: emN ? `<dl class="fact-grid one">${EMERGENCY_FIELDS.filter((f) => em[f.id]).map((f) => `<div class="fact wide"><dt>${f.icon} ${t(f.name)}</dt><dd><span class="pre">${esc(em[f.id])}</span></dd></div>`).join("")}</dl>
-        <p style="margin:10px 0 0"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}?sec=emergency">${t("修改")}</a></p>`
-      : `${t("爆水管、跳闸、闻到燃气味时，家人打开手机就能看到总阀、配电箱、各表在哪、怎么关。")}<p style="margin:10px 0 0"><a class="btn btn-primary btn-sm" href="${href("house", "profile")}?sec=emergency">${t("现在填")}</a></p>` };
+        <p style="margin:10px 0 0"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("house", "profile")}?sec=emergency">${t("修改")}</a></p>`
+      : `${t("爆水管、跳闸、闻到燃气味时，家人打开手机就能看到总阀、配电箱、各表在哪、怎么关。")}<p style="margin:10px 0 0"><a class="ui-btn" data-size="sm" data-tone="primary" href="${href("house", "profile")}?sec=emergency">${t("现在填")}</a></p>` };
   const emBlock = `<div class="em-fold"><h3>${emDef.title}</h3><p class="muted" style="margin:0 0 8px;font-size:13px">${emDef.hint}</p>${emDef.body}</div>`;
   // 布局：先是这套房的身份卡（地址、保险、HOA 一眼可查），然后是“要做的事”（交易清单 → 本月季节任务 → 设备提醒 → 耗材提醒），
   // 最后是不常变的参考资料（归谁维护 / HOA 详情 / 材料保养），默认折叠
@@ -88,7 +88,7 @@ export function viewHouse() {
       body: `<div class="ch-scroll"><table class="owner-table"><tbody>${ownerRows}</tbody></table></div><p class="disclaimer">${t("这是该房型的常见情况，具体以 HOA 章程、物业服务合同或租约为准。")}</p>` })}
     ${ext.length || roof.length || floors.length ? refSection("house-care", { title: t("材料保养建议"), hint: [...ext, ...roof, ...floors].map((m) => t(m.name)).join("、"),
       body: `<div class="care-grid">${careBlock(t("外墙"), ext)}${careBlock(t("屋面"), roof)}${careBlock(t("地面"), floors)}</div><p class="disclaimer">${t("周期与寿命为常见经验值，实际以产品说明书和专业人士检查为准。")}</p>` })
-      : refSection("house-care", { title: t("材料保养建议"), hint: t("还没填材料"), body: `${t("补充外墙、屋面和地面材料后，这里会给出对应的保养建议。")}<p><a class="btn btn-ghost btn-sm" href="${href("house", "profile")}">${t("补充材料")}</a></p>` })}`;
+      : refSection("house-care", { title: t("材料保养建议"), hint: t("还没填材料"), body: `${t("补充外墙、屋面和地面材料后，这里会给出对应的保养建议。")}<p><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("house", "profile")}">${t("补充材料")}</a></p>` })}`;
 }
 /** 消耗品范围：多套房产 / 有车时，每个入口只看自己的（加全家共用）；?veh= 指定某辆车，否则是当前房产。只有一套房产又没车时不分，返回 "" */
 const supplyScope = () => (showOwner() ? (state.route?.q?.get("veh") ? `a:${state.route.q.get("veh")}` : `p:${state.propertyId}`) : "");
@@ -105,14 +105,14 @@ export function viewHouseSupplies() {
   const scope = supplyScope(), mine = scopedHouseItems(scope), alerts = alertsOf(mine), label = t("添加汽车房屋消耗品");
   const who = scope ? `${ownerIcon(scope)} ${ownerName(scope)}` : "";
   const q = scope.startsWith("a:") ? `&veh=${scope.slice(2)}` : scope ? `&prop=${scope.slice(2)}` : "";
-  const buttons = `<a class="btn btn-sm ${mine.length ? "btn-ghost" : "btn-primary"}" href="${href("item", "new")}?space=house${q}">${t("手动添加")}</a>
-    <a class="btn btn-sm ${mine.length ? "btn-ghost" : "btn-primary"}" href="${href("house", "template")}">${t("按房屋设备资料推荐")}</a>`;
+  const buttons = `<a class="ui-btn" data-size="sm" data-tone="${mine.length ? "ghost" : "primary"}" href="${href("item", "new")}?space=house${q}">${t("手动添加")}</a>
+    <a class="ui-btn" data-size="sm" data-tone="${mine.length ? "ghost" : "primary"}" href="${href("house", "template")}">${t("按房屋设备资料推荐")}</a>`;
   const body = !mine.length
     ? `<div class="panel"><div class="empty"><strong>${t("还没有汽车房屋消耗品")}</strong>${t("手动添加，或按你家的房屋和设备资料一次加好滤网、电池、融雪盐等。")}<p class="form-actions" style="justify-content:center">${buttons}</p></div></div>`
-    : `<div class="section-head"><p>${who ? `${esc(who)} · ` : ""}${t("{n} 种", { n: mine.length })}</p><div class="head-acts">${alerts.length ? `<button type="button" class="btn btn-sm btn-add-all" data-action="shop-add-alerts" data-space="house" data-owner="${esc(scope)}">＋ ${t("全部加入购物车")}</button>` : ""}${buttons}</div></div>
+    : `<div class="section-head"><p>${who ? `${esc(who)} · ` : ""}${t("{n} 种", { n: mine.length })}</p><div class="head-acts">${alerts.length ? `<button type="button" class="ui-btn" data-size="sm" data-tone="soft" data-action="shop-add-alerts" data-space="house" data-owner="${esc(scope)}">＋ ${t("全部加入购物车")}</button>` : ""}${buttons}</div></div>
       ${alerts.length ? `${rsHint()}<div class="panel">${restockPanel(alerts)}</div>` : ""}
       <div class="shelf" style="margin-top:10px">${shelfGrid("house", scope)}</div>
-      <p style="margin-top:10px"><a class="btn btn-sm btn-ghost" href="${href("pantry", "inventory")}?space=house${scope ? `&owner=${encodeURIComponent(scope)}` : ""}">${t("看全部汽车房屋消耗品")} ›</a></p>`;
+      <p style="margin-top:10px"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("pantry", "inventory")}?space=house${scope ? `&owner=${encodeURIComponent(scope)}` : ""}">${t("看全部汽车房屋消耗品")} ›</a></p>`;
   return `${houseBar()}<section class="section">${body}</section>
     <button type="button" class="fab" data-action="supply-add-pick" data-scope="${esc(q)}" aria-label="${esc(label)}" title="${esc(label)}"><span aria-hidden="true">＋</span></button>`;
 }
@@ -120,15 +120,15 @@ export function viewHouseSupplies() {
 function assetsPanel() {
   const list = myAssets(), alerts = assetAlerts(list);
   const body = !list.length
-    ? `<div class="empty"><strong>${t("还没有设备档案")}</strong>${t("按房屋资料一次生成炉子、热水器、排水泵等设备，记录保修和保养周期。")}<p><a class="btn btn-primary" href="${href("house", "asset-template")}">${t("生成设备清单")}</a></p></div>`
+    ? `<div class="empty"><strong>${t("还没有设备档案")}</strong>${t("按房屋资料一次生成炉子、热水器、排水泵等设备，记录保修和保养周期。")}<p><a class="ui-btn" data-tone="primary" href="${href("house", "asset-template")}">${t("生成设备清单")}</a></p></div>`
     : alerts.length
       ? `<ul class="restock-list">${alerts.slice(0, 4).map((a) => { const b = alertBadge(a), act = alertAct(a); return dotRow({ cls: b.cls, nameHtml: `<a class="link-name" href="${href("asset", a.id)}">${a.t?.icon || "⚙️"} ${esc(assetName(a))}</a>`,
           badge: b, detail: alertText(a), primary: { href: act.href, label: act.label }, menu: assetMenu(a), ask: assetAsk(a) }); }).join("")}</ul>`
       : `<div class="empty"><strong>${t("{n} 台设备，保养都在周期内", { n: list.length })}</strong></div>`;
   return `<section class="section">
     <div class="section-head"><h2>${t("设备档案")}</h2><div class="head-acts">
-      ${list.length ? `<a class="btn btn-sm btn-ghost" href="${href("house", "asset-template")}">${t("生成更多")}</a>` : ""}
-      <a class="btn btn-sm btn-ghost" href="${href("house", "assets")}">${t("全部设备")}${list.length ? `（${list.length}）` : ""}</a></div></div>
+      ${list.length ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("house", "asset-template")}">${t("生成更多")}</a>` : ""}
+      <a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("house", "assets")}">${t("全部设备")}${list.length ? `（${list.length}）` : ""}</a></div></div>
     <div class="panel">${body}</div>
   </section>`;
 }
@@ -140,7 +140,7 @@ function tasksPanel() {
   const undone = list.filter((x) => !x.done), done = list.filter((x) => x.done);
   return `<section class="section">
     <div class="section-head"><h2>${t("{month}季节任务", { month: monthName(m) })}</h2><div class="head-acts"><p>${undone.length ? t("还有 {n} 项没做", { n: undone.length }) : t("本月都做完了")}</p>
-      <a class="btn btn-sm btn-ghost" href="${href("house", "tasks")}">${t("全年任务")}</a></div></div>
+      <a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("house", "tasks")}">${t("全年任务")}</a></div></div>
     <div class="panel">
       ${undone.length ? `<ul class="task-list">${undone.map((x) => taskRow(x, y, m)).join("")}</ul>` : `<div class="empty"><strong>${t("本月都做完了")}</strong></div>`}
       ${done.length ? `<details class="done-fold"><summary>${t("已完成 {n} 项", { n: done.length })}</summary><ul class="task-list">${done.map((x) => taskRow(x, y, m)).join("")}</ul></details>` : ""}
@@ -155,7 +155,7 @@ function dealPanel() {
   const undone = tasks.filter((x) => !x.done).sort((a, b) => (a.due || "9").localeCompare(b.due || "9")), done = tasks.filter((x) => x.done);
   return `<section class="section">
     <div class="section-head"><h2>${t("{kind}清单", { kind: t(window.DEALS.KINDS[d.kind]) })}</h2><div class="head-acts"><p>${t("已完成 {a} / {b}", { a: done.length, b: tasks.length })}</p>
-      <a class="btn btn-sm btn-ghost" href="${dealHref(d)}">${t("交易页")}</a></div></div>
+      <a class="ui-btn" data-size="sm" data-tone="ghost" href="${dealHref(d)}">${t("交易页")}</a></div></div>
     <div class="panel"><ul class="task-list">${[...undone.slice(0, 8), ...done.slice(-4)].map((x) => dealTaskRow(x)).join("")}</ul>
       ${undone.length > 8 ? `<p class="muted" style="margin:8px 0 0">${t("还有 {n} 项，", { n: undone.length - 8 })}<a href="${dealHref(d)}">${t("去交易页查看")}</a></p>` : ""}</div>
   </section>`;

@@ -35,24 +35,24 @@ export function renderLogin(msg = "") {
         <input type="tel" name="phone" required inputmode="tel" autocomplete="tel" placeholder="${t("手机号")}" aria-label="${t("手机号")}">
         <input name="display_name" maxlength="20" placeholder="${t("我的称呼（可不填），例如：爸爸")}" aria-label="${t("我的称呼")}">
         <input name="code" required maxlength="12" placeholder="${t("邀请码")}" autocapitalize="characters" aria-label="${t("邀请码")}">
-        <button class="btn btn-primary" type="submit">${t("进入家庭")}</button></form>
+        <button class="ui-btn" data-tone="primary" type="submit">${t("进入家庭")}</button></form>
       <p class="muted" style="font-size:12px">${t("这种方式的身份保存在本设备浏览器里，清除浏览器数据或换手机后需要重新用邀请码进入。创建家庭请用邮箱登录。")}</p>`;
   } else if (mode === "phone" && state.phonePending) {
     body = `<p class="muted">${t("验证码已发送到 {phone}，请输入短信里的 6 位数字。", { phone: esc(state.phonePending) })}</p>
       <form id="otpForm"><input name="token" required inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,8}" maxlength="8" placeholder="${t("验证码")}" aria-label="${t("验证码")}">
-        <button class="btn btn-primary" type="submit">${t("登录")}</button>
-        <button class="btn btn-ghost" type="button" data-action="otp-back">${t("换个号码 / 重新发送")}</button></form>`;
+        <button class="ui-btn" data-tone="primary" type="submit">${t("登录")}</button>
+        <button class="ui-btn" data-tone="ghost" type="button" data-action="otp-back">${t("换个号码 / 重新发送")}</button></form>`;
   } else if (mode === "phone") {
     const def = Units.region.system === "us" ? "+1" : "+86";
     body = `<p class="muted">${t("输入手机号，我们会发一条短信验证码，无需密码。")}</p>
       <form id="phoneForm" class="phone-form">
         <select name="cc" aria-label="${t("国家或地区代码")}">${COUNTRY_CODES.map(([c, l]) => `<option value="${c}" ${c === def ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
         <input type="tel" name="phone" required inputmode="tel" autocomplete="tel-national" placeholder="${t("手机号")}" aria-label="${t("手机号")}">
-        <button class="btn btn-primary" type="submit">${t("发送验证码")}</button></form>`;
+        <button class="ui-btn" data-tone="primary" type="submit">${t("发送验证码")}</button></form>`;
   } else {
     body = `<p class="muted">${t("输入邮箱，我们会发一封登录链接，点开即可登录，无需密码。")}</p>
       <form id="loginForm"><input type="email" name="email" required autocomplete="email" placeholder="you@example.com" aria-label="${t("邮箱")}">
-        <button class="btn btn-primary" type="submit">${t("发送登录链接")}</button></form>`;
+        <button class="ui-btn" data-tone="primary" type="submit">${t("发送登录链接")}</button></form>`;
   }
   gate(`<div class="panel gate-card"><h2>${t("登录")}</h2>${tabs}${body}<p class="muted" role="status">${esc(msg)}</p></div>`);
   setSync(t("未登录"));

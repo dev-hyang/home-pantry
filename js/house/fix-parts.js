@@ -43,7 +43,7 @@ export function partRow(p, key) {
   const meta = [p.spec ? t(p.spec) : "", p.qty ? `${num(p.qty)} ${t(p.unit || "个")}` : "", p.price ? `≈ ${t(p.price)}` : ""].filter(Boolean).join(" · ");
   const haveLine = have ? `<small class="fix-have">✓ ${t("家里有：{name}", { name: have.name })}${have.location ? ` · 📍${esc(t(have.location))}` : ""} · ${t("剩 {q} {u}", { q: Math.round(have.dqty * 100) / 100, u: t(have.du) })}${have.status !== "ok" ? ` <span class="badge ${STATUS[have.status].cls}">${t(STATUS[have.status].label)}</span>` : ""}</small>` : "";
   const act = fx().added[key] || open ? `<span class="badge b-ok">${t("已在购物车")}</span>`
-    : `<button type="button" class="btn btn-sm ${have ? "btn-ghost" : "btn-primary"}" data-action="fix-part-add" data-key="${esc(key)}">${have ? t("还是买一个") : t("加入购物车")}</button>`;
+    : `<button type="button" class="ui-btn" data-size="sm" data-tone="${have ? "ghost" : "primary"}" data-action="fix-part-add" data-key="${esc(key)}">${have ? t("还是买一个") : t("加入购物车")}</button>`;
   return `<li class="fix-part"><div class="grow"><b>${esc(t(p.name))}</b>${meta ? `<small>${esc(meta)}</small>` : ""}${haveLine}
       <details class="fix-where"><summary>${t("在哪买")}</summary><div class="chips" style="margin:4px 0 0">${storeLinks(p)}</div></details></div>${act}</li>`;
 }

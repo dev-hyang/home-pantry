@@ -26,7 +26,7 @@ export function viewHouseProfile() {
     return `<section class="panel prof-card" aria-labelledby="pc-${s.id}">
       <header class="prof-head"><span class="mi" aria-hidden="true">${s.icon}</span>
         <div class="prof-t"><h3 id="pc-${s.id}">${t(s.name)}</h3><small>${esc(st.text)}</small></div>
-        <a class="btn btn-sm btn-ghost prof-edit" href="${edit}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${first && s.id === "type" ? t("开始") : t("编辑")}</a></header>
+        <a class="ui-btn prof-edit" data-size="sm" data-tone="ghost" href="${edit}" aria-label="${esc(t("编辑 {name}", { name: t(s.name) }))}">${first && s.id === "type" ? t("开始") : t("编辑")}</a></header>
       ${st.pct != null ? `<span class="mprog"><i style="width:${st.pct}%"></i></span>` : ""}
       ${first && s.id !== "type" ? `<p class="muted prof-empty">${t("未填")}</p>` : sectionFacts(d, s.id)}
     </section>`;
@@ -35,7 +35,7 @@ export function viewHouseProfile() {
     <p class="muted" style="margin:-6px 0 12px;font-size:13px">${first ? t("先选地区和房型，保存后其余分区随时补") : t("每一块各自编辑、各自保存")}</p>
     <div class="prof-grid">${cards}</div>
     ${first ? `<p class="hint">${t("房型决定推荐什么耗材、生成哪些设备、每月有什么季节任务；其余分区（地址、保险、HOA、材料）可以之后再补。")}</p>` : ""}
-    <div class="form-actions" style="margin-top:14px">${state.houseProfile ? `<a class="btn btn-ghost" href="${href("house", "overview")}">${t("返回房屋概览")}</a>` : `<a class="btn btn-primary" href="${href("house", "profile")}?sec=type">${t("开始：选地区和房型")}</a>`}</div>
+    <div class="form-actions" style="margin-top:14px">${state.houseProfile ? `<a class="ui-btn" data-tone="ghost" href="${href("house", "overview")}">${t("返回房屋概览")}</a>` : `<a class="ui-btn" data-tone="primary" href="${href("house", "profile")}?sec=type">${t("开始：选地区和房型")}</a>`}</div>
   </section>`;
 }
 /** 资料页每个卡片里的内容：只读摘要（没填的显示「未填」） */
@@ -143,9 +143,9 @@ function viewProfileSection(sec) {
         ${body}
         <p id="houseFormError" class="form-error" role="alert"></p>
         ${np ? newBar(sec, rv) : `<div class="form-actions sticky-actions">
-          <a class="btn btn-ghost" href="${href("house", "profile")}" data-action="house-cancel">${t("取消")}</a>
+          <a class="ui-btn" data-tone="ghost" href="${href("house", "profile")}" data-action="house-cancel">${t("取消")}</a>
           ${sec === "hoa" ? `<span class="hoa-mini">${t("每月总计")} <b data-hoa-total-mini>${money(hoaMonthly(hoaOf(d)).total)}</b></span>` : ""}
-          <button type="submit" class="btn btn-primary">${t("保存")}</button>
+          <button type="submit" class="ui-btn" data-tone="primary">${t("保存")}</button>
         </div>`}
       </form>
     </section>`;
@@ -186,7 +186,7 @@ function ownershipBlock(p) {
   const row = (k, v) => (v ? `<div class="fact wide"><dt>${k}</dt><dd>${v}</dd></div>` : "");
   const parking = o.parking_type ? [labelOf(PARKING_TYPES, o.parking_type), o.parking_no ? esc(o.parking_no) : "", o.parking_deeded ? t("独立产权") : "", o.parking_pin ? t("缴税号 {n}", { n: esc(o.parking_pin) }) : ""].filter(Boolean).join(" · ") : "";
   const hint = [o.pin ? t("PIN {n}", { n: o.pin }) : "", o.parking_type ? labelOf(PARKING_TYPES, o.parking_type) : "", (o.tax_exemptions || []).length ? t("减免 {n} 项", { n: o.tax_exemptions.length }) : ""].filter(Boolean).join(" · ");
-  return refSection("house-ownership", { title: `📜 ${t("产权、税务与车位")}`, hint, body: `<p style="margin:0 0 6px;text-align:right"><a class="btn btn-sm btn-ghost" href="${href("house", "profile")}?sec=ownership">${t("修改")}</a></p>
+  return refSection("house-ownership", { title: `📜 ${t("产权、税务与车位")}`, hint, body: `<p style="margin:0 0 6px;text-align:right"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("house", "profile")}?sec=ownership">${t("修改")}</a></p>
     <dl class="fact-grid one">
       ${row(t("缴税号"), o.pin ? esc(o.pin) : "")}
       ${row(t("税务减免"), (o.tax_exemptions || []).length ? `${o.tax_exemptions.map((k) => labelOf(TAX_EXEMPTIONS, k)).join("、")}${o.tax_notes ? ` · ${esc(o.tax_notes)}` : ""}` : "")}

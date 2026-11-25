@@ -86,7 +86,7 @@ export function medicalAlertItems() {
     if (!b.open) continue;
     const link = detailHref(b.id), who = [b.patient, b.provider].filter(Boolean).join(" · ");
     const mk = (severity, title, detail, label, cls) => out.push({ source: "medical", severity, must: severity <= 1, due: b.due_on, daysLeft: b.daysLeft, title: `${kindOf(b).icon} ${title}`, detail, href: link,
-      badge: { label, cls }, actions: [{ type: "link", href: link, label: t("看账单"), cls: "btn-ghost" }] });
+      badge: { label, cls }, actions: [{ type: "link", href: link, label: t("看账单"), tone: "ghost" }] });
     if (b.balance != null && b.balance > 0 && b.daysLeft != null) {
       if (b.daysLeft < 0) mk(0, t("{k}账单已逾期：{who}", { k: t(kindOf(b).name), who }), t("逾期 {d} 天，余额 {a}", { d: -b.daysLeft, a: Units.money(b.balance, b.currency) }), t("逾期"), "b-out");
       else if (b.daysLeft <= 7) mk(2, t("{k}账单快到期：{who}", { k: t(kindOf(b).name), who }), t("{d} 天后到期，余额 {a}", { d: b.daysLeft, a: Units.money(b.balance, b.currency) }), t("{d} 天", { d: b.daysLeft }), "b-soon");

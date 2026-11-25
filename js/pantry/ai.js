@@ -27,10 +27,10 @@ export function aiPanel() {
         <label class="ai-people">${t("人数")}<input name="people" ${numAttrs("int", { max: 20, min: 1, step: null })} value="${s.people || 4}"></label>
       </div>
       <div class="form-actions" style="margin-top:8px">
-        ${ready && !blocked ? `<button type="submit" class="btn btn-primary" ${a.busy ? "disabled" : ""}>${a.busy ? t("生成中…") : t("生成今日菜单")}</button>` : ""}
-        <button type="button" class="btn ${ready && !blocked ? "btn-ghost" : "btn-primary"}" data-action="ai-copy">${t("复制提示词")}</button>
-        ${WEB_LLMS.slice(0, lang === "en" ? 5 : 3).map(([n, u]) => `<a class="btn btn-sm btn-ghost" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("")}
-        <a class="btn btn-sm btn-ghost" href="${href("me", "settings")}?sec=ai">${ready ? t("换模型") : t("填 API key 直接出结果")}</a>
+        ${ready && !blocked ? `<button type="submit" class="ui-btn" data-tone="primary" ${a.busy ? "disabled" : ""}>${a.busy ? t("生成中…") : t("生成今日菜单")}</button>` : ""}
+        <button type="button" class="ui-btn" data-tone="${ready && !blocked ? "ghost" : "primary"}" data-action="ai-copy">${t("复制提示词")}</button>
+        ${WEB_LLMS.slice(0, lang === "en" ? 5 : 3).map(([n, u]) => `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("")}
+        <a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("me", "settings")}?sec=ai">${ready ? t("换模型") : t("填 API key 直接出结果")}</a>
       </div>
       ${a.error ? `<p class="form-error" role="alert">${esc(a.error)}</p>` : ""}
     </form>
@@ -46,8 +46,8 @@ function menuResult(m) {
       <small>${d.uses.length ? `<span class="have">${t("用库存：{list}", { list: esc(d.uses.join("、")) })}</span>` : ""}${d.missing.length ? ` <span class="miss">${t("缺：{list}", { list: esc(d.missing.join("、")) })}</span>` : ""}${d.note ? `<br>${esc(d.note)}` : ""}</small></div>`).join("")}</div>`).join("")}</div>
     ${m.tips ? `<p class="muted" style="margin:10px 0 0;font-size:13px">💡 ${esc(m.tips)}</p>` : ""}
     <div class="form-actions" style="margin-top:10px">
-      ${missingAll.length ? `<button type="button" class="btn btn-sm" data-action="ai-add-missing">${t("缺的 {n} 样加入购物车", { n: missingAll.length })}</button>` : ""}
-      <button type="button" class="btn btn-sm btn-ghost" data-action="ai-again">${t("换一版")}</button>
+      ${missingAll.length ? `<button type="button" class="ui-btn" data-size="sm" data-action="ai-add-missing">${t("缺的 {n} 样加入购物车", { n: missingAll.length })}</button>` : ""}
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="ai-again">${t("换一版")}</button>
     </div>
     <p class="disclaimer">${t("由 AI 生成，分量和做法请自行把握；过敏、慢病饮食以医生建议为准。")}</p>
   </div>`;

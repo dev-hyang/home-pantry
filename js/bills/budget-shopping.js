@@ -76,8 +76,8 @@ export function shopAdviceHtml() {
   if (!plan) return `<div class="panel bud-tip"><b>💰 ${esc(a.name)} · ${money(a.estimate)}</b><p class="muted" style="margin:4px 0 0">${t("填上月收入就能看预算提示：")} <a href="${href("bills", "budget")}">${t("去设置预算")}</a></p></div>`;
   const ev = saleEvents(new Date(), 1)[0];
   const r = planPurchase({ price: a.estimate, group: a.group, event: ev });
-  return `<div class="panel bud-tip"><div class="section-head" style="margin-bottom:4px"><h3 style="font-size:15px">💰 ${esc(a.name)} · ${money(a.estimate)}</h3><button type="button" class="btn btn-sm btn-ghost" data-action="shop-advice-close">${t("知道了")}</button></div>
-    ${adviceHtml(r)}<a class="btn btn-sm btn-ghost" href="${href("bills", "budget")}">${t("打开预算规划")}</a></div>`;
+  return `<div class="panel bud-tip"><div class="section-head" style="margin-bottom:4px"><h3 style="font-size:15px">💰 ${esc(a.name)} · ${money(a.estimate)}</h3><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="shop-advice-close">${t("知道了")}</button></div>
+    ${adviceHtml(r)}<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "budget")}">${t("打开预算规划")}</a></div>`;
 }
 export const groupForCategory = (category) => (category ? groupOf(category) : "grocery");
    // 没选分类的购物项，多半是吃的

@@ -67,7 +67,7 @@ function mountView(pre, out) {
   $("#main").innerHTML = pre + `<div class="panel empty" role="status">${t("加载中…")}</div>`;
   out.then(() => { if (location.hash === key && state.enriched) { render(true); focusEntry(state.route); } }, (e) => {   // 懒加载完才有表单：这时才能把光标放进去
     if (location.hash !== key) return;
-    $("#main").innerHTML = pre + `<div class="panel empty" role="alert"><strong>${t("页面加载失败")}</strong><p>${t("可能是网络不稳，或者页面有了新版本，没能下载这个页面。点「重试」刷新一下。")}</p><p><button type="button" class="btn btn-primary" data-action="reload-page">${t("重试")}</button></p></div>`;
+    $("#main").innerHTML = pre + `<div class="panel empty" role="alert"><strong>${t("页面加载失败")}</strong><p>${t("可能是网络不稳，或者页面有了新版本，没能下载这个页面。点「重试」刷新一下。")}</p><p><button type="button" class="ui-btn" data-tone="primary" data-action="reload-page">${t("重试")}</button></p></div>`;
   });
   return false;
 }

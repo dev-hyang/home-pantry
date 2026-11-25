@@ -62,7 +62,7 @@ export function incomeBanner() {
   const n = staleIncomes(); if (!state.incomePrompt && !n) return "";
   return `<div class="panel cta-panel bud-banner"><div><b>${state.incomePrompt && !n ? t("收入或预算比例改了，要按新的重新生成预算吗？") : t("有 {n} 位成员更新了收入，要重新生成预算吗？", { n })}</b>
     <p class="muted">${t("你改过的各类金额会保留。")}</p></div>
-    <div class="head-acts"><button type="button" class="btn btn-primary btn-sm" data-action="budget-generate">${t("重新生成")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="budget-keep">${t("保持现有预算")}</button></div></div>`;
+    <div class="head-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="budget-generate">${t("重新生成")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="budget-keep">${t("保持现有预算")}</button></div></div>`;
 }
 /** 预算方案：读家主生成的快照（各类建议金额）+ 用户改过的金额；收入和储蓄只有家主算得出来 */
 export function budgetPlan() {
@@ -98,7 +98,7 @@ export function budgetAlertItems() {
   const plan = budgetPlan(); if (!plan || plan.variable <= 0) return [];
   const mp = monthProgress(plan), items = [], link = href("bills", "budget");
   const mk = (title, spent, budget, sev, label) => ({ source: "budget", severity: sev, must: false, due: null, daysLeft: null, title, detail: t("已花 {a} / 预算 {b}", { a: money(spent), b: money(budget) }), href: link,
-    badge: { label, cls: sev <= 2 ? "b-out" : "b-soon" }, actions: [{ type: "link", href: link, label: t("看预算"), cls: "btn-ghost" }] });
+    badge: { label, cls: sev <= 2 ? "b-out" : "b-soon" }, actions: [{ type: "link", href: link, label: t("看预算"), tone: "ghost" }] });
   const r = pct(mp.spent, mp.variable);
   if (r >= 100) items.push(mk(`💰 ${t("本月花费超预算")}`, mp.spent, mp.variable, 2, t("超预算")));
   else if (r >= 85) items.push(mk(`💰 ${t("本月预算快用完了")}`, mp.spent, mp.variable, 3, t("快用完")));

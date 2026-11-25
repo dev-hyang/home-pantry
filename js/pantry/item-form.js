@@ -95,7 +95,7 @@ export function viewItemForm() {
   const r = state.route;
   const it = r.id && r.id !== "new" ? state.items.find((x) => x.id === r.id) : null;
   if (r.id !== "new" && !it) {
-    return `<div class="panel empty"><strong>${t("找不到这件物品")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("pantry", "inventory")}">${t("回到库存")}</a></p></div>`;
+    return `<div class="panel empty"><strong>${t("找不到这件物品")}</strong>${t("可能已被家人删除。")}<p><a class="ui-btn" data-tone="primary" href="${href("pantry", "inventory")}">${t("回到库存")}</a></p></div>`;
   }
   const space = r.q.get("space") || (state.filter.space && state.filter.space !== "all" ? state.filter.space : "pantry");
   // 已有的物品：先看详情页；点某一块的「编辑」（?edit=basic|qty|notes）才进表单（只显示那一块）
@@ -180,8 +180,8 @@ export function viewItemForm() {
         ${it ? "" : spendFieldset()}
         <p id="itemFormError" class="form-error" role="alert"></p>
         <div class="form-actions sticky-actions">
-          <button type="submit" class="btn btn-primary">${it ? t("保存修改") : t("添加物品")}</button>
-          <button type="button" class="btn btn-ghost" data-action="item-cancel">${t("取消")}</button>
+          <button type="submit" class="ui-btn" data-tone="primary">${it ? t("保存修改") : t("添加物品")}</button>
+          <button type="button" class="ui-btn" data-tone="ghost" data-action="item-cancel">${t("取消")}</button>
         </div>
       </form>
     </section>`;

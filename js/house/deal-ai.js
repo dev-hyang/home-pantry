@@ -18,16 +18,16 @@ const show = (key, v) => (v == null || v === "" ? "—" : /_on$|_deadline$/.test
 export function dealAiBar(deal) {
   const s = aiStatus(), off = !s.ready ? t("先在 设置 → AI 助手 填一个 key（推荐 Gemini，有免费额度）") : !s.canImg ? t("当前的 {p} 不能读图片，换成 Gemini 才能用", { p: t(s.provider) }) : "";
   const veh = isVehDeal(deal), last = lastRead(deal.id);
-  return `<div class="af-bar deal-ai" data-af="deal"><label class="btn btn-sm af-btn ${off ? "is-off" : ""}"><input type="file" accept="image/*" multiple data-deal-doc="${esc(deal.id)}" ${off ? "disabled" : ""}><span>📷 ${t("用文件自动填（可选）")}</span></label>
+  return `<div class="af-bar deal-ai" data-af="deal"><label class="ui-btn af-btn ${off ? "is-off" : ""}" data-size="sm"><input type="file" accept="image/*" multiple data-deal-doc="${esc(deal.id)}" ${off ? "disabled" : ""}><span>📷 ${t("用文件自动填（可选）")}</span></label>
     <span class="muted af-hint">${off ? `${esc(off)} · <a href="#/me/settings?sec=ai">${t("去设置")}</a>` : veh ? t("拍 / 截图 购车协议或 bill of sale。图片发给你选的 AI 服务商，不保存；识别结果先给你核对，再写入。") : t("拍 / 截图 购房合同、Closing Disclosure 或结算单（几页都行）。图片发给你选的 AI 服务商，不保存；识别结果先给你核对，再写入。")}</span>
-    ${last ? `<a class="btn btn-sm btn-ghost" href="${dealHref(deal, "info-ai")}">${t("看上次的识别结果")} ›</a>` : ""}
+    ${last ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${dealHref(deal, "info-ai")}">${t("看上次的识别结果")} ›</a>` : ""}
     <div class="af-status" role="status" aria-live="polite"></div></div>`;
 }
 
 /** 核对页 */
 export function infoAiPage(deal) {
   const last = lastRead(deal.id), back = dealHref(deal, "info");
-  if (!last) return `<section class="section"><div class="panel empty"><strong>${t("没有识别结果")}</strong><p><a class="btn btn-primary" href="${back}">${t("回到交易信息")}</a></p></div></section>`;
+  if (!last) return `<section class="section"><div class="panel empty"><strong>${t("没有识别结果")}</strong><p><a class="ui-btn" data-tone="primary" href="${back}">${t("回到交易信息")}</a></p></div></section>`;
   const rows = fieldDiff(deal, last.data, { veh: isVehDeal(deal), prices: pricesOk() });
   const row = (r) => `<li class="ai-row ${r.state}"><label class="check-inline"><input type="checkbox" data-ai-key="${esc(r.key)}" ${r.state === "new" ? "checked" : ""} ${r.state === "same" ? "disabled" : ""}><span><b>${esc(t(r.label))}</b>
       <small>${r.state === "new" ? `${t("现在没填")} → ${show(r.key, r.read)}` : r.state === "same" ? `${show(r.key, r.read)} · ${t("和现有一致")}` : `${show(r.key, r.cur)} → <b>${show(r.key, r.read)}</b> · ${t("和现有不同，要改请勾上")}`}</small></span></label></li>`;
@@ -35,7 +35,7 @@ export function infoAiPage(deal) {
   return `<section class="section"><div class="panel"><h3 style="margin:0 0 4px">📋 ${t("AI 读到的（请核对）")}</h3>
     <p class="muted">${t("文件类型：{d}", { d: t(DOC_NAME[last.data.doc_type] || "文件") })}${open ? "" : ` · ${t("没有需要写入的新信息")}`}</p>
     ${rows.length ? `<ul class="ai-rows">${rows.map(row).join("")}</ul>` : `<p class="muted">${t("没有从这些图里读到可以填的信息。换更清楚的图再试，或者手填。")}</p>`}
-    <div class="form-actions sticky-actions deal-confirm-actions"><a class="btn btn-ghost" href="${back}">${t("取消")}</a>${open ? `<button type="button" class="btn btn-primary" data-deal-ai-apply="${esc(deal.id)}">${t("写入所选")}</button>` : ""}</div>
+    <div class="form-actions sticky-actions deal-confirm-actions"><a class="ui-btn" data-tone="ghost" href="${back}">${t("取消")}</a>${open ? `<button type="button" class="ui-btn" data-tone="primary" data-deal-ai-apply="${esc(deal.id)}">${t("写入所选")}</button>` : ""}</div>
     <p class="hint">${t("AI 只是建议：日期和金额请对着原文件确认。取消勾选的不会写入，已填的信息不会被悄悄改掉。")}</p></div></section>`;
 }
 

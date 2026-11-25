@@ -112,8 +112,8 @@ export function viewAssets() {
     ${houseBar()}
     <section class="section">
       <div class="section-head"><p id="assetCount">${list.length ? assetCountText(rows, list) : ""}</p>
-        <div class="head-acts">${p ? `<a class="btn btn-sm btn-ghost" href="${href("house", "asset-template")}">${t("按房屋资料生成")}</a>` : ""}
-          <a class="btn btn-primary" href="${href("asset", "new")}">${t("添加设备")}</a></div></div>
+        <div class="head-acts">${p ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("house", "asset-template")}">${t("按房屋资料生成")}</a>` : ""}
+          <a class="ui-btn" data-tone="primary" href="${href("asset", "new")}">${t("添加设备")}</a></div></div>
       <p class="muted" style="margin:0 0 10px;font-size:12.5px">${t("设备 = 有保养周期或保修的，一台一条（热水器、割草机）；固定装置按类记一条（马桶、门、吊扇、插座），位置和数量写在里面；只记数量和位置的（梯子、床品、节日装饰）放在 储藏 → 家居耐用品；灯泡、电池是耗材，在 储藏 → 库存 → 汽车房屋消耗品。")}</p>
       <p class="muted" style="margin:0 0 10px;font-size:12.5px">🩺 ${t("东西坏了？")}<a href="${href("house", "fix")}">${t("描述毛病（可拍照），先看常见小毛病，再让咩咩分析原因、给方案，配件直接加采购")}</a></p>
       ${alerts.length ? `<div class="panel"><ul class="restock-list">${alerts.slice(0, 6).map((a) => { const b = alertBadge(a), act = alertAct(a); return dotRow({ cls: b.cls, nameHtml: `<a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>`,
@@ -122,8 +122,8 @@ export function viewAssets() {
     </section>
     ${list.length ? `<section class="section">${assetToolbar(list)}<div id="assetList">${html}</div></section>` : `<section class="section"><div class="panel empty"><strong>${t("还没有设备档案")}</strong>
       ${p ? t("按房屋资料一次生成炉子、热水器、排水泵、屋顶等设备，再补充品牌、型号和安装年份。") : t("先填写房屋资料，就能按设施一键生成设备清单。")}
-      <p>${p ? `<a class="btn btn-primary" href="${href("house", "asset-template")}">${t("生成设备清单")}</a>` : `<a class="btn btn-primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a>`}
-         <a class="btn btn-ghost" href="${href("asset", "new")}">${t("手动添加一台")}</a></p></div></section>`}
+      <p>${p ? `<a class="ui-btn" data-tone="primary" href="${href("house", "asset-template")}">${t("生成设备清单")}</a>` : `<a class="ui-btn" data-tone="primary" href="${href("house", "profile")}">${t("填写房屋资料")}</a>`}
+         <a class="ui-btn" data-tone="ghost" href="${href("asset", "new")}">${t("手动添加一台")}</a></p></div></section>`}
     ${retiredSection(retiredAssets())}`;
 }
 /** 召回后已换新 / 退款的旧设备：折叠在列表底部，点开还能看档案和保养记录 */
@@ -136,5 +136,5 @@ function retiredSection(list) {
       <div class="grow"><a class="link-name" href="${href("asset", a.id)}">${esc(assetName(a))}</a>
         <small>${[t(r.remedy === "refund" ? "已退款" : "已换新"), r.resolved_on ? fmtDate(r.resolved_on) : null, r.remedy === "refund" && r.refund_amount != null ? money(num(r.refund_amount)) : null,
           n ? t("换成：{name}", { name: assetName(n) }) : null, [a.brand, a.model].filter(Boolean).join(" ") || null].filter(Boolean).map(esc).join(" · ")}</small></div>
-      <span class="hist-act"><a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}">${t("详情")}</a></span></li>`; }).join("")}</ul>${pageMoreBtn("retired", list.length, lim)}</details></section>`;
+      <span class="hist-act"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("asset", a.id)}">${t("详情")}</a></span></li>`; }).join("")}</ul>${pageMoreBtn("retired", list.length, lim)}</details></section>`;
 }

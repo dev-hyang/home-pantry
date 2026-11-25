@@ -28,7 +28,7 @@ export function overrideForm(e, r) {
       <label>${t("利息")}<input ${numAttrs("money")} name="interest" value="${v.interest}"></label>
       <label>Escrow<input ${numAttrs("money")} name="escrow" value="${v.escrow}"></label>
     </div>
-    <div class="form-actions"><button class="btn btn-sm btn-primary">${t("保存这一期")}</button>${r.source === "manual" ? `<button type="button" class="btn btn-sm btn-ghost" data-debt="override-clear" data-id="${esc(e.id)}" data-pay="${esc(r.id)}">${t("改回按摊还表")}</button>` : ""}<button type="button" class="btn btn-sm btn-ghost" data-debt="pay-edit" data-pay="">${t("取消")}</button></div>
+    <div class="form-actions"><button class="ui-btn" data-size="sm" data-tone="primary">${t("保存这一期")}</button>${r.source === "manual" ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="override-clear" data-id="${esc(e.id)}" data-pay="${esc(r.id)}">${t("改回按摊还表")}</button>` : ""}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="pay-edit" data-pay="">${t("取消")}</button></div>
   </form>`;
 }
 /** 不能按摊还表拆时：已存的拆分流水（迁移来的 / 以前拆的） */
@@ -64,15 +64,15 @@ function calibrateHtml(e) {
         </tbody></table></div>` : ""}
       ${res.impliedAfter != null ? `<p class="muted dd-note">${t("由利息倒推：期初余额约 {a}，还款后约 {b}（四舍五入误差 ± 几毛）", { a: mny(res.impliedBefore, cur), b: mny(res.impliedAfter, cur) })}</p>` : ""}
       ${res.hints.length ? `<ul class="dd-hints">${res.hints.map((h) => `<li>${esc(hint(h))}</li>`).join("")}</ul>` : ""}
-      <div class="form-actions">${debt060() ? `<button type="button" class="btn btn-sm" data-debt="calib-save" data-id="${esc(e.id)}">${t("存成校准（本息 = {a}）", { a: mny(res.pi, cur) })}</button>` : ""}
-        ${!res.ok ? `<button type="button" class="btn btn-sm btn-ghost" data-debt="calib-anchor" data-id="${esc(e.id)}">${t("作为记录起点（{d} 余额 {a}）", { d: fmtDate(v.date), a: mny(v.balance !== "" && v.balance != null ? v.balance : res.impliedAfter, cur) })}</button>` : ""}</div>
+      <div class="form-actions">${debt060() ? `<button type="button" class="ui-btn" data-size="sm" data-debt="calib-save" data-id="${esc(e.id)}">${t("存成校准（本息 = {a}）", { a: mny(res.pi, cur) })}</button>` : ""}
+        ${!res.ok ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="calib-anchor" data-id="${esc(e.id)}">${t("作为记录起点（{d} 余额 {a}）", { d: fmtDate(v.date), a: mny(v.balance !== "" && v.balance != null ? v.balance : res.impliedAfter, cur) })}</button>` : ""}</div>
     </div>` : "";
   return `<form data-debt-form="calib" data-id="${esc(e.id)}" class="form-grid">
       <label>${t("对账单这一期的还款日")}<input type="date" name="date" required value="${esc(v.date || "")}"></label>
       <label>${t("本金")}<input ${numAttrs("money")} name="principal" required value="${esc(v.principal ?? "")}"></label>
       <label>${t("利息")}<input ${numAttrs("money")} name="interest" required value="${esc(v.interest ?? "")}"></label>
       <label>${t("还款后余额（可不填）")}<input ${numAttrs("money")} name="balance" value="${esc(v.balance ?? "")}"></label>
-      <div class="form-actions" style="grid-column:1/-1"><button class="btn btn-sm btn-primary">${t("核对")}</button>${e.statement_check ? `<button type="button" class="btn btn-sm btn-ghost" data-debt="calib-clear" data-id="${esc(e.id)}">${t("取消校准")}</button>` : ""}</div>
+      <div class="form-actions" style="grid-column:1/-1"><button class="ui-btn" data-size="sm" data-tone="primary">${t("核对")}</button>${e.statement_check ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="calib-clear" data-id="${esc(e.id)}">${t("取消校准")}</button>` : ""}</div>
     </form>${out}
     ${e.statement_check ? `<p class="muted dd-note">${t("已校准：{d} 本金 {p} + 利息 {i}", { d: fmtDate(sc.date), p: mny(sc.principal, cur), i: mny(sc.interest, cur) })}</p>` : ""}`;
 }
@@ -89,11 +89,11 @@ function recordForm(e) {
     <label>${t("备注")}<input name="notes" maxlength="200"></label>
     <label class="check-inline" style="grid-column:1/-1"><input type="checkbox" name="cash" checked><span>${personal ? (recv ? t("同时记一笔收入（收回本金不算收入，利息算投资收益）") : t("同时记一笔花费（还本金不算消费）")) : t("同时记一笔花费（性质：融资 / 还本）")}</span></label>
     <small class="muted" style="grid-column:1/-1">${personal ? t("如果这笔钱已经从对账单导入了，取消勾选，只记借贷流水。") : t("和月供一起付的额外本金：在上面的表里标在那一期上，不用在这里另记。")}</small>
-    <div class="form-actions"><button class="btn btn-sm btn-primary">${t("记一笔")}</button></div></form>`;
+    <div class="form-actions"><button class="ui-btn" data-size="sm" data-tone="primary">${t("记一笔")}</button></div></form>`;
 }
 /** 迁移按名字猜的车辆：请用户确认 */
 const proposalHtml = (e) => (e.asset_id && e.link_confirmed === false ? `<p class="notice" role="status">${t("迁移时按名字猜这笔车贷对应「{v}」。对吗？", { v: e.asset ? assetName(e.asset) : "?" })}
-      <button type="button" class="btn btn-sm btn-primary" data-debt="link-confirm" data-id="${esc(e.id)}">${t("对，确认")}</button> <button type="button" class="btn btn-sm btn-ghost" data-debt="link-clear" data-id="${esc(e.id)}">${t("不对，解除")}</button></p>` : "");
+      <button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-debt="link-confirm" data-id="${esc(e.id)}">${t("对，确认")}</button> <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-debt="link-clear" data-id="${esc(e.id)}">${t("不对，解除")}</button></p>` : "");
 function linkPanel(e) {
   const bills = state.billsEnriched.filter((b) => isLoanBillCat(b.category) && b.direction !== "receivable" && (!b.debt_id || b.debt_id === e.id));
   const target = debtCat(e.category).target;
@@ -102,7 +102,7 @@ function linkPanel(e) {
     <label>${t("还款账单")}<select name="bill"><option value="">${t("不关联")}</option>${bills.map((b) => `<option value="${esc(b.id)}" ${b.debt_id === e.id ? "selected" : ""}>${esc(b.name)}${b.est != null ? ` · ${esc(mny(b.est, b.currency))}` : ""}</option>`).join("")}</select></label>
     ${target !== "vehicle" ? `<label>${t("房产")}<select name="property_id"><option value="">${t("不关联")}</option>${props.map((p) => `<option value="${esc(p.id)}" ${p.id === e.property_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>` : ""}
     ${target !== "property" ? `<label>${t("车辆")}<select name="asset_id"><option value="">${t("不关联")}</option>${vs.map((a) => `<option value="${esc(a.id)}" ${a.id === e.asset_id ? "selected" : ""}>${esc(assetName(a))}</option>`).join("")}</select></label>` : ""}
-    <div class="form-actions" style="grid-column:1/-1"><button class="btn btn-sm">${t("保存关联")}</button></div></form>`;
+    <div class="form-actions" style="grid-column:1/-1"><button class="ui-btn" data-size="sm">${t("保存关联")}</button></div></form>`;
 }
 const fold = (title, sub, body, { open = false, id = "" } = {}) => `<details class="panel ref-panel dd-fold"${id ? ` id="${id}"` : ""} ${open ? "open" : ""}><summary><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}<span class="ui-chev" aria-hidden="true">›</span></summary><div class="dd-fold-body">${body}</div></details>`;
 /** 详情头部：名称、类型 / 状态、对方 · 资产 · 账单、编辑 */
@@ -129,14 +129,14 @@ function personalDetail(e) {
     </div>
     ${debtBlocks(e)}
     <div class="section-head dd-sec"><h2>${t("还款记录")}</h2><div class="head-acts"><small class="muted">${t("{n} 条", { n })}</small>
-      ${open || !n ? `<button type="button" class="btn btn-sm ${open ? "btn-ghost" : "btn-primary"}" data-debt="rec-open" data-id="${esc(e.id)}" aria-expanded="${open}" aria-controls="dd-rec-form">${open ? t("收起") : `＋ ${t("记一笔还款")}`}</button>` : ""}</div></div>
+      ${open || !n ? `<button type="button" class="ui-btn" data-size="sm" data-tone="${open ? "ghost" : "primary"}" data-debt="rec-open" data-id="${esc(e.id)}" aria-expanded="${open}" aria-controls="dd-rec-form">${open ? t("收起") : `＋ ${t("记一笔还款")}`}</button>` : ""}</div></div>
     ${open ? `<div class="panel dd-rec-form" id="dd-rec-form">${recordForm(e)}</div>` : ""}
     <div class="panel">${recordsList(`p-${e.id}`, { txns: () => e.txns, empty: t("还没有记录") })}</div>
   </section>`;
 }
 export function detail(id) {
   const d = debtById(id);
-  if (!d) return `<section class="section"><div class="panel empty"><strong>${t("找不到这笔借贷")}</strong><p><a class="btn btn-primary" href="${esc(href("bills", "debts"))}">${t("回到借贷")}</a></p></div></section>`;
+  if (!d) return `<section class="section"><div class="panel empty"><strong>${t("找不到这笔借贷")}</strong><p><a class="ui-btn" data-tone="primary" href="${esc(href("bills", "debts"))}">${t("回到借贷")}</a></p></div></section>`;
   if (state.route.q.get("edit")) return `<section class="section">${debtForm(d)}</section>`;
   const e = enrichDebt(d), c = e.currency;
   if (isPersonalDebt(e)) return personalDetail(e);
@@ -155,7 +155,7 @@ export function detail(id) {
       <div class="panel dd-card"><h3>${t("贷款条款")}</h3>${termsHtml(e)}</div>
     </div>
     ${debtBlocks(e)}
-    <div class="section-head dd-sec"><h2>${t("每期还款拆分")}</h2>${e.bill && e.split ? `<div class="dd-resplit"><label class="check-inline"><input type="checkbox" data-debt-overwrite ${ui().overwrite ? "checked" : ""}><span>${t("覆盖手动改过的")}</span></label><button type="button" class="btn btn-sm" data-debt="resplit" data-id="${esc(e.id)}">${t("按摊还表重新拆分")}</button></div>` : ""}</div>
+    <div class="section-head dd-sec"><h2>${t("每期还款拆分")}</h2>${e.bill && e.split ? `<div class="dd-resplit"><label class="check-inline"><input type="checkbox" data-debt-overwrite ${ui().overwrite ? "checked" : ""}><span>${t("覆盖手动改过的")}</span></label><button type="button" class="ui-btn" data-size="sm" data-debt="resplit" data-id="${esc(e.id)}">${t("按摊还表重新拆分")}</button></div>` : ""}</div>
     <div class="panel">${payTableHtml(e)}</div>
     <p class="hint">${t("本息只按摊还表算（第 k 期 = 第一期还款日往后 k−1 个月，早几天晚几天交都对到那一期）；Escrow = 实付 − 本息 − 额外本金。本金记成「融资 / 还本」（不算消费），利息{e}算消费。", { e: e.escrow ? t("和 Escrow（房产税、保险）") : "" })}</p>
     ${otherTxnsHtml(e)}

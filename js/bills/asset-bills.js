@@ -47,7 +47,7 @@ const tipText = () => t("合计只算这个清单里的账单；逾期没缴的�
 
 export function viewAssetBills() {
   const key = routeKey();
-  if (!key) return `<section class="section"><div class="panel empty"><strong>${t("找不到这个资产")}</strong><p><a class="btn btn-sm" href="${href("bills", "all")}">${t("全部账单")}</a></p></div></section>`;
+  if (!key) return `<section class="section"><div class="panel empty"><strong>${t("找不到这个资产")}</strong><p><a class="ui-btn" data-size="sm" href="${href("bills", "all")}">${t("全部账单")}</a></p></div></section>`;
   const range = rangeOf(), C = allCompute({ key, q: "", range, asset: key === "recurring" ? "all" : key, type: key === "recurring" ? "recurring" : "all", cat: "all", status: "all", pay: "all", sort: "due" });
   const label = labelOf(key), name = label.replace(/^\S+\s/, ""), ico = label.split(" ")[0];
   const cards = assetBillCards(key, state.billsEnriched, state.medEnriched);

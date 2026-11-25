@@ -85,7 +85,7 @@ function myPlans(kind) {
   const editing = state.planEdit?.type === "plan" && !state.planEdit.id;
   return `<section class="section"><div class="section-head"><h3>${t("我的计划")}</h3><p>${t("把候选、对比和出价记在这里，全家一起看")}</p></div>
     ${planListHtml(kind)}
-    ${editing ? planFormHtml(kind) : `<p><button type="button" class="btn btn-primary" data-action="plan-new" data-kind="${kind}">＋ ${t("新建计划")}</button></p>`}</section>`;
+    ${editing ? planFormHtml(kind) : `<p><button type="button" class="ui-btn" data-tone="primary" data-action="plan-new" data-kind="${kind}">＋ ${t("新建计划")}</button></p>`}</section>`;
 }
 
 function guidePage(kind) {

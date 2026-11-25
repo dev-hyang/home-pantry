@@ -20,12 +20,12 @@ export function renderOnboarding() {
       <input name="display_name" required maxlength="20" placeholder="${t("我的称呼，例如：爸爸")}" aria-label="${t("我的称呼")}" value="${esc(state.user?.user_metadata?.display_name || "")}">
       <input name="note" maxlength="60" placeholder="${t("给家主留一句话（可不填），例如：我是小明的妈妈")}" aria-label="${t("给家主的话")}">
       <label class="check-inline"><input type="checkbox" name="want_finance"><span>${t("我需要财务权限（对账单 / 收入 / 预算 / 用卡）")}</span></label>
-      <button class="btn btn-dark" type="submit">${t("用邀请码加入")}</button></form>
+      <button class="ui-btn" data-tone="dark" type="submit">${t("用邀请码加入")}</button></form>
     <hr>
-    ${anon ? `<p class="muted">${t("创建新家庭需要用邮箱登录，这样家庭有一个能找回的主人。")}<button type="button" class="btn btn-sm btn-ghost" data-action="logout">${t("改用邮箱登录")}</button></p>`
+    ${anon ? `<p class="muted">${t("创建新家庭需要用邮箱登录，这样家庭有一个能找回的主人。")}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="logout">${t("改用邮箱登录")}</button></p>`
       : `<form id="createHhForm"><input name="name" required maxlength="50" placeholder="${t("家庭名称，例如：小月亮的家")}" aria-label="${t("家庭名称")}">
       <input name="display_name" required maxlength="20" placeholder="${t("我的称呼，例如：妈妈")}" aria-label="${t("我的称呼")}">
-      <button class="btn btn-primary" type="submit">${t("创建家庭")}</button></form>`}</div>`);
+      <button class="ui-btn" data-tone="primary" type="submit">${t("创建家庭")}</button></form>`}</div>`);
   setSync(t("已登录"));
 }
 export async function doCreateHousehold(f) {
@@ -78,9 +78,9 @@ function renderPending(row) {
   gate(`<div class="panel gate-card"><h2>${t("申请已发出，等家主批准")}</h2>
     <p class="muted">${t("你用邀请码申请加入了这个家庭。家主在「设置 → 家庭」里点「批准」之后，你就能进来；在那之前这里看不到任何家里的数据。")}</p>
     <p class="muted small">${t("这个页面会自动检查，也可以手动再查一次。")}</p>
-    <div class="form-actions"><button type="button" class="btn btn-primary" data-action="join-recheck">${t("再查一次")}</button>
-      <button type="button" class="btn btn-ghost" data-action="join-cancel" data-hid="${esc(row.household_id)}">${t("取消申请")}</button>
-      <button type="button" class="btn btn-ghost" data-action="logout">${t("退出登录")}</button></div></div>`);
+    <div class="form-actions"><button type="button" class="ui-btn" data-tone="primary" data-action="join-recheck">${t("再查一次")}</button>
+      <button type="button" class="ui-btn" data-tone="ghost" data-action="join-cancel" data-hid="${esc(row.household_id)}">${t("取消申请")}</button>
+      <button type="button" class="ui-btn" data-tone="ghost" data-action="logout">${t("退出登录")}</button></div></div>`);
   setSync(t("等待家主批准"));
   clearInterval(waitTimer); waitTimer = setInterval(() => { if (!document.body.classList.contains("gate")) return clearInterval(waitTimer); afterLogin(); }, 20000);
 }
@@ -98,12 +98,12 @@ registerAlerts(() => {   // 家主：待处理的财务权限申请
   const n = state.members?.some((m) => m.user_id === state.user?.id && m.role === "owner") ? state.members.filter((m) => m.finance_requested_at && m.role !== "owner" && m.can_finance !== true) : [];
   if (!n.length) return [];
   const link = `${href("me", "settings")}?sec=family`;
-  return [{ source: "join", severity: 1, must: true, title: t("{n} 人申请财务权限", { n: n.length }), detail: n.map((m) => m.display_name).join("、"), href: link, actions: [{ type: "link", href: link, label: t("去处理"), cls: "btn-primary" }] }];
+  return [{ source: "join", severity: 1, must: true, title: t("{n} 人申请财务权限", { n: n.length }), detail: n.map((m) => m.display_name).join("、"), href: link, actions: [{ type: "link", href: link, label: t("去处理"), tone: "primary" }] }];
 });
 registerAlerts(() => {
   const p = state.pendingMembers || []; if (!p.length) return [];
   const link = `${href("me", "settings")}?sec=family`;
-  return [{ source: "join", severity: 1, must: true, title: t("{n} 人申请加入家庭", { n: p.length }), detail: p.map((m) => m.display_name).join("、"), href: link, actions: [{ type: "link", href: link, label: t("去批准"), cls: "btn-primary" }] }];
+  return [{ source: "join", severity: 1, must: true, title: t("{n} 人申请加入家庭", { n: p.length }), detail: p.map((m) => m.display_name).join("、"), href: link, actions: [{ type: "link", href: link, label: t("去批准"), tone: "primary" }] }];
 });
 /** 保存我自己的称呼（家庭成员表），并刷新成员列表 */
 async function saveMyName(v) {

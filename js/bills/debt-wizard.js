@@ -17,7 +17,7 @@ const dots = (list, id) => list.map((s, i) => `<li class="${i < list.indexOf(id)
 /** 表单顶上的进度：第 n 步 / 共 m 步 + 进度点（步骤数随类型变，show() 更新） */
 export const dwChrome = (personal) => { const list = [...contentSteps(personal), REVIEW]; return `<div class="wiz-steps"><p class="wiz-now" data-dw-now aria-live="polite">${nowText(list, "basic")}</p><ol class="wiz-dots" data-dw-dots aria-hidden="true">${dots(list, "basic")}</ol></div>`; };
 /** 底部按钮：取消 / 上一步 / 下一步 / 确认并创建（只在确认页出现） */
-export const dwActions = (cancelHref) => `<div class="form-actions sticky-actions wz-actions"><a class="btn btn-ghost" href="${esc(cancelHref)}">${t("取消")}</a><button type="button" class="btn btn-ghost" data-dw="prev" hidden>${t("上一步")}</button><button type="button" class="btn btn-primary" data-dw="next">${t("下一步")}</button><button type="submit" class="btn btn-primary" data-wz-save data-dw-save hidden>${t("确认并创建")}</button></div>`;
+export const dwActions = (cancelHref) => `<div class="form-actions sticky-actions wz-actions"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button type="button" class="ui-btn" data-tone="ghost" data-dw="prev" hidden>${t("上一步")}</button><button type="button" class="ui-btn" data-tone="primary" data-dw="next">${t("下一步")}</button><button type="submit" class="ui-btn" data-tone="primary" data-wz-save data-dw-save hidden>${t("确认并创建")}</button></div>`;
 
 const form = () => document.querySelector("form[data-dwz]");
 const cur$ = (f) => f.dataset.step || "basic";
@@ -56,7 +56,7 @@ function readDebt(f) {
 /** 确认页：每一块 = 详情页同样的分块 + 「编辑」（回到对应那一步） */
 function reviewHtml(f) {
   const d = readDebt(f), rows = debtRows(d), blocks = contentSteps(personalOf(f)).map((k) => `<section class="panel dt-block"><div class="dt-head"><h3>${esc(t(DEBT_SEC_NAMES[k]))}</h3>
-      <button type="button" class="btn btn-sm btn-ghost" data-dw="goto" data-step="${k}" aria-label="${esc(t("编辑 {name}", { name: t(DEBT_SEC_NAMES[k]) }))}">${t("编辑")}</button></div><dl class="dt-list">${rows[k].filter(Boolean).join("")}</dl></section>`).join("");
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-dw="goto" data-step="${k}" aria-label="${esc(t("编辑 {name}", { name: t(DEBT_SEC_NAMES[k]) }))}">${t("编辑")}</button></div><dl class="dt-list">${rows[k].filter(Boolean).join("")}</dl></section>`).join("");
   return `<p class="muted" style="margin:0 0 10px;font-size:13px">${t("请核对下面的信息；哪一块要改，点它的「编辑」回到那一步。没问题就点最下面的「确认并创建」，到这一步才会真正建好这笔借贷。")}</p><div class="dt-grid dd-secs">${blocks}</div>`;
 }
 

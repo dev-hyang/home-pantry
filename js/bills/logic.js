@@ -118,7 +118,7 @@ export function billAlertItems() {
     const label = b.trialSoon ? t("试用") : b.status === "overdue" ? t("逾期") : b.status === "verify" ? t("核对") : b.cardExpiring && b.status === "ok" ? t("换卡") : t("缴费");
     const amount = b.est != null ? Units.money(b.est, b.currency || Units.region.currency) : null;
     const actions = [];
-    if (b.pay_url && !b.autopay) actions.push({ type: "link", href: b.pay_url, label: t("去缴费"), cls: "btn-ghost", external: true });
+    if (b.pay_url && !b.autopay) actions.push({ type: "link", href: b.pay_url, label: t("去缴费"), tone: "ghost", external: true });
     actions.push(b.autopay ? { type: "button", action: "bill-verify", id: b.id, label: t("已核对") } : { type: "link", href: `${href("bill", b.id)}?pay=1`, label: t("记缴费") });
     return { source: "bill", severity: sev, must: b.status === "overdue" || !!b.trialSoon, due: b.trialSoon ? b.trial_ends_on : b.next_due_on, daysLeft: b.trialSoon ? b.trialDays : b.daysLeft, property_id: b.property_id, assigned_person_id: b.assigned_person_id,
       title: `${B.catOf(b.category).icon} ${b.name}`, detail: [acctText(b), alertText(b), amount].filter(Boolean).join(" · "), href: href("bill", b.id),

@@ -57,7 +57,7 @@ export function scanHtml() {
     <p class="muted small" style="margin:8px 0 0">${t("图片和文字会发给你在设置里选的 {p}，不会保存原图。拍之前请遮住账号、社保号、地址。", { p: t(p.name) })}</p>
     <label class="check-inline" style="margin-top:6px"><input type="checkbox" data-sc="consent" ${ok ? "checked" : ""}><span>${t("我同意把这些图片 / 文字发给 AI 服务商（收入是隐私数据）")}</span></label>
     ${sc.error ? `<p class="form-error" role="alert">${esc(sc.error)}</p>` : ""}
-    <div class="form-actions"><button type="button" class="btn btn-primary" data-sc="run" ${!ready || !ok || sc.busy || (!sc.images.length && !sc.text.trim()) ? "disabled" : ""}>${sc.busy ? t("正在识别…（几十秒）") : t("识别")}</button><button type="button" class="btn btn-ghost" data-sc="close">${t("取消")}</button></div></div>`;
+    <div class="form-actions"><button type="button" class="ui-btn" data-tone="primary" data-sc="run" ${!ready || !ok || sc.busy || (!sc.images.length && !sc.text.trim()) ? "disabled" : ""}>${sc.busy ? t("正在识别…（几十秒）") : t("识别")}</button><button type="button" class="ui-btn" data-tone="ghost" data-sc="close">${t("取消")}</button></div></div>`;
 }
 function resultHtml() {
   const who = sc.who ?? (myPersonId() || "none"), n = sc.items.filter((x) => x.on).length;
@@ -74,7 +74,7 @@ function resultHtml() {
       <label class="tb-field" style="margin:8px 0"><span>${t("这些收入记给谁")}</span><select data-sc="who" data-nosearch><option value="none" ${who === "none" ? "selected" : ""}>${t("未指定 / 全家")}</option>${adults().map((p) => `<option value="${p.id}" ${who === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>`
       : `<p class="muted">${t("没有读出收入。换一张更清楚的图，或补充文字再试。")}</p>`}
     ${sc.error ? `<p class="form-error" role="alert">${esc(sc.error)}</p>` : ""}
-    <div class="form-actions">${sc.items.length ? `<button type="button" class="btn btn-primary" data-sc="save" ${n && !sc.busy ? "" : "disabled"}>${sc.busy ? t("保存中…") : t("保存 {n} 条", { n })}</button>` : ""}<button type="button" class="btn btn-ghost" data-sc="back">${t("重新识别")}</button><button type="button" class="btn btn-ghost" data-sc="close">${t("取消")}</button></div></div>`;
+    <div class="form-actions">${sc.items.length ? `<button type="button" class="ui-btn" data-tone="primary" data-sc="save" ${n && !sc.busy ? "" : "disabled"}>${sc.busy ? t("保存中…") : t("保存 {n} 条", { n })}</button>` : ""}<button type="button" class="ui-btn" data-tone="ghost" data-sc="back">${t("重新识别")}</button><button type="button" class="ui-btn" data-tone="ghost" data-sc="close">${t("取消")}</button></div></div>`;
 }
 
 async function run() {

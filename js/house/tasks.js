@@ -111,8 +111,8 @@ export function viewTasks() {
         <button type="button" class="month-btn" data-action="tasks-next" aria-label="${t("下个月")}">›</button>
       </div>
       <div class="section-head" style="margin-top:10px"><p>${list.length ? `${undone ? t("还有 {n} 项没做", { n: undone }) : t("都做完了")}${t("，共 {n} 项", { n: list.length })}` : t("这个月没有任务")}</p>
-        <div class="head-acts"><button type="button" class="chip" data-action="tasks-undone" aria-pressed="${!!state.tasksOnlyUndone}">${t("只看未完成")}</button>${isCur ? "" : `<button type="button" class="btn btn-sm btn-ghost" data-action="tasks-today">${t("回到本月")}</button>`}
-          <button type="button" class="btn btn-sm btn-primary" data-action="season-new">＋ ${t("添加任务")}</button></div></div>
+        <div class="head-acts"><button type="button" class="chip" data-action="tasks-undone" aria-pressed="${!!state.tasksOnlyUndone}">${t("只看未完成")}</button>${isCur ? "" : `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="tasks-today">${t("回到本月")}</button>`}
+          <button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-action="season-new">＋ ${t("添加任务")}</button></div></div>
       ${newForm}
       <div class="panel tasks-swipe">${list.length ? `<ul class="task-list">${shown.map((x) => taskRow(x, year, month)).join("") || `<li class="muted" style="padding:10px 0">${t("这个月的任务都做完了")}</li>`}</ul>` : `<div class="empty"><strong>${t("这个月没有季节任务")}</strong>${t("左右滑动或点 ‹ › 看前后月份；也可以添加自己的任务。")}</div>`}</div>
       <p class="disclaimer">${t("任务清单为常见做法，频次以设备说明书和当地气候为准；涉及燃气、电、屋顶作业请找专业人员。")} ${t("手机上左右滑动可切换月份。")}</p>
@@ -141,9 +141,9 @@ function seasonForm(rec, year, month) {
       <label class="only-once">${t("日期")}<input name="due_on" type="date" value="${esc(dueDefault)}"><small>${t("出现在那个月的任务里；逾期会在首页提醒")}</small></label>
       <label class="span-2">${t("备注")}<input name="note" maxlength="500" value="${esc(rec?.note || "")}" placeholder="${esc(t("怎么做、找谁、注意什么…"))}"></label>
     </div>
-    <div class="form-actions" style="margin-top:10px"><button class="btn btn-primary btn-sm" type="submit">${t("保存")}</button>
-      <button class="btn btn-ghost btn-sm" type="button" data-action="season-cancel">${t("取消")}</button>
-      ${rec ? `<button class="btn btn-ghost btn-sm" type="button" data-action="season-delete" data-id="${esc(rec.id)}">${t("删除这条任务")}</button>` : ""}
+    <div class="form-actions" style="margin-top:10px"><button class="ui-btn" data-size="sm" data-tone="primary" type="submit">${t("保存")}</button>
+      <button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="season-cancel">${t("取消")}</button>
+      ${rec ? `<button class="ui-btn" data-size="sm" data-tone="ghost" type="button" data-action="season-delete" data-id="${esc(rec.id)}">${t("删除这条任务")}</button>` : ""}
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>
   </form>`;
 }

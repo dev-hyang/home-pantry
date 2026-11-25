@@ -62,7 +62,7 @@ export function viewDeal() {
   const q = state.route?.q;
   const assetId = q?.get("asset") || null;
   const veh = assetId ? state.assetsEnriched.find((a) => a.id === assetId && isVehicle(a)) || null : null;
-  if (assetId && !veh) return `<section class="section"><div class="panel empty"><strong>${t("找不到这辆车")}</strong><p><a class="btn btn-primary" href="${href("house")}">${t("回到房屋")}</a></p></div></section>`;
+  if (assetId && !veh) return `<section class="section"><div class="panel empty"><strong>${t("找不到这辆车")}</strong><p><a class="ui-btn" data-tone="primary" href="${href("house")}">${t("回到房屋")}</a></p></div></section>`;
   const p = veh ? null : currentProp();
   if (!veh && !p) return `<section class="section"><div class="panel empty"><strong>${t("还没有房产")}</strong></div></section>`;
   const mine = (d) => (veh ? d.asset_id === veh.id : d.property_id === p.id);
@@ -165,7 +165,7 @@ export function viewDeal() {
       <div class="panel deal-progress">
         <div class="kv kv-head"><div><b>${t("总进度 {p}%", { p: pct })}</b><div class="muted">${t("已完成 {a} / {b}", { a: doneN, b: total })}${skippedAll ? ` · ⊘ ${t("跳过 {n}", { n: skippedAll })}` : ""}${mustLeft ? ` · ${t("必须项还剩 {n}", { n: mustLeft })}` : ""}${nextDue ? ` · ${t("最近截止 {date}", { date: fmtDate(nextDue.due) })}` : ""}</div></div><div class="head-acts">${dealMenu(deal, veh, p)}</div></div>
         <div class="life-bar big"><i style="width:${pct}%"></i></div>
-        ${!closed && total && !undone.length ? `<div class="deal-ready"><span>${t("清单都做完了。交易要点「完成」才会正式结束、更新房产 / 车辆状态。")}</span><a class="btn btn-primary" href="${finishStep(deal).href}">${esc(finishStep(deal).label)}</a></div>` : ""}
+        ${!closed && total && !undone.length ? `<div class="deal-ready"><span>${t("清单都做完了。交易要点「完成」才会正式结束、更新房产 / 车辆状态。")}</span><a class="ui-btn" data-tone="primary" href="${finishStep(deal).href}">${esc(finishStep(deal).label)}</a></div>` : ""}
         ${financingSwitch(deal)}
       </div>
     </section>
@@ -210,7 +210,7 @@ function dealForm(d, cancelHref) {
       <label>${d.kind === "veh_buy" ? t("车行 / 卖家") : d.kind === "veh_sell" ? t("买家 / 车行") : t("经销商 / 归还地点")}<input name="agent" maxlength="120" placeholder="${t("姓名 · 电话 / 邮箱")}" value="${v("agent")}"></label>
       <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" value="${v("notes")}"></label>
     </div>
-    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="btn btn-ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button>
+    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>
   </form>`;
   }
@@ -231,7 +231,7 @@ function dealForm(d, cancelHref) {
       <label>${t("验房师")}<input name="inspector" maxlength="120" value="${v("inspector")}"></label>
       <label class="span-2">${t("备注")}<input name="notes" maxlength="1000" value="${v("notes")}"></label>
     </div>
-    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="btn btn-ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="btn btn-primary" type="submit">${t("保存")}</button>
+    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${esc(cancelHref)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${t("保存")}</button>
       <span class="dirty-note" hidden>● ${t("有未保存的修改")}</span></div>
   </form>`;
 }
@@ -253,6 +253,6 @@ function closeoutPanel(p, deal) {
         <label>${t("结束于")}<input name="end_${b.id}" type="date" value="${esc(addDays(closing, END_LAG[b.category] ?? 0))}"></label></li>`).join("")}</ul>` : `<p class="muted">${t("没有挂在这套房产的账单。")}</p>`}
     <label class="check-inline" style="margin-top:10px"><input type="checkbox" name="archive" checked><span>${t("归档房产（从切换条隐藏，资料和记录保留只读）")}</span></label>
     <p class="muted" style="font-size:12px">${t("不会删除任何数据。以后在设置里可以恢复，或在归档后彻底删除。")}</p>
-    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="btn btn-ghost" href="${dealHref(deal)}">${t("取消")}</a><button class="btn btn-primary" type="submit">${deal.kind === "move_out" ? t("确认退租") : t("确认已卖出")}</button></div>
+    <div class="form-actions sticky-actions" style="margin-top:10px"><a class="ui-btn" data-tone="ghost" href="${dealHref(deal)}">${t("取消")}</a><button class="ui-btn" data-tone="primary" type="submit">${deal.kind === "move_out" ? t("确认退租") : t("确认已卖出")}</button></div>
   </form>`;
 }

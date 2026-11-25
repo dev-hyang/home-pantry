@@ -63,7 +63,7 @@ const tipsCard = (s) => `<section class="panel dt-block"><div class="dt-head"><h
 
 function yearTab(y, s) {
   const docsOn = DOCS.filter((d) => on(d.when, s)), got = docsOn.filter((d) => yearState(y).docs?.[d.id]?.got).length, pct = docsOn.length ? Math.round((got / docsOn.length) * 100) : 0;
-  const prog = `<section class="panel dt-block"><div class="dt-head"><h3>📄 ${t("{y} 年单据", { y })}</h3><a class="btn btn-sm btn-ghost" href="${tabHref("docs", y)}">${t("去清单")}</a></div>
+  const prog = `<section class="panel dt-block"><div class="dt-head"><h3>📄 ${t("{y} 年单据", { y })}</h3><a class="ui-btn" data-size="sm" data-tone="ghost" href="${tabHref("docs", y)}">${t("去清单")}</a></div>
     <p style="margin:0 0 6px"><b>${got} / ${docsOn.length}</b> <span class="muted">${t("已收到")}</span></p><span class="mprog"><i style="width:${pct}%"></i></span></section>`;
   return `${householdSummary(s, y)}<div class="dt-grid dd-secs">${calendarCard(y)}${prog}</div>${incomeTaxCard(y)}${tipsCard(s)}`;
 }
@@ -90,7 +90,7 @@ const LINKS = { "house-deal": () => `${href("bills", "tax")}?tab=sales`, "house-
 function eventsTab(s) {
   return EVENTS.filter((e) => on(e.when, s)).map((e) => `<details class="panel tax-event"><summary><b>${e.icon} ${esc(tx(e.title))}</b></summary>
     <h4>${t("会碰到什么")}</h4>${list(e.meet)}<h4>${t("现在要做")}</h4>${list(e.todo)}<h4>${t("要存什么")}</h4>${list(e.keep)}
-    ${LINKS[e.link] ? `<p><a class="btn btn-sm btn-ghost" href="${esc(LINKS[e.link]())}">${t("去相关的页面")}</a></p>` : ""}</details>`).join("");
+    ${LINKS[e.link] ? `<p><a class="ui-btn" data-size="sm" data-tone="ghost" href="${esc(LINKS[e.link]())}">${t("去相关的页面")}</a></p>` : ""}</details>`).join("");
 }
 const learnTab = () => TERMS.map((e) => `<details class="panel tax-event"><summary><b>${esc(tx(e.name))}</b></summary><p>${esc(tx(e.body))}</p><p class="hint"><a href="${esc(e.source)}" target="_blank" rel="noopener">${t("官方说明")} ↗</a></p></details>`).join("");
 

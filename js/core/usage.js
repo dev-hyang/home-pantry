@@ -66,7 +66,7 @@ function body() {
   if (Store.mode !== "cloud" || !CloudStore.sb) return `<p class="muted usage-small">${t("登录并进入家庭后，这里会显示用量。")}</p>`;
   if (failure && !last) {
     const msg = isMissing(failure) ? t("还没执行迁移 {n}（用量查询），先在 Supabase 里执行 supabase/migrations/{n}", { n: MIGRATION }) : t("查询失败：{msg}", { msg: failure.message || "error" });
-    return `<p class="usage-small">${esc(msg)}</p><div class="btns" style="margin-top:8px"><button class="btn btn-sm" data-usage-refresh>${t("重试")}</button></div>`;
+    return `<p class="usage-small">${esc(msg)}</p><div class="btns" style="margin-top:8px"><button class="ui-btn" data-size="sm" data-usage-refresh>${t("重试")}</button></div>`;
   }
   if (!last) return `<p class="muted usage-small" aria-live="polite">${t("正在查看用量…")}</p>`;
   const files = Array.isArray(last.buckets) ? last.buckets : [];
@@ -75,7 +75,7 @@ function body() {
   return `${row("🗄️", t("数据库"), t("记录、任务、日志这些文字数据"), +last.db_bytes, PLAN.db)}
   ${row("📦", t("文件存储"), t("上传的文件和云端备份"), +last.storage_bytes, PLAN.storage, tail)}
   <div class="usage-foot"><span class="muted usage-small">${t("更新于 {time}", { time: new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })}${failure ? " · " + t("刚才刷新失败，显示的是上次的数字") : ""}</span>
-    <button class="btn btn-sm" data-usage-refresh ${inflight ? "disabled" : ""}>${inflight ? t("刷新中…") : t("刷新")}</button></div>
+    <button class="ui-btn" data-size="sm" data-usage-refresh ${inflight ? "disabled" : ""}>${inflight ? t("刷新中…") : t("刷新")}</button></div>
   <p class="muted usage-small">${t("{plan} 套餐上限：数据库 {db}、文件存储 {st}（以 Supabase 控制台为准）。{shared}", { plan: PLAN.name, db: fmtBytes(PLAN.db), st: fmtBytes(PLAN.storage), shared: SHARED_NOTE ? t(SHARED_NOTE) : "" })}</p>`;
 }
 

@@ -40,7 +40,7 @@ export function leaveBill(changed) {
 export function viewBillForm() {
   const r = state.route;
   const b = r.id && r.id !== "new" ? state.billsEnriched.find((x) => x.id === r.id) : null;
-  if (r.id !== "new" && !b) return `<div class="panel empty"><strong>${t("找不到这条账单")}</strong>${t("可能已被家人删除。")}<p><a class="btn btn-primary" href="${href("bills", "all")}">${t("回到账单")}</a></p></div>`;
+  if (r.id !== "new" && !b) return `<div class="panel empty"><strong>${t("找不到这条账单")}</strong>${t("可能已被家人删除。")}<p><a class="ui-btn" data-tone="primary" href="${href("bills", "all")}">${t("回到账单")}</a></p></div>`;
   if (!b && r.id === "new" && ![...r.q.keys()].length) return billTypeChooser();   // 没带任何参数：先选周期性还是一次性
   if (!b && r.id === "new" && r.q.get("mode") !== "full" && !r.q.get("copy")) return viewBillWizard();   // 新建周期性账单：5 步向导；mode=full = 整页表单（老手入口），copy = 复制已有账单
   const qCat = r.q.get("category");
@@ -155,8 +155,8 @@ export function viewBillForm() {
         </fieldset>
         <p id="billFormError" class="form-error" role="alert"></p>
         <div class="form-actions sticky-actions">
-          <button type="submit" class="btn btn-primary">${b ? t("保存修改") : t("添加账单")}</button>
-          <button type="button" class="btn btn-ghost" data-action="bill-cancel">${t("取消")}</button>
+          <button type="submit" class="ui-btn" data-tone="primary">${b ? t("保存修改") : t("添加账单")}</button>
+          <button type="button" class="ui-btn" data-tone="ghost" data-action="bill-cancel">${t("取消")}</button>
         </div>
       </form>
       ${b ? "" : `<p class="muted" style="margin-top:12px;font-size:13px">${t("保存后可以在这条账单下记每次缴费或核对。")}</p>`}
@@ -175,12 +175,12 @@ function billHub(b, root) {
   const recent = b.pays.slice(0, 6).map((p) => payRow(b, p)).join("");   // 和「全部缴费记录」同一种行：点一下编辑，⋯ / 长按有 编辑、复制、删除
   const payCard = `<section class="panel prof-card" aria-labelledby="bc-pay">
       <header class="prof-head"><span class="mi" aria-hidden="true">✅</span><div class="prof-t"><h3 id="bc-pay">${t("缴费记录")}</h3><small>${b.pays.length ? t("{n} 条，最近 {d}", { n: b.pays.length, d: fmtDate(b.pays[0].paid_on) }) : t("还没有记录")}</small></div>
-        <a class="btn btn-sm btn-ghost prof-edit" href="${b.pays.length ? `${base}?sec=pay` : `${base}?pay=1`}" aria-label="${esc(t("缴费记录"))}">${b.pays.length ? t("全部") : t("记一笔")}</a></header>
+        <a class="ui-btn prof-edit" data-size="sm" data-tone="ghost" href="${b.pays.length ? `${base}?sec=pay` : `${base}?pay=1`}" aria-label="${esc(t("缴费记录"))}">${b.pays.length ? t("全部") : t("记一笔")}</a></header>
       ${recent ? `<ul class="restock-list pay-list">${recent}</ul>` : `<p class="muted prof-empty">${t("还没有记录")}</p>`}</section>`;
   const asList = assessmentsOf(b.id, state.assess, state.assessItems), cur = b.currency;
   const assessCard = asList.length || b.category === "hoa" ? `<section class="panel prof-card" aria-labelledby="bc-as">
       <header class="prof-head"><span class="mi" aria-hidden="true">📣</span><div class="prof-t"><h3 id="bc-as">${t("特别摊派")}</h3><small>${asList.length ? t("{n} 笔，剩余 {m}", { n: asList.length, m: mny(asList.reduce((s, x) => s + x.remaining, 0), cur) }) : t("没有")}</small></div>
-        <a class="btn btn-sm btn-ghost prof-edit" href="${base}?sec=assess${asList.length ? "" : "&edit=new"}">${asList.length ? t("全部") : t("添加")}</a></header>
+        <a class="ui-btn prof-edit" data-size="sm" data-tone="ghost" href="${base}?sec=assess${asList.length ? "" : "&edit=new"}">${asList.length ? t("全部") : t("添加")}</a></header>
       ${asList.length ? `<ul class="restock-list">${asList.slice(0, 3).map((x) => `<li class="as-link"><a class="as-hit" href="${base}?sec=assess&focus=${x.id}" aria-label="${esc(t("打开摊派：{n}", { n: x.name }))}"><span class="badge ${x.done ? "b-ok" : ""}">${x.done ? t("已缴清") : x.status === "closed" ? t("已关闭") : `${x.paidN}/${x.rows.length}`}</span><div class="grow">${esc(x.name)}</div><b>${mny(x.remaining, cur)}</b><span class="ui-chev" aria-hidden="true">›</span></a></li>`).join("")}</ul>` : `<p class="muted prof-empty">${t("HOA 临时收的大额费用记在这里。")}</p>`}</section>` : "";
   const q = state.route?.q, banner = billBanner(b, q, base);
   return `<section class="section">
@@ -200,9 +200,9 @@ function billBanner(b, q, base) {
   if (!isAi && !isNew) return "";
   const missing = [!b.payee && L("付款方", "Payee"), b.amount_type === "fixed" && b.typical_amount == null && L("金额", "Amount"), !b.account_last4 && L("账号尾号", "Account digits"), !b.autopay && !b.pay_url && L("缴费链接", "Payment link"),
     VEHICLE_CATS.includes(b.category) && !b.asset_id && assetColumnVisible() && L("关联资产", "Linked asset")].filter(Boolean).slice(0, 4);
-  const close = `<a class="btn btn-sm btn-ghost" href="${base}" aria-label="${esc(t("关闭提示"))}">${t("知道了")}</a>`;
+  const close = `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${base}" aria-label="${esc(t("关闭提示"))}">${t("知道了")}</a>`;
   if (isAi) return `<div class="notice" role="status" style="margin-bottom:12px"><b>✨ ${t("AI 识别创建")}</b> ${t("看一眼就行：不对的地方点右上角“⋯”→“编辑”改；整张读错了就撤销创建。")}${missing.length ? ` ${t("还没读到：{list}。", { list: missing.join("、") })}` : ""}
-    <div class="form-actions" style="margin-top:8px"><button type="button" class="btn btn-sm btn-ghost" data-action="bill-delete">${t("撤销创建")}</button>${close}</div></div>`;
+    <div class="form-actions" style="margin-top:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="bill-delete">${t("撤销创建")}</button>${close}</div></div>`;
   return `<div class="notice" role="status" style="margin-bottom:12px"><b>✅ ${t("已创建")}</b>${missing.length ? ` ${t("这几项还没填：{list}，随时在下面补。", { list: missing.join("、") })}` : ` ${t("信息都齐了。")}`}
     <div class="form-actions" style="margin-top:8px">${close}</div></div>`;
 }

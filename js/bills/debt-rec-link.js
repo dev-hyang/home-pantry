@@ -113,7 +113,7 @@ export function initRecords({ render, save }) {
       patch.purchase_id = link.startsWith("p:") ? link.slice(2) : null;
       patch.income_record_id = link.startsWith("i:") ? link.slice(2) : null;
     }
-    const btn = f.querySelector("button.btn-primary"); if (btn) btn.disabled = true;
+    const btn = f.querySelector('button[data-tone="primary"]'); if (btn) btn.disabled = true;
     try { await save(x, patch); ui().recEdit = null; ui().recCand = null; }
     finally { if (btn) btn.disabled = false; }
   });

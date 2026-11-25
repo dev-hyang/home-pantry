@@ -46,7 +46,7 @@ export function infoPage(d) {
     : [fact(t("合同日"), date("contract_on")), fact(t("交割日"), date("closing_on")), fact(t("律师审查截止"), date("review_deadline")), isCash(d) ? null : fact(t("贷款条款截止"), date("financing_deadline")), hasFinancing(d) ? fact(finLabel(d), esc(finText(d))) : null,
       pricesOk() ? fact(t("成交价"), price("price")) : "", pricesOk() ? fact(t("定金"), price("earnest_money")) : "",
       fact(t("律师"), txt("attorney")), isCash(d) ? null : fact(t("贷款行 / 贷款经纪"), txt("lender")), fact(t("经纪人"), txt("agent")), fact(t("产权公司"), txt("title_company")), fact(t("验房师"), txt("inspector")), fact(t("备注"), txt("notes"), true)];
-  return `<section class="section"><div class="panel"><div class="kv kv-head"><h3 style="margin:0">${t("交易信息")}</h3><a class="btn btn-primary btn-sm" href="${dealHref(d, "info")}&edit=1">${t("编辑")}</a></div>
+  return `<section class="section"><div class="panel"><div class="kv kv-head"><h3 style="margin:0">${t("交易信息")}</h3><a class="ui-btn" data-size="sm" data-tone="primary" href="${dealHref(d, "info")}&edit=1">${t("编辑")}</a></div>
     ${dealAiBar(d)}<dl class="fact-grid">${rows.filter(Boolean).join("")}</dl></div></section>`;
 }
 
@@ -63,7 +63,7 @@ export function taskPage(deal, sec, q) {
   const dAsk = dealAsk(x), rec = x.custom ? x.rec : null, status = x.skipped ? t("已跳过（不适用）") : x.done ? t("已完成") : x.overdue ? t("已逾期") : t("未完成");
   return `<section class="section"><div class="panel">
     <div class="kv kv-head"><div><h3 style="margin:0">${esc(t(x.name))}</h3><span class="badge ${PRIO_CLS[x.priority]}">${t(D().PRIORITY[x.priority])}</span>${customBadge(x)}</div>
-      <div class="head-acts"><a class="btn btn-primary btn-sm" href="${here}&edit=1">${t("编辑")}</a></div></div>
+      <div class="head-acts"><a class="ui-btn" data-size="sm" data-tone="primary" href="${here}&edit=1">${t("编辑")}</a></div></div>
     <p style="margin:10px 0 0"><label class="check-inline"><input type="checkbox" id="deal-${esc(deal.id)}-${esc(x.key)}" data-deal-task="${esc(x.key)}" data-deal="${esc(deal.id)}" ${x.done ? "checked" : ""}><span>${t("已完成")}</span></label></p>
     <dl class="fact-grid one">
       ${fact(t("状态"), esc(status))}
@@ -72,8 +72,8 @@ export function taskPage(deal, sec, q) {
       ${x.note ? fact(t("说明"), esc(t(x.note)), true) : ""}
       ${fact(t("备注"), esc((rec ? rec.note : x.userNote) || ""), true)}
     </dl>
-    <div class="form-actions" style="margin-top:10px">${askButton(dAsk)}${skipBtn(x) ? `<button type="button" class="btn btn-ghost btn-sm" data-action="deal-task-skip" data-deal="${esc(deal.id)}" data-key="${esc(x.key)}" data-skip="${x.skipped ? "0" : "1"}">${x.skipped ? t("恢复这一步") : t("跳过这一步（不适用）")}</button>` : ""}
-      ${rec ? `<button type="button" class="btn btn-ghost btn-sm" data-action="deal-task-delete" data-id="${esc(rec.id)}" data-back="${esc(stageHref(x.stage))}">${t("删除这条事项")}</button>` : ""}</div>
+    <div class="form-actions" style="margin-top:10px">${askButton(dAsk)}${skipBtn(x) ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="deal-task-skip" data-deal="${esc(deal.id)}" data-key="${esc(x.key)}" data-skip="${x.skipped ? "0" : "1"}">${x.skipped ? t("恢复这一步") : t("跳过这一步（不适用）")}</button>` : ""}
+      ${rec ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="deal-task-delete" data-id="${esc(rec.id)}" data-back="${esc(stageHref(x.stage))}">${t("删除这条事项")}</button>` : ""}</div>
     ${askPanel(dAsk)}</div></section>`;
 }
 
@@ -97,13 +97,13 @@ export function completeInfo(deal) {
 export function completePage(deal) {
   const c = completeInfo(deal);
   return `<section class="section"><div class="panel"><h3 style="margin:0 0 6px">${esc(c.label)}</h3><p class="muted">${esc(c.desc)}</p>
-    <div class="form-actions sticky-actions deal-confirm-actions"><a class="btn btn-ghost" href="${dealHref(deal)}">${t("取消")}</a><button type="button" class="btn btn-primary" data-action="deal-closeout" data-deal="${esc(deal.id)}" data-confirm="1">${esc(c.btn)}</button></div></div></section>`;
+    <div class="form-actions sticky-actions deal-confirm-actions"><a class="ui-btn" data-tone="ghost" href="${dealHref(deal)}">${t("取消")}</a><button type="button" class="ui-btn" data-tone="primary" data-action="deal-closeout" data-deal="${esc(deal.id)}" data-confirm="1">${esc(c.btn)}</button></div></div></section>`;
 }
 /** 取消交易页：说明会发生什么 + 「返回 / 取消这笔交易」 */
 export function cancelPage(deal) {
   return `<section class="section"><div class="panel"><h3 style="margin:0 0 6px">${t("取消这笔交易")}</h3>
     <p class="muted">${t("这笔交易会标为已取消，放进历史；清单、时间线和交易信息都保留，仍可查看。房产状态按剩下还在进行的交易恢复，没有别的交易就退回开始之前的状态。")}</p>
-    <div class="form-actions sticky-actions deal-confirm-actions"><a class="btn btn-ghost" href="${dealHref(deal)}">${t("返回")}</a><button type="button" class="btn btn-danger" data-action="deal-cancel" data-deal="${esc(deal.id)}" data-confirm="1">${t("取消这笔交易")}</button></div></div></section>`;
+    <div class="form-actions sticky-actions deal-confirm-actions"><a class="ui-btn" data-tone="ghost" href="${dealHref(deal)}">${t("返回")}</a><button type="button" class="ui-btn" data-tone="danger-solid" data-action="deal-cancel" data-deal="${esc(deal.id)}" data-confirm="1">${t("取消这笔交易")}</button></div></div></section>`;
 }
 
 /** 右下角圆形 ＋（只有一项时直接是一个圆形 ＋ 链接）：主页 = 添加自定义事项 / 记一笔进展 /（进行中）完成或退出 /（进行中）取消交易；

@@ -30,7 +30,7 @@ export function viewFix() {
   const opt = (x) => `<option value="${esc(x.id)}" ${x.id === f.asset ? "selected" : ""}>${x.t?.icon || "⚙️"} ${esc(assetName(x))}${isFixture(x) && unitsText(x) ? `（${esc(unitsText(x, 2))}）` : x.location ? `（${esc(t(x.location))}）` : ""}</option>`;
   const list = candidates();
   const info = a ? [a.t ? t(a.t.name) : "", [a.brand, a.model].filter(Boolean).join(" "), a.ageYears != null ? t("已用 {n} 年", { n: Math.floor(a.ageYears) }) : "", a.lastService ? t("上次保养 {d}", { d: String(a.lastService).slice(0, 10) }) : "", isFixture(a) ? unitsText(a) : ""].filter(Boolean).join(" · ") : "";
-  const submit = ready && !blocked ? `<button type="submit" class="btn btn-primary" ${f.busy ? "disabled" : ""}>${aiIcon(16)} ${f.busy ? t("咩咩诊断中…") : f.result ? t("重新问") : t("问咩咩")}</button>` : "";
+  const submit = ready && !blocked ? `<button type="submit" class="ui-btn" data-tone="primary" ${f.busy ? "disabled" : ""}>${aiIcon(16)} ${f.busy ? t("咩咩诊断中…") : f.result ? t("重新问") : t("问咩咩")}</button>` : "";
   return `<section class="section fix-page">
     ${crumb}
     <form id="fixForm" class="panel" novalidate>
@@ -51,9 +51,9 @@ export function viewFix() {
       </div>
       <div class="form-actions" style="margin-top:10px">
         ${submit}
-        <button type="button" class="btn ${ready && !blocked ? "btn-ghost" : "btn-primary"}" data-action="fix-copy">${t("复制提示词")}</button>
-        <a class="btn btn-sm btn-ghost" href="${href("me", "settings")}?sec=ai">${ready ? t("换模型") : t("填 API key 直接出结果")}</a>
-        ${f.result || f.text || f.images.length ? `<button type="button" class="btn btn-sm btn-ghost" data-action="fix-reset">${t("清空")}</button>` : ""}
+        <button type="button" class="ui-btn" data-tone="${ready && !blocked ? "ghost" : "primary"}" data-action="fix-copy">${t("复制提示词")}</button>
+        <a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("me", "settings")}?sec=ai">${ready ? t("换模型") : t("填 API key 直接出结果")}</a>
+        ${f.result || f.text || f.images.length ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="fix-reset">${t("清空")}</button>` : ""}
       </div>
       ${f.error ? `<p class="form-error" role="alert">${esc(f.error)}</p>` : ""}
     </form>
@@ -126,13 +126,13 @@ function resultHtml(r, a) {
       ${x.cost ? `<span class="badge" style="background:var(--surface-2)">💲 ${esc(x.cost)}</span>` : ""}</div></div>
     ${x.steps.length ? `<ol class="tips fix-steps">${x.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}
     ${x.tools.length ? `<p class="care-meta"><b>${t("工具")}</b>${esc(x.tools.join(" · "))}</p>` : ""}
-    ${x.parts.length ? `<div class="fix-parts-wrap"><div class="section-head" style="margin:6px 0 2px"><h4 style="margin:0;font-size:13.5px">${t("要买的配件")}</h4>${x.parts.length > 1 ? `<button type="button" class="btn btn-sm btn-ghost" data-action="fix-parts-all" data-fix="${i}">${t("全部加入采购")}</button>` : ""}</div>
+    ${x.parts.length ? `<div class="fix-parts-wrap"><div class="section-head" style="margin:6px 0 2px"><h4 style="margin:0;font-size:13.5px">${t("要买的配件")}</h4>${x.parts.length > 1 ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="fix-parts-all" data-fix="${i}">${t("全部加入采购")}</button>` : ""}</div>
       <ul class="restock-list fix-parts">${x.parts.map((p, j) => partRow(p, `f-${i}-${j}`)).join("")}</ul></div>` : ""}
     ${x.note ? `<p class="care-meta"><b>${t("注意")}</b>${esc(x.note)}</p>` : ""}
   </article>`;
   return `<section class="section fix-result">
     <div class="panel ai-answer" style="margin-top:0"><div class="ai-answer-head">${aiIcon(20)} <b>${t("咩咩的诊断")}</b><span class="spacer"></span>
-      <button type="button" class="btn btn-sm btn-ghost" data-action="fix-copy-answer">${t("复制")}</button><button type="button" class="btn btn-sm btn-ghost" data-action="fix-more">${t("追问")}</button></div>
+      <button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="fix-copy-answer">${t("复制")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="fix-more">${t("追问")}</button></div>
       ${r.summary ? `<p class="fix-summary">${esc(r.summary)}</p>` : ""}
       ${r.urgent ? `<p class="care-urgent fix-urgent"><b>⚠️ ${t("马上处理")}</b>${esc(r.urgent)}</p>` : ""}
       ${r.causes.length ? `<h4>${t("可能原因")}</h4><ul class="tips fix-causes">${r.causes.map((c) => `<li>${c.likelihood ? `<span class="badge ${LIKELY[c.likelihood][1]}">${t(LIKELY[c.likelihood][0])}</span> ` : ""}${esc(c.cause)}${c.check ? `<small class="muted"> — ${t("怎么确认")}：${esc(c.check)}</small>` : ""}</li>`).join("")}</ul>` : ""}
@@ -141,8 +141,8 @@ function resultHtml(r, a) {
     ${r.fixes.map(fixCard).join("")}
     ${r.pro && (r.pro.when || r.pro.who) ? `<div class="panel fix-pro"><h4>☎ ${t("什么时候叫人")}</h4>${r.pro.when ? `<p>${esc(r.pro.when)}</p>` : ""}<p class="muted">${[r.pro.who ? t("找：{who}", { who: r.pro.who }) : "", r.pro.cost ? t("常见费用：{c}", { c: r.pro.cost }) : ""].filter(Boolean).join(" · ")}</p></div>` : ""}
     <div class="form-actions">
-      ${a && !isVehicle(a) ? (fx().logged ? `<span class="badge b-ok">${t("已记到保养记录（待处理）")}</span>` : `<button type="button" class="btn btn-sm" data-action="fix-log">${t("记到保养记录：待处理")}</button>`) : ""}
-      ${a ? `<a class="btn btn-sm btn-ghost" href="${href("asset", a.id)}?log=1">${t("修好了，记一笔维修")}</a>` : ""}
+      ${a && !isVehicle(a) ? (fx().logged ? `<span class="badge b-ok">${t("已记到保养记录（待处理）")}</span>` : `<button type="button" class="ui-btn" data-size="sm" data-action="fix-log">${t("记到保养记录：待处理")}</button>`) : ""}
+      ${a ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("asset", a.id)}?log=1">${t("修好了，记一笔维修")}</a>` : ""}
     </div>
     <p class="disclaimer">${t("AI 回答仅供参考；价格是估计、链接只是搜索入口，不是比价结果。涉及燃气、电、结构、法律、医疗请找专业人士。")}</p>
   </section>`;

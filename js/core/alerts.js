@@ -58,8 +58,8 @@ export function dotRow({ cls = "b-soon", nameHtml, badge = null, detail = "", pr
   // 操作（主操作排第一）：不超过 2 个 → 直接露出按钮；超过 2 个 → 全部收进竖三点菜单（第一项加粗 = 默认要做的），手机上一行不挤
   const acts = [primary, ...menu, ask && { label: t("怎么做 · 问咩咩"), action: "ask-toggle", data: { ask: ask.id } }].filter(Boolean);
   const panel = ask ? askPanel(ask) : "";
-  const btn = (x, i) => (x.href ? `<a class="btn btn-sm${i ? " btn-ghost" : ""}" href="${esc(x.href)}">${esc(x.label)}</a>`
-    : `<button type="button" class="btn btn-sm btn-ghost" data-action="${esc(x.action)}"${Object.entries(x.data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join("")}>${esc(x.label)}</button>`);
+  const btn = (x, i) => (x.href ? `<a class="ui-btn" data-size="sm" data-tone="${i ? "ghost" : ""}" href="${esc(x.href)}">${esc(x.label)}</a>`
+    : `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="${esc(x.action)}"${Object.entries(x.data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join("")}>${esc(x.label)}</button>`);
   const ctl = acts.length > 2 ? moreMenu(acts.map((x, i) => (i ? x : { ...x, first: true })), { vertical: true }) : [primary, ...menu].filter(Boolean).map(btn).join("") + (ask ? askButton(ask) : "");
   return `<li class="alert-row dot-row ${extraCls}"><span class="row-dot ${cls}" aria-hidden="true"></span>
     <div class="grow">${tagHtml}<div class="dr-title">${nameHtml}${badge ? `<span class="badge ${badge.cls}">${esc(badge.label)}</span>` : ""}</div>${detail ? `<small>${esc(detail)}</small>` : ""}</div>
@@ -81,13 +81,13 @@ export function alertRow(it) {
   const title = it.href ? `<a class="link-name" href="${esc(it.href)}">${esc(it.title)}</a>` : `<span class="name">${esc(it.title)}</span>`;
   // 操作按钮：一行只露一个主操作（标了 primary 的，否则第一个实心按钮，再否则第一个），其余收进「⋯」菜单，手机上不再挤成一排
   const list = (it.actions || []).filter((a) => a.type !== "check");
-  const pi = Math.max(0, list.findIndex((a) => a.primary) >= 0 ? list.findIndex((a) => a.primary) : list.findIndex((a) => a.type === "tag" || !(a.cls || "").includes("btn-ghost")));
+  const pi = Math.max(0, list.findIndex((a) => a.primary) >= 0 ? list.findIndex((a) => a.primary) : list.findIndex((a) => a.type === "tag" || a.tone !== "ghost"));
   const one = (a, menu) => a.type === "link"
-    ? `<a class="${menu ? "act-item" : `btn btn-sm ${a.cls || ""}`}" href="${esc(a.href)}" ${a.external ? 'target="_blank" rel="noopener noreferrer"' : ""}>${esc(a.label)}</a>`
+    ? `<a class="${menu ? "act-item" : `ui-btn`}" data-size="sm" data-tone="${menu ? "" : a.tone || ""}" href="${esc(a.href)}" ${a.external ? 'target="_blank" rel="noopener noreferrer"' : ""}>${esc(a.label)}</a>`
     : a.type === "tag" ? (a.href ? `<a class="${menu ? "act-item" : `badge ${a.cls || "b-ok"} act-tag`}" href="${esc(a.href)}">✓ ${esc(a.label)}</a>` : `<span class="${menu ? "act-item" : `badge ${a.cls || "b-ok"} act-tag`}">✓ ${esc(a.label)}</span>`)
-    : `<button type="button" class="${menu ? "act-item" : `btn btn-sm ${a.cls || ""}`}" data-action="${esc(a.action)}" data-id="${esc(a.id || "")}">${esc(a.label)}</button>`;
+    : `<button type="button" class="${menu ? "act-item" : `ui-btn`}" data-size="sm" data-tone="${menu ? "" : a.tone || ""}" data-action="${esc(a.action)}" data-id="${esc(a.id || "")}">${esc(a.label)}</button>`;
   const rest = list.filter((_, k) => k !== pi);
-  const acts = list.length ? `<div class="alert-acts">${one(list[pi], false)}${rest.length ? `<details class="act-more"><summary class="btn btn-sm btn-ghost" aria-label="${esc(t("更多操作"))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">${rest.map((a) => one(a, true)).join("")}</div></details>` : ""}</div>` : "";
+  const acts = list.length ? `<div class="alert-acts">${one(list[pi], false)}${rest.length ? `<details class="act-more"><summary class="ui-btn" data-size="sm" data-tone="ghost" aria-label="${esc(t("更多操作"))}" title="${esc(t("更多操作"))}"><span class="dots3" aria-hidden="true"></span></summary><div class="act-menu">${rest.map((a) => one(a, true)).join("")}</div></details>` : ""}</div>` : "";
   return `<li class="alert-row sev-${it.severity}">${lead}<div class="grow">${propertyTag(it.property_id)}${it.must ? `<span class="badge b-out" style="margin-right:4px">${t("必须")}</span>` : ""}${title}<small>${esc(it.detail || "")}</small></div>${acts}${it.ask ? askButton(it.ask) : ""}${it.ask ? askPanel(it.ask) : ""}</li>`;
 }
 
@@ -102,5 +102,5 @@ export function attentionPanel(sources, { title = t("要处理"), sub = "", filt
   return `<section class="section attn-sec${hot ? " is-hot" : ""}" aria-labelledby="${id}">
     <div class="section-head"><h2 id="${id}">${esc(title)}<span class="badge attn-count ${hot ? "b-out" : ""}">${list.length}</span></h2>${sub ? `<p>${esc(sub)}</p>` : ""}</div>
     <div class="panel"><ul class="restock-list alert-list">${list.slice(0, max).map(alertRow).join("")}</ul>
-      ${list.length > max ? `<div class="form-actions" style="justify-content:center"><a class="btn btn-sm btn-ghost" href="${esc(more)}">${esc(t("看全部 {n} 条", { n: list.length }))}</a></div>` : ""}</div></section>`;
+      ${list.length > max ? `<div class="form-actions" style="justify-content:center"><a class="ui-btn" data-size="sm" data-tone="ghost" href="${esc(more)}">${esc(t("看全部 {n} 条", { n: list.length }))}</a></div>` : ""}</div></section>`;
 }

@@ -142,14 +142,14 @@ export function viewFinAssets() {
       ${nw ? `<div class="kpi"><span>${t("净资产")}</span><b class="${nw.netWorth < 0 ? "down" : ""}">${money(nw.netWorth)}</b><small>${t("资产 − 负债")}</small></div>` : ""}
       <div class="kpi"><span>${t("房产账单每月")}</span><b>${money(housing)}</b><small>${t("自己交的部分，不含 Escrow 代缴")}</small></div>
     </div>
-    <div class="section-head"><h2>🏠 ${t("房产")}</h2>${state.houseEnabled ? `<a class="btn btn-sm btn-ghost" href="${href("house", "properties")}">${t("房产列表")}</a>` : ""}</div>
+    <div class="section-head"><h2>🏠 ${t("房产")}</h2>${state.houseEnabled ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("house", "properties")}">${t("房产列表")}</a>` : ""}</div>
     <div class="panel">${props.length ? `<ul class="fa-list">${props.map((p) => propertyRow(p, spend, debts.filter((e) => e.property_id === p.id), eqOf("property", p.id))).join("")}</ul>` : `<div class="empty"><strong>${t("还没有房产")}</strong></div>`}</div>
     <p class="hint">${t("买入 / 卖出价在交易交割时写入（房屋 → 交易）；花费按记账时选的房产统计，账单缴费自动带上账单的房产。")}</p>
-    <div class="section-head" style="margin-top:18px"><h2>🚗 ${t("车辆")}</h2><a class="btn btn-sm btn-ghost" href="${href("house", "cars")}">${t("车辆列表")}</a></div>
+    <div class="section-head" style="margin-top:18px"><h2>🚗 ${t("车辆")}</h2><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("house", "cars")}">${t("车辆列表")}</a></div>
     <div class="panel">${vRows.length ? `<ul class="fa-list">${vRows.join("")}</ul>` : `<div class="empty"><strong>${t("还没有车辆")}</strong></div>`}
       ${loose.length ? `<p class="muted" style="margin:10px 4px 4px;font-size:13px">${t("还没关联车辆的车贷（在贷款详情里选车）：")} ${loose.map(debtLine).join(" · ")}</p>` : ""}</div>
     ${looseBillsHtml()}
-    <div class="section-head" style="margin-top:18px"><h2>🏦 ${t("账户与余额")}</h2><a class="btn btn-sm btn-ghost" href="${href("bills", "accounts")}">${t("卡与账户")}</a></div>
+    <div class="section-head" style="margin-top:18px"><h2>🏦 ${t("账户与余额")}</h2><a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "accounts")}">${t("卡与账户")}</a></div>
     ${acctRows.length ? `<ul class="fa-accts panel">${acctRows.join("")}</ul>` : `<div class="panel empty"><strong>${t("还没有登记账户")}</strong>${t("在 卡与账户 里添加支票、储蓄、券商、退休、HSA、贷款或现金账户。")}</div>`}
   </section>`;
 }
