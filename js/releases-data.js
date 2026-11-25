@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.46", title: { zh: "清理没用的旧样式", en: "Removed unused old styles" }, items: [
+    { k: "better", zh: "删掉了已经没有页面在用的旧时间线和列表样式，界面不变。", en: "Removed old timeline and list styles that no page uses any more; nothing changes on screen." },
+  ] },
   { v: "2026-11-24.50", title: { zh: "页头：路径写全 + 标题行，采购页也置顶", en: "Header: full path + title line; Shopping pages sticky too" }, items: [
     { k: "better", zh: "路径行写出完整路径（包含当前页，如 财务 / 分析 / 税务 / 买卖与成本基础），不放 ⓘ；下面一行再写一遍页面名，ⓘ 在名字右上角，筛选靠右。", en: "The path row now shows the complete path including the current page (e.g. Finance / Analysis / Tax / Sales & cost basis) with no ⓘ; the line below repeats the page name with its ⓘ at the top-right and the Filter on the right." },
     { k: "new", zh: "采购各页（购物车、加入购物车、商店…）的页头改成同样两行，路径行滚动时固定在顶上。", en: "Shopping pages (cart, add to cart, stores…) use the same two-row header, with the path row sticky while scrolling." },

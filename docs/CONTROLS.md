@@ -54,7 +54,7 @@
 | `card` | 自带一圈边框的卡片行，最后一个也有边框 | — |
 
 已换：`inv-row`、`bill-row`、`all-row`、`mrow`、`fa-row`、`task-row`、`tpl-row`、`dt-row`、`scan-row`、`as-row`。
-未换：`dl-row`（时间线）、`dd-row` / `dr-row`（债务行内部网格）、宽屏表格行 `dv-row` / `deal-row` / `ssr-row` / `ask-item`（需要手机折叠，另做）。
+未换：`dl-row`（时间线）、`dd-row` / `dr-row`（债务行内部网格）；宽屏表格行 `dv-row` / `deal-row` / `ssr-row` / `ask-item` 手机上早已折叠成两三行，分隔线也是 1px 实线，外观和 `ui-row` 一致，没有换类名；表单控件行（`bk-row`、`ai-row`、`amt-row`…）本来就不是记录行。
 行为钩子：长按菜单 `data-lp`（`lpAttr(items, title)` 生成）、滑动 `.swipe-src` / `.swipe-alt-src`。
 
 ### 可选的一行 · `ui-opt` · `shared/ui.css`
@@ -135,9 +135,15 @@
 
 ## 还没做的
 
-- 宽屏表格行（`dv-row` 等）的手机折叠。
 - `rl-badge-go` 并入 `ui-chev`（要和姊妹站一起改共享文件）。
 - 选人面板、长按菜单换成原生 `<dialog>`（现在只补了焦点和 Esc，背后页面不是 `inert`）：选人面板跟着页面重画，换成 `<dialog>` 要在每次重画后补一次 `showModal()`，暂不做。
 - 姊妹站还没用上这些控件：样式已随 2026-11-24.41 同步进各自的 `shared/ui.css`，要用时直接写 `ui-chev` / `ui-row` / `ui-opt`（姊妹站没有 `--r-md` / `--r-sm`，用了兜底值）。
-- 清理疑似死代码类名：已在 2026-11-24.32 删除 `purchase-row`（含 `pr-*`）、`tl-item`、`tatt-row` / `tatt-list`、`med-li`、`ks-row`（含 `kpi-split`）、`hb-row` 的样式。
-  还留着没确认的：`.tl` 时间线的 `tl-mark`、`tl-dot`、`tl-today`，`hb-list`（JS 里已没有使用，下次顺手清）。
+- 死代码清理（2026-11-24.32 / .46）：`purchase-row`、`tl-item`、`tatt-row`、`med-li`、`ks-row`、`hb-row`，以及时间线 `.tl` 的 `tl-mark` / `tl-dot` / `tl-today` / `tl-undated`、`hb-list` 的样式都已删除（JS 里没有使用）。
+
+## 按钮高度的例外（2026-11-24.45 起）
+标准是默认 40px / 小号 34px；下面这些有意保持原样：
+- 图标小按钮（× 删除、⋯、月份切换）：32px 左右的方形。
+- 和输入框并排的按钮（净资产表单、「关联设备」那一行的按钮）：跟输入框一样高（44px）。
+- 分段控件 `seg-btn`、筛选面板触发键 `fpop-btn`、向导里的 `sd-grp` 大选择按钮（48px）。
+- 里面有两行字的按钮（例如「用 Closing Disclosure 自动填」）：被文字撑高。
+- 旧页面还在写 `btn` / `btn-sm` / `form-actions`：CSS 已按标准和 `ui-btn` / `ui-acts` 同样排；HTML 换名不做（约 560 处，收益小）。

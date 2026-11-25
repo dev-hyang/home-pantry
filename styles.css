@@ -1315,15 +1315,7 @@ form.one-sec fieldset + fieldset { border-top: 0; padding-top: 0; }
 .lag-late { color: var(--out); font-weight: 700; }
 .lag-ok { color: var(--pine); font-weight: 700; }
 .deal-view { margin: 0 0 12px; }
-.tl { list-style: none; margin: 0; padding: 0; position: relative; }
-.tl::before { content: ""; position: absolute; left: 10px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
-.tl > li { position: relative; padding: 6px 40px 12px 36px; }
-.tl-mark .tl-dot { position: absolute; left: 4px; top: 11px; width: 12px; height: 12px; background: var(--ink); transform: rotate(45deg); border-radius: 2px; }
-.tl-mark time { font-size: 12.5px; font-weight: 700; color: var(--muted); margin-right: 8px; }
-.tl-today { padding: 2px 0 8px 0 !important; }
-.tl-today span { display: inline-block; padding: 1px 10px; border-radius: 99px; background: var(--pine); color: var(--surface); font-size: 12px; font-weight: 700; }
 .tl-sub { font-size: 14px; margin: 14px 0 4px; }
-.tl-undated::before { background: repeating-linear-gradient(var(--line) 0 4px, transparent 4px 8px); }
 
 /* 录入购物 */
 .scan-in { display: grid; gap: 10px; }
@@ -2192,7 +2184,6 @@ body.editing .minibar { display: none; }
 
 /* ── 花费统计（迁移 055 之后）：横向条形排行、折线空心点、统计开关、分类面包屑 ── */
 .ch-dot { fill: var(--surface); stroke-width: 2; }
-.hb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 14px; }
 .hb-name { min-width: 0; overflow-wrap: anywhere; text-align: left; font: inherit; color: var(--ink); }
 button.hb-name { color: var(--pine); font-weight: 700; padding: 6px 0; min-height: 32px; }
 .hb-val { font-weight: 700; font-variant-numeric: tabular-nums; }
