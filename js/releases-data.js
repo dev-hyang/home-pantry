@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.48", title: { zh: "搜索框和筛选按钮统一", en: "Search box and Filter button unified" }, items: [
+    { k: "better", zh: "全站的搜索框、下拉、「筛选」按钮统一成 40px 高、同样的圆角和字号，和按钮对齐；手机上点按区域仍不小于 44px。", en: "Search boxes, dropdowns and Filter buttons now share one 40 px height, corner radius and font size, in line with buttons; tap areas stay at least 44 px on phones." },
+    { k: "better", zh: "有多个筛选项的列表页，电脑上也收成「搜索框 + 筛选」一行，下拉放进点开的面板，页面更简洁。", en: "On list pages with several filters, desktop now also shows one row of search box + Filter, with the dropdowns inside the panel." },
+  ] },
   { v: "2026-11-24.47", title: { zh: "买卖与成本基础：一张卡片一个资产", en: "Sales & cost basis: one card per asset" }, items: [
     { k: "new", zh: "每套房、每辆已卖出的车一张卡片，直接看买入价、卖出价和收益；点卡片进去看和填详细清单。", en: "Each home and each sold car gets a card showing purchase price, sale price and gain; tap a card to open its detailed lists." },
     { k: "better", zh: "页面不再被好几套房的长清单撑得很长；面包屑多一层资产名，能一层层回到卡片列表。", en: "The page is no longer stretched by several long property lists; the breadcrumb gains the asset name so you can step back to the cards." },

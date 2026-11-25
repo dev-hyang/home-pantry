@@ -1693,8 +1693,8 @@ a.sd-tile:hover, .sd-main a:hover { border-color: var(--pine); }
 .shop-mode .chip { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; color: var(--ink); text-decoration: none; }
 .shop-mode .chip[aria-current="page"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .shop-toolbar .shop-q { flex: 1 1 220px; display: flex; min-width: 0; }
-.shop-toolbar .shop-q input { flex: 1; min-width: 0; min-height: 44px; }
-.shop-toolbar select { min-height: 44px; }
+.shop-toolbar .shop-q input { flex: 1; min-width: 0; }
+
 .shop-list-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; margin: 0 0 6px; font-size: 13px; }
 .shop-scan .form-actions, .shop-scan-rv .form-actions { margin: 10px 0 0; }
 .ssr-list { list-style: none; margin: 8px 0 0; padding: 0; }
@@ -1862,7 +1862,7 @@ body.editing .minibar { display: none; }
 
 /* 注意事项的来源筛选下拉：整行宽，圆角，自带箭头 */
 .src-dd { display: block; width: 100%; max-width: 420px; margin: 0 0 10px; }
-.src-dd select { display: block; width: 100%; min-width: 0; box-sizing: border-box; min-height: 44px; padding: 8px 40px 8px 14px; border: 1.5px solid var(--line); border-radius: 12px; font-size: 15px; font-weight: 600; background-color: var(--surface); color: inherit; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23777' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
+.src-dd select { display: block; width: 100%; min-width: 0; box-sizing: border-box; padding: 8px 40px 8px 14px; border: 1.5px solid var(--line); border-radius: 12px; font-size: 15px; font-weight: 600; background-color: var(--surface); color: inherit; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23777' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
 .src-dd select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 /* 账单 → 收入 */
@@ -4218,7 +4218,7 @@ body:has(.inv-selbar) .to-top, body:has(.lp-sheet) .to-top { display: none; }
 
 /* 靠右的「筛选」按钮 + 面板（收入、花费的时间条，宽屏和手机一样；js/core/filter-pop.js） */
 .fpop { position: relative; display: flex; justify-content: flex-end; margin: 0 0 12px; }
-.fpop-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: inherit; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; box-sizing: border-box; }
+.fpop-btn { display: inline-flex; align-items: center; gap: 6px; min-height: var(--ctl-h, 40px); padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: inherit; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; box-sizing: border-box; }
 .fpop-btn[aria-expanded="true"] { background: var(--surface-2, var(--bg)); }
 .fpop-btn:focus-visible { outline: 3px solid var(--focus, #1f6feb); outline-offset: 2px; }
 .fpop .tb-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--ink); color: var(--bg, #fff); font-size: 12px; font-weight: 700; }
@@ -4700,8 +4700,8 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tax-imp-d > span[title] { font-size: 1em; line-height: 1; }
 .tax-link-form, .tax-item-form { background: var(--surface-2); }
 .tax-fbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 6px; }
-.tax-fbar input[type="search"] { flex: 1 1 160px; min-width: 0; min-height: 44px; box-sizing: border-box; }
-.tax-fbar select { min-height: 44px; box-sizing: border-box; max-width: 100%; }
+.tax-fbar input[type="search"] { flex: 1 1 160px; min-width: 0; box-sizing: border-box; }
+.tax-fbar select { box-sizing: border-box; max-width: 100%; }
 .tax-fc { font-size: 12px; white-space: nowrap; }
 .tax-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
 .tax-cards > .tax-acard { margin-bottom: 0; }
@@ -4796,3 +4796,37 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 /* 事项编辑页：表单直接放在页面卡片里，不再套一层灰底边框；保存栏也不再单独一个框 */
 .task-edit-form.is-page { margin: 0; padding: 0; background: none; border: 0; }
 .task-edit-form.is-page .sticky-actions { border-top: 0; padding: 12px 0 0; }
+
+/* ── 搜索框 + 筛选按钮统一（2026-11-24.48）──────────────────────────────────────────────
+ * 一套标准：搜索框、下拉、「筛选」按钮、清除筛选 同高 --ctl-h（40px，和默认按钮一样），圆角 12px，字 15px；
+ * 手机 / 触屏上字 16px（iPhone 不放大页面），视觉高度不变，点按区域靠 ::after 向外延伸到 ≥44px。
+ * 页面有 ≥ 2 个下拉时，所有宽度都收成「搜索框 + 筛选 (n) 按钮」一行，下拉放进点开的面板（手机的做法在 shared/compact-filters.js，这里把它延到宽屏）。 */
+:root { --ctl-h: 40px; --ctl-r: 12px; }
+#main .toolbar input[type="search"], #main .toolbar select, #main .toolbar .ssel-in, #main .toolbar .ssel-btn,
+.tax-fbar input[type="search"], .tax-fbar select, .shop-toolbar .shop-q input, .shop-toolbar select, .st-tools input[type="search"], .src-dd select {
+  height: var(--ctl-h); min-height: var(--ctl-h); padding-top: 0; padding-bottom: 0; box-sizing: border-box; border-radius: var(--ctl-r); font-size: 15px;   /* 固定高度：默认内边距 + 中文行高会撑到 44px */
+}
+.fpop-btn, #main .toolbar.tb-on .tb-toggle, #main .toolbar .clear-filters {
+  position: relative; box-sizing: border-box; min-height: var(--ctl-h); border-radius: var(--ctl-r); font-size: 15px;
+}
+@media (max-width: 640px), (pointer: coarse) {
+  #main .toolbar input[type="search"], #main .toolbar select, #main .toolbar .ssel-in, .tax-fbar input[type="search"], .tax-fbar select, .shop-toolbar .shop-q input, .shop-toolbar select, .st-tools input[type="search"], .src-dd select { font-size: 16px; }
+  .fpop-btn::after, #main .toolbar.tb-on .tb-toggle::after, #main .toolbar .clear-filters::after { content: ""; position: absolute; inset: -2px 0; }
+}
+@media (min-width: 441px) {
+  #main .toolbar.tb-on { position: relative; align-items: center; }
+  #main .toolbar.tb-on > input[type="search"] { flex: 1 1 220px; min-width: 185px; width: auto; }
+  #main .toolbar.tb-on .tb-toggle { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 0 14px; border: 1px solid var(--line); background: var(--surface); color: inherit; font-weight: 600; cursor: pointer; }
+  #main .toolbar.tb-on .tb-toggle::before { content: ""; flex: none; width: 18px; height: 18px; background: currentColor; -webkit-mask: var(--ico-filter) center / contain no-repeat; mask: var(--ico-filter) center / contain no-repeat; }
+  #main .toolbar.tb-on .tb-toggle[aria-expanded="true"] { background: var(--surface-2, var(--bg)); }
+  #main .toolbar.tb-on .tb-toggle:focus-visible { outline: 3px solid var(--focus, #1f6feb); outline-offset: 2px; }
+  #main .toolbar.tb-on .tb-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--ink, #1e3a32); color: var(--bg, #fff); font-size: 12px; font-weight: 700; }
+  #main .toolbar.tb-on .tb-count[hidden] { display: none; }
+  #main .toolbar.tb-on .tb-panel { display: none; position: absolute; left: 0; top: calc(100% + 4px); z-index: 15; width: min(560px, 100%); grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; background: var(--surface, #fff); border: 1px solid var(--line, #cfdcd2); border-radius: 12px; box-shadow: 0 12px 28px rgba(0, 0, 0, .16); box-sizing: border-box; }
+  #main .toolbar.tb-on .tb-panel.open { display: grid; }
+  #main .toolbar.tb-on .tb-panel select, #main .toolbar.tb-on .tb-panel .ssel { width: 100%; min-width: 0; flex: none; }
+  #main .toolbar.tb-on .tb-panel .ssel { grid-column: 1 / -1; }
+  #main .toolbar.tb-on .tb-head { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: var(--ctl-h); padding: 0 2px 6px; border-bottom: 1px solid var(--line, #cfdcd2); }
+  #main .toolbar.tb-on .tb-head-t { display: block; font-size: 15px; font-weight: 700; }
+  #main .toolbar.tb-on .tb-head .clear-filters { margin-left: auto; }
+}
