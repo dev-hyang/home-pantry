@@ -13,9 +13,8 @@ import { href } from "../core/router.js";
 import { propOf } from "./tax-calendar.js";
 import { ui } from "./tax-ui.js";
 import { closingBlock } from "./tax-closing-ai.js";
-import { ensureSpend, linkedRefs, pickerHtml, resolveLink, rowAttrs } from "./tax-links.js";
+import { linkedRefs, pickerHtml, resolveLink, rowAttrs } from "./tax-links.js";
 import { isTransfer, leafLabel } from "../core/taxonomy.js";
-import { render } from "../app/render.js";
 
 const money = (n) => `<span data-money>${Units.money(n)}</span>`;   // 带 data-money：点眼睛 / 遮挡模式时模糊（税务页整页 data-money-skip，所以这里自己标）
 const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
@@ -76,13 +75,13 @@ function listBlock(p, s) {
   return step(s.n, t(s.title), `${rows.length ? `<ul class="tax-imps">${li}</ul><p class="tax-sub-total">${t("小计")} <b>${money(total)}</b></p>` : `<p class="muted">${t("还没有。没有就不用填，直接往下。")}</p>`}${form}`, s.hint ? t(s.hint) : "");
 }
 
-function homeCard(p, idx) {
-  const g = homeGain(p), x = g.x, rental = p.role === "landlord", open = ui.open.has(p.id) ? ui.open.get(p.id) : idx === 0 || p.sale_price != null || ["selling", "sold"].includes(p.status);
+export function homeCard(p) {
+  const g = homeGain(p), x = g.x, rental = p.role === "landlord";
   const verdict = !g.ready ? `<p class="muted">${t("缺买入价或卖出价：在 房屋 → 交易 里把成交价记上，这里才能算。")}</p>`
     : g.gain < 0 ? `<p><b>${t("亏损 {a}", { a: money(-g.gain) })}</b> <span class="muted">${t("自住房的亏损不能抵税")}</span></p>`
     : `<p><b>${t("收益 {a}", { a: money(g.gain) })}</b> · ${g.excl ? t("排除 {a} 后应税约 {b}", { a: money(g.excl), b: money(g.taxable) }) : t("没排除额度，全部 {b} 都是应税收益", { b: money(g.taxable) })}</p>`;
   const lived = `<select data-tax-prop="${esc(p.id)}" data-key="lived" data-nosearch aria-label="${esc(t("自住满 2 年？"))}"><option value="">${t("还没标")}</option><option value="yes" ${x.lived === "yes" ? "selected" : ""}>${t("是，满 2 年")}</option><option value="no" ${x.lived === "no" ? "selected" : ""}>${t("不满")}</option></select>`;
-  return `<details class="panel tax-event" data-tax-open="${esc(p.id)}" ${open ? "open" : ""}><summary><b>🏡 ${esc(p.name)}</b> <span class="muted">${esc(tx(p.role === "landlord" ? "出租" : "自住", p.role === "landlord" ? "rental" : "owner-occupied"))}</span></summary>
+  return `<section class="panel tax-asset"><h3 class="tax-asset-h">🏡 ${esc(p.name)} <span class="muted">${esc(tx(p.role === "landlord" ? "出租" : "自住", p.role === "landlord" ? "rental" : "owner-occupied"))}</span></h3>
     <p class="muted tax-wrap">${t("按 ①→⑦ 一项一项看、一项一项加：没有的就空着，往下走。最底下是算出来的结果。")}</p>
     ${closingBlock(p)}
     ${step("①", t("买入价"), (() => { const b = buyPriceOf(p); return `<p><b>${b.price != null ? money(b.price) : NA}</b> <span class="muted">${b.fromDeal ? t("来自 房屋 → 交易 里填的价格；交易点「完成交割」后会写进房屋记录") : b.price != null ? t("来自 房屋 的记录，这里只读") : t("房屋记录里还没有买入价；在 房屋 → 交易 的买入交易里填价格")}</span></p>`; })())}
@@ -93,18 +92,11 @@ function homeCard(p, idx) {
     <section class="tax-step tax-result"><h4>${t("结果（参考）")}</h4><dl class="dt-list">${row(t("成本基础"), g.basis == null ? NA : money(g.basis))}${row(t("扣掉卖出费用后的卖价"), g.realized == null ? NA : money(g.realized))}</dl>${g.T.creditItems ? `<p class="hint">${t("closing 退款已调整成本基础：已按买入时的退款 / credit {a} 调低（不算收入）。", { a: money(g.T.creditItems) })}</p>` : ""}${verdict}</section>
     ${rental ? `<label>${t("土地占比 %（折旧要去掉土地，不确定先填 20）")}<input ${numAttrs("int", { max: 95 })} data-tax-prop="${esc(p.id)}" data-key="landPct" value="${x.landPct ?? ""}" placeholder="20"></label>
       <p class="hint">${t("出租房：每年折旧参考约 {a}（买入价 + 费用 − 退款 + 改善，去掉 {p}% 土地后 ÷ 27.5 年；第一年和最后一年要按月折算）。卖出时折旧会被「回收」征税，别漏。", { a: money(rentalDepreciation(p)), p: x.landPct ?? 20 })}</p>` : ""}
-    <p class="hint">${t("政策待核对：自住满 2 年合并报税最多排除 50 万美元收益（单身 25 万）；出租过的部分有折旧回收。")} <a href="https://www.irs.gov/taxtopics/tc701" target="_blank" rel="noopener">${t("官方说明")} ↗</a></p></details>`;
+    <p class="hint">${t("政策待核对：自住满 2 年合并报税最多排除 50 万美元收益（单身 25 万）；出租过的部分有折旧回收。")} <a href="https://www.irs.gov/taxtopics/tc701" target="_blank" rel="noopener">${t("官方说明")} ↗</a></p></section>`;
 }
-function carCard(a) {
+export function carCard(a) {
   const g = carGain(a), name = a.name || a.model || t("车辆");
   const verdict = g.gain == null ? `<p class="muted">${t("缺买入价或卖出价：在车辆里记上。")}</p>` : g.gain < 0 ? `<p><b>${t("亏损 {a}", { a: money(-g.gain) })}</b> <span class="muted">${t("自用车的亏损不能抵税")}</span></p>` : `<p><b>${t("收益 {a}", { a: money(g.gain) })}</b> <span class="muted">${t("高于买入价的部分要报（少见）")}</span></p>`;
-  return `<details class="panel tax-event" data-tax-open="${esc(a.id)}" ${(ui.open.has(a.id) ? ui.open.get(a.id) : g.sale != null) ? "open" : ""}><summary><b>🚗 ${esc(name)}</b></summary><dl class="dt-list">${row(t("买入价"), g.buy != null ? money(g.buy) : NA)}${row(t("卖出价"), g.sale != null ? money(g.sale) : NA)}</dl>${verdict}
-    <p class="hint">${t("车曾用于做生意 / 出租的另有折旧规则，这里没算。")} <a href="${href("asset", a.id)}">${t("打开车辆")} ›</a></p></details>`;
-}
-export function salesTab() {
-  const homes = (state.properties || []).filter((p) => p.role !== "tenant" && !["looking", "renting", "moved_out"].includes(p.status)), cars = (state.assets || []).filter((a) => a.kind === "vehicle" && ["sold", "returned"].includes(a.vehicle?.status || ""));
-  ensureSpend(homes.map((p) => p.id), () => render(false));   // 这几套房关联的花费：读一次，读完重画
-  return `<p class="muted tax-wrap">${t("卖房、卖车前后的收益参考。买入价、卖出价来自 房屋 / 车辆 里已有的记录；费用、退款、装修翻新、住满与否记在这里，一项一项加。参考用，以 TurboTax 和官方说明为准。")}</p>
-    <h3 class="tax-sub">${t("房子")}</h3>${homes.map(homeCard).join("") || `<p class="muted">${t("还没有房产。")}</p>`}
-    <h3 class="tax-sub">${t("已卖出的车")}</h3>${cars.map(carCard).join("") || `<p class="muted">${t("还没有卖出的车。卖车时在车辆的交易里走「卖车」流程，价格记在那里。")}</p>`}`;
+  return `<section class="panel tax-asset"><h3 class="tax-asset-h">🚗 ${esc(name)}</h3><dl class="dt-list">${row(t("买入价"), g.buy != null ? money(g.buy) : NA)}${row(t("卖出价"), g.sale != null ? money(g.sale) : NA)}</dl>${verdict}
+    <p class="hint">${t("车曾用于做生意 / 出租的另有折旧规则，这里没算。")} <a href="${href("asset", a.id)}">${t("打开车辆")} ›</a></p></section>`;
 }

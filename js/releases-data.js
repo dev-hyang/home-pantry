@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.47", title: { zh: "买卖与成本基础：一张卡片一个资产", en: "Sales & cost basis: one card per asset" }, items: [
+    { k: "new", zh: "每套房、每辆已卖出的车一张卡片，直接看买入价、卖出价和收益；点卡片进去看和填详细清单。", en: "Each home and each sold car gets a card showing purchase price, sale price and gain; tap a card to open its detailed lists." },
+    { k: "better", zh: "页面不再被好几套房的长清单撑得很长；面包屑多一层资产名，能一层层回到卡片列表。", en: "The page is no longer stretched by several long property lists; the breadcrumb gains the asset name so you can step back to the cards." },
+  ] },
   { v: "2026-11-24.46", title: { zh: "买卖与成本基础：列表更短、搜索按需出现", en: "Sales & cost basis: shorter lists, search on demand" }, items: [
     { k: "better", zh: "「从收入记录里选」默认只列关联了这套房的收入；需要时点「显示全部收入」。", en: "\"Pick from income records\" now lists only income linked to this property by default; tap \"Show all income\" when needed." },
     { k: "better", zh: "搜索和金额筛选不再一直摆在那里，点「搜索」才展开；装修翻新等清单里不再放搜索框。", en: "Search and amount filter no longer sit there all the time; tap \"Search\" to open them. Lists such as renovations have no search box." },

@@ -19,7 +19,7 @@ import { EVENTS } from "./tax-content-events.js";
 import { TERMS } from "./tax-content-terms.js";
 import { incomeTaxCard } from "./tax-income-card.js";
 import { summaryTab } from "./tax-summary.js";
-import { salesTab } from "./tax-sales.js";
+import { salesLeaf, salesTab } from "./tax-sales-page.js";
 import "./tax-actions.js";
 
 const tx = (o) => (o ? (lang === "en" ? o.en : o.zh) : "");
@@ -100,7 +100,7 @@ export function viewTax() {
   const years = [...new Set([...Array.from({ length: now - 2024 + 1 }, (_, i) => 2024 + i), y])].sort();
   const filter = YEAR_TABS.includes(tab) ? filterPop(`<div class="fpop-fields"><label class="tb-field"><span>${t("税务年度")}</span><select data-tax-ysel data-tab="${tab}" data-nosearch aria-label="${esc(t("税务年度"))}">${years.map((v) => `<option value="${v}" ${v === y ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>`, { id: "taxy", eye: true }) : false;
   const body = tab === "household" ? householdTab(s, y) : tab === "summary" ? summaryTab(y) : tab === "sales" ? salesTab() : tab === "docs" ? docsTab(y, s) : tab === "accounts" ? accountsTab() : tab === "events" ? eventsTab(s) : tab === "learn" ? learnTab() : yearTab(y, s);
-  return `<section class="section tax-page" data-money-skip>${pageHead({ title: t("税务"), tabs: TAX_TABS, tab, hrefOf: (id) => tabHref(id, y), filter, note: infoTip.classic(t("参考用，不是税务建议；以 IRS、伊利诺伊税务局官网和 TurboTax 为准。不存 SSN / ITIN / PIN。"), { align: "start" }) })}
+  return `<section class="section tax-page" data-money-skip>${pageHead({ title: t("税务"), tabs: TAX_TABS, tab, hrefOf: (id) => tabHref(id, y), filter, tabHref: tab === "sales" ? tabHref("sales", y) : "", leaf: tab === "sales" ? salesLeaf() : "", note: infoTip.classic(t("参考用，不是税务建议；以 IRS、伊利诺伊税务局官网和 TurboTax 为准。不存 SSN / ITIN / PIN。"), { align: "start" }) })}
     <p class="notice" role="note">${t("参考用，不是税务建议。数字和政策每年会变，标「待核对」的报税前对着官网再看一遍。")}</p>
     ${body}</section>`;
 }
