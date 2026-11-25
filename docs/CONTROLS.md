@@ -18,6 +18,7 @@
 | 文件 | 内容 |
 |---|---|
 | `shared/ui.css`（母版，姊妹站各留副本） | 徽标、铃铛、提示、箭头、行、选项、弹窗变量、数字框、按钮、按钮条 |
+| `shared/ui-form.css` + `shared/ui-form.js`（母版；姊妹站接入时各留副本，并加进 `check-shared.mjs`） | 表单操作条 `ui-formbar`（edit / wizard / dialog / inline）、页头 ⋯ 菜单 `ui-more` |
 | `shared/ui-acts.js`（母版，姊妹站各留副本） | 按钮条排序：取消类排前、主按钮排后（`arrangeActs` / `isCancelBtn` / `watchActs`） |
 | `styles.css`（home-pantry 自己） | 各页面自己的样式（搜索框、日期框的统一样式也在这里） |
 | `js/core/*.js` | 生成 HTML 的函数和全局行为 |
@@ -95,6 +96,22 @@
 ### 按钮条 · `ui-acts` · `shared/ui.css`
 一组按钮的容器：一个靠右；两个 = 第一个（取消）靠左、第二个（保存）靠右；三个及以上全靠右（删除放最左）；手机（≤480px）两个并排等宽、一个占满一行。
 所有表单底部、对话框、税务小表单的按钮条已换成 `ui-acts`（2026-11-24.53）；`ask-acts`、`tax-item-actions`、`deal-confirm-actions`、`sticky-actions`（贴底）是叠在 `ui-acts` 上的修饰类；三个以上按钮的表单条由 `core/form-actions.js` 加上 `ui-acts-split`（等宽平分）。
+
+### 表单操作条 · `ui-formbar` 和 ⋯ 菜单 · `ui-more` · `shared/ui-form.css` + `shared/ui-form.js`
+表单底部的按钮条按"表单类型"分 variant（2026-11-25 新增，姊妹站按 ② ~ ⑤ 逐个接入；爱家小助手自己的 `.sticky-actions` 暂不动）：
+
+| `data-variant` | 用在哪 | 按钮（从左到右） | 位置 |
+|---|---|---|---|
+| `edit` | 整页新建 / 编辑一条记录 | 取消 · 保存 | 贴视口底部；页头没有"关闭"，退出靠取消 / 返回键 |
+| `wizard` | 分步流程 | 取消 · 上一步 · 下一步（最后一步 保存 / 确认） | 同 edit |
+| `dialog` | 弹窗里的小表单 | 取消 · 确认 | 不贴底，弹窗自己定位置 |
+| `inline` | 设置页 / 详情页里的一块小表单 | 保存 · 取消 | 不贴底，电脑上靠右 |
+
+- 用 `formBar(variant, [{ role, label, attrs }])` 生成：顺序由它保证（取消 → 上一步 → 其他 → 下一步 → 保存），`role` = cancel / back / extra / next / save；保存 / 下一步自动是主按钮。手机上按钮等宽并排；电脑上取消靠左、其余靠右，按钮不拉满。
+- **删除不放在操作条里**：不常用，放页头右上角的 `⋯` 菜单（`formMenu([{ label, attrs, tone }])`，`tone: "danger"` 显示红字）；"加到…"之类的额外操作也收进去。没有菜单项时 `formMenu` 返回空串。
+- `--fb-pad`：贴底条要抵消页面左右内边距才能铺满整宽，默认 16px，页面不是 16px 就在容器上设。
+- 入口调一次 `watchFormMenus()`：点外面 / Esc / 点了菜单项会把 ⋯ 菜单关上。
+- 样式读 `ui-btn` / `ui-opt` 和各站 `:root` 的 `--surface` / `--line` / `--out` / `--sheet-shadow`（都有兜底）。图鉴页 `styleguide.html` 有四种 variant 和 ⋯ 菜单的样例。
 
 ### 对话框 · `ask-dlg` / `ask-form` / `ask-acts`
 原生 `<dialog>.showModal()`；手机上贴底、电脑上居中。浏览器负责 Esc、焦点、背景不可点。

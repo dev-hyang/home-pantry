@@ -7,6 +7,7 @@
 <title>控件图鉴</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="shared/ui.css">
+<link rel="stylesheet" href="shared/ui-form.css">
 <style>
   .sg { max-width: 920px; margin: 0 auto; padding: 20px 16px 64px; }
   .sg h1 { font-size: 22px; margin-bottom: 6px; }
@@ -111,6 +112,22 @@
     <label class="span-2">多行<textarea rows="2"></textarea></label>
   </div>
   <p class="row" style="margin-top:12px"><button class="ui-btn" data-tone="primary" type="button">主按钮</button> <button class="ui-btn" data-tone="ghost" type="button">次按钮</button> <button class="btn btn-sm btn-ghost" type="button">小按钮</button></p></div>
+  <h2>表单操作条 ui-formbar · ⋯ 菜单 ui-more</h2>
+  <p class="note"><code>data-variant</code>：edit 整页新建 / 编辑（取消 · 保存，贴底）/ wizard 分步（取消 · 上一步 · 下一步，贴底）/ dialog 弹窗小表单（不贴底）/ inline 区块内小表单（保存 · 取消）。删除和不常用的操作放页头右上角 ⋯。下面两个框内可滚动，贴底条贴在框的底部。</p>
+  <div id="sgForms"></div>
 </main>
+<script type="module">
+  import { formBar, formMenu, watchFormMenus } from "./shared/ui-form.js";
+  watchFormMenus();
+  const head = (t, menu) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><h3 style="margin:0;font-size:17px">${t}</h3>${menu}</div>`;
+  const body = '<div class="form-page"><div class="form-grid"><label>名称<input type="text" placeholder="例如：鸡蛋"></label><label>数量<input type="text" placeholder="1"></label></div></div>';
+  const frame = (inner) => `<div style="height:260px;overflow:auto;padding:0 16px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);--fb-pad:16px">${inner}<div style="height:120px"></div></div>`;
+  const menu = formMenu([{ label: "加到流程…" }, { label: "加到歌单…" }, { label: "删除", tone: "danger" }]);
+  document.getElementById("sgForms").innerHTML = `
+    <p class="note">edit（编辑一条记录，页头右上角 ⋯ 里有删除）</p>${frame(head("修改记录", menu) + body + formBar("edit", [{ role: "cancel", label: "取消" }, { role: "save", label: "保存" }]))}
+    <p class="note" style="margin-top:14px">wizard（第 2 步）</p>${frame(head("新建流程", "") + body + formBar("wizard", [{ role: "cancel", label: "取消" }, { role: "back", label: "上一步" }, { role: "next", label: "下一步" }]))}
+    <p class="note" style="margin-top:14px">dialog</p><div class="panel">${body}${formBar("dialog", [{ role: "cancel", label: "取消" }, { role: "save", label: "确认" }])}</div>
+    <p class="note" style="margin-top:14px">inline</p><div class="panel">${body}${formBar("inline", [{ role: "cancel", label: "取消" }, { role: "save", label: "保存" }])}</div>`;
+</script>
 </body>
 </html>
