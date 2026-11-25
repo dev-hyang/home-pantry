@@ -53,8 +53,10 @@ export function houseTree(r) {
 const NAME = { properties: "房产", cars: "汽车", alerts: "注意事项", plan: "买卖计划", overview: "概览", profile: "房屋资料", tasks: "季节任务", assets: "设备保养", deal: "交易", supplies: "汽车房屋消耗品", vehicles: "车辆" };
 export function houseHead(r) {
   const sub = r?.sub || "menu", p = state.properties.find((x) => x.id === state.propertyId), root = `<a class="h-root" href="${esc(href("house"))}">${t("房屋")}</a>`;
+  const veh = sub === "supplies" && r?.q?.get("veh") ? activeVehicles().find((a) => a.id === r.q.get("veh")) : null;   // 某辆车的消耗品页：房屋 / 汽车 / 车名 / 消耗品；否则按当前房产
   const path = sub === "menu" || !NAME[sub] ? t("房屋")
-    : sub === "supplies" || sub === "vehicles" || sub === "plan" || sub === "properties" || sub === "cars" || sub === "alerts" ? `${root} / <b aria-current="page">${esc(t(NAME[sub]))}</b>`
+    : veh ? `${root} / <a class="h-root" href="${esc(href("house", "cars"))}">${t("汽车")}</a> / <a class="h-root" href="${esc(href("asset", veh.id))}">${esc(assetName(veh))}</a> / <b aria-current="page">${esc(t(NAME[sub]))}</b>`
+    : sub === "vehicles" || sub === "plan" || sub === "properties" || sub === "cars" || sub === "alerts" ? `${root} / <b aria-current="page">${esc(t(NAME[sub]))}</b>`
       : `${root} / <a class="h-root" href="${esc(href("house", "properties"))}">${t("房产")}</a>${p ? ` / <a class="h-root" href="${esc(href("house", "overview"))}">${esc(p.name)}</a>` : ""} / <b aria-current="page">${esc(t(NAME[sub]))}</b>`;
   return `<div class="section-head fin-head sec-head"><div class="sh-title">${treePop(houseTree(r), { id: "housetree" })}<nav class="sec-path" aria-label="${esc(t("当前位置"))}">${path}</nav></div></div>`;
 }

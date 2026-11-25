@@ -15,6 +15,8 @@ import { render } from "../render.js";
 import { state } from "../../core/state.js";
 import { t } from "../../core/i18n.js";
 import { toList } from "../page-events.js";
+/** 分类方块 / 状态数字点进的物品清单：汽车房屋消耗品也进库存页（它自己的消耗品页只有方块，没有物品行） */
+const invList = (space) => (space === "house" ? `${href("pantry", "inventory")}?space=house` : toList(space));
 import { catNeed, secNeed, setInvView, visibleItemIds } from "../../pantry/inv-sync.js";
 import { shopVisibleIds } from "../../pantry/shop-sync.js";
 import { moveCat } from "../../pantry/inventory-sync.js";
@@ -109,7 +111,7 @@ export async function clickPantry(action, el, id, e) {
         else await Store.saveCategory({ id: c.dbId, key: c.id, space: c.space, name: changed ? c.name : null, icon: changed ? c.icon : null, color: changed ? c.color : null, loc: null, subs: changed ? c.subs : [], hidden: on, sort: 0 });
         state.catForm = null; if (on && state.filter.cat === c.id) state.filter.cat = "all"; toast(on ? t("已隐藏分类") : t("已重新显示")); return refresh();
       }
-      case "inv-clear": Object.assign(state.filter, { q: "", status: "all", loc: "all", owner: "all" }); return render();
+      case "inv-clear": Object.assign(state.filter, { q: "", status: "all", loc: "all", owner: "all", ownerScope: false }); return render();
       // 设置 → 存放位置：新建 / 重命名 / 删除
       case "loc-new": state.locForm = { name: "", grp: el.dataset.grp || "custom" }; render(); $("#locForm input[name=name]")?.focus(); return;
       case "loc-edit": {
@@ -127,8 +129,8 @@ export async function clickPantry(action, el, id, e) {
       }
       case "cat-sort": state.catSort = !state.catSort; return render();   // 手机仪表盘：调整方块顺序
       case "cat-move": moveCat(state.filter.space, el.dataset.cat, +el.dataset.dir); return render();
-      case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "", owner: el.dataset.owner || "all" }); state.keepFilter = true; return go(toList(el.dataset.space));
-      case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); state.keepFilter = true; return go(toList(el.dataset.space));
+      case "goto-cat": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: el.dataset.cat, status: "all", q: "", owner: el.dataset.owner || "all", ownerScope: !!el.dataset.owner }); state.keepFilter = true; return go(invList(el.dataset.space));
+      case "goto-status": Object.assign(state.filter, { space: el.dataset.space || "pantry", cat: "all", status: el.dataset.status, q: "" }); state.keepFilter = true; return go(invList(el.dataset.space));
       case "shop-add-item": return addAlertsToShopping([state.enriched.find((x) => x.id === id)]);
       case "shop-remove-item": return removeFromShopping([id]);
       case "shop-jump": { const d = document.getElementById(`shopGrp-${el.dataset.grp}`); if (d) { d.open = true; d.scrollIntoView({ block: "start", behavior: "smooth" }); } return; }   // 采购方式小标签：跳到那一组

@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-25.1", title: { zh: "房屋消耗品：点分类卡片不再是空的，页头写清楚是哪套房产 / 哪辆车", en: "House supplies: category cards no longer open an empty list; header shows which property / car" }, items: [
+    { k: "fix", zh: "房屋 / 汽车消耗品页点分类卡片，现在会打开库存里对应分类的物品清单，看到这套房产（或这辆车）自己的物品加上全家共用的，不再是空的；筛选下拉会写明「+ 全家共用」。", en: "Tapping a category card on a property / car supplies page now opens the Inventory list and shows that property's (or car's) items plus the household-shared ones in Inventory, instead of an empty list; the filter reads \"+ Shared\"." },
+    { k: "fix", zh: "汽车消耗品页的页头路径补全为：房屋 / 汽车 / 车名 / 汽车房屋消耗品。", en: "The header path on a car's supplies page now reads Home / Cars / car name / supplies." },
+  ] },
   { v: "2026-11-24.61", title: { zh: "控件说明补上姊妹站推广情况", en: "Control docs note the sister-app rollout" }, items: [
     { k: "better", zh: "控件说明文档补上共享的按钮条排序文件和四个姊妹站的推广情况（界面不变）。", en: "The control docs now list the shared button-row sorting file and where each control is rolled out in the sister apps (no visible change)." },
   ] },

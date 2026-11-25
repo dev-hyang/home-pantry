@@ -73,7 +73,7 @@ export async function onMainChange(e) {
   if (e.target.id === "invSubSel") { state.filter.sub = e.target.value; render(); }
   if (e.target.id === "invSpaceSel") { const v = e.target.value; return go(v === "house" ? `${href("pantry", "inventory")}?space=house` : v === "gear" ? href("pantry", "gear") : v === "pantry" ? `${href("pantry", "inventory")}?space=pantry` : href("pantry", "inventory")); }   // 库存范围：和以前的范围芯片同样的地址
   if (e.target.id === "invStatus") { state.filter.status = e.target.value; renderInvList(); }
-  if (e.target.id === "invOwner") { state.filter.owner = e.target.value; renderInvList(); }
+  if (e.target.id === "invOwner") { Object.assign(state.filter, { owner: e.target.value, ownerScope: false }); renderInvList(); }
   if (e.target.id === "invLoc") { state.filter.loc = e.target.value; renderInvList(); }
   if (e.target.id === "invSort") { state.filter.sort = e.target.value; renderInvList(); }
   if (e.target.id === "ovRange") { setOverviewRange(e.target.value); render(); }

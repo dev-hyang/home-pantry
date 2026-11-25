@@ -73,7 +73,7 @@ function onRoute() {
   // 从目录或别的页进库存类清单：默认回到全部分类（从物品编辑页返回、或概览方块指定了分类时保留）
   if (isListRoute(next) && routeKey(prev) !== routeKey(next) && !isFormSection(prev)) {
     if (state.keepFilter) state.keepFilter = false;
-    else Object.assign(state.filter, { cat: "all", status: "all", q: "", loc: "all", owner: "all" });
+    else Object.assign(state.filter, { cat: "all", status: "all", q: "", loc: "all", owner: "all", ownerScope: false });
   }
   // 从首页看板 / 别的页点进其他清单页（购物车、设备、账单、缴费记录、医疗、花费）：筛选回到默认再套上链接里的条件
   // （从物品 / 设备 / 账单编辑页返回、或同一页内换标签 / 参数不算）；不然上一次留下的筛选（如「家人认领」）会让看板上的数字和清单对不上
@@ -91,7 +91,7 @@ function onRoute() {
   if (next.section === "bills" && next.sub === "all") { if (routeKey(prev) !== routeKey(next) && !isFormSection(prev)) defaultAllEntry(next.q); applyAllQuery(next.q); }
   // 房产 / 车辆的消耗品页「看全部」带 ?owner= 进库存：套上归属筛选，再把参数去掉
   if (isListRoute(next) && next.q.get("owner")) {
-    Object.assign(state.filter, { owner: next.q.get("owner"), space: next.q.get("space") === "house" ? "house" : state.filter.space });
+    Object.assign(state.filter, { owner: next.q.get("owner"), ownerScope: true, space: next.q.get("space") === "house" ? "house" : state.filter.space });
     next.q.delete("owner"); history.replaceState(null, "", `${href(next.section, next.sub)}${next.q.toString() ? `?${next.q}` : ""}`);
   }
   // 概览卡片里的细项（缺货 / 少货 …）带 ?status= 进库存：套上状态筛选，再把参数去掉（刷新、后退不重复套）

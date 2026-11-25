@@ -17,7 +17,7 @@ export function matchItem(it, f, { withCat = true } = {}) {
   if (withCat && f.cat !== "all" && f.sub && f.sub !== "all" && it.subcategory !== f.sub) return false;   // 打开某个分类后再按小类缩小（生鲜 → 水果）
   if (q && !(`${it.name}${it.subcategory || ""}${t(it.subcategory || "")}${it.notes || ""}${it.location || ""}${t(it.location || "")}`).toLowerCase().includes(q)) return false;
   if ((f.loc || "all") !== "all" && it.location !== f.loc) return false;
-  if (!ownerMatch(it, f.owner)) return false;
+  if (!ownerMatch(it, f.owner, !!f.ownerScope)) return false;
   if (f.status === "alert") return it.status !== "ok";
   if (f.status === "exp") return !!it.exp;
   if (f.status !== "all") return it.status === f.status;

@@ -38,5 +38,5 @@ export function ownerFilter(f) {
   if (!showOwner()) return "";
   const o = f.owner || "all";
   return `<select id="invOwner" data-nosearch aria-label="${esc(t("按属于筛选"))}"><option value="all">${t("全部归属")}</option><option value="shared" ${o === "shared" ? "selected" : ""}>${t("全家共用")}</option>
-    ${options().map(([val, l]) => `<option value="${esc(val)}" ${o === val ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+    ${options().map(([val, l]) => `<option value="${esc(val)}" ${o === val ? "selected" : ""}>${esc(l)}${o === val && f.ownerScope ? ` + ${esc(t("全家共用"))}` : ""}</option>`).join("")}</select>`;   // 从某套房产 / 车辆的消耗品页进来：它自己的 + 全家共用
 }
