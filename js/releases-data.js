@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-24.56", title: { zh: "共用按钮样式多了主按钮色和圆角变量", en: "Shared button style gains primary-colour and radius variables" }, items: [
+    { k: "better", zh: "共用样式表的按钮可以由各站设置主按钮底色、字色和圆角（本站不变）。", en: "The shared stylesheet lets each app set its primary-button colours and corner radius (unchanged here)." },
+  ] },
   { v: "2026-11-24.55", title: { zh: "特价、小票核对、问咩咩清单：行样式统一", en: "Deals, receipt review and Baa Baa lists: one row style" }, items: [
     { k: "better", zh: "特价一览、商店特价、小票核对、问咩咩的勾选清单这几处的行，换成和其他列表一样的行控件：同样的分隔线和最小高度。", en: "Rows in the deals overview, shop deals, receipt review and Baa Baa's tick lists now use the same row control as other lists: same dividers and minimum height." },
   ] },
