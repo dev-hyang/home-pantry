@@ -165,6 +165,8 @@ export const viewInventory = lazyFn(LZ.pInvItems, "viewInventory");
 LZ.pShopping = lazyModule(() => import("../pantry/shopping.js"));
 export const renderShopList = lazyFn(LZ.pShopping, "renderShopList");
 export const viewShopping = lazyFn(LZ.pShopping, "viewShopping");
+LZ.pBuys = lazyModule(() => import("../pantry/buys-page.js"));
+export const viewBuys = lazyFn(LZ.pBuys, "viewBuys");
 LZ.pMeals = lazyModule(() => import("../pantry/meals.js"));
 export const viewMeals = lazyFn(LZ.pMeals, "viewMeals");
 LZ.accountsViews = lazyModule(() => import("../bills/accounts-views.js"));   // 账户概览 / 银行账户 / 投资账户 / 电子钱包与礼品卡

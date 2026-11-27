@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.9", title: { zh: "购买排行：买得最多、花得最多", en: "Purchase ranking: most bought, biggest spend" }, items: [
+    { k: "new", zh: "储藏新增「购买排行」页：近 90 天 / 近 12 个月买得最多、花得最多、最近买的、涨价了的物品；点开一行能看到每一笔（日期、商店、数量、金额）。", en: "New Purchase ranking page under Pantry: items bought most, biggest spend, bought recently or going up in price over 90 days / 12 months. Tap a row to see every purchase." },
+    { k: "new", zh: "储藏概览多了「购买洞察」：最常购买、花费最多两张卡片，点进去就是排行。没有财务权限的家人只看到次数，不显示金额。", en: "The pantry overview has a Buying insights section: most bought and biggest spend. People without finance access only see counts, no amounts." },
+  ] },
   { v: "2026-11-27.8", title: { zh: "储藏概览：最近入库、新物品", en: "Pantry overview: recently stocked and new items" }, items: [
     { k: "new", zh: "储藏概览多了两张卡片：近 7 天入库的物品、近 30 天新建的物品，点进去就是库存里对应的清单，顶上写着统计口径和件数，方便核对。", en: "The pantry overview has two new cards: items stocked in the last 7 days and items added in the last 30 days. Tap one to see the matching inventory list with the rule and count on top." },
   ] },

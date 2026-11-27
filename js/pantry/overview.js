@@ -10,6 +10,7 @@ import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { INV_SUBS } from "./restock-sync.js";
 import { recentCards } from "./overview-recent.js";
+import { buysCards } from "./overview-buys.js";
 import { catCheckSection, discardBtn, restockPanel, rsHint } from "./restock.js";
 
 /* 问题的展开状态记在内存里：点「问咩咩」会重画页面，不能把刚展开的问题收回去 */
@@ -64,6 +65,11 @@ export function viewDashboard() {
     <section class="section" aria-labelledby="h-recent">
       <div class="section-head"><h2 id="h-recent">${t("最近动态")}</h2><p>${t("点进去看清单，数字和清单对得上")}</p></div>
       <div class="ov-grid">${recentCards()}</div>
+    </section>
+
+    <section class="section" aria-labelledby="h-buys">
+      <div class="section-head"><h2 id="h-buys">${t("购买洞察")}</h2><p>${t("近 90 天，点进去看每一笔")}</p></div>
+      <div class="ov-grid">${buysCards()}</div>
     </section>
 
     <section class="section" aria-labelledby="h-restock">

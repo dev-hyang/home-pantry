@@ -41,6 +41,7 @@ export const META = {
     overview:  { icon: "📊", desc: "补货与临期一览、各分类库存", count: () => alertsOf(state.enriched.filter(inSpace("pantry"))).length },
     shopping:  { icon: "🛒", desc: "待买、家人正在买的清单；买到了一键入库、记花费", count: () => state.shopping.filter((s) => s.status !== "bought").length },
     inventory: { icon: "🥫", desc: "日常消耗品与汽车房屋消耗品，点 −/+ 记消耗" },
+    buys:      { icon: "🏆", desc: "近 90 天 / 12 个月买得最多、花得最多、涨价了的物品，点开看每一笔" },
     gear:      { icon: "🧳", desc: "床品、电器、自行车、工具：只记数量和位置" },
     meals:     { icon: "🍳", desc: "按现有食材推荐三餐" },
   },

@@ -22,11 +22,12 @@ export function pantryNodes(cur) {
   const kids = INV_SUBS.filter(([, , , , on]) => on()).map(([id, icon, name, h]) => ({ label: t(name), icon, href: h(), badge: needIn(id) || "", current: cur === `inventory:${id}` }));
   const inv = { label: t("库存"), icon: "📦", href: href("pantry", "inventory"), badge: need || "", current: cur === "inventory", open: cur.startsWith("inventory"), children: kids };
   return [{ label: t("概览"), icon: "📊", href: href("pantry"), current: cur === "overview" }, inv,
+    { label: t("购买排行"), icon: "🏆", href: href("pantry", "buys"), current: cur === "buys" },
     { label: t("菜单"), icon: "🍳", href: href("pantry", "meals"), current: cur === "meals" }, { label: t("录入购物"), icon: "🧾", href: href("pantry", "scan"), current: cur === "scan" }];
 }
 /** 页头路径：储藏 / 库存 / 日常消耗品（库存下的某一组时多一层，库存可点回全部） */
 export function pantryNav(cur) {
-  const nodes = pantryNodes(cur), top = { overview: "概览", inventory: "库存", meals: "菜单", scan: "录入购物" };
+  const nodes = pantryNodes(cur), top = { overview: "概览", inventory: "库存", buys: "购买排行", meals: "菜单", scan: "录入购物" };
   const sub = cur.startsWith("inventory:") ? INV_SUBS.find(([id]) => id === cur.slice(10)) : null;
   const path = sub ? ` / <a href="${esc(href("pantry", "inventory"))}">${t("库存")}</a> / <b aria-current="page">${esc(t(sub[2]))}</b>`
     : top[cur] ? ` / <b aria-current="page">${esc(t(top[cur]))}</b>` : "";
