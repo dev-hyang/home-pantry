@@ -3750,11 +3750,11 @@ details.act-more > summary.ui-btn[data-size="sm"]:has(> .dots3), details.act-mor
 .bill-fab-menu a:hover, .bill-fab-menu a:focus-visible { background: var(--surface-2); }
 .bill-fab-menu small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
 
-/* 手机的紧凑筛选条（所有搜索 + 筛选的页面共用）：搜索框至少 ~185px；放不下「筛选 (n)」和「清除筛选」就换行，
+/* 手机的紧凑筛选条（所有搜索 + 筛选的页面共用）：搜索框至少 150px；放不下「筛选 (n)」和「清除筛选」就换行，
  * 「清除筛选」单独占下一行（带文字），而不是把搜索框挤成一条缝。用 #main 抬高优先级，盖过公共 compact-filters 注入的样式。 */
 @media (max-width: 440px) {
   #main .toolbar.tb-on { flex-wrap: wrap; row-gap: 6px; }
-  #main .toolbar.tb-on > input[type="search"] { flex: 1 1 185px; min-width: 185px; }
+  #main .toolbar.tb-on > input[type="search"] { flex: 1 1 150px; min-width: 150px; }   /* 150：375px 宽的手机（面板里再缩进一层，可用 ~300px）也放得下「搜索 + 筛选」一行 */
   #main .toolbar.tb-on .clear-filters { flex: 0 0 auto; min-width: 0; padding: 0 14px; }
 }
 
@@ -4821,3 +4821,8 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 #main .toolbar.tb-on .tb-panel > select, #main .toolbar.tb-on .tb-panel .ssel-btn { padding-left: 12px; padding-right: 34px; text-align: left; text-align-last: left; text-overflow: ellipsis; }
 #main .toolbar.tb-on .tb-panel > .tb-eye { grid-column: 1 / -1; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line-soft, var(--line)); }
 #main .toolbar.tb-on .tb-panel > .tb-eye .tb-eye-t { display: flex; }
+
+/* 花费明细的自选日期（stats/spend-days.js）：并成一块进筛选面板，占整行、两个日期框各半 */
+.tb-dates { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tb-dates .tb-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 12.5px; color: var(--muted); }
+.tb-dates input[type="date"] { width: 100%; min-width: 0; box-sizing: border-box; height: var(--ctl-h, 40px); padding: 0 10px; border: 1px solid var(--line); border-radius: var(--ctl-r, 12px); background: var(--surface); color: var(--ink); font-size: 16px; }

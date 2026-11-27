@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.13", title: { zh: "花费明细：按日期筛选", en: "Spending records: filter by date" }, items: [
+    { k: "new", zh: "花费 → 明细的筛选里多了「日期」：近 7 天、近 30 天，或自选起止日期（和按月的时间范围一起生效）。选了日期，列表上方会出现一个可以点掉的「日期：…」标签。", en: "Spending → Records has a new Date filter: last 7 days, last 30 days, or pick dates (works together with the monthly range). A removable Date chip shows above the list." },
+    { k: "fix", zh: "375px 宽的小手机上，列表页的「搜索框 + 筛选」不再把「筛选」按钮挤到下一行。", en: "On 375px-wide phones the Filters button no longer wraps onto its own line below the search box." },
+    { k: "better", zh: "为后面的概览卡片做准备：网址可以带日期和排序，直接打开某一天、最近 7 天或金额最高的一笔。", en: "Groundwork for upcoming overview cards: links can now open a single day, the last 7 days, or the biggest purchases." },
+  ] },
   { v: "2026-11-27.12", title: { zh: "筛选面板排版统一", en: "Filter panels laid out consistently" }, items: [
     { k: "better", zh: "各列表页点「筛选」展开的面板排版统一：手机上每个下拉各占一整行，稍宽的屏幕上两列、每个下拉半宽；「金额显示」始终单独占一行。", en: "Filter panels now follow one layout: on phones every dropdown takes a full row, on wider screens two columns of equal width, and Amount display always has its own row." },
     { k: "better", zh: "面板里普通下拉和可搜索下拉的字体、内边距、高度一致，文字都靠左。", en: "Plain and searchable dropdowns in the panel share the same height, padding and left-aligned text." },

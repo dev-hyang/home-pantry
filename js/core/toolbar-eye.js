@@ -8,6 +8,10 @@ import { t } from "./i18n.js";
 export const toolbarEye = () => `<span class="tb-eye"><span class="tb-eye-t"><b>${t("金额显示")}</b><small>${t("默认遮挡；单击露 10 秒，双击或长按切到常显示")}</small></span>${moneyEye()}</span>`;
 
 function merge() {
+  document.querySelectorAll(".toolbar.tb-on > .tb-dates").forEach((box) => {   // 自选日期的两个日期框（花费明细）：进面板、排在下拉后面
+    const panel = box.parentElement.querySelector(":scope > .tb-panel");
+    if (panel) panel.appendChild(box);
+  });
   document.querySelectorAll(".toolbar.tb-on > .tb-eye").forEach((eye) => {
     const panel = eye.parentElement.querySelector(":scope > .tb-panel");
     if (panel) panel.appendChild(eye);

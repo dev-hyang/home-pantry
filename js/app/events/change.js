@@ -185,6 +185,8 @@ export async function onMainChange(e) {
     try { localStorage.setItem("hmh-gear-off", e.target.checked ? "0" : "1"); } catch { /* 忽略 */ }
     toast(e.target.checked ? t("已打开家居耐用品") : t("已关闭家居耐用品，导航里不再显示")); render();
   }
+  if (e.target.id === "spendDays") { const f = state.spendFilter; f.dpre = e.target.value; if (f.dpre !== "c") Object.assign(f, { dfrom: "", dto: "" }); renderSpendRecords(); renderSpendList(); }   // 明细的日期筛选（stats/spend-days.js）：自选时多出两个日期框，所以连筛选条一起重画
+  if (e.target.dataset?.spendD) { const f = state.spendFilter; f[e.target.dataset.spendD === "from" ? "dfrom" : "dto"] = e.target.value; renderSpendList(); }
   { const k = { spendCat: "cat", spendNat: "nat", spendProp: "prop", spendStore: "store", spendRange: "range", spendAmt: "amt", spendSort: "sort" }[e.target.id]; if (k) { const f = state.spendFilter; f[k] = e.target.value; if (k === "store") f.stores = null; if (k === "cat") f.grp = null; if (k === "amt") renderSpendRecords(); if (k === "range") { f.months = null; f.dmax = null; f.year = "all"; f.mon = "all"; renderSpendRecords(); } renderSpendList(); } }   // 手动选了商店 / 年份 / 月份：去掉图表钻取带来的“一组商店 / 近 N 个月”；回到第一页重新查
   if (e.target.dataset?.action === "stats-excap") { state.stats.exCap = e.target.checked; saveStatToggles(); render(); }   // 花费统计：排除资本性 / 排除投资（概览趋势、分类、商店一起变）
   if (e.target.dataset?.action === "stats-exinv") { state.stats.exInv = e.target.checked; saveStatToggles(); render(); }

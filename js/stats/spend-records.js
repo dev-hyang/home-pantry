@@ -9,6 +9,7 @@ import { compare, lang, t } from "../core/i18n.js";
 import { customHtml, rangeOptionsHtml } from "../core/time-range.js";
 import { amtCustomHtml, amtParams, amtSelectHtml } from "../core/amount-filter.js";
 import { href } from "../core/router.js";
+import { dayLabel, dayWindow, daysControlsHtml, mergeSpan } from "./spend-days.js";
 import { memberName } from "../core/logic.js";
 import { moreBtn } from "../core/pager.js";
 import { serverList } from "../core/server-list.js";
@@ -67,7 +68,7 @@ export function spendParams() {
   const rm = f.range && f.range !== "all" ? rangeMonths(f.range) : null, months = rm && f.months?.length ? f.months.filter((m) => rm.includes(m)) : rm || (f.months?.length ? f.months : null);
   if (f.store !== "all") stores = stores ? stores.filter((k) => k === f.store) : [f.store];
   return compact({ tz: TZ(), cur: Units.region.currency, med: medNames(), sort: f.sort || "new", ...natureParams(), ...catFilter(f),
-    year: f.year !== "all" ? f.year : null, mon: f.mon !== "all" ? f.mon : null, months: months ? (months.length ? months : ["0000-00"]) : null, dmax: f.dmax || null, ...spanOf({ ...f, months }),
+    year: f.year !== "all" ? f.year : null, mon: f.mon !== "all" ? f.mon : null, months: months ? (months.length ? months : ["0000-00"]) : null, dmax: f.dmax || null, ...mergeSpan(spanOf({ ...f, months }), dayWindow(f)),
     stores, q: f.q.trim().toLowerCase() || null, batch: f.batch || null, batch_ids: bt?.ids.size ? [...bt.ids] : null, prop: f.prop && f.prop !== "all" ? f.prop : null, ...amtParams(f.amt, f.amin, f.amax) });   // amin / amax：金额筛选（迁移 107）
 }
 /** 明细列表：读到的几页 + 当前筛选的统计；虚拟的医疗付款 id 加 med: 前缀（不会当成真实花费去删 / 改；cursor 用的是加前缀之前的原始行） */
@@ -123,6 +124,7 @@ function activeFilterChips() {
     const label = f.months.length === 1 ? monthName(m0) : whole ? t("{y} 年", { y: m0.slice(0, 4) }) : `${monthName([...f.months].sort()[0])} → ${monthName([...f.months].sort().at(-1))}`;
     out.push(["months", f.dmax ? `${label}（${t("每月 1–{d} 日", { d: f.dmax })}）` : label]);
   } else if (f.dmax) out.push(["months", t("每月 1–{d} 日", { d: f.dmax })]);
+  if (dayWindow(f)) out.push(["days", `${t("日期")}：${dayLabel(f)}`]);
   if (f.batch) { const bt = batchOf(f.batch); out.push(["batch", t("导入批次：{name}", { name: bt ? (bt.b.account || bt.b.file || t("银行导入")) + (bt.b.from ? ` · ${bt.b.from} → ${bt.b.to || bt.b.from}` : bt.b.at ? ` · ${String(bt.b.at).slice(0, 10)}` : "") : f.batch })]); }
   return out;
 }
@@ -133,7 +135,7 @@ function spendChipsHtml() {
 export function clearSpendFilter(k) {
   const f = state.spendFilter;
   if (k === "all") Object.assign(f, NO_SPEND_FILTER());
-  else if (k === "grp") f.grp = null; else if (k === "batch") f.batch = null; else if (k === "stores") f.stores = null; else if (k === "months") { f.months = null; f.dmax = null; }
+  else if (k === "grp") f.grp = null; else if (k === "batch") f.batch = null; else if (k === "stores") f.stores = null; else if (k === "months") { f.months = null; f.dmax = null; } else if (k === "days") Object.assign(f, { dpre: "all", dfrom: "", dto: "" });
 }
 /** 筛选条、各个下拉和搜索框都按当前筛选重画（点掉标签后下拉也跟着回到“全部”） */
 export function renderSpendRecords() { const h = $("#spendRecords"); if (h) h.innerHTML = spendRecordsHtml(); }
@@ -205,6 +207,7 @@ export function spendRecordsHtml() {
         <select id="spendStore" data-search aria-label="${t("按收款方筛选")}">${opt("all", t("全部收款方"), f.store)}${stores.map((x) => opt(storeKey(x), x, f.store)).join("")}${opt("__none__", t("未填写收款方"), f.store)}</select>
         <select id="spendRange" class="range-sel" data-default="all" data-nosearch aria-label="${t("时间范围")}">${rangeOptionsHtml(f.range || "all", { first, allFirst: true })}</select>
         ${customHtml(f.range || "all", { first, attr: "data-spend-c" })}
+        ${daysControlsHtml(f)}
         ${amtSelectHtml({ id: "spendAmt", cur: f.amt || "all", neg: true })}${amtCustomHtml({ cur: f.amt || "all", min: f.amin, max: f.amax, minAttr: 'data-spend-amt="min"', maxAttr: 'data-spend-amt="max"' })}
         <select id="spendSort" data-nosearch aria-label="${t("排序")}">${SPEND_SORTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select>
         ${clearFiltersBtn("spend", changed(f, FD.spend))}

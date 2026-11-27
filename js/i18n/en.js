@@ -4637,4 +4637,5 @@ export const EN = {
   "购买洞察": "Buying insights", "近 90 天，点进去看每一笔": "Last 90 days; tap to see each purchase", "最常购买": "Bought most often", "花费最多": "Biggest spend", "{n} 次": "{n}×", "正在读取…": "Loading…", "近 90 天还没有购买记录": "No purchases in the last 90 days",
   "有特价的": "On sale", "趁打折囤什么？问咩咩": "What to stock up on sale? Ask Mie", "{n} 样有特价": "{n} on sale", "囤货建议": "Stock-up advice", "按我常买的东西、现在的特价和家里的库存，哪些值得趁打折多囤一些？每样囤多少、够吃用多久？": "Based on what I buy often, current sales and what I have at home, what is worth stocking up on? How much of each, and how long will it last?", "原价 {m}": "was {m}", "省 {p}%": "save {p}%", "近 {d} 天买 {n} 次": "bought {n}× in {d} days", "均价 {a} / {u}": "avg {a} / {u}", "库存约够 {d} 天": "stock lasts ~{d} days", "库存已用完": "out of stock", "现特价：{s}": "on sale: {s}", "特价命中": "Sales on my staples", "{n} 样": "{n} items", "常买的东西现在没有特价": "No sales on what you buy often right now",
   "修复：花费明细继续加载、底部页签、特价卡片": "Fixes", 
+  "日期": "Date", "日期：不限": "Date: any", "自选日期…": "Pick dates…", "从哪天": "From date", "到哪天": "To date", "{d} 起": "From {d}", "到 {d}": "Until {d}",
 };

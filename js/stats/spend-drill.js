@@ -16,12 +16,15 @@ const encKeys = (keys) => keys.map(encodeURIComponent).join(",");
 export const hitAttrs = (q, label) => (q ? ` data-drill="${esc(q)}" role="link" tabindex="0" aria-label="${esc(label)}"` : "");
 export const DRILL_HINT = () => `<p class="muted drill-hint">${t("点图里的色块、图例或名称，可以查看对应的花费明细。")}</p>`;
 export function applySpendDrill(q) {
-  if (!["cat", "grp", "nat", "prop", "store", "stores", "month", "mlist", "range", "year", "q", "batch"].some((k) => q.has(k))) return false;
+  if (!["cat", "grp", "nat", "prop", "store", "stores", "month", "mlist", "range", "year", "q", "batch", "dfrom", "dto", "days", "sort"].some((k) => q.has(k))) return false;
   const f = state.spendFilter;
   Object.assign(f, NO_SPEND_FILTER(), { sort: "new" });
   if (NATURES.some((n) => n.id === q.get("nat"))) f.nat = q.get("nat");   // 只看某种经济性质（资本性 / 投资 / 转账…）
   if (q.get("prop")) f.prop = q.get("prop");
   if (q.get("dmax")) f.dmax = +q.get("dmax") || null;   // 只看每月 1–N 日（「上月同期」对比用）
+  { const ok = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x || ""), dd = q.get("days");   // 概览卡片：?days=7（最近 7 天）、?dfrom=&dto=（某一天 / 一段日期）、?sort=high（金额高 → 低）
+    if (dd === "7" || dd === "30") f.dpre = dd; else if (ok(q.get("dfrom")) || ok(q.get("dto"))) Object.assign(f, { dpre: "c", dfrom: ok(q.get("dfrom")) ? q.get("dfrom") : "", dto: ok(q.get("dto")) ? q.get("dto") : "" });
+    if (["new", "old", "high", "low", "name"].includes(q.get("sort"))) f.sort = q.get("sort"); }
   if (q.get("batch")) f.batch = q.get("batch");   // 银行导入「查看 / 修改」：只看这一批
   if (q.get("q")) f.q = q.get("q");   // 旅行页「查看明细」：按「【行程名】」搜名称
   if (q.get("grp")) f.grp = q.get("grp");
