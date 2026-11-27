@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.10", title: { zh: "常买的东西有特价了，趁打折问咩咩怎么囤", en: "Sales on things you buy often, and Mie's stock-up advice" }, items: [
+    { k: "new", zh: "储藏概览「购买洞察」多了「特价命中」：常买的物品（近 90 天买过 2 次以上）现在有没有特价，点进去在购买排行里按「有特价的」排，好价（省 20% 以上或比平时单价低）排最前。", en: "Buying insights now has Sales on my staples: items you bought 2+ times in 90 days that are on sale, best deals first in the Purchase ranking." },
+    { k: "new", zh: "购买排行里多了「趁打折囤什么？问咩咩」：带上常买物品的次数、均价、库存够用几天和现在的特价，问咩咩哪些值得多囤、囤多少。", en: "The Purchase ranking has an Ask Mie panel about what to stock up on, using purchase counts, average prices, stock left and current sales." },
+  ] },
   { v: "2026-11-27.9", title: { zh: "购买排行：买得最多、花得最多", en: "Purchase ranking: most bought, biggest spend" }, items: [
     { k: "new", zh: "储藏新增「购买排行」页：近 90 天 / 近 12 个月买得最多、花得最多、最近买的、涨价了的物品；点开一行能看到每一笔（日期、商店、数量、金额）。", en: "New Purchase ranking page under Pantry: items bought most, biggest spend, bought recently or going up in price over 90 days / 12 months. Tap a row to see every purchase." },
     { k: "new", zh: "储藏概览多了「购买洞察」：最常购买、花费最多两张卡片，点进去就是排行。没有财务权限的家人只看到次数，不显示金额。", en: "The pantry overview has a Buying insights section: most bought and biggest spend. People without finance access only see counts, no amounts." },

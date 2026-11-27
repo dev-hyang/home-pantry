@@ -108,7 +108,7 @@ function onRoute() {
   // 概览的「最常购买 / 花费最多」卡片带 ?sort= ?range= 进购买排行：套上排序和时间范围，再把参数去掉
   if (next.section === "pantry" && next.sub === "buys" && (next.q.get("sort") || next.q.get("range"))) {
     const u = (state.buysUi ||= { range: "90", sort: "count", open: {} }), so = next.q.get("sort"), ra = next.q.get("range");
-    if (["count", "spend", "recent", "rise"].includes(so)) u.sort = so;
+    if (["count", "spend", "recent", "rise", "deals"].includes(so)) u.sort = so;
     if (ra === "90" || ra === "365") u.range = ra;
     next.q.delete("sort"); next.q.delete("range"); history.replaceState(null, "", `${href(next.section, next.sub)}${next.q.toString() ? `?${next.q}` : ""}`);
   }

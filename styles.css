@@ -4810,3 +4810,6 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .bd-s { overflow-wrap: anywhere; color: var(--muted); }
 .bd-m { font-variant-numeric: tabular-nums; text-align: right; }
 .bd-facts { margin: 0; font-size: 13px; }
+.buys-main small.buys-deal { color: var(--ink); font-weight: 500; }
+.buys-main small.buys-deal.is-good { color: var(--ok); font-weight: 600; }
+.buys-ask { margin: 0 0 12px; }
