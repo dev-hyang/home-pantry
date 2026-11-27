@@ -6,12 +6,14 @@ import { state } from "../state.js";
 /* 迁移 111（撤销入库）加了 stock_logs.voided_at / voided_by / purchase_id。数据库还没执行时：读日志退回老的列、adjust_stock 不带 p_purchase，其余照常；
  * undo_restock 会提示先执行 111。第一次发现缺列 / 缺函数就记住（刷新页面后再试一次）。 */
 const LOG_BASE = "id,item_id,delta,reason,created_at", LOG_NEW = ",voided_at,purchase_id";
-let logsNew = true, adjustNew = true;
+/* 缺列 / 缺函数的判断只管 60 秒：用户在页面开着的时候刚执行完迁移，不用刷新也能自己恢复 */
+let logsOffUntil = 0, adjustOffUntil = 0;
+const logsNewOn = () => Date.now() >= logsOffUntil, adjustNewOn = () => Date.now() >= adjustOffUntil;
 const missing = (e) => /voided_at|purchase_id|p_purchase|schema cache|Could not find the function/i.test(e?.message || "");
 
 export const cloudPantry = {
   /** 迁移 111 是不是已经执行（读日志 / 调整库存没出过缺列、缺函数的错就算已执行） */
-  undoReady() { return logsNew && adjustNew; },
+  undoReady() { return logsNewOn() && adjustNewOn(); },
   async listItems() { return this.pageAll(() => this.sb.from("items").select("*").eq("household_id", this.hid).order("name").order("id")); },
   async listCategories() { return this.must(await this.sb.from("custom_categories").select("*").eq("household_id", this.hid).order("sort").order("created_at")); },
   async saveCategory(c) {
@@ -44,15 +46,15 @@ export const cloudPantry = {
   /** 我的 → 家里的数字：某个时间以来的库存日志（近一年，带记录人）；只在打开那一页时读，按 1000 行一页 */
   async listLogsSince(iso) {
     const q = (cols) => this.pageAll(() => this.sb.from("stock_logs").select(`${cols},created_by`).eq("household_id", this.hid).gte("created_at", iso).order("created_at").order("id"), 20000);
-    if (!logsNew) return q(LOG_BASE);
-    try { return await q(LOG_BASE + LOG_NEW); } catch (e) { if (!missing(e)) throw e; logsNew = false; return q(LOG_BASE); }
+    if (!logsNewOn()) return q(LOG_BASE);
+    try { return await q(LOG_BASE + LOG_NEW); } catch (e) { if (!missing(e)) throw e; logsOffUntil = Date.now() + 60e3; return q(LOG_BASE); }
   },
   async listLogs() {
     const since = new Date(Date.now() - STATS_LOG_DAYS * DAY).toISOString();
     const q = (cols) => this.pageAll(() => this.sb.from("stock_logs").select(cols)
       .eq("household_id", this.hid).gte("created_at", since).order("created_at").order("id"));   // 分页：.limit(10000) 实际只回 1000 行，90 天里超过的最新记录会被截掉
-    if (!logsNew) return q(LOG_BASE);
-    try { return await q(LOG_BASE + LOG_NEW); } catch (e) { if (!missing(e)) throw e; logsNew = false; return q(LOG_BASE); }
+    if (!logsNewOn()) return q(LOG_BASE);
+    try { return await q(LOG_BASE + LOG_NEW); } catch (e) { if (!missing(e)) throw e; logsOffUntil = Date.now() + 60e3; return q(LOG_BASE); }
   },
   async addItems(list) {
     const rows = list.map((it) => {
@@ -85,11 +87,11 @@ export const cloudPantry = {
   },
   /** purchaseId = 这次入库对应的花费（录入购物 / 购物车买到时带上，撤销入库时用来找到那笔花费） */
   async adjust(id, delta, reason, purchaseId = null) {
-    if (purchaseId && adjustNew) {
+    if (purchaseId && adjustNewOn()) {
       const r = await this.sb.rpc("adjust_stock", { p_item_id: id, p_delta: delta, p_reason: reason, p_purchase: purchaseId });
       if (!r.error) return;
       if (!missing(r.error)) throw new Error(r.error.message);
-      adjustNew = false;   // 111 还没执行：退回不带花费的调用
+      adjustOffUntil = Date.now() + 60e3;   // 111 还没执行：这一分钟退回不带花费的调用
     }
     this.must(await this.sb.rpc("adjust_stock", { p_item_id: id, p_delta: delta, p_reason: reason }));
   },

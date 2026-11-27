@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.18", title: { zh: "撤销入库：说明更清楚", en: "Undo restock: clearer hint" }, items: [
+    { k: "better", zh: "物品详情页「库存记录」标题下写明：只有「补货入库」的行有「撤销入库」按钮（用掉、手动调整、扔掉的行没有）。", en: "The Stock history on an item page now says that only Restocked rows have the Undo restock button." },
+    { k: "fix", zh: "刚在数据库升级完、页面还开着时，不用刷新也能自动认出新功能（之前要刷新页面）。", en: "If the database was just upgraded while the page was open, the new feature is picked up without a manual refresh." },
+  ] },
   { v: "2026-11-27.17", title: { zh: "撤销入库：录错的入库可以撤销", en: "Undo restock: take back a mistaken restock" }, items: [
     { k: "new", zh: "物品详情页新增「库存记录」（最近 90 天的入库、用掉、手动调整、扔掉）。入库那几行有「撤销入库」：可以填「这次实际入库了多少」（整笔录错填 0，数量打错填对的数量），库存扣回多少按已经手动调过的自动预填，还能改。", en: "Item pages have a Stock history (last 90 days). Restock rows have Undo restock: enter how much was actually stocked (0 if wholly wrong), and the deduction is pre-filled from what you already adjusted by hand — you can change it." },
     { k: "new", zh: "撤销时如果找到对应的花费，可以选保留、改成实际入库量，或同时删除（导入的、刷卡的、别人记的不能删）。撤销后「最近入库」、补货节奏等统计不再算那一次。", en: "If a linked spending is found you can keep it, set its quantity to the actual amount, or delete it (imported, card or someone else's cannot be deleted). Undone restocks no longer count in Recently stocked or restock stats." },

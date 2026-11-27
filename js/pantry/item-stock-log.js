@@ -16,6 +16,6 @@ export function stockLogPanel(it) {
     return `<li class="sl-row${l.voided_at ? " is-void" : ""}"><span class="sl-when">${esc(fmtDateTime(l.created_at))}</span><span class="sl-what">${esc(t(LABEL[l.reason] || l.reason))}${l.voided_at ? ` <span class="ui-badge" data-tone="neutral" data-size="sm">${esc(t("已撤销"))}</span>` : ""}</span>
       <b class="sl-qty num ${d < 0 ? "down" : ""}">${d > 0 ? "+" : ""}${fmt(d)} ${unit}</b>${undo ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="undo-restock" data-log="${esc(l.id)}">${esc(t("撤销入库"))}</button>` : "<span></span>"}</li>`;
   }).join("");
-  return `<section class="panel prof-card stock-log" aria-labelledby="idc-log"><header class="prof-head"><span class="mi" aria-hidden="true">🧾</span><div class="prof-t"><h3 id="idc-log">${esc(t("库存记录"))}</h3><small class="muted">${esc(t("最近 90 天；录错了的入库可以撤销"))}</small></div></header>
+  return `<section class="panel prof-card stock-log" aria-labelledby="idc-log"><header class="prof-head"><span class="mi" aria-hidden="true">🧾</span><div class="prof-t"><h3 id="idc-log">${esc(t("库存记录"))}</h3><small class="muted">${esc(can ? t("最近 90 天。只有「补货入库」的行能撤销：点右边的「撤销入库」。") : t("最近 90 天。（数据库还没升级到支持撤销入库的版本）"))}</small></div></header>
     ${rows ? `<ul class="sl-list">${rows}</ul>${logs.length > MAX ? `<p class="muted" style="margin:6px 0 0;font-size:13px">${esc(t("只列最近 {n} 条", { n: MAX }))}</p>` : ""}` : `<p class="muted prof-empty">${esc(t("最近 90 天没有库存变动"))}</p>`}</section>`;
 }
