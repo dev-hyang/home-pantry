@@ -4632,4 +4632,5 @@ export const EN = {
   "补货入库：点 +、录入购物、购物车买到": "Restocked: tapped +, scanned a receipt, or bought from the cart",
   "新物品，或补货入库（点 +、录入购物、购物车买到）": "New items, or restocked (tapped +, scanned a receipt, bought from the cart)",
   "最近入库": "Recently stocked",
+  "最近动态": "Recent activity", "近 {d} 天": "Last {d} days", "补货入库": "Restocked", "第一次建进库存": "First added to inventory", "点进去看清单，数字和清单对得上": "Tap through to the list; the numbers match",
 };

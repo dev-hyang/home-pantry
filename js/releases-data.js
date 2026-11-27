@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.8", title: { zh: "储藏概览：最近入库、新物品", en: "Pantry overview: recently stocked and new items" }, items: [
+    { k: "new", zh: "储藏概览多了两张卡片：近 7 天入库的物品、近 30 天新建的物品，点进去就是库存里对应的清单，顶上写着统计口径和件数，方便核对。", en: "The pantry overview has two new cards: items stocked in the last 7 days and items added in the last 30 days. Tap one to see the matching inventory list with the rule and count on top." },
+  ] },
   { v: "2026-11-27.7", title: { zh: "库存里能按「入库时间」看", en: "Filter the inventory by when things were stocked" }, items: [
     { k: "new", zh: "库存多了「入库时间」筛选（近 7 / 30 / 90 天，可只看新物品或只看补货入库）和「最近入库」排序；筛选后每行显示入库日期和数量，列表顶上写明统计口径和件数。", en: "The inventory has a new Stocked-time filter (last 7 / 30 / 90 days, new items or restocks only) and a Recently-stocked sort. Rows show the date and amount, and a line above the list explains the rule and count." },
     { k: "better", zh: "「最近入库」只算新物品和补货（点 +、录入购物、购物车买到），点 − 用掉东西不算，和「最近更新」不同。", en: "Recently stocked only counts new items and restocks; using something up (−) does not, unlike Recently updated." },
