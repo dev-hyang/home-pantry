@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.11", title: { zh: "修复：花费明细继续加载、底部页签、特价卡片", en: "Fixes: Load more in spending, bottom tabs, sale card" }, items: [
+    { k: "fix", zh: "花费 → 明细：点「继续加载」没反应，已修好，能一页页往下读。", en: "Spending → Records: Load more did nothing; it now loads the next page." },
+    { k: "fix", zh: "底部页签放到顶栏外面并固定在屏幕底部，往下滑时不会再跟着页面往上走。", en: "The bottom tabs now sit outside the top bar and stay pinned to the bottom of the screen while scrolling." },
+    { k: "fix", zh: "储藏概览「特价命中」卡片里的描述不再超出卡片，改成短写法（商店、价格、省多少）。", en: "The Sales card on the pantry overview no longer overflows; it shows a short line (shop, price, savings)." },
+  ] },
   { v: "2026-11-27.10", title: { zh: "常买的东西有特价了，趁打折问咩咩怎么囤", en: "Sales on things you buy often, and Mie's stock-up advice" }, items: [
     { k: "new", zh: "储藏概览「购买洞察」多了「特价命中」：常买的物品（近 90 天买过 2 次以上）现在有没有特价，点进去在购买排行里按「有特价的」排，好价（省 20% 以上或比平时单价低）排最前。", en: "Buying insights now has Sales on my staples: items you bought 2+ times in 90 days that are on sale, best deals first in the Purchase ranking." },
     { k: "new", zh: "购买排行里多了「趁打折囤什么？问咩咩」：带上常买物品的次数、均价、库存够用几天和现在的特价，问咩咩哪些值得多囤、囤多少。", en: "The Purchase ranking has an Ask Mie panel about what to stock up on, using purchase counts, average prices, stock left and current sales." },

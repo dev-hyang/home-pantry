@@ -202,6 +202,8 @@ export const patchSpendRow = lazyFn(LZ.spendRecords, "patchSpendRow");
 export const renderSpendList = lazyFn(LZ.spendRecords, "renderSpendList");
 export const renderSpendRecords = lazyFn(LZ.spendRecords, "renderSpendRecords");
 export const spendRowsLoaded = lazyFn(LZ.spendRecords, "spendRowsLoaded");
+/* 花费页（spend-add.js）是直接 import spend-records.js 的，不走 LZ.spendRecords.load()，ns 一直是空 → spendListNow() 是 undefined，「继续加载」点了没反应。花费页加载完就顺手登记一下（模块已经在内存里，不会再下载） */
+LZ.spendAdd.onLoad(() => { LZ.spendRecords.load(); });
 
 /** 花费明细的列表对象：花费页还没打开过就是 undefined（没有东西要更新 / 读） */
 export const spendListNow = () => LZ.spendRecords.ns?.spendList;

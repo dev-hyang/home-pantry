@@ -107,6 +107,7 @@ a.appver:hover, a.ver-link:hover, a.appver:focus-visible, a.ver-link:focus-visib
   position: fixed; left: 0; right: 0; bottom: 0; max-width: none; margin: 0; padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 120px); justify-content: center; gap: 0;
   background: color-mix(in srgb, var(--surface) 92%, transparent); border-top: 1px solid var(--line); z-index: 30;
+  transform: translateZ(0); -webkit-transform: translateZ(0);   /* 自己一层：iOS 滚动时不跟着页面动 */
 }
 .tabs::before { content: ""; position: absolute; inset: 0; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: -1; pointer-events: none; }
 .tabs a {
@@ -4607,7 +4608,7 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .ov-total small { color: var(--muted); font-size: 13px; }
 .ov-name { font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
 .ov-tags { display: flex; flex-wrap: wrap; gap: 4px; min-height: 22px; }
-.ov-tags small { font-size: 12.5px; line-height: 1.4; }
+.ov-tags small { min-width: 0; max-width: 100%; font-size: 12.5px; line-height: 1.4; overflow-wrap: anywhere; }
 .ov-asks { display: flex; flex-direction: column; gap: 8px; }
 .ov-ask { border: 1px solid var(--line-soft); border-radius: 12px; background: var(--surface); }
 .ov-ask > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 8px 14px; cursor: pointer; list-style: none; font-weight: 600; }

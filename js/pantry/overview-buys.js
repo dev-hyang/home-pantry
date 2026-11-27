@@ -5,7 +5,7 @@ import { t } from "../core/i18n.js";
 import { href } from "../core/router.js";
 import { financeOk } from "../core/finance-access.js";
 import { sortBuys } from "./buys-data.js";
-import { dealCount, dealOf, dealsSort, dealText } from "./buys-deals.js";
+import { dealCount, dealOf, dealShort, dealsSort } from "./buys-deals.js";
 import { buysFor } from "./buys-load.js";
 
 function card(sort, icon, name, big, who) {
@@ -17,7 +17,7 @@ function card(sort, icon, name, big, who) {
 /** 特价命中：常买的物品里现在有特价的，点进去按「有特价的」排 */
 function dealCard(groups) {
   const n = groups ? dealCount(groups) : 0, top = groups && n ? dealsSort(groups)[0] : null, d = top && dealOf(top);
-  return card("deals", "🏷️", t("特价命中"), !groups ? "…" : t("{n} 样", { n }), !groups ? t("正在读取…") : d ? `${top.name} · ${dealText(d)}` : t("常买的东西现在没有特价"));
+  return card("deals", "🏷️", t("特价命中"), !groups ? "…" : t("{n} 样", { n }), !groups ? t("正在读取…") : d ? `${top.name} · ${dealShort(d)}` : t("常买的东西现在没有特价"));
 }
 /** 三张（没有财务权限少一张）；还在读的时候显示 …，读完会自动重画 */
 export function buysCards() {

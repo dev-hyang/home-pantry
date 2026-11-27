@@ -32,6 +32,11 @@ export function dealText(d) {
   const unit = d.deal.unit_price != null && d.deal.unit_label ? ` · ${unitMoney(d.deal.unit_price)} ${d.deal.unit_label}` : "";
   return `${d.shop} ${p}${was ? `（${was}）` : ""}${unit}`;
 }
+/** 概览卡片里的短写法：「ALDI $0.55 · 省 42%」（完整的在购买排行里） */
+export function dealShort(d) {
+  const p = d.deal.price != null ? money(d.deal.price) : d.deal.price_text || "";
+  return `${d.shop} ${p}${d.off > 0 ? ` · ${t("省 {p}%", { p: Math.round(d.off * 100) })}` : ""}`;
+}
 /** 问咩咩的上下文：最多 12 件常买物品，带次数、均价（有财务权限才带）、库存约够几天、现在的特价 */
 export function stockContext(groups, days, fin) {
   const byId = new Map((state.enriched || []).map((i) => [i.id, i]));
