@@ -104,26 +104,26 @@ export async function markBought(id) {
   const qty = num(s.quantity, 1), now = new Date().toISOString();
   await Store.saveShopping({ id, status: "bought", bought_at: now, amount, claimed_by_name: s.claimed_by_name || myName() });
   const paySel = document.querySelector(`[data-card-for="${CSS.escape(id)}"]`), payV = paySel?.value || ""; if (paySel) rememberCard(payV);
-  await Store.addPurchase({
+  const purchaseId = await Store.addPurchase({   // 入库时把花费的 id 带上：以后撤销这次入库能找到这笔花费
     item_id: item?.id || null, name: s.name, category: item?.category || s.category || "other",
     quantity: qty, unit: s.unit || item?.unit || null, amount, currency: Units.region.currency, purchased_at: now, store, ...purchasePayFields(payV),
   });
   const fit = item && s.unit ? Units.fit(s.unit, item.unit) : { kind: "same", factor: 1 };
   if (item) {
     if (fit.kind === "same") {
-      await Store.adjust(item.id, Math.round(qty * 100) / 100, "restock");
+      await Store.adjust(item.id, Math.round(qty * 100) / 100, "restock", purchaseId);
       toast(t("{name} 已入库 +{q}，记得更新保质期", { name: s.name, q: showQty(qty, item.unit) }));
     } else if (fit.kind === "convert" || fit.kind === "count") {
       // 2026-11-12：能换算的（lb → kg）换成库存的单位再补；计数单位之间（个 → 瓶）按 1:1 补。库存单位不动，提示一下换算了什么
       const add = Math.round(qty * fit.factor * 100) / 100;
-      await Store.adjust(item.id, add, "restock");
+      await Store.adjust(item.id, add, "restock", purchaseId);
       toast(t("{name} 已入库 +{q}（{q1} {u1} 按库存单位记成 {q}），记得更新保质期", { name: s.name, q: showQty(add, item.unit), q1: fmt(toDisp(qty, s.unit)), u1: t(du(s.unit)) }));
     } else {
       // 采购时改了单位：库存的单位跟着改成新单位。能换算的（kg ↔ lb 等）把原有库存、最低库存、日均用量一起换成新单位；换算不了的（个 → 包）数字照旧，只换单位
       const r = Units.convert(1, item.unit, s.unit), k = r == null ? 1 : r, r2 = (v) => Math.round(v * 100) / 100;
       const scale = (v) => (v == null || v === "" ? v : r2(num(v) * k));
       await Store.saveItem({ ...item, unit: s.unit, quantity: scale(item.quantity), min_quantity: scale(item.min_quantity), avg_daily_use: scale(item.avg_daily_use) });
-      await Store.adjust(item.id, r2(qty), "restock");
+      await Store.adjust(item.id, r2(qty), "restock", purchaseId);
       toast(t("{name} 已入库 +{q}，库存单位由 {u1} 改为 {u2}{note}，记得更新保质期", { name: s.name, q: showQty(qty, s.unit), u1: t(item.unit), u2: t(s.unit), note: r == null ? t("（单位无法换算，原库存数字没变）") : "" }));
     }
   } else toast(t("{name} 已买到", { name: s.name }) + (amount != null ? t("，花费 {m}", { m: money(amount) }) : ""));

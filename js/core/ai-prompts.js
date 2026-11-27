@@ -11,7 +11,7 @@ const OLDEST_N = 8;
 export function pantryContext() {
   const now = Date.now();
   const restockAt = {};
-  for (const l of state.logs || []) { if (l.reason !== "restock" || num(l.delta) <= 0) continue; const ts = new Date(l.created_at).getTime(); if (ts > (restockAt[l.item_id] || 0)) restockAt[l.item_id] = ts; }
+  for (const l of state.logs || []) { if (l.reason !== "restock" || num(l.delta) <= 0 || l.voided_at) continue; const ts = new Date(l.created_at).getTime(); if (ts > (restockAt[l.item_id] || 0)) restockAt[l.item_id] = ts; }
   const stockedAt = (x) => Math.max(new Date(x.created_at || 0).getTime() || 0, restockAt[x.id] || 0) || null;
   const ageDays = (x) => { const ts = stockedAt(x); return ts ? Math.max(0, Math.floor((now - ts) / DAY)) : null; };
   const items = state.enriched.filter(inSpace("pantry")).filter((x) => FOOD_CATS.has(x.category) && num(x.qty) > 0)

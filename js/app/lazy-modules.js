@@ -165,6 +165,8 @@ export const viewInventory = lazyFn(LZ.pInvItems, "viewInventory");
 LZ.pShopping = lazyModule(() => import("../pantry/shopping.js"));
 export const renderShopList = lazyFn(LZ.pShopping, "renderShopList");
 export const viewShopping = lazyFn(LZ.pShopping, "viewShopping");
+LZ.pUndo = lazyModule(() => import("../pantry/undo-restock.js"));
+export const openUndoRestock = lazyFn(LZ.pUndo, "openUndoRestock");
 LZ.pBuys = lazyModule(() => import("../pantry/buys-page.js"));
 export const viewBuys = lazyFn(LZ.pBuys, "viewBuys");
 LZ.pMeals = lazyModule(() => import("../pantry/meals.js"));

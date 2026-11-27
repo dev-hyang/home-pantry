@@ -15,7 +15,7 @@ function lastRestock() {
   if (m) return m;
   m = new Map();
   for (const l of logs) {
-    if (l.reason !== "restock" || num(l.delta) <= 0) continue;
+    if (l.reason !== "restock" || num(l.delta) <= 0 || l.voided_at) continue;   // 作废的（撤销入库）不算
     const ts = Date.parse(l.created_at), c = m.get(l.item_id);
     if (!c || ts > c.ts) m.set(l.item_id, { ts, delta: num(l.delta) });
   }

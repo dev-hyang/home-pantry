@@ -3,6 +3,7 @@ import { DAY, STATS_LOG_DAYS, num, uid } from "../util.js";
 import { normName } from "../item-match.js";
 
 export const demoPantry = {
+  undoReady() { return true; },
   async listItems() { return this.db.items.map((x) => ({ ...x })); },
   // 自定义分类
   async listCategories() { return (this.db.categories || []).map((x) => ({ ...x })); },
@@ -82,12 +83,24 @@ export const demoPantry = {
     this.db.shopping.forEach((s) => { if (s.item_id === id) s.item_id = null; });
     this.persist();
   },
-  async adjust(id, delta, reason) {
+  /** 撤销一次入库（和数据库的 undo_restock 同一套规则） */
+  async undoRestock(logId, deduct, actual) {
+    const l = this.db.logs.find((x) => String(x.id) === String(logId));
+    if (!l || l.reason !== "restock" || l.voided_at) throw new Error("这条记录已经不能撤销");
+    const it = this.db.items.find((x) => x.id === l.item_id); if (!it) throw new Error("物品不存在");
+    const act = Math.max(0, num(actual)), ded = Math.min(Math.max(0, num(deduct)), l.delta - act, num(it.quantity)), now = new Date().toISOString();
+    if (act < 0 || act > l.delta) throw new Error("实际入库数量不对");
+    l.voided_at = now;
+    if (ded > 0) { it.quantity = Math.round((num(it.quantity) - ded) * 100) / 100; it.updated_at = now; this.db.logs.push({ id: uid(), item_id: it.id, delta: -ded, reason: "adjust", created_at: now }); }
+    if (act > 0) this.db.logs.push({ id: uid(), item_id: it.id, delta: act, reason: "restock", created_at: l.created_at, purchase_id: l.purchase_id || null });
+    this.persist(); return { quantity: it.quantity, deducted: ded };
+  },
+  async adjust(id, delta, reason, purchaseId = null) {
     const it = this.db.items.find((x) => x.id === id);
     if (!it) throw new Error("物品不存在");
     const oldq = num(it.quantity), newq = Math.max(0, Math.round((oldq + delta) * 100) / 100);
     it.quantity = newq; it.updated_at = new Date().toISOString();
-    if (newq !== oldq) this.db.logs.push({ id: uid(), item_id: id, delta: newq - oldq, reason, created_at: it.updated_at });
+    if (newq !== oldq) this.db.logs.push({ id: uid(), item_id: id, delta: newq - oldq, reason, created_at: it.updated_at, ...(purchaseId ? { purchase_id: purchaseId } : {}) });
     this.persist();
   },
   /** 不再提醒 / 暂停提醒：until = 'YYYY-MM-DD'（到这天之前不提醒），'9999-12-31' = 一直不提醒，null = 恢复 */

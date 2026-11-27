@@ -182,7 +182,8 @@ async function confirm(ctx) {
       }
       if (stockOnly && x.target === "__skip") continue;   // 只入库：选了「只记花费」的行什么都不做
       const item = x.target.startsWith("__") ? null : state.items.find((i) => i.id === x.target);
-      if (!stockOnly) await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: x.fee ? FEES_CAT : item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay });
+      let purchaseId = null;
+      if (!stockOnly) purchaseId = await Store.addPurchase({ item_id: item?.id || null, name: x.name, category: x.fee ? FEES_CAT : item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay });
       const cart = x.fee || x.qty < 0 ? null : matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 购物车里对应的那一项：不管入不入库，买到了就标成已买到
       if (cart) { doneShop.add(cart.id); cartDone++; await Store.saveShopping({ id: cart.id, status: "bought", bought_at: x.now, amount: x.amount, claimed_by_name: cart.claimed_by_name || myName() }); }
       if (x.target === "__skip") { spendOnly++; continue; }
@@ -191,7 +192,7 @@ async function confirm(ctx) {
         const fit = Units.fit(x.unit, item.unit), add = fit.kind === "mismatch" ? x.qty : x.qty * fit.factor;   // 能换算的换成库存单位；计数单位之间 1:1
         if (fit.kind === "mismatch") warns.push(x.name);
         else if (fit.kind === "convert") convs.push(t("{name} {q1} {u1} → {q2} {u2}", { name: item.name, q1: fmt(x.qty), u1: t(x.unit), q2: fmt(Math.round(add * 100) / 100), u2: t(item.unit) }));
-        await Store.adjust(item.id, Math.round(add * 100) / 100, add < 0 ? "adjust" : "restock");   // 退货扣库存（记成「调整」，不算补货）
+        await Store.adjust(item.id, Math.round(add * 100) / 100, add < 0 ? "adjust" : "restock", purchaseId);   // 退货扣库存（记成「调整」，不算补货）
         stocked++;
       }
     }

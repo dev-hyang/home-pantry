@@ -22,7 +22,8 @@ async function load() {
   const key = `${Store.mode}|${Store.hid || ""}`;
   if (HS.loading || (HS.key === key && Date.now() - HS.at < FRESH)) return;
   HS.loading = true; HS.err = "";
-  try { HS.logs = await Store.listLogsSince(new Date(Date.now() - 366 * DAY).toISOString()); HS.key = key; HS.at = Date.now(); }
+  /* 撤销入库作废的记录（voided_at）不算补货次数 */
+  try { HS.logs = (await Store.listLogsSince(new Date(Date.now() - 366 * DAY).toISOString())).filter((l) => !l.voided_at); HS.key = key; HS.at = Date.now(); }
   catch (e) { HS.err = e.message || "error"; }
   HS.loading = false;
   if (state.route?.section === "me" && state.route?.sub === "stats") rerender();

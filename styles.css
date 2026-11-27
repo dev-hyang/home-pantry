@@ -4812,3 +4812,12 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .tb-dates { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .tb-dates .tb-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 12.5px; color: var(--muted); }
 .tb-dates input[type="date"] { width: 100%; min-width: 0; box-sizing: border-box; height: var(--ctl-h, 40px); padding: 0 10px; border: 1px solid var(--line); border-radius: var(--ctl-r, 12px); background: var(--surface); color: var(--ink); font-size: 16px; }
+
+/* 物品详情页的「库存记录」 */
+.stock-log .sl-list { list-style: none; margin: 0; padding: 0; }
+.stock-log .sl-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) auto auto; gap: 4px 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line-soft, var(--line)); font-size: 14px; }
+.stock-log .sl-row.is-void { opacity: .6; }
+.stock-log .sl-row.is-void .sl-qty { text-decoration: line-through; }
+.stock-log .sl-when { color: var(--muted); font-size: 13px; }
+.stock-log .sl-qty { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+@media (max-width: 440px) { .stock-log .sl-row { grid-template-columns: minmax(0, 1fr) auto; } .stock-log .sl-when { grid-column: 1 / -1; } .stock-log .sl-row .ui-btn { grid-column: 1 / -1; justify-self: end; } }

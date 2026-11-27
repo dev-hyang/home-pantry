@@ -4,7 +4,7 @@ import { PAGE_RENDER, refresh } from "../data.js";
 import { Store } from "../../core/store.js";
 import { addAlertsToShopping, addRecipeMissing, markBought, removeFromShopping, stepShopQty } from "../actions/shopping.js";
 import { alertsOf, openShopFor } from "../../core/logic.js";
-import { askConfirm, askRemind, leaveItem, openItem, pickSpace, pickSupplyAdd, supplyItem } from "../lazy-modules.js";
+import { askConfirm, askRemind, leaveItem, openItem, openUndoRestock, pickSpace, pickSupplyAdd, supplyItem } from "../lazy-modules.js";
 import { catFormOf } from "../../core/categories.js";
 import { customLocations, deleteLocation, groupOf } from "../../core/locations.js";
 import { findItem, normName } from "../../core/item-match.js";
@@ -25,7 +25,7 @@ import { spendListNow } from "../lazy-modules.js";
 import { renderSpendList } from "../lazy-modules.js";
 
 /** 点击动作（储藏：库存、购物车、物品、分类、位置、耐用品）：这一组处理的 data-action */
-export const PANTRY_ACTIONS = new Set(["shop-jump","inv-sel-start","shop-sel-start","add-item","edit","item-cancel","item-delete","inv-space","supply-add","gear-enable","gear-broke","inv-view","supply-add-pick","add-item-pick","inv-cat-shop","inv-sec-shop","inv-select","inv-sel-all","inv-sel-shop","inv-sel-mute","inv-sel-del","item-remind","inv-del","inv-shop","consume","restock","inv-sub","cat","cat-new","cat-edit","cat-cancel","cat-restore","cat-hide","inv-clear","loc-new","loc-edit","loc-cancel","loc-del","cat-delete","cat-sort","cat-move","goto-cat","goto-status","shop-add-item","shop-remove-item","shop-select","shop-sel-all","shop-sel-remove","cat-check-ok","cat-check-all","cat-check-alt","mute-item","shop-add-alerts","shop-import","shop-import-cancel","shop-claim","shop-unclaim","shop-bought","shop-qty","shop-del","shop-clear","diet","shuffle","slot-swap","page-more","purchase-del","recipe-missing"]);
+export const PANTRY_ACTIONS = new Set(["undo-restock","shop-jump","inv-sel-start","shop-sel-start","add-item","edit","item-cancel","item-delete","inv-space","supply-add","gear-enable","gear-broke","inv-view","supply-add-pick","add-item-pick","inv-cat-shop","inv-sec-shop","inv-select","inv-sel-all","inv-sel-shop","inv-sel-mute","inv-sel-del","item-remind","inv-del","inv-shop","consume","restock","inv-sub","cat","cat-new","cat-edit","cat-cancel","cat-restore","cat-hide","inv-clear","loc-new","loc-edit","loc-cancel","loc-del","cat-delete","cat-sort","cat-move","goto-cat","goto-status","shop-add-item","shop-remove-item","shop-select","shop-sel-all","shop-sel-remove","cat-check-ok","cat-check-all","cat-check-alt","mute-item","shop-add-alerts","shop-import","shop-import-cancel","shop-claim","shop-unclaim","shop-bought","shop-qty","shop-del","shop-clear","diet","shuffle","slot-swap","page-more","purchase-del","recipe-missing"]);
 /** 点击动作（储藏：库存、购物车、物品、分类、位置、耐用品）：按 data-action 分支；el 是被点的元素，id 是它的 data-id，e 是点击事件 */
 export async function clickPantry(action, el, id, e) {
   switch (action) {
@@ -91,6 +91,7 @@ export async function clickPantry(action, el, id, e) {
         if (openShopFor(id)) { toast(t("{name} 已经在购物车里", { name: it.name })); return; }
         return addAlertsToShopping([it]);
       }
+      case "undo-restock": { if (await openUndoRestock(el.dataset.log)) return refresh(); return; }   // 物品详情页「库存记录」：撤销一次入库（pantry/undo-restock.js）
       case "consume": el.disabled = true; await Store.adjust(id, -storedStep(state.items.find((x) => x.id === id)?.unit), "consume"); return refresh();
       case "restock": el.disabled = true; await Store.adjust(id, storedStep(state.items.find((x) => x.id === id)?.unit), "restock"); return refresh();
       case "inv-sub": state.filter.sub = el.dataset.sub; return render();

@@ -14,6 +14,7 @@ import { Store } from "../core/store.js";
 import { cartTag, statusTag } from "./inventory-items.js";
 import { ownerKey, ownerName, showOwner } from "./owner.js";
 import { assetLabel, linkableAssets } from "./item-form-common.js";
+import { stockLogPanel } from "./item-stock-log.js";
 
 const fact = (k, val) => (val ? `<div class="fact"><dt>${k}</dt><dd>${val}</dd></div>` : "");
 const dl = (rows) => { const r = rows.filter(Boolean); return r.length ? `<dl class="fact-grid one">${r.join("")}</dl>` : `<p class="muted prof-empty">${t("未填")}</p>`; };
@@ -54,6 +55,7 @@ export function viewItemDetail(it, ctx) {
     ${crumbNav([...ctx.crumbBase, { label: it.name, icon: c.icon }])}
     <div class="panel item-head"><div class="ih-top"><div class="ih-main"><div class="ih-id"><span class="mi" aria-hidden="true">${c.icon || "📦"}</span><h2 class="ih-name">${esc(it.name)}</h2></div>${flags ? `<span class="ih-flags">${flags}</span>` : ""}</div>${menu}</div></div>
     <div class="prof-grid bill-detail-grid">${cards}</div>
+    ${gear ? "" : stockLogPanel(e || it)}
     ${stampText(it) ? `<p class="record-meta">${esc(stampText(it))}${Store.mode === "cloud" && memberName(it.updated_by) ? `（${esc(memberName(it.updated_by))}）` : ""}</p>` : ""}
   </section>`;
 }

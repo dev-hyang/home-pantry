@@ -239,11 +239,12 @@ export async function restore(data, onProgress = () => {}) {
       const have = await CloudStore.pageAll(() => sb.from("stock_logs").select("item_id,created_at").eq("household_id", hid).order("created_at").order("id"))   // 分页读全：.limit(10000) 实际只回 1000 行，超过的会被当成“没有”而重复写入
         .catch((e) => { console.warn("[restore stock_logs]", e.message); return []; });
       const seen = new Set((have || []).map((x) => `${x.item_id}|${x.created_at}`)), before = rows.length;
-      rows = rows.filter((r) => !seen.has(`${r.item_id}|${r.created_at}`)).map(({ id, ...r }) => r); skipped[tb] = before - rows.length;
+      rows = rows.filter((r) => !seen.has(`${r.item_id}|${r.created_at}`)).map(({ id, purchase_id, ...r }) => r); skipped[tb] = before - rows.length;   // purchase_id 不带回去：花费在后面才写入（外键会不过），关联只在新记录里重新记；voided_at / voided_by 照带（迁移 111 之前的库没有这两列：下面按下去掉）
     }
     if (tb === "bills_recurring") rows = rows.map(({ assigned_to, ...r }) => r);   // 旧备份里的「谁负责（设备）」：这一列已删（迁移 090），改用 assigned_person_id
     if (tb === "cards") rows = rows.map(({ holder_user_id, ...r }) => r);   // 同上：持卡人改成 holder_person_id
-    for (const k of ["created_by", "updated_by", "paid_by", "done_by", "claimed_by", "owner"]) rows = rows.map((r) => (k in r ? { ...r, [k]: uid(r[k]) } : r));
+    if (tb === "stock_logs" && !Store.undoReady?.()) rows = rows.map(({ voided_at, voided_by, ...r }) => r);   // 还没执行迁移 111：没有作废列
+    for (const k of ["created_by", "updated_by", "paid_by", "done_by", "claimed_by", "owner", "voided_by"]) rows = rows.map((r) => (k in r ? { ...r, [k]: uid(r[k]) } : r));
     let n = 0;
     for (const part of chunks(rows, 200)) {
       const q = tb === "stock_logs" ? sb.from(tb).insert(part) : sb.from(tb).upsert(part, { ignoreDuplicates: true });   // 只补缺的：已有同 id 的行不动
