@@ -4,7 +4,7 @@ import { $, catOf, esc, fmt, fmtShort, inSpace, isGear, num, spaceOf, stampText,
 import { FD, changed, clearFiltersBtn } from "../core/clear-filters.js";
 import { STATUS, state } from "../core/state.js";
 import { Store } from "../core/store.js";
-import { catDashboard, catSelOpts, chipGroups, grpName, isPhone, locationFilter, spaceFilter } from "./inventory.js";
+import { addedFilter, addedRule, catDashboard, catSelOpts, chipGroups, grpName, isPhone, locationFilter, spaceFilter } from "./inventory.js";
 import { t } from "../core/i18n.js";
 import { discardBtn, shelfGrid } from "./restock.js";
 import { href } from "../core/router.js";
@@ -12,15 +12,18 @@ import { memberName, openShopFor } from "../core/logic.js";
 import { ownerFilter, ownerTag } from "./owner.js";
 import { pageLimit, pageMoreBtn } from "../core/pager.js";
 import { unitSelect } from "../core/unit-pick.js";
-import { secNeed, selBarText } from "./inv-sync.js";
+import { secNeed, selBarText, visibleItemIds } from "./inv-sync.js";
 import { VIEW_KEY, invSorter, invSpaces, rowMatch } from "./inv-sync-common.js";
 import { orderedCats } from "./inventory-sync-common.js";
 import { catFormHtml } from "./inventory-sync.js";
 import { groupedCats, matchItem } from "./inventory-match.js";
 import { lpAttr } from "../core/long-press.js";
+import { addedActive, stockStamp } from "./stocked.js";
 
 export function invView() { try { return localStorage.getItem(VIEW_KEY) === "cats" ? "cats" : "rows"; } catch { return "rows"; } }
 const viewSeg = (cur) => `<div class="view-bar">${viewSwitch([["rows", "物品", "☰"], ["cats", "分类", "▦"]], cur, { action: "inv-view", attr: "view" })}</div>`;
+/** 按入库时间筛选或排序时，行里显示入库日期和数量 */
+const showStock = () => addedActive(state.filter) || state.filter.sort === "stocked";
 const muteOn = (it) => !!it.alert_mute_until && String(it.alert_mute_until) > todayISO();
 /** 新物品的空间：开着汽车房屋消耗品时跟着筛选的空间，否则日常消耗品 */
 const addSpace = () => (state.filter.space === "house" && state.houseEnabled ? "house" : state.filter.space === "gear" ? "gear" : "pantry");
@@ -45,6 +48,7 @@ function viewInvRows(space) {
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
         </select>`}
         ${locationFilter(all, f)}
+        ${addedFilter(f)}
         ${ownerFilter(f)}
         <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
         ${clearFiltersBtn("inv", changed(f, FD.inv))}
@@ -84,7 +88,7 @@ function renderInvRows(host) {
       <div class="pv-body">${need.length && !state.invSel ? `<div class="inv-sec-bar"><span class="muted">${t("{n} 件要补货", { n: need.length })}</span><button type="button" class="ui-btn" data-size="sm" data-action="inv-sec-shop" data-space="${space}">🛒 ${t("全部加入购物车")}</button></div>` : ""}${body}</div></details>`;
   };
   const SEC = { pantry: ["🥫", t("日常消耗品")], house: ["🧰", t("汽车房屋消耗品")], gear: ["🛋️", t("家居耐用品")] };
-  host.innerHTML = `<div class="pv-cards">${invSpaces().filter((s) => f.space === "all" || s === f.space).map((s) => sec(s, ...SEC[s])).join("")}</div>`;
+  host.innerHTML = `${addedRule(state.filter, visibleItemIds().length)}<div class="pv-cards">${invSpaces().filter((s) => f.space === "all" || s === f.space).map((s) => sec(s, ...SEC[s])).join("")}</div>`;
 }
 /** 库存状态标签（缺货 / 少货 / 即将告罄 / 充足）：库存行用 badge，物品编辑页标题右边也用 */
 export const statusTag = (it) => `<span class="badge ${STATUS[it.status].cls}">${t(STATUS[it.status].label)}</span>`;
@@ -106,7 +110,7 @@ function remindChip(it, plain) {
 export function itemRow(it) {
   const st = STATUS[it.status], c = catOf(it.category), inList = openShopFor(it.id);
   const meta = [`${c.icon} ${esc(t(it.subcategory || c.name))}`, ownerTag(it) && `<span class="own-tag">${esc(ownerTag(it))}</span>`, it.location && `📍${esc(t(it.location))}`,
-    it.daysLeft != null && it.qty > 0 && `${t("约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) })}`].filter(Boolean).join(" · ");
+    it.daysLeft != null && it.qty > 0 && `${t("约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) })}`, showStock() && esc(stockStamp(it, state.filter.addKind))].filter(Boolean).join(" · ");
   const badges = `${it.status !== "ok" ? `<span class="badge ${st.cls}">${t(st.label)}</span>` : remindChip(it, !!state.invSel)}${it.exp ? `<span class="badge b-exp">${it.exp === "expired" ? t("已过期") : t("{d} 天内到期", { d: it.expDays })}</span>` : ""}${inList ? cartTag() : ""}`;
   const step = Units.step(it.du), nm = esc(it.name), sel = state.invSel, on = sel?.has(it.id);
   const rowAttrs = sel ? `data-row-sel="${it.id}"` : `data-row-open="${esc(href("item", it.id))}" data-swipe-del="item" data-swipe-alt="item" data-swipe-alt-label="${esc(t("加入购物车"))}" data-swipe-alt-go="${esc(t("松手加入"))}"`;
@@ -165,6 +169,7 @@ export function viewInventory(space = "all") {
             .map(([v, l]) => `<option value="${v}" ${f.status === v ? "selected" : ""}>${t(l)}</option>`).join("")}
         </select>`}
         ${locationFilter(mine, f)}
+        ${addedFilter(f)}
         ${house ? ownerFilter(f) : ""}
         <select id="invSort" aria-label="${t("排序")}">${INV_SORTS.filter(([v]) => !(gear && v === "exp")).map(([v, l]) => `<option value="${v}" ${(f.sort || "default") === v ? "selected" : ""}>${t(l)}</option>`).join("")}</select>
         ${clearFiltersBtn("inv", changed(f, FD.inv))}
@@ -180,7 +185,7 @@ export function viewInventory(space = "all") {
       ${fab(`${space}${cur ? `&cat=${cur.id}` : ""}`, gear ? t("添加家居耐用品") : t("添加物品"))}
     </section>`;
 }
-const INV_SORTS = [["default", "按状态（缺货优先）"], ["name", "名称 A → Z"], ["qty", "数量：少 → 多"], ["exp", "保质期：近 → 远"], ["updated", "最近更新"]];
+const INV_SORTS = [["default", "按状态（缺货优先）"], ["name", "名称 A → Z"], ["qty", "数量：少 → 多"], ["exp", "保质期：近 → 远"], ["stocked", "最近入库"], ["updated", "最近更新"]];
 export function renderInvList() {
   const rowsHost = $("#invRows");
   if (rowsHost) return renderInvRows(rowsHost);
@@ -245,6 +250,7 @@ export function itemCard(it) {
     it.subcategory && `<span>${esc(t(it.subcategory))}</span>`,
     it.location && `<span>📍${esc(t(it.location))}</span>`,
     it.daysLeft != null && `<span>${t("约够 {d} 天", { d: Math.max(0, Math.floor(it.daysLeft)) })}</span>`,
+    showStock() && `<span>${esc(stockStamp(it, state.filter.addKind))}</span>`,
     it.rate && `<span title="${it.rateSrc === "manual" ? t("手动设置") : t("根据最近使用记录估算")}">${t("日均 {q} {u}", { q: fmt(it.drate), u: esc(du) })}</span>`,
     stamp,
   ].filter(Boolean).join("");

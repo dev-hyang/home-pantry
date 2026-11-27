@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.7", title: { zh: "库存里能按「入库时间」看", en: "Filter the inventory by when things were stocked" }, items: [
+    { k: "new", zh: "库存多了「入库时间」筛选（近 7 / 30 / 90 天，可只看新物品或只看补货入库）和「最近入库」排序；筛选后每行显示入库日期和数量，列表顶上写明统计口径和件数。", en: "The inventory has a new Stocked-time filter (last 7 / 30 / 90 days, new items or restocks only) and a Recently-stocked sort. Rows show the date and amount, and a line above the list explains the rule and count." },
+    { k: "better", zh: "「最近入库」只算新物品和补货（点 +、录入购物、购物车买到），点 − 用掉东西不算，和「最近更新」不同。", en: "Recently stocked only counts new items and restocks; using something up (−) does not, unlike Recently updated." },
+  ] },
   { v: "2026-11-27.6", title: { zh: "目录里能直接去别的页签", en: "The directory can now jump to any tab" }, items: [
     { k: "new", zh: "点页面左上角的「目录」，第一层就是 今日 / 储藏 / 房屋 / 财务 / 采购 / 我的：当前这一页签展开显示里面的页面，其他页签一行直达（储藏、采购会显示要处理的数量）。", en: "Open the Directory at the top-left of a page: the first level is Today / Pantry / House / Finance / Shopping / Me. The current tab is expanded; the others are one tap away (Pantry and Shopping show how many items need attention)." },
   ] },

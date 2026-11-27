@@ -30,7 +30,7 @@ export function resetSectionFilters(section) {
 }
 /* ── 清除筛选（各页工具条上同一个按钮，js/core/clear-filters.js）：恢复这一页的默认筛选（排序不动）、分页回到第一页、网址里的筛选参数去掉 ── */
 const clearAnd = (fn) => () => { fn(); resetListPages(); render(false); };
-onClearFilters("inv", clearAnd(() => { Object.assign(state.filter, FD.inv); clearUrlParams(["cat", "status"]); }), () => changed(state.filter, FD.inv));
+onClearFilters("inv", clearAnd(() => { Object.assign(state.filter, FD.inv); clearUrlParams(["cat", "status", "added", "kind"]); }), () => changed(state.filter, FD.inv));
 onClearFilters("shop", clearAnd(() => Object.assign(state.shopFilter, FD.shop)), () => changed(state.shopFilter, FD.shop));
 onClearFilters("maint", clearAnd(() => Object.assign(maintFilter, FD.maint)), () => changed(maintFilter, FD.maint));
 onClearFilters("asset", clearAnd(() => Object.assign(state.assetFilter, FD.asset)), () => changed(state.assetFilter, FD.asset));

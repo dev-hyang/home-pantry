@@ -4,6 +4,7 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { orderedCats } from "./inventory-sync-common.js";
 import { groupedCats, matchItem } from "./inventory-match.js";
+import { ADDED_RANGES, addedActive } from "./stocked.js";
 
 /* ── 库存 ──
  * 宽屏（电脑 / iPad）：分类芯片导航 + 全部分组列表。
@@ -37,7 +38,7 @@ const stPill = (s, items) => {
   return `<span class="badge b-ok"><i class="b-ic" data-g="✓" aria-hidden="true"></i>${t("充足")}</span>`;
 };
 /** 搜索 / 状态 / 位置筛选是否生效（分类另算） */
-const filterActive = (f) => !!f.q.trim() || f.status !== "all" || (f.loc || "all") !== "all";
+const filterActive = (f) => !!f.q.trim() || f.status !== "all" || (f.loc || "all") !== "all" || addedActive(f);
 /** 位置筛选下拉：只列这个空间里实际用到的位置，按房间分组 */
 /** 库存范围下拉：全部组别（物品视图默认）/ 日常消耗品 / 汽车房屋消耗品 / 家居耐用品；只有一种可选时不显示。换范围 = 换地址（?space=house、/pantry/gear），见 change.js 的 invSpaceSel */
 export function spaceFilter(space, { all = false } = {}) {   // all：物品视图多一项「全部组别」（默认）
@@ -55,6 +56,18 @@ export function locationFilter(mine, f) {
   return `<select id="invLoc" aria-label="${t("按位置筛选")}"><option value="all">${t("全部位置")}</option>
     ${groups.map((g) => `<optgroup label="${esc(t(g.name))}">${g.locs.map((l) => opt(l.name)).join("")}</optgroup>`).join("")}
     ${other.length ? `<optgroup label="${t("其他")}">${other.map(opt).join("")}</optgroup>` : ""}</select>`;
+}
+/** 入库时间筛选：不限 / 近 7·30·90 天；选了范围后多一个「新物品 / 补货入库」下拉（口径见 stocked.js） */
+export function addedFilter(f) {
+  const opt = (v, l, cur) => `<option value="${v}" ${cur === v ? "selected" : ""}>${t(l)}</option>`, on = addedActive(f);
+  return `<select id="invAdded" aria-label="${t("入库时间")}">${opt("all", "入库时间：不限", f.added || "all")}${ADDED_RANGES.map((d) => `<option value="${d}" ${f.added === d ? "selected" : ""}>${t("近 {d} 天入库", { d })}</option>`).join("")}</select>`
+    + (on ? `<select id="invAddKind" aria-label="${t("入库类型")}">${opt("all", "新物品或补货", f.addKind || "all")}${opt("new", "只看新物品", f.addKind)}${opt("restock", "只看补货入库", f.addKind)}</select>` : "");
+}
+/** 筛选了入库时间时，列表顶上一行说明口径和件数（方便核对概览卡片上的数字） */
+export function addedRule(f, n) {
+  if (!addedActive(f)) return "";
+  const how = f.addKind === "new" ? t("新物品：第一次建进库存") : f.addKind === "restock" ? t("补货入库：点 +、录入购物、购物车买到") : t("新物品，或补货入库（点 +、录入购物、购物车买到）");
+  return `<p class="inv-rule muted" role="status"><b>${t("近 {d} 天入库", { d: f.added })} · ${t("{n} 件", { n })}</b><span>${how}</span></p>`;
 }
 /** 手机上的分类仪表盘（参考 iOS 提醒事项 / 常见记账 App 的卡片）：顶部一条汇总，下面每个分类一张卡。
  * 有搜索 / 状态 / 位置筛选时：每张卡只数符合的物品，没有符合的卡变淡；点卡进入该分类，筛选条件保留。 */

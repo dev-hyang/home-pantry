@@ -3291,6 +3291,8 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 }
 /* 物品视图：每个容器顶上「n 件要补货 · 全部加入采购清单」；装备行没有 🔔，占位保持对齐 */
 .inv-sec-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 4px 4px 10px; }
+.inv-rule { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 0 0 12px; font-size: 13px; line-height: 1.5; }
+.inv-rule b { color: var(--ink); font-weight: 600; }
 .inv-catchip { margin: 0 0 10px; }
 .inv-catchip .chip { min-height: 40px; }
 .shelf-all { background: color-mix(in srgb, var(--pine) 6%, var(--surface)); }

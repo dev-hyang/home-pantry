@@ -3,6 +3,7 @@ import { STATUS, state } from "../core/state.js";
 import { compare } from "../core/i18n.js";
 import { num } from "../core/util.js";
 import { matchItem } from "./inventory-match.js";
+import { stockedAt } from "./stocked.js";
 
 /* ── 库存 · 物品视图（2026-11-14，默认）：日常消耗品、汽车房屋消耗品两个大容器，里面每件物品一行，不按分类分组。
  *   点这一行进编辑；行里能直接改数量 / 单位、点 🔔 设成不提醒；手机上左滑删除、右滑加入购物车。
@@ -17,5 +18,6 @@ export const invSorter = (mode) => ({
   name: (a, b) => compare(a.name, b.name),
   qty: (a, b) => num(a.qty) - num(b.qty) || compare(a.name, b.name),
   exp: (a, b) => (a.expiry_date || "9999").localeCompare(b.expiry_date || "9999") || compare(a.name, b.name),
+  stocked: (a, b) => stockedAt(b) - stockedAt(a) || compare(a.name, b.name),
   updated: (a, b) => String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || "")),
 }[mode] || ((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || compare(a.name, b.name)));
