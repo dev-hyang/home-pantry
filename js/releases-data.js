@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.15", title: { zh: "视图切换换成和牧羊人一样的样式", en: "View switch now matches the Shepherd app" }, items: [
+    { k: "better", zh: "「物品 / 分类」「按资产 / 按周期」等视图切换换成统一的新样式：深色圆角按钮「切换 ⊞ 当前视图名」，点开选择，当前的打 ✓。手机上页头里省掉「切换」小字，只留图标和名称。", en: "View switches (Items / Categories, By asset / By cycle…) use the shared style: a dark rounded button “Switch ⊞ current view” with a ✓ on the current one. On phones the small “Switch” label is hidden in headers." },
+  ] },
   { v: "2026-11-27.14", title: { zh: "花费概览：最近动态卡片", en: "Spending overview: recent activity cards" }, items: [
     { k: "new", zh: "花费 → 概览顶部新增「最近动态」：近 7 天花费（对比前 7 天）、本月最高的一天、本月最大一笔、本月花得最多的商家、比上月同期涨得最多的分类。", en: "Spending → Overview has a Recent activity row: last 7 days (vs the previous 7), biggest day, biggest purchase, top payee and biggest category rise this month." },
     { k: "new", zh: "每张卡片点一下就打开明细，并带好对应的筛选（近 7 天 / 那一天 / 金额从高到低 / 那家商家 / 那个分类），数字可以一笔笔核对。转账不算，退款会减掉。", en: "Tap a card to open the matching records (last 7 days / that day / biggest first / that payee / that category) so you can check every number. Transfers are excluded; refunds are subtracted." },
