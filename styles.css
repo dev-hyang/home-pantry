@@ -4814,3 +4814,10 @@ a.tax-sum { display: flex; align-items: center; gap: 10px; justify-content: spac
 .buys-main small.buys-deal { color: var(--ink); font-weight: 500; }
 .buys-main small.buys-deal.is-good { color: var(--ok); font-weight: 600; }
 .buys-ask { margin: 0 0 12px; }
+
+/* ── 筛选面板（.tb-panel）统一规则（2026-11-27.12）──────────────────────────────────────────────
+ * 手机（≤ 440px）：一列，每个下拉 / 金额显示一整行；≥ 441px：两列，每个下拉半宽，「金额显示」和标题行占整行。
+ * 原生下拉和可搜索下拉（.ssel）用同一个盒子：高 40、左内边距 12、右 34（给箭头）、文字靠左，不再有的居中有的靠左。 */
+#main .toolbar.tb-on .tb-panel > select, #main .toolbar.tb-on .tb-panel .ssel-btn { padding-left: 12px; padding-right: 34px; text-align: left; text-align-last: left; text-overflow: ellipsis; }
+#main .toolbar.tb-on .tb-panel > .tb-eye { grid-column: 1 / -1; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line-soft, var(--line)); }
+#main .toolbar.tb-on .tb-panel > .tb-eye .tb-eye-t { display: flex; }
