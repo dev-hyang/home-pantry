@@ -11,6 +11,7 @@ import { href } from "../core/router.js";
 import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { hiddenNote } from "./hidden-note.js";
+import { insightsHtml } from "./spend-insights.js";
 import { tripsPanel } from "./spend-trips.js";
 import { rangeLabel } from "./add-lite.js";
 
@@ -75,7 +76,8 @@ export function spendOverviewTab(withHub = false) {
         <div class="panel chart-panel"><h3>${t("日常生活花在哪（{r}）", { r: rangeLabel() })}</h3>${Charts.hbars({ items: liv, fmt: money, title: t("日常生活按类别"), empty: t("这段时间没有日常生活花费") })}${DRILL_HINT()}</div>`;
     }
   } else body = LOADING();
-  return `${overviewKpis()}
+  return `${insightsHtml()}
+    ${overviewKpis()}
     ${notes.map((x) => `<p class="muted" style="font-size:13px">${esc(x)}</p>`).join("")}
     ${body}`;
 }

@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.14", title: { zh: "花费概览：最近动态卡片", en: "Spending overview: recent activity cards" }, items: [
+    { k: "new", zh: "花费 → 概览顶部新增「最近动态」：近 7 天花费（对比前 7 天）、本月最高的一天、本月最大一笔、本月花得最多的商家、比上月同期涨得最多的分类。", en: "Spending → Overview has a Recent activity row: last 7 days (vs the previous 7), biggest day, biggest purchase, top payee and biggest category rise this month." },
+    { k: "new", zh: "每张卡片点一下就打开明细，并带好对应的筛选（近 7 天 / 那一天 / 金额从高到低 / 那家商家 / 那个分类），数字可以一笔笔核对。转账不算，退款会减掉。", en: "Tap a card to open the matching records (last 7 days / that day / biggest first / that payee / that category) so you can check every number. Transfers are excluded; refunds are subtracted." },
+  ] },
   { v: "2026-11-27.13", title: { zh: "花费明细：按日期筛选", en: "Spending records: filter by date" }, items: [
     { k: "new", zh: "花费 → 明细的筛选里多了「日期」：近 7 天、近 30 天，或自选起止日期（和按月的时间范围一起生效）。选了日期，列表上方会出现一个可以点掉的「日期：…」标签。", en: "Spending → Records has a new Date filter: last 7 days, last 30 days, or pick dates (works together with the monthly range). A removable Date chip shows above the list." },
     { k: "fix", zh: "375px 宽的小手机上，列表页的「搜索框 + 筛选」不再把「筛选」按钮挤到下一行。", en: "On 375px-wide phones the Filters button no longer wraps onto its own line below the search box." },

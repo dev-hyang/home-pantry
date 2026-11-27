@@ -61,8 +61,10 @@ function spanOf(f) {
   return {};
 }
 /** 当前筛选 → 数据库的筛选对象（只带生效的项）；natx / xfer 每次都带：数据库靠它们认出转账（合计不算）和各分类的默认性质 */
-export function spendParams() {
-  const f = state.spendFilter, bt = f.batch ? batchOf(f.batch) : null;
+export const spendParams = () => spendParamsOf(state.spendFilter);
+/** 一组筛选 → 数据库的筛选对象（概览的「最近动态」卡片也用它读明细） */
+export function spendParamsOf(f) {
+  const bt = f.batch ? batchOf(f.batch) : null;
   let stores = f.stores?.length ? [...f.stores] : null;   // “其他商店”：一组商店
   // 时间范围（js/core/time-range.js）→ 月份；和图表钻取带来的一组月份（f.months）同时有时取交集
   const rm = f.range && f.range !== "all" ? rangeMonths(f.range) : null, months = rm && f.months?.length ? f.months.filter((m) => rm.includes(m)) : rm || (f.months?.length ? f.months : null);
