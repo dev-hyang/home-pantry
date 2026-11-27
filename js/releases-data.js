@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.2", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
+    { k: "better", zh: "准备了牧羊人用的记录列表样式（列表 / 时间轴），以后用得上；你现在看到的界面和操作都和上一版一样。", en: "Added the record-list styles (list / timeline) used by Shepherd for later; what you see and how it works are unchanged." }
+  ] },
   { v: "2026-11-27.1", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
     { k: "better", zh: "准备了牧羊人用的目录、视图切换和进度条样式，以后用得上；你现在看到的界面和操作都和上一版一样。", en: "Added the directory, view-switch and progress-bar styles used by Shepherd for later; what you see and how it works are unchanged." }
   ] },
