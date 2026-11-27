@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.16", title: { zh: "花费概览「最近动态」：可以不含账单", en: "Spending recent activity: with or without bills" }, items: [
+    { k: "new", zh: "「最近动态」右上角新增「不含账单 / 含账单」切换，默认不含账单（房贷、保险、水电、订阅、医疗等账单金额大又固定，会让最高的一天、最大一笔、商家一直是账单）。选择记在本机。", en: "Recent activity has a Without bills / With bills switch, default Without bills (mortgage, insurance, utilities, subscriptions and medical bills are large and fixed and would always top the cards). Remembered on this device." },
+    { k: "better", zh: "每张卡片的标题旁加了 ⓘ 说明统计口径；点卡片进明细，筛选条件（含「不含账单的花费」标签）和卡片一致，数字对得上。", en: "Each card has an ⓘ explaining what it counts; tapping opens the records with the same filter (including the Without bills chip), so the numbers match." },
+  ] },
   { v: "2026-11-27.15", title: { zh: "视图切换换成和牧羊人一样的样式", en: "View switch now matches the Shepherd app" }, items: [
     { k: "better", zh: "「物品 / 分类」「按资产 / 按周期」等视图切换换成统一的新样式：深色圆角按钮「切换 ⊞ 当前视图名」，点开选择，当前的打 ✓。手机上页头里省掉「切换」小字，只留图标和名称。", en: "View switches (Items / Categories, By asset / By cycle…) use the shared style: a dark rounded button “Switch ⊞ current view” with a ✓ on the current one. On phones the small “Switch” label is hidden in headers." },
   ] },

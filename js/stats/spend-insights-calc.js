@@ -19,11 +19,12 @@ const ymOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "
 const amt = (r) => (r.is_xfer || r.amount == null ? null : num(r.amount));
 const max = (arr, f) => arr.reduce((b, x) => (b == null || f(x) > f(b) ? x : b), null);
 
-export function insights(rows, now = new Date()) {
+/** keep(row) = 这一行算不算（「不含账单」时把账单类的去掉）；默认都算 */
+export function insights(rows, now = new Date(), { keep = () => true } = {}) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()), cur = ymOf(today), prev = ymOf(new Date(today.getFullYear(), today.getMonth() - 1, 1));
   const day = (n) => dayISO(new Date(today.getFullYear(), today.getMonth(), today.getDate() - n));
   const d7 = day(6), p7a = day(13), p7b = day(7);
-  const list = (rows || []).map((r) => ({ r, a: amt(r), at: new Date(r.purchased_at) })).filter((x) => x.a != null && !Number.isNaN(x.at.getTime())).map((x) => ({ ...x, day: dayISO(x.at), ym: ymOf(x.at) }));
+  const list = (rows || []).filter(keep).map((r) => ({ r, a: amt(r), at: new Date(r.purchased_at) })).filter((x) => x.a != null && !Number.isNaN(x.at.getTime())).map((x) => ({ ...x, day: dayISO(x.at), ym: ymOf(x.at) }));
   const sumOf = (xs) => round2(xs.reduce((s, x) => s + x.a, 0));
   const last7 = list.filter((x) => x.day >= d7 && x.day <= day(0)), prev7 = list.filter((x) => x.day >= p7a && x.day <= p7b);
   const month = list.filter((x) => x.ym === cur);

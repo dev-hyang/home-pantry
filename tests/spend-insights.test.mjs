@@ -35,3 +35,10 @@ test("分类：本月至今比上月同期（1–27 日）多花多少；上月 
 test("没有数据 = 都是空", () => {
   const e = insights([], now); assert.equal(e.topDay, null); assert.equal(e.biggest, null); assert.equal(e.last7.sum, 0);
 });
+
+test("keep：把账单类的行去掉再算（不含账单）", () => {
+  const withBill = [...rows, { id: "z", name: "房贷", amount: 3000, purchased_at: at(11, 25), store_txt: "Bank", category: "bill_mortgage" }];
+  assert.equal(insights(withBill, now).biggest.id, "z");
+  const k = insights(withBill, now, { keep: (r) => !String(r.category).startsWith("bill_") });
+  assert.equal(k.biggest.id, "a"); assert.equal(k.last7.sum, 95);
+});
