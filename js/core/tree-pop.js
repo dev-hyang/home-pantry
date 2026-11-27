@@ -7,6 +7,7 @@
 import { esc } from "./util.js";
 import { t } from "./i18n.js";
 import { ICON_MENU, isOpen } from "./filter-pop.js";
+import { siteTree } from "./site-tree.js";
 
 const row = (n, lv) => {
   const cur = n.current ? ' aria-current="page" data-tpop-cur' : "";
@@ -29,7 +30,8 @@ const actionRow = (x) => {
 };
 
 /** nodes = 树；id = 面板 id（同一页只放一个）；label = 按钮上的名字；actions = 本页操作 */
-export function treePop(nodes, { id = "tree", label = t("目录"), actions = [] } = {}) {
+export function treePop(nodes0, { id = "tree", label = t("目录"), actions = [], site = true } = {}) {
+  const nodes = site ? siteTree(nodes0) : nodes0;   // 第一层 = 底部导航的 6 个区域（site-tree.js）
   const open = isOpen(id), acts = actions.filter(Boolean);
   return `<div class="fpop npop tpop" data-fpop="${esc(id)}"${open ? " data-open" : ""}>
     <button type="button" class="fpop-btn" aria-expanded="${open}" aria-controls="fpop-${esc(id)}" aria-label="${esc(label)}" data-fpop-toggle>${ICON_MENU}<span>${esc(label)}</span></button>
