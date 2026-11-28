@@ -265,6 +265,7 @@ export function scanAction(action, el, ctx) {
     case "scan-run": return run();
     case "scan-back": if (sc.result?.manual) { startManual(); return repaint(); } sc.step = "input"; sc.result = null; sc.error = ""; return repaint();
     case "scan-confirm": return confirm(ctx);
+    case "scan-lumppick": { const box = el.closest(".scan-rcpt"), rc = box && sc.result?.receipts[+box.dataset.r]; if (!rc) return; rc.lumpId = el.dataset.id; rc.lumpMode = ""; sc.error = ""; updateSum(); return; }   // 换了一笔：之前选的「替换 / 都留」作废，要重新选
     case "scan-lumpmode": { const box = el.closest(".scan-rcpt"), rc = box && sc.result?.receipts[+box.dataset.r]; if (!rc) return; rc.lumpMode = rc.lumpMode === el.dataset.mode ? "" : el.dataset.mode; sc.error = ""; document.querySelector('#scanForm > p.form-error[role="alert"]')?.remove(); updateSum(); return; }
     case "scan-dupmode": { const box = el.closest(".scan-rcpt"), rc = box && sc.result?.receipts[+box.dataset.r]; if (!rc) return; rc.dupMode = rc.dupMode === el.dataset.mode ? "" : el.dataset.mode; sc.error = ""; document.querySelector('#scanForm > p.form-error[role="alert"]')?.remove(); updateSum(); return; }
     default: return undefined;

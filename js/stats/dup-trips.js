@@ -38,9 +38,11 @@ function describe(b) {
 /** 反方向：这张小票（或这次账单缴费）以前是不是已经从对账单导入成了一整笔？
  *  只看银行导入的行（import_batch 不空）：合计差不超过 max(0.5 美元, 1%)，流水入账日比小票晚 0–7 天（早不超过 2 天），
  *  商店对上；或者金额一模一样且日期在 3.5 天内。对账单选了卡而那笔记在另一张卡上 = 不是。返回最像的一笔或 null。 */
-export function findLump(pool, { store = "", day, total, card = "" }) {
-  const tot = cents(total); if (tot <= 0 || !day) return null;
-  const tol = Math.max(50, Math.round(tot * 0.01)); let best = null;
+export function findLump(pool, q) { return findLumps(pool, q)[0] || null; }
+/** 同上，但把所有像的都返回（最像的在最前，得分相同按日期近的在前）：同一天有好几笔金额差不多的，让用户自己选是哪一笔 */
+export function findLumps(pool, { store = "", day, total, card = "" }) {
+  const tot = cents(total); if (tot <= 0 || !day) return [];
+  const tol = Math.max(50, Math.round(tot * 0.01)); const found = [];
   for (const p of pool) {
     if (!p.import_batch || p.virtual || p.amount == null) continue;
     const diff = Math.abs(cents(p.amount) - tot); if (diff > tol) continue;
@@ -49,9 +51,9 @@ export function findLump(pool, { store = "", day, total, card = "" }) {
     const st = !!store && (storeClose(p.store, store) || storeClose(p.name, store)), near = Math.abs(gap) <= 3.5;
     if (!(st || (diff <= 1 && near))) continue;
     const score = (diff <= 1 ? 4 : 2) + (st ? 3 : 0) + (card && p.card_id === card ? 2 : 0) + (Math.abs(gap) <= 1 ? 2 : near ? 1 : 0);
-    if (!best || score > best.score) best = { p, score };
+    found.push({ p, score, gap: Math.abs(gap) });
   }
-  return best?.p || null;
+  return found.sort((a, b) => b.score - a.score || a.gap - b.gap).map((x) => x.p);
 }
 
 /** rows = [{ fk, date, out, texts: [流水描述, 整理后的商家名] }]；pool = 已有花费；card = 对账单选的卡 id（可空）；used = 已经被逐行对上的花费 id。

@@ -5,7 +5,7 @@ import { $, esc, fmt, fmtShort, num, spaceOf, todayISO } from "../core/util.js";
 import { FEES_CAT, buildPool, noteFor } from "./scan-parse.js";
 import { aiReady, visionCapable } from "../core/ai.js";
 import { aiSettings, providerOf } from "../core/ai-common.js";
-import { dupNote, loadNear, matchOpenShopping, sameLump, sameReceipt, similarPurchases } from "../stats/dup-check.js";
+import { dupNote, loadNear, matchOpenShopping, sameLumps, sameReceipt, similarPurchases } from "../stats/dup-check.js";
 import { purchasePayFields } from "../bills/card-picker.js";
 import { href } from "../core/router.js";
 import { itemNameOptions } from "../core/item-match.js";
@@ -170,15 +170,16 @@ function rcptDupHtml(hit, mode, mine, drop = new Set()) {
 /** 这张小票以前从银行对账单导成了一整笔：提醒，选「用这张小票替换它」（那一整笔会放进「已被小票替换」归档，统计里不再算，可撤销）或「不是同一笔，都留」。
  *  替换前把两边并排摆出来（商店 / 日期 / 金额），金额差得多时不推荐替换：差额 > max(1 元, 3%) 多半不是同一笔，或者有税 / 小费 / 优惠 / 分开付款 */
 export const lumpGap = (lump, total) => { const diff = Math.abs(num(lump.amount) - total), big = diff > Math.max(1, total * 0.03); return { diff, big }; };
-export function lumpHtml(lump, mode, total) {
+export function lumpHtml(lump, mode, total, all = [lump]) {
   const chip = (k, l, rec) => `<button type="button" class="chip" data-action="scan-lumpmode" data-mode="${k}" aria-pressed="${mode === k}">${esc(t(l))}${rec ? ` <small>（${esc(t("推荐"))}）</small>` : ""}</button>`;
   const { diff, big } = lumpGap(lump, total);
-  const head = t("银行对账单里已经有一笔，和这张小票可能是同一次消费：");
+  const head = all.length > 1 ? t("银行对账单里有 {n} 笔都像这张小票，先选是哪一笔：", { n: all.length }) : t("银行对账单里已经有一笔，和这张小票可能是同一次消费：");
+  const pick = all.length < 2 ? "" : `<div class="chips lump-pick" role="group" aria-label="${esc(t("选对账单里的哪一笔"))}">${all.map((p) => `<button type="button" class="chip" data-action="scan-lumppick" data-id="${esc(p.id)}" aria-pressed="${p.id === lump.id}">${esc(p.store || p.name || "")} · ${esc(fmtShort(p.purchased_at))} · ${esc(Units.money(num(p.amount)))}</button>`).join("")}</div>`;
   const row = (k, a, b, c) => `<tr><th scope="row">${esc(k)}</th><td>${esc(a)}</td><td>${esc(b)}</td><td class="num">${esc(c)}</td></tr>`;
   const cmp = `<table class="lump-cmp"><thead><tr><th></th><th>${esc(t("商店"))}</th><th>${esc(t("日期"))}</th><th class="num">${esc(t("金额"))}</th></tr></thead><tbody>${row(t("对账单那一笔"), lump.store || lump.name || "", fmtShort(lump.purchased_at), Units.money(num(lump.amount)))}${row(t("这张小票"), "", "", Units.money(total))}</tbody></table>`;
   const gap = big ? `<p class="form-error rcpt-lump-gap">${esc(t("金额差 {d}：可能不是同一笔，或者有税 / 小费 / 优惠 / 分开付款。请先核对，不确定就选「都留」。", { d: Units.money(diff) }))}</p>` : diff > 0.004 ? `<p class="muted rcpt-lump-gap">${esc(t("金额差 {d}（税 / 小费 / 优惠的小差额）。", { d: Units.money(diff) }))}</p>` : "";
   const how = mode === "replace" ? t("确认入库后，对账单里那一整笔会放进「已被小票替换」：花费统计里不再算（不会记两遍），对账单页的笔数和合计仍然保留；以后可在 银行导入 → 最近导入 里撤销。") : mode === "keep" ? t("两边都留：整笔和明细都会算进花费（会重复）。") : t("是同一次消费就选「用这张小票替换它」。");
-  return `<p class="dup-hint">⚠ ${esc(head)}</p>${cmp}${gap}<div class="chips" role="group" aria-label="${esc(t("对账单里的整笔怎么处理"))}">${chip("replace", "用这张小票替换它", !big)}${chip("keep", "不是同一笔，都留", big)}</div><p class="muted rcpt-dup-how">${esc(how)}</p>`;
+  return `<p class="dup-hint">⚠ ${esc(head)}</p>${pick}${cmp}${gap}<div class="chips" role="group" aria-label="${esc(t("对账单里的整笔怎么处理"))}">${chip("replace", "用这张小票替换它", !big)}${chip("keep", "不是同一笔，都留", big)}</div><p class="muted rcpt-dup-how">${esc(how)}</p>`;
 }
 /** 每一行和已有花费对一下：疑似别人（或自己）已经记过的，在行下面提醒；返回「勾选了的小票里被提醒的行数」。
  *  已有花费按 日期 + 金额 向数据库查（dup-check.js 的缓存）；还没查过的先按没有算，查回来再标一遍。
@@ -191,10 +192,10 @@ export function markDups(box) {
   const mode = hit ? rc?.dupMode || "" : "", banner = box.querySelector(".rcpt-dup");
   box._rcptDup = hit;
   {   // 对账单里的整笔
-    const total = mine.reduce((s, r) => s + num(r.amount), 0), lump = sameLump({ store, day: date, total, card: purchasePayFields(box.querySelector('[name="pay"]')?.value || "").card_id || "" });
+    const total = mine.reduce((s, r) => s + num(r.amount), 0), lumps = sameLumps({ store, day: date, total, card: purchasePayFields(box.querySelector('[name="pay"]')?.value || "").card_id || "" }), lump = lumps.find((p) => p.id === rc?.lumpId) || lumps[0] || null;   // 候选不止一笔：按用户选的；没选 / 选的不在了就用最像的
     if (rc && !lump) rc.lumpMode = "";
     box._lump = lump; const lb = box.querySelector(".rcpt-lump");
-    if (lb) { const html = lump ? lumpHtml(lump, rc?.lumpMode || "", total) : ""; if (lb.dataset.html !== html) { lb.innerHTML = html; lb.dataset.html = html; } lb.hidden = !lump; }
+    if (lb) { const html = lump ? lumpHtml(lump, rc?.lumpMode || "", total, lumps) : ""; if (lb.dataset.html !== html) { lb.innerHTML = html; lb.dataset.html = html; } lb.hidden = !lump; }
   }
   if (banner) { const html = hit ? rcptDupHtml(hit, mode, mine, rc?.dropSel) : ""; if (banner.dataset.html !== html) { banner.innerHTML = html; banner.dataset.html = html; } banner.hidden = !hit; }
   let n = 0; const taken = new Set();

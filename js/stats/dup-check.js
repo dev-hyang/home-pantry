@@ -3,7 +3,7 @@
  * 已有花费不在浏览器里：要查的那几天（前后各多 4 天）一次读进内存（listPurchasesRange，分页读全），之后每一笔都在内存里比；
  * 记一笔 / 一张小票是一两天，对账单是一个月左右——范围小、数据少，不值得每行问一次数据库。读过的日期段记下来，花费变了清空。 */
 import { memberName } from "../core/logic.js";
-import { findLump } from "./dup-trips.js";
+import { findLumps } from "./dup-trips.js";
 import { state } from "../core/state.js";
 import { Store } from "../core/store.js";
 import { localDay } from "../core/spend-data.js";
@@ -54,10 +54,11 @@ export function nearRows(day, amount) {
     .sort((a, b) => String(b.purchased_at).localeCompare(String(a.purchased_at)) || String(b.id).localeCompare(String(a.id)));
 }
 /** 这张小票（store / day / 合计）以前有没有已经从对账单导成一整笔：同步，只看已经读过的日期段（先 await loadNear） */
-export function sameLump({ store, day, total, card = "" }) {
-  if (!day || !covered(shiftDay(day, -PAD_DAYS), shiftDay(day, PAD_DAYS))) return null;
-  return findLump(POOL, { store, day, total, card });
+export function sameLumps({ store, day, total, card = "" }) {
+  if (!day || !covered(shiftDay(day, -PAD_DAYS), shiftDay(day, PAD_DAYS))) return [];
+  return findLumps(POOL, { store, day, total, card });
 }
+export const sameLump = (c) => sameLumps(c)[0] || null;
 /** 同上，但这段日期还没读过就先读（记账单缴费这类一次性的地方用） */
 export async function sameLumpAsync(c) { await loadNear([{ d: c.day, a: c.total }]); return sameLump(c); }
 /** 已经读进来的花费池（小票 ↔ 整笔流水的比对用；只含已经读过的日期段） */

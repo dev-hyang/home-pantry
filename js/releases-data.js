@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-28.37", title: { zh: "对账单里有好几笔像的，可以自己选是哪一笔", en: "Pick which bank line when several look alike" }, items: [
+    { k: "better", zh: "录小票时，如果银行对账单里有好几笔金额和日期都差不多，现在会列出来让你选是哪一笔，默认选最像的；选哪一笔，替换的就是哪一笔。", en: "When several bank-statement lines look like the same receipt, you can now choose which one to replace; the closest match is preselected." }
+  ] },
   { v: "2026-11-28.36", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
     { k: "better", zh: "整理了发布时的版本号检查；界面和操作都和上一版一样。", en: "Tidied up the release version checks; nothing changes in how the app looks or works." }
   ] },

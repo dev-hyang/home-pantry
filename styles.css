@@ -1489,6 +1489,7 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .lump-cmp th:first-child { width: 28%; } .lump-cmp th:nth-child(3) { width: 20%; } .lump-cmp th:nth-child(4) { width: 24%; }
 .lump-cmp .num { text-align: right; font-variant-numeric: tabular-nums; }
 .rcpt-lump-gap { margin: 0 0 8px; font-size: 13px; }
+.lump-pick { margin: 6px 0; } .lump-pick .chip { max-width: 100%; white-space: normal; text-align: left; }   /* 候选多笔：每笔一个可选项，长商店名换行不撑出横向滚动条 */
 
 
 /* 账单总览：周期性 / 一次性两张入口卡；说明文字 */

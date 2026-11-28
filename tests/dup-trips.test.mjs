@@ -45,7 +45,7 @@ test("已经被逐行对上的花费、银行导入的行、单行小票都不�
   assert.equal(matchTrips([row("r1", "2026-11-13", 87.3, "TARGET")], pool, { used: new Set(["a0"]) }).get("r1"), undefined);
 });
 
-import { findLump } from "../js/stats/dup-trips.js";
+import { findLump, findLumps } from "../js/stats/dup-trips.js";
 const lump = (o = {}) => ({ id: "L", amount: 87.3, store: "Target", name: "Target", import_batch: "b1", purchased_at: at("2026-11-15"), ...o });
 test("反方向：银行导入的整笔 ↔ 这张小票 / 这次缴费", () => {
   const f = (p, c = {}) => findLump([p], { store: "Target", day: "2026-11-12", total: 87.3, ...c });
@@ -128,4 +128,14 @@ test("子集：同一件商品不会配给两笔流水；整单合计对上时�
   assert.equal(m.has("z"), false);   // 只剩 10，第三笔 30 不配
   assert.equal(new Set([...m.get("p").ids, ...m.get("q").ids]).size, 3);   // 同一件不会配给两笔
   assert.equal(matchTrips([row("w", "2026-11-04", 65, "AMAZON A")], pool).get("w").tier, "strong");
+});
+
+test("多个候选：同一天几笔金额差不多，全部返回，最像的在前；findLump 取第一个", () => {
+  const mk = (id, amount, store, d) => ({ id, import_batch: "b1", amount, store, name: store, purchased_at: `${d}T12:00:00Z` });
+  const pool = [mk("far", 87.5, "Target", "2026-11-17"), mk("exact", 87.3, "Target", "2026-11-13"), mk("near", 87.0, "Target", "2026-11-13")];
+  const q = { store: "Target", day: "2026-11-12", total: 87.3 };
+  const all = findLumps(pool, q);
+  assert.equal(all.length, 3); assert.equal(all[0].id, "exact");
+  assert.equal(findLump(pool, q).id, "exact");
+  assert.deepEqual(findLumps([], q), []);
 });
