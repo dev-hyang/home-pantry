@@ -35,3 +35,12 @@ test("确认入库前给每张有订单号的小票的行写指纹；已录过�
   assert.equal(rows[0].key, orderAnchor("112-1111111-1111111"));
   assert.notEqual(rows[0].key, rows[1].key);
 });
+
+test("订单行的指纹 22 位、前 18 位 = 订单组；银行导入的 18 位指纹不是订单行", async () => {
+  const { orderGroup } = await import("../js/pantry/scan-order-key.js");
+  const ks = orderRowKeys("112-5555555-5555555", 3);
+  assert.ok(ks.every((k) => k.length === 22 && /^[a-z0-9]+$/.test(k)));
+  assert.equal(new Set(ks.map(orderGroup)).size, 1);
+  assert.equal(orderGroup("abcdefgh1234567890"), null);
+  assert.equal(orderGroup(null), null);
+});

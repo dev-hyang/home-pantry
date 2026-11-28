@@ -6,6 +6,7 @@
  *  · 日期：流水入账日通常比消费日晚 0–5 天（pending），极少更早：窗口 −2 … +7 天；超出 ±3.5 天的，必须合计强 + 商店对上才算
  * 一张小票只配一笔流水，一笔流水只配一张小票（按得分从高到低配）。
  * 强 = 默认不导入（可以改成仍然导入）；中 = 照常导入，只提醒「可能已按小票记录」。纯函数，不碰页面。 */
+import { orderGroup } from "../pantry/scan-order-key.js";
 const DAY = 864e5;
 const cents = (v) => Math.round((Number(v) || 0) * 100);
 const norm = (s) => String(s ?? "").replace(/【[^】]*】/g, "").toLowerCase().replace(/[\s\p{P}\p{S}\d]+/gu, "");
@@ -17,12 +18,12 @@ const dayNum = (d) => Date.parse(`${String(d).slice(0, 10)}T12:00:00Z`) / DAY;
 /** 已有花费按「谁记的 + 商店 + 消费日 + 录入时间（相隔 10 分钟内算同一次）」分成一批批：
  *  一次拍几张小票会在几分钟内一起录入，所以不同商店 / 不同日期的要先分开，不然几张小票会并成一批，合计就对不上了 */
 export function receiptBatches(rows) {
-  const key = (p) => `${p.created_by}|${norm(p.store)}|${localDay(p.purchased_at)}`;
+  const key = (p) => { const g = orderGroup(p.import_key); return g ? `order|${g}` : `${p.created_by}|${norm(p.store)}|${localDay(p.purchased_at)}`; };   // 线上订单导入的行（指纹里带订单组）：同一个订单一批，不管几点录的，也不和同一天的别的订单混
   const s = [...rows].sort((a, b) => key(a).localeCompare(key(b)) || String(a.created_at).localeCompare(String(b.created_at)));
   const out = [];
   for (const p of s) {
     const last = out.at(-1), prev = last?.at(-1);
-    if (prev && key(prev) === key(p) && (!p.created_at || !prev.created_at || new Date(p.created_at) - new Date(prev.created_at) <= 10 * 60 * 1000)) last.push(p);
+    if (prev && key(prev) === key(p) && (key(p).startsWith("order|") || !p.created_at || !prev.created_at || new Date(p.created_at) - new Date(prev.created_at) <= 10 * 60 * 1000)) last.push(p);
     else out.push([p]);
   }
   return out;
@@ -31,7 +32,7 @@ function describe(b) {
   const stores = {}; for (const p of b) { const s = String(p.store || "").trim(); if (s) stores[s] = (stores[s] || 0) + 1; }
   const store = Object.entries(stores).sort((x, y) => y[1] - x[1])[0]?.[0] || "";
   const day = b.map((p) => localDay(p.purchased_at)).sort()[0];
-  return { ids: b.map((p) => p.id), n: b.length, total: b.reduce((s, p) => s + cents(p.amount), 0), store, day, cards: new Set(b.map((p) => p.card_id).filter(Boolean)), cash: b.every((p) => !p.card_id && p.method) };
+  return { order: !!orderGroup(b[0]?.import_key), ids: b.map((p) => p.id), n: b.length, total: b.reduce((s, p) => s + cents(p.amount), 0), store, day, cards: new Set(b.map((p) => p.card_id).filter(Boolean)), cash: b.every((p) => !p.card_id && p.method) };
 }
 
 /** 反方向：这张小票（或这次账单缴费）以前是不是已经从对账单导入成了一整笔？
@@ -82,5 +83,25 @@ export function matchTrips(rows, pool, { card = "", used = new Set() } = {}) {
     const b = batches[p.bi];
     out.set(rows[p.ri].fk, { tier: p.tier, n: b.n, total: b.total / 100, store: b.store, day: b.day, ids: b.ids, diff: p.diff / 100, score: p.score });
   }
+  matchSplits(rows, batches, { card, rowUsed, batchUsed, out });
   return out;
+}
+
+/** 分批发货：一个线上订单在流水里是 2–3 笔（每次发货扣一次），合计 = 订单合计。只对「线上订单导入」的订单、且商店对上、且这几笔都还没配上别的小票时才配；
+ *  配上的每一笔都标成强（默认不导入），并带上 split = 这个订单在流水里共几笔。候选最多取 12 笔，防止组合太多。 */
+function matchSplits(rows, batches, { card, rowUsed, batchUsed, out }) {
+  batches.forEach((b, bi) => {
+    if (!b.order || batchUsed.has(bi) || (card && b.cards.size && !b.cards.has(card))) return;
+    const tol = Math.max(50, Math.round(b.total * 0.01));
+    const cand = rows.map((r, ri) => ({ r, ri, c: cents(r.out), gap: dayNum(r.date) - dayNum(b.day) }))
+      .filter((x) => !rowUsed.has(x.ri) && x.c > 0 && x.c < b.total && x.gap >= -2 && x.gap <= 14 && (x.r.texts || []).some((tx) => storeClose(tx, b.store))).slice(0, 12);
+    let hit = null;
+    for (let i = 0; i < cand.length && !hit; i++) for (let j = i + 1; j < cand.length && !hit; j++) {
+      if (Math.abs(cand[i].c + cand[j].c - b.total) <= tol) hit = [cand[i], cand[j]];
+      else for (let k = j + 1; k < cand.length && !hit; k++) if (Math.abs(cand[i].c + cand[j].c + cand[k].c - b.total) <= tol) hit = [cand[i], cand[j], cand[k]];
+    }
+    if (!hit) return;
+    batchUsed.add(bi);
+    for (const x of hit) { rowUsed.add(x.ri); out.set(rows[x.ri].fk, { tier: "strong", split: hit.length, n: b.n, total: b.total / 100, store: b.store, day: b.day, ids: b.ids, diff: Math.abs(hit.reduce((s, y) => s + y.c, 0) - b.total) / 100, score: 8 }); }
+  });
 }

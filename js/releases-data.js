@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.23", title: { zh: "订单和对账单：分批发货也认得出来", en: "Orders and statements: split shipments are recognised" }, items: [
+    { k: "new", zh: "线上订单录入过的，对账单里对应的整笔会认出来并默认跳过；同一天的几个订单不会混在一起。", en: "Statement rows that match an online order you recorded are recognised and skipped by default; several orders on the same day are no longer mixed up." },
+    { k: "new", zh: "一个订单分几次发货、信用卡上扣了 2–3 笔，合计和订单一样时，这几笔都会认成已记录（商店名要对上）。", en: "When one order was charged in 2–3 parts that add up to the order total, all of those charges are recognised as already recorded (the store name must match)." },
+  ] },
   { v: "2026-11-27.22", title: { zh: "对账单导入：先告诉你和哪几批重叠", en: "Statement import: tells you which batches it overlaps" }, items: [
     { k: "new", zh: "导入前会提示这份文件和哪几批已导入的批次重叠（同一个账户），写出这份里有几笔已经记录过、会自动跳过。", en: "Before importing, it shows which already-imported batches (same account) this file overlaps and how many of its rows are already recorded and will be skipped." },
     { k: "better", zh: "季度对账单没选账户时，会提醒选好账户再导入，防重更准。", en: "For a quarterly statement with no account selected, it reminds you to pick the account for more accurate de-duplication." },

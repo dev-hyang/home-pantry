@@ -66,3 +66,45 @@ test("一次拍几张小票（同一个人、几分钟内录入）：不同商�
   assert.equal(m.get("r1").tier, "strong"); assert.equal(m.get("r1").n, 4); assert.equal(m.get("r2").tier, "strong");
   assert.equal(receiptBatches([...receipt("a", "2026-11-23", "ALDI", [1, 2]), ...receipt("b", "2026-11-24", "ALDI", [3, 4])]).length, 2);
 });
+
+/* ── 线上订单（指纹带订单组）──────────────────────── */
+import { orderRowKeys } from "../js/pantry/scan-order-key.js";
+const order = (ref, day, store, amounts, extra = {}) => orderRowKeys(ref, amounts.length).map((k, i) => ({ id: `${ref}-${i}`, name: `item${i}`, amount: amounts[i], store, purchased_at: at(day), created_at: at(day, i), created_by: "u1", import_key: k, ...extra }));
+
+test("同一天两个订单：按订单号分开成两批，不会并成一批", () => {
+  const pool = [...order("112-1111111-1111111", "2026-11-02", "Amazon", [10, 5]), ...order("112-2222222-2222222", "2026-11-02", "Amazon", [20, 8])];
+  const b = receiptBatches(pool);
+  assert.equal(b.length, 2);
+  assert.deepEqual(b.map((x) => x.length), [2, 2]);
+});
+
+test("两个订单各对上流水里的一整笔（同一天、同商店）", () => {
+  const pool = [...order("112-1111111-1111111", "2026-11-02", "Amazon", [10, 5]), ...order("112-2222222-2222222", "2026-11-02", "Amazon", [20, 8])];
+  const rows = [row("a", "2026-11-03", 28, "AMAZON MKTPL*AB12"), row("b", "2026-11-03", 15, "AMAZON.COM*XY99")];
+  const m = matchTrips(rows, pool);
+  assert.equal(m.get("a").total, 28);
+  assert.equal(m.get("b").total, 15);
+  assert.equal(m.get("a").tier, "strong");
+});
+
+test("分批发货：一个订单在流水里是两笔，合计 = 订单合计，两笔都认成已记录", () => {
+  const pool = order("112-3333333-3333333", "2026-11-02", "Amazon", [30, 20, 10]);   // 合计 60
+  const rows = [row("s1", "2026-11-03", 35, "AMAZON MKTPL*A"), row("s2", "2026-11-06", 25, "AMAZON MKTPL*B"), row("x", "2026-11-04", 9.99, "NETFLIX")];
+  const m = matchTrips(rows, pool);
+  assert.equal(m.get("s1").split, 2);
+  assert.equal(m.get("s2").split, 2);
+  assert.equal(m.get("s1").tier, "strong");
+  assert.equal(m.has("x"), false);
+});
+
+test("分批发货必须商店也对上：金额凑巧加起来相等但商店不对 = 不配", () => {
+  const pool = order("112-4444444-4444444", "2026-11-02", "Amazon", [30, 30]);
+  const rows = [row("p", "2026-11-03", 35, "SHELL OIL"), row("q", "2026-11-04", 25, "WHOLE FOODS")];
+  assert.equal(matchTrips(rows, pool).size, 0);
+});
+
+test("不是订单导入的小票不走分批发货（只有整笔对整笔）", () => {
+  const pool = receipt("r", "2026-11-02", "Target", [30, 30]);
+  const rows = [row("p", "2026-11-03", 35, "TARGET 0001"), row("q", "2026-11-04", 25, "TARGET 0001")];
+  assert.equal(matchTrips(rows, pool).size, 0);
+});

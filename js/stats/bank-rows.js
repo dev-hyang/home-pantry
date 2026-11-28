@@ -116,7 +116,8 @@ export function rebuild() {
   const trips = matchTrips(rows.filter((r) => !r.skip && !r.inc && !r.dup && r.out > 0).map((r) => ({ fk: r.fk, date: r.date, out: r.out, texts: [r.desc, merchantName(r.desc)] })), poolRows(), { card: cardId, used });
   for (const r of rows) {
     const m = trips.get(r.fk); if (!m) continue;
-    const label = t("小票：{s} · {n} 项 · 合计 {a}（{d}）", { s: m.store || t("商店未填"), n: m.n, a: money(m.total), d: m.day });
+    let label = t("小票：{s} · {n} 项 · 合计 {a}（{d}）", { s: m.store || t("商店未填"), n: m.n, a: money(m.total), d: m.day });
+    if (m.split) label += t("（分批发货，流水里共 {k} 笔）", { k: m.split });
     if (m.tier === "strong") { r.dupOf = label; if (S.force.has(r.fk)) r.forced = true; else r.dup = true; } else r.tripWeak = label;
   }
   // 账单缴费 ↔ 流水：拿缴费记录（不管有没有写花费；医疗等一次性账单、房贷车贷的整笔也在内）比：金额一样 + 收款方或日期近 = 强，金额差一点 + 收款方对上 = 中（dup-bills.js）
