@@ -2,6 +2,11 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-28.33", title: { zh: "确认入库的按钮条和表单同宽；下拉框在屏幕上下都放不下时自动缩高", en: "Action bar matches the form width; dropdowns shrink to fit the screen" }, items: [
+    { k: "fix", zh: "电脑上，扫描结果页底部的「返回重来 / 确认入库」按钮条比表单两边各宽出一截，现在和表单一样宽。", en: "On a laptop, the bottom bar with Back and Confirm was wider than the form; it now lines up with it." },
+    { k: "better", zh: "下拉选项和「筛选」面板往下放不下时，会选上面或下面空间大的一边，并把框高缩到刚好放得下，选项多时框内出滚动条。", en: "Dropdowns and the filter panel now open toward the side with more room and shrink to fit, scrolling inside when there are many options." },
+    { k: "fix", zh: "订单 JSON 导入后，「放进库存」下拉里现在能选到已有物品了（之前只有“新建物品”和“只记花费”）。", en: "After importing order JSON, the stock dropdown now lists your existing items (it used to offer only New item and Spend only)." },
+  ] },
   { v: "2026-11-28.32", title: { zh: "补录以前的购物：入库按购买那天算", en: "Back-dated purchases are stocked on the day you bought them" }, items: [
     { k: "better", zh: "补录以前的小票或订单时，新建的物品和入库记录按购买日期算，不再显示成“今天刚入库”。今天的购物不受影响。", en: "When you enter an older receipt or order, new items and stock-in records now use the purchase date instead of today. Today's purchases are unchanged." }
   ] },

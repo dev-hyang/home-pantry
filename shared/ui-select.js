@@ -75,6 +75,18 @@ function filter(box) {
   if (!any) list.insertAdjacentHTML("beforeend", `<div class="ssel-empty muted">${esc(t("没有匹配的选项"))}</div>`);
   if (q) { const first = list.querySelector(".ssel-opt:not([hidden]):not(.is-off)"); if (first) first.classList.add("is-hl"); }
 }
+/** 列表放哪边、多高：下面放不下就看上面哪边空间大；都放不下就把框高缩到那一边的剩余高度（框内出滚动条）。避开贴底按钮条和顶栏。 */
+function placeList(box, list) {
+  list.style.maxHeight = ""; box.classList.remove("is-up");
+  if (getComputedStyle(list).position !== "absolute") return;   // 手机的底部面板自己管高度
+  const b = box.getBoundingClientRect(), H = window.innerHeight;
+  const bar = document.querySelector(".ui-formbar[data-variant='edit'], .ui-formbar[data-variant='wizard'], .sticky-actions"), top = document.querySelector(".topbar");
+  const barTop = bar ? bar.getBoundingClientRect().top : H, topBot = top && getComputedStyle(top).position !== "static" ? top.getBoundingClientRect().bottom : 0;
+  const below = (barTop > b.bottom ? Math.min(H, barTop) : H) - b.bottom - 10, above = b.top - Math.max(topBot, 0) - 10, h = list.offsetHeight;
+  const up = h > below && above > below, room = Math.max(96, Math.floor(up ? above : below));
+  box.classList.toggle("is-up", up);
+  if (h > room) list.style.maxHeight = room + "px";
+}
 function open(box) {
   if (openBox && openBox !== box) close(openBox);
   const inp = box.querySelector(".ssel-in"), list = box.querySelector(".ssel-list");
@@ -86,7 +98,7 @@ function open(box) {
   const cur = list.querySelector(".ssel-opt.is-cur"); if (cur) list.scrollTop = Math.max(0, cur.offsetTop - (list.clientHeight - cur.offsetHeight) / 2);
   box.classList.remove("is-right"); let r = list.getBoundingClientRect();
   if (r.right > window.innerWidth - 8) { box.classList.add("is-right"); r = list.getBoundingClientRect(); }   // 列表比输入框宽、伸出了右边：改成右对齐
-  box.classList.toggle("is-up", r.bottom > window.innerHeight - 8 && r.top > r.height + 8);
+  placeList(box, list);
 }
 function close(box) {
   const inp = box.querySelector(".ssel-in");

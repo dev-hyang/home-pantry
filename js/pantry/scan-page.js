@@ -1,4 +1,5 @@
 /* 录入购物：手动添加（和拍照识别同一张确认表）和页面。 */
+import { state } from "../core/state.js";
 import { numAttrs } from "../core/ui-num.js";
 import { $, esc, fmt, fmtShort, num, spaceOf, todayISO } from "../core/util.js";
 import { FEES_CAT, buildPool, noteFor } from "./scan-parse.js";
@@ -83,7 +84,8 @@ function inputHtml() {
 }
 function targetOptions(row) {
   const man = !!sc.result?.manual, lockSpend = man && sc.record === "spend", lockStock = man && sc.record === "stock", skipSel = row.match === "skip" || lockSpend;   // 手动添加：只记花费 → 一律「只记花费，不入库」；只入库 → 不能选「只记花费」
-  const items = sc.pool, name = (i) => `${esc(i.name)}（${esc(t(i.unit || ""))}）`;
+  // 直接读库存：sc.pool 只在跑 AI / 手动添加时才建，JSON 导入不会建，下拉就只剩两项
+  const items = state.items.filter((i) => spaceOf(i.category) !== "gear"), name = (i) => `${esc(i.name)}（${esc(t(i.unit || ""))}）`;
   const grp = (space, label) => { const l = items.filter((i) => spaceOf(i.category) === space); return l.length ? `<optgroup label="${t(label)}">${l.map((i) => `<option value="${i.id}" ${row.match === i.id ? "selected" : ""}>${name(i)}</option>`).join("")}</optgroup>` : ""; };
   return `<option value="__skip" ${skipSel ? "selected" : ""} ${lockStock ? "disabled" : ""}>${t("只记花费，不入库")}</option>
     <option value="__new" ${!row.match && !skipSel ? "selected" : ""}>＋ ${t("新建物品")}</option>

@@ -41,6 +41,18 @@ let styled = false;
 const isChanged = (s) => (s.hasAttribute("data-default") ? s.value !== s.dataset.default : s.selectedIndex > 0);
 const activeCount = (panel) => [...panel.querySelectorAll("select")].filter((s) => !/sort|order/i.test(s.id || s.name || "") && !s.hasAttribute("data-nocount") && isChanged(s)).length;
 
+/** 面板放哪边、多高：下面放不下就看上面哪边空间大；都放不下就缩到那一边的剩余高度（面板内出滚动条）。只在面板是浮层（absolute）时才处理，行内展开的不管 */
+function placePanel(panel) {
+  panel.style.maxHeight = panel.style.overflowY = panel.style.top = panel.style.bottom = "";
+  if (!panel.classList.contains("open") || getComputedStyle(panel).position !== "absolute") return;
+  const tb = panel.parentElement.getBoundingClientRect(), H = window.innerHeight, tabs = document.querySelector(".tabs");
+  const tabTop = tabs && getComputedStyle(tabs).position === "fixed" ? tabs.getBoundingClientRect().top : H;
+  const below = Math.min(H, tabTop) - tb.bottom - 10, above = tb.top - 10, h = panel.offsetHeight;
+  const up = h > below && above > below, room = Math.max(120, Math.floor(up ? above : below));
+  if (up) { panel.style.top = "auto"; panel.style.bottom = "calc(100% + 4px)"; }
+  if (h > room) { panel.style.maxHeight = room + "px"; panel.style.overflowY = "auto"; }
+}
+
 export function initCompactFilters({ root = document.body, ui = () => "zh", selector = ".toolbar" } = {}) {
   if (!styled) { const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st); styled = true; }
   const label = () => TEXT[ui()] || TEXT.zh;
@@ -66,7 +78,7 @@ export function initCompactFilters({ root = document.body, ui = () => "zh", sele
     btn.innerHTML = `${label()}<span class="tb-count" hidden>0</span>`;
     const search = tb.querySelector(":scope > input") || tb.querySelector(":scope > label:has(> input[type=search])"); (search ? search.after(btn) : tb.prepend(btn));   // 搜索框可能包在 label 里（商店页）：按钮放它后面
     tb.appendChild(panel); tb.classList.add("tb-on");
-    if (Date.now() - keepOpen < 2000) { panel.classList.add("open"); btn.setAttribute("aria-expanded", "true"); }
+    if (Date.now() - keepOpen < 2000) { panel.classList.add("open"); btn.setAttribute("aria-expanded", "true"); requestAnimationFrame(() => placePanel(panel)); }
     refresh(tb);
   };
   const scan = () => root.querySelectorAll(selector).forEach(setup);
@@ -75,7 +87,7 @@ export function initCompactFilters({ root = document.body, ui = () => "zh", sele
   root.addEventListener("click", (e) => {
     if (e.target.closest?.(".tb-head .clear-filters")) keepOpen = Date.now();   // 点清除：页面重画后面板保持打开，能马上看到已恢复默认
     const btn = e.target.closest?.(".tb-toggle");
-    if (btn) { const panel = document.getElementById(btn.getAttribute("aria-controls")); const open = !panel.classList.contains("open"); panel.classList.toggle("open", open); btn.setAttribute("aria-expanded", String(open)); return; }
+    if (btn) { const panel = document.getElementById(btn.getAttribute("aria-controls")); const open = !panel.classList.contains("open"); panel.classList.toggle("open", open); btn.setAttribute("aria-expanded", String(open)); placePanel(panel); return; }
     // 点面板外：收起
     root.querySelectorAll(".tb-panel.open").forEach((p) => { if (!p.contains(e.target)) { p.classList.remove("open"); document.querySelector(`[aria-controls="${p.id}"]`)?.setAttribute("aria-expanded", "false"); } });
   });
