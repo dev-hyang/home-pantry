@@ -12,6 +12,7 @@ import { cloudPantry } from "./store/cloud-pantry.js";
 import { cloudPeople } from "./store/cloud-people.js";
 import { cloudShops } from "./store/cloud-shops.js";
 import { cloudSpend } from "./store/cloud-spend.js";
+import { cloudSuperseded } from "./store/cloud-superseded.js";
 import { demoBills } from "./store/demo-bills.js";
 import { demoFinance } from "./store/demo-finance.js";
 import { demoHouse } from "./store/demo-house.js";
@@ -19,6 +20,7 @@ import { demoPantry } from "./store/demo-pantry.js";
 import { demoPeople } from "./store/demo-people.js";
 import { demoShops } from "./store/demo-shops.js";
 import { demoSpend } from "./store/demo-spend.js";
+import { demoSuperseded } from "./store/demo-superseded.js";
 import { seedDemo } from "./store/seed-demo.js";
 
 /* 成员资料（迁移 052）：只在 设置 → 家庭与成员 里用，不进 AI 提示词、不进备份（个人数据，只给本家庭看） */
@@ -33,7 +35,7 @@ export const DemoStore = {
     const db = this.db;
     // 2026-11 表改名（迁移 074）：旧演示库 / 旧演示备份里的 bills、bill_payments、medical_bills、medical_payments 换成新键 bills_recurring、bills_recurring_payments、bills_one_time、bills_one_time_payments
     for (const [from, to] of [["bills", "bills_recurring"], ["bill_payments", "bills_recurring_payments"], ["medical_bills", "bills_one_time"], ["medical_payments", "bills_one_time_payments"]]) if (db[from] && !db[to]) { db[to] = db[from]; delete db[from]; }
-    db.purchases ||= []; db.assets ||= []; db.maint_logs ||= []; db.seasonal ||= [];
+    db.purchases ||= []; db.purchases_superseded ||= []; db.assets ||= []; db.maint_logs ||= []; db.seasonal ||= [];
     db.bills_recurring ||= []; db.bills_recurring_payments ||= []; db.bills_one_time ||= []; db.bills_one_time_payments ||= []; db.people ||= []; db.income_records ||= []; db.income_repayments ||= [];
     // 多房产：没有房产的旧演示库补一条默认房产，并把房屋资料 / 设备 / 季节任务挂上去
     if (!Array.isArray(db.properties) || !db.properties.length) {
@@ -61,7 +63,7 @@ export const DemoStore = {
   reset() { this.db = Object.assign(seedDemo(), { _cat063: true, _cat064: true }); this.load(); },
 
 };
-Object.assign(DemoStore, demoPantry, demoShops, demoSpend, demoHouse, demoBills, demoFinance, demoPeople);
+Object.assign(DemoStore, demoPantry, demoShops, demoSpend, demoSuperseded, demoHouse, demoBills, demoFinance, demoPeople);
 /* ───────────── 数据层：Supabase 云端 ───────────── */
 export const ITEM_FIELDS = ["name", "category", "subcategory", "unit", "quantity", "min_quantity", "location", "expiry_date", "lead_days", "avg_daily_use", "notes", "asset_ids", "property_id", "owner_asset_id"];
 export const ASSET_FIELDS = ["property_id", "kind", "type", "name", "location", "brand", "model", "serial", "installed_on", "manufacture_year", "warranty_until", "labor_warranty_until",
@@ -250,7 +252,7 @@ export const CloudStore = {
     this.channel = ch.subscribe();
   },
 };
-Object.assign(CloudStore, cloudPantry, cloudShops, cloudSpend, cloudHouse, cloudBills, cloudFinance, cloudPeople);
+Object.assign(CloudStore, cloudPantry, cloudShops, cloudSpend, cloudSuperseded, cloudHouse, cloudBills, cloudFinance, cloudPeople);
    // 方法按领域分在 core/store/ 下，this 仍然是 CloudStore
 
 export let Store = DemoStore;

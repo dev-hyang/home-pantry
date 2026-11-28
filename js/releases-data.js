@@ -2,6 +2,12 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-28.35", title: { zh: "用小票替换对账单整笔：可撤销，对账单页数字不变", en: "Replacing a bank line with a receipt is now undoable" }, items: [
+    { k: "new", zh: "用小票替换对账单里的整笔时，那一笔不再直接删掉，而是放进「已被小票替换」：花费统计里不再算（不会重复），对账单页的笔数和合计仍然保留，方便核对。", en: "Replacing a bank-statement line with a receipt no longer deletes it: it is set aside, so spending totals do not double count, while the import page keeps its counts for reconciling." },
+    { k: "new", zh: "银行导入 → 最近导入里能看到被替换的笔数，点开可以逐笔「撤销替换」。重新导入同一份对账单也不会把它们又加回来。", en: "Bank import → Recent imports shows how many were replaced and lets you undo each one. Re-importing the same statement will not add them back." },
+    { k: "better", zh: "替换前会把对账单那一笔和这张小票并排对比（商店、日期、金额）；金额差得多时不再推荐替换。", en: "Before replacing, the bank line and the receipt are shown side by side; a large difference is no longer recommended for replacing." },
+    { k: "better", zh: "需要先在数据库执行 114 号升级脚本；没执行之前，替换仍然是直接删除，并会提醒。", en: "Database upgrade 114 must be run first; until then replacing still deletes the line, with a warning." }
+  ] },
   { v: "2026-11-28.34", title: { zh: "导入对账单：认出只扣了订单里一部分的那笔", en: "Bank import spots charges for only part of an order" }, items: [
     { k: "better", zh: "先录了 Amazon 订单、再导入对账单时，如果银行只扣了订单里的某几件（取消、退款或分开扣款），现在会提醒“可能已按订单记录”，并写明是订单里的几项。", en: "If you logged an Amazon order first and the bank charged only some of its items (cancelled, refunded or split), the import now warns it may already be recorded and says how many items." },
     { k: "better", zh: "这类提醒只提示、不会默认跳过，仍由你决定导不导入。", en: "These are warnings only; nothing is skipped automatically." }

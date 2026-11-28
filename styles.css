@@ -1481,6 +1481,15 @@ input.af-guess, select.af-guess, textarea.af-guess { background: var(--low-bg); 
 .scan-mode { display: grid; gap: 6px; margin-top: 4px; }
 .scan-rcpt { border: 1px solid var(--line); }
 .scan-rcpt > legend { padding: 0 6px; font-size: 14px; }
+/* 小票 ↔ 对账单整笔：替换前并排对比（对账单那一笔 / 这张小票）。手机上也是 4 列，靠 table-layout: fixed + 允许换行不撑出横向滚动条 */
+.lump-cmp { width: 100%; table-layout: fixed; border-collapse: collapse; margin: 6px 0 8px; font-size: 13px; }
+.lump-cmp th, .lump-cmp td { padding: 6px 6px; border-bottom: 1px dashed var(--line); text-align: left; font-weight: 400; overflow-wrap: anywhere; vertical-align: top; }
+.lump-cmp thead th { color: var(--muted); font-size: 12px; }
+.lump-cmp tbody th { font-weight: 700; }
+.lump-cmp th:first-child { width: 28%; } .lump-cmp th:nth-child(3) { width: 20%; } .lump-cmp th:nth-child(4) { width: 24%; }
+.lump-cmp .num { text-align: right; font-variant-numeric: tabular-nums; }
+.rcpt-lump-gap { margin: 0 0 8px; font-size: 13px; }
+
 
 /* 账单总览：周期性 / 一次性两张入口卡；说明文字 */
 .kinds-note { margin: 0 0 12px; font-size: 13px; line-height: 1.55; }
@@ -2365,6 +2374,12 @@ html.force-phone .today-layout { grid-template-columns: minmax(0, 1fr); }
 .bank-batches > li > .grow { flex: 1 1 260px; min-width: 0; }
 .bank-batches small { display: block; overflow-wrap: anywhere; }
 .bank-batch-stats { font-variant-numeric: tabular-nums; color: var(--ink); }
+/* 被小票替换的对账单整笔：一行说明 + 点开的清单（每条一个「撤销替换」）；按钮 ≥44px 点按区域靠 ui-btn 自带 */
+.bank-sup { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 4px; }
+.bank-sup-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.bank-sup-list li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px dashed var(--line); }
+.bank-sup-list .grow { min-width: 0; overflow-wrap: anywhere; }
+
 .bank-batch-acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 .bank-batch-count { font-size: 12.5px; margin: 8px 0 0; text-align: center; }
 @media (max-width: 640px) { .bank-batch-acts { justify-content: flex-start; width: 100%; } }

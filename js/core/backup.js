@@ -23,7 +23,7 @@ export const PROVIDERS = [
 const OLD_NAME = { bills_recurring: "bills", bills_recurring_payments: "bill_payments", bills_one_time: "medical_bills", bills_one_time_payments: "medical_payments" };
 const tableRows = (data, tb) => data.tables?.[tb] || data.tables?.[OLD_NAME[tb]] || [];
 export const TABLES = ["properties", "house_profiles", "custom_categories", "custom_locations", "custom_terms", "custom_seasonal_tasks", "seasonal_tasks", "assets", "items", "item_aliases", "stock_logs", "shopping_list",
-  "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "household_people", "cards", "purchases", "maintenance_logs", "bills_recurring", "bills_recurring_payments", "bills_recurring_assessments", "bills_recurring_assessment_items", "bills_one_time", "bills_one_time_payments", "income_records", "income_repayments",
+  "property_deals", "deal_task_done", "deal_task_overrides", "deal_custom_tasks", "deal_events", "household_people", "cards", "purchases", "purchases_superseded", "maintenance_logs", "bills_recurring", "bills_recurring_payments", "bills_recurring_assessments", "bills_recurring_assessment_items", "bills_one_time", "bills_one_time_payments", "income_records", "income_repayments",
   "member_incomes", "household_budgets",
   // 迁移 058：价格旁表（只有财务权限能读；备份本来就只给有财务权限的人）、借贷。bills.debt_id 引用 debt_accounts：bills 先不带 debt_id 写，借贷写完再补
   "property_financials", "deal_financials", "asset_financials", "debt_accounts", "debt_transactions",

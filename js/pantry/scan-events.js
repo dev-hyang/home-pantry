@@ -186,7 +186,7 @@ async function confirm(ctx) {
   });
   if (dupRows && !sc.dupAck) { sc.dupAck = true; sc.error = t("有 {n} 行疑似已经记过（见各行下面的提醒）。确认不是重复的，再点一次“确认入库”；是重复的就取消勾选那一行。", { n: dupRows }); return repaint2(); }
   sc.dupAck = false; sc.busy = true; sc.error = ""; repaint2();
-  let stocked = 0, spendOnly = 0, created = 0, cartDone = 0, fixed = 0; const warns = [], convs = [], newItems = new Map(), doneShop = new Set();
+  let stocked = 0, spendOnly = 0, created = 0, cartDone = 0, fixed = 0, lumpArchived = null; const madeIds = []; const warns = [], convs = [], newItems = new Map(), doneShop = new Set();
   try {
     // 先建新物品（同名同分类合并成一条，几张小票的也合并）：这一步失败时还没写任何花费和库存，可以直接重试
     for (const x of rows.filter((r) => r.target === "__new" && !r.replace)) {
@@ -206,6 +206,7 @@ async function confirm(ctx) {
       const item = x.target.startsWith("__") ? null : state.items.find((i) => i.id === x.target);
       let purchaseId = null;
       if (!stockOnly) purchaseId = await addKeyed({ item_id: item?.id || null, name: x.name, category: x.fee ? FEES_CAT : item?.category || (x.target === "__new" ? x.cat : x.spendCat || "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay, ...(x.key ? { import_key: x.key } : {}) });
+      if (purchaseId) madeIds.push(purchaseId);
       const cart = x.fee || x.qty < 0 ? null : matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 购物车里对应的那一项：不管入不入库，买到了就标成已买到
       if (cart) { doneShop.add(cart.id); cartDone++; await Store.saveShopping({ id: cart.id, status: "bought", bought_at: x.now, amount: x.amount, claimed_by_name: cart.claimed_by_name || myName() }); }
       if (x.target === "__skip") { spendOnly++; continue; }
@@ -219,10 +220,10 @@ async function confirm(ctx) {
       }
     }
     if (dropIds.length) await Store.deletePurchases(dropIds);
-    if (lumpIds.length) await Store.deletePurchases(lumpIds);   // 用小票替换了对账单里的整笔
+    if (lumpIds.length) lumpArchived = await Store.supersedePurchases(lumpIds, madeIds);   // 用小票替换了对账单里的整笔：搬进归档（统计里不再算，对账单页仍保留，可撤销）；没执行迁移 114 时退回直接删除
     if (fixed || dropIds.length || lumpIds.length) spendChanged();
     for (const s of new Set(rows.map((x) => x.store).filter(Boolean))) rememberStore(s);
-    toast((boxes.length > 1 ? t("已录入 {r} 张小票：", { r: boxes.length }) : t("已录入：")) + t("入库 {a} 项，新建 {b} 项，只记花费 {c} 项", { a: stocked, b: created, c: spendOnly }) + (fixed ? t("；更正了之前录的 {n} 项", { n: fixed }) : "") + (dropIds.length ? t("，删掉 {m} 项", { m: dropIds.length }) : "") + (cartDone ? t("；购物车 {n} 项已标成已买到", { n: cartDone }) : "") + (convs.length ? t("；已换算单位：{list}", { list: convs.join("、") }) : "") + (warns.length ? t("；{names} 的单位无法换算，按原数字记入了，请核对库存", { names: warns.join("、") }) : ""));
+    toast((boxes.length > 1 ? t("已录入 {r} 张小票：", { r: boxes.length }) : t("已录入：")) + t("入库 {a} 项，新建 {b} 项，只记花费 {c} 项", { a: stocked, b: created, c: spendOnly }) + (fixed ? t("；更正了之前录的 {n} 项", { n: fixed }) : "") + (dropIds.length ? t("，删掉 {m} 项", { m: dropIds.length }) : "") + (lumpArchived ? (lumpArchived.archived ? t("；对账单里的 {n} 笔整笔已放进「已被小票替换」，可在 银行导入 → 最近导入 里撤销", { n: lumpArchived.n }) : t("；注意：还没执行迁移 114，对账单里的 {n} 笔整笔已直接删除，不能撤销", { n: lumpArchived.n })) : "") + (cartDone ? t("；购物车 {n} 项已标成已买到", { n: cartDone }) : "") + (convs.length ? t("；已换算单位：{list}", { list: convs.join("、") }) : "") + (warns.length ? t("；{names} 的单位无法换算，按原数字记入了，请核对库存", { names: warns.join("、") }) : ""));
     resetScan(); ctx.go(href("shopping")); ctx.refresh();
   } catch (e) { sc.busy = false; sc.error = t("入库中途失败：{msg}。已写入的部分请回到库存和统计核对，不要直接重复提交。", { msg: e.message }); repaint2(); }
 }

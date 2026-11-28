@@ -167,12 +167,18 @@ function rcptDupHtml(hit, mode, mine, drop = new Set()) {
     : t("是同一张小票就选「以这次为准」，会更正那次的金额，不会记两遍。");
   return `<p class="dup-hint">⚠ ${esc(head)}</p><div class="chips" role="group" aria-label="${esc(t("这张小票怎么处理"))}">${chip("replace", "以这次为准，更新那次")}${chip("keep", "不是同一张，两次都留")}</div><p class="muted rcpt-dup-how">${esc(how)}</p>${mode === "replace" && extra.length ? `<ul class="rcpt-dup-extra">${extra.map((p) => `<li><label class="check-inline"><input type="checkbox" data-drop-id="${esc(p.id)}" ${drop.has(p.id) ? "checked" : ""}><span>${t("删掉")}「${esc(p.name)}」<span class="muted">${esc(Units.money(num(p.amount)))}</span></span></label></li>`).join("")}</ul>` : ""}`;
 }
-/** 这张小票以前从银行对账单导成了一整笔：提醒，选「用这张小票替换它」（确认入库后删掉那一整笔）或「不是同一笔，都留」 */
-function lumpHtml(lump, mode, total) {
-  const chip = (k, l) => `<button type="button" class="chip" data-action="scan-lumpmode" data-mode="${k}" aria-pressed="${mode === k}">${esc(t(l))}</button>`;
-  const head = t("银行对账单里已经有一笔：{s} {d}，{a}（这张小票合计 {b}）", { s: lump.store || lump.name, d: fmtShort(lump.purchased_at), a: Units.money(num(lump.amount)), b: Units.money(total) });
-  const how = mode === "replace" ? t("确认入库后，对账单里那一整笔会删掉，换成这张小票的明细，不会记两遍。") : mode === "keep" ? t("两边都留：整笔和明细都会算进花费（会重复）。") : t("是同一次消费就选「用这张小票替换它」。");
-  return `<p class="dup-hint">⚠ ${esc(head)}</p><div class="chips" role="group" aria-label="${esc(t("对账单里的整笔怎么处理"))}">${chip("replace", "用这张小票替换它")}${chip("keep", "不是同一笔，都留")}</div><p class="muted rcpt-dup-how">${esc(how)}</p>`;
+/** 这张小票以前从银行对账单导成了一整笔：提醒，选「用这张小票替换它」（那一整笔会放进「已被小票替换」归档，统计里不再算，可撤销）或「不是同一笔，都留」。
+ *  替换前把两边并排摆出来（商店 / 日期 / 金额），金额差得多时不推荐替换：差额 > max(1 元, 3%) 多半不是同一笔，或者有税 / 小费 / 优惠 / 分开付款 */
+export const lumpGap = (lump, total) => { const diff = Math.abs(num(lump.amount) - total), big = diff > Math.max(1, total * 0.03); return { diff, big }; };
+export function lumpHtml(lump, mode, total) {
+  const chip = (k, l, rec) => `<button type="button" class="chip" data-action="scan-lumpmode" data-mode="${k}" aria-pressed="${mode === k}">${esc(t(l))}${rec ? ` <small>（${esc(t("推荐"))}）</small>` : ""}</button>`;
+  const { diff, big } = lumpGap(lump, total);
+  const head = t("银行对账单里已经有一笔，和这张小票可能是同一次消费：");
+  const row = (k, a, b, c) => `<tr><th scope="row">${esc(k)}</th><td>${esc(a)}</td><td>${esc(b)}</td><td class="num">${esc(c)}</td></tr>`;
+  const cmp = `<table class="lump-cmp"><thead><tr><th></th><th>${esc(t("商店"))}</th><th>${esc(t("日期"))}</th><th class="num">${esc(t("金额"))}</th></tr></thead><tbody>${row(t("对账单那一笔"), lump.store || lump.name || "", fmtShort(lump.purchased_at), Units.money(num(lump.amount)))}${row(t("这张小票"), "", "", Units.money(total))}</tbody></table>`;
+  const gap = big ? `<p class="form-error rcpt-lump-gap">${esc(t("金额差 {d}：可能不是同一笔，或者有税 / 小费 / 优惠 / 分开付款。请先核对，不确定就选「都留」。", { d: Units.money(diff) }))}</p>` : diff > 0.004 ? `<p class="muted rcpt-lump-gap">${esc(t("金额差 {d}（税 / 小费 / 优惠的小差额）。", { d: Units.money(diff) }))}</p>` : "";
+  const how = mode === "replace" ? t("确认入库后，对账单里那一整笔会放进「已被小票替换」：花费统计里不再算（不会记两遍），对账单页的笔数和合计仍然保留；以后可在 银行导入 → 最近导入 里撤销。") : mode === "keep" ? t("两边都留：整笔和明细都会算进花费（会重复）。") : t("是同一次消费就选「用这张小票替换它」。");
+  return `<p class="dup-hint">⚠ ${esc(head)}</p>${cmp}${gap}<div class="chips" role="group" aria-label="${esc(t("对账单里的整笔怎么处理"))}">${chip("replace", "用这张小票替换它", !big)}${chip("keep", "不是同一笔，都留", big)}</div><p class="muted rcpt-dup-how">${esc(how)}</p>`;
 }
 /** 每一行和已有花费对一下：疑似别人（或自己）已经记过的，在行下面提醒；返回「勾选了的小票里被提醒的行数」。
  *  已有花费按 日期 + 金额 向数据库查（dup-check.js 的缓存）；还没查过的先按没有算，查回来再标一遍。

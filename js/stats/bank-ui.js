@@ -3,6 +3,7 @@ import { AA_BACK, redundantRules, ruleCat, ruleUse, staleRules, userRules } from
 import { BATCH_KEEP, S, tableRows } from "./bank-rows.js";
 import { NO_ACCT, accountHtml, coverageHtml, reconcileHtml } from "./bank-accounts-ai.js";
 import { overlapHtml } from "./bank-overlap.js";
+import { supHtml } from "./bank-superseded.js";
 import { Store } from "../core/store.js";
 import { adults, kindOptionsHtml, myPersonId } from "../income/logic.js";
 import { aiReady } from "../core/ai.js";
@@ -155,16 +156,16 @@ function ensureLive(list) {
   const ids = list.filter((b) => b.tagged && !LIVE.has(b.id)).map((b) => b.id);
   if (!ids.length || liveBusy) return;
   liveBusy = true;
-  Store.batchTotals(ids).then((r) => { for (const id of ids) LIVE.set(id, { sn: r.spend[id]?.n ?? 0, ss: r.spend[id]?.sum ?? 0, in: r.inc ? r.inc[id]?.n ?? 0 : null, is: r.inc ? r.inc[id]?.sum ?? 0 : null }); })
+  Store.batchTotals(ids).then((r) => { for (const id of ids) LIVE.set(id, { sn: r.spend[id]?.n ?? 0, ss: r.spend[id]?.sum ?? 0, un: r.sup?.[id]?.n ?? 0, us: r.sup?.[id]?.sum ?? 0, in: r.inc ? r.inc[id]?.n ?? 0 : null, is: r.inc ? r.inc[id]?.sum ?? 0 : null }); })
     .catch((e) => console.warn("[batch totals]", e.message))
     .finally(() => { liveBusy = false; redraw(); });
 }
 /** 一批现在的数字：{ n, sum, inN, inSum, changed, live } */
 function batchNums(b) {
   const L = b.tagged ? LIVE.get(b.id) : null, n0 = b.n ?? b.ids?.length ?? 0;
-  if (!L) return { n: n0, sum: b.sum || 0, inN: b.inN || 0, inSum: b.inSum || 0, changed: false, live: false };
+  if (!L) return { n: n0, sum: b.sum || 0, inN: b.inN || 0, inSum: b.inSum || 0, un: 0, us: 0, changed: false, live: false };
   const inN = L.in ?? (b.inN || 0), inSum = L.is ?? (b.inSum || 0);
-  return { n: L.sn, sum: L.ss, inN, inSum, live: true, changed: L.sn !== n0 || Math.abs(L.ss - (b.sum || 0)) >= 0.005 || (L.in != null && L.in !== (b.inN || 0)) };
+  return { n: L.sn, sum: L.ss, inN, inSum, un: L.un || 0, us: L.us || 0, live: true, changed: L.sn !== n0 || Math.abs(L.ss - (b.sum || 0)) >= 0.005 || (L.in != null && L.in !== (b.inN || 0)) };
 }
 const batchRow = (b) => {
   const x = batchNums(b), n0 = b.n ?? b.ids?.length ?? 0, can = (b.tagged && (x.n || x.inN)) || b.ids?.length;
@@ -173,6 +174,7 @@ const batchRow = (b) => {
   const note = gone ? t("（导入的都已删除）") : x.changed ? t("（导入时 {n} 笔 {m}，之后改过）", { n: n0, m: money(b.sum || 0) }) : !b.tagged && !b.ids?.length ? (n0 === 0 ? t("（都是已记录过的，只更新了补到哪个月）") : t("（早期批次，只留了汇总）")) : b.tagged && n0 === 0 && !b.inN ? t("（都是已记录过的，只更新了补到哪个月）") : "";
   return `<li><div class="grow"><span class="name">${b.account ? `🏦 ${esc(b.account)}${b.last4 ? ` <span class="muted">··${esc(b.last4)}</span>` : ""}` : esc(b.file || t("银行导入"))}</span>
     <small class="bank-batch-stats">${stats}${note ? ` <span class="${x.changed || gone ? "bank-dup" : "muted"}">${note}</span>` : ""}</small>
+    ${supHtml(b, x)}
     <small class="muted">${t("导入于 {d}", { d: String(b.at).slice(0, 10) })}${b.account && b.file ? ` · ${esc(b.file)}` : ""}</small></div>
     <span class="bank-batch-acts">${can ? `${x.n > 0 || (!x.inN && b.ids?.length) ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "spend")}?tab=records&batch=${esc(b.id)}">${x.inN ? t("查看花费") : t("查看 / 修改")}</a>` : ""}${x.inN ? `<a class="ui-btn" data-size="sm" data-tone="ghost" href="${href("bills", "income")}?tab=records&batch=${esc(b.id)}">${t("查看收入")}</a>` : ""}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="undo" data-batch="${esc(b.id)}">${t("撤销")}</button>` : ""}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-bank-act="dates-edit" data-batch="${esc(b.id)}" title="${esc(t("AI 没读出日期、或读错了时，手动填这批的起止日期"))}">${t("改日期")}</button></span>${S.editDates === b.id ? datesEditHtml(b) : ""}</li>`;
 };

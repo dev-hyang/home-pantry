@@ -2,7 +2,9 @@
 import { NO_ACCT, accounts, aiParse, guessAcctName, ingest, suggestAccount } from "./bank-accounts-ai.js";
 import { S, pastePart, rebuild, resetPicks } from "./bank-rows.js";
 import { confirmDelete, toast } from "../core/util.js";
-import { deleteOwnAccount, redraw, saveBatchDates } from "./bank-ui.js";
+import { LIVE, deleteOwnAccount, redraw, saveBatchDates } from "./bank-ui.js";
+import { toggleSup, undoSup } from "./bank-superseded.js";
+import { bankHooks } from "./bank-common.js";
 import { doImport, recoverBatches, undo } from "./bank-run.js";
 import { pageMore } from "../core/pager.js";
 import { redundantRules, staleRules, userRules } from "./bank-transfers.js";
@@ -42,6 +44,8 @@ document.addEventListener("click", (e) => {
   else if (b.dataset.bankAct === "dates-cancel") { S.editDates = ""; redraw(); }
   else if (b.dataset.bankAct === "dates-save") saveBatchDates(b.dataset.batch, b.closest("li"));
   else if (b.dataset.bankAct === "undo") undo(b.dataset.batch);
+  else if (b.dataset.bankAct === "sup-open") toggleSup(b.dataset.batch, redraw);
+  else if (b.dataset.bankAct === "sup-undo") undoSup(b.dataset.id, b.dataset.batch, redraw, async () => { LIVE.clear(); window.dispatchEvent(new Event("spend-rows-changed")); if (bankHooks.refresh) await bankHooks.refresh(); });
   else if (b.dataset.bankAct === "acct-del") deleteOwnAccount(b.dataset.id);
   else if (b.dataset.bankAct === "recover") recoverBatches();
   else if (b.dataset.bankAct === "batches-more") { pageMore("bank-batches"); redraw(); }

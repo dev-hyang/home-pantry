@@ -50,8 +50,9 @@ export const cloudSpend = {
     const out = new Map();
     for (let i = 0; i < keys.length; i += 100) {
       const part = keys.slice(i, i + 100);
-      for (const table of ["purchases", "income_records"]) {
+      for (const table of ["purchases", "purchases_superseded", "income_records"]) {   // 被小票替换的整笔也算「已导入过」，重新导入同一份对账单不会又加回来
         const r = await this.sb.from(table).select("id,import_key").eq("household_id", this.hid).in("import_key", part);
+        if (r.error && table === "purchases_superseded") continue;   // 还没执行迁移 114
         if (r.error) { if (/import_key/i.test(r.error.message)) return out; throw new Error(r.error.message); }
         for (const x of r.data) out.set(x.import_key, x.id);
       }
@@ -92,9 +93,11 @@ export const cloudSpend = {
   async batchTotals(ids) {
     if (!ids.length) return { spend: {}, inc: {} };
     const rows = (table) => this.pageAll(() => this.sb.from(table).select("import_batch,amount").eq("household_id", this.hid).in("import_batch", ids).order("import_batch"));
-    const [sp, inc] = await Promise.all([rows("purchases"), rows("income_records").catch(() => null)]);
-    return batchTotalsOf(ids, sp, inc || [], !inc);
+    const [sp, inc, sup] = await Promise.all([rows("purchases"), rows("income_records").catch(() => null), this.supersededOfBatches(ids)]);
+    const r = batchTotalsOf(ids, [...sp, ...sup], inc || [], !inc);   // 被小票替换的整笔也算在这一批里：对账单的笔数 / 合计和导入时一样，才能核对
+    r.sup = batchTotalsOf(ids, sup, [], true).spend;   // 其中已被小票替换的：{ 批次: { n, sum } }
+    return r;
   },
   /** 撤销一批银行导入（迁移 034 的 import_batch 列）；返回删掉几笔 */
-  async deletePurchasesByBatch(batch) { const r = this.must(await this.sb.from("purchases").delete().eq("household_id", this.hid).eq("import_batch", batch).select("id")); return (r || []).length; },
+  async deletePurchasesByBatch(batch) { await this.deleteSupersededByBatch(batch); const r = this.must(await this.sb.from("purchases").delete().eq("household_id", this.hid).eq("import_batch", batch).select("id")); return (r || []).length; },
 };

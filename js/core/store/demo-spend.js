@@ -53,7 +53,7 @@ export const demoSpend = {
   },
   async importKeysExist(keys) {
     const want = new Set(keys), out = new Map();
-    for (const x of [...this.db.purchases, ...this.db.income_records]) if (x.import_key && want.has(x.import_key)) out.set(x.import_key, x.id);
+    for (const x of [...this.db.purchases, ...(this.db.purchases_superseded || []), ...this.db.income_records]) if (x.import_key && want.has(x.import_key)) out.set(x.import_key, x.id);
     return out;
   },
   async addPurchase(p) { const id = uid(); this.db.purchases.push({ ...p, id, created_at: new Date().toISOString() }); this.persist(); return id; },
@@ -62,8 +62,11 @@ export const demoSpend = {
   async listTaggedPurchases() { return this.db.purchases.filter((x) => x.import_batch).map((x) => ({ id: x.id, import_batch: x.import_batch, purchased_at: x.purchased_at, amount: x.amount, card_id: x.card_id || null, created_at: x.created_at })); },
   async listPurchasesByBatch(batch, ids = []) { const set = new Set(ids); return this.db.purchases.filter((x) => x.import_batch === batch || set.has(x.id)).map((x) => ({ ...x, category: canonCat(x.category) })); },
   /** 「最近导入」的实时笔数 / 合计：只算这几批（当前一页） */
-  async batchTotals(ids) { return batchTotalsOf(ids, this.db.purchases, this.db.income_records || []); },
-  async deletePurchasesByBatch(batch) { const n = this.db.purchases.filter((x) => x.import_batch === batch).length; this.db.purchases = this.db.purchases.filter((x) => x.import_batch !== batch); this.persist(); return n; },
+  async batchTotals(ids) {
+    const sup = (this.db.purchases_superseded || []).filter((s) => ids.includes(s.import_batch)).map((s) => ({ import_batch: s.import_batch, amount: s.amount }));
+    const r = batchTotalsOf(ids, [...this.db.purchases, ...sup], this.db.income_records || []); r.sup = batchTotalsOf(ids, sup, [], true).spend; return r;
+  },
+  async deletePurchasesByBatch(batch) { await this.deleteSupersededByBatch(batch); const n = this.db.purchases.filter((x) => x.import_batch === batch).length; this.db.purchases = this.db.purchases.filter((x) => x.import_batch !== batch); this.persist(); return n; },
   async updatePurchase(id, patch) { const i = this.db.purchases.findIndex((x) => x.id === id); if (i >= 0) { this.db.purchases[i] = { ...this.db.purchases[i], ...patch }; this.persist(); } },
   async listPaymentsOfBill(billId) { return this.db.bills_recurring_payments.filter((p) => p.bill_id === billId).map((x) => ({ ...x })); },
   /** 批量写花费：带 id 的已有行只改给出的字段，没有的新建（还款拆分用） */
