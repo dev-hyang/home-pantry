@@ -18,7 +18,7 @@ import { unitSelect } from "../core/unit-pick.js";
 
 const addHref = (q = "") => `${href("shopping", "add")}${q}`;
 const listHref = () => href("shopping", "list");
-const crumb = (label) => crumbNav([{ href: href("shopping"), label: t("采购") }, { href: listHref(), label: t("购物车") }, ...(label ? [{ href: addHref(), label: t("加入购物车"), icon: "＋" }, { label }] : [{ label: t("加入购物车"), icon: "＋" }])]);
+const crumb = (label) => crumbNav([{ href: href("pantry"), label: t("储藏") }, { href: href("shopping"), label: t("采购") }, { href: listHref(), label: t("购物车") }, ...(label ? [{ href: addHref(), label: t("加入购物车"), icon: "＋" }, { label }] : [{ label: t("加入购物车"), icon: "＋" }])]);
 
 /** 库存物品下拉：按分类分组；value = 物品 id，data-unit / data-cat 给表单自动填 */
 export function itemPickOptions() {

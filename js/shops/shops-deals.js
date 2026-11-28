@@ -42,8 +42,8 @@ export function viewDeals() {
   const shopsWith = [...new Set(base.map((d) => d.shop_id))].map((id) => on.get(id)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
   const cats = [...new Set(base.map((d) => d.category).filter(Boolean))].sort(), types = DEAL_TYPES.map(([k]) => k).filter((k) => base.some((d) => typeOf(d).includes(k)));
   const cnt = (n) => (lang === "en" ? ` (${n})` : `（${n}）`);
-  const crumbs = item ? [{ href: href("shopping"), label: t("采购") }, { label: t("「{name}」的特价", { name: item.name }) }]
-    : [{ href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }, { label: t("特价一览"), icon: "🏷" }];
+  const crumbs = item ? [{ href: href("pantry"), label: t("储藏") }, { href: href("shopping"), label: t("采购") }, { label: t("「{name}」的特价", { name: item.name }) }]
+    : [{ href: href("pantry"), label: t("储藏") }, { href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }, { label: t("特价一览"), icon: "🏷" }];
   const act = (d) => {
     if (item) { const on2 = picked ? picked.id === d.id : false; return `<button type="button" class="ui-btn" data-size="sm" data-tone="${on2 ? "primary" : ""}" data-action="shops-pick" data-item="${item.id}" data-deal="${d.id}" aria-pressed="${on2}">${on2 ? `✓ ${t("已选这家")}` : t("用这家")}</button>`; }
     const m = hits.get(d.id) || [];

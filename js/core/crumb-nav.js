@@ -4,7 +4,6 @@
 import { treePop } from "./tree-pop.js";
 import { finTree } from "../bills/fin-tree.js";
 import { houseTree } from "../house/house-nav.js";
-import { buyTree } from "../shops/buy-nav.js";
 import { meTree } from "../settings/me-nav.js";
 import { pantryNodes } from "../pantry/restock-sync.js";
 
@@ -14,7 +13,7 @@ function treeFor(r) {
     case "bills": case "bill": case "otbill": return finTree(r);
     case "house": case "asset": return houseTree(r);
     case "pantry": case "item": return pantryNodes("");
-    case "shopping": case "shops": return buyTree("");
+    case "shopping": case "shops": return pantryNodes("");
     case "me": return meTree(r);
     default: return null;
   }

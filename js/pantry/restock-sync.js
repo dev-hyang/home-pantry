@@ -15,13 +15,22 @@ export const INV_SUBS = [
 ];
 /** 当前页在目录里的位置：「inventory」= 库存全部，「inventory:pantry」等 = 库存下的某一组，其余是页面 id */
 export const pantryCur = (r) => (r.sub === "gear" ? "inventory:gear" : r.sub === "inventory" ? (["pantry", "house"].includes(r.q?.get("space")) ? `inventory:${r.q.get("space")}` : "inventory") : r.sub);
+/** 目录里的「采购」一组（2026-11-27.26 起采购不再是单独的页签，并进储藏）：cur = "buy:home | list | add | shops-list | deals | find | log" 时停在那一页 */
+function buyNode(cur) {
+  const left = (state.shopping || []).filter((x) => x.status !== "bought").length, on = (id) => cur === `buy:${id}`;
+  const shops = [["shops-list", href("shops", "list"), "🏪", "商店列表"], ["deals", href("shops", "deals"), "🏷", "特价一览"], ["find", href("shops", "find"), "📍", "找附近的商店"], ["log", href("shops", "log"), "📜", "更新记录"]]
+    .map(([id, h, icon, label]) => ({ label: t(label), icon, href: h, current: on(id) }));
+  const kids = [{ label: t("购物车"), icon: "🛍️", href: href("shopping", "list"), badge: left || "", current: on("list") || on("add") },
+    { label: t("常去的商店"), icon: "🏪", href: href("shops", "list"), open: shops.some((x) => x.current), children: shops }];
+  return { label: t("采购"), icon: "🛒", href: href("shopping"), badge: left || "", current: on("home"), open: cur.startsWith("buy:"), children: kids };
+}
 /** 储藏目录的结点（页头和深层页面的目录按钮共用） */
 export function pantryNodes(cur) {
   const items = state.enriched || [], need = items.filter((x) => !isGear(x) && x.status !== "ok").length;
   const needIn = (sp) => (sp === "gear" ? 0 : items.filter((x) => inSpace(sp)(x) && x.status !== "ok").length);
   const kids = INV_SUBS.filter(([, , , , on]) => on()).map(([id, icon, name, h]) => ({ label: t(name), icon, href: h(), badge: needIn(id) || "", current: cur === `inventory:${id}` }));
   const inv = { label: t("库存"), icon: "📦", href: href("pantry", "inventory"), badge: need || "", current: cur === "inventory", open: cur.startsWith("inventory"), children: kids };
-  return [{ label: t("概览"), icon: "📊", href: href("pantry"), current: cur === "overview" }, inv,
+  return [{ label: t("概览"), icon: "📊", href: href("pantry"), current: cur === "overview" }, buyNode(cur), inv,
     { label: t("购买排行"), icon: "🏆", href: href("pantry", "buys"), current: cur === "buys" },
     { label: t("菜单"), icon: "🍳", href: href("pantry", "meals"), current: cur === "meals" }, { label: t("录入购物"), icon: "🧾", href: href("pantry", "scan"), current: cur === "scan" }];
 }

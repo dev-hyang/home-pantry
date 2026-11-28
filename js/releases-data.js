@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.26", title: { zh: "「采购」并进「储藏」", en: "Shopping is now part of Pantry" }, items: [
+    { k: "better", zh: "底部不再有单独的「采购」页签：购物车、常去的商店、特价一览都在「储藏」的目录里（目录里的「采购」一组）。购物车还没买的数量显示在「储藏」页签上。", en: "There is no separate Shopping tab any more: the cart, favourite shops and deals are inside Pantry (a Shopping group in the Directory). The count of items still to buy shows on the Pantry tab." },
+    { k: "better", zh: "采购相关页面顶上的路径变成「储藏 / 采购 / …」。原来的链接、书签、保存的快捷操作都照常能用。", en: "Shopping pages now show the path “Pantry / Shopping / …”. Existing links, bookmarks and saved shortcuts keep working." },
+  ] },
   { v: "2026-11-27.25", title: { zh: "最近入库把新物品也算进去；视图切换更好认", en: "Recently stocked now includes new items; clearer view switch" }, items: [
     { k: "fix", zh: "储藏概览的「最近入库」以前只算补货，录入购物时新建的物品不在里面；现在近 7 天的补货和新建物品都算（点进去的清单也一样）。「新物品」卡片仍是近 30 天新建的。", en: "Recently stocked on the pantry overview only counted restocks, so items newly created while scanning a purchase were missing. It now counts restocks and new items from the last 7 days. The New items card still shows items created in the last 30 days." },
     { k: "better", zh: "视图切换按钮：手机上也显示「切换」小字，后面加了竖线和 ▾，一眼看出这是切换视图的按钮。", en: "View switch button: the “Switch” label now also shows on phones, with a divider and a ▾, so it is clearly a view switcher." },

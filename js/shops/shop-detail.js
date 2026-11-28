@@ -26,7 +26,7 @@ import { clearActionBtn } from "../core/clear-filters.js";
 export const dealHref = (s, d) => `${shopHref(s)}?deal=${encodeURIComponent(d.id)}`;
 export function viewShop(id) {
   const s = (state.shops || []).find((x) => x.id === id);
-  const base = [{ href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }];
+  const base = [{ href: href("pantry"), label: t("储藏") }, { href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }];
   if (id === "new") return `<section class="section shops-page shop-page form-page">${crumbNav([...base, { label: t("添加商店") }])}${shopForm(null, { page: true })}</section>`;   // 添加商店：单独的页面（分步 + 确认），不在商店列表上展开
   if (!s) return `<section class="section shops-page">${crumbNav([...base, { label: t("商店") }])}<p class="muted">${state.shops ? t("这家商店不在了。") : t("加载中…")}</p></section>`;
   const [, cn, icon] = shopCat(s.category), d = distOf(s), du = dealUi(s.id), deals = liveDeals(s.id), q = state.route.q;

@@ -33,7 +33,7 @@ export function render(force = true) {
   const r = state.route;
   const navSection = r.section === "item" ? (state.prevRoute?.section || listRoute(spaceOf(state.editingCat))[0])
     : r.section === "asset" ? (state.prevRoute?.section || "house") : r.section === "bill" || r.section === "otbill" ? (state.prevRoute?.section || "bills")
-    : r.section === "shops" ? "shopping" : r.section === "alerts" || r.section === "ai" || r.section === "quick" ? "today" : r.section;   // 注意事项、咩咩咩都是首页的子页，底栏高亮「今日」
+    : r.section === "shops" || r.section === "shopping" ? "pantry" : r.section === "alerts" || r.section === "ai" || r.section === "quick" ? "today" : r.section;   // 注意事项、咩咩咩都是首页的子页，底栏高亮「今日」
   document.querySelectorAll("#tabs a[data-section]").forEach((a) => {
     a.hidden = (a.dataset.section === "house" && !state.houseEnabled) || (a.dataset.section === "bills" && !state.billsEnabled);
     if (a.dataset.section === navSection) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");

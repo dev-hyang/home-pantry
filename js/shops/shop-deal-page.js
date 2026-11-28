@@ -14,7 +14,7 @@ import { shopHref } from "./shops-common.js";
 
 export function viewShopDeal(s, id, editing) {
   const d = (state.shopDeals || []).find((x) => x.id === id && x.shop_id === s.id), icon = shopCat(s.category)[2];
-  const base = [{ href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }, { href: shopHref(s), label: s.name, icon }];
+  const base = [{ href: href("pantry"), label: t("储藏") }, { href: href("shopping"), label: t("采购") }, { href: href("shops", "list"), label: t("常去的商店") }, { href: shopHref(s), label: s.name, icon }];
   if (!d) return `<section class="section shops-page">${crumbNav([...base, { label: t("特价") }])}<div class="panel empty"><strong>${t("找不到这条特价")}</strong><p><a class="ui-btn" data-size="sm" href="${shopHref(s)}">${t("回到商店")}</a></p></div></section>`;
   if (editing) return `<section class="section shops-page form-page">${crumbNav([...base, { href: dealHref(s, d), label: d.name }, { label: t("编辑特价") }])}${dealEditFormHtml(d, s)}</section>`;
   const edit = (sec) => `${dealHref(s, d)}&edit=1&sec=${sec}`, m = dealMatches(d, openShopping()), h = priceHistory(d);
