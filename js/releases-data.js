@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.24", title: { zh: "订单 JSON 导入：不用 AI，直接读入", en: "Order JSON import: read directly, no AI" }, items: [
+    { k: "new", zh: "线上订单页新增「已经有订单 JSON？」：粘贴或选文件，读入 /pantry-orders 从 Amazon 整理的订单，直接进确认页，不调 AI，每行都是逐个物品。", en: "The online-order page has a new \"Already have an order JSON?\" box: paste it or choose a file to read the orders /pantry-orders made from Amazon straight into the review page, with no AI and one line per item." },
+    { k: "better", zh: "按订单号防重复；付款卡尾号对上你登记的卡就自动选好；默认只记花费、不入库。", en: "Duplicates are caught by order number; the payment card is picked automatically when its last 4 digits match one of your cards; by default only spending is recorded, no stock." },
+  ] },
   { v: "2026-11-27.23", title: { zh: "订单和对账单：分批发货也认得出来", en: "Orders and statements: split shipments are recognised" }, items: [
     { k: "new", zh: "线上订单录入过的，对账单里对应的整笔会认出来并默认跳过；同一天的几个订单不会混在一起。", en: "Statement rows that match an online order you recorded are recognised and skipped by default; several orders on the same day are no longer mixed up." },
     { k: "new", zh: "一个订单分几次发货、信用卡上扣了 2–3 笔，合计和订单一样时，这几笔都会认成已记录（商店名要对上）。", en: "When one order was charged in 2–3 parts that add up to the order total, all of those charges are recognised as already recorded (the store name must match)." },

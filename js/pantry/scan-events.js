@@ -13,6 +13,7 @@ import { state } from "../core/state.js";
 import { t } from "../core/i18n.js";
 import { MAX_IMAGES, repaint, resetScan, sc, subGuess } from "./scan-common.js";
 import { addKeyed, markOrderRefs } from "./scan-order.js";
+import { importOrdersFile, importOrdersJson } from "./scan-json.js";
 import { keyOrderRows } from "./scan-order-key.js";
 import { revealInto } from "../core/reveal.js";
 import { compressImage as compress } from "../core/autofill-common.js";
@@ -63,6 +64,7 @@ document.addEventListener("change", async (e) => {
     sc.kind = k; sc.record = "both"; if (sc.result?.manual) { sc.step = "input"; sc.result = null; }
     return repaint();
   }
+  if (e.target.id === "scanJsonFile") { const f = e.target.files[0]; e.target.value = ""; return importOrdersFile(f); }
   if (e.target.id === "scanFile") {
     const files = [...e.target.files].slice(0, MAX_IMAGES - sc.images.length); e.target.value = "";
     sc.error = "";
@@ -93,6 +95,7 @@ document.addEventListener("change", async (e) => {
 });
 document.addEventListener("input", (e) => {
   if (e.target.id === "scanDate") { sc.date = e.target.value; return; }
+  if (e.target.id === "scanJson") { sc.json = e.target.value; return; }
   if (e.target.id === "scanText") { sc.text = e.target.value; document.querySelectorAll('[data-action="scan-run"]').forEach((b) => { b.disabled = !aiReady() || sc.busy || (!sc.images.length && !sc.text.trim()); }); }
   else if (e.target.closest?.("#scanForm")) {
     if (e.target.name === "name") nameMatch(e.target.closest(".scan-row"), e.target.value);
@@ -156,7 +159,7 @@ async function confirm(ctx) {
     return [...box.querySelectorAll(".scan-row")].filter((r) => r.querySelector('[name="inc"]').checked).map((r) => {
       const g = (n) => r.querySelector(`[name="${n}"]`).value;
       const nm = g("name").trim(), same = g("target") === "__new" ? findItem(nm, { spaces: ["pantry", "house"] }) : null;   // 「新建」但库存里已有写法一样的：补到那件，不建第二件
-      return { bi, store, now, pay, name: nm, qty: num(g("qty"), 0), unit: Units.normalize(g("unit")) || "个", amount: g("amount") === "" ? null : Math.round(num(g("amount")) * 100) / 100,   /* 负数 = 退货 / 整单优惠（11-14：以前被截成 0） */ target: same ? same.id : g("target"), cat: g("cat"), fee: r.classList.contains("scan-fee-row") };
+      return { bi, store, now, pay, spendCat: sc.result.receipts[+box.dataset.r]?.spendCat || "", name: nm, qty: num(g("qty"), 0), unit: Units.normalize(g("unit")) || "个", amount: g("amount") === "" ? null : Math.round(num(g("amount")) * 100) / 100,   /* 负数 = 退货 / 整单优惠（11-14：以前被截成 0） */ target: same ? same.id : g("target"), cat: g("cat"), fee: r.classList.contains("scan-fee-row") };
     });
   });
   if (!boxes.length && [...f.querySelectorAll(".scan-rcpt")].some(refSkip)) { sc.error = t("这个订单已经录入过了。要再录一次，勾选订单上方的「这次是新的，仍然录入」。"); return repaint2(); }
@@ -200,7 +203,7 @@ async function confirm(ctx) {
       if (stockOnly && x.target === "__skip") continue;   // 只入库：选了「只记花费」的行什么都不做
       const item = x.target.startsWith("__") ? null : state.items.find((i) => i.id === x.target);
       let purchaseId = null;
-      if (!stockOnly) purchaseId = await addKeyed({ item_id: item?.id || null, name: x.name, category: x.fee ? FEES_CAT : item?.category || (x.target === "__new" ? x.cat : "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay, ...(x.key ? { import_key: x.key } : {}) });
+      if (!stockOnly) purchaseId = await addKeyed({ item_id: item?.id || null, name: x.name, category: x.fee ? FEES_CAT : item?.category || (x.target === "__new" ? x.cat : x.spendCat || "other"), quantity: x.qty || null, unit: x.unit || null, amount: x.amount, currency: cur, purchased_at: x.now, store: x.store, ...x.pay, ...(x.key ? { import_key: x.key } : {}) });
       const cart = x.fee || x.qty < 0 ? null : matchOpenShopping({ name: x.name, item_id: item?.id, at: x.now }, doneShop);   // 购物车里对应的那一项：不管入不入库，买到了就标成已买到
       if (cart) { doneShop.add(cart.id); cartDone++; await Store.saveShopping({ id: cart.id, status: "bought", bought_at: x.now, amount: x.amount, claimed_by_name: cart.claimed_by_name || myName() }); }
       if (x.target === "__skip") { spendOnly++; continue; }
@@ -249,6 +252,8 @@ export function scanAction(action, el, ctx) {
       rc.rows.push({ include: true, fee: "other", raw: "", name: t("税费"), qty: "", unit: "", amount: gap > 0 ? gap : null, def: "", match: "skip", category: FEES_CAT, order: false });
       repaint(); updateSum(); const last = [...document.querySelectorAll(`.scan-rcpt[data-r="${+el.dataset.r}"] .scan-fee-row [name="name"]`)].pop(); last?.focus(); return;
     }
+    case "scan-json": return importOrdersJson();
+    case "scan-json-pick": return document.getElementById("scanJsonFile")?.click();
     case "scan-img-del": sc.images.splice(+el.dataset.i, 1); return repaint();
     case "scan-img-mask": {   // 遮盖：弹出全屏层，拖框涂黑，完成后换成涂黑后的新图（模块按需加载）
       const i = +el.dataset.i, im = sc.images[i]; if (!im) return;

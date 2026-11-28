@@ -37,6 +37,12 @@ const modePanel = (st, manual = false) => `<div class="panel scan-modes">
 export function viewScan() {
   return `<section class="section scan-page">${sc.step === "review" && sc.result ? reviewHtml() : inputHtml()}</section>`;
 }
+/** 线上订单：已经有 /pantry-orders 整理好的订单 JSON，直接读入，不调 AI */
+const jsonPanel = () => `<details class="panel scan-json" ${sc.json || sc.error ? "open" : ""}><summary><b>${t("已经有订单 JSON？")}</b> <small class="muted">${t("用 /pantry-orders 从 Amazon 整理的，直接读入，不用 AI")}</small></summary>
+    <textarea id="scanJson" data-autosize rows="5" maxlength="400000" placeholder='{"v":1,"source":"amazon","orders":[…]}'>${esc(sc.json)}</textarea>
+    <p class="muted" style="margin:6px 0 0;font-size:12.5px">${t("JSON 只在这台设备上读，不会发给任何 AI；订单号只用来防止同一个订单录两次。")}</p>
+    <div class="ui-acts"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-action="scan-json-pick">${t("选 JSON 文件")}</button><input type="file" id="scanJsonFile" accept=".json,application/json,text/plain" hidden>
+      <button type="button" class="ui-btn" data-tone="primary" data-action="scan-json">${t("读入订单")}</button></div></details>`;
 function inputHtml() {
   const s = aiSettings(), p = providerOf(s.provider), ready = aiReady();
   const order = sc.kind === "order";
@@ -49,6 +55,7 @@ function inputHtml() {
     ${ready ? "" : `<div class="panel cta-panel"><div><b>${t("先填一个 AI key")}</b><p class="muted">${t("推荐 Gemini（有免费额度）。key 只存在这台设备的浏览器里。")}</p></div>
       <a class="ui-btn" data-tone="primary" href="${href("me", "settings")}?sec=ai">${t("去设置")}</a></div>`}
     ${modePanel(st)}
+    ${order && st >= 2 ? jsonPanel() : ""}
     <div class="panel scan-in scan-step" data-step="3" ${st >= 3 ? "" : "hidden"}>
       <div>
         <div class="scan-in-head"><span class="pick-lbl">${order ? t("订单截图（可选，可多张）") : t("小票照片（可多张：几张不同的小票，或一张长小票分段拍）")}</span></div>
@@ -126,6 +133,7 @@ function reviewHtml() {
   return `
     ${R.manual ? `<div class="section-head"><h2>${t("录入购物")}</h2><p>${t("手动添加：和拍照识别同一张表。先选放进库存的物品（或新建），名称、单位、分类会跟着填")}</p></div>` : ""}
     ${R.manual ? modePanel(4, true) : ""}
+    ${R.note ? `<p class="muted" style="font-size:13px;margin:0 0 8px">${esc(R.note)}</p>` : ""}
     <div class="section-head" ${R.manual ? "hidden" : ""}><h2>${t("确认录入")}</h2><p>${many ? t("读到 {n} 张小票：每张的商店、日期和商品分开核对", { n: R.receipts.length }) : t("核对每一行：改名称 / 数量 / 金额，选放进哪个库存物品")}</p></div>
     ${R.dropped ? `<p class="muted" style="font-size:13px">${t("另有 {n} 张没有读到商品，已忽略；可以返回重来，单独再识别一次。", { n: R.dropped })}</p>` : ""}
     <form id="scanForm" novalidate>

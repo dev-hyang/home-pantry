@@ -11,6 +11,11 @@ export async function markOrderRefs(receipts) {
   const refs = redactOrderText(sc.text).orderRefs;
   if (!refs.length) return;
   for (const rc of receipts) rc.orderRef = refForReceipt(rc.refNo, refs, receipts.length);
+  await markRefDups(receipts);
+}
+
+/** 这些小票的订单号（rc.orderRef）有没有已经录过：录过的标 refDup、默认不录（用户可以勾选「仍然录入」） */
+export async function markRefDups(receipts) {
   const anchors = receipts.map((rc) => orderAnchor(rc.orderRef)).filter(Boolean);
   if (!anchors.length) return;
   let have; try { have = await Store.importKeysExist(anchors); } catch { return; }   // 查不到就当没录过，照常录
