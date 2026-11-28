@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-28.34", title: { zh: "导入对账单：认出只扣了订单里一部分的那笔", en: "Bank import spots charges for only part of an order" }, items: [
+    { k: "better", zh: "先录了 Amazon 订单、再导入对账单时，如果银行只扣了订单里的某几件（取消、退款或分开扣款），现在会提醒“可能已按订单记录”，并写明是订单里的几项。", en: "If you logged an Amazon order first and the bank charged only some of its items (cancelled, refunded or split), the import now warns it may already be recorded and says how many items." },
+    { k: "better", zh: "这类提醒只提示、不会默认跳过，仍由你决定导不导入。", en: "These are warnings only; nothing is skipped automatically." }
+  ] },
   { v: "2026-11-28.33", title: { zh: "确认入库的按钮条和表单同宽；下拉框在屏幕上下都放不下时自动缩高", en: "Action bar matches the form width; dropdowns shrink to fit the screen" }, items: [
     { k: "fix", zh: "电脑上，扫描结果页底部的「返回重来 / 确认入库」按钮条比表单两边各宽出一截，现在和表单一样宽。", en: "On a laptop, the bottom bar with Back and Confirm was wider than the form; it now lines up with it." },
     { k: "better", zh: "下拉选项和「筛选」面板往下放不下时，会选上面或下面空间大的一边，并把框高缩到刚好放得下，选项多时框内出滚动条。", en: "Dropdowns and the filter panel now open toward the side with more room and shrink to fit, scrolling inside when there are many options." },

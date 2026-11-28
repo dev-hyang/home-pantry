@@ -32,7 +32,7 @@ function describe(b) {
   const stores = {}; for (const p of b) { const s = String(p.store || "").trim(); if (s) stores[s] = (stores[s] || 0) + 1; }
   const store = Object.entries(stores).sort((x, y) => y[1] - x[1])[0]?.[0] || "";
   const day = b.map((p) => localDay(p.purchased_at)).sort()[0];
-  return { order: !!orderGroup(b[0]?.import_key), ids: b.map((p) => p.id), n: b.length, total: b.reduce((s, p) => s + cents(p.amount), 0), store, day, cards: new Set(b.map((p) => p.card_id).filter(Boolean)), cash: b.every((p) => !p.card_id && p.method) };
+  return { order: !!orderGroup(b[0]?.import_key), lines: b.map((p) => ({ id: p.id, c: cents(p.amount) })), ids: b.map((p) => p.id), n: b.length, total: b.reduce((s, p) => s + cents(p.amount), 0), store, day, cards: new Set(b.map((p) => p.card_id).filter(Boolean)), cash: b.every((p) => !p.card_id && p.method) };
 }
 
 /** 反方向：这张小票（或这次账单缴费）以前是不是已经从对账单导入成了一整笔？
@@ -84,6 +84,7 @@ export function matchTrips(rows, pool, { card = "", used = new Set() } = {}) {
     out.set(rows[p.ri].fk, { tier: p.tier, n: b.n, total: b.total / 100, store: b.store, day: b.day, ids: b.ids, diff: p.diff / 100, score: p.score });
   }
   matchSplits(rows, batches, { card, rowUsed, batchUsed, out });
+  matchSubsets(rows, batches, { card, rowUsed, batchUsed, out });
   return out;
 }
 
@@ -103,5 +104,34 @@ function matchSplits(rows, batches, { card, rowUsed, batchUsed, out }) {
     if (!hit) return;
     batchUsed.add(bi);
     for (const x of hit) { rowUsed.add(x.ri); out.set(rows[x.ri].fk, { tier: "strong", split: hit.length, n: b.n, total: b.total / 100, store: b.store, day: b.day, ids: b.ids, diff: Math.abs(hit.reduce((s, y) => s + y.c, 0) - b.total) / 100, score: 8 }); }
+  });
+}
+
+/** 只扣了订单里一部分：线上订单（导入的行带订单组）里「几件商品（含税费行）之和 = 流水里的一笔」（取消 / 退款 / 分开扣款 / 流水只收了某几件）。
+ *  商店要对上，流水日比下单日晚 −2…14 天；差不超过 2 分（组合多，只认几乎一样的）；流水比订单合计小；最多看 14 行；每行商品只配一笔。
+ *  凑出来的组合有偶然性，所以一律标「弱」：只提醒「可能已按订单记录」，不默认跳过。已被整单 / 分批配走的订单不再走这里。 */
+const SUB_MAX_LINES = 14, SUB_TOL = 2;
+function findSubset(lines, target) {
+  let best = null;
+  const walk = (i, sum, pick) => {
+    if (Math.abs(sum - target) <= SUB_TOL && pick.length && (!best || pick.length < best.length)) best = [...pick];
+    if (i >= lines.length || sum > target + SUB_TOL || (best && pick.length + 1 >= best.length && best.length === 1)) return;
+    for (let k = i; k < lines.length; k++) { pick.push(lines[k]); walk(k + 1, sum + lines[k].c, pick); pick.pop(); }
+  };
+  walk(0, 0, []);
+  return best;
+}
+function matchSubsets(rows, batches, { card, rowUsed, batchUsed, out }) {
+  batches.forEach((b, bi) => {
+    if (!b.order || batchUsed.has(bi) || b.lines.length > SUB_MAX_LINES || (card && b.cards.size && !b.cards.has(card))) return;
+    const free = b.lines.filter((l) => l.c > 0);
+    rows.forEach((r, ri) => {
+      const c = cents(r.out), gap = dayNum(r.date) - dayNum(b.day);
+      if (rowUsed.has(ri) || c <= 0 || c >= b.total - SUB_TOL || gap < -2 || gap > 14 || !(r.texts || []).some((tx) => storeClose(tx, b.store)) || !free.length) return;
+      const hit = findSubset(free, c); if (!hit) return;
+      rowUsed.add(ri);
+      for (const l of hit) free.splice(free.indexOf(l), 1);   // 这几行已经配给这一笔
+      out.set(r.fk, { tier: "weak", part: hit.length, of: b.n, n: hit.length, total: hit.reduce((x, l) => x + l.c, 0) / 100, store: b.store, day: b.day, ids: hit.map((l) => l.id), diff: Math.abs(hit.reduce((x, l) => x + l.c, 0) - c) / 100, score: 3 });
+    });
   });
 }

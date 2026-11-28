@@ -108,3 +108,24 @@ test("不是订单导入的小票不走分批发货（只有整笔对整笔）",
   const rows = [row("p", "2026-11-03", 35, "TARGET 0001"), row("q", "2026-11-04", 25, "TARGET 0001")];
   assert.equal(matchTrips(rows, pool).size, 0);
 });
+
+test("子集：流水只扣了订单里两件（含税行）→ 弱，只提醒；不默认跳过", () => {
+  const pool = order("112-5555555-5555555", "2026-11-02", "Amazon", [30, 20, 10]);   // 合计 60
+  const m = matchTrips([row("p", "2026-11-04", 40, "AMAZON MKTPL*Z")], pool);   // 30 + 10
+  assert.equal(m.get("p").tier, "weak"); assert.equal(m.get("p").part, 2); assert.equal(m.get("p").of, 3);
+});
+test("子集：只扣了一件（金额一样）也认；商店不对 / 凑不出 = 不配", () => {
+  const pool = order("112-6666666-6666666", "2026-11-02", "Amazon", [30, 20, 10]);
+  assert.equal(matchTrips([row("p", "2026-11-04", 20, "AMAZON MKTPL*Z")], pool).get("p").part, 1);
+  assert.equal(matchTrips([row("p", "2026-11-04", 20, "SHELL OIL")], pool).size, 0);
+  assert.equal(matchTrips([row("p", "2026-11-04", 25, "AMAZON MKTPL*Z")], pool).size, 0);
+});
+test("子集：同一件商品不会配给两笔流水；整单合计对上时走整单，不走子集", () => {
+  const pool = order("112-7777777-7777777", "2026-11-02", "Amazon", [30, 20, 10, 5]);   // 合计 65
+  const m = matchTrips([row("p", "2026-11-04", 30, "AMAZON A"), row("q", "2026-11-05", 25, "AMAZON B"), row("z", "2026-11-06", 30, "AMAZON C")], pool);
+  assert.equal(m.get("p").part, 1);   // 先配 30 这一件
+  assert.equal(m.get("q").ids.length, 2);   // 剩下的 20 + 5 凑成 25
+  assert.equal(m.has("z"), false);   // 只剩 10，第三笔 30 不配
+  assert.equal(new Set([...m.get("p").ids, ...m.get("q").ids]).size, 3);   // 同一件不会配给两笔
+  assert.equal(matchTrips([row("w", "2026-11-04", 65, "AMAZON A")], pool).get("w").tier, "strong");
+});
