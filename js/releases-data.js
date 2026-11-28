@@ -2,6 +2,8 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.29", title: { zh: "小票 / 订单里新建的物品默认不提醒", en: "Items created from receipts and orders no longer remind by default" }, items:
+    [{ k: "fix", zh: "从小票或订单录入时新建的物品，不再自动带上“快用完”提醒，和手动新建一致；需要时到物品页打开“提醒补货”。", en: "Items created while entering a receipt or order no longer come with a running-out reminder, same as adding by hand; turn on “Remind to restock” on the item when you want it." }] },
   { v: "2026-11-27.28", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
     { k: "better", zh: "更新了和牧羊人、小月亮共用的 ⚙ 设置菜单（上面放不下时向下展开），这个应用里暂时用不到；你现在看到的界面和操作都和上一版一样。", en: "Updated the shared ⚙ menu (it opens downward when there's no room above), which this app doesn't use yet; what you see and how it works is unchanged." }
   ] },

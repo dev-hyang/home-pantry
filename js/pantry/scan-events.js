@@ -192,7 +192,7 @@ async function confirm(ctx) {
       const key = normName(x.name), ex = newItems.get(key);   // 几行同名（不管分类）合成一件
       if (ex) ex.quantity = Math.round((ex.quantity + x.qty) * 100) / 100;
       else newItems.set(key, { name: x.name.slice(0, 60), category: x.cat, subcategory: subGuess(x.name, x.cat), unit: x.unit, quantity: Math.round(x.qty * 100) / 100, min_quantity: 0,
-        location: catOf(x.cat).loc || null, expiry_date: null, lead_days: spaceOf(x.cat) === "house" ? 14 : spaceOf(x.cat) === "gear" ? 0 : 3, avg_daily_use: null, notes: null });
+        location: catOf(x.cat).loc || null, expiry_date: null, lead_days: 0, avg_daily_use: null, notes: null });   // 新物品默认不提醒：少货线、提前天数都是 0（和手动新建一致，要提醒再到物品页打开）
     }
     if (newItems.size) { await Store.addItems([...newItems.values()]); created = newItems.size; }
     for (const x of rows) {
