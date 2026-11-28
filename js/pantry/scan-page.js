@@ -66,7 +66,9 @@ function inputHtml() {
           <textarea id="scanText" data-autosize rows="8" maxlength="12000" placeholder="${t("例如：Instacart / Amazon / 京东 / 盒马 的订单确认内容")}">${esc(sc.text)}</textarea></details>`
           : `<details class="scan-more" ${sc.text.trim() || sc.skipPhoto ? "open" : ""}><summary>${t("补充文字描述（可选，可跳过，例如小票上识别不出的商品）")}</summary>
           <textarea id="scanText" data-autosize rows="3" maxlength="12000" placeholder="">${esc(sc.text)}</textarea></details>`}
-        <p class="muted" style="margin:8px 0 0;font-size:12.5px">${t("图片和文字会发给你在设置里选的 {p}，不会保存原图。小票上的卡号、姓名建议裁掉或遮住再拍。Gemini 免费档的内容可能被用于改进产品，介意的话用付费 key。", { p: t(p.name) })}</p>
+        <p class="muted" style="margin:8px 0 0;font-size:12.5px">${order
+          ? t("粘贴的文字会先在本机抹掉收货地址、姓名、电话、邮箱、卡号和订单号，再发给你在设置里选的 {p}。截图没法自动抹，会原样发送：只截商品和价格部分，别带收货地址和姓名。不会保存原图。", { p: t(p.name) })
+          : t("图片和文字会发给你在设置里选的 {p}，不会保存原图。小票上的卡号、姓名建议裁掉或遮住再拍。Gemini 免费档的内容可能被用于改进产品，介意的话用付费 key。", { p: t(p.name) })}</p>
         ${sc.error ? `<p class="form-error" role="alert">${esc(sc.error)}</p>` : ""}
         <div class="ui-acts">${runBtn("")}</div>
       </div>

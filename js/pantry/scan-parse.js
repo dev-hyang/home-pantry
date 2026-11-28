@@ -4,6 +4,7 @@ import { fmt, num, spaceOf, todayISO } from "../core/util.js";
 import { lang, t } from "../core/i18n.js";
 import { state } from "../core/state.js";
 import { sc } from "./scan-common.js";
+import { redactOrderText } from "./scan-redact.js";
 
    // 只换页面本身，上面的面包屑和储藏页面卡片不动
 
@@ -36,12 +37,13 @@ export function scanPrompt(multi = "auto") {
     `Today is ${todayISO()}.`,
     "date = the purchase / order date as YYYY-MM-DD. Look for it on the receipt (usually near the top or bottom, next to the time) or in the order details; for pasted text, also understand phrases like \"last Saturday\" or \"10/18\" relative to today (US order: month/day unless the year comes first). If the year is missing, use the most recent past date. Never a future date. null only if there is truly no date.",
     "total = grand total as a number if visible, else null.",
+    "PRIVACY: ignore and NEVER output any person name, street address, phone number, email, card or account number, order number or tracking number, even if one is still visible in the text or image. Product names, quantities, prices, taxes, fees, dates and the store name are all that is needed.",
   ].join("\n");
   const user = [
     sc.kind === "order" ? "Source: an ONLINE ORDER (confirmation email, order page or app screenshot)." : "Source: an IN-STORE RECEIPT photo.",
     "Existing inventory (index|name|unit):", buildPool() || "(empty)",
     sc.date ? `The user says the purchase date is ${sc.date}; use it as date for every receipt.` : "",
-    sc.text.trim() ? `Pasted text:\n${sc.text.trim().slice(0, 12000)}` : "",
+    sc.text.trim() ? `Pasted text:\n${redactOrderText(sc.text).text.slice(0, 12000)}` : "",   // 发送前先在本机抹掉地址、姓名、电话、邮箱、卡号、订单号
     sc.images.length ? `${multi === "one" ? 1 : sc.images.length} image(s) attached.` : "",
     'Return exactly: {"receipts":[{"store":"","date":null,"currency":"","total":null,"lines":[{"raw":"original line","name":"","qty":1,"unit":"","amount":null,"match":null,"category":"other","skip":false,"order_discount":false,"fee":null}]}]}',
   ].filter(Boolean).join("\n");

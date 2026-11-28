@@ -2,7 +2,8 @@
 import { $, catOf, fmt, num, spaceOf, toast, todayISO } from "../core/util.js";
 import { FEES_CAT, normalize, parseJson, scanPrompt, unitNote } from "./scan-parse.js";
 import { Store } from "../core/store.js";
-import { aiReady, askText } from "../core/ai.js";
+import { aiReady, aiSettings, askText, providerOf } from "../core/ai.js";
+import { droppedTotal, redactOrderText } from "./scan-redact.js";
 import { blankRow, dupCands, markDups, startManual, updateSum } from "./scan-page.js";
 import { findItem, normName, similarItems } from "../core/item-match.js";
 import { href } from "../core/router.js";
@@ -109,7 +110,16 @@ function nameMatch(row, name) {
   hint.hidden = !same && !near.length;
   hint.textContent = same ? t("已有「{name}」，会补到它的库存", { name: same.name }) : near.length ? t("相近的已有物品：{list}。是同一样东西就在「放进库存」里选它", { list: near.map((i) => i.name).join("、") }) : "";
 }
+/** 线上订单发给 AI 之前的确认：说清楚发什么（文字已在本机抹掉个人信息）、图片会原样发送 */
+function orderSendWarn() {
+  const prov = t(providerOf(aiSettings().provider).name), r = redactOrderText(sc.text), n = droppedTotal(r.dropped);
+  const parts = [];
+  if (sc.text.trim()) parts.push(t("文字：已在本机抹掉 {n} 处地址 / 姓名 / 电话 / 邮箱 / 卡号 / 订单号，只发商品、价格、日期。", { n }));
+  if (sc.images.length) parts.push(t("图片：{n} 张会原样发送，看一下有没有收货地址、姓名（没有就继续，有就取消，截图时只截商品和价格部分）。", { n: sc.images.length }));
+  return t("将发给 {p}：", { p: prov }) + "\n" + parts.join("\n") + "\n" + t("继续？");
+}
 async function run() {
+  if (sc.kind === "order" && (sc.text.trim() || sc.images.length) && !confirm(orderSendWarn())) return;
   sc.busy = true; sc.error = ""; sc.progress = ""; repaint();
   try {
     const opts = { json: true, temperature: 0.1, maxTokens: 8000 };

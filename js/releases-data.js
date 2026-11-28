@@ -2,6 +2,10 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.19", title: { zh: "订单隐私：发给 AI 前先抹掉个人信息", en: "Online orders: personal info removed before it goes to AI" }, items: [
+    { k: "new", zh: "粘贴订单文字时，收货地址、姓名、电话、邮箱、卡号、订单号会先在本机抹掉，只把商品、价格、日期发给 AI。", en: "When you paste an order, the shipping address, name, phone, email, card and order numbers are removed on this device first; only products, prices and dates go to the AI." },
+    { k: "better", zh: "线上订单发给 AI 前会弹出确认，写明发什么；截图提醒只截商品和价格部分，不要带收货地址。", en: "Online orders now ask for confirmation before sending, saying exactly what goes out; for screenshots, capture only products and prices, not the address." },
+  ] },
   { v: "2026-11-27.18", title: { zh: "撤销入库：说明更清楚", en: "Undo restock: clearer hint" }, items: [
     { k: "better", zh: "物品详情页「库存记录」标题下写明：只有「补货入库」的行有「撤销入库」按钮（用掉、手动调整、扔掉的行没有）。", en: "The Stock history on an item page now says that only Restocked rows have the Undo restock button." },
     { k: "fix", zh: "刚在数据库升级完、页面还开着时，不用刷新也能自动认出新功能（之前要刷新页面）。", en: "If the database was just upgraded while the page was open, the new feature is picked up without a manual refresh." },
