@@ -2,6 +2,9 @@
  * 每次推送：升 js/core/version.js 的 APP_VERSION，同时在最上面加一条同版本号的记录（没有这一条就不出提示）。
  * 写给家里人看：一句话标题 + 1–4 条短要点，k = new 新功能 / better 改进 / fix 修复，不写技术词。 */
 export const RELEASES = [
+  { v: "2026-11-27.27", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
+    { k: "better", zh: "更新了和牧羊人、小月亮共用的 ⚙ 设置菜单样式（展开时显示在最上层），这个应用里暂时用不到；你现在看到的界面和操作都和上一版一样。", en: "Updated the shared ⚙ menu style (it now opens on top), which this app doesn't use yet; what you see and how it works is unchanged." }
+  ] },
   { v: "2026-11-27.26", title: { zh: "「采购」并进「储藏」", en: "Shopping is now part of Pantry" }, items: [
     { k: "better", zh: "底部不再有单独的「采购」页签：购物车、常去的商店、特价一览都在「储藏」的目录里（目录里的「采购」一组）。购物车还没买的数量显示在「储藏」页签上。", en: "There is no separate Shopping tab any more: the cart, favourite shops and deals are inside Pantry (a Shopping group in the Directory). The count of items still to buy shows on the Pantry tab." },
     { k: "better", zh: "采购相关页面顶上的路径变成「储藏 / 采购 / …」。原来的链接、书签、保存的快捷操作都照常能用。", en: "Shopping pages now show the path “Pantry / Shopping / …”. Existing links, bookmarks and saved shortcuts keep working." },
