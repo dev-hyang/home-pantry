@@ -4687,4 +4687,5 @@ export const EN = {
   "订单隐私：发给 AI 前先抹掉个人信息": "Online orders: personal info removed before it goes to AI",
   "粘贴订单文字时，收货地址、姓名、电话、邮箱、卡号、订单号会先在本机抹掉，只把商品、价格、日期发给 AI。": "When you paste an order, the shipping address, name, phone, email, card and order numbers are removed on this device first; only products, prices and dates go to the AI.",
   "线上订单发给 AI 前会弹出确认，写明发什么；截图提醒只截商品和价格部分，不要带收货地址。": "Online orders now ask for confirmation before sending, saying exactly what goes out; for screenshots, capture only products and prices, not the address.",
+  "补货或新入库": "Restocked or new", "最近入库把新物品也算进去；视图切换更好认": "Recently stocked includes new items; clearer view switch",
 };

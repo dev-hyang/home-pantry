@@ -319,7 +319,9 @@ i.ui-dash { height: 12px; }
 .ui-rec-acts { position: relative; z-index: 1; }
 
 /* 视图切换按钮前面的小字「切换」：提示这里可以切换（shared/ui-viewsw.js） */
-.ui-vsw-hint { font-size: 11px; font-weight: 500; opacity: .75; }
+.ui-vsw-hint { padding-right: 7px; border-right: 1px solid color-mix(in srgb, currentColor 40%, transparent); font-size: 12px; font-weight: 500; line-height: 1.5; opacity: .9; }   /* 「切换」小字 + 竖线：一眼看出这是切换视图的按钮，手机上也不隐藏（2026-11-27.19） */
+.ui-vsw-caret { flex: none; margin-left: -2px; font-size: 11px; opacity: .8; transition: transform .15s; }
+.ui-vsw[open] .ui-vsw-caret { transform: rotate(180deg); }
 
 /* ── 进度虚线条的轮播变体（2026-11-27.9）：‹ 横条 › ⚙，当前那条走满 = 自动换下一张；放在 data-dash-host 容器里，手停在上面 / 菜单开着就暂停 ── */
 .ui-dashbar { position: relative; min-height: 32px; }
